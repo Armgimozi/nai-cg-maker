@@ -38,6 +38,25 @@ def _split_dataurl(s: str) -> tuple[str, str]:
     return (s or ""), "image/png"
 
 
+def _detect_media_type(b64: str, fallback: str = "image/png") -> str:
+    """선언된 MIME 을 믿지 않고 실제 바이트(매직넘버)로 이미지 타입 판별.
+
+    Anthropic 비전 API 는 선언 타입과 실제 바이트가 다르면 400 을 낸다."""
+    try:
+        head = base64.b64decode(b64[:16])  # 16 base64 chars → 12 bytes
+    except Exception:  # noqa: BLE001
+        return fallback
+    if head.startswith(b"\x89PNG"):
+        return "image/png"
+    if head.startswith(b"\xff\xd8\xff"):
+        return "image/jpeg"
+    if head.startswith(b"GIF8"):
+        return "image/gif"
+    if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
+        return "image/webp"
+    return fallback
+
+
 def _fetch_url_text(url: str) -> str:
     """URL 본문을 받아 태그를 대충 제거한 텍스트로(참고용)."""
     req = urllib.request.Request(url, headers={"User-Agent": _UA})
@@ -134,7 +153,9 @@ def create_app(cfg: dict, db: TagDB, default_api_key: str | None = None,
                 return jsonify({"error": f"참고 URL 을 불러오지 못했습니다: {e}"}), 400
 
         img_b64, img_mt = _split_dataurl(body.get("image") or "")
-        if not img_b64:
+        if img_b64:
+            img_mt = _detect_media_type(img_b64, img_mt)  # 실제 바이트로 타입 보정
+        else:
             img_b64 = None
 
         if not (scene or base or chars or tags or ref_text or img_b64):
