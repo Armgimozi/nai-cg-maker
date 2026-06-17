@@ -1,0 +1,12 @@
+# 절대 커밋 금지 — 실제 API 키가 들어있음
+config.json
+
+cache/
+cloudflared.exe
+test_*.png
+phone_qr.png
+__pycache__/
+*.pyc
+data/danbooru.csv
+resp.json
+config.yml

@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NAI 프롬프트 스튜디오</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>NAI <span class="arrow">·</span> 프롬프트 스튜디오</h1>
+      <p class="sub">기존 프롬프트 + 원하는 <b>장면</b> → 장면에 맞춰 재구성하고 <b>생성·인페인트·연속 CG</b>까지.</p>
+    </header>
+
+    <!-- API 키 (BYO-key) -->
+    <details class="card" id="keys">
+      <summary>🔑 API 키 <span class="hint">(각자 입력 · 이 브라우저에만 저장 · 서버에 안 남음)</span></summary>
+      <div class="settings-grid">
+        <label>Anthropic API 키 (재구성/태그)
+          <input type="password" id="keyAnthropic" placeholder="sk-ant-..." autocomplete="off" />
+        </label>
+        <label>NovelAI 토큰 (이미지 생성)
+          <input type="password" id="keyNai" placeholder="pst-..." autocomplete="off" />
+        </label>
+      </div>
+      <div class="row gap mt">
+        <button id="keySave" class="go small">키 저장</button>
+        <span id="keyStatus" class="hint"></span>
+      </div>
+    </details>
+
+    <!-- 원하는 장면 -->
+    <section class="card">
+      <label class="field-label">원하는 장면</label>
+      <textarea id="scene" rows="2" placeholder="예) 비 오는 창가에 앉아 밖을 바라보는, 우울하고 차분한 분위기"></textarea>
+      <div class="examples" id="examples"></div>
+      <div class="row gap">
+        <button id="findTagsBtn" class="ghost">🔍 이 장면의 태그 찾기</button>
+        <div class="seg" id="ratingSeg" hidden>
+          <button data-r="3" class="active">전체</button>
+          <button data-r="2">Q까지</button>
+          <button data-r="1">S까지</button>
+          <button data-r="0">일반만</button>
+        </div>
+      </div>
+      <div id="tagStatus" class="status" hidden></div>
+      <div id="results" class="results"></div>
+    </section>
+
+    <!-- 기존 프롬프트 + 참고 -->
+    <section class="card">
+      <div class="row between">
+        <label class="field-label">기존 프롬프트 <span class="hint">(바탕 — 정체성/스타일 유지)</span></label>
+        <button id="reconBtn" class="go small">✨ 장면에 맞춰 재구성</button>
+      </div>
+      <div id="reconStatus" class="status" hidden></div>
+
+      <label class="sub-label base">베이스 프롬프트</label>
+      <textarea id="basePrompt" class="prompt" rows="3" placeholder="masterpiece, best quality, 1girl, ..."></textarea>
+
+      <div class="row between mt">
+        <label class="sub-label char">캐릭터 프롬프트</label>
+        <button id="addCharBtn" class="ghost xs">+ 캐릭터 추가</button>
+      </div>
+      <div id="charList"></div>
+
+      <label class="sub-label neg mt">네거티브 프롬프트</label>
+      <textarea id="negPrompt" class="prompt" rows="2" placeholder="lowres, worst quality, bad anatomy, ..."></textarea>
+
+      <label class="sub-label mt">참고 정보 <span class="hint">(글 붙여넣기 또는 URL — 재구성에 반영)</span></label>
+      <textarea id="refText" class="prompt" rows="2" placeholder="작품/캐릭터 설정 글을 붙여넣거나, https://... 링크 한 줄"></textarea>
+
+      <div class="row between mt">
+        <label class="sub-label">참고 이미지 <span class="hint">(재구성 시 Claude가 그림을 보고 반영 · 선택)</span></label>
+        <div class="row gap">
+          <input type="file" id="refImgInput" accept="image/*" hidden />
+          <button id="refImgBtn" class="ghost xs">＋ 이미지</button>
+          <button id="refImgClear" class="ghost xs" hidden>제거</button>
+        </div>
+      </div>
+      <img id="refImgPreview" class="ref-preview" hidden alt="참고 이미지" />
+    </section>
+
+    <!-- 캐릭터 레퍼런스(vibe) -->
+    <section class="card">
+      <label class="field-label">캐릭터 레퍼런스 <span class="hint">(참조 이미지로 캐릭터/스타일 유지 · 생성에 반영 · 선택)</span></label>
+      <div class="ref-add">
+        <input type="file" id="refInput" accept="image/*" multiple hidden />
+        <button id="refBtn" class="ghost">＋ 이미지 추가</button>
+        <span class="hint">여러 장 가능</span>
+      </div>
+      <div id="refList" class="ref-list"></div>
+    </section>
+
+    <!-- 설정 -->
+    <details class="card" id="settings">
+      <summary>⚙ 설정 <span class="hint">(모델 / 해상도 / 스텝 / 가이던스 / 샘플러 / 시드)</span></summary>
+      <div class="settings-grid">
+        <label>모델
+          <select id="setModel">
+            <option value="nai-diffusion-4-5-full">v4.5 Full</option>
+            <option value="nai-diffusion-4-5-curated">v4.5 Curated</option>
+          </select>
+        </label>
+        <label>해상도
+          <select id="setSize">
+            <option value="832x1216">세로 832×1216</option>
+            <option value="1216x832">가로 1216×832</option>
+            <option value="1024x1024">정사각 1024×1024</option>
+            <option value="custom">사용자 지정</option>
+          </select>
+        </label>
+        <label class="custom-size" id="customSize" hidden>크기
+          <span class="row gap">
+            <input type="number" id="setW" value="832" step="64" min="64" max="2048" />
+            <span>×</span>
+            <input type="number" id="setH" value="1216" step="64" min="64" max="2048" />
+          </span>
+        </label>
+        <label>샘플러
+          <select id="setSampler">
+            <option value="k_euler_ancestral">Euler Ancestral</option>
+            <option value="k_euler">Euler</option>
+            <option value="k_dpmpp_2m">DPM++ 2M</option>
+            <option value="k_dpmpp_2s_ancestral">DPM++ 2S Ancestral</option>
+            <option value="k_dpmpp_2m_sde">DPM++ 2M SDE</option>
+            <option value="k_dpmpp_sde">DPM++ SDE</option>
+          </select>
+        </label>
+        <label>노이즈 스케줄
+          <select id="setNoise">
+            <option value="karras">Karras</option>
+            <option value="exponential">Exponential</option>
+            <option value="polyexponential">Polyexponential</option>
+            <option value="native">Native</option>
+          </select>
+        </label>
+        <label>스텝 <span id="stepsVal" class="val">28</span>
+          <input type="range" id="setSteps" min="1" max="50" value="28" />
+        </label>
+        <label>가이던스(CFG) <span id="scaleVal" class="val">5</span>
+          <input type="range" id="setScale" min="1" max="10" step="0.5" value="5" />
+        </label>
+        <label>가이던스 리스케일 <span id="rescaleVal" class="val">0</span>
+          <input type="range" id="setRescale" min="0" max="1" step="0.05" value="0" />
+        </label>
+        <label>시드
+          <span class="row gap">
+            <input type="number" id="setSeed" placeholder="랜덤" min="0" />
+            <label class="toggle"><input type="checkbox" id="seedFix" /> <span>고정</span></label>
+          </span>
+        </label>
+      </div>
+    </details>
+
+    <!-- 생성 + 큐 -->
+    <div class="generate-bar">
+      <button id="genBtn" class="go big">이미지 생성</button>
+      <button id="queueAddBtn" class="ghost">＋ 큐에 추가</button>
+      <span class="row gap">
+        <input type="number" id="queueN" value="4" min="1" max="20" class="qn" />
+        <button id="queueAddN" class="ghost">장 큐에 추가</button>
+      </span>
+      <span id="genInfo" class="gen-info"></span>
+    </div>
+    <div id="queueStatus" class="queue-status" hidden></div>
+
+    <!-- 작업 이미지(인페인트) -->
+    <div id="genResult" class="gen-result"></div>
+
+    <!-- 갤러리 -->
+    <section class="card" id="galleryCard" hidden>
+      <label class="field-label">갤러리 <span class="hint">(클릭하면 위 작업 영역으로 불러와 인페인트)</span></label>
+      <div id="gallery" class="gallery"></div>
+    </section>
+
+    <!-- 연속 시퀀스 (인페인트 체인) -->
+    <details class="card" id="seqCard">
+      <summary>🎞 연속 시퀀스 (인페인트) <span class="hint">(장면을 순서대로 → 프레임1 생성 → 마스킹하며 1→2→3 진행)</span></summary>
+      <p class="hint mt">각 칸에 <b>원하는 장면을 한글로</b> 적으면 Claude가 프레임별 프롬프트로 변환합니다. 캐릭터 정체성은 위 <b>캐릭터 프롬프트</b>(또는 1번 프레임)에서 이어집니다.</p>
+      <div id="seqList"></div>
+      <button id="addSeqBtn" class="ghost xs mt">+ 장면 추가</button>
+      <div class="row gap mt">
+        <button id="seqStartBtn" class="go small">① 프레임 1 생성</button>
+        <button id="seqNextBtn" class="go small" disabled>② 다음 프레임 (인페인트)</button>
+        <span id="seqInfo" class="gen-info"></span>
+      </div>
+      <p class="ip-hint mt">② 전에 위 작업 영역에서 <b>바뀔 부분을 마스킹</b>하세요. 마스킹 안 하면 전체가 바뀝니다.</p>
+    </details>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+config.json
+cache/
+cloudflared.exe
+test_*.png
+phone_qr.png
+__pycache__/
+*.pyc
+.git/
+data/danbooru.csv

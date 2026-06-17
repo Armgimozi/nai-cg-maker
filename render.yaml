@@ -1,0 +1,8 @@
+# Render 원클릭 배포(Blueprint). render.com → New → Blueprint → 이 저장소 선택.
+# Dockerfile 로 빌드되며 완전 BYO-key(서버 기본 키 없음)로 동작합니다.
+services:
+  - type: web
+    name: nai-prompt-studio
+    runtime: docker
+    plan: free
+    healthCheckPath: /

@@ -1,0 +1,16 @@
+{
+  "model": "claude-opus-4-8",
+  "max_tokens": 4000,
+  "max_tags": 40,
+  "host": "127.0.0.1",
+  "port": 8765,
+  "api_key": "",
+  "nai_token": "",
+  "nai_model": "nai-diffusion-4-5-full",
+  "nai_width": 832,
+  "nai_height": 1216,
+  "nai_steps": 28,
+  "nai_scale": 5,
+  "nai_sampler": "k_euler_ancestral",
+  "nai_noise_schedule": "karras"
+}
