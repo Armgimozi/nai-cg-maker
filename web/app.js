@@ -45,6 +45,43 @@ function loadKeys() {
   $("#keyNai").value = localStorage.getItem("nai_token") || "";
 }
 
+// ── 설정/프롬프트 브라우저 저장(localStorage) ────────────
+const STATE_KEY = "studio_state";
+let _saveTimer = null;
+function scheduleSave() { clearTimeout(_saveTimer); _saveTimer = setTimeout(saveState, 400); }
+function saveState() {
+  try {
+    localStorage.setItem(STATE_KEY, JSON.stringify({
+      scene: $("#scene").value, base: $("#basePrompt").value, neg: $("#negPrompt").value, refText: $("#refText").value,
+      chars: $$("#charList .char-input").map((t) => t.value),
+      seq: $$("#seqList .seq-input").map((t) => t.value),
+      set: {
+        model: $("#setModel").value, size: $("#setSize").value, w: $("#setW").value, h: $("#setH").value,
+        sampler: $("#setSampler").value, noise: $("#setNoise").value, steps: $("#setSteps").value,
+        scale: $("#setScale").value, rescale: $("#setRescale").value, seed: $("#setSeed").value, seedFix: $("#seedFix").checked,
+      },
+    }));
+  } catch (e) { /* quota 초과 등은 무시 */ }
+}
+function loadState() {
+  let s; try { s = JSON.parse(localStorage.getItem(STATE_KEY) || "null"); } catch { s = null; }
+  if (!s) return false;
+  const set = (id, v) => { if (v != null && $(id)) $(id).value = v; };
+  set("#scene", s.scene); set("#basePrompt", s.base); set("#negPrompt", s.neg); set("#refText", s.refText);
+  $("#charList").innerHTML = ""; (Array.isArray(s.chars) && s.chars.length ? s.chars : [""]).forEach((v) => addCharRow(v));
+  $("#seqList").innerHTML = ""; (Array.isArray(s.seq) ? s.seq : []).forEach((v) => addSeqRow(v));
+  const st = s.set || {};
+  set("#setModel", st.model); set("#setSize", st.size); set("#setW", st.w); set("#setH", st.h);
+  set("#setSampler", st.sampler); set("#setNoise", st.noise); set("#setSteps", st.steps);
+  set("#setScale", st.scale); set("#setRescale", st.rescale); set("#setSeed", st.seed);
+  if (st.seedFix != null) $("#seedFix").checked = st.seedFix;
+  $("#stepsVal").textContent = $("#setSteps").value;
+  $("#scaleVal").textContent = $("#setScale").value;
+  $("#rescaleVal").textContent = $("#setRescale").value;
+  $("#customSize").hidden = $("#setSize").value !== "custom";
+  return true;
+}
+
 // ── 캐릭터 프롬프트 행 ────────────────────────────────────
 function addCharRow(value = "") {
   const row = document.createElement("div");
@@ -54,7 +91,7 @@ function addCharRow(value = "") {
   ta.placeholder = "long_hair, blue_eyes, school_uniform, smile, ...";
   ta.value = value;
   const rm = document.createElement("button");
-  rm.className = "ghost xs rm"; rm.textContent = "✕"; rm.onclick = () => row.remove();
+  rm.className = "ghost xs rm"; rm.textContent = "✕"; rm.onclick = () => { row.remove(); saveState(); };
   row.append(ta, rm); $("#charList").appendChild(row); return ta;
 }
 const getChars = () => $$("#charList .char-input").map((t) => t.value.trim()).filter(Boolean);
@@ -106,6 +143,7 @@ function appendToBase(tag) {
   const ta = $("#basePrompt");
   if (ta.value.split(/[,\n]/).map((s) => s.trim()).includes(tag)) return;
   ta.value = (ta.value.trim() ? ta.value.trim() + ", " : "") + tag;
+  saveState();
 }
 
 // ── 재구성 (참고글/URL/이미지 반영) ──────────────────────
@@ -125,6 +163,7 @@ async function reconstruct() {
     $("#charList").innerHTML = ""; (d.character_prompts || []).forEach((c) => addCharRow(c.prompt || ""));
     if (!getChars().length) addCharRow("");
     $("#negPrompt").value = d.negative_prompt || "";
+    saveState();
     setBox("#reconStatus", d.note ? "✨ " + d.note : "재구성 완료.", "load");
   } catch (e) { setBox("#reconStatus", "오류: " + e.message, "err"); }
   finally { $("#reconBtn").disabled = false; }
@@ -250,7 +289,7 @@ function addSeqRow(value = "") {
   const row = document.createElement("div"); row.className = "char-row";
   const inp = document.createElement("input"); inp.type = "text"; inp.className = "prompt seq-input";
   inp.placeholder = "이 프레임의 장면을 한글로 (예: 침대에 앉아 이쪽을 바라본다)"; inp.value = value;
-  const rm = document.createElement("button"); rm.className = "ghost xs rm"; rm.textContent = "✕"; rm.onclick = () => row.remove();
+  const rm = document.createElement("button"); rm.className = "ghost xs rm"; rm.textContent = "✕"; rm.onclick = () => { row.remove(); saveState(); };
   row.append(inp, rm); $("#seqList").appendChild(row);
 }
 const seqScenes = () => $$("#seqList .seq-input").map((t) => t.value.trim()).filter(Boolean);
@@ -301,14 +340,19 @@ async function seqNext() {
 }
 
 // ── 초기화 ───────────────────────────────────────────────
-initExamples(); loadKeys(); addCharRow("");
-addSeqRow("창가에 서서 밖을 바라본다"); addSeqRow("돌아서서 이쪽을 본다"); addSeqRow("의자에 앉아 미소짓는다");
+initExamples(); loadKeys();
+if (!loadState()) {
+  addCharRow("");
+  addSeqRow("창가에 서서 밖을 바라본다"); addSeqRow("돌아서서 이쪽을 본다"); addSeqRow("의자에 앉아 미소짓는다");
+}
+document.addEventListener("input", scheduleSave);
+document.addEventListener("change", scheduleSave);
 $("#keySave").onclick = () => { localStorage.setItem("anthropic_key", $("#keyAnthropic").value.trim()); localStorage.setItem("nai_token", $("#keyNai").value.trim()); $("#keyStatus").textContent = "저장됨 ✓"; setTimeout(() => $("#keyStatus").textContent = "", 2000); };
 $("#findTagsBtn").onclick = findTags;
 $("#ratingSeg").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; maxRating = Number(b.dataset.r); $$("#ratingSeg button").forEach((x) => x.classList.toggle("active", x === b)); renderTags(); });
 $("#scene").addEventListener("keydown", (e) => { if ((e.ctrlKey || e.metaKey) && e.key === "Enter") findTags(); });
 $("#reconBtn").onclick = reconstruct;
-$("#addCharBtn").onclick = () => addCharRow("");
+$("#addCharBtn").onclick = () => { addCharRow(""); saveState(); };
 $("#refImgBtn").onclick = () => $("#refImgInput").click();
 $("#refImgInput").onchange = (e) => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { refImage = r.result; $("#refImgPreview").src = refImage; $("#refImgPreview").hidden = false; $("#refImgClear").hidden = false; }; r.readAsDataURL(f); e.target.value = ""; };
 $("#refImgClear").onclick = () => { refImage = null; $("#refImgPreview").hidden = true; $("#refImgClear").hidden = true; };
@@ -321,6 +365,6 @@ $("#setRescale").oninput = (e) => { $("#rescaleVal").textContent = e.target.valu
 $("#genBtn").onclick = () => queueGenerate(1);
 $("#queueAddBtn").onclick = () => queueGenerate(1);
 $("#queueAddN").onclick = () => queueGenerate(Math.max(1, Math.min(20, Number($("#queueN").value) || 1)));
-$("#addSeqBtn").onclick = () => addSeqRow("");
+$("#addSeqBtn").onclick = () => { addSeqRow(""); saveState(); };
 $("#seqStartBtn").onclick = seqStart;
 $("#seqNextBtn").onclick = seqNext;
