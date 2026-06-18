@@ -3,10 +3,14 @@
   generate() : 베이스/캐릭터/네거티브 프롬프트 → 이미지(PNG bytes)
   inpaint()  : 위 + 원본이미지 + 마스크(흰색=재생성) → infill 결과
 
-설정(settings)과 캐릭터 레퍼런스(references)를 함께 받는다.
-v4.5 의 레퍼런스(vibe transfer)는 raw 이미지를 그대로 보내면 거부되므로,
-먼저 /ai/encode-vibe 로 이미지를 인코딩(vibe 토큰)한 뒤 그 토큰(base64)을
-reference_image_multiple 로 보낸다. 응답은 PNG 가 든 ZIP.
+설정(settings)과 캐릭터 레퍼런스(references)를 함께 받는다. 레퍼런스는 두 방식:
+  · vibe transfer  : /ai/encode-vibe 로 먼저 인코딩(vibe 토큰)한 뒤
+                     reference_image_multiple 로 보낸다(raw 이미지는 거부됨).
+  · precise reference(V4.5) : 원본 이미지를 director_reference_images 로 그대로
+                     보낸다(인코딩 불필요). 유형(캐릭터/스타일/둘다)·Strength·
+                     Fidelity 를 director_reference_* 로 전달. 생성당 +5 Anlas.
+둘은 한 생성에 함께 못 쓰므로 ref 의 mode 로 구분하고 precise 가 있으면 우선한다.
+응답은 PNG 가 든 ZIP.
 """
 
 from __future__ import annotations
@@ -29,6 +33,22 @@ _UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
 def _char_captions(prompts: list[str]) -> list[dict]:
     return [{"char_caption": p, "centers": [{"x": 0.5, "y": 0.5}]}
             for p in prompts if p.strip()]
+
+
+# Precise Reference(=director reference) 유형 → API caption 값
+_REF_CAPTION = {"character": "character", "style": "style", "both": "character&style"}
+
+
+def _split_refs(references) -> tuple[list, list]:
+    """references → (vibe, precise). vibe transfer 와 precise reference 는
+    NAI 상 한 생성에 같이 못 쓰므로, precise 가 하나라도 있으면 precise 만
+    쓰고 vibe 는 버린다(precise 우선)."""
+    vibe, precise = [], []
+    for r in references or []:
+        if not r.get("image"):
+            continue
+        (precise if r.get("mode") == "precise" else vibe).append(r)
+    return ([], precise) if precise else (vibe, [])
 
 
 class NovelAIClient:
@@ -91,7 +111,7 @@ class NovelAIClient:
         return vibes
 
     def _params(self, base, chars, negative, seed, width, height,
-                settings=None, vibes=None, extra=None) -> dict:
+                settings=None, vibes=None, directors=None, extra=None) -> dict:
         s = settings or {}
         params = {
             "params_version": 3,
@@ -138,6 +158,24 @@ class NovelAIClient:
             params["reference_information_extracted_multiple"] = []
             params["reference_strength_multiple"] = []
 
+        # Precise Reference(V4.5): 원본 이미지를 그대로(인코딩 없이) 보낸다.
+        # Strength=강도, Fidelity=정밀도(secondary 는 1-fidelity 로 반전 전달).
+        directors = directors or []
+        if directors:
+            params["director_reference_images"] = [d["image"] for d in directors]
+            params["director_reference_descriptions"] = [
+                {"use_coords": False, "use_order": False, "legacy_uc": False,
+                 "caption": {"base_caption": _REF_CAPTION.get(d.get("ref_type", "character"),
+                                                              "character"),
+                             "char_captions": []}}
+                for d in directors]
+            params["director_reference_strength_values"] = [
+                float(d.get("strength", 1.0)) for d in directors]
+            params["director_reference_secondary_strength_values"] = [
+                round(1.0 - float(d.get("fidelity", 1.0)), 4) for d in directors]
+            params["director_reference_information_extracted"] = [
+                float(d.get("info_extracted", 1.0)) for d in directors]
+
         if extra:
             params.update(extra)
         return params
@@ -147,13 +185,14 @@ class NovelAIClient:
         seed = random.randint(0, _SEED_MAX) if seed is None else int(seed)
         w, h = width or self.width, height or self.height
         model = (settings or {}).get("model") or self.model
-        vibes = self._encode_refs(references, model)
+        vibe_refs, precise_refs = _split_refs(references)
+        vibes = self._encode_refs(vibe_refs, model)
         body = {
             "input": base,
             "model": model,
             "action": "generate",
             "parameters": self._params(base, chars, negative, seed, w, h,
-                                       settings, vibes),
+                                       settings, vibes, precise_refs),
         }
         return self._unzip(self._http(API_URL, body, "application/x-zip-compressed,application/json")), seed
 
@@ -162,7 +201,8 @@ class NovelAIClient:
         seed = random.randint(0, _SEED_MAX) if seed is None else int(seed)
         w, h = width or self.width, height or self.height
         model = (settings or {}).get("model") or self.model
-        vibes = self._encode_refs(references, model)
+        vibe_refs, precise_refs = _split_refs(references)
+        vibes = self._encode_refs(vibe_refs, model)
         inpaint_model = model if model.endswith("-inpainting") else f"{model}-inpainting"
         extra = {"image": image_b64, "mask": mask_b64, "add_original_image": True}
         body = {
@@ -170,7 +210,7 @@ class NovelAIClient:
             "model": inpaint_model,
             "action": "infill",
             "parameters": self._params(base, chars, negative, seed, w, h,
-                                       settings, vibes, extra),
+                                       settings, vibes, precise_refs, extra),
         }
         return self._unzip(self._http(API_URL, body, "application/x-zip-compressed,application/json")), seed
 

@@ -15,6 +15,9 @@ from __future__ import annotations
 
 import base64
 import re
+import time
+import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -57,14 +60,53 @@ def _detect_media_type(b64: str, fallback: str = "image/png") -> str:
     return fallback
 
 
+_FETCH_HEADERS = {
+    "User-Agent": _UA,
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9,ko;q=0.8",
+}
+
+
+_URL_CACHE: dict[str, tuple[float, str]] = {}
+_URL_CACHE_TTL = 600.0  # 10분
+
+
 def _fetch_url_text(url: str) -> str:
-    """URL 본문을 받아 태그를 대충 제거한 텍스트로(참고용)."""
-    req = urllib.request.Request(url, headers={"User-Agent": _UA})
-    html = urllib.request.urlopen(req, timeout=15).read().decode("utf-8", "replace")
+    """URL 본문을 받아 태그를 대충 제거한 텍스트로(참고용).
+
+    같은 URL 을 짧은 시간에 여러 번(예: 연속 시퀀스의 프레임마다) 요청하면
+    대상 사이트가 429 로 막으므로, 성공 결과를 TTL(10분) 동안 캐시해 1회만 받는다.
+    봇 차단을 줄이려 브라우저 비슷한 헤더를 보내고, 429(요청 과다)는
+    Retry-After(최대 5초)만큼 기다려 한 번 더 시도한다.
+    """
+    now = time.time()
+    hit = _URL_CACHE.get(url)
+    if hit is not None and now - hit[0] < _URL_CACHE_TTL:
+        return hit[1]
+
+    headers = dict(_FETCH_HEADERS)
+    parts = urllib.parse.urlsplit(url)
+    if parts.scheme and parts.netloc:
+        headers["Referer"] = f"{parts.scheme}://{parts.netloc}/"
+
+    html = ""
+    for attempt in range(2):
+        req = urllib.request.Request(url, headers=headers)
+        try:
+            html = urllib.request.urlopen(req, timeout=15).read().decode("utf-8", "replace")
+            break
+        except urllib.error.HTTPError as e:
+            if e.code == 429 and attempt == 0:
+                ra = (e.headers.get("Retry-After") if e.headers else None) or ""
+                time.sleep(min(float(ra) if ra.isdigit() else 1.2, 5.0))
+                continue
+            raise
     html = re.sub(r"(?is)<(script|style)[^>]*>.*?</\1>", " ", html)
     text = re.sub(r"(?s)<[^>]+>", " ", html)
     text = re.sub(r"\s+", " ", text)
-    return text.strip()[:6000]
+    result = text.strip()[:6000]
+    _URL_CACHE[url] = (now, result)
+    return result
 
 
 def _validate(data: dict, db: TagDB) -> dict:
@@ -149,6 +191,17 @@ def create_app(cfg: dict, db: TagDB, default_api_key: str | None = None,
         if ref_url:
             try:
                 ref_text = (ref_text + "\n\n" + _fetch_url_text(ref_url)).strip()
+            except urllib.error.HTTPError as e:
+                if e.code == 429:
+                    msg = ("참고 URL 사이트가 요청을 일시 차단했습니다(429 Too Many Requests). "
+                           "잠시 후 다시 시도하거나, 페이지 내용을 복사해 '참고 정보' 칸에 "
+                           "직접 붙여넣으세요.")
+                elif e.code in (401, 403):
+                    msg = (f"참고 URL 접근이 거부됐습니다(HTTP {e.code}). 로그인/쿠키가 필요한 "
+                           "페이지일 수 있습니다. 내용을 복사해 '참고 정보' 칸에 직접 붙여넣으세요.")
+                else:
+                    msg = f"참고 URL 을 불러오지 못했습니다: HTTP {e.code} {e.reason}"
+                return jsonify({"error": msg}), 400
             except Exception as e:  # noqa: BLE001
                 return jsonify({"error": f"참고 URL 을 불러오지 못했습니다: {e}"}), 400
 
@@ -181,8 +234,14 @@ def create_app(cfg: dict, db: TagDB, default_api_key: str | None = None,
         for r in (body.get("references") or []):
             img, _ = _split_dataurl(r.get("image") or "")
             if img:
-                refs.append({"image": img, "strength": r.get("strength", 0.6),
-                             "info_extracted": r.get("info_extracted", 1.0)})
+                refs.append({
+                    "image": img,
+                    "mode": "precise" if r.get("mode") == "precise" else "vibe",
+                    "strength": r.get("strength", 0.6),
+                    "info_extracted": r.get("info_extracted", 1.0),
+                    "ref_type": r.get("ref_type", "character"),
+                    "fidelity": r.get("fidelity", 1.0),
+                })
         return base, chars, neg, seed, width, height, settings, refs
 
     @app.post("/api/generate")

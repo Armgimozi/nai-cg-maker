@@ -10,3 +10,4 @@ __pycache__/
 data/danbooru.csv
 resp.json
 config.yml
+.claude/

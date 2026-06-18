@@ -113,6 +113,9 @@ button { font-family: inherit; }
 .ref-ctrls { flex: 1; display: flex; flex-direction: column; gap: 6px; }
 .ref-ctrls label { font-size: .8rem; color: var(--muted); display: flex; align-items: center; gap: 8px; }
 .ref-ctrls input[type="range"] { flex: 1; accent-color: var(--accent); }
+.ref-ctrls select.ref-type { flex: 1; background: var(--surface-2); color: var(--text); border: 1px solid var(--line); border-radius: 7px; padding: 4px 6px; font: inherit; font-size: .8rem; }
+.ref-mode-hint { margin: 8px 0 0; }
+#refModeSeg { margin-top: 10px; }
 
 /* 설정 */
 details#settings summary { cursor: pointer; font-weight: 600; list-style: none; }

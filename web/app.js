@@ -12,7 +12,8 @@ const RATING_IDX = { general: 0, sensitive: 1, questionable: 2, explicit: 3 };
 
 let lastTags = [], maxRating = 3;
 let refImage = null;          // 참고 이미지(재구성용) dataURL
-let refs = [];                // [{url,strength,info}] 캐릭터 레퍼런스(vibe)
+let refs = [];                // [{url,strength,info,type,fidelity}] 캐릭터 레퍼런스
+let refMode = "precise";      // "precise"(V4.5 정밀 참조) | "vibe"(vibe transfer)
 let gallery = [];             // [{url,seed,w,h}]
 let curImg = null;            // 작업 영역 {url,seed,w,h}
 let masking = false, brushSize = 55, drawing = false, lastPt = null;
@@ -53,6 +54,7 @@ function saveState() {
   try {
     localStorage.setItem(STATE_KEY, JSON.stringify({
       scene: $("#scene").value, base: $("#basePrompt").value, neg: $("#negPrompt").value, refText: $("#refText").value,
+      refMode,
       chars: $$("#charList .char-input").map((t) => t.value),
       seq: $$("#seqList .seq-input").map((t) => t.value),
       set: {
@@ -68,6 +70,7 @@ function loadState() {
   if (!s) return false;
   const set = (id, v) => { if (v != null && $(id)) $(id).value = v; };
   set("#scene", s.scene); set("#basePrompt", s.base); set("#negPrompt", s.neg); set("#refText", s.refText);
+  if (s.refMode === "vibe" || s.refMode === "precise") refMode = s.refMode;
   $("#charList").innerHTML = ""; (Array.isArray(s.chars) && s.chars.length ? s.chars : [""]).forEach((v) => addCharRow(v));
   $("#seqList").innerHTML = ""; (Array.isArray(s.seq) ? s.seq : []).forEach((v) => addSeqRow(v));
   const st = s.set || {};
@@ -169,27 +172,44 @@ async function reconstruct() {
   finally { $("#reconBtn").disabled = false; }
 }
 
-// ── 캐릭터 레퍼런스(vibe) ────────────────────────────────
+// ── 캐릭터 레퍼런스(Precise Reference / Vibe Transfer) ────
+function applyRefMode() {
+  $$("#refModeSeg button").forEach((b) => b.classList.toggle("active", b.dataset.m === refMode));
+  $("#refModeHint").textContent = refMode === "precise"
+    ? "V4.5 정밀 참조 — 캐릭터/스타일을 더 정확히 유지. 생성당 +5 Anlas · vibe와 동시 사용 불가."
+    : "Vibe Transfer — 분위기/스타일 위주 참조(추가 비용 없음).";
+  renderRefs();
+}
+function setRefMode(m) { refMode = m === "vibe" ? "vibe" : "precise"; applyRefMode(); saveState(); }
+
 function addRefFiles(files) {
   [...files].forEach((f) => { if (!f.type.startsWith("image/")) return;
-    const r = new FileReader(); r.onload = () => { refs.push({ url: r.result, strength: 0.6, info: 1.0 }); renderRefs(); }; r.readAsDataURL(f); });
+    const r = new FileReader(); r.onload = () => { refs.push({ url: r.result, strength: 1.0, info: 1.0, type: "character", fidelity: 1.0 }); renderRefs(); }; r.readAsDataURL(f); });
 }
 function renderRefs() {
   const box = $("#refList"); box.innerHTML = "";
   refs.forEach((r, i) => {
     const row = document.createElement("div"); row.className = "ref-row";
-    row.innerHTML = `<img src="${r.url}" class="ref-thumb" alt="ref" />
-      <div class="ref-ctrls">
+    const ctrls = refMode === "precise" ? `
+        <label>유형 <select class="ref-type" data-i="${i}">
+          <option value="character"${r.type === "character" ? " selected" : ""}>캐릭터</option>
+          <option value="style"${r.type === "style" ? " selected" : ""}>스타일</option>
+          <option value="both"${r.type === "both" ? " selected" : ""}>캐릭터+스타일</option>
+        </select></label>
         <label>강도 <span class="val">${r.strength.toFixed(2)}</span><input type="range" min="0" max="1" step="0.05" value="${r.strength}" data-i="${i}" data-k="strength" /></label>
-        <label>정보추출 <span class="val">${r.info.toFixed(2)}</span><input type="range" min="0" max="1" step="0.05" value="${r.info}" data-i="${i}" data-k="info" /></label>
-      </div>
+        <label>정밀도 <span class="val">${r.fidelity.toFixed(2)}</span><input type="range" min="0" max="1" step="0.05" value="${r.fidelity}" data-i="${i}" data-k="fidelity" /></label>` : `
+        <label>강도 <span class="val">${r.strength.toFixed(2)}</span><input type="range" min="0" max="1" step="0.05" value="${r.strength}" data-i="${i}" data-k="strength" /></label>
+        <label>정보추출 <span class="val">${r.info.toFixed(2)}</span><input type="range" min="0" max="1" step="0.05" value="${r.info}" data-i="${i}" data-k="info" /></label>`;
+    row.innerHTML = `<img src="${r.url}" class="ref-thumb" alt="ref" />
+      <div class="ref-ctrls">${ctrls}</div>
       <button class="ghost xs rm" data-rm="${i}">✕</button>`;
     box.appendChild(row);
   });
   box.querySelectorAll('input[type="range"]').forEach((inp) => inp.oninput = (e) => { const i = +e.target.dataset.i, k = e.target.dataset.k; refs[i][k] = Number(e.target.value); e.target.previousElementSibling.textContent = refs[i][k].toFixed(2); });
+  box.querySelectorAll("select.ref-type").forEach((sel) => sel.onchange = (e) => { refs[+e.target.dataset.i].type = e.target.value; });
   box.querySelectorAll("[data-rm]").forEach((b) => b.onclick = () => { refs.splice(+b.dataset.rm, 1); renderRefs(); });
 }
-const getRefs = () => refs.map((r) => ({ image: r.url, strength: r.strength, info_extracted: r.info }));
+const getRefs = () => refs.map((r) => ({ image: r.url, mode: refMode, strength: r.strength, info_extracted: r.info, ref_type: r.type, fidelity: r.fidelity }));
 
 // ── 설정 ─────────────────────────────────────────────────
 function getSettings() { return { model: $("#setModel").value, steps: Number($("#setSteps").value), scale: Number($("#setScale").value), cfg_rescale: Number($("#setRescale").value), sampler: $("#setSampler").value, noise_schedule: $("#setNoise").value }; }
@@ -345,6 +365,7 @@ if (!loadState()) {
   addCharRow("");
   addSeqRow("창가에 서서 밖을 바라본다"); addSeqRow("돌아서서 이쪽을 본다"); addSeqRow("의자에 앉아 미소짓는다");
 }
+applyRefMode();
 document.addEventListener("input", scheduleSave);
 document.addEventListener("change", scheduleSave);
 $("#keySave").onclick = () => { localStorage.setItem("anthropic_key", $("#keyAnthropic").value.trim()); localStorage.setItem("nai_token", $("#keyNai").value.trim()); $("#keyStatus").textContent = "저장됨 ✓"; setTimeout(() => $("#keyStatus").textContent = "", 2000); };
@@ -358,6 +379,7 @@ $("#refImgInput").onchange = (e) => { const f = e.target.files[0]; if (!f) retur
 $("#refImgClear").onclick = () => { refImage = null; $("#refImgPreview").hidden = true; $("#refImgClear").hidden = true; };
 $("#refBtn").onclick = () => $("#refInput").click();
 $("#refInput").onchange = (e) => { addRefFiles(e.target.files); e.target.value = ""; };
+$("#refModeSeg").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) setRefMode(b.dataset.m); });
 $("#setSize").onchange = (e) => { $("#customSize").hidden = e.target.value !== "custom"; };
 $("#setSteps").oninput = (e) => { $("#stepsVal").textContent = e.target.value; };
 $("#setScale").oninput = (e) => { $("#scaleVal").textContent = e.target.value; };

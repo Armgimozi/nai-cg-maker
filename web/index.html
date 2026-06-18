@@ -85,9 +85,14 @@
       <img id="refImgPreview" class="ref-preview" hidden alt="참고 이미지" />
     </section>
 
-    <!-- 캐릭터 레퍼런스(vibe) -->
+    <!-- 캐릭터 레퍼런스 -->
     <section class="card">
-      <label class="field-label">캐릭터 레퍼런스 <span class="hint">(참조 이미지로 캐릭터/스타일 유지 · 생성에 반영 · 선택)</span></label>
+      <label class="field-label">캐릭터 레퍼런스 <span class="hint">(참조 이미지로 캐릭터/스타일 유지 · 생성/인페인트에 반영 · 선택)</span></label>
+      <div class="seg" id="refModeSeg">
+        <button data-m="precise" class="active">Precise Reference</button>
+        <button data-m="vibe">Vibe Transfer</button>
+      </div>
+      <p class="hint ref-mode-hint" id="refModeHint"></p>
       <div class="ref-add">
         <input type="file" id="refInput" accept="image/*" multiple hidden />
         <button id="refBtn" class="ghost">＋ 이미지 추가</button>
