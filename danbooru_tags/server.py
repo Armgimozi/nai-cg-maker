@@ -213,10 +213,17 @@ def create_app(cfg: dict, db: TagDB, default_api_key: str | None = None,
 
         if not (scene or base or chars or tags or ref_text or img_b64):
             return jsonify({"error": "장면이나 기존 프롬프트를 입력해주세요."}), 400
+
+        # 연속 시퀀스: 전체 프레임 장면들 + 현재 프레임 인덱스(맥락 파악용)
+        seq = [str(s).strip() for s in (body.get("sequence_scenes") or []) if str(s).strip()]
+        frame_index = body.get("frame_index")
+        if not isinstance(frame_index, int):
+            frame_index = None
         try:
             data, meta = client.compose(scene, base, chars, neg, tags,
                                         reference_text=ref_text, image_b64=img_b64,
-                                        image_media_type=img_mt)
+                                        image_media_type=img_mt,
+                                        sequence=seq, frame_index=frame_index)
         except Exception as e:  # noqa: BLE001
             return jsonify({"error": str(e)}), 500
         data["meta"] = meta

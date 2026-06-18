@@ -248,10 +248,14 @@ class SuggestClient:
     def compose(self, scene: str, base: str = "", chars: list[str] | None = None,
                 negative: str = "", tags: list[str] | None = None,
                 reference_text: str = "", image_b64: str | None = None,
-                image_media_type: str = "image/png") -> tuple[dict, dict]:
+                image_media_type: str = "image/png",
+                sequence: list[str] | None = None,
+                frame_index: int | None = None) -> tuple[dict, dict]:
         """기존 프롬프트(베이스/캐릭터/네거티브) + 장면 → 장면에 맞춰 재구성.
 
-        reference_text(정보글 등)·image_b64(참고 이미지)가 있으면 함께 반영."""
+        reference_text(정보글 등)·image_b64(참고 이미지)가 있으면 함께 반영.
+        sequence(전체 프레임 장면들)+frame_index 가 주어지면, 그 프레임 하나만
+        재구성하되 전체 흐름을 맥락으로 파악해 앞뒤가 자연스럽게 이어지게 한다."""
         system = _compose_system_prompt()
         chars = chars or []
         tags = tags or []
@@ -264,6 +268,19 @@ class SuggestClient:
             f"[기존 네거티브 프롬프트]\n{negative or '(없음)'}\n\n"
             f"[추가로 반영할 태그]\n{', '.join(tags) or '(없음)'}"
         )
+        seq = [str(s).strip() for s in (sequence or []) if str(s).strip()]
+        if len(seq) > 1 and frame_index is not None:
+            flow = "\n".join(
+                f"{i + 1}) {s}" + ("   ← 지금 재구성할 프레임" if i == frame_index else "")
+                for i, s in enumerate(seq)
+            )
+            user += (
+                f"\n\n[연속 시퀀스 맥락 — 총 {len(seq)}개 프레임이 이어지는 한 장면]\n"
+                f"{flow}\n"
+                f"위 전체 흐름을 파악하되, 지금은 {frame_index + 1}번째 프레임 하나만 "
+                "재구성하세요. 같은 인물·복장·화풍·장소·시점을 유지하고, 앞 프레임에서 "
+                "바뀌는 부분(포즈·표정·시선·동작 등)에 집중해 자연스럽게 이어지게 하세요."
+            )
         if reference_text:
             user += (f"\n\n[참고 정보 — 아래 글/설정을 적극 반영하세요]\n"
                      f"{reference_text[:5000]}")

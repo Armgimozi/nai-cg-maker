@@ -93,6 +93,9 @@ button { font-family: inherit; }
 /* 태그 결과 */
 .results { margin-top: 12px; }
 .tag-hint { color: var(--muted); font-size: .82rem; margin: 0 0 10px; }
+.tag-info { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin: 0 0 12px; }
+.tag-interp { margin: 0; color: var(--text); font-size: .88rem; line-height: 1.5; }
+.tag-stat { margin: 6px 0 0; color: var(--muted); font-size: .78rem; }
 .group { margin-bottom: 16px; }
 .group h2 { font-family: "Space Grotesk", sans-serif; font-size: .95rem; font-weight: 500; color: var(--muted); margin: 0 0 9px; }
 .group h2 .n { color: #6e6280; font-weight: 400; font-size: .82rem; }
