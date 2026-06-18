@@ -15,6 +15,31 @@
 
 동일 장면 응답은 `cache/`에 저장되어 재요청 시 즉시/무료.
 
+## 📖 단부루 사전 (사전 탭)
+
+상단 **📖 사전** 탭은 "원하는 걸 한글로 → 실제 Danbooru 태그"를 찾아주는 사전입니다.
+
+- **AI 의미검색** — 한글 개념·문장(예: `양갈래 머리`, `뒤돌아보는 구도`)을 입력하면
+  Claude가 그 뜻을 가진 실제 태그를 **한글 뜻풀이와 함께** 찾아주고, 14만 태그
+  사전으로 검증합니다. (`POST /api/dict/search`)
+- **직접 조회** — 태그명·별칭에 들어간 글자(예: `twintail`, `school_unif`)로 **즉시**
+  검색. CSV 만 쓰므로 **API 키·비용 없이** 동작하고, 인기(post 수)순으로 정렬됩니다.
+  (`POST /api/dict/lookup`)
+- 각 항목의 **ℹ 뜻** 버튼 → 그 태그의 한글 설명·관련 태그를 불러옵니다
+  (`POST /api/dict/explain`).
+- **🧺 내 태그함** — 마음에 드는 태그를 담아 한 번에 **복사**하거나
+  **스튜디오로 보내기**로 베이스 프롬프트에 추가. 브라우저에 저장됩니다.
+
+## 📱 모바일 설치 (PWA)
+
+설치형 웹앱(PWA)이라 휴대폰 홈 화면에 **앱처럼 설치**할 수 있습니다.
+
+1. `start-phone.bat` 실행 → 서버 + cloudflared 터널이 함께 뜨고 `https://....trycloudflare.com` 주소 발급
+2. 폰 브라우저로 그 주소 접속 → 🔑 설정에서 본인 Anthropic 키 입력(직접 조회는 키 없이도 OK)
+3. **홈 화면에 추가**(Android Chrome: 메뉴 → 앱 설치 / iOS Safari: 공유 → 홈 화면에 추가)
+
+오프라인에서도 앱 셸이 캐시(`web/sw.js`)되어 열리며, 실행 시 사전 탭으로 시작합니다.
+
 ## 설치 & 실행
 
 ```bash
@@ -47,10 +72,12 @@ fetch_tags.py        태그 사전 다운로더
 run.py               실행 진입점 (사전 로드 → 서버 시작)
 danbooru_tags/
   config.py          설정 로딩
-  tagdb.py           14만 태그 검증/별칭 해석
-  client.py          Claude 호출(structured outputs) + 캐시
-  server.py          Flask API
+  tagdb.py           14만 태그 검증/별칭 해석 + 직접 조회(search)
+  client.py          Claude 호출(structured outputs) + 캐시 (suggest/compose/dict_search/explain)
+  server.py          Flask API (/api/suggest, /api/dict/*, /api/compose, /api/generate ...)
 web/                 UI (index.html / style.css / app.js)
+  manifest.webmanifest / sw.js / icon-*.png   PWA(설치형) 자산
+tools/make_icons.py  PWA 아이콘 생성기 (Pillow)
 data/danbooru.csv    태그 사전
 ```
 

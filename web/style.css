@@ -167,9 +167,68 @@ code { background: var(--surface-2); padding: 1px 6px; border-radius: 5px; font-
 .gthumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .gseed { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,.6); color: #fff; font-size: .62rem; text-align: center; font-variant-numeric: tabular-nums; }
 
+/* ── 탭 (사전 / 스튜디오) ── */
+.tabs {
+  position: sticky; top: 0; z-index: 5;
+  display: flex; gap: 8px; padding: 8px 0 12px; margin-bottom: 6px;
+  background: linear-gradient(var(--bg) 60%, rgba(20,16,26,.6));
+  backdrop-filter: blur(8px);
+}
+.tabs button {
+  flex: 1; background: var(--surface); border: 1px solid var(--line); color: var(--muted);
+  border-radius: 12px; padding: 12px 14px; font: inherit; font-weight: 600; font-size: .98rem;
+  cursor: pointer; transition: .15s;
+}
+.tabs button.active {
+  background: linear-gradient(135deg, rgba(255,122,147,.2), rgba(185,139,255,.2));
+  color: var(--text); border-color: var(--accent-2);
+}
+.view[hidden] { display: none; }
+
+/* ── 사전 ── */
+.dict-mode-hint { margin: 9px 0 0; }
+.dict-search-row { display: flex; gap: 8px; margin: 12px 0 4px; }
+.dict-search-row input { flex: 1; }
+.dict-search-row .go { flex: none; white-space: nowrap; }
+.dict-rating { margin-top: 8px; }
+.dict-results { margin-top: 14px; display: flex; flex-direction: column; gap: 9px; }
+.dict-empty { color: var(--muted); font-size: .9rem; padding: 8px 2px; }
+.dict-info { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 4px; }
+.dict-info .interp { margin: 0; font-size: .88rem; line-height: 1.5; }
+.dict-info .stat { margin: 6px 0 0; color: var(--muted); font-size: .78rem; }
+
+.dentry { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 13px; transition: .12s; }
+.dentry.unverified { border-style: dashed; }
+.dentry-top { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.dentry .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.dentry .tag { font-family: "Space Grotesk", ui-monospace, monospace; font-weight: 600; font-size: 1.02rem; letter-spacing: .01em; word-break: break-all; }
+.dentry .cat { font-size: .68rem; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; }
+.dentry .q { font-size: .72rem; color: var(--r-explicit); }
+.dentry .cnt { font-size: .76rem; color: var(--muted); font-variant-numeric: tabular-nums; margin-left: auto; }
+.dentry .ko { margin: 8px 0 0; font-size: .92rem; color: var(--text); line-height: 1.5; }
+.dentry .en { margin: 3px 0 0; font-size: .8rem; color: var(--muted); }
+.dentry .alias { margin: 6px 0 0; font-size: .76rem; color: #6e6280; }
+.dentry .alias b { color: var(--muted); font-weight: 500; }
+.dentry .related { margin: 9px 0 0; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.dentry .related .rl-label { font-size: .74rem; color: var(--muted); }
+.dentry .related .rel { font-size: .78rem; color: var(--accent-2); background: var(--surface-2); border: 1px solid var(--line); border-radius: 7px; padding: 3px 9px; cursor: pointer; transition: .12s; }
+.dentry .related .rel:hover { border-color: var(--accent-2); color: var(--text); }
+.dentry-actions { display: flex; gap: 7px; margin-top: 10px; flex-wrap: wrap; }
+.dentry-actions button { flex: none; }
+.dentry-actions .added { color: var(--r-general); border-color: var(--r-general); }
+
+/* ── 내 태그함 ── */
+.dict-tray-card .field-label { margin-bottom: 0; }
+.dict-tray { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.tray-chip { display: inline-flex; align-items: center; gap: 8px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 9px; padding: 6px 8px 6px 11px; font-size: .9rem; }
+.tray-chip .x { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1rem; line-height: 1; padding: 0 2px; }
+.tray-chip .x:hover { color: var(--accent); }
+.dict-tray-card textarea { font-family: ui-monospace, "Space Grotesk", monospace; font-size: .86rem; }
+
 @media (max-width: 620px) {
   header h1 { font-size: 1.9rem; }
   .settings-grid { grid-template-columns: 1fr; }
   .generate-bar { flex-direction: column; align-items: stretch; }
   .go.big { width: 100%; }
+  .dict-tray-card .row.between { flex-wrap: wrap; gap: 8px; }
 }

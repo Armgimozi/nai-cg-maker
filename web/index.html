@@ -2,8 +2,17 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NAI 프롬프트 스튜디오</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>단부루 사전 · NAI 스튜디오</title>
+  <meta name="theme-color" content="#14101a" />
+  <meta name="description" content="원하는 Danbooru 태그를 한글로 찾아주는 사전" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon-192.png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="단부루사전" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -12,8 +21,8 @@
 <body>
   <div class="wrap">
     <header>
-      <h1>NAI <span class="arrow">·</span> 프롬프트 스튜디오</h1>
-      <p class="sub">기존 프롬프트 + 원하는 <b>장면</b> → 장면에 맞춰 재구성하고 <b>생성·인페인트·연속 CG</b>까지.</p>
+      <h1>단부루 <span class="arrow">·</span> 사전</h1>
+      <p class="sub">원하는 걸 <b>한글</b>로 → 실제 <b>Danbooru 태그</b>를 찾아주는 사전 + NAI <b>프롬프트 스튜디오</b>.</p>
     </header>
 
     <!-- API 키 (BYO-key) -->
@@ -33,6 +42,53 @@
       </div>
     </details>
 
+    <!-- 탭: 사전 / 스튜디오 -->
+    <nav class="tabs" id="tabs">
+      <button data-view="dict" class="active">📖 사전</button>
+      <button data-view="studio">🎨 스튜디오</button>
+    </nav>
+
+    <!-- ════ 사전 뷰 ════ -->
+    <div id="view-dict" class="view">
+      <section class="card">
+        <label class="field-label">📖 단부루 사전 <span class="hint">(원하는 걸 한글로 → 실제 태그)</span></label>
+        <div class="seg" id="dictModeSeg">
+          <button data-m="ai" class="active">AI 의미검색</button>
+          <button data-m="direct">직접 조회</button>
+        </div>
+        <p class="hint dict-mode-hint" id="dictModeHint"></p>
+        <div class="dict-search-row">
+          <input type="text" id="dictQuery" placeholder="찾는 걸 한글로 — 예) 양갈래 머리, 뒤돌아보는 구도, 교복" autocomplete="off" />
+          <button id="dictGo" class="go small">검색</button>
+        </div>
+        <div class="examples" id="dictExamples"></div>
+        <div class="seg dict-rating" id="dictRatingSeg">
+          <button data-r="3" class="active">전체</button>
+          <button data-r="2">Q까지</button>
+          <button data-r="1">S까지</button>
+          <button data-r="0">일반만</button>
+        </div>
+        <div id="dictStatus" class="status" hidden></div>
+        <div id="dictResults" class="dict-results"></div>
+      </section>
+
+      <!-- 내 태그함 -->
+      <section class="card dict-tray-card" id="dictTrayCard" hidden>
+        <div class="row between">
+          <label class="field-label">🧺 내 태그함 <span class="hint" id="dictTrayCount"></span></label>
+          <div class="row gap">
+            <button id="dictToStudio" class="ghost xs">스튜디오로 보내기</button>
+            <button id="dictCopy" class="go small">복사</button>
+            <button id="dictClear" class="ghost xs">비우기</button>
+          </div>
+        </div>
+        <div id="dictTray" class="dict-tray"></div>
+        <textarea id="dictTrayText" class="prompt" rows="2" readonly placeholder="담은 태그가 여기 모입니다"></textarea>
+      </section>
+    </div>
+
+    <!-- ════ 스튜디오 뷰 ════ -->
+    <div id="view-studio" class="view" hidden>
     <!-- 원하는 장면 -->
     <section class="card">
       <label class="field-label">원하는 장면</label>
@@ -196,8 +252,14 @@
       </div>
       <p class="ip-hint mt">② 전에 위 작업 영역에서 <b>바뀔 부분을 마스킹</b>하세요. 마스킹 안 하면 전체가 바뀝니다.</p>
     </details>
+    </div><!-- /#view-studio -->
   </div>
 
   <script src="app.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+    }
+  </script>
 </body>
 </html>

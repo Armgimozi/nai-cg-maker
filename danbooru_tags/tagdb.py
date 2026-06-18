@@ -38,6 +38,7 @@ class TagDB:
         self.path = Path(csv_path)
         self.tags: dict[str, tuple[int, int]] = {}      # name -> (category_code, count)
         self.alias: dict[str, str] = {}                  # alias -> canonical name
+        self.rev_alias: dict[str, list[str]] = {}        # canonical name -> [alias, ...]
         self._load()
 
     def _load(self) -> None:
@@ -68,6 +69,11 @@ class TagDB:
                         # tagcomplete 의 '/xx' 단축키는 별칭이 아니므로 제외
                         if al and not al.startswith("/"):
                             self.alias.setdefault(al, name)
+                            self.rev_alias.setdefault(name, []).append(al)
+
+    def aliases_of(self, name: str) -> list[str]:
+        """정식 태그명 → 알려진 별칭 목록(없으면 빈 리스트)."""
+        return self.rev_alias.get(name, [])
 
     def __len__(self) -> int:
         return len(self.tags)
@@ -85,3 +91,51 @@ class TagDB:
             cat, count = self.tags[canon]
             return Match(canon, CATEGORY.get(cat, "general"), count, n)
         return None
+
+    def search(self, query: str, limit: int = 60) -> list[Match]:
+        """직접 조회: 입력 글자가 태그명/별칭에 들어간 정식 태그를 인기순으로.
+
+        LLM 없이 CSV 만으로 동작(키·비용 불필요). 정확도순(완전일치→접두→단어
+        시작→부분일치) 1차, 같은 등급 안에서는 post 수(인기) 2차 정렬한다.
+        """
+        q = normalize(query)
+        if not q:
+            return []
+        scored: list[tuple[float, int, str, Match]] = []
+        seen: set[str] = set()
+        for name, (cat, count) in self.tags.items():
+            rank = _match_rank(name, q)
+            if rank is None:
+                continue
+            seen.add(name)
+            scored.append((rank, -count, name,
+                           Match(name, CATEGORY.get(cat, "general"), count, None)))
+        # 별칭으로만 잡히는 태그(정식명에는 q 가 없던 것)도 보강해서 포함
+        for al, canon in self.alias.items():
+            if canon in seen or canon not in self.tags:
+                continue
+            rank = _match_rank(al, q)
+            if rank is None:
+                continue
+            seen.add(canon)
+            cat, count = self.tags[canon]
+            scored.append((rank + 0.5, -count, canon,
+                           Match(canon, CATEGORY.get(cat, "general"), count, al)))
+        scored.sort(key=lambda t: (t[0], t[1], t[2]))
+        return [m for _, _, _, m in scored[:limit]]
+
+
+def _match_rank(name: str, q: str) -> float | None:
+    """name 안에서 q 의 매칭 품질(낮을수록 좋음). 매칭 없으면 None.
+
+    0=완전일치, 1=단어(언더스코어 토큰)의 시작, 2=그 외 부분일치.
+    접두사와 '_단어' 시작을 같은 등급으로 묶어, 그 안에서는 인기(post 수)가
+    순서를 정하게 한다. 예) 'eyes' → blue_eyes(176만)가 eyes_*(소수)보다 위.
+    """
+    if name == q:
+        return 0.0
+    if name.startswith(q) or any(part.startswith(q) for part in name.split("_")):
+        return 1.0
+    if q in name:
+        return 2.0
+    return None

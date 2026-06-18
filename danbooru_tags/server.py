@@ -14,6 +14,7 @@ API 키는 요청 헤더(X-Anthropic-Key / X-NAI-Token)로 받는다. 헤더가 
 from __future__ import annotations
 
 import base64
+import mimetypes
 import re
 import time
 import urllib.error
@@ -26,6 +27,9 @@ from flask import Flask, jsonify, request, send_from_directory
 from .client import SuggestClient
 from .nai import NovelAIClient
 from .tagdb import TagDB
+
+# PWA: .webmanifest 가 octet-stream 으로 나가지 않도록 MIME 등록(특히 Windows).
+mimetypes.add_type("application/manifest+json", ".webmanifest")
 
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 _UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -137,6 +141,40 @@ def _validate(data: dict, db: TagDB) -> dict:
             "stats": {"total": len(out), "verified": verified}}
 
 
+def _validate_dict(data: dict, db: TagDB) -> dict:
+    """사전 의미검색 결과 검증: 실제 태그면 CSV 의 정식명/카테고리/post 수로 보정하고,
+    LLM 이 준 한/영 뜻풀이(ko/en)는 그대로 보존한다. _validate 의 사전판."""
+    out: list[dict] = []
+    seen: set[str] = set()
+    verified = 0
+    for item in data.get("tags", []):
+        raw = (item.get("tag") or "").strip()
+        if not raw:
+            continue
+        ko = (item.get("ko") or "").strip()
+        en = (item.get("en") or "").strip()
+        rating = item.get("rating", "general")
+        m = db.lookup(raw)
+        if m:
+            if m.tag in seen:
+                continue
+            seen.add(m.tag)
+            verified += 1
+            out.append({"tag": m.tag, "category": m.category, "count": m.count,
+                        "rating": rating, "status": "verified",
+                        "matched_as": m.matched_as, "ko": ko, "en": en})
+        else:
+            key = raw.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append({"tag": raw, "category": item.get("category", "other"),
+                        "count": 0, "rating": rating, "status": "unverified",
+                        "matched_as": None, "ko": ko, "en": en})
+    return {"interpretation": data.get("interpretation", ""), "tags": out,
+            "stats": {"total": len(out), "verified": verified}}
+
+
 def create_app(cfg: dict, db: TagDB, default_api_key: str | None = None,
                default_nai_token: str | None = None) -> Flask:
     app = Flask(__name__, static_folder=None)
@@ -172,6 +210,56 @@ def create_app(cfg: dict, db: TagDB, default_api_key: str | None = None,
         result = _validate(data, db)
         result["meta"] = meta
         return jsonify(result)
+
+    @app.post("/api/dict/lookup")
+    def dict_lookup():
+        """직접 조회: CSV 만으로 태그명/별칭 부분일치 검색. API 키 불필요(무료·즉시)."""
+        q = ((request.get_json(silent=True) or {}).get("query") or "").strip()
+        if not q:
+            return jsonify({"query": q, "tags": []})
+        matches = db.search(q, limit=60)
+        tags = [{"tag": m.tag, "category": m.category, "count": m.count,
+                 "rating": None, "status": "verified", "matched_as": m.matched_as}
+                for m in matches]
+        return jsonify({"query": q, "tags": tags, "stats": {"total": len(tags)}})
+
+    @app.post("/api/dict/search")
+    def dict_search():
+        """AI 의미검색: 한글 개념 → 실제 Danbooru 태그(한/영 뜻풀이). Claude 사용."""
+        client = suggest_client()
+        if client is None:
+            return jsonify({"error": "Anthropic API 키가 필요합니다. 설정에서 키를 입력하세요."}), 400
+        q = ((request.get_json(silent=True) or {}).get("query") or "").strip()
+        if not q:
+            return jsonify({"error": "찾을 내용을 입력해주세요."}), 400
+        try:
+            data, meta = client.dict_search(q)
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"error": str(e)}), 500
+        result = _validate_dict(data, db)
+        result["meta"] = meta
+        return jsonify(result)
+
+    @app.post("/api/dict/explain")
+    def dict_explain():
+        """태그 1개의 한글 뜻풀이 + 관련 태그(직접 조회 결과에서 '뜻 보기'). Claude 사용."""
+        client = suggest_client()
+        if client is None:
+            return jsonify({"error": "Anthropic API 키가 필요합니다. 설정에서 키를 입력하세요."}), 400
+        tag = ((request.get_json(silent=True) or {}).get("tag") or "").strip()
+        if not tag:
+            return jsonify({"error": "태그가 필요합니다."}), 400
+        m = db.lookup(tag)
+        canon = m.tag if m else tag
+        try:
+            data, meta = client.explain(canon, db.aliases_of(canon))
+        except Exception as e:  # noqa: BLE001
+            return jsonify({"error": str(e)}), 500
+        data["tag"] = canon
+        data["count"] = m.count if m else 0
+        data["category"] = m.category if m else "other"
+        data["meta"] = meta
+        return jsonify(data)
 
     @app.post("/api/compose")
     def compose():

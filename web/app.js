@@ -416,3 +416,180 @@ $("#queueAddN").onclick = () => queueGenerate(Math.max(1, Math.min(20, Number($(
 $("#addSeqBtn").onclick = () => { addSeqRow(""); saveState(); };
 $("#seqStartBtn").onclick = seqStart;
 $("#seqNextBtn").onclick = seqNext;
+
+// ════════════════════════════════════════════════════════
+//  단부루 사전 (AI 의미검색 / 직접 조회) + 내 태그함 + 탭 전환
+// ════════════════════════════════════════════════════════
+const DICT_EXAMPLES = ["양갈래 머리", "뒤돌아보며 어깨 너머로", "무릎 끌어안은 자세",
+  "교복", "로우앵글로 올려다보는", "흩날리는 벚꽃", "젖은 머리카락", "한쪽 눈 윙크"];
+const DICT_MODE_HINT = {
+  ai: "한글 개념·문장 → 어울리는 실제 태그를 뜻풀이와 함께 찾아줍니다 (Claude · API 키 필요).",
+  direct: "태그명·별칭에 들어간 글자로 즉시 검색 (CSV · 키·비용 없음 · 영문/로마자).",
+};
+let dictMode = "ai", dictMaxRating = 3;
+let dictResults = [], dictInterp = "", dictStats = null, dictSearched = false;
+let dictTray = [];
+
+function switchView(v, focus) {
+  v = v === "studio" ? "studio" : "dict";
+  $("#view-dict").hidden = v !== "dict";
+  $("#view-studio").hidden = v !== "studio";
+  $$("#tabs button").forEach((b) => b.classList.toggle("active", b.dataset.view === v));
+  try { localStorage.setItem("dict_view", v); } catch (e) { }
+  if (focus && v === "dict") $("#dictQuery").focus({ preventScroll: true });
+}
+
+function applyDictMode() {
+  $$("#dictModeSeg button").forEach((b) => b.classList.toggle("active", b.dataset.m === dictMode));
+  $("#dictModeHint").textContent = DICT_MODE_HINT[dictMode];
+  $("#dictRatingSeg").style.display = dictMode === "ai" ? "" : "none";
+  $("#dictQuery").placeholder = dictMode === "ai"
+    ? "찾는 걸 한글로 — 예) 양갈래 머리, 뒤돌아보는 구도, 교복"
+    : "태그 글자 — 예) twintail, school_unif, eyes";
+}
+function setDictMode(m) {
+  dictMode = m === "direct" ? "direct" : "ai";
+  applyDictMode();
+  if ($("#dictQuery").value.trim()) dictDoSearch();   // 모드 바꾸면 현재 검색어로 다시
+}
+
+function initDictExamples() {
+  const box = $("#dictExamples"); box.innerHTML = "";
+  DICT_EXAMPLES.forEach((ex) => {
+    const b = document.createElement("button");
+    b.textContent = ex; b.title = ex;
+    b.onclick = () => { if (dictMode === "direct") setDictMode("ai"); $("#dictQuery").value = ex; dictDoSearch(); };
+    box.appendChild(b);
+  });
+}
+
+// ── 검색 ──
+let _dictTimer = null;
+function dictDebouncedDirect() {
+  clearTimeout(_dictTimer);
+  if (dictMode !== "direct") return;          // AI 모드는 버튼/Enter 로만(비용)
+  const q = $("#dictQuery").value.trim();
+  if (!q) { dictResults = []; dictSearched = false; dictInterp = ""; dictStats = null; setBox("#dictStatus", "", ""); renderDictResults(); return; }
+  _dictTimer = setTimeout(dictDoSearch, 180);
+}
+async function dictDoSearch() {
+  const q = $("#dictQuery").value.trim();
+  if (!q) { setBox("#dictStatus", "찾을 내용을 입력하세요.", "err"); return; }
+  const ai = dictMode === "ai";
+  if (ai) { $("#dictGo").disabled = true; setBox("#dictStatus", "어울리는 태그를 찾는 중…", "load"); }
+  try {
+    const d = await api(ai ? "/api/dict/search" : "/api/dict/lookup", { query: q });
+    dictResults = d.tags || []; dictInterp = d.interpretation || ""; dictStats = d.stats || null;
+    dictSearched = true; setBox("#dictStatus", "", "");
+    renderDictResults();
+  } catch (e) { setBox("#dictStatus", "오류: " + e.message, "err"); }
+  finally { $("#dictGo").disabled = false; }
+}
+
+// ── 결과 렌더 ──
+function dictDot(r) { return r ? `var(--r-${r})` : "#6e6280"; }
+function dictVisible() {
+  return dictMode === "ai"
+    ? dictResults.filter((x) => !x.rating || RATING_IDX[x.rating] <= dictMaxRating)
+    : dictResults;
+}
+function renderDictResults() {
+  const root = $("#dictResults"); root.innerHTML = "";
+  const list = dictVisible();
+  if (dictInterp || dictStats) {
+    const info = document.createElement("div"); info.className = "dict-info";
+    const ip = dictInterp ? `<p class="interp">🔎 ${esc(dictInterp)}</p>` : "";
+    const st = dictStats ? `<p class="stat">${dictStats.total}개 결과${dictStats.verified != null ? ` · 검증됨 ${dictStats.verified}개` : ""} · 표시 ${list.length}개</p>` : "";
+    if (ip || st) { info.innerHTML = ip + st; root.appendChild(info); }
+  }
+  if (!list.length) {
+    const why = dictMode === "direct" ? " (직접 조회는 영문/로마자만 — 한글은 AI 의미검색)" : "";
+    root.insertAdjacentHTML("beforeend", `<p class="dict-empty">${dictSearched ? "결과가 없습니다." + why : "찾는 걸 입력해 보세요."}</p>`);
+    return;
+  }
+  list.forEach((x) => root.appendChild(makeDentry(x)));
+}
+function makeDentry(x) {
+  const el = document.createElement("div");
+  el.className = "dentry" + (x.status === "unverified" ? " unverified" : "");
+  const cat = CAT_LABEL[x.category] || x.category || "";
+  const cnt = x.count ? `<span class="cnt">${fmtCount(x.count)} posts</span>` : "";
+  const q = x.status === "unverified" ? '<span class="q" title="사전에 없는 태그">미검증?</span>' : "";
+  let html = `<div class="dentry-top">
+      <span class="dot" style="background:${dictDot(x.rating)}"></span>
+      <span class="tag">${esc(x.tag)}</span>
+      <span class="cat">${esc(cat)}</span>${q}${cnt}
+    </div>`;
+  if (x.ko) html += `<p class="ko">${esc(x.ko)}</p>`;
+  if (x.en) html += `<p class="en">${esc(x.en)}</p>`;
+  if (x.matched_as) html += `<p class="alias"><b>별칭</b> ‘${esc(x.matched_as)}’ 일치</p>`;
+  if (x.related && x.related.length) {
+    html += `<div class="related"><span class="rl-label">관련</span>` +
+      x.related.map((r) => `<span class="rel" data-rel="${esc(r)}">${esc(r)}</span>`).join("") + `</div>`;
+  }
+  const inTray = dictTray.includes(x.tag);
+  const explained = Array.isArray(x.related);
+  html += `<div class="dentry-actions">
+      <button class="ghost xs act-add${inTray ? " added" : ""}">${inTray ? "담음 ✓" : "＋담기"}</button>
+      <button class="ghost xs act-copy">복사</button>
+      ${explained ? "" : '<button class="ghost xs act-explain">ℹ 뜻</button>'}
+    </div>`;
+  el.innerHTML = html;
+  el.querySelector(".act-add").onclick = () => dictToggleTray(x.tag);
+  el.querySelector(".act-copy").onclick = (e) => { copyText(x.tag); flash(e.target, "복사됨 ✓", "복사"); };
+  const exb = el.querySelector(".act-explain"); if (exb) exb.onclick = () => dictExplain(x, exb);
+  el.querySelectorAll(".rel").forEach((r) => r.onclick = () => { setDictMode("direct"); $("#dictQuery").value = r.dataset.rel; dictDoSearch(); });
+  return el;
+}
+async function dictExplain(x, btn) {
+  btn.disabled = true; const old = btn.textContent; btn.textContent = "불러오는 중…";
+  try {
+    const d = await api("/api/dict/explain", { tag: x.tag });
+    x.ko = d.ko || x.ko; x.en = d.en || x.en; x.related = Array.isArray(d.related) ? d.related : [];
+    if (d.count != null && !x.count) x.count = d.count;
+    renderDictResults();
+  } catch (e) { btn.disabled = false; btn.textContent = old; flash(btn, "오류: " + e.message, "ℹ 뜻"); }
+}
+
+// ── 내 태그함 ──
+function dictToggleTray(tag) {
+  const i = dictTray.indexOf(tag);
+  if (i >= 0) dictTray.splice(i, 1); else dictTray.push(tag);
+  saveTray(); renderTray(); renderDictResults();
+}
+function dictRemove(tag) { const i = dictTray.indexOf(tag); if (i >= 0) { dictTray.splice(i, 1); saveTray(); renderTray(); renderDictResults(); } }
+function renderTray() {
+  $("#dictTrayCard").hidden = dictTray.length === 0;
+  $("#dictTrayCount").textContent = dictTray.length ? `${dictTray.length}개` : "";
+  const box = $("#dictTray"); box.innerHTML = "";
+  dictTray.forEach((t) => {
+    const c = document.createElement("span"); c.className = "tray-chip";
+    c.innerHTML = `<span>${esc(t)}</span><button class="x" title="제거">✕</button>`;
+    c.querySelector(".x").onclick = () => dictRemove(t);
+    box.appendChild(c);
+  });
+  $("#dictTrayText").value = dictTray.join(", ");
+}
+function saveTray() { try { localStorage.setItem("dict_tray", JSON.stringify(dictTray)); } catch (e) { } }
+function loadTray() { try { const a = JSON.parse(localStorage.getItem("dict_tray") || "[]"); if (Array.isArray(a)) dictTray = a.filter((t) => typeof t === "string"); } catch (e) { } }
+
+// ── 유틸(클립보드/플래시) ──
+function copyText(s) {
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(s).catch(() => fallbackCopy(s));
+  else fallbackCopy(s);
+}
+function fallbackCopy(s) { const t = document.createElement("textarea"); t.value = s; t.style.position = "fixed"; t.style.opacity = "0"; document.body.appendChild(t); t.select(); try { document.execCommand("copy"); } catch (e) { } t.remove(); }
+function flash(el, msg, back) { el.textContent = msg; setTimeout(() => { el.textContent = back; }, 1100); }
+
+// ── 사전 초기화 / 이벤트 ──
+loadTray(); renderTray(); applyDictMode(); initDictExamples();
+switchView(new URLSearchParams(location.search).get("view") || localStorage.getItem("dict_view") || "dict");
+$("#tabs").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) switchView(b.dataset.view, true); });
+$("#dictModeSeg").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) setDictMode(b.dataset.m); });
+$("#dictRatingSeg").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; dictMaxRating = Number(b.dataset.r); $$("#dictRatingSeg button").forEach((x) => x.classList.toggle("active", x === b)); renderDictResults(); });
+$("#dictGo").onclick = dictDoSearch;
+$("#dictQuery").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); clearTimeout(_dictTimer); dictDoSearch(); } });
+$("#dictQuery").addEventListener("input", dictDebouncedDirect);
+$("#dictCopy").onclick = () => { if (dictTray.length) { copyText(dictTray.join(", ")); flash($("#dictCopy"), "복사됨 ✓", "복사"); } };
+$("#dictClear").onclick = () => { if (dictTray.length) { dictTray = []; saveTray(); renderTray(); renderDictResults(); } };
+$("#dictToStudio").onclick = () => { if (!dictTray.length) return; dictTray.forEach((t) => appendToBase(t)); switchView("studio"); $("#basePrompt").scrollIntoView({ behavior: "smooth", block: "center" }); };

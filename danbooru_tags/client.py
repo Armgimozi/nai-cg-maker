@@ -71,6 +71,51 @@ COMPOSE_SCHEMA = {
     "additionalProperties": False,
 }
 
+# ── 사전 의미검색 스키마(dict_search) ─────────────────────
+# 한글 개념 → 그 뜻을 가진 실제 Danbooru 태그 + 한/영 뜻풀이.
+DICT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "interpretation": {"type": "string"},
+        "tags": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "tag": {"type": "string"},
+                    "ko": {"type": "string"},
+                    "en": {"type": "string"},
+                    "category": {
+                        "type": "string",
+                        "enum": ["general", "character", "copyright",
+                                 "artist", "meta", "other"],
+                    },
+                    "rating": {
+                        "type": "string",
+                        "enum": ["general", "sensitive", "questionable", "explicit"],
+                    },
+                },
+                "required": ["tag", "ko", "en", "category", "rating"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    "required": ["interpretation", "tags"],
+    "additionalProperties": False,
+}
+
+# ── 태그 뜻풀이 스키마(explain) ───────────────────────────
+EXPLAIN_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "ko": {"type": "string"},
+        "en": {"type": "string"},
+        "related": {"type": "array", "items": {"type": "string"}},
+    },
+    "required": ["ko", "en", "related"],
+    "additionalProperties": False,
+}
+
 
 def _system_prompt(max_tags: int) -> str:
     return f"""\
@@ -149,6 +194,59 @@ out of character_prompts. Preserve the number of characters from the existing \
 character prompts unless the scene clearly changes it.
 
 Also return "note": one short Korean sentence on what you changed / kept. \
+Return strictly the JSON defined by the schema, nothing else."""
+
+
+def _dict_system_prompt(max_tags: int) -> str:
+    return f"""\
+You are a Danbooru tag DICTIONARY for anime / illustration image prompting.
+
+The user looks up a concept in Korean — a feature, pose, expression, hairstyle, \
+clothing, accessory, body part, composition, camera angle, background, lighting, \
+mood, action, or object — and wants to know which REAL Danbooru tags express it. \
+The query may be a single word or a short phrase, and may be vague or in romaji.
+
+Return the canonical Danbooru tags that MEAN what the user is looking for, like \
+dictionary entries:
+- Lead with the most direct match, then add close variants / synonyms and \
+closely related tags the user would likely also want. e.g. for "양갈래(twintails)": \
+twintails, low_twintails, short_twintails, twin_braids; for "뒤돌아보는": \
+looking_back, looking_at_viewer, from_behind.
+- Real Danbooru conventions ONLY: all lowercase, words joined by underscores, \
+English. Use canonical spellings that actually exist on Danbooru. Never invent \
+tags and never output sentences or phrases as a tag.
+- Order from the most direct match to looser / related ones.
+- Return at most {max_tags} tags. Prefer quality and relevance over quantity.
+
+For every tag provide:
+- tag: the canonical Danbooru tag (English, lowercase, underscores).
+- ko: a SHORT Korean gloss — what the tag depicts (ideally under ~18 chars).
+- en: a short English gloss.
+- category: one of general, character, copyright, artist, meta, other.
+- rating: your best estimate of the content rating the tag implies — one of \
+general, sensitive, questionable, explicit. Use general for ordinary tags; only \
+escalate for genuinely suggestive or explicit ones.
+
+Also return "interpretation": one short Korean sentence stating what you \
+understood the user is looking for.
+
+Return strictly the JSON defined by the schema, nothing else."""
+
+
+def _explain_system_prompt() -> str:
+    return """\
+You are a Danbooru tag dictionary. You are given ONE canonical Danbooru tag \
+(and its known aliases). Explain it for a Korean user who writes prompts for \
+anime image generation.
+
+Return:
+- ko: one or two Korean sentences — what this tag depicts and when to use it. \
+Be concrete and practical.
+- en: a short English gloss of the tag.
+- related: up to 6 REAL canonical Danbooru tags commonly used together with it \
+or that are close variants (lowercase, underscores, English). Only real tags; \
+no phrases. Omit the tag itself.
+
 Return strictly the JSON defined by the schema, nothing else."""
 
 
@@ -244,6 +342,19 @@ class SuggestClient:
         """장면 → 태그 후보. data 는 SCHEMA 형태."""
         system = _system_prompt(self.max_tags)
         return self._call(system, f"장면:\n{scene}", SCHEMA)
+
+    def dict_search(self, query: str) -> tuple[dict, dict]:
+        """한글 개념/키워드 → 그 뜻을 가진 실제 Danbooru 태그(한/영 뜻풀이 포함).
+
+        data 는 DICT_SCHEMA 형태. server 에서 TagDB 로 실제 존재 여부를 검증한다."""
+        system = _dict_system_prompt(min(self.max_tags, 24))
+        return self._call(system, f"찾는 개념:\n{query}", DICT_SCHEMA, prefix="d_")
+
+    def explain(self, tag: str, aliases: list[str] | None = None) -> tuple[dict, dict]:
+        """정식 태그 1개 → 한글 뜻풀이 + 관련 태그. data 는 EXPLAIN_SCHEMA 형태."""
+        system = _explain_system_prompt()
+        al = ", ".join(aliases or []) or "(없음)"
+        return self._call(system, f"태그: {tag}\n별칭: {al}", EXPLAIN_SCHEMA, prefix="e_")
 
     def compose(self, scene: str, base: str = "", chars: list[str] | None = None,
                 negative: str = "", tags: list[str] | None = None,
