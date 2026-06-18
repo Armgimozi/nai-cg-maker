@@ -301,7 +301,22 @@ function ptOf(e, c) { const r = c.getBoundingClientRect(); return { x: (e.client
 function dab(ctx, a, b) { ctx.strokeStyle = "#fff"; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.lineWidth = brushSize; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); }
 function clearMask() { const c = $("#maskCanvas"); c.getContext("2d").clearRect(0, 0, c.width, c.height); }
 function toggleMask() { masking = !masking; $("#maskCanvas").classList.toggle("active", masking); $("#ipControls").hidden = !masking; $("#ipHint").hidden = !masking; $("#inpaintToggle").textContent = masking ? "🖌 인페인트 끄기" : "🖌 인페인트"; }
-function exportMask() { const s = $("#maskCanvas"); const o = document.createElement("canvas"); o.width = s.width; o.height = s.height; const c = o.getContext("2d"); c.fillStyle = "#000"; c.fillRect(0, 0, o.width, o.height); c.drawImage(s, 0, 0); return o.toDataURL("image/png"); }
+function exportMask() {
+  const s = $("#maskCanvas");
+  const o = document.createElement("canvas"); o.width = s.width; o.height = s.height;
+  const c = o.getContext("2d");
+  c.fillStyle = "#000"; c.fillRect(0, 0, o.width, o.height); c.drawImage(s, 0, 0);
+  // NAI infill 은 흰=재생성/검=유지의 '이진' 마스크를 기대한다. 브러시 경계의
+  // 안티앨리어싱(회색)을 그대로 두면 부분 강도로 해석돼 결과가 흐려지므로,
+  // 임계값으로 순수 흑백(알파 255)으로 만든다.
+  const img = c.getImageData(0, 0, o.width, o.height), d = img.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const v = d[i] > 127 ? 255 : 0;
+    d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255;
+  }
+  c.putImageData(img, 0, 0);
+  return o.toDataURL("image/png");
+}
 function fullMask(w, h) { const o = document.createElement("canvas"); o.width = w; o.height = h; const c = o.getContext("2d"); c.fillStyle = "#fff"; c.fillRect(0, 0, w, h); return o.toDataURL("image/png"); }
 function maskHasContent() { const c = $("#maskCanvas"); const d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data; for (let i = 3; i < d.length; i += 4) if (d[i] > 0) return true; return false; }
 async function runInpaint(basePrompt) {
