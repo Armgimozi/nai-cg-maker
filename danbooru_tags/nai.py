@@ -51,6 +51,35 @@ def _split_refs(references) -> tuple[list, list]:
     return ([], precise) if precise else (vibe, [])
 
 
+# Precise Reference(director) 이미지가 들어갈 수 있는 캔버스(NAI 가 받는 3종)
+_DIRECTOR_CANVASES = [(1024, 1536), (1536, 1024), (1472, 1472)]
+
+
+def _prep_director_image(b64: str) -> str:
+    """Precise Reference 이미지를 NAI 인코더가 받는 캔버스로 맞춰 RGB PNG base64 로.
+
+    NAI 는 director reference 를 1024x1536 / 1536x1024 / 1472x1472 로만 받는다
+    (그 외 크기·알파 채널이면 'Error encoding v4 director references' 400). 원본
+    비율에 가장 가까운 캔버스를 골라 비율 유지로 축소한 뒤 검은 여백으로 채운다.
+    """
+    try:
+        from PIL import Image
+    except ImportError as e:  # pragma: no cover
+        raise RuntimeError("Precise Reference 에는 Pillow 가 필요합니다 "
+                           "(requirements 의 Pillow 설치).") from e
+    im = Image.open(io.BytesIO(base64.b64decode(b64))).convert("RGB")
+    w, h = im.size
+    ar = w / h if h else 1.0
+    tw, th = min(_DIRECTOR_CANVASES, key=lambda c: abs(c[0] / c[1] - ar))
+    scale = min(tw / w, th / h)
+    nw, nh = max(1, round(w * scale)), max(1, round(h * scale))
+    canvas = Image.new("RGB", (tw, th), (0, 0, 0))
+    canvas.paste(im.resize((nw, nh), Image.LANCZOS), ((tw - nw) // 2, (th - nh) // 2))
+    out = io.BytesIO()
+    canvas.save(out, "PNG")
+    return base64.b64encode(out.getvalue()).decode()
+
+
 class NovelAIClient:
     def __init__(self, token: str, cfg: dict):
         self.token = token
@@ -162,7 +191,7 @@ class NovelAIClient:
         # Strength=강도, Fidelity=정밀도(secondary 는 1-fidelity 로 반전 전달).
         directors = directors or []
         if directors:
-            params["director_reference_images"] = [d["image"] for d in directors]
+            params["director_reference_images"] = [_prep_director_image(d["image"]) for d in directors]
             params["director_reference_descriptions"] = [
                 {"use_coords": False, "use_order": False, "legacy_uc": False,
                  "caption": {"base_caption": _REF_CAPTION.get(d.get("ref_type", "character"),
