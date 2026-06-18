@@ -426,9 +426,13 @@ const DICT_MODE_HINT = {
   ai: "한글 개념·문장 → 어울리는 실제 태그를 뜻풀이와 함께 찾아줍니다 (Claude · API 키 필요).",
   direct: "태그명·별칭에 들어간 글자로 즉시 검색 (CSV · 키·비용 없음 · 영문/로마자).",
 };
-let dictMode = "ai", dictMaxRating = 3;
+let dictMode = "ai", dictMaxRating = 3, dictNoUnder = true;
 let dictResults = [], dictInterp = "", dictStats = null, dictSearched = false;
 let dictTray = [];
+
+// 내부 태그는 정식형(언더스코어)으로 두고, 화면 표시·복사·전송에서만 변환.
+// dictNoUnder=true 면 `long_hair` → `long hair` (NAI/프롬프트용 공백형).
+const fmtTag = (t) => dictNoUnder ? String(t).replace(/_/g, " ") : String(t);
 
 function switchView(v, focus) {
   v = v === "studio" ? "studio" : "dict";
@@ -517,15 +521,15 @@ function makeDentry(x) {
   const q = x.status === "unverified" ? '<span class="q" title="사전에 없는 태그">미검증?</span>' : "";
   let html = `<div class="dentry-top">
       <span class="dot" style="background:${dictDot(x.rating)}"></span>
-      <span class="tag">${esc(x.tag)}</span>
+      <span class="tag">${esc(fmtTag(x.tag))}</span>
       <span class="cat">${esc(cat)}</span>${q}${cnt}
     </div>`;
   if (x.ko) html += `<p class="ko">${esc(x.ko)}</p>`;
   if (x.en) html += `<p class="en">${esc(x.en)}</p>`;
-  if (x.matched_as) html += `<p class="alias"><b>별칭</b> ‘${esc(x.matched_as)}’ 일치</p>`;
+  if (x.matched_as) html += `<p class="alias"><b>별칭</b> ‘${esc(fmtTag(x.matched_as))}’ 일치</p>`;
   if (x.related && x.related.length) {
     html += `<div class="related"><span class="rl-label">관련</span>` +
-      x.related.map((r) => `<span class="rel" data-rel="${esc(r)}">${esc(r)}</span>`).join("") + `</div>`;
+      x.related.map((r) => `<span class="rel" data-rel="${esc(r)}">${esc(fmtTag(r))}</span>`).join("") + `</div>`;
   }
   const inTray = dictTray.includes(x.tag);
   const explained = Array.isArray(x.related);
@@ -536,7 +540,7 @@ function makeDentry(x) {
     </div>`;
   el.innerHTML = html;
   el.querySelector(".act-add").onclick = () => dictToggleTray(x.tag);
-  el.querySelector(".act-copy").onclick = (e) => { copyText(x.tag); flash(e.target, "복사됨 ✓", "복사"); };
+  el.querySelector(".act-copy").onclick = (e) => { copyText(fmtTag(x.tag)); flash(e.target, "복사됨 ✓", "복사"); };
   const exb = el.querySelector(".act-explain"); if (exb) exb.onclick = () => dictExplain(x, exb);
   el.querySelectorAll(".rel").forEach((r) => r.onclick = () => { setDictMode("direct"); $("#dictQuery").value = r.dataset.rel; dictDoSearch(); });
   return el;
@@ -564,11 +568,11 @@ function renderTray() {
   const box = $("#dictTray"); box.innerHTML = "";
   dictTray.forEach((t) => {
     const c = document.createElement("span"); c.className = "tray-chip";
-    c.innerHTML = `<span>${esc(t)}</span><button class="x" title="제거">✕</button>`;
+    c.innerHTML = `<span>${esc(fmtTag(t))}</span><button class="x" title="제거">✕</button>`;
     c.querySelector(".x").onclick = () => dictRemove(t);
     box.appendChild(c);
   });
-  $("#dictTrayText").value = dictTray.join(", ");
+  $("#dictTrayText").value = dictTray.map(fmtTag).join(", ");
 }
 function saveTray() { try { localStorage.setItem("dict_tray", JSON.stringify(dictTray)); } catch (e) { } }
 function loadTray() { try { const a = JSON.parse(localStorage.getItem("dict_tray") || "[]"); if (Array.isArray(a)) dictTray = a.filter((t) => typeof t === "string"); } catch (e) { } }
@@ -582,6 +586,7 @@ function fallbackCopy(s) { const t = document.createElement("textarea"); t.value
 function flash(el, msg, back) { el.textContent = msg; setTimeout(() => { el.textContent = back; }, 1100); }
 
 // ── 사전 초기화 / 이벤트 ──
+dictNoUnder = localStorage.getItem("dict_nounderscore") !== "0";   // 기본 ON
 loadTray(); renderTray(); applyDictMode(); initDictExamples();
 switchView(new URLSearchParams(location.search).get("view") || localStorage.getItem("dict_view") || "dict");
 $("#tabs").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) switchView(b.dataset.view, true); });
@@ -590,6 +595,8 @@ $("#dictRatingSeg").addEventListener("click", (e) => { const b = e.target.closes
 $("#dictGo").onclick = dictDoSearch;
 $("#dictQuery").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); clearTimeout(_dictTimer); dictDoSearch(); } });
 $("#dictQuery").addEventListener("input", dictDebouncedDirect);
-$("#dictCopy").onclick = () => { if (dictTray.length) { copyText(dictTray.join(", ")); flash($("#dictCopy"), "복사됨 ✓", "복사"); } };
+$("#dictCopy").onclick = () => { if (dictTray.length) { copyText(dictTray.map(fmtTag).join(", ")); flash($("#dictCopy"), "복사됨 ✓", "복사"); } };
 $("#dictClear").onclick = () => { if (dictTray.length) { dictTray = []; saveTray(); renderTray(); renderDictResults(); } };
-$("#dictToStudio").onclick = () => { if (!dictTray.length) return; dictTray.forEach((t) => appendToBase(t)); switchView("studio"); $("#basePrompt").scrollIntoView({ behavior: "smooth", block: "center" }); };
+$("#dictToStudio").onclick = () => { if (!dictTray.length) return; dictTray.forEach((t) => appendToBase(fmtTag(t))); switchView("studio"); $("#basePrompt").scrollIntoView({ behavior: "smooth", block: "center" }); };
+$("#dictNoUnder").checked = dictNoUnder;
+$("#dictNoUnder").addEventListener("change", (e) => { dictNoUnder = e.target.checked; try { localStorage.setItem("dict_nounderscore", dictNoUnder ? "1" : "0"); } catch (x) { } renderDictResults(); renderTray(); });

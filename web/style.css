@@ -191,6 +191,9 @@ code { background: var(--surface-2); padding: 1px 6px; border-radius: 5px; font-
 .dict-search-row input { flex: 1; }
 .dict-search-row .go { flex: none; white-space: nowrap; }
 .dict-rating { margin-top: 8px; }
+.dict-opts { margin-top: 10px; }
+.dict-opts .toggle { font-size: .82rem; }
+.dict-opts code { font-size: .8em; }
 .dict-results { margin-top: 14px; display: flex; flex-direction: column; gap: 9px; }
 .dict-empty { color: var(--muted); font-size: .9rem; padding: 8px 2px; }
 .dict-info { background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; margin-bottom: 4px; }
