@@ -261,7 +261,18 @@
   <script src="app.js"></script>
   <script>
     if ("serviceWorker" in navigator) {
-      addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+      addEventListener("load", async () => {
+        try {
+          const had = !!navigator.serviceWorker.controller;   // 기존 워커 있었나(=업데이트 상황)
+          let reloaded = false;
+          navigator.serviceWorker.addEventListener("controllerchange", () => {
+            if (!had || reloaded) return;                      // 최초 설치 땐 새로고침 안 함
+            reloaded = true; location.reload();                // 새 배포로 워커 교체됨 → 최신으로 새로고침
+          });
+          const reg = await navigator.serviceWorker.register("sw.js");
+          reg.update();                                        // 열 때마다 새 버전 확인
+        } catch (e) { }
+      });
     }
   </script>
 </body>
