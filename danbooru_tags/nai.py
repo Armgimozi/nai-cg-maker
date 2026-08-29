@@ -1,4 +1,4 @@
-"""NovelAI 이미지 생성 API (Diffusion v4.5) 호출.
+"""NovelAI 이미지 생성 API (Diffusion v4.5 / v5) 호출.
 
   generate() : 베이스/캐릭터/네거티브 프롬프트 → 이미지(PNG bytes)
   inpaint()  : 위 + 원본이미지 + 마스크(흰색=재생성) → infill 결과
@@ -28,6 +28,29 @@ ENCODE_VIBE_URL = "https://image.novelai.net/ai/encode-vibe"
 _SEED_MAX = 2 ** 32 - 1
 _UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
        "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
+
+
+def _is_v5(model: str) -> bool:
+    """V5 계열 모델인가. V5 는 요청 파라미터 버전이 4(그 이하는 3)."""
+    return "diffusion-5" in (model or "")
+
+
+def _params_version(model: str) -> int:
+    return 4 if _is_v5(model) else 3
+
+
+def _inpaint_model(model: str) -> str:
+    """생성 모델 → 인페인팅(infill) 모델 이름.
+
+    V5 Curated 전용 인페인팅 모델은 아직 없어서 NAI 도 V4.5 Curated 의
+    인페인팅으로 대체한다(공지). 그 외에는 '-inpainting' 접미사 규칙."""
+    if not model:
+        return "nai-diffusion-4-5-full-inpainting"
+    if model.endswith("-inpainting"):
+        return model
+    if model == "nai-diffusion-5-curated":
+        return "nai-diffusion-4-5-curated-inpainting"
+    return f"{model}-inpainting"
 
 
 def _char_captions(prompts: list[str]) -> list[dict]:
@@ -112,6 +135,7 @@ class NovelAIClient:
             detail = e.read().decode("utf-8", "replace")[:300]
             hint = {
                 401: "토큰이 올바르지 않습니다.",
+                400: "요청이 거부됐습니다(모델명/파라미터 확인 — 설정에서 모델을 바꿔보세요).",
                 402: "Anlas 가 부족하거나 구독이 필요합니다.",
                 403: "접근 거부(토큰/요청 헤더 확인).",
                 429: "요청이 많습니다. 잠시 후 다시.",
@@ -140,10 +164,11 @@ class NovelAIClient:
         return vibes
 
     def _params(self, base, chars, negative, seed, width, height,
-                settings=None, vibes=None, directors=None, extra=None) -> dict:
+                settings=None, vibes=None, directors=None, extra=None,
+                model=None) -> dict:
         s = settings or {}
         params = {
-            "params_version": 3,
+            "params_version": _params_version(model or self.model),
             "width": width,
             "height": height,
             "scale": float(s.get("scale", self.scale)),
@@ -221,7 +246,7 @@ class NovelAIClient:
             "model": model,
             "action": "generate",
             "parameters": self._params(base, chars, negative, seed, w, h,
-                                       settings, vibes, precise_refs),
+                                       settings, vibes, precise_refs, model=model),
         }
         return self._unzip(self._http(API_URL, body, "application/x-zip-compressed,application/json")), seed
 
@@ -232,14 +257,15 @@ class NovelAIClient:
         model = (settings or {}).get("model") or self.model
         vibe_refs, precise_refs = _split_refs(references)
         vibes = self._encode_refs(vibe_refs, model)
-        inpaint_model = model if model.endswith("-inpainting") else f"{model}-inpainting"
+        inpaint_model = _inpaint_model(model)
         extra = {"image": image_b64, "mask": mask_b64, "add_original_image": True}
         body = {
             "input": base,
             "model": inpaint_model,
             "action": "infill",
             "parameters": self._params(base, chars, negative, seed, w, h,
-                                       settings, vibes, precise_refs, extra),
+                                       settings, vibes, precise_refs, extra,
+                                       model=inpaint_model),
         }
         return self._unzip(self._http(API_URL, body, "application/x-zip-compressed,application/json")), seed
 

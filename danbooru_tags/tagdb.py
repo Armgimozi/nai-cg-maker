@@ -92,11 +92,13 @@ class TagDB:
             return Match(canon, CATEGORY.get(cat, "general"), count, n)
         return None
 
-    def search(self, query: str, limit: int = 60) -> list[Match]:
+    def search(self, query: str, limit: int = 60,
+               category: str | None = None) -> list[Match]:
         """직접 조회: 입력 글자가 태그명/별칭에 들어간 정식 태그를 인기순으로.
 
         LLM 없이 CSV 만으로 동작(키·비용 불필요). 정확도순(완전일치→접두→단어
         시작→부분일치) 1차, 같은 등급 안에서는 post 수(인기) 2차 정렬한다.
+        category 를 주면 그 카테고리(예: "artist")만 남긴다.
         """
         q = normalize(query)
         if not q:
@@ -104,6 +106,8 @@ class TagDB:
         scored: list[tuple[float, int, str, Match]] = []
         seen: set[str] = set()
         for name, (cat, count) in self.tags.items():
+            if category and CATEGORY.get(cat, "general") != category:
+                continue
             rank = _match_rank(name, q)
             if rank is None:
                 continue
@@ -114,15 +118,31 @@ class TagDB:
         for al, canon in self.alias.items():
             if canon in seen or canon not in self.tags:
                 continue
+            cat, count = self.tags[canon]
+            if category and CATEGORY.get(cat, "general") != category:
+                continue
             rank = _match_rank(al, q)
             if rank is None:
                 continue
             seen.add(canon)
-            cat, count = self.tags[canon]
             scored.append((rank + 0.5, -count, canon,
                            Match(canon, CATEGORY.get(cat, "general"), count, al)))
         scored.sort(key=lambda t: (t[0], t[1], t[2]))
         return [m for _, _, _, m in scored[:limit]]
+
+    def top(self, category: str | None = None, limit: int = 60,
+            min_count: int = 0) -> list[Match]:
+        """카테고리 안에서 post 수가 많은 순으로. (예: 인기 작가 태그 목록)"""
+        rows = []
+        for name, (cat, count) in self.tags.items():
+            cname = CATEGORY.get(cat, "general")
+            if category and cname != category:
+                continue
+            if count < min_count:
+                continue
+            rows.append((-count, name, Match(name, cname, count, None)))
+        rows.sort(key=lambda t: (t[0], t[1]))
+        return [m for _, _, m in rows[:limit]]
 
 
 def _match_rank(name: str, q: str) -> float | None:

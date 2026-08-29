@@ -6,7 +6,7 @@
   "port": 8765,
   "api_key": "",
   "nai_token": "",
-  "nai_model": "nai-diffusion-4-5-full",
+  "nai_model": "nai-diffusion-5-full",
   "nai_width": 832,
   "nai_height": 1216,
   "nai_steps": 28,

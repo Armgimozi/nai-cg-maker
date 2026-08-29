@@ -20,8 +20,8 @@ _DEFAULTS = {
     "max_tags": 40,      # 한 번에 추천받을 최대 태그 수(프롬프트로 강제)
     "host": "127.0.0.1",
     "port": 8765,
-    # NovelAI 이미지 생성(v4.5)
-    "nai_model": "nai-diffusion-4-5-full",
+    # NovelAI 이미지 생성(v5 기본 · 설정에서 v4.5 로 바꿀 수 있음)
+    "nai_model": "nai-diffusion-5-full",
     "nai_width": 832,
     "nai_height": 1216,
     "nai_steps": 28,

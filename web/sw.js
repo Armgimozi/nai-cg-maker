@@ -7,7 +7,7 @@
  *   - /api/* 와 비-GET·외부 도메인은 건드리지 않는다.
  * 새 워커는 즉시 활성(skipWaiting+claim)되고, 페이지가 controllerchange 로 새로고침한다.
  */
-const CACHE = "danbooru-dict-v2";
+const CACHE = "danbooru-dict-v3";
 
 self.addEventListener("install", () => self.skipWaiting());
 

@@ -235,3 +235,39 @@ code { background: var(--surface-2); padding: 1px 6px; border-radius: 5px; font-
   .go.big { width: 100%; }
   .dict-tray-card .row.between { flex-wrap: wrap; gap: 8px; }
 }
+
+/* ── 그림체 실험실 ── */
+.style-chips { margin-top: 12px; }
+.style-chips .chip.added { border-color: var(--r-general); opacity: .6; }
+.style-opts { display: flex; flex-direction: column; gap: 10px; }
+.style-opts .toggle { white-space: normal; align-items: flex-start; line-height: 1.6; }
+.style-opts .toggle input[type="checkbox"] { margin-top: 4px; }
+.style-opts .hint { margin-left: 2px; }
+input.wn { width: 68px; padding: 3px 6px; font-size: .82rem; }
+.custom-model input { width: 100%; }
+
+.style-combos { display: flex; flex-direction: column; gap: 7px; margin: 2px 0 16px; }
+.combo-row { display: flex; align-items: center; gap: 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 8px 11px; }
+.combo-row .n { color: var(--muted); font-size: .78rem; font-variant-numeric: tabular-nums; flex: none; width: 1.4em; text-align: right; }
+.combo-tags { flex: 1; background: none; padding: 0; font-family: ui-monospace, "Space Grotesk", monospace; font-size: .82rem; color: var(--text); word-break: break-word; }
+
+.style-results { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-top: 12px; }
+.style-card { background: var(--bg); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
+.style-card img { width: 100%; aspect-ratio: 2 / 3; object-fit: cover; display: block; cursor: pointer; transition: .12s; }
+.style-card img:hover { opacity: .88; }
+.style-meta { padding: 9px 10px 4px; }
+.style-artists { margin: 0; font-size: .82rem; line-height: 1.45; word-break: break-word; }
+.style-seed { margin: 4px 0 0; font-size: .72rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.style-acts { display: flex; flex-wrap: wrap; gap: 5px; padding: 8px 10px 10px; margin-top: auto; }
+.style-acts .added { color: var(--r-sensitive); border-color: var(--r-sensitive); }
+.style-acts .dl-link { text-decoration: none; display: inline-flex; align-items: center; }
+
+.style-favs { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.fav-row { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 9px 11px; }
+.fav-row .combo-tags { flex: 1 1 100%; }
+
+@media (max-width: 620px) {
+  .style-results { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+  .tabs button { font-size: .88rem; padding: 11px 8px; }
+}
+input[type="checkbox"] { accent-color: var(--accent); }

@@ -45,8 +45,78 @@
     <!-- 탭: 사전 / 스튜디오 -->
     <nav class="tabs" id="tabs">
       <button data-view="dict" class="active">📖 사전</button>
+      <button data-view="style">🖌 그림체</button>
       <button data-view="studio">🎨 스튜디오</button>
     </nav>
+
+    <!-- 설정 (그림체/스튜디오 공용) -->
+    <div id="sharedSettings" hidden>
+    <details class="card" id="settings">
+      <summary>⚙ 설정 <span class="hint">(모델 / 해상도 / 스텝 / 가이던스 / 샘플러 / 시드)</span></summary>
+      <div class="settings-grid">
+        <label>모델
+          <select id="setModel">
+            <option value="nai-diffusion-5-full">V5 Full</option>
+            <option value="nai-diffusion-5-curated">V5 Curated</option>
+            <option value="nai-diffusion-4-5-full">v4.5 Full</option>
+            <option value="nai-diffusion-4-5-curated">v4.5 Curated</option>
+            <option value="custom">직접 입력…</option>
+          </select>
+        </label>
+        <label class="custom-model" id="customModel" hidden>모델 ID
+          <input type="text" id="setModelCustom" placeholder="nai-diffusion-5-full" autocomplete="off" />
+        </label>
+        <label>해상도
+          <select id="setSize">
+            <option value="832x1216">세로 832×1216</option>
+            <option value="1216x832">가로 1216×832</option>
+            <option value="1024x1024">정사각 1024×1024</option>
+            <option value="custom">사용자 지정</option>
+          </select>
+        </label>
+        <label class="custom-size" id="customSize" hidden>크기
+          <span class="row gap">
+            <input type="number" id="setW" value="832" step="64" min="64" max="2048" />
+            <span>×</span>
+            <input type="number" id="setH" value="1216" step="64" min="64" max="2048" />
+          </span>
+        </label>
+        <label>샘플러
+          <select id="setSampler">
+            <option value="k_euler_ancestral">Euler Ancestral</option>
+            <option value="k_euler">Euler</option>
+            <option value="k_dpmpp_2m">DPM++ 2M</option>
+            <option value="k_dpmpp_2s_ancestral">DPM++ 2S Ancestral</option>
+            <option value="k_dpmpp_2m_sde">DPM++ 2M SDE</option>
+            <option value="k_dpmpp_sde">DPM++ SDE</option>
+          </select>
+        </label>
+        <label>노이즈 스케줄
+          <select id="setNoise">
+            <option value="karras">Karras</option>
+            <option value="exponential">Exponential</option>
+            <option value="polyexponential">Polyexponential</option>
+            <option value="native">Native</option>
+          </select>
+        </label>
+        <label>스텝 <span id="stepsVal" class="val">28</span>
+          <input type="range" id="setSteps" min="1" max="50" value="28" />
+        </label>
+        <label>가이던스(CFG) <span id="scaleVal" class="val">5</span>
+          <input type="range" id="setScale" min="1" max="10" step="0.5" value="5" />
+        </label>
+        <label>가이던스 리스케일 <span id="rescaleVal" class="val">0</span>
+          <input type="range" id="setRescale" min="0" max="1" step="0.05" value="0" />
+        </label>
+        <label>시드
+          <span class="row gap">
+            <input type="number" id="setSeed" placeholder="랜덤" min="0" />
+            <label class="toggle"><input type="checkbox" id="seedFix" /> <span>고정</span></label>
+          </span>
+        </label>
+      </div>
+    </details>
+    </div><!-- /#sharedSettings -->
 
     <!-- ════ 사전 뷰 ════ -->
     <div id="view-dict" class="view">
@@ -89,6 +159,99 @@
         <textarea id="dictTrayText" class="prompt" rows="2" readonly placeholder="담은 태그가 여기 모입니다"></textarea>
       </section>
     </div>
+
+    <!-- ════ 그림체 뷰 (작가 태그 랜덤 조합 → 시드 고정 생성) ════ -->
+    <div id="view-style" class="view" hidden>
+      <section class="card">
+        <label class="field-label">🎨 작가 태그 풀 <span class="hint">(여기 있는 태그들 중에서 랜덤으로 뽑아 조합합니다)</span></label>
+        <textarea id="styleArtists" class="prompt" rows="4" placeholder="작가 태그를 쉼표 또는 줄바꿈으로 — 예) wlop, ciloranko, as109, kantoku"></textarea>
+        <div class="row between mt">
+          <span class="hint" id="stylePoolCount"></span>
+          <div class="row gap">
+            <button id="stylePoolTop" class="ghost xs">인기 작가 60 불러오기</button>
+            <button id="stylePoolClear" class="ghost xs">비우기</button>
+          </div>
+        </div>
+
+        <label class="sub-label mt">작가 검색 <span class="hint">(사전의 artist 태그만 · 키·비용 없음 · 눌러서 풀에 추가)</span></label>
+        <div class="dict-search-row">
+          <input type="text" id="styleArtistQuery" placeholder="작가 이름 일부 — 예) wlop, kantoku, ciloran" autocomplete="off" />
+          <button id="styleArtistGo" class="go small">검색</button>
+        </div>
+        <div id="styleArtistStatus" class="status" hidden></div>
+        <div id="styleArtistResults" class="chips style-chips"></div>
+      </section>
+
+      <section class="card">
+        <label class="field-label">🎲 조합 규칙</label>
+        <div class="settings-grid">
+          <label>조합당 작가 수
+            <span class="row gap">
+              <input type="number" id="styleMin" value="2" min="1" max="8" />
+              <span>~</span>
+              <input type="number" id="styleMax" value="3" min="1" max="8" />
+            </span>
+          </label>
+          <label>만들 조합 수
+            <input type="number" id="styleCount" value="6" min="1" max="30" />
+          </label>
+          <label>조합 시드 <span class="hint">(같으면 같은 조합)</span>
+            <span class="row gap">
+              <input type="number" id="styleComboSeed" min="0" />
+              <button id="styleComboReroll" class="ghost xs" title="새 조합 뽑기">🎲</button>
+            </span>
+          </label>
+          <label>이미지 시드 <span class="hint">(전 조합 공통)</span>
+            <span class="row gap">
+              <input type="number" id="styleImgSeed" min="0" />
+              <button id="styleSeedReroll" class="ghost xs" title="새 시드">🎲</button>
+            </span>
+          </label>
+        </div>
+        <div class="style-opts mt">
+          <label class="toggle"><input type="checkbox" id="styleFixSeed" checked /> <span>모든 조합에 <b>같은 시드</b> 고정 <span class="hint">(구도·인물이 같아 그림체 차이만 보임)</span></span></label>
+          <label class="toggle"><input type="checkbox" id="stylePrefix" checked /> <span><code>artist:</code> 접두사 붙이기</span></label>
+          <label class="toggle"><input type="checkbox" id="styleWeightOn" /> <span>가중치도 랜덤
+            <input type="number" id="styleWMin" value="0.9" step="0.05" min="0.1" max="2" class="wn" /> ~
+            <input type="number" id="styleWMax" value="1.2" step="0.05" min="0.1" max="2" class="wn" />
+            <span class="hint">(<code>1.15::artist:wlop::</code> 형식)</span></span></label>
+        </div>
+      </section>
+
+      <section class="card">
+        <label class="field-label">🧪 테스트 프롬프트 <span class="hint">(그림체 비교용 — 단순할수록 차이가 잘 보입니다)</span></label>
+        <textarea id="styleBase" class="prompt" rows="2"></textarea>
+        <label class="sub-label neg mt">네거티브</label>
+        <textarea id="styleNeg" class="prompt" rows="2"></textarea>
+        <div class="row gap mt">
+          <button id="styleFromStudio" class="ghost xs">스튜디오 프롬프트 가져오기</button>
+          <button id="styleResetPrompt" class="ghost xs">기본값으로</button>
+        </div>
+      </section>
+
+      <div class="generate-bar">
+        <button id="styleRoll" class="ghost">🎲 조합 미리보기</button>
+        <button id="styleGen" class="go big">그림체 생성</button>
+        <span id="styleInfo" class="gen-info"></span>
+      </div>
+      <div id="styleCombos" class="style-combos"></div>
+
+      <section class="card" id="styleResultCard" hidden>
+        <div class="row between">
+          <label class="field-label">결과 <span class="hint">(이미지를 누르면 스튜디오 작업영역으로 — 인페인트 가능)</span></label>
+          <button id="styleResultsClear" class="ghost xs">결과 비우기</button>
+        </div>
+        <div id="styleResults" class="style-results"></div>
+      </section>
+
+      <section class="card" id="styleFavCard" hidden>
+        <div class="row between">
+          <label class="field-label">★ 저장한 그림체 <span class="hint" id="styleFavCount"></span></label>
+          <button id="styleFavClear" class="ghost xs">비우기</button>
+        </div>
+        <div id="styleFavs" class="style-favs"></div>
+      </section>
+    </div><!-- /#view-style -->
 
     <!-- ════ 스튜디오 뷰 ════ -->
     <div id="view-studio" class="view" hidden>
@@ -159,67 +322,6 @@
       </div>
       <div id="refList" class="ref-list"></div>
     </section>
-
-    <!-- 설정 -->
-    <details class="card" id="settings">
-      <summary>⚙ 설정 <span class="hint">(모델 / 해상도 / 스텝 / 가이던스 / 샘플러 / 시드)</span></summary>
-      <div class="settings-grid">
-        <label>모델
-          <select id="setModel">
-            <option value="nai-diffusion-4-5-full">v4.5 Full</option>
-            <option value="nai-diffusion-4-5-curated">v4.5 Curated</option>
-          </select>
-        </label>
-        <label>해상도
-          <select id="setSize">
-            <option value="832x1216">세로 832×1216</option>
-            <option value="1216x832">가로 1216×832</option>
-            <option value="1024x1024">정사각 1024×1024</option>
-            <option value="custom">사용자 지정</option>
-          </select>
-        </label>
-        <label class="custom-size" id="customSize" hidden>크기
-          <span class="row gap">
-            <input type="number" id="setW" value="832" step="64" min="64" max="2048" />
-            <span>×</span>
-            <input type="number" id="setH" value="1216" step="64" min="64" max="2048" />
-          </span>
-        </label>
-        <label>샘플러
-          <select id="setSampler">
-            <option value="k_euler_ancestral">Euler Ancestral</option>
-            <option value="k_euler">Euler</option>
-            <option value="k_dpmpp_2m">DPM++ 2M</option>
-            <option value="k_dpmpp_2s_ancestral">DPM++ 2S Ancestral</option>
-            <option value="k_dpmpp_2m_sde">DPM++ 2M SDE</option>
-            <option value="k_dpmpp_sde">DPM++ SDE</option>
-          </select>
-        </label>
-        <label>노이즈 스케줄
-          <select id="setNoise">
-            <option value="karras">Karras</option>
-            <option value="exponential">Exponential</option>
-            <option value="polyexponential">Polyexponential</option>
-            <option value="native">Native</option>
-          </select>
-        </label>
-        <label>스텝 <span id="stepsVal" class="val">28</span>
-          <input type="range" id="setSteps" min="1" max="50" value="28" />
-        </label>
-        <label>가이던스(CFG) <span id="scaleVal" class="val">5</span>
-          <input type="range" id="setScale" min="1" max="10" step="0.5" value="5" />
-        </label>
-        <label>가이던스 리스케일 <span id="rescaleVal" class="val">0</span>
-          <input type="range" id="setRescale" min="0" max="1" step="0.05" value="0" />
-        </label>
-        <label>시드
-          <span class="row gap">
-            <input type="number" id="setSeed" placeholder="랜덤" min="0" />
-            <label class="toggle"><input type="checkbox" id="seedFix" /> <span>고정</span></label>
-          </span>
-        </label>
-      </div>
-    </details>
 
     <!-- 생성 + 큐 -->
     <div class="generate-bar">

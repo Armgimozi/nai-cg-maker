@@ -7,6 +7,7 @@ API 키는 요청 헤더(X-Anthropic-Key / X-NAI-Token)로 받는다. 헤더가 
   GET  /<file>        -> web/ 정적 파일
   POST /api/suggest   -> 장면 → 태그(검증)
   POST /api/compose   -> 기존 프롬프트(+참고글/URL/이미지) → 재구성
+  POST /api/style/artists -> 작가(artist) 태그 검색/인기순 (그림체 실험실)
   POST /api/generate  -> NovelAI 생성
   POST /api/inpaint   -> NovelAI 인페인트(infill)
 """
@@ -213,13 +214,36 @@ def create_app(cfg: dict, db: TagDB, default_api_key: str | None = None,
 
     @app.post("/api/dict/lookup")
     def dict_lookup():
-        """직접 조회: CSV 만으로 태그명/별칭 부분일치 검색. API 키 불필요(무료·즉시)."""
-        q = ((request.get_json(silent=True) or {}).get("query") or "").strip()
+        """직접 조회: CSV 만으로 태그명/별칭 부분일치 검색. API 키 불필요(무료·즉시).
+
+        category 를 주면 그 카테고리(artist 등)로만 좁힌다."""
+        body = request.get_json(silent=True) or {}
+        q = (body.get("query") or "").strip()
+        cat = (body.get("category") or "").strip() or None
         if not q:
             return jsonify({"query": q, "tags": []})
-        matches = db.search(q, limit=60)
+        matches = db.search(q, limit=60, category=cat)
         tags = [{"tag": m.tag, "category": m.category, "count": m.count,
                  "rating": None, "status": "verified", "matched_as": m.matched_as}
+                for m in matches]
+        return jsonify({"query": q, "tags": tags, "stats": {"total": len(tags)}})
+
+    @app.post("/api/style/artists")
+    def style_artists():
+        """그림체 실험실용 작가 태그 목록.
+
+        query 가 있으면 작가 태그 중에서 부분일치 검색, 없으면 인기(post 수)
+        상위 목록. CSV 만 쓰므로 키·비용이 들지 않는다."""
+        body = request.get_json(silent=True) or {}
+        q = (body.get("query") or "").strip()
+        try:
+            limit = int(body.get("limit") or 60)
+        except (TypeError, ValueError):
+            limit = 60
+        limit = max(1, min(limit, 300))
+        matches = (db.search(q, limit=limit, category="artist") if q
+                   else db.top("artist", limit=limit))
+        tags = [{"tag": m.tag, "count": m.count, "matched_as": m.matched_as}
                 for m in matches]
         return jsonify({"query": q, "tags": tags, "stats": {"total": len(tags)}})
 

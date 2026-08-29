@@ -59,7 +59,7 @@ function saveState() {
       chars: $$("#charList .char-input").map((t) => t.value),
       seq: $$("#seqList .seq-input").map((t) => t.value),
       set: {
-        model: $("#setModel").value, size: $("#setSize").value, w: $("#setW").value, h: $("#setH").value,
+        model: $("#setModel").value, modelCustom: $("#setModelCustom").value, size: $("#setSize").value, w: $("#setW").value, h: $("#setH").value,
         sampler: $("#setSampler").value, noise: $("#setNoise").value, steps: $("#setSteps").value,
         scale: $("#setScale").value, rescale: $("#setRescale").value, seed: $("#setSeed").value, seedFix: $("#seedFix").checked,
       },
@@ -75,7 +75,7 @@ function loadState() {
   $("#charList").innerHTML = ""; (Array.isArray(s.chars) && s.chars.length ? s.chars : [""]).forEach((v) => addCharRow(v));
   $("#seqList").innerHTML = ""; (Array.isArray(s.seq) ? s.seq : []).forEach((v) => addSeqRow(v));
   const st = s.set || {};
-  set("#setModel", st.model); set("#setSize", st.size); set("#setW", st.w); set("#setH", st.h);
+  set("#setModel", st.model); set("#setModelCustom", st.modelCustom); set("#setSize", st.size); set("#setW", st.w); set("#setH", st.h);
   set("#setSampler", st.sampler); set("#setNoise", st.noise); set("#setSteps", st.steps);
   set("#setScale", st.scale); set("#setRescale", st.rescale); set("#setSeed", st.seed);
   if (st.seedFix != null) $("#seedFix").checked = st.seedFix;
@@ -83,6 +83,7 @@ function loadState() {
   $("#scaleVal").textContent = $("#setScale").value;
   $("#rescaleVal").textContent = $("#setRescale").value;
   $("#customSize").hidden = $("#setSize").value !== "custom";
+  $("#customModel").hidden = $("#setModel").value !== "custom";
   return true;
 }
 
@@ -221,7 +222,13 @@ function renderRefs() {
 const getRefs = () => refs.map((r) => ({ image: r.url, mode: refMode, strength: r.strength, info_extracted: r.info, ref_type: r.type, fidelity: r.fidelity }));
 
 // ── 설정 ─────────────────────────────────────────────────
-function getSettings() { return { model: $("#setModel").value, steps: Number($("#setSteps").value), scale: Number($("#setScale").value), cfg_rescale: Number($("#setRescale").value), sampler: $("#setSampler").value, noise_schedule: $("#setNoise").value }; }
+function getModel() {
+  // '직접 입력' 이면 텍스트칸의 모델 ID 를 쓴다(새 모델이 나와도 코드 수정 없이 대응).
+  const v = $("#setModel").value;
+  if (v !== "custom") return v;
+  return $("#setModelCustom").value.trim() || "nai-diffusion-5-full";
+}
+function getSettings() { return { model: getModel(), steps: Number($("#setSteps").value), scale: Number($("#setScale").value), cfg_rescale: Number($("#setRescale").value), sampler: $("#setSampler").value, noise_schedule: $("#setNoise").value }; }
 function getSize() { const v = $("#setSize").value; if (v === "custom") return [Number($("#setW").value) || 832, Number($("#setH").value) || 1216]; return v.split("x").map(Number); }
 function getSeed() { if (!$("#seedFix").checked) return null; const s = $("#setSeed").value.trim(); return s === "" ? null : Number(s); }
 function getGenBody(base, chars, neg) {
@@ -240,9 +247,11 @@ function renderQueue() { const el = $("#queueStatus"); if (!queue.length && !que
 async function runQueue() {
   if (queueRunning) return; queueRunning = true;
   while (queue.length) {
-    const job = queue[0]; renderQueue(); genInfo(`${job.label} 중… (대기 ${queue.length - 1})`);
-    try { await job.run(); genInfo(`완료 · 대기 ${queue.length - 1}`); }
-    catch (e) { genInfo("오류: " + e.message, "err"); }
+    const job = queue[0]; renderQueue();
+    const say = job.info || genInfo;                    // 잡이 속한 탭에 진행상황 표시
+    say(`${job.label} 중… (대기 ${queue.length - 1})`);
+    try { await job.run(); say(`완료 · 대기 ${queue.length - 1}`); }
+    catch (e) { say("오류: " + e.message, "err"); }
     queue.shift(); renderQueue();
   }
   queueRunning = false; renderQueue();
@@ -407,6 +416,7 @@ $("#refBtn").onclick = () => $("#refInput").click();
 $("#refInput").onchange = (e) => { addRefFiles(e.target.files); e.target.value = ""; };
 $("#refModeSeg").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) setRefMode(b.dataset.m); });
 $("#setSize").onchange = (e) => { $("#customSize").hidden = e.target.value !== "custom"; };
+$("#setModel").onchange = (e) => { $("#customModel").hidden = e.target.value !== "custom"; };
 $("#setSteps").oninput = (e) => { $("#stepsVal").textContent = e.target.value; };
 $("#setScale").oninput = (e) => { $("#scaleVal").textContent = e.target.value; };
 $("#setRescale").oninput = (e) => { $("#rescaleVal").textContent = e.target.value; };
@@ -434,13 +444,15 @@ let dictTray = [];
 // dictNoUnder=true 면 `long_hair` → `long hair` (NAI/프롬프트용 공백형).
 const fmtTag = (t) => dictNoUnder ? String(t).replace(/_/g, " ") : String(t);
 
+const VIEWS = ["dict", "style", "studio"];
 function switchView(v, focus) {
-  v = v === "studio" ? "studio" : "dict";
-  $("#view-dict").hidden = v !== "dict";
-  $("#view-studio").hidden = v !== "studio";
+  v = VIEWS.includes(v) ? v : "dict";
+  VIEWS.forEach((name) => { $("#view-" + name).hidden = name !== v; });
+  $("#sharedSettings").hidden = v === "dict";      // 설정(모델/해상도/시드)은 그림체·스튜디오 공용
   $$("#tabs button").forEach((b) => b.classList.toggle("active", b.dataset.view === v));
   try { localStorage.setItem("dict_view", v); } catch (e) { }
   if (focus && v === "dict") $("#dictQuery").focus({ preventScroll: true });
+  if (focus && v === "style") $("#styleArtistQuery").focus({ preventScroll: true });
 }
 
 function applyDictMode() {
@@ -600,3 +612,289 @@ $("#dictClear").onclick = () => { if (dictTray.length) { dictTray = []; saveTray
 $("#dictToStudio").onclick = () => { if (!dictTray.length) return; dictTray.forEach((t) => appendToBase(fmtTag(t))); switchView("studio"); $("#basePrompt").scrollIntoView({ behavior: "smooth", block: "center" }); };
 $("#dictNoUnder").checked = dictNoUnder;
 $("#dictNoUnder").addEventListener("change", (e) => { dictNoUnder = e.target.checked; try { localStorage.setItem("dict_nounderscore", dictNoUnder ? "1" : "0"); } catch (x) { } renderDictResults(); renderTray(); });
+
+// ════════════════════════════════════════════════════════
+//  그림체 실험실 — 작가 태그를 랜덤 조합 → 시드 고정 → 실제 생성
+//
+//  같은 시드·같은 테스트 프롬프트로 '작가 조합'만 바꿔 생성하면 구도와 인물이
+//  거의 같은 채로 그림체만 달라져 비교가 된다. 조합 자체도 '조합 시드' 로
+//  재현되므로(같은 시드 → 같은 조합) 마음에 든 세트를 다시 뽑을 수 있다.
+// ════════════════════════════════════════════════════════
+const STYLE_KEY = "style_state", STYLE_FAV_KEY = "style_favs";
+const STYLE_BASE_DEFAULT = "1girl, solo, upper body, looking at viewer, simple background";
+const STYLE_NEG_DEFAULT = "lowres, worst quality, bad anatomy, bad hands, jpeg artifacts, watermark, signature";
+const SEED_MAX = 4294967295;
+
+let styleCombos = [];      // [{artists:[..], tokens:[..], prompt}]
+let styleResults = [];     // [{url,seed,w,h,artists,prompt}]
+let styleFavs = [];        // [{artists:[..], prompt}]
+let styleArtistHits = [];
+
+function styleInfo(msg, kind) { const el = $("#styleInfo"); el.textContent = msg || ""; el.className = "gen-info" + (kind === "err" ? " err" : ""); }
+const clampNum = (v, lo, hi, dflt) => { const n = Number(v); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : dflt; };
+const randSeed = () => Math.floor(Math.random() * (SEED_MAX + 1));
+
+// 시드 고정 난수(mulberry32) — 같은 시드면 항상 같은 조합이 나온다.
+function rng(seed) {
+  let a = (Number(seed) >>> 0) || 1;
+  return function () {
+    a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function sample(arr, k, rand) {          // 중복 없이 k 개 뽑기(부분 피셔-예이츠)
+  const a = arr.slice();
+  const n = Math.min(k, a.length);
+  for (let i = 0; i < n; i++) {
+    const j = i + Math.floor(rand() * (a.length - i));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a.slice(0, n);
+}
+
+// ── 작가 풀 ──
+const cleanArtist = (s) => String(s).trim().replace(/^artist:\s*/i, "").replace(/^\d*\.?\d*::|::$/g, "").trim();
+function stylePool() {
+  const seen = new Set(), out = [];
+  $("#styleArtists").value.split(/[,\n]/).forEach((raw) => {
+    const t = cleanArtist(raw);
+    if (!t || seen.has(t.toLowerCase())) return;
+    seen.add(t.toLowerCase()); out.push(t);
+  });
+  return out;
+}
+function setPool(list) { $("#styleArtists").value = list.join(", "); renderPoolCount(); saveStyleState(); }
+function addToPool(tag) {
+  const pool = stylePool();
+  const t = cleanArtist(tag);
+  if (pool.some((p) => p.toLowerCase() === t.toLowerCase())) return;
+  setPool(pool.concat(t));
+}
+function renderPoolCount() {
+  const n = stylePool().length;
+  $("#stylePoolCount").textContent = n ? `작가 ${n}명` : "작가 태그를 넣거나 아래에서 검색해 추가하세요";
+  renderArtistHits();     // 담김 표시 갱신
+}
+
+// ── 작가 검색(사전 CSV · 무료) ──
+async function styleArtistSearch(query) {
+  const q = (query != null ? query : $("#styleArtistQuery").value).trim();
+  $("#styleArtistGo").disabled = true;
+  setBox("#styleArtistStatus", q ? "작가 태그를 찾는 중…" : "인기 작가를 불러오는 중…", "load");
+  try {
+    const d = await api("/api/style/artists", { query: q, limit: q ? 60 : 60 });
+    styleArtistHits = d.tags || [];
+    setBox("#styleArtistStatus", styleArtistHits.length ? "" : "결과가 없습니다(작가 태그는 영문/로마자).", styleArtistHits.length ? "" : "err");
+    renderArtistHits();
+  } catch (e) { setBox("#styleArtistStatus", "오류: " + e.message, "err"); }
+  finally { $("#styleArtistGo").disabled = false; }
+}
+function renderArtistHits() {
+  const box = $("#styleArtistResults"); if (!box) return;
+  box.innerHTML = "";
+  const pool = stylePool().map((p) => p.toLowerCase());
+  styleArtistHits.forEach((x) => {
+    const el = document.createElement("div");
+    const inPool = pool.includes(x.tag.toLowerCase());
+    el.className = "chip" + (inPool ? " added" : "");
+    el.innerHTML = `<span class="name">${esc(fmtTag(x.tag))}</span>${x.count ? `<span class="cnt">${fmtCount(x.count)}</span>` : ""}`;
+    el.title = inPool ? "이미 풀에 있음" : "풀에 추가";
+    el.onclick = () => addToPool(x.tag);
+    box.appendChild(el);
+  });
+}
+
+// ── 조합 만들기 ──
+function styleTokens(names, rand) {
+  const withPrefix = $("#stylePrefix").checked;
+  const weighted = $("#styleWeightOn").checked;
+  let lo = clampNum($("#styleWMin").value, 0.1, 2, 0.9), hi = clampNum($("#styleWMax").value, 0.1, 2, 1.2);
+  if (hi < lo) [lo, hi] = [hi, lo];
+  return names.map((n) => {
+    const tag = (withPrefix ? "artist:" : "") + fmtTag(n);
+    if (!weighted) return tag;
+    const w = Math.round((lo + rand() * (hi - lo)) * 100) / 100;   // NAI v4+ 가중치: 1.15::tag::
+    return `${w}::${tag}::`;
+  });
+}
+function rollCombos() {
+  const pool = stylePool();
+  if (!pool.length) { styleCombos = []; styleInfo("작가 태그를 1명 이상 넣어주세요.", "err"); renderCombos(); return; }
+  const want = clampNum($("#styleCount").value, 1, 30, 6);
+  let lo = clampNum($("#styleMin").value, 1, 8, 2), hi = clampNum($("#styleMax").value, 1, 8, 3);
+  if (hi < lo) [lo, hi] = [hi, lo];
+  hi = Math.min(hi, pool.length); lo = Math.min(lo, hi);
+  const rand = rng($("#styleComboSeed").value);
+  const out = [], seen = new Set();
+  for (let guard = 0; out.length < want && guard < want * 60; guard++) {
+    const k = lo + Math.floor(rand() * (hi - lo + 1));
+    const picked = sample(pool, k, rand);
+    const key = picked.slice().sort().join("|");
+    if (seen.has(key)) continue;                 // 같은 조합 중복 방지
+    seen.add(key);
+    const tokens = styleTokens(picked, rand);
+    out.push({ artists: picked, tokens, prompt: buildStylePrompt(tokens) });
+  }
+  styleCombos = out;
+  renderCombos();
+  styleInfo(out.length < want
+    ? `${out.length}개 조합 (풀이 작아 서로 다른 조합은 여기까지)`
+    : `${out.length}개 조합 준비됨`);
+}
+function buildStylePrompt(tokens) {
+  const base = $("#styleBase").value.trim();
+  return [tokens.join(", "), base].filter(Boolean).join(", ");
+}
+function renderCombos() {
+  const box = $("#styleCombos"); box.innerHTML = "";
+  if (!styleCombos.length) return;
+  styleCombos.forEach((c, i) => {
+    const el = document.createElement("div"); el.className = "combo-row";
+    el.innerHTML = `<span class="n">${i + 1}</span><code class="combo-tags">${esc(c.tokens.join(", "))}</code>`;
+    const b = document.createElement("button"); b.className = "ghost xs"; b.textContent = "복사";
+    b.onclick = () => { copyText(c.prompt); flash(b, "복사됨 ✓", "복사"); };
+    el.appendChild(b); box.appendChild(el);
+  });
+}
+
+// ── 실제 생성 ──
+function styleGenBody(prompt, seed) {
+  const [w, h] = getSize();
+  return {
+    base_prompt: prompt, character_prompts: [],
+    negative_prompt: $("#styleNeg").value.trim(),
+    width: w, height: h, seed, settings: getSettings(), references: [],
+  };
+}
+function styleQueue(combo, label, seed) {
+  enqueue({
+    label, info: styleInfo, run: async () => {
+      const body = styleGenBody(combo.prompt, seed);
+      const d = await api("/api/generate", body);
+      addStyleResult({ url: d.image, seed: d.seed, w: body.width, h: body.height, artists: combo.artists, tokens: combo.tokens, prompt: combo.prompt });
+    },
+  });
+}
+function styleGenerate() {
+  if (!styleCombos.length) rollCombos();
+  if (!styleCombos.length) return;
+  const fixed = $("#styleFixSeed").checked;
+  const raw = $("#styleImgSeed").value.trim();
+  const seed = raw === "" ? randSeed() : clampNum(raw, 0, SEED_MAX, randSeed());
+  if (fixed) { $("#styleImgSeed").value = seed; saveStyleState(); }
+  styleCombos.forEach((c, i) => styleQueue(c, `그림체 ${i + 1}/${styleCombos.length}`, fixed ? seed : null));
+  styleInfo(`${styleCombos.length}장 생성 대기열에 넣었습니다${fixed ? ` · 시드 ${seed} 고정` : ""}`);
+}
+
+// ── 결과 ──
+function addStyleResult(r) { styleResults.unshift(r); $("#styleResultCard").hidden = false; renderStyleResults(); }
+function renderStyleResults() {
+  const box = $("#styleResults"); box.innerHTML = "";
+  styleResults.forEach((r, i) => {
+    const card = document.createElement("div"); card.className = "style-card";
+    const faved = styleFavs.some((f) => f.artists.join("|") === r.artists.join("|"));
+    card.innerHTML = `
+      <img src="${r.url}" alt="style" title="스튜디오 작업영역으로 보내기" />
+      <div class="style-meta">
+        <p class="style-artists">${esc(r.artists.map(fmtTag).join(", "))}</p>
+        <p class="style-seed">seed ${r.seed}</p>
+      </div>
+      <div class="style-acts">
+        <button class="ghost xs act-apply">스튜디오에 적용</button>
+        <button class="ghost xs act-copy">복사</button>
+        <button class="ghost xs act-fav${faved ? " added" : ""}">${faved ? "★ 저장됨" : "☆ 저장"}</button>
+        <button class="ghost xs act-again">🔁 다른 시드</button>
+        <a class="ghost xs dl-link" href="${r.url}" download="style_${r.seed}.png">⬇</a>
+      </div>`;
+    card.querySelector("img").onclick = () => { showImage(r.url, r.seed, r.w, r.h); addGallery(r.url, r.seed, r.w, r.h); switchView("studio"); $("#genResult").scrollIntoView({ behavior: "smooth", block: "center" }); };
+    card.querySelector(".act-apply").onclick = (e) => { applyStyleToStudio(r); flash(e.target, "적용됨 ✓", "스튜디오에 적용"); };
+    card.querySelector(".act-copy").onclick = (e) => { copyText(r.prompt); flash(e.target, "복사됨 ✓", "복사"); };
+    card.querySelector(".act-fav").onclick = () => toggleStyleFav(r);
+    card.querySelector(".act-again").onclick = () => styleQueue(r, `그림체 재생성 ${i + 1}`, null);
+    box.appendChild(card);
+  });
+}
+// 작가 토큰을 스튜디오 베이스 프롬프트 맨 앞에 붙인다(기존 작가 토큰은 걷어냄).
+function applyStyleToStudio(r) {
+  const ta = $("#basePrompt");
+  const kept = ta.value.split(/[,\n]/).map((s) => s.trim())
+    .filter((t) => t && !/^(\d*\.?\d*::)?artist:/i.test(t));
+  ta.value = r.tokens.concat(kept).join(", ");
+  saveState();
+}
+
+// ── 즐겨찾기(텍스트만 저장 · 이미지는 저장 안 함) ──
+function toggleStyleFav(r) {
+  const key = r.artists.join("|");
+  const i = styleFavs.findIndex((f) => f.artists.join("|") === key);
+  if (i >= 0) styleFavs.splice(i, 1);
+  else styleFavs.unshift({ artists: r.artists, tokens: r.tokens, prompt: r.prompt, seed: r.seed });
+  saveStyleFavs(); renderStyleFavs(); renderStyleResults();
+}
+function renderStyleFavs() {
+  $("#styleFavCard").hidden = !styleFavs.length;
+  $("#styleFavCount").textContent = styleFavs.length ? `${styleFavs.length}개` : "";
+  const box = $("#styleFavs"); box.innerHTML = "";
+  styleFavs.forEach((f, i) => {
+    const el = document.createElement("div"); el.className = "fav-row";
+    el.innerHTML = `<code class="combo-tags">${esc(f.tokens.join(", "))}</code>`;
+    const mk = (label, fn) => { const b = document.createElement("button"); b.className = "ghost xs"; b.textContent = label; b.onclick = () => fn(b); el.appendChild(b); };
+    mk("스튜디오에 적용", (b) => { applyStyleToStudio(f); flash(b, "적용됨 ✓", "스튜디오에 적용"); });
+    mk("풀만 남기기", () => { setPool(f.artists); styleInfo("이 조합의 작가만 풀에 남겼습니다."); });
+    mk("복사", (b) => { copyText(f.prompt); flash(b, "복사됨 ✓", "복사"); });
+    mk("✕", () => { styleFavs.splice(i, 1); saveStyleFavs(); renderStyleFavs(); renderStyleResults(); });
+    box.appendChild(el);
+  });
+}
+function saveStyleFavs() { try { localStorage.setItem(STYLE_FAV_KEY, JSON.stringify(styleFavs)); } catch (e) { } }
+function loadStyleFavs() {
+  try { const a = JSON.parse(localStorage.getItem(STYLE_FAV_KEY) || "[]"); if (Array.isArray(a)) styleFavs = a.filter((f) => f && Array.isArray(f.artists)); } catch (e) { }
+}
+
+// ── 상태 저장/복원 ──
+const STYLE_FIELDS = ["#styleArtists", "#styleMin", "#styleMax", "#styleCount", "#styleComboSeed",
+  "#styleImgSeed", "#styleBase", "#styleNeg", "#styleWMin", "#styleWMax"];
+const STYLE_FLAGS = ["#styleFixSeed", "#stylePrefix", "#styleWeightOn"];
+function saveStyleState() {
+  const o = {};
+  STYLE_FIELDS.forEach((id) => o[id] = $(id).value);
+  STYLE_FLAGS.forEach((id) => o[id] = $(id).checked);
+  try { localStorage.setItem(STYLE_KEY, JSON.stringify(o)); } catch (e) { }
+}
+function loadStyleState() {
+  let o; try { o = JSON.parse(localStorage.getItem(STYLE_KEY) || "null"); } catch { o = null; }
+  if (o) {
+    STYLE_FIELDS.forEach((id) => { if (o[id] != null) $(id).value = o[id]; });
+    STYLE_FLAGS.forEach((id) => { if (o[id] != null) $(id).checked = o[id]; });
+  }
+  if (!$("#styleBase").value.trim()) $("#styleBase").value = STYLE_BASE_DEFAULT;
+  if (!$("#styleNeg").value.trim()) $("#styleNeg").value = STYLE_NEG_DEFAULT;
+  if (!$("#styleComboSeed").value) $("#styleComboSeed").value = randSeed();
+  if (!$("#styleImgSeed").value) $("#styleImgSeed").value = randSeed();
+}
+
+// ── 초기화 / 이벤트 ──
+loadStyleState(); loadStyleFavs(); renderStyleFavs(); renderPoolCount();
+document.addEventListener("input", (e) => { if (e.target.closest("#view-style")) saveStyleState(); });
+document.addEventListener("change", (e) => { if (e.target.closest("#view-style")) saveStyleState(); });
+$("#styleArtists").addEventListener("input", renderPoolCount);
+$("#stylePoolTop").onclick = () => styleArtistSearch("");
+$("#stylePoolClear").onclick = () => setPool([]);
+$("#styleArtistGo").onclick = () => styleArtistSearch();
+$("#styleArtistQuery").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); styleArtistSearch(); } });
+$("#styleComboReroll").onclick = () => { $("#styleComboSeed").value = randSeed(); saveStyleState(); rollCombos(); };
+$("#styleSeedReroll").onclick = () => { $("#styleImgSeed").value = randSeed(); saveStyleState(); };
+$("#styleRoll").onclick = rollCombos;
+$("#styleGen").onclick = styleGenerate;
+$("#styleFromStudio").onclick = () => {
+  const base = $("#basePrompt").value.split(/[,\n]/).map((s) => s.trim())
+    .filter((t) => t && !/^(\d*\.?\d*::)?artist:/i.test(t)).join(", ");   // 작가 토큰은 빼고 가져옴
+  if (base) $("#styleBase").value = base;
+  const neg = $("#negPrompt").value.trim(); if (neg) $("#styleNeg").value = neg;
+  saveStyleState(); styleInfo("스튜디오 프롬프트를 가져왔습니다(작가 태그 제외).");
+};
+$("#styleResetPrompt").onclick = () => { $("#styleBase").value = STYLE_BASE_DEFAULT; $("#styleNeg").value = STYLE_NEG_DEFAULT; saveStyleState(); };
+$("#styleResultsClear").onclick = () => { styleResults = []; $("#styleResultCard").hidden = true; renderStyleResults(); };
+$("#styleFavClear").onclick = () => { styleFavs = []; saveStyleFavs(); renderStyleFavs(); renderStyleResults(); };
