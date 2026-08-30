@@ -43,6 +43,58 @@ def image_media_type(raw: bytes) -> str | None:
     return None
 
 
+def _decode_b64_image(s: str) -> bytes | None:
+    try:
+        raw = base64.b64decode(s, validate=False)
+    except Exception:  # noqa: BLE001
+        return None
+    return raw if image_media_type(raw) else None
+
+
+def _from_zip(raw: bytes) -> bytes | None:
+    """ZIP 응답에서 실제 이미지인 항목을 골라 반환."""
+    try:
+        zf = zipfile.ZipFile(io.BytesIO(raw))
+    except zipfile.BadZipFile:
+        return None
+    for name in zf.namelist():
+        data = zf.read(name)
+        if image_media_type(data):
+            return data
+    return None
+
+
+def _from_json(raw: bytes) -> bytes | None:
+    """{"images": [{"image": "<base64>"}]} 형태 응답에서 첫 이미지를 반환.
+
+    항목이 문자열인 경우({"images": ["<base64>"]})와 최상위 image 키도 받는다."""
+    if not raw[:1] in (b"{", b"["):
+        return None
+    try:
+        data = json.loads(raw)
+    except (ValueError, UnicodeDecodeError):
+        return None
+    items = data
+    if isinstance(data, dict):
+        items = data.get("images") or data.get("image") or data.get("data")
+    if isinstance(items, (str, dict)):
+        items = [items]
+    if not isinstance(items, list):
+        return None
+    for it in items:
+        s = it if isinstance(it, str) else None
+        if isinstance(it, dict):
+            for key in ("image", "data", "b64", "base64"):
+                if isinstance(it.get(key), str):
+                    s = it[key]
+                    break
+        if s:
+            img = _decode_b64_image(s)
+            if img:
+                return img
+    return None
+
+
 def _is_v5(model: str) -> bool:
     """V5 계열 모델인가. V5 는 요청 파라미터 버전이 4(그 이하는 3)."""
     return "diffusion-5" in (model or "")
@@ -261,7 +313,7 @@ class NovelAIClient:
             "parameters": self._params(base, chars, negative, seed, w, h,
                                        settings, vibes, precise_refs, model=model),
         }
-        return self._unzip(self._http(API_URL, body, "application/x-zip-compressed,application/json")), seed
+        return self._extract_image(self._http(API_URL, body, "application/x-zip-compressed,application/json")), seed
 
     def inpaint(self, base, chars, negative, image_b64, mask_b64, *, seed=None,
                 width=None, height=None, settings=None, references=None) -> tuple[bytes, int]:
@@ -280,21 +332,17 @@ class NovelAIClient:
                                        settings, vibes, precise_refs, extra,
                                        model=inpaint_model),
         }
-        return self._unzip(self._http(API_URL, body, "application/x-zip-compressed,application/json")), seed
+        return self._extract_image(self._http(API_URL, body, "application/x-zip-compressed,application/json")), seed
 
     @staticmethod
-    def _unzip(raw: bytes) -> bytes:
-        """응답 ZIP 에서 이미지를 꺼낸다.
+    def _extract_image(raw: bytes) -> bytes:
+        """응답 본문에서 이미지 바이트를 꺼낸다.
 
-        첫 항목이 항상 이미지인 건 아니다(모델/옵션에 따라 메타데이터 등이 먼저
-        올 수 있음). 그래서 매직넘버로 실제 이미지인 항목을 골라 돌려준다."""
-        try:
-            zf = zipfile.ZipFile(io.BytesIO(raw))
-        except zipfile.BadZipFile:
+        NovelAI 응답은 세 가지 형태로 온다:
+          · 이미지 그대로
+          · ZIP (안의 첫 항목이 항상 이미지는 아니라 매직넘버로 고른다)
+          · JSON {"images": [{"image": "<base64>"}]}  ← 현재 API 가 주는 형태
+        어느 것도 아니면 원문을 그대로 돌려주고, 서버가 원인을 안내한다."""
+        if image_media_type(raw):
             return raw
-        names = zf.namelist()
-        for name in names:
-            data = zf.read(name)
-            if image_media_type(data):
-                return data
-        return zf.read(names[0]) if names else raw
+        return _from_zip(raw) or _from_json(raw) or raw
