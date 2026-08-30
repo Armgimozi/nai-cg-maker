@@ -630,7 +630,23 @@ let styleResults = [];     // [{url,seed,w,h,artists,prompt}]
 let styleFavs = [];        // [{artists:[..], prompt}]
 let styleArtistHits = [];
 
-function styleInfo(msg, kind) { const el = $("#styleInfo"); el.textContent = msg || ""; el.className = "gen-info" + (kind === "err" ? " err" : ""); }
+function styleInfo(msg, kind) {
+  const el = $("#styleInfo");
+  el.className = "gen-info" + (kind === "err" ? " err" : "");
+  // 오류는 한 줄에 다 안 들어가므로 아래 박스에 전문을 띄우고 복사 버튼을 붙인다.
+  const box = $("#styleStatus");
+  if (kind === "err") {
+    el.textContent = "오류 — 아래 내용을 확인하세요";
+    box.hidden = false; box.innerHTML = "";
+    const p = document.createElement("p"); p.className = "style-err-msg"; p.textContent = msg;
+    const b = document.createElement("button"); b.className = "ghost xs"; b.textContent = "오류 복사";
+    b.onclick = () => { copyText(msg); flash(b, "복사됨 ✓", "오류 복사"); };
+    box.append(p, b);
+  } else {
+    el.textContent = msg || "";
+    box.hidden = true; box.innerHTML = "";
+  }
+}
 const clampNum = (v, lo, hi, dflt) => { const n = Number(v); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : dflt; };
 const randSeed = () => Math.floor(Math.random() * (SEED_MAX + 1));
 
@@ -699,7 +715,7 @@ function renderArtistHits() {
     const el = document.createElement("div");
     const inPool = pool.includes(x.tag.toLowerCase());
     el.className = "chip" + (inPool ? " added" : "");
-    el.innerHTML = `<span class="name">${esc(fmtTag(x.tag))}</span>${x.count ? `<span class="cnt">${fmtCount(x.count)}</span>` : ""}`;
+    el.innerHTML = `<span class="name">${esc(x.tag)}</span>${x.count ? `<span class="cnt">${fmtCount(x.count)}</span>` : ""}`;
     el.title = inPool ? "이미 풀에 있음" : "풀에 추가";
     el.onclick = () => addToPool(x.tag);
     box.appendChild(el);
@@ -713,7 +729,9 @@ function styleTokens(names, rand) {
   let lo = clampNum($("#styleWMin").value, 0.1, 2, 0.9), hi = clampNum($("#styleWMax").value, 0.1, 2, 1.2);
   if (hi < lo) [lo, hi] = [hi, lo];
   return names.map((n) => {
-    const tag = (withPrefix ? "artist:" : "") + fmtTag(n);
+    // 작가 태그는 정식형(ask_(askzy) 처럼 언더스코어 포함) 그대로 보낸다.
+    // 공백으로 바꾸면 다른 태그가 돼 모델이 못 알아본다.
+    const tag = (withPrefix ? "artist:" : "") + n;
     if (!weighted) return tag;
     const w = Math.round((lo + rand() * (hi - lo)) * 100) / 100;   // NAI v4+ 가중치: 1.15::tag::
     return `${w}::${tag}::`;
@@ -798,7 +816,7 @@ function renderStyleResults() {
     card.innerHTML = `
       <img src="${r.url}" alt="style" title="스튜디오 작업영역으로 보내기" />
       <div class="style-meta">
-        <p class="style-artists">${esc(r.artists.map(fmtTag).join(", "))}</p>
+        <p class="style-artists">${esc(r.artists.join(", "))}</p>
         <p class="style-seed">seed ${r.seed}</p>
       </div>
       <div class="style-acts">

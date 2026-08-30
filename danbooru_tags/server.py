@@ -15,6 +15,7 @@ API 키는 요청 헤더(X-Anthropic-Key / X-NAI-Token)로 받는다. 헤더가 
 from __future__ import annotations
 
 import base64
+import json
 import mimetypes
 import re
 import time
@@ -183,12 +184,30 @@ def _image_response(raw: bytes, seed: int):
     화면에 깨진 이미지만 떴다. 여기서 걸러 읽을 수 있는 오류로 바꾼다."""
     mt = image_media_type(raw)
     if not mt:
-        head = raw[:300].decode("utf-8", "replace").strip().replace("\n", " ")
-        return jsonify({"error": "NovelAI 가 이미지가 아닌 응답을 보냈습니다. "
-                                 "⚙ 설정에서 모델을 v4.5 로 바꿔 다시 시도해 보세요. "
-                                 f"(받은 내용 앞부분: {head or '빈 응답'})"}), 502
+        return jsonify({"error": _why_not_image(raw)}), 502
     return jsonify({"image": f"data:{mt};base64," + base64.b64encode(raw).decode(),
                     "seed": seed})
+
+
+def _why_not_image(raw: bytes) -> str:
+    """이미지가 아닌 응답의 원인을 사람이 읽을 수 있게 정리."""
+    head = raw[:400].decode("utf-8", "replace").strip().replace("\n", " ")
+    low = head.lower()
+    size = f"{len(raw):,}바이트"
+    if not raw:
+        return "NovelAI 가 빈 응답을 보냈습니다. 잠시 후 다시 시도해 보세요."
+    if "<html" in low or "<!doctype" in low or "cloudflare" in low or "just a moment" in low:
+        return ("NovelAI 가 이미지 대신 웹페이지(봇 차단 화면)를 보냈습니다. 클라우드 서버 "
+                "IP 가 막힌 경우가 많습니다 — 내 PC 에서 `python run.py` 로 실행하거나 "
+                f"`start-phone.bat`(터널)로 접속해 보세요. ({size}: {head[:160]})")
+    try:
+        msg = json.loads(head).get("message") or json.loads(head).get("error")
+        if msg:
+            return f"NovelAI 오류: {msg}"
+    except Exception:  # noqa: BLE001  (JSON 이 아니거나 잘렸으면 원문을 그대로 보여준다)
+        pass
+    return ("NovelAI 가 이미지가 아닌 응답을 보냈습니다. ⚙ 설정에서 모델을 바꿔 "
+            f"다시 시도해 보세요. ({size}: {head[:200]})")
 
 
 def create_app(cfg: dict, db: TagDB, default_api_key: str | None = None,

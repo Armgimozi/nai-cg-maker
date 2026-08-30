@@ -272,3 +272,5 @@ input.wn { width: 68px; padding: 3px 6px; font-size: .82rem; }
 }
 input[type="checkbox"] { accent-color: var(--accent); }
 .style-broken { margin: 0; padding: 22px 12px; font-size: .8rem; color: #ffb3c0; background: rgba(255,93,115,.08); line-height: 1.5; }
+.style-err { margin: 0 0 14px; }
+.style-err-msg { margin: 0 0 9px; white-space: pre-wrap; word-break: break-word; font-size: .84rem; line-height: 1.55; }
