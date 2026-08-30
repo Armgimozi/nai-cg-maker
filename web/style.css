@@ -271,3 +271,4 @@ input.wn { width: 68px; padding: 3px 6px; font-size: .82rem; }
   .tabs button { font-size: .88rem; padding: 11px 8px; }
 }
 input[type="checkbox"] { accent-color: var(--accent); }
+.style-broken { margin: 0; padding: 22px 12px; font-size: .8rem; color: #ffb3c0; background: rgba(255,93,115,.08); line-height: 1.5; }

@@ -30,6 +30,19 @@ _UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
        "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
 
 
+def image_media_type(raw: bytes) -> str | None:
+    """바이트 앞머리(매직넘버)로 이미지 종류 판별. 이미지가 아니면 None."""
+    if raw[:4] == b"\x89PNG":
+        return "image/png"
+    if raw[:3] == b"\xff\xd8\xff":
+        return "image/jpeg"
+    if raw[:4] == b"GIF8":
+        return "image/gif"
+    if raw[:4] == b"RIFF" and raw[8:12] == b"WEBP":
+        return "image/webp"
+    return None
+
+
 def _is_v5(model: str) -> bool:
     """V5 계열 모델인가. V5 는 요청 파라미터 버전이 4(그 이하는 3)."""
     return "diffusion-5" in (model or "")
@@ -271,8 +284,17 @@ class NovelAIClient:
 
     @staticmethod
     def _unzip(raw: bytes) -> bytes:
+        """응답 ZIP 에서 이미지를 꺼낸다.
+
+        첫 항목이 항상 이미지인 건 아니다(모델/옵션에 따라 메타데이터 등이 먼저
+        올 수 있음). 그래서 매직넘버로 실제 이미지인 항목을 골라 돌려준다."""
         try:
             zf = zipfile.ZipFile(io.BytesIO(raw))
-            return zf.read(zf.namelist()[0])
         except zipfile.BadZipFile:
             return raw
+        names = zf.namelist()
+        for name in names:
+            data = zf.read(name)
+            if image_media_type(data):
+                return data
+        return zf.read(names[0]) if names else raw

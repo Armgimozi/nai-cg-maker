@@ -808,7 +808,10 @@ function renderStyleResults() {
         <button class="ghost xs act-again">🔁 다른 시드</button>
         <a class="ghost xs dl-link" href="${r.url}" download="style_${r.seed}.png">⬇</a>
       </div>`;
-    card.querySelector("img").onclick = () => { showImage(r.url, r.seed, r.w, r.h); addGallery(r.url, r.seed, r.w, r.h); switchView("studio"); $("#genResult").scrollIntoView({ behavior: "smooth", block: "center" }); };
+    const im = card.querySelector("img");
+    // 이미지가 깨졌을 때 빈 칸만 남지 않도록 이유를 적어 준다.
+    im.onerror = () => { im.insertAdjacentHTML("afterend", '<p class="style-broken">이미지를 불러오지 못했습니다 (응답이 이미지가 아님 — ⚙ 설정의 모델을 바꿔 보세요)</p>'); im.remove(); };
+    im.onclick = () => { showImage(r.url, r.seed, r.w, r.h); addGallery(r.url, r.seed, r.w, r.h); switchView("studio"); $("#genResult").scrollIntoView({ behavior: "smooth", block: "center" }); };
     card.querySelector(".act-apply").onclick = (e) => { applyStyleToStudio(r); flash(e.target, "적용됨 ✓", "스튜디오에 적용"); };
     card.querySelector(".act-copy").onclick = (e) => { copyText(r.prompt); flash(e.target, "복사됨 ✓", "복사"); };
     card.querySelector(".act-fav").onclick = () => toggleStyleFav(r);

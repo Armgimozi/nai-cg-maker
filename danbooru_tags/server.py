@@ -26,7 +26,7 @@ from pathlib import Path
 from flask import Flask, jsonify, request, send_from_directory
 
 from .client import SuggestClient
-from .nai import NovelAIClient
+from .nai import NovelAIClient, image_media_type
 from .tagdb import TagDB
 
 # PWA: .webmanifest 가 octet-stream 으로 나가지 않도록 MIME 등록(특히 Windows).
@@ -174,6 +174,21 @@ def _validate_dict(data: dict, db: TagDB) -> dict:
                         "matched_as": None, "ko": ko, "en": en})
     return {"interpretation": data.get("interpretation", ""), "tags": out,
             "stats": {"total": len(out), "verified": verified}}
+
+
+def _image_response(raw: bytes, seed: int):
+    """생성 결과 바이트 → JSON 응답. 이미지가 아니면 원인을 그대로 보여준다.
+
+    NovelAI 가 200 으로 이미지가 아닌 걸 돌려주면(모델/파라미터 문제 등) 예전엔
+    화면에 깨진 이미지만 떴다. 여기서 걸러 읽을 수 있는 오류로 바꾼다."""
+    mt = image_media_type(raw)
+    if not mt:
+        head = raw[:300].decode("utf-8", "replace").strip().replace("\n", " ")
+        return jsonify({"error": "NovelAI 가 이미지가 아닌 응답을 보냈습니다. "
+                                 "⚙ 설정에서 모델을 v4.5 로 바꿔 다시 시도해 보세요. "
+                                 f"(받은 내용 앞부분: {head or '빈 응답'})"}), 502
+    return jsonify({"image": f"data:{mt};base64," + base64.b64encode(raw).decode(),
+                    "seed": seed})
 
 
 def create_app(cfg: dict, db: TagDB, default_api_key: str | None = None,
@@ -377,8 +392,7 @@ def create_app(cfg: dict, db: TagDB, default_api_key: str | None = None,
                                      height=height, settings=settings, references=refs)
         except Exception as e:  # noqa: BLE001
             return jsonify({"error": str(e)}), 502
-        return jsonify({"image": "data:image/png;base64," + base64.b64encode(png).decode(),
-                        "seed": used})
+        return _image_response(png, used)
 
     @app.post("/api/inpaint")
     def inpaint():
@@ -397,7 +411,6 @@ def create_app(cfg: dict, db: TagDB, default_api_key: str | None = None,
                                     settings=settings, references=refs)
         except Exception as e:  # noqa: BLE001
             return jsonify({"error": str(e)}), 502
-        return jsonify({"image": "data:image/png;base64," + base64.b64encode(png).decode(),
-                        "seed": used})
+        return _image_response(png, used)
 
     return app
