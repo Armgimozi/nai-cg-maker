@@ -148,6 +148,8 @@ def catalog():
             "element": c["element"], "role": c["role"], "base": c["base"],
             "skill": c["skill"], "palette": c["palette"], "quote": c["quote"],
             "art": art.art_url(c["id"]),
+            # 표정 차분(눈 감음 등). 있으면 클라이언트가 눈 깜빡임에 쓴다.
+            "arts": art.art_variants(c["id"]),
         })
     banners = []
     for b in econ.BANNERS:

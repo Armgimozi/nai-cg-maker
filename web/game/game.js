@@ -35,6 +35,15 @@ async function api(path, body) {
   return data;
 }
 
+/* 5★ 등장 순간의 화면 섬광. 요소 하나를 재사용한다. */
+function flash() {
+  const el = $('#flash');
+  if (!el) return;
+  el.classList.remove('go');
+  void el.offsetWidth;           // 애니메이션 재시작
+  el.classList.add('go');
+}
+
 function toast(msg, bad) {
   const el = document.createElement('div');
   el.className = 'toast' + (bad ? ' bad' : '');
@@ -80,10 +89,72 @@ function svgPortrait(c) {
     <circle cx="76" cy="14" r="5.5" fill="${el}" opacity=".92"/>
   </svg>`;
 }
-function portrait(c) {
-  return c.art
-    ? `<img class="portrait" src="${c.art}" alt="${c.name}" loading="lazy">`
+/* 정지 그림을 "살아있게" 보이게 하는 세 가지를 여기서 붙인다.
+     alive    — 호흡(미세한 확대·상하 이동) 루프
+     blink    — 눈 감은 차분(<id>@blink)이 있으면 교차시켜 눈 깜빡임
+     depth    — 기기 기울임/마우스에 반응하는 패럴랙스 (숫자가 클수록 많이 움직임)
+   차분 그림이 없으면 blink 는 그냥 무시되고 나머지만 적용된다. */
+function portrait(c, o = {}) {
+  const inner = c.art
+    ? `<img class="portrait" src="${c.art}" alt="${c.name}" loading="lazy">` +
+      (o.blink && c.arts && c.arts.blink
+        ? `<img class="portrait alt" src="${c.arts.blink}" alt="" aria-hidden="true">`
+        : '')
     : svgPortrait(c);
+  const cls = ['pf', o.alive ? 'alive' : '', o.blink && c.arts && c.arts.blink
+    ? 'can-blink' : ''].filter(Boolean).join(' ');
+  const depth = o.depth ? ` data-depth="${o.depth}"` : '';
+  return `<span class="${cls}"${depth}>${inner}</span>`;
+}
+
+/* 눈 깜빡임 — 사람은 3~4초에 한 번 깜빡인다. 가끔 두 번 연속 깜빡이게 해서
+   기계적인 주기가 느껴지지 않게 한다. 화면에 보이는 것만 처리한다. */
+function blinkTick() {
+  for (const el of $$('.pf.can-blink')) {
+    if (el.dataset.busy) continue;
+    if (!el.getClientRects().length) continue;      // 숨은 탭은 건너뜀
+    if (Math.random() > 0.09) continue;
+    el.dataset.busy = '1';
+    const once = (after) => {
+      el.classList.add('blinking');
+      setTimeout(() => {
+        el.classList.remove('blinking');
+        if (after) setTimeout(() => once(false), 110);
+        else setTimeout(() => { delete el.dataset.busy; }, 200);
+      }, 110);
+    };
+    once(Math.random() < 0.25);
+  }
+}
+
+/* 패럴랙스 — 폰에서는 자이로, PC 에서는 마우스로 기울인다.
+   transform 은 바깥 래퍼(.pf)에만 걸고, 호흡은 안쪽 <img> 에 걸어 서로 겹치지
+   않게 한다. 기울임 값은 부드럽게 따라가도록 보간한다. */
+const tilt = { x: 0, y: 0, tx: 0, ty: 0, on: false };
+function tiltLoop() {
+  tilt.x += (tilt.tx - tilt.x) * 0.08;
+  tilt.y += (tilt.ty - tilt.y) * 0.08;
+  for (const el of $$('[data-depth]')) {
+    const d = +el.dataset.depth;
+    el.style.transform =
+      `translate3d(${(tilt.x * d).toFixed(2)}px,${(tilt.y * d).toFixed(2)}px,0)` +
+      ` scale(${1 + d * 0.006})`;
+  }
+  requestAnimationFrame(tiltLoop);
+}
+function initMotion() {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  addEventListener('mousemove', e => {
+    tilt.tx = (e.clientX / innerWidth - 0.5) * 2;
+    tilt.ty = (e.clientY / innerHeight - 0.5) * 2;
+  }, { passive: true });
+  addEventListener('deviceorientation', e => {
+    if (e.gamma == null) return;
+    tilt.tx = Math.max(-1, Math.min(1, e.gamma / 30));
+    tilt.ty = Math.max(-1, Math.min(1, ((e.beta ?? 45) - 45) / 30));
+  }, { passive: true });
+  requestAnimationFrame(tiltLoop);
+  setInterval(blinkTick, 420);
 }
 function stars(n) { return '★'.repeat(n); }
 function rarityClass(r) { return 'r' + r; }
@@ -112,6 +183,7 @@ async function boot() {
   localStorage.setItem(PID_KEY, ST.pid);
   banner = CAT.banners[0];
   renderAll();
+  initMotion();
   setInterval(tickStamina, 1000);
 }
 
@@ -157,8 +229,8 @@ function tickStamina() {
 function renderHome() {
   const feature = CH[banner ? banner.art_hint : 'seraphine'] || CAT.characters[0];
   const art = $('#heroArt');
-  if (feature.art) { art.style.backgroundImage = `url(${feature.art})`; }
-  else { art.innerHTML = svgPortrait(feature); art.style.opacity = .32; }
+  art.innerHTML = portrait(feature, { blink: true, alive: true, depth: 7 });
+  art.classList.toggle('placeholder', !feature.art);
   $('#heroQuote').textContent = feature.quote;
 
   // 출석
@@ -215,8 +287,8 @@ function renderGacha() {
   const feature = CH[banner.art_hint];
   const up = banner.pickup5.map(id => CH[id].name).join(', ');
   $('#bannerBox').innerHTML = `
-    <div class="bg" ${feature.art ? `style="background-image:url(${feature.art})"` : ''}>
-      ${feature.art ? '' : `<div style="opacity:.35;height:100%">${svgPortrait(feature)}</div>`}
+    <div class="bg ${feature.art ? '' : 'placeholder'}">
+      ${portrait(feature, { blink: true, alive: true, depth: 9 })}
     </div>
     ${banner.kind === 'limited' ? '<span class="badge">픽업</span>' : ''}
     <div class="txt"><h2>${banner.name}</h2>
@@ -281,10 +353,15 @@ async function playPull(results, count) {
           : `<span class="tag">성흔 ${r.ascend}</span>`;
     const div = document.createElement('div');
     div.className = `pcard ${rarityClass(r.rarity)}`;
-    div.innerHTML = `${portrait(c)}${r.rarity >= 4 || r.new ? tag : ''}
+    div.innerHTML = `${portrait(c, { blink: true, alive: true })}${
+      r.rarity >= 4 || r.new ? tag : ''}
       <span class="nm">${stars(r.rarity)} ${c.name}</span>`;
     box.append(div);
-    if (!cancelled) await sleep(r.rarity === 5 ? 420 : r.rarity === 4 ? 180 : 90);
+    if (r.rarity === 5) {
+      div.classList.add('legendary');
+      flash();
+    }
+    if (!cancelled) await sleep(r.rarity === 5 ? 900 : r.rarity === 4 ? 220 : 95);
   }
   $('#pullSkip').hidden = true;
   $('#pullDone').hidden = false;
@@ -375,8 +452,15 @@ async function playBattle(b, rewards, stage) {
         `scaleX(${Math.min(1, s.shield / s.max)})`;
       el.classList.toggle('dead', s.hp <= 0);
     });
-    if (e.tgt) {
-      const el = $('#bu_' + e.tgt);
+    if (e.src) {
+      const el = $('#bu_' + e.src);
+      if (el) {
+        el.classList.add(e.kind === 'skill' ? 'cast' : 'act');
+        setTimeout(() => el.classList.remove('act', 'cast'), 320);
+      }
+    }
+    for (const uid of [e.tgt, ...(e.hits || []).map(h => h.tgt)]) {
+      const el = uid && $('#bu_' + uid);
       if (el) { el.classList.add('hit'); setTimeout(() => el.classList.remove('hit'), 250); }
     }
     if (!fast) await sleep(e.kind === 'skill' ? 380 : 240);
@@ -421,7 +505,7 @@ function openChar(cid) {
     <div class="role">${c.title} · <span style="color:${el.color}">${c.element}</span> · ${c.role}
       ${e ? ` · Lv.${e.level}/${e.cap}${e.ascend ? ` · 성흔 ${e.ascend}` : ''}` : ''}</div>
     <div class="detail">
-      <div class="pic">${portrait(c)}</div>
+      <div class="pic">${portrait(c, { blink: true, alive: true, depth: 5 })}</div>
       <div style="flex:1">
         ${rows.map(([k, v]) => `<div class="stat"><span>${k}</span><b>${num(v)}</b></div>`).join('')}
         ${e ? `<div class="stat"><span>전투력</span><b>${num(e.power)}</b></div>` : ''}

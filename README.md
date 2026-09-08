@@ -86,17 +86,51 @@ NAI V5 그림체를 찾아내는 탭입니다.
 게임은 정상 동작합니다. 실제 아트를 뽑으려면:
 
 ```bash
-set NAI_API_TOKEN=...                  # 또는 config.json 의 nai_token
-python tools/generate_art.py           # 없는 캐릭터만 → web/game/art/<id>.png
-python tools/generate_art.py --force   # 전부 다시
+set NAI_API_TOKEN=...                       # 또는 config.json 의 nai_token
+python tools/generate_art.py                # 기본 그림 24장 → web/game/art/<id>.png
 python tools/generate_art.py --only seraphine kaguya
+python tools/generate_art.py --force        # 전부 다시
+
+# 눈 깜빡임용 표정 차분 (기본 그림을 뽑은 뒤에)
+python tools/generate_art.py --expressions --variants blink
+python tools/generate_art.py --expressions  # blink · smile · blush 전부
 ```
+
+파일을 넣기만 하면 플레이스홀더가 자동으로 교체됩니다. 서버 재시작도 필요 없습니다.
+
+**표정 차분**은 기본 그림과 **같은 시드**로 프롬프트에 표정 태그(`closed eyes`
+등)만 덧붙여 재생성합니다. 같은 시드면 구도·인물이 그대로 유지되고 표정만
+바뀌므로, 얼굴을 마스킹해 인페인트하는 것보다 안정적입니다. 기본 그림의 시드는
+`web/game/art/manifest.json` 에 기록되어 차분 생성 때 재사용됩니다.
 
 저장 전에 **메타데이터를 제거**합니다. PNG 텍스트 청크(프롬프트·시드·
 `Software: NovelAI`)를 지우고, 알파 채널을 버려 **LSB 스텔스 워터마크**까지
 없앱니다. 원본 그대로 두려면 `--keep-metadata`. 메타데이터 제거가 이용약관·
 저작권 문제를 해결해주지는 않으므로, 상업 배포 계획이라면 NovelAI 구독 약관을
 먼저 확인하세요. 프롬프트에 `artist:` 태그를 넣지 않은 것도 같은 이유입니다.
+
+### 캐릭터를 움직이게 하는 법
+
+정지 그림 한 장으로도 살아있어 보이게 하는 장치가 클라이언트에 들어 있습니다.
+
+| 장치 | 내용 | 필요한 것 |
+|---|---|---|
+| **호흡** | 4.4초 주기로 아주 미세하게 확대·상하 이동 | 없음 (즉시 동작) |
+| **패럴랙스** | 폰 자이로·PC 마우스에 따라 그림이 기울어짐 | 없음 |
+| **눈 깜빡임** | 기본/눈 감은 그림을 교차. 3~4초에 한 번, 가끔 연속 두 번 | `<id>@blink` 차분 |
+| **5★ 연출** | 화면 섬광 + 카드 위로 빛이 스치고 링이 퍼짐 | 없음 |
+| **전투 연출** | 공격자 돌진, 스킬 시전 발광, 피격 흔들림 | 없음 |
+
+`prefers-reduced-motion` 을 켠 기기에서는 호흡·패럴랙스가 자동으로 꺼집니다.
+
+더 나아가려면 (매출이 나온 뒤 권장):
+- **누끼 분리** — 배경/캐릭터를 분리해 진짜 깊이 패럴랙스를 줍니다.
+- **Live2D** — 부위별 리깅. 상용 가챠의 정석이지만 캐릭터당 외주 비용이 듭니다.
+  5★ 캐릭터부터 적용하는 것이 일반적입니다.
+
+실제 아트를 넣은 뒤 배너·홈에서 얼굴이 잘리면, `web/game/game.css` 의
+`.hero-art .portrait` / `.banner .bg .portrait` 의 `object-position` 값만
+조정하면 됩니다(작을수록 그림 위쪽을 보여줍니다).
 
 ### 구글 플레이 출시로 가는 길
 
