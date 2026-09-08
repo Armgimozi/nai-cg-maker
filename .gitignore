@@ -11,3 +11,8 @@ data/danbooru.csv
 resp.json
 config.yml
 .claude/
+
+# 게임 저장 데이터(플레이어 상태) — 서버마다 다르므로 커밋하지 않는다
+data/gacha.db
+data/gacha.db-wal
+data/gacha.db-shm

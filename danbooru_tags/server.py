@@ -214,6 +214,14 @@ def create_app(cfg: dict, db: TagDB, default_api_key: str | None = None,
                default_nai_token: str | None = None) -> Flask:
     app = Flask(__name__, static_folder=None)
 
+    # 가챠 게임(/game, /api/game/*). 태그 도구와 서버를 공유한다.
+    # 게임은 API 키가 필요 없으므로 import 실패해도 도구 본체는 계속 뜨게 한다.
+    try:
+        from gacha.server import game_bp
+        app.register_blueprint(game_bp)
+    except Exception as e:  # noqa: BLE001
+        print(f"[gacha] 게임 모듈을 불러오지 못했습니다: {e}")
+
     def suggest_client() -> SuggestClient | None:
         key = request.headers.get("X-Anthropic-Key") or default_api_key
         return SuggestClient(cfg, api_key=key) if key else None
