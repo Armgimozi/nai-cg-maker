@@ -35,6 +35,9 @@
         <label>NovelAI 토큰 (이미지 생성)
           <input type="password" id="keyNai" placeholder="pst-..." autocomplete="off" />
         </label>
+        <label>위키 편집 토큰 <span class="hint">(서버에 WIKI_TOKEN 을 설정한 경우만)</span>
+          <input type="password" id="keyWiki" placeholder="비워두면 토큰 없이 편집" autocomplete="off" />
+        </label>
       </div>
       <div class="row gap mt">
         <button id="keySave" class="go small">키 저장</button>
@@ -47,6 +50,7 @@
       <button data-view="dict" class="active">📖 사전</button>
       <button data-view="style">🖌 그림체</button>
       <button data-view="studio">🎨 스튜디오</button>
+      <button data-view="wiki">📚 위키</button>
     </nav>
 
     <!-- 설정 (그림체/스튜디오 공용) -->
@@ -306,6 +310,12 @@
         </div>
       </div>
       <img id="refImgPreview" class="ref-preview" hidden alt="참고 이미지" />
+
+      <div class="row between mt">
+        <label class="sub-label">📚 위키 참조 <span class="hint">(고른 문서를 Claude 가 태그 찾기·재구성 때 읽음 · 선택)</span></label>
+        <button id="wikiRefRefresh" class="ghost xs">새로고침</button>
+      </div>
+      <div id="wikiRefChips" class="chips wiki-ref-chips"></div>
     </section>
 
     <!-- 캐릭터 레퍼런스 -->
@@ -359,6 +369,70 @@
       <p class="ip-hint mt">② 전에 위 작업 영역에서 <b>바뀔 부분을 마스킹</b>하세요. 마스킹 안 하면 전체가 바뀝니다.</p>
     </details>
     </div><!-- /#view-studio -->
+
+    <!-- ════ 위키 뷰 (사람·AI 공용 마크다운 문서함) ════ -->
+    <div id="view-wiki" class="view" hidden>
+      <section class="card" id="wikiListCard">
+        <div class="row between wrap-row">
+          <label class="field-label">📚 위키 <span class="hint" id="wikiCount"></span></label>
+          <div class="row gap">
+            <button id="wikiNew" class="go small">+ 새 문서</button>
+            <button id="wikiExport" class="ghost xs" title="전체 문서를 JSON 으로 내려받기">백업</button>
+            <button id="wikiImportBtn" class="ghost xs" title="백업 JSON 을 서버에 복원">복원</button>
+            <input type="file" id="wikiImportFile" accept="application/json,.json" hidden />
+          </div>
+        </div>
+        <p class="hint wiki-intro">캐릭터·작품·프롬프트 설정을 마크다운으로 정리하세요. 문서는 서버의 <code>wiki/*.md</code> 파일로 저장되고, 스튜디오의 <b>위키 참조</b>로 Claude 에게 읽힐 수 있으며, 외부 AI 도 <code>/llms.txt</code>·<code>/wiki/&lt;이름&gt;.md</code> 로 읽습니다.</p>
+        <div class="dict-search-row">
+          <input type="text" id="wikiQuery" placeholder="문서 검색 — 제목·태그·본문 (예: 세라 교복)" autocomplete="off" />
+          <button id="wikiGo" class="go small">검색</button>
+        </div>
+        <div id="wikiStatus" class="status" hidden></div>
+        <div id="wikiList" class="wiki-list"></div>
+      </section>
+
+      <section class="card" id="wikiPageCard" hidden>
+        <div id="wikiView">
+          <div class="row between wrap-row">
+            <button id="wikiBack" class="ghost xs">← 목록</button>
+            <div class="row gap">
+              <button id="wikiUse" class="ghost xs" title="스튜디오 위키 참조에 담기">🎨 스튜디오 참조</button>
+              <a id="wikiRawLink" class="ghost xs wiki-raw" href="#" target="_blank" rel="noopener" title="마크다운 원문(AI 가 읽는 형태)">.md</a>
+              <button id="wikiEdit" class="ghost xs">✏ 편집</button>
+              <button id="wikiDelete" class="ghost xs danger">삭제</button>
+            </div>
+          </div>
+          <h2 id="wikiTitle" class="wiki-title"></h2>
+          <div id="wikiMeta" class="wiki-meta"></div>
+          <article id="wikiBody" class="wiki-body"></article>
+        </div>
+        <div id="wikiEditor" hidden>
+          <div class="settings-grid wiki-ed-grid">
+            <label>제목
+              <input type="text" id="wikiEdTitle" placeholder="예) 세라 (주인공)" autocomplete="off" />
+            </label>
+            <label>이름(slug) <span class="hint">URL·파일명 · 한글/영문/숫자/-/_</span>
+              <input type="text" id="wikiEdSlug" placeholder="예) 세라" autocomplete="off" />
+            </label>
+            <label class="wide">태그 <span class="hint">(쉼표로 구분)</span>
+              <input type="text" id="wikiEdTags" placeholder="예) 캐릭터, 설정" autocomplete="off" />
+            </label>
+          </div>
+          <label class="sub-label mt">본문 <span class="hint">마크다운 · <code>[[다른문서]]</code> 로 문서 연결</span></label>
+          <textarea id="wikiEdBody" class="prompt wiki-ed-body" rows="16" placeholder="# 제목&#10;&#10;외형: 은발, 붉은 눈, 검은 리본&#10;복장: 남색 블레이저 교복 (pleated_skirt, thighhighs)&#10;성격/분위기: 차분함, 살짝 우울&#10;&#10;## 선호 태그&#10;- long_hair, red_eyes, black_ribbon"></textarea>
+          <div class="row gap mt">
+            <button id="wikiSave" class="go small">저장</button>
+            <button id="wikiCancel" class="ghost xs">취소</button>
+            <span id="wikiEdStatus" class="hint"></span>
+          </div>
+        </div>
+      </section>
+
+      <details class="card" id="wikiAiCard">
+        <summary>🤖 AI 에서 이 위키 읽는 법 <span class="hint">(Claude Code · 커스텀 GPT · 스크립트 등)</span></summary>
+        <div class="wiki-ai" id="wikiAiHelp"></div>
+      </details>
+    </div><!-- /#view-wiki -->
   </div>
 
   <script src="app.js"></script>

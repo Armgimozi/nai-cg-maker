@@ -29,6 +29,9 @@ _DEFAULTS = {
     "nai_sampler": "k_euler_ancestral",
     "nai_noise_schedule": "karras",
     "nai_cfg_rescale": 0,
+    # 위키(사람·AI 공용 마크다운 문서함). 폴더는 환경변수 WIKI_DIR 가 우선.
+    "wiki_dir": "",      # 비우면 프로젝트 폴더의 wiki/
+    "wiki_token": "",    # 비우면 누구나 편집 가능. 채우면 편집 시 X-Wiki-Token 헤더 필요(읽기는 항상 공개)
 }
 
 
@@ -66,3 +69,16 @@ def resolve_api_key(cfg: dict) -> str | None:
 def resolve_nai_token(cfg: dict) -> str | None:
     """NovelAI 토큰: 환경변수 NAI_API_TOKEN 우선, 없으면 config 의 nai_token."""
     return os.environ.get("NAI_API_TOKEN") or (cfg.get("nai_token") or None)
+
+
+def resolve_wiki_dir(cfg: dict) -> Path:
+    """위키 폴더: 환경변수 WIKI_DIR → config 의 wiki_dir → 프로젝트의 wiki/."""
+    p = os.environ.get("WIKI_DIR") or cfg.get("wiki_dir") or ""
+    if p:
+        return Path(p).expanduser()
+    return Path(__file__).resolve().parent.parent / "wiki"
+
+
+def resolve_wiki_token(cfg: dict) -> str | None:
+    """위키 편집 토큰: 환경변수 WIKI_TOKEN 우선, 없으면 config 의 wiki_token. 둘 다 없으면 None(편집 공개)."""
+    return os.environ.get("WIKI_TOKEN") or (cfg.get("wiki_token") or None)

@@ -10,6 +10,18 @@ API 키는 요청 헤더(X-Anthropic-Key / X-NAI-Token)로 받는다. 헤더가 
   POST /api/style/artists -> 작가(artist) 태그 검색/인기순 (그림체 실험실)
   POST /api/generate  -> NovelAI 생성
   POST /api/inpaint   -> NovelAI 인페인트(infill)
+
+위키(사람·AI 공용 · 읽기는 키 없이 공개):
+  GET    /api/wiki                -> 문서 목록(JSON)
+  GET    /api/wiki/search?q=      -> 키워드 검색(JSON)
+  GET    /api/wiki/<slug>         -> 문서 1개(JSON)
+  PUT    /api/wiki/<slug>         -> 만들기/고치기 {title, content, tags}
+  DELETE /api/wiki/<slug>         -> 삭제
+  GET    /api/wiki/export         -> 전체 백업(JSON)   / POST /api/wiki/import -> 복원
+  GET    /wiki/<slug>.md          -> 마크다운 원문(text/markdown)
+  GET    /llms.txt  /llms-full.txt-> LLM 용 목차 / 전체 원문(llmstxt.org 관례)
+  편집은 WIKI_TOKEN(또는 config wiki_token)이 설정돼 있으면 X-Wiki-Token 헤더 필요.
+  /api/suggest, /api/compose 에 wiki_pages:[slug,...] 를 주면 그 문서를 Claude 가 맥락으로 읽는다.
 """
 
 from __future__ import annotations
@@ -24,11 +36,13 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, Response, jsonify, request, send_from_directory
 
 from .client import SuggestClient
+from .config import resolve_wiki_dir, resolve_wiki_token
 from .nai import NovelAIClient, image_media_type
 from .tagdb import TagDB
+from .wiki import WikiError, WikiStore, normalize_slug
 
 # PWA: .webmanifest 가 octet-stream 으로 나가지 않도록 MIME 등록(특히 Windows).
 mimetypes.add_type("application/manifest+json", ".webmanifest")
@@ -211,8 +225,11 @@ def _why_not_image(raw: bytes) -> str:
 
 
 def create_app(cfg: dict, db: TagDB, default_api_key: str | None = None,
-               default_nai_token: str | None = None) -> Flask:
+               default_nai_token: str | None = None,
+               wiki: WikiStore | None = None) -> Flask:
     app = Flask(__name__, static_folder=None)
+    wiki = wiki or WikiStore(resolve_wiki_dir(cfg))
+    wiki_token = resolve_wiki_token(cfg)
 
     def suggest_client() -> SuggestClient | None:
         key = request.headers.get("X-Anthropic-Key") or default_api_key
@@ -222,24 +239,130 @@ def create_app(cfg: dict, db: TagDB, default_api_key: str | None = None,
         tok = request.headers.get("X-NAI-Token") or default_nai_token
         return NovelAIClient(tok, cfg) if tok else None
 
+    def wiki_context(body: dict) -> str:
+        """요청의 wiki_pages:[slug...] → Claude 에 붙일 위키 본문(없으면 빈 문자열)."""
+        slugs = [str(s).strip() for s in (body.get("wiki_pages") or []) if str(s).strip()]
+        return wiki.context_for_ai(slugs[:20]) if slugs else ""
+
     @app.get("/")
     def index():
         return send_from_directory(WEB_DIR, "index.html")
 
+    # ── 위키: LLM 용 평문(llmstxt.org 관례) · 마크다운 원문 ──
+    # 정적 파일 라우트(/<path:fname>)보다 구체적이므로 Werkzeug 가 이쪽을 먼저 고른다.
+    @app.get("/llms.txt")
+    def llms_txt():
+        return Response(wiki.llms_index(request.url_root), mimetype="text/plain")
+
+    @app.get("/llms-full.txt")
+    def llms_full_txt():
+        return Response(wiki.llms_full(), mimetype="text/plain")
+
+    @app.get("/wiki/<slug>.md")
+    def wiki_raw(slug: str):
+        try:
+            page = wiki.get(slug)
+        except WikiError as e:
+            return Response(str(e), status=400, mimetype="text/plain")
+        if page is None:
+            return Response("문서가 없습니다.", status=404, mimetype="text/plain")
+        return Response(page.to_markdown(), mimetype="text/markdown")
+
     @app.get("/<path:fname>")
     def static_files(fname: str):
         return send_from_directory(WEB_DIR, fname)
+
+    # ── 위키 JSON API ──
+    def wiki_write_denied():
+        """편집 토큰이 설정돼 있는데 헤더가 다르면 403 응답, 아니면 None."""
+        if wiki_token and request.headers.get("X-Wiki-Token") != wiki_token:
+            return jsonify({"error": "위키 편집 토큰이 필요합니다. 🔑 API 키 칸에서 위키 편집 토큰을 입력하세요."}), 403
+        return None
+
+    @app.get("/api/wiki")
+    def wiki_list():
+        return jsonify({"pages": [p.to_dict(with_content=False) for p in wiki.list()],
+                        "writable": not wiki_token or request.headers.get("X-Wiki-Token") == wiki_token,
+                        "protected": bool(wiki_token)})
+
+    @app.get("/api/wiki/search")
+    def wiki_search():
+        q = (request.args.get("q") or "").strip()
+        try:
+            limit = max(1, min(int(request.args.get("limit") or 30), 100))
+        except ValueError:
+            limit = 30
+        return jsonify({"query": q, "results": wiki.search(q, limit=limit) if q else []})
+
+    @app.get("/api/wiki/export")
+    def wiki_export():
+        return jsonify(wiki.export_all())
+
+    @app.post("/api/wiki/import")
+    def wiki_import():
+        denied = wiki_write_denied()
+        if denied:
+            return denied
+        body = request.get_json(silent=True) or {}
+        try:
+            return jsonify(wiki.import_all(body, overwrite=bool(body.get("overwrite"))))
+        except WikiError as e:
+            return jsonify({"error": str(e)}), 400
+
+    @app.get("/api/wiki/<slug>")
+    def wiki_get(slug: str):
+        try:
+            page = wiki.get(slug)
+        except WikiError as e:
+            return jsonify({"error": str(e)}), 400
+        if page is None:
+            return jsonify({"error": "문서가 없습니다."}), 404
+        return jsonify(page.to_dict())
+
+    @app.put("/api/wiki/<slug>")
+    def wiki_put(slug: str):
+        denied = wiki_write_denied()
+        if denied:
+            return denied
+        body = request.get_json(silent=True) or {}
+        tags = body.get("tags") or []
+        if isinstance(tags, str):
+            tags = [t for t in re.split(r"[,\n]", tags)]
+        try:
+            created = not wiki.exists(slug)
+            page = wiki.put(slug, body.get("title") or "", body.get("content") or "", tags)
+            # rename: 새 slug 를 주면 옮긴다
+            new_slug = (body.get("rename_to") or "").strip()
+            if new_slug and normalize_slug(new_slug) != page.slug:
+                page = wiki.rename(page.slug, normalize_slug(new_slug))
+        except WikiError as e:
+            return jsonify({"error": str(e)}), 400
+        return jsonify(page.to_dict()), (201 if created else 200)
+
+    @app.delete("/api/wiki/<slug>")
+    def wiki_delete(slug: str):
+        denied = wiki_write_denied()
+        if denied:
+            return denied
+        try:
+            ok = wiki.delete(slug)
+        except WikiError as e:
+            return jsonify({"error": str(e)}), 400
+        if not ok:
+            return jsonify({"error": "문서가 없습니다."}), 404
+        return jsonify({"deleted": slug})
 
     @app.post("/api/suggest")
     def suggest():
         client = suggest_client()
         if client is None:
             return jsonify({"error": "Anthropic API 키가 필요합니다. 설정에서 키를 입력하세요."}), 400
-        scene = ((request.get_json(silent=True) or {}).get("scene") or "").strip()
+        body = request.get_json(silent=True) or {}
+        scene = (body.get("scene") or "").strip()
         if not scene:
             return jsonify({"error": "장면 설명을 입력해주세요."}), 400
         try:
-            data, meta = client.suggest(scene)
+            data, meta = client.suggest(scene, wiki_text=wiki_context(body))
         except Exception as e:  # noqa: BLE001
             return jsonify({"error": str(e)}), 500
         result = _validate(data, db)
@@ -369,7 +492,8 @@ def create_app(cfg: dict, db: TagDB, default_api_key: str | None = None,
             data, meta = client.compose(scene, base, chars, neg, tags,
                                         reference_text=ref_text, image_b64=img_b64,
                                         image_media_type=img_mt,
-                                        sequence=seq, frame_index=frame_index)
+                                        sequence=seq, frame_index=frame_index,
+                                        wiki_text=wiki_context(body))
         except Exception as e:  # noqa: BLE001
             return jsonify({"error": str(e)}), 500
         data["meta"] = meta

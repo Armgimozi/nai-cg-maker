@@ -53,6 +53,38 @@ NAI V5 그림체를 찾아내는 탭입니다.
 
 모델·해상도·스텝 등은 상단 **⚙ 설정**(그림체·스튜디오 공용)을 따릅니다.
 
+## 📚 위키 (위키 탭) — 사람도 AI 도 읽는 설정 노트
+
+캐릭터 외형·작품 세계관·자주 쓰는 프롬프트 조각을 **마크다운 문서**로 정리하는 탭입니다.
+문서는 서버의 `wiki/<이름>.md` 파일로 저장되므로 git 으로 버전 관리하거나 에디터/AI 가
+파일을 직접 고쳐도 서버 재시작 없이 바로 반영됩니다.
+
+- **문서 작성** — 제목·이름(slug)·태그·본문(마크다운). `[[다른문서]]` 로 문서끼리 연결.
+  목록은 제목·태그·본문 키워드로 **검색**되고, **백업/복원**(JSON)으로 옮길 수 있습니다.
+- **앱 안의 Claude 가 읽기** — 🎨 스튜디오의 **위키 참조**에서 문서를 고르면
+  *이 장면의 태그 찾기*·*장면에 맞춰 재구성*·*연속 시퀀스* 요청에 그 문서가 맥락으로
+  붙습니다(`wiki_pages: [slug, …]`). 캐릭터 설정을 한 번 적어 두면 매번 붙여넣지 않아도 됩니다.
+- **외부 AI 가 읽기** — 모든 문서는 **API 키 없이** 평문으로 열립니다.
+
+  | 주소 | 내용 |
+  |---|---|
+  | `GET /llms.txt` | 문서 목차 + 읽는 법 ([llms.txt 관례](https://llmstxt.org)) |
+  | `GET /llms-full.txt` | 전체 문서를 한 파일로 |
+  | `GET /wiki/<slug>.md` | 문서 1개 원문(text/markdown) |
+  | `GET /api/wiki` · `GET /api/wiki/<slug>` | 목록 / 문서 1개 (JSON) |
+  | `GET /api/wiki/search?q=키워드` | 검색 (JSON) |
+  | `PUT /api/wiki/<slug>` `{title, content, tags}` · `DELETE /api/wiki/<slug>` | 쓰기 / 삭제 |
+  | `GET /api/wiki/export` · `POST /api/wiki/import` | 백업 / 복원 |
+
+  예: Claude Code 나 챗봇에 *"`https://<주소>/llms-full.txt` 를 읽고 세라의 외형을 요약해줘"*.
+  저장소를 직접 여는 에이전트는 `wiki/*.md` 를 그대로 읽으면 됩니다.
+- **편집 보호(선택)** — 서버에 환경변수 `WIKI_TOKEN`(또는 config `wiki_token`)을 두면
+  쓰기/삭제/복원에 `X-Wiki-Token` 헤더가 필요합니다(읽기는 항상 공개). 앱에서는 🔑 API 키
+  칸의 *위키 편집 토큰*에 입력합니다. 공개 배포라면 꼭 설정하세요.
+- 위키 폴더는 환경변수 `WIKI_DIR` 또는 config `wiki_dir` 로 바꿀 수 있습니다.
+  Render 같은 무료 호스팅은 재배포 때 디스크가 초기화되므로 문서를 **git 에 커밋**하거나
+  주기적으로 **백업**하세요.
+
 ## 📱 모바일 설치 (PWA)
 
 설치형 웹앱(PWA)이라 휴대폰 홈 화면에 **앱처럼 설치**할 수 있습니다.
@@ -89,6 +121,8 @@ python run.py                        # http://127.0.0.1:8765 자동 열림
 | `api_key` | — | 환경변수 `ANTHROPIC_API_KEY`가 우선 |
 | `nai_model` | `nai-diffusion-5-full` | NovelAI 이미지 모델. V5(`nai-diffusion-5-*`)는 `params_version: 4`로 자동 전송되며, UI ⚙ 설정에서 v4.5 나 **직접 입력**한 모델 ID 로 바꿀 수 있습니다 |
 | `nai_token` | — | 환경변수 `NAI_API_TOKEN`이 우선 |
+| `wiki_dir` | `wiki/` | 위키 문서 폴더. 환경변수 `WIKI_DIR`이 우선 |
+| `wiki_token` | — | 위키 편집 토큰(비우면 누구나 편집). 환경변수 `WIKI_TOKEN`이 우선 |
 
 ## 구조
 
@@ -99,12 +133,14 @@ danbooru_tags/
   config.py          설정 로딩
   tagdb.py           14만 태그 검증/별칭 해석 + 직접 조회(search)
   client.py          Claude 호출(structured outputs) + 캐시 (suggest/compose/dict_search/explain)
-  server.py          Flask API (/api/suggest, /api/dict/*, /api/style/artists, /api/compose, /api/generate ...)
+  server.py          Flask API (/api/suggest, /api/dict/*, /api/style/artists, /api/compose, /api/generate, /api/wiki/* ...)
   nai.py             NovelAI 생성/인페인트 (v4.5 · V5)
+  wiki.py            위키 저장소 (wiki/*.md 읽기·쓰기·검색 · llms.txt · AI 맥락 조립)
 web/                 UI (index.html / style.css / app.js)
   manifest.webmanifest / sw.js / icon-*.png   PWA(설치형) 자산
 tools/make_icons.py  PWA 아이콘 생성기 (Pillow)
 data/danbooru.csv    태그 사전
+wiki/*.md            위키 문서 (사람·AI 공용 · git 에 커밋 가능)
 ```
 
 ## UI 사용 팁

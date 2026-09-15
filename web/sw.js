@@ -7,7 +7,7 @@
  *   - /api/* 와 비-GET·외부 도메인은 건드리지 않는다.
  * 새 워커는 즉시 활성(skipWaiting+claim)되고, 페이지가 controllerchange 로 새로고침한다.
  */
-const CACHE = "danbooru-dict-v3";
+const CACHE = "danbooru-dict-v4";
 
 self.addEventListener("install", () => self.skipWaiting());
 
@@ -25,6 +25,7 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(req.url);
   if (url.origin !== location.origin) return;          // 외부(폰트 등)는 브라우저에 맡김
   if (url.pathname.startsWith("/api/")) return;        // 동적 API 는 캐시/가로채기 안 함
+  if (url.pathname.startsWith("/wiki/") || url.pathname.startsWith("/llms")) return;   // 위키 원문도 항상 최신으로
 
   e.respondWith(
     fetch(req).then((res) => {

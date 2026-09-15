@@ -250,6 +250,13 @@ no phrases. Omit the tag itself.
 Return strictly the JSON defined by the schema, nothing else."""
 
 
+def _wiki_block(wiki_text: str) -> str:
+    """사용자 위키 문서를 사용자 메시지에 붙이는 공통 블록(suggest/compose 공용)."""
+    return ("\n\n[위키 — 사용자가 직접 정리한 캐릭터·작품·프롬프트 설정. 아래 내용과 "
+            "어긋나지 않게, 외형·복장·고유 특징·선호 태그를 그대로 반영하세요]\n"
+            f"{wiki_text}")
+
+
 def _cache_key(model: str, system: str, user: str) -> str:
     h = hashlib.sha256()
     for part in (model, system, user):
@@ -338,10 +345,16 @@ class SuggestClient:
         }
         return data, {"cached": False, "usage": usage}
 
-    def suggest(self, scene: str) -> tuple[dict, dict]:
-        """장면 → 태그 후보. data 는 SCHEMA 형태."""
+    def suggest(self, scene: str, wiki_text: str = "") -> tuple[dict, dict]:
+        """장면 → 태그 후보. data 는 SCHEMA 형태.
+
+        wiki_text(사용자 위키에서 고른 문서들)가 있으면 캐릭터 외형·설정을
+        태그에 반영하도록 함께 넘긴다."""
         system = _system_prompt(self.max_tags)
-        return self._call(system, f"장면:\n{scene}", SCHEMA)
+        user = f"장면:\n{scene}"
+        if wiki_text:
+            user += _wiki_block(wiki_text)
+        return self._call(system, user, SCHEMA)
 
     def dict_search(self, query: str) -> tuple[dict, dict]:
         """한글 개념/키워드 → 그 뜻을 가진 실제 Danbooru 태그(한/영 뜻풀이 포함).
@@ -361,10 +374,12 @@ class SuggestClient:
                 reference_text: str = "", image_b64: str | None = None,
                 image_media_type: str = "image/png",
                 sequence: list[str] | None = None,
-                frame_index: int | None = None) -> tuple[dict, dict]:
+                frame_index: int | None = None,
+                wiki_text: str = "") -> tuple[dict, dict]:
         """기존 프롬프트(베이스/캐릭터/네거티브) + 장면 → 장면에 맞춰 재구성.
 
-        reference_text(정보글 등)·image_b64(참고 이미지)가 있으면 함께 반영.
+        reference_text(정보글 등)·image_b64(참고 이미지)·wiki_text(위키 문서)가
+        있으면 함께 반영.
         sequence(전체 프레임 장면들)+frame_index 가 주어지면, 그 프레임 하나만
         재구성하되 전체 흐름을 맥락으로 파악해 앞뒤가 자연스럽게 이어지게 한다."""
         system = _compose_system_prompt()
@@ -395,6 +410,8 @@ class SuggestClient:
         if reference_text:
             user += (f"\n\n[참고 정보 — 아래 글/설정을 적극 반영하세요]\n"
                      f"{reference_text[:5000]}")
+        if wiki_text:
+            user += _wiki_block(wiki_text)
         if image_b64:
             user += ("\n\n[첨부 이미지] 함께 첨부된 이미지를 보고 캐릭터 외형·복장·"
                      "구도·분위기를 프롬프트에 반영하세요.")
