@@ -333,3 +333,15 @@ details#wikiAiCard[open] summary::before { content: "▾ "; }
   .wiki-ed-grid { grid-template-columns: 1fr; }
   .wiki-slug { margin-left: 0; }
 }
+/* 위키: 속성(front matter) 표 · 폴더 */
+.wiki-props { margin: -4px 0 14px; }
+.wiki-props table { border-collapse: collapse; font-size: .86rem; }
+.wiki-props th, .wiki-props td { border: 1px solid var(--line); padding: 4px 10px; text-align: left; }
+.wiki-props th { color: var(--muted); font-weight: 500; background: var(--bg); white-space: nowrap; }
+.wiki-props td { font-variant-numeric: tabular-nums; }
+.wiki-props pre { margin: 6px 0 0; font-size: .78rem; color: var(--muted); white-space: pre-wrap; }
+.wiki-ed-props { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: .88rem; }
+.wiki-folders { margin-top: 10px; flex-wrap: wrap; }
+.wiki-folder-h { font-family: "Space Grotesk", sans-serif; font-size: .82rem; font-weight: 500; color: var(--muted); margin: 8px 0 -2px; }
+.wiki-folder-h:first-child { margin-top: 0; }
+.wiki-item-folder { color: #6e6280; font-size: .78rem; }

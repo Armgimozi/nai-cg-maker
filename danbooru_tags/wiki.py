@@ -1,16 +1,24 @@
 """위키 저장소 — 사람도 AI 도 읽는 마크다운 문서함.
 
-문서 1개 = ``wiki/<slug>.md`` 파일 하나. 맨 위에 짧은 front matter 를 두고
+문서 1개 = ``wiki/<slug>.md`` 파일 하나. slug 는 ``아이템/녹슨-검`` 처럼 '/' 로
+하위 폴더를 가질 수 있다(폴더 = 분류). 맨 위에 YAML 식 front matter 를 두고
 그 아래가 본문(마크다운)이다. 파일이 그대로 사람이 읽는 형태라 git 에 커밋해
 버전 관리하기 좋고, 서버 없이도 Claude Code 같은 AI 에이전트가 폴더를 열어
 바로 읽을 수 있다.
 
     ---
-    title: 세라 (주인공)
-    tags: 캐릭터, 설정
+    title: 녹슨 검
+    tags: 무기, 초반
     updated: 2026-09-15T12:00:00+00:00
+    id: item_001
+    공격력: 12
+    가격: 50
     ---
-    은발에 붉은 눈. 항상 검은 리본을 …
+    폐광 2층에서 나오는 …
+
+title / tags / updated 는 서버가 관리하고, 그 밖의 줄(id, 공격력 …)은
+**사용자 속성**으로 한 글자도 바꾸지 않고 그대로 보존·저장한다. 게임 데이터처럼
+수치를 속성으로 적어 두면 AI 가 나중에 긁어 가공하기 좋다.
 
 서버(server.py)는 이 저장소를 두 가지로 노출한다.
   * 앱 UI 용 JSON API  (/api/wiki …)
@@ -28,10 +36,13 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
-# slug: 한글·영문·숫자·'-'·'_' 만(경로 탈출/특수문자 차단). 파일명 = slug + ".md"
-_SLUG_RE = re.compile(r"^[\w\-]{1,80}$", re.UNICODE)
+# slug 의 한 조각: 한글·영문·숫자·'-'·'_' 만(경로 탈출/특수문자 차단).
+# 조각을 '/' 로 이어 하위 폴더를 표현한다. 파일 경로 = slug + ".md"
+_SEG_RE = re.compile(r"^[\w\-]{1,80}$", re.UNICODE)
 _FM_RE = re.compile(r"\A---[ \t]*\r?\n(.*?)\r?\n---[ \t]*\r?\n?", re.DOTALL)
+_MANAGED = ("title", "tags", "updated")   # 서버가 관리하는 front matter 키
 MAX_CONTENT = 200_000  # 문서 1개 본문 상한(바이트가 아닌 글자 수)
+MAX_DEPTH = 6          # 폴더 깊이 상한
 
 
 class WikiError(ValueError):
@@ -45,10 +56,21 @@ class Page:
     content: str = ""
     tags: list[str] = field(default_factory=list)
     updated: str = ""
+    props_raw: str = ""     # title/tags/updated 를 뺀 front matter 원문(줄바꿈 구분) — 그대로 보존
+
+    @property
+    def folder(self) -> str:
+        return self.slug.rpartition("/")[0]
+
+    @property
+    def props(self) -> dict[str, str]:
+        """props_raw 중 `키: 값` 한 줄짜리를 dict 로(표시·검색용). 원문은 props_raw 가 기준."""
+        return parse_props(self.props_raw)
 
     def to_dict(self, with_content: bool = True) -> dict:
-        d = {"slug": self.slug, "title": self.title, "tags": list(self.tags),
-             "updated": self.updated, "summary": summarize(self.content)}
+        d = {"slug": self.slug, "title": self.title, "folder": self.folder, "tags": list(self.tags),
+             "updated": self.updated, "summary": summarize(self.content),
+             "props": self.props, "props_raw": self.props_raw}
         if with_content:
             d["content"] = self.content
         return d
@@ -60,23 +82,42 @@ class Page:
             fm.append("tags: " + ", ".join(self.tags))
         if self.updated:
             fm.append(f"updated: {self.updated}")
+        if self.props_raw.strip():
+            fm.append(self.props_raw.strip("\n"))
         return "---\n" + "\n".join(fm) + "\n---\n" + self.content.rstrip("\n") + "\n"
 
 
+def parse_props(raw: str) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for line in (raw or "").splitlines():
+        m = re.match(r"^([^\s:#][^:]*?)\s*:\s*(.*?)\s*$", line)
+        if m and m.group(2) != "":
+            out[m.group(1)] = m.group(2).strip("'\"")
+    return out
+
+
 def normalize_slug(s: str) -> str:
-    """제목/입력 → slug. 공백은 '-', 허용되지 않는 문자는 제거. 유니코드(한글) 유지."""
-    s = unicodedata.normalize("NFC", str(s or "")).strip().lower()
-    s = re.sub(r"[\s/\\]+", "-", s)
-    s = re.sub(r"[^\w\-]", "", s, flags=re.UNICODE)
-    s = re.sub(r"-{2,}", "-", s).strip("-_")
-    return s[:80]
+    """제목/입력 → slug. 공백은 '-', 허용되지 않는 문자는 제거, '/' 는 폴더 구분으로 유지."""
+    s = unicodedata.normalize("NFC", str(s or "")).strip().lower().replace("\\", "/")
+    segs = []
+    for seg in s.split("/"):
+        seg = re.sub(r"\s+", "-", seg.strip())
+        seg = re.sub(r"[^\w\-]", "", seg, flags=re.UNICODE)
+        seg = re.sub(r"-{2,}", "-", seg).strip("-_")[:80]
+        if seg:
+            segs.append(seg)
+    return "/".join(segs[:MAX_DEPTH + 1])
 
 
 def validate_slug(slug: str) -> str:
-    slug = unicodedata.normalize("NFC", str(slug or "")).strip()
-    if not _SLUG_RE.match(slug) or slug in (".", "..") or slug.startswith("."):
-        raise WikiError("문서 이름(slug)은 한글·영문·숫자·'-'·'_' 만 쓸 수 있습니다 (1~80자).")
-    return slug
+    slug = unicodedata.normalize("NFC", str(slug or "")).strip().strip("/")
+    segs = slug.split("/")
+    ok = (0 < len(segs) <= MAX_DEPTH + 1
+          and all(_SEG_RE.match(x) and x not in (".", "..") and not x.startswith(".") for x in segs))
+    if not ok:
+        raise WikiError("문서 이름(slug)은 한글·영문·숫자·'-'·'_' 만 쓸 수 있고(조각당 1~80자), "
+                        "'/' 로 폴더를 나눕니다. 예) 아이템/녹슨-검")
+    return "/".join(segs)
 
 
 def summarize(content: str, limit: int = 140) -> str:
@@ -95,31 +136,58 @@ def summarize(content: str, limit: int = 140) -> str:
 
 
 def parse_markdown(raw: str, slug: str) -> Page:
-    """파일 내용 → Page. front matter 가 없으면 첫 '# 제목' 또는 slug 를 제목으로."""
+    """파일 내용 → Page. front matter 가 없으면 첫 '# 제목' 또는 slug 마지막 조각을 제목으로.
+
+    title/tags/updated 외의 front matter 줄은 순서·내용 그대로 props_raw 에 남긴다
+    (여러 줄 값, 목록(`- x`), 주석 포함 — 해석하지 않으므로 잃어버리지 않는다)."""
     meta: dict[str, str] = {}
+    extra: list[str] = []
     body = raw
     m = _FM_RE.match(raw)
     if m:
         body = raw[m.end():]
         for line in m.group(1).splitlines():
             k, sep, v = line.partition(":")
-            if sep:
-                meta[k.strip().lower()] = v.strip()
+            key = k.strip().lower()
+            if sep and key in _MANAGED and not line[:1].isspace():
+                meta[key] = v.strip()
+            else:
+                extra.append(line.rstrip())
     title = meta.get("title", "")
     if not title:
         h = re.search(r"^#\s+(.+?)\s*$", body, re.M)
-        title = h.group(1).strip() if h else slug
+        title = h.group(1).strip() if h else slug.rpartition("/")[2]
     tags = [t.strip() for t in re.split(r"[,\n]", meta.get("tags", "")) if t.strip()]
     return Page(slug=slug, title=title, content=body.strip("\n"), tags=tags,
-                updated=meta.get("updated", ""))
+                updated=meta.get("updated", ""), props_raw="\n".join(extra).strip("\n"))
 
 
 def _now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
+def _clean_props(props) -> str:
+    """요청의 props(문자열 또는 {키: 값}) → 저장할 front matter 원문."""
+    if props is None:
+        return ""
+    if isinstance(props, dict):
+        lines = [f"{str(k).strip()}: {v}" for k, v in props.items() if str(k).strip()]
+    else:
+        lines = str(props).replace("\r\n", "\n").split("\n")
+    out = []
+    for line in lines:
+        line = line.rstrip()
+        k = line.partition(":")[0].strip().lower()
+        if k in _MANAGED and not line[:1].isspace():
+            continue                      # 관리 키는 본 필드로만 (중복 방지)
+        if line.strip() == "---":
+            continue                      # front matter 경계를 깨뜨리지 않도록
+        out.append(line)
+    return "\n".join(out).strip("\n")
+
+
 class WikiStore:
-    """``wiki/`` 폴더의 .md 파일을 읽고 쓰는 얇은 저장소.
+    """``wiki/`` 폴더(와 하위 폴더)의 .md 파일을 읽고 쓰는 얇은 저장소.
 
     매 요청마다 디스크를 읽으므로(문서 수백 개 규모까진 충분히 빠름) 파일을
     에디터/AI 가 직접 고쳐도 서버 재시작 없이 즉시 반영된다. gunicorn 워커가
@@ -142,17 +210,21 @@ class WikiStore:
         p = self._path(slug)
         if not p.is_file():
             return None
-        return parse_markdown(p.read_text(encoding="utf-8"), p.stem)
+        return parse_markdown(p.read_text(encoding="utf-8"), validate_slug(slug))
 
     def list(self) -> list[Page]:
         if not self.root.is_dir():
             return []
         pages = []
-        for p in self.root.glob("*.md"):
-            if p.name.startswith(".") or not _SLUG_RE.match(p.stem):
-                continue
+        for p in sorted(self.root.rglob("*.md")):
+            rel = p.relative_to(self.root).with_suffix("")
+            slug = "/".join(rel.parts)
             try:
-                pages.append(parse_markdown(p.read_text(encoding="utf-8"), p.stem))
+                validate_slug(slug)
+            except WikiError:
+                continue                  # 규칙에 안 맞는 파일/숨김 폴더는 무시
+            try:
+                pages.append(parse_markdown(p.read_text(encoding="utf-8"), slug))
             except (OSError, UnicodeDecodeError):
                 continue
         # 최근 수정 순(updated 없으면 파일 mtime), 같으면 제목순
@@ -163,8 +235,16 @@ class WikiStore:
         pages.sort(key=key, reverse=True)
         return pages
 
+    def folders(self) -> list[str]:
+        seen: set[str] = set()
+        for pg in self.list():
+            parts = pg.slug.split("/")[:-1]
+            for i in range(1, len(parts) + 1):
+                seen.add("/".join(parts[:i]))
+        return sorted(seen)
+
     def search(self, query: str, limit: int = 30) -> list[dict]:
-        """단순 키워드 검색. 공백으로 나눈 모든 단어가 (제목/태그/본문 어딘가에)
+        """단순 키워드 검색. 공백으로 나눈 모든 단어가 (제목/태그/속성/본문 어딘가에)
         들어 있는 문서를, 제목·태그 일치에 가중치를 줘 정렬한다. 문서 수가 많지
         않은 개인 위키를 전제로 한 것이라 색인 없이 매번 훑는다."""
         words = [w.lower() for w in query.split() if w.strip()]
@@ -174,14 +254,15 @@ class WikiStore:
         for pg in self.list():
             title, body = pg.title.lower(), pg.content.lower()
             tags = " ".join(pg.tags).lower()
+            props = (pg.props_raw + " " + pg.slug).lower()
             score = 0
             ok = True
             for w in words:
-                in_title, in_tags, in_body = w in title, w in tags, w in body
-                if not (in_title or in_tags or in_body):
+                in_title, in_tags, in_props, in_body = w in title, w in tags, w in props, w in body
+                if not (in_title or in_tags or in_props or in_body):
                     ok = False
                     break
-                score += (10 if in_title else 0) + (5 if in_tags else 0) + min(body.count(w), 5)
+                score += (10 if in_title else 0) + (5 if in_tags else 0) + (3 if in_props else 0) + min(body.count(w), 5)
             if ok:
                 hits.append((score, pg))
         hits.sort(key=lambda x: (-x[0], x[1].title))
@@ -195,9 +276,9 @@ class WikiStore:
 
     # ── 변경 ──
     def put(self, slug: str, title: str, content: str, tags: list[str] | None = None,
-            updated: str | None = None) -> Page:
+            updated: str | None = None, props=None) -> Page:
         slug = validate_slug(slug)
-        title = (title or "").strip() or slug
+        title = (title or "").strip() or slug.rpartition("/")[2]
         content = (content or "").replace("\r\n", "\n")
         if len(content) > MAX_CONTENT:
             raise WikiError(f"본문이 너무 깁니다(최대 {MAX_CONTENT:,}자).")
@@ -207,11 +288,14 @@ class WikiStore:
             if t and t not in clean_tags:
                 clean_tags.append(t)
         page = Page(slug=slug, title=title, content=content.strip("\n"),
-                    tags=clean_tags, updated=updated or _now())
-        self.root.mkdir(parents=True, exist_ok=True)
-        tmp = self._path(slug).with_suffix(".md.tmp")
+                    tags=clean_tags, updated=updated or _now(), props_raw=_clean_props(props))
+        path = self._path(slug)
+        if path.parent != self.root and path.parent.with_suffix(".md").is_file():
+            raise WikiError("같은 이름의 문서가 있어 폴더로 만들 수 없습니다.")
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(".md.tmp")
         tmp.write_text(page.to_markdown(), encoding="utf-8")
-        tmp.replace(self._path(slug))  # 원자적 교체: 쓰다 죽어도 반쪽 파일이 남지 않음
+        tmp.replace(path)  # 원자적 교체: 쓰다 죽어도 반쪽 파일이 남지 않음
         return page
 
     def delete(self, slug: str) -> bool:
@@ -219,6 +303,11 @@ class WikiStore:
         if not p.is_file():
             return False
         p.unlink()
+        # 비게 된 폴더는 정리(위키 루트는 남김)
+        d = p.parent
+        while d != self.root and d.is_dir() and not any(d.iterdir()):
+            d.rmdir()
+            d = d.parent
         return True
 
     def rename(self, old: str, new: str) -> Page:
@@ -228,14 +317,15 @@ class WikiStore:
         new = validate_slug(new)
         if new != page.slug and self.exists(new):
             raise WikiError("같은 이름의 문서가 이미 있습니다.")
-        moved = self.put(new, page.title, page.content, page.tags, updated=page.updated)
+        moved = self.put(new, page.title, page.content, page.tags, updated=page.updated,
+                         props=page.props_raw)
         if new != page.slug:
             self.delete(page.slug)
         return moved
 
     # ── 내보내기/가져오기 (배포 환경은 디스크가 초기화될 수 있어 백업용) ──
     def export_all(self) -> dict:
-        return {"format": "nai-cg-maker-wiki/1", "exported": _now(),
+        return {"format": "nai-cg-maker-wiki/2", "exported": _now(),
                 "pages": [p.to_dict() for p in self.list()]}
 
     def import_all(self, data: dict, overwrite: bool = False) -> dict:
@@ -256,7 +346,8 @@ class WikiStore:
                 skipped += 1
                 continue
             self.put(slug, item.get("title") or slug, item.get("content") or "",
-                     item.get("tags") or [], updated=item.get("updated") or None)
+                     item.get("tags") or [], updated=item.get("updated") or None,
+                     props=item.get("props_raw") if "props_raw" in item else item.get("props"))
             added += 1
         return {"imported": added, "skipped": skipped}
 
@@ -265,32 +356,37 @@ class WikiStore:
         """llms.txt 관례(https://llmstxt.org): 사이트/문서를 LLM 이 훑기 좋은 목차."""
         base = base_url.rstrip("/")
         lines = ["# NAI CG Maker 위키", "",
-                 "> 사용자가 정리한 캐릭터·작품·프롬프트 설정 위키. 아래 각 문서는 "
-                 "마크다운 원문(.md)으로 바로 읽을 수 있고, `/llms-full.txt` 는 전체를 한 파일로 준다.", "",
+                 "> 사용자가 정리한 캐릭터·작품·프롬프트·게임 데이터 위키. 아래 각 문서는 "
+                 "마크다운 원문(.md)으로 바로 읽을 수 있고, `/llms-full.txt` 는 전체를 한 파일로 준다. "
+                 "각 문서 맨 위 front matter(`---` 사이)에 속성(수치 등)이 있다.", "",
                  "## 읽는 법 (AI 에이전트용)", "",
                  f"- 목록(JSON): `GET {base}/api/wiki`",
                  f"- 문서 1개(JSON): `GET {base}/api/wiki/<slug>`  ·  원문: `GET {base}/wiki/<slug>.md`",
                  f"- 검색: `GET {base}/api/wiki/search?q=<키워드>`",
                  f"- 전체 원문: `GET {base}/llms-full.txt`",
-                 f"- 쓰기(허용 시): `PUT {base}/api/wiki/<slug>` JSON {{title, content, tags}}", "",
+                 f"- 쓰기(허용 시): `PUT {base}/api/wiki/<slug>` JSON {{title, content, tags, props}}",
+                 "- slug 의 '/' 는 폴더(분류)다. 예) 아이템/녹슨-검", "",
                  "## 문서", ""]
-        for pg in self.list():
+        pages = self.list()
+        for pg in sorted(pages, key=lambda p: (p.folder, p.title)):
             desc = summarize(pg.content, 100)
             tag = f" [{', '.join(pg.tags)}]" if pg.tags else ""
             lines.append(f"- [{pg.title}]({base}/wiki/{pg.slug}.md){tag}"
                          + (f": {desc}" if desc else ""))
-        if not self.list():
+        if not pages:
             lines.append("- (아직 문서가 없습니다)")
         return "\n".join(lines) + "\n"
 
     def llms_full(self) -> str:
         parts = ["# NAI CG Maker 위키 — 전체 문서\n"]
-        for pg in self.list():
+        for pg in sorted(self.list(), key=lambda p: (p.folder, p.title)):
             head = f"\n\n---\n\n# {pg.title}\n\nslug: {pg.slug}"
             if pg.tags:
                 head += f"\ntags: {', '.join(pg.tags)}"
             if pg.updated:
                 head += f"\nupdated: {pg.updated}"
+            if pg.props_raw:
+                head += "\n" + pg.props_raw
             parts.append(head + "\n\n" + pg.content)
         return "".join(parts) + "\n"
 
@@ -306,7 +402,10 @@ class WikiStore:
                 pg = None
             if pg is None:
                 continue
-            block = f"## {pg.title}" + (f" ({', '.join(pg.tags)})" if pg.tags else "") + f"\n{pg.content}"
+            block = f"## {pg.title}" + (f" ({', '.join(pg.tags)})" if pg.tags else "")
+            if pg.props_raw:
+                block += "\n" + pg.props_raw
+            block += f"\n{pg.content}"
             room = max_chars - used
             if room <= 0:
                 break

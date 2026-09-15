@@ -616,6 +616,7 @@ let wikiWritable = true, wikiProtected = false, wikiLoaded = false, wikiLoading 
 let wikiCur = null;            // 열어 둔 문서 {slug,title,tags,content,updated}
 let wikiRefSel = [];           // 스튜디오 '위키 참조'에 담은 slug 들
 let wikiSearchHits = null;     // 검색 결과([{...,snippet}]) · null 이면 전체 목록 표시
+let wikiFolders = [], wikiFolderSel = "";   // 폴더 목록 · 목록에서 고른 폴더("" = 전체)
 
 function wikiRefSlugs() { return wikiRefSel.slice(); }
 function saveWikiRefs() { try { localStorage.setItem(WIKI_REF_KEY, JSON.stringify(wikiRefSel)); } catch (e) { } }
@@ -629,7 +630,8 @@ async function wikiLoad(force) {
   wikiLoading = (async () => {
     try {
       const d = await apiReq("GET", "/api/wiki");
-      wikiPages = d.pages || []; wikiWritable = d.writable !== false; wikiProtected = !!d.protected; wikiLoaded = true;
+      wikiPages = d.pages || []; wikiFolders = d.folders || []; wikiWritable = d.writable !== false; wikiProtected = !!d.protected; wikiLoaded = true;
+      if (wikiFolderSel && !wikiFolders.includes(wikiFolderSel)) wikiFolderSel = "";
       wikiRefSel = wikiRefSel.filter((s) => wikiPages.some((p) => p.slug === s));   // 지워진 문서는 참조에서 제거
       wikiStatus("");
     } catch (e) { wikiStatus("위키를 불러오지 못했습니다: " + e.message, "err"); }
@@ -641,28 +643,53 @@ async function wikiLoad(force) {
 
 function renderWikiList() {
   const el = $("#wikiList");
-  const items = wikiSearchHits ?? wikiPages;
-  $("#wikiCount").textContent = wikiSearchHits ? `검색 ${items.length}건` : (wikiPages.length ? `${wikiPages.length}개 문서` : "");
+  let items = wikiSearchHits ?? wikiPages;
+  if (wikiFolderSel && !wikiSearchHits) items = items.filter((p) => p.slug === wikiFolderSel || p.slug.startsWith(wikiFolderSel + "/"));
+  $("#wikiCount").textContent = wikiSearchHits ? `검색 ${items.length}건` : (wikiPages.length ? `${items.length}${wikiFolderSel ? "/" + wikiPages.length : ""}개 문서` : "");
   $("#wikiNew").hidden = !wikiWritable; $("#wikiImportBtn").hidden = !wikiWritable;
+  // 폴더 필터(폴더가 하나라도 있을 때만) + 편집기 slug 자동완성용 목록
+  const fs = $("#wikiFolders"); fs.hidden = !wikiFolders.length;
+  fs.innerHTML = [`<button data-f="" class="${wikiFolderSel ? "" : "active"}">전체</button>`]
+    .concat(wikiFolders.map((f) => `<button data-f="${esc(f)}" class="${f === wikiFolderSel ? "active" : ""}">${esc(f)}/</button>`)).join("");
+  $("#wikiFolderList").innerHTML = wikiFolders.map((f) => `<option value="${esc(f)}/"></option>`).join("");
   if (!items.length) {
     el.innerHTML = `<div class="dict-empty">${wikiSearchHits ? "검색 결과가 없습니다." : (wikiWritable ? "아직 문서가 없습니다. <b>+ 새 문서</b>로 시작하세요." : "아직 문서가 없습니다.")}</div>`;
     return;
   }
-  el.innerHTML = items.map((p) => `
+  const item = (p) => `
     <div class="wiki-item" data-slug="${esc(p.slug)}">
       <div class="wiki-item-head">
         <span class="wiki-item-title">${esc(p.title)}</span>
+        ${wikiSearchHits && wikiFolderOf(p.slug) ? `<span class="wiki-item-folder">${esc(wikiFolderOf(p.slug))}/</span>` : ""}
         ${(p.tags || []).map((t) => `<span class="wiki-tag">${esc(t)}</span>`).join("")}
         <span class="wiki-item-date">${esc(fmtDate(p.updated))}</span>
       </div>
       ${p.snippet || p.summary ? `<div class="wiki-item-sum">${esc(p.snippet || p.summary)}</div>` : ""}
-    </div>`).join("");
+    </div>`;
+  if (wikiSearchHits || !wikiFolders.length) { el.innerHTML = items.map(item).join(""); return; }
+  // 폴더별로 묶어 표시(루트 문서 먼저)
+  const groups = new Map();
+  items.forEach((p) => { const f = wikiFolderOf(p.slug); if (!groups.has(f)) groups.set(f, []); groups.get(f).push(p); });
+  el.innerHTML = [...groups.keys()].sort((a, b) => (a === "" ? -1 : b === "" ? 1 : a.localeCompare(b)))
+    .map((f) => (f ? `<div class="wiki-folder-h">📁 ${esc(f)}/</div>` : "") + groups.get(f).map(item).join("")).join("");
+}
+function renderWikiProps(p) {
+  const el = $("#wikiProps");
+  const keys = Object.keys(p.props || {});
+  const raw = (p.props_raw || "").trim();
+  if (!keys.length && !raw) { el.hidden = true; el.innerHTML = ""; return; }
+  el.hidden = false;
+  // `키: 값` 으로 읽힌 줄은 표로, 나머지(목록·여러 줄 값 등)는 원문 그대로
+  const parsed = new Set(keys.map((k) => k));
+  const rest = raw.split("\n").filter((ln) => { const k = ln.split(":")[0].trim(); return !(parsed.has(k) && /^[^\s:#][^:]*?\s*:\s*\S/.test(ln)); }).join("\n").trim();
+  el.innerHTML = (keys.length ? `<table><tbody>${keys.map((k) => `<tr><th>${esc(k)}</th><td>${esc(p.props[k])}</td></tr>`).join("")}</tbody></table>` : "")
+    + (rest ? `<pre>${esc(rest)}</pre>` : "");
 }
 
 async function wikiOpen(slug, edit) {
   wikiStatus("");
   try {
-    wikiCur = await apiReq("GET", "/api/wiki/" + encodeURIComponent(slug));
+    wikiCur = await apiReq("GET", "/api/wiki/" + String(slug).split("/").map(encodeURIComponent).join("/"));
   } catch (e) { wikiStatus("문서를 열지 못했습니다: " + e.message, "err"); return; }
   $("#wikiListCard").hidden = true; $("#wikiPageCard").hidden = false;
   if (edit) { wikiShowEditor(); return; }
@@ -670,8 +697,9 @@ async function wikiOpen(slug, edit) {
   $("#wikiTitle").textContent = wikiCur.title;
   $("#wikiMeta").innerHTML = (wikiCur.tags || []).map((t) => `<span class="wiki-tag">${esc(t)}</span>`).join("")
     + `<span class="wiki-item-date">${esc(fmtDate(wikiCur.updated))}</span><code class="wiki-slug">${esc(wikiCur.slug)}</code>`;
+  renderWikiProps(wikiCur);
   $("#wikiBody").innerHTML = renderMarkdown(wikiCur.content || "");
-  $("#wikiRawLink").href = "/wiki/" + encodeURIComponent(wikiCur.slug) + ".md";
+  $("#wikiRawLink").href = "/wiki/" + wikiCur.slug.split("/").map(encodeURIComponent).join("/") + ".md";
   $("#wikiEdit").hidden = !wikiWritable; $("#wikiDelete").hidden = !wikiWritable;
   const inRef = wikiRefSel.includes(wikiCur.slug);
   $("#wikiUse").textContent = inRef ? "✓ 스튜디오 참조 중" : "🎨 스튜디오 참조";
@@ -680,29 +708,39 @@ async function wikiOpen(slug, edit) {
 function wikiBackToList() { wikiCur = null; $("#wikiPageCard").hidden = true; $("#wikiListCard").hidden = false; }
 
 function wikiShowEditor(fresh) {
-  const p = fresh ? { slug: "", title: "", tags: [], content: "" } : wikiCur;
+  // 새 문서는 지금 보고 있는 폴더 안에 만든다
+  const p = fresh ? { slug: wikiFolderSel ? wikiFolderSel + "/" : "", title: "", tags: [], content: "", props_raw: "" } : wikiCur;
   $("#wikiListCard").hidden = true; $("#wikiPageCard").hidden = false;
   $("#wikiView").hidden = true; $("#wikiEditor").hidden = false;
   $("#wikiEdTitle").value = p.title || ""; $("#wikiEdSlug").value = p.slug || "";
   $("#wikiEdTags").value = (p.tags || []).join(", "); $("#wikiEdBody").value = p.content || "";
+  $("#wikiEdProps").value = p.props_raw || "";
   $("#wikiEdStatus").textContent = ""; $("#wikiEdSlug").dataset.auto = fresh ? "1" : "";
   $("#" + (fresh ? "wikiEdTitle" : "wikiEdBody")).focus({ preventScroll: true });
 }
 // 제목 → slug 자동 생성(서버 normalize_slug 와 같은 규칙). 사용자가 slug 를 직접 고치면 멈춤.
-function slugify(s) { return String(s || "").normalize("NFC").trim().toLowerCase().replace(/[\s/\\]+/g, "-").replace(/[^\p{L}\p{N}_\-]/gu, "").replace(/-{2,}/g, "-").replace(/^[-_]+|[-_]+$/g, "").slice(0, 80); }
+function slugify(s) {
+  return String(s || "").normalize("NFC").trim().toLowerCase().replace(/\\/g, "/").split("/")
+    .map((seg) => seg.trim().replace(/\s+/g, "-").replace(/[^\p{L}\p{N}_\-]/gu, "").replace(/-{2,}/g, "-").replace(/^[-_]+|[-_]+$/g, "").slice(0, 80))
+    .filter(Boolean).join("/");
+}
+const wikiBase = (slug) => String(slug).split("/").pop();
+const wikiFolderOf = (slug) => String(slug).split("/").slice(0, -1).join("/");
 
 async function wikiSave() {
   const title = $("#wikiEdTitle").value.trim();
-  let slug = $("#wikiEdSlug").value.trim() || slugify(title);
+  let slug = $("#wikiEdSlug").value.trim();
+  if (slug.endsWith("/")) slug += slugify(title);                  // "아이템/" 만 적으면 제목으로 이름을 채움
+  slug = slugify(slug || title);
   if (!title && !slug) { $("#wikiEdStatus").textContent = "제목을 입력하세요."; return; }
   if (!slug) { $("#wikiEdStatus").textContent = "이름(slug)에 쓸 수 있는 글자가 없습니다."; return; }
-  const body = { title: title || slug, content: $("#wikiEdBody").value, tags: $("#wikiEdTags").value };
+  const body = { title: title || wikiBase(slug), content: $("#wikiEdBody").value, tags: $("#wikiEdTags").value, props: $("#wikiEdProps").value };
   let target = slug;
   if (wikiCur && wikiCur.slug && wikiCur.slug !== slug) { target = wikiCur.slug; body.rename_to = slug; }   // 이름 변경
   else if (!wikiCur && wikiPages.some((p) => p.slug === slug) && !confirm(`'${slug}' 문서가 이미 있습니다. 덮어쓸까요?`)) return;
   $("#wikiSave").disabled = true; $("#wikiEdStatus").textContent = "저장 중…";
   try {
-    const saved = await apiReq("PUT", "/api/wiki/" + encodeURIComponent(target), body);
+    const saved = await apiReq("PUT", "/api/wiki/" + target.split("/").map(encodeURIComponent).join("/"), body);
     if (wikiCur && wikiCur.slug !== saved.slug) wikiRefSel = wikiRefSel.map((s) => (s === wikiCur.slug ? saved.slug : s)), saveWikiRefs();
     wikiSearchHits = null; $("#wikiQuery").value = "";
     await wikiLoad(true);
@@ -713,7 +751,7 @@ async function wikiSave() {
 async function wikiDelete() {
   if (!wikiCur || !confirm(`'${wikiCur.title}' 문서를 삭제할까요? 되돌릴 수 없습니다.`)) return;
   try {
-    await apiReq("DELETE", "/api/wiki/" + encodeURIComponent(wikiCur.slug));
+    await apiReq("DELETE", "/api/wiki/" + wikiCur.slug.split("/").map(encodeURIComponent).join("/"));
     wikiRefSel = wikiRefSel.filter((s) => s !== wikiCur.slug); saveWikiRefs();
     wikiBackToList(); wikiSearchHits = null; $("#wikiQuery").value = ""; await wikiLoad(true);
   } catch (e) { wikiStatus("삭제 실패: " + e.message, "err"); }
@@ -753,7 +791,8 @@ function renderWikiRefChips() {
   if (!wikiPages.length) { el.innerHTML = `<span class="hint">위키에 문서가 없습니다. 📚 위키 탭에서 캐릭터·작품 설정을 적어두면 여기서 고를 수 있습니다.</span>`; return; }
   el.innerHTML = wikiPages.map((p) => {
     const on = wikiRefSel.includes(p.slug);
-    return `<span class="chip wiki-ref-chip${on ? " on" : ""}" data-slug="${esc(p.slug)}" title="${esc(p.summary || "")}"><span class="dot" style="background:${on ? "var(--accent)" : "#6e6280"}"></span><span class="name">${esc(p.title)}</span></span>`;
+    const folder = wikiFolderOf(p.slug);
+    return `<span class="chip wiki-ref-chip${on ? " on" : ""}" data-slug="${esc(p.slug)}" title="${esc(p.slug + (p.summary ? " — " + p.summary : ""))}"><span class="dot" style="background:${on ? "var(--accent)" : "#6e6280"}"></span>${folder ? `<span class="cnt">${esc(folder)}/</span>` : ""}<span class="name">${esc(p.title)}</span></span>`;
   }).join("");
 }
 function wikiToggleRef(slug) {
@@ -853,11 +892,19 @@ $("#wikiQuery").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.
 $("#wikiExport").onclick = wikiExport;
 $("#wikiImportBtn").onclick = () => $("#wikiImportFile").click();
 $("#wikiImportFile").onchange = (e) => { const f = e.target.files[0]; if (f) wikiImport(f); e.target.value = ""; };
-$("#wikiEdTitle").addEventListener("input", (e) => { if ($("#wikiEdSlug").dataset.auto) $("#wikiEdSlug").value = slugify(e.target.value); });
+$("#wikiEdTitle").addEventListener("input", (e) => { if ($("#wikiEdSlug").dataset.auto) $("#wikiEdSlug").value = (wikiFolderSel ? wikiFolderSel + "/" : "") + slugify(e.target.value); });
 $("#wikiEdSlug").addEventListener("input", (e) => { e.target.dataset.auto = ""; });
 $("#wikiEdBody").addEventListener("keydown", (e) => { if ((e.ctrlKey || e.metaKey) && e.key === "Enter") wikiSave(); });
 $("#wikiList").addEventListener("click", (e) => { const it = e.target.closest(".wiki-item"); if (it) wikiOpen(it.dataset.slug); });
-$("#wikiBody").addEventListener("click", (e) => { const a = e.target.closest("a.wiki-link"); if (!a) return; e.preventDefault(); const s = a.dataset.slug; if (wikiPages.some((p) => p.slug === s)) wikiOpen(s); else if (wikiWritable && confirm(`'${s}' 문서가 아직 없습니다. 새로 만들까요?`)) { wikiCur = null; wikiShowEditor(true); $("#wikiEdTitle").value = s; $("#wikiEdSlug").value = s; } });
+// [[링크]]: 정확한 slug → 없으면 같은 폴더의 문서 → 그래도 없으면 이름(마지막 조각)만 같은 문서가 하나면 그것
+function wikiResolveLink(s) {
+  if (wikiPages.some((p) => p.slug === s)) return s;
+  if (wikiCur && !s.includes("/")) { const here = wikiFolderOf(wikiCur.slug); if (here && wikiPages.some((p) => p.slug === here + "/" + s)) return here + "/" + s; }
+  const hits = wikiPages.filter((p) => wikiBase(p.slug) === wikiBase(s));
+  return hits.length === 1 ? hits[0].slug : null;
+}
+$("#wikiBody").addEventListener("click", (e) => { const a = e.target.closest("a.wiki-link"); if (!a) return; e.preventDefault(); const s = a.dataset.slug; const hit = wikiResolveLink(s); if (hit) wikiOpen(hit); else if (wikiWritable && confirm(`'${s}' 문서가 아직 없습니다. 새로 만들까요?`)) { wikiCur = null; wikiShowEditor(true); $("#wikiEdTitle").value = wikiBase(s); $("#wikiEdSlug").value = s; } });
+$("#wikiFolders").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; wikiFolderSel = b.dataset.f || ""; renderWikiList(); });
 $("#wikiRefChips").addEventListener("click", (e) => { const c = e.target.closest(".wiki-ref-chip"); if (c) wikiToggleRef(c.dataset.slug); });
 $("#wikiRefRefresh").onclick = () => wikiLoad(true);
 // 위키 편집 중엔 전역 input 리스너(scheduleSave)가 스튜디오 상태를 덮어쓰지 않도록 — 별도 요소라 영향 없음.

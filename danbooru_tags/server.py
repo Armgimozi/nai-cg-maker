@@ -15,7 +15,8 @@ API 키는 요청 헤더(X-Anthropic-Key / X-NAI-Token)로 받는다. 헤더가 
   GET    /api/wiki                -> 문서 목록(JSON)
   GET    /api/wiki/search?q=      -> 키워드 검색(JSON)
   GET    /api/wiki/<slug>         -> 문서 1개(JSON)
-  PUT    /api/wiki/<slug>         -> 만들기/고치기 {title, content, tags}
+  PUT    /api/wiki/<slug>         -> 만들기/고치기 {title, content, tags, props}
+                                    (slug 의 / 는 폴더 · props 는 YAML 줄 문자열 또는 {키:값}, 그대로 보존)
   DELETE /api/wiki/<slug>         -> 삭제
   GET    /api/wiki/export         -> 전체 백업(JSON)   / POST /api/wiki/import -> 복원
   GET    /wiki/<slug>.md          -> 마크다운 원문(text/markdown)
@@ -228,6 +229,7 @@ def create_app(cfg: dict, db: TagDB, default_api_key: str | None = None,
                default_nai_token: str | None = None,
                wiki: WikiStore | None = None) -> Flask:
     app = Flask(__name__, static_folder=None)
+    app.json.sort_keys = False   # 위키 속성(props)은 파일에 적힌 순서대로 보여줘야 한다
     wiki = wiki or WikiStore(resolve_wiki_dir(cfg))
     wiki_token = resolve_wiki_token(cfg)
 
@@ -258,7 +260,7 @@ def create_app(cfg: dict, db: TagDB, default_api_key: str | None = None,
     def llms_full_txt():
         return Response(wiki.llms_full(), mimetype="text/plain")
 
-    @app.get("/wiki/<slug>.md")
+    @app.get("/wiki/<path:slug>.md")
     def wiki_raw(slug: str):
         try:
             page = wiki.get(slug)
@@ -282,6 +284,7 @@ def create_app(cfg: dict, db: TagDB, default_api_key: str | None = None,
     @app.get("/api/wiki")
     def wiki_list():
         return jsonify({"pages": [p.to_dict(with_content=False) for p in wiki.list()],
+                        "folders": wiki.folders(),
                         "writable": not wiki_token or request.headers.get("X-Wiki-Token") == wiki_token,
                         "protected": bool(wiki_token)})
 
@@ -309,7 +312,7 @@ def create_app(cfg: dict, db: TagDB, default_api_key: str | None = None,
         except WikiError as e:
             return jsonify({"error": str(e)}), 400
 
-    @app.get("/api/wiki/<slug>")
+    @app.get("/api/wiki/<path:slug>")
     def wiki_get(slug: str):
         try:
             page = wiki.get(slug)
@@ -319,7 +322,7 @@ def create_app(cfg: dict, db: TagDB, default_api_key: str | None = None,
             return jsonify({"error": "문서가 없습니다."}), 404
         return jsonify(page.to_dict())
 
-    @app.put("/api/wiki/<slug>")
+    @app.put("/api/wiki/<path:slug>")
     def wiki_put(slug: str):
         denied = wiki_write_denied()
         if denied:
@@ -330,7 +333,8 @@ def create_app(cfg: dict, db: TagDB, default_api_key: str | None = None,
             tags = [t for t in re.split(r"[,\n]", tags)]
         try:
             created = not wiki.exists(slug)
-            page = wiki.put(slug, body.get("title") or "", body.get("content") or "", tags)
+            page = wiki.put(slug, body.get("title") or "", body.get("content") or "", tags,
+                            props=body.get("props"))
             # rename: 새 slug 를 주면 옮긴다
             new_slug = (body.get("rename_to") or "").strip()
             if new_slug and normalize_slug(new_slug) != page.slug:
@@ -339,7 +343,7 @@ def create_app(cfg: dict, db: TagDB, default_api_key: str | None = None,
             return jsonify({"error": str(e)}), 400
         return jsonify(page.to_dict()), (201 if created else 200)
 
-    @app.delete("/api/wiki/<slug>")
+    @app.delete("/api/wiki/<path:slug>")
     def wiki_delete(slug: str):
         denied = wiki_write_denied()
         if denied:

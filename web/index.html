@@ -388,6 +388,8 @@
           <button id="wikiGo" class="go small">검색</button>
         </div>
         <div id="wikiStatus" class="status" hidden></div>
+        <div id="wikiFolders" class="seg wiki-folders" hidden></div>
+        <datalist id="wikiFolderList"></datalist>
         <div id="wikiList" class="wiki-list"></div>
       </section>
 
@@ -404,6 +406,7 @@
           </div>
           <h2 id="wikiTitle" class="wiki-title"></h2>
           <div id="wikiMeta" class="wiki-meta"></div>
+          <div id="wikiProps" class="wiki-props" hidden></div>
           <article id="wikiBody" class="wiki-body"></article>
         </div>
         <div id="wikiEditor" hidden>
@@ -411,11 +414,14 @@
             <label>제목
               <input type="text" id="wikiEdTitle" placeholder="예) 세라 (주인공)" autocomplete="off" />
             </label>
-            <label>이름(slug) <span class="hint">URL·파일명 · 한글/영문/숫자/-/_</span>
-              <input type="text" id="wikiEdSlug" placeholder="예) 세라" autocomplete="off" />
+            <label>이름(slug) <span class="hint">URL·파일명 · <code>폴더/이름</code> 로 분류</span>
+              <input type="text" id="wikiEdSlug" placeholder="예) 인물/세라, 아이템/녹슨-검" autocomplete="off" list="wikiFolderList" />
             </label>
             <label class="wide">태그 <span class="hint">(쉼표로 구분)</span>
               <input type="text" id="wikiEdTags" placeholder="예) 캐릭터, 설정" autocomplete="off" />
+            </label>
+            <label class="wide">속성 <span class="hint">(한 줄에 <code>키: 값</code> · 수치 데이터용 · 그대로 보존됨 · 선택)</span>
+              <textarea id="wikiEdProps" class="prompt wiki-ed-props" rows="3" placeholder="id: item_001&#10;분류: 무기&#10;공격력: 12&#10;가격: 50"></textarea>
             </label>
           </div>
           <label class="sub-label mt">본문 <span class="hint">마크다운 · <code>[[다른문서]]</code> 로 문서 연결</span></label>
