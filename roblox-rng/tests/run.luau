@@ -1011,6 +1011,47 @@ test("환생: 직접 배치를 비우고 자동 배치로 되돌림 (다른 설�
 	eq((PlayerState.rebirth(f)), false)
 	eq(f.Settings.AutoPark, false, "실패하면 그대로")
 end)
+test("setDisplay 옮기는 명소의 원래 칸 확인(expectedFrom): 밀려난 명소를 옮기면 stale", function()
+	-- 자동 배치, 6칸이 꽉 참. 클라이언트는 6번 칸 명소를 집어 1번으로 옮기려는 화면을 보고 있음
+	local ids = {}
+	for i = #Landmarks.RarestFirst, 1, -1 do
+		local id = Landmarks.RarestFirst[i].Id
+		table.insert(ids, id)
+		if #ids == 6 then
+			break
+		end
+	end
+	local d = owning(ids)
+	PlayerState.setAutoPark(d, true)
+	local view = PlayerState.parkSlots(d)
+	local carried, target = view[6], view[1]
+	-- 그 사이 서버에서 가장 희귀한 명소가 나와 자동 배치가 한 칸씩 밀림 -> 6번 명소는 전시에서 빠짐
+	PlayerState.applyRoll(d, Landmarks.RarestFirst[1])
+	local now = PlayerState.parkSlots(d)
+	local before = {}
+	for slot = 1, 6 do
+		before[slot] = now[slot] or "-"
+	end
+	-- 옛 화면 기준(6번에서 집음)이면 거절, 아무것도 안 바뀜 (예전에는 1번 명소가 빠져 버렸음)
+	local ok, reason = PlayerState.setDisplay(d, 1, carried, now[1] or "", 6)
+	eq(ok, false)
+	eq(reason, "stale")
+	eq(d.Settings.AutoPark, true, "거절하면 자동 배치도 그대로")
+	local after = PlayerState.parkSlots(d)
+	for slot = 1, 6 do
+		eq(after[slot] or "-", before[slot], "칸 " .. slot)
+	end
+	-- 지금 화면 기준(전시 안 됨 = 0)이면 받아들임: 1번에 놓이고 1번에 있던 명소는 밀려남
+	eq((PlayerState.setDisplay(d, 1, carried, now[1] or "", 0)), true)
+	eq(PlayerState.parkSlots(d)[1], carried)
+	-- 전시 중인 명소를 옮길 때: 본 칸이 맞으면 자리 바꿈
+	local shown = PlayerState.parkSlots(d)
+	eq((PlayerState.setDisplay(d, 2, shown[1], shown[2] or "", 1)), true)
+	eq(PlayerState.parkSlots(d)[2], carried)
+	-- 이상한 값은 stale
+	eq(select(2, PlayerState.setDisplay(d, 3, carried, PlayerState.parkSlots(d)[3] or "", "2")), "stale")
+	eq(target ~= nil, true)
+end)
 test(
 	"setDisplay 본 칸 확인(expected): 화면이 늦으면 stale 로 거절하고 아무것도 안 바꿈",
 	function()

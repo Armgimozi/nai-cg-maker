@@ -542,7 +542,13 @@ end
 --   "stale" — 클라이언트 화면이 늦은 사이(예: 자동 굴림이 빈 칸에 새 명소를 놓음) 그 명소를 모르고 덮어쓰지 않게.
 --   nil 이면 확인하지 않음(서버 내부 · 옛 클라이언트).
 -- 반환: 성공 여부, 실패 사유(표시용 문장, 또는 "stale")
-function PlayerState.setDisplay(data: Data, slot: any, landmarkId: any, expected: any?): (boolean, string?)
+function PlayerState.setDisplay(
+	data: Data,
+	slot: any,
+	landmarkId: any,
+	expected: any?,
+	expectedFrom: any?
+): (boolean, string?)
 	if type(slot) ~= "number" or slot ~= slot or slot % 1 ~= 0 or slot < 1 or slot > PlayerState.MAX_SLOTS then
 		return false, "잘못된 칸입니다"
 	end
@@ -555,10 +561,24 @@ function PlayerState.setDisplay(data: Data, slot: any, landmarkId: any, expected
 			return false, "보유하지 않은 명소입니다"
 		end
 	end
-	if expected ~= nil then
-		local shown = PlayerState.parkSlots(data)
-		if type(expected) ~= "string" or (shown[slot] or "") ~= expected then
+	if expected ~= nil or (landmarkId ~= nil and expectedFrom ~= nil) then
+		local shown, unlocked = PlayerState.parkSlots(data)
+		if expected ~= nil and (type(expected) ~= "string" or (shown[slot] or "") ~= expected) then
 			return false, "stale"
+		end
+		-- 옮기는 명소가 클라이언트가 본 칸(0 = 전시 안 됨)에 그대로 있는지. 자동 배치에서 새로 뽑은 명소가
+		-- 옮기던 명소를 밀어냈는데 그대로 옮기면, 자리 바꿀 상대가 옮겨지지 않고 빠져 버림
+		if landmarkId ~= nil and expectedFrom ~= nil then
+			local current = 0
+			for s = 1, unlocked do
+				if shown[s] == landmarkId then
+					current = s
+					break
+				end
+			end
+			if type(expectedFrom) ~= "number" or expectedFrom ~= current then
+				return false, "stale"
+			end
 		end
 	end
 	freezeDisplay(data)

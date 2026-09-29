@@ -32,7 +32,7 @@ export type Handlers = {
 	Toast: (text: string, icon: string?, color: Color3?) -> (), -- 짧은 알림 (기본 실패 색, 예: "코인 부족")
 	-- 공원 배치: 칸에 명소 놓기(nil = 빼기, expected = 화면에서 그 칸에 보이던 명소 Id, 빈 칸 "") /
 	-- 자동 배치 켜기·끄기. 응답이 오면 Panels.parkDone(stale) 을 불러야 함
-	SetDisplay: (slot: number, landmarkId: string?, expected: string) -> (),
+	SetDisplay: (slot: number, landmarkId: string?, expected: string, expectedFrom: number?) -> (),
 	SetAutoPark: (on: boolean) -> (),
 }
 
@@ -125,7 +125,6 @@ local emptyIcon: Frame
 
 type CollectionCard = {
 	Card: TextButton,
-	Stroke: UIStroke, -- 고른 칸의 명소 줄이면 굵은 Sun
 	Photo: Frame,
 	Stars: TextLabel,
 	Count: Ui.Chip,
@@ -223,6 +222,7 @@ local parkConfirmUntil = 0 -- 이 시각(os.clock)까지 자동 배치를 한 �
 local parkConfirmToken = 0
 local parkWantScroll = false -- 고른 칸이 바뀜 -> 다음 그리기에서 목록을 그 명소 줄(빈 칸이면 맨 위)로 스크롤
 local parkAutoNoticed = false -- 배치 편집으로 자동 배치가 꺼졌다는 알림을 이번 접속에서 보였는지
+local parkAutoFlip = false -- 자동 배치 중에 보낸 편집이 응답을 기다리는 중(성공하면 "자동 꺼짐" 알림)
 local collectionArrangeBadge: Ui.Chip? = nil -- 도감 머리 줄 [배치] 배지
 -- 칸·목록 버튼이 부르는 동작 (아래 "공원 배치" 에서 정의)
 local selectParkSlot: (slot: number) -> ()
@@ -2359,18 +2359,28 @@ local function sendPlacement(slot: number, id: string?): boolean
 	if not state then
 		return false
 	end
-	local slots = PlayerState.parkSlots(state)
+	local slots, unlocked = PlayerState.parkSlots(state)
 	local expected = slots[slot] or ""
-	local wasAuto = state.Settings.AutoPark ~= false
+	-- 옮기는 명소가 지금 화면에서 있는 칸(0 = 전시 안 됨). 서버에서 그사이 밀려났으면 stale
+	local from: number? = nil
+	if id then
+		from = 0
+		for s = 1, unlocked do
+			if slots[s] == id then
+				from = s
+				break
+			end
+		end
+	end
 	if not previewPark(function(copy)
-		return (PlayerState.setDisplay(copy, slot, id, expected))
+		return (PlayerState.setDisplay(copy, slot, id, expected, from))
 	end) then
 		return false
 	end
-	handlers.SetDisplay(slot, id, expected)
-	if wasAuto then
-		noticeAutoOff()
+	if state.Settings.AutoPark ~= false then
+		parkAutoFlip = true -- 알림은 서버가 받아들인 뒤(Panels.parkDone)에만
 	end
+	handlers.SetDisplay(slot, id, expected, from)
 	return true
 end
 
@@ -2635,8 +2645,15 @@ end
 
 -- 배치 요청(SetDisplay / 자동 배치 설정)의 응답을 받은 뒤(성공·실패 모두) 부름.
 -- 기다리는 요청이 더 없으면 미리 보기를 버리고 서버 상태(Panels.render 로 받은 값)로 그림.
--- stale(서버가 "화면이 늦음" 으로 거절)이면 기다리는 요청이 있어도 미리 보기를 바로 버림(새 서버 상태로 다시 그림)
-function Panels.parkDone(stale: boolean?)
+-- stale(서버가 "화면이 늦음" 으로 거절)이면 기다리는 요청이 있어도 미리 보기를 바로 버림(새 서버 상태로 다시 그림).
+-- ok: 서버가 편집을 받아들였는지. 자동 배치 중 보낸 편집이 받아들여져 자동이 꺼졌을 때만 "자동 꺼짐" 알림
+function Panels.parkDone(stale: boolean?, ok: boolean?)
+	if parkAutoFlip and ok and lastState and lastState.Settings.AutoPark == false then
+		noticeAutoOff()
+	end
+	if ok ~= nil then
+		parkAutoFlip = false
+	end
 	parkPending = math.max(0, parkPending - 1)
 	if parkPending == 0 or stale then
 		parkPreview = nil

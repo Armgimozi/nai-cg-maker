@@ -611,9 +611,16 @@ Net.fn("SetSetting").OnServerInvoke = function(player: Player, key: any, value: 
 end
 
 -- 공원 전시 칸에 명소 놓기(이미 다른 칸에 있으면 자리 바꿈) / 빼기(nil). 검증은 PlayerState.setDisplay.
--- expected: 클라이언트가 본 그 칸의 명소 Id("" = 빈 칸). 지금과 다르면 Reason "stale" + 새 상태(클라이언트가 다시 그림).
+-- expected: 클라이언트가 본 그 칸의 명소 Id("" = 빈 칸), expectedFrom: 옮기는 명소가 있던 칸(0 = 전시 안 됨).
+-- 둘 중 하나라도 지금과 다르면 Reason "stale" + 새 상태(클라이언트가 다시 그림).
 -- 자동 배치 중 첫 편집이면 자동 배치가 꺼지고 지금 배치에서 시작
-Net.fn("SetDisplay").OnServerInvoke = function(player: Player, slot: any, landmarkId: any, expected: any)
+Net.fn("SetDisplay").OnServerInvoke = function(
+	player: Player,
+	slot: any,
+	landmarkId: any,
+	expected: any,
+	expectedFrom: any
+)
 	local session = sessions[player]
 	if not session then
 		return { Ok = false, Reason = "데이터를 불러오는 중입니다" }
@@ -621,7 +628,7 @@ Net.fn("SetDisplay").OnServerInvoke = function(player: Player, slot: any, landma
 	if not takeEditToken(session) then
 		return { Ok = false, Reason = "busy", State = snapshot(session) }
 	end
-	local ok, reason = PlayerState.setDisplay(session.Data, slot, landmarkId, expected)
+	local ok, reason = PlayerState.setDisplay(session.Data, slot, landmarkId, expected, expectedFrom)
 	if ok then
 		refreshVisible(player, session)
 	end

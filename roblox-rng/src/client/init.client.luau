@@ -298,8 +298,8 @@ end
 
 -- expected: 창에서 그 칸에 보이던 명소 Id(빈 칸 ""). 그사이 서버에서 그 칸이 바뀌었으면(예: 자동 굴림이 빈 칸에
 -- 새 명소를 놓음) 서버가 Reason "stale" + 새 상태로 거절 -> 미리 보기를 버리고 새 상태로 다시 그림
-local function setDisplay(slot: number, landmarkId: string?, expected: string)
-	local response = invoke("SetDisplay", slot, landmarkId, expected)
+local function setDisplay(slot: number, landmarkId: string?, expected: string, expectedFrom: number?)
+	local response = invoke("SetDisplay", slot, landmarkId, expected, expectedFrom)
 	local stale = false
 	if type(response) == "table" then
 		stale = response.Reason == "stale"
@@ -315,7 +315,7 @@ local function setDisplay(slot: number, landmarkId: string?, expected: string)
 			Hud.toast(text, Ui.Theme.Bad, 2, icon)
 		end
 	end
-	Panels.parkDone(stale)
+	Panels.parkDone(stale, type(response) == "table" and response.Ok == true)
 end
 
 local function setAutoPark(on: boolean)
@@ -451,8 +451,8 @@ Panels.init(gui, {
 	Toast = function(text: string, icon: string?, color: Color3?)
 		Hud.toast(text, color or Ui.Theme.Bad, 2, icon)
 	end,
-	SetDisplay = function(slot: number, landmarkId: string?, expected: string)
-		task.spawn(setDisplay, slot, landmarkId, expected)
+	SetDisplay = function(slot: number, landmarkId: string?, expected: string, expectedFrom: number?)
+		task.spawn(setDisplay, slot, landmarkId, expected, expectedFrom)
 	end,
 	SetAutoPark = function(on: boolean)
 		task.spawn(setAutoPark, on)
