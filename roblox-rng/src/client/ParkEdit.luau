@@ -6,7 +6,7 @@
 -- 배치 모드 동안 HUD 는 왼쪽 메뉴·상점·굴리기 줄을 숨기고(부르는 쪽 Changed) 아래 띠만 남김 — 놀이공원 시뮬레이션의
 --   건설 모드처럼 공원과 띠에만 집중. 나가기 = [완료] · Esc/Q(들고 있으면 먼저 내려놓기) · 부지 밖으로 나가기.
 -- 시점: 들어가면 카메라가 부지 위 3/4 시점으로 날아감(Scriptable, ParkGrid.topView 가 HUD 가 가리지 않은 곳에
---   36칸이 딱 들어오는 거리를 찾음, 휠로 조금 가까이/멀리) — 이 동안 캐릭터 이동은 꺼 둠(카메라가 캐릭터를 따라가지
+--   열린 줄 + 잠긴 줄 하나가 딱 들어오는 거리를 찾음, 휠로 조금 가까이/멀리) — 이 동안 캐릭터 이동은 꺼 둠(카메라가 캐릭터를 따라가지
 --   않아서 걸으면 화면 밖으로 나가 버리고, 터치 조이스틱·점프 버튼이 부지 아래쪽을 가리기 때문).
 --   [시점] 을 누르면 평소처럼 캐릭터를 따라가는 카메라(이동 켜짐)로, 다시 누르면 위에서 보기. 나갈 때 원래 카메라로.
 -- 누르기: 명소를 누르면 "들고 있음" — 원래 명소는 이 화면에서만 숨기고 반투명 복사본이 떠서(살짝 오르내리며 돎)
@@ -71,7 +71,7 @@ local RAY_LENGTH = 1000
 local MARKER_SIZE = ParkGrid.PEDESTAL_SIZE + 1.6 -- 받침대 둘레로 삐져나와 빛나는 판
 local HOVER_COLOR = Color3.new(1, 1, 1)
 
--- 위에서 보기(ParkGrid.topView): 화면 위쪽 상단바 아래 여백, 옆 여백(비율). 휠 배율(1 = 36칸이 딱 맞음)
+-- 위에서 보기(ParkGrid.topView): 화면 위쪽 상단바 아래 여백, 옆 여백(비율). 휠 배율(1 = 맞출 줄이 딱 맞음)
 local TOP_MARGIN = 10 -- px
 local SIDE_MARGIN = 0.03
 local BAR_CLEAR = 8 -- 아래 띠 위로 띄울 거리(px)
@@ -1552,8 +1552,16 @@ local function layoutBar()
 	bar.Size = UDim2.fromOffset(width / scale, BAR_HEIGHT)
 	barTop = size.Y - BAR_BOTTOM - (BAR_HEIGHT + CHIP_ROW) * scale
 	loadThumbs()
+	-- 위에서 보기 중이면(들어갈 때 날아가는 중이 아니고, 카메라를 이미 넘겨받았을 때만) 새 띠 자리에 맞춰 카메라도 다시
 	local camera = workspace.CurrentCamera
-	if editing and viewMode == "Top" and origin and camera and not cameraTween then
+	if
+		editing
+		and viewMode == "Top"
+		and origin
+		and camera
+		and not cameraTween
+		and camera.CameraType == Enum.CameraType.Scriptable
+	then
 		camera.CFrame = ParkEdit.topCFrame()
 	end
 end

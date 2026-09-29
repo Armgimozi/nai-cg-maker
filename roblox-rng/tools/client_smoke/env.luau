@@ -107,8 +107,12 @@ game:GetService("GuiService").__props.GetGuiInset = function()
 	return INSET, Vector2.new(0, 0)
 end
 local TweenService = game:GetService("TweenService")
+local cameraTweens: { { From: any, To: any } } = {} -- 카메라 트윈 기록(시작 자리 = 만들 때 카메라 자리)
 TweenService.__props.Create = function(_self, instance, _info, goals)
 	local completed = Signal.new()
+	if instance == workspace.CurrentCamera and goals.CFrame then
+		table.insert(cameraTweens, { From = instance.CFrame, To = goals.CFrame })
+	end
 	return {
 		Completed = completed,
 		Play = function()
@@ -321,6 +325,7 @@ E.slotsFolder = plot:FindFirstChild("Slots")
 E.toScreen, E.slotScreen, E.input, E.frame, E.waitReal, E.settle = toScreen, slotScreen, input, frame, waitReal, settle
 E.mouseTo, E.click, E.drag, E.rightClick, E.key = mouseTo, click, drag, rightClick, key
 E.touchDrag, E.tap, E.face = touchDrag, tap, face
+E.cameraTweens = cameraTweens
 function E.mouse(): Vector2
 	return mouse
 end

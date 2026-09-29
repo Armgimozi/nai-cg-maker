@@ -133,11 +133,17 @@ check(not ParkEdit.isEditing(), "처음엔 배치 모드 아님")
 
 print("\n[들어가기]")
 local baseHandlers = handlerCount()
+local cameraBefore = camera.CFrame
 ParkEdit.enter(nil)
 Mock.runScheduler(0.1)
 check(ParkEdit.isEditing(), "배치 모드 켜짐")
 check(changes[#changes] == true, "Changed(true)")
 check(camera.CameraType == Enum.CameraType.Scriptable, "Scriptable 카메라")
+local flyIn = E.cameraTweens[1]
+check(
+	flyIn ~= nil and flyIn.From == cameraBefore and (flyIn.To.Position - cameraBefore.Position).Magnitude > 5,
+	"카메라가 원래 자리에서 위에서 보기로 날아감(들어갈 때 순간 이동 없음)"
+)
 check(localFolder() ~= nil, "로컬 폴더(빛나는 판·강조)")
 check(detectorCount() == 0, "배치 모드 동안 ClickDetector 없음")
 local barFrame = gui:FindFirstChild("ParkEditBar")
