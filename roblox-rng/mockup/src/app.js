@@ -1311,7 +1311,7 @@
     Upgrade: { Title: '강화', Color: 'Sun', Top: 4 },
   };
   // 공원 배치 (Panels.luau PARK_*): 왼쪽 격자(칸 56 · 간격 4 · 잔디 여백 7), 오른쪽 고른 칸 줄 + 명소 목록
-  const PARK = { TILE: 56, GAP: 4, PAD: 7, BAR: 88, BAR_TEXT: 24, REMOVE_W: 108, PICKED_SCALE: 1.1, ROW: 74, ROW_GAP: 8, NAME_TEXT: 20, MARK_W: 50, DIVIDER: 30 };
+  const PARK = { TILE: 56, GAP: 4, PAD: 7, BAR: 88, BAR_TEXT: 24, REMOVE_W: 108, PICKED_SCALE: 1.1, CARRY_SCALE: 1.2, ROW: 74, ROW_GAP: 8, NAME_TEXT: 20, MARK_W: 50, DIVIDER: 30 };
   PARK.NAME_X = PARK.ROW + 2;
   PARK.LAWN = GRID * PARK.TILE + (GRID - 1) * PARK.GAP + PARK.PAD * 2;
   PARK.SIDE_X = PARK.LAWN + 14;
@@ -1636,21 +1636,23 @@
       const locked = slot > unlocked;
       const picked = slot === selected;
       const target = carrying && !picked && !locked;
-      // 가운데 기준 -> 고른 칸(UIScale 1.1)이 네 방향으로 고르게 커짐
+      // 가운데 기준 -> 고른 칸(UIScale 1.1, 명소를 들고 있으면 1.2 — 놓을 자리들의 노란 테두리 사이에서도 "든 칸"이 떠 보이게)이
+      // 네 방향으로 고르게 커짐
+      const scale = picked ? (carrying ? PARK.CARRY_SCALE : PARK.PICKED_SCALE) : 1;
       const tile = gui(lawn, {
         name: 'Slot' + slot,
         anchor: [0.5, 0.5],
         pos: [0, PARK.PAD + (column - 1) * step + PARK.TILE / 2, 0, PARK.PAD + (GRID - row) * step + PARK.TILE / 2],
         size: [0, PARK.TILE, 0, PARK.TILE],
-        uiScale: picked ? PARK.PICKED_SCALE : 1,
+        uiScale: scale,
         bg: landmark ? lerp(landmark.Tier.Color, WHITE, 0.55) : locked ? DIM_CHIP : Theme.Cream,
         bgT: locked ? 0.55 : 0,
         corner: 10,
-        stroke: picked ? [COLORS.Sun.Face, 5] : target ? [COLORS.Sun.Face, 3.5] : [Theme.Ink, 2.5, locked ? 0.6 : 0],
+        stroke: picked ? [COLORS.Sun.Face, 5] : target ? [COLORS.Sun.Face, 3] : [Theme.Ink, 2.5, locked ? 0.6 : 0],
         z: picked ? 2 : 1,
       });
       tile.dataset.slot = String(slot);
-      if (picked) tile.dataset.picked = '1';
+      if (picked) tile.dataset.picked = String(scale);
       if (target) tile.dataset.target = '1';
       if (landmark) placeholder3d(gui(tile, { name: 'Thumb', pos: [0, 2, 0, 2], size: [1, -4, 1, -4], z: 2 }), landmark, PARK.TILE - 4);
       else if (!locked) label(tile, { name: 'Plus', size: [1, 0, 1, 0], font: 'title', text: '+', color: COLORS.Grass.Face, outline: 2, z: 2 }, 40);
@@ -2067,7 +2069,7 @@
         `자동 배치(1번 칸 = ${ById[AUTO_FRONT] ? ById[AUTO_FRONT].Name : ''})에서 ${ById[PARK_FAVORITE].Name}을 입구 정면, 알렉산드리아 등대를 그 왼쪽에 놓은 직접 배치 — ` +
         `처음 놓는 순간 자동 배치가 꺼져서 위에 중립 알림 [시상대] "자동 꺼짐"(이번 접속에서 한 번만)이 뜨고 머리 줄 "자동"(시상대 아이콘 = 굴리기 옆 AUTO 와 다른 모양)이 통통 튐. ` +
         `빠진 더 좋은 명소 ${betterHidden(PARK_STATE).length}개 = 왼쪽 메뉴 [배치] 버튼 배지. ` +
-        `<b>집어서 옮기기</b>: ${ById[PARK_FAVORITE].Name} 칸을 고른 상태(굵은 노란 테두리 + 1.1배) — 다른 열린 칸마다 얇은 노란 테두리(놓을 자리), 누르면 그 칸으로 옮김(명소가 있으면 자리 바꿈). ` +
+        `<b>집어서 옮기기</b>: ${ById[PARK_FAVORITE].Name} 칸을 집어 든 상태(굵은 노란 테두리 + 1.2배, 목록의 그 명소 줄도 노란 테두리) — 다른 열린 칸마다 얇은 노란 테두리(놓을 자리), 누르면 그 칸으로 옮김(명소가 있으면 자리 바꿈). ` +
         '고른 칸 줄 = 명소 이름(고정 크기 — 긴 이름은 줄이지 않고 두 줄) + 빨간 [빼기], 칸 번호 글자 없음. ' +
         '<b>목록</b>: 위 = 전시 안 된 명소(희귀한 순서, 이름이 줄 끝까지), 가는 구분 줄 가운데 초록 [공원 전시 수], 아래 = 전시 중(칸 순서, 오른쪽 아이콘만 있는 초록 체크). ' +
         '고른 칸이 바뀌어서 목록이 그 명소 줄(노란 줄)까지 미끄러져 내려온 모습. 사진은 줄이 보일 때 처음 만듦. ' +
@@ -2456,10 +2458,14 @@
         const tiles = Array.from(lawn.querySelectorAll('[data-slot]'));
         const first = rectIn(tiles.find((t) => t.dataset.slot === '1'), scr);
         const second = rectIn(tiles.find((t) => t.dataset.slot === '2'), scr);
-        const bottomRow = Math.max(...tiles.filter((t) => !t.dataset.picked).map((t) => rectIn(t, scr).bottom)); // 고른 칸은 1.1배라 빼고 잼
-        const firstRaw = tiles.find((t) => t.dataset.slot === '1').dataset.picked ? first.bottom - (first.bottom - first.top) * (1 - 1 / PARK.PICKED_SCALE) / 2 : first.bottom;
-        const secondBox = tiles.find((t) => t.dataset.slot === '2').dataset.picked ? { right: second.right - (second.right - second.left) * (1 - 1 / PARK.PICKED_SCALE) / 2 } : second;
-        const orderOk = Math.abs(firstRaw - bottomRow) < 0.5 && secondBox.right <= first.left + 0.5;
+        const bottomRow = Math.max(...tiles.filter((t) => !t.dataset.picked).map((t) => rectIn(t, scr).bottom)); // 고른 칸은 1.1~1.2배라 빼고 잼
+        const pickedScale = (t) => Number(t.dataset.picked || 1); // 고른 칸 UIScale(1.1, 명소를 들고 있으면 1.2)
+        const t1 = tiles.find((t) => t.dataset.slot === '1');
+        const t2 = tiles.find((t) => t.dataset.slot === '2');
+        const firstRaw = first.bottom - (first.bottom - first.top) * (1 - 1 / pickedScale(t1)) / 2;
+        const secondBox = { right: second.right - (second.right - second.left) * (1 - 1 / pickedScale(t2)) / 2 };
+        const firstLeft = first.left + (first.right - first.left) * (1 - 1 / pickedScale(t1)) / 2;
+        const orderOk = Math.abs(firstRaw - bottomRow) < 0.5 && secondBox.right <= firstLeft + 0.5;
         const inside = entrance.bottom <= b.bottom + 0.5 && l.bottom <= b.bottom + 0.5;
         const apart = !overlap(l, bar);
         const plain = tiles.find((t) => !t.dataset.picked && Number(t.dataset.slot) <= 6);

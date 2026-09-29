@@ -51,6 +51,7 @@ local PARK_BAR = 88 -- 고른 칸 줄 높이 ([빼기] 앞면 73 = 가장 작은
 local PARK_BAR_TEXT = 24 -- 고른 칸 줄 명소 이름 글자 크기(고정, 길면 두 줄)
 local PARK_REMOVE_W = 108 -- [빼기] 폭
 local PARK_PICKED_SCALE = 1.1 -- 고른 칸 크기 배율(굵은 Sun 테두리와 함께 휴대폰에서도 눈에 띄게)
+local PARK_CARRY_SCALE = 1.2 -- 명소가 있는 칸을 고름(들고 있음): 놓을 자리들의 노란 테두리 사이에서도 떠 보이게
 local PARK_ROW = 74 -- 명소 목록 한 줄 높이 (배율 0.55 에서 40px 이상)
 local PARK_ROW_GAP = 8
 local PARK_NAME_TEXT = 20 -- 목록 명소 이름 글자 크기(고정 — 긴 이름은 줄이지 않고 두 줄로)
@@ -190,6 +191,7 @@ type ParkTile = {
 	View: ViewportFrame?, -- 명소 사진(처음 필요할 때 만듦)
 	Look: string, -- "locked" | "empty" | 명소 Id
 	Picked: boolean,
+	Carried: boolean, -- 고른 칸에 명소가 있음(집어 든 상태) -> 더 크게
 	Hovered: boolean,
 }
 type ParkCard = {
@@ -1714,8 +1716,16 @@ local function lockGlyph(parent: GuiObject): GuiObject
 	return glyph
 end
 
+-- 칸의 평소 크기 배율(고른 칸 1.1, 집어 든 칸 1.2, 마우스를 올린 칸 1.06)
+local function tileScale(tile: ParkTile): number
+	if tile.Picked then
+		return if tile.Carried then PARK_CARRY_SCALE else PARK_PICKED_SCALE
+	end
+	return if tile.Hovered then 1.06 else 1
+end
+
 local function sizeTile(tile: ParkTile)
-	tile.Scale.Scale = if tile.Picked then PARK_PICKED_SCALE elseif tile.Hovered then 1.06 else 1
+	tile.Scale.Scale = tileScale(tile)
 end
 
 local function parkTile(parent: Frame, slot: number): ParkTile
@@ -1761,6 +1771,7 @@ local function parkTile(parent: Frame, slot: number): ParkTile
 		View = nil,
 		Look = "",
 		Picked = false,
+		Carried = false,
 		Hovered = false,
 	}
 	button.MouseEnter:Connect(function()
@@ -2217,9 +2228,10 @@ local function renderPark(real: Snapshot)
 		local picked = slot == selected
 		local target = carrying and not picked and slot <= unlocked
 		tile.Stroke.Color = if picked or target then sun else Theme.Ink
-		tile.Stroke.Thickness = if picked then 5 elseif target then 3.5 else 2.5
+		tile.Stroke.Thickness = if picked then 5 elseif target then 3 else 2.5
 		tile.Button.ZIndex = if picked then 2 else 1
 		tile.Picked = picked
+		tile.Carried = picked and carrying
 		sizeTile(tile)
 	end
 
@@ -2327,7 +2339,7 @@ local function popTile(slot: number)
 	end
 	tile.Scale.Scale = 1.28
 	TweenService:Create(tile.Scale, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-		Scale = if tile.Picked then PARK_PICKED_SCALE else 1,
+		Scale = tileScale(tile),
 	}):Play()
 end
 
