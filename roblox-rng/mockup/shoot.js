@@ -1,4 +1,4 @@
-// index.html -> screen1..6.png (+ screen1t/1p/1w = 태블릿·휴대폰 크기, screen2b.png, screen4b.png, screen6p.png) + overview.png
+// index.html -> screen1..6.png (+ screen1t/1p/1w = 태블릿·휴대폰 크기, screen2b.png, screen4b.png, screen6b/6c/6p.png) + overview.png
 //   node mockup/shoot.js            (playwright 가 전역 설치돼 있으면 NODE_PATH=$(npm root -g) 로)
 const path = require('path');
 const fs = require('fs');
@@ -27,9 +27,9 @@ const CHROME = ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome'].find((p) =
     screen1: '1. 기본 화면', screen1t: '1-2. 기본 화면 (태블릿 1024×768)', screen1p: '1-3. 기본 화면 (휴대폰 667×375)', screen1w: '1-4. 기본 화면 (휴대폰 844×390)',
     screen2: '2. 명소 공개 (처음 발견)', screen2b: '2-2. 명소 공개 (별 오름)', screen3: '3. 도감',
     screen4: '4. 여권', screen5: '5. 강화', screen4b: '4-2. 여권 스크롤 내용 전체',
-    screen6: '6. 공원 배치', screen6p: '6-2. 공원 배치 (휴대폰 667×375)',
+    screen6: '6. 공원 배치 (집어서 옮기기 · 목록 구분 · 자동 꺼짐)', screen6b: '6-2. 공원 꽉 참 (배치 배지)', screen6c: '6-3. 공원 배치 (빈 목록, 환생 직후)', screen6p: '6-4. 공원 배치 (휴대폰 667×375)',
   };
-  const order = ['screen1', 'screen1t', 'screen1p', 'screen1w', 'screen2', 'screen2b', 'screen3', 'screen4', 'screen5', 'screen6', 'screen6p', 'screen4b'];
+  const order = ['screen1', 'screen1t', 'screen1p', 'screen1w', 'screen2', 'screen2b', 'screen3', 'screen4', 'screen5', 'screen6', 'screen6b', 'screen6c', 'screen6p', 'screen4b'];
   const cells = order
     .map((id) => shots.find((s) => s.id === id))
     .filter(Boolean)

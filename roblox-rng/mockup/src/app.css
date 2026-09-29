@@ -87,6 +87,9 @@ body {
 }
 .lbl > span { display: inline-block; max-width: 100%; }
 .lbl.nowrap { white-space: nowrap; }
+/* TextWrapped + TextTruncate(AtEnd), 글자 크기 고정: 길면 --lines 줄까지, 넘치면 … */
+.lbl.wrap2 { overflow: hidden; }
+.lbl.wrap2 > span { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: var(--lines, 2); overflow: hidden; line-height: 1.12; }
 .lbl.nowrap > span { max-width: none; }
 .lbl.title { font-family: var(--font-title); }
 .lbl.stroked > span { -webkit-text-stroke: var(--sw) var(--sc); paint-order: stroke fill; }

@@ -1,5 +1,6 @@
 -- 클라이언트 진입점: 상태 동기화, 굴리기/자동 굴리기, 메뉴 연결, 뉴스 속보, 회전 모형,
--- 환생 · Robux 상품 구매 요청 · 서버 행운 알림 (DESIGN.md v3), 공원 배치(칸마다 명소 고르기)
+-- 환생 · Robux 상품 구매 요청 · 서버 행운 알림 (DESIGN.md v3), 공원 배치(칸마다 명소 고르기),
+-- 내 공원 받침대 누르기(내 부지에만 클라이언트 ClickDetector)
 -- (화면 글자에는 이모지를 쓰지 않음 — DESIGN.md UI 스타일 가이드 v2)
 -- 알림은 [아이콘] + 8글자 안팎 ("구매 완료", "코인 부족", "대표 지정"), 문장은 쓰지 않음
 
@@ -24,6 +25,7 @@ local Ui = require(script.Ui)
 
 local SPIN_TAG = "LandmarkSpin"
 local SPIN_SPEED = math.rad(20) -- 태그 붙은 모형(광장 지구본, 홀로그램)의 초당 회전 각도
+local PARK_CLICK_DISTANCE = 40 -- 내 공원 받침대를 눌러 배치 창을 여는 최대 거리(스터드)
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -147,6 +149,18 @@ local function showAnnouncement(info: any, landmark: Landmarks.Landmark)
 	end)
 end
 
+-- 직접 배치 중 이번 판에 처음 얻은 명소가 공원이 꽉 차서 전시되지 못했고, 전시 중인 가장 약한 명소보다
+-- 수입이 크면(= 배치 버튼 배지에 들어가면) 연출이 끝난 뒤 "공원 꽉 참" 알림
+local function parkFullNotice(landmark: Landmarks.Landmark)
+	local current = state
+	if not current or current.Settings.AutoPark ~= false or (current.Inventory[landmark.Id] or 0) ~= 1 then
+		return
+	end
+	if table.find(PlayerState.betterHidden(current), landmark.Id) then
+		Hud.toast("공원 꽉 참", Ui.Theme.Gold, 3, "park")
+	end
+end
+
 -- 더 희귀한 명소를 발견했으면 자동으로 대표 지정 (설정이 켜져 있을 때)
 local function autoFeature(landmark: Landmarks.Landmark)
 	local current = state
@@ -206,6 +220,7 @@ local function roll()
 		end
 		table.clear(heldAnnouncements)
 
+		parkFullNotice(landmark)
 		autoFeature(landmark)
 	elseif type(response) == "table" and response.Ok then
 		applyState(response.State, receivedAt) -- 모르는 명소 Id (클라가 옛 버전일 때)
@@ -271,7 +286,7 @@ end
 -- 공원 배치 ----------------------------------------------------------------------
 -- 창(Panels)이 누르는 즉시 미리 보여 주고, 여기서 서버에 요청한 뒤 응답 상태로 바꿈(Panels.parkDone)
 
--- 서버가 준 실패 이유 -> 짧은 알림
+-- 서버가 준 실패 이유 -> 짧은 알림 ("stale" 은 따로: 중립 알림 "공원 바뀜" + 새 상태로 다시 그림)
 local function parkFailure(reason: any): (string, string)
 	local text = string.lower(tostring(reason or ""))
 	if text:find("잠긴") then
@@ -284,16 +299,22 @@ local function parkFailure(reason: any): (string, string)
 	return "배치 실패", "close"
 end
 
-local function setDisplay(slot: number, landmarkId: string?)
-	local response = invoke("SetDisplay", slot, landmarkId)
+-- expected: 창에서 그 칸에 보이던 명소 Id(빈 칸 ""). 그사이 서버에서 그 칸이 바뀌었으면(예: 자동 굴림이 빈 칸에
+-- 새 명소를 놓음) 서버가 Reason "stale" + 새 상태로 거절 -> 미리 보기를 버리고 새 상태로 다시 그림
+local function setDisplay(slot: number, landmarkId: string?, expected: string)
+	local response = invoke("SetDisplay", slot, landmarkId, expected)
+	local stale = false
 	if type(response) == "table" then
 		applyState(response.State)
-		if not response.Ok then
+		stale = response.Reason == "stale"
+		if stale then
+			Hud.toast("공원 바뀜", Ui.Theme.Ink, 2, "park")
+		elseif not response.Ok then
 			local text, icon = parkFailure(response.Reason)
 			Hud.toast(text, Ui.Theme.Bad, 2, icon)
 		end
 	end
-	Panels.parkDone()
+	Panels.parkDone(stale)
 end
 
 local function setAutoPark(on: boolean)
@@ -426,11 +447,11 @@ Panels.init(gui, {
 	BuyProduct = function(key: string)
 		task.spawn(buyRobux, "BuyProduct", key)
 	end,
-	Toast = function(text: string, icon: string?)
-		Hud.toast(text, Ui.Theme.Bad, 2, icon)
+	Toast = function(text: string, icon: string?, color: Color3?)
+		Hud.toast(text, color or Ui.Theme.Bad, 2, icon)
 	end,
-	SetDisplay = function(slot: number, landmarkId: string?)
-		task.spawn(setDisplay, slot, landmarkId)
+	SetDisplay = function(slot: number, landmarkId: string?, expected: string)
+		task.spawn(setDisplay, slot, landmarkId, expected)
 	end,
 	SetAutoPark = function(on: boolean)
 		task.spawn(setAutoPark, on)
@@ -491,15 +512,85 @@ task.spawn(function()
 	end)
 end)
 
--- 내 공원 받침대를 누름 -> 그 칸을 골라 둔 채로 공원 배치 창 열기 (옛 서버에 이벤트가 없어도 멈추지 않게 따로 기다림)
-task.spawn(function()
-	local remote = findRemote("OpenParkEditor", 30)
-	if not remote or not remote:IsA("RemoteEvent") then
+-- 내 공원 ---------------------------------------------------------------------
+-- 서버(ParkService)가 부지 모델에 OwnerUserId, 열린 칸(받침대) 모델에 Slot 속성을 붙여 둠.
+-- 내 부지를 찾으면 HUD [배치] 버튼을 보이고, 그 부지의 열린 칸에만 이 클라이언트에서 ClickDetector 를 닮
+-- (남의 공원 받침대에는 손가락 커서가 안 뜸, 누르면 서버를 거치지 않고 바로 그 칸을 고른 채로 배치 창)
+local myPlot: Instance? = nil
+local myPlotConnections: { RBXScriptConnection } = {}
+
+local function watchSlot(container: Instance)
+	local slot = container:GetAttribute("Slot")
+	if not container:IsA("Model") or type(slot) ~= "number" or container:FindFirstChild("ParkClick") then
 		return
 	end
-	remote.OnClientEvent:Connect(function(slot)
-		Panels.openPark(tonumber(slot))
+	local detector = Instance.new("ClickDetector")
+	detector.Name = "ParkClick"
+	detector.MaxActivationDistance = PARK_CLICK_DISTANCE
+	detector.MouseClick:Connect(function()
+		Panels.openPark(slot)
 	end)
+	detector.Parent = container
+end
+
+local function setMyPlot(plot: Instance?)
+	if plot == myPlot then
+		return
+	end
+	for _, connection in myPlotConnections do
+		connection:Disconnect()
+	end
+	table.clear(myPlotConnections)
+	local old = myPlot
+	if old then
+		for _, detector in old:GetDescendants() do
+			if detector:IsA("ClickDetector") and detector.Name == "ParkClick" then
+				detector:Destroy()
+			end
+		end
+	end
+	myPlot = plot
+	Hud.setPlotOwned(plot ~= nil)
+	if not plot then
+		return
+	end
+	local slots = plot:WaitForChild("Slots", 30)
+	if not slots or myPlot ~= plot then
+		return
+	end
+	table.insert(myPlotConnections, slots.ChildAdded:Connect(watchSlot))
+	for _, container in slots:GetChildren() do
+		watchSlot(container)
+	end
+end
+
+task.spawn(function()
+	local parks = workspace:WaitForChild("Parks", 60)
+	if not parks then
+		return
+	end
+	local function check()
+		local found: Instance? = nil
+		for _, plot in parks:GetChildren() do
+			if plot:GetAttribute("OwnerUserId") == player.UserId then
+				found = plot
+				break
+			end
+		end
+		setMyPlot(found)
+	end
+	local function watchPlot(plot: Instance)
+		plot:GetAttributeChangedSignal("OwnerUserId"):Connect(check)
+	end
+	for _, plot in parks:GetChildren() do
+		watchPlot(plot)
+	end
+	parks.ChildAdded:Connect(function(plot)
+		watchPlot(plot)
+		check()
+	end)
+	parks.ChildRemoved:Connect(check)
+	check()
 end)
 
 -- 구매 창이 닫힐 때 알림만 (지급은 서버의 ProcessReceipt). 연결에 실패해도 아래 루프는 돌아야 하므로 pcall

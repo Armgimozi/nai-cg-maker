@@ -216,11 +216,13 @@
     return [result, unlocked];
   }
   const park = (s) => parkSlots(s)[0].filter(Boolean);
-  // PlayerState.setDisplay: 칸 하나에 명소 놓기(이미 다른 칸이면 자리 바꿈) / null = 빼기. 자동 배치 중이면 지금 배치에서 시작
-  function setDisplay(s, slot, id) {
+  // PlayerState.setDisplay: 칸 하나에 명소 놓기(이미 다른 칸이면 자리 바꿈) / null = 빼기. 자동 배치 중이면 지금 배치에서 시작.
+  // expected(선택) = 요청한 쪽이 본 그 칸의 명소 Id("" = 빈 칸) — 지금 보이는 것과 다르면 거절("stale")
+  function setDisplay(s, slot, id, expected) {
     const [current, unlocked] = parkSlots(s);
     if (!Number.isInteger(slot) || slot < 1 || slot > unlocked) return false;
     if (id != null && !(ById[id] && (s.Inventory[id] || 0) > 0)) return false;
+    if (expected != null && (current[slot - 1] || '') !== expected) return false;
     const display = current.map((v) => v || '');
     if (id) {
       const from = display.indexOf(id);
@@ -232,6 +234,21 @@
     s.Display = display;
     s.Settings = { ...s.Settings, AutoPark: false };
     return true;
+  }
+  // PlayerState.betterHidden: 직접 배치 중 전시 칸의 가장 약한 명소보다 수입이 큰, 전시 안 된 보유 명소(희귀한 순서).
+  // 전시가 하나도 없으면 수입이 있는 보유 명소 전부, 자동 배치면 [] — [배치] 버튼 숫자 배지 · "공원 꽉 참" 알림
+  function betterHidden(s) {
+    if (!s.Settings || s.Settings.AutoPark !== false) return [];
+    const [ids, unlocked] = parkSlots(s);
+    if (unlocked <= 0) return [];
+    const shown = new Set(ids.filter(Boolean));
+    let weakest = null;
+    for (const id of shown) {
+      const v = landmarkIncome(ById[id], s.Inventory[id] || 0);
+      weakest = weakest == null ? v : Math.min(weakest, v);
+    }
+    const floor = weakest ?? 0;
+    return RarestFirst.filter((l) => (s.Inventory[l.Id] || 0) > 0 && !shown.has(l.Id) && landmarkIncome(l, s.Inventory[l.Id]) > floor).map((l) => l.Id);
   }
   function landmarkIncome(l, count) {
     const n = stars(count);
@@ -469,10 +486,16 @@
     d.style.justifyContent = { left: 'flex-start', right: 'flex-end', center: 'center' }[xa];
     d.style.textAlign = xa;
     d.style.color = css(o.color || Theme.Ink, 1 - (o.textT || 0));
-    if (o.scaled === false) {
+    if (o.wrap) {
+      // TextScaled = false + TextWrapped + TextTruncate: 글자 크기 고정, 길면 두 줄(넘치면 …)
+      d.classList.add('wrap2');
+      span.style.fontSize = (o.textSize ?? max) + 'px';
+      span.style.setProperty('--lines', String(o.lines || 2));
+    } else if (o.scaled === false) {
       d.classList.add('nowrap');
       span.style.fontSize = Math.min(o.textSize ?? 14, max) + 'px';
     } else d.dataset.fit = String(max);
+    if (o.yAlign) d.style.alignItems = { top: 'flex-start', bottom: 'flex-end', center: 'center' }[o.yAlign];
     if (o.outline) outline(d, o.outline, o.outlineColor);
     return d;
   }
@@ -502,6 +525,20 @@
       <rect x="72" y="30" width="19" height="40" rx="3" fill="#ffc53d"/>
       <rect x="72" y="64" width="19" height="6" rx="2" fill="#dba42c"/>
       <rect x="19" y="44" width="42" height="12" rx="2" fill="#fff4dc"/></g>`),
+    // Icons.BUILDERS.podium: 1·2·3등 시상대(왼쪽 Sky 2등 · 가운데 Sun 1등 · 오른쪽 Coral 3등) + 1등 위 작은 금색 별
+    podium: svgUri(`<g stroke="#1e1b2e" stroke-width="3" stroke-linejoin="round">
+      <rect x="4" y="50" width="31" height="45" rx="3" fill="#39a0ff"/>
+      <rect x="34.5" y="34" width="31" height="61" rx="3" fill="#ffc53d"/>
+      <rect x="65" y="63" width="31" height="32" rx="3" fill="#ff5e5b"/>
+      <path d="M50 2 L53.76 11.82 L64.27 12.36 L56.09 18.98 L58.82 29.14 L50 23.4 L41.18 29.14 L43.91 18.98 L35.73 12.36 L46.24 11.82 Z" fill="#ffce40"/></g>
+      <g fill="#ffffff" opacity="0.4"><rect x="8" y="54" width="23" height="5" rx="2"/><rect x="38.5" y="38" width="23" height="5" rx="2"/><rect x="69" y="67" width="23" height="5" rx="2"/></g>`),
+    // Icons.BUILDERS.arrange: 잔디 판 위 2×2 칸 — 세 칸에 색 블록(미니 명소), 앞 오른쪽은 빈 칸 초록 "+"
+    arrange: svgUri(`<rect x="4" y="34" width="92" height="60" rx="10" fill="#60c45a" stroke="#1e1b2e" stroke-width="3"/>
+      <g fill="#fff4dc" stroke="#1e1b2e" stroke-width="2"><rect x="11" y="40" width="37" height="22" rx="4"/><rect x="52" y="40" width="37" height="22" rx="4"/>
+      <rect x="11" y="66" width="37" height="22" rx="4"/><rect x="52" y="66" width="37" height="22" rx="4"/></g>
+      <g stroke="#1e1b2e" stroke-width="2.5" stroke-linejoin="round"><rect x="19" y="24" width="21" height="31" rx="3" fill="#39a0ff"/>
+      <rect x="60" y="8" width="21" height="47" rx="3" fill="#ffc53d"/><rect x="19" y="60" width="21" height="22" rx="3" fill="#ff5e5b"/></g>
+      <path d="M70.5 70 v14 M63.5 77 h14" stroke="#2e9e45" stroke-width="5" stroke-linecap="round"/>`),
     // Icons.BUILDERS.rebirth: 금색 고리 화살표 2개(100°~, 280°~ 각 4조각 + 화살촉) + 가운데 초록 위 화살표
     rebirth: svgUri(`<g fill="none" stroke="#ffc53d" stroke-width="11">
       <path d="M 53 16.1 A 34 34 0 0 0 19.2 64.4"/><path d="M 47 83.9 A 34 34 0 0 0 80.8 35.6"/></g>
@@ -919,7 +956,8 @@
   const menuNote = (w, h, touch, inset = GUI_INSET) =>
     menuName(layoutMenu(MENU.length + 1, w, h - inset, h, uiScaleFor(w, h), touch));
 
-  function buildMenu(screenGui, state, location) {
+  // plot = 내 공원 부지가 있음(서버가 부지 모델에 OwnerUserId 를 붙임) -> 이동 버튼 옆에 [배치] (어디에 있든)
+  function buildMenu(screenGui, state, location, plot = true) {
     const count = MENU.length + 1;
     const place = layoutMenu(count, view.w, view.h - view.inset, view.h, view.scale, view.touch);
     view.menu = place;
@@ -986,23 +1024,44 @@
       text: inPark ? '광장' : '공원',
       textSize: 18,
     });
-    // 내 공원에 있을 때만: 공원 배치 버튼을 이동 버튼 바로 오른쪽 칸에 (메뉴 칸 수에는 안 셈).
-    // 가로 한 줄이면 묶음이 한 칸 넓어진 것으로 쳐서 위 가운데 묶음이 비켜 감
-    if (inPark) {
+    // 내 공원 부지가 있으면: 공원 배치 버튼을 이동 버튼 바로 오른쪽 칸에 (메뉴 칸 수에는 안 셈).
+    // 가로 한 줄이면 묶음이 한 칸 넓어진 것으로 쳐서 위 가운데 묶음이 비켜 감.
+    // 배지 = 직접 배치 중 더 좋은데 전시 안 된 명소 수(PlayerState.betterHidden, 여권 배지와 같은 모양, 0 이면 숨김)
+    if (plot) {
       const last = cell(count).pos;
-      chunkyButton(container, {
+      const arrange = chunkyButton(container, {
         name: 'Arrange',
         pos: [0, last[1] + MENU_BUTTON[0] + MENU_GAP, 0, last[3]],
+        z: 2,
         size: [0, MENU_BUTTON[0], 0, MENU_BUTTON[1]],
         color: 'Grass',
-        icon: 'park',
+        icon: 'arrange', // 옆 이동 버튼의 공원(나무) 아이콘과 다르게
         iconSize: 58,
         vertical: true,
         text: '배치',
         textSize: 18,
       });
+      const better = betterHidden(state).length;
+      countBadge(arrange.face, better);
       if (place.columns >= count) view.menu = { ...place, width: place.width + (MENU_BUTTON[0] + MENU_GAP) * view.scale };
     }
+  }
+
+  // Panels.countBadge / Hud 배치 배지: 버튼 오른쪽 위 Ink 딱지 + Sun 숫자(여권 "1/6" 배지와 같은 모양), 0 이면 숨김
+  function countBadge(face, count) {
+    return chip(face, {
+      name: 'Better',
+      color: Theme.Ink,
+      height: 24,
+      textSize: 15,
+      anchor: [0.5, 0.5],
+      pos: [1, -6, 0, 2],
+      rot: 8,
+      z: 6,
+      text: String(count),
+      textColor: COLORS.Sun.Face,
+      visible: count > 0,
+    });
   }
 
   // 로블록스 기본 터치 조작(터치 전용 기기만): 오른쪽 아래 점프 버튼 + 왼쪽 아래 조이스틱 자리(흐리게, 게임 UI 가 아님)
@@ -1086,7 +1145,7 @@
   function buildHud(screenGui, state, opts = {}) {
     if (view.touch) touchControls(screenGui);
     buildStats(screenGui, state);
-    buildMenu(screenGui, state, opts.location || 'Plaza');
+    buildMenu(screenGui, state, opts.location || 'Plaza', opts.plot !== false);
     buildRollBar(screenGui, opts);
   }
 
@@ -1109,13 +1168,15 @@
     return { pos: [0.5, 0, 0, top], center: width / 2, top, below: true, reserve };
   }
 
-  // Hud.news: 신문 띠 한 줄
-  function buildNews(screenGui, items) {
+  // Hud.news: 신문 띠 한 줄 / Hud.toast: 그 아래 알림 딱지 [아이콘][짧은 글자] (toasts: [{ text, icon, color }])
+  function buildNews(screenGui, items, toasts = []) {
     // Hud.buildNotices: [서버 행운 띠(켜졌을 때만)] [뉴스 속보 600x118] [알림] 을 위에서부터 쌓는 "Top" 묶음
     const place = placeTop(view.w, view.scale, view.menu);
     const top = anchorBox(screenGui, 'Top', [0.5, 0], place.pos, [0, TOP_WIDTH, 0, TOP_HEIGHT], 9);
     list(top, 'v', 6, 'center', 'top');
-    const news = gui(top, { name: 'News', flow: true, size: [0, TOP_WIDTH, 0, 118] });
+    // 속보 수만큼만 높이(AutomaticSize Y) — 속보가 없으면 알림이 맨 위에 뜸
+    const newsHeight = items.length ? items.length * 54 + (items.length - 1) * 8 : 0;
+    const news = gui(top, { name: 'News', flow: true, size: [0, TOP_WIDTH, 0, newsHeight] });
     list(news, 'v', 8, 'center', 'top');
     for (const item of items) {
       const landmark = ById[item.LandmarkId];
@@ -1158,6 +1219,11 @@
       skin(stamp, 'tag', { radius: 10, height: 46, color: COLORS.Coral.Face });
       gui(stamp, { anchor: [0.5, 0.5], pos: [0.5, 0, 0.5, 0], size: [1, -10, 1, -10], corner: 7, stroke: [WHITE, 2, 0.25] });
       label(stamp, { pos: [0, 8, 0, 6], size: [1, -16, 1, -12], font: 'title', text: '속보', color: WHITE, z: 2, outline: 2.5 }, 26);
+    }
+    const notices = gui(top, { name: 'Notices', flow: true, size: [0, 600, 0, 200] });
+    list(notices, 'v', 8, 'center', 'top');
+    for (const t of toasts) {
+      chip(notices, { name: 'Toast', flow: true, color: t.color, text: t.text, icon: t.icon, iconSize: 48, height: 40, textSize: 22, strokeThickness: 3 });
     }
   }
 
@@ -1237,7 +1303,8 @@
     Upgrade: { Title: '강화', Color: 'Sun', Top: 4 },
   };
   // 공원 배치 (Panels.luau PARK_*): 왼쪽 격자(칸 56 · 간격 4 · 잔디 여백 7), 오른쪽 고른 칸 줄 + 명소 목록
-  const PARK = { TILE: 56, GAP: 4, PAD: 7, BAR: 88, BAR_CHIP_Y: 9, BAR_NAME_Y: 44, REMOVE_W: 108, PICKED_SCALE: 1.1, ROW: 74, ROW_GAP: 8 };
+  const PARK = { TILE: 56, GAP: 4, PAD: 7, BAR: 88, BAR_TEXT: 24, REMOVE_W: 108, PICKED_SCALE: 1.1, ROW: 74, ROW_GAP: 8, NAME_TEXT: 20, MARK_W: 50, DIVIDER: 30 };
+  PARK.NAME_X = PARK.ROW + 2;
   PARK.LAWN = GRID * PARK.TILE + (GRID - 1) * PARK.GAP + PARK.PAD * 2;
   PARK.SIDE_X = PARK.LAWN + 14;
   VIEWS.Park = { Title: '배치', Color: 'Grass', Top: HEADER_HEIGHT + PARK.BAR + 8 };
@@ -1314,8 +1381,9 @@
       textSize: 22,
     });
     chip(auto.face, { name: 'On', color: 'Coral', text: 'ON', height: 22, textSize: 15, anchor: [0.5, 0.5], pos: [1, -8, 0, 2], rot: 12, z: 6, visible: state.Settings.AutoFeature });
-    // 공원 배치 창 열기 (자동 버튼 왼쪽)
-    chunkyButton(header, { name: 'Arrange', anchor: [1, 0], pos: [1, -(8 + 136 + 10), 0, -4], size: [0, 124, 0, 50], color: 'Grass', icon: 'park', iconSize: 36, text: '배치', textSize: 22 });
+    // 공원 배치 창 열기 (자동 버튼 왼쪽). 배지 = 더 좋은데 전시 안 된 명소 수(0 이면 숨김)
+    const arrange = chunkyButton(header, { name: 'Arrange', anchor: [1, 0], pos: [1, -(8 + 136 + 10), 0, -4], size: [0, 124, 0, 50], color: 'Grass', icon: 'arrange', iconSize: 36, text: '배치', textSize: 22 });
+    countBadge(arrange.face, betterHidden(state).length);
 
     const inPark = new Set(park(state));
     const canvas = gridHeight(owned.length, COLS, CELL[1], GAP) + PAD_Y * 2;
@@ -1472,26 +1540,80 @@
     }
   }
 
-  // Panels 공원 배치: 명소 목록 한 줄 (사진 · 이름 · 별 · 전시 중이면 [체크 #칸])
+  // Panels 공원 배치: 명소 목록 한 줄 (사진 · 이름(고정 20, 길면 두 줄) · 별 · 전시 중이면 오른쪽에 아이콘만 있는 초록 체크)
   function parkCard(parent, landmark, count, slot, picked) {
     const card = gui(parent, { name: landmark.Id, flow: true, size: [1, 0, 0, PARK.ROW], bg: picked ? FEATURED_BG : Theme.Paper, corner: 12, stroke: [Theme.Ink, 3] });
+    card.dataset.row = slot ? 'shown' : 'hidden';
+    if (slot) card.dataset.slot = String(slot);
     photo(card, landmark, [0, 6, 0, 6], [0, PARK.ROW - 12, 0, PARK.ROW - 12], 8, PARK.ROW - 16);
-    label(card, { pos: [0, PARK.ROW + 2, 0, 8], size: [1, -(PARK.ROW + 2 + 92), 0, 30], xAlign: 'left', text: landmark.Name }, 21);
-    label(card, { pos: [0, PARK.ROW + 2, 0, 40], size: [0, 130, 0, 24], xAlign: 'left', rich: starsRich(stars(count), Config.STAR_THRESHOLDS.length), outline: 2 }, 20);
-    chip(card, { name: 'Shown', color: 'Grass', icon: 'check', iconSize: 34, height: 30, textSize: 18, anchor: [1, 0.5], pos: [1, -10, 0.5, 0], z: 3, text: slot ? '#' + slot : '', visible: !!slot });
+    // 이름: 글자 크기 고정(줄이지 않음), 길면 두 줄. 한 줄이면 별 바로 위(아래 정렬). 전시 안 된 줄은 줄 끝까지
+    label(
+      card,
+      {
+        name: 'Name',
+        pos: [0, PARK.NAME_X, 0, 3],
+        size: [1, -(PARK.NAME_X + 8 + (slot ? PARK.MARK_W : 0)), 0, 44],
+        xAlign: 'left',
+        yAlign: 'bottom',
+        wrap: true,
+        textSize: PARK.NAME_TEXT,
+        text: landmark.Name,
+      },
+      PARK.NAME_TEXT
+    );
+    label(card, { name: 'Stars', pos: [0, PARK.NAME_X, 0, 48], size: [0, 130, 0, 22], xAlign: 'left', rich: starsRich(stars(count), Config.STAR_THRESHOLDS.length), outline: 2 }, 20);
+    if (slot) chip(card, { name: 'Shown', color: 'Grass', icon: 'check', iconOnly: true, iconSize: 36, height: 30, anchor: [1, 0.5], pos: [1, -10, 0.5, 0], z: 3 });
   }
 
-  // Panels 공원 배치: 격자(아래 = 입구) + 고른 칸 줄 + 가진 명소 목록. opts.selected = 고른 칸, opts.confirmAuto = 자동 "확인?"
+  // Panels 공원 배치 목록 구분 줄: 가는 선 + 가운데 [공원 아이콘 전시 수] 초록 딱지 (위 = 전시 안 됨, 아래 = 전시 중)
+  function parkDivider(parent, shown) {
+    const d = gui(parent, { name: 'Divider', flow: true, size: [1, 0, 0, PARK.DIVIDER] });
+    gui(d, { name: 'Line', anchor: [0, 0.5], pos: [0, 6, 0.5, 0], size: [1, -12, 0, 3], bg: Theme.Ink, bgT: 0.72 });
+    chip(d, { name: 'Shown', color: 'Grass', icon: 'park', iconSize: 34, height: 26, textSize: 17, anchor: [0.5, 0.5], pos: [0.5, 0, 0.5, 0], z: 2, text: String(shown) });
+  }
+
+  // Panels.renderPark 의 목록 순서: 전시 안 된 명소(희귀한 순서) -> 구분 줄 -> 전시 중(칸 번호 순서). y = 목록 안 위치
+  function parkList(state) {
+    const [slotIds, unlocked] = parkSlots(state);
+    const where = {};
+    slotIds.forEach((id, i) => id && (where[id] = i + 1));
+    const items = [];
+    let y = 0;
+    for (const l of RarestFirst) {
+      if ((state.Inventory[l.Id] || 0) > 0 && !where[l.Id]) {
+        items.push({ kind: 'row', landmark: l, slot: null, y });
+        y += PARK.ROW + PARK.ROW_GAP;
+      }
+    }
+    const shown = slotIds.filter(Boolean).length;
+    if (shown > 0) {
+      items.push({ kind: 'divider', shown, y });
+      y += PARK.DIVIDER + PARK.ROW_GAP;
+    }
+    for (let slot = 1; slot <= unlocked; slot++) {
+      const id = slotIds[slot - 1];
+      if (id) {
+        items.push({ kind: 'row', landmark: ById[id], slot, y });
+        y += PARK.ROW + PARK.ROW_GAP;
+      }
+    }
+    return { items, height: Math.max(0, y - PARK.ROW_GAP) };
+  }
+
+  // Panels 공원 배치: 격자(아래 = 입구) + 고른 칸 줄 + 가진 명소 목록.
+  // opts.selected = 고른 칸, opts.confirmAuto = 자동 "확인?", opts.scrollY = 목록 스크롤(없으면 Panels.scrollParkTo 처럼 고른 칸 명소 줄이 보이게)
   function buildPark(body, bodyHeight, state, opts) {
     const selected = opts.selected || null;
     const [slotIds, unlocked] = parkSlots(state);
+    const carrying = !!selected && !!slotIds[selected - 1]; // 명소가 있는 칸을 고름 = 들고 있음 -> 다른 열린 칸이 놓을 자리
     const header = gui(body, { name: 'ParkHeader', size: [1, 0, 0, HEADER_HEIGHT] });
     const chips = chipRow(header);
     headerChip(chips, 'park', Theme.Ink, `${slotIds.filter(Boolean).length}/${unlocked}`);
     headerChip(chips, 'coin', 'Grass', '+' + incomeText(incomePerSecond(state)) + '/s');
     const on = state.Settings.AutoPark !== false;
     const confirming = !on && !!opts.confirmAuto;
-    const auto = chunkyButton(header, { name: 'AutoPark', anchor: [1, 0], pos: [1, -8, 0, -4], size: [0, 136, 0, 50], color: on ? 'Grass' : confirming ? 'Sun' : 'Gray', icon: 'auto', iconSize: 36, text: confirming ? '확인?' : '자동', textSize: 22 });
+    // 자동 배치: 시상대 아이콘(1·2·3등) — 굴리기 옆 AUTO(도는 화살표)와 다른 모양. 가운데 기준(꺼질 때 통통 튐)
+    const auto = chunkyButton(header, { name: 'AutoPark', anchor: [0.5, 0.5], pos: [1, -(8 + 68), 0, -4 + 25], size: [0, 136, 0, 50], color: on ? 'Grass' : confirming ? 'Sun' : 'Gray', icon: 'podium', iconSize: 36, text: confirming ? '확인?' : '자동', textSize: 22 });
     chip(auto.face, { name: 'On', color: 'Coral', text: 'ON', height: 22, textSize: 15, anchor: [0.5, 0.5], pos: [1, -8, 0, 2], rot: 12, z: 6, visible: on });
 
     // 잔디 + 6×6 칸 (칸 자리 = PlayerState.slotCell)
@@ -1503,6 +1625,7 @@
       const landmark = id ? ById[id] : null;
       const locked = slot > unlocked;
       const picked = slot === selected;
+      const target = carrying && !picked && !locked;
       // 가운데 기준 -> 고른 칸(UIScale 1.1)이 네 방향으로 고르게 커짐
       const tile = gui(lawn, {
         name: 'Slot' + slot,
@@ -1513,46 +1636,64 @@
         bg: landmark ? lerp(landmark.Tier.Color, WHITE, 0.55) : locked ? DIM_CHIP : Theme.Cream,
         bgT: locked ? 0.55 : 0,
         corner: 10,
-        stroke: picked ? [COLORS.Sun.Face, 5] : [Theme.Ink, 2.5, locked ? 0.6 : 0],
+        stroke: picked ? [COLORS.Sun.Face, 5] : target ? [COLORS.Sun.Face, 3.5] : [Theme.Ink, 2.5, locked ? 0.6 : 0],
         z: picked ? 2 : 1,
       });
       tile.dataset.slot = String(slot);
       if (picked) tile.dataset.picked = '1';
+      if (target) tile.dataset.target = '1';
       if (landmark) placeholder3d(gui(tile, { name: 'Thumb', pos: [0, 2, 0, 2], size: [1, -4, 1, -4], z: 2 }), landmark, PARK.TILE - 4);
       else if (!locked) label(tile, { name: 'Plus', size: [1, 0, 1, 0], font: 'title', text: '+', color: COLORS.Grass.Face, outline: 2, z: 2 }, 40);
       else iconView(tile, 'lock', { anchor: [0.5, 0.5], pos: [0.5, 0, 0.5, 0], size: [0.44, 0, 0.44, 0], transparency: 0.5, z: 3 });
     }
     chip(lawn, { name: 'Entrance', color: Theme.Ink, icon: 'arrow_up', iconSize: 30, text: '입구', height: 26, textSize: 16, anchor: [0.5, 0.5], pos: [0.5, 0, 1, 2], z: 4 });
 
-    // 고른 칸 줄: 왼쪽 위 [공원 #칸], 그 아래 명소 이름(없으면 "칸 선택" 가운데 높이) · 오른쪽 [빼기]
+    // 고른 칸 줄: 명소 이름(없으면 "빈 칸" / "칸 선택", 고정 24 · 길면 두 줄) · 오른쪽 [빼기]. 칸 번호 글자는 없음
     const bar = gui(body, { name: 'Selected', pos: [0, PARK.SIDE_X, 0, HEADER_HEIGHT], size: [1, -PARK.SIDE_X, 0, PARK.BAR], bg: Theme.Paper, corner: 12, stroke: [Theme.Ink, 3] });
     const pickedId = selected ? slotIds[selected - 1] : null;
     const pickedLandmark = pickedId ? ById[pickedId] : null;
-    if (selected) chip(bar, { name: 'Slot', color: Theme.Ink, icon: 'park', iconSize: 36, height: 30, textSize: 19, pos: [0, 10, 0, PARK.BAR_CHIP_Y], text: '#' + selected });
-    const nameTop = selected ? PARK.BAR_NAME_Y : 8;
     label(
       bar,
       {
         name: 'Name',
-        pos: [0, 14, 0, nameTop],
-        size: [1, -(14 + PARK.REMOVE_W + 16), 1, -(nameTop + 8)],
+        pos: [0, 14, 0, 6],
+        size: [1, -(14 + PARK.REMOVE_W + 16), 1, -12],
         xAlign: 'left',
+        wrap: true,
+        textSize: PARK.BAR_TEXT,
         text: pickedLandmark ? pickedLandmark.Name : selected ? '빈 칸' : '칸 선택',
         textT: pickedLandmark ? 0 : 0.45,
       },
-      24
+      PARK.BAR_TEXT
     );
     chunkyButton(bar, { name: 'Remove', anchor: [1, 0.5], pos: [1, -8, 0.5, 0], size: [0, PARK.REMOVE_W, 0, 79], color: pickedLandmark ? 'Coral' : 'Gray', text: '빼기', textSize: 28 });
 
-    // 가진 명소 목록(희귀한 순서) — 오른쪽 칸만 스크롤
-    const owned = RarestFirst.filter((l) => (state.Inventory[l.Id] || 0) > 0);
-    const where = {};
-    slotIds.forEach((id, i) => id && (where[id] = i + 1));
+    // 가진 명소 목록 — 오른쪽 칸만 스크롤. 위 = 전시 안 된 명소, 구분 줄, 아래 = 전시 중(칸 순서)
     const side = gui(body, { name: 'ParkSide', pos: [0, PARK.SIDE_X, 0, 0], size: [1, -PARK.SIDE_X, 1, 0] });
-    const canvas = Math.max(0, owned.length * (PARK.ROW + PARK.ROW_GAP) - PARK.ROW_GAP) + PAD_Y * 2;
-    const content = scroller(side, VIEWS.Park.Top, canvas, opts.scrollY || 0, bodyHeight);
+    const listing = parkList(state);
+    if (!listing.items.length) {
+      // 가진 명소가 없음(처음 굴리기 전 · 환생 직후): 도감처럼 도는 지구본 + 작은 "굴리기" 딱지
+      const empty = gui(side, { name: 'ParkEmpty', pos: [0, 0, 0, VIEWS.Park.Top], size: [1, 0, 1, -VIEWS.Park.Top] });
+      iconView(empty, 'globe', { anchor: [0.5, 0.5], pos: [0.5, 0, 0.5, -22], size: [0, 124, 0, 124], transparency: 0.2 });
+      chip(empty, { name: 'Roll', color: 'Grass', text: '굴리기', height: 32, textSize: 20, anchor: [0.5, 0], pos: [0.5, 0, 0.5, 50] });
+      return;
+    }
+    const canvas = listing.height + PAD_Y * 2;
+    const visibleH = bodyHeight - VIEWS.Park.Top;
+    let scrollY = opts.scrollY;
+    if (scrollY == null) {
+      // Panels.scrollParkTo(처음 위치 0 에서): 고른 칸의 명소 줄이 창 아래로 벗어나면 그 줄이 보일 만큼만 내림
+      scrollY = 0;
+      const row = pickedId && listing.items.find((it) => it.kind === 'row' && it.landmark.Id === pickedId);
+      if (row && PAD_Y + row.y + PARK.ROW > visibleH) scrollY = PAD_Y + row.y + PARK.ROW - visibleH + PARK.ROW_GAP;
+      scrollY = Math.max(0, Math.min(scrollY, canvas - visibleH));
+    }
+    const content = scroller(side, VIEWS.Park.Top, canvas, scrollY, bodyHeight);
     list(content, 'v', PARK.ROW_GAP, 'center', 'top');
-    for (const l of owned) parkCard(content, l, state.Inventory[l.Id], where[l.Id], !!selected && where[l.Id] === selected);
+    for (const it of listing.items) {
+      if (it.kind === 'divider') parkDivider(content, it.shown);
+      else parkCard(content, it.landmark, state.Inventory[it.landmark.Id], it.slot, !!selected && it.slot === selected);
+    }
   }
 
   function buildPanel(screenGui, name, state, opts = {}) {
@@ -1714,15 +1855,32 @@
     return withDerived({ ...s, Inventory: inventory, Featured: s.Featured === landmarkId ? null : s.Featured });
   }
 
-  // 6번 공원 배치: 자동 배치에서 시작해 하버브리지(★5 일반 명소)를 1번 칸(입구 정면)에, 대표 알렉산드리아 등대를 2번 칸에,
-  // 5·11·12번 칸은 빼 둔 직접 배치 (열린 12칸 중 9칸 전시)
-  const PARK_STATE = withDerived({ ...STATE, Settings: { ...STATE.Settings, AutoPark: true }, Display: [] });
+  // 6번 공원 배치: 자동 배치에서 시작해 좋아하는 도시 명소(이름이 긴 플린더스 스트리트 역)를 1번 칸(입구 정면)에, 대표 알렉산드리아 등대를
+  // 2번 칸에 놓은 직접 배치(열린 12칸이 다 참). 그 두 칸에 있던 더 희귀한 명소들이 전시에서 빠져서 [배치] 버튼에 숫자 배지가 뜸
+  const PARK_FAVORITE = 'flindersst';
+  const PARK_STATE = withDerived({ ...STATE, Inventory: { ...STATE.Inventory, [PARK_FAVORITE]: 35 }, Settings: { ...STATE.Settings, AutoPark: true }, Display: [] });
   const AUTO_FRONT = parkSlots(STATE)[0][0];
-  setDisplay(PARK_STATE, 1, 'harbourbridge');
-  setDisplay(PARK_STATE, 2, 'alexandria');
-  for (const slot of [5, 11, 12]) setDisplay(PARK_STATE, slot, null);
+  const AUTO_SECOND = parkSlots(STATE)[0][1];
+  setDisplay(PARK_STATE, 1, PARK_FAVORITE);
+  setDisplay(PARK_STATE, 2, 'alexandria', AUTO_SECOND); // 칸에 보이던 명소(expected)를 같이 보냄
   withDerived(PARK_STATE);
-  const PARK_SELECTED = 3;
+  const PARK_SELECTED = 1; // 입구 정면(1번) 칸을 고름 = 집어 든 상태(다른 열린 칸을 누르면 거기로 옮김)
+  // 6-2번: 같은 공원(꽉 참)에서 자동 굴림으로 에베레스트산을 처음 얻음 -> 빈 칸이 없어 전시 안 됨 -> 연출 뒤 "공원 꽉 참" + 배지 +1
+  const FULL_FIND = 'everest';
+  const PARK_FULL_STATE = withDerived({ ...PARK_STATE, Inventory: { ...PARK_STATE.Inventory, [FULL_FIND]: 1 }, Rolls: PARK_STATE.Rolls + 1 });
+  // 6-3번: 환생 직후 — 보유 명소·업그레이드 초기화, 공원은 자동 배치로 돌아감(AutoPark = true), 가진 명소 없음
+  const REBORN_STATE = withDerived({
+    ...STATE,
+    Coins: 0,
+    Inventory: {},
+    Featured: null,
+    Upgrades: { Globe: 0, Agency: 0, Park: 0, Ticket: 0 },
+    Rebirths: 1,
+    Settings: { ...STATE.Settings, AutoPark: true },
+    Display: [],
+  });
+  const TOAST_AUTO_OFF = { text: '자동 꺼짐', icon: 'podium', color: Theme.Ink };
+  const TOAST_PARK_FULL = { text: '공원 꽉 참', icon: 'park', color: COLORS.Sun.Face };
 
   // 2번: 타지마할을 처음 발견 / 2-2번: 에펠탑을 또 찾아 별이 오름 (9번째 -> 10번째 = ★3)
   const NEW_FIND = 'tajmahal';
@@ -1770,7 +1928,7 @@
       title: '기본 화면',
       note:
         `왼쪽 위: 코인 알약 + 초당 수입 칩, 아래 주사위(굴림 수) · 클로버(행운) 칩(환생 수 · 부스트 시간 칩은 해당될 때만). ` +
-        `왼쪽: 도감/여권/강화/환생/공원 버튼(PC 는 세로 한 줄, 화면이 낮으면 접힘 — 1-2~1-4; 여권 배지 = 도장 받은 대륙 수 / ${Regions.length}; 환생 버튼의 "!" 배지는 ` +
+        `왼쪽: 도감/여권/강화/환생/공원 버튼 + 공원 버튼 옆 [배치](내 공원 부지가 있으면 늘, 메뉴 칸 수에는 안 셈. 자동 배치라 숫자 배지 없음)(PC 는 세로 한 줄, 화면이 낮으면 접힘 — 1-2~1-4; 여권 배지 = 도장 받은 대륙 수 / ${Regions.length}; 환생 버튼의 "!" 배지는 ` +
         `${rebirthNeedText()}을 채우면 뜸 — 이 예시는 ${commas(STATE.Coins)} 코인이라 아직 안 뜸). ` +
         '환생 버튼 아이콘은 그림 파일이 없어 게임에서 3D 미니 모형으로 나옴(여기선 비슷한 모양으로 대신 그림). ' +
         '상점 버튼(오른쪽)은 Robux 상품 번호가 모두 0 이라 지금 코드로는 안 나옴. ' +
@@ -1854,11 +2012,12 @@
       title: '도감',
       note:
         '가진 명소를 희귀한 순서로(위 띠 = 등급 색 + 확률). 왼쪽 위 빨간 "대표" 도장, 사진 왼쪽 아래 초록 칩 = 공원에 전시 중, 오른쪽 위 ×N = 발견 횟수, 아래 별(★1~5). ' +
-        '머리 줄: 발견 수 / 전체, 오른쪽 "자동"(더 희귀한 명소를 찾으면 자동으로 대표 지정, 켜짐 = 초록 + ON), 그 왼쪽 초록 "배치" = 공원 배치 창(6번) 열기.',
+        '머리 줄: 발견 수 / 전체, 오른쪽 "자동"(더 희귀한 명소를 찾으면 자동으로 대표 지정, 켜짐 = 초록 + ON), 그 왼쪽 초록 "배치" = 공원 배치 창(6번) 열기. ' +
+        `이 예시는 6번과 같은 직접 배치 공원이라 "배치" 버튼(도감 머리 줄 · 왼쪽 메뉴)에 더 좋은데 전시 안 된 명소 수 배지 ${betterHidden(PARK_STATE).length}.`,
       build(root) {
         const screenGui = newScreen(root, this.id);
-        buildHud(screenGui, STATE, { auto: false });
-        buildPanel(screenGui, 'Collection', STATE);
+        buildHud(screenGui, PARK_STATE, { auto: false });
+        buildPanel(screenGui, 'Collection', PARK_STATE);
       },
     },
     {
@@ -1893,27 +2052,59 @@
       id: 'screen6',
       title: '공원 배치',
       note:
-        `공원을 위에서 본 ${GRID}×${GRID} 격자(아래 = 입구, 칸 번호는 월드 받침대와 같음 — 1번 = 입구 줄 가운데 오른쪽). ` +
-        `공원 확장 Lv ${STATE.Upgrades.Park} 이라 ${slots(STATE)}칸이 열렸고 나머지는 회색 + 자물쇠. ` +
-        `자동 배치(희귀한 순서, 1번 칸 = ${ById[AUTO_FRONT] ? ById[AUTO_FRONT].Name : ''})에서 하버브리지를 1번 칸, 알렉산드리아 등대를 2번 칸에 놓고 5·11·12번 칸을 뺀 직접 배치(9/12, 빈 칸 = 초록 +) — ` +
-        '그래서 머리 줄 "자동"이 꺼짐(회색). 3번 칸을 고른 상태(굵은 노란 테두리): 오른쪽 줄 윗단 [#3], 아랫단 명소 이름 + 빨간 [빼기], 목록에서 그 명소 카드가 노랗게. 잠긴 칸은 흐린 회색 + 작은 자물쇠. ' +
-        '목록(가진 명소, 희귀한 순서)의 초록 [체크 #칸] = 전시 중인 칸. 칸을 누르면 고르고, 명소를 누르면 고른 칸(없으면 첫 빈 칸)에 놓임(다른 칸에 있으면 자리 바꿈). ' +
-        '머리 줄: 전시 수 / 열린 칸 · 이 배치의 초당 수입 · 자동(다시 켜서 배치가 바뀌면 "확인?" 한 번 더). ' +
-        '여는 곳: 도감 "배치" 버튼, 내 공원 받침대 클릭(그 칸이 골라진 채로), 내 공원에 있을 때 왼쪽 메뉴 "광장" 버튼 오른쪽에 나오는 초록 "배치" 버튼.',
+        `공원을 위에서 본 ${GRID}×${GRID} 격자(아래 = 입구, 칸 자리는 월드 받침대와 같음 — 입구 줄 가운데 오른쪽부터). ` +
+        `공원 확장 Lv ${STATE.Upgrades.Park} 이라 ${slots(STATE)}칸이 열렸고 나머지는 흐린 회색 + 작은 자물쇠. ` +
+        `자동 배치(1번 칸 = ${ById[AUTO_FRONT] ? ById[AUTO_FRONT].Name : ''})에서 ${ById[PARK_FAVORITE].Name}을 입구 정면, 알렉산드리아 등대를 그 왼쪽에 놓은 직접 배치 — ` +
+        `처음 놓는 순간 자동 배치가 꺼져서 위에 중립 알림 [시상대] "자동 꺼짐"(이번 접속에서 한 번만)이 뜨고 머리 줄 "자동"(시상대 아이콘 = 굴리기 옆 AUTO 와 다른 모양)이 통통 튐. ` +
+        `빠진 더 좋은 명소 ${betterHidden(PARK_STATE).length}개 = 왼쪽 메뉴 [배치] 버튼 배지. ` +
+        `<b>집어서 옮기기</b>: ${ById[PARK_FAVORITE].Name} 칸을 고른 상태(굵은 노란 테두리 + 1.1배) — 다른 열린 칸마다 얇은 노란 테두리(놓을 자리), 누르면 그 칸으로 옮김(명소가 있으면 자리 바꿈). ` +
+        '고른 칸 줄 = 명소 이름(고정 크기 — 긴 이름은 줄이지 않고 두 줄) + 빨간 [빼기], 칸 번호 글자 없음. ' +
+        '<b>목록</b>: 위 = 전시 안 된 명소(희귀한 순서, 이름이 줄 끝까지), 가는 구분 줄 가운데 초록 [공원 전시 수], 아래 = 전시 중(칸 순서, 오른쪽 아이콘만 있는 초록 체크). ' +
+        '고른 칸이 바뀌어서 목록이 그 명소 줄(노란 줄)까지 미끄러져 내려온 모습. 사진은 줄이 보일 때 처음 만듦. ' +
+        '여는 곳: 도감 "배치" 버튼, 내 공원 받침대 클릭(그 칸이 골라진 채로, 내 부지에만 클라이언트 ClickDetector), 왼쪽 메뉴 "배치"(내 부지가 있으면 늘).',
       build(root) {
         const screenGui = newScreen(root, this.id);
         buildHud(screenGui, PARK_STATE, { auto: false, location: 'Park' });
+        buildNews(screenGui, [], [TOAST_AUTO_OFF]);
         buildPanel(screenGui, 'Park', PARK_STATE, { selected: PARK_SELECTED });
+      },
+    },
+    {
+      id: 'screen6b',
+      title: '공원 꽉 참 — 직접 배치 중 더 좋은 명소를 얻음',
+      extra: '6-2',
+      note:
+        `6번 공원(직접 배치, 12칸 꽉 참)에서 자동 굴림으로 ${ById[FULL_FIND].Name}(${ById[FULL_FIND].Tier.Name})을 처음 얻은 뒤: 빈 칸이 없어 전시되지 않았고 ` +
+        '전시 중인 가장 약한 명소보다 수입이 커서, 연출이 끝나면 노란 알림 [공원] "공원 꽉 참". ' +
+        `왼쪽 메뉴 [배치] 배지가 ${betterHidden(PARK_STATE).length} → ${betterHidden(PARK_FULL_STATE).length}(여권 배지와 같은 모양, 도감 머리 줄 [배치]에도 같은 숫자). ` +
+        '자동 배치 중이면 알림·배지 없음(자동 배치가 알아서 채움). 환생하면 자동 배치로 돌아감.',
+      build(root) {
+        const screenGui = newScreen(root, this.id);
+        buildHud(screenGui, PARK_FULL_STATE, { auto: true, location: 'Park' });
+        buildNews(screenGui, [], [TOAST_PARK_FULL]);
+      },
+    },
+    {
+      id: 'screen6c',
+      title: '공원 배치 — 가진 명소가 없을 때(환생 직후)',
+      extra: '6-3',
+      note:
+        `환생 직후: 보유 명소·업그레이드가 비고 공원은 자동 배치로 돌아감(초록 "자동" + ON). 열린 칸 ${slots(REBORN_STATE)}개는 초록 "+", 나머지는 자물쇠. ` +
+        '목록 자리에는 도감처럼 천천히 도는 지구본 + 작은 초록 "굴리기" 딱지(처음 굴리기 전에도 같음).',
+      build(root) {
+        const screenGui = newScreen(root, this.id);
+        buildHud(screenGui, REBORN_STATE, { auto: false, location: 'Plaza' });
+        buildPanel(screenGui, 'Park', REBORN_STATE, {});
       },
     },
     {
       id: 'screen6p',
       title: '공원 배치 — 휴대폰 667×375',
-      extra: '6-2',
+      extra: '6-4',
       note:
-        `같은 창을 휴대폰 가로 667×375(자동 배율 ${uiScaleFor(667, 375).toFixed(2)})에서. 격자 칸 ${PARK.TILE} → ${Math.round(PARK.TILE * uiScaleFor(667, 375))}px ` +
-        `(6줄이 창 안에 들어가야 해서 더 못 키움), 명소 줄 ${PARK.ROW} → ${Math.round(PARK.ROW * uiScaleFor(667, 375))}px, ` +
-        `[빼기] 앞면 ${79 - 6} → ${Math.round((79 - 6) * uiScaleFor(667, 375))}px. 자동 배치 켜진 모습(초록 + ON, 고른 칸 없음 = "칸 선택").`,
+        `자동 배치 공원을 휴대폰 가로 667×375(자동 배율 ${uiScaleFor(667, 375).toFixed(2)})에서. 격자 칸 ${PARK.TILE} → ${Math.round(PARK.TILE * uiScaleFor(667, 375))}px ` +
+        `(6줄이 창 안에 들어가야 해서 더 못 키움), 명소 줄 ${PARK.ROW} → ${Math.round(PARK.ROW * uiScaleFor(667, 375))}px, 이름 글자 ${PARK.NAME_TEXT} → ${Math.round(PARK.NAME_TEXT * uiScaleFor(667, 375))}px(줄이지 않음), ` +
+        `[빼기] 앞면 ${79 - 6} → ${Math.round((79 - 6) * uiScaleFor(667, 375))}px. 고른 칸 없음 = "칸 선택", 목록 맨 위 = 전시 안 된 명소(놓을 수 있는 것).`,
       build(root) {
         const screenGui = newScreen(root, this.id, { width: 667, height: 375, touch: true });
         buildHud(screenGui, STATE, { auto: false, location: 'Park' });
@@ -2239,7 +2430,7 @@
     {
       const parts = [];
       let good = true;
-      for (const id of ['screen6', 'screen6p']) {
+      for (const id of ['screen6', 'screen6c', 'screen6p']) {
         const scr = document.getElementById(id);
         const body = scr && scr.querySelector('[data-name="Body"]');
         const lawn = body && body.querySelector('[data-name="Lawn"]');
@@ -2256,23 +2447,70 @@
         const first = rectIn(tiles.find((t) => t.dataset.slot === '1'), scr);
         const second = rectIn(tiles.find((t) => t.dataset.slot === '2'), scr);
         const bottomRow = Math.max(...tiles.filter((t) => !t.dataset.picked).map((t) => rectIn(t, scr).bottom)); // 고른 칸은 1.1배라 빼고 잼
-        const orderOk = Math.abs(first.bottom - bottomRow) < 0.5 && second.right <= first.left + 0.5 && Math.abs((first.left + second.right) / 2 - (l.left + l.right) / 2) < 3;
+        const firstRaw = tiles.find((t) => t.dataset.slot === '1').dataset.picked ? first.bottom - (first.bottom - first.top) * (1 - 1 / PARK.PICKED_SCALE) / 2 : first.bottom;
+        const secondBox = tiles.find((t) => t.dataset.slot === '2').dataset.picked ? { right: second.right - (second.right - second.left) * (1 - 1 / PARK.PICKED_SCALE) / 2 } : second;
+        const orderOk = Math.abs(firstRaw - bottomRow) < 0.5 && secondBox.right <= first.left + 0.5;
         const inside = entrance.bottom <= b.bottom + 0.5 && l.bottom <= b.bottom + 0.5;
         const apart = !overlap(l, bar);
-        const tile = first.right - first.left;
-        const card = body.querySelector('[data-name="ParkSide"] [data-name="Content"] > .g');
+        const plain = tiles.find((t) => !t.dataset.picked && Number(t.dataset.slot) <= 6);
+        const tile = rectIn(plain, scr).right - rectIn(plain, scr).left;
+        // 목록 줄: 이름 글자 크기 고정(20) · 두 줄 이하 · 체크 딱지와 안 겹침 / "#n" 글자 없음
+        const rows = Array.from(body.querySelectorAll('[data-name="ParkSide"] [data-name="Content"] > [data-row]'));
+        let twoLine = 0;
+        const nameIssues = [];
+        for (const row of rows) {
+          const span = row.querySelector('[data-name="Name"] > span');
+          const size = parseFloat(span.style.fontSize);
+          const lineH = size * 1.12;
+          const h = span.offsetHeight;
+          const mark = row.querySelector('[data-name="Shown"]');
+          if (size !== PARK.NAME_TEXT) nameIssues.push(`${row.dataset.name} 글자 ${size}`);
+          if (h > lineH * 2 + 1) nameIssues.push(`${row.dataset.name} ${Math.round(h / lineH)}줄`);
+          if (span.scrollHeight > span.clientHeight + 1) nameIssues.push(`${row.dataset.name} 잘림`);
+          if (mark && overlap(rectIn(span, scr), rectIn(mark, scr))) nameIssues.push(`${row.dataset.name} 체크와 겹침`);
+          if (h > lineH * 1.5) twoLine += 1;
+        }
+        const hashes = Array.from(body.querySelectorAll('.lbl > span')).filter((el) => /#\d/.test(el.textContent));
+        const divider = body.querySelector('[data-name="Divider"]');
+        const empty = body.querySelector('[data-name="ParkEmpty"]');
+        const card = rows[0];
         const row = card ? rectIn(card, scr) : { top: 0, bottom: 0 };
         const remove = rectIn(body.querySelector('[data-name="Remove"] [data-name="Face"]'), scr);
-        const ok = orderOk && inside && apart;
+        const shape = id === 'screen6c' ? !!empty && !rows.length : !!divider && rows.length > 0;
+        const ok = orderOk && inside && apart && !nameIssues.length && !hashes.length && shape;
         good = good && ok;
         parts.push(
-          `${scr.offsetWidth}×${scr.offsetHeight} ${verdict(ok)} 칸 ${tile.toFixed(0)}px · 명소 줄 ${(row.bottom - row.top).toFixed(0)}px · [빼기] ${(remove.bottom - remove.top).toFixed(0)}px` +
-            (orderOk ? '' : ' (칸 자리 틀림)') + (inside ? '' : ' (창 밖으로 나감)') + (apart ? '' : ' (격자-오른쪽 겹침)')
+          `${scr.offsetWidth}×${scr.offsetHeight}${id === 'screen6c' ? ' 빈 목록' : ''} ${verdict(ok)} 칸 ${tile.toFixed(0)}px · 명소 줄 ${(row.bottom - row.top).toFixed(0)}px · [빼기] ${(remove.bottom - remove.top).toFixed(0)}px` +
+            (id === 'screen6c' ? ` · 지구본+굴리기 ${empty ? '있음' : '없음'}` : ` · 목록 줄 ${rows.length}(구분 줄 ${divider ? '있음' : '없음'}), 이름 글자 ${PARK.NAME_TEXT}px 고정 · 두 줄 이름 ${twoLine}개`) +
+            (orderOk ? '' : ' (칸 자리 틀림)') + (inside ? '' : ' (창 밖으로 나감)') + (apart ? '' : ' (격자-오른쪽 겹침)') +
+            (nameIssues.length ? ` (이름: ${nameIssues.join(', ')})` : '') + (hashes.length ? ` ("#n" 글자 ${hashes.length}개)` : '')
         );
       }
+      // 집어서 옮기기: 명소 칸을 고르면 다른 열린 칸이 모두 놓을 자리(얇은 노란 테두리)
+      const six = document.getElementById('screen6');
+      const targets = six ? six.querySelectorAll('[data-target]').length : 0;
+      const open = six ? Array.from(six.querySelectorAll('[data-name="Lawn"] [data-slot]')).filter((t) => Number(t.dataset.slot) <= slots(PARK_STATE)).length : 0;
+      const pickOk = targets === open - 1;
+      good = good && pickOk;
       items.push(
-        `<b>공원 배치 창</b> ${verdict(good)}: 1번 칸 = 맨 아래(입구) 줄 가운데 오른쪽, 2번 = 그 왼쪽(PlayerState.slotCell = 월드 받침대), 격자·입구 딱지가 창 본문 안, 격자와 오른쪽 줄이 안 겹침. ` +
+        `<b>공원 배치 창</b> ${verdict(good)}: 1번 칸 = 맨 아래(입구) 줄 가운데 오른쪽, 2번 = 그 왼쪽(PlayerState.slotCell = 월드 받침대), 격자·입구 딱지가 창 본문 안, 격자와 오른쪽 줄이 안 겹침, ` +
+          `목록 이름은 글자 크기 그대로 두 줄까지(체크 딱지와 안 겹침), 칸 번호("#n") 글자 없음, 명소 칸을 집으면 놓을 자리 ${targets}/${open - 1}칸 표시. ` +
           `누르는 크기(화면 px) — ${parts.join(' / ')}. 명소 줄·[빼기]는 배율 0.55 에서도 40px 이상, 격자 칸은 6줄이 창에 들어가야 해서 그보다 작음.`
+      );
+    }
+
+    // 8) [배치] 배지 = PlayerState.betterHidden 수 (직접 배치 화면만), 자동 배치 화면엔 없음
+    {
+      const expect = { screen1: betterHidden(STATE).length, screen3: betterHidden(PARK_STATE).length, screen6: betterHidden(PARK_STATE).length, screen6b: betterHidden(PARK_FULL_STATE).length, screen6c: 0 };
+      const found = Object.entries(expect).map(([id, n]) => {
+        const scr = document.getElementById(id);
+        const badge = scr && scr.querySelector('[data-name="Menu"] [data-name="Arrange"] [data-name="Better"]');
+        const shown = badge && badge.style.display !== 'none' ? Number(badge.textContent) : 0;
+        return { id, n, shown, ok: shown === n };
+      });
+      items.push(
+        `<b>[배치] 버튼 배지</b> ${verdict(found.every((f) => f.ok))}: 직접 배치 중 전시 칸의 가장 약한 명소보다 수입이 큰, 전시 안 된 명소 수(0 이면 숨김) — ` +
+          found.map((f) => `${f.id} ${f.shown}${f.ok ? '' : `(기대 ${f.n})`}`).join(' · ') + '.'
       );
     }
 

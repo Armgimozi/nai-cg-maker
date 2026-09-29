@@ -537,8 +537,12 @@ end
 
 -- 칸 하나에 명소를 놓거나(landmarkId) 비움(nil). 이미 다른 칸에 있는 명소면 그 칸과 자리를 바꿈
 -- (그 칸에는 이 칸에 있던 명소가 가거나 빈 칸이 됨). 자동 배치 중이면 지금 자동 배치에서 시작하고 자동 배치를 끔.
--- slot: 1..열린 칸 수 정수, landmarkId: 보유한 명소 Id 또는 nil. 반환: 성공 여부, 실패 사유(표시용)
-function PlayerState.setDisplay(data: Data, slot: any, landmarkId: any): (boolean, string?)
+-- slot: 1..열린 칸 수 정수, landmarkId: 보유한 명소 Id 또는 nil.
+-- expected(선택): 요청한 쪽이 본 그 칸의 명소 Id(빈 칸은 ""). 지금 그 칸에 보이는 것과 다르면 아무것도 바꾸지 않고
+--   "stale" — 클라이언트 화면이 늦은 사이(예: 자동 굴림이 빈 칸에 새 명소를 놓음) 그 명소를 모르고 덮어쓰지 않게.
+--   nil 이면 확인하지 않음(서버 내부 · 옛 클라이언트).
+-- 반환: 성공 여부, 실패 사유(표시용 문장, 또는 "stale")
+function PlayerState.setDisplay(data: Data, slot: any, landmarkId: any, expected: any?): (boolean, string?)
 	if type(slot) ~= "number" or slot ~= slot or slot % 1 ~= 0 or slot < 1 or slot > PlayerState.MAX_SLOTS then
 		return false, "잘못된 칸입니다"
 	end
@@ -549,6 +553,12 @@ function PlayerState.setDisplay(data: Data, slot: any, landmarkId: any): (boolea
 		local known = type(landmarkId) == "string" and Landmarks.ById[landmarkId] ~= nil
 		if not known or (data.Inventory[landmarkId] or 0) <= 0 then
 			return false, "보유하지 않은 명소입니다"
+		end
+	end
+	if expected ~= nil then
+		local shown = PlayerState.parkSlots(data)
+		if type(expected) ~= "string" or (shown[slot] or "") ~= expected then
+			return false, "stale"
 		end
 	end
 	freezeDisplay(data)
@@ -641,6 +651,38 @@ function PlayerState.landmarkIncome(landmark: Landmark, count: number): number
 	end
 	local base = Config.TIER_INCOME[landmark.Tier.Rank] or 0
 	return base * (1 + Config.STAR_INCOME_BONUS * (stars - 1))
+end
+
+-- 직접 배치 중 "전시하면 수입이 느는데 전시 안 된" 보유 명소 Id 목록(희귀한 순서): 전시 칸에 있는 명소 중
+-- 가장 수입이 적은 것보다 수입이 큰 것. 전시된 명소가 하나도 없으면 수입이 있는 보유 명소 전부.
+-- 자동 배치면 빈 목록(자동 배치가 알아서 채움). 배치 버튼 숫자 배지 · "공원 꽉 참" 알림 기준
+function PlayerState.betterHidden(data: Data | Snapshot): { string }
+	local result = {}
+	if autoParkOn(data) then
+		return result
+	end
+	local slots, unlocked = PlayerState.parkSlots(data)
+	if unlocked <= 0 then
+		return result
+	end
+	local shown: { [string]: boolean } = {}
+	local weakest: number? = nil
+	for slot = 1, unlocked do
+		local id = slots[slot]
+		if id then
+			shown[id] = true
+			local income = PlayerState.landmarkIncome(Landmarks.ById[id], data.Inventory[id] or 0)
+			weakest = if weakest then math.min(weakest, income) else income
+		end
+	end
+	local floor = weakest or 0
+	for _, landmark in Landmarks.RarestFirst do
+		local count = data.Inventory[landmark.Id] or 0
+		if count > 0 and not shown[landmark.Id] and PlayerState.landmarkIncome(landmark, count) > floor then
+			table.insert(result, landmark.Id)
+		end
+	end
+	return result
 end
 
 -- 초당 관광 수입 = 전시 명소 합 × 입장료 × 환생 × 수입 2배 게임패스
@@ -753,7 +795,9 @@ function PlayerState.canRebirth(data: Data | Snapshot): (boolean, { string }, nu
 end
 
 -- 환생: 코인·업그레이드·보유 명소·대표 명소·직접 배치(Display) 초기화, 환생 수 +1.
--- 유지: 발견 기록(Discovered = 도감·여권 도장), 설정(자동 배치 여부 포함), 굴림 수, 부스트, 영수증.
+-- 공원은 자동 배치로 되돌림(AutoPark = true): 빈 공원에서 직접 배치로 다시 시작하면 새로 얻는 명소가
+-- 첫 빈 칸부터 차고 공원이 꽉 찬 뒤에는 더 좋은 명소를 얻어도 전시가 안 되기 때문.
+-- 유지: 발견 기록(Discovered = 도감·여권 도장), 그 밖의 설정(AutoFeature), 굴림 수, 부스트, 영수증.
 -- 반환: 성공 여부, 실패 사유(표시용)
 function PlayerState.rebirth(data: Data): (boolean, string?)
 	local ok, missing = PlayerState.canRebirth(data)
@@ -768,6 +812,7 @@ function PlayerState.rebirth(data: Data): (boolean, string?)
 	end
 	table.clear(data.Inventory)
 	table.clear(data.Display)
+	data.Settings.AutoPark = true
 	data.Featured = nil
 	data.Coins = 0
 	for _, upgrade in Config.Upgrades do

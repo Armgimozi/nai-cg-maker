@@ -5,7 +5,9 @@
 --   Icons.setSpin(icon, 420)   -- 회전 속도(초당 도). 그림 아이콘은 빠를 때만 빙글 돌고, 느린 회전은 3D 에만 적용
 -- 3D 모형은 이름별로 한 번만 만들어 두고 복제해서 씁니다. 파트 수는 아이콘마다 3~15개 정도로 작게 유지.
 -- 아이콘: coin, globe(=roll), passport, album(=collection), hammer, park, plaza, dice, clover(=luck), star,
---   star_empty, news, lock, auto, close, check, arrow_up, plane, ticket, rebirth  (stamp_* 는 그림이 있을 때만 씀)
+--   star_empty, news, lock, auto, close, check, arrow_up, plane, ticket, rebirth,
+--   podium(공원 자동 배치: 1·2·3등 시상대 + 별), arrange(공원 배치 창: 2×2 칸 판 위 미니 명소 셋 + 빈 칸 "+")
+--   (stamp_* 는 그림이 있을 때만 씀)
 
 local RunService = game:GetService("RunService")
 
@@ -234,10 +236,11 @@ local function arrowhead(
 	end
 end
 
--- 별: 가운데 원판 + 뾰족한 끝 5개(직각 쐐기 2개씩)
-local function buildStar(m: Model, color: Color3)
-	local outerRadius, innerRadius, thickness = 2.2, 0.95, 0.7
-	local center = FACE * CFrame.new(0, 2.2, 0) -- 별 평면 = 로컬 XY, 두께 = 로컬 Z
+-- 별: 가운데 원판 + 뾰족한 끝 5개(직각 쐐기 2개씩). center/scale 을 주면 그 자리에 그 크기로(기본: 지름 4.4 별)
+local function buildStar(m: Model, color: Color3, at: CFrame?, scale: number?)
+	local k = scale or 1
+	local outerRadius, innerRadius, thickness = 2.2 * k, 0.95 * k, 0.7 * k
+	local center = at or FACE * CFrame.new(0, 2.2, 0) -- 별 평면 = 로컬 XY, 두께 = 로컬 Z
 	cyl(m, center * ALONG_Z, thickness, innerRadius * 2, color)
 	local apothem = innerRadius * math.cos(math.rad(36))
 	local halfBase = innerRadius * math.sin(math.rad(36))
@@ -405,6 +408,43 @@ function BUILDERS.rebirth(m)
 	end
 	block(m, center * CFrame.new(0, -0.45, 0), V(0.55, 0.9, 0.6), GRASS)
 	arrowhead(m, center, V(0, 0, 0), V(0, 1, 0), 0.9, 0.75, 0.6, GRASS)
+end
+
+-- 공원 자동 배치: 1·2·3등 시상대(가운데 Sun 이 가장 높고, 왼쪽 Sky 2등, 오른쪽 Coral 3등) + 1등 위 작은 별.
+-- "가장 희귀한 명소부터 앞 칸에" 를 뜻함. 굴리기 옆 AUTO(도는 화살표)와 다른 모양 (파트 14개)
+function BUILDERS.podium(m)
+	local width, depth, gap = 1.7, 1.6, 0.05
+	local steps = {
+		{ X = -(width + gap), Height = 1.8, Color = SKY },
+		{ X = 0, Height = 2.7, Color = SUN },
+		{ X = width + gap, Height = 1.15, Color = CORAL },
+	}
+	for _, step in steps do
+		block(m, FACE * CFrame.new(step.X, step.Height / 2, 0), V(width, step.Height, depth), step.Color)
+	end
+	buildStar(m, GOLD, FACE * CFrame.new(0, 2.7 + 1.25, 0), 0.6)
+end
+
+-- 공원 배치(창 열기 버튼): 잔디 판 위 2×2 칸 — 세 칸에 색 블록(미니 명소), 한 칸은 빈 칸 초록 "+".
+-- 이동 버튼의 공원(나무 + 벤치) 아이콘과 나란히 있어도 다르게 보이도록 (파트 10개)
+function BUILDERS.arrange(m)
+	local base = FACE
+	block(m, base * CFrame.new(0, 0.2, 0), V(5.4, 0.4, 5.4), GRASS)
+	local cells = {
+		{ X = -1.3, Z = 1.3, Height = 1.7, Color = SKY }, -- 뒤 왼쪽
+		{ X = 1.3, Z = 1.3, Height = 2.6, Color = SUN }, -- 뒤 오른쪽(가장 높음)
+		{ X = -1.3, Z = -1.3, Height = 1.1, Color = CORAL }, -- 앞 왼쪽
+		{ X = 1.3, Z = -1.3, Height = 0, Color = GRASS }, -- 앞 오른쪽: 빈 칸
+	}
+	for _, cell in cells do
+		block(m, base * CFrame.new(cell.X, 0.5, cell.Z), V(2.3, 0.2, 2.3), CREAM)
+		if cell.Height > 0 then
+			block(m, base * CFrame.new(cell.X, 0.6 + cell.Height / 2, cell.Z), V(1.3, cell.Height, 1.3), cell.Color)
+		end
+	end
+	-- 빈 칸의 "+"
+	block(m, base * CFrame.new(1.3, 0.68, -1.3), V(1.4, 0.18, 0.4), LEAF)
+	block(m, base * CFrame.new(1.3, 0.68, -1.3), V(0.4, 0.18, 1.4), LEAF)
 end
 
 -- 예전 이름 -> 지금 이름 (ImageIds 와 같은 이름을 씀)

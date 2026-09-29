@@ -12,7 +12,8 @@ local FUNCTIONS = {
 	"Feature", -- (landmarkId?) -> { Ok, State }
 	"BuyUpgrade", -- (upgradeId) -> { Ok, Reason?, State }
 	"SetSetting", -- (key, value) -> { Ok, State } (key: "AutoFeature" | "AutoPark")
-	"SetDisplay", -- (slot, landmarkId?) -> { Ok, Reason?, State } 공원 전시 칸에 명소 놓기/빼기
+	"SetDisplay", -- (slot, landmarkId?, expected?) -> { Ok, Reason?, State } 공원 전시 칸에 명소 놓기/빼기
+	-- (expected = 클라이언트가 본 그 칸의 명소 Id, 빈 칸 "". 다르면 Reason "stale")
 	"Teleport", -- ("Park" | "Plaza") -> { Ok }
 	"Rebirth", -- () -> { Ok, Reason?, State }
 	"BuyPass", -- (passKey) -> { Ok } (서버가 게임패스 구매 창을 띄움)
@@ -23,7 +24,6 @@ local EVENTS = {
 	"State", -- 서버 -> 클라: Snapshot (관광 수입 등 서버 쪽 변화)
 	"Announce", -- 서버 -> 모두: 희귀 명소 발견 "뉴스 속보"
 	"ServerLuck", -- 서버 -> 모두: 서버 행운 시작/연장 { UserId, Name, Until, Left }
-	"OpenParkEditor", -- 서버 -> 클라: (slot) 내 공원 받침대를 눌렀음 -> 공원 배치 창을 그 칸을 골라 둔 채로 열기
 }
 
 local folder: Folder

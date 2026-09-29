@@ -31,7 +31,6 @@ local TELEPORT_COOLDOWN = 1
 -- 연속 EDIT_BURST 번까지 바로, 그다음은 초당 EDIT_RATE 번
 local EDIT_BURST = 10
 local EDIT_RATE = 4
-local PARK_CLICK_COOLDOWN = 0.3 -- 받침대 클릭 -> 배치 창 열기 알림 최소 간격
 
 type Session = {
 	Data: PlayerState.Data,
@@ -42,7 +41,6 @@ type Session = {
 	LastTeleport: number,
 	EditTokens: number, -- 공원 배치 바꾸기 속도 제한(토큰 버킷)
 	EditAt: number,
-	LastParkClick: number,
 	Stats: { Rolls: IntValue, Rebirths: IntValue, Best: StringValue },
 	Plot: number?, -- 배정된 공원 부지 번호(부지가 모자라면 nil)
 	-- 연출이 아직 안 끝나 공원/리더보드에 공개하지 않은 발견(명소 Id -> 횟수)
@@ -295,7 +293,6 @@ local function onPlayerAdded(player: Player)
 		LastTeleport = -math.huge,
 		EditTokens = EDIT_BURST,
 		EditAt = time(),
-		LastParkClick = -math.huge,
 		Stats = createLeaderstats(player),
 		Plot = nil,
 		Hidden = {},
@@ -360,15 +357,6 @@ do
 	if not ok then
 		warn("[LandmarkRNG] 공원 부지를 만들지 못했습니다: " .. tostring(err))
 	end
-	-- 주인이 자기 공원 받침대를 누르면 그 칸을 골라 둔 채로 공원 배치 창을 열게 함
-	ParkService.onSlotClicked(function(player: Player, slot: number)
-		local session = sessions[player]
-		if not session or time() - session.LastParkClick < PARK_CLICK_COOLDOWN then
-			return
-		end
-		session.LastParkClick = time()
-		Net.event("OpenParkEditor"):FireClient(player, slot)
-	end)
 	ok, err = pcall(Scenery.build, Config.SCENERY_EDGE)
 	if not ok then
 		warn("[LandmarkRNG] 주변 풍경을 만들지 못했습니다: " .. tostring(err))
@@ -623,8 +611,9 @@ Net.fn("SetSetting").OnServerInvoke = function(player: Player, key: any, value: 
 end
 
 -- 공원 전시 칸에 명소 놓기(이미 다른 칸에 있으면 자리 바꿈) / 빼기(nil). 검증은 PlayerState.setDisplay.
+-- expected: 클라이언트가 본 그 칸의 명소 Id("" = 빈 칸). 지금과 다르면 Reason "stale" + 새 상태(클라이언트가 다시 그림).
 -- 자동 배치 중 첫 편집이면 자동 배치가 꺼지고 지금 배치에서 시작
-Net.fn("SetDisplay").OnServerInvoke = function(player: Player, slot: any, landmarkId: any)
+Net.fn("SetDisplay").OnServerInvoke = function(player: Player, slot: any, landmarkId: any, expected: any)
 	local session = sessions[player]
 	if not session then
 		return { Ok = false, Reason = "데이터를 불러오는 중입니다" }
@@ -632,7 +621,7 @@ Net.fn("SetDisplay").OnServerInvoke = function(player: Player, slot: any, landma
 	if not takeEditToken(session) then
 		return { Ok = false, Reason = "busy", State = snapshot(session) }
 	end
-	local ok, reason = PlayerState.setDisplay(session.Data, slot, landmarkId)
+	local ok, reason = PlayerState.setDisplay(session.Data, slot, landmarkId, expected)
 	if ok then
 		refreshVisible(player, session)
 	end

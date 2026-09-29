@@ -984,25 +984,132 @@ test(
 		eq(#a.Display, 0)
 	end
 )
-test("환생: 직접 배치는 비우고 자동 배치 설정은 유지", function()
+test("환생: 직접 배치를 비우고 자동 배치로 되돌림 (다른 설정은 유지)", function()
 	local d = owning({ "eiffel", "liberty", "clocktower" })
 	PlayerState.setDisplay(d, 2, "clocktower")
+	d.Settings.AutoFeature = false
 	eq(d.Settings.AutoPark, false)
 	d.Coins = Config.REBIRTHS[1].Coins
 	eq((PlayerState.rebirth(d)), true)
 	eq(#d.Display, 0, "배치 비움")
-	eq(d.Settings.AutoPark, false, "설정 유지")
+	eq(d.Settings.AutoPark, true, "자동 배치로")
+	eq(d.Settings.AutoFeature, false, "다른 설정은 유지")
 	eq(slotsText(d), "-,-,-,-,-,-")
-	-- 환생 뒤 얻는 명소는 빈 공원의 1번 칸부터
+	-- 환생 뒤에는 희귀한 순서로 자동 전시: 흔한 명소를 먼저 얻어도 더 희귀한 명소가 앞 칸으로
 	PlayerState.applyRoll(d, Landmarks.ById.windmill)
 	PlayerState.applyRoll(d, Landmarks.ById.eiffel)
-	eq(slotsText(d), "windmill,eiffel,-,-,-,-")
-	-- 자동 배치였다면 그대로 자동
+	eq(slotsText(d), "eiffel,windmill,-,-,-,-")
+	eq(#d.Display, 0, "자동 배치는 Display 를 안 씀")
+	-- 원래 자동 배치였어도 그대로 자동
 	local a = owning({ "eiffel", "liberty" })
 	a.Coins = Config.REBIRTHS[1].Coins
 	PlayerState.rebirth(a)
 	eq(a.Settings.AutoPark, true)
+	-- 환생 실패면 설정도 그대로
+	local f = owning({ "clocktower" })
+	PlayerState.setDisplay(f, 1, nil)
+	eq((PlayerState.rebirth(f)), false)
+	eq(f.Settings.AutoPark, false, "실패하면 그대로")
 end)
+test(
+	"setDisplay 본 칸 확인(expected): 화면이 늦으면 stale 로 거절하고 아무것도 안 바꿈",
+	function()
+		-- 직접 배치에서 3번 칸을 비움(등대를 뺌). 클라이언트는 3번이 빈 칸인 화면을 보고 있음
+		local d = owning({ "clocktower", "lighthouse", "windmill", "fountain" })
+		PlayerState.setDisplay(d, 3, nil)
+		eq(slotsText(d), "fountain,windmill,-,clocktower,-,-")
+		local seen = PlayerState.snapshot(d, 1) -- 클라이언트가 가진 옛 상태
+		-- 그 사이 서버에서 자동 굴림이 새 명소를 첫 빈 칸(3번)에 놓음
+		PlayerState.applyRoll(d, Landmarks.ById.eiffel)
+		eq(slotsText(d), "fountain,windmill,eiffel,clocktower,-,-")
+		-- 옛 화면 기준(3번 = 빈 칸)으로 3번에 놓기/빼기 -> 거절, 방금 놓인 에펠탑은 그대로
+		local before = table.concat(d.Display, ",")
+		local ok, reason = PlayerState.setDisplay(d, 3, "lighthouse", "")
+		eq(ok, false)
+		eq(reason, "stale")
+		eq((PlayerState.setDisplay(d, 3, nil, "")), false, "빼기도 확인")
+		eq(table.concat(d.Display, ","), before, "거절하면 그대로")
+		eq(slotsText(seen), "fountain,windmill,-,clocktower,-,-", "옛 상태")
+		-- 지금 보이는 것과 같으면 그대로 적용 (빈 칸 = "")
+		eq((PlayerState.setDisplay(d, 3, "clocktower", "eiffel")), true, "새 화면 기준")
+		eq(slotsText(d), "fountain,windmill,clocktower,eiffel,-,-", "자리 바꿈")
+		eq((PlayerState.setDisplay(d, 6, "eiffel", "")), true, "빈 칸 확인")
+		eq(slotsText(d), "fountain,windmill,clocktower,-,-,eiffel")
+		checkDisplay(d)
+		-- 자동 배치에서도 보이는 칸 기준, 거절하면 자동 배치 그대로
+		local a = owning(EIGHT)
+		eq((PlayerState.setDisplay(a, 1, "clocktower", "eiffel")), false, "1번은 피라미드")
+		eq(a.Settings.AutoPark, true, "거절하면 자동 배치 그대로")
+		eq(#a.Display, 0)
+		eq((PlayerState.setDisplay(a, 1, "clocktower", "pyramid")), true)
+		eq(a.Settings.AutoPark, false)
+		-- 문자열이 아닌 expected 는 거절, nil 은 확인 안 함(서버 내부 · 옛 클라이언트)
+		for _, bad in { 5, true, {} } do
+			eq((PlayerState.setDisplay(a, 2, nil, bad)), false, "expected " .. tostring(bad))
+		end
+		eq((PlayerState.setDisplay(a, 2, nil)), true, "expected 없음")
+		-- 칸·명소 검사가 먼저
+		eq(select(2, PlayerState.setDisplay(a, 99, nil, "x")), "잘못된 칸입니다")
+		eq(select(2, PlayerState.setDisplay(a, 1, "sphinx", "clocktower")), "보유하지 않은 명소입니다")
+	end
+)
+test(
+	"집어서 옮기기(고른 칸의 명소를 다른 칸에 놓기): 빈 칸이면 옮기고, 명소가 있으면 자리 바꿈",
+	function()
+		-- 배치 창: 명소가 있는 칸을 고른 뒤 다른 열린 칸을 누르면 setDisplay(누른 칸, 고른 칸의 명소, 누른 칸에 보이던 것)
+		local d = owning(EIGHT)
+		PlayerState.setDisplay(d, 6, nil)
+		eq(slotsText(d), "pyramid,eiffel,bigben,arc,fountain,-")
+		local function drop(from: number, to: number): boolean
+			local slots = PlayerState.parkSlots(d)
+			return (PlayerState.setDisplay(d, to, slots[from], slots[to] or ""))
+		end
+		eq(drop(1, 6), true, "빈 칸으로")
+		eq(slotsText(d), "-,eiffel,bigben,arc,fountain,pyramid", "옮긴 칸은 빈 칸")
+		eq(drop(2, 6), true, "명소가 있는 칸으로")
+		eq(slotsText(d), "-,pyramid,bigben,arc,fountain,eiffel", "두 칸 자리 바꿈")
+		eq(drop(5, 1), true)
+		eq(slotsText(d), "fountain,pyramid,bigben,arc,-,eiffel")
+		checkDisplay(d)
+		local income = PlayerState.incomePerSecond(d)
+		eq(drop(3, 4), true)
+		near(PlayerState.incomePerSecond(d), income, 1e-9, "옮기기만 하면 수입 그대로")
+	end
+)
+test(
+	"betterHidden: 직접 배치에서 전시 칸의 가장 약한 명소보다 수입이 큰 전시 안 된 명소",
+	function()
+		-- 자동 배치면 늘 빈 목록
+		eq(#PlayerState.betterHidden(owning(EIGHT)), 0, "자동 배치")
+		eq(#PlayerState.betterHidden(PlayerState.new()), 0, "빈 데이터")
+		-- 흔한 명소 6개로 공원을 채운 뒤 더 희귀한 명소를 얻으면 전시 안 됨 -> 목록에
+		local d = owning({ "clocktower", "lighthouse", "windmill", "fountain", "arc", "bigben" })
+		eq((PlayerState.setSetting(d, "AutoPark", false)), true)
+		eq(#PlayerState.betterHidden(d), 0, "다 전시 중")
+		PlayerState.applyRoll(d, Landmarks.ById.eiffel)
+		PlayerState.applyRoll(d, Landmarks.ById.pyramid)
+		eq(slotsText(d), "bigben,arc,fountain,windmill,lighthouse,clocktower", "꽉 차서 안 놓임")
+		eq(table.concat(PlayerState.betterHidden(d), ","), "pyramid,eiffel", "희귀한 순서")
+		-- 수입이 가장 약한 명소와 같거나 작으면 안 셈: 같은 등급 흔한 명소를 또 하나 얻어도(★1) 그대로
+		PlayerState.applyRoll(d, Landmarks.ById.harbourbridge)
+		eq(table.concat(PlayerState.betterHidden(d), ","), "pyramid,eiffel", "약한 명소와 같으면 안 셈")
+		-- 전시하면 빠짐
+		PlayerState.setDisplay(d, 6, "pyramid")
+		eq(table.concat(PlayerState.betterHidden(d), ","), "eiffel")
+		-- 스냅샷으로도 같은 값
+		eq(table.concat(PlayerState.betterHidden(PlayerState.snapshot(d, 1)), ","), "eiffel", "snapshot")
+		-- 일부러 뺀 약한 명소는 안 셈(빈 칸은 기준이 아님), 전시가 하나도 없으면 수입이 있는 명소 전부
+		local e = owning({ "clocktower", "eiffel" })
+		PlayerState.setDisplay(e, 2, nil)
+		eq(slotsText(e), "eiffel,-,-,-,-,-")
+		eq(#PlayerState.betterHidden(e), 0, "약한 명소를 뺀 건 안 셈")
+		PlayerState.setDisplay(e, 1, nil)
+		eq(table.concat(PlayerState.betterHidden(e), ","), "eiffel,clocktower", "전시 없음")
+		-- 자동 배치로 돌아가면 빈 목록
+		PlayerState.autoPark(d)
+		eq(#PlayerState.betterHidden(d), 0)
+	end
+)
 test(
 	"수입 = 전시 칸에 있는 명소 합 (자리만 바꾸면 그대로, 빼거나 바꾸면 줄어듦)",
 	function()

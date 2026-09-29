@@ -8,8 +8,9 @@
 --   가운데에 가까운 칸부터 = 자동 배치에서 가장 희귀한 명소가 입구 정면). 칸마다 무엇을 전시할지는
 --   PlayerState.parkSlots(자동 배치 또는 플레이어가 고른 배치). 공원 배치 창과 같은 칸 번호를 씀.
 -- update 는 칸마다 이전 상태를 기억해 두고 바뀐 칸만 다시 만듭니다(별 개수는 이름표 글자만 바꿈).
--- 주인 부지의 열린 칸(받침대 + 미니어처)에는 ClickDetector: 주인이 누르면 onSlotClicked 콜백(칸 번호)
---   -> 서버가 그 클라이언트에 공원 배치 창을 열라고 알림. 부지를 비우면 칸과 함께 사라짐.
+-- 누구 부지인지는 부지 모델 속성 OwnerUserId(주인 UserId, 빈 부지는 nil)로 복제되고, 열린 칸(받침대) 모델에는
+--   속성 Slot(칸 번호)이 붙음. 주인 클라이언트가 이걸 보고 자기 부지의 열린 칸에만 ClickDetector 를 직접 달아서
+--   누르면 그 칸을 고른 채로 공원 배치 창을 엶(서버를 거치지 않음, 남의 부지에는 손가락 커서가 안 뜸).
 -- 간판: 주인이 있으면 입구 아치(나무 판자 + Ink 테두리 + 크림 글자판: 공원 아이콘 + 이름, 초록 알약: 동전 + "+X/s"),
 --   빈 부지는 길 옆 낮은 말뚝 간판("빈 부지")만 세워서 광장에서 볼 때 어지럽지 않게 합니다.
 -- 그림: Shared/ImageIds 에 park/coin 아이콘, panel_paper/pill 스킨 Id 가 있으면 간판에 그 그림을 씀(없으면 코드로 그림).
@@ -70,8 +71,6 @@ local STAKE_X = 9 -- 말뚝 간판 위치: 길(폭 10) 바로 옆
 local STAKE_TILT = math.rad(-4) -- 말뚝을 살짝 기울여서 장난스럽게
 local FENCE_HEIGHT = 2.2
 local RAIL = Vector3.new(0.35, 0.35, 0.35) -- 울타리 가로대 단면
-
-local CLICK_DISTANCE = 40 -- 받침대를 눌러 배치 창을 여는 최대 거리(스터드)
 
 local LABEL_WIDTH = 10 -- 전시 이름표 크기(스터드)
 local LABEL_HEIGHT = 2.6
@@ -151,7 +150,6 @@ local ParkService = {}
 local folder: Folder? = nil
 local plots: { Plot } = {}
 local plotByPlayer: { [Player]: Plot } = {}
-local slotClicked: ((Player, number) -> ())? = nil
 
 local function newPart(
 	parent: Instance,
@@ -729,19 +727,6 @@ local function addLabel(pedestal: BasePart, landmark: Landmarks.Landmark, modelH
 	return stars
 end
 
--- 주인이 이 칸(받침대·미니어처)을 누르면 콜백. 다른 사람이 누르면 무시
-local function addClick(plot: Plot, index: number, container: Model)
-	local detector = Instance.new("ClickDetector")
-	detector.MaxActivationDistance = CLICK_DISTANCE
-	detector.MouseClick:Connect(function(clicker: Player)
-		local callback = slotClicked
-		if callback and clicker == plot.Owner then
-			callback(clicker, index)
-		end
-	end)
-	detector.Parent = container
-end
-
 -- key: KEY_LOCKED(흐릿한 바닥) / KEY_EMPTY(빈 받침대) / 명소 Id(받침대 + 미니어처 + 이름표)
 local function buildSlot(plot: Plot, index: number, key: string): Slot
 	local floor = plot.CFrame * CFrame.new(SLOT_OFFSETS[index]) -- 칸 바닥 중앙(부지 윗면)
@@ -785,9 +770,8 @@ local function buildSlot(plot: Plot, index: number, key: string): Slot
 			end
 			slot.StarLabel = addLabel(pedestal, landmark, if ok then result else 0)
 		end
-		if plot.Owner then
-			addClick(plot, index, container)
-		end
+		-- 열린 칸 표시: 주인 클라이언트가 이 속성을 보고 누를 수 있는 칸(ClickDetector)으로 만듦
+		container:SetAttribute("Slot", index)
 	end
 
 	container.Parent = plot.SlotFolder
@@ -812,6 +796,7 @@ function ParkService.assign(player: Player): number?
 		if not plot.Owner then
 			plot.Owner = player
 			plotByPlayer[player] = plot
+			plot.Model:SetAttribute("OwnerUserId", player.UserId)
 			setSign(plot, player.DisplayName, incomeText(0))
 			showSign(plot, true)
 			return plot.Index
@@ -829,6 +814,7 @@ function ParkService.release(player: Player)
 	end
 	plotByPlayer[player] = nil
 	plot.Owner = nil
+	plot.Model:SetAttribute("OwnerUserId", nil)
 	clearSlots(plot)
 	showSign(plot, false)
 	setSign(plot, "", "")
@@ -866,11 +852,6 @@ function ParkService.update(player: Player, data: PlayerState.Data, mods: Player
 	end
 
 	setSign(plot, player.DisplayName, incomeText(PlayerState.incomePerSecond(data, mods)))
-end
-
--- 주인이 자기 부지의 열린 칸(받침대·미니어처)을 누르면 callback(주인, 칸 번호)
-function ParkService.onSlotClicked(callback: (Player, number) -> ())
-	slotClicked = callback
 end
 
 -- 공원 입구 안쪽 바닥(부지 윗면)에서 공원 안쪽을 바라보는 CFrame. 부지가 없으면 nil.
