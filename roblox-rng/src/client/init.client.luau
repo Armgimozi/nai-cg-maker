@@ -1,4 +1,5 @@
 -- 클라이언트 진입점: 상태 동기화, 굴리기/자동 굴리기, 메뉴 연결, 뉴스 속보, 회전 모형
+-- (화면 글자에는 이모지를 쓰지 않음 — DESIGN.md UI 스타일 가이드 v2)
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -92,7 +93,7 @@ local function feature(landmarkId: string?)
 	elseif landmarkId then
 		local landmark = Landmarks.ById[landmarkId]
 		if landmark then
-			Hud.toast("🏅 대표 명소: " .. landmark.Name, landmark.Tier.Color, 2)
+			Hud.toast("대표 명소: " .. landmark.Name, landmark.Tier.Color, 2)
 		end
 	else
 		Hud.toast("대표 명소를 해제했어요", Ui.Theme.SubText, 2)
@@ -110,7 +111,7 @@ local function showAnnouncement(info: any, landmark: Landmarks.Landmark)
 		if general then
 			general:DisplaySystemMessage(
 				string.format(
-					'📰 속보: %s 님이 <font color="%s"><b>%s</b></font>(%s) 발견! — %s번째 탐험',
+					'[속보] %s 님이 <font color="%s"><b>%s</b></font>(%s) 발견! — %s번째 탐험',
 					Format.escape(name),
 					Format.hex(landmark.Tier.Color),
 					Format.escape(landmark.Name),
@@ -213,7 +214,7 @@ local function buy(upgradeId: string)
 		local upgrade = PlayerState.UpgradesById[upgradeId]
 		local level = if state and upgrade then PlayerState.upgradeLevel(state, upgradeId) else nil
 		if upgrade and level then
-			Hud.toast(string.format("%s %s Lv %d 달성!", upgrade.Emoji, upgrade.Name, level), Ui.Theme.Good, 2)
+			Hud.toast(string.format("%s Lv %d 달성!", upgrade.Name, level), Ui.Theme.Good, 2)
 		else
 			Hud.toast("업그레이드 완료!", Ui.Theme.Good, 2)
 		end

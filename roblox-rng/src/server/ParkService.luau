@@ -6,6 +6,10 @@
 -- 전시 칸: 6x6 격자. 입구에 가까운 줄부터, 한 줄 안에서는 가운데에 가까운 칸부터 채워서
 --   가장 희귀한 명소가 입구 정면에 오도록 합니다.
 -- update 는 칸마다 이전 상태를 기억해 두고 바뀐 칸만 다시 만듭니다(별 개수는 이름표 글자만 바꿈).
+-- 간판: 주인이 있으면 입구 아치(나무 판자 + Ink 테두리 + 크림 글자판 + 초록 수입 알약),
+--   빈 부지는 길 옆 낮은 말뚝 간판만 세워서 빈 부지가 20곳 넘어도 광장에서 볼 때 어지럽지 않게 합니다.
+-- 장식: 둘레 색 띠 + 네 귀퉁이 덤불 + 옆·뒤 낮은 울타리(입구 쪽은 비움). 위에서 봐도 부지가 구분됩니다.
+-- 글자 스타일은 DESIGN.md "UI 스타일 가이드 v2" 를 따름(FredokaOne, Ink 테두리, 이모지 없음).
 
 local Workspace = game:GetService("Workspace")
 
@@ -36,16 +40,46 @@ local PATH_WIDTH = 10
 
 local MAX_STARS = #Config.STAR_THRESHOLDS
 
+-- 간판 배치(부지 좌표)
+local SIGN_Z = -PLOT_DEPTH / 2 - BORDER - 1 -- 입구 바로 앞(잔디 위)
+local BOARD_SIZE = Vector3.new(28, 6, 0.8) -- 주인 간판 판자
+local BOARD_Y = 10.5 -- 판자 중심 높이(판자 아래 7.5 스터드: 사람이 밑으로 지나감)
+local FRAME = 0.6 -- 판자 둘레 Ink 테두리 굵기
+local POST = 1.6 -- 간판 기둥 굵기
+local STAKE_BOARD = Vector3.new(6, 2.6, 0.4) -- 빈 부지 말뚝 간판
+local STAKE_X = 9 -- 말뚝 간판 위치: 길(폭 10) 바로 옆
+local STAKE_TILT = math.rad(-4) -- 말뚝을 살짝 기울여서 장난스럽게
+local FENCE_HEIGHT = 2.2
+local RAIL = Vector3.new(0.35, 0.35, 0.35) -- 울타리 가로대 단면
+
+local LABEL_WIDTH = 10 -- 전시 이름표 크기(스터드)
+local LABEL_HEIGHT = 2.6
+
 local BASE_COLOR = Color3.fromRGB(226, 220, 204)
 local PATH_COLOR = Color3.fromRGB(215, 198, 165)
 local PEDESTAL_COLOR = Color3.fromRGB(236, 234, 228)
 local LOCKED_COLOR = Color3.fromRGB(120, 124, 138)
-local SIGN_COLOR = Color3.fromRGB(250, 246, 234)
-local SIGN_TEXT = Color3.fromRGB(45, 45, 60)
-local INCOME_TEXT = Color3.fromRGB(40, 150, 75)
-local STAR_COLOR = Color3.fromRGB(255, 210, 70)
 
-local EMPTY_TITLE = "🏞️ 빈 부지"
+-- UI 스타일 가이드 v2 팔레트
+local INK = Color3.fromRGB(30, 27, 46)
+local CREAM = Color3.fromRGB(255, 244, 220)
+local WHITE = Color3.new(1, 1, 1)
+local SUN = Color3.fromRGB(255, 197, 61)
+local GRASS = Color3.fromRGB(76, 217, 100)
+local GRASS_SHADOW = Color3.fromRGB(46, 158, 69)
+local STAR_EMPTY = Color3.fromRGB(150, 146, 170) -- 아직 못 딴 별
+
+-- 월드 소품 색
+local WOOD = Color3.fromRGB(181, 120, 66) -- 간판 판자(따뜻한 갈색)
+local WOOD_DARK = Color3.fromRGB(122, 78, 45) -- 기둥, 말뚝
+local FENCE_COLOR = Color3.fromRGB(255, 250, 240)
+local BUSH_COLOR = Color3.fromRGB(72, 184, 84)
+local BUSH_LIGHT = Color3.fromRGB(122, 214, 104)
+
+local FONT = Enum.Font.FredokaOne
+local EMPTY_STAR_HEX = Format.hex(STAR_EMPTY)
+
+local EMPTY_TITLE = "빈 부지"
 local EMPTY_SUBTITLE = "주인을 기다리는 중"
 
 -- 칸 상태 키: 명소 Id 이거나 아래 둘 중 하나(명소 Id 는 '#' 으로 시작하지 않음)
@@ -64,6 +98,8 @@ type Plot = {
 	CFrame: CFrame,
 	Model: Model,
 	SlotFolder: Folder,
+	OwnerSign: Model, -- 주인이 있을 때만 부지 모델 아래에 둠
+	EmptySign: Model, -- 빈 부지일 때만 부지 모델 아래에 둠
 	TitleLabels: { TextLabel },
 	IncomeLabels: { TextLabel },
 	Owner: Player?,
@@ -133,12 +169,23 @@ local function newPart(
 	return part
 end
 
-local function textLabel(parent: Instance, size: UDim2, position: UDim2, color: Color3, font: Enum.Font): TextLabel
+-- 장식용 공(덤불, 꼭지). 걸리적거리지 않게 충돌 없음
+local function ball(parent: Instance, name: string, diameter: number, cframe: CFrame, color: Color3): Part
+	local part =
+		newPart(parent, name, Vector3.new(diameter, diameter, diameter), cframe, color, Enum.Material.SmoothPlastic)
+	part.Shape = Enum.PartType.Ball
+	part.CanCollide = false
+	return part
+end
+
+-- GUI 헬퍼 ---------------------------------------------------------------
+
+local function textLabel(parent: Instance, size: UDim2, position: UDim2, color: Color3): TextLabel
 	local label = Instance.new("TextLabel")
 	label.BackgroundTransparency = 1
 	label.Size = size
 	label.Position = position
-	label.Font = font
+	label.Font = FONT
 	label.TextScaled = true
 	label.TextColor3 = color
 	label.Text = ""
@@ -146,36 +193,209 @@ local function textLabel(parent: Instance, size: UDim2, position: UDim2, color: 
 	return label
 end
 
-local function outline(label: TextLabel, thickness: number)
-	local stroke = Instance.new("UIStroke")
-	stroke.Thickness = thickness
-	stroke.Color = Color3.new(0, 0, 0)
-	stroke.Transparency = 0.2
-	stroke.Parent = label
+local function frame(parent: Instance, size: UDim2, position: UDim2, color: Color3): Frame
+	local box = Instance.new("Frame")
+	box.Size = size
+	box.Position = position
+	box.BackgroundColor3 = color
+	box.BorderSizePixel = 0
+	box.Parent = parent
+	return box
 end
 
+local function corner(gui: GuiObject, radius: UDim)
+	local round = Instance.new("UICorner")
+	round.CornerRadius = radius
+	round.Parent = gui
+end
+
+-- Ink 테두리: 글자에 붙이면 글자 테두리, 상자에 붙이면 상자 테두리
+local function stroke(gui: GuiObject, thickness: number)
+	local line = Instance.new("UIStroke")
+	line.Thickness = thickness
+	line.Color = INK
+	line.Parent = gui
+end
+
+local function padding(gui: GuiObject, x: UDim, y: UDim)
+	local pad = Instance.new("UIPadding")
+	pad.PaddingLeft = x
+	pad.PaddingRight = x
+	pad.PaddingTop = y
+	pad.PaddingBottom = y
+	pad.Parent = gui
+end
+
+-- 통통한 딱지: 어두운 그림자 판(drop 만큼 아래) 위에 색 앞면(위쪽이 살짝 밝음).
+-- position 은 딱지 윗변 가운데. 반환: 앞면(글자를 넣을 곳)
+local function chunky(
+	parent: Instance,
+	size: UDim2,
+	position: UDim2,
+	drop: UDim,
+	color: Color3,
+	shadowColor: Color3,
+	thickness: number
+): Frame
+	local shadow = frame(parent, size, position + UDim2.new(UDim.new(), drop), shadowColor)
+	shadow.Name = "Shadow"
+	shadow.AnchorPoint = Vector2.new(0.5, 0)
+	shadow.ZIndex = 1
+	corner(shadow, UDim.new(0.5, 0))
+	stroke(shadow, thickness)
+
+	local face = frame(parent, size, position, color)
+	face.Name = "Face"
+	face.AnchorPoint = Vector2.new(0.5, 0)
+	face.ZIndex = 2
+	corner(face, UDim.new(0.5, 0))
+	stroke(face, thickness)
+	local shine = Instance.new("UIGradient")
+	shine.Color = ColorSequence.new(WHITE, Color3.fromRGB(214, 214, 214))
+	shine.Rotation = 90 -- 위 → 아래
+	shine.Parent = face
+	return face
+end
+
+-- 채운 별은 해 색, 못 딴 별은 흐린 색(RichText)
 local function starText(stars: number): string
-	return string.rep("★", stars) .. string.rep("☆", MAX_STARS - stars)
+	local text = string.rep("★", stars)
+	if stars < MAX_STARS then
+		text ..= `<font color="{EMPTY_STAR_HEX}">{string.rep("★", MAX_STARS - stars)}</font>`
+	end
+	return text
 end
 
 local function incomeText(income: number): string
 	return "관광 수입 +" .. Format.commas(income) .. "/초"
 end
 
--- 간판 한 면(SurfaceGui). 반환: 제목 라벨, 수입 라벨
-local function signFace(board: BasePart, face: Enum.NormalId): (TextLabel, TextLabel)
+-- 간판 ---------------------------------------------------------------------
+
+local function surfaceGui(board: BasePart, face: Enum.NormalId): SurfaceGui
 	local gui = Instance.new("SurfaceGui")
 	gui.Name = "SignGui"
 	gui.Face = face
 	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 	gui.PixelsPerStud = 40
 	gui.LightInfluence = 0
+	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	gui.Parent = board
-	local title =
-		textLabel(gui, UDim2.fromScale(0.94, 0.54), UDim2.fromScale(0.03, 0.06), SIGN_TEXT, Enum.Font.GothamBlack)
-	local income =
-		textLabel(gui, UDim2.fromScale(0.94, 0.32), UDim2.fromScale(0.03, 0.62), INCOME_TEXT, Enum.Font.GothamBold)
+	return gui
+end
+
+-- 주인 간판 한 면: 가장자리에 나무가 보이는 크림 글자판 + 제목(Ink) + 초록 수입 알약. 반환: 제목, 수입 라벨
+local function signFace(board: BasePart, face: Enum.NormalId): (TextLabel, TextLabel)
+	local gui = surfaceGui(board, face)
+	local panel = frame(gui, UDim2.new(1, -40, 1, -36), UDim2.fromScale(0.5, 0.5), CREAM)
+	panel.Name = "Panel"
+	panel.AnchorPoint = Vector2.new(0.5, 0.5)
+	corner(panel, UDim.new(0, 24))
+	stroke(panel, 6)
+
+	local title = textLabel(panel, UDim2.new(1, -48, 0.46, 0), UDim2.new(0, 24, 0.06, 0), INK)
+	title.Name = "Title"
+
+	local pill =
+		chunky(panel, UDim2.fromScale(0.62, 0.34), UDim2.fromScale(0.5, 0.56), UDim.new(0, 6), GRASS, GRASS_SHADOW, 4)
+	local income = textLabel(pill, UDim2.fromScale(1, 1), UDim2.new(), WHITE)
+	income.Name = "Income"
+	padding(income, UDim.new(0.06, 0), UDim.new(0.14, 0))
+	stroke(income, 3)
 	return title, income
+end
+
+-- 주인 간판(입구 아치): 나무 판자 + Ink 테두리 + 양옆 기둥(부지 색 모자, 금색 꼭지).
+-- 반환: 간판 모델, 제목 라벨들, 수입 라벨들(앞뒤 두 면)
+local function buildOwnerSign(cf: CFrame, color: Color3): (Model, { TextLabel }, { TextLabel })
+	local sign = Instance.new("Model")
+	sign.Name = "Sign"
+	local base = cf * CFrame.new(0, 0, SIGN_Z) -- 간판 바닥 가운데(땅 높이)
+	local width, height = BOARD_SIZE.X, BOARD_SIZE.Y
+
+	local board = newPart(sign, "Board", BOARD_SIZE, base * CFrame.new(0, BOARD_Y, 0), WOOD, Enum.Material.Wood)
+
+	-- Ink 테두리: 판자보다 두꺼워서 앞뒤로 살짝 튀어나온 액자. 위아래 막대가 모서리까지 덮음
+	local depth = BOARD_SIZE.Z + 0.4
+	for _, side in { -1, 1 } do
+		newPart(
+			sign,
+			"BoardFrame",
+			Vector3.new(width + FRAME * 2, FRAME, depth),
+			base * CFrame.new(0, BOARD_Y + side * (height + FRAME) / 2, 0),
+			INK,
+			Enum.Material.SmoothPlastic
+		)
+		newPart(
+			sign,
+			"BoardFrame",
+			Vector3.new(FRAME, height, depth),
+			base * CFrame.new(side * (width + FRAME) / 2, BOARD_Y, 0),
+			INK,
+			Enum.Material.SmoothPlastic
+		)
+	end
+
+	-- 판자 양옆 기둥 + 부지 색 모자 + 금색 꼭지
+	local postX = width / 2 + FRAME + POST / 2
+	local postTop = BOARD_Y + height / 2 + FRAME + 0.6
+	for _, side in { -1, 1 } do
+		newPart(
+			sign,
+			"Post",
+			Vector3.new(POST, postTop, POST),
+			base * CFrame.new(side * postX, postTop / 2, 0),
+			WOOD_DARK,
+			Enum.Material.Wood
+		)
+		newPart(
+			sign,
+			"PostCap",
+			Vector3.new(POST + 0.8, 0.7, POST + 0.8),
+			base * CFrame.new(side * postX, postTop + 0.35, 0),
+			color,
+			Enum.Material.SmoothPlastic
+		)
+		ball(sign, "PostKnob", 1.3, base * CFrame.new(side * postX, postTop + 1.2, 0), SUN)
+	end
+
+	local frontTitle, frontIncome = signFace(board, Enum.NormalId.Front)
+	local backTitle, backIncome = signFace(board, Enum.NormalId.Back)
+	return sign, { frontTitle, backTitle }, { frontIncome, backIncome }
+end
+
+-- 빈 부지 말뚝 간판: 길 옆에 낮게, 살짝 기울여서. 광장 쪽 면에만 글자
+local function buildEmptySign(cf: CFrame): Model
+	local sign = Instance.new("Model")
+	sign.Name = "EmptySign"
+	local base = cf * CFrame.new(STAKE_X, 0, SIGN_Z) * CFrame.Angles(0, 0, STAKE_TILT)
+	local boardY = 2 + STAKE_BOARD.Y / 2
+
+	-- 말뚝은 판자 뒤(부지 쪽)에 붙임
+	newPart(
+		sign,
+		"Stake",
+		Vector3.new(0.5, boardY, 0.5),
+		base * CFrame.new(0, boardY / 2, STAKE_BOARD.Z / 2 + 0.25),
+		WOOD_DARK,
+		Enum.Material.Wood
+	)
+	local board = newPart(sign, "Board", STAKE_BOARD, base * CFrame.new(0, boardY, 0), WOOD, Enum.Material.Wood)
+
+	local gui = surfaceGui(board, Enum.NormalId.Front)
+	local panel = frame(gui, UDim2.new(1, -16, 1, -16), UDim2.fromScale(0.5, 0.5), CREAM)
+	panel.Name = "Panel"
+	panel.AnchorPoint = Vector2.new(0.5, 0.5)
+	corner(panel, UDim.new(0, 14))
+	stroke(panel, 4)
+
+	local title = textLabel(panel, UDim2.new(1, -16, 0.54, 0), UDim2.new(0, 8, 0.08, 0), INK)
+	title.Text = EMPTY_TITLE
+	title.TextTransparency = 0.15
+	local subtitle = textLabel(panel, UDim2.new(1, -28, 0.26, 0), UDim2.new(0, 14, 0.64, 0), INK)
+	subtitle.Text = EMPTY_SUBTITLE
+	subtitle.TextTransparency = 0.4
+	return sign
 end
 
 local function setSign(plot: Plot, title: string, subtitle: string)
@@ -187,7 +407,64 @@ local function setSign(plot: Plot, title: string, subtitle: string)
 	end
 end
 
--- 부지 바닥, 둘레 색 띠, 입구 아치 간판, 광장까지 길
+-- 주인이 있으면 입구 아치 간판, 없으면 말뚝 간판만 보이게
+local function showSign(plot: Plot, owned: boolean)
+	plot.OwnerSign.Parent = if owned then plot.Model else nil
+	plot.EmptySign.Parent = if owned then nil else plot.Model
+end
+
+-- 부지 장식 ---------------------------------------------------------------
+
+type FenceSide = { Center: Vector3, Axis: Vector3, Length: number }
+
+-- 위에서 봐도 부지가 보이게: 둘레 띠 위에 옆·뒤 낮은 울타리 + 네 귀퉁이 덤불. 입구(앞) 쪽은 비워 둠.
+-- 부지 하나에 파트 20개(가로대 6, 기둥 6, 덤불 8)
+local function decorate(model: Model, cf: CFrame)
+	local edgeX = PLOT_WIDTH / 2 + BORDER / 2 -- 둘레 띠 가운데
+	local edgeZ = PLOT_DEPTH / 2 + BORDER / 2
+	local ground = BASE_TOP - 0.2 -- 둘레 띠 윗면
+
+	local sides: { FenceSide } = {
+		{ Center = Vector3.new(-edgeX, ground, 0), Axis = Vector3.new(0, 0, 1), Length = edgeZ * 2 },
+		{ Center = Vector3.new(edgeX, ground, 0), Axis = Vector3.new(0, 0, 1), Length = edgeZ * 2 },
+		{ Center = Vector3.new(0, ground, edgeZ), Axis = Vector3.new(1, 0, 0), Length = edgeX * 2 },
+	}
+	for _, side in sides do
+		-- 가로대 두 줄(양 끝은 귀퉁이 덤불에 묻힘)
+		for _, y in { 0.9, 1.8 } do
+			newPart(
+				model,
+				"FenceRail",
+				RAIL + side.Axis * (side.Length - RAIL.X),
+				cf * CFrame.new(side.Center + Vector3.new(0, y, 0)),
+				FENCE_COLOR,
+				Enum.Material.SmoothPlastic
+			)
+		end
+		-- 기둥은 3등분 지점에 두 개
+		for _, t in { -1, 1 } do
+			newPart(
+				model,
+				"FencePost",
+				Vector3.new(0.6, FENCE_HEIGHT, 0.6),
+				cf * CFrame.new(side.Center + side.Axis * (t * side.Length / 6) + Vector3.new(0, FENCE_HEIGHT / 2, 0)),
+				FENCE_COLOR,
+				Enum.Material.SmoothPlastic
+			)
+		end
+	end
+
+	-- 귀퉁이 덤불: 큰 공 + 위에 작은 밝은 공
+	for _, sx in { -1, 1 } do
+		for _, sz in { -1, 1 } do
+			local spot = Vector3.new(sx * edgeX, ground, sz * edgeZ)
+			ball(model, "Bush", 3.4, cf * CFrame.new(spot + Vector3.new(0, 1.2, 0)), BUSH_COLOR)
+			ball(model, "Bush", 2.2, cf * CFrame.new(spot + Vector3.new(-sx * 0.7, 2.5, -sz * 0.5)), BUSH_LIGHT)
+		end
+	end
+end
+
+-- 부지 바닥, 둘레 색 띠, 장식, 간판(주인용/빈 부지용), 광장까지 길
 local function buildPlot(parent: Instance, index: number, layout: Layout): Plot
 	local direction = Vector3.new(math.cos(layout.Angle), 0, math.sin(layout.Angle))
 	local center = direction * (layout.Radius + PLOT_DEPTH / 2)
@@ -215,22 +492,11 @@ local function buildPlot(parent: Instance, index: number, layout: Layout): Plot
 		BASE_COLOR,
 		Enum.Material.Concrete
 	)
+	decorate(model, cf)
 
-	-- 입구 아치: 기둥 두 개 + 간판(사람이 밑으로 지나갈 수 있는 높이)
-	local signZ = -PLOT_DEPTH / 2 - BORDER - 1
-	for _, x in { -12, 12 } do
-		newPart(model, "SignPost", Vector3.new(1, 11, 1), cf * CFrame.new(x, 5.5, signZ), color, Enum.Material.Wood)
-	end
-	local board = newPart(
-		model,
-		"Sign",
-		Vector3.new(26, 5, 0.6),
-		cf * CFrame.new(0, 9, signZ),
-		SIGN_COLOR,
-		Enum.Material.SmoothPlastic
-	)
-	local frontTitle, frontIncome = signFace(board, Enum.NormalId.Front)
-	local backTitle, backIncome = signFace(board, Enum.NormalId.Back)
+	-- 간판 두 종류를 미리 만들어 두고 주인 유무에 따라 하나만 부지 아래에 둠
+	local ownerSign, titleLabels, incomeLabels = buildOwnerSign(cf, color)
+	local emptySign = buildEmptySign(cf)
 
 	-- 광장에서 입구까지 길(안쪽 고리와, 안쪽 부지 사이로 보이는 바깥 부지만). 부지/광장 아래로 살짝 들어감
 	if layout.Path then
@@ -251,23 +517,25 @@ local function buildPlot(parent: Instance, index: number, layout: Layout): Plot
 	local slotFolder = Instance.new("Folder")
 	slotFolder.Name = "Slots"
 	slotFolder.Parent = model
-	model.Parent = parent
 
 	local plot: Plot = {
 		Index = index,
 		CFrame = cf,
 		Model = model,
 		SlotFolder = slotFolder,
-		TitleLabels = { frontTitle, backTitle },
-		IncomeLabels = { frontIncome, backIncome },
+		OwnerSign = ownerSign,
+		EmptySign = emptySign,
+		TitleLabels = titleLabels,
+		IncomeLabels = incomeLabels,
 		Owner = nil,
 		Slots = {},
 	}
-	setSign(plot, EMPTY_TITLE, EMPTY_SUBTITLE)
+	showSign(plot, false)
+	model.Parent = parent
 	return plot
 end
 
--- 서버 시작 시 한 번: 모든 부지의 바닥/간판/길을 만들어 둠(주인 없는 부지는 "빈 부지")
+-- 서버 시작 시 한 번: 모든 부지의 바닥/장식/간판/길을 만들어 둠(주인 없는 부지는 "빈 부지" 말뚝 간판)
 function ParkService.init()
 	if folder then
 		return
@@ -281,7 +549,7 @@ function ParkService.init()
 	parks.Parent = Workspace
 end
 
--- 칸 위 작은 이름표: 이름(등급 색) + 별
+-- 칸 위 작은 이름표: 등급 색 둥근 딱지(흰 이름 + Ink 테두리) + 그 아래 별(해 색 + Ink 테두리)
 local function addLabel(pedestal: BasePart, landmark: Landmarks.Landmark, modelHeight: number): TextLabel
 	local anchor = Instance.new("Attachment")
 	anchor.Name = "LabelAnchor"
@@ -291,22 +559,34 @@ local function addLabel(pedestal: BasePart, landmark: Landmarks.Landmark, modelH
 	local billboard = Instance.new("BillboardGui")
 	billboard.Name = "Label"
 	billboard.Adornee = anchor
-	billboard.Size = UDim2.fromScale(10, 2.4)
+	billboard.Size = UDim2.fromScale(LABEL_WIDTH, LABEL_HEIGHT)
 	billboard.MaxDistance = LABEL_DISTANCE
 	billboard.LightInfluence = 0
+	billboard.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-	local name = textLabel(
+	-- 딱지 너비는 이름 길이에 맞춤(한글 한 글자 폭 ≈ 글자 높이 ≈ 1 스터드)
+	local chars = utf8.len(landmark.Name) or #landmark.Name
+	local width = math.clamp((chars * 1.05 + 1.4) / LABEL_WIDTH, 0.3, 1)
+	local tier = landmark.Tier.Color
+	local tag = chunky(
 		billboard,
-		UDim2.fromScale(1, 0.58),
-		UDim2.fromScale(0, 0),
-		landmark.Tier.Color,
-		Enum.Font.GothamBlack
+		UDim2.fromScale(width, 0.52),
+		UDim2.fromScale(0.5, 0),
+		UDim.new(0.07, 0),
+		tier,
+		tier:Lerp(INK, 0.4),
+		2
 	)
+	local name = textLabel(tag, UDim2.fromScale(1, 1), UDim2.new(), WHITE)
+	name.Name = "Name"
 	name.Text = landmark.Name
-	outline(name, 2)
-	local stars =
-		textLabel(billboard, UDim2.fromScale(1, 0.4), UDim2.fromScale(0, 0.6), STAR_COLOR, Enum.Font.GothamBold)
-	outline(stars, 1.5)
+	padding(name, UDim.new(0.08, 0), UDim.new(0.14, 0))
+	stroke(name, 2)
+
+	local stars = textLabel(billboard, UDim2.fromScale(1, 0.34), UDim2.fromScale(0, 0.64), SUN)
+	stars.Name = "Stars"
+	stars.RichText = true
+	stroke(stars, 2)
 
 	billboard.Parent = anchor
 	return stars
@@ -380,6 +660,7 @@ function ParkService.assign(player: Player): number?
 			plot.Owner = player
 			plotByPlayer[player] = plot
 			setSign(plot, player.DisplayName .. " 님의 관광 공원", incomeText(0))
+			showSign(plot, true)
 			return plot.Index
 		end
 	end
@@ -396,7 +677,8 @@ function ParkService.release(player: Player)
 	plotByPlayer[player] = nil
 	plot.Owner = nil
 	clearSlots(plot)
-	setSign(plot, EMPTY_TITLE, EMPTY_SUBTITLE)
+	showSign(plot, false)
+	setSign(plot, "", "")
 end
 
 -- 전시 상태를 data 에 맞춤. data 는 Data 또는 같은 필드(Inventory, Upgrades)를 가진 표.

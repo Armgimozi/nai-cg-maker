@@ -1,4 +1,4 @@
--- 광장(스폰) + 받침대 위의 거대 지구본 + 뉴스 속보 홀로그램
+-- 광장(스폰) + 받침대 위의 거대 지구본 + 광장 둘레 나무 + 뉴스 속보 홀로그램
 -- 회전은 클라이언트가 "LandmarkSpin" 태그가 붙은 Model 을 제자리에서 돌려서 보여 줍니다(서버 복제 부담 없음).
 
 local CollectionService = game:GetService("CollectionService")
@@ -17,11 +17,15 @@ local EARTH_SPOT = Vector3.new(0, PLAZA_TOP, -26) -- 지구본 받침대 바닥 
 local EARTH_SIZE = 26
 local LAMP_COUNT = 16
 local LAMP_RADIUS = PLAZA_RADIUS - 3
+local TREE_COUNT = 8
+local TREE_RADIUS = PLAZA_RADIUS + RIM_WIDTH + 8 -- 광장 둘레 계단 바로 바깥 잔디
 
 local HOLOGRAM_SIZE = 60
 local HOLOGRAM_HEIGHT = 60 -- 홀로그램 바닥 높이(지구본과 겹치면 그 위로 올림)
 local HOLOGRAM_LIFETIME = 12
 local HOLOGRAM_TRANSPARENCY = 0.35
+local TITLE_WIDTH = 80 -- 홀로그램 제목 크기(스터드)
+local TITLE_HEIGHT = 20
 
 local PLAZA_COLOR = Color3.fromRGB(214, 210, 200)
 local RIM_COLOR = Color3.fromRGB(165, 160, 150)
@@ -30,6 +34,15 @@ local MARBLE = Color3.fromRGB(240, 238, 232)
 local GOLD = Color3.fromRGB(235, 190, 80)
 local LAMP_POLE = Color3.fromRGB(45, 48, 60)
 local LAMP_LIGHT = Color3.fromRGB(255, 235, 190)
+local TRUNK = Color3.fromRGB(122, 78, 45)
+local LEAF = Color3.fromRGB(72, 184, 84)
+local LEAF_LIGHT = Color3.fromRGB(122, 214, 104)
+
+-- UI 스타일 가이드 v2 팔레트(홀로그램 제목)
+local INK = Color3.fromRGB(30, 27, 46)
+local WHITE = Color3.new(1, 1, 1)
+local CORAL = Color3.fromRGB(255, 94, 91)
+local CORAL_SHADOW = Color3.fromRGB(201, 58, 56)
 
 -- 원기둥 파트는 X 축이 기둥 방향이므로 세우려면 Z 축으로 90도 돌림
 local UPRIGHT = CFrame.Angles(0, 0, math.rad(90))
@@ -113,7 +126,31 @@ local function lamp(parent: Instance, base: Vector3)
 	light.Parent = bulb
 end
 
--- 서버 시작 시 한 번: 광장, 가로등, 받침대 + 거대 지구본
+-- 동글동글한 나무: 줄기(원기둥) + 잎(큰 공 + 위에 작은 밝은 공). 잎은 머리에 걸리지 않게 충돌 없음.
+-- scale 로 크기를, turn(라디안)으로 작은 공 방향을 바꿔서 나무마다 조금씩 다르게 보이게 함
+local function tree(parent: Instance, base: Vector3, scale: number, turn: number)
+	disc(parent, "TreeTrunk", base, 6 * scale, 1.6 * scale, TRUNK, Enum.Material.Wood)
+	local leaves = {
+		{ Offset = Vector3.new(0, 8, 0), Diameter = 7.5, Color = LEAF },
+		{ Offset = Vector3.new(1.2, 11, -0.6), Diameter = 4.6, Color = LEAF_LIGHT },
+	}
+	for _, leaf in leaves do
+		local offset = CFrame.Angles(0, turn, 0):VectorToWorldSpace(leaf.Offset) * scale
+		local diameter = leaf.Diameter * scale
+		local part = newPart(
+			parent,
+			"TreeLeaves",
+			Enum.PartType.Ball,
+			Vector3.new(diameter, diameter, diameter),
+			CFrame.new(base + offset),
+			leaf.Color,
+			Enum.Material.SmoothPlastic
+		)
+		part.CanCollide = false
+	end
+end
+
+-- 서버 시작 시 한 번: 광장, 가로등, 둘레 나무, 받침대 + 거대 지구본
 function World.build()
 	if folder then
 		return
@@ -138,6 +175,13 @@ function World.build()
 	for i = 1, LAMP_COUNT do
 		local angle = (i - 0.5) / LAMP_COUNT * math.pi * 2
 		lamp(world, Vector3.new(math.cos(angle) * LAMP_RADIUS, PLAZA_TOP, math.sin(angle) * LAMP_RADIUS))
+	end
+
+	-- 나무: 광장 바로 바깥 잔디, 길(22.5도마다) 사이 틈 하나 건너 하나에(가로등 바로 뒤)
+	for i = 1, TREE_COUNT do
+		local angle = (i - 0.75) / TREE_COUNT * math.pi * 2 -- 11.25도 + 45도 간격
+		local base = Vector3.new(math.cos(angle) * TREE_RADIUS, 0, math.sin(angle) * TREE_RADIUS)
+		tree(world, base, if i % 2 == 0 then 1 else 0.85, angle)
 	end
 
 	-- 지구본 받침대
@@ -170,26 +214,92 @@ function World.plazaCFrame(): CFrame
 	return CFrame.lookAt(position, Vector3.new(EARTH_SPOT.X, position.Y, EARTH_SPOT.Z))
 end
 
+-- 통통한 상자: 둥근 모서리 + Ink 테두리. position 은 윗변 가운데
+local function chunkyBox(
+	parent: Instance,
+	name: string,
+	size: UDim2,
+	position: UDim2,
+	color: Color3,
+	zIndex: number
+): Frame
+	local box = Instance.new("Frame")
+	box.Name = name
+	box.AnchorPoint = Vector2.new(0.5, 0)
+	box.Size = size
+	box.Position = position
+	box.BackgroundColor3 = color
+	box.BorderSizePixel = 0
+	box.ZIndex = zIndex
+	local round = Instance.new("UICorner")
+	round.CornerRadius = UDim.new(0.3, 0)
+	round.Parent = box
+	local line = Instance.new("UIStroke")
+	line.Thickness = 5
+	line.Color = INK
+	line.Parent = box
+	box.Parent = parent
+	return box
+end
+
+-- 위쪽이 살짝 밝은 그라데이션
+local function shine(box: Frame)
+	local gradient = Instance.new("UIGradient")
+	gradient.Color = ColorSequence.new(WHITE, Color3.fromRGB(214, 214, 214))
+	gradient.Rotation = 90 -- 위 → 아래
+	gradient.Parent = box
+end
+
+-- 흰 LuckiestGuy 글자 + 굵은 Ink 글자 테두리
+local function bigText(parent: Frame, text: string, thickness: number)
+	local label = Instance.new("TextLabel")
+	label.BackgroundTransparency = 1
+	label.Size = UDim2.fromScale(1, 1)
+	label.Font = Enum.Font.LuckiestGuy
+	label.TextScaled = true
+	label.Text = text
+	label.TextColor3 = WHITE
+	local line = Instance.new("UIStroke")
+	line.Thickness = thickness
+	line.Color = INK
+	line.Parent = label
+	local pad = Instance.new("UIPadding")
+	pad.PaddingLeft = UDim.new(0.05, 0)
+	pad.PaddingRight = UDim.new(0.05, 0)
+	pad.PaddingTop = UDim.new(0.16, 0)
+	pad.PaddingBottom = UDim.new(0.16, 0)
+	pad.Parent = label
+	label.Parent = parent
+end
+
+-- 홀로그램 제목: 빨간 "속보!" 딱지(살짝 기울임) + 등급 색 리본 위에 "<이름> 발견"
 local function titleBillboard(parent: BasePart, landmark: Landmarks.Landmark)
 	local billboard = Instance.new("BillboardGui")
 	billboard.Name = "Title"
 	billboard.Adornee = parent
-	billboard.Size = UDim2.fromScale(80, 12)
+	billboard.Size = UDim2.fromScale(TITLE_WIDTH, TITLE_HEIGHT)
+	billboard.StudsOffset = Vector3.new(0, 2 - TITLE_HEIGHT / 2, 0) -- 윗변이 기준점 조금 위, 나머지는 아래로
 	billboard.LightInfluence = 0
+	billboard.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-	local label = Instance.new("TextLabel")
-	label.BackgroundTransparency = 1
-	label.Size = UDim2.fromScale(1, 1)
-	label.Font = Enum.Font.GothamBlack
-	label.TextScaled = true
-	label.Text = "📰 " .. landmark.Name .. " 발견!"
-	label.TextColor3 = landmark.Tier.Color
-	label.Parent = billboard
+	local text = landmark.Name .. " 발견"
+	-- 리본 너비: 글자 수 × 글자 높이(약 8.6 스터드) + 여백
+	local chars = utf8.len(text) or #text
+	local ribbonWidth = math.clamp((chars * 8.6 + 12) / TITLE_WIDTH, 0.4, 1)
+	local ribbonSize = UDim2.fromScale(ribbonWidth, 0.6)
+	local tier = landmark.Tier.Color
+	chunkyBox(billboard, "RibbonShadow", ribbonSize, UDim2.fromScale(0.5, 0.36), tier:Lerp(INK, 0.4), 1)
+	local ribbon = chunkyBox(billboard, "Ribbon", ribbonSize, UDim2.fromScale(0.5, 0.3), tier, 2)
+	shine(ribbon)
+	bigText(ribbon, text, 6)
 
-	local stroke = Instance.new("UIStroke")
-	stroke.Thickness = 3
-	stroke.Color = Color3.new(0, 0, 0)
-	stroke.Parent = label
+	local tagSize = UDim2.fromScale(0.24, 0.3)
+	local tagShadow = chunkyBox(billboard, "TagShadow", tagSize, UDim2.fromScale(0.5, 0.05), CORAL_SHADOW, 3)
+	local tag = chunkyBox(billboard, "Tag", tagSize, UDim2.fromScale(0.5, 0.02), CORAL, 4)
+	tagShadow.Rotation = -4
+	tag.Rotation = -4
+	shine(tag)
+	bigText(tag, "속보!", 4)
 
 	billboard.Parent = parent
 end
