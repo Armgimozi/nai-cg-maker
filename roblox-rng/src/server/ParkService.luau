@@ -71,7 +71,7 @@ local RAIL = Vector3.new(0.35, 0.35, 0.35) -- 울타리 가로대 단면
 local LABEL_WIDTH = 10 -- 전시 이름표 크기(스터드)
 local LABEL_HEIGHT = 2.6
 
-local BASE_COLOR = Color3.fromRGB(150, 204, 98) -- 잘 깎은 잔디(Grass): 둘레 잔디보다 조금 밝고 노랗게
+local BASE_COLOR = Color3.fromRGB(134, 198, 92) -- 잘 깎은 잔디(Grass): 둘레 잔디보다 아주 조금 밝게(떠 보이지 않게)
 local PATH_COLOR = Color3.fromRGB(218, 200, 166) -- 광장 → 입구 길(포석, 부지 바닥보다 조금 짙게)
 local PEDESTAL_COLOR = Color3.fromRGB(236, 234, 228)
 local LOCKED_COLOR = Color3.fromRGB(238, 222, 176) -- 잔디 위 흐릿한 모래색 칸(아직 못 여는 자리)

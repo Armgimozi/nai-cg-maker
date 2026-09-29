@@ -27,7 +27,7 @@ local RING_STAGGER = 0.05 -- 이웃 고리 판끼리 윗면 높이 차(겹치는
 -- 산책로 재질별 색(밝고 따뜻하게)
 local ROUTE_COLORS: { [string]: Color3 } = {
 	Cobblestone = Color3.fromRGB(206, 190, 162),
-	Brick = Color3.fromRGB(214, 132, 102),
+	Brick = Color3.fromRGB(210, 144, 114),
 	Pebble = Color3.fromRGB(226, 212, 184),
 	Slate = Color3.fromRGB(160, 162, 160),
 	WoodPlanks = Color3.fromRGB(196, 138, 82),

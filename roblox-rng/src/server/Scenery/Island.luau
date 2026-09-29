@@ -46,14 +46,15 @@ local BEACHES = {
 	{ Angle = math.rad(28), Width = math.rad(30), Bulge = 5, Extra = 7 },
 }
 
--- 먼 작은 섬(모래 + 풀 언덕). Radius = 평균 반지름(물가)
+-- 먼 작은 섬(모래 + 풀 언덕). Radius = 평균 반지름(물가), Stretch = 길쭉한 정도(긴 축 / 평균, 넓이는 같게),
+-- Axis = 긴 축 방향(도), Hill = 풀 언덕 가운데가 섬 가운데에서 치우친 정도(반지름 비율, 치우친 방향은 Axis + 90)
 Island.ISLETS = {
-	{ Angle = 205, Distance = 560, Radius = 30 },
-	{ Angle = 330, Distance = 720, Radius = 42 },
-	{ Angle = 42, Distance = 640, Radius = 26 },
-	{ Angle = 112, Distance = 880, Radius = 55 },
-	{ Angle = 268, Distance = 980, Radius = 48 },
-	{ Angle = 160, Distance = 700, Radius = 34 },
+	{ Angle = 205, Distance = 560, Radius = 30, Stretch = 1.35, Axis = 40, Hill = 0.18 },
+	{ Angle = 330, Distance = 720, Radius = 42, Stretch = 1.25, Axis = 100, Hill = -0.2 },
+	{ Angle = 42, Distance = 640, Radius = 26, Stretch = 1.45, Axis = 150, Hill = 0.15 },
+	{ Angle = 112, Distance = 880, Radius = 55, Stretch = 1.3, Axis = 10, Hill = 0.22 },
+	{ Angle = 268, Distance = 980, Radius = 48, Stretch = 1.4, Axis = 75, Hill = -0.18 },
+	{ Angle = 160, Distance = 700, Radius = 34, Stretch = 1.2, Axis = 125, Hill = 0.2 },
 }
 
 -- 도움 함수 ------------------------------------------------------------------------
@@ -161,18 +162,18 @@ local function addRock(angleDegrees: number, offset: number, radius: number, hei
 		Seed = #Island.ROCKS * 7.31 + 1.7,
 	})
 end
--- 등대 곶: 큰 바위(꼭대기 약 y 1, 등대 받침) + 물속 바위 둘. 1 번(등대 받침) 말고는 Plan 이 위에 모난 바윗돌을 얹음
-addRock(315, -3, 12, 7)
-addRock(311, 8, 6.5, 4.5)
-addRock(319, 9, 5, 4)
--- 물가 여기저기(물 위로 낮게 드러난 바위 턱 — 위에 Plan 의 바윗돌이 올라앉음)
-addRock(72, 3, 8.5, 5.5)
-addRock(76.5, 10, 4.5, 4)
-addRock(207, 3, 8, 5)
-addRock(252, 4, 6.5, 4.5)
-addRock(356, 3, 7.5, 5)
-addRock(101, 6, 5, 4)
-addRock(118, 20, 4, 3.5) -- 부두 옆 물속 바위
+-- 등대 곶: 큰 바위(꼭대기 약 y 3, 등대 받침) + 물속 바위 둘. 1 번(등대 받침) 말고는 Plan 이 위에 둥근 바윗돌을 얹음
+addRock(315, -3, 13, 9)
+addRock(311, 8, 7, 6.5)
+addRock(319, 9, 5.5, 6)
+-- 물가 여기저기(물 위로 3~4 드러난 울퉁불퉁한 바위 — 위에 Plan 의 바윗돌이 올라앉음)
+addRock(72, 3, 9, 8.5)
+addRock(76.5, 10, 5, 6)
+addRock(207, 3, 8.5, 8)
+addRock(252, 4, 7, 7)
+addRock(356, 3, 8, 7.5)
+addRock(101, 6, 5.5, 6)
+addRock(118, 20, 4.5, 5.5) -- 부두 옆 물속 바위
 
 -- 바위 높이(바위 밖이면 -무한)
 local function rockHeight(x: number, z: number): number
@@ -185,7 +186,9 @@ local function rockHeight(x: number, z: number): number
 			local radius = rock.R * (1 + 0.22 * around(a, 1.8, rock.Seed))
 			local t = math.sqrt(dx * dx + dz * dz) / radius
 			if t < 1 then
-				best = math.max(best, rock.Base + rock.Height * (1 - t * t) ^ 0.7)
+				-- 둥근 돔에 울퉁불퉁한 노이즈(복셀 4 보다 큰 굴곡만 남음)
+				local crag = 1 + 0.2 * math.noise(x / 6 + rock.Seed, z / 6 - rock.Seed, 0.37)
+				best = math.max(best, rock.Base + rock.Height * (1 - t * t) ^ 0.7 * crag)
 			end
 		end
 	end
@@ -194,17 +197,33 @@ end
 
 -- 먼 작은 섬 ------------------------------------------------------------------------
 
-export type Islet = { X: number, Z: number, R: number, Seed: number, Reach: number }
+export type Islet = {
+	X: number,
+	Z: number,
+	R: number,
+	Seed: number,
+	Reach: number, -- 이 거리 밖은 깊은 바다 바닥
+	Stretch: number,
+	Axis: number, -- 라디안
+	HillX: number, -- 풀 언덕 가운데(월드)
+	HillZ: number,
+}
 local ISLETS: { Islet } = {}
 for i, islet in Island.ISLETS do
 	local a = math.rad(islet.Angle)
+	local x, z = math.cos(a) * islet.Distance, math.sin(a) * islet.Distance
+	local axis = math.rad(islet.Axis)
+	local hill = islet.Hill * islet.Radius
 	table.insert(ISLETS, {
-		X = math.cos(a) * islet.Distance,
-		Z = math.sin(a) * islet.Distance,
+		X = x,
+		Z = z,
 		R = islet.Radius,
 		Seed = 20 + i * 3.3,
-		-- 이 거리 밖은 깊은 바다 바닥
-		Reach = islet.Radius * 1.3 + (Island.WATER_LEVEL - Island.SEA_FLOOR) / DROP_SLOPE + 16,
+		Reach = islet.Radius * 1.35 * islet.Stretch + (Island.WATER_LEVEL - Island.SEA_FLOOR) / DROP_SLOPE + 16,
+		Stretch = islet.Stretch,
+		Axis = axis,
+		HillX = x - math.sin(axis) * hill,
+		HillZ = z + math.cos(axis) * hill,
 	})
 end
 
@@ -216,21 +235,45 @@ function Island.islets(): { Islet }
 	return list
 end
 
--- 작은 섬 위 높이: 가운데 풀 언덕(물 위 최고 4.5) → 모래 → 물속
+-- 길쭉한 타원(넓이 = 반지름 1 원) 위 angle 방향 반지름 비율
+local function ellipse(islet: Islet, angle: number): number
+	local c, s = math.cos(angle - islet.Axis), math.sin(angle - islet.Axis)
+	return 1 / math.sqrt((c / islet.Stretch) ^ 2 + (s * islet.Stretch) ^ 2)
+end
+
+-- 작은 섬 물가 반지름(가운데에서 angle 방향): 길쭉한 타원 + 두 겹 노이즈(한쪽이 곶처럼 튀어나오고 한쪽은 움푹)
+function Island.isletRadius(islet: Islet, angle: number): number
+	local n = 1 + 0.24 * around(angle, 1.5, islet.Seed) + 0.14 * around(angle, 3.6, islet.Seed + 4.1)
+	return islet.R * n * ellipse(islet, angle)
+end
+
+-- 작은 섬 위 높이: 한쪽으로 치우친 구불구불한 풀 언덕(물 위 최고 약 5) → 넓은 모래 → 물속
 local function isletHeight(islet: Islet, x: number, z: number): (number, string)
 	local dx, dz = x - islet.X, z - islet.Z
-	local a = math.atan2(dz, dx)
-	local radius = islet.R * (1 + 0.2 * around(a, 1.5, islet.Seed))
+	local radius = Island.isletRadius(islet, math.atan2(dz, dx))
 	local d = math.sqrt(dx * dx + dz * dz)
 	local u = d / radius
 	local wl = Island.WATER_LEVEL
-	if u < 0.55 then
-		return wl + 2.5 + 2 * smooth(1 - u / 0.55), "Grass"
-	elseif u <= 1 then
-		return wl + 2.5 * (1 - smooth((u - 0.55) / 0.45)), "Sand"
+	if u <= 1 then
+		-- 모래: 가운데 쪽은 물 위 2.5, 물가로 갈수록 낮아짐
+		local h = wl + 2.5 * (1 - smooth((u - 0.35) / 0.65))
+		-- 풀 언덕: 치우친 가운데에서 구불구불한 가장자리까지(물가 가까이는 스며들어 모래)
+		local hx, hz = x - islet.HillX, z - islet.HillZ
+		local ha = math.atan2(hz, hx)
+		local hillR = islet.R * 0.52 * (1 + 0.28 * around(ha, 2.2, islet.Seed + 9)) * ellipse(islet, ha)
+		local hu = math.sqrt(hx * hx + hz * hz) / hillR
+		local fade = 1 - smooth((u - 0.55) / 0.3)
+		if hu < 1 and fade > 0 then
+			h += 2.6 * smooth((1 - hu) / 0.7) * fade
+			if hu < 0.92 and u < 0.8 then
+				return h, "Grass"
+			end
+		end
+		return h, "Sand"
 	end
 	local under = d - radius
-	local h = math.max(Island.SEA_FLOOR, wl - under * 0.18 - math.max(0, under - 14) * DROP_SLOPE)
+	-- 물가 너머 얕은 턱(8)은 짧게: 먼 섬 둘레의 밝은 청록 테가 너무 넓게 번지지 않게
+	local h = math.max(Island.SEA_FLOOR, wl - under * 0.25 - math.max(0, under - 8) * DROP_SLOPE)
 	return h, if h < wl - 5 then "Mud" else "Sand"
 end
 

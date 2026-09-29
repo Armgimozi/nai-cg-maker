@@ -422,7 +422,7 @@ function BUILD.Palm(parent: Instance, item)
 			)
 		end
 	end
-	local fronds = if far then 5 else 6
+	local fronds = if far then 7 else 6
 	local start = rng:NextNumber(0, math.pi * 2)
 	for k = 1, fronds do
 		local a = start + (k - 1) / fronds * math.pi * 2 + rng:NextNumber(-0.18, 0.18)
@@ -431,19 +431,35 @@ function BUILD.Palm(parent: Instance, item)
 		local color = if k % 2 == 0 then PALM_LEAF else PALM_LEAF:Lerp(PALM_LEAF_LIGHT, 0.5)
 		local out = Vector3.new(math.cos(a), 0, math.sin(a))
 		local p1 = crown + out * 0.3 * s
+		local function piece(from: Vector3, to: Vector3): CFrame
+			return CFrame.lookAt((from + to) / 2, to, UP)
+		end
 		if far then
-			local p2 = p1 + (out * 0.95 + Vector3.new(0, 0.1, 0)).Unit * 5 * length
-			local cf = CFrame.lookAt((p1 + p2) / 2, p2, UP)
-			block(parent, "PalmLeaf", Vector3.new(1.5 * s, 0.18 * s, (p2 - p1).Magnitude), cf, color, LEAVES)
+			-- 두 마디(솟는 넓은 잎 → 늘어지는 뾰족한 끝): 멀리 옆에서 봐도 잎이 보이게(납작하게 누우면 막대만 보임)
+			local p2 = p1 + (out * 0.85 + Vector3.new(0, 0.42 + lift, 0)).Unit * 3 * length
+			local p3 = p2 + (out * 0.7 + Vector3.new(0, -0.72, 0)).Unit * 3.2 * length
+			block(
+				parent,
+				"PalmLeaf",
+				Vector3.new(1.9 * s, 0.2 * s, (p2 - p1).Magnitude + 0.3 * s),
+				piece(p1, p2),
+				color,
+				LEAVES
+			)
+			wedge(
+				parent,
+				"PalmLeafTip",
+				Vector3.new(0.2 * s, 1.9 * s, (p3 - p2).Magnitude + 0.3 * s),
+				piece(p2, p3) * CFrame.Angles(0, 0, math.rad(90)),
+				color:Lerp(PALM_LEAF_LIGHT, 0.3),
+				LEAVES
+			)
 			continue
 		end
 		-- 세 마디(솟는 잎자루 → 둥글게 휘는 가운데 → 늘어지며 뾰족해지는 끝): 마디마다 조금씩 겹쳐 이음매를 덮음
 		local p2 = p1 + (out * 0.88 + Vector3.new(0, 0.5 + lift, 0)).Unit * 2.2 * length
 		local p3 = p2 + (out + Vector3.new(0, 0.02 + lift, 0)).Unit * 2.5 * length
 		local p4 = p3 + (out * 0.66 + Vector3.new(0, -0.75, 0)).Unit * 2.6 * length
-		local function piece(from: Vector3, to: Vector3): CFrame
-			return CFrame.lookAt((from + to) / 2, to, UP)
-		end
 		block(
 			parent,
 			"PalmLeaf",
@@ -540,15 +556,48 @@ function BUILD.Hedge(parent: Instance, item)
 	)
 end
 
--- 꽃밭: 돌 테두리 + 흙 + 낮은 잎 둔덕 셋(대부분 흙에 묻힌 공) + 둔덕마다 겉에 박힌 작은 꽃 두세 송이(두 색)
+-- 꽃밭 두 가지(Style 로 정함, 같은 모양이 줄지어 반복되지 않게):
+--   돌 테두리 꽃밭(Style 1, 2, 4, 5): 흙 + 둘레에 손으로 쌓은 듯한 납작 돌(크기·각도·색이 조금씩 다름, 원이 아니라 울퉁불퉁)
+--     + 낮은 잎 둔덕 셋 + 둔덕마다 겉에 박힌 작은 꽃 두세 송이(두 색)
+--   들꽃 무더기(Style 3, 6): 테두리·흙 없이 잔디 위에 크기가 다른 잎 둔덕 4~5개를 비뚤게 모으고 꽃을 많이
 function BUILD.FlowerBed(parent: Instance, item)
 	local r, base = item.Radius, basePoint(item)
 	local rng = itemRng(item, 4)
 	local colors = FLOWER_PAIRS[(item.Style - 1) % #FLOWER_PAIRS + 1]
-	disc(parent, "FlowerEdge", base - Vector3.new(0, 0.3, 0), 0.62, r * 2 + 0.8, STONE, MAT.Cobblestone)
-	disc(parent, "FlowerSoil", base - Vector3.new(0, 0.3, 0), 0.55, r * 2, SOIL, MAT.Ground)
-	local soilTop = base.Y + 0.25
 	local flower = math.clamp(r * 0.2, 0.5, 0.72)
+	if item.Style % 3 == 0 then
+		local mounds = if r > 3 then 5 else 4
+		for k = 1, mounds do
+			local a = item.Turn + k / mounds * math.pi * 2 + rng:NextNumber(-0.4, 0.4)
+			local d = if k == 1 then 0 else r * rng:NextNumber(0.35, 0.62)
+			local size = r * (if k == 1 then 0.95 else rng:NextNumber(0.55, 0.8))
+			local center = Vector3.new(base.X + math.cos(a) * d, base.Y - size * 0.18, base.Z + math.sin(a) * d)
+			ball(parent, "FlowerLeaves", center, size, BUSH[1]:Lerp(BUSH[3], rng:NextNumber(0.1, 0.45)), LEAVES)
+			blossoms(parent, center, size, if k == 1 then 4 else 3, flower * 0.9, { colors[1], colors[2] }, rng)
+		end
+		return
+	end
+	disc(parent, "FlowerSoil", base - Vector3.new(0, 0.3, 0), 0.55, r * 2, SOIL, MAT.Ground)
+	-- 테두리 돌: 둘레를 따라 한 줄(돌마다 반지름·높이·방향을 조금씩 흔듦)
+	local stones = math.max(8, math.floor(r * 2 * math.pi / 1.5 + 0.5))
+	local start = rng:NextNumber(0, math.pi * 2)
+	for k = 1, stones do
+		local a = start + k / stones * math.pi * 2 + rng:NextNumber(-0.08, 0.08)
+		local d = r + 0.15 + rng:NextNumber(-0.12, 0.12)
+		local length = 2 * math.pi * r / stones * rng:NextNumber(1.05, 1.3)
+		local height = rng:NextNumber(0.5, 0.75)
+		block(
+			parent,
+			"FlowerEdge",
+			Vector3.new(0.85, height, length),
+			CFrame.new(base.X + math.cos(a) * d, base.Y - 0.2 + height / 2, base.Z + math.sin(a) * d)
+				* CFrame.Angles(0, -a + rng:NextNumber(-0.15, 0.15), 0)
+				* CFrame.Angles(rng:NextNumber(-0.1, 0.1), 0, rng:NextNumber(-0.12, 0.12)),
+			STONE:Lerp(ROCK, rng:NextNumber(0, 0.45)),
+			MAT.Slate
+		)
+	end
+	local soilTop = base.Y + 0.25
 	for k = 1, 3 do
 		local a = item.Turn + k / 3 * math.pi * 2 + rng:NextNumber(-0.25, 0.25)
 		local d = r * 0.44
@@ -577,34 +626,32 @@ function BUILD.Topiary(parent: Instance, item)
 	end
 end
 
--- 모난 바윗돌 하나: 서로 다르게 돌린 상자 둘을 같은 자리에 겹침(합친 모양이 여러 면으로 깎인 돌처럼 보임)
+-- 둥근 바윗돌 하나: 크기가 다른 공 셋(가운데 큰 공 + 옆으로 비킨 작은 공 둘)을 겹쳐 아래를 땅에 묻음.
+-- 윗부분만 보여서 낮고 넓적한 바위 덩어리(모난 상자보다 게임 전체의 통통한 모양과 어울림). center = 바닥 가운데
 local function boulder(parent: Instance, name: string, center: Vector3, size: number, rng: Rng.Rng, tint: number)
 	local color = ROCK:Lerp(ROCK_DARK, tint)
-	block(
-		parent,
-		name,
-		Vector3.new(1.15, 0.75, 0.95) * size,
-		CFrame.new(center)
-			* CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0)
-			* CFrame.Angles(rng:NextNumber(-0.35, 0.35), 0, rng:NextNumber(-0.35, 0.35)),
-		color,
-		MAT.Slate,
-		true
-	)
-	block(
-		parent,
-		name,
-		Vector3.new(0.9, 0.85, 0.85) * size,
-		CFrame.new(center + Vector3.new(0, 0.1 * size, 0))
-			* CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0)
-			* CFrame.Angles(rng:NextNumber(-0.4, 0.4), 0, rng:NextNumber(-0.4, 0.4)),
-		color:Lerp(ROCK, 0.35),
-		MAT.Rock,
-		true
-	)
+	ball(parent, name, center + Vector3.new(0, 0.05 * size, 0), 1.25 * size, color, MAT.Rock, true)
+	local start = rng:NextNumber(0, math.pi * 2)
+	for k = 1, 2 do
+		local a = start + k * 2.5 + rng:NextNumber(-0.4, 0.4)
+		local d = size * rng:NextNumber(0.42, 0.55)
+		local ds = size * rng:NextNumber(0.72, 0.9)
+		local x, z = center.X + math.cos(a) * d, center.Z + math.sin(a) * d
+		-- 옆 공 자리의 땅이 더 높으면(지형 바위 턱 비탈) 그만큼 올림: 땅속에 다 묻히지 않게
+		local y = math.max(center.Y - 0.12 * size, groundAt(x, z) - 0.2 * ds)
+		ball(
+			parent,
+			name,
+			Vector3.new(x, y, z),
+			ds,
+			color:Lerp(if k == 1 then ROCK_DARK else STONE, 0.25),
+			if k == 1 then MAT.Slate else MAT.Rock,
+			true
+		)
+	end
 end
 
--- 바위: 모난 바윗돌(몸통, 아래 1/3 묻음) + 옆 작은 돌 1~2 + 이끼 공. 덩어리마다 다른 축으로 돌리고 회색 두 가지를 섞음
+-- 바위: 둥근 바윗돌(몸통, 아래 반쯤 묻음) + 옆 작은 돌 1~2 + 윗면 이끼. 회색 두세 가지를 섞음
 function BUILD.Rock(parent: Instance, item)
 	local s, base = item.Scale, basePoint(item)
 	local rng = itemRng(item, 5)
@@ -613,50 +660,58 @@ function BUILD.Rock(parent: Instance, item)
 	local function floorAt(ox: number, oz: number): number
 		return math.max(base.Y, groundAt(base.X + ox, base.Z + oz))
 	end
-	boulder(parent, "Rock", Vector3.new(base.X, floorAt(0, 0) + 0.35 * s, base.Z), 2.6 * s, rng, 0.2 + item.Tint * 0.4)
-	local pieces = item.Style + 0
-	for k = 1, math.min(pieces, 2) do
-		local ox, oz = spin(if k == 1 then 1.8 else -1.5, if k == 1 then 0.9 else -1.1, t)
-		local size = Vector3.new(1.4, 1.1, 1.3) * s * rng:NextNumber(0.7, 1.05)
-		block(
+	local size = 2.4 * s
+	boulder(parent, "Rock", Vector3.new(base.X, floorAt(0, 0) - 0.25 * size, base.Z), size, rng, 0.2 + item.Tint * 0.4)
+	for k = 1, math.min(item.Style, 2) do
+		local ox, oz = spin(if k == 1 then 2.2 else -1.9, if k == 1 then 1.1 else -1.4, t)
+		local d = s * rng:NextNumber(0.9, 1.3)
+		ball(
 			parent,
 			"Rock",
-			size,
-			CFrame.new(Vector3.new(base.X + ox * s, floorAt(ox * s, oz * s) + 0.15 * s, base.Z + oz * s))
-				* CFrame.Angles(rng:NextNumber(-0.6, 0.6), rng:NextNumber(0, 6.28), rng:NextNumber(-0.6, 0.6)),
-			ROCK:Lerp(if k == 1 then ROCK_DARK else ROCK, 0.5),
-			MAT.Rock,
+			Vector3.new(base.X + ox * s, floorAt(ox * s, oz * s) - 0.1 * d, base.Z + oz * s),
+			d,
+			ROCK:Lerp(if k == 1 then ROCK_DARK else STONE, 0.4),
+			MAT.Slate,
 			true
 		)
 	end
-	local mx, mz = spin(-0.8, 1.1, t)
+	-- 이끼: 몸통 윗면(해 반대쪽)에 반쯤 박힌 납작한 초록 공
+	local mx, mz = spin(-0.35, 0.3, t)
 	ball(
 		parent,
 		"Moss",
-		Vector3.new(base.X + mx * s, floorAt(mx * s, mz * s) + 0.3 * s, base.Z + mz * s),
-		1.1 * s,
+		Vector3.new(base.X + mx * size, floorAt(0, 0) + 0.3 * size, base.Z + mz * size),
+		0.7 * size,
 		MOSS,
 		LEAVES
 	)
 end
 
--- 물가 바위 무리: 지형 바위 턱(낮은 둔덕) 위에 크고 작은 모난 바윗돌 셋(아래 1/3 은 턱·물속에 묻힘).
+-- 물가 바위: 지형 바위(울퉁불퉁한 둔덕) 꼭대기에 둥근 바윗돌 하나(아래 반은 지형 속) + 발치 모래·물가에 작은 돌 둘.
 -- Scale = 지형 바위 반지름, Height = 지형 바위 꼭대기 높이
 function BUILD.ShoreRock(parent: Instance, item)
 	local r, top = item.Scale, item.Height
 	local rng = itemRng(item, 11)
 	local t = item.Turn
-	local stones = {
-		{ 0, 0, 0.62 }, -- 옆, 옆(바위 반지름 비율), 크기(비율)
-		{ 0.55, 0.3, 0.42 },
-		{ -0.45, -0.35, 0.34 },
-	}
-	for k, stone in stones do
-		local ox, oz = spin(stone[1] * r, stone[2] * r, t)
-		local x, z = item.X + ox, item.Z + oz
-		local size = stone[3] * r
-		local floor = math.max(math.min(top, groundAt(x, z)), Island.WATER_LEVEL - 0.4 * size)
-		boulder(parent, "ShoreRock", Vector3.new(x, floor + 0.12 * size, z), size, rng, 0.15 + 0.2 * k)
+	local ox, oz = spin(0.2 * r, 0.1 * r, t)
+	local size = 0.5 * r
+	local floor = math.max(math.min(top, groundAt(item.X + ox, item.Z + oz)), Island.WATER_LEVEL)
+	boulder(parent, "ShoreRock", Vector3.new(item.X + ox, floor - 0.35 * size, item.Z + oz), size, rng, 0.25)
+	for k = 1, 2 do
+		local a = t + k * 2.6 + rng:NextNumber(-0.3, 0.3)
+		local d = r * rng:NextNumber(0.95, 1.15)
+		local x, z = item.X + math.cos(a) * d, item.Z + math.sin(a) * d
+		local pebble = r * rng:NextNumber(0.16, 0.24)
+		local y = math.max(groundAt(x, z), Island.WATER_LEVEL - 0.3 * pebble)
+		ball(
+			parent,
+			"ShoreRock",
+			Vector3.new(x, y - 0.1 * pebble, z),
+			pebble,
+			ROCK:Lerp(STONE, 0.3 * k),
+			MAT.Slate,
+			true
+		)
 	end
 end
 

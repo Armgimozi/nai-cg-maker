@@ -60,10 +60,10 @@ local T = {
 
 	-- 숲띠
 	BELT = {
-		GroveRadius = 12, -- 숲 무리 반지름
+		GroveRadius = 14, -- 숲 무리 반지름
 		BlossomGroves = 0.25, -- 큰 무리가 꽃나무(분홍) 무리일 확률
-		Trees = 40, -- 넓은잎나무 최대 수(보통 무리 크기로 정해짐: 약 34)
-		Palms = 6, -- 모래 쪽 야자수 최대 수
+		Trees = 76, -- 넓은잎나무 최대 수(보통 무리 크기로 정해짐)
+		Palms = 10, -- 모래 쪽 야자수 최대 수
 		TreeScale = { 1.05, 1.45 },
 		PalmScale = { 1.05, 1.35 },
 		BushChance = 0.3, -- 나무마다 옆에 덤불을 둘 확률
@@ -75,14 +75,14 @@ local T = {
 	},
 
 	BEACH = {
-		PalmGroves = 8, -- 모래사장 야자수 무리 수(섬 둘레에 고르지 않은 간격으로, 무리마다 1~3 그루)
+		PalmGroves = 13, -- 모래사장 야자수 무리 수(섬 둘레에 고르지 않은 간격으로, 무리마다 1~3 그루)
 		-- 파라솔 묶음 자리(도)
 		SetZones = {
 			{ From = 163, To = 184, Count = 4 },
 			{ From = 21, To = 37, Count = 3 },
 			{ From = 212, To = 228, Count = 3 },
 		},
-		Surfboards = { 199, 44, 181 }, -- 서핑보드 거치대(도, 풀밭 끝 가까운 모래)
+		Surfboards = { 199, 44, 188 }, -- 서핑보드 거치대(도, 풀밭 끝 가까운 모래)
 		-- 모래 오솔길(지형 칠하기): 바깥 산책로에서 모래사장으로 굽이쳐 내려감(도). 등대 쪽은 등대까지
 		Footpaths = { 315, 135, 173.5, 38, 217.3 },
 		FootpathHalf = 3,
@@ -317,7 +317,7 @@ local function trailPieces(angle: number, a: number, b: number, curve: number, m
 			table.insert(points, { a, 0 })
 		end
 		local waves = if b - start > 45 then 2 else 1 -- 길면 S 자
-		local steps = math.max(3, math.ceil((b - start) / 7))
+		local steps = math.max(4, math.ceil((b - start) / 4))
 		for k = 0, steps do
 			local u = k / steps
 			local side = curve * math.sin(math.pi * waves * u) * (if waves == 2 then 1 else 0.8)
@@ -1119,13 +1119,66 @@ THEMES.Gazebo = function(g)
 	bench(g, 186, -22, 176, 0)
 end
 
+-- 정원 가장자리 심은 무더기: 주제 장식을 다 놓은 뒤, 틈 양옆(부지 울타리 쪽) 빈 잔디 네 곳에 작은 나무 하나 +
+-- 둘레 덤불 둘 + 들꽃 무더기를 한 무더기로(넓은 잔디가 비어 보이지 않게, 흩뿌리지 않고 모아서).
+-- 자리가 없으면 조용히 건너뜀. 나무 색은 정원 주제를 따름
+local PLANTING_TREE = { Orchard = 2, Rockery = 3, Flowers = 4, Gazebo = 4 }
+local function plantings(g: Garden, theme: string)
+	local rng = g.rng
+	for _, rho in { 158, 190 } do
+		for _, s in { -1, 1 } do
+			local half = ParkLayout.gapHalfWidth(rho)
+			local side = s * (half - ParkLayout.PLOT_MARGIN - 5.5)
+			local x, z = onAxis(g.angle, rho + rng:NextNumber(-4, 4), side)
+			local style = PLANTING_TREE[theme] or (if rng:NextNumber() < 0.3 then 4 else 1)
+			local spec = treeSpec("Gardens", "Island", x, z, rng:NextNumber(0.8, 0.95), style, rng)
+			local center = place(g.ctx, rng, spec, 5, 3, true)
+			local cx, cz = x, z
+			local reach = 2
+			if center then
+				cx, cz, reach = center.X, center.Z, center.Radius
+			end
+			local out = math.atan2(cz, cx) -- 광장에서 먼 쪽
+			for k = 1, 2 do
+				local scale = rng:NextNumber(0.75, 1)
+				local a = out + (k - 1.5) * 2.2 + rng:NextNumber(-0.3, 0.3)
+				local d = reach + BUSH_RADIUS * scale + 0.8
+				place(
+					g.ctx,
+					rng,
+					bushSpec("Gardens", cx + math.cos(a) * d, cz + math.sin(a) * d, scale, k == 1, rng),
+					3,
+					1,
+					true
+				)
+			end
+			-- 들꽃 무더기: 광장 쪽 앞
+			local a = out + math.pi + rng:NextNumber(-0.5, 0.5)
+			local d = reach + 2.6
+			place(g.ctx, rng, {
+				Kind = "FlowerBed",
+				Zone = "Gardens",
+				Region = "Island",
+				X = cx + math.cos(a) * d,
+				Z = cz + math.sin(a) * d,
+				Radius = 2.2,
+				Turn = rng:NextNumber(0, TAU),
+				Style = if rng:NextNumber() < 0.5 then 3 else 6,
+				Flat = 2.2,
+			}, 3, 1, true)
+		end
+	end
+end
+
 local function gardens(ctx: Ctx)
 	for j, angle in GAP_ANGLES do
 		local rng = Rng.new(T.SEED + 200 + j)
 		local theme = T.GARDEN_THEMES[(j - 1) % #T.GARDEN_THEMES + 1]
 		local build = THEMES[theme]
 		if build then
-			build({ ctx = ctx, rng = rng, angle = angle, m = rng:Sign(), pond = GAP_PONDS[j] })
+			local g = { ctx = ctx, rng = rng, angle = angle, m = rng:Sign(), pond = GAP_PONDS[j] }
+			build(g)
+			plantings(g, theme)
 		end
 	end
 end
@@ -1226,8 +1279,8 @@ local function belt(ctx: Ctx)
 	for i, footprint in FOOTPRINTS do
 		local side = if i % 2 == 0 then 1 else -1
 		local style = if rng:NextNumber() < B.BlossomGroves then 4 else 1
-		grove(footprint.Angle + side * math.rad(rng:NextNumber(10, 16)), rng:NextInteger(3, 4), style)
-		grove(footprint.Angle - side * math.rad(rng:NextNumber(11, 15)), rng:NextInteger(1, 2), 1)
+		grove(footprint.Angle + side * math.rad(rng:NextNumber(10, 16)), rng:NextInteger(5, 7), style)
+		grove(footprint.Angle - side * math.rad(rng:NextNumber(11, 15)), rng:NextInteger(3, 4), 1)
 	end
 
 	-- 숲 가장자리 덤불(나무 옆, 가끔 꽃 덤불)
@@ -1507,19 +1560,6 @@ local function beach(ctx: Ctx)
 		}, 10, 5)
 	end
 
-	-- 모래사장 야자수: 섬 둘레에 무리(1~3 그루)를 고르지 않은 간격으로, 풀밭 끝 가까운 모래 위, 바다 쪽으로 기움
-	local start = rng:NextNumber(0, TAU)
-	for grove = 1, B.PalmGroves do
-		local a = start + (grove - 0.5) / B.PalmGroves * TAU + rng:NextNumber(-0.3, 0.3)
-		for _ = 1, rng:NextInteger(1, 3) do
-			local pa2 = a + rng:NextNumber(-0.04, 0.04)
-			local grass = Island.grassEdge(pa2)
-			local x, z = polar(pa2, grass + rng:NextNumber(1.5, 6))
-			local scale = rng:NextNumber(1.05, 1.45)
-			place(ctx, rng, palmSpec("Beach", "Beach", x, z, scale, rng), 5, 2.5, true)
-		end
-	end
-
 	-- 서핑보드 거치대(풀밭 끝 가까운 모래, 보드 앞면이 섬 안쪽을 봄)
 	for k, angle in B.Surfboards do
 		local a = math.rad(angle)
@@ -1535,6 +1575,19 @@ local function beach(ctx: Ctx)
 			Style = k,
 			Foot = 2.5,
 		}, 10, 4)
+	end
+
+	-- 모래사장 야자수: 섬 둘레에 무리(1~3 그루)를 고르지 않은 간격으로, 풀밭 끝 가까운 모래 위, 바다 쪽으로 기움
+	local start = rng:NextNumber(0, TAU)
+	for grove = 1, B.PalmGroves do
+		local a = start + (grove - 0.5) / B.PalmGroves * TAU + rng:NextNumber(-0.3, 0.3)
+		for _ = 1, rng:NextInteger(1, 3) do
+			local pa2 = a + rng:NextNumber(-0.04, 0.04)
+			local grass = Island.grassEdge(pa2)
+			local x, z = polar(pa2, grass + rng:NextNumber(1.5, 6))
+			local scale = rng:NextNumber(1.05, 1.45)
+			place(ctx, rng, palmSpec("Beach", "Beach", x, z, scale, rng), 5, 2.5, true)
+		end
 	end
 
 	-- 떠밀려 온 나무(물가 가까운 모래, 아무 방향)
@@ -1605,27 +1658,69 @@ local function sea(ctx: Ctx)
 			Layer = "Free",
 		})
 	end
-	-- 먼 작은 섬 위 야자수(풀 언덕 위, 크게)
+	-- 먼 작은 섬 위: 풀 언덕에 야자수 무리(크게, 바다 쪽으로 기움) + 큰 덤불 몇 개(언덕이 비어 보이지 않게)
 	for _, islet in Island.islets() do
-		local count = if islet.R > 40 then 3 else 2
-		for k = 1, count do
-			local pa = rng:NextNumber(0, TAU)
-			local pd = rng:NextNumber(0.05, 0.4) * islet.R
-			local x, z = islet.X + math.cos(pa) * pd, islet.Z + math.sin(pa) * pd
-			insert(ctx, {
-				Kind = "Palm",
-				Zone = "Sea",
-				X = x,
-				Y = Island.lowestAround(x, z, 1),
-				Z = z,
-				Radius = 1,
-				Scale = islet.R / 24 * rng:NextNumber(0.9, 1.2),
-				Turn = pa + rng:NextNumber(-0.4, 0.4),
-				Tint = rng:NextNumber(),
-				Style = 2, -- 먼 야자수(파트 적게)
-				Height = k,
-				Layer = "Free",
-			})
+		local palms = if islet.R > 40 then 4 else 3
+		local bushes = if islet.R > 40 then 5 else 3
+		local size = islet.R / 24
+		local spots: { { number } } = {}
+		local function spot(spacing: number): (number?, number?)
+			for _ = 1, 30 do
+				local a = rng:NextNumber(0, TAU)
+				local d = math.sqrt(rng:NextNumber()) * islet.R * 0.5
+				local x, z = islet.HillX + math.cos(a) * d, islet.HillZ + math.sin(a) * d
+				local _, material = Island.surface(x, z)
+				local free = material == "Grass"
+				for _, p in spots do
+					if free and (p[1] - x) ^ 2 + (p[2] - z) ^ 2 < spacing * spacing then
+						free = false
+					end
+				end
+				if free then
+					table.insert(spots, { x, z })
+					return x, z
+				end
+			end
+			return nil, nil
+		end
+		for _ = 1, palms do
+			local x, z = spot(4 * size)
+			if x and z then
+				insert(ctx, {
+					Kind = "Palm",
+					Zone = "Sea",
+					X = x,
+					Y = Island.lowestAround(x, z, 1),
+					Z = z,
+					Radius = 1,
+					Scale = size * rng:NextNumber(0.95, 1.25),
+					-- 섬 가운데에서 바깥쪽으로 기움
+					Turn = math.atan2(z - islet.Z, x - islet.X) + rng:NextNumber(-0.5, 0.5),
+					Tint = rng:NextNumber(),
+					Style = 2, -- 먼 야자수(파트 적게)
+					Height = 0,
+					Layer = "Free",
+				})
+			end
+		end
+		for _ = 1, bushes do
+			local x, z = spot(3.5 * size)
+			if x and z then
+				insert(ctx, {
+					Kind = "Bush",
+					Zone = "Sea",
+					X = x,
+					Y = Island.lowestAround(x, z, 1.5),
+					Z = z,
+					Radius = 2,
+					Scale = size * rng:NextNumber(0.9, 1.4),
+					Turn = rng:NextNumber(0, TAU),
+					Tint = rng:NextNumber(),
+					Style = 1,
+					Height = 0,
+					Layer = "Free",
+				})
+			end
 		end
 	end
 end

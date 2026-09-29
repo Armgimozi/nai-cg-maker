@@ -615,7 +615,7 @@ const BEACH_ANGLES = [202.5, 157.5, 112.5, 67.5, 22.5, 337.5, 292.5, 247.5]; // 
 const VIEWS = {
   overview: () => {
     // 남동쪽(+X, +Z) 30도 위에서: 섬 전체와 둘레 바다가 들어오는 거리(섬이 크면 그만큼 멀리)
-    const k = frame.radius / 300;
+    const k = frame.radius / 400; // 섬이 화면 폭의 약 60%
     const cam = new THREE.PerspectiveCamera(40, W / H, 1, 20000);
     cam.position.set(467 * k, 470 * k, 667 * k);
     cam.lookAt(20 * k, -40 * k, 60 * k);
