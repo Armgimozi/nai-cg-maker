@@ -1475,7 +1475,7 @@ local KIT = {
 	shapes = BUILDERS, -- 기존 모양을 바탕으로 쓰고 싶을 때: K.shapes.dome(c)
 }
 
-local CONTINENT_MODULES = { "Asia", "Europe", "Americas", "Africa", "Oceania" }
+local CONTINENT_MODULES = { "Asia", "Asia2", "Europe", "Europe2", "Americas", "Americas2", "Africa", "Oceania" }
 local CUSTOM: { [string]: (Ctx) -> () } = {}
 for _, name in CONTINENT_MODULES do
 	local moduleScript = script:FindFirstChild(name)
