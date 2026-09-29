@@ -35,7 +35,10 @@ Terrain.WaterColor = Color3.fromRGB(28, 128, 150)
 Terrain.WaterTransparency = 0.6
 Terrain.WaterReflectance = 1
 Terrain.WaterWaveSize = 0.15
+-- 풀잎 장식은 스크립트로 못 켬(NotScriptable): 게임처럼 place 파일(project.json) 값으로
+Mock.origin = "project"
 Terrain.Decoration = true
+Mock.origin = "Scenery"
 Terrain:SetMaterialColor(Enum.Material.Grass, Color3.fromRGB(104, 168, 72))
 Terrain:SetMaterialColor(Enum.Material.LeafyGrass, Color3.fromRGB(84, 150, 64))
 Terrain:SetMaterialColor(Enum.Material.Sand, Color3.fromRGB(228, 206, 150))

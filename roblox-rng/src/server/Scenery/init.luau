@@ -105,13 +105,8 @@ local function setupLook(terrain: Terrain)
 	terrain.WaterReflectance = W.Reflectance
 	terrain.WaterWaveSize = W.WaveSize
 	terrain.WaterWaveSpeed = W.WaveSpeed
-	-- 풀잎 장식(Grass 재질에만 나옴). 스크립트로 못 바꾸는 환경이어도 나머지는 그대로
-	local ok = pcall(function()
-		terrain.Decoration = true
-	end)
-	if not ok then
-		warn("[Scenery] Terrain.Decoration 을 켜지 못했습니다(Studio 에서 직접 켜 주세요)")
-	end
+	-- 풀잎 장식(Terrain.Decoration, Grass 재질에만 나옴)은 스크립트로 못 바꾸는 속성(NotScriptable)이라 여기서 켜지 않고
+	-- default.project.json 의 Workspace.Terrain 에서 켬(place 파일에 저장됨)
 end
 
 -- 먼 바다: 바닥 판 + 물(섬·작은 섬 자리는 나중에 복셀 표가 덮어씀)

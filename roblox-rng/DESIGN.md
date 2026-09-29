@@ -107,6 +107,7 @@ PlayerState 의 읽기 함수(park, parkSlots, stars, slots, completedRegions, u
 - 바닥은 서버 시작 때 만드는 **지형 섬**(Workspace.Terrain, Scenery/Island): 해안선 반지름 245~292 로 구불구불,
   공원 자리(r <= 214: 광장·부지·길·산책로)는 윗면이 정확히 y = 0, 부지 뒤 숲띠는 낮은 잔디 언덕, 모래사장은
   물속으로 완만하게 이어짐(물 높이 y = -4, 먼 바다는 사방 1536 까지 지형 물). 파트 밑 땅은 풀잎 장식 없는 재질로 칠함.
+  풀잎 장식(Terrain.Decoration)은 스크립트로 못 켜는 속성이라 default.project.json 의 Workspace.Terrain 에서 켬(place 파일).
   비상 바닥: default.project.json 의 FallbackGround(반지름 225 원기둥, 윗면 y -0.5) — 지형을 못 만들면 그대로 남고,
   다 만들면 치움. 가운데 **광장**(반지름 45, 포석 + 둥근 벽돌·돌길 띠) + 받침대 위 거대 지구본 + 스폰 지점.
 - **공원 부지**: 광장을 둘러싼 고리 하나에 8칸 = 서버 최대 8명(서버 크기 8).

@@ -16,6 +16,7 @@
 --   * workspace:Raycast 는 파트를 상자(Ball 은 구)로 보고 계산 + 지형 맨 위 표면(물 포함, IgnoreWater 따름)
 --   * Terrain: 4 스터드 복셀(재질 + 점유율 + 물 점유율)을 진짜로 채움 — Fill*/FillRegion/ReadVoxels/WriteVoxels/
 --     ReadVoxelChannels/WriteVoxelChannels/ReplaceMaterial/Clear/SetMaterialColor, Water* 속성, Decoration.
+--     Decoration · GrassLength 는 스크립트로 쓰면 오류(NotScriptable — Mock.origin = "project" 일 때만, 즉 project.json)
 --     규칙은 아래 "Terrain" 부분 주석. Mock.terrainFills = 호출 기록, Mock.terrainDumpJson = 렌더러용 덤프
 
 local Mock = {}
@@ -1875,6 +1876,12 @@ IMT.__index = function(self, k)
 	return nil
 end
 
+-- 스크립트로 못 쓰는 속성(Roblox API 의 NotScriptable): Mock.origin 이 "project"(default.project.json 을 읽는 중)일 때만 받음
+local NOT_SCRIPTABLE: { [string]: { [string]: boolean } } = {
+	Terrain = { Decoration = true, GrassLength = true },
+}
+Mock.NOT_SCRIPTABLE = NOT_SCRIPTABLE
+
 IMT.__newindex = function(self, k, v)
 	if Mock.strict then
 		assert(KNOWN[k], "unknown property set: " .. tostring(k))
@@ -1896,6 +1903,10 @@ IMT.__newindex = function(self, k, v)
 	end
 	if k == "ClassName" then
 		error("ClassName 은 읽기 전용입니다", 2)
+	end
+	if NOT_SCRIPTABLE[p.ClassName] and NOT_SCRIPTABLE[p.ClassName][k] and Mock.origin ~= "project" then
+		-- Roblox 에서 스크립트가 쓰면 오류(Studio 속성 창 / place 파일 = default.project.json 에서만 정함)
+		error(string.format("%s.%s 는 스크립트로 바꿀 수 없습니다(NotScriptable)", p.ClassName, k), 2)
 	end
 	local part = isA(p.ClassName, "BasePart")
 	if part then

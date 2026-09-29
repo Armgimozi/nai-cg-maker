@@ -1999,6 +1999,41 @@ test(
 	end
 )
 
+test(
+	"default.project.json: 풀잎 장식(Terrain.Decoration)은 place 파일에서 켬 — 스크립트는 안 씀",
+	function()
+		local project = readfile("default.project.json")
+		assert(project, "default.project.json 을 읽지 못함")
+		local workspaceBlock = project:match('"Workspace"%s*:%s*(%b{})')
+		assert(workspaceBlock, "Workspace 없음")
+		local terrain = workspaceBlock:match('"Terrain"%s*:%s*(%b{})')
+		assert(terrain, "Workspace.Terrain 없음")
+		assert(terrain:find('"%$className"%s*:%s*"Terrain"'), "Terrain 의 $className")
+		assert(terrain:find('"Decoration"%s*:%s*true'), "Decoration = true 아님")
+		-- NotScriptable: 게임 스크립트가 쓰면 오류(예전엔 pcall + 매번 경고). 주석을 뺀 코드에 쓰기가 없어야 함
+		local function code(path: string): string
+			local out = {}
+			for line in (readfile(path) or ""):gmatch("[^\n]*") do
+				table.insert(out, (line:gsub("%-%-.*$", "")))
+			end
+			return table.concat(out, "\n")
+		end
+		local function scan(dir: string)
+			for _, name in listdir(dir) do
+				local path = dir .. "/" .. name
+				if name:match("%.luau$") then
+					local source = code(path)
+					assert(not source:find("%.Decoration%s*="), path .. " 가 Terrain.Decoration 을 씀")
+					assert(not source:find("%.GrassLength%s*="), path .. " 가 Terrain.GrassLength 를 씀")
+				elseif not name:find("%.") then
+					scan(path)
+				end
+			end
+		end
+		scan("src")
+	end
+)
+
 if not Harness.finish() then
 	error("테스트 실패")
 end
