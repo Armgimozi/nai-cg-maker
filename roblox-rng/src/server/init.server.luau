@@ -105,7 +105,7 @@ local function refreshVisible(player: Player, session: Session)
 	local visible = visibleData(session)
 	local best = PlayerState.best(visible)
 	session.Stats.Best.Value = if best then best.Name else "-"
-	local ok, err = pcall(ParkService.update, player, visible)
+	local ok, err = pcall(ParkService.update, player, visible, modsFor(session))
 	if not ok then
 		warn("[LandmarkRNG] 공원 갱신 실패: " .. tostring(err))
 	end

@@ -36,6 +36,34 @@
           <string name="Source"><![CDATA[--!strict
 -- 게임 전체 밸런스/설정 값. 숫자만 바꿔서 난이도를 조절할 수 있습니다.
 
+-- n 번째 환생 조건(코인 + 이번 판에 보유해야 하는 명소 Id)
+export type RebirthStep = {
+	Coins: number,
+	Landmarks: { string },
+}
+
+-- 게임패스(한 번 사면 영구). PassId 가 0 이면 비활성(화면에 안 나옴)
+export type GamePass = {
+	Id: string,
+	Name: string,
+	PassId: number,
+	LuckMult: number?, -- 행운 배율
+	CooldownMult: number?, -- 굴림 간격 배율
+	IncomeMult: number?, -- 관광 수입 배율
+}
+
+-- 개발자 상품(여러 번 구매). ProductId 가 0 이면 비활성(화면에 안 나옴)
+export type Product = {
+	Id: string,
+	Name: string,
+	ProductId: number,
+	Seconds: number?, -- 시간 부스트 길이(초). 같은 부스트를 또 사면 시간이 더해짐
+	LuckMult: number?, -- 부스트 중 행운 배율
+	ServerWide: boolean?, -- true 면 서버 전체 부스트(저장 안 하는 서버 변수), 아니면 개인 부스트(Data.Boosts)
+	IncomeSeconds: number?, -- 코인 팩: 초당 관광 수입 × 이 초만큼 코인
+	MinCoins: number?, -- 코인 팩: 최소 코인
+}
+
 local Config = {
 	-- 굴리기(지구본 돌리기) ----------------------------------------------
 	ROLL_COOLDOWN = 1.2, -- 굴리기 사이 최소 간격(초). 서버가 강제합니다.
@@ -52,6 +80,7 @@ local Config = {
 
 	-- 관광 공원(타이쿤) ------------------------------------------------------
 	BASE_SLOTS = 6, -- 처음 전시 칸 수 (공원 확장 업그레이드로 늘어남)
+	PARK_GRID = 6, -- 공원 전시 격자 한 변의 칸 수(6×6 = 최대 36칸). 명소가 더 많으면 희귀한 순서로 36개만 전시
 	-- 등급(Rank 1~7)별 명소 1개의 초당 관광 수입
 	TIER_INCOME = { 1, 2, 5, 12, 30, 80, 250 },
 	-- 같은 명소를 여러 번 발견하면 별(★)이 오름. 별 k 개가 되는 누적 발견 수
@@ -92,7 +121,7 @@ local Config = {
 			Description = "전시 칸 +3",
 			BasePrice = 250,
 			Growth = 2.0,
-			MaxLevel = 9, -- 6 + 3*9 = 33칸 = 전체 명소 수
+			MaxLevel = 10, -- 6 + 3*10 = 36칸 = 격자(6×6) 가득
 			PerLevel = 3,
 		},
 		{
@@ -106,6 +135,41 @@ local Config = {
 			PerLevel = 0.20,
 		},
 	},
+
+	-- 환생 ---------------------------------------------------------------
+	-- REBIRTHS[n] = n 번째 환생 조건. 요구 명소는 이번 판에 보유하고 있어야 함(환생하면 보유 명소는 비워짐).
+	-- 목록을 넘어서면 마지막 단계의 명소 + 코인 × REBIRTH_COIN_GROWTH 씩 증가.
+	-- (명소 목록이 늘어나도 그대로 쓸 수 있는 명소 Id 만 사용)
+	REBIRTHS = {
+		{ Coins = 5000, Landmarks = { "eiffel", "liberty" } },
+		{ Coins = 30000, Landmarks = { "colosseum", "tajmahal" } },
+		{ Coins = 150000, Landmarks = { "sphinx", "greatwall" } },
+		{ Coins = 600000, Landmarks = { "pyramid", "chichen", "machupicchu" } },
+		{ Coins = 2500000, Landmarks = { "petra", "moai", "stonehenge" } },
+		{ Coins = 10000000, Landmarks = { "alexandria", "reef" } },
+		{ Coins = 40000000, Landmarks = { "babylon", "rhodes", "nanmadol" } },
+		{ Coins = 160000000, Landmarks = { "babel" } },
+	} :: { RebirthStep },
+	REBIRTH_COIN_GROWTH = 4,
+	REBIRTH_LUCK_BONUS = 0.2, -- 환생 1회마다 행운 +20% (행운 × (1 + 0.2 × 환생 수))
+	REBIRTH_INCOME_BONUS = 0.5, -- 환생 1회마다 관광 수입 +50% (수입 × (1 + 0.5 × 환생 수))
+
+	-- 유료 상품(Robux) ----------------------------------------------------
+	-- Creator Hub 에서 만든 뒤 PassId / ProductId 를 넣으세요. 0 이면 그 상품은 비활성(화면에 안 나옴).
+	-- 추천 가격(Robux): LuckVIP 399, FastRoll 199, DoubleIncome 299
+	GamePasses = {
+		{ Id = "LuckVIP", Name = "행운 VIP", PassId = 0, LuckMult = 2 },
+		{ Id = "FastRoll", Name = "빠른 굴림", PassId = 0, CooldownMult = 0.7 },
+		{ Id = "DoubleIncome", Name = "수입 2배", PassId = 0, IncomeMult = 2 },
+	} :: { GamePass },
+	-- 추천 가격(Robux): LuckBoost 49, ServerLuck 99, CoinPack 79
+	Products = {
+		{ Id = "LuckBoost", Name = "행운 부스트", ProductId = 0, Seconds = 900, LuckMult = 2 },
+		{ Id = "ServerLuck", Name = "서버 행운", ProductId = 0, Seconds = 900, LuckMult = 2, ServerWide = true },
+		{ Id = "CoinPack", Name = "코인 팩", ProductId = 0, IncomeSeconds = 1800, MinCoins = 1000 },
+	} :: { Product },
+	MAX_BOOST_SECONDS = 3 * 60 * 60, -- 시간 부스트(개인·서버)는 남은 시간이 이 이상 쌓이지 않음
+	MAX_RECEIPTS = 50, -- 중복 지급 방지용으로 기억하는 최근 구매 영수증(PurchaseId) 수
 
 	-- 저장 ---------------------------------------------------------------
 	DATASTORE_NAME = "LandmarkRNG_v1",
@@ -238,6 +302,7 @@ local ImageIds: { [string]: string } = {
 	stamp_asia = "",
 	stamp_africa = "",
 	stamp_americas = "",
+	stamp_oceania = "",
 	stamp_legend = "",
 	-- (선택) 업그레이드 아이콘. 비어 있으면 3D 모형
 	plane = "",
@@ -314,6 +379,7 @@ Landmarks.Regions = {
 	{ Id = "Europe", Name = "유럽", Emoji = "🏰", Color = Color3.fromRGB(110, 150, 255) },
 	{ Id = "Africa", Name = "아프리카", Emoji = "🐪", Color = Color3.fromRGB(240, 190, 90) },
 	{ Id = "Americas", Name = "아메리카", Emoji = "🗽", Color = Color3.fromRGB(90, 210, 150) },
+	{ Id = "Oceania", Name = "오세아니아", Emoji = "🏝️", Color = Color3.fromRGB(70, 200, 235) },
 } :: { Region }
 
 Landmarks.RegionById = {} :: { [string]: Region }
@@ -339,17 +405,20 @@ local DEFINITIONS = {
 	-- Id,           이름,               영문,                          N,         지역,       모형,         주 색,               보조 색,              강조 색,              재질
 	{ "clocktower",  "홍콩 시계탑",      "Clock Tower, Hong Kong",      2,         "Asia",     "clocktower", rgb(200, 170, 140), rgb(90, 70, 60),    rgb(255, 245, 210), M.Brick },
 	{ "lighthouse",  "희망봉 등대",      "Cape Point Lighthouse",       3,         "Africa",   "lighthouse", rgb(240, 240, 240), rgb(210, 60, 60),   rgb(255, 240, 150), M.SmoothPlastic },
+	{ "harbourbridge", "하버 브리지",    "Sydney Harbour Bridge",       4,         "Oceania",  "bridge",     rgb(150, 155, 160), rgb(95, 100, 110),  rgb(255, 225, 150), M.Metal },
 	{ "windmill",    "풍차 마을",        "Kinderdijk Windmills",        5,         "Europe",   "windmill",   rgb(230, 220, 200), rgb(140, 90, 60),   rgb(250, 250, 250), M.WoodPlanks },
 	{ "fountain",    "버킹엄 분수",      "Buckingham Fountain",         7,         "Americas", "fountain",   rgb(215, 205, 185), rgb(80, 170, 255),  rgb(200, 240, 255), M.Marble },
 
 	{ "arc",         "개선문",           "Arc de Triomphe",             12,        "Europe",   "arch",       rgb(225, 210, 180), rgb(190, 175, 150), rgb(255, 230, 160), M.Limestone },
 	{ "bigben",      "빅벤",             "Big Ben",                     20,        "Europe",   "clocktower", rgb(200, 175, 120), rgb(40, 60, 50),    rgb(255, 230, 140), M.Sandstone },
+	{ "skytower",    "스카이타워",       "Sky Tower, Auckland",         25,        "Oceania",  "needle",     rgb(230, 230, 235), rgb(80, 85, 95),    rgb(120, 220, 255), M.Concrete },
 	{ "sungnyemun",  "숭례문",           "Sungnyemun Gate",             30,        "Asia",     "gate",       rgb(170, 160, 150), rgb(60, 120, 90),   rgb(200, 50, 45),   M.Slate },
 	{ "pisa",        "피사의 사탑",      "Leaning Tower of Pisa",       45,        "Europe",   "leaning",    rgb(240, 235, 220), rgb(200, 190, 170), rgb(255, 250, 235), M.Marble },
 	{ "liberty",     "자유의 여신상",    "Statue of Liberty",           70,        "Americas", "statue",     rgb(120, 190, 160), rgb(160, 140, 110), rgb(255, 200, 80),  M.Metal },
 
 	{ "namsan",      "남산타워",         "N Seoul Tower",               120,       "Asia",     "needle",     rgb(235, 235, 240), rgb(60, 60, 70),    rgb(90, 200, 255),  M.SmoothPlastic },
 	{ "eiffel",      "에펠탑",           "Eiffel Tower",                200,       "Europe",   "lattice",    rgb(120, 95, 70),   rgb(90, 70, 50),    rgb(255, 210, 120), M.Metal },
+	{ "apostles",    "12사도 바위",      "Twelve Apostles",             250,       "Oceania",  "seastacks",  rgb(210, 160, 110), rgb(50, 140, 200),  rgb(240, 230, 210), M.Sandstone },
 	{ "colosseum",   "콜로세움",         "Colosseum",                   350,       "Europe",   "ring",       rgb(215, 190, 150), rgb(170, 145, 110), rgb(255, 225, 170), M.Limestone },
 	{ "tajmahal",    "타지마할",         "Taj Mahal",                   600,       "Asia",     "dome",       rgb(250, 248, 240), rgb(220, 215, 200), rgb(255, 215, 120), M.Marble },
 	{ "angkor",      "앙코르와트",       "Angkor Wat",                  850,       "Asia",     "temple",     rgb(150, 140, 110), rgb(100, 110, 80),  rgb(230, 200, 120), M.Sandstone },
@@ -357,20 +426,23 @@ local DEFINITIONS = {
 	{ "sphinx",      "스핑크스",         "Great Sphinx",                1200,      "Africa",   "sphinx",     rgb(215, 180, 120), rgb(190, 155, 100), rgb(80, 120, 200),  M.Sandstone },
 	{ "greatwall",   "만리장성",         "Great Wall",                  1600,      "Asia",     "wall",       rgb(160, 150, 135), rgb(90, 130, 70),   rgb(220, 60, 50),   M.Cobblestone },
 	{ "pyramid",     "기자 피라미드",    "Pyramids of Giza",            2200,      "Africa",   "pyramid",    rgb(225, 195, 130), rgb(200, 170, 110), rgb(255, 225, 120), M.Sandstone },
+	{ "reef",        "그레이트 배리어 리프", "Great Barrier Reef",      2800,      "Oceania",  "reef",       rgb(255, 120, 150), rgb(40, 170, 210),  rgb(255, 215, 90),  M.SmoothPlastic },
 	{ "chichen",     "치첸이트사",       "Chichen Itza",                3000,      "Americas", "steps",      rgb(190, 180, 160), rgb(80, 140, 80),   rgb(230, 220, 190), M.Limestone },
 	{ "machupicchu", "마추픽추",         "Machu Picchu",                4000,      "Americas", "terraces",   rgb(150, 145, 135), rgb(90, 160, 80),   rgb(200, 230, 255), M.Slate },
 	{ "petra",       "페트라",           "Petra",                       5500,      "Asia",     "facade",     rgb(215, 130, 100), rgb(180, 100, 75),  rgb(255, 200, 150), M.Sandstone },
-	{ "moai",        "모아이 석상",      "Moai",                        7000,      "Americas", "moai",       rgb(110, 105, 100), rgb(80, 150, 90),   rgb(200, 60, 50),   M.Basalt },
+	{ "moai",        "모아이 석상",      "Moai",                        7000,      "Oceania",  "moai",       rgb(110, 105, 100), rgb(80, 150, 90),   rgb(200, 60, 50),   M.Basalt },
 	{ "stonehenge",  "스톤헨지",         "Stonehenge",                  9000,      "Europe",   "stones",     rgb(150, 150, 145), rgb(90, 150, 80),   rgb(200, 220, 255), M.Slate },
 
 	{ "alexandria",  "알렉산드리아 등대", "Lighthouse of Alexandria",   15000,     "Africa",   "lighthouse", rgb(245, 240, 225), rgb(220, 200, 160), rgb(255, 170, 60),  M.Marble },
 	{ "babylon",     "바빌론 공중정원",  "Hanging Gardens of Babylon",  30000,     "Asia",     "gardens",    rgb(210, 180, 130), rgb(60, 170, 70),   rgb(120, 200, 255), M.Sandstone },
+	{ "nanmadol",    "난마돌",           "Nan Madol",                   45000,     "Oceania",  "ruins",      rgb(70, 70, 78),    rgb(40, 150, 175),  rgb(110, 200, 110), M.Basalt },
 	{ "rhodes",      "로도스 거상",      "Colossus of Rhodes",          60000,     "Europe",   "statue",     rgb(190, 130, 60),  rgb(230, 225, 210), rgb(255, 140, 40),  M.Foil },
 
 	{ "babel",       "바벨탑",           "Tower of Babel",              150000,    "Asia",     "spiral",     rgb(200, 170, 120), rgb(150, 120, 90),  rgb(255, 230, 180), M.Sandstone },
 	{ "atlantis",    "아틀란티스",       "Atlantis",                    400000,    "Europe",   "island",     rgb(230, 240, 250), rgb(40, 120, 200),  rgb(90, 255, 230),  M.Marble },
 	{ "eldorado",    "엘도라도",         "El Dorado",                   800000,    "Americas", "steps",      rgb(255, 200, 60),  rgb(200, 140, 30),  rgb(255, 250, 180), M.Foil },
 
+	{ "mu",          "무 대륙",          "Lost Continent of Mu",        3000000,   "Oceania",  "island",     rgb(175, 165, 125), rgb(30, 110, 170),  rgb(255, 210, 90),  M.Slate },
 	{ "yonggung",    "용궁",             "Dragon King's Palace",        2000000,   "Asia",     "pagoda",     rgb(230, 70, 70),   rgb(40, 130, 150),  rgb(120, 255, 220), M.Glass },
 	{ "skyisland",   "사하라 신기루 성", "Mirage Citadel of the Sahara", 5000000,  "Africa",   "skyisland",  rgb(235, 200, 130), rgb(190, 140, 80),  rgb(170, 240, 255), M.Sand },
 	{ "shangrila",   "샹그릴라",         "Shangri-La",                  10000000,  "Asia",     "pagoda",     rgb(250, 250, 250), rgb(255, 200, 70),  rgb(255, 240, 180), M.Marble },
@@ -493,6 +565,7 @@ local WHITE = rgb(255, 255, 255)
 
 type Ctx = {
 	model: Model,
+	id: string, -- 명소 Id(같은 모형을 쓰는 명소끼리 작은 차이를 줄 때)
 	origin: CFrame, -- 파트 좌표에 앞에서 곱하는 기준 좌표계(기울어진 탑 등)
 	P: Color3, -- 주 색
 	S: Color3, -- 보조 색
@@ -930,8 +1003,48 @@ function BUILDERS.statue(c)
 	end
 end
 
--- 남산타워: 계단식 초록 언덕 + 가느다란 탑신 + 전망대 원반 + 안테나
+-- 스카이타워: 오클랜드 도심 블록(도로 + 빌딩들 + 뒤쪽 스카이시티) 위에 바로 선 탑.
+--   밑동의 네 다리 + 긴 탑신 + 아래가 벌어진 전망대(유리 2층 + 빛 띠) + 긴 안테나
+local function skyTower(c: Ctx)
+	box(c, 0, 0, 0, 9.8, 0.3, 9.8, rgb(96, 100, 108), Mat.Concrete)
+	box(c, 0, 0.3, 0, 3.8, 0.08, 3.8, rgb(190, 188, 182), Mat.Concrete)
+	local glass = rgb(120, 160, 200)
+	-- 빌딩: { x, z, 가로, 높이, 세로, 색, 재질 }
+	local buildings = {
+		{ -3.3, 3.3, 2.8, 4.8, 2.6, glass, Mat.Glass },
+		{ 3.3, 3.3, 2.8, 3.8, 2.6, rgb(215, 205, 185), Mat.Concrete },
+		{ 3.5, -0.1, 2.2, 5.6, 2.4, mix(c.S, glass, 0.5), Mat.Glass },
+		{ -3.5, -0.3, 2.2, 2.6, 2.6, rgb(200, 190, 175), Mat.Concrete },
+		{ -3.4, -3.6, 2.4, 1.6, 2, rgb(225, 225, 220), Mat.Concrete },
+		{ 3.4, -3.6, 2.4, 2.2, 2, mix(glass, WHITE, 0.3), Mat.Glass },
+	}
+	for _, b in buildings do
+		box(c, b[1], 0.3, b[2], b[3], b[4], b[5], b[6], b[7])
+	end
+	box(c, 0, 0.3, 3.1, 3.4, 1.6, 2.6, mix(c.P, c.S, 0.35))
+	for _, s in CORNERS do
+		beam(c, V(s[1] * 1.1, 0.35, s[2] * 1.1), V(s[1] * 0.3, 3.2, s[2] * 0.3), 0.45, c.P)
+	end
+	col(c, 0, 0.3, 0, 11, 1.15, c.P)
+	col(c, 0, 11.2, 0, 0.5, 1.9, c.P)
+	col(c, 0, 11.7, 0, 0.5, 2.7, c.P)
+	col(c, 0, 12.2, 0, 1.1, 3.2, c.S, Mat.Glass)
+	col(c, 0, 12.6, 0, 0.3, 3.3, c.A, Mat.Neon)
+	col(c, 0, 13.3, 0, 0.35, 3.4, c.P)
+	col(c, 0, 13.65, 0, 0.7, 2.4, c.S, Mat.Glass)
+	col(c, 0, 14.35, 0, 0.35, 2, c.P)
+	col(c, 0, 14.7, 0, 1.2, 0.9, c.P)
+	col(c, 0, 15.9, 0, 4.2, 0.45, c.P)
+	col(c, 0, 20.1, 0, 1, 0.22, c.A)
+	ball(c, 0, 21.3, 0, 0.4, c.A, Mat.Neon)
+end
+
+-- 남산타워: 계단식 초록 언덕 + 가느다란 탑신 + 전망대 원반 + 안테나 (스카이타워는 도심 블록 위 버전)
 function BUILDERS.needle(c)
+	if c.id == "skytower" then
+		skyTower(c)
+		return
+	end
 	col(c, 0, 0, 0, 1.2, 9.8, GRASS, Mat.Grass)
 	col(c, 0.3, 1.2, 0.2, 1.1, 7.4, GRASS, Mat.Grass)
 	col(c, 0.2, 2.3, 0.1, 1, 4.8, GRASS, Mat.Grass)
@@ -1375,8 +1488,63 @@ function BUILDERS.spiral(c)
 	block(c, CFrame.new(0.5, top + 0.4, -0.3) * CFrame.Angles(0, 0.4, 0.2), V(0.8, 0.8, 0.8), c.P)
 end
 
+-- 무 대륙: 가라앉는 밀림 대륙(바다 + 얕은 여울 + 두 덩어리 땅) + 가운데 계단식 석조 신전(금 지붕, 금빛 태양 원반)
+--   + 금빛 화로 + 밀림 나무 + 물에 잠겨 가는 무너진 돌기둥과 돌문
+local function lostContinent(c: Ctx)
+	local jungle = rgb(62, 140, 70)
+	col(c, 0, 0, 0, 0.3, 9.8, c.S, Mat.Glass, 0.1)
+	col(c, 0, 0, 0, 0.35, 8.8, mix(c.S, WHITE, 0.3), Mat.Glass, 0.1)
+	col(c, 0.3, 0, 0.5, 0.75, 7.2, c.P)
+	col(c, 0.3, 0.75, 0.5, 0.2, 6.9, jungle, Mat.Grass)
+	col(c, -2.5, 0, -2.2, 0.55, 3.2, c.P)
+	col(c, -2.5, 0.55, -2.2, 0.15, 2.9, jungle, Mat.Grass)
+	local ground = 0.95
+	local tx, tz = 0.4, 0.9
+	local y = ground
+	for _, tier in { { 4.4, 0.8 }, { 3.5, 0.8 }, { 2.6, 0.8 }, { 1.8, 0.7 } } do
+		box(c, tx, y, tz, tier[1], tier[2], tier[1], c.P)
+		y += tier[2]
+	end
+	wedge(c, CFrame.new(tx, (ground + y) / 2, tz - 1.95), V(1, y - ground, 2.1), mix(c.P, WHITE, 0.2))
+	for _, s in CORNERS do
+		ball(c, tx + s[1] * 1.55, ground + 1.8, tz + s[2] * 1.55, 0.4, c.A, Mat.Neon)
+	end
+	box(c, tx, y, tz + 0.1, 1.3, 1, 1.2, mix(c.P, WHITE, 0.12))
+	box(c, tx, y, tz - 0.51, 0.45, 0.7, 0.05, DARK)
+	box(c, tx, y + 1, tz + 0.1, 1.6, 0.2, 1.5, c.A, Mat.Metal)
+	box(c, tx, y + 1.2, tz + 0.1, 0.9, 0.3, 0.9, c.A, Mat.Metal)
+	cyl(c, CFrame.new(tx, y + 1.95, tz + 0.1) * ALONG_Z, 0.12, 0.9, c.A, Mat.Neon)
+	-- 밀림: { x, z, 줄기 높이, 잎 지름, 바닥 높이 }
+	for k, t in
+		{
+			{ -2.6, 2.7, 1.4, 1.6, ground },
+			{ 2.9, 2.8, 1.2, 1.4, ground },
+			{ 3.2, -0.9, 1.6, 1.5, ground },
+			{ -2.8, 0.4, 1.1, 1.3, ground },
+			{ -2.6, -2.3, 1.2, 1.3, 0.7 },
+			{ 2.1, -2.2, 1, 1.2, ground },
+		}
+	do
+		plant(c, t[1], t[5], t[2], t[3], t[4], if k % 2 == 0 then LEAF else jungle)
+	end
+	ball(c, -1, ground + 0.15, 3.3, 1, LEAF, Mat.Grass)
+	ball(c, 3.3, ground + 0.1, 1.2, 0.9, jungle, Mat.Grass)
+	ball(c, -1.4, 0.8, -3, 0.8, LEAF, Mat.Grass)
+	-- 물에 잠겨 가는 유적
+	block(c, CFrame.new(3, 0.95, -3.1) * CFrame.Angles(0.25, 0.3, 0.35), V(0.55, 1.6, 0.55), c.P)
+	col(c, 3.9, 0, -1.9, 0.9, 0.5, c.P)
+	box(c, -3.9, 0, 1, 0.45, 1.5, 0.45, c.P)
+	box(c, -3.9, 0, 2.2, 0.45, 1.2, 0.45, c.P)
+	block(c, CFrame.new(-3.9, 1.55, 1.6) * CFrame.Angles(0.12, 0, 0), V(0.55, 0.35, 1.8), c.P)
+end
+
 -- 아틀란티스: 물과 땅이 번갈아 도는 동심원 섬 + 가운데 원형 신전(빛나는 수정 첨탑) + 흰 탑 6개 + 다리
+-- (무 대륙은 밀림 + 계단식 석조 신전 버전)
 function BUILDERS.island(c)
+	if c.id == "mu" then
+		lostContinent(c)
+		return
+	end
 	col(c, 0, 0, 0, 0.3, 9.8, c.S, Mat.Glass, 0.1)
 	col(c, 0, 0, 0, 0.55, 8.4, c.P)
 	col(c, 0, 0, 0, 0.6, 6.8, c.S, Mat.Glass, 0.1)
@@ -1493,6 +1661,232 @@ function BUILDERS.tree(c)
 	col(c, 0, 0.3, 0, 0.08, 6, c.A, Mat.Neon, 0.5)
 end
 
+-- 하버 브리지: 항구 물 + 양쪽 기슭 + 끝마다 화강암 탑문 2개 + 나란한 강철 아치 두 줄(끝은 두껍고 꼭대기는 얇음)
+--   + 아치를 꿰뚫고 지나는 도로 상판 + 아치에 매단 멜대 + 아치 사이 가새
+--   (오페라하우스는 건물 이미지 상표 문제로 넣지 않음)
+function BUILDERS.bridge(c)
+	local granite = rgb(208, 196, 172)
+	local deckY, deckTop = 2.2, 2.55
+	box(c, 0, 0, 0, 9.8, 0.25, 9.8, WATER, Mat.Glass, 0.1)
+	for _, sx in { -1, 1 } do
+		box(c, sx * 4.2, 0, 0, 1.4, 0.6, 9.8, GRASS, Mat.Grass)
+		box(c, sx * 4.3, 0.6, 0, 1.2, deckY - 0.6, 4.4, granite, Mat.Granite)
+		for _, sz in { -1, 1 } do
+			box(c, sx * 4.3, deckY, sz * 1.75, 1.1, 1.85, 0.9, granite, Mat.Granite)
+			box(c, sx * 4.3, deckY + 1.85, sz * 1.75, 0.8, 0.4, 0.65, granite, Mat.Granite)
+		end
+	end
+	box(c, 0, deckY, 0, 9.8, deckTop - deckY, 2.6, c.S)
+	-- 아치: 위·아래 현(포물선) 사이를 비스듬한 토막으로 채움. 발은 탑문 아래 기슭(x = ±span)
+	local span = 3.7
+	local function curve(x: number, crown: number, foot: number): number
+		local u = x / span
+		return crown - (crown - foot) * u * u
+	end
+	local function upper(x: number): number
+		return curve(x, 5.9, 3.3)
+	end
+	local function lower(x: number): number
+		return curve(x, 5.3, 0.6)
+	end
+	local function middle(x: number): number
+		return (upper(x) + lower(x)) / 2
+	end
+	local segments = 7
+	for _, sz in { -1, 1 } do
+		for k = 0, segments - 1 do
+			local x1 = span * (2 * k / segments - 1)
+			local x2 = span * (2 * (k + 1) / segments - 1)
+			local p1, p2 = V(x1, middle(x1), sz), V(x2, middle(x2), sz)
+			local along = p2 - p1
+			local depth = (upper(x1) - lower(x1) + upper(x2) - lower(x2)) / 2 * math.abs(along.X) / along.Magnitude
+			block(c, CFrame.lookAt((p1 + p2) / 2, p2), V(0.35, depth, along.Magnitude + depth * 0.4), c.P)
+		end
+		-- 멜대(아치 아래 현에서 상판까지)
+		for _, x in { -2.1, -0.8, 0.8, 2.1 } do
+			box(c, x, deckTop, sz, 0.12, lower(x) - deckTop + 0.1, 0.12, c.S)
+		end
+	end
+	for _, x in { -2.4, 0, 2.4 } do
+		beam(c, V(x, middle(x), -1), V(x, middle(x), 1), 0.2, c.S)
+	end
+	beam(c, V(-2.4, middle(-2.4), -1), V(0, middle(0), 1), 0.16, c.S)
+	beam(c, V(2.4, middle(2.4), -1), V(0, middle(0), 1), 0.16, c.S)
+end
+
+-- 12사도 바위: 바다 + 왼쪽(-X)을 두른 사암 절벽(덤불 윗면, 아래가 젖어 어두움) + 절벽 밑 모래 해변과 물거품
+--   + 탁 트인 바다에 흩어져 솟은 사암 기둥들(밑동은 파도에 파먹히고 위로 갈수록 좁고 비틀림) + 무너진 기둥 밑동
+function BUILDERS.seastacks(c)
+	box(c, 0, 0, 0, 9.8, 0.3, 9.8, c.S, Mat.Glass, 0.1)
+	local wet = mix(c.P, BLACK, 0.22)
+	local pale = mix(c.P, WHITE, 0.15)
+	local cliff = mix(c.P, ROCK, 0.25)
+	local scrub = mix(LEAF, c.P, 0.2)
+	-- 절벽: { x, z, 가로, 깊이, 높이 }
+	local cliffs = {
+		{ -4, 0.9, 1.8, 8, 5.2 },
+		{ -2.4, 4.1, 1.6, 1.6, 4.6 },
+		{ -4.2, -4, 1.4, 1.8, 2.8 },
+	}
+	for _, cl in cliffs do
+		local x, z, w, d, h = cl[1], cl[2], cl[3], cl[4], cl[5]
+		box(c, x, 0, z, w, h * 0.25, d, wet)
+		box(c, x, h * 0.25, z, w - 0.2, h * 0.75, d - 0.2, cliff)
+		box(c, x, h, z, w - 0.3, 0.3, d - 0.3, scrub, Mat.Grass)
+	end
+	box(c, -2.75, 0.3, 0.4, 0.7, 0.12, 5.2, SAND, Mat.Sand)
+	box(c, -2.3, 0.3, 0.4, 0.3, 0.1, 5.2, c.A, Mat.SmoothPlastic, 0.15)
+	-- 바위 기둥: 밑동(파먹혀 가늘고 젖음) → 몸통(가장 넓음) → 꼭대기(좁고 비틀림)
+	local function stack(x: number, z: number, h: number, w: number, twist: number)
+		col(c, x, 0.3, z, 0.1, w * 1.35, c.A, Mat.SmoothPlastic, 0.2)
+		local y = 0.3
+		block(c, CFrame.new(x, y + h * 0.12, z) * CFrame.Angles(0, twist, 0), V(w * 0.7, h * 0.24 + 0.1, w * 0.68), wet)
+		y += h * 0.24
+		local cf = CFrame.new(x + w * 0.05, y + h * 0.2, z - w * 0.04) * CFrame.Angles(0, twist + 0.3, 0.035)
+		block(c, cf, V(w, h * 0.42, w * 0.88), c.P)
+		y += h * 0.4
+		cf = CFrame.new(x - w * 0.06, y + h * 0.17, z + w * 0.05) * CFrame.Angles(0.04, twist - 0.25, -0.04)
+		block(c, cf, V(w * 0.66, h * 0.34, w * 0.6), pale)
+	end
+	stack(-1.3, 2.5, 5.4, 1.2, 0.2)
+	stack(0.6, 3.6, 4.2, 1.05, -0.4)
+	stack(0, 0.5, 6.4, 1.3, 0.6)
+	stack(2.4, 1.7, 4.8, 1.1, 0.1)
+	stack(1.7, -1.6, 5.6, 1.2, -0.3)
+	stack(-1.4, -1.7, 3.4, 1, 0.9)
+	stack(3.4, -3.5, 3, 1, 0.4)
+	-- 무너진 기둥(밑동만)
+	col(c, 0, 0.3, -3.6, 0.1, 1.6, c.A, Mat.SmoothPlastic, 0.2)
+	block(c, CFrame.new(0, 0.75, -3.6) * CFrame.Angles(0.1, 0.4, 0.08), V(1, 1, 0.9), wet)
+end
+
+-- 그레이트 배리어 리프: 짙은 바다 + 밝은 청록 산호 여울 + 가지 산호(분홍·주황) + 뇌 산호(노랑·보라 공)
+--   + 탁자 산호 + 부채 산호 + 관 산호 + 헤엄치는 바다거북. 낮고 넓게(위에서 잘 보이도록)
+function BUILDERS.reef(c)
+	local purple = rgb(150, 90, 215)
+	local orange = rgb(255, 140, 60)
+	local tableColor = rgb(110, 205, 170)
+	box(c, 0, 0, 0, 9.8, 0.3, 9.8, mix(c.S, rgb(20, 60, 140), 0.45), Mat.Glass, 0.1)
+	local shallow = mix(c.S, WHITE, 0.4)
+	col(c, -1.4, 0.3, 1.2, 0.15, 6, shallow, Mat.Sand)
+	col(c, 2.2, 0.3, -1.4, 0.15, 4.6, shallow, Mat.Sand)
+	col(c, -2.6, 0.3, -2.4, 0.15, 3, shallow, Mat.Sand)
+	local ground = 0.45
+	-- 가지 산호: 밑동에서 위·바깥으로 뻗는 가지 + 동그란 끝
+	local function branching(x: number, z: number, h: number, color: Color3, count: number, turn: number)
+		for k = 0, count - 1 do
+			local angle = k / count * TAU + turn
+			local lean = if k % 2 == 0 then 0.7 else 0.45
+			local rise = if k % 2 == 0 then 0.8 else 1
+			local tip = V(x + math.cos(angle) * h * lean, ground + h * rise, z + math.sin(angle) * h * lean)
+			beam(c, V(x, ground - 0.1, z), tip, 0.22, color)
+			ball(c, tip.X, tip.Y, tip.Z, 0.3, color)
+		end
+	end
+	branching(-2.4, 2.2, 1.8, c.P, 4, 0.3)
+	branching(2.9, 0, 1.5, orange, 3, 0.9)
+	branching(-2.7, -2.5, 1.3, c.P, 3, 0.5)
+	-- 뇌 산호(바닥에 얹힌 공): { x, z, 지름, 색 }
+	for _, b in
+		{
+			{ -0.3, 2.9, 1.6, c.A },
+			{ -1.2, 0.2, 1, purple },
+			{ 1.4, -2.6, 1.3, purple },
+			{ 3.4, -2.4, 1.1, mix(c.P, WHITE, 0.3) },
+			{ -3.5, -0.4, 1.2, c.A },
+		}
+	do
+		ball(c, b[1], b[3] / 2, b[2], b[3], b[4])
+	end
+	-- 탁자 산호(줄기 + 넓은 판)
+	col(c, 0.5, ground, 1.2, 0.7, 0.25, tableColor)
+	col(c, 0.5, ground + 0.7, 1.2, 0.15, 1.7, tableColor)
+	col(c, 1.2, ground, -0.6, 0.45, 0.2, tableColor)
+	col(c, 1.2, ground + 0.45, -0.6, 0.12, 1.2, tableColor)
+	-- 부채 산호(바닥에 반쯤 묻힌 얇은 원판)
+	cyl(c, CFrame.new(-3.6, 0.75, 3.5) * CFrame.Angles(0, 0.4, 0) * ALONG_Z, 0.08, 1.5, purple)
+	cyl(c, CFrame.new(3.8, 0.6, 1.6) * CFrame.Angles(0, -1.2, 0) * ALONG_Z, 0.08, 1.2, orange)
+	-- 관 산호
+	for k, t in { { -3.9, 0.9, 0.9 }, { -3.5, 1.4, 0.6 }, { -4.1, 1.6, 0.7 } } do
+		col(c, t[1], ground - 0.1, t[2], t[3] + 0.1, 0.35 - k * 0.03, orange)
+	end
+	-- 바다거북(앞쪽 깊은 물 위를 헤엄침, 정면을 봄)
+	local turtle = CFrame.new(0.9, 1.2, -3.7) * CFrame.Angles(0, 0.35, 0)
+	local shell = rgb(125, 105, 60)
+	local skin = rgb(175, 170, 115)
+	cyl(c, turtle * UPRIGHT, 0.25, 1.5, shell)
+	cyl(c, turtle * CFrame.new(0, 0.2, 0) * UPRIGHT, 0.2, 1.05, mix(shell, BLACK, 0.15))
+	local head = turtle * V(0, 0.05, -0.95)
+	ball(c, head.X, head.Y, head.Z, 0.5, skin)
+	for _, sx in { -1, 1 } do
+		block(c, turtle * CFrame.new(sx * 0.95, 0, -0.35) * CFrame.Angles(0, sx * 0.5, 0), V(0.9, 0.08, 0.35), skin)
+		block(c, turtle * CFrame.new(sx * 0.6, 0, 0.7) * CFrame.Angles(0, -sx * 0.5, 0), V(0.45, 0.08, 0.28), skin)
+	end
+end
+
+-- 난마돌: 물길 사이 인공섬들 + 가운데 큰 섬의 현무암 기둥 성벽(통나무집처럼 가로세로 엇갈려 쌓음, 정면 입구)
+--   + 안쪽 단과 무덤 + 작은 섬들의 낮은 벽 + 성벽을 덮은 초록 수풀
+function BUILDERS.ruins(c)
+	box(c, 0, 0, 0, 9.8, 0.3, 9.8, c.S, Mat.Glass, 0.1)
+	local rubble = mix(c.P, ROCK, 0.55)
+	local d = 0.5 -- 현무암 기둥 굵기
+	local n = 0
+	-- 누운 현무암 기둥. along = "x" 또는 "z"(길이 축). 조금씩 비틀고 색을 달리해 돌기둥처럼
+	local function log(x: number, y: number, z: number, length: number, along: string, diameter: number?)
+		n += 1
+		local cf = CFrame.new(x, y, z) * CFrame.Angles(0, (n % 3 - 1) * 0.025, 0)
+		if along == "z" then
+			cf *= CFrame.Angles(0, PI / 2, 0)
+		end
+		local color = if n % 2 == 0 then c.P else mix(c.P, ROCK, 0.18)
+		cyl(c, cf, length + (n % 4 - 1.5) * 0.08, (diameter or d) * (0.92 + n % 3 * 0.06), color)
+	end
+	-- 가운데 큰 섬 + 성벽(앞뒤 기둥 층과 옆 기둥 층이 반 단씩 엇갈림)
+	local cx, cz = 0.6, 0.8
+	local hx, hz = 2.3, 2.1
+	local base = 0.6
+	box(c, cx, 0, cz, 6, base, 5.8, rubble)
+	for k = 0, 3 do
+		local y = base + d / 2 + k * d
+		for _, sz in { -1, 1 } do
+			if sz == -1 and k < 2 then
+				for _, sx in { -1, 1 } do
+					log(cx + sx * 1.675, y, cz - hz, 2.15, "x")
+				end
+			else
+				log(cx, y, cz + sz * hz, 2 * hx + 0.7, "x")
+			end
+		end
+		for _, sx in { -1, 1 } do
+			log(cx + sx * hx, y + d / 2, cz, 2 * hz + 0.7, "z")
+		end
+	end
+	box(c, cx, base, cz + 0.4, 2.6, 0.6, 2.2, mix(c.P, BLACK, 0.12))
+	box(c, cx, base + 0.6, cz + 0.4, 1.1, 0.35, 1.1, c.P)
+	plant(c, cx + 1.4, base, cz + 1.3, 2.3, 1.8, c.A)
+	plant(c, cx - 1.3, base, cz + 1.2, 1.7, 1.3, mix(c.A, LEAF, 0.4))
+	ball(c, cx - hx, base + 4 * d + 0.1, cz - hz, 0.9, c.A, Mat.Grass)
+	ball(c, cx + 2.8, base + 0.1, cz - 2.3, 0.8, c.A, Mat.Grass)
+	ball(c, cx - 2.8, base + 0.1, cz + 2.4, 0.9, c.A, Mat.Grass)
+	-- 작은 섬들: { x, z, 가로, 세로 }
+	local islets = {
+		{ -3.8, -3.7, 1.9, 1.8 },
+		{ -3.9, 1.6, 1.6, 2.6 },
+		{ 2, -3.9, 2.6, 1.5 },
+	}
+	for k, islet in islets do
+		local x, z, w, depth = islet[1], islet[2], islet[3], islet[4]
+		box(c, x, 0, z, w, 0.45, depth, rubble)
+		log(x, 0.45 + 0.2, z - depth / 2 + 0.25, w + 0.1, "x", 0.4)
+		log(x - w / 2 + 0.25, 0.45 + 0.4, z, depth + 0.1, "z", 0.4)
+		if k == 2 then
+			plant(c, x + 0.3, 0.45, z + 0.5, 1.3, 1.2, c.A)
+		else
+			ball(c, x + 0.35, 0.75, z + 0.3, 0.9, c.A, Mat.Grass)
+		end
+	end
+end
+
 -- 지구: 받침대 + 23.5도 기운 파란 공 + 대륙 덩어리(살짝 튀어나온 공) + 극지방 얼음 + 자오선 반원 고리 + 대기 + 달
 function BUILDERS.globe(c)
 	local metal = mix(c.A, BLACK, 0.2)
@@ -1583,6 +1977,7 @@ function Models.build(landmark: Landmark): Model
 
 	local ctx: Ctx = {
 		model = model,
+		id = landmark.Id,
 		origin = CFrame.new(),
 		P = landmark.Primary or rgb(200, 200, 200),
 		S = landmark.Secondary or rgb(140, 140, 140),
@@ -1719,11 +2114,15 @@ local FUNCTIONS = {
 	"BuyUpgrade", -- (upgradeId) -> { Ok, Reason?, State }
 	"SetSetting", -- (key, value) -> { Ok, State }
 	"Teleport", -- ("Park" | "Plaza") -> { Ok }
+	"Rebirth", -- () -> { Ok, Reason?, State }
+	"BuyPass", -- (passKey) -> { Ok } (서버가 게임패스 구매 창을 띄움)
+	"BuyProduct", -- (productKey) -> { Ok } (서버가 개발자 상품 구매 창을 띄움)
 }
 
 local EVENTS = {
 	"State", -- 서버 -> 클라: Snapshot (관광 수입 등 서버 쪽 변화)
 	"Announce", -- 서버 -> 모두: 희귀 명소 발견 "뉴스 속보"
+	"ServerLuck", -- 서버 -> 모두: 서버 행운 시작/연장 { UserId, Name, Until, Left }
 }
 
 local folder: Folder
@@ -1766,23 +2165,51 @@ return Net
 -- 플레이어 데이터와 그 데이터를 바꾸는 규칙(순수 함수). 서버가 유일한 진실의 원천이고,
 -- 클라이언트는 Snapshot 만 받아서 화면에 그립니다. Roblox 서비스에 의존하지 않아 테스트 가능.
 -- 읽기 전용 함수(luck, park, stars, incomePerSecond 등)는 Data 대신 Snapshot 을 넘겨도 됩니다.
+-- luck / cooldown / incomePerSecond / addIncome / snapshot 은 선택 인자 mods(게임패스·서버 행운)를 받습니다.
+-- mods 가 없으면 게임패스·서버 행운 없이 계산합니다. Snapshot 은 Passes/ServerLuck 필드가 있어서
+-- PlayerState.luck(snapshot, snapshot) 처럼 mods 자리에 그대로 넘겨도 됩니다.
 
 local Config = require(script.Parent.Config)
 local Landmarks = require(script.Parent.Landmarks)
 
 type Landmark = Landmarks.Landmark
+type GamePass = Config.GamePass
+type Product = Config.Product
 
 export type Settings = {
 	AutoFeature: boolean, -- 더 희귀한 명소를 발견하면 자동으로 대표 명소로 지정
 }
 
+-- 세션에만 있는 효과(저장 안 함). 서버가 만들어서 넘김
+export type Mods = {
+	Passes: { [string]: boolean }?, -- 가진 게임패스 Id -> true
+	ServerLuck: boolean?, -- 서버 전체 행운 부스트 중인지
+}
+
+export type RebirthRequirement = {
+	Coins: number,
+	Landmarks: { string }, -- 이번 판에 보유해야 하는 명소 Id
+}
+
+-- 상품 지급 결과(grantProduct)
+export type Grant = {
+	Product: string, -- 상품 Id (Config.Products 의 Id)
+	Coins: number, -- 더해진 코인(코인 팩)
+	Seconds: number, -- 더해진 부스트 시간(초)
+	ServerWide: boolean, -- true 면 서버가 서버 행운 타이머에 Seconds 를 더해야 함(Data 는 안 바뀜)
+}
+
 export type Data = {
 	Rolls: number,
 	Coins: number, -- 관광 수입이 초 단위로 쌓이므로 소수일 수 있음(표시할 때 버림)
-	Inventory: { [string]: number }, -- 명소 Id -> 발견 횟수
+	Inventory: { [string]: number }, -- 이번 판에 보유한 명소 Id -> 발견 횟수 (환생하면 비움)
+	Discovered: { [string]: boolean }, -- 한 번이라도 발견한 명소 Id -> true (환생해도 유지. 도감·여권 기준)
 	Featured: string?, -- 대표 명소(캐릭터 옆에 떠 다님)
 	Upgrades: { [string]: number }, -- 업그레이드 Id -> 레벨
 	Settings: Settings,
+	Rebirths: number, -- 환생 횟수
+	Boosts: { [string]: number }, -- 개인 시간 부스트 상품 Id -> 남은 초(접속 중에만 줄어듦)
+	Receipts: { string }, -- 최근에 지급한 구매 영수증 PurchaseId (중복 지급 방지, 최근 MAX_RECEIPTS 개)
 }
 
 export type Snapshot = {
@@ -1790,12 +2217,18 @@ export type Snapshot = {
 	Rolls: number,
 	Coins: number,
 	Inventory: { [string]: number },
+	Discovered: { [string]: boolean },
 	Featured: string?,
 	Upgrades: { [string]: number },
 	Settings: Settings,
-	Luck: number,
-	Cooldown: number,
-	Income: number, -- 초당 관광 수입
+	Rebirths: number,
+	Boosts: { [string]: number }, -- 개인 부스트 남은 초
+	Passes: { [string]: boolean }, -- 가진 게임패스
+	ServerLuck: boolean, -- 서버 행운 부스트 중인지
+	NextRebirth: RebirthRequirement, -- 다음 환생 조건
+	Luck: number, -- mods 반영
+	Cooldown: number, -- mods 반영
+	Income: number, -- 초당 관광 수입(mods 반영)
 }
 
 export type Upgrade = typeof(Config.Upgrades[1])
@@ -1807,6 +2240,16 @@ for _, upgrade in Config.Upgrades do
 	PlayerState.UpgradesById[upgrade.Id] = upgrade
 end
 
+PlayerState.PassesById = {} :: { [string]: GamePass }
+for _, pass in Config.GamePasses do
+	PlayerState.PassesById[pass.Id] = pass
+end
+
+PlayerState.ProductsById = {} :: { [string]: Product }
+for _, product in Config.Products do
+	PlayerState.ProductsById[product.Id] = product
+end
+
 function PlayerState.new(): Data
 	local upgrades = {}
 	for _, upgrade in Config.Upgrades do
@@ -1816,9 +2259,13 @@ function PlayerState.new(): Data
 		Rolls = 0,
 		Coins = 0,
 		Inventory = {},
+		Discovered = {},
 		Featured = nil,
 		Upgrades = upgrades,
 		Settings = { AutoFeature = true },
+		Rebirths = 0,
+		Boosts = {},
+		Receipts = {},
 	}
 end
 
@@ -1827,6 +2274,17 @@ local function nonNegativeInt(value: any): number?
 		return math.floor(value)
 	end
 	return nil
+end
+
+-- 개인 시간 부스트 상품인지(Data.Boosts 에 남은 시간이 쌓이는 상품)
+local function isPersonalBoost(product: Product): boolean
+	return product.Seconds ~= nil and not product.ServerWide
+end
+
+local function trimReceipts(receipts: { string })
+	while #receipts > Config.MAX_RECEIPTS do
+		table.remove(receipts, 1)
+	end
 end
 
 -- DataStore 에서 읽은 값(형식 보장 없음)을 안전한 Data 로 정리합니다.
@@ -1839,6 +2297,7 @@ function PlayerState.reconcile(raw: any): Data
 
 	data.Rolls = nonNegativeInt(raw.Rolls) or 0
 	data.Coins = nonNegativeInt(raw.Coins) or 0
+	data.Rebirths = nonNegativeInt(raw.Rebirths) or 0
 
 	if type(raw.Inventory) == "table" then
 		for id, count in raw.Inventory do
@@ -1847,6 +2306,18 @@ function PlayerState.reconcile(raw: any): Data
 				data.Inventory[id] = n
 			end
 		end
+	end
+
+	if type(raw.Discovered) == "table" then
+		for id, flag in raw.Discovered do
+			if type(id) == "string" and flag == true then
+				data.Discovered[id] = true
+			end
+		end
+	end
+	-- 보유한 명소는 항상 발견한 명소(Discovered 가 없던 예전 저장도 여기서 채워짐)
+	for id in data.Inventory do
+		data.Discovered[id] = true
 	end
 
 	if type(raw.Featured) == "string" and Landmarks.ById[raw.Featured] and data.Inventory[raw.Featured] then
@@ -1864,6 +2335,24 @@ function PlayerState.reconcile(raw: any): Data
 
 	if type(raw.Settings) == "table" and type(raw.Settings.AutoFeature) == "boolean" then
 		data.Settings.AutoFeature = raw.Settings.AutoFeature
+	end
+
+	if type(raw.Boosts) == "table" then
+		for _, product in Config.Products do
+			local left = raw.Boosts[product.Id]
+			if isPersonalBoost(product) and type(left) == "number" and left == left and left > 0 then
+				data.Boosts[product.Id] = math.min(left, Config.MAX_BOOST_SECONDS)
+			end
+		end
+	end
+
+	if type(raw.Receipts) == "table" then
+		for _, purchaseId in ipairs(raw.Receipts) do
+			if type(purchaseId) == "string" then
+				table.insert(data.Receipts, purchaseId)
+			end
+		end
+		trimReceipts(data.Receipts)
 	end
 
 	return data
@@ -1903,20 +2392,29 @@ function PlayerState.buyUpgrade(data: Data, upgradeId: any): (boolean, string?)
 	return true, nil
 end
 
--- 여권 도장 / 행운 / 속도 ----------------------------------------------------
+-- 발견 기록 / 여권 도장 -------------------------------------------------------
+
+-- 한 번이라도 발견한 명소인지(환생해도 유지). 도감의 발견/미발견과 여권은 이것 기준.
+function PlayerState.isDiscovered(data: Data | Snapshot, landmarkId: string): boolean
+	local discovered = data.Discovered
+	if discovered and discovered[landmarkId] then
+		return true
+	end
+	return (data.Inventory[landmarkId] or 0) > 0
+end
 
 -- 이 명소가 여권 도장 조건에 들어가는지 (전설급은 보너스 수집이라 제외)
 function PlayerState.countsForStamp(landmark: Landmark): boolean
 	return landmark.Tier.Rank <= Config.STAMP_MAX_RANK
 end
 
--- 대륙의 도장 진행도: 발견한 수, 필요한 수 (도장 조건에 드는 명소만 셈)
+-- 대륙의 도장 진행도: 발견한 수, 필요한 수 (도장 조건에 드는 명소만, 역대 발견 기록 기준)
 function PlayerState.regionProgress(data: Data | Snapshot, regionId: string): (number, number)
 	local found, required = 0, 0
 	for _, landmark in Landmarks.ByRegion[regionId] or {} do
 		if PlayerState.countsForStamp(landmark) then
 			required += 1
-			if (data.Inventory[landmark.Id] or 0) > 0 then
+			if PlayerState.isDiscovered(data, landmark.Id) then
 				found += 1
 			end
 		end
@@ -1936,17 +2434,93 @@ function PlayerState.completedRegions(data: Data | Snapshot): { string }
 	return completed
 end
 
--- 이번 굴림에 적용할 행운 = 기본 × 지구본 업그레이드 × 여권 도장
-function PlayerState.luck(data: Data | Snapshot): number
+-- 부스트 / 게임패스 -----------------------------------------------------------
+
+local function rebirthsOf(data: Data | Snapshot): number
+	return data.Rebirths or 0
+end
+
+-- mods 에 있는 게임패스 목록(Config.GamePasses 순서)
+local function ownedPasses(mods: Mods?): { GamePass }
+	local list = {}
+	local passes = if mods then mods.Passes else nil
+	if passes then
+		for _, pass in Config.GamePasses do
+			if passes[pass.Id] == true then
+				table.insert(list, pass)
+			end
+		end
+	end
+	return list
+end
+
+-- 개인 부스트 남은 초(없으면 0)
+function PlayerState.boostLeft(data: Data | Snapshot, productKey: string): number
+	local boosts = data.Boosts
+	return if boosts then boosts[productKey] or 0 else 0
+end
+
+-- 개인 시간 부스트(예: LuckBoost)의 남은 시간을 더함(MAX_BOOST_SECONDS 까지). 개인 부스트 상품이 아니면 false.
+function PlayerState.addBoost(data: Data, productKey: any): boolean
+	local product = if type(productKey) == "string" then PlayerState.ProductsById[productKey] else nil
+	if not product or not isPersonalBoost(product) then
+		return false
+	end
+	local left = data.Boosts[product.Id] or 0
+	data.Boosts[product.Id] = math.min(Config.MAX_BOOST_SECONDS, left + (product.Seconds or 0))
+	return true
+end
+
+-- 접속 중 dt 초만큼 부스트 시간을 줄임. 끝난 부스트가 있으면 true.
+function PlayerState.tickBoosts(data: Data, dt: number): boolean
+	if not (dt > 0) then
+		return false
+	end
+	local expired = false
+	for id, left in data.Boosts do
+		local after = left - dt
+		if after > 0 then
+			data.Boosts[id] = after
+		else
+			data.Boosts[id] = nil
+			expired = true
+		end
+	end
+	return expired
+end
+
+-- 행운 / 속도 -----------------------------------------------------------------
+
+-- 이번 굴림에 적용할 행운 = 기본 × 지구본 × 여권 도장 × 환생 × VIP × 행운 부스트 × 서버 행운
+function PlayerState.luck(data: Data | Snapshot, mods: Mods?): number
 	local globe = PlayerState.UpgradesById.Globe
 	local globeMult = 1 + globe.PerLevel * PlayerState.upgradeLevel(data, "Globe")
 	local regionMult = 1 + Config.REGION_LUCK_BONUS * #PlayerState.completedRegions(data)
-	return Config.BASE_LUCK * globeMult * regionMult
+	local rebirthMult = 1 + Config.REBIRTH_LUCK_BONUS * rebirthsOf(data)
+	local luck = Config.BASE_LUCK * globeMult * regionMult * rebirthMult
+	for _, pass in ownedPasses(mods) do
+		luck *= pass.LuckMult or 1
+	end
+	local serverLuck = mods ~= nil and mods.ServerLuck == true
+	for _, product in Config.Products do
+		if product.ServerWide then
+			if serverLuck then
+				luck *= product.LuckMult or 1
+			end
+		elseif product.Seconds and PlayerState.boostLeft(data, product.Id) > 0 then
+			luck *= product.LuckMult or 1
+		end
+	end
+	return luck
 end
 
-function PlayerState.cooldown(data: Data | Snapshot): number
+function PlayerState.cooldown(data: Data | Snapshot, mods: Mods?): number
 	local agency = PlayerState.UpgradesById.Agency
-	return Config.ROLL_COOLDOWN * (1 - agency.PerLevel * PlayerState.upgradeLevel(data, "Agency"))
+	local cooldown = Config.ROLL_COOLDOWN * (1 - agency.PerLevel * PlayerState.upgradeLevel(data, "Agency"))
+	for _, pass in ownedPasses(mods) do
+		cooldown *= pass.CooldownMult or 1
+	end
+	return cooldown
 end
 
 -- 관광 공원 ---------------------------------------------------------------
@@ -1967,7 +2541,7 @@ function PlayerState.stars(count: number): number
 	return stars
 end
 
--- 공원에 전시되는 명소 Id 목록: 가진 것 중 희귀한 순서로 전시 칸 수만큼
+-- 공원에 전시되는 명소 Id 목록: 이번 판에 가진 것 중 희귀한 순서로 전시 칸 수만큼
 function PlayerState.park(data: Data | Snapshot): { string }
 	local result = {}
 	local slots = PlayerState.slots(data)
@@ -1992,18 +2566,25 @@ function PlayerState.landmarkIncome(landmark: Landmark, count: number): number
 	return base * (1 + Config.STAR_INCOME_BONUS * (stars - 1))
 end
 
-function PlayerState.incomePerSecond(data: Data | Snapshot): number
+-- 초당 관광 수입 = 전시 명소 합 × 입장료 × 환생 × 수입 2배 게임패스
+function PlayerState.incomePerSecond(data: Data | Snapshot, mods: Mods?): number
 	local total = 0
 	for _, id in PlayerState.park(data) do
 		total += PlayerState.landmarkIncome(Landmarks.ById[id], data.Inventory[id])
 	end
 	local ticket = PlayerState.UpgradesById.Ticket
-	return total * (1 + ticket.PerLevel * PlayerState.upgradeLevel(data, "Ticket"))
+	local income = total
+		* (1 + ticket.PerLevel * PlayerState.upgradeLevel(data, "Ticket"))
+		* (1 + Config.REBIRTH_INCOME_BONUS * rebirthsOf(data))
+	for _, pass in ownedPasses(mods) do
+		income *= pass.IncomeMult or 1
+	end
+	return income
 end
 
 -- dt 초 동안의 관광 수입을 더하고, 더한 양을 반환
-function PlayerState.addIncome(data: Data, dt: number): number
-	local amount = PlayerState.incomePerSecond(data) * math.max(0, dt)
+function PlayerState.addIncome(data: Data, dt: number, mods: Mods?): number
+	local amount = PlayerState.incomePerSecond(data, mods) * math.max(0, dt)
 	data.Coins += amount
 	return amount
 end
@@ -2014,20 +2595,22 @@ function PlayerState.discoveryBonus(landmark: Landmark): number
 	return math.ceil(Config.DISCOVERY_BONUS_MULT * landmark.OneIn ^ 0.5)
 end
 
--- 굴림 결과 반영. 반환: 보너스 코인(처음 발견일 때만), 처음 발견인지, 별이 올랐는지
+-- 굴림 결과 반영. 반환: 보너스 코인, 역대 처음 발견인지(보너스는 이때만), 별이 올랐는지
+-- (환생 뒤 예전에 발견했던 명소를 다시 얻으면 처음 발견도 별 상승도 아님)
 function PlayerState.applyRoll(data: Data, landmark: Landmark): (number, boolean, boolean)
 	local before = data.Inventory[landmark.Id] or 0
 	local after = before + 1
+	local isNew = not PlayerState.isDiscovered(data, landmark.Id)
 	data.Inventory[landmark.Id] = after
+	data.Discovered[landmark.Id] = true
 	data.Rolls += 1
-	local isNew = before == 0
 	local bonus = if isNew then PlayerState.discoveryBonus(landmark) else 0
 	data.Coins += bonus
-	local starUp = not isNew and PlayerState.stars(after) > PlayerState.stars(before)
+	local starUp = before > 0 and PlayerState.stars(after) > PlayerState.stars(before)
 	return bonus, isNew, starUp
 end
 
--- 가장 희귀한 보유 명소
+-- 가장 희귀한 보유 명소(이번 판)
 function PlayerState.best(data: Data | Snapshot): Landmark?
 	for _, landmark in Landmarks.RarestFirst do
 		if (data.Inventory[landmark.Id] or 0) > 0 then
@@ -2037,7 +2620,7 @@ function PlayerState.best(data: Data | Snapshot): Landmark?
 	return nil
 end
 
--- landmarkId 가 nil 이면 해제. 발견한 명소만 대표로 지정 가능.
+-- landmarkId 가 nil 이면 해제. 보유한 명소만 대표로 지정 가능.
 function PlayerState.feature(data: Data, landmarkId: any): boolean
 	if landmarkId == nil then
 		data.Featured = nil
@@ -2058,18 +2641,124 @@ function PlayerState.setSetting(data: Data, key: any, value: any): boolean
 	return false
 end
 
-function PlayerState.snapshot(data: Data, revision: number): Snapshot
+-- 환생 --------------------------------------------------------------------
+
+-- rebirths 번 환생한 플레이어의 다음 환생 조건(복사본)
+function PlayerState.rebirthRequirement(rebirths: number): RebirthRequirement
+	local steps = Config.REBIRTHS
+	local n = math.max(0, math.floor(rebirths)) + 1
+	local step = steps[math.min(n, #steps)]
+	local coins = step.Coins
+	if n > #steps then
+		coins *= Config.REBIRTH_COIN_GROWTH ^ (n - #steps)
+	end
+	return { Coins = coins, Landmarks = table.clone(step.Landmarks) }
+end
+
+-- 반환: 환생 가능 여부, 이번 판에 없는 요구 명소 Id 목록, 모자란 코인(0 이상)
+function PlayerState.canRebirth(data: Data | Snapshot): (boolean, { string }, number)
+	local requirement = PlayerState.rebirthRequirement(rebirthsOf(data))
+	local missing = {}
+	for _, id in requirement.Landmarks do
+		if (data.Inventory[id] or 0) <= 0 then
+			table.insert(missing, id)
+		end
+	end
+	local coinsShort = math.max(0, math.ceil(requirement.Coins - data.Coins))
+	return #missing == 0 and coinsShort == 0, missing, coinsShort
+end
+
+-- 환생: 코인·업그레이드·보유 명소·대표 명소 초기화, 환생 수 +1.
+-- 유지: 발견 기록(Discovered = 도감·여권 도장), 설정, 굴림 수, 부스트, 영수증.
+-- 반환: 성공 여부, 실패 사유(표시용)
+function PlayerState.rebirth(data: Data): (boolean, string?)
+	local ok, missing = PlayerState.canRebirth(data)
+	if not ok then
+		if #missing > 0 then
+			return false, "필요한 명소가 없습니다"
+		end
+		return false, "코인이 부족합니다"
+	end
+	for id in data.Inventory do
+		data.Discovered[id] = true
+	end
+	table.clear(data.Inventory)
+	data.Featured = nil
+	data.Coins = 0
+	for _, upgrade in Config.Upgrades do
+		data.Upgrades[upgrade.Id] = 0
+	end
+	data.Rebirths = rebirthsOf(data) + 1
+	return true, nil
+end
+
+-- 구매 영수증 / 상품 지급 --------------------------------------------------------
+
+function PlayerState.hasReceipt(data: Data, purchaseId: any): boolean
+	return table.find(data.Receipts, tostring(purchaseId)) ~= nil
+end
+
+-- 지급한 영수증을 기록(이미 있으면 그대로). 최근 MAX_RECEIPTS 개만 보관.
+function PlayerState.addReceipt(data: Data, purchaseId: any)
+	local key = tostring(purchaseId)
+	if table.find(data.Receipts, key) then
+		return
+	end
+	table.insert(data.Receipts, key)
+	trimReceipts(data.Receipts)
+end
+
+-- 개발자 상품 효과를 data 에 적용. productKey 는 Config.Products 의 Id.
+-- 개인 부스트는 남은 시간 추가, 코인 팩은 max(MinCoins, 초당 수입(mods 반영) × IncomeSeconds) 코인,
+-- 서버 전체 부스트는 data 를 바꾸지 않고 Grant.ServerWide 로 알려 줌(서버가 서버 변수에 반영).
+-- 영수증 기록(addReceipt)은 따로 해야 함.
+function PlayerState.grantProduct(data: Data, productKey: any, mods: Mods?): (boolean, Grant?)
+	local product = if type(productKey) == "string" then PlayerState.ProductsById[productKey] else nil
+	if not product then
+		return false, nil
+	end
+	if product.ServerWide then
+		return true, { Product = product.Id, Coins = 0, Seconds = product.Seconds or 0, ServerWide = true }
+	end
+	if isPersonalBoost(product) then
+		local before = PlayerState.boostLeft(data, product.Id)
+		PlayerState.addBoost(data, product.Id)
+		local added = PlayerState.boostLeft(data, product.Id) - before
+		return true, { Product = product.Id, Coins = 0, Seconds = added, ServerWide = false }
+	end
+	if product.IncomeSeconds or product.MinCoins then
+		local fromIncome = PlayerState.incomePerSecond(data, mods) * (product.IncomeSeconds or 0)
+		local amount = math.floor(math.max(product.MinCoins or 0, fromIncome))
+		data.Coins += amount
+		return true, { Product = product.Id, Coins = amount, Seconds = 0, ServerWide = false }
+	end
+	return false, nil
+end
+
+-- 스냅샷 --------------------------------------------------------------------
+
+function PlayerState.snapshot(data: Data, revision: number, mods: Mods?): Snapshot
+	local passes = {}
+	for _, pass in ownedPasses(mods) do
+		passes[pass.Id] = true
+	end
 	return {
 		Revision = revision,
 		Rolls = data.Rolls,
 		Coins = data.Coins,
 		Inventory = table.clone(data.Inventory),
+		Discovered = table.clone(data.Discovered),
 		Featured = data.Featured,
 		Upgrades = table.clone(data.Upgrades),
 		Settings = table.clone(data.Settings),
-		Luck = PlayerState.luck(data),
-		Cooldown = PlayerState.cooldown(data),
-		Income = PlayerState.incomePerSecond(data),
+		Rebirths = data.Rebirths,
+		Boosts = table.clone(data.Boosts),
+		Passes = passes,
+		ServerLuck = mods ~= nil and mods.ServerLuck == true,
+		NextRebirth = PlayerState.rebirthRequirement(data.Rebirths),
+		Luck = PlayerState.luck(data, mods),
+		Cooldown = PlayerState.cooldown(data, mods),
+		Income = PlayerState.incomePerSecond(data, mods),
 	}
 end
 
@@ -2133,8 +2822,10 @@ return RollLogic
       <Properties>
         <string name="Name">Server</string>
         <token name="RunContext">0</token>
-        <string name="Source"><![CDATA[-- 서버 진입점: 플레이어 데이터, 굴림 판정(서버 권위), 관광 수입, 업그레이드, 공원/대표 명소 표시, 뉴스 속보
+        <string name="Source"><![CDATA[-- 서버 진입점: 플레이어 데이터, 굴림 판정(서버 권위), 관광 수입, 업그레이드, 환생, 유료 상품,
+-- 공원/대표 명소 표시, 뉴스 속보
 
+local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -2167,30 +2858,53 @@ type Session = {
 	Revision: number,
 	LastSync: number, -- 마지막으로 Snapshot 을 만든(보낸) 시각
 	LastTeleport: number,
-	Stats: { Rolls: IntValue, Best: StringValue },
+	Stats: { Rolls: IntValue, Rebirths: IntValue, Best: StringValue },
 	Plot: number?, -- 배정된 공원 부지 번호(부지가 모자라면 nil)
 	-- 연출이 아직 안 끝나 공원/리더보드에 공개하지 않은 발견(명소 Id -> 횟수)
 	Hidden: { [string]: number },
+	-- 가진 게임패스 Id -> true (세션에만 저장. 접속 시 확인 + 구매 완료 이벤트로 갱신)
+	Passes: { [string]: boolean },
 }
 
 local sessions: { [Player]: Session } = {}
 local started: { [Player]: boolean } = {}
+-- 게임패스 소유 정보. 데이터 로드와 동시에 확인하므로 세션보다 먼저 만들어 두고 세션이 같은 표를 씀
+local passesByPlayer: { [Player]: { [string]: boolean } } = {}
 local rng = Random.new()
+
+-- 서버 행운(서버 전원에게 적용, 저장 안 함). os.clock() 기준 끝나는 시각
+local serverLuckUntil = 0
+local serverLuckOn = false -- 마지막으로 모두에게 알린 상태(끝날 때 한 번 상태를 다시 보내기 위함)
+local serverLuckBy: { UserId: number, Name: string }? = nil -- 마지막 구매자
 
 local function nextNumber(): number
 	return rng:NextNumber()
 end
 
+local function serverLuckLeft(): number
+	return math.max(0, serverLuckUntil - os.clock())
+end
+
+local function modsFor(session: Session): PlayerState.Mods
+	return { Passes = session.Passes, ServerLuck = serverLuckLeft() > 0 }
+end
+
 local function snapshot(session: Session): PlayerState.Snapshot
 	session.Revision += 1
 	session.LastSync = time()
-	return PlayerState.snapshot(session.Data, session.Revision)
+	return PlayerState.snapshot(session.Data, session.Revision, modsFor(session))
 end
 
 local function pushState(player: Player)
 	local session = sessions[player]
 	if session then
 		Net.event("State"):FireClient(player, snapshot(session))
+	end
+end
+
+local function pushStateAll()
+	for player in sessions do
+		pushState(player)
 	end
 end
 
@@ -2215,7 +2929,7 @@ local function refreshVisible(player: Player, session: Session)
 	local visible = visibleData(session)
 	local best = PlayerState.best(visible)
 	session.Stats.Best.Value = if best then best.Name else "-"
-	local ok, err = pcall(ParkService.update, player, visible)
+	local ok, err = pcall(ParkService.update, player, visible, modsFor(session))
 	if not ok then
 		warn("[LandmarkRNG] 공원 갱신 실패: " .. tostring(err))
 	end
@@ -2230,18 +2944,21 @@ local function refreshFeatured(player: Player)
 	end
 end
 
-local function createLeaderstats(player: Player): { Rolls: IntValue, Best: StringValue }
+local function createLeaderstats(player: Player): { Rolls: IntValue, Rebirths: IntValue, Best: StringValue }
 	local folder = Instance.new("Folder")
 	folder.Name = "leaderstats"
 	local rolls = Instance.new("IntValue")
 	rolls.Name = "굴림"
 	rolls.Parent = folder
+	local rebirths = Instance.new("IntValue")
+	rebirths.Name = "환생"
+	rebirths.Parent = folder
 	local best = Instance.new("StringValue")
 	best.Name = "최고"
 	best.Value = "-"
 	best.Parent = folder
 	folder.Parent = player
-	return { Rolls = rolls, Best = best }
+	return { Rolls = rolls, Rebirths = rebirths, Best = best }
 end
 
 local function onCharacter(player: Player, character: Model)
@@ -2256,11 +2973,95 @@ end
 -- BindToClose 가 진행 중인 저장을 기다릴 수 있도록 개수를 셈
 local savesInFlight = 0
 
-local function trackedSave(player: Player, data: PlayerState.Data, lockId: string, release: boolean)
+local function trackedSave(player: Player, data: PlayerState.Data, lockId: string, release: boolean): boolean
 	savesInFlight += 1
-	DataService.save(player, data, lockId, release)
+	local ok, saved = pcall(DataService.save, player, data, lockId, release)
 	savesInFlight -= 1
+	if not ok then
+		warn("[LandmarkRNG] 저장 오류: " .. tostring(saved))
+		return false
+	end
+	return saved == true
 end
+
+-- 게임패스 ----------------------------------------------------------------
+
+local function passByPassId(passId: number): Config.GamePass?
+	for _, pass in Config.GamePasses do
+		if pass.PassId > 0 and pass.PassId == passId then
+			return pass
+		end
+	end
+	return nil
+end
+
+-- 접속 시 게임패스 소유 확인. owned 는 세션과 같은 표라서 확인이 끝나는 대로 반영됨
+local function loadPasses(player: Player, owned: { [string]: boolean })
+	local found = false
+	for _, pass in Config.GamePasses do
+		if pass.PassId > 0 then
+			local ok, result = pcall(function()
+				return MarketplaceService:UserOwnsGamePassAsync(player.UserId, pass.PassId)
+			end)
+			if ok and result == true then
+				owned[pass.Id] = true
+				found = true
+			elseif not ok then
+				warn(
+					string.format(
+						"[LandmarkRNG] %s 게임패스(%s) 확인 실패: %s",
+						player.Name,
+						pass.Id,
+						tostring(result)
+					)
+				)
+			end
+		end
+	end
+	-- 세션이 아직 없으면 세션을 만들 때 보내는 첫 상태에 포함됨
+	if found and sessions[player] then
+		pushState(player)
+	end
+end
+
+MarketplaceService.PromptGamePassPurchaseFinished:Connect(
+	function(player: Player, passId: number, wasPurchased: boolean)
+		if not wasPurchased then
+			return
+		end
+		local pass = passByPassId(passId)
+		local owned = passesByPlayer[player]
+		if pass and owned then
+			owned[pass.Id] = true
+			pushState(player)
+		end
+	end
+)
+
+-- 서버 행운 ----------------------------------------------------------------
+
+-- 클라이언트용 서버 행운 정보. Until 은 workspace:GetServerTimeNow() 기준 끝나는 시각, Left 는 보낼 때 남은 초
+local function serverLuckInfo()
+	local left = serverLuckLeft()
+	return {
+		UserId = if serverLuckBy then serverLuckBy.UserId else 0,
+		Name = if serverLuckBy then serverLuckBy.Name else "",
+		Until = workspace:GetServerTimeNow() + left,
+		Left = left,
+	}
+end
+
+local function extendServerLuck(buyer: Player, seconds: number)
+	local now = os.clock()
+	serverLuckUntil = math.min(math.max(serverLuckUntil, now) + seconds, now + Config.MAX_BOOST_SECONDS)
+	serverLuckOn = true
+	serverLuckBy = { UserId = buyer.UserId, Name = buyer.DisplayName }
+	Net.event("ServerLuck"):FireAllClients(serverLuckInfo())
+	pushStateAll()
+	print(string.format("[LandmarkRNG] %s 님이 서버 행운 %d초 추가", buyer.Name, seconds))
+end
+
+-- 플레이어 입장/퇴장 -----------------------------------------------------------
 
 local function onPlayerAdded(player: Player)
 	if started[player] then
@@ -2268,10 +3069,16 @@ local function onPlayerAdded(player: Player)
 	end
 	started[player] = true
 
+	-- 게임패스 확인은 데이터 로드와 동시에 진행
+	local passes = {}
+	passesByPlayer[player] = passes
+	task.spawn(loadPasses, player, passes)
+
 	local data, lockId = DataService.load(player)
 	if player.Parent == nil then
 		-- 불러오는 동안 나감: 방금 건 세션 잠금을 풀어 둬야 다음 접속이 기다리지 않음
 		started[player] = nil
+		passesByPlayer[player] = nil
 		if data and lockId then
 			trackedSave(player, data, lockId, true)
 		end
@@ -2292,9 +3099,11 @@ local function onPlayerAdded(player: Player)
 		Stats = createLeaderstats(player),
 		Plot = nil,
 		Hidden = {},
+		Passes = passes,
 	}
 	sessions[player] = session
 	session.Stats.Rolls.Value = data.Rolls
+	session.Stats.Rebirths.Value = data.Rebirths
 
 	-- 공원 부지 배정 + 전시
 	local ok, result = pcall(ParkService.assign, player)
@@ -2318,10 +3127,15 @@ local function onPlayerAdded(player: Player)
 		task.spawn(onCharacter, player, player.Character)
 	end
 	pushState(player)
+	-- 서버 행운이 이미 진행 중이면 남은 시간을 알려 줌
+	if serverLuckLeft() > 0 then
+		Net.event("ServerLuck"):FireClient(player, serverLuckInfo())
+	end
 end
 
 local function saveAndRelease(player: Player)
 	started[player] = nil
+	passesByPlayer[player] = nil
 	local ok, err = pcall(ParkService.release, player)
 	if not ok then
 		warn("[LandmarkRNG] 공원 부지 정리 실패: " .. tostring(err))
@@ -2377,15 +3191,21 @@ task.spawn(function()
 	end
 end)
 
--- 관광 수입 (접속 중에만). 상태는 매초 보내지 않고 RESYNC_INTERVAL 마다 재동기화만.
+-- 관광 수입 + 시간 부스트 (접속 중에만). 상태는 매초 보내지 않고 RESYNC_INTERVAL 마다 재동기화만.
 -- 굴리는 중인 플레이어는 굴림 응답마다 상태를 받으므로 재동기화가 연출 도중에 끼어들지 않음.
+-- 부스트가 끝나거나 서버 행운이 끝나면 행운이 바뀌므로 바로 상태를 보냄.
 task.spawn(function()
 	while true do
 		local dt = task.wait(1)
 		local now = time()
+		local serverLuckEnded = serverLuckOn and serverLuckLeft() <= 0
+		if serverLuckEnded then
+			serverLuckOn = false
+		end
 		for player, session in sessions do
-			PlayerState.addIncome(session.Data, dt)
-			if now - session.LastSync >= RESYNC_INTERVAL then
+			PlayerState.addIncome(session.Data, dt, modsFor(session))
+			local expired = PlayerState.tickBoosts(session.Data, dt)
+			if expired or serverLuckEnded or now - session.LastSync >= RESYNC_INTERVAL then
 				pushState(player)
 			end
 		end
@@ -2430,6 +3250,64 @@ local function revealLater(player: Player, session: Session, landmark: Landmarks
 	end)
 end
 
+-- 개발자 상품 구매 처리 --------------------------------------------------------
+-- 지급 + 저장 성공 후에만 PurchaseGranted. 같은 PurchaseId 는 Data.Receipts 로 한 번만 지급.
+-- 저장이 실패하면 NotProcessedYet → Roblox 가 나중에 다시 부르고, 그때는 영수증이 이미 있으니 저장만 다시 시도.
+
+local function productByProductId(productId: number): Config.Product?
+	for _, product in Config.Products do
+		if product.ProductId > 0 and product.ProductId == productId then
+			return product
+		end
+	end
+	return nil
+end
+
+local function processReceipt(receiptInfo: { [string]: any }): Enum.ProductPurchaseDecision
+	local player = Players:GetPlayerByUserId(receiptInfo.PlayerId)
+	local session = if player then sessions[player] else nil
+	if not player or not session then
+		return Enum.ProductPurchaseDecision.NotProcessedYet
+	end
+
+	local purchaseId = tostring(receiptInfo.PurchaseId)
+	if not PlayerState.hasReceipt(session.Data, purchaseId) then
+		local product = productByProductId(receiptInfo.ProductId)
+		if not product then
+			warn("[LandmarkRNG] 모르는 개발자 상품: " .. tostring(receiptInfo.ProductId))
+			return Enum.ProductPurchaseDecision.NotProcessedYet
+		end
+		local ok, grant = PlayerState.grantProduct(session.Data, product.Id, modsFor(session))
+		if not ok or not grant then
+			return Enum.ProductPurchaseDecision.NotProcessedYet
+		end
+		PlayerState.addReceipt(session.Data, purchaseId)
+		if grant.ServerWide then
+			extendServerLuck(player, grant.Seconds)
+		else
+			pushState(player)
+		end
+	end
+
+	-- Studio(저장 안 함)에서는 효과만 적용되고 완료 처리는 되지 않음
+	if not session.LockId then
+		return Enum.ProductPurchaseDecision.NotProcessedYet
+	end
+	if trackedSave(player, session.Data, session.LockId, false) then
+		return Enum.ProductPurchaseDecision.PurchaseGranted
+	end
+	return Enum.ProductPurchaseDecision.NotProcessedYet
+end
+
+MarketplaceService.ProcessReceipt = function(receiptInfo)
+	local ok, decision = pcall(processReceipt, receiptInfo)
+	if ok then
+		return decision
+	end
+	warn("[LandmarkRNG] 구매 처리 오류: " .. tostring(decision))
+	return Enum.ProductPurchaseDecision.NotProcessedYet
+end
+
 -- 원격 함수 --------------------------------------------------------------
 
 Net.fn("GetState").OnServerInvoke = function(player: Player)
@@ -2450,15 +3328,16 @@ Net.fn("Roll").OnServerInvoke = function(player: Player)
 
 	-- 쿨타임: 허용 오차만큼 일찍 와도 받아주되, 기준 시각은 "원래 가능했던 시각"으로 밀어서
 	-- 오차를 반복 악용해도 평균 속도가 빨라지지 않게 합니다.
+	local mods = modsFor(session)
 	local now = time()
-	local cooldown = PlayerState.cooldown(session.Data)
+	local cooldown = PlayerState.cooldown(session.Data, mods)
 	local readyAt = session.LastRoll + cooldown
 	if now < readyAt - Config.COOLDOWN_TOLERANCE then
 		return { Ok = false, Reason = "cooldown", RetryIn = readyAt - now }
 	end
 	session.LastRoll = math.max(now, readyAt)
 
-	local luck = PlayerState.luck(session.Data)
+	local luck = PlayerState.luck(session.Data, mods)
 	local landmark = RollLogic.roll(Landmarks.RarestFirst, luck, nextNumber)
 	local bonus, isNew, starUp = PlayerState.applyRoll(session.Data, landmark)
 	local rollNumber = session.Data.Rolls
@@ -2520,6 +3399,68 @@ Net.fn("SetSetting").OnServerInvoke = function(player: Player, key: any, value: 
 	end
 	local ok = PlayerState.setSetting(session.Data, key, value)
 	return { Ok = ok, State = snapshot(session) }
+end
+
+-- 환생: 코인·업그레이드·보유 명소·대표 명소 초기화 → 공원/간판/리더보드/대표 명소 표시 갱신
+Net.fn("Rebirth").OnServerInvoke = function(player: Player)
+	local session = sessions[player]
+	if not session then
+		return { Ok = false, Reason = "데이터를 불러오는 중입니다" }
+	end
+	local ok, reason = PlayerState.rebirth(session.Data)
+	if ok then
+		session.Stats.Rebirths.Value = session.Data.Rebirths
+		refreshVisible(player, session)
+		refreshFeatured(player)
+		pushState(player)
+		print(string.format("[LandmarkRNG] %s 님 %d번째 환생", player.Name, session.Data.Rebirths))
+	end
+	return { Ok = ok, Reason = reason, State = snapshot(session) }
+end
+
+-- 구매 창 띄우기. 결과는 구매 완료 이벤트 / ProcessReceipt 에서 State(+ServerLuck) 이벤트로 반영됨
+Net.fn("BuyPass").OnServerInvoke = function(player: Player, passKey: any)
+	local pass = if type(passKey) == "string" then PlayerState.PassesById[passKey] else nil
+	if not pass or pass.PassId <= 0 then
+		return { Ok = false }
+	end
+	local owned = passesByPlayer[player]
+	if owned and owned[pass.Id] then
+		return { Ok = false }
+	end
+	local ok, err = pcall(function()
+		MarketplaceService:PromptGamePassPurchase(player, pass.PassId)
+	end)
+	if not ok then
+		warn("[LandmarkRNG] 게임패스 구매 창 실패: " .. tostring(err))
+	end
+	return { Ok = ok }
+end
+
+Net.fn("BuyProduct").OnServerInvoke = function(player: Player, productKey: any)
+	local product = if type(productKey) == "string" then PlayerState.ProductsById[productKey] else nil
+	if not product or product.ProductId <= 0 then
+		return { Ok = false }
+	end
+	local session = sessions[player]
+	if not session then
+		return { Ok = false }
+	end
+	-- 시간 부스트는 최대 시간을 넘겨서 사면 남는 시간이 버려지므로 구매 창을 띄우지 않음
+	local seconds = product.Seconds
+	if seconds then
+		local left = if product.ServerWide then serverLuckLeft() else PlayerState.boostLeft(session.Data, product.Id)
+		if left + seconds > Config.MAX_BOOST_SECONDS then
+			return { Ok = false }
+		end
+	end
+	local ok, err = pcall(function()
+		MarketplaceService:PromptProductPurchase(player, product.ProductId)
+	end)
+	if not ok then
+		warn("[LandmarkRNG] 개발자 상품 구매 창 실패: " .. tostring(err))
+	end
+	return { Ok = ok }
 end
 
 Net.fn("Teleport").OnServerInvoke = function(player: Player, where: any)
@@ -2977,7 +3918,7 @@ local PLOT_DEPTH = 80
 local BASE_TOP = 0.6 -- 부지 윗면 높이
 local BORDER = 1.5 -- 부지 둘레 색 띠 폭
 
-local GRID = 6
+local GRID = Config.PARK_GRID
 local SPACING = 12
 local FRONT_MARGIN = 6 -- 입구와 첫 줄 사이 빈 공간
 local PEDESTAL_SIZE = 10
@@ -3764,7 +4705,8 @@ function ParkService.release(player: Player)
 end
 
 -- 전시 상태를 data 에 맞춤. data 는 Data 또는 같은 필드(Inventory, Upgrades)를 가진 표.
-function ParkService.update(player: Player, data: PlayerState.Data)
+-- mods: 게임패스·서버 행운 등(없으면 기본). 간판의 수입 표시에 "수입 2배" 가 반영되도록
+function ParkService.update(player: Player, data: PlayerState.Data, mods: PlayerState.Mods?)
 	local plot = plotByPlayer[player]
 	if not plot then
 		return
@@ -3793,7 +4735,7 @@ function ParkService.update(player: Player, data: PlayerState.Data)
 		end
 	end
 
-	setSign(plot, player.DisplayName, incomeText(PlayerState.incomePerSecond(data)))
+	setSign(plot, player.DisplayName, incomeText(PlayerState.incomePerSecond(data, mods)))
 end
 
 -- 공원 입구 안쪽 바닥(부지 윗면)에서 공원 안쪽을 바라보는 CFrame. 부지가 없으면 nil.
@@ -4236,11 +5178,13 @@ return World
       <Item class="LocalScript" referent="21">
         <Properties>
           <string name="Name">Client</string>
-          <string name="Source"><![CDATA[-- 클라이언트 진입점: 상태 동기화, 굴리기/자동 굴리기, 메뉴 연결, 뉴스 속보, 회전 모형
+          <string name="Source"><![CDATA[-- 클라이언트 진입점: 상태 동기화, 굴리기/자동 굴리기, 메뉴 연결, 뉴스 속보, 회전 모형,
+-- 환생 · Robux 상품 구매 요청 · 서버 행운 알림 (DESIGN.md v3)
 -- (화면 글자에는 이모지를 쓰지 않음 — DESIGN.md UI 스타일 가이드 v2)
 -- 알림은 [아이콘] + 8글자 안팎 ("구매 완료", "코인 부족", "대표 지정"), 문장은 쓰지 않음
 
 local CollectionService = game:GetService("CollectionService")
+local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TextChatService = game:GetService("TextChatService")
@@ -4255,6 +5199,7 @@ local PlayerState = require(Shared.PlayerState)
 local Hud = require(script.Hud)
 local Icons = require(script.Icons)
 local Panels = require(script.Panels)
+local Perks = require(script.Perks)
 local Ui = require(script.Ui)
 
 local SPIN_TAG = "LandmarkSpin"
@@ -4273,6 +5218,7 @@ local lastRollSentAt = -math.huge
 local heldAnnouncements = {} -- 내 굴림 연출 중에 도착한 "내" 속보 (연출이 끝나면 표시)
 local location = "Plaza" -- 지금 있는 곳: "Plaza" | "Park"
 local teleporting = false
+local rebirthing = false
 
 local function currentCoins(): number
 	if not state then
@@ -4292,7 +5238,7 @@ local function applyState(snapshot: any, receivedAt: number?)
 	end
 	state = snapshot
 	stateReceivedAt = receivedAt or time()
-	Hud.render(snapshot)
+	Hud.render(snapshot, stateReceivedAt)
 	Hud.setCoins(currentCoins())
 	Panels.render(snapshot)
 end
@@ -4311,8 +5257,26 @@ local function onStateEvent(snapshot: any)
 	applyState(snapshot)
 end
 
+-- 원격 찾기. 서버가 아직 모르는 원격(예: 옛 서버에 Rebirth 가 없음)이면 영원히 기다리지 않고 nil
+local remoteFolder: Instance? = nil
+local function findRemote(name: string, seconds: number): Instance?
+	if not remoteFolder then
+		remoteFolder = Net.fn("GetState").Parent
+	end
+	local folder = remoteFolder
+	if not folder then
+		return nil
+	end
+	return folder:FindFirstChild(name) or folder:WaitForChild(name, seconds)
+end
+
 local function invoke(name: string, ...: any): any
-	local remote = Net.fn(name)
+	local remote = findRemote(name, 5)
+	if not remote or not remote:IsA("RemoteFunction") then
+		warn("[LandmarkRNG] 원격 없음: " .. name)
+		Hud.toast("연결 오류", Ui.Theme.Bad, nil, "close")
+		return nil
+	end
 	local ok, result = pcall(remote.InvokeServer, remote, ...)
 	if not ok then
 		warn("[LandmarkRNG] " .. name .. " 실패: " .. tostring(result))
@@ -4484,6 +5448,77 @@ local function toggleAutoFeature()
 	end
 end
 
+-- 환생 -------------------------------------------------------------------------
+
+-- 서버가 준 실패 이유 -> 짧은 알림. 이유가 애매하면 지금 상태로 판단
+local function rebirthFailure(reason: any): (string, string)
+	local text = string.lower(tostring(reason or ""))
+	if text:find("코인") or text:find("coin") then
+		return "코인 부족", "coin"
+	elseif text:find("명소") or text:find("landmark") or text:find("missing") then
+		return "명소 부족", "lock"
+	elseif text:find("불러") or text:find("load") then
+		return "로딩 중", "globe"
+	end
+	if state then
+		local _, missing, short = Perks.rebirthCheck(state, currentCoins())
+		if #missing > 0 then
+			return "명소 부족", "lock"
+		elseif short > 0 then
+			return "코인 부족", "coin"
+		end
+	end
+	return "환생 실패", "close"
+end
+
+local function rebirth()
+	if rebirthing then
+		return
+	end
+	rebirthing = true
+	local response = invoke("Rebirth")
+	rebirthing = false
+	if type(response) ~= "table" then
+		return
+	end
+	applyState(response.State)
+	if response.Ok then
+		Hud.flash(Ui.colorPair("Coral").Face, 0.55)
+		Hud.toast("환생!", Ui.colorPair("Coral").Face, 3, "rebirth")
+	else
+		local text, icon = rebirthFailure(response.Reason)
+		Hud.toast(text, Ui.Theme.Bad, 2, icon)
+	end
+end
+
+-- Robux 상품 --------------------------------------------------------------------
+-- 서버가 구매 창을 띄움. 지급 결과는 State(부스트·패스·코인) / ServerLuck 이벤트로 들어옴
+
+local function buyRobux(remoteName: string, key: string)
+	local response = invoke(remoteName, key)
+	if type(response) ~= "table" then
+		return
+	end
+	if type(response.State) == "table" then
+		applyState(response.State)
+	end
+	if response.Ok == false then
+		-- 시간 부스트는 최대 시간(3시간)이 차 있으면 서버가 구매 창을 안 띄움
+		local item = Perks.item(key)
+		if item and item.Seconds then
+			Hud.toast("MAX", Ui.Theme.Bad, 2, item.Icon)
+		else
+			Hud.toast("구매 실패", Ui.Theme.Bad, 2, "close")
+		end
+	end
+end
+
+-- 구매 창에서 실제로 샀을 때: [상품 아이콘] "구매 완료"
+local function purchased(kind: string, id: any)
+	local item = Perks.itemById(kind, tonumber(id) or 0)
+	Hud.toast("구매 완료", Ui.Theme.Good, 3, if item then item.Icon else "check")
+end
+
 -- 광장 <-> 내 공원 이동
 local function teleport()
 	if teleporting then
@@ -4523,6 +5558,18 @@ Panels.init(gui, {
 	ToggleAutoFeature = function()
 		task.spawn(toggleAutoFeature)
 	end,
+	Rebirth = function()
+		task.spawn(rebirth)
+	end,
+	BuyPass = function(key: string)
+		task.spawn(buyRobux, "BuyPass", key)
+	end,
+	BuyProduct = function(key: string)
+		task.spawn(buyRobux, "BuyProduct", key)
+	end,
+	Toast = function(text: string, icon: string?)
+		Hud.toast(text, Ui.Theme.Bad, 2, icon)
+	end,
 })
 
 -- 다시 태어나면 광장(스폰 지점)에서 시작
@@ -4560,6 +5607,39 @@ Net.event("Announce").OnClientEvent:Connect(function(info)
 	showAnnouncement(info, landmark)
 end)
 
+-- 서버 행운 { Name, Until, Left }: 위쪽 띠 + "<이름> 서버 행운!"
+-- (남은 초 Left 를 먼저 씀: 시계 동기화 오차가 없음. 옛 서버에 이벤트가 없어도 멈추지 않게 따로 기다림)
+task.spawn(function()
+	local remote = findRemote("ServerLuck", 30)
+	if not remote or not remote:IsA("RemoteEvent") then
+		return
+	end
+	remote.OnClientEvent:Connect(function(info)
+		if type(info) ~= "table" then
+			return
+		end
+		local left = tonumber(info.Left)
+		local untilTime = if left and left > 0 then left else tonumber(info.Until)
+		if untilTime then
+			Hud.serverLuck(tostring(info.Name or ""), untilTime)
+		end
+	end)
+end)
+
+-- 구매 창이 닫힐 때 알림만 (지급은 서버의 ProcessReceipt). 연결에 실패해도 아래 루프는 돌아야 하므로 pcall
+pcall(function()
+	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(who, passId, wasPurchased)
+		if who == player and wasPurchased then
+			purchased("Pass", passId)
+		end
+	end)
+	MarketplaceService.PromptProductPurchaseFinished:Connect(function(userId, productId, isPurchased)
+		if userId == player.UserId and isPurchased then
+			purchased("Product", productId)
+		end
+	end)
+end)
+
 -- 루프 ---------------------------------------------------------------------
 
 -- "LandmarkSpin" 태그 모형 목록 (태그가 붙고 떨어질 때만 갱신 → 매 프레임 목록을 새로 만들지 않음)
@@ -4590,11 +5670,15 @@ RunService.RenderStepped:Connect(function(dt)
 	end
 end)
 
--- 업그레이드 버튼 "살 수 있음" 색 (가벼운 갱신)
+-- 업그레이드 버튼 "살 수 있음" 색, 환생 조건, 부스트·서버 행운 타이머 (가벼운 갱신)
 task.spawn(function()
 	while true do
 		if state then
-			Panels.refreshCoins(currentCoins())
+			local coins = currentCoins()
+			Panels.refreshCoins(coins)
+			Hud.tick(coins)
+		else
+			Hud.tick(nil)
 		end
 		task.wait(0.25)
 	end
@@ -4617,7 +5701,8 @@ applyState(invoke("GetState"))
         <Item class="ModuleScript" referent="22">
           <Properties>
             <string name="Name">Hud</string>
-            <string name="Source"><![CDATA[-- 기본 화면(HUD): 코인·수입·스탯, 메뉴 버튼, 굴리기 버튼, 지구본 굴림 연출, 뉴스 속보, 알림
+            <string name="Source"><![CDATA[-- 기본 화면(HUD): 코인·수입·스탯, 메뉴 버튼, 굴리기 버튼, 지구본 굴림 연출, 뉴스 속보, 알림,
+-- 환생 수·부스트 타이머·서버 행운 띠(v3), 상점 버튼(오른쪽, 팔 상품이 있을 때만)
 -- 스타일은 DESIGN.md "UI 스타일 가이드 (v2)" — 통통한 버튼 + 굵은 Ink 테두리 + 아이콘, 이모지 없음
 -- 글자는 최소로: 아이콘 + 숫자 위주, 버튼 글자는 2~3글자, 알림은 8글자 안팎. 설명 문장은 쓰지 않음.
 
@@ -4631,6 +5716,7 @@ local Landmarks = require(Shared.Landmarks)
 local PlayerState = require(Shared.PlayerState)
 
 local Icons = require(script.Parent.Icons)
+local Perks = require(script.Parent.Perks)
 local Ui = require(script.Parent.Ui)
 local Viewport = require(script.Parent.Viewport)
 local Theme = Ui.Theme
@@ -4695,6 +5781,17 @@ local toasts: { GuiObject } = {}
 local toastOrder = 0
 local burstTween: Tween? = nil
 
+-- 타이머(부스트·서버 행운)와 환생 배지: render 에서 기준값을 받고 tick 에서 글자만 고침
+local hudState: PlayerState.Snapshot? = nil
+local boosts: { Perks.Boost } = {}
+local boostsAt = 0 -- boosts 의 남은 시간을 잰 시각(time())
+local boostChips: { [string]: Ui.Chip } = {}
+local snapshotLuckUntil: number? = nil -- 스냅샷이 알려 준 서버 행운 끝 시각(유닉스 초)
+local snapshotLuckOn = false -- 시각 없이 "켜짐"만 알 때
+local eventLuckUntil = 0 -- ServerLuck 이벤트가 알려 준 끝 시각
+local rebirthReady = false
+local badgeTween: Tween? = nil
+
 local function makeSound(pitch: number, volume: number): Sound
 	return Ui.new("Sound", {
 		SoundId = TICK_SOUND,
@@ -4709,12 +5806,25 @@ local landSound: Sound
 local revealSound: Sound
 local rareSound: Sound
 local newsSound: Sound
+local luckSound: Sound
 
 local function play(sound: Sound?)
 	if sound then
 		sound.TimePosition = 0
 		sound:Play()
 	end
+end
+
+-- 글자가 바뀔 때만 고침 (자주 부르는 타이머용)
+local function setText(label: TextLabel, text: string)
+	if label.Text ~= text then
+		label.Text = text
+	end
+end
+
+-- 서버 시계(유닉스 초). 서버 행운 끝 시각과 비교
+local function serverNow(): number
+	return workspace:GetServerTimeNow()
 end
 
 -- 화면 구석에 붙는 투명 컨테이너(화면 크기에 따라 자동 스케일)
@@ -4782,6 +5892,7 @@ local function buildStats()
 		Parent = container,
 	})
 	Ui.list(Enum.FillDirection.Horizontal, 12).Parent = chips
+	refs.StatChips = chips
 	refs.RollsChip = Ui.chip({
 		Name = "Rolls",
 		Color = "Sky",
@@ -4800,14 +5911,27 @@ local function buildStats()
 		LayoutOrder = 2,
 		Parent = chips,
 	})
+	-- (LayoutOrder 3: 부스트 타이머 딱지 "×2 12:34" — 처음 필요할 때 만듦)
+	-- 환생 수 (1 이상일 때만)
+	refs.RebirthChip = Ui.chip({
+		Name = "Rebirths",
+		Color = "Coral",
+		Icon = "rebirth",
+		Height = 30,
+		TextSize = 18,
+		LayoutOrder = 4,
+		Visible = false,
+		Parent = chips,
+	})
 end
 
--- 왼쪽 가운데: 네모 통통 버튼 4개 (큰 아이콘 + 2글자) -----------------------------
+-- 왼쪽 가운데: 네모 통통 버튼 5개 (큰 아이콘 + 2글자) -----------------------------
 
 local MENU = {
 	{ Id = "Collection", Text = "도감", Color = "Sky", Icon = "album" },
 	{ Id = "Passport", Text = "여권", Color = "Grape", Icon = "passport" },
 	{ Id = "Upgrade", Text = "강화", Color = "Sun", Icon = "hammer" },
+	{ Id = "Rebirth", Text = "환생", Color = "Coral", Icon = "rebirth" },
 }
 
 local function buildMenu(onMenu: (string) -> (), onTeleport: () -> ())
@@ -4851,6 +5975,24 @@ local function buildMenu(onMenu: (string) -> (), onTeleport: () -> ())
 				Visible = false,
 				Parent = button.Face,
 			})
+		elseif entry.Id == "Rebirth" then
+			-- 환생할 수 있으면 "!" 배지가 통통 뜀
+			local badge = Ui.chip({
+				Name = "Ready",
+				Color = "Sun",
+				Text = "!",
+				Font = Theme.FontTitle,
+				Height = 28,
+				TextSize = 20,
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.new(1, -6, 0, 2),
+				Rotation = 10,
+				ZIndex = 6,
+				Visible = false,
+				Parent = button.Face,
+			})
+			refs.RebirthBadge = badge
+			refs.RebirthBadgeScale = Ui.new("UIScale", { Parent = badge.Root })
 		end
 	end
 
@@ -4867,6 +6009,34 @@ local function buildMenu(onMenu: (string) -> (), onTeleport: () -> ())
 		Parent = container,
 	})
 	refs.TeleportButton.Activated:Connect(onTeleport)
+end
+
+-- 오른쪽 가운데: 상점 (Robux 상품이 하나도 없으면 안 만듦)
+local function buildShop(onMenu: (string) -> ())
+	if not Perks.anyForSale() then
+		return
+	end
+	local container = anchor(
+		"Shop",
+		Vector2.new(1, 0.5),
+		UDim2.new(1, -14, 0.5, 16),
+		UDim2.fromOffset(MENU_BUTTON.X + 8, MENU_BUTTON.Y)
+	)
+	local button = Ui.chunkyButton({
+		Name = "Shop",
+		Size = UDim2.fromOffset(MENU_BUTTON.X, MENU_BUTTON.Y),
+		Color = "Sun",
+		Icon = "coin",
+		IconSize = MENU_ICON,
+		IconSpin = 45,
+		Vertical = true,
+		Text = "상점",
+		TextSize = 18,
+		Parent = container,
+	})
+	button.Activated:Connect(function()
+		onMenu("Shop")
+	end)
 end
 
 -- 아래 가운데: 굴리기 + 자동 (키보드가 있으면 버튼 모서리에 R / T 키캡) --------------
@@ -5173,21 +6343,55 @@ local function buildReveal()
 	})
 end
 
--- 뉴스 속보 / 알림 자리 ------------------------------------------------------
+-- 서버 행운 띠 / 뉴스 속보 / 알림 자리 ------------------------------------------
+
+local function topList(parent: Instance, gap: number): UIListLayout
+	local layout = Ui.list(Enum.FillDirection.Vertical, gap, Enum.HorizontalAlignment.Center)
+	layout.VerticalAlignment = Enum.VerticalAlignment.Top
+	layout.Parent = parent
+	return layout
+end
 
 local function buildNotices()
-	-- 뉴스 속보(맨 위)
-	local news = anchor("News", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 10), UDim2.fromOffset(720, 118), 9)
-	local newsLayout = Ui.list(Enum.FillDirection.Vertical, 8, Enum.HorizontalAlignment.Center)
-	newsLayout.VerticalAlignment = Enum.VerticalAlignment.Top
-	newsLayout.Parent = news
+	-- 위에서부터 [서버 행운 띠(켜졌을 때만)] [뉴스 속보] [알림] 순서로 쌓임. 띠가 뜨면 아래 둘이 함께 내려감
+	local top = anchor("Top", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 10), UDim2.fromOffset(720, 380), 9)
+	topList(top, 6)
+
+	-- 서버 행운: 도는 지구본 + "서버 행운 ×2 · 12:34"
+	refs.ServerLuck = Ui.chip({
+		Name = "ServerLuck",
+		Color = "Grape",
+		Icon = "globe",
+		IconSpin = 60,
+		IconSize = 50,
+		Height = 40,
+		TextSize = 22,
+		StrokeThickness = 3,
+		LayoutOrder = 1,
+		Visible = false,
+		Parent = top,
+	})
+
+	-- 뉴스 속보
+	local news = Ui.new("Frame", {
+		Name = "News",
+		LayoutOrder = 2,
+		Size = UDim2.fromOffset(720, 118),
+		BackgroundTransparency = 1,
+		Parent = top,
+	})
+	topList(news, 8)
 	refs.News = news
 
 	-- 잠깐 떴다 사라지는 알림(뉴스 아래)
-	local notices = anchor("Notices", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 134), UDim2.fromOffset(600, 200), 9)
-	local layout = Ui.list(Enum.FillDirection.Vertical, 8, Enum.HorizontalAlignment.Center)
-	layout.VerticalAlignment = Enum.VerticalAlignment.Top
-	layout.Parent = notices
+	local notices = Ui.new("Frame", {
+		Name = "Notices",
+		LayoutOrder = 3,
+		Size = UDim2.fromOffset(600, 200),
+		BackgroundTransparency = 1,
+		Parent = top,
+	})
+	topList(notices, 8)
 	refs.Notices = notices
 end
 
@@ -5217,9 +6421,11 @@ function Hud.init(playerGui: PlayerGui, handlers: Handlers): ScreenGui
 	revealSound = makeSound(0.9, 0.6)
 	rareSound = makeSound(0.5, 1)
 	newsSound = makeSound(0.7, 0.5)
+	luckSound = makeSound(0.6, 0.7)
 
 	buildStats()
 	buildMenu(handlers.Menu, handlers.Teleport)
+	buildShop(handlers.Menu)
 	buildRollBar(handlers.Roll, handlers.ToggleAuto)
 	buildReveal()
 	buildNotices()
@@ -5227,16 +6433,102 @@ function Hud.init(playerGui: PlayerGui, handlers: Handlers): ScreenGui
 	return gui
 end
 
-function Hud.render(state: PlayerState.Snapshot?)
+-- 환생 가능 배지: 켜질 때만 통통 뛰는 애니메이션을 돌림
+local function setRebirthReady(ready: boolean)
+	if ready == rebirthReady then
+		return
+	end
+	rebirthReady = ready
+	refs.RebirthBadge.Root.Visible = ready
+	local tween = badgeTween
+	if tween then
+		tween:Cancel()
+		badgeTween = nil
+	end
+	refs.RebirthBadgeScale.Scale = 1
+	if ready then
+		local pulse = TweenService:Create(
+			refs.RebirthBadgeScale,
+			TweenInfo.new(0.45, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+			{ Scale = 1.25 }
+		)
+		pulse:Play()
+		badgeTween = pulse
+	end
+end
+
+local function boostChip(boost: Perks.Boost): Ui.Chip
+	local chip = boostChips[boost.Key]
+	if not chip then
+		chip = Ui.chip({
+			Name = "Boost" .. boost.Key,
+			Color = "Sun",
+			Icon = boost.Icon,
+			Height = 30,
+			TextSize = 18,
+			LayoutOrder = 3,
+			Parent = refs.StatChips,
+		})
+		boostChips[boost.Key] = chip
+	end
+	return chip
+end
+
+-- 가벼운 갱신(0.25초마다): 부스트 남은 시간, 서버 행운 띠, 환생 배지. 글자는 바뀔 때만 고침
+-- coins: 지금 보이는 코인(부드럽게 오르는 값). nil 이면 환생 배지는 그대로 둠
+function Hud.tick(coins: number?)
+	local elapsed = time() - boostsAt
+	local active: { [string]: boolean } = {}
+	for _, boost in boosts do
+		local left = boost.Seconds - elapsed
+		if left > 0 then
+			active[boost.Key] = true
+			local chip = boostChip(boost)
+			setText(chip.Label, Ui.times(boost.Mult) .. " " .. Format.duration(left))
+			chip.Root.Visible = true
+		end
+	end
+	for key, chip in boostChips do
+		if not active[key] then
+			chip.Root.Visible = false
+		end
+	end
+
+	-- 서버 행운: 스냅샷/이벤트 중 더 늦게 끝나는 쪽
+	local banner = refs.ServerLuck
+	local untilTime = math.max(snapshotLuckUntil or 0, eventLuckUntil)
+	local left = untilTime - serverNow()
+	local luckText = "서버 행운 " .. Ui.times(Perks.mult("ServerLuck", 2))
+	if left > 0 then
+		setText(banner.Label, luckText .. " · " .. Format.duration(left))
+		banner.Root.Visible = true
+	elseif snapshotLuckOn then
+		setText(banner.Label, luckText)
+		banner.Root.Visible = true
+	else
+		banner.Root.Visible = false
+	end
+
+	if coins and hudState then
+		setRebirthReady((Perks.rebirthCheck(hudState, coins)))
+	end
+end
+
+-- receivedAt: 스냅샷을 받은 시각(time()). 부스트·서버 행운의 "남은 초" 기준
+function Hud.render(state: PlayerState.Snapshot?, receivedAt: number?)
+	hudState = state
 	if not state then
 		refs.CoinLabel.Text = "..."
 		refs.IncomeChip.Root.Visible = false
 		refs.RollsChip.Root.Visible = false
 		refs.LuckChip.Root.Visible = false
+		refs.RebirthChip.Root.Visible = false
 		refs.PassportBadge.Root.Visible = false
+		setRebirthReady(false)
 		shownCoins = -1
 		return
 	end
+	local at = receivedAt or time()
 	refs.IncomeChip.Label.Text = "+" .. incomeText(state.Income) .. "/s"
 	refs.IncomeChip.Root.Visible = true
 	refs.RollsChip.Label.Text = Format.commas(state.Rolls)
@@ -5250,6 +6542,28 @@ function Hud.render(state: PlayerState.Snapshot?)
 	badge.Label.Text = string.format("%d/%d", stamps, #Landmarks.Regions)
 	badge.Label.TextColor3 = if stamps > 0 then Ui.colorPair("Sun").Face else WHITE
 	badge.Root.Visible = true
+
+	-- 환생 수 딱지 (0 이면 숨김)
+	local rebirths = Perks.rebirths(state)
+	refs.RebirthChip.Label.Text = Format.commas(rebirths)
+	refs.RebirthChip.Root.Visible = rebirths > 0
+
+	-- 부스트 / 서버 행운 기준값 (스냅샷을 받은 순간 기준)
+	local snapshot = state :: any
+	boosts = Perks.boosts(snapshot)
+	boostsAt = at
+	snapshotLuckUntil, snapshotLuckOn = Perks.serverLuck(snapshot.ServerLuck, serverNow() - (time() - at))
+	Hud.tick(state.Coins + state.Income * math.max(0, time() - at))
+end
+
+-- ServerLuck 이벤트: 띠를 켜고 "<이름> 서버 행운!" 알림
+-- untilValue: 끝나는 시각(서버 시계, 유닉스 초) 또는 남은 초
+function Hud.serverLuck(name: string, untilValue: number)
+	eventLuckUntil = math.max(eventLuckUntil, Perks.toEpoch(untilValue, serverNow()))
+	Hud.tick(nil)
+	local text = if name ~= "" then Format.escape(name) .. " 서버 행운!" else "서버 행운!"
+	Hud.toast(text, Ui.colorPair("Grape").Face, 4, "globe")
+	play(luckSound)
 end
 
 -- 매 프레임 호출: 부드럽게 올라가는 코인 표시 (정수가 바뀔 때만 글자 갱신)
@@ -5300,6 +6614,11 @@ local function flash(color: Color3, strength: number)
 	TweenService:Create(flashFrame, TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 		BackgroundTransparency = 1,
 	}):Play()
+end
+
+-- 화면 전체 번쩍임 (환생 등)
+function Hud.flash(color: Color3, strength: number)
+	flash(color, strength)
 end
 
 -- landed: 결과 지역에 멈췄으면 지역 색 딱지, 아니면 지역 색 글자만
@@ -5643,7 +6962,7 @@ return Hud
 --   Icons.setSpin(icon, 420)   -- 회전 속도(초당 도). 그림 아이콘은 빠를 때만 빙글 돌고, 느린 회전은 3D 에만 적용
 -- 3D 모형은 이름별로 한 번만 만들어 두고 복제해서 씁니다. 파트 수는 아이콘마다 3~15개 정도로 작게 유지.
 -- 아이콘: coin, globe(=roll), passport, album(=collection), hammer, park, plaza, dice, clover(=luck), star,
---   star_empty, news, lock, auto, close, check, arrow_up, plane, ticket  (stamp_* 는 그림이 있을 때만 씀)
+--   star_empty, news, lock, auto, close, check, arrow_up, plane, ticket, rebirth  (stamp_* 는 그림이 있을 때만 씀)
 
 local RunService = game:GetService("RunService")
 
@@ -6025,6 +7344,26 @@ function BUILDERS.auto(m)
 	arrowhead(m, center, at, V(-math.sin(finish), math.cos(finish), 0), 1.3, 0.95, thickness, SNOW)
 end
 
+-- 환생: 금색 화살표 두 개가 원을 그리며 돎 + 가운데 초록 위 화살표 (파트 15개)
+-- (ImageIds 에 "rebirth" 그림을 넣으면 그 그림을 씀)
+function BUILDERS.rebirth(m)
+	local center = FACE * CFrame.new(0, 2.3, 0)
+	local radius, width, thickness = 1.9, 0.6, 0.7
+	local step = 2 * PI / 12
+	local chord = 2 * radius * math.sin(step / 2) + 0.08
+	for _, start in { math.rad(100), math.rad(280) } do
+		for k = 0, 3 do
+			local cf = center * CFrame.Angles(0, 0, start + k * step) * CFrame.new(radius, 0, 0)
+			block(m, cf, V(width, chord, thickness), SUN)
+		end
+		local finish = start + 3.5 * step
+		local at = V(math.cos(finish), math.sin(finish), 0) * radius
+		arrowhead(m, center, at, V(-math.sin(finish), math.cos(finish), 0), 1.1, 0.85, thickness, SUN)
+	end
+	block(m, center * CFrame.new(0, -0.45, 0), V(0.55, 0.9, 0.6), GRASS)
+	arrowhead(m, center, V(0, 0, 0), V(0, 1, 0), 0.9, 0.75, 0.6, GRASS)
+end
+
 -- 예전 이름 -> 지금 이름 (ImageIds 와 같은 이름을 씀)
 local ALIASES = {
 	roll = "globe",
@@ -6255,7 +7594,7 @@ return Icons
         <Item class="ModuleScript" referent="24">
           <Properties>
             <string name="Name">Panels</string>
-            <string name="Source"><![CDATA[-- 메뉴 창: 도감(대표 지정), 여권(지역별 발견 현황 + 도장), 강화(업그레이드)
+            <string name="Source"><![CDATA[-- 메뉴 창: 도감(대표 지정), 여권(지역별 발견 현황 + 도장), 강화(업그레이드), 환생(조건 + 확인), 상점(Robux)
 -- 크림색 창(Ui.window) 하나를 쓰고, 화면마다 리본 색과 제목(2글자)만 바꿉니다.
 -- 글자는 최소로: 설명 문장 없이 아이콘 + 숫자 딱지로 보여 줍니다.
 -- 화면마다 카드를 한 번 만들고 상태가 바뀌면 글자/색만 고칩니다. 썸네일(ViewportFrame)은
@@ -6270,6 +7609,7 @@ local Landmarks = require(Shared.Landmarks)
 local PlayerState = require(Shared.PlayerState)
 
 local Icons = require(script.Parent.Icons)
+local Perks = require(script.Parent.Perks)
 local Ui = require(script.Parent.Ui)
 local Viewport = require(script.Parent.Viewport)
 local Theme = Ui.Theme
@@ -6281,6 +7621,10 @@ export type Handlers = {
 	Feature: (string?) -> (),
 	Buy: (string) -> (),
 	ToggleAutoFeature: () -> (),
+	Rebirth: () -> (), -- 확인까지 누른 뒤에만 부름
+	BuyPass: (string) -> (), -- Config.GamePasses 키
+	BuyProduct: (string) -> (), -- Config.Products 키
+	Toast: (text: string, icon: string?) -> (), -- 짧은 실패 알림 (예: "코인 부족")
 }
 
 local REGION_BONUS = math.floor(Config.REGION_LUCK_BONUS * 100 + 0.5)
@@ -6290,6 +7634,8 @@ local VIEWS = {
 	Collection = { Title = "도감", Color = "Sky", Top = HEADER_HEIGHT },
 	Passport = { Title = "여권", Color = "Grape", Top = HEADER_HEIGHT },
 	Upgrade = { Title = "강화", Color = "Sun", Top = 4 },
+	Rebirth = { Title = "환생", Color = "Coral", Top = HEADER_HEIGHT },
+	Shop = { Title = "상점", Color = "Sun", Top = 4 },
 }
 
 local WHITE = Color3.new(1, 1, 1)
@@ -6315,6 +7661,17 @@ local SECTION_GAP = 16
 local UPGRADE_ROW = 80
 local UPGRADE_GAP = 10
 
+local REBIRTH_COLUMNS = 6 -- 요구 명소 카드(여권 카드와 같은 크기)
+local REBIRTH_FOOTER = 104 -- 창 아래 고정 줄: 보상 · 경고 · 환생 버튼
+local COIN_BAR = Vector2.new(380, 40)
+local CONFIRM_SECONDS = 3
+
+local SHOP_CELL = Vector2.new(216, 196)
+local SHOP_GAP = 12
+local SHOP_COLUMNS = 3
+local SHOP_BAND = 74
+local BUY_COOLDOWN = 1
+
 local Panels = {}
 
 local win: Ui.Window
@@ -6326,7 +7683,7 @@ local openName: string? = nil
 local lastState: Snapshot? = nil
 local lastCoins = 0
 
-type View = { Scroller: ScrollingFrame, Header: Frame }
+type View = { Scroller: ScrollingFrame, Header: Frame, Extra: GuiObject? }
 local views: { [string]: View } = {}
 
 -- 도감 머리 줄
@@ -6337,9 +7694,11 @@ local emptyIcon: Frame
 
 type CollectionCard = {
 	Card: TextButton,
+	Photo: Frame,
 	Stars: TextLabel,
 	Count: Ui.Chip,
 	Shown: Ui.Chip?, -- 공원 전시 표시(처음 필요할 때 만듦)
+	Dim: Frame?, -- 예전에 발견했지만 지금은 없음(환생 후): 사진을 어둡게 (처음 필요할 때 만듦)
 	Badge: Ui.Chip,
 }
 local collectionCards: { [string]: CollectionCard } = {}
@@ -6369,6 +7728,26 @@ type UpgradeRow = {
 	Price: number?,
 }
 local upgradeRows: { [string]: UpgradeRow } = {}
+
+-- 환생
+local rebirthCount: Ui.Chip
+local rebirthLuck: Ui.Chip
+local rebirthIncome: Ui.Chip
+local rebirthSection: Frame
+local rebirthGrid: Frame
+local rebirthCoinFill: Frame
+local rebirthCoinText: TextLabel
+local rebirthCoinCheck: Frame
+local rebirthWarning: Ui.Chip
+local rebirthButton: Ui.ChunkyButton? = nil
+local rebirthCards: { [string]: { Card: Frame, Look: string } } = {}
+local confirmUntil = 0 -- 이 시각(os.clock)까지 한 번 더 누르면 환생
+local confirmToken = 0
+local rebirthLook = ""
+
+-- 상점
+type ShopCard = { Item: Perks.Item, Button: Ui.ChunkyButton, Effect: Ui.Chip, Owned: Ui.Chip? }
+local shopCards: { ShopCard } = {}
 
 local function owned(state: Snapshot, id: string): number
 	return state.Inventory[id] or 0
@@ -6568,7 +7947,7 @@ local function collectionCard(parent: ScrollingFrame, landmark: Landmark): Colle
 	}, 15)
 	Ui.outline(bandLabel, 1.5)
 
-	photo(card, landmark, UDim2.fromOffset(7, 33), UDim2.new(1, -14, 0, 84), 8)
+	local picture = photo(card, landmark, UDim2.fromOffset(7, 33), UDim2.new(1, -14, 0, 84), 8)
 
 	Ui.label({
 		Position = UDim2.fromOffset(6, 122),
@@ -6620,11 +7999,35 @@ local function collectionCard(parent: ScrollingFrame, landmark: Landmark): Colle
 	card.Activated:Connect(function()
 		local state = lastState
 		local featured = state ~= nil and state.Featured == landmark.Id
+		if not featured and (not state or owned(state, landmark.Id) <= 0) then
+			return -- 지금 없는 명소(환생 전에 발견)는 대표로 못 씀
+		end
 		handlers.Feature(if featured then nil else landmark.Id)
 	end)
 
 	card.Parent = parent
-	return { Card = card, Stars = stars, Count = count, Shown = nil, Badge = badge }
+	return { Card = card, Photo = picture, Stars = stars, Count = count, Shown = nil, Dim = nil, Badge = badge }
+end
+
+-- 지금은 없는 명소: 사진 위에 어두운 막 (처음 필요할 때 만듦)
+local function setDim(entry: CollectionCard, dim: boolean)
+	local shade = entry.Dim
+	if not shade then
+		if not dim then
+			return
+		end
+		shade = Ui.new("Frame", {
+			Name = "Dim",
+			Size = UDim2.fromScale(1, 1),
+			BackgroundColor3 = Theme.Ink,
+			BackgroundTransparency = 0.45,
+			ZIndex = 2,
+			Parent = entry.Photo,
+		})
+		Ui.corner(8).Parent = shade
+		entry.Dim = shade
+	end
+	(shade :: Frame).Visible = dim
 end
 
 -- 공원에 전시 중: 사진 왼쪽 아래 초록 공원 아이콘 딱지 (처음 필요할 때 만듦)
@@ -6662,11 +8065,12 @@ local function renderCollection(state: Snapshot)
 		inPark[id] = true
 	end
 
+	-- 도감은 역대 발견(Discovered) 기준. 별·개수·전시는 지금 보유(Inventory) 기준
 	local shown = 0
 	for _, landmark in Landmarks.RarestFirst do
 		local count = owned(state, landmark.Id)
 		local entry = collectionCards[landmark.Id]
-		if count > 0 then
+		if Perks.discovered(state, landmark.Id) then
 			shown += 1
 			if not entry then
 				entry = collectionCard(scroller, landmark)
@@ -6678,7 +8082,9 @@ local function renderCollection(state: Snapshot)
 			entry.Badge.Root.Visible = featured
 			entry.Stars.Text = Ui.starsRich(PlayerState.stars(count), #Config.STAR_THRESHOLDS)
 			entry.Count.Label.Text = "×" .. Format.commas(count)
+			entry.Count.Root.Visible = count > 0
 			setShown(entry, inPark[landmark.Id] == true)
+			setDim(entry, count <= 0)
 		elseif entry then
 			entry.Card:Destroy()
 			collectionCards[landmark.Id] = nil
@@ -6937,7 +8343,7 @@ local function renderPassport(state: Snapshot)
 		local list = Landmarks.ByRegion[region.Id]
 		local discovered = 0
 		for order, landmark in list do
-			local known = owned(state, landmark.Id) > 0
+			local known = Perks.discovered(state, landmark.Id)
 			if known then
 				discovered += 1
 			end
@@ -7146,19 +8552,591 @@ local function renderUpgrade(state: Snapshot)
 	end
 end
 
+-- 환생 -----------------------------------------------------------------------
+
+-- 버튼이 좌우로 살짝 흔들림 (아직 못 누를 때)
+local function shake(target: GuiObject)
+	target.Rotation = 0
+	local info = TweenInfo.new(0.05, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, 3, true)
+	TweenService:Create(target, info, { Rotation = 4 }):Play()
+end
+
+-- 환생 버튼: 못 함 = 회색 / 가능 = Coral "환생" / 한 번 누름 = Sun "확인?" (3초)
+local function paintRebirthButton(ready: boolean)
+	local button = rebirthButton
+	if not button then
+		return
+	end
+	local confirming = ready and os.clock() < confirmUntil
+	local look = if confirming then "confirm" elseif ready then "ready" else "locked"
+	if look == rebirthLook then
+		return
+	end
+	rebirthLook = look
+	button.SetText(if confirming then "확인?" else "환생")
+	button.SetColor(if confirming then "Sun" elseif ready then "Coral" else "Gray")
+	if button.Icon then
+		Icons.setTransparency(button.Icon, if ready then 0 else 0.45)
+	end
+end
+
+-- 코인 막대와 버튼만 다시 칠함 (0.25초마다 불려도 가벼움)
+local function refreshRebirth(coins: number)
+	local state = lastState
+	if not state or not rebirthButton then
+		return
+	end
+	local ready, _, short, need = Perks.rebirthCheck(state, coins)
+	local required = if need then need.Coins else 0
+	local met = need ~= nil and short <= 0
+	rebirthCoinFill.Size = UDim2.fromScale(if required > 0 then math.clamp(coins / required, 0, 1) else 1, 1)
+	rebirthCoinFill.BackgroundColor3 = Ui.colorPair(if met then "Grass" else "Sun").Face
+	local text = Format.short(math.max(0, math.floor(coins))) .. " / " .. Format.short(required)
+	if rebirthCoinText.Text ~= text then
+		rebirthCoinText.Text = text
+	end
+	rebirthCoinCheck.Visible = met
+	paintRebirthButton(ready)
+end
+
+local function onRebirthPressed()
+	local state = lastState
+	if not state then
+		return
+	end
+	local ready, missing, _, need = Perks.rebirthCheck(state, lastCoins)
+	if not need then
+		return
+	end
+	if not ready then
+		confirmUntil = 0
+		paintRebirthButton(false)
+		if rebirthButton then
+			shake(rebirthButton.Root)
+		end
+		if #missing > 0 then
+			handlers.Toast("명소 부족", "lock")
+		else
+			handlers.Toast("코인 부족", "coin")
+		end
+		return
+	end
+	if os.clock() < confirmUntil then
+		confirmUntil = 0
+		confirmToken += 1
+		paintRebirthButton(true)
+		handlers.Rebirth()
+		return
+	end
+	-- 첫 번째 누름: 3초 동안 "확인?"
+	confirmUntil = os.clock() + CONFIRM_SECONDS
+	confirmToken += 1
+	local token = confirmToken
+	paintRebirthButton(true)
+	task.delay(CONFIRM_SECONDS, function()
+		if token == confirmToken then
+			refreshRebirth(lastCoins)
+		end
+	end)
+end
+
+local function buildRebirth(): View
+	local header = newHeader("Rebirth")
+	local chips = chipRow(header)
+	-- 지금: 환생 수 · 행운 배율 · 수입 배율
+	rebirthCount = headerChip(chips, "rebirth", Theme.Ink, 1)
+	rebirthLuck = headerChip(chips, "clover", "Grape", 2)
+	rebirthIncome = headerChip(chips, "coin", "Grass", 3)
+
+	local top = VIEWS.Rebirth.Top
+	local scroller = newScroller("Rebirth", top)
+	scroller.Size = UDim2.new(1, 0, 1, -(top + REBIRTH_FOOTER))
+
+	-- 다음 환생 조건: 요구 명소 카드(체크) + 코인 막대
+	rebirthSection = Ui.new("Frame", {
+		Name = "Need",
+		Size = UDim2.new(1, 0, 0, 100),
+		BackgroundColor3 = Theme.Paper,
+		Parent = scroller,
+	})
+	Ui.corner(14).Parent = rebirthSection
+	Ui.stroke(Theme.Ink, 3).Parent = rebirthSection
+
+	rebirthGrid = Ui.new("Frame", {
+		Name = "Landmarks",
+		Position = UDim2.fromOffset(SECTION_PAD, SECTION_PAD),
+		Size = UDim2.new(1, -SECTION_PAD * 2, 0, 0),
+		BackgroundTransparency = 1,
+		Parent = rebirthSection,
+	})
+	Ui.new("UIGridLayout", {
+		CellSize = UDim2.fromOffset(PASSPORT_CELL.X, PASSPORT_CELL.Y),
+		CellPadding = UDim2.fromOffset(PASSPORT_GAP, PASSPORT_GAP),
+		FillDirectionMaxCells = REBIRTH_COLUMNS,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		Parent = rebirthGrid,
+	})
+
+	-- 코인 막대: [동전] 12.3K / 50K [체크]
+	local bar = Ui.new("Frame", {
+		Name = "Coins",
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -SECTION_PAD),
+		Size = UDim2.fromOffset(COIN_BAR.X, COIN_BAR.Y),
+		BackgroundColor3 = Theme.Cream,
+		Parent = rebirthSection,
+	})
+	Ui.round().Parent = bar
+	Ui.stroke(Theme.Ink, 3).Parent = bar
+	rebirthCoinFill = Ui.new("Frame", {
+		Name = "Fill",
+		Size = UDim2.fromScale(0, 1),
+		BackgroundColor3 = Ui.colorPair("Sun").Face,
+		BorderSizePixel = 0,
+		Parent = bar,
+	})
+	Ui.round().Parent = rebirthCoinFill
+	rebirthCoinText = Ui.label({
+		Position = UDim2.fromOffset(34, 4),
+		Size = UDim2.new(1, -68, 1, -8),
+		TextColor3 = WHITE,
+		ZIndex = 3,
+		Parent = bar,
+	}, 24)
+	Ui.outline(rebirthCoinText, 2.5)
+	Icons.view(bar, "coin", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0, 0, 0.5, 0),
+		Size = UDim2.fromOffset(56, 56),
+		ZIndex = 4,
+	})
+	-- 코인이 충분하면 오른쪽 끝에 체크 동그라미
+	rebirthCoinCheck = Ui.new("Frame", {
+		Name = "Check",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(1, -2, 0.5, 0),
+		Size = UDim2.fromOffset(40, 40),
+		BackgroundColor3 = Theme.Cream,
+		Visible = false,
+		ZIndex = 4,
+		Parent = bar,
+	})
+	Ui.round().Parent = rebirthCoinCheck
+	Ui.stroke(Theme.Ink, 3).Parent = rebirthCoinCheck
+	Icons.view(rebirthCoinCheck, "check", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(0.95, 0.95),
+		ZIndex = 5,
+	})
+
+	-- 아래 고정 줄: [위 화살표][행운 +20%][수입 +50%] / [코인·강화 초기화]   [환생]
+	local footer = Ui.new("Frame", {
+		Name = "RebirthFooter",
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.fromScale(0, 1),
+		Size = UDim2.new(1, 0, 0, REBIRTH_FOOTER),
+		BackgroundTransparency = 1,
+		Visible = false,
+		Parent = body,
+	})
+	local rewards = Ui.new("Frame", {
+		Name = "Rewards",
+		Position = UDim2.fromOffset(8, 10),
+		Size = UDim2.new(1, -290, 0, 38),
+		BackgroundTransparency = 1,
+		Parent = footer,
+	})
+	Ui.list(Enum.FillDirection.Horizontal, 10).Parent = rewards
+	Icons.view(rewards, "arrow_up", { Size = UDim2.fromOffset(38, 38), LayoutOrder = 1 })
+	headerChip(rewards, "clover", "Grape", 2).Label.Text =
+		string.format("+%d%%", math.floor(Perks.REBIRTH_LUCK * 100 + 0.5))
+	headerChip(rewards, "coin", "Grass", 3).Label.Text =
+		string.format("+%d%%", math.floor(Perks.REBIRTH_INCOME * 100 + 0.5))
+
+	rebirthWarning = Ui.chip({
+		Name = "Warning",
+		Color = Theme.Ink,
+		TextColor3 = Ui.colorPair("Coral").Face,
+		Text = "코인·강화 초기화",
+		Height = 30,
+		TextSize = 17,
+		Position = UDim2.fromOffset(12, 60),
+		Parent = footer,
+	})
+
+	local button = Ui.chunkyButton({
+		Name = "Rebirth",
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, -6, 1, -6),
+		Size = UDim2.fromOffset(260, 88),
+		Color = "Gray",
+		Icon = "rebirth",
+		IconSize = 62,
+		Text = "환생",
+		TextSize = 36,
+		OutlineThickness = 3,
+		Parent = footer,
+	})
+	button.Activated:Connect(onRebirthPressed)
+	rebirthButton = button
+	rebirthLook = ""
+
+	return { Scroller = scroller, Header = header, Extra = footer }
+end
+
+-- 요구 명소 카드: 보유 = 사진 + 체크 / 예전에 발견 = 어두운 사진 / 미발견 = 어두운 "?" (이름·확률은 늘 보임)
+local function rebirthCard(parent: Frame, landmark: Landmark, look: string, order: number): Frame
+	local tier = landmark.Tier
+	local known = look ~= "unknown"
+	local card = Ui.new("Frame", {
+		Name = landmark.Id,
+		LayoutOrder = order,
+		BackgroundColor3 = if known then Theme.Cream else Theme.Ink,
+	})
+	Ui.corner(10).Parent = card
+	Ui.stroke(Theme.Ink, 2.5).Parent = card
+
+	if known then
+		local picture = photo(card, landmark, UDim2.fromOffset(5, 5), UDim2.new(1, -10, 0, 68), 7)
+		if look == "seen" then
+			local shade = Ui.new("Frame", {
+				Size = UDim2.fromScale(1, 1),
+				BackgroundColor3 = Theme.Ink,
+				BackgroundTransparency = 0.45,
+				ZIndex = 2,
+				Parent = picture,
+			})
+			Ui.corner(7).Parent = shade
+		end
+	else
+		Ui.label({
+			Position = UDim2.fromOffset(5, 5),
+			Size = UDim2.new(1, -10, 0, 68),
+			Font = Theme.FontTitle,
+			Text = "?",
+			TextColor3 = Theme.Paper,
+			TextTransparency = 0.2,
+			Parent = card,
+		}, 50)
+	end
+	Ui.label({
+		Position = UDim2.fromOffset(4, 77),
+		Size = UDim2.new(1, -8, 0, 20),
+		Text = landmark.Name,
+		TextColor3 = if known then Theme.Ink else Theme.Paper,
+		Parent = card,
+	}, 16)
+	Ui.label({
+		Position = UDim2.fromOffset(4, 99),
+		Size = UDim2.new(1, -8, 0, 17),
+		Text = Format.oneIn(landmark.OneIn),
+		TextColor3 = if known then tier.Color:Lerp(Theme.Ink, 0.45) else tier.Color,
+		Parent = card,
+	}, 14)
+
+	-- 체크 동그라미 (오른쪽 위 모서리에 걸침): 보유 = 크림 + 초록 체크, 아니면 빈 어두운 동그라미
+	local have = look == "owned"
+	local mark = Ui.new("Frame", {
+		Name = "Check",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(1, -6, 0, 6),
+		Size = UDim2.fromOffset(32, 32),
+		BackgroundColor3 = if have then Theme.Cream else Theme.Ink,
+		BackgroundTransparency = if have then 0 else 0.15,
+		ZIndex = 4,
+		Parent = card,
+	})
+	Ui.round().Parent = mark
+	Ui.stroke(if have then Theme.Ink else Theme.Paper, 2.5).Parent = mark
+	if have then
+		Icons.view(mark, "check", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(0.95, 0.95),
+			ZIndex = 5,
+		})
+	end
+
+	card.Parent = parent
+	return card
+end
+
+local function renderRebirth(state: Snapshot)
+	local rebirths = Perks.rebirths(state)
+	local luck, income = Perks.rebirthMults(rebirths)
+	rebirthCount.Label.Text = Format.commas(rebirths)
+	rebirthLuck.Label.Text = Ui.times(luck)
+	rebirthIncome.Label.Text = Ui.times(income)
+	-- 발견 기록(Discovered)이 따로 있으면 보유 명소도 초기화되는 규칙(DESIGN v3)
+	rebirthWarning.Label.Text = if (state :: any).Discovered ~= nil
+		then "코인·강화·명소 초기화"
+		else "코인·강화 초기화"
+
+	local need = Perks.rebirthNeed(state)
+	local list = if need then need.Landmarks else {}
+	local wanted: { [string]: boolean } = {}
+	for order, id in list do
+		wanted[id] = true
+		local look = if owned(state, id) > 0 then "owned" elseif Perks.discovered(state, id) then "seen" else "unknown"
+		local entry = rebirthCards[id]
+		if not entry or entry.Look ~= look then
+			if entry then
+				entry.Card:Destroy()
+			end
+			entry = { Card = rebirthCard(rebirthGrid, Landmarks.ById[id], look, order), Look = look }
+			rebirthCards[id] = entry
+		end
+		entry.Card.LayoutOrder = order
+	end
+	for id, entry in rebirthCards do
+		if not wanted[id] then
+			entry.Card:Destroy()
+			rebirthCards[id] = nil
+		end
+	end
+
+	local gridSize = gridHeight(#list, REBIRTH_COLUMNS, PASSPORT_CELL.Y, PASSPORT_GAP)
+	rebirthGrid.Size = UDim2.new(1, -SECTION_PAD * 2, 0, gridSize)
+	local height = SECTION_PAD + gridSize + (if gridSize > 0 then 14 else 0) + COIN_BAR.Y + SECTION_PAD
+	rebirthSection.Size = UDim2.new(1, 0, 0, height)
+	rebirthSection.Visible = need ~= nil
+	setCanvasHeight(views.Rebirth.Scroller, height)
+	refreshRebirth(lastCoins)
+end
+
+-- 상점 -----------------------------------------------------------------------
+
+-- 효과 딱지 글자: ×2 / 굴림 간격 -30% / 코인 팩은 render 에서 "+12.3K"
+local function effectText(item: Perks.Item): string
+	local mult = item.Mult
+	if not mult then
+		return ""
+	elseif mult < 1 then
+		return string.format("-%d%%", math.floor((1 - mult) * 100 + 0.5))
+	end
+	return Ui.times(mult)
+end
+
+local function durationText(seconds: number): string
+	if seconds % 60 == 0 then
+		return string.format("%d분", seconds // 60)
+	end
+	return Format.duration(seconds)
+end
+
+-- 상품 카드: 색 띠 + 큰 아이콘 / 이름 / 효과 딱지(+시간) / 초록 "구매" 버튼 (게임패스를 가졌으면 "보유" 도장)
+local function shopCard(parent: Frame, item: Perks.Item, order: number): ShopCard
+	local pair = Ui.colorPair(item.Color)
+	local card = Ui.new("Frame", {
+		Name = item.Key,
+		LayoutOrder = order,
+		BackgroundColor3 = Theme.Paper,
+	})
+	Ui.corner(14).Parent = card
+	Ui.stroke(Theme.Ink, 3).Parent = card
+
+	-- 위쪽 모서리만 둥근 색 띠 (아래 절반은 네모 판으로 덮음)
+	local band = Ui.new("Frame", {
+		Name = "Band",
+		Size = UDim2.new(1, 0, 0, SHOP_BAND),
+		BackgroundColor3 = WHITE,
+		BorderSizePixel = 0,
+		Parent = card,
+	})
+	Ui.corner(14).Parent = band
+	Ui.new("UIGradient", { Rotation = 90, Color = Ui.faceGradient(pair.Face), Parent = band })
+	Ui.new("Frame", {
+		Position = UDim2.new(0, 0, 1, -14),
+		Size = UDim2.new(1, 0, 0, 14),
+		BackgroundColor3 = pair.Face,
+		BorderSizePixel = 0,
+		Parent = band,
+	})
+	Ui.new("Frame", {
+		Position = UDim2.fromScale(0, 1),
+		Size = UDim2.new(1, 0, 0, 3),
+		BackgroundColor3 = Theme.Ink,
+		BorderSizePixel = 0,
+		Parent = band,
+	})
+	Icons.view(band, item.Icon, {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(62, 62),
+		ZIndex = 2,
+	})
+
+	Ui.label({
+		Position = UDim2.fromOffset(6, SHOP_BAND + 5),
+		Size = UDim2.new(1, -12, 0, 24),
+		Text = item.Name,
+		Parent = card,
+	}, 22)
+
+	local chips = Ui.new("Frame", {
+		Name = "Effects",
+		Position = UDim2.fromOffset(0, SHOP_BAND + 32),
+		Size = UDim2.new(1, 0, 0, 28),
+		BackgroundTransparency = 1,
+		Parent = card,
+	})
+	Ui.list(Enum.FillDirection.Horizontal, 8, Enum.HorizontalAlignment.Center).Parent = chips
+	local effect = Ui.chip({
+		Name = "Effect",
+		Color = Theme.Ink,
+		Icon = item.EffectIcon,
+		IconSize = 32,
+		Text = effectText(item),
+		Height = 26,
+		TextSize = 17,
+		LayoutOrder = 1,
+		Parent = chips,
+	})
+	local seconds = item.Seconds
+	if item.Kind == "Product" and seconds then
+		Ui.chip({
+			Name = "Time",
+			Color = Theme.Ink,
+			Text = durationText(seconds),
+			Height = 26,
+			TextSize = 16,
+			LayoutOrder = 2,
+			Parent = chips,
+		})
+	end
+
+	local button = Ui.chunkyButton({
+		Name = "Buy",
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -6),
+		Size = UDim2.fromOffset(150, 52),
+		Color = "Grass",
+		Text = "구매",
+		TextSize = 24,
+		Parent = card,
+	})
+	local lastPress = -math.huge
+	button.Activated:Connect(function()
+		if os.clock() - lastPress < BUY_COOLDOWN then
+			return
+		end
+		lastPress = os.clock()
+		if item.Kind == "Pass" then
+			if lastState and Perks.ownsPass(lastState, item.Key) then
+				return
+			end
+			handlers.BuyPass(item.Key)
+		else
+			handlers.BuyProduct(item.Key)
+		end
+	end)
+
+	local ownedStamp: Ui.Chip? = nil
+	if item.Kind == "Pass" then
+		ownedStamp = Ui.chip({
+			Name = "Owned",
+			Color = "Grass",
+			Text = "보유",
+			Font = Theme.FontTitle,
+			Height = 40,
+			TextSize = 24,
+			CornerRadius = 8,
+			StrokeThickness = 3,
+			Rotation = -8,
+			AnchorPoint = Vector2.new(0.5, 1),
+			Position = UDim2.new(0.5, 0, 1, -12),
+			ZIndex = 4,
+			Visible = false,
+			Parent = card,
+		})
+	end
+
+	card.Parent = parent
+	return { Item = item, Button = button, Effect = effect, Owned = ownedStamp }
+end
+
+local function buildShop(): View
+	local header = newHeader("Shop") -- 비어 있음(모양을 맞추려고 둠)
+	local scroller = newScroller("Shop", VIEWS.Shop.Top)
+	local layout = Ui.list(Enum.FillDirection.Vertical, SECTION_GAP, Enum.HorizontalAlignment.Center)
+	layout.VerticalAlignment = Enum.VerticalAlignment.Top
+	layout.Parent = scroller
+
+	-- 윗줄: 게임패스(영구), 아랫줄: 개발자 상품(여러 번)
+	local total = 0
+	local sections = 0
+	for _, group in { Perks.Passes, Perks.Products } do
+		if #group == 0 then
+			continue
+		end
+		sections += 1
+		local height = gridHeight(#group, SHOP_COLUMNS, SHOP_CELL.Y, SHOP_GAP)
+		local grid = Ui.new("Frame", {
+			Name = if group == Perks.Passes then "Passes" else "Products",
+			LayoutOrder = sections,
+			Size = UDim2.new(1, 0, 0, height),
+			BackgroundTransparency = 1,
+			Parent = scroller,
+		})
+		Ui.new("UIGridLayout", {
+			CellSize = UDim2.fromOffset(SHOP_CELL.X, SHOP_CELL.Y),
+			CellPadding = UDim2.fromOffset(SHOP_GAP, SHOP_GAP),
+			FillDirectionMaxCells = SHOP_COLUMNS,
+			SortOrder = Enum.SortOrder.LayoutOrder,
+			HorizontalAlignment = Enum.HorizontalAlignment.Center,
+			Parent = grid,
+		})
+		for index, item in group do
+			table.insert(shopCards, shopCard(grid, item, index))
+		end
+		total += height + (if sections > 1 then SECTION_GAP else 0)
+	end
+	setCanvasHeight(scroller, total)
+	return { Scroller = scroller, Header = header }
+end
+
+local function renderShop(state: Snapshot)
+	for _, entry in shopCards do
+		local item = entry.Item
+		local stamp = entry.Owned
+		if stamp then
+			local owns = Perks.ownsPass(state, item.Key)
+			entry.Button.Root.Visible = not owns
+			stamp.Root.Visible = owns
+		elseif item.Key == "CoinPack" then
+			entry.Effect.Label.Text = "+" .. Format.short(Perks.coinPackAmount(state.Income))
+		end
+	end
+end
+
 -- 공통 -----------------------------------------------------------------------
 
 local BUILDERS = {
 	Collection = buildCollection,
 	Passport = buildPassport,
 	Upgrade = buildUpgrade,
+	Rebirth = buildRebirth,
+	Shop = buildShop,
 }
 
 local RENDERERS = {
 	Collection = renderCollection,
 	Passport = renderPassport,
 	Upgrade = renderUpgrade,
+	Rebirth = renderRebirth,
+	Shop = renderShop,
 }
+
+local function showView(built: View, visible: boolean)
+	built.Scroller.Visible = visible
+	built.Header.Visible = visible
+	local extra = built.Extra
+	if extra then
+		extra.Visible = visible
+	end
+end
 
 local function render()
 	local name = openName
@@ -7173,8 +9151,7 @@ local function render()
 	end
 
 	for other, built in views do
-		built.Scroller.Visible = other == name
-		built.Header.Visible = other == name
+		showView(built, other == name)
 	end
 
 	local state = lastState
@@ -7188,8 +9165,7 @@ local function render()
 		built = BUILDERS[name]()
 		views[name] = built
 	end
-	built.Scroller.Visible = true
-	built.Header.Visible = true
+	showView(built, true)
 	RENDERERS[name](state)
 end
 
@@ -7227,7 +9203,7 @@ end
 
 -- 같은 창 버튼을 다시 누르면 닫힘
 function Panels.toggle(name: string)
-	if not VIEWS[name] then
+	if not VIEWS[name] or (name == "Shop" and not Perks.anyForSale()) then
 		return
 	end
 	if openName == name then
@@ -7250,6 +9226,8 @@ end
 function Panels.close()
 	openName = nil
 	window.Visible = false
+	confirmUntil = 0 -- 닫으면 환생 "확인?" 도 취소
+	confirmToken += 1
 end
 
 -- 서버 상태가 실제로 바뀌었을 때만 호출됨 (열린 화면만 갱신, 나머지는 열 때 갱신)
@@ -7261,14 +9239,15 @@ function Panels.render(state: Snapshot?)
 	render()
 end
 
--- 자주 호출해도 되는 가벼운 갱신: 업그레이드 버튼의 "살 수 있음" 색만 다시 칠함
+-- 자주 호출해도 되는 가벼운 갱신: 업그레이드 버튼의 "살 수 있음" 색 / 환생 코인 막대·버튼만 다시 칠함
 function Panels.refreshCoins(coins: number)
 	lastCoins = coins
-	if openName ~= "Upgrade" then
-		return
-	end
-	for _, row in upgradeRows do
-		paintBuyButton(row, coins)
+	if openName == "Upgrade" then
+		for _, row in upgradeRows do
+			paintBuyButton(row, coins)
+		end
+	elseif openName == "Rebirth" and lastState then
+		refreshRebirth(coins)
 	end
 end
 
@@ -7277,6 +9256,387 @@ return Panels
           </Properties>
         </Item>
         <Item class="ModuleScript" referent="25">
+          <Properties>
+            <string name="Name">Perks</string>
+            <string name="Source"><![CDATA[-- 환생 · 게임패스 · 개발자 상품 · 시간 부스트 · 서버 행운을 화면용으로 읽는 헬퍼 (DESIGN.md v3).
+-- Snapshot/Config 를 방어적으로 읽습니다: 필드가 없거나 형식이 조금 달라도(숫자/표) 화면이 깨지지 않게.
+--   Snapshot: Rebirths, NextRebirth = { Coins, Landmarks }, Discovered, Boosts = { [id] = 남은 초 },
+--             Passes = { [passKey] = true }, ServerLuck (지금은 true/false. 남은 초 / 끝 시각 / 표도 받아 줌)
+--   ServerLuck 이벤트: { Name, Until(workspace:GetServerTimeNow 기준 끝 시각), Left(남은 초) }
+--   Config:   REBIRTH_LUCK_BONUS, REBIRTH_INCOME_BONUS, REBIRTHS, GamePasses, Products
+--             (상품 항목 { Id = "LuckVIP", Name, PassId/ProductId, LuckMult... }. 번호가 0 이면 화면에 안 나옴)
+
+local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
+local Config = require(Shared.Config) :: any
+local Landmarks = require(Shared.Landmarks)
+local PlayerState = require(Shared.PlayerState) :: any
+
+local Perks = {}
+
+local function number(value: any, default: number): number
+	return if type(value) == "number" and value == value then value else default
+end
+
+-- 처음 나오는 숫자 필드 (없으면 nil)
+local function pick(entry: any, keys: { string }): number?
+	if type(entry) ~= "table" then
+		return nil
+	end
+	for _, key in keys do
+		local value = tonumber(entry[key])
+		if value then
+			return value
+		end
+	end
+	return nil
+end
+
+Perks.REBIRTH_LUCK = number(Config.REBIRTH_LUCK_BONUS, 0.2)
+Perks.REBIRTH_INCOME = number(Config.REBIRTH_INCOME_BONUS, 0.5)
+
+-- 서버 행운 이벤트/스냅샷의 시각이 이보다 크면 유닉스 시각(초), 작으면 남은 초로 봄
+local EPOCH_MIN = 1e8
+
+-- 상품 ------------------------------------------------------------------------
+
+export type Item = {
+	Key: string,
+	Kind: string, -- "Pass" | "Product"
+	Id: number,
+	Name: string,
+	Icon: string, -- 카드 큰 아이콘
+	Color: string, -- 카드 띠 색 (Ui 색 이름)
+	EffectIcon: string,
+	Mult: number?, -- 배율 (×2, 굴림 간격 ×0.7)
+	Seconds: number?, -- 시간 부스트 길이
+}
+
+-- 화면에 보여 줄 순서와 모양(띠 색은 아이콘과 대비되게, 한 줄 안에서 겹치지 않게).
+-- 효과 숫자(Mult/Seconds)는 Config 항목에 있으면 그 값을 씀
+local PASS_INFO = {
+	{ Key = "LuckVIP", Name = "행운 VIP", Icon = "clover", Color = "Grape", EffectIcon = "clover", Mult = 2 },
+	{ Key = "FastRoll", Name = "빠른 굴림", Icon = "plane", Color = "Sun", EffectIcon = "dice", Mult = 0.7 },
+	{ Key = "DoubleIncome", Name = "수입 2배", Icon = "coin", Color = "Grass", EffectIcon = "arrow_up", Mult = 2 },
+}
+local PRODUCT_INFO = {
+	{
+		Key = "LuckBoost",
+		Name = "행운 부스트",
+		Icon = "clover",
+		Color = "Sky",
+		EffectIcon = "clover",
+		Mult = 2,
+		Seconds = 900,
+	},
+	{
+		Key = "ServerLuck",
+		Name = "서버 행운",
+		Icon = "globe",
+		Color = "Coral",
+		EffectIcon = "clover",
+		Mult = 2,
+		Seconds = 900,
+	},
+	{ Key = "CoinPack", Name = "코인 팩", Icon = "coin", Color = "Grape", EffectIcon = "coin" },
+}
+
+-- Config.GamePasses / Products 에서 key 항목 찾기.
+-- 지금 형식: { { Id = "LuckVIP", Name, PassId = 123, LuckMult = 2 }, ... }. { LuckVIP = 123 } 같은 형식도 받아 줌
+local function lookup(group: any, key: string): any
+	if type(group) ~= "table" then
+		return nil
+	end
+	local entry = group[key]
+	if entry ~= nil then
+		return entry
+	end
+	for _, value in group do
+		if type(value) == "table" and (value.Id == key or value.Key == key) then
+			return value
+		end
+	end
+	return nil
+end
+
+-- 로블록스 상품 번호 (없으면 0). 항목의 Id 는 문자열 키라서 숫자일 때만 번호로 봄
+local function idOf(entry: any): number
+	if type(entry) == "number" then
+		return entry
+	end
+	return pick(entry, { "PassId", "ProductId", "AssetId", "Id" }) or 0
+end
+
+local MULT_KEYS = { "LuckMult", "CooldownMult", "IncomeMult", "Mult", "Multiplier" }
+
+-- Id 가 0 인(아직 안 만든) 상품도 포함한 전체 목록
+local function buildItems(group: any, infos: { any }, kind: string): { Item }
+	local items = {}
+	for _, info in infos do
+		local entry = lookup(group, info.Key)
+		table.insert(items, {
+			Key = info.Key,
+			Kind = kind,
+			Id = idOf(entry),
+			Name = if type(entry) == "table" and type(entry.Name) == "string" then entry.Name else info.Name,
+			Icon = info.Icon,
+			Color = info.Color,
+			EffectIcon = info.EffectIcon,
+			Mult = pick(entry, MULT_KEYS) or info.Mult,
+			Seconds = pick(entry, { "Seconds", "Duration" }) or info.Seconds,
+		})
+	end
+	return items
+end
+
+local function forSale(items: { Item }): { Item }
+	local list = {}
+	for _, item in items do
+		if item.Id ~= 0 then
+			table.insert(list, item)
+		end
+	end
+	return list
+end
+
+local allPasses = buildItems(Config.GamePasses, PASS_INFO, "Pass")
+local allProducts = buildItems(Config.Products, PRODUCT_INFO, "Product")
+
+-- 화면에 나오는 상품: Id 가 0 이 아닌 것만 (Config 는 바뀌지 않으므로 한 번만 만듦)
+Perks.Passes = forSale(allPasses)
+Perks.Products = forSale(allProducts)
+
+local itemsByKey: { [string]: Item } = {}
+for _, item in allPasses do
+	itemsByKey[item.Key] = item
+end
+for _, item in allProducts do
+	itemsByKey[item.Key] = item
+end
+
+-- 팔 상품이 하나라도 있는지 (없으면 상점 버튼을 숨김)
+function Perks.anyForSale(): boolean
+	return #Perks.Passes > 0 or #Perks.Products > 0
+end
+
+-- 구매 완료 이벤트(숫자 Id) -> 상품
+function Perks.itemById(kind: string, id: number): Item?
+	local list = if kind == "Pass" then Perks.Passes else Perks.Products
+	for _, item in list do
+		if item.Id == id then
+			return item
+		end
+	end
+	return nil
+end
+
+-- 판매 여부와 상관없이 상품 정보 (서버 행운 띠, 부스트 딱지의 배율)
+function Perks.item(key: string): Item?
+	return itemsByKey[key]
+end
+
+function Perks.mult(key: string, default: number): number
+	local item = itemsByKey[key]
+	return if item and item.Mult then item.Mult else default
+end
+
+-- 게임패스 보유 여부. Passes 의 키가 패스 이름이든 숫자 Id 든 받아 줌
+function Perks.ownsPass(state: any, key: string): boolean
+	local passes = if type(state) == "table" then state.Passes else nil
+	if type(passes) ~= "table" then
+		return false
+	end
+	if passes[key] then
+		return true
+	end
+	local item = itemsByKey[key]
+	return item ~= nil and (passes[item.Id] or passes[tostring(item.Id)]) and true or false
+end
+
+-- 코인 팩으로 받을 코인 = max(1000, 초당 수입 × 1800)
+function Perks.coinPackAmount(income: number): number
+	local entry = lookup(Config.Products, "CoinPack")
+	local minimum = pick(entry, { "MinCoins", "Min" }) or 1000
+	local seconds = pick(entry, { "IncomeSeconds", "Seconds" }) or 1800
+	return math.max(minimum, math.floor(number(income, 0) * seconds))
+end
+
+-- 시간 부스트 ------------------------------------------------------------------
+
+export type Boost = { Key: string, Seconds: number, Mult: number, Icon: string }
+
+local BOOST_ICONS = { LuckBoost = "clover" }
+
+-- 스냅샷을 받은 순간의 남은 시간 목록 (0 초 이하는 뺌). 키 이름 순서
+function Perks.boosts(state: any): { Boost }
+	local list = {}
+	local boosts = if type(state) == "table" then state.Boosts else nil
+	if type(boosts) ~= "table" then
+		return list
+	end
+	for key, value in boosts do
+		local seconds = if type(value) == "number" then value else pick(value, { "Remaining", "Seconds" })
+		if type(key) == "string" and seconds and seconds > 0 then
+			table.insert(list, {
+				Key = key,
+				Seconds = seconds,
+				Mult = Perks.mult(key, 2),
+				Icon = BOOST_ICONS[key] or "clover",
+			})
+		end
+	end
+	table.sort(list, function(a, b)
+		return a.Key < b.Key
+	end)
+	return list
+end
+
+-- 서버 행운 -------------------------------------------------------------------
+
+-- 시각 값 -> 끝나는 유닉스 시각. 큰 값은 그대로(유닉스 시각), 작은 값은 nowEpoch 기준 남은 초
+function Perks.toEpoch(value: number, nowEpoch: number): number
+	if value >= EPOCH_MIN then
+		return value
+	end
+	return nowEpoch + value
+end
+
+-- 스냅샷의 ServerLuck -> (끝나는 유닉스 시각?, 시각 없이 "켜짐"만 알면 true)
+-- receivedEpoch: 스냅샷을 받은 순간의 서버 시계(workspace:GetServerTimeNow 기준)
+function Perks.serverLuck(value: any, receivedEpoch: number): (number?, boolean)
+	if type(value) == "number" then
+		if value <= 0 then
+			return nil, false
+		end
+		return Perks.toEpoch(value, receivedEpoch), false
+	elseif type(value) == "table" then
+		local untilTime = pick(value, { "Until", "EndsAt" })
+		if untilTime then
+			return Perks.toEpoch(untilTime, receivedEpoch), false
+		end
+		local remaining = pick(value, { "Remaining", "Seconds" })
+		if remaining then
+			return receivedEpoch + remaining, false
+		end
+		return nil, value.Active == true
+	elseif value == true then
+		return nil, true
+	end
+	return nil, false
+end
+
+-- 환생 -----------------------------------------------------------------------
+
+export type Need = { Coins: number, Landmarks: { string } }
+
+function Perks.rebirths(state: any): number
+	return if type(state) == "table" then math.max(0, math.floor(number(state.Rebirths, 0))) else 0
+end
+
+-- 환생 수 -> 지금 받는 (행운 배율, 수입 배율)
+function Perks.rebirthMults(rebirths: number): (number, number)
+	return 1 + Perks.REBIRTH_LUCK * rebirths, 1 + Perks.REBIRTH_INCOME * rebirths
+end
+
+-- 요구 명소 목록: 배열 { id, ... } 또는 { [id] = true } 둘 다 받음. 모르는 Id 는 뺌
+local function landmarkList(value: any): { string }
+	local list = {}
+	if type(value) ~= "table" then
+		return list
+	end
+	if #value > 0 then
+		for _, id in value do
+			if type(id) == "string" and Landmarks.ById[id] then
+				table.insert(list, id)
+			end
+		end
+	else
+		for id, flag in value do
+			if type(id) == "string" and flag and Landmarks.ById[id] then
+				table.insert(list, id)
+			end
+		end
+		-- 순서가 없는 표면 흔한 것부터
+		table.sort(list, function(a, b)
+			return Landmarks.ById[a].OneIn < Landmarks.ById[b].OneIn
+		end)
+	end
+	return list
+end
+
+local function need(raw: any): Need?
+	if type(raw) ~= "table" then
+		return nil
+	end
+	return { Coins = math.max(0, number(tonumber(raw.Coins), 0)), Landmarks = landmarkList(raw.Landmarks) }
+end
+
+-- 다음 환생 조건: 스냅샷 NextRebirth -> PlayerState.rebirthRequirement -> Config.REBIRTHS 순서로 찾음
+function Perks.rebirthNeed(state: any): Need?
+	if type(state) ~= "table" then
+		return nil
+	end
+	local fromSnapshot = need(state.NextRebirth)
+	if fromSnapshot then
+		return fromSnapshot
+	end
+	local rebirths = Perks.rebirths(state)
+	if type(PlayerState.rebirthRequirement) == "function" then
+		local ok, result = pcall(PlayerState.rebirthRequirement, rebirths)
+		local parsed = if ok then need(result) else nil
+		if parsed then
+			return parsed
+		end
+	end
+	local steps = Config.REBIRTHS
+	if type(steps) == "table" and #steps > 0 then
+		local nextNumber = rebirths + 1
+		local step = steps[math.min(nextNumber, #steps)]
+		local coins = number(if type(step) == "table" then tonumber(step.Coins) else nil, 0)
+		local extra = math.max(0, nextNumber - #steps)
+		return {
+			Coins = coins * number(Config.REBIRTH_COIN_GROWTH, 4) ^ extra,
+			Landmarks = landmarkList(if type(step) == "table" then step.Landmarks else nil),
+		}
+	end
+	return nil
+end
+
+-- 이번 판에 보유한 수 (공원·별·환생 조건 기준)
+function Perks.owned(state: any, id: string): number
+	local inventory = if type(state) == "table" then state.Inventory else nil
+	return if type(inventory) == "table" then number(inventory[id], 0) else 0
+end
+
+-- 역대 발견 여부 (도감·여권 기준). 스냅샷에 Discovered 가 없으면 보유 기준
+function Perks.discovered(state: any, id: string): boolean
+	local discovered = if type(state) == "table" then state.Discovered else nil
+	if type(discovered) == "table" and discovered[id] then
+		return true
+	end
+	return Perks.owned(state, id) > 0
+end
+
+-- 지금 환생할 수 있는지. 반환: 가능 여부, 없는 명소 Id 목록, 모자란 코인, 조건
+function Perks.rebirthCheck(state: any, coins: number): (boolean, { string }, number, Need?)
+	local nextNeed = Perks.rebirthNeed(state)
+	if not nextNeed then
+		return false, {}, 0, nil
+	end
+	local missing = {}
+	for _, id in nextNeed.Landmarks do
+		if Perks.owned(state, id) <= 0 then
+			table.insert(missing, id)
+		end
+	end
+	local short = math.max(0, nextNeed.Coins - math.floor(coins))
+	return #missing == 0 and short <= 0, missing, short, nextNeed
+end
+
+return Perks
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="26">
           <Properties>
             <string name="Name">Ui</string>
             <string name="Source"><![CDATA[-- UI 생성 헬퍼와 테마. 모든 화면은 코드로 만들어서 .rbxm 없이도 동작합니다.
@@ -8255,7 +10615,7 @@ return Ui
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="26">
+        <Item class="ModuleScript" referent="27">
           <Properties>
             <string name="Name">Viewport</string>
             <string name="Source"><![CDATA[-- ViewportFrame 에 명소 모형을 띄우는 헬퍼.
@@ -8435,12 +10795,12 @@ return Viewport
       </Item>
     </Item>
   </Item>
-  <Item class="Workspace" referent="27">
+  <Item class="Workspace" referent="28">
     <Properties>
       <string name="Name">Workspace</string>
       <bool name="NeedsPivotMigration">false</bool>
     </Properties>
-    <Item class="Part" referent="28">
+    <Item class="Part" referent="29">
       <Properties>
         <string name="Name">Baseplate</string>
         <bool name="Anchored">true</bool>
@@ -8470,7 +10830,7 @@ return Viewport
         <token name="TopSurface">0</token>
       </Properties>
     </Item>
-    <Item class="SpawnLocation" referent="29">
+    <Item class="SpawnLocation" referent="30">
       <Properties>
         <string name="Name">SpawnLocation</string>
         <bool name="Anchored">true</bool>

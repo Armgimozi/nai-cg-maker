@@ -830,7 +830,8 @@ function ParkService.release(player: Player)
 end
 
 -- 전시 상태를 data 에 맞춤. data 는 Data 또는 같은 필드(Inventory, Upgrades)를 가진 표.
-function ParkService.update(player: Player, data: PlayerState.Data)
+-- mods: 게임패스·서버 행운 등(없으면 기본). 간판의 수입 표시에 "수입 2배" 가 반영되도록
+function ParkService.update(player: Player, data: PlayerState.Data, mods: PlayerState.Mods?)
 	local plot = plotByPlayer[player]
 	if not plot then
 		return
@@ -859,7 +860,7 @@ function ParkService.update(player: Player, data: PlayerState.Data)
 		end
 	end
 
-	setSign(plot, player.DisplayName, incomeText(PlayerState.incomePerSecond(data)))
+	setSign(plot, player.DisplayName, incomeText(PlayerState.incomePerSecond(data, mods)))
 end
 
 -- 공원 입구 안쪽 바닥(부지 윗면)에서 공원 안쪽을 바라보는 CFrame. 부지가 없으면 nil.
