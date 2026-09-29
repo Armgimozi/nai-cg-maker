@@ -1347,6 +1347,32 @@ test(
 	end
 )
 
+test(
+	"storageStart: 보관함에서 집은 명소가 처음 떠 있을 칸 = 첫 빈 칸 > 가장 약한 전시 명소 칸 > 1",
+	function()
+		local d = owning(EIGHT) -- 자동 배치 6칸 꽉 참: pyramid, eiffel, bigben, arc, fountain, windmill
+		eq(ParkGrid.storageStart(d), 5, "꽉 참: 가장 약한 명소(fountain·windmill 같음 -> 앞 번호)")
+		d.Inventory.fountain = 5 -- 별이 늘어 수입이 windmill 보다 큼
+		eq(ParkGrid.storageStart(d), 6, "가장 약한 명소 = windmill")
+		eq(ParkGrid.storageStart(PlayerState.snapshot(d, 1)), 6, "스냅샷으로도 같음")
+		eq((PlayerState.setDisplay(d, 3, nil)), true)
+		eq(ParkGrid.storageStart(d), 3, "빈 칸이 있으면 첫 빈 칸")
+		eq(ParkGrid.storageStart(PlayerState.new()), 1, "아무것도 없음 = 1")
+	end
+)
+
+test("pinchZoom: 두 손가락 벌리면 가까이(배율 작아짐), 모으면 멀리, 범위 안", function()
+	eq(ParkGrid.pinchZoom(1, 100, 100), 1, "그대로")
+	near(ParkGrid.pinchZoom(1, 200, 160), 1.25, 1e-9, "모음 = 멀리")
+	near(ParkGrid.pinchZoom(1, 100, 110), 1 / 1.1, 1e-9, "벌림 = 가까이")
+	eq(ParkGrid.pinchZoom(1, 100, 400), ParkGrid.ZOOM_MIN, "가장 가까이")
+	eq(ParkGrid.pinchZoom(1.2, 100, 20), ParkGrid.ZOOM_MAX, "가장 멀리")
+	eq(ParkGrid.pinchZoom(1.1, 0, 50), 1.1, "처음 거리 0 = 그대로")
+	eq(ParkGrid.pinchZoom(1.1, 50, 0), 1.1, "지금 거리 0 = 그대로")
+	eq(ParkGrid.pinchZoom(3, 0, 50), ParkGrid.ZOOM_MAX, "범위 밖 배율은 안으로")
+	assert(ParkGrid.ZOOM_MIN < 1 and ParkGrid.ZOOM_MAX > 1, "1(딱 맞음)이 범위 안")
+end)
+
 test("autoWouldChange / preview: 자동을 켜면 바뀌는지, 사본 미리 보기(원본 불변)", function()
 	local d = owning(EIGHT)
 	eq(ParkGrid.autoWouldChange(d), false, "자동 배치 그대로")

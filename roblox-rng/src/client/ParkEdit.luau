@@ -13,6 +13,8 @@
 --   가리키는 받침대 위로 붙음. 다른 열린 칸을 누르면(또는 끌어서 놓으면) 그 칸으로 옮김(명소가 있으면 자리 바꿈 —
 --   상대가 원래 칸으로 폴짝). 같은 칸 / Esc / 오른쪽 클릭 / 부지 밖 = 취소, 잠긴 칸 = "공원 확장" 알림.
 -- 아래 띠(보관함): 전시 안 된 명소 카드(희귀한 순서, 보이는 카드만 3D 사진) — 누르면 그 명소를 집음(받침대를 눌러 놓음).
+--   집은 명소는 첫 빈 칸 위에서 시작, 공원이 꽉 찼으면 가장 약한 전시 명소 위(ParkGrid.storageStart — 휴대폰 좁은
+--   화면에서도 보이는 앞쪽), 그 칸 판·강조가 켜짐. 보관함에서 들고 있으면 바꿔 넣을 칸(명소 있는 칸) 판도 또렷하게.
 --   [보관] = 들고 있는 전시 명소를 보관함으로, [자동] = 자동 배치, [시점], [완료] = 나가기.
 -- 누르는 즉시 PlayerState 규칙을 스냅샷 사본에 적용해 미리 보여 주고(preview), 옮긴 칸에는 이 화면에서만 보이는
 --   모형(proxy)을 두었다가 서버가 칸을 다시 만들면(칸 모델 Look 속성이 맞으면) 치움. 실패·stale 이면 서버 상태로 되돌림.
@@ -20,6 +22,11 @@
 -- 정리: 나가면(완료, 다른 창 열기, 부지 밖으로 걸어가거나 순간 이동, 죽음·캐릭터 사라짐, 부지 잃음) 이 모듈이 만든
 --   연결·모형·강조를 모두 지우고 숨긴 명소를 되돌림. 서버가 칸 모델을 다시 만들면(ChildAdded/Removed) 그때그때 맞춤.
 -- 키보드: Esc · Q = 내려놓기(들고 있지 않으면 나가기), Backspace · Delete = 보관. 오른쪽 클릭 = 내려놓기.
+--   채팅 등 글자 칸에 쓰는 중에는 키를 모두 무시(Esc 는 글자 칸에서 빠져나오는 키 — 배치 모드를 끝내지 않음).
+-- 터치 두 손가락: 두 번째 손가락이 닿으면 집기·끌기를 취소(든 명소는 제자리로)하고 벌리기/모으기 = 위에서 보기
+--   가까이/멀리(휠과 같은 범위). 손가락이 모두 떨어질 때까지 뗌은 무시(놓기·집기 없음 — 자동 배치도 그대로).
+-- 광선: 이 화면에서 숨긴 원래 명소(들고 있는 칸 등)는 광선이 지나감 — 보이지 않는 명소가 뒤쪽 받침대를 가리지 않게.
+-- 띠 위 딱지 줄(속이 비친 곳)을 눌러도 뒤의 명소를 집지 않음(띠와 같음).
 -- 화면 글자는 최소로(아이콘 + 숫자, 버튼 2글자), 이모지 없음 — DESIGN.md UI 스타일 가이드 v2.
 
 local GuiService = game:GetService("GuiService")
@@ -74,13 +81,16 @@ local MARKER_SIZE = ParkGrid.PEDESTAL_SIZE + 1.6 -- 받침대 둘레로 삐져�
 -- 빛나는 판 투명도(들고 있을 때): 놓을 수 있는 칸은 은은하게(빈 칸이 자리 바꿈 칸보다 조금 진하게),
 -- 가리키는 칸만 진하게 숨 쉬듯 — 공원 전체가 똑같이 빛나서 어디에 놓일지 안 보이던 것
 local MARK_EMPTY, MARK_SWAP, MARK_TARGET, MARK_TARGET_PULSE = 0.55, 0.8, 0.12, 0.1
+-- 보관함에서 집은 명소를 들고 있을 때 명소 있는 칸(바꿔 넣기) 판: 공원이 꽉 차면 놓을 곳이 모두 이것이라 또렷하게
+local MARK_REPLACE = 0.6
 local HOVER_COLOR = Color3.new(1, 1, 1)
 
 -- 위에서 보기(ParkGrid.topView): 화면 위쪽 상단바 아래 여백, 옆 여백(비율). 휠 배율(1 = 맞출 줄이 딱 맞음)
 local TOP_MARGIN = 10 -- px
 local SIDE_MARGIN = 0.03
 local BAR_CLEAR = 8 -- 아래 띠 위로 띄울 거리(px)
-local ZOOM_MIN, ZOOM_MAX, ZOOM_STEP = 0.8, 1.45, 0.08
+local ZOOM_STEP = ParkGrid.ZOOM_STEP -- 범위는 ParkGrid.ZOOM_MIN..ZOOM_MAX(두 손가락 벌리기/모으기도 같은 범위)
+local TEXT_GRACE = 0.25 -- 글자 칸에서 빠져나온 직후 이 시간(초) 안의 Esc 도 무시(빠져나오는 Esc 가 늦게 올 수 있음)
 -- 위에서 보기 시야각(도, 기본 카메라 70). 좁혀서 멀리서 보면 원근이 줄어 건설 게임처럼 판이 반듯하고, 떠 있는 복사본·
 -- 이름표가 칸 바로 위에 옴(70 이면 카메라가 30~50 스터드로 가까워 화면 가장자리 칸 위의 것이 바깥으로 크게 밀려남)
 local EDIT_FOV = 40
@@ -191,6 +201,14 @@ local pointer: Vector2? = nil -- 화면(뷰포트) 좌표. 마우스는 매 프�
 local pointerKind: string? = nil -- "Mouse" | "Touch"
 local rayParams = RaycastParams.new()
 rayParams.FilterType = Enum.RaycastFilterType.Include
+local rayDirty = true -- 광선이 맞출 목록(rayTargets)을 다시 만들어야 함(숨긴 명소·칸 모델이 바뀜)
+-- 터치: 화면(3D)에 닿아 있는 손가락 -> 뷰포트 자리. 둘 이상이면 두 손가락 모드(pinch: 시작 거리·배율)
+local touches: { [InputObject]: Vector2 } = {}
+type Pinch = { Distance: number, Zoom: number }
+local pinch: Pinch? = nil
+-- 글자 칸(채팅 등)에 쓰는 중인지: TextBoxFocused / TextBoxFocusReleased(+ GetFocusedTextBox)
+local textFocused = false
+local textReleasedAt = -math.huge
 
 -- 아래 띠
 local bar: Frame
@@ -223,6 +241,7 @@ local tag: Frame
 local tagStars: TextLabel
 local tagChip: Ui.Chip? = nil
 local tagKey: string? = nil -- 지금 이름표 내용(명소 Id | 별)
+local tagAnchor: Vector3? = nil -- 이름표 아래 끝이 붙는 월드 점(보일 때만, ParkEdit.tagAnchor)
 
 -- 소리
 local pickSound: Sound
@@ -517,9 +536,10 @@ local function paintMarkers(slots: { [number]: string }, unlocked: number, heldF
 			elseif slot == heldFrom then
 				color, transparency = WHITE, 0.5
 			else
-				-- 놓을 수 있는 칸: 빈 칸은 초록, 명소가 있으면(자리 바꿈) 노랑 — 은은하게, 가리키는 칸만 진하게
+				-- 놓을 수 있는 칸: 빈 칸은 초록, 명소가 있으면(자리 바꿈) 노랑 — 은은하게, 가리키는 칸만 진하게.
+				-- 보관함에서 집었으면(heldFrom 0) 명소 있는 칸 = 바꿔 넣을 곳이라 조금 더 또렷하게
 				color = if id then Ui.colorPair("Sun").Face else Ui.colorPair("Grass").Face
-				transparency = if id then MARK_SWAP else MARK_EMPTY
+				transparency = if not id then MARK_EMPTY elseif heldFrom == 0 then MARK_REPLACE else MARK_SWAP
 				if slot == hoverSlot then
 					transparency = MARK_TARGET
 					markerPulse = marker
@@ -584,6 +604,7 @@ local function reconcile()
 		end
 	end
 	painted = { Slots = slots, Unlocked = unlocked, HeldFrom = heldFrom }
+	rayDirty = true -- 숨긴 명소·로컬 모형이 바뀌었을 수 있음
 	paintMarkers(slots, unlocked, heldFrom)
 	paintLabels()
 end
@@ -670,20 +691,8 @@ local function pickUp(id: string, from: number)
 	if not ghost then
 		return
 	end
-	-- 처음 자리: 전시 칸이면 그 받침대 위, 보관함이면 첫 빈 칸(없으면 부지 가운데) 위 — 가리키면 그리로 감
-	local start: Vector3
-	if from > 0 then
-		start = slotTop(from).Position
-	else
-		local slots, unlocked = PlayerState.parkSlots(view)
-		start = (origin :: CFrame):PointToWorldSpace(Vector3.new(0, ParkGrid.BASE_TOP, 0))
-		for slot = 1, unlocked do
-			if not slots[slot] then
-				start = slotTop(slot).Position
-				break
-			end
-		end
-	end
+	-- 처음 자리: 전시 칸이면 그 받침대 위, 보관함이면 첫 빈 칸(꽉 찼으면 가장 약한 전시 명소 칸) 위 — 가리키면 그리로 감
+	local start = slotTop(if from > 0 then from else ParkGrid.storageStart(view)).Position
 	moveRig(ghost.Rig, CFrame.new(start + Vector3.new(0, LIFT, 0)) * plotRotation())
 	ghost.Model.Parent = localFolder
 	held = { Id = id, Ghost = ghost, Position = start, Target = start, Lift = LIFT, Angle = 0 }
@@ -898,7 +907,33 @@ local function containerOf(instance: Instance): Instance?
 	return node
 end
 
--- 화면 한 점이 가리키는 칸: 먼저 내 부지 칸 모델(받침대·명소)에 광선을 쏘고, 안 맞으면 부지 바닥 높이 평면과
+-- 광선이 맞출 것: 내 칸 모델들. 단 이 화면에서 숨긴 명소(들고 있는 칸·날아와 앉을 칸 — 로컬 모형이 대신 서 있는
+-- 칸은 빼고)는 받침대만: 안 보이는 원래 명소가 뒤쪽 받침대를 가려서, 거기에 놓으면 원래 칸으로 되돌아가던 것
+local rayList: { Instance } = {}
+local function rayTargets(folder: Instance): { Instance }
+	if not rayDirty then
+		return rayList
+	end
+	rayDirty = false
+	local list: { Instance } = {}
+	for _, container in folder:GetChildren() do
+		local slot = slotOf(container)
+		if hidden[container] and not (slot and proxies[slot]) then
+			for _, child in container:GetChildren() do
+				if not child:IsA("Model") then
+					table.insert(list, child)
+				end
+			end
+		else
+			table.insert(list, container)
+		end
+	end
+	rayList = list
+	rayParams.FilterDescendantsInstances = list
+	return list
+end
+
+-- 화면 한 점이 가리키는 칸: 먼저 내 부지 칸 모델(받침대·보이는 명소)에 광선을 쏘고, 안 맞으면 부지 바닥 높이 평면과
 -- 만나는 점에서 가장 가까운 칸(ParkGrid.slotAt)
 local function pick(at: Vector2): Hit
 	local result: Hit = { Slot = nil, Ground = nil, OnPlot = false }
@@ -921,7 +956,7 @@ local function pick(at: Vector2): Hit
 	end
 	local folder = slotsFolder
 	if folder then
-		rayParams.FilterDescendantsInstances = { folder }
+		rayTargets(folder)
 		local hit = workspace:Raycast(ray.Origin, ray.Direction * RAY_LENGTH, rayParams)
 		local container = if hit then containerOf(hit.Instance) else nil
 		local slot = if container then slotOf(container) else nil
@@ -966,14 +1001,85 @@ local function cancelOrExit()
 	end
 end
 
+-- 채팅 등 글자 칸에 쓰는 중인지(빠져나온 직후 잠깐 포함: 빠져나오는 Esc 가 포커스가 풀린 뒤에 올 수 있음)
+local function typing(): boolean
+	if textFocused or os.clock() - textReleasedAt < TEXT_GRACE then
+		return true
+	end
+	local ok, box = pcall(function()
+		return UserInputService:GetFocusedTextBox()
+	end)
+	return ok and box ~= nil
+end
+
+-- 위에서 보기 배율을 바꾸고 카메라를 바로 옮김(들어갈 때 날아가는 중이면 배율만)
+local function setZoom(value: number)
+	zoom = math.clamp(value, ParkGrid.ZOOM_MIN, ParkGrid.ZOOM_MAX)
+	local camera = workspace.CurrentCamera
+	if camera and not cameraTween and viewMode == "Top" and origin then
+		camera.CFrame = ParkEdit.topCFrame()
+	end
+end
+
+-- 닿아 있는 손가락 둘(없으면 nil)의 사이 거리
+local function touchSpan(): number?
+	local first: Vector2? = nil
+	for _, at in touches do
+		if first then
+			return (at - first).Magnitude
+		end
+		first = at
+	end
+	return nil
+end
+
+-- 두 손가락 모드의 기준(시작 거리·배율)을 지금으로: 손가락이 늘거나 줄면 배율이 튀지 않게
+local function rebasePinch()
+	local gesture = pinch
+	if gesture then
+		gesture.Distance = touchSpan() or 0
+		gesture.Zoom = zoom
+	end
+end
+
+-- 손가락이 닿음. 두 번째 손가락이면 두 손가락 모드: 진행 중인 집기·끌기를 취소(든 명소는 제자리로).
+-- 이 손가락으로 집기·놓기를 해도 되면(한 손가락) true
+local function touchBegan(input: InputObject): boolean
+	for other in touches do
+		-- 뗌(InputEnded)을 못 받고 끝난 손가락은 뺌
+		local state = (other :: any).UserInputState
+		if state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
+			touches[other] = nil
+		end
+	end
+	touches[input] = toViewport(input.Position)
+	if pinch then
+		rebasePinch()
+		return false
+	end
+	if touchSpan() == nil then
+		return true
+	end
+	press = nil
+	pointer = nil
+	pinch = { Distance = 0, Zoom = zoom }
+	rebasePinch()
+	if held then
+		returnHeld()
+	end
+	return false
+end
+
 local function onInputBegan(input: InputObject, processed: boolean)
 	local kind = input.UserInputType
 	if kind == Enum.UserInputType.Keyboard then
 		local key = input.KeyCode
-		if key == Enum.KeyCode.Escape then
-			cancelOrExit() -- Esc 는 로블록스 메뉴가 먼저 가져갈 수 있어서 Q 도 같은 동작
+		if typing() then
+			return -- 채팅 입력 중(Esc = 글자 칸에서 빠져나오기, 배치 모드는 그대로)
+		elseif key == Enum.KeyCode.Escape then
+			cancelOrExit() -- Esc 는 로블록스 메뉴가 먼저 가져갈 수 있어서(processed) Q 도 같은 동작
 		elseif processed then
-			return -- 채팅 입력 중
+			return
 		elseif key == Enum.KeyCode.Q then
 			cancelOrExit()
 		elseif key == Enum.KeyCode.Backspace or key == Enum.KeyCode.Delete then
@@ -984,11 +1090,17 @@ local function onInputBegan(input: InputObject, processed: boolean)
 	if processed then
 		return -- 화면 버튼·조이스틱
 	end
+	if kind == Enum.UserInputType.Touch and not touchBegan(input) then
+		return -- 두 손가락
+	end
 	if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
-		pointerKind = if kind == Enum.UserInputType.Touch then "Touch" else "Mouse"
 		local at = if kind == Enum.UserInputType.Touch
 			then toViewport(input.Position)
 			else UserInputService:GetMouseLocation()
+		if overBar(at) then
+			return -- 띠 위 딱지 줄의 비친 곳(버튼이 아니라 processed 가 아님): 띠처럼 뒤의 명소를 집지 않음
+		end
+		pointerKind = if kind == Enum.UserInputType.Touch then "Touch" else "Mouse"
 		pointer = at
 		local current: Press = { Input = input, Kind = kind, Start = at, Moved = false, Picked = false }
 		press = current
@@ -1015,6 +1127,22 @@ local function onInputChanged(input: InputObject, processed: boolean)
 	if kind == Enum.UserInputType.MouseMovement then
 		pointerKind = "Mouse"
 	elseif kind == Enum.UserInputType.Touch then
+		if touches[input] then
+			touches[input] = toViewport(input.Position)
+		end
+		local gesture = pinch
+		if gesture then
+			-- 두 손가락: 위에서 보기면 벌리기/모으기 = 가까이/멀리(평소 카메라는 로블록스 카메라가 함)
+			local span = touchSpan()
+			if span and viewMode == "Top" and origin then
+				if gesture.Distance <= 0 then
+					rebasePinch()
+				else
+					setZoom(ParkGrid.pinchZoom(gesture.Zoom, gesture.Distance, span))
+				end
+			end
+			return
+		end
 		local current = press
 		if current and current.Input == input then
 			local at = toViewport(input.Position)
@@ -1025,11 +1153,7 @@ local function onInputChanged(input: InputObject, processed: boolean)
 		end
 	elseif kind == Enum.UserInputType.MouseWheel and not processed and viewMode == "Top" and origin then
 		-- 위에서 보기: 휠로 가까이/멀리
-		zoom = math.clamp(zoom - input.Position.Z * ZOOM_STEP, ZOOM_MIN, ZOOM_MAX)
-		local camera = workspace.CurrentCamera
-		if camera and not cameraTween then
-			camera.CFrame = ParkEdit.topCFrame()
-		end
+		setZoom(zoom - input.Position.Z * ZOOM_STEP)
 	end
 end
 
@@ -1042,6 +1166,18 @@ local function onInputEnded(input: InputObject, processed: boolean)
 			returnHeld() -- 오른쪽 클릭 = 취소 (끌면 화면 돌리기)
 		end
 		return
+	end
+	if kind == Enum.UserInputType.Touch then
+		touches[input] = nil
+		if pinch then
+			-- 두 손가락 모드: 손가락이 모두 떨어질 때까지 뗌은 무시(놓기·집기 없음)
+			if next(touches) == nil then
+				pinch = nil
+			else
+				rebasePinch()
+			end
+			return
+		end
 	end
 	if kind ~= Enum.UserInputType.MouseButton1 and kind ~= Enum.UserInputType.Touch then
 		return
@@ -1145,6 +1281,7 @@ local function setTag(id: string?, point: Vector3?)
 	local camera = workspace.CurrentCamera
 	local landmark = if id then Landmarks.ById[id] else nil
 	local view = viewState()
+	tagAnchor = nil
 	if not tag or not landmark or not point or not camera or not view then
 		if tag then
 			tag.Visible = false
@@ -1187,6 +1324,7 @@ local function setTag(id: string?, point: Vector3?)
 	local y = math.clamp(screen.Y - inset.Y, TAG.Y * scale + TAG_EDGE, math.max(TAG.Y * scale + TAG_EDGE, lowest))
 	tag.Position = UDim2.fromOffset(x, y)
 	tag.Visible = true
+	tagAnchor = point
 end
 
 local nextSweep = 0
@@ -1207,10 +1345,36 @@ local function step(dt: number)
 	if at and not overBar(at) then
 		hit = pick(at)
 	end
+	local slot = hit and hit.Slot
+
+	-- 들고 있는 명소가 갈 곳: 가리키는 칸 위(칸이 없으면 바닥 위 — 부지 밖이면 부지 가장자리에서 멈춤)
+	local current = held
+	local under: number? = nil -- 들고 있는 명소가 가는 곳 아래 칸(그 칸 명소 위로 뜸)
+	if current then
+		local cf = origin :: CFrame
+		if hit and hit.Slot then
+			current.Target = slotTop(hit.Slot).Position
+		elseif hit and hit.Ground then
+			local p = cf:PointToObjectSpace(hit.Ground)
+			current.Target = cf:PointToWorldSpace(
+				Vector3.new(
+					math.clamp(p.X, -ParkGrid.PLOT_WIDTH / 2, ParkGrid.PLOT_WIDTH / 2),
+					ParkGrid.BASE_TOP + ParkGrid.PEDESTAL_HEIGHT,
+					math.clamp(p.Z, -ParkGrid.PLOT_DEPTH / 2, ParkGrid.PLOT_DEPTH / 2)
+				)
+			)
+		end
+		local resting = cf:PointToObjectSpace(current.Target)
+		under = ParkGrid.slotAt(resting.X, resting.Z)
+		if not at then
+			-- 가리키는 곳이 없으면(터치를 뗌) 떠 있는 칸을 가리키는 칸으로: 그 칸 판·강조가 켜짐(보관함에서 집어
+			-- 꽉 찬 공원의 가장 약한 명소 위에서 시작할 때 = 누르면 바꿔 넣을 곳)
+			slot = under
+		end
+	end
 
 	-- 가리키는 칸 강조: 잠긴 칸 빨강. 들고 있으면 놓을 칸 = 흰 테두리(빈 칸 초록 · 자리 바꿈 노랑 채우기 — 둘레에
 	-- 노랗게 빛나는 판들 사이에서도 어느 칸인지 보이게), 아니면 명소 노랑 · 빈 칸 초록
-	local slot = hit and hit.Slot
 	local look = if slot then viewLook(slot) else nil
 	local occupied = look ~= nil and Landmarks.ById[look] ~= nil
 	if slot and look then
@@ -1226,27 +1390,13 @@ local function step(dt: number)
 		setHover(nil, HOVER_COLOR)
 	end
 
-	-- 들고 있는 명소: 가리키는 칸 위(칸이 없으면 바닥 위)로 부드럽게 따라가며 오르내리고 돎
-	local current = held
+	-- 들고 있는 명소: 갈 곳으로 부드럽게 따라가며 오르내리고 돎
 	if current then
-		if hit and hit.Slot then
-			current.Target = slotTop(hit.Slot).Position
-		elseif hit and hit.Ground then
-			-- 칸이 없는 곳: 가리키는 바닥 위(부지 밖이면 부지 가장자리에서 멈춤), 받침대 윗면 높이
-			local cf = origin :: CFrame
-			local p = cf:PointToObjectSpace(hit.Ground)
-			current.Target = cf:PointToWorldSpace(
-				Vector3.new(
-					math.clamp(p.X, -ParkGrid.PLOT_WIDTH / 2, ParkGrid.PLOT_WIDTH / 2),
-					ParkGrid.BASE_TOP + ParkGrid.PEDESTAL_HEIGHT,
-					math.clamp(p.Z, -ParkGrid.PLOT_DEPTH / 2, ParkGrid.PLOT_DEPTH / 2)
-				)
-			)
-		end
-		-- 명소가 있는 칸(자리 바꿈·바꿔 넣기)을 가리키면 그 명소 위로 떠서 둘 다 보이게
+		-- 아래 칸에 다른 명소가 있으면(자리 바꿈·바꿔 넣기) 그 명소 위로 떠서 둘 다 보이게
 		local wantLift = LIFT
-		if slot and occupied and look ~= current.Id then
-			wantLift = math.max(LIFT, statueHeight(slot) + LIFT_CLEAR)
+		local below = if under then viewLook(under) else nil
+		if under and below and below ~= current.Id and Landmarks.ById[below] then
+			wantLift = math.max(LIFT, statueHeight(under) + LIFT_CLEAR)
 		end
 		local follow = 1 - math.exp(-FOLLOW * dt)
 		current.Position = current.Position:Lerp(current.Target, follow)
@@ -1907,6 +2057,9 @@ local function begin(slot: number?)
 	viewMode = "Top"
 	zoom = 1
 	press, rightStart, pointer = nil, nil, nil
+	table.clear(touches)
+	pinch = nil
+	rayDirty = true
 	pointerKind = if UserInputService.MouseEnabled and not Ui.touchOnly() then "Mouse" else nil
 
 	-- 이 화면에서만 있는 것: 칸마다 빛나는 판(받침대 둘레로 삐져나옴) + 가리키는 칸 강조
@@ -2076,6 +2229,10 @@ function ParkEdit.exit()
 		folder:Destroy()
 	end
 	press, rightStart, pointer = nil, nil, nil
+	table.clear(touches)
+	pinch = nil
+	rayDirty = true
+	table.clear(rayList)
 	confirmUntil = 0
 	confirmToken += 1
 
@@ -2115,6 +2272,11 @@ end
 
 function ParkEdit.isEditing(): boolean
 	return editing
+end
+
+-- 화면 이름표가 붙은 월드 점(이름표 아래 끝, 화면 밖으로 안 나가게 가두기 전). 이름표가 없으면 nil — 스모크 테스트용
+function ParkEdit.tagAnchor(): Vector3?
+	return tagAnchor
 end
 
 -- 서버 상태가 바뀜(applyState). 들고 있던 명소를 더는 갖고 있지 않으면(환생) 내려놓음
@@ -2174,6 +2336,16 @@ end
 function ParkEdit.init(parent: ScreenGui, callbacks: Handlers)
 	gui = parent
 	handlers = callbacks
+	-- 글자 칸(채팅 등)에 쓰는 중인지: 배치 모드 밖에서 포커스를 얻었어도 알도록 늘 지켜봄
+	pcall(function()
+		UserInputService.TextBoxFocused:Connect(function()
+			textFocused = true
+		end)
+		UserInputService.TextBoxFocusReleased:Connect(function()
+			textFocused = false
+			textReleasedAt = os.clock()
+		end)
+	end)
 	pickSound = makeSound(1.35, 0.3)
 	dropSound = makeSound(0.9, 0.45)
 	cancelSound = makeSound(0.65, 0.3)

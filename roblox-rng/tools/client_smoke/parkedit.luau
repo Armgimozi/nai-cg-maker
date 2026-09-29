@@ -14,6 +14,7 @@ local unlocked = PlayerState.slots(data)
 local Config = Harness.require(E.shared.Config)
 local check, frame, waitReal, settle, slotScreen, input = E.check, E.frame, E.waitReal, E.settle, E.slotScreen, E.input
 local mouseTo, click, drag, key, touchDrag, face = E.mouseTo, E.click, E.drag, E.key, E.touchDrag, E.face
+local tap = E.tap
 
 print("[부지]")
 check(typeof(origin) == "CFrame", "부지 Origin 속성")
@@ -88,6 +89,29 @@ local function look(slot: number): string
 end
 local function localFolder()
 	return workspace:FindFirstChild("ParkEditLocal")
+end
+local function holding(): boolean
+	local folder = localFolder()
+	return folder ~= nil and folder:FindFirstChild("Held", true) ~= nil
+end
+-- 내 칸 모델에만 광선(숨김·투명도 상관없이 — 가짜 광선은 파트 상자만 봄): 화면 점이 처음 맞는 것
+local function castFirst(at: Vector2): Instance?
+	local ray = camera:ViewportPointToRay(at.X, at.Y)
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Include
+	params.FilterDescendantsInstances = { slotsFolder }
+	local hit = workspace:Raycast(ray.Origin, ray.Direction * 1000, params)
+	return hit and hit.Instance
+end
+-- 화면 점에서 부지 바닥 높이 평면이 가리키는 칸(ParkEdit 가 광선이 안 맞을 때 쓰는 것과 같음)
+local function groundSlot(at: Vector2): number?
+	local ray = camera:ViewportPointToRay(at.X, at.Y)
+	if ray.Direction.Y >= 0 then
+		return nil
+	end
+	local t = (origin.Position.Y + ParkGrid.BASE_TOP - ray.Origin.Y) / ray.Direction.Y
+	local p = origin:PointToObjectSpace(ray.Origin + ray.Direction * t)
+	return ParkGrid.slotAt(p.X, p.Z)
 end
 local function detectorCount(): number
 	local count = 0
@@ -235,6 +259,46 @@ click(slotScreen(3))
 settle()
 check(shownSlots()[2] == b and shownSlots()[3] == a, "자리 바꿈: " .. dump())
 
+print("\n[숨긴 원래 명소는 광선이 지나감: 그 뒤 받침대에 놓기]")
+do
+	-- 앞줄 명소 A 가 화면에서 바로 뒤 칸 B 의 받침대를 가리는 점(받침대 앞쪽부터)을 찾음
+	local occA, occB, occAt = nil, nil, nil
+	for a = 1, Config.PARK_GRID do
+		local ax, az = ParkGrid.slotOffset(a)
+		local b = ParkGrid.slotAt(ax, az + ParkGrid.SPACING)
+		local statue = container(a):FindFirstChildWhichIsA("Model")
+		if not occAt and b and b <= unlocked and shownSlots()[a] and shownSlots()[b] and statue then
+			local bx, bz = ParkGrid.slotOffset(b)
+			for j = -4, 4 do
+				for i = -4, 4 do
+					local top = ParkGrid.BASE_TOP + ParkGrid.PEDESTAL_HEIGHT
+					local at = E.toScreen(origin:PointToWorldSpace(Vector3.new(bx + i, top, bz + j)))
+					local first = castFirst(at)
+					if not occAt and first and first:IsDescendantOf(statue) then
+						occA, occB, occAt = a, b, at
+					end
+				end
+			end
+		end
+	end
+	check(
+		occAt ~= nil,
+		"앞 명소가 뒤 칸 받침대를 가리는 화면 점 " .. tostring(occA) .. " -> " .. tostring(occB)
+	)
+	if occA and occB and occAt then
+		local ia, ib = shownSlots()[occA], shownSlots()[occB]
+		click(slotScreen(occA, 2))
+		check(holding() and hiddenModel(occA), "앞 명소를 집음(원래 명소는 숨김)")
+		click(occAt)
+		settle()
+		check(
+			shownSlots()[occB] == ia and shownSlots()[occA] == ib,
+			"안 보이는 원래 명소 너머 받침대를 누름 = 그 칸과 자리 바꿈(원래 칸으로 되돌아가지 않음): "
+				.. dump()
+		)
+	end
+end
+
 print("\n[같은 칸 = 취소, 오른쪽 클릭 = 취소, 잠긴 칸 = 알림]")
 local snapshotBefore = dump()
 click(slotScreen(4, 2))
@@ -259,6 +323,52 @@ check(
 	localFolder():FindFirstChild("Held", true) == nil and dump() == snapshotBefore,
 	"부지 밖 누름 = 내려놓기"
 )
+
+print("\n[띠 위 딱지 줄: 비친 곳을 눌러도 뒤 명소를 안 집음]")
+do
+	local stripY = tray.AbsolutePosition.Y + INSET.Y - 10 -- 띠 위 딱지 줄(30 × 배율) 안
+	local stripAt: Vector2? = nil
+	for x = 120, 1160, 8 do
+		local at = Vector2.new(x, stripY)
+		local slot = groundSlot(at)
+		if not stripAt and slot and shownSlots()[slot] then
+			stripAt = at
+		end
+	end
+	check(stripAt ~= nil, "딱지 줄 뒤가 명소 있는 앞줄 칸(바닥 평면)인 곳")
+	if stripAt then
+		local requestCount = #requests
+		click(stripAt)
+		check(not holding(), "마우스로 눌러도 안 집음")
+		tap(stripAt)
+		check(not holding(), "터치로 눌러도 안 집음")
+		check(#requests == requestCount, "요청 없음")
+		mouseTo(Vector2.new(20, 60))
+	end
+end
+
+print("\n[채팅 입력 중: Esc · Q 는 무시]")
+do
+	click(slotScreen(4, 2))
+	check(holding(), "들고 있음")
+	E.focusText({ Name = "ChatBar", ClassName = "TextBox" })
+	key("Escape")
+	key("Q")
+	check(
+		holding() and ParkEdit.isEditing(),
+		"채팅에 쓰는 중 Esc · Q = 그대로(내려놓지도 나가지도 않음)"
+	)
+	E.focusText(nil)
+	key("Escape")
+	check(
+		holding() and ParkEdit.isEditing(),
+		"채팅에서 빠져나온 바로 뒤 Esc(빠져나오는 키) = 그대로"
+	)
+	waitReal(0.3)
+	key("Escape")
+	settle()
+	check(not holding() and ParkEdit.isEditing(), "채팅이 끝난 뒤 Esc = 내려놓기(배치 모드는 그대로)")
+end
 
 print("\n[보관함 카드 → 칸]")
 local storage = ParkGrid.storage(PlayerState.snapshot(data, 0))
@@ -300,6 +410,65 @@ click(slotScreen(5))
 settle()
 check(shownSlots()[5] == storage[2], "보관함에서 명소 칸에 바꿔 넣기")
 check(scroller:FindFirstChild(victim) ~= nil, "밀려난 명소는 보관함 카드로")
+
+print("\n[꽉 찬 공원: 보관함 카드 = 가장 약한 명소 칸 위에서 시작]")
+do
+	local full = true
+	for slot = 1, unlocked do
+		full = full and shownSlots()[slot] ~= nil
+	end
+	check(full, "공원 꽉 참")
+	local snapshot = PlayerState.snapshot(data, 0)
+	local startSlot = ParkGrid.storageStart(snapshot)
+	local weakest, weakestSlot = math.huge, 0
+	for slot = 1, unlocked do
+		local id = shownSlots()[slot]
+		local income = PlayerState.landmarkIncome(Landmarks.ById[id], data.Inventory[id] or 0)
+		if income < weakest then
+			weakest, weakestSlot = income, slot
+		end
+	end
+	check(startSlot == weakestSlot, "시작 칸 = 수입이 가장 적은 전시 명소 칸 (" .. startSlot .. ")")
+	tap(Vector2.new(20, 60)) -- 터치 기기처럼: 손가락을 떼면 가리키는 곳 없음
+	local incoming = ParkGrid.storage(snapshot)[1]
+	scroller:FindFirstChild(incoming).Activated:Fire()
+	for _ = 1, 45 do
+		frame(1 / 60)
+	end
+	local ghostModel = localFolder():FindFirstChild("Held", true).Parent
+	local at = origin:PointToObjectSpace(ghostModel:GetPivot().Position)
+	local sx, sz = ParkGrid.slotOffset(startSlot)
+	check(math.abs(at.X - sx) < 0.3 and math.abs(at.Z - sz) < 0.3, "그 칸 위에 떠 있음")
+	local statue = container(startSlot):FindFirstChildWhichIsA("Model")
+	local statueTop = ParkGrid.BASE_TOP + ParkGrid.PEDESTAL_HEIGHT + statue:GetExtentsSize().Y
+	check(
+		at.Y > statueTop + 0.5,
+		string.format("그 명소 위로 떠서 겹치지 않음 (%.1f > %.1f)", at.Y, statueTop)
+	)
+	local screen = E.toScreen(ghostModel:GetPivot().Position)
+	check(
+		screen.X > 0 and screen.X < 1280 and screen.Y > INSET.Y and screen.Y < tray.AbsolutePosition.Y + INSET.Y,
+		string.format("화면 안(띠 위) (%.0f, %.0f)", screen.X, screen.Y)
+	)
+	local hoverLight = localFolder():FindFirstChild("Hover")
+	check(hoverLight.Enabled and hoverLight.Adornee == container(startSlot), "그 칸 강조(톡 = 바꿔 넣을 곳)")
+	check(localFolder():FindFirstChild("Mark" .. startSlot).Transparency < 0.3, "그 칸 판이 진하게")
+	local faint = 0
+	for slot = 1, unlocked do
+		if slot ~= startSlot and localFolder():FindFirstChild("Mark" .. slot).Transparency > 0.7 then
+			faint += 1
+		end
+	end
+	check(faint == 0, "보관함에서 들면 바꿔 넣을 칸 판도 또렷함 (흐린 판 " .. faint .. "개)")
+	local weakId = shownSlots()[startSlot]
+	tap(slotScreen(startSlot))
+	settle()
+	check(
+		shownSlots()[startSlot] == incoming and scroller:FindFirstChild(weakId) ~= nil,
+		"그 자리 톡 = 가장 약한 명소와 바꿔 넣기"
+	)
+	mouseTo(Vector2.new(20, 60))
+end
 
 print("\n[stale: 들고 있는 사이 서버에서 칸이 바뀜]")
 click(slotScreen(6, 2))
@@ -385,18 +554,42 @@ check(
 	tagText() == Landmarks.ById[heldId].Name,
 	"들고 있으면 화면 이름표 = 든 명소 (" .. tostring(tagText()) .. ")"
 )
-local tagTop = E.toScreen(ghost:GetPivot().Position + Vector3.new(0, ghost:GetExtentsSize().Y, 0))
-check(
-	math.abs(tag.Position.X.Offset - math.clamp(tagTop.X, 114, 1280 - 114)) < 2
-		and math.abs(tag.Position.Y.Offset + INSET.Y - tagTop.Y) < 30,
-	string.format(
-		"이름표가 복사본 바로 위 (%.0f, %.0f) ~ (%.0f, %.0f)",
-		tag.Position.X.Offset,
-		tag.Position.Y.Offset + INSET.Y,
-		tagTop.X,
-		tagTop.Y
+-- 이름표 기준점(ParkEdit.tagAnchor)과 복사본은 같은 프레임 값이라 오르내림(진짜 시계)과 상관없이 늘 같은 결과:
+-- 기준점이 복사본 꼭대기 바로 위이고, 이름표 자리는 그 점의 화면 자리(화면 안에 가둔 것)
+do
+	local anchor = ParkEdit.tagAnchor()
+	local pivot = ghost:GetPivot().Position
+	local ghostTop = pivot.Y + ghost:GetExtentsSize().Y
+	check(
+		anchor ~= nil
+			and math.abs(anchor.X - pivot.X) < 1e-3
+			and math.abs(anchor.Z - pivot.Z) < 1e-3
+			and anchor.Y > ghostTop - 0.5
+			and anchor.Y < ghostTop + 2.5,
+		string.format(
+			"이름표 기준점이 복사본 꼭대기 바로 위 (높이 %.2f, 꼭대기 %.2f)",
+			anchor and anchor.Y or -1,
+			ghostTop
+		)
 	)
-)
+	if anchor then
+		local scale = Harness.require(client.Ui).scale()
+		local half = tag.Size.X.Offset * scale / 2 + 6 -- ParkEdit TAG_EDGE
+		local screen = E.toScreen(anchor)
+		local wantX = math.clamp(screen.X - INSET.X, half, 1280 - half)
+		local wantY = math.max(screen.Y - INSET.Y, tag.Size.Y.Offset * scale + 6)
+		check(
+			math.abs(tag.Position.X.Offset - wantX) < 0.5 and math.abs(tag.Position.Y.Offset - wantY) < 0.5,
+			string.format(
+				"이름표가 복사본 바로 위(화면 안에 가둠) (%.1f, %.1f) = (%.1f, %.1f)",
+				tag.Position.X.Offset,
+				tag.Position.Y.Offset,
+				wantX,
+				wantY
+			)
+		)
+	end
+end
 local lockedMark = localFolder():FindFirstChild("Mark" .. (unlocked + 1))
 local openMark = localFolder():FindFirstChild("Mark6")
 check(lockedMark.Transparency < 1 and lockedMark.Transparency > 0.5, "잠긴 칸 판 = 흐린 빨강")
@@ -513,6 +706,59 @@ check(
 drag(slotScreen(8, 2), slotScreen(8, 0.2) + Vector2.new(14, 0))
 settle()
 check(localFolder():FindFirstChild("Held", true) == nil, "마우스로 끌었다가 같은 칸에 뗌 = 내려놓기")
+
+print("\n[두 손가락: 집기 취소 · 벌리기/모으기 = 가까이/멀리 · 다 뗄 때까지 놓기 없음]")
+do
+	local before = dump()
+	local requestCount = #requests
+	local autoBefore = data.Settings.AutoPark
+	local function distance(): number
+		return (camera.CFrame.Position - origin.Position).Magnitude
+	end
+	local function moveTouch(t: any, at: Vector2)
+		t.Position = Vector3.new(at.X - INSET.X, at.Y - INSET.Y, 0)
+		UIS.InputChanged:Fire(t, false)
+		frame()
+	end
+	local centre = slotScreen(4, 2)
+	local f1 = input("Touch", centre)
+	UIS.InputBegan:Fire(f1, false)
+	frame()
+	check(holding(), "첫 손가락 = 집음")
+	local f2 = input("Touch", centre + Vector2.new(120, 0))
+	UIS.InputBegan:Fire(f2, false)
+	frame()
+	settle()
+	check(not holding() and not hiddenModel(4), "두 번째 손가락 = 집기 취소(명소는 제자리로)")
+	local d0 = distance()
+	moveTouch(f2, centre + Vector2.new(180, 0))
+	local dNear = distance()
+	check(dNear < d0 - 1, string.format("벌리기 = 가까이 (%.1f -> %.1f)", d0, dNear))
+	moveTouch(f2, centre + Vector2.new(96, 0))
+	local dFar = distance()
+	check(dFar > d0 + 1, string.format("모으기 = 멀리 (%.1f -> %.1f)", d0, dFar))
+	moveTouch(f2, centre + Vector2.new(20, 0))
+	local dMax = distance()
+	moveTouch(f2, centre + Vector2.new(10, 0))
+	check(math.abs(distance() - dMax) < 1e-6 and dMax > dFar, "더 모아도 가장 먼 배율에서 멈춤")
+	moveTouch(f2, centre + Vector2.new(120, 0))
+	check(math.abs(distance() - d0) < 1e-3, "처음 간격으로 돌아오면 처음 거리")
+	-- 두 번째 손가락을 먼저 떼고, 남은 손가락을 다른 칸으로 끌어서 뗌: 둘 다 무시
+	UIS.InputEnded:Fire(f2, false)
+	frame()
+	moveTouch(f1, slotScreen(7))
+	check(math.abs(distance() - d0) < 1e-3, "한 손가락만 남으면 배율 그대로")
+	UIS.InputEnded:Fire(f1, false)
+	frame()
+	settle()
+	check(not holding() and dump() == before, "다 뗄 때까지 놓기·집기 없음: " .. dump())
+	check(#requests == requestCount and data.Settings.AutoPark == autoBefore, "요청 없음(자동 배치 그대로)")
+	tap(slotScreen(4, 2))
+	check(holding(), "다 뗀 뒤 한 손가락 톡 = 다시 집음")
+	key("Q")
+	settle()
+	mouseTo(Vector2.new(20, 60))
+end
 
 print("\n[시점 · 휠 · 보관 버튼 · 더 좋은 명소 딱지]")
 local viewFace = tray:FindFirstChild("View", true)

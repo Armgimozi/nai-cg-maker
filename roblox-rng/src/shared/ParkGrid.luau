@@ -149,6 +149,26 @@ function ParkGrid.dropPlan(state: Snapshot, heldId: string, target: number): Dro
 	return plan
 end
 
+-- 보관함에서 집은 명소가 처음 떠 있을 칸: 첫 빈 열린 칸, 없으면(공원 꽉 참) 전시 칸 중 수입이 가장 적은 명소의 칸
+-- (PlayerState.betterHidden 이 견주는 명소 — 바꿔 넣으면 수입이 느는 자리, 같으면 앞 번호), 그것도 없으면 1.
+-- 칸 번호가 작을수록 입구 쪽 앞줄이라 휴대폰의 좁은 위에서 보기에서도 화면 안(예전엔 부지 가운데 = 화면 위 끝 밖)
+function ParkGrid.storageStart(state: Snapshot): number
+	local slots, unlocked = PlayerState.parkSlots(state)
+	local weakestSlot, weakest = 0, math.huge
+	for slot = 1, unlocked do
+		local id = slots[slot]
+		if not id then
+			return slot
+		end
+		local landmark = Landmarks.ById[id]
+		local income = if landmark then PlayerState.landmarkIncome(landmark, state.Inventory[id] or 0) else 0
+		if income < weakest then
+			weakestSlot, weakest = slot, income
+		end
+	end
+	return if weakestSlot > 0 then weakestSlot else 1
+end
+
 -- 보관(들고 있는 전시 명소를 보관함으로): SetDisplay(Slot, nil, Expected). 보관함에서 집은 것이면 nil
 function ParkGrid.storePlan(state: Snapshot, heldId: string): { Slot: number, Expected: string }?
 	local from = ParkGrid.slotOf(state, heldId)
@@ -299,6 +319,18 @@ function ParkGrid.topView(view: TopViewInput): TopView
 		Target = { tx, ParkGrid.BASE_TOP, tz },
 		Distance = distance,
 	}
+end
+
+-- 위에서 보기 배율(Zoom, 1 = 맞출 줄이 딱 맞음, 클수록 멀리) 범위와 휠 한 칸
+ParkGrid.ZOOM_MIN, ParkGrid.ZOOM_MAX, ParkGrid.ZOOM_STEP = 0.8, 1.45, 0.08
+
+-- 두 손가락 벌리기/모으기: 손가락을 댔을 때 배율 startZoom · 손가락 사이 거리 startDistance(px) 에서 지금 거리
+-- distance 가 되면 새 배율(벌리면 가까이 = 작아짐, 범위 안으로)
+function ParkGrid.pinchZoom(startZoom: number, startDistance: number, distance: number): number
+	if startDistance <= 0 or distance <= 0 or startDistance ~= startDistance or distance ~= distance then
+		return math.clamp(startZoom, ParkGrid.ZOOM_MIN, ParkGrid.ZOOM_MAX)
+	end
+	return math.clamp(startZoom * startDistance / distance, ParkGrid.ZOOM_MIN, ParkGrid.ZOOM_MAX)
 end
 
 -- 자동 배치를 켜면 지금 배치가 바뀌는지 (바뀌면 [자동] 을 한 번 더 눌러 "확인?")

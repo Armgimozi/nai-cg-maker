@@ -102,4 +102,5 @@ E.mouseTo, E.click, E.drag, E.rightClick, E.key = mouseTo, click, drag, rightCli
 E.touchDrag, E.tap, E.face = touchDrag, tap, face
 E.cameraTweens = cameraTweens
 E.mouse = C.mouse
+E.focusText = C.focusText
 return E

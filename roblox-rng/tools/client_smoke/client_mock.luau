@@ -7,7 +7,7 @@
 -- 더한 흉내(가짜 환경에 없거나 부르지 않는 것만):
 --   Parent 바꾸기 -> 부모의 ChildAdded/ChildRemoved 발생(서버가 칸 모델을 다시 만드는 것을 클라이언트가 봄)
 --   GUI Absolute*/CanvasPosition 기본값, LocalTransparencyModifier 기본값, Sound:Play, 마우스/터치 GUI 이벤트
---   UserInputService(입력 이벤트, GetMouseLocation), GuiService:GetGuiInset(상단바), TweenService(Play = 바로 끝 값)
+--   UserInputService(입력 이벤트, GetMouseLocation, 글자 칸 포커스), GuiService:GetGuiInset(상단바), TweenService(Play = 바로 끝 값)
 --   카메라 ViewportSize · ViewportPointToRay, LocalPlayer + 캐릭터(HumanoidRootPart, Humanoid.Died)
 --   하네스 노드(src/client)의 WaitForChild
 -- 실제 로블록스와 다른 점: 화면 배치(AbsolutePosition 등)는 계산하지 않음, 렌더링·물리·스트리밍 없음,
@@ -81,8 +81,15 @@ return function(Mock: any, Harness: any, options: Options?): any
 
 	local touch = opts.Touch == true
 	local UIS = game:GetService("UserInputService")
-	for _, name in { "InputBegan", "InputChanged", "InputEnded", "LastInputTypeChanged" } do
+	for _, name in
+		{ "InputBegan", "InputChanged", "InputEnded", "LastInputTypeChanged", "TextBoxFocused", "TextBoxFocusReleased" }
+	do
 		UIS.__props[name] = Signal.new()
+	end
+	-- 글자 칸 포커스(채팅에 쓰는 중): C.focusText(box) / C.focusText(nil)
+	local focusedText: any = nil
+	UIS.__props.GetFocusedTextBox = function()
+		return focusedText
 	end
 	UIS.__props.MouseEnabled = not touch
 	UIS.__props.TouchEnabled = touch
@@ -266,6 +273,17 @@ return function(Mock: any, Harness: any, options: Options?): any
 		UIS.InputEnded:Fire(t, false)
 		frame()
 	end
+	-- 글자 칸 포커스 얻기/풀기(TextBoxFocused / TextBoxFocusReleased 발생)
+	local function focusText(box: any)
+		local old = focusedText
+		focusedText = box
+		if old and old ~= box then
+			UIS.TextBoxFocusReleased:Fire(old)
+		end
+		if box and box ~= old then
+			UIS.TextBoxFocused:Fire(box)
+		end
+	end
 	-- 버튼(Ui.chunkyButton 은 Root 안 Face 가 눌리는 곳)
 	local function face(button: any): any
 		return button:FindFirstChild("Face", true) or button
@@ -278,6 +296,7 @@ return function(Mock: any, Harness: any, options: Options?): any
 	C.toScreen, C.input, C.frame, C.waitReal = toScreen, input, frame, waitReal
 	C.mouseTo, C.click, C.drag, C.rightClick, C.key = mouseTo, click, drag, rightClick, key
 	C.touchDrag, C.tap, C.face = touchDrag, tap, face
+	C.focusText = focusText
 	C.cameraTweens = cameraTweens
 	function C.mouse(): Vector2
 		return mouse
