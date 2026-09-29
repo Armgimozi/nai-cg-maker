@@ -401,6 +401,16 @@
       <rect x="72" y="30" width="19" height="40" rx="3" fill="#ffc53d"/>
       <rect x="72" y="64" width="19" height="6" rx="2" fill="#dba42c"/>
       <rect x="19" y="44" width="42" height="12" rx="2" fill="#fff4dc"/></g>`),
+    // Icons.BUILDERS.rebirth: 금색 고리 화살표 2개(100°~, 280°~ 각 4조각 + 화살촉) + 가운데 초록 위 화살표
+    rebirth: svgUri(`<g stroke-linecap="butt" fill="none">
+      <path d="M 52.9 16.1 A 34 34 0 0 0 19.2 64.4" stroke="#ffc53d" stroke-width="11"/>
+      <path d="M 47.1 83.9 A 34 34 0 0 0 80.8 35.6" stroke="#ffc53d" stroke-width="11"/></g>
+      <path d="M 12.8 51.1 L 38.7 78.9 L 20.6 63.2 Z" fill="#ffc53d"/>
+      <path d="M 87.2 48.9 L 61.3 21.1 L 79.4 36.8 Z" fill="#ffc53d"/>
+      <path d="M 12.8 51.1 L 38.7 78.9 L 25.6 58.2 Z" fill="#d9a22e"/>
+      <path d="M 87.2 48.9 L 61.3 21.1 L 74.4 41.8 Z" fill="#d9a22e"/>
+      <rect x="45.3" y="50" width="9.4" height="16" fill="#60c45a"/>
+      <path d="M 37.2 50.5 L 62.8 50.5 L 50 34 Z" fill="#60c45a"/>`),
   };
 
   // Icons.view: 그림 아이콘 (ScaleType.Fit)

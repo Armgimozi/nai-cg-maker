@@ -135,6 +135,13 @@ def parse_config() -> dict:
     if len(upgrades) < 1:
         raise SystemExit("Config.Upgrades 를 읽지 못했어요")
 
+    # 환생 단계 (HUD 의 환생 "!" 배지 = 다음 단계 조건을 채웠는지). 없으면 빈 목록
+    rebirths = []
+    block = re.search(r"\bREBIRTHS\s*=\s*\{(.*?)\n\s*\}", text, re.S)
+    for m in re.finditer(r"\{\s*Coins\s*=\s*(\d+),\s*Landmarks\s*=\s*\{([^}]*)\}\s*\}", block[1] if block else ""):
+        rebirths.append({"Coins": int(m[1]), "Landmarks": re.findall(r'"(\w+)"', m[2])})
+    growth = re.search(r"\bREBIRTH_COIN_GROWTH\s*=\s*([\d.]+)", text)
+
     return {
         "ROLL_COOLDOWN": number("ROLL_COOLDOWN"),
         "BASE_LUCK": number("BASE_LUCK"),
@@ -147,6 +154,8 @@ def parse_config() -> dict:
         "STAMP_MAX_RANK": number("STAMP_MAX_RANK"),
         "REGION_LUCK_BONUS": number("REGION_LUCK_BONUS"),
         "Upgrades": upgrades,
+        "REBIRTHS": rebirths,
+        "REBIRTH_COIN_GROWTH": float(growth[1]) if growth else 4,
     }
 
 
