@@ -27,6 +27,11 @@ local REVEAL_RANK = 4
 -- 마지막으로 상태를 보낸 뒤 이만큼 지나면 다시 보내서 오차를 바로잡음(매초 보내지 않음)
 local RESYNC_INTERVAL = 10
 local TELEPORT_COOLDOWN = 1
+-- 공원 배치 바꾸기(SetDisplay, 자동 배치 설정)는 칸마다 미니어처를 다시 만들 수 있으므로 속도 제한:
+-- 연속 EDIT_BURST 번까지 바로, 그다음은 초당 EDIT_RATE 번
+local EDIT_BURST = 10
+local EDIT_RATE = 4
+local PARK_CLICK_COOLDOWN = 0.3 -- 받침대 클릭 -> 배치 창 열기 알림 최소 간격
 
 type Session = {
 	Data: PlayerState.Data,
@@ -35,6 +40,9 @@ type Session = {
 	Revision: number,
 	LastSync: number, -- 마지막으로 Snapshot 을 만든(보낸) 시각
 	LastTeleport: number,
+	EditTokens: number, -- 공원 배치 바꾸기 속도 제한(토큰 버킷)
+	EditAt: number,
+	LastParkClick: number,
 	Stats: { Rolls: IntValue, Rebirths: IntValue, Best: StringValue },
 	Plot: number?, -- 배정된 공원 부지 번호(부지가 모자라면 nil)
 	-- 연출이 아직 안 끝나 공원/리더보드에 공개하지 않은 발견(명소 Id -> 횟수)
@@ -110,6 +118,18 @@ local function refreshVisible(player: Player, session: Session)
 	if not ok then
 		warn("[LandmarkRNG] 공원 갱신 실패: " .. tostring(err))
 	end
+end
+
+-- 공원 배치 바꾸기 속도 제한. 허용이면 토큰 하나를 씀
+local function takeEditToken(session: Session): boolean
+	local now = time()
+	session.EditTokens = math.min(EDIT_BURST, session.EditTokens + (now - session.EditAt) * EDIT_RATE)
+	session.EditAt = now
+	if session.EditTokens < 1 then
+		return false
+	end
+	session.EditTokens -= 1
+	return true
 end
 
 local function refreshFeatured(player: Player)
@@ -273,6 +293,9 @@ local function onPlayerAdded(player: Player)
 		Revision = 0,
 		LastSync = time(),
 		LastTeleport = -math.huge,
+		EditTokens = EDIT_BURST,
+		EditAt = time(),
+		LastParkClick = -math.huge,
 		Stats = createLeaderstats(player),
 		Plot = nil,
 		Hidden = {},
@@ -337,6 +360,15 @@ do
 	if not ok then
 		warn("[LandmarkRNG] 공원 부지를 만들지 못했습니다: " .. tostring(err))
 	end
+	-- 주인이 자기 공원 받침대를 누르면 그 칸을 골라 둔 채로 공원 배치 창을 열게 함
+	ParkService.onSlotClicked(function(player: Player, slot: number)
+		local session = sessions[player]
+		if not session or time() - session.LastParkClick < PARK_CLICK_COOLDOWN then
+			return
+		end
+		session.LastParkClick = time()
+		Net.event("OpenParkEditor"):FireClient(player, slot)
+	end)
 	ok, err = pcall(Scenery.build, Config.SCENERY_EDGE)
 	if not ok then
 		warn("[LandmarkRNG] 주변 풍경을 만들지 못했습니다: " .. tostring(err))
@@ -578,8 +610,33 @@ Net.fn("SetSetting").OnServerInvoke = function(player: Player, key: any, value: 
 	if not session then
 		return { Ok = false }
 	end
+	-- 자동 배치를 켜면 공원이 다시 채워지므로 배치 편집과 같은 속도 제한
+	local park = key == "AutoPark"
+	if park and not takeEditToken(session) then
+		return { Ok = false, State = snapshot(session) }
+	end
 	local ok = PlayerState.setSetting(session.Data, key, value)
+	if ok and park then
+		refreshVisible(player, session)
+	end
 	return { Ok = ok, State = snapshot(session) }
+end
+
+-- 공원 전시 칸에 명소 놓기(이미 다른 칸에 있으면 자리 바꿈) / 빼기(nil). 검증은 PlayerState.setDisplay.
+-- 자동 배치 중 첫 편집이면 자동 배치가 꺼지고 지금 배치에서 시작
+Net.fn("SetDisplay").OnServerInvoke = function(player: Player, slot: any, landmarkId: any)
+	local session = sessions[player]
+	if not session then
+		return { Ok = false, Reason = "데이터를 불러오는 중입니다" }
+	end
+	if not takeEditToken(session) then
+		return { Ok = false, Reason = "busy", State = snapshot(session) }
+	end
+	local ok, reason = PlayerState.setDisplay(session.Data, slot, landmarkId)
+	if ok then
+		refreshVisible(player, session)
+	end
+	return { Ok = ok, Reason = reason, State = snapshot(session) }
 end
 
 -- 환생: 코인·업그레이드·보유 명소·대표 명소 초기화 → 공원/간판/리더보드/대표 명소 표시 갱신

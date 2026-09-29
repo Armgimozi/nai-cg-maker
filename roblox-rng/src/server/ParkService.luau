@@ -4,9 +4,12 @@
 --   (광장 쪽 가장자리)까지 거리입니다. 부지 중심까지로 잡으면 이웃 부지끼리 겹치기 때문.
 --   빈 부지가 없으면(서버 인원이 부지보다 많을 때) assign 이 nil 을 돌려주고, 그 플레이어는 부지 없이 놉니다.
 -- 부지 좌표계: 부지 중앙 바닥이 원점, -Z(LookVector)가 광장 쪽 = 입구.
--- 전시 칸: 6x6 격자. 입구에 가까운 줄부터, 한 줄 안에서는 가운데에 가까운 칸부터 채워서
---   가장 희귀한 명소가 입구 정면에 오도록 합니다.
+-- 전시 칸: 6x6 격자. 칸 번호 -> 격자 자리는 PlayerState.slotCell(입구에 가까운 줄부터, 한 줄 안에서는
+--   가운데에 가까운 칸부터 = 자동 배치에서 가장 희귀한 명소가 입구 정면). 칸마다 무엇을 전시할지는
+--   PlayerState.parkSlots(자동 배치 또는 플레이어가 고른 배치). 공원 배치 창과 같은 칸 번호를 씀.
 -- update 는 칸마다 이전 상태를 기억해 두고 바뀐 칸만 다시 만듭니다(별 개수는 이름표 글자만 바꿈).
+-- 주인 부지의 열린 칸(받침대 + 미니어처)에는 ClickDetector: 주인이 누르면 onSlotClicked 콜백(칸 번호)
+--   -> 서버가 그 클라이언트에 공원 배치 창을 열라고 알림. 부지를 비우면 칸과 함께 사라짐.
 -- 간판: 주인이 있으면 입구 아치(나무 판자 + Ink 테두리 + 크림 글자판: 공원 아이콘 + 이름, 초록 알약: 동전 + "+X/s"),
 --   빈 부지는 길 옆 낮은 말뚝 간판("빈 부지")만 세워서 광장에서 볼 때 어지럽지 않게 합니다.
 -- 그림: Shared/ImageIds 에 park/coin 아이콘, panel_paper/pill 스킨 Id 가 있으면 간판에 그 그림을 씀(없으면 코드로 그림).
@@ -67,6 +70,8 @@ local STAKE_X = 9 -- 말뚝 간판 위치: 길(폭 10) 바로 옆
 local STAKE_TILT = math.rad(-4) -- 말뚝을 살짝 기울여서 장난스럽게
 local FENCE_HEIGHT = 2.2
 local RAIL = Vector3.new(0.35, 0.35, 0.35) -- 울타리 가로대 단면
+
+local CLICK_DISTANCE = 40 -- 받침대를 눌러 배치 창을 여는 최대 거리(스터드)
 
 local LABEL_WIDTH = 10 -- 전시 이름표 크기(스터드)
 local LABEL_HEIGHT = 2.6
@@ -129,24 +134,15 @@ type Layout = ParkLayout.Layout
 -- 부지 순서 = 배정 순서(가장 작은 빈 번호부터). 첫 부지는 스폰 정면(-Z = 270도) 근처.
 local LAYOUT: { Layout } = ParkLayout.LAYOUT
 
--- 전시 칸 위치(부지 좌표, Y = 부지 윗면). 입구 쪽 줄부터, 줄 안에서는 가운데부터.
+-- 전시 칸 위치(부지 좌표, Y = 부지 윗면). 칸 번호 순서 = PlayerState.slotCell (입구 쪽 줄부터, 줄 안에서는 가운데부터).
+-- 입구(-Z)에서 공원 안쪽(+Z)을 보면 오른쪽이 -X 라서 slotCell 의 열 1(왼쪽 끝)이 x 가 가장 큰 열.
 local SLOT_OFFSETS: { Vector3 } = {}
 do
-	local columns = {}
-	for c = 1, GRID do
-		table.insert(columns, (c - (GRID + 1) / 2) * SPACING)
-	end
-	table.sort(columns, function(a, b)
-		if math.abs(a) ~= math.abs(b) then
-			return math.abs(a) < math.abs(b)
-		end
-		return a < b
-	end)
 	local firstRow = -PLOT_DEPTH / 2 + FRONT_MARGIN + SPACING / 2
-	for row = 0, GRID - 1 do
-		for _, x in columns do
-			table.insert(SLOT_OFFSETS, Vector3.new(x, BASE_TOP, firstRow + row * SPACING))
-		end
+	for slot = 1, GRID * GRID do
+		local row, column = PlayerState.slotCell(slot)
+		local x = ((GRID + 1) / 2 - column) * SPACING
+		table.insert(SLOT_OFFSETS, Vector3.new(x, BASE_TOP, firstRow + (row - 1) * SPACING))
 	end
 end
 
@@ -155,6 +151,7 @@ local ParkService = {}
 local folder: Folder? = nil
 local plots: { Plot } = {}
 local plotByPlayer: { [Player]: Plot } = {}
+local slotClicked: ((Player, number) -> ())? = nil
 
 local function newPart(
 	parent: Instance,
@@ -732,6 +729,19 @@ local function addLabel(pedestal: BasePart, landmark: Landmarks.Landmark, modelH
 	return stars
 end
 
+-- 주인이 이 칸(받침대·미니어처)을 누르면 콜백. 다른 사람이 누르면 무시
+local function addClick(plot: Plot, index: number, container: Model)
+	local detector = Instance.new("ClickDetector")
+	detector.MaxActivationDistance = CLICK_DISTANCE
+	detector.MouseClick:Connect(function(clicker: Player)
+		local callback = slotClicked
+		if callback and clicker == plot.Owner then
+			callback(clicker, index)
+		end
+	end)
+	detector.Parent = container
+end
+
 -- key: KEY_LOCKED(흐릿한 바닥) / KEY_EMPTY(빈 받침대) / 명소 Id(받침대 + 미니어처 + 이름표)
 local function buildSlot(plot: Plot, index: number, key: string): Slot
 	local floor = plot.CFrame * CFrame.new(SLOT_OFFSETS[index]) -- 칸 바닥 중앙(부지 윗면)
@@ -774,6 +784,9 @@ local function buildSlot(plot: Plot, index: number, key: string): Slot
 				warn("[ParkService] " .. landmark.Id .. " 모형을 만들지 못했습니다: " .. tostring(result))
 			end
 			slot.StarLabel = addLabel(pedestal, landmark, if ok then result else 0)
+		end
+		if plot.Owner then
+			addClick(plot, index, container)
 		end
 	end
 
@@ -821,18 +834,18 @@ function ParkService.release(player: Player)
 	setSign(plot, "", "")
 end
 
--- 전시 상태를 data 에 맞춤. data 는 Data 또는 같은 필드(Inventory, Upgrades)를 가진 표.
+-- 전시 상태를 data 에 맞춤. data 는 Data 또는 같은 필드(Inventory, Upgrades, Settings, Display)를 가진 표.
 -- mods: 게임패스·서버 행운 등(없으면 기본). 간판의 수입 표시에 "수입 2배" 가 반영되도록
 function ParkService.update(player: Player, data: PlayerState.Data, mods: PlayerState.Mods?)
 	local plot = plotByPlayer[player]
 	if not plot then
 		return
 	end
-	local park = PlayerState.park(data)
-	local unlocked = math.min(PlayerState.slots(data), #SLOT_OFFSETS)
+	local park, unlocked = PlayerState.parkSlots(data)
+	unlocked = math.min(unlocked, #SLOT_OFFSETS)
 
 	for index = 1, #SLOT_OFFSETS do
-		local id = park[index]
+		local id = if index <= unlocked then park[index] else nil
 		local key = if id then id elseif index <= unlocked then KEY_EMPTY else KEY_LOCKED
 		local slot = plot.Slots[index]
 		if not slot or slot.Key ~= key then
@@ -853,6 +866,11 @@ function ParkService.update(player: Player, data: PlayerState.Data, mods: Player
 	end
 
 	setSign(plot, player.DisplayName, incomeText(PlayerState.incomePerSecond(data, mods)))
+end
+
+-- 주인이 자기 부지의 열린 칸(받침대·미니어처)을 누르면 callback(주인, 칸 번호)
+function ParkService.onSlotClicked(callback: (Player, number) -> ())
+	slotClicked = callback
 end
 
 -- 공원 입구 안쪽 바닥(부지 윗면)에서 공원 안쪽을 바라보는 CFrame. 부지가 없으면 nil.

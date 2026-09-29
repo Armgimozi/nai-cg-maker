@@ -1,5 +1,5 @@
 -- 클라이언트 진입점: 상태 동기화, 굴리기/자동 굴리기, 메뉴 연결, 뉴스 속보, 회전 모형,
--- 환생 · Robux 상품 구매 요청 · 서버 행운 알림 (DESIGN.md v3)
+-- 환생 · Robux 상품 구매 요청 · 서버 행운 알림 (DESIGN.md v3), 공원 배치(칸마다 명소 고르기)
 -- (화면 글자에는 이모지를 쓰지 않음 — DESIGN.md UI 스타일 가이드 v2)
 -- 알림은 [아이콘] + 8글자 안팎 ("구매 완료", "코인 부족", "대표 지정"), 문장은 쓰지 않음
 
@@ -268,6 +268,45 @@ local function toggleAutoFeature()
 	end
 end
 
+-- 공원 배치 ----------------------------------------------------------------------
+-- 창(Panels)이 누르는 즉시 미리 보여 주고, 여기서 서버에 요청한 뒤 응답 상태로 바꿈(Panels.parkDone)
+
+-- 서버가 준 실패 이유 -> 짧은 알림
+local function parkFailure(reason: any): (string, string)
+	local text = string.lower(tostring(reason or ""))
+	if text:find("잠긴") then
+		return "잠긴 칸", "lock"
+	elseif text:find("busy") then
+		return "잠시 후", "auto"
+	elseif text:find("불러") or text:find("load") then
+		return "로딩 중", "globe"
+	end
+	return "배치 실패", "close"
+end
+
+local function setDisplay(slot: number, landmarkId: string?)
+	local response = invoke("SetDisplay", slot, landmarkId)
+	if type(response) == "table" then
+		applyState(response.State)
+		if not response.Ok then
+			local text, icon = parkFailure(response.Reason)
+			Hud.toast(text, Ui.Theme.Bad, 2, icon)
+		end
+	end
+	Panels.parkDone()
+end
+
+local function setAutoPark(on: boolean)
+	local response = invoke("SetSetting", "AutoPark", on)
+	if type(response) == "table" then
+		applyState(response.State)
+		if not response.Ok then
+			Hud.toast("잠시 후", Ui.Theme.Bad, 2, "auto")
+		end
+	end
+	Panels.parkDone()
+end
+
 -- 환생 -------------------------------------------------------------------------
 
 -- 서버가 준 실패 이유 -> 짧은 알림. 이유가 애매하면 지금 상태로 판단
@@ -390,6 +429,12 @@ Panels.init(gui, {
 	Toast = function(text: string, icon: string?)
 		Hud.toast(text, Ui.Theme.Bad, 2, icon)
 	end,
+	SetDisplay = function(slot: number, landmarkId: string?)
+		task.spawn(setDisplay, slot, landmarkId)
+	end,
+	SetAutoPark = function(on: boolean)
+		task.spawn(setAutoPark, on)
+	end,
 })
 
 -- 다시 태어나면 광장(스폰 지점)에서 시작
@@ -443,6 +488,17 @@ task.spawn(function()
 		if untilTime then
 			Hud.serverLuck(tostring(info.Name or ""), untilTime)
 		end
+	end)
+end)
+
+-- 내 공원 받침대를 누름 -> 그 칸을 골라 둔 채로 공원 배치 창 열기 (옛 서버에 이벤트가 없어도 멈추지 않게 따로 기다림)
+task.spawn(function()
+	local remote = findRemote("OpenParkEditor", 30)
+	if not remote or not remote:IsA("RemoteEvent") then
+		return
+	end
+	remote.OnClientEvent:Connect(function(slot)
+		Panels.openPark(tonumber(slot))
 	end)
 end)
 

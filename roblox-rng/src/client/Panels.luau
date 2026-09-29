@@ -1,4 +1,5 @@
--- 메뉴 창: 도감(대표 지정), 여권(지역별 발견 현황 + 도장), 강화(업그레이드), 환생(조건 + 확인), 상점(Robux)
+-- 메뉴 창: 도감(대표 지정), 여권(지역별 발견 현황 + 도장), 강화(업그레이드), 환생(조건 + 확인), 상점(Robux),
+-- 공원 배치(전시 칸마다 명소 고르기 — 도감 머리 줄 [배치] 버튼 / 공원 받침대를 눌러 열림)
 -- 크림색 창(Ui.window) 하나를 쓰고, 화면마다 리본 색과 제목(2글자)만 바꿉니다.
 -- 글자는 최소로: 설명 문장 없이 아이콘 + 숫자 딱지로 보여 줍니다.
 -- 화면마다 카드를 한 번 만들고 상태가 바뀌면 글자/색만 고칩니다. 썸네일(ViewportFrame)은
@@ -29,17 +30,33 @@ export type Handlers = {
 	BuyPass: (string) -> (), -- Config.GamePasses 키
 	BuyProduct: (string) -> (), -- Config.Products 키
 	Toast: (text: string, icon: string?) -> (), -- 짧은 실패 알림 (예: "코인 부족")
+	-- 공원 배치: 칸에 명소 놓기(nil = 빼기) / 자동 배치 켜기·끄기. 응답이 오면 Panels.parkDone() 을 불러야 함
+	SetDisplay: (slot: number, landmarkId: string?) -> (),
+	SetAutoPark: (on: boolean) -> (),
 }
 
 local REGION_BONUS = math.floor(Config.REGION_LUCK_BONUS * 100 + 0.5)
 
 local HEADER_HEIGHT = 50 -- 창 본문 맨 위 딱지 줄 높이
+
+-- 공원 배치: 왼쪽 격자(칸 56 · 간격 4 · 잔디 여백 7 = 한 변 370), 오른쪽 고른 칸 줄 + 명소 목록.
+-- 격자 칸은 창(760×500) 안에 6줄이 들어가야 해서 56(배율 0.55 에서 31px)이 최대
+local PARK_TILE = 56
+local PARK_GAP = 4
+local PARK_PAD = 7
+local PARK_LAWN = Config.PARK_GRID * PARK_TILE + (Config.PARK_GRID - 1) * PARK_GAP + PARK_PAD * 2
+local PARK_SIDE_X = PARK_LAWN + 14 -- 오른쪽 칸(고른 칸 줄 + 목록) 왼쪽 끝
+local PARK_BAR = 88 -- 고른 칸 줄 높이 ([빼기] 앞면 73 = 가장 작은 배율 0.55 에서 40px)
+local PARK_ROW = 74 -- 명소 목록 한 줄 높이 (배율 0.55 에서 40px 이상)
+local PARK_ROW_GAP = 8
+
 local VIEWS = {
 	Collection = { Title = "도감", Color = "Sky", Top = HEADER_HEIGHT },
 	Passport = { Title = "여권", Color = "Grape", Top = HEADER_HEIGHT },
 	Upgrade = { Title = "강화", Color = "Sun", Top = 4 },
 	Rebirth = { Title = "환생", Color = "Coral", Top = HEADER_HEIGHT },
 	Shop = { Title = "상점", Color = "Sun", Top = 4 },
+	Park = { Title = "배치", Color = "Grass", Top = HEADER_HEIGHT + PARK_BAR + 8 },
 }
 
 local WHITE = Color3.new(1, 1, 1)
@@ -153,8 +170,47 @@ local rebirthLook = ""
 type ShopCard = { Item: Perks.Item, Button: Ui.ChunkyButton, Effect: Ui.Chip, Owned: Ui.Chip? }
 local shopCards: { ShopCard } = {}
 
+-- 공원 배치
+type ParkTile = {
+	Button: TextButton,
+	Stroke: UIStroke,
+	Plus: TextLabel, -- 빈 칸 "+"
+	Lock: GuiObject, -- 잠긴 칸 자물쇠
+	View: ViewportFrame?, -- 명소 사진(처음 필요할 때 만듦)
+	Look: string, -- "locked" | "empty" | 명소 Id
+}
+type ParkCard = { Card: TextButton, Stars: TextLabel, Slot: Ui.Chip }
+local parkTiles: { ParkTile } = {} -- 칸 번호 순서
+local parkCards: { [string]: ParkCard } = {}
+local parkCount: Ui.Chip
+local parkIncome: Ui.Chip
+local parkAuto: Ui.ChunkyButton
+local parkAutoBadge: Ui.Chip
+local parkSlotChip: Ui.Chip
+local parkSlotLabel: TextLabel
+local parkRemove: Ui.ChunkyButton
+local parkSelected: number? = nil -- 고른 칸
+local parkPreview: Snapshot? = nil -- 서버 응답 전에 미리 보여 주는 배치(응답을 기다리는 요청이 있을 때만)
+local parkPending = 0 -- 응답을 기다리는 배치 요청 수
+local parkConfirmUntil = 0 -- 이 시각(os.clock)까지 자동 배치를 한 번 더 누르면 켜짐
+local parkConfirmToken = 0
+-- 칸·목록 버튼이 부르는 동작 (아래 "공원 배치" 에서 정의)
+local selectParkSlot: (slot: number) -> ()
+local placeInPark: (id: string) -> ()
+local removeFromPark: () -> ()
+local toggleAutoPark: () -> ()
+
 local function owned(state: Snapshot, id: string): number
 	return state.Inventory[id] or 0
+end
+
+-- 초당 수입 짧게 (Hud 와 같은 규칙): 작은 값은 소수 한 자리 "1.8", 큰 값은 "12.5K"
+local function incomeText(income: number): string
+	if income < 100 then
+		local text = string.format("%.1f", math.floor(income * 10) / 10):gsub("%.0$", "")
+		return text
+	end
+	return Format.short(income)
 end
 
 local function gridHeight(count: number, columns: number, cellHeight: number, gap: number): number
@@ -284,6 +340,23 @@ local function buildCollection(): View
 		Visible = false,
 		Parent = autoButton.Face,
 	})
+
+	-- 공원 배치 창 열기: 공원 아이콘 + "배치" (자동 버튼 왼쪽)
+	local arrange = Ui.chunkyButton({
+		Name = "Arrange",
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -(8 + 136 + 10), 0, -4),
+		Size = UDim2.fromOffset(124, 50),
+		Color = "Grass",
+		Icon = "park",
+		IconSize = 36,
+		Text = "배치",
+		TextSize = 22,
+		Parent = header,
+	})
+	arrange.Activated:Connect(function()
+		Panels.openPark(nil)
+	end)
 
 	-- 아직 아무것도 없을 때: 가운데에 천천히 도는 지구본
 	emptyIcon = Icons.view(body, "globe", {
@@ -1516,6 +1589,530 @@ local function renderShop(state: Snapshot)
 	end
 end
 
+-- 공원 배치 ---------------------------------------------------------------------
+-- 왼쪽: 공원을 위에서 본 6×6 격자(아래 = 입구, 칸 자리는 PlayerState.slotCell = 월드 받침대와 같음).
+--   열린 칸 = 명소 사진(등급 색 바탕) / 빈 칸 "+", 잠긴 칸 = 회색 + 자물쇠, 고른 칸 = 굵은 Sun 테두리.
+-- 오른쪽: 고른 칸 줄([#칸] 이름 [빼기]) + 가진 명소 목록(희귀한 순서, 전시 중이면 [체크 #칸]).
+-- 칸을 누르면 고르고, 명소를 누르면 고른 칸(없으면 첫 빈 칸)에 놓음. 이미 다른 칸에 있으면 자리를 바꿈.
+-- 누르는 즉시 PlayerState 규칙을 스냅샷 사본에 적용해 미리 보여 주고(parkPreview), 서버 응답이 오면 그 상태로 바꿈.
+
+-- 잠긴 칸 자물쇠: 그림이 있으면 그림(3D 자물쇠는 칸이 많아 무거우니 쓰지 않음), 없으면 Frame 으로 그림
+local function lockGlyph(parent: GuiObject): GuiObject
+	if Icons.imageId("lock") then
+		return Icons.view(parent, "lock", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(0.62, 0.62),
+			Transparency = 0.25,
+			ZIndex = 3,
+		})
+	end
+	-- 그림이 없을 때: 고리(테두리만 있는 동그라미) + 몸통(Ink 네모)
+	local glyph = Ui.new("Frame", {
+		Name = "Lock",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(0.44, 0.5),
+		BackgroundTransparency = 1,
+		ZIndex = 3,
+		Parent = parent,
+	})
+	local ring = Ui.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.fromScale(0.5, 0),
+		Size = UDim2.fromScale(0.7, 0.6),
+		BackgroundTransparency = 1,
+		ZIndex = 3,
+		Parent = glyph,
+	})
+	Ui.round().Parent = ring
+	Ui.stroke(Theme.Ink, 3, 0.3).Parent = ring
+	local lockBody = Ui.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.fromScale(0.5, 1),
+		Size = UDim2.fromScale(1, 0.58),
+		BackgroundColor3 = Theme.Ink,
+		BackgroundTransparency = 0.3,
+		ZIndex = 4,
+		Parent = glyph,
+	})
+	Ui.corner(4).Parent = lockBody
+	return glyph
+end
+
+local function parkTile(parent: Frame, slot: number): ParkTile
+	local row, column = PlayerState.slotCell(slot)
+	local step = PARK_TILE + PARK_GAP
+	local button = Ui.new("TextButton", {
+		Name = "Slot" .. slot,
+		Text = "",
+		AutoButtonColor = false,
+		Position = UDim2.fromOffset(PARK_PAD + (column - 1) * step, PARK_PAD + (Config.PARK_GRID - row) * step),
+		Size = UDim2.fromOffset(PARK_TILE, PARK_TILE),
+		BackgroundColor3 = Theme.Cream,
+		ZIndex = 1,
+	})
+	Ui.corner(10).Parent = button
+	local stroke = Ui.stroke(Theme.Ink, 2.5)
+	stroke.Parent = button
+	local hover = Ui.new("UIScale", { Parent = button })
+	button.MouseEnter:Connect(function()
+		hover.Scale = 1.06
+	end)
+	button.MouseLeave:Connect(function()
+		hover.Scale = 1
+	end)
+	local plus = Ui.label({
+		Name = "Plus",
+		Size = UDim2.fromScale(1, 1),
+		Font = Theme.FontTitle,
+		Text = "+",
+		TextTransparency = 0.5,
+		Visible = false,
+		ZIndex = 2,
+		Parent = button,
+	}, 34)
+	local lock = lockGlyph(button)
+	lock.Visible = false
+	button.Activated:Connect(function()
+		selectParkSlot(slot)
+	end)
+	button.Parent = parent
+	return { Button = button, Stroke = stroke, Plus = plus, Lock = lock, View = nil, Look = "" }
+end
+
+-- 칸 모양(Look = "locked" | "empty" | 명소 Id) 바꾸기, 바뀐 칸만. 명소 사진은 처음 필요할 때 ViewportFrame 하나를 만들고 그 뒤로는 모형만 바꿈
+local function paintTile(tile: ParkTile, look: string)
+	if tile.Look == look then
+		return
+	end
+	tile.Look = look
+	local landmark = Landmarks.ById[look]
+	tile.Plus.Visible = look == "empty"
+	tile.Lock.Visible = look == "locked"
+	if landmark then
+		tile.Button.BackgroundColor3 = landmark.Tier.Color:Lerp(WHITE, 0.55)
+		tile.Button.BackgroundTransparency = 0
+		local view = tile.View
+		if not view then
+			view = Viewport.new(tile.Button, {
+				Position = UDim2.fromOffset(2, 2),
+				Size = UDim2.new(1, -4, 1, -4),
+				ZIndex = 2,
+			})
+			tile.View = view
+		end
+		local vf = view :: ViewportFrame
+		vf.Visible = true
+		Viewport.setLandmark(vf, landmark, 10)
+	else
+		tile.Button.BackgroundColor3 = if look == "locked" then DIM_CHIP else Theme.Cream
+		tile.Button.BackgroundTransparency = if look == "locked" then 0.35 else 0
+		local view = tile.View
+		if view then
+			view.Visible = false
+			Viewport.setModel(view, nil)
+		end
+	end
+end
+
+-- 명소 목록 한 줄: 사진 · 이름 · 별 · (전시 중이면) [체크 #칸]
+local function parkCard(parent: ScrollingFrame, landmark: Landmark): ParkCard
+	local card = Ui.new("TextButton", {
+		Name = landmark.Id,
+		Text = "",
+		AutoButtonColor = false,
+		Size = UDim2.new(1, 0, 0, PARK_ROW),
+		BackgroundColor3 = Theme.Paper,
+	})
+	Ui.corner(12).Parent = card
+	Ui.stroke(Theme.Ink, 3).Parent = card
+	photo(card, landmark, UDim2.fromOffset(6, 6), UDim2.fromOffset(PARK_ROW - 12, PARK_ROW - 12), 8)
+	Ui.label({
+		Position = UDim2.fromOffset(PARK_ROW + 2, 8),
+		Size = UDim2.new(1, -(PARK_ROW + 2 + 92), 0, 30),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Text = landmark.Name,
+		Parent = card,
+	}, 21)
+	local stars = Ui.label({
+		Position = UDim2.fromOffset(PARK_ROW + 2, 40),
+		Size = UDim2.fromOffset(130, 24),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Parent = card,
+	}, 20)
+	Ui.outline(stars, 2)
+	local slotChip = Ui.chip({
+		Name = "Shown",
+		Color = "Grass",
+		Icon = "check",
+		IconSize = 34,
+		Height = 30,
+		TextSize = 18,
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -10, 0.5, 0),
+		ZIndex = 3,
+		Visible = false,
+		Parent = card,
+	})
+	local hover = Ui.new("UIScale", { Parent = card })
+	card.MouseEnter:Connect(function()
+		hover.Scale = 1.03
+	end)
+	card.MouseLeave:Connect(function()
+		hover.Scale = 1
+	end)
+	card.Activated:Connect(function()
+		placeInPark(landmark.Id)
+	end)
+	card.Parent = parent
+	return { Card = card, Stars = stars, Slot = slotChip }
+end
+
+local function buildPark(): View
+	local header = newHeader("Park")
+	local chips = chipRow(header)
+	parkCount = headerChip(chips, "park", Theme.Ink, 1) -- 전시 수 / 열린 칸 수
+	parkIncome = headerChip(chips, "coin", "Grass", 2) -- 이 배치의 초당 수입
+
+	-- 자동 배치: 켜짐 = 초록 + ON 딱지(가장 희귀한 명소가 입구부터), 꺼짐 = 회색(직접 고른 배치)
+	parkAuto = Ui.chunkyButton({
+		Name = "AutoPark",
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -8, 0, -4),
+		Size = UDim2.fromOffset(136, 50),
+		Color = "Gray",
+		Icon = "auto",
+		IconSize = 36,
+		Text = "자동",
+		TextSize = 22,
+		Parent = header,
+	})
+	parkAuto.Activated:Connect(function()
+		toggleAutoPark()
+	end)
+	parkAutoBadge = Ui.chip({
+		Name = "On",
+		Color = "Coral",
+		Text = "ON",
+		Height = 22,
+		TextSize = 15,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(1, -8, 0, 2),
+		Rotation = 12,
+		ZIndex = 6,
+		Visible = false,
+		Parent = parkAuto.Face,
+	})
+
+	-- 창 본문에 붙는 부분(격자 + 고른 칸 줄). 스크롤 목록과 겹치지 않게 자리만 잡는 투명 틀
+	local board = Ui.new("Frame", {
+		Name = "ParkBoard",
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Visible = false,
+		Parent = body,
+	})
+
+	-- 공원 잔디 + 격자
+	local lawn = Ui.new("Frame", {
+		Name = "Lawn",
+		Position = UDim2.fromOffset(0, HEADER_HEIGHT),
+		Size = UDim2.fromOffset(PARK_LAWN, PARK_LAWN),
+		BackgroundColor3 = Ui.colorPair("Grass").Face:Lerp(WHITE, 0.6),
+		Parent = board,
+	})
+	Ui.corner(14).Parent = lawn
+	Ui.stroke(Theme.Ink, 3).Parent = lawn
+	for slot = 1, PlayerState.MAX_SLOTS do
+		parkTiles[slot] = parkTile(lawn, slot)
+	end
+	-- 입구 표시(아래 가운데, 위 화살표 = 공원 안쪽)
+	Ui.chip({
+		Name = "Entrance",
+		Color = Theme.Ink,
+		Icon = "arrow_up",
+		IconSize = 30,
+		Text = "입구",
+		Height = 26,
+		TextSize = 16,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 1, 2),
+		ZIndex = 4,
+		Parent = lawn,
+	})
+
+	-- 고른 칸 줄: [공원 #칸] 명소 이름(또는 빈 칸) [빼기]
+	local bar = Ui.new("Frame", {
+		Name = "Selected",
+		Position = UDim2.fromOffset(PARK_SIDE_X, HEADER_HEIGHT),
+		Size = UDim2.new(1, -PARK_SIDE_X, 0, PARK_BAR),
+		BackgroundColor3 = Theme.Paper,
+		Parent = board,
+	})
+	Ui.corner(12).Parent = bar
+	Ui.stroke(Theme.Ink, 3).Parent = bar
+	parkSlotChip = Ui.chip({
+		Name = "Slot",
+		Color = Theme.Ink,
+		Icon = "park",
+		IconSize = 36,
+		Height = 30,
+		TextSize = 19,
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 10, 0.5, 0),
+		Parent = bar,
+	})
+	parkSlotLabel = Ui.label({
+		Name = "Name",
+		Position = UDim2.fromOffset(104, 8),
+		Size = UDim2.new(1, -(104 + 132), 1, -16),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Parent = bar,
+	}, 22)
+	parkRemove = Ui.chunkyButton({
+		Name = "Remove",
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -8, 0.5, 0),
+		Size = UDim2.fromOffset(116, 79),
+		Color = "Gray",
+		Text = "빼기",
+		TextSize = 28,
+		Parent = bar,
+	})
+	parkRemove.Activated:Connect(function()
+		removeFromPark()
+	end)
+
+	local scroller = newScroller("Park", VIEWS.Park.Top)
+	scroller.Position = UDim2.fromOffset(PARK_SIDE_X, VIEWS.Park.Top)
+	scroller.Size = UDim2.new(1, -PARK_SIDE_X, 1, -VIEWS.Park.Top)
+	local layout = Ui.list(Enum.FillDirection.Vertical, PARK_ROW_GAP, Enum.HorizontalAlignment.Center)
+	layout.VerticalAlignment = Enum.VerticalAlignment.Top
+	layout.Parent = scroller
+	return { Scroller = scroller, Header = header, Extra = board }
+end
+
+-- 지금 화면에 보여 줄 공원 상태: 응답을 기다리는 편집이 있으면 미리 보기, 아니면 서버 상태
+local function parkState(): Snapshot?
+	return parkPreview or lastState
+end
+
+-- 스냅샷 사본(배치에 필요한 필드만 새 표)에 편집을 적용해서 미리 보기로. 규칙에 맞지 않으면 false
+local function previewPark(edit: (any) -> boolean): boolean
+	local base = parkState()
+	if not base then
+		return false
+	end
+	local copy = table.clone(base) :: any
+	copy.Settings = table.clone(base.Settings)
+	copy.Display = table.clone((base :: any).Display or {})
+	if not edit(copy) then
+		return false
+	end
+	copy.Income = PlayerState.incomePerSecond(copy, copy)
+	parkPreview = copy
+	parkPending += 1
+	return true
+end
+
+-- 자동 배치를 켜면 지금 배치가 바뀌는지 (바뀌면 "확인?" 을 한 번 더 받음)
+local function autoWouldChange(state: Snapshot): boolean
+	local slots, unlocked = PlayerState.parkSlots(state)
+	local auto = table.clone(state) :: any
+	auto.Settings = table.clone(state.Settings)
+	auto.Settings.AutoPark = true
+	local best = PlayerState.parkSlots(auto)
+	for slot = 1, unlocked do
+		if slots[slot] ~= best[slot] then
+			return true
+		end
+	end
+	return false
+end
+
+local function paintParkAuto(state: Snapshot)
+	local on = state.Settings.AutoPark ~= false
+	local confirming = not on and os.clock() < parkConfirmUntil
+	parkAuto.SetColor(if on then "Grass" elseif confirming then "Sun" else "Gray")
+	parkAuto.SetText(if confirming then "확인?" else "자동")
+	parkAutoBadge.Root.Visible = on
+end
+
+local function renderPark(real: Snapshot)
+	local state = parkPreview or real
+	local slots, unlocked = PlayerState.parkSlots(state)
+	local selected = parkSelected
+	if selected and (selected < 1 or selected > unlocked) then
+		selected = nil
+		parkSelected = nil
+	end
+
+	-- 격자
+	local where: { [string]: number } = {}
+	local shown = 0
+	for slot, tile in parkTiles do
+		local id = slots[slot]
+		if id then
+			where[id] = slot
+			shown += 1
+		end
+		paintTile(tile, if id then id elseif slot <= unlocked then "empty" else "locked")
+		local picked = slot == selected
+		tile.Stroke.Color = if picked then Ui.colorPair("Sun").Face else Theme.Ink
+		tile.Stroke.Thickness = if picked then 5 else 2.5
+		tile.Button.ZIndex = if picked then 2 else 1
+	end
+
+	-- 머리 줄: 전시 수 / 열린 칸 수 · 초당 수입 · 자동 배치
+	parkCount.Label.Text = string.format("%d/%d", shown, unlocked)
+	parkIncome.Label.Text = "+" .. incomeText(PlayerState.incomePerSecond(state, state)) .. "/s"
+	paintParkAuto(state)
+
+	-- 고른 칸 줄
+	local selectedId = if selected then slots[selected] else nil
+	local selectedLandmark = if selectedId then Landmarks.ById[selectedId] else nil
+	parkSlotChip.Root.Visible = selected ~= nil
+	parkSlotChip.Label.Text = if selected then "#" .. selected else ""
+	parkSlotLabel.Position = UDim2.fromOffset(if selected then 104 else 16, 8)
+	parkSlotLabel.Size = UDim2.new(1, -((if selected then 104 else 16) + 132), 1, -16)
+	if selectedLandmark then
+		parkSlotLabel.Text = selectedLandmark.Name
+		parkSlotLabel.TextColor3 = selectedLandmark.Tier.Color:Lerp(Theme.Ink, 0.45)
+		parkSlotLabel.TextTransparency = 0
+	else
+		parkSlotLabel.Text = if selected then "빈 칸" else "칸 선택"
+		parkSlotLabel.TextColor3 = Theme.Ink
+		parkSlotLabel.TextTransparency = 0.45
+	end
+	parkRemove.SetColor(if selectedLandmark then "Coral" else "Gray")
+
+	-- 가진 명소 목록 (희귀한 순서)
+	local scroller = views.Park.Scroller
+	local count = 0
+	for _, landmark in Landmarks.RarestFirst do
+		local have = owned(state, landmark.Id) > 0
+		local entry = parkCards[landmark.Id]
+		if have then
+			count += 1
+			if not entry then
+				entry = parkCard(scroller, landmark)
+				parkCards[landmark.Id] = entry
+			end
+			local card = entry :: ParkCard
+			local slot = where[landmark.Id]
+			card.Card.LayoutOrder = count
+			card.Card.BackgroundColor3 = if slot and slot == selected then FEATURED_BG else Theme.Paper
+			card.Stars.Text = Ui.starsRich(PlayerState.stars(owned(state, landmark.Id)), #Config.STAR_THRESHOLDS)
+			card.Slot.Root.Visible = slot ~= nil
+			card.Slot.Label.Text = if slot then "#" .. slot else ""
+		elseif entry then
+			entry.Card:Destroy()
+			parkCards[landmark.Id] = nil
+		end
+	end
+	setCanvasHeight(scroller, math.max(0, count * (PARK_ROW + PARK_ROW_GAP) - PARK_ROW_GAP))
+end
+
+-- 공원 배치 창이 열려 있으면 다시 그림
+local function refreshPark()
+	if openName == "Park" and lastState then
+		renderPark(lastState)
+	end
+end
+
+-- 칸 누름: 고르기(다시 누르면 해제). 잠긴 칸은 알림만
+function selectParkSlot(slot: number)
+	local state = parkState()
+	if not state then
+		return
+	end
+	local _, unlocked = PlayerState.parkSlots(state)
+	if slot > unlocked then
+		handlers.Toast("잠긴 칸", "lock")
+		return
+	end
+	parkSelected = if parkSelected == slot then nil else slot
+	refreshPark()
+end
+
+-- 명소 누름: 고른 칸(없으면 첫 빈 칸)에 놓음. 놓은 칸이 골라진 채로 남음
+function placeInPark(id: string)
+	local state = parkState()
+	if not state then
+		return
+	end
+	local slots, unlocked = PlayerState.parkSlots(state)
+	local target = parkSelected
+	if not target then
+		for slot = 1, unlocked do
+			if not slots[slot] then
+				target = slot
+				break
+			end
+		end
+	end
+	if not target then
+		handlers.Toast("칸 선택", "park") -- 빈 칸이 없으면 바꿀 칸을 먼저 골라야 함
+		return
+	end
+	local slot = target :: number
+	parkSelected = slot
+	if slots[slot] ~= id and previewPark(function(copy)
+		return (PlayerState.setDisplay(copy, slot, id))
+	end) then
+		handlers.SetDisplay(slot, id)
+	end
+	refreshPark()
+end
+
+-- 빼기: 고른 칸을 비움
+function removeFromPark()
+	local state = parkState()
+	local slot = parkSelected
+	if not state or not slot then
+		return
+	end
+	local slots = PlayerState.parkSlots(state)
+	if slots[slot] and previewPark(function(copy)
+		return (PlayerState.setDisplay(copy, slot, nil))
+	end) then
+		handlers.SetDisplay(slot, nil)
+		refreshPark()
+	end
+end
+
+-- 자동 배치 켜기/끄기. 끄면 지금 배치 그대로(화면 안 바뀜). 켜서 직접 고른 배치가 바뀌면 3초 안에 한 번 더 눌러야 함
+function toggleAutoPark()
+	local state = parkState()
+	if not state then
+		return
+	end
+	local on = state.Settings.AutoPark ~= false
+	if not on and os.clock() >= parkConfirmUntil and autoWouldChange(state) then
+		parkConfirmUntil = os.clock() + CONFIRM_SECONDS
+		parkConfirmToken += 1
+		local token = parkConfirmToken
+		paintParkAuto(state)
+		task.delay(CONFIRM_SECONDS, function()
+			if token == parkConfirmToken then
+				refreshPark()
+			end
+		end)
+		return
+	end
+	parkConfirmUntil = 0
+	parkConfirmToken += 1
+	local want = not on
+	if previewPark(function(copy)
+		PlayerState.setAutoPark(copy, want)
+		return true
+	end) then
+		handlers.SetAutoPark(want)
+	end
+	refreshPark()
+end
+
 -- 공통 -----------------------------------------------------------------------
 
 local BUILDERS = {
@@ -1524,6 +2121,7 @@ local BUILDERS = {
 	Upgrade = buildUpgrade,
 	Rebirth = buildRebirth,
 	Shop = buildShop,
+	Park = buildPark,
 }
 
 local RENDERERS = {
@@ -1532,6 +2130,7 @@ local RENDERERS = {
 	Upgrade = renderUpgrade,
 	Rebirth = renderRebirth,
 	Shop = renderShop,
+	Park = renderPark,
 }
 
 local function showView(built: View, visible: boolean)
@@ -1633,6 +2232,29 @@ function Panels.close()
 	window.Visible = false
 	confirmUntil = 0 -- 닫으면 환생 "확인?" 도 취소
 	confirmToken += 1
+	parkSelected = nil -- 공원 배치: 고른 칸 · 자동 배치 "확인?" 취소
+	parkConfirmUntil = 0
+	parkConfirmToken += 1
+end
+
+-- 공원 배치 창 열기. slot: 공원 받침대를 눌러 열었으면 그 칸을 골라 둠(nil 이면 고른 칸 없음)
+function Panels.openPark(slot: number?)
+	parkSelected = if type(slot) == "number" and slot % 1 == 0 then slot else nil
+	if openName == "Park" then
+		refreshPark()
+	else
+		Panels.toggle("Park")
+	end
+end
+
+-- 배치 요청(SetDisplay / 자동 배치 설정)의 응답을 받은 뒤(성공·실패 모두) 부름.
+-- 기다리는 요청이 더 없으면 미리 보기를 버리고 서버 상태(Panels.render 로 받은 값)로 그림
+function Panels.parkDone()
+	parkPending = math.max(0, parkPending - 1)
+	if parkPending == 0 then
+		parkPreview = nil
+		refreshPark()
+	end
 end
 
 -- 서버 상태가 실제로 바뀌었을 때만 호출됨 (열린 화면만 갱신, 나머지는 열 때 갱신)

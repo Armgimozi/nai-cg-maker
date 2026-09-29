@@ -148,6 +148,7 @@ def parse_config() -> dict:
         "ANNOUNCE_ONE_IN": number("ANNOUNCE_ONE_IN"),
         "DISCOVERY_BONUS_MULT": number("DISCOVERY_BONUS_MULT"),
         "BASE_SLOTS": number("BASE_SLOTS"),
+        "PARK_GRID": number("PARK_GRID"),
         "TIER_INCOME": numbers("TIER_INCOME"),
         "STAR_THRESHOLDS": numbers("STAR_THRESHOLDS"),
         "STAR_INCOME_BONUS": number("STAR_INCOME_BONUS"),

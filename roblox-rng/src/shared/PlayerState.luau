@@ -1,7 +1,7 @@
 --!strict
 -- 플레이어 데이터와 그 데이터를 바꾸는 규칙(순수 함수). 서버가 유일한 진실의 원천이고,
 -- 클라이언트는 Snapshot 만 받아서 화면에 그립니다. Roblox 서비스에 의존하지 않아 테스트 가능.
--- 읽기 전용 함수(luck, park, stars, incomePerSecond 등)는 Data 대신 Snapshot 을 넘겨도 됩니다.
+-- 읽기 전용 함수(luck, park, parkSlots, stars, incomePerSecond 등)는 Data 대신 Snapshot 을 넘겨도 됩니다.
 -- luck / cooldown / incomePerSecond / addIncome / snapshot 은 선택 인자 mods(게임패스·서버 행운)를 받습니다.
 -- mods 가 없으면 게임패스·서버 행운 없이 계산합니다. Snapshot 은 Passes/ServerLuck 필드가 있어서
 -- PlayerState.luck(snapshot, snapshot) 처럼 mods 자리에 그대로 넘겨도 됩니다.
@@ -15,6 +15,7 @@ type Product = Config.Product
 
 export type Settings = {
 	AutoFeature: boolean, -- 더 희귀한 명소를 발견하면 자동으로 대표 명소로 지정
+	AutoPark: boolean, -- true: 공원 전시를 희귀한 순서로 자동 배치 / false: 플레이어가 고른 배치(Data.Display)
 }
 
 -- 세션에만 있는 효과(저장 안 함). 서버가 만들어서 넘김
@@ -44,6 +45,9 @@ export type Data = {
 	Featured: string?, -- 대표 명소(캐릭터 옆에 떠 다님)
 	Upgrades: { [string]: number }, -- 업그레이드 Id -> 레벨
 	Settings: Settings,
+	-- 직접 고른 공원 배치(AutoPark = false 일 때만 씀): 전시 칸 번호 -> 명소 Id, 빈 칸은 "".
+	-- 구멍 없는 배열(DataStore 안전), 길이 ≤ PARK_GRID². 보유하지 않거나 겹치는 Id 는 전시할 때 건너뜀
+	Display: { string },
 	Rebirths: number, -- 환생 횟수
 	Boosts: { [string]: number }, -- 개인 시간 부스트 상품 Id -> 남은 초(접속 중에만 줄어듦)
 	Receipts: { string }, -- 최근에 지급한 구매 영수증 PurchaseId (중복 지급 방지, 최근 MAX_RECEIPTS 개)
@@ -58,6 +62,7 @@ export type Snapshot = {
 	Featured: string?,
 	Upgrades: { [string]: number },
 	Settings: Settings,
+	Display: { string }, -- 직접 고른 공원 배치(복사본). 전시 칸은 PlayerState.parkSlots(snapshot) 로 계산
 	Rebirths: number,
 	Boosts: { [string]: number }, -- 개인 부스트 남은 초
 	Passes: { [string]: boolean }, -- 가진 게임패스
@@ -87,6 +92,9 @@ for _, product in Config.Products do
 	PlayerState.ProductsById[product.Id] = product
 end
 
+-- 공원 전시 칸 최대 수(격자 칸 수) = Data.Display 최대 길이
+PlayerState.MAX_SLOTS = Config.PARK_GRID * Config.PARK_GRID
+
 function PlayerState.new(): Data
 	local upgrades = {}
 	for _, upgrade in Config.Upgrades do
@@ -99,7 +107,8 @@ function PlayerState.new(): Data
 		Discovered = {},
 		Featured = nil,
 		Upgrades = upgrades,
-		Settings = { AutoFeature = true },
+		Settings = { AutoFeature = true, AutoPark = true },
+		Display = {},
 		Rebirths = 0,
 		Boosts = {},
 		Receipts = {},
@@ -122,6 +131,42 @@ local function trimReceipts(receipts: { string })
 	while #receipts > Config.MAX_RECEIPTS do
 		table.remove(receipts, 1)
 	end
+end
+
+-- 배치 끝의 빈 칸("")은 저장할 필요가 없으므로 잘라 냄
+local function trimDisplay(display: { string })
+	while #display > 0 and display[#display] == "" do
+		table.remove(display)
+	end
+end
+
+-- 저장된 배치(형식 보장 없음) -> 구멍 없는 문자열 배열. 문자열이 아니거나 앞 칸과 겹치는 Id 는 빈 칸("").
+-- 모르는 명소 Id 는 보존(보유 명소처럼 명소를 잠시 뺐다가 다시 넣어도 안전, 전시할 때만 건너뜀)
+local function cleanDisplay(raw: any): { string }
+	local display = {}
+	if type(raw) ~= "table" then
+		return display
+	end
+	local seen = {}
+	for slot = 1, PlayerState.MAX_SLOTS do
+		local id = raw[slot]
+		if type(id) == "string" and id ~= "" and not seen[id] then
+			seen[id] = true
+			display[slot] = id
+		else
+			display[slot] = ""
+		end
+	end
+	trimDisplay(display)
+	return display
+end
+
+-- display[slot] = id. 사이에 빈 자리가 생기면 ""로 채워서 구멍 없는 배열을 유지
+local function setEntry(display: { string }, slot: number, id: string)
+	for i = #display + 1, slot - 1 do
+		display[i] = ""
+	end
+	display[slot] = id
 end
 
 -- DataStore 에서 읽은 값(형식 보장 없음)을 안전한 Data 로 정리합니다.
@@ -170,9 +215,16 @@ function PlayerState.reconcile(raw: any): Data
 		end
 	end
 
-	if type(raw.Settings) == "table" and type(raw.Settings.AutoFeature) == "boolean" then
-		data.Settings.AutoFeature = raw.Settings.AutoFeature
+	if type(raw.Settings) == "table" then
+		if type(raw.Settings.AutoFeature) == "boolean" then
+			data.Settings.AutoFeature = raw.Settings.AutoFeature
+		end
+		-- 예전 저장에는 없음 -> 기본값(자동 배치) = 예전과 같은 공원
+		if type(raw.Settings.AutoPark) == "boolean" then
+			data.Settings.AutoPark = raw.Settings.AutoPark
+		end
 	end
+	data.Display = cleanDisplay(raw.Display)
 
 	if type(raw.Boosts) == "table" then
 		for _, product in Config.Products do
@@ -210,6 +262,9 @@ function PlayerState.upgradePrice(upgradeId: string, level: number): number?
 	return math.floor(upgrade.BasePrice * upgrade.Growth ^ level)
 end
 
+-- 직접 배치 중 공원 확장으로 새로 열린 칸 채우기 (아래 "관광 공원" 에서 정의)
+local fillSlots: (data: Data, from: number, to: number) -> ()
+
 -- 반환: 성공 여부, 실패 사유(표시용)
 function PlayerState.buyUpgrade(data: Data, upgradeId: any): (boolean, string?)
 	local upgrade = if type(upgradeId) == "string" then PlayerState.UpgradesById[upgradeId] else nil
@@ -224,8 +279,12 @@ function PlayerState.buyUpgrade(data: Data, upgradeId: any): (boolean, string?)
 	if data.Coins < price then
 		return false, "코인이 부족합니다"
 	end
+	local slotsBefore = PlayerState.slots(data)
 	data.Coins -= price
 	data.Upgrades[upgrade.Id] = level + 1
+	if upgrade.Id == "Park" then
+		fillSlots(data, slotsBefore + 1, PlayerState.slots(data))
+	end
 	return true, nil
 end
 
@@ -378,19 +437,200 @@ function PlayerState.stars(count: number): number
 	return stars
 end
 
--- 공원에 전시되는 명소 Id 목록: 이번 판에 가진 것 중 희귀한 순서로 전시 칸 수만큼
-function PlayerState.park(data: Data | Snapshot): { string }
-	local result = {}
-	local slots = PlayerState.slots(data)
-	for _, landmark in Landmarks.RarestFirst do
-		if #result >= slots then
-			break
+-- 전시 칸 번호 -> 격자 자리. 칸 번호는 입구 쪽 줄부터, 한 줄 안에서는 가운데에 가까운 칸부터
+-- (입구에서 공원 안쪽을 볼 때 가운데 오른쪽 → 가운데 왼쪽 → 그 바깥 오른쪽 → …)라서 자동 배치에서는
+-- 가장 희귀한 명소가 입구 정면에 옴. 월드 받침대(ParkService)와 공원 배치 창(Panels)이 같은 표를 씀.
+local SLOT_CELLS: { { number } } = {}
+do
+	local grid = Config.PARK_GRID
+	local middle = (grid + 1) / 2
+	-- 부지 좌표 열 c(1..grid, x = (c - middle) 칸). 가운데에 가까운 열부터, 같으면 x 가 작은 열부터
+	local columns = {}
+	for c = 1, grid do
+		table.insert(columns, c)
+	end
+	table.sort(columns, function(a: number, b: number): boolean
+		local da, db = math.abs(a - middle), math.abs(b - middle)
+		if da ~= db then
+			return da < db
 		end
-		if (data.Inventory[landmark.Id] or 0) > 0 then
-			table.insert(result, landmark.Id)
+		return a < b
+	end)
+	for row = 1, grid do
+		for _, c in columns do
+			-- 입구에서 공원 안쪽(부지 +Z)을 보면 오른쪽이 -X 라서, 보이는 대로의 열 번호는 좌우가 뒤집힘
+			table.insert(SLOT_CELLS, { row, grid + 1 - c })
+		end
+	end
+end
+
+-- 반환: row(1 = 입구 쪽 줄 … PARK_GRID = 맨 안쪽 줄), column(1 = 입구에서 공원 안쪽을 볼 때 왼쪽 끝)
+function PlayerState.slotCell(slot: number): (number, number)
+	local cell = SLOT_CELLS[slot]
+	return cell[1], cell[2]
+end
+
+-- 열린 전시 칸 수(격자 칸 수까지)
+local function unlockedSlots(data: Data | Snapshot): number
+	return math.clamp(PlayerState.slots(data), 0, PlayerState.MAX_SLOTS)
+end
+
+local function autoParkOn(data: Data | Snapshot): boolean
+	return data.Settings.AutoPark ~= false -- 설정이 없던 예전 데이터/스냅샷은 자동 배치
+end
+
+-- 전시 칸마다 전시되는 명소. 반환: 칸 번호 -> 명소 Id(빈 칸은 nil), 열린 칸 수.
+-- 자동 배치: 이번 판에 가진 명소를 희귀한 순서로 1번 칸부터.
+-- 직접 배치: Display 에서 열린 칸만, 보유한 명소만, 같은 명소는 앞 칸 하나만.
+function PlayerState.parkSlots(data: Data | Snapshot): ({ [number]: string }, number)
+	local unlocked = unlockedSlots(data)
+	local result: { [number]: string } = {}
+	if autoParkOn(data) then
+		local slot = 0
+		for _, landmark in Landmarks.RarestFirst do
+			if slot >= unlocked then
+				break
+			end
+			if (data.Inventory[landmark.Id] or 0) > 0 then
+				slot += 1
+				result[slot] = landmark.Id
+			end
+		end
+	else
+		local display = data.Display or {}
+		local seen = {}
+		for slot = 1, unlocked do
+			local id = display[slot]
+			if type(id) == "string" and not seen[id] and Landmarks.ById[id] and (data.Inventory[id] or 0) > 0 then
+				seen[id] = true
+				result[slot] = id
+			end
+		end
+	end
+	return result, unlocked
+end
+
+-- 공원에 전시되는 명소 Id 목록(칸 번호 순서). 자동 배치면 희귀한 순서로 전시 칸 수만큼
+function PlayerState.park(data: Data | Snapshot): { string }
+	local slots, unlocked = PlayerState.parkSlots(data)
+	local result = {}
+	for slot = 1, unlocked do
+		local id = slots[slot]
+		if id then
+			table.insert(result, id)
 		end
 	end
 	return result
+end
+
+-- 지금 보이는 전시 그대로 Display 에 옮겨 적음: 자동 배치를 끌 때 시작 배치,
+-- 직접 배치 편집 전 정리(보유하지 않거나 겹치거나 잠긴 칸의 Id 는 빠짐)
+local function freezeDisplay(data: Data)
+	local slots, unlocked = PlayerState.parkSlots(data)
+	local display = {}
+	for slot = 1, unlocked do
+		display[slot] = slots[slot] or ""
+	end
+	trimDisplay(display)
+	data.Display = display
+end
+
+-- 칸 하나에 명소를 놓거나(landmarkId) 비움(nil). 이미 다른 칸에 있는 명소면 그 칸과 자리를 바꿈
+-- (그 칸에는 이 칸에 있던 명소가 가거나 빈 칸이 됨). 자동 배치 중이면 지금 자동 배치에서 시작하고 자동 배치를 끔.
+-- slot: 1..열린 칸 수 정수, landmarkId: 보유한 명소 Id 또는 nil. 반환: 성공 여부, 실패 사유(표시용)
+function PlayerState.setDisplay(data: Data, slot: any, landmarkId: any): (boolean, string?)
+	if type(slot) ~= "number" or slot ~= slot or slot % 1 ~= 0 or slot < 1 or slot > PlayerState.MAX_SLOTS then
+		return false, "잘못된 칸입니다"
+	end
+	if slot > unlockedSlots(data) then
+		return false, "잠긴 칸입니다"
+	end
+	if landmarkId ~= nil then
+		local known = type(landmarkId) == "string" and Landmarks.ById[landmarkId] ~= nil
+		if not known or (data.Inventory[landmarkId] or 0) <= 0 then
+			return false, "보유하지 않은 명소입니다"
+		end
+	end
+	freezeDisplay(data)
+	data.Settings.AutoPark = false
+	local display = data.Display
+	local id: string = landmarkId or ""
+	if id ~= "" then
+		local from = table.find(display, id)
+		if from and from ~= slot then
+			display[from] = display[slot] or ""
+		end
+	end
+	setEntry(display, slot, id)
+	trimDisplay(display)
+	return true, nil
+end
+
+-- 자동 배치 켜기/끄기. 켜면 희귀한 순서로 다시 채움(직접 배치는 지움),
+-- 끄면 지금 자동 배치 그대로에서 시작(화면은 안 바뀜)
+function PlayerState.setAutoPark(data: Data, on: boolean)
+	if on then
+		data.Settings.AutoPark = true
+		table.clear(data.Display)
+	elseif autoParkOn(data) then
+		freezeDisplay(data)
+		data.Settings.AutoPark = false
+	end
+end
+
+-- 자동 배치로 되돌림(가장 희귀한 명소들로 다시 채움)
+function PlayerState.autoPark(data: Data)
+	PlayerState.setAutoPark(data, true)
+end
+
+-- 직접 배치 중 이번 판에 처음 얻은 명소: 첫 빈 칸(칸 번호 순서)에 전시. 빈 칸이 없으면 전시 안 함
+local function placeNew(data: Data, id: string)
+	if autoParkOn(data) then
+		return
+	end
+	local slots, unlocked = PlayerState.parkSlots(data)
+	local empty: number? = nil
+	for slot = 1, unlocked do
+		local shown = slots[slot]
+		if shown == id then
+			return -- 이미 전시 중
+		elseif not shown and not empty then
+			empty = slot
+		end
+	end
+	if empty then
+		setEntry(data.Display, empty, id)
+	end
+end
+
+-- 직접 배치 중 새로 열린 칸(from..to 중 빈 칸)을 아직 전시하지 않은 보유 명소로 희귀한 순서대로 채움
+function fillSlots(data: Data, from: number, to: number)
+	if autoParkOn(data) then
+		return
+	end
+	local slots, unlocked = PlayerState.parkSlots(data)
+	local shown = {}
+	for slot = 1, unlocked do
+		local id = slots[slot]
+		if id then
+			shown[id] = true
+		end
+	end
+	local rarest = Landmarks.RarestFirst
+	local index = 1
+	for slot = math.max(1, from), math.min(to, unlocked) do
+		if not slots[slot] then
+			while index <= #rarest do
+				local landmark = rarest[index]
+				index += 1
+				if not shown[landmark.Id] and (data.Inventory[landmark.Id] or 0) > 0 then
+					shown[landmark.Id] = true
+					setEntry(data.Display, slot, landmark.Id)
+					break
+				end
+			end
+		end
+	end
 end
 
 -- 명소 1개의 초당 수입 (입장료 업그레이드 제외)
@@ -434,6 +674,7 @@ end
 
 -- 굴림 결과 반영. 반환: 보너스 코인, 역대 처음 발견인지(보너스는 이때만), 별이 올랐는지
 -- (환생 뒤 예전에 발견했던 명소를 다시 얻으면 처음 발견도 별 상승도 아님)
+-- 직접 배치 중 이번 판에 처음 얻은 명소는 첫 빈 전시 칸에 놓임(빈 칸이 없으면 안 놓임)
 function PlayerState.applyRoll(data: Data, landmark: Landmark): (number, boolean, boolean)
 	local before = data.Inventory[landmark.Id] or 0
 	local after = before + 1
@@ -441,6 +682,9 @@ function PlayerState.applyRoll(data: Data, landmark: Landmark): (number, boolean
 	data.Inventory[landmark.Id] = after
 	data.Discovered[landmark.Id] = true
 	data.Rolls += 1
+	if before == 0 then
+		placeNew(data, landmark.Id)
+	end
 	local bonus = if isNew then PlayerState.discoveryBonus(landmark) else 0
 	data.Coins += bonus
 	local starUp = before > 0 and PlayerState.stars(after) > PlayerState.stars(before)
@@ -474,6 +718,9 @@ function PlayerState.setSetting(data: Data, key: any, value: any): boolean
 	if key == "AutoFeature" and type(value) == "boolean" then
 		data.Settings.AutoFeature = value
 		return true
+	elseif key == "AutoPark" and type(value) == "boolean" then
+		PlayerState.setAutoPark(data, value)
+		return true
 	end
 	return false
 end
@@ -505,8 +752,8 @@ function PlayerState.canRebirth(data: Data | Snapshot): (boolean, { string }, nu
 	return #missing == 0 and coinsShort == 0, missing, coinsShort
 end
 
--- 환생: 코인·업그레이드·보유 명소·대표 명소 초기화, 환생 수 +1.
--- 유지: 발견 기록(Discovered = 도감·여권 도장), 설정, 굴림 수, 부스트, 영수증.
+-- 환생: 코인·업그레이드·보유 명소·대표 명소·직접 배치(Display) 초기화, 환생 수 +1.
+-- 유지: 발견 기록(Discovered = 도감·여권 도장), 설정(자동 배치 여부 포함), 굴림 수, 부스트, 영수증.
 -- 반환: 성공 여부, 실패 사유(표시용)
 function PlayerState.rebirth(data: Data): (boolean, string?)
 	local ok, missing = PlayerState.canRebirth(data)
@@ -520,6 +767,7 @@ function PlayerState.rebirth(data: Data): (boolean, string?)
 		data.Discovered[id] = true
 	end
 	table.clear(data.Inventory)
+	table.clear(data.Display)
 	data.Featured = nil
 	data.Coins = 0
 	for _, upgrade in Config.Upgrades do
@@ -588,6 +836,7 @@ function PlayerState.snapshot(data: Data, revision: number, mods: Mods?): Snapsh
 		Featured = data.Featured,
 		Upgrades = table.clone(data.Upgrades),
 		Settings = table.clone(data.Settings),
+		Display = table.clone(data.Display),
 		Rebirths = data.Rebirths,
 		Boosts = table.clone(data.Boosts),
 		Passes = passes,

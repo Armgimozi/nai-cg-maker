@@ -176,13 +176,62 @@
     });
     return n;
   }
-  function park(s) {
-    const result = [];
-    for (const l of RarestFirst) {
-      if (result.length >= slots(s)) break;
-      if ((s.Inventory[l.Id] || 0) > 0) result.push(l.Id);
+  // PlayerState.slotCell: 칸 번호(1..) -> [row(1 = 입구 쪽 줄), column(1 = 입구에서 공원 안쪽을 볼 때 왼쪽 끝)].
+  // 입구 쪽 줄부터, 한 줄 안에서는 가운데에 가까운 칸부터(가운데 오른쪽 -> 가운데 왼쪽 -> …)
+  const GRID = Config.PARK_GRID || 6;
+  const MAX_SLOTS = GRID * GRID;
+  const SLOT_CELLS = (() => {
+    const middle = (GRID + 1) / 2;
+    const columns = Array.from({ length: GRID }, (_, i) => i + 1).sort((a, b) => {
+      const da = Math.abs(a - middle);
+      const db = Math.abs(b - middle);
+      return da !== db ? da - db : a - b;
+    });
+    const cells = [];
+    for (let row = 1; row <= GRID; row++) for (const c of columns) cells.push([row, GRID + 1 - c]);
+    return cells;
+  })();
+  // PlayerState.parkSlots: [칸마다 명소 Id(0번 = 1번 칸, 빈 칸 null), 열린 칸 수]
+  // 자동 배치(Settings.AutoPark 가 false 가 아님) = 희귀한 순서로 1번 칸부터, 직접 배치 = Display(보유·안 겹침·열린 칸만)
+  function parkSlots(s) {
+    const unlocked = Math.max(0, Math.min(slots(s), MAX_SLOTS));
+    const result = new Array(unlocked).fill(null);
+    if (!s.Settings || s.Settings.AutoPark !== false) {
+      let i = 0;
+      for (const l of RarestFirst) {
+        if (i >= unlocked) break;
+        if ((s.Inventory[l.Id] || 0) > 0) result[i++] = l.Id;
+      }
+    } else {
+      const seen = new Set();
+      const display = s.Display || [];
+      for (let i = 0; i < unlocked; i++) {
+        const id = display[i];
+        if (typeof id === 'string' && !seen.has(id) && ById[id] && (s.Inventory[id] || 0) > 0) {
+          seen.add(id);
+          result[i] = id;
+        }
+      }
     }
-    return result;
+    return [result, unlocked];
+  }
+  const park = (s) => parkSlots(s)[0].filter(Boolean);
+  // PlayerState.setDisplay: 칸 하나에 명소 놓기(이미 다른 칸이면 자리 바꿈) / null = 빼기. 자동 배치 중이면 지금 배치에서 시작
+  function setDisplay(s, slot, id) {
+    const [current, unlocked] = parkSlots(s);
+    if (!Number.isInteger(slot) || slot < 1 || slot > unlocked) return false;
+    if (id != null && !(ById[id] && (s.Inventory[id] || 0) > 0)) return false;
+    const display = current.map((v) => v || '');
+    if (id) {
+      const from = display.indexOf(id);
+      if (from >= 0 && from !== slot - 1) display[from] = display[slot - 1] || '';
+    }
+    while (display.length < slot) display.push('');
+    display[slot - 1] = id || '';
+    while (display.length && display[display.length - 1] === '') display.pop();
+    s.Display = display;
+    s.Settings = { ...s.Settings, AutoPark: false };
+    return true;
   }
   function landmarkIncome(l, count) {
     const n = stars(count);
@@ -1170,6 +1219,11 @@
     Passport: { Title: '여권', Color: 'Grape', Top: HEADER_HEIGHT },
     Upgrade: { Title: '강화', Color: 'Sun', Top: 4 },
   };
+  // 공원 배치 (Panels.luau PARK_*): 왼쪽 격자(칸 56 · 간격 4 · 잔디 여백 7), 오른쪽 고른 칸 줄 + 명소 목록
+  const PARK = { TILE: 56, GAP: 4, PAD: 7, BAR: 88, ROW: 74, ROW_GAP: 8 };
+  PARK.LAWN = GRID * PARK.TILE + (GRID - 1) * PARK.GAP + PARK.PAD * 2;
+  PARK.SIDE_X = PARK.LAWN + 14;
+  VIEWS.Park = { Title: '배치', Color: 'Grass', Top: HEADER_HEIGHT + PARK.BAR + 8 };
   const WINDOW_SIZE = [760, 500];
   const OPEN_OFFSET = -30;
   const PAD_X = 6;
@@ -1243,6 +1297,8 @@
       textSize: 22,
     });
     chip(auto.face, { name: 'On', color: 'Coral', text: 'ON', height: 22, textSize: 15, anchor: [0.5, 0.5], pos: [1, -8, 0, 2], rot: 12, z: 6, visible: state.Settings.AutoFeature });
+    // 공원 배치 창 열기 (자동 버튼 왼쪽)
+    chunkyButton(header, { name: 'Arrange', anchor: [1, 0], pos: [1, -(8 + 136 + 10), 0, -4], size: [0, 124, 0, 50], color: 'Grass', icon: 'park', iconSize: 36, text: '배치', textSize: 22 });
 
     const inPark = new Set(park(state));
     const canvas = gridHeight(owned.length, COLS, CELL[1], GAP) + PAD_Y * 2;
@@ -1399,16 +1455,96 @@
     }
   }
 
+  // Panels 공원 배치: 명소 목록 한 줄 (사진 · 이름 · 별 · 전시 중이면 [체크 #칸])
+  function parkCard(parent, landmark, count, slot, picked) {
+    const card = gui(parent, { name: landmark.Id, flow: true, size: [1, 0, 0, PARK.ROW], bg: picked ? FEATURED_BG : Theme.Paper, corner: 12, stroke: [Theme.Ink, 3] });
+    photo(card, landmark, [0, 6, 0, 6], [0, PARK.ROW - 12, 0, PARK.ROW - 12], 8, PARK.ROW - 16);
+    label(card, { pos: [0, PARK.ROW + 2, 0, 8], size: [1, -(PARK.ROW + 2 + 92), 0, 30], xAlign: 'left', text: landmark.Name }, 21);
+    label(card, { pos: [0, PARK.ROW + 2, 0, 40], size: [0, 130, 0, 24], xAlign: 'left', rich: starsRich(stars(count), Config.STAR_THRESHOLDS.length), outline: 2 }, 20);
+    chip(card, { name: 'Shown', color: 'Grass', icon: 'check', iconSize: 34, height: 30, textSize: 18, anchor: [1, 0.5], pos: [1, -10, 0.5, 0], z: 3, text: slot ? '#' + slot : '', visible: !!slot });
+  }
+
+  // Panels 공원 배치: 격자(아래 = 입구) + 고른 칸 줄 + 가진 명소 목록. opts.selected = 고른 칸, opts.confirmAuto = 자동 "확인?"
+  function buildPark(body, bodyHeight, state, opts) {
+    const selected = opts.selected || null;
+    const [slotIds, unlocked] = parkSlots(state);
+    const header = gui(body, { name: 'ParkHeader', size: [1, 0, 0, HEADER_HEIGHT] });
+    const chips = chipRow(header);
+    headerChip(chips, 'park', Theme.Ink, `${slotIds.filter(Boolean).length}/${unlocked}`);
+    headerChip(chips, 'coin', 'Grass', '+' + incomeText(incomePerSecond(state)) + '/s');
+    const on = state.Settings.AutoPark !== false;
+    const confirming = !on && !!opts.confirmAuto;
+    const auto = chunkyButton(header, { name: 'AutoPark', anchor: [1, 0], pos: [1, -8, 0, -4], size: [0, 136, 0, 50], color: on ? 'Grass' : confirming ? 'Sun' : 'Gray', icon: 'auto', iconSize: 36, text: confirming ? '확인?' : '자동', textSize: 22 });
+    chip(auto.face, { name: 'On', color: 'Coral', text: 'ON', height: 22, textSize: 15, anchor: [0.5, 0.5], pos: [1, -8, 0, 2], rot: 12, z: 6, visible: on });
+
+    // 잔디 + 6×6 칸 (칸 자리 = PlayerState.slotCell)
+    const lawn = gui(body, { name: 'Lawn', pos: [0, 0, 0, HEADER_HEIGHT], size: [0, PARK.LAWN, 0, PARK.LAWN], bg: lerp(COLORS.Grass.Face, WHITE, 0.6), corner: 14, stroke: [Theme.Ink, 3] });
+    const step = PARK.TILE + PARK.GAP;
+    for (let slot = 1; slot <= MAX_SLOTS; slot++) {
+      const [row, column] = SLOT_CELLS[slot - 1];
+      const id = slot <= unlocked ? slotIds[slot - 1] : null;
+      const landmark = id ? ById[id] : null;
+      const locked = slot > unlocked;
+      const picked = slot === selected;
+      const tile = gui(lawn, {
+        name: 'Slot' + slot,
+        pos: [0, PARK.PAD + (column - 1) * step, 0, PARK.PAD + (GRID - row) * step],
+        size: [0, PARK.TILE, 0, PARK.TILE],
+        bg: landmark ? lerp(landmark.Tier.Color, WHITE, 0.55) : locked ? DIM_CHIP : Theme.Cream,
+        bgT: locked ? 0.35 : 0,
+        corner: 10,
+        stroke: picked ? [COLORS.Sun.Face, 5] : [Theme.Ink, 2.5],
+        z: picked ? 2 : 1,
+      });
+      tile.dataset.slot = String(slot);
+      if (landmark) placeholder3d(gui(tile, { name: 'Thumb', pos: [0, 2, 0, 2], size: [1, -4, 1, -4], z: 2 }), landmark, PARK.TILE - 4);
+      else if (!locked) label(tile, { name: 'Plus', size: [1, 0, 1, 0], font: 'title', text: '+', textT: 0.5, z: 2 }, 34);
+      else iconView(tile, 'lock', { anchor: [0.5, 0.5], pos: [0.5, 0, 0.5, 0], size: [0.62, 0, 0.62, 0], transparency: 0.25, z: 3 });
+    }
+    chip(lawn, { name: 'Entrance', color: Theme.Ink, icon: 'arrow_up', iconSize: 30, text: '입구', height: 26, textSize: 16, anchor: [0.5, 0.5], pos: [0.5, 0, 1, 2], z: 4 });
+
+    // 고른 칸 줄: [공원 #칸] 이름 [빼기]
+    const bar = gui(body, { name: 'Selected', pos: [0, PARK.SIDE_X, 0, HEADER_HEIGHT], size: [1, -PARK.SIDE_X, 0, PARK.BAR], bg: Theme.Paper, corner: 12, stroke: [Theme.Ink, 3] });
+    const pickedId = selected ? slotIds[selected - 1] : null;
+    const pickedLandmark = pickedId ? ById[pickedId] : null;
+    if (selected) chip(bar, { name: 'Slot', color: Theme.Ink, icon: 'park', iconSize: 36, height: 30, textSize: 19, anchor: [0, 0.5], pos: [0, 10, 0.5, 0], text: '#' + selected });
+    const nameX = selected ? 104 : 16;
+    label(
+      bar,
+      {
+        name: 'Name',
+        pos: [0, nameX, 0, 8],
+        size: [1, -(nameX + 132), 1, -16],
+        xAlign: 'left',
+        text: pickedLandmark ? pickedLandmark.Name : selected ? '빈 칸' : '칸 선택',
+        color: pickedLandmark ? lerp(pickedLandmark.Tier.Color, Theme.Ink, 0.45) : Theme.Ink,
+        textT: pickedLandmark ? 0 : 0.45,
+      },
+      22
+    );
+    chunkyButton(bar, { name: 'Remove', anchor: [1, 0.5], pos: [1, -8, 0.5, 0], size: [0, 116, 0, 79], color: pickedLandmark ? 'Coral' : 'Gray', text: '빼기', textSize: 28 });
+
+    // 가진 명소 목록(희귀한 순서) — 오른쪽 칸만 스크롤
+    const owned = RarestFirst.filter((l) => (state.Inventory[l.Id] || 0) > 0);
+    const where = {};
+    slotIds.forEach((id, i) => id && (where[id] = i + 1));
+    const side = gui(body, { name: 'ParkSide', pos: [0, PARK.SIDE_X, 0, 0], size: [1, -PARK.SIDE_X, 1, 0] });
+    const canvas = Math.max(0, owned.length * (PARK.ROW + PARK.ROW_GAP) - PARK.ROW_GAP) + PAD_Y * 2;
+    const content = scroller(side, VIEWS.Park.Top, canvas, opts.scrollY || 0, bodyHeight);
+    list(content, 'v', PARK.ROW_GAP, 'center', 'top');
+    for (const l of owned) parkCard(content, l, state.Inventory[l.Id], where[l.Id], !!selected && where[l.Id] === selected);
+  }
+
   function buildPanel(screenGui, name, state, opts = {}) {
-    const view = VIEWS[name];
+    const spec = VIEWS[name]; // (지역 이름을 view 로 두면 화면 배율 view.scale 을 가려서 창이 배율 없이 그려짐)
     const height = opts.windowHeight || WINDOW_SIZE[1];
     const win = uiWindow(screenGui, {
       name: 'Window',
       anchor: opts.anchor || [0.5, 0.5],
       pos: opts.pos || [0.5, 0, 0.5, OPEN_OFFSET],
       size: [0, WINDOW_SIZE[0], 0, height],
-      color: view.Color,
-      title: view.Title,
+      color: spec.Color,
+      title: spec.Title,
       ribbonWidth: 220,
       z: 5,
       uiScale: view.scale,
@@ -1417,6 +1553,7 @@
     const bodyHeight = height - (top + 16);
     if (name === 'Collection') buildCollection(win.body, bodyHeight, state, opts.scrollY || 0);
     else if (name === 'Passport') buildPassport(win.body, bodyHeight, state, opts.scrollY || 0);
+    else if (name === 'Park') buildPark(win.body, bodyHeight, state, opts);
     else buildUpgrade(win.body, bodyHeight, state);
     return win;
   }
@@ -1557,6 +1694,14 @@
     return withDerived({ ...s, Inventory: inventory, Featured: s.Featured === landmarkId ? null : s.Featured });
   }
 
+  // 6번 공원 배치: 자동 배치에서 시작해 하버브리지(★5 일반 명소)를 1번 칸(입구 정면)에, 5번 칸은 빼 둔 직접 배치
+  const PARK_STATE = withDerived({ ...STATE, Settings: { ...STATE.Settings, AutoPark: true }, Display: [] });
+  const AUTO_FRONT = parkSlots(STATE)[0][0];
+  setDisplay(PARK_STATE, 1, 'harbourbridge');
+  setDisplay(PARK_STATE, 5, null);
+  withDerived(PARK_STATE);
+  const PARK_SELECTED = 3;
+
   // 2번: 타지마할을 처음 발견 / 2-2번: 에펠탑을 또 찾아 별이 오름 (9번째 -> 10번째 = ★3)
   const NEW_FIND = 'tajmahal';
   const STAR_FIND = 'eiffel';
@@ -1687,7 +1832,7 @@
       title: '도감',
       note:
         '가진 명소를 희귀한 순서로(위 띠 = 등급 색 + 확률). 왼쪽 위 빨간 "대표" 도장, 사진 왼쪽 아래 초록 칩 = 공원에 전시 중, 오른쪽 위 ×N = 발견 횟수, 아래 별(★1~5). ' +
-        '머리 줄: 발견 수 / 전체, 오른쪽 "자동"(더 희귀한 명소를 찾으면 자동으로 대표 지정, 켜짐 = 초록 + ON).',
+        '머리 줄: 발견 수 / 전체, 오른쪽 "자동"(더 희귀한 명소를 찾으면 자동으로 대표 지정, 켜짐 = 초록 + ON), 그 왼쪽 초록 "배치" = 공원 배치 창(6번) 열기.',
       build(root) {
         const screenGui = newScreen(root, this.id);
         buildHud(screenGui, STATE, { auto: false });
@@ -1720,6 +1865,36 @@
         const screenHeight = Math.ceil(windowHeight * uiScaleFor(1280, 720) + 70);
         const screenGui = newScreen(root, this.id, { height: screenHeight, world: false, topbar: false, background: '#7fa9c2' });
         buildPanel(screenGui, 'Passport', STATE, { anchor: [0.5, 0], pos: [0.5, 0, 0, 40], windowHeight, scrollY: 0 });
+      },
+    },
+    {
+      id: 'screen6',
+      title: '공원 배치',
+      note:
+        `공원을 위에서 본 ${GRID}×${GRID} 격자(아래 = 입구, 칸 번호는 월드 받침대와 같음 — 1번 = 입구 줄 가운데 오른쪽). ` +
+        `공원 확장 Lv ${STATE.Upgrades.Park} 이라 ${slots(STATE)}칸이 열렸고 나머지는 회색 + 자물쇠. ` +
+        `자동 배치(희귀한 순서, 1번 칸 = ${ById[AUTO_FRONT] ? ById[AUTO_FRONT].Name : ''})에서 하버브리지를 1번 칸에 놓고 5번 칸을 뺀 직접 배치 — ` +
+        '그래서 머리 줄 "자동"이 꺼짐(회색). 3번 칸을 고른 상태(굵은 노란 테두리): 오른쪽 줄에 [#3] 이름 + 빨간 [빼기], 목록에서 그 명소 카드가 노랗게. ' +
+        '목록(가진 명소, 희귀한 순서)의 초록 [체크 #칸] = 전시 중인 칸. 칸을 누르면 고르고, 명소를 누르면 고른 칸(없으면 첫 빈 칸)에 놓임(다른 칸에 있으면 자리 바꿈). ' +
+        '머리 줄: 전시 수 / 열린 칸 · 이 배치의 초당 수입 · 자동(다시 켜서 배치가 바뀌면 "확인?" 한 번 더). 여는 곳: 도감 "배치" 버튼, 내 공원 받침대 클릭(그 칸이 골라진 채로).',
+      build(root) {
+        const screenGui = newScreen(root, this.id);
+        buildHud(screenGui, PARK_STATE, { auto: false, location: 'Park' });
+        buildPanel(screenGui, 'Park', PARK_STATE, { selected: PARK_SELECTED });
+      },
+    },
+    {
+      id: 'screen6p',
+      title: '공원 배치 — 휴대폰 667×375',
+      extra: '6-2',
+      note:
+        `같은 창을 휴대폰 가로 667×375(자동 배율 ${uiScaleFor(667, 375).toFixed(2)})에서. 격자 칸 ${PARK.TILE} → ${Math.round(PARK.TILE * uiScaleFor(667, 375))}px ` +
+        `(6줄이 창 안에 들어가야 해서 더 못 키움), 명소 줄 ${PARK.ROW} → ${Math.round(PARK.ROW * uiScaleFor(667, 375))}px, ` +
+        `[빼기] 앞면 ${79 - 6} → ${Math.round((79 - 6) * uiScaleFor(667, 375))}px. 자동 배치 켜진 모습(초록 + ON, 고른 칸 없음 = "칸 선택").`,
+      build(root) {
+        const screenGui = newScreen(root, this.id, { width: 667, height: 375, touch: true });
+        buildHud(screenGui, STATE, { auto: false, location: 'Park' });
+        buildPanel(screenGui, 'Park', STATE, {});
       },
     },
     {
@@ -2036,6 +2211,47 @@
     const maxSteps = Array.from(document.querySelectorAll('#screen5 [data-name="Step"]')).filter((el) => el.textContent.includes('MAX'));
     const arrows = maxSteps.filter((el) => el.querySelector('.icon'));
     items.push(`<b>강화 MAX 칸</b> ${verdict(!arrows.length)}: 최대 레벨 줄 ${maxSteps.length}개, 위 화살표가 남은 것 ${arrows.length}개(Ui.showChipIcon).`);
+
+    // 7) 공원 배치 창: 칸 자리 = slotCell(1번 = 입구 줄 가운데 오른쪽), 격자·입구 딱지가 본문 안, 오른쪽 칸과 안 겹침, 휴대폰 누르는 크기
+    {
+      const parts = [];
+      let good = true;
+      for (const id of ['screen6', 'screen6p']) {
+        const scr = document.getElementById(id);
+        const body = scr && scr.querySelector('[data-name="Body"]');
+        const lawn = body && body.querySelector('[data-name="Lawn"]');
+        if (!lawn) {
+          parts.push(`${id}: 못 찾음`);
+          good = false;
+          continue;
+        }
+        const b = rectIn(body, scr);
+        const l = rectIn(lawn, scr);
+        const entrance = rectIn(lawn.querySelector('[data-name="Entrance"]'), scr);
+        const bar = rectIn(body.querySelector('[data-name="Selected"]'), scr);
+        const tiles = Array.from(lawn.querySelectorAll('[data-slot]'));
+        const first = rectIn(tiles.find((t) => t.dataset.slot === '1'), scr);
+        const second = rectIn(tiles.find((t) => t.dataset.slot === '2'), scr);
+        const bottomRow = Math.max(...tiles.map((t) => rectIn(t, scr).bottom));
+        const orderOk = Math.abs(first.bottom - bottomRow) < 0.5 && second.right <= first.left + 0.5 && Math.abs((first.left + second.right) / 2 - (l.left + l.right) / 2) < 3;
+        const inside = entrance.bottom <= b.bottom + 0.5 && l.bottom <= b.bottom + 0.5;
+        const apart = !overlap(l, bar);
+        const tile = first.right - first.left;
+        const card = body.querySelector('[data-name="ParkSide"] [data-name="Content"] > .g');
+        const row = card ? rectIn(card, scr) : { top: 0, bottom: 0 };
+        const remove = rectIn(body.querySelector('[data-name="Remove"] [data-name="Face"]'), scr);
+        const ok = orderOk && inside && apart;
+        good = good && ok;
+        parts.push(
+          `${scr.offsetWidth}×${scr.offsetHeight} ${verdict(ok)} 칸 ${tile.toFixed(0)}px · 명소 줄 ${(row.bottom - row.top).toFixed(0)}px · [빼기] ${(remove.bottom - remove.top).toFixed(0)}px` +
+            (orderOk ? '' : ' (칸 자리 틀림)') + (inside ? '' : ' (창 밖으로 나감)') + (apart ? '' : ' (격자-오른쪽 겹침)')
+        );
+      }
+      items.push(
+        `<b>공원 배치 창</b> ${verdict(good)}: 1번 칸 = 맨 아래(입구) 줄 가운데 오른쪽, 2번 = 그 왼쪽(PlayerState.slotCell = 월드 받침대), 격자·입구 딱지가 창 본문 안, 격자와 오른쪽 줄이 안 겹침. ` +
+          `누르는 크기(화면 px) — ${parts.join(' / ')}. 명소 줄·[빼기]는 배율 0.55 에서도 40px 이상, 격자 칸은 6줄이 창에 들어가야 해서 그보다 작음.`
+      );
+    }
 
     const section = document.getElementById('findings');
     if (section) {
