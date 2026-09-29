@@ -1256,11 +1256,46 @@
     Upgrades: { Globe: 4, Agency: 10, Park: 2, Ticket: 4 },
     Settings: { AutoFeature: true },
   };
-  STATE.Luck = luck(STATE);
-  STATE.Income = incomePerSecond(STATE);
+  function withDerived(s) {
+    s.Luck = luck(s);
+    s.Income = incomePerSecond(s);
+    return s;
+  }
+  withDerived(STATE);
 
-  const REVEAL = { landmark: 'tajmahal', IsNew: true, StarUp: true, Stars: 2, burstRotation: 8 };
-  const NEWS = [{ Name: 'YLTH', LandmarkId: 'eiffel', Rolls: 57 }];
+  // 굴림 결과(RollResponse)를 PlayerState.applyRoll 과 같은 규칙으로 만듦 -> 게임에서 실제로 나올 수 있는 조합만.
+  // 처음 발견 = NEW + 발견 보너스(★UP 없음), 이미 가진 명소를 또 찾아 별이 오르면 = ★N UP 만(보너스 없음).
+  // (환생 전 상태라 Discovered = 보유 기록과 같음)
+  function rollResult(s, landmarkId) {
+    const before = s.Inventory[landmarkId] || 0;
+    const after = before + 1;
+    const isNew = before === 0;
+    return {
+      IsNew: isNew,
+      StarUp: before > 0 && stars(after) > stars(before),
+      Stars: stars(after),
+      Bonus: isNew ? discoveryBonus(ById[landmarkId]) : 0,
+    };
+  }
+  // 연출 중 HUD 는 굴리기 "전" 숫자 (init.client: 연출이 끝난 뒤에 applyState)
+  function stateWithout(s, landmarkId) {
+    const inventory = { ...s.Inventory };
+    delete inventory[landmarkId];
+    return withDerived({ ...s, Inventory: inventory, Featured: s.Featured === landmarkId ? null : s.Featured });
+  }
+
+  // 2번: 타지마할을 처음 발견 / 2-2번: 에펠탑을 또 찾아 별이 오름 (9번째 -> 10번째 = ★3)
+  const NEW_FIND = 'tajmahal';
+  const STAR_FIND = 'eiffel';
+  const STATE_BEFORE_NEW = stateWithout(STATE, NEW_FIND);
+  const REVEAL_NEW = { ...rollResult(STATE_BEFORE_NEW, NEW_FIND), burstRotation: 8 };
+  const REVEAL_STAR = { ...rollResult(STATE, STAR_FIND), burstRotation: 20 };
+
+  // 속보는 서버가 OneIn >= ANNOUNCE_ONE_IN 일 때만 보냄 -> 그 조건을 만족하는 명소로
+  const NEWS_LANDMARK = ['pyramid', ...List.map((l) => l.Id)]
+    .map((id) => ById[id])
+    .find((l) => l && l.OneIn >= Config.ANNOUNCE_ONE_IN);
+  const NEWS = [{ Name: 'YLTH', LandmarkId: NEWS_LANDMARK.Id, Rolls: 57 }];
 
   // 여권 창: 아프리카(도장 완성) 칸이 보이도록 스크롤한 위치
   function passportScrollTo(regionId) {
@@ -1273,8 +1308,14 @@
   }
 
   // --- 화면 목록 -------------------------------------------------------------------
-  const tajmahal = ById[REVEAL.landmark];
-  const eiffel = ById[NEWS[0].LandmarkId];
+  // 받침에 맞는 조사: 을/를
+  const eul = (word) => {
+    const code = word.charCodeAt(word.length - 1) - 0xac00;
+    return word + (code >= 0 && code < 11172 && code % 28 !== 0 ? '을' : '를');
+  };
+  const newFind = ById[NEW_FIND];
+  const starFind = ById[STAR_FIND];
+  const newsLandmark = ById[NEWS[0].LandmarkId];
   const completeRegion = completedRegions(STATE)[0];
   const SHOTS = [
     {
@@ -1282,10 +1323,8 @@
       title: '기본 화면',
       note:
         `왼쪽 위: 코인 알약 + 초당 수입 칩, 아래 주사위(굴림 수) · 클로버(행운) 칩. 왼쪽: 도감/여권/강화/공원 버튼(여권 배지 = 도장 받은 대륙 수 / ${Regions.length}). ` +
-        `아래 가운데: 굴리기(R) + 자동(T, 꺼짐 = 회색). 위 가운데: 서버 전체 뉴스 속보 띠.` +
-        (eiffel.OneIn < Config.ANNOUNCE_ONE_IN
-          ? ` <b>참고:</b> 속보는 실제로 1 in ${commas(Config.ANNOUNCE_ONE_IN)} 이상에서만 뜹니다(${eiffel.Name} ${oneIn(eiffel.OneIn)} 은 모양 확인용 예시).`
-          : ''),
+        `아래 가운데: 굴리기(R) + 자동(T, 꺼짐 = 회색). 위 가운데: 다른 사람이 ${eul(newsLandmark.Name)} 찾았을 때 뜨는 서버 전체 속보 띠 ` +
+        `(속보는 1 in ${commas(Config.ANNOUNCE_ONE_IN)} 이상만, 7초 뒤 사라짐).`,
       build(root) {
         const screenGui = newScreen(root, this.id);
         buildHud(screenGui, STATE, { auto: false, location: 'Plaza' });
@@ -1294,14 +1333,28 @@
     },
     {
       id: 'screen2',
-      title: '명소 공개',
+      title: '명소 공개 — 처음 발견',
       note:
-        `굴린 결과가 나오는 순간: 뒤에 등급 색 햇살(sunburst), 대륙 딱지(${RegionById[tajmahal.Region].Name}), 등급 리본(${tajmahal.Tier.Name}), LuckiestGuy 이름 + 확률, 아래 딱지 줄. ` +
-        `<b>참고:</b> 게임에서는 NEW(처음 발견, 코인 보너스)와 ★UP(이미 있던 명소의 별 오름)이 한 번에 같이 뜨지 않습니다 — 모양 비교용으로 셋 다 표시. 코인 +${commas(discoveryBonus(tajmahal))} = 실제 ${tajmahal.Name} 발견 보너스.`,
+        `${eul(newFind.Name)} 처음 찾은 순간: 뒤에 등급 색 햇살(sunburst), 대륙 딱지(${RegionById[newFind.Region].Name}), 등급 리본(${newFind.Tier.Name}), LuckiestGuy 이름 + 확률, ` +
+        `아래 딱지 줄 = NEW + 발견 보너스 코인 +${commas(REVEAL_NEW.Bonus)}(실제 계산값). 처음 발견에는 ★UP 딱지가 안 붙습니다. ` +
+        `연출이 끝나기 전까지 왼쪽 위 숫자는 굴리기 전 값이라 수입이 +${incomeText(STATE_BEFORE_NEW.Income)}/s 로 보임.`,
+      build(root) {
+        const screenGui = newScreen(root, this.id);
+        buildHud(screenGui, STATE_BEFORE_NEW, { auto: false });
+        buildReveal(screenGui, newFind, REVEAL_NEW);
+      },
+    },
+    {
+      id: 'screen2b',
+      title: '명소 공개 — 별 오름',
+      extra: '2-2',
+      note:
+        `이미 가진 ${eul(starFind.Name)} ${commas(STATE.Inventory[STAR_FIND] + 1)}번째로 찾아 별이 ${REVEAL_STAR.Stars}개가 된 순간: 딱지 줄에는 보라 "★${REVEAL_STAR.Stars} UP" 하나만(보너스 코인 없음). ` +
+        '별이 오르지 않는 평범한 재발견이면 딱지 줄 자체가 안 나옵니다.',
       build(root) {
         const screenGui = newScreen(root, this.id);
         buildHud(screenGui, STATE, { auto: false });
-        buildReveal(screenGui, tajmahal, { ...REVEAL, Bonus: discoveryBonus(tajmahal) });
+        buildReveal(screenGui, starFind, REVEAL_STAR);
       },
     },
     {
@@ -1333,7 +1386,7 @@
     {
       id: 'screen4b',
       title: '여권 — 스크롤 내용 전체',
-      extra: true,
+      extra: '4-2',
       note: '위 여권 창 안에서 스크롤되는 내용 전체를 한 번에 펼친 참고용 그림(게임 화면이 아님). 크기·배율은 창과 같음.',
       build(root) {
         const canvas = passportCanvasHeight();
@@ -1481,10 +1534,22 @@
       '<b>알약(코인 알약·보너스 알약)이 거의 검정</b>: pill.png 는 이미 Ink 색인데 Ui.box 가 ImageColor3 = Ink 를 한 번 더 곱해서 ' +
         '반투명 거의-검정이 되고 위쪽 광택 줄이 사라짐(art/README: pill 은 물들이지 않음). 미리보기도 코드대로 곱해서 그렸습니다.'
     );
-    // 4) 종이 결 늘어남
+    // 4) 닫기 버튼: Round 인데 스킨 모서리가 높이 제한에 걸려 둥근 네모 + close.png(완성된 빨간 버튼)를 또 얹음
+    const closeFace = 58 - SHADOW_DEPTH;
+    const closeRadius = SKIN_RADIUS * sliceScale(closeFace / 2, closeFace);
+    items.push(
+      `<b>창 닫기 버튼이 동그랗지 않고 빨간 원이 두 겹</b>: Round 버튼(앞면 ${closeFace}px)인데 Ui.sliceScale 이 모서리 조각을 높이의 절반(64px 조각 기준)으로 묶어서 ` +
+        `그림 속 둥근 모서리(약 ${SKIN_RADIUS}px)가 화면에서 약 ${closeRadius.toFixed(0)}px 로만 둥글어짐 → 둥근 네모. ` +
+        '그 위에 close.png(이미 빨간 동그라미 + X 인 완성 버튼 그림, art/README: ImageButton 으로 바로 쓰는 그림)를 34px 로 또 얹어서 빨간 원 안에 빨간 원이 보임.'
+    );
+    // 5) 종이 결 늘어남
     const stretch = (WINDOW_SIZE[0] - 2 * SLICE_MARGIN * sliceScale(18)) / 128;
     items.push(
       `<b>(작은 것)</b> 창 종이(panel_paper) 가운데 조각이 가로 약 ${stretch.toFixed(1)}배로 늘어나 종이 점무늬가 가로로 긴 얼룩처럼 보임(9-slice 가운데는 늘이기만 됨).`
+    );
+    items.push(
+      '<b>(작은 것)</b> 색 딱지(Ui.chip, tag.png)는 DESIGN 의 "캡슐"이 아니라 끝이 덜 둥근 네모로 나옴: tag.png 의 모서리 반지름은 약 44px 인데 ' +
+        `코드는 모든 스킨을 ${SKIN_RADIUS}px 로 보고 높이 제한까지 걸려서, 높이 30px 딱지의 끝 반지름이 약 10px(반원이면 15px).`
     );
     const section = document.getElementById('findings');
     if (section) {
@@ -1504,7 +1569,7 @@
     SHOTS.forEach((shot) => {
       const section = document.createElement('section');
       section.className = 'shot';
-      const number = shot.extra ? '4-2' : String(SHOTS.filter((s) => !s.extra).indexOf(shot) + 1);
+      const number = shot.extra || String(SHOTS.filter((s) => !s.extra).indexOf(shot) + 1);
       section.innerHTML = `<h2><span class="num">${number}.</span>${escapeHtml(shot.title)}</h2><p class="note">${shot.note}</p>`;
       const wrap = document.createElement('div');
       wrap.className = 'frame-wrap';

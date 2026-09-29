@@ -1,4 +1,4 @@
-// index.html -> screen1..5.png (+ screen4b.png) + overview.png
+// index.html -> screen1..5.png (+ screen2b.png, screen4b.png) + overview.png
 //   node mockup/shoot.js            (playwright 가 전역 설치돼 있으면 NODE_PATH=$(npm root -g) 로)
 const path = require('path');
 const fs = require('fs');
@@ -24,10 +24,10 @@ const CHROME = ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome'].find((p) =
   }
   // 전체 보기: 화면 5개 + 여권 펼침을 2열 격자로 줄여서 (그림은 data URI 로 넣음)
   const titles = {
-    screen1: '1. 기본 화면', screen2: '2. 명소 공개', screen3: '3. 도감',
+    screen1: '1. 기본 화면', screen2: '2. 명소 공개 (처음 발견)', screen2b: '2-2. 명소 공개 (별 오름)', screen3: '3. 도감',
     screen4: '4. 여권', screen5: '5. 강화', screen4b: '4-2. 여권 스크롤 내용 전체',
   };
-  const order = ['screen1', 'screen2', 'screen3', 'screen4', 'screen5', 'screen4b'];
+  const order = ['screen1', 'screen2', 'screen2b', 'screen3', 'screen4', 'screen5', 'screen4b'];
   const cells = order
     .map((id) => shots.find((s) => s.id === id))
     .filter(Boolean)
