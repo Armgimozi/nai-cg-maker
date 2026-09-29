@@ -77,104 +77,109 @@ end)
 
 local stats = {}
 local dump = {}
+-- 모형 하나를 build 해서 규칙 검사 + 덤프·통계에 넣음. maxParts = 파트 수 한도(Root 제외)
+local function inspect(landmark, maxParts: number)
+	local before = #violations
+	local model = Models.build(landmark)
+	eq(model.Name, landmark.Id, "Name")
+	eq(#warnings, 0, "warnings: " .. tostring(warnings[1]))
+	local root = model.PrimaryPart
+	assert(root and root.Name == "Root", "Root PrimaryPart")
+	eq(root.Transparency, 1, "Root transparency")
+	near(root.Size.X, 10, 1e-9, "Root X")
+	near(root.Size.Y, 0.2, 1e-9, "Root Y")
+	near(root.CFrame.Position.Y, 0.1, 1e-9, "Root Y pos")
+	near(model:GetPivot().Position.Y, 0, 1e-9, "pivot at bottom")
+	local list = parts(model)
+	local count = #list - 1
+	assert(count <= maxParts, "too many parts: " .. count)
+	local lo, hi = vec(math.huge, math.huge, math.huge), vec(-math.huge, -math.huge, -math.huge)
+	local minVisibleY = math.huge
+	local items = {}
+	for _, part in list do
+		assert(part.Anchored == true, "not anchored")
+		assert(part.CanCollide == false, "collides")
+		assert(part.Color ~= nil, "no color")
+		local l, h = worldBounds(part)
+		if part ~= root then
+			lo = vec(math.min(lo.X, l.X), math.min(lo.Y, l.Y), math.min(lo.Z, l.Z))
+			hi = vec(math.max(hi.X, h.X), math.max(hi.Y, h.Y), math.max(hi.Z, h.Z))
+			minVisibleY = math.min(minVisibleY, l.Y)
+			local cf = part.CFrame
+			table.insert(
+				items,
+				string.format(
+					'{"c":"%s","s":"%s","p":[%.4f,%.4f,%.4f],"m":[%s],"z":[%.4f,%.4f,%.4f],"col":[%.4f,%.4f,%.4f],"t":%.3f,"mat":"%s"}',
+					part.ClassName,
+					part.Shape,
+					cf.p.X,
+					cf.p.Y,
+					cf.p.Z,
+					table.concat(
+						(function()
+							local t = {}
+							for i = 1, 9 do
+								t[i] = string.format("%.6f", cf.m[i])
+							end
+							return t
+						end)(),
+						","
+					),
+					part.Size.X,
+					part.Size.Y,
+					part.Size.Z,
+					part.Color.R,
+					part.Color.G,
+					part.Color.B,
+					part.Transparency,
+					part.Material
+				)
+			)
+		end
+	end
+	table.insert(
+		dump,
+		string.format('{"id":"%s","shape":"%s","parts":[%s]}', landmark.Id, landmark.Shape, table.concat(items, ","))
+	)
+	table.insert(
+		stats,
+		string.format(
+			"  %-12s %-11s parts=%2d  x[%.2f,%.2f] z[%.2f,%.2f] y[%.2f,%.2f]",
+			landmark.Id,
+			landmark.Shape,
+			count,
+			lo.X,
+			hi.X,
+			lo.Z,
+			hi.Z,
+			lo.Y,
+			hi.Y
+		)
+	)
+	local tol = 0.051
+	assert(lo.X >= -5 - tol and hi.X <= 5 + tol, string.format("x out of footprint [%.3f, %.3f]", lo.X, hi.X))
+	assert(lo.Z >= -5 - tol and hi.Z <= 5 + tol, string.format("z out of footprint [%.3f, %.3f]", lo.Z, hi.Z))
+	assert(lo.Y >= -0.01, string.format("below ground %.3f", lo.Y))
+	assert(hi.Y <= 22.001, string.format("too tall %.3f", hi.Y))
+	if landmark.Shape == "skyisland" then
+		assert(minVisibleY >= 0.5, string.format("skyisland touches ground %.3f", minVisibleY))
+	end
+	eq(#violations, before, "violations: " .. tostring(violations[before + 1]))
+end
 for _, landmark in Landmarks.List do
 	test("build " .. landmark.Id .. " (" .. landmark.Shape .. ")", function()
-		local before = #violations
-		local model = Models.build(landmark)
-		eq(model.Name, landmark.Id, "Name")
-		eq(#warnings, 0, "warnings: " .. tostring(warnings[1]))
-		local root = model.PrimaryPart
-		assert(root and root.Name == "Root", "Root PrimaryPart")
-		eq(root.Transparency, 1, "Root transparency")
-		near(root.Size.X, 10, 1e-9, "Root X")
-		near(root.Size.Y, 0.2, 1e-9, "Root Y")
-		near(root.CFrame.Position.Y, 0.1, 1e-9, "Root Y pos")
-		near(model:GetPivot().Position.Y, 0, 1e-9, "pivot at bottom")
-		local list = parts(model)
-		local count = #list - 1
-		assert(count <= 45, "too many parts: " .. count)
-		local lo, hi = vec(math.huge, math.huge, math.huge), vec(-math.huge, -math.huge, -math.huge)
-		local minVisibleY = math.huge
-		local items = {}
-		for _, part in list do
-			assert(part.Anchored == true, "not anchored")
-			assert(part.CanCollide == false, "collides")
-			assert(part.Color ~= nil, "no color")
-			local l, h = worldBounds(part)
-			if part ~= root then
-				lo = vec(math.min(lo.X, l.X), math.min(lo.Y, l.Y), math.min(lo.Z, l.Z))
-				hi = vec(math.max(hi.X, h.X), math.max(hi.Y, h.Y), math.max(hi.Z, h.Z))
-				minVisibleY = math.min(minVisibleY, l.Y)
-				local cf = part.CFrame
-				table.insert(
-					items,
-					string.format(
-						'{"c":"%s","s":"%s","p":[%.4f,%.4f,%.4f],"m":[%s],"z":[%.4f,%.4f,%.4f],"col":[%.4f,%.4f,%.4f],"t":%.3f,"mat":"%s"}',
-						part.ClassName,
-						part.Shape,
-						cf.p.X,
-						cf.p.Y,
-						cf.p.Z,
-						table.concat(
-							(function()
-								local t = {}
-								for i = 1, 9 do
-									t[i] = string.format("%.6f", cf.m[i])
-								end
-								return t
-							end)(),
-							","
-						),
-						part.Size.X,
-						part.Size.Y,
-						part.Size.Z,
-						part.Color.R,
-						part.Color.G,
-						part.Color.B,
-						part.Transparency,
-						part.Material
-					)
-				)
-			end
-		end
-		table.insert(
-			dump,
-			string.format(
-				'{"id":"%s","shape":"%s","parts":[%s]}',
-				landmark.Id,
-				landmark.Shape,
-				table.concat(items, ",")
-			)
-		)
-		table.insert(
-			stats,
-			string.format(
-				"  %-12s %-11s parts=%2d  x[%.2f,%.2f] z[%.2f,%.2f] y[%.2f,%.2f]",
-				landmark.Id,
-				landmark.Shape,
-				count,
-				lo.X,
-				hi.X,
-				lo.Z,
-				hi.Z,
-				lo.Y,
-				hi.Y
-			)
-		)
-		local tol = 0.051
-		assert(lo.X >= -5 - tol and hi.X <= 5 + tol, string.format("x out of footprint [%.3f, %.3f]", lo.X, hi.X))
-		assert(lo.Z >= -5 - tol and hi.Z <= 5 + tol, string.format("z out of footprint [%.3f, %.3f]", lo.Z, hi.Z))
-		assert(lo.Y >= -0.01, string.format("below ground %.3f", lo.Y))
-		assert(hi.Y <= 22.001, string.format("too tall %.3f", hi.Y))
-		if landmark.Shape == "skyisland" then
-			assert(minVisibleY >= 0.5, string.format("skyisland touches ground %.3f", minVisibleY))
-		end
-		eq(#violations, before, "violations: " .. tostring(violations[before + 1]))
+		inspect(landmark, 45)
 	end)
 end
 
+-- 장식용 지구본(Landmarks.List 밖)도 같은 규칙으로 검사·덤프(광장에서 매 프레임 도는 모형이라 파트 한도는 따로).
+-- 검사 개수를 늘리지 않으려고 create 검사 안에서 함께 봄
+local GLOBE_MAX_PARTS = 250
 test("create: scaled to size, pivot at bottom-center, anchored", function()
-	for _, landmark in Landmarks.List do
+	inspect(Landmarks.Globe, GLOBE_MAX_PARTS)
+	local all = table.clone(Landmarks.List)
+	table.insert(all, Landmarks.Globe)
+	for _, landmark in all do
 		local model = Models.create(landmark, 9)
 		eq(model.Parent, nil, "unparented")
 		eq(model.Name, landmark.Id)

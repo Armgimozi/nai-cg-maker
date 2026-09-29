@@ -1367,6 +1367,7 @@ local KNOWN = {
 	Shape = true,
 	Material = true,
 	Color = true,
+	Reflectance = true,
 	TopSurface = true,
 	BottomSurface = true,
 	PrimaryPart = true,
