@@ -63,6 +63,16 @@ NAI V5 그림체를 찾아내는 탭입니다.
 
 오프라인에서도 앱 셸이 캐시(`web/sw.js`)되어 열리며, 실행 시 사전 탭으로 시작합니다.
 
+## 🎮 도트 가챠 게임 (`game/`)
+
+이 툴로 만든 NAI **일러스트**와 직접 그린 **도트 스프라이트**를 모으는 Godot 4 수집형
+가챠 게임 프로젝트가 `game/` 에 있습니다. Google Play(AAB) 출시를 목표로 합니다.
+
+- 캐릭터 정의: `game/data/characters.json` (이름·등급·설명·NAI 프롬프트)
+- NAI 일러스트 일괄 생성: `python tools/gen_characters.py` (NAI 는 일러스트만 생성)
+- 도트 임시 스프라이트: `python tools/make_placeholders.py`
+- 실행·빌드·출시 절차: [`game/README.md`](game/README.md)
+
 ## 설치 & 실행
 
 ```bash

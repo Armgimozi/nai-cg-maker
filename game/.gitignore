@@ -1,0 +1,6 @@
+# Godot 이 자동 생성하는 캐시
+.godot/
+# 빌드 결과물·서명 키 (키스토어는 절대 커밋 금지)
+build/
+*.keystore
+*.jks

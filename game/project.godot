@@ -1,0 +1,44 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="NAI 도트 가챠"
+config/description="NovelAI 로 만든 도트 캐릭터를 모으는 수집형 가챠 게임"
+run/main_scene="res://scenes/main_menu.tscn"
+config/features=PackedStringArray("4.3", "Mobile")
+config/icon="res://icon.png"
+
+[autoload]
+
+CharacterDB="*res://scripts/autoload/character_db.gd"
+GameState="*res://scripts/autoload/game_state.gd"
+Gacha="*res://scripts/autoload/gacha.gd"
+
+[display]
+
+window/size/viewport_width=720
+window/size/viewport_height=1280
+window/handheld/orientation=1
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[gui]
+
+theme/custom="res://theme/default_theme.tres"
+
+[input_devices]
+
+pointing/emulate_touch_from_mouse=true
+
+[rendering]
+
+renderer/rendering_method="mobile"
+textures/canvas_textures/default_texture_filter=0
