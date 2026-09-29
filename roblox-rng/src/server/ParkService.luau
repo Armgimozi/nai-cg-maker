@@ -1,13 +1,14 @@
 -- 관광 공원 부지: 광장을 둘러싼 원형 배치. 플레이어마다 부지 하나를 배정하고 미니어처를 전시합니다.
 --
--- 배치: 안쪽 고리 8칸(반지름 115), 바깥 고리 16칸(반지름 210). 반지름은 광장 중심에서 부지 "입구"
+-- 배치: 광장을 둘러싼 고리 하나에 8칸(반지름 115) = 서버 최대 인원 8명. 반지름은 광장 중심에서 부지 "입구"
 --   (광장 쪽 가장자리)까지 거리입니다. 부지 중심까지로 잡으면 이웃 부지끼리 겹치기 때문.
+--   빈 부지가 없으면(서버 인원이 부지보다 많을 때) assign 이 nil 을 돌려주고, 그 플레이어는 부지 없이 놉니다.
 -- 부지 좌표계: 부지 중앙 바닥이 원점, -Z(LookVector)가 광장 쪽 = 입구.
 -- 전시 칸: 6x6 격자. 입구에 가까운 줄부터, 한 줄 안에서는 가운데에 가까운 칸부터 채워서
 --   가장 희귀한 명소가 입구 정면에 오도록 합니다.
 -- update 는 칸마다 이전 상태를 기억해 두고 바뀐 칸만 다시 만듭니다(별 개수는 이름표 글자만 바꿈).
 -- 간판: 주인이 있으면 입구 아치(나무 판자 + Ink 테두리 + 크림 글자판: 공원 아이콘 + 이름, 초록 알약: 동전 + "+X/s"),
---   빈 부지는 길 옆 낮은 말뚝 간판("빈 부지")만 세워서 빈 부지가 20곳 넘어도 광장에서 볼 때 어지럽지 않게 합니다.
+--   빈 부지는 길 옆 낮은 말뚝 간판("빈 부지")만 세워서 광장에서 볼 때 어지럽지 않게 합니다.
 -- 그림: Shared/ImageIds 에 park/coin 아이콘, panel_paper/pill 스킨 Id 가 있으면 간판에 그 그림을 씀(없으면 코드로 그림).
 -- 장식: 둘레 색 띠 + 네 귀퉁이 덤불 + 옆·뒤 낮은 울타리(입구 쪽은 비움). 위에서 봐도 부지가 구분됩니다.
 -- 글자 스타일은 DESIGN.md "UI 스타일 가이드 v2" 를 따름(FredokaOne, Ink 테두리, 이모지 없음).
@@ -34,8 +35,8 @@ local function loadImageIds(): { [string]: any }
 end
 local ImageIds = loadImageIds()
 
-local INNER_RADIUS = 115
-local OUTER_RADIUS = 210
+local PLOT_COUNT = 8 -- 서버 최대 인원과 같게 (Creator Hub 에서 서버 크기 8)
+local RING_RADIUS = 115
 local PLAZA_EDGE = 44 -- 길이 시작되는 곳(광장 둘레 계단 아래에서부터)
 
 local PLOT_WIDTH = 76
@@ -126,15 +127,8 @@ type Layout = { Angle: number, Radius: number, Path: boolean }
 
 -- 부지 순서 = 배정 순서(가장 작은 빈 번호부터). 첫 부지는 스폰 정면(-Z = 270도) 근처.
 local LAYOUT: { Layout } = {}
-for i = 0, 7 do
-	table.insert(LAYOUT, { Angle = math.rad(247.5 + 45 * i), Radius = INNER_RADIUS, Path = true })
-end
--- 바깥 고리: 안쪽 부지 사이 틈으로 광장에서 바로 보이는 8칸 먼저, 안쪽 부지 뒤에 있는 8칸은 나중에
-for i = 0, 7 do
-	table.insert(LAYOUT, { Angle = math.rad(270 + 45 * i), Radius = OUTER_RADIUS, Path = true })
-end
-for i = 0, 7 do
-	table.insert(LAYOUT, { Angle = math.rad(247.5 + 45 * i), Radius = OUTER_RADIUS, Path = false })
+for i = 0, PLOT_COUNT - 1 do
+	table.insert(LAYOUT, { Angle = math.rad(247.5 + 360 / PLOT_COUNT * i), Radius = RING_RADIUS, Path = true })
 end
 
 -- 전시 칸 위치(부지 좌표, Y = 부지 윗면). 입구 쪽 줄부터, 줄 안에서는 가운데부터.

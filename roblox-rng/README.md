@@ -198,7 +198,7 @@
 - **Open Cloud 업로드**: `apis.roblox.com` 으로
   `POST /universes/v1/{universeId}/places/{placeId}/versions?versionType=Saved|Published`
   (헤더 `x-api-key`, `Content-Type: application/xml`, 본문 = rbxlx 파일)
-- 한 서버 최대 인원은 공원 부지 수에 맞춰 **24명 이하**로 설정하세요 (Game Settings → Places → Max Players).
+- 한 서버 최대 인원은 공원 부지 수에 맞춰 **8명**으로 설정하세요 (Game Settings → Places → Max Players, 또는 Open Cloud `PATCH /cloud/v2/universes/{u}/places/{p}?updateMask=serverSize` — 키에 universe-places 쓰기 권한 필요).
 
 ## 조정하기
 
