@@ -141,19 +141,31 @@ end
 
 -- 여권 도장 / 행운 / 속도 ----------------------------------------------------
 
--- 모든 명소를 발견한 지역 Id 목록 (Landmarks.Regions 순서)
+-- 이 명소가 여권 도장 조건에 들어가는지 (전설급은 보너스 수집이라 제외)
+function PlayerState.countsForStamp(landmark: Landmark): boolean
+	return landmark.Tier.Rank <= Config.STAMP_MAX_RANK
+end
+
+-- 대륙의 도장 진행도: 발견한 수, 필요한 수 (도장 조건에 드는 명소만 셈)
+function PlayerState.regionProgress(data: Data | Snapshot, regionId: string): (number, number)
+	local found, required = 0, 0
+	for _, landmark in Landmarks.ByRegion[regionId] or {} do
+		if PlayerState.countsForStamp(landmark) then
+			required += 1
+			if (data.Inventory[landmark.Id] or 0) > 0 then
+				found += 1
+			end
+		end
+	end
+	return found, required
+end
+
+-- 도장을 받은 대륙 Id 목록 (Landmarks.Regions 순서)
 function PlayerState.completedRegions(data: Data | Snapshot): { string }
 	local completed = {}
 	for _, region in Landmarks.Regions do
-		local list = Landmarks.ByRegion[region.Id]
-		local all = #list > 0
-		for _, landmark in list do
-			if (data.Inventory[landmark.Id] or 0) <= 0 then
-				all = false
-				break
-			end
-		end
-		if all then
+		local found, required = PlayerState.regionProgress(data, region.Id)
+		if required > 0 and found >= required then
 			table.insert(completed, region.Id)
 		end
 	end

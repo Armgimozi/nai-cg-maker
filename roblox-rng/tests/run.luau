@@ -76,6 +76,7 @@ test("RarestFirst 는 내림차순, 마지막은 가장 흔한 명소", function
 	end
 	eq(Landmarks.RarestFirst[#Landmarks.RarestFirst], Landmarks.Common, "마지막")
 	eq(Landmarks.Common.Id, "clocktower", "가장 흔한 명소")
+	eq(Landmarks.Common.Region, "Asia", "가장 흔한 명소도 대륙 소속")
 end)
 test("등급 경계", function()
 	eq(Landmarks.ById.fountain.Tier.Name, "동네 명소")
@@ -86,14 +87,20 @@ test("등급 경계", function()
 	eq(Landmarks.ById.babel.Tier.Name, "잃어버린 유산")
 	eq(Landmarks.ById.earth.Tier.Name, "전설")
 end)
-test("모든 지역에 명소가 있고 ByRegion 합계가 전체와 같음", function()
-	local total = 0
+test("여권 지역은 4대륙뿐, 특별 명소(지구)만 대륙 밖", function()
+	eq(#Landmarks.Regions, 4, "대륙 수")
 	for _, region in Landmarks.Regions do
-		local n = #Landmarks.ByRegion[region.Id]
-		assert(n > 0, region.Id .. " 비어 있음")
-		total += n
+		assert(#Landmarks.ByRegion[region.Id] > 0, region.Id .. " 비어 있음")
+		local _, required = PlayerState.regionProgress(PlayerState.new(), region.Id)
+		assert(required > 0, region.Id .. " 도장 조건 명소 없음")
+	end
+	local total = 0
+	for _, list in Landmarks.ByRegion do
+		total += #list
 	end
 	eq(total, #Landmarks.List, "합계")
+	eq(#Landmarks.ByRegion.World, 1, "대륙 밖 명소 수")
+	eq(Landmarks.ByRegion.World[1].Id, "earth")
 end)
 test("전시 칸 최대치로 모든 명소를 전시할 수 있음", function()
 	local park = PlayerState.UpgradesById.Park
@@ -274,18 +281,26 @@ test("업그레이드: 가격, 부족, 구매, 효과, 최대 레벨", function(
 	eq(d.Coins, coinsBefore, "실패 시 코인 유지")
 	assert(PlayerState.cooldown(d) > 0, "최대 레벨에서도 쿨타임 > 0")
 end)
-test("여권 도장: 지역 완성 시 행운 보너스", function()
-	local home = {}
-	for _, landmark in Landmarks.ByRegion.Home do
-		table.insert(home, landmark.Id)
+test("여권 도장: 전설급을 뺀 대륙 명소를 다 모으면 행운 보너스", function()
+	local needed, legendary = {}, nil
+	for _, landmark in Landmarks.ByRegion.Africa do
+		if PlayerState.countsForStamp(landmark) then
+			table.insert(needed, landmark.Id)
+		else
+			legendary = landmark
+		end
 	end
-	local d = owning(home)
+	assert(legendary, "아프리카에 전설급 명소가 있어야 이 테스트가 의미 있음")
+	local d = owning(needed)
+	local found, required = PlayerState.regionProgress(d, "Africa")
+	eq(found, required, "진행도")
 	local completed = PlayerState.completedRegions(d)
-	eq(#completed, 1, "완성 지역 수")
-	eq(completed[1], "Home")
+	eq(#completed, 1, "완성 대륙 수")
+	eq(completed[1], "Africa")
+	eq((d.Inventory[legendary.Id] or 0), 0, "전설급 없이도 도장")
 	near(PlayerState.luck(d), 1 + Config.REGION_LUCK_BONUS, 1e-9, "행운 보너스")
-	-- 하나 빠지면 미완성
-	d.Inventory[home[1]] = nil
+	-- 도장 조건 명소가 하나 빠지면 미완성
+	d.Inventory[needed[1]] = nil
 	eq(#PlayerState.completedRegions(d), 0, "미완성")
 end)
 test("대표 명소: 발견한 것만, nil 은 해제", function()

@@ -23,7 +23,7 @@ export type Landmark = {
 	Name: string,
 	Subtitle: string, -- 영문 이름
 	OneIn: number,
-	Region: string, -- Region.Id
+	Region: string, -- Region.Id (대륙) 또는 "World"(어느 대륙에도 속하지 않는 특별 명소)
 	Shape: string, -- Models.luau 의 임시 모형 종류
 	Primary: Color3, -- 주 색
 	Secondary: Color3, -- 보조 색
@@ -45,19 +45,27 @@ Landmarks.Tiers = {
 	{ Rank = 7, Name = "전설", MinOneIn = 1000000, Color = Color3.fromRGB(120, 255, 235) },
 } :: { Tier }
 
+-- 여권에 나오는 대륙(도장 대상). 순서 = 여권/지구본 연출 순서
 Landmarks.Regions = {
-	{ Id = "Home", Name = "우리 동네", Emoji = "🏡", Color = Color3.fromRGB(200, 200, 200) },
-	{ Id = "Europe", Name = "유럽", Emoji = "🏰", Color = Color3.fromRGB(110, 150, 255) },
 	{ Id = "Asia", Name = "아시아", Emoji = "🏯", Color = Color3.fromRGB(255, 120, 120) },
-	{ Id = "Africa", Name = "아프리카·중동", Emoji = "🐪", Color = Color3.fromRGB(240, 190, 90) },
+	{ Id = "Europe", Name = "유럽", Emoji = "🏰", Color = Color3.fromRGB(110, 150, 255) },
+	{ Id = "Africa", Name = "아프리카", Emoji = "🐪", Color = Color3.fromRGB(240, 190, 90) },
 	{ Id = "Americas", Name = "아메리카", Emoji = "🗽", Color = Color3.fromRGB(90, 210, 150) },
-	{ Id = "Legend", Name = "전설의 장소", Emoji = "✨", Color = Color3.fromRGB(120, 255, 235) },
 } :: { Region }
+
+-- 어느 대륙에도 속하지 않는 특별 명소(지구)용. 여권·도장에는 나오지 않음
+Landmarks.WorldRegion = {
+	Id = "World",
+	Name = "전 세계",
+	Emoji = "🌍",
+	Color = Color3.fromRGB(120, 255, 235),
+} :: Region
 
 Landmarks.RegionById = {} :: { [string]: Region }
 for _, region in Landmarks.Regions do
 	Landmarks.RegionById[region.Id] = region
 end
+Landmarks.RegionById.World = Landmarks.WorldRegion
 
 local function tierFor(oneIn: number): Tier
 	for i = #Landmarks.Tiers, 1, -1 do
@@ -75,10 +83,10 @@ local M = Enum.Material
 -- stylua: ignore
 local DEFINITIONS = {
 	-- Id,           이름,               영문,                          N,         지역,       모형,         주 색,               보조 색,              강조 색,              재질
-	{ "clocktower",  "시계탑",           "Clock Tower",                 2,         "Home",     "clocktower", rgb(200, 170, 140), rgb(90, 70, 60),    rgb(255, 245, 210), M.Brick },
-	{ "lighthouse",  "등대",             "Lighthouse",                  3,         "Home",     "lighthouse", rgb(240, 240, 240), rgb(210, 60, 60),   rgb(255, 240, 150), M.SmoothPlastic },
-	{ "windmill",    "풍차",             "Windmill",                    5,         "Home",     "windmill",   rgb(230, 220, 200), rgb(140, 90, 60),   rgb(250, 250, 250), M.WoodPlanks },
-	{ "fountain",    "분수대",           "Fountain",                    7,         "Home",     "fountain",   rgb(210, 210, 215), rgb(80, 170, 255),  rgb(200, 240, 255), M.Marble },
+	{ "clocktower",  "홍콩 시계탑",      "Clock Tower, Hong Kong",      2,         "Asia",     "clocktower", rgb(200, 170, 140), rgb(90, 70, 60),    rgb(255, 245, 210), M.Brick },
+	{ "lighthouse",  "희망봉 등대",      "Cape Point Lighthouse",       3,         "Africa",   "lighthouse", rgb(240, 240, 240), rgb(210, 60, 60),   rgb(255, 240, 150), M.SmoothPlastic },
+	{ "windmill",    "풍차 마을",        "Kinderdijk Windmills",        5,         "Europe",   "windmill",   rgb(230, 220, 200), rgb(140, 90, 60),   rgb(250, 250, 250), M.WoodPlanks },
+	{ "fountain",    "버킹엄 분수",      "Buckingham Fountain",         7,         "Americas", "fountain",   rgb(215, 205, 185), rgb(80, 170, 255),  rgb(200, 240, 255), M.Marble },
 
 	{ "arc",         "개선문",           "Arc de Triomphe",             12,        "Europe",   "arch",       rgb(225, 210, 180), rgb(190, 175, 150), rgb(255, 230, 160), M.Limestone },
 	{ "bigben",      "빅벤",             "Big Ben",                     20,        "Europe",   "clocktower", rgb(200, 175, 120), rgb(40, 60, 50),    rgb(255, 230, 140), M.Sandstone },
@@ -97,23 +105,23 @@ local DEFINITIONS = {
 	{ "pyramid",     "기자 피라미드",    "Pyramids of Giza",            2200,      "Africa",   "pyramid",    rgb(225, 195, 130), rgb(200, 170, 110), rgb(255, 225, 120), M.Sandstone },
 	{ "chichen",     "치첸이트사",       "Chichen Itza",                3000,      "Americas", "steps",      rgb(190, 180, 160), rgb(80, 140, 80),   rgb(230, 220, 190), M.Limestone },
 	{ "machupicchu", "마추픽추",         "Machu Picchu",                4000,      "Americas", "terraces",   rgb(150, 145, 135), rgb(90, 160, 80),   rgb(200, 230, 255), M.Slate },
-	{ "petra",       "페트라",           "Petra",                       5500,      "Africa",   "facade",     rgb(215, 130, 100), rgb(180, 100, 75),  rgb(255, 200, 150), M.Sandstone },
+	{ "petra",       "페트라",           "Petra",                       5500,      "Asia",     "facade",     rgb(215, 130, 100), rgb(180, 100, 75),  rgb(255, 200, 150), M.Sandstone },
 	{ "moai",        "모아이 석상",      "Moai",                        7000,      "Americas", "moai",       rgb(110, 105, 100), rgb(80, 150, 90),   rgb(200, 60, 50),   M.Basalt },
 	{ "stonehenge",  "스톤헨지",         "Stonehenge",                  9000,      "Europe",   "stones",     rgb(150, 150, 145), rgb(90, 150, 80),   rgb(200, 220, 255), M.Slate },
 
 	{ "alexandria",  "알렉산드리아 등대", "Lighthouse of Alexandria",   15000,     "Africa",   "lighthouse", rgb(245, 240, 225), rgb(220, 200, 160), rgb(255, 170, 60),  M.Marble },
-	{ "babylon",     "바빌론 공중정원",  "Hanging Gardens of Babylon",  30000,     "Africa",   "gardens",    rgb(210, 180, 130), rgb(60, 170, 70),   rgb(120, 200, 255), M.Sandstone },
+	{ "babylon",     "바빌론 공중정원",  "Hanging Gardens of Babylon",  30000,     "Asia",     "gardens",    rgb(210, 180, 130), rgb(60, 170, 70),   rgb(120, 200, 255), M.Sandstone },
 	{ "rhodes",      "로도스 거상",      "Colossus of Rhodes",          60000,     "Europe",   "statue",     rgb(190, 130, 60),  rgb(230, 225, 210), rgb(255, 140, 40),  M.Foil },
 
-	{ "babel",       "바벨탑",           "Tower of Babel",              150000,    "Legend",   "spiral",     rgb(200, 170, 120), rgb(150, 120, 90),  rgb(255, 230, 180), M.Sandstone },
-	{ "atlantis",    "아틀란티스",       "Atlantis",                    400000,    "Legend",   "island",     rgb(230, 240, 250), rgb(40, 120, 200),  rgb(90, 255, 230),  M.Marble },
-	{ "eldorado",    "엘도라도",         "El Dorado",                   800000,    "Legend",   "steps",      rgb(255, 200, 60),  rgb(200, 140, 30),  rgb(255, 250, 180), M.Foil },
+	{ "babel",       "바벨탑",           "Tower of Babel",              150000,    "Asia",     "spiral",     rgb(200, 170, 120), rgb(150, 120, 90),  rgb(255, 230, 180), M.Sandstone },
+	{ "atlantis",    "아틀란티스",       "Atlantis",                    400000,    "Europe",   "island",     rgb(230, 240, 250), rgb(40, 120, 200),  rgb(90, 255, 230),  M.Marble },
+	{ "eldorado",    "엘도라도",         "El Dorado",                   800000,    "Americas", "steps",      rgb(255, 200, 60),  rgb(200, 140, 30),  rgb(255, 250, 180), M.Foil },
 
-	{ "yonggung",    "용궁",             "Dragon King's Palace",        2000000,   "Legend",   "pagoda",     rgb(230, 70, 70),   rgb(40, 130, 150),  rgb(120, 255, 220), M.Glass },
-	{ "skyisland",   "하늘섬",           "Sky Island",                  5000000,   "Legend",   "skyisland",  rgb(120, 200, 90),  rgb(140, 110, 80),  rgb(255, 255, 255), M.Grass },
-	{ "shangrila",   "샹그릴라",         "Shangri-La",                  10000000,  "Legend",   "pagoda",     rgb(250, 250, 250), rgb(255, 200, 70),  rgb(255, 240, 180), M.Marble },
-	{ "worldtree",   "세계수",           "World Tree",                  40000000,  "Legend",   "tree",       rgb(120, 90, 60),   rgb(90, 220, 120),  rgb(255, 255, 200), M.Wood },
-	{ "earth",       "지구",             "The Earth",                   100000000, "Legend",   "globe",      rgb(40, 110, 220),  rgb(70, 190, 90),   rgb(255, 255, 255), M.SmoothPlastic },
+	{ "yonggung",    "용궁",             "Dragon King's Palace",        2000000,   "Asia",     "pagoda",     rgb(230, 70, 70),   rgb(40, 130, 150),  rgb(120, 255, 220), M.Glass },
+	{ "skyisland",   "사하라 신기루 성", "Mirage Citadel of the Sahara", 5000000,  "Africa",   "skyisland",  rgb(235, 200, 130), rgb(190, 140, 80),  rgb(170, 240, 255), M.Sand },
+	{ "shangrila",   "샹그릴라",         "Shangri-La",                  10000000,  "Asia",     "pagoda",     rgb(250, 250, 250), rgb(255, 200, 70),  rgb(255, 240, 180), M.Marble },
+	{ "worldtree",   "세계수",           "World Tree",                  40000000,  "Europe",   "tree",       rgb(120, 90, 60),   rgb(90, 220, 120),  rgb(255, 255, 200), M.Wood },
+	{ "earth",       "지구",             "The Earth",                   100000000, "World",    "globe",      rgb(40, 110, 220),  rgb(70, 190, 90),   rgb(255, 255, 255), M.SmoothPlastic },
 }
 
 Landmarks.List = {} :: { Landmark }
@@ -153,8 +161,8 @@ end)
 
 -- 지역별 목록(흔한 것 → 희귀한 것)
 Landmarks.ByRegion = {} :: { [string]: { Landmark } }
-for _, region in Landmarks.Regions do
-	Landmarks.ByRegion[region.Id] = {}
+for id in Landmarks.RegionById do
+	Landmarks.ByRegion[id] = {}
 end
 for _, landmark in Landmarks.List do
 	table.insert(Landmarks.ByRegion[landmark.Region], landmark)

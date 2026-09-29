@@ -695,7 +695,9 @@ local function renderPassport(state: Snapshot)
 			end
 		end
 
-		local complete = #list > 0 and discovered == #list
+		-- 도장은 전설급을 뺀 명소만 셈(PlayerState 규칙). 전설급은 카드로만 보이는 보너스 수집
+		local found, required = PlayerState.regionProgress(state, region.Id)
+		local complete = required > 0 and found >= required
 		if complete then
 			stamps += 1
 		end
@@ -703,10 +705,10 @@ local function renderPassport(state: Snapshot)
 			'%s  <font color="%s">%d/%d</font>',
 			region.Name,
 			Format.hex(region.Color:Lerp(Theme.Ink, 0.3)),
-			discovered,
-			#list
+			found,
+			required
 		)
-		section.Fill.Size = UDim2.fromScale(if #list > 0 then discovered / #list else 0, 1)
+		section.Fill.Size = UDim2.fromScale(if required > 0 then found / required else 0, 1)
 		paintBonus(section.Bonus, complete)
 		paintStamp(section.Stamp, complete)
 	end
