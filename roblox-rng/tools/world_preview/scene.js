@@ -14,9 +14,16 @@
 //   * Transparency 1 은 안 그림. Neon 은 빛을 받지 않는 원래 색(조금 밝게). SmoothPlastic 은 살짝 광택
 //   * 해: ClockTime·GeographicLatitude 로 계산(G3D/Roblox 식 근사: +X 에서 떠서 -X 로 짐, 정오에는 +Z 쪽으로 위도만큼 기움)
 //   * 안개: Atmosphere Density/Haze 로 FogExp2 근사(1000 스터드에서 약 45% 흐려짐 @ Density 0.3)
-// 안 그리는 것: BillboardGui(이름표), 파티클, 빛(PointLight), 텍스처/Decal, MeshPart 실제 모양(상자로 대신)
+//   * 재질 무늬: Roblox 기본 재질(WoodPlanks 판자, Brick 벽돌, Cobblestone 조약돌 ...)을 절차적 텍스처로 흉내(textures.js).
+//     파트 좌표계 삼면 투영, 스터드 단위 크기로 반복, 무늬 밝기 × Part.Color (Roblox 처럼 재질 무늬를 색으로 물들임) + 살짝 요철
+//   * 지형: Terrain 복셀 → 매끈한 땅 + 재질 섞임 + 물(깊이 색·반사) + 풀 장식(terrain.js)
+// 안 그리는 것: BillboardGui(이름표), 파티클, 빛(PointLight), Decal/Texture/SurfaceAppearance, MeshPart 실제 모양(상자로 대신),
+//   MaterialVariant(기본 재질만), 물 파트 흐름·굴절, 물속 시점
 
 import * as THREE from "three";
+import { buildMaterialTextures, PART_MATERIALS } from "./textures.js";
+import { buildTerrain, PERTURB_GLSL, TRIPLANAR_GLSL } from "./terrain.js";
+import { makeTerrainGrid } from "./terrain_grid.mjs";
 
 const W = 1280;
 const H = 720;
@@ -33,6 +40,11 @@ const scene = new THREE.Scene();
 let dump = null;
 let fogDensity = 0.00077;
 const info = { parts: 0, drawn: 0, groups: 0, gui: 0 };
+let textures = null; // buildMaterialTextures 결과
+let grid = null; // 지형 격자(terrain_grid.mjs) 또는 null
+let terrain = null; // buildTerrain 결과 또는 null
+let options = {}; // render.js 가 넘김: { foam, gap }
+let frame = { radius: 300 }; // 섬(땅) 반지름 — overview/top 시점 거리
 
 function srgb(rgb) {
   return new THREE.Color().setRGB(rgb[0], rgb[1], rgb[2], THREE.SRGBColorSpace);
@@ -107,22 +119,62 @@ const GEOMETRY = {
 };
 
 // 재질 ----------------------------------------------------------------------------
-const ROUGH = {
-  SmoothPlastic: 0.5,
-  Plastic: 0.68,
-  Glass: 0.08,
-  Ice: 0.2,
-  Glacier: 0.25,
-  Marble: 0.45,
-  Foil: 0.3,
-  Metal: 0.4,
-  DiamondPlate: 0.45,
-  CorrodedMetal: 0.8,
-  Wood: 0.8,
-  WoodPlanks: 0.8,
-  Water: 0.1,
-};
-const METAL = { Metal: 0.3, Foil: 0.4, DiamondPlate: 0.3, CorrodedMetal: 0.15 };
+// Neon 은 빛을 안 받는 원래 색. 나머지는 MeshStandardMaterial + 재질 무늬(층이 flat 이면 무늬 없음)
+function texturePart(material, spec) {
+  const layer = textures.layers[spec.layer];
+  const gain = textures.gain[spec.layer];
+  material.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, {
+      uTexArr: { value: textures.texture },
+      uTexLayer: { value: layer },
+      uTexTile: { value: spec.tile },
+      uTexGain: { value: gain },
+      uTexBump: { value: spec.bump },
+    });
+    shader.vertexShader = shader.vertexShader
+      .replace("#include <common>", "#include <common>\nvarying vec3 vTexPos;\nvarying vec3 vTexNrm;")
+      .replace(
+        "#include <begin_vertex>",
+        `#include <begin_vertex>
+vec3 texScale = vec3( 1.0 );
+#ifdef USE_INSTANCING
+texScale = vec3( length( instanceMatrix[ 0 ].xyz ), length( instanceMatrix[ 1 ].xyz ), length( instanceMatrix[ 2 ].xyz ) );
+#endif
+vTexPos = position * texScale;
+vTexNrm = normal / texScale;`,
+      );
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        "#include <common>",
+        `#include <common>
+uniform highp sampler2DArray uTexArr;
+uniform float uTexLayer;
+uniform float uTexTile;
+uniform float uTexGain;
+uniform float uTexBump;
+varying vec3 vTexPos;
+varying vec3 vTexNrm;
+${TRIPLANAR_GLSL}
+${PERTURB_GLSL}`,
+      )
+      .replace(
+        "#include <map_fragment>",
+        `vec3 tN = normalize( vTexNrm );
+vec3 bw = pow( abs( tN ), vec3( 8.0 ) );
+bw /= ( bw.x + bw.y + bw.z );
+vec4 ts = triSample( uTexLayer, uTexTile, vTexPos, bw );
+diffuseColor.rgb *= ts.rgb * uTexGain;
+float texHeight = ts.a;`,
+      )
+      .replace(
+        "#include <normal_fragment_maps>",
+        `#include <normal_fragment_maps>
+normal = texPerturb( - vViewPosition, normal, vec2( dFdx( texHeight ), dFdy( texHeight ) ) * uTexBump, faceDirection );`,
+      );
+  };
+  material.customProgramCacheKey = () => "part-textured";
+}
+
 const materialCache = new Map();
 function materialFor(mat, transparency, neon) {
   const alpha = 1 - transparency;
@@ -133,13 +185,15 @@ function materialFor(mat, transparency, neon) {
   if (neon) {
     material = new THREE.MeshBasicMaterial({ transparent, opacity: alpha });
   } else {
+    const spec = PART_MATERIALS[mat] || PART_MATERIALS.Plastic;
     material = new THREE.MeshStandardMaterial({
-      roughness: ROUGH[mat] ?? 0.9,
-      metalness: METAL[mat] ?? 0,
+      roughness: spec.rough,
+      metalness: spec.metal ?? 0,
       transparent,
       opacity: alpha,
       depthWrite: alpha > 0.5,
     });
+    if (spec.layer !== "flat") texturePart(material, spec);
   }
   materialCache.set(key, material);
   return material;
@@ -449,6 +503,7 @@ function makeSky(sun) {
 
 let sun = null;
 let sunDir = null;
+let lightEnv = null; // 물 셰이더가 쓰는 해·하늘 값(선형 색)
 
 function setupLighting(lighting) {
   const clock = lighting.ClockTime ?? 14;
@@ -478,6 +533,13 @@ function setupLighting(lighting) {
   scene.add(hemi);
 
   scene.add(makeSky(sunDir));
+  lightEnv = {
+    sunDir: sunDir.clone(),
+    sunColor: srgb([1, 0.97, 0.9]).multiplyScalar(sun.intensity / Math.PI),
+    ambient: srgb([0.85, 0.9, 1.0]).multiplyScalar(hemi.intensity / Math.PI),
+    zenith: srgb(SKY_ZENITH),
+    horizon: srgb(SKY_HORIZON),
+  };
 
   const atmosphere = lighting.Atmosphere;
   if (atmosphere) {
@@ -517,13 +579,41 @@ function edgeView() {
   return { eye, target };
 }
 
+// 지형 물가 찾기: 방향 angle(도)로 광장에서 바깥으로 가며 땅 → 물로 바뀌는 첫 곳의 거리(없으면 null)
+function shoreDistance(angle) {
+  if (!grid) return null;
+  const a = (angle * Math.PI) / 180;
+  let wasLand = false;
+  for (let r = 120; r < 1400; r += 2) {
+    const x = Math.cos(a) * r;
+    const z = Math.sin(a) * r;
+    const h = grid.heightAt(x, z);
+    const w = grid.waterAt(x, z);
+    const land = !Number.isNaN(h) && (Number.isNaN(w) || h > w);
+    if (land) wasLand = true;
+    else if (wasLand && !Number.isNaN(w)) return r;
+  }
+  return null;
+}
+
+// 땅 높이(지형이 없거나 더 낮으면 0 — 섬 바닥 파트 윗면)
+function groundY(x, z) {
+  const h = grid ? grid.heightAt(x, z) : NaN;
+  if (Number.isNaN(h)) return 0;
+  const w = grid.waterAt(x, z);
+  return Number.isNaN(w) ? h : Math.max(h, w);
+}
+
+const BEACH_ANGLES = [202.5, 157.5, 112.5, 67.5, 22.5, 337.5, 292.5, 247.5]; // 부지 사이 틈 방향(물가가 트인 곳)
+
 const VIEWS = {
   overview: () => {
-    // 남동쪽(+X, +Z) 30도 위에서: 600x600 바닥 네 모서리와 그 바깥 허공이 다 들어오는 거리
+    // 남동쪽(+X, +Z) 30도 위에서: 섬 전체와 둘레 바다가 들어오는 거리(섬이 크면 그만큼 멀리)
+    const k = frame.radius / 300;
     const cam = new THREE.PerspectiveCamera(40, W / H, 1, 20000);
-    cam.position.set(467, 470, 667);
-    cam.lookAt(20, -40, 60);
-    return { cam, shadowCenter: v3(0, 0, 0), shadowHalf: 360, fog: 0.35 };
+    cam.position.set(467 * k, 470 * k, 667 * k);
+    cam.lookAt(20 * k, -40 * k, 60 * k);
+    return { cam, shadowCenter: v3(0, 0, 0), shadowHalf: frame.radius * 1.2, fog: 0.35 };
   },
   spawn: () => {
     const cam = new THREE.PerspectiveCamera(70, W / H, 0.3, 20000);
@@ -539,25 +629,98 @@ const VIEWS = {
     const center = eye.clone().lerp(target, 0.4).setY(0);
     return { cam, shadowCenter: center, shadowHalf: 220, fog: 1 };
   },
+  // 모래사장 눈높이: 물가에서 14 스터드 안쪽에 서서 물가를 따라(바다 쪽으로 25도) 봄
+  beach: () => {
+    let angle = BEACH_ANGLES[0];
+    let shore = null;
+    for (const a of BEACH_ANGLES) {
+      shore = shoreDistance(a);
+      if (shore) {
+        angle = a;
+        break;
+      }
+    }
+    if (!shore) shore = 250; // 지형 물이 없음: 예전 섬 바닥(반지름 250) 가장자리
+    const a = (angle * Math.PI) / 180;
+    const radial = v3(Math.cos(a), 0, Math.sin(a));
+    const tangent = v3(-Math.sin(a), 0, Math.cos(a));
+    const eye = radial.clone().multiplyScalar(shore - 14);
+    eye.y = groundY(eye.x, eye.z) + 5.5;
+    const dir = tangent.clone().multiplyScalar(Math.cos(0.44)).addScaledVector(radial, Math.sin(0.44));
+    const target = eye.clone().addScaledVector(dir, 60);
+    target.y = eye.y - 4;
+    const cam = new THREE.PerspectiveCamera(70, W / H, 0.3, 20000);
+    cam.position.copy(eye);
+    cam.lookAt(target);
+    return { cam, shadowCenter: eye.clone().addScaledVector(dir, 50).setY(0), shadowHalf: 130, fog: 1 };
+  },
+  // 부지 사이 틈 정원 하나를 25 스터드 떨어진 3/4 시점(광장 쪽 옆에서 30도 내려다봄). 틈 번호 = options.gap(1~8)
+  closeup: () => {
+    const gap = Math.min(8, Math.max(1, Math.round(options.gap || 2)));
+    const g = ((247.5 + 22.5 + 45 * (gap - 1)) * Math.PI) / 180;
+    const radial = v3(Math.cos(g), 0, Math.sin(g));
+    const target = radial.clone().multiplyScalar(165);
+    target.y = groundY(target.x, target.z) + 2;
+    const back = radial.clone().negate().applyAxisAngle(v3(0, 1, 0), (35 * Math.PI) / 180);
+    const el = (30 * Math.PI) / 180;
+    const eye = target.clone().addScaledVector(back, 25 * Math.cos(el));
+    eye.y += 25 * Math.sin(el);
+    const cam = new THREE.PerspectiveCamera(60, W / H, 0.3, 20000);
+    cam.position.copy(eye);
+    cam.lookAt(target);
+    return { cam, shadowCenter: target.clone().setY(0), shadowHalf: 90, fog: 1 };
+  },
   top: () => {
-    const half = 450;
+    const half = Math.max(450, frame.radius * 1.15);
     const cam = new THREE.OrthographicCamera((-half * W) / H, (half * W) / H, half, -half, 1, 5000);
     cam.position.set(0, 1500, 0);
     cam.up.set(0, 0, -1); // 화면 위 = -Z(스폰에서 지구본 쪽)
     cam.lookAt(0, 0, 0);
-    return { cam, shadowCenter: v3(0, 0, 0), shadowHalf: 460, fog: 0 };
+    return { cam, shadowCenter: v3(0, 0, 0), shadowHalf: half + 10, fog: 0 };
   },
 };
 
-async function load() {
+// 섬 크기: 물 위로 나온 지형 표본 중 원점에서 가장 먼 거리(지형이 없으면 300 — 예전 600x600 바닥 기준)
+function computeFrame() {
+  let radius = 0;
+  if (grid) {
+    grid.forEachSample((g, i, x, z) => {
+      const h = g.h[i];
+      const w = g.w[i];
+      if (!Number.isNaN(h) && (Number.isNaN(w) || h > w)) radius = Math.max(radius, Math.hypot(x, z));
+    });
+  }
+  frame = { radius: Math.max(300, radius + 40) };
+}
+
+async function load(opts = {}) {
+  options = opts || {};
   const res = await fetch("/dump.json");
   dump = await res.json();
+  const started = performance.now();
+  textures = buildMaterialTextures(THREE);
+  const textureMs = performance.now() - started;
   setupLighting(dump.lighting || {});
+  grid = makeTerrainGrid(dump.terrain);
+  let terrainStats = null;
+  if (grid) {
+    terrain = buildTerrain(grid, textures, { ...lightEnv, foam: !!options.foam });
+    scene.add(terrain.group);
+    terrainStats = { ...terrain.stats, decoration: !!(dump.terrain.props || {}).Decoration };
+  }
+  computeFrame();
   buildParts(dump.parts);
   await document.fonts.load('40px "Fredoka One"').catch(() => {});
   await document.fonts.load('40px "Luckiest Guy"').catch(() => {});
   for (const record of dump.gui || []) await drawGui(record);
-  return { ...info, sun: sunDir.toArray().map((v) => +v.toFixed(3)), fog: fogDensity };
+  return {
+    ...info,
+    sun: sunDir.toArray().map((v) => +v.toFixed(3)),
+    fog: fogDensity,
+    terrain: terrainStats,
+    frame: Math.round(frame.radius),
+    textureMs: Math.round(textureMs),
+  };
 }
 
 // 임의 시점: "cam:x,y,z:tx,ty,tz[:fov]" (예: cam:0,60,120:0,0,0:50) — 특정 자리를 자세히 볼 때
@@ -574,6 +737,8 @@ function customView(name) {
 
 function render(name) {
   const view = name.startsWith("cam:") ? customView(name) : VIEWS[name]();
+  view.cam.updateMatrixWorld();
+  if (terrain) terrain.updateGrass(view.cam, scene);
   aimShadow(view.shadowCenter, view.shadowHalf);
   if (scene.fog && scene.fog.isFogExp2) scene.fog.density = fogDensity * view.fog;
   renderer.render(scene, view.cam);

@@ -13,8 +13,10 @@
 --   * Enum 값은 "PartType.Ball" 같은 문자열(tests/harness.luau 와 같은 방식)
 --   * task.wait / task.delay 는 가짜 시계로 도는 작은 스케줄러(Mock.runScheduler 로 진행). 이벤트는 연결만 되고 불리지 않음
 --   * Random.new(seed) 는 결정적 LCG(같은 seed 면 항상 같은 수열. 실제 Roblox 수열과는 다름)
---   * workspace:Raycast 는 파트를 상자(Ball 은 구)로 보고 계산
---   * Terrain:Fill* 는 기록만 해 둠(Mock.terrainFills). 미리보기는 이것을 대략적인 파트로 그림
+--   * workspace:Raycast 는 파트를 상자(Ball 은 구)로 보고 계산 + 지형 맨 위 표면(물 포함, IgnoreWater 따름)
+--   * Terrain: 4 스터드 복셀(재질 + 점유율 + 물 점유율)을 진짜로 채움 — Fill*/FillRegion/ReadVoxels/WriteVoxels/
+--     ReadVoxelChannels/WriteVoxelChannels/ReplaceMaterial/Clear/SetMaterialColor, Water* 속성, Decoration.
+--     규칙은 아래 "Terrain" 부분 주석. Mock.terrainFills = 호출 기록, Mock.terrainDumpJson = 렌더러용 덤프
 
 local Mock = {}
 Mock.strict = false
@@ -22,7 +24,7 @@ Mock.origin = "?"
 Mock.violations = {} -- 모형 규칙 위반(비균일 Ball 등)
 Mock.warnings = {} -- warn() 으로 나온 문장
 Mock.errors = {} -- task 스레드 안에서 난 오류
-Mock.terrainFills = {}
+Mock.terrainFills = {} -- 지형 API 호출 기록 { Kind, Material, Origin }
 
 local sqrt, sin, cos, abs, atan2, asin = math.sqrt, math.sin, math.cos, math.abs, math.atan2, math.asin
 local min, max, floor, huge, pi = math.min, math.max, math.floor, math.huge, math.pi
@@ -936,6 +938,84 @@ end
 local RaycastParams = queryParams("RaycastParams")
 local OverlapParams = queryParams("OverlapParams")
 local Ray = valueType("Ray", { "Origin", "Direction" })
+
+-- Vector3int16 / Region3 / Region3int16 (지형 API 용) ------------------------------
+local V16MT = {}
+TYPE_OF[V16MT] = "Vector3int16"
+local function toInt16(v: number?): number
+	local n = v or 0
+	n = if n >= 0 then floor(n) else -floor(-n) -- Roblox 처럼 0 쪽으로 자름
+	return math.clamp(n, -32768, 32767)
+end
+local function vec16(x: number?, y: number?, z: number?)
+	return setmetatable({ X = toInt16(x), Y = toInt16(y), Z = toInt16(z) }, V16MT)
+end
+V16MT.__index = function(_, k)
+	error("Vector3int16 has no member " .. tostring(k), 2)
+end
+V16MT.__add = function(a, b)
+	return vec16(a.X + b.X, a.Y + b.Y, a.Z + b.Z)
+end
+V16MT.__sub = function(a, b)
+	return vec16(a.X - b.X, a.Y - b.Y, a.Z - b.Z)
+end
+V16MT.__mul = function(a, b)
+	if type(a) == "number" then
+		return vec16(a * b.X, a * b.Y, a * b.Z)
+	elseif type(b) == "number" then
+		return vec16(a.X * b, a.Y * b, a.Z * b)
+	end
+	return vec16(a.X * b.X, a.Y * b.Y, a.Z * b.Z)
+end
+V16MT.__eq = function(a, b)
+	return a.X == b.X and a.Y == b.Y and a.Z == b.Z
+end
+V16MT.__tostring = function(v)
+	return string.format("%d, %d, %d", v.X, v.Y, v.Z)
+end
+local Vector3int16 = { new = vec16 }
+
+-- Region3: 안쪽에 최소·최대 모서리(__min/__max)를 들고, 밖으로는 Roblox 처럼 CFrame·Size 만 보임
+local R3MT = {}
+TYPE_OF[R3MT] = "Region3"
+local function region3(lo, hi)
+	return setmetatable({ __min = lo, __max = hi }, R3MT)
+end
+R3MT.__index = function(r, k)
+	local lo, hi = rawget(r, "__min"), rawget(r, "__max")
+	if k == "CFrame" then
+		return cframe((lo + hi) / 2, IDENT)
+	elseif k == "Size" then
+		return hi - lo
+	elseif k == "ExpandToGrid" then
+		return function(_self, resolution: number)
+			local g = resolution
+			return region3(
+				vec(floor(lo.X / g) * g, floor(lo.Y / g) * g, floor(lo.Z / g) * g),
+				vec(math.ceil(hi.X / g) * g, math.ceil(hi.Y / g) * g, math.ceil(hi.Z / g) * g)
+			)
+		end
+	end
+	error("Region3 has no member " .. tostring(k), 2)
+end
+R3MT.__tostring = function(r)
+	return tostring(r.CFrame) .. "; " .. tostring(r.Size)
+end
+local Region3 = {}
+function Region3.new(lo, hi)
+	assert(getmetatable(lo) == VMT and getmetatable(hi) == VMT, "Region3.new(Vector3, Vector3)")
+	return region3(lo, hi)
+end
+
+local R316MT = {}
+TYPE_OF[R316MT] = "Region3int16"
+R316MT.__index = function(_, k)
+	error("Region3int16 has no member " .. tostring(k), 2)
+end
+local Region3int16 = {}
+function Region3int16.new(lo, hi)
+	return setmetatable({ Min = lo, Max = hi }, R316MT)
+end
 
 local ColorSequence = {}
 local CSMT = { __index = {} }
@@ -1898,61 +1978,1100 @@ Workspace.__props.WorldPivot = CFrame.new()
 Workspace.Gravity = 196.2
 Workspace.FallenPartsDestroyHeight = -500
 Workspace.StreamingEnabled = false
-local Terrain = newInstance("Terrain")
-Terrain.Name = "Terrain"
-Terrain.Anchored = true
-Terrain.Parent = Workspace
 local Camera = newInstance("Camera")
 Camera.Name = "Camera"
 Camera.FieldOfView = 70
 Camera.CFrame = CFrame.new(0, 20, 20)
 Camera.Parent = Workspace
 Workspace.CurrentCamera = Camera
-Workspace.Terrain = Terrain
 function methods.GetServerTimeNow(_self)
 	return 1.7e9 + clock
 end
 
--- Terrain: 채우기 호출만 기록 --------------------------------------------------
-local terrainColors = {}
-local function fill(kind: string, cf, size, material)
-	table.insert(Mock.terrainFills, {
-		Kind = kind,
-		CFrame = cf,
-		Size = size,
-		Material = material,
-		Origin = Mock.origin,
-	})
+-- Terrain: 4 스터드 복셀 격자 흉내 ---------------------------------------------------
+-- Roblox 매끈한 지형처럼 복셀(4x4x4 스터드, 격자 원점 0)마다 단단한 재질 + 점유율(0~1) + 물 점유율(Shorelines)을 둠.
+-- 저장: 8x8x8 복셀 청크(32 스터드). 청크 전체가 같은 값이면 값 하나(균일 청크), 아니면 buffer(복셀당 3바이트:
+-- 재질 번호, 단단한 점유율 0~255, 물 점유율 0~255). 3000x3000 바다를 FillBlock 해도 속이 꽉 찬 청크는 균일 청크라 빠르고 작음.
+-- 채우기 규칙(Roblox 동작을 따름. 확인 못 한 곳은 "추정")
+--   * 복셀 점유율 = 복셀 가운데에서 모양 표면까지 거리 d(안쪽 +)로 clamp(0.5 + d / 4, 0, 1). 평평한 면은 정확히 채운 비율
+--   * 단단한 재질: 점유율 = max(기존, 새 값). 재질은 새 값이 기존 이상이거나 0.5 이상이면 새 재질(추정)
+--     물이 있던 복셀에 땅을 채우면 물은 그대로 남음(Shorelines: 한 복셀에 물 + 땅. 그리면 땅이 보임)
+--   * Water: 물 점유율 = max(기존, 새 값) 이고 땅을 깎음(단단한 점유율 <= 1 - 새 값).
+--     Roblox 에서도 물 Fill* 은 땅을 덮어써서, 땅을 다 만든 뒤 바다를 FillBlock 하면 섬이 지워집니다.
+--     바다는 물을 먼저 채우고 땅을 나중에 채우거나, ReplaceMaterial(영역, 4, Air, Water) 로 빈 곳만 채우세요.
+--     깎인 양은 Mock.terrainStats().CutByWater 로 알 수 있음(미리보기 world.luau 가 경고로 알려 줌)
+--   * Air: 단단한 것·물 모두 1 - 새 값 이하로
+-- 읽기(ReadVoxels): 복셀 재질 = 단단한 점유율 >= 물 점유율이면 단단한 재질, 아니면 Water(점유율 = 물), 둘 다 0 이면 Air.
+-- 표면(미리보기·Raycast): 기둥마다 맨 위 단단한 복셀과 그 아래 복셀 점유율로 높이를 매끈하게 계산(Mock.terrainColumn).
+-- 흉내 안 하는 것: CopyRegion/PasteRegion, GetCell/SetCell(옛 API), 지형 물리. Raycast 는 맨 위 표면만 봄(동굴 안쪽 X)
+
+local TERRAIN_MATERIALS = {
+	"Air",
+	"Water",
+	"Grass",
+	"LeafyGrass",
+	"Sand",
+	"Rock",
+	"Slate",
+	"Basalt",
+	"Ground",
+	"Mud",
+	"Snow",
+	"Ice",
+	"Glacier",
+	"Salt",
+	"Limestone",
+	"Sandstone",
+	"Pavement",
+	"Cobblestone",
+	"Brick",
+	"WoodPlanks",
+	"Asphalt",
+	"Concrete",
+	"Granite",
+	"CrackedLava",
+}
+local TERRAIN_INDEX: { [string]: number } = {} -- "Material.Grass" -> 2 (0 = Air, 1 = Water)
+for i, name in TERRAIN_MATERIALS do
+	TERRAIN_INDEX["Material." .. name] = i - 1
 end
+-- Terrain.MaterialColors 기본값(Roblox 새 장소 기본)
+local DEFAULT_MATERIAL_COLORS: { [string]: { number } } = {
+	Grass = { 106, 127, 63 },
+	LeafyGrass = { 115, 132, 74 },
+	Sand = { 143, 126, 95 },
+	Rock = { 102, 108, 111 },
+	Slate = { 63, 127, 107 },
+	Basalt = { 30, 30, 37 },
+	Ground = { 102, 92, 59 },
+	Mud = { 58, 46, 36 },
+	Snow = { 195, 199, 218 },
+	Ice = { 129, 194, 224 },
+	Glacier = { 101, 176, 234 },
+	Salt = { 198, 189, 181 },
+	Limestone = { 206, 173, 148 },
+	Sandstone = { 137, 90, 71 },
+	Pavement = { 148, 148, 140 },
+	Cobblestone = { 132, 123, 90 },
+	Brick = { 138, 86, 62 },
+	WoodPlanks = { 139, 109, 79 },
+	Asphalt = { 115, 123, 107 },
+	Concrete = { 127, 102, 63 },
+	Granite = { 132, 123, 90 },
+	CrackedLava = { 232, 156, 74 },
+}
+
+local terrainColors = {} -- Enum 문자열("Material.Grass") -> Color3 (SetMaterialColor 로 바꾼 것만)
+local chunks: { [number]: any } = {} -- 청크 키 -> { u = true, sm, so, lo } 또는 { u = false, b = buffer }
+local terrainState = {
+	version = 0, -- 쓸 때마다 +1 (기둥 표면 캐시 무효화)
+	bounds = nil :: { number }?, -- 청크 번호 { minX, minY, minZ, maxX, maxY, maxZ }
+	cutByWater = 0, -- 물 채우기가 깎은 땅(복셀 단위, 점유율 합)
+	calls = {} :: { [string]: number }, -- "FillBlock Grass" -> 횟수
+}
+
+local function chunkKey(cx: number, cy: number, cz: number): number
+	return ((cx + 32768) * 65536 + (cy + 32768)) * 65536 + (cz + 32768)
+end
+local function keyToChunk(key: number): (number, number, number)
+	local cz = key % 65536
+	local rest = (key - cz) / 65536
+	local cy = rest % 65536
+	local cx = (rest - cy) / 65536
+	return cx - 32768, cy - 32768, cz - 32768
+end
+
+local function terrainMaterialIndex(material: any, label: string): number
+	local index = TERRAIN_INDEX[material]
+	if index == nil then
+		error(string.format("Terrain:%s: %s 는 지형 재질이 아닙니다(Roblox 도 오류)", label, tostring(material)), 3)
+	end
+	return index
+end
+
+local function countCall(label: string, material: any)
+	local key = label .. " " .. tostring(material):gsub("^Material%.", "")
+	terrainState.calls[key] = (terrainState.calls[key] or 0) + 1
+	table.insert(Mock.terrainFills, { Kind = label, Material = material, Origin = Mock.origin })
+end
+
+local function chunkForWrite(cx: number, cy: number, cz: number)
+	local key = chunkKey(cx, cy, cz)
+	local c = chunks[key]
+	if not c then
+		c = { u = true, sm = 0, so = 0, lo = 0 }
+		chunks[key] = c
+		local b = terrainState.bounds
+		if not b then
+			terrainState.bounds = { cx, cy, cz, cx, cy, cz }
+		else
+			b[1], b[2], b[3] = min(b[1], cx), min(b[2], cy), min(b[3], cz)
+			b[4], b[5], b[6] = max(b[4], cx), max(b[5], cy), max(b[6], cz)
+		end
+	end
+	return c
+end
+
+local function densify(c): buffer
+	if c.u then
+		local b = buffer.create(1536)
+		local sm, so, lo = c.sm, c.so, c.lo
+		if sm ~= 0 or so ~= 0 or lo ~= 0 then
+			for i = 0, 1533, 3 do
+				buffer.writeu8(b, i, sm)
+				buffer.writeu8(b, i + 1, so)
+				buffer.writeu8(b, i + 2, lo)
+			end
+		end
+		c.u = false
+		c.b = b
+	end
+	return c.b
+end
+
+local function readVoxel(vx: number, vy: number, vz: number): (number, number, number)
+	local cx, cy, cz = vx // 8, vy // 8, vz // 8
+	local c = chunks[chunkKey(cx, cy, cz)]
+	if not c then
+		return 0, 0, 0
+	end
+	if c.u then
+		return c.sm, c.so, c.lo
+	end
+	local off = (((vx - cx * 8) * 8 + (vy - cy * 8)) * 8 + (vz - cz * 8)) * 3
+	local b = c.b
+	return buffer.readu8(b, off), buffer.readu8(b, off + 1), buffer.readu8(b, off + 2)
+end
+
+local function writeVoxel(vx: number, vy: number, vz: number, sm: number, so: number, lo: number)
+	if so == 0 then
+		sm = 0
+	end
+	local cx, cy, cz = vx // 8, vy // 8, vz // 8
+	local c = chunks[chunkKey(cx, cy, cz)]
+	if not c then
+		if so == 0 and lo == 0 then
+			return
+		end
+		c = chunkForWrite(cx, cy, cz)
+	end
+	if c.u and c.sm == sm and c.so == so and c.lo == lo then
+		return
+	end
+	local b = densify(c)
+	local off = (((vx - cx * 8) * 8 + (vy - cy * 8)) * 8 + (vz - cz * 8)) * 3
+	buffer.writeu8(b, off, sm)
+	buffer.writeu8(b, off + 1, so)
+	buffer.writeu8(b, off + 2, lo)
+end
+
+-- 청크 통째로 점유율 1 채우기. kind: 0 = Air, 1 = Water, 2 = 단단한 재질
+local function fillWholeChunk(cx: number, cy: number, cz: number, kind: number, mi: number)
+	local key = chunkKey(cx, cy, cz)
+	local c = chunks[key]
+	if kind == 0 then
+		chunks[key] = nil
+		return
+	end
+	if kind == 1 then
+		if c then
+			if c.u then
+				terrainState.cutByWater += c.so / 255 * 512
+			else
+				local b = c.b
+				local cut = 0
+				for i = 1, 1534, 3 do
+					cut += buffer.readu8(b, i)
+				end
+				terrainState.cutByWater += cut / 255
+			end
+		else
+			c = chunkForWrite(cx, cy, cz)
+		end
+		c.u, c.b, c.sm, c.so, c.lo = true, nil, 0, 0, 255
+		return
+	end
+	if not c then
+		c = chunkForWrite(cx, cy, cz)
+	end
+	if c.u then
+		c.sm, c.so = mi, 255
+	else
+		local b = c.b
+		for i = 0, 1533, 3 do
+			buffer.writeu8(b, i, mi)
+			buffer.writeu8(b, i + 1, 255)
+		end
+	end
+end
+
+local function fillPartChunk(
+	cx: number,
+	cy: number,
+	cz: number,
+	x0: number,
+	x1: number,
+	y0: number,
+	y1: number,
+	z0: number,
+	z1: number,
+	sdf: (number, number, number) -> number,
+	kind: number,
+	mi: number,
+	flat: boolean
+)
+	local c = chunks[chunkKey(cx, cy, cz)]
+	local b = if c and not c.u then c.b else nil
+	local cut = 0
+	-- flat: 이 청크 기둥 안에서는 거리가 높이에만 달림(축 정렬 상자가 가로로 덮음) → 층마다 한 번만 계산
+	local layer: { number }? = nil
+	if flat then
+		layer = {}
+		for vy = y0, y1 do
+			local d = sdf(cx * 32 + 16, vy * 4 + 2, cz * 32 + 16)
+			layer[vy - y0 + 1] = if d >= 2 then 255 elseif d <= -2 then 0 else floor((d * 0.25 + 0.5) * 255 + 0.5)
+		end
+	end
+	for vx = x0, x1 do
+		local x = vx * 4 + 2
+		local ox = (vx - cx * 8) * 8
+		for vy = y0, y1 do
+			local y = vy * 4 + 2
+			local oxy = (ox + vy - cy * 8) * 8 - cz * 8
+			local lo0 = if layer then layer[vy - y0 + 1] else -1
+			for vz = z0, z1 do
+				local o = lo0
+				if o < 0 then
+					local d = sdf(x, y, vz * 4 + 2)
+					o = if d >= 2 then 255 elseif d <= -2 then 0 else floor((d * 0.25 + 0.5) * 255 + 0.5)
+				end
+				if o > 0 then
+					if not b then
+						b = densify(chunkForWrite(cx, cy, cz))
+					end
+					local off = (oxy + vz) * 3
+					local sm, so, lo = buffer.readu8(b, off), buffer.readu8(b, off + 1), buffer.readu8(b, off + 2)
+					if kind == 2 then
+						if o >= so or o >= 128 then
+							sm = mi
+						end
+						if o > so then
+							so = o
+						end
+					else
+						local cap = 255 - o
+						if so > cap then
+							if kind == 1 then
+								cut += so - cap
+							end
+							so = cap
+							if so == 0 then
+								sm = 0
+							end
+						end
+						if kind == 1 then
+							if o > lo then
+								lo = o
+							end
+						elseif lo > cap then
+							lo = cap
+						end
+					end
+					buffer.writeu8(b, off, sm)
+					buffer.writeu8(b, off + 1, so)
+					buffer.writeu8(b, off + 2, lo)
+				end
+			end
+		end
+	end
+	terrainState.cutByWater += cut / 255
+end
+
+-- sdf(x, y, z): 모양 안쪽이면 +, 바깥이면 - 인 표면까지 거리(스터드). 볼록 모양만(청크 통째 판정이 볼록성에 기댐).
+-- (minX..maxZ): 모양의 월드 경계 상자
+local function fillShape(
+	label: string,
+	minX: number,
+	minY: number,
+	minZ: number,
+	maxX: number,
+	maxY: number,
+	maxZ: number,
+	sdf: (number, number, number) -> number,
+	material: any,
+	flatBox: { number }? -- 축 정렬 상자면 { minX, maxX, minZ, maxZ }
+)
+	local mi = terrainMaterialIndex(material, label)
+	countCall(label, material)
+	local kind = if mi == 0 then 0 elseif mi == 1 then 1 else 2
+	terrainState.version += 1
+	local vx0, vx1 = floor((minX - 2) / 4), floor((maxX + 2) / 4)
+	local vy0, vy1 = floor((minY - 2) / 4), floor((maxY + 2) / 4)
+	local vz0, vz1 = floor((minZ - 2) / 4), floor((maxZ + 2) / 4)
+	assert((vx1 - vx0 + 1) * (vy1 - vy0 + 1) * (vz1 - vz0 + 1) < 2e9, "Terrain:" .. label .. ": 영역이 너무 큽니다")
+	for cx = vx0 // 8, vx1 // 8 do
+		local bx0, bx1 = max(vx0, cx * 8), min(vx1, cx * 8 + 7)
+		for cy = vy0 // 8, vy1 // 8 do
+			local by0, by1 = max(vy0, cy * 8), min(vy1, cy * 8 + 7)
+			for cz = vz0 // 8, vz1 // 8 do
+				local bz0, bz1 = max(vz0, cz * 8), min(vz1, cz * 8 + 7)
+				-- 청크 가운데가 모양에서 (청크 반대각선 24.3 + 2) 보다 멀면 닿는 복셀 없음
+				local dc = sdf(cx * 32 + 16, cy * 32 + 16, cz * 32 + 16)
+				if dc > -26.3 then
+					local whole = dc >= 2
+						and bx0 == cx * 8
+						and bx1 == cx * 8 + 7
+						and by0 == cy * 8
+						and by1 == cy * 8 + 7
+						and bz0 == cz * 8
+						and bz1 == cz * 8 + 7
+					if whole then
+						-- 볼록 모양의 안쪽 거리는 오목 함수라 복셀 가운데들의 상자 8 꼭짓점이 최솟값을 가짐
+						local ax, bx = cx * 32 + 2, cx * 32 + 30
+						local ay, by = cy * 32 + 2, cy * 32 + 30
+						local az, bz = cz * 32 + 2, cz * 32 + 30
+						whole = sdf(ax, ay, az) >= 2
+							and sdf(bx, ay, az) >= 2
+							and sdf(ax, by, az) >= 2
+							and sdf(bx, by, az) >= 2
+							and sdf(ax, ay, bz) >= 2
+							and sdf(bx, ay, bz) >= 2
+							and sdf(ax, by, bz) >= 2
+							and sdf(bx, by, bz) >= 2
+					end
+					if whole then
+						fillWholeChunk(cx, cy, cz, kind, mi)
+					else
+						local flat = flatBox ~= nil
+							and flatBox[1] <= cx * 32
+							and flatBox[2] >= cx * 32 + 32
+							and flatBox[3] <= cz * 32
+							and flatBox[4] >= cz * 32 + 32
+						fillPartChunk(cx, cy, cz, bx0, bx1, by0, by1, bz0, bz1, sdf, kind, mi, flat)
+					end
+				end
+			end
+		end
+	end
+end
+
+-- 모양별 거리 함수 --------------------------------------------------------------------
+local function boxShape(cf, size)
+	local p, m = cf.p, cf.m
+	local px, py, pz = p.X, p.Y, p.Z
+	local m1, m2, m3, m4, m5, m6, m7, m8, m9 = m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8], m[9]
+	local hx, hy, hz = abs(size.X) / 2, abs(size.Y) / 2, abs(size.Z) / 2
+	local sdf = function(x: number, y: number, z: number): number
+		local dx, dy, dz = x - px, y - py, z - pz
+		local lx = abs(m1 * dx + m4 * dy + m7 * dz) - hx
+		local ly = abs(m2 * dx + m5 * dy + m8 * dz) - hy
+		local lz = abs(m3 * dx + m6 * dy + m9 * dz) - hz
+		local inside = max(lx, ly, lz)
+		if inside <= 0 then
+			return -inside
+		end
+		local ox, oy, oz = max(lx, 0), max(ly, 0), max(lz, 0)
+		return -sqrt(ox * ox + oy * oy + oz * oz)
+	end
+	local ex = abs(m1) * hx + abs(m2) * hy + abs(m3) * hz
+	local ey = abs(m4) * hx + abs(m5) * hy + abs(m6) * hz
+	local ez = abs(m7) * hx + abs(m8) * hy + abs(m9) * hz
+	local flat = nil
+	if abs(abs(m5) - 1) < 1e-9 and (abs(abs(m1) - 1) < 1e-9 or abs(abs(m3) - 1) < 1e-9) then
+		flat = { px - ex, px + ex, pz - ez, pz + ez }
+	end
+	return sdf, px - ex, py - ey, pz - ez, px + ex, py + ey, pz + ez, flat
+end
+
+local Terrain = newInstance("Terrain")
+Terrain.Name = "Terrain"
+Terrain.Anchored = true
+Terrain.Parent = Workspace
+Workspace.Terrain = Terrain
+for k, v in
+	{
+		WaterColor = Color3.fromRGB(12, 84, 92),
+		WaterTransparency = 0.3,
+		WaterReflectance = 1,
+		WaterWaveSize = 0.15,
+		WaterWaveSpeed = 10,
+		Decoration = false,
+		GrassLength = 0.7,
+	}
+do
+	Terrain.__props[k] = v
+end
+
 Terrain.__props.FillBlock = function(_self, cf, size, material)
-	fill("Block", cf, size, material)
+	assert(getmetatable(cf) == CMT and getmetatable(size) == VMT, "Terrain:FillBlock(CFrame, Vector3, Material)")
+	local sdf, x0, y0, z0, x1, y1, z1, flat = boxShape(cf, size)
+	fillShape("FillBlock", x0, y0, z0, x1, y1, z1, sdf, material, flat)
 end
-Terrain.__props.FillBall = function(_self, center, radius, material)
-	fill("Ball", CFrame.new(center), vec(radius * 2, radius * 2, radius * 2), material)
+Terrain.__props.FillBall = function(_self, center, radius: number, material)
+	assert(getmetatable(center) == VMT and type(radius) == "number", "Terrain:FillBall(Vector3, number, Material)")
+	local px, py, pz = center.X, center.Y, center.Z
+	local r = abs(radius)
+	fillShape("FillBall", px - r, py - r, pz - r, px + r, py + r, pz + r, function(x, y, z)
+		local dx, dy, dz = x - px, y - py, z - pz
+		return r - sqrt(dx * dx + dy * dy + dz * dz)
+	end, material)
 end
-Terrain.__props.FillCylinder = function(_self, cf, height, radius, material)
-	-- 지형 원기둥은 cf 의 Y 축 방향
-	fill("Cylinder", cf, vec(radius * 2, height, radius * 2), material)
+Terrain.__props.FillCylinder = function(_self, cf, height: number, radius: number, material)
+	-- 지형 원기둥은 cf 의 Y 축 방향(파트 Cylinder 의 X 축과 다름)
+	assert(getmetatable(cf) == CMT, "Terrain:FillCylinder(CFrame, number, number, Material)")
+	local p, m = cf.p, cf.m
+	local px, py, pz = p.X, p.Y, p.Z
+	local m1, m2, m3, m4, m5, m6, m7, m8, m9 = m[1], m[2], m[3], m[4], m[5], m[6], m[7], m[8], m[9]
+	local r, hh = abs(radius), abs(height) / 2
+	local ex = abs(m2) * hh + r * sqrt(max(0, 1 - m2 * m2))
+	local ey = abs(m5) * hh + r * sqrt(max(0, 1 - m5 * m5))
+	local ez = abs(m8) * hh + r * sqrt(max(0, 1 - m8 * m8))
+	fillShape("FillCylinder", px - ex, py - ey, pz - ez, px + ex, py + ey, pz + ez, function(x, y, z)
+		local dx, dy, dz = x - px, y - py, z - pz
+		local lx = m1 * dx + m4 * dy + m7 * dz
+		local ly = m2 * dx + m5 * dy + m8 * dz
+		local lz = m3 * dx + m6 * dy + m9 * dz
+		local dr = sqrt(lx * lx + lz * lz) - r
+		local dh = abs(ly) - hh
+		local inside = max(dr, dh)
+		if inside <= 0 then
+			return -inside
+		end
+		local ox, oy = max(dr, 0), max(dh, 0)
+		return -sqrt(ox * ox + oy * oy)
+	end, material)
 end
 Terrain.__props.FillWedge = function(_self, cf, size, material)
-	fill("Wedge", cf, size, material)
+	-- WedgePart 와 같은 모양: 바닥 전체 + 뒤(+Z) 면 전체, 경사면은 -Z 아래 모서리에서 +Z 위 모서리로
+	assert(getmetatable(cf) == CMT and getmetatable(size) == VMT, "Terrain:FillWedge(CFrame, Vector3, Material)")
+	local box, x0, y0, z0, x1, y1, z1 = boxShape(cf, size)
+	local p, m = cf.p, cf.m
+	local px, py, pz = p.X, p.Y, p.Z
+	local m2, m3, m5, m6, m8, m9 = m[2], m[3], m[5], m[6], m[8], m[9]
+	local h, d = abs(size.Y), abs(size.Z)
+	local n = sqrt(h * h + d * d)
+	fillShape("FillWedge", x0, y0, z0, x1, y1, z1, function(x, y, z)
+		local dx, dy, dz = x - px, y - py, z - pz
+		local ly = m2 * dx + m5 * dy + m8 * dz
+		local lz = m3 * dx + m6 * dy + m9 * dz
+		return min(box(x, y, z), -(ly * d - lz * h) / n)
+	end, material)
 end
-Terrain.__props.FillRegion = function(_self, _region, _resolution, material)
-	table.insert(
-		Mock.warnings,
-		"Terrain:FillRegion 은 미리보기에 안 나옵니다 (" .. tostring(material) .. ")"
+
+-- 격자에 맞춘 영역 -> 복셀 번호 범위(양끝 포함)
+local function regionVoxels(region, resolution: number, label: string): (number, number, number, number, number, number)
+	assert(getmetatable(region) == R3MT, "Terrain:" .. label .. ": Region3 가 아닙니다")
+	if resolution ~= 4 then
+		error("Terrain:" .. label .. ": resolution 은 4 만 됩니다", 3)
+	end
+	local lo, hi = region.__min, region.__max
+	for _, v in { lo.X, lo.Y, lo.Z, hi.X, hi.Y, hi.Z } do
+		if v % 4 ~= 0 then
+			error("Terrain:" .. label .. ": Region has to be aligned to the grid (use Region3:ExpandToGrid)", 3)
+		end
+	end
+	return lo.X / 4, lo.Y / 4, lo.Z / 4, hi.X / 4 - 1, hi.Y / 4 - 1, hi.Z / 4 - 1
+end
+
+Terrain.__props.FillRegion = function(_self, region, resolution: number, material)
+	local x0, y0, z0, x1, y1, z1 = regionVoxels(region, resolution, "FillRegion")
+	local lo, hi = region.__min, region.__max
+	local sdf, _, _, _, _, _, _, flat = boxShape(region.CFrame, hi - lo)
+	fillShape("FillRegion", x0 * 4, y0 * 4, z0 * 4, (x1 + 1) * 4, (y1 + 1) * 4, (z1 + 1) * 4, sdf, material, flat)
+end
+
+-- ReadVoxels 가 보여 주는 복셀 하나의 재질 번호·점유율
+local function visibleVoxel(sm: number, so: number, lo: number): (number, number)
+	if so > 0 and so >= lo then
+		return sm, so / 255
+	elseif lo > 0 then
+		return 1, lo / 255
+	end
+	return 0, 0
+end
+
+Terrain.__props.ReadVoxels = function(_self, region, resolution: number)
+	local x0, y0, z0, x1, y1, z1 = regionVoxels(region, resolution, "ReadVoxels")
+	local materials, occupancies = {}, {}
+	for vx = x0, x1 do
+		local mx, ox = {}, {}
+		for vy = y0, y1 do
+			local my, oy = {}, {}
+			for vz = z0, z1 do
+				local index, occupancy = visibleVoxel(readVoxel(vx, vy, vz))
+				table.insert(my, "Material." .. TERRAIN_MATERIALS[index + 1])
+				table.insert(oy, occupancy)
+			end
+			table.insert(mx, my)
+			table.insert(ox, oy)
+		end
+		table.insert(materials, mx)
+		table.insert(occupancies, ox)
+	end
+	local size = vec(x1 - x0 + 1, y1 - y0 + 1, z1 - z0 + 1)
+	materials.Size = size
+	occupancies.Size = size
+	return materials, occupancies
+end
+
+local function checkVoxelArray(array, x0, y0, z0, x1, y1, z1, label: string)
+	assert(
+		type(array) == "table"
+			and #array == x1 - x0 + 1
+			and #array[1] == y1 - y0 + 1
+			and #array[1][1] == z1 - z0 + 1,
+		"Terrain:" .. label .. ": 배열 크기가 영역과 다릅니다"
 	)
 end
+
+Terrain.__props.WriteVoxels = function(_self, region, resolution: number, materials, occupancies)
+	local x0, y0, z0, x1, y1, z1 = regionVoxels(region, resolution, "WriteVoxels")
+	checkVoxelArray(materials, x0, y0, z0, x1, y1, z1, "WriteVoxels")
+	checkVoxelArray(occupancies, x0, y0, z0, x1, y1, z1, "WriteVoxels")
+	countCall("WriteVoxels", "")
+	terrainState.version += 1
+	for i = 1, x1 - x0 + 1 do
+		for j = 1, y1 - y0 + 1 do
+			for k = 1, z1 - z0 + 1 do
+				local mi = terrainMaterialIndex(materials[i][j][k], "WriteVoxels")
+				local o = floor(math.clamp(occupancies[i][j][k], 0, 1) * 255 + 0.5)
+				local vx, vy, vz = x0 + i - 1, y0 + j - 1, z0 + k - 1
+				if mi == 0 or o == 0 then
+					writeVoxel(vx, vy, vz, 0, 0, 0)
+				elseif mi == 1 then
+					writeVoxel(vx, vy, vz, 0, 0, o)
+				else
+					writeVoxel(vx, vy, vz, mi, o, 0)
+				end
+			end
+		end
+	end
+end
+
+-- Shorelines 채널 API: SolidMaterial / SolidOccupancy / LiquidOccupancy
+Terrain.__props.ReadVoxelChannels = function(_self, region, resolution: number, channelIds: { string })
+	local x0, y0, z0, x1, y1, z1 = regionVoxels(region, resolution, "ReadVoxelChannels")
+	local out = {}
+	local wanted = {}
+	for _, id in channelIds do
+		assert(id == "SolidMaterial" or id == "SolidOccupancy" or id == "LiquidOccupancy", "모르는 채널 " .. tostring(id))
+		wanted[id] = true
+		out[id] = {}
+	end
+	for vx = x0, x1 do
+		local planes = {}
+		for id in wanted do
+			planes[id] = {}
+			table.insert(out[id], planes[id])
+		end
+		for vy = y0, y1 do
+			local rows = {}
+			for id in wanted do
+				rows[id] = {}
+				table.insert(planes[id], rows[id])
+			end
+			for vz = z0, z1 do
+				local sm, so, lo = readVoxel(vx, vy, vz)
+				if rows.SolidMaterial then
+					table.insert(rows.SolidMaterial, "Material." .. TERRAIN_MATERIALS[sm + 1])
+				end
+				if rows.SolidOccupancy then
+					table.insert(rows.SolidOccupancy, so / 255)
+				end
+				if rows.LiquidOccupancy then
+					table.insert(rows.LiquidOccupancy, lo / 255)
+				end
+			end
+		end
+	end
+	out.Size = vec(x1 - x0 + 1, y1 - y0 + 1, z1 - z0 + 1)
+	return out
+end
+
+Terrain.__props.WriteVoxelChannels = function(_self, region, resolution: number, channels)
+	local x0, y0, z0, x1, y1, z1 = regionVoxels(region, resolution, "WriteVoxelChannels")
+	for id, array in channels do
+		if id ~= "Size" then
+			assert(
+				id == "SolidMaterial" or id == "SolidOccupancy" or id == "LiquidOccupancy",
+				"모르는 채널 " .. tostring(id)
+			)
+			checkVoxelArray(array, x0, y0, z0, x1, y1, z1, "WriteVoxelChannels")
+		end
+	end
+	countCall("WriteVoxelChannels", "")
+	terrainState.version += 1
+	local mats, solids, liquids = channels.SolidMaterial, channels.SolidOccupancy, channels.LiquidOccupancy
+	for i = 1, x1 - x0 + 1 do
+		for j = 1, y1 - y0 + 1 do
+			for k = 1, z1 - z0 + 1 do
+				local vx, vy, vz = x0 + i - 1, y0 + j - 1, z0 + k - 1
+				local sm, so, lo = readVoxel(vx, vy, vz)
+				if mats then
+					sm = terrainMaterialIndex(mats[i][j][k], "WriteVoxelChannels")
+					if sm == 1 then
+						error("Terrain:WriteVoxelChannels: SolidMaterial 에 Water 는 못 넣습니다", 2)
+					end
+				end
+				if solids then
+					so = floor(math.clamp(solids[i][j][k], 0, 1) * 255 + 0.5)
+				end
+				if liquids then
+					lo = floor(math.clamp(liquids[i][j][k], 0, 1) * 255 + 0.5)
+				end
+				if sm == 0 then
+					so = 0
+				end
+				writeVoxel(vx, vy, vz, sm, so, lo)
+			end
+		end
+	end
+end
+
+Terrain.__props.ReplaceMaterial = function(_self, region, resolution: number, source, target)
+	local x0, y0, z0, x1, y1, z1 = regionVoxels(region, resolution, "ReplaceMaterial")
+	local si = terrainMaterialIndex(source, "ReplaceMaterial")
+	local ti = terrainMaterialIndex(target, "ReplaceMaterial")
+	countCall("ReplaceMaterial", tostring(source) .. "->" .. tostring(target))
+	terrainState.version += 1
+	for vx = x0, x1 do
+		for vy = y0, y1 do
+			for vz = z0, z1 do
+				local sm, so, lo = readVoxel(vx, vy, vz)
+				local current = visibleVoxel(sm, so, lo)
+				if current == si then
+					-- 빈 복셀(Air)을 바꾸면 꽉 채움, 물이면 물 점유율, 땅이면 땅 점유율을 그대로
+					local occupancy = if si == 0 then 255 elseif si == 1 then lo else so
+					if ti == 0 then
+						writeVoxel(vx, vy, vz, 0, 0, 0)
+					elseif ti == 1 then
+						writeVoxel(vx, vy, vz, 0, 0, occupancy)
+					elseif si == 1 then
+						writeVoxel(vx, vy, vz, ti, occupancy, 0)
+					else
+						writeVoxel(vx, vy, vz, ti, occupancy, lo)
+					end
+				end
+			end
+		end
+	end
+end
+
 Terrain.__props.Clear = function(_self)
-	table.clear(Mock.terrainFills)
+	table.clear(chunks)
+	terrainState.bounds = nil
+	terrainState.version += 1
+	countCall("Clear", "")
 end
 Terrain.__props.SetMaterialColor = function(_self, material, c)
+	local index = terrainMaterialIndex(material, "SetMaterialColor")
+	assert(index >= 2, "Terrain:SetMaterialColor: Air/Water 는 색을 못 바꿉니다(물은 WaterColor)")
+	assert(getmetatable(c) == C3MT, "Terrain:SetMaterialColor(Material, Color3)")
 	terrainColors[material] = c
 end
 Terrain.__props.GetMaterialColor = function(_self, material)
-	return terrainColors[material] or Color3.new(0.5, 0.5, 0.5)
+	local index = terrainMaterialIndex(material, "GetMaterialColor")
+	local custom = terrainColors[material]
+	if custom then
+		return custom
+	end
+	local rgb = DEFAULT_MATERIAL_COLORS[TERRAIN_MATERIALS[index + 1]] or { 128, 128, 128 }
+	return Color3.fromRGB(rgb[1], rgb[2], rgb[3])
 end
+Terrain.__props.CellCenterToWorld = function(_self, x: number, y: number, z: number)
+	return vec(x * 4 + 2, y * 4 + 2, z * 4 + 2)
+end
+Terrain.__props.CellCornerToWorld = function(_self, x: number, y: number, z: number)
+	return vec(x * 4, y * 4, z * 4)
+end
+Terrain.__props.WorldToCell = function(_self, p)
+	return vec(floor(p.X / 4), floor(p.Y / 4), floor(p.Z / 4))
+end
+Terrain.__props.WorldToCellPreferSolid = Terrain.__props.WorldToCell
+Terrain.__props.WorldToCellPreferEmpty = Terrain.__props.WorldToCell
+Terrain.__props.CopyRegion = function()
+	error("Terrain:CopyRegion 은 흉내 내지 않습니다", 2)
+end
+Terrain.__props.PasteRegion = function()
+	error("Terrain:PasteRegion 은 흉내 내지 않습니다", 2)
+end
+Terrain.__props.MaxExtents = Region3int16.new(vec16(-32000, -32000, -32000), vec16(32000, 32000, 32000))
 Mock.terrainColors = terrainColors
+
+-- 기둥 표면 ----------------------------------------------------------------------------
+-- 기둥(가로 4x4 스터드 복셀 한 줄 vx, vz)의 위 표면.
+-- 돌려줌: 땅 윗면 높이(없으면 nil), 윗면 재질 번호, 물 윗면(없거나 땅이 더 높으면 nil), 물 밑면(물 아래 땅이 없을 때)
+-- 땅 높이: 맨 위 단단한 복셀 t 의 점유율 oT, 그 아래 복셀 oB 로
+--   oT >= 0.5 이거나 아래가 꽉 참/빔 → t 바닥 + 4·oT (평평한 땅이면 정확히 채운 높이)
+--   oT < 0.5 이고 0.5 <= oB < 1 → 두 복셀 가운데 사이에서 점유율 0.5 가 되는 곳(비탈)
+--   둘 다 0.5 미만 → 아래 복셀 바닥 + 4·oB
+local function columnSurface(vx: number, vz: number): (number?, number, number?, number?)
+	local bounds = terrainState.bounds
+	if not bounds then
+		return nil, 0, nil, nil
+	end
+	local cx, cz = vx // 8, vz // 8
+	if cx < bounds[1] or cx > bounds[4] or cz < bounds[3] or cz > bounds[6] then
+		return nil, 0, nil, nil
+	end
+	local lx, lz = vx - cx * 8, vz - cz * 8
+	local waterTop: number?, waterBottom: number? = nil, nil
+	local inWater = false
+	local top: number? = nil
+	for cy = bounds[5], bounds[2], -1 do
+		local c = chunks[chunkKey(cx, cy, cz)]
+		if c == nil or (c.u and c.so == 0 and c.lo == 0) then
+			if inWater then
+				inWater = false
+				waterBottom = (cy + 1) * 32
+			end
+		else
+			local b = if c.u then nil else c.b
+			for ly = 7, 0, -1 do
+				local so, lo
+				if b then
+					local off = ((lx * 8 + ly) * 8 + lz) * 3
+					so, lo = buffer.readu8(b, off + 1), buffer.readu8(b, off + 2)
+				else
+					so, lo = c.so, c.lo
+				end
+				local vy = cy * 8 + ly
+				if lo > 0 then
+					if waterTop == nil then
+						-- 한 복셀에 땅 + 물이면 물은 땅 위 빈 곳을 채움(Shorelines)
+						waterTop = vy * 4 + min(255, lo + so) / 255 * 4
+						inWater = true
+					end
+				elseif inWater then
+					inWater = false
+					waterBottom = vy * 4 + 4
+				end
+				if so > 3 then
+					top = vy
+					break
+				end
+			end
+			if top then
+				break
+			end
+		end
+	end
+	if top == nil then
+		if inWater then
+			waterBottom = bounds[2] * 32
+		end
+		return nil, 0, waterTop, waterBottom
+	end
+	local smT, soT = readVoxel(vx, top, vz)
+	local smB, soB = readVoxel(vx, top - 1, vz)
+	local oT, oB = soT / 255, soB / 255
+	local h
+	if oT >= 0.5 or oB >= 0.99 or oB <= 0 then
+		h = top * 4 + oT * 4
+	elseif oB >= 0.5 then
+		h = (top - 1) * 4 + 2 + 4 * (oB - 0.5) / (oB - oT)
+	else
+		h = (top - 1) * 4 + oB * 4
+	end
+	local material = if soT >= 64 or soB == 0 then smT else smB
+	if waterTop and waterTop <= h then
+		waterTop = nil
+	end
+	return h, material, waterTop, waterBottom
+end
+
+local columnCache: { [number]: { any } } = {}
+local function cachedColumn(vx: number, vz: number): (number?, number, number?, number?)
+	local key = (vx + 32768) * 65536 + (vz + 32768)
+	local e = columnCache[key]
+	if e and e[1] == terrainState.version then
+		return e[2], e[3], e[4], e[5]
+	end
+	local h, material, w, wb = columnSurface(vx, vz)
+	columnCache[key] = { terrainState.version, h, material, w, wb }
+	return h, material, w, wb
+end
+
+-- (x, z) 의 매끈한 지형 높이: 이웃 기둥 가운데 4개를 쌍선형 보간(하나라도 없으면 가장 가까운 기둥). 없으면 nil
+local function terrainHeight(x: number, z: number, withWater: boolean): number?
+	local fx, fz = (x - 2) / 4, (z - 2) / 4
+	local vx, vz = floor(fx), floor(fz)
+	local tx, tz = fx - vx, fz - vz
+	local function at(ix: number, iz: number): number?
+		local h, _, w = cachedColumn(ix, iz)
+		if withWater and w and (h == nil or w > h) then
+			return w
+		end
+		return h
+	end
+	local a, b, c, d = at(vx, vz), at(vx + 1, vz), at(vx, vz + 1), at(vx + 1, vz + 1)
+	if a and b and c and d then
+		return (a * (1 - tx) + b * tx) * (1 - tz) + (c * (1 - tx) + d * tx) * tz
+	end
+	return at(floor(fx + 0.5), floor(fz + 0.5))
+end
+
+-- 지형 광선: 맨 위 표면(물 포함 여부 선택)과 처음 만나는 t(0~1), 법선, 재질. 시작점이 이미 표면 아래면 nil
+local function terrainRaycast(origin, direction, ignoreWater: boolean): (number?, any, string?)
+	local bounds = terrainState.bounds
+	if not bounds then
+		return nil
+	end
+	local lo = { bounds[1] * 32, bounds[2] * 32, bounds[3] * 32 }
+	local hi = { (bounds[4] + 1) * 32, (bounds[5] + 1) * 32, (bounds[6] + 1) * 32 }
+	local o = { origin.X, origin.Y, origin.Z }
+	local d = { direction.X, direction.Y, direction.Z }
+	local t0, t1 = 0, 1
+	for i = 1, 3 do
+		if abs(d[i]) < 1e-12 then
+			if o[i] < lo[i] or o[i] > hi[i] then
+				return nil
+			end
+		else
+			local a, b = (lo[i] - o[i]) / d[i], (hi[i] - o[i]) / d[i]
+			if a > b then
+				a, b = b, a
+			end
+			t0, t1 = max(t0, a), min(t1, b)
+			if t0 > t1 then
+				return nil
+			end
+		end
+	end
+	local length = direction.Magnitude
+	if length < 1e-9 then
+		return nil
+	end
+	local function gap(t: number): number
+		local h = terrainHeight(o[1] + d[1] * t, o[3] + d[3] * t, not ignoreWater)
+		return if h then o[2] + d[2] * t - h else huge
+	end
+	local t = t0
+	local g = gap(t)
+	if g <= 0 then
+		return nil
+	end
+	while t < t1 do
+		local previous = t
+		t = min(t + math.clamp(g * 0.5, 0.2, 6) / length, t1)
+		g = gap(t)
+		if g <= 0 then
+			local a, b = previous, t
+			for _ = 1, 14 do
+				local mid = (a + b) / 2
+				if gap(mid) <= 0 then
+					b = mid
+				else
+					a = mid
+				end
+			end
+			local x, y, z = o[1] + d[1] * b, o[2] + d[2] * b, o[3] + d[3] * b
+			local solid = terrainHeight(x, z, false)
+			if not ignoreWater and (solid == nil or y > solid + 0.05) then
+				return b, vec(0, 1, 0), "Material.Water"
+			end
+			local e = 1
+			local hx0, hx1 = terrainHeight(x - e, z, false) or y, terrainHeight(x + e, z, false) or y
+			local hz0, hz1 = terrainHeight(x, z - e, false) or y, terrainHeight(x, z + e, false) or y
+			local _, material = cachedColumn(floor(x / 4), floor(z / 4))
+			return b,
+				vec(-(hx1 - hx0) / (2 * e), 1, -(hz1 - hz0) / (2 * e)).Unit,
+				"Material." .. TERRAIN_MATERIALS[material + 1]
+		end
+	end
+	return nil
+end
+
+-- 미리보기/검사용 --------------------------------------------------------------------
+-- (x, z) 의 지형: 땅 높이(없으면 nil), 윗면 재질("Grass" 등), 물 윗면(없으면 nil)
+function Mock.terrainColumn(x: number, z: number): (number?, string, number?)
+	local h, material, w = cachedColumn(floor(x / 4), floor(z / 4))
+	return h, TERRAIN_MATERIALS[material + 1], w
+end
+Mock.terrainHeight = terrainHeight
+Mock.terrainVoxel = function(vx: number, vy: number, vz: number)
+	return readVoxel(vx, vy, vz)
+end
+function Mock.terrainStats()
+	local uniform, dense = 0, 0
+	for _, c in chunks do
+		if c.u then
+			uniform += 1
+		else
+			dense += 1
+		end
+	end
+	return {
+		UniformChunks = uniform,
+		DenseChunks = dense,
+		CutByWater = terrainState.cutByWater,
+		Calls = terrainState.calls,
+		Bounds = terrainState.bounds,
+	}
+end
+
+-- 렌더러용 덤프(JSON 문자열, 지형이 없으면 nil).
+-- 격자 두 벌: coarse(청크 모서리마다 한 기둥, 32 스터드 간격, 지형 경계 상자 전체) +
+--   tiles(흔한 모양과 다른 청크 기둥마다 4 스터드 간격 9x9 기둥. 너무 많으면 8/16 스터드 간격).
+--   "흔한 모양" = 청크 기둥(세로 청크 목록) 서명이 가장 많은 것(보통 바다). 다른 기둥 둘레 한 칸까지 타일.
+-- 기둥 값: h = 땅 높이, w = 물 윗면, b = 물 밑면(물 아래 땅 없을 때) — 모두 1/8 스터드 정수, 없으면 null. m = 재질 번호
+function Mock.terrainDumpJson(props: { [string]: any }): string?
+	local bounds = terrainState.bounds
+	if not bounds then
+		return nil
+	end
+	local bx0, by0, bz0, bx1, by1, bz1 = bounds[1], bounds[2], bounds[3], bounds[4], bounds[5], bounds[6]
+	local maxVx, maxVz = (bx1 + 1) * 8 - 1, (bz1 + 1) * 8 - 1
+	-- 1) 청크 기둥 서명
+	local tokens: { [number]: { string } } = {}
+	for key, c in chunks do
+		if not (c.u and c.so == 0 and c.lo == 0) then
+			local cx, cy, cz = keyToChunk(key)
+			local ck = (cx + 32768) * 65536 + (cz + 32768)
+			local list = tokens[ck]
+			if not list then
+				list = {}
+				tokens[ck] = list
+			end
+			table.insert(
+				list,
+				if c.u
+					then string.format("%06d:%d:%d:%d", cy + 32768, c.sm, c.so, c.lo)
+					else string.format("%06d:D", cy + 32768) .. buffer.tostring(c.b)
+			)
+		end
+	end
+	local signature: { [number]: string } = {}
+	local counts: { [string]: number } = {}
+	for cx = bx0, bx1 do
+		for cz = bz0, bz1 do
+			local ck = (cx + 32768) * 65536 + (cz + 32768)
+			local list = tokens[ck]
+			local sig = ""
+			if list then
+				table.sort(list)
+				sig = table.concat(list, "|")
+			end
+			signature[ck] = sig
+			counts[sig] = (counts[sig] or 0) + 1
+		end
+	end
+	local modal, best = nil, 1
+	for sig, n in counts do
+		if n > best or (n == best and sig == "") then
+			modal, best = sig, n
+		end
+	end
+	-- 2) 타일 = 흔하지 않은 기둥 + 둘레 한 칸
+	local tileSet: { [number]: boolean } = {}
+	local tileList: { { number } } = {}
+	for cx = bx0, bx1 do
+		for cz = bz0, bz1 do
+			if signature[(cx + 32768) * 65536 + (cz + 32768)] ~= modal then
+				for ax = max(bx0, cx - 1), min(bx1, cx + 1) do
+					for az = max(bz0, cz - 1), min(bz1, cz + 1) do
+						local k = (ax + 32768) * 65536 + (az + 32768)
+						if not tileSet[k] then
+							tileSet[k] = true
+							table.insert(tileList, { ax, az })
+						end
+					end
+				end
+			end
+		end
+	end
+	table.sort(tileList, function(a, b)
+		return if a[2] ~= b[2] then a[2] < b[2] else a[1] < b[1]
+	end)
+	local step = 1
+	if #tileList * 81 > 260000 then
+		step = if #tileList * 25 > 260000 then 4 else 2
+	end
+
+	local function q(v: number?): string
+		return if v then tostring(math.round(v * 8)) else "null"
+	end
+	local function grid(xs: { number }, zs: { number }): string
+		local h, m, w, b = {}, {}, {}, {}
+		for _, vz in zs do
+			for _, vx in xs do
+				local height, material, water, bottom = cachedColumn(vx, vz)
+				table.insert(h, q(height))
+				table.insert(m, tostring(material))
+				table.insert(w, q(water))
+				table.insert(b, q(if water and not height then bottom else nil))
+			end
+		end
+		local px, pz = {}, {}
+		for i, vx in xs do
+			px[i] = tostring(vx * 4 + 2)
+		end
+		for i, vz in zs do
+			pz[i] = tostring(vz * 4 + 2)
+		end
+		return string.format(
+			'"xs":[%s],"zs":[%s],"h":[%s],"m":[%s],"w":[%s],"b":[%s]',
+			table.concat(px, ","),
+			table.concat(pz, ","),
+			table.concat(h, ","),
+			table.concat(m, ","),
+			table.concat(w, ","),
+			table.concat(b, ",")
+		)
+	end
+
+	local coarseX, coarseZ = {}, {}
+	for cx = bx0, bx1 + 1 do
+		table.insert(coarseX, min(cx * 8, maxVx))
+	end
+	for cz = bz0, bz1 + 1 do
+		table.insert(coarseZ, min(cz * 8, maxVz))
+	end
+	local tiles = {}
+	for _, tile in tileList do
+		local xs, zs = {}, {}
+		for a = 0, 8, step do
+			table.insert(xs, min(tile[1] * 8 + a, maxVx))
+			table.insert(zs, min(tile[2] * 8 + a, maxVz))
+		end
+		table.insert(tiles, string.format('{"cx":%d,"cz":%d,%s}', tile[1], tile[2], grid(xs, zs)))
+	end
+
+	local names = {}
+	for i, name in TERRAIN_MATERIALS do
+		names[i] = json.encode(name)
+	end
+	local colors = {}
+	for i = 3, #TERRAIN_MATERIALS do
+		local name = TERRAIN_MATERIALS[i]
+		local c = Terrain:GetMaterialColor("Material." .. name)
+		table.insert(colors, string.format('"%s":[%.4f,%.4f,%.4f]', name, c.R, c.G, c.B))
+	end
+	local stats = Mock.terrainStats()
+	return string.format(
+		'{"voxel":4,"chunk":32,"step":%d,"materials":[%s],"colors":{%s},"props":%s,'
+			.. '"bounds":[%d,%d,%d,%d,%d,%d],"coarse":{"cx0":%d,"cz0":%d,%s},"tiles":[%s],'
+			.. '"stats":{"uniformChunks":%d,"denseChunks":%d,"cutByWater":%.1f,"calls":%s}}',
+		step * 4,
+		table.concat(names, ","),
+		table.concat(colors, ","),
+		json.encode(props),
+		bx0 * 32,
+		by0 * 32,
+		bz0 * 32,
+		(bx1 + 1) * 32,
+		(by1 + 1) * 32,
+		(bz1 + 1) * 32,
+		bx0,
+		bz0,
+		grid(coarseX, coarseZ),
+		table.concat(tiles, ","),
+		stats.UniformChunks,
+		stats.DenseChunks,
+		stats.CutByWater,
+		json.encode(stats.Calls)
+	)
+end
 
 -- Raycast: 파트를 상자(Ball 은 구)로 보고 가장 가까운 것 --------------------------
 local function rayBox(part, origin, dir)
@@ -2041,6 +3160,20 @@ function methods.Raycast(self, origin, direction, params)
 			end
 		end
 	end
+	local bestMaterial = bestPart and bestPart.Material
+	-- 지형(Workspace 에서 쏠 때만): 걸러내기 목록에 Terrain 이 있으면 Exclude 는 빼고, Include 는 그때만
+	if self == Workspace then
+		local skipTerrain = filtered(Terrain)
+		if include then
+			skipTerrain = not skipTerrain
+		end
+		if not skipTerrain then
+			local t, n, material = terrainRaycast(origin, direction, params ~= nil and params.IgnoreWater == true)
+			if t and t < best then
+				best, bestNormal, bestPart, bestMaterial = t, n, Terrain, material
+			end
+		end
+	end
 	if not bestPart then
 		return nil
 	end
@@ -2049,7 +3182,7 @@ function methods.Raycast(self, origin, direction, params)
 		Position = origin + direction * best,
 		Normal = bestNormal,
 		Distance = direction.Magnitude * best,
-		Material = bestPart.Material,
+		Material = bestMaterial,
 	}
 end
 
@@ -2240,6 +3373,9 @@ _G.TweenInfo = TweenInfo
 _G.RaycastParams = RaycastParams
 _G.OverlapParams = OverlapParams
 _G.Ray = Ray
+_G.Region3 = Region3
+_G.Region3int16 = Region3int16
+_G.Vector3int16 = Vector3int16
 _G.Font = Font
 _G.Random = Random
 _G.Enum = Enum
