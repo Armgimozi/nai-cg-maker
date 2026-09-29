@@ -50,18 +50,19 @@ export type Item = {
 	Seconds: number?, -- 시간 부스트 길이
 }
 
--- 화면에 보여 줄 순서와 모양. 효과 숫자는 Config 항목에 있으면 그 값을 씀
+-- 화면에 보여 줄 순서와 모양(띠 색은 아이콘과 대비되게, 한 줄 안에서 겹치지 않게).
+-- 효과 숫자(Mult/Seconds)는 Config 항목에 있으면 그 값을 씀
 local PASS_INFO = {
 	{ Key = "LuckVIP", Name = "행운 VIP", Icon = "clover", Color = "Grape", EffectIcon = "clover", Mult = 2 },
-	{ Key = "FastRoll", Name = "빠른 굴림", Icon = "plane", Color = "Sky", EffectIcon = "dice", Mult = 0.7 },
-	{ Key = "DoubleIncome", Name = "수입 2배", Icon = "coin", Color = "Sun", EffectIcon = "arrow_up", Mult = 2 },
+	{ Key = "FastRoll", Name = "빠른 굴림", Icon = "plane", Color = "Sun", EffectIcon = "dice", Mult = 0.7 },
+	{ Key = "DoubleIncome", Name = "수입 2배", Icon = "coin", Color = "Grass", EffectIcon = "arrow_up", Mult = 2 },
 }
 local PRODUCT_INFO = {
 	{
 		Key = "LuckBoost",
 		Name = "행운 부스트",
 		Icon = "clover",
-		Color = "Grass",
+		Color = "Sky",
 		EffectIcon = "clover",
 		Mult = 2,
 		Seconds = 900,
@@ -75,7 +76,7 @@ local PRODUCT_INFO = {
 		Mult = 2,
 		Seconds = 900,
 	},
-	{ Key = "CoinPack", Name = "코인 팩", Icon = "coin", Color = "Sun", EffectIcon = "coin" },
+	{ Key = "CoinPack", Name = "코인 팩", Icon = "coin", Color = "Grape", EffectIcon = "coin" },
 }
 
 -- Config.GamePasses / Products 에서 key 항목 찾기: { LuckVIP = 123 } / { LuckVIP = { Id = 123 } } / { { Key = "LuckVIP", Id = 123 } }

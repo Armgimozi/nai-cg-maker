@@ -759,7 +759,7 @@ local function boostChip(boost: Perks.Boost): Ui.Chip
 	if not chip then
 		chip = Ui.chip({
 			Name = "Boost" .. boost.Key,
-			Color = "Grass",
+			Color = "Sun",
 			Icon = boost.Icon,
 			Height = 30,
 			TextSize = 18,

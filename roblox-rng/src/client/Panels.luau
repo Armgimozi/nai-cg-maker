@@ -956,19 +956,595 @@ local function renderUpgrade(state: Snapshot)
 	end
 end
 
+-- 환생 -----------------------------------------------------------------------
+
+-- 버튼이 좌우로 살짝 흔들림 (아직 못 누를 때)
+local function shake(target: GuiObject)
+	target.Rotation = 0
+	TweenService:Create(
+		target,
+		TweenInfo.new(0.05, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, 3, true),
+		{ Rotation = 4 }
+	):Play()
+end
+
+-- 환생 버튼: 못 함 = 회색 / 가능 = Coral "환생" / 한 번 누름 = Sun "확인?" (3초)
+local function paintRebirthButton(ready: boolean)
+	local button = rebirthButton
+	if not button then
+		return
+	end
+	local confirming = ready and os.clock() < confirmUntil
+	local look = if confirming then "confirm" elseif ready then "ready" else "locked"
+	if look == rebirthLook then
+		return
+	end
+	rebirthLook = look
+	button.SetText(if confirming then "확인?" else "환생")
+	button.SetColor(if confirming then "Sun" elseif ready then "Coral" else "Gray")
+	if button.Icon then
+		Icons.setTransparency(button.Icon, if ready then 0 else 0.45)
+	end
+end
+
+-- 코인 막대와 버튼만 다시 칠함 (0.25초마다 불려도 가벼움)
+local function refreshRebirth(coins: number)
+	local state = lastState
+	if not state or not rebirthButton then
+		return
+	end
+	local ready, _, short, need = Perks.rebirthCheck(state, coins)
+	local required = if need then need.Coins else 0
+	local met = need ~= nil and short <= 0
+	rebirthCoinFill.Size = UDim2.fromScale(if required > 0 then math.clamp(coins / required, 0, 1) else 1, 1)
+	rebirthCoinFill.BackgroundColor3 = Ui.colorPair(if met then "Grass" else "Sun").Face
+	local text = Format.short(math.max(0, math.floor(coins))) .. " / " .. Format.short(required)
+	if rebirthCoinText.Text ~= text then
+		rebirthCoinText.Text = text
+	end
+	rebirthCoinCheck.Visible = met
+	paintRebirthButton(ready)
+end
+
+local function onRebirthPressed()
+	local state = lastState
+	if not state then
+		return
+	end
+	local ready, missing, _, need = Perks.rebirthCheck(state, lastCoins)
+	if not need then
+		return
+	end
+	if not ready then
+		confirmUntil = 0
+		paintRebirthButton(false)
+		if rebirthButton then
+			shake(rebirthButton.Root)
+		end
+		if #missing > 0 then
+			handlers.Toast("명소 부족", "lock")
+		else
+			handlers.Toast("코인 부족", "coin")
+		end
+		return
+	end
+	if os.clock() < confirmUntil then
+		confirmUntil = 0
+		confirmToken += 1
+		paintRebirthButton(true)
+		handlers.Rebirth()
+		return
+	end
+	-- 첫 번째 누름: 3초 동안 "확인?"
+	confirmUntil = os.clock() + CONFIRM_SECONDS
+	confirmToken += 1
+	local token = confirmToken
+	paintRebirthButton(true)
+	task.delay(CONFIRM_SECONDS, function()
+		if token == confirmToken then
+			refreshRebirth(lastCoins)
+		end
+	end)
+end
+
+local function buildRebirth(): View
+	local header = newHeader("Rebirth")
+	local chips = chipRow(header)
+	-- 지금: 환생 수 · 행운 배율 · 수입 배율
+	rebirthCount = headerChip(chips, "rebirth", Theme.Ink, 1)
+	rebirthLuck = headerChip(chips, "clover", "Grape", 2)
+	rebirthIncome = headerChip(chips, "coin", "Grass", 3)
+
+	local top = VIEWS.Rebirth.Top
+	local scroller = newScroller("Rebirth", top)
+	scroller.Size = UDim2.new(1, 0, 1, -(top + REBIRTH_FOOTER))
+
+	-- 다음 환생 조건: 요구 명소 카드(체크) + 코인 막대
+	rebirthSection = Ui.new("Frame", {
+		Name = "Need",
+		Size = UDim2.new(1, 0, 0, 100),
+		BackgroundColor3 = Theme.Paper,
+		Parent = scroller,
+	})
+	Ui.corner(14).Parent = rebirthSection
+	Ui.stroke(Theme.Ink, 3).Parent = rebirthSection
+
+	rebirthGrid = Ui.new("Frame", {
+		Name = "Landmarks",
+		Position = UDim2.fromOffset(SECTION_PAD, SECTION_PAD),
+		Size = UDim2.new(1, -SECTION_PAD * 2, 0, 0),
+		BackgroundTransparency = 1,
+		Parent = rebirthSection,
+	})
+	Ui.new("UIGridLayout", {
+		CellSize = UDim2.fromOffset(PASSPORT_CELL.X, PASSPORT_CELL.Y),
+		CellPadding = UDim2.fromOffset(PASSPORT_GAP, PASSPORT_GAP),
+		FillDirectionMaxCells = REBIRTH_COLUMNS,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		HorizontalAlignment = Enum.HorizontalAlignment.Left,
+		Parent = rebirthGrid,
+	})
+
+	-- 코인 막대: [동전] 12.3K / 50K [체크]
+	local bar = Ui.new("Frame", {
+		Name = "Coins",
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, SECTION_PAD + 22, 1, -SECTION_PAD),
+		Size = UDim2.fromOffset(COIN_BAR.X, COIN_BAR.Y),
+		BackgroundColor3 = Theme.Cream,
+		Parent = rebirthSection,
+	})
+	Ui.round().Parent = bar
+	Ui.stroke(Theme.Ink, 3).Parent = bar
+	rebirthCoinFill = Ui.new("Frame", {
+		Name = "Fill",
+		Size = UDim2.fromScale(0, 1),
+		BackgroundColor3 = Ui.colorPair("Sun").Face,
+		BorderSizePixel = 0,
+		Parent = bar,
+	})
+	Ui.round().Parent = rebirthCoinFill
+	rebirthCoinText = Ui.label({
+		Position = UDim2.fromOffset(34, 4),
+		Size = UDim2.new(1, -68, 1, -8),
+		TextColor3 = WHITE,
+		ZIndex = 3,
+		Parent = bar,
+	}, 24)
+	Ui.outline(rebirthCoinText, 2.5)
+	Icons.view(bar, "coin", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0, 0, 0.5, 0),
+		Size = UDim2.fromOffset(56, 56),
+		ZIndex = 4,
+	})
+	-- 코인이 충분하면 오른쪽 끝에 체크 동그라미
+	rebirthCoinCheck = Ui.new("Frame", {
+		Name = "Check",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(1, -2, 0.5, 0),
+		Size = UDim2.fromOffset(40, 40),
+		BackgroundColor3 = Theme.Cream,
+		Visible = false,
+		ZIndex = 4,
+		Parent = bar,
+	})
+	Ui.round().Parent = rebirthCoinCheck
+	Ui.stroke(Theme.Ink, 3).Parent = rebirthCoinCheck
+	Icons.view(rebirthCoinCheck, "check", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(0.95, 0.95),
+		ZIndex = 5,
+	})
+
+	-- 아래 고정 줄: [위 화살표][행운 +20%][수입 +50%] / [코인·강화 초기화]   [환생]
+	local footer = Ui.new("Frame", {
+		Name = "RebirthFooter",
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.fromScale(0, 1),
+		Size = UDim2.new(1, 0, 0, REBIRTH_FOOTER),
+		BackgroundTransparency = 1,
+		Visible = false,
+		Parent = body,
+	})
+	local rewards = Ui.new("Frame", {
+		Name = "Rewards",
+		Position = UDim2.fromOffset(8, 10),
+		Size = UDim2.new(1, -290, 0, 38),
+		BackgroundTransparency = 1,
+		Parent = footer,
+	})
+	Ui.list(Enum.FillDirection.Horizontal, 10).Parent = rewards
+	Icons.view(rewards, "arrow_up", { Size = UDim2.fromOffset(38, 38), LayoutOrder = 1 })
+	headerChip(rewards, "clover", "Grape", 2).Label.Text =
+		string.format("+%d%%", math.floor(Perks.REBIRTH_LUCK * 100 + 0.5))
+	headerChip(rewards, "coin", "Grass", 3).Label.Text =
+		string.format("+%d%%", math.floor(Perks.REBIRTH_INCOME * 100 + 0.5))
+
+	rebirthWarning = Ui.chip({
+		Name = "Warning",
+		Color = Theme.Ink,
+		TextColor3 = Ui.colorPair("Coral").Face,
+		Text = "코인·강화 초기화",
+		Height = 30,
+		TextSize = 17,
+		Position = UDim2.fromOffset(12, 60),
+		Parent = footer,
+	})
+
+	local button = Ui.chunkyButton({
+		Name = "Rebirth",
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, -6, 1, -6),
+		Size = UDim2.fromOffset(260, 88),
+		Color = "Gray",
+		Icon = "rebirth",
+		IconSize = 62,
+		Text = "환생",
+		TextSize = 36,
+		OutlineThickness = 3,
+		Parent = footer,
+	})
+	button.Activated:Connect(onRebirthPressed)
+	rebirthButton = button
+	rebirthLook = ""
+
+	return { Scroller = scroller, Header = header, Extra = footer }
+end
+
+-- 요구 명소 카드: 보유 = 사진 + 체크 / 예전에 발견 = 어두운 사진 / 미발견 = 어두운 "?" (이름·확률은 늘 보임)
+local function rebirthCard(parent: Frame, landmark: Landmark, look: string, order: number): Frame
+	local tier = landmark.Tier
+	local known = look ~= "unknown"
+	local card = Ui.new("Frame", {
+		Name = landmark.Id,
+		LayoutOrder = order,
+		BackgroundColor3 = if known then Theme.Cream else Theme.Ink,
+	})
+	Ui.corner(10).Parent = card
+	Ui.stroke(Theme.Ink, 2.5).Parent = card
+
+	if known then
+		local picture = photo(card, landmark, UDim2.fromOffset(5, 5), UDim2.new(1, -10, 0, 68), 7)
+		if look == "seen" then
+			local shade = Ui.new("Frame", {
+				Size = UDim2.fromScale(1, 1),
+				BackgroundColor3 = Theme.Ink,
+				BackgroundTransparency = 0.45,
+				ZIndex = 2,
+				Parent = picture,
+			})
+			Ui.corner(7).Parent = shade
+		end
+	else
+		Ui.label({
+			Position = UDim2.fromOffset(5, 5),
+			Size = UDim2.new(1, -10, 0, 68),
+			Font = Theme.FontTitle,
+			Text = "?",
+			TextColor3 = Theme.Paper,
+			TextTransparency = 0.2,
+			Parent = card,
+		}, 50)
+	end
+	Ui.label({
+		Position = UDim2.fromOffset(4, 77),
+		Size = UDim2.new(1, -8, 0, 20),
+		Text = landmark.Name,
+		TextColor3 = if known then Theme.Ink else Theme.Paper,
+		Parent = card,
+	}, 16)
+	Ui.label({
+		Position = UDim2.fromOffset(4, 99),
+		Size = UDim2.new(1, -8, 0, 17),
+		Text = Format.oneIn(landmark.OneIn),
+		TextColor3 = if known then tier.Color:Lerp(Theme.Ink, 0.45) else tier.Color,
+		Parent = card,
+	}, 14)
+
+	-- 체크 동그라미 (오른쪽 위 모서리에 걸침): 보유 = 크림 + 초록 체크, 아니면 빈 어두운 동그라미
+	local have = look == "owned"
+	local mark = Ui.new("Frame", {
+		Name = "Check",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(1, -6, 0, 6),
+		Size = UDim2.fromOffset(32, 32),
+		BackgroundColor3 = if have then Theme.Cream else Theme.Ink,
+		BackgroundTransparency = if have then 0 else 0.15,
+		ZIndex = 4,
+		Parent = card,
+	})
+	Ui.round().Parent = mark
+	Ui.stroke(if have then Theme.Ink else Theme.Paper, 2.5).Parent = mark
+	if have then
+		Icons.view(mark, "check", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(0.95, 0.95),
+			ZIndex = 5,
+		})
+	end
+
+	card.Parent = parent
+	return card
+end
+
+local function renderRebirth(state: Snapshot)
+	local rebirths = Perks.rebirths(state)
+	local luck, income = Perks.rebirthMults(rebirths)
+	rebirthCount.Label.Text = Format.commas(rebirths)
+	rebirthLuck.Label.Text = Ui.times(luck)
+	rebirthIncome.Label.Text = Ui.times(income)
+	-- 발견 기록(Discovered)이 따로 있으면 보유 명소도 초기화되는 규칙(DESIGN v3)
+	rebirthWarning.Label.Text = if (state :: any).Discovered ~= nil then "코인·강화·명소 초기화" else "코인·강화 초기화"
+
+	local need = Perks.rebirthNeed(state)
+	local list = if need then need.Landmarks else {}
+	local wanted: { [string]: boolean } = {}
+	for order, id in list do
+		wanted[id] = true
+		local look = if owned(state, id) > 0
+			then "owned"
+			elseif Perks.discovered(state, id) then "seen"
+			else "unknown"
+		local entry = rebirthCards[id]
+		if not entry or entry.Look ~= look then
+			if entry then
+				entry.Card:Destroy()
+			end
+			entry = { Card = rebirthCard(rebirthGrid, Landmarks.ById[id], look, order), Look = look }
+			rebirthCards[id] = entry
+		end
+		entry.Card.LayoutOrder = order
+	end
+	for id, entry in rebirthCards do
+		if not wanted[id] then
+			entry.Card:Destroy()
+			rebirthCards[id] = nil
+		end
+	end
+
+	local gridSize = gridHeight(#list, REBIRTH_COLUMNS, PASSPORT_CELL.Y, PASSPORT_GAP)
+	rebirthGrid.Size = UDim2.new(1, -SECTION_PAD * 2, 0, gridSize)
+	local height = SECTION_PAD + gridSize + (if gridSize > 0 then 14 else 0) + COIN_BAR.Y + SECTION_PAD
+	rebirthSection.Size = UDim2.new(1, 0, 0, height)
+	rebirthSection.Visible = need ~= nil
+	setCanvasHeight(views.Rebirth.Scroller, height)
+	refreshRebirth(lastCoins)
+end
+
+-- 상점 -----------------------------------------------------------------------
+
+-- 효과 딱지 글자: ×2 / 굴림 간격 -30% / 코인 팩은 render 에서 "+12.3K"
+local function effectText(item: Perks.Item): string
+	local mult = item.Mult
+	if not mult then
+		return ""
+	elseif mult < 1 then
+		return string.format("-%d%%", math.floor((1 - mult) * 100 + 0.5))
+	end
+	return Ui.times(mult)
+end
+
+local function durationText(seconds: number): string
+	if seconds % 60 == 0 then
+		return string.format("%d분", seconds // 60)
+	end
+	return Format.duration(seconds)
+end
+
+-- 상품 카드: 색 띠 + 큰 아이콘 / 이름 / 효과 딱지(+시간) / 초록 "구매" 버튼 (게임패스를 가졌으면 "보유" 도장)
+local function shopCard(parent: Frame, item: Perks.Item, order: number): ShopCard
+	local pair = Ui.colorPair(item.Color)
+	local card = Ui.new("Frame", {
+		Name = item.Key,
+		LayoutOrder = order,
+		BackgroundColor3 = Theme.Paper,
+	})
+	Ui.corner(14).Parent = card
+	Ui.stroke(Theme.Ink, 3).Parent = card
+
+	-- 위쪽 모서리만 둥근 색 띠 (아래 절반은 네모 판으로 덮음)
+	local band = Ui.new("Frame", {
+		Name = "Band",
+		Size = UDim2.new(1, 0, 0, SHOP_BAND),
+		BackgroundColor3 = WHITE,
+		BorderSizePixel = 0,
+		Parent = card,
+	})
+	Ui.corner(14).Parent = band
+	Ui.new("UIGradient", { Rotation = 90, Color = Ui.faceGradient(pair.Face), Parent = band })
+	Ui.new("Frame", {
+		Position = UDim2.new(0, 0, 1, -14),
+		Size = UDim2.new(1, 0, 0, 14),
+		BackgroundColor3 = pair.Face,
+		BorderSizePixel = 0,
+		Parent = band,
+	})
+	Ui.new("Frame", {
+		Position = UDim2.fromScale(0, 1),
+		Size = UDim2.new(1, 0, 0, 3),
+		BackgroundColor3 = Theme.Ink,
+		BorderSizePixel = 0,
+		Parent = band,
+	})
+	Icons.view(band, item.Icon, {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(62, 62),
+		ZIndex = 2,
+	})
+
+	Ui.label({
+		Position = UDim2.fromOffset(6, SHOP_BAND + 5),
+		Size = UDim2.new(1, -12, 0, 24),
+		Text = item.Name,
+		Parent = card,
+	}, 22)
+
+	local chips = Ui.new("Frame", {
+		Name = "Effects",
+		Position = UDim2.fromOffset(0, SHOP_BAND + 32),
+		Size = UDim2.new(1, 0, 0, 28),
+		BackgroundTransparency = 1,
+		Parent = card,
+	})
+	Ui.list(Enum.FillDirection.Horizontal, 8, Enum.HorizontalAlignment.Center).Parent = chips
+	local effect = Ui.chip({
+		Name = "Effect",
+		Color = Theme.Ink,
+		Icon = item.EffectIcon,
+		IconSize = 32,
+		Text = effectText(item),
+		Height = 26,
+		TextSize = 17,
+		LayoutOrder = 1,
+		Parent = chips,
+	})
+	local seconds = item.Seconds
+	if item.Kind == "Product" and seconds then
+		Ui.chip({
+			Name = "Time",
+			Color = Theme.Ink,
+			Text = durationText(seconds),
+			Height = 26,
+			TextSize = 16,
+			LayoutOrder = 2,
+			Parent = chips,
+		})
+	end
+
+	local button = Ui.chunkyButton({
+		Name = "Buy",
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -6),
+		Size = UDim2.fromOffset(150, 52),
+		Color = "Grass",
+		Text = "구매",
+		TextSize = 24,
+		Parent = card,
+	})
+	local lastPress = -math.huge
+	button.Activated:Connect(function()
+		if os.clock() - lastPress < BUY_COOLDOWN then
+			return
+		end
+		lastPress = os.clock()
+		if item.Kind == "Pass" then
+			if lastState and Perks.ownsPass(lastState, item.Key) then
+				return
+			end
+			handlers.BuyPass(item.Key)
+		else
+			handlers.BuyProduct(item.Key)
+		end
+	end)
+
+	local ownedStamp: Ui.Chip? = nil
+	if item.Kind == "Pass" then
+		ownedStamp = Ui.chip({
+			Name = "Owned",
+			Color = "Grass",
+			Text = "보유",
+			Font = Theme.FontTitle,
+			Height = 40,
+			TextSize = 24,
+			CornerRadius = 8,
+			StrokeThickness = 3,
+			Rotation = -8,
+			AnchorPoint = Vector2.new(0.5, 1),
+			Position = UDim2.new(0.5, 0, 1, -12),
+			ZIndex = 4,
+			Visible = false,
+			Parent = card,
+		})
+	end
+
+	card.Parent = parent
+	return { Item = item, Button = button, Effect = effect, Owned = ownedStamp }
+end
+
+local function buildShop(): View
+	local header = newHeader("Shop") -- 비어 있음(모양을 맞추려고 둠)
+	local scroller = newScroller("Shop", VIEWS.Shop.Top)
+	local layout = Ui.list(Enum.FillDirection.Vertical, SECTION_GAP, Enum.HorizontalAlignment.Center)
+	layout.VerticalAlignment = Enum.VerticalAlignment.Top
+	layout.Parent = scroller
+
+	-- 윗줄: 게임패스(영구), 아랫줄: 개발자 상품(여러 번)
+	local total = 0
+	local sections = 0
+	for _, group in { Perks.Passes, Perks.Products } do
+		if #group == 0 then
+			continue
+		end
+		sections += 1
+		local height = gridHeight(#group, SHOP_COLUMNS, SHOP_CELL.Y, SHOP_GAP)
+		local grid = Ui.new("Frame", {
+			Name = if group == Perks.Passes then "Passes" else "Products",
+			LayoutOrder = sections,
+			Size = UDim2.new(1, 0, 0, height),
+			BackgroundTransparency = 1,
+			Parent = scroller,
+		})
+		Ui.new("UIGridLayout", {
+			CellSize = UDim2.fromOffset(SHOP_CELL.X, SHOP_CELL.Y),
+			CellPadding = UDim2.fromOffset(SHOP_GAP, SHOP_GAP),
+			FillDirectionMaxCells = SHOP_COLUMNS,
+			SortOrder = Enum.SortOrder.LayoutOrder,
+			HorizontalAlignment = Enum.HorizontalAlignment.Center,
+			Parent = grid,
+		})
+		for index, item in group do
+			table.insert(shopCards, shopCard(grid, item, index))
+		end
+		total += height + (if sections > 1 then SECTION_GAP else 0)
+	end
+	setCanvasHeight(scroller, total)
+	return { Scroller = scroller, Header = header }
+end
+
+local function renderShop(state: Snapshot)
+	for _, entry in shopCards do
+		local item = entry.Item
+		local stamp = entry.Owned
+		if stamp then
+			local owns = Perks.ownsPass(state, item.Key)
+			entry.Button.Root.Visible = not owns
+			stamp.Root.Visible = owns
+		elseif item.Key == "CoinPack" then
+			entry.Effect.Label.Text = "+" .. Format.short(Perks.coinPackAmount(state.Income))
+		end
+	end
+end
+
 -- 공통 -----------------------------------------------------------------------
 
 local BUILDERS = {
 	Collection = buildCollection,
 	Passport = buildPassport,
 	Upgrade = buildUpgrade,
+	Rebirth = buildRebirth,
+	Shop = buildShop,
 }
 
 local RENDERERS = {
 	Collection = renderCollection,
 	Passport = renderPassport,
 	Upgrade = renderUpgrade,
+	Rebirth = renderRebirth,
+	Shop = renderShop,
 }
+
+local function showView(built: View, visible: boolean)
+	built.Scroller.Visible = visible
+	built.Header.Visible = visible
+	local extra = built.Extra
+	if extra then
+		extra.Visible = visible
+	end
+end
 
 local function render()
 	local name = openName
@@ -983,8 +1559,7 @@ local function render()
 	end
 
 	for other, built in views do
-		built.Scroller.Visible = other == name
-		built.Header.Visible = other == name
+		showView(built, other == name)
 	end
 
 	local state = lastState
@@ -998,8 +1573,7 @@ local function render()
 		built = BUILDERS[name]()
 		views[name] = built
 	end
-	built.Scroller.Visible = true
-	built.Header.Visible = true
+	showView(built, true)
 	RENDERERS[name](state)
 end
 
@@ -1037,7 +1611,7 @@ end
 
 -- 같은 창 버튼을 다시 누르면 닫힘
 function Panels.toggle(name: string)
-	if not VIEWS[name] then
+	if not VIEWS[name] or (name == "Shop" and not Perks.anyForSale()) then
 		return
 	end
 	if openName == name then
@@ -1060,6 +1634,8 @@ end
 function Panels.close()
 	openName = nil
 	window.Visible = false
+	confirmUntil = 0 -- 닫으면 환생 "확인?" 도 취소
+	confirmToken += 1
 end
 
 -- 서버 상태가 실제로 바뀌었을 때만 호출됨 (열린 화면만 갱신, 나머지는 열 때 갱신)
@@ -1071,14 +1647,15 @@ function Panels.render(state: Snapshot?)
 	render()
 end
 
--- 자주 호출해도 되는 가벼운 갱신: 업그레이드 버튼의 "살 수 있음" 색만 다시 칠함
+-- 자주 호출해도 되는 가벼운 갱신: 업그레이드 버튼의 "살 수 있음" 색 / 환생 코인 막대·버튼만 다시 칠함
 function Panels.refreshCoins(coins: number)
 	lastCoins = coins
-	if openName ~= "Upgrade" then
-		return
-	end
-	for _, row in upgradeRows do
-		paintBuyButton(row, coins)
+	if openName == "Upgrade" then
+		for _, row in upgradeRows do
+			paintBuyButton(row, coins)
+		end
+	elseif openName == "Rebirth" and lastState then
+		refreshRebirth(coins)
 	end
 end
 
