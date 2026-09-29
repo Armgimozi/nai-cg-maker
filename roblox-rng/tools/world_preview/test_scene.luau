@@ -63,7 +63,7 @@ local function surface(x: number, z: number): (number, any)
 	elseif edge < 135 then
 		h = -(edge - 100) / 35 * 6
 	else
-		h = -6 - (edge - 135) * 0.4
+		h = math.max(-24, -6 - (edge - 135) * 0.4) -- 바다 바닥(y -24)보다 깊게 파지 않음
 	end
 	local material = if edge < 102 then Enum.Material.Grass else Enum.Material.Sand
 	local dh = (Vector3.new(x, 0, z) - HILL).Magnitude
@@ -97,7 +97,9 @@ for i = 1, nx do
 			local bottom = MIN_Y + (j - 1) * 4
 			local occupancy = math.clamp((h - bottom) / 4, 0, 1)
 			-- 맨 아래 한 칸은 진흙 바닥(바다와 이어지게)
-			mx[j][k] = if occupancy > 0 then (if bottom < -24 then Enum.Material.Mud else material) else Enum.Material.Air
+			mx[j][k] = if occupancy > 0
+				then (if bottom < -24 then Enum.Material.Mud else material)
+				else Enum.Material.Air
 			sx[j][k] = occupancy
 			local waterTop = if pond then 0 else -4
 			lx[j][k] = if bottom < waterTop then math.clamp((waterTop - bottom) / 4, 0, 1) - occupancy else 0
@@ -211,8 +213,22 @@ for i, sample in samples do
 	end
 end
 -- 공·원기둥(곡면 텍스처)
-part("BallGrass", "PartType.Ball", Vector3.new(6, 6, 6), CFrame.new(-50, 3, 32), Color3.fromRGB(80, 150, 60), Enum.Material.Grass)
-part("BallMarble", "PartType.Ball", Vector3.new(5, 5, 5), CFrame.new(-42, 2.5, 32), Color3.fromRGB(240, 240, 240), Enum.Material.Marble)
+part(
+	"BallGrass",
+	"PartType.Ball",
+	Vector3.new(6, 6, 6),
+	CFrame.new(-50, 3, 32),
+	Color3.fromRGB(80, 150, 60),
+	Enum.Material.Grass
+)
+part(
+	"BallMarble",
+	"PartType.Ball",
+	Vector3.new(5, 5, 5),
+	CFrame.new(-42, 2.5, 32),
+	Color3.fromRGB(240, 240, 240),
+	Enum.Material.Marble
+)
 part(
 	"CylinderWood",
 	"PartType.Cylinder",
@@ -254,17 +270,66 @@ for k, spot in { Vector3.new(35, 0, -35), Vector3.new(50, 0, -62), Vector3.new(-
 	)
 end
 -- 벤치(WoodPlanks 판 + Metal 다리)
-part("BenchSeat", nil, Vector3.new(6, 0.5, 2), CFrame.new(10, 2, -12), Color3.fromRGB(170, 120, 80), Enum.Material.WoodPlanks)
-part("BenchLegA", nil, Vector3.new(0.4, 1.75, 1.6), CFrame.new(7.8, 0.875, -12), Color3.fromRGB(60, 60, 64), Enum.Material.Metal)
-part("BenchLegB", nil, Vector3.new(0.4, 1.75, 1.6), CFrame.new(12.2, 0.875, -12), Color3.fromRGB(60, 60, 64), Enum.Material.Metal)
+part(
+	"BenchSeat",
+	nil,
+	Vector3.new(6, 0.5, 2),
+	CFrame.new(10, 2, -12),
+	Color3.fromRGB(170, 120, 80),
+	Enum.Material.WoodPlanks
+)
+part(
+	"BenchLegA",
+	nil,
+	Vector3.new(0.4, 1.75, 1.6),
+	CFrame.new(7.8, 0.875, -12),
+	Color3.fromRGB(60, 60, 64),
+	Enum.Material.Metal
+)
+part(
+	"BenchLegB",
+	nil,
+	Vector3.new(0.4, 1.75, 1.6),
+	CFrame.new(12.2, 0.875, -12),
+	Color3.fromRGB(60, 60, 64),
+	Enum.Material.Metal
+)
 -- 일부러 틀린 것: 떠 있는 상자(바닥 y 4), 언덕에 파묻힌 상자
-part("FloatingCrate", nil, Vector3.new(3, 3, 3), CFrame.new(20, 5.5, -30), Color3.fromRGB(200, 150, 60), Enum.Material.WoodPlanks)
-part("BuriedRock", nil, Vector3.new(4, 4, 4), CFrame.new(HILL.X, 6, HILL.Z), Color3.fromRGB(120, 120, 120), Enum.Material.Slate)
+part(
+	"FloatingCrate",
+	nil,
+	Vector3.new(3, 3, 3),
+	CFrame.new(20, 5.5, -30),
+	Color3.fromRGB(200, 150, 60),
+	Enum.Material.WoodPlanks
+)
+part(
+	"BuriedRock",
+	nil,
+	Vector3.new(4, 4, 4),
+	CFrame.new(HILL.X, 6, HILL.Z),
+	Color3.fromRGB(120, 120, 120),
+	Enum.Material.Slate
+)
 -- 물 위 부두(기둥이 받침)
-part("Dock", nil, Vector3.new(8, 1, 24), CFrame.new(0, 0.5, 128), Color3.fromRGB(150, 110, 75), Enum.Material.WoodPlanks)
+part(
+	"Dock",
+	nil,
+	Vector3.new(8, 1, 24),
+	CFrame.new(0, 0.5, 128),
+	Color3.fromRGB(150, 110, 75),
+	Enum.Material.WoodPlanks
+)
 for _, dz in { 120, 128, 136 } do
 	for _, dx in { -3.5, 3.5 } do
-		part("DockPost", "PartType.Cylinder", Vector3.new(14, 1, 1), CFrame.new(dx, -7, dz) * CFrame.Angles(0, 0, math.pi / 2), Color3.fromRGB(110, 80, 55), Enum.Material.Wood)
+		part(
+			"DockPost",
+			"PartType.Cylinder",
+			Vector3.new(14, 1, 1),
+			CFrame.new(dx, -7, dz) * CFrame.Angles(0, 0, math.pi / 2),
+			Color3.fromRGB(110, 80, 55),
+			Enum.Material.Wood
+		)
 	end
 end
 

@@ -114,12 +114,16 @@ const GEN = {
     const k = 1 + 0.16 * leaf - 0.1 * smoothstep(0.004, 0.0, c.f2 - c.f1);
     return [base[0] * k, base[1] * k, base[2] * k, clamp01(base[3] * 0.6 + leaf * 0.5)];
   },
+  // 모래: 고운 알갱이 + 아주 옅은 바람 물결(일정한 줄무늬가 안 보이게 굽이지고 끊김) + 큰 얼룩
   sand: (u, v, i) => {
     const n = fbm(u, v, 6, 3, 41);
+    const blotch = fbm(u, v, 2, 3, 47);
     const grain = white(i, 43);
-    const ripple = Math.sin(2 * Math.PI * (v * 7 + 0.7 * fbm(u, v, 3, 2, 45)));
-    const l = 0.9 + 0.1 * (n - 0.5) + 0.1 * (grain - 0.5) + 0.035 * ripple;
-    return [l * 1.01, l, l * 0.98, clamp01(0.5 + 0.25 * ripple + 0.25 * (grain - 0.5))];
+    const grain2 = vnoise(u, v, 128, 128, 49);
+    const warp = fbm(u, v, 3, 3, 45);
+    const ripple = Math.sin(2 * Math.PI * (v * 5 + u * 1.3 + 1.6 * warp)) * smoothstep(0.35, 0.65, fbm(u, v, 4, 2, 46));
+    const l = 0.92 + 0.07 * (n - 0.5) + 0.06 * (blotch - 0.5) + 0.07 * (grain - 0.5) + 0.05 * (grain2 - 0.5) + 0.018 * ripple;
+    return [l * 1.01, l, l * 0.97, clamp01(0.5 + 0.15 * ripple + 0.3 * (grain2 - 0.5) + 0.1 * (n - 0.5))];
   },
   ground: (u, v, i) => {
     const n = fbm(u, v, 5, 5, 51);
@@ -134,14 +138,26 @@ const GEN = {
     const l = 0.86 + 0.2 * (n - 0.5) - 0.12 * wet;
     return g3(l, clamp01(0.5 + 0.3 * (n - 0.5) - 0.3 * wet));
   },
+  // 바위: 거친 돌 표면(여러 크기 잡음) + 구불구불한 가는 금(휘게 한 보로노이 경계 일부) + 옅은 얼룩.
+  //   칸마다 밝기가 뚝뚝 끊기는 면(거북 등·다면체처럼 보임)은 일부러 약하게
   rock: (u, v, i) => {
-    const c = voronoi(u, v, 5, 71, 0.9);
-    const tone = hash(c.id, 3, 73);
-    const facet = (c.dx * 0.8 + c.dy * 0.6) * 0.35; // 칸 안에서 기울어진 면처럼 밝기 변화
-    const crack = smoothstep(0.012, 0.0, c.f2 - c.f1);
-    const n = fbm(u, v, 12, 4, 75);
-    const l = 0.8 + 0.18 * (tone - 0.5) + facet + 0.16 * (n - 0.5) - 0.28 * crack + 0.04 * (white(i, 77) - 0.5);
-    return g3(l, clamp01(0.55 + 0.4 * Math.min(1, (c.f2 - c.f1) * 12) - 0.3 + 0.3 * n));
+    const wu = u + 0.035 * (fbm(u, v, 5, 3, 70) - 0.5);
+    const wv = v + 0.035 * (fbm(u, v, 5, 3, 71) - 0.5);
+    const big = voronoi(mod(wu, 1), mod(wv, 1), 5, 72, 1.0);
+    const small = voronoi(mod(wu * 1, 1), mod(wv, 1), 13, 79, 1.0);
+    const tone = hash(big.id, 3, 73);
+    const facet = (big.dx * 0.6 - big.dy * 0.8) * 0.1;
+    // 금은 군데군데 끊기게(잡음으로 켜고 끔): 닫힌 칸(보도블록처럼)이 안 보이게
+    const crackMask = smoothstep(0.42, 0.62, fbm(u, v, 6, 3, 69));
+    const crackBig = smoothstep(0.004, 0.0, big.f2 - big.f1) * crackMask;
+    const crackSmall = smoothstep(0.0025, 0.0, small.f2 - small.f1) * (hash(small.id, 11, 78) > 0.6 ? 0.7 : 0) * (1 - crackMask);
+    const rough = fbm(u, v, 16, 4, 75, 0.6);
+    const n = fbm(u, v, 4, 4, 74);
+    const stain = smoothstep(0.5, 0.75, fbm(u, v, 3, 3, 77));
+    const l =
+      0.84 + 0.08 * (tone - 0.5) + facet + 0.16 * (rough - 0.5) + 0.12 * (n - 0.5) - 0.06 * stain - 0.32 * crackBig - 0.16 * crackSmall + 0.05 * (white(i, 77) - 0.5);
+    const hgt = 0.55 + 0.35 * (rough - 0.5) + 0.3 * (n - 0.5) + facet - 0.5 * crackBig - 0.25 * crackSmall;
+    return [l * 1.01, l, l * 0.98, clamp01(hgt)];
   },
   slate: (u, v, i) => {
     const warp = fbm(u, v, 4, 3, 81);

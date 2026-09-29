@@ -3,12 +3,13 @@
 -- 섬 모양(해안선·땅 높이·물가 바위·먼 작은 섬)은 Scenery/Island 가 정하고, 여기서는 그 위에 무엇을 둘지 정합니다.
 --
 -- 구역(광장 중심에서의 거리 r):
---   r 62~115    안쪽 잔디: 산책로 고리(r 84), 부지 길 양옆 산울타리, 길 입구 덤불, 틈 입구 꽃밭, 벤치, 작은 꽃나무
+--   r 62~115    안쪽 잔디: 산책로 고리(r 84), 부지 길 양옆 산울타리, 길 입구 덤불, 틈 앞 둥근 꽃밭·벤치, 작은 꽃나무
 --   r 115~205   이웃 부지 사이 쐐기 틈 8곳: 틈마다 주제가 다른 정원(분수 광장/꽃 정원/과수원/연못과 다리/
 --               소풍 잔디/바위 정원/토피어리 길/정자) + 가운데 오솔길(정원마다 재질이 다름)
 --   r 205~212   바깥 산책로 고리. 부지 뒤마다 벤치 + 정원등 + 양옆 산울타리
---   212~풀밭 끝  숲띠: 노이즈 밀도로 나무 숲(무리)과 빈터가 번갈아, 숲 가장자리 덤불, 모래 쪽은 야자수
---   모래사장    등대(곶 바위 위), 부두(T자 끝 + 구명 튜브 + 매어 둔 배), 파라솔·선베드 묶음, 간식 가게, 모래성,
+--   212~풀밭 끝  숲띠: 부지 뒤 양옆 숲 무리(큰 나무 가운데 + 둘레 작은 나무, 가끔 분홍 꽃나무 무리) + 빈터 바위,
+--               숲 가장자리 덤불, 모래 쪽은 야자수
+--   모래사장    등대(곶 바위 위), 부두(T자 끝 + 구명 튜브 + 매어 둔 배), 파라솔·선베드 묶음, 간식 가게, 모래성, 구조대 망루,
 --               야자수 무리(2~3 그루씩)
 --   바다        돛단배, 수영 구역 부표 줄, 먼 작은 섬(지형) 위 야자수
 -- 모든 장식은 ParkLayout.blocked(부지·간판·길·광장)와 산책로를 비켜 가고, 서로 겹치지 않게 놓습니다.
@@ -29,13 +30,23 @@ local WATER = Island.WATER_LEVEL
 local T = {
 	SEED = 8128,
 
-	-- 산책로. 고리는 짧은 곧은 판 Segments 개(이음매마다 3.75~5.6도만 꺾여서 둥글게 보임).
-	-- 이웃 판끼리 윗면 높이를 0.02 씩 번갈아(겹치는 모서리가 같은 높이에서 깜빡이지 않게)
-	INNER_RING = { Radius = 84, Width = 7, Segments = 64 },
-	OUTER_RING = { Radius = 208.5, Width = 7, Segments = 96 },
-	RING_TOP = 0.15, -- 고리 윗면(홀수 번째 판은 0.13). 부지 길(0.2)보다 낮아서 겹치는 곳은 부지 길이 보임
+	-- 산책로. 고리는 짧은 곧은 판 Segments 개(이음매마다 조금만 꺾여서 둥글게 보임).
+	-- 이웃 판끼리 윗면 높이를 0.05 씩 번갈아(겹치는 모서리가 같은 높이에서 깜빡이지 않게).
+	-- 안쪽 고리는 원이 아니라 느린 물결 셋을 겹친 구불구불한 고리(반지름 Radius ± Wobble: 약 71~95,
+	-- 광장 둘레 나무 고리(62)와 부지 입구 간판 자리(104) 사이). 바깥 고리는 부지 뒤 좁은 자리라 원
+	-- 재질: 안쪽은 밝은 돌길, 바깥(숲띠 속)은 짙은 모래색 자갈길(흰 원이 눈에 띄지 않게)
+	INNER_RING = { Radius = 82, Width = 7, Segments = 80, Wobble = 15, Material = "Cobblestone" },
+	OUTER_RING = {
+		Radius = 208.5,
+		Width = 7,
+		Segments = 96,
+		Wobble = 0,
+		Material = "Pebble",
+		Color = { 196, 174, 136 },
+	},
+	RING_TOP = 0.15, -- 고리 윗면(홀수 번째 판은 0.1). 부지 길(0.2)보다 낮아서 겹치는 곳은 부지 길이 보임
 	TRAIL_TOP = 0.18, -- 정원 오솔길 윗면(고리 위로 살짝 올라탐)
-	DISC_TOP = 0.16, -- 분수 광장 원판 윗면(오솔길 끝이 그 위로 올라탐)
+	DISC_TOP = 0.12, -- 분수 광장 원판 윗면(오솔길 끝이 그 위로 올라탐)
 	ROUTE_HEIGHT = 0.3, -- 산책로 판 두께
 	WALKWAY_MATERIAL = "Cobblestone",
 	TRAIL_WIDTH = 5,
@@ -49,24 +60,40 @@ local T = {
 
 	-- 숲띠
 	BELT = {
-		TreeAttempts = 1400, -- 나무 자리 뽑기 횟수(숲 밀도에 따라 받아들임)
-		Trees = 44, -- 넓은잎나무 최대 수
-		Palms = 10, -- 모래 쪽 야자수 최대 수
+		GroveRadius = 12, -- 숲 무리 반지름
+		BlossomGroves = 0.25, -- 큰 무리가 꽃나무(분홍) 무리일 확률
+		Trees = 40, -- 넓은잎나무 최대 수(보통 무리 크기로 정해짐: 약 34)
+		Palms = 6, -- 모래 쪽 야자수 최대 수
 		TreeScale = { 1.05, 1.45 },
 		PalmScale = { 1.05, 1.35 },
-		BushChance = 0.45, -- 나무마다 옆에 덤불을 둘 확률
+		BushChance = 0.3, -- 나무마다 옆에 덤불을 둘 확률
 		Rocks = 7,
+		-- 풀밭 끝(모래 시작) 덤불 띠: FringeStep 스터드마다 한 자리, 띠 밀도(각도 물결)가 FringeCut 보다 큰 곳에만
+		-- (덤불 무리와 트인 곳이 번갈아: 고르게 흩뿌리지 않음)
+		FringeStep = 11,
+		FringeCut = 0.2,
 	},
 
 	BEACH = {
-		Palms = 18, -- 모래사장 야자수 최대 수(2~3 그루 무리)
-		SetZones = { { From = 158, To = 205, Count = 4 }, { From = 12, To = 50, Count = 3 } }, -- 파라솔 묶음 자리(도)
+		PalmGroves = 8, -- 모래사장 야자수 무리 수(섬 둘레에 고르지 않은 간격으로, 무리마다 1~3 그루)
+		-- 파라솔 묶음 자리(도)
+		SetZones = {
+			{ From = 163, To = 184, Count = 4 },
+			{ From = 21, To = 37, Count = 3 },
+			{ From = 212, To = 228, Count = 3 },
+		},
+		Surfboards = { 199, 44, 181 }, -- 서핑보드 거치대(도, 풀밭 끝 가까운 모래)
+		-- 모래 오솔길(지형 칠하기): 바깥 산책로에서 모래사장으로 굽이쳐 내려감(도). 등대 쪽은 등대까지
+		Footpaths = { 315, 135, 173.5, 38, 217.3 },
+		FootpathHalf = 3,
+		Driftwood = 6, -- 떠밀려 온 나무(물가 가까운 모래)
 		KioskAngle = 142,
+		LifeguardAngle = 191, -- 구조대 망루(수영 구역 부표 옆 모래사장)
 		PierLength = 48, -- 물가에서 바다 쪽으로(부두 T자 끝까지)
 		PierWidth = 5,
 		PierHead = { Width = 13, Depth = 7 }, -- T자 끝 판
 		DeckTop = 0.4, -- 부두 윗면
-		Buoys = { From = 166, To = 198, Count = 9, Offset = 24 }, -- 수영 구역 부표(물가에서 바다 쪽 거리)
+		Buoys = { From = 166, To = 198, Count = 7, Offset = 24 }, -- 수영 구역 부표(물가에서 바다 쪽 거리)
 	},
 
 	SEA = {
@@ -79,7 +106,8 @@ local T = {
 		},
 	},
 
-	WALL = { Step = 3, Offset = 3, Height = 60, Bottom = -14, PierGap = 0.4 }, -- 보이지 않는 벽(물가 + Offset)
+	-- 보이지 않는 벽: 물가 + Offset 을 Step 도 간격으로 짚은 뒤, 곧게 펴도 Tolerance 이상 안 벗어나는 점은 뺌
+	WALL = { Step = 1, Tolerance = 1.2, Offset = 3, Height = 60, Bottom = -14, PierGap = 0.4 },
 }
 Plan.Tuning = T
 
@@ -100,7 +128,16 @@ export type Item = {
 }
 
 -- 산책로 판: 고리(곧은 판 Segments 개), 곧은 길 조각, 둥근 광장 원판
-export type Ring = { Radius: number, Width: number, Segments: number, Top: number, Material: string }
+-- 고리: Points = 가운데 선 꼭짓점(닫힌 꺾은선, 각도가 커지는 순서), 판은 꼭짓점 사이마다 하나
+export type Ring = {
+	Radius: number,
+	Width: number,
+	Segments: number,
+	Top: number,
+	Material: string,
+	Color: { number }?, -- 없으면 재질 기본색(Scenery/init 의 ROUTE_COLORS)
+	Points: { { number } },
+}
 export type Segment = { X1: number, Z1: number, X2: number, Z2: number, Width: number, Top: number, Material: string }
 export type Disc = { X: number, Z: number, R: number, Top: number, Material: string }
 
@@ -154,6 +191,38 @@ local GAP_ANGLES = ParkLayout.gapAngles()
 local FOOTPRINTS = ParkLayout.footprints()
 local RINGS = { T.INNER_RING, T.OUTER_RING }
 
+type RingTuning = {
+	Radius: number,
+	Width: number,
+	Segments: number,
+	Wobble: number,
+	Material: string,
+	Color: { number }?,
+}
+
+-- 고리 가운데 선의 반지름(각도 = 라디안). 물결 셋(2·3·5 번 도는)을 겹쳐서 한 바퀴 돌면 제자리, 최대 ±Wobble
+local function ringRadius(ring: RingTuning, angle: number): number
+	local wobble = ring.Wobble
+	if wobble == 0 then
+		return ring.Radius
+	end
+	local n = 0.5 * math.sin(2 * angle + 0.7) + 0.35 * math.sin(3 * angle + 2.1) + 0.15 * math.sin(5 * angle + 4)
+	return ring.Radius + wobble * n
+end
+Plan.ringRadius = ringRadius
+
+-- 고리마다 가운데 선 꼭짓점(모듈을 불러올 때 한 번)
+local RING_POINTS: { { { number } } } = {}
+for i, ring in RINGS do
+	local points = {}
+	for k = 0, ring.Segments - 1 do
+		local a = k / ring.Segments * TAU
+		local r = ringRadius(ring, a)
+		table.insert(points, { math.cos(a) * r, math.sin(a) * r })
+	end
+	RING_POINTS[i] = points
+end
+
 local CELL = 24
 local BIG = 12 -- 이보다 큰 장식은 격자 대신 따로 모아 둠
 
@@ -183,11 +252,27 @@ local function segmentDistance(x: number, z: number, x1: number, z1: number, x2:
 	return math.sqrt(px * px + pz * pz)
 end
 
+-- 고리 index 가운데 선까지 거리(각도로 가까운 판 셋만 봄)
+local function ringDistance(index: number, x: number, z: number): number
+	local points = RING_POINTS[index]
+	local n = #points
+	local k = math.floor((math.atan2(z, x) % TAU) / TAU * n)
+	local best = math.huge
+	for d = -1, 1 do
+		local i = (k + d) % n
+		local p, q = points[i + 1], points[(i + 1) % n + 1]
+		best = math.min(best, segmentDistance(x, z, p[1], p[2], q[1], q[2]))
+	end
+	return best
+end
+
 -- 정원 오솔길 모양 -------------------------------------------------------------------
 -- 오솔길은 틈 가운데 선(안쪽 고리 r 84 → 바깥 고리 r 208.5). Cut = 오솔길을 끊는 구간(rho),
 -- Disc = 그 자리의 광장 원판(Build 면 산책로처럼 만듦, 아니면 장식이 바닥을 만듦), Bridge = 연못 위 다리
+-- Curve = 오솔길이 넓은 곳(rho 140 너머)에서 옆으로 굽이치는 폭(0 이면 곧게). 한 조각이 길면 S 자, 짧으면 한 번 휨
 type ThemeRoute = {
 	Material: string,
+	Curve: number?,
 	Cut: { number }?,
 	Disc: { Rho: number, R: number, Top: number?, Material: string?, Build: boolean }?,
 	Bridge: { From: number, To: number, Width: number }?,
@@ -199,23 +284,82 @@ local THEME_ROUTES: { [string]: ThemeRoute } = {
 		Cut = { 158, 182 },
 		Disc = { Rho = 170, R = 13, Build = true },
 	},
-	Flowers = { Material = "Brick" },
-	Orchard = { Material = "Pebble" },
+	Flowers = { Material = "Brick", Curve = 6 },
+	Orchard = { Material = "Pebble", Curve = 7 },
 	Pond = {
 		Material = "Cobblestone",
 		Cut = { 155, 185 },
 		Bridge = { From = 153, To = 187, Width = 4.6 },
 		Pond = { Rho = 170, R = 11.5, Depth = 3.5 },
 	},
-	Picnic = { Material = "Pebble" },
-	Rockery = { Material = "Slate" },
+	Picnic = { Material = "Pebble", Curve = 7 },
+	Rockery = { Material = "Slate", Curve = 6 },
 	Topiary = { Material = "Brick" },
 	Gazebo = {
 		Material = "Cobblestone",
+		Curve = 4,
 		Cut = { 170, 182 },
 		Disc = { Rho = 176, R = 7.5, Top = 0.4, Material = "WoodPlanks", Build = false },
 	},
 }
+
+local CURVE_FROM = 140 -- 틈이 넓어지는 곳(여기부터 오솔길이 굽이침)
+
+-- 오솔길 한 조각(rho a → b)을 곧은 판 여러 개로. curve ~= 0 이면 CURVE_FROM 너머에서 옆으로 굽이침(양 끝은 가운데 선).
+-- 이음매에서 꺾이는 만큼 판을 늘려 바깥 틈을 덮고, 이웃 판끼리 윗면을 0.04 씩 번갈아(겹친 곳이 깜빡이지 않게)
+local function trailPieces(angle: number, a: number, b: number, curve: number, material: string): { Segment }
+	local points: { { number } } = {}
+	local start = math.max(a, CURVE_FROM)
+	if curve == 0 or b - start < 12 then
+		points = { { a, 0 }, { b, 0 } }
+	else
+		if start > a then
+			table.insert(points, { a, 0 })
+		end
+		local waves = if b - start > 45 then 2 else 1 -- 길면 S 자
+		local steps = math.max(3, math.ceil((b - start) / 7))
+		for k = 0, steps do
+			local u = k / steps
+			local side = curve * math.sin(math.pi * waves * u) * (if waves == 2 then 1 else 0.8)
+			table.insert(points, { start + (b - start) * u, side })
+		end
+	end
+	local world: { { number } } = {}
+	for _, p in points do
+		local x, z = onAxis(angle, p[1], p[2])
+		table.insert(world, { x, z })
+	end
+	local half = T.TRAIL_WIDTH / 2
+	local function unit(p: { number }, q: { number }): (number, number)
+		local dx, dz = q[1] - p[1], q[2] - p[2]
+		local length = math.sqrt(dx * dx + dz * dz)
+		return dx / length, dz / length
+	end
+	local function bend(k: number): number
+		if k <= 1 or k >= #world then
+			return 0
+		end
+		local ux, uz = unit(world[k - 1], world[k])
+		local vx, vz = unit(world[k], world[k + 1])
+		return half * math.tan(math.acos(math.clamp(ux * vx + uz * vz, -1, 1)) / 2) + 0.05
+	end
+	local list: { Segment } = {}
+	for k = 1, #world - 1 do
+		local p, q = world[k], world[k + 1]
+		local dx, dz = unit(p, q)
+		local e1, e2 = bend(k), bend(k + 1)
+		table.insert(list, {
+			X1 = p[1] - dx * e1,
+			Z1 = p[2] - dz * e1,
+			X2 = q[1] + dx * e2,
+			Z2 = q[2] + dz * e2,
+			Width = T.TRAIL_WIDTH,
+			Top = T.TRAIL_TOP + (k % 2) * 0.04,
+			Material = material,
+		})
+	end
+	return list
+end
 
 -- 산책로 판정용 모양(모듈을 불러올 때 한 번 계산): 오솔길 조각·다리, 광장 원판
 local ROUTE_SEGMENTS: { Segment } = {}
@@ -223,21 +367,23 @@ local ROUTE_DISCS: { Disc } = {}
 local TRAILS: { Segment } = {}
 local DISCS: { Disc } = {}
 local PONDS: { Island.Pond } = {}
+local GAP_PONDS: { [number]: Island.Pond } = {} -- 틈 번호 → 그 틈의 연못
 for j, angle in GAP_ANGLES do
 	local theme = T.GARDEN_THEMES[(j - 1) % #T.GARDEN_THEMES + 1]
 	local route = THEME_ROUTES[theme] or { Material = T.WALKWAY_MATERIAL }
-	local pieces = { { T.INNER_RING.Radius, T.OUTER_RING.Radius } }
+	local from, to = ringRadius(T.INNER_RING, angle), ringRadius(T.OUTER_RING, angle)
+	local pieces = { { from, to } }
 	local cut = route.Cut
 	if cut then
-		pieces = { { T.INNER_RING.Radius, cut[1] }, { cut[2], T.OUTER_RING.Radius } }
+		pieces = { { from, cut[1] }, { cut[2], to } }
 	end
+	-- 정원 좌우 뒤집기(gardens() 의 첫 난수와 같은 값): 굽이치는 쪽도 정원 장식과 같이 뒤집힘
+	local m = Rng.new(T.SEED + 200 + j):Sign()
 	for _, piece in pieces do
-		local x1, z1 = polar(angle, piece[1])
-		local x2, z2 = polar(angle, piece[2])
-		local trail: Segment =
-			{ X1 = x1, Z1 = z1, X2 = x2, Z2 = z2, Width = T.TRAIL_WIDTH, Top = T.TRAIL_TOP, Material = route.Material }
-		table.insert(TRAILS, trail)
-		table.insert(ROUTE_SEGMENTS, trail)
+		for _, trail in trailPieces(angle, piece[1], piece[2], (route.Curve or 0) * m, route.Material) do
+			table.insert(TRAILS, trail)
+			table.insert(ROUTE_SEGMENTS, trail)
+		end
 	end
 	local disc = route.Disc
 	if disc then
@@ -266,16 +412,17 @@ for j, angle in GAP_ANGLES do
 	local pond = route.Pond
 	if pond then
 		local x, z = polar(angle, pond.Rho)
-		table.insert(PONDS, { X = x, Z = z, R = pond.R, Depth = pond.Depth, Seed = 40 + j * 1.7 })
+		local entry: Island.Pond = { X = x, Z = z, R = pond.R, Depth = pond.Depth, Seed = 40 + j * 1.7 }
+		table.insert(PONDS, entry)
+		GAP_PONDS[j] = entry
 	end
 end
 
 -- 산책로(고리 둘, 정원 오솔길·다리, 광장 원판) 위이거나 너무 가까운지. margin 기본은 ROUTE_MARGIN
 function Plan.onRoute(x: number, z: number, pad: number?, margin: number?): boolean
 	local m = (pad or 0) + (margin or T.ROUTE_MARGIN)
-	local r = math.sqrt(x * x + z * z)
-	for _, ring in RINGS do
-		if math.abs(r - ring.Radius) <= ring.Width / 2 + m then
+	for i, ring in RINGS do
+		if ringDistance(i, x, z) <= ring.Width / 2 + m then
 			return true
 		end
 	end
@@ -459,7 +606,10 @@ local function place(ctx: Ctx, rng: Rng, spec: Spec, tries: number?, jitter: num
 			}
 			insert(ctx, item)
 			if spec.Flat then
-				table.insert(ctx.Paint, { Kind = "Circle", X = x, Z = z, R = spec.Flat, Material = "LeafyGrass", Margin = 2 })
+				table.insert(
+					ctx.Paint,
+					{ Kind = "Circle", X = x, Z = z, R = spec.Flat, Material = "LeafyGrass", Margin = 2 }
+				)
 			end
 			return item
 		end
@@ -483,8 +633,12 @@ local function placeHedge(ctx: Ctx, zone: string, x1: number, z1: number, x2: nu
 	for s = 0, steps do
 		local t = s / steps
 		local x, z = x1 + (x2 - x1) * t, z1 + (z2 - z1) * t
-		if Plan.islandBlocked(x, z, r, 0.5) or overlaps(ctx, x, z, r, 0.3) then
+		local blocked, why = Plan.islandBlocked(x, z, r, 0.5)
+		if blocked or overlaps(ctx, x, z, r, 0.3) then
 			ctx.Skipped[zone .. "/Hedge"] = (ctx.Skipped[zone .. "/Hedge"] or 0) + 1
+			if Plan.debugSkipped then
+				table.insert(Plan.debugSkipped, { Kind = "Hedge", X = x, Z = z, Why = why or "overlap" })
+			end
 			return nil
 		end
 	end
@@ -513,7 +667,15 @@ local TREE_RADIUS = 2.4 -- 넓은잎나무(잎은 약 4 x Scale 까지 퍼져서
 local PALM_RADIUS = 1.6
 local BUSH_RADIUS = 2.2
 
-local function treeSpec(zone: string, region: string, x: number, z: number, scale: number, style: number, rng: Rng): Spec
+local function treeSpec(
+	zone: string,
+	region: string,
+	x: number,
+	z: number,
+	scale: number,
+	style: number,
+	rng: Rng
+): Spec
 	return {
 		Kind = "Tree",
 		Zone = zone,
@@ -564,55 +726,152 @@ end
 
 -- 안쪽 잔디(광장 ~ 부지 입구) ---------------------------------------------------------------
 
+-- 후보 자리들을 차례로(각각 tries 번 흔들어) 놓아 봄. 모두 안 되면 첫 후보를 Skipped 에 셈
+local function placeFirst(ctx: Ctx, rng: Rng, specs: { Spec }, tries: number, jitter: number): Item?
+	for _, spec in specs do
+		local item = place(ctx, rng, spec, tries, jitter, true)
+		if item then
+			return item
+		end
+	end
+	local key = specs[1].Zone .. "/" .. specs[1].Kind
+	ctx.Skipped[key] = (ctx.Skipped[key] or 0) + 1
+	if Plan.debugSkipped then
+		for _, spec in specs do
+			table.insert(Plan.debugSkipped, spec)
+		end
+	end
+	return nil
+end
+
+local LAWN_IN = ParkLayout.PLAZA_CLEAR + 1 -- 안쪽 잔디 시작(광장 둘레 나무 고리 바깥)
+
 local function innerLawn(ctx: Ctx)
 	local rng = Rng.new(T.SEED + 100)
 	local inner = T.INNER_RING
-	local ringIn, ringOut = inner.Radius - inner.Width / 2, inner.Radius + inner.Width / 2
+	local half = inner.Width / 2
+	local function spec(
+		kind: string,
+		rho: number,
+		side: number,
+		angle: number,
+		radius: number,
+		extra: { [string]: any }?
+	): Spec
+		local x, z = onAxis(angle, rho, side)
+		local result: Spec = { Kind = kind, Zone = "Inner", Region = "Island", X = x, Z = z, Radius = radius }
+		if extra then
+			for key, value in extra do
+				(result :: any)[key] = value
+			end
+		end
+		return result
+	end
 	for j, angle in GAP_ANGLES do
-		-- 오솔길 입구 양옆 꽃밭(광장 쪽)
-		for _, s in { -1, 1 } do
-			local x, z = onAxis(angle, 71 + rng:NextNumber(-1, 1), s * (9 + rng:NextNumber(-0.6, 0.6)))
-			place(ctx, rng, {
-				Kind = "FlowerBed",
-				Zone = "Inner",
-				Region = "Island",
-				X = x,
-				Z = z,
-				Radius = 2.9,
-				Turn = rng:NextNumber(0, TAU),
-				Style = (j * 2 + (if s > 0 then 1 else 0)) % 6 + 1,
-				Flat = 2.9,
-			}, 4, 1.2)
+		local ring = ringRadius(inner, angle)
+		local inEdge, outEdge = ring - half, ring + half
+		local room = inEdge - LAWN_IN -- 고리 안쪽(광장 쪽) 잔디 폭
+		local s = if j % 2 == 0 then 1 else -1
+		-- 벤치 + 정원등: 오솔길이 시작되는 곳. 안쪽이 넉넉하면 고리 안쪽에서 정원 쪽을, 아니면 바깥 오솔길 옆에서 광장 쪽을 봄
+		local benchSpecs = {
+			spec("Bench", inEdge - 4.4, 0, angle, 2.8, { Turn = angle, RouteMargin = 0.4 }),
+			spec("Bench", outEdge + 4.4, s * 7.5, angle, 2.8, { Turn = angle + math.pi, RouteMargin = 0.4 }),
+			spec("Bench", outEdge + 4.4, -s * 7.5, angle, 2.8, { Turn = angle + math.pi, RouteMargin = 0.4 }),
+		}
+		if room < 8 then
+			benchSpecs = { benchSpecs[2], benchSpecs[3], benchSpecs[1] }
+		end
+		local benchItem = placeFirst(ctx, rng, benchSpecs, 3, 0.8)
+		if benchItem then
+			local rho = benchItem.X * math.cos(angle) + benchItem.Z * math.sin(angle)
+			local side = benchItem.Z * math.cos(angle) - benchItem.X * math.sin(angle)
+			placeFirst(ctx, rng, {
+				spec("Lamp", rho, side + s * 4.2, angle, 0.6, { RouteMargin = 0.3 }),
+				spec("Lamp", rho, side - s * 4.2, angle, 0.6, { RouteMargin = 0.3 }),
+			}, 2, 0.6)
+		end
+		-- 꽃섬(꽃밭 + 뒤에 작은 꽃나무 + 덤불 둘): 고리 안쪽이 넓으면 안쪽, 아니면 바깥(오솔길 반대쪽 옆)
+		local rho, side
+		if room >= 13 then
+			rho, side = LAWN_IN + room * 0.5, -s * 11
+		else
+			rho, side = outEdge + 7.5, -s * 11
+		end
+		local style = j % 6 + 1
+		local bed = placeFirst(ctx, rng, {
+			spec("FlowerBed", rho, side, angle, 3.3, { Turn = rng:NextNumber(0, TAU), Style = style, Flat = 3.3 }),
+			spec(
+				"FlowerBed",
+				outEdge + 7.5,
+				side,
+				angle,
+				3.3,
+				{ Turn = rng:NextNumber(0, TAU), Style = style, Flat = 3.3 }
+			),
+		}, 4, 1.5)
+		if bed then
+			-- 무리: 꽃밭 뒤(광장에서 먼 쪽) 작은 꽃나무, 양옆 덤불
+			local bx, bz = bed.X, bed.Z
+			local out = math.atan2(bz, bx)
+			local tx, tz =
+				bx + math.cos(out) * 5.2 - math.sin(out) * s * 2, bz + math.sin(out) * 5.2 + math.cos(out) * s * 2
+			place(
+				ctx,
+				rng,
+				treeSpec("Inner", "Island", tx, tz, rng:NextNumber(0.72, 0.85), if j % 3 == 0 then 1 else 4, rng),
+				4,
+				1.2,
+				true
+			)
+			for _, k in { -1, 1 } do
+				local a = out + k * 1.9 + rng:NextNumber(-0.3, 0.3)
+				local d = 3.3 + BUSH_RADIUS * 0.85 + 0.8
+				place(
+					ctx,
+					rng,
+					bushSpec(
+						"Inner",
+						bx + math.cos(a) * d,
+						bz + math.sin(a) * d,
+						rng:NextNumber(0.75, 0.95),
+						k > 0,
+						rng
+					),
+					3,
+					1,
+					true
+				)
+			end
 		end
 		-- 부지 입구 쪽 작은 꽃나무(틈마다 한쪽씩 번갈아)
-		local s = if j % 2 == 0 then 1 else -1
-		local x, z = onAxis(angle, 102 + rng:NextNumber(-1.5, 1.5), s * (12 + rng:NextNumber(-1, 1)))
-		place(ctx, rng, treeSpec("Inner", "Island", x, z, rng:NextNumber(0.75, 0.85), 4, rng), 4, 2)
-		-- 벤치: 오솔길이 시작되는 곳 안쪽(광장 쪽)에서 부지 쪽(바깥)을 바라봄
-		x, z = onAxis(angle, ringIn - 4, 0)
-		place(ctx, rng, {
-			Kind = "Bench",
-			Zone = "Inner",
-			Region = "Island",
-			X = x,
-			Z = z,
-			Radius = 2.8,
-			Turn = angle,
-			RouteMargin = 0.4,
-		}, 3, 1)
+		local ex, ez = onAxis(angle, 103 + rng:NextNumber(-1.5, 1.5), s * (12 + rng:NextNumber(-1, 1)))
+		placeFirst(ctx, rng, { treeSpec("Inner", "Island", ex, ez, rng:NextNumber(0.75, 0.85), 4, rng) }, 6, 2.5)
 	end
 	for _, footprint in FOOTPRINTS do
 		local a = footprint.Angle
 		for _, s in { -1, 1 } do
-			-- 광장 쪽 길 입구 덤불(꽃)
-			local scale = rng:NextNumber(0.9, 1.05)
-			local x, z = onAxis(a, 70 + rng:NextNumber(-1, 1), s * (7.6 + BUSH_RADIUS * scale))
-			place(ctx, rng, bushSpec("Inner", x, z, scale, true, rng), 3, 0.8)
-			-- 고리와 부지 입구 사이 길 양옆 산울타리
+			-- 길 양옆 줄: 광장 쪽 끝에 꽃 덤불 + 이어서 산울타리. 고리 안쪽(광장 ~ 고리)과 바깥(고리 ~ 부지 입구)
+			-- 중 긴 쪽에. 옆으로 비킨 자리의 고리 반지름으로 잼(고리가 구불구불해서 길 가운데와 다름)
 			local side = s * (ParkLayout.PATH_WIDTH / 2 + ParkLayout.PATH_MARGIN + 1)
-			local x1, z1 = onAxis(a, ringOut + 2.4, side)
-			local x2, z2 = onAxis(a, 103, side)
-			placeHedge(ctx, "Inner", x1, z1, x2, z2, 1)
+			local ring = ringRadius(inner, a + math.atan2(side, ringRadius(inner, a)))
+			local inEdge, outEdge = ring - half - 3.4, ring + half + 3.4
+			local scale = rng:NextNumber(0.9, 1.05)
+			local r = BUSH_RADIUS * scale
+			local bushSide = s * (7.6 + r)
+			local first, last
+			if inEdge - LAWN_IN >= 103 - outEdge then
+				first, last = LAWN_IN, inEdge
+			else
+				first, last = outEdge, 103
+			end
+			local x, z = onAxis(a, first + r + 1, bushSide)
+			place(ctx, rng, bushSpec("Inner", x, z, scale, true, rng), 3, 0.5)
+			local from = first + 2 * r + 4.5
+			if last - from >= 7 then
+				local x1, z1 = onAxis(a, from, side)
+				local x2, z2 = onAxis(a, last, side)
+				placeHedge(ctx, "Inner", x1, z1, x2, z2, 1)
+			end
 		end
 	end
 end
@@ -624,6 +883,7 @@ type Garden = {
 	rng: Rng,
 	angle: number,
 	m: number, -- 좌우 뒤집기(-1 / 1)
+	pond: Island.Pond?, -- 이 틈의 지형 연못(연못 정원만)
 }
 
 -- 정원 좌표(rho = 광장 중심에서 틈 방향 거리, side = 옆, m 을 곱해서 뒤집힘)
@@ -742,12 +1002,12 @@ end
 -- 꽃 정원: 오솔길 입구 장미 아치, 크기·색이 다른 꽃밭 무리, 꽃 덤불, 분홍 꽃나무, 새 물통, 벤치
 THEMES.Flowers = function(g)
 	put(g, "Arch", 136, 0, 0.8, { Turn = g.angle, OnRoute = true, Layer = "Free", Y = T.TRAIL_TOP })
-	bed(g, 146, 7.8, 2.8, 1)
+	bed(g, 146, 10.5, 2.8, 1)
 	bed(g, 150, -8.6, 3.2, 2)
-	bed(g, 162, 11, 3.6, 3)
+	bed(g, 162, 15, 3.6, 3)
 	bed(g, 166, -12.5, 3.2, 5)
 	bed(g, 178, 17, 3.8, 4)
-	bed(g, 182, -9.5, 3.2, 6)
+	bed(g, 182, -13.5, 3.2, 6)
 	bed(g, 196, 9, 3, 2)
 	bed(g, 194, -24, 3.6, 1)
 	bush(g, 170, 21, 1.1, true)
@@ -771,12 +1031,13 @@ THEMES.Orchard = function(g)
 	put(g, "Crate", 174, -8, 1.4, { Turn = g.angle + 0.4 })
 	bench(g, 176, 7.5, 176, 20)
 	bush(g, 152, -8, 0.9)
-	lamp(g, 164, 5.2)
+	lamp(g, 164, -3.5)
 end
 
 -- 연못: 지형 연못(물 윗면 = 땅) 위로 나무 다리, 둘레 돌·수련·부들, 연못을 보는 벤치, 징검돌
 THEMES.Pond = function(g)
-	fixed(g, "PondDeco", 170, 0, { Scale = 11.5 })
+	local pond = g.pond :: Island.Pond
+	fixed(g, "PondDeco", 170, 0, { Scale = pond.R, Height = pond.Seed })
 	fixed(g, "Bridge", 170, 0, { Height = 34 })
 	bench(g, 172, 20, 170, 0)
 	put(g, "Stones", 157, 12, 3, { Turn = g.angle + g.m * 0.7, Flat = 3 })
@@ -791,33 +1052,33 @@ end
 
 -- 소풍 잔디: 격자무늬 돗자리 둘(바구니·접시), 그늘 나무 아래 소풍 탁자, 꽃밭
 THEMES.Picnic = function(g)
-	put(g, "Blanket", 165, 12, 3.4, { Turn = g.angle + 0.35, Style = 1, Flat = 3.4 })
+	put(g, "Blanket", 165, 14, 3.4, { Turn = g.angle + 0.35, Style = 1, Flat = 3.4 })
 	put(g, "Blanket", 182, -15, 3.4, { Turn = g.angle - 0.5, Style = 2, Flat = 3.4 })
 	put(g, "PicnicTable", 190, 18, 3.4, { Turn = g.angle + math.pi / 2 })
 	tree(g, 194, 30, 1.4, 1)
 	tree(g, 152, -11, 0.95, 1)
 	bed(g, 196, 8, 2.8, 5)
 	bush(g, 176, -23, 1.1)
-	bush(g, 144, 7, 0.9, true)
+	bush(g, 146, 11.5, 0.9, true)
 	lamp(g, 172, -5.2)
 end
 
 -- 바위 정원: 흰 자갈밭(지형 칠하기) 위 크고 작은 바위 무리, 석등, 단풍나무, 벤치
 THEMES.Rockery = function(g)
 	local gx, gz = at(g, 178, 16)
-	table.insert(g.ctx.Paint, { Kind = "Circle", X = gx, Z = gz, R = 12, Material = "Salt", Margin = 0 })
+	table.insert(g.ctx.Paint, { Kind = "Blob", X = gx, Z = gz, R = 11, Material = "Salt", Margin = 0 })
 	rock(g, 172, 13, 1.6)
 	rock(g, 176, 18.5, 0.9)
 	rock(g, 184, 12, 1.1)
 	rock(g, 186, 22, 1.4)
 	rock(g, 160, -9, 1.2)
 	rock(g, 194, -18, 1)
-	put(g, "Lantern", 164, 8, 0.9)
+	put(g, "Lantern", 164, 12, 0.9)
 	put(g, "Lantern", 192, 7, 0.9)
 	tree(g, 170, -18, 0.95, 3)
 	tree(g, 198, 32, 1.1, 3)
 	tree(g, 148, -9, 0.8, 3)
-	bench(g, 184, -7.5, 184, 16)
+	bench(g, 184, -14, 184, 16)
 	bush(g, 196, -30, 1)
 end
 
@@ -850,9 +1111,9 @@ THEMES.Gazebo = function(g)
 	bush(g, 176, -12, 1, true)
 	bush(g, 190, 14, 0.9, true)
 	bush(g, 162, -12, 0.9, true)
-	lamp(g, 160, 5.2)
+	lamp(g, 160, -5.2)
 	lamp(g, 192, -5.2)
-	bed(g, 150, 8, 2.8, 4)
+	bed(g, 150, 11, 2.8, 4)
 	tree(g, 198, 28, 1.25, 4)
 	tree(g, 196, -30, 1.2, 1)
 	bench(g, 186, -22, 176, 0)
@@ -864,18 +1125,12 @@ local function gardens(ctx: Ctx)
 		local theme = T.GARDEN_THEMES[(j - 1) % #T.GARDEN_THEMES + 1]
 		local build = THEMES[theme]
 		if build then
-			build({ ctx = ctx, rng = rng, angle = angle, m = rng:Sign() })
+			build({ ctx = ctx, rng = rng, angle = angle, m = rng:Sign(), pond = GAP_PONDS[j] })
 		end
 	end
 end
 
 -- 숲띠 -------------------------------------------------------------------------
-
--- 숲 밀도(0~1): 노이즈로 숲 무리와 빈터가 번갈아. 부지 바로 뒤는 조금 더 빽빽하게
-local function groveDensity(x: number, z: number): number
-	local n = math.noise(x / 52 + 3.1, z / 52 - 7.7, 0.9) + 0.35 * math.noise(x / 21 - 1.3, z / 21 + 2.9, 0.41)
-	return math.clamp((n + 0.1) / 0.35, 0, 1) * 0.85
-end
 
 local function belt(ctx: Ctx)
 	local rng = Rng.new(T.SEED + 300)
@@ -897,7 +1152,23 @@ local function belt(ctx: Ctx)
 			RouteMargin = 0.4,
 		})
 		x, z = onAxis(a, ringOut + 1.2, 4.2)
-		place(ctx, rng, { Kind = "Lamp", Zone = "Belt", Region = "Island", X = x, Z = z, Radius = 0.6, RouteMargin = 0.2 })
+		place(
+			ctx,
+			rng,
+			{ Kind = "Lamp", Zone = "Belt", Region = "Island", X = x, Z = z, Radius = 0.6, RouteMargin = 0.2 }
+		)
+		-- 벤치 옆 동전 망원경(바다 쪽을 봄)
+		x, z = onAxis(a, ringOut + 2.2, -5.2)
+		place(ctx, rng, {
+			Kind = "Telescope",
+			Zone = "Belt",
+			Region = "Island",
+			X = x,
+			Z = z,
+			Radius = 0.8,
+			Turn = a,
+			RouteMargin = 0.3,
+		}, 2, 0.5)
 		for _, s in { -1, 1 } do
 			local r = ringOut + 2
 			local a1 = a + s * math.rad(2.4)
@@ -908,60 +1179,86 @@ local function belt(ctx: Ctx)
 		end
 	end
 
-	-- 나무: 밀도에 따라 받아들이는 자리 뽑기(가까우면 버림) → 숲 무리 + 빈터
+	-- 숲 무리: 부지마다 뒤쪽 양옆(부지 가운데 선과 틈 시야 사이)에 큰 무리 하나 + 작은 무리 하나.
+	-- 무리 가운데에 큰 나무, 둘레에 작은 나무(모래 가까우면 야자수). 무리 사이는 빈터(잔디 언덕·바위)
+	local B = T.BELT
 	local trees, palms = 0, 0
 	local placed: { Item } = {}
-	for _ = 1, T.BELT.TreeAttempts do
-		if trees >= T.BELT.Trees and palms >= T.BELT.Palms then
-			break
-		end
-		local a = rng:NextNumber(0, TAU)
+	local centers: { { number } } = {}
+	local function grove(a: number, count: number, style: number)
 		local grass = Island.grassEdge(a)
-		local d = rng:NextNumber(ringOut + 3, grass - 2)
-		local x, z = polar(a, d)
-		if rng:NextNumber() < groveDensity(x, z) then
-			local nearSand = grass - d < 11
-			if nearSand and rng:NextNumber() < 0.65 then
-				if palms < T.BELT.Palms then
-					local scale = rng:NextNumber(T.BELT.PalmScale[1], T.BELT.PalmScale[2])
-					local item = place(ctx, rng, palmSpec("Belt", "Island", x, z, scale, rng), 0, 0, true)
-					if item then
-						palms += 1
-					end
+		local inner = ringOut + 7
+		local d = rng:NextNumber(inner, math.max(inner, grass - 7))
+		local cx, cz = polar(a, d)
+		table.insert(centers, { cx, cz })
+		local done = 0
+		for attempt = 1, count * 8 do
+			if done >= count then
+				break
+			end
+			-- 첫 그루는 무리 가운데 가까이(크게), 나머지는 둘레(작게)
+			local spread = if done == 0 then 3 else B.GroveRadius
+			local ga, gr = rng:NextNumber(0, TAU), math.sqrt(rng:NextNumber()) * spread
+			local x, z = cx + math.cos(ga) * gr, cz + math.sin(ga) * gr
+			local edge = Island.grassEdge(math.atan2(z, x))
+			local item: Item? = nil
+			if edge - math.sqrt(x * x + z * z) < 11 and palms < B.Palms and rng:NextNumber() < 0.6 then
+				local scale = rng:NextNumber(B.PalmScale[1], B.PalmScale[2])
+				item = place(ctx, rng, palmSpec("Belt", "Island", x, z, scale, rng), 0, 0, true)
+				if item then
+					palms += 1
 				end
-			elseif trees < T.BELT.Trees then
-				local scale = rng:NextNumber(T.BELT.TreeScale[1], T.BELT.TreeScale[2])
-				local style = if rng:NextNumber() < 0.12 then 4 else 1
-				local item = place(ctx, rng, treeSpec("Belt", "Island", x, z, scale, style, rng), 0, 0, true)
+			elseif trees < B.Trees then
+				local scale = if done == 0
+					then rng:NextNumber(1.3, B.TreeScale[2])
+					else rng:NextNumber(B.TreeScale[1], 1.25)
+				item = place(ctx, rng, treeSpec("Belt", "Island", x, z, scale, style, rng), 0, 0, true)
 				if item then
 					trees += 1
 					table.insert(placed, item)
 				end
 			end
+			if item then
+				done += 1
+			end
 		end
+	end
+	for i, footprint in FOOTPRINTS do
+		local side = if i % 2 == 0 then 1 else -1
+		local style = if rng:NextNumber() < B.BlossomGroves then 4 else 1
+		grove(footprint.Angle + side * math.rad(rng:NextNumber(10, 16)), rng:NextInteger(3, 4), style)
+		grove(footprint.Angle - side * math.rad(rng:NextNumber(11, 15)), rng:NextInteger(1, 2), 1)
 	end
 
 	-- 숲 가장자리 덤불(나무 옆, 가끔 꽃 덤불)
 	for _, item in placed do
-		if rng:NextNumber() < T.BELT.BushChance then
+		if rng:NextNumber() < B.BushChance then
 			local a = rng:NextNumber(0, TAU)
 			local d = item.Radius + rng:NextNumber(2.5, 4.5)
 			local scale = rng:NextNumber(0.9, 1.25)
-			local spec = bushSpec("Belt", item.X + math.cos(a) * d, item.Z + math.sin(a) * d, scale, rng:NextNumber() < 0.3, rng)
+			local spec =
+				bushSpec("Belt", item.X + math.cos(a) * d, item.Z + math.sin(a) * d, scale, rng:NextNumber() < 0.3, rng)
 			place(ctx, rng, spec, 3, 1.5, true)
 		end
 	end
 
-	-- 빈터의 바위 무리
+	-- 빈터(무리 가운데에서 먼 곳)의 바위
 	local rocks = 0
-	for _ = 1, 200 do
-		if rocks >= T.BELT.Rocks then
+	for _ = 1, 300 do
+		if rocks >= B.Rocks then
 			break
 		end
 		local a = rng:NextNumber(0, TAU)
 		local d = rng:NextNumber(ringOut + 4, Island.grassEdge(a) - 3)
 		local x, z = polar(a, d)
-		if groveDensity(x, z) < 0.3 then
+		local open = true
+		for _, c in centers do
+			if (c[1] - x) ^ 2 + (c[2] - z) ^ 2 < 22 * 22 then
+				open = false
+				break
+			end
+		end
+		if open then
 			local scale = rng:NextNumber(0.9, 1.5)
 			local item = place(ctx, rng, {
 				Kind = "Rock",
@@ -982,6 +1279,68 @@ local function belt(ctx: Ctx)
 	end
 end
 
+-- 모래 오솔길: 바깥 산책로 바깥 가장자리에서 모래사장(등대 쪽은 등대 받침)까지 지형을 모래로 칠한 굽이치는 길.
+-- 파트가 없어서 언덕을 그대로 따라가고, 둘레 장식(숲 무리·덤불 띠)은 이 길을 비켜 감
+local function footpaths(ctx: Ctx)
+	local B = T.BEACH
+	local ringOut = T.OUTER_RING.Radius + T.OUTER_RING.Width / 2
+	local half = B.FootpathHalf
+	for k, angle in B.Footpaths do
+		local a = math.rad(angle)
+		local to = Island.grassEdge(a) + 2.5
+		if angle == Island.LIGHTHOUSE_ANGLE then
+			to = Island.coastRadius(a) - 6 - 5 -- 등대 받침 가장자리
+		end
+		local from = ringOut - 1
+		local steps = math.max(3, math.ceil((to - from) / 6))
+		local wiggle = 3.5 * (if k % 2 == 0 then 1 else -1)
+		local previous: { number }? = nil
+		for step = 0, steps do
+			local u = step / steps
+			local x, z = onAxis(a, from + (to - from) * u, wiggle * math.sin(math.pi * 1.5 * u))
+			if previous then
+				local px, pz = previous[1], previous[2]
+				table.insert(ctx.Paint, {
+					Kind = "Segment",
+					X1 = px,
+					Z1 = pz,
+					X2 = x,
+					Z2 = z,
+					Half = half,
+					Material = "Sand",
+					Margin = 0.5,
+				})
+				table.insert(ctx.Capsules, { X1 = px, Z1 = pz, X2 = x, Z2 = z, R = half + 0.5 })
+			end
+			previous = { x, z }
+		end
+	end
+end
+
+-- 풀밭 끝 덤불 띠: 모래사장 바로 안쪽 풀밭 가장자리를 따라 덤불(가끔 꽃 덤불·작은 나무) 무리.
+-- 띠 밀도는 각도 물결이라 덤불이 모인 곳과 바다가 트인 곳이 번갈아 나옴
+local function fringe(ctx: Ctx)
+	local B = T.BELT
+	local rng = Rng.new(T.SEED + 350)
+	local circumference = TAU * 250
+	local steps = math.floor(circumference / B.FringeStep)
+	for k = 0, steps - 1 do
+		local a = (k + rng:NextNumber(-0.3, 0.3)) / steps * TAU
+		local density = 0.55 * math.sin(3 * a + 1.3) + 0.45 * math.sin(7 * a + 0.4)
+		if density > B.FringeCut then
+			local d = Island.grassEdge(a) - rng:NextNumber(3.5, 6.5)
+			local x, z = polar(a, d)
+			local roll = rng:NextNumber()
+			if roll < 0.12 then
+				place(ctx, rng, treeSpec("Belt", "Island", x, z, rng:NextNumber(0.8, 1.05), 1, rng), 2, 1.5, true)
+			else
+				local scale = rng:NextNumber(0.75, 1.25)
+				place(ctx, rng, bushSpec("Belt", x, z, scale, roll > 0.8, rng), 2, 1.5, true)
+			end
+		end
+	end
+end
+
 -- 모래사장·바다 --------------------------------------------------------------------
 
 -- 부두 기준: 풀밭 끝에서 시작해 물가 너머 PierLength 까지. 반환: 방향, 시작 거리, 끝 거리
@@ -995,9 +1354,26 @@ local function beach(ctx: Ctx)
 	local B = T.BEACH
 	local rng = Rng.new(T.SEED + 500)
 
-	-- 물가 바위와 연못 자리는 비워 둠
-	for _, rock in Island.ROCKS do
+	-- 물가 바위와 연못 자리는 비워 둠. 등대 받침(1 번) 말고는 지형 바위 위에 모난 바윗돌 덩어리
+	for i, rock in Island.ROCKS do
 		table.insert(ctx.Keep, { X = rock.X, Z = rock.Z, R = rock.R * 1.1 })
+		if i > 1 then
+			local top = rock.Base + rock.Height
+			insert(ctx, {
+				Kind = "ShoreRock",
+				Zone = "Sea",
+				X = rock.X,
+				Y = top,
+				Z = rock.Z,
+				Radius = rock.R,
+				Scale = rock.R,
+				Turn = i * 2.3,
+				Tint = 0.5,
+				Style = 1,
+				Height = top,
+				Layer = "Free",
+			})
+		end
 	end
 
 	-- 등대: 곶의 큰 바위 위(물가보다 6 안쪽)
@@ -1067,6 +1443,20 @@ local function beach(ctx: Ctx)
 		Layer = "Free",
 	})
 
+	-- 구조대 망루: 수영 구역 옆 모래사장 가운데, 바다를 봄
+	local ga = math.rad(B.LifeguardAngle)
+	local gx, gz = polar(ga, (Island.grassEdge(ga) + Island.coastRadius(ga)) / 2)
+	place(ctx, rng, {
+		Kind = "Lifeguard",
+		Zone = "Beach",
+		Region = "Beach",
+		X = gx,
+		Z = gz,
+		Radius = 2.4,
+		Turn = ga,
+		Foot = 1.8,
+	}, 10, 3)
+
 	-- 간식 가게(부두 옆, 풀밭 끝 가까이)
 	local ka = math.rad(B.KioskAngle)
 	local kx, kz = polar(ka, Island.grassEdge(ka) + 5)
@@ -1117,24 +1507,60 @@ local function beach(ctx: Ctx)
 		}, 10, 5)
 	end
 
-	-- 모래사장 야자수: 불규칙한 간격의 무리(1~3 그루), 풀밭 끝 가까운 모래 위, 바다 쪽으로 기움
-	local palms = 0
-	local a = rng:NextNumber(0, TAU)
-	local walked = 0
-	while walked < TAU and palms < B.Palms do
-		local count = rng:NextInteger(1, 3)
-		for _ = 1, count do
-			local pa2 = a + rng:NextNumber(-0.035, 0.035)
+	-- 모래사장 야자수: 섬 둘레에 무리(1~3 그루)를 고르지 않은 간격으로, 풀밭 끝 가까운 모래 위, 바다 쪽으로 기움
+	local start = rng:NextNumber(0, TAU)
+	for grove = 1, B.PalmGroves do
+		local a = start + (grove - 0.5) / B.PalmGroves * TAU + rng:NextNumber(-0.3, 0.3)
+		for _ = 1, rng:NextInteger(1, 3) do
+			local pa2 = a + rng:NextNumber(-0.04, 0.04)
 			local grass = Island.grassEdge(pa2)
 			local x, z = polar(pa2, grass + rng:NextNumber(1.5, 6))
 			local scale = rng:NextNumber(1.05, 1.45)
-			if place(ctx, rng, palmSpec("Beach", "Beach", x, z, scale, rng), 5, 2.5, true) then
-				palms += 1
-			end
+			place(ctx, rng, palmSpec("Beach", "Beach", x, z, scale, rng), 5, 2.5, true)
 		end
-		local step = rng:NextNumber(0.2, 0.45)
-		a += step
-		walked += step
+	end
+
+	-- 서핑보드 거치대(풀밭 끝 가까운 모래, 보드 앞면이 섬 안쪽을 봄)
+	for k, angle in B.Surfboards do
+		local a = math.rad(angle)
+		local x, z = polar(a, Island.grassEdge(a) + 4)
+		place(ctx, rng, {
+			Kind = "Surfboards",
+			Zone = "Beach",
+			Region = "Beach",
+			X = x,
+			Z = z,
+			Radius = 3,
+			Turn = a + math.pi + rng:NextNumber(-0.2, 0.2),
+			Style = k,
+			Foot = 2.5,
+		}, 10, 4)
+	end
+
+	-- 떠밀려 온 나무(물가 가까운 모래, 아무 방향)
+	local placed = 0
+	for _ = 1, 80 do
+		if placed >= B.Driftwood then
+			break
+		end
+		local a = rng:NextNumber(0, TAU)
+		local grass, coast = Island.grassEdge(a), Island.coastRadius(a)
+		local x, z = polar(a, grass + (coast - grass) * rng:NextNumber(0.55, 0.75))
+		local scale = rng:NextNumber(0.8, 1.2)
+		local item = place(ctx, rng, {
+			Kind = "Driftwood",
+			Zone = "Beach",
+			Region = "Beach",
+			X = x,
+			Z = z,
+			Radius = 2.8 * scale,
+			Scale = scale,
+			Turn = a + math.pi / 2 + rng:NextNumber(-0.6, 0.6),
+			Foot = 2,
+		}, 0, 0, true)
+		if item then
+			placed += 1
+		end
 	end
 
 	-- 수영 구역 부표(빨강·하양 번갈아)
@@ -1181,7 +1607,7 @@ local function sea(ctx: Ctx)
 	end
 	-- 먼 작은 섬 위 야자수(풀 언덕 위, 크게)
 	for _, islet in Island.islets() do
-		local count = rng:NextInteger(2, 3)
+		local count = if islet.R > 40 then 3 else 2
 		for k = 1, count do
 			local pa = rng:NextNumber(0, TAU)
 			local pd = rng:NextNumber(0.05, 0.4) * islet.R
@@ -1206,6 +1632,47 @@ end
 
 -- 보이지 않는 벽 -----------------------------------------------------------------------
 
+-- 닫힌 꺾은선 줄이기: 앞 점에서 곧게 이어도 사이 점들이 tolerance 안에 들면 그 사이 점을 뺌(fixed 점은 남김)
+local function simplifyLoop(points: { { number } }, fixed: { boolean }, tolerance: number): { { number } }
+	local n = #points
+	-- 남길 첫 점: fixed 점이 있으면 그 점부터(한 바퀴 돌아 제자리로)
+	local first = 1
+	for i = 1, n do
+		if fixed[i] then
+			first = i
+			break
+		end
+	end
+	local order: { number } = {}
+	for k = 0, n do
+		table.insert(order, (first - 1 + k) % n + 1)
+	end
+	local kept: { { number } } = { points[order[1]] }
+	local anchor = 1
+	local j = 2
+	while j <= n do
+		-- anchor → j+1 로 곧게 가도 되는지(사이 점이 모두 tolerance 안이고, j 가 fixed 가 아니면)
+		local nextIndex = j + 1
+		local ok = not fixed[order[j]] and nextIndex <= n + 1
+		if ok then
+			local a, b = points[order[anchor]], points[order[nextIndex]]
+			for m = anchor + 1, nextIndex - 1 do
+				local p = points[order[m]]
+				if segmentDistance(p[1], p[2], a[1], a[2], b[1], b[2]) > tolerance then
+					ok = false
+					break
+				end
+			end
+		end
+		if not ok then
+			table.insert(kept, points[order[j]])
+			anchor = j
+		end
+		j += 1
+	end
+	return kept
+end
+
 -- 물가 + Offset 을 따라 도는 닫힌 꺾은선. 부두 자리는 부두 양옆·끝을 감싸고 돌아감(부두 끝까지 걸어갈 수 있고
 -- 부두에서 뛰어내려도 벽 안). 반환: {{x, z}, ...}(각도가 커지는 순서)
 function Plan.wallPath(): { { number } }
@@ -1222,6 +1689,7 @@ function Plan.wallPath(): { { number } }
 	end
 
 	local points: { { number } } = {}
+	local fixed: { boolean } = {} -- 줄이지 않을 점(부두 감싸기)
 	local count = math.floor(360 / W.Step)
 	local detoured = false
 	for k = 0, count - 1 do
@@ -1235,26 +1703,29 @@ function Plan.wallPath(): { { number } }
 			if not detoured then
 				detoured = true
 				local wallAt = Island.coastRadius(pa) + W.Offset
-				for _, p in {
-					local2(wallAt, -headHalf - 2),
-					local2(wallAt, -half),
-					local2(headFrom, -half),
-					local2(headFrom, -headHalf),
-					local2(headTo, -headHalf),
-					local2(headTo, headHalf),
-					local2(headFrom, headHalf),
-					local2(headFrom, half),
-					local2(wallAt, half),
-					local2(wallAt, headHalf + 2),
-				} do
+				for _, p in
+					{
+						local2(wallAt, -headHalf - 2),
+						local2(wallAt, -half),
+						local2(headFrom, -half),
+						local2(headFrom, -headHalf),
+						local2(headTo, -headHalf),
+						local2(headTo, headHalf),
+						local2(headFrom, headHalf),
+						local2(headFrom, half),
+						local2(wallAt, half),
+						local2(wallAt, headHalf + 2),
+					}
+				do
 					table.insert(points, p)
+					fixed[#points] = true
 				end
 			end
 		else
 			table.insert(points, { x, z })
 		end
 	end
-	return points
+	return simplifyLoop(points, fixed, W.Tolerance)
 end
 
 -- 지형 칠하기: 공원 파트(광장·부지·길) 밑 + 산책로 밑은 풀잎 없는 LeafyGrass
@@ -1284,13 +1755,20 @@ local function parkPaint(ctx: Ctx)
 			Material = "LeafyGrass",
 		})
 	end
-	for _, ring in RINGS do
-		table.insert(paint, {
-			Kind = "Ring",
-			R1 = ring.Radius - ring.Width / 2,
-			R2 = ring.Radius + ring.Width / 2,
-			Material = "LeafyGrass",
-		})
+	for i, ring in RINGS do
+		local points = RING_POINTS[i]
+		for k, p in points do
+			local q = points[k % #points + 1]
+			table.insert(paint, {
+				Kind = "Segment",
+				X1 = p[1],
+				Z1 = p[2],
+				X2 = q[1],
+				Z2 = q[2],
+				Half = ring.Width / 2,
+				Material = "LeafyGrass",
+			})
+		end
 	end
 	for _, segment in ROUTE_SEGMENTS do
 		table.insert(paint, {
@@ -1327,13 +1805,19 @@ function Plan.make(): Result
 		Ponds = {},
 		Skipped = {},
 	}
-	for _, ring in RINGS do
+	for i, ring in RINGS do
+		local points = {}
+		for _, p in RING_POINTS[i] do
+			table.insert(points, table.clone(p))
+		end
 		table.insert(result.Rings, {
 			Radius = ring.Radius,
 			Width = ring.Width,
 			Segments = ring.Segments,
 			Top = T.RING_TOP,
-			Material = T.WALKWAY_MATERIAL,
+			Material = ring.Material,
+			Color = ring.Color,
+			Points = points,
 		})
 	end
 	for _, trail in TRAILS do
@@ -1356,12 +1840,14 @@ function Plan.make(): Result
 		Skipped = result.Skipped,
 	}
 	parkPaint(ctx)
+	footpaths(ctx)
 	-- 큰 것(물가 명물)부터 놓고, 작은 장식이 사이를 채움
 	beach(ctx)
 	sea(ctx)
 	gardens(ctx)
 	innerLawn(ctx)
 	belt(ctx)
+	fringe(ctx)
 	return result
 end
 

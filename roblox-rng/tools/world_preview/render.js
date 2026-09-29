@@ -1,8 +1,10 @@
 // 맵 미리보기 3단계(노드 쪽): headless Chromium(Playwright)에서 page.html + scene.js(three.js)를 열어 시점별 PNG 저장.
 // 사용법(roblox-rng 폴더에서, 보통은 preview.sh 가 부름):
 //   NODE_PATH=$(npm root -g) node tools/world_preview/render.js <dump.json> <출력 폴더> <접두어> [시점,시점...]
-// 시점: overview, spawn, edge, beach, closeup, top (기본: 전부). 파일 이름: <접두어>_<시점>.png (1280x720)
-// 환경 변수: FOAM=1 (물가 거품 — Roblox 에는 없음, 비교용), GAP=1~8 (closeup 이 볼 부지 사이 틈)
+// 시점: overview, spawn, edge, beach, closeup, top (기본: 이 여섯). 파일 이름: <접두어>_<시점>.png (1280x720)
+//   점검 장면(WORLD=test)의 기본은 overview, samples, shore, hill, top
+// 환경 변수: FOAM=1 (물가 거품 — Roblox 에는 없음, 비교용), GAP=1~8 (closeup 이 볼 부지 사이 틈),
+//   TERRAIN_DEBUG=1 (지형을 재질별 가짜 색으로: Grass 초록, LeafyGrass 파랑, Sand 노랑 ... terrain.js DEBUG_COLORS)
 //   임의 시점 "cam:x,y,z:tx,ty,tz[:fov]" 도 됨(파일 이름 <접두어>_cam<순번>.png). 시점은 ';' 로 구분해도 됨
 // 페이지 파일은 http://preview.local/ 가짜 주소로 열고, 요청을 page.route 로 디스크 파일에 연결합니다
 // (/node_modules → tools/world_preview/node_modules, /art/png → art/png, /fonts → mockup/fonts, /dump.json → 덤프).
@@ -67,7 +69,8 @@ async function main() {
     await page.goto("http://preview.local/page.html");
     try {
       await page.waitForFunction(() => window.previewReady === true, null, { timeout: 60000 });
-      const opts = { foam: !!process.env.FOAM && process.env.FOAM !== "0", gap: Number(process.env.GAP) || 2 };
+      const flag = (name) => !!process.env[name] && process.env[name] !== "0";
+      const opts = { foam: flag("FOAM"), gap: Number(process.env.GAP) || 2, debug: flag("TERRAIN_DEBUG") };
       const stats = await page.evaluate((o) => window.preview.load(o), opts);
       console.log(
         `[render] 파트 ${stats.parts}개 중 ${stats.drawn}개 그림(묶음 ${stats.groups}), 간판 면 ${stats.gui}개, ` +

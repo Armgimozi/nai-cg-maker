@@ -17,8 +17,11 @@
 //   * 재질 무늬: Roblox 기본 재질(WoodPlanks 판자, Brick 벽돌, Cobblestone 조약돌 ...)을 절차적 텍스처로 흉내(textures.js).
 //     파트 좌표계 삼면 투영, 스터드 단위 크기로 반복, 무늬 밝기 × Part.Color (Roblox 처럼 재질 무늬를 색으로 물들임) + 살짝 요철
 //   * 지형: Terrain 복셀 → 매끈한 땅 + 재질 섞임 + 물(깊이 색·반사) + 풀 장식(terrain.js)
+//     물이 있으면 두 번 그림: ① 물 빼고 장면 전체를 색·깊이 텍스처로 ② 그 텍스처를 화면에 옮기고 물 표면을 그 위에
+//     (물 셰이더가 물 뒤 바닥의 색·거리를 읽어서 깊이만큼 물빛·투과를 정함)
+//     물 앞의 투명 파트(유리 등, 깊이를 안 씀)는 물에 덮여 보일 수 있음
 // 안 그리는 것: BillboardGui(이름표), 파티클, 빛(PointLight), Decal/Texture/SurfaceAppearance, MeshPart 실제 모양(상자로 대신),
-//   MaterialVariant(기본 재질만), 물 파트 흐름·굴절, 물속 시점
+//   MaterialVariant(기본 재질만), 물 파트(Material=Water 인 Part)의 물 효과, 물속 시점, 지형 동굴·튀어나온 절벽 밑면
 
 import * as THREE from "three";
 import { buildMaterialTextures, PART_MATERIALS } from "./textures.js";
@@ -43,6 +46,9 @@ const info = { parts: 0, drawn: 0, groups: 0, gui: 0 };
 let textures = null; // buildMaterialTextures 결과
 let grid = null; // 지형 격자(terrain_grid.mjs) 또는 null
 let terrain = null; // buildTerrain 결과 또는 null
+const waterScene = new THREE.Scene(); // 물 표면만(장면 텍스처를 읽음)
+let sceneTarget = null; // 물 빼고 그린 장면(선형 색 + 깊이)
+let composite = null; // 장면 텍스처를 화면에 옮기는 사각형
 let options = {}; // render.js 가 넘김: { foam, gap }
 let frame = { radius: 300 }; // 섬(땅) 반지름 — overview/top 시점 거리
 
@@ -670,6 +676,10 @@ const VIEWS = {
     cam.lookAt(target);
     return { cam, shadowCenter: target.clone().setY(0), shadowHalf: 90, fog: 1 };
   },
+  // 도구 점검용 작은 장면(test_scene.luau) 전용 시점: 재질 견본 줄, 물가(현무암 바위), 언덕·쐐기 절벽
+  samples: () => customView("cam:-30,40,110:-30,0,20:55"),
+  shore: () => customView("cam:120,10,80:100,-4,20:60"),
+  hill: () => customView("cam:0,60,-200:0,-4,-110:55"),
   top: () => {
     const half = Math.max(450, frame.radius * 1.15);
     const cam = new THREE.OrthographicCamera((-half * W) / H, (half * W) / H, half, -half, 1, 5000);
@@ -680,17 +690,30 @@ const VIEWS = {
   },
 };
 
-// 섬 크기: 물 위로 나온 지형 표본 중 원점에서 가장 먼 거리(지형이 없으면 300 — 예전 600x600 바닥 기준)
+// 섬 크기(overview/top 시점 거리): 광장(원점)에서 사방으로 나가며 처음 물이 되는 거리 중 가장 먼 것 + 40.
+// 먼 작은 섬은 빼고 본섬만. 원점에 땅이 없거나 지형이 없으면 300(예전 600x600 바닥 기준)
 function computeFrame() {
   let radius = 0;
   if (grid) {
-    grid.forEachSample((g, i, x, z) => {
-      const h = g.h[i];
-      const w = g.w[i];
-      if (!Number.isNaN(h) && (Number.isNaN(w) || h > w)) radius = Math.max(radius, Math.hypot(x, z));
-    });
+    const h0 = grid.heightAt(0, 0);
+    const w0 = grid.waterAt(0, 0);
+    if (!Number.isNaN(h0) && (Number.isNaN(w0) || h0 > w0)) {
+      for (let angle = 0; angle < 360; angle += 3) {
+        const a = (angle * Math.PI) / 180;
+        for (let r = 0; r < 2000; r += 2) {
+          const x = Math.cos(a) * r;
+          const z = Math.sin(a) * r;
+          const h = grid.heightAt(x, z);
+          const w = grid.waterAt(x, z);
+          if (Number.isNaN(h) || (!Number.isNaN(w) && w >= h)) {
+            radius = Math.max(radius, r);
+            break;
+          }
+        }
+      }
+    }
   }
-  frame = { radius: Math.max(300, radius + 40) };
+  frame = { radius: radius > 0 ? Math.max(120, radius + 40) : 300 };
 }
 
 async function load(opts = {}) {
@@ -704,11 +727,16 @@ async function load(opts = {}) {
   grid = makeTerrainGrid(dump.terrain);
   let terrainStats = null;
   if (grid) {
-    terrain = buildTerrain(grid, textures, { ...lightEnv, foam: !!options.foam });
+    terrain = buildTerrain(grid, textures, { ...lightEnv, foam: !!options.foam, debug: !!options.debug });
     scene.add(terrain.group);
+    if (terrain.water) {
+      waterScene.add(terrain.water);
+      setupWaterPass();
+    }
     terrainStats = { ...terrain.stats, decoration: !!(dump.terrain.props || {}).Decoration };
   }
   computeFrame();
+  if (dump.meta && dump.meta.test) window.preview.views = TEST_VIEWS;
   buildParts(dump.parts);
   await document.fonts.load('40px "Fredoka One"').catch(() => {});
   await document.fonts.load('40px "Luckiest Guy"').catch(() => {});
@@ -735,15 +763,62 @@ function customView(name) {
   return { cam, shadowCenter: center, shadowHalf: Math.max(60, cam.position.distanceTo(center) * 1.2), fog: 1 };
 }
 
+// 물 그리기 준비: 장면 텍스처(선형 반정밀 색 + 깊이, 4x 다중 표본)와 화면 옮기기 사각형
+function setupWaterPass() {
+  const depthTexture = new THREE.DepthTexture(W, H);
+  depthTexture.type = THREE.UnsignedIntType;
+  sceneTarget = new THREE.WebGLRenderTarget(W, H, {
+    type: THREE.HalfFloatType,
+    samples: 4,
+    depthBuffer: true,
+    depthTexture,
+  });
+  sceneTarget.texture.colorSpace = THREE.LinearSRGBColorSpace;
+  const quad = new THREE.Mesh(
+    new THREE.PlaneGeometry(2, 2),
+    new THREE.ShaderMaterial({
+      uniforms: { tScene: { value: sceneTarget.texture } },
+      depthTest: false,
+      depthWrite: false,
+      vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4( position.xy, 0.0, 1.0 ); }`,
+      fragmentShader: `uniform sampler2D tScene; varying vec2 vUv;
+void main() { gl_FragColor = vec4( texture( tScene, vUv ).rgb, 1.0 ); 
+#include <colorspace_fragment>
+}`,
+    }),
+  );
+  quad.frustumCulled = false;
+  const quadScene = new THREE.Scene();
+  quadScene.add(quad);
+  composite = { scene: quadScene, camera: new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1) };
+  waterScene.fog = scene.fog;
+}
+
 function render(name) {
   const view = name.startsWith("cam:") ? customView(name) : VIEWS[name]();
   view.cam.updateMatrixWorld();
   if (terrain) terrain.updateGrass(view.cam, scene);
   aimShadow(view.shadowCenter, view.shadowHalf);
   if (scene.fog && scene.fog.isFogExp2) scene.fog.density = fogDensity * view.fog;
-  renderer.render(scene, view.cam);
+  if (sceneTarget) {
+    // ① 물 빼고 장면 → 텍스처 ② 화면으로 옮김 ③ 물(텍스처를 읽어 바닥색·물속 길이 계산)
+    renderer.setRenderTarget(sceneTarget);
+    renderer.render(scene, view.cam);
+    renderer.setRenderTarget(null);
+    terrain.setWaterInputs(sceneTarget, view.cam, W, H);
+    renderer.render(composite.scene, composite.camera);
+    renderer.autoClear = false;
+    renderer.clearDepth();
+    renderer.render(waterScene, view.cam);
+    renderer.autoClear = true;
+  } else {
+    renderer.render(scene, view.cam);
+  }
   return canvas.toDataURL("image/png");
 }
 
-window.preview = { load, render, views: Object.keys(VIEWS) };
+// 기본 시점 목록: 게임 맵은 overview/spawn/edge/beach/closeup/top, 점검 장면(meta.test)은 overview/samples/shore/hill/top
+const GAME_VIEWS = ["overview", "spawn", "edge", "beach", "closeup", "top"];
+const TEST_VIEWS = ["overview", "samples", "shore", "hill", "top"];
+window.preview = { load, render, views: GAME_VIEWS };
 window.previewReady = true;

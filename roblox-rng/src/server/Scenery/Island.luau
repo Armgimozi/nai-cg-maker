@@ -161,17 +161,18 @@ local function addRock(angleDegrees: number, offset: number, radius: number, hei
 		Seed = #Island.ROCKS * 7.31 + 1.7,
 	})
 end
--- 등대 곶: 큰 바위(꼭대기 약 y 1, 등대 받침) + 물속 작은 바위 둘
+-- 등대 곶: 큰 바위(꼭대기 약 y 1, 등대 받침) + 물속 바위 둘. 1 번(등대 받침) 말고는 Plan 이 위에 모난 바윗돌을 얹음
 addRock(315, -3, 12, 7)
-addRock(311.5, 7, 6, 4.5)
-addRock(318.5, 8, 5, 3.5)
--- 물가 여기저기(물에 반쯤 잠김)
-addRock(72, 3, 8, 5.5)
-addRock(76, 9, 4.5, 3.5)
-addRock(207, 2, 9, 5)
-addRock(252, 4, 6.5, 4)
+addRock(311, 8, 6.5, 4.5)
+addRock(319, 9, 5, 4)
+-- 물가 여기저기(물 위로 낮게 드러난 바위 턱 — 위에 Plan 의 바윗돌이 올라앉음)
+addRock(72, 3, 8.5, 5.5)
+addRock(76.5, 10, 4.5, 4)
+addRock(207, 3, 8, 5)
+addRock(252, 4, 6.5, 4.5)
 addRock(356, 3, 7.5, 5)
-addRock(101, 5, 5, 3.5)
+addRock(101, 6, 5, 4)
+addRock(118, 20, 4, 3.5) -- 부두 옆 물속 바위
 
 -- 바위 높이(바위 밖이면 -무한)
 local function rockHeight(x: number, z: number): number
@@ -320,7 +321,7 @@ end
 -- 지형 윗면 칠하기(Plan 이 만듦): 부지·길·산책로·광장·납작한 장식 밑은 풀잎(Grass 장식)이 얇은 파트를
 -- 뚫고 나오지 않게 다른 재질로. Margin = 모양 밖으로 더 칠할 거리(기본 3: 복셀 반 대각선 + 풀잎 여유)
 export type Shape = {
-	Kind: string, -- "Circle" | "Ring" | "Segment" | "Box"
+	Kind: string, -- "Circle" | "Blob"(가장자리가 구불구불한 원) | "Ring" | "Segment" | "Box"
 	Material: string,
 	Margin: number?,
 	X: number?, -- Circle/Box 중심
@@ -350,6 +351,11 @@ function Island.inShape(shape: Shape, x: number, z: number, extra: number?): boo
 		local dx, dz = x - (shape.X :: number), z - (shape.Z :: number)
 		local reach = (shape.R :: number) + m
 		return dx * dx + dz * dz <= reach * reach
+	elseif kind == "Blob" then
+		local dx, dz = x - (shape.X :: number), z - (shape.Z :: number)
+		local r = shape.R :: number
+		local reach = r * (1 + 0.3 * around(math.atan2(dz, dx), 1.4, (shape.X :: number) * 0.01 + 3)) + m
+		return dx * dx + dz * dz <= reach * reach
 	elseif kind == "Ring" then
 		local r = math.sqrt(x * x + z * z)
 		return r >= (shape.R1 :: number) - m and r <= (shape.R2 :: number) + m
@@ -375,8 +381,8 @@ end
 local function shapeBounds(shape: Shape): (number, number, number, number)
 	local m = (shape.Margin or 3) + 3
 	local kind = shape.Kind
-	if kind == "Circle" then
-		local x, z, r = shape.X :: number, shape.Z :: number, shape.R :: number
+	if kind == "Circle" or kind == "Blob" then
+		local x, z, r = shape.X :: number, shape.Z :: number, (shape.R :: number) * (if kind == "Blob" then 1.3 else 1)
 		return x - r - m, z - r - m, x + r + m, z + r + m
 	elseif kind == "Ring" then
 		local r = (shape.R2 :: number) + m
@@ -391,6 +397,11 @@ local function shapeBounds(shape: Shape): (number, number, number, number)
 	return x - reach, z - reach, x + reach, z + reach
 end
 
+-- 연못 가장자리 반지름(구불구불). angle = 연못 가운데에서 본 방향(라디안)
+function Island.pondRadius(pond: Pond, angle: number): number
+	return pond.R * (1 + 0.16 * around(angle, 1.4, pond.Seed))
+end
+
 -- 연못 깊이(연못 밖이면 0)
 function Island.pondDepth(ponds: { Pond }, x: number, z: number): number
 	local depth = 0
@@ -398,8 +409,7 @@ function Island.pondDepth(ponds: { Pond }, x: number, z: number): number
 		local dx, dz = x - pond.X, z - pond.Z
 		local reach = pond.R * 1.25
 		if dx * dx + dz * dz < reach * reach then
-			local a = math.atan2(dz, dx)
-			local radius = pond.R * (1 + 0.16 * around(a, 1.4, pond.Seed))
+			local radius = Island.pondRadius(pond, math.atan2(dz, dx))
 			local t = math.sqrt(dx * dx + dz * dz) / radius
 			if t < 1 then
 				depth = math.max(depth, pond.Depth * smooth((1 - t) / 0.45))
@@ -568,15 +578,17 @@ export type Area = { Name: string, MinX: number, MinZ: number, SizeX: number, Si
 function Island.areas(): { Area }
 	local V = Island.VOXEL
 	local half = Island.REGION_HALF
+	local count = half * 2 // V
 	local list: { Area } = {
-		{ Name = "Island", MinX = -half, MinZ = -half, SizeX = half * 2 // V, SizeZ = half * 2 // V },
+		{ Name = "Island", MinX = -half, MinZ = -half, SizeX = count, SizeZ = count },
 	}
 	for i, islet in ISLETS do
 		local x0 = math.floor((islet.X - islet.Reach) / V) * V
 		local z0 = math.floor((islet.Z - islet.Reach) / V) * V
 		local x1 = math.ceil((islet.X + islet.Reach) / V) * V
 		local z1 = math.ceil((islet.Z + islet.Reach) / V) * V
-		table.insert(list, { Name = "Islet" .. i, MinX = x0, MinZ = z0, SizeX = (x1 - x0) // V, SizeZ = (z1 - z0) // V })
+		local sizeX, sizeZ = (x1 - x0) // V, (z1 - z0) // V
+		table.insert(list, { Name = "Islet" .. i, MinX = x0, MinZ = z0, SizeX = sizeX, SizeZ = sizeZ })
 	end
 	return list
 end
@@ -606,7 +618,7 @@ Island.COLORS = {
 	Sand = { 240, 220, 168 }, -- 밝고 따뜻한 모래
 	Rock = { 150, 146, 140 }, -- 따뜻한 회색 바위
 	Mud = { 58, 116, 128 }, -- 깊은 바다·연못 바닥(물 너머로 짙은 청록)
-	Salt = { 228, 226, 216 }, -- 바위 정원 흰 자갈
+	Salt = { 222, 214, 196 }, -- 바위 정원 자갈(따뜻한 흰색)
 }
 
 -- 물 속성(Terrain.WaterColor 등)

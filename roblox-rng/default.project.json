@@ -42,14 +42,14 @@
       }
     },
     "Workspace": {
-      "Baseplate": {
+      "FallbackGround": {
         "$className": "Part",
         "$properties": {
           "Anchored": true,
           "Locked": true,
           "Shape": "Cylinder",
-          "Size": [16, 500, 500],
-          "CFrame": { "CFrame": { "position": [0, -8, 0], "orientation": [[0, -1, 0], [1, 0, 0], [0, 0, 1]] } },
+          "Size": [16, 450, 450],
+          "CFrame": { "CFrame": { "position": [0, -8.5, 0], "orientation": [[0, -1, 0], [1, 0, 0], [0, 0, 1]] } },
           "Color": [0.42, 0.66, 0.31],
           "Material": "Grass",
           "TopSurface": "Smooth",
@@ -62,8 +62,8 @@
           "Anchored": true,
           "Size": [10, 1, 10],
           "CFrame": { "CFrame": { "position": [0, 1.5, 0], "orientation": [[1, 0, 0], [0, 1, 0], [0, 0, 1]] } },
-          "Color": [0.86, 0.85, 0.82],
-          "Material": "SmoothPlastic",
+          "Color": [0.94, 0.9, 0.81],
+          "Material": "Marble",
           "Duration": 0,
           "TopSurface": "Smooth",
           "BottomSurface": "Smooth"

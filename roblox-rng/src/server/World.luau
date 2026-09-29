@@ -52,16 +52,16 @@ local HOLOGRAM_TRANSPARENCY = 0.35
 local TITLE_WIDTH = 80 -- 홀로그램 제목 크기(스터드)
 local TITLE_HEIGHT = 20
 
-local PLAZA_COLOR = Color3.fromRGB(214, 210, 200)
-local RIM_COLOR = Color3.fromRGB(165, 160, 150)
+local PLAZA_COLOR = Color3.fromRGB(234, 224, 202) -- 따뜻한 크림색 포석(Pavement)
+local RIM_COLOR = Color3.fromRGB(184, 170, 148) -- 둘레 계단(돌길 Cobblestone)
 local STONE_DARK = Color3.fromRGB(70, 74, 88)
 local MARBLE = Color3.fromRGB(240, 238, 232)
 local GOLD = Color3.fromRGB(235, 190, 80)
-local LAMP_POLE = Color3.fromRGB(45, 48, 60)
+local LAMP_POLE = Color3.fromRGB(46, 86, 66) -- 짙은 초록(풍경 정원등과 같은 색)
 local LAMP_LIGHT = Color3.fromRGB(255, 235, 190)
 local TRUNK = Color3.fromRGB(122, 78, 45)
-local LEAF = Color3.fromRGB(72, 184, 84)
-local LEAF_LIGHT = Color3.fromRGB(122, 214, 104)
+local LEAF = Color3.fromRGB(80, 186, 78) -- 풍경 나무 잎과 같은 색·재질(LeafyGrass)
+local LEAF_LIGHT = Color3.fromRGB(138, 218, 98)
 
 -- UI 스타일 가이드 v2 팔레트(홀로그램 제목)
 local INK = Color3.fromRGB(30, 27, 46)
@@ -169,7 +169,7 @@ local function tree(parent: Instance, base: Vector3, scale: number, turn: number
 			Vector3.new(diameter, diameter, diameter),
 			CFrame.new(base + offset),
 			leaf.Color,
-			Enum.Material.SmoothPlastic
+			Enum.Material.LeafyGrass
 		)
 		part.CanCollide = false
 	end
@@ -192,9 +192,9 @@ function World.build()
 		PLAZA_TOP / 2,
 		(PLAZA_RADIUS + RIM_WIDTH) * 2,
 		RIM_COLOR,
-		Enum.Material.Concrete
+		Enum.Material.Cobblestone
 	)
-	disc(world, "Plaza", Vector3.zero, PLAZA_TOP, PLAZA_RADIUS * 2, PLAZA_COLOR, Enum.Material.Concrete)
+	disc(world, "Plaza", Vector3.zero, PLAZA_TOP, PLAZA_RADIUS * 2, PLAZA_COLOR, Enum.Material.Pavement)
 
 	-- 가로등: 공원으로 가는 길(22.5도 간격) 사이사이에
 	for i = 1, LAMP_COUNT do

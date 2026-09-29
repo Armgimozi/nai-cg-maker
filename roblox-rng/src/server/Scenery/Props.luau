@@ -14,8 +14,6 @@ local Props = {}
 -- 색 ------------------------------------------------------------------------
 local rgb = Color3.fromRGB
 
-Props.PATH = rgb(215, 198, 165) -- 산책로(ParkService 길과 같게)
-
 local TRUNK = rgb(128, 86, 52)
 local TRUNK_DARK = rgb(98, 66, 42)
 -- 나무 잎(Style 별: 1 초록, 2 과일나무, 3 단풍, 4 꽃나무). 아래 → 위로 밝아짐
@@ -90,6 +88,7 @@ local SHADOW_KINDS = {
 	Hedge = true,
 	Topiary = true,
 	Rock = true,
+	ShoreRock = true,
 	Bench = true,
 	Lamp = true,
 	Fountain = true,
@@ -102,10 +101,14 @@ local SHADOW_KINDS = {
 	Pier = true,
 	Bridge = true,
 	Kiosk = true,
+	Lifeguard = true,
 	BeachSet = true,
 	Sandcastle = true,
 	Boat = true,
 	Crate = true,
+	Telescope = true,
+	Surfboards = true,
+	Driftwood = true,
 }
 
 function Props.setZone(name: string)
@@ -265,6 +268,8 @@ local function wedge(
 	return piece
 end
 
+Props.wedge = wedge
+
 -- 수평 회전: (x, z) 를 turn 만큼(각도가 커지는 쪽으로) 돌림
 local function spin(x: number, z: number, turn: number): (number, number)
 	local c, s = math.cos(turn), math.sin(turn)
@@ -290,6 +295,24 @@ local function groundAt(x: number, z: number): number
 	return Island.height(x, z)
 end
 
+-- 비탈 위에 눕힌 납작한 물건(수건)의 자리: cf 의 가운데·방향을 쓰고, 네 귀퉁이(반폭 halfX, 반길이 halfZ)
+-- 땅 높이로 기울기를 맞춤. 반환 CFrame 의 원점 = 땅 위 가운데, UpVector = 땅의 위쪽
+local function onGround(cf: CFrame, halfX: number, halfZ: number): CFrame
+	local function at(x: number, z: number): Vector3
+		local p = cf * Vector3.new(x, 0, z)
+		return Vector3.new(p.X, groundAt(p.X, p.Z), p.Z)
+	end
+	local a, b = at(-halfX, -halfZ), at(halfX, halfZ)
+	local c, d = at(halfX, -halfZ), at(-halfX, halfZ)
+	local center = (a + b + c + d) / 4
+	local up = (b - a):Cross(c - d).Unit
+	if up.Y < 0 then
+		up = -up
+	end
+	local forward = (a + c) / 2 - (b + d) / 2 -- 로컬 -Z 쪽(앞)
+	return CFrame.lookAt(center, center + forward, up)
+end
+
 local MAT = Enum.Material
 local LEAVES = MAT.LeafyGrass
 
@@ -305,10 +328,19 @@ function BUILD.Tree(parent: Instance, item)
 	local lean = Vector3.new(math.cos(item.Turn), 0, math.sin(item.Turn)) * (0.06 + 0.1 * item.Tint)
 	local knee = base + Vector3.new(0, 3 * s, 0) + lean * (3 * s)
 	local top = knee + Vector3.new(0, 2.6 * s, 0) + lean * (4 * s)
-	rod(parent, "TreeTrunk", base - Vector3.new(0, 0.6, 0), knee + (knee - base).Unit * 0.4 * s, 1.5 * s, TRUNK, MAT.Wood, true)
+	rod(
+		parent,
+		"TreeTrunk",
+		base - Vector3.new(0, 0.6, 0),
+		knee + (knee - base).Unit * 0.4 * s,
+		1.5 * s,
+		TRUNK,
+		MAT.Wood,
+		true
+	)
 	rod(parent, "TreeTrunk", knee, top, 1.1 * s, TRUNK, MAT.Wood, true)
 	-- 가지: 줄기 위쪽에서 기운 반대쪽으로 비스듬히(끝은 잎 공 속)
-	local branches = if item.Scale > 0.9 then 2 else 1
+	local branches = if item.Scale > 1.2 then 2 else 1
 	for k = 1, branches do
 		local a = item.Turn + math.pi + (k - 1.5) * 1.6 + rng:NextNumber(-0.3, 0.3)
 		local from = knee + (top - knee) * 0.35
@@ -318,7 +350,7 @@ function BUILD.Tree(parent: Instance, item)
 	-- 잎: 가운데 큰 공 + 둘레 공(3~5) + 위 밝은 공(1~2)
 	local center = top + Vector3.new(0, 1.3 * s, 0)
 	ball(parent, "TreeLeaves", center, 6 * s, colors[2], LEAVES)
-	local ring = if item.Scale < 0.9 then 3 else 3 + rng:NextInteger(1, 2)
+	local ring = if item.Scale < 0.9 then 3 elseif item.Scale < 1.25 then 4 else 4 + rng:NextInteger(0, 1)
 	local start = rng:NextNumber(0, math.pi * 2)
 	for k = 1, ring do
 		local a = start + (k - 1) / ring * math.pi * 2 + rng:NextNumber(-0.3, 0.3)
@@ -329,7 +361,7 @@ function BUILD.Tree(parent: Instance, item)
 		ball(parent, "TreeLeaves", center + offset, rng:NextNumber(3.6, 4.5) * s, color, LEAVES)
 	end
 	-- 위 밝은 공: 해 쪽(+X, +Z 조금) 으로 치우침
-	local tops = if item.Scale > 1.1 then 2 else 1
+	local tops = if item.Scale > 1.3 then 2 else 1
 	for k = 1, tops do
 		local a = 0.6 + (k - 1) * 2.4 + rng:NextNumber(-0.4, 0.4)
 		local offset = Vector3.new(math.cos(a) * 1.1 * s, 2.1 * s, math.sin(a) * 1.1 * s)
@@ -337,8 +369,8 @@ function BUILD.Tree(parent: Instance, item)
 	end
 	if item.Style == 2 then
 		-- 열매: 잎 겉(위쪽 반구)에 작은 공
-		for k = 1, 6 do
-			local a = start + k * 1.05
+		for k = 1, 4 do
+			local a = start + k * 1.57 + rng:NextNumber(-0.3, 0.3)
 			local up = rng:NextNumber(-0.2, 0.6)
 			local dir = Vector3.new(math.cos(a), up, math.sin(a)).Unit
 			ball(parent, "Fruit", center + dir * 3.1 * s, 0.75 * s, FRUITS[k % #FRUITS + 1])
@@ -346,8 +378,9 @@ function BUILD.Tree(parent: Instance, item)
 	end
 end
 
--- 야자수: 휘어 올라가는 줄기(가늘어지는 원기둥 5마디, 마디 색 번갈아) + 늘어진 잎 7장(잎마다 두 조각:
--- 솟는 판 + 끝이 뾰족한 쐐기) + 잎 뭉치 + 코코넛. Turn = 기우는 쪽. Style 2 = 먼 섬용(파트 적게)
+-- 야자수: 휘어 올라가는 줄기(가늘어지는 원기둥 5마디, 마디 색 살짝 다르게) + 늘어진 잎 6장(잎마다 세 마디:
+-- 솟는 잎자루 → 둥글게 휘는 가운데 → 늘어지며 뾰족한 쐐기 끝) + 잎 뭉치 + 코코넛 둘.
+-- Turn = 기우는 쪽. Style 2 = 먼 섬용(파트 적게)
 function BUILD.Palm(parent: Instance, item)
 	local s, base = item.Scale, basePoint(item)
 	local rng = itemRng(item, 2)
@@ -358,19 +391,19 @@ function BUILD.Palm(parent: Instance, item)
 	local function trunkAt(t: number): Vector3
 		return base + Vector3.new(0, height * t - 0.5, 0) + lean * (bend * t * t)
 	end
-	local segments = if far then 3 else 5
+	local segments = if far then 2 else 5
 	for k = 0, segments - 1 do
 		local a, b = trunkAt(k / segments), trunkAt((k + 1) / segments)
 		local dir = (b - a).Unit
-		local d = s * (1.3 - 0.45 * k / (segments - 1))
-		-- 마디끼리 조금씩 겹쳐서(아래 마디가 굵음) 이음매가 줄기 마디 고리로 보임
+		local d = s * (1.25 - 0.4 * k / (segments - 1))
+		-- 마디끼리 조금씩 겹쳐서(아래 마디가 조금 굵음) 이음매가 줄기 마디 고리로 보임. 색은 마디마다 살짝만 다르게
 		rod(
 			parent,
 			"PalmTrunk",
 			a - dir * 0.15 * s,
 			b + dir * 0.2 * s,
 			d,
-			if k % 2 == 0 then PALM_TRUNK else PALM_RING,
+			PALM_TRUNK:Lerp(PALM_RING, if k % 2 == 0 then 0.1 else 0.3),
 			MAT.Wood,
 			true
 		)
@@ -378,8 +411,8 @@ function BUILD.Palm(parent: Instance, item)
 	local crown = trunkAt(1) + Vector3.new(0, 0.2 * s, 0)
 	ball(parent, "PalmCrown", crown, 1.5 * s, PALM_LEAF:Lerp(COCONUT, 0.3), LEAVES)
 	if not far then
-		for k = 1, 3 do
-			local a = item.Turn + k * 2.1
+		for k = 1, 2 do
+			local a = item.Turn + k * 3.1
 			ball(
 				parent,
 				"Coconut",
@@ -389,29 +422,77 @@ function BUILD.Palm(parent: Instance, item)
 			)
 		end
 	end
-	local fronds = if far then 6 else 7
+	local fronds = if far then 5 else 6
 	local start = rng:NextNumber(0, math.pi * 2)
 	for k = 1, fronds do
 		local a = start + (k - 1) / fronds * math.pi * 2 + rng:NextNumber(-0.18, 0.18)
 		local length = s * rng:NextNumber(0.85, 1.1)
+		local lift = rng:NextNumber(-0.12, 0.1) -- 잎마다 솟는 정도를 조금씩 다르게
 		local color = if k % 2 == 0 then PALM_LEAF else PALM_LEAF:Lerp(PALM_LEAF_LIGHT, 0.5)
 		local out = Vector3.new(math.cos(a), 0, math.sin(a))
-		-- 첫 조각: 조금 솟았다가
 		local p1 = crown + out * 0.3 * s
-		local p2 = p1 + (out * 0.95 + Vector3.new(0, 0.28, 0)).Unit * 3.2 * length
-		local cf1 = CFrame.lookAt((p1 + p2) / 2, p2, UP)
-		block(parent, "PalmLeaf", Vector3.new(1.5 * s, 0.18 * s, (p2 - p1).Magnitude + 0.3 * s), cf1, color, MAT.Grass)
 		if far then
+			local p2 = p1 + (out * 0.95 + Vector3.new(0, 0.1, 0)).Unit * 5 * length
+			local cf = CFrame.lookAt((p1 + p2) / 2, p2, UP)
+			block(parent, "PalmLeaf", Vector3.new(1.5 * s, 0.18 * s, (p2 - p1).Magnitude), cf, color, LEAVES)
 			continue
 		end
-		-- 끝 조각: 아래로 늘어지며 뾰족하게(쐐기를 잎 면에 눕힘: 넓은 쪽이 이음매, 뾰족한 쪽이 끝)
-		local p3 = p2 + (out * 0.8 + Vector3.new(0, -0.62, 0)).Unit * 3.3 * length
-		local cf2 = CFrame.lookAt((p2 + p3) / 2, p3, UP) * CFrame.Angles(0, 0, math.rad(90))
-		wedge(parent, "PalmLeafTip", Vector3.new(0.18 * s, 1.5 * s, (p3 - p2).Magnitude + 0.2 * s), cf2, color, MAT.Grass)
+		-- 세 마디(솟는 잎자루 → 둥글게 휘는 가운데 → 늘어지며 뾰족해지는 끝): 마디마다 조금씩 겹쳐 이음매를 덮음
+		local p2 = p1 + (out * 0.88 + Vector3.new(0, 0.5 + lift, 0)).Unit * 2.2 * length
+		local p3 = p2 + (out + Vector3.new(0, 0.02 + lift, 0)).Unit * 2.5 * length
+		local p4 = p3 + (out * 0.66 + Vector3.new(0, -0.75, 0)).Unit * 2.6 * length
+		local function piece(from: Vector3, to: Vector3): CFrame
+			return CFrame.lookAt((from + to) / 2, to, UP)
+		end
+		block(
+			parent,
+			"PalmLeaf",
+			Vector3.new(0.9 * s, 0.14 * s, (p2 - p1).Magnitude + 0.3 * s),
+			piece(p1, p2),
+			color:Lerp(COCONUT, 0.15),
+			LEAVES
+		)
+		block(
+			parent,
+			"PalmLeaf",
+			Vector3.new(1.7 * s, 0.14 * s, (p3 - p2).Magnitude + 0.35 * s),
+			piece(p2, p3),
+			color,
+			LEAVES
+		)
+		-- 끝: 쐐기를 잎 면에 눕힘(넓은 쪽이 이음매, 뾰족한 쪽이 끝)
+		wedge(
+			parent,
+			"PalmLeafTip",
+			Vector3.new(0.14 * s, 1.7 * s, (p4 - p3).Magnitude + 0.25 * s),
+			piece(p3, p4) * CFrame.Angles(0, 0, math.rad(90)),
+			color:Lerp(PALM_LEAF_LIGHT, 0.3),
+			LEAVES
+		)
 	end
 end
 
--- 덤불: 공 3~4 뭉치(짙은 초록 → 밝은 초록). Style 2~4 = 꽃 덤불(작은 꽃 공 4개: 분홍/하양/노랑)
+-- 잎 공(가운데 center, 지름 size) 겉에 반쯤 박힌 작은 꽃 count 송이(윗쪽 반구에 고루, 두 색 번갈아)
+local function blossoms(
+	parent: Instance,
+	center: Vector3,
+	size: number,
+	count: number,
+	flower: number,
+	colors: { Color3 },
+	rng: Rng.Rng
+)
+	local start = rng:NextNumber(0, math.pi * 2)
+	for k = 1, count do
+		local a = start + k / count * math.pi * 2 + rng:NextNumber(-0.35, 0.35)
+		local up = rng:NextNumber(0.35, 0.95)
+		local dir = Vector3.new(math.cos(a) * math.sqrt(1 - up * up), up, math.sin(a) * math.sqrt(1 - up * up))
+		local d = flower * rng:NextNumber(0.85, 1.1)
+		ball(parent, "Flower", center + dir * (size / 2 - d * 0.2), d, colors[k % #colors + 1])
+	end
+end
+
+-- 덤불: 공 4개 뭉치(짙은 초록 → 밝은 초록). Style 2~4 = 꽃 덤불(겉에 작은 꽃 네 송이: 분홍/하양/노랑)
 function BUILD.Bush(parent: Instance, item)
 	local s, base = item.Scale, basePoint(item)
 	local rng = itemRng(item, 3)
@@ -426,13 +507,11 @@ function BUILD.Bush(parent: Instance, item)
 		local ox, oz = spin(p[1], p[2], t)
 		ball(parent, "Bush", base + Vector3.new(ox * s, p[3] * s, oz * s), p[4] * s, p[5], LEAVES)
 	end
+	-- 꽃 덤불(Style 2~4): 가운데 큰 공 겉에 작은 꽃 네 송이(분홍/하양/노랑)
 	if item.Style >= 2 then
 		local color = BLOSSOMS[(item.Style - 2) % #BLOSSOMS + 1]
-		for k = 1, 4 do
-			local a = t + k * 1.57 + rng:NextNumber(-0.3, 0.3)
-			local dir = Vector3.new(math.cos(a), rng:NextNumber(0.3, 0.9), math.sin(a)).Unit
-			ball(parent, "Blossom", base + Vector3.new(0, 1.1 * s, 0) + dir * 1.55 * s, 0.62 * s, color)
-		end
+		local center = base + Vector3.new(0, 1.05 * s, 0)
+		blossoms(parent, center, 3.1 * s, 4, 0.55 * s, { color, color:Lerp(WHITE, 0.35) }, rng)
 	end
 end
 
@@ -461,24 +540,22 @@ function BUILD.Hedge(parent: Instance, item)
 	)
 end
 
--- 꽃밭: 흙 둔덕 + 잎 뭉치 둘 + 두 색 꽃 공 무더기(가운데 쪽 높게)
+-- 꽃밭: 돌 테두리 + 흙 + 낮은 잎 둔덕 셋(대부분 흙에 묻힌 공) + 둔덕마다 겉에 박힌 작은 꽃 두세 송이(두 색)
 function BUILD.FlowerBed(parent: Instance, item)
 	local r, base = item.Radius, basePoint(item)
 	local rng = itemRng(item, 4)
 	local colors = FLOWER_PAIRS[(item.Style - 1) % #FLOWER_PAIRS + 1]
-	disc(parent, "FlowerSoil", base - Vector3.new(0, 0.15, 0), 0.45, r * 2, SOIL, MAT.Ground)
-	for k = 1, 2 do
-		local a = item.Turn + k * math.pi
-		local offset = Vector3.new(math.cos(a) * r * 0.35, 0.35, math.sin(a) * r * 0.35)
-		ball(parent, "FlowerLeaves", base + offset, r * 0.95, BUSH[1]:Lerp(BUSH[2], 0.4), LEAVES)
-	end
-	local size = math.clamp(r * 0.36, 0.8, 1.3)
-	for k = 1, 6 do
-		local a = item.Turn + k / 6 * math.pi * 2 + rng:NextNumber(-0.25, 0.25)
-		local d = r * (if k % 2 == 0 then 0.62 else 0.3)
-		local lift = 0.45 + (1 - d / r) * r * 0.35
-		local center = base + Vector3.new(math.cos(a) * d, lift, math.sin(a) * d)
-		ball(parent, "Flower", center, size * rng:NextNumber(0.85, 1.15), colors[k % 2 + 1])
+	disc(parent, "FlowerEdge", base - Vector3.new(0, 0.3, 0), 0.62, r * 2 + 0.8, STONE, MAT.Cobblestone)
+	disc(parent, "FlowerSoil", base - Vector3.new(0, 0.3, 0), 0.55, r * 2, SOIL, MAT.Ground)
+	local soilTop = base.Y + 0.25
+	local flower = math.clamp(r * 0.2, 0.5, 0.72)
+	for k = 1, 3 do
+		local a = item.Turn + k / 3 * math.pi * 2 + rng:NextNumber(-0.25, 0.25)
+		local d = r * 0.44
+		local size = r * rng:NextNumber(0.95, 1.05)
+		local center = Vector3.new(base.X + math.cos(a) * d, soilTop - size * 0.12, base.Z + math.sin(a) * d)
+		ball(parent, "FlowerLeaves", center, size, BUSH[1]:Lerp(BUSH[2], 0.25 + 0.2 * k), LEAVES)
+		blossoms(parent, center, size, if k == 1 then 3 else 2, flower, { colors[1], colors[2] }, rng)
 	end
 end
 
@@ -500,44 +577,92 @@ function BUILD.Topiary(parent: Instance, item)
 	end
 end
 
--- 바위: 크기가 다른 덩어리 2~3개(모든 축으로 돌려 30% 묻음, 두 회색) + 이끼 공. 큰 덩어리는 윗면이 평평
+-- 모난 바윗돌 하나: 서로 다르게 돌린 상자 둘을 같은 자리에 겹침(합친 모양이 여러 면으로 깎인 돌처럼 보임)
+local function boulder(parent: Instance, name: string, center: Vector3, size: number, rng: Rng.Rng, tint: number)
+	local color = ROCK:Lerp(ROCK_DARK, tint)
+	block(
+		parent,
+		name,
+		Vector3.new(1.15, 0.75, 0.95) * size,
+		CFrame.new(center)
+			* CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0)
+			* CFrame.Angles(rng:NextNumber(-0.35, 0.35), 0, rng:NextNumber(-0.35, 0.35)),
+		color,
+		MAT.Slate,
+		true
+	)
+	block(
+		parent,
+		name,
+		Vector3.new(0.9, 0.85, 0.85) * size,
+		CFrame.new(center + Vector3.new(0, 0.1 * size, 0))
+			* CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0)
+			* CFrame.Angles(rng:NextNumber(-0.4, 0.4), 0, rng:NextNumber(-0.4, 0.4)),
+		color:Lerp(ROCK, 0.35),
+		MAT.Rock,
+		true
+	)
+end
+
+-- 바위: 모난 바윗돌(몸통, 아래 1/3 묻음) + 옆 작은 돌 1~2 + 이끼 공. 덩어리마다 다른 축으로 돌리고 회색 두 가지를 섞음
 function BUILD.Rock(parent: Instance, item)
 	local s, base = item.Scale, basePoint(item)
 	local rng = itemRng(item, 5)
 	local t = item.Turn
-	local main = ROCK:Lerp(ROCK_DARK, item.Tint * 0.6)
-	block(
-		parent,
-		"Rock",
-		Vector3.new(2.8, 1.9, 2.4) * s,
-		CFrame.new(base + Vector3.new(0, 0.55 * s, 0)) * CFrame.Angles(0, t, 0) * CFrame.Angles(0.08, 0, -0.06),
-		main,
-		MAT.Slate,
-		true
-	)
+	-- 비탈(숲띠 언덕)이면 조각마다 그 자리 땅 높이에 맞춤(윗쪽 조각이 땅에 묻히지 않게)
+	local function floorAt(ox: number, oz: number): number
+		return math.max(base.Y, groundAt(base.X + ox, base.Z + oz))
+	end
+	boulder(parent, "Rock", Vector3.new(base.X, floorAt(0, 0) + 0.35 * s, base.Z), 2.6 * s, rng, 0.2 + item.Tint * 0.4)
 	local pieces = item.Style + 0
 	for k = 1, math.min(pieces, 2) do
-		local ox, oz = spin(if k == 1 then 1.6 else -1.3, if k == 1 then 0.9 else -1.1, t)
-		local size = Vector3.new(1.6, 1.4, 1.5) * s * rng:NextNumber(0.75, 1.1)
+		local ox, oz = spin(if k == 1 then 1.8 else -1.5, if k == 1 then 0.9 else -1.1, t)
+		local size = Vector3.new(1.4, 1.1, 1.3) * s * rng:NextNumber(0.7, 1.05)
 		block(
 			parent,
 			"Rock",
 			size,
-			CFrame.new(base + Vector3.new(ox * s, 0.3 * s, oz * s))
-				* CFrame.Angles(rng:NextNumber(-0.5, 0.5), rng:NextNumber(0, 6.28), rng:NextNumber(-0.5, 0.5)),
-			main:Lerp(if k == 1 then ROCK_DARK else ROCK, 0.5),
+			CFrame.new(Vector3.new(base.X + ox * s, floorAt(ox * s, oz * s) + 0.15 * s, base.Z + oz * s))
+				* CFrame.Angles(rng:NextNumber(-0.6, 0.6), rng:NextNumber(0, 6.28), rng:NextNumber(-0.6, 0.6)),
+			ROCK:Lerp(if k == 1 then ROCK_DARK else ROCK, 0.5),
 			MAT.Rock,
 			true
 		)
 	end
-	local mx, mz = spin(-0.7, 1.2, t)
-	ball(parent, "Moss", base + Vector3.new(mx * s, 0.35 * s, mz * s), 1.1 * s, MOSS, LEAVES)
+	local mx, mz = spin(-0.8, 1.1, t)
+	ball(
+		parent,
+		"Moss",
+		Vector3.new(base.X + mx * s, floorAt(mx * s, mz * s) + 0.3 * s, base.Z + mz * s),
+		1.1 * s,
+		MOSS,
+		LEAVES
+	)
 end
 
--- 정원등: 받침 + 가는 짙은 초록 기둥 + 등 + 모자(광장 가로등보다 가늘고 낮게, 따뜻한 빛)
+-- 물가 바위 무리: 지형 바위 턱(낮은 둔덕) 위에 크고 작은 모난 바윗돌 셋(아래 1/3 은 턱·물속에 묻힘).
+-- Scale = 지형 바위 반지름, Height = 지형 바위 꼭대기 높이
+function BUILD.ShoreRock(parent: Instance, item)
+	local r, top = item.Scale, item.Height
+	local rng = itemRng(item, 11)
+	local t = item.Turn
+	local stones = {
+		{ 0, 0, 0.62 }, -- 옆, 옆(바위 반지름 비율), 크기(비율)
+		{ 0.55, 0.3, 0.42 },
+		{ -0.45, -0.35, 0.34 },
+	}
+	for k, stone in stones do
+		local ox, oz = spin(stone[1] * r, stone[2] * r, t)
+		local x, z = item.X + ox, item.Z + oz
+		local size = stone[3] * r
+		local floor = math.max(math.min(top, groundAt(x, z)), Island.WATER_LEVEL - 0.4 * size)
+		boulder(parent, "ShoreRock", Vector3.new(x, floor + 0.12 * size, z), size, rng, 0.15 + 0.2 * k)
+	end
+end
+
+-- 정원등: 가는 짙은 초록 기둥 + 등 + 모자(광장 가로등보다 가늘고 낮게, 따뜻한 빛)
 function BUILD.Lamp(parent: Instance, item)
 	local base = basePoint(item)
-	block(parent, "LampBase", Vector3.new(0.9, 0.5, 0.9), CFrame.new(base + Vector3.new(0, 0.25, 0)), GARDEN_GREEN, MAT.Metal, true)
 	disc(parent, "LampPost", base, 6.6, 0.42, GARDEN_GREEN, MAT.Metal, true)
 	local bulb = ball(parent, "LampBulb", base + Vector3.new(0, 7, 0), 1.3, LAMP_LIGHT, MAT.Neon)
 	disc(parent, "LampCap", base + Vector3.new(0, 7.55, 0), 0.3, 1.6, GARDEN_GREEN, MAT.Metal)
@@ -563,6 +688,16 @@ function BUILD.Bench(parent: Instance, item)
 	)
 	for _, x in { -2.1, 2.1 } do
 		block(parent, "BenchLeg", Vector3.new(0.35, 1.4, 1.5), cf * CFrame.new(x, 0.7, 0.05), IRON, MAT.Metal, true)
+		-- 등받이를 받치는 쇠 기둥(앉는 판 뒤 가장자리 → 등받이 위까지, 등받이와 같이 뒤로 기움)
+		block(
+			parent,
+			"BenchFrame",
+			Vector3.new(0.3, 1.9, 0.3),
+			cf * CFrame.new(x, 2.25, 0.62) * CFrame.Angles(math.rad(-10), 0, 0),
+			IRON,
+			MAT.Metal,
+			true
+		)
 	end
 end
 
@@ -632,7 +767,8 @@ function BUILD.PondDeco(parent: Instance, item)
 		if side > 3.4 then
 			pads += 1
 			local p = base + Vector3.new(math.cos(a) * d, 0, math.sin(a) * d)
-			disc(parent, "LilyPad", p - Vector3.new(0, 0.02, 0), 0.1, rng:NextNumber(1.5, 2.2), LILY, LEAVES)
+			-- 물 윗면(0) 위로 살짝(잔물결에 가려지지 않게)
+			disc(parent, "LilyPad", p + Vector3.new(0, 0.04, 0), 0.1, rng:NextNumber(1.5, 2.2), LILY, LEAVES)
 			if pads % 3 == 1 then
 				ball(parent, "LilyFlower", p + Vector3.new(0, 0.3, 0), 0.65, PINK)
 			end
@@ -708,7 +844,7 @@ function BUILD.Stones(parent: Instance, item)
 	local base = basePoint(item)
 	local rng = itemRng(item, 7)
 	for k = -2, 2 do
-		local along = k * 1.45
+		local along = k * 1.8
 		local side = math.sin(k * 0.9) * 0.6
 		local ox, oz = spin(along, side, item.Turn)
 		disc(
@@ -716,7 +852,7 @@ function BUILD.Stones(parent: Instance, item)
 			"SteppingStone",
 			base + Vector3.new(ox, -0.2, oz),
 			0.34,
-			rng:NextNumber(1.3, 1.7),
+			rng:NextNumber(1.25, 1.6),
 			STONE:Lerp(ROCK, rng:NextNumber(0, 0.5)),
 			MAT.Slate,
 			true
@@ -728,22 +864,56 @@ end
 function BUILD.Blanket(parent: Instance, item)
 	local cf = heading(basePoint(item), item.Turn)
 	local color = if item.Style == 2 then SKY else RED
-	block(parent, "Blanket", Vector3.new(4.4, 0.08, 3.6), cf * CFrame.new(0, 0.04, 0), color, MAT.Fabric)
+	-- 땅(지형 윗면 0)에서 0.05 띄움: 지형 면과 겹쳐 깜빡이지 않게. 줄끼리도 윗면 0.03 씩 차이
+	block(parent, "Blanket", Vector3.new(4.4, 0.08, 3.6), cf * CFrame.new(0, 0.09, 0), color, MAT.Fabric)
 	for _, x in { -1.1, 1.1 } do
-		block(parent, "BlanketStripe", Vector3.new(0.5, 0.1, 3.6), cf * CFrame.new(x, 0.05, 0), WHITE, MAT.Fabric)
+		block(parent, "BlanketStripe", Vector3.new(0.5, 0.1, 3.6), cf * CFrame.new(x, 0.11, 0), WHITE, MAT.Fabric)
 	end
 	for _, z in { -0.9, 0.9 } do
-		block(parent, "BlanketStripe", Vector3.new(4.4, 0.11, 0.5), cf * CFrame.new(0, 0.055, z), WHITE, MAT.Fabric)
+		block(parent, "BlanketStripe", Vector3.new(4.4, 0.1, 0.5), cf * CFrame.new(0, 0.14, z), WHITE, MAT.Fabric)
 	end
 	block(parent, "Basket", Vector3.new(1.3, 0.8, 0.9), cf * CFrame.new(1.2, 0.45, -0.6), WOOD, MAT.WoodPlanks)
 	block(parent, "BasketLid", Vector3.new(1.4, 0.15, 1), cf * CFrame.new(1.2, 0.9, -0.6), WOOD_DARK, MAT.WoodPlanks)
 	for _, x in { -1.2, -0.1 } do
-		disc(parent, "Plate", (cf * CFrame.new(x, 0.1, 0.5)).Position, 0.08, 0.9, WHITE, MAT.SmoothPlastic)
+		disc(parent, "Plate", (cf * CFrame.new(x, 0.13, 0.5)).Position, 0.1, 0.9, WHITE, MAT.SmoothPlastic)
 	end
 	ball(parent, "Fruit", (cf * CFrame.new(-1.2, 0.35, 0.5)).Position, 0.45, FRUITS[2])
 end
 
--- 소풍 탁자: 나무판 윗판 + 긴 의자 둘 + A자 다리 둘. Turn = 탁자 길이에 수직
+-- 파라솔: 기둥 + 팔각 원뿔 지붕(쐐기 여덟 장, 색·하양 번갈아 = 줄무늬) + 꼭지 공
+local UMBRELLA_RADIUS = 3.9
+local UMBRELLA_RISE = 1.7 -- 지붕 가장자리 → 꼭대기
+local UMBRELLA_RIM = 5.2 -- 지붕 가장자리 높이(발밑 기준)
+local function umbrella(parent: Instance, base: Vector3, turn: number, color: Color3)
+	disc(
+		parent,
+		"UmbrellaPole",
+		base - Vector3.new(0, 0.6, 0),
+		UMBRELLA_RIM + UMBRELLA_RISE + 0.3,
+		0.3,
+		PAINT_WHITE,
+		MAT.Wood,
+		true
+	)
+	local width = 2 * UMBRELLA_RADIUS * math.tan(math.pi / 8) * 1.02
+	for k = 0, 7 do
+		local a = turn + (k + 0.5) / 8 * math.pi * 2
+		local out = Vector3.new(math.cos(a), 0, math.sin(a))
+		-- 쐐기 높은 면(+Z)이 기둥 쪽, 비탈이 바깥(-Z)을 봄
+		local center = base + Vector3.new(0, UMBRELLA_RIM + UMBRELLA_RISE / 2, 0) + out * (UMBRELLA_RADIUS / 2)
+		wedge(
+			parent,
+			"UmbrellaCanopy",
+			Vector3.new(width, UMBRELLA_RISE, UMBRELLA_RADIUS),
+			CFrame.lookAt(center, center + out),
+			if k % 2 == 0 then color else WHITE,
+			MAT.Fabric
+		)
+	end
+	ball(parent, "UmbrellaTop", base + Vector3.new(0, UMBRELLA_RIM + UMBRELLA_RISE + 0.1, 0), 0.7, WHITE)
+end
+
+-- 소풍 탁자: 나무판 윗판 + 긴 의자 둘 + A자 다리 둘 + 가운데 줄무늬 파라솔. Turn = 탁자 길이에 수직
 function BUILD.PicnicTable(parent: Instance, item)
 	local cf = heading(basePoint(item), item.Turn)
 	block(parent, "PicnicTop", Vector3.new(5.6, 0.35, 2.6), cf * CFrame.new(0, 2.3, 0), WOOD, MAT.WoodPlanks, true)
@@ -753,6 +923,7 @@ function BUILD.PicnicTable(parent: Instance, item)
 	for _, x in { -2.2, 2.2 } do
 		block(parent, "PicnicLeg", Vector3.new(0.4, 2.1, 5), cf * CFrame.new(x, 1.05, 0), WOOD_DARK, MAT.Wood, true)
 	end
+	umbrella(parent, basePoint(item), item.Turn, CORAL)
 end
 
 -- 장미 아치(오솔길 위): 흰 기둥 둘 + 둥근 윗부분(세 토막) + 잎 뭉치 + 장미. Turn = 오솔길 방향
@@ -807,7 +978,13 @@ function BUILD.Crate(parent: Instance, item)
 	for k = 0, 4 do
 		local x = -0.8 + (k % 3) * 0.8
 		local z = if k < 3 then -0.3 else 0.35
-		ball(parent, "Fruit", (cf * CFrame.new(x + (if k >= 3 then 0.4 else 0), 1.25, z)).Position, 0.6, FRUITS[k % 3 + 1])
+		ball(
+			parent,
+			"Fruit",
+			(cf * CFrame.new(x + (if k >= 3 then 0.4 else 0), 1.25, z)).Position,
+			0.6,
+			FRUITS[k % 3 + 1]
+		)
 	end
 end
 
@@ -817,8 +994,17 @@ function BUILD.Lantern(parent: Instance, item)
 	local cf = CFrame.new(base) * CFrame.Angles(0, item.Turn, 0)
 	block(parent, "LanternBase", Vector3.new(1.6, 0.4, 1.6), cf * CFrame.new(0, 0.2, 0), STONE, MAT.Slate, true)
 	disc(parent, "LanternPillar", base + Vector3.new(0, 0.4, 0), 1.6, 0.7, STONE, MAT.Slate, true)
-	block(parent, "LanternBox", Vector3.new(1.3, 1, 1.3), cf * CFrame.new(0, 2.5, 0), STONE:Lerp(ROCK, 0.3), MAT.Slate, true)
-	local glow = block(parent, "LanternLight", Vector3.new(1.34, 0.45, 0.6), cf * CFrame.new(0, 2.5, 0), LAMP_LIGHT, MAT.Neon)
+	block(
+		parent,
+		"LanternBox",
+		Vector3.new(1.3, 1, 1.3),
+		cf * CFrame.new(0, 2.5, 0),
+		STONE:Lerp(ROCK, 0.3),
+		MAT.Slate,
+		true
+	)
+	local glow =
+		block(parent, "LanternLight", Vector3.new(1.34, 0.45, 0.6), cf * CFrame.new(0, 2.5, 0), LAMP_LIGHT, MAT.Neon)
 	local light = Instance.new("PointLight")
 	light.Color = LAMP_LIGHT
 	light.Range = 8
@@ -855,7 +1041,9 @@ function BUILD.Gazebo(parent: Instance, item)
 	for k = 1, 8 do
 		local nextK = k % 8 + 1
 		if k ~= 8 and k ~= 4 then
-			local a, b = posts[k] + Vector3.new(0, 1.3, 0), posts[nextK] + Vector3.new(0, 1.3, 0)
+			-- 이웃 난간끼리 기둥에서 겹치는 끝이 같은 높이로 깜빡이지 않게 번갈아 0.05 차이
+			local lift = Vector3.new(0, 1.3 + (k % 2) * 0.05, 0)
+			local a, b = posts[k] + lift, posts[nextK] + lift
 			block(
 				parent,
 				"GazeboRail",
@@ -873,6 +1061,7 @@ function BUILD.Gazebo(parent: Instance, item)
 	disc(parent, "GazeboRoof", base + Vector3.new(0, 7.8, 0), 0.9, 9.6, roof:Lerp(PAINT_WHITE, 0.15), MAT.WoodPlanks)
 	disc(parent, "GazeboRoof", base + Vector3.new(0, 8.7, 0), 0.9, 5.6, roof:Lerp(PAINT_WHITE, 0.3), MAT.WoodPlanks)
 	ball(parent, "GazeboFinial", base + Vector3.new(0, 10, 0), 1.3, SUN, MAT.Metal)
+	disc(parent, "GazeboChain", base + Vector3.new(0, 5.8, 0), 0.7, 0.14, IRON, MAT.Metal) -- 지붕에 매단 줄
 	local lamp = ball(parent, "GazeboLamp", base + Vector3.new(0, 5.4, 0), 1.2, LAMP_LIGHT, MAT.Neon)
 	local light = Instance.new("PointLight")
 	light.Color = LAMP_LIGHT
@@ -881,7 +1070,15 @@ function BUILD.Gazebo(parent: Instance, item)
 	light.Parent = lamp
 	for _, side in { -1, 1 } do
 		local seat = cf * CFrame.new(side * 4.6, 0.4, 0) * CFrame.Angles(0, side * math.rad(90), 0)
-		block(parent, "BenchSeat", Vector3.new(4.2, 0.35, 1.4), seat * CFrame.new(0, 1.3, 0), WOOD, MAT.WoodPlanks, true)
+		block(
+			parent,
+			"BenchSeat",
+			Vector3.new(4.2, 0.35, 1.4),
+			seat * CFrame.new(0, 1.3, 0),
+			WOOD,
+			MAT.WoodPlanks,
+			true
+		)
 		block(parent, "BenchLeg", Vector3.new(3.6, 1.2, 1), seat * CFrame.new(0, 0.6, 0), WOOD_DARK, MAT.Wood, true)
 	end
 end
@@ -907,7 +1104,14 @@ function BUILD.Lighthouse(parent: Instance, item)
 		)
 		y += 5
 	end
-	block(parent, "LighthouseDoor", Vector3.new(1.8, 3, 0.4), cf * CFrame.new(0, 2.9, -radius + 0.05), WOOD_DARK, MAT.WoodPlanks)
+	block(
+		parent,
+		"LighthouseDoor",
+		Vector3.new(1.8, 3, 0.4),
+		cf * CFrame.new(0, 2.9, -radius + 0.05),
+		WOOD_DARK,
+		MAT.WoodPlanks
+	)
 	for _, h in { 9, 14 } do
 		local w = cf * CFrame.new(0, h, -(if h > 10 then 2.72 else 2.92) + 0.02)
 		block(parent, "LighthouseWindow", Vector3.new(1, 1.4, 0.3), w, NAVY, MAT.Glass)
@@ -921,7 +1125,7 @@ function BUILD.Lighthouse(parent: Instance, item)
 			parent,
 			"LighthouseRail",
 			Vector3.new(0.2, 1.1, (p2 - p1).Magnitude + 0.1),
-			CFrame.lookAt((p1 + p2) / 2, p2) * CFrame.new(0, -0.45, 0),
+			CFrame.lookAt((p1 + p2) / 2, p2) * CFrame.new(0, -0.45 + (k % 2) * 0.05, 0),
 			IRON,
 			MAT.Metal,
 			true
@@ -939,6 +1143,16 @@ function BUILD.Lighthouse(parent: Instance, item)
 	ball(parent, "LighthouseTop", base + Vector3.new(0, y + 7.3, 0), 0.7, SUN, MAT.Metal)
 end
 
+-- 구명 튜브: 빨강·하양 번갈아 여섯 토막 고리. cf = 고리 가운데, 고리 면 = cf 의 XY 평면
+local function lifebuoy(parent: Instance, cf: CFrame)
+	for k = 0, 5 do
+		local a1, a2 = k / 6 * math.pi * 2, (k + 1) / 6 * math.pi * 2
+		local p1 = (cf * CFrame.new(math.cos(a1) * 0.85, math.sin(a1) * 0.85, 0)).Position
+		local p2 = (cf * CFrame.new(math.cos(a2) * 0.85, math.sin(a2) * 0.85, 0)).Position
+		rod(parent, "Lifebuoy", p1, p2, 0.42, if k % 2 == 0 then CORAL else WHITE, MAT.SmoothPlastic)
+	end
+end
+
 -- 부두: 풀밭 끝에서 바다로 뻗은 나무판(윗면 Y) + T자 끝 판 + 바닥까지 박힌 기둥(물 위로 난간 기둥이 됨)
 -- + 난간 손잡이 + 끝에 정원등 둘·벤치·구명 튜브. Height = 전체 길이, Radius = 반폭, Turn = 바다 쪽
 function BUILD.Pier(parent: Instance, item)
@@ -951,8 +1165,8 @@ function BUILD.Pier(parent: Instance, item)
 	block(
 		parent,
 		"PierDeck",
-		Vector3.new(half * 2, 0.5, main + 0.4),
-		cf * CFrame.new(0, top - 0.25, -main / 2),
+		Vector3.new(half * 2, 0.5, main + 0.2), -- T자 끝 판과 맞닿기만(겹치면 같은 높이라 깜빡임)
+		cf * CFrame.new(0, top - 0.25, -(main - 0.2) / 2),
 		WOOD,
 		MAT.WoodPlanks,
 		true
@@ -1021,7 +1235,7 @@ function BUILD.Pier(parent: Instance, item)
 			parent,
 			"PierRail",
 			Vector3.new(headHalf - half, 0.3, 0.3),
-			cf * CFrame.new(side * (half + headHalf) / 2, railY, -(main + 0.3)),
+			cf * CFrame.new(side * (half + headHalf) / 2, railY - 0.05, -(main + 0.3)),
 			WOOD_LIGHT,
 			MAT.Wood,
 			true
@@ -1031,14 +1245,18 @@ function BUILD.Pier(parent: Instance, item)
 		parent,
 		"PierRail",
 		Vector3.new(headHalf * 2, 0.3, 0.3),
-		cf * CFrame.new(0, railY, -(length - 0.3)),
+		cf * CFrame.new(0, railY - 0.05, -(length - 0.3)),
 		WOOD_LIGHT,
 		MAT.Wood,
 		true
 	)
 	-- 끝: 양쪽 모서리 정원등, 바다를 보는 벤치, 난간에 건 구명 튜브(빨강·하양 여섯 토막)
 	for _, side in { -1, 1 } do
-		BUILD.Lamp(parent, { X = (cf * Vector3.new(side * (headHalf - 1.2), 0, -(length - 1.2))).X, Y = top, Z = (cf * Vector3.new(side * (headHalf - 1.2), 0, -(length - 1.2))).Z })
+		BUILD.Lamp(parent, {
+			X = (cf * Vector3.new(side * (headHalf - 1.2), 0, -(length - 1.2))).X,
+			Y = top,
+			Z = (cf * Vector3.new(side * (headHalf - 1.2), 0, -(length - 1.2))).Z,
+		})
 	end
 	BUILD.Bench(parent, {
 		X = (cf * Vector3.new(0, 0, -(length - 2.4))).X,
@@ -1046,13 +1264,93 @@ function BUILD.Pier(parent: Instance, item)
 		Z = (cf * Vector3.new(0, 0, -(length - 2.4))).Z,
 		Turn = item.Turn,
 	})
-	local ring = cf * CFrame.new(headHalf - 0.1, top + 1.4, -(main + headDepth / 2)) * CFrame.Angles(0, math.rad(90), 0)
-	for k = 0, 5 do
-		local a1, a2 = k / 6 * math.pi * 2, (k + 1) / 6 * math.pi * 2
-		local p1 = (ring * CFrame.new(math.cos(a1) * 0.85, math.sin(a1) * 0.85, 0)).Position
-		local p2 = (ring * CFrame.new(math.cos(a2) * 0.85, math.sin(a2) * 0.85, 0)).Position
-		rod(parent, "Lifebuoy", p1, p2, 0.42, if k % 2 == 0 then CORAL else WHITE, MAT.SmoothPlastic)
+	lifebuoy(
+		parent,
+		cf * CFrame.new(headHalf - 0.1, top + 1.4, -(main + headDepth / 2)) * CFrame.Angles(0, math.rad(90), 0)
+	)
+end
+
+-- 구조대 망루: 흰 다리 넷(비탈이면 다리 길이를 땅에 맞춤) + 나무 발판 + 빨간 의자(받침 + 앉는 판 + 등받이)
+-- + 뒤쪽 비스듬한 사다리 판 + 깃발 + 앞에 건 구명 튜브. Turn = 바다 쪽
+function BUILD.Lifeguard(parent: Instance, item)
+	local base = basePoint(item)
+	local cf = heading(base, item.Turn)
+	local deck = 4.2
+	for _, c in { { -1.3, -1.1 }, { 1.3, -1.1 }, { -1.3, 1.1 }, { 1.3, 1.1 } } do
+		local p = cf * Vector3.new(c[1], 0, c[2])
+		local floor = groundAt(p.X, p.Z)
+		local bottom = floor - 0.5
+		disc(
+			parent,
+			"LifeguardLeg",
+			Vector3.new(p.X, bottom, p.Z),
+			base.Y + deck - bottom,
+			0.4,
+			PAINT_WHITE,
+			MAT.Wood,
+			true
+		)
 	end
+	block(
+		parent,
+		"LifeguardDeck",
+		Vector3.new(3.4, 0.35, 3.1),
+		cf * CFrame.new(0, deck + 0.17, 0),
+		WOOD,
+		MAT.WoodPlanks,
+		true
+	)
+	block(
+		parent,
+		"LifeguardSeatBox",
+		Vector3.new(2.2, 1, 1.3),
+		cf * CFrame.new(0, deck + 0.85, 0.5),
+		PAINT_WHITE,
+		MAT.WoodPlanks,
+		true
+	)
+	block(
+		parent,
+		"LifeguardSeat",
+		Vector3.new(2.3, 0.3, 1.4),
+		cf * CFrame.new(0, deck + 1.5, 0.45),
+		RED,
+		MAT.WoodPlanks,
+		true
+	)
+	block(
+		parent,
+		"LifeguardBack",
+		Vector3.new(2.3, 1.7, 0.3),
+		cf * CFrame.new(0, deck + 2.4, 1.2) * CFrame.Angles(math.rad(-12), 0, 0),
+		RED,
+		MAT.WoodPlanks,
+		true
+	)
+	-- 사다리: 뒤쪽 땅에서 발판 뒤 가장자리까지 비스듬한 판(가로대 무늬는 WoodPlanks)
+	local foot = cf * Vector3.new(0, 0, 3.6)
+	local from = Vector3.new(foot.X, groundAt(foot.X, foot.Z), foot.Z)
+	local to = (cf * CFrame.new(0, deck + 0.1, 1.5)).Position
+	block(
+		parent,
+		"LifeguardLadder",
+		Vector3.new(1.3, 0.25, (to - from).Magnitude),
+		CFrame.lookAt((from + to) / 2, to),
+		WOOD_LIGHT,
+		MAT.WoodPlanks,
+		true
+	)
+	local pole = (cf * CFrame.new(1.45, deck + 0.35, 1.3)).Position
+	disc(parent, "LifeguardFlagPole", pole, 4.2, 0.16, PAINT_WHITE, MAT.Metal)
+	block(
+		parent,
+		"LifeguardFlag",
+		Vector3.new(0.08, 0.9, 1.4),
+		cf * CFrame.new(1.45, deck + 4, 2.05),
+		CORAL,
+		MAT.Fabric
+	)
+	lifebuoy(parent, cf * CFrame.new(1.3, deck - 1.4, -1.42)) -- 앞 다리에 걸어 둠(고리가 다리에 닿음)
 end
 
 -- 간식 가게: 나무 마루 + 벽 셋(민트 판자) + 흰 계산대 + 줄무늬 차양 + 지붕 + 지붕 위 아이스크림 간판 + 의자 둘.
@@ -1063,10 +1361,34 @@ function BUILD.Kiosk(parent: Instance, item)
 	block(parent, "KioskFloor", Vector3.new(7.4, 0.6, 6.4), cf * CFrame.new(0, 0.1, 0), WOOD, MAT.WoodPlanks, true)
 	block(parent, "KioskWall", Vector3.new(7, 5, 0.4), cf * CFrame.new(0, 2.9, 2.9), MINT, MAT.WoodPlanks, true)
 	for _, side in { -1, 1 } do
-		block(parent, "KioskWall", Vector3.new(0.4, 5, 6), cf * CFrame.new(side * 3.3, 2.9, 0), MINT, MAT.WoodPlanks, true)
+		block(
+			parent,
+			"KioskWall",
+			Vector3.new(0.4, 4.9, 6),
+			cf * CFrame.new(side * 3.3, 2.85, 0),
+			MINT,
+			MAT.WoodPlanks,
+			true
+		)
 	end
-	block(parent, "KioskCounter", Vector3.new(6.2, 2.4, 1), cf * CFrame.new(0, 1.6, -2.5), PAINT_WHITE, MAT.WoodPlanks, true)
-	block(parent, "KioskCounterTop", Vector3.new(6.8, 0.3, 1.6), cf * CFrame.new(0, 2.95, -2.6), WOOD, MAT.WoodPlanks, true)
+	block(
+		parent,
+		"KioskCounter",
+		Vector3.new(6.2, 2.4, 1),
+		cf * CFrame.new(0, 1.6, -2.5),
+		PAINT_WHITE,
+		MAT.WoodPlanks,
+		true
+	)
+	block(
+		parent,
+		"KioskCounterTop",
+		Vector3.new(6.8, 0.3, 1.6),
+		cf * CFrame.new(0, 2.95, -2.6),
+		WOOD,
+		MAT.WoodPlanks,
+		true
+	)
 	block(parent, "KioskRoof", Vector3.new(8, 0.5, 7.2), cf * CFrame.new(0, 5.65, 0.1), CORAL, MAT.WoodPlanks, true)
 	-- 차양: 앞으로 비스듬히 내려오는 줄무늬 다섯 조각
 	for k = 0, 4 do
@@ -1083,7 +1405,15 @@ function BUILD.Kiosk(parent: Instance, item)
 	-- 아이스크림 간판: 거꾸로 선 원뿔(원판 셋) + 공 둘
 	local sign = cf * CFrame.new(0, 5.9, 0.5)
 	for k, d in { 0.5, 1, 1.5 } do
-		disc(parent, "IceCreamCone", (sign * CFrame.new(0, k * 0.6 - 0.6, 0)).Position, 0.6, d, SUN:Lerp(WOOD, 0.4), MAT.WoodPlanks)
+		disc(
+			parent,
+			"IceCreamCone",
+			(sign * CFrame.new(0, k * 0.6 - 0.6, 0)).Position,
+			0.6,
+			d,
+			SUN:Lerp(WOOD, 0.4),
+			MAT.WoodPlanks
+		)
 	end
 	ball(parent, "IceCream", (sign * CFrame.new(0, 1.9, 0)).Position, 1.7, PINK)
 	ball(parent, "IceCream", (sign * CFrame.new(0, 3.1, 0)).Position, 1.3, MINT)
@@ -1112,31 +1442,37 @@ local function lounger(parent: Instance, head: Vector3, foot: Vector3, cushion: 
 		MAT.WoodPlanks,
 		true
 	)
-	block(parent, "LoungerCushion", Vector3.new(1.45, 0.2, length - 1.9), cf * CFrame.new(0, 0.24, -0.9), cushion, MAT.Fabric)
+	block(
+		parent,
+		"LoungerCushion",
+		Vector3.new(1.45, 0.2, length - 1.9),
+		cf * CFrame.new(0, 0.24, -0.9),
+		cushion,
+		MAT.Fabric
+	)
 end
 
--- 파라솔 묶음: 파라솔(기둥 + 크기 줄어드는 원판 셋, 색 번갈아 + 꼭지 공) + 양옆 선베드 + 앞 수건.
--- Turn = 바다 쪽(선베드가 바다를 봄)
+-- 파라솔 묶음: 줄무늬 파라솔 + 양옆 선베드 + 앞 수건. Turn = 바다 쪽(선베드가 바다를 봄)
 function BUILD.BeachSet(parent: Instance, item)
 	local base = basePoint(item)
 	local color = CANVAS[(item.Style - 1) % #CANVAS + 1]
 	local cf = heading(base, item.Turn)
-	disc(parent, "UmbrellaPole", base - Vector3.new(0, 0.6, 0), 7.2, 0.3, PAINT_WHITE, MAT.Wood, true)
-	disc(parent, "UmbrellaCanopy", base + Vector3.new(0, 5.6, 0), 0.4, 7.4, color, MAT.Fabric)
-	disc(parent, "UmbrellaCanopy", base + Vector3.new(0, 6, 0), 0.4, 5.2, WHITE, MAT.Fabric)
-	disc(parent, "UmbrellaCanopy", base + Vector3.new(0, 6.4, 0), 0.4, 2.8, color, MAT.Fabric)
-	ball(parent, "UmbrellaTop", base + Vector3.new(0, 7, 0), 0.6, WHITE)
+	umbrella(parent, base, item.Turn, color)
 	for _, side in { -1, 1 } do
 		local head = cf * Vector3.new(side * 1.25, 0, 2.4)
 		local foot = cf * Vector3.new(side * 1.25, 0, -2.2)
 		lounger(parent, head, foot, if side < 0 then color else CANVAS[item.Style % #CANVAS + 1])
 	end
-	local towel = cf * CFrame.new(3.4, 0, -3.2) * CFrame.Angles(0, 0.35, 0)
-	local p = towel.Position
-	local floor = groundAt(p.X, p.Z)
-	local towelCf = CFrame.new(p.X, floor + 0.04, p.Z) * (towel - towel.Position)
-	block(parent, "Towel", Vector3.new(2.2, 0.08, 4), towelCf, CANVAS[(item.Style + 1) % #CANVAS + 1], MAT.Fabric)
-	block(parent, "TowelStripe", Vector3.new(2.2, 0.1, 0.5), towelCf * CFrame.new(0, 0.01, 1.2), WHITE, MAT.Fabric)
+	local towelCf = onGround(cf * CFrame.new(3.4, 0, -3.2) * CFrame.Angles(0, 0.35, 0), 1.1, 2)
+	block(
+		parent,
+		"Towel",
+		Vector3.new(2.2, 0.12, 4),
+		towelCf * CFrame.new(0, 0.1, 0),
+		CANVAS[(item.Style + 1) % #CANVAS + 1],
+		MAT.Fabric
+	)
+	block(parent, "TowelStripe", Vector3.new(2.2, 0.14, 0.5), towelCf * CFrame.new(0, 0.11, 1.2), WHITE, MAT.Fabric)
 end
 
 -- 모래성: 모래 받침 + 모퉁이 탑 넷 + 가운데 큰 탑 + 깃발
@@ -1150,6 +1486,64 @@ function BUILD.Sandcastle(parent: Instance, item)
 	disc(parent, "SandKeep", base + Vector3.new(0, 0.6, 0), 1.9, 1.6, SAND, MAT.Sand)
 	disc(parent, "FlagPole", base + Vector3.new(0, 2.4, 0), 1.3, 0.1, WOOD_DARK, MAT.Wood)
 	block(parent, "Flag", Vector3.new(0.05, 0.45, 0.7), cf * CFrame.new(0, 3.45, -0.35), CORAL, MAT.Fabric)
+end
+
+-- 동전 망원경(부지 뒤 바다 전망): 쇠 받침 + 기둥 + 머리 상자 + 바다 쪽으로 살짝 치켜든 통 + 눈대개. Turn = 바다 쪽
+function BUILD.Telescope(parent: Instance, item)
+	local base = basePoint(item)
+	local cf = heading(base, item.Turn)
+	disc(parent, "TelescopeFoot", base - Vector3.new(0, 0.2, 0), 0.5, 1.4, IRON, MAT.Metal, true)
+	disc(parent, "TelescopePost", base, 3.5, 0.45, TEAL, MAT.Metal, true)
+	block(parent, "TelescopeHead", Vector3.new(1, 1, 1.1), cf * CFrame.new(0, 3.9, 0), TEAL, MAT.Metal, true)
+	local front = (cf * CFrame.new(0, 4.25, -1.9)).Position
+	local back = (cf * CFrame.new(0, 3.75, 0.3)).Position
+	rod(parent, "TelescopeTube", back, front, 0.75, SUN:Lerp(WOOD, 0.3), MAT.Metal, true)
+	local eye = (cf * CFrame.new(0, 3.62, 1)).Position
+	rod(parent, "TelescopeEye", back, eye, 0.4, IRON, MAT.Metal)
+end
+
+-- 서핑보드 거치대: 낮은 나무 받침 + 모래에 꽂혀 기운 보드 셋(판 + 둥근 끝 원판). 색이 다름. Turn = 보드 면이 보는 쪽
+function BUILD.Surfboards(parent: Instance, item)
+	local base = basePoint(item)
+	local cf = heading(base, item.Turn)
+	local colors = { CORAL, SUN, SKY, MINT }
+	block(parent, "SurfRack", Vector3.new(5.2, 0.5, 1), cf * CFrame.new(0, 1.6, 0.9), WOOD, MAT.WoodPlanks, true)
+	for _, x in { -2.3, 2.3 } do
+		disc(parent, "SurfRackPost", (cf * CFrame.new(x, -0.4, 0.9)).Position, 2.3, 0.4, WOOD_DARK, MAT.Wood, true)
+	end
+	for k = 1, 3 do
+		local x = (k - 2) * 1.7
+		local board = cf * CFrame.new(x, 2, 0.35) * CFrame.Angles(math.rad(-14), 0, math.rad((k - 2) * 6))
+		local color = colors[(k + item.Style) % #colors + 1]
+		block(parent, "Surfboard", Vector3.new(1.4, 4.4, 0.22), board, color, MAT.SmoothPlastic, true)
+		-- 둥근 끝(원판을 보드 면에 세움)
+		part(
+			parent,
+			"SurfboardTip",
+			Enum.PartType.Cylinder,
+			Vector3.new(0.2, 1.4, 1.4),
+			board * CFrame.new(0, 2.2, 0) * CFrame.Angles(0, math.rad(90), 0),
+			color,
+			MAT.SmoothPlastic
+		)
+		block(parent, "SurfboardStripe", Vector3.new(0.3, 4.1, 0.26), board, WHITE, MAT.SmoothPlastic)
+	end
+end
+
+-- 떠밀려 온 나무(모래 위에 누운 굵은 가지 + 곁가지). Turn = 누운 방향
+function BUILD.Driftwood(parent: Instance, item)
+	local s, base = item.Scale, basePoint(item)
+	local dx, dz = math.cos(item.Turn), math.sin(item.Turn)
+	local half = 2.6 * s
+	local a = Vector3.new(base.X - dx * half, 0, base.Z - dz * half)
+	local b = Vector3.new(base.X + dx * half, 0, base.Z + dz * half)
+	a = Vector3.new(a.X, groundAt(a.X, a.Z) + 0.2 * s, a.Z)
+	b = Vector3.new(b.X, groundAt(b.X, b.Z) + 0.25 * s, b.Z)
+	local driftwood = rgb(176, 156, 128)
+	rod(parent, "Driftwood", a, b, 0.7 * s, driftwood, MAT.Wood, true)
+	local mid = a:Lerp(b, 0.6)
+	local branch = mid + Vector3.new(-dz * 1.6 * s + dx * 0.6 * s, 0.5 * s, dx * 1.6 * s + dz * 0.6 * s)
+	rod(parent, "Driftwood", mid, branch, 0.35 * s, driftwood:Lerp(WOOD_DARK, 0.2), MAT.Wood)
 end
 
 -- 수영 구역 부표: 반쯤 잠긴 공 + 작은 꼭지(빨강/하양)
@@ -1184,8 +1578,22 @@ function BUILD.Boat(parent: Instance, item)
 	block(parent, "BoatRim", Vector3.new(3.3, 0.25, 5.3) * s, at(0, 0.8, 0.8), trim, MAT.Wood)
 	disc(parent, "BoatMast", at(0, 0.75, 0).Position, 7 * s, 0.3 * s, WOOD_DARK, MAT.Wood)
 	local sail = if item.Style == 3 then SUN:Lerp(WHITE, 0.4) else WHITE
-	wedge(parent, "BoatSail", Vector3.new(0.12, 5.6, 3.6) * s, at(0, 4.2, 1.9) * CFrame.Angles(0, math.pi, 0), sail, MAT.Fabric)
-	wedge(parent, "BoatJib", Vector3.new(0.12, 4.2, 2.4) * s, at(0, 3.4, -1.3), if item.Style == 2 then CORAL else SKY, MAT.Fabric)
+	wedge(
+		parent,
+		"BoatSail",
+		Vector3.new(0.12, 5.6, 3.6) * s,
+		at(0, 4.2, 1.9) * CFrame.Angles(0, math.pi, 0),
+		sail,
+		MAT.Fabric
+	)
+	wedge(
+		parent,
+		"BoatJib",
+		Vector3.new(0.12, 4.2, 2.4) * s,
+		at(0, 3.4, -1.3),
+		if item.Style == 2 then CORAL else SKY,
+		MAT.Fabric
+	)
 	block(parent, "BoatFlag", Vector3.new(0.06, 0.5, 0.9) * s, at(0, 7.9, 0.45), CORAL, MAT.Fabric)
 end
 
@@ -1216,7 +1624,15 @@ function Props.segment(
 	local a = Vector3.new(segment.X1, segment.Top - height / 2, segment.Z1)
 	local b = Vector3.new(segment.X2, segment.Top - height / 2, segment.Z2)
 	local length = (b - a).Magnitude
-	return block(parent, name, Vector3.new(segment.Width, height, length), CFrame.lookAt((a + b) / 2, b), color, material, solid)
+	return block(
+		parent,
+		name,
+		Vector3.new(segment.Width, height, length),
+		CFrame.lookAt((a + b) / 2, b),
+		color,
+		material,
+		solid
+	)
 end
 
 -- 둥근 판(광장 원판): 윗면 top

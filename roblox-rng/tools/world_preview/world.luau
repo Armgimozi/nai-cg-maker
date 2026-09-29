@@ -216,7 +216,9 @@ local function loadProject()
 						local properties = table.clone(child["$properties"] or {})
 						if properties.MaterialColors then
 							properties.MaterialColors = nil
-							note("project: Terrain.MaterialColors 는 미리보기가 못 읽습니다(SetMaterialColor 를 쓰세요)")
+							note(
+								"project: Terrain.MaterialColors 는 미리보기가 못 읽습니다(SetMaterialColor 를 쓰세요)"
+							)
 						end
 						setProperties(Mock.Terrain, properties)
 					else

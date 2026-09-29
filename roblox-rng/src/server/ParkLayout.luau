@@ -28,9 +28,6 @@ ParkLayout.PLOT_MARGIN = 3 -- 부지(+둘레 띠) 둘레 여유
 ParkLayout.PATH_MARGIN = 2 -- 길 양옆 여유
 ParkLayout.SIGN_MARGIN = 1
 
--- 섬(바닥) 반지름. default.project.json 의 Workspace.Baseplate(원기둥) 지름의 절반과 같아야 함(테스트가 확인)
-ParkLayout.ISLAND_RADIUS = 250
-
 export type Layout = { Angle: number, Radius: number, Path: boolean }
 
 -- 부지 하나의 바닥 사각형(둘레 띠 포함)과 입구 길

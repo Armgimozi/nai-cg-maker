@@ -71,10 +71,10 @@ local RAIL = Vector3.new(0.35, 0.35, 0.35) -- 울타리 가로대 단면
 local LABEL_WIDTH = 10 -- 전시 이름표 크기(스터드)
 local LABEL_HEIGHT = 2.6
 
-local BASE_COLOR = Color3.fromRGB(226, 220, 204)
-local PATH_COLOR = Color3.fromRGB(215, 198, 165)
+local BASE_COLOR = Color3.fromRGB(150, 204, 98) -- 잘 깎은 잔디(Grass): 둘레 잔디보다 조금 밝고 노랗게
+local PATH_COLOR = Color3.fromRGB(218, 200, 166) -- 광장 → 입구 길(포석, 부지 바닥보다 조금 짙게)
 local PEDESTAL_COLOR = Color3.fromRGB(236, 234, 228)
-local LOCKED_COLOR = Color3.fromRGB(120, 124, 138)
+local LOCKED_COLOR = Color3.fromRGB(238, 222, 176) -- 잔디 위 흐릿한 모래색 칸(아직 못 여는 자리)
 
 -- UI 스타일 가이드 v2 팔레트
 local INK = Color3.fromRGB(30, 27, 46)
@@ -630,7 +630,7 @@ local function buildPlot(parent: Instance, index: number, layout: Layout): Plot
 		Vector3.new(PLOT_WIDTH, BASE_TOP, PLOT_DEPTH),
 		cf * CFrame.new(0, BASE_TOP / 2, 0),
 		BASE_COLOR,
-		Enum.Material.Concrete
+		Enum.Material.Grass
 	)
 	decorate(model, cf)
 
@@ -649,7 +649,7 @@ local function buildPlot(parent: Instance, index: number, layout: Layout): Plot
 			Vector3.new(PATH_WIDTH, 0.2, length),
 			CFrame.lookAt(mid, Vector3.new(0, 0.1, 0)),
 			PATH_COLOR,
-			Enum.Material.Concrete
+			Enum.Material.Pavement
 		)
 		path.CastShadow = false
 	end

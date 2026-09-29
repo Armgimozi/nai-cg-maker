@@ -337,7 +337,7 @@ do
 	if not ok then
 		warn("[LandmarkRNG] 공원 부지를 만들지 못했습니다: " .. tostring(err))
 	end
-	ok, err = pcall(Scenery.build, Config.SCENERY_EDGE)
+	ok, err = pcall(Scenery.build)
 	if not ok then
 		warn("[LandmarkRNG] 주변 풍경을 만들지 못했습니다: " .. tostring(err))
 	end

@@ -2084,7 +2084,14 @@ end
 local function terrainMaterialIndex(material: any, label: string): number
 	local index = TERRAIN_INDEX[material]
 	if index == nil then
-		error(string.format("Terrain:%s: %s 는 지형 재질이 아닙니다(Roblox 도 오류)", label, tostring(material)), 3)
+		error(
+			string.format(
+				"Terrain:%s: %s 는 지형 재질이 아닙니다(Roblox 도 오류)",
+				label,
+				tostring(material)
+			),
+			3
+		)
 	end
 	return index
 end
@@ -2308,7 +2315,10 @@ local function fillShape(
 	local vx0, vx1 = floor((minX - 2) / 4), floor((maxX + 2) / 4)
 	local vy0, vy1 = floor((minY - 2) / 4), floor((maxY + 2) / 4)
 	local vz0, vz1 = floor((minZ - 2) / 4), floor((maxZ + 2) / 4)
-	assert((vx1 - vx0 + 1) * (vy1 - vy0 + 1) * (vz1 - vz0 + 1) < 2e9, "Terrain:" .. label .. ": 영역이 너무 큽니다")
+	assert(
+		(vx1 - vx0 + 1) * (vy1 - vy0 + 1) * (vz1 - vz0 + 1) < 2e9,
+		"Terrain:" .. label .. ": 영역이 너무 큽니다"
+	)
 	for cx = vx0 // 8, vx1 // 8 do
 		local bx0, bx1 = max(vx0, cx * 8), min(vx1, cx * 8 + 7)
 		for cy = vy0 // 8, vy1 // 8 do
@@ -2516,10 +2526,7 @@ end
 
 local function checkVoxelArray(array, x0, y0, z0, x1, y1, z1, label: string)
 	assert(
-		type(array) == "table"
-			and #array == x1 - x0 + 1
-			and #array[1] == y1 - y0 + 1
-			and #array[1][1] == z1 - z0 + 1,
+		type(array) == "table" and #array == x1 - x0 + 1 and #array[1] == y1 - y0 + 1 and #array[1][1] == z1 - z0 + 1,
 		"Terrain:" .. label .. ": 배열 크기가 영역과 다릅니다"
 	)
 end
@@ -2554,7 +2561,10 @@ Terrain.__props.ReadVoxelChannels = function(_self, region, resolution: number, 
 	local out = {}
 	local wanted = {}
 	for _, id in channelIds do
-		assert(id == "SolidMaterial" or id == "SolidOccupancy" or id == "LiquidOccupancy", "모르는 채널 " .. tostring(id))
+		assert(
+			id == "SolidMaterial" or id == "SolidOccupancy" or id == "LiquidOccupancy",
+			"모르는 채널 " .. tostring(id)
+		)
 		wanted[id] = true
 		out[id] = {}
 	end

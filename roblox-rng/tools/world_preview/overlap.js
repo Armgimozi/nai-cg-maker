@@ -14,15 +14,20 @@
 // 예외(바닥류): 파트의 가장 높은 점 y <= 0.2 이고 가로/세로 중 긴 쪽 >= 16 스터드인 파트(섬 바닥, 모래사장, 물 등)는
 //   아무것도 막지 않으므로 구역 검사에서 뺌. 대신 "같은 높이 면 깜빡임(z-fighting)" 검사만 함:
 //   윗면이 기존 바닥면(Baseplate 0, 길 0.2, 둘레 띠 0.4, 부지 0.6, 계단 0.5, 광장 1 ...)과 0.02 이내로 같은 높이이면서 겹치면 경고.
+// 파트끼리 z-fighting: 위를 보는 평평한 윗면 두 개(하나는 Scenery)가 0.02 이내 같은 높이로 겹침. 무늬 없는 재질 + 같은 색은 뺌
+// 지형(Terrain)이 있으면(덤프 terrain, terrain_grid.mjs 로 높이를 읽음) 추가 검사. 지형 자체는 바닥류라 구역 검사에서 빠짐:
+//   지형이 바닥면을 뚫음 : World/Parks 의 낮고 평평한 면(부지·둘레 띠·길·광장 ...; 바닥류 제외) 안쪽 4 스터드 간격 점에서
+//                         지형 윗면이 그 면보다 0.05 넘게 높으면(잔디가 부지 위로 솟음)
+//   지형과 z-fighting    : 위를 보는 평평한 파트 윗면(모든 출처)이 지형 윗면과 0.03 이내로 같은 높이인 점이 발자국의 25% 이상
+//   떠 있음(Scenery)     : 서로 닿은 Scenery 파트 덩어리(경계 상자 0.15 이내) 중 땅에 닿은 파트(바닥이 발자국 밑 지형
+//                         최고점 + 1 이하)도, 물 위 파트도, 다른 출처 파트(부지·길 ...)에 닿은 파트도 없는 덩어리
+//                         → 나무·바위·벤치가 통째로 공중에(나뭇잎·차양처럼 기둥에 붙은 파트는 기둥과 한 덩어리라 안 나옴)
+//   묻힘(Scenery)        : 파트 윗면이 발자국 밑 지형(가장 낮은 곳)보다 아래 = 완전히 땅속(안 보임)
+//                         + "많이 묻힘": 키의 70% 넘게 땅속(바위처럼 일부러 묻은 것일 수 있어 참고용)
 
 const fs = require("fs");
+const path = require("path");
 
-const [dumpPath, outPath] = process.argv.slice(2);
-if (!dumpPath) {
-  console.error("사용법: node overlap.js <dump.json> [보고서.txt]");
-  process.exit(2);
-}
-const dump = JSON.parse(fs.readFileSync(dumpPath, "utf8"));
 
 const GROUND_TOP = 0.2;
 const GROUND_SPAN = 16;
@@ -169,6 +174,15 @@ function localRect(part, x0, x1, z0, z1) {
 }
 
 // 구역 --------------------------------------------------------------------------
+async function main() {
+const [dumpPath, outPath] = process.argv.slice(2);
+if (!dumpPath) {
+  console.error("사용법: node overlap.js <dump.json> [보고서.txt]");
+  process.exit(2);
+}
+const dump = JSON.parse(fs.readFileSync(dumpPath, "utf8"));
+const { makeTerrainGrid } = await import(path.join(__dirname, "terrain_grid.mjs"));
+const terrain = makeTerrainGrid(dump.terrain);
 const zones = [];
 const flatTops = []; // 기존 바닥면: { name, y, fp }
 for (const part of dump.parts) {
@@ -196,7 +210,7 @@ for (const part of dump.parts) {
     const up = Math.abs(part.m[4]) > 0.999 || (part.s === "Cylinder" && Math.abs(part.m[3]) > 0.999);
     if (up && part.s !== "Ball" && part.s !== "Wedge" && part.s !== "CornerWedge") {
       const [, top] = verticalRange(part);
-      if (top <= 2.05) flatTops.push({ name: part.path, y: top, fp: footprint(part) });
+      if (top <= 2.05) flatTops.push({ name: part.path, y: top, fp: footprint(part), part });
     }
   }
 }
@@ -246,6 +260,55 @@ for (const part of scenery) {
   if (found.length > 0) hits.push(`${describe(part)}\n      → ${found.join(", ")}`);
 }
 
+// 파트끼리 같은 높이 윗면(z-fighting): 위를 보는 평평한 윗면 둘이 0.02 이내 같은 높이 + 발자국 겹침, 둘 중 하나는 Scenery.
+// 무늬 없는 재질(SmoothPlastic/Neon/Glass/ForceField)이고 색까지 같으면 겹쳐도 티가 안 나므로 뺌.
+// 무늬 있는 재질(Concrete, Grass ...)은 색이 같아도 파트마다 무늬 방향·위치가 달라서 카메라가 움직이면 번갈아 보임
+const PLAIN = new Set(["SmoothPlastic", "Neon", "Glass", "ForceField"]);
+const pairZfights = [];
+{
+  const tops = dump.parts
+    .filter((p) => p.t < 0.999 && p.o !== "Players")
+    .filter((p) => (Math.abs(p.m[4]) > 0.999 && p.s !== "Ball" && p.s !== "Wedge" && p.s !== "CornerWedge") || (p.s === "Cylinder" && Math.abs(p.m[3]) > 0.999))
+    .map((p) => ({ p, fp: footprint(p), top: verticalRange(p)[1] }));
+  const CELL = 16;
+  const grid = new Map();
+  tops.forEach((e, i) => {
+    const pts = e.fp.kind === "circle" ? [[e.fp.c[0] - e.fp.r, e.fp.c[1] - e.fp.r], [e.fp.c[0] + e.fp.r, e.fp.c[1] + e.fp.r]] : e.fp.pts;
+    const xs = pts.map((q) => q[0]);
+    const zs = pts.map((q) => q[1]);
+    e.box = [Math.min(...xs), Math.min(...zs), Math.max(...xs), Math.max(...zs)];
+    if (e.box[2] - e.box[0] > 600 || e.box[3] - e.box[1] > 600) return; // 아주 큰 바닥은 아래에서 따로
+    for (let cx = Math.floor(e.box[0] / CELL); cx <= Math.floor(e.box[2] / CELL); cx++)
+      for (let cz = Math.floor(e.box[1] / CELL); cz <= Math.floor(e.box[3] / CELL); cz++) {
+        const k = `${cx},${cz}`;
+        if (!grid.has(k)) grid.set(k, []);
+        grid.get(k).push(i);
+      }
+  });
+  const hugeTops = tops.map((e, i) => i).filter((i) => tops[i].box[2] - tops[i].box[0] > 600 || tops[i].box[3] - tops[i].box[1] > 600);
+  const same = (a, b) =>
+    a.mat === b.mat && PLAIN.has(a.mat) && a.col.every((v, k) => Math.abs(v - b.col[k]) < 0.004);
+  const seenPair = new Set();
+  tops.forEach((a, i) => {
+    if (a.p.o !== "Scenery") return;
+    const cand = new Set(hugeTops);
+    for (let cx = Math.floor(a.box[0] / CELL); cx <= Math.floor(a.box[2] / CELL); cx++)
+      for (let cz = Math.floor(a.box[1] / CELL); cz <= Math.floor(a.box[3] / CELL); cz++)
+        for (const j of grid.get(`${cx},${cz}`) || []) cand.add(j);
+    for (const j of cand) {
+      if (j === i) continue;
+      const b = tops[j];
+      const key = i < j ? `${i}|${j}` : `${j}|${i}`;
+      if (seenPair.has(key)) continue;
+      seenPair.add(key);
+      if (Math.abs(a.top - b.top) >= ZFIGHT - 1e-6 || same(a.p, b.p) || !intersects(a.fp, b.fp)) continue;
+      // 이미 위(바닥류 검사)에서 보고한 Scenery 바닥 vs 기존 바닥은 빼고
+      if (b.p.o !== "Scenery" && zfights.some((z) => z.startsWith(describe(a.p)) && z.includes(b.p.path))) continue;
+      pairZfights.push(`${describe(a.p)} [${a.p.mat}]\n      ↔ ${describe(b.p)} [${b.p.mat}] 윗면 y=${a.top.toFixed(2)} / ${b.top.toFixed(2)}`);
+    }
+  });
+}
+
 const lines = [];
 lines.push("맵 미리보기 겹침 보고서");
 const meta = dump.meta || {};
@@ -259,7 +322,7 @@ lines.push(`  바닥류 예외 = 가장 높은 점 y <= ${GROUND_TOP} 이고 가
 lines.push(`  구역: 부지(바닥+둘레 띠), 입구 앞 간판 자리 ${SIGN_HALF * 2}x${SIGN_DEPTH}, 길 +${PATH_MARGIN}, 광장 r<=${PLAZA_RADIUS}, 스폰 +${SPAWN_MARGIN}, World 파트(3D).`);
 lines.push("");
 const kinds = Object.entries(byKind).map(([k, n]) => `${k} ${n}`).join(", ");
-lines.push(`[요약] 겹친 파트 ${hits.length}개${kinds ? ` (${kinds})` : ""}, z-fighting 위험 ${zfights.length}개`);
+lines.push(`[요약] 겹친 파트 ${hits.length}개${kinds ? ` (${kinds})` : ""}, z-fighting 위험 ${zfights.length}개, 파트끼리 같은 높이 윗면 ${pairZfights.length}쌍`);
 lines.push("");
 if (hits.length > 0) {
   lines.push("[겹침]");
@@ -271,7 +334,235 @@ if (zfights.length > 0) {
   zfights.forEach((h) => lines.push("  " + h));
   lines.push("");
 }
+if (pairZfights.length > 0) {
+  lines.push("[파트끼리 z-fighting 위험: 겹친 두 윗면이 같은 높이(무늬 있는 재질이거나 색이 다름)]");
+  pairZfights.slice(0, 80).forEach((h) => lines.push("  " + h));
+  if (pairZfights.length > 80) lines.push(`  ... 외 ${pairZfights.length - 80}쌍`);
+  lines.push("");
+}
 if (scenery.length === 0) lines.push("Scenery 파트가 없습니다(풍경 모듈이 없거나 아무것도 만들지 않음).");
+let terrainSummary = "";
+if (terrain) {
+  const t = terrainChecks(terrain, dump.parts, scenery, flatTops, describe, fmt);
+  lines.push(...t.lines);
+  terrainSummary = `, 지형: 뚫음 ${t.counts.intrude} / z-fighting ${t.counts.zfight} / 떠 있음 ${t.counts.floating} / 묻힘 ${t.counts.buried}(많이 ${t.counts.mostly})`;
+}
 const text = lines.join("\n") + "\n";
 if (outPath) fs.writeFileSync(outPath, text);
-console.log(`[overlap] Scenery 파트 ${scenery.length}개, 겹침 ${hits.length}개${kinds ? ` (${kinds})` : ""}, z-fighting ${zfights.length}개${outPath ? ` → ${outPath}` : ""}`);
+console.log(
+  `[overlap] Scenery 파트 ${scenery.length}개, 겹침 ${hits.length}개${kinds ? ` (${kinds})` : ""}, z-fighting ${zfights.length}개, 파트끼리 같은 높이 ${pairZfights.length}쌍${terrainSummary}${outPath ? ` → ${outPath}` : ""}`,
+);
+}
+
+// 지형 검사 ---------------------------------------------------------------------------------
+function pointInFootprint(fp, x, z) {
+  if (fp.kind === "circle") return Math.hypot(x - fp.c[0], z - fp.c[1]) <= fp.r;
+  let pos = 0, neg = 0;
+  const pts = fp.pts;
+  for (let i = 0; i < pts.length; i++) {
+    const a = pts[i], b = pts[(i + 1) % pts.length];
+    const c = (b[0] - a[0]) * (z - a[1]) - (b[1] - a[1]) * (x - a[0]);
+    if (c > 1e-9) pos++;
+    else if (c < -1e-9) neg++;
+  }
+  return pos === 0 || neg === 0;
+}
+
+function footprintBox(fp) {
+  if (fp.kind === "circle") return [fp.c[0] - fp.r, fp.c[1] - fp.r, fp.c[0] + fp.r, fp.c[1] + fp.r];
+  const xs = fp.pts.map((p) => p[0]);
+  const zs = fp.pts.map((p) => p[1]);
+  return [Math.min(...xs), Math.min(...zs), Math.max(...xs), Math.max(...zs)];
+}
+
+// 발자국 안 표본 점(간격 step, 작은 발자국은 3x3 이상) + 꼭짓점(다각형) — 가장자리까지 보도록 조금 안쪽으로
+function samplePoints(fp, maxStep = 4) {
+  const [x0, z0, x1, z1] = footprintBox(fp);
+  const step = Math.max(0.25, Math.min(maxStep, (x1 - x0) / 3, (z1 - z0) / 3));
+  const out = [];
+  for (let z = z0 + step / 2; z < z1; z += step) {
+    for (let x = x0 + step / 2; x < x1; x += step) if (pointInFootprint(fp, x, z)) out.push([x, z]);
+  }
+  if (fp.kind === "circle") out.push([fp.c[0], fp.c[1]]);
+  else {
+    const cx = fp.pts.reduce((a, p) => a + p[0], 0) / fp.pts.length;
+    const cz = fp.pts.reduce((a, p) => a + p[1], 0) / fp.pts.length;
+    out.push([cx, cz]);
+    for (const p of fp.pts) out.push([p[0] + (cx - p[0]) * 0.05, p[1] + (cz - p[1]) * 0.05]);
+  }
+  return out;
+}
+
+function terrainChecks(grid, parts, scenery, flatTops, describe, fmt) {
+  const lines = [];
+  const counts = { intrude: 0, zfight: 0, floating: 0, buried: 0, mostly: 0 };
+  const groundLike = (p, fp, yr) => yr[1] <= GROUND_TOP + 1e-3 && horizontalSpan(fp) >= GROUND_SPAN;
+
+  // 1) 지형이 World/Parks 바닥면을 뚫음 / 2) 지형과 같은 높이(z-fighting) — 모든 출처의 위를 보는 평평한 파트
+  const intrude = [];
+  const zfight = [];
+  const upright = (p) => Math.abs(p.m[4]) > 0.999 || (p.s === "Cylinder" && Math.abs(p.m[3]) > 0.999);
+  for (const part of parts) {
+    if (part.t >= 0.999 || !upright(part) || part.s === "Ball" || part.s === "Wedge" || part.s === "CornerWedge") continue;
+    const fp = footprint(part);
+    const yr = verticalRange(part);
+    const top = yr[1];
+    const pts = samplePoints(fp);
+    let same = 0, n = 0, above = 0, worst = 0, wx = 0, wz = 0;
+    for (const [x, z] of pts) {
+      const h = grid.heightAt(x, z);
+      if (Number.isNaN(h)) continue;
+      n++;
+      if (Math.abs(h - top) < 0.03) same++;
+      if (h > top + 0.05) {
+        above++;
+        if (h - top > worst) [worst, wx, wz] = [h - top, x, z];
+      }
+    }
+    if (n === 0) continue;
+    if (same >= Math.max(2, n * 0.25)) {
+      zfight.push(`${describe(part)}\n      윗면 y=${top.toFixed(2)} 이 지형 윗면과 같은 높이(표본 ${same}/${n})`);
+    }
+    if (part.o !== "Scenery" && part.o !== "Players" && top <= 2.05 && !groundLike(part, fp, yr) && above > 0) {
+      intrude.push(
+        `${describe(part)}\n      지형이 윗면(y=${fmt(top)})보다 최대 ${fmt(worst)} 높음(표본 ${above}/${n}, 예: (${fmt(wx)}, ${fmt(wz)}))`,
+      );
+    }
+  }
+  counts.intrude = intrude.length;
+  counts.zfight = zfight.length;
+
+  // 3) 떠 있음 / 4) 묻힘 — Scenery 파트
+  // 떠 있음은 "덩어리" 단위: 서로 닿거나 겹친 Scenery 파트(월드 축 경계 상자가 0.15 이내)끼리 한 덩어리로 묶고,
+  // 덩어리 안에 땅에 닿은 파트(바닥이 발자국 밑 지형 최고점 + 1 이하), 물 위 파트, Scenery 가 아닌 파트에 닿은 파트가
+  // 하나도 없으면 공중에 뜬 덩어리. 나뭇잎·차양처럼 옆으로 붙은 파트는 기둥과 한 덩어리라 안 나옴
+  const TOUCH = 0.15;
+  const aabb = (p) => {
+    const [sx, sy, sz] = effectiveSize(p).map((v) => v / 2);
+    const m = p.m;
+    const ex = Math.abs(m[0]) * sx + Math.abs(m[1]) * sy + Math.abs(m[2]) * sz;
+    const ey = Math.abs(m[3]) * sx + Math.abs(m[4]) * sy + Math.abs(m[5]) * sz;
+    const ez = Math.abs(m[6]) * sx + Math.abs(m[7]) * sy + Math.abs(m[8]) * sz;
+    return [p.p[0] - ex, p.p[1] - ey, p.p[2] - ez, p.p[0] + ex, p.p[1] + ey, p.p[2] + ez];
+  };
+  const touch = (a, b) =>
+    a[0] <= b[3] + TOUCH && b[0] <= a[3] + TOUCH && a[1] <= b[4] + TOUCH && b[1] <= a[4] + TOUCH && a[2] <= b[5] + TOUCH && b[2] <= a[5] + TOUCH;
+  const solid = parts.filter((p) => p.t < 0.999 || p.cc).map((p) => ({ p, box: aabb(p) }));
+  const CELL = 16;
+  const buckets = new Map();
+  const bigOnes = [];
+  solid.forEach((e, index) => {
+    const b = e.box;
+    if (b[3] - b[0] > 400 || b[5] - b[2] > 400) {
+      bigOnes.push(index);
+      return;
+    }
+    for (let cx = Math.floor(b[0] / CELL); cx <= Math.floor(b[3] / CELL); cx++)
+      for (let cz = Math.floor(b[2] / CELL); cz <= Math.floor(b[5] / CELL); cz++) {
+        const key = `${cx},${cz}`;
+        if (!buckets.has(key)) buckets.set(key, []);
+        buckets.get(key).push(index);
+      }
+  });
+  const neighbours = (index) => {
+    const b = solid[index].box;
+    const out = new Set(bigOnes);
+    for (let cx = Math.floor(b[0] / CELL); cx <= Math.floor(b[3] / CELL); cx++)
+      for (let cz = Math.floor(b[2] / CELL); cz <= Math.floor(b[5] / CELL); cz++)
+        for (const j of buckets.get(`${cx},${cz}`) || []) out.add(j);
+    out.delete(index);
+    return [...out].filter((j) => touch(b, solid[j].box));
+  };
+  // 덩어리 묶기(Scenery 파트끼리) + 땅/물/다른 출처 파트에 닿았는지
+  const parent = solid.map((_, i) => i);
+  const find = (i) => (parent[i] === i ? i : (parent[i] = find(parent[i])));
+  const grounded = new Map(); // 대표 번호 → true
+  const info = new Map(); // Scenery 파트 번호 → { gmin, gmax, wet, n }
+  solid.forEach((e, i) => {
+    if (e.p.o !== "Scenery") return;
+    const fp = footprint(e.p);
+    const pts = samplePoints(fp, 2);
+    let gmin = Infinity, gmax = -Infinity, wet = false, n = 0;
+    for (const [x, z] of pts) {
+      const h = grid.heightAt(x, z);
+      if (Number.isNaN(h)) continue;
+      n++;
+      gmin = Math.min(gmin, h);
+      gmax = Math.max(gmax, h);
+      const w = grid.waterAt(x, z);
+      if (!Number.isNaN(w) && w > h + 0.05) wet = true;
+    }
+    info.set(i, { gmin, gmax, wet, n, fp, yr: verticalRange(e.p) });
+    for (const j of neighbours(i)) {
+      if (solid[j].p.o === "Scenery") parent[find(i)] = find(j);
+    }
+  });
+  solid.forEach((e, i) => {
+    if (e.p.o !== "Scenery") return;
+    const d = info.get(i);
+    let ok = d.n === 0 || d.wet || d.yr[0] <= d.gmax + 1;
+    if (!ok) ok = neighbours(i).some((j) => solid[j].p.o !== "Scenery");
+    if (ok) grounded.set(find(i), true);
+  });
+
+  const floatingGroups = new Map();
+  const buried = [];
+  const mostly = [];
+  solid.forEach((e, i) => {
+    const part = e.p;
+    if (part.o !== "Scenery" || part.t >= 0.999) return;
+    const d = info.get(i);
+    if (groundLike(part, d.fp, d.yr) || d.n === 0) return;
+    const [y0, y1] = d.yr;
+    if (y1 < d.gmin - 0.05) {
+      buried.push(`${describe(part)}\n      윗면 y=${y1.toFixed(2)} < 지형 ${d.gmin.toFixed(2)}(완전히 땅속)`);
+      return;
+    }
+    const height = y1 - y0;
+    if (height > 0.2 && d.gmin - y0 > height * 0.7) {
+      mostly.push(`${describe(part)}\n      키 ${fmt(height)} 중 ${fmt(d.gmin - y0)} 이상 땅속(지형 ${fmt(d.gmin)}~${fmt(d.gmax)})`);
+    }
+    const root = find(i);
+    if (!grounded.get(root)) {
+      if (!floatingGroups.has(root)) floatingGroups.set(root, []);
+      floatingGroups.get(root).push({ part, gap: y0 - d.gmax, y0, gmax: d.gmax });
+    }
+  });
+  const floating = [];
+  for (const members of floatingGroups.values()) {
+    members.sort((a, b) => a.y0 - b.y0);
+    const low = members[0];
+    floating.push(
+      `${describe(low.part)}${members.length > 1 ? ` 외 ${members.length - 1}개 한 덩어리` : ""}\n      ` +
+        `가장 낮은 바닥 y=${fmt(low.y0)} 이 지형(가장 높은 곳 ${fmt(low.gmax)})보다 ${fmt(low.gap)} 위, 땅·다른 파트에 안 닿음`,
+    );
+  }
+  counts.floating = floating.length;
+  counts.buried = buried.length;
+  counts.mostly = mostly.length;
+
+  lines.push("");
+  lines.push("[지형 검사] (지형 윗면 = 덤프의 4 스터드 기둥 높이를 쌍선형 보간)");
+  lines.push(
+    `  지형이 바닥면을 뚫음 ${intrude.length}개, 지형과 z-fighting ${zfight.length}개, 떠 있는 Scenery 덩어리 ${floating.length}개, ` +
+      `완전히 묻힌 Scenery 파트 ${buried.length}개, 많이 묻힘(참고) ${mostly.length}개`,
+  );
+  const section = (title, list, limit = 60) => {
+    if (list.length === 0) return;
+    lines.push("");
+    lines.push(title);
+    list.slice(0, limit).forEach((h) => lines.push("  " + h));
+    if (list.length > limit) lines.push(`  ... 외 ${list.length - limit}개`);
+  };
+  section("[지형이 바닥면을 뚫음: 부지·길·광장 윗면보다 지형이 높음]", intrude);
+  section("[지형과 z-fighting: 파트 윗면이 지형 윗면과 같은 높이]", zfight);
+  section("[떠 있음: 땅·물·다른 파트에 안 닿은 덩어리(가장 낮은 파트)]", floating);
+  section("[완전히 묻힘: 땅속이라 안 보임]", buried);
+  section("[많이 묻힘(참고, 일부러 묻은 바위 등이면 괜찮음)]", mostly, 30);
+  return { lines, counts };
+}
+
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
