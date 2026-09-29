@@ -171,6 +171,22 @@
     return total * (1 + UpgradesById.Ticket.PerLevel * upgradeLevel(s, 'Ticket'));
   }
   const discoveryBonus = (l) => Math.ceil(Config.DISCOVERY_BONUS_MULT * Math.pow(l.OneIn, 0.5));
+  // PlayerState.rebirthRequirement / Perks.rebirthCheck (HUD 환생 버튼의 "!" 배지)
+  const rebirthsOf = (s) => Math.max(0, Math.floor(s.Rebirths || 0));
+  function rebirthRequirement(rebirths) {
+    const steps = Config.REBIRTHS || [];
+    if (!steps.length) return null;
+    const n = rebirths + 1;
+    const step = steps[Math.min(n, steps.length) - 1];
+    const coins = n > steps.length ? step.Coins * Math.pow(Config.REBIRTH_COIN_GROWTH, n - steps.length) : step.Coins;
+    return { Coins: coins, Landmarks: step.Landmarks };
+  }
+  function rebirthReady(s, coins) {
+    const need = rebirthRequirement(rebirthsOf(s));
+    if (!need) return false;
+    const missing = need.Landmarks.filter((id) => ById[id] && (s.Inventory[id] || 0) <= 0);
+    return missing.length === 0 && Math.floor(coins) >= need.Coins;
+  }
 
   // --- Format.luau ------------------------------------------------------------------
   function commas(n) {
@@ -402,15 +418,12 @@
       <rect x="72" y="64" width="19" height="6" rx="2" fill="#dba42c"/>
       <rect x="19" y="44" width="42" height="12" rx="2" fill="#fff4dc"/></g>`),
     // Icons.BUILDERS.rebirth: 금색 고리 화살표 2개(100°~, 280°~ 각 4조각 + 화살촉) + 가운데 초록 위 화살표
-    rebirth: svgUri(`<g stroke-linecap="butt" fill="none">
-      <path d="M 52.9 16.1 A 34 34 0 0 0 19.2 64.4" stroke="#ffc53d" stroke-width="11"/>
-      <path d="M 47.1 83.9 A 34 34 0 0 0 80.8 35.6" stroke="#ffc53d" stroke-width="11"/></g>
-      <path d="M 12.8 51.1 L 38.7 78.9 L 20.6 63.2 Z" fill="#ffc53d"/>
-      <path d="M 87.2 48.9 L 61.3 21.1 L 79.4 36.8 Z" fill="#ffc53d"/>
-      <path d="M 12.8 51.1 L 38.7 78.9 L 25.6 58.2 Z" fill="#d9a22e"/>
-      <path d="M 87.2 48.9 L 61.3 21.1 L 74.4 41.8 Z" fill="#d9a22e"/>
-      <rect x="45.3" y="50" width="9.4" height="16" fill="#60c45a"/>
-      <path d="M 37.2 50.5 L 62.8 50.5 L 50 34 Z" fill="#60c45a"/>`),
+    rebirth: svgUri(`<g fill="none" stroke="#ffc53d" stroke-width="11">
+      <path d="M 53 16.1 A 34 34 0 0 0 19.2 64.4"/><path d="M 47 83.9 A 34 34 0 0 0 80.8 35.6"/></g>
+      <path d="M 5.4 70.8 L 33 58 L 27.5 82.2 Z" fill="#ffc53d"/>
+      <path d="M 94.6 29.2 L 67 42 L 72.5 17.8 Z" fill="#ffc53d"/>
+      <rect x="45.1" y="49.5" width="9.8" height="16.6" fill="#60c45a"/>
+      <path d="M 36.6 50 L 63.4 50 L 50 33.9 Z" fill="#60c45a"/>`),
   };
 
   // Icons.view: 그림 아이콘 (ScaleType.Fit)
@@ -680,6 +693,9 @@
     list(chips, 'h', 12);
     chip(chips, { name: 'Rolls', flow: true, color: 'Sky', icon: 'dice', height: 30, textSize: 18, text: commas(state.Rolls) });
     chip(chips, { name: 'Luck', flow: true, color: 'Grape', icon: 'clover', height: 30, textSize: 18, text: times(state.Luck) });
+    // (LayoutOrder 3: 부스트 타이머 딱지 — 부스트가 있을 때만. 이 예시 상태엔 없음)
+    const rebirths = rebirthsOf(state);
+    chip(chips, { name: 'Rebirths', flow: true, color: 'Coral', icon: 'rebirth', height: 30, textSize: 18, text: commas(rebirths), visible: rebirths > 0 });
   }
 
   // Hud: 왼쪽 메뉴 버튼 4개
@@ -687,6 +703,7 @@
     { Id: 'Collection', Text: '도감', Color: 'Sky', Icon: 'album' },
     { Id: 'Passport', Text: '여권', Color: 'Grape', Icon: 'passport' },
     { Id: 'Upgrade', Text: '강화', Color: 'Sun', Icon: 'hammer' },
+    { Id: 'Rebirth', Text: '환생', Color: 'Coral', Icon: 'rebirth' },
   ];
   function buildMenu(screenGui, state, location) {
     const count = MENU.length + 1;
@@ -718,6 +735,21 @@
           z: 6,
           text: `${stamps}/${Regions.length}`,
           textColor: stamps > 0 ? COLORS.Sun.Face : WHITE,
+        });
+      } else if (entry.Id === 'Rebirth') {
+        // 환생할 수 있으면(코인 + 요구 명소) "!" 배지가 통통 뜀
+        chip(button.face, {
+          name: 'Ready',
+          color: 'Sun',
+          text: '!',
+          font: 'title',
+          height: 28,
+          textSize: 20,
+          anchor: [0.5, 0.5],
+          pos: [1, -6, 0, 2],
+          rot: 10,
+          z: 6,
+          visible: rebirthReady(state, state.Coins),
         });
       }
     }
@@ -800,7 +832,10 @@
 
   // Hud.news: 신문 띠 한 줄
   function buildNews(screenGui, items) {
-    const news = anchorBox(screenGui, 'News', [0.5, 0], [0.5, 0, 0, 10], [0, 720, 0, 118], 9);
+    // Hud.buildNotices: [서버 행운 띠(켜졌을 때만)] [뉴스 속보 720x118] [알림] 을 위에서부터 쌓는 "Top" 묶음
+    const top = anchorBox(screenGui, 'Top', [0.5, 0], [0.5, 0, 0, 10], [0, 720, 0, 380], 9);
+    list(top, 'v', 6, 'center', 'top');
+    const news = gui(top, { name: 'News', flow: true, size: [0, 720, 0, 118] });
     list(news, 'v', 8, 'center', 'top');
     for (const item of items) {
       const landmark = ById[item.LandmarkId];
@@ -1323,6 +1358,13 @@
     const code = word.charCodeAt(word.length - 1) - 0xac00;
     return word + (code >= 0 && code < 11172 && code % 28 !== 0 ? '을' : '를');
   };
+  // 다음 환생 조건 글자: "코인 5,000 + 에펠탑·자유의 여신상"
+  function rebirthNeedText() {
+    const need = rebirthRequirement(rebirthsOf(STATE));
+    if (!need) return '환생 조건';
+    const names = need.Landmarks.map((id) => (ById[id] ? ById[id].Name : id)).join('·');
+    return `코인 ${commas(need.Coins)}${names ? ' + ' + names : ''}`;
+  }
   const newFind = ById[NEW_FIND];
   const starFind = ById[STAR_FIND];
   const newsLandmark = ById[NEWS[0].LandmarkId];
@@ -1332,7 +1374,11 @@
       id: 'screen1',
       title: '기본 화면',
       note:
-        `왼쪽 위: 코인 알약 + 초당 수입 칩, 아래 주사위(굴림 수) · 클로버(행운) 칩. 왼쪽: 도감/여권/강화/공원 버튼(여권 배지 = 도장 받은 대륙 수 / ${Regions.length}). ` +
+        `왼쪽 위: 코인 알약 + 초당 수입 칩, 아래 주사위(굴림 수) · 클로버(행운) 칩(환생 수 · 부스트 시간 칩은 해당될 때만). ` +
+        `왼쪽: 도감/여권/강화/환생/공원 버튼(여권 배지 = 도장 받은 대륙 수 / ${Regions.length}; 환생 버튼의 "!" 배지는 ` +
+        `${rebirthNeedText()}을 채우면 뜸 — 이 예시는 ${commas(STATE.Coins)} 코인이라 아직 안 뜸). ` +
+        '환생 버튼 아이콘은 그림 파일이 없어 게임에서 3D 미니 모형으로 나옴(여기선 비슷한 모양으로 대신 그림). ' +
+        '상점 버튼(오른쪽)은 Robux 상품 번호가 모두 0 이라 지금 코드로는 안 나옴. ' +
         `아래 가운데: 굴리기(R) + 자동(T, 꺼짐 = 회색). 위 가운데: 다른 사람이 ${eul(newsLandmark.Name)} 찾았을 때 뜨는 서버 전체 속보 띠 ` +
         `(속보는 1 in ${commas(Config.ANNOUNCE_ONE_IN)} 이상만, 7초 뒤 사라짐).`,
       build(root) {
@@ -1412,7 +1458,7 @@
       title: '강화',
       note:
         '업그레이드 4줄: 아이콘 · 이름 + Lv · 지금 값 · 한 번 살 때 바뀌는 양 · 가격 버튼. 살 수 있음 = 노랑, 코인 부족 = 회색, 최대 레벨 = 보라 MAX. ' +
-        '<b>참고:</b> 여행사(비행기)·입장료(표) 아이콘은 그림 파일이 없어서 게임에서는 3D 미니 모형으로 나옴 — 여기선 비슷한 모양으로 대신 그림.',
+        '<b>참고:</b> 여행사(비행기)·입장료(표) 아이콘(과 HUD 의 환생 아이콘)은 그림 파일이 없어서 게임에서는 3D 미니 모형으로 나옴 — 여기선 비슷한 모양으로 대신 그림.',
       build(root) {
         const screenGui = newScreen(root, this.id);
         buildHud(screenGui, STATE, { auto: false });
