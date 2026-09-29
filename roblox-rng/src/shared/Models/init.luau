@@ -1366,61 +1366,97 @@ function BUILDERS.ruins(c)
 	end
 end
 
--- 지구: 받침대 + 23.5도 기운 파란 공 + 대륙 덩어리(살짝 튀어나온 공) + 극지방 얼음 + 자오선 반원 고리 + 대기 + 달
-function BUILDERS.globe(c)
-	local metal = mix(c.A, BLACK, 0.2)
-	col(c, 0, 0, 0, 0.5, 4.2, metal, Mat.Metal)
-	col(c, 0, 0.5, 0, 0.4, 2.6, metal, Mat.Metal)
-	col(c, 0, 0.9, 0, 1.6, 0.6, metal, Mat.Metal)
-	local radius = 4
-	local tilt = CFrame.new(0, 7, 0) * CFrame.Angles(0, 0, math.rad(23.5))
-	ball(c, 0, 7, 0, radius * 2, c.P)
-	cyl(c, tilt * UPRIGHT, 9.4, 0.2, metal, Mat.Metal)
-	-- 자오선 반원 고리(+X 쪽)
-	local ring = 4.5
-	local pieces = 6
-	for k = 0, pieces - 1 do
-		local a1 = -PI / 2 + k / pieces * PI
-		local a2 = -PI / 2 + (k + 1) / pieces * PI
-		local p1 = tilt * V(ring * math.cos(a1), ring * math.sin(a1), 0)
-		local p2 = tilt * V(ring * math.cos(a2), ring * math.sin(a2), 0)
-		beam(c, p1, p2, 0.25, metal, Mat.Metal)
+-- 지구본 땅 표(GlobeLand.luau, tools/model_preview/globe_land.py 가 진짜 세계 지도로 만듦).
+-- 한 줄 = { 위도, 경도, 돔 반지름(도), 색 종류[, 높이] }. 없거나 깨지면 땅 없이 바다만
+local GLOBE_LAND: { { number } } = (function()
+	local module = script:FindFirstChild("GlobeLand")
+	if module and module:IsA("ModuleScript") then
+		local ok, result = pcall(require, module)
+		if ok and type(result) == "table" then
+			return result :: any
+		end
 	end
-	-- 위도/경도(도) → 지구 표면 위치. 경도 20도(아프리카)가 정면(-Z), 동쪽이 정면에서 볼 때 오른쪽
+	return {}
+end)()
+
+local GLOBE_GOLD = rgb(235, 190, 80) -- 광장 받침대 윗판(PedestalTop)과 같은 금색
+-- 땅 색 종류(GlobeLand 넷째 칸): 1 눈(그린란드·남극·북극 섬), 2 초록(명소 보조 색), 3 숲·산맥, 4 사막
+local GLOBE_SNOW = rgb(244, 248, 252)
+local GLOBE_TONES = {
+	[1] = GLOBE_SNOW,
+	[3] = rgb(44, 138, 70),
+	[4] = rgb(238, 202, 122),
+}
+local GLOBE_MATERIALS = { [1] = Mat.Snow, [4] = Mat.Sand } -- 나머지(초록·숲)는 Grass
+
+-- 지구본: 금색 받침 + 23.5도 기운 파란 공 + 진짜 지도를 따른 대륙(겹친 돔 공 약 150개, 해안선이 둥글게 굽이짐)
+-- + 극지방 눈 + 받침 기둥에 닿는 금색 자오선 고리(32조각) + 극 축받이 + 금색 철사에 매단 달. 파트 약 190개
+-- (광장에서는 클라이언트가 모형 전체를 매 프레임 PivotTo 로 돌리므로 파트를 더 늘리지 말 것)
+function BUILDERS.globe(c)
+	local goldDark = mix(GLOBE_GOLD, BLACK, 0.18)
+	col(c, 0, 0, 0, 0.5, 4.2, goldDark, Mat.Metal)
+	col(c, 0, 0.5, 0, 0.4, 2.6, GLOBE_GOLD, Mat.Metal)
+	col(c, 0, 0.9, 0, 1.6, 0.6, GLOBE_GOLD, Mat.Metal)
+
+	local radius = 4
+	local center = V(0, 7, 0)
+	local tilt = CFrame.new(center) * CFrame.Angles(0, 0, math.rad(23.5)) -- 북극이 -X 쪽으로 기움
+	local ocean = ball(c, 0, 7, 0, radius * 2, c.P, Mat.SmoothPlastic)
+	ocean.Reflectance = 0.06
+
+	-- 위도/경도(도) → 지구 중심에서 r 떨어진 점. 경도 20도(아프리카)가 정면(-Z), 동쪽이 정면에서 볼 때 오른쪽
 	local function surface(lat: number, lon: number, r: number): Vector3
 		local phi, lambda = math.rad(lat), math.rad(lon - 20)
 		return tilt * V(-r * math.cos(phi) * math.sin(lambda), r * math.sin(phi), -r * math.cos(phi) * math.cos(lambda))
 	end
-	local lands = {
-		{ 5, 20, 2.4 }, -- 아프리카
-		{ -18, 26, 1.9 },
-		{ 50, 15, 1.6 }, -- 유럽
-		{ 48, 70, 2.6 }, -- 아시아
-		{ 30, 100, 2.2 },
-		{ 62, 110, 2.2 },
-		{ 20, 78, 1.2 }, -- 인도
-		{ -25, 135, 1.8 }, -- 오스트레일리아
-		{ 45, -100, 2.6 }, -- 북아메리카
-		{ 62, -115, 2 },
-		{ 25, -100, 1.3 },
-		{ -10, -60, 2.2 }, -- 남아메리카
-		{ -32, -66, 1.5 },
-	}
-	for _, land in lands do
-		local d = land[3]
-		local p = surface(land[1], land[2], radius - d / 2 + 0.28)
-		ball(c, p.X, p.Y, p.Z, d, c.S, Mat.Grass)
+	-- 돔: 지표에서 height 만큼 솟고, 지표와 만나는 둘레가 중심에서 cap 도인 공(가라앉힌 공의 튀어나온 부분)
+	local function dome(lat: number, lon: number, cap: number, height: number, color: Color3, material: Enum.Material)
+		local top = radius + height
+		local cosCap = math.cos(math.rad(cap))
+		local r = (radius * radius + top * top - 2 * radius * top * cosCap) / (2 * (top - radius * cosCap))
+		local p = surface(lat, lon, top - r)
+		ball(c, p.X, p.Y, p.Z, r * 2, color, material)
 	end
-	for _, lat in { 90, -90 } do
-		local p = surface(lat, 0, radius - 1.1 + 0.25)
-		ball(c, p.X, p.Y, p.Z, 2.2, c.A)
+
+	-- 대륙: 큰 돔(내륙)일수록 조금 더 높게(해안은 얇고 내륙은 도톰하게). 눈(남극·그린란드)은 납작하게.
+	-- 다섯째 칸이 있는 줄은 색 덧칠 공(티베트·이란 등): 표에 적힌 높이 그대로(바탕 돔보다 살짝 위)
+	-- (globe_land.py 의 dome_height 와 같은 식이어야 덧칠 공 높이가 맞음)
+	for _, row in GLOBE_LAND do
+		local cap, tone = row[3], row[4]
+		local height = row[5]
+		if not height then
+			height = math.clamp(0.15 * radius * math.rad(cap), 0.045, 0.12)
+			if tone == 1 then
+				height *= 0.6
+			end
+		end
+		dome(row[1], row[2], cap, height, GLOBE_TONES[tone] or c.S, GLOBE_MATERIALS[tone] or Mat.Grass)
 	end
-	for _, cloud in { { 20, -20 }, { -40, 60 }, { 35, 40 } } do
-		local p = surface(cloud[1], cloud[2], radius - 0.4 + 0.3)
-		ball(c, p.X, p.Y, p.Z, 0.8, c.A, Mat.SmoothPlastic, 0.3)
+	-- 북극 바다 얼음(남극은 땅 표에 있음)
+	dome(90, 0, 11, 0.1, GLOBE_SNOW, Mat.Snow)
+
+	-- 자오선 고리: 지구 중심을 도는 금색 띠(원 둘레 32조각). 맨 아래 조각이 받침 기둥 꼭대기에 얹힘
+	local ring, band, width = 4.5, 0.2, 0.34
+	local pieces = 32
+	local step = TAU / pieces
+	local length = 2 * (ring + band / 2) * math.tan(step / 2) -- 바깥 모서리까지 맞닿게
+	for k = 0, pieces - 1 do
+		local cf = CFrame.new(center) * CFrame.Angles(0, 0, -PI / 2 + k * step) * CFrame.new(ring, 0, 0)
+		block(c, cf, V(band, length, width), GLOBE_GOLD, Mat.Metal)
 	end
-	ball(c, 0, 7, 0, radius * 2 + 0.6, mix(c.P, WHITE, 0.6), Mat.Neon, 0.88)
-	ball(c, -4.2, 11.8, 1.5, 1, rgb(200, 200, 195))
+	ball(c, 0, center.Y - ring, 0, 0.6, GLOBE_GOLD, Mat.Metal) -- 기둥과 고리가 만나는 마디
+	-- 축: 지구를 꿰뚫어 고리의 두 극 축받이까지
+	cyl(c, tilt * UPRIGHT, 9.5, 0.22, GLOBE_GOLD, Mat.Metal)
+	for _, side in { 1, -1 } do
+		cyl(c, tilt * CFrame.new(0, side * ring, 0) * UPRIGHT, 0.4, 0.62, GLOBE_GOLD, Mat.Metal)
+	end
+
+	-- 달: 북극 축 끝에서 뻗은 가는 금색 철사 끝(지구와 함께 돎)
+	local moon = V(-4.2, 11.8, 1.5)
+	local axleTop = tilt * V(0, ring + 0.2, 0)
+	beam(c, axleTop, moon, 0.1, GLOBE_GOLD, Mat.Metal)
+	ball(c, moon.X, moon.Y, moon.Z, 1, rgb(214, 214, 206))
+	ball(c, moon.X + 0.3, moon.Y + 0.18, moon.Z - 0.3, 0.3, rgb(172, 172, 166))
 end
 
 -- 모르는 모형: 기단 + 오벨리스크

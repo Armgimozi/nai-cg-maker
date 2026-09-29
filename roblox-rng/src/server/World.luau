@@ -40,6 +40,7 @@ local PLAZA_TOP = 1 -- 광장 윗면 높이. 스폰 지점(두께 1)이 이 위�
 local RIM_WIDTH = 3 -- 광장 둘레의 낮은 계단(윗면 0.5)
 local EARTH_SPOT = Vector3.new(0, PLAZA_TOP, -26) -- 지구본 받침대 바닥 중앙(스폰 정면 = -Z)
 local EARTH_SIZE = 26
+local EARTH_FACING = 175 -- 지구본 처음 방향(수직축, 도): 스폰에서 아프리카가 보임(아래 PivotTo 참고)
 local LAMP_COUNT = 16
 local LAMP_RADIUS = PLAZA_RADIUS - 3
 local TREE_COUNT = 8
@@ -219,7 +220,9 @@ function World.build()
 	local ok, err = pcall(function()
 		local earth = Models.create(Landmarks.Globe, EARTH_SIZE)
 		earth.Name = "Earth"
-		earth:PivotTo(CFrame.new(EARTH_SPOT.X, pedestalTop, EARTH_SPOT.Z))
+		-- 처음(클라이언트가 돌리기 전) 스폰 쪽(+Z)으로 경도 25도(아프리카)가 보이게(태평양만 보이지 않게).
+		-- 모형 정면(-Z)은 경도 20도라 경도 L 이 +Z 를 보려면 수직축으로 200 - L 도
+		earth:PivotTo(CFrame.new(EARTH_SPOT.X, pedestalTop, EARTH_SPOT.Z) * CFrame.Angles(0, math.rad(EARTH_FACING), 0))
 		earthTop = pedestalTop + earth:GetExtentsSize().Y
 		CollectionService:AddTag(earth, SPIN_TAG)
 		-- 스트리밍이 켜져 있어도 통째로 내려받게 해야 클라이언트 회전 때 일부 파트만 어긋나지 않음
