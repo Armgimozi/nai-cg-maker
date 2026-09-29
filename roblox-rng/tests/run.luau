@@ -1370,6 +1370,64 @@ test("autoWouldChange / preview: 자동을 켜면 바뀌는지, 사본 미리 �
 	)
 end)
 
+test(
+	"topView: 36칸이 HUD 가 가리지 않은 영역 안에 딱 맞게(PC·휴대폰·태블릿·세로 화면), 휠 배율",
+	function()
+		local cases = {
+			{ Aspect = 16 / 9, Fov = 70, Top = 0.06, Bottom = 0.24, Left = 0.03, Right = 0.03 },
+			{ Aspect = 667 / 375, Fov = 70, Top = 0.12, Bottom = 0.3, Left = 0.03, Right = 0.03 },
+			{ Aspect = 844 / 390, Fov = 70, Top = 0.11, Bottom = 0.29, Left = 0.03, Right = 0.2 },
+			{ Aspect = 4 / 3, Fov = 70, Top = 0.05, Bottom = 0.2, Left = 0.03, Right = 0.03 },
+			{ Aspect = 0.6, Fov = 70, Top = 0.05, Bottom = 0.2, Left = 0.03, Right = 0.03 },
+			{ Aspect = 16 / 9, Fov = 50, Top = 0, Bottom = 0, Left = 0, Right = 0 },
+		}
+		local function extent(view, case, distance)
+			local minX, maxX, minY, maxY = math.huge, -math.huge, math.huge, -math.huge
+			for _, point in ParkGrid.TOP_FIT_POINTS do
+				local x, y = ParkGrid.project(point, view.Target[1], view.Target[3], distance, case.Aspect, case.Fov)
+				assert(x and y, "카메라 앞")
+				minX, maxX = math.min(minX, x), math.max(maxX, x)
+				minY, maxY = math.min(minY, y), math.max(maxY, y)
+			end
+			return minX, maxX, minY, maxY
+		end
+		for index, case in cases do
+			local view = ParkGrid.topView(case)
+			local left, right = -1 + 2 * case.Left, 1 - 2 * case.Right
+			local bottom, top = -1 + 2 * case.Bottom, 1 - 2 * case.Top
+			local minX, maxX, minY, maxY = extent(view, case, view.Distance)
+			local tag = "경우 " .. index
+			assert(minX >= left - 0.01 and maxX <= right + 0.01, tag .. ": 가로가 영역 안")
+			assert(minY >= bottom - 0.01 and maxY <= top + 0.01, tag .. ": 세로가 영역 안")
+			-- 딱 맞음: 한쪽 방향은 영역을 거의 다 씀, 다른 방향은 영역 가운데
+			local fillX, fillY = (maxX - minX) / (right - left), (maxY - minY) / (top - bottom)
+			assert(math.max(fillX, fillY) > 0.97, tag .. ": 가장 크게")
+			near((minX + maxX) / 2, (left + right) / 2, 0.02, tag .. ": 가로 가운데")
+			near((minY + maxY) / 2, (bottom + top) / 2, 0.02, tag .. ": 세로 가운데")
+			-- 카메라 = 바라보는 곳에서 입구 쪽 위로 TOP_PITCH 만큼 (부지 바닥 위, 입구 쪽)
+			near(view.Eye[2] - view.Target[2], math.sin(ParkGrid.TOP_PITCH) * view.Distance, 1e-6, tag)
+			near(view.Target[3] - view.Eye[3], math.cos(ParkGrid.TOP_PITCH) * view.Distance, 1e-6, tag)
+			near(view.Eye[1], view.Target[1], 1e-9, tag)
+		end
+		-- 오른쪽을 가리면 격자가 화면 왼쪽으로: 화면 오른쪽 = 부지 -X 라서 카메라가 부지 -X 쪽으로 비킴
+		local open = ParkGrid.topView(cases[2])
+		local shifted =
+			ParkGrid.topView({ Aspect = 667 / 375, Fov = 70, Top = 0.12, Bottom = 0.3, Left = 0.03, Right = 0.3 })
+		assert(shifted.Target[1] < open.Target[1] - 1, "오른쪽이 가려지면 비켜 감")
+		-- 휠: 배율만큼 멀어지고(범위 안), 가까이 가도 가운데는 그대로
+		local far = ParkGrid.topView({ Aspect = 16 / 9, Fov = 70, Top = 0.06, Bottom = 0.24, Zoom = 1.4 })
+		local base = ParkGrid.topView({ Aspect = 16 / 9, Fov = 70, Top = 0.06, Bottom = 0.24 })
+		near(far.Distance, base.Distance * 1.4, 1e-6, "멀리")
+		assert(
+			ParkGrid.topView({ Aspect = 16 / 9, Fov = 70, Zoom = 0.01 }).Distance >= ParkGrid.TOP_MIN_DISTANCE,
+			"최소 거리"
+		)
+		-- 가리는 비율이 말이 안 돼도(1 이상) 멈추지 않고 숫자가 나옴
+		local odd = ParkGrid.topView({ Aspect = 16 / 9, Fov = 70, Top = 0.9, Bottom = 0.9 })
+		assert(odd.Distance == odd.Distance and odd.Distance <= ParkGrid.TOP_MAX_DISTANCE, "이상한 여백")
+	end
+)
+
 print("\n[Format]")
 test("commas", function()
 	eq(Format.commas(0), "0")
