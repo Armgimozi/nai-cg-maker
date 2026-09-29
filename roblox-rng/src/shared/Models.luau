@@ -1,0 +1,1251 @@
+-- 명소 3D 모형 (서버·클라이언트 공용, 양보(yield) 없음)
+--
+-- Models.build(landmark): 에셋 없이 기본 파트(Block/Ball/Cylinder/Wedge)만으로 만든 임시 미니어처.
+--   설계 공간: 바닥 가로·세로 10 스터드(원점 중심) 안, 높이 22 스터드 이하, 바닥 y = 0, 정면은 -Z 쪽.
+--   투명한 "Root" 파트(10 x 0.2 x 10)가 바닥 중앙에 있고 PrimaryPart(피벗 = 바닥 중앙).
+--   모든 파트 Anchored = true, CanCollide = false. 색은 명소의 Primary / Secondary / Accent, 재질은 Material.
+-- Models.create(landmark, size, opts?): 실제로 쓰는 함수.
+--   ReplicatedStorage.LandmarkModels 에 명소 Id 와 같은 이름의 Model 이 있으면 복제(AI 메쉬 교체용), 없으면 build().
+--   가로·세로 중 큰 쪽이 size 스터드가 되도록 Model:ScaleTo(높이는 size * 2.2 까지). 피벗 = 바닥 중앙, 부모 없음.
+--   opts.Anchored == false 면 모든 BasePart: Anchored/CanCollide/CanQuery/CanTouch 끔 + Massless(캐릭터에 용접할 때).
+
+local Landmarks = require(script.Parent.Landmarks)
+
+type Landmark = Landmarks.Landmark
+
+local Models = {}
+
+local DESIGN_WIDTH = 10 -- 설계 공간 가로·세로(스터드)
+local MAX_HEIGHT_RATIO = 2.2 -- 높이 한도 = size * 2.2 (설계 공간 22 / 10)
+local OVERRIDE_FOLDER = "LandmarkModels"
+
+local V = Vector3.new
+local rgb = Color3.fromRGB
+local Mat = Enum.Material
+local PI = math.pi
+local TAU = math.pi * 2
+
+local UPRIGHT = CFrame.Angles(0, 0, PI / 2) -- 원기둥(길이 축 = X)을 세움
+local ALONG_Z = CFrame.Angles(0, PI / 2, 0) -- 원기둥 길이 축을 Z 로(정면을 보는 원판)
+local CORNERS = { { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 } }
+
+-- 명소 색으로 표현하기 어려운 자연물/그늘 색
+local GRASS = rgb(96, 168, 78)
+local LEAF = rgb(58, 132, 62)
+local WATER = rgb(60, 145, 225)
+local DARK = rgb(38, 32, 30)
+local TILE = rgb(62, 66, 74)
+local ROCK = rgb(120, 114, 106)
+local WOOD = rgb(105, 72, 48)
+local SAND = rgb(226, 204, 156)
+local CLOUD = rgb(248, 250, 255)
+local BLACK = rgb(0, 0, 0)
+local WHITE = rgb(255, 255, 255)
+
+type Ctx = {
+	model: Model,
+	origin: CFrame, -- 파트 좌표에 앞에서 곱하는 기준 좌표계(기울어진 탑 등)
+	P: Color3, -- 주 색
+	S: Color3, -- 보조 색
+	A: Color3, -- 강조 색(빛/장식)
+	M: Enum.Material, -- 주 재질
+	grand: boolean, -- 불가사의 이상 등급: 같은 모형을 쓰는 흔한 명소보다 웅장하게
+}
+
+local function mix(a: Color3, b: Color3, t: number): Color3
+	return Color3.new(a.R + (b.R - a.R) * t, a.G + (b.G - a.G) * t, a.B + (b.B - a.B) * t)
+end
+
+-- 파트 생성 헬퍼 ------------------------------------------------------------
+
+local function add(
+	c: Ctx,
+	part: BasePart,
+	cf: CFrame,
+	size: Vector3,
+	color: Color3,
+	material: Enum.Material?,
+	transparency: number?
+): BasePart
+	part.Anchored = true
+	part.CanCollide = false
+	part.TopSurface = Enum.SurfaceType.Smooth
+	part.BottomSurface = Enum.SurfaceType.Smooth
+	part.Size = size
+	part.CFrame = c.origin * cf
+	part.Color = color
+	part.Material = material or c.M
+	part.Transparency = transparency or 0
+	part.Parent = c.model
+	return part
+end
+
+local function shaped(
+	c: Ctx,
+	shape: Enum.PartType,
+	cf: CFrame,
+	size: Vector3,
+	color: Color3,
+	material: Enum.Material?,
+	transparency: number?
+): BasePart
+	local part = Instance.new("Part")
+	part.Shape = shape -- 크기보다 먼저(공 모양은 크기가 균일해짐)
+	return add(c, part, cf, size, color, material, transparency)
+end
+
+-- 중심 좌표계 cf 에 놓는 직육면체
+local function block(c: Ctx, cf: CFrame, size: Vector3, color: Color3, material: Enum.Material?, transparency: number?)
+	return shaped(c, Enum.PartType.Block, cf, size, color, material, transparency)
+end
+
+-- 바닥 중앙이 (x, y, z) 인 직육면체
+local function box(
+	c: Ctx,
+	x: number,
+	y: number,
+	z: number,
+	sx: number,
+	sy: number,
+	sz: number,
+	color: Color3,
+	material: Enum.Material?,
+	transparency: number?
+)
+	return block(c, CFrame.new(x, y + sy / 2, z), V(sx, sy, sz), color, material, transparency)
+end
+
+-- 중심이 (x, y, z), 지름 d 인 공
+local function ball(
+	c: Ctx,
+	x: number,
+	y: number,
+	z: number,
+	d: number,
+	color: Color3,
+	material: Enum.Material?,
+	transparency: number?
+)
+	return shaped(c, Enum.PartType.Ball, CFrame.new(x, y, z), V(d, d, d), color, material, transparency)
+end
+
+-- 길이 축이 cf 의 X 축인 원기둥
+local function cyl(
+	c: Ctx,
+	cf: CFrame,
+	length: number,
+	d: number,
+	color: Color3,
+	material: Enum.Material?,
+	transparency: number?
+)
+	return shaped(c, Enum.PartType.Cylinder, cf, V(length, d, d), color, material, transparency)
+end
+
+-- 바닥 중앙이 (x, y, z) 인 세운 원기둥(높이 h, 지름 d)
+local function col(
+	c: Ctx,
+	x: number,
+	y: number,
+	z: number,
+	h: number,
+	d: number,
+	color: Color3,
+	material: Enum.Material?,
+	transparency: number?
+)
+	return cyl(c, CFrame.new(x, y + h / 2, z) * UPRIGHT, h, d, color, material, transparency)
+end
+
+-- 쐐기: 높은 면이 +Z(뒤), 경사면이 -Z(앞, cf.LookVector) 쪽을 봄
+local function wedge(c: Ctx, cf: CFrame, size: Vector3, color: Color3, material: Enum.Material?, transparency: number?)
+	return add(c, Instance.new("WedgePart"), cf, size, color, material, transparency)
+end
+
+-- a 에서 b 까지 이어지는 각재(단면 t x t)
+local function beam(
+	c: Ctx,
+	a: Vector3,
+	b: Vector3,
+	t: number,
+	color: Color3,
+	material: Enum.Material?,
+	transparency: number?
+)
+	local delta = b - a
+	local length = delta.Magnitude
+	local mid = (a + b) / 2
+	local cf
+	if math.abs(delta.Y) > length * 0.999 then
+		cf = CFrame.new(mid) * CFrame.Angles(PI / 2, 0, 0) -- 수직이면 lookAt 대신 직접 세움
+	else
+		cf = CFrame.lookAt(mid, b)
+	end
+	return block(c, cf, V(t, t, length), color, material, transparency)
+end
+
+-- (dx, dz) 쪽을 정면(LookVector)으로 보는 회전
+local function facing(dx: number, dz: number): CFrame
+	return CFrame.Angles(0, math.atan2(-dx, -dz), 0)
+end
+
+-- 개구부 위쪽 모서리를 채우는 쐐기(아치처럼 보이게). xWall = 벽면 x, side = -1(왼쪽 벽) / 1(오른쪽 벽)
+local function archCorner(
+	c: Ctx,
+	xWall: number,
+	yTop: number,
+	z: number,
+	leg: number,
+	depth: number,
+	color: Color3,
+	side: number
+)
+	-- 뒤집은(roll 180도) 쐐기를 벽 쪽으로 돌림: 직각이 벽과 천장이 만나는 모서리에 옴
+	local cf = CFrame.new(xWall - side * leg / 2, yTop - leg / 2, z)
+		* CFrame.Angles(0, side * PI / 2, 0)
+		* CFrame.Angles(0, 0, PI)
+	return wedge(c, cf, V(depth, leg, leg), color)
+end
+
+-- 기와지붕: 처마 판 + 앞뒤 경사 + 용마루 + 네 귀퉁이 들린 추녀. 바닥이 y, 전체 높이 ≈ 0.3 + h + 0.2
+local function roof(c: Ctx, x: number, y: number, z: number, w: number, d: number, h: number, color: Color3)
+	box(c, x, y, z, w, 0.3, d, color)
+	local top = y + 0.3
+	wedge(c, CFrame.new(x, top + h / 2, z - d / 4), V(w - 0.3, h, d / 2), color)
+	wedge(c, CFrame.new(x, top + h / 2, z + d / 4) * CFrame.Angles(0, PI, 0), V(w - 0.3, h, d / 2), color)
+	box(c, x, top + h - 0.2, z, w - 0.2, 0.4, 0.45, mix(color, BLACK, 0.25))
+	for _, s in CORNERS do
+		local cf = CFrame.new(x + s[1] * (w / 2 - 0.35), top + 0.3, z + s[2] * (d / 2 - 0.35))
+		wedge(c, cf * CFrame.Angles(0, math.atan2(s[1], s[2]), 0), V(0.55, 0.6, 1.1), color)
+	end
+end
+
+-- 박공지붕(쐐기 두 개). 바닥이 y
+local function gable(c: Ctx, x: number, y: number, z: number, w: number, d: number, h: number, color: Color3)
+	wedge(c, CFrame.new(x, y + h / 2, z - d / 4), V(w, h, d / 2), color)
+	wedge(c, CFrame.new(x, y + h / 2, z + d / 4) * CFrame.Angles(0, PI, 0), V(w, h, d / 2), color)
+end
+
+-- 나무: 줄기 + 잎 공
+local function plant(c: Ctx, x: number, y: number, z: number, h: number, d: number, leaf: Color3)
+	col(c, x, y, z, h, math.max(0.2, d * 0.22), WOOD, Mat.Wood)
+	ball(c, x, y + h + d * 0.3, z, d, leaf, Mat.Grass)
+end
+
+-- 계단식 피라미드(steps 단). 꼭대기 높이를 돌려줌
+local function stepped(
+	c: Ctx,
+	x: number,
+	z: number,
+	y: number,
+	base: number,
+	height: number,
+	steps: number,
+	color: Color3
+)
+	local stepHeight = height / steps
+	for i = 0, steps - 1 do
+		local w = base * (1 - i / steps)
+		box(c, x, y + i * stepHeight, z, w, stepHeight, w, color)
+	end
+	return y + height
+end
+
+-- 시계 판: cf 는 벽면 중앙, -Z 가 바깥
+local function clockFace(c: Ctx, cf: CFrame, d: number)
+	cyl(c, cf * CFrame.new(0, 0, -0.1) * ALONG_Z, 0.2, d, c.A, Mat.Neon)
+	block(c, cf * CFrame.new(0, d * 0.14, -0.25), V(d * 0.08, d * 0.3, 0.1), c.S)
+	block(c, cf * CFrame.Angles(0, 0, -2.1) * CFrame.new(0, d * 0.2, -0.27), V(d * 0.06, d * 0.42, 0.1), c.S)
+end
+
+-- 모형들 ------------------------------------------------------------------
+
+local BUILDERS: { [string]: (Ctx) -> () } = {}
+
+-- 시계탑 / 빅벤: 기단 + 탑신 + 네 면 시계 + 종루 + 뾰족 지붕
+function BUILDERS.clocktower(c)
+	box(c, 0, 0, 0, 6, 0.6, 6, c.S)
+	box(c, 0, 0.6, 0, 3.6, 10, 3.6, c.P)
+	for _, s in CORNERS do
+		box(c, s[1] * 1.8, 0.6, s[2] * 1.8, 0.6, 10, 0.6, c.S)
+	end
+	box(c, 0, 5.4, 0, 3.9, 0.3, 3.9, c.S)
+	box(c, 0, 10.6, 0, 4.4, 3.6, 4.4, c.P)
+	for i = 0, 3 do
+		clockFace(c, CFrame.Angles(0, i * PI / 2, 0) * CFrame.new(0, 12.4, -2.2), 3)
+	end
+	box(c, 0, 14.2, 0, 5, 0.4, 5, c.S)
+	box(c, 0, 14.6, 0, 3.6, 1.6, 3.6, c.P)
+	for i = 0, 3 do
+		block(c, CFrame.Angles(0, i * PI / 2, 0) * CFrame.new(0, 15.4, -1.8), V(1.8, 1, 0.1), DARK)
+	end
+	box(c, 0, 16.2, 0, 4, 0.3, 4, c.S)
+	local y = 16.5
+	for _, step in { { 3, 0.9 }, { 2.2, 0.9 }, { 1.4, 1 }, { 0.7, 1 } } do
+		box(c, 0, y, 0, step[1], step[2], step[1], c.S)
+		y += step[2]
+	end
+	col(c, 0, y, 0, 1, 0.25, c.A, Mat.Metal)
+	ball(c, 0, y + 1.25, 0, 0.5, c.A, Mat.Neon)
+end
+
+-- 등대 / 알렉산드리아 등대: 줄무늬 탑(흔한 것) 또는 3단 석탑(불가사의) + 유리 등롱 + 불빛 줄기
+function BUILDERS.lighthouse(c)
+	local top
+	if c.grand then
+		box(c, 0, 0, 0, 9.6, 0.6, 9.6, c.S)
+		box(c, 0, 0.6, 0, 6.4, 6.4, 6.4, c.P)
+		for i = 0, 3 do
+			block(c, CFrame.Angles(0, i * PI / 2, 0) * CFrame.new(0, 4.6, -3.2), V(0.6, 1.6, 0.1), DARK)
+		end
+		box(c, 0, 7, 0, 6.9, 0.5, 6.9, c.S)
+		box(c, 0, 7.5, 0, 4.4, 4.2, 4.4, c.P)
+		block(c, CFrame.new(0, 9.6, 0) * CFrame.Angles(0, PI / 4, 0), V(4.4, 4.2, 4.4), c.P)
+		col(c, 0, 11.7, 0, 0.4, 5.2, c.S)
+		col(c, 0, 12.1, 0, 3.8, 3.2, c.P)
+		top = 15.9
+	else
+		col(c, 0, 0, 0, 0.8, 8.6, ROCK, Mat.Slate)
+		box(c, 2.2, 0.8, 1.3, 2, 1.4, 1.8, c.P)
+		gable(c, 2.2, 2.2, 1.3, 2.3, 2.1, 0.9, c.S)
+		local y = 0.8
+		for i = 0, 5 do
+			col(c, 0, y, 0, 1.9, 3.4 - i * 0.18, if i % 2 == 0 then c.P else c.S)
+			y += 1.9
+		end
+		top = y
+	end
+	col(c, 0, top, 0, 0.3, 3.8, c.S)
+	col(c, 0, top + 0.3, 0, 1.8, 2.2, c.A, Mat.Glass, 0.45)
+	ball(c, 0, top + 1.2, 0, 1.3, c.A, Mat.Neon)
+	col(c, 0, top + 2.1, 0, 0.3, 2.6, c.S)
+	col(c, 0, top + 2.4, 0, 0.6, 1.6, c.S)
+	if c.grand then
+		-- 꼭대기의 신상
+		col(c, 0, top + 3, 0, 1.1, 0.5, c.P)
+		ball(c, 0, top + 4.3, 0, 0.45, c.P)
+	else
+		col(c, 0, top + 3, 0, 0.5, 0.8, c.S)
+		ball(c, 0, top + 3.7, 0, 0.5, c.A, Mat.Neon)
+	end
+	block(c, CFrame.new(0, top + 1.2, 0) * CFrame.Angles(0, math.rad(30), 0), V(9.4, 0.5, 0.5), c.A, Mat.Neon, 0.6)
+end
+
+-- 풍차: 잔디 + 원뿔형 탑 + 둥근 지붕 + 네 날개
+function BUILDERS.windmill(c)
+	col(c, 0, 0, 0, 0.4, 9.4, GRASS, Mat.Grass)
+	col(c, 0, 0.4, 0, 3, 5.4, c.P)
+	col(c, 0, 3.4, 0, 3, 4.8, c.P)
+	col(c, 0, 6.4, 0, 3, 4.2, c.P)
+	col(c, 0, 3.3, 0, 0.3, 6.2, c.S)
+	ball(c, 0, 9.4, 0, 4.4, c.S)
+	box(c, 0, 0.4, -2.65, 1.1, 1.8, 0.3, c.S)
+	box(c, 0, 4.4, -2.35, 0.7, 0.9, 0.2, DARK)
+	box(c, 0, 7.2, -2.05, 0.6, 0.8, 0.2, DARK)
+	local hub = CFrame.new(0, 9.6, -2.4)
+	cyl(c, hub * ALONG_Z, 1.2, 0.8, c.S)
+	for i = 0, 3 do
+		local arm = CFrame.new(0, 9.6, -3.1) * CFrame.Angles(0, 0, PI / 4 + i * PI / 2)
+		block(c, arm * CFrame.new(0, 2.5, 0), V(0.25, 5, 0.25), c.S)
+		block(c, arm * CFrame.new(0.55, 2.9, -0.05), V(0.9, 3.8, 0.1), c.A, nil, 0.05)
+	end
+end
+
+-- 분수대: 팔각 수반 + 2단 물받이 + 물줄기(유리/네온)
+function BUILDERS.fountain(c)
+	col(c, 0, 0, 0, 0.3, 9.8, c.P)
+	local r = 4
+	local side = 2 * r * math.tan(PI / 8) + 0.1
+	for i = 0, 7 do
+		block(c, CFrame.Angles(0, i * PI / 4, 0) * CFrame.new(0, 0.85, -r), V(side, 1.1, 0.5), c.P)
+	end
+	col(c, 0, 0.3, 0, 0.6, 7.5, c.S, Mat.Glass, 0.25)
+	col(c, 0, 0.3, 0, 3.2, 1.2, c.P)
+	col(c, 0, 3.1, 0, 0.4, 2.6, c.P)
+	col(c, 0, 3.5, 0, 0.5, 4.6, c.P)
+	col(c, 0, 4, 0, 0.12, 4, c.S, Mat.Glass, 0.2)
+	col(c, 0, 0.9, 0, 3, 4.5, c.A, Mat.Glass, 0.65)
+	col(c, 0, 4, 0, 1.8, 0.7, c.P)
+	col(c, 0, 5.8, 0, 0.35, 2.4, c.P)
+	col(c, 0, 6.15, 0, 0.1, 2, c.S, Mat.Glass, 0.2)
+	col(c, 0, 4.12, 0, 1.68, 2.3, c.A, Mat.Glass, 0.65)
+	col(c, 0, 6.15, 0, 2.2, 0.35, c.A, Mat.Neon, 0.3)
+	ball(c, 0, 8.4, 0, 1, c.A, Mat.Glass, 0.45)
+	for i = 0, 3 do
+		local rot = CFrame.Angles(0, i * PI / 2 + PI / 4, 0)
+		beam(c, rot * V(0, 1.4, -3.4), rot * V(0, 2.8, -2.3), 0.2, c.A, Mat.Neon, 0.3)
+	end
+end
+
+-- 개선문: 원형 광장 + 네 기둥(앞뒤·옆 아치) + 코니스 + 아틱
+function BUILDERS.arch(c)
+	col(c, 0, 0, 0, 0.2, 9.8, c.S)
+	box(c, 0, 0.2, 0, 9.2, 0.35, 5, c.S)
+	local y = 0.55
+	for _, sx in { -1, 1 } do
+		local x = sx * 3
+		box(c, x, y, -1.55, 3.2, 7, 1.3, c.P)
+		box(c, x, y, 1.55, 3.2, 7, 1.3, c.P)
+		box(c, x, y + 4, 0, 3.2, 3, 1.8, c.P)
+		box(c, x, y + 1.2, -2.25, 1.8, 2.2, 0.15, c.S)
+		box(c, x, y + 1.2, 2.25, 1.8, 2.2, 0.15, c.S)
+	end
+	box(c, 0, y + 5.6, 0, 2.8, 1.4, 4.4, c.P)
+	archCorner(c, -1.4, y + 5.6, 0, 1.1, 4.4, c.P, -1)
+	archCorner(c, 1.4, y + 5.6, 0, 1.1, 4.4, c.P, 1)
+	box(c, 0, 7.55, 0, 9.6, 0.5, 4.8, c.S)
+	box(c, 0, 8.05, 0, 9.2, 1.9, 4.4, c.P)
+	box(c, 0, 8.6, -2.22, 8.4, 0.35, 0.1, c.A, Mat.Metal)
+	box(c, 0, 8.6, 2.22, 8.4, 0.35, 0.1, c.A, Mat.Metal)
+	box(c, 0, 9.95, 0, 9.6, 0.3, 4.8, c.S)
+	ball(c, 0, 0.75, 0, 0.4, c.A, Mat.Neon)
+end
+
+-- 숭례문: 홍예문이 뚫린 석축 + 붉은 문루 2층 + 들린 추녀의 기와지붕 2겹
+function BUILDERS.gate(c)
+	box(c, -2.8, 0, 0, 3.6, 3.6, 4.6, c.P)
+	box(c, 2.8, 0, 0, 3.6, 3.6, 4.6, c.P)
+	box(c, 0, 2.3, 0, 2, 1.3, 4.6, c.P)
+	archCorner(c, -1, 2.3, 0, 0.7, 4.6, c.P, -1)
+	archCorner(c, 1, 2.3, 0, 0.7, 4.6, c.P, 1)
+	box(c, 0, 3.6, 0, 9.2, 0.25, 4.8, mix(c.P, WHITE, 0.2))
+	box(c, 0, 3.85, 0, 7.4, 0.25, 3.6, WOOD, Mat.Wood)
+	box(c, 0, 4.1, 0, 6.8, 1.6, 3, c.A)
+	box(c, 0, 5.4, 0, 7, 0.35, 3.2, c.S)
+	roof(c, 0, 5.75, 0, 9, 5, 1.3, TILE)
+	box(c, 0, 6.6, 0, 5.6, 1.6, 2.4, c.A)
+	box(c, 0, 7.3, -1.22, 0.9, 0.6, 0.1, DARK)
+	box(c, 0, 8.2, 0, 5.8, 0.3, 2.6, c.S)
+	roof(c, 0, 8.5, 0, 8.2, 4.4, 1.5, TILE)
+end
+
+-- 피사의 사탑: 잔디 광장 위에 기울어진 원통형 8층 탑
+function BUILDERS.leaning(c)
+	box(c, 0, 0, 0, 9.6, 0.25, 9.6, GRASS, Mat.Grass)
+	col(c, 0, 0.25, 0, 0.4, 5, c.S)
+	c.origin = CFrame.new(0, 0.65, 0) * CFrame.Angles(0, 0, math.rad(-7))
+	col(c, 0, 0, 0, 2.2, 3.6, c.P)
+	local y = 2.2
+	for _ = 1, 6 do
+		col(c, 0, y, 0, 0.25, 4, c.S)
+		col(c, 0, y + 0.25, 0, 1.45, 3.4, c.P)
+		y += 1.7
+	end
+	col(c, 0, y, 0, 0.25, 3.6, c.S)
+	col(c, 0, y + 0.25, 0, 1.5, 2.6, c.P)
+	col(c, 0, y + 1.75, 0, 0.3, 2.9, c.S)
+	c.origin = CFrame.new()
+end
+
+-- 서 있는 인물의 상체(어깨 윗면 높이 y): 목, 머리, 햇살 왕관, 횃불 든 오른팔, 서판 든 왼팔
+local function figureTop(c: Ctx, y: number)
+	col(c, 0, y, 0, 0.5, 0.6, c.P)
+	local head = V(0, y + 0.95, 0)
+	ball(c, 0, head.Y, 0, 1.2, c.P)
+	col(c, 0, head.Y + 0.2, 0, 0.25, 1.35, c.P)
+	for k = -3, 3 do
+		local angle = k * PI / 7
+		local dir = V(math.sin(angle), 0.45, -math.cos(angle)).Unit
+		beam(c, head + dir * 0.5, head + dir * 1.25, 0.14, c.P)
+	end
+	beam(c, V(1, y - 0.2, 0), V(1.5, y + 2.6, 0), 0.5, c.P)
+	col(c, 1.5, y + 2.4, 0, 0.9, 0.35, c.P)
+	col(c, 1.5, y + 3.2, 0, 0.3, 0.75, c.A, Mat.Metal)
+	ball(c, 1.5, y + 3.85, 0, 0.8, c.A, Mat.Neon)
+	beam(c, V(-1, y - 0.2, 0), V(-1.2, y - 2, -0.6), 0.45, c.P)
+	block(c, CFrame.new(-1.35, y - 1.4, -0.4) * CFrame.Angles(0, 0, 0.12), V(0.3, 1.5, 1), c.P)
+end
+
+-- 자유의 여신상(별 모양 요새 + 받침대) / 로도스 거상(항구를 가로질러 두 다리로 선 청동상)
+function BUILDERS.statue(c)
+	if c.grand then
+		box(c, 0, 0, 0, 9.8, 0.3, 9.8, WATER, Mat.Glass, 0.15)
+		for _, sx in { -1, 1 } do
+			box(c, sx * 3.3, 0, 0, 2.8, 1, 9.6, c.S)
+			box(c, sx * 2.2, 1, 0, 2, 2.4, 2, c.S)
+			beam(c, V(sx * 2.2, 3.3, 0), V(sx * 0.6, 8.3, 0), 0.9, c.P)
+		end
+		box(c, 0, 7.8, 0, 2, 1.2, 1.2, c.P)
+		box(c, 0, 9, 0, 2.2, 2.4, 1.3, c.P)
+		figureTop(c, 11.4)
+	else
+		box(c, 0, 0, 0, 6.8, 0.6, 6.8, c.S)
+		block(c, CFrame.new(0, 0.3, 0) * CFrame.Angles(0, PI / 4, 0), V(6.8, 0.6, 6.8), c.S)
+		box(c, 0, 0.6, 0, 4.2, 0.8, 4.2, c.S)
+		box(c, 0, 1.4, 0, 3.4, 4, 3.4, c.S)
+		box(c, 0, 5.4, 0, 3.9, 0.4, 3.9, c.S)
+		col(c, 0, 5.8, 0, 2.8, 2.6, c.P)
+		col(c, 0, 8.6, 0, 2.6, 2.2, c.P)
+		box(c, 0, 10.8, 0, 2.3, 1.3, 1.3, c.P)
+		figureTop(c, 12.1)
+	end
+end
+
+-- 남산타워: 계단식 초록 언덕 + 가느다란 탑신 + 전망대 원반 + 안테나
+function BUILDERS.needle(c)
+	col(c, 0, 0, 0, 1.2, 9.8, GRASS, Mat.Grass)
+	col(c, 0.3, 1.2, 0.2, 1.1, 7.4, GRASS, Mat.Grass)
+	col(c, 0.2, 2.3, 0.1, 1, 4.8, GRASS, Mat.Grass)
+	for i = 0, 5 do
+		local angle = i * TAU / 6 + 0.4
+		local r = if i % 2 == 0 then 4.1 else 3.1
+		ball(c, math.cos(angle) * r, if i % 2 == 0 then 1.6 else 2.6, math.sin(angle) * r, 1.1, LEAF, Mat.Grass)
+	end
+	col(c, 0, 3.3, 0, 1, 2.6, c.P)
+	col(c, 0, 4.3, 0, 7.6, 1.1, c.P)
+	col(c, 0, 11.9, 0, 0.4, 2.6, c.S)
+	col(c, 0, 12.3, 0, 1.5, 3.2, c.S, Mat.Glass)
+	col(c, 0, 12.8, 0, 0.35, 3.3, c.A, Mat.Neon)
+	col(c, 0, 13.8, 0, 0.5, 3.4, c.P)
+	col(c, 0, 14.3, 0, 0.8, 1.6, c.P)
+	col(c, 0, 15.1, 0, 2.6, 0.6, c.P)
+	col(c, 0, 17.7, 0, 1.8, 0.35, c.A)
+	ball(c, 0, 19.7, 0, 0.45, c.A, Mat.Neon)
+end
+
+-- 에펠탑: 네 다리가 모이며 가늘어지는 격자 탑 + 다리 사이 아치 + 전망대 3곳
+function BUILDERS.lattice(c)
+	box(c, 0, 0, 0, 9.8, 0.2, 9.8, GRASS, Mat.Grass)
+	local function legAt(y: number): number
+		return 4 - 1.5 * (y - 0.5) / 3.7
+	end
+	for _, s in CORNERS do
+		local sx, sz = s[1], s[2]
+		beam(c, V(sx * 4, 0.5, sz * 4), V(sx * 2.5, 4.2, sz * 2.5), 0.9, c.P)
+		beam(c, V(sx * 2.4, 4.6, sz * 2.4), V(sx * 1.3, 9.2, sz * 1.3), 0.6, c.P)
+		beam(c, V(sx * 1.2, 9.6, sz * 1.2), V(sx * 0.35, 17, sz * 0.35), 0.4, c.P)
+	end
+	-- 다리 사이 아치(3토막)
+	for i = 0, 3 do
+		local rot = CFrame.Angles(0, i * PI / 2, 0)
+		local low, high = legAt(1), legAt(3.2)
+		local points = { V(-low, 1, -low), V(-1.7, 3.2, -high), V(1.7, 3.2, -high), V(low, 1, -low) }
+		for k = 1, 3 do
+			beam(c, rot * points[k], rot * points[k + 1], 0.35, c.S)
+		end
+	end
+	box(c, 0, 4.2, 0, 6, 0.5, 6, c.S)
+	box(c, 0, 4.05, 0, 6.2, 0.15, 6.2, c.A, Mat.Neon)
+	box(c, 0, 9.2, 0, 3.3, 0.45, 3.3, c.S)
+	box(c, 0, 9.05, 0, 3.5, 0.15, 3.5, c.A, Mat.Neon)
+	box(c, 0, 13, 0, 1.9, 0.25, 1.9, c.S)
+	box(c, 0, 17, 0, 1.3, 0.4, 1.3, c.S)
+	box(c, 0, 17.4, 0, 0.8, 0.9, 0.8, c.P)
+	col(c, 0, 18.3, 0, 2.6, 0.22, c.P)
+	ball(c, 0, 21.05, 0, 0.45, c.A, Mat.Neon)
+end
+
+-- 콜로세움: 타원형 아케이드(기둥 + 층 띠), 앞쪽은 무너져 낮고 뒤쪽은 3층, 안쪽 관중석과 모래 경기장
+function BUILDERS.ring(c)
+	local a, b = 4.5, 3.7
+	local count = 14
+	local function point(i: number): Vector3
+		local t = i / count * TAU
+		return V(a * math.cos(t), 0, b * math.sin(t))
+	end
+	local function tall(i: number): boolean
+		return i % count <= 8 -- 뒤쪽(+Z) 절반 남짓만 온전함
+	end
+	box(c, 0, 0, 0, 9.8, 0.2, 8.4, c.S)
+	box(c, 0, 0.2, 0, 5.2, 0.15, 3.8, c.A)
+	for i = 0, count - 1 do
+		local t = i / count * TAU
+		local p = point(i)
+		local h = if tall(i) then 5.4 else 3.6
+		local yaw = math.atan2(-b * math.cos(t), -a * math.sin(t))
+		block(c, CFrame.new(p.X, 0.2 + h / 2, p.Z) * CFrame.Angles(0, yaw, 0), V(0.62, h, 0.7), c.P)
+	end
+	for j = 0, count / 2 - 1 do
+		local i1, i2 = 2 * j, 2 * j + 2
+		local p1, p2 = point(i1), point(i2)
+		local levels = if tall(i1) and tall(i2) then { 1.9, 3.4, 5.2 } else { 1.9, 3.4 }
+		for _, y in levels do
+			local mid = (p1 + p2) / 2
+			local cf = CFrame.lookAt(V(mid.X, y + 0.2, mid.Z), V(p2.X, y + 0.2, p2.Z))
+			block(c, cf, V(0.75, 0.4, (p2 - p1).Magnitude + 0.3), c.P)
+		end
+	end
+	-- 관중석(안쪽으로 기운 쐐기)
+	local seats = 7
+	for j = 0, seats - 1 do
+		local t1, t2 = j / seats * TAU, (j + 1) / seats * TAU
+		local q1 = V(3.5 * math.cos(t1), 0, 2.75 * math.sin(t1))
+		local q2 = V(3.5 * math.cos(t2), 0, 2.75 * math.sin(t2))
+		local mid = (q1 + q2) / 2
+		local chord = q2 - q1
+		local inward = V(chord.Z, 0, -chord.X).Unit
+		if inward:Dot(mid) > 0 then
+			inward = -inward
+		end
+		wedge(c, CFrame.new(mid.X, 1.2, mid.Z) * facing(inward.X, inward.Z), V(chord.Magnitude + 0.2, 2, 1.2), c.S)
+	end
+end
+
+-- 타지마할: 대리석 기단 + 본당(아치 입구) + 양파 돔 + 작은 정자 4 + 첨탑 4 + 연못
+function BUILDERS.dome(c)
+	box(c, 0, 0, 0, 9.6, 1, 9.6, c.S)
+	box(c, 0, 1, 0, 5.6, 4, 5.6, c.P)
+	local portal = mix(c.S, BLACK, 0.3)
+	for i = 0, 3 do
+		block(c, CFrame.Angles(0, i * PI / 2, 0) * CFrame.new(0, 2.6, -2.8), V(2, 3, 0.12), portal)
+	end
+	col(c, 0, 5, 0, 1.2, 3.8, c.P)
+	ball(c, 0, 8.2, 0, 4.8, c.P)
+	ball(c, 0, 10.4, 0, 2.2, c.P)
+	col(c, 0, 11.3, 0, 1.3, 0.25, c.A, Mat.Metal)
+	ball(c, 0, 12.75, 0, 0.4, c.A, Mat.Neon)
+	for _, s in CORNERS do
+		local x, z = s[1] * 2, s[2] * 2
+		col(c, x, 5, z, 0.8, 0.9, c.P)
+		ball(c, x, 6.05, z, 1, c.P)
+	end
+	for _, s in CORNERS do
+		local x, z = s[1] * 4.2, s[2] * 4.2
+		col(c, x, 1, z, 8, 0.8, c.P)
+		col(c, x, 4.4, z, 0.2, 1.2, c.S)
+		col(c, x, 9, z, 0.3, 1.2, c.S)
+		ball(c, x, 9.75, z, 0.9, c.P)
+	end
+	box(c, 0, 1, -3.9, 0.9, 0.08, 1.7, WATER, Mat.Glass, 0.1)
+end
+
+-- 앙코르와트: 해자 + 섬 + 3단 기단 + 정면 계단 + 연꽃 봉오리 탑 5개(가운데가 가장 높음)
+function BUILDERS.temple(c)
+	box(c, 0, 0, 0, 9.8, 0.25, 9.8, WATER, Mat.Glass, 0.1)
+	box(c, 0, 0.25, 0, 8.4, 0.3, 8.4, c.S)
+	box(c, 0, 0.25, -4.55, 1.2, 0.3, 0.7, c.P)
+	box(c, 0, 0.55, 0, 7.2, 1, 7.2, c.P)
+	box(c, 0, 1.55, 0, 5.6, 1.1, 5.6, c.P)
+	box(c, 0, 2.65, 0, 4, 1.2, 4, c.P)
+	wedge(c, CFrame.new(0, 0.55 + 1.65, -3.1), V(1, 3.3, 2.2), c.A)
+	local function lotus(x: number, z: number, base: number, tiers: number)
+		local y = 3.85
+		box(c, x, y, z, base, base * 0.8, base, c.P)
+		y += base * 0.8
+		for k = 1, tiers do
+			local w = base * (1 - k / (tiers + 1.5))
+			local h = base * 0.55
+			box(c, x, y, z, w, h, w, c.P)
+			y += h
+		end
+		ball(c, x, y + 0.1, z, base * 0.28, c.A)
+	end
+	lotus(0, 0, 1.8, 4)
+	for _, s in CORNERS do
+		lotus(s[1] * 1.35, s[2] * 1.35, 1.2, 3)
+	end
+	plant(c, -3.9, 0.55, -3.9, 1.4, 1.1, LEAF)
+	plant(c, 3.9, 0.55, -3.9, 1.4, 1.1, LEAF)
+end
+
+-- 스핑크스: 엎드린 사자 몸 + 앞발 + 사람 머리(네메스 두건, 파란 줄무늬)
+function BUILDERS.sphinx(c)
+	box(c, 0, 0, 0, 9.8, 0.3, 7, c.S)
+	local y = 0.3
+	box(c, 0, y, 1.5, 2.8, 1.9, 5.4, c.P)
+	cyl(c, CFrame.new(0, 2, 1.6) * ALONG_Z, 5, 2.8, c.P)
+	ball(c, -1, y + 1.4, 3.2, 2.2, c.P)
+	ball(c, 1, y + 1.4, 3.2, 2.2, c.P)
+	box(c, 0, y, -1.9, 2.6, 3.1, 1.6, c.P)
+	box(c, -0.85, y, -3.5, 0.8, 0.7, 2.6, c.P)
+	box(c, 0.85, y, -3.5, 0.8, 0.7, 2.6, c.P)
+	box(c, 0, 3.3, -1.95, 1.5, 1.9, 1.5, c.P)
+	box(c, 0, 3.6, -1.6, 2.2, 2, 1.5, c.S)
+	box(c, -0.95, 2.6, -2.75, 0.5, 1.6, 0.6, c.S)
+	box(c, 0.95, 2.6, -2.75, 0.5, 1.6, 0.6, c.S)
+	for _, sx in { -1, 1 } do
+		box(c, sx * 1.12, 3.9, -1.6, 0.05, 0.25, 1.4, c.A)
+		box(c, sx * 1.12, 4.5, -1.6, 0.05, 0.25, 1.4, c.A)
+		box(c, sx * 0.35, 4.45, -2.72, 0.3, 0.15, 0.08, DARK)
+	end
+	box(c, 1.55, y, 2.8, 0.3, 0.3, 2.4, c.P)
+end
+
+-- 만리장성: 초록 봉우리 두 개를 넘어 지그재그로 이어지는 성벽(앞쪽 성가퀴, 뒤쪽 여장) + 봉우리 망루 + 골짜기 초소
+function BUILDERS.wall(c)
+	local ground = 0.3
+	box(c, 0, 0, 0, 9.8, ground, 9.8, mix(c.S, WHITE, 0.25), Mat.Grass)
+	local path = {
+		V(-3.6, ground, -2),
+		V(-1.9, 2.4, 0.2),
+		V(0.1, ground, -1),
+		V(2.2, 3, 1.4),
+		V(3.7, ground, -0.8),
+	}
+	local dark = mix(c.P, BLACK, 0.2)
+	for k = 1, #path - 1 do
+		local p1, p2 = path[k], path[k + 1]
+		-- 성벽 아래 비탈(쐐기): 높은 면이 봉우리 쪽
+		local high, low = p2, p1
+		if p1.Y > p2.Y then
+			high, low = p1, p2
+		end
+		local flat = V(high.X - low.X, 0, high.Z - low.Z)
+		local rise = high.Y - ground
+		local mid = V((high.X + low.X) / 2, ground + rise / 2, (high.Z + low.Z) / 2)
+		wedge(c, CFrame.lookAt(mid, mid - flat), V(2.8, rise, flat.Magnitude), c.S, Mat.Grass)
+		-- 성벽 몸체 + 뒤쪽 여장 + 앞쪽 성가퀴 3개 (경로가 +X 로 가므로 로컬 -X 가 정면)
+		local cf = CFrame.lookAt((p1 + p2) / 2, p2)
+		local length = (p2 - p1).Magnitude + 0.3
+		block(c, cf * CFrame.new(0, 0.5, 0), V(1.1, 1, length), c.P)
+		block(c, cf * CFrame.new(0.46, 1.15, 0), V(0.18, 0.3, length), dark)
+		for _, t in { -1, 0, 1 } do
+			block(c, cf * CFrame.new(-0.46, 1.2, t * length / 3.2), V(0.18, 0.4, 0.45), dark)
+		end
+	end
+	-- 봉우리 망루(깃발) + 골짜기 초소
+	for _, k in { 2, 4 } do
+		local p = path[k]
+		box(c, p.X, p.Y - 0.3, p.Z, 1.7, 2, 1.7, c.P)
+		box(c, p.X, p.Y + 1.7, p.Z, 2, 0.35, 2, dark)
+		col(c, p.X + 0.6, p.Y + 2.05, p.Z + 0.6, 1.2, 0.1, DARK)
+		box(c, p.X + 0.9, p.Y + 2.8, p.Z + 0.6, 0.6, 0.4, 0.05, c.A)
+	end
+	box(c, path[3].X, ground, path[3].Z, 1.4, 1.5, 1.4, c.P)
+	box(c, path[3].X, ground + 1.5, path[3].Z, 1.6, 0.3, 1.6, dark)
+	ball(c, -3.6, 0.9, 2.8, 1.2, LEAF, Mat.Grass)
+	ball(c, 3.7, 0.9, 3.4, 1.3, LEAF, Mat.Grass)
+	ball(c, 1, 0.8, -3.8, 1, LEAF, Mat.Grass)
+end
+
+-- 기자 피라미드: 모래 바닥 + 크기가 다른 계단식 피라미드 3개(금빛 꼭대기) + 야자수
+function BUILDERS.pyramid(c)
+	box(c, 0, 0, 0, 9.8, 0.3, 9.8, c.S, Mat.Sand)
+	local top = stepped(c, -2.4, 1.4, 0.3, 4.8, 3.9, 8, c.P)
+	box(c, -2.4, top, 1.4, 0.4, 0.3, 0.4, c.A, Mat.Neon)
+	top = stepped(c, 2.1, 0.9, 0.3, 4.2, 3.4, 7, c.P)
+	box(c, 2.1, top, 0.9, 0.35, 0.3, 0.35, c.A, Mat.Neon)
+	stepped(c, 0.4, -3.3, 0.3, 2.6, 2.1, 5, mix(c.P, c.S, 0.5))
+	plant(c, -3.9, 0.3, -2.4, 1.6, 1.1, LEAF)
+	plant(c, -2.9, 0.3, -3.8, 1.2, 0.9, LEAF)
+end
+
+-- 치첸이트사 / 엘도라도: 9단 계단 피라미드 + 사면 계단 + 꼭대기 신전 (+ 불가사의 등급은 황금 태양)
+function BUILDERS.steps(c)
+	box(c, 0, 0, 0, 9.8, 0.25, 9.8, c.S, Mat.Grass)
+	local y = 0.25
+	for i = 0, 8 do
+		local w = 7.8 - i * 0.55
+		box(c, 0, y, 0, w, 0.72, w, c.P)
+		y += 0.72
+	end
+	local rise = y - 0.25
+	for i = 0, 3 do
+		local rot = CFrame.Angles(0, i * PI / 2, 0)
+		wedge(c, rot * CFrame.new(0, 0.25 + rise / 2, -3.15), V(1.4, rise, 2.9), c.A)
+	end
+	box(c, -0.85, 0.25, -4.45, 0.35, 0.5, 0.35, c.A)
+	box(c, 0.85, 0.25, -4.45, 0.35, 0.5, 0.35, c.A)
+	box(c, 0, y, 0, 2.6, 1.7, 2.6, c.P)
+	box(c, 0, y + 1.7, 0, 3, 0.35, 3, c.P)
+	box(c, 0, y, -1.28, 1, 1.1, 0.1, DARK)
+	box(c, 0, y, 1.28, 1, 1.1, 0.1, DARK)
+	for _, s in CORNERS do
+		plant(c, s[1] * 4.3, 0.25, s[2] * 4.3, 1, 1.2, c.S)
+	end
+	if c.grand then
+		cyl(c, CFrame.new(0, y + 3.6, 0) * ALONG_Z, 0.3, 2.4, c.A, Mat.Neon)
+		for _, s in CORNERS do
+			ball(c, s[1] * 1.3, y + 0.35, s[2] * 1.3, 0.5, c.A, Mat.Neon)
+		end
+	end
+end
+
+-- 마추픽추: 앞으로 내려가는 계단식 밭 + 뒤쪽의 뾰족한 와이나픽추 봉우리 + 돌집 유적
+function BUILDERS.terraces(c)
+	box(c, 0, 0, 0, 9.8, 0.25, 9.8, mix(c.S, BLACK, 0.2), Mat.Grass)
+	for i = 0, 4 do
+		local top = 3.4 - i * 0.65
+		local front = -0.6 - i * 0.95
+		local depth = 4.7 - front
+		local w = 9.2 - i * 0.6
+		local z = (front + 4.7) / 2
+		box(c, 0, 0.25, z, w, top - 0.45, depth, c.P)
+		box(c, 0, top - 0.2, z, w, 0.2, depth, c.S, Mat.Grass)
+	end
+	-- 와이나픽추: 조금씩 비틀어 쌓은 바위 덩어리로 만든 가파른 봉우리(위로 갈수록 바위색)
+	local crags = {
+		{ 3.8, 3, 3.4, 0.3 },
+		{ 3, 2.7, 2.8, -0.35 },
+		{ 2.2, 2.5, 2.1, 0.55 },
+		{ 1.4, 2, 1.4, -0.2 },
+		{ 0.7, 1, 0.7, 0.4 },
+	}
+	local y = 3.2
+	for k, crag in crags do
+		local color = mix(c.S, c.P, (k - 1) / 4)
+		local cf = CFrame.new(2.2 + k * 0.1, y + crag[2] / 2, 2.3 + k * 0.05) * CFrame.Angles(0.06, crag[4], -0.05)
+		block(c, cf, V(crag[1], crag[2], crag[3]), color, if k < 4 then Mat.Grass else nil)
+		y += crag[2] * 0.85
+	end
+	box(c, -3.2, 3.4, 0.6, 1.6, 0.8, 1.2, c.P)
+	box(c, -1.4, 3.4, 1.5, 1.2, 0.9, 1.6, c.P)
+	box(c, -3, 3.4, 3.3, 1.8, 1, 1.4, c.P)
+	box(c, -0.6, 3.4, 3.8, 1, 0.7, 1, c.P)
+	box(c, -1.2, 3.4, -0.1, 1.3, 0.9, 1, c.P)
+	gable(c, -1.2, 4.3, -0.1, 1.5, 1.2, 0.7, rgb(180, 150, 90))
+end
+
+-- 페트라(알카즈네): 붉은 절벽 + 협곡 벽 + 바위를 깎은 2층 신전 정면(기둥, 박공, 원형 정자)
+function BUILDERS.facade(c)
+	box(c, 0, 0, 0, 9.8, 0.25, 9.8, mix(c.P, SAND, 0.6), Mat.Sand)
+	box(c, 0, 0.25, 3.2, 9.8, 14, 3.2, c.S)
+	block(c, CFrame.new(-2.5, 14.6, 3.4) * CFrame.Angles(0, 0, 0.3), V(4.2, 2.2, 2.6), c.S)
+	block(c, CFrame.new(2.6, 14.9, 3) * CFrame.Angles(0.2, 0, -0.25), V(3.6, 2.6, 2.4), c.S)
+	box(c, -4.35, 0.25, 0.5, 1.1, 11, 2.2, c.S)
+	box(c, 4.35, 0.25, 0.5, 1.1, 12, 2.2, c.S)
+	-- 아래층: 기둥 6개 + 엔타블러처 + 박공 + 입구
+	box(c, 0, 0.25, 1.1, 6.6, 0.45, 1.3, c.P)
+	for k = 0, 5 do
+		col(c, -2.75 + k * 1.1, 0.7, 0.85, 4.3, 0.55, c.P)
+	end
+	box(c, 0, 5, 1, 6.8, 0.7, 1.2, c.P)
+	wedge(c, CFrame.new(-1.15, 6.3, 1) * CFrame.Angles(0, PI / 2, 0), V(1, 1.2, 2.3), c.P)
+	wedge(c, CFrame.new(1.15, 6.3, 1) * CFrame.Angles(0, -PI / 2, 0), V(1, 1.2, 2.3), c.P)
+	box(c, 0, 0.7, 1.57, 1.3, 2.6, 0.06, DARK)
+	-- 위층: 양쪽 누각(반쪽 박공) + 가운데 원형 정자와 항아리
+	box(c, 0, 6.9, 1, 6.8, 0.4, 1.2, c.P)
+	for _, sx in { -1, 1 } do
+		box(c, sx * 2.6, 7.3, 1, 1.6, 3, 1, c.P)
+		wedge(c, CFrame.new(sx * 2.6, 10.7, 1) * CFrame.Angles(0, -sx * PI / 2, 0), V(1, 0.8, 1.6), c.P)
+	end
+	col(c, 0, 7.3, 1, 3.2, 1.9, c.P)
+	col(c, 0, 10.5, 1, 0.35, 2.3, c.P)
+	col(c, 0, 10.85, 1, 0.8, 1.4, c.P)
+	ball(c, 0, 12, 1, 0.7, c.A)
+end
+
+-- 모아이: 잔디 + 뒤쪽 바다 + 제단(아후) 위에 긴 얼굴의 석상 5개(일부는 붉은 모자 푸카오)
+function BUILDERS.moai(c)
+	box(c, 0, 0, -0.95, 9.8, 0.3, 7.9, c.S, Mat.Grass)
+	box(c, 0, 0, 3.95, 9.8, 0.2, 1.9, WATER, Mat.Glass, 0.1)
+	box(c, 0, 0.3, 1.2, 9.6, 0.8, 2.2, mix(c.P, WHITE, 0.15))
+	local xs = { -3.7, -1.85, 0, 1.85, 3.7 }
+	local scales = { 0.9, 1, 1.12, 1, 0.92 }
+	for k, x in xs do
+		local s = scales[k]
+		local y = 1.1
+		box(c, x, y, 1.2, 1.3 * s, 1.5 * s, s, c.P)
+		local headY = y + 1.5 * s
+		local depth = 1.05 * s
+		local front = 1.25 - depth / 2
+		box(c, x, headY, 1.25, 1.15 * s, 2.3 * s, depth, c.P)
+		box(c, x, headY + 1.35 * s, front - 0.1, 1.2 * s, 0.35 * s, 0.35 * s, c.P)
+		wedge(c, CFrame.new(x, headY + 0.85 * s, front - 0.2 * s), V(0.35 * s, 0.9 * s, 0.4 * s), c.P)
+		for _, sx in { -1, 1 } do
+			box(c, x + sx * (0.575 * s + 0.05), headY + 0.8 * s, 1.25, 0.12, 1 * s, 0.35 * s, c.P)
+		end
+		if k % 2 == 1 then
+			col(c, x, headY + 2.3 * s, 1.25, 0.55 * s, s, c.A)
+		end
+	end
+end
+
+-- 스톤헨지: 둥근 잔디 + 상인방을 얹은 바깥 원(일부 무너짐) + 안쪽 말굽 모양 삼석탑 5개 + 제단석 + 힐스톤
+function BUILDERS.stones(c)
+	col(c, 0, 0, 0, 0.25, 9.8, c.S, Mat.Grass)
+	local y = 0.25
+	local r = 3.9
+	local count = 12
+	local missing = { [4] = true, [9] = true }
+	for i = 0, count - 1 do
+		if not missing[i] then
+			block(c, CFrame.Angles(0, i / count * TAU, 0) * CFrame.new(0, y + 1.1, -r), V(0.75, 2.2, 0.5), c.P)
+		end
+	end
+	local chord = 2 * r * math.sin(PI / count) + 0.5
+	for _, i in { 0, 1, 2, 5, 6, 10, 11 } do
+		local cf = CFrame.Angles(0, (i + 0.5) / count * TAU, 0) * CFrame.new(0, y + 2.4, -r * math.cos(PI / count))
+		block(c, cf, V(chord, 0.4, 0.5), c.P)
+	end
+	block(c, CFrame.Angles(0, 4 / count * TAU, 0) * CFrame.new(0, y + 0.25, -r), V(2, 0.5, 0.75), c.P)
+	-- 안쪽 말굽(정면 -Z 쪽이 열림)
+	for k, angle in { PI, PI - 0.9, PI + 0.9, PI - 1.8, PI + 1.8 } do
+		local h = if k == 1 then 3.2 elseif k <= 3 then 2.8 else 2.5
+		local frame = CFrame.Angles(0, angle, 0) * CFrame.new(0, y, -2)
+		block(c, frame * CFrame.new(-0.45, h / 2, 0), V(0.55, h, 0.5), c.P)
+		block(c, frame * CFrame.new(0.45, h / 2, 0), V(0.55, h, 0.5), c.P)
+		block(c, frame * CFrame.new(0, h + 0.2, 0), V(1.6, 0.4, 0.55), c.P)
+	end
+	box(c, 0, y, 0.6, 1.4, 0.25, 0.5, mix(c.P, BLACK, 0.2))
+	block(c, CFrame.new(0.9, y + 0.9, -4.6) * CFrame.Angles(0, 0, 0.12), V(0.7, 1.8, 0.5), c.P)
+end
+
+-- 바빌론 공중정원: 4단 테라스(그늘진 회랑 띠) + 초록 정원 + 늘어진 덩굴 + 정면 폭포 + 연못
+function BUILDERS.gardens(c)
+	box(c, 0, 0, 0, 9.8, 0.3, 9.8, mix(c.P, WHITE, 0.15))
+	box(c, 0, 0.3, -4.4, 4, 0.12, 0.9, c.A, Mat.Glass, 0.2)
+	local sizes = { 8.2, 6.4, 4.6, 2.8 }
+	local shade = mix(c.P, BLACK, 0.45)
+	local y = 0.3
+	for i, w in sizes do
+		box(c, 0, y, 0, w, 2, w, c.P)
+		box(c, 0, y + 0.5, 0, w + 0.06, 0.8, w + 0.06, shade)
+		box(c, 0, y + 2, 0, w - 0.2, 0.25, w - 0.2, c.S, Mat.Grass)
+		box(c, 0, y, -w / 2 - 0.08, 0.9, 2.3, 0.12, c.A, Mat.Neon, 0.35)
+		if i < #sizes then
+			for _, sx in { -1, 1 } do
+				box(c, sx * w * 0.3, y + 0.9, -w / 2 - 0.08, 0.6, 1.35, 0.15, c.S, Mat.Grass)
+				ball(c, sx * (w / 2 - 0.45), y + 2.6, -(w / 2 - 0.45), 0.9, c.S, Mat.Grass)
+			end
+		end
+		y += 2
+	end
+	box(c, 0, y + 0.25, 0, 1.2, 1.2, 1.2, c.P)
+	plant(c, 0.9, y + 0.25, 0.9, 1.6, 1.2, c.S)
+end
+
+-- 바벨탑: 점점 좁아지는 원통 5층(어두운 회랑 + 밝은 난간) + 층 사이를 감아 오르는 경사로 + 미완성 꼭대기
+function BUILDERS.spiral(c)
+	local diameters = { 9.4, 7.6, 5.8, 4, 2.4 }
+	local h = 3
+	local shade = mix(c.S, BLACK, 0.2)
+	for k, d in diameters do
+		local y = (k - 1) * h
+		col(c, 0, y, 0, h, d, shade)
+		col(c, 0, y + h - 0.45, 0, 0.45, d + 0.1, c.P)
+		col(c, 0, y, 0, 0.5, d + 0.1, c.P)
+	end
+	-- 경사로: 층 k 의 윗면(난간 고리)에서 한 바퀴 돌며 다음 층 윗면까지 올라감
+	for k = 1, #diameters - 1 do
+		local outer, inner = diameters[k] / 2, diameters[k + 1] / 2
+		local segments = 9 - k
+		local r = (outer + inner) / 2 / math.cos(PI / segments)
+		local base = k * h
+		for j = 0, segments - 1 do
+			local t1 = (j / segments + k * 0.3) * TAU
+			local t2 = ((j + 1) / segments + k * 0.3) * TAU
+			local p1 = V(r * math.cos(t1), base + j / segments * h, r * math.sin(t1))
+			local p2 = V(r * math.cos(t2), base + (j + 1) / segments * h, r * math.sin(t2))
+			local cf = CFrame.lookAt((p1 + p2) / 2, p2)
+			block(c, cf * CFrame.new(0, 0.15, 0), V(0.7, 0.3, (p2 - p1).Magnitude + 0.1), c.P)
+		end
+	end
+	local top = #diameters * h
+	box(c, -0.4, top, 0.3, 1, 1.4, 0.9, c.P)
+	block(c, CFrame.new(0.5, top + 0.4, -0.3) * CFrame.Angles(0, 0.4, 0.2), V(0.8, 0.8, 0.8), c.P)
+end
+
+-- 아틀란티스: 물과 땅이 번갈아 도는 동심원 섬 + 가운데 원형 신전(빛나는 수정 첨탑) + 흰 탑 6개 + 다리
+function BUILDERS.island(c)
+	col(c, 0, 0, 0, 0.3, 9.8, c.S, Mat.Glass, 0.1)
+	col(c, 0, 0, 0, 0.55, 8.4, c.P)
+	col(c, 0, 0, 0, 0.6, 6.8, c.S, Mat.Glass, 0.1)
+	col(c, 0, 0, 0, 0.8, 5.4, GRASS, Mat.Grass)
+	col(c, 0, 0, 0, 0.85, 4, c.S, Mat.Glass, 0.1)
+	col(c, 0, 0, 0, 1.2, 2.8, c.P)
+	box(c, 0, 0.6, -2.45, 0.5, 0.15, 2.3, c.P)
+	col(c, 0, 1.2, 0, 0.3, 2.4, c.P)
+	for i = 0, 5 do
+		local angle = i * TAU / 6
+		col(c, 0.9 * math.cos(angle), 1.5, 0.9 * math.sin(angle), 1.5, 0.25, c.P)
+	end
+	col(c, 0, 1.5, 0, 1.5, 0.9, c.A, Mat.Neon)
+	col(c, 0, 3, 0, 0.3, 2.4, c.P)
+	ball(c, 0, 3.3, 0, 1.9, c.P)
+	col(c, 0, 4.1, 0, 2.6, 0.35, c.A, Mat.Neon)
+	ball(c, 0, 6.8, 0, 0.6, c.A, Mat.Neon)
+	for i = 0, 5 do
+		local angle = i * TAU / 6 + PI / 6
+		local x, z = 3.8 * math.cos(angle), 3.8 * math.sin(angle)
+		col(c, x, 0.55, z, 1.8, 0.55, c.P)
+		ball(c, x, 2.5, z, 0.45, c.A, Mat.Neon)
+	end
+end
+
+-- 용궁 / 샹그릴라: 계단 기단 위 3층 전각(들린 추녀 기와지붕) + 꼭대기 보주 + 등롱 + 떠다니는 빛 구슬
+function BUILDERS.pagoda(c)
+	box(c, 0, 0, 0, 9.6, 0.6, 9.6, c.S)
+	box(c, 0, 0.6, 0, 7.4, 0.4, 7, mix(c.P, WHITE, 0.5))
+	wedge(c, CFrame.new(0, 0.5, -4.2), V(1.6, 1, 1.2), mix(c.P, WHITE, 0.5))
+	box(c, 0, 1, 0, 6, 2, 5.2, c.P)
+	box(c, 0, 1, -2.62, 1.4, 1.5, 0.1, DARK)
+	roof(c, 0, 3, 0, 8.4, 7.2, 1.4, c.S)
+	box(c, 0, 4.2, 0, 4.4, 1.9, 3.8, c.P)
+	roof(c, 0, 6.1, 0, 6.6, 5.6, 1.3, c.S)
+	box(c, 0, 7.2, 0, 3, 1.7, 2.6, c.P)
+	roof(c, 0, 8.9, 0, 4.8, 4, 1.2, c.S)
+	col(c, 0, 10.3, 0, 1.4, 0.3, c.A, Mat.Metal)
+	ball(c, 0, 12, 0, 0.7, c.A, Mat.Neon)
+	for _, sx in { -1, 1 } do
+		col(c, sx * 4.2, 0.6, -4.2, 1.2, 0.2, DARK)
+		ball(c, sx * 4.2, 2, -4.2, 0.5, c.A, Mat.Neon)
+	end
+	ball(c, -4.1, 7.5, 1.5, 0.9, c.A, Mat.Glass, 0.5)
+	ball(c, 4.2, 9.2, -0.8, 0.7, c.A, Mat.Glass, 0.5)
+	ball(c, 3.6, 11.4, 2.4, 0.6, c.A, Mat.Glass, 0.5)
+end
+
+-- 하늘섬: 땅에 닿지 않고 떠 있는 바위섬(아래로 뾰족) + 잔디 + 나무 + 연못과 폭포 + 구름 + 작은 신전
+function BUILDERS.skyisland(c)
+	local rock = Mat.Slate
+	col(c, 0, 7.2, 0, 1.2, 9, c.S, rock)
+	col(c, 0.3, 5.8, -0.2, 1.4, 7, c.S, rock)
+	col(c, -0.2, 4.4, 0.3, 1.4, 5, c.S, rock)
+	col(c, 0.2, 3.1, 0.1, 1.3, 3, c.S, rock)
+	ball(c, 0.1, 2.8, 0.1, 1.6, c.S, rock)
+	ball(c, -2.6, 6.8, 1.6, 2.4, c.S, rock)
+	ball(c, 2.4, 6.2, -1.8, 2.2, c.S, rock)
+	col(c, 0, 8.4, 0, 0.5, 9.4, c.P)
+	col(c, 1.8, 8.9, 1.6, 2.8, 0.6, WOOD, Mat.Wood)
+	ball(c, 1.8, 12.4, 1.6, 2.6, mix(c.P, BLACK, 0.25))
+	ball(c, 1, 11.8, 2.3, 1.8, mix(c.P, BLACK, 0.15))
+	ball(c, 2.6, 11.9, 1, 1.7, mix(c.P, BLACK, 0.15))
+	col(c, -1.2, 8.85, -2.6, 0.12, 2.2, WATER, Mat.Glass, 0.15)
+	box(c, -1.2, 8.85, -4.1, 0.9, 0.12, 1.4, WATER, Mat.Glass, 0.15)
+	box(c, -1.2, 2.4, -4.75, 1, 6.55, 0.2, c.A, Mat.Neon, 0.35)
+	ball(c, -1.2, 2.4, -4.3, 1.2, c.A, Mat.SmoothPlastic, 0.4)
+	ball(c, -3, 3.4, -1.5, 2, CLOUD, Mat.SmoothPlastic, 0.2)
+	ball(c, 3, 4, 1.8, 2.4, CLOUD, Mat.SmoothPlastic, 0.2)
+	ball(c, 0.6, 2.2, 2.6, 1.8, CLOUD, Mat.SmoothPlastic, 0.2)
+	box(c, -2.9, 8.9, 1.2, 0.35, 1.6, 0.35, CLOUD, Mat.Marble)
+	box(c, -1.7, 8.9, 1.2, 0.35, 1.6, 0.35, CLOUD, Mat.Marble)
+	box(c, -2.3, 10.5, 1.2, 1.7, 0.3, 0.6, CLOUD, Mat.Marble)
+	ball(c, 4.2, 6.6, -2.8, 0.9, c.S, rock)
+	ball(c, -4.2, 9.8, -0.8, 0.7, c.S, rock)
+end
+
+-- 세계수: 뻗은 뿌리 + 굵은 줄기 + 가지 + 잎 공 캐노피 + 빛나는 열매
+function BUILDERS.tree(c)
+	col(c, 0, 0, 0, 0.3, 9.6, mix(c.S, BLACK, 0.4), Mat.Grass)
+	for i = 0, 5 do
+		local angle = i * TAU / 6 + 0.3
+		local dir = V(math.cos(angle), 0, math.sin(angle))
+		beam(c, dir * 0.9 + V(0, 2.2, 0), dir * 4.1 + V(0, 0.45, 0), 0.85, c.P)
+	end
+	col(c, 0, 0.3, 0, 5.2, 3, c.P)
+	col(c, 0, 5.5, 0, 3, 2.4, c.P)
+	col(c, 0, 8.5, 0, 2.5, 1.8, c.P)
+	local leaves = {}
+	for i = 0, 4 do
+		local angle = i * TAU / 5 + 0.2
+		local dir = V(math.cos(angle), 0, math.sin(angle))
+		beam(c, V(0, 9.3, 0), dir * 2.8 + V(0, 12.4, 0), 0.8, c.P)
+		table.insert(leaves, dir * 2.9 + V(0, 13.2, 0))
+	end
+	ball(c, 0, 15, 0, 7, c.S, Mat.Grass)
+	ball(c, 0, 18.6, 0, 4.4, c.S, Mat.Grass)
+	for _, p in leaves do
+		ball(c, p.X, p.Y, p.Z, 3.8, mix(c.S, BLACK, 0.12), Mat.Grass)
+	end
+	-- 열매: 잎 공 표면 바로 바깥
+	local fruits = {
+		V(0, 15, 0) + V(-0.6, 0.3, -1).Unit * 3.5,
+		V(0, 15, 0) + V(0.8, 0.6, -0.4).Unit * 3.5,
+		V(0, 18.6, 0) + V(-0.3, 0.5, -1).Unit * 2.2,
+		leaves[1] + V(0.2, 0.4, -1).Unit * 1.9,
+		leaves[2] + V(-0.4, 0.2, -1).Unit * 1.9,
+		leaves[3] + V(-1, 0.3, -0.2).Unit * 1.9,
+		leaves[4] + V(0.3, -0.2, -1).Unit * 1.9,
+	}
+	for _, p in fruits do
+		ball(c, p.X, p.Y, p.Z, 0.7, c.A, Mat.Neon)
+	end
+	col(c, 0, 0.3, 0, 0.08, 6, c.A, Mat.Neon, 0.5)
+end
+
+-- 지구: 받침대 + 23.5도 기운 파란 공 + 대륙 덩어리(살짝 튀어나온 공) + 극지방 얼음 + 자오선 반원 고리 + 대기 + 달
+function BUILDERS.globe(c)
+	local metal = mix(c.A, BLACK, 0.2)
+	col(c, 0, 0, 0, 0.5, 4.2, metal, Mat.Metal)
+	col(c, 0, 0.5, 0, 0.4, 2.6, metal, Mat.Metal)
+	col(c, 0, 0.9, 0, 1.6, 0.6, metal, Mat.Metal)
+	local radius = 4
+	local tilt = CFrame.new(0, 7, 0) * CFrame.Angles(0, 0, math.rad(23.5))
+	ball(c, 0, 7, 0, radius * 2, c.P)
+	cyl(c, tilt * UPRIGHT, 9.4, 0.2, metal, Mat.Metal)
+	-- 자오선 반원 고리(+X 쪽)
+	local ring = 4.5
+	local pieces = 6
+	for k = 0, pieces - 1 do
+		local a1 = -PI / 2 + k / pieces * PI
+		local a2 = -PI / 2 + (k + 1) / pieces * PI
+		local p1 = tilt * V(ring * math.cos(a1), ring * math.sin(a1), 0)
+		local p2 = tilt * V(ring * math.cos(a2), ring * math.sin(a2), 0)
+		beam(c, p1, p2, 0.25, metal, Mat.Metal)
+	end
+	-- 위도/경도(도) → 지구 표면 위치. 경도 20도(아프리카)가 정면(-Z), 동쪽이 정면에서 볼 때 오른쪽
+	local function surface(lat: number, lon: number, r: number): Vector3
+		local phi, lambda = math.rad(lat), math.rad(lon - 20)
+		return tilt * V(-r * math.cos(phi) * math.sin(lambda), r * math.sin(phi), -r * math.cos(phi) * math.cos(lambda))
+	end
+	local lands = {
+		{ 5, 20, 2.4 }, -- 아프리카
+		{ -18, 26, 1.9 },
+		{ 50, 15, 1.6 }, -- 유럽
+		{ 48, 70, 2.6 }, -- 아시아
+		{ 30, 100, 2.2 },
+		{ 62, 110, 2.2 },
+		{ 20, 78, 1.2 }, -- 인도
+		{ -25, 135, 1.8 }, -- 오스트레일리아
+		{ 45, -100, 2.6 }, -- 북아메리카
+		{ 62, -115, 2 },
+		{ 25, -100, 1.3 },
+		{ -10, -60, 2.2 }, -- 남아메리카
+		{ -32, -66, 1.5 },
+	}
+	for _, land in lands do
+		local d = land[3]
+		local p = surface(land[1], land[2], radius - d / 2 + 0.28)
+		ball(c, p.X, p.Y, p.Z, d, c.S, Mat.Grass)
+	end
+	for _, lat in { 90, -90 } do
+		local p = surface(lat, 0, radius - 1.1 + 0.25)
+		ball(c, p.X, p.Y, p.Z, 2.2, c.A)
+	end
+	for _, cloud in { { 20, -20 }, { -40, 60 }, { 35, 40 } } do
+		local p = surface(cloud[1], cloud[2], radius - 0.4 + 0.3)
+		ball(c, p.X, p.Y, p.Z, 0.8, c.A, Mat.SmoothPlastic, 0.3)
+	end
+	ball(c, 0, 7, 0, radius * 2 + 0.6, mix(c.P, WHITE, 0.6), Mat.Neon, 0.88)
+	ball(c, -4.2, 11.8, 1.5, 1, rgb(200, 200, 195))
+end
+
+-- 모르는 모형: 기단 + 오벨리스크
+local function fallback(c: Ctx)
+	box(c, 0, 0, 0, 5, 1, 5, c.S)
+	box(c, 0, 1, 0, 1.4, 7, 1.4, c.P)
+	box(c, 0, 8, 0, 1, 0.5, 1, c.A)
+	box(c, 0, 8.5, 0, 0.5, 0.5, 0.5, c.A, Mat.Neon)
+end
+
+-- 공개 API ------------------------------------------------------------------
+
+-- 코드로 만든 모형이 있는 Shape 이름 집합
+Models.SHAPES = {} :: { [string]: boolean }
+for name in BUILDERS do
+	Models.SHAPES[name] = true
+end
+
+function Models.build(landmark: Landmark): Model
+	local model = Instance.new("Model")
+	model.Name = landmark.Id
+
+	local root = Instance.new("Part")
+	root.Name = "Root"
+	root.Size = V(DESIGN_WIDTH, 0.2, DESIGN_WIDTH)
+	root.CFrame = CFrame.new(0, 0.1, 0)
+	root.PivotOffset = CFrame.new(0, -0.1, 0) -- 피벗 = 바닥 중앙(y = 0)
+	root.Transparency = 1
+	root.Anchored = true
+	root.CanCollide = false
+	root.Parent = model
+	model.PrimaryPart = root
+
+	local ctx: Ctx = {
+		model = model,
+		origin = CFrame.new(),
+		P = landmark.Primary or rgb(200, 200, 200),
+		S = landmark.Secondary or rgb(140, 140, 140),
+		A = landmark.Accent or rgb(255, 240, 180),
+		M = landmark.Material or Mat.SmoothPlastic,
+		grand = landmark.Tier ~= nil and landmark.Tier.Rank >= 5,
+	}
+	local builder = BUILDERS[landmark.Shape] or fallback
+	local ok, err = pcall(builder, ctx)
+	if not ok then
+		-- 모형 코드에 문제가 있어도 게임은 계속되도록: 만들던 파트를 지우고 기본 모형으로
+		warn(
+			"[Models] "
+				.. tostring(landmark.Id)
+				.. " 모형 생성 실패, 기본 모형으로 대체: "
+				.. tostring(err)
+		)
+		for _, child in model:GetChildren() do
+			if child ~= root then
+				child:Destroy()
+			end
+		end
+		ctx.origin = CFrame.new()
+		fallback(ctx)
+	end
+	return model
+end
+
+local function findOverride(landmark: Landmark): Model?
+	local folder = game:GetService("ReplicatedStorage"):FindFirstChild(OVERRIDE_FOLDER)
+	local source = folder and folder:FindFirstChild(landmark.Id)
+	if source and source:IsA("Model") then
+		return source
+	end
+	return nil
+end
+
+-- 교체 모형: 경계 상자의 바닥 중앙을 피벗으로. 경계 상자 크기를 돌려줌
+local function pivotToBottom(model: Model): Vector3
+	local cf, extents = model:GetBoundingBox()
+	local bottom = cf * CFrame.new(0, -extents.Y / 2, 0)
+	local primary = model.PrimaryPart
+	if primary then
+		-- PrimaryPart 가 있으면 WorldPivot 은 무시되므로 PrimaryPart 의 피벗을 옮김
+		primary.PivotOffset = primary.CFrame:ToObjectSpace(bottom)
+	else
+		model.WorldPivot = bottom
+	end
+	return extents
+end
+
+function Models.create(landmark: Landmark, size: number, opts: { Anchored: boolean? }?): Model
+	local model: Model? = nil
+	local source = findOverride(landmark)
+	if source then
+		local clone = source:Clone()
+		if clone and clone:FindFirstChildWhichIsA("BasePart", true) then
+			model = clone
+		end
+	end
+
+	local extents
+	if model then
+		extents = pivotToBottom(model)
+		if math.max(extents.X, extents.Z) <= 1e-3 then
+			model:Destroy()
+			model = nil
+		end
+	end
+	local built = model == nil
+	if not model then
+		model = Models.build(landmark)
+		local _, buildExtents = (model :: Model):GetBoundingBox()
+		extents = buildExtents
+	end
+	local result = model :: Model
+
+	-- 가로·세로 중 큰 쪽이 size, 단 높이는 size * 2.2 까지
+	local factor = size / math.max(extents.X, extents.Z)
+	if extents.Y * factor > size * MAX_HEIGHT_RATIO then
+		factor = size * MAX_HEIGHT_RATIO / extents.Y
+	end
+	if factor > 0 and factor < math.huge and math.abs(factor - 1) > 1e-4 then
+		result:ScaleTo(result:GetScale() * factor)
+	end
+
+	-- 크기를 바꾼 뒤에도 피벗이 정확히 바닥 중앙이도록 다시 맞춤
+	if built then
+		local root = result.PrimaryPart :: BasePart
+		root.PivotOffset = CFrame.new(0, -root.Size.Y / 2, 0)
+	else
+		pivotToBottom(result)
+	end
+
+	local loose = opts ~= nil and opts.Anchored == false
+	for _, descendant in result:GetDescendants() do
+		if descendant:IsA("BasePart") then
+			if loose then
+				descendant.Anchored = false
+				descendant.Massless = true
+				descendant.CanCollide = false
+				descendant.CanQuery = false
+				descendant.CanTouch = false
+			else
+				descendant.Anchored = true
+				descendant.CanCollide = false
+			end
+		end
+	end
+
+	result.Name = landmark.Id
+	return result
+end
+
+return Models

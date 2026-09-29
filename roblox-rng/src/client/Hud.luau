@@ -1,22 +1,46 @@
--- 기본 화면(HUD): 스탯, 물약 타이머, 메뉴 버튼, 굴리기 버튼, 굴림 연출, 알림
+-- 기본 화면(HUD): 스탯, 메뉴 버튼, 굴리기 버튼, 지구본 굴림 연출, 뉴스 속보, 알림
 
 local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
-local Auras = require(Shared.Auras)
 local Config = require(Shared.Config)
 local Format = require(Shared.Format)
+local Landmarks = require(Shared.Landmarks)
 local PlayerState = require(Shared.PlayerState)
-local RollLogic = require(Shared.RollLogic)
 
 local Ui = require(script.Parent.Ui)
+local Viewport = require(script.Parent.Viewport)
 local Theme = Ui.Theme
 
--- 등급(Rank)별 굴림 연출 길이(초). 빠른 모드(자동 굴림)에서는 에픽 미만만 절반으로 줄임.
-local REVEAL_SECONDS = { 0.8, 1.0, 1.4, 2.0, 2.6, 3.0, 3.0 }
-local FAKE_SPIN_LUCK = 25 -- 돌아가는 동안 보여줄 가짜 결과는 조금 더 화려하게
+-- 등급(Rank)별 지구본이 도는 시간(초). 빠른 모드(자동 굴림)에서는 세계 명소 미만만 절반으로 줄임.
+local REVEAL_SECONDS = { 0.9, 1.1, 1.5, 2.1, 2.7, 3.1, 3.3 }
+local LAND_SECONDS = 0.4 -- 지역에 📍 가 꽂힌 뒤 결과가 나오기까지
+local SUSPENSE_SECONDS = 0.9 -- 불가사의 이상 "? ? ?" 뜸 들이기
+local NEWS_SECONDS = 7
+local MAX_NEWS = 2
 local TICK_SOUND = "rbxasset://sounds/electronicpingshort.wav"
+
+local NEWS_RED = Color3.fromRGB(215, 35, 50)
+local NEWS_WHITE = Color3.fromRGB(250, 250, 252)
+local NEWS_INK = Color3.fromRGB(25, 25, 35)
+
+export type RevealInfo = {
+	Fast: boolean,
+	IsNew: boolean,
+	StarUp: boolean,
+	Stars: number,
+	Bonus: number,
+	Luck: number,
+}
+
+export type Handlers = {
+	Roll: () -> (),
+	ToggleAuto: () -> (),
+	Menu: (string) -> (),
+	Teleport: () -> (),
+}
 
 local Hud = {}
 
@@ -25,6 +49,9 @@ local flashFrame: Frame
 local refs: { [string]: any } = {}
 local spinRandom = Random.new()
 local hideToken = 0
+local shownCoins = -1
+local newsItems: { Frame } = {}
+local newsOrder = 0
 
 local function makeSound(pitch: number, volume: number): Sound
 	return Ui.new("Sound", {
@@ -36,10 +63,12 @@ local function makeSound(pitch: number, volume: number): Sound
 end
 
 local tickSound: Sound
+local landSound: Sound
 local revealSound: Sound
 local rareSound: Sound
+local newsSound: Sound
 
-local function play(sound: Sound)
+local function play(sound: Sound?)
 	if sound then
 		sound.TimePosition = 0
 		sound:Play()
@@ -63,56 +92,69 @@ local function panel(props: { [string]: any }): Frame
 end
 
 -- 화면 구석에 붙는 투명 컨테이너(화면 크기에 따라 자동 스케일)
-local function anchor(name: string, anchorPoint: Vector2, position: UDim2, size: UDim2): Frame
+local function anchor(name: string, anchorPoint: Vector2, position: UDim2, size: UDim2, zIndex: number?): Frame
 	local frame = Ui.new("Frame", {
 		Name = name,
 		AnchorPoint = anchorPoint,
 		Position = position,
 		Size = size,
 		BackgroundTransparency = 1,
+		ZIndex = zIndex or 1,
 		Parent = gui,
 	})
 	Ui.autoScale(frame)
 	return frame
 end
 
+-- 글자 테두리 (UIStroke 기본값 Contextual = 글자에 적용)
+local function textOutline(label: TextLabel, thickness: number)
+	Ui.new("UIStroke", { Color = Color3.new(0, 0, 0), Thickness = thickness, Transparency = 0.2, Parent = label })
+end
+
+-- 초당 수입 표시: 작은 값은 소수 한 자리까지 ("1.8"), 큰 값은 축약 ("12.5K")
+local function incomeText(income: number): string
+	if income < 100 then
+		local text = string.format("%.1f", math.floor(income * 10) / 10):gsub("%.0$", "")
+		return text
+	end
+	return Format.short(income)
+end
+
 local function buildStats()
-	local container = anchor("Stats", Vector2.new(0, 0), UDim2.new(0, 12, 0, 12), UDim2.fromOffset(250, 118))
+	local container = anchor("Stats", Vector2.new(0, 0), UDim2.new(0, 12, 0, 12), UDim2.fromOffset(270, 150))
 	local box = panel({ Size = UDim2.fromScale(1, 1), Parent = container })
 	Ui.padding(10).Parent = box
-	Ui.list(Enum.FillDirection.Vertical, 4).Parent = box
+	Ui.list(Enum.FillDirection.Vertical, 2).Parent = box
 
-	local function row(order: number, color: Color3): TextLabel
+	local function row(order: number, color: Color3, maxText: number): TextLabel
 		return Ui.label({
 			LayoutOrder = order,
 			Size = UDim2.new(1, 0, 0, 30),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextColor3 = color,
 			Parent = box,
-		}, 24)
+		}, maxText)
 	end
-	refs.Coins = row(1, Theme.Gold)
-	refs.Rolls = row(2, Theme.Text)
-	refs.Luck = row(3, Theme.Good)
+	refs.Coins = row(1, Theme.Gold, 26)
+	refs.Income = row(2, Theme.Good, 21)
+	refs.Rolls = row(3, Theme.Text, 21)
+	refs.Luck = row(4, Color3.fromRGB(140, 235, 160), 21)
 end
 
-local function buildPotions()
-	local container = anchor("Potions", Vector2.new(1, 0), UDim2.new(1, -12, 0, 12), UDim2.fromOffset(230, 200))
-	local layout = Ui.list(Enum.FillDirection.Vertical, 6, Enum.HorizontalAlignment.Right)
-	layout.VerticalAlignment = Enum.VerticalAlignment.Top
-	layout.Parent = container
-	refs.PotionList = container
-	refs.PotionRows = {}
-end
+local MENU = {
+	{ "Collection", "🗂️ 컬렉션" },
+	{ "Passport", "🛂 여권" },
+	{ "Upgrade", "🛠️ 업그레이드" },
+}
 
-local function buildMenu(onMenu: (string) -> ())
-	local container = anchor("Menu", Vector2.new(0, 0.5), UDim2.new(0, 12, 0.5, 0), UDim2.fromOffset(120, 230))
+local function buildMenu(onMenu: (string) -> (), onTeleport: () -> ())
+	local container = anchor("Menu", Vector2.new(0, 0.5), UDim2.new(0, 12, 0.5, 0), UDim2.fromOffset(160, 266))
 	Ui.list(Enum.FillDirection.Vertical, 10).Parent = container
-	for order, entry in { { "Inventory", "🎒 가방" }, { "Index", "📖 도감" }, { "Shop", "🛒 상점" } } do
+	for order, entry in MENU do
 		local button = Ui.button({
 			Name = entry[1],
 			LayoutOrder = order,
-			Size = UDim2.fromOffset(120, 64),
+			Size = UDim2.fromOffset(160, 58),
 			Text = entry[2],
 			Parent = container,
 		}, 22)
@@ -120,16 +162,27 @@ local function buildMenu(onMenu: (string) -> ())
 			onMenu(entry[1])
 		end)
 	end
+
+	refs.TeleportButton = Ui.button({
+		Name = "Teleport",
+		LayoutOrder = #MENU + 1,
+		Size = UDim2.fromOffset(160, 58),
+		BackgroundColor3 = Color3.fromRGB(45, 95, 70),
+		Text = "🏞️ 내 공원",
+		Parent = container,
+	}, 22)
+	refs.TeleportButton.Activated:Connect(onTeleport)
 end
 
 local function buildRollBar(onRoll: () -> (), onToggleAuto: () -> ())
-	local container = anchor("RollBar", Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -18), UDim2.fromOffset(420, 120))
+	local container = anchor("RollBar", Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -18), UDim2.fromOffset(440, 120))
 
-	refs.LuckyInfo = Ui.label({
+	refs.Info = Ui.label({
 		Size = UDim2.new(1, 0, 0, 30),
 		TextColor3 = Theme.SubText,
 		Parent = container,
-	}, 22)
+	}, 20)
+	textOutline(refs.Info, 1)
 
 	local row = Ui.new("Frame", {
 		BackgroundTransparency = 1,
@@ -149,9 +202,9 @@ local function buildRollBar(onRoll: () -> (), onToggleAuto: () -> ())
 
 	local rollButton = Ui.button({
 		LayoutOrder = 2,
-		Size = UDim2.fromOffset(240, 76),
-		BackgroundColor3 = Theme.Accent,
-		Text = "🎲 굴리기",
+		Size = UDim2.fromOffset(250, 76),
+		BackgroundColor3 = Color3.fromRGB(40, 120, 220),
+		Text = "🌍 굴리기",
 		ClipsDescendants = true,
 		Parent = row,
 	}, 32)
@@ -159,7 +212,7 @@ local function buildRollBar(onRoll: () -> (), onToggleAuto: () -> ())
 	refs.RollButton = rollButton
 
 	-- 쿨타임 막대 (버튼 아래쪽)
-	local bar = Ui.new("Frame", {
+	refs.CooldownBar = Ui.new("Frame", {
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.new(0, -6, 1, 6),
 		Size = UDim2.new(0, 0, 0, 6),
@@ -168,16 +221,18 @@ local function buildRollBar(onRoll: () -> (), onToggleAuto: () -> ())
 		BorderSizePixel = 0,
 		Parent = rollButton,
 	})
-	refs.CooldownBar = bar
 end
 
--- 글자 테두리 (UIStroke 기본값 Contextual = 글자에 적용)
-local function textOutline(label: TextLabel, thickness: number)
-	Ui.new("UIStroke", { Color = Color3.new(0, 0, 0), Thickness = thickness, Transparency = 0.2, Parent = label })
-end
+local VIEW_SIZE = 230
 
 local function buildReveal()
-	local container = anchor("Reveal", Vector2.new(0.5, 0.5), UDim2.fromScale(0.5, 0.42), UDim2.fromOffset(760, 230))
+	local container = anchor(
+		"Reveal",
+		Vector2.new(0.5, 0.5),
+		UDim2.fromScale(0.5, 0.46),
+		UDim2.fromOffset(700, 460),
+		8 -- 메뉴 창보다 위
+	)
 	container.Visible = false
 	refs.Reveal = container
 
@@ -190,49 +245,98 @@ local function buildReveal()
 	})
 	refs.RevealScale = Ui.new("UIScale", { Parent = inner })
 
-	refs.RevealTag = Ui.label({
-		Size = UDim2.new(1, 0, 0, 34),
-		TextColor3 = Theme.Gold,
-		Parent = inner,
-	}, 28)
-	refs.RevealName = Ui.label({
-		Position = UDim2.fromOffset(0, 36),
-		Size = UDim2.new(1, 0, 0, 110),
+	refs.RevealRegion = Ui.label({
+		Size = UDim2.new(1, 0, 0, 40),
 		Font = Theme.FontHeavy,
 		Parent = inner,
-	}, 96)
-	textOutline(refs.RevealName, 3)
-	refs.RevealSub = Ui.label({
-		Position = UDim2.fromOffset(0, 148),
-		Size = UDim2.new(1, 0, 0, 40),
-		Parent = inner,
 	}, 32)
-	textOutline(refs.RevealSub, 2)
-	refs.RevealReward = Ui.label({
-		Position = UDim2.fromOffset(0, 192),
-		Size = UDim2.new(1, 0, 0, 32),
+	textOutline(refs.RevealRegion, 2)
+
+	-- 모형 뒤의 둥근 받침
+	local halo = Ui.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 44),
+		Size = UDim2.fromOffset(VIEW_SIZE, VIEW_SIZE),
+		BackgroundColor3 = Color3.fromRGB(8, 10, 20),
+		BackgroundTransparency = 0.45,
+		Parent = inner,
+	})
+	Ui.new("UICorner", { CornerRadius = UDim.new(0.5, 0), Parent = halo })
+	refs.HaloStroke = Ui.stroke(Color3.new(1, 1, 1), 3, 0.3)
+	refs.HaloStroke.Parent = halo
+
+	local viewProps = {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 44),
+		Size = UDim2.fromOffset(VIEW_SIZE, VIEW_SIZE),
+		ZIndex = 2,
+	}
+	refs.EarthView = Viewport.new(inner, viewProps)
+	Viewport.setLandmark(refs.EarthView, Landmarks.ById.earth, 10)
+	refs.ResultView = Viewport.new(inner, viewProps)
+	refs.ResultView.Visible = false
+
+	refs.RevealTag = Ui.label({
+		Position = UDim2.fromOffset(0, 278),
+		Size = UDim2.new(1, 0, 0, 30),
 		TextColor3 = Theme.Gold,
 		Parent = inner,
 	}, 26)
+	textOutline(refs.RevealTag, 2)
+	refs.RevealName = Ui.label({
+		Position = UDim2.fromOffset(0, 308),
+		Size = UDim2.new(1, 0, 0, 64),
+		Font = Theme.FontHeavy,
+		Parent = inner,
+	}, 60)
+	textOutline(refs.RevealName, 3)
+	refs.RevealSub = Ui.label({
+		Position = UDim2.fromOffset(0, 372),
+		Size = UDim2.new(1, 0, 0, 30),
+		Parent = inner,
+	}, 26)
+	textOutline(refs.RevealSub, 2)
+	refs.RevealSubtitle = Ui.label({
+		Position = UDim2.fromOffset(0, 402),
+		Size = UDim2.new(1, 0, 0, 22),
+		TextColor3 = Theme.SubText,
+		Parent = inner,
+	}, 20)
+	textOutline(refs.RevealSubtitle, 1)
+	refs.RevealBonus = Ui.label({
+		Position = UDim2.fromOffset(0, 426),
+		Size = UDim2.new(1, 0, 0, 30),
+		TextColor3 = Theme.Gold,
+		Parent = inner,
+	}, 26)
+	textOutline(refs.RevealBonus, 2)
 end
 
 local function buildNotices()
-	local container = anchor("Notices", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 12), UDim2.fromOffset(680, 220))
+	-- 뉴스 속보(맨 위)
+	local news = anchor("News", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 12), UDim2.fromOffset(720, 100), 9)
+	local newsLayout = Ui.list(Enum.FillDirection.Vertical, 6, Enum.HorizontalAlignment.Center)
+	newsLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+	newsLayout.Parent = news
+	refs.News = news
+
+	-- 잠깐 떴다 사라지는 알림(뉴스 아래)
+	local notices = anchor("Notices", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 118), UDim2.fromOffset(560, 200), 9)
 	local layout = Ui.list(Enum.FillDirection.Vertical, 6, Enum.HorizontalAlignment.Center)
 	layout.VerticalAlignment = Enum.VerticalAlignment.Top
-	layout.Parent = container
-	refs.Notices = container
+	layout.Parent = notices
+	refs.Notices = notices
 end
 
-function Hud.init(playerGui: PlayerGui, handlers: { Roll: () -> (), ToggleAuto: () -> (), Menu: (string) -> () })
+function Hud.init(playerGui: PlayerGui, handlers: Handlers): ScreenGui
 	gui = Ui.new("ScreenGui", {
-		Name = "AuraRNG",
+		Name = "LandmarkRNG",
 		ResetOnSpawn = false,
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		Parent = playerGui,
 	})
 	local flashGui = Ui.new("ScreenGui", {
-		Name = "AuraRNGFlash",
+		Name = "LandmarkRNGFlash",
 		ResetOnSpawn = false,
 		IgnoreGuiInset = true,
 		DisplayOrder = 5,
@@ -246,12 +350,13 @@ function Hud.init(playerGui: PlayerGui, handlers: { Roll: () -> (), ToggleAuto: 
 	})
 
 	tickSound = makeSound(1.4, 0.25)
+	landSound = makeSound(1.1, 0.4)
 	revealSound = makeSound(0.9, 0.6)
 	rareSound = makeSound(0.5, 1)
+	newsSound = makeSound(0.7, 0.5)
 
 	buildStats()
-	buildPotions()
-	buildMenu(handlers.Menu)
+	buildMenu(handlers.Menu, handlers.Teleport)
 	buildRollBar(handlers.Roll, handlers.ToggleAuto)
 	buildReveal()
 	buildNotices()
@@ -262,62 +367,34 @@ end
 function Hud.render(state: PlayerState.Snapshot?)
 	if not state then
 		refs.Coins.Text = "🪙 불러오는 중..."
+		refs.Income.Text = ""
 		refs.Rolls.Text = ""
 		refs.Luck.Text = ""
-		refs.LuckyInfo.Text = ""
+		refs.Info.Text = ""
+		shownCoins = -1
 		return
 	end
-	refs.Coins.Text = "🪙 " .. Format.commas(state.Coins)
+	refs.Income.Text = "💰 관광 수입 +" .. incomeText(state.Income) .. "/초"
 	refs.Rolls.Text = "🎲 굴림 " .. Format.commas(state.Rolls) .. "회"
 	refs.Luck.Text = "🍀 행운 " .. Format.multiplier(state.Luck)
 
-	local untilLucky = PlayerState.rollsUntilLucky(state.Rolls)
-	if untilLucky == 1 then
-		refs.LuckyInfo.Text = string.format("✨ 다음 굴림은 행운 굴림! (행운 x%d)", Config.LUCKY_ROLL_MULT)
-		refs.LuckyInfo.TextColor3 = Theme.Gold
-	else
-		refs.LuckyInfo.Text =
-			string.format("행운 굴림까지 %d회 · [R] 키로도 굴릴 수 있어요", untilLucky)
-		refs.LuckyInfo.TextColor3 = Theme.SubText
+	local stamps = #PlayerState.completedRegions(state)
+	local info = string.format("여권 도장 %d/%d", stamps, #Landmarks.Regions)
+	if UserInputService.KeyboardEnabled then
+		info ..= " · [R] 굴리기 [T] 자동"
 	end
-
-	-- 물약 줄: 활성 물약이 바뀌었을 때만 다시 만듦
-	local rows = refs.PotionRows
-	for id, row in rows do
-		if not state.Potions[id] then
-			row.Frame:Destroy()
-			rows[id] = nil
-		end
-	end
-	for order, potion in Config.Potions do
-		if state.Potions[potion.Id] and not rows[potion.Id] then
-			local row = panel({
-				LayoutOrder = order,
-				Size = UDim2.fromOffset(230, 40),
-				Parent = refs.PotionList,
-			})
-			Ui.padding(6).Parent = row
-			local label = Ui.label({
-				Size = UDim2.fromScale(1, 1),
-				TextXAlignment = Enum.TextXAlignment.Right,
-				TextColor3 = potion.Color,
-				Parent = row,
-			}, 22)
-			rows[potion.Id] = { Frame = row, Label = label }
-		end
-	end
+	refs.Info.Text = info
+	refs.Info.TextColor3 = if stamps > 0 then Theme.Gold else Theme.SubText
 end
 
--- 매 프레임 가까이 호출: 물약 남은 시간 표시 (elapsed = 스냅샷 받은 뒤 지난 시간)
-function Hud.updateTimers(state: PlayerState.Snapshot?, elapsed: number)
-	if not state then
+-- 매 프레임 호출: 부드럽게 올라가는 코인 표시 (정수가 바뀔 때만 글자 갱신)
+function Hud.setCoins(amount: number)
+	local whole = math.max(0, math.floor(amount))
+	if whole == shownCoins then
 		return
 	end
-	for id, row in refs.PotionRows do
-		local remaining = (state.Potions[id] or 0) - elapsed
-		local potion = PlayerState.PotionsById[id]
-		row.Label.Text = string.format("%s  %s", potion.Name, Format.duration(remaining))
-	end
+	shownCoins = whole
+	refs.Coins.Text = "🪙 " .. Format.commas(whole)
 end
 
 function Hud.setAuto(enabled: boolean)
@@ -326,8 +403,20 @@ function Hud.setAuto(enabled: boolean)
 end
 
 function Hud.setRolling(rolling: boolean)
-	refs.RollButton.Text = if rolling then "굴리는 중..." else "🎲 굴리기"
+	refs.RollButton.Text = if rolling then "돌리는 중..." else "🌍 굴리기"
 	refs.RollButton.BackgroundTransparency = if rolling then 0.4 else 0
+end
+
+-- where: 지금 있는 곳 ("Plaza" | "Park"). 버튼은 반대쪽으로 가는 버튼이 됨
+function Hud.setLocation(where: string)
+	local button = refs.TeleportButton
+	if where == "Park" then
+		button.Text = "🏛️ 광장"
+		button.BackgroundColor3 = Color3.fromRGB(70, 70, 110)
+	else
+		button.Text = "🏞️ 내 공원"
+		button.BackgroundColor3 = Color3.fromRGB(45, 95, 70)
+	end
 end
 
 function Hud.startCooldown(seconds: number)
@@ -344,83 +433,111 @@ local function flash(color: Color3, strength: number)
 	}):Play()
 end
 
-local function showAura(aura: Auras.Aura)
-	refs.RevealName.Text = aura.Name
-	Ui.paintAura(refs.RevealName, aura)
-	refs.RevealSub.Text = Format.oneIn(aura.OneIn)
-	refs.RevealSub.TextColor3 = aura.Tier.Color
+local function showRegion(region: Landmarks.Region, pinned: boolean)
+	refs.RevealRegion.Text = (if pinned then "📍 " else "") .. region.Emoji .. " " .. region.Name
+	refs.RevealRegion.TextColor3 = region.Color
 end
 
--- 굴림 연출. 끝날 때까지 기다립니다(yield).
-function Hud.reveal(
-	aura: Auras.Aura,
-	info: { Fast: boolean, Lucky: boolean, IsNew: boolean, Coins: number, Luck: number }
-)
+-- 굴림 연출. 결과를 보여 줄 때까지 기다립니다(yield).
+-- 1) 지구본이 빠르게 돌며 지역 이름이 바뀌다 점점 느려짐 → 2) 결과 지역에 📍 → 3) 명소 공개
+function Hud.reveal(landmark: Landmarks.Landmark, info: RevealInfo)
 	hideToken += 1
-	local rank = aura.Tier.Rank
+	local tier = landmark.Tier
+	local rank = tier.Rank
 	local duration = REVEAL_SECONDS[rank] or 3
 	if info.Fast and rank < 4 then
 		duration = math.max(0.35, duration * 0.5)
 	end
+	local region = Landmarks.RegionById[landmark.Region] or Landmarks.Regions[1]
+	local regions = Landmarks.Regions
 
 	local container = refs.Reveal
 	container.Visible = true
 	refs.RevealScale.Scale = 1
-	refs.RevealTag.Text = if info.Lucky
-		then string.format("✨ 행운 굴림! (행운 %s)", Format.multiplier(info.Luck))
-		else ""
-	refs.RevealReward.Text = ""
+	refs.RevealTag.Text = ""
+	refs.RevealName.Text = ""
+	refs.RevealSub.Text = ""
+	refs.RevealSubtitle.Text = ""
+	refs.RevealBonus.Text = ""
+	refs.HaloStroke.Color = Color3.new(1, 1, 1)
+	refs.ResultView.Visible = false
+	Viewport.setSpin(refs.ResultView, 0)
+	refs.EarthView.Visible = true
 
-	-- 1) 룰렛처럼 가짜 결과가 빠르게 돌다가 점점 느려짐
+	-- 1) 지구본이 돌며 지역이 바뀜. 실제로 지난 시간을 더해야 연출 길이가 늘어지지 않음
+	local index = spinRandom:NextInteger(1, #regions)
 	local elapsed = 0
 	while elapsed < duration do
-		local fake = RollLogic.roll(Auras.RarestFirst, FAKE_SPIN_LUCK, function()
-			return spinRandom:NextNumber()
-		end)
-		showAura(fake)
+		index = index % #regions + 1
+		showRegion(regions[index], false)
 		play(tickSound)
 		local t = elapsed / duration
-		local interval = 0.04 + t * t * 0.2
-		elapsed += task.wait(interval) -- 실제로 지난 시간을 더해야 연출 길이가 늘어지지 않음
+		Viewport.setSpin(refs.EarthView, 60 + 840 * (1 - t) * (1 - t))
+		local interval = 0.05 + t * t * 0.22
+		elapsed += task.wait(interval)
 	end
 
-	-- 2) 전설 이상은 한 박자 뜸 들이기
+	-- 2) 결과 지역에 착지
+	showRegion(region, true)
+	Viewport.setSpin(refs.EarthView, 30)
+	play(landSound)
+	task.wait(if info.Fast and rank < 4 then LAND_SECONDS * 0.5 else LAND_SECONDS)
+
+	-- 불가사의 이상은 한 박자 뜸 들이기
 	if rank >= 5 then
 		refs.RevealName.Text = "? ? ?"
-		Ui.paintAura(refs.RevealName, { Color = aura.Tier.Color })
-		refs.RevealSub.Text = aura.Tier.Name .. " 등급..."
+		Ui.paintTier(refs.RevealName, tier)
+		refs.RevealSub.Text = tier.Name .. " 등급..."
+		refs.RevealSub.TextColor3 = tier.Color
+		refs.HaloStroke.Color = tier.Color
 		flash(Color3.new(0, 0, 0), 0.6)
-		task.wait(0.9)
+		task.wait(SUSPENSE_SECONDS)
 	end
 
-	-- 3) 결과 공개
-	showAura(aura)
-	refs.RevealSub.Text = Format.oneIn(aura.OneIn) .. " · " .. aura.Tier.Name
+	-- 3) 결과 공개: 지구본 → 명소 모형
+	Viewport.setSpin(refs.EarthView, 0)
+	refs.EarthView.Visible = false
+	Viewport.setLandmark(refs.ResultView, landmark, 10)
+	refs.ResultView.Visible = true
+	Viewport.setSpin(refs.ResultView, 40)
+	refs.HaloStroke.Color = tier.Color
+
+	refs.RevealName.Text = landmark.Name
+	Ui.paintTier(refs.RevealName, tier)
+	refs.RevealSub.Text = Format.oneIn(landmark.OneIn) .. " · " .. tier.Name
+	refs.RevealSub.TextColor3 = tier.Color
+	refs.RevealSubtitle.Text = landmark.Subtitle
+
 	local tags = {}
 	if info.IsNew then
 		table.insert(tags, "🆕 새로 발견!")
 	end
-	if info.Lucky then
-		table.insert(tags, "✨ 행운 굴림")
+	if info.StarUp then
+		table.insert(tags, "⭐ 별 상승! " .. Ui.stars(info.Stars or 0, #Config.STAR_THRESHOLDS))
 	end
 	refs.RevealTag.Text = table.concat(tags, "   ")
-	refs.RevealReward.Text = "+" .. Format.commas(info.Coins) .. " 🪙"
+	refs.RevealBonus.Text = if (info.Bonus or 0) > 0 then "+" .. Format.commas(info.Bonus) .. " 🪙" else ""
 
 	refs.RevealScale.Scale = 1.35
 	TweenService:Create(refs.RevealScale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
 		Scale = 1,
 	}):Play()
 	if rank >= 4 then
-		flash(aura.Color, math.min(0.25 + rank * 0.08, 0.8))
+		flash(tier.Color, math.min(0.25 + rank * 0.08, 0.8))
 		play(rareSound)
 	else
 		play(revealSound)
 	end
 
+	-- 결과를 잠깐 보여 줌 (자동 굴림 중에도 희귀 명소는 바로 덮이지 않게)
+	local hold = if rank >= 4 then (if info.Fast then 1.8 else 0.6) else (if info.Fast then 0.2 else 0.1)
+	task.wait(hold)
+
 	local token = hideToken
 	task.delay(if info.Fast then 1 else 2.5, function()
 		if token == hideToken then
 			container.Visible = false
+			Viewport.setSpin(refs.ResultView, 0)
 		end
 	end)
 end
@@ -443,35 +560,99 @@ function Hud.toast(text: string, color: Color3?, seconds: number?)
 	end)
 end
 
--- 서버 전체 희귀 획득 알림
-function Hud.banner(playerName: string, aura: Auras.Aura, rollNumber: number)
-	local box = panel({
-		Size = UDim2.fromOffset(660, 76),
-		BackgroundColor3 = Color3.new(0, 0, 0),
-		BackgroundTransparency = 0.25,
-		Parent = refs.Notices,
+-- 서버 전체 "📰 속보": 오른쪽에서 밀려 들어와 잠시 머문 뒤 왼쪽으로 빠짐
+function Hud.news(playerName: string, landmark: Landmarks.Landmark, rollNumber: number)
+	local tier = landmark.Tier
+	newsOrder += 1
+
+	-- 너무 많이 쌓이면 가장 오래된 것부터 지움
+	while #newsItems >= MAX_NEWS do
+		local oldest = table.remove(newsItems, 1)
+		if oldest then
+			oldest:Destroy()
+		end
+	end
+
+	local item = Ui.new("Frame", {
+		LayoutOrder = newsOrder,
+		Size = UDim2.new(1, 0, 0, 46),
+		BackgroundTransparency = 1,
+		ClipsDescendants = true,
+		Parent = refs.News,
 	})
-	box:FindFirstChildOfClass("UIStroke").Color = aura.Tier.Color
-	Ui.padding(8).Parent = box
+	table.insert(newsItems, item)
+
+	local slide = Ui.new("Frame", {
+		Position = UDim2.fromScale(1, 0),
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Parent = item,
+	})
+
+	local bar = Ui.new("Frame", {
+		Position = UDim2.fromOffset(96, 0),
+		Size = UDim2.new(1, -96, 1, 0),
+		BackgroundColor3 = NEWS_WHITE,
+		Parent = slide,
+	})
+	Ui.corner(8).Parent = bar
+	Ui.stroke(tier.Color, 2, 0).Parent = bar
+	Ui.new("UIPadding", {
+		PaddingLeft = UDim.new(0, 22),
+		PaddingRight = UDim.new(0, 10),
+		PaddingTop = UDim.new(0, 6),
+		PaddingBottom = UDim.new(0, 6),
+		Parent = bar,
+	})
 	Ui.label({
-		Size = UDim2.new(1, 0, 0.45, 0),
+		Size = UDim2.fromScale(1, 1),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = NEWS_INK,
 		Text = string.format(
-			"🎉 %s 님이 %s번째 굴림에서 획득!",
+			'%s 님이 <font color="%s"><b>%s</b></font>(%s) 발견! — %s번째 탐험',
 			Format.escape(playerName),
+			Format.hex(tier.Color:Lerp(Color3.new(0, 0, 0), 0.35)),
+			Format.escape(landmark.Name),
+			Format.oneIn(landmark.OneIn),
 			Format.commas(rollNumber)
 		),
-		Parent = box,
+		Parent = bar,
 	}, 22)
-	local name = Ui.label({
-		Position = UDim2.fromScale(0, 0.45),
-		Size = UDim2.new(1, 0, 0.55, 0),
+
+	local tag = Ui.new("Frame", {
+		Size = UDim2.new(0, 110, 1, 0),
+		BackgroundColor3 = NEWS_RED,
+		ZIndex = 2,
+		Parent = slide,
+	})
+	Ui.corner(8).Parent = tag
+	Ui.label({
+		Size = UDim2.fromScale(1, 1),
 		Font = Theme.FontHeavy,
-		Text = string.format("%s  (%s · %s)", aura.Name, Format.oneIn(aura.OneIn), aura.Tier.Name),
-		Parent = box,
-	}, 30)
-	Ui.paintAura(name, aura)
-	task.delay(6, function()
-		box:Destroy()
+		Text = "📰 속보",
+		TextColor3 = Color3.new(1, 1, 1),
+		ZIndex = 3,
+		Parent = tag,
+	}, 22)
+
+	play(newsSound)
+	TweenService:Create(slide, TweenInfo.new(0.45, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+		Position = UDim2.fromScale(0, 0),
+	}):Play()
+
+	task.delay(NEWS_SECONDS, function()
+		if not item.Parent then
+			return -- 이미 밀려나서 지워짐
+		end
+		TweenService:Create(slide, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+			Position = UDim2.fromScale(-1, 0),
+		}):Play()
+		task.wait(0.45)
+		local index = table.find(newsItems, item)
+		if index then
+			table.remove(newsItems, index)
+		end
+		item:Destroy()
 	end)
 end
 

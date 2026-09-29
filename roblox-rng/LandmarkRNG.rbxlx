@@ -1,0 +1,5562 @@
+<roblox version="4">
+  <Item class="Lighting" referent="0">
+    <Properties>
+      <string name="Name">Lighting</string>
+      <float name="Brightness">2</float>
+      <float name="ClockTime">14.5</float>
+      <bool name="GlobalShadows">true</bool>
+    </Properties>
+    <Item class="Atmosphere" referent="1">
+      <Properties>
+        <string name="Name">Atmosphere</string>
+        <float name="Density">0.3</float>
+        <float name="Haze">1.5</float>
+      </Properties>
+    </Item>
+    <Item class="BloomEffect" referent="2">
+      <Properties>
+        <string name="Name">Bloom</string>
+        <float name="Intensity">0.6</float>
+        <float name="Size">24</float>
+        <float name="Threshold">1.4</float>
+      </Properties>
+    </Item>
+  </Item>
+  <Item class="ReplicatedStorage" referent="3">
+    <Properties>
+      <string name="Name">ReplicatedStorage</string>
+    </Properties>
+    <Item class="Folder" referent="4">
+      <Properties>
+        <string name="Name">Shared</string>
+      </Properties>
+      <Item class="ModuleScript" referent="5">
+        <Properties>
+          <string name="Name">Config</string>
+          <string name="Source"><![CDATA[--!strict
+-- 게임 전체 밸런스/설정 값. 숫자만 바꿔서 난이도를 조절할 수 있습니다.
+
+local Config = {
+	-- 굴리기(지구본 돌리기) ----------------------------------------------
+	ROLL_COOLDOWN = 1.2, -- 굴리기 사이 최소 간격(초). 서버가 강제합니다.
+	COOLDOWN_TOLERANCE = 0.15, -- 네트워크 지연을 감안한 허용 오차(초)
+	BASE_LUCK = 1,
+
+	-- 1/N 이상 희귀한 명소를 발견하면 서버 전체에 "뉴스 속보"
+	ANNOUNCE_ONE_IN = 1000,
+	-- 1/N 이상이면 광장 하늘에 거대한 홀로그램까지 띄움
+	HOLOGRAM_ONE_IN = 10000,
+
+	-- 새 명소를 처음 발견했을 때 보너스 코인 = ceil(DISCOVERY_BONUS_MULT * N ^ 0.5)
+	DISCOVERY_BONUS_MULT = 5,
+
+	-- 관광 공원(타이쿤) ------------------------------------------------------
+	BASE_SLOTS = 6, -- 처음 전시 칸 수 (공원 확장 업그레이드로 늘어남)
+	-- 등급(Rank 1~7)별 명소 1개의 초당 관광 수입
+	TIER_INCOME = { 1, 2, 5, 12, 30, 80, 250 },
+	-- 같은 명소를 여러 번 발견하면 별(★)이 오름. 별 k 개가 되는 누적 발견 수
+	STAR_THRESHOLDS = { 1, 3, 10, 30, 100 },
+	STAR_INCOME_BONUS = 0.5, -- 별 1개 추가마다 그 명소 수입 +50%
+
+	-- 여권 도장: 한 지역의 명소를 모두 발견하면 영구 행운 보너스(지역마다 더해짐)
+	REGION_LUCK_BONUS = 0.25,
+
+	-- 업그레이드(영구). 가격 = floor(BasePrice * Growth ^ 현재레벨)
+	Upgrades = {
+		{
+			Id = "Globe",
+			Name = "지구본",
+			Emoji = "🌐",
+			Description = "행운 +10%",
+			BasePrice = 400,
+			Growth = 1.7,
+			MaxLevel = 20,
+			PerLevel = 0.10,
+		},
+		{
+			Id = "Agency",
+			Name = "여행사",
+			Emoji = "✈️",
+			Description = "굴림 간격 -5%",
+			BasePrice = 300,
+			Growth = 1.8,
+			MaxLevel = 10,
+			PerLevel = 0.05,
+		},
+		{
+			Id = "Park",
+			Name = "공원 확장",
+			Emoji = "🏞️",
+			Description = "전시 칸 +3",
+			BasePrice = 250,
+			Growth = 2.0,
+			MaxLevel = 9, -- 6 + 3*9 = 33칸 = 전체 명소 수
+			PerLevel = 3,
+		},
+		{
+			Id = "Ticket",
+			Name = "입장료",
+			Emoji = "🎟️",
+			Description = "관광 수입 +20%",
+			BasePrice = 500,
+			Growth = 1.9,
+			MaxLevel = 15,
+			PerLevel = 0.20,
+		},
+	},
+
+	-- 저장 ---------------------------------------------------------------
+	DATASTORE_NAME = "LandmarkRNG_v1",
+	AUTOSAVE_INTERVAL = 120,
+}
+
+return Config
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="6">
+        <Properties>
+          <string name="Name">Format</string>
+          <string name="Source"><![CDATA[--!strict
+-- 숫자/시간 표시용 포맷 함수
+
+local Format = {}
+
+-- 1234567 -> "1,234,567"
+function Format.commas(n: number): string
+	local negative = n < 0
+	local digits = tostring(math.floor(math.abs(n)))
+	local out = digits:reverse():gsub("(%d%d%d)", "%1,"):reverse()
+	if out:sub(1, 1) == "," then
+		out = out:sub(2)
+	end
+	return if negative then "-" .. out else out
+end
+
+local SUFFIXES = {
+	{ 1e12, "T" },
+	{ 1e9, "B" },
+	{ 1e6, "M" },
+	{ 1e3, "K" },
+}
+
+-- 2500000 -> "2.5M", 404040 -> "404K". 반올림 대신 버림(999.95K 가 "1000K" 가 되지 않도록).
+function Format.short(n: number): string
+	for _, entry in SUFFIXES do
+		local unit = entry[1] :: number
+		if n >= unit then
+			local value = n / unit
+			local text
+			if value >= 100 then
+				text = tostring(math.floor(value))
+			else
+				text = string.format("%.1f", math.floor(value * 10) / 10):gsub("%.0$", "")
+			end
+			return text .. (entry[2] :: string)
+		end
+	end
+	return Format.commas(n)
+end
+
+-- 확률 표기: 1,000,000 미만은 콤마, 이상은 축약 ("1 in 2,500", "1 in 10M")
+function Format.oneIn(n: number): string
+	if n >= 1e6 then
+		return "1 in " .. Format.short(n)
+	end
+	return "1 in " .. Format.commas(n)
+end
+
+-- 1.5 -> "x1.5", 2 -> "x2", 1.25 -> "x1.25"
+function Format.multiplier(x: number): string
+	local text = string.format("%.2f", x):gsub("0+$", ""):gsub("%.$", "")
+	return "x" .. text
+end
+
+-- 초 -> "4:05" / "1:02:03"
+function Format.duration(seconds: number): string
+	local total = math.max(0, math.ceil(seconds))
+	local h = total // 3600
+	local m = (total % 3600) // 60
+	local s = total % 60
+	if h > 0 then
+		return string.format("%d:%02d:%02d", h, m, s)
+	end
+	return string.format("%d:%02d", m, s)
+end
+
+-- Color3 -> "#rrggbb" (RichText 용)
+function Format.hex(color: Color3): string
+	return string.format(
+		"#%02x%02x%02x",
+		math.floor(color.R * 255 + 0.5),
+		math.floor(color.G * 255 + 0.5),
+		math.floor(color.B * 255 + 0.5)
+	)
+end
+
+-- RichText 에 넣을 문자열 이스케이프
+function Format.escape(text: string): string
+	return (text:gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;"):gsub('"', "&quot;"))
+end
+
+return Format
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="7">
+        <Properties>
+          <string name="Name">Landmarks</string>
+          <string name="Source"><![CDATA[--!strict
+-- 명소(뽑기 결과) 목록. OneIn = "1/N 확률"의 N.
+-- 새 명소를 추가하려면 DEFINITIONS 에 한 줄만 넣으면 됩니다(Id는 저장 키이므로 게시 후엔 바꾸지 마세요).
+-- 모형: Shape 이름으로 Models.luau 가 코드로 임시 모형을 만듭니다.
+--       ReplicatedStorage.LandmarkModels 폴더에 Id 와 같은 이름의 Model 을 넣으면 그 모형(예: AI 메쉬)을 대신 씁니다.
+
+export type Tier = {
+	Rank: number,
+	Name: string,
+	MinOneIn: number,
+	Color: Color3,
+}
+
+export type Region = {
+	Id: string,
+	Name: string,
+	Emoji: string,
+	Color: Color3,
+}
+
+export type Landmark = {
+	Id: string,
+	Name: string,
+	Subtitle: string, -- 영문 이름
+	OneIn: number,
+	Region: string, -- Region.Id
+	Shape: string, -- Models.luau 의 임시 모형 종류
+	Primary: Color3, -- 주 색
+	Secondary: Color3, -- 보조 색
+	Accent: Color3, -- 강조 색(빛/장식)
+	Material: Enum.Material, -- 주 재질
+	Tier: Tier,
+}
+
+local Landmarks = {}
+
+-- 등급: OneIn 이 MinOneIn 이상이면 해당 등급(높은 등급부터 검사)
+Landmarks.Tiers = {
+	{ Rank = 1, Name = "동네 명소", MinOneIn = 1, Color = Color3.fromRGB(190, 200, 210) },
+	{ Rank = 2, Name = "도시 명소", MinOneIn = 10, Color = Color3.fromRGB(110, 215, 120) },
+	{ Rank = 3, Name = "국가 명소", MinOneIn = 100, Color = Color3.fromRGB(80, 165, 255) },
+	{ Rank = 4, Name = "세계 명소", MinOneIn = 1000, Color = Color3.fromRGB(185, 110, 255) },
+	{ Rank = 5, Name = "불가사의", MinOneIn = 10000, Color = Color3.fromRGB(255, 175, 45) },
+	{ Rank = 6, Name = "잃어버린 유산", MinOneIn = 100000, Color = Color3.fromRGB(255, 85, 110) },
+	{ Rank = 7, Name = "전설", MinOneIn = 1000000, Color = Color3.fromRGB(120, 255, 235) },
+} :: { Tier }
+
+Landmarks.Regions = {
+	{ Id = "Home", Name = "우리 동네", Emoji = "🏡", Color = Color3.fromRGB(200, 200, 200) },
+	{ Id = "Europe", Name = "유럽", Emoji = "🏰", Color = Color3.fromRGB(110, 150, 255) },
+	{ Id = "Asia", Name = "아시아", Emoji = "🏯", Color = Color3.fromRGB(255, 120, 120) },
+	{ Id = "Africa", Name = "아프리카·중동", Emoji = "🐪", Color = Color3.fromRGB(240, 190, 90) },
+	{ Id = "Americas", Name = "아메리카", Emoji = "🗽", Color = Color3.fromRGB(90, 210, 150) },
+	{ Id = "Legend", Name = "전설의 장소", Emoji = "✨", Color = Color3.fromRGB(120, 255, 235) },
+} :: { Region }
+
+Landmarks.RegionById = {} :: { [string]: Region }
+for _, region in Landmarks.Regions do
+	Landmarks.RegionById[region.Id] = region
+end
+
+local function tierFor(oneIn: number): Tier
+	for i = #Landmarks.Tiers, 1, -1 do
+		local tier = Landmarks.Tiers[i]
+		if oneIn >= tier.MinOneIn then
+			return tier
+		end
+	end
+	return Landmarks.Tiers[1]
+end
+
+local rgb = Color3.fromRGB
+local M = Enum.Material
+
+-- stylua: ignore
+local DEFINITIONS = {
+	-- Id,           이름,               영문,                          N,         지역,       모형,         주 색,               보조 색,              강조 색,              재질
+	{ "clocktower",  "시계탑",           "Clock Tower",                 2,         "Home",     "clocktower", rgb(200, 170, 140), rgb(90, 70, 60),    rgb(255, 245, 210), M.Brick },
+	{ "lighthouse",  "등대",             "Lighthouse",                  3,         "Home",     "lighthouse", rgb(240, 240, 240), rgb(210, 60, 60),   rgb(255, 240, 150), M.SmoothPlastic },
+	{ "windmill",    "풍차",             "Windmill",                    5,         "Home",     "windmill",   rgb(230, 220, 200), rgb(140, 90, 60),   rgb(250, 250, 250), M.WoodPlanks },
+	{ "fountain",    "분수대",           "Fountain",                    7,         "Home",     "fountain",   rgb(210, 210, 215), rgb(80, 170, 255),  rgb(200, 240, 255), M.Marble },
+
+	{ "arc",         "개선문",           "Arc de Triomphe",             12,        "Europe",   "arch",       rgb(225, 210, 180), rgb(190, 175, 150), rgb(255, 230, 160), M.Limestone },
+	{ "bigben",      "빅벤",             "Big Ben",                     20,        "Europe",   "clocktower", rgb(200, 175, 120), rgb(40, 60, 50),    rgb(255, 230, 140), M.Sandstone },
+	{ "sungnyemun",  "숭례문",           "Sungnyemun Gate",             30,        "Asia",     "gate",       rgb(170, 160, 150), rgb(60, 120, 90),   rgb(200, 50, 45),   M.Slate },
+	{ "pisa",        "피사의 사탑",      "Leaning Tower of Pisa",       45,        "Europe",   "leaning",    rgb(240, 235, 220), rgb(200, 190, 170), rgb(255, 250, 235), M.Marble },
+	{ "liberty",     "자유의 여신상",    "Statue of Liberty",           70,        "Americas", "statue",     rgb(120, 190, 160), rgb(160, 140, 110), rgb(255, 200, 80),  M.Metal },
+
+	{ "namsan",      "남산타워",         "N Seoul Tower",               120,       "Asia",     "needle",     rgb(235, 235, 240), rgb(60, 60, 70),    rgb(90, 200, 255),  M.SmoothPlastic },
+	{ "eiffel",      "에펠탑",           "Eiffel Tower",                200,       "Europe",   "lattice",    rgb(120, 95, 70),   rgb(90, 70, 50),    rgb(255, 210, 120), M.Metal },
+	{ "colosseum",   "콜로세움",         "Colosseum",                   350,       "Europe",   "ring",       rgb(215, 190, 150), rgb(170, 145, 110), rgb(255, 225, 170), M.Limestone },
+	{ "tajmahal",    "타지마할",         "Taj Mahal",                   600,       "Asia",     "dome",       rgb(250, 248, 240), rgb(220, 215, 200), rgb(255, 215, 120), M.Marble },
+	{ "angkor",      "앙코르와트",       "Angkor Wat",                  850,       "Asia",     "temple",     rgb(150, 140, 110), rgb(100, 110, 80),  rgb(230, 200, 120), M.Sandstone },
+
+	{ "sphinx",      "스핑크스",         "Great Sphinx",                1200,      "Africa",   "sphinx",     rgb(215, 180, 120), rgb(190, 155, 100), rgb(80, 120, 200),  M.Sandstone },
+	{ "greatwall",   "만리장성",         "Great Wall",                  1600,      "Asia",     "wall",       rgb(160, 150, 135), rgb(90, 130, 70),   rgb(220, 60, 50),   M.Cobblestone },
+	{ "pyramid",     "기자 피라미드",    "Pyramids of Giza",            2200,      "Africa",   "pyramid",    rgb(225, 195, 130), rgb(200, 170, 110), rgb(255, 225, 120), M.Sandstone },
+	{ "chichen",     "치첸이트사",       "Chichen Itza",                3000,      "Americas", "steps",      rgb(190, 180, 160), rgb(80, 140, 80),   rgb(230, 220, 190), M.Limestone },
+	{ "machupicchu", "마추픽추",         "Machu Picchu",                4000,      "Americas", "terraces",   rgb(150, 145, 135), rgb(90, 160, 80),   rgb(200, 230, 255), M.Slate },
+	{ "petra",       "페트라",           "Petra",                       5500,      "Africa",   "facade",     rgb(215, 130, 100), rgb(180, 100, 75),  rgb(255, 200, 150), M.Sandstone },
+	{ "moai",        "모아이 석상",      "Moai",                        7000,      "Americas", "moai",       rgb(110, 105, 100), rgb(80, 150, 90),   rgb(200, 60, 50),   M.Basalt },
+	{ "stonehenge",  "스톤헨지",         "Stonehenge",                  9000,      "Europe",   "stones",     rgb(150, 150, 145), rgb(90, 150, 80),   rgb(200, 220, 255), M.Slate },
+
+	{ "alexandria",  "알렉산드리아 등대", "Lighthouse of Alexandria",   15000,     "Africa",   "lighthouse", rgb(245, 240, 225), rgb(220, 200, 160), rgb(255, 170, 60),  M.Marble },
+	{ "babylon",     "바빌론 공중정원",  "Hanging Gardens of Babylon",  30000,     "Africa",   "gardens",    rgb(210, 180, 130), rgb(60, 170, 70),   rgb(120, 200, 255), M.Sandstone },
+	{ "rhodes",      "로도스 거상",      "Colossus of Rhodes",          60000,     "Europe",   "statue",     rgb(190, 130, 60),  rgb(230, 225, 210), rgb(255, 140, 40),  M.Foil },
+
+	{ "babel",       "바벨탑",           "Tower of Babel",              150000,    "Legend",   "spiral",     rgb(200, 170, 120), rgb(150, 120, 90),  rgb(255, 230, 180), M.Sandstone },
+	{ "atlantis",    "아틀란티스",       "Atlantis",                    400000,    "Legend",   "island",     rgb(230, 240, 250), rgb(40, 120, 200),  rgb(90, 255, 230),  M.Marble },
+	{ "eldorado",    "엘도라도",         "El Dorado",                   800000,    "Legend",   "steps",      rgb(255, 200, 60),  rgb(200, 140, 30),  rgb(255, 250, 180), M.Foil },
+
+	{ "yonggung",    "용궁",             "Dragon King's Palace",        2000000,   "Legend",   "pagoda",     rgb(230, 70, 70),   rgb(40, 130, 150),  rgb(120, 255, 220), M.Glass },
+	{ "skyisland",   "하늘섬",           "Sky Island",                  5000000,   "Legend",   "skyisland",  rgb(120, 200, 90),  rgb(140, 110, 80),  rgb(255, 255, 255), M.Grass },
+	{ "shangrila",   "샹그릴라",         "Shangri-La",                  10000000,  "Legend",   "pagoda",     rgb(250, 250, 250), rgb(255, 200, 70),  rgb(255, 240, 180), M.Marble },
+	{ "worldtree",   "세계수",           "World Tree",                  40000000,  "Legend",   "tree",       rgb(120, 90, 60),   rgb(90, 220, 120),  rgb(255, 255, 200), M.Wood },
+	{ "earth",       "지구",             "The Earth",                   100000000, "Legend",   "globe",      rgb(40, 110, 220),  rgb(70, 190, 90),   rgb(255, 255, 255), M.SmoothPlastic },
+}
+
+Landmarks.List = {} :: { Landmark }
+Landmarks.ById = {} :: { [string]: Landmark }
+
+for _, def in DEFINITIONS do
+	local oneIn = def[4] :: number
+	local landmark: Landmark = {
+		Id = def[1] :: string,
+		Name = def[2] :: string,
+		Subtitle = def[3] :: string,
+		OneIn = oneIn,
+		Region = def[5] :: string,
+		Shape = def[6] :: string,
+		Primary = def[7] :: Color3,
+		Secondary = def[8] :: Color3,
+		Accent = def[9] :: Color3,
+		Material = def[10] :: Enum.Material,
+		Tier = tierFor(oneIn),
+	}
+	assert(Landmarks.ById[landmark.Id] == nil, "중복된 명소 Id: " .. landmark.Id)
+	assert(Landmarks.RegionById[landmark.Region], "없는 지역: " .. landmark.Region)
+	table.insert(Landmarks.List, landmark)
+	Landmarks.ById[landmark.Id] = landmark
+end
+
+-- 흔한 것 → 희귀한 것 순서(여권/표시용)
+table.sort(Landmarks.List, function(a, b)
+	return a.OneIn < b.OneIn
+end)
+
+-- 희귀한 것 → 흔한 것 순서(굴림 판정용)
+Landmarks.RarestFirst = table.clone(Landmarks.List)
+table.sort(Landmarks.RarestFirst, function(a, b)
+	return a.OneIn > b.OneIn
+end)
+
+-- 지역별 목록(흔한 것 → 희귀한 것)
+Landmarks.ByRegion = {} :: { [string]: { Landmark } }
+for _, region in Landmarks.Regions do
+	Landmarks.ByRegion[region.Id] = {}
+end
+for _, landmark in Landmarks.List do
+	table.insert(Landmarks.ByRegion[landmark.Region], landmark)
+end
+
+Landmarks.Common = Landmarks.List[1]
+Landmarks.tierFor = tierFor
+
+return Landmarks
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="8">
+        <Properties>
+          <string name="Name">Models</string>
+          <string name="Source"><![CDATA[-- 명소 3D 모형 (서버·클라이언트 공용, 양보(yield) 없음)
+--
+-- Models.build(landmark): 에셋 없이 기본 파트(Block/Ball/Cylinder/Wedge)만으로 만든 임시 미니어처.
+--   설계 공간: 바닥 가로·세로 10 스터드(원점 중심) 안, 높이 22 스터드 이하, 바닥 y = 0, 정면은 -Z 쪽.
+--   투명한 "Root" 파트(10 x 0.2 x 10)가 바닥 중앙에 있고 PrimaryPart(피벗 = 바닥 중앙).
+--   모든 파트 Anchored = true, CanCollide = false. 색은 명소의 Primary / Secondary / Accent, 재질은 Material.
+-- Models.create(landmark, size, opts?): 실제로 쓰는 함수.
+--   ReplicatedStorage.LandmarkModels 에 명소 Id 와 같은 이름의 Model 이 있으면 복제(AI 메쉬 교체용), 없으면 build().
+--   가로·세로 중 큰 쪽이 size 스터드가 되도록 Model:ScaleTo(높이는 size * 2.2 까지). 피벗 = 바닥 중앙, 부모 없음.
+--   opts.Anchored == false 면 모든 BasePart: Anchored/CanCollide/CanQuery/CanTouch 끔 + Massless(캐릭터에 용접할 때).
+
+local Landmarks = require(script.Parent.Landmarks)
+
+type Landmark = Landmarks.Landmark
+
+local Models = {}
+
+local DESIGN_WIDTH = 10 -- 설계 공간 가로·세로(스터드)
+local MAX_HEIGHT_RATIO = 2.2 -- 높이 한도 = size * 2.2 (설계 공간 22 / 10)
+local OVERRIDE_FOLDER = "LandmarkModels"
+
+local V = Vector3.new
+local rgb = Color3.fromRGB
+local Mat = Enum.Material
+local PI = math.pi
+local TAU = math.pi * 2
+
+local UPRIGHT = CFrame.Angles(0, 0, PI / 2) -- 원기둥(길이 축 = X)을 세움
+local ALONG_Z = CFrame.Angles(0, PI / 2, 0) -- 원기둥 길이 축을 Z 로(정면을 보는 원판)
+local CORNERS = { { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 } }
+
+-- 명소 색으로 표현하기 어려운 자연물/그늘 색
+local GRASS = rgb(96, 168, 78)
+local LEAF = rgb(58, 132, 62)
+local WATER = rgb(60, 145, 225)
+local DARK = rgb(38, 32, 30)
+local TILE = rgb(62, 66, 74)
+local ROCK = rgb(120, 114, 106)
+local WOOD = rgb(105, 72, 48)
+local SAND = rgb(226, 204, 156)
+local CLOUD = rgb(248, 250, 255)
+local BLACK = rgb(0, 0, 0)
+local WHITE = rgb(255, 255, 255)
+
+type Ctx = {
+	model: Model,
+	origin: CFrame, -- 파트 좌표에 앞에서 곱하는 기준 좌표계(기울어진 탑 등)
+	P: Color3, -- 주 색
+	S: Color3, -- 보조 색
+	A: Color3, -- 강조 색(빛/장식)
+	M: Enum.Material, -- 주 재질
+	grand: boolean, -- 불가사의 이상 등급: 같은 모형을 쓰는 흔한 명소보다 웅장하게
+}
+
+local function mix(a: Color3, b: Color3, t: number): Color3
+	return Color3.new(a.R + (b.R - a.R) * t, a.G + (b.G - a.G) * t, a.B + (b.B - a.B) * t)
+end
+
+-- 파트 생성 헬퍼 ------------------------------------------------------------
+
+local function add(
+	c: Ctx,
+	part: BasePart,
+	cf: CFrame,
+	size: Vector3,
+	color: Color3,
+	material: Enum.Material?,
+	transparency: number?
+): BasePart
+	part.Anchored = true
+	part.CanCollide = false
+	part.TopSurface = Enum.SurfaceType.Smooth
+	part.BottomSurface = Enum.SurfaceType.Smooth
+	part.Size = size
+	part.CFrame = c.origin * cf
+	part.Color = color
+	part.Material = material or c.M
+	part.Transparency = transparency or 0
+	part.Parent = c.model
+	return part
+end
+
+local function shaped(
+	c: Ctx,
+	shape: Enum.PartType,
+	cf: CFrame,
+	size: Vector3,
+	color: Color3,
+	material: Enum.Material?,
+	transparency: number?
+): BasePart
+	local part = Instance.new("Part")
+	part.Shape = shape -- 크기보다 먼저(공 모양은 크기가 균일해짐)
+	return add(c, part, cf, size, color, material, transparency)
+end
+
+-- 중심 좌표계 cf 에 놓는 직육면체
+local function block(c: Ctx, cf: CFrame, size: Vector3, color: Color3, material: Enum.Material?, transparency: number?)
+	return shaped(c, Enum.PartType.Block, cf, size, color, material, transparency)
+end
+
+-- 바닥 중앙이 (x, y, z) 인 직육면체
+local function box(
+	c: Ctx,
+	x: number,
+	y: number,
+	z: number,
+	sx: number,
+	sy: number,
+	sz: number,
+	color: Color3,
+	material: Enum.Material?,
+	transparency: number?
+)
+	return block(c, CFrame.new(x, y + sy / 2, z), V(sx, sy, sz), color, material, transparency)
+end
+
+-- 중심이 (x, y, z), 지름 d 인 공
+local function ball(
+	c: Ctx,
+	x: number,
+	y: number,
+	z: number,
+	d: number,
+	color: Color3,
+	material: Enum.Material?,
+	transparency: number?
+)
+	return shaped(c, Enum.PartType.Ball, CFrame.new(x, y, z), V(d, d, d), color, material, transparency)
+end
+
+-- 길이 축이 cf 의 X 축인 원기둥
+local function cyl(
+	c: Ctx,
+	cf: CFrame,
+	length: number,
+	d: number,
+	color: Color3,
+	material: Enum.Material?,
+	transparency: number?
+)
+	return shaped(c, Enum.PartType.Cylinder, cf, V(length, d, d), color, material, transparency)
+end
+
+-- 바닥 중앙이 (x, y, z) 인 세운 원기둥(높이 h, 지름 d)
+local function col(
+	c: Ctx,
+	x: number,
+	y: number,
+	z: number,
+	h: number,
+	d: number,
+	color: Color3,
+	material: Enum.Material?,
+	transparency: number?
+)
+	return cyl(c, CFrame.new(x, y + h / 2, z) * UPRIGHT, h, d, color, material, transparency)
+end
+
+-- 쐐기: 높은 면이 +Z(뒤), 경사면이 -Z(앞, cf.LookVector) 쪽을 봄
+local function wedge(c: Ctx, cf: CFrame, size: Vector3, color: Color3, material: Enum.Material?, transparency: number?)
+	return add(c, Instance.new("WedgePart"), cf, size, color, material, transparency)
+end
+
+-- a 에서 b 까지 이어지는 각재(단면 t x t)
+local function beam(
+	c: Ctx,
+	a: Vector3,
+	b: Vector3,
+	t: number,
+	color: Color3,
+	material: Enum.Material?,
+	transparency: number?
+)
+	local delta = b - a
+	local length = delta.Magnitude
+	local mid = (a + b) / 2
+	local cf
+	if math.abs(delta.Y) > length * 0.999 then
+		cf = CFrame.new(mid) * CFrame.Angles(PI / 2, 0, 0) -- 수직이면 lookAt 대신 직접 세움
+	else
+		cf = CFrame.lookAt(mid, b)
+	end
+	return block(c, cf, V(t, t, length), color, material, transparency)
+end
+
+-- (dx, dz) 쪽을 정면(LookVector)으로 보는 회전
+local function facing(dx: number, dz: number): CFrame
+	return CFrame.Angles(0, math.atan2(-dx, -dz), 0)
+end
+
+-- 개구부 위쪽 모서리를 채우는 쐐기(아치처럼 보이게). xWall = 벽면 x, side = -1(왼쪽 벽) / 1(오른쪽 벽)
+local function archCorner(
+	c: Ctx,
+	xWall: number,
+	yTop: number,
+	z: number,
+	leg: number,
+	depth: number,
+	color: Color3,
+	side: number
+)
+	-- 뒤집은(roll 180도) 쐐기를 벽 쪽으로 돌림: 직각이 벽과 천장이 만나는 모서리에 옴
+	local cf = CFrame.new(xWall - side * leg / 2, yTop - leg / 2, z)
+		* CFrame.Angles(0, side * PI / 2, 0)
+		* CFrame.Angles(0, 0, PI)
+	return wedge(c, cf, V(depth, leg, leg), color)
+end
+
+-- 기와지붕: 처마 판 + 앞뒤 경사 + 용마루 + 네 귀퉁이 들린 추녀. 바닥이 y, 전체 높이 ≈ 0.3 + h + 0.2
+local function roof(c: Ctx, x: number, y: number, z: number, w: number, d: number, h: number, color: Color3)
+	box(c, x, y, z, w, 0.3, d, color)
+	local top = y + 0.3
+	wedge(c, CFrame.new(x, top + h / 2, z - d / 4), V(w - 0.3, h, d / 2), color)
+	wedge(c, CFrame.new(x, top + h / 2, z + d / 4) * CFrame.Angles(0, PI, 0), V(w - 0.3, h, d / 2), color)
+	box(c, x, top + h - 0.2, z, w - 0.2, 0.4, 0.45, mix(color, BLACK, 0.25))
+	for _, s in CORNERS do
+		local cf = CFrame.new(x + s[1] * (w / 2 - 0.35), top + 0.3, z + s[2] * (d / 2 - 0.35))
+		wedge(c, cf * CFrame.Angles(0, math.atan2(s[1], s[2]), 0), V(0.55, 0.6, 1.1), color)
+	end
+end
+
+-- 박공지붕(쐐기 두 개). 바닥이 y
+local function gable(c: Ctx, x: number, y: number, z: number, w: number, d: number, h: number, color: Color3)
+	wedge(c, CFrame.new(x, y + h / 2, z - d / 4), V(w, h, d / 2), color)
+	wedge(c, CFrame.new(x, y + h / 2, z + d / 4) * CFrame.Angles(0, PI, 0), V(w, h, d / 2), color)
+end
+
+-- 나무: 줄기 + 잎 공
+local function plant(c: Ctx, x: number, y: number, z: number, h: number, d: number, leaf: Color3)
+	col(c, x, y, z, h, math.max(0.2, d * 0.22), WOOD, Mat.Wood)
+	ball(c, x, y + h + d * 0.3, z, d, leaf, Mat.Grass)
+end
+
+-- 계단식 피라미드(steps 단). 꼭대기 높이를 돌려줌
+local function stepped(
+	c: Ctx,
+	x: number,
+	z: number,
+	y: number,
+	base: number,
+	height: number,
+	steps: number,
+	color: Color3
+)
+	local stepHeight = height / steps
+	for i = 0, steps - 1 do
+		local w = base * (1 - i / steps)
+		box(c, x, y + i * stepHeight, z, w, stepHeight, w, color)
+	end
+	return y + height
+end
+
+-- 시계 판: cf 는 벽면 중앙, -Z 가 바깥
+local function clockFace(c: Ctx, cf: CFrame, d: number)
+	cyl(c, cf * CFrame.new(0, 0, -0.1) * ALONG_Z, 0.2, d, c.A, Mat.Neon)
+	block(c, cf * CFrame.new(0, d * 0.14, -0.25), V(d * 0.08, d * 0.3, 0.1), c.S)
+	block(c, cf * CFrame.Angles(0, 0, -2.1) * CFrame.new(0, d * 0.2, -0.27), V(d * 0.06, d * 0.42, 0.1), c.S)
+end
+
+-- 모형들 ------------------------------------------------------------------
+
+local BUILDERS: { [string]: (Ctx) -> () } = {}
+
+-- 시계탑 / 빅벤: 기단 + 탑신 + 네 면 시계 + 종루 + 뾰족 지붕
+function BUILDERS.clocktower(c)
+	box(c, 0, 0, 0, 6, 0.6, 6, c.S)
+	box(c, 0, 0.6, 0, 3.6, 10, 3.6, c.P)
+	for _, s in CORNERS do
+		box(c, s[1] * 1.8, 0.6, s[2] * 1.8, 0.6, 10, 0.6, c.S)
+	end
+	box(c, 0, 5.4, 0, 3.9, 0.3, 3.9, c.S)
+	box(c, 0, 10.6, 0, 4.4, 3.6, 4.4, c.P)
+	for i = 0, 3 do
+		clockFace(c, CFrame.Angles(0, i * PI / 2, 0) * CFrame.new(0, 12.4, -2.2), 3)
+	end
+	box(c, 0, 14.2, 0, 5, 0.4, 5, c.S)
+	box(c, 0, 14.6, 0, 3.6, 1.6, 3.6, c.P)
+	for i = 0, 3 do
+		block(c, CFrame.Angles(0, i * PI / 2, 0) * CFrame.new(0, 15.4, -1.8), V(1.8, 1, 0.1), DARK)
+	end
+	box(c, 0, 16.2, 0, 4, 0.3, 4, c.S)
+	local y = 16.5
+	for _, step in { { 3, 0.9 }, { 2.2, 0.9 }, { 1.4, 1 }, { 0.7, 1 } } do
+		box(c, 0, y, 0, step[1], step[2], step[1], c.S)
+		y += step[2]
+	end
+	col(c, 0, y, 0, 1, 0.25, c.A, Mat.Metal)
+	ball(c, 0, y + 1.25, 0, 0.5, c.A, Mat.Neon)
+end
+
+-- 등대 / 알렉산드리아 등대: 줄무늬 탑(흔한 것) 또는 3단 석탑(불가사의) + 유리 등롱 + 불빛 줄기
+function BUILDERS.lighthouse(c)
+	local top
+	if c.grand then
+		box(c, 0, 0, 0, 9.6, 0.6, 9.6, c.S)
+		box(c, 0, 0.6, 0, 6.4, 6.4, 6.4, c.P)
+		for i = 0, 3 do
+			block(c, CFrame.Angles(0, i * PI / 2, 0) * CFrame.new(0, 4.6, -3.2), V(0.6, 1.6, 0.1), DARK)
+		end
+		box(c, 0, 7, 0, 6.9, 0.5, 6.9, c.S)
+		box(c, 0, 7.5, 0, 4.4, 4.2, 4.4, c.P)
+		block(c, CFrame.new(0, 9.6, 0) * CFrame.Angles(0, PI / 4, 0), V(4.4, 4.2, 4.4), c.P)
+		col(c, 0, 11.7, 0, 0.4, 5.2, c.S)
+		col(c, 0, 12.1, 0, 3.8, 3.2, c.P)
+		top = 15.9
+	else
+		col(c, 0, 0, 0, 0.8, 8.6, ROCK, Mat.Slate)
+		box(c, 2.2, 0.8, 1.3, 2, 1.4, 1.8, c.P)
+		gable(c, 2.2, 2.2, 1.3, 2.3, 2.1, 0.9, c.S)
+		local y = 0.8
+		for i = 0, 5 do
+			col(c, 0, y, 0, 1.9, 3.4 - i * 0.18, if i % 2 == 0 then c.P else c.S)
+			y += 1.9
+		end
+		top = y
+	end
+	col(c, 0, top, 0, 0.3, 3.8, c.S)
+	col(c, 0, top + 0.3, 0, 1.8, 2.2, c.A, Mat.Glass, 0.45)
+	ball(c, 0, top + 1.2, 0, 1.3, c.A, Mat.Neon)
+	col(c, 0, top + 2.1, 0, 0.3, 2.6, c.S)
+	col(c, 0, top + 2.4, 0, 0.6, 1.6, c.S)
+	if c.grand then
+		-- 꼭대기의 신상
+		col(c, 0, top + 3, 0, 1.1, 0.5, c.P)
+		ball(c, 0, top + 4.3, 0, 0.45, c.P)
+	else
+		col(c, 0, top + 3, 0, 0.5, 0.8, c.S)
+		ball(c, 0, top + 3.7, 0, 0.5, c.A, Mat.Neon)
+	end
+	block(c, CFrame.new(0, top + 1.2, 0) * CFrame.Angles(0, math.rad(30), 0), V(9.4, 0.5, 0.5), c.A, Mat.Neon, 0.6)
+end
+
+-- 풍차: 잔디 + 원뿔형 탑 + 둥근 지붕 + 네 날개
+function BUILDERS.windmill(c)
+	col(c, 0, 0, 0, 0.4, 9.4, GRASS, Mat.Grass)
+	col(c, 0, 0.4, 0, 3, 5.4, c.P)
+	col(c, 0, 3.4, 0, 3, 4.8, c.P)
+	col(c, 0, 6.4, 0, 3, 4.2, c.P)
+	col(c, 0, 3.3, 0, 0.3, 6.2, c.S)
+	ball(c, 0, 9.4, 0, 4.4, c.S)
+	box(c, 0, 0.4, -2.65, 1.1, 1.8, 0.3, c.S)
+	box(c, 0, 4.4, -2.35, 0.7, 0.9, 0.2, DARK)
+	box(c, 0, 7.2, -2.05, 0.6, 0.8, 0.2, DARK)
+	local hub = CFrame.new(0, 9.6, -2.4)
+	cyl(c, hub * ALONG_Z, 1.2, 0.8, c.S)
+	for i = 0, 3 do
+		local arm = CFrame.new(0, 9.6, -3.1) * CFrame.Angles(0, 0, PI / 4 + i * PI / 2)
+		block(c, arm * CFrame.new(0, 2.5, 0), V(0.25, 5, 0.25), c.S)
+		block(c, arm * CFrame.new(0.55, 2.9, -0.05), V(0.9, 3.8, 0.1), c.A, nil, 0.05)
+	end
+end
+
+-- 분수대: 팔각 수반 + 2단 물받이 + 물줄기(유리/네온)
+function BUILDERS.fountain(c)
+	col(c, 0, 0, 0, 0.3, 9.8, c.P)
+	local r = 4
+	local side = 2 * r * math.tan(PI / 8) + 0.1
+	for i = 0, 7 do
+		block(c, CFrame.Angles(0, i * PI / 4, 0) * CFrame.new(0, 0.85, -r), V(side, 1.1, 0.5), c.P)
+	end
+	col(c, 0, 0.3, 0, 0.6, 7.5, c.S, Mat.Glass, 0.25)
+	col(c, 0, 0.3, 0, 3.2, 1.2, c.P)
+	col(c, 0, 3.1, 0, 0.4, 2.6, c.P)
+	col(c, 0, 3.5, 0, 0.5, 4.6, c.P)
+	col(c, 0, 4, 0, 0.12, 4, c.S, Mat.Glass, 0.2)
+	col(c, 0, 0.9, 0, 3, 4.5, c.A, Mat.Glass, 0.65)
+	col(c, 0, 4, 0, 1.8, 0.7, c.P)
+	col(c, 0, 5.8, 0, 0.35, 2.4, c.P)
+	col(c, 0, 6.15, 0, 0.1, 2, c.S, Mat.Glass, 0.2)
+	col(c, 0, 4.12, 0, 1.68, 2.3, c.A, Mat.Glass, 0.65)
+	col(c, 0, 6.15, 0, 2.2, 0.35, c.A, Mat.Neon, 0.3)
+	ball(c, 0, 8.4, 0, 1, c.A, Mat.Glass, 0.45)
+	for i = 0, 3 do
+		local rot = CFrame.Angles(0, i * PI / 2 + PI / 4, 0)
+		beam(c, rot * V(0, 1.4, -3.4), rot * V(0, 2.8, -2.3), 0.2, c.A, Mat.Neon, 0.3)
+	end
+end
+
+-- 개선문: 원형 광장 + 네 기둥(앞뒤·옆 아치) + 코니스 + 아틱
+function BUILDERS.arch(c)
+	col(c, 0, 0, 0, 0.2, 9.8, c.S)
+	box(c, 0, 0.2, 0, 9.2, 0.35, 5, c.S)
+	local y = 0.55
+	for _, sx in { -1, 1 } do
+		local x = sx * 3
+		box(c, x, y, -1.55, 3.2, 7, 1.3, c.P)
+		box(c, x, y, 1.55, 3.2, 7, 1.3, c.P)
+		box(c, x, y + 4, 0, 3.2, 3, 1.8, c.P)
+		box(c, x, y + 1.2, -2.25, 1.8, 2.2, 0.15, c.S)
+		box(c, x, y + 1.2, 2.25, 1.8, 2.2, 0.15, c.S)
+	end
+	box(c, 0, y + 5.6, 0, 2.8, 1.4, 4.4, c.P)
+	archCorner(c, -1.4, y + 5.6, 0, 1.1, 4.4, c.P, -1)
+	archCorner(c, 1.4, y + 5.6, 0, 1.1, 4.4, c.P, 1)
+	box(c, 0, 7.55, 0, 9.6, 0.5, 4.8, c.S)
+	box(c, 0, 8.05, 0, 9.2, 1.9, 4.4, c.P)
+	box(c, 0, 8.6, -2.22, 8.4, 0.35, 0.1, c.A, Mat.Metal)
+	box(c, 0, 8.6, 2.22, 8.4, 0.35, 0.1, c.A, Mat.Metal)
+	box(c, 0, 9.95, 0, 9.6, 0.3, 4.8, c.S)
+	ball(c, 0, 0.75, 0, 0.4, c.A, Mat.Neon)
+end
+
+-- 숭례문: 홍예문이 뚫린 석축 + 붉은 문루 2층 + 들린 추녀의 기와지붕 2겹
+function BUILDERS.gate(c)
+	box(c, -2.8, 0, 0, 3.6, 3.6, 4.6, c.P)
+	box(c, 2.8, 0, 0, 3.6, 3.6, 4.6, c.P)
+	box(c, 0, 2.3, 0, 2, 1.3, 4.6, c.P)
+	archCorner(c, -1, 2.3, 0, 0.7, 4.6, c.P, -1)
+	archCorner(c, 1, 2.3, 0, 0.7, 4.6, c.P, 1)
+	box(c, 0, 3.6, 0, 9.2, 0.25, 4.8, mix(c.P, WHITE, 0.2))
+	box(c, 0, 3.85, 0, 7.4, 0.25, 3.6, WOOD, Mat.Wood)
+	box(c, 0, 4.1, 0, 6.8, 1.6, 3, c.A)
+	box(c, 0, 5.4, 0, 7, 0.35, 3.2, c.S)
+	roof(c, 0, 5.75, 0, 9, 5, 1.3, TILE)
+	box(c, 0, 6.6, 0, 5.6, 1.6, 2.4, c.A)
+	box(c, 0, 7.3, -1.22, 0.9, 0.6, 0.1, DARK)
+	box(c, 0, 8.2, 0, 5.8, 0.3, 2.6, c.S)
+	roof(c, 0, 8.5, 0, 8.2, 4.4, 1.5, TILE)
+end
+
+-- 피사의 사탑: 잔디 광장 위에 기울어진 원통형 8층 탑
+function BUILDERS.leaning(c)
+	box(c, 0, 0, 0, 9.6, 0.25, 9.6, GRASS, Mat.Grass)
+	col(c, 0, 0.25, 0, 0.4, 5, c.S)
+	c.origin = CFrame.new(0, 0.65, 0) * CFrame.Angles(0, 0, math.rad(-7))
+	col(c, 0, 0, 0, 2.2, 3.6, c.P)
+	local y = 2.2
+	for _ = 1, 6 do
+		col(c, 0, y, 0, 0.25, 4, c.S)
+		col(c, 0, y + 0.25, 0, 1.45, 3.4, c.P)
+		y += 1.7
+	end
+	col(c, 0, y, 0, 0.25, 3.6, c.S)
+	col(c, 0, y + 0.25, 0, 1.5, 2.6, c.P)
+	col(c, 0, y + 1.75, 0, 0.3, 2.9, c.S)
+	c.origin = CFrame.new()
+end
+
+-- 서 있는 인물의 상체(어깨 윗면 높이 y): 목, 머리, 햇살 왕관, 횃불 든 오른팔, 서판 든 왼팔
+local function figureTop(c: Ctx, y: number)
+	col(c, 0, y, 0, 0.5, 0.6, c.P)
+	local head = V(0, y + 0.95, 0)
+	ball(c, 0, head.Y, 0, 1.2, c.P)
+	col(c, 0, head.Y + 0.2, 0, 0.25, 1.35, c.P)
+	for k = -3, 3 do
+		local angle = k * PI / 7
+		local dir = V(math.sin(angle), 0.45, -math.cos(angle)).Unit
+		beam(c, head + dir * 0.5, head + dir * 1.25, 0.14, c.P)
+	end
+	beam(c, V(1, y - 0.2, 0), V(1.5, y + 2.6, 0), 0.5, c.P)
+	col(c, 1.5, y + 2.4, 0, 0.9, 0.35, c.P)
+	col(c, 1.5, y + 3.2, 0, 0.3, 0.75, c.A, Mat.Metal)
+	ball(c, 1.5, y + 3.85, 0, 0.8, c.A, Mat.Neon)
+	beam(c, V(-1, y - 0.2, 0), V(-1.2, y - 2, -0.6), 0.45, c.P)
+	block(c, CFrame.new(-1.35, y - 1.4, -0.4) * CFrame.Angles(0, 0, 0.12), V(0.3, 1.5, 1), c.P)
+end
+
+-- 자유의 여신상(별 모양 요새 + 받침대) / 로도스 거상(항구를 가로질러 두 다리로 선 청동상)
+function BUILDERS.statue(c)
+	if c.grand then
+		box(c, 0, 0, 0, 9.8, 0.3, 9.8, WATER, Mat.Glass, 0.15)
+		for _, sx in { -1, 1 } do
+			box(c, sx * 3.3, 0, 0, 2.8, 1, 9.6, c.S)
+			box(c, sx * 2.2, 1, 0, 2, 2.4, 2, c.S)
+			beam(c, V(sx * 2.2, 3.3, 0), V(sx * 0.6, 8.3, 0), 0.9, c.P)
+		end
+		box(c, 0, 7.8, 0, 2, 1.2, 1.2, c.P)
+		box(c, 0, 9, 0, 2.2, 2.4, 1.3, c.P)
+		figureTop(c, 11.4)
+	else
+		box(c, 0, 0, 0, 6.8, 0.6, 6.8, c.S)
+		block(c, CFrame.new(0, 0.3, 0) * CFrame.Angles(0, PI / 4, 0), V(6.8, 0.6, 6.8), c.S)
+		box(c, 0, 0.6, 0, 4.2, 0.8, 4.2, c.S)
+		box(c, 0, 1.4, 0, 3.4, 4, 3.4, c.S)
+		box(c, 0, 5.4, 0, 3.9, 0.4, 3.9, c.S)
+		col(c, 0, 5.8, 0, 2.8, 2.6, c.P)
+		col(c, 0, 8.6, 0, 2.6, 2.2, c.P)
+		box(c, 0, 10.8, 0, 2.3, 1.3, 1.3, c.P)
+		figureTop(c, 12.1)
+	end
+end
+
+-- 남산타워: 계단식 초록 언덕 + 가느다란 탑신 + 전망대 원반 + 안테나
+function BUILDERS.needle(c)
+	col(c, 0, 0, 0, 1.2, 9.8, GRASS, Mat.Grass)
+	col(c, 0.3, 1.2, 0.2, 1.1, 7.4, GRASS, Mat.Grass)
+	col(c, 0.2, 2.3, 0.1, 1, 4.8, GRASS, Mat.Grass)
+	for i = 0, 5 do
+		local angle = i * TAU / 6 + 0.4
+		local r = if i % 2 == 0 then 4.1 else 3.1
+		ball(c, math.cos(angle) * r, if i % 2 == 0 then 1.6 else 2.6, math.sin(angle) * r, 1.1, LEAF, Mat.Grass)
+	end
+	col(c, 0, 3.3, 0, 1, 2.6, c.P)
+	col(c, 0, 4.3, 0, 7.6, 1.1, c.P)
+	col(c, 0, 11.9, 0, 0.4, 2.6, c.S)
+	col(c, 0, 12.3, 0, 1.5, 3.2, c.S, Mat.Glass)
+	col(c, 0, 12.8, 0, 0.35, 3.3, c.A, Mat.Neon)
+	col(c, 0, 13.8, 0, 0.5, 3.4, c.P)
+	col(c, 0, 14.3, 0, 0.8, 1.6, c.P)
+	col(c, 0, 15.1, 0, 2.6, 0.6, c.P)
+	col(c, 0, 17.7, 0, 1.8, 0.35, c.A)
+	ball(c, 0, 19.7, 0, 0.45, c.A, Mat.Neon)
+end
+
+-- 에펠탑: 네 다리가 모이며 가늘어지는 격자 탑 + 다리 사이 아치 + 전망대 3곳
+function BUILDERS.lattice(c)
+	box(c, 0, 0, 0, 9.8, 0.2, 9.8, GRASS, Mat.Grass)
+	local function legAt(y: number): number
+		return 4 - 1.5 * (y - 0.5) / 3.7
+	end
+	for _, s in CORNERS do
+		local sx, sz = s[1], s[2]
+		beam(c, V(sx * 4, 0.5, sz * 4), V(sx * 2.5, 4.2, sz * 2.5), 0.9, c.P)
+		beam(c, V(sx * 2.4, 4.6, sz * 2.4), V(sx * 1.3, 9.2, sz * 1.3), 0.6, c.P)
+		beam(c, V(sx * 1.2, 9.6, sz * 1.2), V(sx * 0.35, 17, sz * 0.35), 0.4, c.P)
+	end
+	-- 다리 사이 아치(3토막)
+	for i = 0, 3 do
+		local rot = CFrame.Angles(0, i * PI / 2, 0)
+		local low, high = legAt(1), legAt(3.2)
+		local points = { V(-low, 1, -low), V(-1.7, 3.2, -high), V(1.7, 3.2, -high), V(low, 1, -low) }
+		for k = 1, 3 do
+			beam(c, rot * points[k], rot * points[k + 1], 0.35, c.S)
+		end
+	end
+	box(c, 0, 4.2, 0, 6, 0.5, 6, c.S)
+	box(c, 0, 4.05, 0, 6.2, 0.15, 6.2, c.A, Mat.Neon)
+	box(c, 0, 9.2, 0, 3.3, 0.45, 3.3, c.S)
+	box(c, 0, 9.05, 0, 3.5, 0.15, 3.5, c.A, Mat.Neon)
+	box(c, 0, 13, 0, 1.9, 0.25, 1.9, c.S)
+	box(c, 0, 17, 0, 1.3, 0.4, 1.3, c.S)
+	box(c, 0, 17.4, 0, 0.8, 0.9, 0.8, c.P)
+	col(c, 0, 18.3, 0, 2.6, 0.22, c.P)
+	ball(c, 0, 21.05, 0, 0.45, c.A, Mat.Neon)
+end
+
+-- 콜로세움: 타원형 아케이드(기둥 + 층 띠), 앞쪽은 무너져 낮고 뒤쪽은 3층, 안쪽 관중석과 모래 경기장
+function BUILDERS.ring(c)
+	local a, b = 4.5, 3.7
+	local count = 14
+	local function point(i: number): Vector3
+		local t = i / count * TAU
+		return V(a * math.cos(t), 0, b * math.sin(t))
+	end
+	local function tall(i: number): boolean
+		return i % count <= 8 -- 뒤쪽(+Z) 절반 남짓만 온전함
+	end
+	box(c, 0, 0, 0, 9.8, 0.2, 8.4, c.S)
+	box(c, 0, 0.2, 0, 5.2, 0.15, 3.8, c.A)
+	for i = 0, count - 1 do
+		local t = i / count * TAU
+		local p = point(i)
+		local h = if tall(i) then 5.4 else 3.6
+		local yaw = math.atan2(-b * math.cos(t), -a * math.sin(t))
+		block(c, CFrame.new(p.X, 0.2 + h / 2, p.Z) * CFrame.Angles(0, yaw, 0), V(0.62, h, 0.7), c.P)
+	end
+	for j = 0, count / 2 - 1 do
+		local i1, i2 = 2 * j, 2 * j + 2
+		local p1, p2 = point(i1), point(i2)
+		local levels = if tall(i1) and tall(i2) then { 1.9, 3.4, 5.2 } else { 1.9, 3.4 }
+		for _, y in levels do
+			local mid = (p1 + p2) / 2
+			local cf = CFrame.lookAt(V(mid.X, y + 0.2, mid.Z), V(p2.X, y + 0.2, p2.Z))
+			block(c, cf, V(0.75, 0.4, (p2 - p1).Magnitude + 0.3), c.P)
+		end
+	end
+	-- 관중석(안쪽으로 기운 쐐기)
+	local seats = 7
+	for j = 0, seats - 1 do
+		local t1, t2 = j / seats * TAU, (j + 1) / seats * TAU
+		local q1 = V(3.5 * math.cos(t1), 0, 2.75 * math.sin(t1))
+		local q2 = V(3.5 * math.cos(t2), 0, 2.75 * math.sin(t2))
+		local mid = (q1 + q2) / 2
+		local chord = q2 - q1
+		local inward = V(chord.Z, 0, -chord.X).Unit
+		if inward:Dot(mid) > 0 then
+			inward = -inward
+		end
+		wedge(c, CFrame.new(mid.X, 1.2, mid.Z) * facing(inward.X, inward.Z), V(chord.Magnitude + 0.2, 2, 1.2), c.S)
+	end
+end
+
+-- 타지마할: 대리석 기단 + 본당(아치 입구) + 양파 돔 + 작은 정자 4 + 첨탑 4 + 연못
+function BUILDERS.dome(c)
+	box(c, 0, 0, 0, 9.6, 1, 9.6, c.S)
+	box(c, 0, 1, 0, 5.6, 4, 5.6, c.P)
+	local portal = mix(c.S, BLACK, 0.3)
+	for i = 0, 3 do
+		block(c, CFrame.Angles(0, i * PI / 2, 0) * CFrame.new(0, 2.6, -2.8), V(2, 3, 0.12), portal)
+	end
+	col(c, 0, 5, 0, 1.2, 3.8, c.P)
+	ball(c, 0, 8.2, 0, 4.8, c.P)
+	ball(c, 0, 10.4, 0, 2.2, c.P)
+	col(c, 0, 11.3, 0, 1.3, 0.25, c.A, Mat.Metal)
+	ball(c, 0, 12.75, 0, 0.4, c.A, Mat.Neon)
+	for _, s in CORNERS do
+		local x, z = s[1] * 2, s[2] * 2
+		col(c, x, 5, z, 0.8, 0.9, c.P)
+		ball(c, x, 6.05, z, 1, c.P)
+	end
+	for _, s in CORNERS do
+		local x, z = s[1] * 4.2, s[2] * 4.2
+		col(c, x, 1, z, 8, 0.8, c.P)
+		col(c, x, 4.4, z, 0.2, 1.2, c.S)
+		col(c, x, 9, z, 0.3, 1.2, c.S)
+		ball(c, x, 9.75, z, 0.9, c.P)
+	end
+	box(c, 0, 1, -3.9, 0.9, 0.08, 1.7, WATER, Mat.Glass, 0.1)
+end
+
+-- 앙코르와트: 해자 + 섬 + 3단 기단 + 정면 계단 + 연꽃 봉오리 탑 5개(가운데가 가장 높음)
+function BUILDERS.temple(c)
+	box(c, 0, 0, 0, 9.8, 0.25, 9.8, WATER, Mat.Glass, 0.1)
+	box(c, 0, 0.25, 0, 8.4, 0.3, 8.4, c.S)
+	box(c, 0, 0.25, -4.55, 1.2, 0.3, 0.7, c.P)
+	box(c, 0, 0.55, 0, 7.2, 1, 7.2, c.P)
+	box(c, 0, 1.55, 0, 5.6, 1.1, 5.6, c.P)
+	box(c, 0, 2.65, 0, 4, 1.2, 4, c.P)
+	wedge(c, CFrame.new(0, 0.55 + 1.65, -3.1), V(1, 3.3, 2.2), c.A)
+	local function lotus(x: number, z: number, base: number, tiers: number)
+		local y = 3.85
+		box(c, x, y, z, base, base * 0.8, base, c.P)
+		y += base * 0.8
+		for k = 1, tiers do
+			local w = base * (1 - k / (tiers + 1.5))
+			local h = base * 0.55
+			box(c, x, y, z, w, h, w, c.P)
+			y += h
+		end
+		ball(c, x, y + 0.1, z, base * 0.28, c.A)
+	end
+	lotus(0, 0, 1.8, 4)
+	for _, s in CORNERS do
+		lotus(s[1] * 1.35, s[2] * 1.35, 1.2, 3)
+	end
+	plant(c, -3.9, 0.55, -3.9, 1.4, 1.1, LEAF)
+	plant(c, 3.9, 0.55, -3.9, 1.4, 1.1, LEAF)
+end
+
+-- 스핑크스: 엎드린 사자 몸 + 앞발 + 사람 머리(네메스 두건, 파란 줄무늬)
+function BUILDERS.sphinx(c)
+	box(c, 0, 0, 0, 9.8, 0.3, 7, c.S)
+	local y = 0.3
+	box(c, 0, y, 1.5, 2.8, 1.9, 5.4, c.P)
+	cyl(c, CFrame.new(0, 2, 1.6) * ALONG_Z, 5, 2.8, c.P)
+	ball(c, -1, y + 1.4, 3.2, 2.2, c.P)
+	ball(c, 1, y + 1.4, 3.2, 2.2, c.P)
+	box(c, 0, y, -1.9, 2.6, 3.1, 1.6, c.P)
+	box(c, -0.85, y, -3.5, 0.8, 0.7, 2.6, c.P)
+	box(c, 0.85, y, -3.5, 0.8, 0.7, 2.6, c.P)
+	box(c, 0, 3.3, -1.95, 1.5, 1.9, 1.5, c.P)
+	box(c, 0, 3.6, -1.6, 2.2, 2, 1.5, c.S)
+	box(c, -0.95, 2.6, -2.75, 0.5, 1.6, 0.6, c.S)
+	box(c, 0.95, 2.6, -2.75, 0.5, 1.6, 0.6, c.S)
+	for _, sx in { -1, 1 } do
+		box(c, sx * 1.12, 3.9, -1.6, 0.05, 0.25, 1.4, c.A)
+		box(c, sx * 1.12, 4.5, -1.6, 0.05, 0.25, 1.4, c.A)
+		box(c, sx * 0.35, 4.45, -2.72, 0.3, 0.15, 0.08, DARK)
+	end
+	box(c, 1.55, y, 2.8, 0.3, 0.3, 2.4, c.P)
+end
+
+-- 만리장성: 초록 봉우리 두 개를 넘어 지그재그로 이어지는 성벽(앞쪽 성가퀴, 뒤쪽 여장) + 봉우리 망루 + 골짜기 초소
+function BUILDERS.wall(c)
+	local ground = 0.3
+	box(c, 0, 0, 0, 9.8, ground, 9.8, mix(c.S, WHITE, 0.25), Mat.Grass)
+	local path = {
+		V(-3.6, ground, -2),
+		V(-1.9, 2.4, 0.2),
+		V(0.1, ground, -1),
+		V(2.2, 3, 1.4),
+		V(3.7, ground, -0.8),
+	}
+	local dark = mix(c.P, BLACK, 0.2)
+	for k = 1, #path - 1 do
+		local p1, p2 = path[k], path[k + 1]
+		-- 성벽 아래 비탈(쐐기): 높은 면이 봉우리 쪽
+		local high, low = p2, p1
+		if p1.Y > p2.Y then
+			high, low = p1, p2
+		end
+		local flat = V(high.X - low.X, 0, high.Z - low.Z)
+		local rise = high.Y - ground
+		local mid = V((high.X + low.X) / 2, ground + rise / 2, (high.Z + low.Z) / 2)
+		wedge(c, CFrame.lookAt(mid, mid - flat), V(2.8, rise, flat.Magnitude), c.S, Mat.Grass)
+		-- 성벽 몸체 + 뒤쪽 여장 + 앞쪽 성가퀴 3개 (경로가 +X 로 가므로 로컬 -X 가 정면)
+		local cf = CFrame.lookAt((p1 + p2) / 2, p2)
+		local length = (p2 - p1).Magnitude + 0.3
+		block(c, cf * CFrame.new(0, 0.5, 0), V(1.1, 1, length), c.P)
+		block(c, cf * CFrame.new(0.46, 1.15, 0), V(0.18, 0.3, length), dark)
+		for _, t in { -1, 0, 1 } do
+			block(c, cf * CFrame.new(-0.46, 1.2, t * length / 3.2), V(0.18, 0.4, 0.45), dark)
+		end
+	end
+	-- 봉우리 망루(깃발) + 골짜기 초소
+	for _, k in { 2, 4 } do
+		local p = path[k]
+		box(c, p.X, p.Y - 0.3, p.Z, 1.7, 2, 1.7, c.P)
+		box(c, p.X, p.Y + 1.7, p.Z, 2, 0.35, 2, dark)
+		col(c, p.X + 0.6, p.Y + 2.05, p.Z + 0.6, 1.2, 0.1, DARK)
+		box(c, p.X + 0.9, p.Y + 2.8, p.Z + 0.6, 0.6, 0.4, 0.05, c.A)
+	end
+	box(c, path[3].X, ground, path[3].Z, 1.4, 1.5, 1.4, c.P)
+	box(c, path[3].X, ground + 1.5, path[3].Z, 1.6, 0.3, 1.6, dark)
+	ball(c, -3.6, 0.9, 2.8, 1.2, LEAF, Mat.Grass)
+	ball(c, 3.7, 0.9, 3.4, 1.3, LEAF, Mat.Grass)
+	ball(c, 1, 0.8, -3.8, 1, LEAF, Mat.Grass)
+end
+
+-- 기자 피라미드: 모래 바닥 + 크기가 다른 계단식 피라미드 3개(금빛 꼭대기) + 야자수
+function BUILDERS.pyramid(c)
+	box(c, 0, 0, 0, 9.8, 0.3, 9.8, c.S, Mat.Sand)
+	local top = stepped(c, -2.4, 1.4, 0.3, 4.8, 3.9, 8, c.P)
+	box(c, -2.4, top, 1.4, 0.4, 0.3, 0.4, c.A, Mat.Neon)
+	top = stepped(c, 2.1, 0.9, 0.3, 4.2, 3.4, 7, c.P)
+	box(c, 2.1, top, 0.9, 0.35, 0.3, 0.35, c.A, Mat.Neon)
+	stepped(c, 0.4, -3.3, 0.3, 2.6, 2.1, 5, mix(c.P, c.S, 0.5))
+	plant(c, -3.9, 0.3, -2.4, 1.6, 1.1, LEAF)
+	plant(c, -2.9, 0.3, -3.8, 1.2, 0.9, LEAF)
+end
+
+-- 치첸이트사 / 엘도라도: 9단 계단 피라미드 + 사면 계단 + 꼭대기 신전 (+ 불가사의 등급은 황금 태양)
+function BUILDERS.steps(c)
+	box(c, 0, 0, 0, 9.8, 0.25, 9.8, c.S, Mat.Grass)
+	local y = 0.25
+	for i = 0, 8 do
+		local w = 7.8 - i * 0.55
+		box(c, 0, y, 0, w, 0.72, w, c.P)
+		y += 0.72
+	end
+	local rise = y - 0.25
+	for i = 0, 3 do
+		local rot = CFrame.Angles(0, i * PI / 2, 0)
+		wedge(c, rot * CFrame.new(0, 0.25 + rise / 2, -3.15), V(1.4, rise, 2.9), c.A)
+	end
+	box(c, -0.85, 0.25, -4.45, 0.35, 0.5, 0.35, c.A)
+	box(c, 0.85, 0.25, -4.45, 0.35, 0.5, 0.35, c.A)
+	box(c, 0, y, 0, 2.6, 1.7, 2.6, c.P)
+	box(c, 0, y + 1.7, 0, 3, 0.35, 3, c.P)
+	box(c, 0, y, -1.28, 1, 1.1, 0.1, DARK)
+	box(c, 0, y, 1.28, 1, 1.1, 0.1, DARK)
+	for _, s in CORNERS do
+		plant(c, s[1] * 4.3, 0.25, s[2] * 4.3, 1, 1.2, c.S)
+	end
+	if c.grand then
+		cyl(c, CFrame.new(0, y + 3.6, 0) * ALONG_Z, 0.3, 2.4, c.A, Mat.Neon)
+		for _, s in CORNERS do
+			ball(c, s[1] * 1.3, y + 0.35, s[2] * 1.3, 0.5, c.A, Mat.Neon)
+		end
+	end
+end
+
+-- 마추픽추: 앞으로 내려가는 계단식 밭 + 뒤쪽의 뾰족한 와이나픽추 봉우리 + 돌집 유적
+function BUILDERS.terraces(c)
+	box(c, 0, 0, 0, 9.8, 0.25, 9.8, mix(c.S, BLACK, 0.2), Mat.Grass)
+	for i = 0, 4 do
+		local top = 3.4 - i * 0.65
+		local front = -0.6 - i * 0.95
+		local depth = 4.7 - front
+		local w = 9.2 - i * 0.6
+		local z = (front + 4.7) / 2
+		box(c, 0, 0.25, z, w, top - 0.45, depth, c.P)
+		box(c, 0, top - 0.2, z, w, 0.2, depth, c.S, Mat.Grass)
+	end
+	-- 와이나픽추: 조금씩 비틀어 쌓은 바위 덩어리로 만든 가파른 봉우리(위로 갈수록 바위색)
+	local crags = {
+		{ 3.8, 3, 3.4, 0.3 },
+		{ 3, 2.7, 2.8, -0.35 },
+		{ 2.2, 2.5, 2.1, 0.55 },
+		{ 1.4, 2, 1.4, -0.2 },
+		{ 0.7, 1, 0.7, 0.4 },
+	}
+	local y = 3.2
+	for k, crag in crags do
+		local color = mix(c.S, c.P, (k - 1) / 4)
+		local cf = CFrame.new(2.2 + k * 0.1, y + crag[2] / 2, 2.3 + k * 0.05) * CFrame.Angles(0.06, crag[4], -0.05)
+		block(c, cf, V(crag[1], crag[2], crag[3]), color, if k < 4 then Mat.Grass else nil)
+		y += crag[2] * 0.85
+	end
+	box(c, -3.2, 3.4, 0.6, 1.6, 0.8, 1.2, c.P)
+	box(c, -1.4, 3.4, 1.5, 1.2, 0.9, 1.6, c.P)
+	box(c, -3, 3.4, 3.3, 1.8, 1, 1.4, c.P)
+	box(c, -0.6, 3.4, 3.8, 1, 0.7, 1, c.P)
+	box(c, -1.2, 3.4, -0.1, 1.3, 0.9, 1, c.P)
+	gable(c, -1.2, 4.3, -0.1, 1.5, 1.2, 0.7, rgb(180, 150, 90))
+end
+
+-- 페트라(알카즈네): 붉은 절벽 + 협곡 벽 + 바위를 깎은 2층 신전 정면(기둥, 박공, 원형 정자)
+function BUILDERS.facade(c)
+	box(c, 0, 0, 0, 9.8, 0.25, 9.8, mix(c.P, SAND, 0.6), Mat.Sand)
+	box(c, 0, 0.25, 3.2, 9.8, 14, 3.2, c.S)
+	block(c, CFrame.new(-2.5, 14.6, 3.4) * CFrame.Angles(0, 0, 0.3), V(4.2, 2.2, 2.6), c.S)
+	block(c, CFrame.new(2.6, 14.9, 3) * CFrame.Angles(0.2, 0, -0.25), V(3.6, 2.6, 2.4), c.S)
+	box(c, -4.35, 0.25, 0.5, 1.1, 11, 2.2, c.S)
+	box(c, 4.35, 0.25, 0.5, 1.1, 12, 2.2, c.S)
+	-- 아래층: 기둥 6개 + 엔타블러처 + 박공 + 입구
+	box(c, 0, 0.25, 1.1, 6.6, 0.45, 1.3, c.P)
+	for k = 0, 5 do
+		col(c, -2.75 + k * 1.1, 0.7, 0.85, 4.3, 0.55, c.P)
+	end
+	box(c, 0, 5, 1, 6.8, 0.7, 1.2, c.P)
+	wedge(c, CFrame.new(-1.15, 6.3, 1) * CFrame.Angles(0, PI / 2, 0), V(1, 1.2, 2.3), c.P)
+	wedge(c, CFrame.new(1.15, 6.3, 1) * CFrame.Angles(0, -PI / 2, 0), V(1, 1.2, 2.3), c.P)
+	box(c, 0, 0.7, 1.57, 1.3, 2.6, 0.06, DARK)
+	-- 위층: 양쪽 누각(반쪽 박공) + 가운데 원형 정자와 항아리
+	box(c, 0, 6.9, 1, 6.8, 0.4, 1.2, c.P)
+	for _, sx in { -1, 1 } do
+		box(c, sx * 2.6, 7.3, 1, 1.6, 3, 1, c.P)
+		wedge(c, CFrame.new(sx * 2.6, 10.7, 1) * CFrame.Angles(0, -sx * PI / 2, 0), V(1, 0.8, 1.6), c.P)
+	end
+	col(c, 0, 7.3, 1, 3.2, 1.9, c.P)
+	col(c, 0, 10.5, 1, 0.35, 2.3, c.P)
+	col(c, 0, 10.85, 1, 0.8, 1.4, c.P)
+	ball(c, 0, 12, 1, 0.7, c.A)
+end
+
+-- 모아이: 잔디 + 뒤쪽 바다 + 제단(아후) 위에 긴 얼굴의 석상 5개(일부는 붉은 모자 푸카오)
+function BUILDERS.moai(c)
+	box(c, 0, 0, -0.95, 9.8, 0.3, 7.9, c.S, Mat.Grass)
+	box(c, 0, 0, 3.95, 9.8, 0.2, 1.9, WATER, Mat.Glass, 0.1)
+	box(c, 0, 0.3, 1.2, 9.6, 0.8, 2.2, mix(c.P, WHITE, 0.15))
+	local xs = { -3.7, -1.85, 0, 1.85, 3.7 }
+	local scales = { 0.9, 1, 1.12, 1, 0.92 }
+	for k, x in xs do
+		local s = scales[k]
+		local y = 1.1
+		box(c, x, y, 1.2, 1.3 * s, 1.5 * s, s, c.P)
+		local headY = y + 1.5 * s
+		local depth = 1.05 * s
+		local front = 1.25 - depth / 2
+		box(c, x, headY, 1.25, 1.15 * s, 2.3 * s, depth, c.P)
+		box(c, x, headY + 1.35 * s, front - 0.1, 1.2 * s, 0.35 * s, 0.35 * s, c.P)
+		wedge(c, CFrame.new(x, headY + 0.85 * s, front - 0.2 * s), V(0.35 * s, 0.9 * s, 0.4 * s), c.P)
+		for _, sx in { -1, 1 } do
+			box(c, x + sx * (0.575 * s + 0.05), headY + 0.8 * s, 1.25, 0.12, 1 * s, 0.35 * s, c.P)
+		end
+		if k % 2 == 1 then
+			col(c, x, headY + 2.3 * s, 1.25, 0.55 * s, s, c.A)
+		end
+	end
+end
+
+-- 스톤헨지: 둥근 잔디 + 상인방을 얹은 바깥 원(일부 무너짐) + 안쪽 말굽 모양 삼석탑 5개 + 제단석 + 힐스톤
+function BUILDERS.stones(c)
+	col(c, 0, 0, 0, 0.25, 9.8, c.S, Mat.Grass)
+	local y = 0.25
+	local r = 3.9
+	local count = 12
+	local missing = { [4] = true, [9] = true }
+	for i = 0, count - 1 do
+		if not missing[i] then
+			block(c, CFrame.Angles(0, i / count * TAU, 0) * CFrame.new(0, y + 1.1, -r), V(0.75, 2.2, 0.5), c.P)
+		end
+	end
+	local chord = 2 * r * math.sin(PI / count) + 0.5
+	for _, i in { 0, 1, 2, 5, 6, 10, 11 } do
+		local cf = CFrame.Angles(0, (i + 0.5) / count * TAU, 0) * CFrame.new(0, y + 2.4, -r * math.cos(PI / count))
+		block(c, cf, V(chord, 0.4, 0.5), c.P)
+	end
+	block(c, CFrame.Angles(0, 4 / count * TAU, 0) * CFrame.new(0, y + 0.25, -r), V(2, 0.5, 0.75), c.P)
+	-- 안쪽 말굽(정면 -Z 쪽이 열림)
+	for k, angle in { PI, PI - 0.9, PI + 0.9, PI - 1.8, PI + 1.8 } do
+		local h = if k == 1 then 3.2 elseif k <= 3 then 2.8 else 2.5
+		local frame = CFrame.Angles(0, angle, 0) * CFrame.new(0, y, -2)
+		block(c, frame * CFrame.new(-0.45, h / 2, 0), V(0.55, h, 0.5), c.P)
+		block(c, frame * CFrame.new(0.45, h / 2, 0), V(0.55, h, 0.5), c.P)
+		block(c, frame * CFrame.new(0, h + 0.2, 0), V(1.6, 0.4, 0.55), c.P)
+	end
+	box(c, 0, y, 0.6, 1.4, 0.25, 0.5, mix(c.P, BLACK, 0.2))
+	block(c, CFrame.new(0.9, y + 0.9, -4.6) * CFrame.Angles(0, 0, 0.12), V(0.7, 1.8, 0.5), c.P)
+end
+
+-- 바빌론 공중정원: 4단 테라스(그늘진 회랑 띠) + 초록 정원 + 늘어진 덩굴 + 정면 폭포 + 연못
+function BUILDERS.gardens(c)
+	box(c, 0, 0, 0, 9.8, 0.3, 9.8, mix(c.P, WHITE, 0.15))
+	box(c, 0, 0.3, -4.4, 4, 0.12, 0.9, c.A, Mat.Glass, 0.2)
+	local sizes = { 8.2, 6.4, 4.6, 2.8 }
+	local shade = mix(c.P, BLACK, 0.45)
+	local y = 0.3
+	for i, w in sizes do
+		box(c, 0, y, 0, w, 2, w, c.P)
+		box(c, 0, y + 0.5, 0, w + 0.06, 0.8, w + 0.06, shade)
+		box(c, 0, y + 2, 0, w - 0.2, 0.25, w - 0.2, c.S, Mat.Grass)
+		box(c, 0, y, -w / 2 - 0.08, 0.9, 2.3, 0.12, c.A, Mat.Neon, 0.35)
+		if i < #sizes then
+			for _, sx in { -1, 1 } do
+				box(c, sx * w * 0.3, y + 0.9, -w / 2 - 0.08, 0.6, 1.35, 0.15, c.S, Mat.Grass)
+				ball(c, sx * (w / 2 - 0.45), y + 2.6, -(w / 2 - 0.45), 0.9, c.S, Mat.Grass)
+			end
+		end
+		y += 2
+	end
+	box(c, 0, y + 0.25, 0, 1.2, 1.2, 1.2, c.P)
+	plant(c, 0.9, y + 0.25, 0.9, 1.6, 1.2, c.S)
+end
+
+-- 바벨탑: 점점 좁아지는 원통 5층(어두운 회랑 + 밝은 난간) + 층 사이를 감아 오르는 경사로 + 미완성 꼭대기
+function BUILDERS.spiral(c)
+	local diameters = { 9.4, 7.6, 5.8, 4, 2.4 }
+	local h = 3
+	local shade = mix(c.S, BLACK, 0.2)
+	for k, d in diameters do
+		local y = (k - 1) * h
+		col(c, 0, y, 0, h, d, shade)
+		col(c, 0, y + h - 0.45, 0, 0.45, d + 0.1, c.P)
+		col(c, 0, y, 0, 0.5, d + 0.1, c.P)
+	end
+	-- 경사로: 층 k 의 윗면(난간 고리)에서 한 바퀴 돌며 다음 층 윗면까지 올라감
+	for k = 1, #diameters - 1 do
+		local outer, inner = diameters[k] / 2, diameters[k + 1] / 2
+		local segments = 9 - k
+		local r = (outer + inner) / 2 / math.cos(PI / segments)
+		local base = k * h
+		for j = 0, segments - 1 do
+			local t1 = (j / segments + k * 0.3) * TAU
+			local t2 = ((j + 1) / segments + k * 0.3) * TAU
+			local p1 = V(r * math.cos(t1), base + j / segments * h, r * math.sin(t1))
+			local p2 = V(r * math.cos(t2), base + (j + 1) / segments * h, r * math.sin(t2))
+			local cf = CFrame.lookAt((p1 + p2) / 2, p2)
+			block(c, cf * CFrame.new(0, 0.15, 0), V(0.7, 0.3, (p2 - p1).Magnitude + 0.1), c.P)
+		end
+	end
+	local top = #diameters * h
+	box(c, -0.4, top, 0.3, 1, 1.4, 0.9, c.P)
+	block(c, CFrame.new(0.5, top + 0.4, -0.3) * CFrame.Angles(0, 0.4, 0.2), V(0.8, 0.8, 0.8), c.P)
+end
+
+-- 아틀란티스: 물과 땅이 번갈아 도는 동심원 섬 + 가운데 원형 신전(빛나는 수정 첨탑) + 흰 탑 6개 + 다리
+function BUILDERS.island(c)
+	col(c, 0, 0, 0, 0.3, 9.8, c.S, Mat.Glass, 0.1)
+	col(c, 0, 0, 0, 0.55, 8.4, c.P)
+	col(c, 0, 0, 0, 0.6, 6.8, c.S, Mat.Glass, 0.1)
+	col(c, 0, 0, 0, 0.8, 5.4, GRASS, Mat.Grass)
+	col(c, 0, 0, 0, 0.85, 4, c.S, Mat.Glass, 0.1)
+	col(c, 0, 0, 0, 1.2, 2.8, c.P)
+	box(c, 0, 0.6, -2.45, 0.5, 0.15, 2.3, c.P)
+	col(c, 0, 1.2, 0, 0.3, 2.4, c.P)
+	for i = 0, 5 do
+		local angle = i * TAU / 6
+		col(c, 0.9 * math.cos(angle), 1.5, 0.9 * math.sin(angle), 1.5, 0.25, c.P)
+	end
+	col(c, 0, 1.5, 0, 1.5, 0.9, c.A, Mat.Neon)
+	col(c, 0, 3, 0, 0.3, 2.4, c.P)
+	ball(c, 0, 3.3, 0, 1.9, c.P)
+	col(c, 0, 4.1, 0, 2.6, 0.35, c.A, Mat.Neon)
+	ball(c, 0, 6.8, 0, 0.6, c.A, Mat.Neon)
+	for i = 0, 5 do
+		local angle = i * TAU / 6 + PI / 6
+		local x, z = 3.8 * math.cos(angle), 3.8 * math.sin(angle)
+		col(c, x, 0.55, z, 1.8, 0.55, c.P)
+		ball(c, x, 2.5, z, 0.45, c.A, Mat.Neon)
+	end
+end
+
+-- 용궁 / 샹그릴라: 계단 기단 위 3층 전각(들린 추녀 기와지붕) + 꼭대기 보주 + 등롱 + 떠다니는 빛 구슬
+function BUILDERS.pagoda(c)
+	box(c, 0, 0, 0, 9.6, 0.6, 9.6, c.S)
+	box(c, 0, 0.6, 0, 7.4, 0.4, 7, mix(c.P, WHITE, 0.5))
+	wedge(c, CFrame.new(0, 0.5, -4.2), V(1.6, 1, 1.2), mix(c.P, WHITE, 0.5))
+	box(c, 0, 1, 0, 6, 2, 5.2, c.P)
+	box(c, 0, 1, -2.62, 1.4, 1.5, 0.1, DARK)
+	roof(c, 0, 3, 0, 8.4, 7.2, 1.4, c.S)
+	box(c, 0, 4.2, 0, 4.4, 1.9, 3.8, c.P)
+	roof(c, 0, 6.1, 0, 6.6, 5.6, 1.3, c.S)
+	box(c, 0, 7.2, 0, 3, 1.7, 2.6, c.P)
+	roof(c, 0, 8.9, 0, 4.8, 4, 1.2, c.S)
+	col(c, 0, 10.3, 0, 1.4, 0.3, c.A, Mat.Metal)
+	ball(c, 0, 12, 0, 0.7, c.A, Mat.Neon)
+	for _, sx in { -1, 1 } do
+		col(c, sx * 4.2, 0.6, -4.2, 1.2, 0.2, DARK)
+		ball(c, sx * 4.2, 2, -4.2, 0.5, c.A, Mat.Neon)
+	end
+	ball(c, -4.1, 7.5, 1.5, 0.9, c.A, Mat.Glass, 0.5)
+	ball(c, 4.2, 9.2, -0.8, 0.7, c.A, Mat.Glass, 0.5)
+	ball(c, 3.6, 11.4, 2.4, 0.6, c.A, Mat.Glass, 0.5)
+end
+
+-- 하늘섬: 땅에 닿지 않고 떠 있는 바위섬(아래로 뾰족) + 잔디 + 나무 + 연못과 폭포 + 구름 + 작은 신전
+function BUILDERS.skyisland(c)
+	local rock = Mat.Slate
+	col(c, 0, 7.2, 0, 1.2, 9, c.S, rock)
+	col(c, 0.3, 5.8, -0.2, 1.4, 7, c.S, rock)
+	col(c, -0.2, 4.4, 0.3, 1.4, 5, c.S, rock)
+	col(c, 0.2, 3.1, 0.1, 1.3, 3, c.S, rock)
+	ball(c, 0.1, 2.8, 0.1, 1.6, c.S, rock)
+	ball(c, -2.6, 6.8, 1.6, 2.4, c.S, rock)
+	ball(c, 2.4, 6.2, -1.8, 2.2, c.S, rock)
+	col(c, 0, 8.4, 0, 0.5, 9.4, c.P)
+	col(c, 1.8, 8.9, 1.6, 2.8, 0.6, WOOD, Mat.Wood)
+	ball(c, 1.8, 12.4, 1.6, 2.6, mix(c.P, BLACK, 0.25))
+	ball(c, 1, 11.8, 2.3, 1.8, mix(c.P, BLACK, 0.15))
+	ball(c, 2.6, 11.9, 1, 1.7, mix(c.P, BLACK, 0.15))
+	col(c, -1.2, 8.85, -2.6, 0.12, 2.2, WATER, Mat.Glass, 0.15)
+	box(c, -1.2, 8.85, -4.1, 0.9, 0.12, 1.4, WATER, Mat.Glass, 0.15)
+	box(c, -1.2, 2.4, -4.75, 1, 6.55, 0.2, c.A, Mat.Neon, 0.35)
+	ball(c, -1.2, 2.4, -4.3, 1.2, c.A, Mat.SmoothPlastic, 0.4)
+	ball(c, -3, 3.4, -1.5, 2, CLOUD, Mat.SmoothPlastic, 0.2)
+	ball(c, 3, 4, 1.8, 2.4, CLOUD, Mat.SmoothPlastic, 0.2)
+	ball(c, 0.6, 2.2, 2.6, 1.8, CLOUD, Mat.SmoothPlastic, 0.2)
+	box(c, -2.9, 8.9, 1.2, 0.35, 1.6, 0.35, CLOUD, Mat.Marble)
+	box(c, -1.7, 8.9, 1.2, 0.35, 1.6, 0.35, CLOUD, Mat.Marble)
+	box(c, -2.3, 10.5, 1.2, 1.7, 0.3, 0.6, CLOUD, Mat.Marble)
+	ball(c, 4.2, 6.6, -2.8, 0.9, c.S, rock)
+	ball(c, -4.2, 9.8, -0.8, 0.7, c.S, rock)
+end
+
+-- 세계수: 뻗은 뿌리 + 굵은 줄기 + 가지 + 잎 공 캐노피 + 빛나는 열매
+function BUILDERS.tree(c)
+	col(c, 0, 0, 0, 0.3, 9.6, mix(c.S, BLACK, 0.4), Mat.Grass)
+	for i = 0, 5 do
+		local angle = i * TAU / 6 + 0.3
+		local dir = V(math.cos(angle), 0, math.sin(angle))
+		beam(c, dir * 0.9 + V(0, 2.2, 0), dir * 4.1 + V(0, 0.45, 0), 0.85, c.P)
+	end
+	col(c, 0, 0.3, 0, 5.2, 3, c.P)
+	col(c, 0, 5.5, 0, 3, 2.4, c.P)
+	col(c, 0, 8.5, 0, 2.5, 1.8, c.P)
+	local leaves = {}
+	for i = 0, 4 do
+		local angle = i * TAU / 5 + 0.2
+		local dir = V(math.cos(angle), 0, math.sin(angle))
+		beam(c, V(0, 9.3, 0), dir * 2.8 + V(0, 12.4, 0), 0.8, c.P)
+		table.insert(leaves, dir * 2.9 + V(0, 13.2, 0))
+	end
+	ball(c, 0, 15, 0, 7, c.S, Mat.Grass)
+	ball(c, 0, 18.6, 0, 4.4, c.S, Mat.Grass)
+	for _, p in leaves do
+		ball(c, p.X, p.Y, p.Z, 3.8, mix(c.S, BLACK, 0.12), Mat.Grass)
+	end
+	-- 열매: 잎 공 표면 바로 바깥
+	local fruits = {
+		V(0, 15, 0) + V(-0.6, 0.3, -1).Unit * 3.5,
+		V(0, 15, 0) + V(0.8, 0.6, -0.4).Unit * 3.5,
+		V(0, 18.6, 0) + V(-0.3, 0.5, -1).Unit * 2.2,
+		leaves[1] + V(0.2, 0.4, -1).Unit * 1.9,
+		leaves[2] + V(-0.4, 0.2, -1).Unit * 1.9,
+		leaves[3] + V(-1, 0.3, -0.2).Unit * 1.9,
+		leaves[4] + V(0.3, -0.2, -1).Unit * 1.9,
+	}
+	for _, p in fruits do
+		ball(c, p.X, p.Y, p.Z, 0.7, c.A, Mat.Neon)
+	end
+	col(c, 0, 0.3, 0, 0.08, 6, c.A, Mat.Neon, 0.5)
+end
+
+-- 지구: 받침대 + 23.5도 기운 파란 공 + 대륙 덩어리(살짝 튀어나온 공) + 극지방 얼음 + 자오선 반원 고리 + 대기 + 달
+function BUILDERS.globe(c)
+	local metal = mix(c.A, BLACK, 0.2)
+	col(c, 0, 0, 0, 0.5, 4.2, metal, Mat.Metal)
+	col(c, 0, 0.5, 0, 0.4, 2.6, metal, Mat.Metal)
+	col(c, 0, 0.9, 0, 1.6, 0.6, metal, Mat.Metal)
+	local radius = 4
+	local tilt = CFrame.new(0, 7, 0) * CFrame.Angles(0, 0, math.rad(23.5))
+	ball(c, 0, 7, 0, radius * 2, c.P)
+	cyl(c, tilt * UPRIGHT, 9.4, 0.2, metal, Mat.Metal)
+	-- 자오선 반원 고리(+X 쪽)
+	local ring = 4.5
+	local pieces = 6
+	for k = 0, pieces - 1 do
+		local a1 = -PI / 2 + k / pieces * PI
+		local a2 = -PI / 2 + (k + 1) / pieces * PI
+		local p1 = tilt * V(ring * math.cos(a1), ring * math.sin(a1), 0)
+		local p2 = tilt * V(ring * math.cos(a2), ring * math.sin(a2), 0)
+		beam(c, p1, p2, 0.25, metal, Mat.Metal)
+	end
+	-- 위도/경도(도) → 지구 표면 위치. 경도 20도(아프리카)가 정면(-Z), 동쪽이 정면에서 볼 때 오른쪽
+	local function surface(lat: number, lon: number, r: number): Vector3
+		local phi, lambda = math.rad(lat), math.rad(lon - 20)
+		return tilt * V(-r * math.cos(phi) * math.sin(lambda), r * math.sin(phi), -r * math.cos(phi) * math.cos(lambda))
+	end
+	local lands = {
+		{ 5, 20, 2.4 }, -- 아프리카
+		{ -18, 26, 1.9 },
+		{ 50, 15, 1.6 }, -- 유럽
+		{ 48, 70, 2.6 }, -- 아시아
+		{ 30, 100, 2.2 },
+		{ 62, 110, 2.2 },
+		{ 20, 78, 1.2 }, -- 인도
+		{ -25, 135, 1.8 }, -- 오스트레일리아
+		{ 45, -100, 2.6 }, -- 북아메리카
+		{ 62, -115, 2 },
+		{ 25, -100, 1.3 },
+		{ -10, -60, 2.2 }, -- 남아메리카
+		{ -32, -66, 1.5 },
+	}
+	for _, land in lands do
+		local d = land[3]
+		local p = surface(land[1], land[2], radius - d / 2 + 0.28)
+		ball(c, p.X, p.Y, p.Z, d, c.S, Mat.Grass)
+	end
+	for _, lat in { 90, -90 } do
+		local p = surface(lat, 0, radius - 1.1 + 0.25)
+		ball(c, p.X, p.Y, p.Z, 2.2, c.A)
+	end
+	for _, cloud in { { 20, -20 }, { -40, 60 }, { 35, 40 } } do
+		local p = surface(cloud[1], cloud[2], radius - 0.4 + 0.3)
+		ball(c, p.X, p.Y, p.Z, 0.8, c.A, Mat.SmoothPlastic, 0.3)
+	end
+	ball(c, 0, 7, 0, radius * 2 + 0.6, mix(c.P, WHITE, 0.6), Mat.Neon, 0.88)
+	ball(c, -4.2, 11.8, 1.5, 1, rgb(200, 200, 195))
+end
+
+-- 모르는 모형: 기단 + 오벨리스크
+local function fallback(c: Ctx)
+	box(c, 0, 0, 0, 5, 1, 5, c.S)
+	box(c, 0, 1, 0, 1.4, 7, 1.4, c.P)
+	box(c, 0, 8, 0, 1, 0.5, 1, c.A)
+	box(c, 0, 8.5, 0, 0.5, 0.5, 0.5, c.A, Mat.Neon)
+end
+
+-- 공개 API ------------------------------------------------------------------
+
+-- 코드로 만든 모형이 있는 Shape 이름 집합
+Models.SHAPES = {} :: { [string]: boolean }
+for name in BUILDERS do
+	Models.SHAPES[name] = true
+end
+
+function Models.build(landmark: Landmark): Model
+	local model = Instance.new("Model")
+	model.Name = landmark.Id
+
+	local root = Instance.new("Part")
+	root.Name = "Root"
+	root.Size = V(DESIGN_WIDTH, 0.2, DESIGN_WIDTH)
+	root.CFrame = CFrame.new(0, 0.1, 0)
+	root.PivotOffset = CFrame.new(0, -0.1, 0) -- 피벗 = 바닥 중앙(y = 0)
+	root.Transparency = 1
+	root.Anchored = true
+	root.CanCollide = false
+	root.Parent = model
+	model.PrimaryPart = root
+
+	local ctx: Ctx = {
+		model = model,
+		origin = CFrame.new(),
+		P = landmark.Primary or rgb(200, 200, 200),
+		S = landmark.Secondary or rgb(140, 140, 140),
+		A = landmark.Accent or rgb(255, 240, 180),
+		M = landmark.Material or Mat.SmoothPlastic,
+		grand = landmark.Tier ~= nil and landmark.Tier.Rank >= 5,
+	}
+	local builder = BUILDERS[landmark.Shape] or fallback
+	local ok, err = pcall(builder, ctx)
+	if not ok then
+		-- 모형 코드에 문제가 있어도 게임은 계속되도록: 만들던 파트를 지우고 기본 모형으로
+		warn(
+			"[Models] "
+				.. tostring(landmark.Id)
+				.. " 모형 생성 실패, 기본 모형으로 대체: "
+				.. tostring(err)
+		)
+		for _, child in model:GetChildren() do
+			if child ~= root then
+				child:Destroy()
+			end
+		end
+		ctx.origin = CFrame.new()
+		fallback(ctx)
+	end
+	return model
+end
+
+local function findOverride(landmark: Landmark): Model?
+	local folder = game:GetService("ReplicatedStorage"):FindFirstChild(OVERRIDE_FOLDER)
+	local source = folder and folder:FindFirstChild(landmark.Id)
+	if source and source:IsA("Model") then
+		return source
+	end
+	return nil
+end
+
+-- 교체 모형: 경계 상자의 바닥 중앙을 피벗으로. 경계 상자 크기를 돌려줌
+local function pivotToBottom(model: Model): Vector3
+	local cf, extents = model:GetBoundingBox()
+	local bottom = cf * CFrame.new(0, -extents.Y / 2, 0)
+	local primary = model.PrimaryPart
+	if primary then
+		-- PrimaryPart 가 있으면 WorldPivot 은 무시되므로 PrimaryPart 의 피벗을 옮김
+		primary.PivotOffset = primary.CFrame:ToObjectSpace(bottom)
+	else
+		model.WorldPivot = bottom
+	end
+	return extents
+end
+
+function Models.create(landmark: Landmark, size: number, opts: { Anchored: boolean? }?): Model
+	local model: Model? = nil
+	local source = findOverride(landmark)
+	if source then
+		local clone = source:Clone()
+		if clone and clone:FindFirstChildWhichIsA("BasePart", true) then
+			model = clone
+		end
+	end
+
+	local extents
+	if model then
+		extents = pivotToBottom(model)
+		if math.max(extents.X, extents.Z) <= 1e-3 then
+			model:Destroy()
+			model = nil
+		end
+	end
+	local built = model == nil
+	if not model then
+		model = Models.build(landmark)
+		local _, buildExtents = (model :: Model):GetBoundingBox()
+		extents = buildExtents
+	end
+	local result = model :: Model
+
+	-- 가로·세로 중 큰 쪽이 size, 단 높이는 size * 2.2 까지
+	local factor = size / math.max(extents.X, extents.Z)
+	if extents.Y * factor > size * MAX_HEIGHT_RATIO then
+		factor = size * MAX_HEIGHT_RATIO / extents.Y
+	end
+	if factor > 0 and factor < math.huge and math.abs(factor - 1) > 1e-4 then
+		result:ScaleTo(result:GetScale() * factor)
+	end
+
+	-- 크기를 바꾼 뒤에도 피벗이 정확히 바닥 중앙이도록 다시 맞춤
+	if built then
+		local root = result.PrimaryPart :: BasePart
+		root.PivotOffset = CFrame.new(0, -root.Size.Y / 2, 0)
+	else
+		pivotToBottom(result)
+	end
+
+	local loose = opts ~= nil and opts.Anchored == false
+	for _, descendant in result:GetDescendants() do
+		if descendant:IsA("BasePart") then
+			if loose then
+				descendant.Anchored = false
+				descendant.Massless = true
+				descendant.CanCollide = false
+				descendant.CanQuery = false
+				descendant.CanTouch = false
+			else
+				descendant.Anchored = true
+				descendant.CanCollide = false
+			end
+		end
+	end
+
+	result.Name = landmark.Id
+	return result
+end
+
+return Models
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="9">
+        <Properties>
+          <string name="Name">Net</string>
+          <string name="Source"><![CDATA[-- 원격 통신 객체. 서버가 처음 require 할 때 만들고, 클라이언트는 생길 때까지 기다립니다.
+-- (Rojo 없이 Studio 에 직접 복사해도 따로 RemoteEvent 를 만들 필요가 없도록)
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local FOLDER_NAME = "LandmarkRNGRemotes"
+
+local FUNCTIONS = {
+	"GetState", -- () -> Snapshot?
+	"Roll", -- () -> RollResponse (DESIGN.md 참고)
+	"Feature", -- (landmarkId?) -> { Ok, State }
+	"BuyUpgrade", -- (upgradeId) -> { Ok, Reason?, State }
+	"SetSetting", -- (key, value) -> { Ok, State }
+	"Teleport", -- ("Park" | "Plaza") -> { Ok }
+}
+
+local EVENTS = {
+	"State", -- 서버 -> 클라: Snapshot (관광 수입 등 서버 쪽 변화)
+	"Announce", -- 서버 -> 모두: 희귀 명소 발견 "뉴스 속보"
+}
+
+local folder: Folder
+if RunService:IsServer() then
+	folder = Instance.new("Folder")
+	folder.Name = FOLDER_NAME
+	for _, name in FUNCTIONS do
+		local remote = Instance.new("RemoteFunction")
+		remote.Name = name
+		remote.Parent = folder
+	end
+	for _, name in EVENTS do
+		local remote = Instance.new("RemoteEvent")
+		remote.Name = name
+		remote.Parent = folder
+	end
+	folder.Parent = ReplicatedStorage
+else
+	folder = ReplicatedStorage:WaitForChild(FOLDER_NAME) :: Folder
+end
+
+local Net = {}
+
+function Net.fn(name: string): RemoteFunction
+	return folder:WaitForChild(name) :: RemoteFunction
+end
+
+function Net.event(name: string): RemoteEvent
+	return folder:WaitForChild(name) :: RemoteEvent
+end
+
+return Net
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="10">
+        <Properties>
+          <string name="Name">PlayerState</string>
+          <string name="Source"><![CDATA[--!strict
+-- 플레이어 데이터와 그 데이터를 바꾸는 규칙(순수 함수). 서버가 유일한 진실의 원천이고,
+-- 클라이언트는 Snapshot 만 받아서 화면에 그립니다. Roblox 서비스에 의존하지 않아 테스트 가능.
+-- 읽기 전용 함수(luck, park, stars, incomePerSecond 등)는 Data 대신 Snapshot 을 넘겨도 됩니다.
+
+local Config = require(script.Parent.Config)
+local Landmarks = require(script.Parent.Landmarks)
+
+type Landmark = Landmarks.Landmark
+
+export type Settings = {
+	AutoFeature: boolean, -- 더 희귀한 명소를 발견하면 자동으로 대표 명소로 지정
+}
+
+export type Data = {
+	Rolls: number,
+	Coins: number, -- 관광 수입이 초 단위로 쌓이므로 소수일 수 있음(표시할 때 버림)
+	Inventory: { [string]: number }, -- 명소 Id -> 발견 횟수
+	Featured: string?, -- 대표 명소(캐릭터 옆에 떠 다님)
+	Upgrades: { [string]: number }, -- 업그레이드 Id -> 레벨
+	Settings: Settings,
+}
+
+export type Snapshot = {
+	Revision: number,
+	Rolls: number,
+	Coins: number,
+	Inventory: { [string]: number },
+	Featured: string?,
+	Upgrades: { [string]: number },
+	Settings: Settings,
+	Luck: number,
+	Cooldown: number,
+	Income: number, -- 초당 관광 수입
+}
+
+export type Upgrade = typeof(Config.Upgrades[1])
+
+local PlayerState = {}
+
+PlayerState.UpgradesById = {} :: { [string]: Upgrade }
+for _, upgrade in Config.Upgrades do
+	PlayerState.UpgradesById[upgrade.Id] = upgrade
+end
+
+function PlayerState.new(): Data
+	local upgrades = {}
+	for _, upgrade in Config.Upgrades do
+		upgrades[upgrade.Id] = 0
+	end
+	return {
+		Rolls = 0,
+		Coins = 0,
+		Inventory = {},
+		Featured = nil,
+		Upgrades = upgrades,
+		Settings = { AutoFeature = true },
+	}
+end
+
+local function nonNegativeInt(value: any): number?
+	if type(value) == "number" and value == value and value >= 0 and value < math.huge then
+		return math.floor(value)
+	end
+	return nil
+end
+
+-- DataStore 에서 읽은 값(형식 보장 없음)을 안전한 Data 로 정리합니다.
+-- 모르는 명소 Id 의 발견 횟수는 지우지 않고 보존합니다(명소를 잠시 뺐다가 다시 넣어도 안전).
+function PlayerState.reconcile(raw: any): Data
+	local data = PlayerState.new()
+	if type(raw) ~= "table" then
+		return data
+	end
+
+	data.Rolls = nonNegativeInt(raw.Rolls) or 0
+	data.Coins = nonNegativeInt(raw.Coins) or 0
+
+	if type(raw.Inventory) == "table" then
+		for id, count in raw.Inventory do
+			local n = nonNegativeInt(count)
+			if type(id) == "string" and n and n > 0 then
+				data.Inventory[id] = n
+			end
+		end
+	end
+
+	if type(raw.Featured) == "string" and Landmarks.ById[raw.Featured] and data.Inventory[raw.Featured] then
+		data.Featured = raw.Featured
+	end
+
+	if type(raw.Upgrades) == "table" then
+		for _, upgrade in Config.Upgrades do
+			local level = nonNegativeInt(raw.Upgrades[upgrade.Id])
+			if level then
+				data.Upgrades[upgrade.Id] = math.min(level, upgrade.MaxLevel)
+			end
+		end
+	end
+
+	if type(raw.Settings) == "table" and type(raw.Settings.AutoFeature) == "boolean" then
+		data.Settings.AutoFeature = raw.Settings.AutoFeature
+	end
+
+	return data
+end
+
+-- 업그레이드 ---------------------------------------------------------------
+
+function PlayerState.upgradeLevel(data: Data | Snapshot, upgradeId: string): number
+	return data.Upgrades[upgradeId] or 0
+end
+
+-- 현재 레벨에서 다음 레벨로 가는 가격. 최대 레벨이면 nil.
+function PlayerState.upgradePrice(upgradeId: string, level: number): number?
+	local upgrade = PlayerState.UpgradesById[upgradeId]
+	if not upgrade or level >= upgrade.MaxLevel then
+		return nil
+	end
+	return math.floor(upgrade.BasePrice * upgrade.Growth ^ level)
+end
+
+-- 반환: 성공 여부, 실패 사유(표시용)
+function PlayerState.buyUpgrade(data: Data, upgradeId: any): (boolean, string?)
+	local upgrade = if type(upgradeId) == "string" then PlayerState.UpgradesById[upgradeId] else nil
+	if not upgrade then
+		return false, "존재하지 않는 업그레이드입니다"
+	end
+	local level = PlayerState.upgradeLevel(data, upgrade.Id)
+	local price = PlayerState.upgradePrice(upgrade.Id, level)
+	if not price then
+		return false, "이미 최대 레벨입니다"
+	end
+	if data.Coins < price then
+		return false, "코인이 부족합니다"
+	end
+	data.Coins -= price
+	data.Upgrades[upgrade.Id] = level + 1
+	return true, nil
+end
+
+-- 여권 도장 / 행운 / 속도 ----------------------------------------------------
+
+-- 모든 명소를 발견한 지역 Id 목록 (Landmarks.Regions 순서)
+function PlayerState.completedRegions(data: Data | Snapshot): { string }
+	local completed = {}
+	for _, region in Landmarks.Regions do
+		local list = Landmarks.ByRegion[region.Id]
+		local all = #list > 0
+		for _, landmark in list do
+			if (data.Inventory[landmark.Id] or 0) <= 0 then
+				all = false
+				break
+			end
+		end
+		if all then
+			table.insert(completed, region.Id)
+		end
+	end
+	return completed
+end
+
+-- 이번 굴림에 적용할 행운 = 기본 × 지구본 업그레이드 × 여권 도장
+function PlayerState.luck(data: Data | Snapshot): number
+	local globe = PlayerState.UpgradesById.Globe
+	local globeMult = 1 + globe.PerLevel * PlayerState.upgradeLevel(data, "Globe")
+	local regionMult = 1 + Config.REGION_LUCK_BONUS * #PlayerState.completedRegions(data)
+	return Config.BASE_LUCK * globeMult * regionMult
+end
+
+function PlayerState.cooldown(data: Data | Snapshot): number
+	local agency = PlayerState.UpgradesById.Agency
+	return Config.ROLL_COOLDOWN * (1 - agency.PerLevel * PlayerState.upgradeLevel(data, "Agency"))
+end
+
+-- 관광 공원 ---------------------------------------------------------------
+
+function PlayerState.slots(data: Data | Snapshot): number
+	local park = PlayerState.UpgradesById.Park
+	return Config.BASE_SLOTS + park.PerLevel * PlayerState.upgradeLevel(data, "Park")
+end
+
+-- 발견 횟수 -> 별 개수(0~5). 0 이면 미발견.
+function PlayerState.stars(count: number): number
+	local stars = 0
+	for i, threshold in Config.STAR_THRESHOLDS do
+		if count >= threshold then
+			stars = i
+		end
+	end
+	return stars
+end
+
+-- 공원에 전시되는 명소 Id 목록: 가진 것 중 희귀한 순서로 전시 칸 수만큼
+function PlayerState.park(data: Data | Snapshot): { string }
+	local result = {}
+	local slots = PlayerState.slots(data)
+	for _, landmark in Landmarks.RarestFirst do
+		if #result >= slots then
+			break
+		end
+		if (data.Inventory[landmark.Id] or 0) > 0 then
+			table.insert(result, landmark.Id)
+		end
+	end
+	return result
+end
+
+-- 명소 1개의 초당 수입 (입장료 업그레이드 제외)
+function PlayerState.landmarkIncome(landmark: Landmark, count: number): number
+	local stars = PlayerState.stars(count)
+	if stars == 0 then
+		return 0
+	end
+	local base = Config.TIER_INCOME[landmark.Tier.Rank] or 0
+	return base * (1 + Config.STAR_INCOME_BONUS * (stars - 1))
+end
+
+function PlayerState.incomePerSecond(data: Data | Snapshot): number
+	local total = 0
+	for _, id in PlayerState.park(data) do
+		total += PlayerState.landmarkIncome(Landmarks.ById[id], data.Inventory[id])
+	end
+	local ticket = PlayerState.UpgradesById.Ticket
+	return total * (1 + ticket.PerLevel * PlayerState.upgradeLevel(data, "Ticket"))
+end
+
+-- dt 초 동안의 관광 수입을 더하고, 더한 양을 반환
+function PlayerState.addIncome(data: Data, dt: number): number
+	local amount = PlayerState.incomePerSecond(data) * math.max(0, dt)
+	data.Coins += amount
+	return amount
+end
+
+-- 굴림 --------------------------------------------------------------------
+
+function PlayerState.discoveryBonus(landmark: Landmark): number
+	return math.ceil(Config.DISCOVERY_BONUS_MULT * landmark.OneIn ^ 0.5)
+end
+
+-- 굴림 결과 반영. 반환: 보너스 코인(처음 발견일 때만), 처음 발견인지, 별이 올랐는지
+function PlayerState.applyRoll(data: Data, landmark: Landmark): (number, boolean, boolean)
+	local before = data.Inventory[landmark.Id] or 0
+	local after = before + 1
+	data.Inventory[landmark.Id] = after
+	data.Rolls += 1
+	local isNew = before == 0
+	local bonus = if isNew then PlayerState.discoveryBonus(landmark) else 0
+	data.Coins += bonus
+	local starUp = not isNew and PlayerState.stars(after) > PlayerState.stars(before)
+	return bonus, isNew, starUp
+end
+
+-- 가장 희귀한 보유 명소
+function PlayerState.best(data: Data | Snapshot): Landmark?
+	for _, landmark in Landmarks.RarestFirst do
+		if (data.Inventory[landmark.Id] or 0) > 0 then
+			return landmark
+		end
+	end
+	return nil
+end
+
+-- landmarkId 가 nil 이면 해제. 발견한 명소만 대표로 지정 가능.
+function PlayerState.feature(data: Data, landmarkId: any): boolean
+	if landmarkId == nil then
+		data.Featured = nil
+		return true
+	end
+	if type(landmarkId) == "string" and Landmarks.ById[landmarkId] and (data.Inventory[landmarkId] or 0) > 0 then
+		data.Featured = landmarkId
+		return true
+	end
+	return false
+end
+
+function PlayerState.setSetting(data: Data, key: any, value: any): boolean
+	if key == "AutoFeature" and type(value) == "boolean" then
+		data.Settings.AutoFeature = value
+		return true
+	end
+	return false
+end
+
+function PlayerState.snapshot(data: Data, revision: number): Snapshot
+	return {
+		Revision = revision,
+		Rolls = data.Rolls,
+		Coins = data.Coins,
+		Inventory = table.clone(data.Inventory),
+		Featured = data.Featured,
+		Upgrades = table.clone(data.Upgrades),
+		Settings = table.clone(data.Settings),
+		Luck = PlayerState.luck(data),
+		Cooldown = PlayerState.cooldown(data),
+		Income = PlayerState.incomePerSecond(data),
+	}
+end
+
+return PlayerState
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="11">
+        <Properties>
+          <string name="Name">RollLogic</string>
+          <string name="Source"><![CDATA[--!strict
+-- 굴림 판정 (순수 함수 — 서버/테스트에서 공용)
+--
+-- 방식: 가장 희귀한 오라부터 차례로 "luck / N" 확률 판정을 하고, 처음 성공한 오라를 줍니다.
+-- 모두 실패하면 가장 흔한 오라. 그래서 행운 1 에서 희귀 오라는 거의 정확히 1/N,
+-- 행운이 L 배면 희귀 오라 확률도 약 L 배가 됩니다. 행운이 N 이상이면 그보다 흔한 오라는 안 나옵니다.
+
+export type Rollable = { Id: string, OneIn: number }
+
+local RollLogic = {}
+
+-- rarestFirst: OneIn 내림차순 목록. nextNumber: [0, 1) 난수 함수.
+function RollLogic.roll<T>(rarestFirst: { T & Rollable }, luck: number, nextNumber: () -> number): T & Rollable
+	local count = #rarestFirst
+	for i = 1, count - 1 do
+		local aura = rarestFirst[i]
+		-- nextNumber() < luck / OneIn 과 같지만 나눗셈 오차가 없음
+		if nextNumber() * aura.OneIn < luck then
+			return aura
+		end
+	end
+	return rarestFirst[count]
+end
+
+-- 주어진 행운에서 각 오라가 실제로 나올 확률 { [Id] = p } (합계 1)
+function RollLogic.probabilities(rarestFirst: { Rollable }, luck: number): { [string]: number }
+	local result = {}
+	local remaining = 1
+	local count = #rarestFirst
+	for i = 1, count - 1 do
+		local aura = rarestFirst[i]
+		local p = math.min(1, luck / aura.OneIn)
+		result[aura.Id] = remaining * p
+		remaining *= 1 - p
+	end
+	result[rarestFirst[count].Id] = remaining
+	return result
+end
+
+return RollLogic
+]]></string>
+        </Properties>
+      </Item>
+    </Item>
+  </Item>
+  <Item class="ServerScriptService" referent="12">
+    <Properties>
+      <string name="Name">ServerScriptService</string>
+    </Properties>
+    <Item class="Script" referent="13">
+      <Properties>
+        <string name="Name">Server</string>
+        <token name="RunContext">0</token>
+        <string name="Source"><![CDATA[-- 서버 진입점: 플레이어 데이터, 굴림 판정(서버 권위), 관광 수입, 업그레이드, 공원/대표 명소 표시, 뉴스 속보
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared.Config)
+local Format = require(Shared.Format)
+local Landmarks = require(Shared.Landmarks)
+local Net = require(Shared.Net)
+local PlayerState = require(Shared.PlayerState)
+local RollLogic = require(Shared.RollLogic)
+
+local DataService = require(script.DataService)
+local FeaturedDisplay = require(script.FeaturedDisplay)
+local ParkService = require(script.ParkService)
+local World = require(script.World)
+
+-- 세계 명소(Rank 4) 이상은 굴린 사람의 연출(최대 약 4초)이 끝난 뒤에 공원/리더보드/뉴스/홀로그램에 반영
+-- (굴린 본인의 클라이언트는 연출이 끝날 때까지 자기 뉴스 속보를 따로 보류함)
+local REVEAL_GRACE = 4.5
+local REVEAL_RANK = 4
+-- 관광 수입은 서버가 1초마다 쌓고, 클라이언트는 Income 으로 코인을 부드럽게 올려 보여 줌.
+-- 마지막으로 상태를 보낸 뒤 이만큼 지나면 다시 보내서 오차를 바로잡음(매초 보내지 않음)
+local RESYNC_INTERVAL = 10
+local TELEPORT_COOLDOWN = 1
+
+type Session = {
+	Data: PlayerState.Data,
+	LockId: string?, -- nil 이면 저장하지 않음(Studio 등)
+	LastRoll: number,
+	Revision: number,
+	LastSync: number, -- 마지막으로 Snapshot 을 만든(보낸) 시각
+	LastTeleport: number,
+	Stats: { Rolls: IntValue, Best: StringValue },
+	Plot: number?, -- 배정된 공원 부지 번호(부지가 모자라면 nil)
+	-- 연출이 아직 안 끝나 공원/리더보드에 공개하지 않은 발견(명소 Id -> 횟수)
+	Hidden: { [string]: number },
+}
+
+local sessions: { [Player]: Session } = {}
+local started: { [Player]: boolean } = {}
+local rng = Random.new()
+
+local function nextNumber(): number
+	return rng:NextNumber()
+end
+
+local function snapshot(session: Session): PlayerState.Snapshot
+	session.Revision += 1
+	session.LastSync = time()
+	return PlayerState.snapshot(session.Data, session.Revision)
+end
+
+local function pushState(player: Player)
+	local session = sessions[player]
+	if session then
+		Net.event("State"):FireClient(player, snapshot(session))
+	end
+end
+
+-- 연출 중인 발견을 뺀 "남에게 보이는" 데이터. 공원·간판·리더보드로 결과가 미리 새지 않게 함.
+-- (예: 세계 명소를 뽑고 1초 뒤 흔한 명소를 뽑아도 공원에는 세계 명소가 아직 안 나타남)
+local function visibleData(session: Session): PlayerState.Data
+	if next(session.Hidden) == nil then
+		return session.Data
+	end
+	local inventory = table.clone(session.Data.Inventory)
+	for id, count in session.Hidden do
+		local left = (inventory[id] or 0) - count
+		inventory[id] = if left > 0 then left else nil
+	end
+	local view = table.clone(session.Data)
+	view.Inventory = inventory
+	return view
+end
+
+-- 공원 전시 + 간판 + 리더보드 "최고"
+local function refreshVisible(player: Player, session: Session)
+	local visible = visibleData(session)
+	local best = PlayerState.best(visible)
+	session.Stats.Best.Value = if best then best.Name else "-"
+	local ok, err = pcall(ParkService.update, player, visible)
+	if not ok then
+		warn("[LandmarkRNG] 공원 갱신 실패: " .. tostring(err))
+	end
+end
+
+local function refreshFeatured(player: Player)
+	local session = sessions[player]
+	local featured = if session and session.Data.Featured then Landmarks.ById[session.Data.Featured] else nil
+	local ok, err = pcall(FeaturedDisplay.apply, player.Character, featured)
+	if not ok then
+		warn("[LandmarkRNG] 대표 명소 표시 실패: " .. tostring(err))
+	end
+end
+
+local function createLeaderstats(player: Player): { Rolls: IntValue, Best: StringValue }
+	local folder = Instance.new("Folder")
+	folder.Name = "leaderstats"
+	local rolls = Instance.new("IntValue")
+	rolls.Name = "굴림"
+	rolls.Parent = folder
+	local best = Instance.new("StringValue")
+	best.Name = "최고"
+	best.Value = "-"
+	best.Parent = folder
+	folder.Parent = player
+	return { Rolls = rolls, Best = best }
+end
+
+local function onCharacter(player: Player, character: Model)
+	-- 머리/몸통이 생길 때까지 기다린 뒤 대표 명소를 붙임
+	character:WaitForChild("Head", 10)
+	character:WaitForChild("HumanoidRootPart", 10)
+	if player.Character == character then
+		refreshFeatured(player)
+	end
+end
+
+-- BindToClose 가 진행 중인 저장을 기다릴 수 있도록 개수를 셈
+local savesInFlight = 0
+
+local function trackedSave(player: Player, data: PlayerState.Data, lockId: string, release: boolean)
+	savesInFlight += 1
+	DataService.save(player, data, lockId, release)
+	savesInFlight -= 1
+end
+
+local function onPlayerAdded(player: Player)
+	if started[player] then
+		return
+	end
+	started[player] = true
+
+	local data, lockId = DataService.load(player)
+	if player.Parent == nil then
+		-- 불러오는 동안 나감: 방금 건 세션 잠금을 풀어 둬야 다음 접속이 기다리지 않음
+		started[player] = nil
+		if data and lockId then
+			trackedSave(player, data, lockId, true)
+		end
+		return
+	end
+	if not data then
+		player:Kick("데이터를 불러오지 못했습니다. 잠시 후 다시 접속해 주세요.")
+		return
+	end
+
+	local session: Session = {
+		Data = data,
+		LockId = lockId,
+		LastRoll = -math.huge,
+		Revision = 0,
+		LastSync = time(),
+		LastTeleport = -math.huge,
+		Stats = createLeaderstats(player),
+		Plot = nil,
+		Hidden = {},
+	}
+	sessions[player] = session
+	session.Stats.Rolls.Value = data.Rolls
+
+	-- 공원 부지 배정 + 전시
+	local ok, result = pcall(ParkService.assign, player)
+	if ok then
+		session.Plot = result
+	else
+		warn("[LandmarkRNG] 공원 부지 배정 실패: " .. tostring(result))
+	end
+	refreshVisible(player, session)
+
+	player.CharacterAdded:Connect(function(character)
+		onCharacter(player, character)
+	end)
+	-- 일부 아바타(다이나믹 헤드 등)는 외형 로딩 중 머리를 교체하므로 로딩이 끝난 뒤 한 번 더 붙임
+	player.CharacterAppearanceLoaded:Connect(function(character)
+		if player.Character == character then
+			refreshFeatured(player)
+		end
+	end)
+	if player.Character then
+		task.spawn(onCharacter, player, player.Character)
+	end
+	pushState(player)
+end
+
+local function saveAndRelease(player: Player)
+	started[player] = nil
+	local ok, err = pcall(ParkService.release, player)
+	if not ok then
+		warn("[LandmarkRNG] 공원 부지 정리 실패: " .. tostring(err))
+	end
+	local session = sessions[player]
+	if not session then
+		return
+	end
+	sessions[player] = nil
+	if session.LockId then
+		trackedSave(player, session.Data, session.LockId, true)
+	end
+end
+
+-- 월드(광장 + 지구본)와 공원 부지. 실패해도 굴리기/저장은 되도록 pcall
+do
+	local ok, err = pcall(World.build)
+	if not ok then
+		warn("[LandmarkRNG] 광장을 만들지 못했습니다: " .. tostring(err))
+	end
+	ok, err = pcall(ParkService.init)
+	if not ok then
+		warn("[LandmarkRNG] 공원 부지를 만들지 못했습니다: " .. tostring(err))
+	end
+end
+
+Players.PlayerAdded:Connect(onPlayerAdded)
+Players.PlayerRemoving:Connect(saveAndRelease)
+for _, player in Players:GetPlayers() do
+	task.spawn(onPlayerAdded, player)
+end
+
+-- 서버 종료 시 남은 플레이어를 병렬로 저장하고, 퇴장 처리 중인 저장까지 끝나길 기다림(최대 약 25초)
+game:BindToClose(function()
+	for player in sessions do
+		task.spawn(saveAndRelease, player)
+	end
+	local deadline = os.clock() + 25
+	while savesInFlight > 0 and os.clock() < deadline do
+		task.wait(0.1)
+	end
+end)
+
+-- 자동 저장
+task.spawn(function()
+	while true do
+		task.wait(Config.AUTOSAVE_INTERVAL)
+		for player, session in sessions do
+			if session.LockId then
+				task.spawn(DataService.save, player, session.Data, session.LockId, false)
+			end
+		end
+	end
+end)
+
+-- 관광 수입 (접속 중에만). 상태는 매초 보내지 않고 RESYNC_INTERVAL 마다 재동기화만.
+-- 굴리는 중인 플레이어는 굴림 응답마다 상태를 받으므로 재동기화가 연출 도중에 끼어들지 않음.
+task.spawn(function()
+	while true do
+		local dt = task.wait(1)
+		local now = time()
+		for player, session in sessions do
+			PlayerState.addIncome(session.Data, dt)
+			if now - session.LastSync >= RESYNC_INTERVAL then
+				pushState(player)
+			end
+		end
+	end
+end)
+
+local function announce(player: Player, landmark: Landmarks.Landmark, rollNumber: number)
+	local hologram = landmark.OneIn >= Config.HOLOGRAM_ONE_IN
+	Net.event("Announce"):FireAllClients({
+		UserId = player.UserId,
+		Name = player.DisplayName,
+		LandmarkId = landmark.Id,
+		Rolls = rollNumber,
+		Hologram = hologram,
+	})
+	if hologram then
+		local ok, err = pcall(World.hologram, landmark)
+		if not ok then
+			warn("[LandmarkRNG] 홀로그램 실패: " .. tostring(err))
+		end
+	end
+	print(
+		string.format(
+			"[LandmarkRNG] %s 님이 %s (%s) 발견 — %d번째 굴림",
+			player.Name,
+			landmark.Name,
+			Format.oneIn(landmark.OneIn),
+			rollNumber
+		)
+	)
+end
+
+-- 희귀 발견을 연출이 끝날 때까지 숨겼다가 공개
+local function revealLater(player: Player, session: Session, landmark: Landmarks.Landmark)
+	session.Hidden[landmark.Id] = (session.Hidden[landmark.Id] or 0) + 1
+	task.delay(REVEAL_GRACE, function()
+		local left = (session.Hidden[landmark.Id] or 1) - 1
+		session.Hidden[landmark.Id] = if left > 0 then left else nil
+		if sessions[player] == session then
+			refreshVisible(player, session)
+		end
+	end)
+end
+
+-- 원격 함수 --------------------------------------------------------------
+
+Net.fn("GetState").OnServerInvoke = function(player: Player)
+	-- 클라이언트가 데이터 로드보다 먼저 시작할 수 있으므로 최대 30초 대기
+	local deadline = os.clock() + 30
+	while not sessions[player] and player.Parent and os.clock() < deadline do
+		task.wait(0.2)
+	end
+	local session = sessions[player]
+	return if session then snapshot(session) else nil
+end
+
+Net.fn("Roll").OnServerInvoke = function(player: Player)
+	local session = sessions[player]
+	if not session then
+		return { Ok = false, Reason = "loading" }
+	end
+
+	-- 쿨타임: 허용 오차만큼 일찍 와도 받아주되, 기준 시각은 "원래 가능했던 시각"으로 밀어서
+	-- 오차를 반복 악용해도 평균 속도가 빨라지지 않게 합니다.
+	local now = time()
+	local cooldown = PlayerState.cooldown(session.Data)
+	local readyAt = session.LastRoll + cooldown
+	if now < readyAt - Config.COOLDOWN_TOLERANCE then
+		return { Ok = false, Reason = "cooldown", RetryIn = readyAt - now }
+	end
+	session.LastRoll = math.max(now, readyAt)
+
+	local luck = PlayerState.luck(session.Data)
+	local landmark = RollLogic.roll(Landmarks.RarestFirst, luck, nextNumber)
+	local bonus, isNew, starUp = PlayerState.applyRoll(session.Data, landmark)
+	local rollNumber = session.Data.Rolls
+	session.Stats.Rolls.Value = rollNumber
+
+	-- 세계 명소 이상은 연출이 끝난 뒤에 공원/리더보드("최고")에 반영해야 결과가 미리 새지 않음
+	if landmark.Tier.Rank >= REVEAL_RANK then
+		revealLater(player, session, landmark)
+	else
+		refreshVisible(player, session)
+	end
+	if landmark.OneIn >= Config.ANNOUNCE_ONE_IN then
+		task.delay(REVEAL_GRACE, announce, player, landmark, rollNumber)
+	end
+
+	return {
+		Ok = true,
+		LandmarkId = landmark.Id,
+		Luck = luck,
+		Bonus = bonus,
+		IsNew = isNew,
+		StarUp = starUp,
+		Stars = PlayerState.stars(session.Data.Inventory[landmark.Id] or 0),
+		State = snapshot(session),
+	}
+end
+
+-- 대표 명소 지정/해제. 자동 지정 여부는 클라이언트가 연출 뒤에 판단해서 요청함(서버는 검증만).
+Net.fn("Feature").OnServerInvoke = function(player: Player, landmarkId: any)
+	local session = sessions[player]
+	if not session then
+		return { Ok = false }
+	end
+	local before = session.Data.Featured
+	local ok = PlayerState.feature(session.Data, landmarkId)
+	if ok and session.Data.Featured ~= before then
+		refreshFeatured(player)
+	end
+	return { Ok = ok, State = snapshot(session) }
+end
+
+Net.fn("BuyUpgrade").OnServerInvoke = function(player: Player, upgradeId: any)
+	local session = sessions[player]
+	if not session then
+		return { Ok = false, Reason = "데이터를 불러오는 중입니다" }
+	end
+	local ok, reason = PlayerState.buyUpgrade(session.Data, upgradeId)
+	if ok then
+		-- 공원 확장(칸 수), 입장료(간판의 수입) 등이 바뀔 수 있음. 바뀐 칸만 다시 만듦
+		refreshVisible(player, session)
+	end
+	return { Ok = ok, Reason = reason, State = snapshot(session) }
+end
+
+Net.fn("SetSetting").OnServerInvoke = function(player: Player, key: any, value: any)
+	local session = sessions[player]
+	if not session then
+		return { Ok = false }
+	end
+	local ok = PlayerState.setSetting(session.Data, key, value)
+	return { Ok = ok, State = snapshot(session) }
+end
+
+Net.fn("Teleport").OnServerInvoke = function(player: Player, where: any)
+	if where ~= "Park" and where ~= "Plaza" then
+		return { Ok = false }
+	end
+	local session = sessions[player]
+	if not session then
+		return { Ok = false }
+	end
+	local now = time()
+	if now - session.LastTeleport < TELEPORT_COOLDOWN then
+		return { Ok = false }
+	end
+
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if not character or not humanoid or humanoid.Health <= 0 or not root then
+		return { Ok = false }
+	end
+
+	local target: CFrame
+	if where == "Park" then
+		local entrance = ParkService.entranceCFrame(player)
+		if not entrance then
+			return { Ok = false }
+		end
+		target = entrance + Vector3.new(0, 3, 0) -- 캐릭터 피벗(HumanoidRootPart)은 발바닥보다 약 3 스터드 위
+	else
+		target = World.plazaCFrame()
+	end
+
+	session.LastTeleport = now
+	humanoid.Sit = false
+	character:PivotTo(target)
+	return { Ok = true }
+end
+]]></string>
+      </Properties>
+      <Item class="ModuleScript" referent="14">
+        <Properties>
+          <string name="Name">DataService</string>
+          <string name="Source"><![CDATA[-- DataStore 저장/불러오기 + 세션 잠금
+--
+-- 저장 형식: { Data = PlayerState.Data, Lock = { Id, JobId, Time }? }
+-- 세션 잠금: 불러올 때마다 새 잠금 Id 를 발급하고, 저장은 그 Id 가 기록에 그대로 있을 때만 합니다.
+--   · 이전 세션(다른 서버든 같은 서버 재접속이든)이 아직 저장 중이면 잠시 기다렸다가 불러옴
+--   · 퇴장 저장으로 잠금이 풀린 뒤 늦게 도착한 자동 저장은 무시됨(잠금을 다시 걸지 않음)
+--   · 잠금이 만료되어 다른 세션이 가져갔으면 그쪽 데이터를 덮어쓰지 않음
+
+local DataStoreService = game:GetService("DataStoreService")
+local HttpService = game:GetService("HttpService")
+local RunService = game:GetService("RunService")
+
+local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
+local Config = require(Shared.Config)
+local PlayerState = require(Shared.PlayerState)
+
+local LOCK_EXPIRE_SECONDS = Config.AUTOSAVE_INTERVAL * 3
+local LOAD_ATTEMPTS = 6
+local SAVE_ATTEMPTS = 3
+
+local DataService = {}
+
+local store: DataStore? = nil
+do
+	local ok, result = pcall(function()
+		return DataStoreService:GetDataStore(Config.DATASTORE_NAME)
+	end)
+	if ok then
+		store = result
+	else
+		warn("[DataService] DataStore 를 열 수 없습니다: " .. tostring(result))
+	end
+end
+
+local function keyFor(player: Player): string
+	return "player_" .. player.UserId
+end
+
+local function newLock(lockId: string)
+	return { Id = lockId, JobId = game.JobId, Time = os.time() }
+end
+
+-- 반환: data(실패 시 nil), lockId(nil 이면 저장하지 않음)
+-- Studio 에서 API 접근이 꺼져 있으면 새 데이터로 플레이만 하고 저장은 하지 않습니다.
+function DataService.load(player: Player): (PlayerState.Data?, string?)
+	if not store then
+		if RunService:IsStudio() then
+			return PlayerState.new(), nil
+		end
+		return nil, nil
+	end
+
+	local lockId = HttpService:GenerateGUID(false)
+	for attempt = 1, LOAD_ATTEMPTS do
+		local steal = attempt == LOAD_ATTEMPTS
+		local blocked = false
+		local loaded: any = nil
+
+		local ok, err = pcall(function()
+			store:UpdateAsync(keyFor(player), function(record)
+				-- UpdateAsync 는 충돌 시 이 함수를 다시 부를 수 있으므로 결과 변수는 매번 초기화
+				blocked = false
+				loaded = nil
+				record = if type(record) == "table" then record else {}
+				local lock = record.Lock
+				if
+					not steal
+					and type(lock) == "table"
+					and lock.Id ~= lockId
+					and os.time() - (tonumber(lock.Time) or 0) < LOCK_EXPIRE_SECONDS
+				then
+					blocked = true
+					return nil -- 쓰기 취소
+				end
+				loaded = record.Data
+				record.Lock = newLock(lockId)
+				return record
+			end)
+		end)
+
+		if ok and not blocked then
+			return PlayerState.reconcile(loaded), lockId
+		end
+		if not ok then
+			warn(
+				string.format(
+					"[DataService] %s 불러오기 실패(%d/%d): %s",
+					player.Name,
+					attempt,
+					LOAD_ATTEMPTS,
+					tostring(err)
+				)
+			)
+			if RunService:IsStudio() then
+				-- 게시 안 된 place 이거나 API 접근이 꺼진 경우: 테스트는 되도록 저장 없이 진행
+				warn(
+					"[DataService] Studio 에서는 저장 없이 진행합니다. 저장까지 테스트하려면 게임을 게시하고 "
+						.. "Game Settings > Security > 'Enable Studio Access to API Services' 를 켜세요."
+				)
+				return PlayerState.new(), nil
+			end
+		end
+		if player.Parent == nil then
+			return nil, nil
+		end
+		task.wait(if blocked then 5 else attempt * 1.5)
+	end
+	return nil, nil
+end
+
+-- lockId: load 가 돌려준 값. release=true 면 잠금을 풀어 다음 세션이 바로 불러갈 수 있게 합니다(퇴장 시).
+function DataService.save(player: Player, data: PlayerState.Data, lockId: string, release: boolean): boolean
+	if not store then
+		return false
+	end
+	for attempt = 1, SAVE_ATTEMPTS do
+		local stale = false
+		local ok, err = pcall(function()
+			store:UpdateAsync(keyFor(player), function(record)
+				stale = false
+				record = if type(record) == "table" then record else {}
+				local lock = record.Lock
+				if type(lock) ~= "table" or lock.Id ~= lockId then
+					-- 이미 풀린 잠금(퇴장 저장 완료)이거나 다른 세션이 가져간 경우: 덮어쓰지 않음
+					stale = true
+					return nil
+				end
+				record.Data = data
+				record.Lock = if release then nil else newLock(lockId)
+				return record
+			end)
+		end)
+		if ok then
+			if stale then
+				warn(
+					"[DataService] "
+						.. player.Name
+						.. " 의 세션이 이미 끝났거나 다른 세션이 데이터를 사용 중이라 저장을 건너뜁니다."
+				)
+				return false
+			end
+			return true
+		end
+		warn(
+			string.format(
+				"[DataService] %s 저장 실패(%d/%d): %s",
+				player.Name,
+				attempt,
+				SAVE_ATTEMPTS,
+				tostring(err)
+			)
+		)
+		if attempt < SAVE_ATTEMPTS then
+			task.wait(attempt * 2)
+		end
+	end
+	return false
+end
+
+return DataService
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="15">
+        <Properties>
+          <string name="Name">FeaturedDisplay</string>
+          <string name="Source"><![CDATA[-- 대표 명소를 캐릭터에 표시: 오른쪽 어깨 옆에 작은 모형이 붙어 다니고, 머리 위에 "📍 이름" 표시
+-- 모형은 HumanoidRootPart 에 용접(Weld)해서 캐릭터와 함께 움직입니다(무게 없음, 충돌 없음).
+
+local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
+local Landmarks = require(Shared.Landmarks)
+local Models = require(Shared.Models)
+
+local FX_NAME = "FeaturedLandmark"
+local MODEL_SIZE = 2.4
+local SHOULDER_OFFSET = CFrame.new(2.4, 1.6, 0) -- HumanoidRootPart 기준: 오른쪽 어깨 옆, 어깨 높이
+local LABEL_DISTANCE = 80
+
+local FeaturedDisplay = {}
+
+local function clear(character: Model)
+	for _, descendant in character:GetDescendants() do
+		if descendant.Name == FX_NAME then
+			descendant:Destroy()
+		end
+	end
+end
+
+local function attachModel(character: Model, landmark: Landmarks.Landmark)
+	local root = character:FindFirstChild("HumanoidRootPart")
+	if not root or not root:IsA("BasePart") then
+		return
+	end
+	local ok, result = pcall(Models.create, landmark, MODEL_SIZE, { Anchored = false })
+	if not ok then
+		warn("[FeaturedDisplay] " .. landmark.Id .. " 모형을 만들지 못했습니다: " .. tostring(result))
+		return
+	end
+	local model = result :: Model
+	model.Name = FX_NAME
+	model:PivotTo(root.CFrame * SHOULDER_OFFSET)
+
+	-- 파트마다 지금 위치 그대로 HumanoidRootPart 에 고정
+	for _, descendant in model:GetDescendants() do
+		if descendant:IsA("BasePart") then
+			descendant.Anchored = false
+			descendant.Massless = true
+			descendant.CanCollide = false
+			descendant.CastShadow = false
+			local weld = Instance.new("Weld")
+			weld.C0 = root.CFrame:ToObjectSpace(descendant.CFrame)
+			weld.Part0 = root
+			weld.Part1 = descendant
+			weld.Parent = descendant
+		end
+	end
+	model.Parent = character
+end
+
+local function attachLabel(character: Model, landmark: Landmarks.Landmark)
+	local head = character:FindFirstChild("Head")
+	if not head or not head:IsA("BasePart") then
+		return
+	end
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = FX_NAME
+	billboard.Adornee = head
+	billboard.Size = UDim2.fromScale(6, 1.1)
+	billboard.StudsOffset = Vector3.new(0, 2.7, 0)
+	billboard.MaxDistance = LABEL_DISTANCE
+	billboard.LightInfluence = 0
+
+	local label = Instance.new("TextLabel")
+	label.BackgroundTransparency = 1
+	label.Size = UDim2.fromScale(1, 1)
+	label.Font = Enum.Font.GothamBlack
+	label.TextScaled = true
+	label.Text = "📍 " .. landmark.Name
+	label.TextColor3 = landmark.Tier.Color
+	label.Parent = billboard
+
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 2
+	stroke.Transparency = 0.2
+	stroke.Color = Color3.new(0, 0, 0)
+	stroke.Parent = label
+
+	billboard.Parent = head
+end
+
+-- 이전 표시를 지우고, landmark 가 있으면 새로 붙임(nil 이면 지우기만)
+function FeaturedDisplay.apply(character: Model?, landmark: Landmarks.Landmark?)
+	if not character then
+		return
+	end
+	clear(character)
+	if landmark then
+		attachModel(character, landmark)
+		attachLabel(character, landmark)
+	end
+end
+
+return FeaturedDisplay
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="16">
+        <Properties>
+          <string name="Name">ParkService</string>
+          <string name="Source"><![CDATA[-- 관광 공원 부지: 광장을 둘러싼 원형 배치. 플레이어마다 부지 하나를 배정하고 미니어처를 전시합니다.
+--
+-- 배치: 안쪽 고리 8칸(반지름 115), 바깥 고리 16칸(반지름 210). 반지름은 광장 중심에서 부지 "입구"
+--   (광장 쪽 가장자리)까지 거리입니다. 부지 중심까지로 잡으면 이웃 부지끼리 겹치기 때문.
+-- 부지 좌표계: 부지 중앙 바닥이 원점, -Z(LookVector)가 광장 쪽 = 입구.
+-- 전시 칸: 6x6 격자. 입구에 가까운 줄부터, 한 줄 안에서는 가운데에 가까운 칸부터 채워서
+--   가장 희귀한 명소가 입구 정면에 오도록 합니다.
+-- update 는 칸마다 이전 상태를 기억해 두고 바뀐 칸만 다시 만듭니다(별 개수는 이름표 글자만 바꿈).
+
+local Workspace = game:GetService("Workspace")
+
+local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
+local Config = require(Shared.Config)
+local Format = require(Shared.Format)
+local Landmarks = require(Shared.Landmarks)
+local Models = require(Shared.Models)
+local PlayerState = require(Shared.PlayerState)
+
+local INNER_RADIUS = 115
+local OUTER_RADIUS = 210
+local PLAZA_EDGE = 44 -- 길이 시작되는 곳(광장 둘레 계단 아래에서부터)
+
+local PLOT_WIDTH = 76
+local PLOT_DEPTH = 80
+local BASE_TOP = 0.6 -- 부지 윗면 높이
+local BORDER = 1.5 -- 부지 둘레 색 띠 폭
+
+local GRID = 6
+local SPACING = 12
+local FRONT_MARGIN = 6 -- 입구와 첫 줄 사이 빈 공간
+local PEDESTAL_SIZE = 10
+local PEDESTAL_HEIGHT = 0.6
+local MINIATURE_SIZE = 9
+local LABEL_DISTANCE = 60
+local PATH_WIDTH = 10
+
+local MAX_STARS = #Config.STAR_THRESHOLDS
+
+local BASE_COLOR = Color3.fromRGB(226, 220, 204)
+local PATH_COLOR = Color3.fromRGB(215, 198, 165)
+local PEDESTAL_COLOR = Color3.fromRGB(236, 234, 228)
+local LOCKED_COLOR = Color3.fromRGB(120, 124, 138)
+local SIGN_COLOR = Color3.fromRGB(250, 246, 234)
+local SIGN_TEXT = Color3.fromRGB(45, 45, 60)
+local INCOME_TEXT = Color3.fromRGB(40, 150, 75)
+local STAR_COLOR = Color3.fromRGB(255, 210, 70)
+
+local EMPTY_TITLE = "🏞️ 빈 부지"
+local EMPTY_SUBTITLE = "주인을 기다리는 중"
+
+-- 칸 상태 키: 명소 Id 이거나 아래 둘 중 하나(명소 Id 는 '#' 으로 시작하지 않음)
+local KEY_LOCKED = "#locked"
+local KEY_EMPTY = "#empty"
+
+type Slot = {
+	Key: string,
+	Container: Model,
+	StarLabel: TextLabel?,
+	Stars: number,
+}
+
+type Plot = {
+	Index: number,
+	CFrame: CFrame,
+	Model: Model,
+	SlotFolder: Folder,
+	TitleLabels: { TextLabel },
+	IncomeLabels: { TextLabel },
+	Owner: Player?,
+	Slots: { Slot },
+}
+
+type Layout = { Angle: number, Radius: number, Path: boolean }
+
+-- 부지 순서 = 배정 순서(가장 작은 빈 번호부터). 첫 부지는 스폰 정면(-Z = 270도) 근처.
+local LAYOUT: { Layout } = {}
+for i = 0, 7 do
+	table.insert(LAYOUT, { Angle = math.rad(247.5 + 45 * i), Radius = INNER_RADIUS, Path = true })
+end
+-- 바깥 고리: 안쪽 부지 사이 틈으로 광장에서 바로 보이는 8칸 먼저, 안쪽 부지 뒤에 있는 8칸은 나중에
+for i = 0, 7 do
+	table.insert(LAYOUT, { Angle = math.rad(270 + 45 * i), Radius = OUTER_RADIUS, Path = true })
+end
+for i = 0, 7 do
+	table.insert(LAYOUT, { Angle = math.rad(247.5 + 45 * i), Radius = OUTER_RADIUS, Path = false })
+end
+
+-- 전시 칸 위치(부지 좌표, Y = 부지 윗면). 입구 쪽 줄부터, 줄 안에서는 가운데부터.
+local SLOT_OFFSETS: { Vector3 } = {}
+do
+	local columns = {}
+	for c = 1, GRID do
+		table.insert(columns, (c - (GRID + 1) / 2) * SPACING)
+	end
+	table.sort(columns, function(a, b)
+		if math.abs(a) ~= math.abs(b) then
+			return math.abs(a) < math.abs(b)
+		end
+		return a < b
+	end)
+	local firstRow = -PLOT_DEPTH / 2 + FRONT_MARGIN + SPACING / 2
+	for row = 0, GRID - 1 do
+		for _, x in columns do
+			table.insert(SLOT_OFFSETS, Vector3.new(x, BASE_TOP, firstRow + row * SPACING))
+		end
+	end
+end
+
+local ParkService = {}
+
+local folder: Folder? = nil
+local plots: { Plot } = {}
+local plotByPlayer: { [Player]: Plot } = {}
+
+local function newPart(
+	parent: Instance,
+	name: string,
+	size: Vector3,
+	cframe: CFrame,
+	color: Color3,
+	material: Enum.Material
+): Part
+	local part = Instance.new("Part")
+	part.Name = name
+	part.Size = size
+	part.CFrame = cframe
+	part.Color = color
+	part.Material = material
+	part.Anchored = true
+	part.TopSurface = Enum.SurfaceType.Smooth
+	part.BottomSurface = Enum.SurfaceType.Smooth
+	part.Parent = parent
+	return part
+end
+
+local function textLabel(parent: Instance, size: UDim2, position: UDim2, color: Color3, font: Enum.Font): TextLabel
+	local label = Instance.new("TextLabel")
+	label.BackgroundTransparency = 1
+	label.Size = size
+	label.Position = position
+	label.Font = font
+	label.TextScaled = true
+	label.TextColor3 = color
+	label.Text = ""
+	label.Parent = parent
+	return label
+end
+
+local function outline(label: TextLabel, thickness: number)
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = thickness
+	stroke.Color = Color3.new(0, 0, 0)
+	stroke.Transparency = 0.2
+	stroke.Parent = label
+end
+
+local function starText(stars: number): string
+	return string.rep("★", stars) .. string.rep("☆", MAX_STARS - stars)
+end
+
+local function incomeText(income: number): string
+	return "관광 수입 +" .. Format.commas(income) .. "/초"
+end
+
+-- 간판 한 면(SurfaceGui). 반환: 제목 라벨, 수입 라벨
+local function signFace(board: BasePart, face: Enum.NormalId): (TextLabel, TextLabel)
+	local gui = Instance.new("SurfaceGui")
+	gui.Name = "SignGui"
+	gui.Face = face
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 40
+	gui.LightInfluence = 0
+	gui.Parent = board
+	local title =
+		textLabel(gui, UDim2.fromScale(0.94, 0.54), UDim2.fromScale(0.03, 0.06), SIGN_TEXT, Enum.Font.GothamBlack)
+	local income =
+		textLabel(gui, UDim2.fromScale(0.94, 0.32), UDim2.fromScale(0.03, 0.62), INCOME_TEXT, Enum.Font.GothamBold)
+	return title, income
+end
+
+local function setSign(plot: Plot, title: string, subtitle: string)
+	for _, label in plot.TitleLabels do
+		label.Text = title
+	end
+	for _, label in plot.IncomeLabels do
+		label.Text = subtitle
+	end
+end
+
+-- 부지 바닥, 둘레 색 띠, 입구 아치 간판, 광장까지 길
+local function buildPlot(parent: Instance, index: number, layout: Layout): Plot
+	local direction = Vector3.new(math.cos(layout.Angle), 0, math.sin(layout.Angle))
+	local center = direction * (layout.Radius + PLOT_DEPTH / 2)
+	local cf = CFrame.lookAt(center, Vector3.zero) -- -Z(LookVector)가 광장 쪽
+	-- 이웃 부지와 색이 겹치지 않게 황금비 간격으로 색상환을 돔
+	local color = Color3.fromHSV(((index - 1) * 0.618034) % 1, 0.6, 0.95)
+
+	local model = Instance.new("Model")
+	model.Name = "Plot" .. index
+
+	-- 둘레 띠(윗면 0.4) 위에 부지 바닥(윗면 0.6): 계단처럼 걸어서 오를 수 있음
+	newPart(
+		model,
+		"Border",
+		Vector3.new(PLOT_WIDTH + BORDER * 2, BASE_TOP - 0.2, PLOT_DEPTH + BORDER * 2),
+		cf * CFrame.new(0, (BASE_TOP - 0.2) / 2, 0),
+		color,
+		Enum.Material.SmoothPlastic
+	)
+	newPart(
+		model,
+		"Base",
+		Vector3.new(PLOT_WIDTH, BASE_TOP, PLOT_DEPTH),
+		cf * CFrame.new(0, BASE_TOP / 2, 0),
+		BASE_COLOR,
+		Enum.Material.Concrete
+	)
+
+	-- 입구 아치: 기둥 두 개 + 간판(사람이 밑으로 지나갈 수 있는 높이)
+	local signZ = -PLOT_DEPTH / 2 - BORDER - 1
+	for _, x in { -12, 12 } do
+		newPart(model, "SignPost", Vector3.new(1, 11, 1), cf * CFrame.new(x, 5.5, signZ), color, Enum.Material.Wood)
+	end
+	local board = newPart(
+		model,
+		"Sign",
+		Vector3.new(26, 5, 0.6),
+		cf * CFrame.new(0, 9, signZ),
+		SIGN_COLOR,
+		Enum.Material.SmoothPlastic
+	)
+	local frontTitle, frontIncome = signFace(board, Enum.NormalId.Front)
+	local backTitle, backIncome = signFace(board, Enum.NormalId.Back)
+
+	-- 광장에서 입구까지 길(안쪽 고리와, 안쪽 부지 사이로 보이는 바깥 부지만). 부지/광장 아래로 살짝 들어감
+	if layout.Path then
+		local from, to = PLAZA_EDGE, layout.Radius + 1
+		local length = to - from
+		local mid = direction * ((from + to) / 2) + Vector3.new(0, 0.1, 0)
+		local path = newPart(
+			model,
+			"Path",
+			Vector3.new(PATH_WIDTH, 0.2, length),
+			CFrame.lookAt(mid, Vector3.new(0, 0.1, 0)),
+			PATH_COLOR,
+			Enum.Material.Concrete
+		)
+		path.CastShadow = false
+	end
+
+	local slotFolder = Instance.new("Folder")
+	slotFolder.Name = "Slots"
+	slotFolder.Parent = model
+	model.Parent = parent
+
+	local plot: Plot = {
+		Index = index,
+		CFrame = cf,
+		Model = model,
+		SlotFolder = slotFolder,
+		TitleLabels = { frontTitle, backTitle },
+		IncomeLabels = { frontIncome, backIncome },
+		Owner = nil,
+		Slots = {},
+	}
+	setSign(plot, EMPTY_TITLE, EMPTY_SUBTITLE)
+	return plot
+end
+
+-- 서버 시작 시 한 번: 모든 부지의 바닥/간판/길을 만들어 둠(주인 없는 부지는 "빈 부지")
+function ParkService.init()
+	if folder then
+		return
+	end
+	local parks = Instance.new("Folder")
+	parks.Name = "Parks"
+	folder = parks
+	for index, layout in LAYOUT do
+		table.insert(plots, buildPlot(parks, index, layout))
+	end
+	parks.Parent = Workspace
+end
+
+-- 칸 위 작은 이름표: 이름(등급 색) + 별
+local function addLabel(pedestal: BasePart, landmark: Landmarks.Landmark, modelHeight: number): TextLabel
+	local anchor = Instance.new("Attachment")
+	anchor.Name = "LabelAnchor"
+	anchor.Position = Vector3.new(0, PEDESTAL_HEIGHT / 2 + modelHeight + 1.4, 0)
+	anchor.Parent = pedestal
+
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "Label"
+	billboard.Adornee = anchor
+	billboard.Size = UDim2.fromScale(10, 2.4)
+	billboard.MaxDistance = LABEL_DISTANCE
+	billboard.LightInfluence = 0
+
+	local name = textLabel(
+		billboard,
+		UDim2.fromScale(1, 0.58),
+		UDim2.fromScale(0, 0),
+		landmark.Tier.Color,
+		Enum.Font.GothamBlack
+	)
+	name.Text = landmark.Name
+	outline(name, 2)
+	local stars =
+		textLabel(billboard, UDim2.fromScale(1, 0.4), UDim2.fromScale(0, 0.6), STAR_COLOR, Enum.Font.GothamBold)
+	outline(stars, 1.5)
+
+	billboard.Parent = anchor
+	return stars
+end
+
+-- key: KEY_LOCKED(흐릿한 바닥) / KEY_EMPTY(빈 받침대) / 명소 Id(받침대 + 미니어처 + 이름표)
+local function buildSlot(plot: Plot, index: number, key: string): Slot
+	local floor = plot.CFrame * CFrame.new(SLOT_OFFSETS[index]) -- 칸 바닥 중앙(부지 윗면)
+	local container = Instance.new("Model")
+	container.Name = "Slot" .. index
+	local slot: Slot = { Key = key, Container = container, StarLabel = nil, Stars = -1 }
+
+	if key == KEY_LOCKED then
+		local tile = newPart(
+			container,
+			"Locked",
+			Vector3.new(PEDESTAL_SIZE, 0.1, PEDESTAL_SIZE),
+			floor * CFrame.new(0, 0.08, 0),
+			LOCKED_COLOR,
+			Enum.Material.SmoothPlastic
+		)
+		tile.Transparency = 0.7
+		tile.CanCollide = false
+		tile.CastShadow = false
+	else
+		local pedestal = newPart(
+			container,
+			"Pedestal",
+			Vector3.new(PEDESTAL_SIZE, PEDESTAL_HEIGHT, PEDESTAL_SIZE),
+			floor * CFrame.new(0, PEDESTAL_HEIGHT / 2, 0),
+			PEDESTAL_COLOR,
+			Enum.Material.Marble
+		)
+		local landmark = if key ~= KEY_EMPTY then Landmarks.ById[key] else nil
+		if landmark then
+			pedestal.Color = landmark.Tier.Color:Lerp(PEDESTAL_COLOR, 0.6)
+			-- 모형 하나가 잘못돼도 나머지 칸/이름표는 만들어지도록 pcall. 반환: 모형 높이
+			local ok, result = pcall(function(): number
+				local model = Models.create(landmark, MINIATURE_SIZE)
+				model:PivotTo(floor * CFrame.new(0, PEDESTAL_HEIGHT, 0))
+				model.Parent = container
+				return model:GetExtentsSize().Y
+			end)
+			if not ok then
+				warn("[ParkService] " .. landmark.Id .. " 모형을 만들지 못했습니다: " .. tostring(result))
+			end
+			slot.StarLabel = addLabel(pedestal, landmark, if ok then result else 0)
+		end
+	end
+
+	container.Parent = plot.SlotFolder
+	return slot
+end
+
+local function clearSlots(plot: Plot)
+	for _, slot in plot.Slots do
+		slot.Container:Destroy()
+	end
+	table.clear(plot.Slots)
+end
+
+-- 가장 작은 빈 부지 번호를 배정. 부지가 모자라면 nil(공원 없이 플레이).
+function ParkService.assign(player: Player): number?
+	ParkService.init()
+	local existing = plotByPlayer[player]
+	if existing then
+		return existing.Index
+	end
+	for _, plot in plots do
+		if not plot.Owner then
+			plot.Owner = player
+			plotByPlayer[player] = plot
+			setSign(plot, player.DisplayName .. " 님의 관광 공원", incomeText(0))
+			return plot.Index
+		end
+	end
+	warn("[ParkService] 빈 공원 부지가 없습니다: " .. player.Name)
+	return nil
+end
+
+-- 퇴장: 전시물을 모두 치우고 부지를 비움
+function ParkService.release(player: Player)
+	local plot = plotByPlayer[player]
+	if not plot then
+		return
+	end
+	plotByPlayer[player] = nil
+	plot.Owner = nil
+	clearSlots(plot)
+	setSign(plot, EMPTY_TITLE, EMPTY_SUBTITLE)
+end
+
+-- 전시 상태를 data 에 맞춤. data 는 Data 또는 같은 필드(Inventory, Upgrades)를 가진 표.
+function ParkService.update(player: Player, data: PlayerState.Data)
+	local plot = plotByPlayer[player]
+	if not plot then
+		return
+	end
+	local park = PlayerState.park(data)
+	local unlocked = math.min(PlayerState.slots(data), #SLOT_OFFSETS)
+
+	for index = 1, #SLOT_OFFSETS do
+		local id = park[index]
+		local key = if id then id elseif index <= unlocked then KEY_EMPTY else KEY_LOCKED
+		local slot = plot.Slots[index]
+		if not slot or slot.Key ~= key then
+			if slot then
+				slot.Container:Destroy()
+			end
+			slot = buildSlot(plot, index, key)
+			plot.Slots[index] = slot
+		end
+		local starLabel = slot.StarLabel
+		if id and starLabel then
+			local stars = PlayerState.stars(data.Inventory[id] or 0)
+			if stars ~= slot.Stars then
+				slot.Stars = stars
+				starLabel.Text = starText(stars)
+			end
+		end
+	end
+
+	setSign(plot, player.DisplayName .. " 님의 관광 공원", incomeText(PlayerState.incomePerSecond(data)))
+end
+
+-- 공원 입구 안쪽 바닥(부지 윗면)에서 공원 안쪽을 바라보는 CFrame. 부지가 없으면 nil.
+function ParkService.entranceCFrame(player: Player): CFrame?
+	local plot = plotByPlayer[player]
+	if not plot then
+		return nil
+	end
+	local position = plot.CFrame:PointToWorldSpace(Vector3.new(0, BASE_TOP, -PLOT_DEPTH / 2 + 3))
+	return CFrame.lookAt(position, position - plot.CFrame.LookVector)
+end
+
+return ParkService
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="17">
+        <Properties>
+          <string name="Name">World</string>
+          <string name="Source"><![CDATA[-- 광장(스폰) + 받침대 위의 거대 지구본 + 뉴스 속보 홀로그램
+-- 회전은 클라이언트가 "LandmarkSpin" 태그가 붙은 Model 을 제자리에서 돌려서 보여 줍니다(서버 복제 부담 없음).
+
+local CollectionService = game:GetService("CollectionService")
+local Workspace = game:GetService("Workspace")
+
+local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
+local Landmarks = require(Shared.Landmarks)
+local Models = require(Shared.Models)
+
+local SPIN_TAG = "LandmarkSpin"
+
+local PLAZA_RADIUS = 45
+local PLAZA_TOP = 1 -- 광장 윗면 높이. 스폰 지점(두께 1)이 이 위에 놓임
+local RIM_WIDTH = 3 -- 광장 둘레의 낮은 계단(윗면 0.5)
+local EARTH_SPOT = Vector3.new(0, PLAZA_TOP, -26) -- 지구본 받침대 바닥 중앙(스폰 정면 = -Z)
+local EARTH_SIZE = 26
+local LAMP_COUNT = 16
+local LAMP_RADIUS = PLAZA_RADIUS - 3
+
+local HOLOGRAM_SIZE = 60
+local HOLOGRAM_HEIGHT = 60 -- 홀로그램 바닥 높이(지구본과 겹치면 그 위로 올림)
+local HOLOGRAM_LIFETIME = 12
+local HOLOGRAM_TRANSPARENCY = 0.35
+
+local PLAZA_COLOR = Color3.fromRGB(214, 210, 200)
+local RIM_COLOR = Color3.fromRGB(165, 160, 150)
+local STONE_DARK = Color3.fromRGB(70, 74, 88)
+local MARBLE = Color3.fromRGB(240, 238, 232)
+local GOLD = Color3.fromRGB(235, 190, 80)
+local LAMP_POLE = Color3.fromRGB(45, 48, 60)
+local LAMP_LIGHT = Color3.fromRGB(255, 235, 190)
+
+-- 원기둥 파트는 X 축이 기둥 방향이므로 세우려면 Z 축으로 90도 돌림
+local UPRIGHT = CFrame.Angles(0, 0, math.rad(90))
+
+local World = {}
+
+local folder: Folder? = nil
+local earthTop = PLAZA_TOP + EARTH_SIZE -- 지구본 꼭대기 높이(모형을 만든 뒤 실제 값으로 바뀜)
+local hologram: Model? = nil
+
+local function newPart(
+	parent: Instance,
+	name: string,
+	shape: Enum.PartType,
+	size: Vector3,
+	cframe: CFrame,
+	color: Color3,
+	material: Enum.Material
+): Part
+	local part = Instance.new("Part")
+	part.Name = name
+	part.Shape = shape
+	part.Size = size
+	part.CFrame = cframe
+	part.Color = color
+	part.Material = material
+	part.Anchored = true
+	part.TopSurface = Enum.SurfaceType.Smooth
+	part.BottomSurface = Enum.SurfaceType.Smooth
+	part.Parent = parent
+	return part
+end
+
+-- bottom(바닥 중앙)에서 위로 height 만큼 세운 원기둥
+local function disc(
+	parent: Instance,
+	name: string,
+	bottom: Vector3,
+	height: number,
+	diameter: number,
+	color: Color3,
+	material: Enum.Material
+): Part
+	return newPart(
+		parent,
+		name,
+		Enum.PartType.Cylinder,
+		Vector3.new(height, diameter, diameter),
+		CFrame.new(bottom + Vector3.new(0, height / 2, 0)) * UPRIGHT,
+		color,
+		material
+	)
+end
+
+local function lamp(parent: Instance, base: Vector3)
+	local pole = newPart(
+		parent,
+		"LampPost",
+		Enum.PartType.Block,
+		Vector3.new(0.6, 9, 0.6),
+		CFrame.new(base + Vector3.new(0, 4.5, 0)),
+		LAMP_POLE,
+		Enum.Material.Metal
+	)
+	pole.CastShadow = false
+	local bulb = newPart(
+		parent,
+		"LampBulb",
+		Enum.PartType.Ball,
+		Vector3.new(1.8, 1.8, 1.8),
+		CFrame.new(base + Vector3.new(0, 9.6, 0)),
+		LAMP_LIGHT,
+		Enum.Material.Neon
+	)
+	bulb.CanCollide = false
+	bulb.CastShadow = false
+	local light = Instance.new("PointLight")
+	light.Color = LAMP_LIGHT
+	light.Range = 18
+	light.Brightness = 1.2
+	light.Parent = bulb
+end
+
+-- 서버 시작 시 한 번: 광장, 가로등, 받침대 + 거대 지구본
+function World.build()
+	if folder then
+		return
+	end
+	local world = Instance.new("Folder")
+	world.Name = "World"
+	folder = world
+
+	-- 광장: 둘레 계단(윗면 0.5) 위에 광장(윗면 1). 한 번에 0.5 씩이라 걸어서 오를 수 있음
+	disc(
+		world,
+		"PlazaRim",
+		Vector3.zero,
+		PLAZA_TOP / 2,
+		(PLAZA_RADIUS + RIM_WIDTH) * 2,
+		RIM_COLOR,
+		Enum.Material.Concrete
+	)
+	disc(world, "Plaza", Vector3.zero, PLAZA_TOP, PLAZA_RADIUS * 2, PLAZA_COLOR, Enum.Material.Concrete)
+
+	-- 가로등: 공원으로 가는 길(22.5도 간격) 사이사이에
+	for i = 1, LAMP_COUNT do
+		local angle = (i - 0.5) / LAMP_COUNT * math.pi * 2
+		lamp(world, Vector3.new(math.cos(angle) * LAMP_RADIUS, PLAZA_TOP, math.sin(angle) * LAMP_RADIUS))
+	end
+
+	-- 지구본 받침대
+	disc(world, "PedestalBase", EARTH_SPOT, 1.5, 18, STONE_DARK, Enum.Material.Slate)
+	disc(world, "PedestalColumn", EARTH_SPOT + Vector3.new(0, 1.5, 0), 5, 10, MARBLE, Enum.Material.Marble)
+	disc(world, "PedestalTop", EARTH_SPOT + Vector3.new(0, 6.5, 0), 1, 15, GOLD, Enum.Material.Metal)
+	local pedestalTop = EARTH_SPOT.Y + 7.5
+
+	-- 거대 지구본 (모형 코드에 문제가 있어도 광장은 만들어지도록 pcall)
+	local ok, err = pcall(function()
+		local earth = Models.create(Landmarks.ById.earth, EARTH_SIZE)
+		earth.Name = "Earth"
+		earth:PivotTo(CFrame.new(EARTH_SPOT.X, pedestalTop, EARTH_SPOT.Z))
+		earthTop = pedestalTop + earth:GetExtentsSize().Y
+		CollectionService:AddTag(earth, SPIN_TAG)
+		-- 스트리밍이 켜져 있어도 통째로 내려받게 해야 클라이언트 회전 때 일부 파트만 어긋나지 않음
+		earth.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
+		earth.Parent = world
+	end)
+	if not ok then
+		warn("[World] 지구본 모형을 만들지 못했습니다: " .. tostring(err))
+	end
+
+	world.Parent = Workspace
+end
+
+-- 광장으로 순간이동할 때 캐릭터 피벗(HumanoidRootPart) 위치: 스폰 바로 앞에서 지구본을 바라봄
+function World.plazaCFrame(): CFrame
+	local position = Vector3.new(0, PLAZA_TOP + 3.5, 10)
+	return CFrame.lookAt(position, Vector3.new(EARTH_SPOT.X, position.Y, EARTH_SPOT.Z))
+end
+
+local function titleBillboard(parent: BasePart, landmark: Landmarks.Landmark)
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "Title"
+	billboard.Adornee = parent
+	billboard.Size = UDim2.fromScale(80, 12)
+	billboard.LightInfluence = 0
+
+	local label = Instance.new("TextLabel")
+	label.BackgroundTransparency = 1
+	label.Size = UDim2.fromScale(1, 1)
+	label.Font = Enum.Font.GothamBlack
+	label.TextScaled = true
+	label.Text = "📰 " .. landmark.Name .. " 발견!"
+	label.TextColor3 = landmark.Tier.Color
+	label.Parent = billboard
+
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 3
+	stroke.Color = Color3.new(0, 0, 0)
+	stroke.Parent = label
+
+	billboard.Parent = parent
+end
+
+-- 광장 하늘에 거대한 반투명 홀로그램(한 번에 하나, 12초 뒤 사라짐)
+function World.hologram(landmark: Landmarks.Landmark)
+	if hologram then
+		hologram:Destroy()
+		hologram = nil
+	end
+
+	local ok, result = pcall(Models.create, landmark, HOLOGRAM_SIZE)
+	if not ok then
+		warn("[World] 홀로그램 모형을 만들지 못했습니다: " .. tostring(result))
+		return
+	end
+	local model = result :: Model
+	model.Name = "Hologram"
+	for _, descendant in model:GetDescendants() do
+		if descendant:IsA("BasePart") then
+			-- 원래 투명한 파트(Root 등)는 그대로 두고, 보이는 파트만 색은 유지한 채 홀로그램 재질로
+			if descendant.Transparency < 1 then
+				descendant.Transparency = math.max(descendant.Transparency, HOLOGRAM_TRANSPARENCY)
+				descendant.Material = Enum.Material.ForceField
+			end
+			descendant.Anchored = true
+			descendant.CanCollide = false
+			descendant.CanQuery = false
+			descendant.CanTouch = false
+			descendant.CastShadow = false
+		end
+	end
+
+	local bottom = math.max(HOLOGRAM_HEIGHT, earthTop + 10)
+	model:PivotTo(CFrame.new(0, bottom, 0))
+
+	-- 제목은 홀로그램 바로 아래(땅에서 올려다볼 때 잘 보이게). 회전축 위에 있어서 돌려도 제자리
+	local anchor = Instance.new("Part")
+	anchor.Name = "TitleAnchor"
+	anchor.Size = Vector3.new(1, 1, 1)
+	anchor.CFrame = CFrame.new(0, bottom - 5, 0)
+	anchor.Transparency = 1
+	anchor.Anchored = true
+	anchor.CanCollide = false
+	anchor.CanQuery = false
+	anchor.CanTouch = false
+	anchor.Parent = model
+	titleBillboard(anchor, landmark)
+
+	CollectionService:AddTag(model, SPIN_TAG)
+	model.ModelStreamingMode = Enum.ModelStreamingMode.Atomic
+	model.Parent = folder or Workspace
+	hologram = model
+
+	task.delay(HOLOGRAM_LIFETIME, function()
+		if hologram == model then
+			hologram = nil
+		end
+		model:Destroy()
+	end)
+end
+
+return World
+]]></string>
+        </Properties>
+      </Item>
+    </Item>
+  </Item>
+  <Item class="StarterPlayer" referent="18">
+    <Properties>
+      <string name="Name">StarterPlayer</string>
+    </Properties>
+    <Item class="StarterPlayerScripts" referent="19">
+      <Properties>
+        <string name="Name">StarterPlayerScripts</string>
+      </Properties>
+      <Item class="LocalScript" referent="20">
+        <Properties>
+          <string name="Name">Client</string>
+          <string name="Source"><![CDATA[-- 클라이언트 진입점: 상태 동기화, 굴리기/자동 굴리기, 메뉴 연결, 뉴스 속보, 회전 모형
+
+local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TextChatService = game:GetService("TextChatService")
+local UserInputService = game:GetService("UserInputService")
+
+local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
+local Format = require(Shared.Format)
+local Landmarks = require(Shared.Landmarks)
+local Net = require(Shared.Net)
+local PlayerState = require(Shared.PlayerState)
+
+local Hud = require(script.Hud)
+local Panels = require(script.Panels)
+local Ui = require(script.Ui)
+
+local SPIN_TAG = "LandmarkSpin"
+local SPIN_SPEED = math.rad(20) -- 태그 붙은 모형(광장 지구본, 홀로그램)의 초당 회전 각도
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local state: PlayerState.Snapshot? = nil -- 서버에서 받은 최신 Snapshot
+local stateReceivedAt = 0
+local deferredState: { Snapshot: any, ReceivedAt: number }? = nil -- 연출 중에 도착한 재동기화 상태
+local rolling = false
+local revealing = false
+local autoRoll = false
+local lastRollSentAt = -math.huge
+local heldAnnouncements = {} -- 내 굴림 연출 중에 도착한 "내" 속보 (연출이 끝나면 표시)
+local location = "Plaza" -- 지금 있는 곳: "Plaza" | "Park"
+local teleporting = false
+
+local function currentCoins(): number
+	if not state then
+		return 0
+	end
+	return state.Coins + state.Income * math.max(0, time() - stateReceivedAt)
+end
+
+-- 서버 상태 반영. Revision 이 더 큰 것만 받아서 늦게 도착한 옛 상태가 덮어쓰지 않게 함.
+-- receivedAt: 스냅샷을 실제로 받은 시각(코인 표시 기준). 늦게 반영할 때 넘겨줌.
+local function applyState(snapshot: any, receivedAt: number?)
+	if type(snapshot) ~= "table" or type(snapshot.Revision) ~= "number" then
+		return
+	end
+	if state and snapshot.Revision <= state.Revision then
+		return
+	end
+	state = snapshot
+	stateReceivedAt = receivedAt or time()
+	Hud.render(snapshot)
+	Hud.setCoins(currentCoins())
+	Panels.render(snapshot)
+end
+
+-- 서버가 보내는 재동기화. 내 굴림 연출 중이면 결과가 미리 보이지 않게 연출이 끝난 뒤 반영
+local function onStateEvent(snapshot: any)
+	if type(snapshot) ~= "table" or type(snapshot.Revision) ~= "number" then
+		return
+	end
+	if revealing then
+		if not deferredState or snapshot.Revision > deferredState.Snapshot.Revision then
+			deferredState = { Snapshot = snapshot, ReceivedAt = time() }
+		end
+		return
+	end
+	applyState(snapshot)
+end
+
+local function invoke(name: string, ...: any): any
+	local remote = Net.fn(name)
+	local ok, result = pcall(remote.InvokeServer, remote, ...)
+	if not ok then
+		warn("[LandmarkRNG] " .. name .. " 실패: " .. tostring(result))
+		Hud.toast("서버와 통신하지 못했어요. 잠시 후 다시 시도해 주세요.", Ui.Theme.Bad)
+		return nil
+	end
+	return result
+end
+
+local function feature(landmarkId: string?)
+	local response = invoke("Feature", landmarkId)
+	if type(response) ~= "table" then
+		return
+	end
+	applyState(response.State)
+	if not response.Ok then
+		Hud.toast("대표 명소로 지정하지 못했어요", Ui.Theme.Bad, 2)
+	elseif landmarkId then
+		local landmark = Landmarks.ById[landmarkId]
+		if landmark then
+			Hud.toast("🏅 대표 명소: " .. landmark.Name, landmark.Tier.Color, 2)
+		end
+	else
+		Hud.toast("대표 명소를 해제했어요", Ui.Theme.SubText, 2)
+	end
+end
+
+local function showAnnouncement(info: any, landmark: Landmarks.Landmark)
+	local name = tostring(info.Name)
+	Hud.news(name, landmark, tonumber(info.Rolls) or 0)
+
+	-- 채팅창에도 시스템 메시지 (새 TextChatService 를 쓰는 경우)
+	pcall(function()
+		local channels = TextChatService:FindFirstChild("TextChannels")
+		local general = channels and channels:FindFirstChild("RBXGeneral")
+		if general then
+			general:DisplaySystemMessage(
+				string.format(
+					'📰 속보: %s 님이 <font color="%s"><b>%s</b></font>(%s) 발견! — %s번째 탐험',
+					Format.escape(name),
+					Format.hex(landmark.Tier.Color),
+					Format.escape(landmark.Name),
+					Format.oneIn(landmark.OneIn),
+					Format.commas(tonumber(info.Rolls) or 0)
+				)
+			)
+		end
+	end)
+end
+
+-- 더 희귀한 명소를 발견했으면 자동으로 대표 지정 (설정이 켜져 있을 때)
+local function autoFeature(landmark: Landmarks.Landmark)
+	local current = state
+	if not current or not current.Settings.AutoFeature then
+		return
+	end
+	local featured = if current.Featured then Landmarks.ById[current.Featured] else nil
+	if not featured or landmark.OneIn > featured.OneIn then
+		feature(landmark.Id)
+	end
+end
+
+local function roll()
+	if rolling or not state then
+		return
+	end
+	rolling = true
+	Hud.setRolling(true)
+
+	-- 쿨타임이 남았으면 기다렸다가 요청
+	local waitFor = lastRollSentAt + (state :: PlayerState.Snapshot).Cooldown - time()
+	if waitFor > 0 then
+		task.wait(waitFor)
+	end
+	lastRollSentAt = time()
+	local response = invoke("Roll")
+	local receivedAt = time()
+
+	local landmark = if type(response) == "table" and response.Ok then Landmarks.ById[response.LandmarkId] else nil
+	if landmark then
+		if type(response.State) == "table" then
+			Hud.startCooldown(response.State.Cooldown)
+		end
+		revealing = true
+		local ok, err = pcall(Hud.reveal, landmark, {
+			Fast = autoRoll,
+			IsNew = response.IsNew == true,
+			StarUp = response.StarUp == true,
+			Stars = tonumber(response.Stars) or 0,
+			Bonus = tonumber(response.Bonus) or 0,
+			Luck = tonumber(response.Luck) or 1,
+		})
+		if not ok then
+			warn("[LandmarkRNG] 굴림 연출 오류: " .. tostring(err))
+		end
+		revealing = false
+
+		-- 연출이 끝난 뒤에 숫자 갱신(스포일러 방지)
+		applyState(response.State, receivedAt)
+		local deferred = deferredState
+		deferredState = nil
+		if deferred then
+			applyState(deferred.Snapshot, deferred.ReceivedAt)
+		end
+		for _, held in heldAnnouncements do
+			showAnnouncement(held.Info, held.Landmark)
+		end
+		table.clear(heldAnnouncements)
+
+		autoFeature(landmark)
+	elseif type(response) == "table" and response.Ok then
+		applyState(response.State, receivedAt) -- 모르는 명소 Id (클라가 옛 버전일 때)
+	elseif type(response) == "table" and response.Reason == "cooldown" then
+		task.wait(tonumber(response.RetryIn) or 0.2)
+		lastRollSentAt = -math.huge -- 이미 RetryIn 만큼 기다렸으니 다음 요청에서 또 기다리지 않음
+	else
+		task.wait(1) -- 데이터 불러오는 중이거나 통신 실패: 자동 굴리기가 요청을 퍼붓지 않게
+	end
+
+	rolling = false
+	Hud.setRolling(false)
+end
+
+local function toggleAuto()
+	autoRoll = not autoRoll
+	Hud.setAuto(autoRoll)
+	if autoRoll and not rolling then
+		task.spawn(roll)
+	end
+end
+
+local function buy(upgradeId: string)
+	local response = invoke("BuyUpgrade", upgradeId)
+	if type(response) ~= "table" then
+		return
+	end
+	applyState(response.State)
+	if response.Ok then
+		local upgrade = PlayerState.UpgradesById[upgradeId]
+		local level = if state and upgrade then PlayerState.upgradeLevel(state, upgradeId) else nil
+		if upgrade and level then
+			Hud.toast(string.format("%s %s Lv %d 달성!", upgrade.Emoji, upgrade.Name, level), Ui.Theme.Good, 2)
+		else
+			Hud.toast("업그레이드 완료!", Ui.Theme.Good, 2)
+		end
+	else
+		Hud.toast(tostring(response.Reason or "업그레이드하지 못했어요"), Ui.Theme.Bad, 2)
+	end
+end
+
+local function toggleAutoFeature()
+	if not state then
+		return
+	end
+	local response = invoke("SetSetting", "AutoFeature", not (state :: PlayerState.Snapshot).Settings.AutoFeature)
+	if type(response) == "table" then
+		applyState(response.State)
+	end
+end
+
+-- 광장 <-> 내 공원 이동
+local function teleport()
+	if teleporting then
+		return
+	end
+	teleporting = true
+	local target = if location == "Plaza" then "Park" else "Plaza"
+	local response = invoke("Teleport", target)
+	if type(response) == "table" and response.Ok then
+		location = target
+		Hud.setLocation(location)
+	elseif response ~= nil then
+		Hud.toast("지금은 이동할 수 없어요. 잠시 후 다시 시도해 주세요.", Ui.Theme.Bad, 2)
+	end
+	teleporting = false
+end
+
+-- 화면 만들기 ---------------------------------------------------------------
+
+local gui = Hud.init(playerGui, {
+	Roll = function()
+		task.spawn(roll)
+	end,
+	ToggleAuto = toggleAuto,
+	Menu = Panels.toggle,
+	Teleport = function()
+		task.spawn(teleport)
+	end,
+})
+Panels.init(gui, {
+	Feature = function(landmarkId: string?)
+		task.spawn(feature, landmarkId)
+	end,
+	Buy = function(upgradeId: string)
+		task.spawn(buy, upgradeId)
+	end,
+	ToggleAutoFeature = function()
+		task.spawn(toggleAutoFeature)
+	end,
+})
+
+-- 다시 태어나면 광장(스폰 지점)에서 시작
+player.CharacterAdded:Connect(function()
+	location = "Plaza"
+	Hud.setLocation(location)
+end)
+
+-- 키보드: R = 굴리기, T = 자동 굴리기
+UserInputService.InputBegan:Connect(function(input, processed)
+	if processed then
+		return
+	end
+	if input.KeyCode == Enum.KeyCode.R then
+		task.spawn(roll)
+	elseif input.KeyCode == Enum.KeyCode.T then
+		toggleAuto()
+	end
+end)
+
+-- 서버 이벤트 ---------------------------------------------------------------
+
+Net.event("State").OnClientEvent:Connect(onStateEvent)
+
+Net.event("Announce").OnClientEvent:Connect(function(info)
+	local landmark = if type(info) == "table" then Landmarks.ById[info.LandmarkId] else nil
+	if not landmark then
+		return
+	end
+	-- 내가 발견한 속보가 내 연출보다 먼저 오면 결과가 미리 보이므로 연출이 끝날 때까지 보류
+	if info.UserId == player.UserId and revealing then
+		table.insert(heldAnnouncements, { Info = info, Landmark = landmark })
+		return
+	end
+	showAnnouncement(info, landmark)
+end)
+
+-- 루프 ---------------------------------------------------------------------
+
+-- "LandmarkSpin" 태그 모형 목록 (태그가 붙고 떨어질 때만 갱신 → 매 프레임 목록을 새로 만들지 않음)
+local spinModels: { [Instance]: boolean } = {}
+for _, instance in CollectionService:GetTagged(SPIN_TAG) do
+	spinModels[instance] = true
+end
+CollectionService:GetInstanceAddedSignal(SPIN_TAG):Connect(function(instance)
+	spinModels[instance] = true
+end)
+CollectionService:GetInstanceRemovedSignal(SPIN_TAG):Connect(function(instance)
+	spinModels[instance] = nil
+end)
+
+RunService.RenderStepped:Connect(function(dt)
+	-- 태그 모형을 제자리에서 수직축으로 회전 (이 화면에서만 보이는 효과)
+	local turn = CFrame.Angles(0, SPIN_SPEED * dt, 0)
+	for model in spinModels do
+		if model:IsA("Model") and model:IsDescendantOf(workspace) then
+			local pivot = model:GetPivot()
+			model:PivotTo(CFrame.new(pivot.Position) * turn * (pivot - pivot.Position))
+		end
+	end
+
+	-- 코인: 받은 값 + 초당 수입 × 지난 시간 (부드럽게 올라감)
+	if state then
+		Hud.setCoins(currentCoins())
+	end
+end)
+
+-- 업그레이드 버튼 "살 수 있음" 색 (가벼운 갱신)
+task.spawn(function()
+	while true do
+		if state then
+			Panels.refreshCoins(currentCoins())
+		end
+		task.wait(0.25)
+	end
+end)
+
+-- 자동 굴리기
+task.spawn(function()
+	while true do
+		if autoRoll and not rolling then
+			roll()
+		end
+		task.wait(0.05)
+	end
+end)
+
+-- 처음 상태 받아오기 (서버 데이터 로드가 끝날 때까지 서버 쪽에서 기다려 줌)
+applyState(invoke("GetState"))
+]]></string>
+        </Properties>
+        <Item class="ModuleScript" referent="21">
+          <Properties>
+            <string name="Name">Hud</string>
+            <string name="Source"><![CDATA[-- 기본 화면(HUD): 스탯, 메뉴 버튼, 굴리기 버튼, 지구본 굴림 연출, 뉴스 속보, 알림
+
+local SoundService = game:GetService("SoundService")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
+
+local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
+local Config = require(Shared.Config)
+local Format = require(Shared.Format)
+local Landmarks = require(Shared.Landmarks)
+local PlayerState = require(Shared.PlayerState)
+
+local Ui = require(script.Parent.Ui)
+local Viewport = require(script.Parent.Viewport)
+local Theme = Ui.Theme
+
+-- 등급(Rank)별 지구본이 도는 시간(초). 빠른 모드(자동 굴림)에서는 세계 명소 미만만 절반으로 줄임.
+local REVEAL_SECONDS = { 0.9, 1.1, 1.5, 2.1, 2.7, 3.1, 3.3 }
+local LAND_SECONDS = 0.4 -- 지역에 📍 가 꽂힌 뒤 결과가 나오기까지
+local SUSPENSE_SECONDS = 0.9 -- 불가사의 이상 "? ? ?" 뜸 들이기
+local NEWS_SECONDS = 7
+local MAX_NEWS = 2
+local TICK_SOUND = "rbxasset://sounds/electronicpingshort.wav"
+
+local NEWS_RED = Color3.fromRGB(215, 35, 50)
+local NEWS_WHITE = Color3.fromRGB(250, 250, 252)
+local NEWS_INK = Color3.fromRGB(25, 25, 35)
+
+export type RevealInfo = {
+	Fast: boolean,
+	IsNew: boolean,
+	StarUp: boolean,
+	Stars: number,
+	Bonus: number,
+	Luck: number,
+}
+
+export type Handlers = {
+	Roll: () -> (),
+	ToggleAuto: () -> (),
+	Menu: (string) -> (),
+	Teleport: () -> (),
+}
+
+local Hud = {}
+
+local gui: ScreenGui
+local flashFrame: Frame
+local refs: { [string]: any } = {}
+local spinRandom = Random.new()
+local hideToken = 0
+local shownCoins = -1
+local newsItems: { Frame } = {}
+local newsOrder = 0
+
+local function makeSound(pitch: number, volume: number): Sound
+	return Ui.new("Sound", {
+		SoundId = TICK_SOUND,
+		PlaybackSpeed = pitch,
+		Volume = volume,
+		Parent = SoundService,
+	})
+end
+
+local tickSound: Sound
+local landSound: Sound
+local revealSound: Sound
+local rareSound: Sound
+local newsSound: Sound
+
+local function play(sound: Sound?)
+	if sound then
+		sound.TimePosition = 0
+		sound:Play()
+	end
+end
+
+local function panel(props: { [string]: any }): Frame
+	local frame = Ui.new("Frame", {
+		BackgroundColor3 = Theme.Panel,
+		BackgroundTransparency = 0.15,
+	})
+	for key, value in props do
+		if key ~= "Parent" then
+			(frame :: any)[key] = value
+		end
+	end
+	Ui.corner(14).Parent = frame
+	Ui.stroke().Parent = frame
+	frame.Parent = props.Parent
+	return frame
+end
+
+-- 화면 구석에 붙는 투명 컨테이너(화면 크기에 따라 자동 스케일)
+local function anchor(name: string, anchorPoint: Vector2, position: UDim2, size: UDim2, zIndex: number?): Frame
+	local frame = Ui.new("Frame", {
+		Name = name,
+		AnchorPoint = anchorPoint,
+		Position = position,
+		Size = size,
+		BackgroundTransparency = 1,
+		ZIndex = zIndex or 1,
+		Parent = gui,
+	})
+	Ui.autoScale(frame)
+	return frame
+end
+
+-- 글자 테두리 (UIStroke 기본값 Contextual = 글자에 적용)
+local function textOutline(label: TextLabel, thickness: number)
+	Ui.new("UIStroke", { Color = Color3.new(0, 0, 0), Thickness = thickness, Transparency = 0.2, Parent = label })
+end
+
+-- 초당 수입 표시: 작은 값은 소수 한 자리까지 ("1.8"), 큰 값은 축약 ("12.5K")
+local function incomeText(income: number): string
+	if income < 100 then
+		local text = string.format("%.1f", math.floor(income * 10) / 10):gsub("%.0$", "")
+		return text
+	end
+	return Format.short(income)
+end
+
+local function buildStats()
+	local container = anchor("Stats", Vector2.new(0, 0), UDim2.new(0, 12, 0, 12), UDim2.fromOffset(270, 150))
+	local box = panel({ Size = UDim2.fromScale(1, 1), Parent = container })
+	Ui.padding(10).Parent = box
+	Ui.list(Enum.FillDirection.Vertical, 2).Parent = box
+
+	local function row(order: number, color: Color3, maxText: number): TextLabel
+		return Ui.label({
+			LayoutOrder = order,
+			Size = UDim2.new(1, 0, 0, 30),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextColor3 = color,
+			Parent = box,
+		}, maxText)
+	end
+	refs.Coins = row(1, Theme.Gold, 26)
+	refs.Income = row(2, Theme.Good, 21)
+	refs.Rolls = row(3, Theme.Text, 21)
+	refs.Luck = row(4, Color3.fromRGB(140, 235, 160), 21)
+end
+
+local MENU = {
+	{ "Collection", "🗂️ 컬렉션" },
+	{ "Passport", "🛂 여권" },
+	{ "Upgrade", "🛠️ 업그레이드" },
+}
+
+local function buildMenu(onMenu: (string) -> (), onTeleport: () -> ())
+	local container = anchor("Menu", Vector2.new(0, 0.5), UDim2.new(0, 12, 0.5, 0), UDim2.fromOffset(160, 266))
+	Ui.list(Enum.FillDirection.Vertical, 10).Parent = container
+	for order, entry in MENU do
+		local button = Ui.button({
+			Name = entry[1],
+			LayoutOrder = order,
+			Size = UDim2.fromOffset(160, 58),
+			Text = entry[2],
+			Parent = container,
+		}, 22)
+		button.Activated:Connect(function()
+			onMenu(entry[1])
+		end)
+	end
+
+	refs.TeleportButton = Ui.button({
+		Name = "Teleport",
+		LayoutOrder = #MENU + 1,
+		Size = UDim2.fromOffset(160, 58),
+		BackgroundColor3 = Color3.fromRGB(45, 95, 70),
+		Text = "🏞️ 내 공원",
+		Parent = container,
+	}, 22)
+	refs.TeleportButton.Activated:Connect(onTeleport)
+end
+
+local function buildRollBar(onRoll: () -> (), onToggleAuto: () -> ())
+	local container = anchor("RollBar", Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -18), UDim2.fromOffset(440, 120))
+
+	refs.Info = Ui.label({
+		Size = UDim2.new(1, 0, 0, 30),
+		TextColor3 = Theme.SubText,
+		Parent = container,
+	}, 20)
+	textOutline(refs.Info, 1)
+
+	local row = Ui.new("Frame", {
+		BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(0, 40),
+		Size = UDim2.new(1, 0, 0, 76),
+		Parent = container,
+	})
+	Ui.list(Enum.FillDirection.Horizontal, 12, Enum.HorizontalAlignment.Center).Parent = row
+
+	refs.AutoButton = Ui.button({
+		LayoutOrder = 1,
+		Size = UDim2.fromOffset(130, 76),
+		Text = "자동: 끔",
+		Parent = row,
+	}, 22)
+	refs.AutoButton.Activated:Connect(onToggleAuto)
+
+	local rollButton = Ui.button({
+		LayoutOrder = 2,
+		Size = UDim2.fromOffset(250, 76),
+		BackgroundColor3 = Color3.fromRGB(40, 120, 220),
+		Text = "🌍 굴리기",
+		ClipsDescendants = true,
+		Parent = row,
+	}, 32)
+	rollButton.Activated:Connect(onRoll)
+	refs.RollButton = rollButton
+
+	-- 쿨타임 막대 (버튼 아래쪽)
+	refs.CooldownBar = Ui.new("Frame", {
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, -6, 1, 6),
+		Size = UDim2.new(0, 0, 0, 6),
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BackgroundTransparency = 0.3,
+		BorderSizePixel = 0,
+		Parent = rollButton,
+	})
+end
+
+local VIEW_SIZE = 230
+
+local function buildReveal()
+	local container = anchor(
+		"Reveal",
+		Vector2.new(0.5, 0.5),
+		UDim2.fromScale(0.5, 0.46),
+		UDim2.fromOffset(700, 460),
+		8 -- 메뉴 창보다 위
+	)
+	container.Visible = false
+	refs.Reveal = container
+
+	local inner = Ui.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Parent = container,
+	})
+	refs.RevealScale = Ui.new("UIScale", { Parent = inner })
+
+	refs.RevealRegion = Ui.label({
+		Size = UDim2.new(1, 0, 0, 40),
+		Font = Theme.FontHeavy,
+		Parent = inner,
+	}, 32)
+	textOutline(refs.RevealRegion, 2)
+
+	-- 모형 뒤의 둥근 받침
+	local halo = Ui.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 44),
+		Size = UDim2.fromOffset(VIEW_SIZE, VIEW_SIZE),
+		BackgroundColor3 = Color3.fromRGB(8, 10, 20),
+		BackgroundTransparency = 0.45,
+		Parent = inner,
+	})
+	Ui.new("UICorner", { CornerRadius = UDim.new(0.5, 0), Parent = halo })
+	refs.HaloStroke = Ui.stroke(Color3.new(1, 1, 1), 3, 0.3)
+	refs.HaloStroke.Parent = halo
+
+	local viewProps = {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 44),
+		Size = UDim2.fromOffset(VIEW_SIZE, VIEW_SIZE),
+		ZIndex = 2,
+	}
+	refs.EarthView = Viewport.new(inner, viewProps)
+	Viewport.setLandmark(refs.EarthView, Landmarks.ById.earth, 10)
+	refs.ResultView = Viewport.new(inner, viewProps)
+	refs.ResultView.Visible = false
+
+	refs.RevealTag = Ui.label({
+		Position = UDim2.fromOffset(0, 278),
+		Size = UDim2.new(1, 0, 0, 30),
+		TextColor3 = Theme.Gold,
+		Parent = inner,
+	}, 26)
+	textOutline(refs.RevealTag, 2)
+	refs.RevealName = Ui.label({
+		Position = UDim2.fromOffset(0, 308),
+		Size = UDim2.new(1, 0, 0, 64),
+		Font = Theme.FontHeavy,
+		Parent = inner,
+	}, 60)
+	textOutline(refs.RevealName, 3)
+	refs.RevealSub = Ui.label({
+		Position = UDim2.fromOffset(0, 372),
+		Size = UDim2.new(1, 0, 0, 30),
+		Parent = inner,
+	}, 26)
+	textOutline(refs.RevealSub, 2)
+	refs.RevealSubtitle = Ui.label({
+		Position = UDim2.fromOffset(0, 402),
+		Size = UDim2.new(1, 0, 0, 22),
+		TextColor3 = Theme.SubText,
+		Parent = inner,
+	}, 20)
+	textOutline(refs.RevealSubtitle, 1)
+	refs.RevealBonus = Ui.label({
+		Position = UDim2.fromOffset(0, 426),
+		Size = UDim2.new(1, 0, 0, 30),
+		TextColor3 = Theme.Gold,
+		Parent = inner,
+	}, 26)
+	textOutline(refs.RevealBonus, 2)
+end
+
+local function buildNotices()
+	-- 뉴스 속보(맨 위)
+	local news = anchor("News", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 12), UDim2.fromOffset(720, 100), 9)
+	local newsLayout = Ui.list(Enum.FillDirection.Vertical, 6, Enum.HorizontalAlignment.Center)
+	newsLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+	newsLayout.Parent = news
+	refs.News = news
+
+	-- 잠깐 떴다 사라지는 알림(뉴스 아래)
+	local notices = anchor("Notices", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 118), UDim2.fromOffset(560, 200), 9)
+	local layout = Ui.list(Enum.FillDirection.Vertical, 6, Enum.HorizontalAlignment.Center)
+	layout.VerticalAlignment = Enum.VerticalAlignment.Top
+	layout.Parent = notices
+	refs.Notices = notices
+end
+
+function Hud.init(playerGui: PlayerGui, handlers: Handlers): ScreenGui
+	gui = Ui.new("ScreenGui", {
+		Name = "LandmarkRNG",
+		ResetOnSpawn = false,
+		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+		Parent = playerGui,
+	})
+	local flashGui = Ui.new("ScreenGui", {
+		Name = "LandmarkRNGFlash",
+		ResetOnSpawn = false,
+		IgnoreGuiInset = true,
+		DisplayOrder = 5,
+		Parent = playerGui,
+	})
+	flashFrame = Ui.new("Frame", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		Parent = flashGui,
+	})
+
+	tickSound = makeSound(1.4, 0.25)
+	landSound = makeSound(1.1, 0.4)
+	revealSound = makeSound(0.9, 0.6)
+	rareSound = makeSound(0.5, 1)
+	newsSound = makeSound(0.7, 0.5)
+
+	buildStats()
+	buildMenu(handlers.Menu, handlers.Teleport)
+	buildRollBar(handlers.Roll, handlers.ToggleAuto)
+	buildReveal()
+	buildNotices()
+	Hud.render(nil)
+	return gui
+end
+
+function Hud.render(state: PlayerState.Snapshot?)
+	if not state then
+		refs.Coins.Text = "🪙 불러오는 중..."
+		refs.Income.Text = ""
+		refs.Rolls.Text = ""
+		refs.Luck.Text = ""
+		refs.Info.Text = ""
+		shownCoins = -1
+		return
+	end
+	refs.Income.Text = "💰 관광 수입 +" .. incomeText(state.Income) .. "/초"
+	refs.Rolls.Text = "🎲 굴림 " .. Format.commas(state.Rolls) .. "회"
+	refs.Luck.Text = "🍀 행운 " .. Format.multiplier(state.Luck)
+
+	local stamps = #PlayerState.completedRegions(state)
+	local info = string.format("여권 도장 %d/%d", stamps, #Landmarks.Regions)
+	if UserInputService.KeyboardEnabled then
+		info ..= " · [R] 굴리기 [T] 자동"
+	end
+	refs.Info.Text = info
+	refs.Info.TextColor3 = if stamps > 0 then Theme.Gold else Theme.SubText
+end
+
+-- 매 프레임 호출: 부드럽게 올라가는 코인 표시 (정수가 바뀔 때만 글자 갱신)
+function Hud.setCoins(amount: number)
+	local whole = math.max(0, math.floor(amount))
+	if whole == shownCoins then
+		return
+	end
+	shownCoins = whole
+	refs.Coins.Text = "🪙 " .. Format.commas(whole)
+end
+
+function Hud.setAuto(enabled: boolean)
+	refs.AutoButton.Text = if enabled then "자동: 켬" else "자동: 끔"
+	refs.AutoButton.BackgroundColor3 = if enabled then Theme.Good else Theme.PanelLight
+end
+
+function Hud.setRolling(rolling: boolean)
+	refs.RollButton.Text = if rolling then "돌리는 중..." else "🌍 굴리기"
+	refs.RollButton.BackgroundTransparency = if rolling then 0.4 else 0
+end
+
+-- where: 지금 있는 곳 ("Plaza" | "Park"). 버튼은 반대쪽으로 가는 버튼이 됨
+function Hud.setLocation(where: string)
+	local button = refs.TeleportButton
+	if where == "Park" then
+		button.Text = "🏛️ 광장"
+		button.BackgroundColor3 = Color3.fromRGB(70, 70, 110)
+	else
+		button.Text = "🏞️ 내 공원"
+		button.BackgroundColor3 = Color3.fromRGB(45, 95, 70)
+	end
+end
+
+function Hud.startCooldown(seconds: number)
+	local bar = refs.CooldownBar
+	bar.Size = UDim2.new(1, 12, 0, 6)
+	TweenService:Create(bar, TweenInfo.new(seconds, Enum.EasingStyle.Linear), { Size = UDim2.new(0, 0, 0, 6) }):Play()
+end
+
+local function flash(color: Color3, strength: number)
+	flashFrame.BackgroundColor3 = color
+	flashFrame.BackgroundTransparency = 1 - strength
+	TweenService:Create(flashFrame, TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		BackgroundTransparency = 1,
+	}):Play()
+end
+
+local function showRegion(region: Landmarks.Region, pinned: boolean)
+	refs.RevealRegion.Text = (if pinned then "📍 " else "") .. region.Emoji .. " " .. region.Name
+	refs.RevealRegion.TextColor3 = region.Color
+end
+
+-- 굴림 연출. 결과를 보여 줄 때까지 기다립니다(yield).
+-- 1) 지구본이 빠르게 돌며 지역 이름이 바뀌다 점점 느려짐 → 2) 결과 지역에 📍 → 3) 명소 공개
+function Hud.reveal(landmark: Landmarks.Landmark, info: RevealInfo)
+	hideToken += 1
+	local tier = landmark.Tier
+	local rank = tier.Rank
+	local duration = REVEAL_SECONDS[rank] or 3
+	if info.Fast and rank < 4 then
+		duration = math.max(0.35, duration * 0.5)
+	end
+	local region = Landmarks.RegionById[landmark.Region] or Landmarks.Regions[1]
+	local regions = Landmarks.Regions
+
+	local container = refs.Reveal
+	container.Visible = true
+	refs.RevealScale.Scale = 1
+	refs.RevealTag.Text = ""
+	refs.RevealName.Text = ""
+	refs.RevealSub.Text = ""
+	refs.RevealSubtitle.Text = ""
+	refs.RevealBonus.Text = ""
+	refs.HaloStroke.Color = Color3.new(1, 1, 1)
+	refs.ResultView.Visible = false
+	Viewport.setSpin(refs.ResultView, 0)
+	refs.EarthView.Visible = true
+
+	-- 1) 지구본이 돌며 지역이 바뀜. 실제로 지난 시간을 더해야 연출 길이가 늘어지지 않음
+	local index = spinRandom:NextInteger(1, #regions)
+	local elapsed = 0
+	while elapsed < duration do
+		index = index % #regions + 1
+		showRegion(regions[index], false)
+		play(tickSound)
+		local t = elapsed / duration
+		Viewport.setSpin(refs.EarthView, 60 + 840 * (1 - t) * (1 - t))
+		local interval = 0.05 + t * t * 0.22
+		elapsed += task.wait(interval)
+	end
+
+	-- 2) 결과 지역에 착지
+	showRegion(region, true)
+	Viewport.setSpin(refs.EarthView, 30)
+	play(landSound)
+	task.wait(if info.Fast and rank < 4 then LAND_SECONDS * 0.5 else LAND_SECONDS)
+
+	-- 불가사의 이상은 한 박자 뜸 들이기
+	if rank >= 5 then
+		refs.RevealName.Text = "? ? ?"
+		Ui.paintTier(refs.RevealName, tier)
+		refs.RevealSub.Text = tier.Name .. " 등급..."
+		refs.RevealSub.TextColor3 = tier.Color
+		refs.HaloStroke.Color = tier.Color
+		flash(Color3.new(0, 0, 0), 0.6)
+		task.wait(SUSPENSE_SECONDS)
+	end
+
+	-- 3) 결과 공개: 지구본 → 명소 모형
+	Viewport.setSpin(refs.EarthView, 0)
+	refs.EarthView.Visible = false
+	Viewport.setLandmark(refs.ResultView, landmark, 10)
+	refs.ResultView.Visible = true
+	Viewport.setSpin(refs.ResultView, 40)
+	refs.HaloStroke.Color = tier.Color
+
+	refs.RevealName.Text = landmark.Name
+	Ui.paintTier(refs.RevealName, tier)
+	refs.RevealSub.Text = Format.oneIn(landmark.OneIn) .. " · " .. tier.Name
+	refs.RevealSub.TextColor3 = tier.Color
+	refs.RevealSubtitle.Text = landmark.Subtitle
+
+	local tags = {}
+	if info.IsNew then
+		table.insert(tags, "🆕 새로 발견!")
+	end
+	if info.StarUp then
+		table.insert(tags, "⭐ 별 상승! " .. Ui.stars(info.Stars or 0, #Config.STAR_THRESHOLDS))
+	end
+	refs.RevealTag.Text = table.concat(tags, "   ")
+	refs.RevealBonus.Text = if (info.Bonus or 0) > 0 then "+" .. Format.commas(info.Bonus) .. " 🪙" else ""
+
+	refs.RevealScale.Scale = 1.35
+	TweenService:Create(refs.RevealScale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+		Scale = 1,
+	}):Play()
+	if rank >= 4 then
+		flash(tier.Color, math.min(0.25 + rank * 0.08, 0.8))
+		play(rareSound)
+	else
+		play(revealSound)
+	end
+
+	-- 결과를 잠깐 보여 줌 (자동 굴림 중에도 희귀 명소는 바로 덮이지 않게)
+	local hold = if rank >= 4 then (if info.Fast then 1.8 else 0.6) else (if info.Fast then 0.2 else 0.1)
+	task.wait(hold)
+
+	local token = hideToken
+	task.delay(if info.Fast then 1 else 2.5, function()
+		if token == hideToken then
+			container.Visible = false
+			Viewport.setSpin(refs.ResultView, 0)
+		end
+	end)
+end
+
+-- 잠깐 떴다 사라지는 알림 (색은 선택)
+function Hud.toast(text: string, color: Color3?, seconds: number?)
+	local box = panel({
+		Size = UDim2.fromOffset(520, 44),
+		Parent = refs.Notices,
+	})
+	Ui.padding(8).Parent = box
+	Ui.label({
+		Size = UDim2.fromScale(1, 1),
+		Text = text,
+		TextColor3 = color or Theme.Text,
+		Parent = box,
+	}, 22)
+	task.delay(seconds or 3, function()
+		box:Destroy()
+	end)
+end
+
+-- 서버 전체 "📰 속보": 오른쪽에서 밀려 들어와 잠시 머문 뒤 왼쪽으로 빠짐
+function Hud.news(playerName: string, landmark: Landmarks.Landmark, rollNumber: number)
+	local tier = landmark.Tier
+	newsOrder += 1
+
+	-- 너무 많이 쌓이면 가장 오래된 것부터 지움
+	while #newsItems >= MAX_NEWS do
+		local oldest = table.remove(newsItems, 1)
+		if oldest then
+			oldest:Destroy()
+		end
+	end
+
+	local item = Ui.new("Frame", {
+		LayoutOrder = newsOrder,
+		Size = UDim2.new(1, 0, 0, 46),
+		BackgroundTransparency = 1,
+		ClipsDescendants = true,
+		Parent = refs.News,
+	})
+	table.insert(newsItems, item)
+
+	local slide = Ui.new("Frame", {
+		Position = UDim2.fromScale(1, 0),
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Parent = item,
+	})
+
+	local bar = Ui.new("Frame", {
+		Position = UDim2.fromOffset(96, 0),
+		Size = UDim2.new(1, -96, 1, 0),
+		BackgroundColor3 = NEWS_WHITE,
+		Parent = slide,
+	})
+	Ui.corner(8).Parent = bar
+	Ui.stroke(tier.Color, 2, 0).Parent = bar
+	Ui.new("UIPadding", {
+		PaddingLeft = UDim.new(0, 22),
+		PaddingRight = UDim.new(0, 10),
+		PaddingTop = UDim.new(0, 6),
+		PaddingBottom = UDim.new(0, 6),
+		Parent = bar,
+	})
+	Ui.label({
+		Size = UDim2.fromScale(1, 1),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = NEWS_INK,
+		Text = string.format(
+			'%s 님이 <font color="%s"><b>%s</b></font>(%s) 발견! — %s번째 탐험',
+			Format.escape(playerName),
+			Format.hex(tier.Color:Lerp(Color3.new(0, 0, 0), 0.35)),
+			Format.escape(landmark.Name),
+			Format.oneIn(landmark.OneIn),
+			Format.commas(rollNumber)
+		),
+		Parent = bar,
+	}, 22)
+
+	local tag = Ui.new("Frame", {
+		Size = UDim2.new(0, 110, 1, 0),
+		BackgroundColor3 = NEWS_RED,
+		ZIndex = 2,
+		Parent = slide,
+	})
+	Ui.corner(8).Parent = tag
+	Ui.label({
+		Size = UDim2.fromScale(1, 1),
+		Font = Theme.FontHeavy,
+		Text = "📰 속보",
+		TextColor3 = Color3.new(1, 1, 1),
+		ZIndex = 3,
+		Parent = tag,
+	}, 22)
+
+	play(newsSound)
+	TweenService:Create(slide, TweenInfo.new(0.45, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+		Position = UDim2.fromScale(0, 0),
+	}):Play()
+
+	task.delay(NEWS_SECONDS, function()
+		if not item.Parent then
+			return -- 이미 밀려나서 지워짐
+		end
+		TweenService:Create(slide, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+			Position = UDim2.fromScale(-1, 0),
+		}):Play()
+		task.wait(0.45)
+		local index = table.find(newsItems, item)
+		if index then
+			table.remove(newsItems, index)
+		end
+		item:Destroy()
+	end)
+end
+
+return Hud
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="22">
+          <Properties>
+            <string name="Name">Panels</string>
+            <string name="Source"><![CDATA[-- 메뉴 창: 컬렉션(대표 지정), 여권(지역별 발견 현황), 업그레이드
+-- 화면마다 카드를 한 번 만들고 상태가 바뀌면 글자/색만 고칩니다. 썸네일(ViewportFrame)은
+-- 새로 발견했을 때만 만들어서, 자동 굴림 중에 창을 열어 둬도 매번 다시 만들지 않습니다.
+
+local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
+local Config = require(Shared.Config)
+local Format = require(Shared.Format)
+local Landmarks = require(Shared.Landmarks)
+local PlayerState = require(Shared.PlayerState)
+
+local Ui = require(script.Parent.Ui)
+local Viewport = require(script.Parent.Viewport)
+local Theme = Ui.Theme
+
+type Landmark = Landmarks.Landmark
+type Snapshot = PlayerState.Snapshot
+
+export type Handlers = {
+	Feature: (string?) -> (),
+	Buy: (string) -> (),
+	ToggleAutoFeature: () -> (),
+}
+
+local VIEWS = {
+	Collection = { Title = "🗂️ 컬렉션", Hint = "카드를 누르면 대표 명소로 지정/해제돼요" },
+	Passport = {
+		Title = "🛂 여권",
+		Hint = string.format(
+			"한 지역의 명소를 모두 모으면 여권 도장 → 영구 행운 +%d%%",
+			math.floor(Config.REGION_LUCK_BONUS * 100 + 0.5)
+		),
+	},
+	Upgrade = { Title = "🛠️ 업그레이드", Hint = "코인으로 사는 영구 강화" },
+}
+
+local WINDOW_SIZE = Vector2.new(720, 480)
+local BODY_TOP = 72
+-- 스크롤 영역 안쪽 여백(오른쪽은 스크롤바 자리)
+local PAD_X, PAD_RIGHT, PAD_Y = 6, 12, 6
+
+local COLLECTION_CELL = Vector2.new(124, 166)
+local COLLECTION_GAP = 10
+local COLLECTION_COLUMNS = 5
+
+local PASSPORT_CELL = Vector2.new(104, 132)
+local PASSPORT_GAP = 8
+local PASSPORT_COLUMNS = 6
+local PASSPORT_HEADER = 34
+local SECTION_GAP = 14
+
+local UPGRADE_ROW = 96
+local UPGRADE_GAP = 10
+
+local FEATURED_BG = Color3.fromRGB(70, 60, 30)
+local UNKNOWN_BG = Color3.fromRGB(16, 17, 26)
+local DARK_TEXT = Color3.fromRGB(20, 22, 30)
+
+local Panels = {}
+
+local window: Frame
+local titleLabel: TextLabel
+local hintLabel: TextLabel
+local headerButton: TextButton
+local emptyLabel: TextLabel
+local handlers: Handlers
+local openName: string? = nil
+local lastState: Snapshot? = nil
+local lastCoins = 0
+
+local scrollers: { [string]: ScrollingFrame } = {}
+
+type CollectionCard = {
+	Card: TextButton,
+	Stroke: UIStroke,
+	Stars: TextLabel,
+	Count: TextLabel,
+	Badge: Frame,
+}
+local collectionCards: { [string]: CollectionCard } = {}
+
+type PassportSection = { Header: TextLabel, Stamp: TextLabel, Grid: Frame }
+local passportSections: { [string]: PassportSection } = {}
+local passportCards: { [string]: { Card: Frame, Known: boolean } } = {}
+
+type UpgradeRow = {
+	Level: TextLabel,
+	Effect: TextLabel,
+	Button: TextButton,
+	Price: number?,
+	Affordable: boolean?,
+}
+local upgradeRows: { [string]: UpgradeRow } = {}
+
+local function owned(state: Snapshot, id: string): number
+	return state.Inventory[id] or 0
+end
+
+local function gridHeight(count: number, columns: number, cellHeight: number, gap: number): number
+	local rows = math.ceil(count / columns)
+	if rows <= 0 then
+		return 0
+	end
+	return rows * (cellHeight + gap) - gap
+end
+
+local function newScroller(name: string): ScrollingFrame
+	local scroller = Ui.new("ScrollingFrame", {
+		Name = name,
+		Position = UDim2.fromOffset(12, BODY_TOP),
+		Size = UDim2.new(1, -24, 1, -(BODY_TOP + 12)),
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		ScrollBarThickness = 6,
+		CanvasSize = UDim2.new(),
+		ScrollingDirection = Enum.ScrollingDirection.Y,
+		Visible = false,
+		Parent = window,
+	})
+	Ui.new("UIPadding", {
+		PaddingLeft = UDim.new(0, PAD_X),
+		PaddingRight = UDim.new(0, PAD_RIGHT),
+		PaddingTop = UDim.new(0, PAD_Y),
+		PaddingBottom = UDim.new(0, PAD_Y),
+		Parent = scroller,
+	})
+	return scroller
+end
+
+local function setCanvasHeight(scroller: ScrollingFrame, contentHeight: number)
+	scroller.CanvasSize = UDim2.fromOffset(0, contentHeight + PAD_Y * 2)
+end
+
+-- 컬렉션 ---------------------------------------------------------------------
+
+local function buildCollection(): ScrollingFrame
+	local scroller = newScroller("Collection")
+	Ui.new("UIGridLayout", {
+		CellSize = UDim2.fromOffset(COLLECTION_CELL.X, COLLECTION_CELL.Y),
+		CellPadding = UDim2.fromOffset(COLLECTION_GAP, COLLECTION_GAP),
+		FillDirectionMaxCells = COLLECTION_COLUMNS,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		Parent = scroller,
+	})
+	return scroller
+end
+
+local function collectionCard(parent: ScrollingFrame, landmark: Landmark): CollectionCard
+	local tier = landmark.Tier
+	local card = Ui.new("TextButton", {
+		Name = landmark.Id,
+		Text = "",
+		AutoButtonColor = true,
+		BackgroundColor3 = Theme.PanelLight,
+	})
+	Ui.corner(12).Parent = card
+	local stroke = Ui.stroke(tier.Color, 2, 0.15)
+	stroke.Parent = card
+
+	Viewport.thumbnail(card, landmark, {
+		Position = UDim2.fromOffset(6, 6),
+		Size = UDim2.new(1, -12, 0, 90),
+	})
+	Ui.label({
+		Position = UDim2.fromOffset(6, 98),
+		Size = UDim2.new(1, -12, 0, 22),
+		Font = Theme.FontHeavy,
+		Text = landmark.Name,
+		TextColor3 = tier.Color,
+		Parent = card,
+	}, 20)
+	local stars = Ui.label({
+		Position = UDim2.fromOffset(6, 121),
+		Size = UDim2.new(1, -12, 0, 18),
+		TextColor3 = Theme.Gold,
+		Parent = card,
+	}, 16)
+	local count = Ui.label({
+		Position = UDim2.fromOffset(6, 141),
+		Size = UDim2.new(1, -12, 0, 18),
+		TextColor3 = Theme.SubText,
+		Parent = card,
+	}, 15)
+
+	local badge = Ui.new("Frame", {
+		Position = UDim2.fromOffset(6, 6),
+		Size = UDim2.fromOffset(46, 22),
+		BackgroundColor3 = Theme.Gold,
+		Visible = false,
+		ZIndex = 3,
+		Parent = card,
+	})
+	Ui.corner(8).Parent = badge
+	Ui.label({
+		Size = UDim2.fromScale(1, 1),
+		Font = Theme.FontHeavy,
+		Text = "대표",
+		TextColor3 = DARK_TEXT,
+		ZIndex = 4,
+		Parent = badge,
+	}, 15)
+
+	card.Activated:Connect(function()
+		local state = lastState
+		local featured = state ~= nil and state.Featured == landmark.Id
+		handlers.Feature(if featured then nil else landmark.Id)
+	end)
+
+	card.Parent = parent
+	return { Card = card, Stroke = stroke, Stars = stars, Count = count, Badge = badge }
+end
+
+local function renderCollection(state: Snapshot)
+	local scroller = scrollers.Collection
+	headerButton.Visible = true
+	headerButton.Text = if state.Settings.AutoFeature
+		then "더 희귀하면 자동 대표 지정: 켬"
+		else "더 희귀하면 자동 대표 지정: 끔"
+	headerButton.BackgroundColor3 = if state.Settings.AutoFeature then Color3.fromRGB(45, 110, 70) else Theme.PanelLight
+
+	local inPark = {}
+	for _, id in PlayerState.park(state) do
+		inPark[id] = true
+	end
+
+	local shown = 0
+	for _, landmark in Landmarks.RarestFirst do
+		local count = owned(state, landmark.Id)
+		local entry = collectionCards[landmark.Id]
+		if count > 0 then
+			shown += 1
+			if not entry then
+				entry = collectionCard(scroller, landmark)
+				collectionCards[landmark.Id] = entry
+			end
+			local featured = state.Featured == landmark.Id
+			entry.Card.LayoutOrder = shown
+			entry.Card.BackgroundColor3 = if featured then FEATURED_BG else Theme.PanelLight
+			entry.Stroke.Color = if featured then Theme.Gold else landmark.Tier.Color
+			entry.Stroke.Thickness = if featured then 3 else 2
+			entry.Badge.Visible = featured
+			entry.Stars.Text = Ui.stars(PlayerState.stars(count), #Config.STAR_THRESHOLDS)
+			entry.Count.Text = "x" .. Format.commas(count) .. (if inPark[landmark.Id] then " · 전시 중" else "")
+		elseif entry then
+			entry.Card:Destroy()
+			collectionCards[landmark.Id] = nil
+		end
+	end
+
+	titleLabel.Text = string.format("%s  (%d종)", VIEWS.Collection.Title, shown)
+	emptyLabel.Visible = shown == 0
+	setCanvasHeight(scroller, gridHeight(shown, COLLECTION_COLUMNS, COLLECTION_CELL.Y, COLLECTION_GAP))
+end
+
+-- 여권 -----------------------------------------------------------------------
+
+local function buildPassport(): ScrollingFrame
+	local scroller = newScroller("Passport")
+	local layout = Ui.list(Enum.FillDirection.Vertical, SECTION_GAP)
+	layout.VerticalAlignment = Enum.VerticalAlignment.Top
+	layout.Parent = scroller
+
+	local total = 0
+	for order, region in Landmarks.Regions do
+		local list = Landmarks.ByRegion[region.Id]
+		local height = PASSPORT_HEADER + 6 + gridHeight(#list, PASSPORT_COLUMNS, PASSPORT_CELL.Y, PASSPORT_GAP)
+		local section = Ui.new("Frame", {
+			Name = region.Id,
+			LayoutOrder = order,
+			Size = UDim2.new(1, 0, 0, height),
+			BackgroundTransparency = 1,
+			Parent = scroller,
+		})
+		local header = Ui.label({
+			Size = UDim2.new(0.55, 0, 0, PASSPORT_HEADER),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			Font = Theme.FontHeavy,
+			TextColor3 = region.Color,
+			Parent = section,
+		}, 24)
+		local stamp = Ui.label({
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.fromScale(1, 0),
+			Size = UDim2.new(0.45, 0, 0, PASSPORT_HEADER),
+			TextXAlignment = Enum.TextXAlignment.Right,
+			TextColor3 = Theme.Good,
+			Parent = section,
+		}, 19)
+		local grid = Ui.new("Frame", {
+			Position = UDim2.fromOffset(0, PASSPORT_HEADER + 6),
+			Size = UDim2.new(1, 0, 1, -(PASSPORT_HEADER + 6)),
+			BackgroundTransparency = 1,
+			Parent = section,
+		})
+		Ui.new("UIGridLayout", {
+			CellSize = UDim2.fromOffset(PASSPORT_CELL.X, PASSPORT_CELL.Y),
+			CellPadding = UDim2.fromOffset(PASSPORT_GAP, PASSPORT_GAP),
+			FillDirectionMaxCells = PASSPORT_COLUMNS,
+			SortOrder = Enum.SortOrder.LayoutOrder,
+			HorizontalAlignment = Enum.HorizontalAlignment.Left,
+			Parent = grid,
+		})
+		passportSections[region.Id] = { Header = header, Stamp = stamp, Grid = grid }
+		total += height + (if order > 1 then SECTION_GAP else 0)
+	end
+	setCanvasHeight(scroller, total)
+	return scroller
+end
+
+local function passportCard(parent: Frame, landmark: Landmark, known: boolean, order: number): Frame
+	local tier = landmark.Tier
+	local card = Ui.new("Frame", {
+		Name = landmark.Id,
+		LayoutOrder = order,
+		BackgroundColor3 = if known then Theme.PanelLight else UNKNOWN_BG,
+	})
+	Ui.corner(10).Parent = card
+	Ui.stroke(if known then tier.Color else Theme.Stroke, 2, if known then 0.2 else 0.65).Parent = card
+
+	if known then
+		Viewport.thumbnail(card, landmark, {
+			Position = UDim2.fromOffset(5, 5),
+			Size = UDim2.new(1, -10, 0, 66),
+		})
+	else
+		Ui.label({
+			Position = UDim2.fromOffset(5, 5),
+			Size = UDim2.new(1, -10, 0, 66),
+			Font = Theme.FontHeavy,
+			Text = "?",
+			TextColor3 = Theme.Stroke,
+			Parent = card,
+		}, 46)
+	end
+	Ui.label({
+		Position = UDim2.fromOffset(4, 73),
+		Size = UDim2.new(1, -8, 0, 20),
+		Font = Theme.FontHeavy,
+		Text = if known then landmark.Name else "???",
+		TextColor3 = if known then tier.Color else Theme.SubText,
+		Parent = card,
+	}, 16)
+	Ui.label({
+		Position = UDim2.fromOffset(4, 94),
+		Size = UDim2.new(1, -8, 0, 16),
+		Text = Format.oneIn(landmark.OneIn),
+		TextColor3 = tier.Color,
+		Parent = card,
+	}, 14)
+	Ui.label({
+		Position = UDim2.fromOffset(4, 111),
+		Size = UDim2.new(1, -8, 0, 16),
+		Text = tier.Name,
+		TextColor3 = Theme.SubText,
+		Parent = card,
+	}, 13)
+
+	card.Parent = parent
+	return card
+end
+
+local function renderPassport(state: Snapshot)
+	local found = 0
+	local bonus = math.floor(Config.REGION_LUCK_BONUS * 100 + 0.5)
+	for _, region in Landmarks.Regions do
+		local section = passportSections[region.Id]
+		local list = Landmarks.ByRegion[region.Id]
+		local discovered = 0
+		for order, landmark in list do
+			local known = owned(state, landmark.Id) > 0
+			if known then
+				discovered += 1
+			end
+			-- 발견 여부가 바뀐 카드만 다시 만듦
+			local entry = passportCards[landmark.Id]
+			if not entry or entry.Known ~= known then
+				if entry then
+					entry.Card:Destroy()
+				end
+				passportCards[landmark.Id] =
+					{ Card = passportCard(section.Grid, landmark, known, order), Known = known }
+			end
+		end
+		found += discovered
+
+		section.Header.Text = string.format("%s %s  %d/%d", region.Emoji, region.Name, discovered, #list)
+		if #list > 0 and discovered == #list then
+			section.Stamp.Text = string.format("✅ 도장 획득 (행운 +%d%%)", bonus)
+			section.Stamp.TextColor3 = Theme.Good
+		else
+			section.Stamp.Text = string.format("도장까지 %d곳", #list - discovered)
+			section.Stamp.TextColor3 = Theme.SubText
+		end
+	end
+	titleLabel.Text = string.format("%s  (%d / %d 발견)", VIEWS.Passport.Title, found, #Landmarks.List)
+end
+
+-- 업그레이드 -----------------------------------------------------------------
+
+-- 레벨별 효과 표시
+local function effectText(upgrade: PlayerState.Upgrade, level: number): string
+	if upgrade.Id == "Globe" then
+		return string.format("행운 x%.2f", 1 + upgrade.PerLevel * level)
+	elseif upgrade.Id == "Agency" then
+		return string.format("굴림 간격 %.2f초", Config.ROLL_COOLDOWN * (1 - upgrade.PerLevel * level))
+	elseif upgrade.Id == "Park" then
+		return string.format("전시 칸 %d", math.floor(Config.BASE_SLOTS + upgrade.PerLevel * level + 0.5))
+	elseif upgrade.Id == "Ticket" then
+		return string.format("관광 수입 x%.2f", 1 + upgrade.PerLevel * level)
+	end
+	return "Lv " .. level
+end
+
+local function paintBuyButton(row: UpgradeRow, coins: number)
+	local affordable = row.Price ~= nil and coins >= row.Price
+	if row.Affordable == affordable then
+		return
+	end
+	row.Affordable = affordable
+	row.Button.BackgroundColor3 = if affordable then Theme.Good else Theme.PanelLight
+	row.Button.TextColor3 = if affordable then DARK_TEXT else Theme.SubText
+	row.Button.AutoButtonColor = affordable
+end
+
+local function buildUpgrade(): ScrollingFrame
+	local scroller = newScroller("Upgrade")
+	local layout = Ui.list(Enum.FillDirection.Vertical, UPGRADE_GAP, Enum.HorizontalAlignment.Center)
+	layout.VerticalAlignment = Enum.VerticalAlignment.Top
+	layout.Parent = scroller
+
+	for order, upgrade in Config.Upgrades do
+		local row = Ui.new("Frame", {
+			Name = upgrade.Id,
+			LayoutOrder = order,
+			Size = UDim2.new(1, 0, 0, UPGRADE_ROW),
+			BackgroundColor3 = Theme.PanelLight,
+			Parent = scroller,
+		})
+		Ui.corner(12).Parent = row
+		Ui.stroke(Theme.Accent, 2, 0.35).Parent = row
+		Ui.padding(10).Parent = row
+
+		Ui.label({
+			Size = UDim2.new(0.44, 0, 0, 30),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			Font = Theme.FontHeavy,
+			Text = upgrade.Emoji .. " " .. upgrade.Name,
+			Parent = row,
+		}, 24)
+		local level = Ui.label({
+			Position = UDim2.fromScale(0.44, 0),
+			Size = UDim2.new(0.24, 0, 0, 30),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextColor3 = Theme.Gold,
+			Parent = row,
+		}, 20)
+		Ui.label({
+			Position = UDim2.fromOffset(0, 32),
+			Size = UDim2.new(0.68, 0, 0, 20),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			Text = upgrade.Description,
+			TextColor3 = Theme.SubText,
+			Parent = row,
+		}, 17)
+		local effect = Ui.label({
+			Position = UDim2.fromOffset(0, 54),
+			Size = UDim2.new(0.68, 0, 0, 22),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextColor3 = Theme.Good,
+			Parent = row,
+		}, 18)
+		local button = Ui.button({
+			AnchorPoint = Vector2.new(1, 0.5),
+			Position = UDim2.fromScale(1, 0.5),
+			Size = UDim2.new(0.3, 0, 1, 0),
+			Parent = row,
+		}, 24)
+		button.Activated:Connect(function()
+			local entry = upgradeRows[upgrade.Id]
+			if entry and entry.Price then
+				handlers.Buy(upgrade.Id)
+			end
+		end)
+		upgradeRows[upgrade.Id] = { Level = level, Effect = effect, Button = button }
+	end
+	setCanvasHeight(scroller, #Config.Upgrades * (UPGRADE_ROW + UPGRADE_GAP) - UPGRADE_GAP)
+	return scroller
+end
+
+local function renderUpgrade(state: Snapshot)
+	for _, upgrade in Config.Upgrades do
+		local row = upgradeRows[upgrade.Id]
+		local level = PlayerState.upgradeLevel(state, upgrade.Id)
+		local price = PlayerState.upgradePrice(upgrade.Id, level)
+		row.Level.Text = string.format("Lv %d/%d", level, upgrade.MaxLevel)
+		if price then
+			row.Effect.Text = effectText(upgrade, level) .. " → " .. effectText(upgrade, level + 1)
+			row.Button.Text = "🪙 " .. Format.commas(price)
+		else
+			row.Effect.Text = effectText(upgrade, level) .. " (최대)"
+			row.Button.Text = "최대 레벨"
+		end
+		row.Price = price
+		row.Affordable = nil -- 가격이 바뀌었을 수 있으니 버튼 색을 다시 칠함
+		paintBuyButton(row, lastCoins)
+	end
+end
+
+-- 공통 -----------------------------------------------------------------------
+
+local BUILDERS = {
+	Collection = buildCollection,
+	Passport = buildPassport,
+	Upgrade = buildUpgrade,
+}
+
+local RENDERERS = {
+	Collection = renderCollection,
+	Passport = renderPassport,
+	Upgrade = renderUpgrade,
+}
+
+local function render()
+	local name = openName
+	if not name then
+		return
+	end
+	local view = VIEWS[name]
+	titleLabel.Text = view.Title
+	hintLabel.Text = view.Hint
+	headerButton.Visible = false
+	emptyLabel.Visible = false
+
+	for other, scroller in scrollers do
+		scroller.Visible = other == name
+	end
+
+	local state = lastState
+	if not state then
+		emptyLabel.Text = "불러오는 중..."
+		emptyLabel.Visible = true
+		return
+	end
+	emptyLabel.Text = "아직 발견한 명소가 없어요. 지구본을 돌려 보세요!"
+
+	local scroller = scrollers[name]
+	if not scroller then
+		scroller = BUILDERS[name]()
+		scrollers[name] = scroller
+	end
+	scroller.Visible = true
+	RENDERERS[name](state)
+end
+
+function Panels.init(parent: ScreenGui, callbacks: Handlers)
+	handlers = callbacks
+
+	window = Ui.new("Frame", {
+		Name = "Window",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(WINDOW_SIZE.X, WINDOW_SIZE.Y),
+		BackgroundColor3 = Theme.Panel,
+		BackgroundTransparency = 0.05,
+		Visible = false,
+		ZIndex = 5,
+		Parent = parent,
+	})
+	Ui.corner(16).Parent = window
+	Ui.stroke(Theme.Accent, 2, 0.2).Parent = window
+	Ui.autoScale(window)
+
+	titleLabel = Ui.label({
+		Position = UDim2.fromOffset(16, 10),
+		Size = UDim2.new(0.5, 0, 0, 34),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Font = Theme.FontHeavy,
+		Parent = window,
+	}, 28)
+	hintLabel = Ui.label({
+		Position = UDim2.fromOffset(16, 46),
+		Size = UDim2.new(1, -32, 0, 20),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = Theme.SubText,
+		Parent = window,
+	}, 16)
+
+	headerButton = Ui.button({
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -64, 0, 10),
+		Size = UDim2.fromOffset(280, 36),
+		Visible = false,
+		Parent = window,
+	}, 17)
+	headerButton.Activated:Connect(function()
+		handlers.ToggleAutoFeature()
+	end)
+
+	local close = Ui.button({
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -12, 0, 10),
+		Size = UDim2.fromOffset(40, 36),
+		BackgroundColor3 = Theme.Bad,
+		Text = "✕",
+		Parent = window,
+	}, 22)
+	close.Activated:Connect(Panels.close)
+
+	emptyLabel = Ui.label({
+		Position = UDim2.fromOffset(12, BODY_TOP + 20),
+		Size = UDim2.new(1, -24, 0, 40),
+		TextColor3 = Theme.SubText,
+		Visible = false,
+		Parent = window,
+	}, 24)
+end
+
+-- 같은 창 버튼을 다시 누르면 닫힘
+function Panels.toggle(name: string)
+	if not VIEWS[name] then
+		return
+	end
+	if openName == name then
+		Panels.close()
+		return
+	end
+	openName = name
+	window.Visible = true
+	render()
+end
+
+function Panels.close()
+	openName = nil
+	window.Visible = false
+end
+
+-- 서버 상태가 실제로 바뀌었을 때만 호출됨 (열린 화면만 갱신, 나머지는 열 때 갱신)
+function Panels.render(state: Snapshot?)
+	lastState = state
+	if state then
+		lastCoins = state.Coins -- 곧 refreshCoins 가 부드러운 값으로 덮어씀
+	end
+	render()
+end
+
+-- 자주 호출해도 되는 가벼운 갱신: 업그레이드 버튼의 "살 수 있음" 색만 다시 칠함
+function Panels.refreshCoins(coins: number)
+	lastCoins = coins
+	if openName ~= "Upgrade" then
+		return
+	end
+	for _, row in upgradeRows do
+		paintBuyButton(row, coins)
+	end
+end
+
+return Panels
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="23">
+          <Properties>
+            <string name="Name">Ui</string>
+            <string name="Source"><![CDATA[-- UI 생성 헬퍼와 테마. 모든 화면은 코드로 만들어서 .rbxm 없이도 동작합니다.
+
+local Ui = {}
+
+Ui.Theme = {
+	Panel = Color3.fromRGB(24, 26, 38),
+	PanelLight = Color3.fromRGB(40, 44, 64),
+	Stroke = Color3.fromRGB(90, 96, 140),
+	Text = Color3.fromRGB(240, 240, 250),
+	SubText = Color3.fromRGB(165, 170, 200),
+	Accent = Color3.fromRGB(125, 95, 255),
+	Good = Color3.fromRGB(90, 220, 120),
+	Bad = Color3.fromRGB(255, 95, 95),
+	Gold = Color3.fromRGB(255, 205, 70),
+	Font = Enum.Font.GothamBold,
+	FontHeavy = Enum.Font.GothamBlack,
+}
+
+-- 화면 크기 기준 해상도. 이보다 작으면(휴대폰) 줄이고, 크면 조금 키웁니다.
+local DESIGN_SIZE = Vector2.new(1280, 720)
+
+-- Ui.new("Frame", { Size = ..., Parent = ... }, { 자식들 })
+function Ui.new(className: string, props: { [string]: any }?, children: { Instance }?): any
+	local instance = Instance.new(className)
+	local parent = nil
+	for key, value in props or {} do
+		if key == "Parent" then
+			parent = value
+		else
+			(instance :: any)[key] = value
+		end
+	end
+	for _, child in children or {} do
+		child.Parent = instance
+	end
+	if parent then
+		instance.Parent = parent
+	end
+	return instance
+end
+
+function Ui.corner(radius: number?): UICorner
+	return Ui.new("UICorner", { CornerRadius = UDim.new(0, radius or 12) })
+end
+
+function Ui.stroke(color: Color3?, thickness: number?, transparency: number?): UIStroke
+	return Ui.new("UIStroke", {
+		Color = color or Ui.Theme.Stroke,
+		Thickness = thickness or 2,
+		Transparency = transparency or 0.3,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+	})
+end
+
+function Ui.padding(px: number): UIPadding
+	local u = UDim.new(0, px)
+	return Ui.new("UIPadding", { PaddingTop = u, PaddingBottom = u, PaddingLeft = u, PaddingRight = u })
+end
+
+function Ui.list(direction: Enum.FillDirection, gap: number, hAlign: Enum.HorizontalAlignment?): UIListLayout
+	return Ui.new("UIListLayout", {
+		FillDirection = direction,
+		Padding = UDim.new(0, gap),
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		HorizontalAlignment = hAlign or Enum.HorizontalAlignment.Left,
+		VerticalAlignment = Enum.VerticalAlignment.Center,
+	})
+end
+
+-- 글자 크기 자동(TextScaled) + 최대 크기 제한
+function Ui.label(props: { [string]: any }, maxTextSize: number?): TextLabel
+	local label = Ui.new("TextLabel", {
+		Text = "",
+		BackgroundTransparency = 1,
+		Font = Ui.Theme.Font,
+		TextColor3 = Ui.Theme.Text,
+		TextScaled = true,
+		RichText = true,
+	})
+	for key, value in props do
+		if key ~= "Parent" then
+			(label :: any)[key] = value
+		end
+	end
+	Ui.new("UITextSizeConstraint", { MaxTextSize = maxTextSize or 28, Parent = label })
+	label.Parent = props.Parent
+	return label
+end
+
+function Ui.button(props: { [string]: any }, maxTextSize: number?): TextButton
+	local button = Ui.new("TextButton", {
+		Text = "",
+		AutoButtonColor = true,
+		BackgroundColor3 = Ui.Theme.PanelLight,
+		Font = Ui.Theme.FontHeavy,
+		TextColor3 = Ui.Theme.Text,
+		TextScaled = true,
+		RichText = true,
+	})
+	for key, value in props do
+		if key ~= "Parent" then
+			(button :: any)[key] = value
+		end
+	end
+	Ui.corner(12).Parent = button
+	Ui.stroke().Parent = button
+	Ui.new("UITextSizeConstraint", { MaxTextSize = maxTextSize or 26, Parent = button })
+	Ui.padding(6).Parent = button
+	button.Parent = props.Parent
+	return button
+end
+
+-- 텍스트에 명소 등급 색을 입힘
+function Ui.paintTier(label: TextLabel | TextButton, tier: { Color: Color3 })
+	label.TextColor3 = tier.Color
+end
+
+-- 별 개수(0~max) -> "★★★☆☆"
+function Ui.stars(count: number, max: number?): string
+	local total = max or 5
+	local filled = math.clamp(math.floor(count), 0, total)
+	return string.rep("★", filled) .. string.rep("☆", total - filled)
+end
+
+-- 화면 크기에 맞춰 크기를 조절하는 UIScale 을 붙임 (AnchorPoint 기준으로 커지고 작아짐)
+local scalers: { UIScale } = {}
+
+local function currentScale(): number
+	local camera = workspace.CurrentCamera
+	local viewport = if camera then camera.ViewportSize else DESIGN_SIZE
+	return math.clamp(math.min(viewport.X / DESIGN_SIZE.X, viewport.Y / DESIGN_SIZE.Y), 0.6, 1.3)
+end
+
+function Ui.autoScale(object: GuiObject)
+	local scale = Ui.new("UIScale", { Scale = currentScale(), Parent = object })
+	table.insert(scalers, scale)
+end
+
+local function refreshScales()
+	local value = currentScale()
+	for _, scale in scalers do
+		scale.Scale = value
+	end
+end
+
+local cameraConnection: RBXScriptConnection? = nil
+local function watchCamera()
+	if cameraConnection then
+		cameraConnection:Disconnect()
+	end
+	local camera = workspace.CurrentCamera
+	if camera then
+		cameraConnection = camera:GetPropertyChangedSignal("ViewportSize"):Connect(refreshScales)
+	end
+	refreshScales()
+end
+workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(watchCamera)
+watchCamera()
+
+return Ui
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="24">
+          <Properties>
+            <string name="Name">Viewport</string>
+            <string name="Source"><![CDATA[-- ViewportFrame 에 명소 모형을 띄우는 헬퍼.
+-- 정적인 썸네일(컬렉션/여권 카드)은 한 번 찍고 끝(매 프레임 작업 없음),
+-- 회전이 필요한 화면(굴림 연출)만 setSpin 으로 등록해서 RenderStepped 루프 하나로 돌립니다.
+
+local RunService = game:GetService("RunService")
+
+local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
+local Landmarks = require(Shared.Landmarks)
+local Models = require(Shared:WaitForChild("Models"))
+
+local Ui = require(script.Parent.Ui)
+
+local FIELD_OF_VIEW = 30 -- 세로 시야각(도). 좁을수록 원근 왜곡이 적어 미니어처처럼 보임
+local YAW = math.rad(35) -- 정면(-Z)에서 오른쪽으로 돌아간 각도 (3/4 시점)
+local PITCH = math.rad(22) -- 내려다보는 각도
+local MARGIN = 1.04
+
+-- 모형 틀 정보는 ViewportFrame 의 속성(Attribute)에 저장 → 모듈 쪽에 따로 들고 있을 필요가 없어서
+-- 카드가 Destroy 되어도 정리할 것이 없음
+local ATTR_HEIGHT_CENTER = "ViewCenterY"
+local ATTR_FLAT = "ViewFlat"
+local ATTR_HALF_HEIGHT = "ViewHalfHeight"
+
+local Viewport = {}
+
+type SpinEntry = { Speed: number, Angle: number }
+
+-- 회전 중인 화면들. 부모가 사라지면(Destroy) 루프에서 알아서 빠짐
+local spinning: { [ViewportFrame]: SpinEntry } = {}
+local spinConnection: RBXScriptConnection? = nil
+
+local function currentModel(vf: ViewportFrame): Model?
+	return vf:FindFirstChildOfClass("Model")
+end
+
+-- 저장해 둔 틀 정보로 카메라 위치를 정함 (화면 비율이 바뀌면 다시 호출)
+local function frameCamera(vf: ViewportFrame)
+	local camera = vf.CurrentCamera
+	local centerY = vf:GetAttribute(ATTR_HEIGHT_CENTER)
+	local flat = vf:GetAttribute(ATTR_FLAT)
+	local halfHeight = vf:GetAttribute(ATTR_HALF_HEIGHT)
+	if not camera or type(centerY) ~= "number" or type(flat) ~= "number" or type(halfHeight) ~= "number" then
+		return
+	end
+
+	local absolute = vf.AbsoluteSize
+	local aspect = if absolute.X > 0 and absolute.Y > 0 then absolute.X / absolute.Y else 1
+	local tanV = math.tan(math.rad(camera.FieldOfView / 2))
+	local tanH = tanV * aspect
+
+	-- 화면에 비치는 대략적인 반높이/반너비. 가로는 회전해도 넘지 않도록 수직축에서 가장 먼 모서리 기준
+	local projectedHalfHeight = halfHeight * math.cos(PITCH) + flat * math.sin(PITCH)
+	local distance = math.max(projectedHalfHeight / tanV + flat * 0.5, flat / tanH + flat) * MARGIN
+
+	local target = Vector3.new(0, centerY, 0)
+	local direction = Vector3.new(math.sin(YAW) * math.cos(PITCH), math.sin(PITCH), -math.cos(YAW) * math.cos(PITCH))
+	camera.CFrame = CFrame.lookAt(target + direction * distance, target)
+end
+
+-- 새 ViewportFrame (카메라·조명 포함). props 로 Size/Position 등을 덮어씀
+function Viewport.new(parent: Instance?, props: { [string]: any }?): ViewportFrame
+	local vf = Ui.new("ViewportFrame", {
+		BackgroundTransparency = 1,
+		BorderSizePixel = 0,
+		Size = UDim2.fromScale(1, 1),
+		Ambient = Color3.fromRGB(165, 165, 180),
+		LightColor = Color3.fromRGB(255, 248, 235),
+		-- 빛이 나아가는 방향. 카메라와 같은 쪽(앞·위·오른쪽)에서 비추도록
+		LightDirection = Vector3.new(-0.6, -1, 0.8),
+	})
+	for key, value in props or {} do
+		if key ~= "Parent" then
+			(vf :: any)[key] = value
+		end
+	end
+
+	local camera = Ui.new("Camera", { FieldOfView = FIELD_OF_VIEW, Parent = vf })
+	vf.CurrentCamera = camera
+
+	vf:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+		frameCamera(vf)
+	end)
+
+	vf.Parent = parent
+	return vf
+end
+
+-- 모형을 화면에 올림. 이전 모형은 지움. 모형 피벗(바닥 중앙)을 원점에 놓고 3/4 각도로 카메라를 맞춤
+function Viewport.setModel(vf: ViewportFrame, model: Model?)
+	for _, child in vf:GetChildren() do
+		if child:IsA("Model") and child ~= model then
+			child:Destroy()
+		end
+	end
+	if not model then
+		vf:SetAttribute(ATTR_HEIGHT_CENTER, nil)
+		return
+	end
+
+	local entry = spinning[vf]
+	model:PivotTo(CFrame.Angles(0, if entry then entry.Angle else 0, 0))
+	model.Parent = vf
+
+	local ok, boxCFrame, size = pcall(function()
+		return model:GetBoundingBox()
+	end)
+	if not ok then
+		return
+	end
+	-- 회전축(피벗, 원점)에서 가장 먼 모서리까지의 가로 거리
+	local center = boxCFrame.Position
+	local reachX = math.abs(center.X) + size.X / 2
+	local reachZ = math.abs(center.Z) + size.Z / 2
+	vf:SetAttribute(ATTR_HEIGHT_CENTER, center.Y)
+	vf:SetAttribute(ATTR_FLAT, math.max(0.5, math.sqrt(reachX * reachX + reachZ * reachZ)))
+	vf:SetAttribute(ATTR_HALF_HEIGHT, math.max(0.5, size.Y / 2))
+	frameCamera(vf)
+end
+
+-- 명소 모형을 만들어 올림. 모형을 못 만들면 false (화면은 비워 둠)
+function Viewport.setLandmark(vf: ViewportFrame, landmark: Landmarks.Landmark, size: number?): boolean
+	local ok, model = pcall(Models.create, landmark, size or 10)
+	if not ok or typeof(model) ~= "Instance" or not model:IsA("Model") then
+		warn("[LandmarkRNG] 모형을 만들지 못했어요 (" .. landmark.Id .. "): " .. tostring(model))
+		Viewport.setModel(vf, nil)
+		return false
+	end
+	Viewport.setModel(vf, model)
+	return true
+end
+
+-- 카드용 정적 썸네일 (회전 없음)
+function Viewport.thumbnail(parent: Instance?, landmark: Landmarks.Landmark, props: { [string]: any }?): ViewportFrame
+	local vf = Viewport.new(nil, props)
+	Viewport.setLandmark(vf, landmark, 10)
+	vf.Parent = parent
+	return vf
+end
+
+local function step(dt: number)
+	for vf, entry in spinning do
+		if not vf.Parent then
+			spinning[vf] = nil -- Destroy 된 화면
+			continue
+		end
+		local model = currentModel(vf)
+		if model then
+			entry.Angle = (entry.Angle + math.rad(entry.Speed) * dt) % (2 * math.pi)
+			model:PivotTo(CFrame.Angles(0, entry.Angle, 0))
+		end
+	end
+end
+
+-- 초당 degreesPerSecond 도로 수직축 회전. 0 이면 멈춤(현재 각도 유지)
+function Viewport.setSpin(vf: ViewportFrame, degreesPerSecond: number)
+	if degreesPerSecond == 0 then
+		spinning[vf] = nil
+		return
+	end
+	local entry = spinning[vf]
+	if entry then
+		entry.Speed = degreesPerSecond
+	else
+		spinning[vf] = { Speed = degreesPerSecond, Angle = 0 }
+	end
+	if not spinConnection then
+		spinConnection = RunService.RenderStepped:Connect(step)
+	end
+end
+
+return Viewport
+]]></string>
+          </Properties>
+        </Item>
+      </Item>
+    </Item>
+  </Item>
+  <Item class="Workspace" referent="25">
+    <Properties>
+      <string name="Name">Workspace</string>
+      <bool name="NeedsPivotMigration">false</bool>
+    </Properties>
+    <Item class="Part" referent="26">
+      <Properties>
+        <string name="Name">Baseplate</string>
+        <bool name="Anchored">true</bool>
+        <token name="BottomSurface">0</token>
+        <Color3uint8 name="Color3uint8">7055439</Color3uint8>
+        <bool name="Locked">true</bool>
+        <token name="Material">1280</token>
+        <Vector3 name="Position">
+          <X>0</X>
+          <Y>-8</Y>
+          <Z>0</Z>
+        </Vector3>
+        <Vector3 name="size">
+          <X>600</X>
+          <Y>16</Y>
+          <Z>600</Z>
+        </Vector3>
+        <token name="TopSurface">0</token>
+      </Properties>
+    </Item>
+    <Item class="SpawnLocation" referent="27">
+      <Properties>
+        <string name="Name">SpawnLocation</string>
+        <bool name="Anchored">true</bool>
+        <token name="BottomSurface">0</token>
+        <Color3uint8 name="Color3uint8">14408145</Color3uint8>
+        <int name="Duration">0</int>
+        <token name="Material">272</token>
+        <Vector3 name="Position">
+          <X>0</X>
+          <Y>1.5</Y>
+          <Z>0</Z>
+        </Vector3>
+        <Vector3 name="size">
+          <X>10</X>
+          <Y>1</Y>
+          <Z>10</Z>
+        </Vector3>
+        <token name="TopSurface">0</token>
+      </Properties>
+    </Item>
+  </Item>
+</roblox>

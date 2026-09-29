@@ -1,7 +1,5 @@
 -- UI 생성 헬퍼와 테마. 모든 화면은 코드로 만들어서 .rbxm 없이도 동작합니다.
 
-local CollectionService = game:GetService("CollectionService")
-
 local Ui = {}
 
 Ui.Theme = {
@@ -112,34 +110,16 @@ function Ui.button(props: { [string]: any }, maxTextSize: number?): TextButton
 	return button
 end
 
-function Ui.colorSequence(colors: { Color3 }): ColorSequence
-	if #colors == 1 then
-		return ColorSequence.new(colors[1])
-	end
-	local keypoints = {}
-	for i, color in colors do
-		table.insert(keypoints, ColorSequenceKeypoint.new((i - 1) / (#colors - 1), color))
-	end
-	return ColorSequence.new(keypoints)
+-- 텍스트에 명소 등급 색을 입힘
+function Ui.paintTier(label: TextLabel | TextButton, tier: { Color: Color3 })
+	label.TextColor3 = tier.Color
 end
 
--- 텍스트에 오라 색(단색 또는 회전하는 그라데이션)을 입힘
-function Ui.paintAura(label: TextLabel | TextButton, aura: any)
-	local old = label:FindFirstChild("AuraGradient")
-	if old then
-		old:Destroy()
-	end
-	if aura.Gradient then
-		label.TextColor3 = Color3.new(1, 1, 1)
-		local gradient = Ui.new("UIGradient", {
-			Name = "AuraGradient",
-			Color = Ui.colorSequence(aura.Gradient),
-			Parent = label,
-		})
-		CollectionService:AddTag(gradient, "AuraGradient")
-	else
-		label.TextColor3 = aura.Color
-	end
+-- 별 개수(0~max) -> "★★★☆☆"
+function Ui.stars(count: number, max: number?): string
+	local total = max or 5
+	local filled = math.clamp(math.floor(count), 0, total)
+	return string.rep("★", filled) .. string.rep("☆", total - filled)
 end
 
 -- 화면 크기에 맞춰 크기를 조절하는 UIScale 을 붙임 (AnchorPoint 기준으로 커지고 작아짐)
