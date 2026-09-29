@@ -134,8 +134,12 @@ local savedCamera: { Type: Enum.CameraType, Subject: Instance? }? = nil
 local cameraTween: Tween? = nil
 local controls: any = nil
 
+-- 매 프레임 움직이는 로컬 모형(들고 있는 복사본·날아가는 모형): 만들 때 파트마다 피벗 기준 자리를 적어 두고
+-- 매번 절대 자리로 옮김(Model:PivotTo 를 매 프레임 되풀이하면 파트 사이 오차가 쌓임). Pivot = 지금 피벗
+type Rig = { Model: Model, Parts: { BasePart }, Offsets: { CFrame }, Pivot: CFrame }
 type Ghost = {
 	Model: Model,
+	Rig: Rig,
 	Originals: { [BasePart]: number },
 	Light: Highlight,
 	Label: BillboardGui,
@@ -150,7 +154,7 @@ type Held = {
 local held: Held? = nil
 
 type Flyer = {
-	Model: Model,
+	Rig: Rig,
 	From: CFrame,
 	To: CFrame,
 	Start: number,
@@ -325,6 +329,37 @@ local function localModel(landmark: Landmark): Model?
 	return model
 end
 
+local function rig(model: Model): Rig
+	local pivot = model:GetPivot()
+	local parts: { BasePart } = {}
+	local offsets: { CFrame } = {}
+	for _, descendant in model:GetDescendants() do
+		if descendant:IsA("BasePart") then
+			table.insert(parts, descendant)
+			table.insert(offsets, pivot:ToObjectSpace(descendant.CFrame))
+		end
+	end
+	return { Model = model, Parts = parts, Offsets = offsets, Pivot = pivot }
+end
+
+local moveBuffer: { CFrame } = {}
+local function moveRig(target: Rig, cf: CFrame)
+	target.Pivot = cf
+	table.clear(moveBuffer)
+	for index, offset in target.Offsets do
+		moveBuffer[index] = cf * offset
+	end
+	-- BulkMoveTo: 파트 여러 개를 한 번에(가짜 환경처럼 없으면 하나씩)
+	local ok = pcall(function()
+		workspace:BulkMoveTo(target.Parts, moveBuffer, Enum.BulkMoveMode.FireCFrameChanged)
+	end)
+	if not ok then
+		for index, part in target.Parts do
+			part.CFrame = moveBuffer[index]
+		end
+	end
+end
+
 -- 들고 있는 반투명 복사본: 노란 강조 + 머리 위 이름표(이름 + 별)
 local function makeGhost(landmark: Landmark, stars: number): Ghost?
 	local model = localModel(landmark)
@@ -384,17 +419,17 @@ local function makeGhost(landmark: Landmark, stars: number): Ghost?
 		Parent = label,
 	}, 20)
 	Ui.outline(starLabel, 2)
-	return { Model = model, Originals = originals, Light = light, Label = label }
+	return { Model = model, Rig = rig(model), Originals = originals, Light = light, Label = label }
 end
 
 -- 들고 있던 복사본을 원래 모습(불투명)으로: 받침대에 내려앉을 때
-local function solidify(ghost: Ghost): Model
+local function solidify(ghost: Ghost): Rig
 	for part, transparency in ghost.Originals do
 		part.Transparency = transparency
 	end
 	ghost.Light:Destroy()
 	ghost.Label:Destroy()
-	return ghost.Model
+	return ghost.Rig
 end
 
 -- 부지 회전(위쪽 = 월드 위쪽)만 남긴 CFrame
@@ -505,9 +540,9 @@ local function reconcile()
 end
 
 -- 날아가기(놓기·되돌아가기·자리 바꿈). 도착하면 그 칸 서버 모습이 아직 옛것이면 proxy 로 남음
-local function fly(model: Model, from: CFrame, to: CFrame, slot: number?, id: string?, hop: number, fade: boolean?)
+local function fly(mover: Rig, from: CFrame, to: CFrame, slot: number?, id: string?, hop: number, fade: boolean?)
 	table.insert(flyers, {
-		Model = model,
+		Rig = mover,
 		From = from,
 		To = to,
 		Start = os.clock(),
@@ -528,9 +563,9 @@ local function landFlyer(flyer: Flyer)
 		adopt = want == id and worldLook(slot) ~= want and localEdits[slot] ~= nil
 	end
 	if adopt and slot and id then
-		proxies[slot] = { Id = id, Model = flyer.Model }
+		proxies[slot] = { Id = id, Model = flyer.Rig.Model }
 	else
-		flyer.Model:Destroy()
+		flyer.Rig.Model:Destroy()
 	end
 end
 
@@ -548,8 +583,8 @@ local function returnHeld(silent: boolean?)
 	local view = viewState()
 	local from = if view then ParkGrid.slotOf(view, current.Id) else 0
 	if from > 0 and origin and not silent then
-		local model = solidify(current.Ghost)
-		fly(model, model:GetPivot(), slotTop(from), from, current.Id, 1)
+		local mover = solidify(current.Ghost)
+		fly(mover, mover.Pivot, slotTop(from), from, current.Id, 1)
 	else
 		current.Ghost.Model:Destroy()
 	end
@@ -591,7 +626,7 @@ local function pickUp(id: string, from: number)
 			end
 		end
 	end
-	ghost.Model:PivotTo(CFrame.new(start + Vector3.new(0, LIFT, 0)) * plotRotation())
+	moveRig(ghost.Rig, CFrame.new(start + Vector3.new(0, LIFT, 0)) * plotRotation())
 	ghost.Model.Parent = localFolder
 	held = { Id = id, Ghost = ghost, Position = start, Target = start, Angle = 0 }
 	play(pickSound)
@@ -671,19 +706,20 @@ local function commit(plan: ParkGrid.DropPlan)
 	local wasAuto = view.Settings.AutoPark ~= false
 	held = nil
 	local edited = { plan.Slot }
-	local model = solidify(current.Ghost)
-	fly(model, model:GetPivot(), slotTop(plan.Slot), plan.Slot, plan.Id, 0.6)
+	local mover = solidify(current.Ghost)
+	fly(mover, mover.Pivot, slotTop(plan.Slot), plan.Slot, plan.Id, 0.6)
 	local partner = if plan.Partner then Landmarks.ById[plan.Partner] else nil
 	if partner then
 		local other = localModel(partner)
 		if other and localFolder then
-			other:PivotTo(slotTop(plan.Slot))
+			local partnerRig = rig(other)
+			moveRig(partnerRig, slotTop(plan.Slot))
 			other.Parent = localFolder
 			if plan.From > 0 then
-				fly(other, slotTop(plan.Slot), slotTop(plan.From), plan.From, partner.Id, HOP)
+				fly(partnerRig, slotTop(plan.Slot), slotTop(plan.From), plan.From, partner.Id, HOP)
 			else
 				-- 보관함으로 밀려남: 위로 톡 튀어 오르며 사라짐
-				fly(other, slotTop(plan.Slot), slotTop(plan.Slot) + Vector3.new(0, 7, 0), nil, nil, 1, true)
+				fly(partnerRig, slotTop(plan.Slot), slotTop(plan.Slot) + Vector3.new(0, 7, 0), nil, nil, 1, true)
 			end
 		end
 	end
@@ -719,8 +755,8 @@ local function storeHeld()
 	end
 	local wasAuto = view.Settings.AutoPark ~= false
 	held = nil
-	local model = solidify(current.Ghost)
-	fly(model, model:GetPivot(), model:GetPivot() + Vector3.new(0, 6, 0), nil, nil, 0, true)
+	local mover = solidify(current.Ghost)
+	fly(mover, mover.Pivot, mover.Pivot + Vector3.new(0, 6, 0), nil, nil, 0, true)
 	play(dropSound)
 	send(copy, wasAuto, { plan.Slot }, function()
 		return handlers.SetDisplay(plan.Slot, nil, plan.Expected, nil)
@@ -1069,7 +1105,8 @@ local function step(dt: number)
 		current.Position = current.Position:Lerp(current.Target, 1 - math.exp(-FOLLOW * dt))
 		current.Angle = (current.Angle + SPIN_SPEED * dt) % (2 * math.pi)
 		local lift = LIFT + math.sin(now * BOB_SPEED) * BOB
-		current.Ghost.Model:PivotTo(
+		moveRig(
+			current.Ghost.Rig,
 			CFrame.new(current.Position + Vector3.new(0, lift, 0)) * plotRotation() * CFrame.Angles(0, current.Angle, 0)
 		)
 		local locked = view and hit and hit.Slot and ParkGrid.look(view, hit.Slot) == ParkGrid.LOOK_LOCKED
@@ -1088,12 +1125,10 @@ local function step(dt: number)
 		local t = math.clamp((now - flyer.Start) / flyer.Seconds, 0, 1)
 		local eased = 1 - (1 - t) ^ 3
 		local cf = flyer.From:Lerp(flyer.To, eased) + Vector3.new(0, 4 * flyer.Hop * t * (1 - t), 0)
-		flyer.Model:PivotTo(cf)
+		moveRig(flyer.Rig, cf)
 		if flyer.Fade then
-			for _, part in flyer.Model:GetDescendants() do
-				if part:IsA("BasePart") then
-					part.LocalTransparencyModifier = t
-				end
+			for _, part in flyer.Rig.Parts do
+				part.LocalTransparencyModifier = t
 			end
 		end
 		if t >= 1 then
@@ -1816,7 +1851,7 @@ function ParkEdit.exit()
 	returnHeld(true)
 	disconnectAll(editConnections)
 	for _, flyer in flyers do
-		flyer.Model:Destroy()
+		flyer.Rig.Model:Destroy()
 	end
 	table.clear(flyers)
 	for _, proxy in proxies do
