@@ -3,15 +3,17 @@
 -- 섬 모양(해안선·땅 높이·물가 바위·먼 작은 섬)은 Scenery/Island 가 정하고, 여기서는 그 위에 무엇을 둘지 정합니다.
 --
 -- 구역(광장 중심에서의 거리 r):
---   r 62~115    안쪽 잔디: 산책로 고리(r 84), 부지 길 양옆 산울타리, 길 입구 덤불, 틈 앞 둥근 꽃밭·벤치, 작은 꽃나무
+--   r 62~115    안쪽 잔디: 산책로 고리(r 84), 부지 길 양옆 산울타리(한쪽은 꽃 핀), 길 입구 덤불, 틈 앞 꽃밭·벤치,
+--               작은 꽃나무
 --   r 115~205   이웃 부지 사이 쐐기 틈 8곳: 틈마다 주제가 다른 정원(분수 광장/꽃 정원/과수원/연못과 다리/
 --               소풍 잔디/바위 정원/토피어리 길/정자) + 가운데 오솔길(정원마다 재질이 다름)
---   r 205~212   바깥 산책로 고리. 부지 뒤마다 벤치 + 정원등 + 양옆 산울타리
---   212~풀밭 끝  숲띠: 부지 뒤 양옆 숲 무리(큰 나무 가운데 + 둘레 작은 나무, 가끔 분홍 꽃나무 무리) + 빈터 바위,
---               숲 가장자리 덤불, 모래 쪽은 야자수
+--               + 틈 양옆(부지 울타리 쪽) 심은 무더기 넷(작은 나무 + 덤불 + 들꽃)
+--   r 205~212   바깥 산책로 고리. 부지 뒤마다 벤치 + 정원등 + 양옆 산울타리(망원경 / 들꽃·꽃 산울타리 번갈아)
+--   212~풀밭 끝  숲띠: 부지 뒤 양옆 숲 무리(큰 나무 가운데 + 둘레 작은 나무·기둥 나무, 가끔 분홍 꽃나무 무리)
+--               + 빈터 바위·들꽃, 숲 가장자리 덤불, 모래 쪽은 야자수
 --   모래사장    등대(곶 바위 위), 부두(T자 끝 + 구명 튜브 + 매어 둔 배), 파라솔·선베드 묶음, 간식 가게, 모래성, 구조대 망루,
---               야자수 무리(2~3 그루씩)
---   바다        돛단배, 수영 구역 부표 줄, 먼 작은 섬(지형) 위 야자수
+--               야자수 무리(1~3 그루씩), 물가 바위 턱 위 둥근 화강암 바윗돌 무더기
+--   바다        돛단배, 수영 구역 부표 줄, 먼 작은 섬(지형: 길쭉한 모래섬 + 치우친 풀 언덕) 위 야자수·덤불
 -- 모든 장식은 ParkLayout.blocked(부지·간판·길·광장)와 산책로를 비켜 가고, 서로 겹치지 않게 놓습니다.
 -- 난수는 구역마다 고정 시드(Rng)라서 한 구역을 고쳐도 다른 구역 배치는 그대로입니다.
 
@@ -69,6 +71,7 @@ local T = {
 		PalmScale = { 1.05, 1.35 },
 		BushChance = 0.3, -- 나무마다 옆에 덤불을 둘 확률
 		Rocks = 7,
+		Meadows = 7, -- 빈터 들꽃 자리 수(자리마다 무더기 1~2)
 		-- 풀밭 끝(모래 시작) 덤불 띠: FringeStep 스터드마다 한 자리, 띠 밀도(각도 물결)가 FringeCut 보다 큰 곳에만
 		-- (덤불 무리와 트인 곳이 번갈아: 고르게 흩뿌리지 않음)
 		FringeStep = 11,
@@ -725,6 +728,39 @@ local function bushSpec(zone: string, x: number, z: number, scale: number, flowe
 	}
 end
 
+-- 심은 무더기 하나: (x, z) 에 작은 나무(treeStyle 이 nil 이면 나무 없이) + 둘레 덤불 둘(하나는 꽃 덤불)
+-- + 광장 쪽 앞 들꽃 무더기. 흩뿌리지 않고 모아 심어서 넓은 잔디에 초점을 만듦. 자리가 없으면 조용히 건너뜀
+local function cluster(ctx: Ctx, rng: Rng, zone: string, x: number, z: number, treeStyle: number?)
+	local cx, cz, reach = x, z, 2
+	if treeStyle then
+		local spec = treeSpec(zone, "Island", x, z, rng:NextNumber(0.8, 0.95), treeStyle, rng)
+		local center = place(ctx, rng, spec, 5, 3, true)
+		if center then
+			cx, cz, reach = center.X, center.Z, center.Radius
+		end
+	end
+	local out = math.atan2(cz, cx) -- 광장에서 먼 쪽
+	for k = 1, 2 do
+		local scale = rng:NextNumber(0.75, 1)
+		local a = out + (k - 1.5) * 2.2 + rng:NextNumber(-0.3, 0.3)
+		local d = reach + BUSH_RADIUS * scale + 0.8
+		place(ctx, rng, bushSpec(zone, cx + math.cos(a) * d, cz + math.sin(a) * d, scale, k == 1, rng), 3, 1, true)
+	end
+	local a = out + math.pi + rng:NextNumber(-0.5, 0.5)
+	local d = reach + 2.6
+	place(ctx, rng, {
+		Kind = "FlowerBed",
+		Zone = zone,
+		Region = "Island",
+		X = cx + math.cos(a) * d,
+		Z = cz + math.sin(a) * d,
+		Radius = 2.2,
+		Turn = rng:NextNumber(0, TAU),
+		Style = if rng:NextNumber() < 0.5 then 3 else 6,
+		Flat = 2.2,
+	}, 3, 1, true)
+end
+
 -- 안쪽 잔디(광장 ~ 부지 입구) ---------------------------------------------------------------
 
 -- 후보 자리들을 차례로(각각 tries 번 흔들어) 놓아 봄. 모두 안 되면 첫 후보를 Skipped 에 셈
@@ -873,6 +909,18 @@ local function innerLawn(ctx: Ctx)
 				local x2, z2 = onAxis(a, last, side)
 				placeHedge(ctx, "Inner", x1, z1, x2, z2, if s > 0 then 3 else 1)
 			end
+		end
+	end
+	-- 넓은 잔디 양옆(부지 길 쪽) 심은 무더기(길 옆 덤불·산울타리를 놓은 뒤 남은 자리): 고리 바깥이 넓으면 바깥,
+	-- 아니면 고리 안쪽. 한쪽만 작은 나무
+	for j, angle in GAP_ANGLES do
+		local ring = ringRadius(inner, angle)
+		local inEdge, outEdge = ring - half, ring + half
+		local s = if j % 2 == 0 then 1 else -1
+		for _, side in { -1, 1 } do
+			local rho = if 101 - outEdge >= 10 then (outEdge + 101) / 2 else (LAWN_IN + inEdge) / 2
+			local x, z = onAxis(angle, rho, side * 21)
+			cluster(ctx, rng, "Inner", x, z, if side == s then 1 else nil)
 		end
 	end
 end
@@ -1120,9 +1168,8 @@ THEMES.Gazebo = function(g)
 	bench(g, 186, -22, 176, 0)
 end
 
--- 정원 가장자리 심은 무더기: 주제 장식을 다 놓은 뒤, 틈 양옆(부지 울타리 쪽) 빈 잔디 네 곳에 작은 나무 하나 +
--- 둘레 덤불 둘 + 들꽃 무더기를 한 무더기로(넓은 잔디가 비어 보이지 않게, 흩뿌리지 않고 모아서).
--- 자리가 없으면 조용히 건너뜀. 나무 색은 정원 주제를 따름
+-- 정원 가장자리 심은 무더기: 주제 장식을 다 놓은 뒤, 틈 양옆(부지 울타리 쪽) 빈 잔디 네 곳에 무더기 하나씩
+-- (넓은 잔디가 비어 보이지 않게). 나무 색은 정원 주제를 따르고, 꽃 정원은 나무 없이(꽃밭이 그늘에 가려지지 않게)
 local PLANTING_TREE = { Orchard = 2, Rockery = 3, Flowers = 4, Gazebo = 4 }
 local function plantings(g: Garden, theme: string)
 	local rng = g.rng
@@ -1132,42 +1179,7 @@ local function plantings(g: Garden, theme: string)
 			local side = s * (half - ParkLayout.PLOT_MARGIN - 5.5)
 			local x, z = onAxis(g.angle, rho + rng:NextNumber(-4, 4), side)
 			local style = PLANTING_TREE[theme] or (if rng:NextNumber() < 0.3 then 4 else 1)
-			local spec = treeSpec("Gardens", "Island", x, z, rng:NextNumber(0.8, 0.95), style, rng)
-			-- 꽃 정원은 나무 대신 덤불·들꽃만(꽃밭이 나무 그늘에 가려지지 않게)
-			local center = if theme == "Flowers" then nil else place(g.ctx, rng, spec, 5, 3, true)
-			local cx, cz = x, z
-			local reach = 2
-			if center then
-				cx, cz, reach = center.X, center.Z, center.Radius
-			end
-			local out = math.atan2(cz, cx) -- 광장에서 먼 쪽
-			for k = 1, 2 do
-				local scale = rng:NextNumber(0.75, 1)
-				local a = out + (k - 1.5) * 2.2 + rng:NextNumber(-0.3, 0.3)
-				local d = reach + BUSH_RADIUS * scale + 0.8
-				place(
-					g.ctx,
-					rng,
-					bushSpec("Gardens", cx + math.cos(a) * d, cz + math.sin(a) * d, scale, k == 1, rng),
-					3,
-					1,
-					true
-				)
-			end
-			-- 들꽃 무더기: 광장 쪽 앞
-			local a = out + math.pi + rng:NextNumber(-0.5, 0.5)
-			local d = reach + 2.6
-			place(g.ctx, rng, {
-				Kind = "FlowerBed",
-				Zone = "Gardens",
-				Region = "Island",
-				X = cx + math.cos(a) * d,
-				Z = cz + math.sin(a) * d,
-				Radius = 2.2,
-				Turn = rng:NextNumber(0, TAU),
-				Style = if rng:NextNumber() < 0.5 then 3 else 6,
-				Flat = 2.2,
-			}, 3, 1, true)
+			cluster(g.ctx, rng, "Gardens", x, z, if theme == "Flowers" then nil else style)
 		end
 	end
 end
@@ -1242,6 +1254,11 @@ local function belt(ctx: Ctx)
 				Flat = 1.6,
 				RouteMargin = 0.3,
 			}, 2, 0.5)
+		end
+		-- 벤치 양옆 뒤 낮은 덤불 무더기(나무 없이: 부지에서 보는 바다 전망은 그대로)
+		for _, s in { -1, 1 } do
+			local cx, cz = onAxis(a, ringOut + 10 + rng:NextNumber(-1, 1), s * 15)
+			cluster(ctx, rng, "Belt", cx, cz, nil)
 		end
 		for _, s in { -1, 1 } do
 			local r = ringOut + 2
@@ -1350,6 +1367,53 @@ local function belt(ctx: Ctx)
 			}, 0, 0, true)
 			if item then
 				rocks += 1
+			end
+		end
+	end
+
+	-- 빈터 들꽃: 숲 무리 사이 트인 잔디(바다 전망은 그대로)에 낮은 들꽃 무더기. 한 곳에 둘씩 붙여서(흩뿌리지 않게)
+	local meadows = 0
+	for _ = 1, 400 do
+		if meadows >= B.Meadows then
+			break
+		end
+		local a = rng:NextNumber(0, TAU)
+		local d = rng:NextNumber(ringOut + 5, Island.grassEdge(a) - 4)
+		local x, z = polar(a, d)
+		local open = true
+		for _, c in centers do
+			if (c[1] - x) ^ 2 + (c[2] - z) ^ 2 < 16 * 16 then
+				open = false
+				break
+			end
+		end
+		if open then
+			local first = place(ctx, rng, {
+				Kind = "FlowerBed",
+				Zone = "Belt",
+				Region = "Island",
+				X = x,
+				Z = z,
+				Radius = rng:NextNumber(2, 2.6),
+				Turn = rng:NextNumber(0, TAU),
+				Style = if rng:NextNumber() < 0.5 then 3 else 6,
+				Flat = 2.6,
+			}, 0, 0, true)
+			if first then
+				meadows += 1
+				local b = rng:NextNumber(0, TAU)
+				local gap = first.Radius + 2.4
+				place(ctx, rng, {
+					Kind = "FlowerBed",
+					Zone = "Belt",
+					Region = "Island",
+					X = x + math.cos(b) * gap,
+					Z = z + math.sin(b) * gap,
+					Radius = 1.6,
+					Turn = rng:NextNumber(0, TAU),
+					Style = if first.Style == 3 then 6 else 3,
+					Flat = 1.6,
+				}, 3, 0.8, true)
 			end
 		end
 	end

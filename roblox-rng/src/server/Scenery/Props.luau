@@ -545,7 +545,7 @@ local function blossoms(
 	end
 end
 
--- 덤불: 공 4개 뭉치(짙은 초록 → 밝은 초록). Style 2~4 = 꽃 덤불(겉에 작은 꽃 네 송이: 분홍/하양/노랑)
+-- 덤불: 공 4개 뭉치(짙은 초록 → 밝은 초록). Style 2~4 = 꽃 덤불(겉에 작은 꽃 세 송이: 분홍/하양/노랑)
 function BUILD.Bush(parent: Instance, item)
 	local s, base = item.Scale, basePoint(item)
 	local rng = itemRng(item, 3)
@@ -560,11 +560,11 @@ function BUILD.Bush(parent: Instance, item)
 		local ox, oz = spin(p[1], p[2], t)
 		ball(parent, "Bush", base + Vector3.new(ox * s, p[3] * s, oz * s), p[4] * s, p[5], LEAVES)
 	end
-	-- 꽃 덤불(Style 2~4): 가운데 큰 공 겉에 작은 꽃 네 송이(분홍/하양/노랑)
+	-- 꽃 덤불(Style 2~4): 가운데 큰 공 겉에 작은 꽃 세 송이(분홍/하양/노랑)
 	if item.Style >= 2 then
 		local color = BLOSSOMS[(item.Style - 2) % #BLOSSOMS + 1]
 		local center = base + Vector3.new(0, 1.05 * s, 0)
-		blossoms(parent, center, 3.1 * s, 4, 0.55 * s, { color, color:Lerp(WHITE, 0.35) }, rng)
+		blossoms(parent, center, 3.1 * s, 3, 0.6 * s, { color, color:Lerp(WHITE, 0.35) }, rng)
 	end
 end
 
@@ -620,15 +620,22 @@ function BUILD.FlowerBed(parent: Instance, item)
 			local a = item.Turn + k / mounds * math.pi * 2 + rng:NextNumber(-0.4, 0.4)
 			local d = if k == 1 then 0 else r * rng:NextNumber(0.35, 0.62)
 			local size = r * (if k == 1 then 0.95 else rng:NextNumber(0.55, 0.8))
-			local center = Vector3.new(base.X + math.cos(a) * d, base.Y - size * 0.18, base.Z + math.sin(a) * d)
+			local x, z = base.X + math.cos(a) * d, base.Z + math.sin(a) * d
+			-- 숲띠 언덕 비탈이면 둔덕마다 발밑(가운데 + 둘레 넷) 가장 높은 땅에 맞춤(아래쪽 꽃이 땅에 묻히지 않게)
+			local ground = math.max(base.Y, groundAt(x, z))
+			for q = 0, 3 do
+				local qa = q * math.pi / 2
+				ground = math.max(ground, groundAt(x + math.cos(qa) * size * 0.45, z + math.sin(qa) * size * 0.45))
+			end
+			local center = Vector3.new(x, ground - size * 0.18, z)
 			ball(parent, "FlowerLeaves", center, size, BUSH[1]:Lerp(BUSH[3], rng:NextNumber(0.1, 0.45)), LEAVES)
-			blossoms(parent, center, size, if k == 1 then 4 else 3, flower * 0.9, { colors[1], colors[2] }, rng)
+			blossoms(parent, center, size, if k == 1 then 3 else 2, flower * 0.95, { colors[1], colors[2] }, rng)
 		end
 		return
 	end
 	disc(parent, "FlowerSoil", base - Vector3.new(0, 0.3, 0), 0.55, r * 2, SOIL, MAT.Ground)
 	-- 테두리 돌: 둘레를 따라 한 줄(돌마다 반지름·높이·방향을 조금씩 흔듦)
-	local stones = math.max(8, math.floor(r * 2 * math.pi / 1.5 + 0.5))
+	local stones = math.max(8, math.floor(r * 2 * math.pi / 1.7 + 0.5))
 	local start = rng:NextNumber(0, math.pi * 2)
 	for k = 1, stones do
 		local a = start + k / stones * math.pi * 2 + rng:NextNumber(-0.08, 0.08)
