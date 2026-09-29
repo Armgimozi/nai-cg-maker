@@ -44,6 +44,7 @@ local WHITE = rgb(255, 255, 255)
 
 type Ctx = {
 	model: Model,
+	id: string, -- 명소 Id(같은 모형을 쓰는 명소끼리 작은 차이를 줄 때)
 	origin: CFrame, -- 파트 좌표에 앞에서 곱하는 기준 좌표계(기울어진 탑 등)
 	P: Color3, -- 주 색
 	S: Color3, -- 보조 색
@@ -481,8 +482,48 @@ function BUILDERS.statue(c)
 	end
 end
 
--- 남산타워: 계단식 초록 언덕 + 가느다란 탑신 + 전망대 원반 + 안테나
+-- 스카이타워: 오클랜드 도심 블록(도로 + 빌딩들 + 뒤쪽 스카이시티) 위에 바로 선 탑.
+--   밑동의 네 다리 + 긴 탑신 + 아래가 벌어진 전망대(유리 2층 + 빛 띠) + 긴 안테나
+local function skyTower(c: Ctx)
+	box(c, 0, 0, 0, 9.8, 0.3, 9.8, rgb(96, 100, 108), Mat.Concrete)
+	box(c, 0, 0.3, 0, 3.8, 0.08, 3.8, rgb(190, 188, 182), Mat.Concrete)
+	local glass = rgb(120, 160, 200)
+	-- 빌딩: { x, z, 가로, 높이, 세로, 색, 재질 }
+	local buildings = {
+		{ -3.3, 3.3, 2.8, 4.8, 2.6, glass, Mat.Glass },
+		{ 3.3, 3.3, 2.8, 3.8, 2.6, rgb(215, 205, 185), Mat.Concrete },
+		{ 3.5, -0.1, 2.2, 5.6, 2.4, mix(c.S, glass, 0.5), Mat.Glass },
+		{ -3.5, -0.3, 2.2, 2.6, 2.6, rgb(200, 190, 175), Mat.Concrete },
+		{ -3.4, -3.6, 2.4, 1.6, 2, rgb(225, 225, 220), Mat.Concrete },
+		{ 3.4, -3.6, 2.4, 2.2, 2, mix(glass, WHITE, 0.3), Mat.Glass },
+	}
+	for _, b in buildings do
+		box(c, b[1], 0.3, b[2], b[3], b[4], b[5], b[6], b[7])
+	end
+	box(c, 0, 0.3, 3.1, 3.4, 1.6, 2.6, mix(c.P, c.S, 0.35))
+	for _, s in CORNERS do
+		beam(c, V(s[1] * 1.1, 0.35, s[2] * 1.1), V(s[1] * 0.3, 3.2, s[2] * 0.3), 0.45, c.P)
+	end
+	col(c, 0, 0.3, 0, 11, 1.15, c.P)
+	col(c, 0, 11.2, 0, 0.5, 1.9, c.P)
+	col(c, 0, 11.7, 0, 0.5, 2.7, c.P)
+	col(c, 0, 12.2, 0, 1.1, 3.2, c.S, Mat.Glass)
+	col(c, 0, 12.6, 0, 0.3, 3.3, c.A, Mat.Neon)
+	col(c, 0, 13.3, 0, 0.35, 3.4, c.P)
+	col(c, 0, 13.65, 0, 0.7, 2.4, c.S, Mat.Glass)
+	col(c, 0, 14.35, 0, 0.35, 2, c.P)
+	col(c, 0, 14.7, 0, 1.2, 0.9, c.P)
+	col(c, 0, 15.9, 0, 4.2, 0.45, c.P)
+	col(c, 0, 20.1, 0, 1, 0.22, c.A)
+	ball(c, 0, 21.3, 0, 0.4, c.A, Mat.Neon)
+end
+
+-- 남산타워: 계단식 초록 언덕 + 가느다란 탑신 + 전망대 원반 + 안테나 (스카이타워는 도심 블록 위 버전)
 function BUILDERS.needle(c)
+	if c.id == "skytower" then
+		skyTower(c)
+		return
+	end
 	col(c, 0, 0, 0, 1.2, 9.8, GRASS, Mat.Grass)
 	col(c, 0.3, 1.2, 0.2, 1.1, 7.4, GRASS, Mat.Grass)
 	col(c, 0.2, 2.3, 0.1, 1, 4.8, GRASS, Mat.Grass)
@@ -926,8 +967,63 @@ function BUILDERS.spiral(c)
 	block(c, CFrame.new(0.5, top + 0.4, -0.3) * CFrame.Angles(0, 0.4, 0.2), V(0.8, 0.8, 0.8), c.P)
 end
 
+-- 무 대륙: 가라앉는 밀림 대륙(바다 + 얕은 여울 + 두 덩어리 땅) + 가운데 계단식 석조 신전(금 지붕, 금빛 태양 원반)
+--   + 금빛 화로 + 밀림 나무 + 물에 잠겨 가는 무너진 돌기둥과 돌문
+local function lostContinent(c: Ctx)
+	local jungle = rgb(62, 140, 70)
+	col(c, 0, 0, 0, 0.3, 9.8, c.S, Mat.Glass, 0.1)
+	col(c, 0, 0, 0, 0.35, 8.8, mix(c.S, WHITE, 0.3), Mat.Glass, 0.1)
+	col(c, 0.3, 0, 0.5, 0.75, 7.2, c.P)
+	col(c, 0.3, 0.75, 0.5, 0.2, 6.9, jungle, Mat.Grass)
+	col(c, -2.5, 0, -2.2, 0.55, 3.2, c.P)
+	col(c, -2.5, 0.55, -2.2, 0.15, 2.9, jungle, Mat.Grass)
+	local ground = 0.95
+	local tx, tz = 0.4, 0.9
+	local y = ground
+	for _, tier in { { 4.4, 0.8 }, { 3.5, 0.8 }, { 2.6, 0.8 }, { 1.8, 0.7 } } do
+		box(c, tx, y, tz, tier[1], tier[2], tier[1], c.P)
+		y += tier[2]
+	end
+	wedge(c, CFrame.new(tx, (ground + y) / 2, tz - 1.95), V(1, y - ground, 2.1), mix(c.P, WHITE, 0.2))
+	for _, s in CORNERS do
+		ball(c, tx + s[1] * 1.55, ground + 1.8, tz + s[2] * 1.55, 0.4, c.A, Mat.Neon)
+	end
+	box(c, tx, y, tz + 0.1, 1.3, 1, 1.2, mix(c.P, WHITE, 0.12))
+	box(c, tx, y, tz - 0.51, 0.45, 0.7, 0.05, DARK)
+	box(c, tx, y + 1, tz + 0.1, 1.6, 0.2, 1.5, c.A, Mat.Metal)
+	box(c, tx, y + 1.2, tz + 0.1, 0.9, 0.3, 0.9, c.A, Mat.Metal)
+	cyl(c, CFrame.new(tx, y + 1.95, tz + 0.1) * ALONG_Z, 0.12, 0.9, c.A, Mat.Neon)
+	-- 밀림: { x, z, 줄기 높이, 잎 지름, 바닥 높이 }
+	for k, t in
+		{
+			{ -2.6, 2.7, 1.4, 1.6, ground },
+			{ 2.9, 2.8, 1.2, 1.4, ground },
+			{ 3.2, -0.9, 1.6, 1.5, ground },
+			{ -2.8, 0.4, 1.1, 1.3, ground },
+			{ -2.6, -2.3, 1.2, 1.3, 0.7 },
+			{ 2.1, -2.2, 1, 1.2, ground },
+		}
+	do
+		plant(c, t[1], t[5], t[2], t[3], t[4], if k % 2 == 0 then LEAF else jungle)
+	end
+	ball(c, -1, ground + 0.15, 3.3, 1, LEAF, Mat.Grass)
+	ball(c, 3.3, ground + 0.1, 1.2, 0.9, jungle, Mat.Grass)
+	ball(c, -1.4, 0.8, -3, 0.8, LEAF, Mat.Grass)
+	-- 물에 잠겨 가는 유적
+	block(c, CFrame.new(3, 0.95, -3.1) * CFrame.Angles(0.25, 0.3, 0.35), V(0.55, 1.6, 0.55), c.P)
+	col(c, 3.9, 0, -1.9, 0.9, 0.5, c.P)
+	box(c, -3.9, 0, 1, 0.45, 1.5, 0.45, c.P)
+	box(c, -3.9, 0, 2.2, 0.45, 1.2, 0.45, c.P)
+	block(c, CFrame.new(-3.9, 1.55, 1.6) * CFrame.Angles(0.12, 0, 0), V(0.55, 0.35, 1.8), c.P)
+end
+
 -- 아틀란티스: 물과 땅이 번갈아 도는 동심원 섬 + 가운데 원형 신전(빛나는 수정 첨탑) + 흰 탑 6개 + 다리
+-- (무 대륙은 밀림 + 계단식 석조 신전 버전)
 function BUILDERS.island(c)
+	if c.id == "mu" then
+		lostContinent(c)
+		return
+	end
 	col(c, 0, 0, 0, 0.3, 9.8, c.S, Mat.Glass, 0.1)
 	col(c, 0, 0, 0, 0.55, 8.4, c.P)
 	col(c, 0, 0, 0, 0.6, 6.8, c.S, Mat.Glass, 0.1)
@@ -1044,6 +1140,236 @@ function BUILDERS.tree(c)
 	col(c, 0, 0.3, 0, 0.08, 6, c.A, Mat.Neon, 0.5)
 end
 
+-- 하버 브리지: 항구 물 + 양쪽 기슭 + 끝마다 화강암 탑문 2개 + 나란한 강철 아치 두 줄(끝은 두껍고 꼭대기는 얇음)
+--   + 아치를 꿰뚫고 지나는 도로 상판 + 아치에 매단 멜대 + 아치 사이 가새 + 앞쪽 오페라하우스
+function BUILDERS.bridge(c)
+	local granite = rgb(208, 196, 172)
+	local deckY, deckTop = 2.2, 2.55
+	box(c, 0, 0, 0, 9.8, 0.25, 9.8, WATER, Mat.Glass, 0.1)
+	for _, sx in { -1, 1 } do
+		box(c, sx * 4.2, 0, 0, 1.4, 0.6, 9.8, GRASS, Mat.Grass)
+		box(c, sx * 4.3, 0.6, 0, 1.2, deckY - 0.6, 4.4, granite, Mat.Granite)
+		for _, sz in { -1, 1 } do
+			box(c, sx * 4.3, deckY, sz * 1.75, 1.1, 1.85, 0.9, granite, Mat.Granite)
+			box(c, sx * 4.3, deckY + 1.85, sz * 1.75, 0.8, 0.4, 0.65, granite, Mat.Granite)
+		end
+	end
+	box(c, 0, deckY, 0, 9.8, deckTop - deckY, 2.6, c.S)
+	-- 아치: 위·아래 현(포물선) 사이를 비스듬한 토막으로 채움. 발은 탑문 아래 기슭(x = ±span)
+	local span = 3.7
+	local function curve(x: number, crown: number, foot: number): number
+		local u = x / span
+		return crown - (crown - foot) * u * u
+	end
+	local function upper(x: number): number
+		return curve(x, 5.9, 3.3)
+	end
+	local function lower(x: number): number
+		return curve(x, 5.3, 0.6)
+	end
+	local function middle(x: number): number
+		return (upper(x) + lower(x)) / 2
+	end
+	local segments = 7
+	for _, sz in { -1, 1 } do
+		for k = 0, segments - 1 do
+			local x1 = span * (2 * k / segments - 1)
+			local x2 = span * (2 * (k + 1) / segments - 1)
+			local p1, p2 = V(x1, middle(x1), sz), V(x2, middle(x2), sz)
+			local along = p2 - p1
+			local depth = (upper(x1) - lower(x1) + upper(x2) - lower(x2)) / 2 * math.abs(along.X) / along.Magnitude
+			block(c, CFrame.lookAt((p1 + p2) / 2, p2), V(0.35, depth, along.Magnitude + depth * 0.4), c.P)
+		end
+		-- 멜대(아치 아래 현에서 상판까지)
+		for _, x in { -2.1, -0.8, 0.8, 2.1 } do
+			box(c, x, deckTop, sz, 0.12, lower(x) - deckTop + 0.1, 0.12, c.S)
+		end
+	end
+	for _, x in { -2.4, 0, 2.4 } do
+		beam(c, V(x, middle(x), -1), V(x, middle(x), 1), 0.2, c.S)
+	end
+	beam(c, V(-2.4, middle(-2.4), -1), V(0, middle(0), 1), 0.16, c.S)
+	beam(c, V(2.4, middle(2.4), -1), V(0, middle(0), 1), 0.16, c.S)
+	-- 오페라하우스(앞쪽 물가): 기단 + 돛 모양 지붕 3개
+	box(c, -2.1, 0, -3.7, 2.8, 0.55, 1.8, rgb(200, 165, 130))
+	for k, s in { { 1.5, 1.1 }, { 1.2, 0.85 }, { 0.8, 0.6 } } do
+		local cf = CFrame.new(-1.2 - (k - 1) * 0.75, 0.55 + s[1] / 2, -3.7) * CFrame.Angles(0, PI / 2, 0)
+		wedge(c, cf, V(1.1, s[1], s[2]), rgb(245, 243, 235), Mat.SmoothPlastic)
+	end
+end
+
+-- 12사도 바위: 바다 + 뒤·오른쪽을 두른 사암 절벽(덤불 윗면, 아래가 젖어 어두움) + 모래 해변과 물거품
+--   + 해안선을 따라 물에서 솟은 사암 기둥들(밑동은 파도에 파먹히고 위로 갈수록 좁고 비틀림) + 무너진 기둥 밑동
+function BUILDERS.seastacks(c)
+	box(c, 0, 0, 0, 9.8, 0.3, 9.8, c.S, Mat.Glass, 0.1)
+	local wet = mix(c.P, BLACK, 0.2)
+	local pale = mix(c.P, WHITE, 0.15)
+	local scrub = mix(LEAF, c.P, 0.2)
+	-- 절벽: { x, z, 가로, 깊이, 높이 }
+	local cliffs = {
+		{ -1.95, 4.05, 5.9, 1.7, 5 },
+		{ 2.95, 3.6, 3.9, 2.6, 5.6 },
+		{ 4, -0.4, 1.8, 5.4, 4.8 },
+		{ 4.2, -4, 1.4, 1.8, 2.6 },
+	}
+	for _, cl in cliffs do
+		local x, z, w, d, h = cl[1], cl[2], cl[3], cl[4], cl[5]
+		box(c, x, 0, z, w, h * 0.25, d, wet)
+		box(c, x, h * 0.25, z, w - 0.2, h * 0.75, d - 0.2, c.P)
+		box(c, x, h, z, w - 0.3, 0.3, d - 0.3, scrub, Mat.Grass)
+	end
+	box(c, -1.9, 0.3, 2.8, 5.9, 0.12, 0.8, SAND, Mat.Sand)
+	box(c, -1.9, 0.3, 2.3, 5.9, 0.1, 0.3, c.A, Mat.SmoothPlastic, 0.15)
+	-- 바위 기둥: 밑동(파먹혀 가늘고 젖음) → 몸통(가장 넓음) → 꼭대기(좁고 비틀림)
+	local function stack(x: number, z: number, h: number, w: number, twist: number)
+		col(c, x, 0.3, z, 0.1, w * 1.35, c.A, Mat.SmoothPlastic, 0.2)
+		local y = 0.3
+		block(c, CFrame.new(x, y + h * 0.12, z) * CFrame.Angles(0, twist, 0), V(w * 0.7, h * 0.24 + 0.1, w * 0.68), wet)
+		y += h * 0.24
+		local cf = CFrame.new(x + w * 0.05, y + h * 0.2, z - w * 0.04) * CFrame.Angles(0, twist + 0.3, 0.035)
+		block(c, cf, V(w, h * 0.42, w * 0.88), c.P)
+		y += h * 0.4
+		cf = CFrame.new(x - w * 0.06, y + h * 0.17, z + w * 0.05) * CFrame.Angles(0.04, twist - 0.25, -0.04)
+		block(c, cf, V(w * 0.66, h * 0.34, w * 0.6), pale)
+	end
+	stack(-3.7, 1.3, 5, 1.15, 0.2)
+	stack(-1.6, 0.9, 6.3, 1.3, -0.4)
+	stack(0.5, 0.2, 4.4, 1.05, 0.6)
+	stack(1.9, -1.3, 5.7, 1.2, 0.1)
+	stack(2, -3.5, 3.6, 1, -0.3)
+	stack(-2.7, -1.8, 3.4, 1, 0.9)
+	-- 무너진 기둥(밑동만)
+	col(c, -0.4, 0.3, -2.4, 0.1, 1.6, c.A, Mat.SmoothPlastic, 0.2)
+	block(c, CFrame.new(-0.4, 0.75, -2.4) * CFrame.Angles(0.1, 0.4, 0.08), V(1, 1, 0.9), wet)
+end
+
+-- 그레이트 배리어 리프: 짙은 바다 + 밝은 청록 산호 여울 + 가지 산호(분홍·주황) + 뇌 산호(노랑·보라 공)
+--   + 탁자 산호 + 부채 산호 + 관 산호 + 헤엄치는 바다거북. 낮고 넓게(위에서 잘 보이도록)
+function BUILDERS.reef(c)
+	local purple = rgb(150, 90, 215)
+	local orange = rgb(255, 140, 60)
+	local tableColor = rgb(110, 205, 170)
+	box(c, 0, 0, 0, 9.8, 0.3, 9.8, mix(c.S, rgb(20, 60, 140), 0.45), Mat.Glass, 0.1)
+	local shallow = mix(c.S, WHITE, 0.4)
+	col(c, -1.4, 0.3, 1.2, 0.15, 6, shallow, Mat.Sand)
+	col(c, 2.2, 0.3, -1.4, 0.15, 4.6, shallow, Mat.Sand)
+	col(c, -2.6, 0.3, -2.4, 0.15, 3, shallow, Mat.Sand)
+	local ground = 0.45
+	-- 가지 산호: 밑동에서 위·바깥으로 뻗는 가지 + 동그란 끝
+	local function branching(x: number, z: number, h: number, color: Color3, count: number, turn: number)
+		for k = 0, count - 1 do
+			local angle = k / count * TAU + turn
+			local lean = if k % 2 == 0 then 0.7 else 0.45
+			local rise = if k % 2 == 0 then 0.8 else 1
+			local tip = V(x + math.cos(angle) * h * lean, ground + h * rise, z + math.sin(angle) * h * lean)
+			beam(c, V(x, ground - 0.1, z), tip, 0.22, color)
+			ball(c, tip.X, tip.Y, tip.Z, 0.3, color)
+		end
+	end
+	branching(-2.4, 2.2, 1.8, c.P, 4, 0.3)
+	branching(2.9, 0, 1.5, orange, 3, 0.9)
+	branching(-2.7, -2.5, 1.3, c.P, 3, 0.5)
+	-- 뇌 산호(바닥에 얹힌 공): { x, z, 지름, 색 }
+	for _, b in
+		{
+			{ -0.3, 2.9, 1.6, c.A },
+			{ -1.2, 0.2, 1, purple },
+			{ 1.4, -2.6, 1.3, purple },
+			{ 3.4, -2.4, 1.1, mix(c.P, WHITE, 0.3) },
+			{ -3.5, -0.4, 1.2, c.A },
+		}
+	do
+		ball(c, b[1], b[3] / 2, b[2], b[3], b[4])
+	end
+	-- 탁자 산호(줄기 + 넓은 판)
+	col(c, 0.5, ground, 1.2, 0.7, 0.25, tableColor)
+	col(c, 0.5, ground + 0.7, 1.2, 0.15, 1.7, tableColor)
+	col(c, 1.2, ground, -0.6, 0.45, 0.2, tableColor)
+	col(c, 1.2, ground + 0.45, -0.6, 0.12, 1.2, tableColor)
+	-- 부채 산호(얇은 판)
+	block(c, CFrame.new(-3.6, ground + 0.7, 3.5) * CFrame.Angles(0, 0.4, 0), V(1.5, 1.4, 0.08), purple)
+	block(c, CFrame.new(3.8, ground + 0.55, 1.6) * CFrame.Angles(0, -1.2, 0), V(1.2, 1.1, 0.08), orange)
+	-- 관 산호
+	for k, t in { { -3.9, 0.9, 0.9 }, { -3.5, 1.4, 0.6 }, { -4.1, 1.6, 0.7 } } do
+		col(c, t[1], ground - 0.1, t[2], t[3] + 0.1, 0.35 - k * 0.03, orange)
+	end
+	-- 바다거북(앞쪽 깊은 물 위를 헤엄침, 정면을 봄)
+	local turtle = CFrame.new(0.9, 1.2, -3.7) * CFrame.Angles(0, 0.35, 0)
+	local shell = rgb(125, 105, 60)
+	local skin = rgb(175, 170, 115)
+	cyl(c, turtle * UPRIGHT, 0.25, 1.5, shell)
+	cyl(c, turtle * CFrame.new(0, 0.2, 0) * UPRIGHT, 0.2, 1.05, mix(shell, BLACK, 0.15))
+	local head = turtle * V(0, 0.05, -0.95)
+	ball(c, head.X, head.Y, head.Z, 0.5, skin)
+	for _, sx in { -1, 1 } do
+		block(c, turtle * CFrame.new(sx * 0.95, 0, -0.35) * CFrame.Angles(0, sx * 0.5, 0), V(0.9, 0.08, 0.35), skin)
+		block(c, turtle * CFrame.new(sx * 0.6, 0, 0.7) * CFrame.Angles(0, -sx * 0.5, 0), V(0.45, 0.08, 0.28), skin)
+	end
+end
+
+-- 난마돌: 물길 사이 인공섬들 + 가운데 큰 섬의 현무암 기둥 성벽(통나무집처럼 가로세로 엇갈려 쌓음, 정면 입구)
+--   + 안쪽 단과 무덤 + 작은 섬들의 낮은 벽 + 성벽을 덮은 초록 수풀
+function BUILDERS.ruins(c)
+	box(c, 0, 0, 0, 9.8, 0.3, 9.8, c.S, Mat.Glass, 0.1)
+	local rubble = mix(c.P, ROCK, 0.55)
+	local d = 0.5 -- 현무암 기둥 굵기
+	local n = 0
+	-- 누운 현무암 기둥. along = "x" 또는 "z"(길이 축). 조금씩 비틀고 색을 달리해 돌기둥처럼
+	local function log(x: number, y: number, z: number, length: number, along: string, diameter: number?)
+		n += 1
+		local cf = CFrame.new(x, y, z) * CFrame.Angles(0, (n % 3 - 1) * 0.025, 0)
+		if along == "z" then
+			cf *= CFrame.Angles(0, PI / 2, 0)
+		end
+		local color = if n % 2 == 0 then c.P else mix(c.P, ROCK, 0.18)
+		cyl(c, cf, length + (n % 4 - 1.5) * 0.08, diameter or d, color)
+	end
+	-- 가운데 큰 섬 + 성벽(앞뒤 기둥 층과 옆 기둥 층이 반 단씩 엇갈림)
+	local cx, cz = 0.6, 0.8
+	local hx, hz = 2.3, 2.1
+	local base = 0.6
+	box(c, cx, 0, cz, 6, base, 5.8, rubble)
+	for k = 0, 3 do
+		local y = base + d / 2 + k * d
+		for _, sz in { -1, 1 } do
+			if sz == -1 and k < 2 then
+				for _, sx in { -1, 1 } do
+					log(cx + sx * 1.675, y, cz - hz, 2.15, "x")
+				end
+			else
+				log(cx, y, cz + sz * hz, 2 * hx + 0.7, "x")
+			end
+		end
+		for _, sx in { -1, 1 } do
+			log(cx + sx * hx, y + d / 2, cz, 2 * hz + 0.7, "z")
+		end
+	end
+	box(c, cx, base, cz + 0.4, 2.6, 0.6, 2.2, mix(c.P, BLACK, 0.12))
+	box(c, cx, base + 0.6, cz + 0.4, 1.1, 0.35, 1.1, c.P)
+	plant(c, cx + 1.4, base, cz + 1.3, 2.3, 1.8, c.A)
+	plant(c, cx - 1.3, base, cz + 1.2, 1.7, 1.3, mix(c.A, LEAF, 0.4))
+	ball(c, cx - hx, base + 4 * d + 0.1, cz - hz, 0.9, c.A, Mat.Grass)
+	ball(c, cx + 2.8, base + 0.1, cz - 2.3, 0.8, c.A, Mat.Grass)
+	ball(c, cx - 2.8, base + 0.1, cz + 2.4, 0.9, c.A, Mat.Grass)
+	-- 작은 섬들: { x, z, 가로, 세로 }
+	local islets = {
+		{ -3.8, -3.7, 1.9, 1.8 },
+		{ -3.9, 1.6, 1.6, 2.6 },
+		{ 2, -3.9, 2.6, 1.5 },
+	}
+	for k, islet in islets do
+		local x, z, w, depth = islet[1], islet[2], islet[3], islet[4]
+		box(c, x, 0, z, w, 0.45, depth, rubble)
+		log(x, 0.45 + 0.2, z - depth / 2 + 0.25, w + 0.1, "x", 0.4)
+		log(x - w / 2 + 0.25, 0.45 + 0.4, z, depth + 0.1, "z", 0.4)
+		if k == 2 then
+			plant(c, x + 0.3, 0.45, z + 0.5, 1.3, 1.2, c.A)
+		else
+			ball(c, x + 0.35, 0.75, z + 0.3, 0.9, c.A, Mat.Grass)
+		end
+	end
+end
+
 -- 지구: 받침대 + 23.5도 기운 파란 공 + 대륙 덩어리(살짝 튀어나온 공) + 극지방 얼음 + 자오선 반원 고리 + 대기 + 달
 function BUILDERS.globe(c)
 	local metal = mix(c.A, BLACK, 0.2)
@@ -1134,6 +1460,7 @@ function Models.build(landmark: Landmark): Model
 
 	local ctx: Ctx = {
 		model = model,
+		id = landmark.Id,
 		origin = CFrame.new(),
 		P = landmark.Primary or rgb(200, 200, 200),
 		S = landmark.Secondary or rgb(140, 140, 140),
