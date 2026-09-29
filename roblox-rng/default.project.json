@@ -47,8 +47,9 @@
         "$properties": {
           "Anchored": true,
           "Locked": true,
-          "Size": [600, 16, 600],
-          "CFrame": { "CFrame": { "position": [0, -8, 0], "orientation": [[1, 0, 0], [0, 1, 0], [0, 0, 1]] } },
+          "Shape": "Cylinder",
+          "Size": [16, 500, 500],
+          "CFrame": { "CFrame": { "position": [0, -8, 0], "orientation": [[0, -1, 0], [1, 0, 0], [0, 0, 1]] } },
           "Color": [0.42, 0.66, 0.31],
           "Material": "Grass",
           "TopSurface": "Smooth",

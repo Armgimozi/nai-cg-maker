@@ -16,6 +16,7 @@ local RollLogic = require(Shared.RollLogic)
 local DataService = require(script.DataService)
 local FeaturedDisplay = require(script.FeaturedDisplay)
 local ParkService = require(script.ParkService)
+local Scenery = require(script.Scenery)
 local World = require(script.World)
 
 -- 세계 명소(Rank 4) 이상은 굴린 사람의 연출(최대 약 4초)이 끝난 뒤에 공원/리더보드/뉴스/홀로그램에 반영
@@ -326,7 +327,7 @@ local function saveAndRelease(player: Player)
 	end
 end
 
--- 월드(광장 + 지구본)와 공원 부지. 실패해도 굴리기/저장은 되도록 pcall
+-- 월드(광장 + 지구본), 공원 부지, 주변 풍경. 실패해도 굴리기/저장은 되도록 pcall
 do
 	local ok, err = pcall(World.build)
 	if not ok then
@@ -335,6 +336,10 @@ do
 	ok, err = pcall(ParkService.init)
 	if not ok then
 		warn("[LandmarkRNG] 공원 부지를 만들지 못했습니다: " .. tostring(err))
+	end
+	ok, err = pcall(Scenery.build, Config.SCENERY_EDGE)
+	if not ok then
+		warn("[LandmarkRNG] 주변 풍경을 만들지 못했습니다: " .. tostring(err))
 	end
 end
 

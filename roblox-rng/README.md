@@ -207,6 +207,10 @@
   ⚠️ `Id` 는 저장 키라서 게시한 뒤에는 바꾸지 마세요. 새 명소를 넣으면 공원 최대 칸(`Park.MaxLevel`)도 확인하세요
   (테스트가 알려 줍니다).
 - **저장 초기화**: `Config.DATASTORE_NAME` 을 바꾸면 새 저장소를 씁니다.
+- **맵 가장자리 풍경**: `Config.SCENERY_EDGE` = `"Ocean"`(바다) / `"Mountains"`(산맥).
+  나무 수·정원 주제·산 높이 등은 [`src/server/Scenery/Plan.luau`](src/server/Scenery/Plan.luau) 위쪽 조절 값(`T`).
+  고친 뒤 올리기 전에 `tools/world_preview/preview.sh art/map_preview Ocean` 처럼 그림으로 확인하세요
+  (시점별 PNG + 부지·길·간판을 막는 장식이 있는지 보고서, Roblox API 호출 없음).
 
 ## 테스트
 

@@ -31,6 +31,8 @@ src/server/  (ServerScriptService.Server)
   init.server.luau   세션, 원격 처리, 수입 루프, 알림     [서버 담당]
   DataService.luau   DataStore + 세션 잠금               [기존 유지]
   ParkService.luau   공원 부지 배정/미니어처 전시/간판    [서버 담당]
+  ParkLayout.luau    부지·길 배치 기준(순수 계산) + 장식 금지 구역 판정 [서버 담당]
+  Scenery/           주변 풍경(섬 가장자리·산책로·정원·숲). Plan=배치(순수), Props=모양 [서버 담당]
   FeaturedDisplay.luau 대표 명소(캐릭터 옆) + 이름표       [서버 담당]
   World.luau         광장 + 가운데 거대 지구본            [서버 담당]
 src/client/  (StarterPlayerScripts.Client)
@@ -96,13 +98,19 @@ PlayerState 의 읽기 함수(park, stars, slots, completedRegions, upgradePrice
 
 ## 월드 배치
 
-- 바닥 600×600. 가운데 **광장**(반지름 45) + 받침대 위 거대 지구본 + 스폰 지점.
+- 바닥은 **반지름 250 원형 섬**(default.project.json 의 Baseplate 원기둥, 윗면 y = 0).
+  가운데 **광장**(반지름 45) + 받침대 위 거대 지구본 + 스폰 지점.
 - **공원 부지**: 광장을 둘러싼 고리 하나에 8칸 = 서버 최대 8명(서버 크기 8).
   반지름 115 는 광장 중심에서 **부지 입구(앞 가장자리)** 까지의 거리(부지 76×80 이 서로 겹치지 않게).
   부지는 광장을 향해 회전. 부지 하나 = 전시 칸 6×6 격자(칸 간격 12, 미니어처 크기 9) + 입구 간판.
 - 광장 지구본은 스폰 바로 앞 (0, 1, -26) 받침대 위. 회전하는 모형은 ModelStreamingMode = Atomic.
 - 잠긴 칸은 흐릿한 바닥, 열린 빈 칸은 받침대, 전시 칸에는 미니어처 + 작은 이름표(★ 포함).
 - 간판: "OOO 님의 관광 공원" + "관광 수입 +X/초".
+- **주변 풍경**(Scenery): 산책로 고리 둘(r 84 / 부지 뒤 r 208) + 이웃 부지 사이 쐐기 틈 8곳의 주제 정원과 오솔길,
+  부지 뒤 숲띠, 꽃밭·덤불·바위·잔디 언덕. 가장자리는 `Config.SCENERY_EDGE`:
+  "Ocean"(모래사장·등대·부두 + 수평선까지 바다·작은 섬) / "Mountains"(숲 + 초록 언덕 + 눈 덮인 산 + 폭포).
+  장식은 ParkLayout.blocked(부지·입구 간판 자리·길·광장)를 비켜 가고, 섬 끝에는 보이지 않는 벽.
+  배치는 고정 시드라 매번 같음(미리보기 = 게임).
 
 ## 모형 교체 (AI 메쉬)
 

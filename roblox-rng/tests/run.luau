@@ -756,6 +756,259 @@ test("multiplier / duration / hex / escape", function()
 	eq(Format.escape('<b>&"'), "&lt;b&gt;&amp;&quot;")
 end)
 
+print("\n[ParkLayout / Scenery]")
+-- 서버 쪽 순수 모듈(Instance 없이 숫자만): 부지 배치 기준 + 주변 풍경 배치 계획
+local server = Harness.folder("src/server")
+local ParkLayout = Harness.require(server.ParkLayout)
+local SceneryPlan = Harness.require(server.Scenery.Plan)
+local SceneryRng = Harness.require(server.Scenery.Rng)
+
+-- 부지 좌표(lx, lz) → 월드 (x, z)
+local function plotPoint(footprint, lx: number, lz: number): (number, number)
+	return footprint.CenterX + footprint.RightX * lx + footprint.DirX * lz,
+		footprint.CenterZ + footprint.RightZ * lx + footprint.DirZ * lz
+end
+
+-- 막힌 이유("plot" 등) 또는 "free"
+local function blockedWhy(x: number, z: number, pad: number?): string
+	local hit, why = ParkLayout.blocked(x, z, pad)
+	return if hit then why or "?" else "free"
+end
+
+test(
+	"ParkLayout: 부지 8칸 위치·방향은 예전 ParkService 식(247.5 + 45i 도, 입구 반지름 115) 그대로",
+	function()
+		eq(#ParkLayout.LAYOUT, 8, "부지 수")
+		for i, footprint in ParkLayout.footprints() do
+			local angle = math.rad(247.5 + 45 * (i - 1))
+			near(ParkLayout.LAYOUT[i].Angle, angle, 1e-12, "각도 " .. i)
+			near(footprint.CenterX, math.cos(angle) * 155, 1e-9, "중심 x " .. i)
+			near(footprint.CenterZ, math.sin(angle) * 155, 1e-9, "중심 z " .. i)
+			-- CFrame.lookAt(중심, 원점).RightVector = (sin a, 0, -cos a)
+			near(footprint.RightX, math.sin(angle), 1e-12, "Right x " .. i)
+			near(footprint.RightZ, -math.cos(angle), 1e-12, "Right z " .. i)
+			eq(footprint.PathFrom, 44, "길 시작 " .. i)
+			eq(footprint.PathTo, 116, "길 끝 " .. i)
+			local lx, lz = ParkLayout.toLocal(footprint, plotPoint(footprint, 12, -30))
+			near(lx, 12, 1e-9, "toLocal x")
+			near(lz, -30, 1e-9, "toLocal z")
+		end
+		-- 틈 반폭: 부지 앞 모서리(r ~ 120)에서 약 7, 뒤(r ~ 200)에서 약 40
+		near(ParkLayout.gapHalfWidth(120), 6.95, 0.05, "앞쪽 틈")
+		near(ParkLayout.gapHalfWidth(200), 40.1, 0.1, "뒤쪽 틈")
+	end
+)
+
+test("ParkLayout.blocked: 부지·간판 자리·길·광장은 막고 빈 잔디는 허용", function()
+	local footprint = ParkLayout.footprints()[1]
+	eq(blockedWhy(plotPoint(footprint, 0, 0)), "plot", "부지 가운데")
+	eq(blockedWhy(plotPoint(footprint, 39, 41)), "plot", "뒤 모서리 안")
+	eq(blockedWhy(plotPoint(footprint, 41.5, 0)), "plot", "둘레 띠 + 여유 3 안")
+	eq(blockedWhy(plotPoint(footprint, 43, 0)), "free", "여유 밖(틈)")
+	local gx, gz = plotPoint(footprint, 43, 0)
+	eq(blockedWhy(gx, gz, 1), "plot", "반지름 1 이면 여유에 걸림")
+	eq(blockedWhy(plotPoint(footprint, 12, -46)), "sign", "입구 앞 간판 자리(길 옆)")
+	eq(blockedWhy(plotPoint(footprint, -16, -49)), "sign", "간판 자리 반대쪽 끝")
+	eq(blockedWhy(plotPoint(footprint, 20, -46)), "free", "간판 자리 옆")
+	eq(blockedWhy(plotPoint(footprint, 0, -60)), "path", "입구 길 위")
+	eq(blockedWhy(plotPoint(footprint, 6.9, -80)), "path", "길 + 여유 2 안")
+	eq(blockedWhy(plotPoint(footprint, 7.5, -80)), "free", "길 여유 밖")
+	eq(blockedWhy(0, 0), "plaza", "스폰")
+	eq(blockedWhy(0, -26), "plaza", "지구본")
+	local gap = ParkLayout.gapAngles()[1]
+	near(gap, math.rad(270), 1e-12, "첫 틈 = 지구본 뒤(270도)")
+	eq(blockedWhy(math.cos(gap) * 61, math.sin(gap) * 61), "plaza", "광장 둘레 나무 고리 안")
+	eq(blockedWhy(math.cos(gap) * 64, math.sin(gap) * 64), "free", "광장 바로 바깥 잔디")
+	eq(blockedWhy(math.cos(gap) * 170, math.sin(gap) * 170), "free", "틈 정원 가운데")
+	-- 틈 정원 옆(가운데 선에서 30): 부지 안
+	local sx, sz = -math.sin(gap) * 30, math.cos(gap) * 30
+	eq(blockedWhy(math.cos(gap) * 170 + sx, math.sin(gap) * 170 + sz), "plot", "틈 옆은 부지")
+	eq(blockedWhy(math.cos(footprint.Angle) * 230, math.sin(footprint.Angle) * 230), "free", "부지 뒤 숲띠")
+end)
+
+test("Scenery Rng: 같은 시드 = 같은 수열, 범위 지킴", function()
+	local a, b = SceneryRng.new(42), SceneryRng.new(42)
+	local c = SceneryRng.new(43)
+	local same, different = true, false
+	for _ = 1, 200 do
+		local x, y, z = a:NextNumber(), b:NextNumber(), c:NextNumber()
+		same = same and x == y
+		different = different or x ~= z
+		assert(x >= 0 and x < 1, "NextNumber 범위")
+		local n = a:NextInteger(3, 7)
+		b:NextInteger(3, 7)
+		assert(n >= 3 and n <= 7 and n == math.floor(n), "NextInteger 범위")
+		local r = a:NextNumber(-2, 5)
+		b:NextNumber(-2, 5)
+		assert(r >= -2 and r < 5, "NextNumber(min, max) 범위")
+	end
+	assert(same, "같은 시드인데 다름")
+	assert(different, "다른 시드인데 같음")
+end)
+
+test("Scenery Plan: 산책로 판정(고리 둘 + 틈 오솔길)", function()
+	local T = SceneryPlan.Tuning
+	local gap = ParkLayout.gapAngles()[3]
+	assert(SceneryPlan.onRoute(T.INNER_RING.Radius, 0), "안쪽 고리")
+	assert(SceneryPlan.onRoute(0, -T.OUTER_RING.Radius), "바깥 고리")
+	assert(SceneryPlan.onRoute(math.cos(gap) * 150, math.sin(gap) * 150), "틈 오솔길")
+	local sx, sz = -math.sin(gap) * 10, math.cos(gap) * 10
+	assert(not SceneryPlan.onRoute(math.cos(gap) * 150 + sx, math.sin(gap) * 150 + sz), "오솔길 옆 10")
+	local plotAngle = ParkLayout.LAYOUT[1].Angle
+	assert(
+		not SceneryPlan.onRoute(math.cos(plotAngle) * 150, math.sin(plotAngle) * 150),
+		"산책로 아닌 곳(부지 방향)"
+	)
+	local hit, why = SceneryPlan.islandBlocked(0, -(ParkLayout.ISLAND_RADIUS - 1))
+	assert(hit and why == "edge", "섬 가장자리")
+end)
+
+test(
+	"Scenery Plan: 두 변형 모두 결정적이고, 장식은 부지·간판·길·광장·산책로를 비켜 가며 서로 안 겹침",
+	function()
+		local island = { Inner = true, Gardens = true, Belt = true }
+		for _, variant in SceneryPlan.VARIANTS do
+			local a = SceneryPlan.make(variant)
+			local b = SceneryPlan.make(variant)
+			eq(a.Variant, variant, "변형 이름")
+			eq(#a.Items, #b.Items, variant .. " 장식 수")
+			assert(#a.Items > 300, variant .. " 장식이 너무 적음: " .. #a.Items)
+			local solids, patches = {}, {}
+			local wall = a.Wall.Radius
+			for i, item in a.Items do
+				local other = b.Items[i]
+				assert(
+					item.Kind == other.Kind and item.X == other.X and item.Z == other.Z and item.Scale == other.Scale,
+					variant .. " 결정적이지 않음 #" .. i
+				)
+				local label = string.format("%s %s/%s (%.1f, %.1f)", variant, item.Zone, item.Kind, item.X, item.Z)
+				local hit, why = ParkLayout.blocked(item.X, item.Z, item.Radius)
+				assert(not hit, label .. " 이(가) " .. tostring(why) .. " 침범")
+				assert(not SceneryPlan.onRoute(item.X, item.Z, item.Radius, 0), label .. " 이(가) 산책로 위")
+				local distance = math.sqrt(item.X * item.X + item.Z * item.Z)
+				if island[item.Zone] then
+					assert(distance + item.Radius <= ParkLayout.ISLAND_RADIUS, label .. " 이(가) 섬 밖")
+				elseif item.Zone == "Beach" and item.Kind ~= "Pier" then
+					assert(distance + item.Radius <= wall, label .. " 이(가) 벽 밖(못 가는 곳)")
+				end
+				if item.Layer == "Solid" then
+					table.insert(solids, item)
+				elseif item.Layer == "Patch" then
+					table.insert(patches, item)
+				end
+			end
+			for _, list in { solids, patches } do
+				for i = 1, #list do
+					for j = i + 1, #list do
+						local p, q = list[i], list[j]
+						local d = math.sqrt((p.X - q.X) ^ 2 + (p.Z - q.Z) ^ 2)
+						assert(
+							d >= p.Radius + q.Radius,
+							string.format(
+								"%s 겹침: %s(%.1f, %.1f) - %s(%.1f, %.1f)",
+								variant,
+								p.Kind,
+								p.X,
+								p.Z,
+								q.Kind,
+								q.X,
+								q.Z
+							)
+						)
+					end
+				end
+			end
+			-- 가장자리 벽은 섬 밖, 모래사장/숲 가장자리에
+			assert(wall > ParkLayout.ISLAND_RADIUS, variant .. " 벽이 섬 안")
+			assert(#a.Rings == 2 and #a.Trails == #ParkLayout.gapAngles(), variant .. " 산책로")
+		end
+	end
+)
+
+test("Scenery Plan: 틈 정원 8곳이 모두 채워지고, 변형별 명물이 있음", function()
+	local gaps = ParkLayout.gapAngles()
+	for _, variant in SceneryPlan.VARIANTS do
+		local plan = SceneryPlan.make(variant)
+		local perGap = {}
+		local kinds = SceneryPlan.countKinds(plan)
+		for _, item in plan.Items do
+			if item.Zone == "Gardens" then
+				local best, index = math.huge, 0
+				local angle = math.atan2(item.Z, item.X)
+				for i, gap in gaps do
+					local d = math.abs(math.atan2(math.sin(angle - gap), math.cos(angle - gap)))
+					if d < best then
+						best, index = d, i
+					end
+				end
+				perGap[index] = (perGap[index] or 0) + 1
+			end
+		end
+		for i = 1, #gaps do
+			assert((perGap[i] or 0) >= 7, string.format("%s 정원 %d 장식 %d개", variant, i, perGap[i] or 0))
+		end
+		for _, kind in { "Pond", "Fountain", "Picnic", "Topiary", "Bench", "Lamp", "Mound", "Patch", "FlowerBed" } do
+			assert((kinds[kind] or 0) > 0, variant .. " 에 " .. kind .. " 없음")
+		end
+		if variant == "Ocean" then
+			for _, kind in { "Lighthouse", "Pier", "Boat", "Islet", "PalmTree", "Umbrella" } do
+				assert((kinds[kind] or 0) > 0, "Ocean 에 " .. kind .. " 없음")
+			end
+			eq(#plan.Peaks, 0, "Ocean 에 산")
+		else
+			for _, kind in { "Waterfall", "Hill", "Blob", "PineTree" } do
+				assert((kinds[kind] or 0) > 0, "Mountains 에 " .. kind .. " 없음")
+			end
+			eq(#plan.Peaks, SceneryPlan.Tuning.MOUNTAINS.Peaks.Count, "산 수")
+			assert(#plan.Stream > 0, "개울 없음")
+			for _, peak in plan.Peaks do
+				assert(#peak.Triangles > 0, "면 없는 산")
+				for _, t in peak.Triangles do
+					local ux, uy, uz = t.B[1] - t.A[1], t.B[2] - t.A[2], t.B[3] - t.A[3]
+					local vx, vy, vz = t.C[1] - t.A[1], t.C[2] - t.A[2], t.C[3] - t.A[3]
+					local cx, cy, cz = uy * vz - uz * vy, uz * vx - ux * vz, ux * vy - uy * vx
+					assert(math.sqrt(cx * cx + cy * cy + cz * cz) > 1, "납작한 산 면")
+				end
+			end
+		end
+	end
+	eq(SceneryPlan.variant("nope"), "Ocean", "모르는 변형은 Ocean")
+	eq(SceneryPlan.variant(nil), "Ocean", "변형 없음은 Ocean")
+end)
+
+test("Scenery: 계획의 모든 장식 종류를 Props 가 만들 수 있음", function()
+	local source = readfile("src/server/Scenery/Props.luau")
+	local known = {}
+	for name in source:gmatch("function BUILD%.([%w_]+)%(") do
+		known[name] = true
+	end
+	for _, variant in SceneryPlan.VARIANTS do
+		for kind in SceneryPlan.countKinds(SceneryPlan.make(variant)) do
+			assert(known[kind], variant .. " 의 " .. kind .. " 를 만드는 함수가 Props 에 없음")
+		end
+	end
+end)
+
+test("default.project.json: 바닥은 반지름 ISLAND_RADIUS 인 세운 원기둥, 윗면 y = 0", function()
+	local project = readfile("default.project.json")
+	assert(project, "default.project.json 을 읽지 못함")
+	local block = project:match('"Baseplate"%s*:%s*(%b{})')
+	assert(block, "Baseplate 없음")
+	assert(block:find('"Shape"%s*:%s*"Cylinder"'), "원기둥이 아님")
+	local h, d1, d2 = block:match('"Size"%s*:%s*%[%s*([%d%.]+)%s*,%s*([%d%.]+)%s*,%s*([%d%.]+)%s*%]')
+	eq(tonumber(d1), ParkLayout.ISLAND_RADIUS * 2, "지름(Y)")
+	eq(tonumber(d2), ParkLayout.ISLAND_RADIUS * 2, "지름(Z)")
+	local y = block:match('"position"%s*:%s*%[%s*[-%d%.]+%s*,%s*([-%d%.]+)')
+	near(tonumber(y) + tonumber(h) / 2, 0, 1e-9, "윗면 높이")
+	-- 원기둥 축(로컬 X)이 월드 ±Y 로: 회전 행렬 첫 열 (R00, R10, R20) = (0, ±1, 0)
+	local r00, r10, r20 = block:match(
+		'"orientation"%s*:%s*%[%s*%[%s*([-%d%.]+)%s*,[^%]]*%]%s*,%s*%[%s*([-%d%.]+)%s*,[^%]]*%]%s*,%s*%[%s*([-%d%.]+)'
+	)
+	eq(tonumber(r00), 0, "R00")
+	eq(math.abs(tonumber(r10) :: number), 1, "|R10|")
+	eq(tonumber(r20), 0, "R20")
+end)
+
 if not Harness.finish() then
 	error("테스트 실패")
 end

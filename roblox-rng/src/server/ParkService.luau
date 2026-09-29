@@ -22,6 +22,8 @@ local Landmarks = require(Shared.Landmarks)
 local Models = require(Shared.Models)
 local PlayerState = require(Shared.PlayerState)
 
+local ParkLayout = require(script.Parent.ParkLayout)
+
 -- 그림 Id 표 (없거나 깨져도 코드로 그린 모양으로 동작)
 local function loadImageIds(): { [string]: any }
 	local module = Shared:FindFirstChild("ImageIds")
@@ -35,14 +37,13 @@ local function loadImageIds(): { [string]: any }
 end
 local ImageIds = loadImageIds()
 
-local PLOT_COUNT = 8 -- 서버 최대 인원과 같게 (Creator Hub 에서 서버 크기 8)
-local RING_RADIUS = 115
-local PLAZA_EDGE = 44 -- 길이 시작되는 곳(광장 둘레 계단 아래에서부터)
+-- 부지 수·반지름·크기·길은 ParkLayout 에 있음(주변 풍경 Scenery 도 같은 값으로 부지를 비켜 감)
+local PLAZA_EDGE = ParkLayout.PLAZA_EDGE -- 길이 시작되는 곳(광장 둘레 계단 아래에서부터)
 
-local PLOT_WIDTH = 76
-local PLOT_DEPTH = 80
+local PLOT_WIDTH = ParkLayout.PLOT_WIDTH
+local PLOT_DEPTH = ParkLayout.PLOT_DEPTH
 local BASE_TOP = 0.6 -- 부지 윗면 높이
-local BORDER = 1.5 -- 부지 둘레 색 띠 폭
+local BORDER = ParkLayout.BORDER -- 부지 둘레 색 띠 폭
 
 local GRID = Config.PARK_GRID
 local SPACING = 12
@@ -51,7 +52,7 @@ local PEDESTAL_SIZE = 10
 local PEDESTAL_HEIGHT = 0.6
 local MINIATURE_SIZE = 9
 local LABEL_DISTANCE = 60
-local PATH_WIDTH = 10
+local PATH_WIDTH = ParkLayout.PATH_WIDTH
 
 local MAX_STARS = #Config.STAR_THRESHOLDS
 
@@ -123,13 +124,10 @@ type Plot = {
 	Slots: { Slot },
 }
 
-type Layout = { Angle: number, Radius: number, Path: boolean }
+type Layout = ParkLayout.Layout
 
 -- 부지 순서 = 배정 순서(가장 작은 빈 번호부터). 첫 부지는 스폰 정면(-Z = 270도) 근처.
-local LAYOUT: { Layout } = {}
-for i = 0, PLOT_COUNT - 1 do
-	table.insert(LAYOUT, { Angle = math.rad(247.5 + 360 / PLOT_COUNT * i), Radius = RING_RADIUS, Path = true })
-end
+local LAYOUT: { Layout } = ParkLayout.LAYOUT
 
 -- 전시 칸 위치(부지 좌표, Y = 부지 윗면). 입구 쪽 줄부터, 줄 안에서는 가운데부터.
 local SLOT_OFFSETS: { Vector3 } = {}
