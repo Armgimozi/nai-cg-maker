@@ -101,3 +101,81 @@ cargo build --release --manifest-path tools/luaurun/Cargo.toml
 ```
 
 서버/클라이언트 코드는 문법 컴파일까지만 자동 확인되므로, 화면·연출은 Studio 나 실제 게임에서 확인해 주세요.
+
+## 이미지 올리기 (Open Cloud)
+
+`art/png/*.png`(아이콘, 버튼·창 스킨)를 Roblox 에 올리고 `src/shared/ImageIds.luau` 에 `rbxassetid://` Id 를 채우는
+스크립트가 [`tools/upload_images.py`](tools/upload_images.py) 입니다. Python 3 만 있으면 되고 따로 설치할 것은 없습니다.
+
+### 1. API 키에 권한 넣기 (한 번만)
+
+1. Creator Hub → **Open Cloud → API Keys**
+   ([바로 가기](https://create.roblox.com/dashboard/credentials?activeTab=ApiKeysTab)) 에서 지금 쓰는 키를 엽니다
+   (새로 만들 때는 **Create API Key**).
+2. **Access Permissions** 의 **Select API System** 에서 **Assets** 를 골라 추가합니다.
+3. **Select Operations** 에서 **Read** 와 **Write** 를 둘 다 고릅니다.
+   Write 는 업로드용이고, Read 는 업로드 결과와 검수 상태를 확인할 때 씁니다.
+   Assets 권한은 게임별로 고르지 않고 키 주인 계정 전체에 적용됩니다.
+4. 저장합니다. 새 키라면 **Save & Generate Key** 를 누르고 키 문자열을 복사해 둡니다.
+
+- **키 주인이 곧 에셋 주인이어야 합니다.** 스크립트는 기본으로 userId `2038945024` 이름으로 올립니다.
+  다른 계정이면 `--user-id 숫자` 를 붙이세요. (OAuth 앱으로 치면 필요한 scope 는 `asset:read`, `asset:write`)
+- 키에 IP 제한을 걸어 두었다면 스크립트를 돌리는 컴퓨터의 IP 도 허용 목록에 넣어야 합니다.
+- 키를 60일 동안 쓰지 않으면 자동으로 만료됩니다. **Enable Key** 를 껐다가 다시 켜면 풀립니다.
+
+### 2. 실행
+
+```bash
+python3 tools/upload_images.py --dry-run            # 무엇을 올릴지만 보기 (네트워크 안 씀, 파일 안 바꿈)
+ROBLOX_API_KEY=키 python3 tools/upload_images.py    # 올리고 ImageIds.luau 채우기
+python3 tools/upload_images.py --only coin dice     # 일부만
+```
+
+- 키는 환경변수 `ROBLOX_API_KEY` 로만 받습니다. 파일에 적거나 커밋하지 마세요.
+  Windows PowerShell 에서는 `$env:ROBLOX_API_KEY="키"` 를 먼저 입력합니다.
+  원격 개발 환경처럼 프록시가 `apis.roblox.com` 요청에 키를 대신 붙여 주는 곳에서는 환경변수 없이 실행하면 됩니다.
+- 끝나면 결과 표가 나옵니다. `CACHED` 는 이미 올린 그림, `UPLOADED` 는 이번에 올린 그림,
+  `PENDING` 은 Roblox 쪽에서 아직 처리 중인 그림(다시 실행하면 새로 올리지 않고 이어서 확인),
+  `REJECTED` 는 검수에서 거절된 그림, `FAILED` 는 실패한 그림입니다.
+- `ImageIds.luau` 에서는 해당 줄의 값만 바꾸고 주석과 묶음은 그대로 둡니다. `art/png` 에만 있는 새 이름은 표 끝에 추가됩니다.
+  (`--rewrite` 를 붙이면 표 안을 이름순으로 다시 씁니다.)
+- 이미 올린 그림은 다시 올리지 않습니다. `tools/.image_upload_cache.json` 에 파일 내용의 SHA-256 → Id 를 적어 둡니다.
+  이 파일을 지우면 모든 그림이 새 Id 로 다시 올라가니 지우지 말고, 다른 컴퓨터에서도 쓰려면 git 에 같이 넣으세요
+  (키는 들어 있지 않습니다).
+- 다 되면 Rojo 로 동기화하거나 `rojo build -o LandmarkRNG.rbxlx` 로 place 파일을 다시 만듭니다.
+
+**왜 `Image` 로 올리나:** Open Cloud 에서 PNG 는 `Decal` 또는 `Image` 타입으로 올릴 수 있습니다. `Decal` 로 올리면
+돌려받는 Id 가 데칼의 Id 입니다(데칼 안에 Image 에셋이 따로 들어 있음). 이 Id 를 `ImageLabel.Image` 에 넣으면 그림이 안 나옵니다.
+그래서 스크립트는 `Image` 로 올리고, 받은 Id 를 그대로 씁니다. (`--asset-type Decal` 도 있지만 비추천입니다.
+이때는 데칼 안의 Image Id 를 찾아 쓰는데, 이 과정은 공식 문서에 없는 경로라 실패할 수 있습니다.)
+
+### 3. 검수(모더레이션)
+
+- 올린 그림은 모두 Roblox 검수를 거칩니다. 결과 표의 **검수** 칸에 `승인` / `검수 중` / `거절` 로 표시됩니다.
+- `검수 중` 이어도 Id 는 `ImageIds.luau` 에 넣습니다. 승인 전에는 게임에서 그림이 안 보일 수 있습니다.
+  나중에 스크립트를 다시 실행하면 상태만 확인하고 다시 올리지는 않습니다.
+- `거절` 된 그림은 그 줄을 `""` 로 비워 두므로 게임은 코드로 그린 기본 모양을 씁니다. 스크립트는 같은 그림을 자동으로
+  다시 올리지 않습니다(거절된 파일을 반복해서 올리면 계정 제재 위험이 있음). 그림을 고치면 내용이 바뀌어 다음 실행 때 새로 올라갑니다.
+  꼭 그대로 다시 올려야 하면 `--force` 를 붙입니다.
+- 에셋 이름과 설명도 검사되므로 파일 이름은 평범하게 짓습니다(영문 소문자, 숫자, `_`).
+- 내 계정 게임에서는 내가 올린 그림이 항상 보입니다. 게임이 **그룹 소유**이고 Asset Privacy 를 켜 두었다면,
+  Creator Hub 에서 그 그림을 쓸 수 있게 해당 게임에 권한을 줘야 합니다.
+
+### 4. 그림 바꾸기
+
+1. `art/src/<이름>.svg` 를 고치고 `python3 art/build.py <이름>` 으로 PNG 를 다시 만듭니다.
+2. `python3 tools/upload_images.py` 를 실행합니다. 내용이 바뀐 파일만 올라가고, `ImageIds.luau` 의 그 줄이 새 Id 로 바뀝니다.
+   이미지 에셋은 내용을 덮어쓸 수 없어서 바꿀 때마다 **새 Id** 가 생깁니다. 예전 에셋은 계정에 그대로 남으니,
+   필요 없으면 Creator Hub → Creations → Development Items 에서 보관(Archive)하세요.
+- 새 그림은 `art/png/새이름.png` 로 넣으면 됩니다. 이름이 곧 `ImageIds` 의 키입니다.
+- Id 를 손으로 넣으려면 `ImageIds.luau` 의 줄을 직접 고칩니다. 단 `art/png` 에 같은 이름의 PNG 가 있으면 다음 실행 때
+  스크립트가 그 PNG 의 Id 로 되돌리니, 그 PNG 를 빼거나 `--only` 로 다른 그림만 돌리세요.
+
+**제한:** 파일 하나 20MB 이하, 8000×8000 픽셀 미만, png·jpeg·bmp·tga.
+업로드는 분당 120번, 결과 조회는 분당 300번까지입니다(키 주인 기준). 스크립트가 알아서 간격을 두고, 너무 빠르다는 응답(429)을
+받으면 `retry-after` 만큼 기다렸다가 다시 시도합니다. 요금이 붙는 업로드라면 올리지 않고 실패하도록 `expectedPrice: 0` 을 보냅니다.
+
+참고: [Assets API 사용 안내](https://create.roblox.com/docs/cloud/guides/usage-assets) ·
+[API 키 만들기](https://create.roblox.com/docs/cloud/auth/api-keys) ·
+[레이트 리밋](https://create.roblox.com/docs/cloud/reference/rate-limits) ·
+[에셋 공개 범위](https://create.roblox.com/docs/projects/assets/privacy)
