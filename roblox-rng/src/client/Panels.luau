@@ -124,6 +124,7 @@ local emptyIcon: Frame
 
 type CollectionCard = {
 	Card: TextButton,
+	Stroke: UIStroke, -- 고른 칸의 명소 줄이면 굵은 Sun
 	Photo: Frame,
 	Stars: TextLabel,
 	Count: Ui.Chip,
@@ -193,6 +194,7 @@ type ParkTile = {
 }
 type ParkCard = {
 	Card: TextButton,
+	Stroke: UIStroke, -- 고른 칸의 명소 줄이면 굵은 Sun
 	Photo: Frame,
 	Thumb: ViewportFrame?, -- 명소 사진(줄이 화면에 들어올 때 처음 만듦)
 	Name: TextLabel,
@@ -1825,7 +1827,8 @@ local function parkCard(parent: ScrollingFrame, landmark: Landmark): ParkCard
 		BackgroundColor3 = Theme.Paper,
 	})
 	Ui.corner(12).Parent = card
-	Ui.stroke(Theme.Ink, 3).Parent = card
+	local stroke = Ui.stroke(Theme.Ink, 3)
+	stroke.Parent = card
 	local picture =
 		photo(card, landmark, UDim2.fromOffset(6, 6), UDim2.fromOffset(PARK_ROW - 12, PARK_ROW - 12), 8, true)
 	-- 이름: 글자 크기는 그대로 두고 길면 두 줄. 한 줄이면 별 바로 위에 붙게 아래 정렬
@@ -1879,6 +1882,7 @@ local function parkCard(parent: ScrollingFrame, landmark: Landmark): ParkCard
 	card.Parent = parent
 	return {
 		Card = card,
+		Stroke = stroke,
 		Photo = picture,
 		Thumb = nil,
 		Name = name,
@@ -2179,7 +2183,11 @@ end
 
 -- 목록 한 줄 칠하기. slot = 전시 중인 칸(nil = 전시 안 됨)
 local function paintParkCard(card: ParkCard, state: Snapshot, slot: number?, selected: number?)
-	card.Card.BackgroundColor3 = if slot and slot == selected then FEATURED_BG else Theme.Paper
+	-- 고른 칸의 명소 줄 = 노란 바탕 + 굵은 Sun 테두리(격자의 고른 칸과 같은 표시 — 목록이 그 줄로 미끄러져 와도 한눈에)
+	local picked = slot ~= nil and slot == selected
+	card.Card.BackgroundColor3 = if picked then FEATURED_BG else Theme.Paper
+	card.Stroke.Color = if picked then Ui.colorPair("Sun").Face else Theme.Ink
+	card.Stroke.Thickness = if picked then 4 else 3
 	card.Stars.Text = Ui.starsRich(PlayerState.stars(owned(state, card.Landmark.Id)), #Config.STAR_THRESHOLDS)
 	card.Mark.Root.Visible = slot ~= nil
 	-- 전시 안 된 줄은 이름이 줄 끝까지, 전시 중인 줄은 체크 자리만큼 비움

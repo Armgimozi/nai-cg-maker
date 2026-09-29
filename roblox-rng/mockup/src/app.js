@@ -1550,7 +1550,9 @@
 
   // Panels 공원 배치: 명소 목록 한 줄 (사진 · 이름(고정 20, 길면 두 줄) · 별 · 전시 중이면 오른쪽에 아이콘만 있는 초록 체크)
   function parkCard(parent, landmark, count, slot, picked) {
-    const card = gui(parent, { name: landmark.Id, flow: true, size: [1, 0, 0, PARK.ROW], bg: picked ? FEATURED_BG : Theme.Paper, corner: 12, stroke: [Theme.Ink, 3] });
+    // 고른 칸의 명소 줄 = 노란 바탕 + 굵은 Sun 테두리(격자의 고른 칸과 같은 표시 — 목록이 그 줄로 미끄러져 와도 한눈에)
+    const card = gui(parent, { name: landmark.Id, flow: true, size: [1, 0, 0, PARK.ROW], bg: picked ? FEATURED_BG : Theme.Paper, corner: 12, stroke: picked ? [COLORS.Sun.Face, 4] : [Theme.Ink, 3] });
+    if (picked) card.dataset.picked = '1';
     card.dataset.row = slot ? 'shown' : 'hidden';
     if (slot) card.dataset.slot = String(slot);
     photo(card, landmark, [0, 6, 0, 6], [0, PARK.ROW - 12, 0, PARK.ROW - 12], 8, PARK.ROW - 16);
