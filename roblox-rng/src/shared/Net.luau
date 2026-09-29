@@ -13,11 +13,15 @@ local FUNCTIONS = {
 	"BuyUpgrade", -- (upgradeId) -> { Ok, Reason?, State }
 	"SetSetting", -- (key, value) -> { Ok, State }
 	"Teleport", -- ("Park" | "Plaza") -> { Ok }
+	"Rebirth", -- () -> { Ok, Reason?, State }
+	"BuyPass", -- (passKey) -> { Ok } (서버가 게임패스 구매 창을 띄움)
+	"BuyProduct", -- (productKey) -> { Ok } (서버가 개발자 상품 구매 창을 띄움)
 }
 
 local EVENTS = {
 	"State", -- 서버 -> 클라: Snapshot (관광 수입 등 서버 쪽 변화)
 	"Announce", -- 서버 -> 모두: 희귀 명소 발견 "뉴스 속보"
+	"ServerLuck", -- 서버 -> 모두: 서버 행운 시작/연장 { UserId, Name, Until, Left }
 }
 
 local folder: Folder

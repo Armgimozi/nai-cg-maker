@@ -204,6 +204,10 @@ test("새 데이터 기본값", function()
 	eq(PlayerState.incomePerSecond(d), 0, "income")
 	eq(#PlayerState.park(d), 0, "park")
 	eq(PlayerState.best(d), nil, "best")
+	eq(d.Rebirths, 0, "Rebirths")
+	eq(next(d.Discovered), nil, "Discovered")
+	eq(next(d.Boosts), nil, "Boosts")
+	eq(#d.Receipts, 0, "Receipts")
 end)
 test("applyRoll: 처음 발견 보너스, 중복은 보너스 없음, 별 상승", function()
 	local d = PlayerState.new()
@@ -315,8 +319,11 @@ test("여권 도장: 전설급을 뺀 대륙 명소를 다 모으면 행운 보�
 	eq(completed[1], "Africa")
 	eq((d.Inventory[legendary.Id] or 0), 0, "전설급 없이도 도장")
 	near(PlayerState.luck(d), 1 + Config.REGION_LUCK_BONUS, 1e-9, "행운 보너스")
-	-- 도장 조건 명소가 하나 빠지면 미완성
-	d.Inventory[needed[1]] = nil
+	-- 여권은 역대 발견 기록 기준: 보유 명소가 없어도(환생 뒤) 도장 유지
+	table.clear(d.Inventory)
+	eq(#PlayerState.completedRegions(d), 1, "보유 명소가 없어도 도장 유지")
+	-- 도장 조건 명소가 하나라도 미발견이면 미완성
+	d.Discovered[needed[1]] = nil
 	eq(#PlayerState.completedRegions(d), 0, "미완성")
 end)
 test("대표 명소: 발견한 것만, nil 은 해제", function()
@@ -360,6 +367,9 @@ test("reconcile: 깨진 값 정리, 모르는 명소는 보존", function()
 	eq(d.Upgrades.Park, 0, "음수 무시")
 	eq(d.Upgrades.Unknown, nil, "모르는 업그레이드 무시")
 	eq(d.Settings.AutoFeature, false)
+	eq(d.Discovered.eiffel, true, "예전 저장: 보유 명소는 발견 기록으로 이전")
+	eq(d.Discovered.removed_one, true, "모르는 명소 발견 기록 보존")
+	eq(d.Rebirths, 0, "Rebirths 기본값")
 	eq(PlayerState.reconcile({ Rolls = 0 / 0 }).Rolls, 0, "NaN")
 	eq(PlayerState.reconcile({ Coins = math.huge }).Coins, 0, "inf")
 	-- 모르는 명소는 공원/수입에 영향 없음
@@ -371,12 +381,345 @@ test("snapshot 은 복사본이고 파생 값 포함", function()
 	eq(s.Revision, 7)
 	eq(s.Income, PlayerState.incomePerSecond(d), "Income")
 	eq(s.Luck, PlayerState.luck(d), "Luck")
+	eq(s.Cooldown, PlayerState.cooldown(d), "Cooldown")
+	eq(s.Rebirths, 0, "Rebirths")
+	eq(s.ServerLuck, false, "mods 없으면 서버 행운 없음")
+	eq(next(s.Passes), nil, "mods 없으면 게임패스 없음")
+	eq(s.NextRebirth.Coins, Config.REBIRTHS[1].Coins, "다음 환생 코인")
+	eq(#s.NextRebirth.Landmarks, #Config.REBIRTHS[1].Landmarks, "다음 환생 명소")
+	eq(s.Discovered.eiffel, true, "Discovered")
 	s.Inventory.eiffel = 999
 	s.Upgrades.Globe = 99
+	s.Discovered.pyramid = true
+	s.NextRebirth.Landmarks[1] = "hack"
 	eq(d.Inventory.eiffel, 1, "원본 Inventory 불변")
 	eq(d.Upgrades.Globe, 0, "원본 Upgrades 불변")
+	eq(d.Discovered.pyramid, nil, "원본 Discovered 불변")
+	eq(Config.REBIRTHS[1].Landmarks[1], "eiffel", "Config 불변")
 	-- 읽기 함수에 Snapshot 을 그대로 넘겨도 됨
 	eq(#PlayerState.park(PlayerState.snapshot(d, 8)), 1, "snapshot 으로 park 계산")
+end)
+
+print("\n[환생]")
+test("Config.REBIRTHS: 있는 명소만, 코인은 단계마다 증가", function()
+	assert(#Config.REBIRTHS >= 1, "환생 단계 없음")
+	for i, step in Config.REBIRTHS do
+		assert(#step.Landmarks > 0, i .. "단계 명소 없음")
+		for _, id in step.Landmarks do
+			assert(Landmarks.ById[id], i .. "단계 모르는 명소 " .. id)
+		end
+		if i > 1 then
+			assert(step.Coins > Config.REBIRTHS[i - 1].Coins, i .. "단계 코인이 늘지 않음")
+		end
+	end
+end)
+test("rebirthRequirement: 표 + 표를 넘으면 마지막 명소 + 코인 ×4", function()
+	local first = PlayerState.rebirthRequirement(0)
+	eq(first.Coins, 5000)
+	eq(first.Landmarks[1], "eiffel")
+	eq(first.Landmarks[2], "liberty")
+	local last = #Config.REBIRTHS
+	eq(PlayerState.rebirthRequirement(last - 1).Coins, Config.REBIRTHS[last].Coins, "마지막 단계")
+	local beyond1 = PlayerState.rebirthRequirement(last)
+	eq(beyond1.Coins, Config.REBIRTHS[last].Coins * 4, "표 +1")
+	eq(#beyond1.Landmarks, #Config.REBIRTHS[last].Landmarks, "표 +1 명소")
+	eq(beyond1.Landmarks[1], Config.REBIRTHS[last].Landmarks[1])
+	eq(PlayerState.rebirthRequirement(last + 1).Coins, Config.REBIRTHS[last].Coins * 16, "표 +2")
+	-- 복사본이라 고쳐도 Config 는 그대로
+	first.Landmarks[1] = "hack"
+	eq(Config.REBIRTHS[1].Landmarks[1], "eiffel", "Config 불변")
+end)
+test("canRebirth: 모자란 명소와 코인", function()
+	local d = PlayerState.new()
+	local ok, missing, short = PlayerState.canRebirth(d)
+	eq(ok, false)
+	eq(#missing, 2, "명소 2개 없음")
+	eq(missing[1], "eiffel")
+	eq(missing[2], "liberty")
+	eq(short, 5000, "코인 부족분")
+	PlayerState.applyRoll(d, Landmarks.ById.eiffel)
+	PlayerState.applyRoll(d, Landmarks.ById.liberty)
+	d.Coins = 4000.5
+	ok, missing, short = PlayerState.canRebirth(d)
+	eq(ok, false)
+	eq(#missing, 0)
+	eq(short, 1000, "코인 부족분(올림)")
+	d.Coins = 5000
+	ok, missing, short = PlayerState.canRebirth(d)
+	eq(ok, true)
+	eq(short, 0)
+	-- 발견 기록만 있고 이번 판에 보유하지 않으면 안 됨
+	d.Inventory.liberty = nil
+	ok, missing = PlayerState.canRebirth(d)
+	eq(ok, false, "발견 기록만으로는 불가")
+	eq(missing[1], "liberty")
+	-- Snapshot 으로도 판단 가능
+	d.Inventory.liberty = 1
+	eq((PlayerState.canRebirth(PlayerState.snapshot(d, 1))), true, "snapshot")
+end)
+test(
+	"rebirth: 코인·업그레이드·보유 명소·대표 초기화, 발견 기록·도장·설정 유지",
+	function()
+		local d = PlayerState.new()
+		local ok, reason = PlayerState.rebirth(d)
+		eq(ok, false)
+		eq(reason, "필요한 명소가 없습니다")
+		-- 아프리카 도장 + 1단계 요구 명소
+		for _, landmark in Landmarks.ByRegion.Africa do
+			if PlayerState.countsForStamp(landmark) then
+				PlayerState.applyRoll(d, landmark)
+			end
+		end
+		PlayerState.applyRoll(d, Landmarks.ById.eiffel)
+		PlayerState.applyRoll(d, Landmarks.ById.liberty)
+		d.Coins = 100
+		ok, reason = PlayerState.rebirth(d)
+		eq(ok, false)
+		eq(reason, "코인이 부족합니다")
+		eq(d.Rebirths, 0, "실패 시 그대로")
+		eq(d.Coins, 100, "실패 시 코인 그대로")
+
+		d.Coins = 12345
+		d.Upgrades.Globe = 3
+		d.Upgrades.Park = 2
+		d.Settings.AutoFeature = false
+		PlayerState.feature(d, "eiffel")
+		PlayerState.addBoost(d, "LuckBoost")
+		PlayerState.addReceipt(d, "r1")
+		local rolls = d.Rolls
+		ok, reason = PlayerState.rebirth(d)
+		eq(ok, true)
+		eq(reason, nil)
+		eq(d.Rebirths, 1)
+		eq(d.Coins, 0, "코인 초기화")
+		for _, upgrade in Config.Upgrades do
+			eq(d.Upgrades[upgrade.Id], 0, "업그레이드 초기화 " .. upgrade.Id)
+		end
+		eq(next(d.Inventory), nil, "보유 명소 비움")
+		eq(d.Featured, nil, "대표 해제")
+		eq(#PlayerState.park(d), 0, "공원 비움")
+		eq(PlayerState.incomePerSecond(d), 0, "수입 0")
+		eq(d.Discovered.eiffel, true, "발견 기록 유지")
+		eq(d.Discovered.liberty, true, "발견 기록 유지")
+		eq(PlayerState.completedRegions(d)[1], "Africa", "여권 도장 유지")
+		eq(d.Settings.AutoFeature, false, "설정 유지")
+		eq(d.Rolls, rolls, "굴림 수 유지")
+		eq(PlayerState.boostLeft(d, "LuckBoost"), 900, "부스트 유지")
+		eq(PlayerState.hasReceipt(d, "r1"), true, "영수증 유지")
+		eq(PlayerState.rebirthRequirement(d.Rebirths).Coins, Config.REBIRTHS[2].Coins, "다음 단계")
+
+		-- 환생 뒤 예전에 발견한 명소를 다시 얻으면: 보너스·NEW·별 상승 없음, 보유는 1
+		local bonus, isNew, starUp = PlayerState.applyRoll(d, Landmarks.ById.eiffel)
+		eq(bonus, 0, "재발견 보너스 없음")
+		eq(isNew, false, "재발견은 NEW 아님")
+		eq(starUp, false, "재발견은 별 상승 아님")
+		eq(d.Inventory.eiffel, 1)
+		eq(PlayerState.stars(d.Inventory.eiffel), 1)
+		-- 처음 보는 명소는 여전히 NEW + 보너스
+		local bonus2, isNew2 = PlayerState.applyRoll(d, Landmarks.ById.namsan)
+		eq(isNew2, true)
+		eq(bonus2, PlayerState.discoveryBonus(Landmarks.ById.namsan))
+	end
+)
+test("환생 보상: 행운 +20%, 수입 +50% (누적)", function()
+	local d = owning({ "clocktower" })
+	near(PlayerState.luck(d), 1, 1e-9, "0회")
+	near(PlayerState.incomePerSecond(d), 1, 1e-9, "0회 수입")
+	d.Rebirths = 2
+	near(PlayerState.luck(d), 1 + 2 * Config.REBIRTH_LUCK_BONUS, 1e-9, "2회 행운")
+	near(PlayerState.incomePerSecond(d), 1 + 2 * Config.REBIRTH_INCOME_BONUS, 1e-9, "2회 수입")
+	eq(PlayerState.cooldown(d), Config.ROLL_COOLDOWN, "쿨타임은 그대로")
+end)
+
+print("\n[유료 상품]")
+local ALL_PASSES = { Passes = { LuckVIP = true, FastRoll = true, DoubleIncome = true } }
+test("Config: 상품 Id 중복 없음, 기본값 0 = 비활성", function()
+	local seen = {}
+	for _, pass in Config.GamePasses do
+		assert(not seen[pass.Id], "중복 " .. pass.Id)
+		seen[pass.Id] = true
+		eq(type(pass.PassId), "number", pass.Id)
+		eq(PlayerState.PassesById[pass.Id], pass)
+	end
+	for _, product in Config.Products do
+		assert(not seen[product.Id], "중복 " .. product.Id)
+		seen[product.Id] = true
+		eq(type(product.ProductId), "number", product.Id)
+		eq(PlayerState.ProductsById[product.Id], product)
+	end
+	assert(PlayerState.PassesById.LuckVIP and PlayerState.PassesById.FastRoll and PlayerState.PassesById.DoubleIncome)
+	assert(
+		PlayerState.ProductsById.LuckBoost and PlayerState.ProductsById.ServerLuck and PlayerState.ProductsById.CoinPack
+	)
+	eq(Config.MAX_BOOST_SECONDS, 3 * 3600)
+end)
+test("배율: mods 없음 = 빈 mods = 예전 값", function()
+	local d = owning({ "eiffel", "pyramid", "clocktower" })
+	d.Upgrades.Globe = 2
+	d.Upgrades.Agency = 3
+	d.Upgrades.Ticket = 1
+	local luck, cooldown, income = PlayerState.luck(d), PlayerState.cooldown(d), PlayerState.incomePerSecond(d)
+	near(luck, 1.2, 1e-9, "행운")
+	near(cooldown, Config.ROLL_COOLDOWN * 0.85, 1e-9, "쿨타임")
+	near(income, (5 + 12 + 1) * 1.2, 1e-9, "수입")
+	for _, mods in { {}, { Passes = {} }, { ServerLuck = false }, { Passes = { Nope = true } } } do
+		eq(PlayerState.luck(d, mods), luck, "행운")
+		eq(PlayerState.cooldown(d, mods), cooldown, "쿨타임")
+		eq(PlayerState.incomePerSecond(d, mods), income, "수입")
+	end
+end)
+test("배율: 게임패스 / 서버 행운 / 행운 부스트 / 환생 곱", function()
+	local d = owning({ "clocktower" })
+	near(PlayerState.luck(d, { Passes = { LuckVIP = true } }), 2, 1e-9, "VIP")
+	near(PlayerState.luck(d, { ServerLuck = true }), 2, 1e-9, "서버 행운")
+	near(PlayerState.cooldown(d, { Passes = { FastRoll = true } }), Config.ROLL_COOLDOWN * 0.7, 1e-9, "빠른 굴림")
+	near(PlayerState.incomePerSecond(d, { Passes = { DoubleIncome = true } }), 2, 1e-9, "수입 2배")
+	eq(
+		PlayerState.luck(d, { Passes = { FastRoll = true, DoubleIncome = true } }),
+		1,
+		"다른 패스는 행운 영향 없음"
+	)
+	eq(PlayerState.luck(d, { Passes = { LuckVIP = false } }), 1, "false 는 없는 것")
+	PlayerState.addBoost(d, "LuckBoost")
+	near(PlayerState.luck(d), 2, 1e-9, "행운 부스트(데이터라서 mods 없어도 적용)")
+	d.Rebirths = 1
+	d.Upgrades.Globe = 1
+	local all = { Passes = ALL_PASSES.Passes, ServerLuck = true }
+	near(PlayerState.luck(d, all), 1.1 * 1.2 * 2 * 2 * 2, 1e-9, "전부 곱")
+	near(PlayerState.incomePerSecond(d, all), 1 * 1.5 * 2, 1e-9, "수입 전부 곱")
+	-- 스냅샷은 mods 반영 + Snapshot 을 mods 로 다시 넘겨도 같은 값
+	local s = PlayerState.snapshot(d, 1, all)
+	near(s.Luck, 1.1 * 1.2 * 8, 1e-9, "snapshot Luck")
+	near(s.Cooldown, Config.ROLL_COOLDOWN * 0.7, 1e-9, "snapshot Cooldown")
+	near(s.Income, 3, 1e-9, "snapshot Income")
+	eq(s.ServerLuck, true)
+	eq(s.Passes.LuckVIP, true)
+	eq(s.Passes.FastRoll, true)
+	eq(s.Boosts.LuckBoost, 900)
+	eq(s.Rebirths, 1)
+	near(PlayerState.luck(s, s), s.Luck, 1e-9, "luck(snapshot, snapshot)")
+	s.Boosts.LuckBoost = 1
+	s.Passes.Hack = true
+	eq(d.Boosts.LuckBoost, 900, "원본 Boosts 불변")
+	eq(all.Passes.Hack, nil, "mods 불변")
+end)
+test("부스트: 추가·누적·최대·시간 경과", function()
+	local d = PlayerState.new()
+	eq(PlayerState.addBoost(d, "LuckBoost"), true)
+	eq(d.Boosts.LuckBoost, 900)
+	PlayerState.addBoost(d, "LuckBoost")
+	eq(PlayerState.boostLeft(d, "LuckBoost"), 1800, "시간 누적")
+	for _ = 1, 20 do
+		PlayerState.addBoost(d, "LuckBoost")
+	end
+	eq(d.Boosts.LuckBoost, Config.MAX_BOOST_SECONDS, "최대 시간")
+	eq(PlayerState.addBoost(d, "ServerLuck"), false, "서버 행운은 개인 부스트 아님")
+	eq(PlayerState.addBoost(d, "CoinPack"), false, "코인 팩은 부스트 아님")
+	eq(PlayerState.addBoost(d, "Nope"), false)
+	eq(PlayerState.addBoost(d, 5), false)
+	eq(d.Boosts.ServerLuck, nil)
+
+	d.Boosts.LuckBoost = 10
+	eq(PlayerState.tickBoosts(d, 4), false, "아직 안 끝남")
+	near(d.Boosts.LuckBoost, 6, 1e-9, "남은 시간")
+	eq(PlayerState.tickBoosts(d, 0), false, "0 초")
+	eq(PlayerState.tickBoosts(d, -3), false, "음수")
+	near(d.Boosts.LuckBoost, 6, 1e-9, "그대로")
+	eq(PlayerState.tickBoosts(d, 6), true, "끝남")
+	eq(d.Boosts.LuckBoost, nil, "지워짐")
+	eq(PlayerState.boostLeft(d, "LuckBoost"), 0)
+	eq(PlayerState.tickBoosts(d, 1), false, "부스트 없음")
+	eq(PlayerState.luck(d), 1, "끝나면 행운 원래대로")
+end)
+test("영수증: 중복 기록 없음, 최근 50개만", function()
+	local d = PlayerState.new()
+	eq(PlayerState.hasReceipt(d, "abc"), false)
+	PlayerState.addReceipt(d, "abc")
+	eq(PlayerState.hasReceipt(d, "abc"), true)
+	PlayerState.addReceipt(d, "abc")
+	eq(#d.Receipts, 1, "중복 없음")
+	PlayerState.addReceipt(d, 12345)
+	eq(PlayerState.hasReceipt(d, "12345"), true, "숫자도 문자열로")
+	eq(PlayerState.hasReceipt(d, 12345), true)
+	for i = 1, 60 do
+		PlayerState.addReceipt(d, "p" .. i)
+	end
+	eq(#d.Receipts, Config.MAX_RECEIPTS, "최대 개수")
+	eq(PlayerState.hasReceipt(d, "abc"), false, "오래된 것 삭제")
+	eq(PlayerState.hasReceipt(d, "p10"), false, "오래된 것 삭제")
+	eq(PlayerState.hasReceipt(d, "p11"), true, "최근 50개 유지")
+	eq(PlayerState.hasReceipt(d, "p60"), true)
+	eq(d.Receipts[#d.Receipts], "p60", "최근 것이 끝")
+end)
+test("grantProduct: 코인 팩 = max(1000, 초당 수입 × 1800), 부스트, 서버 행운", function()
+	local d = PlayerState.new()
+	local ok, grant = PlayerState.grantProduct(d, "CoinPack")
+	eq(ok, true)
+	eq(grant.Coins, 1000, "수입 0 이면 최소 1000")
+	eq(d.Coins, 1000)
+	d = owning({ "pyramid" }) -- 12/초 → 21,600
+	local before = d.Coins
+	ok, grant = PlayerState.grantProduct(d, "CoinPack")
+	eq(grant.Coins, 12 * 1800, "초당 수입 × 1800")
+	eq(d.Coins, before + 12 * 1800)
+	eq(grant.ServerWide, false)
+	ok, grant = PlayerState.grantProduct(d, "CoinPack", { Passes = { DoubleIncome = true } })
+	eq(grant.Coins, 24 * 1800, "수입 2배 반영")
+
+	ok, grant = PlayerState.grantProduct(d, "LuckBoost")
+	eq(ok, true)
+	eq(grant.Seconds, 900)
+	eq(grant.Coins, 0)
+	eq(d.Boosts.LuckBoost, 900)
+	d.Boosts.LuckBoost = Config.MAX_BOOST_SECONDS - 100
+	ok, grant = PlayerState.grantProduct(d, "LuckBoost")
+	eq(grant.Seconds, 100, "최대 시간까지만")
+
+	local coins = d.Coins
+	ok, grant = PlayerState.grantProduct(d, "ServerLuck")
+	eq(ok, true)
+	eq(grant.ServerWide, true, "서버가 처리")
+	eq(grant.Seconds, 900)
+	eq(d.Boosts.ServerLuck, nil, "데이터에 저장 안 함")
+	eq(d.Coins, coins)
+
+	eq((PlayerState.grantProduct(d, "Nope")), false)
+	eq((PlayerState.grantProduct(d, nil)), false)
+end)
+test("reconcile: 환생·발견·부스트·영수증 정리", function()
+	local receipts = { 5, "x", false }
+	for i = 1, 55 do
+		table.insert(receipts, "r" .. i)
+	end
+	local d = PlayerState.reconcile({
+		Rebirths = 3.9,
+		Inventory = { eiffel = 2 },
+		Discovered = { pyramid = true, bad = 1, gone = true, [3] = true },
+		Boosts = { LuckBoost = 1e9, ServerLuck = 50, CoinPack = 10, Nope = 5 },
+		Receipts = receipts,
+	})
+	eq(d.Rebirths, 3, "환생 버림")
+	eq(d.Discovered.pyramid, true)
+	eq(d.Discovered.gone, true, "모르는 명소 발견 기록 보존")
+	eq(d.Discovered.eiffel, true, "보유 ⇒ 발견")
+	eq(d.Discovered.bad, nil, "true 가 아니면 무시")
+	eq(d.Discovered[3], nil, "문자열 Id 만")
+	eq(d.Boosts.LuckBoost, Config.MAX_BOOST_SECONDS, "최대 시간으로 제한")
+	eq(d.Boosts.ServerLuck, nil, "서버 행운은 저장 안 함")
+	eq(d.Boosts.CoinPack, nil)
+	eq(d.Boosts.Nope, nil)
+	eq(#d.Receipts, Config.MAX_RECEIPTS, "최근 50개")
+	eq(d.Receipts[1], "r6", "오래된 것부터 삭제")
+	eq(d.Receipts[#d.Receipts], "r55")
+	eq(PlayerState.hasReceipt(d, "x"), false)
+
+	local bad = PlayerState.reconcile({ Rebirths = -2, Boosts = { LuckBoost = -5 }, Receipts = "x", Discovered = 7 })
+	eq(bad.Rebirths, 0, "음수")
+	eq(bad.Boosts.LuckBoost, nil, "음수 부스트")
+	eq(#bad.Receipts, 0)
+	eq(next(bad.Discovered), nil)
+	eq(PlayerState.reconcile({ Boosts = { LuckBoost = 0 / 0 } }).Boosts.LuckBoost, nil, "NaN 부스트")
+	eq(PlayerState.reconcile({ Rebirths = math.huge }).Rebirths, 0, "inf")
 end)
 
 print("\n[Format]")

@@ -5,7 +5,7 @@
 --   Icons.setSpin(icon, 420)   -- 회전 속도(초당 도). 그림 아이콘은 빠를 때만 빙글 돌고, 느린 회전은 3D 에만 적용
 -- 3D 모형은 이름별로 한 번만 만들어 두고 복제해서 씁니다. 파트 수는 아이콘마다 3~15개 정도로 작게 유지.
 -- 아이콘: coin, globe(=roll), passport, album(=collection), hammer, park, plaza, dice, clover(=luck), star,
---   star_empty, news, lock, auto, close, check, arrow_up, plane, ticket  (stamp_* 는 그림이 있을 때만 씀)
+--   star_empty, news, lock, auto, close, check, arrow_up, plane, ticket, rebirth  (stamp_* 는 그림이 있을 때만 씀)
 
 local RunService = game:GetService("RunService")
 
@@ -385,6 +385,26 @@ function BUILDERS.auto(m)
 	local finish = start + 8 * step + step / 2
 	local at = V(math.cos(finish), math.sin(finish), 0) * radius
 	arrowhead(m, center, at, V(-math.sin(finish), math.cos(finish), 0), 1.3, 0.95, thickness, SNOW)
+end
+
+-- 환생: 금색 화살표 두 개가 원을 그리며 돎 + 가운데 초록 위 화살표 (파트 15개)
+-- (ImageIds 에 "rebirth" 그림을 넣으면 그 그림을 씀)
+function BUILDERS.rebirth(m)
+	local center = FACE * CFrame.new(0, 2.3, 0)
+	local radius, width, thickness = 1.9, 0.6, 0.7
+	local step = 2 * PI / 12
+	local chord = 2 * radius * math.sin(step / 2) + 0.08
+	for _, start in { math.rad(100), math.rad(280) } do
+		for k = 0, 3 do
+			local cf = center * CFrame.Angles(0, 0, start + k * step) * CFrame.new(radius, 0, 0)
+			block(m, cf, V(width, chord, thickness), SUN)
+		end
+		local finish = start + 3.5 * step
+		local at = V(math.cos(finish), math.sin(finish), 0) * radius
+		arrowhead(m, center, at, V(-math.sin(finish), math.cos(finish), 0), 1.1, 0.85, thickness, SUN)
+	end
+	block(m, center * CFrame.new(0, -0.45, 0), V(0.55, 0.9, 0.6), GRASS)
+	arrowhead(m, center, V(0, 0, 0), V(0, 1, 0), 0.9, 0.75, 0.6, GRASS)
 end
 
 -- 예전 이름 -> 지금 이름 (ImageIds 와 같은 이름을 씀)

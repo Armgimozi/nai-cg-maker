@@ -63,9 +63,6 @@ body {
 }
 .topbar .rbx-btn i { display: block; width: 18px; height: 3px; border-radius: 2px; background: rgba(255,255,255,0.8); box-shadow: 0 -6px 0 rgba(255,255,255,0.8), 0 6px 0 rgba(255,255,255,0.8); }
 .topbar .rbx-btn.chat i { width: 20px; height: 15px; border-radius: 5px; background: transparent; border: 3px solid rgba(255,255,255,0.8); box-shadow: none; }
-.topbar .inset-tag {
-  position: absolute; right: 10px; top: 20px; font: 11px/1 var(--font-kr); color: rgba(20, 22, 30, 0.45);
-}
 .gui { position: absolute; left: 0; top: 58px; width: 1280px; height: 662px; z-index: 10; }
 
 /* 로블록스 GuiObject 흉내 ----------------------------------------------- */
@@ -110,3 +107,6 @@ body {
 .shot-mode .page-head, .shot-mode .findings, .shot-mode .shot h2, .shot-mode .shot .note { display: none; }
 .shot-mode .shot { max-width: none; padding: 0; margin: 0; }
 .shot-mode .frame-wrap { border-radius: 0; }
+
+/* 웹 글꼴이 없을 때(오프라인 빌드): 로컬 대체 글꼴을 굵게 */
+.no-webfonts .screen, .no-webfonts .ph3d .ini { font-weight: 700; }

@@ -1,4 +1,5 @@
--- 기본 화면(HUD): 코인·수입·스탯, 메뉴 버튼, 굴리기 버튼, 지구본 굴림 연출, 뉴스 속보, 알림
+-- 기본 화면(HUD): 코인·수입·스탯, 메뉴 버튼, 굴리기 버튼, 지구본 굴림 연출, 뉴스 속보, 알림,
+-- 환생 수·부스트 타이머·서버 행운 띠(v3), 상점 버튼(오른쪽, 팔 상품이 있을 때만)
 -- 스타일은 DESIGN.md "UI 스타일 가이드 (v2)" — 통통한 버튼 + 굵은 Ink 테두리 + 아이콘, 이모지 없음
 -- 글자는 최소로: 아이콘 + 숫자 위주, 버튼 글자는 2~3글자, 알림은 8글자 안팎. 설명 문장은 쓰지 않음.
 
@@ -12,6 +13,7 @@ local Landmarks = require(Shared.Landmarks)
 local PlayerState = require(Shared.PlayerState)
 
 local Icons = require(script.Parent.Icons)
+local Perks = require(script.Parent.Perks)
 local Ui = require(script.Parent.Ui)
 local Viewport = require(script.Parent.Viewport)
 local Theme = Ui.Theme
@@ -76,6 +78,17 @@ local toasts: { GuiObject } = {}
 local toastOrder = 0
 local burstTween: Tween? = nil
 
+-- 타이머(부스트·서버 행운)와 환생 배지: render 에서 기준값을 받고 tick 에서 글자만 고침
+local hudState: PlayerState.Snapshot? = nil
+local boosts: { Perks.Boost } = {}
+local boostsAt = 0 -- boosts 의 남은 시간을 잰 시각(time())
+local boostChips: { [string]: Ui.Chip } = {}
+local snapshotLuckUntil: number? = nil -- 스냅샷이 알려 준 서버 행운 끝 시각(유닉스 초)
+local snapshotLuckOn = false -- 시각 없이 "켜짐"만 알 때
+local eventLuckUntil = 0 -- ServerLuck 이벤트가 알려 준 끝 시각
+local rebirthReady = false
+local badgeTween: Tween? = nil
+
 local function makeSound(pitch: number, volume: number): Sound
 	return Ui.new("Sound", {
 		SoundId = TICK_SOUND,
@@ -90,12 +103,25 @@ local landSound: Sound
 local revealSound: Sound
 local rareSound: Sound
 local newsSound: Sound
+local luckSound: Sound
 
 local function play(sound: Sound?)
 	if sound then
 		sound.TimePosition = 0
 		sound:Play()
 	end
+end
+
+-- 글자가 바뀔 때만 고침 (자주 부르는 타이머용)
+local function setText(label: TextLabel, text: string)
+	if label.Text ~= text then
+		label.Text = text
+	end
+end
+
+-- 서버 시계(유닉스 초). 서버 행운 끝 시각과 비교
+local function serverNow(): number
+	return workspace:GetServerTimeNow()
 end
 
 -- 화면 구석에 붙는 투명 컨테이너(화면 크기에 따라 자동 스케일)
@@ -163,6 +189,7 @@ local function buildStats()
 		Parent = container,
 	})
 	Ui.list(Enum.FillDirection.Horizontal, 12).Parent = chips
+	refs.StatChips = chips
 	refs.RollsChip = Ui.chip({
 		Name = "Rolls",
 		Color = "Sky",
@@ -181,14 +208,27 @@ local function buildStats()
 		LayoutOrder = 2,
 		Parent = chips,
 	})
+	-- (LayoutOrder 3: 부스트 타이머 딱지 "×2 12:34" — 처음 필요할 때 만듦)
+	-- 환생 수 (1 이상일 때만)
+	refs.RebirthChip = Ui.chip({
+		Name = "Rebirths",
+		Color = "Coral",
+		Icon = "rebirth",
+		Height = 30,
+		TextSize = 18,
+		LayoutOrder = 4,
+		Visible = false,
+		Parent = chips,
+	})
 end
 
--- 왼쪽 가운데: 네모 통통 버튼 4개 (큰 아이콘 + 2글자) -----------------------------
+-- 왼쪽 가운데: 네모 통통 버튼 5개 (큰 아이콘 + 2글자) -----------------------------
 
 local MENU = {
 	{ Id = "Collection", Text = "도감", Color = "Sky", Icon = "album" },
 	{ Id = "Passport", Text = "여권", Color = "Grape", Icon = "passport" },
 	{ Id = "Upgrade", Text = "강화", Color = "Sun", Icon = "hammer" },
+	{ Id = "Rebirth", Text = "환생", Color = "Coral", Icon = "rebirth" },
 }
 
 local function buildMenu(onMenu: (string) -> (), onTeleport: () -> ())
@@ -232,6 +272,24 @@ local function buildMenu(onMenu: (string) -> (), onTeleport: () -> ())
 				Visible = false,
 				Parent = button.Face,
 			})
+		elseif entry.Id == "Rebirth" then
+			-- 환생할 수 있으면 "!" 배지가 통통 뜀
+			local badge = Ui.chip({
+				Name = "Ready",
+				Color = "Sun",
+				Text = "!",
+				Font = Theme.FontTitle,
+				Height = 28,
+				TextSize = 20,
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.new(1, -6, 0, 2),
+				Rotation = 10,
+				ZIndex = 6,
+				Visible = false,
+				Parent = button.Face,
+			})
+			refs.RebirthBadge = badge
+			refs.RebirthBadgeScale = Ui.new("UIScale", { Parent = badge.Root })
 		end
 	end
 
@@ -248,6 +306,34 @@ local function buildMenu(onMenu: (string) -> (), onTeleport: () -> ())
 		Parent = container,
 	})
 	refs.TeleportButton.Activated:Connect(onTeleport)
+end
+
+-- 오른쪽 가운데: 상점 (Robux 상품이 하나도 없으면 안 만듦)
+local function buildShop(onMenu: (string) -> ())
+	if not Perks.anyForSale() then
+		return
+	end
+	local container = anchor(
+		"Shop",
+		Vector2.new(1, 0.5),
+		UDim2.new(1, -14, 0.5, 16),
+		UDim2.fromOffset(MENU_BUTTON.X + 8, MENU_BUTTON.Y)
+	)
+	local button = Ui.chunkyButton({
+		Name = "Shop",
+		Size = UDim2.fromOffset(MENU_BUTTON.X, MENU_BUTTON.Y),
+		Color = "Sun",
+		Icon = "coin",
+		IconSize = MENU_ICON,
+		IconSpin = 45,
+		Vertical = true,
+		Text = "상점",
+		TextSize = 18,
+		Parent = container,
+	})
+	button.Activated:Connect(function()
+		onMenu("Shop")
+	end)
 end
 
 -- 아래 가운데: 굴리기 + 자동 (키보드가 있으면 버튼 모서리에 R / T 키캡) --------------
@@ -554,21 +640,55 @@ local function buildReveal()
 	})
 end
 
--- 뉴스 속보 / 알림 자리 ------------------------------------------------------
+-- 서버 행운 띠 / 뉴스 속보 / 알림 자리 ------------------------------------------
+
+local function topList(parent: Instance, gap: number): UIListLayout
+	local layout = Ui.list(Enum.FillDirection.Vertical, gap, Enum.HorizontalAlignment.Center)
+	layout.VerticalAlignment = Enum.VerticalAlignment.Top
+	layout.Parent = parent
+	return layout
+end
 
 local function buildNotices()
-	-- 뉴스 속보(맨 위)
-	local news = anchor("News", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 10), UDim2.fromOffset(720, 118), 9)
-	local newsLayout = Ui.list(Enum.FillDirection.Vertical, 8, Enum.HorizontalAlignment.Center)
-	newsLayout.VerticalAlignment = Enum.VerticalAlignment.Top
-	newsLayout.Parent = news
+	-- 위에서부터 [서버 행운 띠(켜졌을 때만)] [뉴스 속보] [알림] 순서로 쌓임. 띠가 뜨면 아래 둘이 함께 내려감
+	local top = anchor("Top", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 10), UDim2.fromOffset(720, 380), 9)
+	topList(top, 6)
+
+	-- 서버 행운: 도는 지구본 + "서버 행운 ×2 · 12:34"
+	refs.ServerLuck = Ui.chip({
+		Name = "ServerLuck",
+		Color = "Grape",
+		Icon = "globe",
+		IconSpin = 60,
+		IconSize = 50,
+		Height = 40,
+		TextSize = 22,
+		StrokeThickness = 3,
+		LayoutOrder = 1,
+		Visible = false,
+		Parent = top,
+	})
+
+	-- 뉴스 속보
+	local news = Ui.new("Frame", {
+		Name = "News",
+		LayoutOrder = 2,
+		Size = UDim2.fromOffset(720, 118),
+		BackgroundTransparency = 1,
+		Parent = top,
+	})
+	topList(news, 8)
 	refs.News = news
 
 	-- 잠깐 떴다 사라지는 알림(뉴스 아래)
-	local notices = anchor("Notices", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 134), UDim2.fromOffset(600, 200), 9)
-	local layout = Ui.list(Enum.FillDirection.Vertical, 8, Enum.HorizontalAlignment.Center)
-	layout.VerticalAlignment = Enum.VerticalAlignment.Top
-	layout.Parent = notices
+	local notices = Ui.new("Frame", {
+		Name = "Notices",
+		LayoutOrder = 3,
+		Size = UDim2.fromOffset(600, 200),
+		BackgroundTransparency = 1,
+		Parent = top,
+	})
+	topList(notices, 8)
 	refs.Notices = notices
 end
 
@@ -598,9 +718,11 @@ function Hud.init(playerGui: PlayerGui, handlers: Handlers): ScreenGui
 	revealSound = makeSound(0.9, 0.6)
 	rareSound = makeSound(0.5, 1)
 	newsSound = makeSound(0.7, 0.5)
+	luckSound = makeSound(0.6, 0.7)
 
 	buildStats()
 	buildMenu(handlers.Menu, handlers.Teleport)
+	buildShop(handlers.Menu)
 	buildRollBar(handlers.Roll, handlers.ToggleAuto)
 	buildReveal()
 	buildNotices()
@@ -608,16 +730,102 @@ function Hud.init(playerGui: PlayerGui, handlers: Handlers): ScreenGui
 	return gui
 end
 
-function Hud.render(state: PlayerState.Snapshot?)
+-- 환생 가능 배지: 켜질 때만 통통 뛰는 애니메이션을 돌림
+local function setRebirthReady(ready: boolean)
+	if ready == rebirthReady then
+		return
+	end
+	rebirthReady = ready
+	refs.RebirthBadge.Root.Visible = ready
+	local tween = badgeTween
+	if tween then
+		tween:Cancel()
+		badgeTween = nil
+	end
+	refs.RebirthBadgeScale.Scale = 1
+	if ready then
+		local pulse = TweenService:Create(
+			refs.RebirthBadgeScale,
+			TweenInfo.new(0.45, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+			{ Scale = 1.25 }
+		)
+		pulse:Play()
+		badgeTween = pulse
+	end
+end
+
+local function boostChip(boost: Perks.Boost): Ui.Chip
+	local chip = boostChips[boost.Key]
+	if not chip then
+		chip = Ui.chip({
+			Name = "Boost" .. boost.Key,
+			Color = "Grass",
+			Icon = boost.Icon,
+			Height = 30,
+			TextSize = 18,
+			LayoutOrder = 3,
+			Parent = refs.StatChips,
+		})
+		boostChips[boost.Key] = chip
+	end
+	return chip
+end
+
+-- 가벼운 갱신(0.25초마다): 부스트 남은 시간, 서버 행운 띠, 환생 배지. 글자는 바뀔 때만 고침
+-- coins: 지금 보이는 코인(부드럽게 오르는 값). nil 이면 환생 배지는 그대로 둠
+function Hud.tick(coins: number?)
+	local elapsed = time() - boostsAt
+	local active: { [string]: boolean } = {}
+	for _, boost in boosts do
+		local left = boost.Seconds - elapsed
+		if left > 0 then
+			active[boost.Key] = true
+			local chip = boostChip(boost)
+			setText(chip.Label, Ui.times(boost.Mult) .. " " .. Format.duration(left))
+			chip.Root.Visible = true
+		end
+	end
+	for key, chip in boostChips do
+		if not active[key] then
+			chip.Root.Visible = false
+		end
+	end
+
+	-- 서버 행운: 스냅샷/이벤트 중 더 늦게 끝나는 쪽
+	local banner = refs.ServerLuck
+	local untilTime = math.max(snapshotLuckUntil or 0, eventLuckUntil)
+	local left = untilTime - serverNow()
+	local luckText = "서버 행운 " .. Ui.times(Perks.mult("ServerLuck", 2))
+	if left > 0 then
+		setText(banner.Label, luckText .. " · " .. Format.duration(left))
+		banner.Root.Visible = true
+	elseif snapshotLuckOn then
+		setText(banner.Label, luckText)
+		banner.Root.Visible = true
+	else
+		banner.Root.Visible = false
+	end
+
+	if coins and hudState then
+		setRebirthReady((Perks.rebirthCheck(hudState, coins)))
+	end
+end
+
+-- receivedAt: 스냅샷을 받은 시각(time()). 부스트·서버 행운의 "남은 초" 기준
+function Hud.render(state: PlayerState.Snapshot?, receivedAt: number?)
+	hudState = state
 	if not state then
 		refs.CoinLabel.Text = "..."
 		refs.IncomeChip.Root.Visible = false
 		refs.RollsChip.Root.Visible = false
 		refs.LuckChip.Root.Visible = false
+		refs.RebirthChip.Root.Visible = false
 		refs.PassportBadge.Root.Visible = false
+		setRebirthReady(false)
 		shownCoins = -1
 		return
 	end
+	local at = receivedAt or time()
 	refs.IncomeChip.Label.Text = "+" .. incomeText(state.Income) .. "/s"
 	refs.IncomeChip.Root.Visible = true
 	refs.RollsChip.Label.Text = Format.commas(state.Rolls)
@@ -631,6 +839,26 @@ function Hud.render(state: PlayerState.Snapshot?)
 	badge.Label.Text = string.format("%d/%d", stamps, #Landmarks.Regions)
 	badge.Label.TextColor3 = if stamps > 0 then Ui.colorPair("Sun").Face else WHITE
 	badge.Root.Visible = true
+
+	-- 환생 수 딱지 (0 이면 숨김)
+	local rebirths = Perks.rebirths(state)
+	refs.RebirthChip.Label.Text = Format.commas(rebirths)
+	refs.RebirthChip.Root.Visible = rebirths > 0
+
+	-- 부스트 / 서버 행운 기준값 (스냅샷을 받은 순간 기준)
+	local snapshot = state :: any
+	boosts = Perks.boosts(snapshot)
+	boostsAt = at
+	snapshotLuckUntil, snapshotLuckOn = Perks.serverLuck(snapshot.ServerLuck, serverNow() - (time() - at))
+	Hud.tick(state.Coins + state.Income * math.max(0, time() - at))
+end
+
+-- ServerLuck 이벤트 { Name, Until }: 띠를 켜고 "<이름> 서버 행운!" 알림
+function Hud.serverLuck(name: string, untilValue: number)
+	eventLuckUntil = math.max(eventLuckUntil, Perks.toEpoch(untilValue, serverNow()))
+	Hud.tick(nil)
+	Hud.toast(Format.escape(name) .. " 서버 행운!", Ui.colorPair("Grape").Face, 4, "globe")
+	play(luckSound)
 end
 
 -- 매 프레임 호출: 부드럽게 올라가는 코인 표시 (정수가 바뀔 때만 글자 갱신)
@@ -681,6 +909,11 @@ local function flash(color: Color3, strength: number)
 	TweenService:Create(flashFrame, TweenInfo.new(1.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 		BackgroundTransparency = 1,
 	}):Play()
+end
+
+-- 화면 전체 번쩍임 (환생 등)
+function Hud.flash(color: Color3, strength: number)
+	flash(color, strength)
 end
 
 -- landed: 결과 지역에 멈췄으면 지역 색 딱지, 아니면 지역 색 글자만

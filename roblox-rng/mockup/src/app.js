@@ -437,7 +437,6 @@
 
   // Ui.chunkyButton (스킨 버전: button_shadow / button_face 를 색으로 물들임)
   function chunkyButton(parent, o) {
-    const width = o.size[1];
     const height = o.size[3];
     const faceHeight = Math.max(12, height - SHADOW_DEPTH);
     const round = o.round === true;
@@ -479,7 +478,6 @@
       { name: 'Label', text, color: WHITE, z: 4, pos: o.labelPos || labelPos, size: o.labelSize || labelSize, outline: o.outlineThickness || 2.5 },
       o.textSize || 26
     );
-    void width;
     return { root, face, shadow, label: lbl, icon };
   }
 
@@ -1501,7 +1499,9 @@
   async function main() {
     const shots = document.getElementById('shots');
     if (SHOT_MODE) document.body.classList.add('shot-mode');
-    SHOTS.forEach((shot, i) => {
+    // 글꼴을 못 넣었으면(네트워크 없음) 로컬 대체 글꼴을 굵게
+    if (!(window.FONTS_EMBEDDED || []).includes('fredoka')) document.body.classList.add('no-webfonts');
+    SHOTS.forEach((shot) => {
       const section = document.createElement('section');
       section.className = 'shot';
       const number = shot.extra ? '4-2' : String(SHOTS.filter((s) => !s.extra).indexOf(shot) + 1);
@@ -1511,7 +1511,6 @@
       section.appendChild(wrap);
       shots.appendChild(section);
       shot.build(wrap);
-      void i;
     });
 
     try {

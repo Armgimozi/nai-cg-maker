@@ -1,4 +1,4 @@
--- 메뉴 창: 도감(대표 지정), 여권(지역별 발견 현황 + 도장), 강화(업그레이드)
+-- 메뉴 창: 도감(대표 지정), 여권(지역별 발견 현황 + 도장), 강화(업그레이드), 환생(조건 + 확인), 상점(Robux)
 -- 크림색 창(Ui.window) 하나를 쓰고, 화면마다 리본 색과 제목(2글자)만 바꿉니다.
 -- 글자는 최소로: 설명 문장 없이 아이콘 + 숫자 딱지로 보여 줍니다.
 -- 화면마다 카드를 한 번 만들고 상태가 바뀌면 글자/색만 고칩니다. 썸네일(ViewportFrame)은
@@ -13,6 +13,7 @@ local Landmarks = require(Shared.Landmarks)
 local PlayerState = require(Shared.PlayerState)
 
 local Icons = require(script.Parent.Icons)
+local Perks = require(script.Parent.Perks)
 local Ui = require(script.Parent.Ui)
 local Viewport = require(script.Parent.Viewport)
 local Theme = Ui.Theme
@@ -24,6 +25,10 @@ export type Handlers = {
 	Feature: (string?) -> (),
 	Buy: (string) -> (),
 	ToggleAutoFeature: () -> (),
+	Rebirth: () -> (), -- 확인까지 누른 뒤에만 부름
+	BuyPass: (string) -> (), -- Config.GamePasses 키
+	BuyProduct: (string) -> (), -- Config.Products 키
+	Toast: (text: string, icon: string?) -> (), -- 짧은 실패 알림 (예: "코인 부족")
 }
 
 local REGION_BONUS = math.floor(Config.REGION_LUCK_BONUS * 100 + 0.5)
@@ -33,6 +38,8 @@ local VIEWS = {
 	Collection = { Title = "도감", Color = "Sky", Top = HEADER_HEIGHT },
 	Passport = { Title = "여권", Color = "Grape", Top = HEADER_HEIGHT },
 	Upgrade = { Title = "강화", Color = "Sun", Top = 4 },
+	Rebirth = { Title = "환생", Color = "Coral", Top = HEADER_HEIGHT },
+	Shop = { Title = "상점", Color = "Sun", Top = 4 },
 }
 
 local WHITE = Color3.new(1, 1, 1)
@@ -58,6 +65,17 @@ local SECTION_GAP = 16
 local UPGRADE_ROW = 80
 local UPGRADE_GAP = 10
 
+local REBIRTH_COLUMNS = 6 -- 요구 명소 카드(여권 카드와 같은 크기)
+local REBIRTH_FOOTER = 104 -- 창 아래 고정 줄: 보상 · 경고 · 환생 버튼
+local COIN_BAR = Vector2.new(380, 40)
+local CONFIRM_SECONDS = 3
+
+local SHOP_CELL = Vector2.new(216, 196)
+local SHOP_GAP = 12
+local SHOP_COLUMNS = 3
+local SHOP_BAND = 74
+local BUY_COOLDOWN = 1
+
 local Panels = {}
 
 local win: Ui.Window
@@ -69,7 +87,7 @@ local openName: string? = nil
 local lastState: Snapshot? = nil
 local lastCoins = 0
 
-type View = { Scroller: ScrollingFrame, Header: Frame }
+type View = { Scroller: ScrollingFrame, Header: Frame, Extra: GuiObject? }
 local views: { [string]: View } = {}
 
 -- 도감 머리 줄
@@ -80,9 +98,11 @@ local emptyIcon: Frame
 
 type CollectionCard = {
 	Card: TextButton,
+	Photo: Frame,
 	Stars: TextLabel,
 	Count: Ui.Chip,
 	Shown: Ui.Chip?, -- 공원 전시 표시(처음 필요할 때 만듦)
+	Dim: Frame?, -- 예전에 발견했지만 지금은 없음(환생 후): 사진을 어둡게 (처음 필요할 때 만듦)
 	Badge: Ui.Chip,
 }
 local collectionCards: { [string]: CollectionCard } = {}
@@ -112,6 +132,26 @@ type UpgradeRow = {
 	Price: number?,
 }
 local upgradeRows: { [string]: UpgradeRow } = {}
+
+-- 환생
+local rebirthCount: Ui.Chip
+local rebirthLuck: Ui.Chip
+local rebirthIncome: Ui.Chip
+local rebirthSection: Frame
+local rebirthGrid: Frame
+local rebirthCoinFill: Frame
+local rebirthCoinText: TextLabel
+local rebirthCoinCheck: Frame
+local rebirthWarning: Ui.Chip
+local rebirthButton: Ui.ChunkyButton? = nil
+local rebirthCards: { [string]: { Card: Frame, Look: string } } = {}
+local confirmUntil = 0 -- 이 시각(os.clock)까지 한 번 더 누르면 환생
+local confirmToken = 0
+local rebirthLook = ""
+
+-- 상점
+type ShopCard = { Item: Perks.Item, Button: Ui.ChunkyButton, Effect: Ui.Chip, Owned: Ui.Chip? }
+local shopCards: { ShopCard } = {}
 
 local function owned(state: Snapshot, id: string): number
 	return state.Inventory[id] or 0
@@ -311,7 +351,7 @@ local function collectionCard(parent: ScrollingFrame, landmark: Landmark): Colle
 	}, 15)
 	Ui.outline(bandLabel, 1.5)
 
-	photo(card, landmark, UDim2.fromOffset(7, 33), UDim2.new(1, -14, 0, 84), 8)
+	local picture = photo(card, landmark, UDim2.fromOffset(7, 33), UDim2.new(1, -14, 0, 84), 8)
 
 	Ui.label({
 		Position = UDim2.fromOffset(6, 122),
@@ -363,11 +403,35 @@ local function collectionCard(parent: ScrollingFrame, landmark: Landmark): Colle
 	card.Activated:Connect(function()
 		local state = lastState
 		local featured = state ~= nil and state.Featured == landmark.Id
+		if not featured and (not state or owned(state, landmark.Id) <= 0) then
+			return -- 지금 없는 명소(환생 전에 발견)는 대표로 못 씀
+		end
 		handlers.Feature(if featured then nil else landmark.Id)
 	end)
 
 	card.Parent = parent
-	return { Card = card, Stars = stars, Count = count, Shown = nil, Badge = badge }
+	return { Card = card, Photo = picture, Stars = stars, Count = count, Shown = nil, Dim = nil, Badge = badge }
+end
+
+-- 지금은 없는 명소: 사진 위에 어두운 막 (처음 필요할 때 만듦)
+local function setDim(entry: CollectionCard, dim: boolean)
+	local shade = entry.Dim
+	if not shade then
+		if not dim then
+			return
+		end
+		shade = Ui.new("Frame", {
+			Name = "Dim",
+			Size = UDim2.fromScale(1, 1),
+			BackgroundColor3 = Theme.Ink,
+			BackgroundTransparency = 0.45,
+			ZIndex = 2,
+			Parent = entry.Photo,
+		})
+		Ui.corner(8).Parent = shade
+		entry.Dim = shade
+	end
+	(shade :: Frame).Visible = dim
 end
 
 -- 공원에 전시 중: 사진 왼쪽 아래 초록 공원 아이콘 딱지 (처음 필요할 때 만듦)
@@ -405,11 +469,12 @@ local function renderCollection(state: Snapshot)
 		inPark[id] = true
 	end
 
+	-- 도감은 역대 발견(Discovered) 기준. 별·개수·전시는 지금 보유(Inventory) 기준
 	local shown = 0
 	for _, landmark in Landmarks.RarestFirst do
 		local count = owned(state, landmark.Id)
 		local entry = collectionCards[landmark.Id]
-		if count > 0 then
+		if Perks.discovered(state, landmark.Id) then
 			shown += 1
 			if not entry then
 				entry = collectionCard(scroller, landmark)
@@ -421,7 +486,9 @@ local function renderCollection(state: Snapshot)
 			entry.Badge.Root.Visible = featured
 			entry.Stars.Text = Ui.starsRich(PlayerState.stars(count), #Config.STAR_THRESHOLDS)
 			entry.Count.Label.Text = "×" .. Format.commas(count)
+			entry.Count.Root.Visible = count > 0
 			setShown(entry, inPark[landmark.Id] == true)
+			setDim(entry, count <= 0)
 		elseif entry then
 			entry.Card:Destroy()
 			collectionCards[landmark.Id] = nil
@@ -680,7 +747,7 @@ local function renderPassport(state: Snapshot)
 		local list = Landmarks.ByRegion[region.Id]
 		local discovered = 0
 		for order, landmark in list do
-			local known = owned(state, landmark.Id) > 0
+			local known = Perks.discovered(state, landmark.Id)
 			if known then
 				discovered += 1
 			end

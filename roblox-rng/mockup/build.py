@@ -266,8 +266,9 @@ def main() -> None:
     )
     OUT.write_text(html, encoding="utf-8")
     size = OUT.stat().st_size
+    shown = OUT.relative_to(ROOT) if OUT.is_relative_to(ROOT) else OUT
     print(
-        f"{OUT.relative_to(ROOT)}  {size / 1024:.0f} KB  "
+        f"{shown}  {size / 1024:.0f} KB  "
         f"(그림 {len(art)}개, 명소 {len(data['Landmarks']['List'])}개, 대륙 {len(data['Landmarks']['Regions'])}개, "
         f"글꼴 {', '.join(sorted(fonts)) or '없음(대체 글꼴)'})"
     )
