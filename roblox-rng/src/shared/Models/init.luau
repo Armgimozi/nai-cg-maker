@@ -1431,12 +1431,80 @@ local function fallback(c: Ctx)
 	box(c, 0, 8.5, 0, 0.5, 0.5, 0.5, c.A, Mat.Neon)
 end
 
+-- 명소별 전용 모형 ------------------------------------------------------------
+-- 대륙별 모듈(Models/Asia.luau 등)이 `return function(K) return { [명소 Id] = function(c) ... end } end`
+-- 형태로 전용 모형을 돌려줌. K = 아래 KIT(파트 헬퍼·색·기존 모양 builders). 전용 모형이 없는 명소는 Shape 모양을 씀.
+local KIT = {
+	V = V,
+	rgb = rgb,
+	Mat = Mat,
+	PI = PI,
+	TAU = TAU,
+	UPRIGHT = UPRIGHT,
+	ALONG_Z = ALONG_Z,
+	CORNERS = CORNERS,
+	GRASS = GRASS,
+	LEAF = LEAF,
+	WATER = WATER,
+	DARK = DARK,
+	TILE = TILE,
+	ROCK = ROCK,
+	WOOD = WOOD,
+	SAND = SAND,
+	CLOUD = CLOUD,
+	BLACK = BLACK,
+	WHITE = WHITE,
+	mix = mix,
+	add = add,
+	shaped = shaped,
+	block = block,
+	box = box,
+	ball = ball,
+	cyl = cyl,
+	col = col,
+	wedge = wedge,
+	beam = beam,
+	facing = facing,
+	archCorner = archCorner,
+	roof = roof,
+	gable = gable,
+	plant = plant,
+	stepped = stepped,
+	clockFace = clockFace,
+	figureTop = figureTop,
+	shapes = BUILDERS, -- 기존 모양을 바탕으로 쓰고 싶을 때: K.shapes.dome(c)
+}
+
+local CONTINENT_MODULES = { "Asia", "Europe", "Americas", "Africa", "Oceania" }
+local CUSTOM: { [string]: (Ctx) -> () } = {}
+for _, name in CONTINENT_MODULES do
+	local moduleScript = script:FindFirstChild(name)
+	if moduleScript and moduleScript:IsA("ModuleScript") then
+		local ok, result = pcall(function()
+			return (require(moduleScript) :: any)(KIT)
+		end)
+		if ok and type(result) == "table" then
+			for id, builder in result do
+				CUSTOM[id] = builder
+			end
+		else
+			warn("[Models] " .. name .. " 전용 모형을 불러오지 못했습니다: " .. tostring(result))
+		end
+	end
+end
+
 -- 공개 API ------------------------------------------------------------------
 
 -- 코드로 만든 모형이 있는 Shape 이름 집합
 Models.SHAPES = {} :: { [string]: boolean }
 for name in BUILDERS do
 	Models.SHAPES[name] = true
+end
+
+-- 전용 모형이 있는 명소 Id 집합
+Models.CUSTOM = {} :: { [string]: boolean }
+for id in CUSTOM do
+	Models.CUSTOM[id] = true
 end
 
 function Models.build(landmark: Landmark): Model
@@ -1464,7 +1532,7 @@ function Models.build(landmark: Landmark): Model
 		M = landmark.Material or Mat.SmoothPlastic,
 		grand = landmark.Tier ~= nil and landmark.Tier.Rank >= 5,
 	}
-	local builder = BUILDERS[landmark.Shape] or fallback
+	local builder = CUSTOM[landmark.Id] or BUILDERS[landmark.Shape] or fallback
 	local ok, err = pcall(builder, ctx)
 	if not ok then
 		-- 모형 코드에 문제가 있어도 게임은 계속되도록: 만들던 파트를 지우고 기본 모형으로
