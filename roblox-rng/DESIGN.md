@@ -141,8 +141,11 @@ Model 에 PrimaryPart 가 없어도 되고, 바닥 중앙을 피벗으로 맞춰
 
 - 환생 단계마다 요구 사항은 `Config.REBIRTHS[n] = { Coins = number, Landmarks = { id, ... } }` (n = 다음 환생 번호).
   목록을 넘어서면 마지막 단계 요구 명소 + 코인 ×4 씩 증가.
-  요구 명소는 **보유만 하면 됨(소모되지 않음)**.
-- 환생 시 초기화: `Coins = 0`, `Upgrades` 전부 0. 유지: `Inventory`(발견 명소·별), `Featured`, `Settings`, 여권 도장.
+  요구 명소는 **이번 판에서 보유**하고 있어야 함.
+- 환생 시 초기화: `Coins = 0`, `Upgrades` 전부 0, **`Inventory`(보유 명소·별·공원 전시) 비움**, `Featured = nil`.
+  유지: `Discovered`(역대 발견 기록 = 도감 표시), 여권 도장(= Discovered 기준), `Settings`, 환생 수.
+- `Data.Discovered: { [id]: true }` — 한 번이라도 발견한 명소. 도감의 "발견/미발견", 여권 진행도·도장은 이것 기준.
+  발견 보너스 코인·"NEW" 표시는 **역대 처음**(Discovered 에 없을 때)만. 공원 전시·별·수입·환생 조건은 `Inventory` 기준.
 - 보상(누적, 곱): 행운 × (1 + `REBIRTH_LUCK_BONUS` × 환생 수), 관광 수입 × (1 + `REBIRTH_INCOME_BONUS` × 환생 수).
 - 데이터: `Data.Rebirths: number`. 리더보드 "환생" 추가(IntValue).
 - 원격: `Rebirth` (Function) `() -> { Ok, Reason?, State }` — 서버가 조건 검사(코인·명소) 후 적용.
