@@ -40,10 +40,13 @@ local function node(path, parent)
 	return setmetatable({ __path = path, __parent = parent }, nodeMeta)
 end
 
-nodeMeta.__index = function(self, key)
-	if key == "Parent" then
-		return rawget(self, "__parent")
-	end
+-- 폴더 + init.luau = 모듈(Rojo 규칙). 그 폴더 안의 다른 .luau 는 자식 모듈
+local function isModule(self): boolean
+	local base = rawget(self, "__path")
+	return rawget(self, "__file") == true or isFile(base .. "/init.luau")
+end
+
+local function findChild(self, key)
 	local base = rawget(self, "__path")
 	-- 모듈 노드의 자식을 찾을 때는 같은 폴더가 아니라 "모듈이름/" 폴더를 봅니다(Rojo 규칙과 동일)
 	local dir = if rawget(self, "__file") then base:gsub("%.luau$", "") else base
@@ -56,13 +59,42 @@ nodeMeta.__index = function(self, key)
 	if isDir(dir .. "/" .. key) then
 		return node(dir .. "/" .. key, self)
 	end
-	error("가짜 Instance 에 '" .. key .. "' 가 없습니다 (" .. dir .. ")", 2)
+	return nil
+end
+
+nodeMeta.__index = function(self, key)
+	if key == "Parent" then
+		return rawget(self, "__parent")
+	elseif key == "Name" then
+		return (rawget(self, "__path"):gsub("%.luau$", ""):match("([^/]+)$"))
+	elseif key == "FindFirstChild" then
+		return function(this, name)
+			return findChild(this, name)
+		end
+	elseif key == "IsA" then
+		return function(this, className)
+			if className == "ModuleScript" then
+				return isModule(this)
+			end
+			return className == "Instance" or (className == "Folder" and not isModule(this))
+		end
+	end
+	local child = findChild(self, key)
+	if child then
+		return child
+	end
+	local base = rawget(self, "__path")
+	-- 모듈 노드의 자식을 찾을 때는 같은 폴더가 아니라 "모듈이름/" 폴더를 봅니다(Rojo 규칙과 동일)
+	error("가짜 Instance 에 '" .. key .. "' 가 없습니다 (" .. base .. ")", 2)
 end
 
 local cache = {}
 
 local function requireNode(target)
 	local path = rawget(target, "__path")
+	if not rawget(target, "__file") and isFile(path .. "/init.luau") then
+		path = path .. "/init.luau" -- 폴더 모듈
+	end
 	if cache[path] ~= nil then
 		return cache[path]
 	end
