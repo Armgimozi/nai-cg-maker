@@ -875,8 +875,9 @@ local function pick(at: Vector2): Hit
 	return result
 end
 
--- 칸을 누름(또는 끌어서 놓음). dragged: 누르면서 집은 명소를 끌어 와서 놓음
-local function placeAt(hit: Hit, dragged: boolean)
+-- 들고 있는 명소를 가리키는 곳에 놓음(누름 또는 끌어서 뗌): 다른 열린 칸 = 옮기기·자리 바꾸기, 같은 칸 · 부지 밖 = 내려놓기,
+-- 잠긴 칸 = 알림(계속 들고 있음), 부지 안 칸 없는 곳 = 그대로
+local function placeAt(hit: Hit)
 	local current = held
 	local view = viewState()
 	if not current or not view then
@@ -893,9 +894,7 @@ local function placeAt(hit: Hit, dragged: boolean)
 	if plan.Kind == "locked" then
 		handlers.Toast("공원 확장", "lock")
 	elseif plan.Kind == "cancel" then
-		if not dragged then
-			returnHeld() -- 같은 칸을 다시 누름 = 내려놓기 취소
-		end
+		returnHeld() -- 같은 칸 = 제자리에 내려놓기
 	else
 		commit(plan)
 	end
@@ -935,8 +934,9 @@ local function onInputBegan(input: InputObject, processed: boolean)
 		pointer = at
 		local current: Press = { Input = input, Kind = kind, Start = at, Moved = false, Picked = false }
 		press = current
-		if not held then
-			-- 명소를 누르면 바로 집음(끌어서 놓거나, 손을 뗀 뒤 놓을 칸을 누름)
+		-- 명소를 누르면 바로 집음(끌어서 놓거나, 손을 뗀 뒤 놓을 칸을 누름). 평소 카메라에서 터치로 끌면 화면이
+		-- 돌아가므로 그때는 누를 때 집지 않고 톡 누르면(뗄 때) 집음
+		if not held and not (kind == Enum.UserInputType.Touch and viewMode ~= "Top") then
 			local hit = pick(at)
 			local view = viewState()
 			local slot = hit.Slot
@@ -1014,19 +1014,22 @@ local function onInputEnded(input: InputObject, processed: boolean)
 	if current.Picked then
 		-- 누르면서 집음: 끌어서 다른 칸에 놓으면 거기로, 거의 안 움직였으면 계속 들고 있음(다음 누름에 놓기)
 		if held and moved then
-			placeAt(hit, true)
+			placeAt(hit)
 		end
 		return
 	end
 	if held then
-		if kind == Enum.UserInputType.Touch and moved then
-			return -- 따라가는 시점에서 화면을 돌림
+		if kind == Enum.UserInputType.Touch and moved and viewMode ~= "Top" then
+			return -- 평소 카메라: 터치로 끌면 화면 돌리기
 		end
-		placeAt(hit, false)
+		placeAt(hit)
 	elseif hit.Slot and not moved then
 		local view = viewState()
-		if view and ParkGrid.look(view, hit.Slot) == ParkGrid.LOOK_LOCKED then
+		local look = if view then ParkGrid.look(view, hit.Slot) else nil
+		if look == ParkGrid.LOOK_LOCKED then
 			handlers.Toast("공원 확장", "lock")
+		elseif look and Landmarks.ById[look] then
+			pickUp(look, hit.Slot) -- 평소 카메라에서 터치로 톡
 		end
 	end
 end
