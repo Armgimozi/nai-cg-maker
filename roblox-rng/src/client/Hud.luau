@@ -37,6 +37,7 @@ local MENU_ICON = 58
 local ROLL_BUTTON = Vector2.new(270, 90) -- 앞면 270x84
 local AUTO_BUTTON = Vector2.new(140, 76) -- 앞면 140x70
 local VIEW_SIZE = 230 -- 굴림 연출의 둥근 판 지름
+local TIER_RIBBON_ART_HEIGHT = 64 -- 등급 리본 그림 높이(꼬리 포함). 띠 안쪽 높이 = 64 x 120/256 = 30
 local RAY_COUNT = 12 -- 햇살 막대 수 (막대 하나 = 가운데를 지나는 빛줄기 2개)
 
 -- 햇살 막대: 가운데는 진하고 양 끝으로 갈수록 투명
@@ -151,9 +152,19 @@ end
 -- 왼쪽 위: [코인 알약][+수입/s] / [주사위 굴림 수][클로버 행운] -----------------
 
 local COIN_PILL = Vector2.new(230, 52)
+local STATS_POS = Vector2.new(14, 12)
+local STATS_SIZE = Vector2.new(420, 112)
+-- 스탯 묶음 윗줄(코인 알약 + 수입 칩)이 묶음 왼쪽 끝부터 차지하는 폭(배율 1 기준).
+-- 수입 칩은 글자 길이만큼 늘어나므로 긴 "+999.9K/s" 기준. 위 가운데 묶음이 이만큼 비켜 감(placeTop)
+local STATS_RESERVE = 400
 
 local function buildStats()
-	local container = anchor("Stats", Vector2.new(0, 0), UDim2.fromOffset(14, 12), UDim2.fromOffset(420, 112))
+	local container = anchor(
+		"Stats",
+		Vector2.new(0, 0),
+		UDim2.fromOffset(STATS_POS.X, STATS_POS.Y),
+		UDim2.fromOffset(STATS_SIZE.X, STATS_SIZE.Y)
+	)
 
 	local coins = Ui.pill({
 		Name = "Coins",
@@ -561,11 +572,6 @@ local function buildReveal()
 	})
 	Ui.corner(10).Parent = ribbonMain
 	Ui.stroke().Parent = ribbonMain
-	if Ui.skin(ribbonMain, "ribbon", { Radius = 12, Height = 44 }) then
-		for _, tail in refs.RibbonTails do
-			tail.Visible = false -- 리본 그림에 꼬리가 들어 있음
-		end
-	end
 	refs.RibbonLabel = Ui.label({
 		Position = UDim2.fromOffset(10, 4),
 		Size = UDim2.new(1, -20, 1, -8),
@@ -574,6 +580,12 @@ local function buildReveal()
 		Parent = ribbonMain,
 	}, 28)
 	Ui.outline(refs.RibbonLabel, 2.5)
+	-- 리본 그림: 띠 가운데는 그대로(판 아래 끝), 글자는 띠 안쪽에 맞춤
+	if Ui.ribbonArt(ribbon, ribbonMain, refs.RibbonLabel, TIER_RIBBON_ART_HEIGHT) then
+		for _, tail in refs.RibbonTails do
+			tail.Visible = false -- 리본 그림에 꼬리가 들어 있음
+		end
+	end
 	refs.Ribbon = ribbon
 	refs.RibbonMain = ribbonMain
 
@@ -642,6 +654,29 @@ end
 
 -- 서버 행운 띠 / 뉴스 속보 / 알림 자리 ------------------------------------------
 
+local TOP_WIDTH = 600 -- 위 가운데 묶음 폭 = 속보 띠 폭
+local TOP_Y = 10
+local TOP_GAP = 12 -- 왼쪽 위 스탯과 띄울 거리(화면 px)
+
+-- 위 가운데 묶음 자리: 기본은 화면 가운데. 왼쪽 위 스탯(윗줄)과 겹치면 안 겹칠 만큼 오른쪽으로 비키고,
+-- 그래도 화면 오른쪽 끝을 넘는 아주 좁은 화면이면 가운데로 두고 스탯 아래로 내림.
+-- 두 묶음 모두 같은 Ui.autoScale 배율을 받으므로 화면 px 로 계산 (화면 크기가 바뀔 때마다 다시)
+local function placeTop()
+	local top = refs.Top
+	if not top then
+		return
+	end
+	local scale = Ui.scale()
+	local width = gui.AbsoluteSize.X
+	local half = TOP_WIDTH * scale / 2
+	local center = math.max(width / 2, STATS_POS.X + STATS_RESERVE * scale + TOP_GAP + half)
+	if center + half <= width - STATS_POS.X then
+		top.Position = UDim2.fromOffset(center, TOP_Y)
+	else
+		top.Position = UDim2.new(0.5, 0, 0, STATS_POS.Y + STATS_SIZE.Y * scale + TOP_GAP)
+	end
+end
+
 local function topList(parent: Instance, gap: number): UIListLayout
 	local layout = Ui.list(Enum.FillDirection.Vertical, gap, Enum.HorizontalAlignment.Center)
 	layout.VerticalAlignment = Enum.VerticalAlignment.Top
@@ -651,8 +686,12 @@ end
 
 local function buildNotices()
 	-- 위에서부터 [서버 행운 띠(켜졌을 때만)] [뉴스 속보] [알림] 순서로 쌓임. 띠가 뜨면 아래 둘이 함께 내려감
-	local top = anchor("Top", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 10), UDim2.fromOffset(720, 380), 9)
+	local top = anchor("Top", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, TOP_Y), UDim2.fromOffset(TOP_WIDTH, 380), 9)
 	topList(top, 6)
+	refs.Top = top
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(placeTop)
+	Ui.onRescale(placeTop)
+	placeTop()
 
 	-- 서버 행운: 도는 지구본 + "서버 행운 ×2 · 12:34"
 	refs.ServerLuck = Ui.chip({
@@ -673,7 +712,7 @@ local function buildNotices()
 	local news = Ui.new("Frame", {
 		Name = "News",
 		LayoutOrder = 2,
-		Size = UDim2.fromOffset(720, 118),
+		Size = UDim2.fromOffset(TOP_WIDTH, 118),
 		BackgroundTransparency = 1,
 		Parent = top,
 	})
@@ -1163,7 +1202,7 @@ function Hud.news(playerName: string, landmark: Landmarks.Landmark, rollNumber: 
 	})
 	Ui.corner(10).Parent = bar
 	Ui.stroke(Theme.Ink, 3).Parent = bar
-	Ui.skin(bar, "panel_paper", { Radius = 10, Height = 46 })
+	Ui.skin(bar, "panel_paper", { Radius = 10, Height = 46, CenterColor = Theme.Cream })
 	Ui.label({
 		Position = UDim2.fromOffset(66, 5),
 		Size = UDim2.new(1, -66 - 130, 1, -10),

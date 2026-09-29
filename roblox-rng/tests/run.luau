@@ -142,7 +142,8 @@ test("행운 1 에서 희귀 명소 확률 ≈ 1/N", function()
 	local probs = RollLogic.probabilities(Landmarks.RarestFirst, 1)
 	for _, landmark in Landmarks.List do
 		if landmark.OneIn >= 1000 then
-			near(probs[landmark.Id] * landmark.OneIn, 1, 0.01, landmark.Id .. " p*N")
+			-- 더 희귀한 명소들이 먼저 판정되므로 정확히 1/N 보다 살짝 낮음(명소가 많을수록 차이 커짐)
+			near(probs[landmark.Id] * landmark.OneIn, 1, 0.02, landmark.Id .. " p*N")
 		end
 	end
 end)
@@ -150,7 +151,7 @@ test("행운 2 면 희귀 확률 ≈ 2배", function()
 	local p1 = RollLogic.probabilities(Landmarks.RarestFirst, 1)
 	local p2 = RollLogic.probabilities(Landmarks.RarestFirst, 2)
 	near(p2.yonggung / p1.yonggung, 2, 0.01, "yonggung 배율")
-	near(p2.pyramid / p1.pyramid, 2, 0.01, "pyramid 배율")
+	near(p2.pyramid / p1.pyramid, 2, 0.02, "pyramid 배율")
 end)
 test("행운 ≥ N 이면 더 흔한 명소는 안 나옴", function()
 	local probs = RollLogic.probabilities(Landmarks.RarestFirst, 5)

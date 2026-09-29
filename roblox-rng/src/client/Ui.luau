@@ -70,10 +70,35 @@ local PRESS_TWEEN = TweenInfo.new(0.06, Enum.EasingStyle.Quad, Enum.EasingDirect
 local RELEASE_TWEEN = TweenInfo.new(0.16, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 local HOVER_TWEEN = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
--- 9-slice 스킨 그림: 256x256, SliceCenter 64..192, 그림 속 모서리 반지름 약 50px
-local SLICE_CENTER = Rect.new(64, 64, 192, 192)
-local SLICE_MARGIN = 64
-local SKIN_RADIUS = 50
+-- 9-slice 스킨 그림(256x256)마다: 그림 속 바깥 모서리 반지름(Radius, px)과 SliceCenter 여백(Margin, px).
+-- SliceCenter = Margin..(256 - Margin). 여백은 모서리 곡선(과 광택 줄)이 끝나는 곳 이상이어야 곧은 가장자리만 늘어남.
+-- 여백 = 바깥 빈칸 + 반지름이면, 모서리 조각(여백 x SliceScale)을 높이의 절반까지 키웠을 때 끝이 딱 반원(캡슐)이 됨.
+--   tag         빈칸 2 + 반지름 44 = 46 -> SliceCenter 46..210 (딱지가 캡슐로 나옴)
+--   pill        빈칸 1 + 반지름 63 ≈ 64 (SliceScale = 높이/128 이면 반원)
+--   button_*    반지름 50, 위 광택 줄이 y 56 까지라 여백 64
+--   panel_paper 반지름 46, 여백 64
+--   ribbon      모서리 대신 SliceScale = 그림 높이/256 (Ui.ribbonArt)
+local SKIN_SIZE = 256
+local SKINS: { [string]: { Radius: number, Margin: number } } = {
+	button_face = { Radius = 50, Margin = 64 },
+	button_shadow = { Radius = 50, Margin = 64 },
+	panel_paper = { Radius = 46, Margin = 64 },
+	pill = { Radius = 64, Margin = 64 },
+	tag = { Radius = 44, Margin = 46 },
+	ribbon = { Radius = 50, Margin = 64 },
+}
+local DEFAULT_SKIN = { Radius = 50, Margin = 64 }
+
+-- pill.png 는 이미 Ink 색 + 몸통 불투명도 62%(테두리는 불투명)라 물들이지 않음. 더 투명하게 해 달라고 할 때만 그만큼 더 투명하게
+local PILL_ART_OPACITY = 0.62
+
+-- ribbon.png 속 띠: Ink 테두리 포함 y 30..170, 안쪽 색 x 52..204 · y 40..160 (256 기준). 꼬리는 좌우 조각에서 아래로 처짐
+local RIBBON_FILL = { Side = 52, Top = 40, Bottom = 160 }
+local RIBBON_TEXT_PAD = 4 -- 띠 안쪽 좌우에서 글자까지
+local RIBBON_TEXT_FILL = 0.85 -- 제목 최대 글자 크기 = 띠 안쪽 높이 x 이 값 (글자 테두리까지 띠 안에 들어가게)
+
+-- close.png: 빨간 동그라미 닫기 버튼 완성 그림(지름 216/256, 아래 두께 포함)
+local CLOSE_ART_SIZE = 60
 
 -- Icons 는 Viewport -> Ui 를 require 하므로, 순환을 피하려고 처음 쓸 때 불러옴
 local iconsModule: any = nil
@@ -229,18 +254,40 @@ end
 -- 그림 --------------------------------------------------------------------------
 
 -- 화면 모서리 반지름(px) -> SliceScale. height 를 주면 모서리 조각이 높이의 절반을 넘지 않게
-local function sliceScale(radius: number, height: number?): number
-	local scale = radius / SKIN_RADIUS
+local function sliceScale(name: string, radius: number, height: number?): number
+	local spec = SKINS[name] or DEFAULT_SKIN
+	local scale = radius / spec.Radius
 	if height then
-		scale = math.min(scale, height / 2 / SLICE_MARGIN)
+		scale = math.min(scale, height / 2 / spec.Margin)
 	end
 	return scale
+end
+
+-- 9-slice 설정. options: { Scale?(SliceScale 직접) 또는 Radius + Height?, CenterColor? }
+-- CenterColor: 늘어나는 가운데 조각을 그 색 평면으로 덮음(종이 점무늬가 한쪽으로 몇 배씩 늘어나 얼룩지지 않게)
+local function applySlice(image: ImageLabel, name: string, options: { [string]: any })
+	local margin = (SKINS[name] or DEFAULT_SKIN).Margin
+	local scale = options.Scale or sliceScale(name, options.Radius, options.Height)
+	image.ScaleType = Enum.ScaleType.Slice
+	image.SliceCenter = Rect.new(margin, margin, SKIN_SIZE - margin, SKIN_SIZE - margin)
+	image.SliceScale = scale
+	if options.CenterColor then
+		local inset = margin * scale
+		Ui.new("Frame", {
+			Name = "Center",
+			Position = UDim2.fromOffset(inset, inset),
+			Size = UDim2.new(1, -2 * inset, 1, -2 * inset),
+			BackgroundColor3 = options.CenterColor,
+			BorderSizePixel = 0,
+			Parent = image,
+		})
+	end
 end
 
 -- 스킨 그림을 대상 맨 뒤에 깔고 대상의 바탕·테두리(UIStroke)는 끔. 그림 Id 가 없으면 nil(기존 Frame 모양 그대로).
 -- 테두리를 붙인 "뒤에" 불러야 함. 크기가 고정이고 UIPadding/UIListLayout 이 없는 상자용
 -- (알약·딱지처럼 자동 크기/여백이 있는 상자는 Ui.box). props: { Radius?(화면에서 보일 모서리 반지름 px,
---   없으면 통째로 늘임), Height?(대상 높이 px), Color?(ImageColor3), Transparency? }
+--   없으면 통째로 늘임), Height?(대상 높이 px), Scale?(SliceScale 직접), CenterColor?, Color?(ImageColor3), Transparency? }
 function Ui.skin(target: GuiObject, name: string, props: { [string]: any }?): ImageLabel?
 	local id = Ui.imageId(name)
 	if not id then
@@ -262,11 +309,8 @@ function Ui.skin(target: GuiObject, name: string, props: { [string]: any }?): Im
 		Size = UDim2.fromScale(1, 1),
 		ZIndex = 0, -- 대상 안의 다른 것들(글자·아이콘)보다 뒤
 	})
-	local radius = options.Radius
-	if radius then
-		image.ScaleType = Enum.ScaleType.Slice
-		image.SliceCenter = SLICE_CENTER
-		image.SliceScale = sliceScale(radius, options.Height)
+	if options.Radius or options.Scale then
+		applySlice(image, name, options)
 	else
 		image.ScaleType = Enum.ScaleType.Stretch
 	end
@@ -276,7 +320,9 @@ end
 
 -- 스킨 그림 "자체"가 상자인 ImageLabel(그림이 있을 때) 또는 평범한 Frame(없을 때).
 -- 자동 크기(AutomaticSize)나 UIPadding/UIListLayout 이 붙는 상자(알약·딱지)용: 그림이 여백·배치에 밀리지 않음.
--- props: { Radius, Height?, Color?, Transparency? }. 반환: 상자, 스킨 여부(Frame 이면 UICorner/UIStroke 는 부르는 쪽이 붙임)
+-- props: { Radius, Height?, Color?(Frame 바탕색 = 그림 색), Transparency?,
+--          ImageColor?/ImageTransparency?(그림일 때만 다르게: 이미 색이 칠해진 그림용) }
+-- 반환: 상자, 스킨 여부(Frame 이면 UICorner/UIStroke 는 부르는 쪽이 붙임)
 function Ui.box(name: string, props: { [string]: any }): (GuiObject, boolean)
 	local id = Ui.imageId(name)
 	if not id then
@@ -289,14 +335,40 @@ function Ui.box(name: string, props: { [string]: any }): (GuiObject, boolean)
 	local image = Ui.new("ImageLabel", {
 		BackgroundTransparency = 1,
 		Image = id,
-		ImageColor3 = props.Color or WHITE,
-		ImageTransparency = props.Transparency or 0,
-		ScaleType = Enum.ScaleType.Slice,
-		SliceCenter = SLICE_CENTER,
-		SliceScale = sliceScale(props.Radius, props.Height),
+		ImageColor3 = props.ImageColor or props.Color or WHITE,
+		ImageTransparency = props.ImageTransparency or props.Transparency or 0,
 	})
+	applySlice(image, name, props)
 	image:SetAttribute("Skin", name)
 	return image, true
+end
+
+-- 리본 그림(ribbon.png)을 입힘. 그림이 없으면 nil (Frame 으로 그린 리본 그대로).
+-- root: 리본 전체 Frame (Position 이 띠 가운데 자리), main: root 를 꽉 채우는 띠 Frame(여기에 그림이 깔림),
+-- label: main 안의 제목 글자(Ui.label), artHeight: 꼬리까지 포함한 그림 높이.
+-- SliceScale = artHeight/256 이라 세로 비율은 그림 그대로(가로로만 늘어남). 띠는 그림 위쪽(y 40..160)에 있어서
+-- 띠 가운데가 원래 자리에 오도록 root 를 내리고, 글자 상자·최대 크기를 띠 안쪽에 맞춤
+function Ui.ribbonArt(root: GuiObject, main: GuiObject, label: TextLabel, artHeight: number): ImageLabel?
+	local scale = artHeight / SKIN_SIZE
+	local skin = Ui.skin(main, "ribbon", { Scale = scale })
+	if not skin then
+		return nil
+	end
+	local anchorY = root.AnchorPoint.Y
+	local oldCenter = root.Size.Y.Offset * (0.5 - anchorY) -- 기준점에서 원래 띠 가운데까지
+	local newCenter = (RIBBON_FILL.Top + RIBBON_FILL.Bottom) / 2 * scale - artHeight * anchorY
+	root.Position += UDim2.fromOffset(0, oldCenter - newCenter)
+	root.Size = UDim2.new(root.Size.X.Scale, root.Size.X.Offset, 0, artHeight)
+
+	local side = RIBBON_FILL.Side * scale + RIBBON_TEXT_PAD
+	local bandHeight = (RIBBON_FILL.Bottom - RIBBON_FILL.Top) * scale
+	label.Position = UDim2.fromOffset(side, RIBBON_FILL.Top * scale)
+	label.Size = UDim2.new(1, -2 * side, 0, bandHeight)
+	local limit = label:FindFirstChildOfClass("UITextSizeConstraint")
+	if limit then
+		limit.MaxTextSize = math.floor(bandHeight * RIBBON_TEXT_FILL)
+	end
+	return skin
 end
 
 -- 바탕색 바꾸기 (스킨 그림이면 그림 색을)
@@ -585,21 +657,64 @@ end
 
 -- 창 -------------------------------------------------------------------------
 
+-- 닫기 버튼: close 그림이 있으면 그림 한 장(ImageButton), 없으면 빨간 동그라미 통통 버튼
+export type CloseButton = { Root: GuiObject, Activated: RBXScriptSignal }
+
 export type Window = {
 	Root: Frame,
 	Panel: Frame,
 	Body: Frame,
 	Ribbon: Frame,
 	Title: TextLabel,
-	Close: ChunkyButton,
+	Close: CloseButton,
 	SetColor: (name: string) -> (),
 }
 
-local RIBBON_HEIGHT = 54
+local RIBBON_HEIGHT = 54 -- Frame 리본 높이 (창 몸통 위치의 기준)
+local RIBBON_ART_HEIGHT = 72 -- 리본 그림 높이(꼬리 포함). 띠 안쪽 높이 = 72 x 120/256 ≈ 34
+
+-- 그림 한 장이 곧 버튼(close.png 처럼 완성된 버튼 그림). 마우스를 올리면 1.08배, 누르면 0.9배
+local function imageButton(props: { [string]: any }): ImageButton
+	local button = Ui.new("ImageButton", {
+		Name = props.Name or "ImageButton",
+		AnchorPoint = props.AnchorPoint or Vector2.new(0.5, 0.5),
+		Position = props.Position or UDim2.new(),
+		Size = props.Size,
+		BackgroundTransparency = 1,
+		Image = props.Image,
+		ScaleType = Enum.ScaleType.Fit,
+		AutoButtonColor = false,
+		ZIndex = props.ZIndex or 1,
+	})
+	local scale = Ui.new("UIScale", { Parent = button })
+	local hovered = false
+	local function scaleTo(value: number)
+		TweenService:Create(scale, HOVER_TWEEN, { Scale = value }):Play()
+	end
+	local function release()
+		held[release] = nil
+		scaleTo(if hovered then 1.08 else 1)
+	end
+	button.MouseEnter:Connect(function()
+		hovered = UserInputService.MouseEnabled
+		scaleTo(if hovered then 1.08 else 1)
+	end)
+	button.MouseLeave:Connect(function()
+		hovered = false
+		release()
+	end)
+	button.MouseButton1Down:Connect(function()
+		held[release] = true
+		scaleTo(0.9)
+	end)
+	button.MouseButton1Up:Connect(release)
+	button.Parent = props.Parent
+	return button
+end
 
 -- props: { Size, Position, AnchorPoint, Title, Color(리본 색 이름), RibbonWidth?, Name?, ZIndex?, Visible?, Parent }
 -- Cream 바탕 + Ink 테두리 4 + 모서리 18, 위 가운데에 색 리본 제목, 오른쪽 위에 빨간 동그라미 닫기 버튼
--- 스킨: ImageIds.panel_paper(창 바탕, 물들이지 않음) / ribbon(리본, 색으로 물들임), close 아이콘
+-- 스킨: ImageIds.panel_paper(창 바탕, 물들이지 않음) / ribbon(리본, 색으로 물들임) / close(닫기 버튼 그림 그대로)
 function Ui.window(props: { [string]: any }): Window
 	local theme = Ui.Theme
 	local root = Ui.new("Frame", {
@@ -644,7 +759,8 @@ function Ui.window(props: { [string]: any }): Window
 	})
 	Ui.corner(12).Parent = inner
 	Ui.stroke(theme.Paper, 3).Parent = inner
-	if Ui.skin(panel, "panel_paper", { Radius = 18 }) then
+	-- 종이 가운데 조각은 창 크기만큼(가로 약 5배) 늘어나 점무늬가 얼룩지므로 같은 크림색 평면으로 덮음
+	if Ui.skin(panel, "panel_paper", { Radius = 18, CenterColor = theme.Cream }) then
 		inner.Visible = false -- 종이 그림에 안쪽 테두리가 들어 있음
 	end
 
@@ -684,12 +800,6 @@ function Ui.window(props: { [string]: any }): Window
 	Ui.corner(12).Parent = main
 	Ui.stroke(theme.Ink, 3).Parent = main
 	local gradient = Ui.new("UIGradient", { Rotation = 90, Parent = main })
-	local ribbonSkin = Ui.skin(main, "ribbon", { Radius = 14, Height = RIBBON_HEIGHT })
-	if ribbonSkin then
-		for _, tail in tails do
-			tail.Visible = false -- 리본 그림에 꼬리가 들어 있음
-		end
-	end
 	local title = Ui.label({
 		Name = "Title",
 		Position = UDim2.fromOffset(14, 5),
@@ -700,23 +810,42 @@ function Ui.window(props: { [string]: any }): Window
 		Parent = main,
 	}, 32)
 	Ui.outline(title, 3)
+	-- 리본 그림: 띠 가운데는 그대로(창 위 4px), 글자는 띠 안쪽에 맞춤
+	local ribbonSkin = Ui.ribbonArt(ribbon, main, title, RIBBON_ART_HEIGHT)
+	if ribbonSkin then
+		for _, tail in tails do
+			tail.Visible = false -- 리본 그림에 꼬리가 들어 있음
+		end
+	end
 
-	local closeIcon = if Ui.imageId("close") then "close" else nil
-	local close = Ui.chunkyButton({
-		Name = "Close",
-		Color = "Coral",
-		Round = true,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(1, -8, 0, 8),
-		Size = UDim2.fromOffset(52, 58),
-		Text = if closeIcon then "" else "X",
-		Icon = closeIcon,
-		IconSize = 34,
-		TextSize = 30,
-		OutlineThickness = 3,
-		ZIndex = 4,
-		Parent = root,
-	})
+	-- 닫기: close.png 는 빨간 동그라미 + X 가 다 그려진 버튼 그림이라 그대로 버튼으로 씀
+	local closeImage = Ui.imageId("close")
+	local close: CloseButton
+	if closeImage then
+		local button = imageButton({
+			Name = "Close",
+			Image = closeImage,
+			Position = UDim2.new(1, -8, 0, 8),
+			Size = UDim2.fromOffset(CLOSE_ART_SIZE, CLOSE_ART_SIZE),
+			ZIndex = 4,
+			Parent = root,
+		})
+		close = { Root = button, Activated = button.Activated }
+	else
+		close = Ui.chunkyButton({
+			Name = "Close",
+			Color = "Coral",
+			Round = true,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(1, -8, 0, 8),
+			Size = UDim2.fromOffset(52, 58),
+			Text = "X",
+			TextSize = 30,
+			OutlineThickness = 3,
+			ZIndex = 4,
+			Parent = root,
+		})
+	end
 
 	local top = RIBBON_HEIGHT / 2 + 4 + 14
 	local body = Ui.new("Frame", {
@@ -761,7 +890,7 @@ end
 export type Pill = { Root: GuiObject, Label: TextLabel, Icon: Frame? }
 
 -- 캡슐 모양 반투명 Ink 바탕 + 흰 글자(테두리). 왼쪽에 테두리를 살짝 넘는 동그란 아이콘(선택).
--- 스킨: ImageIds.pill 이 있으면 그 그림을 Ink 로 물들여 씀
+-- 스킨: ImageIds.pill 이 있으면 그 그림을 씀. 그림이 이미 반투명 Ink(+ 불투명 테두리·광택)라 물들이지 않음
 -- props: { Size(높이는 오프셋), Position, AnchorPoint, LayoutOrder, Parent, Text, TextColor3?, MaxTextSize?,
 --          AutoWidth?(글자 길이에 맞춰 가로 자동, TextSize 사용), TextSize?, TextXAlignment?,
 --          Icon?(Icons 이름), IconSize?, IconSpin?, IconBack?(아이콘 뒤 동그라미 색), BackgroundTransparency?, Name?, ZIndex?, Visible? }
@@ -775,11 +904,15 @@ function Ui.pill(props: { [string]: any }): Pill
 	local iconCenter = math.floor(iconSize * 0.28)
 	local leftPad = if props.Icon then iconCenter + math.ceil(iconSize / 2) + 6 else 16
 
+	local transparency = props.BackgroundTransparency or 0.3
 	local root, skinned = Ui.box("pill", {
 		Radius = height / 2,
 		Height = height,
 		Color = theme.Ink,
-		Transparency = props.BackgroundTransparency or 0.3,
+		Transparency = transparency,
+		-- 그림은 물들이지 않고, 그림 몸통(불투명도 62%)보다 더 투명하게 해 달라고 할 때만 그만큼 더 투명하게
+		ImageColor = WHITE,
+		ImageTransparency = math.max(0, 1 - (1 - transparency) / PILL_ART_OPACITY),
 	})
 	root.Name = props.Name or "Pill"
 	root.Size = if autoWidth then UDim2.fromOffset(0, height) else size
@@ -853,6 +986,9 @@ end
 
 export type Chip = { Root: GuiObject, Label: TextLabel, Icon: Frame? }
 
+local CHIP_PAD = 0.42 -- 딱지 좌우 여백 (높이 대비)
+local CHIP_ICON_PAD = 0.12 -- 아이콘 쪽 여백 (아이콘이 딱지 끝에 붙어 살짝 삐져나옴)
+
 -- 작은 색 캡슐 딱지 (글자 길이에 맞춰 가로 자동). 흰 글자 + Ink 테두리. 아이콘을 주면 [아이콘][글자].
 -- props: { Color = 색 이름 또는 Color3, Text, Height?, TextSize?, TextColor3?, Font?, Outline?(false 면 글자 테두리 없음),
 --          StrokeThickness?, CornerRadius?, MinWidth?, Rotation?, Icon?(Icons 이름), IconSize?, IconOnly?(글자 없이 아이콘만),
@@ -884,8 +1020,8 @@ function Ui.chip(props: { [string]: any }): Chip
 		end
 		Ui.stroke(Ui.Theme.Ink, props.StrokeThickness or 2.5).Parent = root
 	end
-	local pad = math.floor(height * 0.42)
-	local iconPad = math.floor(height * 0.12)
+	local pad = math.floor(height * CHIP_PAD)
+	local iconPad = math.floor(height * CHIP_ICON_PAD)
 	Ui.new("UIPadding", {
 		PaddingLeft = UDim.new(0, if iconName then iconPad else pad),
 		PaddingRight = UDim.new(0, if iconOnly then iconPad else pad),
@@ -933,6 +1069,18 @@ function Ui.chip(props: { [string]: any }): Chip
 	return { Root = root, Label = label, Icon = icon }
 end
 
+-- 딱지 아이콘 보이기/숨기기 (숨기면 왼쪽 여백도 글자만 있는 딱지와 같게)
+function Ui.showChipIcon(chip: Chip, visible: boolean)
+	local icon = chip.Icon
+	local padding = chip.Root:FindFirstChildOfClass("UIPadding")
+	if not icon or not padding or icon.Visible == visible then
+		return
+	end
+	icon.Visible = visible
+	local height = chip.Root.Size.Y.Offset
+	padding.PaddingLeft = UDim.new(0, math.floor(height * (if visible then CHIP_ICON_PAD else CHIP_PAD)))
+end
+
 -- 화면 크기 자동 스케일 -------------------------------------------------------
 
 -- 화면 크기에 맞춰 크기를 조절하는 UIScale 을 붙임 (AnchorPoint 기준으로 커지고 작아짐)
@@ -949,10 +1097,24 @@ function Ui.autoScale(object: GuiObject)
 	table.insert(scalers, scale)
 end
 
+-- 지금 자동 스케일 배율 (0.55~0.9)
+function Ui.scale(): number
+	return currentScale()
+end
+
+-- 화면 크기가 바뀌어 배율을 다시 잰 뒤 부를 함수 (배율에 따라 자리를 다시 잡는 HUD 용)
+local rescaleCallbacks: { (number) -> () } = {}
+function Ui.onRescale(callback: (number) -> ())
+	table.insert(rescaleCallbacks, callback)
+end
+
 local function refreshScales()
 	local value = currentScale()
 	for _, scale in scalers do
 		scale.Scale = value
+	end
+	for _, callback in rescaleCallbacks do
+		task.spawn(callback, value)
 	end
 end
 

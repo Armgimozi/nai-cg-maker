@@ -402,51 +402,163 @@ local M = Enum.Material
 
 -- stylua: ignore
 local DEFINITIONS = {
-	-- Id,           이름,               영문,                          N,         지역,       모형,         주 색,               보조 색,              강조 색,              재질
-	{ "clocktower",  "홍콩 시계탑",      "Clock Tower, Hong Kong",      2,         "Asia",     "clocktower", rgb(200, 170, 140), rgb(90, 70, 60),    rgb(255, 245, 210), M.Brick },
-	{ "lighthouse",  "희망봉 등대",      "Cape Point Lighthouse",       3,         "Africa",   "lighthouse", rgb(240, 240, 240), rgb(210, 60, 60),   rgb(255, 240, 150), M.SmoothPlastic },
-	{ "harbourbridge", "하버 브리지",    "Sydney Harbour Bridge",       4,         "Oceania",  "bridge",     rgb(150, 155, 160), rgb(95, 100, 110),  rgb(255, 225, 150), M.Metal },
-	{ "windmill",    "풍차 마을",        "Kinderdijk Windmills",        5,         "Europe",   "windmill",   rgb(230, 220, 200), rgb(140, 90, 60),   rgb(250, 250, 250), M.WoodPlanks },
-	{ "fountain",    "버킹엄 분수",      "Buckingham Fountain",         7,         "Americas", "fountain",   rgb(215, 205, 185), rgb(80, 170, 255),  rgb(200, 240, 255), M.Marble },
+	-- Id, 이름, 영문, N, 대륙, 모양(전용 모형이 없을 때), 주 색, 보조 색, 강조 색, 재질
+	{ "clocktower", "홍콩 시계탑", "Clock Tower, Hong Kong", 2, "Asia", "clocktower", rgb(200, 170, 140), rgb(90, 70, 60), rgb(255, 245, 210), M.Brick },
+	{ "lighthouse", "희망봉 등대", "Cape Point Lighthouse", 3, "Africa", "lighthouse", rgb(240, 240, 240), rgb(210, 60, 60), rgb(255, 240, 150), M.SmoothPlastic },
+	{ "harbourbridge", "하버 브리지", "Sydney Harbour Bridge", 4, "Oceania", "bridge", rgb(150, 155, 160), rgb(95, 100, 110), rgb(255, 225, 150), M.Metal },
+	{ "windmill", "풍차 마을", "Kinderdijk Windmills", 5, "Europe", "windmill", rgb(230, 220, 200), rgb(140, 90, 60), rgb(250, 250, 250), M.WoodPlanks },
+	{ "dolhareubang", "돌하르방", "Dol Hareubang, Jeju", 6, "Asia", "moai", rgb(80, 80, 85), rgb(70, 130, 60), rgb(255, 160, 40), M.Basalt },
+	{ "fountain", "버킹엄 분수", "Buckingham Fountain", 7, "Americas", "fountain", rgb(215, 205, 185), rgb(80, 170, 255), rgb(200, 240, 255), M.Marble },
+	{ "washingtonmonument", "워싱턴 기념탑", "Washington Monument", 8, "Americas", "needle", rgb(240, 235, 225), rgb(180, 175, 165), rgb(200, 220, 255), M.Marble },
+	{ "moeraki", "모에라키 볼더스", "Moeraki Boulders", 9, "Oceania", "stones", rgb(140, 120, 100), rgb(230, 210, 170), rgb(60, 160, 200), M.Rock },
 
-	{ "arc",         "개선문",           "Arc de Triomphe",             12,        "Europe",   "arch",       rgb(225, 210, 180), rgb(190, 175, 150), rgb(255, 230, 160), M.Limestone },
-	{ "bigben",      "빅벤",             "Big Ben",                     20,        "Europe",   "clocktower", rgb(200, 175, 120), rgb(40, 60, 50),    rgb(255, 230, 140), M.Sandstone },
-	{ "skytower",    "스카이타워",       "Sky Tower, Auckland",         25,        "Oceania",  "needle",     rgb(230, 230, 235), rgb(80, 85, 95),    rgb(120, 220, 255), M.Concrete },
-	{ "sungnyemun",  "숭례문",           "Sungnyemun Gate",             30,        "Asia",     "gate",       rgb(170, 160, 150), rgb(60, 120, 90),   rgb(200, 50, 45),   M.Slate },
-	{ "pisa",        "피사의 사탑",      "Leaning Tower of Pisa",       45,        "Europe",   "leaning",    rgb(240, 235, 220), rgb(200, 190, 170), rgb(255, 250, 235), M.Marble },
-	{ "liberty",     "자유의 여신상",    "Statue of Liberty",           70,        "Americas", "statue",     rgb(120, 190, 160), rgb(160, 140, 110), rgb(255, 200, 80),  M.Metal },
+	{ "gatewayarch", "게이트웨이 아치", "Gateway Arch", 10, "Americas", "arch", rgb(210, 215, 220), rgb(120, 130, 140), rgb(255, 240, 200), M.Metal },
+	{ "cheomseongdae", "첨성대", "Cheomseongdae Observatory", 11, "Asia", "lighthouse", rgb(210, 195, 165), rgb(160, 145, 125), rgb(120, 170, 255), M.Granite },
+	{ "arc", "개선문", "Arc de Triomphe", 12, "Europe", "arch", rgb(225, 210, 180), rgb(190, 175, 150), rgb(255, 230, 160), M.Limestone },
+	{ "boulders", "볼더스 비치 펭귄", "Boulders Beach Penguins", 13, "Africa", "stones", rgb(184, 175, 163), rgb(43, 43, 43), rgb(63, 181, 201), M.Granite },
+	{ "flindersst", "플린더스 스트리트 역", "Flinders Street Station", 14, "Oceania", "dome", rgb(230, 180, 80), rgb(180, 80, 60), rgb(80, 160, 140), M.Brick },
+	{ "brandenburg", "브란덴부르크 문", "Brandenburg Gate", 15, "Europe", "gate", rgb(216, 203, 174), rgb(154, 140, 112), rgb(78, 143, 110), M.Sandstone },
+	{ "dabotap", "다보탑", "Dabotap Pagoda", 16, "Asia", "pagoda", rgb(200, 195, 185), rgb(140, 135, 130), rgb(220, 180, 90), M.Granite },
+	{ "brooklynbridge", "브루클린 다리", "Brooklyn Bridge", 18, "Americas", "bridge", rgb(180, 160, 140), rgb(90, 95, 105), rgb(255, 230, 170), M.Granite },
+	{ "bigben", "빅벤", "Big Ben", 20, "Europe", "clocktower", rgb(200, 175, 120), rgb(40, 60, 50), rgb(255, 230, 140), M.Sandstone },
+	{ "chefchaouen", "셰프샤우엔 파란 마을", "Chefchaouen Blue Town", 22, "Africa", "facade", rgb(74, 144, 217), rgb(244, 247, 251), rgb(232, 116, 59), M.Plaster },
+	{ "pancakerocks", "팬케이크 바위", "Punakaiki Pancake Rocks", 24, "Oceania", "seastacks", rgb(180, 170, 150), rgb(120, 105, 90), rgb(40, 160, 200), M.Limestone },
+	{ "skytower", "스카이타워", "Sky Tower, Auckland", 25, "Oceania", "needle", rgb(230, 230, 235), rgb(80, 85, 95), rgb(120, 220, 255), M.Concrete },
+	{ "trevi", "트레비 분수", "Trevi Fountain", 27, "Europe", "fountain", rgb(237, 230, 216), rgb(79, 176, 224), rgb(255, 208, 96), M.Marble },
+	{ "sungnyemun", "숭례문", "Sungnyemun Gate", 30, "Asia", "gate", rgb(170, 160, 150), rgb(60, 120, 90), rgb(200, 50, 45), M.Slate },
+	{ "tablemountain", "테이블 마운틴", "Table Mountain", 32, "Africa", "island", rgb(140, 131, 120), rgb(94, 140, 74), rgb(244, 247, 250), M.Rock },
+	{ "sugarloaf", "빵산", "Sugarloaf Mountain", 35, "Americas", "seastacks", rgb(140, 140, 130), rgb(70, 150, 60), rgb(255, 200, 60), M.Granite },
+	{ "towerbridge", "타워 브리지", "Tower Bridge", 38, "Europe", "bridge", rgb(216, 210, 196), rgb(60, 120, 180), rgb(240, 200, 80), M.Limestone },
+	{ "gyeongbokgung", "경복궁", "Gyeongbokgung Palace", 40, "Asia", "temple", rgb(180, 60, 50), rgb(60, 120, 90), rgb(240, 220, 160), M.WoodPlanks },
+	{ "cathedralcove", "캐시드럴 코브", "Cathedral Cove", 42, "Oceania", "arch", rgb(240, 230, 210), rgb(40, 170, 200), rgb(120, 180, 80), M.Limestone },
+	{ "pisa", "피사의 사탑", "Leaning Tower of Pisa", 45, "Europe", "leaning", rgb(240, 235, 220), rgb(200, 190, 170), rgb(255, 250, 235), M.Marble },
+	{ "baobab", "바오밥나무 거리", "Avenue of the Baobabs", 48, "Africa", "tree", rgb(166, 123, 91), rgb(110, 158, 58), rgb(242, 158, 76), M.Wood },
+	{ "pragueclock", "프라하 천문시계", "Prague Astronomical Clock", 50, "Europe", "clocktower", rgb(94, 90, 86), rgb(47, 95, 168), rgb(232, 184, 74), M.Slate },
+	{ "seongsan", "성산일출봉", "Seongsan Ilchulbong", 55, "Asia", "island", rgb(90, 140, 70), rgb(60, 90, 120), rgb(255, 160, 60), M.Grass },
+	{ "goldengate", "금문교", "Golden Gate Bridge", 60, "Americas", "bridge", rgb(192, 54, 44), rgb(140, 155, 165), rgb(255, 210, 140), M.Metal },
+	{ "lakehillier", "힐리어 핑크 호수", "Lake Hillier (Pink Lake)", 65, "Oceania", "island", rgb(255, 140, 180), rgb(46, 139, 87), rgb(30, 120, 200), M.SmoothPlastic },
+	{ "liberty", "자유의 여신상", "Statue of Liberty", 70, "Americas", "statue", rgb(120, 190, 160), rgb(160, 140, 110), rgb(255, 200, 80), M.Metal },
+	{ "venice", "베네치아 리알토 다리", "Rialto Bridge, Venice", 75, "Europe", "bridge", rgb(239, 230, 212), rgb(47, 143, 160), rgb(30, 30, 36), M.Marble },
+	{ "chocolatehills", "초콜릿 힐", "Chocolate Hills", 80, "Asia", "stones", rgb(140, 90, 50), rgb(120, 180, 70), rgb(255, 230, 180), M.Grass },
+	{ "aitbenhaddou", "아이트벤하두", "Ait Benhaddou", 88, "Africa", "terraces", rgb(201, 138, 90), rgb(143, 90, 58), rgb(94, 158, 74), M.Mud },
+	{ "pitons", "피통스 봉우리", "The Pitons", 95, "Americas", "seastacks", rgb(60, 130, 60), rgb(40, 140, 200), rgb(240, 230, 200), M.LeafyGrass },
 
-	{ "namsan",      "남산타워",         "N Seoul Tower",               120,       "Asia",     "needle",     rgb(235, 235, 240), rgb(60, 60, 70),    rgb(90, 200, 255),  M.SmoothPlastic },
-	{ "eiffel",      "에펠탑",           "Eiffel Tower",                200,       "Europe",   "lattice",    rgb(120, 95, 70),   rgb(90, 70, 50),    rgb(255, 210, 120), M.Metal },
-	{ "apostles",    "12사도 바위",      "Twelve Apostles",             250,       "Oceania",  "seastacks",  rgb(210, 160, 110), rgb(50, 140, 200),  rgb(240, 230, 210), M.Sandstone },
-	{ "colosseum",   "콜로세움",         "Colosseum",                   350,       "Europe",   "ring",       rgb(215, 190, 150), rgb(170, 145, 110), rgb(255, 225, 170), M.Limestone },
-	{ "tajmahal",    "타지마할",         "Taj Mahal",                   600,       "Asia",     "dome",       rgb(250, 248, 240), rgb(220, 215, 200), rgb(255, 215, 120), M.Marble },
-	{ "angkor",      "앙코르와트",       "Angkor Wat",                  850,       "Asia",     "temple",     rgb(150, 140, 110), rgb(100, 110, 80),  rgb(230, 200, 120), M.Sandstone },
+	{ "santorini", "산토리니", "Santorini (Oia)", 100, "Europe", "dome", rgb(250, 250, 250), rgb(42, 111, 214), rgb(245, 160, 65), M.Plaster },
+	{ "hawamahal", "하와마할", "Hawa Mahal (Palace of the Winds)", 105, "Asia", "facade", rgb(240, 140, 120), rgb(210, 100, 75), rgb(255, 230, 200), M.Sandstone },
+	{ "waverock", "웨이브 록", "Wave Rock", 110, "Oceania", "wall", rgb(200, 140, 80), rgb(90, 75, 60), rgb(240, 210, 160), M.Granite },
+	{ "whitehouse", "백악관", "The White House", 115, "Americas", "facade", rgb(245, 245, 240), rgb(90, 150, 80), rgb(255, 210, 120), M.Marble },
+	{ "namsan", "남산타워", "Namsan Tower, Seoul", 120, "Asia", "needle", rgb(235, 235, 240), rgb(60, 60, 70), rgb(90, 200, 255), M.SmoothPlastic },
+	{ "deadvlei", "데드블레이", "Deadvlei", 130, "Africa", "tree", rgb(224, 112, 58), rgb(242, 237, 225), rgb(58, 42, 30), M.Sand },
+	{ "himeji", "히메지성", "Himeji Castle", 140, "Asia", "pagoda", rgb(245, 245, 240), rgb(90, 100, 115), rgb(220, 190, 110), M.Plaster },
+	{ "oldfaithful", "옐로스톤 간헐천", "Old Faithful Geyser", 145, "Americas", "fountain", rgb(200, 180, 140), rgb(240, 250, 255), rgb(110, 200, 230), M.Rock },
+	{ "pena", "페나 궁전", "Pena Palace", 155, "Europe", "facade", rgb(240, 194, 60), rgb(192, 80, 74), rgb(108, 140, 200), M.Plaster },
+	{ "rockislands", "팔라우 락 아일랜드", "Rock Islands of Palau", 165, "Oceania", "island", rgb(46, 125, 50), rgb(64, 224, 208), rgb(220, 210, 180), M.Grass },
+	{ "kinkakuji", "금각사", "Kinkaku-ji (Golden Pavilion)", 175, "Asia", "pagoda", rgb(230, 190, 60), rgb(60, 110, 60), rgb(120, 180, 220), M.Foil },
+	{ "niagara", "나이아가라 폭포", "Niagara Falls", 180, "Americas", "fountain", rgb(74, 168, 224), rgb(78, 140, 70), rgb(240, 250, 255), M.SmoothPlastic },
+	{ "tsingy", "칭기 드 베마라하", "Tsingy de Bemaraha", 190, "Africa", "seastacks", rgb(142, 142, 134), rgb(90, 90, 85), rgb(79, 143, 58), M.Limestone },
+	{ "eiffel", "에펠탑", "Eiffel Tower", 200, "Europe", "lattice", rgb(120, 95, 70), rgb(90, 70, 50), rgb(255, 210, 120), M.Metal },
+	{ "bran", "드라큘라 성", "Bran Castle (Dracula's Castle)", 215, "Europe", "facade", rgb(237, 227, 208), rgb(176, 80, 58), rgb(140, 90, 210), M.Plaster },
+	{ "pamukkale", "파묵칼레", "Pamukkale Travertines", 225, "Asia", "terraces", rgb(248, 248, 245), rgb(100, 200, 230), rgb(220, 230, 235), M.Salt },
+	{ "morainelake", "모레인 호수", "Moraine Lake", 240, "Americas", "island", rgb(60, 180, 200), rgb(90, 110, 130), rgb(255, 255, 255), M.Rock },
+	{ "apostles", "12사도 바위", "Twelve Apostles", 250, "Oceania", "seastacks", rgb(210, 160, 110), rgb(50, 140, 200), rgb(240, 230, 210), M.Sandstone },
+	{ "hungaryparliament", "헝가리 국회의사당", "Hungarian Parliament Building", 265, "Europe", "dome", rgb(240, 232, 220), rgb(194, 74, 58), rgb(255, 216, 120), M.Limestone },
+	{ "templeofheaven", "천단", "Temple of Heaven", 280, "Asia", "pagoda", rgb(30, 80, 180), rgb(200, 50, 30), rgb(250, 245, 235), M.Marble },
+	{ "rainbowmountain", "무지개산", "Rainbow Mountain (Vinicunca)", 300, "Americas", "terraces", rgb(220, 90, 90), rgb(240, 200, 80), rgb(80, 180, 160), M.Sandstone },
+	{ "lalibela", "랄리벨라 암굴 교회", "Church of St. George, Lalibela", 315, "Africa", "temple", rgb(176, 106, 74), rgb(122, 69, 51), rgb(232, 195, 158), M.Rock },
+	{ "duomo", "피렌체 두오모", "Florence Cathedral (Duomo)", 330, "Europe", "dome", rgb(242, 238, 230), rgb(192, 80, 60), rgb(62, 143, 106), M.Marble },
+	{ "colosseum", "콜로세움", "Colosseum", 350, "Europe", "ring", rgb(215, 190, 150), rgb(170, 145, 110), rgb(255, 225, 170), M.Limestone },
+	{ "fuji", "후지산", "Mount Fuji", 370, "Asia", "pyramid", rgb(70, 110, 170), rgb(245, 248, 255), rgb(255, 140, 170), M.Rock },
+	{ "panamacanal", "파나마 운하", "Panama Canal", 390, "Americas", "terraces", rgb(155, 160, 165), rgb(60, 140, 200), rgb(255, 140, 60), M.Concrete },
+	{ "borabora", "보라보라 섬", "Bora Bora", 410, "Oceania", "island", rgb(60, 140, 70), rgb(60, 220, 220), rgb(250, 240, 200), M.Grass },
+	{ "stbasil", "성 바실리 대성당", "Saint Basil's Cathedral", 435, "Europe", "dome", rgb(210, 60, 60), rgb(46, 158, 106), rgb(242, 199, 68), M.Brick },
+	{ "potala", "포탈라궁", "Potala Palace", 460, "Asia", "facade", rgb(250, 250, 245), rgb(160, 40, 50), rgb(255, 200, 60), M.Plaster },
+	{ "karnak", "카르나크 신전", "Karnak Temple", 485, "Africa", "temple", rgb(216, 185, 138), rgb(156, 122, 79), rgb(62, 143, 176), M.Sandstone },
+	{ "stavechurch", "보르군 목조 교회", "Borgund Stave Church", 515, "Europe", "pagoda", rgb(58, 42, 30), rgb(106, 74, 48), rgb(232, 176, 96), M.Wood },
+	{ "arenal", "아레날 화산", "Arenal Volcano", 540, "Americas", "pyramid", rgb(90, 80, 75), rgb(70, 150, 60), rgb(255, 120, 40), M.Basalt },
+	{ "seokguram", "석굴암", "Seokguram Grotto", 570, "Asia", "dome", rgb(230, 225, 215), rgb(140, 135, 130), rgb(255, 230, 160), M.Granite },
+	{ "tajmahal", "타지마할", "Taj Mahal", 600, "Asia", "dome", rgb(250, 248, 240), rgb(220, 215, 200), rgb(255, 215, 120), M.Marble },
+	{ "notredame", "노트르담 대성당", "Notre-Dame de Paris", 640, "Europe", "facade", rgb(216, 205, 181), rgb(110, 124, 134), rgb(60, 120, 216), M.Limestone },
+	{ "peritomoreno", "페리토 모레노 빙하", "Perito Moreno Glacier", 675, "Americas", "wall", rgb(210, 240, 255), rgb(100, 180, 230), rgb(255, 255, 255), M.Ice },
+	{ "hagiasophia", "아야 소피아", "Hagia Sophia", 715, "Asia", "dome", rgb(220, 180, 160), rgb(140, 140, 145), rgb(255, 210, 100), M.Brick },
+	{ "alhambra", "알함브라 궁전", "Alhambra", 750, "Europe", "facade", rgb(200, 104, 62), rgb(140, 90, 58), rgb(79, 163, 107), M.Brick },
+	{ "meroe", "메로에 피라미드", "Pyramids of Meroe", 800, "Africa", "pyramid", rgb(181, 101, 58), rgb(122, 75, 46), rgb(240, 201, 135), M.Sandstone },
+	{ "angkor", "앙코르와트", "Angkor Wat", 850, "Asia", "temple", rgb(150, 140, 110), rgb(100, 110, 80), rgb(230, 200, 120), M.Sandstone },
+	{ "tikal", "티칼 신전", "Tikal Temple I", 900, "Americas", "steps", rgb(180, 170, 150), rgb(60, 140, 70), rgb(230, 220, 190), M.Limestone },
+	{ "stpeters", "성 베드로 대성당", "St. Peter's Basilica", 950, "Europe", "dome", rgb(232, 223, 203), rgb(138, 154, 160), rgb(255, 216, 120), M.Limestone },
 
-	{ "sphinx",      "스핑크스",         "Great Sphinx",                1200,      "Africa",   "sphinx",     rgb(215, 180, 120), rgb(190, 155, 100), rgb(80, 120, 200),  M.Sandstone },
-	{ "greatwall",   "만리장성",         "Great Wall",                  1600,      "Asia",     "wall",       rgb(160, 150, 135), rgb(90, 130, 70),   rgb(220, 60, 50),   M.Cobblestone },
-	{ "pyramid",     "기자 피라미드",    "Pyramids of Giza",            2200,      "Africa",   "pyramid",    rgb(225, 195, 130), rgb(200, 170, 110), rgb(255, 225, 120), M.Sandstone },
-	{ "reef",        "그레이트 배리어 리프", "Great Barrier Reef",      2800,      "Oceania",  "reef",       rgb(255, 120, 150), rgb(40, 170, 210),  rgb(255, 215, 90),  M.SmoothPlastic },
-	{ "chichen",     "치첸이트사",       "Chichen Itza",                3000,      "Americas", "steps",      rgb(190, 180, 160), rgb(80, 140, 80),   rgb(230, 220, 190), M.Limestone },
-	{ "machupicchu", "마추픽추",         "Machu Picchu",                4000,      "Americas", "terraces",   rgb(150, 145, 135), rgb(90, 160, 80),   rgb(200, 230, 255), M.Slate },
-	{ "petra",       "페트라",           "Petra",                       5500,      "Asia",     "facade",     rgb(215, 130, 100), rgb(180, 100, 75),  rgb(255, 200, 150), M.Sandstone },
-	{ "moai",        "모아이 석상",      "Moai",                        7000,      "Oceania",  "moai",       rgb(110, 105, 100), rgb(80, 150, 90),   rgb(200, 60, 50),   M.Basalt },
-	{ "stonehenge",  "스톤헨지",         "Stonehenge",                  9000,      "Europe",   "stones",     rgb(150, 150, 145), rgb(90, 150, 80),   rgb(200, 220, 255), M.Slate },
+	{ "milfordsound", "밀퍼드 사운드", "Milford Sound (Mitre Peak)", 1000, "Oceania", "island", rgb(60, 90, 80), rgb(30, 90, 140), rgb(255, 255, 255), M.Slate },
+	{ "cappadocia", "카파도키아", "Cappadocia", 1080, "Asia", "stones", rgb(230, 200, 160), rgb(180, 140, 100), rgb(255, 90, 90), M.Sandstone },
+	{ "uyuni", "우유니 소금사막", "Salar de Uyuni", 1150, "Americas", "island", rgb(245, 245, 245), rgb(150, 200, 240), rgb(255, 180, 200), M.Salt },
+	{ "sphinx", "스핑크스", "Great Sphinx", 1200, "Africa", "sphinx", rgb(215, 180, 120), rgb(190, 155, 100), rgb(80, 120, 200), M.Sandstone },
+	{ "neuschwanstein", "노이슈반슈타인 성", "Neuschwanstein Castle", 1300, "Europe", "facade", rgb(242, 239, 232), rgb(74, 111, 165), rgb(255, 216, 120), M.Limestone },
+	{ "halong", "하롱베이", "Ha Long Bay", 1400, "Asia", "seastacks", rgb(110, 140, 120), rgb(60, 180, 170), rgb(200, 60, 40), M.Rock },
+	{ "kilimanjaro", "킬리만자로산", "Mount Kilimanjaro", 1500, "Africa", "pyramid", rgb(110, 94, 78), rgb(245, 248, 250), rgb(124, 179, 66), M.Rock },
+	{ "greatwall", "만리장성", "Great Wall", 1600, "Asia", "wall", rgb(160, 150, 135), rgb(90, 130, 70), rgb(220, 60, 50), M.Cobblestone },
+	{ "iguazu", "이과수 폭포", "Iguazu Falls", 1700, "Americas", "terraces", rgb(90, 180, 230), rgb(70, 130, 60), rgb(200, 100, 60), M.SmoothPlastic },
+	{ "montsaintmichel", "몽생미셸", "Mont-Saint-Michel", 1800, "Europe", "island", rgb(184, 174, 156), rgb(94, 107, 120), rgb(255, 211, 90), M.Slate },
+	{ "victoriafalls", "빅토리아 폭포", "Victoria Falls", 1900, "Africa", "fountain", rgb(79, 179, 232), rgb(94, 90, 85), rgb(244, 251, 255), M.Slate },
+	{ "kilauea", "킬라우에아 화산", "Kilauea Volcano", 2000, "Oceania", "island", rgb(60, 50, 50), rgb(255, 90, 30), rgb(255, 200, 60), M.Basalt },
+	{ "pyramid", "기자 피라미드", "Pyramids of Giza", 2200, "Africa", "pyramid", rgb(225, 195, 130), rgb(200, 170, 110), rgb(255, 225, 120), M.Sandstone },
+	{ "grandcanyon", "그랜드 캐니언", "Grand Canyon", 2400, "Americas", "terraces", rgb(200, 100, 60), rgb(230, 160, 100), rgb(90, 180, 230), M.Sandstone },
+	{ "zhangjiajie", "장가계", "Zhangjiajie Stone Pillars", 2500, "Asia", "seastacks", rgb(140, 130, 120), rgb(60, 160, 70), rgb(220, 240, 255), M.Rock },
+	{ "segovia", "세고비아 수도교", "Aqueduct of Segovia", 2650, "Europe", "arch", rgb(191, 168, 138), rgb(140, 122, 98), rgb(242, 221, 176), M.Granite },
+	{ "reef", "그레이트 배리어 리프", "Great Barrier Reef", 2800, "Oceania", "reef", rgb(255, 120, 150), rgb(40, 170, 210), rgb(255, 215, 90), M.SmoothPlastic },
+	{ "chichen", "치첸이트사", "Chichen Itza", 3000, "Americas", "steps", rgb(190, 180, 160), rgb(80, 140, 80), rgb(230, 220, 190), M.Limestone },
+	{ "forbiddencity", "자금성", "Forbidden City", 3300, "Asia", "temple", rgb(200, 50, 40), rgb(255, 200, 50), rgb(240, 230, 210), M.Brick },
+	{ "serengeti", "세렝게티 초원", "Serengeti", 3500, "Africa", "tree", rgb(217, 181, 74), rgb(107, 142, 35), rgb(242, 140, 40), M.Grass },
+	{ "parthenon", "파르테논 신전", "Parthenon", 3750, "Europe", "temple", rgb(240, 232, 216), rgb(200, 184, 154), rgb(111, 160, 216), M.Marble },
+	{ "machupicchu", "마추픽추", "Machu Picchu", 4000, "Americas", "terraces", rgb(150, 145, 135), rgb(90, 160, 80), rgb(200, 230, 255), M.Slate },
+	{ "amazon", "아마존 열대우림", "Amazon Rainforest", 4300, "Americas", "tree", rgb(46, 139, 60), rgb(140, 110, 60), rgb(255, 90, 60), M.LeafyGrass },
+	{ "borobudur", "보로부두르 사원", "Borobudur", 4600, "Asia", "steps", rgb(140, 140, 130), rgb(90, 150, 90), rgb(220, 210, 180), M.Basalt },
+	{ "sahara", "사하라 사막", "Sahara Desert", 4900, "Africa", "island", rgb(239, 194, 122), rgb(201, 139, 69), rgb(63, 163, 77), M.Sand },
+	{ "meteora", "메테오라 수도원", "Meteora Monasteries", 5200, "Europe", "seastacks", rgb(184, 164, 136), rgb(200, 96, 60), rgb(136, 184, 104), M.Rock },
+	{ "petra", "페트라", "Petra", 5500, "Asia", "facade", rgb(215, 130, 100), rgb(180, 100, 75), rgb(255, 200, 150), M.Sandstone },
+	{ "galapagos", "갈라파고스 제도", "Galapagos Islands", 5900, "Americas", "island", rgb(78, 140, 70), rgb(40, 160, 200), rgb(140, 122, 90), M.Ground },
+	{ "abusimbel", "아부심벨 신전", "Abu Simbel Temples", 6300, "Africa", "facade", rgb(217, 168, 108), rgb(168, 116, 63), rgb(242, 193, 78), M.Sandstone },
+	{ "matterhorn", "마터호른", "Matterhorn", 6600, "Europe", "pyramid", rgb(140, 138, 136), rgb(255, 255, 255), rgb(111, 176, 232), M.Rock },
+	{ "moai", "모아이 석상", "Moai", 7000, "Oceania", "moai", rgb(110, 105, 100), rgb(80, 150, 90), rgb(200, 60, 50), M.Basalt },
+	{ "angelfalls", "앙헬 폭포", "Angel Falls", 7500, "Americas", "fountain", rgb(110, 80, 70), rgb(70, 150, 60), rgb(240, 250, 255), M.Sandstone },
+	{ "everest", "에베레스트산", "Mount Everest", 8000, "Asia", "pyramid", rgb(245, 248, 255), rgb(110, 120, 135), rgb(255, 180, 90), M.Snow },
+	{ "teotihuacan", "테오티우아칸", "Teotihuacan", 8500, "Americas", "steps", rgb(160, 130, 100), rgb(110, 90, 70), rgb(255, 200, 120), M.Cobblestone },
+	{ "stonehenge", "스톤헨지", "Stonehenge", 9000, "Europe", "stones", rgb(150, 150, 145), rgb(90, 150, 80), rgb(200, 220, 255), M.Slate },
 
-	{ "alexandria",  "알렉산드리아 등대", "Lighthouse of Alexandria",   15000,     "Africa",   "lighthouse", rgb(245, 240, 225), rgb(220, 200, 160), rgb(255, 170, 60),  M.Marble },
-	{ "babylon",     "바빌론 공중정원",  "Hanging Gardens of Babylon",  30000,     "Asia",     "gardens",    rgb(210, 180, 130), rgb(60, 170, 70),   rgb(120, 200, 255), M.Sandstone },
-	{ "nanmadol",    "난마돌",           "Nan Madol",                   45000,     "Oceania",  "ruins",      rgb(70, 70, 78),    rgb(40, 150, 175),  rgb(110, 200, 110), M.Basalt },
-	{ "rhodes",      "로도스 거상",      "Colossus of Rhodes",          60000,     "Europe",   "statue",     rgb(190, 130, 60),  rgb(230, 225, 210), rgb(255, 140, 40),  M.Foil },
+	{ "waitomo", "와이토모 반딧불이 동굴", "Waitomo Glowworm Caves", 10000, "Oceania", "arch", rgb(80, 75, 70), rgb(30, 40, 60), rgb(120, 240, 255), M.Rock },
+	{ "giantscauseway", "자이언츠 코즈웨이", "Giant's Causeway", 11000, "Europe", "steps", rgb(60, 60, 68), rgb(44, 143, 184), rgb(167, 216, 240), M.Basalt },
+	{ "terracotta", "진시황 병마용", "Terracotta Army", 12500, "Asia", "statue", rgb(160, 130, 110), rgb(120, 100, 80), rgb(200, 170, 140), M.Sandstone },
+	{ "bluehole", "그레이트 블루홀", "Great Blue Hole", 14000, "Americas", "reef", rgb(20, 40, 90), rgb(70, 200, 220), rgb(240, 230, 200), M.SmoothPlastic },
+	{ "alexandria", "알렉산드리아 등대", "Lighthouse of Alexandria", 15000, "Africa", "lighthouse", rgb(245, 240, 225), rgb(220, 200, 160), rgb(255, 170, 60), M.Marble },
+	{ "tutankhamun", "투탕카멘의 무덤", "Tomb of Tutankhamun", 17000, "Africa", "statue", rgb(232, 185, 35), rgb(30, 58, 138), rgb(201, 160, 106), M.Foil },
+	{ "nazca", "나스카 라인", "Nazca Lines", 20000, "Americas", "ruins", rgb(200, 150, 110), rgb(140, 100, 70), rgb(240, 220, 200), M.Sand },
+	{ "yapstone", "얍섬 돌 화폐", "Rai Stones of Yap", 22000, "Oceania", "ring", rgb(190, 180, 160), rgb(140, 130, 112), rgb(80, 160, 80), M.Limestone },
+	{ "pompeii", "폼페이", "Pompeii & Mount Vesuvius", 25000, "Europe", "ruins", rgb(201, 178, 142), rgb(106, 90, 80), rgb(255, 106, 42), M.Sandstone },
+	{ "babylon", "바빌론 공중정원", "Hanging Gardens of Babylon", 30000, "Asia", "gardens", rgb(210, 180, 130), rgb(60, 170, 70), rgb(120, 200, 255), M.Sandstone },
+	{ "richat", "사하라의 눈", "Richat Structure (Eye of the Sahara)", 33000, "Africa", "ring", rgb(217, 138, 78), rgb(138, 90, 60), rgb(242, 208, 138), M.Sand },
+	{ "olmechead", "올멕 거대 두상", "Olmec Colossal Head", 36000, "Americas", "moai", rgb(110, 105, 100), rgb(78, 140, 70), rgb(200, 160, 110), M.Basalt },
+	{ "artemis", "아르테미스 신전", "Temple of Artemis at Ephesus", 40000, "Asia", "temple", rgb(240, 235, 225), rgb(200, 180, 150), rgb(255, 210, 110), M.Marble },
+	{ "nanmadol", "난마돌", "Nan Madol", 45000, "Oceania", "ruins", rgb(70, 70, 78), rgb(40, 150, 175), rgb(110, 200, 110), M.Basalt },
+	{ "greatzimbabwe", "그레이트 짐바브웨", "Great Zimbabwe", 50000, "Africa", "ruins", rgb(154, 143, 126), rgb(107, 99, 88), rgb(201, 162, 74), M.Granite },
+	{ "rhodes", "로도스 거상", "Colossus of Rhodes", 60000, "Europe", "statue", rgb(190, 130, 60), rgb(230, 225, 210), rgb(255, 140, 40), M.Foil },
+	{ "tenochtitlan", "테노치티틀란", "Tenochtitlan", 65000, "Americas", "island", rgb(210, 180, 140), rgb(60, 150, 200), rgb(200, 60, 60), M.Limestone },
+	{ "zeus", "올림피아 제우스 상", "Statue of Zeus at Olympia", 72000, "Europe", "statue", rgb(242, 230, 204), rgb(212, 166, 42), rgb(127, 216, 255), M.Marble },
+	{ "heracleion", "헤라클레이온 해저 도시", "Sunken City of Heracleion", 80000, "Africa", "ruins", rgb(201, 185, 154), rgb(31, 127, 168), rgb(111, 224, 208), M.Limestone },
+	{ "mausoleum", "마우솔로스 영묘", "Mausoleum at Halicarnassus", 90000, "Asia", "temple", rgb(237, 230, 214), rgb(184, 159, 122), rgb(255, 210, 110), M.Marble },
 
-	{ "babel",       "바벨탑",           "Tower of Babel",              150000,    "Asia",     "spiral",     rgb(200, 170, 120), rgb(150, 120, 90),  rgb(255, 230, 180), M.Sandstone },
-	{ "atlantis",    "아틀란티스",       "Atlantis",                    400000,    "Europe",   "island",     rgb(230, 240, 250), rgb(40, 120, 200),  rgb(90, 255, 230),  M.Marble },
-	{ "eldorado",    "엘도라도",         "El Dorado",                   800000,    "Americas", "steps",      rgb(255, 200, 60),  rgb(200, 140, 30),  rgb(255, 250, 180), M.Foil },
+	{ "lochness", "네스호의 네시", "Loch Ness & Nessie", 100000, "Europe", "island", rgb(46, 90, 74), rgb(58, 110, 154), rgb(126, 216, 176), M.Slate },
+	{ "babel", "바벨탑", "Tower of Babel", 150000, "Asia", "spiral", rgb(200, 170, 120), rgb(150, 120, 90), rgb(255, 230, 180), M.Sandstone },
+	{ "trojanhorse", "트로이 목마", "Trojan Horse", 200000, "Asia", "statue", rgb(160, 120, 75), rgb(110, 80, 50), rgb(255, 220, 140), M.WoodPlanks },
+	{ "libraryalex", "알렉산드리아 도서관", "Library of Alexandria", 250000, "Africa", "temple", rgb(242, 237, 225), rgb(201, 163, 107), rgb(255, 179, 71), M.Marble },
+	{ "zealandia", "질랜디아", "Zealandia (Sunken Continent)", 300000, "Oceania", "island", rgb(60, 140, 110), rgb(10, 60, 120), rgb(120, 255, 230), M.Glass },
+	{ "atlantis", "아틀란티스", "Atlantis", 400000, "Europe", "island", rgb(230, 240, 250), rgb(40, 120, 200), rgb(90, 255, 230), M.Marble },
+	{ "labyrinth", "미노타우로스의 미궁", "Labyrinth of the Minotaur", 500000, "Europe", "ruins", rgb(216, 200, 168), rgb(184, 72, 58), rgb(255, 208, 106), M.Sandstone },
+	{ "hwangnyongsa", "황룡사 9층 목탑", "Hwangnyongsa Nine-Story Pagoda", 650000, "Asia", "pagoda", rgb(180, 70, 60), rgb(60, 110, 90), rgb(255, 210, 90), M.WoodPlanks },
+	{ "eldorado", "엘도라도", "El Dorado", 800000, "Americas", "steps", rgb(255, 200, 60), rgb(200, 140, 30), rgb(255, 250, 180), M.Foil },
 
-	{ "mu",          "무 대륙",          "Lost Continent of Mu",        3000000,   "Oceania",  "island",     rgb(175, 165, 125), rgb(30, 110, 170),  rgb(255, 210, 90),  M.Slate },
-	{ "yonggung",    "용궁",             "Dragon King's Palace",        2000000,   "Asia",     "pagoda",     rgb(230, 70, 70),   rgb(40, 130, 150),  rgb(120, 255, 220), M.Glass },
-	{ "skyisland",   "사하라 신기루 성", "Mirage Citadel of the Sahara", 5000000,  "Africa",   "skyisland",  rgb(235, 200, 130), rgb(190, 140, 80),  rgb(170, 240, 255), M.Sand },
-	{ "shangrila",   "샹그릴라",         "Shangri-La",                  10000000,  "Asia",     "pagoda",     rgb(250, 250, 250), rgb(255, 200, 70),  rgb(255, 240, 180), M.Marble },
-	{ "worldtree",   "세계수",           "World Tree",                  40000000,  "Europe",   "tree",       rgb(120, 90, 60),   rgb(90, 220, 120),  rgb(255, 255, 200), M.Wood },
+	{ "fountainofyouth", "젊음의 샘", "Fountain of Youth", 1000000, "Americas", "fountain", rgb(230, 230, 220), rgb(80, 220, 200), rgb(255, 230, 120), M.Marble },
+	{ "yonggung", "용궁", "Dragon King's Palace", 2000000, "Asia", "pagoda", rgb(230, 70, 70), rgb(40, 130, 150), rgb(120, 255, 220), M.Glass },
+	{ "mu", "무 대륙", "Lost Continent of Mu", 3000000, "Oceania", "island", rgb(175, 165, 125), rgb(30, 110, 170), rgb(255, 210, 90), M.Slate },
+	{ "skyisland", "사하라 신기루 성", "Mirage Citadel of the Sahara", 5000000, "Africa", "skyisland", rgb(235, 200, 130), rgb(190, 140, 80), rgb(170, 240, 255), M.Sand },
+	{ "shangrila", "샹그릴라", "Shangri-La", 10000000, "Asia", "pagoda", rgb(250, 250, 250), rgb(255, 200, 70), rgb(255, 240, 180), M.Marble },
+	{ "worldtree", "세계수", "World Tree", 40000000, "Europe", "tree", rgb(120, 90, 60), rgb(90, 220, 120), rgb(255, 255, 200), M.Wood },
 }
 
 Landmarks.List = {} :: { Landmark }
@@ -1952,12 +2064,80 @@ local function fallback(c: Ctx)
 	box(c, 0, 8.5, 0, 0.5, 0.5, 0.5, c.A, Mat.Neon)
 end
 
+-- 명소별 전용 모형 ------------------------------------------------------------
+-- 대륙별 모듈(Models/Asia.luau 등)이 `return function(K) return { [명소 Id] = function(c) ... end } end`
+-- 형태로 전용 모형을 돌려줌. K = 아래 KIT(파트 헬퍼·색·기존 모양 builders). 전용 모형이 없는 명소는 Shape 모양을 씀.
+local KIT = {
+	V = V,
+	rgb = rgb,
+	Mat = Mat,
+	PI = PI,
+	TAU = TAU,
+	UPRIGHT = UPRIGHT,
+	ALONG_Z = ALONG_Z,
+	CORNERS = CORNERS,
+	GRASS = GRASS,
+	LEAF = LEAF,
+	WATER = WATER,
+	DARK = DARK,
+	TILE = TILE,
+	ROCK = ROCK,
+	WOOD = WOOD,
+	SAND = SAND,
+	CLOUD = CLOUD,
+	BLACK = BLACK,
+	WHITE = WHITE,
+	mix = mix,
+	add = add,
+	shaped = shaped,
+	block = block,
+	box = box,
+	ball = ball,
+	cyl = cyl,
+	col = col,
+	wedge = wedge,
+	beam = beam,
+	facing = facing,
+	archCorner = archCorner,
+	roof = roof,
+	gable = gable,
+	plant = plant,
+	stepped = stepped,
+	clockFace = clockFace,
+	figureTop = figureTop,
+	shapes = BUILDERS, -- 기존 모양을 바탕으로 쓰고 싶을 때: K.shapes.dome(c)
+}
+
+local CONTINENT_MODULES = { "Asia", "Europe", "Americas", "Africa", "Oceania" }
+local CUSTOM: { [string]: (Ctx) -> () } = {}
+for _, name in CONTINENT_MODULES do
+	local moduleScript = script:FindFirstChild(name)
+	if moduleScript and moduleScript:IsA("ModuleScript") then
+		local ok, result = pcall(function()
+			return (require(moduleScript) :: any)(KIT)
+		end)
+		if ok and type(result) == "table" then
+			for id, builder in result do
+				CUSTOM[id] = builder
+			end
+		else
+			warn("[Models] " .. name .. " 전용 모형을 불러오지 못했습니다: " .. tostring(result))
+		end
+	end
+end
+
 -- 공개 API ------------------------------------------------------------------
 
 -- 코드로 만든 모형이 있는 Shape 이름 집합
 Models.SHAPES = {} :: { [string]: boolean }
 for name in BUILDERS do
 	Models.SHAPES[name] = true
+end
+
+-- 전용 모형이 있는 명소 Id 집합
+Models.CUSTOM = {} :: { [string]: boolean }
+for id in CUSTOM do
+	Models.CUSTOM[id] = true
 end
 
 function Models.build(landmark: Landmark): Model
@@ -1985,7 +2165,7 @@ function Models.build(landmark: Landmark): Model
 		M = landmark.Material or Mat.SmoothPlastic,
 		grand = landmark.Tier ~= nil and landmark.Tier.Rank >= 5,
 	}
-	local builder = BUILDERS[landmark.Shape] or fallback
+	local builder = CUSTOM[landmark.Id] or BUILDERS[landmark.Shape] or fallback
 	local ok, err = pcall(builder, ctx)
 	if not ok then
 		-- 모형 코드에 문제가 있어도 게임은 계속되도록: 만들던 파트를 지우고 기본 모형으로
@@ -2095,8 +2275,78 @@ end
 return Models
 ]]></string>
         </Properties>
+        <Item class="ModuleScript" referent="10">
+          <Properties>
+            <string name="Name">Africa</string>
+            <string name="Source"><![CDATA[-- 아프리카 명소 전용 모형. Models/init.luau 가 K(파트 헬퍼·색·기존 모양)를 넘겨 호출합니다.
+-- 규칙: 바닥 10x10 안, 높이 22 이하, 바닥 y = 0, 정면 -Z, 파트 45개 이하. c.P/c.S/c.A = 명소 주/보조/강조 색, c.M = 재질.
+
+return function(K)
+	local B = {}
+
+	return B
+end
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="11">
+          <Properties>
+            <string name="Name">Americas</string>
+            <string name="Source"><![CDATA[-- 아메리카 명소 전용 모형. Models/init.luau 가 K(파트 헬퍼·색·기존 모양)를 넘겨 호출합니다.
+-- 규칙: 바닥 10x10 안, 높이 22 이하, 바닥 y = 0, 정면 -Z, 파트 45개 이하. c.P/c.S/c.A = 명소 주/보조/강조 색, c.M = 재질.
+
+return function(K)
+	local B = {}
+
+	return B
+end
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="12">
+          <Properties>
+            <string name="Name">Asia</string>
+            <string name="Source"><![CDATA[-- 아시아 명소 전용 모형. Models/init.luau 가 K(파트 헬퍼·색·기존 모양)를 넘겨 호출합니다.
+-- 규칙: 바닥 10x10 안, 높이 22 이하, 바닥 y = 0, 정면 -Z, 파트 45개 이하. c.P/c.S/c.A = 명소 주/보조/강조 색, c.M = 재질.
+
+return function(K)
+	local B = {}
+
+	return B
+end
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="13">
+          <Properties>
+            <string name="Name">Europe</string>
+            <string name="Source"><![CDATA[-- 유럽 명소 전용 모형. Models/init.luau 가 K(파트 헬퍼·색·기존 모양)를 넘겨 호출합니다.
+-- 규칙: 바닥 10x10 안, 높이 22 이하, 바닥 y = 0, 정면 -Z, 파트 45개 이하. c.P/c.S/c.A = 명소 주/보조/강조 색, c.M = 재질.
+
+return function(K)
+	local B = {}
+
+	return B
+end
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="14">
+          <Properties>
+            <string name="Name">Oceania</string>
+            <string name="Source"><![CDATA[-- 오세아니아 명소 전용 모형. Models/init.luau 가 K(파트 헬퍼·색·기존 모양)를 넘겨 호출합니다.
+-- 규칙: 바닥 10x10 안, 높이 22 이하, 바닥 y = 0, 정면 -Z, 파트 45개 이하. c.P/c.S/c.A = 명소 주/보조/강조 색, c.M = 재질.
+
+return function(K)
+	local B = {}
+
+	return B
+end
+]]></string>
+          </Properties>
+        </Item>
       </Item>
-      <Item class="ModuleScript" referent="10">
+      <Item class="ModuleScript" referent="15">
         <Properties>
           <string name="Name">Net</string>
           <string name="Source"><![CDATA[-- 원격 통신 객체. 서버가 처음 require 할 때 만들고, 클라이언트는 생길 때까지 기다립니다.
@@ -2158,7 +2408,7 @@ return Net
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="11">
+      <Item class="ModuleScript" referent="16">
         <Properties>
           <string name="Name">PlayerState</string>
           <string name="Source"><![CDATA[--!strict
@@ -2766,7 +3016,7 @@ return PlayerState
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="12">
+      <Item class="ModuleScript" referent="17">
         <Properties>
           <string name="Name">RollLogic</string>
           <string name="Source"><![CDATA[--!strict
@@ -2814,11 +3064,11 @@ return RollLogic
       </Item>
     </Item>
   </Item>
-  <Item class="ServerScriptService" referent="13">
+  <Item class="ServerScriptService" referent="18">
     <Properties>
       <string name="Name">ServerScriptService</string>
     </Properties>
-    <Item class="Script" referent="14">
+    <Item class="Script" referent="19">
       <Properties>
         <string name="Name">Server</string>
         <token name="RunContext">0</token>
@@ -3501,7 +3751,7 @@ Net.fn("Teleport").OnServerInvoke = function(player: Player, where: any)
 end
 ]]></string>
       </Properties>
-      <Item class="ModuleScript" referent="15">
+      <Item class="ModuleScript" referent="20">
         <Properties>
           <string name="Name">DataService</string>
           <string name="Source"><![CDATA[-- DataStore 저장/불러오기 + 세션 잠금
@@ -3667,7 +3917,7 @@ return DataService
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="16">
+      <Item class="ModuleScript" referent="21">
         <Properties>
           <string name="Name">FeaturedDisplay</string>
           <string name="Source"><![CDATA[-- 대표 명소를 캐릭터에 표시: 오른쪽 어깨 옆에 작은 모형이 붙어 다니고, 머리 위에 명소 이름표
@@ -3870,7 +4120,7 @@ return FeaturedDisplay
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="17">
+      <Item class="ModuleScript" referent="22">
         <Properties>
           <string name="Name">ParkService</string>
           <string name="Source"><![CDATA[-- 관광 공원 부지: 광장을 둘러싼 원형 배치. 플레이어마다 부지 하나를 배정하고 미니어처를 전시합니다.
@@ -4752,7 +5002,7 @@ return ParkService
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="18">
+      <Item class="ModuleScript" referent="23">
         <Properties>
           <string name="Name">World</string>
           <string name="Source"><![CDATA[-- 광장(스폰) + 받침대 위의 거대 지구본 + 광장 둘레 나무 + 뉴스 속보 홀로그램
@@ -5167,15 +5417,15 @@ return World
       </Item>
     </Item>
   </Item>
-  <Item class="StarterPlayer" referent="19">
+  <Item class="StarterPlayer" referent="24">
     <Properties>
       <string name="Name">StarterPlayer</string>
     </Properties>
-    <Item class="StarterPlayerScripts" referent="20">
+    <Item class="StarterPlayerScripts" referent="25">
       <Properties>
         <string name="Name">StarterPlayerScripts</string>
       </Properties>
-      <Item class="LocalScript" referent="21">
+      <Item class="LocalScript" referent="26">
         <Properties>
           <string name="Name">Client</string>
           <string name="Source"><![CDATA[-- 클라이언트 진입점: 상태 동기화, 굴리기/자동 굴리기, 메뉴 연결, 뉴스 속보, 회전 모형,
@@ -5698,7 +5948,7 @@ end)
 applyState(invoke("GetState"))
 ]]></string>
         </Properties>
-        <Item class="ModuleScript" referent="22">
+        <Item class="ModuleScript" referent="27">
           <Properties>
             <string name="Name">Hud</string>
             <string name="Source"><![CDATA[-- 기본 화면(HUD): 코인·수입·스탯, 메뉴 버튼, 굴리기 버튼, 지구본 굴림 연출, 뉴스 속보, 알림,
@@ -5740,6 +5990,7 @@ local MENU_ICON = 58
 local ROLL_BUTTON = Vector2.new(270, 90) -- 앞면 270x84
 local AUTO_BUTTON = Vector2.new(140, 76) -- 앞면 140x70
 local VIEW_SIZE = 230 -- 굴림 연출의 둥근 판 지름
+local TIER_RIBBON_ART_HEIGHT = 64 -- 등급 리본 그림 높이(꼬리 포함). 띠 안쪽 높이 = 64 x 120/256 = 30
 local RAY_COUNT = 12 -- 햇살 막대 수 (막대 하나 = 가운데를 지나는 빛줄기 2개)
 
 -- 햇살 막대: 가운데는 진하고 양 끝으로 갈수록 투명
@@ -5854,9 +6105,19 @@ end
 -- 왼쪽 위: [코인 알약][+수입/s] / [주사위 굴림 수][클로버 행운] -----------------
 
 local COIN_PILL = Vector2.new(230, 52)
+local STATS_POS = Vector2.new(14, 12)
+local STATS_SIZE = Vector2.new(420, 112)
+-- 스탯 묶음 윗줄(코인 알약 + 수입 칩)이 묶음 왼쪽 끝부터 차지하는 폭(배율 1 기준).
+-- 수입 칩은 글자 길이만큼 늘어나므로 긴 "+999.9K/s" 기준. 위 가운데 묶음이 이만큼 비켜 감(placeTop)
+local STATS_RESERVE = 400
 
 local function buildStats()
-	local container = anchor("Stats", Vector2.new(0, 0), UDim2.fromOffset(14, 12), UDim2.fromOffset(420, 112))
+	local container = anchor(
+		"Stats",
+		Vector2.new(0, 0),
+		UDim2.fromOffset(STATS_POS.X, STATS_POS.Y),
+		UDim2.fromOffset(STATS_SIZE.X, STATS_SIZE.Y)
+	)
 
 	local coins = Ui.pill({
 		Name = "Coins",
@@ -6264,11 +6525,6 @@ local function buildReveal()
 	})
 	Ui.corner(10).Parent = ribbonMain
 	Ui.stroke().Parent = ribbonMain
-	if Ui.skin(ribbonMain, "ribbon", { Radius = 12, Height = 44 }) then
-		for _, tail in refs.RibbonTails do
-			tail.Visible = false -- 리본 그림에 꼬리가 들어 있음
-		end
-	end
 	refs.RibbonLabel = Ui.label({
 		Position = UDim2.fromOffset(10, 4),
 		Size = UDim2.new(1, -20, 1, -8),
@@ -6277,6 +6533,12 @@ local function buildReveal()
 		Parent = ribbonMain,
 	}, 28)
 	Ui.outline(refs.RibbonLabel, 2.5)
+	-- 리본 그림: 띠 가운데는 그대로(판 아래 끝), 글자는 띠 안쪽에 맞춤
+	if Ui.ribbonArt(ribbon, ribbonMain, refs.RibbonLabel, TIER_RIBBON_ART_HEIGHT) then
+		for _, tail in refs.RibbonTails do
+			tail.Visible = false -- 리본 그림에 꼬리가 들어 있음
+		end
+	end
 	refs.Ribbon = ribbon
 	refs.RibbonMain = ribbonMain
 
@@ -6345,6 +6607,29 @@ end
 
 -- 서버 행운 띠 / 뉴스 속보 / 알림 자리 ------------------------------------------
 
+local TOP_WIDTH = 600 -- 위 가운데 묶음 폭 = 속보 띠 폭
+local TOP_Y = 10
+local TOP_GAP = 12 -- 왼쪽 위 스탯과 띄울 거리(화면 px)
+
+-- 위 가운데 묶음 자리: 기본은 화면 가운데. 왼쪽 위 스탯(윗줄)과 겹치면 안 겹칠 만큼 오른쪽으로 비키고,
+-- 그래도 화면 오른쪽 끝을 넘는 아주 좁은 화면이면 가운데로 두고 스탯 아래로 내림.
+-- 두 묶음 모두 같은 Ui.autoScale 배율을 받으므로 화면 px 로 계산 (화면 크기가 바뀔 때마다 다시)
+local function placeTop()
+	local top = refs.Top
+	if not top then
+		return
+	end
+	local scale = Ui.scale()
+	local width = gui.AbsoluteSize.X
+	local half = TOP_WIDTH * scale / 2
+	local center = math.max(width / 2, STATS_POS.X + STATS_RESERVE * scale + TOP_GAP + half)
+	if center + half <= width - STATS_POS.X then
+		top.Position = UDim2.fromOffset(center, TOP_Y)
+	else
+		top.Position = UDim2.new(0.5, 0, 0, STATS_POS.Y + STATS_SIZE.Y * scale + TOP_GAP)
+	end
+end
+
 local function topList(parent: Instance, gap: number): UIListLayout
 	local layout = Ui.list(Enum.FillDirection.Vertical, gap, Enum.HorizontalAlignment.Center)
 	layout.VerticalAlignment = Enum.VerticalAlignment.Top
@@ -6354,8 +6639,12 @@ end
 
 local function buildNotices()
 	-- 위에서부터 [서버 행운 띠(켜졌을 때만)] [뉴스 속보] [알림] 순서로 쌓임. 띠가 뜨면 아래 둘이 함께 내려감
-	local top = anchor("Top", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, 10), UDim2.fromOffset(720, 380), 9)
+	local top = anchor("Top", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, TOP_Y), UDim2.fromOffset(TOP_WIDTH, 380), 9)
 	topList(top, 6)
+	refs.Top = top
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(placeTop)
+	Ui.onRescale(placeTop)
+	placeTop()
 
 	-- 서버 행운: 도는 지구본 + "서버 행운 ×2 · 12:34"
 	refs.ServerLuck = Ui.chip({
@@ -6376,7 +6665,7 @@ local function buildNotices()
 	local news = Ui.new("Frame", {
 		Name = "News",
 		LayoutOrder = 2,
-		Size = UDim2.fromOffset(720, 118),
+		Size = UDim2.fromOffset(TOP_WIDTH, 118),
 		BackgroundTransparency = 1,
 		Parent = top,
 	})
@@ -6866,7 +7155,7 @@ function Hud.news(playerName: string, landmark: Landmarks.Landmark, rollNumber: 
 	})
 	Ui.corner(10).Parent = bar
 	Ui.stroke(Theme.Ink, 3).Parent = bar
-	Ui.skin(bar, "panel_paper", { Radius = 10, Height = 46 })
+	Ui.skin(bar, "panel_paper", { Radius = 10, Height = 46, CenterColor = Theme.Cream })
 	Ui.label({
 		Position = UDim2.fromOffset(66, 5),
 		Size = UDim2.new(1, -66 - 130, 1, -10),
@@ -6952,7 +7241,7 @@ return Hud
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="23">
+        <Item class="ModuleScript" referent="28">
           <Properties>
             <string name="Name">Icons</string>
             <string name="Source"><![CDATA[-- 아이콘 (이모지 대신). 모든 아이콘은 Icons.view 하나로 그립니다(Ui.icon 도 이걸 부름).
@@ -7591,7 +7880,7 @@ return Icons
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="24">
+        <Item class="ModuleScript" referent="29">
           <Properties>
             <string name="Name">Panels</string>
             <string name="Source"><![CDATA[-- 메뉴 창: 도감(대표 지정), 여권(지역별 발견 현황 + 도장), 강화(업그레이드), 환생(조건 + 확인), 상점(Robux)
@@ -8536,6 +8825,7 @@ local function renderUpgrade(state: Snapshot)
 		local price = PlayerState.upgradePrice(upgrade.Id, level)
 		row.Level.Label.Text = "Lv " .. level
 		row.Value.Label.Text = valueText(upgrade, level)
+		Ui.showChipIcon(row.Step, price ~= nil) -- 최대 레벨(MAX)에는 위 화살표 없음
 		if price then
 			row.Step.Label.Text = stepText(upgrade)
 			Ui.tint(row.Step.Root, Ui.colorPair("Grass").Face)
@@ -9255,7 +9545,7 @@ return Panels
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="25">
+        <Item class="ModuleScript" referent="30">
           <Properties>
             <string name="Name">Perks</string>
             <string name="Source"><![CDATA[-- 환생 · 게임패스 · 개발자 상품 · 시간 부스트 · 서버 행운을 화면용으로 읽는 헬퍼 (DESIGN.md v3).
@@ -9636,7 +9926,7 @@ return Perks
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="26">
+        <Item class="ModuleScript" referent="31">
           <Properties>
             <string name="Name">Ui</string>
             <string name="Source"><![CDATA[-- UI 생성 헬퍼와 테마. 모든 화면은 코드로 만들어서 .rbxm 없이도 동작합니다.
@@ -9711,10 +10001,35 @@ local PRESS_TWEEN = TweenInfo.new(0.06, Enum.EasingStyle.Quad, Enum.EasingDirect
 local RELEASE_TWEEN = TweenInfo.new(0.16, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 local HOVER_TWEEN = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
--- 9-slice 스킨 그림: 256x256, SliceCenter 64..192, 그림 속 모서리 반지름 약 50px
-local SLICE_CENTER = Rect.new(64, 64, 192, 192)
-local SLICE_MARGIN = 64
-local SKIN_RADIUS = 50
+-- 9-slice 스킨 그림(256x256)마다: 그림 속 바깥 모서리 반지름(Radius, px)과 SliceCenter 여백(Margin, px).
+-- SliceCenter = Margin..(256 - Margin). 여백은 모서리 곡선(과 광택 줄)이 끝나는 곳 이상이어야 곧은 가장자리만 늘어남.
+-- 여백 = 바깥 빈칸 + 반지름이면, 모서리 조각(여백 x SliceScale)을 높이의 절반까지 키웠을 때 끝이 딱 반원(캡슐)이 됨.
+--   tag         빈칸 2 + 반지름 44 = 46 -> SliceCenter 46..210 (딱지가 캡슐로 나옴)
+--   pill        빈칸 1 + 반지름 63 ≈ 64 (SliceScale = 높이/128 이면 반원)
+--   button_*    반지름 50, 위 광택 줄이 y 56 까지라 여백 64
+--   panel_paper 반지름 46, 여백 64
+--   ribbon      모서리 대신 SliceScale = 그림 높이/256 (Ui.ribbonArt)
+local SKIN_SIZE = 256
+local SKINS: { [string]: { Radius: number, Margin: number } } = {
+	button_face = { Radius = 50, Margin = 64 },
+	button_shadow = { Radius = 50, Margin = 64 },
+	panel_paper = { Radius = 46, Margin = 64 },
+	pill = { Radius = 64, Margin = 64 },
+	tag = { Radius = 44, Margin = 46 },
+	ribbon = { Radius = 50, Margin = 64 },
+}
+local DEFAULT_SKIN = { Radius = 50, Margin = 64 }
+
+-- pill.png 는 이미 Ink 색 + 몸통 불투명도 62%(테두리는 불투명)라 물들이지 않음. 더 투명하게 해 달라고 할 때만 그만큼 더 투명하게
+local PILL_ART_OPACITY = 0.62
+
+-- ribbon.png 속 띠: Ink 테두리 포함 y 30..170, 안쪽 색 x 52..204 · y 40..160 (256 기준). 꼬리는 좌우 조각에서 아래로 처짐
+local RIBBON_FILL = { Side = 52, Top = 40, Bottom = 160 }
+local RIBBON_TEXT_PAD = 4 -- 띠 안쪽 좌우에서 글자까지
+local RIBBON_TEXT_FILL = 0.85 -- 제목 최대 글자 크기 = 띠 안쪽 높이 x 이 값 (글자 테두리까지 띠 안에 들어가게)
+
+-- close.png: 빨간 동그라미 닫기 버튼 완성 그림(지름 216/256, 아래 두께 포함)
+local CLOSE_ART_SIZE = 60
 
 -- Icons 는 Viewport -> Ui 를 require 하므로, 순환을 피하려고 처음 쓸 때 불러옴
 local iconsModule: any = nil
@@ -9870,18 +10185,40 @@ end
 -- 그림 --------------------------------------------------------------------------
 
 -- 화면 모서리 반지름(px) -> SliceScale. height 를 주면 모서리 조각이 높이의 절반을 넘지 않게
-local function sliceScale(radius: number, height: number?): number
-	local scale = radius / SKIN_RADIUS
+local function sliceScale(name: string, radius: number, height: number?): number
+	local spec = SKINS[name] or DEFAULT_SKIN
+	local scale = radius / spec.Radius
 	if height then
-		scale = math.min(scale, height / 2 / SLICE_MARGIN)
+		scale = math.min(scale, height / 2 / spec.Margin)
 	end
 	return scale
+end
+
+-- 9-slice 설정. options: { Scale?(SliceScale 직접) 또는 Radius + Height?, CenterColor? }
+-- CenterColor: 늘어나는 가운데 조각을 그 색 평면으로 덮음(종이 점무늬가 한쪽으로 몇 배씩 늘어나 얼룩지지 않게)
+local function applySlice(image: ImageLabel, name: string, options: { [string]: any })
+	local margin = (SKINS[name] or DEFAULT_SKIN).Margin
+	local scale = options.Scale or sliceScale(name, options.Radius, options.Height)
+	image.ScaleType = Enum.ScaleType.Slice
+	image.SliceCenter = Rect.new(margin, margin, SKIN_SIZE - margin, SKIN_SIZE - margin)
+	image.SliceScale = scale
+	if options.CenterColor then
+		local inset = margin * scale
+		Ui.new("Frame", {
+			Name = "Center",
+			Position = UDim2.fromOffset(inset, inset),
+			Size = UDim2.new(1, -2 * inset, 1, -2 * inset),
+			BackgroundColor3 = options.CenterColor,
+			BorderSizePixel = 0,
+			Parent = image,
+		})
+	end
 end
 
 -- 스킨 그림을 대상 맨 뒤에 깔고 대상의 바탕·테두리(UIStroke)는 끔. 그림 Id 가 없으면 nil(기존 Frame 모양 그대로).
 -- 테두리를 붙인 "뒤에" 불러야 함. 크기가 고정이고 UIPadding/UIListLayout 이 없는 상자용
 -- (알약·딱지처럼 자동 크기/여백이 있는 상자는 Ui.box). props: { Radius?(화면에서 보일 모서리 반지름 px,
---   없으면 통째로 늘임), Height?(대상 높이 px), Color?(ImageColor3), Transparency? }
+--   없으면 통째로 늘임), Height?(대상 높이 px), Scale?(SliceScale 직접), CenterColor?, Color?(ImageColor3), Transparency? }
 function Ui.skin(target: GuiObject, name: string, props: { [string]: any }?): ImageLabel?
 	local id = Ui.imageId(name)
 	if not id then
@@ -9903,11 +10240,8 @@ function Ui.skin(target: GuiObject, name: string, props: { [string]: any }?): Im
 		Size = UDim2.fromScale(1, 1),
 		ZIndex = 0, -- 대상 안의 다른 것들(글자·아이콘)보다 뒤
 	})
-	local radius = options.Radius
-	if radius then
-		image.ScaleType = Enum.ScaleType.Slice
-		image.SliceCenter = SLICE_CENTER
-		image.SliceScale = sliceScale(radius, options.Height)
+	if options.Radius or options.Scale then
+		applySlice(image, name, options)
 	else
 		image.ScaleType = Enum.ScaleType.Stretch
 	end
@@ -9917,7 +10251,9 @@ end
 
 -- 스킨 그림 "자체"가 상자인 ImageLabel(그림이 있을 때) 또는 평범한 Frame(없을 때).
 -- 자동 크기(AutomaticSize)나 UIPadding/UIListLayout 이 붙는 상자(알약·딱지)용: 그림이 여백·배치에 밀리지 않음.
--- props: { Radius, Height?, Color?, Transparency? }. 반환: 상자, 스킨 여부(Frame 이면 UICorner/UIStroke 는 부르는 쪽이 붙임)
+-- props: { Radius, Height?, Color?(Frame 바탕색 = 그림 색), Transparency?,
+--          ImageColor?/ImageTransparency?(그림일 때만 다르게: 이미 색이 칠해진 그림용) }
+-- 반환: 상자, 스킨 여부(Frame 이면 UICorner/UIStroke 는 부르는 쪽이 붙임)
 function Ui.box(name: string, props: { [string]: any }): (GuiObject, boolean)
 	local id = Ui.imageId(name)
 	if not id then
@@ -9930,14 +10266,40 @@ function Ui.box(name: string, props: { [string]: any }): (GuiObject, boolean)
 	local image = Ui.new("ImageLabel", {
 		BackgroundTransparency = 1,
 		Image = id,
-		ImageColor3 = props.Color or WHITE,
-		ImageTransparency = props.Transparency or 0,
-		ScaleType = Enum.ScaleType.Slice,
-		SliceCenter = SLICE_CENTER,
-		SliceScale = sliceScale(props.Radius, props.Height),
+		ImageColor3 = props.ImageColor or props.Color or WHITE,
+		ImageTransparency = props.ImageTransparency or props.Transparency or 0,
 	})
+	applySlice(image, name, props)
 	image:SetAttribute("Skin", name)
 	return image, true
+end
+
+-- 리본 그림(ribbon.png)을 입힘. 그림이 없으면 nil (Frame 으로 그린 리본 그대로).
+-- root: 리본 전체 Frame (Position 이 띠 가운데 자리), main: root 를 꽉 채우는 띠 Frame(여기에 그림이 깔림),
+-- label: main 안의 제목 글자(Ui.label), artHeight: 꼬리까지 포함한 그림 높이.
+-- SliceScale = artHeight/256 이라 세로 비율은 그림 그대로(가로로만 늘어남). 띠는 그림 위쪽(y 40..160)에 있어서
+-- 띠 가운데가 원래 자리에 오도록 root 를 내리고, 글자 상자·최대 크기를 띠 안쪽에 맞춤
+function Ui.ribbonArt(root: GuiObject, main: GuiObject, label: TextLabel, artHeight: number): ImageLabel?
+	local scale = artHeight / SKIN_SIZE
+	local skin = Ui.skin(main, "ribbon", { Scale = scale })
+	if not skin then
+		return nil
+	end
+	local anchorY = root.AnchorPoint.Y
+	local oldCenter = root.Size.Y.Offset * (0.5 - anchorY) -- 기준점에서 원래 띠 가운데까지
+	local newCenter = (RIBBON_FILL.Top + RIBBON_FILL.Bottom) / 2 * scale - artHeight * anchorY
+	root.Position += UDim2.fromOffset(0, oldCenter - newCenter)
+	root.Size = UDim2.new(root.Size.X.Scale, root.Size.X.Offset, 0, artHeight)
+
+	local side = RIBBON_FILL.Side * scale + RIBBON_TEXT_PAD
+	local bandHeight = (RIBBON_FILL.Bottom - RIBBON_FILL.Top) * scale
+	label.Position = UDim2.fromOffset(side, RIBBON_FILL.Top * scale)
+	label.Size = UDim2.new(1, -2 * side, 0, bandHeight)
+	local limit = label:FindFirstChildOfClass("UITextSizeConstraint")
+	if limit then
+		limit.MaxTextSize = math.floor(bandHeight * RIBBON_TEXT_FILL)
+	end
+	return skin
 end
 
 -- 바탕색 바꾸기 (스킨 그림이면 그림 색을)
@@ -10226,21 +10588,64 @@ end
 
 -- 창 -------------------------------------------------------------------------
 
+-- 닫기 버튼: close 그림이 있으면 그림 한 장(ImageButton), 없으면 빨간 동그라미 통통 버튼
+export type CloseButton = { Root: GuiObject, Activated: RBXScriptSignal }
+
 export type Window = {
 	Root: Frame,
 	Panel: Frame,
 	Body: Frame,
 	Ribbon: Frame,
 	Title: TextLabel,
-	Close: ChunkyButton,
+	Close: CloseButton,
 	SetColor: (name: string) -> (),
 }
 
-local RIBBON_HEIGHT = 54
+local RIBBON_HEIGHT = 54 -- Frame 리본 높이 (창 몸통 위치의 기준)
+local RIBBON_ART_HEIGHT = 72 -- 리본 그림 높이(꼬리 포함). 띠 안쪽 높이 = 72 x 120/256 ≈ 34
+
+-- 그림 한 장이 곧 버튼(close.png 처럼 완성된 버튼 그림). 마우스를 올리면 1.08배, 누르면 0.9배
+local function imageButton(props: { [string]: any }): ImageButton
+	local button = Ui.new("ImageButton", {
+		Name = props.Name or "ImageButton",
+		AnchorPoint = props.AnchorPoint or Vector2.new(0.5, 0.5),
+		Position = props.Position or UDim2.new(),
+		Size = props.Size,
+		BackgroundTransparency = 1,
+		Image = props.Image,
+		ScaleType = Enum.ScaleType.Fit,
+		AutoButtonColor = false,
+		ZIndex = props.ZIndex or 1,
+	})
+	local scale = Ui.new("UIScale", { Parent = button })
+	local hovered = false
+	local function scaleTo(value: number)
+		TweenService:Create(scale, HOVER_TWEEN, { Scale = value }):Play()
+	end
+	local function release()
+		held[release] = nil
+		scaleTo(if hovered then 1.08 else 1)
+	end
+	button.MouseEnter:Connect(function()
+		hovered = UserInputService.MouseEnabled
+		scaleTo(if hovered then 1.08 else 1)
+	end)
+	button.MouseLeave:Connect(function()
+		hovered = false
+		release()
+	end)
+	button.MouseButton1Down:Connect(function()
+		held[release] = true
+		scaleTo(0.9)
+	end)
+	button.MouseButton1Up:Connect(release)
+	button.Parent = props.Parent
+	return button
+end
 
 -- props: { Size, Position, AnchorPoint, Title, Color(리본 색 이름), RibbonWidth?, Name?, ZIndex?, Visible?, Parent }
 -- Cream 바탕 + Ink 테두리 4 + 모서리 18, 위 가운데에 색 리본 제목, 오른쪽 위에 빨간 동그라미 닫기 버튼
--- 스킨: ImageIds.panel_paper(창 바탕, 물들이지 않음) / ribbon(리본, 색으로 물들임), close 아이콘
+-- 스킨: ImageIds.panel_paper(창 바탕, 물들이지 않음) / ribbon(리본, 색으로 물들임) / close(닫기 버튼 그림 그대로)
 function Ui.window(props: { [string]: any }): Window
 	local theme = Ui.Theme
 	local root = Ui.new("Frame", {
@@ -10285,7 +10690,8 @@ function Ui.window(props: { [string]: any }): Window
 	})
 	Ui.corner(12).Parent = inner
 	Ui.stroke(theme.Paper, 3).Parent = inner
-	if Ui.skin(panel, "panel_paper", { Radius = 18 }) then
+	-- 종이 가운데 조각은 창 크기만큼(가로 약 5배) 늘어나 점무늬가 얼룩지므로 같은 크림색 평면으로 덮음
+	if Ui.skin(panel, "panel_paper", { Radius = 18, CenterColor = theme.Cream }) then
 		inner.Visible = false -- 종이 그림에 안쪽 테두리가 들어 있음
 	end
 
@@ -10325,12 +10731,6 @@ function Ui.window(props: { [string]: any }): Window
 	Ui.corner(12).Parent = main
 	Ui.stroke(theme.Ink, 3).Parent = main
 	local gradient = Ui.new("UIGradient", { Rotation = 90, Parent = main })
-	local ribbonSkin = Ui.skin(main, "ribbon", { Radius = 14, Height = RIBBON_HEIGHT })
-	if ribbonSkin then
-		for _, tail in tails do
-			tail.Visible = false -- 리본 그림에 꼬리가 들어 있음
-		end
-	end
 	local title = Ui.label({
 		Name = "Title",
 		Position = UDim2.fromOffset(14, 5),
@@ -10341,23 +10741,42 @@ function Ui.window(props: { [string]: any }): Window
 		Parent = main,
 	}, 32)
 	Ui.outline(title, 3)
+	-- 리본 그림: 띠 가운데는 그대로(창 위 4px), 글자는 띠 안쪽에 맞춤
+	local ribbonSkin = Ui.ribbonArt(ribbon, main, title, RIBBON_ART_HEIGHT)
+	if ribbonSkin then
+		for _, tail in tails do
+			tail.Visible = false -- 리본 그림에 꼬리가 들어 있음
+		end
+	end
 
-	local closeIcon = if Ui.imageId("close") then "close" else nil
-	local close = Ui.chunkyButton({
-		Name = "Close",
-		Color = "Coral",
-		Round = true,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(1, -8, 0, 8),
-		Size = UDim2.fromOffset(52, 58),
-		Text = if closeIcon then "" else "X",
-		Icon = closeIcon,
-		IconSize = 34,
-		TextSize = 30,
-		OutlineThickness = 3,
-		ZIndex = 4,
-		Parent = root,
-	})
+	-- 닫기: close.png 는 빨간 동그라미 + X 가 다 그려진 버튼 그림이라 그대로 버튼으로 씀
+	local closeImage = Ui.imageId("close")
+	local close: CloseButton
+	if closeImage then
+		local button = imageButton({
+			Name = "Close",
+			Image = closeImage,
+			Position = UDim2.new(1, -8, 0, 8),
+			Size = UDim2.fromOffset(CLOSE_ART_SIZE, CLOSE_ART_SIZE),
+			ZIndex = 4,
+			Parent = root,
+		})
+		close = { Root = button, Activated = button.Activated }
+	else
+		close = Ui.chunkyButton({
+			Name = "Close",
+			Color = "Coral",
+			Round = true,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(1, -8, 0, 8),
+			Size = UDim2.fromOffset(52, 58),
+			Text = "X",
+			TextSize = 30,
+			OutlineThickness = 3,
+			ZIndex = 4,
+			Parent = root,
+		})
+	end
 
 	local top = RIBBON_HEIGHT / 2 + 4 + 14
 	local body = Ui.new("Frame", {
@@ -10402,7 +10821,7 @@ end
 export type Pill = { Root: GuiObject, Label: TextLabel, Icon: Frame? }
 
 -- 캡슐 모양 반투명 Ink 바탕 + 흰 글자(테두리). 왼쪽에 테두리를 살짝 넘는 동그란 아이콘(선택).
--- 스킨: ImageIds.pill 이 있으면 그 그림을 Ink 로 물들여 씀
+-- 스킨: ImageIds.pill 이 있으면 그 그림을 씀. 그림이 이미 반투명 Ink(+ 불투명 테두리·광택)라 물들이지 않음
 -- props: { Size(높이는 오프셋), Position, AnchorPoint, LayoutOrder, Parent, Text, TextColor3?, MaxTextSize?,
 --          AutoWidth?(글자 길이에 맞춰 가로 자동, TextSize 사용), TextSize?, TextXAlignment?,
 --          Icon?(Icons 이름), IconSize?, IconSpin?, IconBack?(아이콘 뒤 동그라미 색), BackgroundTransparency?, Name?, ZIndex?, Visible? }
@@ -10416,11 +10835,15 @@ function Ui.pill(props: { [string]: any }): Pill
 	local iconCenter = math.floor(iconSize * 0.28)
 	local leftPad = if props.Icon then iconCenter + math.ceil(iconSize / 2) + 6 else 16
 
+	local transparency = props.BackgroundTransparency or 0.3
 	local root, skinned = Ui.box("pill", {
 		Radius = height / 2,
 		Height = height,
 		Color = theme.Ink,
-		Transparency = props.BackgroundTransparency or 0.3,
+		Transparency = transparency,
+		-- 그림은 물들이지 않고, 그림 몸통(불투명도 62%)보다 더 투명하게 해 달라고 할 때만 그만큼 더 투명하게
+		ImageColor = WHITE,
+		ImageTransparency = math.max(0, 1 - (1 - transparency) / PILL_ART_OPACITY),
 	})
 	root.Name = props.Name or "Pill"
 	root.Size = if autoWidth then UDim2.fromOffset(0, height) else size
@@ -10494,6 +10917,9 @@ end
 
 export type Chip = { Root: GuiObject, Label: TextLabel, Icon: Frame? }
 
+local CHIP_PAD = 0.42 -- 딱지 좌우 여백 (높이 대비)
+local CHIP_ICON_PAD = 0.12 -- 아이콘 쪽 여백 (아이콘이 딱지 끝에 붙어 살짝 삐져나옴)
+
 -- 작은 색 캡슐 딱지 (글자 길이에 맞춰 가로 자동). 흰 글자 + Ink 테두리. 아이콘을 주면 [아이콘][글자].
 -- props: { Color = 색 이름 또는 Color3, Text, Height?, TextSize?, TextColor3?, Font?, Outline?(false 면 글자 테두리 없음),
 --          StrokeThickness?, CornerRadius?, MinWidth?, Rotation?, Icon?(Icons 이름), IconSize?, IconOnly?(글자 없이 아이콘만),
@@ -10525,8 +10951,8 @@ function Ui.chip(props: { [string]: any }): Chip
 		end
 		Ui.stroke(Ui.Theme.Ink, props.StrokeThickness or 2.5).Parent = root
 	end
-	local pad = math.floor(height * 0.42)
-	local iconPad = math.floor(height * 0.12)
+	local pad = math.floor(height * CHIP_PAD)
+	local iconPad = math.floor(height * CHIP_ICON_PAD)
 	Ui.new("UIPadding", {
 		PaddingLeft = UDim.new(0, if iconName then iconPad else pad),
 		PaddingRight = UDim.new(0, if iconOnly then iconPad else pad),
@@ -10574,6 +11000,18 @@ function Ui.chip(props: { [string]: any }): Chip
 	return { Root = root, Label = label, Icon = icon }
 end
 
+-- 딱지 아이콘 보이기/숨기기 (숨기면 왼쪽 여백도 글자만 있는 딱지와 같게)
+function Ui.showChipIcon(chip: Chip, visible: boolean)
+	local icon = chip.Icon
+	local padding = chip.Root:FindFirstChildOfClass("UIPadding")
+	if not icon or not padding or icon.Visible == visible then
+		return
+	end
+	icon.Visible = visible
+	local height = chip.Root.Size.Y.Offset
+	padding.PaddingLeft = UDim.new(0, math.floor(height * (if visible then CHIP_ICON_PAD else CHIP_PAD)))
+end
+
 -- 화면 크기 자동 스케일 -------------------------------------------------------
 
 -- 화면 크기에 맞춰 크기를 조절하는 UIScale 을 붙임 (AnchorPoint 기준으로 커지고 작아짐)
@@ -10590,10 +11028,24 @@ function Ui.autoScale(object: GuiObject)
 	table.insert(scalers, scale)
 end
 
+-- 지금 자동 스케일 배율 (0.55~0.9)
+function Ui.scale(): number
+	return currentScale()
+end
+
+-- 화면 크기가 바뀌어 배율을 다시 잰 뒤 부를 함수 (배율에 따라 자리를 다시 잡는 HUD 용)
+local rescaleCallbacks: { (number) -> () } = {}
+function Ui.onRescale(callback: (number) -> ())
+	table.insert(rescaleCallbacks, callback)
+end
+
 local function refreshScales()
 	local value = currentScale()
 	for _, scale in scalers do
 		scale.Scale = value
+	end
+	for _, callback in rescaleCallbacks do
+		task.spawn(callback, value)
 	end
 end
 
@@ -10615,7 +11067,7 @@ return Ui
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="27">
+        <Item class="ModuleScript" referent="32">
           <Properties>
             <string name="Name">Viewport</string>
             <string name="Source"><![CDATA[-- ViewportFrame 에 명소 모형을 띄우는 헬퍼.
@@ -10795,12 +11247,12 @@ return Viewport
       </Item>
     </Item>
   </Item>
-  <Item class="Workspace" referent="28">
+  <Item class="Workspace" referent="33">
     <Properties>
       <string name="Name">Workspace</string>
       <bool name="NeedsPivotMigration">false</bool>
     </Properties>
-    <Item class="Part" referent="29">
+    <Item class="Part" referent="34">
       <Properties>
         <string name="Name">Baseplate</string>
         <bool name="Anchored">true</bool>
@@ -10830,7 +11282,7 @@ return Viewport
         <token name="TopSurface">0</token>
       </Properties>
     </Item>
-    <Item class="SpawnLocation" referent="30">
+    <Item class="SpawnLocation" referent="35">
       <Properties>
         <string name="Name">SpawnLocation</string>
         <bool name="Anchored">true</bool>

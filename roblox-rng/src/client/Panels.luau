@@ -940,6 +940,7 @@ local function renderUpgrade(state: Snapshot)
 		local price = PlayerState.upgradePrice(upgrade.Id, level)
 		row.Level.Label.Text = "Lv " .. level
 		row.Value.Label.Text = valueText(upgrade, level)
+		Ui.showChipIcon(row.Step, price ~= nil) -- 최대 레벨(MAX)에는 위 화살표 없음
 		if price then
 			row.Step.Label.Text = stepText(upgrade)
 			Ui.tint(row.Step.Root, Ui.colorPair("Grass").Face)
