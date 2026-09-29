@@ -40,9 +40,12 @@ local ImageIds: { [string]: string } = {
 	button_shadow = "rbxassetid://131795792663906",
 	panel_paper = "rbxassetid://135177337416974",
 	pill = "rbxassetid://76337661510619",
-	ribbon = "rbxassetid://71196375066188",
 	sunburst = "rbxassetid://103053283018731",
 	tag = "rbxassetid://111522354097064",
+
+	-- 리본 꼬리 (늘이지 않는 그림, 56:50). 회색 바탕 그림을 ImageColor3 로 물들여 씀. 비어 있으면 둥근 네모 Frame 꼬리 (Ui.ribbon)
+	ribbon_tail_l = "",
+	ribbon_tail_r = "",
 }
 
 return ImageIds

@@ -28,7 +28,6 @@ SLICE = {
     "button_shadow": (64, 64, 192, 192),
     "panel_paper": (64, 64, 192, 192),
     "pill": (64, 64, 192, 192),
-    "ribbon": (64, 64, 192, 192),
     "tag": (64, 64, 192, 192),
 }
 SKINS = list(SLICE) + ["sunburst"]
@@ -137,6 +136,27 @@ def label(d, xy, text, size=15, fill=(245, 245, 245), anchor="mm"):
     d.text(xy, text, font=font(size), fill=fill, anchor=anchor)
 
 
+def ribbon(img, size, color, dark):
+    """Ui.ribbon: code-drawn plate (shadow base + lighter face + gloss + Ink edge) with the two tail images
+    (ribbon_tail_l/r, 56x50 per 50 px of plate height) behind it. Returns (image, (plate x, plate y))."""
+    w, h = size
+    k = h / 50
+    tw, th = round(56 * k), round(50 * k)
+    left, right, top = round(-36 * k), round(-20 * k), round(17 * k)
+    pad = -left
+    out = Image.new("RGBA", (w + 2 * pad, h + top + th), (0, 0, 0, 0))
+    for name, x in (("ribbon_tail_l", 0), ("ribbon_tail_r", pad + w + right)):
+        if name in img:
+            out.alpha_composite(tint(img[name].resize((tw, th), Image.Resampling.LANCZOS), color), (x, top))
+    d = ImageDraw.Draw(out)
+    r, shade, edge = round(12 * k), round(9 * k), 3
+    box = (pad, 0, pad + w - 1, h - 1)
+    d.rounded_rectangle(box, r, fill=dark, outline=INK, width=edge)
+    d.rounded_rectangle((pad + edge, edge, pad + w - 1 - edge, h - 1 - shade), r - edge, fill=color)
+    d.rounded_rectangle((pad + round(10 * k), round(5 * k), pad + w - round(10 * k), round(8 * k)), 2, fill=(255, 255, 255))
+    return out, (pad, 0)
+
+
 def chunky(face, shadow, size, color, dark, scale=0.25, drop=6):
     """Compose a button the way Ui.chunkyButton would (shadow plate + tinted face)."""
     W, H = size
@@ -242,10 +262,9 @@ def build_preview(images):
         pw, ph = 620, 440
         panel = nine_slice(img["panel_paper"], SLICE["panel_paper"], (pw, ph), 0.5)
         paste(canvas, panel, (20, y + 30))
-        if "ribbon" in img:
-            rb = tint(nine_slice(img["ribbon"], SLICE["ribbon"], (340, 96), 96 / 256), GRAPE)
-            paste(canvas, rb, (20 + (pw - 340) // 2, y))
-            label(d, (20 + pw // 2, y + 38), "PASSPORT", 26, fill=(255, 255, 255))
+        rb, (ox, oy) = ribbon(img, (300, 56), GRAPE, GRAPE_D)
+        paste(canvas, rb, (20 + (pw - 300) // 2 - ox, y + 6 - oy))
+        label(d, (20 + pw // 2, y + 30), "PASSPORT", 26, fill=(255, 255, 255))
         if "close" in img:
             paste(canvas, small(img["close"], 64), (20 + pw - 50, y + 12))
         stamps = [n for n in ICON_ORDER if n.startswith("stamp_")]
@@ -298,12 +317,11 @@ def build_preview(images):
 
     # ribbons in all colours
     y += 500
-    if "ribbon" in img:
-        rx = 20
-        for col in [SKY, GRASS, SUN, CORAL, GRAPE, (120, 255, 235)]:
-            rb = tint(nine_slice(img["ribbon"], SLICE["ribbon"], (210, 70), 70 / 256), col)
-            paste(canvas, rb, (rx, y))
-            rx += 225
+    rx = 40
+    for col, dark in [(SKY, SKY_D), (GRASS, GRASS_D), (SUN, SUN_D), (CORAL, CORAL_D), (GRAPE, GRAPE_D)]:
+        rb, (ox, oy) = ribbon(img, (190, 50), col, dark)
+        paste(canvas, rb, (rx - ox, y + 6 - oy))
+        rx += 270
     y += 90
     # checker to show translucency of the pill & raw icons on white
     if "pill" in img:

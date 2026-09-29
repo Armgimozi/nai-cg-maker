@@ -37,7 +37,6 @@ local MENU_ICON = 58
 local ROLL_BUTTON = Vector2.new(270, 90) -- 앞면 270x84
 local AUTO_BUTTON = Vector2.new(140, 76) -- 앞면 140x70
 local VIEW_SIZE = 230 -- 굴림 연출의 둥근 판 지름
-local TIER_RIBBON_ART_HEIGHT = 64 -- 등급 리본 그림 높이(꼬리 포함). 띠 안쪽 높이 = 64 x 120/256 = 30
 local RAY_COUNT = 12 -- 햇살 막대 수 (막대 하나 = 가운데를 지나는 빛줄기 2개)
 
 -- 햇살 막대: 가운데는 진하고 양 끝으로 갈수록 투명
@@ -640,54 +639,20 @@ local function buildReveal()
 	refs.ResultView.Visible = false
 
 	-- 등급 리본 (판 아래쪽에 걸침)
-	local ribbon = Ui.new("Frame", {
+	local ribbon = Ui.ribbon({
 		Name = "TierRibbon",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(0.5, 0, 0, centerY + VIEW_SIZE / 2),
 		Size = UDim2.fromOffset(250, 44),
-		BackgroundTransparency = 1,
 		Visible = false,
 		ZIndex = 4,
+		MaxTextSize = 26,
+		Outline = 2.5,
 		Parent = inner,
 	})
-	refs.RibbonTails = {}
-	for _, side in { 0, 1 } do
-		local tail = Ui.new("Frame", {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.new(side, if side == 0 then -14 else 14, 0.5, 9),
-			Size = UDim2.fromOffset(42, 34),
-			BorderSizePixel = 0,
-			ZIndex = 1,
-			Parent = ribbon,
-		})
-		Ui.corner(8).Parent = tail
-		Ui.stroke().Parent = tail
-		table.insert(refs.RibbonTails, tail)
-	end
-	local ribbonMain = Ui.new("Frame", {
-		Size = UDim2.fromScale(1, 1),
-		BorderSizePixel = 0,
-		ZIndex = 2,
-		Parent = ribbon,
-	})
-	Ui.corner(10).Parent = ribbonMain
-	Ui.stroke().Parent = ribbonMain
-	refs.RibbonLabel = Ui.label({
-		Position = UDim2.fromOffset(10, 4),
-		Size = UDim2.new(1, -20, 1, -8),
-		TextColor3 = WHITE,
-		ZIndex = 3,
-		Parent = ribbonMain,
-	}, 28)
-	Ui.outline(refs.RibbonLabel, 2.5)
-	-- 리본 그림: 띠 가운데는 그대로(판 아래 끝), 글자는 띠 안쪽에 맞춤
-	if Ui.ribbonArt(ribbon, ribbonMain, refs.RibbonLabel, TIER_RIBBON_ART_HEIGHT) then
-		for _, tail in refs.RibbonTails do
-			tail.Visible = false -- 리본 그림에 꼬리가 들어 있음
-		end
-	end
-	refs.Ribbon = ribbon
-	refs.RibbonMain = ribbonMain
+	refs.Ribbon = ribbon.Root
+	refs.RibbonLabel = ribbon.Label
+	refs.SetRibbonColor = ribbon.SetColor
 
 	local nameTop = centerY + VIEW_SIZE / 2 + 28
 	refs.RevealName = Ui.label({
@@ -1128,10 +1093,7 @@ local function hideBurst()
 end
 
 local function showRibbon(tier: Landmarks.Tier)
-	Ui.tint(refs.RibbonMain, tier.Color)
-	for _, tail in refs.RibbonTails do
-		tail.BackgroundColor3 = tier.Color:Lerp(Theme.Ink, 0.35)
-	end
+	refs.SetRibbonColor(tier.Color, tier.Color:Lerp(Theme.Ink, 0.35))
 	refs.RibbonLabel.Text = tier.Name
 	refs.Ribbon.Visible = true
 end
