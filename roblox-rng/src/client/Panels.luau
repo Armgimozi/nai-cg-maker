@@ -47,6 +47,10 @@ local PARK_PAD = 7
 local PARK_LAWN = Config.PARK_GRID * PARK_TILE + (Config.PARK_GRID - 1) * PARK_GAP + PARK_PAD * 2
 local PARK_SIDE_X = PARK_LAWN + 14 -- 오른쪽 칸(고른 칸 줄 + 목록) 왼쪽 끝
 local PARK_BAR = 88 -- 고른 칸 줄 높이 ([빼기] 앞면 73 = 가장 작은 배율 0.55 에서 40px)
+local PARK_BAR_CHIP_Y = 9 -- 고른 칸 줄 윗단 [#칸] 딱지 위치
+local PARK_BAR_NAME_Y = 44 -- 아랫단 명소 이름 위치
+local PARK_REMOVE_W = 108 -- [빼기] 폭
+local PARK_PICKED_SCALE = 1.1 -- 고른 칸 크기 배율(굵은 Sun 테두리와 함께 휴대폰에서도 눈에 띄게)
 local PARK_ROW = 74 -- 명소 목록 한 줄 높이 (배율 0.55 에서 40px 이상)
 local PARK_ROW_GAP = 8
 
@@ -174,10 +178,13 @@ local shopCards: { ShopCard } = {}
 type ParkTile = {
 	Button: TextButton,
 	Stroke: UIStroke,
+	Scale: UIScale, -- 고른 칸은 조금 크게, 마우스를 올리면 살짝 크게
 	Plus: TextLabel, -- 빈 칸 "+"
 	Lock: GuiObject, -- 잠긴 칸 자물쇠
 	View: ViewportFrame?, -- 명소 사진(처음 필요할 때 만듦)
 	Look: string, -- "locked" | "empty" | 명소 Id
+	Picked: boolean,
+	Hovered: boolean,
 }
 type ParkCard = { Card: TextButton, Stars: TextLabel, Slot: Ui.Chip }
 local parkTiles: { ParkTile } = {} -- 칸 번호 순서
@@ -1596,14 +1603,15 @@ end
 -- 칸을 누르면 고르고, 명소를 누르면 고른 칸(없으면 첫 빈 칸)에 놓음. 이미 다른 칸에 있으면 자리를 바꿈.
 -- 누르는 즉시 PlayerState 규칙을 스냅샷 사본에 적용해 미리 보여 주고(parkPreview), 서버 응답이 오면 그 상태로 바꿈.
 
--- 잠긴 칸 자물쇠: 그림이 있으면 그림(3D 자물쇠는 칸이 많아 무거우니 쓰지 않음), 없으면 Frame 으로 그림
+-- 잠긴 칸 자물쇠: 그림이 있으면 그림(3D 자물쇠는 칸이 많아 무거우니 쓰지 않음), 없으면 Frame 으로 그림.
+-- 잠긴 칸은 많게는 30개라 작고 흐리게(열린 칸·명소가 눈에 먼저 들어오게)
 local function lockGlyph(parent: GuiObject): GuiObject
 	if Icons.imageId("lock") then
 		return Icons.view(parent, "lock", {
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.5, 0.5),
-			Size = UDim2.fromScale(0.62, 0.62),
-			Transparency = 0.25,
+			Size = UDim2.fromScale(0.44, 0.44),
+			Transparency = 0.5,
 			ZIndex = 3,
 		})
 	end
@@ -1612,7 +1620,7 @@ local function lockGlyph(parent: GuiObject): GuiObject
 		Name = "Lock",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromScale(0.44, 0.5),
+		Size = UDim2.fromScale(0.32, 0.36),
 		BackgroundTransparency = 1,
 		ZIndex = 3,
 		Parent = parent,
@@ -1640,6 +1648,10 @@ local function lockGlyph(parent: GuiObject): GuiObject
 	return glyph
 end
 
+local function sizeTile(tile: ParkTile)
+	tile.Scale.Scale = if tile.Picked then PARK_PICKED_SCALE elseif tile.Hovered then 1.06 else 1
+end
+
 local function parkTile(parent: Frame, slot: number): ParkTile
 	local row, column = PlayerState.slotCell(slot)
 	local step = PARK_TILE + PARK_GAP
@@ -1647,7 +1659,12 @@ local function parkTile(parent: Frame, slot: number): ParkTile
 		Name = "Slot" .. slot,
 		Text = "",
 		AutoButtonColor = false,
-		Position = UDim2.fromOffset(PARK_PAD + (column - 1) * step, PARK_PAD + (Config.PARK_GRID - row) * step),
+		-- 가운데 기준(AnchorPoint 0.5) -> UIScale 로 커질 때 네 방향으로 고르게
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromOffset(
+			PARK_PAD + (column - 1) * step + PARK_TILE / 2,
+			PARK_PAD + (Config.PARK_GRID - row) * step + PARK_TILE / 2
+		),
 		Size = UDim2.fromOffset(PARK_TILE, PARK_TILE),
 		BackgroundColor3 = Theme.Cream,
 		ZIndex = 1,
@@ -1655,30 +1672,44 @@ local function parkTile(parent: Frame, slot: number): ParkTile
 	Ui.corner(10).Parent = button
 	local stroke = Ui.stroke(Theme.Ink, 2.5)
 	stroke.Parent = button
-	local hover = Ui.new("UIScale", { Parent = button })
-	button.MouseEnter:Connect(function()
-		hover.Scale = 1.06
-	end)
-	button.MouseLeave:Connect(function()
-		hover.Scale = 1
-	end)
+	-- 빈 칸: 초록 "+" (눌러서 채우는 칸)
 	local plus = Ui.label({
 		Name = "Plus",
 		Size = UDim2.fromScale(1, 1),
 		Font = Theme.FontTitle,
 		Text = "+",
-		TextTransparency = 0.5,
+		TextColor3 = Ui.colorPair("Grass").Face,
 		Visible = false,
 		ZIndex = 2,
 		Parent = button,
-	}, 34)
+	}, 40)
+	Ui.outline(plus, 2)
 	local lock = lockGlyph(button)
 	lock.Visible = false
+	local tile: ParkTile = {
+		Button = button,
+		Stroke = stroke,
+		Scale = Ui.new("UIScale", { Parent = button }),
+		Plus = plus,
+		Lock = lock,
+		View = nil,
+		Look = "",
+		Picked = false,
+		Hovered = false,
+	}
+	button.MouseEnter:Connect(function()
+		tile.Hovered = true
+		sizeTile(tile)
+	end)
+	button.MouseLeave:Connect(function()
+		tile.Hovered = false
+		sizeTile(tile)
+	end)
 	button.Activated:Connect(function()
 		selectParkSlot(slot)
 	end)
 	button.Parent = parent
-	return { Button = button, Stroke = stroke, Plus = plus, Lock = lock, View = nil, Look = "" }
+	return tile
 end
 
 -- 칸 모양(Look = "locked" | "empty" | 명소 Id) 바꾸기, 바뀐 칸만. 명소 사진은 처음 필요할 때 ViewportFrame 하나를 만들고 그 뒤로는 모형만 바꿈
@@ -1693,6 +1724,7 @@ local function paintTile(tile: ParkTile, look: string)
 	if landmark then
 		tile.Button.BackgroundColor3 = landmark.Tier.Color:Lerp(WHITE, 0.55)
 		tile.Button.BackgroundTransparency = 0
+		tile.Stroke.Transparency = 0
 		local view = tile.View
 		if not view then
 			view = Viewport.new(tile.Button, {
@@ -1706,8 +1738,10 @@ local function paintTile(tile: ParkTile, look: string)
 		vf.Visible = true
 		Viewport.setLandmark(vf, landmark, 10)
 	else
+		-- 잠긴 칸: 흐린 회색 + 흐린 테두리(격자 모양만 보이게)
 		tile.Button.BackgroundColor3 = if look == "locked" then DIM_CHIP else Theme.Cream
-		tile.Button.BackgroundTransparency = if look == "locked" then 0.35 else 0
+		tile.Button.BackgroundTransparency = if look == "locked" then 0.55 else 0
+		tile.Stroke.Transparency = if look == "locked" then 0.6 else 0
 		local view = tile.View
 		if view then
 			view.Visible = false
@@ -1844,7 +1878,7 @@ local function buildPark(): View
 		Parent = lawn,
 	})
 
-	-- 고른 칸 줄: [공원 #칸] 명소 이름(또는 빈 칸) [빼기]
+	-- 고른 칸 줄: 왼쪽 위 [공원 #칸], 그 아래 명소 이름(또는 빈 칸) — 이름이 줄 폭을 다 쓰게 두 단으로. 오른쪽 [빼기]
 	local bar = Ui.new("Frame", {
 		Name = "Selected",
 		Position = UDim2.fromOffset(PARK_SIDE_X, 0),
@@ -1861,22 +1895,19 @@ local function buildPark(): View
 		IconSize = 36,
 		Height = 30,
 		TextSize = 19,
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 10, 0.5, 0),
+		Position = UDim2.fromOffset(10, PARK_BAR_CHIP_Y),
 		Parent = bar,
 	})
 	parkSlotLabel = Ui.label({
 		Name = "Name",
-		Position = UDim2.fromOffset(104, 8),
-		Size = UDim2.new(1, -(104 + 132), 1, -16),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Parent = bar,
-	}, 22)
+	}, 24)
 	parkRemove = Ui.chunkyButton({
 		Name = "Remove",
 		AnchorPoint = Vector2.new(1, 0.5),
 		Position = UDim2.new(1, -8, 0.5, 0),
-		Size = UDim2.fromOffset(116, 79),
+		Size = UDim2.fromOffset(PARK_REMOVE_W, 79),
 		Color = "Gray",
 		Text = "빼기",
 		TextSize = 28,
@@ -1964,6 +1995,8 @@ local function renderPark(real: Snapshot)
 		tile.Stroke.Color = if picked then Ui.colorPair("Sun").Face else Theme.Ink
 		tile.Stroke.Thickness = if picked then 5 else 2.5
 		tile.Button.ZIndex = if picked then 2 else 1
+		tile.Picked = picked
+		sizeTile(tile)
 	end
 
 	-- 머리 줄: 전시 수 / 열린 칸 수 · 초당 수입 · 자동 배치
@@ -1976,17 +2009,12 @@ local function renderPark(real: Snapshot)
 	local selectedLandmark = if selectedId then Landmarks.ById[selectedId] else nil
 	parkSlotChip.Root.Visible = selected ~= nil
 	parkSlotChip.Label.Text = if selected then "#" .. selected else ""
-	parkSlotLabel.Position = UDim2.fromOffset(if selected then 104 else 16, 8)
-	parkSlotLabel.Size = UDim2.new(1, -((if selected then 104 else 16) + 132), 1, -16)
-	if selectedLandmark then
-		parkSlotLabel.Text = selectedLandmark.Name
-		parkSlotLabel.TextColor3 = selectedLandmark.Tier.Color:Lerp(Theme.Ink, 0.45)
-		parkSlotLabel.TextTransparency = 0
-	else
-		parkSlotLabel.Text = if selected then "빈 칸" else "칸 선택"
-		parkSlotLabel.TextColor3 = Theme.Ink
-		parkSlotLabel.TextTransparency = 0.45
-	end
+	-- 고른 칸이 있으면 이름은 [#칸] 아래 줄, 없으면 "칸 선택" 을 가운데 높이에
+	local nameTop = if selected then PARK_BAR_NAME_Y else 8
+	parkSlotLabel.Position = UDim2.fromOffset(14, nameTop)
+	parkSlotLabel.Size = UDim2.new(1, -(14 + PARK_REMOVE_W + 16), 1, -(nameTop + 8))
+	parkSlotLabel.Text = if selectedLandmark then selectedLandmark.Name elseif selected then "빈 칸" else "칸 선택"
+	parkSlotLabel.TextTransparency = if selectedLandmark then 0 else 0.45
 	parkRemove.SetColor(if selectedLandmark then "Coral" else "Gray")
 
 	-- 가진 명소 목록 (희귀한 순서)
@@ -2031,7 +2059,7 @@ function selectParkSlot(slot: number)
 	end
 	local _, unlocked = PlayerState.parkSlots(state)
 	if slot > unlocked then
-		handlers.Toast("잠긴 칸", "lock")
+		handlers.Toast("공원 확장", "lock") -- 강화의 공원 확장으로 열림
 		return
 	end
 	parkSelected = if parkSelected == slot then nil else slot

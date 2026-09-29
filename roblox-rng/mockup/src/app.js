@@ -1237,7 +1237,7 @@
     Upgrade: { Title: '강화', Color: 'Sun', Top: 4 },
   };
   // 공원 배치 (Panels.luau PARK_*): 왼쪽 격자(칸 56 · 간격 4 · 잔디 여백 7), 오른쪽 고른 칸 줄 + 명소 목록
-  const PARK = { TILE: 56, GAP: 4, PAD: 7, BAR: 88, ROW: 74, ROW_GAP: 8 };
+  const PARK = { TILE: 56, GAP: 4, PAD: 7, BAR: 88, BAR_CHIP_Y: 9, BAR_NAME_Y: 44, REMOVE_W: 108, PICKED_SCALE: 1.1, ROW: 74, ROW_GAP: 8 };
   PARK.LAWN = GRID * PARK.TILE + (GRID - 1) * PARK.GAP + PARK.PAD * 2;
   PARK.SIDE_X = PARK.LAWN + 14;
   VIEWS.Park = { Title: '배치', Color: 'Grass', Top: HEADER_HEIGHT + PARK.BAR + 8 };
@@ -1503,43 +1503,46 @@
       const landmark = id ? ById[id] : null;
       const locked = slot > unlocked;
       const picked = slot === selected;
+      // 가운데 기준 -> 고른 칸(UIScale 1.1)이 네 방향으로 고르게 커짐
       const tile = gui(lawn, {
         name: 'Slot' + slot,
-        pos: [0, PARK.PAD + (column - 1) * step, 0, PARK.PAD + (GRID - row) * step],
+        anchor: [0.5, 0.5],
+        pos: [0, PARK.PAD + (column - 1) * step + PARK.TILE / 2, 0, PARK.PAD + (GRID - row) * step + PARK.TILE / 2],
         size: [0, PARK.TILE, 0, PARK.TILE],
+        uiScale: picked ? PARK.PICKED_SCALE : 1,
         bg: landmark ? lerp(landmark.Tier.Color, WHITE, 0.55) : locked ? DIM_CHIP : Theme.Cream,
-        bgT: locked ? 0.35 : 0,
+        bgT: locked ? 0.55 : 0,
         corner: 10,
-        stroke: picked ? [COLORS.Sun.Face, 5] : [Theme.Ink, 2.5],
+        stroke: picked ? [COLORS.Sun.Face, 5] : [Theme.Ink, 2.5, locked ? 0.6 : 0],
         z: picked ? 2 : 1,
       });
       tile.dataset.slot = String(slot);
+      if (picked) tile.dataset.picked = '1';
       if (landmark) placeholder3d(gui(tile, { name: 'Thumb', pos: [0, 2, 0, 2], size: [1, -4, 1, -4], z: 2 }), landmark, PARK.TILE - 4);
-      else if (!locked) label(tile, { name: 'Plus', size: [1, 0, 1, 0], font: 'title', text: '+', textT: 0.5, z: 2 }, 34);
-      else iconView(tile, 'lock', { anchor: [0.5, 0.5], pos: [0.5, 0, 0.5, 0], size: [0.62, 0, 0.62, 0], transparency: 0.25, z: 3 });
+      else if (!locked) label(tile, { name: 'Plus', size: [1, 0, 1, 0], font: 'title', text: '+', color: COLORS.Grass.Face, outline: 2, z: 2 }, 40);
+      else iconView(tile, 'lock', { anchor: [0.5, 0.5], pos: [0.5, 0, 0.5, 0], size: [0.44, 0, 0.44, 0], transparency: 0.5, z: 3 });
     }
     chip(lawn, { name: 'Entrance', color: Theme.Ink, icon: 'arrow_up', iconSize: 30, text: '입구', height: 26, textSize: 16, anchor: [0.5, 0.5], pos: [0.5, 0, 1, 2], z: 4 });
 
-    // 고른 칸 줄: [공원 #칸] 이름 [빼기]
+    // 고른 칸 줄: 왼쪽 위 [공원 #칸], 그 아래 명소 이름(없으면 "칸 선택" 가운데 높이) · 오른쪽 [빼기]
     const bar = gui(body, { name: 'Selected', pos: [0, PARK.SIDE_X, 0, HEADER_HEIGHT], size: [1, -PARK.SIDE_X, 0, PARK.BAR], bg: Theme.Paper, corner: 12, stroke: [Theme.Ink, 3] });
     const pickedId = selected ? slotIds[selected - 1] : null;
     const pickedLandmark = pickedId ? ById[pickedId] : null;
-    if (selected) chip(bar, { name: 'Slot', color: Theme.Ink, icon: 'park', iconSize: 36, height: 30, textSize: 19, anchor: [0, 0.5], pos: [0, 10, 0.5, 0], text: '#' + selected });
-    const nameX = selected ? 104 : 16;
+    if (selected) chip(bar, { name: 'Slot', color: Theme.Ink, icon: 'park', iconSize: 36, height: 30, textSize: 19, pos: [0, 10, 0, PARK.BAR_CHIP_Y], text: '#' + selected });
+    const nameTop = selected ? PARK.BAR_NAME_Y : 8;
     label(
       bar,
       {
         name: 'Name',
-        pos: [0, nameX, 0, 8],
-        size: [1, -(nameX + 132), 1, -16],
+        pos: [0, 14, 0, nameTop],
+        size: [1, -(14 + PARK.REMOVE_W + 16), 1, -(nameTop + 8)],
         xAlign: 'left',
         text: pickedLandmark ? pickedLandmark.Name : selected ? '빈 칸' : '칸 선택',
-        color: pickedLandmark ? lerp(pickedLandmark.Tier.Color, Theme.Ink, 0.45) : Theme.Ink,
         textT: pickedLandmark ? 0 : 0.45,
       },
-      22
+      24
     );
-    chunkyButton(bar, { name: 'Remove', anchor: [1, 0.5], pos: [1, -8, 0.5, 0], size: [0, 116, 0, 79], color: pickedLandmark ? 'Coral' : 'Gray', text: '빼기', textSize: 28 });
+    chunkyButton(bar, { name: 'Remove', anchor: [1, 0.5], pos: [1, -8, 0.5, 0], size: [0, PARK.REMOVE_W, 0, 79], color: pickedLandmark ? 'Coral' : 'Gray', text: '빼기', textSize: 28 });
 
     // 가진 명소 목록(희귀한 순서) — 오른쪽 칸만 스크롤
     const owned = RarestFirst.filter((l) => (state.Inventory[l.Id] || 0) > 0);
@@ -1711,11 +1714,13 @@
     return withDerived({ ...s, Inventory: inventory, Featured: s.Featured === landmarkId ? null : s.Featured });
   }
 
-  // 6번 공원 배치: 자동 배치에서 시작해 하버브리지(★5 일반 명소)를 1번 칸(입구 정면)에, 5번 칸은 빼 둔 직접 배치
+  // 6번 공원 배치: 자동 배치에서 시작해 하버브리지(★5 일반 명소)를 1번 칸(입구 정면)에, 대표 알렉산드리아 등대를 2번 칸에,
+  // 5·11·12번 칸은 빼 둔 직접 배치 (열린 12칸 중 9칸 전시)
   const PARK_STATE = withDerived({ ...STATE, Settings: { ...STATE.Settings, AutoPark: true }, Display: [] });
   const AUTO_FRONT = parkSlots(STATE)[0][0];
   setDisplay(PARK_STATE, 1, 'harbourbridge');
-  setDisplay(PARK_STATE, 5, null);
+  setDisplay(PARK_STATE, 2, 'alexandria');
+  for (const slot of [5, 11, 12]) setDisplay(PARK_STATE, slot, null);
   withDerived(PARK_STATE);
   const PARK_SELECTED = 3;
 
@@ -1890,8 +1895,8 @@
       note:
         `공원을 위에서 본 ${GRID}×${GRID} 격자(아래 = 입구, 칸 번호는 월드 받침대와 같음 — 1번 = 입구 줄 가운데 오른쪽). ` +
         `공원 확장 Lv ${STATE.Upgrades.Park} 이라 ${slots(STATE)}칸이 열렸고 나머지는 회색 + 자물쇠. ` +
-        `자동 배치(희귀한 순서, 1번 칸 = ${ById[AUTO_FRONT] ? ById[AUTO_FRONT].Name : ''})에서 하버브리지를 1번 칸에 놓고 5번 칸을 뺀 직접 배치 — ` +
-        '그래서 머리 줄 "자동"이 꺼짐(회색). 3번 칸을 고른 상태(굵은 노란 테두리): 오른쪽 줄에 [#3] 이름 + 빨간 [빼기], 목록에서 그 명소 카드가 노랗게. ' +
+        `자동 배치(희귀한 순서, 1번 칸 = ${ById[AUTO_FRONT] ? ById[AUTO_FRONT].Name : ''})에서 하버브리지를 1번 칸, 알렉산드리아 등대를 2번 칸에 놓고 5·11·12번 칸을 뺀 직접 배치(9/12, 빈 칸 = 초록 +) — ` +
+        '그래서 머리 줄 "자동"이 꺼짐(회색). 3번 칸을 고른 상태(굵은 노란 테두리): 오른쪽 줄 윗단 [#3], 아랫단 명소 이름 + 빨간 [빼기], 목록에서 그 명소 카드가 노랗게. 잠긴 칸은 흐린 회색 + 작은 자물쇠. ' +
         '목록(가진 명소, 희귀한 순서)의 초록 [체크 #칸] = 전시 중인 칸. 칸을 누르면 고르고, 명소를 누르면 고른 칸(없으면 첫 빈 칸)에 놓임(다른 칸에 있으면 자리 바꿈). ' +
         '머리 줄: 전시 수 / 열린 칸 · 이 배치의 초당 수입 · 자동(다시 켜서 배치가 바뀌면 "확인?" 한 번 더). ' +
         '여는 곳: 도감 "배치" 버튼, 내 공원 받침대 클릭(그 칸이 골라진 채로), 내 공원에 있을 때 왼쪽 메뉴 "광장" 버튼 오른쪽에 나오는 초록 "배치" 버튼.',
@@ -2250,7 +2255,7 @@
         const tiles = Array.from(lawn.querySelectorAll('[data-slot]'));
         const first = rectIn(tiles.find((t) => t.dataset.slot === '1'), scr);
         const second = rectIn(tiles.find((t) => t.dataset.slot === '2'), scr);
-        const bottomRow = Math.max(...tiles.map((t) => rectIn(t, scr).bottom));
+        const bottomRow = Math.max(...tiles.filter((t) => !t.dataset.picked).map((t) => rectIn(t, scr).bottom)); // 고른 칸은 1.1배라 빼고 잼
         const orderOk = Math.abs(first.bottom - bottomRow) < 0.5 && second.right <= first.left + 0.5 && Math.abs((first.left + second.right) / 2 - (l.left + l.right) / 2) < 3;
         const inside = entrance.bottom <= b.bottom + 0.5 && l.bottom <= b.bottom + 0.5;
         const apart = !overlap(l, bar);
