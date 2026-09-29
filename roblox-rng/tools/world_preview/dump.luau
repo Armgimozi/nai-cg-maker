@@ -8,6 +8,9 @@
 --   gui    : SurfaceGui 간판(면 좌표계 + GUI 상자 목록)
 --   lighting: 조명 값 + Atmosphere 등
 --   terrain: 지형 격자(Mock.terrainDumpJson — roblox_mock.luau 주석 참고) 또는 null
+--   hl     : 켜진 Highlight(대상 파트 번호 = parts 순서 0부터, 채우기·테두리 색·투명도, AlwaysOnTop 여부)
+--   extra  : ctx.extra(world.luau hook 이 돌려준 표 — 카메라 "Camera" 등) 또는 null
+-- 투명도는 이 화면 기준: Transparency 에 LocalTransparencyModifier 를 더함(클라이언트가 이 화면에서만 숨긴 파트)
 
 return function(ctx)
 	local Mock = ctx.Mock
@@ -105,16 +108,29 @@ return function(ctx)
 	end
 
 	local parts = {}
+	local partIndex: { [any]: number } = {} -- 파트 -> partRecords 번호(0부터, Highlight 가 가리킴)
 	for _, d in Mock.Workspace:GetDescendants() do
 		if Mock.isBasePart(d) and d.ClassName ~= "Terrain" then
 			table.insert(parts, d)
 		end
+	end
+	-- 이 화면에서 보이는 투명도: Transparency 에 LocalTransparencyModifier 를 더함(클라이언트가 이 화면에서만 숨긴 파트)
+	local function viewTransparency(part): number
+		local t = part.Transparency or 0
+		local ok, ltm = pcall(function()
+			return part.LocalTransparencyModifier
+		end)
+		if ok and type(ltm) == "number" and ltm > 0 then
+			t = t + (1 - t) * math.clamp(ltm, 0, 1)
+		end
+		return t
 	end
 	for _, part in parts do
 		local shape, isApprox = shapeOf(part)
 		if isApprox then
 			approx += 1
 		end
+		partIndex[part] = #partRecords
 		partRecord(
 			part.Name,
 			pathOf(part),
@@ -125,7 +141,7 @@ return function(ctx)
 			part.Size,
 			part.Color,
 			enumName(part.Material),
-			part.Transparency or 0,
+			viewTransparency(part),
 			part.CastShadow ~= false,
 			part.CanCollide ~= false
 		)
@@ -439,18 +455,62 @@ return function(ctx)
 		end
 	end
 
+	-- Highlight(강조): 켜진 것만. 대상(Adornee, 없으면 부모) 아래 보이는 파트 번호 + 색·투명도·깊이 방식
+	local highlightRecords = {}
+	for _, d in Mock.Workspace:GetDescendants() do
+		if d.ClassName == "Highlight" and d.Enabled ~= false then
+			local target = d.Adornee or d.Parent
+			local list = {}
+			if target then
+				local candidates = if Mock.isBasePart(target) then { target } else {}
+				for _, child in target:GetDescendants() do
+					if Mock.isBasePart(child) then
+						table.insert(candidates, child)
+					end
+				end
+				for _, part in candidates do
+					local index = partIndex[part]
+					if index and viewTransparency(part) < 0.999 then
+						table.insert(list, index)
+					end
+				end
+			end
+			if #list > 0 then
+				local fill = d.FillColor or Color3.fromRGB(255, 0, 0)
+				local outline = d.OutlineColor or Color3.new(1, 1, 1)
+				table.insert(
+					highlightRecords,
+					Mock.json.encode({
+						name = d.Name,
+						parts = list,
+						fill = { fill.R, fill.G, fill.B },
+						ft = d.FillTransparency or 0.5,
+						outline = { outline.R, outline.G, outline.B },
+						ot = d.OutlineTransparency or 0,
+						top = enumName(d.DepthMode or "HighlightDepthMode.AlwaysOnTop") == "AlwaysOnTop",
+					})
+				)
+			end
+		end
+	end
+	if #highlightRecords > 0 then
+		note(string.format("Highlight %d개", #highlightRecords))
+	end
+
 	local meta = ctx.meta or {}
 	meta.notes = ctx.notes
 
 	print("DUMP_BEGIN")
 	print(
 		string.format(
-			'{"meta":%s,"lighting":%s,"parts":[%s],"gui":[%s],"terrain":%s}',
+			'{"meta":%s,"lighting":%s,"parts":[%s],"gui":[%s],"terrain":%s,"hl":[%s],"extra":%s}',
 			Mock.json.encode(meta),
 			Mock.json.encode(lighting),
 			table.concat(partRecords, ","),
 			table.concat(guiRecords, ","),
-			terrainJson or "null"
+			terrainJson or "null",
+			table.concat(highlightRecords, ","),
+			if ctx.extra ~= nil then Mock.json.encode(ctx.extra) else "null"
 		)
 	)
 	print("DUMP_END")

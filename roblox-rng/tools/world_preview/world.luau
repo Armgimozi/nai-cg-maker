@@ -2,7 +2,7 @@
 -- 모든 BasePart(+ SurfaceGui 간판, 조명 값, 지형 격자)를 JSON 으로 출력합니다(dump.luau). 렌더링은 render.js 가 합니다.
 --
 -- 사용법(roblox-rng 폴더에서, 보통은 tools/world_preview/preview.sh 가 부름):
---   luaurun tools/world_preview/world.luau [variant=이름] [field=Config필드] [players=3] [scenery=off]
+--   luaurun tools/world_preview/world.luau [variant=이름] [field=Config필드] [players=3] [scenery=off] [hook=파일]
 --
 -- 순서(init.server.luau 에 적힌 순서를 따름): default.project.json 의 Workspace/Lighting → World.build →
 --   ParkService.init → Scenery(있으면) → 샘플 플레이어 부지 배정·전시 → 스케줄러 5초 → 덤프.
@@ -10,6 +10,11 @@
 --   부르는 방법(함수 이름·인자)은 init.server.luau 의 "Scenery.xxx(...)" 호출을 읽어서 똑같이 부릅니다.
 --   variant=... 를 주면 그 호출이 읽는 Config 필드(이름에 VARIANT/SCENERY/MAP/THEME 가 든 것)를 바꾼 뒤 부름.
 --   필드를 못 찾으면 field=이름 으로 직접 지정. 그래도 없으면 variant 를 첫 인자로 넘김.
+-- hook=파일: 덤프 바로 전에 부르는 Luau 파일(함수 하나를 돌려줌: function(ctx) -> 표?). 월드 위에 클라이언트 화면을
+--   얹어 그릴 때(예: edit_hook.luau = 진짜 ParkEdit 로 3D 배치 모드). ctx = { Mock, Harness, shared, server, opts,
+--   samples = { { Player, Data } }, note }. 돌려준 표는 덤프의 "extra" 로 나감(카메라 "Camera" 가 있으면 render.js 의 hook 시점).
+--   덤프는 이 화면(클라이언트) 기준: LocalTransparencyModifier 를 투명도에 더하고, 켜진 Highlight 는 "hl" 목록으로(dump.luau).
+--   hook 이 더 넘길 인자는 key=value 그대로(예: edit=pc — preview.sh 의 HOOK_ARGS)
 -- 출력: 표준 출력의 DUMP_BEGIN / DUMP_END 사이 한 줄 JSON. 그 밖의 줄은 진행 상황·경고.
 
 local Harness = compile(readfile("tests/harness.luau"), "tests/harness.luau")()
@@ -507,6 +512,7 @@ local SAMPLES = {
 	{ Name = "Newbie", DisplayName = "새내기", Park = 0, Count = 3, Stride = 11 },
 }
 local playerCount = math.clamp(tonumber(opts.players) or 3, 0, 8)
+local samples: { { Player: any, Data: any } } = {}
 Mock.origin = "Players"
 for i = 1, playerCount do
 	local sample = SAMPLES[(i - 1) % #SAMPLES + 1]
@@ -538,11 +544,34 @@ for i = 1, playerCount do
 	if not ok then
 		note("샘플 플레이어 " .. i .. " 전시 실패: " .. tostring(err))
 	end
+	table.insert(samples, { Player = player, Data = data })
 end
 
 local stepsRun, pending = Mock.runScheduler(5)
 if stepsRun > 0 or pending > 0 then
 	note(string.format("스케줄러: task %d개 실행, 5초 뒤에도 기다리는 task %d개", stepsRun, pending))
+end
+
+-- hook: 월드 위에 클라이언트 화면(예: 3D 배치 모드)을 얹음 -----------------------------------
+local extra: any = nil
+if opts.hook and opts.hook ~= "" then
+	local source = readfile(opts.hook)
+	assert(source, "hook 파일을 읽지 못했습니다: " .. opts.hook)
+	Mock.origin = "Hook"
+	local hook = compile(source, opts.hook)()
+	local ok, result = pcall(hook, {
+		Mock = Mock,
+		Harness = Harness,
+		shared = shared,
+		server = server,
+		opts = opts,
+		samples = samples,
+		note = note,
+	})
+	if not ok then
+		error("hook 실패: " .. tostring(result))
+	end
+	extra = result
 end
 
 -- 덤프 --------------------------------------------------------------------------------
@@ -553,6 +582,7 @@ dump({
 	shared = shared,
 	note = note,
 	notes = notes,
+	extra = extra,
 	meta = {
 		variant = opts.variant,
 		variantField = variantField,

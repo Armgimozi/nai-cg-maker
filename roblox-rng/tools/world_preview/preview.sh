@@ -21,6 +21,10 @@
 #   TERRAIN_DEBUG=1      지형을 재질별 가짜 색으로(Grass 초록, LeafyGrass 파랑, Sand 노랑 ... terrain.js DEBUG_COLORS)
 #   FOAM=1               물가에 흰 거품을 그림(Roblox 물에는 거품이 없음 — 기본은 안 그림)
 #   GAP=2                closeup 시점이 볼 부지 사이 틈 번호(1~8, 기본 2)
+#   HOOK=파일            덤프 전에 부를 Luau hook(world.luau 설명). HOOK_ARGS="edit=pc" 처럼 world.luau 에 더 넘길 인자
+#                        VIEWS=hook 이면 hook 이 정한 카메라로 그림(예: mockup/edit_backdrops.sh — 진짜 ParkEdit 배치 모드)
+#   PREVIEW_SIZE=667x375 그림 크기(기본 1280x720) · PREVIEW_JPEG=0.86 JPEG 품질(→ .jpg) — render.js 로 넘어감
+#   OVERLAP=0            풍경 겹침 보고서(overlap.js)를 건너뜀
 # 처음 한 번: (cd tools/world_preview && npm install)   — three.js. Playwright 는 전역 설치본을 씀
 set -euo pipefail
 OUT="${1:?출력 폴더}"
@@ -46,6 +50,11 @@ elif [ -n "$VARIANT" ]; then
 	ARGS+=("variant=$VARIANT")
 fi
 [ -n "${FIELD:-}" ] && ARGS+=("field=$FIELD")
+[ -n "${HOOK:-}" ] && ARGS+=("hook=$HOOK")
+if [ -n "${HOOK_ARGS:-}" ]; then
+	read -r -a EXTRA_ARGS <<<"$HOOK_ARGS"
+	ARGS+=("${EXTRA_ARGS[@]}")
+fi
 
 # 게임 코드 위치: 작업 폴더 또는 REV 커밋을 풀어 둔 임시 폴더(도구 파일은 항상 지금 것을 씀)
 GAME="$ROOT"
@@ -58,6 +67,12 @@ if [ -n "${REV:-}" ]; then
 	git -C "$(git rev-parse --show-toplevel)" archive "$TREE" src default.project.json | tar -x -C "$GAME"
 	cp tools/roblox_mock.luau "$GAME/tools/"
 	cp tools/world_preview/world.luau tools/world_preview/dump.luau tools/world_preview/test_scene.luau "$GAME/tools/world_preview/"
+	if [ -n "${HOOK:-}" ]; then
+		# hook(예: edit_hook.luau)과 그것이 쓰는 클라이언트 흉내는 지금 것을 씀(게임 코드 src/client 는 REV 것)
+		mkdir -p "$GAME/$(dirname "$HOOK")" "$GAME/tools/client_smoke"
+		cp "$HOOK" "$GAME/$HOOK"
+		cp tools/client_smoke/client_mock.luau "$GAME/tools/client_smoke/"
+	fi
 	cp tests/harness.luau "$GAME/tests/"
 	echo "[preview] $REV ($(git rev-parse --short "$REV")) 의 src/ + default.project.json 으로 그립니다"
 fi
@@ -77,7 +92,9 @@ sed -n '/^DUMP_BEGIN$/,/^DUMP_END$/p' "$WORK/out.txt" | sed '1d;$d' >"$WORK/dump
 }
 
 NODE_PATH="$(npm root -g)" node tools/world_preview/render.js "$WORK/dump.json" "$OUT" "$PREFIX" ${VIEWS:+"$VIEWS"}
-node tools/world_preview/overlap.js "$WORK/dump.json" "$OUT/${PREFIX}_overlap.txt"
+if [ "${OVERLAP:-1}" != "0" ]; then
+	node tools/world_preview/overlap.js "$WORK/dump.json" "$OUT/${PREFIX}_overlap.txt"
+fi
 if [ -n "${KEEP:-}" ]; then
 	cp "$WORK/dump.json" "$OUT/${PREFIX}_dump.json"
 fi
