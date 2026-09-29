@@ -1,5 +1,6 @@
 -- 기본 화면(HUD): 코인·수입·스탯, 메뉴 버튼, 굴리기 버튼, 지구본 굴림 연출, 뉴스 속보, 알림,
--- 환생 수·부스트 타이머·서버 행운 띠(v3), 상점 버튼(오른쪽, 팔 상품이 있을 때만)
+-- 환생 수·부스트 타이머·서버 행운 띠(v3), 상점 버튼(오른쪽, 팔 상품이 있을 때만),
+-- 공원 배치 버튼(내 공원에 있을 때만 이동 버튼 옆)
 -- 스타일은 DESIGN.md "UI 스타일 가이드 (v2)" — 통통한 버튼 + 굵은 Ink 테두리 + 아이콘, 이모지 없음
 -- 글자는 최소로: 아이콘 + 숫자 위주, 버튼 글자는 2~3글자, 알림은 8글자 안팎. 설명 문장은 쓰지 않음.
 
@@ -315,6 +316,17 @@ local function placeMenu(size: Vector2, scale: number, touch: boolean)
 	local container = refs.Menu
 	container.Size = UDim2.fromOffset(block.X + 8, block.Y)
 	container.Position = UDim2.new(0, MENU_X, 0.5, MENU_DROP + place.Shift)
+
+	-- 내 공원에 있을 때만: 공원 배치 버튼을 이동 버튼(마지막 칸) 바로 오른쪽에. 여러 열이면 그 자리는 비어 있는 칸,
+	-- 1열이면 묶음 옆 빈 자리. 가로 한 줄이면 묶음이 한 칸 넓어진 것으로 쳐서 위 가운데 묶음이 비켜 가게 함
+	local arrange: Ui.ChunkyButton? = refs.ArrangeButton
+	if arrange then
+		local last = buttons[#buttons]
+		arrange.Root.Position = last.Position + UDim2.fromOffset(MENU_BUTTON.X + MENU_GAP, 0)
+		if arrange.Root.Visible and place.Columns >= #buttons then
+			place.Width += (MENU_BUTTON.X + MENU_GAP) * scale
+		end
+	end
 end
 
 local function buildMenu(onMenu: (string) -> (), onTeleport: () -> ())
@@ -397,6 +409,23 @@ local function buildMenu(onMenu: (string) -> (), onTeleport: () -> ())
 	})
 	table.insert(buttons, refs.TeleportButton.Root)
 	refs.TeleportButton.Activated:Connect(onTeleport)
+
+	-- 공원 배치 창 열기 (내 공원에 있을 때만 보임, 자리는 placeMenu). 메뉴 칸 수에는 안 셈
+	refs.ArrangeButton = Ui.chunkyButton({
+		Name = "Arrange",
+		Size = UDim2.fromOffset(MENU_BUTTON.X, MENU_BUTTON.Y),
+		Color = "Grass",
+		Icon = "park",
+		IconSize = MENU_ICON,
+		Vertical = true,
+		Text = "배치",
+		TextSize = 18,
+		Visible = false,
+		Parent = container,
+	})
+	refs.ArrangeButton.Activated:Connect(function()
+		onMenu("Park")
+	end)
 end
 
 -- 오른쪽 가운데: 상점 (Robux 상품이 하나도 없으면 안 만듦)
@@ -1016,14 +1045,21 @@ function Hud.setRolling(rolling: boolean)
 end
 
 -- where: 지금 있는 곳 ("Plaza" | "Park"). 버튼은 반대쪽으로 가는 버튼이 됨
+-- 내 공원에 있으면 이동 버튼 옆에 공원 배치 버튼이 나옴
 function Hud.setLocation(where: string)
 	local button = refs.TeleportButton
-	if where == "Park" then
+	local inPark = where == "Park"
+	if inPark then
 		button.SetText("광장")
 		button.SetIcon("plaza")
 	else
 		button.SetText("공원")
 		button.SetIcon("park")
+	end
+	local arrange: Ui.ChunkyButton = refs.ArrangeButton
+	if arrange.Root.Visible ~= inPark then
+		arrange.Root.Visible = inPark
+		relayout() -- 가로 한 줄 메뉴면 묶음 폭이 바뀜
 	end
 end
 

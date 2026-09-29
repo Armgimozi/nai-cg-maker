@@ -1805,10 +1805,12 @@ local function buildPark(): View
 		Parent = parkAuto.Face,
 	})
 
-	-- 창 본문에 붙는 부분(격자 + 고른 칸 줄). 스크롤 목록과 겹치지 않게 자리만 잡는 투명 틀
+	-- 창 본문에 붙는 부분(격자 + 고른 칸 줄)을 묶는 투명 틀. 틀 자체는 머리 줄 아래 고른 칸 줄 높이만 차지해서
+	-- 머리 줄 버튼·오른쪽 스크롤 목록 위를 덮지 않음(격자는 틀 아래로 삐져나오지만 목록과는 옆으로 떨어져 있음)
 	local board = Ui.new("Frame", {
 		Name = "ParkBoard",
-		Size = UDim2.fromScale(1, 1),
+		Position = UDim2.fromOffset(0, HEADER_HEIGHT),
+		Size = UDim2.new(1, 0, 0, PARK_BAR),
 		BackgroundTransparency = 1,
 		Visible = false,
 		Parent = body,
@@ -1817,7 +1819,7 @@ local function buildPark(): View
 	-- 공원 잔디 + 격자
 	local lawn = Ui.new("Frame", {
 		Name = "Lawn",
-		Position = UDim2.fromOffset(0, HEADER_HEIGHT),
+		Position = UDim2.fromOffset(0, 0),
 		Size = UDim2.fromOffset(PARK_LAWN, PARK_LAWN),
 		BackgroundColor3 = Ui.colorPair("Grass").Face:Lerp(WHITE, 0.6),
 		Parent = board,
@@ -1845,7 +1847,7 @@ local function buildPark(): View
 	-- 고른 칸 줄: [공원 #칸] 명소 이름(또는 빈 칸) [빼기]
 	local bar = Ui.new("Frame", {
 		Name = "Selected",
-		Position = UDim2.fromOffset(PARK_SIDE_X, HEADER_HEIGHT),
+		Position = UDim2.fromOffset(PARK_SIDE_X, 0),
 		Size = UDim2.new(1, -PARK_SIDE_X, 0, PARK_BAR),
 		BackgroundColor3 = Theme.Paper,
 		Parent = board,
@@ -2036,7 +2038,8 @@ function selectParkSlot(slot: number)
 	refreshPark()
 end
 
--- 명소 누름: 고른 칸(없으면 첫 빈 칸)에 놓음. 놓은 칸이 골라진 채로 남음
+-- 명소 누름: 고른 칸에 놓음(고른 칸은 그대로 골라진 채 — 다른 명소를 눌러 바로 바꿔 볼 수 있음).
+-- 고른 칸이 없으면 첫 빈 칸에 놓음
 function placeInPark(id: string)
 	local state = parkState()
 	if not state then
@@ -2045,6 +2048,15 @@ function placeInPark(id: string)
 	local slots, unlocked = PlayerState.parkSlots(state)
 	local target = parkSelected
 	if not target then
+		-- 고른 칸이 없을 때: 이미 전시 중인 명소면 그 칸을 골라 보여 주기만, 아니면 첫 빈 칸에 놓음.
+		-- (고른 칸은 그대로 비워 둬서 명소를 연달아 누르면 빈 칸이 차례로 참)
+		for slot = 1, unlocked do
+			if slots[slot] == id then
+				parkSelected = slot
+				refreshPark()
+				return
+			end
+		end
 		for slot = 1, unlocked do
 			if not slots[slot] then
 				target = slot
@@ -2057,7 +2069,6 @@ function placeInPark(id: string)
 		return
 	end
 	local slot = target :: number
-	parkSelected = slot
 	if slots[slot] ~= id and previewPark(function(copy)
 		return (PlayerState.setDisplay(copy, slot, id))
 	end) then

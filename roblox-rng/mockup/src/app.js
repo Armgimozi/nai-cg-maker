@@ -986,6 +986,23 @@
       text: inPark ? '광장' : '공원',
       textSize: 18,
     });
+    // 내 공원에 있을 때만: 공원 배치 버튼을 이동 버튼 바로 오른쪽 칸에 (메뉴 칸 수에는 안 셈).
+    // 가로 한 줄이면 묶음이 한 칸 넓어진 것으로 쳐서 위 가운데 묶음이 비켜 감
+    if (inPark) {
+      const last = cell(count).pos;
+      chunkyButton(container, {
+        name: 'Arrange',
+        pos: [0, last[1] + MENU_BUTTON[0] + MENU_GAP, 0, last[3]],
+        size: [0, MENU_BUTTON[0], 0, MENU_BUTTON[1]],
+        color: 'Grass',
+        icon: 'park',
+        iconSize: 58,
+        vertical: true,
+        text: '배치',
+        textSize: 18,
+      });
+      if (place.columns >= count) view.menu = { ...place, width: place.width + (MENU_BUTTON[0] + MENU_GAP) * view.scale };
+    }
   }
 
   // 로블록스 기본 터치 조작(터치 전용 기기만): 오른쪽 아래 점프 버튼 + 왼쪽 아래 조이스틱 자리(흐리게, 게임 UI 가 아님)
@@ -1876,7 +1893,8 @@
         `자동 배치(희귀한 순서, 1번 칸 = ${ById[AUTO_FRONT] ? ById[AUTO_FRONT].Name : ''})에서 하버브리지를 1번 칸에 놓고 5번 칸을 뺀 직접 배치 — ` +
         '그래서 머리 줄 "자동"이 꺼짐(회색). 3번 칸을 고른 상태(굵은 노란 테두리): 오른쪽 줄에 [#3] 이름 + 빨간 [빼기], 목록에서 그 명소 카드가 노랗게. ' +
         '목록(가진 명소, 희귀한 순서)의 초록 [체크 #칸] = 전시 중인 칸. 칸을 누르면 고르고, 명소를 누르면 고른 칸(없으면 첫 빈 칸)에 놓임(다른 칸에 있으면 자리 바꿈). ' +
-        '머리 줄: 전시 수 / 열린 칸 · 이 배치의 초당 수입 · 자동(다시 켜서 배치가 바뀌면 "확인?" 한 번 더). 여는 곳: 도감 "배치" 버튼, 내 공원 받침대 클릭(그 칸이 골라진 채로).',
+        '머리 줄: 전시 수 / 열린 칸 · 이 배치의 초당 수입 · 자동(다시 켜서 배치가 바뀌면 "확인?" 한 번 더). ' +
+        '여는 곳: 도감 "배치" 버튼, 내 공원 받침대 클릭(그 칸이 골라진 채로), 내 공원에 있을 때 왼쪽 메뉴 "광장" 버튼 오른쪽에 나오는 초록 "배치" 버튼.',
       build(root) {
         const screenGui = newScreen(root, this.id);
         buildHud(screenGui, PARK_STATE, { auto: false, location: 'Park' });
