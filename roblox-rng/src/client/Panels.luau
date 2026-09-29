@@ -93,29 +93,36 @@ local function renderInventory(state: PlayerState.Snapshot)
 	headerButton.Text = if state.Settings.AutoEquip
 		then "더 희귀하면 자동 장착: 켬"
 		else "더 희귀하면 자동 장착: 끔"
-	gridLayout()
 
-	local count = 0
-	for order, aura in Auras.RarestFirst do
-		local owned = state.Inventory[aura.Id] or 0
-		if owned > 0 then
-			count += 1
-			local equipped = state.Equipped == aura.Id
-			local footer =
-				string.format("x%s · %s", Format.commas(owned), if equipped then "장착 중" else "눌러서 장착")
-			local card = auraCard(order, aura, true, footer, equipped)
-			card.Activated:Connect(function()
-				handlers.Equip(if equipped then nil else aura.Id)
-			end)
+	local owned = {}
+	for _, aura in Auras.RarestFirst do
+		if (state.Inventory[aura.Id] or 0) > 0 then
+			table.insert(owned, aura)
 		end
 	end
-	if count == 0 then
+	if #owned == 0 then
+		-- 격자 칸 하나에 끼지 않도록 격자 없이 한 줄로 표시
 		Ui.label({
 			Size = UDim2.new(1, 0, 0, 40),
 			Text = "아직 오라가 없어요. 굴려 보세요!",
 			TextColor3 = Theme.SubText,
 			Parent = body,
 		}, 24)
+		return
+	end
+
+	gridLayout()
+	for order, aura in owned do
+		local equipped = state.Equipped == aura.Id
+		local footer = string.format(
+			"x%s · %s",
+			Format.commas(state.Inventory[aura.Id]),
+			if equipped then "장착 중" else "눌러서 장착"
+		)
+		local card = auraCard(order, aura, true, footer, equipped)
+		card.Activated:Connect(function()
+			handlers.Equip(if equipped then nil else aura.Id)
+		end)
 	end
 end
 

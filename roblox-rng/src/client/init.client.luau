@@ -21,11 +21,14 @@ local playerGui = player:WaitForChild("PlayerGui")
 local state = nil -- 서버에서 받은 최신 Snapshot
 local stateReceivedAt = 0
 local rolling = false
+local revealing = false
 local autoRoll = false
 local lastRollSentAt = -math.huge
+local heldAnnouncements = {} -- 내 굴림 연출 중에 도착한 "내" 알림 (연출이 끝나면 표시)
 
 -- 서버 상태 반영. Revision 이 더 큰 것만 받아서 늦게 도착한 옛 상태가 덮어쓰지 않게 함.
-local function applyState(snapshot: any)
+-- receivedAt: 스냅샷을 실제로 받은 시각(물약 남은 시간 계산 기준). 늦게 반영할 때 넘겨줌.
+local function applyState(snapshot: any, receivedAt: number?)
 	if type(snapshot) ~= "table" then
 		return
 	end
@@ -33,7 +36,7 @@ local function applyState(snapshot: any)
 		return
 	end
 	state = snapshot
-	stateReceivedAt = time()
+	stateReceivedAt = receivedAt or time()
 	Hud.render(state)
 	Panels.render(state)
 end
@@ -59,6 +62,27 @@ local function equip(auraId: string?)
 	end
 end
 
+local function showAnnouncement(info: any, aura: any)
+	Hud.banner(tostring(info.Name), aura, tonumber(info.Rolls) or 0)
+
+	-- 채팅창에도 시스템 메시지 (새 TextChatService 를 쓰는 경우)
+	pcall(function()
+		local channels = TextChatService:FindFirstChild("TextChannels")
+		local general = channels and channels:FindFirstChild("RBXGeneral")
+		if general then
+			general:DisplaySystemMessage(
+				string.format(
+					'[AuraRNG] %s 님이 <font color="%s"><b>%s</b></font> (%s) 획득!',
+					Format.escape(tostring(info.Name)),
+					Format.hex(aura.Color),
+					aura.Name,
+					Format.oneIn(aura.OneIn)
+				)
+			)
+		end
+	end)
+end
+
 local function roll()
 	if rolling or not state then
 		return
@@ -73,10 +97,12 @@ local function roll()
 	end
 	lastRollSentAt = time()
 	local response = invoke("Roll")
+	local receivedAt = time()
 
 	if response and response.Ok then
 		Hud.startCooldown(response.State.Cooldown)
 		local aura = Auras.ById[response.AuraId]
+		revealing = true
 		Hud.reveal(aura, {
 			Fast = autoRoll,
 			Lucky = response.Lucky,
@@ -84,7 +110,12 @@ local function roll()
 			Coins = response.Coins,
 			Luck = response.Luck,
 		})
-		applyState(response.State) -- 연출이 끝난 뒤에 숫자 갱신(스포일러 방지)
+		revealing = false
+		applyState(response.State, receivedAt) -- 연출이 끝난 뒤에 숫자 갱신(스포일러 방지)
+		for _, held in heldAnnouncements do
+			showAnnouncement(held.Info, held.Aura)
+		end
+		table.clear(heldAnnouncements)
 
 		-- 더 희귀하면 자동 장착
 		if state.Settings.AutoEquip then
@@ -95,6 +126,7 @@ local function roll()
 		end
 	elseif response and response.Reason == "cooldown" then
 		task.wait(response.RetryIn or 0.2)
+		lastRollSentAt = -math.huge -- 이미 RetryIn 만큼 기다렸으니 다음 요청에서 또 기다리지 않음
 	else
 		task.wait(1) -- 데이터 불러오는 중이거나 통신 실패: 자동 굴리기가 요청을 퍼붓지 않게
 	end
@@ -170,24 +202,12 @@ Net.event("Announce").OnClientEvent:Connect(function(info)
 	if not aura then
 		return
 	end
-	Hud.banner(tostring(info.Name), aura, tonumber(info.Rolls) or 0)
-
-	-- 채팅창에도 시스템 메시지 (새 TextChatService 를 쓰는 경우)
-	pcall(function()
-		local channels = TextChatService:FindFirstChild("TextChannels")
-		local general = channels and channels:FindFirstChild("RBXGeneral")
-		if general then
-			general:DisplaySystemMessage(
-				string.format(
-					'[AuraRNG] %s 님이 <font color="%s"><b>%s</b></font> (%s) 획득!',
-					Format.escape(tostring(info.Name)),
-					Format.hex(aura.Color),
-					aura.Name,
-					Format.oneIn(aura.OneIn)
-				)
-			)
-		end
-	end)
+	-- 내가 뽑은 알림이 내 연출보다 먼저 오면 결과가 미리 보이므로 연출이 끝날 때까지 보류
+	if info.UserId == player.UserId and revealing then
+		table.insert(heldAnnouncements, { Info = info, Aura = aura })
+		return
+	end
+	showAnnouncement(info, aura)
 end)
 
 -- 루프 ---------------------------------------------------------------------

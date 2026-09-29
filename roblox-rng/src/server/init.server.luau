@@ -14,12 +14,13 @@ local RollLogic = require(Shared.RollLogic)
 local AuraDisplay = require(script.AuraDisplay)
 local DataService = require(script.DataService)
 
--- 희귀 알림은 굴린 사람의 연출(최대 약 3초)이 끝난 뒤에 나가도록 지연
-local ANNOUNCE_DELAY = 3.2
+-- 에픽 이상 결과는 굴린 사람의 연출(최대 약 4초)이 끝난 뒤에 알림/리더보드에 반영
+-- (굴린 본인의 클라이언트는 연출이 끝날 때까지 자기 알림을 따로 보류함)
+local REVEAL_GRACE = 4.5
 
 type Session = {
 	Data: PlayerState.Data,
-	CanSave: boolean,
+	LockId: string?, -- nil 이면 저장하지 않음(Studio 등)
 	LastRoll: number,
 	Revision: number,
 	Stats: { Rolls: IntValue, Best: StringValue },
@@ -82,18 +83,18 @@ end
 -- BindToClose 가 진행 중인 저장을 기다릴 수 있도록 개수를 셈
 local savesInFlight = 0
 
-local function trackedSave(player: Player, data: PlayerState.Data, release: boolean)
+local function trackedSave(player: Player, data: PlayerState.Data, lockId: string, release: boolean)
 	savesInFlight += 1
-	DataService.save(player, data, release)
+	DataService.save(player, data, lockId, release)
 	savesInFlight -= 1
 end
 
 local function onPlayerAdded(player: Player)
-	local data, canSave = DataService.load(player)
+	local data, lockId = DataService.load(player)
 	if player.Parent == nil then
 		-- 불러오는 동안 나감: 방금 건 세션 잠금을 풀어 둬야 다음 접속이 기다리지 않음
-		if data and canSave then
-			trackedSave(player, data, true)
+		if data and lockId then
+			trackedSave(player, data, lockId, true)
 		end
 		return
 	end
@@ -104,7 +105,7 @@ local function onPlayerAdded(player: Player)
 
 	local session: Session = {
 		Data = data,
-		CanSave = canSave,
+		LockId = lockId,
 		LastRoll = -math.huge,
 		Revision = 0,
 		Stats = createLeaderstats(player),
@@ -114,6 +115,12 @@ local function onPlayerAdded(player: Player)
 
 	player.CharacterAdded:Connect(function(character)
 		onCharacter(player, character)
+	end)
+	-- 일부 아바타(다이나믹 헤드 등)는 외형 로딩 중 머리를 교체하므로 로딩이 끝난 뒤 한 번 더 붙임
+	player.CharacterAppearanceLoaded:Connect(function(character)
+		if player.Character == character then
+			refreshAura(player)
+		end
 	end)
 	if player.Character then
 		task.spawn(onCharacter, player, player.Character)
@@ -127,8 +134,8 @@ local function saveAndRelease(player: Player)
 		return
 	end
 	sessions[player] = nil
-	if session.CanSave then
-		trackedSave(player, session.Data, true)
+	if session.LockId then
+		trackedSave(player, session.Data, session.LockId, true)
 	end
 end
 
@@ -154,8 +161,8 @@ task.spawn(function()
 	while true do
 		task.wait(Config.AUTOSAVE_INTERVAL)
 		for player, session in sessions do
-			if session.CanSave then
-				task.spawn(DataService.save, player, session.Data, false)
+			if session.LockId then
+				task.spawn(DataService.save, player, session.Data, session.LockId, false)
 			end
 		end
 	end
@@ -175,6 +182,7 @@ end)
 
 local function announce(player: Player, aura: Auras.Aura, rollNumber: number)
 	Net.event("Announce"):FireAllClients({
+		UserId = player.UserId,
 		Name = player.DisplayName,
 		AuraId = aura.Id,
 		Rolls = rollNumber,
@@ -221,10 +229,15 @@ Net.fn("Roll").OnServerInvoke = function(player: Player)
 	local luck, lucky = PlayerState.rollLuck(session.Data)
 	local aura = RollLogic.roll(Auras.RarestFirst, luck, nextNumber)
 	local coins, isNew = PlayerState.applyRoll(session.Data, aura)
-	updateStats(session)
 
+	-- 에픽 이상은 연출이 끝난 뒤에 리더보드("최고")를 바꿔야 Tab 목록으로 결과가 미리 새지 않음
+	if aura.Tier.Rank >= 4 then
+		task.delay(REVEAL_GRACE, updateStats, session)
+	else
+		updateStats(session)
+	end
 	if aura.OneIn >= Config.ANNOUNCE_ONE_IN then
-		task.delay(ANNOUNCE_DELAY, announce, player, aura, session.Data.Rolls)
+		task.delay(REVEAL_GRACE, announce, player, aura, session.Data.Rolls)
 	end
 
 	return {

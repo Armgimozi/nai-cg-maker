@@ -381,8 +381,7 @@ function Hud.reveal(
 		play(tickSound)
 		local t = elapsed / duration
 		local interval = 0.04 + t * t * 0.2
-		task.wait(interval)
-		elapsed += interval
+		elapsed += task.wait(interval) -- 실제로 지난 시간을 더해야 연출 길이가 늘어지지 않음
 	end
 
 	-- 2) 전설 이상은 한 박자 뜸 들이기
