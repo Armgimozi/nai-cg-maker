@@ -531,7 +531,8 @@ function BUILD.Bush(parent: Instance, item)
 	end
 end
 
--- 산울타리: 길이 Height 인 잎 판 + 위를 둥글게 덮는 원기둥. Turn = 길이 방향
+-- 산울타리: 길이 Height 인 잎 판 + 위를 둥글게 덮는 원기둥. Turn = 길이 방향.
+-- Style 2 = 조금 짙은 초록, 3 = 꽃 핀 산울타리(둥근 윗면에 작은 꽃이 드문드문, 색은 Tint)
 function BUILD.Hedge(parent: Instance, item)
 	local length = item.Height
 	local cf = CFrame.new(basePoint(item)) * CFrame.Angles(0, -item.Turn, 0)
@@ -554,6 +555,17 @@ function BUILD.Hedge(parent: Instance, item)
 		HEDGE_TOP:Lerp(BUSH[2], dark),
 		LEAVES
 	)
+	if item.Style == 3 then
+		local rng = itemRng(item, 12)
+		local color = BLOSSOMS[math.floor(item.Tint * #BLOSSOMS) % #BLOSSOMS + 1]
+		local count = math.max(2, math.floor(length / 2.2))
+		for k = 1, count do
+			local along = (k - 0.5) / count * length - length / 2 + rng:NextNumber(-0.5, 0.5)
+			local around = rng:NextNumber(-0.9, 0.9) -- 둥근 윗면 위 각도(0 = 꼭대기)
+			local offset = Vector3.new(along, 1.3 + math.cos(around) * 0.8, math.sin(around) * 0.8)
+			ball(parent, "Flower", (cf * CFrame.new(offset)).Position, 0.5, if k % 3 == 0 then WHITE else color)
+		end
+	end
 end
 
 -- 꽃밭 두 가지(Style 로 정함, 같은 모양이 줄지어 반복되지 않게):
@@ -687,7 +699,7 @@ function BUILD.Rock(parent: Instance, item)
 	)
 end
 
--- 물가 바위: 지형 바위(울퉁불퉁한 둔덕) 꼭대기에 둥근 바윗돌 하나(아래 반은 지형 속) + 발치 모래·물가에 작은 돌 둘.
+-- 물가 바위: 지형 바위(울퉁불퉁한 바위 무더기) 꼭대기에 둥근 바윗돌 하나(아래 반은 지형 속).
 -- Scale = 지형 바위 반지름, Height = 지형 바위 꼭대기 높이
 function BUILD.ShoreRock(parent: Instance, item)
 	local r, top = item.Scale, item.Height
@@ -697,22 +709,6 @@ function BUILD.ShoreRock(parent: Instance, item)
 	local size = 0.5 * r
 	local floor = math.max(math.min(top, groundAt(item.X + ox, item.Z + oz)), Island.WATER_LEVEL)
 	boulder(parent, "ShoreRock", Vector3.new(item.X + ox, floor - 0.35 * size, item.Z + oz), size, rng, 0.25)
-	for k = 1, 2 do
-		local a = t + k * 2.6 + rng:NextNumber(-0.3, 0.3)
-		local d = r * rng:NextNumber(0.95, 1.15)
-		local x, z = item.X + math.cos(a) * d, item.Z + math.sin(a) * d
-		local pebble = r * rng:NextNumber(0.16, 0.24)
-		local y = math.max(groundAt(x, z), Island.WATER_LEVEL - 0.3 * pebble)
-		ball(
-			parent,
-			"ShoreRock",
-			Vector3.new(x, y - 0.1 * pebble, z),
-			pebble,
-			ROCK:Lerp(STONE, 0.3 * k),
-			MAT.Slate,
-			true
-		)
-	end
 end
 
 -- 정원등: 가는 짙은 초록 기둥 + 등 + 모자(광장 가로등보다 가늘고 낮게, 따뜻한 빛)
@@ -1585,20 +1581,32 @@ function BUILD.Surfboards(parent: Instance, item)
 	end
 end
 
--- 떠밀려 온 나무(모래 위에 누운 굵은 가지 + 곁가지). Turn = 누운 방향
+-- 떠밀려 온 나무(모래 위에 누운 줄기: 굵은 밑동 → 가는 끝 두 토막 + 뿌리 혹 + 곁가지 둘, 햇볕에 바랜 색). Turn = 누운 방향
 function BUILD.Driftwood(parent: Instance, item)
 	local s, base = item.Scale, basePoint(item)
 	local dx, dz = math.cos(item.Turn), math.sin(item.Turn)
 	local half = 2.6 * s
-	local a = Vector3.new(base.X - dx * half, 0, base.Z - dz * half)
-	local b = Vector3.new(base.X + dx * half, 0, base.Z + dz * half)
-	a = Vector3.new(a.X, groundAt(a.X, a.Z) + 0.2 * s, a.Z)
-	b = Vector3.new(b.X, groundAt(b.X, b.Z) + 0.25 * s, b.Z)
-	local driftwood = rgb(176, 156, 128)
-	rod(parent, "Driftwood", a, b, 0.7 * s, driftwood, MAT.Wood, true)
-	local mid = a:Lerp(b, 0.6)
-	local branch = mid + Vector3.new(-dz * 1.6 * s + dx * 0.6 * s, 0.5 * s, dx * 1.6 * s + dz * 0.6 * s)
-	rod(parent, "Driftwood", mid, branch, 0.35 * s, driftwood:Lerp(WOOD_DARK, 0.2), MAT.Wood)
+	local function onSand(x: number, z: number, lift: number): Vector3
+		return Vector3.new(x, groundAt(x, z) + lift, z)
+	end
+	local a = onSand(base.X - dx * half, base.Z - dz * half, 0.25 * s)
+	local b = onSand(base.X + dx * half, base.Z + dz * half, 0.18 * s)
+	local mid = a:Lerp(b, 0.45) + Vector3.new(0, 0.05 * s, 0)
+	local bleached = rgb(196, 180, 154)
+	rod(parent, "Driftwood", a, mid, 0.8 * s, bleached, MAT.Wood, true)
+	rod(parent, "Driftwood", mid, b, 0.55 * s, bleached:Lerp(WOOD_LIGHT, 0.2), MAT.Wood, true)
+	ball(parent, "Driftwood", a - Vector3.new(dx, 0, dz) * 0.2 * s, 1.05 * s, bleached:Lerp(WOOD_DARK, 0.15), MAT.Wood)
+	for k, t in { 0.35, 0.7 } do
+		local from = a:Lerp(b, t)
+		local side = if k == 1 then 1 else -1
+		local to = from
+			+ Vector3.new(
+				-dz * side * 1.5 * s + dx * 0.7 * s,
+				(0.45 - 0.15 * k) * s,
+				dx * side * 1.5 * s + dz * 0.7 * s
+			)
+		rod(parent, "Driftwood", from, to, (0.34 - 0.06 * k) * s, bleached:Lerp(WOOD_DARK, 0.1 * k), MAT.Wood)
+	end
 end
 
 -- 수영 구역 부표: 반쯤 잠긴 공 + 작은 꼭지(빨강/하양)

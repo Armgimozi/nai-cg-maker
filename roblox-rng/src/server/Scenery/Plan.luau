@@ -870,7 +870,7 @@ local function innerLawn(ctx: Ctx)
 			if last - from >= 7 then
 				local x1, z1 = onAxis(a, from, side)
 				local x2, z2 = onAxis(a, last, side)
-				placeHedge(ctx, "Inner", x1, z1, x2, z2, 1)
+				placeHedge(ctx, "Inner", x1, z1, x2, z2, if s > 0 then 3 else 1)
 			end
 		end
 	end
@@ -1132,7 +1132,8 @@ local function plantings(g: Garden, theme: string)
 			local x, z = onAxis(g.angle, rho + rng:NextNumber(-4, 4), side)
 			local style = PLANTING_TREE[theme] or (if rng:NextNumber() < 0.3 then 4 else 1)
 			local spec = treeSpec("Gardens", "Island", x, z, rng:NextNumber(0.8, 0.95), style, rng)
-			local center = place(g.ctx, rng, spec, 5, 3, true)
+			-- 꽃 정원은 나무 대신 덤불·들꽃만(꽃밭이 나무 그늘에 가려지지 않게)
+			local center = if theme == "Flowers" then nil else place(g.ctx, rng, spec, 5, 3, true)
 			local cx, cz = x, z
 			local reach = 2
 			if center then
@@ -1190,9 +1191,12 @@ local function belt(ctx: Ctx)
 	local outer = T.OUTER_RING
 	local ringOut = outer.Radius + outer.Width / 2
 
-	-- 부지 뒤: 부지를 보는 벤치 + 옆 정원등 + 양옆 산울타리(산책로 바깥 가장자리를 따라)
-	for _, footprint in FOOTPRINTS do
+	-- 부지 뒤: 벤치 + 옆 정원등 + 양옆 산울타리(산책로 바깥 가장자리를 따라). 여덟 곳이 똑같지 않게 번갈아:
+	--   홀수 부지 = 부지를 보는 벤치 + 바다 쪽 동전 망원경 + 민 산울타리
+	--   짝수 부지 = 바다를 보는 벤치 + 옆 들꽃 무더기 + 꽃 핀 산울타리
+	for i, footprint in FOOTPRINTS do
 		local a = footprint.Angle
+		local odd = i % 2 == 1
 		local x, z = onAxis(a, ringOut + 3.3, 0)
 		place(ctx, rng, {
 			Kind = "Bench",
@@ -1201,7 +1205,7 @@ local function belt(ctx: Ctx)
 			X = x,
 			Z = z,
 			Radius = 2.8,
-			Turn = a + math.pi,
+			Turn = if odd then a + math.pi else a,
 			RouteMargin = 0.4,
 		})
 		x, z = onAxis(a, ringOut + 1.2, 4.2)
@@ -1210,25 +1214,41 @@ local function belt(ctx: Ctx)
 			rng,
 			{ Kind = "Lamp", Zone = "Belt", Region = "Island", X = x, Z = z, Radius = 0.6, RouteMargin = 0.2 }
 		)
-		-- 벤치 옆 동전 망원경(바다 쪽을 봄)
-		x, z = onAxis(a, ringOut + 2.2, -5.2)
-		place(ctx, rng, {
-			Kind = "Telescope",
-			Zone = "Belt",
-			Region = "Island",
-			X = x,
-			Z = z,
-			Radius = 0.8,
-			Turn = a,
-			RouteMargin = 0.3,
-		}, 2, 0.5)
+		if odd then
+			-- 벤치 옆 동전 망원경(바다 쪽을 봄)
+			x, z = onAxis(a, ringOut + 2.2, -5.2)
+			place(ctx, rng, {
+				Kind = "Telescope",
+				Zone = "Belt",
+				Region = "Island",
+				X = x,
+				Z = z,
+				Radius = 0.8,
+				Turn = a,
+				RouteMargin = 0.3,
+			}, 2, 0.5)
+		else
+			x, z = onAxis(a, ringOut + 3, -5.6)
+			place(ctx, rng, {
+				Kind = "FlowerBed",
+				Zone = "Belt",
+				Region = "Island",
+				X = x,
+				Z = z,
+				Radius = 1.6,
+				Turn = rng:NextNumber(0, TAU),
+				Style = if i % 4 == 0 then 3 else 6,
+				Flat = 1.6,
+				RouteMargin = 0.3,
+			}, 2, 0.5)
+		end
 		for _, s in { -1, 1 } do
 			local r = ringOut + 2
 			local a1 = a + s * math.rad(2.4)
 			local a2 = a + s * math.rad(8.5)
 			local x1, z1 = polar(a1, r)
 			local x2, z2 = polar(a2, r)
-			placeHedge(ctx, "Belt", x1, z1, x2, z2, 1)
+			placeHedge(ctx, "Belt", x1, z1, x2, z2, if odd then 1 else 3)
 		end
 	end
 
@@ -1409,7 +1429,7 @@ local function beach(ctx: Ctx)
 
 	-- 물가 바위와 연못 자리는 비워 둠. 등대 받침(1 번) 말고는 지형 바위 위에 모난 바윗돌 덩어리
 	for i, rock in Island.ROCKS do
-		table.insert(ctx.Keep, { X = rock.X, Z = rock.Z, R = rock.R * 1.1 })
+		table.insert(ctx.Keep, { X = rock.X, Z = rock.Z, R = rock.R * 1.35 })
 		if i > 1 then
 			local top = rock.Base + rock.Height
 			insert(ctx, {

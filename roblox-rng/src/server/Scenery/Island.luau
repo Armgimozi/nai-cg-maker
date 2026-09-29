@@ -175,10 +175,32 @@ addRock(356, 3, 8, 7.5)
 addRock(101, 6, 5.5, 6)
 addRock(118, 20, 4.5, 5.5) -- 부두 옆 물속 바위
 
+-- 바위마다 옆에 붙은 작은 혹 둘(한 덩어리 둥근 돔이 아니라 울퉁불퉁한 바위 무더기로 보이게). 바위 반지름 R 의
+-- 1.3 배 안에만 생김(Plan 은 바위 자리를 R * 1.35 까지 비워 둠)
+local LOBES: { Rock } = {}
+for _, rock in Island.ROCKS do
+	for k = 1, 2 do
+		local a = rock.Seed * 2.7 + k * 2.4
+		local d = rock.R * (0.45 + 0.1 * k)
+		table.insert(LOBES, {
+			X = rock.X + math.cos(a) * d,
+			Z = rock.Z + math.sin(a) * d,
+			R = rock.R * (0.62 - 0.1 * k),
+			Height = rock.Height * (0.8 - 0.12 * k),
+			Base = rock.Base,
+			Seed = rock.Seed + k * 5.1,
+		})
+	end
+end
+local ROCK_SHAPES: { Rock } = table.clone(Island.ROCKS)
+for _, lobe in LOBES do
+	table.insert(ROCK_SHAPES, lobe)
+end
+
 -- 바위 높이(바위 밖이면 -무한)
 local function rockHeight(x: number, z: number): number
 	local best = -math.huge
-	for _, rock in Island.ROCKS do
+	for _, rock in ROCK_SHAPES do
 		local dx, dz = x - rock.X, z - rock.Z
 		local reach = rock.R * 1.3
 		if dx * dx + dz * dz < reach * reach then
