@@ -1,0 +1,470 @@
+{
+  "entries": {
+    "0671813e7050a2caaaaa0bb402b172e36c797e18ee37e610a7e7e678a30fbcb0": {
+      "assetId": "120346838245612",
+      "assetType": "Image",
+      "file": "art/png/globe.png",
+      "imageId": "120346838245612",
+      "moderation": "approved",
+      "names": [
+        "globe"
+      ],
+      "returnedType": "image",
+      "sha256": "0671813e7050a2caaaaa0bb402b172e36c797e18ee37e610a7e7e678a30fbcb0",
+      "submittedAt": "2026-09-29T09:25:04+00:00",
+      "uploadedAt": "2026-09-29T09:25:20+00:00",
+      "userId": "2038945024"
+    },
+    "1831674a7c09683af453f13e8119b9b5ddaf26e2b2ab00178ff6d6cbd31669e9": {
+      "assetId": "126314844348937",
+      "assetType": "Image",
+      "file": "art/png/stamp_home.png",
+      "imageId": "126314844348937",
+      "moderation": "approved",
+      "names": [
+        "stamp_home"
+      ],
+      "returnedType": "image",
+      "sha256": "1831674a7c09683af453f13e8119b9b5ddaf26e2b2ab00178ff6d6cbd31669e9",
+      "submittedAt": "2026-09-29T09:25:13+00:00",
+      "uploadedAt": "2026-09-29T09:25:24+00:00",
+      "userId": "2038945024"
+    },
+    "1e4ad4204c08e4b86edc47596065f9d514fefba04f35b5a6110197a449b7bfbe": {
+      "assetId": "115996354535723",
+      "assetType": "Image",
+      "file": "art/png/arrow_up.png",
+      "imageId": "115996354535723",
+      "moderation": "approved",
+      "names": [
+        "arrow_up"
+      ],
+      "returnedType": "image",
+      "sha256": "1e4ad4204c08e4b86edc47596065f9d514fefba04f35b5a6110197a449b7bfbe",
+      "submittedAt": "2026-09-29T09:24:59+00:00",
+      "uploadedAt": "2026-09-29T09:25:18+00:00",
+      "userId": "2038945024"
+    },
+    "1ebc9cf4a95f678d91e4d91a872fb79138d642c0afe59c3be006bacdf1a32634": {
+      "assetId": "81395542088665",
+      "assetType": "Image",
+      "file": "art/png/star.png",
+      "imageId": "81395542088665",
+      "moderation": "approved",
+      "names": [
+        "star"
+      ],
+      "returnedType": "image",
+      "sha256": "1ebc9cf4a95f678d91e4d91a872fb79138d642c0afe59c3be006bacdf1a32634",
+      "submittedAt": "2026-09-29T09:25:15+00:00",
+      "uploadedAt": "2026-09-29T09:25:24+00:00",
+      "userId": "2038945024"
+    },
+    "36d5888df77ca2171026bbfc001f13525e1401c9153956037189e8f7dda68ba3": {
+      "assetId": "77122062692820",
+      "assetType": "Image",
+      "file": "art/png/stamp_americas.png",
+      "imageId": "77122062692820",
+      "moderation": "approved",
+      "names": [
+        "stamp_americas"
+      ],
+      "returnedType": "image",
+      "sha256": "36d5888df77ca2171026bbfc001f13525e1401c9153956037189e8f7dda68ba3",
+      "submittedAt": "2026-09-29T09:25:11+00:00",
+      "uploadedAt": "2026-09-29T09:25:23+00:00",
+      "userId": "2038945024"
+    },
+    "47bf0a546e76e8325b43a36e0ff7efcd45a4877b7a1dc5887d3437ca332ccd3c": {
+      "assetId": "74061414150372",
+      "assetType": "Image",
+      "file": "art/png/auto.png",
+      "imageId": "74061414150372",
+      "moderation": "approved",
+      "names": [
+        "auto"
+      ],
+      "returnedType": "image",
+      "sha256": "47bf0a546e76e8325b43a36e0ff7efcd45a4877b7a1dc5887d3437ca332ccd3c",
+      "submittedAt": "2026-09-29T09:25:00+00:00",
+      "uploadedAt": "2026-09-29T09:25:18+00:00",
+      "userId": "2038945024"
+    },
+    "48ecafad75977bb78f5c9b94b438b8227e3bb350925e39e9de0ed5fa96614905": {
+      "assetId": "103053283018731",
+      "assetType": "Image",
+      "file": "art/png/sunburst.png",
+      "imageId": "103053283018731",
+      "moderation": "approved",
+      "names": [
+        "sunburst"
+      ],
+      "returnedType": "image",
+      "sha256": "48ecafad75977bb78f5c9b94b438b8227e3bb350925e39e9de0ed5fa96614905",
+      "submittedAt": "2026-09-29T09:25:16+00:00",
+      "uploadedAt": "2026-09-29T09:25:25+00:00",
+      "userId": "2038945024"
+    },
+    "4982acc40bcd91bab196ac885fead6e75862d7bb7ef62f276a2e035b5afbe495": {
+      "assetId": "135177337416974",
+      "assetType": "Image",
+      "file": "art/png/panel_paper.png",
+      "imageId": "135177337416974",
+      "moderation": "approved",
+      "names": [
+        "panel_paper"
+      ],
+      "returnedType": "image",
+      "sha256": "4982acc40bcd91bab196ac885fead6e75862d7bb7ef62f276a2e035b5afbe495",
+      "submittedAt": "2026-09-29T09:25:07+00:00",
+      "uploadedAt": "2026-09-29T09:25:21+00:00",
+      "userId": "2038945024"
+    },
+    "4ade918ceca3a85781cb5d121fee26856dd886e577c141a6a81d16de2473d80d": {
+      "assetId": "85954883217288",
+      "assetType": "Image",
+      "file": "art/png/stamp_asia.png",
+      "imageId": "85954883217288",
+      "moderation": "approved",
+      "names": [
+        "stamp_asia"
+      ],
+      "returnedType": "image",
+      "sha256": "4ade918ceca3a85781cb5d121fee26856dd886e577c141a6a81d16de2473d80d",
+      "submittedAt": "2026-09-29T09:25:12+00:00",
+      "uploadedAt": "2026-09-29T09:25:23+00:00",
+      "userId": "2038945024"
+    },
+    "4b390d29300ddcff9f0bf27af37791afda57d09ab1977e1d34c71d53f3146bb0": {
+      "assetId": "140275366426879",
+      "assetType": "Image",
+      "file": "art/png/star_empty.png",
+      "imageId": "140275366426879",
+      "moderation": "approved",
+      "names": [
+        "star_empty"
+      ],
+      "returnedType": "image",
+      "sha256": "4b390d29300ddcff9f0bf27af37791afda57d09ab1977e1d34c71d53f3146bb0",
+      "submittedAt": "2026-09-29T09:25:15+00:00",
+      "uploadedAt": "2026-09-29T09:25:25+00:00",
+      "userId": "2038945024"
+    },
+    "6cd58fb46059eb532bcfec245ac7be2185a7d1ed1eddd884d96567f576b003c2": {
+      "assetId": "114594000848516",
+      "assetType": "Image",
+      "file": "art/png/clover.png",
+      "imageId": "114594000848516",
+      "moderation": "approved",
+      "names": [
+        "clover"
+      ],
+      "returnedType": "image",
+      "sha256": "6cd58fb46059eb532bcfec245ac7be2185a7d1ed1eddd884d96567f576b003c2",
+      "submittedAt": "2026-09-29T09:25:03+00:00",
+      "uploadedAt": "2026-09-29T09:25:19+00:00",
+      "userId": "2038945024"
+    },
+    "733828c9f8bb17073348630943da048367db1a32a34c8e62a4aae4a5eec2f83c": {
+      "assetId": "114337261704107",
+      "assetType": "Image",
+      "file": "art/png/button_face.png",
+      "imageId": "114337261704107",
+      "moderation": "approved",
+      "names": [
+        "button_face"
+      ],
+      "returnedType": "image",
+      "sha256": "733828c9f8bb17073348630943da048367db1a32a34c8e62a4aae4a5eec2f83c",
+      "submittedAt": "2026-09-29T09:25:00+00:00",
+      "uploadedAt": "2026-09-29T09:25:18+00:00",
+      "userId": "2038945024"
+    },
+    "7a7d1d252fe1e24bb3a445823afab2d112fad7b1881aa1de61ea9056186d55a0": {
+      "assetId": "85590245416189",
+      "assetType": "Image",
+      "file": "art/png/stamp_africa.png",
+      "imageId": "85590245416189",
+      "moderation": "approved",
+      "names": [
+        "stamp_africa"
+      ],
+      "returnedType": "image",
+      "sha256": "7a7d1d252fe1e24bb3a445823afab2d112fad7b1881aa1de61ea9056186d55a0",
+      "submittedAt": "2026-09-29T09:25:10+00:00",
+      "uploadedAt": "2026-09-29T09:25:23+00:00",
+      "userId": "2038945024"
+    },
+    "7d7dfc0e579cea020ac88e03234383111b06b730083dd003f69efd243dcba426": {
+      "assetId": "93435199901514",
+      "assetType": "Image",
+      "file": "art/png/stamp_legend.png",
+      "imageId": "93435199901514",
+      "moderation": "approved",
+      "names": [
+        "stamp_legend"
+      ],
+      "returnedType": "image",
+      "sha256": "7d7dfc0e579cea020ac88e03234383111b06b730083dd003f69efd243dcba426",
+      "submittedAt": "2026-09-29T09:25:13+00:00",
+      "uploadedAt": "2026-09-29T09:25:24+00:00",
+      "userId": "2038945024"
+    },
+    "871642b4bd659b251674560763fd5d3ba93a2e34cf6d9d45039bf0076615ad1d": {
+      "assetId": "92735606856597",
+      "assetType": "Image",
+      "file": "art/png/coin.png",
+      "imageId": "92735606856597",
+      "moderation": "approved",
+      "names": [
+        "coin"
+      ],
+      "returnedType": "image",
+      "sha256": "871642b4bd659b251674560763fd5d3ba93a2e34cf6d9d45039bf0076615ad1d",
+      "submittedAt": "2026-09-29T09:25:03+00:00",
+      "uploadedAt": "2026-09-29T09:25:20+00:00",
+      "userId": "2038945024"
+    },
+    "8863e92a93fbee232d4552375329913da2de94f9222f33b6e108c714dc290670": {
+      "assetId": "140249077514315",
+      "assetType": "Image",
+      "file": "art/png/hammer.png",
+      "imageId": "140249077514315",
+      "moderation": "approved",
+      "names": [
+        "hammer"
+      ],
+      "returnedType": "image",
+      "sha256": "8863e92a93fbee232d4552375329913da2de94f9222f33b6e108c714dc290670",
+      "submittedAt": "2026-09-29T09:25:05+00:00",
+      "uploadedAt": "2026-09-29T09:25:20+00:00",
+      "userId": "2038945024"
+    },
+    "8e15d2e0ea90482cca7c59ccc47e8e70425337849c8067e5b44d9aca1630b0ca": {
+      "assetId": "93895182737016",
+      "assetType": "Image",
+      "file": "art/png/close.png",
+      "imageId": "93895182737016",
+      "moderation": "approved",
+      "names": [
+        "close"
+      ],
+      "returnedType": "image",
+      "sha256": "8e15d2e0ea90482cca7c59ccc47e8e70425337849c8067e5b44d9aca1630b0ca",
+      "submittedAt": "2026-09-29T09:25:02+00:00",
+      "uploadedAt": "2026-09-29T09:25:19+00:00",
+      "userId": "2038945024"
+    },
+    "998a7640671b033bd3a811f8a89631cc9b5743a613d20b7e1c6b4e21c3aa42b3": {
+      "assetId": "72676469391845",
+      "assetType": "Image",
+      "file": "art/png/check.png",
+      "imageId": "72676469391845",
+      "moderation": "approved",
+      "names": [
+        "check"
+      ],
+      "returnedType": "image",
+      "sha256": "998a7640671b033bd3a811f8a89631cc9b5743a613d20b7e1c6b4e21c3aa42b3",
+      "submittedAt": "2026-09-29T09:25:01+00:00",
+      "uploadedAt": "2026-09-29T09:25:19+00:00",
+      "userId": "2038945024"
+    },
+    "a8d474798c71ec1153a91b945e7788322cba404f4e61ef2467abcf0a4cc16a81": {
+      "assetId": "134549464858003",
+      "assetType": "Image",
+      "file": "art/png/dice.png",
+      "imageId": "134549464858003",
+      "moderation": "approved",
+      "names": [
+        "dice"
+      ],
+      "returnedType": "image",
+      "sha256": "a8d474798c71ec1153a91b945e7788322cba404f4e61ef2467abcf0a4cc16a81",
+      "submittedAt": "2026-09-29T09:25:04+00:00",
+      "uploadedAt": "2026-09-29T09:25:20+00:00",
+      "userId": "2038945024"
+    },
+    "b1f3f474462763b5033a63d18db16c14155a0ef672c9c2abdc2873ecbb61621e": {
+      "assetId": "138424553067781",
+      "assetType": "Image",
+      "file": "art/png/stamp_oceania.png",
+      "imageId": "138424553067781",
+      "moderation": "approved",
+      "names": [
+        "stamp_oceania"
+      ],
+      "returnedType": "image",
+      "sha256": "b1f3f474462763b5033a63d18db16c14155a0ef672c9c2abdc2873ecbb61621e",
+      "submittedAt": "2026-09-29T09:25:14+00:00",
+      "uploadedAt": "2026-09-29T09:25:24+00:00",
+      "userId": "2038945024"
+    },
+    "b72b378df078da1f1306ae76f8745cc752d04e17f825ce3e5f70297c3a164e46": {
+      "assetId": "87589831804856",
+      "assetType": "Image",
+      "file": "art/png/passport.png",
+      "imageId": "87589831804856",
+      "moderation": "approved",
+      "names": [
+        "passport"
+      ],
+      "returnedType": "image",
+      "sha256": "b72b378df078da1f1306ae76f8745cc752d04e17f825ce3e5f70297c3a164e46",
+      "submittedAt": "2026-09-29T09:25:08+00:00",
+      "uploadedAt": "2026-09-29T09:25:22+00:00",
+      "userId": "2038945024"
+    },
+    "bc56953268e8b0ac36ee582f7901ace496f1182129a30810b23ddfc07adb74c4": {
+      "assetId": "88755806602020",
+      "assetType": "Image",
+      "file": "art/png/lock.png",
+      "imageId": "88755806602020",
+      "moderation": "approved",
+      "names": [
+        "lock"
+      ],
+      "returnedType": "image",
+      "sha256": "bc56953268e8b0ac36ee582f7901ace496f1182129a30810b23ddfc07adb74c4",
+      "submittedAt": "2026-09-29T09:25:06+00:00",
+      "uploadedAt": "2026-09-29T09:25:21+00:00",
+      "userId": "2038945024"
+    },
+    "bdc7a08982cb61bee1d4b880fe12a4f0628cd16497d32bd51e97ebdb558870de": {
+      "assetId": "111522354097064",
+      "assetType": "Image",
+      "file": "art/png/tag.png",
+      "imageId": "111522354097064",
+      "moderation": "approved",
+      "names": [
+        "tag"
+      ],
+      "returnedType": "image",
+      "sha256": "bdc7a08982cb61bee1d4b880fe12a4f0628cd16497d32bd51e97ebdb558870de",
+      "submittedAt": "2026-09-29T09:25:16+00:00",
+      "uploadedAt": "2026-09-29T09:25:25+00:00",
+      "userId": "2038945024"
+    },
+    "be7d5a48270f7644b44e23a0c18f9d4f0e7143e37f90164a62552ccd703aff19": {
+      "assetId": "106558405094559",
+      "assetType": "Image",
+      "file": "art/png/news.png",
+      "imageId": "106558405094559",
+      "moderation": "approved",
+      "names": [
+        "news"
+      ],
+      "returnedType": "image",
+      "sha256": "be7d5a48270f7644b44e23a0c18f9d4f0e7143e37f90164a62552ccd703aff19",
+      "submittedAt": "2026-09-29T09:25:06+00:00",
+      "uploadedAt": "2026-09-29T09:25:21+00:00",
+      "userId": "2038945024"
+    },
+    "be9933bf84de3d10633ab2d6ea59984036df34fedd97539aceacb4c6312af47b": {
+      "assetId": "76337661510619",
+      "assetType": "Image",
+      "file": "art/png/pill.png",
+      "imageId": "76337661510619",
+      "moderation": "approved",
+      "names": [
+        "pill"
+      ],
+      "returnedType": "image",
+      "sha256": "be9933bf84de3d10633ab2d6ea59984036df34fedd97539aceacb4c6312af47b",
+      "submittedAt": "2026-09-29T09:25:09+00:00",
+      "uploadedAt": "2026-09-29T09:25:22+00:00",
+      "userId": "2038945024"
+    },
+    "c59a982d79ca934dcf519e3abea372f2d2ace68d78325ca0c2c59e1809c31d22": {
+      "assetId": "119409643400403",
+      "assetType": "Image",
+      "file": "art/png/album.png",
+      "imageId": "119409643400403",
+      "moderation": "approved",
+      "names": [
+        "album"
+      ],
+      "returnedType": "image",
+      "sha256": "c59a982d79ca934dcf519e3abea372f2d2ace68d78325ca0c2c59e1809c31d22",
+      "submittedAt": "2026-09-29T09:24:58+00:00",
+      "uploadedAt": "2026-09-29T09:25:18+00:00",
+      "userId": "2038945024"
+    },
+    "d662297ca816ea630f102197c2e400c09f9cb4f77876cae4d4b61abf41e1cbf3": {
+      "assetId": "128003629180266",
+      "assetType": "Image",
+      "file": "art/png/stamp_europe.png",
+      "imageId": "128003629180266",
+      "moderation": "approved",
+      "names": [
+        "stamp_europe"
+      ],
+      "returnedType": "image",
+      "sha256": "d662297ca816ea630f102197c2e400c09f9cb4f77876cae4d4b61abf41e1cbf3",
+      "submittedAt": "2026-09-29T09:25:12+00:00",
+      "uploadedAt": "2026-09-29T09:25:23+00:00",
+      "userId": "2038945024"
+    },
+    "d933dd90ef7dec02e6faa429cfd738287234aad2dc6cef6cf906174292343e72": {
+      "assetId": "72077343461516",
+      "assetType": "Image",
+      "file": "art/png/plaza.png",
+      "imageId": "72077343461516",
+      "moderation": "approved",
+      "names": [
+        "plaza"
+      ],
+      "returnedType": "image",
+      "sha256": "d933dd90ef7dec02e6faa429cfd738287234aad2dc6cef6cf906174292343e72",
+      "submittedAt": "2026-09-29T09:25:09+00:00",
+      "uploadedAt": "2026-09-29T09:25:22+00:00",
+      "userId": "2038945024"
+    },
+    "e373cc5455e28c5f70d36ca66e32035c61b4b9c56778f1539524925a2462d862": {
+      "assetId": "131795792663906",
+      "assetType": "Image",
+      "file": "art/png/button_shadow.png",
+      "imageId": "131795792663906",
+      "moderation": "approved",
+      "names": [
+        "button_shadow"
+      ],
+      "returnedType": "image",
+      "sha256": "e373cc5455e28c5f70d36ca66e32035c61b4b9c56778f1539524925a2462d862",
+      "submittedAt": "2026-09-29T09:25:01+00:00",
+      "uploadedAt": "2026-09-29T09:25:19+00:00",
+      "userId": "2038945024"
+    },
+    "e7819fa4867e3d344b033d69c23a8d1250ff2f9d52e6db301113f84ba02f0893": {
+      "assetId": "71196375066188",
+      "assetType": "Image",
+      "file": "art/png/ribbon.png",
+      "imageId": "71196375066188",
+      "moderation": "approved",
+      "names": [
+        "ribbon"
+      ],
+      "returnedType": "image",
+      "sha256": "e7819fa4867e3d344b033d69c23a8d1250ff2f9d52e6db301113f84ba02f0893",
+      "submittedAt": "2026-09-29T09:25:10+00:00",
+      "uploadedAt": "2026-09-29T09:25:22+00:00",
+      "userId": "2038945024"
+    },
+    "f5f5500e5d4dd18640c570a51398d418b4c12e9b74d9d9a4835db818e7c7ac69": {
+      "assetId": "107569372693886",
+      "assetType": "Image",
+      "file": "art/png/park.png",
+      "imageId": "107569372693886",
+      "moderation": "approved",
+      "names": [
+        "park"
+      ],
+      "returnedType": "image",
+      "sha256": "f5f5500e5d4dd18640c570a51398d418b4c12e9b74d9d9a4835db818e7c7ac69",
+      "submittedAt": "2026-09-29T09:25:07+00:00",
+      "uploadedAt": "2026-09-29T09:25:21+00:00",
+      "userId": "2038945024"
+    }
+  },
+  "version": 1
+}
