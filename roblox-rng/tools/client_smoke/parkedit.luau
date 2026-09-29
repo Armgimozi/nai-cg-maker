@@ -114,6 +114,24 @@ local function hiddenModel(slot: number): boolean
 	end
 	return false
 end
+-- 칸 이름표(받침대의 BillboardGui)가 켜져 있는지. 이름표가 없는 칸(빈 칸·잠긴 칸)은 nil
+local function labelOn(slot: number): boolean?
+	for _, d in container(slot):GetDescendants() do
+		if d:IsA("BillboardGui") then
+			return d.Enabled ~= false
+		end
+	end
+	return nil
+end
+local function labelsOn(): number
+	local count = 0
+	for slot = 1, PlayerState.MAX_SLOTS do
+		if labelOn(slot) then
+			count += 1
+		end
+	end
+	return count
+end
 local function shownSlots(): { [number]: string }
 	return (PlayerState.parkSlots(data))
 end
@@ -145,6 +163,21 @@ check(
 	"카메라가 원래 자리에서 위에서 보기로 날아감(들어갈 때 순간 이동 없음)"
 )
 check(localFolder() ~= nil, "로컬 폴더(빛나는 판·강조)")
+local function signHidden(): boolean
+	local sign = plot:FindFirstChild("Sign")
+	for _, d in sign:GetDescendants() do
+		if d:IsA("BasePart") and d.LocalTransparencyModifier ~= 1 then
+			return false
+		elseif d:IsA("SurfaceGui") and d.Enabled ~= false then
+			return false
+		end
+	end
+	return true
+end
+check(
+	plot:FindFirstChild("Sign") ~= nil and signHidden(),
+	"입구 간판은 이 화면에서만 숨김(띠 위로 삐져나오지 않게)"
+)
 check(detectorCount() == 0, "배치 모드 동안 ClickDetector 없음")
 local barFrame = gui:FindFirstChild("ParkEditBar")
 check(barFrame and barFrame.Visible, "아래 띠 보임")
@@ -301,15 +334,34 @@ key("Q")
 settle()
 check(localFolder():FindFirstChild("Held", true) == nil and not hiddenModel(9), "Q = 내려놓기")
 
-print("\n[강조·따라가기·빛나는 판]")
+print("\n[강조·따라가기·빛나는 판·이름표]")
 mouseTo(slotScreen(4))
 local hover = localFolder():FindFirstChild("Hover")
 check(hover and hover.Adornee == container(4) and hover.Enabled, "가리키는 칸 강조")
+check(labelsOn() == 0, "배치 모드: 칸 이름표(BillboardGui)는 모두 끔 (" .. labelsOn() .. "개)")
+local tag = gui:FindFirstChild("ParkEditTag")
+local function tagText(): string?
+	local chip = tag and tag.Visible and tag:FindFirstChild("Name")
+	local text = chip and chip:FindFirstChild("Label", true)
+	return text and text.Text or nil
+end
+check(
+	tagText() == Landmarks.ById[shownSlots()[4]].Name,
+	"가리키는 명소 = 화면 이름표 (" .. tostring(tagText()) .. ")"
+)
 mouseTo(Vector2.new(20, 60))
 check(hover.Adornee == nil or not hover.Enabled, "빈 곳 = 강조 없음")
+check(tagText() == nil, "아무 칸도 안 가리키면 이름표 없음")
+local heldId = shownSlots()[4]
 click(slotScreen(4, 2))
-local ghost = localFolder():FindFirstChild("Held", true).Parent
+local heldLight = localFolder():FindFirstChild("Held", true)
+local ghost = heldLight.Parent
+check(
+	ghost:FindFirstChildWhichIsA("BillboardGui", true) == nil,
+	"복사본에 BillboardGui 없음(화면 이름표로)"
+)
 mouseTo(slotScreen(6))
+check(labelsOn() == 0, "들고 있어도 칸 이름표 없음")
 for _ = 1, 90 do
 	frame(1 / 60)
 end
@@ -320,10 +372,43 @@ check(
 	"들고 있는 명소가 가리키는 칸 위로 붙음"
 )
 check(ghostLocal.Y > ParkGrid.BASE_TOP + 3, "떠 있음 (높이 " .. string.format("%.2f", ghostLocal.Y) .. ")")
+if shownSlots()[6] then
+	local statue = container(6):FindFirstChildWhichIsA("Model")
+	local top = ParkGrid.BASE_TOP + ParkGrid.PEDESTAL_HEIGHT + statue:GetExtentsSize().Y
+	check(
+		ghostLocal.Y > top + 0.5,
+		string.format("자리 바꿀 명소 위로 뜸 (%.1f > 꼭대기 %.1f)", ghostLocal.Y, top)
+	)
+end
+check(hover.Adornee == container(6) and hover.OutlineColor == Color3.new(1, 1, 1), "놓을 칸 강조 = 흰 테두리")
+check(
+	tagText() == Landmarks.ById[heldId].Name,
+	"들고 있으면 화면 이름표 = 든 명소 (" .. tostring(tagText()) .. ")"
+)
+local tagTop = E.toScreen(ghost:GetPivot().Position + Vector3.new(0, ghost:GetExtentsSize().Y, 0))
+check(
+	math.abs(tag.Position.X.Offset - math.clamp(tagTop.X, 114, 1280 - 114)) < 2
+		and math.abs(tag.Position.Y.Offset + INSET.Y - tagTop.Y) < 30,
+	string.format(
+		"이름표가 복사본 바로 위 (%.0f, %.0f) ~ (%.0f, %.0f)",
+		tag.Position.X.Offset,
+		tag.Position.Y.Offset + INSET.Y,
+		tagTop.X,
+		tagTop.Y
+	)
+)
 local lockedMark = localFolder():FindFirstChild("Mark" .. (unlocked + 1))
 local openMark = localFolder():FindFirstChild("Mark6")
 check(lockedMark.Transparency < 1 and lockedMark.Transparency > 0.5, "잠긴 칸 판 = 흐린 빨강")
-check(openMark.Transparency < 0.7, "놓을 수 있는 칸 판이 빛남")
+check(openMark.Transparency < 0.3, "가리키는 놓을 칸 판이 진하게 빛남")
+local otherMarks = 0
+for slot = 1, unlocked do
+	local mark = localFolder():FindFirstChild("Mark" .. slot)
+	if slot ~= 6 and slot ~= 4 and mark.Transparency < 0.5 then
+		otherMarks += 1
+	end
+end
+check(otherMarks == 0, "다른 놓을 칸 판은 은은하게 (진한 판 " .. otherMarks .. "개)")
 mouseTo(Vector2.new(640, 700))
 for _ = 1, 30 do
 	frame(1 / 60)
@@ -336,6 +421,16 @@ check(
 )
 key("Q")
 settle()
+
+-- 화면 가장자리: 이름표가 화면 안에 갇힘
+mouseTo(slotScreen(unlocked + 5, 0))
+for _ = 1, 60 do
+	frame(1 / 60)
+end
+check(
+	tag.Position.X.Offset >= 108 and tag.Position.X.Offset <= 1280 - 108 and tag.Position.Y.Offset >= 52,
+	string.format("이름표는 화면 안 (%.0f, %.0f)", tag.Position.X.Offset, tag.Position.Y.Offset)
+)
 
 print("\n[서버가 늦을 때: 로컬 모형(proxy)]")
 local slowUpdates = {}
@@ -514,6 +609,14 @@ check(camera.CameraType == Enum.CameraType.Custom, "카메라 되돌림")
 check(handlerCount() == baseHandlers, "입력 연결 정리 (" .. handlerCount() .. " / " .. baseHandlers .. ")")
 check(detectorCount() == unlocked, "ClickDetector 다시 닮")
 check(not barFrame.Visible, "띠 숨김")
+check(not signHidden(), "나가면 입구 간판 다시 보임")
+local allLabels = true
+for slot, _ in shownSlots() do
+	if labelOn(slot) == false then
+		allLabels = false
+	end
+end
+check(allLabels and labelsOn() > 1, "나가면 전시 칸 이름표 모두 다시 켜짐 (" .. labelsOn() .. "개)")
 
 print("\n[받침대 클릭으로 들어가기 + 바로 집기]")
 local clicked = container(2):FindFirstChild("ParkClick")

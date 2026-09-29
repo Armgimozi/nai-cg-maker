@@ -56,11 +56,13 @@ export type Handlers = {
 
 -- 월드 ----------------------------------------------------------------------------
 local LIFT = 3.4 -- 들고 있는 명소가 받침대 위로 뜨는 높이(스터드)
+local LIFT_CLEAR = 1.2 -- 명소가 있는 칸(자리 바꿈)을 가리키면 그 명소 꼭대기에서 이만큼 위로 떠서 둘 다 보이게
 local BOB = 0.45 -- 오르내림 폭
 local BOB_SPEED = 3.2 -- 오르내림 빠르기(라디안/초)
 local SPIN_SPEED = math.rad(55) -- 들고 있는 명소가 도는 빠르기
 local FOLLOW = 16 -- 가리키는 곳을 따라가는 빠르기(1/초, 클수록 바로 붙음)
-local GHOST_FADE = 0.38 -- 들고 있는 복사본의 투명도(원래 투명도에서 이만큼 더 비침)
+local GHOST_FADE = 0.3 -- 들고 있는 복사본의 투명도(원래 투명도에서 이만큼 더 비침)
+local GHOST_FILL = 0.84 -- 복사본 노란 강조 채우기 투명도(원래 색이 보이게 옅게 — 흰 테두리가 "들고 있음"을 말함)
 local FLY_SECONDS = 0.3 -- 놓기·되돌아가기·자리 바꿈 폴짝
 local HOP = 4 -- 자리 바꿈 상대가 폴짝 뛰는 높이
 local EDIT_HOLD = 3 -- 옮긴 칸의 로컬 모형(proxy)을 서버 칸이 맞을 때까지 기다리는 최대 시간(초)
@@ -69,6 +71,9 @@ local LEAVE_MARGIN = 14 -- 부지 밖으로 이만큼 나가면 배치 모드 �
 local CLICK_DISTANCE = 40 -- 배치 모드 밖에서 내 받침대를 눌러 들어오는 거리
 local RAY_LENGTH = 1000
 local MARKER_SIZE = ParkGrid.PEDESTAL_SIZE + 1.6 -- 받침대 둘레로 삐져나와 빛나는 판
+-- 빛나는 판 투명도(들고 있을 때): 놓을 수 있는 칸은 은은하게(빈 칸이 자리 바꿈 칸보다 조금 진하게),
+-- 가리키는 칸만 진하게 숨 쉬듯 — 공원 전체가 똑같이 빛나서 어디에 놓일지 안 보이던 것
+local MARK_EMPTY, MARK_SWAP, MARK_TARGET, MARK_TARGET_PULSE = 0.55, 0.8, 0.12, 0.1
 local HOVER_COLOR = Color3.new(1, 1, 1)
 
 -- 위에서 보기(ParkGrid.topView): 화면 위쪽 상단바 아래 여백, 옆 여백(비율). 휠 배율(1 = 맞출 줄이 딱 맞음)
@@ -76,6 +81,9 @@ local TOP_MARGIN = 10 -- px
 local SIDE_MARGIN = 0.03
 local BAR_CLEAR = 8 -- 아래 띠 위로 띄울 거리(px)
 local ZOOM_MIN, ZOOM_MAX, ZOOM_STEP = 0.8, 1.45, 0.08
+-- 위에서 보기 시야각(도, 기본 카메라 70). 좁혀서 멀리서 보면 원근이 줄어 건설 게임처럼 판이 반듯하고, 떠 있는 복사본·
+-- 이름표가 칸 바로 위에 옴(70 이면 카메라가 30~50 스터드로 가까워 화면 가장자리 칸 위의 것이 바깥으로 크게 밀려남)
+local EDIT_FOV = 40
 local CAMERA_TWEEN = TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
 -- 아래 띠 (설계 px, Ui.autoScale 배율을 받음) --------------------------------------
@@ -91,6 +99,9 @@ local CARD = Vector2.new(96, 104) -- 보관함 카드 (배율 0.55 에서 53×57
 local CARD_GAP = 10
 local CHIP_ROW = 30 -- 띠 위 딱지 줄 높이(띠 위 테두리에 걸침)
 local CONFIRM_SECONDS = 3
+local TAG = Vector2.new(240, 58) -- 화면 이름표(이름 딱지 + 별, 설계 px)
+local TAG_GAP = 1 -- 모형 꼭대기 위 이 높이(스터드)에 이름표 아래 끝
+local TAG_EDGE = 6 -- 화면 가장자리·띠에서 띄울 거리(px)
 local FEATURED_BG = Color3.fromRGB(255, 218, 128)
 local WHITE = Color3.new(1, 1, 1)
 local SOUND_ID = "rbxasset://sounds/electronicpingshort.wav"
@@ -125,13 +136,14 @@ local editToken = 0
 local editConnections: { RBXScriptConnection } = {}
 local localFolder: Folder? = nil -- 이 화면에서만 있는 것(빛나는 판·강조·들고 있는 모형·proxy)
 local markers: { [number]: BasePart } = {}
-local markerPulse: { BasePart } = {} -- 들고 있을 때 숨 쉬듯 빛나는 판(놓을 수 있는 칸)
+local markerPulse: BasePart? = nil -- 들고 있을 때 숨 쉬듯 빛나는 판(가리키는 놓을 칸)
+local painted: { Slots: { [number]: string }, Unlocked: number, HeldFrom: number }? = nil -- 마지막 reconcile 값
 local hoverLight: Highlight? = nil
 local hoverSlot: number? = nil
 local viewMode = "Top" -- "Top"(위에서 보기) | "Follow"(평소 카메라)
 local zoom = 1
 local fitRows = Config.PARK_GRID -- 위에서 보기가 맞춘 줄 수(ParkGrid.topRows: 열린 줄 + 잠긴 줄 하나)
-local savedCamera: { Type: Enum.CameraType, Subject: Instance? }? = nil
+local savedCamera: { Type: Enum.CameraType, Subject: Instance?, Fov: number }? = nil
 local cameraTween: Tween? = nil
 local controls: any = nil
 
@@ -143,13 +155,14 @@ type Ghost = {
 	Rig: Rig,
 	Originals: { [BasePart]: number },
 	Light: Highlight,
-	Label: BillboardGui,
+	Height: number, -- 모형 높이(피벗 = 바닥 가운데에서 꼭대기까지)
 }
 type Held = {
 	Id: string,
 	Ghost: Ghost,
 	Position: Vector3, -- 받침대 윗면 기준 지금 자리(부드럽게 따라감)
 	Target: Vector3,
+	Lift: number, -- 받침대 윗면 위로 뜬 높이(부드럽게 따라감: 명소가 있는 칸 위면 그 명소 위로)
 	Angle: number,
 }
 local held: Held? = nil
@@ -204,6 +217,12 @@ type Card = {
 	X: number, -- 목록 안 위치(설계 px)
 }
 local cards: { [string]: Card } = {}
+
+-- 화면 이름표(들고 있는 명소 / 가리키는 명소). 월드 BillboardGui 대신 ScreenGui 로 — 화면 안(띠 위)에 가둠
+local tag: Frame
+local tagStars: TextLabel
+local tagChip: Ui.Chip? = nil
+local tagKey: string? = nil -- 지금 이름표 내용(명소 Id | 별)
 
 -- 소리
 local pickSound: Sound
@@ -303,7 +322,7 @@ local function worldLook(slot: number): string?
 	return if type(look) == "string" then look else nil
 end
 
--- 월드 칸 모델의 명소(과 이름표)를 이 화면에서만 숨기기/되돌리기. 받침대는 그대로
+-- 월드 칸 모델의 명소를 이 화면에서만 숨기기/되돌리기. 받침대는 그대로(이름표는 paintLabels)
 local function applyHidden(container: Instance, hide: boolean)
 	for _, child in container:GetChildren() do
 		if child:IsA("Model") then
@@ -312,13 +331,28 @@ local function applyHidden(container: Instance, hide: boolean)
 					descendant.LocalTransparencyModifier = if hide then 1 else 0
 				end
 			end
-		elseif child:IsA("BasePart") then
+		end
+	end
+end
+
+-- 칸 이름표(ParkService 가 받침대에 붙인 BillboardGui: 스터드 크기, MaxDistance 60) 켜기/끄기
+local function setLabel(container: Instance, on: boolean)
+	for _, child in container:GetChildren() do
+		if child:IsA("BasePart") then
 			for _, descendant in child:GetDescendants() do
-				if descendant:IsA("BillboardGui") then
-					descendant.Enabled = not hide
+				if descendant:IsA("BillboardGui") and descendant.Enabled ~= on then
+					descendant.Enabled = on
 				end
 			end
 		end
+	end
+end
+
+-- 배치 모드 동안 칸 이름표는 모두 끔: 이름표는 스터드 크기라 가까운 카메라에서 크게 나와(MaxDistance 60 안) 12개가
+-- 명소를 덮음. 대신 들고 있는 명소 / 가리키는 명소 하나만 화면 이름표(setTag). 밖에서는 모두 켬
+local function paintLabels()
+	for _, container in containers do
+		setLabel(container, not editing)
 	end
 end
 
@@ -328,6 +362,25 @@ local function setHidden(container: Instance, hide: boolean)
 	end
 	hidden[container] = if hide then true else nil
 	applyHidden(container, hide)
+end
+
+-- 부지 입구 간판(ParkService 의 "Sign": 내 이름·수입)을 이 화면에서만 숨기기/되돌리기. 위에서 보기에서는 간판이
+-- 아래 띠 바로 위에 걸려 띠 딱지 뒤로 검은 판·기둥 끝이 삐져나옴(배치 모드 동안에는 필요 없는 정보)
+local signHidden = false
+local function hideSign(hide: boolean)
+	local sign = plot and plot:FindFirstChild("Sign")
+	if signHidden == hide or not sign then
+		signHidden = hide and sign ~= nil
+		return
+	end
+	signHidden = hide
+	for _, descendant in sign:GetDescendants() do
+		if descendant:IsA("BasePart") then
+			descendant.LocalTransparencyModifier = if hide then 1 else 0
+		elseif descendant:IsA("SurfaceGui") then
+			descendant.Enabled = not hide
+		end
+	end
 end
 
 -- 모형 ------------------------------------------------------------------------------
@@ -382,12 +435,16 @@ local function moveRig(target: Rig, cf: CFrame)
 	end
 end
 
--- 들고 있는 반투명 복사본: 노란 강조 + 머리 위 이름표(이름 + 별)
-local function makeGhost(landmark: Landmark, stars: number): Ghost?
+-- 들고 있는 반투명 복사본: 원래 색이 비치는 옅은 노란 강조 + 흰 테두리(이름 + 별은 화면 이름표 setTag)
+local function makeGhost(landmark: Landmark): Ghost?
 	local model = localModel(landmark)
 	if not model then
 		return nil
 	end
+	local height = 6
+	pcall(function()
+		height = model:GetExtentsSize().Y
+	end)
 	local originals: { [BasePart]: number } = {}
 	for _, descendant in model:GetDescendants() do
 		if descendant:IsA("BasePart") then
@@ -399,52 +456,13 @@ local function makeGhost(landmark: Landmark, stars: number): Ghost?
 		Name = "Held",
 		Adornee = model,
 		FillColor = Ui.colorPair("Sun").Face,
-		FillTransparency = 0.7,
+		FillTransparency = GHOST_FILL,
 		OutlineColor = WHITE,
 		OutlineTransparency = 0,
 		DepthMode = Enum.HighlightDepthMode.AlwaysOnTop,
 		Parent = model,
 	})
-	local height = 6
-	pcall(function()
-		height = model:GetExtentsSize().Y
-	end)
-	local anchorPart = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart", true)
-	-- 이름표는 화면 px 고정이라 작은 화면(자동 배율 0.55)에서는 줄임
-	local labelScale = math.clamp(Ui.scale() / 0.9, 0.6, 1)
-	local label = Ui.new("BillboardGui", {
-		Name = "HeldLabel",
-		Adornee = anchorPart,
-		Size = UDim2.fromOffset(240 * labelScale, 58 * labelScale),
-		StudsOffsetWorldSpace = Vector3.new(0, height + 1.6, 0),
-		AlwaysOnTop = true,
-		LightInfluence = 0,
-		ResetOnSpawn = false,
-		Parent = model,
-	})
-	local tier = landmark.Tier.Color
-	local name = Ui.chip({
-		Name = "Name",
-		Color = tier,
-		Text = landmark.Name,
-		Height = 30,
-		TextSize = 19,
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.fromScale(0.5, 0),
-		Parent = label,
-	})
-	name.Label.TextColor3 = WHITE
-	local starLabel = Ui.label({
-		Name = "Stars",
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 32),
-		Size = UDim2.fromOffset(140, 24),
-		Text = Ui.starsRich(stars, #Config.STAR_THRESHOLDS),
-		Parent = label,
-	}, 20)
-	Ui.outline(starLabel, 2)
-	Ui.new("UIScale", { Scale = labelScale, Parent = label })
-	return { Model = model, Rig = rig(model), Originals = originals, Light = light, Label = label }
+	return { Model = model, Rig = rig(model), Originals = originals, Light = light, Height = height }
 end
 
 -- 들고 있던 복사본을 원래 모습(불투명)으로: 받침대에 내려앉을 때
@@ -453,7 +471,6 @@ local function solidify(ghost: Ghost): Rig
 		part.Transparency = transparency
 	end
 	ghost.Light:Destroy()
-	ghost.Label:Destroy()
 	return ghost.Rig
 end
 
@@ -485,9 +502,9 @@ local function setProxy(slot: number, id: string?)
 	end
 end
 
--- 빛나는 판(놓을 자리) 칠하기
+-- 빛나는 판(놓을 자리) 칠하기. 가리키는 칸(hoverSlot)이 놓을 수 있는 칸이면 그 판만 진하게 숨 쉬듯(step)
 local function paintMarkers(slots: { [number]: string }, unlocked: number, heldFrom: number)
-	table.clear(markerPulse)
+	markerPulse = nil
 	for slot, marker in markers do
 		local locked = slot > unlocked
 		local id = if locked then nil else slots[slot]
@@ -500,9 +517,13 @@ local function paintMarkers(slots: { [number]: string }, unlocked: number, heldF
 			elseif slot == heldFrom then
 				color, transparency = WHITE, 0.5
 			else
-				-- 놓을 수 있는 칸: 빈 칸은 초록, 명소가 있으면(자리 바꿈) 노랑. 숨 쉬듯 빛남(step)
-				color, transparency = if id then Ui.colorPair("Sun").Face else Ui.colorPair("Grass").Face, 0.4
-				table.insert(markerPulse, marker)
+				-- 놓을 수 있는 칸: 빈 칸은 초록, 명소가 있으면(자리 바꿈) 노랑 — 은은하게, 가리키는 칸만 진하게
+				color = if id then Ui.colorPair("Sun").Face else Ui.colorPair("Grass").Face
+				transparency = if id then MARK_SWAP else MARK_EMPTY
+				if slot == hoverSlot then
+					transparency = MARK_TARGET
+					markerPulse = marker
+				end
 			end
 		elseif not locked and not id then
 			color, transparency = Ui.colorPair("Grass").Face, 0.62 -- 빈 칸
@@ -562,7 +583,18 @@ local function reconcile()
 			hidden[container] = nil -- 서버가 칸 모델을 다시 만듦
 		end
 	end
+	painted = { Slots = slots, Unlocked = unlocked, HeldFrom = heldFrom }
 	paintMarkers(slots, unlocked, heldFrom)
+	paintLabels()
+end
+
+-- 가리키는 칸이 바뀜: 판·이름표만 다시(칸 배치는 그대로)
+local function repaintHover()
+	local last = painted
+	if editing and last then
+		paintMarkers(last.Slots, last.Unlocked, last.HeldFrom)
+		paintLabels()
+	end
 end
 
 -- 날아가기(놓기·되돌아가기·자리 바꿈). 도착하면 그 칸 서버 모습이 아직 옛것이면 proxy 로 남음
@@ -634,7 +666,7 @@ local function pickUp(id: string, from: number)
 		end
 		returnHeld()
 	end
-	local ghost = makeGhost(landmark, PlayerState.stars(view.Inventory[id] or 0))
+	local ghost = makeGhost(landmark)
 	if not ghost then
 		return
 	end
@@ -654,7 +686,7 @@ local function pickUp(id: string, from: number)
 	end
 	moveRig(ghost.Rig, CFrame.new(start + Vector3.new(0, LIFT, 0)) * plotRotation())
 	ghost.Model.Parent = localFolder
-	held = { Id = id, Ghost = ghost, Position = start, Target = start, Angle = 0 }
+	held = { Id = id, Ghost = ghost, Position = start, Target = start, Lift = LIFT, Angle = 0 }
 	play(pickSound)
 	reconcile()
 	renderBar()
@@ -1060,7 +1092,7 @@ end
 
 -- 매 프레임 ------------------------------------------------------------------------
 
-local function setHover(slot: number?, color: Color3)
+local function setHover(slot: number?, color: Color3, outline: Color3?)
 	local light = hoverLight
 	if not light then
 		return
@@ -1070,13 +1102,91 @@ local function setHover(slot: number?, color: Color3)
 		local proxy = proxies[slot]
 		target = if proxy then proxy.Model else containers[slot]
 	end
+	local changed = hoverSlot ~= slot
 	hoverSlot = slot
 	if light.Adornee ~= target then
 		light.Adornee = target
 	end
 	light.Enabled = target ~= nil
-	light.OutlineColor = color
+	light.OutlineColor = outline or color
 	light.FillColor = color
+	if changed then
+		repaintHover()
+	end
+end
+
+-- 칸에 서 있는 명소 모형의 높이(스터드, 받침대 윗면부터). 로컬 모형(proxy)이 있으면 그것. 없으면 0
+local heightCache: { [Instance]: number } = setmetatable({}, { __mode = "k" }) :: any
+local function statueHeight(slot: number): number
+	local proxy = proxies[slot]
+	local model: Instance? = if proxy then proxy.Model else nil
+	if not model then
+		local container = containers[slot]
+		model = container and container:FindFirstChildWhichIsA("Model")
+	end
+	if not model or not model:IsA("Model") then
+		return 0
+	end
+	local cached = heightCache[model]
+	if cached then
+		return cached
+	end
+	local height = 0
+	pcall(function()
+		height = (model :: Model):GetExtentsSize().Y
+	end)
+	heightCache[model] = height
+	return height
+end
+
+-- 화면 이름표: 명소 id 의 이름 딱지(등급 색) + 별을 월드 점 point(모형 꼭대기 위) 바로 위에. 화면 밖으로 나가지 않게
+-- 상단바 아래 ~ 아래 띠 위, 양옆 안쪽에 가둠. id 가 nil 이면 숨김
+local function setTag(id: string?, point: Vector3?)
+	local camera = workspace.CurrentCamera
+	local landmark = if id then Landmarks.ById[id] else nil
+	local view = viewState()
+	if not tag or not landmark or not point or not camera or not view then
+		if tag then
+			tag.Visible = false
+		end
+		return
+	end
+	local stars = PlayerState.stars(view.Inventory[landmark.Id] or 0)
+	local key = landmark.Id .. "|" .. stars
+	if key ~= tagKey then
+		tagKey = key
+		if tagChip then
+			tagChip.Root:Destroy()
+		end
+		local chip = Ui.chip({
+			Name = "Name",
+			Color = landmark.Tier.Color,
+			Text = landmark.Name,
+			Height = 30,
+			TextSize = 19,
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.fromScale(0.5, 0),
+			ZIndex = 2,
+			Parent = tag,
+		})
+		chip.Label.TextColor3 = WHITE
+		tagChip = chip
+		tagStars.Text = Ui.starsRich(stars, #Config.STAR_THRESHOLDS)
+	end
+	local screen, _ = camera:WorldToViewportPoint(point)
+	if screen.Z <= 0 then
+		tag.Visible = false
+		return
+	end
+	local inset = guiInset()
+	local size = gui.AbsoluteSize
+	local scale = Ui.scale()
+	local half = TAG.X * scale / 2
+	local x = math.clamp(screen.X - inset.X, half + TAG_EDGE, math.max(half + TAG_EDGE, size.X - half - TAG_EDGE))
+	local lowest = (barTop or size.Y) - TAG_EDGE
+	local y = math.clamp(screen.Y - inset.Y, TAG.Y * scale + TAG_EDGE, math.max(TAG.Y * scale + TAG_EDGE, lowest))
+	tag.Position = UDim2.fromOffset(x, y)
+	tag.Visible = true
 end
 
 local nextSweep = 0
@@ -1098,15 +1208,20 @@ local function step(dt: number)
 		hit = pick(at)
 	end
 
-	-- 가리키는 칸 강조: 들고 있으면 놓을 수 있는 칸 노랑 / 잠긴 칸 빨강, 아니면 명소 노랑 · 빈 칸 초록
+	-- 가리키는 칸 강조: 잠긴 칸 빨강. 들고 있으면 놓을 칸 = 흰 테두리(빈 칸 초록 · 자리 바꿈 노랑 채우기 — 둘레에
+	-- 노랗게 빛나는 판들 사이에서도 어느 칸인지 보이게), 아니면 명소 노랑 · 빈 칸 초록
 	local slot = hit and hit.Slot
 	local look = if slot then viewLook(slot) else nil
+	local occupied = look ~= nil and Landmarks.ById[look] ~= nil
 	if slot and look then
-		local color = if look == ParkGrid.LOOK_LOCKED
-			then Ui.colorPair("Coral").Face
-			elseif held or Landmarks.ById[look] then Ui.colorPair("Sun").Face
-			else Ui.colorPair("Grass").Face
-		setHover(slot, color)
+		if look == ParkGrid.LOOK_LOCKED then
+			setHover(slot, Ui.colorPair("Coral").Face)
+		elseif held then
+			local fill = if occupied and look ~= held.Id then Ui.colorPair("Sun").Face else Ui.colorPair("Grass").Face
+			setHover(slot, fill, WHITE)
+		else
+			setHover(slot, if occupied then Ui.colorPair("Sun").Face else Ui.colorPair("Grass").Face)
+		end
 	elseif hoverSlot then
 		setHover(nil, HOVER_COLOR)
 	end
@@ -1128,20 +1243,33 @@ local function step(dt: number)
 				)
 			)
 		end
-		current.Position = current.Position:Lerp(current.Target, 1 - math.exp(-FOLLOW * dt))
+		-- 명소가 있는 칸(자리 바꿈·바꿔 넣기)을 가리키면 그 명소 위로 떠서 둘 다 보이게
+		local wantLift = LIFT
+		if slot and occupied and look ~= current.Id then
+			wantLift = math.max(LIFT, statueHeight(slot) + LIFT_CLEAR)
+		end
+		local follow = 1 - math.exp(-FOLLOW * dt)
+		current.Position = current.Position:Lerp(current.Target, follow)
+		current.Lift += (wantLift - current.Lift) * follow
 		current.Angle = (current.Angle + SPIN_SPEED * dt) % (2 * math.pi)
-		local lift = LIFT + math.sin(now * BOB_SPEED) * BOB
+		local lift = current.Lift + math.sin(now * BOB_SPEED) * BOB
 		moveRig(
 			current.Ghost.Rig,
 			CFrame.new(current.Position + Vector3.new(0, lift, 0)) * plotRotation() * CFrame.Angles(0, current.Angle, 0)
 		)
 		local locked = look == ParkGrid.LOOK_LOCKED
 		current.Ghost.Light.FillColor = if locked then Ui.colorPair("Coral").Face else Ui.colorPair("Sun").Face
-		-- 놓을 자리 판이 숨 쉬듯 빛남
-		local glow = 0.42 + math.sin(now * 5) * 0.14
-		for _, marker in markerPulse do
-			marker.Transparency = glow
+		-- 가리키는 놓을 칸의 판이 진하게 숨 쉬듯 빛남
+		local marker = markerPulse
+		if marker then
+			marker.Transparency = MARK_TARGET + math.sin(now * 5) * MARK_TARGET_PULSE
 		end
+		setTag(current.Id, current.Ghost.Rig.Pivot.Position + Vector3.new(0, current.Ghost.Height + TAG_GAP, 0))
+	elseif slot and occupied and look then
+		-- 들고 있지 않을 때: 가리키는 명소 이름 + 별
+		setTag(look, slotTop(slot).Position + Vector3.new(0, statueHeight(slot) + TAG_GAP, 0))
+	else
+		setTag(nil)
 	end
 
 	-- 날아가는 모형
@@ -1194,7 +1322,7 @@ function ParkEdit.topCFrame(): CFrame
 	end
 	local view = ParkGrid.topView({
 		Aspect = viewport.X / height,
-		Fov = if camera then camera.FieldOfView else 70,
+		Fov = EDIT_FOV,
 		Top = (inset.Y + TOP_MARGIN) / height,
 		Bottom = bottom,
 		Left = SIDE_MARGIN,
@@ -1252,7 +1380,8 @@ local function applyView()
 	if viewMode == "Top" then
 		fitRows = wantRows()
 		camera.CameraType = Enum.CameraType.Scriptable
-		local tween = TweenService:Create(camera, CAMERA_TWEEN, { CFrame = ParkEdit.topCFrame() })
+		local tween =
+			TweenService:Create(camera, CAMERA_TWEEN, { CFrame = ParkEdit.topCFrame(), FieldOfView = EDIT_FOV })
 		cameraTween = tween
 		tween.Completed:Connect(function()
 			if cameraTween == tween then
@@ -1267,6 +1396,7 @@ local function applyView()
 			then saved.Type
 			else Enum.CameraType.Custom
 		camera.CameraSubject = humanoid() or (saved and saved.Subject) or nil
+		camera.FieldOfView = if saved then saved.Fov else 70
 		setMovement(true)
 	end
 	if viewButton then
@@ -1734,6 +1864,27 @@ local function buildBar()
 		Parent = chips,
 	})
 
+	-- 화면 이름표(띠보다 아래 층): setTag 가 자리·내용을 정함
+	tag = Ui.new("Frame", {
+		Name = "ParkEditTag",
+		AnchorPoint = Vector2.new(0.5, 1),
+		Size = UDim2.fromOffset(TAG.X, TAG.Y),
+		BackgroundTransparency = 1,
+		ZIndex = 2,
+		Visible = false,
+		Parent = gui,
+	})
+	Ui.autoScale(tag)
+	tagStars = Ui.label({
+		Name = "Stars",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 32),
+		Size = UDim2.fromOffset(140, 24),
+		ZIndex = 2,
+		Parent = tag,
+	}, 20)
+	Ui.outline(tagStars, 2)
+
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layoutBar)
 	Ui.onRescale(function()
 		layoutBar()
@@ -1787,6 +1938,7 @@ local function begin(slot: number?)
 		Parent = folder,
 	})
 	folder.Parent = workspace
+	hideSign(true)
 
 	removeDetectors()
 	-- HUD 를 먼저 바꾸고(메뉴·굴리기 줄 숨김, 열린 창 닫기) 띠 자리를 잡은 뒤에 카메라(띠 위 영역에 맞춤)
@@ -1796,7 +1948,7 @@ local function begin(slot: number?)
 	scroller.CanvasPosition = Vector2.zero
 	local camera = workspace.CurrentCamera
 	if camera then
-		savedCamera = { Type = camera.CameraType, Subject = camera.CameraSubject }
+		savedCamera = { Type = camera.CameraType, Subject = camera.CameraSubject, Fov = camera.FieldOfView }
 	end
 	applyView()
 
@@ -1910,9 +2062,12 @@ function ParkEdit.exit()
 		end
 	end
 	table.clear(hidden)
+	paintLabels() -- 배치 모드 밖: 칸 이름표 모두 다시 켬
+	hideSign(false)
 	table.clear(localEdits)
 	table.clear(markers)
-	table.clear(markerPulse)
+	markerPulse = nil
+	painted = nil
 	hoverLight = nil
 	hoverSlot = nil
 	local folder = localFolder
@@ -1933,10 +2088,19 @@ function ParkEdit.exit()
 			then saved.Type
 			else Enum.CameraType.Custom
 		camera.CameraSubject = humanoid() or (saved and saved.Subject) or nil
+		if saved then
+			camera.FieldOfView = saved.Fov
+		end
 	end
 	setMovement(true)
 
 	bar.Visible = false
+	tag.Visible = false
+	tagKey = nil
+	if tagChip then
+		tagChip.Root:Destroy()
+		tagChip = nil
+	end
 	addDetectors()
 	handlers.Changed(false)
 end

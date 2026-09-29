@@ -230,18 +230,21 @@ return function(ctx: any): any
 		end
 		return { p.X, p.Y, depth }
 	end
-	local localFolder = workspace:FindFirstChild("ParkEditLocal")
-	local heldInfo: any = nil
-	if localFolder then
-		for _, label in localFolder:GetDescendants() do
-			if label.ClassName == "BillboardGui" and label.Name == "HeldLabel" then
-				local anchor = label.Adornee
-				local offset = label.StudsOffsetWorldSpace or Vector3.zero
-				local point = anchor.Position + offset
-				heldInfo = { Id = picked, From = from, Label = screenOf(point) }
+	-- 화면 이름표(ParkEdit setTag: ScreenGui 좌표, 아래 가운데가 기준)
+	local tagInfo: any = nil
+	local tagFrame = gui:FindFirstChild("ParkEditTag")
+	if tagFrame and tagFrame.Visible then
+		local chip = tagFrame:FindFirstChild("Name")
+		local text = chip and chip:FindFirstChild("Label", true)
+		local tagId: string? = nil
+		for _, landmark in Landmarks.List do
+			if text and landmark.Name == text.Text then
+				tagId = landmark.Id
 			end
 		end
+		tagInfo = { Id = tagId, X = tagFrame.Position.X.Offset, Y = tagFrame.Position.Y.Offset }
 	end
+	local heldInfo = if picked then { Id = picked, From = from } else nil
 	-- 전시 이름표(칸 위 BillboardGui, 스터드 크기): 카메라에서 MaxDistance 안이면 보임
 	local labels = {}
 	local t = math.tan(math.rad(camera.FieldOfView) / 2)
@@ -300,6 +303,7 @@ return function(ctx: any): any
 		Bar = { Left = barLeft, Top = barTop, Width = barWidth, Height = barHeight },
 		Plot = plot.Name,
 		Held = heldInfo,
+		Tag = tagInfo,
 		Target = scenario.Target,
 		Labels = labels,
 		SlotScreens = slotScreens,

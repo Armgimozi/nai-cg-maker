@@ -147,6 +147,13 @@ return function(Mock: any, Harness: any, options: Options?): any
 		local ny = v.Y / (depth * t)
 		return Vector2.new((nx + 1) / 2 * size.X, (1 - ny) / 2 * size.Y), depth
 	end
+	-- Camera:WorldToViewportPoint -> (Vector3(x, y, 깊이), 화면 안인지)
+	camera.__props.WorldToViewportPoint = function(_self, point: Vector3)
+		local p, depth = toScreen(point)
+		local size = camera.ViewportSize
+		local inside = depth > 0 and p.X >= 0 and p.Y >= 0 and p.X <= size.X and p.Y <= size.Y
+		return Vector3.new(p.X, p.Y, depth), inside
+	end
 
 	local Players = game:GetService("Players")
 	local player = Instance.new("Player")

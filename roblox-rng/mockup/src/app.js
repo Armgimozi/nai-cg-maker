@@ -1637,13 +1637,15 @@
     const r = aim(high);
     return { ...cam, tx: r.tx, tz: r.tz, d: high, rows, region: { left, right, top, bottom } };
   }
-  // ParkEdit.topCFrame 과 같은 여백: 위 = 상단바 + 10px, 아래 = 보관함 띠(+ 딱지 줄) 위 끝 + 8px, 옆 3%
+  // ParkEdit.topCFrame 과 같은 여백: 위 = 상단바 + 10px, 아래 = 보관함 띠(+ 딱지 줄) 위 끝 + 8px, 옆 3%.
+  // 시야각 = ParkEdit.EDIT_FOV(40도, 기본 70 보다 좁혀 원근을 줄임)
+  const EDIT_FOV = 40;
   function editCamera(bar, state) {
     const h = view.h;
     return topView({
       rows: topRows(parkSlots(state)[1]),
       aspect: view.w / h,
-      fov: 70,
+      fov: EDIT_FOV,
       top: (view.inset + 10) / h,
       bottom: (h - (bar.top + view.inset) + 8) / h,
       left: 0.03,
@@ -1653,43 +1655,6 @@
   // 3D 배치 모드 배경: mockup/edit_backdrops.sh 가 맵 미리보기 도구로 그린 진짜 장면(진짜 ParkService 부지 + 진짜 ParkEdit —
   // 빛나는 판·들고 있는 반투명 복사본·Highlight 강조까지). window.BACKDROPS[이름] = { image, info(hook 값) }
   const backdropFor = (name) => (window.BACKDROPS || {})[name] || null;
-
-  // 3D 월드에 붙은 BillboardGui 는 로블록스가 ScreenGui 아래 층에 그림 -> 월드 그림 바로 위, HUD 아래 층(뷰포트 px)
-  function billboardLayer(screen) {
-    const layer = document.createElement('div');
-    layer.className = 'billboards';
-    screen.appendChild(layer);
-    return layer;
-  }
-
-  // ParkService.addLabel: 칸 위 이름표(스터드 크기 10×2.6 — 카메라에서 멀수록 작게, MaxDistance 60 안에서만 보임).
-  // 등급 색 알약(이름 길이만큼 너비) + 그 아래 별. pps = 그 거리에서 1 스터드의 화면 px
-  function pedestalLabel(layer, landmark, starCount, x, y, pps) {
-    const w = 10 * pps;
-    const h = 2.6 * pps;
-    const box = gui(layer, { name: 'Label', anchor: [0.5, 0.5], pos: [0, x, 0, y], size: [0, w, 0, h] });
-    const chars = Array.from(landmark.Name).length;
-    const tw = Math.min(1, Math.max(0.3, (chars * 1.05 + 1.4) / 10)) * w;
-    const th = 0.52 * h;
-    const tier = landmark.Tier.Color;
-    gui(box, { name: 'Shadow', anchor: [0.5, 0], pos: [0.5, 0, 0, 0.07 * h], size: [0, tw, 0, th], bg: lerp(tier, Theme.Ink, 0.4), corner: 'round', stroke: [Theme.Ink, 2] });
-    const face = gui(box, { name: 'Face', anchor: [0.5, 0], pos: [0.5, 0, 0, 0], size: [0, tw, 0, th], bg: tier, corner: 'round', stroke: [Theme.Ink, 2], z: 2 });
-    face.style.backgroundImage = 'linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(0,0,0,0.16) 100%)';
-    const name = label(face, { name: 'Name', pos: [0, 0.08 * tw, 0, 0.14 * th], size: [1, -0.16 * tw, 1, -0.28 * th], text: landmark.Name, color: WHITE, outline: 2 }, 60);
-    name.style.fontFamily = "'Fredoka One', 'KR Fallback', sans-serif";
-    label(box, { name: 'Stars', pos: [0, 0, 0.64, 0], size: [1, 0, 0.34, 0], rich: starsRich(starCount, Config.STAR_THRESHOLDS.length, [120, 110, 100]), outline: 2 }, 60);
-    return box;
-  }
-
-  // 칸 이름표들: hook 이 잰 화면 자리·거리(extra.Labels) 그대로. Visible = 카메라 거리 <= MaxDistance 이고 칸 모델 이름표가 켜져 있음
-  function pedestalLabels(layer, state, info) {
-    const [ids] = parkSlots(state);
-    for (const l of info.Labels || []) {
-      const id = ids[l.Slot - 1];
-      if (!l.Visible || !id) continue;
-      pedestalLabel(layer, ById[id], stars(state.Inventory[id]), l.Screen[0], l.Screen[1], l.PxPerStud);
-    }
-  }
 
   // ParkEdit 아래 띠(보관함) — 치수는 ParkEdit.luau 와 같음(설계 px, Ui.autoScale)
   const EDIT = { BAR_H: 132, BAR_BOTTOM: 12, BAR_EDGE: 16, BAR_MAX_W: 1180, PAD: 10, BUTTON: [92, 108], BUTTON_GAP: 8, CARD: [96, 104], CARD_GAP: 10, CHIP_ROW: 30, JUMP: { small: 100, large: 180 } };
@@ -1772,24 +1737,20 @@
     return { bar, layout };
   }
 
-  // 들고 있는 복사본 머리 위 이름표(BillboardGui 240×58, 화면 px 고정, AlwaysOnTop): 등급 색 이름 딱지 + 별.
-  // 자리 = hook 이 잰 화면 점(extra.Held.Label, BillboardGui 가운데)
-  function heldLabel(layer, state, info) {
-    const held = info.Held;
-    if (!held || !held.Label) return;
-    const landmark = ById[held.Id];
-    // 화면 px 고정 이름표 — 작은 화면(배율 0.55)에서는 줄임(ParkEdit: clamp(배율 / 0.9, 0.6, 1))
-    const k = Math.min(1, Math.max(0.6, view.scale / 0.9));
-    const holder = gui(layer, { name: 'HeldLabel', anchor: [0.5, 0.5], pos: [0, held.Label[0], 0, held.Label[1]], size: [0, 240, 0, 58], z: 3, uiScale: k });
-    holder.style.transformOrigin = '50% 50%';
-    holder.style.transform = `translate(-50%, -50%) scale(${k})`;
-    const name = chip(holder, { name: 'Name', color: landmark.Tier.Color, text: landmark.Name, height: 30, textSize: 19, anchor: [0.5, 0], pos: [0.5, 0, 0, 0] });
+  // 화면 이름표(ParkEdit setTag — ScreenGui, 띠보다 아래 층): 들고 있는 명소 / 가리키는 명소의 등급 색 이름 딱지 + 별.
+  // 자리 = hook 이 읽은 진짜 ParkEdit 값(extra.Tag: 아래 가운데, ScreenGui px — 화면 안·띠 위로 가둔 뒤)
+  function editTag(screenGui, state, info) {
+    const t = info.Tag;
+    if (!t || !t.Id) return;
+    const landmark = ById[t.Id];
+    const holder = gui(screenGui, { name: 'ParkEditTag', anchor: [0.5, 1], pos: [0, t.X, 0, t.Y], size: [0, 240, 0, 58], z: 2, uiScale: view.scale });
+    const name = chip(holder, { name: 'Name', color: landmark.Tier.Color, text: landmark.Name, height: 30, textSize: 19, anchor: [0.5, 0], pos: [0.5, 0, 0, 0], z: 2 });
     name.root.dataset.held = '1';
-    label(holder, { name: 'Stars', anchor: [0.5, 0], pos: [0.5, 0, 0, 32], size: [0, 140, 0, 24], rich: starsRich(stars(state.Inventory[held.Id]), Config.STAR_THRESHOLDS.length), outline: 2 }, 20);
+    label(holder, { name: 'Stars', anchor: [0.5, 0], pos: [0.5, 0, 0, 32], size: [0, 140, 0, 24], rich: starsRich(stars(state.Inventory[t.Id]), Config.STAR_THRESHOLDS.length), outline: 2, z: 2 }, 20);
   }
 
-  // 3D 배치 모드 화면 하나: 진짜 장면 그림(배경) + 칸 이름표·들고 있는 이름표(BillboardGui 층) + HUD(위쪽 코인·스탯만 —
-  // 메뉴·굴리기 줄은 숨김) + 보관함 띠. opts.backdrop = 배경 이름(edit_pc ...)
+  // 3D 배치 모드 화면 하나: 진짜 장면 그림(배경 — 칸 이름표 BillboardGui 는 배치 모드 동안 꺼짐) + HUD(위쪽 코인·스탯만 —
+  // 메뉴·굴리기 줄은 숨김) + 화면 이름표 + 보관함 띠. opts.backdrop = 배경 이름(edit_pc ...)
   function buildEditScreen(root, id, state, opts = {}) {
     const screenGui = newScreen(root, id, { width: opts.width, height: opts.height, touch: opts.touch, world: false });
     const layout = editBarLayout();
@@ -1799,15 +1760,13 @@
     if (backdrop) {
       screen.insertAdjacentHTML('afterbegin', `<img class="world" alt="" src="${backdrop.image}">`);
       screen.dataset.backdrop = opts.backdrop;
-      const layer = billboardLayer(screen);
-      pedestalLabels(layer, state, backdrop.info);
-      heldLabel(layer, state, backdrop.info);
     } else {
       screen.insertAdjacentHTML('afterbegin', `<div class="world no-backdrop">배경 없음 — mockup/edit_backdrops.sh 로 ${escapeHtml(opts.backdrop || '')} 를 그린 뒤 build.py</div>`);
     }
     screen.dataset.cam = JSON.stringify({ tx: cam.tx, tz: cam.tz, d: cam.d, aspect: cam.aspect, fov: cam.fov, rows: cam.rows });
     buildStats(screenGui, state);
     buildEditBar(screenGui, state, opts);
+    if (backdrop) editTag(screenGui, state, backdrop.info);
     if (opts.toasts) buildNews(screenGui, [], opts.toasts);
     return { screenGui, cam, layout };
   }
