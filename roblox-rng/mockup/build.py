@@ -11,6 +11,8 @@
   받아 mockup/fonts/ 에 캐시하고 base64 로 넣음. 네트워크가 막혀 있으면 글꼴 없이(로컬 대체 글꼴) 만듦.
   한글 굵기(KR_WEIGHT): 로블록스는 글꼴에 없는 한글을 대체 글꼴(Noto Sans CJK)로 그리는데, 게임이 쓰는
   Enum.Font.FredokaOne / LuckiestGuy 는 둘 다 Regular(400) 로 등록된 글꼴이라 한글도 Regular 로 봄.
+- 3D 배치 모드 배경(mockup/bg/edit_*.jpg + .json): mockup/edit_backdrops.sh 가 맵 미리보기 도구로 진짜 월드 +
+  진짜 ParkEdit 를 그린 그림. 있으면 window.BACKDROPS 로 넣음(없으면 6번대 화면에 "배경 없음" 표시).
 - 표준 라이브러리만 씀.
 """
 
@@ -33,6 +35,7 @@ ART = ROOT / "art" / "png"
 SHARED = ROOT / "src" / "shared"
 SRC = HERE / "src"
 FONTS = HERE / "fonts"
+BACKDROPS = HERE / "bg"
 OUT = HERE / "index.html"
 
 # 한글 대체 글꼴 굵기. FontFace 굵기(FredokaOne/LuckiestGuy = Regular)를 따름 -> 400
@@ -171,6 +174,19 @@ def load_art() -> dict[str, str]:
     return art
 
 
+def load_backdrops() -> dict[str, dict]:
+    """mockup/bg/<이름>.jpg + <이름>.json -> { 이름: { image: data URI, info: hook 값 } }"""
+    result = {}
+    for path in sorted(BACKDROPS.glob("*.jpg")) if BACKDROPS.is_dir() else []:
+        info_path = path.with_suffix(".json")
+        info = json.loads(info_path.read_text(encoding="utf-8")) if info_path.is_file() else None
+        result[path.stem] = {
+            "image": "data:image/jpeg;base64," + base64.b64encode(path.read_bytes()).decode("ascii"),
+            "info": info,
+        }
+    return result
+
+
 # --- 글꼴 -------------------------------------------------------------------
 
 def _ssl_context() -> ssl.SSLContext:
@@ -268,11 +284,13 @@ def main() -> None:
     art = load_art()
     subset_source = page + js + json.dumps(data, ensure_ascii=False)
     fonts = load_fonts(subset_source)
+    backdrops = load_backdrops()
 
     payload = (
         "window.ART = " + json.dumps(art) + ";\n"
         + "window.GAME = " + json.dumps(data, ensure_ascii=False) + ";\n"
         + "window.FONTS_EMBEDDED = " + json.dumps(sorted(fonts)) + ";\n"
+        + "window.BACKDROPS = " + json.dumps(backdrops, ensure_ascii=False) + ";\n"
     )
     html = (
         page.replace("/*FONTS*/", font_css(fonts))
@@ -285,7 +303,7 @@ def main() -> None:
     shown = OUT.relative_to(ROOT) if OUT.is_relative_to(ROOT) else OUT
     print(
         f"{shown}  {size / 1024:.0f} KB  "
-        f"(그림 {len(art)}개, 명소 {len(data['Landmarks']['List'])}개, 대륙 {len(data['Landmarks']['Regions'])}개, "
+        f"(그림 {len(art)}개, 배치 모드 배경 {len(backdrops)}개, 명소 {len(data['Landmarks']['List'])}개, 대륙 {len(data['Landmarks']['Regions'])}개, "
         f"글꼴 {', '.join(sorted(fonts)) or '없음(대체 글꼴)'})"
     )
 

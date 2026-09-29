@@ -14,12 +14,15 @@
 //   * Transparency 1 은 안 그림. Neon 은 빛을 받지 않는 원래 색(조금 밝게). SmoothPlastic 은 살짝 광택
 //   * 해: ClockTime·GeographicLatitude 로 계산(G3D/Roblox 식 근사: +X 에서 떠서 -X 로 짐, 정오에는 +Z 쪽으로 위도만큼 기움)
 //   * 안개: Atmosphere Density/Haze 로 FogExp2 근사(1000 스터드에서 약 45% 흐려짐 @ Density 0.3)
+//   * Highlight(덤프 hl): 대상 파트 실루엣을 채우기(FillColor·FillTransparency) + 바깥 테두리(OutlineColor, 2px)로.
+//     AlwaysOnTop 은 가려진 곳까지, Occluded 는 보이는 곳만(다른 파트가 앞을 가리면 빠짐)
 // 안 그리는 것: BillboardGui(이름표), 파티클, 빛(PointLight), 텍스처/Decal, MeshPart 실제 모양(상자로 대신)
 
 import * as THREE from "three";
 
-const W = 1280;
-const H = 720;
+// 그림 크기: 기본 1280x720, preview.resize(w, h) 로 바꿈(배치 모드 목업의 휴대폰 화면 등)
+let W = 1280;
+let H = 720;
 const canvas = document.getElementById("view");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
 renderer.setSize(W, H, false);
@@ -396,6 +399,130 @@ async function drawGui(record) {
   info.gui++;
 }
 
+// Highlight ------------------------------------------------------------------------------
+// 강조마다: 가림 판정용 가면(흰 = 대상이 보이는 곳)을 따로 그린 뒤, 화면 전체 사각형으로 채우기 + 테두리를 얹음
+const highlights = [];
+const maskBlack = new THREE.MeshBasicMaterial({ color: 0x000000 });
+const maskWhite = (top) =>
+  new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    depthTest: !top,
+    depthWrite: false,
+    depthFunc: THREE.LessEqualDepth,
+    polygonOffset: true,
+    polygonOffsetFactor: -2,
+    polygonOffsetUnits: -2,
+  });
+let maskTarget = null;
+const overlayCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+const overlayMaterial = new THREE.ShaderMaterial({
+  transparent: true,
+  depthTest: false,
+  depthWrite: false,
+  uniforms: {
+    mask: { value: null },
+    texel: { value: new THREE.Vector2(1 / 1280, 1 / 720) },
+    fill: { value: new THREE.Color() },
+    fillAlpha: { value: 0.5 },
+    outline: { value: new THREE.Color() },
+    outlineAlpha: { value: 1 },
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
+  fragmentShader: `
+    uniform sampler2D mask; uniform vec2 texel; uniform vec3 fill; uniform float fillAlpha;
+    uniform vec3 outline; uniform float outlineAlpha;
+    varying vec2 vUv;
+    void main() {
+      float inside = texture2D(mask, vUv).r;
+      if (inside > 0.5) {
+        gl_FragColor = vec4(fill, fillAlpha);
+      } else {
+        float near = 0.0;
+        for (int x = -2; x <= 2; x++) {
+          for (int y = -2; y <= 2; y++) {
+            if (x * x + y * y <= 5) near = max(near, texture2D(mask, vUv + vec2(float(x), float(y)) * texel).r);
+          }
+        }
+        if (near < 0.5) discard;
+        gl_FragColor = vec4(outline, outlineAlpha);
+      }
+      #include <colorspace_fragment>
+    }`,
+});
+const overlayQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), overlayMaterial);
+overlayQuad.frustumCulled = false;
+const overlayScene = new THREE.Scene();
+overlayScene.add(overlayQuad);
+
+function buildHighlights(list, parts) {
+  for (const h of list || []) {
+    const group = new THREE.Group();
+    const material = maskWhite(h.top);
+    for (const index of h.parts) {
+      const part = parts[index];
+      if (!part) continue;
+      const shape = GEOMETRY[part.s] ? part.s : "Block";
+      const mesh = new THREE.Mesh(GEOMETRY[shape], material);
+      mesh.matrixAutoUpdate = false;
+      mesh.matrix.copy(partMatrix(part, shape));
+      mesh.frustumCulled = false;
+      group.add(mesh);
+    }
+    group.visible = false;
+    group.renderOrder = 10;
+    scene.add(group);
+    highlights.push({ h, group });
+  }
+}
+
+function drawHighlights(cam) {
+  if (!highlights.length) return;
+  if (!maskTarget || maskTarget.width !== W || maskTarget.height !== H) {
+    if (maskTarget) maskTarget.dispose();
+    maskTarget = new THREE.WebGLRenderTarget(W, H);
+  }
+  const fog = scene.fog;
+  const background = scene.background;
+  scene.fog = null;
+  scene.background = new THREE.Color(0x000000);
+  renderer.autoClear = false;
+  for (const { h, group } of highlights) {
+    renderer.setRenderTarget(maskTarget);
+    renderer.setClearColor(0x000000, 1);
+    renderer.clear(true, true, true);
+    if (!h.top) {
+      // 가림 판정: 장면 전체를 검정으로(깊이만) 그린 뒤 대상을 흰색으로(같은 깊이 이하만)
+      scene.overrideMaterial = maskBlack;
+      renderer.render(scene, cam);
+      scene.overrideMaterial = null;
+    }
+    const hidden = [];
+    scene.children.forEach((child) => {
+      if (child !== group && child.visible) {
+        hidden.push(child);
+        child.visible = false;
+      }
+    });
+    group.visible = true;
+    renderer.render(scene, cam);
+    group.visible = false;
+    hidden.forEach((child) => (child.visible = true));
+    renderer.setRenderTarget(null);
+    overlayMaterial.uniforms.mask.value = maskTarget.texture;
+    overlayMaterial.uniforms.texel.value.set(1 / W, 1 / H);
+    overlayMaterial.uniforms.fill.value.copy(srgb(h.fill));
+    overlayMaterial.uniforms.fillAlpha.value = 1 - h.ft;
+    overlayMaterial.uniforms.outline.value.copy(srgb(h.outline));
+    overlayMaterial.uniforms.outlineAlpha.value = 1 - h.ot;
+    renderer.render(overlayScene, overlayCamera);
+  }
+  renderer.autoClear = true;
+  scene.fog = fog;
+  scene.background = background;
+}
+
 // 하늘·해·안개 -------------------------------------------------------------------------
 function sunDirection(clockTime, latitude) {
   const a = (2 * Math.PI * clockTime) / 24;
@@ -554,6 +681,7 @@ async function load() {
   dump = await res.json();
   setupLighting(dump.lighting || {});
   buildParts(dump.parts);
+  buildHighlights(dump.hl, dump.parts);
   await document.fonts.load('40px "Fredoka One"').catch(() => {});
   await document.fonts.load('40px "Luckiest Guy"').catch(() => {});
   for (const record of dump.gui || []) await drawGui(record);
@@ -572,13 +700,35 @@ function customView(name) {
   return { cam, shadowCenter: center, shadowHalf: Math.max(60, cam.position.distanceTo(center) * 1.2), fog: 1 };
 }
 
-function render(name) {
-  const view = name.startsWith("cam:") ? customView(name) : VIEWS[name]();
+// hook 시점: world.luau hook 이 돌려준 카메라(extra.Camera = { Position, Look, Up, Fov } — 로블록스 CurrentCamera 그대로)
+function hookView() {
+  const c = dump.extra && dump.extra.Camera;
+  if (!c) throw new Error("덤프에 extra.Camera 가 없습니다(hook=... 로 world.luau 를 돌렸나요?)");
+  const cam = new THREE.PerspectiveCamera(c.Fov || 70, W / H, 0.3, 20000);
+  cam.position.set(...c.Position);
+  cam.up.set(...(c.Up || [0, 1, 0]));
+  cam.lookAt(c.Position[0] + c.Look[0], c.Position[1] + c.Look[1], c.Position[2] + c.Look[2]);
+  // 그림자: 카메라가 보는 바닥 근처
+  const t = c.Position[1] / Math.max(0.05, -c.Look[1]);
+  const center = v3(c.Position[0] + c.Look[0] * t, 0, c.Position[2] + c.Look[2] * t);
+  return { cam, shadowCenter: center, shadowHalf: Math.max(80, t * 1.1), fog: 1 };
+}
+
+function resize(w, h) {
+  W = w;
+  H = h;
+  renderer.setSize(W, H, false);
+}
+
+// format: "png"(기본) | "jpeg" (quality 0..1)
+function render(name, format = "png", quality = 0.9) {
+  const view = name === "hook" ? hookView() : name.startsWith("cam:") ? customView(name) : VIEWS[name]();
   aimShadow(view.shadowCenter, view.shadowHalf);
   if (scene.fog && scene.fog.isFogExp2) scene.fog.density = fogDensity * view.fog;
   renderer.render(scene, view.cam);
-  return canvas.toDataURL("image/png");
+  drawHighlights(view.cam);
+  return format === "jpeg" ? canvas.toDataURL("image/jpeg", quality) : canvas.toDataURL("image/png");
 }
 
-window.preview = { load, render, views: Object.keys(VIEWS) };
+window.preview = { load, render, resize, views: Object.keys(VIEWS) };
 window.previewReady = true;

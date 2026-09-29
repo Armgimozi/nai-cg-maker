@@ -2,7 +2,7 @@
 -- 모든 BasePart(+ SurfaceGui 간판, 조명 값)를 JSON 으로 출력합니다. 렌더링은 render.js 가 합니다.
 --
 -- 사용법(roblox-rng 폴더에서, 보통은 tools/world_preview/preview.sh 가 부름):
---   luaurun tools/world_preview/world.luau [variant=이름] [field=Config필드] [players=3] [scenery=off]
+--   luaurun tools/world_preview/world.luau [variant=이름] [field=Config필드] [players=3] [scenery=off] [hook=파일]
 --
 -- 순서(init.server.luau 에 적힌 순서를 따름): default.project.json 의 Workspace/Lighting → World.build →
 --   ParkService.init → Scenery(있으면) → 샘플 플레이어 부지 배정·전시 → 스케줄러 5초 → 덤프.
@@ -10,6 +10,10 @@
 --   부르는 방법(함수 이름·인자)은 init.server.luau 의 "Scenery.xxx(...)" 호출을 읽어서 똑같이 부릅니다.
 --   variant=... 를 주면 그 호출이 읽는 Config 필드(이름에 VARIANT/SCENERY/MAP/THEME 가 든 것)를 바꾼 뒤 부름.
 --   필드를 못 찾으면 field=이름 으로 직접 지정. 그래도 없으면 variant 를 첫 인자로 넘김.
+-- hook=파일: 덤프 바로 전에 부르는 Luau 파일(함수 하나를 돌려줌: function(ctx) -> 표?). 월드 위에 클라이언트 화면을
+--   얹어 그릴 때(예: edit_hook.luau = 진짜 ParkEdit 로 3D 배치 모드). ctx = { Mock, Harness, shared, server, opts,
+--   samples = { { Player, Data } }, note }. 돌려준 표는 덤프의 "extra" 로 나감(카메라 "Camera" 가 있으면 render.js 의 hook 시점).
+--   덤프는 이 화면(클라이언트) 기준: LocalTransparencyModifier 를 투명도에 더하고, 켜진 Highlight 는 "hl" 목록으로.
 -- 출력: 표준 출력의 DUMP_BEGIN / DUMP_END 사이 한 줄 JSON. 그 밖의 줄은 진행 상황·경고.
 
 local Harness = compile(readfile("tests/harness.luau"), "tests/harness.luau")()
@@ -494,6 +498,7 @@ local SAMPLES = {
 	{ Name = "Newbie", DisplayName = "새내기", Park = 0, Count = 3, Stride = 11 },
 }
 local playerCount = math.clamp(tonumber(opts.players) or 3, 0, 8)
+local samples: { { Player: any, Data: any } } = {}
 Mock.origin = "Players"
 for i = 1, playerCount do
 	local sample = SAMPLES[(i - 1) % #SAMPLES + 1]
@@ -518,6 +523,7 @@ for i = 1, playerCount do
 		data.Inventory[landmark.Id] = 1 + (index * 7) % 40
 		data.Discovered[landmark.Id] = true
 	end
+	table.insert(samples, { Player = player, Data = data })
 	local ok, err = Mock.run(function()
 		ParkService.assign(player)
 		ParkService.update(player, data)
@@ -530,6 +536,27 @@ end
 local stepsRun, pending = Mock.runScheduler(5)
 if stepsRun > 0 or pending > 0 then
 	note(string.format("스케줄러: task %d개 실행, 5초 뒤에도 기다리는 task %d개", stepsRun, pending))
+end
+
+local extra: any = nil
+if opts.hook and opts.hook ~= "" then
+	local source = readfile(opts.hook)
+	assert(source, "hook 파일을 읽지 못했습니다: " .. opts.hook)
+	Mock.origin = "Hook"
+	local hook = compile(source, opts.hook)()
+	local ok, result = pcall(hook, {
+		Mock = Mock,
+		Harness = Harness,
+		shared = shared,
+		server = server,
+		opts = opts,
+		samples = samples,
+		note = note,
+	})
+	if not ok then
+		error("hook 실패: " .. tostring(result))
+	end
+	extra = result
 end
 
 -- 덤프 --------------------------------------------------------------------------------
@@ -623,16 +650,29 @@ local function partRecord(
 end
 
 local parts = {}
+local partIndex: { [any]: number } = {} -- 파트 -> partRecords 번호(0부터, Highlight 가 가리킴)
 for _, d in Mock.Workspace:GetDescendants() do
 	if Mock.isBasePart(d) and d.ClassName ~= "Terrain" then
 		table.insert(parts, d)
 	end
+end
+-- 이 화면에서 보이는 투명도: Transparency 에 LocalTransparencyModifier 를 더함(클라이언트가 이 화면에서만 숨긴 파트)
+local function viewTransparency(part): number
+	local t = part.Transparency or 0
+	local ok, ltm = pcall(function()
+		return part.LocalTransparencyModifier
+	end)
+	if ok and type(ltm) == "number" and ltm > 0 then
+		t = t + (1 - t) * math.clamp(ltm, 0, 1)
+	end
+	return t
 end
 for _, part in parts do
 	local shape, isApprox = shapeOf(part)
 	if isApprox then
 		approx += 1
 	end
+	partIndex[part] = #partRecords
 	partRecord(
 		part.Name,
 		pathOf(part),
@@ -643,7 +683,7 @@ for _, part in parts do
 		part.Size,
 		part.Color,
 		enumName(part.Material),
-		part.Transparency or 0,
+		viewTransparency(part),
 		part.CastShadow ~= false,
 		part.CanCollide ~= false
 	)
@@ -990,14 +1030,58 @@ local meta = {
 	notes = notes,
 }
 
+-- Highlight(강조): 켜진 것만. 대상(Adornee, 없으면 부모) 아래 보이는 파트 번호 + 색·투명도·깊이 방식
+local highlightRecords = {}
+for _, d in Mock.Workspace:GetDescendants() do
+	if d.ClassName == "Highlight" and d.Enabled ~= false then
+		local target = d.Adornee or d.Parent
+		local list = {}
+		if target then
+			local candidates = if Mock.isBasePart(target) then { target } else {}
+			for _, child in target:GetDescendants() do
+				if Mock.isBasePart(child) then
+					table.insert(candidates, child)
+				end
+			end
+			for _, part in candidates do
+				local index = partIndex[part]
+				if index and viewTransparency(part) < 0.999 then
+					table.insert(list, index)
+				end
+			end
+		end
+		if #list > 0 then
+			local fill = d.FillColor or Color3.fromRGB(255, 0, 0)
+			local outline = d.OutlineColor or Color3.new(1, 1, 1)
+			table.insert(
+				highlightRecords,
+				Mock.json.encode({
+					name = d.Name,
+					parts = list,
+					fill = { fill.R, fill.G, fill.B },
+					ft = d.FillTransparency or 0.5,
+					outline = { outline.R, outline.G, outline.B },
+					ot = d.OutlineTransparency or 0,
+					top = enumName(d.DepthMode or "HighlightDepthMode.AlwaysOnTop") == "AlwaysOnTop",
+				})
+			)
+		end
+	end
+end
+if #highlightRecords > 0 then
+	note(string.format("Highlight %d개", #highlightRecords))
+end
+
 print("DUMP_BEGIN")
 print(
 	string.format(
-		'{"meta":%s,"lighting":%s,"parts":[%s],"gui":[%s]}',
+		'{"meta":%s,"lighting":%s,"parts":[%s],"gui":[%s],"hl":[%s],"extra":%s}',
 		Mock.json.encode(meta),
 		Mock.json.encode(lighting),
 		table.concat(partRecords, ","),
-		table.concat(guiRecords, ",")
+		table.concat(guiRecords, ","),
+		table.concat(highlightRecords, ","),
+		if extra ~= nil then Mock.json.encode(extra) else "null"
 	)
 )
 print("DUMP_END")

@@ -1556,7 +1556,7 @@
 
   // --- 3D 배치 모드 (ParkEdit.luau + Shared/ParkGrid.luau) ---------------------------------------
   // 부지 좌표: 중앙 바닥 = 원점, -Z = 입구(광장 쪽), 입구에서 안쪽(+Z)을 보면 오른쪽이 -X. 칸 간격 12, 받침대 10×0.6
-  const PG = { SPACING: 12, FRONT_MARGIN: 6, PLOT_W: 76, PLOT_D: 80, BASE_TOP: 0.6, PED: 10, PED_H: 0.6, MARK: 11.6, LIFT: 3.4 };
+  const PG = { SPACING: 12, FRONT_MARGIN: 6, PLOT_W: 76, PLOT_D: 80, BASE_TOP: 0.6, PED: 10, PED_H: 0.6 };
   PG.PITCH = (55 * Math.PI) / 180; // ParkGrid.TOP_PITCH
   PG.FIT_HEIGHT = 12; // ParkGrid.TOP_FIT_HEIGHT
   const FIRST_ROW_Z = -PG.PLOT_D / 2 + PG.FRONT_MARGIN + PG.SPACING / 2;
@@ -1650,90 +1650,45 @@
       right: 0.03,
     });
   }
-  const toScreenPx = (p, cam) => {
-    const q = camProject(p, cam);
-    return q ? [((q[0] + 1) / 2) * view.w, ((1 - q[1]) / 2) * view.h] : null;
-  };
+  // 3D 배치 모드 배경: mockup/edit_backdrops.sh 가 맵 미리보기 도구로 그린 진짜 장면(진짜 ParkService 부지 + 진짜 ParkEdit —
+  // 빛나는 판·들고 있는 반투명 복사본·Highlight 강조까지). window.BACKDROPS[이름] = { image, info(hook 값) }
+  const backdropFor = (name) => (window.BACKDROPS || {})[name] || null;
 
-  // 3D 배치 모드 월드(위에서 보기 카메라로 본 내 부지): 잔디 + 입구 길 + 부지 바닥 + 칸 36개(잠긴 칸 흐리게) +
-  // 빛나는 판 + 받침대 + 명소(등급 색 상자 모형 — 실제로는 3D 모형) + 들고 있는 반투명 복사본. 뒤 줄부터 그림
-  // opts: { held: 명소 Id, from: 집은 칸(0 = 보관함), target: 가리키는 칸 }
-  function parkSceneSvg(state, cam, opts = {}) {
-    const [ids, unlocked] = parkSlots(state);
-    const P = (x, y, z) => toScreenPx([x, y, z], cam);
-    const poly = (pts, fill, extra = '') => {
-      const ps = pts.map((p) => P(...p));
-      if (ps.some((p) => !p)) return '';
-      return `<polygon points="${ps.map((p) => p.map((v) => v.toFixed(1)).join(',')).join(' ')}" fill="${fill}" ${extra}/>`;
-    };
-    const quad = (x0, x1, z0, z1, y, fill, extra) => poly([[x0, y, z0], [x1, y, z0], [x1, y, z1], [x0, y, z1]], fill, extra);
-    const box = (cx, cz, w, d, y0, y1, color, extra = '') => {
-      // 보이는 면: 위, 앞(-Z, 카메라 쪽), 카메라 쪽 옆면
-      const x0 = cx - w / 2, x1 = cx + w / 2, z0 = cz - d / 2, z1 = cz + d / 2;
-      const side = cx > cam.tx ? x0 : x1;
-      return (
-        poly([[side, y0, z0], [side, y0, z1], [side, y1, z1], [side, y1, z0]], hex(lerp(color, Theme.Ink, 0.28)), extra) +
-        poly([[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0]], hex(color), extra) +
-        quad(x0, x1, z0, z1, y1, hex(lerp(color, WHITE, 0.35)), extra)
-      );
-    };
-    // 명소 미니 모형 흉내: 등급 색 몸통 + 보조색 윗단(명소마다 높이 다름)
-    const statue = (landmark, cx, cz, lift, extra = '') => {
-      const rank = landmark.Tier.Rank;
-      const h = 4 + Math.min(8, rank * 0.9) + (landmark.Name.length % 3);
-      const base = PG.BASE_TOP + PG.PED_H + lift;
-      const accent = lerp(landmark.Tier.Color, WHITE, 0.5);
-      return box(cx, cz, 6.4, 6.4, base, base + h * 0.7, landmark.Tier.Color, extra) + box(cx, cz, 3.6, 3.6, base + h * 0.7, base + h, accent, extra);
-    };
-    let out = '';
-    // 잔디 + 입구 길(광장 쪽) + 부지 둘레 띠 + 바닥
-    out += `<rect width="${view.w}" height="${view.h}" fill="url(#pe-grass)"/>`;
-    out += quad(-5, 5, -140, -40, 0.05, '#dcd2bb');
-    out += quad(-PG.PLOT_W / 2 - 2, PG.PLOT_W / 2 + 2, -PG.PLOT_D / 2 - 2, PG.PLOT_D / 2 + 2, 0.4, '#c49a5a');
-    out += quad(-PG.PLOT_W / 2, PG.PLOT_W / 2, -PG.PLOT_D / 2, PG.PLOT_D / 2, PG.BASE_TOP, '#eee5cf');
-    // 입구 아치(나무 기둥 둘 + 간판 판)
-    out += box(-8, -PG.PLOT_D / 2 + 1, 1.4, 1.4, PG.BASE_TOP, 9, [150, 104, 64]) + box(8, -PG.PLOT_D / 2 + 1, 1.4, 1.4, PG.BASE_TOP, 9, [150, 104, 64]);
-    out += box(0, -PG.PLOT_D / 2 + 1, 18, 1, 7, 10, [255, 244, 220]);
-    const heldId = opts.held || null;
-    const from = opts.from || 0;
-    const target = opts.target || 0;
-    const order = Array.from({ length: MAX_SLOTS }, (_, i) => i + 1).sort((a, b) => slotOffset(b)[1] - slotOffset(a)[1]);
-    for (const slot of order) {
-      const [x, z] = slotOffset(slot);
-      const h = PG.PED / 2;
-      if (slot > unlocked) {
-        // 잠긴 칸: 흐린 바닥(들고 있으면 아주 흐린 빨강 판 — 놓을 자리가 먼저 보이게)
-        out += quad(x - h, x + h, z - h, z + h, PG.BASE_TOP + 0.08, css([172, 170, 190], 0.3));
-        if (heldId) out += quad(x - PG.MARK / 2, x + PG.MARK / 2, z - PG.MARK / 2, z + PG.MARK / 2, PG.BASE_TOP + 0.06, css(COLORS.Coral.Face, 0.1));
-        if (slot === target) out += quad(x - h, x + h, z - h, z + h, PG.BASE_TOP + 0.1, 'none', `stroke="${hex(COLORS.Coral.Face)}" stroke-width="3"`);
-        continue;
-      }
-      const id = ids[slot - 1];
-      // 빛나는 판: 들고 있으면 놓을 수 있는 칸(빈 칸 초록 / 명소 칸 노랑), 집은 자리 흰색. 아니면 빈 칸만 옅은 초록
-      let mark = null;
-      if (heldId) {
-        if (slot === from) mark = css(WHITE, 0.5);
-        else mark = css(id ? COLORS.Sun.Face : COLORS.Grass.Face, 0.55);
-      } else if (!id) mark = css(COLORS.Grass.Face, 0.38);
-      if (mark) out += quad(x - PG.MARK / 2, x + PG.MARK / 2, z - PG.MARK / 2, z + PG.MARK / 2, PG.BASE_TOP + 0.06, mark);
-      const landmark = id ? ById[id] : null;
-      const pedColor = landmark ? lerp(landmark.Tier.Color, [236, 232, 222], 0.6) : [236, 232, 222];
-      const hover = slot === target ? `stroke="${hex(heldId || landmark ? COLORS.Sun.Face : COLORS.Grass.Face)}" stroke-width="2.5" stroke-linejoin="round"` : '';
-      out += box(x, z, PG.PED, PG.PED, PG.BASE_TOP, PG.BASE_TOP + PG.PED_H, pedColor, hover);
-      if (landmark && slot !== from) out += statue(landmark, x, z, 0, hover);
+  // 3D 월드에 붙은 BillboardGui 는 로블록스가 ScreenGui 아래 층에 그림 -> 월드 그림 바로 위, HUD 아래 층(뷰포트 px)
+  function billboardLayer(screen) {
+    const layer = document.createElement('div');
+    layer.className = 'billboards';
+    screen.appendChild(layer);
+    return layer;
+  }
+
+  // ParkService.addLabel: 칸 위 이름표(스터드 크기 10×2.6 — 카메라에서 멀수록 작게, MaxDistance 60 안에서만 보임).
+  // 등급 색 알약(이름 길이만큼 너비) + 그 아래 별. pps = 그 거리에서 1 스터드의 화면 px
+  function pedestalLabel(layer, landmark, starCount, x, y, pps) {
+    const w = 10 * pps;
+    const h = 2.6 * pps;
+    const box = gui(layer, { name: 'Label', anchor: [0.5, 0.5], pos: [0, x, 0, y], size: [0, w, 0, h] });
+    const chars = Array.from(landmark.Name).length;
+    const tw = Math.min(1, Math.max(0.3, (chars * 1.05 + 1.4) / 10)) * w;
+    const th = 0.52 * h;
+    const tier = landmark.Tier.Color;
+    gui(box, { name: 'Shadow', anchor: [0.5, 0], pos: [0.5, 0, 0, 0.07 * h], size: [0, tw, 0, th], bg: lerp(tier, Theme.Ink, 0.4), corner: 'round', stroke: [Theme.Ink, 2] });
+    const face = gui(box, { name: 'Face', anchor: [0.5, 0], pos: [0.5, 0, 0, 0], size: [0, tw, 0, th], bg: tier, corner: 'round', stroke: [Theme.Ink, 2], z: 2 });
+    face.style.backgroundImage = 'linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(0,0,0,0.16) 100%)';
+    const name = label(face, { name: 'Name', pos: [0, 0.08 * tw, 0, 0.14 * th], size: [1, -0.16 * tw, 1, -0.28 * th], text: landmark.Name, color: WHITE, outline: 2 }, 60);
+    name.style.fontFamily = "'Fredoka One', 'KR Fallback', sans-serif";
+    label(box, { name: 'Stars', pos: [0, 0, 0.64, 0], size: [1, 0, 0.34, 0], rich: starsRich(starCount, Config.STAR_THRESHOLDS.length, [120, 110, 100]), outline: 2 }, 60);
+    return box;
+  }
+
+  // 칸 이름표들: hook 이 잰 화면 자리·거리(extra.Labels) 그대로. Visible = 카메라 거리 <= MaxDistance 이고 칸 모델 이름표가 켜져 있음
+  function pedestalLabels(layer, state, info) {
+    const [ids] = parkSlots(state);
+    for (const l of info.Labels || []) {
+      const id = ids[l.Slot - 1];
+      if (!l.Visible || !id) continue;
+      pedestalLabel(layer, ById[id], stars(state.Inventory[id]), l.Screen[0], l.Screen[1], l.PxPerStud);
     }
-    // 들고 있는 복사본: 가리키는 칸 위로 LIFT 만큼 떠서 반투명 + 노란 강조 + 흰 테두리
-    if (heldId && target) {
-      const [x, z] = slotOffset(target);
-      const landmark = ById[heldId];
-      out += `<g opacity="0.72">${statue(landmark, x, z, PG.LIFT, `stroke="#ffffff" stroke-width="2" stroke-linejoin="round"`)}</g>`;
-      out += `<g opacity="0.3">${statue(landmark, x, z, PG.LIFT, `fill="${hex(COLORS.Sun.Face)}"`)}</g>`;
-      // 그림자(받침대 위)
-      out += quad(x - 3, x + 3, z - 3, z + 3, PG.BASE_TOP + PG.PED_H + 0.02, css(Theme.Ink, 0.18));
-    }
-    return `<svg class="world" viewBox="0 0 ${view.w} ${view.h}" preserveAspectRatio="none" xmlns="${SVG_NS}" aria-hidden="true">
-      <defs><linearGradient id="pe-grass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7fca6c"/><stop offset="1" stop-color="#5cb552"/></linearGradient></defs>
-      ${out}</svg>`;
   }
 
   // ParkEdit 아래 띠(보관함) — 치수는 ParkEdit.luau 와 같음(설계 px, Ui.autoScale)
@@ -1817,31 +1772,42 @@
     return { bar, layout };
   }
 
-  // 들고 있는 복사본 머리 위 이름표(BillboardGui 240×58, 화면 px 고정): 등급 색 이름 딱지 + 별
-  function heldLabel(screenGui, state, cam, id, slot) {
-    const landmark = ById[id];
-    const [x, z] = slotOffset(slot);
-    const p = toScreenPx([x, PG.BASE_TOP + PG.PED_H + PG.LIFT + 13, z], cam);
-    if (!p) return;
+  // 들고 있는 복사본 머리 위 이름표(BillboardGui 240×58, 화면 px 고정, AlwaysOnTop): 등급 색 이름 딱지 + 별.
+  // 자리 = hook 이 잰 화면 점(extra.Held.Label, BillboardGui 가운데)
+  function heldLabel(layer, state, info) {
+    const held = info.Held;
+    if (!held || !held.Label) return;
+    const landmark = ById[held.Id];
     // 화면 px 고정 이름표 — 작은 화면(배율 0.55)에서는 줄임(ParkEdit: clamp(배율 / 0.9, 0.6, 1))
     const k = Math.min(1, Math.max(0.6, view.scale / 0.9));
-    const holder = gui(screenGui, { name: 'HeldLabel', anchor: [0.5, 1], pos: [0, p[0], 0, p[1] - view.inset], size: [0, 240, 0, 58], z: 2, uiScale: k });
+    const holder = gui(layer, { name: 'HeldLabel', anchor: [0.5, 0.5], pos: [0, held.Label[0], 0, held.Label[1]], size: [0, 240, 0, 58], z: 3, uiScale: k });
+    holder.style.transformOrigin = '50% 50%';
+    holder.style.transform = `translate(-50%, -50%) scale(${k})`;
     const name = chip(holder, { name: 'Name', color: landmark.Tier.Color, text: landmark.Name, height: 30, textSize: 19, anchor: [0.5, 0], pos: [0.5, 0, 0, 0] });
     name.root.dataset.held = '1';
-    label(holder, { name: 'Stars', anchor: [0.5, 0], pos: [0.5, 0, 0, 32], size: [0, 140, 0, 24], rich: starsRich(stars(state.Inventory[id]), Config.STAR_THRESHOLDS.length), outline: 2 }, 20);
+    label(holder, { name: 'Stars', anchor: [0.5, 0], pos: [0.5, 0, 0, 32], size: [0, 140, 0, 24], rich: starsRich(stars(state.Inventory[held.Id]), Config.STAR_THRESHOLDS.length), outline: 2 }, 20);
   }
 
-  // 3D 배치 모드 화면 하나: 위에서 보기 월드 + HUD(위쪽 코인·스탯만 — 메뉴·굴리기 줄은 숨김) + 보관함 띠 (+ 들고 있는 명소 이름표)
+  // 3D 배치 모드 화면 하나: 진짜 장면 그림(배경) + 칸 이름표·들고 있는 이름표(BillboardGui 층) + HUD(위쪽 코인·스탯만 —
+  // 메뉴·굴리기 줄은 숨김) + 보관함 띠. opts.backdrop = 배경 이름(edit_pc ...)
   function buildEditScreen(root, id, state, opts = {}) {
     const screenGui = newScreen(root, id, { width: opts.width, height: opts.height, touch: opts.touch, world: false });
     const layout = editBarLayout();
     const cam = editCamera(layout, state);
     const screen = screenGui.parentElement;
-    screen.insertAdjacentHTML('afterbegin', parkSceneSvg(state, cam, opts));
+    const backdrop = backdropFor(opts.backdrop);
+    if (backdrop) {
+      screen.insertAdjacentHTML('afterbegin', `<img class="world" alt="" src="${backdrop.image}">`);
+      screen.dataset.backdrop = opts.backdrop;
+      const layer = billboardLayer(screen);
+      pedestalLabels(layer, state, backdrop.info);
+      heldLabel(layer, state, backdrop.info);
+    } else {
+      screen.insertAdjacentHTML('afterbegin', `<div class="world no-backdrop">배경 없음 — mockup/edit_backdrops.sh 로 ${escapeHtml(opts.backdrop || '')} 를 그린 뒤 build.py</div>`);
+    }
     screen.dataset.cam = JSON.stringify({ tx: cam.tx, tz: cam.tz, d: cam.d, aspect: cam.aspect, fov: cam.fov, rows: cam.rows });
     buildStats(screenGui, state);
     buildEditBar(screenGui, state, opts);
-    if (opts.held && opts.target) heldLabel(screenGui, state, cam, opts.held, opts.target);
     if (opts.toasts) buildNews(screenGui, [], opts.toasts);
     return { screenGui, cam, layout };
   }
@@ -2211,7 +2177,7 @@
         `아래 띠: [보관](상자 — 들고 있는 전시 명소를 보관함으로, Coral) [자동](시상대) | 보관함 = 전시 안 된 명소(희귀한 순서, 노란 위 화살표 = 전시 칸의 가장 약한 명소보다 좋음 ${betterHidden(PARK_STATE).length}개) | [시점](사진기 — 평소 카메라) [완료]. ` +
         '명소 모형은 여기선 등급 색 상자로 대신 그림(게임에서는 3D 미니어처).',
       build(root) {
-        buildEditScreen(root, this.id, PARK_STATE, { held: PARK_FAVORITE, from: 1, target: EDIT_TARGET, toasts: [TOAST_AUTO_OFF] });
+        buildEditScreen(root, this.id, PARK_STATE, { backdrop: 'edit_pc', held: PARK_FAVORITE, toasts: [TOAST_AUTO_OFF] });
       },
     },
     {
@@ -2238,7 +2204,7 @@
         `터치 전용 기기라 띠는 오른쪽 아래 점프 버튼 자리를 비움(위에서 보기에서는 이동을 꺼서 조이스틱·점프 버튼이 안 나오지만 [시점] 으로 평소 카메라를 쓰면 다시 나옴). ` +
         `자동 배율 ${uiScaleFor(844, 390).toFixed(2)}: 띠 버튼 앞면 ${EDIT.BUTTON[0]}×${EDIT.BUTTON[1] - 6} → ${Math.round(EDIT.BUTTON[0] * uiScaleFor(844, 390))}×${Math.round((EDIT.BUTTON[1] - 6) * uiScaleFor(844, 390))}px. 가리키는 1번 칸 = 초록 강조.`,
       build(root) {
-        buildEditScreen(root, this.id, REBORN_STATE, { width: 844, height: 390, touch: true, target: 1 });
+        buildEditScreen(root, this.id, REBORN_STATE, { backdrop: 'edit_phone844', width: 844, height: 390, touch: true });
       },
     },
     {
@@ -2251,7 +2217,7 @@
         `띠 버튼 앞면 ${Math.round(EDIT.BUTTON[0] * uiScaleFor(667, 375))}×${Math.round((EDIT.BUTTON[1] - 6) * uiScaleFor(667, 375))}px · 카드 ${Math.round(EDIT.CARD[0] * uiScaleFor(667, 375))}×${Math.round(EDIT.CARD[1] * uiScaleFor(667, 375))}px(40px 이상), 보관함은 가로 스크롤. ` +
         '작은 화면에서도 띠 위 영역에 열린 줄 + 잠긴 줄 하나가 딱 들어오도록 같은 계산식으로 카메라 거리를 잡음.',
       build(root) {
-        buildEditScreen(root, this.id, PARK_STATE, { width: 667, height: 375, touch: true, held: EDIT_STORAGE_PICK, heldFromStorage: true, from: 0, target: EDIT_PHONE_TARGET });
+        buildEditScreen(root, this.id, PARK_STATE, { backdrop: 'edit_phone667', width: 667, height: 375, touch: true, held: EDIT_STORAGE_PICK, heldFromStorage: true });
       },
     },
     {
@@ -2625,6 +2591,52 @@
       items.push(
         `<b>3D 배치 모드</b> ${verdict(good)}: 맞출 줄(열린 줄 + 잠긴 줄 하나, ParkGrid.topRows)의 받침대 네 귀퉁이가 상단바 아래 ~ 보관함 띠 위에 들어옴(ParkGrid.topView 와 같은 식), 띠가 화면 안 · 스탯/점프 버튼과 안 겹침, ` +
           `왼쪽 메뉴·굴리기 줄 숨김, 띠 버튼·카드는 40px 이상 — ${parts.join(' / ')}.`
+      );
+    }
+
+    // 7-2) 배경 그림(진짜 장면)이 이 목업과 같은 상태·같은 카메라·같은 띠 자리인지: hook 값(extra) vs 목업 계산
+    {
+      const cases = [
+        { id: 'screen6', state: PARK_STATE, held: PARK_FAVORITE, target: EDIT_TARGET },
+        { id: 'screen6c', state: REBORN_STATE, held: null, target: null },
+        { id: 'screen6p', state: PARK_STATE, held: EDIT_STORAGE_PICK, target: EDIT_PHONE_TARGET },
+      ];
+      const parts = [];
+      let good = true;
+      for (const c of cases) {
+        const scr = document.getElementById(c.id);
+        const name = scr && scr.dataset.backdrop;
+        const backdrop = name && backdropFor(name);
+        if (!backdrop || !backdrop.info) {
+          parts.push(`${c.id}: 배경 없음`);
+          good = false;
+          continue;
+        }
+        const info = backdrop.info;
+        const [ids, unlocked] = parkSlots(c.state);
+        const shown = new Set(ids.filter(Boolean));
+        const storage = RarestFirst.filter((l) => (c.state.Inventory[l.Id] || 0) > 0 && !shown.has(l.Id)).map((l) => l.Id);
+        const sameSlots = info.Unlocked === unlocked && JSON.stringify(info.Slots || []) === JSON.stringify(ids.map((v) => v || ''));
+        const sameStorage = JSON.stringify(info.Storage || []) === JSON.stringify(storage);
+        const sameHeld = (info.Held ? info.Held.Id : null) === c.held && (info.Target || null) === c.target;
+        const cam = JSON.parse(scr.dataset.cam);
+        const s = Math.sin(PG.PITCH);
+        const co = Math.cos(PG.PITCH);
+        const eye = [cam.tx, PG.BASE_TOP + s * cam.d, cam.tz - co * cam.d];
+        const camGap = Math.hypot(...eye.map((v, i) => v - info.LocalEye[i]));
+        const bar = scr.querySelector('[data-name="ParkEditBar"]');
+        const tray = rectIn(bar.querySelector('[data-name="Tray"]'), scr);
+        const barGap = Math.max(Math.abs(tray.left - info.Bar.Left), Math.abs(tray.top - GUI_INSET - info.Bar.Top), Math.abs(tray.right - tray.left - info.Bar.Width));
+        const ok = sameSlots && sameStorage && sameHeld && camGap < 0.5 && barGap < 1.5 && info.Screen.W === scr.offsetWidth && info.Screen.H === scr.offsetHeight;
+        good = good && ok;
+        parts.push(
+          `${c.id} ${verdict(ok)} ${name}: 칸 ${sameSlots ? '같음' : '다름'} · 보관함 ${sameStorage ? '같음' : '다름'} · 든 명소 ${sameHeld ? '같음' : '다름'} · ` +
+            `카메라 차이 ${camGap.toFixed(2)} 스터드 · 띠 자리 차이 ${barGap.toFixed(1)}px`
+        );
+      }
+      items.push(
+        `<b>3D 배치 모드 배경 = 진짜 장면</b> ${verdict(good)}: 6번대 배경은 mockup/edit_backdrops.sh 가 가짜 Roblox 에서 진짜 ParkService 부지 + 진짜 ParkEdit(클릭으로 집기, 마우스/손가락으로 가리키기)를 돌려 three.js 로 그린 그림. ` +
+          `그 장면의 칸 배치·보관함·든 명소·카메라(ParkEdit.topCFrame)·띠 자리가 이 목업 계산(ParkGrid.topView 흉내)과 같은지 — ${parts.join(' / ')}.`
       );
     }
 

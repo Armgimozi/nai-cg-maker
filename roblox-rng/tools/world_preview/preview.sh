@@ -14,6 +14,9 @@
 #   FIELD=이름           변형을 넣을 Config 필드를 직접 지정(자동으로 못 찾을 때)
 #   REV=HEAD             작업 폴더 대신 git 커밋의 src/ 와 default.project.json 으로 그림(예: 올라가 있는 현재 맵)
 #   KEEP=1               덤프(<접두어>_dump.json)를 출력 폴더에 남김
+#   HOOK=파일            덤프 전에 부를 Luau hook(world.luau 설명). HOOK_ARGS="edit=pc" 처럼 world.luau 에 더 넘길 인자
+#                        VIEWS=hook 이면 hook 이 정한 카메라로 그림. PREVIEW_SIZE=667x375 · PREVIEW_JPEG=0.86 은 render.js 로
+#   OVERLAP=0            풍경 겹침 보고서(overlap.js)를 건너뜀
 # 처음 한 번: (cd tools/world_preview && npm install)   — three.js. Playwright 는 전역 설치본을 씀
 set -euo pipefail
 OUT="${1:?출력 폴더}"
@@ -39,6 +42,11 @@ elif [ -n "$VARIANT" ]; then
 	ARGS+=("variant=$VARIANT")
 fi
 [ -n "${FIELD:-}" ] && ARGS+=("field=$FIELD")
+[ -n "${HOOK:-}" ] && ARGS+=("hook=$HOOK")
+if [ -n "${HOOK_ARGS:-}" ]; then
+	read -r -a EXTRA_ARGS <<<"$HOOK_ARGS"
+	ARGS+=("${EXTRA_ARGS[@]}")
+fi
 
 # 게임 코드 위치: 작업 폴더 또는 REV 커밋을 풀어 둔 임시 폴더(도구 파일은 항상 지금 것을 씀)
 GAME="$ROOT"
@@ -68,7 +76,9 @@ sed -n '/^DUMP_BEGIN$/,/^DUMP_END$/p' "$WORK/out.txt" | sed '1d;$d' >"$WORK/dump
 }
 
 NODE_PATH="$(npm root -g)" node tools/world_preview/render.js "$WORK/dump.json" "$OUT" "$PREFIX" ${VIEWS:+"$VIEWS"}
-node tools/world_preview/overlap.js "$WORK/dump.json" "$OUT/${PREFIX}_overlap.txt"
+if [ "${OVERLAP:-1}" != "0" ]; then
+	node tools/world_preview/overlap.js "$WORK/dump.json" "$OUT/${PREFIX}_overlap.txt"
+fi
 if [ -n "${KEEP:-}" ]; then
 	cp "$WORK/dump.json" "$OUT/${PREFIX}_dump.json"
 fi
