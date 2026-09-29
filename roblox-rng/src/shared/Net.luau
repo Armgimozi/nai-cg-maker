@@ -4,19 +4,20 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
-local FOLDER_NAME = "AuraRNGRemotes"
+local FOLDER_NAME = "LandmarkRNGRemotes"
 
 local FUNCTIONS = {
-	"GetState", -- () -> Snapshot
-	"Roll", -- () -> RollResponse
-	"Equip", -- (auraId?) -> { Ok, State }
-	"BuyPotion", -- (potionId) -> { Ok, Reason?, State }
+	"GetState", -- () -> Snapshot?
+	"Roll", -- () -> RollResponse (DESIGN.md 참고)
+	"Feature", -- (landmarkId?) -> { Ok, State }
+	"BuyUpgrade", -- (upgradeId) -> { Ok, Reason?, State }
 	"SetSetting", -- (key, value) -> { Ok, State }
+	"Teleport", -- ("Park" | "Plaza") -> { Ok }
 }
 
 local EVENTS = {
-	"State", -- 서버 -> 클라: Snapshot (물약 만료 등 서버 쪽 변화)
-	"Announce", -- 서버 -> 모두: 희귀 오라 획득 알림
+	"State", -- 서버 -> 클라: Snapshot (관광 수입 등 서버 쪽 변화)
+	"Announce", -- 서버 -> 모두: 희귀 명소 발견 "뉴스 속보"
 }
 
 local folder: Folder

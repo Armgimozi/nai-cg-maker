@@ -22,36 +22,83 @@ compileTree("src")
 
 local shared = Harness.folder("src/shared")
 local Config = Harness.require(shared.Config)
-local Auras = Harness.require(shared.Auras)
+local Landmarks = Harness.require(shared.Landmarks)
 local RollLogic = Harness.require(shared.RollLogic)
 local PlayerState = Harness.require(shared.PlayerState)
 local Format = Harness.require(shared.Format)
 
-print("\n[Auras]")
-test("Id 중복 없음 + OneIn 정상", function()
+local KNOWN_SHAPES = {
+	clocktower = true,
+	lighthouse = true,
+	windmill = true,
+	fountain = true,
+	arch = true,
+	gate = true,
+	leaning = true,
+	statue = true,
+	needle = true,
+	lattice = true,
+	ring = true,
+	dome = true,
+	temple = true,
+	sphinx = true,
+	wall = true,
+	pyramid = true,
+	steps = true,
+	terraces = true,
+	facade = true,
+	moai = true,
+	stones = true,
+	gardens = true,
+	spiral = true,
+	island = true,
+	pagoda = true,
+	skyisland = true,
+	tree = true,
+	globe = true,
+}
+
+print("\n[Landmarks]")
+test("Id 중복 없음 + OneIn/지역/모형 정상", function()
 	local seen = {}
-	for _, aura in Auras.List do
-		assert(not seen[aura.Id], "중복 " .. aura.Id)
-		seen[aura.Id] = true
-		assert(aura.OneIn >= 1, aura.Id .. " OneIn < 1")
-		assert(Auras.ById[aura.Id] == aura)
+	for _, landmark in Landmarks.List do
+		assert(not seen[landmark.Id], "중복 " .. landmark.Id)
+		seen[landmark.Id] = true
+		assert(landmark.OneIn >= 1, landmark.Id .. " OneIn < 1")
+		assert(Landmarks.ById[landmark.Id] == landmark)
+		assert(Landmarks.RegionById[landmark.Region], landmark.Id .. " 지역 없음")
+		assert(KNOWN_SHAPES[landmark.Shape], landmark.Id .. " 모르는 모형 " .. landmark.Shape)
 	end
 end)
-test("RarestFirst 는 내림차순, 마지막은 Common", function()
-	for i = 2, #Auras.RarestFirst do
-		assert(Auras.RarestFirst[i - 1].OneIn >= Auras.RarestFirst[i].OneIn, "정렬 깨짐 at " .. i)
+test("RarestFirst 는 내림차순, 마지막은 가장 흔한 명소", function()
+	for i = 2, #Landmarks.RarestFirst do
+		assert(Landmarks.RarestFirst[i - 1].OneIn >= Landmarks.RarestFirst[i].OneIn, "정렬 깨짐 at " .. i)
 	end
-	eq(Auras.RarestFirst[#Auras.RarestFirst], Auras.Common, "마지막")
-	eq(Auras.Common.Id, "common", "Common Id")
+	eq(Landmarks.RarestFirst[#Landmarks.RarestFirst], Landmarks.Common, "마지막")
+	eq(Landmarks.Common.Id, "clocktower", "가장 흔한 명소")
 end)
 test("등급 경계", function()
-	eq(Auras.ById.common.Tier.Name, "일반")
-	eq(Auras.ById.ember.Tier.Name, "고급")
-	eq(Auras.ById.bloom.Tier.Name, "희귀")
-	eq(Auras.ById.moonlight.Tier.Name, "에픽")
-	eq(Auras.ById.crystal.Tier.Name, "전설")
-	eq(Auras.ById.stardust.Tier.Name, "신화")
-	eq(Auras.ById.celestial.Tier.Name, "초월")
+	eq(Landmarks.ById.fountain.Tier.Name, "동네 명소")
+	eq(Landmarks.ById.arc.Tier.Name, "도시 명소")
+	eq(Landmarks.ById.namsan.Tier.Name, "국가 명소")
+	eq(Landmarks.ById.sphinx.Tier.Name, "세계 명소")
+	eq(Landmarks.ById.alexandria.Tier.Name, "불가사의")
+	eq(Landmarks.ById.babel.Tier.Name, "잃어버린 유산")
+	eq(Landmarks.ById.earth.Tier.Name, "전설")
+end)
+test("모든 지역에 명소가 있고 ByRegion 합계가 전체와 같음", function()
+	local total = 0
+	for _, region in Landmarks.Regions do
+		local n = #Landmarks.ByRegion[region.Id]
+		assert(n > 0, region.Id .. " 비어 있음")
+		total += n
+	end
+	eq(total, #Landmarks.List, "합계")
+end)
+test("전시 칸 최대치로 모든 명소를 전시할 수 있음", function()
+	local park = PlayerState.UpgradesById.Park
+	local maxSlots = Config.BASE_SLOTS + park.PerLevel * park.MaxLevel
+	assert(maxSlots >= #Landmarks.List, string.format("최대 칸 %d < 명소 %d", maxSlots, #Landmarks.List))
 end)
 
 print("\n[RollLogic]")
@@ -65,45 +112,31 @@ end
 
 test("확률 합계 = 1 (여러 행운)", function()
 	for _, luck in { 1, 1.5, 2, 10, 1000, 1e9 } do
-		near(sum(RollLogic.probabilities(Auras.RarestFirst, luck)), 1, 1e-9, "luck " .. luck)
+		near(sum(RollLogic.probabilities(Landmarks.RarestFirst, luck)), 1, 1e-9, "luck " .. luck)
 	end
 end)
-test("행운 1 에서 희귀 오라 확률 ≈ 1/N", function()
-	local probs = RollLogic.probabilities(Auras.RarestFirst, 1)
-	for _, aura in Auras.List do
-		if aura.OneIn >= 1000 then
-			local p = probs[aura.Id]
-			near(p * aura.OneIn, 1, 0.01, aura.Id .. " p*N")
+test("행운 1 에서 희귀 명소 확률 ≈ 1/N", function()
+	local probs = RollLogic.probabilities(Landmarks.RarestFirst, 1)
+	for _, landmark in Landmarks.List do
+		if landmark.OneIn >= 1000 then
+			near(probs[landmark.Id] * landmark.OneIn, 1, 0.01, landmark.Id .. " p*N")
 		end
 	end
 end)
 test("행운 2 면 희귀 확률 ≈ 2배", function()
-	local p1 = RollLogic.probabilities(Auras.RarestFirst, 1)
-	local p2 = RollLogic.probabilities(Auras.RarestFirst, 2)
-	near(p2.celestial / p1.celestial, 2, 0.01, "celestial 배율")
-	near(p2.crystal / p1.crystal, 2, 0.01, "crystal 배율")
+	local p1 = RollLogic.probabilities(Landmarks.RarestFirst, 1)
+	local p2 = RollLogic.probabilities(Landmarks.RarestFirst, 2)
+	near(p2.yonggung / p1.yonggung, 2, 0.01, "yonggung 배율")
+	near(p2.pyramid / p1.pyramid, 2, 0.01, "pyramid 배율")
 end)
-test("행운 ≥ N 이면 더 흔한 오라는 안 나옴", function()
-	local probs = RollLogic.probabilities(Auras.RarestFirst, 8)
-	eq(probs.common, 0, "common")
-	eq(probs.breeze, 0, "breeze")
-	-- dew(1/8) 는 행운 8 에서 확정이므로, 더 희귀한 오라가 전부 실패할 확률과 같아야 함
-	local allRarerFail = 1
-	for _, aura in Auras.RarestFirst do
-		if aura.OneIn > 8 then
-			allRarerFail *= 1 - 8 / aura.OneIn
-		end
-	end
-	near(probs.dew, allRarerFail, 1e-12, "dew")
-	local calls = 0
+test("행운 ≥ N 이면 더 흔한 명소는 안 나옴", function()
+	local probs = RollLogic.probabilities(Landmarks.RarestFirst, 5)
+	eq(probs.clocktower, 0, "clocktower")
+	eq(probs.lighthouse, 0, "lighthouse")
 	for _ = 1, 20000 do
-		local aura = RollLogic.roll(Auras.RarestFirst, 8, function()
-			calls += 1
-			return math.random()
-		end)
-		assert(aura.OneIn >= 8, "행운 8 인데 " .. aura.Id)
+		local landmark = RollLogic.roll(Landmarks.RarestFirst, 5, math.random)
+		assert(landmark.OneIn >= 5, "행운 5 인데 " .. landmark.Id)
 	end
-	assert(calls > 0)
 end)
 test("몬테카를로: 실제 굴림 분포가 계산 확률과 일치 (200만 회)", function()
 	math.randomseed(12345)
@@ -111,171 +144,208 @@ test("몬테카를로: 실제 굴림 분포가 계산 확률과 일치 (200만 �
 		local counts = {}
 		local n = 1000000
 		for _ = 1, n do
-			local aura = RollLogic.roll(Auras.RarestFirst, luck, math.random)
-			counts[aura.Id] = (counts[aura.Id] or 0) + 1
+			local landmark = RollLogic.roll(Landmarks.RarestFirst, luck, math.random)
+			counts[landmark.Id] = (counts[landmark.Id] or 0) + 1
 		end
-		local probs = RollLogic.probabilities(Auras.RarestFirst, luck)
-		for _, aura in Auras.List do
-			local p = probs[aura.Id]
-			if p * n >= 200 then -- 표본이 충분한 오라만 비교 (±5 표준편차)
-				local expected = p * n
+		local probs = RollLogic.probabilities(Landmarks.RarestFirst, luck)
+		for _, landmark in Landmarks.List do
+			local p = probs[landmark.Id]
+			if p * n >= 200 then
 				local sd = math.sqrt(n * p * (1 - p))
-				near(counts[aura.Id] or 0, expected, 5 * sd, string.format("luck %g %s", luck, aura.Id))
+				near(counts[landmark.Id] or 0, p * n, 5 * sd, string.format("luck %g %s", luck, landmark.Id))
 			end
 		end
 	end
 end)
-test("난수 경계값: 0 이면 가장 희귀, 1 에 가까우면 Common", function()
-	eq(
-		RollLogic.roll(Auras.RarestFirst, 1, function()
-			return 0
-		end).Id,
-		Auras.RarestFirst[1].Id,
-		"0"
-	)
-	eq(
-		RollLogic.roll(Auras.RarestFirst, 1, function()
-			return 0.9999999
-		end).Id,
-		"common",
-		"~1"
-	)
-end)
 
 print("\n[PlayerState]")
+local function owning(ids: { string }): any
+	local d = PlayerState.new()
+	for _, id in ids do
+		PlayerState.applyRoll(d, Landmarks.ById[id])
+	end
+	return d
+end
+
 test("새 데이터 기본값", function()
 	local d = PlayerState.new()
 	eq(d.Rolls, 0)
 	eq(d.Coins, 0)
-	eq(d.Settings.AutoEquip, true)
+	eq(d.Settings.AutoFeature, true)
+	for _, upgrade in Config.Upgrades do
+		eq(d.Upgrades[upgrade.Id], 0, upgrade.Id)
+	end
 	eq(PlayerState.luck(d), Config.BASE_LUCK, "luck")
 	eq(PlayerState.cooldown(d), Config.ROLL_COOLDOWN, "cooldown")
+	eq(PlayerState.slots(d), Config.BASE_SLOTS, "slots")
+	eq(PlayerState.incomePerSecond(d), 0, "income")
+	eq(#PlayerState.park(d), 0, "park")
 	eq(PlayerState.best(d), nil, "best")
 end)
-test("applyRoll: 개수/굴림수/코인/신규 여부", function()
+test("applyRoll: 처음 발견 보너스, 중복은 보너스 없음, 별 상승", function()
 	local d = PlayerState.new()
-	local coins, isNew = PlayerState.applyRoll(d, Auras.ById.moonlight)
-	eq(isNew, true, "첫 획득")
-	eq(coins, math.ceil(1000 ^ Config.COIN_EXPONENT), "코인")
-	eq(d.Coins, coins)
+	local eiffel = Landmarks.ById.eiffel
+	local bonus, isNew, starUp = PlayerState.applyRoll(d, eiffel)
+	eq(isNew, true, "첫 발견")
+	eq(starUp, false, "첫 발견은 별 상승 아님")
+	eq(bonus, math.ceil(Config.DISCOVERY_BONUS_MULT * 200 ^ 0.5), "보너스")
+	eq(d.Coins, bonus)
 	eq(d.Rolls, 1)
-	local _, again = PlayerState.applyRoll(d, Auras.ById.moonlight)
-	eq(again, false, "두 번째")
-	eq(d.Inventory.moonlight, 2)
-	PlayerState.applyRoll(d, Auras.ById.common)
-	eq(PlayerState.best(d), Auras.ById.moonlight, "best")
+	local bonus2, isNew2, starUp2 = PlayerState.applyRoll(d, eiffel)
+	eq(bonus2, 0, "중복 보너스 없음")
+	eq(isNew2, false)
+	eq(starUp2, false, "2회는 아직 1성")
+	local _, _, starUp3 = PlayerState.applyRoll(d, eiffel)
+	eq(starUp3, true, "3회 = 2성")
+	eq(d.Inventory.eiffel, 3)
+	eq(PlayerState.best(d), eiffel)
 end)
-test("코인은 희귀할수록 많고 최소 1", function()
-	eq(PlayerState.coinsFor(Auras.ById.common), 2, "common")
-	local prev = 0
-	for _, aura in Auras.List do
-		local c = PlayerState.coinsFor(aura)
-		assert(c >= 1 and c >= prev, aura.Id)
-		prev = c
+test("별 기준", function()
+	eq(PlayerState.stars(0), 0)
+	eq(PlayerState.stars(1), 1)
+	eq(PlayerState.stars(2), 1)
+	eq(PlayerState.stars(3), 2)
+	eq(PlayerState.stars(10), 3)
+	eq(PlayerState.stars(99), 4)
+	eq(PlayerState.stars(100), 5)
+	eq(PlayerState.stars(100000), 5)
+end)
+test("공원: 희귀한 순서로 전시 칸만큼, 수입 계산", function()
+	local d = owning({ "clocktower", "lighthouse", "windmill", "fountain", "arc", "bigben", "eiffel", "pyramid" })
+	local park = PlayerState.park(d)
+	eq(#park, Config.BASE_SLOTS, "칸 수만큼")
+	eq(park[1], "pyramid", "가장 희귀한 게 먼저")
+	eq(park[2], "eiffel")
+	-- 흔한 시계탑/등대는 칸이 모자라 빠짐
+	for _, id in park do
+		assert(id ~= "clocktower" and id ~= "lighthouse", "흔한 명소가 전시됨: " .. id)
 	end
-end)
-test("행운 굴림: 매 10번째", function()
-	local d = PlayerState.new()
-	local luckyCount = 0
-	for _ = 1, 30 do
-		local luck, lucky = PlayerState.rollLuck(d)
-		if lucky then
-			luckyCount += 1
-			eq(luck, Config.BASE_LUCK * Config.LUCKY_ROLL_MULT, "행운 굴림 배수")
-			eq((d.Rolls + 1) % Config.LUCKY_ROLL_EVERY, 0, "번호")
-		end
-		PlayerState.applyRoll(d, Auras.Common)
+	local expected = 0
+	for _, id in park do
+		expected += Config.TIER_INCOME[Landmarks.ById[id].Tier.Rank]
 	end
-	eq(luckyCount, 3, "30회 중 행운 굴림")
-	eq(PlayerState.rollsUntilLucky(0), 10)
-	eq(PlayerState.rollsUntilLucky(9), 1)
-	eq(PlayerState.rollsUntilLucky(10), 10)
+	near(PlayerState.incomePerSecond(d), expected, 1e-9, "수입")
+
+	-- 별이 오르면 그 명소 수입이 늘어남
+	for _ = 1, 2 do
+		PlayerState.applyRoll(d, Landmarks.ById.pyramid)
+	end
+	near(
+		PlayerState.incomePerSecond(d),
+		expected + Config.TIER_INCOME[4] * Config.STAR_INCOME_BONUS,
+		1e-9,
+		"2성 수입"
+	)
+
+	-- 수입 적립
+	local coinsBefore = d.Coins
+	local added = PlayerState.addIncome(d, 2)
+	near(added, PlayerState.incomePerSecond(d) * 2, 1e-9, "2초 수입")
+	near(d.Coins, coinsBefore + added, 1e-9, "코인 증가")
+	eq(PlayerState.addIncome(d, -5), 0, "음수 dt 무시")
 end)
-test("물약: 코인 부족 / 구매 / 효과 / 상한 / 만료", function()
+test("업그레이드: 가격, 부족, 구매, 효과, 최대 레벨", function()
 	local d = PlayerState.new()
-	local ok, reason = PlayerState.buyPotion(d, "Luck")
+	eq(PlayerState.upgradePrice("Globe", 0), 400)
+	eq(PlayerState.upgradePrice("Globe", 1), math.floor(400 * 1.7))
+	eq(PlayerState.upgradePrice("Nope", 0), nil)
+	local ok, reason = PlayerState.buyUpgrade(d, "Globe")
 	eq(ok, false)
 	eq(reason, "코인이 부족합니다")
-	eq(PlayerState.buyPotion(d, "Nope"), false, "없는 물약")
-	eq(PlayerState.buyPotion(d, 123), false, "잘못된 타입")
+	eq(PlayerState.buyUpgrade(d, "Nope"), false, "없는 업그레이드")
+	eq(PlayerState.buyUpgrade(d, 5), false, "잘못된 타입")
 
-	d.Coins = 100000
-	assert(PlayerState.buyPotion(d, "Luck"))
-	assert(PlayerState.buyPotion(d, "Speed"))
-	eq(d.Coins, 100000 - 300 - 400, "차감")
-	eq(PlayerState.luck(d), 1.5, "행운 물약")
-	near(PlayerState.cooldown(d), Config.ROLL_COOLDOWN * 0.6, 1e-9, "신속 물약")
-	assert(PlayerState.buyPotion(d, "Fortune"))
-	near(PlayerState.luck(d), 4.5, 1e-9, "행운 x 대박 중첩")
+	d.Coins = 1e12
+	for _, id in { "Globe", "Agency", "Park", "Ticket" } do
+		assert(PlayerState.buyUpgrade(d, id), id)
+	end
+	near(PlayerState.luck(d), 1.1, 1e-9, "지구본 1레벨")
+	near(PlayerState.cooldown(d), Config.ROLL_COOLDOWN * 0.95, 1e-9, "여행사 1레벨")
+	eq(PlayerState.slots(d), Config.BASE_SLOTS + 3, "공원 확장 1레벨")
+	PlayerState.applyRoll(d, Landmarks.ById.clocktower)
+	near(PlayerState.incomePerSecond(d), 1 * 1.2, 1e-9, "입장료 1레벨")
 
-	-- 같은 물약은 시간만 늘어남
-	assert(PlayerState.buyPotion(d, "Luck"))
-	eq(d.Potions.Luck, 600, "시간 연장")
-	eq(PlayerState.luck(d) / 3, 1.5, "배수는 그대로")
-
-	-- 상한
-	d.Potions.Luck = Config.MAX_POTION_SECONDS - 10
+	-- 최대 레벨
+	d.Upgrades.Agency = PlayerState.UpgradesById.Agency.MaxLevel
 	local coinsBefore = d.Coins
-	eq(PlayerState.buyPotion(d, "Luck"), false, "상한 초과")
+	local ok2, reason2 = PlayerState.buyUpgrade(d, "Agency")
+	eq(ok2, false)
+	eq(reason2, "이미 최대 레벨입니다")
 	eq(d.Coins, coinsBefore, "실패 시 코인 유지")
-
-	-- 만료
-	d.Potions = { Speed = 1.5 }
-	eq(PlayerState.tickPotions(d, 1), false)
-	eq(PlayerState.tickPotions(d, 1), true, "만료")
-	eq(d.Potions.Speed, nil)
-	eq(PlayerState.cooldown(d), Config.ROLL_COOLDOWN)
+	assert(PlayerState.cooldown(d) > 0, "최대 레벨에서도 쿨타임 > 0")
 end)
-test("장착: 보유한 것만, nil 은 해제", function()
+test("여권 도장: 지역 완성 시 행운 보너스", function()
+	local home = {}
+	for _, landmark in Landmarks.ByRegion.Home do
+		table.insert(home, landmark.Id)
+	end
+	local d = owning(home)
+	local completed = PlayerState.completedRegions(d)
+	eq(#completed, 1, "완성 지역 수")
+	eq(completed[1], "Home")
+	near(PlayerState.luck(d), 1 + Config.REGION_LUCK_BONUS, 1e-9, "행운 보너스")
+	-- 하나 빠지면 미완성
+	d.Inventory[home[1]] = nil
+	eq(#PlayerState.completedRegions(d), 0, "미완성")
+end)
+test("대표 명소: 발견한 것만, nil 은 해제", function()
 	local d = PlayerState.new()
-	eq(PlayerState.equip(d, "moonlight"), false, "미보유")
-	PlayerState.applyRoll(d, Auras.ById.moonlight)
-	eq(PlayerState.equip(d, "moonlight"), true)
-	eq(d.Equipped, "moonlight")
-	eq(PlayerState.equip(d, "없는오라"), false)
-	eq(PlayerState.equip(d, {}), false)
-	eq(PlayerState.equip(d, nil), true)
-	eq(d.Equipped, nil)
+	eq(PlayerState.feature(d, "eiffel"), false, "미발견")
+	PlayerState.applyRoll(d, Landmarks.ById.eiffel)
+	eq(PlayerState.feature(d, "eiffel"), true)
+	eq(d.Featured, "eiffel")
+	eq(PlayerState.feature(d, "없는명소"), false)
+	eq(PlayerState.feature(d, {}), false)
+	eq(PlayerState.feature(d, nil), true)
+	eq(d.Featured, nil)
 end)
 test("설정: 알려진 키/타입만", function()
 	local d = PlayerState.new()
-	eq(PlayerState.setSetting(d, "AutoEquip", false), true)
-	eq(d.Settings.AutoEquip, false)
-	eq(PlayerState.setSetting(d, "AutoEquip", "yes"), false)
+	eq(PlayerState.setSetting(d, "AutoFeature", false), true)
+	eq(d.Settings.AutoFeature, false)
+	eq(PlayerState.setSetting(d, "AutoFeature", "yes"), false)
 	eq(PlayerState.setSetting(d, "Hack", true), false)
 end)
-test("reconcile: 깨진 값 정리, 모르는 오라는 보존", function()
+test("reconcile: 깨진 값 정리, 모르는 명소는 보존", function()
 	eq(PlayerState.reconcile(nil).Rolls, 0)
 	eq(PlayerState.reconcile("garbage").Coins, 0)
 	local d = PlayerState.reconcile({
 		Rolls = 12.7,
-		Coins = -5,
-		Inventory = { moonlight = 3, removed_aura = 2, bad = "x", zero = 0, [5] = 1 },
-		Equipped = "removed_aura",
-		Potions = { Luck = 99999, Unknown = 10, Speed = -1 },
-		Settings = { AutoEquip = false },
+		Coins = 99.9,
+		Inventory = { eiffel = 3, removed_one = 2, bad = "x", zero = 0, [5] = 1 },
+		Featured = "removed_one",
+		Upgrades = { Globe = 3, Agency = 999, Park = -1, Unknown = 5 },
+		Settings = { AutoFeature = false },
 	})
 	eq(d.Rolls, 12)
-	eq(d.Coins, 0, "음수 코인")
-	eq(d.Inventory.moonlight, 3)
-	eq(d.Inventory.removed_aura, 2, "모르는 오라 보존")
+	eq(d.Coins, 99, "코인 버림")
+	eq(d.Inventory.eiffel, 3)
+	eq(d.Inventory.removed_one, 2, "모르는 명소 보존")
 	eq(d.Inventory.bad, nil)
 	eq(d.Inventory.zero, nil)
-	eq(d.Equipped, nil, "없는 오라 장착 해제")
-	eq(d.Potions.Luck, Config.MAX_POTION_SECONDS, "물약 상한")
-	eq(d.Potions.Unknown, nil)
-	eq(d.Potions.Speed, nil)
-	eq(d.Settings.AutoEquip, false)
+	eq(d.Featured, nil, "없는 명소 대표 해제")
+	eq(d.Upgrades.Globe, 3)
+	eq(d.Upgrades.Agency, PlayerState.UpgradesById.Agency.MaxLevel, "최대 레벨로 제한")
+	eq(d.Upgrades.Park, 0, "음수 무시")
+	eq(d.Upgrades.Unknown, nil, "모르는 업그레이드 무시")
+	eq(d.Settings.AutoFeature, false)
 	eq(PlayerState.reconcile({ Rolls = 0 / 0 }).Rolls, 0, "NaN")
 	eq(PlayerState.reconcile({ Coins = math.huge }).Coins, 0, "inf")
+	-- 모르는 명소는 공원/수입에 영향 없음
+	eq(#PlayerState.park(d), 1, "공원에는 아는 명소만")
 end)
-test("snapshot 은 복사본", function()
-	local d = PlayerState.new()
-	PlayerState.applyRoll(d, Auras.Common)
+test("snapshot 은 복사본이고 파생 값 포함", function()
+	local d = owning({ "eiffel" })
 	local s = PlayerState.snapshot(d, 7)
 	eq(s.Revision, 7)
-	s.Inventory.common = 999
-	eq(d.Inventory.common, 1, "원본 불변")
+	eq(s.Income, PlayerState.incomePerSecond(d), "Income")
+	eq(s.Luck, PlayerState.luck(d), "Luck")
+	s.Inventory.eiffel = 999
+	s.Upgrades.Globe = 99
+	eq(d.Inventory.eiffel, 1, "원본 Inventory 불변")
+	eq(d.Upgrades.Globe, 0, "원본 Upgrades 불변")
+	-- 읽기 함수에 Snapshot 을 그대로 넘겨도 됨
+	eq(#PlayerState.park(PlayerState.snapshot(d, 8)), 1, "snapshot 으로 park 계산")
 end)
 
 print("\n[Format]")

@@ -15,6 +15,17 @@ function Color3.fromRGB(r, g, b)
 end
 _G.Color3 = Color3
 
+-- Enum.Material.Brick 같은 접근을 "Material.Brick" 문자열로 흉내
+_G.Enum = setmetatable({}, {
+	__index = function(_, enumName)
+		return setmetatable({}, {
+			__index = function(_, itemName)
+				return enumName .. "." .. itemName
+			end,
+		})
+	end,
+})
+
 -- 가짜 Instance 트리 ------------------------------------------------------
 local function isFile(path)
 	return readfile(path) ~= nil
