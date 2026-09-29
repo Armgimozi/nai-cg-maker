@@ -128,7 +128,7 @@ local scalers: { UIScale } = {}
 local function currentScale(): number
 	local camera = workspace.CurrentCamera
 	local viewport = if camera then camera.ViewportSize else DESIGN_SIZE
-	return math.clamp(math.min(viewport.X / DESIGN_SIZE.X, viewport.Y / DESIGN_SIZE.Y), 0.6, 1.3)
+	return math.clamp(math.min(viewport.X / DESIGN_SIZE.X, viewport.Y / DESIGN_SIZE.Y), 0.55, 0.85)
 end
 
 function Ui.autoScale(object: GuiObject)

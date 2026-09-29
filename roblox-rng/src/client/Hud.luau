@@ -366,7 +366,7 @@ end
 
 function Hud.render(state: PlayerState.Snapshot?)
 	if not state then
-		refs.Coins.Text = "🪙 불러오는 중..."
+		refs.Coins.Text = "💰 불러오는 중..."
 		refs.Income.Text = ""
 		refs.Rolls.Text = ""
 		refs.Luck.Text = ""
@@ -374,7 +374,7 @@ function Hud.render(state: PlayerState.Snapshot?)
 		shownCoins = -1
 		return
 	end
-	refs.Income.Text = "💰 관광 수입 +" .. incomeText(state.Income) .. "/초"
+	refs.Income.Text = "📈 관광 수입 +" .. incomeText(state.Income) .. "/초"
 	refs.Rolls.Text = "🎲 굴림 " .. Format.commas(state.Rolls) .. "회"
 	refs.Luck.Text = "🍀 행운 " .. Format.multiplier(state.Luck)
 
@@ -394,7 +394,7 @@ function Hud.setCoins(amount: number)
 		return
 	end
 	shownCoins = whole
-	refs.Coins.Text = "🪙 " .. Format.commas(whole)
+	refs.Coins.Text = "💰 " .. Format.commas(whole)
 end
 
 function Hud.setAuto(enabled: boolean)
@@ -516,7 +516,7 @@ function Hud.reveal(landmark: Landmarks.Landmark, info: RevealInfo)
 		table.insert(tags, "⭐ 별 상승! " .. Ui.stars(info.Stars or 0, #Config.STAR_THRESHOLDS))
 	end
 	refs.RevealTag.Text = table.concat(tags, "   ")
-	refs.RevealBonus.Text = if (info.Bonus or 0) > 0 then "+" .. Format.commas(info.Bonus) .. " 🪙" else ""
+	refs.RevealBonus.Text = if (info.Bonus or 0) > 0 then "+" .. Format.commas(info.Bonus) .. " 💰" else ""
 
 	refs.RevealScale.Scale = 1.35
 	TweenService:Create(refs.RevealScale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {

@@ -495,7 +495,7 @@ local function renderUpgrade(state: Snapshot)
 		row.Level.Text = string.format("Lv %d/%d", level, upgrade.MaxLevel)
 		if price then
 			row.Effect.Text = effectText(upgrade, level) .. " → " .. effectText(upgrade, level + 1)
-			row.Button.Text = "🪙 " .. Format.commas(price)
+			row.Button.Text = "💰 " .. Format.commas(price)
 		else
 			row.Effect.Text = effectText(upgrade, level) .. " (최대)"
 			row.Button.Text = "최대 레벨"

@@ -16,9 +16,9 @@
     <Item class="BloomEffect" referent="2">
       <Properties>
         <string name="Name">Bloom</string>
-        <float name="Intensity">0.6</float>
-        <float name="Size">24</float>
-        <float name="Threshold">1.4</float>
+        <float name="Intensity">0.25</float>
+        <float name="Size">16</float>
+        <float name="Threshold">2</float>
       </Properties>
     </Item>
   </Item>
@@ -2657,7 +2657,8 @@ local Models = require(Shared.Models)
 
 local FX_NAME = "FeaturedLandmark"
 local MODEL_SIZE = 2.4
-local SHOULDER_OFFSET = CFrame.new(2.4, 1.6, 0) -- HumanoidRootPart 기준: 오른쪽 어깨 옆, 어깨 높이
+local MAX_DIMENSION = 2.6 -- 가로·세로·높이 중 가장 긴 쪽 상한(키 큰 명소가 캐릭터만큼 커지지 않게)
+local SHOULDER_OFFSET = CFrame.new(2.4, 0.9, 0) -- HumanoidRootPart 기준: 오른쪽 어깨 옆(모형 바닥 높이)
 local LABEL_DISTANCE = 80
 
 local FeaturedDisplay = {}
@@ -2682,6 +2683,11 @@ local function attachModel(character: Model, landmark: Landmarks.Landmark)
 	end
 	local model = result :: Model
 	model.Name = FX_NAME
+	local extents = model:GetExtentsSize()
+	local longest = math.max(extents.X, extents.Y, extents.Z)
+	if longest > MAX_DIMENSION then
+		model:ScaleTo(model:GetScale() * MAX_DIMENSION / longest)
+	end
 	model:PivotTo(root.CFrame * SHOULDER_OFFSET)
 
 	-- 파트마다 지금 위치 그대로 HumanoidRootPart 에 고정
@@ -4208,7 +4214,7 @@ end
 
 function Hud.render(state: PlayerState.Snapshot?)
 	if not state then
-		refs.Coins.Text = "🪙 불러오는 중..."
+		refs.Coins.Text = "💰 불러오는 중..."
 		refs.Income.Text = ""
 		refs.Rolls.Text = ""
 		refs.Luck.Text = ""
@@ -4216,7 +4222,7 @@ function Hud.render(state: PlayerState.Snapshot?)
 		shownCoins = -1
 		return
 	end
-	refs.Income.Text = "💰 관광 수입 +" .. incomeText(state.Income) .. "/초"
+	refs.Income.Text = "📈 관광 수입 +" .. incomeText(state.Income) .. "/초"
 	refs.Rolls.Text = "🎲 굴림 " .. Format.commas(state.Rolls) .. "회"
 	refs.Luck.Text = "🍀 행운 " .. Format.multiplier(state.Luck)
 
@@ -4236,7 +4242,7 @@ function Hud.setCoins(amount: number)
 		return
 	end
 	shownCoins = whole
-	refs.Coins.Text = "🪙 " .. Format.commas(whole)
+	refs.Coins.Text = "💰 " .. Format.commas(whole)
 end
 
 function Hud.setAuto(enabled: boolean)
@@ -4358,7 +4364,7 @@ function Hud.reveal(landmark: Landmarks.Landmark, info: RevealInfo)
 		table.insert(tags, "⭐ 별 상승! " .. Ui.stars(info.Stars or 0, #Config.STAR_THRESHOLDS))
 	end
 	refs.RevealTag.Text = table.concat(tags, "   ")
-	refs.RevealBonus.Text = if (info.Bonus or 0) > 0 then "+" .. Format.commas(info.Bonus) .. " 🪙" else ""
+	refs.RevealBonus.Text = if (info.Bonus or 0) > 0 then "+" .. Format.commas(info.Bonus) .. " 💰" else ""
 
 	refs.RevealScale.Scale = 1.35
 	TweenService:Create(refs.RevealScale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
@@ -5002,7 +5008,7 @@ local function renderUpgrade(state: Snapshot)
 		row.Level.Text = string.format("Lv %d/%d", level, upgrade.MaxLevel)
 		if price then
 			row.Effect.Text = effectText(upgrade, level) .. " → " .. effectText(upgrade, level + 1)
-			row.Button.Text = "🪙 " .. Format.commas(price)
+			row.Button.Text = "💰 " .. Format.commas(price)
 		else
 			row.Effect.Text = effectText(upgrade, level) .. " (최대)"
 			row.Button.Text = "최대 레벨"
@@ -5298,7 +5304,7 @@ local scalers: { UIScale } = {}
 local function currentScale(): number
 	local camera = workspace.CurrentCamera
 	local viewport = if camera then camera.ViewportSize else DESIGN_SIZE
-	return math.clamp(math.min(viewport.X / DESIGN_SIZE.X, viewport.Y / DESIGN_SIZE.Y), 0.6, 1.3)
+	return math.clamp(math.min(viewport.X / DESIGN_SIZE.X, viewport.Y / DESIGN_SIZE.Y), 0.55, 0.85)
 end
 
 function Ui.autoScale(object: GuiObject)
@@ -5521,14 +5527,23 @@ return Viewport
         <string name="Name">Baseplate</string>
         <bool name="Anchored">true</bool>
         <token name="BottomSurface">0</token>
-        <Color3uint8 name="Color3uint8">7055439</Color3uint8>
-        <bool name="Locked">true</bool>
-        <token name="Material">1280</token>
-        <Vector3 name="Position">
+        <CoordinateFrame name="CFrame">
           <X>0</X>
           <Y>-8</Y>
           <Z>0</Z>
-        </Vector3>
+          <R00>1</R00>
+          <R01>0</R01>
+          <R02>0</R02>
+          <R10>0</R10>
+          <R11>1</R11>
+          <R12>0</R12>
+          <R20>0</R20>
+          <R21>0</R21>
+          <R22>1</R22>
+        </CoordinateFrame>
+        <Color3uint8 name="Color3uint8">7055439</Color3uint8>
+        <bool name="Locked">true</bool>
+        <token name="Material">1280</token>
         <Vector3 name="size">
           <X>600</X>
           <Y>16</Y>
@@ -5542,14 +5557,23 @@ return Viewport
         <string name="Name">SpawnLocation</string>
         <bool name="Anchored">true</bool>
         <token name="BottomSurface">0</token>
-        <Color3uint8 name="Color3uint8">14408145</Color3uint8>
-        <int name="Duration">0</int>
-        <token name="Material">272</token>
-        <Vector3 name="Position">
+        <CoordinateFrame name="CFrame">
           <X>0</X>
           <Y>1.5</Y>
           <Z>0</Z>
-        </Vector3>
+          <R00>1</R00>
+          <R01>0</R01>
+          <R02>0</R02>
+          <R10>0</R10>
+          <R11>1</R11>
+          <R12>0</R12>
+          <R20>0</R20>
+          <R21>0</R21>
+          <R22>1</R22>
+        </CoordinateFrame>
+        <Color3uint8 name="Color3uint8">14408145</Color3uint8>
+        <int name="Duration">0</int>
+        <token name="Material">272</token>
         <Vector3 name="size">
           <X>10</X>
           <Y>1</Y>

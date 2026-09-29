@@ -7,7 +7,8 @@ local Models = require(Shared.Models)
 
 local FX_NAME = "FeaturedLandmark"
 local MODEL_SIZE = 2.4
-local SHOULDER_OFFSET = CFrame.new(2.4, 1.6, 0) -- HumanoidRootPart 기준: 오른쪽 어깨 옆, 어깨 높이
+local MAX_DIMENSION = 2.6 -- 가로·세로·높이 중 가장 긴 쪽 상한(키 큰 명소가 캐릭터만큼 커지지 않게)
+local SHOULDER_OFFSET = CFrame.new(2.4, 0.9, 0) -- HumanoidRootPart 기준: 오른쪽 어깨 옆(모형 바닥 높이)
 local LABEL_DISTANCE = 80
 
 local FeaturedDisplay = {}
@@ -32,6 +33,11 @@ local function attachModel(character: Model, landmark: Landmarks.Landmark)
 	end
 	local model = result :: Model
 	model.Name = FX_NAME
+	local extents = model:GetExtentsSize()
+	local longest = math.max(extents.X, extents.Y, extents.Z)
+	if longest > MAX_DIMENSION then
+		model:ScaleTo(model:GetScale() * MAX_DIMENSION / longest)
+	end
 	model:PivotTo(root.CFrame * SHOULDER_OFFSET)
 
 	-- 파트마다 지금 위치 그대로 HumanoidRootPart 에 고정
