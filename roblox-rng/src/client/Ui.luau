@@ -1086,9 +1086,20 @@ end
 -- 화면 크기에 맞춰 크기를 조절하는 UIScale 을 붙임 (AnchorPoint 기준으로 커지고 작아짐)
 local scalers: { UIScale } = {}
 
-local function currentScale(): number
+-- 화면(카메라 ViewportSize) 전체 크기 = 로블록스 상단바까지 포함. 카메라가 없으면 기준 해상도
+function Ui.viewport(): Vector2
 	local camera = workspace.CurrentCamera
-	local viewport = if camera then camera.ViewportSize else DESIGN_SIZE
+	return if camera then camera.ViewportSize else DESIGN_SIZE
+end
+
+-- 터치 전용 기기(휴대폰·태블릿)인지. 이런 기기에서는 로블록스가 조이스틱(왼쪽 아래)·점프 버튼(오른쪽 아래)을 띄움.
+-- 키보드가 붙어 있으면(터치 노트북 등) PC 로 봄 — 키캡(Ui.keyCap)을 보이는 기준과 같음
+function Ui.touchOnly(): boolean
+	return UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+end
+
+local function currentScale(): number
+	local viewport = Ui.viewport()
 	return math.clamp(math.min(viewport.X / DESIGN_SIZE.X, viewport.Y / DESIGN_SIZE.Y), MIN_SCALE, MAX_SCALE)
 end
 

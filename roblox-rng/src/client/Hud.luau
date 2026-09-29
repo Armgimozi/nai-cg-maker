@@ -233,30 +233,109 @@ local function buildStats()
 	})
 end
 
--- 왼쪽 가운데: 네모 통통 버튼 5개 (큰 아이콘 + 2글자) -----------------------------
+-- 왼쪽: 네모 통통 버튼 5개 (큰 아이콘 + 2글자) -----------------------------------
+-- PC 는 세로 한 줄로 왼쪽 가운데. 화면이 낮으면(휴대폰·태블릿) 여러 열로 접어 스탯·굴리기·조이스틱을 피함 (placeMenu)
 
 local MENU = {
 	{ Id = "Collection", Text = "도감", Color = "Sky", Icon = "album" },
-	{ Id = "Passport", Text = "여권", Color = "Grape", Icon = "passport" },
+	{ Id = "Passport", Text = "여권", Color = "Grape", Icon = "passport", Badge = true },
 	{ Id = "Upgrade", Text = "강화", Color = "Sun", Icon = "hammer" },
-	{ Id = "Rebirth", Text = "환생", Color = "Coral", Icon = "rebirth" },
+	{ Id = "Rebirth", Text = "환생", Color = "Coral", Icon = "rebirth", Badge = true },
 }
+local MENU_GAP = 12 -- 버튼 사이 (배율 1)
+local MENU_X = 14 -- 메뉴 왼쪽 끝 (화면 px)
+local MENU_DROP = 16 -- 메뉴 묶음 가운데 = 화면 가운데 + 이 값 (화면 px). 자리가 모자라면 이 자리에서 가장 가까운 곳으로
+local MENU_EDGE = 14 -- 화면 아래 끝과 띄울 거리 (화면 px)
+local MENU_CLEAR = 6 -- 스탯·굴리기 줄과 띄울 거리 (화면 px)
+local STATS_BOTTOM = 106 -- 스탯 묶음 안에서 칩 줄 아래 끝 (칩 아이콘 포함, 배율 1)
+local ROLL_BAR = Vector2.new(ROLL_BUTTON.X + 2 * (AUTO_BUTTON.X + 16), 100) -- 굴리기 줄 묶음 크기 (배율 1)
+local ROLL_BAR_BOTTOM = 14 -- 화면 아래 끝에서 굴리기 줄까지 (화면 px)
+
+-- Columns 열 배치. Width/Height/Top: 화면 px (배지 제외 버튼 묶음), Shift: 기본 자리에서 세로로 옮긴 거리(px)
+type MenuPlace = { Columns: number, Width: number, Height: number, Top: number, Shift: number }
+local menuPlace: MenuPlace? = nil
+
+-- count 개를 columns 열로(왼쪽 → 오른쪽, 위 → 아래) 놓을 때 묶음 크기 (배율 1)
+local function menuBlock(count: number, columns: number): Vector2
+	local rows = math.ceil(count / columns)
+	return Vector2.new(columns * MENU_BUTTON.X + (columns - 1) * MENU_GAP, rows * MENU_BUTTON.Y + (rows - 1) * MENU_GAP)
+end
+
+-- 로블록스 기본 점프 버튼(TouchGui, 이 ScreenGui 와 같은 영역)의 위 끝. 짧은 쪽이 500 이하면 70px, 아니면 120px
+local function jumpTop(size: Vector2): number
+	return size.Y - (if math.min(size.X, size.Y) <= 500 then 90 else 210)
+end
+
+-- 메뉴 배치 규칙 (size = 이 ScreenGui 크기, viewport = 상단바를 포함한 화면 전체 크기, 둘 다 화면 px)
+-- 버튼 묶음을 "스탯 칩 줄 아래 ~ 아래쪽 장애물 위" 띠에 넣음. 1열 → 2열(3줄) → 3열(2줄) → 가로 한 줄 순서로
+-- 처음 들어가는 배치를 쓰고, 띠 안에서 묶음 가운데를 기본 자리(화면 가운데 + 16)에 가장 가깝게 둠.
+-- 아래쪽 장애물: 화면 아래 끝(여백 14) / 묶음이 가로로 닿으면 굴리기 줄 / 터치 전용 기기면 조이스틱 자리
+-- (화면 왼쪽 1/3 · 아래 절반). 1280x720·1920x1080 PC 는 기본 자리 그대로 1열(Shift = 0).
+-- 아무 배치도 안 들어가는 아주 작은 화면이면 가로 한 줄을 스탯 바로 아래에 둠.
+local function layoutMenu(count: number, size: Vector2, viewport: Vector2, scale: number, touch: boolean): MenuPlace
+	local top = STATS_POS.Y + STATS_BOTTOM * scale + MENU_CLEAR
+	local center = size.Y / 2 + MENU_DROP
+	local rollLeft = (size.X - ROLL_BAR.X * scale) / 2
+	local rollTop = size.Y - ROLL_BAR_BOTTOM - ROLL_BAR.Y * scale
+	-- 조이스틱 자리 위 끝 = 화면 전체의 세로 가운데 (이 ScreenGui 는 상단바만큼 아래에서 시작)
+	local thumbTop = viewport.Y / 2 - math.max(0, viewport.Y - size.Y)
+	local place: MenuPlace? = nil
+	local rows = 0
+	for columns = 1, count do
+		if math.ceil(count / columns) ~= rows then -- 줄 수가 같은 배치는 건너뜀 (5개: 1·2·3·5열)
+			rows = math.ceil(count / columns)
+			local block = menuBlock(count, columns) * scale
+			local bottom = size.Y - MENU_EDGE
+			if MENU_X + block.X + MENU_CLEAR > rollLeft then
+				bottom = math.min(bottom, rollTop - MENU_CLEAR)
+			end
+			if touch then
+				bottom = math.min(bottom, thumbTop)
+			end
+			local preferred = center - block.Y / 2
+			local y = math.clamp(preferred, top, math.max(top, bottom - block.Y))
+			place = { Columns = columns, Width = block.X, Height = block.Y, Top = y, Shift = y - preferred }
+			if top + block.Y <= bottom then
+				break
+			end
+		end
+	end
+	return place :: MenuPlace
+end
+
+local function placeMenu(size: Vector2, scale: number, touch: boolean)
+	local buttons: { GuiObject } = refs.MenuButtons
+	local place = layoutMenu(#buttons, size, Ui.viewport(), scale, touch)
+	menuPlace = place
+	for index, button in buttons do
+		local column = (index - 1) % place.Columns
+		local row = math.floor((index - 1) / place.Columns)
+		button.Position = UDim2.fromOffset(column * (MENU_BUTTON.X + MENU_GAP), row * (MENU_BUTTON.Y + MENU_GAP))
+	end
+	local block = menuBlock(#buttons, place.Columns)
+	local container = refs.Menu
+	container.Size = UDim2.fromOffset(block.X + 8, block.Y)
+	container.Position = UDim2.new(0, MENU_X, 0.5, MENU_DROP + place.Shift)
+end
 
 local function buildMenu(onMenu: (string) -> (), onTeleport: () -> ())
 	local count = #MENU + 1
-	local gap = 12
-	local container = anchor(
+	refs.Menu = anchor(
 		"Menu",
 		Vector2.new(0, 0.5),
-		UDim2.new(0, 14, 0.5, 16),
-		UDim2.fromOffset(MENU_BUTTON.X + 8, count * MENU_BUTTON.Y + (count - 1) * gap)
+		UDim2.new(0, MENU_X, 0.5, MENU_DROP),
+		UDim2.fromOffset(MENU_BUTTON.X + 8, menuBlock(count, 1).Y)
 	)
-	Ui.list(Enum.FillDirection.Vertical, gap).Parent = container
+	local container = refs.Menu
+	local buttons: { GuiObject } = {}
+	refs.MenuButtons = buttons
 
 	for order, entry in MENU do
 		local button = Ui.chunkyButton({
 			Name = entry.Id,
 			LayoutOrder = order,
+			-- 오른쪽 위 배지가 있는 버튼은 위에: 여러 열일 때 배지가 옆 버튼에 가리지 않게
+			ZIndex = if entry.Badge then 2 else 1,
 			Size = UDim2.fromOffset(MENU_BUTTON.X, MENU_BUTTON.Y),
 			Color = entry.Color,
 			Icon = entry.Icon,
@@ -266,6 +345,7 @@ local function buildMenu(onMenu: (string) -> (), onTeleport: () -> ())
 			TextSize = 18,
 			Parent = container,
 		})
+		table.insert(buttons, button.Root)
 		button.Activated:Connect(function()
 			onMenu(entry.Id)
 		end)
@@ -316,6 +396,7 @@ local function buildMenu(onMenu: (string) -> (), onTeleport: () -> ())
 		TextSize = 18,
 		Parent = container,
 	})
+	table.insert(buttons, refs.TeleportButton.Root)
 	refs.TeleportButton.Activated:Connect(onTeleport)
 end
 
@@ -327,9 +408,10 @@ local function buildShop(onMenu: (string) -> ())
 	local container = anchor(
 		"Shop",
 		Vector2.new(1, 0.5),
-		UDim2.new(1, -14, 0.5, 16),
+		UDim2.new(1, -MENU_X, 0.5, MENU_DROP),
 		UDim2.fromOffset(MENU_BUTTON.X + 8, MENU_BUTTON.Y)
 	)
+	refs.Shop = container
 	local button = Ui.chunkyButton({
 		Name = "Shop",
 		Size = UDim2.fromOffset(MENU_BUTTON.X, MENU_BUTTON.Y),
@@ -347,11 +429,29 @@ local function buildShop(onMenu: (string) -> ())
 	end)
 end
 
+-- 상점 자리: 기본은 오른쪽 가운데. 터치 전용 기기에서 점프 버튼(오른쪽 아래)과 닿으면 그만큼 위로
+local function placeShop(size: Vector2, scale: number, touch: boolean)
+	local shop = refs.Shop
+	if not shop then
+		return
+	end
+	local shift = 0
+	if touch then
+		local limit = jumpTop(size) - MENU_CLEAR - MENU_BUTTON.Y * scale / 2 -- 상점 가운데가 올 수 있는 가장 아래
+		shift = math.min(0, limit - (size.Y / 2 + MENU_DROP))
+	end
+	shop.Position = UDim2.new(1, -MENU_X, 0.5, MENU_DROP + shift)
+end
+
 -- 아래 가운데: 굴리기 + 자동 (키보드가 있으면 버튼 모서리에 R / T 키캡) --------------
 
 local function buildRollBar(onRoll: () -> (), onToggleAuto: () -> ())
-	local width = ROLL_BUTTON.X + 2 * (AUTO_BUTTON.X + 16)
-	local container = anchor("RollBar", Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -14), UDim2.fromOffset(width, 100))
+	local container = anchor(
+		"RollBar",
+		Vector2.new(0.5, 1),
+		UDim2.new(0.5, 0, 1, -ROLL_BAR_BOTTOM),
+		UDim2.fromOffset(ROLL_BAR.X, ROLL_BAR.Y)
+	)
 
 	local roll = Ui.chunkyButton({
 		Name = "Roll",
@@ -655,12 +755,14 @@ end
 -- 서버 행운 띠 / 뉴스 속보 / 알림 자리 ------------------------------------------
 
 local TOP_WIDTH = 600 -- 위 가운데 묶음 폭 = 속보 띠 폭
+local TOP_HEIGHT = 380
 local TOP_Y = 10
 local TOP_GAP = 12 -- 왼쪽 위 스탯과 띄울 거리(화면 px)
 
 -- 위 가운데 묶음 자리: 기본은 화면 가운데. 왼쪽 위 스탯(윗줄)과 겹치면 안 겹칠 만큼 오른쪽으로 비키고,
 -- 그래도 화면 오른쪽 끝을 넘는 아주 좁은 화면이면 가운데로 두고 스탯 아래로 내림.
--- 두 묶음 모두 같은 Ui.autoScale 배율을 받으므로 화면 px 로 계산 (화면 크기가 바뀔 때마다 다시)
+-- 메뉴가 가로로 접혀(휴대폰) 이 묶음 높이 안에 들어오면 메뉴 오른쪽 끝·아래 끝도 함께 비켜 감.
+-- 모든 묶음이 같은 Ui.autoScale 배율을 받으므로 화면 px 로 계산 (화면 크기가 바뀔 때마다 다시, placeMenu 뒤에)
 local function placeTop()
 	local top = refs.Top
 	if not top then
@@ -669,12 +771,34 @@ local function placeTop()
 	local scale = Ui.scale()
 	local width = gui.AbsoluteSize.X
 	local half = TOP_WIDTH * scale / 2
-	local center = math.max(width / 2, STATS_POS.X + STATS_RESERVE * scale + TOP_GAP + half)
+	local reserve = STATS_POS.X + STATS_RESERVE * scale
+	local menu = menuPlace
+	if menu and menu.Top < TOP_Y + TOP_HEIGHT * scale then
+		reserve = math.max(reserve, MENU_X + menu.Width)
+	end
+	local center = math.max(width / 2, reserve + TOP_GAP + half)
 	if center + half <= width - STATS_POS.X then
 		top.Position = UDim2.fromOffset(center, TOP_Y)
 	else
-		top.Position = UDim2.new(0.5, 0, 0, STATS_POS.Y + STATS_SIZE.Y * scale + TOP_GAP)
+		local below = STATS_POS.Y + STATS_SIZE.Y * scale
+		if menu and MENU_X + menu.Width > width / 2 - half then
+			below = math.max(below, menu.Top + menu.Height)
+		end
+		top.Position = UDim2.new(0.5, 0, 0, below + TOP_GAP)
 	end
+end
+
+-- 화면 크기·배율이 바뀔 때: 메뉴 → 상점 → 위 가운데 묶음 순서로 자리를 다시 잡음
+local function relayout()
+	local size = gui.AbsoluteSize
+	if size.X <= 0 or size.Y <= 0 then
+		return -- 아직 화면에 안 붙음 (AbsoluteSize 가 바뀌면 다시 불림)
+	end
+	local scale = Ui.scale()
+	local touch = Ui.touchOnly()
+	placeMenu(size, scale, touch)
+	placeShop(size, scale, touch)
+	placeTop()
 end
 
 local function topList(parent: Instance, gap: number): UIListLayout
@@ -686,12 +810,10 @@ end
 
 local function buildNotices()
 	-- 위에서부터 [서버 행운 띠(켜졌을 때만)] [뉴스 속보] [알림] 순서로 쌓임. 띠가 뜨면 아래 둘이 함께 내려감
-	local top = anchor("Top", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, TOP_Y), UDim2.fromOffset(TOP_WIDTH, 380), 9)
+	local top =
+		anchor("Top", Vector2.new(0.5, 0), UDim2.new(0.5, 0, 0, TOP_Y), UDim2.fromOffset(TOP_WIDTH, TOP_HEIGHT), 9)
 	topList(top, 6)
 	refs.Top = top
-	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(placeTop)
-	Ui.onRescale(placeTop)
-	placeTop()
 
 	-- 서버 행운: 도는 지구본 + "서버 행운 ×2 · 12:34"
 	refs.ServerLuck = Ui.chip({
@@ -765,6 +887,9 @@ function Hud.init(playerGui: PlayerGui, handlers: Handlers): ScreenGui
 	buildRollBar(handlers.Roll, handlers.ToggleAuto)
 	buildReveal()
 	buildNotices()
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(relayout)
+	Ui.onRescale(relayout)
+	relayout()
 	Hud.render(nil)
 	return gui
 end

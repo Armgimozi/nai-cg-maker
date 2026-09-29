@@ -19,7 +19,9 @@
   // Ui.autoScale 배율: clamp(min(화면 가로/1280, 화면 세로/720), 0.55, 0.9) — 화면(카메라 ViewportSize) 전체 기준
   const uiScaleFor = (w, h) => Math.min(0.9, Math.max(0.55, Math.min(w / 1280, h / 720)));
   // 지금 그리는 화면 (newScreen 이 정함). 1280x720 -> 배율 0.9
-  const view = { w: 1280, h: 720, scale: uiScaleFor(1280, 720) };
+  //   inset: 로블록스 상단바 높이(ScreenGui 는 그 아래에서 시작), touch: 터치 전용 기기(Ui.touchOnly — 조이스틱·점프 버튼이 뜨고 키캡은 안 보임)
+  //   menu: 이 화면에서 잡은 메뉴 배치(layoutMenu 결과, 위 가운데 묶음이 비켜 갈 때 씀)
+  const view = { w: 1280, h: 720, scale: uiScaleFor(1280, 720), inset: GUI_INSET, touch: false, menu: null };
   const SHADOW_DEPTH = 6;
   const BUTTON_CORNER = 14;
   // Ui.SKINS: 그림 속 바깥 모서리 반지름 / SliceCenter 여백 (SliceCenter = 여백..256-여백)
@@ -485,6 +487,7 @@
       z: o.z ?? 7,
       corner: 7,
       stroke: [Theme.Ink, 2.5],
+      visible: !view.touch, // UserInputService.KeyboardEnabled
     });
     label(cap, { name: 'Key', text: key, size: [1, 0, 1, 0], z: 2 }, Math.floor(size * 0.72));
     return cap;
@@ -738,23 +741,93 @@
     chip(chips, { name: 'Rebirths', flow: true, color: 'Coral', icon: 'rebirth', height: 30, textSize: 18, text: commas(rebirths), visible: rebirths > 0 });
   }
 
-  // Hud: 왼쪽 메뉴 버튼 4개
+  // Hud: 왼쪽 메뉴 버튼 (4개 + 공원). PC 는 세로 한 줄로 왼쪽 가운데, 화면이 낮으면 여러 열로 접음 (Hud.layoutMenu)
   const MENU = [
     { Id: 'Collection', Text: '도감', Color: 'Sky', Icon: 'album' },
-    { Id: 'Passport', Text: '여권', Color: 'Grape', Icon: 'passport' },
+    { Id: 'Passport', Text: '여권', Color: 'Grape', Icon: 'passport', Badge: true },
     { Id: 'Upgrade', Text: '강화', Color: 'Sun', Icon: 'hammer' },
-    { Id: 'Rebirth', Text: '환생', Color: 'Coral', Icon: 'rebirth' },
+    { Id: 'Rebirth', Text: '환생', Color: 'Coral', Icon: 'rebirth', Badge: true },
   ];
+  const MENU_BUTTON = [84, 90];
+  const MENU_GAP = 12; // 버튼 사이 (배율 1)
+  const MENU_X = 14; // 메뉴 왼쪽 끝 (화면 px)
+  const MENU_DROP = 16; // 메뉴 묶음 가운데 = 화면 가운데 + 이 값 (화면 px)
+  const MENU_EDGE = 14; // 화면 아래 끝과 띄울 거리
+  const MENU_CLEAR = 6; // 스탯·굴리기 줄과 띄울 거리
+  const STATS_BOTTOM = 106; // 스탯 묶음 안에서 칩 줄 아래 끝 (칩 아이콘 포함, 배율 1)
+  const ROLL_BUTTON = [270, 90];
+  const AUTO_BUTTON = [140, 76];
+  const ROLL_BAR = [ROLL_BUTTON[0] + 2 * (AUTO_BUTTON[0] + 16), 100]; // 굴리기 줄 묶음 (배율 1)
+  const ROLL_BAR_BOTTOM = 14;
+
+  // count 개를 columns 열로(왼쪽 → 오른쪽, 위 → 아래) 놓을 때 묶음 크기 (배율 1)
+  function menuBlock(count, columns) {
+    const rows = Math.ceil(count / columns);
+    return [columns * MENU_BUTTON[0] + (columns - 1) * MENU_GAP, rows * MENU_BUTTON[1] + (rows - 1) * MENU_GAP];
+  }
+  // 로블록스 기본 터치 조작 자리 (ScreenGui 좌표, 화면 px). guiW x guiH = ScreenGui 크기, screenH = 상단바 포함 화면 높이
+  //   점프: TouchGui 와 같은 계산 (짧은 쪽 500 이하 = 70px 을 (1,-95,1,-90), 아니면 120px 을 (1,-170,1,-210))
+  //   조이스틱: 화면 왼쪽 1/3 · 아래 절반 (dynamic thumbstick 이 주로 잡히는 곳)
+  function jumpRect(guiW, guiH) {
+    const small = Math.min(guiW, guiH) <= 500;
+    const size = small ? 70 : 120;
+    const left = guiW - (small ? 95 : 170);
+    const top = guiH - (small ? 90 : 210);
+    return { left, top, right: left + size, bottom: top + size };
+  }
+  function thumbRect(guiW, guiH, screenH) {
+    return { left: 0, top: screenH / 2 - (screenH - guiH), right: guiW / 3, bottom: guiH };
+  }
+
+  // Hud.layoutMenu: 버튼 묶음을 "스탯 칩 줄 아래 ~ 아래쪽 장애물 위" 띠에 넣음. 1열 → 2열(3줄) → 3열(2줄) → 가로 한 줄 순서로
+  // 처음 들어가는 배치를 쓰고, 띠 안에서 묶음 가운데를 기본 자리(화면 가운데 + 16)에 가장 가깝게 둠.
+  // 아래쪽 장애물: 화면 아래 끝(여백 14) / 묶음이 가로로 닿으면 굴리기 줄 / 터치 전용 기기면 조이스틱 자리.
+  // 아무 배치도 안 들어가면 가로 한 줄을 스탯 바로 아래에(fits = false).
+  function layoutMenu(count, guiW, guiH, screenH, scale, touch) {
+    const top = STATS_POS[1] + STATS_BOTTOM * scale + MENU_CLEAR;
+    const center = guiH / 2 + MENU_DROP;
+    const rollLeft = (guiW - ROLL_BAR[0] * scale) / 2;
+    const rollTop = guiH - ROLL_BAR_BOTTOM - ROLL_BAR[1] * scale;
+    const thumbTop = thumbRect(guiW, guiH, screenH).top;
+    let place = null;
+    let rows = 0;
+    for (let columns = 1; columns <= count; columns++) {
+      if (Math.ceil(count / columns) === rows) continue; // 줄 수가 같은 배치는 건너뜀 (5개: 1·2·3·5열)
+      rows = Math.ceil(count / columns);
+      const block = menuBlock(count, columns).map((v) => v * scale);
+      let bottom = guiH - MENU_EDGE;
+      if (MENU_X + block[0] + MENU_CLEAR > rollLeft) bottom = Math.min(bottom, rollTop - MENU_CLEAR);
+      if (touch) bottom = Math.min(bottom, thumbTop);
+      const preferred = center - block[1] / 2;
+      const y = Math.min(Math.max(preferred, top), Math.max(top, bottom - block[1]));
+      const fits = top + block[1] <= bottom;
+      place = { columns, rows, width: block[0], height: block[1], top: y, shift: y - preferred, fits };
+      if (fits) break;
+    }
+    return place;
+  }
+  const menuName = (place) => (place.rows === 1 ? '가로 한 줄' : place.columns === 1 ? '세로 한 줄' : `${place.columns}열 ${place.rows}줄`);
+  // 화면 w x h (상단바 inset 포함)에서 잡히는 메뉴 배치 이름
+  const menuNote = (w, h, touch, inset = GUI_INSET) =>
+    menuName(layoutMenu(MENU.length + 1, w, h - inset, h, uiScaleFor(w, h), touch));
+
   function buildMenu(screenGui, state, location) {
     const count = MENU.length + 1;
-    const gap = 12;
-    const container = anchorBox(screenGui, 'Menu', [0, 0.5], [0, 14, 0.5, 16], [0, 84 + 8, 0, count * 90 + (count - 1) * gap]);
-    list(container, 'v', gap);
-    for (const entry of MENU) {
+    const place = layoutMenu(count, view.w, view.h - view.inset, view.h, view.scale, view.touch);
+    view.menu = place;
+    const block = menuBlock(count, place.columns);
+    const container = anchorBox(screenGui, 'Menu', [0, 0.5], [0, MENU_X, 0.5, MENU_DROP + place.shift], [0, block[0] + 8, 0, block[1]]);
+    // Hud.placeMenu: 버튼마다 칸 자리. 오른쪽 위 배지가 있는 버튼은 ZIndex 2 — 여러 열일 때 배지가 옆 버튼에 가리지 않게
+    const cell = (order, badge) => {
+      const column = (order - 1) % place.columns;
+      const row = Math.floor((order - 1) / place.columns);
+      return { pos: [0, column * (MENU_BUTTON[0] + MENU_GAP), 0, row * (MENU_BUTTON[1] + MENU_GAP)], z: badge ? 2 : 1 };
+    };
+    MENU.forEach((entry, index) => {
       const button = chunkyButton(container, {
         name: entry.Id,
-        flow: true,
-        size: [0, 84, 0, 90],
+        ...cell(index + 1, entry.Badge),
+        size: [0, MENU_BUTTON[0], 0, MENU_BUTTON[1]],
         color: entry.Color,
         icon: entry.Icon,
         iconSize: 58,
@@ -792,12 +865,12 @@
           visible: rebirthReady(state, state.Coins),
         });
       }
-    }
+    });
     const inPark = location === 'Park';
     chunkyButton(container, {
       name: 'Teleport',
-      flow: true,
-      size: [0, 84, 0, 90],
+      ...cell(count),
+      size: [0, MENU_BUTTON[0], 0, MENU_BUTTON[1]],
       color: 'Grass',
       icon: inPark ? 'plaza' : 'park',
       iconSize: 58,
@@ -807,12 +880,33 @@
     });
   }
 
+  // 로블록스 기본 터치 조작(터치 전용 기기만): 오른쪽 아래 점프 버튼 + 왼쪽 아래 조이스틱 자리(흐리게, 게임 UI 가 아님)
+  function touchControls(screenGui) {
+    const guiH = view.h - view.inset;
+    const thumb = thumbRect(view.w, guiH, view.h);
+    const zone = gui(screenGui, {
+      name: 'ThumbZone',
+      cls: 'thumb-zone',
+      pos: [0, thumb.left, 0, thumb.top],
+      size: [0, thumb.right - thumb.left, 0, thumb.bottom - thumb.top],
+      z: 0,
+    });
+    zone.insertAdjacentHTML('beforeend', '<i></i><span>조이스틱</span>');
+    const jump = jumpRect(view.w, guiH);
+    gui(screenGui, {
+      name: 'Jump',
+      cls: 'rbx-jump',
+      pos: [0, jump.left, 0, jump.top],
+      size: [0, jump.right - jump.left, 0, jump.bottom - jump.top],
+      z: 0,
+    });
+  }
+
   // Hud: 굴리기 + 자동
   function buildRollBar(screenGui, opts) {
-    const ROLL = [270, 90];
-    const AUTO = [140, 76];
-    const width = ROLL[0] + 2 * (AUTO[0] + 16);
-    const container = anchorBox(screenGui, 'RollBar', [0.5, 1], [0.5, 0, 1, -14], [0, width, 0, 100]);
+    const ROLL = ROLL_BUTTON;
+    const AUTO = AUTO_BUTTON;
+    const container = anchorBox(screenGui, 'RollBar', [0.5, 1], [0.5, 0, 1, -ROLL_BAR_BOTTOM], [0, ROLL_BAR[0], 0, ROLL_BAR[1]]);
     const roll = chunkyButton(container, {
       name: 'Roll',
       pos: [0.5, -ROLL[0] / 2, 1, -ROLL[1]],
@@ -865,6 +959,7 @@
   }
 
   function buildHud(screenGui, state, opts = {}) {
+    if (view.touch) touchControls(screenGui);
     buildStats(screenGui, state);
     buildMenu(screenGui, state, opts.location || 'Plaza');
     buildRollBar(screenGui, opts);
@@ -872,22 +967,28 @@
 
   // Hud.placeTop: 위 가운데 묶음 자리. 기본은 화면 가운데, 왼쪽 위 스탯(윗줄)과 겹치면 안 겹칠 만큼 오른쪽으로 비키고,
   // 그래도 화면 오른쪽 끝을 넘으면(아주 좁은 화면) 가운데로 두고 스탯 아래로 내림. width = ScreenGui 가로(화면 px)
+  // 메뉴(layoutMenu 결과)가 가로로 접혀 이 묶음 높이 안에 들어오면 메뉴 오른쪽 끝·아래 끝도 함께 비켜 감
   const TOP_WIDTH = 600;
+  const TOP_HEIGHT = 380;
   const TOP_Y = 10;
   const TOP_GAP = 12;
-  function placeTop(width, scale) {
+  function placeTop(width, scale, menu) {
     const half = (TOP_WIDTH * scale) / 2;
-    const center = Math.max(width / 2, STATS_POS[0] + STATS_RESERVE * scale + TOP_GAP + half);
-    if (center + half <= width - STATS_POS[0]) return { pos: [0, center, 0, TOP_Y], center, top: TOP_Y, below: false };
-    const top = STATS_POS[1] + STATS_SIZE[1] * scale + TOP_GAP;
-    return { pos: [0.5, 0, 0, top], center: width / 2, top, below: true };
+    let reserve = STATS_POS[0] + STATS_RESERVE * scale;
+    if (menu && menu.top < TOP_Y + TOP_HEIGHT * scale) reserve = Math.max(reserve, MENU_X + menu.width);
+    const center = Math.max(width / 2, reserve + TOP_GAP + half);
+    if (center + half <= width - STATS_POS[0]) return { pos: [0, center, 0, TOP_Y], center, top: TOP_Y, below: false, reserve };
+    let below = STATS_POS[1] + STATS_SIZE[1] * scale;
+    if (menu && MENU_X + menu.width > width / 2 - half) below = Math.max(below, menu.top + menu.height);
+    const top = below + TOP_GAP;
+    return { pos: [0.5, 0, 0, top], center: width / 2, top, below: true, reserve };
   }
 
   // Hud.news: 신문 띠 한 줄
   function buildNews(screenGui, items) {
     // Hud.buildNotices: [서버 행운 띠(켜졌을 때만)] [뉴스 속보 600x118] [알림] 을 위에서부터 쌓는 "Top" 묶음
-    const place = placeTop(view.w, view.scale);
-    const top = anchorBox(screenGui, 'Top', [0.5, 0], place.pos, [0, TOP_WIDTH, 0, 380], 9);
+    const place = placeTop(view.w, view.scale, view.menu);
+    const top = anchorBox(screenGui, 'Top', [0.5, 0], place.pos, [0, TOP_WIDTH, 0, TOP_HEIGHT], 9);
     list(top, 'v', 6, 'center', 'top');
     const news = gui(top, { name: 'News', flow: true, size: [0, TOP_WIDTH, 0, 118] });
     list(news, 'v', 8, 'center', 'top');
@@ -1323,6 +1424,9 @@
     view.w = opts.width || 1280;
     view.h = opts.height || 720;
     view.scale = uiScaleFor(view.w, view.h);
+    view.inset = opts.topbar === false ? 0 : GUI_INSET;
+    view.touch = !!opts.touch;
+    view.menu = null;
     const screen = document.createElement('div');
     screen.className = 'screen';
     screen.id = id;
@@ -1433,7 +1537,7 @@
       title: '기본 화면',
       note:
         `왼쪽 위: 코인 알약 + 초당 수입 칩, 아래 주사위(굴림 수) · 클로버(행운) 칩(환생 수 · 부스트 시간 칩은 해당될 때만). ` +
-        `왼쪽: 도감/여권/강화/환생/공원 버튼(여권 배지 = 도장 받은 대륙 수 / ${Regions.length}; 환생 버튼의 "!" 배지는 ` +
+        `왼쪽: 도감/여권/강화/환생/공원 버튼(PC 는 세로 한 줄, 화면이 낮으면 접힘 — 1-2~1-4; 여권 배지 = 도장 받은 대륙 수 / ${Regions.length}; 환생 버튼의 "!" 배지는 ` +
         `${rebirthNeedText()}을 채우면 뜸 — 이 예시는 ${commas(STATE.Coins)} 코인이라 아직 안 뜸). ` +
         '환생 버튼 아이콘은 그림 파일이 없어 게임에서 3D 미니 모형으로 나옴(여기선 비슷한 모양으로 대신 그림). ' +
         '상점 버튼(오른쪽)은 Robux 상품 번호가 모두 0 이라 지금 코드로는 안 나옴. ' +
@@ -1450,10 +1554,12 @@
       title: '기본 화면 — 4:3 태블릿 1024×768',
       extra: '1-2',
       note:
-        `같은 화면을 1024×768 에서(자동 배율 ${uiScaleFor(1024, 768).toFixed(2)}). 속보 띠는 가운데에 두면 왼쪽 위 스탯과 부딪혀서 ` +
+        `같은 화면을 터치 태블릿 1024×768 에서(자동 배율 ${uiScaleFor(1024, 768).toFixed(2)}). 흐린 점선 = 로블록스 조이스틱 자리(왼쪽 1/3 · 아래 절반), ` +
+        `오른쪽 아래 동그라미 = 점프 버튼(게임 UI 가 아님), 키보드가 없어 R/T 키캡은 안 보임. 메뉴는 세로 한 줄이면 조이스틱 자리에 걸려서 ` +
+        `${menuNote(1024, 768, true)}로 접혀 스탯과 조이스틱 자리 사이에 들어감(Hud.layoutMenu). 속보 띠는 가운데에 두면 왼쪽 위 스탯과 부딪혀서 ` +
         '부딪히지 않을 만큼만 오른쪽으로 비켜 섬(Hud.placeTop).',
       build(root) {
-        const screenGui = newScreen(root, this.id, { width: 1024, height: 768 });
+        const screenGui = newScreen(root, this.id, { width: 1024, height: 768, touch: true });
         buildHud(screenGui, STATE, { auto: false, location: 'Plaza' });
         buildNews(screenGui, NEWS);
       },
@@ -1463,10 +1569,23 @@
       title: '기본 화면 — 휴대폰 667×375',
       extra: '1-3',
       note:
-        `같은 화면을 휴대폰 가로 667×375 에서(자동 배율 최소값 ${uiScaleFor(667, 375).toFixed(2)}). 속보 띠는 스탯 오른쪽으로 비켜 섬. ` +
-        '<b>참고:</b> 이 크기에서는 왼쪽 메뉴 버튼 줄(세로 5칸)이 화면보다 길어서 위쪽 스탯 줄·아래쪽과 닿음 — 이번 수정 범위 밖(그대로 둠).',
+        `같은 화면을 휴대폰 가로 667×375 에서(자동 배율 최소값 ${uiScaleFor(667, 375).toFixed(2)}). 세로 한 줄(${Math.round(menuBlock(MENU.length + 1, 1)[1] * uiScaleFor(667, 375))}px)은 ` +
+        `화면에 안 들어가서 메뉴가 ${menuNote(667, 375, true)}로 접혀 스탯 칩 줄 바로 아래, 조이스틱 자리(흐린 점선) 위에 놓임 — 버튼 크기는 그대로(앞면 ${Math.round(84 * uiScaleFor(667, 375))}px). ` +
+        '속보 띠는 스탯과 메뉴 줄 오른쪽으로 비켜 섬.',
       build(root) {
-        const screenGui = newScreen(root, this.id, { width: 667, height: 375 });
+        const screenGui = newScreen(root, this.id, { width: 667, height: 375, touch: true });
+        buildHud(screenGui, STATE, { auto: false, location: 'Plaza' });
+        buildNews(screenGui, NEWS);
+      },
+    },
+    {
+      id: 'screen1w',
+      title: '기본 화면 — 휴대폰 844×390',
+      extra: '1-4',
+      note:
+        `요즘 휴대폰 가로 844×390(자동 배율 ${uiScaleFor(844, 390).toFixed(2)}). 1-3 과 같은 규칙으로 메뉴가 ${menuNote(844, 390, true)}.`,
+      build(root) {
+        const screenGui = newScreen(root, this.id, { width: 844, height: 390, touch: true });
         buildHud(screenGui, STATE, { auto: false, location: 'Plaza' });
         buildNews(screenGui, NEWS);
       },
@@ -1595,12 +1714,82 @@
   const overlap = (a, b) => Math.min(a.right, b.right) - Math.max(a.left, b.left) > 0.5 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 0.5;
   const verdict = (good) => (good ? '<b>OK</b>' : '<b class="bad">문제</b>');
 
+  // 여러 화면 크기(상단바 포함 화면 px) — 휴대폰·태블릿은 터치 전용(조이스틱·점프 버튼), 나머지는 PC
+  const SCREEN_SIZES = [
+    [1920, 1080, false], [1366, 768, false], [1280, 720, false], [1024, 768, false],
+    [1180, 820, true], [1133, 744, true], [1024, 768, true],
+    [932, 430, true], [844, 390, true], [667, 375, true], [568, 320, true],
+  ];
+  const DRAWN_HUD = ['screen1', 'screen1t', 'screen1p', 'screen1w'];
+
+  // 계산식만으로 메뉴 배치를 확인 (ScreenGui 좌표, 화면 px): 스탯 칩 줄 / 굴리기·자동 버튼 / (터치) 조이스틱 자리·점프 버튼 / 화면 밖
+  function menuVerdict(w, h, touch, inset) {
+    const guiH = h - inset;
+    const scale = uiScaleFor(w, h);
+    const count = MENU.length + 1;
+    const place = layoutMenu(count, w, guiH, h, scale, touch);
+    const menu = { left: MENU_X, right: MENU_X + place.width, top: place.top, bottom: place.top + place.height };
+    const stats = { left: STATS_POS[0], right: STATS_POS[0] + STATS_SIZE[0] * scale, top: STATS_POS[1], bottom: STATS_POS[1] + STATS_BOTTOM * scale };
+    const rollBottom = guiH - ROLL_BAR_BOTTOM;
+    const roll = { left: w / 2 - (ROLL_BUTTON[0] / 2) * scale, right: w / 2 + (ROLL_BUTTON[0] / 2 + 16 + AUTO_BUTTON[0]) * scale, top: rollBottom - ROLL_BUTTON[1] * scale, bottom: rollBottom };
+    const hits = [];
+    if (overlap(menu, stats)) hits.push('스탯');
+    if (overlap(menu, roll)) hits.push('굴리기');
+    if (touch && overlap(menu, thumbRect(w, guiH, h))) hits.push('조이스틱');
+    if (touch && overlap(menu, jumpRect(w, guiH))) hits.push('점프');
+    if (menu.top < 0 || menu.bottom > guiH) hits.push('화면 밖');
+    return { place, hits, good: !hits.length };
+  }
+
   function checks() {
     const items = [];
-    // 1) 위 가운데 묶음(속보 띠) vs 왼쪽 위 스탯: 그린 화면 3개는 실제로 재고, 다른 화면 크기는 같은 계산식(placeTop)으로
+    // 0) 왼쪽 메뉴: 그린 화면은 실제로 재고(배지 포함), 다른 화면 크기는 같은 계산식(layoutMenu)으로
+    {
+      const drawn = [];
+      for (const id of DRAWN_HUD) {
+        const scr = document.getElementById(id);
+        const menuEl = scr && scr.querySelector('[data-name="Menu"]');
+        if (!menuEl) continue;
+        const parts = Array.from(menuEl.querySelectorAll(':scope > .g, [data-name="Stamps"], [data-name="Ready"]')).filter((el) => el.offsetParent !== null);
+        const obstacles = [
+          ...['Coins', 'Income', 'Rolls', 'Luck', 'Rebirths'].map((n) => [n, scr.querySelector(`[data-name="Stats"] [data-name="${n}"]`)]),
+          ['굴리기', scr.querySelector('[data-name="RollBar"] > [data-name="Roll"]')],
+          ['자동', scr.querySelector('[data-name="RollBar"] > [data-name="Auto"]')],
+          ['속보', scr.querySelector('[data-name="NewsItem"]')],
+          ['조이스틱', scr.querySelector('[data-name="ThumbZone"]')],
+          ['점프', scr.querySelector('[data-name="Jump"]')],
+        ].filter(([, el]) => el && el.offsetParent !== null);
+        const hit = new Set();
+        for (const part of parts) {
+          const r = rectIn(part, scr);
+          for (const [name, el] of obstacles) if (overlap(r, rectIn(el, scr))) hit.add(name);
+        }
+        const box = parts.map((el) => rectIn(el, scr)).reduce((a, b) => ({ left: Math.min(a.left, b.left), right: Math.max(a.right, b.right), top: Math.min(a.top, b.top), bottom: Math.max(a.bottom, b.bottom) }));
+        const guiTop = scr.offsetHeight - scr.querySelector('.gui').offsetHeight;
+        drawn.push(
+          `${scr.offsetWidth}×${scr.offsetHeight} ${verdict(!hit.size)} ${menuNote(scr.offsetWidth, scr.offsetHeight, id !== 'screen1')} ` +
+            `x ${Math.round(box.left)}~${Math.round(box.right)}, y ${Math.round(box.top + guiTop)}~${Math.round(box.bottom + guiTop)}` +
+            (hit.size ? ` (겹침: ${[...hit].join(', ')})` : '')
+        );
+      }
+      const computed = [];
+      for (const [w, h, touch] of SCREEN_SIZES) {
+        for (const inset of touch ? [58, 36] : [58]) {
+          const v = menuVerdict(w, h, touch, inset);
+          const moved = v.place.columns === 1 && Math.abs(v.place.shift) > 0.01 ? `, ${Math.round(v.place.shift)}px 옮김` : '';
+          computed.push(`${w}×${h}${touch ? ' 터치' : ' PC'}${inset !== 58 ? ' 상단바 36' : ''} ${verdict(v.good)} ${menuName(v.place)}${moved}` + (v.hits.length ? ` (겹침: ${v.hits.join(', ')})` : ''));
+        }
+      }
+      items.push(
+        `<b>왼쪽 메뉴 vs 스탯·굴리기·조이스틱·점프</b>: 세로 한 줄 → 2열 → 3열 → 가로 한 줄 중 스탯 칩 줄 아래~아래쪽 장애물 위 띠에 처음 들어가는 배치(Hud.layoutMenu). ` +
+          `그린 화면(버튼 + 배지 실제 크기) — ${drawn.join(' / ')}. 계산식 — ${computed.join(' · ')}.`
+      );
+    }
+
+    // 1) 위 가운데 묶음(속보 띠) vs 왼쪽 위 스탯: 그린 화면은 실제로 재고, 다른 화면 크기는 같은 계산식(placeTop)으로
     const drawn = [];
     let incomeDesign = null; // 수입 칩 오른쪽 끝(스탯 묶음 기준, 배율 1)
-    for (const id of ['screen1', 'screen1t', 'screen1p']) {
+    for (const id of DRAWN_HUD) {
       const scr = document.getElementById(id);
       const newsItem = scr && scr.querySelector('[data-name="NewsItem"]');
       if (!newsItem) continue;
@@ -1613,16 +1802,16 @@
       if (id === 'screen1') incomeDesign = (income.right - STATS_POS[0]) / scale;
       drawn.push(`${w}×${scr.offsetHeight} ${verdict(!hit.length)} 속보 띠 x ${Math.round(bar.left)}~${Math.round(bar.right)}, 수입 칩 오른쪽 끝 ${Math.round(income.right)}` + (hit.length ? ` (겹침: ${hit.join(', ')})` : ''));
     }
-    const sizes = [[1920, 1080], [1366, 768], [1280, 720], [1180, 820], [1133, 744], [1024, 768], [932, 430], [844, 390], [667, 375], [568, 320]];
-    const computed = sizes.map(([w, h]) => {
+    const computed = SCREEN_SIZES.filter(([w, h, touch]) => touch || !SCREEN_SIZES.some(([w2, h2, t2]) => t2 && w2 === w && h2 === h)).map(([w, h, touch]) => {
       const scale = uiScaleFor(w, h);
-      const place = placeTop(w, scale);
-      const statsRight = STATS_POS[0] + STATS_RESERVE * scale; // 가장 긴 수입 글자 기준
+      const menu = layoutMenu(MENU.length + 1, w, h - GUI_INSET, h, scale, touch);
+      const place = placeTop(w, scale, menu);
+      const statsRight = place.reserve; // 가장 긴 수입 글자 기준(+ 가로로 접힌 메뉴 끝)
       const left = place.center - (TOP_WIDTH * scale) / 2;
       const right = place.center + (TOP_WIDTH * scale) / 2;
       const good = place.below || (left >= statsRight && right <= w);
-      const where = place.below ? '스탯 아래로 내림' : `x ${Math.round(left)}~${Math.round(right)} (스탯 끝 ${Math.round(statsRight)})`;
-      return `${w}×${h}(배율 ${scale.toFixed(2)}) ${verdict(good)} ${where}`;
+      const where = place.below ? '스탯·메뉴 아래로 내림' : `x ${Math.round(left)}~${Math.round(right)} (스탯${statsRight > STATS_POS[0] + STATS_RESERVE * scale + 0.5 ? '·메뉴' : ''} 끝 ${Math.round(statsRight)})`;
+      return `${w}×${h}${touch ? ' 터치' : ''}(배율 ${scale.toFixed(2)}) ${verdict(good)} ${where}`;
     });
     items.push(
       `<b>속보 띠 vs 초당 수입 칩</b>: 속보 묶음 폭 ${TOP_WIDTH}, 가운데가 기본이고 스탯 윗줄(${STATS_RESERVE}×배율)과 겹치면 오른쪽으로 비킴(Hud.placeTop). ` +
