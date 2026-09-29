@@ -56,6 +56,10 @@ local KNOWN_SHAPES = {
 	skyisland = true,
 	tree = true,
 	globe = true,
+	bridge = true,
+	seastacks = true,
+	reef = true,
+	ruins = true,
 }
 
 print("\n[Landmarks]")
@@ -88,8 +92,8 @@ test("등급 경계", function()
 	eq(Landmarks.ById.worldtree.Tier.Name, "전설")
 	eq(Landmarks.ById.earth, nil, "지구는 명소가 아님")
 end)
-test("여권 지역은 4대륙뿐, 모든 명소가 대륙에 속함", function()
-	eq(#Landmarks.Regions, 4, "대륙 수")
+test("여권 지역은 5대륙뿐, 모든 명소가 대륙에 속함", function()
+	eq(#Landmarks.Regions, 5, "대륙 수")
 	for _, region in Landmarks.Regions do
 		assert(#Landmarks.ByRegion[region.Id] > 0, region.Id .. " 비어 있음")
 		local _, required = PlayerState.regionProgress(PlayerState.new(), region.Id)
@@ -106,10 +110,18 @@ test("여권 지역은 4대륙뿐, 모든 명소가 대륙에 속함", function(
 	end
 	eq(Landmarks.Globe.Shape, "globe")
 end)
-test("전시 칸 최대치로 모든 명소를 전시할 수 있음", function()
+test("공원 최대 전시 칸 = 격자 크기 (그 이상은 희귀한 순서로만 전시)", function()
 	local park = PlayerState.UpgradesById.Park
 	local maxSlots = Config.BASE_SLOTS + park.PerLevel * park.MaxLevel
-	assert(maxSlots >= #Landmarks.List, string.format("최대 칸 %d < 명소 %d", maxSlots, #Landmarks.List))
+	eq(maxSlots, Config.PARK_GRID * Config.PARK_GRID, "최대 칸")
+	-- 전부 가진 플레이어도 격자만큼만 전시
+	local d = PlayerState.new()
+	for _, landmark in Landmarks.List do
+		d.Inventory[landmark.Id] = 1
+	end
+	d.Upgrades.Park = park.MaxLevel
+	eq(#PlayerState.park(d), math.min(maxSlots, #Landmarks.List), "전시 수")
+	eq(PlayerState.park(d)[1], Landmarks.RarestFirst[1].Id, "가장 희귀한 것부터")
 end)
 
 print("\n[RollLogic]")

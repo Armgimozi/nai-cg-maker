@@ -43,7 +43,7 @@ local PLOT_DEPTH = 80
 local BASE_TOP = 0.6 -- 부지 윗면 높이
 local BORDER = 1.5 -- 부지 둘레 색 띠 폭
 
-local GRID = 6
+local GRID = Config.PARK_GRID
 local SPACING = 12
 local FRONT_MARGIN = 6 -- 입구와 첫 줄 사이 빈 공간
 local PEDESTAL_SIZE = 10

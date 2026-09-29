@@ -28,6 +28,7 @@ local ImageIds: { [string]: string } = {
 	stamp_asia = "",
 	stamp_africa = "",
 	stamp_americas = "",
+	stamp_oceania = "",
 	stamp_legend = "",
 	-- (선택) 업그레이드 아이콘. 비어 있으면 3D 모형
 	plane = "",
