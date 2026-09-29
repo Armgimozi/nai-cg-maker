@@ -118,6 +118,7 @@ PlayerState 의 읽기 함수(park, parkSlots, stars, slots, completedRegions, u
   약 150개(초록·짙은 숲/산맥·사막 모래색·눈), 표는 `tools/model_preview/globe_land.py` 가 만든 `Models/GlobeLand.luau`.
   금색 자오선 고리(32조각, 받침 기둥에 닿음) + 극 축받이 + 금색 철사 끝의 달. 파트 약 190개(매 프레임 PivotTo 로
   돌리므로 더 늘리지 않기). 처음 방향은 스폰 쪽으로 아프리카(World 의 EARTH_FACING).
+  광장 둘레 나무 8그루는 섬 풍경과 같은 넓은잎나무(Scenery/Props 의 Tree, Scale 1.2·1.02).
 - 잠긴 칸은 흐릿한 바닥, 열린 빈 칸은 받침대, 전시 칸에는 미니어처 + 작은 이름표(★ 포함).
 - 간판: "OOO 님의 관광 공원" + "관광 수입 +X/초".
 - **주변 풍경**(Scenery): 돌길 산책로 고리 둘(r 84 / 부지 뒤 r 208) + 이웃 부지 사이 쐐기 틈 8곳의 주제 정원

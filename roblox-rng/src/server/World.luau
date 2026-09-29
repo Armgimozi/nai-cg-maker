@@ -8,6 +8,7 @@ local Workspace = game:GetService("Workspace")
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Landmarks = require(Shared.Landmarks)
 local Models = require(Shared.Models)
+local Props = require(script.Parent.Scenery.Props)
 
 -- 그림 Id 표 (없거나 깨져도 코드로 그린 모양으로 동작)
 local function loadImageIds(): { [string]: any }
@@ -45,6 +46,7 @@ local LAMP_COUNT = 16
 local LAMP_RADIUS = PLAZA_RADIUS - 3
 local TREE_COUNT = 8
 local TREE_RADIUS = PLAZA_RADIUS + RIM_WIDTH + 8 -- 광장 둘레 계단 바로 바깥 잔디
+local TREE_SCALE = 1.2 -- 풍경 넓은잎나무 Scale(1 = 높이 약 11) → 예전 광장 나무 높이(약 13)
 
 local HOLOGRAM_SIZE = 60
 local HOLOGRAM_HEIGHT = 60 -- 홀로그램 바닥 높이(지구본과 겹치면 그 위로 올림)
@@ -60,9 +62,6 @@ local MARBLE = Color3.fromRGB(240, 238, 232)
 local GOLD = Color3.fromRGB(235, 190, 80)
 local LAMP_POLE = Color3.fromRGB(46, 86, 66) -- 짙은 초록(풍경 정원등과 같은 색)
 local LAMP_LIGHT = Color3.fromRGB(255, 235, 190)
-local TRUNK = Color3.fromRGB(122, 78, 45)
-local LEAF = Color3.fromRGB(80, 186, 78) -- 풍경 나무 잎과 같은 색·재질(LeafyGrass)
-local LEAF_LIGHT = Color3.fromRGB(138, 218, 98)
 
 -- UI 스타일 가이드 v2 팔레트(홀로그램 제목)
 local INK = Color3.fromRGB(30, 27, 46)
@@ -152,28 +151,20 @@ local function lamp(parent: Instance, base: Vector3)
 	light.Parent = bulb
 end
 
--- 동글동글한 나무: 줄기(원기둥) + 잎(큰 공 + 위에 작은 밝은 공). 잎은 머리에 걸리지 않게 충돌 없음.
--- scale 로 크기를, turn(라디안)으로 작은 공 방향을 바꿔서 나무마다 조금씩 다르게 보이게 함
+-- 광장 둘레 나무: 섬 풍경의 넓은잎나무와 같은 모양(Scenery/Props 의 Tree — 살짝 기운 두 마디 줄기 + 가지 +
+-- 짙은·보통·밝은 초록 잎 공 여러 개). 줄기는 부딪히고 잎은 충돌·검색 없음(머리·카메라에 걸리지 않게).
+-- scale 로 크기(1 = 예전 나무 높이 약 13), turn(라디안) = 기우는 쪽(광장 바깥으로)·잎 공 배치 시드
 local function tree(parent: Instance, base: Vector3, scale: number, turn: number)
-	disc(parent, "TreeTrunk", base, 6 * scale, 1.6 * scale, TRUNK, Enum.Material.Wood)
-	local leaves = {
-		{ Offset = Vector3.new(0, 8, 0), Diameter = 7.5, Color = LEAF },
-		{ Offset = Vector3.new(1.2, 11, -0.6), Diameter = 4.6, Color = LEAF_LIGHT },
-	}
-	for _, leaf in leaves do
-		local offset = CFrame.Angles(0, turn, 0):VectorToWorldSpace(leaf.Offset) * scale
-		local diameter = leaf.Diameter * scale
-		local part = newPart(
-			parent,
-			"TreeLeaves",
-			Enum.PartType.Ball,
-			Vector3.new(diameter, diameter, diameter),
-			CFrame.new(base + offset),
-			leaf.Color,
-			Enum.Material.LeafyGrass
-		)
-		part.CanCollide = false
-	end
+	Props.build(parent, {
+		Kind = "Tree",
+		X = base.X,
+		Y = base.Y,
+		Z = base.Z,
+		Scale = scale * TREE_SCALE,
+		Turn = turn,
+		Tint = 0.4,
+		Style = 1,
+	})
 end
 
 -- 서버 시작 시 한 번: 광장, 가로등, 둘레 나무, 받침대 + 거대 지구본
