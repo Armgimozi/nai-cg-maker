@@ -7,8 +7,10 @@
 - 그림: art/png/*.png 를 base64 data URI 로 넣음 -> index.html 한 파일만 있으면 어디서나 열림.
 - 데이터: src/shared/Landmarks.luau (등급/대륙/명소), Config.luau (별/수입/업그레이드) 를 읽어서 넣음.
   -> 명소나 밸런스 값을 바꾸고 다시 돌리면 미리보기도 같이 바뀜.
-- 글꼴: Google Fonts 에서 Fredoka One, Luckiest Guy(라틴) + Noto Sans KR 700(쓰는 글자만 subset)을
+- 글꼴: Google Fonts 에서 Fredoka One, Luckiest Guy(라틴) + Noto Sans KR(쓰는 글자만 subset)을
   받아 mockup/fonts/ 에 캐시하고 base64 로 넣음. 네트워크가 막혀 있으면 글꼴 없이(로컬 대체 글꼴) 만듦.
+  한글 굵기(KR_WEIGHT): 로블록스는 글꼴에 없는 한글을 대체 글꼴(Noto Sans CJK)로 그리는데, 게임이 쓰는
+  Enum.Font.FredokaOne / LuckiestGuy 는 둘 다 Regular(400) 로 등록된 글꼴이라 한글도 Regular 로 봄.
 - 표준 라이브러리만 씀.
 """
 
@@ -32,6 +34,9 @@ SHARED = ROOT / "src" / "shared"
 SRC = HERE / "src"
 FONTS = HERE / "fonts"
 OUT = HERE / "index.html"
+
+# 한글 대체 글꼴 굵기. FontFace 굵기(FredokaOne/LuckiestGuy = Regular)를 따름 -> 400
+KR_WEIGHT = 400
 
 UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36"
 
@@ -214,13 +219,14 @@ def load_fonts(text_for_subset: str) -> dict[str, str]:
     lucky = cached_font("LuckiestGuy-latin", base + "Luckiest+Guy", "latin")
     chars = korean_chars(text_for_subset)
     digest = hashlib.sha1(chars.encode("utf-8")).hexdigest()[:10]
-    # 글자가 바뀌면 새 subset (이전 subset 파일은 지움)
-    for old in FONTS.glob("NotoSansKR-700-*.woff2") if FONTS.is_dir() else []:
-        if digest not in old.name:
+    kr_name = f"NotoSansKR-{KR_WEIGHT}-{digest}"
+    # 글자나 굵기가 바뀌면 새 subset (이전 subset 파일은 지움)
+    for old in FONTS.glob("NotoSansKR-*.woff2") if FONTS.is_dir() else []:
+        if old.stem != kr_name:
             old.unlink()
     korean = cached_font(
-        f"NotoSansKR-700-{digest}",
-        base + "Noto+Sans+KR:wght@700&text=" + urllib.parse.quote(chars),
+        kr_name,
+        base + f"Noto+Sans+KR:wght@{KR_WEIGHT}&text=" + urllib.parse.quote(chars),
         None,
     )
     for key, data in (("fredoka", fredoka), ("lucky", lucky), ("korean", korean)):
@@ -236,7 +242,7 @@ def font_css(fonts: dict[str, str]) -> str:
     if "lucky" in fonts:
         rules.append(f"@font-face{{font-family:'Luckiest Guy';src:url({fonts['lucky']}) format('woff2');font-display:block}}")
     if "korean" in fonts:
-        # 굵은(700) 글자 데이터를 기본 굵기로 등록 -> 브라우저가 가짜 굵게를 덧칠하지 않음
+        # 굵기 지정 없이(=400) 등록 -> 화면 글자(font-weight 기본값)와 그대로 맞음, 가짜 굵게 없음
         rules.append(f"@font-face{{font-family:'KR Fallback';src:url({fonts['korean']}) format('woff2');font-display:block}}")
     return "\n".join(rules)
 
