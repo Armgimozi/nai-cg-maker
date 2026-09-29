@@ -1,7 +1,7 @@
 -- 기본 화면(HUD): 코인·수입·스탯, 메뉴 버튼, 굴리기 버튼, 지구본 굴림 연출, 뉴스 속보, 알림,
 -- 환생 수·부스트 타이머·서버 행운 띠(v3), 상점 버튼(오른쪽, 팔 상품이 있을 때만),
 -- 공원 배치 버튼(내 공원 부지가 있으면 이동 버튼 옆, 더 좋은데 전시 안 된 명소 수 배지 — 누르면 3D 배치 모드,
--- 배치 모드 중에는 Sun 색이고 굴리기 줄은 숨김: 아래 띠(ParkEdit 보관함) 자리)
+-- 배치 모드 동안은 메뉴·상점·굴리기 줄을 숨김: 아래 가운데는 ParkEdit 보관함 띠 자리)
 -- 스타일은 DESIGN.md "UI 스타일 가이드 (v2)" — 통통한 버튼 + 굵은 Ink 테두리 + 아이콘, 이모지 없음
 -- 글자는 최소로: 아이콘 + 숫자 위주, 버튼 글자는 2~3글자, 알림은 8글자 안팎. 설명 문장은 쓰지 않음.
 
@@ -64,6 +64,7 @@ export type Handlers = {
 	ToggleAuto: () -> (),
 	Menu: (string) -> (),
 	Teleport: () -> (),
+	Arrange: () -> (), -- [배치]: 3D 공원 배치 모드 켜기/끄기
 }
 
 local Hud = {}
@@ -330,7 +331,7 @@ local function placeMenu(size: Vector2, scale: number, touch: boolean)
 	end
 end
 
-local function buildMenu(onMenu: (string) -> (), onTeleport: () -> ())
+local function buildMenu(onMenu: (string) -> (), onTeleport: () -> (), onArrange: () -> ())
 	local count = #MENU + 1
 	refs.Menu = anchor(
 		"Menu",
@@ -411,7 +412,7 @@ local function buildMenu(onMenu: (string) -> (), onTeleport: () -> ())
 	table.insert(buttons, refs.TeleportButton.Root)
 	refs.TeleportButton.Activated:Connect(onTeleport)
 
-	-- 3D 공원 배치 모드 켜기/끄기 (내 공원 부지가 있으면 보임 — Hud.setPlotOwned, 자리는 placeMenu). 메뉴 칸 수에는 안 셈
+	-- 3D 공원 배치 모드 켜기 (내 공원 부지가 있으면 보임 — Hud.setPlotOwned, 자리는 placeMenu). 메뉴 칸 수에는 안 셈
 	refs.ArrangeButton = Ui.chunkyButton({
 		Name = "Arrange",
 		ZIndex = 2, -- 오른쪽 위 배지
@@ -425,9 +426,7 @@ local function buildMenu(onMenu: (string) -> (), onTeleport: () -> ())
 		Visible = false,
 		Parent = container,
 	})
-	refs.ArrangeButton.Activated:Connect(function()
-		onMenu("Park")
-	end)
+	refs.ArrangeButton.Activated:Connect(onArrange)
 	-- 직접 배치 중 더 좋은데 전시 안 된 명소 수 (여권 "1/6" 배지와 같은 모양, 0 이면 숨김)
 	refs.ArrangeBadge = Ui.chip({
 		Name = "Better",
@@ -894,7 +893,7 @@ function Hud.init(playerGui: PlayerGui, handlers: Handlers): ScreenGui
 	luckSound = makeSound(0.6, 0.7)
 
 	buildStats()
-	buildMenu(handlers.Menu, handlers.Teleport)
+	buildMenu(handlers.Menu, handlers.Teleport, handlers.Arrange)
 	buildShop(handlers.Menu)
 	buildRollBar(handlers.Roll, handlers.ToggleAuto)
 	buildReveal()
@@ -1089,28 +1088,15 @@ function Hud.setPlotOwned(owned: boolean)
 	end
 end
 
--- 3D 배치 모드: [배치] 버튼은 켜진 표시(Sun), 굴리기 줄은 숨김(아래 가운데는 보관함 띠 자리).
--- 자동 굴리기는 켜 둔 채로 계속 돎(R / T 키도 그대로)
+-- 3D 배치 모드(ParkEdit): 왼쪽 메뉴(+ [배치])·상점·굴리기 줄을 숨기고 아래 가운데를 보관함 띠에 내줌
+-- (놀이공원 시뮬레이션의 건설 모드처럼 공원 + 띠만). 위쪽 코인·알림은 그대로, 자동 굴리기도 켜 둔 채로 계속 돎(R / T 키도)
 function Hud.setEditing(editing: boolean)
-	refs.ArrangeButton.SetColor(if editing then "Sun" else "Grass")
+	refs.Menu.Visible = not editing
 	refs.RollBar.Visible = not editing
-end
-
--- 왼쪽 메뉴 묶음(+ 배치 버튼)의 오른쪽 끝·아래 끝(이 ScreenGui 좌표, 화면 px). 배치 모드 아래 띠가 비켜 감
-function Hud.menuEdge(): Vector2?
-	local menu: GuiObject? = refs.Menu
-	if not menu or not menu.Visible then
-		return nil
+	local shop: GuiObject? = refs.Shop
+	if shop then
+		shop.Visible = not editing
 	end
-	local right = menu.AbsolutePosition.X + menu.AbsoluteSize.X
-	local bottom = menu.AbsolutePosition.Y + menu.AbsoluteSize.Y
-	local arrange: Ui.ChunkyButton? = refs.ArrangeButton
-	if arrange and arrange.Root.Visible then
-		local root = arrange.Root
-		right = math.max(right, root.AbsolutePosition.X + root.AbsoluteSize.X)
-		bottom = math.max(bottom, root.AbsolutePosition.Y + root.AbsoluteSize.Y)
-	end
-	return Vector2.new(right, bottom)
 end
 
 -- 쿨타임 막대가 비었다가 seconds 동안 가득 참

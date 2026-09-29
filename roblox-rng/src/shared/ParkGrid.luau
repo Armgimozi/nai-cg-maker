@@ -158,6 +158,132 @@ function ParkGrid.storePlan(state: Snapshot, heldId: string): { Slot: number, Ex
 	return { Slot = from, Expected = heldId }
 end
 
+-- 위에서 보기 카메라 ----------------------------------------------------------------
+-- 입구(-Z) 쪽 위에서 공원 안쪽(+Z)을 TOP_PITCH 각도로 내려다보는 카메라. 격자 36칸(잠긴 칸 포함: 어디가 늘어날지
+-- 보이게)이 화면에서 HUD 가 가리지 않은 영역 안에 가장 크게 들어오는 거리와 바라보는 곳(부지 좌표)을 찾음.
+-- 받침대 네 귀퉁이와 명소 꼭대기(TOP_FIT_HEIGHT)까지 넣어서 뒷줄 명소가 화면 위로 잘리지 않게 함.
+ParkGrid.TOP_PITCH = math.rad(55)
+ParkGrid.TOP_FIT_HEIGHT = 12 -- 명소 꼭대기(받침대 윗면 위) — 큰 모형(최대 약 20)은 조금 잘려도 받침대는 보이게
+ParkGrid.TOP_MIN_DISTANCE = 30
+ParkGrid.TOP_MAX_DISTANCE = 500
+
+export type TopView = {
+	Eye: { number }, -- 부지 좌표 { x, y, z }
+	Target: { number },
+	Distance: number,
+}
+
+-- view: Aspect(가로/세로), Fov(세로 시야각, 도), Left/Right/Top/Bottom(화면 가장자리에서 가리는 비율 0..1),
+-- Zoom(1 = 딱 맞게, 클수록 멀리)
+export type TopViewInput = {
+	Aspect: number,
+	Fov: number,
+	Left: number?,
+	Right: number?,
+	Top: number?,
+	Bottom: number?,
+	Zoom: number?,
+}
+
+local FIT_POINTS: { { number } } = {}
+do
+	local half = (GRID - 1) / 2 * ParkGrid.SPACING
+	local edge = half + ParkGrid.PEDESTAL_SIZE / 2
+	local front = FIRST_ROW_Z - ParkGrid.PEDESTAL_SIZE / 2
+	local back = FIRST_ROW_Z + (GRID - 1) * ParkGrid.SPACING
+	local tall = ParkGrid.BASE_TOP + ParkGrid.PEDESTAL_HEIGHT + ParkGrid.TOP_FIT_HEIGHT
+	for _, x in { -edge, edge } do
+		table.insert(FIT_POINTS, { x, ParkGrid.BASE_TOP, front })
+		table.insert(FIT_POINTS, { x, ParkGrid.BASE_TOP, back + ParkGrid.PEDESTAL_SIZE / 2 })
+	end
+	for _, x in { -half, half } do
+		table.insert(FIT_POINTS, { x, tall, FIRST_ROW_Z })
+		table.insert(FIT_POINTS, { x, tall, back })
+	end
+end
+ParkGrid.TOP_FIT_POINTS = FIT_POINTS
+
+-- 카메라(바라보는 곳 target, 거리 d)로 본 점의 화면 위치(-1..1, 오른쪽·위가 +). 카메라 뒤면 nil
+-- 카메라 오른쪽 = 부지 -X (입구에서 안쪽을 볼 때 오른쪽), 위 = 화면 위
+function ParkGrid.project(
+	point: { number },
+	targetX: number,
+	targetZ: number,
+	distance: number,
+	aspect: number,
+	fov: number
+): (number?, number?)
+	local s, c = math.sin(ParkGrid.TOP_PITCH), math.cos(ParkGrid.TOP_PITCH)
+	local vx = point[1] - targetX
+	local vy = point[2] - (ParkGrid.BASE_TOP + s * distance)
+	local vz = point[3] - (targetZ - c * distance)
+	local depth = -vy * s + vz * c
+	if depth <= 0.1 then
+		return nil, nil
+	end
+	local t = math.tan(math.rad(fov) / 2)
+	return -vx / (depth * t * aspect), (vy * c + vz * s) / (depth * t)
+end
+
+function ParkGrid.topView(view: TopViewInput): TopView
+	local aspect = math.max(view.Aspect, 0.2)
+	local fov = math.clamp(view.Fov, 20, 110)
+	-- 보이는 영역(-1..1). 가리는 비율이 너무 커도 화면의 10% 는 남김
+	local left = -1 + 2 * math.clamp(view.Left or 0, 0, 0.45)
+	local right = 1 - 2 * math.clamp(view.Right or 0, 0, 0.45)
+	local bottom = -1 + 2 * math.clamp(view.Bottom or 0, 0, 0.45)
+	local top = 1 - 2 * math.clamp(view.Top or 0, 0, 0.45)
+	local wantX, wantY = (left + right) / 2, (bottom + top) / 2
+	local t = math.tan(math.rad(fov) / 2)
+	local s = math.sin(ParkGrid.TOP_PITCH)
+
+	-- 거리 d 에서 격자 가운데가 영역 가운데에 오게 바라보는 곳을 옮기고(원근 때문에 몇 번 되풀이), 격자 범위를 돌려줌
+	local function aim(distance: number): (number, number, number, number, boolean)
+		local tx, tz = 0, (FIRST_ROW_Z + FIRST_ROW_Z + (GRID - 1) * ParkGrid.SPACING) / 2
+		local width, height, ok = 0, 0, true
+		for _ = 1, 8 do
+			local minX, maxX, minY, maxY = math.huge, -math.huge, math.huge, -math.huge
+			ok = true
+			for _, point in FIT_POINTS do
+				local x, y = ParkGrid.project(point, tx, tz, distance, aspect, fov)
+				if not x or not y then
+					ok = false
+					break
+				end
+				minX, maxX = math.min(minX, x), math.max(maxX, x)
+				minY, maxY = math.min(minY, y), math.max(maxY, y)
+			end
+			if not ok then
+				break
+			end
+			width, height = maxX - minX, maxY - minY
+			-- 카메라를 +X 로 옮기면 화면에서 점들이 오른쪽(+)으로, +Z 로 옮기면 아래(-)로 감
+			tx += (wantX - (minX + maxX) / 2) * distance * t * aspect
+			tz -= (wantY - (minY + maxY) / 2) * distance * t / s
+		end
+		return tx, tz, width, height, ok
+	end
+
+	local low, high = ParkGrid.TOP_MIN_DISTANCE, ParkGrid.TOP_MAX_DISTANCE
+	for _ = 1, 30 do
+		local middle = (low + high) / 2
+		local _, _, width, height, ok = aim(middle)
+		if ok and width <= right - left and height <= top - bottom then
+			high = middle
+		else
+			low = middle
+		end
+	end
+	local distance = math.clamp(high * (view.Zoom or 1), ParkGrid.TOP_MIN_DISTANCE, ParkGrid.TOP_MAX_DISTANCE)
+	local tx, tz = aim(distance)
+	local c = math.cos(ParkGrid.TOP_PITCH)
+	return {
+		Eye = { tx, ParkGrid.BASE_TOP + s * distance, tz - c * distance },
+		Target = { tx, ParkGrid.BASE_TOP, tz },
+		Distance = distance,
+	}
+end
+
 -- 자동 배치를 켜면 지금 배치가 바뀌는지 (바뀌면 [자동] 을 한 번 더 눌러 "확인?")
 function ParkGrid.autoWouldChange(state: Snapshot): boolean
 	local slots, unlocked = PlayerState.parkSlots(state)

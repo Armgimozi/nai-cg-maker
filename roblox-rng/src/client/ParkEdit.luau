@@ -3,8 +3,11 @@
 --
 -- 들어가기: HUD [배치] · 도감 [배치] 버튼(내 공원 밖이면 먼저 내 공원으로 순간 이동), 또는 배치 모드 밖에서 내 공원의
 --   받침대·명소를 누름(이 클라이언트만의 ClickDetector — 명소면 들어가면서 바로 집음).
--- 시점: 들어가면 카메라가 부지 위 3/4 시점으로 날아감(Scriptable) — 이 동안 캐릭터 이동은 꺼 둠(카메라가 캐릭터를
---   따라가지 않아서 걸으면 화면 밖으로 나가 버리고, 터치 조이스틱·점프 버튼이 부지 아래쪽을 가리기 때문).
+-- 배치 모드 동안 HUD 는 왼쪽 메뉴·상점·굴리기 줄을 숨기고(부르는 쪽 Changed) 아래 띠만 남김 — 놀이공원 시뮬레이션의
+--   건설 모드처럼 공원과 띠에만 집중. 나가기 = [완료] · Esc/Q(들고 있으면 먼저 내려놓기) · 부지 밖으로 나가기.
+-- 시점: 들어가면 카메라가 부지 위 3/4 시점으로 날아감(Scriptable, ParkGrid.topView 가 HUD 가 가리지 않은 곳에
+--   36칸이 딱 들어오는 거리를 찾음, 휠로 조금 가까이/멀리) — 이 동안 캐릭터 이동은 꺼 둠(카메라가 캐릭터를 따라가지
+--   않아서 걸으면 화면 밖으로 나가 버리고, 터치 조이스틱·점프 버튼이 부지 아래쪽을 가리기 때문).
 --   [시점] 을 누르면 평소처럼 캐릭터를 따라가는 카메라(이동 켜짐)로, 다시 누르면 위에서 보기. 나갈 때 원래 카메라로.
 -- 누르기: 명소를 누르면 "들고 있음" — 원래 명소는 이 화면에서만 숨기고 반투명 복사본이 떠서(살짝 오르내리며 돎)
 --   가리키는 받침대 위로 붙음. 다른 열린 칸을 누르면(또는 끌어서 놓으면) 그 칸으로 옮김(명소가 있으면 자리 바꿈 —
@@ -14,8 +17,9 @@
 -- 누르는 즉시 PlayerState 규칙을 스냅샷 사본에 적용해 미리 보여 주고(preview), 옮긴 칸에는 이 화면에서만 보이는
 --   모형(proxy)을 두었다가 서버가 칸을 다시 만들면(칸 모델 Look 속성이 맞으면) 치움. 실패·stale 이면 서버 상태로 되돌림.
 -- 알림: 배치 편집이 받아들여져 자동 배치가 꺼지면(이번 접속 처음) "자동 꺼짐". "공원 바뀜"(stale)·"공원 꽉 참"은 init 이 띄움.
--- 정리: 나가면(완료, 다른 창 열기, 부지 밖으로 걸어가거나 순간 이동, 다시 태어남, 부지 잃음) 이 모듈이 만든 연결·모형·
---   강조를 모두 지우고 숨긴 명소를 되돌림. 서버가 칸 모델을 다시 만들면(ChildAdded/Removed) 그때그때 맞춤.
+-- 정리: 나가면(완료, 다른 창 열기, 부지 밖으로 걸어가거나 순간 이동, 죽음·캐릭터 사라짐, 부지 잃음) 이 모듈이 만든
+--   연결·모형·강조를 모두 지우고 숨긴 명소를 되돌림. 서버가 칸 모델을 다시 만들면(ChildAdded/Removed) 그때그때 맞춤.
+-- 키보드: Esc · Q = 내려놓기(들고 있지 않으면 나가기), Backspace · Delete = 보관. 오른쪽 클릭 = 내려놓기.
 -- 화면 글자는 최소로(아이콘 + 숫자, 버튼 2글자), 이모지 없음 — DESIGN.md UI 스타일 가이드 v2.
 
 local GuiService = game:GetService("GuiService")
@@ -47,8 +51,7 @@ export type Handlers = {
 	SetAutoPark: (on: boolean) -> boolean,
 	GoToPark: () -> boolean, -- 내 공원으로 순간 이동(기다림). 성공하면 true
 	Toast: (text: string, icon: string?, color: Color3?) -> (),
-	Changed: (editing: boolean) -> (), -- 배치 모드 켜짐/꺼짐 (HUD 굴리기 줄 숨기기, 창 닫기)
-	MenuEdge: () -> Vector2?, -- 왼쪽 메뉴 묶음 오른쪽·아래 끝(화면 px) — 아래 띠가 비켜 감
+	Changed: (editing: boolean) -> (), -- 배치 모드 켜짐/꺼짐 (HUD 메뉴·굴리기 줄 숨기기, 열린 창 닫기)
 }
 
 -- 월드 ----------------------------------------------------------------------------
@@ -68,17 +71,17 @@ local RAY_LENGTH = 1000
 local MARKER_SIZE = ParkGrid.PEDESTAL_SIZE + 1.6 -- 받침대 둘레로 삐져나와 빛나는 판
 local HOVER_COLOR = Color3.new(1, 1, 1)
 
--- 위에서 보기: 입구(-Z) 쪽 위에서 공원 안쪽(+Z)을 내려다봄. 바라보는 곳을 격자 가운데(z 2)보다 입구 쪽에 두어
--- 격자가 화면 위쪽(아래 띠 위)에 오게 함
-local TOP_PITCH = math.rad(54)
-local TOP_DISTANCE = 86
-local TOP_TARGET_Z = -5
-local ZOOM_MIN, ZOOM_MAX = 0.65, 1.35
+-- 위에서 보기(ParkGrid.topView): 화면 위쪽 상단바 아래 여백, 옆 여백(비율). 휠 배율(1 = 36칸이 딱 맞음)
+local TOP_MARGIN = 10 -- px
+local SIDE_MARGIN = 0.03
+local BAR_CLEAR = 8 -- 아래 띠 위로 띄울 거리(px)
+local ZOOM_MIN, ZOOM_MAX, ZOOM_STEP = 0.8, 1.45, 0.08
 local CAMERA_TWEEN = TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
 -- 아래 띠 (설계 px, Ui.autoScale 배율을 받음) --------------------------------------
 local BAR_HEIGHT = 132
 local BAR_BOTTOM = 12 -- 화면 아래 끝에서(화면 px)
+local BAR_JUMP = { Small = 100, Large = 180 } -- 터치 기기: 오른쪽 아래 점프 버튼 자리(화면 짧은 쪽 500 이하 / 초과)
 local BAR_EDGE = 16 -- 화면 양옆 여백(화면 px)
 local BAR_MAX_WIDTH = 1180
 local BAR_PAD = 10
@@ -183,6 +186,7 @@ local scroller: ScrollingFrame
 local emptyHint: Frame
 local countChip: Ui.Chip
 local incomeChip: Ui.Chip
+local barTop: number? = nil -- 아래 띠(+ 위 딱지 줄) 위 끝(이 ScreenGui 좌표, 화면 px). 위에서 보기 카메라가 비켜 감
 type Card = {
 	Button: TextButton,
 	Stroke: UIStroke,
@@ -603,9 +607,11 @@ local function finishRequest(ok: boolean?, stale: boolean?)
 			local scale = button.Root:FindFirstChildOfClass("UIScale")
 			if scale then
 				scale.Scale = 1
-				TweenService:Create(scale, TweenInfo.new(0.18, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, 2, true), {
-					Scale = 1.15,
-				}):Play()
+				TweenService
+					:Create(scale, TweenInfo.new(0.18, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, 2, true), {
+						Scale = 1.15,
+					})
+					:Play()
 			end
 		end
 		if not autoNoticed then
@@ -870,9 +876,14 @@ end
 local function onInputBegan(input: InputObject, processed: boolean)
 	local kind = input.UserInputType
 	if kind == Enum.UserInputType.Keyboard then
-		if input.KeyCode == Enum.KeyCode.Escape then
+		local key = input.KeyCode
+		if key == Enum.KeyCode.Escape then
+			cancelOrExit() -- Esc 는 로블록스 메뉴가 먼저 가져갈 수 있어서 Q 도 같은 동작
+		elseif processed then
+			return -- 채팅 입력 중
+		elseif key == Enum.KeyCode.Q then
 			cancelOrExit()
-		elseif not processed and (input.KeyCode == Enum.KeyCode.Backspace or input.KeyCode == Enum.KeyCode.Delete) then
+		elseif key == Enum.KeyCode.Backspace or key == Enum.KeyCode.Delete then
 			storeHeld()
 		end
 		return
@@ -921,7 +932,7 @@ local function onInputChanged(input: InputObject, processed: boolean)
 		end
 	elseif kind == Enum.UserInputType.MouseWheel and not processed and viewMode == "Top" and origin then
 		-- 위에서 보기: 휠로 가까이/멀리
-		zoom = math.clamp(zoom - input.Position.Z * 0.08, ZOOM_MIN, ZOOM_MAX)
+		zoom = math.clamp(zoom - input.Position.Z * ZOOM_STEP, ZOOM_MIN, ZOOM_MAX)
 		local camera = workspace.CurrentCamera
 		if camera and not cameraTween then
 			camera.CFrame = ParkEdit.topCFrame()
@@ -947,7 +958,9 @@ local function onInputEnded(input: InputObject, processed: boolean)
 		return
 	end
 	press = nil
-	local at = if kind == Enum.UserInputType.Touch then toViewport(input.Position) else UserInputService:GetMouseLocation()
+	local at = if kind == Enum.UserInputType.Touch
+		then toViewport(input.Position)
+		else UserInputService:GetMouseLocation()
 	local moved = current.Moved or (at - current.Start).Magnitude > DRAG_PX
 	if kind == Enum.UserInputType.Touch then
 		pointer = nil -- 터치는 손을 떼면 가리키는 곳이 없음(들고 있는 명소는 마지막 자리에 떠 있음)
@@ -1042,7 +1055,16 @@ local function step(dt: number)
 		if hit and hit.Slot then
 			current.Target = slotTop(hit.Slot).Position
 		elseif hit and hit.Ground then
-			current.Target = hit.Ground
+			-- 칸이 없는 곳: 가리키는 바닥 위(부지 밖이면 부지 가장자리에서 멈춤), 받침대 윗면 높이
+			local cf = origin :: CFrame
+			local p = cf:PointToObjectSpace(hit.Ground)
+			current.Target = cf:PointToWorldSpace(
+				Vector3.new(
+					math.clamp(p.X, -ParkGrid.PLOT_WIDTH / 2, ParkGrid.PLOT_WIDTH / 2),
+					ParkGrid.BASE_TOP + ParkGrid.PEDESTAL_HEIGHT,
+					math.clamp(p.Z, -ParkGrid.PLOT_DEPTH / 2, ParkGrid.PLOT_DEPTH / 2)
+				)
+			)
 		end
 		current.Position = current.Position:Lerp(current.Target, 1 - math.exp(-FOLLOW * dt))
 		current.Angle = (current.Angle + SPIN_SPEED * dt) % (2 * math.pi)
@@ -1088,18 +1110,28 @@ end
 
 -- 카메라 · 이동 ----------------------------------------------------------------------
 
--- 위에서 보기 카메라 자리(휠로 가까이/멀리). 화면이 세로로 길면 조금 멀리
+-- 위에서 보기 카메라 자리: 상단바 아래 ~ 아래 띠 위 영역에 36칸이 딱 들어오게(ParkGrid.topView), 휠로 가까이/멀리
 function ParkEdit.topCFrame(): CFrame
 	local cf = origin :: CFrame
-	local distance = TOP_DISTANCE * zoom
 	local camera = workspace.CurrentCamera
-	local size = if camera then camera.ViewportSize else Vector2.new(16, 9)
-	local aspect = if size.Y > 0 then size.X / size.Y else 16 / 9
-	if aspect < 1.4 then
-		distance *= 1.4 / math.max(aspect, 0.4)
+	local viewport = if camera then camera.ViewportSize else Vector2.new(1280, 720)
+	local height = math.max(viewport.Y, 1)
+	local inset = guiInset()
+	local bottom = 0
+	if barTop then
+		bottom = (height - (barTop + inset.Y) + BAR_CLEAR) / height
 	end
-	local target = Vector3.new(0, ParkGrid.BASE_TOP, TOP_TARGET_Z)
-	local eye = target + Vector3.new(0, math.sin(TOP_PITCH), -math.cos(TOP_PITCH)) * distance
+	local view = ParkGrid.topView({
+		Aspect = viewport.X / height,
+		Fov = if camera then camera.FieldOfView else 70,
+		Top = (inset.Y + TOP_MARGIN) / height,
+		Bottom = bottom,
+		Left = SIDE_MARGIN,
+		Right = SIDE_MARGIN,
+		Zoom = zoom,
+	})
+	local eye = Vector3.new(view.Eye[1], view.Eye[2], view.Eye[3])
+	local target = Vector3.new(view.Target[1], view.Target[2], view.Target[3])
 	return CFrame.lookAt(cf:PointToWorldSpace(eye), cf:PointToWorldSpace(target))
 end
 
@@ -1426,7 +1458,8 @@ function renderBar()
 	task.defer(loadThumbs) -- 처음 보이는 프레임에는 스크롤 영역 크기가 아직 0 일 수 있음
 end
 
--- 띠 자리: 아래 가운데, 왼쪽 메뉴 묶음과 세로로 겹치면 그 오른쪽부터. 터치 전용 기기는 오른쪽 아래 점프 버튼 자리를 비움
+-- 띠 자리: 아래 가운데(배치 모드 동안 HUD 왼쪽 메뉴·굴리기 줄은 숨김). 터치 전용 기기는 오른쪽 아래 점프 버튼 자리를
+-- 비움([시점] 으로 평소 카메라를 쓰면 이동 조이스틱·점프 버튼이 다시 나옴). 자리가 바뀌면 위에서 보기 카메라도 다시 맞춤
 local function layoutBar()
 	if not bar then
 		return
@@ -1437,27 +1470,26 @@ local function layoutBar()
 	end
 	local scale = Ui.scale()
 	local left, right = BAR_EDGE, size.X - BAR_EDGE
-	local top = size.Y - BAR_BOTTOM - (BAR_HEIGHT + CHIP_ROW) * scale
-	local edge = handlers.MenuEdge()
-	if edge and edge.Y > top then
-		left = math.max(left, edge.X + 12)
-	end
 	if Ui.touchOnly() then
-		right -= if math.min(size.X, size.Y) <= 500 then 100 else 180
+		right -= if math.min(size.X, size.Y) <= 500 then BAR_JUMP.Small else BAR_JUMP.Large
 	end
 	local width = math.clamp(right - left, 200, BAR_MAX_WIDTH * scale)
-	bar.Position = UDim2.fromOffset((left + right) / 2, size.Y - BAR_BOTTOM)
+	local center = math.clamp(size.X / 2, left + width / 2, right - width / 2)
+	bar.Position = UDim2.fromOffset(center, size.Y - BAR_BOTTOM)
 	bar.Size = UDim2.fromOffset(width / scale, BAR_HEIGHT)
+	barTop = size.Y - BAR_BOTTOM - (BAR_HEIGHT + CHIP_ROW) * scale
 	loadThumbs()
+	local camera = workspace.CurrentCamera
+	if editing and viewMode == "Top" and origin and camera and not cameraTween then
+		camera.CFrame = ParkEdit.topCFrame()
+	end
 end
 
 local function barButton(name: string, icon: string, text: string, color: string, x: number, anchorRight: boolean)
 	return Ui.chunkyButton({
 		Name = name,
 		AnchorPoint = Vector2.new(if anchorRight then 1 else 0, 0.5),
-		Position = if anchorRight
-			then UDim2.new(1, -x, 0.5, 0)
-			else UDim2.new(0, x, 0.5, 0),
+		Position = if anchorRight then UDim2.new(1, -x, 0.5, 0) else UDim2.new(0, x, 0.5, 0),
 		Size = UDim2.fromOffset(BUTTON.X, BUTTON.Y),
 		Color = color,
 		Icon = icon,
@@ -1676,6 +1708,11 @@ local function begin(slot: number?)
 	folder.Parent = workspace
 
 	removeDetectors()
+	-- HUD 를 먼저 바꾸고(메뉴·굴리기 줄 숨김, 열린 창 닫기) 띠 자리를 잡은 뒤에 카메라(띠 위 영역에 맞춤)
+	handlers.Changed(true)
+	bar.Visible = true
+	layoutBar()
+	scroller.CanvasPosition = Vector2.zero
 	local camera = workspace.CurrentCamera
 	if camera then
 		savedCamera = { Type = camera.CameraType, Subject = camera.CameraSubject }
@@ -1694,10 +1731,6 @@ local function begin(slot: number?)
 		end)
 	end
 
-	bar.Visible = true
-	layoutBar()
-	scroller.CanvasPosition = Vector2.zero
-	handlers.Changed(true)
 	renderBar()
 	reconcile()
 
