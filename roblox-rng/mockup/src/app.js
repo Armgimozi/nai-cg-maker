@@ -291,7 +291,9 @@
     img.className = 'skin';
     img.dataset.skin = name;
     if (o.radius != null) {
+      // border-image 는 조각 사이에 가는 틈(이음새)이 생겨서, 화면을 다 만든 뒤 paintSkins 가 canvas 로 다시 그림
       const w = SLICE_MARGIN * sliceScale(o.radius, o.height);
+      img.dataset.slice = String(w);
       img.style.borderImage = `url(${ART[name]}) 64 fill / ${+w.toFixed(3)}px stretch`;
     } else {
       img.classList.add('stretch');
@@ -300,6 +302,57 @@
     applyLook(img, o.color, o.transparency || 0);
     target.insertBefore(img, target.firstChild);
     return img;
+  }
+
+  // 9-slice 를 canvas 한 장에 그림 (SliceCenter 64..192 / 256, 모서리 = 64 x SliceScale).
+  // 조각 경계를 정수 픽셀에 맞춰서 이음새가 없음. 물들이기(ImageColor3)는 부모 div 의 SVG 필터가 그대로 맡음.
+  const imageCache = {};
+  function loadImage(name) {
+    if (!imageCache[name]) {
+      imageCache[name] = new Promise((resolve) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = () => resolve(null);
+        image.src = ART[name];
+      });
+    }
+    return imageCache[name];
+  }
+  async function paintSkins(root) {
+    const OVERSAMPLE = 2;
+    for (const el of root.querySelectorAll('.skin[data-slice]')) {
+      const image = await loadImage(el.dataset.skin);
+      const width = el.clientWidth;
+      const height = el.clientHeight;
+      if (!image || !width || !height) continue;
+      const cw = Math.max(1, Math.round(width * OVERSAMPLE));
+      const ch = Math.max(1, Math.round(height * OVERSAMPLE));
+      let border = Number(el.dataset.slice) * OVERSAMPLE;
+      border *= Math.min(1, cw / (2 * border), ch / (2 * border)); // CSS/로블록스처럼 너무 크면 줄임
+      const b = Math.round(border);
+      const size = image.naturalWidth;
+      const margin = (size * SLICE_MARGIN) / 256;
+      const src = [0, margin, size - margin, size];
+      const xs = [0, b, cw - b, cw];
+      const ys = [0, b, ch - b, ch];
+      const canvas = document.createElement('canvas');
+      canvas.width = cw;
+      canvas.height = ch;
+      const ctx = canvas.getContext('2d');
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      for (let j = 0; j < 3; j++) {
+        for (let i = 0; i < 3; i++) {
+          const dw = xs[i + 1] - xs[i];
+          const dh = ys[j + 1] - ys[j];
+          if (dw <= 0 || dh <= 0) continue;
+          ctx.drawImage(image, src[i], src[j], src[i + 1] - src[i], src[j + 1] - src[j], xs[i], ys[j], dw, dh);
+        }
+      }
+      canvas.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;display:block';
+      el.style.borderImage = 'none';
+      el.appendChild(canvas);
+    }
   }
 
   // Ui.label: TextScaled + 최대 크기, 기본 FredokaOne / Ink 글자 / 가운데 정렬
@@ -334,13 +387,14 @@
     'data:image/svg+xml;utf8,' + encodeURIComponent(`<svg xmlns="${SVG_NS}" viewBox="0 0 100 100">${body}</svg>`);
   const ICON3D = {
     plane: svgUri(`<g transform="rotate(-14 50 58)">
-      <path d="M44 56 L58 56 L54 30 L49 30 Z" fill="#2a78d0"/>
-      <path d="M17 60 L27 60 L25 36 L19 36 Z" fill="#ff5e5b"/>
-      <ellipse cx="50" cy="60" rx="35" ry="9.5" fill="#f4f6fb"/>
-      <ellipse cx="50" cy="64" rx="33" ry="5" fill="#d9dfeb"/>
-      <path d="M76 55.5 Q84 56.5 84.5 59.5 L76 59.5 Z" fill="#263e8c"/>
-      <path d="M40 62 L63 62 L55 90 L46 90 Z" fill="#39a0ff"/>
-      <path d="M14 60 L30 60 L28 66 L16 66 Z" fill="#39a0ff"/></g>`),
+      <path d="M44 53 L58 53 L68 28 L59 28 Z" fill="#2a78d0"/>
+      <path d="M13 57 L26 57 L22 30 L13 30 Z" fill="#ff5e5b"/>
+      <rect x="11" y="50" width="72" height="17" rx="8.5" fill="#f4f6fb"/>
+      <rect x="11" y="59" width="72" height="8" rx="4" fill="#d9dfeb"/>
+      <circle cx="83" cy="58.5" r="8.5" fill="#f4f6fb"/>
+      <rect x="71" y="50.5" width="10" height="5" rx="1.5" fill="#263e8c"/>
+      <path d="M40 61 L61 61 L50 90 L33 90 Z" fill="#39a0ff"/>
+      <path d="M9 58 L27 58 L23 67 L7 67 Z" fill="#39a0ff"/></g>`),
     ticket: svgUri(`<g transform="rotate(-12 50 50)">
       <rect x="10" y="30" width="60" height="40" rx="3" fill="#ff5e5b"/>
       <rect x="10" y="64" width="60" height="6" rx="2" fill="#d94b48"/>
@@ -743,7 +797,7 @@
     for (const item of items) {
       const landmark = ById[item.LandmarkId];
       const tier = landmark.Tier;
-      const row = gui(news, { flow: true, size: [1, 0, 0, 54] });
+      const row = gui(news, { name: 'NewsItem', flow: true, size: [1, 0, 0, 54] });
       const slide = gui(row, { anchor: [0.5, 0.5], pos: [0.5, 0, 0.5, 0], size: [1, 0, 1, 0] });
       const bar = gui(slide, { pos: [0, 56, 0, 4], size: [1, -56, 1, -8], bg: Theme.Cream, z: 1, corner: 10, stroke: [Theme.Ink, 3] });
       skin(bar, 'panel_paper', { radius: 10, height: 46 });
@@ -1154,7 +1208,7 @@
       <path d="M598 240 q18 -22 44 -10 q14 10 4 26 q-12 16 -30 10 q-22 -6 -18 -26z M660 290 q16 -8 28 6 q6 18 -10 28 q-18 6 -24 -10 q-2 -14 6 -24z M588 300 q12 -6 18 6 q2 14 -10 16 q-12 0 -8 -22z" fill="#58c46a"/>
       <ellipse cx="612" cy="236" rx="18" ry="10" fill="#ffffff" opacity="0.35"/>
       <rect x="636" y="352" width="8" height="14" fill="#e1a92c"/>
-      <g transform="translate(640 560)">
+      <g transform="translate(640 572) scale(0.78)">
         <ellipse cx="0" cy="8" rx="46" ry="10" fill="#000" opacity="0.12"/>
         <rect x="-26" y="-58" width="24" height="60" rx="4" fill="#3f8f4b"/><rect x="2" y="-58" width="24" height="60" rx="4" fill="#3f8f4b"/>
         <rect x="-28" y="-122" width="56" height="66" rx="6" fill="#2f6fc2"/>
@@ -1339,6 +1393,111 @@
     });
   }
 
+  // --- 미리보기에서 드러난 점 (게임 코드 그대로 그렸을 때 생기는 문제) ---------------------------
+  const rectIn = (el, screen) => {
+    const r = el.getBoundingClientRect();
+    const s = screen.getBoundingClientRect();
+    const k = s.width / 1280;
+    return { left: (r.left - s.left) / k, right: (r.right - s.left) / k, top: (r.top - s.top) / k, bottom: (r.bottom - s.top) / k };
+  };
+  async function ribbonBand() {
+    // ribbon.png 가운데 세로줄에서 띠(Ink 테두리 포함)의 위/아래 끝
+    const image = await loadImage('ribbon');
+    if (!image) return null;
+    const canvas = document.createElement('canvas');
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(image, 0, 0);
+    const x = Math.floor(image.naturalWidth / 2);
+    const column = ctx.getImageData(x, 0, 1, image.naturalHeight).data;
+    let top = -1;
+    let bottom = -1;
+    for (let y = 0; y < image.naturalHeight; y++) {
+      if (column[y * 4 + 3] > 200) {
+        if (top < 0) top = y;
+        bottom = y;
+      }
+    }
+    return top < 0 ? null : { top, bottom: bottom + 1, size: image.naturalHeight };
+  }
+  // 9-slice 세로 위치: 그림 속 y -> 화면 y (모서리 = 64 x scale, 가운데는 늘임)
+  function sliceMapY(y, height, scale, size) {
+    const m = (size * SLICE_MARGIN) / 256;
+    const c = SLICE_MARGIN * scale;
+    if (y <= m) return (y / m) * c;
+    if (y >= size - m) return height - ((size - y) / m) * c;
+    return c + ((y - m) / (size - 2 * m)) * (height - 2 * c);
+  }
+
+  async function findings() {
+    const items = [];
+    // 1) 속보 띠 vs 초당 수입 칩
+    const s1 = document.getElementById('screen1');
+    const income = s1 && s1.querySelector('[data-name="Income"]');
+    const newsItem = s1 && s1.querySelector('[data-name="NewsItem"]');
+    if (income && newsItem) {
+      const a = rectIn(income, s1);
+      const b = rectIn(newsItem, s1);
+      const dx = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+      const dy = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+      if (dx > 0 && dy > 0) {
+        items.push(
+          `<b>속보 띠가 초당 수입 칩을 가림</b> (1번 화면): 1280×720 에서 속보 띠 왼쪽 끝이 수입 칩과 가로 약 ${Math.round(dx)}px 겹칩니다. ` +
+            `속보 띠는 화면 가운데 기준 폭 720(×0.9), 스탯 묶음은 왼쪽 위 폭 420(×0.9)이라 화면 가로가 좁으면(1280px, 4:3 태블릿 등) 부딪힘. 1920×1080 에서는 안 겹침.`
+        );
+      }
+    }
+    // 2) 리본 제목: 띠보다 글자가 크고 아래로 처짐
+    const band = await ribbonBand();
+    if (band) {
+      const cases = [
+        { what: '창 제목 리본(Ui.window)', height: RIBBON_HEIGHT, radius: 14, labelTop: 5, labelBottom: RIBBON_HEIGHT - 5, sel: '#screen3 [data-name="Title"]' },
+        { what: '명소 공개 등급 리본(Hud)', height: 44, radius: 12, labelTop: 4, labelBottom: 40, sel: '#screen2 [data-name="TierRibbon"] .lbl' },
+      ];
+      const parts = [];
+      for (const c of cases) {
+        const scale = sliceScale(c.radius, c.height);
+        const top = sliceMapY(band.top, c.height, scale, band.size);
+        const bottom = sliceMapY(band.bottom, c.height, scale, band.size);
+        const labelEl = document.querySelector(c.sel);
+        const span = labelEl && labelEl.querySelector(':scope > span');
+        const fontSize = span ? parseFloat(span.style.fontSize) : NaN;
+        const drop = (c.labelTop + c.labelBottom) / 2 - (top + bottom) / 2;
+        if (fontSize > (bottom - top) * 0.9 || Math.abs(drop) > 3) {
+          parts.push(
+            `${c.what}: 틀 높이 ${c.height}px 중 그려지는 띠는 약 ${Math.round(bottom - top)}px(SliceScale ${scale.toFixed(2)}), 글자는 ${Math.round(fontSize)}px, 글자 중심이 띠 중심보다 ${Math.round(drop)}px 아래`
+          );
+        }
+      }
+      if (parts.length) {
+        items.push(
+          `<b>리본 제목 글자가 리본 띠보다 크고 아래로 처짐</b>: ${parts.join(' / ')}. ` +
+            `ribbon.png 는 띠가 그림 위쪽(y ${band.top}~${band.bottom} / ${band.size})에만 있어서, 모서리 반지름으로 SliceScale 을 정하면 띠가 얇아짐 ` +
+            `(art/README 권장: SliceScale = 높이/256, 글자 상자도 띠 위치에 맞춰 올리기).`
+        );
+      }
+    }
+    // 3) 알약 두 번 물들이기
+    items.push(
+      '<b>알약(코인 알약·보너스 알약)이 거의 검정</b>: pill.png 는 이미 Ink 색인데 Ui.box 가 ImageColor3 = Ink 를 한 번 더 곱해서 ' +
+        '반투명 거의-검정이 되고 위쪽 광택 줄이 사라짐(art/README: pill 은 물들이지 않음). 미리보기도 코드대로 곱해서 그렸습니다.'
+    );
+    // 4) 종이 결 늘어남
+    const stretch = (WINDOW_SIZE[0] - 2 * SLICE_MARGIN * sliceScale(18)) / 128;
+    items.push(
+      `<b>(작은 것)</b> 창 종이(panel_paper) 가운데 조각이 가로 약 ${stretch.toFixed(1)}배로 늘어나 종이 점무늬가 가로로 긴 얼룩처럼 보임(9-slice 가운데는 늘이기만 됨).`
+    );
+    const section = document.getElementById('findings');
+    if (section) {
+      section.innerHTML =
+        '<h2>미리보기에서 드러난 점 <span class="sub">(게임 코드 그대로 그렸을 때)</span></h2><ol>' +
+        items.map((t) => `<li>${t}</li>`).join('') +
+        '</ol>';
+    }
+    return items;
+  }
+
   async function main() {
     const shots = document.getElementById('shots');
     if (SHOT_MODE) document.body.classList.add('shot-mode');
@@ -1367,9 +1526,16 @@
       Array.from(document.images).map((img) => (img.complete ? null : new Promise((r) => (img.onload = img.onerror = r))))
     );
     fitAll(document);
+    await paintSkins(document);
     fitFrames();
+    let found = [];
+    try {
+      found = await findings();
+    } catch (e) {
+      console.warn('findings', e);
+    }
     window.addEventListener('resize', fitFrames);
-    window.__MOCKUP = { STATE, SHOTS: SHOTS.map((s) => s.id), fonts: window.FONTS_EMBEDDED };
+    window.__MOCKUP = { STATE, SHOTS: SHOTS.map((s) => s.id), fonts: window.FONTS_EMBEDDED, findings: found };
     window.__MOCKUP_READY = true;
   }
 
