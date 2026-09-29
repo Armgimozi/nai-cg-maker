@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- arrow_up: chunky green "upgrade" arrow. -->
+  <defs>
+    <polygon id="a" stroke-linejoin="round" points="128,38 210,122 164,122 164,208 92,208 92,122 46,122"/>
+    <mask id="m"><use href="#a" fill="#fff" stroke="#fff" stroke-width="20"/></mask>
+  </defs>
+  <g fill="#1E1B2E" stroke="#1E1B2E" stroke-width="44">
+    <use href="#a" transform="translate(0,7)"/>
+    <use href="#a"/>
+  </g>
+  <use href="#a" fill="#2E9E45" stroke="#2E9E45" stroke-width="20"/>
+  <g mask="url(#m)"><use href="#a" transform="translate(-6,-9)" fill="#4CD964" stroke="#4CD964" stroke-width="20"/></g>
+  <path d="M60,114 L120,50" stroke="#DFFFE4" stroke-width="11" stroke-linecap="round"/>
+  <path d="M100,132 V176" stroke="#DFFFE4" stroke-width="10" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- auto: auto-roll. Two chasing white arrows (loop) around a gold play triangle.
+       White body so it reads on both the grey (off) and orange (on) button. -->
+  <defs>
+    <g id="loop" stroke-linecap="round" stroke-linejoin="round">
+      <path fill="none" d="M62.2,104.1 A70,70 0 0 1 180,82"/>
+      <polygon points="196.2,112.3 207.9,67.8 159.9,103.9"/>
+      <path fill="none" d="M193.8,151.9 A70,70 0 0 1 76,174"/>
+      <polygon points="59.8,143.7 48.1,188.2 96.1,152.1"/>
+    </g>
+    <polygon id="play" stroke-linejoin="round" points="112,98 160,128 112,158"/>
+  </defs>
+  <g transform="rotate(-8 128 128)">
+    <g fill="#1E1B2E" stroke="#1E1B2E">
+      <g transform="translate(0,7)"><use href="#loop" stroke-width="48"/><use href="#play" stroke-width="40"/></g>
+      <use href="#loop" stroke-width="48"/>
+      <use href="#play" stroke-width="40"/>
+    </g>
+    <!-- arrows: shade then lit -->
+    <use href="#loop" fill="#B9B3D1" stroke="#B9B3D1" stroke-width="24"/>
+    <g transform="translate(-2,-4)"><use href="#loop" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="17"/></g>
+    <!-- play -->
+    <use href="#play" fill="#D9900F" stroke="#D9900F" stroke-width="16"/>
+    <g transform="translate(-3,-4)"><use href="#play" fill="#FFC53D" stroke="#FFC53D" stroke-width="10"/></g>
+    <path d="M110,108 V126" stroke="#FFF6D6" stroke-width="7" stroke-linecap="round"/>
+  </g>
+</svg>

@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- album: sky-blue photo album with binder rings, a taped polaroid and a coral bookmark. -->
+  <defs>
+    <rect id="cover" x="60" y="34" width="140" height="180" rx="18"/>
+    <rect id="pages" x="70" y="40" width="138" height="178" rx="16"/>
+    <path id="mark" d="M150,200 V232 L164,221 L178,232 V200 Z" stroke-linejoin="round"/>
+    <mask id="cm"><use href="#cover" fill="#fff"/></mask>
+    <mask id="ph"><rect x="98" y="72" width="80" height="70" rx="4" fill="#fff"/></mask>
+  </defs>
+  <g transform="rotate(5 128 128)">
+    <g fill="#1E1B2E" stroke="#1E1B2E" stroke-linejoin="round">
+      <g transform="translate(0,7)" stroke-width="24"><use href="#pages"/><use href="#cover"/><use href="#mark"/></g>
+      <g stroke-width="24"><use href="#pages"/><use href="#cover"/><use href="#mark"/></g>
+      <g stroke-width="0">
+        <rect x="42" y="56" width="36" height="26" rx="13"/>
+        <rect x="42" y="111" width="36" height="26" rx="13"/>
+        <rect x="42" y="166" width="36" height="26" rx="13"/>
+      </g>
+    </g>
+    <!-- bookmark ribbon -->
+    <use href="#mark" fill="#FF5E5B"/>
+    <path d="M170,206 V222" stroke="#C93A38" stroke-width="5" stroke-linecap="round"/>
+    <!-- pages -->
+    <use href="#pages" fill="#E9C98A"/>
+    <path d="M202,62 V200" stroke="#FFF4DC" stroke-width="5" stroke-linecap="round"/>
+    <!-- cover -->
+    <use href="#cover" fill="#1F6FCC"/>
+    <g mask="url(#cm)"><use href="#cover" transform="translate(-6,-8)" fill="#39A0FF"/></g>
+    <use href="#cover" fill="none" stroke="#1E1B2E" stroke-width="6"/>
+    <!-- binder rings -->
+    <g fill="#FFC53D" stroke="#1E1B2E" stroke-width="6">
+      <rect x="48" y="62" width="26" height="14" rx="7"/>
+      <rect x="48" y="117" width="26" height="14" rx="7"/>
+      <rect x="48" y="172" width="26" height="14" rx="7"/>
+    </g>
+    <!-- polaroid -->
+    <g transform="rotate(-9 138 118)">
+      <rect x="88" y="62" width="100" height="112" rx="6" fill="#FFFFFF" stroke="#1E1B2E" stroke-width="7"/>
+      <path d="M92,170 H184" stroke="#DCD6E8" stroke-width="6"/>
+      <g mask="url(#ph)">
+        <rect x="98" y="72" width="80" height="70" fill="#9AD2FF"/>
+        <circle cx="158" cy="92" r="11" fill="#FFC53D"/>
+        <path d="M90,146 L118,102 L134,124 L146,110 L186,146 Z" fill="#4CD964"/>
+        <path d="M118,102 L134,124 L128,146 Z" fill="#2E9E45"/>
+      </g>
+      <rect x="98" y="72" width="80" height="70" rx="4" fill="none" stroke="#1E1B2E" stroke-width="5"/>
+      <!-- tape -->
+      <rect x="118" y="50" width="40" height="20" rx="3" fill="#FFF4DC" opacity=".85" transform="rotate(6 138 60)"/>
+    </g>
+    <!-- highlight -->
+    <path d="M84,196 V60 Q84,48 96,46" fill="none" stroke="#B9E0FF" stroke-width="8" stroke-linecap="round"/>
+  </g>
+</svg>

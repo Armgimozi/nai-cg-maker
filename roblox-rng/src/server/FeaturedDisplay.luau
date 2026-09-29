@@ -1,10 +1,35 @@
 -- 대표 명소를 캐릭터에 표시: 오른쪽 어깨 옆에 작은 모형이 붙어 다니고, 머리 위에 명소 이름표
 -- 모형은 HumanoidRootPart 에 용접(Weld)해서 캐릭터와 함께 움직입니다(무게 없음, 충돌 없음).
 -- 이름표는 UI 스타일 가이드 v2 를 따름: 등급 색 통통한 딱지 + 흰 FredokaOne 글자 + Ink 테두리(이모지 없음).
+-- Shared/ImageIds.star 그림이 있으면 이름 왼쪽에 작은 별 아이콘을 붙임.
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Landmarks = require(Shared.Landmarks)
 local Models = require(Shared.Models)
+
+-- 그림 Id 표 (없거나 깨져도 코드로 그린 모양으로 동작)
+local function loadImageIds(): { [string]: any }
+	local module = Shared:FindFirstChild("ImageIds")
+	if module and module:IsA("ModuleScript") then
+		local ok, result = pcall(require, module)
+		if ok and type(result) == "table" then
+			return result
+		end
+	end
+	return {}
+end
+local ImageIds = loadImageIds()
+
+-- 그림 Id ("rbxassetid://...") 또는 nil
+local function imageId(name: string): string?
+	local value = ImageIds[name]
+	if type(value) == "number" then
+		return "rbxassetid://" .. tostring(value)
+	elseif type(value) == "string" and value ~= "" then
+		return if value:match("^%d+$") then "rbxassetid://" .. value else value
+	end
+	return nil
+end
 
 local FX_NAME = "FeaturedLandmark"
 local MODEL_SIZE = 2.4
@@ -81,9 +106,11 @@ local function attachLabel(character: Model, landmark: Landmarks.Landmark)
 	if not head or not head:IsA("BasePart") then
 		return
 	end
-	-- 한글 한 글자 폭 ≈ 글자 높이(약 0.7 스터드) + 양옆 여백
+	-- 한글 한 글자 폭 ≈ 글자 높이(약 0.7 스터드) + 양옆 여백. 별 아이콘이 있으면 그만큼 넓힘
 	local chars = utf8.len(landmark.Name) or #landmark.Name
-	local width = math.clamp(chars * 0.72 + 0.9, 2.6, 8)
+	local starId = imageId("star")
+	local iconWidth = if starId then TAG_HEIGHT * 0.9 else 0
+	local width = math.clamp(chars * 0.72 + 0.9, 2.6, 8) + iconWidth
 
 	local billboard = Instance.new("BillboardGui")
 	billboard.Name = FX_NAME
@@ -130,12 +157,27 @@ local function attachLabel(character: Model, landmark: Landmarks.Landmark)
 	label.TextColor3 = WHITE
 	stroke(label, 2)
 	local pad = Instance.new("UIPadding")
-	pad.PaddingLeft = UDim.new(0.08, 0)
+	pad.PaddingLeft = UDim.new(0.08 + iconWidth / width, 0)
 	pad.PaddingRight = UDim.new(0.08, 0)
 	pad.PaddingTop = UDim.new(0.14, 0)
 	pad.PaddingBottom = UDim.new(0.14, 0)
 	pad.Parent = label
 	label.Parent = face
+
+	if starId then
+		-- 이름 왼쪽 별 (딱지 높이보다 조금 커서 위아래로 살짝 삐져나옴)
+		local star = Instance.new("ImageLabel")
+		star.Name = "Star"
+		star.BackgroundTransparency = 1
+		star.Image = starId
+		star.ScaleType = Enum.ScaleType.Fit
+		star.SizeConstraint = Enum.SizeConstraint.RelativeYY
+		star.Size = UDim2.fromScale(1.3, 1.3)
+		star.AnchorPoint = Vector2.new(0, 0.5)
+		star.Position = UDim2.new(0, 0, 0.5, 0)
+		star.ZIndex = 3
+		star.Parent = face
+	end
 
 	billboard.Parent = head
 end

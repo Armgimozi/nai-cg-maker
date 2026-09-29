@@ -6,8 +6,9 @@
 -- 전시 칸: 6x6 격자. 입구에 가까운 줄부터, 한 줄 안에서는 가운데에 가까운 칸부터 채워서
 --   가장 희귀한 명소가 입구 정면에 오도록 합니다.
 -- update 는 칸마다 이전 상태를 기억해 두고 바뀐 칸만 다시 만듭니다(별 개수는 이름표 글자만 바꿈).
--- 간판: 주인이 있으면 입구 아치(나무 판자 + Ink 테두리 + 크림 글자판 + 초록 수입 알약),
---   빈 부지는 길 옆 낮은 말뚝 간판만 세워서 빈 부지가 20곳 넘어도 광장에서 볼 때 어지럽지 않게 합니다.
+-- 간판: 주인이 있으면 입구 아치(나무 판자 + Ink 테두리 + 크림 글자판: 공원 아이콘 + 이름, 초록 알약: 동전 + "+X/s"),
+--   빈 부지는 길 옆 낮은 말뚝 간판("빈 부지")만 세워서 빈 부지가 20곳 넘어도 광장에서 볼 때 어지럽지 않게 합니다.
+-- 그림: Shared/ImageIds 에 park/coin 아이콘, panel_paper/pill 스킨 Id 가 있으면 간판에 그 그림을 씀(없으면 코드로 그림).
 -- 장식: 둘레 색 띠 + 네 귀퉁이 덤불 + 옆·뒤 낮은 울타리(입구 쪽은 비움). 위에서 봐도 부지가 구분됩니다.
 -- 글자 스타일은 DESIGN.md "UI 스타일 가이드 v2" 를 따름(FredokaOne, Ink 테두리, 이모지 없음).
 
@@ -19,6 +20,19 @@ local Format = require(Shared.Format)
 local Landmarks = require(Shared.Landmarks)
 local Models = require(Shared.Models)
 local PlayerState = require(Shared.PlayerState)
+
+-- 그림 Id 표 (없거나 깨져도 코드로 그린 모양으로 동작)
+local function loadImageIds(): { [string]: any }
+	local module = Shared:FindFirstChild("ImageIds")
+	if module and module:IsA("ModuleScript") then
+		local ok, result = pcall(require, module)
+		if ok and type(result) == "table" then
+			return result
+		end
+	end
+	return {}
+end
+local ImageIds = loadImageIds()
 
 local INNER_RADIUS = 115
 local OUTER_RADIUS = 210
@@ -80,7 +94,9 @@ local FONT = Enum.Font.FredokaOne
 local EMPTY_STAR_HEX = Format.hex(STAR_EMPTY)
 
 local EMPTY_TITLE = "빈 부지"
-local EMPTY_SUBTITLE = "주인을 기다리는 중"
+local COIN_DEEP = Color3.fromRGB(217, 144, 15)
+local SLICE_CENTER = Rect.new(64, 64, 192, 192) -- 스킨 그림(256x256) 9-slice
+local SKIN_RADIUS = 50 -- 스킨 그림 속 모서리 반지름(px)
 
 -- 칸 상태 키: 명소 Id 이거나 아래 둘 중 하나(명소 Id 는 '#' 으로 시작하지 않음)
 local KEY_LOCKED = "#locked"
@@ -226,8 +242,114 @@ local function padding(gui: GuiObject, x: UDim, y: UDim)
 	pad.Parent = gui
 end
 
+-- 그림 Id ("rbxassetid://...") 또는 nil
+local function imageId(name: string): string?
+	local value = ImageIds[name]
+	if type(value) == "number" then
+		return "rbxassetid://" .. tostring(value)
+	elseif type(value) == "string" and value ~= "" then
+		return if value:match("^%d+$") then "rbxassetid://" .. value else value
+	end
+	return nil
+end
+
+-- 스킨 그림(9-slice)을 깔고 상자의 바탕·테두리·그라데이션은 끔. 그림이 없으면 아무것도 안 함.
+-- radius: 화면에서 보일 모서리 반지름(px, 간판은 PixelsPerStud 기준)
+local function skin(gui: GuiObject, name: string, color: Color3, radius: number, height: number?)
+	local id = imageId(name)
+	if not id then
+		return
+	end
+	gui.BackgroundTransparency = 1
+	for _, child in gui:GetChildren() do
+		if child:IsA("UIStroke") or child:IsA("UIGradient") then
+			child.Enabled = false
+		end
+	end
+	local scale = radius / SKIN_RADIUS
+	if height then
+		scale = math.min(scale, height / 2 / 64)
+	end
+	local image = Instance.new("ImageLabel")
+	image.Name = "Skin"
+	image.BackgroundTransparency = 1
+	image.Size = UDim2.fromScale(1, 1)
+	image.Image = id
+	image.ImageColor3 = color
+	image.ScaleType = Enum.ScaleType.Slice
+	image.SliceCenter = SLICE_CENTER
+	image.SliceScale = scale
+	image.ZIndex = 0
+	image.Parent = gui
+end
+
+-- 그림이 없을 때 쓰는 동전: 해 색 동그라미 + Ink 테두리 + 안쪽 진한 고리
+local function drawCoin(box: Frame)
+	local coin = frame(box, UDim2.fromScale(1, 1), UDim2.new(), SUN)
+	coin.ZIndex = 3
+	corner(coin, UDim.new(0.5, 0))
+	stroke(coin, 4)
+	local ring = frame(coin, UDim2.fromScale(0.58, 0.58), UDim2.fromScale(0.5, 0.5), SUN)
+	ring.AnchorPoint = Vector2.new(0.5, 0.5)
+	ring.BackgroundTransparency = 1
+	ring.ZIndex = 4
+	corner(ring, UDim.new(0.5, 0))
+	local line = Instance.new("UIStroke")
+	line.Thickness = 5
+	line.Color = COIN_DEEP
+	line.Parent = ring
+end
+
+-- 그림이 없을 때 쓰는 공원 아이콘: 동그란 나무(초록 잎 + 갈색 줄기)
+local function drawTree(box: Frame)
+	local trunk = frame(box, UDim2.fromScale(0.22, 0.42), UDim2.fromScale(0.5, 1), WOOD_DARK)
+	trunk.AnchorPoint = Vector2.new(0.5, 1)
+	trunk.ZIndex = 3
+	stroke(trunk, 4)
+	local leaves = frame(box, UDim2.fromScale(0.86, 0.72), UDim2.fromScale(0.5, 0), BUSH_COLOR)
+	leaves.AnchorPoint = Vector2.new(0.5, 0)
+	leaves.ZIndex = 4
+	corner(leaves, UDim.new(0.5, 0))
+	stroke(leaves, 4)
+end
+
+-- 정사각 아이콘 자리(부모 높이 기준 크기). 그림 Id 가 있으면 ImageLabel, 없으면 fallback 으로 그림
+local function icon(
+	parent: GuiObject,
+	name: string,
+	size: number,
+	position: UDim2,
+	anchor: Vector2,
+	fallback: (Frame) -> ()
+): Frame
+	local box = Instance.new("Frame")
+	box.Name = "Icon"
+	box.BackgroundTransparency = 1
+	box.SizeConstraint = Enum.SizeConstraint.RelativeYY
+	box.Size = UDim2.fromScale(size, size)
+	box.Position = position
+	box.AnchorPoint = anchor
+	box.ZIndex = 3
+	local id = imageId(name)
+	if id then
+		local image = Instance.new("ImageLabel")
+		image.Name = "Image"
+		image.BackgroundTransparency = 1
+		image.Size = UDim2.fromScale(1, 1)
+		image.Image = id
+		image.ScaleType = Enum.ScaleType.Fit
+		image.ZIndex = 3
+		image.Parent = box
+	else
+		fallback(box)
+	end
+	box.Parent = parent
+	return box
+end
+
 -- 통통한 딱지: 어두운 그림자 판(drop 만큼 아래) 위에 색 앞면(위쪽이 살짝 밝음).
--- position 은 딱지 윗변 가운데. 반환: 앞면(글자를 넣을 곳)
+-- position 은 딱지 윗변 가운데. skinName/pixelHeight 를 주면 그 스킨 그림을 씀(간판처럼 픽셀 크기가 고정된 곳만).
+-- 반환: 앞면(글자를 넣을 곳)
 local function chunky(
 	parent: Instance,
 	size: UDim2,
@@ -235,7 +357,9 @@ local function chunky(
 	drop: UDim,
 	color: Color3,
 	shadowColor: Color3,
-	thickness: number
+	thickness: number,
+	skinName: string?,
+	pixelHeight: number?
 ): Frame
 	local shadow = frame(parent, size, position + UDim2.new(UDim.new(), drop), shadowColor)
 	shadow.Name = "Shadow"
@@ -254,6 +378,11 @@ local function chunky(
 	shine.Color = ColorSequence.new(WHITE, Color3.fromRGB(214, 214, 214))
 	shine.Rotation = 90 -- 위 → 아래
 	shine.Parent = face
+
+	if skinName and pixelHeight then
+		skin(shadow, skinName, shadowColor, pixelHeight / 2, pixelHeight)
+		skin(face, skinName, color, pixelHeight / 2, pixelHeight)
+	end
 	return face
 end
 
@@ -266,8 +395,13 @@ local function starText(stars: number): string
 	return text
 end
 
+-- 초당 수입 짧게: "+13.5/s", "+12.5K/s"
 local function incomeText(income: number): string
-	return "관광 수입 +" .. Format.commas(income) .. "/초"
+	if income < 100 then
+		local text = string.format("%.1f", math.floor(income * 10) / 10):gsub("%.0$", "")
+		return "+" .. text .. "/s"
+	end
+	return "+" .. Format.short(income) .. "/s"
 end
 
 -- 간판 ---------------------------------------------------------------------
@@ -284,7 +418,11 @@ local function surfaceGui(board: BasePart, face: Enum.NormalId): SurfaceGui
 	return gui
 end
 
--- 주인 간판 한 면: 가장자리에 나무가 보이는 크림 글자판 + 제목(Ink) + 초록 수입 알약. 반환: 제목, 수입 라벨
+-- 주인 간판 한 면: 가장자리에 나무가 보이는 크림 글자판 + [공원 아이콘] 이름(Ink) + 초록 알약 [동전] "+X/s".
+-- 반환: 제목, 수입 라벨
+local PANEL_HEIGHT = BOARD_SIZE.Y * 40 - 36 -- 글자판 높이(px, PixelsPerStud 40)
+local TITLE_SIDE = 130 -- 제목 양옆 여백(px): 왼쪽엔 공원 아이콘, 오른쪽은 가운데 정렬용
+
 local function signFace(board: BasePart, face: Enum.NormalId): (TextLabel, TextLabel)
 	local gui = surfaceGui(board, face)
 	local panel = frame(gui, UDim2.new(1, -40, 1, -36), UDim2.fromScale(0.5, 0.5), CREAM)
@@ -292,15 +430,27 @@ local function signFace(board: BasePart, face: Enum.NormalId): (TextLabel, TextL
 	panel.AnchorPoint = Vector2.new(0.5, 0.5)
 	corner(panel, UDim.new(0, 24))
 	stroke(panel, 6)
+	skin(panel, "panel_paper", WHITE, 24)
 
-	local title = textLabel(panel, UDim2.new(1, -48, 0.46, 0), UDim2.new(0, 24, 0.06, 0), INK)
+	icon(panel, "park", 0.42, UDim2.new(0, 34, 0.06, 0), Vector2.new(0, 0), drawTree)
+	local title = textLabel(panel, UDim2.new(1, -TITLE_SIDE * 2, 0.46, 0), UDim2.new(0, TITLE_SIDE, 0.06, 0), INK)
 	title.Name = "Title"
 
-	local pill =
-		chunky(panel, UDim2.fromScale(0.62, 0.34), UDim2.fromScale(0.5, 0.56), UDim.new(0, 6), GRASS, GRASS_SHADOW, 4)
+	local pill = chunky(
+		panel,
+		UDim2.fromScale(0.62, 0.34),
+		UDim2.fromScale(0.5, 0.56),
+		UDim.new(0, 6),
+		GRASS,
+		GRASS_SHADOW,
+		4,
+		"pill",
+		math.floor(PANEL_HEIGHT * 0.34)
+	)
+	icon(pill, "coin", 0.82, UDim2.new(0, 10, 0.5, 0), Vector2.new(0, 0.5), drawCoin)
 	local income = textLabel(pill, UDim2.fromScale(1, 1), UDim2.new(), WHITE)
 	income.Name = "Income"
-	padding(income, UDim.new(0.06, 0), UDim.new(0.14, 0))
+	padding(income, UDim.new(0.14, 0), UDim.new(0.14, 0))
 	stroke(income, 3)
 	return title, income
 end
@@ -388,13 +538,11 @@ local function buildEmptySign(cf: CFrame): Model
 	panel.AnchorPoint = Vector2.new(0.5, 0.5)
 	corner(panel, UDim.new(0, 14))
 	stroke(panel, 4)
+	skin(panel, "panel_paper", WHITE, 14)
 
-	local title = textLabel(panel, UDim2.new(1, -16, 0.54, 0), UDim2.new(0, 8, 0.08, 0), INK)
+	local title = textLabel(panel, UDim2.new(1, -24, 0.7, 0), UDim2.new(0, 12, 0.15, 0), INK)
 	title.Text = EMPTY_TITLE
 	title.TextTransparency = 0.15
-	local subtitle = textLabel(panel, UDim2.new(1, -28, 0.26, 0), UDim2.new(0, 14, 0.64, 0), INK)
-	subtitle.Text = EMPTY_SUBTITLE
-	subtitle.TextTransparency = 0.4
 	return sign
 end
 
@@ -659,7 +807,7 @@ function ParkService.assign(player: Player): number?
 		if not plot.Owner then
 			plot.Owner = player
 			plotByPlayer[player] = plot
-			setSign(plot, player.DisplayName .. " 님의 관광 공원", incomeText(0))
+			setSign(plot, player.DisplayName, incomeText(0))
 			showSign(plot, true)
 			return plot.Index
 		end
@@ -711,7 +859,7 @@ function ParkService.update(player: Player, data: PlayerState.Data)
 		end
 	end
 
-	setSign(plot, player.DisplayName .. " 님의 관광 공원", incomeText(PlayerState.incomePerSecond(data)))
+	setSign(plot, player.DisplayName, incomeText(PlayerState.incomePerSecond(data)))
 end
 
 -- 공원 입구 안쪽 바닥(부지 윗면)에서 공원 안쪽을 바라보는 CFrame. 부지가 없으면 nil.

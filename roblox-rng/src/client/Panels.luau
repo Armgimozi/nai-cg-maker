@@ -1,5 +1,6 @@
--- 메뉴 창: 컬렉션(대표 지정), 여권(지역별 발견 현황 + 도장), 업그레이드
--- 크림색 창(Ui.window) 하나를 쓰고, 화면마다 리본 색과 제목만 바꿉니다.
+-- 메뉴 창: 도감(대표 지정), 여권(지역별 발견 현황 + 도장), 강화(업그레이드)
+-- 크림색 창(Ui.window) 하나를 쓰고, 화면마다 리본 색과 제목(2글자)만 바꿉니다.
+-- 글자는 최소로: 설명 문장 없이 아이콘 + 숫자 딱지로 보여 줍니다.
 -- 화면마다 카드를 한 번 만들고 상태가 바뀌면 글자/색만 고칩니다. 썸네일(ViewportFrame)은
 -- 새로 발견했을 때만 만들어서, 자동 굴림 중에 창을 열어 둬도 매번 다시 만들지 않습니다.
 
@@ -27,30 +28,19 @@ export type Handlers = {
 
 local REGION_BONUS = math.floor(Config.REGION_LUCK_BONUS * 100 + 0.5)
 
+local HEADER_HEIGHT = 50 -- 창 본문 맨 위 딱지 줄 높이
 local VIEWS = {
-	Collection = {
-		Title = "컬렉션",
-		Color = "Sky",
-		Hint = "카드를 누르면 대표 명소로 지정/해제돼요",
-	},
-	Passport = {
-		Title = "여권",
-		Color = "Grape",
-		Hint = string.format(
-			"한 지역의 명소를 모두 모으면 여권 도장 · 영구 행운 +%d%%",
-			REGION_BONUS
-		),
-	},
-	Upgrade = { Title = "업그레이드", Color = "Sun", Hint = "코인으로 사는 영구 강화" },
+	Collection = { Title = "도감", Color = "Sky", Top = HEADER_HEIGHT },
+	Passport = { Title = "여권", Color = "Grape", Top = HEADER_HEIGHT },
+	Upgrade = { Title = "강화", Color = "Sun", Top = 4 },
 }
 
 local WHITE = Color3.new(1, 1, 1)
-local GOOD_DARK = Ui.colorPair("Grass").Shadow
 local FEATURED_BG = Color3.fromRGB(255, 218, 128)
+local DIM_CHIP = Color3.fromRGB(172, 170, 190) -- 아직 못 받은 보너스 딱지
 
 local WINDOW_SIZE = Vector2.new(760, 500)
 local OPEN_OFFSET = -30 -- 창을 화면 가운데보다 조금 위로 (아래쪽 굴리기 버튼을 가리지 않게)
-local BODY_TOP = 54 -- 창 본문 안에서 스크롤 영역이 시작하는 높이(위는 설명 + 머리 버튼)
 -- 스크롤 영역 안쪽 여백(오른쪽은 스크롤바 자리)
 local PAD_X, PAD_RIGHT, PAD_Y = 6, 14, 6
 
@@ -58,40 +48,48 @@ local COLLECTION_CELL = Vector2.new(128, 184)
 local COLLECTION_GAP = 12
 local COLLECTION_COLUMNS = 5
 
-local PASSPORT_CELL = Vector2.new(104, 136)
+local PASSPORT_CELL = Vector2.new(104, 124)
 local PASSPORT_GAP = 8
 local PASSPORT_COLUMNS = 6
 local PASSPORT_HEADER = 98
 local SECTION_PAD = 14
 local SECTION_GAP = 16
 
-local UPGRADE_ROW = 84
+local UPGRADE_ROW = 80
 local UPGRADE_GAP = 10
-local UPGRADE_ICONS = { Globe = "globe", Agency = "plane", Park = "park", Ticket = "ticket" }
 
 local Panels = {}
 
 local win: Ui.Window
 local window: Frame
 local body: Frame
-local hintLabel: TextLabel
-local headerButton: Ui.ChunkyButton
-local emptyLabel: TextLabel
+local loadingLabel: TextLabel
 local handlers: Handlers
 local openName: string? = nil
 local lastState: Snapshot? = nil
 local lastCoins = 0
 
-local scrollers: { [string]: ScrollingFrame } = {}
+type View = { Scroller: ScrollingFrame, Header: Frame }
+local views: { [string]: View } = {}
+
+-- 도감 머리 줄
+local collectionCount: Ui.Chip
+local autoButton: Ui.ChunkyButton
+local autoBadge: Ui.Chip
+local emptyIcon: Frame
 
 type CollectionCard = {
 	Card: TextButton,
 	Stars: TextLabel,
 	Count: Ui.Chip,
-	Shown: Ui.Chip,
+	Shown: Ui.Chip?, -- 공원 전시 표시(처음 필요할 때 만듦)
 	Badge: Ui.Chip,
 }
 local collectionCards: { [string]: CollectionCard } = {}
+
+-- 여권 머리 줄
+local stampCount: Ui.Chip
+local stampBonus: Ui.Chip
 
 type Stamp = {
 	Frame: Frame,
@@ -99,15 +97,17 @@ type Stamp = {
 	RingStroke: UIStroke,
 	Labels: { TextLabel },
 	Outlines: { UIStroke },
+	Art: Frame?, -- 도장 그림 아이콘(그림이 있을 때)
 	Color: Color3,
 }
-type PassportSection = { Title: TextLabel, Note: TextLabel, Fill: Frame, Stamp: Stamp, Grid: Frame }
+type PassportSection = { Title: TextLabel, Fill: Frame, Bonus: Ui.Chip, Stamp: Stamp, Grid: Frame }
 local passportSections: { [string]: PassportSection } = {}
 local passportCards: { [string]: { Card: Frame, Known: boolean } } = {}
 
 type UpgradeRow = {
 	Level: Ui.Chip,
-	Effect: TextLabel,
+	Value: Ui.Chip,
+	Step: Ui.Chip,
 	Button: Ui.ChunkyButton,
 	Price: number?,
 }
@@ -125,11 +125,11 @@ local function gridHeight(count: number, columns: number, cellHeight: number, ga
 	return rows * (cellHeight + gap) - gap
 end
 
-local function newScroller(name: string): ScrollingFrame
+local function newScroller(name: string, top: number): ScrollingFrame
 	local scroller = Ui.new("ScrollingFrame", {
 		Name = name,
-		Position = UDim2.fromOffset(0, BODY_TOP),
-		Size = UDim2.new(1, 0, 1, -BODY_TOP),
+		Position = UDim2.fromOffset(0, top),
+		Size = UDim2.new(1, 0, 1, -top),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ScrollBarThickness = 8,
@@ -148,6 +148,42 @@ local function newScroller(name: string): ScrollingFrame
 		Parent = scroller,
 	})
 	return scroller
+end
+
+-- 창 본문 맨 위 딱지 줄 (화면마다 하나)
+local function newHeader(name: string): Frame
+	return Ui.new("Frame", {
+		Name = name .. "Header",
+		Size = UDim2.new(1, 0, 0, HEADER_HEIGHT),
+		BackgroundTransparency = 1,
+		Visible = false,
+		Parent = body,
+	})
+end
+
+-- 머리 줄의 아이콘 + 숫자 딱지
+local function headerChip(parent: Instance, icon: string, color: any, order: number): Ui.Chip
+	return Ui.chip({
+		Color = color,
+		Icon = icon,
+		IconSize = 44,
+		Height = 34,
+		TextSize = 21,
+		LayoutOrder = order,
+		Parent = parent,
+	})
+end
+
+local function chipRow(parent: Instance): Frame
+	local row = Ui.new("Frame", {
+		Name = "Chips",
+		Position = UDim2.fromOffset(10, 0),
+		Size = UDim2.new(1, -200, 1, -6),
+		BackgroundTransparency = 1,
+		Parent = parent,
+	})
+	Ui.list(Enum.FillDirection.Horizontal, 14).Parent = row
+	return row
 end
 
 local function setCanvasHeight(scroller: ScrollingFrame, contentHeight: number)
@@ -172,10 +208,54 @@ local function photo(parent: GuiObject, landmark: Landmark, position: UDim2, siz
 	return frame
 end
 
--- 컬렉션 ---------------------------------------------------------------------
+-- 도감 -----------------------------------------------------------------------
 
-local function buildCollection(): ScrollingFrame
-	local scroller = newScroller("Collection")
+local function buildCollection(): View
+	local header = newHeader("Collection")
+	local chips = chipRow(header)
+	collectionCount = headerChip(chips, "album", Theme.Ink, 1)
+
+	-- 자동 대표 지정: 별 아이콘 + "자동" (켜짐 = 초록 + ON 딱지, 꺼짐 = 회색)
+	autoButton = Ui.chunkyButton({
+		Name = "AutoFeature",
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -8, 0, -4),
+		Size = UDim2.fromOffset(136, 50),
+		Color = "Gray",
+		Icon = "star",
+		IconSize = 36,
+		Text = "자동",
+		TextSize = 22,
+		Parent = header,
+	})
+	autoButton.Activated:Connect(function()
+		handlers.ToggleAutoFeature()
+	end)
+	autoBadge = Ui.chip({
+		Name = "On",
+		Color = "Coral",
+		Text = "ON",
+		Height = 22,
+		TextSize = 15,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(1, -8, 0, 2),
+		Rotation = 12,
+		ZIndex = 6,
+		Visible = false,
+		Parent = autoButton.Face,
+	})
+
+	-- 아직 아무것도 없을 때: 가운데에 천천히 도는 지구본
+	emptyIcon = Icons.view(body, "globe", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 0.5, HEADER_HEIGHT / 2),
+		Size = UDim2.fromOffset(150, 150),
+		Spin = 40,
+		Transparency = 0.2,
+	})
+	emptyIcon.Visible = false
+
+	local scroller = newScroller("Collection", VIEWS.Collection.Top)
 	Ui.new("UIGridLayout", {
 		CellSize = UDim2.fromOffset(COLLECTION_CELL.X, COLLECTION_CELL.Y),
 		CellPadding = UDim2.fromOffset(COLLECTION_GAP, COLLECTION_GAP),
@@ -184,7 +264,7 @@ local function buildCollection(): ScrollingFrame
 		HorizontalAlignment = Enum.HorizontalAlignment.Center,
 		Parent = scroller,
 	})
-	return scroller
+	return { Scroller = scroller, Header = header }
 end
 
 local function collectionCard(parent: ScrollingFrame, landmark: Landmark): CollectionCard
@@ -198,7 +278,7 @@ local function collectionCard(parent: ScrollingFrame, landmark: Landmark): Colle
 	Ui.corner(12).Parent = card
 	Ui.stroke(Theme.Ink, 3).Parent = card
 
-	-- 등급 색 띠 (위쪽 모서리만 둥글게: 아래 절반을 네모 판으로 덮음)
+	-- 등급 색 띠 + 확률 (위쪽 모서리만 둥글게: 아래 절반을 네모 판으로 덮음)
 	local band = Ui.new("Frame", {
 		Name = "Band",
 		Size = UDim2.new(1, 0, 0, 26),
@@ -224,7 +304,7 @@ local function collectionCard(parent: ScrollingFrame, landmark: Landmark): Colle
 	local bandLabel = Ui.label({
 		Position = UDim2.fromOffset(8, 4),
 		Size = UDim2.new(1, -16, 1, -7),
-		Text = tier.Name,
+		Text = Format.oneIn(landmark.OneIn),
 		TextColor3 = WHITE,
 		ZIndex = 2,
 		Parent = band,
@@ -258,18 +338,6 @@ local function collectionCard(parent: ScrollingFrame, landmark: Landmark): Colle
 		ZIndex = 3,
 		Parent = card,
 	})
-	local shown = Ui.chip({
-		Name = "Shown",
-		Color = "Grass",
-		Text = "전시 중",
-		Height = 20,
-		TextSize = 13,
-		StrokeThickness = 2,
-		Position = UDim2.fromOffset(3, 96),
-		ZIndex = 3,
-		Visible = false,
-		Parent = card,
-	})
 	-- "대표" 도장 (왼쪽 위, 기울임)
 	local badge = Ui.chip({
 		Name = "Featured",
@@ -299,15 +367,38 @@ local function collectionCard(parent: ScrollingFrame, landmark: Landmark): Colle
 	end)
 
 	card.Parent = parent
-	return { Card = card, Stars = stars, Count = count, Shown = shown, Badge = badge }
+	return { Card = card, Stars = stars, Count = count, Shown = nil, Badge = badge }
+end
+
+-- 공원에 전시 중: 사진 왼쪽 아래 초록 공원 아이콘 딱지 (처음 필요할 때 만듦)
+local function setShown(entry: CollectionCard, shown: boolean)
+	local chip = entry.Shown
+	if not chip then
+		if not shown then
+			return
+		end
+		chip = Ui.chip({
+			Name = "Shown",
+			Color = "Grass",
+			Icon = "park",
+			IconOnly = true,
+			IconSize = 30,
+			Height = 24,
+			StrokeThickness = 2,
+			Position = UDim2.fromOffset(3, 94),
+			ZIndex = 3,
+			Parent = entry.Card,
+		})
+		entry.Shown = chip
+	end
+	(chip :: Ui.Chip).Root.Visible = shown
 end
 
 local function renderCollection(state: Snapshot)
-	local scroller = scrollers.Collection
+	local scroller = views.Collection.Scroller
 	local autoFeature = state.Settings.AutoFeature
-	headerButton.Root.Visible = true
-	headerButton.SetText(if autoFeature then "자동 대표: 켬" else "자동 대표: 끔")
-	headerButton.SetColor(if autoFeature then "Grass" else "Gray")
+	autoButton.SetColor(if autoFeature then "Grass" else "Gray")
+	autoBadge.Root.Visible = autoFeature
 
 	local inPark = {}
 	for _, id in PlayerState.park(state) do
@@ -330,21 +421,21 @@ local function renderCollection(state: Snapshot)
 			entry.Badge.Root.Visible = featured
 			entry.Stars.Text = Ui.starsRich(PlayerState.stars(count), #Config.STAR_THRESHOLDS)
 			entry.Count.Label.Text = "×" .. Format.commas(count)
-			entry.Shown.Root.Visible = inPark[landmark.Id] == true
+			setShown(entry, inPark[landmark.Id] == true)
 		elseif entry then
 			entry.Card:Destroy()
 			collectionCards[landmark.Id] = nil
 		end
 	end
 
-	win.Title.Text = string.format("%s (%d종)", VIEWS.Collection.Title, shown)
-	emptyLabel.Visible = shown == 0
+	collectionCount.Label.Text = string.format("%d/%d", shown, #Landmarks.List)
+	emptyIcon.Visible = shown == 0
 	setCanvasHeight(scroller, gridHeight(shown, COLLECTION_COLUMNS, COLLECTION_CELL.Y, COLLECTION_GAP))
 end
 
 -- 여권 -----------------------------------------------------------------------
 
--- 지역 도장: 지역 색 동그라미(기울임) + 흰 안쪽 고리 + 지역 이름 + 보너스
+-- 지역 도장: 그림(ImageIds.stamp_<지역>)이 있으면 그 그림, 없으면 지역 색 동그라미(기울임) + 흰 고리 + 지역 이름
 local function makeStamp(parent: Frame, region: Landmarks.Region): Stamp
 	local frame = Ui.new("Frame", {
 		Name = "Stamp",
@@ -370,36 +461,51 @@ local function makeStamp(parent: Frame, region: Landmarks.Region): Stamp
 	local ringStroke = Ui.stroke(WHITE, 2)
 	ringStroke.Parent = ring
 
-	local name = Ui.label({
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.42),
-		Size = UDim2.fromScale(0.78, 0.3),
-		Text = region.Name,
-		TextColor3 = WHITE,
-		ZIndex = 2,
-		Parent = frame,
-	}, 18)
-	local bonus = Ui.label({
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.7),
-		Size = UDim2.fromScale(0.66, 0.18),
-		Text = string.format("행운 +%d%%", REGION_BONUS),
-		TextColor3 = WHITE,
-		ZIndex = 2,
-		Parent = frame,
-	}, 13)
-	return {
+	local stamp: Stamp = {
 		Frame = frame,
 		Stroke = stroke,
 		RingStroke = ringStroke,
-		Labels = { name, bonus },
-		Outlines = { Ui.outline(name, 2), Ui.outline(bonus, 1.5) },
+		Labels = {},
+		Outlines = {},
+		Art = nil,
 		Color = region.Color,
 	}
+
+	local art = "stamp_" .. string.lower(region.Id)
+	if Icons.imageId(art) then
+		frame.BackgroundTransparency = 1
+		stroke.Enabled = false
+		ring.Visible = false
+		stamp.Art = Icons.view(frame, art, {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(1.12, 1.12),
+			ZIndex = 2,
+		})
+	else
+		local name = Ui.label({
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(0.74, 0.4),
+			Text = region.Name,
+			TextColor3 = WHITE,
+			ZIndex = 2,
+			Parent = frame,
+		}, 20)
+		stamp.Labels = { name }
+		stamp.Outlines = { Ui.outline(name, 2) }
+	end
+	return stamp
 end
 
 -- 다 모으면 진하게 찍힌 도장, 아니면 흐릿한 도장 자국
 local function paintStamp(stamp: Stamp, complete: boolean)
+	local art = stamp.Art
+	if art then
+		Icons.setColor(art, if complete then WHITE else Color3.fromRGB(150, 146, 160))
+		Icons.setTransparency(art, if complete then 0 else 0.75)
+		return
+	end
 	stamp.Frame.BackgroundTransparency = if complete then 0 else 0.8
 	stamp.Stroke.Transparency = if complete then 0 else 0.65
 	stamp.RingStroke.Color = if complete then WHITE else stamp.Color
@@ -413,8 +519,21 @@ local function paintStamp(stamp: Stamp, complete: boolean)
 	end
 end
 
-local function buildPassport(): ScrollingFrame
-	local scroller = newScroller("Passport")
+-- 행운 보너스 딱지 색: 받았으면 초록 + 진한 아이콘, 아직이면 회색 + 흐린 아이콘
+local function paintBonus(chip: Ui.Chip, earned: boolean)
+	Ui.tint(chip.Root, if earned then Ui.colorPair("Grass").Face else DIM_CHIP)
+	if chip.Icon then
+		Icons.setTransparency(chip.Icon, if earned then 0 else 0.45)
+	end
+end
+
+local function buildPassport(): View
+	local header = newHeader("Passport")
+	local chips = chipRow(header)
+	stampCount = headerChip(chips, "passport", Theme.Ink, 1)
+	stampBonus = headerChip(chips, "clover", "Grass", 2)
+
+	local scroller = newScroller("Passport", VIEWS.Passport.Top)
 	local layout = Ui.list(Enum.FillDirection.Vertical, SECTION_GAP)
 	layout.VerticalAlignment = Enum.VerticalAlignment.Top
 	layout.Parent = scroller
@@ -436,15 +555,16 @@ local function buildPassport(): ScrollingFrame
 		Ui.corner(14).Parent = section
 		Ui.stroke(Theme.Ink, 3).Parent = section
 
+		-- 지역 이름 + 발견 수 "3/7"
 		local title = Ui.label({
-			Position = UDim2.fromOffset(SECTION_PAD, 10),
+			Position = UDim2.fromOffset(SECTION_PAD, 8),
 			Size = UDim2.new(0.6, 0, 0, 34),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			Parent = section,
 		}, 28)
 		-- 발견 진행 막대
 		local track = Ui.new("Frame", {
-			Position = UDim2.fromOffset(SECTION_PAD, 50),
+			Position = UDim2.fromOffset(SECTION_PAD, 46),
 			Size = UDim2.new(0.5, 0, 0, 14),
 			BackgroundColor3 = Theme.Cream,
 			Parent = section,
@@ -458,12 +578,18 @@ local function buildPassport(): ScrollingFrame
 			Parent = track,
 		})
 		Ui.round().Parent = fill
-		local note = Ui.label({
-			Position = UDim2.fromOffset(SECTION_PAD, 70),
-			Size = UDim2.new(0.6, 0, 0, 20),
-			TextXAlignment = Enum.TextXAlignment.Left,
+		-- 도장 보너스 "+25%" (네잎클로버)
+		local bonus = Ui.chip({
+			Name = "Bonus",
+			Color = DIM_CHIP,
+			Icon = "clover",
+			IconSize = 32,
+			Text = string.format("+%d%%", REGION_BONUS),
+			Height = 26,
+			TextSize = 16,
+			Position = UDim2.fromOffset(SECTION_PAD + 2, 66),
 			Parent = section,
-		}, 17)
+		})
 
 		local stamp = makeStamp(section, region)
 
@@ -481,11 +607,11 @@ local function buildPassport(): ScrollingFrame
 			HorizontalAlignment = Enum.HorizontalAlignment.Left,
 			Parent = grid,
 		})
-		passportSections[region.Id] = { Title = title, Note = note, Fill = fill, Stamp = stamp, Grid = grid }
+		passportSections[region.Id] = { Title = title, Fill = fill, Bonus = bonus, Stamp = stamp, Grid = grid }
 		total += height + (if order > 1 then SECTION_GAP else 0)
 	end
 	setCanvasHeight(scroller, total)
-	return scroller
+	return { Scroller = scroller, Header = header }
 end
 
 local function passportCard(parent: Frame, landmark: Landmark, known: boolean, order: number): Frame
@@ -507,45 +633,40 @@ local function passportCard(parent: Frame, landmark: Landmark, known: boolean, o
 			Parent = card,
 		}, 16)
 		Ui.label({
-			Position = UDim2.fromOffset(4, 98),
-			Size = UDim2.new(1, -8, 0, 16),
+			Position = UDim2.fromOffset(4, 99),
+			Size = UDim2.new(1, -8, 0, 17),
 			Text = Format.oneIn(landmark.OneIn),
-			TextTransparency = 0.3,
+			TextColor3 = tier.Color:Lerp(Theme.Ink, 0.45),
 			Parent = card,
 		}, 14)
-		Ui.label({
-			Position = UDim2.fromOffset(4, 115),
-			Size = UDim2.new(1, -8, 0, 16),
-			Text = tier.Name,
-			TextColor3 = tier.Color:Lerp(Theme.Ink, 0.4),
-			Parent = card,
-		}, 13)
 	else
-		-- 아직 못 찾은 명소: 어두운 카드 + "?" + 확률
+		-- 아직 못 찾은 명소: 어두운 카드 + 자물쇠 그림(있으면) 또는 "?" + 확률
+		-- (3D 자물쇠는 카드가 많아 무거우니 그림이 있을 때만)
+		if Icons.imageId("lock") then
+			Icons.view(card, "lock", {
+				AnchorPoint = Vector2.new(0.5, 0),
+				Position = UDim2.new(0.5, 0, 0, 14),
+				Size = UDim2.fromOffset(56, 56),
+				Transparency = 0.15,
+			})
+		else
+			Ui.label({
+				Position = UDim2.fromOffset(5, 5),
+				Size = UDim2.new(1, -10, 0, 74),
+				Font = Theme.FontTitle,
+				Text = "?",
+				TextColor3 = Theme.Paper,
+				TextTransparency = 0.2,
+				Parent = card,
+			}, 50)
+		end
 		Ui.label({
-			Position = UDim2.fromOffset(5, 5),
-			Size = UDim2.new(1, -10, 0, 70),
-			Font = Theme.FontTitle,
-			Text = "?",
-			TextColor3 = Theme.Paper,
-			TextTransparency = 0.2,
-			Parent = card,
-		}, 50)
-		Ui.label({
-			Position = UDim2.fromOffset(4, 82),
+			Position = UDim2.fromOffset(4, 90),
 			Size = UDim2.new(1, -8, 0, 20),
 			Text = Format.oneIn(landmark.OneIn),
 			TextColor3 = tier.Color,
 			Parent = card,
 		}, 16)
-		Ui.label({
-			Position = UDim2.fromOffset(4, 106),
-			Size = UDim2.new(1, -8, 0, 18),
-			Text = tier.Name,
-			TextColor3 = Theme.Cream,
-			TextTransparency = 0.4,
-			Parent = card,
-		}, 13)
 	end
 
 	card.Parent = parent
@@ -553,7 +674,7 @@ local function passportCard(parent: Frame, landmark: Landmark, known: boolean, o
 end
 
 local function renderPassport(state: Snapshot)
-	local found = 0
+	local stamps = 0
 	for _, region in Landmarks.Regions do
 		local section = passportSections[region.Id]
 		local list = Landmarks.ByRegion[region.Id]
@@ -573,9 +694,11 @@ local function renderPassport(state: Snapshot)
 					{ Card = passportCard(section.Grid, landmark, known, order), Known = known }
 			end
 		end
-		found += discovered
 
 		local complete = #list > 0 and discovered == #list
+		if complete then
+			stamps += 1
+		end
 		section.Title.Text = string.format(
 			'%s  <font color="%s">%d/%d</font>',
 			region.Name,
@@ -584,32 +707,40 @@ local function renderPassport(state: Snapshot)
 			#list
 		)
 		section.Fill.Size = UDim2.fromScale(if #list > 0 then discovered / #list else 0, 1)
-		if complete then
-			section.Note.Text = string.format("도장 획득! 행운 +%d%%", REGION_BONUS)
-			section.Note.TextColor3 = GOOD_DARK
-		else
-			section.Note.Text = string.format("도장까지 %d곳", #list - discovered)
-			section.Note.TextColor3 = Theme.Ink
-		end
+		paintBonus(section.Bonus, complete)
 		paintStamp(section.Stamp, complete)
 	end
-	win.Title.Text = string.format("%s (%d/%d 발견)", VIEWS.Passport.Title, found, #Landmarks.List)
+
+	stampCount.Label.Text = string.format("%d/%d", stamps, #Landmarks.Regions)
+	stampBonus.Label.Text = string.format("+%d%%", stamps * REGION_BONUS)
+	paintBonus(stampBonus, stamps > 0)
 end
 
--- 업그레이드 -----------------------------------------------------------------
+-- 강화 -----------------------------------------------------------------------
 
--- 레벨별 효과 표시
-local function effectText(upgrade: PlayerState.Upgrade, level: number): string
-	if upgrade.Id == "Globe" then
-		return string.format("행운 ×%.2f", 1 + upgrade.PerLevel * level)
-	elseif upgrade.Id == "Agency" then
-		return string.format("굴림 간격 %.2f초", Config.ROLL_COOLDOWN * (1 - upgrade.PerLevel * level))
+-- 숫자 뒤의 0 떼기: 1.20 -> "1.2", 0.60 -> "0.6"
+local function trim(value: number): string
+	local text = string.format("%.2f", value):gsub("0+$", ""):gsub("%.$", "")
+	return text
+end
+
+-- 지금 레벨의 효과 값 (짧게): 행운 ×1.3 / 굴림 간격 1.14초 / 전시 9칸 / 수입 ×1.4
+local function valueText(upgrade: PlayerState.Upgrade, level: number): string
+	if upgrade.Id == "Agency" then
+		return trim(Config.ROLL_COOLDOWN * (1 - upgrade.PerLevel * level)) .. "초"
 	elseif upgrade.Id == "Park" then
-		return string.format("전시 칸 %d", math.floor(Config.BASE_SLOTS + upgrade.PerLevel * level + 0.5))
-	elseif upgrade.Id == "Ticket" then
-		return string.format("관광 수입 ×%.2f", 1 + upgrade.PerLevel * level)
+		return string.format("%d칸", math.floor(Config.BASE_SLOTS + upgrade.PerLevel * level + 0.5))
 	end
-	return "Lv " .. level
+	return Ui.times(1 + upgrade.PerLevel * level)
+end
+
+-- 한 번 살 때 바뀌는 양: "+10%", "-5%", "+3칸"
+local function stepText(upgrade: PlayerState.Upgrade): string
+	if upgrade.Id == "Park" then
+		return string.format("+%d칸", upgrade.PerLevel)
+	end
+	local percent = math.floor(upgrade.PerLevel * 100 + 0.5)
+	return string.format(if upgrade.Id == "Agency" then "-%d%%" else "+%d%%", percent)
 end
 
 -- 살 수 있으면 Sun, 코인이 모자라면 Gray, 최대 레벨이면 Grape (같은 색이면 버튼이 알아서 건너뜀)
@@ -618,8 +749,9 @@ local function paintBuyButton(row: UpgradeRow, coins: number)
 	row.Button.SetColor(if price == nil then "Grape" elseif coins >= price then "Sun" else "Gray")
 end
 
-local function buildUpgrade(): ScrollingFrame
-	local scroller = newScroller("Upgrade")
+local function buildUpgrade(): View
+	local header = newHeader("Upgrade") -- 비어 있음(모양을 맞추려고 둠)
+	local scroller = newScroller("Upgrade", VIEWS.Upgrade.Top)
 	local layout = Ui.list(Enum.FillDirection.Vertical, UPGRADE_GAP, Enum.HorizontalAlignment.Center)
 	layout.VerticalAlignment = Enum.VerticalAlignment.Top
 	layout.Parent = scroller
@@ -639,22 +771,22 @@ local function buildUpgrade(): ScrollingFrame
 		local disc = Ui.new("Frame", {
 			AnchorPoint = Vector2.new(0, 0.5),
 			Position = UDim2.new(0, 12, 0.5, 0),
-			Size = UDim2.fromOffset(64, 64),
+			Size = UDim2.fromOffset(62, 62),
 			BackgroundColor3 = Theme.Cream,
 			Parent = row,
 		})
 		Ui.round().Parent = disc
 		Ui.stroke(Theme.Ink, 3).Parent = disc
-		Icons.view(disc, UPGRADE_ICONS[upgrade.Id] or "star", {
+		Icons.view(disc, Icons.UPGRADE[upgrade.Id] or "star", {
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.5, 0.5),
 			Size = UDim2.fromScale(0.86, 0.86),
 		})
 
-		-- 이름 + 레벨 칩
+		-- 윗줄: 이름 + "Lv 3"
 		local head = Ui.new("Frame", {
-			Position = UDim2.fromOffset(90, 6),
-			Size = UDim2.new(1, -290, 0, 30),
+			Position = UDim2.fromOffset(88, 6),
+			Size = UDim2.new(1, -290, 0, 32),
 			BackgroundTransparency = 1,
 			Parent = row,
 		})
@@ -664,7 +796,7 @@ local function buildUpgrade(): ScrollingFrame
 			AutomaticSize = Enum.AutomaticSize.X,
 			Size = UDim2.fromScale(0, 1),
 			TextScaled = false,
-			TextSize = 24,
+			TextSize = 25,
 			Text = upgrade.Name,
 			Parent = head,
 		}, 100)
@@ -679,20 +811,35 @@ local function buildUpgrade(): ScrollingFrame
 			Parent = head,
 		})
 
-		Ui.label({
-			Position = UDim2.fromOffset(90, 38),
-			Size = UDim2.new(1, -290, 0, 18),
-			TextXAlignment = Enum.TextXAlignment.Left,
-			Text = upgrade.Description,
-			TextTransparency = 0.35,
+		-- 아랫줄: 지금 값 딱지 + 한 번 살 때 바뀌는 양 딱지(위 화살표)
+		local effects = Ui.new("Frame", {
+			Position = UDim2.fromOffset(92, 42),
+			Size = UDim2.new(1, -290, 0, 30),
+			BackgroundTransparency = 1,
 			Parent = row,
-		}, 17)
-		local effect = Ui.label({
-			Position = UDim2.fromOffset(90, 58),
-			Size = UDim2.new(1, -290, 0, 22),
-			TextXAlignment = Enum.TextXAlignment.Left,
-			Parent = row,
-		}, 19)
+		})
+		Ui.list(Enum.FillDirection.Horizontal, 12).Parent = effects
+		local value = Ui.chip({
+			Name = "Value",
+			Color = Theme.Cream,
+			TextColor3 = Theme.Ink,
+			Outline = false,
+			Height = 26,
+			TextSize = 17,
+			StrokeThickness = 2,
+			LayoutOrder = 1,
+			Parent = effects,
+		})
+		local step = Ui.chip({
+			Name = "Step",
+			Color = "Grass",
+			Icon = "arrow_up",
+			IconSize = 30,
+			Height = 26,
+			TextSize = 17,
+			LayoutOrder = 2,
+			Parent = effects,
+		})
 
 		local button = Ui.chunkyButton({
 			Name = "Buy",
@@ -711,10 +858,10 @@ local function buildUpgrade(): ScrollingFrame
 				handlers.Buy(upgrade.Id)
 			end
 		end)
-		upgradeRows[upgrade.Id] = { Level = level, Effect = effect, Button = button }
+		upgradeRows[upgrade.Id] = { Level = level, Value = value, Step = step, Button = button }
 	end
 	setCanvasHeight(scroller, #Config.Upgrades * (UPGRADE_ROW + UPGRADE_GAP) - UPGRADE_GAP)
-	return scroller
+	return { Scroller = scroller, Header = header }
 end
 
 local function renderUpgrade(state: Snapshot)
@@ -722,19 +869,17 @@ local function renderUpgrade(state: Snapshot)
 		local row = upgradeRows[upgrade.Id]
 		local level = PlayerState.upgradeLevel(state, upgrade.Id)
 		local price = PlayerState.upgradePrice(upgrade.Id, level)
-		row.Level.Label.Text = string.format("Lv %d/%d", level, upgrade.MaxLevel)
+		row.Level.Label.Text = "Lv " .. level
+		row.Value.Label.Text = valueText(upgrade, level)
 		if price then
-			row.Effect.Text = string.format(
-				'%s  <font color="%s">→ %s</font>',
-				effectText(upgrade, level),
-				Format.hex(GOOD_DARK),
-				effectText(upgrade, level + 1)
-			)
+			row.Step.Label.Text = stepText(upgrade)
+			Ui.tint(row.Step.Root, Ui.colorPair("Grass").Face)
 			row.Button.SetText(Format.commas(price))
 			row.Button.SetIcon("coin")
 		else
-			row.Effect.Text = effectText(upgrade, level) .. " (최대)"
-			row.Button.SetText("최대")
+			row.Step.Label.Text = "MAX"
+			Ui.tint(row.Step.Root, Ui.colorPair("Grape").Face)
+			row.Button.SetText("MAX")
 			row.Button.SetIcon(nil)
 		end
 		row.Price = price
@@ -764,28 +909,28 @@ local function render()
 	local view = VIEWS[name]
 	win.SetColor(view.Color)
 	win.Title.Text = view.Title
-	hintLabel.Text = view.Hint
-	headerButton.Root.Visible = false
-	emptyLabel.Visible = false
+	if emptyIcon then
+		emptyIcon.Visible = false
+	end
 
-	for other, scroller in scrollers do
-		scroller.Visible = other == name
+	for other, built in views do
+		built.Scroller.Visible = other == name
+		built.Header.Visible = other == name
 	end
 
 	local state = lastState
+	loadingLabel.Visible = state == nil
 	if not state then
-		emptyLabel.Text = "불러오는 중..."
-		emptyLabel.Visible = true
 		return
 	end
-	emptyLabel.Text = "아직 발견한 명소가 없어요. 지구본을 돌려 보세요!"
 
-	local scroller = scrollers[name]
-	if not scroller then
-		scroller = BUILDERS[name]()
-		scrollers[name] = scroller
+	local built = views[name]
+	if not built then
+		built = BUILDERS[name]()
+		views[name] = built
 	end
-	scroller.Visible = true
+	built.Scroller.Visible = true
+	built.Header.Visible = true
 	RENDERERS[name](state)
 end
 
@@ -798,7 +943,7 @@ function Panels.init(parent: ScreenGui, callbacks: Handlers)
 		Position = UDim2.new(0.5, 0, 0.5, OPEN_OFFSET),
 		Size = UDim2.fromOffset(WINDOW_SIZE.X, WINDOW_SIZE.Y),
 		Color = "Sky",
-		RibbonWidth = 360,
+		RibbonWidth = 220,
 		ZIndex = 5,
 		Visible = false,
 		Parent = parent,
@@ -808,35 +953,17 @@ function Panels.init(parent: ScreenGui, callbacks: Handlers)
 	Ui.autoScale(window)
 	win.Close.Activated:Connect(Panels.close)
 
-	hintLabel = Ui.label({
-		Position = UDim2.fromOffset(4, 2),
-		Size = UDim2.new(1, -250, 0, 40),
-		TextXAlignment = Enum.TextXAlignment.Left,
-		TextTransparency = 0.25,
-		Parent = body,
-	}, 18)
-
-	headerButton = Ui.chunkyButton({
-		Name = "AutoFeature",
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -4, 0, -2),
-		Size = UDim2.fromOffset(220, 50),
-		Color = "Grass",
-		TextSize = 20,
-		Visible = false,
-		Parent = body,
-	})
-	headerButton.Activated:Connect(function()
-		handlers.ToggleAutoFeature()
-	end)
-
-	emptyLabel = Ui.label({
-		Position = UDim2.fromOffset(0, BODY_TOP + 30),
-		Size = UDim2.new(1, 0, 0, 40),
+	-- 서버 데이터를 받기 전
+	loadingLabel = Ui.label({
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(1, 0, 0, 60),
+		Font = Theme.FontTitle,
+		Text = "...",
 		TextTransparency = 0.3,
 		Visible = false,
 		Parent = body,
-	}, 24)
+	}, 56)
 end
 
 -- 같은 창 버튼을 다시 누르면 닫힘

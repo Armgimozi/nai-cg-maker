@@ -1,5 +1,6 @@
 -- 광장(스폰) + 받침대 위의 거대 지구본 + 광장 둘레 나무 + 뉴스 속보 홀로그램
 -- 회전은 클라이언트가 "LandmarkSpin" 태그가 붙은 Model 을 제자리에서 돌려서 보여 줍니다(서버 복제 부담 없음).
+-- 홀로그램 제목은 글자 최소: "속보!" 딱지 + 명소 이름. Shared/ImageIds.news 그림이 있으면 딱지 옆에 신문 아이콘.
 
 local CollectionService = game:GetService("CollectionService")
 local Workspace = game:GetService("Workspace")
@@ -7,6 +8,30 @@ local Workspace = game:GetService("Workspace")
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Landmarks = require(Shared.Landmarks)
 local Models = require(Shared.Models)
+
+-- 그림 Id 표 (없거나 깨져도 코드로 그린 모양으로 동작)
+local function loadImageIds(): { [string]: any }
+	local module = Shared:FindFirstChild("ImageIds")
+	if module and module:IsA("ModuleScript") then
+		local ok, result = pcall(require, module)
+		if ok and type(result) == "table" then
+			return result
+		end
+	end
+	return {}
+end
+local ImageIds = loadImageIds()
+
+-- 그림 Id ("rbxassetid://...") 또는 nil
+local function imageId(name: string): string?
+	local value = ImageIds[name]
+	if type(value) == "number" then
+		return "rbxassetid://" .. tostring(value)
+	elseif type(value) == "string" and value ~= "" then
+		return if value:match("^%d+$") then "rbxassetid://" .. value else value
+	end
+	return nil
+end
 
 local SPIN_TAG = "LandmarkSpin"
 
@@ -272,7 +297,7 @@ local function bigText(parent: Frame, text: string, thickness: number)
 	label.Parent = parent
 end
 
--- 홀로그램 제목: 빨간 "속보!" 딱지(살짝 기울임) + 등급 색 리본 위에 "<이름> 발견"
+-- 홀로그램 제목: 빨간 "속보!" 딱지(살짝 기울임) + 등급 색 리본 위에 명소 이름
 local function titleBillboard(parent: BasePart, landmark: Landmarks.Landmark)
 	local billboard = Instance.new("BillboardGui")
 	billboard.Name = "Title"
@@ -282,7 +307,7 @@ local function titleBillboard(parent: BasePart, landmark: Landmarks.Landmark)
 	billboard.LightInfluence = 0
 	billboard.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-	local text = landmark.Name .. " 발견"
+	local text = landmark.Name
 	-- 리본 너비: 글자 수 × 글자 높이(약 8.6 스터드) + 여백
 	local chars = utf8.len(text) or #text
 	local ribbonWidth = math.clamp((chars * 8.6 + 12) / TITLE_WIDTH, 0.4, 1)
@@ -300,6 +325,23 @@ local function titleBillboard(parent: BasePart, landmark: Landmarks.Landmark)
 	tag.Rotation = -4
 	shine(tag)
 	bigText(tag, "속보!", 4)
+
+	local newsId = imageId("news")
+	if newsId then
+		-- 딱지 왼쪽에 신문 아이콘(딱지보다 조금 크게)
+		local news = Instance.new("ImageLabel")
+		news.Name = "NewsIcon"
+		news.BackgroundTransparency = 1
+		news.Image = newsId
+		news.ScaleType = Enum.ScaleType.Fit
+		news.SizeConstraint = Enum.SizeConstraint.RelativeYY
+		news.Size = UDim2.fromScale(1.4, 1.4)
+		news.AnchorPoint = Vector2.new(0.75, 0.5)
+		news.Position = UDim2.fromScale(0, 0.5)
+		news.Rotation = -10
+		news.ZIndex = 5
+		news.Parent = tag
+	end
 
 	billboard.Parent = parent
 end

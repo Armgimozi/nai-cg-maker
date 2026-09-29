@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- close: red round close button with a white X (self-contained ImageButton art). -->
+  <defs>
+    <path id="x" fill="none" stroke-linecap="round" d="M96,90 L160,154 M160,90 L96,154"/>
+    <mask id="cm"><circle cx="128" cy="122" r="96" fill="#fff"/></mask>
+  </defs>
+  <circle cx="128" cy="129" r="108" fill="#1E1B2E"/>
+  <circle cx="128" cy="122" r="108" fill="#1E1B2E"/>
+  <circle cx="128" cy="122" r="96" fill="#C93A38"/>
+  <g mask="url(#cm)"><circle cx="122" cy="113" r="94" fill="#FF5E5B"/></g>
+  <path d="M52,108 A76,76 0 0 1 100,52" fill="none" stroke="#FFD0CF" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="118" cy="46" r="6.5" fill="#FFD0CF"/>
+  <!-- X -->
+  <use href="#x" stroke="#1E1B2E" stroke-width="50" transform="translate(0,4)"/>
+  <use href="#x" stroke="#1E1B2E" stroke-width="50"/>
+  <use href="#x" stroke="#DCD8EA" stroke-width="28"/>
+  <use href="#x" stroke="#FFFFFF" stroke-width="24" transform="translate(-1,-3)"/>
+</svg>

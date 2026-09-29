@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- dice: chunky white cube in 3/4 view, tipped over a little. Coral 1-pip on top. -->
+  <defs>
+    <polygon id="hex" stroke-linejoin="round" points="128,44 204,86 204,172 128,214 52,172 52,86"/>
+  </defs>
+  <g transform="translate(0,7) rotate(-12 128 130)"><use href="#hex" fill="#1E1B2E" stroke="#1E1B2E" stroke-width="40"/></g>
+  <g transform="rotate(-12 128 130)">
+    <use href="#hex" fill="#1E1B2E" stroke="#1E1B2E" stroke-width="40"/>
+    <!-- faces (round-join stroke in the face colour softens the corners) -->
+    <polygon points="52,86 128,128 128,214 52,172" fill="#E3DFF0" stroke="#E3DFF0" stroke-width="16" stroke-linejoin="round"/>
+    <polygon points="128,128 204,86 204,172 128,214" fill="#B9B3D1" stroke="#B9B3D1" stroke-width="16" stroke-linejoin="round"/>
+    <polygon points="128,44 204,86 128,128 52,86" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="16" stroke-linejoin="round"/>
+    <!-- soft edge lines -->
+    <path d="M52,88 L128,130 L204,88 M128,130 V212" fill="none" stroke="#8F88AE" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- pips: each face has its own affine frame -->
+    <g transform="matrix(38,21,-38,21,128,86)">
+      <circle cx="0" cy="0" r="0.36" fill="#FF5E5B"/>
+    </g>
+    <g transform="matrix(38,21,0,43,90,150)" fill="#1E1B2E">
+      <circle cx="-0.48" cy="-0.5" r="0.2"/>
+      <circle cx="0.48" cy="0.5" r="0.2"/>
+    </g>
+    <g transform="matrix(38,-21,0,43,166,150)" fill="#1E1B2E">
+      <circle cx="-0.52" cy="-0.52" r="0.2"/>
+      <circle cx="0" cy="0" r="0.2"/>
+      <circle cx="0.52" cy="0.52" r="0.2"/>
+    </g>
+    <!-- top highlight -->
+    <path d="M62,100 L66,102" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round"/>
+  </g>
+</svg>

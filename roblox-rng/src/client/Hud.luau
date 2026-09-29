@@ -1,9 +1,9 @@
 -- 기본 화면(HUD): 코인·수입·스탯, 메뉴 버튼, 굴리기 버튼, 지구본 굴림 연출, 뉴스 속보, 알림
--- 스타일은 DESIGN.md "UI 스타일 가이드 (v2)" — 통통한 버튼 + 굵은 Ink 테두리 + 3D 미니 아이콘, 이모지 없음
+-- 스타일은 DESIGN.md "UI 스타일 가이드 (v2)" — 통통한 버튼 + 굵은 Ink 테두리 + 아이콘, 이모지 없음
+-- 글자는 최소로: 아이콘 + 숫자 위주, 버튼 글자는 2~3글자, 알림은 8글자 안팎. 설명 문장은 쓰지 않음.
 
 local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Config = require(Shared.Config)
@@ -28,12 +28,12 @@ local TICK_SOUND = "rbxasset://sounds/electronicpingshort.wav"
 local WHITE = Color3.new(1, 1, 1)
 local BLACK = Color3.new(0, 0, 0)
 local INCOME_GREEN = Color3.fromRGB(150, 255, 150)
-local HINT_COLOR = Color3.fromRGB(200, 196, 225)
-local STAR_EMPTY_ON_GRAPE = Color3.fromRGB(200, 180, 255)
+local ODDS_COLOR = Color3.fromRGB(120, 112, 150)
 
 local MENU_BUTTON = Vector2.new(84, 90) -- 앞면 84x84 + 그림자 6
+local MENU_ICON = 58
 local ROLL_BUTTON = Vector2.new(270, 90) -- 앞면 270x84
-local AUTO_BUTTON = Vector2.new(120, 76) -- 앞면 120x70
+local AUTO_BUTTON = Vector2.new(140, 76) -- 앞면 140x70
 local VIEW_SIZE = 230 -- 굴림 연출의 둥근 판 지름
 local RAY_COUNT = 12 -- 햇살 막대 수 (막대 하나 = 가운데를 지나는 빛줄기 2개)
 
@@ -72,7 +72,7 @@ local hideToken = 0
 local shownCoins = -1
 local newsItems: { Frame } = {}
 local newsOrder = 0
-local toasts: { Frame } = {}
+local toasts: { GuiObject } = {}
 local toastOrder = 0
 local burstTween: Tween? = nil
 
@@ -122,20 +122,17 @@ local function incomeText(income: number): string
 	return Format.short(income)
 end
 
--- "x1.25" -> "×1.25"
-local function timesText(value: number): string
-	return "×" .. Format.multiplier(value):sub(2)
-end
+-- 왼쪽 위: [코인 알약][+수입/s] / [주사위 굴림 수][클로버 행운] -----------------
 
--- 왼쪽 위: 코인 알약 + 수입 알약 + 작은 칩 ------------------------------------
+local COIN_PILL = Vector2.new(230, 52)
 
 local function buildStats()
-	local container = anchor("Stats", Vector2.new(0, 0), UDim2.fromOffset(14, 12), UDim2.fromOffset(300, 146))
+	local container = anchor("Stats", Vector2.new(0, 0), UDim2.fromOffset(14, 12), UDim2.fromOffset(420, 112))
 
 	local coins = Ui.pill({
 		Name = "Coins",
 		Position = UDim2.fromOffset(20, 6),
-		Size = UDim2.fromOffset(250, 52),
+		Size = UDim2.fromOffset(COIN_PILL.X, COIN_PILL.Y),
 		Icon = "coin",
 		IconSize = 68,
 		IconSpin = 50,
@@ -145,36 +142,53 @@ local function buildStats()
 	})
 	refs.CoinLabel = coins.Label
 
-	refs.IncomePill = Ui.pill({
+	-- 초당 수입: 코인 바로 오른쪽 작은 칩 (위 화살표 + "+13.5/s")
+	refs.IncomeChip = Ui.chip({
 		Name = "Income",
-		Position = UDim2.fromOffset(46, 70),
-		Size = UDim2.fromOffset(150, 32),
+		Color = Theme.Ink,
 		TextColor3 = INCOME_GREEN,
-		TextXAlignment = Enum.TextXAlignment.Center,
-		MaxTextSize = 22,
+		Icon = "arrow_up",
+		Height = 30,
+		TextSize = 18,
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.fromOffset(20 + COIN_PILL.X + 8, 6 + COIN_PILL.Y / 2),
 		Parent = container,
 	})
 
 	local chips = Ui.new("Frame", {
 		Name = "Chips",
-		Position = UDim2.fromOffset(20, 112),
-		Size = UDim2.fromOffset(280, 30),
+		Position = UDim2.fromOffset(24, 70),
+		Size = UDim2.fromOffset(380, 36),
 		BackgroundTransparency = 1,
 		Parent = container,
 	})
-	Ui.list(Enum.FillDirection.Horizontal, 8).Parent = chips
-	refs.RollsChip =
-		Ui.chip({ Name = "Rolls", Color = "Sky", Height = 28, TextSize = 17, LayoutOrder = 1, Parent = chips })
-	refs.LuckChip =
-		Ui.chip({ Name = "Luck", Color = "Grass", Height = 28, TextSize = 17, LayoutOrder = 2, Parent = chips })
+	Ui.list(Enum.FillDirection.Horizontal, 12).Parent = chips
+	refs.RollsChip = Ui.chip({
+		Name = "Rolls",
+		Color = "Sky",
+		Icon = "dice",
+		Height = 30,
+		TextSize = 18,
+		LayoutOrder = 1,
+		Parent = chips,
+	})
+	refs.LuckChip = Ui.chip({
+		Name = "Luck",
+		Color = "Grape",
+		Icon = "clover",
+		Height = 30,
+		TextSize = 18,
+		LayoutOrder = 2,
+		Parent = chips,
+	})
 end
 
--- 왼쪽 가운데: 네모 통통 버튼 4개 ---------------------------------------------
+-- 왼쪽 가운데: 네모 통통 버튼 4개 (큰 아이콘 + 2글자) -----------------------------
 
 local MENU = {
-	{ Id = "Collection", Text = "컬렉션", Color = "Sky", Icon = "collection" },
+	{ Id = "Collection", Text = "도감", Color = "Sky", Icon = "album" },
 	{ Id = "Passport", Text = "여권", Color = "Grape", Icon = "passport" },
-	{ Id = "Upgrade", Text = "업그레이드", Color = "Sun", Icon = "hammer" },
+	{ Id = "Upgrade", Text = "강화", Color = "Sun", Icon = "hammer" },
 }
 
 local function buildMenu(onMenu: (string) -> (), onTeleport: () -> ())
@@ -195,6 +209,7 @@ local function buildMenu(onMenu: (string) -> (), onTeleport: () -> ())
 			Size = UDim2.fromOffset(MENU_BUTTON.X, MENU_BUTTON.Y),
 			Color = entry.Color,
 			Icon = entry.Icon,
+			IconSize = MENU_ICON,
 			Vertical = true,
 			Text = entry.Text,
 			TextSize = 18,
@@ -203,6 +218,21 @@ local function buildMenu(onMenu: (string) -> (), onTeleport: () -> ())
 		button.Activated:Connect(function()
 			onMenu(entry.Id)
 		end)
+		if entry.Id == "Passport" then
+			-- 여권 도장 수 "1/6" 배지 (오른쪽 위)
+			refs.PassportBadge = Ui.chip({
+				Name = "Stamps",
+				Color = Theme.Ink,
+				Height = 24,
+				TextSize = 15,
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.new(1, -6, 0, 2),
+				Rotation = 8,
+				ZIndex = 6,
+				Visible = false,
+				Parent = button.Face,
+			})
+		end
 	end
 
 	refs.TeleportButton = Ui.chunkyButton({
@@ -211,38 +241,20 @@ local function buildMenu(onMenu: (string) -> (), onTeleport: () -> ())
 		Size = UDim2.fromOffset(MENU_BUTTON.X, MENU_BUTTON.Y),
 		Color = "Grass",
 		Icon = "park",
+		IconSize = MENU_ICON,
 		Vertical = true,
-		Text = "내 공원",
+		Text = "공원",
 		TextSize = 18,
 		Parent = container,
 	})
 	refs.TeleportButton.Activated:Connect(onTeleport)
 end
 
--- 아래 가운데: 굴리기 + 자동 + 여권 도장 알약 ----------------------------------
+-- 아래 가운데: 굴리기 + 자동 (키보드가 있으면 버튼 모서리에 R / T 키캡) --------------
 
 local function buildRollBar(onRoll: () -> (), onToggleAuto: () -> ())
 	local width = ROLL_BUTTON.X + 2 * (AUTO_BUTTON.X + 16)
-	local container = anchor("RollBar", Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -14), UDim2.fromOffset(width, 140))
-
-	-- 여권 도장 k/6 (+ 키 안내) 알약: 가운데 정렬
-	local infoRow = Ui.new("Frame", {
-		Name = "InfoRow",
-		Size = UDim2.new(1, 0, 0, 36),
-		BackgroundTransparency = 1,
-		Parent = container,
-	})
-	Ui.list(Enum.FillDirection.Horizontal, 0, Enum.HorizontalAlignment.Center).Parent = infoRow
-	refs.InfoPill = Ui.pill({
-		Name = "Info",
-		AutoWidth = true,
-		Size = UDim2.fromOffset(0, 30),
-		Icon = "passport",
-		IconBack = Theme.Cream,
-		IconSize = 42,
-		TextSize = 17,
-		Parent = infoRow,
-	})
+	local container = anchor("RollBar", Vector2.new(0.5, 1), UDim2.new(0.5, 0, 1, -14), UDim2.fromOffset(width, 100))
 
 	local roll = Ui.chunkyButton({
 		Name = "Roll",
@@ -259,6 +271,7 @@ local function buildRollBar(onRoll: () -> (), onToggleAuto: () -> ())
 	})
 	roll.Activated:Connect(onRoll)
 	refs.RollButton = roll
+	Ui.keyCap(roll.Face, "R", { Position = UDim2.fromOffset(4, 4) })
 	-- 글자는 쿨타임 막대 위쪽에
 	roll.Label.Position = UDim2.fromOffset(82, 2)
 	roll.Label.Size = UDim2.new(1, -94, 1, -22)
@@ -291,12 +304,15 @@ local function buildRollBar(onRoll: () -> (), onToggleAuto: () -> ())
 		Position = UDim2.new(0.5, ROLL_BUTTON.X / 2 + 16, 1, -(ROLL_BUTTON.Y + AUTO_BUTTON.Y) / 2),
 		Size = UDim2.fromOffset(AUTO_BUTTON.X, AUTO_BUTTON.Y),
 		Color = "Gray",
-		Text = "자동",
-		TextSize = 28,
+		Icon = "auto",
+		IconSize = 46,
+		Text = "AUTO",
+		TextSize = 24,
 		Parent = container,
 	})
 	auto.Activated:Connect(onToggleAuto)
 	refs.AutoButton = auto
+	Ui.keyCap(auto.Face, "T", { Position = UDim2.fromOffset(4, 4) })
 	refs.AutoBadge = Ui.chip({
 		Name = "On",
 		Color = "Coral",
@@ -348,6 +364,10 @@ local function buildReveal()
 	refs.RegionStroke = Ui.stroke()
 	refs.RegionStroke.Parent = regionTag
 	refs.RegionTag = regionTag
+	refs.RegionSkin = Ui.skin(regionTag, "tag", { Radius = 24, Height = 48 })
+	if refs.RegionSkin then
+		refs.RegionSkin.Visible = false
+	end
 	refs.RevealRegion = Ui.label({
 		Position = UDim2.fromOffset(12, 4),
 		Size = UDim2.new(1, -24, 1, -8),
@@ -372,7 +392,9 @@ local function buildReveal()
 	})
 	refs.Burst = burst
 	refs.Rays = {}
-	for i = 1, RAY_COUNT do
+	-- 햇살 그림이 있으면 그 그림 하나를 등급 색으로 물들여 돌림, 없으면 막대 12개
+	refs.BurstImage = Ui.skin(burst, "sunburst")
+	for i = 1, if refs.BurstImage then 0 else RAY_COUNT do
 		local ray = Ui.new("Frame", {
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.5, 0.5),
@@ -453,6 +475,11 @@ local function buildReveal()
 	})
 	Ui.corner(10).Parent = ribbonMain
 	Ui.stroke().Parent = ribbonMain
+	if Ui.skin(ribbonMain, "ribbon", { Radius = 12, Height = 44 }) then
+		for _, tail in refs.RibbonTails do
+			tail.Visible = false -- 리본 그림에 꼬리가 들어 있음
+		end
+	end
 	refs.RibbonLabel = Ui.label({
 		Position = UDim2.fromOffset(10, 4),
 		Size = UDim2.new(1, -20, 1, -8),
@@ -482,19 +509,11 @@ local function buildReveal()
 		Parent = inner,
 	}, 28)
 	Ui.outline(refs.RevealOdds, 2.5)
-	refs.RevealSubtitle = Ui.label({
-		Position = UDim2.fromOffset(0, nameTop + 96),
-		Size = UDim2.new(1, 0, 0, 22),
-		TextColor3 = Theme.Cream,
-		ZIndex = 4,
-		Parent = inner,
-	}, 20)
-	Ui.outline(refs.RevealSubtitle, 2)
 
-	-- 딱지 줄: NEW / 별 상승 / 발견 보너스
+	-- 딱지 줄: NEW / ★3 UP / 발견 보너스(코인 + 숫자)
 	local tagRow = Ui.new("Frame", {
 		Name = "Tags",
-		Position = UDim2.fromOffset(0, nameTop + 126),
+		Position = UDim2.fromOffset(0, nameTop + 104),
 		Size = UDim2.new(1, 0, 0, 36),
 		BackgroundTransparency = 1,
 		Visible = false,
@@ -516,8 +535,9 @@ local function buildReveal()
 	refs.StarChip = Ui.chip({
 		Name = "StarUp",
 		Color = "Grape",
+		Font = Theme.FontTitle,
 		Height = 32,
-		TextSize = 19,
+		TextSize = 21,
 		LayoutOrder = 2,
 		Parent = tagRow,
 	})
@@ -590,33 +610,27 @@ end
 
 function Hud.render(state: PlayerState.Snapshot?)
 	if not state then
-		refs.CoinLabel.Text = "불러오는 중..."
-		refs.IncomePill.Root.Visible = false
+		refs.CoinLabel.Text = "..."
+		refs.IncomeChip.Root.Visible = false
 		refs.RollsChip.Root.Visible = false
 		refs.LuckChip.Root.Visible = false
-		refs.InfoPill.Root.Visible = false
+		refs.PassportBadge.Root.Visible = false
 		shownCoins = -1
 		return
 	end
-	refs.IncomePill.Label.Text = "+" .. incomeText(state.Income) .. "/초"
-	refs.IncomePill.Root.Visible = true
-	refs.RollsChip.Label.Text = "굴림 " .. Format.commas(state.Rolls)
+	refs.IncomeChip.Label.Text = "+" .. incomeText(state.Income) .. "/s"
+	refs.IncomeChip.Root.Visible = true
+	refs.RollsChip.Label.Text = Format.commas(state.Rolls)
 	refs.RollsChip.Root.Visible = true
-	refs.LuckChip.Label.Text = "행운 " .. timesText(state.Luck)
+	refs.LuckChip.Label.Text = Ui.times(state.Luck)
 	refs.LuckChip.Root.Visible = true
 
+	-- 여권 버튼 배지: 도장 수 (하나라도 있으면 금색 숫자)
 	local stamps = #PlayerState.completedRegions(state)
-	local info = string.format(
-		'여권 도장 <font color="%s">%d/%d</font>',
-		Format.hex(if stamps > 0 then Ui.colorPair("Sun").Face else WHITE),
-		stamps,
-		#Landmarks.Regions
-	)
-	if UserInputService.KeyboardEnabled then
-		info ..= string.format('   <font color="%s">R 굴리기 · T 자동</font>', Format.hex(HINT_COLOR))
-	end
-	refs.InfoPill.Label.Text = info
-	refs.InfoPill.Root.Visible = true
+	local badge = refs.PassportBadge
+	badge.Label.Text = string.format("%d/%d", stamps, #Landmarks.Regions)
+	badge.Label.TextColor3 = if stamps > 0 then Ui.colorPair("Sun").Face else WHITE
+	badge.Root.Visible = true
 end
 
 -- 매 프레임 호출: 부드럽게 올라가는 코인 표시 (정수가 바뀔 때만 글자 갱신)
@@ -634,11 +648,11 @@ function Hud.setAuto(enabled: boolean)
 	refs.AutoBadge.Root.Visible = enabled
 end
 
+-- 굴리는 중에는 지구본 아이콘이 빠르게 돎 (글자는 그대로)
 function Hud.setRolling(rolling: boolean)
-	local button = refs.RollButton
-	button.SetText(if rolling then "굴리는 중" else "굴리기")
-	if button.Icon then
-		Viewport.setSpin(button.Icon, if rolling then 420 else 60)
+	local icon = refs.RollButton.Icon
+	if icon then
+		Icons.setSpin(icon, if rolling then 420 else 60)
 	end
 end
 
@@ -649,7 +663,7 @@ function Hud.setLocation(where: string)
 		button.SetText("광장")
 		button.SetIcon("plaza")
 	else
-		button.SetText("내 공원")
+		button.SetText("공원")
 		button.SetIcon("park")
 	end
 end
@@ -673,21 +687,24 @@ end
 local function showRegion(region: Landmarks.Region, landed: boolean)
 	local label = refs.RevealRegion
 	label.Text = region.Name
-	if landed then
-		refs.RegionTag.BackgroundColor3 = region.Color
-		refs.RegionTag.BackgroundTransparency = 0
-		refs.RegionStroke.Enabled = true
-		label.TextColor3 = WHITE
+	local skin: ImageLabel? = refs.RegionSkin
+	if skin then
+		skin.Visible = landed
+		skin.ImageColor3 = region.Color
 	else
-		refs.RegionTag.BackgroundTransparency = 1
-		refs.RegionStroke.Enabled = false
-		label.TextColor3 = region.Color
+		refs.RegionTag.BackgroundColor3 = region.Color
+		refs.RegionTag.BackgroundTransparency = if landed then 0 else 1
+		refs.RegionStroke.Enabled = landed
 	end
+	label.TextColor3 = if landed then WHITE else region.Color
 end
 
 local function showBurst(color: Color3)
 	for _, ray in refs.Rays do
 		ray.BackgroundColor3 = color
+	end
+	if refs.BurstImage then
+		refs.BurstImage.ImageColor3 = color
 	end
 	refs.Burst.Visible = true
 	if not burstTween then
@@ -712,7 +729,7 @@ local function hideBurst()
 end
 
 local function showRibbon(tier: Landmarks.Tier)
-	refs.RibbonMain.BackgroundColor3 = tier.Color
+	Ui.tint(refs.RibbonMain, tier.Color)
 	for _, tail in refs.RibbonTails do
 		tail.BackgroundColor3 = tier.Color:Lerp(Theme.Ink, 0.35)
 	end
@@ -740,7 +757,6 @@ function Hud.reveal(landmark: Landmarks.Landmark, info: RevealInfo)
 	refs.Ribbon.Visible = false
 	refs.RevealName.Text = ""
 	refs.RevealOdds.Text = ""
-	refs.RevealSubtitle.Text = ""
 	refs.TagRow.Visible = false
 	refs.Disc.BackgroundColor3 = Theme.Cream
 	refs.ResultView.Visible = false
@@ -789,14 +805,13 @@ function Hud.reveal(landmark: Landmarks.Landmark, info: RevealInfo)
 	refs.RevealName.Text = landmark.Name
 	refs.RevealName.TextColor3 = tier.Color
 	refs.RevealOdds.Text = Format.oneIn(landmark.OneIn)
-	refs.RevealSubtitle.Text = landmark.Subtitle
 
 	local bonus = info.Bonus or 0
 	refs.NewChip.Root.Visible = info.IsNew
 	refs.StarChip.Root.Visible = info.StarUp
 	if info.StarUp then
-		refs.StarChip.Label.Text = "별 상승 "
-			.. Ui.starsRich(info.Stars or 0, #Config.STAR_THRESHOLDS, STAR_EMPTY_ON_GRAPE)
+		local stars = math.clamp(math.floor(info.Stars or 0), 0, #Config.STAR_THRESHOLDS)
+		refs.StarChip.Label.Text = string.format("★%d UP", stars)
 	end
 	refs.BonusPill.Root.Visible = bonus > 0
 	if bonus > 0 then
@@ -829,8 +844,8 @@ function Hud.reveal(landmark: Landmarks.Landmark, info: RevealInfo)
 	end)
 end
 
--- 잠깐 떴다 사라지는 알림: 색(종류) 알약. color 는 알약 바탕색
-function Hud.toast(text: string, color: Color3?, seconds: number?)
+-- 잠깐 떴다 사라지는 알림: [아이콘][짧은 글자] 색 딱지. color 는 딱지 바탕색, icon 은 Icons 이름
+function Hud.toast(text: string, color: Color3?, seconds: number?, icon: string?)
 	toastOrder += 1
 	while #toasts >= MAX_TOASTS do
 		local oldest = table.remove(toasts, 1)
@@ -843,8 +858,10 @@ function Hud.toast(text: string, color: Color3?, seconds: number?)
 		Name = "Toast",
 		Color = color or Ui.colorPair("Sky").Face,
 		Text = text,
+		Icon = icon,
+		IconSize = 48,
 		Height = 40,
-		TextSize = 20,
+		TextSize = 22,
 		StrokeThickness = 3,
 		LayoutOrder = toastOrder,
 		Parent = refs.Notices,
@@ -871,6 +888,7 @@ function Hud.toast(text: string, color: Color3?, seconds: number?)
 end
 
 -- 서버 전체 "속보": 신문 띠가 오른쪽에서 밀려 들어와 잠시 머문 뒤 쏙 사라짐
+-- [속보 딱지] 이름 · 명소(등급 색) · 1 in N  [주사위 #굴림 수]
 function Hud.news(playerName: string, landmark: Landmarks.Landmark, rollNumber: number)
 	local tier = landmark.Tier
 	newsOrder += 1
@@ -910,25 +928,32 @@ function Hud.news(playerName: string, landmark: Landmarks.Landmark, rollNumber: 
 	})
 	Ui.corner(10).Parent = bar
 	Ui.stroke(Theme.Ink, 3).Parent = bar
+	Ui.skin(bar, "panel_paper", { Radius = 10, Height = 46 })
 	Ui.label({
 		Position = UDim2.fromOffset(66, 5),
-		Size = UDim2.new(1, -66 - 56, 1, -10),
+		Size = UDim2.new(1, -66 - 130, 1, -10),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		Text = string.format(
-			'%s 님이 <font color="%s">%s</font>(%s) 발견! · %s번째 탐험',
+			'%s · <font color="%s">%s</font> · <font color="%s">%s</font>',
 			Format.escape(playerName),
 			Format.hex(tier.Color:Lerp(Theme.Ink, 0.35)),
 			Format.escape(landmark.Name),
-			Format.oneIn(landmark.OneIn),
-			Format.commas(rollNumber)
+			Format.hex(ODDS_COLOR),
+			Format.oneIn(landmark.OneIn)
 		),
 		Parent = bar,
 	}, 22)
-	Icons.view(bar, "news", {
+	Ui.chip({
+		Name = "Rolls",
+		Color = "Sky",
+		Icon = "dice",
+		Text = "#" .. Format.commas(rollNumber),
+		Height = 28,
+		TextSize = 16,
 		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, -6, 0.5, 0),
-		Size = UDim2.fromOffset(46, 46),
+		Position = UDim2.new(1, -10, 0.5, 0),
 		ZIndex = 2,
+		Parent = bar,
 	})
 
 	-- 빨간 "속보" 도장 딱지 (살짝 기울임)
@@ -943,6 +968,7 @@ function Hud.news(playerName: string, landmark: Landmarks.Landmark, rollNumber: 
 	})
 	Ui.corner(10).Parent = stamp
 	Ui.stroke(Theme.Ink, 3).Parent = stamp
+	Ui.skin(stamp, "tag", { Radius = 10, Height = 46, Color = Ui.colorPair("Coral").Face })
 	local stampRing = Ui.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),

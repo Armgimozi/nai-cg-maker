@@ -1,6 +1,8 @@
 -- UI 생성 헬퍼와 테마. 모든 화면은 코드로 만들어서 .rbxm 없이도 동작합니다.
 -- 스타일: 인기 로블록스 게임식 통통한 UI (밝은 색 + 굵은 Ink 테두리 + 눌리는 3D 버튼, 이모지 없음).
 -- 자세한 규칙은 DESIGN.md 의 "UI 스타일 가이드 (v2)" 참고.
+-- 그림 에셋: Shared/ImageIds 에 Id 가 들어 있으면 버튼·창·알약·리본·딱지는 9-slice 그림(Ui.skin)으로,
+--   아이콘은 ImageLabel 로 그립니다(Ui.icon). 비어 있으면 지금처럼 Frame/3D 모형으로 그립니다.
 
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -9,6 +11,20 @@ local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Format = require(Shared.Format)
 
 local Ui = {}
+
+-- 그림 Id 표. 모듈이 없거나 깨져도 기본 모양으로 동작하도록 빈 표로 대체
+local function loadImageIds(): { [string]: any }
+	local module = Shared:FindFirstChild("ImageIds") or Shared:WaitForChild("ImageIds", 5)
+	if module and module:IsA("ModuleScript") then
+		local ok, result = pcall(require, module)
+		if ok and type(result) == "table" then
+			return result
+		end
+		warn("[LandmarkRNG] ImageIds 를 읽지 못했어요: " .. tostring(result))
+	end
+	return {}
+end
+local imageIds = loadImageIds()
 
 export type ColorPair = { Face: Color3, Shadow: Color3 }
 
@@ -54,6 +70,11 @@ local PRESS_TWEEN = TweenInfo.new(0.06, Enum.EasingStyle.Quad, Enum.EasingDirect
 local RELEASE_TWEEN = TweenInfo.new(0.16, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
 local HOVER_TWEEN = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
+-- 9-slice 스킨 그림: 256x256, SliceCenter 64..192, 그림 속 모서리 반지름 약 50px
+local SLICE_CENTER = Rect.new(64, 64, 192, 192)
+local SLICE_MARGIN = 64
+local SKIN_RADIUS = 50
+
 -- Icons 는 Viewport -> Ui 를 require 하므로, 순환을 피하려고 처음 쓸 때 불러옴
 local iconsModule: any = nil
 local function icons(): any
@@ -61,6 +82,20 @@ local function icons(): any
 		iconsModule = require(script.Parent:WaitForChild("Icons")) :: any
 	end
 	return iconsModule
+end
+
+-- 그림 Id ("rbxassetid://...") 또는 nil(아직 그림 없음). 숫자만 넣어 둬도 받아 줌
+function Ui.imageId(name: string?): string?
+	if not name then
+		return nil
+	end
+	local value = imageIds[name]
+	if type(value) == "number" then
+		return "rbxassetid://" .. tostring(value)
+	elseif type(value) == "string" and value ~= "" then
+		return if value:match("^%d+$") then "rbxassetid://" .. value else value
+	end
+	return nil
 end
 
 -- Ui.new("Frame", { Size = ..., Parent = ... }, { 자식들 })
@@ -186,6 +221,131 @@ function Ui.starsRich(count: number, max: number?, emptyColor: Color3?): string
 	)
 end
 
+-- 1.25 -> "×1.25"
+function Ui.times(value: number): string
+	return "×" .. Format.multiplier(value):sub(2)
+end
+
+-- 그림 --------------------------------------------------------------------------
+
+-- 화면 모서리 반지름(px) -> SliceScale. height 를 주면 모서리 조각이 높이의 절반을 넘지 않게
+local function sliceScale(radius: number, height: number?): number
+	local scale = radius / SKIN_RADIUS
+	if height then
+		scale = math.min(scale, height / 2 / SLICE_MARGIN)
+	end
+	return scale
+end
+
+-- 스킨 그림을 대상 맨 뒤에 깔고 대상의 바탕·테두리(UIStroke)는 끔. 그림 Id 가 없으면 nil(기존 Frame 모양 그대로).
+-- 테두리를 붙인 "뒤에" 불러야 함. 크기가 고정이고 UIPadding/UIListLayout 이 없는 상자용
+-- (알약·딱지처럼 자동 크기/여백이 있는 상자는 Ui.box). props: { Radius?(화면에서 보일 모서리 반지름 px,
+--   없으면 통째로 늘임), Height?(대상 높이 px), Color?(ImageColor3), Transparency? }
+function Ui.skin(target: GuiObject, name: string, props: { [string]: any }?): ImageLabel?
+	local id = Ui.imageId(name)
+	if not id then
+		return nil
+	end
+	local options = props or {}
+	target.BackgroundTransparency = 1
+	for _, child in target:GetChildren() do
+		if child:IsA("UIStroke") and child.ApplyStrokeMode == Enum.ApplyStrokeMode.Border then
+			child.Enabled = false
+		end
+	end
+	local image = Ui.new("ImageLabel", {
+		Name = "Skin",
+		BackgroundTransparency = 1,
+		Image = id,
+		ImageColor3 = options.Color or WHITE,
+		ImageTransparency = options.Transparency or 0,
+		Size = UDim2.fromScale(1, 1),
+		ZIndex = 0, -- 대상 안의 다른 것들(글자·아이콘)보다 뒤
+	})
+	local radius = options.Radius
+	if radius then
+		image.ScaleType = Enum.ScaleType.Slice
+		image.SliceCenter = SLICE_CENTER
+		image.SliceScale = sliceScale(radius, options.Height)
+	else
+		image.ScaleType = Enum.ScaleType.Stretch
+	end
+	image.Parent = target
+	return image
+end
+
+-- 스킨 그림 "자체"가 상자인 ImageLabel(그림이 있을 때) 또는 평범한 Frame(없을 때).
+-- 자동 크기(AutomaticSize)나 UIPadding/UIListLayout 이 붙는 상자(알약·딱지)용: 그림이 여백·배치에 밀리지 않음.
+-- props: { Radius, Height?, Color?, Transparency? }. 반환: 상자, 스킨 여부(Frame 이면 UICorner/UIStroke 는 부르는 쪽이 붙임)
+function Ui.box(name: string, props: { [string]: any }): (GuiObject, boolean)
+	local id = Ui.imageId(name)
+	if not id then
+		return Ui.new("Frame", {
+			BackgroundColor3 = props.Color or WHITE,
+			BackgroundTransparency = props.Transparency or 0,
+		}),
+			false
+	end
+	local image = Ui.new("ImageLabel", {
+		BackgroundTransparency = 1,
+		Image = id,
+		ImageColor3 = props.Color or WHITE,
+		ImageTransparency = props.Transparency or 0,
+		ScaleType = Enum.ScaleType.Slice,
+		SliceCenter = SLICE_CENTER,
+		SliceScale = sliceScale(props.Radius, props.Height),
+	})
+	image:SetAttribute("Skin", name)
+	return image, true
+end
+
+-- 바탕색 바꾸기 (스킨 그림이면 그림 색을)
+function Ui.tint(target: GuiObject, color: Color3)
+	if target:IsA("ImageLabel") and target:GetAttribute("Skin") ~= nil then
+		target.ImageColor3 = color
+		return
+	end
+	target.BackgroundColor3 = color
+	local skin = target:FindFirstChild("Skin")
+	if skin and skin:IsA("ImageLabel") then
+		skin.ImageColor3 = color
+	end
+end
+
+-- 아이콘 하나: 그림이 있으면 ImageLabel, 없으면 3D 미니 모형. 자세한 건 Icons.view
+-- props: { Size, Position, AnchorPoint, ZIndex, LayoutOrder, Spin?, Color?(그림 ImageColor3), Transparency? }
+function Ui.icon(parent: Instance?, name: string, props: { [string]: any }?): Frame
+	return icons().view(parent, name, props)
+end
+
+-- 키보드 단축키 키캡 (작은 크림색 네모 + Ink 글자). 키보드가 없는 기기에서는 숨김
+-- props: { Size?(한 변 px), Position, AnchorPoint, Rotation?, ZIndex? }
+function Ui.keyCap(parent: Instance, key: string, props: { [string]: any }?): Frame
+	local options = props or {}
+	local size = options.Size or 26
+	local cap = Ui.new("Frame", {
+		Name = "Key" .. key,
+		AnchorPoint = options.AnchorPoint or Vector2.new(0.5, 0.5),
+		Position = options.Position or UDim2.new(),
+		Size = UDim2.fromOffset(size, size),
+		BackgroundColor3 = Ui.Theme.Cream,
+		Rotation = options.Rotation or -8,
+		ZIndex = options.ZIndex or 7,
+		Visible = UserInputService.KeyboardEnabled,
+	})
+	Ui.corner(7).Parent = cap
+	Ui.stroke(Ui.Theme.Ink, 2.5).Parent = cap
+	Ui.label({
+		Name = "Key",
+		Text = key,
+		Size = UDim2.fromScale(1, 1),
+		ZIndex = 2,
+		Parent = cap,
+	}, math.floor(size * 0.72))
+	cap.Parent = parent
+	return cap
+end
+
 -- 통통 버튼 ------------------------------------------------------------------
 
 export type ChunkyButton = {
@@ -193,7 +353,7 @@ export type ChunkyButton = {
 	Face: TextButton,
 	Shadow: Frame,
 	Label: TextLabel,
-	Icon: ViewportFrame?,
+	Icon: Frame?,
 	Activated: RBXScriptSignal,
 	SetColor: (name: string) -> (),
 	SetText: (text: string) -> (),
@@ -220,13 +380,15 @@ end)
 -- props: { Color = "Grass"|"Sky"|"Sun"|"Coral"|"Grape"|"Gray", Size, Position, AnchorPoint, LayoutOrder, Text,
 --          TextSize?(최대 글자 크기), Parent, Icon?(Icons 이름), IconSize?, IconSpin?, Vertical?(아이콘 위·글자 아래),
 --          Round?(동그라미), Name?, ZIndex?, Visible? }
--- Size 는 그림자까지 포함한 전체 크기(오프셋). 앞면 높이 = Size.Y - 6
+-- Size 는 그림자까지 포함한 전체 크기(오프셋). 앞면 높이 = Size.Y - 6. 글자가 비어 있으면 아이콘을 가운데에.
+-- 스킨: ImageIds.button_face / button_shadow 가 있으면 그 그림을 색으로 물들여 씀
 function Ui.chunkyButton(props: { [string]: any }): ChunkyButton
 	local size: UDim2 = props.Size or UDim2.fromOffset(160, 64)
 	local faceHeight = math.max(12, size.Y.Offset - SHADOW_DEPTH)
 	local radius = if props.Round then UDim.new(0.5, 0) else UDim.new(0, props.CornerRadius or BUTTON_CORNER)
 	local vertical = props.Vertical == true
 	local iconSize = props.IconSize or math.floor(faceHeight * (if vertical then 0.58 else 0.8))
+	local skinRadius = if props.Round then faceHeight / 2 else (props.CornerRadius or BUTTON_CORNER)
 
 	local root = Ui.new("Frame", {
 		Name = props.Name or "Button",
@@ -250,6 +412,7 @@ function Ui.chunkyButton(props: { [string]: any }): ChunkyButton
 	})
 	Ui.new("UICorner", { CornerRadius = radius, Parent = shadow })
 	Ui.stroke().Parent = shadow
+	local shadowSkin = Ui.skin(shadow, "button_shadow", { Radius = skinRadius, Height = faceHeight })
 
 	local face = Ui.new("TextButton", {
 		Name = "Face",
@@ -264,9 +427,10 @@ function Ui.chunkyButton(props: { [string]: any }): ChunkyButton
 	Ui.new("UICorner", { CornerRadius = radius, Parent = face })
 	Ui.stroke().Parent = face
 	local gradient = Ui.new("UIGradient", { Rotation = 90, Parent = face })
+	local faceSkin = Ui.skin(face, "button_face", { Radius = skinRadius, Height = faceHeight })
 
-	-- 왼쪽 위 반짝이(만화풍 광택)
-	if not props.Round then
+	-- 왼쪽 위 반짝이(만화풍 광택). 스킨 그림에는 광택이 그려져 있음
+	if not props.Round and not faceSkin then
 		local shine = Ui.new("Frame", {
 			Name = "Shine",
 			Position = UDim2.fromOffset(9, 5),
@@ -301,7 +465,11 @@ function Ui.chunkyButton(props: { [string]: any }): ChunkyButton
 	local iconName: string? = nil
 	local function layout()
 		local icon = button.Icon
-		if icon and vertical then
+		if icon and label.Text == "" then
+			icon.AnchorPoint = Vector2.new(0.5, 0.5)
+			icon.Position = UDim2.fromScale(0.5, 0.5)
+			icon.Size = UDim2.fromOffset(iconSize, iconSize)
+		elseif icon and vertical then
 			icon.AnchorPoint = Vector2.new(0.5, 0)
 			icon.Position = UDim2.new(0.5, 0, 0, 3)
 			icon.Size = UDim2.fromOffset(iconSize, iconSize)
@@ -346,6 +514,12 @@ function Ui.chunkyButton(props: { [string]: any }): ChunkyButton
 		local pair = Ui.colorPair(name)
 		gradient.Color = Ui.faceGradient(pair.Face)
 		shadow.BackgroundColor3 = pair.Shadow
+		if faceSkin then
+			faceSkin.ImageColor3 = pair.Face
+		end
+		if shadowSkin then
+			shadowSkin.ImageColor3 = pair.Shadow
+		end
 	end
 
 	-- 누름: 앞면이 4px 내려갔다가 올라옴 / 마우스를 올리면 1.05배
@@ -391,7 +565,13 @@ function Ui.chunkyButton(props: { [string]: any }): ChunkyButton
 
 	button.SetColor = setColor
 	button.SetText = function(text: string)
-		label.Text = text
+		if label.Text ~= text then
+			local relayout = label.Text == "" or text == ""
+			label.Text = text
+			if relayout then
+				layout()
+			end
+		end
 	end
 	button.SetIcon = setIcon
 
@@ -419,6 +599,7 @@ local RIBBON_HEIGHT = 54
 
 -- props: { Size, Position, AnchorPoint, Title, Color(리본 색 이름), RibbonWidth?, Name?, ZIndex?, Visible?, Parent }
 -- Cream 바탕 + Ink 테두리 4 + 모서리 18, 위 가운데에 색 리본 제목, 오른쪽 위에 빨간 동그라미 닫기 버튼
+-- 스킨: ImageIds.panel_paper(창 바탕, 물들이지 않음) / ribbon(리본, 색으로 물들임), close 아이콘
 function Ui.window(props: { [string]: any }): Window
 	local theme = Ui.Theme
 	local root = Ui.new("Frame", {
@@ -442,6 +623,7 @@ function Ui.window(props: { [string]: any }): Window
 	})
 	Ui.corner(18).Parent = lip
 	Ui.stroke(theme.Ink, 4).Parent = lip
+	Ui.skin(lip, "panel_paper", { Radius = 18, Color = theme.PaperDark })
 
 	local panel = Ui.new("Frame", {
 		Name = "Panel",
@@ -462,6 +644,9 @@ function Ui.window(props: { [string]: any }): Window
 	})
 	Ui.corner(12).Parent = inner
 	Ui.stroke(theme.Paper, 3).Parent = inner
+	if Ui.skin(panel, "panel_paper", { Radius = 18 }) then
+		inner.Visible = false -- 종이 그림에 안쪽 테두리가 들어 있음
+	end
 
 	-- 리본 제목
 	local ribbon = Ui.new("Frame", {
@@ -499,6 +684,12 @@ function Ui.window(props: { [string]: any }): Window
 	Ui.corner(12).Parent = main
 	Ui.stroke(theme.Ink, 3).Parent = main
 	local gradient = Ui.new("UIGradient", { Rotation = 90, Parent = main })
+	local ribbonSkin = Ui.skin(main, "ribbon", { Radius = 14, Height = RIBBON_HEIGHT })
+	if ribbonSkin then
+		for _, tail in tails do
+			tail.Visible = false -- 리본 그림에 꼬리가 들어 있음
+		end
+	end
 	local title = Ui.label({
 		Name = "Title",
 		Position = UDim2.fromOffset(14, 5),
@@ -510,6 +701,7 @@ function Ui.window(props: { [string]: any }): Window
 	}, 32)
 	Ui.outline(title, 3)
 
+	local closeIcon = if Ui.imageId("close") then "close" else nil
 	local close = Ui.chunkyButton({
 		Name = "Close",
 		Color = "Coral",
@@ -517,7 +709,9 @@ function Ui.window(props: { [string]: any }): Window
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(1, -8, 0, 8),
 		Size = UDim2.fromOffset(52, 58),
-		Text = "X",
+		Text = if closeIcon then "" else "X",
+		Icon = closeIcon,
+		IconSize = 34,
 		TextSize = 30,
 		OutlineThickness = 3,
 		ZIndex = 4,
@@ -541,6 +735,9 @@ function Ui.window(props: { [string]: any }): Window
 		colorName = name
 		local pair = Ui.colorPair(name)
 		gradient.Color = Ui.faceGradient(pair.Face)
+		if ribbonSkin then
+			ribbonSkin.ImageColor3 = pair.Face
+		end
 		for _, tail in tails do
 			tail.BackgroundColor3 = pair.Shadow
 		end
@@ -561,9 +758,10 @@ end
 
 -- 알약 / 칩 --------------------------------------------------------------------
 
-export type Pill = { Root: Frame, Label: TextLabel, Icon: ViewportFrame? }
+export type Pill = { Root: GuiObject, Label: TextLabel, Icon: Frame? }
 
--- 캡슐 모양 반투명 Ink 바탕 + 흰 글자(테두리). 왼쪽에 테두리를 살짝 넘는 동그란 3D 아이콘(선택).
+-- 캡슐 모양 반투명 Ink 바탕 + 흰 글자(테두리). 왼쪽에 테두리를 살짝 넘는 동그란 아이콘(선택).
+-- 스킨: ImageIds.pill 이 있으면 그 그림을 Ink 로 물들여 씀
 -- props: { Size(높이는 오프셋), Position, AnchorPoint, LayoutOrder, Parent, Text, TextColor3?, MaxTextSize?,
 --          AutoWidth?(글자 길이에 맞춰 가로 자동, TextSize 사용), TextSize?, TextXAlignment?,
 --          Icon?(Icons 이름), IconSize?, IconSpin?, IconBack?(아이콘 뒤 동그라미 색), BackgroundTransparency?, Name?, ZIndex?, Visible? }
@@ -577,20 +775,24 @@ function Ui.pill(props: { [string]: any }): Pill
 	local iconCenter = math.floor(iconSize * 0.28)
 	local leftPad = if props.Icon then iconCenter + math.ceil(iconSize / 2) + 6 else 16
 
-	local root = Ui.new("Frame", {
-		Name = props.Name or "Pill",
-		Size = if autoWidth then UDim2.fromOffset(0, height) else size,
-		AutomaticSize = if autoWidth then Enum.AutomaticSize.X else Enum.AutomaticSize.None,
-		Position = props.Position or UDim2.new(),
-		AnchorPoint = props.AnchorPoint or Vector2.new(0, 0),
-		LayoutOrder = props.LayoutOrder or 0,
-		ZIndex = props.ZIndex or 1,
-		Visible = props.Visible ~= false,
-		BackgroundColor3 = theme.Ink,
-		BackgroundTransparency = props.BackgroundTransparency or 0.3,
+	local root, skinned = Ui.box("pill", {
+		Radius = height / 2,
+		Height = height,
+		Color = theme.Ink,
+		Transparency = props.BackgroundTransparency or 0.3,
 	})
-	Ui.round().Parent = root
-	Ui.stroke(theme.Ink, 3).Parent = root
+	root.Name = props.Name or "Pill"
+	root.Size = if autoWidth then UDim2.fromOffset(0, height) else size
+	root.AutomaticSize = if autoWidth then Enum.AutomaticSize.X else Enum.AutomaticSize.None
+	root.Position = props.Position or UDim2.new()
+	root.AnchorPoint = props.AnchorPoint or Vector2.new(0, 0)
+	root.LayoutOrder = props.LayoutOrder or 0
+	root.ZIndex = props.ZIndex or 1
+	root.Visible = props.Visible ~= false
+	if not skinned then
+		Ui.round().Parent = root
+		Ui.stroke(theme.Ink, 3).Parent = root
+	end
 	Ui.new("UIPadding", {
 		PaddingLeft = UDim.new(0, leftPad),
 		PaddingRight = UDim.new(0, props.PadRight or 16),
@@ -611,7 +813,7 @@ function Ui.pill(props: { [string]: any }): Pill
 	}, props.MaxTextSize or 30)
 	Ui.outline(label, 2.5)
 
-	local icon: ViewportFrame? = nil
+	local icon: Frame? = nil
 	if props.Icon then
 		-- UIPadding 만큼 안쪽에서 시작하므로 왼쪽 여백을 빼서 위치를 맞춤
 		local position = UDim2.new(0, iconCenter - leftPad, 0.5, 0)
@@ -649,39 +851,50 @@ function Ui.pill(props: { [string]: any }): Pill
 	return { Root = root, Label = label, Icon = icon }
 end
 
-export type Chip = { Root: Frame, Label: TextLabel }
+export type Chip = { Root: GuiObject, Label: TextLabel, Icon: Frame? }
 
--- 작은 색 캡슐 딱지 (글자 길이에 맞춰 가로 자동). 흰 글자 + Ink 테두리.
+-- 작은 색 캡슐 딱지 (글자 길이에 맞춰 가로 자동). 흰 글자 + Ink 테두리. 아이콘을 주면 [아이콘][글자].
 -- props: { Color = 색 이름 또는 Color3, Text, Height?, TextSize?, TextColor3?, Font?, Outline?(false 면 글자 테두리 없음),
---          StrokeThickness?, CornerRadius?, MinWidth?, Rotation?, Position, AnchorPoint, LayoutOrder, ZIndex, Visible, Parent }
+--          StrokeThickness?, CornerRadius?, MinWidth?, Rotation?, Icon?(Icons 이름), IconSize?, IconOnly?(글자 없이 아이콘만),
+--          Position, AnchorPoint, LayoutOrder, ZIndex, Visible, Parent }
+-- 스킨: ImageIds.tag 가 있으면 그 그림을 바탕색으로 물들여 씀 (색을 바꿀 땐 Ui.tint(chip.Root, 색))
 function Ui.chip(props: { [string]: any }): Chip
 	local height = props.Height or 28
 	local color = props.Color
 	local background = if typeof(color) == "Color3" then color else Ui.colorPair(color or "Sky").Face
+	local iconName = props.Icon
+	local iconOnly = iconName ~= nil and props.IconOnly == true
 
-	local root = Ui.new("Frame", {
-		Name = props.Name or "Chip",
-		Size = UDim2.fromOffset(props.MinWidth or 0, height),
-		AutomaticSize = Enum.AutomaticSize.X,
-		Position = props.Position or UDim2.new(),
-		AnchorPoint = props.AnchorPoint or Vector2.new(0, 0),
-		LayoutOrder = props.LayoutOrder or 0,
-		Rotation = props.Rotation or 0,
-		ZIndex = props.ZIndex or 1,
-		Visible = props.Visible ~= false,
-		BackgroundColor3 = background,
-	})
-	if props.CornerRadius then
-		Ui.corner(props.CornerRadius).Parent = root
-	else
-		Ui.round().Parent = root
+	local root, skinned =
+		Ui.box("tag", { Radius = props.CornerRadius or height / 2, Height = height, Color = background })
+	root.Name = props.Name or "Chip"
+	root.Size = UDim2.fromOffset(props.MinWidth or 0, height)
+	root.AutomaticSize = Enum.AutomaticSize.X
+	root.Position = props.Position or UDim2.new()
+	root.AnchorPoint = props.AnchorPoint or Vector2.new(0, 0)
+	root.LayoutOrder = props.LayoutOrder or 0
+	root.Rotation = props.Rotation or 0
+	root.ZIndex = props.ZIndex or 1
+	root.Visible = props.Visible ~= false
+	if not skinned then
+		if props.CornerRadius then
+			Ui.corner(props.CornerRadius).Parent = root
+		else
+			Ui.round().Parent = root
+		end
+		Ui.stroke(Ui.Theme.Ink, props.StrokeThickness or 2.5).Parent = root
 	end
-	Ui.stroke(Ui.Theme.Ink, props.StrokeThickness or 2.5).Parent = root
-	local pad = UDim.new(0, math.floor(height * 0.42))
-	Ui.new("UIPadding", { PaddingLeft = pad, PaddingRight = pad, Parent = root })
+	local pad = math.floor(height * 0.42)
+	local iconPad = math.floor(height * 0.12)
+	Ui.new("UIPadding", {
+		PaddingLeft = UDim.new(0, if iconName then iconPad else pad),
+		PaddingRight = UDim.new(0, if iconOnly then iconPad else pad),
+		Parent = root,
+	})
 
 	local label = Ui.label({
 		Name = "Label",
+		LayoutOrder = 2,
 		Text = props.Text or "",
 		Font = props.Font or Ui.Theme.Font,
 		TextColor3 = props.TextColor3 or WHITE,
@@ -695,9 +908,29 @@ function Ui.chip(props: { [string]: any }): Chip
 	if props.Outline ~= false then
 		Ui.outline(label, props.OutlineThickness or 2)
 	end
+	label.Visible = not iconOnly -- 안 보이는 글자는 UIListLayout 이 건너뜀
+
+	local icon: Frame? = nil
+	if iconName then
+		-- 아이콘은 딱지보다 살짝 커서 위아래로 조금 삐져나옴
+		Ui.new("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			Padding = UDim.new(0, math.floor(height * 0.14)),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+			VerticalAlignment = Enum.VerticalAlignment.Center,
+			Parent = root,
+		})
+		local iconSize = props.IconSize or math.floor(height * 1.2)
+		icon = icons().view(root, iconName, {
+			Size = UDim2.fromOffset(iconSize, iconSize),
+			LayoutOrder = 1,
+			ZIndex = 3,
+			Spin = props.IconSpin,
+		})
+	end
 
 	root.Parent = props.Parent
-	return { Root = root, Label = label }
+	return { Root = root, Label = label, Icon = icon }
 end
 
 -- 화면 크기 자동 스케일 -------------------------------------------------------

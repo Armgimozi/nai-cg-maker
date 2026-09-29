@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- button_face: 9-slice, SliceCenter (64,64,192,192). Neutral grey so ImageColor3 tints it:
+       body #E6E6E6 (0.90 x tint), top gloss band #FFFFFF (1.0 x tint), bottom lip #B4B4B4 (0.71 x tint).
+       Ink outline 12px. Gloss band and lip sit fully inside the top / bottom slices, so they keep
+       their thickness however tall the button is stretched. -->
+  <defs>
+    <mask id="body"><rect x="14" y="14" width="228" height="228" rx="38" fill="#fff"/></mask>
+  </defs>
+  <rect x="2" y="2" width="252" height="252" rx="50" fill="#1E1B2E"/>
+  <rect x="14" y="14" width="228" height="228" rx="38" fill="#E6E6E6"/>
+  <g mask="url(#body)">
+    <rect x="0" y="210" width="256" height="46" fill="#B4B4B4"/>
+    <rect x="0" y="0" width="256" height="56" fill="#FFFFFF"/>
+  </g>
+</svg>

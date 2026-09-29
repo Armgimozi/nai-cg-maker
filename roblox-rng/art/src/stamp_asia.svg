@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- stamp_asia: passport stamp for region "Asia". Region ring #FF7878, emblem #A83232.
+       Frame is shared by all stamp_*.svg: ring + worn dashed band + cream centre + emblem. -->
+  <defs>
+    <mask id="ring"><circle cx="128" cy="128" r="100" fill="#fff"/></mask>
+    <mask id="disc"><circle cx="128" cy="128" r="74" fill="#fff"/></mask>
+    <mask id="inset">
+      <circle cx="128" cy="128" r="74" fill="#fff"/>
+      <circle cx="133" cy="135" r="74" fill="#000"/>
+    </mask>
+  </defs>
+  <g transform="rotate(-9 128 128)">
+    <!-- outline + depth -->
+    <circle cx="128" cy="135" r="112" fill="#1E1B2E"/>
+    <circle cx="128" cy="128" r="112" fill="#1E1B2E"/>
+    <!-- ring: shade, then lit face shifted up-left -->
+    <circle cx="128" cy="128" r="100" fill="#D94C4C"/>
+    <g mask="url(#ring)"><circle cx="123" cy="121" r="99" fill="#FF7878"/></g>
+    <!-- worn perforated band -->
+    <circle cx="128" cy="128" r="90.5" fill="none" stroke="#FFF4DC" stroke-width="5" stroke-dasharray="10 7" stroke-linecap="round" opacity=".9"/>
+    <g fill="#D94C4C" opacity=".55">
+      <circle cx="58" cy="152" r="4"/><circle cx="196" cy="92" r="3"/><circle cx="170" cy="196" r="3.5"/><circle cx="96" cy="46" r="3"/>
+    </g>
+    <!-- centre -->
+    <circle cx="128" cy="128" r="81" fill="#1E1B2E"/>
+    <circle cx="128" cy="128" r="74" fill="#FFF4DC"/>
+    <circle cx="128" cy="128" r="74" fill="#E9D3A6" mask="url(#inset)"/>
+    <g mask="url(#disc)">
+      <g transform="translate(128 132) scale(1.12) translate(-128 -128)">
+      <path d="M40,178 H216 V220 H40 Z" fill="#E86060" opacity=".45"/>
+      <path d="M128,86 V60" stroke="#A83232" stroke-width="6" stroke-linecap="round"/>
+      <circle cx="128" cy="60" r="6" fill="#A83232"/>
+      <rect x="108" y="100" width="40" height="24" fill="#E86060"/>
+      <rect x="102" y="132" width="52" height="24" fill="#E86060"/>
+      <rect x="96" y="164" width="64" height="16" fill="#E86060"/>
+      <path d="M90,98 Q100,102 112,96 Q124,90 128,80 Q132,90 144,96 Q156,102 166,98 L158,110 H98 Z" fill="#A83232" stroke="#A83232" stroke-width="6" stroke-linejoin="round"/>
+      <path d="M78,130 Q90,134 104,128 Q120,122 128,112 Q136,122 152,128 Q166,134 178,130 L168,142 H88 Z" fill="#A83232" stroke="#A83232" stroke-width="6" stroke-linejoin="round"/>
+      <path d="M68,162 Q82,166 98,160 Q116,154 128,144 Q140,154 158,160 Q174,166 188,162 L176,174 H80 Z" fill="#A83232" stroke="#A83232" stroke-width="6" stroke-linejoin="round"/>
+      <rect x="120" y="112" width="16" height="12" rx="3" fill="#FFF4DC"/>
+      <rect x="112" y="144" width="12" height="12" rx="3" fill="#FFF4DC"/>
+      <rect x="132" y="144" width="12" height="12" rx="3" fill="#FFF4DC"/>
+      <rect x="120" y="172" width="16" height="10" rx="3" fill="#FFF4DC"/>
+      </g>
+      <!-- uneven-ink specks: rubber-stamp texture -->
+      <g fill="#FFF4DC" opacity=".75">
+        <circle cx="104" cy="150" r="2.6"/><circle cx="146" cy="118" r="2.2"/><circle cx="120" cy="176" r="2"/>
+        <circle cx="160" cy="160" r="2.4"/><circle cx="96" cy="112" r="1.8"/><circle cx="136" cy="96" r="1.6"/>
+      </g>
+    </g>
+    <!-- highlight on the ring -->
+    <path d="M44,108 A86,86 0 0 1 92,48" fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" opacity=".75"/>
+  </g>
+</svg>

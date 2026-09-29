@@ -1,5 +1,6 @@
 -- 클라이언트 진입점: 상태 동기화, 굴리기/자동 굴리기, 메뉴 연결, 뉴스 속보, 회전 모형
 -- (화면 글자에는 이모지를 쓰지 않음 — DESIGN.md UI 스타일 가이드 v2)
+-- 알림은 [아이콘] + 8글자 안팎 ("구매 완료", "코인 부족", "대표 지정"), 문장은 쓰지 않음
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -14,6 +15,7 @@ local Net = require(Shared.Net)
 local PlayerState = require(Shared.PlayerState)
 
 local Hud = require(script.Hud)
+local Icons = require(script.Icons)
 local Panels = require(script.Panels)
 local Ui = require(script.Ui)
 
@@ -76,7 +78,7 @@ local function invoke(name: string, ...: any): any
 	local ok, result = pcall(remote.InvokeServer, remote, ...)
 	if not ok then
 		warn("[LandmarkRNG] " .. name .. " 실패: " .. tostring(result))
-		Hud.toast("서버와 통신하지 못했어요. 잠시 후 다시 시도해 주세요.", Ui.Theme.Bad)
+		Hud.toast("연결 오류", Ui.Theme.Bad, nil, "close")
 		return nil
 	end
 	return result
@@ -89,14 +91,14 @@ local function feature(landmarkId: string?)
 	end
 	applyState(response.State)
 	if not response.Ok then
-		Hud.toast("대표 명소로 지정하지 못했어요", Ui.Theme.Bad, 2)
+		Hud.toast("지정 실패", Ui.Theme.Bad, 2, "close")
 	elseif landmarkId then
 		local landmark = Landmarks.ById[landmarkId]
 		if landmark then
-			Hud.toast("대표 명소: " .. landmark.Name, landmark.Tier.Color, 2)
+			Hud.toast("대표 지정", landmark.Tier.Color, 2, "star")
 		end
 	else
-		Hud.toast("대표 명소를 해제했어요", Ui.Theme.SubText, 2)
+		Hud.toast("대표 해제", Ui.Theme.Ink, 2, "star_empty")
 	end
 end
 
@@ -111,7 +113,7 @@ local function showAnnouncement(info: any, landmark: Landmarks.Landmark)
 		if general then
 			general:DisplaySystemMessage(
 				string.format(
-					'[속보] %s 님이 <font color="%s"><b>%s</b></font>(%s) 발견! — %s번째 탐험',
+					'[속보] %s · <font color="%s"><b>%s</b></font> · %s · #%s',
 					Format.escape(name),
 					Format.hex(landmark.Tier.Color),
 					Format.escape(landmark.Name),
@@ -204,6 +206,19 @@ local function toggleAuto()
 	end
 end
 
+-- 서버가 준 실패 이유(문장 또는 코드) -> 짧은 알림 글자 + 아이콘
+local function buyFailure(reason: any): (string, string)
+	local text = string.lower(tostring(reason or ""))
+	if text:find("코인") or text:find("coin") then
+		return "코인 부족", "coin"
+	elseif text:find("최대") or text:find("max") then
+		return "MAX", "check"
+	elseif text:find("불러") or text:find("load") then
+		return "로딩 중", "globe"
+	end
+	return "구매 실패", "close"
+end
+
 local function buy(upgradeId: string)
 	local response = invoke("BuyUpgrade", upgradeId)
 	if type(response) ~= "table" then
@@ -211,15 +226,13 @@ local function buy(upgradeId: string)
 	end
 	applyState(response.State)
 	if response.Ok then
-		local upgrade = PlayerState.UpgradesById[upgradeId]
-		local level = if state and upgrade then PlayerState.upgradeLevel(state, upgradeId) else nil
-		if upgrade and level then
-			Hud.toast(string.format("%s Lv %d 달성!", upgrade.Name, level), Ui.Theme.Good, 2)
-		else
-			Hud.toast("업그레이드 완료!", Ui.Theme.Good, 2)
-		end
+		-- 성공: 업그레이드 아이콘 + "Lv 3"
+		local level = if state then PlayerState.upgradeLevel(state, upgradeId) else nil
+		local icon = Icons.UPGRADE[upgradeId] or "check"
+		Hud.toast(if level then "Lv " .. level else "구매 완료", Ui.Theme.Good, 2, icon)
 	else
-		Hud.toast(tostring(response.Reason or "업그레이드하지 못했어요"), Ui.Theme.Bad, 2)
+		local text, icon = buyFailure(response.Reason)
+		Hud.toast(text, Ui.Theme.Bad, 2, icon)
 	end
 end
 
@@ -245,7 +258,7 @@ local function teleport()
 		location = target
 		Hud.setLocation(location)
 	elseif response ~= nil then
-		Hud.toast("지금은 이동할 수 없어요. 잠시 후 다시 시도해 주세요.", Ui.Theme.Bad, 2)
+		Hud.toast("이동 실패", Ui.Theme.Bad, 2, "close")
 	end
 	teleporting = false
 end

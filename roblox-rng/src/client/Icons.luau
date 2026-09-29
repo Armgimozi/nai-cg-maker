@@ -1,9 +1,15 @@
--- 3D 미니 아이콘 (이모지 대신). 기본 파트 몇 개로 만든 작은 모형을 ViewportFrame 에 띄웁니다.
---   Icons.view(parent, "coin", { Size = ..., Position = ..., AnchorPoint = ..., Spin = 60 }) -> ViewportFrame
---   Icons.set(vf, "plaza") -- 이미 만든 화면의 아이콘만 바꿈
--- 모형은 이름별로 한 번만 만들어 두고 복제해서 씁니다. 파트 수는 아이콘마다 3~15개 정도로 작게 유지.
--- 아이콘: coin, globe(=roll), passport, collection, hammer, park, plaza, star, luck, news, plane, ticket
+-- 아이콘 (이모지 대신). 모든 아이콘은 Icons.view 하나로 그립니다(Ui.icon 도 이걸 부름).
+--   Shared/ImageIds 에 그림 Id 가 있으면 ImageLabel(그린 그림), 없으면 기본 파트로 만든 3D 미니 모형(ViewportFrame).
+--   Icons.view(parent, "coin", { Size = ..., Position = ..., AnchorPoint = ..., Spin = 60 }) -> Frame(이름 "Icon")
+--   Icons.set(icon, "plaza")   -- 이미 만든 아이콘의 그림만 바꿈 (그림 <-> 3D 가 바뀌어도 됨)
+--   Icons.setSpin(icon, 420)   -- 회전 속도(초당 도). 그림 아이콘은 빠를 때만 빙글 돌고, 느린 회전은 3D 에만 적용
+-- 3D 모형은 이름별로 한 번만 만들어 두고 복제해서 씁니다. 파트 수는 아이콘마다 3~15개 정도로 작게 유지.
+-- 아이콘: coin, globe(=roll), passport, album(=collection), hammer, park, plaza, dice, clover(=luck), star,
+--   star_empty, news, lock, auto, close, check, arrow_up, plane, ticket  (stamp_* 는 그림이 있을 때만 씀)
 
+local RunService = game:GetService("RunService")
+
+local Ui = require(script.Parent.Ui)
 local Viewport = require(script.Parent.Viewport)
 
 local Icons = {}
@@ -42,6 +48,7 @@ local NEWSPRINT = rgb(236, 232, 220)
 local INK = rgb(30, 27, 46)
 local CLOVER = rgb(70, 190, 90)
 local CLOVER_DARK = rgb(40, 140, 64)
+local STAR_GRAY = rgb(196, 190, 212)
 
 local function style(part: BasePart, cf: CFrame, size: Vector3, color: Color3, material: Enum.Material?)
 	part.Anchored = true
@@ -150,8 +157,8 @@ function BUILDERS.passport(m)
 	block(m, base * CFrame.new(0, -1.15, -0.3), V(1.2, 0.12, 0.06), GOLD)
 end
 
--- 컬렉션: 부채꼴로 펼친 카드 3장 (앞 카드에는 작은 그림)
-function BUILDERS.collection(m)
+-- 도감(컬렉션): 부채꼴로 펼친 카드 3장 (앞 카드에는 작은 그림)
+function BUILDERS.album(m)
 	local cards = {
 		{ Angle = 20, Z = 0.3, Color = SKY },
 		{ Angle = 0, Z = 0, Color = GRAPE },
@@ -204,11 +211,34 @@ function BUILDERS.plaza(m)
 	block(m, base * CFrame.new(0, 5.1, 0), V(2.9, 0.4, 2.9), MARBLE_SHADE)
 end
 
+-- 삼각형 화살촉: base 좌표계의 XY 평면에서 baseCenter(밑변 가운데)부터 dir 방향으로 length 만큼.
+-- 직각 쐐기 두 개를 가운데 줄 양쪽에 붙임(쐐기의 직각 = 밑변 가운데, 세로 변 = dir, 가로 변 = 바깥 → 가운데)
+local function arrowhead(
+	model: Model,
+	base: CFrame,
+	baseCenter: Vector3,
+	dir: Vector3,
+	length: number,
+	halfWidth: number,
+	thickness: number,
+	color: Color3
+)
+	local u = dir.Unit
+	local v = V(-u.Y, u.X, 0)
+	for _, side in { 1, -1 } do
+		local yAxis = u
+		local zAxis = v * -side
+		local xAxis = yAxis:Cross(zAxis)
+		local position = baseCenter + u * (length / 2) + v * (side * halfWidth / 2)
+		wedge(model, base * CFrame.fromMatrix(position, xAxis, yAxis, zAxis), V(thickness, length, halfWidth), color)
+	end
+end
+
 -- 별: 가운데 원판 + 뾰족한 끝 5개(직각 쐐기 2개씩)
-function BUILDERS.star(m)
+local function buildStar(m: Model, color: Color3)
 	local outerRadius, innerRadius, thickness = 2.2, 0.95, 0.7
 	local center = FACE * CFrame.new(0, 2.2, 0) -- 별 평면 = 로컬 XY, 두께 = 로컬 Z
-	cyl(m, center * ALONG_Z, thickness, innerRadius * 2, SUN)
+	cyl(m, center * ALONG_Z, thickness, innerRadius * 2, color)
 	local apothem = innerRadius * math.cos(math.rad(36))
 	local halfBase = innerRadius * math.sin(math.rad(36))
 	local length = outerRadius - apothem
@@ -223,13 +253,22 @@ function BUILDERS.star(m)
 			local zAxis = v * -side
 			local xAxis = yAxis:Cross(zAxis)
 			local position = mid + u * (length / 2) + v * (side * halfBase / 2)
-			wedge(m, center * CFrame.fromMatrix(position, xAxis, yAxis, zAxis), V(thickness, length, halfBase), SUN)
+			wedge(m, center * CFrame.fromMatrix(position, xAxis, yAxis, zAxis), V(thickness, length, halfBase), color)
 		end
 	end
 end
 
+function BUILDERS.star(m)
+	buildStar(m, SUN)
+end
+
+-- 빈 별(아직 못 딴 별): 흐린 회색 별
+function BUILDERS.star_empty(m)
+	buildStar(m, STAR_GRAY)
+end
+
 -- 행운: 네잎클로버 (잎 원판 4장 + 가운데 + 줄기)
-function BUILDERS.luck(m)
+function BUILDERS.clover(m)
 	local center = FACE * CFrame.new(0, 2.7, 0)
 	for _, offset in { { -0.72, 0.72 }, { 0.72, 0.72 }, { -0.72, -0.72 }, { 0.72, -0.72 } } do
 		cyl(m, center * CFrame.new(offset[1], offset[2], 0) * ALONG_Z, 0.35, 1.8, CLOVER)
@@ -268,8 +307,91 @@ function BUILDERS.ticket(m)
 	block(m, base * CFrame.new(-0.45, 0, -0.04), V(2.1, 0.55, 0.16), CREAM)
 end
 
+-- 주사위(굴림 수): 흰 주사위, 앞 5 · 오른쪽 3 · 위 1(빨강). 앞과 오른쪽 면이 고루 보이게 조금 돌림
+function BUILDERS.dice(m)
+	local size = 3.4
+	local h = size / 2
+	local q = size * 0.26
+	local pip = 0.74
+	local center = CFrame.new(0, h, 0) * CFrame.Angles(0, math.rad(10), 0)
+	block(m, center, V(size, size, size), SNOW)
+	for _, p in { { -q, q }, { q, q }, { 0, 0 }, { -q, -q }, { q, -q } } do
+		ball(m, (center * CFrame.new(p[1], p[2], -h)).Position, pip, INK)
+	end
+	for _, p in { { q, q }, { 0, 0 }, { -q, -q } } do
+		ball(m, (center * CFrame.new(h, p[2], p[1])).Position, pip, INK)
+	end
+	ball(m, (center * CFrame.new(0, h, 0)).Position, pip * 1.3, CORAL)
+end
+
+-- 자물쇠: 금색 몸통 + 반원 쇠고리 + 열쇠 구멍
+function BUILDERS.lock(m)
+	local base = FACE
+	block(m, base * CFrame.new(0, 1.3, 0), V(3.2, 2.6, 1.2), SUN)
+	local radius, pieces = 1.05, 7
+	local chord = 2 * radius * math.sin(PI / (2 * (pieces - 1))) + 0.1
+	local arch = base * CFrame.new(0, 3.1, 0)
+	for k = 0, pieces - 1 do
+		local angle = k * PI / (pieces - 1)
+		block(m, arch * CFrame.Angles(0, 0, angle) * CFrame.new(radius, 0, 0), V(0.5, chord, 0.5), STEEL, Mat.Metal)
+	end
+	for _, side in { -1, 1 } do
+		block(m, base * CFrame.new(side * radius, 2.8, 0), V(0.5, 0.7, 0.5), STEEL, Mat.Metal)
+	end
+	cyl(m, base * CFrame.new(0, 1.55, -0.6) * ALONG_Z, 0.1, 0.62, INK)
+	block(m, base * CFrame.new(0, 1.05, -0.6), V(0.28, 0.75, 0.1), INK)
+end
+
+-- 두 점을 잇는 굵은 막대 (base 좌표계의 XY 평면). 양 끝을 조금 늘려서 이음매가 비지 않게
+local function bar(m: Model, base: CFrame, a: Vector3, b: Vector3, width: number, color: Color3)
+	local d = b - a
+	local angle = math.atan2(d.Y, d.X)
+	block(m, base * CFrame.new((a + b) / 2) * CFrame.Angles(0, 0, angle), V(d.Magnitude + width, width, 0.8), color)
+end
+
+-- 체크: 초록 V 표시
+function BUILDERS.check(m)
+	local base = FACE * CFrame.new(0, 2.1, 0)
+	bar(m, base, V(-1.7, 0.1, 0), V(-0.55, -1.05, 0), 0.95, GRASS)
+	bar(m, base, V(-0.55, -1.05, 0), V(1.8, 1.45, 0), 0.95, GRASS)
+end
+
+-- 닫기/실패: 흰 X (빨간 바탕 위에 올라감)
+function BUILDERS.close(m)
+	local base = FACE * CFrame.new(0, 2, 0)
+	bar(m, base, V(-1.4, -1.4, 0), V(1.4, 1.4, 0), 1, SNOW)
+	bar(m, base, V(-1.4, 1.4, 0), V(1.4, -1.4, 0), 1, SNOW)
+end
+
+-- 위 화살표(수입·강화): 초록 기둥 + 화살촉
+function BUILDERS.arrow_up(m)
+	local base = FACE
+	block(m, base * CFrame.new(0, 1.2, 0), V(1.2, 2.4, 0.8), GRASS)
+	arrowhead(m, base, V(0, 2.3, 0), V(0, 1, 0), 2, 1.6, 0.8, GRASS)
+end
+
+-- 자동: 한 바퀴 도는 화살표(고리 조각 9개 + 화살촉). 오른쪽 위가 비어 있고 화살촉이 그쪽을 가리킴
+function BUILDERS.auto(m)
+	local center = FACE * CFrame.new(0, 2.3, 0)
+	local radius, width, thickness = 1.65, 0.62, 0.7
+	local pieces = 12
+	local step = 2 * PI / pieces
+	local chord = 2 * radius * math.sin(PI / pieces) + 0.08
+	local start = math.rad(120)
+	for k = 0, 8 do
+		local cf = center * CFrame.Angles(0, 0, start + k * step) * CFrame.new(radius, 0, 0)
+		block(m, cf, V(width, chord, thickness), SNOW)
+	end
+	local finish = start + 8 * step + step / 2
+	local at = V(math.cos(finish), math.sin(finish), 0) * radius
+	arrowhead(m, center, at, V(-math.sin(finish), math.cos(finish), 0), 1.3, 0.95, thickness, SNOW)
+end
+
+-- 예전 이름 -> 지금 이름 (ImageIds 와 같은 이름을 씀)
 local ALIASES = {
 	roll = "globe",
+	collection = "album",
+	luck = "clover",
 }
 
 -- 모든 파트를 옮겨서 경계 상자의 바닥 중앙이 원점에 오게 함 (Viewport 는 원점 기준으로 틀을 잡고 돌림)
@@ -303,15 +425,14 @@ end
 
 local templates: { [string]: Model } = {}
 
-local function template(name: string): Model
-	local key = ALIASES[name] or name
+local function template(key: string): Model
 	local cached = templates[key]
 	if cached then
 		return cached
 	end
 	local builder = BUILDERS[key]
 	if not builder then
-		warn("[LandmarkRNG] 모르는 아이콘: " .. tostring(name))
+		warn("[LandmarkRNG] 모르는 아이콘: " .. tostring(key))
 		key = "star"
 		builder = BUILDERS.star
 		if templates.star then
@@ -336,30 +457,157 @@ local function template(name: string): Model
 	return model
 end
 
--- 이미 있는 화면의 아이콘을 바꿈
-function Icons.set(vf: ViewportFrame, name: string)
-	Viewport.setModel(vf, template(name):Clone())
-	vf:SetAttribute("Icon", name)
+-- 업그레이드 Id -> 아이콘 이름 (업그레이드 창, 구매 알림에서 같이 씀)
+Icons.UPGRADE = {
+	Globe = "globe",
+	Agency = "plane",
+	Park = "park",
+	Ticket = "ticket",
+} :: { [string]: string }
+
+-- 그림 아이콘은 이 속도(초당 도) 이상일 때만 돌림. 천천히 도는 건 3D 모형에만 어울림
+local FAST_SPIN = 180
+local WHITE = Color3.new(1, 1, 1)
+
+local imageSpins: { [ImageLabel]: number } = {}
+local imageSpinConnection: RBXScriptConnection? = nil
+
+local function stepImages(dt: number)
+	for image, speed in imageSpins do
+		if not image.Parent then
+			imageSpins[image] = nil -- Destroy 된 아이콘
+			continue
+		end
+		image.Rotation = (image.Rotation + speed * dt) % 360
+	end
 end
 
--- 새 아이콘 화면. props: { Size, Position, AnchorPoint, ZIndex, Spin(초당 회전 각도) }
-function Icons.view(parent: Instance?, name: string, props: { [string]: any }?): ViewportFrame
+-- 그림 Id (없으면 nil). 예전 이름도 받아 줌
+function Icons.imageId(name: string): string?
+	return Ui.imageId(ALIASES[name] or name)
+end
+
+local function applySpin(icon: Frame)
+	local value = icon:GetAttribute("Spin")
+	local speed = if type(value) == "number" then value else 0
+	local content = icon:FindFirstChild("Content")
+	if not content then
+		return
+	end
+	if content:IsA("ViewportFrame") then
+		Viewport.setSpin(content, speed)
+	elseif content:IsA("ImageLabel") then
+		if math.abs(speed) >= FAST_SPIN then
+			imageSpins[content] = speed
+			if not imageSpinConnection then
+				imageSpinConnection = RunService.RenderStepped:Connect(stepImages)
+			end
+		else
+			imageSpins[content] = nil
+			content.Rotation = 0
+		end
+	end
+end
+
+-- 색/투명도: 그림(ImageLabel)과 3D 화면(ViewportFrame) 둘 다 ImageColor3 / ImageTransparency 가 있음
+local function applyLook(icon: Frame)
+	local content = icon:FindFirstChild("Content")
+	if content and (content:IsA("ImageLabel") or content:IsA("ViewportFrame")) then
+		local color = icon:GetAttribute("Color")
+		local transparency = icon:GetAttribute("Transparency")
+		content.ImageColor3 = if typeof(color) == "Color3" then color else WHITE
+		content.ImageTransparency = if type(transparency) == "number" then transparency else 0
+	end
+end
+
+-- 이미 있는 아이콘의 그림을 바꿈. 그림이 있으면 ImageLabel, 없으면 3D 모형 (종류가 바뀌면 속을 새로 만듦)
+function Icons.set(icon: Frame, name: string)
+	local key = ALIASES[name] or name
+	local id = Ui.imageId(key)
+	local content = icon:FindFirstChild("Content")
+	if id then
+		local image: ImageLabel
+		if content and content:IsA("ImageLabel") then
+			image = content
+		else
+			if content then
+				content:Destroy()
+			end
+			image = Ui.new("ImageLabel", {
+				Name = "Content",
+				BackgroundTransparency = 1,
+				Size = UDim2.fromScale(1, 1),
+				ScaleType = Enum.ScaleType.Fit,
+				ZIndex = icon.ZIndex,
+				Parent = icon,
+			})
+		end
+		image.Image = id
+	else
+		local vf: ViewportFrame
+		if content and content:IsA("ViewportFrame") then
+			vf = content
+		else
+			if content then
+				content:Destroy()
+			end
+			vf = Viewport.new(icon, {
+				Name = "Content",
+				ZIndex = icon.ZIndex,
+				Ambient = rgb(196, 194, 208),
+			})
+		end
+		Viewport.setModel(vf, template(key):Clone())
+	end
+	icon:SetAttribute("Icon", key)
+	applyLook(icon)
+	applySpin(icon)
+end
+
+-- 새 아이콘. props: { Size, Position, AnchorPoint, ZIndex, LayoutOrder, Rotation, Spin(초당 회전 각도),
+--   Color?(ImageColor3), Transparency? }. 반환: 투명한 Frame(이름 "Icon") — 속은 그림 또는 3D 화면
+function Icons.view(parent: Instance?, name: string, props: { [string]: any }?): Frame
 	local options = props or {}
-	local vf = Viewport.new(nil, {
+	local icon = Ui.new("Frame", {
 		Name = "Icon",
+		BackgroundTransparency = 1,
 		Size = options.Size or UDim2.fromScale(1, 1),
 		Position = options.Position or UDim2.new(),
 		AnchorPoint = options.AnchorPoint or Vector2.new(0, 0),
 		ZIndex = options.ZIndex or 1,
-		Ambient = rgb(196, 194, 208),
+		LayoutOrder = options.LayoutOrder or 0,
+		Rotation = options.Rotation or 0,
 	})
-	Icons.set(vf, name)
-	local spin = options.Spin
-	if type(spin) == "number" and spin ~= 0 then
-		Viewport.setSpin(vf, spin)
+	if type(options.Spin) == "number" then
+		icon:SetAttribute("Spin", options.Spin)
 	end
-	vf.Parent = parent
-	return vf
+	if typeof(options.Color) == "Color3" then
+		icon:SetAttribute("Color", options.Color)
+	end
+	if type(options.Transparency) == "number" then
+		icon:SetAttribute("Transparency", options.Transparency)
+	end
+	Icons.set(icon, name)
+	icon.Parent = parent
+	return icon
+end
+
+-- 회전 속도 바꾸기 (0 이면 멈춤)
+function Icons.setSpin(icon: Frame, degreesPerSecond: number)
+	icon:SetAttribute("Spin", degreesPerSecond)
+	applySpin(icon)
+end
+
+-- 흐리게/진하게 (0 = 진하게, 1 = 안 보임)
+function Icons.setTransparency(icon: Frame, transparency: number)
+	icon:SetAttribute("Transparency", transparency)
+	applyLook(icon)
+end
+
+-- 물들이기 (흰색 = 원래 색)
+function Icons.setColor(icon: Frame, color: Color3)
+	icon:SetAttribute("Color", color)
+	applyLook(icon)
 end
 
 return Icons

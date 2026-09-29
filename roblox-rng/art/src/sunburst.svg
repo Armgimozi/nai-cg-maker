@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!-- sunburst: 12 wide + 12 thin white rays, fading out toward the edge. Tint with ImageColor3,
+       rotate slowly behind a reveal. Rotationally symmetric every 30 degrees. -->
+  <defs>
+    <radialGradient id="fade" cx="256" cy="256" r="256" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+      <stop offset=".12" stop-color="#fff" stop-opacity=".9"/>
+      <stop offset=".45" stop-color="#fff" stop-opacity=".75"/>
+      <stop offset=".8" stop-color="#fff" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="256" cy="256" r="150" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff" stop-opacity=".95"/>
+      <stop offset=".4" stop-color="#fff" stop-opacity=".45"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <mask id="m"><rect width="512" height="512" fill="url(#fade)"/></mask>
+  </defs>
+  <g mask="url(#m)" fill="#fff">
+    <path d="M256,256 L216.0,-111.8 L296.0,-111.8 Z M256,256 L405.3,-82.5 L474.5,-42.6 Z M256,256 L554.6,37.5 L594.5,106.7 Z M256,256 L623.8,216.0 L623.8,296.0 Z M256,256 L594.5,405.3 L554.6,474.5 Z M256,256 L474.5,554.6 L405.3,594.5 Z M256,256 L296.0,623.8 L216.0,623.8 Z M256,256 L106.7,594.5 L37.5,554.6 Z M256,256 L-42.6,474.5 L-82.5,405.3 Z M256,256 L-111.8,296.0 L-111.8,216.0 Z M256,256 L-82.5,106.7 L-42.6,37.5 Z M256,256 L37.5,-42.6 L106.7,-82.5 Z"/>
+    <path d="M256,256 L321.4,-36.8 L345.7,-30.3 Z M256,256 L459.1,35.2 L476.8,52.9 Z M256,256 L542.3,166.3 L548.8,190.6 Z M256,256 L548.8,321.4 L542.3,345.7 Z M256,256 L476.8,459.1 L459.1,476.8 Z M256,256 L345.7,542.3 L321.4,548.8 Z M256,256 L190.6,548.8 L166.3,542.3 Z M256,256 L52.9,476.8 L35.2,459.1 Z M256,256 L-30.3,345.7 L-36.8,321.4 Z M256,256 L-36.8,190.6 L-30.3,166.3 Z M256,256 L35.2,52.9 L52.9,35.2 Z M256,256 L166.3,-30.3 L190.6,-36.8 Z" opacity=".7"/>
+  </g>
+  <circle cx="256" cy="256" r="150" fill="url(#glow)"/>
+</svg>

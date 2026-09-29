@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- coin: thick gold coin seen from the front, globe emblem stamped in the middle. -->
+  <defs>
+    <mask id="face"><circle cx="128" cy="118" r="86" fill="#fff"/></mask>
+    <mask id="well"><circle cx="128" cy="118" r="60" fill="#fff"/></mask>
+    <mask id="edge">
+      <circle cx="128" cy="132" r="86" fill="#fff"/>
+      <circle cx="128" cy="118" r="86" fill="#000"/>
+    </mask>
+  </defs>
+  <!-- outline + depth -->
+  <g fill="#1E1B2E">
+    <circle cx="128" cy="139" r="98"/>
+    <circle cx="128" cy="130" r="98"/>
+    <circle cx="128" cy="118" r="98"/>
+  </g>
+  <!-- coin edge (thickness) with reeding -->
+  <circle cx="128" cy="132" r="86" fill="#C47F0A"/>
+  <g stroke="#9A5F05" stroke-width="6" mask="url(#edge)">
+    <path d="M52,170 l-6,14 M66,186 l-5,15 M84,198 l-3,16 M105,206 l-2,16 M128,208 v18 M151,206 l2,16 M172,198 l3,16 M190,186 l5,15 M204,170 l6,14"/>
+  </g>
+  <!-- face -->
+  <circle cx="128" cy="118" r="86" fill="#D9900F"/>
+  <circle cx="123" cy="112" r="84" fill="#FFC53D" mask="url(#face)"/>
+  <circle cx="128" cy="118" r="86" fill="none" stroke="#1E1B2E" stroke-width="6"/>
+  <!-- recessed well: dark lip top-left, light bottom-right -->
+  <circle cx="128" cy="118" r="60" fill="#E9A21C"/>
+  <circle cx="133" cy="124" r="58" fill="#FFB72E" mask="url(#well)"/>
+  <circle cx="128" cy="118" r="60" fill="none" stroke="#C47F0A" stroke-width="6"/>
+  <!-- globe emblem (raised) -->
+  <g fill="none" stroke-linecap="round">
+    <g stroke="#B06F05" stroke-width="9" transform="translate(2,3)">
+      <circle cx="128" cy="118" r="34"/>
+      <ellipse cx="128" cy="118" rx="14" ry="34"/>
+      <path d="M94,118 H162 M100,100 H156 M100,136 H156"/>
+    </g>
+    <g stroke="#FFE38A" stroke-width="9">
+      <circle cx="128" cy="118" r="34"/>
+      <ellipse cx="128" cy="118" rx="14" ry="34"/>
+      <path d="M94,118 H162 M100,100 H156 M100,136 H156"/>
+    </g>
+  </g>
+  <!-- rim highlight -->
+  <path d="M60,96 A72,72 0 0 1 104,50" fill="none" stroke="#FFF6D6" stroke-width="11" stroke-linecap="round"/>
+  <circle cx="122" cy="44" r="6" fill="#FFF6D6"/>
+  <!-- sparkle -->
+  <path d="M206,34 Q209,52 226,56 Q209,60 206,78 Q203,60 186,56 Q203,52 206,34 Z" fill="#fff" stroke="#1E1B2E" stroke-width="7" stroke-linejoin="round"/>
+</svg>
