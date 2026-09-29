@@ -22,6 +22,7 @@ local CANOPY = {
 	[2] = { rgb(58, 156, 70), rgb(92, 192, 80), rgb(146, 220, 104) },
 	[3] = { rgb(206, 72, 52), rgb(236, 118, 56), rgb(250, 176, 74) },
 	[4] = { rgb(234, 130, 172), rgb(255, 172, 204), rgb(255, 214, 230) },
+	[5] = { rgb(38, 118, 70), rgb(58, 146, 78), rgb(104, 184, 92) }, -- 기둥 나무(짙은 청록빛 초록)
 }
 local FRUITS = { rgb(255, 150, 40), rgb(232, 62, 62), rgb(255, 204, 60) }
 local PALM_TRUNK = rgb(186, 140, 92)
@@ -321,7 +322,43 @@ local BUILD = {}
 
 -- 넓은잎나무: 살짝 기운 두 마디 줄기 + 가지 1~2 + 잎 공 5~7(아래는 짙게, 위는 밝게). Style = 잎 색(CANOPY)
 -- 과일나무(2)는 잎 둘레에 열매, 크기는 Scale(0.75~1.45)
+-- 기둥 나무(Style 5): 짧은 줄기 + 위로 갈수록 작아지는 잎 공 넷을 쌓고(살짝 비뚤게) 아래쪽 옆에 작은 공 둘.
+-- 넓은잎나무보다 가늘고 키가 커서 숲 무리의 윤곽이 들쭉날쭉해짐
+local function slimTree(parent: Instance, item)
+	local s, base = item.Scale, basePoint(item)
+	local rng = itemRng(item, 13)
+	local colors = CANOPY[5]
+	local lean = Vector3.new(math.cos(item.Turn), 0, math.sin(item.Turn)) * 0.05
+	rod(
+		parent,
+		"TreeTrunk",
+		base - Vector3.new(0, 0.6, 0),
+		base + Vector3.new(0, 3 * s, 0),
+		1 * s,
+		TRUNK,
+		MAT.Wood,
+		true
+	)
+	local y = 3.6
+	for k, d in { 3.9, 3.5, 2.9, 2.1 } do
+		local jitter = Vector3.new(rng:NextNumber(-0.25, 0.25), 0, rng:NextNumber(-0.25, 0.25)) * s
+		local center = base + Vector3.new(0, y * s, 0) + lean * (y * s) + jitter
+		ball(parent, "TreeLeaves", center, d * s, colors[1]:Lerp(colors[3], (k - 1) / 4), LEAVES)
+		y += d * 0.62
+	end
+	local start = rng:NextNumber(0, math.pi * 2)
+	for k = 1, 2 do
+		local a = start + k * math.pi + rng:NextNumber(-0.4, 0.4)
+		local offset = Vector3.new(math.cos(a) * 1.3, 4.6 + k * 0.8, math.sin(a) * 1.3) * s
+		ball(parent, "TreeLeaves", base + offset, 2.3 * s, colors[2], LEAVES)
+	end
+end
+
 function BUILD.Tree(parent: Instance, item)
+	if item.Style == 5 then
+		slimTree(parent, item)
+		return
+	end
 	local s, base = item.Scale, basePoint(item)
 	local rng = itemRng(item, 1)
 	local colors = CANOPY[item.Style] or CANOPY[1]
@@ -699,16 +736,40 @@ function BUILD.Rock(parent: Instance, item)
 	)
 end
 
--- 물가 바위: 지형 바위(울퉁불퉁한 바위 무더기) 꼭대기에 둥근 바윗돌 하나(아래 반은 지형 속).
--- Scale = 지형 바위 반지름, Height = 지형 바위 꼭대기 높이
+-- 물가 바위 무더기: 지형 바위 턱(낮고 울퉁불퉁한 둔덕) 위에 크고 작은 둥근 바윗돌 셋(열대 바닷가의 매끈한 화강암처럼,
+-- 아래 반쯤은 턱·물속에 묻힘). 따뜻한 회색 셋을 섞음. Scale = 지형 바위 반지름, Height = 지형 바위 꼭대기 높이
+local GRANITE = { rgb(164, 156, 146), rgb(138, 136, 132), rgb(178, 168, 156) }
 function BUILD.ShoreRock(parent: Instance, item)
 	local r, top = item.Scale, item.Height
 	local rng = itemRng(item, 11)
 	local t = item.Turn
-	local ox, oz = spin(0.2 * r, 0.1 * r, t)
-	local size = 0.5 * r
-	local floor = math.max(math.min(top, groundAt(item.X + ox, item.Z + oz)), Island.WATER_LEVEL)
-	boulder(parent, "ShoreRock", Vector3.new(item.X + ox, floor - 0.35 * size, item.Z + oz), size, rng, 0.25)
+	local stones = {
+		{ 0, 0, 0.66 }, -- 옆, 옆(바위 반지름 비율), 크기(비율)
+		{ 0.62, 0.3, 0.44 },
+		{ -0.5, -0.42, 0.36 },
+	}
+	for k, stone in stones do
+		local ox, oz = spin(stone[1] * r, stone[2] * r, t)
+		local x, z = item.X + ox, item.Z + oz
+		local size = stone[3] * r
+		local floor = math.max(math.min(top, groundAt(x, z)), Island.WATER_LEVEL - 0.2 * size)
+		local color = GRANITE[k]
+		ball(parent, "ShoreRock", Vector3.new(x, floor - 0.1 * size, z), 1.2 * size, color, MAT.Rock, true)
+		-- 옆에 붙은 작은 공(둥근 돌 두 개가 붙은 모양): 바위마다 방향이 다름
+		local a = t + k * 2.1 + rng:NextNumber(-0.5, 0.5)
+		local d = 0.5 * size
+		local px, pz = x + math.cos(a) * d, z + math.sin(a) * d
+		local pfloor = math.max(math.min(top, groundAt(px, pz)), Island.WATER_LEVEL - 0.2 * size)
+		ball(
+			parent,
+			"ShoreRock",
+			Vector3.new(px, pfloor - 0.2 * size, pz),
+			0.85 * size,
+			color:Lerp(ROCK_DARK, 0.2),
+			MAT.Rock,
+			true
+		)
+	end
 end
 
 -- 정원등: 가는 짙은 초록 기둥 + 등 + 모자(광장 가로등보다 가늘고 낮게, 따뜻한 빛)

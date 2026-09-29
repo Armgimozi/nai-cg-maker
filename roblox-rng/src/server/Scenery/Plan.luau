@@ -62,6 +62,7 @@ local T = {
 	BELT = {
 		GroveRadius = 14, -- 숲 무리 반지름
 		BlossomGroves = 0.25, -- 큰 무리가 꽃나무(분홍) 무리일 확률
+		SlimChance = 0.3, -- 초록 무리 둘레 나무가 기둥 나무(Style 5)일 확률
 		Trees = 76, -- 넓은잎나무 최대 수(보통 무리 크기로 정해짐)
 		Palms = 10, -- 모래 쪽 야자수 최대 수
 		TreeScale = { 1.05, 1.45 },
@@ -912,7 +913,7 @@ local function put(g: Garden, kind: string, rho: number, side: number, radius: n
 	return place(g.ctx, g.rng, spec, 3, 1.5)
 end
 
--- 넓은잎나무. style: 1 초록, 2 과일나무, 3 단풍(빨강), 4 꽃나무(분홍)
+-- 넓은잎나무. style: 1 초록, 2 과일나무, 3 단풍(빨강), 4 꽃나무(분홍), 5 기둥 나무(가늘고 키 큼)
 local function tree(g: Garden, rho: number, side: number, scale: number, style: number?): Item?
 	local x, z = at(g, rho, side)
 	local spec = treeSpec("Gardens", "Island", x, z, scale, style or 1, g.rng)
@@ -1100,7 +1101,7 @@ THEMES.Topiary = function(g)
 	topiary(g, 194, -22, 3, 1.3)
 	bench(g, 176, 14, 176, 30)
 	bed(g, 180, -20, 3, 6)
-	tree(g, 196, -31, 1.15, 1)
+	tree(g, 196, -31, 1.15, 5)
 	lamp(g, 142, 8)
 end
 
@@ -1285,7 +1286,9 @@ local function belt(ctx: Ctx)
 				local scale = if done == 0
 					then rng:NextNumber(1.3, B.TreeScale[2])
 					else rng:NextNumber(B.TreeScale[1], 1.25)
-				item = place(ctx, rng, treeSpec("Belt", "Island", x, z, scale, style, rng), 0, 0, true)
+				-- 초록 무리의 둘레 나무는 가끔 가늘고 키 큰 기둥 나무(한 가지 모양만 되풀이되지 않게)
+				local kind = if style == 1 and done > 0 and rng:NextNumber() < B.SlimChance then 5 else style
+				item = place(ctx, rng, treeSpec("Belt", "Island", x, z, scale, kind, rng), 0, 0, true)
 				if item then
 					trees += 1
 					table.insert(placed, item)
