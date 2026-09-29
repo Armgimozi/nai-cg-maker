@@ -79,15 +79,16 @@ test("RarestFirst 는 내림차순, 마지막은 가장 흔한 명소", function
 	eq(Landmarks.Common.Region, "Asia", "가장 흔한 명소도 대륙 소속")
 end)
 test("등급 경계", function()
-	eq(Landmarks.ById.fountain.Tier.Name, "동네 명소")
+	eq(Landmarks.ById.fountain.Tier.Name, "일반 명소")
 	eq(Landmarks.ById.arc.Tier.Name, "도시 명소")
 	eq(Landmarks.ById.namsan.Tier.Name, "국가 명소")
 	eq(Landmarks.ById.sphinx.Tier.Name, "세계 명소")
 	eq(Landmarks.ById.alexandria.Tier.Name, "불가사의")
 	eq(Landmarks.ById.babel.Tier.Name, "잃어버린 유산")
-	eq(Landmarks.ById.earth.Tier.Name, "전설")
+	eq(Landmarks.ById.worldtree.Tier.Name, "전설")
+	eq(Landmarks.ById.earth, nil, "지구는 명소가 아님")
 end)
-test("여권 지역은 4대륙뿐, 특별 명소(지구)만 대륙 밖", function()
+test("여권 지역은 4대륙뿐, 모든 명소가 대륙에 속함", function()
 	eq(#Landmarks.Regions, 4, "대륙 수")
 	for _, region in Landmarks.Regions do
 		assert(#Landmarks.ByRegion[region.Id] > 0, region.Id .. " 비어 있음")
@@ -99,8 +100,11 @@ test("여권 지역은 4대륙뿐, 특별 명소(지구)만 대륙 밖", functio
 		total += #list
 	end
 	eq(total, #Landmarks.List, "합계")
-	eq(#Landmarks.ByRegion.World, 1, "대륙 밖 명소 수")
-	eq(Landmarks.ByRegion.World[1].Id, "earth")
+	-- 장식용 지구본은 뽑기 목록에 없음
+	for _, landmark in Landmarks.List do
+		assert(landmark ~= Landmarks.Globe, "장식용 지구본이 뽑기 목록에 있음")
+	end
+	eq(Landmarks.Globe.Shape, "globe")
 end)
 test("전시 칸 최대치로 모든 명소를 전시할 수 있음", function()
 	local park = PlayerState.UpgradesById.Park

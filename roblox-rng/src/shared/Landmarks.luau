@@ -23,7 +23,7 @@ export type Landmark = {
 	Name: string,
 	Subtitle: string, -- 영문 이름
 	OneIn: number,
-	Region: string, -- Region.Id (대륙) 또는 "World"(어느 대륙에도 속하지 않는 특별 명소)
+	Region: string, -- Region.Id (대륙)
 	Shape: string, -- Models.luau 의 임시 모형 종류
 	Primary: Color3, -- 주 색
 	Secondary: Color3, -- 보조 색
@@ -36,7 +36,7 @@ local Landmarks = {}
 
 -- 등급: OneIn 이 MinOneIn 이상이면 해당 등급(높은 등급부터 검사)
 Landmarks.Tiers = {
-	{ Rank = 1, Name = "동네 명소", MinOneIn = 1, Color = Color3.fromRGB(190, 200, 210) },
+	{ Rank = 1, Name = "일반 명소", MinOneIn = 1, Color = Color3.fromRGB(190, 200, 210) },
 	{ Rank = 2, Name = "도시 명소", MinOneIn = 10, Color = Color3.fromRGB(110, 215, 120) },
 	{ Rank = 3, Name = "국가 명소", MinOneIn = 100, Color = Color3.fromRGB(80, 165, 255) },
 	{ Rank = 4, Name = "세계 명소", MinOneIn = 1000, Color = Color3.fromRGB(185, 110, 255) },
@@ -53,19 +53,10 @@ Landmarks.Regions = {
 	{ Id = "Americas", Name = "아메리카", Emoji = "🗽", Color = Color3.fromRGB(90, 210, 150) },
 } :: { Region }
 
--- 어느 대륙에도 속하지 않는 특별 명소(지구)용. 여권·도장에는 나오지 않음
-Landmarks.WorldRegion = {
-	Id = "World",
-	Name = "전 세계",
-	Emoji = "🌍",
-	Color = Color3.fromRGB(120, 255, 235),
-} :: Region
-
 Landmarks.RegionById = {} :: { [string]: Region }
 for _, region in Landmarks.Regions do
 	Landmarks.RegionById[region.Id] = region
 end
-Landmarks.RegionById.World = Landmarks.WorldRegion
 
 local function tierFor(oneIn: number): Tier
 	for i = #Landmarks.Tiers, 1, -1 do
@@ -121,7 +112,6 @@ local DEFINITIONS = {
 	{ "skyisland",   "사하라 신기루 성", "Mirage Citadel of the Sahara", 5000000,  "Africa",   "skyisland",  rgb(235, 200, 130), rgb(190, 140, 80),  rgb(170, 240, 255), M.Sand },
 	{ "shangrila",   "샹그릴라",         "Shangri-La",                  10000000,  "Asia",     "pagoda",     rgb(250, 250, 250), rgb(255, 200, 70),  rgb(255, 240, 180), M.Marble },
 	{ "worldtree",   "세계수",           "World Tree",                  40000000,  "Europe",   "tree",       rgb(120, 90, 60),   rgb(90, 220, 120),  rgb(255, 255, 200), M.Wood },
-	{ "earth",       "지구",             "The Earth",                   100000000, "World",    "globe",      rgb(40, 110, 220),  rgb(70, 190, 90),   rgb(255, 255, 255), M.SmoothPlastic },
 }
 
 Landmarks.List = {} :: { Landmark }
@@ -161,14 +151,30 @@ end)
 
 -- 지역별 목록(흔한 것 → 희귀한 것)
 Landmarks.ByRegion = {} :: { [string]: { Landmark } }
-for id in Landmarks.RegionById do
-	Landmarks.ByRegion[id] = {}
+for _, region in Landmarks.Regions do
+	Landmarks.ByRegion[region.Id] = {}
 end
 for _, landmark in Landmarks.List do
 	table.insert(Landmarks.ByRegion[landmark.Region], landmark)
 end
 
 Landmarks.Common = Landmarks.List[1]
+
+-- 장식용 지구본(뽑기·수집 대상 아님): 광장의 거대 지구본, 굴림 연출의 도는 지구본에 씀.
+-- Models.create 에 명소처럼 넘길 수 있게 같은 모양의 표. LandmarkModels 폴더에 "globe" 로 교체 가능.
+Landmarks.Globe = {
+	Id = "globe",
+	Name = "지구본",
+	Subtitle = "Globe",
+	OneIn = 0,
+	Region = Landmarks.Regions[1].Id,
+	Shape = "globe",
+	Primary = rgb(40, 110, 220),
+	Secondary = rgb(70, 190, 90),
+	Accent = rgb(255, 255, 255),
+	Material = M.SmoothPlastic,
+	Tier = Landmarks.Tiers[1],
+} :: Landmark
 Landmarks.tierFor = tierFor
 
 return Landmarks

@@ -438,7 +438,7 @@ local function buildReveal()
 		ZIndex = 3,
 	}
 	refs.EarthView = Viewport.new(inner, viewProps)
-	Viewport.setLandmark(refs.EarthView, Landmarks.ById.earth, 10)
+	Viewport.setLandmark(refs.EarthView, Landmarks.Globe, 10)
 	refs.ResultView = Viewport.new(inner, viewProps)
 	refs.ResultView.Visible = false
 

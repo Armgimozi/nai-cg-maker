@@ -217,7 +217,7 @@ function World.build()
 
 	-- 거대 지구본 (모형 코드에 문제가 있어도 광장은 만들어지도록 pcall)
 	local ok, err = pcall(function()
-		local earth = Models.create(Landmarks.ById.earth, EARTH_SIZE)
+		local earth = Models.create(Landmarks.Globe, EARTH_SIZE)
 		earth.Name = "Earth"
 		earth:PivotTo(CFrame.new(EARTH_SPOT.X, pedestalTop, EARTH_SPOT.Z))
 		earthTop = pedestalTop + earth:GetExtentsSize().Y
