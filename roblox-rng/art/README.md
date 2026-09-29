@@ -48,16 +48,17 @@ Most icons fill ~90% of the square; give an ImageLabel the same size as the slot
 ## Skins
 
 All 9-slice skins are 256x256 with 64px corners: **`SliceCenter = Rect.new(64, 64, 192, 192)`** for every one.
+Drawn outer corner radii: button_face/shadow 50, panel_paper 46, tag 44, pill 64 (`Ui.luau` SKINS uses these).
 `SliceScale` sets how big the corners are on screen (64px x SliceScale).
 
 | file | SliceCenter | suggested SliceScale | colour / tint |
 |---|---|---|---|
 | `button_face` | 64,64,192,192 | 0.25–0.35 (corner radius ~16–22px) | grey, **tint with ImageColor3** = face colour. Body is 0.90 x tint, top gloss band 1.0 x, bottom lip 0.71 x. Ink outline stays dark. |
 | `button_shadow` | 64,64,192,192 | same as face | white body + Ink outline. Put it under the face, a few px lower; ImageColor3 = shadow colour (`#1F6FCC` for Sky etc.), or Ink for a plain dark plate. |
-| `panel_paper` | 64,64,192,192 | 0.35–0.5 (0.35 = ~4px outline, as in DESIGN) | cream paper, untinted. Dot grain + dashed stitch border inset 28px. |
+| `panel_paper` | 64,64,192,192 | 0.35–0.5 (0.35 = ~4px outline, as in DESIGN) | cream paper, untinted. Dot grain + dashed stitch border inset 28px. On a wide window the centre slice stretches ~5x sideways and smears the grain, so `Ui.window` covers the centre slice with flat Cream `#FFF4DC` (`CenterColor`). |
 | `pill` | 64,64,192,192 | **height / 128** (makes perfect half-circle ends) | Ink at 62% alpha + opaque Ink outline + faint gloss. Untinted. |
 | `ribbon` | 64,64,192,192 | **height / 256** (then it only stretches sideways) | grey, **tint** with the title colour. Band is y 40..160 of 256, tails hang lower. |
-| `tag` | 64,64,192,192 | 0.2–0.3 | grey, **tint** (Cream for labels, Coral for the "속보" badge, tier colours...). Flatter than a button. |
+| `tag` | 64,64,192,192, or **46,46,210,210** for capsules | 0.2–0.3; capsule: **height / 92** with 46..210 | grey, **tint** (Cream for labels, Coral for the "속보" badge, tier colours...). Flatter than a button. Outer corner radius is 44 (not 64): cut at 46 (2px margin + 44) so corners of height/2 give round ends (`Ui.chip`). |
 
 `sunburst` — 512x512, not sliced. White rays with a soft centre glow, fading to fully transparent
 before the edge. Tint with ImageColor3 (tier colour), put it behind the reveal and rotate it

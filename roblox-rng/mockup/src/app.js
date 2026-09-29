@@ -4,7 +4,7 @@
 //  - UDim2(scale, offset) + AnchorPoint + Rotation -> CSS left/top/width/height + transform
 //  - UIScale(Ui.autoScale) -> transform: scale() (AnchorPoint 기준)
 //  - UIStroke(Border) -> box-shadow (테두리 바깥쪽), UIStroke(Contextual, 글자) -> -webkit-text-stroke + paint-order
-//  - 9-slice 스킨(ScaleType.Slice, SliceCenter 64..192, SliceScale) -> border-image 64 fill / (64*SliceScale)px
+//  - 9-slice 스킨(ScaleType.Slice, SliceCenter = 여백..256-여백, SliceScale) -> canvas 에 9조각으로 다시 그림 (paintSkins)
 //  - ImageColor3(곱하기) -> SVG feColorMatrix 필터, ImageTransparency -> opacity
 //  - TextScaled + UITextSizeConstraint -> 상자에 맞을 때까지 글자 크기를 줄임(최대값까지)
 // ImageIds 가 모두 채워졌다고 가정(그림 버전). ViewportFrame(명소 3D 모형)은 "3D 모형 자리"로 대신 그립니다.
@@ -15,15 +15,35 @@
   const SHOT_MODE = /[?&]shot=1/.test(location.search);
 
   // --- Ui.luau 상수 -------------------------------------------------------------
-  const UI_SCALE = 0.9; // Ui.autoScale: clamp(min(1280/1280, 720/720), 0.55, 0.9) -> 0.9
   const GUI_INSET = 58; // 로블록스 기본 상단바 (ScreenGui.IgnoreGuiInset = false)
-  const SCREEN_W = 1280;
-  const SCREEN_H = 720 - GUI_INSET;
+  // Ui.autoScale 배율: clamp(min(화면 가로/1280, 화면 세로/720), 0.55, 0.9) — 화면(카메라 ViewportSize) 전체 기준
+  const uiScaleFor = (w, h) => Math.min(0.9, Math.max(0.55, Math.min(w / 1280, h / 720)));
+  // 지금 그리는 화면 (newScreen 이 정함). 1280x720 -> 배율 0.9
+  const view = { w: 1280, h: 720, scale: uiScaleFor(1280, 720) };
   const SHADOW_DEPTH = 6;
   const BUTTON_CORNER = 14;
-  const SLICE_MARGIN = 64;
-  const SKIN_RADIUS = 50;
+  // Ui.SKINS: 그림 속 바깥 모서리 반지름 / SliceCenter 여백 (SliceCenter = 여백..256-여백)
+  const SKIN_SIZE = 256;
+  const SKINS = {
+    button_face: { radius: 50, margin: 64 },
+    button_shadow: { radius: 50, margin: 64 },
+    panel_paper: { radius: 46, margin: 64 },
+    pill: { radius: 64, margin: 64 },
+    tag: { radius: 44, margin: 46 },
+    ribbon: { radius: 50, margin: 64 },
+  };
+  const DEFAULT_SKIN = { radius: 50, margin: 64 };
+  const skinSpec = (name) => SKINS[name] || DEFAULT_SKIN;
+  const PILL_ART_OPACITY = 0.62;
+  const RIBBON_FILL = { side: 52, top: 40, bottom: 160 };
+  const RIBBON_TEXT_PAD = 4;
+  const RIBBON_TEXT_FILL = 0.85;
+  const CLOSE_ART_SIZE = 60;
   const RIBBON_HEIGHT = 54;
+  const RIBBON_ART_HEIGHT = 72;
+  const TIER_RIBBON_ART_HEIGHT = 64;
+  const CHIP_PAD = 0.42;
+  const CHIP_ICON_PAD = 0.12;
 
   const WHITE = [255, 255, 255];
   const Theme = {
@@ -293,24 +313,31 @@
     el.style.alignContent = 'start';
   }
 
-  function sliceScale(radius, height) {
-    let scale = radius / SKIN_RADIUS;
-    if (height != null) scale = Math.min(scale, height / 2 / SLICE_MARGIN);
+  function sliceScale(name, radius, height) {
+    const spec = skinSpec(name);
+    let scale = radius / spec.radius;
+    if (height != null) scale = Math.min(scale, height / 2 / spec.margin);
     return scale;
   }
 
   // Ui.skin / Ui.box: 9-slice 그림을 대상 맨 뒤(ZIndex 0)에 깔고 대상의 바탕·테두리는 끔
+  // o: { radius, height, scale(SliceScale 직접), centerColor(늘어나는 가운데 조각을 덮는 평면 색), color, transparency }
   function skin(target, name, o = {}) {
     target.style.backgroundColor = 'transparent';
     target.style.boxShadow = 'none';
     const img = document.createElement('div');
     img.className = 'skin';
     img.dataset.skin = name;
-    if (o.radius != null) {
+    if (o.radius != null || o.scale != null) {
       // border-image 는 조각 사이에 가는 틈(이음새)이 생겨서, 화면을 다 만든 뒤 paintSkins 가 canvas 로 다시 그림
-      const w = SLICE_MARGIN * sliceScale(o.radius, o.height);
+      const margin = skinSpec(name).margin;
+      const scale = o.scale ?? sliceScale(name, o.radius, o.height);
+      const w = margin * scale;
       img.dataset.slice = String(w);
-      img.style.borderImage = `url(${ART[name]}) 64 fill / ${+w.toFixed(3)}px stretch`;
+      img.dataset.margin = String(margin);
+      img.dataset.scale = String(scale);
+      if (o.centerColor) img.dataset.center = css(o.centerColor);
+      img.style.borderImage = `url(${ART[name]}) ${margin} fill / ${+w.toFixed(3)}px stretch`;
     } else {
       img.classList.add('stretch');
       img.style.backgroundImage = `url(${ART[name]})`;
@@ -320,8 +347,9 @@
     return img;
   }
 
-  // 9-slice 를 canvas 한 장에 그림 (SliceCenter 64..192 / 256, 모서리 = 64 x SliceScale).
+  // 9-slice 를 canvas 한 장에 그림 (SliceCenter 여백..256-여백, 모서리 = 여백 x SliceScale).
   // 조각 경계를 정수 픽셀에 맞춰서 이음새가 없음. 물들이기(ImageColor3)는 부모 div 의 SVG 필터가 그대로 맡음.
+  // data-center: Ui 의 CenterColor (가운데 조각 위 평면 Frame) — 물들이지 않는 종이에만 씀
   const imageCache = {};
   function loadImage(name) {
     if (!imageCache[name]) {
@@ -347,7 +375,7 @@
       border *= Math.min(1, cw / (2 * border), ch / (2 * border)); // CSS/로블록스처럼 너무 크면 줄임
       const b = Math.round(border);
       const size = image.naturalWidth;
-      const margin = (size * SLICE_MARGIN) / 256;
+      const margin = (size * Number(el.dataset.margin || 64)) / SKIN_SIZE;
       const src = [0, margin, size - margin, size];
       const xs = [0, b, cw - b, cw];
       const ys = [0, b, ch - b, ch];
@@ -364,6 +392,10 @@
           if (dw <= 0 || dh <= 0) continue;
           ctx.drawImage(image, src[i], src[j], src[i + 1] - src[i], src[j + 1] - src[j], xs[i], ys[j], dw, dh);
         }
+      }
+      if (el.dataset.center && cw > 2 * b && ch > 2 * b) {
+        ctx.fillStyle = el.dataset.center;
+        ctx.fillRect(b, b, cw - 2 * b, ch - 2 * b);
       }
       canvas.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;display:block';
       el.style.borderImage = 'none';
@@ -504,6 +536,24 @@
     return { root, face, shadow, label: lbl, icon };
   }
 
+  // Ui.ribbonArt: 리본 그림 높이 artHeight (SliceScale = artHeight/256, 세로 비율 그대로). 띠(y 40..160)가 그림 위쪽에 있어서
+  // 띠 가운데가 원래 자리(pos, anchorY 기준)에 오도록 내리고, 제목 상자/최대 글자 크기를 띠 안쪽에 맞춤
+  function ribbonArt(pos, size, anchorY, artHeight) {
+    const scale = artHeight / SKIN_SIZE;
+    const oldCenter = size[3] * (0.5 - anchorY);
+    const newCenter = ((RIBBON_FILL.top + RIBBON_FILL.bottom) / 2) * scale - artHeight * anchorY;
+    const side = RIBBON_FILL.side * scale + RIBBON_TEXT_PAD;
+    const band = (RIBBON_FILL.bottom - RIBBON_FILL.top) * scale;
+    return {
+      scale,
+      pos: [pos[0], pos[1], pos[2], pos[3] + oldCenter - newCenter],
+      size: [size[0], size[1], 0, artHeight],
+      labelPos: [0, side, 0, RIBBON_FILL.top * scale],
+      labelSize: [1, -2 * side, 0, band],
+      maxText: Math.floor(band * RIBBON_TEXT_FILL),
+    };
+  }
+
   // Ui.window
   function uiWindow(parent, o) {
     const root = gui(parent, {
@@ -517,33 +567,18 @@
     const lip = gui(root, { name: 'Lip', pos: [0, 0, 0, 8], size: [1, 0, 1, 0], bg: Theme.PaperDark, z: 1, corner: 18, stroke: [Theme.Ink, 4] });
     skin(lip, 'panel_paper', { radius: 18, color: Theme.PaperDark });
     const panel = gui(root, { name: 'Panel', size: [1, 0, 1, 0], bg: Theme.Cream, z: 2, corner: 18, stroke: [Theme.Ink, 4] });
-    skin(panel, 'panel_paper', { radius: 18 }); // 안쪽 종이 테두리(Inner)는 그림에 들어 있어서 숨김
+    // 안쪽 종이 테두리(Inner)는 그림에 들어 있어서 숨김. 늘어나는 가운데 조각은 크림색 평면으로 덮음(CenterColor)
+    skin(panel, 'panel_paper', { radius: 18, centerColor: Theme.Cream });
 
-    const ribbon = gui(root, {
-      name: 'Ribbon',
-      anchor: [0.5, 0.5],
-      pos: [0.5, 0, 0, 4],
-      size: [0, o.ribbonWidth || 340, 0, RIBBON_HEIGHT],
-      z: 3,
-    });
+    // 리본 그림(Ui.ribbonArt): 높이 72 = SliceScale 72/256, 띠 가운데는 창 위 4px, 제목은 띠 안쪽에 (꼬리 Frame 은 숨김)
+    const rg = ribbonArt([0.5, 0, 0, 4], [0, o.ribbonWidth || 340, 0, RIBBON_HEIGHT], 0.5, RIBBON_ART_HEIGHT);
+    const ribbon = gui(root, { name: 'Ribbon', anchor: [0.5, 0.5], pos: rg.pos, size: rg.size, z: 3 });
     const main = gui(ribbon, { name: 'Main', size: [1, 0, 1, 0], z: 2, corner: 12 });
-    skin(main, 'ribbon', { radius: 14, height: RIBBON_HEIGHT, color: colorPair(o.color || 'Sky').Face }); // 꼬리 Frame 은 숨김
-    const title = label(main, { name: 'Title', pos: [0, 14, 0, 5], size: [1, -28, 1, -10], text: o.title || '', color: WHITE, z: 3, outline: 3 }, 32);
+    skin(main, 'ribbon', { scale: rg.scale, color: colorPair(o.color || 'Sky').Face });
+    const title = label(main, { name: 'Title', pos: rg.labelPos, size: rg.labelSize, text: o.title || '', color: WHITE, z: 3, outline: 3 }, rg.maxText);
 
-    const close = chunkyButton(root, {
-      name: 'Close',
-      color: 'Coral',
-      round: true,
-      anchor: [0.5, 0.5],
-      pos: [1, -8, 0, 8],
-      size: [0, 52, 0, 58],
-      text: '',
-      icon: 'close',
-      iconSize: 34,
-      textSize: 30,
-      outlineThickness: 3,
-      z: 4,
-    });
+    // 닫기: close.png(빨간 동그라미 + X 완성 그림)를 그대로 ImageButton 으로
+    const close = iconView(root, 'close', { name: 'Close', anchor: [0.5, 0.5], pos: [1, -8, 0, 8], size: [0, CLOSE_ART_SIZE, 0, CLOSE_ART_SIZE], z: 4 });
     const top = RIBBON_HEIGHT / 2 + 4 + 14;
     const body = gui(panel, { name: 'Body', pos: [0, 18, 0, top], size: [1, -36, 1, -(top + 16)] });
     return { root, panel, body, ribbon, title, close };
@@ -560,8 +595,10 @@
     const padRight = o.padRight || 16;
     const root = gui(parent, { ...o, size: autoWidth ? [0, 0, 0, height] : size, autoW: autoWidth });
     root.classList.add('pill');
-    // Ui.box("pill", { Color = Theme.Ink, Transparency = 0.3 }) -> 그림(이미 Ink 색)에 Ink 를 한 번 더 곱함
-    skin(root, 'pill', { radius: height / 2, height, color: Theme.Ink, transparency: o.bgT ?? 0.3 });
+    // Ui.box("pill"): 그림(이미 반투명 Ink + 광택)은 물들이지 않음(ImageColor = 흰색). 그림 몸통 불투명도(62%)보다
+    // 더 투명하게 해 달라고 할 때만 그만큼 더 투명하게 (코인 0.2, 보너스 0.3 -> 둘 다 그림 그대로)
+    const transparency = o.bgT ?? 0.3;
+    skin(root, 'pill', { radius: height / 2, height, color: WHITE, transparency: Math.max(0, 1 - (1 - transparency) / PILL_ART_OPACITY) });
     let lbl;
     const common = {
       name: 'Label',
@@ -594,8 +631,8 @@
     const root = gui(parent, { ...o, size: [0, o.minWidth || 0, 0, height], autoW: true });
     root.classList.add('chip');
     skin(root, 'tag', { radius: o.cornerRadius ?? height / 2, height, color: background });
-    const pad = Math.floor(height * 0.42);
-    const iconPad = Math.floor(height * 0.12);
+    const pad = Math.floor(height * CHIP_PAD);
+    const iconPad = Math.floor(height * CHIP_ICON_PAD);
     root.style.paddingLeft = (iconName ? iconPad : pad) + 'px';
     root.style.paddingRight = (iconOnly ? iconPad : pad) + 'px';
     let icon = null;
@@ -661,13 +698,16 @@
 
   // --- 화면(ScreenGui) ------------------------------------------------------------
   function anchorBox(screenGui, name, anchor, pos, size, z) {
-    return gui(screenGui, { name, anchor, pos, size, z: z || 1, uiScale: UI_SCALE });
+    return gui(screenGui, { name, anchor, pos, size, z: z || 1, uiScale: view.scale });
   }
 
   // Hud: 왼쪽 위 스탯
+  const STATS_POS = [14, 12];
+  const STATS_SIZE = [420, 112];
+  const STATS_RESERVE = 400; // 윗줄(코인 알약 + 수입 칩, 긴 "+999.9K/s" 기준)이 차지하는 폭 — 위 가운데 묶음이 비켜 감
   function buildStats(screenGui, state) {
     const COIN_PILL = [230, 52];
-    const container = anchorBox(screenGui, 'Stats', [0, 0], [0, 14, 0, 12], [0, 420, 0, 112]);
+    const container = anchorBox(screenGui, 'Stats', [0, 0], [0, STATS_POS[0], 0, STATS_POS[1]], [0, STATS_SIZE[0], 0, STATS_SIZE[1]]);
     pill(container, {
       name: 'Coins',
       pos: [0, 20, 0, 6],
@@ -830,12 +870,26 @@
     buildRollBar(screenGui, opts);
   }
 
+  // Hud.placeTop: 위 가운데 묶음 자리. 기본은 화면 가운데, 왼쪽 위 스탯(윗줄)과 겹치면 안 겹칠 만큼 오른쪽으로 비키고,
+  // 그래도 화면 오른쪽 끝을 넘으면(아주 좁은 화면) 가운데로 두고 스탯 아래로 내림. width = ScreenGui 가로(화면 px)
+  const TOP_WIDTH = 600;
+  const TOP_Y = 10;
+  const TOP_GAP = 12;
+  function placeTop(width, scale) {
+    const half = (TOP_WIDTH * scale) / 2;
+    const center = Math.max(width / 2, STATS_POS[0] + STATS_RESERVE * scale + TOP_GAP + half);
+    if (center + half <= width - STATS_POS[0]) return { pos: [0, center, 0, TOP_Y], center, top: TOP_Y, below: false };
+    const top = STATS_POS[1] + STATS_SIZE[1] * scale + TOP_GAP;
+    return { pos: [0.5, 0, 0, top], center: width / 2, top, below: true };
+  }
+
   // Hud.news: 신문 띠 한 줄
   function buildNews(screenGui, items) {
-    // Hud.buildNotices: [서버 행운 띠(켜졌을 때만)] [뉴스 속보 720x118] [알림] 을 위에서부터 쌓는 "Top" 묶음
-    const top = anchorBox(screenGui, 'Top', [0.5, 0], [0.5, 0, 0, 10], [0, 720, 0, 380], 9);
+    // Hud.buildNotices: [서버 행운 띠(켜졌을 때만)] [뉴스 속보 600x118] [알림] 을 위에서부터 쌓는 "Top" 묶음
+    const place = placeTop(view.w, view.scale);
+    const top = anchorBox(screenGui, 'Top', [0.5, 0], place.pos, [0, TOP_WIDTH, 0, 380], 9);
     list(top, 'v', 6, 'center', 'top');
-    const news = gui(top, { name: 'News', flow: true, size: [0, 720, 0, 118] });
+    const news = gui(top, { name: 'News', flow: true, size: [0, TOP_WIDTH, 0, 118] });
     list(news, 'v', 8, 'center', 'top');
     for (const item of items) {
       const landmark = ById[item.LandmarkId];
@@ -843,7 +897,7 @@
       const row = gui(news, { name: 'NewsItem', flow: true, size: [1, 0, 0, 54] });
       const slide = gui(row, { anchor: [0.5, 0.5], pos: [0.5, 0, 0.5, 0], size: [1, 0, 1, 0] });
       const bar = gui(slide, { pos: [0, 56, 0, 4], size: [1, -56, 1, -8], bg: Theme.Cream, z: 1, corner: 10, stroke: [Theme.Ink, 3] });
-      skin(bar, 'panel_paper', { radius: 10, height: 46 });
+      skin(bar, 'panel_paper', { radius: 10, height: 46, centerColor: Theme.Cream });
       label(
         bar,
         {
@@ -913,10 +967,12 @@
     ph.style.borderRadius = '50%';
     ph.style.inset = '14px';
 
-    const ribbon = gui(inner, { name: 'TierRibbon', anchor: [0.5, 0.5], pos: [0.5, 0, 0, centerY + VIEW_SIZE / 2], size: [0, 250, 0, 44], z: 4 });
+    // 등급 리본(Ui.ribbonArt, 그림 높이 64): 띠 가운데가 판 아래 끝, 등급 이름은 띠 안쪽에
+    const rg = ribbonArt([0.5, 0, 0, centerY + VIEW_SIZE / 2], [0, 250, 0, 44], 0.5, TIER_RIBBON_ART_HEIGHT);
+    const ribbon = gui(inner, { name: 'TierRibbon', anchor: [0.5, 0.5], pos: rg.pos, size: rg.size, z: 4 });
     const ribbonMain = gui(ribbon, { size: [1, 0, 1, 0], z: 2, corner: 10 });
-    skin(ribbonMain, 'ribbon', { radius: 12, height: 44, color: tier.Color });
-    label(ribbonMain, { pos: [0, 10, 0, 4], size: [1, -20, 1, -8], text: tier.Name, color: WHITE, z: 3, outline: 2.5 }, 28);
+    skin(ribbonMain, 'ribbon', { scale: rg.scale, color: tier.Color });
+    label(ribbonMain, { name: 'Tier', pos: rg.labelPos, size: rg.labelSize, text: tier.Name, color: WHITE, z: 3, outline: 2.5 }, rg.maxText);
 
     const nameTop = centerY + VIEW_SIZE / 2 + 28;
     label(inner, { name: 'Name', pos: [0, 0, 0, nameTop], size: [1, 0, 0, 66], font: 'title', text: landmark.Name, color: tier.Color, z: 4, outline: 4 }, 62);
@@ -1154,7 +1210,7 @@
         name: 'Step',
         flow: true,
         color: price != null ? COLORS.Grass.Face : COLORS.Grape.Face,
-        icon: 'arrow_up',
+        icon: price != null ? 'arrow_up' : null, // MAX 는 화살표 없이 (Ui.showChipIcon(false): 왼쪽 여백도 글자 딱지와 같게)
         iconSize: 30,
         height: 26,
         textSize: 17,
@@ -1188,7 +1244,7 @@
       title: view.Title,
       ribbonWidth: 220,
       z: 5,
-      uiScale: UI_SCALE,
+      uiScale: view.scale,
     });
     const top = RIBBON_HEIGHT / 2 + 4 + 14;
     const bodyHeight = height - (top + 16);
@@ -1208,7 +1264,7 @@
       `<g fill="#ffffff" opacity="0.85"><ellipse cx="${x}" cy="${y}" rx="${46 * s}" ry="${16 * s}"/>` +
       `<circle cx="${x - 16 * s}" cy="${y - 10 * s}" r="${17 * s}"/><circle cx="${x + 12 * s}" cy="${y - 14 * s}" r="${22 * s}"/></g>`;
     const plot = (points, fill) => `<polygon points="${points}" fill="${fill}"/>`;
-    return `<svg class="world" viewBox="0 0 1280 720" xmlns="${SVG_NS}" aria-hidden="true">
+    return `<svg class="world" viewBox="0 0 1280 720" preserveAspectRatio="xMidYMax slice" xmlns="${SVG_NS}" aria-hidden="true">
       <defs>
         <linearGradient id="w-sky" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stop-color="#4fb0f2"/><stop offset="0.55" stop-color="#a9dcfb"/><stop offset="1" stop-color="#dcf2ff"/>
@@ -1262,11 +1318,16 @@
     </svg>`;
   }
 
+  // 화면 하나 (로블록스 창 크기 width x height, 기본 1280x720). 이 화면을 그리는 동안 view(크기·자동 배율)를 이 화면에 맞춤
   function newScreen(parent, id, opts = {}) {
+    view.w = opts.width || 1280;
+    view.h = opts.height || 720;
+    view.scale = uiScaleFor(view.w, view.h);
     const screen = document.createElement('div');
     screen.className = 'screen';
     screen.id = id;
-    if (opts.height) screen.style.height = opts.height + 'px';
+    screen.style.width = view.w + 'px';
+    screen.style.height = view.h + 'px';
     if (opts.world !== false) screen.insertAdjacentHTML('beforeend', worldSvg());
     else screen.style.background = opts.background || '#8fb4c9';
     if (opts.topbar !== false) {
@@ -1277,10 +1338,7 @@
     }
     const screenGui = document.createElement('div');
     screenGui.className = 'gui';
-    if (opts.topbar === false) {
-      screenGui.style.top = '0';
-      screenGui.style.height = (opts.height || 720) + 'px';
-    }
+    if (opts.topbar === false) screenGui.style.top = '0';
     screen.appendChild(screenGui);
     parent.appendChild(screen);
     return screenGui;
@@ -1388,6 +1446,32 @@
       },
     },
     {
+      id: 'screen1t',
+      title: '기본 화면 — 4:3 태블릿 1024×768',
+      extra: '1-2',
+      note:
+        `같은 화면을 1024×768 에서(자동 배율 ${uiScaleFor(1024, 768).toFixed(2)}). 속보 띠는 가운데에 두면 왼쪽 위 스탯과 부딪혀서 ` +
+        '부딪히지 않을 만큼만 오른쪽으로 비켜 섬(Hud.placeTop).',
+      build(root) {
+        const screenGui = newScreen(root, this.id, { width: 1024, height: 768 });
+        buildHud(screenGui, STATE, { auto: false, location: 'Plaza' });
+        buildNews(screenGui, NEWS);
+      },
+    },
+    {
+      id: 'screen1p',
+      title: '기본 화면 — 휴대폰 667×375',
+      extra: '1-3',
+      note:
+        `같은 화면을 휴대폰 가로 667×375 에서(자동 배율 최소값 ${uiScaleFor(667, 375).toFixed(2)}). 속보 띠는 스탯 오른쪽으로 비켜 섬. ` +
+        '<b>참고:</b> 이 크기에서는 왼쪽 메뉴 버튼 줄(세로 5칸)이 화면보다 길어서 위쪽 스탯 줄·아래쪽과 닿음 — 이번 수정 범위 밖(그대로 둠).',
+      build(root) {
+        const screenGui = newScreen(root, this.id, { width: 667, height: 375 });
+        buildHud(screenGui, STATE, { auto: false, location: 'Plaza' });
+        buildNews(screenGui, NEWS);
+      },
+    },
+    {
       id: 'screen2',
       title: '명소 공개 — 처음 발견',
       note:
@@ -1448,7 +1532,7 @@
         const canvas = passportCanvasHeight();
         const top = RIBBON_HEIGHT / 2 + 4 + 14;
         const windowHeight = top + HEADER_HEIGHT + canvas + 16;
-        const screenHeight = Math.ceil(windowHeight * UI_SCALE + 70);
+        const screenHeight = Math.ceil(windowHeight * uiScaleFor(1280, 720) + 70);
         const screenGui = newScreen(root, this.id, { height: screenHeight, world: false, topbar: false, background: '#7fa9c2' });
         buildPanel(screenGui, 'Passport', STATE, { anchor: [0.5, 0], pos: [0.5, 0, 0, 40], windowHeight, scrollY: 0 });
       },
@@ -1494,123 +1578,122 @@
   function fitFrames() {
     document.querySelectorAll('.frame-wrap').forEach((wrap) => {
       const screen = wrap.firstElementChild;
-      const scale = SHOT_MODE ? 1 : Math.min(1, wrap.clientWidth / 1280);
+      const scale = SHOT_MODE ? 1 : Math.min(1, wrap.clientWidth / screen.offsetWidth);
       screen.style.transform = scale < 1 ? `scale(${scale})` : '';
       wrap.style.height = screen.offsetHeight * scale + 'px';
     });
   }
 
-  // --- 미리보기에서 드러난 점 (게임 코드 그대로 그렸을 때 생기는 문제) ---------------------------
+  // --- 고친 점 확인: 다 그린 화면에서 실제 위치·크기를 재서 확인 (게임 코드와 같은 계산식) ----------------------
+  // screen 안 좌표(화면 px, 배율 적용 뒤)
   const rectIn = (el, screen) => {
     const r = el.getBoundingClientRect();
     const s = screen.getBoundingClientRect();
-    const k = s.width / 1280;
+    const k = s.width / screen.offsetWidth;
     return { left: (r.left - s.left) / k, right: (r.right - s.left) / k, top: (r.top - s.top) / k, bottom: (r.bottom - s.top) / k };
   };
-  async function ribbonBand() {
-    // ribbon.png 가운데 세로줄에서 띠(Ink 테두리 포함)의 위/아래 끝
-    const image = await loadImage('ribbon');
-    if (!image) return null;
-    const canvas = document.createElement('canvas');
-    canvas.width = image.naturalWidth;
-    canvas.height = image.naturalHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(image, 0, 0);
-    const x = Math.floor(image.naturalWidth / 2);
-    const column = ctx.getImageData(x, 0, 1, image.naturalHeight).data;
-    let top = -1;
-    let bottom = -1;
-    for (let y = 0; y < image.naturalHeight; y++) {
-      if (column[y * 4 + 3] > 200) {
-        if (top < 0) top = y;
-        bottom = y;
-      }
-    }
-    return top < 0 ? null : { top, bottom: bottom + 1, size: image.naturalHeight };
-  }
-  // 9-slice 세로 위치: 그림 속 y -> 화면 y (모서리 = 64 x scale, 가운데는 늘임)
-  function sliceMapY(y, height, scale, size) {
-    const m = (size * SLICE_MARGIN) / 256;
-    const c = SLICE_MARGIN * scale;
-    if (y <= m) return (y / m) * c;
-    if (y >= size - m) return height - ((size - y) / m) * c;
-    return c + ((y - m) / (size - 2 * m)) * (height - 2 * c);
-  }
+  const overlap = (a, b) => Math.min(a.right, b.right) - Math.max(a.left, b.left) > 0.5 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 0.5;
+  const verdict = (good) => (good ? '<b>OK</b>' : '<b class="bad">문제</b>');
 
-  async function findings() {
+  function checks() {
     const items = [];
-    // 1) 속보 띠 vs 초당 수입 칩
-    const s1 = document.getElementById('screen1');
-    const income = s1 && s1.querySelector('[data-name="Income"]');
-    const newsItem = s1 && s1.querySelector('[data-name="NewsItem"]');
-    if (income && newsItem) {
-      const a = rectIn(income, s1);
-      const b = rectIn(newsItem, s1);
-      const dx = Math.min(a.right, b.right) - Math.max(a.left, b.left);
-      const dy = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
-      if (dx > 0 && dy > 0) {
-        items.push(
-          `<b>속보 띠가 초당 수입 칩을 가림</b> (1번 화면): 1280×720 에서 속보 띠 왼쪽 끝이 수입 칩과 가로 약 ${Math.round(dx)}px 겹칩니다. ` +
-            `속보 띠는 화면 가운데 기준 폭 720(×0.9), 스탯 묶음은 왼쪽 위 폭 420(×0.9)이라 화면 가로가 좁으면(1280px, 4:3 태블릿 등) 부딪힘. 1920×1080 에서는 안 겹침.`
-        );
-      }
+    // 1) 위 가운데 묶음(속보 띠) vs 왼쪽 위 스탯: 그린 화면 3개는 실제로 재고, 다른 화면 크기는 같은 계산식(placeTop)으로
+    const drawn = [];
+    let incomeDesign = null; // 수입 칩 오른쪽 끝(스탯 묶음 기준, 배율 1)
+    for (const id of ['screen1', 'screen1t', 'screen1p']) {
+      const scr = document.getElementById(id);
+      const newsItem = scr && scr.querySelector('[data-name="NewsItem"]');
+      if (!newsItem) continue;
+      const bar = rectIn(newsItem, scr);
+      const stats = ['Coins', 'Income', 'Rolls', 'Luck'].map((n) => scr.querySelector(`[data-name="Stats"] [data-name="${n}"]`)).filter(Boolean);
+      const hit = stats.filter((el) => overlap(rectIn(el, scr), bar)).map((el) => el.dataset.name);
+      const income = rectIn(scr.querySelector('[data-name="Income"]'), scr);
+      const w = scr.offsetWidth;
+      const scale = uiScaleFor(w, scr.offsetHeight);
+      if (id === 'screen1') incomeDesign = (income.right - STATS_POS[0]) / scale;
+      drawn.push(`${w}×${scr.offsetHeight} ${verdict(!hit.length)} 속보 띠 x ${Math.round(bar.left)}~${Math.round(bar.right)}, 수입 칩 오른쪽 끝 ${Math.round(income.right)}` + (hit.length ? ` (겹침: ${hit.join(', ')})` : ''));
     }
-    // 2) 리본 제목: 띠보다 글자가 크고 아래로 처짐
-    const band = await ribbonBand();
-    if (band) {
-      const cases = [
-        { what: '창 제목 리본(Ui.window)', height: RIBBON_HEIGHT, radius: 14, labelTop: 5, labelBottom: RIBBON_HEIGHT - 5, sel: '#screen3 [data-name="Title"]' },
-        { what: '명소 공개 등급 리본(Hud)', height: 44, radius: 12, labelTop: 4, labelBottom: 40, sel: '#screen2 [data-name="TierRibbon"] .lbl' },
-      ];
-      const parts = [];
-      for (const c of cases) {
-        const scale = sliceScale(c.radius, c.height);
-        const top = sliceMapY(band.top, c.height, scale, band.size);
-        const bottom = sliceMapY(band.bottom, c.height, scale, band.size);
-        const labelEl = document.querySelector(c.sel);
-        const span = labelEl && labelEl.querySelector(':scope > span');
-        const fontSize = span ? parseFloat(span.style.fontSize) : NaN;
-        const drop = (c.labelTop + c.labelBottom) / 2 - (top + bottom) / 2;
-        if (fontSize > (bottom - top) * 0.9 || Math.abs(drop) > 3) {
-          parts.push(
-            `${c.what}: 틀 높이 ${c.height}px 중 그려지는 띠는 약 ${Math.round(bottom - top)}px(SliceScale ${scale.toFixed(2)}), 글자는 ${Math.round(fontSize)}px, 글자 중심이 띠 중심보다 ${Math.round(drop)}px 아래`
-          );
-        }
-      }
-      if (parts.length) {
-        items.push(
-          `<b>리본 제목 글자가 리본 띠보다 크고 아래로 처짐</b>: ${parts.join(' / ')}. ` +
-            `ribbon.png 는 띠가 그림 위쪽(y ${band.top}~${band.bottom} / ${band.size})에만 있어서, 모서리 반지름으로 SliceScale 을 정하면 띠가 얇아짐 ` +
-            `(art/README 권장: SliceScale = 높이/256, 글자 상자도 띠 위치에 맞춰 올리기).`
-        );
-      }
+    const sizes = [[1920, 1080], [1366, 768], [1280, 720], [1180, 820], [1133, 744], [1024, 768], [932, 430], [844, 390], [667, 375], [568, 320]];
+    const computed = sizes.map(([w, h]) => {
+      const scale = uiScaleFor(w, h);
+      const place = placeTop(w, scale);
+      const statsRight = STATS_POS[0] + STATS_RESERVE * scale; // 가장 긴 수입 글자 기준
+      const left = place.center - (TOP_WIDTH * scale) / 2;
+      const right = place.center + (TOP_WIDTH * scale) / 2;
+      const good = place.below || (left >= statsRight && right <= w);
+      const where = place.below ? '스탯 아래로 내림' : `x ${Math.round(left)}~${Math.round(right)} (스탯 끝 ${Math.round(statsRight)})`;
+      return `${w}×${h}(배율 ${scale.toFixed(2)}) ${verdict(good)} ${where}`;
+    });
+    items.push(
+      `<b>속보 띠 vs 초당 수입 칩</b>: 속보 묶음 폭 ${TOP_WIDTH}, 가운데가 기본이고 스탯 윗줄(${STATS_RESERVE}×배율)과 겹치면 오른쪽으로 비킴(Hud.placeTop). ` +
+        `그린 화면 — ${drawn.join(' / ')}. 계산식 — ${computed.join(' · ')}.` +
+        (incomeDesign ? ` (지금 수입 칩 폭 기준 오른쪽 끝 ${incomeDesign.toFixed(0)} ≤ 예약 ${STATS_RESERVE})` : '')
+    );
+
+    // 2) 리본 제목이 띠 안쪽(ribbon.png y 40..160)에 들어가는지
+    const ribbons = [
+      { what: '창 제목 리본', sel: '#screen3 [data-name="Ribbon"]', label: '[data-name="Title"]' },
+      { what: '등급 리본(처음 발견)', sel: '#screen2 [data-name="TierRibbon"]', label: '[data-name="Tier"]' },
+      { what: '등급 리본(별 오름)', sel: '#screen2b [data-name="TierRibbon"]', label: '[data-name="Tier"]' },
+    ].map((c) => {
+      const ribbon = document.querySelector(c.sel);
+      const span = ribbon && ribbon.querySelector(c.label + ' > span');
+      if (!span) return `${c.what}: 못 찾음`;
+      const scr = ribbon.closest('.screen');
+      const box = rectIn(ribbon, scr);
+      const text = rectIn(span, scr);
+      const h = box.bottom - box.top;
+      const band = { top: box.top + (RIBBON_FILL.top / SKIN_SIZE) * h, bottom: box.top + (RIBBON_FILL.bottom / SKIN_SIZE) * h };
+      const inside = text.top >= band.top - 0.5 && text.bottom <= band.bottom + 0.5;
+      const drop = (text.top + text.bottom) / 2 - (band.top + band.bottom) / 2;
+      return `${c.what} ${verdict(inside && Math.abs(drop) <= 1)} 띠 안쪽 ${Math.round(band.bottom - band.top)}px, 글자 ${Math.round(text.bottom - text.top)}px, 중심 차 ${drop.toFixed(1)}px`;
+    });
+    items.push(`<b>리본 제목</b>: SliceScale = 그림 높이/256(창 72, 등급 64), 글자 상자 = 띠 안쪽(Ui.ribbonArt). ${ribbons.join(' / ')}.`);
+
+    // 3) 알약: 물들이지 않음
+    const pills = Array.from(document.querySelectorAll('.skin[data-skin="pill"]'));
+    const tinted = pills.filter((el) => el.style.filter);
+    items.push(`<b>알약(코인·보너스)</b> ${verdict(pills.length > 0 && !tinted.length)}: pill.png 를 물들이지 않음(ImageColor 흰색, 그림 자체의 반투명 Ink + 광택) — 알약 ${pills.length}개 중 물들인 것 ${tinted.length}개.`);
+
+    // 4) 닫기 버튼: 그림 한 장
+    const closes = Array.from(document.querySelectorAll('[data-name="Close"]'));
+    const doubled = closes.filter((el) => el.querySelector('.skin'));
+    items.push(`<b>닫기 버튼</b> ${verdict(closes.length > 0 && !doubled.length)}: close.png 한 장(${CLOSE_ART_SIZE}px, 통통 버튼 없음) — 창 ${closes.length}개 중 빨간 판이 겹친 것 ${doubled.length}개.`);
+
+    // 5) 딱지 캡슐: 보이는 모서리 반지름 = 보이는 높이의 절반
+    const tag = SKINS.tag;
+    const chipSkins = Array.from(document.querySelectorAll('.chip > .skin[data-skin="tag"]'));
+    let capsules = 0;
+    let worst = 0;
+    const custom = [];
+    for (const el of chipSkins) {
+      const scale = Number(el.dataset.scale);
+      const h = parseFloat(el.parentElement.style.height); // 숨긴 딱지도 크기는 그대로
+      const radius = tag.radius * scale;
+      const half = h / 2 - (tag.margin - tag.radius) * scale;
+      if (Math.abs(radius - half) <= 0.5) capsules += 1;
+      else custom.push(el.parentElement.dataset.name || '?');
+      worst = Math.max(worst, Math.abs(radius - half));
     }
-    // 3) 알약 두 번 물들이기
     items.push(
-      '<b>알약(코인 알약·보너스 알약)이 거의 검정</b>: pill.png 는 이미 Ink 색인데 Ui.box 가 ImageColor3 = Ink 를 한 번 더 곱해서 ' +
-        '반투명 거의-검정이 되고 위쪽 광택 줄이 사라짐(art/README: pill 은 물들이지 않음). 미리보기도 코드대로 곱해서 그렸습니다.'
+      `<b>딱지(tag.png) 캡슐</b>: 반지름 44 · SliceCenter 46..210 → 모서리 조각 = 높이/2 일 때 끝이 반원. 딱지 ${chipSkins.length}개 중 반원 끝 ${capsules}개` +
+        (custom.length ? ` (나머지는 일부러 모서리를 준 것: ${[...new Set(custom)].join(', ')})` : '') + '.'
     );
-    // 4) 닫기 버튼: Round 인데 스킨 모서리가 높이 제한에 걸려 둥근 네모 + close.png(완성된 빨간 버튼)를 또 얹음
-    const closeFace = 58 - SHADOW_DEPTH;
-    const closeRadius = SKIN_RADIUS * sliceScale(closeFace / 2, closeFace);
+
+    // 6) 종이 가운데 / MAX 칸
+    const paper = document.querySelector('#screen3 [data-name="Panel"] > .skin');
+    const stretch = paper ? (paper.offsetWidth - 2 * Number(paper.dataset.slice)) / (SKIN_SIZE - 2 * SKINS.panel_paper.margin) : 0;
     items.push(
-      `<b>창 닫기 버튼이 동그랗지 않고 빨간 원이 두 겹</b>: Round 버튼(앞면 ${closeFace}px)인데 Ui.sliceScale 이 모서리 조각을 높이의 절반(64px 조각 기준)으로 묶어서 ` +
-        `그림 속 둥근 모서리(약 ${SKIN_RADIUS}px)가 화면에서 약 ${closeRadius.toFixed(0)}px 로만 둥글어짐 → 둥근 네모. ` +
-        '그 위에 close.png(이미 빨간 동그라미 + X 인 완성 버튼 그림, art/README: ImageButton 으로 바로 쓰는 그림)를 34px 로 또 얹어서 빨간 원 안에 빨간 원이 보임.'
+      `<b>창 종이</b> ${verdict(!!(paper && paper.dataset.center))}: 가운데 조각(가로 ${stretch.toFixed(1)}배로 늘어나는 부분)을 크림색 평면으로 덮어 점무늬 얼룩 없음(Ui.skin CenterColor). 테두리·바느질선은 그림 그대로.`
     );
-    // 5) 종이 결 늘어남
-    const stretch = (WINDOW_SIZE[0] - 2 * SLICE_MARGIN * sliceScale(18)) / 128;
-    items.push(
-      `<b>(작은 것)</b> 창 종이(panel_paper) 가운데 조각이 가로 약 ${stretch.toFixed(1)}배로 늘어나 종이 점무늬가 가로로 긴 얼룩처럼 보임(9-slice 가운데는 늘이기만 됨).`
-    );
-    items.push(
-      '<b>(작은 것)</b> 색 딱지(Ui.chip, tag.png)는 DESIGN 의 "캡슐"이 아니라 끝이 덜 둥근 네모로 나옴: tag.png 의 모서리 반지름은 약 44px 인데 ' +
-        `코드는 모든 스킨을 ${SKIN_RADIUS}px 로 보고 높이 제한까지 걸려서, 높이 30px 딱지의 끝 반지름이 약 10px(반원이면 15px).`
-    );
+    const maxSteps = Array.from(document.querySelectorAll('#screen5 [data-name="Step"]')).filter((el) => el.textContent.includes('MAX'));
+    const arrows = maxSteps.filter((el) => el.querySelector('.icon'));
+    items.push(`<b>강화 MAX 칸</b> ${verdict(!arrows.length)}: 최대 레벨 줄 ${maxSteps.length}개, 위 화살표가 남은 것 ${arrows.length}개(Ui.showChipIcon).`);
+
     const section = document.getElementById('findings');
     if (section) {
       section.innerHTML =
-        '<h2>미리보기에서 드러난 점 <span class="sub">(게임 코드 그대로 그렸을 때)</span></h2><ol>' +
+        '<h2>고친 점 확인 <span class="sub">(게임 코드와 같은 크기·계산식으로 그린 뒤 재어 봄)</span></h2><ol>' +
         items.map((t) => `<li>${t}</li>`).join('') +
         '</ol>';
     }
@@ -1650,9 +1733,10 @@
     fitFrames();
     let found = [];
     try {
-      found = await findings();
+      found = checks();
     } catch (e) {
-      console.warn('findings', e);
+      console.warn('checks', e);
+      found = ['checks 실패: ' + e];
     }
     window.addEventListener('resize', fitFrames);
     window.__MOCKUP = { STATE, SHOTS: SHOTS.map((s) => s.id), fonts: window.FONTS_EMBEDDED, findings: found };

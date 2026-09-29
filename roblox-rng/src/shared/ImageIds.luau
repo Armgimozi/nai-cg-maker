@@ -34,7 +34,7 @@ local ImageIds: { [string]: string } = {
 	plane = "",
 	ticket = "",
 
-	-- 스킨 (256x256, 9-slice SliceCenter = 64,64,192,192). 회색 바탕 그림을 ImageColor3 로 물들여 씀.
+	-- 스킨 (256x256, 9-slice SliceCenter = 64,64,192,192, tag 은 캡슐용 46..210 — Ui.luau SKINS). 회색 바탕 그림을 ImageColor3 로 물들여 씀.
 	-- sunburst 는 9-slice 없이 통째로 늘여 씀.
 	button_face = "",
 	button_shadow = "",

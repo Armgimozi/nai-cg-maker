@@ -30,6 +30,7 @@ body {
 .findings h2 .sub { font-size: 13px; font-weight: normal; color: var(--page-dim); }
 .findings ol { margin: 0; padding-left: 20px; color: var(--page-dim); font-size: 14px; line-height: 1.65; }
 .findings b { color: var(--page-fg); }
+.findings b.bad { color: #ff5e5b; }
 .page-head h1 { font-size: 26px; margin: 0 0 8px; }
 .page-head p { margin: 0 0 10px; line-height: 1.55; color: var(--page-dim); }
 .page-head code { font-size: 0.92em; color: var(--page-fg); }
@@ -48,22 +49,22 @@ body {
 .frame-wrap { position: relative; overflow: hidden; border-radius: 6px; }
 .frame-wrap > .screen { transform-origin: 0 0; }
 
-/* 1280x720 한 화면 ------------------------------------------------------ */
+/* 한 화면 (기본 1280x720, newScreen 이 가로·세로를 정함) --------------------- */
 .screen {
   position: relative; width: 1280px; height: 720px; overflow: hidden;
   background: #87cdf5; font-family: var(--font-body); color: var(--ink);
   -webkit-font-smoothing: antialiased;
 }
 .screen.tall { height: auto; }
-.world { position: absolute; inset: 0; width: 1280px; height: 720px; }
-.topbar { position: absolute; left: 0; top: 0; width: 1280px; height: 58px; z-index: 50; pointer-events: none; }
+.world { position: absolute; inset: 0; width: 100%; height: 100%; }
+.topbar { position: absolute; left: 0; top: 0; width: 100%; height: 58px; z-index: 50; pointer-events: none; }
 .topbar .rbx-btn {
   position: absolute; top: 7px; width: 44px; height: 44px; border-radius: 12px;
   background: rgba(20, 22, 30, 0.42); display: grid; place-items: center;
 }
 .topbar .rbx-btn i { display: block; width: 18px; height: 3px; border-radius: 2px; background: rgba(255,255,255,0.8); box-shadow: 0 -6px 0 rgba(255,255,255,0.8), 0 6px 0 rgba(255,255,255,0.8); }
 .topbar .rbx-btn.chat i { width: 20px; height: 15px; border-radius: 5px; background: transparent; border: 3px solid rgba(255,255,255,0.8); box-shadow: none; }
-.gui { position: absolute; left: 0; top: 58px; width: 1280px; height: 662px; z-index: 10; }
+.gui { position: absolute; left: 0; top: 58px; right: 0; bottom: 0; z-index: 10; }
 
 /* 로블록스 GuiObject 흉내 ----------------------------------------------- */
 .g { position: absolute; box-sizing: border-box; }
