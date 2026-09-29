@@ -1141,7 +1141,8 @@ function BUILDERS.tree(c)
 end
 
 -- 하버 브리지: 항구 물 + 양쪽 기슭 + 끝마다 화강암 탑문 2개 + 나란한 강철 아치 두 줄(끝은 두껍고 꼭대기는 얇음)
---   + 아치를 꿰뚫고 지나는 도로 상판 + 아치에 매단 멜대 + 아치 사이 가새 + 앞쪽 오페라하우스
+--   + 아치를 꿰뚫고 지나는 도로 상판 + 아치에 매단 멜대 + 아치 사이 가새
+--   (오페라하우스는 건물 이미지 상표 문제로 넣지 않음)
 function BUILDERS.bridge(c)
 	local granite = rgb(208, 196, 172)
 	local deckY, deckTop = 2.2, 2.55
@@ -1190,36 +1191,30 @@ function BUILDERS.bridge(c)
 	end
 	beam(c, V(-2.4, middle(-2.4), -1), V(0, middle(0), 1), 0.16, c.S)
 	beam(c, V(2.4, middle(2.4), -1), V(0, middle(0), 1), 0.16, c.S)
-	-- 오페라하우스(앞쪽 물가): 기단 + 돛 모양 지붕 3개
-	box(c, -2.1, 0, -3.7, 2.8, 0.55, 1.8, rgb(200, 165, 130))
-	for k, s in { { 1.5, 1.1 }, { 1.2, 0.85 }, { 0.8, 0.6 } } do
-		local cf = CFrame.new(-1.2 - (k - 1) * 0.75, 0.55 + s[1] / 2, -3.7) * CFrame.Angles(0, PI / 2, 0)
-		wedge(c, cf, V(1.1, s[1], s[2]), rgb(245, 243, 235), Mat.SmoothPlastic)
-	end
 end
 
--- 12사도 바위: 바다 + 뒤·오른쪽을 두른 사암 절벽(덤불 윗면, 아래가 젖어 어두움) + 모래 해변과 물거품
---   + 해안선을 따라 물에서 솟은 사암 기둥들(밑동은 파도에 파먹히고 위로 갈수록 좁고 비틀림) + 무너진 기둥 밑동
+-- 12사도 바위: 바다 + 왼쪽(-X)을 두른 사암 절벽(덤불 윗면, 아래가 젖어 어두움) + 절벽 밑 모래 해변과 물거품
+--   + 탁 트인 바다에 흩어져 솟은 사암 기둥들(밑동은 파도에 파먹히고 위로 갈수록 좁고 비틀림) + 무너진 기둥 밑동
 function BUILDERS.seastacks(c)
 	box(c, 0, 0, 0, 9.8, 0.3, 9.8, c.S, Mat.Glass, 0.1)
-	local wet = mix(c.P, BLACK, 0.2)
+	local wet = mix(c.P, BLACK, 0.22)
 	local pale = mix(c.P, WHITE, 0.15)
+	local cliff = mix(c.P, ROCK, 0.25)
 	local scrub = mix(LEAF, c.P, 0.2)
 	-- 절벽: { x, z, 가로, 깊이, 높이 }
 	local cliffs = {
-		{ -1.95, 4.05, 5.9, 1.7, 5 },
-		{ 2.95, 3.6, 3.9, 2.6, 5.6 },
-		{ 4, -0.4, 1.8, 5.4, 4.8 },
-		{ 4.2, -4, 1.4, 1.8, 2.6 },
+		{ -4, 0.9, 1.8, 8, 5.2 },
+		{ -2.4, 4.1, 1.6, 1.6, 4.6 },
+		{ -4.2, -4, 1.4, 1.8, 2.8 },
 	}
 	for _, cl in cliffs do
 		local x, z, w, d, h = cl[1], cl[2], cl[3], cl[4], cl[5]
 		box(c, x, 0, z, w, h * 0.25, d, wet)
-		box(c, x, h * 0.25, z, w - 0.2, h * 0.75, d - 0.2, c.P)
+		box(c, x, h * 0.25, z, w - 0.2, h * 0.75, d - 0.2, cliff)
 		box(c, x, h, z, w - 0.3, 0.3, d - 0.3, scrub, Mat.Grass)
 	end
-	box(c, -1.9, 0.3, 2.8, 5.9, 0.12, 0.8, SAND, Mat.Sand)
-	box(c, -1.9, 0.3, 2.3, 5.9, 0.1, 0.3, c.A, Mat.SmoothPlastic, 0.15)
+	box(c, -2.75, 0.3, 0.4, 0.7, 0.12, 5.2, SAND, Mat.Sand)
+	box(c, -2.3, 0.3, 0.4, 0.3, 0.1, 5.2, c.A, Mat.SmoothPlastic, 0.15)
 	-- 바위 기둥: 밑동(파먹혀 가늘고 젖음) → 몸통(가장 넓음) → 꼭대기(좁고 비틀림)
 	local function stack(x: number, z: number, h: number, w: number, twist: number)
 		col(c, x, 0.3, z, 0.1, w * 1.35, c.A, Mat.SmoothPlastic, 0.2)
@@ -1232,15 +1227,16 @@ function BUILDERS.seastacks(c)
 		cf = CFrame.new(x - w * 0.06, y + h * 0.17, z + w * 0.05) * CFrame.Angles(0.04, twist - 0.25, -0.04)
 		block(c, cf, V(w * 0.66, h * 0.34, w * 0.6), pale)
 	end
-	stack(-3.7, 1.3, 5, 1.15, 0.2)
-	stack(-1.6, 0.9, 6.3, 1.3, -0.4)
-	stack(0.5, 0.2, 4.4, 1.05, 0.6)
-	stack(1.9, -1.3, 5.7, 1.2, 0.1)
-	stack(2, -3.5, 3.6, 1, -0.3)
-	stack(-2.7, -1.8, 3.4, 1, 0.9)
+	stack(-1.3, 2.5, 5.4, 1.2, 0.2)
+	stack(0.6, 3.6, 4.2, 1.05, -0.4)
+	stack(0, 0.5, 6.4, 1.3, 0.6)
+	stack(2.4, 1.7, 4.8, 1.1, 0.1)
+	stack(1.7, -1.6, 5.6, 1.2, -0.3)
+	stack(-1.4, -1.7, 3.4, 1, 0.9)
+	stack(3.4, -3.5, 3, 1, 0.4)
 	-- 무너진 기둥(밑동만)
-	col(c, -0.4, 0.3, -2.4, 0.1, 1.6, c.A, Mat.SmoothPlastic, 0.2)
-	block(c, CFrame.new(-0.4, 0.75, -2.4) * CFrame.Angles(0.1, 0.4, 0.08), V(1, 1, 0.9), wet)
+	col(c, 0, 0.3, -3.6, 0.1, 1.6, c.A, Mat.SmoothPlastic, 0.2)
+	block(c, CFrame.new(0, 0.75, -3.6) * CFrame.Angles(0.1, 0.4, 0.08), V(1, 1, 0.9), wet)
 end
 
 -- 그레이트 배리어 리프: 짙은 바다 + 밝은 청록 산호 여울 + 가지 산호(분홍·주황) + 뇌 산호(노랑·보라 공)
@@ -1286,9 +1282,9 @@ function BUILDERS.reef(c)
 	col(c, 0.5, ground + 0.7, 1.2, 0.15, 1.7, tableColor)
 	col(c, 1.2, ground, -0.6, 0.45, 0.2, tableColor)
 	col(c, 1.2, ground + 0.45, -0.6, 0.12, 1.2, tableColor)
-	-- 부채 산호(얇은 판)
-	block(c, CFrame.new(-3.6, ground + 0.7, 3.5) * CFrame.Angles(0, 0.4, 0), V(1.5, 1.4, 0.08), purple)
-	block(c, CFrame.new(3.8, ground + 0.55, 1.6) * CFrame.Angles(0, -1.2, 0), V(1.2, 1.1, 0.08), orange)
+	-- 부채 산호(바닥에 반쯤 묻힌 얇은 원판)
+	cyl(c, CFrame.new(-3.6, 0.75, 3.5) * CFrame.Angles(0, 0.4, 0) * ALONG_Z, 0.08, 1.5, purple)
+	cyl(c, CFrame.new(3.8, 0.6, 1.6) * CFrame.Angles(0, -1.2, 0) * ALONG_Z, 0.08, 1.2, orange)
 	-- 관 산호
 	for k, t in { { -3.9, 0.9, 0.9 }, { -3.5, 1.4, 0.6 }, { -4.1, 1.6, 0.7 } } do
 		col(c, t[1], ground - 0.1, t[2], t[3] + 0.1, 0.35 - k * 0.03, orange)
@@ -1322,7 +1318,7 @@ function BUILDERS.ruins(c)
 			cf *= CFrame.Angles(0, PI / 2, 0)
 		end
 		local color = if n % 2 == 0 then c.P else mix(c.P, ROCK, 0.18)
-		cyl(c, cf, length + (n % 4 - 1.5) * 0.08, diameter or d, color)
+		cyl(c, cf, length + (n % 4 - 1.5) * 0.08, (diameter or d) * (0.92 + n % 3 * 0.06), color)
 	end
 	-- 가운데 큰 섬 + 성벽(앞뒤 기둥 층과 옆 기둥 층이 반 단씩 엇갈림)
 	local cx, cz = 0.6, 0.8
