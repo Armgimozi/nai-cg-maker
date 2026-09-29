@@ -1,0 +1,161 @@
+맵 미리보기 겹침 보고서
+풍경: Scenery.build()
+Scenery 파트 5942개 (바닥류 예외 2개), 검사 구역 26개
+
+규칙: 발자국(XZ 투영 볼록 껍질, 공·세운 원기둥은 원)이 구역과 겹치면 보고.
+  바닥류 예외 = 가장 높은 점 y <= 0.2 이고 가로/세로 중 긴 쪽 >= 16 스터드(섬 바닥·모래사장·물 등).
+  구역: 부지(바닥+둘레 띠), 입구 앞 간판 자리 30x8, 길 +2, 광장 r<=50, 스폰 +2, World 파트(3D).
+
+[요약] 겹친 파트 50개 (길 32, 스폰 18, 광장 18, World 18), z-fighting 위험 0개, 파트끼리 같은 높이 윗면 0쌍
+
+[겹침]
+  Scenery/Walkways/Walkway [Part/Block] 위치 (85.1, 0, 24) 크기 7x0.3x7.3
+      → 부지 4 길(+2)
+  Scenery/Walkways/Walkway [Part/Block] 위치 (82.7, 0, 30.5) 크기 7x0.3x7.3
+      → 부지 4 길(+2)
+  Scenery/Walkways/Walkway [Part/Block] 위치 (79.8, 0, 36.8) 크기 7x0.3x7.3
+      → 부지 4 길(+2)
+  Scenery/Walkways/Walkway [Part/Block] 위치 (76.3, 0, 42.7) 크기 7x0.3x7.3
+      → 부지 4 길(+2)
+  Scenery/Walkways/Walkway [Part/Block] 위치 (39.2, 0, 69.9) 크기 7x0.3x6.7
+      → 부지 5 길(+2)
+  Scenery/Walkways/Walkway [Part/Block] 위치 (33.1, 0, 71.7) 크기 7x0.3x6.5
+      → 부지 5 길(+2)
+  Scenery/Walkways/Walkway [Part/Block] 위치 (27, 0, 73.2) 크기 7x0.3x6.4
+      → 부지 5 길(+2)
+  Scenery/Walkways/Walkway [Part/Block] 위치 (21, 0, 74.5) 크기 7x0.3x6.2
+      → 부지 5 길(+2)
+  Scenery/Walkways/Walkway [Part/Block] 위치 (-22.1, 0, 78.2) 크기 7x0.3x7
+      → 부지 6 길(+2)
+  Scenery/Walkways/Walkway [Part/Block] 위치 (-28.3, 0, 76.6) 크기 7x0.3x7
+      → 부지 6 길(+2)
+  Scenery/Walkways/Walkway [Part/Block] 위치 (-34.2, 0, 74.2) 크기 7x0.3x7
+      → 부지 6 길(+2)
+  Scenery/Walkways/Walkway [Part/Block] 위치 (-39.7, 0, 70.9) 크기 7x0.3x7
+      → 부지 6 길(+2)
+  Scenery/Walkways/Walkway [Part/Block] 위치 (-65.1, 0, 36.4) 크기 7x0.3x6
+      → 부지 7 길(+2)
+  Scenery/Walkways/Walkway [Part/Block] 위치 (-68, 0, 31.3) 크기 7x0.3x6.1
+      → 부지 7 길(+2)
+  Scenery/Walkways/Walkway [Part/Block] 위치 (-71, 0, 26.2) 크기 7x0.3x6.2
+      → 부지 7 길(+2)
+  Scenery/Walkways/Walkway [Part/Block] 위치 (-74.1, 0, 20.8) 크기 7x0.3x6.4
+      → 부지 7 길(+2)
+  Scenery/Walkways/Walkway [Part/Block] 위치 (-86.3, 0, -24.4) 크기 7x0.3x7.7
+      → 부지 8 길(+2)
+  Scenery/Walkways/Walkway [Part/Block] 위치 (-84.9, 0, -31.3) 크기 7x0.3x7.7
+      → 부지 8 길(+2)
+  Scenery/Walkways/Walkway [Part/Block] 위치 (-82.6, 0, -38.1) 크기 7x0.3x7.7
+      → 부지 8 길(+2)
+  Scenery/Walkways/Walkway [Part/Block] 위치 (-79.6, 0, -44.5) 크기 7x0.3x7.7
+      → 부지 8 길(+2)
+  Scenery/Walkways/Walkway [Part/Block] 위치 (-43.2, 0, -77.1) 크기 7x0.3x7.5
+      → 부지 1 길(+2)
+  Scenery/Walkways/Walkway [Part/Block] 위치 (-36.6, 0, -79.3) 크기 7x0.3x7.5
+      → 부지 1 길(+2)
+  Scenery/Walkways/Walkway [Part/Block] 위치 (-29.8, 0, -80.7) 크기 7x0.3x7.5
+      → 부지 1 길(+2)
+  Scenery/Walkways/Walkway [Part/Block] 위치 (-22.9, 0, -81.1) 크기 7x0.3x7.5
+      → 부지 1 길(+2)
+  Scenery/Walkways/Walkway [Part/Block] 위치 (18.6, 0, -65.8) 크기 7x0.3x5.8
+      → 부지 2 길(+2)
+  Scenery/Walkways/Walkway [Part/Block] 위치 (23.3, 0, -63.3) 크기 7x0.3x5.6
+      → 부지 2 길(+2)
+  Scenery/Walkways/Walkway [Part/Block] 위치 (28.1, 0, -61.1) 크기 7x0.3x5.6
+      → 부지 2 길(+2)
+  Scenery/Walkways/Walkway [Part/Block] 위치 (33.1, 0, -59.2) 크기 7x0.3x5.7
+      → 부지 2 길(+2)
+  Scenery/Walkways/Walkway [Part/Block] 위치 (73.8, 0, -41.3) 크기 7x0.3x7.6
+      → 부지 3 길(+2)
+  Scenery/Walkways/Walkway [Part/Block] 위치 (78.7, 0, -36.2) 크기 7x0.3x7.7
+      → 부지 3 길(+2)
+  Scenery/Walkways/Walkway [Part/Block] 위치 (82.7, 0, -30.5) 크기 7x0.3x7.7
+      → 부지 3 길(+2)
+  Scenery/Walkways/Walkway [Part/Block] 위치 (85.8, 0, -24.2) 크기 7x0.3x7.7
+      → 부지 3 길(+2)
+  Scenery/Walkways/PlazaCompass [WedgePart] 위치 (-1.7, 1, -8.2) 크기 0.2x3.4x16.5
+      → 스폰(SpawnLocation, +2), 광장(반지름 50), World 물체 World/Plaza
+  Scenery/Walkways/PlazaCompass [WedgePart] 위치 (1.7, 1, -8.2) 크기 0.2x3.4x16.5
+      → 스폰(SpawnLocation, +2), 광장(반지름 50), World 물체 World/Plaza
+  Scenery/Walkways/PlazaCompass [WedgePart] 위치 (2.8, 1, -4.6) 크기 0.2x2.6x10.5
+      → 스폰(SpawnLocation, +2), 광장(반지름 50), World 물체 World/Plaza
+  Scenery/Walkways/PlazaCompass [WedgePart] 위치 (4.6, 1, -2.8) 크기 0.2x2.6x10.5
+      → 스폰(SpawnLocation, +2), 광장(반지름 50), World 물체 World/Plaza
+  Scenery/Walkways/PlazaCompass [WedgePart] 위치 (8.3, 1, -1.7) 크기 0.2x3.4x16.5
+      → 스폰(SpawnLocation, +2), 광장(반지름 50), World 물체 World/Plaza
+  Scenery/Walkways/PlazaCompass [WedgePart] 위치 (8.3, 1, 1.7) 크기 0.2x3.4x16.5
+      → 스폰(SpawnLocation, +2), 광장(반지름 50), World 물체 World/Plaza
+  Scenery/Walkways/PlazaCompass [WedgePart] 위치 (4.6, 1, 2.8) 크기 0.2x2.6x10.5
+      → 스폰(SpawnLocation, +2), 광장(반지름 50), World 물체 World/Plaza
+  Scenery/Walkways/PlazaCompass [WedgePart] 위치 (2.8, 1, 4.6) 크기 0.2x2.6x10.5
+      → 스폰(SpawnLocation, +2), 광장(반지름 50), World 물체 World/Plaza
+  Scenery/Walkways/PlazaCompass [WedgePart] 위치 (1.7, 1, 8.3) 크기 0.2x3.4x16.5
+      → 스폰(SpawnLocation, +2), 광장(반지름 50), World 물체 World/Plaza
+  Scenery/Walkways/PlazaCompass [WedgePart] 위치 (-1.7, 1, 8.3) 크기 0.2x3.4x16.5
+      → 스폰(SpawnLocation, +2), 광장(반지름 50), World 물체 World/Plaza
+  Scenery/Walkways/PlazaCompass [WedgePart] 위치 (-2.8, 1, 4.6) 크기 0.2x2.6x10.5
+      → 스폰(SpawnLocation, +2), 광장(반지름 50), World 물체 World/Plaza
+  Scenery/Walkways/PlazaCompass [WedgePart] 위치 (-4.6, 1, 2.8) 크기 0.2x2.6x10.5
+      → 스폰(SpawnLocation, +2), 광장(반지름 50), World 물체 World/Plaza
+  Scenery/Walkways/PlazaCompass [WedgePart] 위치 (-8.2, 1, 1.7) 크기 0.2x3.4x16.5
+      → 스폰(SpawnLocation, +2), 광장(반지름 50), World 물체 World/Plaza
+  Scenery/Walkways/PlazaCompass [WedgePart] 위치 (-8.2, 1, -1.7) 크기 0.2x3.4x16.5
+      → 스폰(SpawnLocation, +2), 광장(반지름 50), World 물체 World/Plaza
+  Scenery/Walkways/PlazaCompass [WedgePart] 위치 (-4.6, 1, -2.8) 크기 0.2x2.6x10.5
+      → 스폰(SpawnLocation, +2), 광장(반지름 50), World 물체 World/Plaza
+  Scenery/Walkways/PlazaCompass [WedgePart] 위치 (-2.8, 1, -4.6) 크기 0.2x2.6x10.5
+      → 스폰(SpawnLocation, +2), 광장(반지름 50), World 물체 World/Plaza
+  Scenery/Walkways/PlazaCompass [Part/Cylinder] 위치 (0, 1, 0) 크기 0.2x17.8x17.8
+      → 스폰(SpawnLocation, +2), 광장(반지름 50), World 물체 World/Plaza
+  Scenery/Walkways/PlazaCompass [Part/Cylinder] 위치 (0, 1.1, 0) 크기 0.2x15.8x15.8
+      → 스폰(SpawnLocation, +2), 광장(반지름 50), World 물체 World/Plaza
+
+
+[지형 검사] (지형 윗면 = 덤프의 4 스터드 기둥 높이를 쌍선형 보간)
+  지형이 바닥면을 뚫음 0개, 지형과 z-fighting 0개, 떠 있는 Scenery 덩어리 0개, 완전히 묻힌 Scenery 파트 0개, 많이 묻힘(참고) 22개
+
+[많이 묻힘(참고, 일부러 묻은 바위 등이면 괜찮음)]
+  Scenery/Gardens/Rock [Part/Ball] 위치 (142.5, -0.4, 128.9) 크기 2x2x2
+      키 2 중 1.4 이상 땅속(지형 0~0)
+  Scenery/Gardens/Rock [Part/Ball] 위치 (-128.9, -0.7, 113) 크기 3.3x3.3x3.3
+      키 3.3 중 2.3 이상 땅속(지형 0~0)
+  Scenery/Gardens/Rock [Part/Ball] 위치 (-132.7, -0.6, 112.6) 크기 3x3x3
+      키 3 중 2.1 이상 땅속(지형 0~0)
+  Scenery/Gardens/Rock [Part/Ball] 위치 (-138.4, -0.4, 110.7) 크기 1.9x1.9x1.9
+      키 1.9 중 1.4 이상 땅속(지형 0~0)
+  Scenery/Gardens/Rock [Part/Ball] 위치 (-139.9, -0.4, 122.3) 크기 1.9x1.9x1.9
+      키 1.9 중 1.3 이상 땅속(지형 0~0)
+  Scenery/Gardens/Rock [Part/Ball] 위치 (-145.9, -0.6, 117.1) 크기 2.8x2.8x2.8
+      키 2.8 중 1.9 이상 땅속(지형 0~0)
+  Scenery/Gardens/Rock [Part/Ball] 위치 (-107.6, -0.5, 118.5) 크기 2.4x2.4x2.4
+      키 2.4 중 1.7 이상 땅속(지형 0~0)
+  Scenery/Gardens/Rock [Part/Ball] 위치 (-105.5, -0.5, 119.6) 크기 2.4x2.4x2.4
+      키 2.4 중 1.7 이상 땅속(지형 0~0)
+  Scenery/Belt/Bush [Part/Ball] 위치 (214.3, 2.2, 76) 크기 1.7x1.7x1.7
+      키 1.7 중 1.2 이상 땅속(지형 2.5~2.9)
+  Scenery/Belt/Rock [Part/Ball] 위치 (78, -0.4, 212.8) 크기 2.2x2.2x2.2
+      키 2.2 중 1.5 이상 땅속(지형 0~0)
+  Scenery/Belt/Rock [Part/Ball] 위치 (-117.7, -0.5, -195.7) 크기 2.4x2.4x2.4
+      키 2.4 중 1.6 이상 땅속(지형 0~0)
+  Scenery/Belt/Rock [Part/Ball] 위치 (-193.1, -0.5, 109.3) 크기 2.5x2.5x2.5
+      키 2.5 중 1.7 이상 땅속(지형 0~0.1)
+  Scenery/Belt/Rock [Part/Ball] 위치 (-167.1, -0.4, -136.5) 크기 2.3x2.3x2.3
+      키 2.3 중 1.6 이상 땅속(지형 0.1~0.2)
+  Scenery/Belt/Rock [Part/Ball] 위치 (-57.3, -0.4, 209) 크기 2x2x2
+      키 2 중 1.4 이상 땅속(지형 0~0)
+  Scenery/Belt/Rock [Part/Ball] 위치 (-59.2, -0.4, 210.2) 크기 2.1x2.1x2.1
+      키 2.1 중 1.5 이상 땅속(지형 0~0)
+  Scenery/Belt/Flower [Part/Ball] 위치 (-111.9, 1, 204.7) 크기 0.4x0.4x0.4
+      키 0.4 중 0.3 이상 땅속(지형 1.1~1.2)
+  Scenery/Belt/FlowerLeaves [Part/Ball] 위치 (-227, -0.2, 12.2) 크기 1.2x1.2x1.2
+      키 1.2 중 0.9 이상 땅속(지형 0.1~0.2)
+  Scenery/Belt/FlowerLeaves [Part/Ball] 위치 (-227.7, -0.2, 11.4) 크기 1.4x1.4x1.4
+      키 1.4 중 1 이상 땅속(지형 0.1~0.3)
+  Scenery/Belt/FlowerLeaves [Part/Ball] 위치 (-198, -0.3, -123.6) 크기 1.5x1.5x1.5
+      키 1.5 중 1.1 이상 땅속(지형 0~0.1)
+  Scenery/Belt/FlowerLeaves [Part/Ball] 위치 (-198.9, -0.2, -123.8) 크기 1.2x1.2x1.2
+      키 1.2 중 0.8 이상 땅속(지형 0.1~0.1)
+  Scenery/Belt/FlowerLeaves [Part/Ball] 위치 (-197.9, -0.2, -124.2) 크기 1.1x1.1x1.1
+      키 1.1 중 0.8 이상 땅속(지형 0~0.1)
+  Scenery/Belt/Bush [Part/Ball] 위치 (227.4, 1.5, 62.2) 크기 2x2x2
+      키 2 중 1.5 이상 땅속(지형 1.9~2.9)
