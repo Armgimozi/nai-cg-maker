@@ -130,6 +130,7 @@ local hoverLight: Highlight? = nil
 local hoverSlot: number? = nil
 local viewMode = "Top" -- "Top"(위에서 보기) | "Follow"(평소 카메라)
 local zoom = 1
+local fitRows = Config.PARK_GRID -- 위에서 보기가 맞춘 줄 수(ParkGrid.topRows: 열린 줄 + 잠긴 줄 하나)
 local savedCamera: { Type: Enum.CameraType, Subject: Instance? }? = nil
 local cameraTween: Tween? = nil
 local controls: any = nil
@@ -409,10 +410,12 @@ local function makeGhost(landmark: Landmark, stars: number): Ghost?
 		height = model:GetExtentsSize().Y
 	end)
 	local anchorPart = model.PrimaryPart or model:FindFirstChildWhichIsA("BasePart", true)
+	-- 이름표는 화면 px 고정이라 작은 화면(자동 배율 0.55)에서는 줄임
+	local labelScale = math.clamp(Ui.scale() / 0.9, 0.6, 1)
 	local label = Ui.new("BillboardGui", {
 		Name = "HeldLabel",
 		Adornee = anchorPart,
-		Size = UDim2.fromOffset(240, 58),
+		Size = UDim2.fromOffset(240 * labelScale, 58 * labelScale),
 		StudsOffsetWorldSpace = Vector3.new(0, height + 1.6, 0),
 		AlwaysOnTop = true,
 		LightInfluence = 0,
@@ -440,6 +443,7 @@ local function makeGhost(landmark: Landmark, stars: number): Ghost?
 		Parent = label,
 	}, 20)
 	Ui.outline(starLabel, 2)
+	Ui.new("UIScale", { Scale = labelScale, Parent = label })
 	return { Model = model, Rig = rig(model), Originals = originals, Light = light, Label = label }
 end
 
@@ -491,7 +495,8 @@ local function paintMarkers(slots: { [number]: string }, unlocked: number, heldF
 		local transparency = 1
 		if held then
 			if locked then
-				color, transparency = Ui.colorPair("Coral").Face, 0.78
+				-- 잠긴 칸은 아주 흐린 빨강(가리키면 강조·복사본이 빨개짐) — 잠긴 칸이 많아도 놓을 자리가 먼저 보이게
+				color, transparency = Ui.colorPair("Coral").Face, 0.9
 			elseif slot == heldFrom then
 				color, transparency = WHITE, 0.5
 			else
@@ -1166,7 +1171,17 @@ end
 
 -- 카메라 · 이동 ----------------------------------------------------------------------
 
--- 위에서 보기 카메라 자리: 상단바 아래 ~ 아래 띠 위 영역에 36칸이 딱 들어오게(ParkGrid.topView), 휠로 가까이/멀리
+-- 위에서 보기에서 맞출 줄 수: 열린 칸이 있는 줄 + 잠긴 줄 하나(칸이 적을 때 명소가 작게 보이지 않게)
+local function wantRows(): number
+	local view = viewState()
+	if not view then
+		return Config.PARK_GRID
+	end
+	local _, unlocked = PlayerState.parkSlots(view)
+	return ParkGrid.topRows(unlocked)
+end
+
+-- 위에서 보기 카메라 자리: 상단바 아래 ~ 아래 띠 위 영역에 앞 fitRows 줄이 딱 들어오게(ParkGrid.topView), 휠로 가까이/멀리
 function ParkEdit.topCFrame(): CFrame
 	local cf = origin :: CFrame
 	local camera = workspace.CurrentCamera
@@ -1184,6 +1199,7 @@ function ParkEdit.topCFrame(): CFrame
 		Bottom = bottom,
 		Left = SIDE_MARGIN,
 		Right = SIDE_MARGIN,
+		Rows = fitRows,
 		Zoom = zoom,
 	})
 	local eye = Vector3.new(view.Eye[1], view.Eye[2], view.Eye[3])
@@ -1234,6 +1250,7 @@ local function applyView()
 	end
 	stopCameraTween()
 	if viewMode == "Top" then
+		fitRows = wantRows()
 		camera.CameraType = Enum.CameraType.Scriptable
 		local tween = TweenService:Create(camera, CAMERA_TWEEN, { CFrame = ParkEdit.topCFrame() })
 		cameraTween = tween
@@ -1938,6 +1955,10 @@ function ParkEdit.render(state: Snapshot?)
 	if editing then
 		reconcile()
 		renderBar()
+		-- 공원 확장으로 열린 줄이 바뀌면 위에서 보기를 다시 맞춤
+		if viewMode == "Top" and not cameraTween and wantRows() ~= fitRows then
+			applyView()
+		end
 	end
 end
 

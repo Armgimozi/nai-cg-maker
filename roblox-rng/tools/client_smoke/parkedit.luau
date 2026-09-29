@@ -11,6 +11,7 @@ local PlayerState, Landmarks, ParkGrid, ParkService = E.PlayerState, E.Landmarks
 local serverPlayer, plot, origin, slotsFolder = E.serverPlayer, E.plot, E.origin, E.slotsFolder
 local data = E.data
 local unlocked = PlayerState.slots(data)
+local Config = Harness.require(E.shared.Config)
 local check, frame, waitReal, settle, slotScreen, input = E.check, E.frame, E.waitReal, E.settle, E.slotScreen, E.input
 local mouseTo, click, drag, key, touchDrag, face = E.mouseTo, E.click, E.drag, E.key, E.touchDrag, E.face
 
@@ -141,16 +142,20 @@ check(localFolder() ~= nil, "로컬 폴더(빛나는 판·강조)")
 check(detectorCount() == 0, "배치 모드 동안 ClickDetector 없음")
 local barFrame = gui:FindFirstChild("ParkEditBar")
 check(barFrame and barFrame.Visible, "아래 띠 보임")
--- 카메라가 36칸을 모두 화면 안(띠 위)에 담는지
+-- 카메라가 맞출 줄(열린 줄 + 잠긴 줄 하나)을 모두 화면 안(상단바 아래 ~ 띠 위)에 담는지
+local rows = ParkGrid.topRows(unlocked)
 local allInside = true
-for slot = 1, PlayerState.MAX_SLOTS do
+local lowest, highest = math.huge, -math.huge
+for slot = 1, rows * Config.PARK_GRID do
 	local p = slotScreen(slot)
-	if p.X < 0 or p.X > 1280 or p.Y < 36 or p.Y > 720 - 160 then
+	lowest, highest = math.min(lowest, p.Y), math.max(highest, p.Y)
+	if p.X < 0 or p.X > 1280 or p.Y < 36 or p.Y > 720 - 12 - 162 * 0.9 then
 		allInside = false
 		print("    화면 밖 칸", slot, p)
 	end
 end
-check(allInside, "위에서 보기: 36칸이 화면 안")
+check(allInside, string.format("위에서 보기: 앞 %d줄이 화면 안(세로 %.0f~%.0f px)", rows, lowest, highest))
+check(highest - lowest > 250, "화면을 넉넉히 씀(명소가 작지 않게)")
 local tray = barFrame:FindFirstChild("Tray")
 tray.__props.AbsolutePosition = Vector2.new(109, 684 - 12 - 132 * 0.9)
 tray.__props.AbsoluteSize = Vector2.new(1062, 132 * 0.9)

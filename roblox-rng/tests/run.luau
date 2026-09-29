@@ -1371,7 +1371,7 @@ test("autoWouldChange / preview: 자동을 켜면 바뀌는지, 사본 미리 �
 end)
 
 test(
-	"topView: 36칸이 HUD 가 가리지 않은 영역 안에 딱 맞게(PC·휴대폰·태블릿·세로 화면), 휠 배율",
+	"topView: 맞출 줄(기본 6줄 = 36칸)이 HUD 가 가리지 않은 영역 안에 딱 맞게(PC·휴대폰·태블릿·세로 화면), 줄 수, 휠 배율",
 	function()
 		local cases = {
 			{ Aspect = 16 / 9, Fov = 70, Top = 0.06, Bottom = 0.24, Left = 0.03, Right = 0.03 },
@@ -1380,10 +1380,13 @@ test(
 			{ Aspect = 4 / 3, Fov = 70, Top = 0.05, Bottom = 0.2, Left = 0.03, Right = 0.03 },
 			{ Aspect = 0.6, Fov = 70, Top = 0.05, Bottom = 0.2, Left = 0.03, Right = 0.03 },
 			{ Aspect = 16 / 9, Fov = 50, Top = 0, Bottom = 0, Left = 0, Right = 0 },
+			{ Aspect = 667 / 375, Fov = 70, Top = 0.12, Bottom = 0.3, Left = 0.03, Right = 0.03, Rows = 2 },
+			{ Aspect = 844 / 390, Fov = 70, Top = 0.11, Bottom = 0.29, Left = 0.03, Right = 0.03, Rows = 1 },
+			{ Aspect = 16 / 9, Fov = 70, Top = 0.06, Bottom = 0.24, Left = 0.03, Right = 0.03, Rows = 4 },
 		}
 		local function extent(view, case, distance)
 			local minX, maxX, minY, maxY = math.huge, -math.huge, math.huge, -math.huge
-			for _, point in ParkGrid.TOP_FIT_POINTS do
+			for _, point in ParkGrid.topFitPoints(case.Rows) do
 				local x, y = ParkGrid.project(point, view.Target[1], view.Target[3], distance, case.Aspect, case.Fov)
 				assert(x and y, "카메라 앞")
 				minX, maxX = math.min(minX, x), math.max(maxX, x)
@@ -1409,6 +1412,17 @@ test(
 			near(view.Target[3] - view.Eye[3], math.cos(ParkGrid.TOP_PITCH) * view.Distance, 1e-6, tag)
 			near(view.Eye[1], view.Target[1], 1e-9, tag)
 		end
+		-- 쓰는 줄만 맞추면 더 가까이(명소가 크게): 2줄 < 4줄 < 6줄
+		local function distance(rows)
+			return ParkGrid.topView({ Aspect = 16 / 9, Fov = 70, Top = 0.06, Bottom = 0.24, Rows = rows }).Distance
+		end
+		assert(distance(2) < distance(4) and distance(4) < distance(6), "줄이 적으면 가까이")
+		near(distance(nil), distance(6), 1e-9, "기본 = 6줄")
+		eq(ParkGrid.topRows(0), 1, "칸 없음 = 첫 줄")
+		eq(ParkGrid.topRows(6), 2, "한 줄 꽉 참 + 잠긴 줄")
+		eq(ParkGrid.topRows(7), 3, "둘째 줄 한 칸")
+		eq(ParkGrid.topRows(30), 6, "다섯 줄 + 잠긴 줄")
+		eq(ParkGrid.topRows(36), 6, "최대")
 		-- 오른쪽을 가리면 격자가 화면 왼쪽으로: 화면 오른쪽 = 부지 -X 라서 카메라가 부지 -X 쪽으로 비킴
 		local open = ParkGrid.topView(cases[2])
 		local shifted =

@@ -159,8 +159,9 @@ function ParkGrid.storePlan(state: Snapshot, heldId: string): { Slot: number, Ex
 end
 
 -- 위에서 보기 카메라 ----------------------------------------------------------------
--- 입구(-Z) 쪽 위에서 공원 안쪽(+Z)을 TOP_PITCH 각도로 내려다보는 카메라. 격자 36칸(잠긴 칸 포함: 어디가 늘어날지
--- 보이게)이 화면에서 HUD 가 가리지 않은 영역 안에 가장 크게 들어오는 거리와 바라보는 곳(부지 좌표)을 찾음.
+-- 입구(-Z) 쪽 위에서 공원 안쪽(+Z)을 TOP_PITCH 각도로 내려다보는 카메라. 격자 앞 Rows 줄(열린 칸이 있는 줄 + 잠긴 줄
+-- 하나: 어디가 늘어날지 보이게, ParkGrid.topRows)이 화면에서 HUD 가 가리지 않은 영역 안에 가장 크게 들어오는 거리와
+-- 바라보는 곳(부지 좌표)을 찾음. 칸이 적을 때(휴대폰에서 특히) 명소가 작게 보이지 않게 쓰는 줄만 맞춤.
 -- 받침대 네 귀퉁이와 명소 꼭대기(TOP_FIT_HEIGHT)까지 넣어서 뒷줄 명소가 화면 위로 잘리지 않게 함.
 ParkGrid.TOP_PITCH = math.rad(55)
 ParkGrid.TOP_FIT_HEIGHT = 12 -- 명소 꼭대기(받침대 윗면 위) — 큰 모형(최대 약 20)은 조금 잘려도 받침대는 보이게
@@ -174,7 +175,7 @@ export type TopView = {
 }
 
 -- view: Aspect(가로/세로), Fov(세로 시야각, 도), Left/Right/Top/Bottom(화면 가장자리에서 가리는 비율 0..1),
--- Zoom(1 = 딱 맞게, 클수록 멀리)
+-- Rows(맞출 앞 줄 수 1..GRID, 기본 GRID), Zoom(1 = 딱 맞게, 클수록 멀리)
 export type TopViewInput = {
 	Aspect: number,
 	Fov: number,
@@ -182,26 +183,40 @@ export type TopViewInput = {
 	Right: number?,
 	Top: number?,
 	Bottom: number?,
+	Rows: number?,
 	Zoom: number?,
 }
 
-local FIT_POINTS: { { number } } = {}
-do
-	local half = (GRID - 1) / 2 * ParkGrid.SPACING
-	local edge = half + ParkGrid.PEDESTAL_SIZE / 2
+-- 앞 rows 줄을 맞출 때 화면에 넣을 점(부지 좌표 { x, y, z }): 받침대 네 귀퉁이 + 앞·뒷줄 양끝 명소 꼭대기
+local fitCache: { [number]: { { number } } } = {}
+function ParkGrid.topFitPoints(rows: number?): { { number } }
+	local count = math.clamp(math.floor(rows or GRID), 1, GRID)
+	local cached = fitCache[count]
+	if cached then
+		return cached
+	end
+	local points: { { number } } = {}
+	local edge = (GRID - 1) / 2 * ParkGrid.SPACING + ParkGrid.PEDESTAL_SIZE / 2
 	local front = FIRST_ROW_Z - ParkGrid.PEDESTAL_SIZE / 2
-	local back = FIRST_ROW_Z + (GRID - 1) * ParkGrid.SPACING
+	local back = FIRST_ROW_Z + (count - 1) * ParkGrid.SPACING
 	local tall = ParkGrid.BASE_TOP + ParkGrid.PEDESTAL_HEIGHT + ParkGrid.TOP_FIT_HEIGHT
 	for _, x in { -edge, edge } do
-		table.insert(FIT_POINTS, { x, ParkGrid.BASE_TOP, front })
-		table.insert(FIT_POINTS, { x, ParkGrid.BASE_TOP, back + ParkGrid.PEDESTAL_SIZE / 2 })
+		table.insert(points, { x, ParkGrid.BASE_TOP, front })
+		table.insert(points, { x, ParkGrid.BASE_TOP, back + ParkGrid.PEDESTAL_SIZE / 2 })
 	end
-	for _, x in { -half, half } do
-		table.insert(FIT_POINTS, { x, tall, FIRST_ROW_Z })
-		table.insert(FIT_POINTS, { x, tall, back })
+	-- 명소 꼭대기는 받침대 바깥 끝(edge)까지: 카메라에 가까운 앞줄 양끝 명소가 원근 때문에 화면 옆으로 삐져나가지 않게
+	for _, x in { -edge, edge } do
+		table.insert(points, { x, tall, FIRST_ROW_Z })
+		table.insert(points, { x, tall, back })
 	end
+	fitCache[count] = points
+	return points
 end
-ParkGrid.TOP_FIT_POINTS = FIT_POINTS
+
+-- 위에서 보기에서 맞출 줄 수: 열린 칸이 있는 줄 + 잠긴 줄 하나(공원 확장으로 어디가 늘어날지), 최대 GRID
+function ParkGrid.topRows(unlocked: number): number
+	return math.clamp(math.ceil(math.max(unlocked, 0) / GRID) + 1, 1, GRID)
+end
 
 -- 카메라(바라보는 곳 target, 거리 d)로 본 점의 화면 위치(-1..1, 오른쪽·위가 +). 카메라 뒤면 nil
 -- 카메라 오른쪽 = 부지 -X (입구에서 안쪽을 볼 때 오른쪽), 위 = 화면 위
@@ -236,15 +251,17 @@ function ParkGrid.topView(view: TopViewInput): TopView
 	local wantX, wantY = (left + right) / 2, (bottom + top) / 2
 	local t = math.tan(math.rad(fov) / 2)
 	local s = math.sin(ParkGrid.TOP_PITCH)
+	local points = ParkGrid.topFitPoints(view.Rows)
+	local rows = math.clamp(math.floor(view.Rows or GRID), 1, GRID)
 
 	-- 거리 d 에서 격자 가운데가 영역 가운데에 오게 바라보는 곳을 옮기고(원근 때문에 몇 번 되풀이), 격자 범위를 돌려줌
 	local function aim(distance: number): (number, number, number, number, boolean)
-		local tx, tz = 0, (FIRST_ROW_Z + FIRST_ROW_Z + (GRID - 1) * ParkGrid.SPACING) / 2
+		local tx, tz = 0, FIRST_ROW_Z + (rows - 1) * ParkGrid.SPACING / 2
 		local width, height, ok = 0, 0, true
 		for _ = 1, 8 do
 			local minX, maxX, minY, maxY = math.huge, -math.huge, math.huge, -math.huge
 			ok = true
-			for _, point in FIT_POINTS do
+			for _, point in points do
 				local x, y = ParkGrid.project(point, tx, tz, distance, aspect, fov)
 				if not x or not y then
 					ok = false
