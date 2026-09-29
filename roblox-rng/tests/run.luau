@@ -1111,6 +1111,34 @@ test(
 	end
 )
 test(
+	"missedByFullPark: 직접 배치 중 처음 얻은 명소가 빈 칸이 없어 전시 못 됨 = 공원 꽉 참 알림",
+	function()
+		-- 자동 배치면 늘 false (공원이 꽉 차도 희귀한 순서로 알아서 바뀜)
+		local a = owning({ "clocktower", "lighthouse", "windmill", "fountain", "arc", "bigben" })
+		PlayerState.applyRoll(a, Landmarks.ById.harbourbridge)
+		eq(PlayerState.missedByFullPark(a, "harbourbridge"), false, "자동 배치")
+		-- 직접 배치 + 꽉 참: 더 좋은 명소든 같은 흔한 명소든 처음 얻어서 못 놓였으면 true
+		local d = owning({ "clocktower", "lighthouse", "windmill", "fountain", "arc", "bigben" })
+		PlayerState.setSetting(d, "AutoPark", false)
+		PlayerState.applyRoll(d, Landmarks.ById.eiffel)
+		eq(PlayerState.missedByFullPark(d, "eiffel"), true, "더 좋은 명소")
+		PlayerState.applyRoll(d, Landmarks.ById.harbourbridge)
+		eq(PlayerState.missedByFullPark(d, "harbourbridge"), true, "흔한 명소도")
+		eq(PlayerState.missedByFullPark(PlayerState.snapshot(d, 1), "eiffel"), true, "snapshot")
+		-- 두 번째로 얻은 명소(★ 오름)는 "처음" 이 아니라 false
+		PlayerState.applyRoll(d, Landmarks.ById.eiffel)
+		eq(PlayerState.missedByFullPark(d, "eiffel"), false, "두 번째")
+		-- 전시 중인 명소 · 빈 칸이 있어 놓인 명소는 false
+		eq(PlayerState.missedByFullPark(d, "bigben"), false, "이미 전시 중")
+		local e = owning({ "clocktower", "fountain" })
+		PlayerState.setDisplay(e, 2, nil)
+		PlayerState.applyRoll(e, Landmarks.ById.pyramid)
+		eq(slotsText(e), "fountain,pyramid,-,-,-,-", "빈 칸에 놓임")
+		eq(PlayerState.missedByFullPark(e, "pyramid"), false, "놓였음")
+		eq(PlayerState.missedByFullPark(e, "sphinx"), false, "보유 안 함")
+	end
+)
+test(
 	"수입 = 전시 칸에 있는 명소 합 (자리만 바꾸면 그대로, 빼거나 바꾸면 줄어듦)",
 	function()
 		local d = owning(EIGHT)

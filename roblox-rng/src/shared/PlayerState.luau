@@ -685,6 +685,22 @@ function PlayerState.betterHidden(data: Data | Snapshot): { string }
 	return result
 end
 
+-- 직접 배치 중 이번 판에 처음 얻은 명소(보유 1개)가 공원이 꽉 차서(빈 열린 칸이 없어서) 전시되지 못했는지.
+-- 굴림 연출이 끝난 뒤 "공원 꽉 참" 알림 기준(자동 배치면 늘 false — 자동 배치가 알아서 채움)
+function PlayerState.missedByFullPark(data: Data | Snapshot, landmarkId: string): boolean
+	if autoParkOn(data) or (data.Inventory[landmarkId] or 0) ~= 1 then
+		return false
+	end
+	local slots, unlocked = PlayerState.parkSlots(data)
+	for slot = 1, unlocked do
+		local id = slots[slot]
+		if id == landmarkId or id == nil then
+			return false -- 전시 중이거나, 빈 칸이 있음(꽉 차서 못 놓인 게 아님)
+		end
+	end
+	return true
+end
+
 -- 초당 관광 수입 = 전시 명소 합 × 입장료 × 환생 × 수입 2배 게임패스
 function PlayerState.incomePerSecond(data: Data | Snapshot, mods: Mods?): number
 	local total = 0

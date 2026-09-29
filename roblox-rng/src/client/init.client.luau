@@ -149,14 +149,11 @@ local function showAnnouncement(info: any, landmark: Landmarks.Landmark)
 	end)
 end
 
--- 직접 배치 중 이번 판에 처음 얻은 명소가 공원이 꽉 차서 전시되지 못했고, 전시 중인 가장 약한 명소보다
--- 수입이 크면(= 배치 버튼 배지에 들어가면) 연출이 끝난 뒤 "공원 꽉 참" 알림
+-- 직접 배치 중 이번 판에 처음 얻은 명소가 공원이 꽉 차서 전시되지 못했으면 연출이 끝난 뒤 "공원 꽉 참" 알림
+-- (더 좋은 명소면 [배치] 버튼 숫자 배지도 늘어 있음)
 local function parkFullNotice(landmark: Landmarks.Landmark)
 	local current = state
-	if not current or current.Settings.AutoPark ~= false or (current.Inventory[landmark.Id] or 0) ~= 1 then
-		return
-	end
-	if table.find(PlayerState.betterHidden(current), landmark.Id) then
+	if current and PlayerState.missedByFullPark(current, landmark.Id) then
 		Hud.toast("공원 꽉 참", Ui.Theme.Gold, 3, "park")
 	end
 end
@@ -305,11 +302,15 @@ local function setDisplay(slot: number, landmarkId: string?, expected: string)
 	local response = invoke("SetDisplay", slot, landmarkId, expected)
 	local stale = false
 	if type(response) == "table" then
-		applyState(response.State)
 		stale = response.Reason == "stale"
 		if stale then
+			-- 굴림 연출 중이면(자동 굴림이 방금 놓은 명소가 이유) 새 상태는 연출이 끝난 뒤 반영 — 결과가 미리 보이지 않게
+			onStateEvent(response.State)
 			Hud.toast("공원 바뀜", Ui.Theme.Ink, 2, "park")
-		elseif not response.Ok then
+		else
+			applyState(response.State)
+		end
+		if not stale and not response.Ok then
 			local text, icon = parkFailure(response.Reason)
 			Hud.toast(text, Ui.Theme.Bad, 2, icon)
 		end

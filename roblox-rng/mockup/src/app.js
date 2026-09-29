@@ -236,7 +236,7 @@
     return true;
   }
   // PlayerState.betterHidden: 직접 배치 중 전시 칸의 가장 약한 명소보다 수입이 큰, 전시 안 된 보유 명소(희귀한 순서).
-  // 전시가 하나도 없으면 수입이 있는 보유 명소 전부, 자동 배치면 [] — [배치] 버튼 숫자 배지 · "공원 꽉 참" 알림
+  // 전시가 하나도 없으면 수입이 있는 보유 명소 전부, 자동 배치면 [] — [배치] 버튼 숫자 배지
   function betterHidden(s) {
     if (!s.Settings || s.Settings.AutoPark !== false) return [];
     const [ids, unlocked] = parkSlots(s);
@@ -250,6 +250,14 @@
     const floor = weakest ?? 0;
     return RarestFirst.filter((l) => (s.Inventory[l.Id] || 0) > 0 && !shown.has(l.Id) && landmarkIncome(l, s.Inventory[l.Id]) > floor).map((l) => l.Id);
   }
+  // PlayerState.missedByFullPark: 직접 배치 중 이번 판에 처음 얻은(보유 1개) 명소가 빈 칸이 없어 전시 못 됨 -> "공원 꽉 참" 알림
+  function missedByFullPark(s, id) {
+    if (!s.Settings || s.Settings.AutoPark !== false || (s.Inventory[id] || 0) !== 1) return false;
+    const [ids, unlocked] = parkSlots(s);
+    for (let slot = 1; slot <= unlocked; slot++) if (!ids[slot - 1] || ids[slot - 1] === id) return false;
+    return true;
+  }
+
   function landmarkIncome(l, count) {
     const n = stars(count);
     if (n === 0) return 0;
@@ -2075,7 +2083,7 @@
       extra: '6-2',
       note:
         `6번 공원(직접 배치, 12칸 꽉 참)에서 자동 굴림으로 ${ById[FULL_FIND].Name}(${ById[FULL_FIND].Tier.Name})을 처음 얻은 뒤: 빈 칸이 없어 전시되지 않았고 ` +
-        '전시 중인 가장 약한 명소보다 수입이 커서, 연출이 끝나면 노란 알림 [공원] "공원 꽉 참". ' +
+        `연출이 끝나면 노란 알림 [공원] "공원 꽉 참"(PlayerState.missedByFullPark = ${missedByFullPark(PARK_FULL_STATE, FULL_FIND)}). 전시 중인 가장 약한 명소보다 수입이 커서 ` +
         `왼쪽 메뉴 [배치] 배지가 ${betterHidden(PARK_STATE).length} → ${betterHidden(PARK_FULL_STATE).length}(여권 배지와 같은 모양, 도감 머리 줄 [배치]에도 같은 숫자). ` +
         '자동 배치 중이면 알림·배지 없음(자동 배치가 알아서 채움). 환생하면 자동 배치로 돌아감.',
       build(root) {
