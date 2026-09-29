@@ -1227,6 +1227,149 @@ test("snapshot: 배치 복사본 + 자동 배치 설정 (옛 서버 스냅샷은
 	eq(slotsText(d), "clocktower,eiffel,bigben,arc,fountain,windmill", "원본 불변")
 end)
 
+print("\n[ParkGrid — 3D 배치 모드]")
+local ParkGrid = Harness.require(shared.ParkGrid)
+
+test(
+	"slotOffset: 예전 ParkService 받침대 자리 그대로(간격 12, 입구 여백 6), 입구 줄 가운데가 1번",
+	function()
+		local grid = Config.PARK_GRID
+		for slot = 1, PlayerState.MAX_SLOTS do
+			local row, column = PlayerState.slotCell(slot)
+			local x, z = ParkGrid.slotOffset(slot)
+			near(x, ((grid + 1) / 2 - column) * 12, 1e-9, "x " .. slot)
+			near(z, -80 / 2 + 6 + 6 + (row - 1) * 12, 1e-9, "z " .. slot)
+		end
+		-- 1번 = 입구 줄(가장 작은 z) 가운데 오른쪽(입구에서 볼 때) = -X 쪽 가운데 칸
+		local x1, z1 = ParkGrid.slotOffset(1)
+		eq(x1, -6, "1번 x")
+		eq(z1, -28, "1번 z")
+		local x2 = ParkGrid.slotOffset(2)
+		eq(x2, 6, "2번 = 가운데 왼쪽")
+	end
+)
+
+test(
+	"slotAt: 칸 가운데·칸 안은 그 칸, 격자 밖·반지름 밖은 nil (가장 가까운 칸으로 붙기)",
+	function()
+		for slot = 1, PlayerState.MAX_SLOTS do
+			local x, z = ParkGrid.slotOffset(slot)
+			eq(ParkGrid.slotAt(x, z), slot, "가운데 " .. slot)
+			-- 칸 한 변(12) 안쪽 네 귀퉁이 근처도 그 칸
+			for _, d in { { 5.9, 5.9 }, { -5.9, 5.9 }, { 5.9, -5.9 }, { -5.9, -5.9 }, { 0, 5.99 } } do
+				eq(ParkGrid.slotAt(x + d[1], z + d[2]), slot, "칸 안 " .. slot)
+			end
+			-- 반지름을 좁히면 받침대 밖은 nil
+			eq(ParkGrid.slotAt(x + 5.5, z, 5), nil, "좁은 반지름 " .. slot)
+		end
+		-- 두 칸 사이 경계: 더 가까운 쪽
+		local ax, az = ParkGrid.slotOffset(1)
+		eq(ParkGrid.slotAt(ax - 5.9, az), 1, "경계 안쪽")
+		eq(ParkGrid.slotAt(ax + 6.1, az), 2, "경계 너머 = 이웃 칸")
+		-- 격자 바깥: 맨 앞 줄보다 입구 쪽으로 10 스터드면 nil, 3 스터드면 가장 가까운 앞 줄 칸
+		eq(ParkGrid.slotAt(ax, az - 10), nil, "입구 쪽 멀리")
+		eq(ParkGrid.slotAt(ax, az - 8), 1, "입구 쪽 가까이 = 앞 줄")
+		eq(ParkGrid.slotAt(0, 500), nil, "아주 멀리")
+		eq(ParkGrid.slotAt(0 / 0, 0), nil, "NaN")
+		-- 부지 가운데(x 0)는 두 가운데 열의 경계 — 어느 쪽이든 칸이 나옴
+		assert(ParkGrid.slotAt(0, 2) ~= nil, "부지 가운데")
+	end
+)
+
+test("onPlot: 부지 바닥(76×80) + 여유", function()
+	eq(ParkGrid.onPlot(0, 0), true)
+	eq(ParkGrid.onPlot(37.9, 39.9), true, "모서리 안")
+	eq(ParkGrid.onPlot(38.5, 0), false, "옆으로 벗어남")
+	eq(ParkGrid.onPlot(38.5, 0, 2), true, "여유 안")
+	eq(ParkGrid.onPlot(0, -41, 2), true, "입구 앞 여유")
+	eq(ParkGrid.onPlot(0, -43), false, "입구 밖")
+end)
+
+test(
+	"look / slotOf / storage: 칸 모습, 전시 칸, 보관함 = 전시 안 된 보유 명소(희귀한 순서)",
+	function()
+		local d = owning(EIGHT)
+		-- 자동 배치(6칸): 가장 흔한 둘이 보관함
+		eq(ParkGrid.look(d, 1), "pyramid")
+		eq(ParkGrid.look(d, 7), ParkGrid.LOOK_LOCKED, "잠긴 칸")
+		eq(table.concat(ParkGrid.storage(d), ","), "lighthouse,clocktower", "자동: 남는 흔한 명소")
+		eq(ParkGrid.slotOf(d, "eiffel"), 2)
+		eq(ParkGrid.slotOf(d, "clocktower"), 0, "전시 안 됨 = 0")
+		-- 직접 배치로 3번(빅벤)을 빼면 빈 칸 + 보관함 맨 앞(더 희귀)
+		eq((PlayerState.setDisplay(d, 3, nil)), true)
+		eq(ParkGrid.look(d, 3), ParkGrid.LOOK_EMPTY)
+		eq(table.concat(ParkGrid.storage(d), ","), "bigben,lighthouse,clocktower", "희귀한 순서")
+		-- 보유하지 않은 명소는 보관함에 없음, 빈 데이터 = 빈 보관함
+		eq(#ParkGrid.storage(PlayerState.new()), 0)
+		-- 스냅샷으로도 같음
+		eq(table.concat(ParkGrid.storage(PlayerState.snapshot(d, 1)), ","), "bigben,lighthouse,clocktower")
+	end
+)
+
+test(
+	"dropPlan / storePlan: 옮기기·자리 바꾸기·보관함에서 놓기·바꿔 넣기·제자리·잠긴 칸",
+	function()
+		local d = owning(EIGHT)
+		eq((PlayerState.setDisplay(d, 3, nil)), true) -- 1 pyramid, 2 eiffel, 3 빈 칸, 4 arc, 5 fountain, 6 windmill
+		local function plan(id, target)
+			local p = ParkGrid.dropPlan(d, id, target)
+			return string.format("%s %d %s %d %s %s", p.Kind, p.Slot, p.Id, p.From, p.Expected, p.Partner or "-")
+		end
+		eq(plan("eiffel", 3), "move 3 eiffel 2  -", "빈 칸으로 옮김")
+		eq(plan("eiffel", 1), "swap 1 eiffel 2 pyramid pyramid", "자리 바꿈")
+		eq(plan("eiffel", 2), "cancel 2 eiffel 2 eiffel -", "제자리")
+		eq(plan("bigben", 3), "place 3 bigben 0  -", "보관함에서 빈 칸")
+		eq(plan("bigben", 4), "replace 4 bigben 0 arc arc", "보관함에서 바꿔 넣기")
+		eq(ParkGrid.dropPlan(d, "eiffel", 7).Kind, "locked", "잠긴 칸")
+		eq(ParkGrid.dropPlan(d, "eiffel", 40).Kind, "cancel", "격자 밖 번호")
+		eq(ParkGrid.dropPlan(d, "eiffel", 0).Kind, "cancel", "0번")
+		-- 계획 그대로 setDisplay 하면 그대로 됨(stale 아님), 자리 바꿈 상대는 원래 칸으로
+		local p = ParkGrid.dropPlan(d, "eiffel", 1)
+		eq((PlayerState.setDisplay(d, p.Slot, p.Id, p.Expected, p.From)), true)
+		eq(slotsText(d), "eiffel,pyramid,-,arc,fountain,windmill")
+		local r = ParkGrid.dropPlan(d, "bigben", 4)
+		eq((PlayerState.setDisplay(d, r.Slot, r.Id, r.Expected, r.From)), true)
+		eq(slotsText(d), "eiffel,pyramid,-,bigben,fountain,windmill")
+		eq(table.concat(ParkGrid.storage(d), ","), "arc,lighthouse,clocktower", "밀려난 명소는 보관함")
+		-- 보관: 전시 중이면 그 칸을 비우는 계획, 보관함에 있으면 nil
+		local s = ParkGrid.storePlan(d, "pyramid")
+		assert(s, "보관 계획")
+		eq(s.Slot, 2)
+		eq(s.Expected, "pyramid")
+		eq(ParkGrid.storePlan(d, "arc"), nil)
+		eq((PlayerState.setDisplay(d, s.Slot, nil, s.Expected)), true)
+		eq(ParkGrid.look(d, 2), ParkGrid.LOOK_EMPTY)
+		-- 들고 있는 사이 자동 굴림으로 자리가 밀리면(자동 배치) From 은 지금 화면 기준으로 다시 셈
+		local a = owning(EIGHT)
+		eq(ParkGrid.dropPlan(a, "arc", 1).From, 4)
+		PlayerState.applyRoll(a, Landmarks.RarestFirst[1])
+		eq(ParkGrid.dropPlan(a, "arc", 1).From, 5, "한 칸 밀림")
+	end
+)
+
+test("autoWouldChange / preview: 자동을 켜면 바뀌는지, 사본 미리 보기(원본 불변)", function()
+	local d = owning(EIGHT)
+	eq(ParkGrid.autoWouldChange(d), false, "자동 배치 그대로")
+	PlayerState.setAutoPark(d, false)
+	eq(ParkGrid.autoWouldChange(d), false, "끄기만 하면 같은 배치")
+	local s: any = PlayerState.snapshot(d, 1)
+	local moved = ParkGrid.preview(s, function(copy)
+		return (PlayerState.setDisplay(copy, 1, "clocktower"))
+	end)
+	assert(moved, "미리 보기")
+	eq(slotsText(moved), "clocktower,eiffel,bigben,arc,fountain,windmill")
+	eq(slotsText(s), "pyramid,eiffel,bigben,arc,fountain,windmill", "원본 불변")
+	assert(moved.Income < s.Income, "미리 보기 수입도 다시 셈")
+	eq(ParkGrid.autoWouldChange(moved), true, "직접 바꾼 배치")
+	eq(
+		ParkGrid.preview(s, function(copy)
+			return (PlayerState.setDisplay(copy, 30, "clocktower"))
+		end),
+		nil,
+		"규칙에 안 맞으면 nil"
+	)
+end)
+
 print("\n[Format]")
 test("commas", function()
 	eq(Format.commas(0), "0")
@@ -1300,6 +1443,19 @@ test(
 		-- 틈 반폭: 부지 앞 모서리(r ~ 120)에서 약 7, 뒤(r ~ 200)에서 약 40
 		near(ParkLayout.gapHalfWidth(120), 6.95, 0.05, "앞쪽 틈")
 		near(ParkLayout.gapHalfWidth(200), 40.1, 0.1, "뒤쪽 틈")
+	end
+)
+
+test(
+	"ParkGrid 부지 크기 = ParkLayout 부지 크기 (클라이언트 배치 모드와 서버 받침대가 같은 자리)",
+	function()
+		eq(ParkGrid.PLOT_WIDTH, ParkLayout.PLOT_WIDTH, "폭")
+		eq(ParkGrid.PLOT_DEPTH, ParkLayout.PLOT_DEPTH, "깊이")
+		-- 모든 칸이 부지 안(받침대 반 변 5 + 여유)
+		for slot = 1, PlayerState.MAX_SLOTS do
+			local x, z = ParkGrid.slotOffset(slot)
+			assert(ParkGrid.onPlot(x, z, -ParkGrid.PEDESTAL_SIZE / 2), "칸 " .. slot .. " 이 부지 밖")
+		end
 	end
 )
 
