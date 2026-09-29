@@ -1380,7 +1380,7 @@ local GLOBE_LAND: { { number } } = (function()
 end)()
 
 local GLOBE_GOLD = rgb(235, 190, 80) -- 광장 받침대 윗판(PedestalTop)과 같은 금색
--- 땅 색 종류(GlobeLand 넷째 칸): 1 눈(그린란드·남극·북극 섬), 2 초록(명소 보조 색), 3 숲·산맥, 4 사막
+-- 땅 색 종류(GlobeLand 넷째 칸): 1 눈(그린란드·남극·북극 섬·히말라야), 2 초록(명소 보조 색), 3 짙은 초록(열대림), 4 사막
 local GLOBE_SNOW = rgb(244, 248, 252)
 local GLOBE_TONES = {
 	[1] = GLOBE_SNOW,
@@ -1388,10 +1388,14 @@ local GLOBE_TONES = {
 	[4] = rgb(238, 202, 122),
 }
 local GLOBE_MATERIALS = { [1] = Mat.Snow, [4] = Mat.Sand } -- 나머지(초록·숲)는 Grass
+-- 바탕 돔 높이 = clamp(SLOPE * 지구 반지름 * 돔 반지름(라디안), MIN, MAX) — globe_land.py 와 같은 값이어야 함.
+-- 낮고 넓은 돔(가라앉힌 큰 공)이라 겹친 자리의 골이 얕음. MIN 0.04 = 광장 크기(2.6배)에서 0.1 스터드
+local DOME_SLOPE, DOME_MIN, DOME_MAX = 0.1, 0.04, 0.05
 
--- 지구본: 금색 받침 + 23.5도 기운 파란 공 + 진짜 지도를 따른 대륙(겹친 돔 공 약 150개, 해안선이 둥글게 굽이짐)
--- + 극지방 눈 + 받침 기둥에 닿는 금색 자오선 고리(32조각) + 극 축받이 + 금색 철사에 매단 달. 파트 약 190개
+-- 지구본: 금색 받침 + 23.5도 기운 파란 공 + 진짜 지도를 따른 대륙(겹친 돔 공 약 140개, 해안선이 둥글게 굽이짐)
+-- + 극지방 눈 + 받침 기둥에 닿는 금색 자오선 고리(32조각) + 극 축받이. 파트 약 185개
 -- (광장에서는 클라이언트가 모형 전체를 매 프레임 PivotTo 로 돌리므로 파트를 더 늘리지 말 것)
+-- 땅·극 돔은 그림자를 만들지 않음(지구 공 위 얇은 돔이라 보이는 그림자가 거의 없는데, 돌 때마다 그림자 계산만 늘어남)
 function BUILDERS.globe(c)
 	local goldDark = mix(GLOBE_GOLD, BLACK, 0.18)
 	col(c, 0, 0, 0, 0.5, 4.2, goldDark, Mat.Metal)
@@ -1409,31 +1413,25 @@ function BUILDERS.globe(c)
 		local phi, lambda = math.rad(lat), math.rad(lon - 20)
 		return tilt * V(-r * math.cos(phi) * math.sin(lambda), r * math.sin(phi), -r * math.cos(phi) * math.cos(lambda))
 	end
-	-- 돔: 지표에서 height 만큼 솟고, 지표와 만나는 둘레가 중심에서 cap 도인 공(가라앉힌 공의 튀어나온 부분)
+	-- 돔: 지표에서 height 만큼 솟고, 지표와 만나는 둘레가 중심에서 cap 도인 공(가라앉힌 공의 튀어나온 부분).
+	-- 공은 돌리지 않음(돌린 공은 경계 상자가 커져서 Models.create 의 크기 맞춤·굴림 연출 틀이 달라짐)
 	local function dome(lat: number, lon: number, cap: number, height: number, color: Color3, material: Enum.Material)
 		local top = radius + height
 		local cosCap = math.cos(math.rad(cap))
 		local r = (radius * radius + top * top - 2 * radius * top * cosCap) / (2 * (top - radius * cosCap))
 		local p = surface(lat, lon, top - r)
-		ball(c, p.X, p.Y, p.Z, r * 2, color, material)
+		ball(c, p.X, p.Y, p.Z, r * 2, color, material).CastShadow = false
 	end
 
-	-- 대륙: 큰 돔(내륙)일수록 조금 더 높게(해안은 얇고 내륙은 도톰하게). 눈(남극·그린란드)은 납작하게.
-	-- 다섯째 칸이 있는 줄은 색 덧칠 공(티베트·이란 등): 표에 적힌 높이 그대로(바탕 돔보다 살짝 위)
-	-- (globe_land.py 의 dome_height 와 같은 식이어야 덧칠 공 높이가 맞음)
+	-- 대륙: 해안 쪽 작은 돔은 0.04, 큰(내륙) 돔은 0.05 (DOME_*).
+	-- 다섯째 칸이 있는 줄은 색 덧칠 공(마른 띠·히말라야 눈·열대림 등): 표에 적힌 높이 그대로(바탕 돔보다 살짝 위)
 	for _, row in GLOBE_LAND do
 		local cap, tone = row[3], row[4]
-		local height = row[5]
-		if not height then
-			height = math.clamp(0.15 * radius * math.rad(cap), 0.045, 0.12)
-			if tone == 1 then
-				height *= 0.6
-			end
-		end
+		local height = row[5] or math.clamp(DOME_SLOPE * radius * math.rad(cap), DOME_MIN, DOME_MAX)
 		dome(row[1], row[2], cap, height, GLOBE_TONES[tone] or c.S, GLOBE_MATERIALS[tone] or Mat.Grass)
 	end
 	-- 북극 바다 얼음(남극은 땅 표에 있음)
-	dome(90, 0, 11, 0.1, GLOBE_SNOW, Mat.Snow)
+	dome(90, 0, 11, DOME_MAX, GLOBE_SNOW, Mat.Snow)
 
 	-- 자오선 고리: 지구 중심을 도는 금색 띠(원 둘레 32조각). 맨 아래 조각이 받침 기둥 꼭대기에 얹힘
 	local ring, band, width = 4.5, 0.2, 0.34
@@ -1450,13 +1448,6 @@ function BUILDERS.globe(c)
 	for _, side in { 1, -1 } do
 		cyl(c, tilt * CFrame.new(0, side * ring, 0) * UPRIGHT, 0.4, 0.62, GLOBE_GOLD, Mat.Metal)
 	end
-
-	-- 달: 북극 축 끝에서 뻗은 가는 금색 철사 끝(지구와 함께 돎)
-	local moon = V(-4.2, 11.8, 1.5)
-	local axleTop = tilt * V(0, ring + 0.2, 0)
-	beam(c, axleTop, moon, 0.1, GLOBE_GOLD, Mat.Metal)
-	ball(c, moon.X, moon.Y, moon.Z, 1, rgb(214, 214, 206))
-	ball(c, moon.X + 0.3, moon.Y + 0.18, moon.Z - 0.3, 0.3, rgb(172, 172, 166))
 end
 
 -- 모르는 모형: 기단 + 오벨리스크

@@ -215,6 +215,13 @@ function World.build()
 		-- 모형 정면(-Z)은 경도 20도라 경도 L 이 +Z 를 보려면 수직축으로 200 - L 도
 		earth:PivotTo(CFrame.new(EARTH_SPOT.X, pedestalTop, EARTH_SPOT.Z) * CFrame.Angles(0, math.rad(EARTH_FACING), 0))
 		earthTop = pedestalTop + earth:GetExtentsSize().Y
+		-- 보기만 하는 장식: 광선·닿음 검사에서 빼서(충돌은 Models.create 가 이미 끔) 매 프레임 돌릴 때 부담을 줄임
+		for _, part in earth:GetDescendants() do
+			if part:IsA("BasePart") then
+				part.CanQuery = false
+				part.CanTouch = false
+			end
+		end
 		CollectionService:AddTag(earth, SPIN_TAG)
 		-- 스트리밍이 켜져 있어도 통째로 내려받게 해야 클라이언트 회전 때 일부 파트만 어긋나지 않음
 		earth.ModelStreamingMode = Enum.ModelStreamingMode.Atomic

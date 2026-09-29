@@ -114,10 +114,13 @@ PlayerState 의 읽기 함수(park, parkSlots, stars, slots, completedRegions, u
   반지름 115 는 광장 중심에서 **부지 입구(앞 가장자리)** 까지의 거리(부지 76×80 이 서로 겹치지 않게).
   부지는 광장을 향해 회전. 부지 하나 = 전시 칸 6×6 격자(칸 간격 12, 미니어처 크기 9) + 입구 간판.
 - 광장 지구본은 스폰 바로 앞 (0, 1, -26) 받침대 위. 회전하는 모형은 ModelStreamingMode = Atomic.
-  모형(Models 의 globe, 굴림 연출 화면도 같은 모형): 진짜 세계 지도(Natural Earth 1:110m)를 따른 대륙 — 겹친 돔 공
-  약 150개(초록·짙은 숲/산맥·사막 모래색·눈), 표는 `tools/model_preview/globe_land.py` 가 만든 `Models/GlobeLand.luau`.
-  금색 자오선 고리(32조각, 받침 기둥에 닿음) + 극 축받이 + 금색 철사 끝의 달. 파트 약 190개(매 프레임 PivotTo 로
-  돌리므로 더 늘리지 않기). 처음 방향은 스폰 쪽으로 아프리카(World 의 EARTH_FACING).
+  모형(Models 의 globe, 굴림 연출 화면도 같은 모형): 진짜 세계 지도(Natural Earth 1:110m)를 따른 대륙 — 낮고 넓은
+  겹친 돔 공 약 140개(초록 바탕 + 사하라·아라비아·이란·오스트레일리아 모래색 + 눈), 홍해·페르시아만은 물길로 남김.
+  덧칠 사슬: 중앙아시아 마른 띠(카스피해 → 카자흐 초원 → 고비, 모래색), 히말라야 눈 띠, 짙은 초록 열대림
+  (아마존·콩고·동남아, 곳마다 겹친 작은 공 셋). 표는 `tools/model_preview/globe_land.py` 가 만든 `Models/GlobeLand.luau`.
+  금색 자오선 고리(32조각, 받침 기둥에 닿음) + 극 축받이(달은 뺌 — 굴림 연출 틀은 작아진 경계 상자에 맞춰 지구가 조금
+  커짐). 파트 약 185개(매 프레임 PivotTo 로 돌리므로 더 늘리지 않기). 땅·극 돔은 CastShadow 끔, 광장 지구본은
+  모든 파트 CanQuery·CanTouch 끔(충돌은 Models.create 가 끔). 처음 방향은 스폰 쪽으로 아프리카(World 의 EARTH_FACING).
   광장 둘레 나무 8그루는 섬 풍경과 같은 넓은잎나무(Scenery/Props 의 Tree, Scale 1.2·1.02).
 - 잠긴 칸은 흐릿한 바닥, 열린 빈 칸은 받침대, 전시 칸에는 미니어처 + 작은 이름표(★ 포함).
 - 간판: "OOO 님의 관광 공원" + "관광 수입 +X/초".
