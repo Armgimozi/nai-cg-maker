@@ -565,6 +565,35 @@ local function setMyPlot(plot: Instance?)
 	ParkEdit.setPlot(plot)
 end
 
+task.spawn(function()
+	local parks = workspace:WaitForChild("Parks", 60)
+	if not parks then
+		return
+	end
+	local function check()
+		local found: Instance? = nil
+		for _, plot in parks:GetChildren() do
+			if plot:GetAttribute("OwnerUserId") == player.UserId then
+				found = plot
+				break
+			end
+		end
+		setMyPlot(found)
+	end
+	local function watchPlot(plot: Instance)
+		plot:GetAttributeChangedSignal("OwnerUserId"):Connect(check)
+	end
+	for _, plot in parks:GetChildren() do
+		watchPlot(plot)
+	end
+	parks.ChildAdded:Connect(function(plot)
+		watchPlot(plot)
+		check()
+	end)
+	parks.ChildRemoved:Connect(check)
+	check()
+end)
+
 -- 구매 창이 닫힐 때 알림만 (지급은 서버의 ProcessReceipt). 연결에 실패해도 아래 루프는 돌아야 하므로 pcall
 pcall(function()
 	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(who, passId, wasPurchased)

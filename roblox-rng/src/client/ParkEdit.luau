@@ -232,6 +232,27 @@ local function viewState(): Snapshot?
 	return preview or lastState
 end
 
+-- 화면 상태의 칸 모습("#locked" | "#empty" | 명소 Id, 상태가 없으면 nil). 매 프레임 가리키는 칸을 보므로
+-- 상태 표(스냅샷·미리 보기 사본은 바뀌지 않고 새 표로 갈림)마다 parkSlots 를 한 번만 셈
+local lookCache: { View: Snapshot?, Slots: { [number]: string }, Unlocked: number } =
+	{ View = nil, Slots = {}, Unlocked = 0 }
+local function viewLook(slot: number): string?
+	local view = viewState()
+	if not view then
+		return nil
+	end
+	if lookCache.View ~= view then
+		local slots, unlocked = PlayerState.parkSlots(view)
+		lookCache.View, lookCache.Slots, lookCache.Unlocked = view, slots, unlocked
+	end
+	if slot < 1 or slot > PlayerState.MAX_SLOTS then
+		return nil
+	elseif slot > lookCache.Unlocked then
+		return ParkGrid.LOOK_LOCKED
+	end
+	return lookCache.Slots[slot] or ParkGrid.LOOK_EMPTY
+end
+
 -- 캐릭터 · 부지 ------------------------------------------------------------------
 
 local function rootPart(): BasePart?
@@ -938,10 +959,9 @@ local function onInputBegan(input: InputObject, processed: boolean)
 		-- 돌아가므로 그때는 누를 때 집지 않고 톡 누르면(뗄 때) 집음
 		if not held and not (kind == Enum.UserInputType.Touch and viewMode ~= "Top") then
 			local hit = pick(at)
-			local view = viewState()
 			local slot = hit.Slot
-			if slot and view then
-				local look = ParkGrid.look(view, slot)
+			local look = if slot then viewLook(slot) else nil
+			if slot and look then
 				if Landmarks.ById[look] then
 					pickUp(look, slot)
 					current.Picked = held ~= nil
@@ -1024,8 +1044,7 @@ local function onInputEnded(input: InputObject, processed: boolean)
 		end
 		placeAt(hit)
 	elseif hit.Slot and not moved then
-		local view = viewState()
-		local look = if view then ParkGrid.look(view, hit.Slot) else nil
+		local look = viewLook(hit.Slot)
 		if look == ParkGrid.LOOK_LOCKED then
 			handlers.Toast("공원 확장", "lock")
 		elseif look and Landmarks.ById[look] then
@@ -1075,10 +1094,9 @@ local function step(dt: number)
 	end
 
 	-- 가리키는 칸 강조: 들고 있으면 놓을 수 있는 칸 노랑 / 잠긴 칸 빨강, 아니면 명소 노랑 · 빈 칸 초록
-	local view = viewState()
 	local slot = hit and hit.Slot
-	if slot and view then
-		local look = ParkGrid.look(view, slot)
+	local look = if slot then viewLook(slot) else nil
+	if slot and look then
 		local color = if look == ParkGrid.LOOK_LOCKED
 			then Ui.colorPair("Coral").Face
 			elseif held or Landmarks.ById[look] then Ui.colorPair("Sun").Face
@@ -1112,7 +1130,7 @@ local function step(dt: number)
 			current.Ghost.Rig,
 			CFrame.new(current.Position + Vector3.new(0, lift, 0)) * plotRotation() * CFrame.Angles(0, current.Angle, 0)
 		)
-		local locked = view and hit and hit.Slot and ParkGrid.look(view, hit.Slot) == ParkGrid.LOOK_LOCKED
+		local locked = look == ParkGrid.LOOK_LOCKED
 		current.Ghost.Light.FillColor = if locked then Ui.colorPair("Coral").Face else Ui.colorPair("Sun").Face
 		-- 놓을 자리 판이 숨 쉬듯 빛남
 		local glow = 0.42 + math.sin(now * 5) * 0.14
