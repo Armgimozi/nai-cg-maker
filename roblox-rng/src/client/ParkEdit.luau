@@ -1090,16 +1090,19 @@ local function onInputBegan(input: InputObject, processed: boolean)
 	if processed then
 		return -- 화면 버튼·조이스틱
 	end
+	local pointed = kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch
+	local at = if kind == Enum.UserInputType.Touch
+		then toViewport(input.Position)
+		else UserInputService:GetMouseLocation()
+	if pointed and overBar(at) then
+		-- 띠 위 딱지 줄의 비친 곳(버튼이 아니라 processed 가 아님): 띠처럼 뒤의 명소를 집지 않고, 손가락으로도
+		-- 세지 않음(띠에 손가락을 올려 둔 채 다른 손가락으로 칸을 톡 누르면 두 손가락으로 잘못 잡히지 않게)
+		return
+	end
 	if kind == Enum.UserInputType.Touch and not touchBegan(input) then
 		return -- 두 손가락
 	end
-	if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
-		local at = if kind == Enum.UserInputType.Touch
-			then toViewport(input.Position)
-			else UserInputService:GetMouseLocation()
-		if overBar(at) then
-			return -- 띠 위 딱지 줄의 비친 곳(버튼이 아니라 processed 가 아님): 띠처럼 뒤의 명소를 집지 않음
-		end
+	if pointed then
 		pointerKind = if kind == Enum.UserInputType.Touch then "Touch" else "Mouse"
 		pointer = at
 		local current: Press = { Input = input, Kind = kind, Start = at, Moved = false, Picked = false }
@@ -1380,8 +1383,10 @@ local function step(dt: number)
 	if slot and look then
 		if look == ParkGrid.LOOK_LOCKED then
 			setHover(slot, Ui.colorPair("Coral").Face)
+		elseif held and look == held.Id then
+			setHover(nil, HOVER_COLOR) -- 들고 나온 원래 칸: 누르면 그냥 내려놓기라 놓을 칸처럼 빛내지 않음
 		elseif held then
-			local fill = if occupied and look ~= held.Id then Ui.colorPair("Sun").Face else Ui.colorPair("Grass").Face
+			local fill = if occupied then Ui.colorPair("Sun").Face else Ui.colorPair("Grass").Face
 			setHover(slot, fill, WHITE)
 		else
 			setHover(slot, if occupied then Ui.colorPair("Sun").Face else Ui.colorPair("Grass").Face)
