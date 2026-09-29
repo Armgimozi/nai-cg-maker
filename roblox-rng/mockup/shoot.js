@@ -22,16 +22,25 @@ const CHROME = ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome'].find((p) =
     await page.locator('#' + id).screenshot({ path: file });
     shots.push({ id, file });
   }
-  // 전체 보기: 본 화면 5개를 2열 격자로 줄여서
-  const main = shots.filter((s) => /^screen\d$/.test(s.id));
-  const titles = { screen1: '1. 기본 화면', screen2: '2. 명소 공개', screen3: '3. 도감', screen4: '4. 여권', screen5: '5. 강화' };
-  const cells = main
-    .map((s) => `<figure><img src="file://${s.file}"><figcaption>${titles[s.id] || s.id}</figcaption></figure>`)
+  // 전체 보기: 화면 5개 + 여권 펼침을 2열 격자로 줄여서 (그림은 data URI 로 넣음)
+  const titles = {
+    screen1: '1. 기본 화면', screen2: '2. 명소 공개', screen3: '3. 도감',
+    screen4: '4. 여권', screen5: '5. 강화', screen4b: '4-2. 여권 스크롤 내용 전체',
+  };
+  const order = ['screen1', 'screen2', 'screen3', 'screen4', 'screen5', 'screen4b'];
+  const cells = order
+    .map((id) => shots.find((s) => s.id === id))
+    .filter(Boolean)
+    .map((s) => {
+      const uri = 'data:image/png;base64,' + fs.readFileSync(s.file).toString('base64');
+      return `<figure><div class="cell"><img src="${uri}"></div><figcaption>${titles[s.id] || s.id}</figcaption></figure>`;
+    })
     .join('');
   const html = `<!doctype html><meta charset="utf-8"><style>
     body{margin:0;background:#24212f;font:600 18px 'KR Fallback','Noto Sans KR',sans-serif;color:#f3efe6}
     .grid{display:grid;grid-template-columns:repeat(2,640px);gap:16px;padding:16px}
-    figure{margin:0} img{width:640px;height:360px;display:block;border-radius:6px}
+    figure{margin:0} .cell{width:640px;height:360px;display:flex;justify-content:center;background:#1a1824;border-radius:6px;overflow:hidden}
+    .cell img{max-width:640px;max-height:360px;display:block}
     figcaption{padding:6px 2px 0}</style><div class="grid">${cells}</div>`;
   const overviewPage = await browser.newPage({ viewport: { width: 1312, height: 800 } });
   await overviewPage.setContent(html);
