@@ -949,8 +949,57 @@ Hud.setEditing(true)
 local menuFrame = hudGui:FindFirstChild("Menu", true)
 local rollBar = hudGui:FindFirstChild("RollBar", true)
 check(not menuFrame.Visible and not rollBar.Visible, "배치 모드: HUD 메뉴·굴리기 줄 숨김")
+-- 배치 모드 굴림 결과: 가운데 연출(공원 한가운데를 가림) 없이 알림 줄의 작은 등급 색 딱지(+ 처음이면 NEW)
+local revealFrame = hudGui:FindFirstChild("Reveal", true)
+local function rollResult(name: string): any
+	for _, d in hudGui:GetDescendants() do
+		if d.Name == "RollResult" then
+			local label = d:FindFirstChild("Label", true)
+			if label and label.Text == name then
+				return d
+			end
+		end
+	end
+	return nil
+end
+local revealInfo = { Fast = true, IsNew = true, StarUp = false, Stars = 1, Bonus = 0, Luck = 1 }
+local first = Landmarks.RarestFirst[1]
+local revealDone = false
+task.spawn(function()
+	Hud.reveal(first, revealInfo)
+	revealDone = true
+end)
+check(revealDone and not revealFrame.Visible, "배치 모드 굴림 = 가운데 연출 없이 바로 끝남")
+local chip = rollResult(first.Name)
+check(chip ~= nil and chip:FindFirstChild("New", true) ~= nil, "알림 줄에 명소 이름 딱지 + NEW")
+check(
+	chip ~= nil
+		and (
+			(chip:IsA("ImageLabel") and chip.ImageColor3 == first.Tier.Color)
+			or chip.BackgroundColor3 == first.Tier.Color
+		),
+	"딱지 = 등급 색"
+)
 Hud.setEditing(false)
 check(menuFrame.Visible and rollBar.Visible, "나가면 다시 보임")
+-- 가운데 연출이 도는 중에 배치 모드에 들어가면 바로 숨기고, 결과는 딱지로(결과를 보인 뒤에 돌아가서 상태 반영 순서 그대로)
+local second = Landmarks.RarestFirst[2]
+local secondDone = false
+task.spawn(function()
+	Hud.reveal(second, { Fast = false, IsNew = false, StarUp = false, Stars = 1, Bonus = 0, Luck = 1 })
+	secondDone = true
+end)
+Mock.runScheduler(Mock.clock() + 0.3)
+check(revealFrame.Visible and not secondDone, "평소 = 가운데 연출(지구본이 도는 중)")
+Hud.setEditing(true)
+check(not revealFrame.Visible, "도는 중에 배치 모드에 들어가면 가운데 연출을 바로 숨김")
+Mock.runScheduler(Mock.clock() + 0.5)
+check(
+	secondDone and not revealFrame.Visible,
+	"숨긴 연출을 기다리지 않고 바로 끝남(가운데 연출 없이)"
+)
+check(rollResult(second.Name) ~= nil, "결과는 알림 줄 딱지로")
+Hud.setEditing(false)
 for _, name in { "Collection", "Passport", "Upgrade", "Rebirth" } do
 	Panels.toggle(name)
 end

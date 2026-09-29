@@ -24,9 +24,14 @@ local function snap()
 	revision += 1
 	return PlayerState.snapshot(data, revision)
 end
+local rollLandmark = Landmarks.RarestFirst[#Landmarks.RarestFirst] -- 흔한 명소(연출 짧음)
 local SERVER = {
 	GetState = function()
 		return snap()
+	end,
+	Roll = function()
+		table.insert(calls, "Roll")
+		return { Ok = true, LandmarkId = rollLandmark.Id, State = snap(), IsNew = false, Stars = 1, Bonus = 0 }
 	end,
 	SetDisplay = function(slot, id, expected, from)
 		table.insert(calls, "SetDisplay")
@@ -155,6 +160,64 @@ check(ParkEdit.isEditing() and not window.Visible, "도감 [배치] = 창 닫고
 face(findNamed(menu, "Teleport")).Activated:Fire()
 Mock.runScheduler(9)
 check(not ParkEdit.isEditing(), "이동(광장) = 배치 모드 끝")
+
+print("\n[자동 굴리기: 배치 모드 동안 쉼, 나가면 다시]")
+do
+	local function rolls(): number
+		local count = 0
+		for _, call in calls do
+			if call == "Roll" then
+				count += 1
+			end
+		end
+		return count
+	end
+	local revealFrame = findNamed(gui, "Reveal")
+	key("T")
+	Mock.runScheduler(Mock.clock() + 4)
+	local before = rolls()
+	check(before >= 2, "T = 자동 굴리기 (" .. before .. "번)")
+	face(arrange).Activated:Fire()
+	for _ = 1, 30 do
+		if ParkEdit.isEditing() then
+			break
+		end
+		Mock.runScheduler(Mock.clock() + 0.1)
+	end
+	check(ParkEdit.isEditing(), "배치 모드")
+	check(hasText("AUTO 쉬는 중"), "들어가면 AUTO 쉬는 중 알림")
+	check(not revealFrame.Visible, "가운데 굴림 연출 없음(공원을 가리지 않음)")
+	local paused = rolls()
+	Mock.runScheduler(Mock.clock() + 6)
+	check(rolls() == paused, "배치 모드 동안 자동 굴리기 쉼 (" .. paused .. " -> " .. rolls() .. ")")
+	key("T")
+	check(hasText("AUTO OFF"), "배치 모드 T = AUTO 끄기(알림)")
+	key("T")
+	check(hasText("AUTO ON"), "다시 T = AUTO 켜기(나가면 적용)")
+	Mock.runScheduler(Mock.clock() + 3)
+	check(rolls() == paused, "배치 모드 동안은 계속 쉼")
+	key("R")
+	Mock.runScheduler(Mock.clock() + 2)
+	check(rolls() == paused + 1, "R = 한 번 굴리기는 됨")
+	local result = false
+	for _, d in gui:GetDescendants() do
+		if d.Name == "RollResult" then
+			result = true
+		end
+	end
+	check(
+		result and not revealFrame.Visible,
+		"배치 모드 굴림 결과 = 알림 줄 딱지(가운데 연출 없음)"
+	)
+	face(findNamed(findNamed(gui, "ParkEditBar"), "Done")).Activated:Fire()
+	Mock.runScheduler(Mock.clock() + 4)
+	check(not ParkEdit.isEditing() and rolls() > paused + 1, "나가면 자동 굴리기 다시 (" .. rolls() .. ")")
+	key("T")
+	Mock.runScheduler(Mock.clock() + 3)
+	local stopped = rolls()
+	Mock.runScheduler(Mock.clock() + 3)
+	check(rolls() == stopped, "T = 자동 굴리기 끔")
+end
 
 print("\n[모듈 오류]")
 E.finish()

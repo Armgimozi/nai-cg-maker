@@ -1,7 +1,8 @@
 -- 기본 화면(HUD): 코인·수입·스탯, 메뉴 버튼, 굴리기 버튼, 지구본 굴림 연출, 뉴스 속보, 알림,
 -- 환생 수·부스트 타이머·서버 행운 띠(v3), 상점 버튼(오른쪽, 팔 상품이 있을 때만),
 -- 공원 배치 버튼(내 공원 부지가 있으면 이동 버튼 옆, 더 좋은데 전시 안 된 명소 수 배지 — 누르면 3D 배치 모드,
--- 배치 모드 동안은 메뉴·상점·굴리기 줄을 숨김: 아래 가운데는 ParkEdit 보관함 띠 자리)
+-- 배치 모드 동안은 메뉴·상점·굴리기 줄을 숨김: 아래 가운데는 ParkEdit 보관함 띠 자리. 굴림 결과도 가운데 연출 대신
+-- 위쪽 알림 줄의 작은 등급 색 딱지로 — 공원을 가리지 않게)
 -- 스타일은 DESIGN.md "UI 스타일 가이드 (v2)" — 통통한 버튼 + 굵은 Ink 테두리 + 아이콘, 이모지 없음
 -- 글자는 최소로: 아이콘 + 숫자 위주, 버튼 글자는 2~3글자, 알림은 8글자 안팎. 설명 문장은 쓰지 않음.
 
@@ -91,6 +92,7 @@ local snapshotLuckOn = false -- 시각 없이 "켜짐"만 알 때
 local eventLuckUntil = 0 -- ServerLuck 이벤트가 알려 준 끝 시각
 local rebirthReady = false
 local badgeTween: Tween? = nil
+local editing = false -- 3D 배치 모드(Hud.setEditing): 굴림 결과는 작은 딱지(compactReveal)
 
 local function makeSound(pitch: number, volume: number): Sound
 	return Ui.new("Sound", {
@@ -1088,14 +1090,25 @@ function Hud.setPlotOwned(owned: boolean)
 	end
 end
 
+local hideBurst: () -> ()
+
 -- 3D 배치 모드(ParkEdit): 왼쪽 메뉴(+ [배치])·상점·굴리기 줄을 숨기고 아래 가운데를 보관함 띠에 내줌
--- (놀이공원 시뮬레이션의 건설 모드처럼 공원 + 띠만). 위쪽 코인·알림은 그대로, 자동 굴리기도 켜 둔 채로 계속 돎(R / T 키도)
-function Hud.setEditing(editing: boolean)
-	refs.Menu.Visible = not editing
-	refs.RollBar.Visible = not editing
+-- (놀이공원 시뮬레이션의 건설 모드처럼 공원 + 띠만). 위쪽 코인·알림은 그대로. 굴림 결과는 가운데 연출(공원 한가운데를
+-- 가림) 대신 알림 줄의 작은 딱지 — 도는 중이던 연출도 바로 숨기고 결과만 딱지로(Hud.reveal).
+-- 자동 굴리기는 부르는 쪽(init)이 배치 모드 동안 쉬게 함
+function Hud.setEditing(on: boolean)
+	editing = on
+	refs.Menu.Visible = not on
+	refs.RollBar.Visible = not on
 	local shop: GuiObject? = refs.Shop
 	if shop then
-		shop.Visible = not editing
+		shop.Visible = not on
+	end
+	if on and refs.Reveal.Visible then
+		refs.Reveal.Visible = false
+		Viewport.setSpin(refs.EarthView, 0)
+		Viewport.setSpin(refs.ResultView, 0)
+		hideBurst()
 	end
 end
 
@@ -1155,7 +1168,7 @@ local function showBurst(color: Color3)
 	end
 end
 
-local function hideBurst()
+function hideBurst()
 	refs.Burst.Visible = false
 	local tween = burstTween
 	if tween then
@@ -1170,10 +1183,82 @@ local function showRibbon(tier: Landmarks.Tier)
 	refs.Ribbon.Visible = true
 end
 
+-- 알림 줄에 딱지 하나(오래된 것부터 밀려남) — Hud.toast · 배치 모드 굴림 결과가 같이 씀
+local function pushToast(text: string, color: Color3?, seconds: number?, icon: string?): Ui.Chip
+	toastOrder += 1
+	while #toasts >= MAX_TOASTS do
+		local oldest = table.remove(toasts, 1)
+		if oldest then
+			oldest:Destroy()
+		end
+	end
+
+	local chip = Ui.chip({
+		Name = "Toast",
+		Color = color or Ui.colorPair("Sky").Face,
+		Text = text,
+		Icon = icon,
+		IconSize = 48,
+		Height = 40,
+		TextSize = 22,
+		StrokeThickness = 3,
+		LayoutOrder = toastOrder,
+		Parent = refs.Notices,
+	})
+	local box = chip.Root
+	table.insert(toasts, box)
+	local scale = Ui.new("UIScale", { Scale = 0.4, Parent = box })
+	TweenService:Create(scale, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
+		:Play()
+
+	task.delay(seconds or 3, function()
+		if not box.Parent then
+			return -- 이미 밀려나서 지워짐
+		end
+		TweenService:Create(scale, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Scale = 0 })
+			:Play()
+		task.wait(0.18)
+		local index = table.find(toasts, box)
+		if index then
+			table.remove(toasts, index)
+		end
+		box:Destroy()
+	end)
+	return chip
+end
+
+-- 배치 모드의 굴림 결과: 가운데 연출 대신 알림 줄에 [지구본] 명소 이름(등급 색) 딱지 하나 + 처음이면 작은 NEW 딱지.
+-- 별·보너스는 생략(코인은 위에서 올라감). 희귀하면 소리만 다르게(화면 번쩍임 없음)
+local function compactReveal(landmark: Landmarks.Landmark, info: RevealInfo)
+	local tier = landmark.Tier
+	local chip = pushToast(landmark.Name, tier.Color, 2.5, "globe")
+	chip.Root.Name = "RollResult"
+	if info.IsNew then
+		Ui.chip({
+			Name = "New",
+			Color = "Coral",
+			Text = "NEW",
+			Height = 20,
+			TextSize = 14,
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.new(1, -2, 0, 0),
+			Rotation = 12,
+			ZIndex = 6,
+			Parent = chip.Root,
+		})
+	end
+	play(if tier.Rank >= 4 then rareSound else revealSound)
+end
+
 -- 굴림 연출. 결과를 보여 줄 때까지 기다립니다(yield).
 -- 1) 지구본이 빠르게 돌며 지역 이름이 바뀌다 점점 느려짐 → 2) 결과 지역에 멈춤 → 3) 명소 공개
+-- 배치 모드면(도는 중에 들어가도) 가운데 연출 없이 결과만 작은 딱지로(compactReveal) — 결과를 보인 뒤에 돌아감
 function Hud.reveal(landmark: Landmarks.Landmark, info: RevealInfo)
 	hideToken += 1
+	if editing then
+		compactReveal(landmark, info)
+		return
+	end
 	local tier = landmark.Tier
 	local rank = tier.Rank
 	local duration = REVEAL_SECONDS[rank] or 3
@@ -1199,7 +1284,7 @@ function Hud.reveal(landmark: Landmarks.Landmark, info: RevealInfo)
 	-- 1) 지구본이 돌며 지역이 바뀜. 실제로 지난 시간을 더해야 연출 길이가 늘어지지 않음
 	local index = spinRandom:NextInteger(1, #regions)
 	local elapsed = 0
-	while elapsed < duration do
+	while elapsed < duration and not editing do -- 배치 모드에 들어가면(연출은 숨김) 바로 결과 딱지로
 		index = index % #regions + 1
 		showRegion(regions[index], false)
 		play(tickSound)
@@ -1209,11 +1294,26 @@ function Hud.reveal(landmark: Landmarks.Landmark, info: RevealInfo)
 		elapsed += task.wait(interval)
 	end
 
+	-- 배치 모드에 들어갔으면(연출은 setEditing 이 숨김) 결과만 딱지로
+	local function switched(): boolean
+		if editing then
+			compactReveal(landmark, info)
+			return true
+		end
+		return false
+	end
+	if switched() then
+		return
+	end
+
 	-- 2) 결과 지역에 착지
 	showRegion(region, true)
 	Viewport.setSpin(refs.EarthView, 30)
 	play(landSound)
 	task.wait(if info.Fast and rank < 4 then LAND_SECONDS * 0.5 else LAND_SECONDS)
+	if switched() then
+		return
+	end
 
 	-- 불가사의 이상은 한 박자 뜸 들이기
 	if rank >= 5 then
@@ -1223,9 +1323,13 @@ function Hud.reveal(landmark: Landmarks.Landmark, info: RevealInfo)
 		showBurst(tier.Color)
 		flash(BLACK, 0.6)
 		task.wait(SUSPENSE_SECONDS)
+		if switched() then
+			return
+		end
 	end
 
-	-- 3) 결과 공개: 지구본 → 명소 모형
+	-- 3) 결과 공개: 지구본 → 명소 모형(배치 모드에 잠깐 들어갔다 나와서 숨었어도 다시 보임)
+	container.Visible = true
 	Viewport.setSpin(refs.EarthView, 0)
 	refs.EarthView.Visible = false
 	Viewport.setLandmark(refs.ResultView, landmark, 10)
@@ -1279,45 +1383,7 @@ end
 
 -- 잠깐 떴다 사라지는 알림: [아이콘][짧은 글자] 색 딱지. color 는 딱지 바탕색, icon 은 Icons 이름
 function Hud.toast(text: string, color: Color3?, seconds: number?, icon: string?)
-	toastOrder += 1
-	while #toasts >= MAX_TOASTS do
-		local oldest = table.remove(toasts, 1)
-		if oldest then
-			oldest:Destroy()
-		end
-	end
-
-	local chip = Ui.chip({
-		Name = "Toast",
-		Color = color or Ui.colorPair("Sky").Face,
-		Text = text,
-		Icon = icon,
-		IconSize = 48,
-		Height = 40,
-		TextSize = 22,
-		StrokeThickness = 3,
-		LayoutOrder = toastOrder,
-		Parent = refs.Notices,
-	})
-	local box = chip.Root
-	table.insert(toasts, box)
-	local scale = Ui.new("UIScale", { Scale = 0.4, Parent = box })
-	TweenService:Create(scale, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
-		:Play()
-
-	task.delay(seconds or 3, function()
-		if not box.Parent then
-			return -- 이미 밀려나서 지워짐
-		end
-		TweenService:Create(scale, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Scale = 0 })
-			:Play()
-		task.wait(0.18)
-		local index = table.find(toasts, box)
-		if index then
-			table.remove(toasts, index)
-		end
-		box:Destroy()
-	end)
+	pushToast(text, color, seconds, icon)
 end
 
 -- 서버 전체 "속보": 신문 띠가 오른쪽에서 밀려 들어와 잠시 머문 뒤 쏙 사라짐

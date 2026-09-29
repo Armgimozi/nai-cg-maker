@@ -35,7 +35,10 @@ local stateReceivedAt = 0
 local deferredState: { Snapshot: any, ReceivedAt: number }? = nil -- 연출 중에 도착한 재동기화 상태
 local rolling = false
 local revealing = false
-local autoRoll = false
+local autoRoll = false -- AUTO 켬(플레이어가 고른 것 — 굴리기 줄 [AUTO] · T 키)
+-- 3D 배치 모드 동안 자동 굴리기는 쉼(나가면 AUTO 가 켜져 있으면 다시 돎): 배치 띠에는 이미 [자동](자동 배치)이 있어서
+-- 자동 굴리기 스위치를 하나 더 두면 아이들이 헷갈리고, 쉬는 동안은 새 명소가 빈 칸에 들어와 들고 있는 칸이 바뀌지도 않음
+local autoPaused = false
 local lastRollSentAt = -math.huge
 local heldAnnouncements = {} -- 내 굴림 연출 중에 도착한 "내" 속보 (연출이 끝나면 표시)
 local location = "Plaza" -- 지금 있는 곳: "Plaza" | "Park"
@@ -194,7 +197,7 @@ local function roll()
 		end
 		revealing = true
 		local ok, err = pcall(Hud.reveal, landmark, {
-			Fast = autoRoll,
+			Fast = autoRoll and not autoPaused,
 			IsNew = response.IsNew == true,
 			StarUp = response.StarUp == true,
 			Stars = tonumber(response.Stars) or 0,
@@ -236,6 +239,11 @@ end
 local function toggleAuto()
 	autoRoll = not autoRoll
 	Hud.setAuto(autoRoll)
+	if autoPaused then
+		-- 배치 모드(T 키): 굴리기 줄이 숨어 있으니 알림으로. 나가면 적용
+		Hud.toast(if autoRoll then "AUTO ON" else "AUTO OFF", Ui.Theme.Ink, 2, "auto")
+		return
+	end
 	if autoRoll and not rolling then
 		task.spawn(roll)
 	end
@@ -493,6 +501,10 @@ ParkEdit.init(gui, {
 			Panels.close()
 		end
 		Hud.setEditing(editing)
+		autoPaused = editing
+		if editing and autoRoll then
+			Hud.toast("AUTO 쉬는 중", Ui.Theme.Ink, 2, "auto") -- 나가면 다시 돎
+		end
 	end,
 })
 
@@ -502,7 +514,7 @@ player.CharacterAdded:Connect(function()
 	Hud.setLocation(location)
 end)
 
--- 키보드: R = 굴리기, T = 자동 굴리기
+-- 키보드: R = 굴리기, T = 자동 굴리기(배치 모드 동안은 켜고 끄기만 — 나가면 적용)
 UserInputService.InputBegan:Connect(function(input, processed)
 	if processed then
 		return
@@ -652,10 +664,10 @@ task.spawn(function()
 	end
 end)
 
--- 자동 굴리기
+-- 자동 굴리기(배치 모드 동안은 쉼)
 task.spawn(function()
 	while true do
-		if autoRoll and not rolling then
+		if autoRoll and not autoPaused and not rolling then
 			roll()
 		end
 		task.wait(0.05)
