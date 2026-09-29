@@ -153,7 +153,8 @@ end
 
 -- 광장 둘레 나무: 섬 풍경의 넓은잎나무와 같은 모양(Scenery/Props 의 Tree — 살짝 기운 두 마디 줄기 + 가지 +
 -- 짙은·보통·밝은 초록 잎 공 여러 개). 줄기는 부딪히고 잎은 충돌·검색 없음(머리·카메라에 걸리지 않게).
--- scale 로 크기(1 = 예전 나무 높이 약 13), turn(라디안) = 기우는 쪽(광장 바깥으로)·잎 공 배치 시드
+-- scale 로 크기(1 = 예전 나무 높이 약 13), turn(라디안) = 기우는 쪽(광장 바깥으로).
+-- 밝은 잎 공은 광장 가운데 쪽(Face)으로 — 광장에서 보면 나무마다 짙은 공이 앞에 오던 것
 local function tree(parent: Instance, base: Vector3, scale: number, turn: number)
 	Props.build(parent, {
 		Kind = "Tree",
@@ -162,6 +163,7 @@ local function tree(parent: Instance, base: Vector3, scale: number, turn: number
 		Z = base.Z,
 		Scale = scale * TREE_SCALE,
 		Turn = turn,
+		Face = turn + math.pi,
 		Tint = 0.4,
 		Style = 1,
 	})

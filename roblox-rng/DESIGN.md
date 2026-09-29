@@ -121,7 +121,8 @@ PlayerState 의 읽기 함수(park, parkSlots, stars, slots, completedRegions, u
   금색 자오선 고리(32조각, 받침 기둥에 닿음) + 극 축받이(달은 뺌 — 굴림 연출 틀은 작아진 경계 상자에 맞춰 지구가 조금
   커짐). 파트 약 185개(매 프레임 PivotTo 로 돌리므로 더 늘리지 않기). 땅·극 돔은 CastShadow 끔, 광장 지구본은
   모든 파트 CanQuery·CanTouch 끔(충돌은 Models.create 가 끔). 처음 방향은 스폰 쪽으로 아프리카(World 의 EARTH_FACING).
-  광장 둘레 나무 8그루는 섬 풍경과 같은 넓은잎나무(Scenery/Props 의 Tree, Scale 1.2·1.02).
+  광장 둘레 나무 8그루는 섬 풍경과 같은 넓은잎나무(Scenery/Props 의 Tree, Scale 1.2·1.02) — Face 로 밝은 잎 공이
+  광장 가운데를 봄. 넓은잎나무 줄기 두 마디 사이에는 아래 줄기와 같은 굵기의 공(둥근 어깨, 턱처럼 보이지 않게).
 - 잠긴 칸은 흐릿한 바닥, 열린 빈 칸은 받침대, 전시 칸에는 미니어처 + 작은 이름표(★ 포함).
 - 간판: "OOO 님의 관광 공원" + "관광 수입 +X/초".
 - **주변 풍경**(Scenery): 돌길 산책로 고리 둘(r 84 / 부지 뒤 r 208) + 이웃 부지 사이 쐐기 틈 8곳의 주제 정원

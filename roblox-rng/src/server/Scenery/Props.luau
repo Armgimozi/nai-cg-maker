@@ -320,8 +320,10 @@ local LEAVES = MAT.LeafyGrass
 -- 모양별 만들기 --------------------------------------------------------------------
 local BUILD = {}
 
--- 넓은잎나무: 살짝 기운 두 마디 줄기 + 가지 1~2 + 잎 공 5~7(아래는 짙게, 위는 밝게). Style = 잎 색(CANOPY)
--- 과일나무(2)는 잎 둘레에 열매, 크기는 Scale(0.75~1.45)
+-- 넓은잎나무: 살짝 기운 두 마디 줄기(마디는 둥근 옹이로 감춤) + 가지 1~2 + 잎 공 5~7(아래는 짙게, 위는 밝게).
+-- Style = 잎 색(CANOPY). 과일나무(2)는 잎 둘레에 열매, 크기는 Scale(0.75~1.45)
+-- item.Face(라디안, 없어도 됨) = 주로 보는 쪽(광장 나무 → 광장 가운데): 둘레 잎 공 중 가장 높은(밝은) 공과
+-- 위 밝은 공을 그쪽으로 돌림(없으면 둘레는 난수 방향, 위 공은 해 쪽)
 -- 기둥 나무(Style 5): 짧은 줄기 + 위로 갈수록 작아지는 잎 공 넷을 쌓고(살짝 비뚤게) 아래쪽 옆에 작은 공 둘.
 -- 넓은잎나무보다 가늘고 키가 커서 숲 무리의 윤곽이 들쭉날쭉해짐
 local function slimTree(parent: Instance, item)
@@ -365,17 +367,11 @@ function BUILD.Tree(parent: Instance, item)
 	local lean = Vector3.new(math.cos(item.Turn), 0, math.sin(item.Turn)) * (0.06 + 0.1 * item.Tint)
 	local knee = base + Vector3.new(0, 3 * s, 0) + lean * (3 * s)
 	local top = knee + Vector3.new(0, 2.6 * s, 0) + lean * (4 * s)
-	rod(
-		parent,
-		"TreeTrunk",
-		base - Vector3.new(0, 0.6, 0),
-		knee + (knee - base).Unit * 0.4 * s,
-		1.5 * s,
-		TRUNK,
-		MAT.Wood,
-		true
-	)
+	rod(parent, "TreeTrunk", base - Vector3.new(0, 0.6, 0), knee, 1.5 * s, TRUNK, MAT.Wood, true)
 	rod(parent, "TreeTrunk", knee, top, 1.1 * s, TRUNK, MAT.Wood, true)
+	-- 두 마디가 만나는 곳: 아래 줄기와 같은 굵기의 공 = 둥근 어깨(굵은 줄기의 납작한 끝이 턱처럼 보이지 않게,
+	-- 꺾인 틈도 덮음). 더 굵으면 볼록한 혹처럼 보임
+	ball(parent, "TreeTrunk", knee, 1.5 * s, TRUNK, MAT.Wood)
 	-- 가지: 줄기 위쪽에서 기운 반대쪽으로 비스듬히(끝은 잎 공 속)
 	local branches = if item.Scale > 1.2 then 2 else 1
 	for k = 1, branches do
@@ -389,18 +385,33 @@ function BUILD.Tree(parent: Instance, item)
 	ball(parent, "TreeLeaves", center, 6 * s, colors[2], LEAVES)
 	local ring = if item.Scale < 0.9 then 3 elseif item.Scale < 1.25 then 4 else 4 + rng:NextInteger(0, 1)
 	local start = rng:NextNumber(0, math.pi * 2)
+	local around = {}
 	for k = 1, ring do
 		local a = start + (k - 1) / ring * math.pi * 2 + rng:NextNumber(-0.3, 0.3)
 		local out = 2.3 * s * rng:NextNumber(0.9, 1.1)
 		local lift = rng:NextNumber(-0.9, 0.4) * s
+		around[k] = { a, out, lift, rng:NextNumber(3.6, 4.5) * s }
+	end
+	local turn = 0
+	if item.Face then
+		local highest = around[1]
+		for _, leaf in around do
+			if leaf[3] > highest[3] then
+				highest = leaf
+			end
+		end
+		turn = item.Face - highest[1]
+	end
+	for _, leaf in around do
+		local a, out, lift = leaf[1] + turn, leaf[2], leaf[3]
 		local offset = Vector3.new(math.cos(a) * out, lift, math.sin(a) * out)
 		local color = if lift < -0.3 * s then colors[1] else colors[1]:Lerp(colors[2], 0.6)
-		ball(parent, "TreeLeaves", center + offset, rng:NextNumber(3.6, 4.5) * s, color, LEAVES)
+		ball(parent, "TreeLeaves", center + offset, leaf[4], color, LEAVES)
 	end
-	-- 위 밝은 공: 해 쪽(+X, +Z 조금) 으로 치우침
+	-- 위 밝은 공: 해 쪽(+X, +Z 조금), Face 가 있으면 그쪽으로 치우침
 	local tops = if item.Scale > 1.3 then 2 else 1
 	for k = 1, tops do
-		local a = 0.6 + (k - 1) * 2.4 + rng:NextNumber(-0.4, 0.4)
+		local a = (item.Face or 0.6) + (k - 1) * 2.4 + rng:NextNumber(-0.4, 0.4)
 		local offset = Vector3.new(math.cos(a) * 1.1 * s, 2.1 * s, math.sin(a) * 1.1 * s)
 		ball(parent, "TreeLeaves", center + offset, rng:NextNumber(3.2, 3.8) * s, colors[3], LEAVES)
 	end
