@@ -619,8 +619,8 @@ Landmarks.Globe = {
 	OneIn = 0,
 	Region = Landmarks.Regions[1].Id,
 	Shape = "globe",
-	Primary = rgb(40, 110, 220),
-	Secondary = rgb(70, 190, 90),
+	Primary = rgb(30, 95, 200), -- 바다
+	Secondary = rgb(96, 190, 80), -- 초록 땅(숲·사막·눈 색은 Models 의 globe 가 정함)
 	Accent = rgb(255, 255, 255),
 	Material = M.SmoothPlastic,
 	Tier = Landmarks.Tiers[1],
@@ -2002,61 +2002,97 @@ function BUILDERS.ruins(c)
 	end
 end
 
--- 지구: 받침대 + 23.5도 기운 파란 공 + 대륙 덩어리(살짝 튀어나온 공) + 극지방 얼음 + 자오선 반원 고리 + 대기 + 달
-function BUILDERS.globe(c)
-	local metal = mix(c.A, BLACK, 0.2)
-	col(c, 0, 0, 0, 0.5, 4.2, metal, Mat.Metal)
-	col(c, 0, 0.5, 0, 0.4, 2.6, metal, Mat.Metal)
-	col(c, 0, 0.9, 0, 1.6, 0.6, metal, Mat.Metal)
-	local radius = 4
-	local tilt = CFrame.new(0, 7, 0) * CFrame.Angles(0, 0, math.rad(23.5))
-	ball(c, 0, 7, 0, radius * 2, c.P)
-	cyl(c, tilt * UPRIGHT, 9.4, 0.2, metal, Mat.Metal)
-	-- 자오선 반원 고리(+X 쪽)
-	local ring = 4.5
-	local pieces = 6
-	for k = 0, pieces - 1 do
-		local a1 = -PI / 2 + k / pieces * PI
-		local a2 = -PI / 2 + (k + 1) / pieces * PI
-		local p1 = tilt * V(ring * math.cos(a1), ring * math.sin(a1), 0)
-		local p2 = tilt * V(ring * math.cos(a2), ring * math.sin(a2), 0)
-		beam(c, p1, p2, 0.25, metal, Mat.Metal)
+-- 지구본 땅 표(GlobeLand.luau, tools/model_preview/globe_land.py 가 진짜 세계 지도로 만듦).
+-- 한 줄 = { 위도, 경도, 돔 반지름(도), 색 종류[, 높이] }. 없거나 깨지면 땅 없이 바다만
+local GLOBE_LAND: { { number } } = (function()
+	local module = script:FindFirstChild("GlobeLand")
+	if module and module:IsA("ModuleScript") then
+		local ok, result = pcall(require, module)
+		if ok and type(result) == "table" then
+			return result :: any
+		end
 	end
-	-- 위도/경도(도) → 지구 표면 위치. 경도 20도(아프리카)가 정면(-Z), 동쪽이 정면에서 볼 때 오른쪽
+	return {}
+end)()
+
+local GLOBE_GOLD = rgb(235, 190, 80) -- 광장 받침대 윗판(PedestalTop)과 같은 금색
+-- 땅 색 종류(GlobeLand 넷째 칸): 1 눈(그린란드·남극·북극 섬), 2 초록(명소 보조 색), 3 숲·산맥, 4 사막
+local GLOBE_SNOW = rgb(244, 248, 252)
+local GLOBE_TONES = {
+	[1] = GLOBE_SNOW,
+	[3] = rgb(44, 138, 70),
+	[4] = rgb(238, 202, 122),
+}
+local GLOBE_MATERIALS = { [1] = Mat.Snow, [4] = Mat.Sand } -- 나머지(초록·숲)는 Grass
+
+-- 지구본: 금색 받침 + 23.5도 기운 파란 공 + 진짜 지도를 따른 대륙(겹친 돔 공 약 150개, 해안선이 둥글게 굽이짐)
+-- + 극지방 눈 + 받침 기둥에 닿는 금색 자오선 고리(32조각) + 극 축받이 + 금색 철사에 매단 달. 파트 약 190개
+-- (광장에서는 클라이언트가 모형 전체를 매 프레임 PivotTo 로 돌리므로 파트를 더 늘리지 말 것)
+function BUILDERS.globe(c)
+	local goldDark = mix(GLOBE_GOLD, BLACK, 0.18)
+	col(c, 0, 0, 0, 0.5, 4.2, goldDark, Mat.Metal)
+	col(c, 0, 0.5, 0, 0.4, 2.6, GLOBE_GOLD, Mat.Metal)
+	col(c, 0, 0.9, 0, 1.6, 0.6, GLOBE_GOLD, Mat.Metal)
+
+	local radius = 4
+	local center = V(0, 7, 0)
+	local tilt = CFrame.new(center) * CFrame.Angles(0, 0, math.rad(23.5)) -- 북극이 -X 쪽으로 기움
+	local ocean = ball(c, 0, 7, 0, radius * 2, c.P, Mat.SmoothPlastic)
+	ocean.Reflectance = 0.06
+
+	-- 위도/경도(도) → 지구 중심에서 r 떨어진 점. 경도 20도(아프리카)가 정면(-Z), 동쪽이 정면에서 볼 때 오른쪽
 	local function surface(lat: number, lon: number, r: number): Vector3
 		local phi, lambda = math.rad(lat), math.rad(lon - 20)
 		return tilt * V(-r * math.cos(phi) * math.sin(lambda), r * math.sin(phi), -r * math.cos(phi) * math.cos(lambda))
 	end
-	local lands = {
-		{ 5, 20, 2.4 }, -- 아프리카
-		{ -18, 26, 1.9 },
-		{ 50, 15, 1.6 }, -- 유럽
-		{ 48, 70, 2.6 }, -- 아시아
-		{ 30, 100, 2.2 },
-		{ 62, 110, 2.2 },
-		{ 20, 78, 1.2 }, -- 인도
-		{ -25, 135, 1.8 }, -- 오스트레일리아
-		{ 45, -100, 2.6 }, -- 북아메리카
-		{ 62, -115, 2 },
-		{ 25, -100, 1.3 },
-		{ -10, -60, 2.2 }, -- 남아메리카
-		{ -32, -66, 1.5 },
-	}
-	for _, land in lands do
-		local d = land[3]
-		local p = surface(land[1], land[2], radius - d / 2 + 0.28)
-		ball(c, p.X, p.Y, p.Z, d, c.S, Mat.Grass)
+	-- 돔: 지표에서 height 만큼 솟고, 지표와 만나는 둘레가 중심에서 cap 도인 공(가라앉힌 공의 튀어나온 부분)
+	local function dome(lat: number, lon: number, cap: number, height: number, color: Color3, material: Enum.Material)
+		local top = radius + height
+		local cosCap = math.cos(math.rad(cap))
+		local r = (radius * radius + top * top - 2 * radius * top * cosCap) / (2 * (top - radius * cosCap))
+		local p = surface(lat, lon, top - r)
+		ball(c, p.X, p.Y, p.Z, r * 2, color, material)
 	end
-	for _, lat in { 90, -90 } do
-		local p = surface(lat, 0, radius - 1.1 + 0.25)
-		ball(c, p.X, p.Y, p.Z, 2.2, c.A)
+
+	-- 대륙: 큰 돔(내륙)일수록 조금 더 높게(해안은 얇고 내륙은 도톰하게). 눈(남극·그린란드)은 납작하게.
+	-- 다섯째 칸이 있는 줄은 색 덧칠 공(티베트·이란 등): 표에 적힌 높이 그대로(바탕 돔보다 살짝 위)
+	-- (globe_land.py 의 dome_height 와 같은 식이어야 덧칠 공 높이가 맞음)
+	for _, row in GLOBE_LAND do
+		local cap, tone = row[3], row[4]
+		local height = row[5]
+		if not height then
+			height = math.clamp(0.15 * radius * math.rad(cap), 0.045, 0.12)
+			if tone == 1 then
+				height *= 0.6
+			end
+		end
+		dome(row[1], row[2], cap, height, GLOBE_TONES[tone] or c.S, GLOBE_MATERIALS[tone] or Mat.Grass)
 	end
-	for _, cloud in { { 20, -20 }, { -40, 60 }, { 35, 40 } } do
-		local p = surface(cloud[1], cloud[2], radius - 0.4 + 0.3)
-		ball(c, p.X, p.Y, p.Z, 0.8, c.A, Mat.SmoothPlastic, 0.3)
+	-- 북극 바다 얼음(남극은 땅 표에 있음)
+	dome(90, 0, 11, 0.1, GLOBE_SNOW, Mat.Snow)
+
+	-- 자오선 고리: 지구 중심을 도는 금색 띠(원 둘레 32조각). 맨 아래 조각이 받침 기둥 꼭대기에 얹힘
+	local ring, band, width = 4.5, 0.2, 0.34
+	local pieces = 32
+	local step = TAU / pieces
+	local length = 2 * (ring + band / 2) * math.tan(step / 2) -- 바깥 모서리까지 맞닿게
+	for k = 0, pieces - 1 do
+		local cf = CFrame.new(center) * CFrame.Angles(0, 0, -PI / 2 + k * step) * CFrame.new(ring, 0, 0)
+		block(c, cf, V(band, length, width), GLOBE_GOLD, Mat.Metal)
 	end
-	ball(c, 0, 7, 0, radius * 2 + 0.6, mix(c.P, WHITE, 0.6), Mat.Neon, 0.88)
-	ball(c, -4.2, 11.8, 1.5, 1, rgb(200, 200, 195))
+	ball(c, 0, center.Y - ring, 0, 0.6, GLOBE_GOLD, Mat.Metal) -- 기둥과 고리가 만나는 마디
+	-- 축: 지구를 꿰뚫어 고리의 두 극 축받이까지
+	cyl(c, tilt * UPRIGHT, 9.5, 0.22, GLOBE_GOLD, Mat.Metal)
+	for _, side in { 1, -1 } do
+		cyl(c, tilt * CFrame.new(0, side * ring, 0) * UPRIGHT, 0.4, 0.62, GLOBE_GOLD, Mat.Metal)
+	end
+
+	-- 달: 북극 축 끝에서 뻗은 가는 금색 철사 끝(지구와 함께 돎)
+	local moon = V(-4.2, 11.8, 1.5)
+	local axleTop = tilt * V(0, ring + 0.2, 0)
+	beam(c, axleTop, moon, 0.1, GLOBE_GOLD, Mat.Metal)
+	ball(c, moon.X, moon.Y, moon.Z, 1, rgb(214, 214, 206))
+	ball(c, moon.X + 0.3, moon.Y + 0.18, moon.Z - 0.3, 0.3, rgb(172, 172, 166))
 end
 
 -- 모르는 모형: 기단 + 오벨리스크
@@ -7409,6 +7445,165 @@ end
         </Item>
         <Item class="ModuleScript" referent="17">
           <Properties>
+            <string name="Name">GlobeLand</string>
+            <string name="Source"><![CDATA[-- 자동 생성: tools/model_preview/globe_land.py (Natural Earth 1:110m 육지 → 겹친 돔 공). 손으로 고치지 말 것
+-- 한 줄 = { 위도, 경도, 돔 반지름(도), 색 종류[, 높이] } — 색 1 눈, 2 초록, 3 숲·산맥, 4 사막
+-- 높이(모형 단위)가 있는 줄 = 색 덧칠 공(바탕 돔 위로 조금 더 솟음). 없으면 모형 코드가 돔 반지름으로 정함
+-- stylua: ignore
+return {
+	{ -81.7, 50.4, 14.1, 1 },
+	{ -82.8, 55.2, 14.0, 1 },
+	{ -76.5, 114.7, 12.3, 1 },
+	{ -78.4, 11.4, 9.8, 1 },
+	{ -73.6, 143.5, 8.1, 1 },
+	{ -81.0, -111.9, 8.1, 1 },
+	{ 73.9, -40.2, 7.7, 1 },
+	{ -71.0, 87.4, 6.5, 1 },
+	{ -78.5, -126.1, 6.5, 1 },
+	{ -71.0, 54.9, 6.2, 1 },
+	{ 79.4, -38.0, 5.8, 1 },
+	{ -76.3, -87.8, 5.7, 1 },
+	{ 64.9, -45.8, 5.3, 1 },
+	{ 79.8, -82.8, 4.4, 1 },
+	{ 65.2, -70.6, 3.5, 1 },
+	{ -70.4, -67.3, 3.5, 1 },
+	{ 65.2, -18.1, 3.4, 1 },
+	{ 79.5, 14.6, 3.4, 1 },
+	{ -79.8, -44.0, 3.4, 1 },
+	{ 52.3, 97.7, 20.0, 2 },
+	{ 43.4, 64.6, 19.9, 2 },
+	{ 43.7, -102.4, 17.6, 2 },
+	{ 34.6, 100.1, 17.1, 2 },
+	{ -10.5, 27.0, 14.8, 2 },
+	{ 42.2, -89.3, 14.0, 2 },
+	{ 35.9, -103.0, 12.7, 2 },
+	{ 27.5, 79.5, 12.5, 2 },
+	{ 59.5, -115.2, 12.4, 2 },
+	{ 35.3, 61.1, 12.3, 2 },
+	{ -24.8, -59.6, 12.2, 2 },
+	{ 55.3, 40.8, 11.4, 2 },
+	{ -26.3, 140.6, 11.0, 2 },
+	{ -24.4, 23.6, 10.7, 2 },
+	{ 30.6, 111.6, 10.4, 2 },
+	{ -10.5, -45.6, 10.4, 2 },
+	{ -29.1, 143.8, 10.3, 2 },
+	{ -15.6, -46.9, 10.2, 2 },
+	{ 24.6, 99.8, 10.1, 2 },
+	{ 5.7, 37.8, 9.8, 2 },
+	{ 61.8, 61.8, 9.3, 2 },
+	{ 11.0, 9.6, 9.1, 2 },
+	{ 48.6, 128.6, 9.0, 2 },
+	{ 68.1, 93.9, 8.9, 2 },
+	{ 63.1, -127.2, 8.9, 2 },
+	{ -12.1, 34.2, 8.6, 2 },
+	{ -15.7, 18.1, 8.5, 2 },
+	{ 65.5, 147.2, 8.5, 2 },
+	{ 48.2, 20.6, 8.2, 2 },
+	{ 27.6, -102.9, 8.0, 2 },
+	{ 45.9, -77.2, 7.8, 2 },
+	{ 65.4, -147.9, 7.4, 2 },
+	{ -17.7, 132.2, 7.2, 2 },
+	{ 45.2, 22.0, 7.0, 2 },
+	{ 47.4, 7.1, 6.8, 2 },
+	{ -30.0, 22.3, 6.7, 2 },
+	{ 64.7, 169.0, 6.4, 2 },
+	{ -7.3, -40.0, 6.2, 2 },
+	{ 33.9, -83.4, 6.1, 2 },
+	{ 40.0, -4.8, 5.8, 2 },
+	{ 20.2, -99.9, 5.8, 2 },
+	{ 15.7, 77.6, 5.8, 2 },
+	{ 42.6, 123.7, 5.8, 2 },
+	{ 73.4, 102.0, 5.4, 2 },
+	{ 66.0, -92.5, 5.3, 2 },
+	{ -46.9, -70.8, 5.3, 2 },
+	{ 8.1, 47.0, 5.1, 2 },
+	{ 38.5, 33.1, 5.0, 2 },
+	{ -19.4, 46.7, 5.0, 2 },
+	{ 32.6, -5.4, 4.9, 2 },
+	{ 60.1, 12.8, 4.9, 2 },
+	{ 66.5, 27.9, 4.9, 2 },
+	{ 40.2, 43.0, 4.9, 2 },
+	{ 17.0, -90.2, 4.7, 2 },
+	{ 55.3, 158.3, 4.7, 2 },
+	{ 71.5, -81.4, 4.6, 2 },
+	{ 60.2, -157.1, 4.6, 2 },
+	{ 71.6, -113.9, 4.4, 2 },
+	{ 65.7, 17.3, 4.2, 2 },
+	{ 14.1, -85.2, 4.0, 2 },
+	{ -15.6, 143.2, 4.0, 2 },
+	{ -52.0, -71.7, 3.9, 2 },
+	{ 67.0, -179.3, 3.9, 2 },
+	{ 52.0, -2.6, 3.9, 2 },
+	{ 46.4, -66.6, 3.7, 2 },
+	{ 43.2, 141.9, 3.6, 2 },
+	{ -43.9, 170.3, 3.6, 2 },
+	{ 73.9, -92.7, 3.6, 2 },
+	{ 35.6, 136.6, 3.6, 2 },
+	{ 50.0, -57.4, 3.5, 2 },
+	{ 54.0, 12.0, 3.5, 2 },
+	{ 21.0, -156.0, 3.4, 2 },
+	{ 22.7, -78.3, 3.4, 2 },
+	{ 52.2, 142.5, 3.4, 2 },
+	{ 40.1, 15.3, 3.4, 2 },
+	{ 73.7, 57.2, 3.4, 2 },
+	{ -38.3, 175.2, 3.4, 2 },
+	{ -41.5, 146.0, 3.4, 2 },
+	{ -12.5, -56.6, 16.6, 3 },
+	{ -2.4, -66.4, 15.3, 3 },
+	{ 61.0, 116.1, 14.9, 3 },
+	{ -7.0, -69.5, 12.1, 3 },
+	{ 0.3, 18.3, 11.2, 3 },
+	{ 41.0, -113.4, 10.5, 3 },
+	{ -3.1, -75.2, 8.1, 3 },
+	{ -36.3, -66.9, 7.5, 3 },
+	{ 1.2, -55.0, 7.3, 3 },
+	{ 17.7, 101.0, 7.2, 3 },
+	{ 6.8, -72.7, 7.2, 3 },
+	{ 54.4, -70.1, 7.1, 3 },
+	{ 14.1, 104.9, 6.0, 3 },
+	{ 52.7, -89.4, 6.0, 3 },
+	{ 0.6, 113.9, 5.9, 3 },
+	{ -5.3, 141.0, 5.0, 3 },
+	{ 51.7, -123.0, 4.8, 3 },
+	{ -3.7, 121.4, 3.9, 3 },
+	{ 5.0, 101.6, 3.9, 3 },
+	{ -0.4, 102.2, 3.9, 3 },
+	{ -3.1, 134.9, 3.5, 3 },
+	{ 16.7, 121.8, 3.5, 3 },
+	{ 8.6, 125.5, 3.4, 3 },
+	{ -8.3, 118.3, 3.4, 3 },
+	{ -5.0, 151.6, 3.4, 3 },
+	{ 0.3, 123.3, 3.4, 3 },
+	{ 60.5, -76.9, 3.4, 3 },
+	{ 14.7, 21.0, 18.8, 4 },
+	{ 19.7, -0.7, 16.4, 4 },
+	{ 15.9, -4.5, 13.5, 4 },
+	{ 28.4, 3.2, 10.6, 4 },
+	{ -24.7, 125.7, 9.9, 4 },
+	{ 30.8, 42.0, 8.7, 4 },
+	{ 20.5, 48.2, 8.5, 4 },
+	{ 15.4, -10.3, 8.5, 4 },
+	{ -27.5, 121.2, 8.5, 4 },
+	{ 21.8, -9.7, 8.3, 4 },
+	{ 25.2, 28.3, 8.3, 4 },
+	{ 26.6, 42.9, 8.3, 4 },
+	{ 17.5, 33.1, 7.2, 4 },
+	{ 29.0, 16.8, 5.2, 4 },
+	{ 22.4, 56.3, 4.7, 4 },
+	{ 52.8, -114.2, 8.2, 3, 0.149 },
+	{ 57.9, 90.9, 7.9, 3, 0.150 },
+	{ 57.9, 70.8, 7.5, 3, 0.127 },
+	{ 53.6, -96.0, 7.4, 3, 0.137 },
+	{ 32.7, 87.3, 7.4, 3, 0.140 },
+	{ 32.5, 79.6, 7.3, 3, 0.150 },
+	{ 30.1, 60.9, 7.1, 4, 0.150 },
+	{ -25.0, 135.2, 6.8, 4, 0.146 },
+}
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="18">
+          <Properties>
             <string name="Name">Oceania</string>
             <string name="Source"><![CDATA[-- 오세아니아 명소 전용 모형. Models/init.luau 가 K(파트 헬퍼·색·기존 모양)를 넘겨 호출합니다.
 -- 규칙: 바닥 10x10 안, 높이 22 이하, 바닥 y = 0, 정면 -Z, 파트 45개 이하. c.P/c.S/c.A = 명소 주/보조/강조 색, c.M = 재질.
@@ -8120,7 +8315,7 @@ end
           </Properties>
         </Item>
       </Item>
-      <Item class="ModuleScript" referent="18">
+      <Item class="ModuleScript" referent="19">
         <Properties>
           <string name="Name">Net</string>
           <string name="Source"><![CDATA[-- 원격 통신 객체. 서버가 처음 require 할 때 만들고, 클라이언트는 생길 때까지 기다립니다.
@@ -8184,7 +8379,7 @@ return Net
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="19">
+      <Item class="ModuleScript" referent="20">
         <Properties>
           <string name="Name">ParkGrid</string>
           <string name="Source"><![CDATA[--!strict
@@ -8553,7 +8748,7 @@ return ParkGrid
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="20">
+      <Item class="ModuleScript" referent="21">
         <Properties>
           <string name="Name">PlayerState</string>
           <string name="Source"><![CDATA[--!strict
@@ -9491,7 +9686,7 @@ return PlayerState
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="21">
+      <Item class="ModuleScript" referent="22">
         <Properties>
           <string name="Name">RollLogic</string>
           <string name="Source"><![CDATA[--!strict
@@ -9539,11 +9734,11 @@ return RollLogic
       </Item>
     </Item>
   </Item>
-  <Item class="ServerScriptService" referent="22">
+  <Item class="ServerScriptService" referent="23">
     <Properties>
       <string name="Name">ServerScriptService</string>
     </Properties>
-    <Item class="Script" referent="23">
+    <Item class="Script" referent="24">
       <Properties>
         <string name="Name">Server</string>
         <token name="RunContext">0</token>
@@ -10284,7 +10479,7 @@ Net.fn("Teleport").OnServerInvoke = function(player: Player, where: any)
 end
 ]]></string>
       </Properties>
-      <Item class="ModuleScript" referent="24">
+      <Item class="ModuleScript" referent="25">
         <Properties>
           <string name="Name">DataService</string>
           <string name="Source"><![CDATA[-- DataStore 저장/불러오기 + 세션 잠금
@@ -10450,7 +10645,7 @@ return DataService
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="25">
+      <Item class="ModuleScript" referent="26">
         <Properties>
           <string name="Name">FeaturedDisplay</string>
           <string name="Source"><![CDATA[-- 대표 명소를 캐릭터에 표시: 오른쪽 어깨 옆에 작은 모형이 붙어 다니고, 머리 위에 명소 이름표
@@ -10653,7 +10848,7 @@ return FeaturedDisplay
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="26">
+      <Item class="ModuleScript" referent="27">
         <Properties>
           <string name="Name">ParkLayout</string>
           <string name="Source"><![CDATA[--!strict
@@ -10806,7 +11001,7 @@ return ParkLayout
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="27">
+      <Item class="ModuleScript" referent="28">
         <Properties>
           <string name="Name">ParkService</string>
           <string name="Source"><![CDATA[-- 관광 공원 부지: 광장을 둘러싼 원형 배치. 플레이어마다 부지 하나를 배정하고 미니어처를 전시합니다.
@@ -11676,7 +11871,7 @@ return ParkService
 ]]></string>
         </Properties>
       </Item>
-      <Item class="ModuleScript" referent="28">
+      <Item class="ModuleScript" referent="29">
         <Properties>
           <string name="Name">Scenery</string>
           <string name="Source"><![CDATA[-- 주변 풍경: 공원을 바다 위 휴양 섬으로 만듭니다. 서버 시작 때 한 번만 만듭니다.
@@ -12090,7 +12285,7 @@ end
 return Scenery
 ]]></string>
         </Properties>
-        <Item class="ModuleScript" referent="29">
+        <Item class="ModuleScript" referent="30">
           <Properties>
             <string name="Name">Island</string>
             <string name="Source"><![CDATA[--!strict
@@ -12795,7 +12990,7 @@ return Island
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="30">
+        <Item class="ModuleScript" referent="31">
           <Properties>
             <string name="Name">Plan</string>
             <string name="Source"><![CDATA[--!strict
@@ -14846,7 +15041,7 @@ return Plan
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="31">
+        <Item class="ModuleScript" referent="32">
           <Properties>
             <string name="Name">Props</string>
             <string name="Source"><![CDATA[-- 풍경 장식 파트 만들기(Plan 의 Item 하나 → 파트 몇 개). 게임 전체와 같은 통통하고 밝은 만화풍이지만
@@ -16637,7 +16832,7 @@ return Props
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="32">
+        <Item class="ModuleScript" referent="33">
           <Properties>
             <string name="Name">Rng</string>
             <string name="Source"><![CDATA[--!strict
@@ -16707,7 +16902,7 @@ return Rng
           </Properties>
         </Item>
       </Item>
-      <Item class="ModuleScript" referent="33">
+      <Item class="ModuleScript" referent="34">
         <Properties>
           <string name="Name">World</string>
           <string name="Source"><![CDATA[-- 광장(스폰) + 받침대 위의 거대 지구본 + 광장 둘레 나무 + 뉴스 속보 홀로그램
@@ -16720,6 +16915,7 @@ local Workspace = game:GetService("Workspace")
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Landmarks = require(Shared.Landmarks)
 local Models = require(Shared.Models)
+local Props = require(script.Parent.Scenery.Props)
 
 -- 그림 Id 표 (없거나 깨져도 코드로 그린 모양으로 동작)
 local function loadImageIds(): { [string]: any }
@@ -16752,10 +16948,12 @@ local PLAZA_TOP = 1 -- 광장 윗면 높이. 스폰 지점(두께 1)이 이 위�
 local RIM_WIDTH = 3 -- 광장 둘레의 낮은 계단(윗면 0.5)
 local EARTH_SPOT = Vector3.new(0, PLAZA_TOP, -26) -- 지구본 받침대 바닥 중앙(스폰 정면 = -Z)
 local EARTH_SIZE = 26
+local EARTH_FACING = 175 -- 지구본 처음 방향(수직축, 도): 스폰에서 아프리카가 보임(아래 PivotTo 참고)
 local LAMP_COUNT = 16
 local LAMP_RADIUS = PLAZA_RADIUS - 3
 local TREE_COUNT = 8
 local TREE_RADIUS = PLAZA_RADIUS + RIM_WIDTH + 8 -- 광장 둘레 계단 바로 바깥 잔디
+local TREE_SCALE = 1.2 -- 풍경 넓은잎나무 Scale(1 = 높이 약 11) → 예전 광장 나무 높이(약 13)
 
 local HOLOGRAM_SIZE = 60
 local HOLOGRAM_HEIGHT = 60 -- 홀로그램 바닥 높이(지구본과 겹치면 그 위로 올림)
@@ -16771,9 +16969,6 @@ local MARBLE = Color3.fromRGB(240, 238, 232)
 local GOLD = Color3.fromRGB(235, 190, 80)
 local LAMP_POLE = Color3.fromRGB(46, 86, 66) -- 짙은 초록(풍경 정원등과 같은 색)
 local LAMP_LIGHT = Color3.fromRGB(255, 235, 190)
-local TRUNK = Color3.fromRGB(122, 78, 45)
-local LEAF = Color3.fromRGB(80, 186, 78) -- 풍경 나무 잎과 같은 색·재질(LeafyGrass)
-local LEAF_LIGHT = Color3.fromRGB(138, 218, 98)
 
 -- UI 스타일 가이드 v2 팔레트(홀로그램 제목)
 local INK = Color3.fromRGB(30, 27, 46)
@@ -16863,28 +17058,20 @@ local function lamp(parent: Instance, base: Vector3)
 	light.Parent = bulb
 end
 
--- 동글동글한 나무: 줄기(원기둥) + 잎(큰 공 + 위에 작은 밝은 공). 잎은 머리에 걸리지 않게 충돌 없음.
--- scale 로 크기를, turn(라디안)으로 작은 공 방향을 바꿔서 나무마다 조금씩 다르게 보이게 함
+-- 광장 둘레 나무: 섬 풍경의 넓은잎나무와 같은 모양(Scenery/Props 의 Tree — 살짝 기운 두 마디 줄기 + 가지 +
+-- 짙은·보통·밝은 초록 잎 공 여러 개). 줄기는 부딪히고 잎은 충돌·검색 없음(머리·카메라에 걸리지 않게).
+-- scale 로 크기(1 = 예전 나무 높이 약 13), turn(라디안) = 기우는 쪽(광장 바깥으로)·잎 공 배치 시드
 local function tree(parent: Instance, base: Vector3, scale: number, turn: number)
-	disc(parent, "TreeTrunk", base, 6 * scale, 1.6 * scale, TRUNK, Enum.Material.Wood)
-	local leaves = {
-		{ Offset = Vector3.new(0, 8, 0), Diameter = 7.5, Color = LEAF },
-		{ Offset = Vector3.new(1.2, 11, -0.6), Diameter = 4.6, Color = LEAF_LIGHT },
-	}
-	for _, leaf in leaves do
-		local offset = CFrame.Angles(0, turn, 0):VectorToWorldSpace(leaf.Offset) * scale
-		local diameter = leaf.Diameter * scale
-		local part = newPart(
-			parent,
-			"TreeLeaves",
-			Enum.PartType.Ball,
-			Vector3.new(diameter, diameter, diameter),
-			CFrame.new(base + offset),
-			leaf.Color,
-			Enum.Material.LeafyGrass
-		)
-		part.CanCollide = false
-	end
+	Props.build(parent, {
+		Kind = "Tree",
+		X = base.X,
+		Y = base.Y,
+		Z = base.Z,
+		Scale = scale * TREE_SCALE,
+		Turn = turn,
+		Tint = 0.4,
+		Style = 1,
+	})
 end
 
 -- 서버 시작 시 한 번: 광장, 가로등, 둘레 나무, 받침대 + 거대 지구본
@@ -16931,7 +17118,9 @@ function World.build()
 	local ok, err = pcall(function()
 		local earth = Models.create(Landmarks.Globe, EARTH_SIZE)
 		earth.Name = "Earth"
-		earth:PivotTo(CFrame.new(EARTH_SPOT.X, pedestalTop, EARTH_SPOT.Z))
+		-- 처음(클라이언트가 돌리기 전) 스폰 쪽(+Z)으로 경도 25도(아프리카)가 보이게(태평양만 보이지 않게).
+		-- 모형 정면(-Z)은 경도 20도라 경도 L 이 +Z 를 보려면 수직축으로 200 - L 도
+		earth:PivotTo(CFrame.new(EARTH_SPOT.X, pedestalTop, EARTH_SPOT.Z) * CFrame.Angles(0, math.rad(EARTH_FACING), 0))
 		earthTop = pedestalTop + earth:GetExtentsSize().Y
 		CollectionService:AddTag(earth, SPIN_TAG)
 		-- 스트리밍이 켜져 있어도 통째로 내려받게 해야 클라이언트 회전 때 일부 파트만 어긋나지 않음
@@ -17122,15 +17311,15 @@ return World
       </Item>
     </Item>
   </Item>
-  <Item class="StarterPlayer" referent="34">
+  <Item class="StarterPlayer" referent="35">
     <Properties>
       <string name="Name">StarterPlayer</string>
     </Properties>
-    <Item class="StarterPlayerScripts" referent="35">
+    <Item class="StarterPlayerScripts" referent="36">
       <Properties>
         <string name="Name">StarterPlayerScripts</string>
       </Properties>
-      <Item class="LocalScript" referent="36">
+      <Item class="LocalScript" referent="37">
         <Properties>
           <string name="Name">Client</string>
           <string name="Source"><![CDATA[-- 클라이언트 진입점: 상태 동기화, 굴리기/자동 굴리기, 메뉴 연결, 뉴스 속보, 회전 모형,
@@ -17813,7 +18002,7 @@ end)
 applyState(invoke("GetState"))
 ]]></string>
         </Properties>
-        <Item class="ModuleScript" referent="37">
+        <Item class="ModuleScript" referent="38">
           <Properties>
             <string name="Name">Hud</string>
             <string name="Source"><![CDATA[-- 기본 화면(HUD): 코인·수입·스탯, 메뉴 버튼, 굴리기 버튼, 지구본 굴림 연출, 뉴스 속보, 알림,
@@ -19331,7 +19520,7 @@ return Hud
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="38">
+        <Item class="ModuleScript" referent="39">
           <Properties>
             <string name="Name">Icons</string>
             <string name="Source"><![CDATA[-- 아이콘 (이모지 대신). 모든 아이콘은 Icons.view 하나로 그립니다(Ui.icon 도 이걸 부름).
@@ -20041,7 +20230,7 @@ return Icons
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="39">
+        <Item class="ModuleScript" referent="40">
           <Properties>
             <string name="Name">Panels</string>
             <string name="Source"><![CDATA[-- 메뉴 창: 도감(대표 지정), 여권(지역별 발견 현황 + 도장), 강화(업그레이드), 환생(조건 + 확인), 상점(Robux).
@@ -21751,7 +21940,7 @@ return Panels
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="40">
+        <Item class="ModuleScript" referent="41">
           <Properties>
             <string name="Name">ParkEdit</string>
             <string name="Source"><![CDATA[-- 3D 공원 배치 모드: 놀이공원 시뮬레이션처럼 메뉴 창 없이 내 공원에서 명소를 직접 눌러 집고, 다른 받침대를 눌러 놓음.
@@ -24117,7 +24306,7 @@ return ParkEdit
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="41">
+        <Item class="ModuleScript" referent="42">
           <Properties>
             <string name="Name">Perks</string>
             <string name="Source"><![CDATA[-- 환생 · 게임패스 · 개발자 상품 · 시간 부스트 · 서버 행운을 화면용으로 읽는 헬퍼 (DESIGN.md v3).
@@ -24498,7 +24687,7 @@ return Perks
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="42">
+        <Item class="ModuleScript" referent="43">
           <Properties>
             <string name="Name">Ui</string>
             <string name="Source"><![CDATA[-- UI 생성 헬퍼와 테마. 모든 화면은 코드로 만들어서 .rbxm 없이도 동작합니다.
@@ -25699,7 +25888,7 @@ return Ui
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="43">
+        <Item class="ModuleScript" referent="44">
           <Properties>
             <string name="Name">Viewport</string>
             <string name="Source"><![CDATA[-- ViewportFrame 에 명소 모형을 띄우는 헬퍼.
@@ -25879,12 +26068,12 @@ return Viewport
       </Item>
     </Item>
   </Item>
-  <Item class="Workspace" referent="44">
+  <Item class="Workspace" referent="45">
     <Properties>
       <string name="Name">Workspace</string>
       <bool name="NeedsPivotMigration">false</bool>
     </Properties>
-    <Item class="Part" referent="45">
+    <Item class="Part" referent="46">
       <Properties>
         <string name="Name">FallbackGround</string>
         <bool name="Anchored">true</bool>
@@ -25915,7 +26104,7 @@ return Viewport
         <token name="TopSurface">0</token>
       </Properties>
     </Item>
-    <Item class="SpawnLocation" referent="46">
+    <Item class="SpawnLocation" referent="47">
       <Properties>
         <string name="Name">SpawnLocation</string>
         <bool name="Anchored">true</bool>
@@ -25945,7 +26134,7 @@ return Viewport
         <token name="TopSurface">0</token>
       </Properties>
     </Item>
-    <Item class="Terrain" referent="47">
+    <Item class="Terrain" referent="48">
       <Properties>
         <string name="Name">Terrain</string>
         <bool name="Decoration">true</bool>
