@@ -6,7 +6,8 @@
 -- 3D 모형은 이름별로 한 번만 만들어 두고 복제해서 씁니다. 파트 수는 아이콘마다 3~15개 정도로 작게 유지.
 -- 아이콘: coin, globe(=roll), passport, album(=collection), hammer, park, plaza, dice, clover(=luck), star,
 --   star_empty, news, lock, auto, close, check, arrow_up, plane, ticket, rebirth,
---   podium(공원 자동 배치: 1·2·3등 시상대 + 별), arrange(공원 배치 창: 2×2 칸 판 위 미니 명소 셋 + 빈 칸 "+")
+--   podium(공원 자동 배치: 1·2·3등 시상대 + 별), arrange(공원 배치 모드: 2×2 칸 판 위 미니 명소 셋 + 빈 칸 "+"),
+--   crate(배치 모드 보관: 뚜껑 열린 나무 상자 + 미니 명소), camera(배치 모드 시점 바꾸기: 사진기)
 --   (stamp_* 는 그림이 있을 때만 씀)
 
 local RunService = game:GetService("RunService")
@@ -445,6 +446,36 @@ function BUILDERS.arrange(m)
 	-- 빈 칸의 "+"
 	block(m, base * CFrame.new(1.3, 0.68, -1.3), V(1.4, 0.18, 0.4), LEAF)
 	block(m, base * CFrame.new(1.3, 0.68, -1.3), V(0.4, 0.18, 1.4), LEAF)
+end
+
+-- 보관(배치 모드): 뚜껑이 뒤로 열린 나무 상자 + 안에서 삐죽 나온 미니 명소(Sky 블록) (파트 9개)
+function BUILDERS.crate(m)
+	local base = FACE
+	block(m, base * CFrame.new(0, 1.3, 0), V(4, 2.6, 3), WOOD)
+	-- 앞면 널빤지 띠 + 모서리 기둥(진한 나무)
+	block(m, base * CFrame.new(0, 0.75, -1.52), V(4.05, 0.32, 0.1), WOOD_DARK)
+	block(m, base * CFrame.new(0, 1.85, -1.52), V(4.05, 0.32, 0.1), WOOD_DARK)
+	for _, side in { -1, 1 } do
+		block(m, base * CFrame.new(side * 1.85, 1.3, -1.52), V(0.34, 2.62, 0.12), WOOD_DARK)
+	end
+	-- 안에서 나온 명소(파란 탑 + 금색 꼭지)
+	block(m, base * CFrame.new(-0.5, 2.9, 0.1), V(1, 1.4, 1), SKY)
+	block(m, base * CFrame.new(-0.5, 3.75, 0.1), V(0.5, 0.35, 0.5), SUN)
+	-- 뒤로 젖힌 뚜껑
+	block(m, base * CFrame.new(0, 3.05, 1.75) * CFrame.Angles(math.rad(-70), 0, 0), V(4, 2.2, 0.3), WOOD)
+	block(m, base * CFrame.new(0, 3.1, 1.62) * CFrame.Angles(math.rad(-70), 0, 0), V(4.05, 0.3, 0.1), WOOD_DARK)
+end
+
+-- 시점(배치 모드 카메라 바꾸기): 사진기 — 몸통 + 렌즈 + 위 뷰파인더 + 셔터 단추 (파트 7개)
+function BUILDERS.camera(m)
+	local base = FACE
+	block(m, base * CFrame.new(0, 1.5, 0), V(4.2, 2.6, 1.6), IRON)
+	block(m, base * CFrame.new(0, 1.5, 0), V(4.25, 0.7, 1.65), STEEL, Mat.Metal)
+	block(m, base * CFrame.new(-0.9, 3.05, 0), V(1.5, 0.6, 1.2), IRON)
+	cyl(m, base * CFrame.new(0.2, 1.5, -0.95) * ALONG_Z, 0.6, 2, STEEL, Mat.Metal)
+	cyl(m, base * CFrame.new(0.2, 1.5, -1.3) * ALONG_Z, 0.2, 1.4, SKY)
+	cyl(m, base * CFrame.new(1.35, 2.95, 0) * UPRIGHT, 0.3, 0.7, CORAL)
+	block(m, base * CFrame.new(1.45, 2.25, -0.82), V(0.6, 0.35, 0.1), SNOW)
 end
 
 -- 예전 이름 -> 지금 이름 (ImageIds 와 같은 이름을 씀)
