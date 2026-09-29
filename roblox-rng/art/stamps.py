@@ -2,8 +2,10 @@
 """Writes art/src/stamp_*.svg from one shared stamp frame + a per-region emblem.
 
 The stamp SVGs in src/ are plain, self-contained files (edit them directly if you like);
-this script just keeps the six frames identical. Re-run it, then `python3 art/build.py`.
+this script just keeps the seven frames identical. Re-run it, then `python3 art/build.py`.
+`python3 art/stamps.py oceania` rewrites only the named stamp(s).
 """
+import sys
 from pathlib import Path
 
 SRC = Path(__file__).resolve().parent / "src"
@@ -57,6 +59,7 @@ S = {
     "asia": dict(region="Asia", base="#FF7878", shade="#D94C4C", dark="#A83232", mid="#E86060", dash="#FFF4DC", angle=-9),
     "africa": dict(region="Africa", base="#F0BE5A", shade="#C98F2A", dark="#94601A", mid="#D9A040", dash="#FFF4DC", angle=5),
     "americas": dict(region="Americas", base="#5AD296", shade="#2FA36B", dark="#1C7048", mid="#3DB87A", dash="#FFF4DC", angle=-4),
+    "oceania": dict(region="Oceania", base="#46C8EB", shade="#2799C4", dark="#136691", mid="#2DAAD6", dash="#FFF4DC", angle=6),
     "legend": dict(region="Legend", base="#78FFEB", shade="#33C9B6", dark="#6A45C9", mid="#9B6BFF", dash="#FFFFFF", angle=9),
 }
 
@@ -113,6 +116,23 @@ EMBLEM = {
       <path d="M125,80 V168 M133,80 V168" stroke="{mid}" stroke-width="3" stroke-linecap="round"/>
       <path d="M92,120 V114 M160,106 V100" stroke="{mid}" stroke-width="3" stroke-linecap="round"/>
       <path d="M64,178 Q96,168 120,178 M136,178 Q168,170 196,178" fill="none" stroke="{dark}" stroke-width="6" stroke-linecap="round"/>""",
+    # palm tree on a little island, sun setting into the sea, waves (Oceania = island)
+    "oceania": """      <path d="M40,164 H216 V220 H40 Z" fill="{mid}" opacity=".45"/>
+      <circle cx="90" cy="154" r="13" fill="{mid}"/>
+      <path d="M104,168 Q110,146 138,144 Q168,146 174,168 Z" fill="{dark}"/>
+      <path d="M114,158 Q122,151 134,150" fill="none" stroke="{mid}" stroke-width="4" stroke-linecap="round"/>
+      <path d="M120,154 Q118,122 138,98 L152,104 Q134,124 138,154 Z" fill="{dark}" stroke="{dark}" stroke-width="4" stroke-linejoin="round"/>
+      <path d="M122,140 L137,141 M124,124 L139,127 M131,110 L145,114" stroke="{mid}" stroke-width="3" stroke-linecap="round"/>
+      <g fill="{dark}" stroke="{dark}" stroke-width="5" stroke-linejoin="round">
+        <path d="M144,98 Q112,72 82,110 Q112,90 144,106 Z"/>
+        <path d="M144,98 Q174,72 186,116 Q166,92 144,106 Z"/>
+        <path d="M144,98 Q122,62 98,72 Q122,78 144,102 Z"/>
+        <path d="M144,98 Q164,62 184,78 Q162,80 144,102 Z"/>
+      </g>
+      <path d="M140,98 Q114,84 90,104 M148,98 Q170,84 181,108 M140,96 Q124,72 104,72 M148,96 Q162,72 178,76" fill="none" stroke="{mid}" stroke-width="3" stroke-linecap="round"/>
+      <g fill="{dark}"><circle cx="132" cy="108" r="6.5"/><circle cx="157" cy="109" r="6.5"/><circle cx="145" cy="112" r="6"/></g>
+      <path d="M68,168 Q78,160 88,168 T108,168 T128,168 T148,168 T168,168 T188,168" fill="none" stroke="{dark}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M90,184 Q98,178 106,184 T122,184 M138,182 Q146,176 154,182 T170,182" fill="none" stroke="#FFF4DC" stroke-width="3" stroke-linecap="round" opacity=".7"/>""",
     # floating crystal with sparkles
     "legend": """      <polygon points="128,60 160,98 152,160 128,192 104,160 96,98" fill="{mid}" stroke="{dark}" stroke-width="6" stroke-linejoin="round"/>
       <polygon points="128,60 128,192 152,160 160,98" fill="{dark}"/>
@@ -127,7 +147,10 @@ EMBLEM = {
       </g>""",
 }
 
+only = set(sys.argv[1:])
 for name, c in S.items():
+    if only and name not in only:
+        continue
     em = EMBLEM[name].format(**c)
     svg = FRAME.format(name=name, emblem=em, **c)
     (SRC / f"stamp_{name}.svg").write_text(svg)
