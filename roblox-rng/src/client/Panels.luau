@@ -1,4 +1,5 @@
--- 메뉴 창: 도감(대표 지정), 여권(지역별 발견 현황 + 도장), 강화(업그레이드), 환생(조건 + 확인), 상점(Robux)
+-- 메뉴 창: 도감(대표 지정), 여권(지역별 발견 현황 + 도장), 강화(업그레이드), 환생(조건 + 확인), 상점(Robux).
+-- 공원 배치는 창이 아니라 내 공원에서 하는 3D 배치 모드(ParkEdit) — 도감 머리 줄 [배치] 버튼이 그 모드를 켬
 -- 크림색 창(Ui.window) 하나를 쓰고, 화면마다 리본 색과 제목(2글자)만 바꿉니다.
 -- 글자는 최소로: 설명 문장 없이 아이콘 + 숫자 딱지로 보여 줍니다.
 -- 화면마다 카드를 한 번 만들고 상태가 바뀌면 글자/색만 고칩니다. 썸네일(ViewportFrame)은
@@ -28,12 +29,14 @@ export type Handlers = {
 	Rebirth: () -> (), -- 확인까지 누른 뒤에만 부름
 	BuyPass: (string) -> (), -- Config.GamePasses 키
 	BuyProduct: (string) -> (), -- Config.Products 키
-	Toast: (text: string, icon: string?) -> (), -- 짧은 실패 알림 (예: "코인 부족")
+	Toast: (text: string, icon: string?, color: Color3?) -> (), -- 짧은 알림 (기본 실패 색, 예: "코인 부족")
+	Arrange: () -> (), -- 도감 [배치]: 3D 공원 배치 모드 켜기(창은 부르는 쪽이 닫음)
 }
 
 local REGION_BONUS = math.floor(Config.REGION_LUCK_BONUS * 100 + 0.5)
 
 local HEADER_HEIGHT = 50 -- 창 본문 맨 위 딱지 줄 높이
+
 local VIEWS = {
 	Collection = { Title = "도감", Color = "Sky", Top = HEADER_HEIGHT },
 	Passport = { Title = "여권", Color = "Grape", Top = HEADER_HEIGHT },
@@ -47,6 +50,7 @@ local FEATURED_BG = Color3.fromRGB(255, 218, 128)
 local DIM_CHIP = Color3.fromRGB(172, 170, 190) -- 아직 못 받은 보너스 딱지
 
 local WINDOW_SIZE = Vector2.new(760, 500)
+local BODY_HEIGHT = WINDOW_SIZE.Y - (45 + 16) -- 창 본문 높이(Ui.window: 창 높이 - 본문 위 45 - 아래 16)
 local OPEN_OFFSET = -30 -- 창을 화면 가운데보다 조금 위로 (아래쪽 굴리기 버튼을 가리지 않게)
 -- 스크롤 영역 안쪽 여백(오른쪽은 스크롤바 자리)
 local PAD_X, PAD_RIGHT, PAD_Y = 6, 14, 6
@@ -153,6 +157,7 @@ local rebirthLook = ""
 type ShopCard = { Item: Perks.Item, Button: Ui.ChunkyButton, Effect: Ui.Chip, Owned: Ui.Chip? }
 local shopCards: { ShopCard } = {}
 
+local collectionArrangeBadge: Ui.Chip? = nil -- 도감 머리 줄 [배치] 배지
 local function owned(state: Snapshot, id: string): number
 	return state.Inventory[id] or 0
 end
@@ -230,6 +235,8 @@ local function setCanvasHeight(scroller: ScrollingFrame, contentHeight: number)
 	scroller.CanvasSize = UDim2.fromOffset(0, contentHeight + PAD_Y * 2)
 end
 
+local THUMB_PROPS = { Position = UDim2.fromOffset(2, 2), Size = UDim2.new(1, -4, 1, -4) }
+
 -- 명소 썸네일을 담는 "사진 칸" (등급 색을 옅게 깐 바탕)
 local function photo(parent: GuiObject, landmark: Landmark, position: UDim2, size: UDim2, radius: number): Frame
 	local frame = Ui.new("Frame", {
@@ -241,11 +248,25 @@ local function photo(parent: GuiObject, landmark: Landmark, position: UDim2, siz
 	})
 	Ui.corner(radius).Parent = frame
 	Ui.stroke(Theme.Ink, 2).Parent = frame
-	Viewport.thumbnail(frame, landmark, {
-		Position = UDim2.fromOffset(2, 2),
-		Size = UDim2.new(1, -4, 1, -4),
-	})
+	Viewport.thumbnail(frame, landmark, THUMB_PROPS)
 	return frame
+end
+
+-- 버튼 오른쪽 위 숫자 배지 (여권 "1/6" 배지와 같은 모양: Ink 딱지 + Sun 숫자, 살짝 기울임)
+local function countBadge(button: Ui.ChunkyButton, name: string): Ui.Chip
+	return Ui.chip({
+		Name = name,
+		Color = Theme.Ink,
+		TextColor3 = Ui.colorPair("Sun").Face,
+		Height = 24,
+		TextSize = 15,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(1, -6, 0, 2),
+		Rotation = 8,
+		ZIndex = 6,
+		Visible = false,
+		Parent = button.Face,
+	})
 end
 
 -- 도감 -----------------------------------------------------------------------
@@ -284,6 +305,24 @@ local function buildCollection(): View
 		Visible = false,
 		Parent = autoButton.Face,
 	})
+
+	-- 3D 공원 배치 모드 켜기: 배치 아이콘(2×2 칸 판) + "배치" (자동 버튼 왼쪽). 배지 = 더 좋은데 전시 안 된 명소 수
+	local arrange = Ui.chunkyButton({
+		Name = "Arrange",
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -(8 + 136 + 10), 0, -4),
+		Size = UDim2.fromOffset(124, 50),
+		Color = "Grass",
+		Icon = "arrange",
+		IconSize = 36,
+		Text = "배치",
+		TextSize = 22,
+		Parent = header,
+	})
+	arrange.Activated:Connect(function()
+		handlers.Arrange()
+	end)
+	collectionArrangeBadge = countBadge(arrange, "Better")
 
 	-- 아직 아무것도 없을 때: 가운데에 천천히 도는 지구본
 	emptyIcon = Icons.view(body, "globe", {
@@ -463,6 +502,12 @@ local function renderCollection(state: Snapshot)
 	local autoFeature = state.Settings.AutoFeature
 	autoButton.SetColor(if autoFeature then "Grass" else "Gray")
 	autoBadge.Root.Visible = autoFeature
+	local badge = collectionArrangeBadge
+	if badge then
+		local better = #PlayerState.betterHidden(state)
+		badge.Label.Text = tostring(better)
+		badge.Root.Visible = better > 0
+	end
 
 	local inPark = {}
 	for _, id in PlayerState.park(state) do

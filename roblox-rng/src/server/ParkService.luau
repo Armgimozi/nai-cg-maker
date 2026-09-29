@@ -4,9 +4,14 @@
 --   (광장 쪽 가장자리)까지 거리입니다. 부지 중심까지로 잡으면 이웃 부지끼리 겹치기 때문.
 --   빈 부지가 없으면(서버 인원이 부지보다 많을 때) assign 이 nil 을 돌려주고, 그 플레이어는 부지 없이 놉니다.
 -- 부지 좌표계: 부지 중앙 바닥이 원점, -Z(LookVector)가 광장 쪽 = 입구.
--- 전시 칸: 6x6 격자. 입구에 가까운 줄부터, 한 줄 안에서는 가운데에 가까운 칸부터 채워서
---   가장 희귀한 명소가 입구 정면에 오도록 합니다.
+-- 전시 칸: 6x6 격자. 칸 자리(부지 좌표)와 칸 번호 -> 격자 자리는 Shared/ParkGrid(= PlayerState.slotCell: 입구에
+--   가까운 줄부터, 한 줄 안에서는 가운데에 가까운 칸부터 = 자동 배치에서 가장 희귀한 명소가 입구 정면).
+--   칸마다 무엇을 전시할지는 PlayerState.parkSlots(자동 배치 또는 플레이어가 고른 배치).
 -- update 는 칸마다 이전 상태를 기억해 두고 바뀐 칸만 다시 만듭니다(별 개수는 이름표 글자만 바꿈).
+-- 클라이언트 3D 배치 모드(ParkEdit)용 복제 속성(서버는 ClickDetector 를 달지 않음):
+--   부지 모델: OwnerUserId(주인 UserId, 빈 부지는 nil), Origin(부지 CFrame: 중앙 바닥, -Z = 입구)
+--   칸 모델(Slots 폴더, 36칸 모두 — 잠긴 칸 포함): Slot(칸 번호), Look("#locked" | "#empty" | 명소 Id)
+--   주인 클라이언트가 이걸 보고 자기 부지에서만 칸을 찾고(누르기·놓을 자리 표시) 집어서 옮김.
 -- 간판: 주인이 있으면 입구 아치(나무 판자 + Ink 테두리 + 크림 글자판: 공원 아이콘 + 이름, 초록 알약: 동전 + "+X/s"),
 --   빈 부지는 길 옆 낮은 말뚝 간판("빈 부지")만 세워서 광장에서 볼 때 어지럽지 않게 합니다.
 -- 그림: Shared/ImageIds 에 park/coin 아이콘, panel_paper/pill 스킨 Id 가 있으면 간판에 그 그림을 씀(없으면 코드로 그림).
@@ -20,6 +25,7 @@ local Config = require(Shared.Config)
 local Format = require(Shared.Format)
 local Landmarks = require(Shared.Landmarks)
 local Models = require(Shared.Models)
+local ParkGrid = require(Shared.ParkGrid)
 local PlayerState = require(Shared.PlayerState)
 
 local ParkLayout = require(script.Parent.ParkLayout)
@@ -42,15 +48,13 @@ local PLAZA_EDGE = ParkLayout.PLAZA_EDGE -- 길이 시작되는 곳(광장 둘�
 
 local PLOT_WIDTH = ParkLayout.PLOT_WIDTH
 local PLOT_DEPTH = ParkLayout.PLOT_DEPTH
-local BASE_TOP = 0.6 -- 부지 윗면 높이
+local BASE_TOP = ParkGrid.BASE_TOP -- 부지 윗면 높이
 local BORDER = ParkLayout.BORDER -- 부지 둘레 색 띠 폭
 
-local GRID = Config.PARK_GRID
-local SPACING = 12
-local FRONT_MARGIN = 6 -- 입구와 첫 줄 사이 빈 공간
-local PEDESTAL_SIZE = 10
-local PEDESTAL_HEIGHT = 0.6
-local MINIATURE_SIZE = 9
+-- 칸 크기·간격은 Shared/ParkGrid (클라이언트 배치 모드가 같은 값으로 칸을 찾음)
+local PEDESTAL_SIZE = ParkGrid.PEDESTAL_SIZE
+local PEDESTAL_HEIGHT = ParkGrid.PEDESTAL_HEIGHT
+local MINIATURE_SIZE = ParkGrid.MINIATURE_SIZE
 local LABEL_DISTANCE = 60
 local PATH_WIDTH = ParkLayout.PATH_WIDTH
 
@@ -100,9 +104,9 @@ local COIN_DEEP = Color3.fromRGB(217, 144, 15)
 local SLICE_CENTER = Rect.new(64, 64, 192, 192) -- 스킨 그림(256x256) 9-slice
 local SKIN_RADIUS = 50 -- 스킨 그림 속 모서리 반지름(px)
 
--- 칸 상태 키: 명소 Id 이거나 아래 둘 중 하나(명소 Id 는 '#' 으로 시작하지 않음)
-local KEY_LOCKED = "#locked"
-local KEY_EMPTY = "#empty"
+-- 칸 상태 키(= 칸 모델의 Look 속성): 명소 Id 이거나 아래 둘 중 하나(명소 Id 는 '#' 으로 시작하지 않음)
+local KEY_LOCKED = ParkGrid.LOOK_LOCKED
+local KEY_EMPTY = ParkGrid.LOOK_EMPTY
 
 type Slot = {
 	Key: string,
@@ -129,25 +133,11 @@ type Layout = ParkLayout.Layout
 -- 부지 순서 = 배정 순서(가장 작은 빈 번호부터). 첫 부지는 스폰 정면(-Z = 270도) 근처.
 local LAYOUT: { Layout } = ParkLayout.LAYOUT
 
--- 전시 칸 위치(부지 좌표, Y = 부지 윗면). 입구 쪽 줄부터, 줄 안에서는 가운데부터.
+-- 전시 칸 위치(부지 좌표, Y = 부지 윗면). 칸 번호 순서 = ParkGrid.slotOffset (PlayerState.slotCell 과 같은 격자 자리)
 local SLOT_OFFSETS: { Vector3 } = {}
-do
-	local columns = {}
-	for c = 1, GRID do
-		table.insert(columns, (c - (GRID + 1) / 2) * SPACING)
-	end
-	table.sort(columns, function(a, b)
-		if math.abs(a) ~= math.abs(b) then
-			return math.abs(a) < math.abs(b)
-		end
-		return a < b
-	end)
-	local firstRow = -PLOT_DEPTH / 2 + FRONT_MARGIN + SPACING / 2
-	for row = 0, GRID - 1 do
-		for _, x in columns do
-			table.insert(SLOT_OFFSETS, Vector3.new(x, BASE_TOP, firstRow + row * SPACING))
-		end
-	end
+for slot = 1, PlayerState.MAX_SLOTS do
+	local x, z = ParkGrid.slotOffset(slot)
+	table.insert(SLOT_OFFSETS, Vector3.new(x, BASE_TOP, z))
 end
 
 local ParkService = {}
@@ -614,6 +604,7 @@ local function buildPlot(parent: Instance, index: number, layout: Layout): Plot
 
 	local model = Instance.new("Model")
 	model.Name = "Plot" .. index
+	model:SetAttribute("Origin", cf) -- 클라이언트 배치 모드가 칸 자리(ParkGrid.slotOffset)를 월드로 옮길 때 씀
 
 	-- 둘레 띠(윗면 0.4) 위에 부지 바닥(윗면 0.6): 계단처럼 걸어서 오를 수 있음
 	newPart(
@@ -776,6 +767,9 @@ local function buildSlot(plot: Plot, index: number, key: string): Slot
 			slot.StarLabel = addLabel(pedestal, landmark, if ok then result else 0)
 		end
 	end
+	-- 주인 클라이언트(배치 모드)가 칸 번호와 모습을 읽음. 모델을 만들 때 한 번 정하고 바꾸지 않음(모습이 바뀌면 새 모델)
+	container:SetAttribute("Slot", index)
+	container:SetAttribute("Look", key)
 
 	container.Parent = plot.SlotFolder
 	return slot
@@ -799,6 +793,7 @@ function ParkService.assign(player: Player): number?
 		if not plot.Owner then
 			plot.Owner = player
 			plotByPlayer[player] = plot
+			plot.Model:SetAttribute("OwnerUserId", player.UserId)
 			setSign(plot, player.DisplayName, incomeText(0))
 			showSign(plot, true)
 			return plot.Index
@@ -816,23 +811,24 @@ function ParkService.release(player: Player)
 	end
 	plotByPlayer[player] = nil
 	plot.Owner = nil
+	plot.Model:SetAttribute("OwnerUserId", nil)
 	clearSlots(plot)
 	showSign(plot, false)
 	setSign(plot, "", "")
 end
 
--- 전시 상태를 data 에 맞춤. data 는 Data 또는 같은 필드(Inventory, Upgrades)를 가진 표.
+-- 전시 상태를 data 에 맞춤. data 는 Data 또는 같은 필드(Inventory, Upgrades, Settings, Display)를 가진 표.
 -- mods: 게임패스·서버 행운 등(없으면 기본). 간판의 수입 표시에 "수입 2배" 가 반영되도록
 function ParkService.update(player: Player, data: PlayerState.Data, mods: PlayerState.Mods?)
 	local plot = plotByPlayer[player]
 	if not plot then
 		return
 	end
-	local park = PlayerState.park(data)
-	local unlocked = math.min(PlayerState.slots(data), #SLOT_OFFSETS)
+	local park, unlocked = PlayerState.parkSlots(data)
+	unlocked = math.min(unlocked, #SLOT_OFFSETS)
 
 	for index = 1, #SLOT_OFFSETS do
-		local id = park[index]
+		local id = if index <= unlocked then park[index] else nil
 		local key = if id then id elseif index <= unlocked then KEY_EMPTY else KEY_LOCKED
 		local slot = plot.Slots[index]
 		if not slot or slot.Key ~= key then

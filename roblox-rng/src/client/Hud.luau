@@ -1,5 +1,7 @@
 -- 기본 화면(HUD): 코인·수입·스탯, 메뉴 버튼, 굴리기 버튼, 지구본 굴림 연출, 뉴스 속보, 알림,
--- 환생 수·부스트 타이머·서버 행운 띠(v3), 상점 버튼(오른쪽, 팔 상품이 있을 때만)
+-- 환생 수·부스트 타이머·서버 행운 띠(v3), 상점 버튼(오른쪽, 팔 상품이 있을 때만),
+-- 공원 배치 버튼(내 공원 부지가 있으면 이동 버튼 옆, 더 좋은데 전시 안 된 명소 수 배지 — 누르면 3D 배치 모드,
+-- 배치 모드 동안은 메뉴·상점·굴리기 줄을 숨김: 아래 가운데는 ParkEdit 보관함 띠 자리)
 -- 스타일은 DESIGN.md "UI 스타일 가이드 (v2)" — 통통한 버튼 + 굵은 Ink 테두리 + 아이콘, 이모지 없음
 -- 글자는 최소로: 아이콘 + 숫자 위주, 버튼 글자는 2~3글자, 알림은 8글자 안팎. 설명 문장은 쓰지 않음.
 
@@ -62,6 +64,7 @@ export type Handlers = {
 	ToggleAuto: () -> (),
 	Menu: (string) -> (),
 	Teleport: () -> (),
+	Arrange: () -> (), -- [배치]: 3D 공원 배치 모드 켜기/끄기
 }
 
 local Hud = {}
@@ -315,9 +318,20 @@ local function placeMenu(size: Vector2, scale: number, touch: boolean)
 	local container = refs.Menu
 	container.Size = UDim2.fromOffset(block.X + 8, block.Y)
 	container.Position = UDim2.new(0, MENU_X, 0.5, MENU_DROP + place.Shift)
+
+	-- 내 공원 부지가 있으면: 공원 배치 버튼을 이동 버튼(마지막 칸) 바로 오른쪽에. 여러 열이면 그 자리는 비어 있는 칸,
+	-- 1열이면 묶음 옆 빈 자리. 가로 한 줄이면 묶음이 한 칸 넓어진 것으로 쳐서 위 가운데 묶음이 비켜 가게 함
+	local arrange: Ui.ChunkyButton? = refs.ArrangeButton
+	if arrange then
+		local last = buttons[#buttons]
+		arrange.Root.Position = last.Position + UDim2.fromOffset(MENU_BUTTON.X + MENU_GAP, 0)
+		if arrange.Root.Visible and place.Columns >= #buttons then
+			place.Width += (MENU_BUTTON.X + MENU_GAP) * scale
+		end
+	end
 end
 
-local function buildMenu(onMenu: (string) -> (), onTeleport: () -> ())
+local function buildMenu(onMenu: (string) -> (), onTeleport: () -> (), onArrange: () -> ())
 	local count = #MENU + 1
 	refs.Menu = anchor(
 		"Menu",
@@ -397,6 +411,36 @@ local function buildMenu(onMenu: (string) -> (), onTeleport: () -> ())
 	})
 	table.insert(buttons, refs.TeleportButton.Root)
 	refs.TeleportButton.Activated:Connect(onTeleport)
+
+	-- 3D 공원 배치 모드 켜기 (내 공원 부지가 있으면 보임 — Hud.setPlotOwned, 자리는 placeMenu). 메뉴 칸 수에는 안 셈
+	refs.ArrangeButton = Ui.chunkyButton({
+		Name = "Arrange",
+		ZIndex = 2, -- 오른쪽 위 배지
+		Size = UDim2.fromOffset(MENU_BUTTON.X, MENU_BUTTON.Y),
+		Color = "Grass",
+		Icon = "arrange", -- 옆 이동 버튼의 공원(나무) 아이콘과 다르게
+		IconSize = MENU_ICON,
+		Vertical = true,
+		Text = "배치",
+		TextSize = 18,
+		Visible = false,
+		Parent = container,
+	})
+	refs.ArrangeButton.Activated:Connect(onArrange)
+	-- 직접 배치 중 더 좋은데 전시 안 된 명소 수 (여권 "1/6" 배지와 같은 모양, 0 이면 숨김)
+	refs.ArrangeBadge = Ui.chip({
+		Name = "Better",
+		Color = Theme.Ink,
+		TextColor3 = Ui.colorPair("Sun").Face,
+		Height = 24,
+		TextSize = 15,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(1, -6, 0, 2),
+		Rotation = 8,
+		ZIndex = 6,
+		Visible = false,
+		Parent = refs.ArrangeButton.Face,
+	})
 end
 
 -- 오른쪽 가운데: 상점 (Robux 상품이 하나도 없으면 안 만듦)
@@ -451,6 +495,7 @@ local function buildRollBar(onRoll: () -> (), onToggleAuto: () -> ())
 		UDim2.new(0.5, 0, 1, -ROLL_BAR_BOTTOM),
 		UDim2.fromOffset(ROLL_BAR.X, ROLL_BAR.Y)
 	)
+	refs.RollBar = container
 
 	local roll = Ui.chunkyButton({
 		Name = "Roll",
@@ -795,11 +840,12 @@ local function buildNotices()
 		Parent = top,
 	})
 
-	-- 뉴스 속보
+	-- 뉴스 속보 (속보 수만큼만 높이를 차지 — 속보가 없으면 알림이 맨 위에 떠서 열린 창의 머리 줄을 가리지 않음)
 	local news = Ui.new("Frame", {
 		Name = "News",
 		LayoutOrder = 2,
-		Size = UDim2.fromOffset(TOP_WIDTH, 118),
+		Size = UDim2.fromOffset(TOP_WIDTH, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundTransparency = 1,
 		Parent = top,
 	})
@@ -847,7 +893,7 @@ function Hud.init(playerGui: PlayerGui, handlers: Handlers): ScreenGui
 	luckSound = makeSound(0.6, 0.7)
 
 	buildStats()
-	buildMenu(handlers.Menu, handlers.Teleport)
+	buildMenu(handlers.Menu, handlers.Teleport, handlers.Arrange)
 	buildShop(handlers.Menu)
 	buildRollBar(handlers.Roll, handlers.ToggleAuto)
 	buildReveal()
@@ -950,6 +996,7 @@ function Hud.render(state: PlayerState.Snapshot?, receivedAt: number?)
 		refs.LuckChip.Root.Visible = false
 		refs.RebirthChip.Root.Visible = false
 		refs.PassportBadge.Root.Visible = false
+		refs.ArrangeBadge.Root.Visible = false
 		setRebirthReady(false)
 		shownCoins = -1
 		return
@@ -968,6 +1015,11 @@ function Hud.render(state: PlayerState.Snapshot?, receivedAt: number?)
 	badge.Label.Text = string.format("%d/%d", stamps, #Landmarks.Regions)
 	badge.Label.TextColor3 = if stamps > 0 then Ui.colorPair("Sun").Face else WHITE
 	badge.Root.Visible = true
+
+	-- 배치 버튼 배지: 직접 배치 중 전시하면 수입이 느는 명소 수 (0 이면 숨김)
+	local better = #PlayerState.betterHidden(state)
+	refs.ArrangeBadge.Label.Text = tostring(better)
+	refs.ArrangeBadge.Root.Visible = better > 0
 
 	-- 환생 수 딱지 (0 이면 숨김)
 	local rebirths = Perks.rebirths(state)
@@ -1024,6 +1076,26 @@ function Hud.setLocation(where: string)
 	else
 		button.SetText("공원")
 		button.SetIcon("park")
+	end
+end
+
+-- 내 공원 부지가 있으면(어디에 있든) 이동 버튼 옆에 공원 배치 버튼
+function Hud.setPlotOwned(owned: boolean)
+	local arrange: Ui.ChunkyButton = refs.ArrangeButton
+	if arrange.Root.Visible ~= owned then
+		arrange.Root.Visible = owned
+		relayout() -- 가로 한 줄 메뉴면 묶음 폭이 바뀜
+	end
+end
+
+-- 3D 배치 모드(ParkEdit): 왼쪽 메뉴(+ [배치])·상점·굴리기 줄을 숨기고 아래 가운데를 보관함 띠에 내줌
+-- (놀이공원 시뮬레이션의 건설 모드처럼 공원 + 띠만). 위쪽 코인·알림은 그대로, 자동 굴리기도 켜 둔 채로 계속 돎(R / T 키도)
+function Hud.setEditing(editing: boolean)
+	refs.Menu.Visible = not editing
+	refs.RollBar.Visible = not editing
+	local shop: GuiObject? = refs.Shop
+	if shop then
+		shop.Visible = not editing
 	end
 end
 

@@ -11,7 +11,9 @@ local FUNCTIONS = {
 	"Roll", -- () -> RollResponse (DESIGN.md 참고)
 	"Feature", -- (landmarkId?) -> { Ok, State }
 	"BuyUpgrade", -- (upgradeId) -> { Ok, Reason?, State }
-	"SetSetting", -- (key, value) -> { Ok, State }
+	"SetSetting", -- (key, value) -> { Ok, State } (key: "AutoFeature" | "AutoPark")
+	"SetDisplay", -- (slot, landmarkId?, expected?, expectedFrom?) -> { Ok, Reason?, State } 공원 전시 칸에 명소 놓기/빼기
+	-- (expected = 클라이언트가 본 그 칸의 명소 Id, 빈 칸 "". 다르면 Reason "stale")
 	"Teleport", -- ("Park" | "Plaza") -> { Ok }
 	"Rebirth", -- () -> { Ok, Reason?, State }
 	"BuyPass", -- (passKey) -> { Ok } (서버가 게임패스 구매 창을 띄움)

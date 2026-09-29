@@ -57,6 +57,8 @@ body {
 }
 .screen.tall { height: auto; }
 .world { position: absolute; inset: 0; width: 100%; height: 100%; }
+img.world { object-fit: cover; display: block; }
+.world.no-backdrop { background: #8fb4c9; color: #fff; font: 600 18px sans-serif; display: flex; align-items: center; justify-content: center; }
 .topbar { position: absolute; left: 0; top: 0; width: 100%; height: 58px; z-index: 50; pointer-events: none; }
 .topbar .rbx-btn {
   position: absolute; top: 7px; width: 44px; height: 44px; border-radius: 12px;
@@ -87,6 +89,9 @@ body {
 }
 .lbl > span { display: inline-block; max-width: 100%; }
 .lbl.nowrap { white-space: nowrap; }
+/* TextWrapped + TextTruncate(AtEnd), 글자 크기 고정: 길면 --lines 줄까지, 넘치면 … */
+.lbl.wrap2 { overflow: hidden; }
+.lbl.wrap2 > span { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: var(--lines, 2); overflow: hidden; line-height: 1.12; }
 .lbl.nowrap > span { max-width: none; }
 .lbl.title { font-family: var(--font-title); }
 .lbl.stroked > span { -webkit-text-stroke: var(--sw) var(--sc); paint-order: stroke fill; }

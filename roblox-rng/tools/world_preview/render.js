@@ -6,6 +6,8 @@
 // 환경 변수: FOAM=1 (물가 거품 — Roblox 에는 없음, 비교용), GAP=1~8 (closeup 이 볼 부지 사이 틈),
 //   TERRAIN_DEBUG=1 (지형을 재질별 가짜 색으로: Grass 초록, LeafyGrass 파랑, Sand 노랑 ... terrain.js DEBUG_COLORS)
 //   임의 시점 "cam:x,y,z:tx,ty,tz[:fov]" 도 됨(파일 이름 <접두어>_cam<순번>.png). 시점은 ';' 로 구분해도 됨
+//   "hook" = world.luau hook 이 덤프에 넣은 카메라(extra.Camera, 예: 3D 배치 모드 카메라)
+// 환경 변수(선택): PREVIEW_SIZE=667x375 (그림 크기, 기본 1280x720), PREVIEW_JPEG=0.86 (JPEG 품질 → .jpg)
 // 페이지 파일은 http://preview.local/ 가짜 주소로 열고, 요청을 page.route 로 디스크 파일에 연결합니다
 // (/node_modules → tools/world_preview/node_modules, /art/png → art/png, /fonts → mockup/fonts, /dump.json → 덤프).
 
@@ -97,14 +99,21 @@ async function main() {
     process.exit(1);
   }
 
+  const size = (process.env.PREVIEW_SIZE || "").match(/^(\d+)x(\d+)$/);
+  if (size) await page.evaluate(([w, h]) => window.preview.resize(w, h), [Number(size[1]), Number(size[2])]);
+  const jpeg = process.env.PREVIEW_JPEG ? Number(process.env.PREVIEW_JPEG) : 0;
+
   const views = viewArg
     ? viewArg.split(viewArg.includes(";") || viewArg.startsWith("cam:") ? ";" : ",")
     : await page.evaluate(() => window.preview.views);
   for (const view of views) {
     const started = Date.now();
-    const dataUrl = await page.evaluate((v) => window.preview.render(v), view);
+    const dataUrl = await page.evaluate(
+      ([v, format, quality]) => window.preview.render(v, format, quality),
+      [view, jpeg ? "jpeg" : "png", jpeg || 0.9],
+    );
     const label = view.startsWith("cam:") ? "cam" + (views.indexOf(view) + 1) : view;
-    const file = path.join(outDir, `${prefix}_${label}.png`);
+    const file = path.join(outDir, `${prefix}_${label}.${jpeg ? "jpg" : "png"}`);
     fs.writeFileSync(file, Buffer.from(dataUrl.split(",")[1], "base64"));
     console.log(`[render] ${file} (${((Date.now() - started) / 1000).toFixed(1)}초)`);
   }

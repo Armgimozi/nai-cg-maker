@@ -1,5 +1,6 @@
 -- 클라이언트 진입점: 상태 동기화, 굴리기/자동 굴리기, 메뉴 연결, 뉴스 속보, 회전 모형,
--- 환생 · Robux 상품 구매 요청 · 서버 행운 알림 (DESIGN.md v3)
+-- 환생 · Robux 상품 구매 요청 · 서버 행운 알림 (DESIGN.md v3), 3D 공원 배치 모드(ParkEdit: 내 공원에서 명소를
+-- 직접 집어 옮김 — 여기서는 서버 요청·알림·HUD 연결만)
 -- (화면 글자에는 이모지를 쓰지 않음 — DESIGN.md UI 스타일 가이드 v2)
 -- 알림은 [아이콘] + 8글자 안팎 ("구매 완료", "코인 부족", "대표 지정"), 문장은 쓰지 않음
 
@@ -19,6 +20,7 @@ local PlayerState = require(Shared.PlayerState)
 local Hud = require(script.Hud)
 local Icons = require(script.Icons)
 local Panels = require(script.Panels)
+local ParkEdit = require(script.ParkEdit)
 local Perks = require(script.Perks)
 local Ui = require(script.Ui)
 
@@ -61,6 +63,7 @@ local function applyState(snapshot: any, receivedAt: number?)
 	Hud.render(snapshot, stateReceivedAt)
 	Hud.setCoins(currentCoins())
 	Panels.render(snapshot)
+	ParkEdit.render(snapshot)
 end
 
 -- 서버가 보내는 재동기화. 내 굴림 연출 중이면 결과가 미리 보이지 않게 연출이 끝난 뒤 반영
@@ -147,6 +150,15 @@ local function showAnnouncement(info: any, landmark: Landmarks.Landmark)
 	end)
 end
 
+-- 직접 배치 중 이번 판에 처음 얻은 명소가 공원이 꽉 차서 전시되지 못했으면 연출이 끝난 뒤 "공원 꽉 참" 알림
+-- (더 좋은 명소면 [배치] 버튼 숫자 배지도 늘어 있음)
+local function parkFullNotice(landmark: Landmarks.Landmark)
+	local current = state
+	if current and PlayerState.missedByFullPark(current, landmark.Id) then
+		Hud.toast("공원 꽉 참", Ui.Theme.Gold, 3, "park")
+	end
+end
+
 -- 더 희귀한 명소를 발견했으면 자동으로 대표 지정 (설정이 켜져 있을 때)
 local function autoFeature(landmark: Landmarks.Landmark)
 	local current = state
@@ -206,6 +218,7 @@ local function roll()
 		end
 		table.clear(heldAnnouncements)
 
+		parkFullNotice(landmark)
 		autoFeature(landmark)
 	elseif type(response) == "table" and response.Ok then
 		applyState(response.State, receivedAt) -- 모르는 명소 Id (클라가 옛 버전일 때)
@@ -266,6 +279,62 @@ local function toggleAutoFeature()
 	if type(response) == "table" then
 		applyState(response.State)
 	end
+end
+
+-- 공원 배치 ----------------------------------------------------------------------
+-- 3D 배치 모드(ParkEdit)가 누르는 즉시 미리 보여 주고, 여기서 서버에 요청(기다림)한 뒤 응답 상태를 반영하고 결과를 돌려줌
+
+-- 서버가 준 실패 이유 -> 짧은 알림 ("stale" 은 따로: 중립 알림 "공원 바뀜" + 새 상태로 다시 그림)
+local function parkFailure(reason: any): (string, string)
+	local text = string.lower(tostring(reason or ""))
+	if text:find("잠긴") then
+		return "잠긴 칸", "lock"
+	elseif text:find("busy") then
+		return "잠시 후", "auto"
+	elseif text:find("불러") or text:find("load") then
+		return "로딩 중", "globe"
+	end
+	return "배치 실패", "close"
+end
+
+-- expected: 화면에서 그 칸에 보이던 명소 Id(빈 칸 ""), expectedFrom: 옮기는 명소가 있던 칸(0 = 보관함).
+-- 그사이 서버에서 그 칸이 바뀌었으면(예: 자동 굴림이 빈 칸에 새 명소를 놓음) 서버가 Reason "stale" + 새 상태로 거절
+-- -> 배치 모드가 미리 보기를 버리고 새 상태로 다시 그림. 반환: 받아들였는지, stale 인지
+local function setDisplay(
+	slot: number,
+	landmarkId: string?,
+	expected: string,
+	expectedFrom: number?
+): (boolean, boolean)
+	local response = invoke("SetDisplay", slot, landmarkId, expected, expectedFrom)
+	local stale = false
+	if type(response) == "table" then
+		stale = response.Reason == "stale"
+		if stale then
+			-- 굴림 연출 중이면(자동 굴림이 방금 놓은 명소가 이유) 새 상태는 연출이 끝난 뒤 반영 — 결과가 미리 보이지 않게
+			onStateEvent(response.State)
+			Hud.toast("공원 바뀜", Ui.Theme.Ink, 2, "park")
+		else
+			applyState(response.State)
+		end
+		if not stale and not response.Ok then
+			local text, icon = parkFailure(response.Reason)
+			Hud.toast(text, Ui.Theme.Bad, 2, icon)
+		end
+	end
+	return type(response) == "table" and response.Ok == true, stale
+end
+
+local function setAutoPark(on: boolean): boolean
+	local response = invoke("SetSetting", "AutoPark", on)
+	if type(response) ~= "table" then
+		return false
+	end
+	applyState(response.State)
+	if not response.Ok then
+		Hud.toast("잠시 후", Ui.Theme.Bad, 2, "auto")
+	end
+	return response.Ok == true
 end
 
 -- 환생 -------------------------------------------------------------------------
@@ -339,21 +408,30 @@ local function purchased(kind: string, id: any)
 	Hud.toast("구매 완료", Ui.Theme.Good, 3, if item then item.Icon else "check")
 end
 
--- 광장 <-> 내 공원 이동
-local function teleport()
+-- 광장 / 내 공원으로 이동(기다림). 성공하면 true
+local function travel(target: string): boolean
 	if teleporting then
-		return
+		return false
 	end
 	teleporting = true
-	local target = if location == "Plaza" then "Park" else "Plaza"
 	local response = invoke("Teleport", target)
-	if type(response) == "table" and response.Ok then
+	local ok = type(response) == "table" and response.Ok == true
+	if ok then
 		location = target
 		Hud.setLocation(location)
 	elseif response ~= nil then
 		Hud.toast("이동 실패", Ui.Theme.Bad, 2, "close")
 	end
 	teleporting = false
+	return ok
+end
+
+-- 광장 <-> 내 공원 이동 버튼
+local function teleport()
+	if location == "Park" then
+		ParkEdit.exit() -- 공원을 떠나면 배치 모드도 끝(부지 밖 감지보다 먼저)
+	end
+	travel(if location == "Plaza" then "Park" else "Plaza")
 end
 
 -- 화면 만들기 ---------------------------------------------------------------
@@ -363,9 +441,15 @@ local gui = Hud.init(playerGui, {
 		task.spawn(roll)
 	end,
 	ToggleAuto = toggleAuto,
-	Menu = Panels.toggle,
+	Menu = function(name: string)
+		ParkEdit.exit() -- 다른 창을 열면 배치 모드 끝
+		Panels.toggle(name)
+	end,
 	Teleport = function()
 		task.spawn(teleport)
+	end,
+	Arrange = function()
+		ParkEdit.toggle()
 	end,
 })
 Panels.init(gui, {
@@ -387,8 +471,28 @@ Panels.init(gui, {
 	BuyProduct = function(key: string)
 		task.spawn(buyRobux, "BuyProduct", key)
 	end,
-	Toast = function(text: string, icon: string?)
-		Hud.toast(text, Ui.Theme.Bad, 2, icon)
+	Toast = function(text: string, icon: string?, color: Color3?)
+		Hud.toast(text, color or Ui.Theme.Bad, 2, icon)
+	end,
+	Arrange = function()
+		Panels.close()
+		ParkEdit.enter(nil)
+	end,
+})
+ParkEdit.init(gui, {
+	SetDisplay = setDisplay,
+	SetAutoPark = setAutoPark,
+	GoToPark = function(): boolean
+		return travel("Park")
+	end,
+	Toast = function(text: string, icon: string?, color: Color3?)
+		Hud.toast(text, color or Ui.Theme.Bad, 2, icon)
+	end,
+	Changed = function(editing: boolean)
+		if editing then
+			Panels.close()
+		end
+		Hud.setEditing(editing)
 	end,
 })
 
@@ -444,6 +548,50 @@ task.spawn(function()
 			Hud.serverLuck(tostring(info.Name or ""), untilTime)
 		end
 	end)
+end)
+
+-- 내 공원 ---------------------------------------------------------------------
+-- 서버(ParkService)가 부지 모델에 OwnerUserId(주인)·Origin(부지 CFrame), 칸 모델에 Slot·Look 속성을 붙여 둠.
+-- 내 부지를 찾으면 HUD [배치] 버튼을 보이고 ParkEdit 에 넘김(내 부지의 열린 칸에만 이 클라이언트에서 ClickDetector —
+-- 남의 공원 받침대에는 손가락 커서가 안 뜸, 누르면 서버를 거치지 않고 바로 배치 모드 + 그 명소를 집음)
+local myPlot: Instance? = nil
+
+local function setMyPlot(plot: Instance?)
+	if plot == myPlot then
+		return
+	end
+	myPlot = plot
+	Hud.setPlotOwned(plot ~= nil)
+	ParkEdit.setPlot(plot)
+end
+
+task.spawn(function()
+	local parks = workspace:WaitForChild("Parks", 60)
+	if not parks then
+		return
+	end
+	local function check()
+		local found: Instance? = nil
+		for _, plot in parks:GetChildren() do
+			if plot:GetAttribute("OwnerUserId") == player.UserId then
+				found = plot
+				break
+			end
+		end
+		setMyPlot(found)
+	end
+	local function watchPlot(plot: Instance)
+		plot:GetAttributeChangedSignal("OwnerUserId"):Connect(check)
+	end
+	for _, plot in parks:GetChildren() do
+		watchPlot(plot)
+	end
+	parks.ChildAdded:Connect(function(plot)
+		watchPlot(plot)
+		check()
+	end)
+	parks.ChildRemoved:Connect(check)
+	check()
 end)
 
 -- 구매 창이 닫힐 때 알림만 (지급은 서버의 ProcessReceipt). 연결에 실패해도 아래 루프는 돌아야 하므로 pcall
