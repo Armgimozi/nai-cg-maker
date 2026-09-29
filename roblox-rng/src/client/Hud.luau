@@ -638,11 +638,11 @@ local function buildReveal()
 	refs.ResultView = Viewport.new(inner, viewProps)
 	refs.ResultView.Visible = false
 
-	-- 등급 리본 (판 아래쪽에 걸침)
+	-- 등급 리본 (판 아래쪽에 걸침). 꼬리가 아래 명소 이름 글자에 닿지 않게 판 가운데를 판 끝보다 6 위에
 	local ribbon = Ui.ribbon({
 		Name = "TierRibbon",
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, 0, 0, centerY + VIEW_SIZE / 2),
+		Position = UDim2.new(0.5, 0, 0, centerY + VIEW_SIZE / 2 - 6),
 		Size = UDim2.fromOffset(250, 44),
 		Visible = false,
 		ZIndex = 4,
@@ -654,7 +654,7 @@ local function buildReveal()
 	refs.RibbonLabel = ribbon.Label
 	refs.SetRibbonColor = ribbon.SetColor
 
-	local nameTop = centerY + VIEW_SIZE / 2 + 28
+	local nameTop = centerY + VIEW_SIZE / 2 + 34
 	refs.RevealName = Ui.label({
 		Position = UDim2.fromOffset(0, nameTop),
 		Size = UDim2.new(1, 0, 0, 66),

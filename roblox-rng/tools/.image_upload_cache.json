@@ -30,6 +30,22 @@
       "uploadedAt": "2026-09-29T09:25:24+00:00",
       "userId": "2038945024"
     },
+    "1a4591d2e088f7e220f3e46d9713b18821dfd52f04a9f577fe0c5599a7891f11": {
+      "assetId": "114127605721192",
+      "assetType": "Image",
+      "checkedAt": "2026-09-29T10:03:24+00:00",
+      "file": "art/png/ribbon_tail_r.png",
+      "imageId": "114127605721192",
+      "moderation": "approved",
+      "names": [
+        "ribbon_tail_r"
+      ],
+      "returnedType": "image",
+      "sha256": "1a4591d2e088f7e220f3e46d9713b18821dfd52f04a9f577fe0c5599a7891f11",
+      "submittedAt": "2026-09-29T10:03:02+00:00",
+      "uploadedAt": "2026-09-29T10:03:04+00:00",
+      "userId": "2038945024"
+    },
     "1e4ad4204c08e4b86edc47596065f9d514fefba04f35b5a6110197a449b7bfbe": {
       "assetId": "115996354535723",
       "assetType": "Image",
@@ -418,6 +434,22 @@
       "sha256": "d933dd90ef7dec02e6faa429cfd738287234aad2dc6cef6cf906174292343e72",
       "submittedAt": "2026-09-29T09:25:09+00:00",
       "uploadedAt": "2026-09-29T09:25:22+00:00",
+      "userId": "2038945024"
+    },
+    "df969340a10fbff3c8f2c54e4fc2b9f0771c3c72435dfd89a51179b53873508a": {
+      "assetId": "95542836384666",
+      "assetType": "Image",
+      "checkedAt": "2026-09-29T10:03:24+00:00",
+      "file": "art/png/ribbon_tail_l.png",
+      "imageId": "95542836384666",
+      "moderation": "approved",
+      "names": [
+        "ribbon_tail_l"
+      ],
+      "returnedType": "image",
+      "sha256": "df969340a10fbff3c8f2c54e4fc2b9f0771c3c72435dfd89a51179b53873508a",
+      "submittedAt": "2026-09-29T10:03:02+00:00",
+      "uploadedAt": "2026-09-29T10:03:03+00:00",
       "userId": "2038945024"
     },
     "e373cc5455e28c5f70d36ca66e32035c61b4b9c56778f1539524925a2462d862": {

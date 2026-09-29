@@ -138,14 +138,14 @@ def label(d, xy, text, size=15, fill=(245, 245, 245), anchor="mm"):
 
 def ribbon(img, size, color, dark):
     """Ui.ribbon: code-drawn plate (shadow base + lighter face + gloss + Ink edge) with the two tail images
-    (ribbon_tail_l/r, 56x50 per 50 px of plate height) behind it. Returns (image, (plate x, plate y))."""
+    (ribbon_tail_l/r, 56x50 per 50 px of plate height, right one mirrored) behind it. Returns (image, (plate x, plate y))."""
     w, h = size
     k = h / 50
     tw, th = round(56 * k), round(50 * k)
-    left, right, top = round(-36 * k), round(-20 * k), round(17 * k)
+    left, top = round(-36 * k), round(17 * k)
     pad = -left
     out = Image.new("RGBA", (w + 2 * pad, h + top + th), (0, 0, 0, 0))
-    for name, x in (("ribbon_tail_l", 0), ("ribbon_tail_r", pad + w + right)):
+    for name, x in (("ribbon_tail_l", 0), ("ribbon_tail_r", pad + w - (left + tw))):  # right = mirror of left
         if name in img:
             out.alpha_composite(tint(img[name].resize((tw, th), Image.Resampling.LANCZOS), color), (x, top))
     d = ImageDraw.Draw(out)

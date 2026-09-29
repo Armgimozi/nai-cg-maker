@@ -314,9 +314,12 @@ local ImageIds: { [string]: string } = {
 	button_shadow = "rbxassetid://131795792663906",
 	panel_paper = "rbxassetid://135177337416974",
 	pill = "rbxassetid://76337661510619",
-	ribbon = "rbxassetid://71196375066188",
 	sunburst = "rbxassetid://103053283018731",
 	tag = "rbxassetid://111522354097064",
+
+	-- 리본 꼬리 (늘이지 않는 그림, 56:50). 회색 바탕 그림을 ImageColor3 로 물들여 씀. 비어 있으면 둥근 네모 Frame 꼬리 (Ui.ribbon)
+	ribbon_tail_l = "rbxassetid://95542836384666",
+	ribbon_tail_r = "rbxassetid://114127605721192",
 }
 
 return ImageIds
@@ -11761,7 +11764,6 @@ local MENU_ICON = 58
 local ROLL_BUTTON = Vector2.new(270, 90) -- 앞면 270x84
 local AUTO_BUTTON = Vector2.new(140, 76) -- 앞면 140x70
 local VIEW_SIZE = 230 -- 굴림 연출의 둥근 판 지름
-local TIER_RIBBON_ART_HEIGHT = 64 -- 등급 리본 그림 높이(꼬리 포함). 띠 안쪽 높이 = 64 x 120/256 = 30
 local RAY_COUNT = 12 -- 햇살 막대 수 (막대 하나 = 가운데를 지나는 빛줄기 2개)
 
 -- 햇살 막대: 가운데는 진하고 양 끝으로 갈수록 투명
@@ -12363,57 +12365,23 @@ local function buildReveal()
 	refs.ResultView = Viewport.new(inner, viewProps)
 	refs.ResultView.Visible = false
 
-	-- 등급 리본 (판 아래쪽에 걸침)
-	local ribbon = Ui.new("Frame", {
+	-- 등급 리본 (판 아래쪽에 걸침). 꼬리가 아래 명소 이름 글자에 닿지 않게 판 가운데를 판 끝보다 6 위에
+	local ribbon = Ui.ribbon({
 		Name = "TierRibbon",
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, 0, 0, centerY + VIEW_SIZE / 2),
+		Position = UDim2.new(0.5, 0, 0, centerY + VIEW_SIZE / 2 - 6),
 		Size = UDim2.fromOffset(250, 44),
-		BackgroundTransparency = 1,
 		Visible = false,
 		ZIndex = 4,
+		MaxTextSize = 26,
+		Outline = 2.5,
 		Parent = inner,
 	})
-	refs.RibbonTails = {}
-	for _, side in { 0, 1 } do
-		local tail = Ui.new("Frame", {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.new(side, if side == 0 then -14 else 14, 0.5, 9),
-			Size = UDim2.fromOffset(42, 34),
-			BorderSizePixel = 0,
-			ZIndex = 1,
-			Parent = ribbon,
-		})
-		Ui.corner(8).Parent = tail
-		Ui.stroke().Parent = tail
-		table.insert(refs.RibbonTails, tail)
-	end
-	local ribbonMain = Ui.new("Frame", {
-		Size = UDim2.fromScale(1, 1),
-		BorderSizePixel = 0,
-		ZIndex = 2,
-		Parent = ribbon,
-	})
-	Ui.corner(10).Parent = ribbonMain
-	Ui.stroke().Parent = ribbonMain
-	refs.RibbonLabel = Ui.label({
-		Position = UDim2.fromOffset(10, 4),
-		Size = UDim2.new(1, -20, 1, -8),
-		TextColor3 = WHITE,
-		ZIndex = 3,
-		Parent = ribbonMain,
-	}, 28)
-	Ui.outline(refs.RibbonLabel, 2.5)
-	-- 리본 그림: 띠 가운데는 그대로(판 아래 끝), 글자는 띠 안쪽에 맞춤
-	if Ui.ribbonArt(ribbon, ribbonMain, refs.RibbonLabel, TIER_RIBBON_ART_HEIGHT) then
-		for _, tail in refs.RibbonTails do
-			tail.Visible = false -- 리본 그림에 꼬리가 들어 있음
-		end
-	end
-	refs.Ribbon = ribbon
-	refs.RibbonMain = ribbonMain
+	refs.Ribbon = ribbon.Root
+	refs.RibbonLabel = ribbon.Label
+	refs.SetRibbonColor = ribbon.SetColor
 
-	local nameTop = centerY + VIEW_SIZE / 2 + 28
+	local nameTop = centerY + VIEW_SIZE / 2 + 34
 	refs.RevealName = Ui.label({
 		Position = UDim2.fromOffset(0, nameTop),
 		Size = UDim2.new(1, 0, 0, 66),
@@ -12852,10 +12820,7 @@ local function hideBurst()
 end
 
 local function showRibbon(tier: Landmarks.Tier)
-	Ui.tint(refs.RibbonMain, tier.Color)
-	for _, tail in refs.RibbonTails do
-		tail.BackgroundColor3 = tier.Color:Lerp(Theme.Ink, 0.35)
-	end
+	refs.SetRibbonColor(tier.Color, tier.Color:Lerp(Theme.Ink, 0.35))
 	refs.RibbonLabel.Text = tier.Name
 	refs.Ribbon.Visible = true
 end
@@ -15904,7 +15869,6 @@ local HOVER_TWEEN = TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirect
 --   pill        빈칸 1 + 반지름 63 ≈ 64 (SliceScale = 높이/128 이면 반원)
 --   button_*    반지름 50, 위 광택 줄이 y 56 까지라 여백 64
 --   panel_paper 반지름 46, 여백 64
---   ribbon      모서리 대신 SliceScale = 그림 높이/256 (Ui.ribbonArt)
 local SKIN_SIZE = 256
 local SKINS: { [string]: { Radius: number, Margin: number } } = {
 	button_face = { Radius = 50, Margin = 64 },
@@ -15912,17 +15876,18 @@ local SKINS: { [string]: { Radius: number, Margin: number } } = {
 	panel_paper = { Radius = 46, Margin = 64 },
 	pill = { Radius = 64, Margin = 64 },
 	tag = { Radius = 44, Margin = 46 },
-	ribbon = { Radius = 50, Margin = 64 },
 }
 local DEFAULT_SKIN = { Radius = 50, Margin = 64 }
 
 -- pill.png 는 이미 Ink 색 + 몸통 불투명도 62%(테두리는 불투명)라 물들이지 않음. 더 투명하게 해 달라고 할 때만 그만큼 더 투명하게
 local PILL_ART_OPACITY = 0.62
 
--- ribbon.png 속 띠: Ink 테두리 포함 y 30..170, 안쪽 색 x 52..204 · y 40..160 (256 기준). 꼬리는 좌우 조각에서 아래로 처짐
-local RIBBON_FILL = { Side = 52, Top = 40, Bottom = 160 }
-local RIBBON_TEXT_PAD = 4 -- 띠 안쪽 좌우에서 글자까지
-local RIBBON_TEXT_FILL = 0.85 -- 제목 최대 글자 크기 = 띠 안쪽 높이 x 이 값 (글자 테두리까지 띠 안에 들어가게)
+-- 제목 리본(Ui.ribbon) 치수. 판 높이 50 기준이고 판 높이에 비례해 늘거나 줄어듦.
+-- 꼬리 그림(ribbon_tail_l/r.png, 56x50)은 늘이지 않고 비율 그대로 판 양 끝 뒤에 붙임(안쪽 20 은 판 뒤에 숨음)
+local RIBBON_BASE_HEIGHT = 50
+local RIBBON_TAIL = { Size = Vector2.new(56, 50), Left = -36, Top = 17 } -- 오른쪽 꼬리는 왼쪽을 뒤집은 자리
+local RIBBON_SHADE = 9 -- 판 아래 그림자 띠 두께
+local RIBBON_CORNER = 12
 
 -- close.png: 빨간 동그라미 닫기 버튼 완성 그림(지름 216/256, 아래 두께 포함)
 local CLOSE_ART_SIZE = 60
@@ -16170,32 +16135,128 @@ function Ui.box(name: string, props: { [string]: any }): (GuiObject, boolean)
 	return image, true
 end
 
--- 리본 그림(ribbon.png)을 입힘. 그림이 없으면 nil (Frame 으로 그린 리본 그대로).
--- root: 리본 전체 Frame (Position 이 띠 가운데 자리), main: root 를 꽉 채우는 띠 Frame(여기에 그림이 깔림),
--- label: main 안의 제목 글자(Ui.label), artHeight: 꼬리까지 포함한 그림 높이.
--- SliceScale = artHeight/256 이라 세로 비율은 그림 그대로(가로로만 늘어남). 띠는 그림 위쪽(y 40..160)에 있어서
--- 띠 가운데가 원래 자리에 오도록 root 를 내리고, 글자 상자·최대 크기를 띠 안쪽에 맞춤
-function Ui.ribbonArt(root: GuiObject, main: GuiObject, label: TextLabel, artHeight: number): ImageLabel?
-	local scale = artHeight / SKIN_SIZE
-	local skin = Ui.skin(main, "ribbon", { Scale = scale })
-	if not skin then
-		return nil
-	end
-	local anchorY = root.AnchorPoint.Y
-	local oldCenter = root.Size.Y.Offset * (0.5 - anchorY) -- 기준점에서 원래 띠 가운데까지
-	local newCenter = (RIBBON_FILL.Top + RIBBON_FILL.Bottom) / 2 * scale - artHeight * anchorY
-	root.Position += UDim2.fromOffset(0, oldCenter - newCenter)
-	root.Size = UDim2.new(root.Size.X.Scale, root.Size.X.Offset, 0, artHeight)
+export type Ribbon = { Root: Frame, Label: TextLabel, SetColor: (face: Color3, shadow: Color3) -> () }
 
-	local side = RIBBON_FILL.Side * scale + RIBBON_TEXT_PAD
-	local bandHeight = (RIBBON_FILL.Bottom - RIBBON_FILL.Top) * scale
-	label.Position = UDim2.fromOffset(side, RIBBON_FILL.Top * scale)
-	label.Size = UDim2.new(1, -2 * side, 0, bandHeight)
-	local limit = label:FindFirstChildOfClass("UITextSizeConstraint")
-	if limit then
-		limit.MaxTextSize = math.floor(bandHeight * RIBBON_TEXT_FILL)
+-- 제목 리본: 코드로 그린 이름판(그림자 판 + 위가 밝은 앞면 + 광택 줄 + Ink 테두리) 양 끝 뒤에 V 꼬리 그림.
+-- 판은 Frame 이라 화면 크기와 상관없이 또렷하고, 꼬리 그림은 9-slice 로 늘이지 않아 모양이 찌그러지지 않음.
+-- 꼬리 그림(ImageIds.ribbon_tail_l/r)이 없으면 둥근 네모 Frame 꼬리.
+-- props: { Size(오프셋: 가로 x 판 높이), Position, AnchorPoint, Name?, ZIndex?, Visible?, MaxTextSize?, Outline?, Parent? }
+function Ui.ribbon(props: { [string]: any }): Ribbon
+	local theme = Ui.Theme
+	local size: UDim2 = props.Size
+	local k = size.Y.Offset / RIBBON_BASE_HEIGHT
+	local root = Ui.new("Frame", {
+		Name = props.Name or "Ribbon",
+		AnchorPoint = props.AnchorPoint or Vector2.new(0.5, 0.5),
+		Position = props.Position or UDim2.new(),
+		Size = size,
+		BackgroundTransparency = 1,
+		ZIndex = props.ZIndex or 1,
+		Visible = props.Visible ~= false,
+	})
+
+	-- 꼬리 (판 뒤). 오른쪽은 왼쪽을 정확히 뒤집은 자리: 크기·위치를 먼저 정수로 반올림해 좌우가 1px 도 어긋나지 않게
+	local tailImages: { ImageLabel } = {}
+	local tailFrames: { Frame } = {}
+	local tailW, tailH = math.round(RIBBON_TAIL.Size.X * k), math.round(RIBBON_TAIL.Size.Y * k)
+	local tailLeft, tailTop = math.round(RIBBON_TAIL.Left * k), math.round(RIBBON_TAIL.Top * k)
+	-- 그림 없을 때: 그림의 꼬리 몸통 자리(왼쪽 그림 56x50 중 x 3..54, y 5..41)에 둥근 네모
+	local bodyX, bodyY = math.round(3 * k), math.round(5 * k)
+	local bodyW, bodyH = math.round(51 * k), math.round(36 * k)
+	for _, side in { "l", "r" } do
+		local image = Ui.imageId("ribbon_tail_" .. side)
+		local x, w, y, h
+		if image then
+			x, w, y, h = tailLeft, tailW, tailTop, tailH
+		else
+			x, w, y, h = tailLeft + bodyX, bodyW, tailTop + bodyY, bodyH
+		end
+		-- 왼쪽: 판 왼쪽 끝 + x / 오른쪽: 판 오른쪽 끝 - (x + w)
+		local position = if side == "l" then UDim2.fromOffset(x, y) else UDim2.new(1, -(x + w), 0, y)
+		if image then
+			table.insert(
+				tailImages,
+				Ui.new("ImageLabel", {
+					Name = "Tail",
+					Position = position,
+					Size = UDim2.fromOffset(w, h),
+					BackgroundTransparency = 1,
+					Image = image,
+					ScaleType = Enum.ScaleType.Stretch,
+					ZIndex = 1,
+					Parent = root,
+				})
+			)
+		else
+			local tail = Ui.new("Frame", {
+				Name = "Tail",
+				Position = position,
+				Size = UDim2.fromOffset(w, h),
+				BorderSizePixel = 0,
+				ZIndex = 1,
+				Parent = root,
+			})
+			Ui.corner(8 * k).Parent = tail
+			Ui.stroke(theme.Ink, 3).Parent = tail
+			table.insert(tailFrames, tail)
+		end
 	end
-	return skin
+
+	-- 판: 그림자 색 바탕 위에 아래 RIBBON_SHADE 만큼 짧은 앞면
+	local plate = Ui.new("Frame", {
+		Name = "Plate",
+		Size = UDim2.fromScale(1, 1),
+		BorderSizePixel = 0,
+		ZIndex = 2,
+		Parent = root,
+	})
+	Ui.corner(RIBBON_CORNER * k).Parent = plate
+	Ui.stroke(theme.Ink, 3).Parent = plate
+	local face = Ui.new("Frame", {
+		Name = "Face",
+		Size = UDim2.new(1, 0, 1, -RIBBON_SHADE * k),
+		BackgroundColor3 = WHITE,
+		BorderSizePixel = 0,
+		ZIndex = 1,
+		Parent = plate,
+	})
+	Ui.corner(RIBBON_CORNER * k).Parent = face
+	local gradient = Ui.new("UIGradient", { Rotation = 90, Parent = face })
+	local gloss = Ui.new("Frame", {
+		Name = "Gloss",
+		Position = UDim2.fromOffset(10 * k, 5 * k),
+		Size = UDim2.new(1, -20 * k, 0, 3 * k),
+		BackgroundColor3 = WHITE,
+		BackgroundTransparency = 0.45,
+		BorderSizePixel = 0,
+		ZIndex = 2,
+		Parent = plate,
+	})
+	Ui.round().Parent = gloss
+	local label = Ui.label({
+		Name = "Title",
+		Position = UDim2.fromOffset(12 * k, 3 * k),
+		Size = UDim2.new(1, -24 * k, 1, -(RIBBON_SHADE + 5) * k),
+		TextColor3 = WHITE,
+		ZIndex = 3,
+		Parent = plate,
+	}, props.MaxTextSize or 30)
+	Ui.outline(label, props.Outline or 3)
+
+	local function setColor(faceColor: Color3, shadow: Color3)
+		plate.BackgroundColor3 = shadow
+		gradient.Color = Ui.faceGradient(faceColor)
+		for _, tail in tailImages do
+			tail.ImageColor3 = faceColor -- 회색 그림이라 앞면 색을 곱하면 한 단계 어두운 색
+		end
+		for _, tail in tailFrames do
+			tail.BackgroundColor3 = shadow
+		end
+	end
+	setColor(WHITE, WHITE)
+
+	root.Parent = props.Parent
+	return { Root = root, Label = label, SetColor = setColor }
 end
 
 -- 바탕색 바꾸기 (스킨 그림이면 그림 색을)
@@ -16497,8 +16558,8 @@ export type Window = {
 	SetColor: (name: string) -> (),
 }
 
-local RIBBON_HEIGHT = 54 -- Frame 리본 높이 (창 몸통 위치의 기준)
-local RIBBON_ART_HEIGHT = 72 -- 리본 그림 높이(꼬리 포함). 띠 안쪽 높이 = 72 x 120/256 ≈ 34
+local RIBBON_HEIGHT = 50 -- 제목 리본 판 높이
+local BODY_TOP = 45 -- 창 위 끝에서 본문까지 (리본 판 아래 25 + 꼬리가 처지는 만큼)
 
 -- 그림 한 장이 곧 버튼(close.png 처럼 완성된 버튼 그림). 마우스를 올리면 1.08배, 누르면 0.9배
 local function imageButton(props: { [string]: any }): ImageButton
@@ -16541,7 +16602,7 @@ end
 
 -- props: { Size, Position, AnchorPoint, Title, Color(리본 색 이름), RibbonWidth?, Name?, ZIndex?, Visible?, Parent }
 -- Cream 바탕 + Ink 테두리 4 + 모서리 18, 위 가운데에 색 리본 제목, 오른쪽 위에 빨간 동그라미 닫기 버튼
--- 스킨: ImageIds.panel_paper(창 바탕, 물들이지 않음) / ribbon(리본, 색으로 물들임) / close(닫기 버튼 그림 그대로)
+-- 스킨: ImageIds.panel_paper(창 바탕, 물들이지 않음) / ribbon_tail_l·r(리본 꼬리, Ui.ribbon) / close(닫기 버튼 그림 그대로)
 function Ui.window(props: { [string]: any }): Window
 	local theme = Ui.Theme
 	local root = Ui.new("Frame", {
@@ -16591,59 +16652,18 @@ function Ui.window(props: { [string]: any }): Window
 		inner.Visible = false -- 종이 그림에 안쪽 테두리가 들어 있음
 	end
 
-	-- 리본 제목
-	local ribbon = Ui.new("Frame", {
+	-- 리본 제목: 판 가운데가 창 위 끝에서 4px 아래
+	local ribbon = Ui.ribbon({
 		Name = "Ribbon",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.new(0.5, 0, 0, 4),
 		Size = UDim2.fromOffset(props.RibbonWidth or 340, RIBBON_HEIGHT),
-		BackgroundTransparency = 1,
 		ZIndex = 3,
+		MaxTextSize = 30,
+		Outline = 3,
 		Parent = root,
 	})
-	local tails = {}
-	for _, side in { 0, 1 } do
-		local tail = Ui.new("Frame", {
-			Name = "Tail",
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.new(side, if side == 0 then -16 else 16, 0.5, 10),
-			Size = UDim2.fromOffset(48, 40),
-			BorderSizePixel = 0,
-			ZIndex = 1,
-			Parent = ribbon,
-		})
-		Ui.corner(8).Parent = tail
-		Ui.stroke(theme.Ink, 3).Parent = tail
-		table.insert(tails, tail)
-	end
-	local main = Ui.new("Frame", {
-		Name = "Main",
-		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = WHITE,
-		BorderSizePixel = 0,
-		ZIndex = 2,
-		Parent = ribbon,
-	})
-	Ui.corner(12).Parent = main
-	Ui.stroke(theme.Ink, 3).Parent = main
-	local gradient = Ui.new("UIGradient", { Rotation = 90, Parent = main })
-	local title = Ui.label({
-		Name = "Title",
-		Position = UDim2.fromOffset(14, 5),
-		Size = UDim2.new(1, -28, 1, -10),
-		Text = props.Title or "",
-		TextColor3 = WHITE,
-		ZIndex = 3,
-		Parent = main,
-	}, 32)
-	Ui.outline(title, 3)
-	-- 리본 그림: 띠 가운데는 그대로(창 위 4px), 글자는 띠 안쪽에 맞춤
-	local ribbonSkin = Ui.ribbonArt(ribbon, main, title, RIBBON_ART_HEIGHT)
-	if ribbonSkin then
-		for _, tail in tails do
-			tail.Visible = false -- 리본 그림에 꼬리가 들어 있음
-		end
-	end
+	ribbon.Label.Text = props.Title or ""
 
 	-- 닫기: close.png 는 빨간 동그라미 + X 가 다 그려진 버튼 그림이라 그대로 버튼으로 씀
 	local closeImage = Ui.imageId("close")
@@ -16674,7 +16694,7 @@ function Ui.window(props: { [string]: any }): Window
 		})
 	end
 
-	local top = RIBBON_HEIGHT / 2 + 4 + 14
+	local top = BODY_TOP
 	local body = Ui.new("Frame", {
 		Name = "Body",
 		Position = UDim2.fromOffset(18, top),
@@ -16690,13 +16710,7 @@ function Ui.window(props: { [string]: any }): Window
 		end
 		colorName = name
 		local pair = Ui.colorPair(name)
-		gradient.Color = Ui.faceGradient(pair.Face)
-		if ribbonSkin then
-			ribbonSkin.ImageColor3 = pair.Face
-		end
-		for _, tail in tails do
-			tail.BackgroundColor3 = pair.Shadow
-		end
+		ribbon.SetColor(pair.Face, pair.Shadow)
 	end
 	setColor(props.Color or "Sky")
 
@@ -16705,8 +16719,8 @@ function Ui.window(props: { [string]: any }): Window
 		Root = root,
 		Panel = panel,
 		Body = body,
-		Ribbon = ribbon,
-		Title = title,
+		Ribbon = ribbon.Root,
+		Title = ribbon.Label,
 		Close = close,
 		SetColor = setColor,
 	}

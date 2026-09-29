@@ -44,8 +44,8 @@ local ImageIds: { [string]: string } = {
 	tag = "rbxassetid://111522354097064",
 
 	-- 리본 꼬리 (늘이지 않는 그림, 56:50). 회색 바탕 그림을 ImageColor3 로 물들여 씀. 비어 있으면 둥근 네모 Frame 꼬리 (Ui.ribbon)
-	ribbon_tail_l = "",
-	ribbon_tail_r = "",
+	ribbon_tail_l = "rbxassetid://95542836384666",
+	ribbon_tail_r = "rbxassetid://114127605721192",
 }
 
 return ImageIds

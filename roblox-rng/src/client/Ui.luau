@@ -93,7 +93,7 @@ local PILL_ART_OPACITY = 0.62
 -- 제목 리본(Ui.ribbon) 치수. 판 높이 50 기준이고 판 높이에 비례해 늘거나 줄어듦.
 -- 꼬리 그림(ribbon_tail_l/r.png, 56x50)은 늘이지 않고 비율 그대로 판 양 끝 뒤에 붙임(안쪽 20 은 판 뒤에 숨음)
 local RIBBON_BASE_HEIGHT = 50
-local RIBBON_TAIL = { Size = Vector2.new(56, 50), Left = -36, Right = -20, Top = 17 }
+local RIBBON_TAIL = { Size = Vector2.new(56, 50), Left = -36, Top = 17 } -- 오른쪽 꼬리는 왼쪽을 뒤집은 자리
 local RIBBON_SHADE = 9 -- 판 아래 그림자 띠 두께
 local RIBBON_CORNER = 12
 
@@ -363,20 +363,31 @@ function Ui.ribbon(props: { [string]: any }): Ribbon
 		Visible = props.Visible ~= false,
 	})
 
-	-- 꼬리 (판 뒤)
+	-- 꼬리 (판 뒤). 오른쪽은 왼쪽을 정확히 뒤집은 자리: 크기·위치를 먼저 정수로 반올림해 좌우가 1px 도 어긋나지 않게
 	local tailImages: { ImageLabel } = {}
 	local tailFrames: { Frame } = {}
+	local tailW, tailH = math.round(RIBBON_TAIL.Size.X * k), math.round(RIBBON_TAIL.Size.Y * k)
+	local tailLeft, tailTop = math.round(RIBBON_TAIL.Left * k), math.round(RIBBON_TAIL.Top * k)
+	-- 그림 없을 때: 그림의 꼬리 몸통 자리(왼쪽 그림 56x50 중 x 3..54, y 5..41)에 둥근 네모
+	local bodyX, bodyY = math.round(3 * k), math.round(5 * k)
+	local bodyW, bodyH = math.round(51 * k), math.round(36 * k)
 	for _, side in { "l", "r" } do
-		local x = if side == "l" then UDim.new(0, RIBBON_TAIL.Left * k) else UDim.new(1, RIBBON_TAIL.Right * k)
-		local position = UDim2.new(x, UDim.new(0, RIBBON_TAIL.Top * k))
 		local image = Ui.imageId("ribbon_tail_" .. side)
+		local x, w, y, h
+		if image then
+			x, w, y, h = tailLeft, tailW, tailTop, tailH
+		else
+			x, w, y, h = tailLeft + bodyX, bodyW, tailTop + bodyY, bodyH
+		end
+		-- 왼쪽: 판 왼쪽 끝 + x / 오른쪽: 판 오른쪽 끝 - (x + w)
+		local position = if side == "l" then UDim2.fromOffset(x, y) else UDim2.new(1, -(x + w), 0, y)
 		if image then
 			table.insert(
 				tailImages,
 				Ui.new("ImageLabel", {
 					Name = "Tail",
 					Position = position,
-					Size = UDim2.fromOffset(RIBBON_TAIL.Size.X * k, RIBBON_TAIL.Size.Y * k),
+					Size = UDim2.fromOffset(w, h),
 					BackgroundTransparency = 1,
 					Image = image,
 					ScaleType = Enum.ScaleType.Stretch,
@@ -385,11 +396,10 @@ function Ui.ribbon(props: { [string]: any }): Ribbon
 				})
 			)
 		else
-			-- 그림의 꼬리 몸통 자리(56x50 중 x 3..54, y 5..41)에 둥근 네모
 			local tail = Ui.new("Frame", {
 				Name = "Tail",
-				Position = position + UDim2.fromOffset(3 * k, 5 * k),
-				Size = UDim2.fromOffset(51 * k, 36 * k),
+				Position = position,
+				Size = UDim2.fromOffset(w, h),
 				BorderSizePixel = 0,
 				ZIndex = 1,
 				Parent = root,

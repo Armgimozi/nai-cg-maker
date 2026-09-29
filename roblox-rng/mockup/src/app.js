@@ -32,18 +32,20 @@
     panel_paper: { radius: 46, margin: 64 },
     pill: { radius: 64, margin: 64 },
     tag: { radius: 44, margin: 46 },
-    ribbon: { radius: 50, margin: 64 },
   };
   const DEFAULT_SKIN = { radius: 50, margin: 64 };
   const skinSpec = (name) => SKINS[name] || DEFAULT_SKIN;
   const PILL_ART_OPACITY = 0.62;
-  const RIBBON_FILL = { side: 52, top: 40, bottom: 160 };
-  const RIBBON_TEXT_PAD = 4;
-  const RIBBON_TEXT_FILL = 0.85;
+  // Ui.ribbon 치수: 판 높이 50 기준, k = 판 높이/50 으로 늘이고 줄임. 꼬리 그림(ribbon_tail_l/r, 56x50)은 판 양 끝 뒤에
+  const RIBBON_BASE_HEIGHT = 50;
+  const RIBBON_TAIL = { w: 56, h: 50, left: -36, top: 17 }; // 오른쪽 꼬리는 왼쪽을 뒤집은 자리
+  const RIBBON_SHADE = 9;
+  const RIBBON_CORNER = 12;
   const CLOSE_ART_SIZE = 60;
-  const RIBBON_HEIGHT = 54;
-  const RIBBON_ART_HEIGHT = 72;
-  const TIER_RIBBON_ART_HEIGHT = 64;
+  const RIBBON_HEIGHT = 50; // Ui.window 제목 리본 판 높이
+  const BODY_TOP = 45; // Ui.window: 창 위 끝에서 본문까지
+  // ?tails=frame: 꼬리 그림(ImageIds.ribbon_tail_l/r)이 아직 비어 있을 때의 둥근 네모 Frame 꼬리로 그림
+  const TAIL_ART = !/[?&]tails=frame/.test(location.search);
   const CHIP_PAD = 0.42;
   const CHIP_ICON_PAD = 0.12;
 
@@ -539,22 +541,71 @@
     return { root, face, shadow, label: lbl, icon };
   }
 
-  // Ui.ribbonArt: 리본 그림 높이 artHeight (SliceScale = artHeight/256, 세로 비율 그대로). 띠(y 40..160)가 그림 위쪽에 있어서
-  // 띠 가운데가 원래 자리(pos, anchorY 기준)에 오도록 내리고, 제목 상자/최대 글자 크기를 띠 안쪽에 맞춤
-  function ribbonArt(pos, size, anchorY, artHeight) {
-    const scale = artHeight / SKIN_SIZE;
-    const oldCenter = size[3] * (0.5 - anchorY);
-    const newCenter = ((RIBBON_FILL.top + RIBBON_FILL.bottom) / 2) * scale - artHeight * anchorY;
-    const side = RIBBON_FILL.side * scale + RIBBON_TEXT_PAD;
-    const band = (RIBBON_FILL.bottom - RIBBON_FILL.top) * scale;
-    return {
-      scale,
-      pos: [pos[0], pos[1], pos[2], pos[3] + oldCenter - newCenter],
-      size: [size[0], size[1], 0, artHeight],
-      labelPos: [0, side, 0, RIBBON_FILL.top * scale],
-      labelSize: [1, -2 * side, 0, band],
-      maxText: Math.floor(band * RIBBON_TEXT_FILL),
-    };
+  // Ui.faceGradient (UIGradient Rotation 90 = 위에서 아래): 위 = 면 색 lerp 흰색 0.32, 50%..100% = 면 색
+  const faceGradient = (color) =>
+    `linear-gradient(to bottom, ${css(lerp(color, WHITE, 0.32))} 0%, ${css(color)} 50%, ${css(color)} 100%)`;
+
+  // Ui.ribbon: 코드로 그린 이름판(그림자 색 Plate + 아래 RIBBON_SHADE 만큼 짧은 앞면 Face(faceGradient) + 반투명 흰 광택 줄 +
+  // Ink 테두리 3(UIStroke Border = 판 바깥쪽)) 양 끝 뒤(ZIndex 1)에 V 꼬리 그림 ribbon_tail_l/r(56:50, 늘이지 않음, ImageColor3 = 앞면 색).
+  // 치수는 판 높이 50 기준이고 k = 판 높이/50 으로 늘이고 줄임. 꼬리 그림이 없으면 둥근 네모 Frame 꼬리(그림의 꼬리 몸통 자리 x 3..54, y 5..41).
+  // o: { name, anchor, pos, size([0, 가로, 0, 판 높이]), z, visible, maxText, outline, text, face, shadow }
+  function uiRibbon(parent, o) {
+    const size = o.size;
+    const k = size[3] / RIBBON_BASE_HEIGHT;
+    const root = gui(parent, {
+      name: o.name || 'Ribbon',
+      anchor: o.anchor || [0.5, 0.5],
+      pos: o.pos || [0, 0, 0, 0],
+      size,
+      z: o.z || 1,
+      visible: o.visible,
+    });
+    // 꼬리 (판 뒤). 오른쪽은 왼쪽을 정확히 뒤집은 자리(Ui.ribbon 과 같게 먼저 정수로 반올림)
+    const tails = [];
+    const R = Math.round;
+    const tailW = R(RIBBON_TAIL.w * k), tailH = R(RIBBON_TAIL.h * k);
+    const tailLeft = R(RIBBON_TAIL.left * k), tailTop = R(RIBBON_TAIL.top * k);
+    const bodyX = R(3 * k), bodyY = R(5 * k), bodyW = R(51 * k), bodyH = R(36 * k);
+    for (const side of ['l', 'r']) {
+      const art = TAIL_ART ? ART['ribbon_tail_' + side] : null;
+      const [x, w, y, h] = art ? [tailLeft, tailW, tailTop, tailH] : [tailLeft + bodyX, bodyW, tailTop + bodyY, bodyH];
+      const pos = side === 'l' ? [0, x, 0, y] : [1, -(x + w), 0, y];
+      let tail;
+      if (art) {
+        tail = gui(root, { name: 'Tail', pos, size: [0, w, 0, h], z: 1 });
+        tail.classList.add('tail-art');
+        const img = document.createElement('img');
+        img.alt = '';
+        img.src = art; // ScaleType.Stretch
+        applyLook(img, o.face); // 회색 그림 x 앞면 색
+        tail.appendChild(img);
+      } else {
+        tail = gui(root, {
+          name: 'Tail',
+          pos,
+          size: [0, w, 0, h],
+          bg: o.shadow,
+          z: 1,
+          corner: 8 * k,
+          stroke: [Theme.Ink, 3],
+        });
+        tail.dataset.fallback = '1';
+      }
+      tail.dataset.side = side;
+      tails.push(tail);
+    }
+    // 판: 그림자 색 바탕 위에 아래 RIBBON_SHADE 만큼 짧은 앞면
+    const plate = gui(root, { name: 'Plate', size: [1, 0, 1, 0], bg: o.shadow, z: 2, corner: RIBBON_CORNER * k, stroke: [Theme.Ink, 3] });
+    const face = gui(plate, { name: 'Face', size: [1, 0, 1, -RIBBON_SHADE * k], z: 1, corner: RIBBON_CORNER * k });
+    face.style.background = faceGradient(o.face);
+    gui(plate, { name: 'Gloss', pos: [0, 10 * k, 0, 5 * k], size: [1, -20 * k, 0, 3 * k], bg: WHITE, bgT: 0.45, z: 2, corner: 'round' });
+    const title = label(
+      plate,
+      { name: 'Title', pos: [0, 12 * k, 0, 3 * k], size: [1, -24 * k, 1, -(RIBBON_SHADE + 5) * k], text: o.text || '', color: WHITE, z: 3, outline: o.outline ?? 3 },
+      o.maxText ?? 30
+    );
+    root.dataset.outline = String(o.outline ?? 3);
+    return { root, plate, face, title, tails };
   }
 
   // Ui.window
@@ -573,18 +624,26 @@
     // 안쪽 종이 테두리(Inner)는 그림에 들어 있어서 숨김. 늘어나는 가운데 조각은 크림색 평면으로 덮음(CenterColor)
     skin(panel, 'panel_paper', { radius: 18, centerColor: Theme.Cream });
 
-    // 리본 그림(Ui.ribbonArt): 높이 72 = SliceScale 72/256, 띠 가운데는 창 위 4px, 제목은 띠 안쪽에 (꼬리 Frame 은 숨김)
-    const rg = ribbonArt([0.5, 0, 0, 4], [0, o.ribbonWidth || 340, 0, RIBBON_HEIGHT], 0.5, RIBBON_ART_HEIGHT);
-    const ribbon = gui(root, { name: 'Ribbon', anchor: [0.5, 0.5], pos: rg.pos, size: rg.size, z: 3 });
-    const main = gui(ribbon, { name: 'Main', size: [1, 0, 1, 0], z: 2, corner: 12 });
-    skin(main, 'ribbon', { scale: rg.scale, color: colorPair(o.color || 'Sky').Face });
-    const title = label(main, { name: 'Title', pos: rg.labelPos, size: rg.labelSize, text: o.title || '', color: WHITE, z: 3, outline: 3 }, rg.maxText);
+    // 리본 제목(Ui.ribbon): 판 가운데가 창 위 끝에서 4px 아래, 판 높이 50
+    const pair = colorPair(o.color || 'Sky');
+    const ribbon = uiRibbon(root, {
+      name: 'Ribbon',
+      anchor: [0.5, 0.5],
+      pos: [0.5, 0, 0, 4],
+      size: [0, o.ribbonWidth || 340, 0, RIBBON_HEIGHT],
+      z: 3,
+      maxText: 30,
+      outline: 3,
+      text: o.title || '',
+      face: pair.Face,
+      shadow: pair.Shadow,
+    });
 
     // 닫기: close.png(빨간 동그라미 + X 완성 그림)를 그대로 ImageButton 으로
     const close = iconView(root, 'close', { name: 'Close', anchor: [0.5, 0.5], pos: [1, -8, 0, 8], size: [0, CLOSE_ART_SIZE, 0, CLOSE_ART_SIZE], z: 4 });
-    const top = RIBBON_HEIGHT / 2 + 4 + 14;
+    const top = BODY_TOP;
     const body = gui(panel, { name: 'Body', pos: [0, 18, 0, top], size: [1, -36, 1, -(top + 16)] });
-    return { root, panel, body, ribbon, title, close };
+    return { root, panel, body, ribbon: ribbon.root, title: ribbon.title, close };
   }
 
   // Ui.pill
@@ -1068,14 +1127,21 @@
     ph.style.borderRadius = '50%';
     ph.style.inset = '14px';
 
-    // 등급 리본(Ui.ribbonArt, 그림 높이 64): 띠 가운데가 판 아래 끝, 등급 이름은 띠 안쪽에
-    const rg = ribbonArt([0.5, 0, 0, centerY + VIEW_SIZE / 2], [0, 250, 0, 44], 0.5, TIER_RIBBON_ART_HEIGHT);
-    const ribbon = gui(inner, { name: 'TierRibbon', anchor: [0.5, 0.5], pos: rg.pos, size: rg.size, z: 4 });
-    const ribbonMain = gui(ribbon, { size: [1, 0, 1, 0], z: 2, corner: 10 });
-    skin(ribbonMain, 'ribbon', { scale: rg.scale, color: tier.Color });
-    label(ribbonMain, { name: 'Tier', pos: rg.labelPos, size: rg.labelSize, text: tier.Name, color: WHITE, z: 3, outline: 2.5 }, rg.maxText);
+    // 등급 리본(Ui.ribbon 250x44): 판 가운데가 둥근 판 아래 끝보다 6 위. showRibbon: 앞면 = 등급 색, 그림자 = 등급 색 lerp Ink 0.35
+    uiRibbon(inner, {
+      name: 'TierRibbon',
+      anchor: [0.5, 0.5],
+      pos: [0.5, 0, 0, centerY + VIEW_SIZE / 2 - 6],
+      size: [0, 250, 0, 44],
+      z: 4,
+      maxText: 26,
+      outline: 2.5,
+      text: tier.Name,
+      face: tier.Color,
+      shadow: lerp(tier.Color, Theme.Ink, 0.35),
+    });
 
-    const nameTop = centerY + VIEW_SIZE / 2 + 28;
+    const nameTop = centerY + VIEW_SIZE / 2 + 34;
     label(inner, { name: 'Name', pos: [0, 0, 0, nameTop], size: [1, 0, 0, 66], font: 'title', text: landmark.Name, color: tier.Color, z: 4, outline: 4 }, 62);
     label(inner, { name: 'Odds', pos: [0, 0, 0, nameTop + 66], size: [1, 0, 0, 30], font: 'title', text: oneIn(landmark.OneIn), color: WHITE, z: 4, outline: 2.5 }, 28);
 
@@ -1347,7 +1413,7 @@
       z: 5,
       uiScale: view.scale,
     });
-    const top = RIBBON_HEIGHT / 2 + 4 + 14;
+    const top = BODY_TOP;
     const bodyHeight = height - (top + 16);
     if (name === 'Collection') buildCollection(win.body, bodyHeight, state, opts.scrollY || 0);
     else if (name === 'Passport') buildPassport(win.body, bodyHeight, state, opts.scrollY || 0);
@@ -1649,7 +1715,7 @@
       note: '위 여권 창 안에서 스크롤되는 내용 전체를 한 번에 펼친 참고용 그림(게임 화면이 아님). 크기·배율은 창과 같음.',
       build(root) {
         const canvas = passportCanvasHeight();
-        const top = RIBBON_HEIGHT / 2 + 4 + 14;
+        const top = BODY_TOP;
         const windowHeight = top + HEADER_HEIGHT + canvas + 16;
         const screenHeight = Math.ceil(windowHeight * uiScaleFor(1280, 720) + 70);
         const screenGui = newScreen(root, this.id, { height: screenHeight, world: false, topbar: false, background: '#7fa9c2' });
@@ -1701,6 +1767,38 @@
       screen.style.transform = scale < 1 ? `scale(${scale})` : '';
       wrap.style.height = screen.offsetHeight * scale + 'px';
     });
+  }
+
+  // 꼬리 그림에서 실제로 칠해진 부분(알파 > 0.03)의 범위 (그림 크기 대비 0..1). main 이 checks 전에 채움
+  const TAIL_BOX = {};
+  async function measureTailArt() {
+    for (const side of ['l', 'r']) {
+      const image = ART['ribbon_tail_' + side] ? await loadImage('ribbon_tail_' + side) : null;
+      if (!image) continue;
+      const w = image.naturalWidth;
+      const h = image.naturalHeight;
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(image, 0, 0);
+      const data = ctx.getImageData(0, 0, w, h).data;
+      let x0 = w;
+      let y0 = h;
+      let x1 = -1;
+      let y1 = -1;
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          if (data[(y * w + x) * 4 + 3] > 8) {
+            x0 = Math.min(x0, x);
+            x1 = Math.max(x1, x);
+            y0 = Math.min(y0, y);
+            y1 = Math.max(y1, y);
+          }
+        }
+      }
+      if (x1 >= 0) TAIL_BOX[side] = { left: x0 / w, top: y0 / h, right: (x1 + 1) / w, bottom: (y1 + 1) / h };
+    }
   }
 
   // --- 고친 점 확인: 다 그린 화면에서 실제 위치·크기를 재서 확인 (게임 코드와 같은 계산식) ----------------------
@@ -1819,25 +1917,85 @@
         (incomeDesign ? ` (지금 수입 칩 폭 기준 오른쪽 끝 ${incomeDesign.toFixed(0)} ≤ 예약 ${STATS_RESERVE})` : '')
     );
 
-    // 2) 리본 제목이 띠 안쪽(ribbon.png y 40..160)에 들어가는지
-    const ribbons = [
-      { what: '창 제목 리본', sel: '#screen3 [data-name="Ribbon"]', label: '[data-name="Title"]' },
-      { what: '등급 리본(처음 발견)', sel: '#screen2 [data-name="TierRibbon"]', label: '[data-name="Tier"]' },
-      { what: '등급 리본(별 오름)', sel: '#screen2b [data-name="TierRibbon"]', label: '[data-name="Tier"]' },
+    // 2) 제목 리본(Ui.ribbon): 제목 글자(+ 글자 테두리)가 앞면(Face = 판 - 아래 그림자 띠) 안에 들어가는지,
+    //    꼬리(그림에서 실제로 칠해진 부분)·판 테두리가 창 본문 / 닫기 버튼 / 명소 이름과 겹치지 않는지
+    const ribbonChecks = [
+      { what: '도감 창', id: 'screen3', sel: '[data-name="Ribbon"]' },
+      { what: '여권 창', id: 'screen4', sel: '[data-name="Ribbon"]' },
+      { what: '강화 창', id: 'screen5', sel: '[data-name="Ribbon"]' },
+      { what: '등급(처음 발견)', id: 'screen2', sel: '[data-name="TierRibbon"]' },
+      { what: '등급(별 오름)', id: 'screen2b', sel: '[data-name="TierRibbon"]' },
     ].map((c) => {
-      const ribbon = document.querySelector(c.sel);
-      const span = ribbon && ribbon.querySelector(c.label + ' > span');
-      if (!span) return `${c.what}: 못 찾음`;
-      const scr = ribbon.closest('.screen');
-      const box = rectIn(ribbon, scr);
-      const text = rectIn(span, scr);
-      const h = box.bottom - box.top;
-      const band = { top: box.top + (RIBBON_FILL.top / SKIN_SIZE) * h, bottom: box.top + (RIBBON_FILL.bottom / SKIN_SIZE) * h };
-      const inside = text.top >= band.top - 0.5 && text.bottom <= band.bottom + 0.5;
-      const drop = (text.top + text.bottom) / 2 - (band.top + band.bottom) / 2;
-      return `${c.what} ${verdict(inside && Math.abs(drop) <= 1)} 띠 안쪽 ${Math.round(band.bottom - band.top)}px, 글자 ${Math.round(text.bottom - text.top)}px, 중심 차 ${drop.toFixed(1)}px`;
+      const scr = document.getElementById(c.id);
+      const ribbon = scr && scr.querySelector(c.sel);
+      const plate = ribbon && ribbon.querySelector(':scope > [data-name="Plate"]');
+      const face = plate && plate.querySelector(':scope > [data-name="Face"]');
+      const title = plate && plate.querySelector(':scope > [data-name="Title"]');
+      const span = title && title.querySelector(':scope > span');
+      if (!span || !face) return `${c.what}: 못 찾음`;
+      const plateBox = rectIn(plate, scr);
+      const px = (plateBox.right - plateBox.left) / plate.offsetWidth; // 화면 px / 설계 px (UIScale)
+      const k = plate.offsetHeight / RIBBON_BASE_HEIGHT;
+      const edge = 3 * px; // 판·Frame 꼬리 UIStroke(Border) 3 = 바깥쪽
+      const plateOuter = { left: plateBox.left - edge, right: plateBox.right + edge, top: plateBox.top - edge, bottom: plateBox.bottom + edge };
+      // 글자 + 글자 테두리(Contextual)가 앞면 안에
+      const f = rectIn(face, scr);
+      const t = rectIn(span, scr);
+      const o = Number(ribbon.dataset.outline || 3) * px;
+      const room = Math.min(t.top - o - f.top, f.bottom - (t.bottom + o), t.left - o - f.left, f.right - (t.right + o)) / px;
+      const fontSize = parseFloat(span.style.fontSize) || 0;
+      const textOk = room >= -0.5;
+      // 꼬리: 그림이면 알파가 있는 부분(TAIL_BOX), Frame 꼬리면 테두리까지
+      const tailEls = Array.from(ribbon.querySelectorAll(':scope > [data-name="Tail"]'));
+      const tails = tailEls.map((el) => {
+        const r = rectIn(el, scr);
+        if (el.dataset.fallback) return { left: r.left - edge, right: r.right + edge, top: r.top - edge, bottom: r.bottom + edge };
+        const b = TAIL_BOX[el.dataset.side] || { left: 0, top: 0, right: 1, bottom: 1 };
+        const w = r.right - r.left;
+        const h = r.bottom - r.top;
+        return { left: r.left + b.left * w, right: r.left + b.right * w, top: r.top + b.top * h, bottom: r.top + b.bottom * h };
+      });
+      const tailBottom = Math.max(...tails.map((r) => r.bottom));
+      const tailOut = (plateBox.left - Math.min(...tails.map((r) => r.left))) / px; // 판 왼쪽 끝 밖으로 나온 꼬리 길이
+      const drawn = tailEls.some((el) => el.dataset.fallback) ? 'Frame 꼬리' : '꼬리 그림';
+      // 그림이 없을 때(ImageIds.ribbon_tail_* 가 비어 있음)의 Frame 꼬리 아래 끝: 판 위 + (Top 17 + 5 + 36)k + 테두리 3
+      const frameTailBottom = plateBox.top + (RIBBON_TAIL.top + 5 + 36) * k * px + edge;
+      const parts = [];
+      const hits = [];
+      let clear = [];
+      if (c.sel.includes('TierRibbon')) {
+        const nameSpan = ribbon.parentElement.querySelector(':scope > [data-name="Name"] > span');
+        const nameLabel = nameSpan && nameSpan.parentElement;
+        const n = rectIn(nameSpan, scr);
+        const no = parseFloat(nameLabel.style.getPropertyValue('--sw') || '0') / 2 * px;
+        const name = { left: n.left - no, right: n.right + no, top: n.top - no, bottom: n.bottom + no };
+        if (overlap(plateOuter, name)) hits.push('판-이름');
+        tails.forEach((r) => overlap(r, name) && hits.push('꼬리-이름'));
+        const gap = (name.top - Math.max(tailBottom, plateOuter.bottom)) / px;
+        const side = Math.min(...tails.map((r) => Math.max(r.left - name.right, name.left - r.right))) / px;
+        clear.push(`이름(${nameSpan.textContent}) 글자 위 끝까지 ${gap.toFixed(1)}px` + (gap < 0 ? `(대신 꼬리와 옆으로 ${side.toFixed(1)}px 떨어짐)` : ''));
+        clear.push(`Frame 꼬리일 때 이름까지 ${((name.top - frameTailBottom) / px).toFixed(1)}px`);
+      } else {
+        const win = ribbon.parentElement;
+        const body = rectIn(win.querySelector('[data-name="Body"]'), scr);
+        const close = rectIn(win.querySelector(':scope > [data-name="Close"]'), scr);
+        tails.forEach((r) => overlap(r, body) && hits.push('꼬리-본문'));
+        if (overlap(plateOuter, body)) hits.push('판-본문');
+        tails.forEach((r) => overlap(r, close) && hits.push('꼬리-닫기'));
+        if (overlap(plateOuter, close)) hits.push('판-닫기');
+        clear.push(`본문 위 끝(BODY_TOP ${BODY_TOP})까지 ${((body.top - tailBottom) / px).toFixed(1)}px`);
+        clear.push(`닫기 버튼까지 ${((close.left - Math.max(...tails.map((r) => r.right))) / px).toFixed(1)}px`);
+        clear.push(`Frame 꼬리일 때 본문까지 ${((body.top - frameTailBottom) / px).toFixed(1)}px`);
+      }
+      parts.push(`글자 ${fontSize}px(테두리 포함 앞면 안 여유 ${room.toFixed(1)}px)`);
+      parts.push(`판 끝 밖으로 나온 꼬리(${drawn}) ${tailOut.toFixed(1)}px`);
+      parts.push(...clear);
+      return `${c.what} ${verdict(textOk && !hits.length)} ${parts.join(', ')}` + (hits.length ? ` (겹침: ${[...new Set(hits)].join(', ')})` : '');
     });
-    items.push(`<b>리본 제목</b>: SliceScale = 그림 높이/256(창 72, 등급 64), 글자 상자 = 띠 안쪽(Ui.ribbonArt). ${ribbons.join(' / ')}.`);
+    items.push(
+      `<b>제목 리본(Ui.ribbon)</b>: 판 높이 50 기준 k 배(창 50 → k 1, 등급 44 → k 0.88), 앞면 = 판 - 아래 ${RIBBON_SHADE}k, 꼬리 ${RIBBON_TAIL.w}×${RIBBON_TAIL.h}k 를 x ${RIBBON_TAIL.left}k(오른쪽은 좌우 뒤집은 자리), y +${RIBBON_TAIL.top}k 에. ` +
+        `${ribbonChecks.join(' / ')}.`
+    );
 
     // 3) 알약: 물들이지 않음
     const pills = Array.from(document.querySelectorAll('.skin[data-skin="pill"]'));
@@ -1920,6 +2078,11 @@
     fitAll(document);
     await paintSkins(document);
     fitFrames();
+    try {
+      await measureTailArt();
+    } catch (e) {
+      console.warn('measureTailArt', e);
+    }
     let found = [];
     try {
       found = checks();
