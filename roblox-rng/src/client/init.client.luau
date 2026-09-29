@@ -1,8 +1,10 @@
--- 클라이언트 진입점: 상태 동기화, 굴리기/자동 굴리기, 메뉴 연결, 뉴스 속보, 회전 모형
+-- 클라이언트 진입점: 상태 동기화, 굴리기/자동 굴리기, 메뉴 연결, 뉴스 속보, 회전 모형,
+-- 환생 · Robux 상품 구매 요청 · 서버 행운 알림 (DESIGN.md v3)
 -- (화면 글자에는 이모지를 쓰지 않음 — DESIGN.md UI 스타일 가이드 v2)
 -- 알림은 [아이콘] + 8글자 안팎 ("구매 완료", "코인 부족", "대표 지정"), 문장은 쓰지 않음
 
 local CollectionService = game:GetService("CollectionService")
+local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TextChatService = game:GetService("TextChatService")
@@ -17,6 +19,7 @@ local PlayerState = require(Shared.PlayerState)
 local Hud = require(script.Hud)
 local Icons = require(script.Icons)
 local Panels = require(script.Panels)
+local Perks = require(script.Perks)
 local Ui = require(script.Ui)
 
 local SPIN_TAG = "LandmarkSpin"
@@ -35,6 +38,7 @@ local lastRollSentAt = -math.huge
 local heldAnnouncements = {} -- 내 굴림 연출 중에 도착한 "내" 속보 (연출이 끝나면 표시)
 local location = "Plaza" -- 지금 있는 곳: "Plaza" | "Park"
 local teleporting = false
+local rebirthing = false
 
 local function currentCoins(): number
 	if not state then
@@ -54,7 +58,7 @@ local function applyState(snapshot: any, receivedAt: number?)
 	end
 	state = snapshot
 	stateReceivedAt = receivedAt or time()
-	Hud.render(snapshot)
+	Hud.render(snapshot, stateReceivedAt)
 	Hud.setCoins(currentCoins())
 	Panels.render(snapshot)
 end
@@ -73,8 +77,26 @@ local function onStateEvent(snapshot: any)
 	applyState(snapshot)
 end
 
+-- 원격 찾기. 서버가 아직 모르는 원격(예: 옛 서버에 Rebirth 가 없음)이면 영원히 기다리지 않고 nil
+local remoteFolder: Instance? = nil
+local function findRemote(name: string, seconds: number): Instance?
+	if not remoteFolder then
+		remoteFolder = Net.fn("GetState").Parent
+	end
+	local folder = remoteFolder
+	if not folder then
+		return nil
+	end
+	return folder:FindFirstChild(name) or folder:WaitForChild(name, seconds)
+end
+
 local function invoke(name: string, ...: any): any
-	local remote = Net.fn(name)
+	local remote = findRemote(name, 5)
+	if not remote or not remote:IsA("RemoteFunction") then
+		warn("[LandmarkRNG] 원격 없음: " .. name)
+		Hud.toast("연결 오류", Ui.Theme.Bad, nil, "close")
+		return nil
+	end
 	local ok, result = pcall(remote.InvokeServer, remote, ...)
 	if not ok then
 		warn("[LandmarkRNG] " .. name .. " 실패: " .. tostring(result))
@@ -246,6 +268,77 @@ local function toggleAutoFeature()
 	end
 end
 
+-- 환생 -------------------------------------------------------------------------
+
+-- 서버가 준 실패 이유 -> 짧은 알림. 이유가 애매하면 지금 상태로 판단
+local function rebirthFailure(reason: any): (string, string)
+	local text = string.lower(tostring(reason or ""))
+	if text:find("코인") or text:find("coin") then
+		return "코인 부족", "coin"
+	elseif text:find("명소") or text:find("landmark") or text:find("missing") then
+		return "명소 부족", "lock"
+	elseif text:find("불러") or text:find("load") then
+		return "로딩 중", "globe"
+	end
+	if state then
+		local _, missing, short = Perks.rebirthCheck(state, currentCoins())
+		if #missing > 0 then
+			return "명소 부족", "lock"
+		elseif short > 0 then
+			return "코인 부족", "coin"
+		end
+	end
+	return "환생 실패", "close"
+end
+
+local function rebirth()
+	if rebirthing then
+		return
+	end
+	rebirthing = true
+	local response = invoke("Rebirth")
+	rebirthing = false
+	if type(response) ~= "table" then
+		return
+	end
+	applyState(response.State)
+	if response.Ok then
+		Hud.flash(Ui.colorPair("Coral").Face, 0.55)
+		Hud.toast("환생!", Ui.colorPair("Coral").Face, 3, "rebirth")
+	else
+		local text, icon = rebirthFailure(response.Reason)
+		Hud.toast(text, Ui.Theme.Bad, 2, icon)
+	end
+end
+
+-- Robux 상품 --------------------------------------------------------------------
+-- 서버가 구매 창을 띄움. 지급 결과는 State(부스트·패스·코인) / ServerLuck 이벤트로 들어옴
+
+local function buyRobux(remoteName: string, key: string)
+	local response = invoke(remoteName, key)
+	if type(response) ~= "table" then
+		return
+	end
+	if type(response.State) == "table" then
+		applyState(response.State)
+	end
+	if response.Ok == false then
+		-- 시간 부스트는 최대 시간(3시간)이 차 있으면 서버가 구매 창을 안 띄움
+		local item = Perks.item(key)
+		if item and item.Seconds then
+			Hud.toast("MAX", Ui.Theme.Bad, 2, item.Icon)
+		else
+			Hud.toast("구매 실패", Ui.Theme.Bad, 2, "close")
+		end
+	end
+end
+
+-- 구매 창에서 실제로 샀을 때: [상품 아이콘] "구매 완료"
+local function purchased(kind: string, id: any)
+	local item = Perks.itemById(kind, tonumber(id) or 0)
+	Hud.toast("구매 완료", Ui.Theme.Good, 3, if item then item.Icon else "check")
+end
+
 -- 광장 <-> 내 공원 이동
 local function teleport()
 	if teleporting then
@@ -285,6 +378,18 @@ Panels.init(gui, {
 	ToggleAutoFeature = function()
 		task.spawn(toggleAutoFeature)
 	end,
+	Rebirth = function()
+		task.spawn(rebirth)
+	end,
+	BuyPass = function(key: string)
+		task.spawn(buyRobux, "BuyPass", key)
+	end,
+	BuyProduct = function(key: string)
+		task.spawn(buyRobux, "BuyProduct", key)
+	end,
+	Toast = function(text: string, icon: string?)
+		Hud.toast(text, Ui.Theme.Bad, 2, icon)
+	end,
 })
 
 -- 다시 태어나면 광장(스폰 지점)에서 시작
@@ -322,6 +427,39 @@ Net.event("Announce").OnClientEvent:Connect(function(info)
 	showAnnouncement(info, landmark)
 end)
 
+-- 서버 행운 { Name, Until, Left }: 위쪽 띠 + "<이름> 서버 행운!"
+-- (남은 초 Left 를 먼저 씀: 시계 동기화 오차가 없음. 옛 서버에 이벤트가 없어도 멈추지 않게 따로 기다림)
+task.spawn(function()
+	local remote = findRemote("ServerLuck", 30)
+	if not remote or not remote:IsA("RemoteEvent") then
+		return
+	end
+	remote.OnClientEvent:Connect(function(info)
+		if type(info) ~= "table" then
+			return
+		end
+		local left = tonumber(info.Left)
+		local untilTime = if left and left > 0 then left else tonumber(info.Until)
+		if untilTime then
+			Hud.serverLuck(tostring(info.Name or ""), untilTime)
+		end
+	end)
+end)
+
+-- 구매 창이 닫힐 때 알림만 (지급은 서버의 ProcessReceipt). 연결에 실패해도 아래 루프는 돌아야 하므로 pcall
+pcall(function()
+	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(who, passId, wasPurchased)
+		if who == player and wasPurchased then
+			purchased("Pass", passId)
+		end
+	end)
+	MarketplaceService.PromptProductPurchaseFinished:Connect(function(userId, productId, isPurchased)
+		if userId == player.UserId and isPurchased then
+			purchased("Product", productId)
+		end
+	end)
+end)
+
 -- 루프 ---------------------------------------------------------------------
 
 -- "LandmarkSpin" 태그 모형 목록 (태그가 붙고 떨어질 때만 갱신 → 매 프레임 목록을 새로 만들지 않음)
@@ -352,11 +490,15 @@ RunService.RenderStepped:Connect(function(dt)
 	end
 end)
 
--- 업그레이드 버튼 "살 수 있음" 색 (가벼운 갱신)
+-- 업그레이드 버튼 "살 수 있음" 색, 환생 조건, 부스트·서버 행운 타이머 (가벼운 갱신)
 task.spawn(function()
 	while true do
 		if state then
-			Panels.refreshCoins(currentCoins())
+			local coins = currentCoins()
+			Panels.refreshCoins(coins)
+			Hud.tick(coins)
+		else
+			Hud.tick(nil)
 		end
 		task.wait(0.25)
 	end

@@ -853,11 +853,13 @@ function Hud.render(state: PlayerState.Snapshot?, receivedAt: number?)
 	Hud.tick(state.Coins + state.Income * math.max(0, time() - at))
 end
 
--- ServerLuck 이벤트 { Name, Until }: 띠를 켜고 "<이름> 서버 행운!" 알림
+-- ServerLuck 이벤트: 띠를 켜고 "<이름> 서버 행운!" 알림
+-- untilValue: 끝나는 시각(서버 시계, 유닉스 초) 또는 남은 초
 function Hud.serverLuck(name: string, untilValue: number)
 	eventLuckUntil = math.max(eventLuckUntil, Perks.toEpoch(untilValue, serverNow()))
 	Hud.tick(nil)
-	Hud.toast(Format.escape(name) .. " 서버 행운!", Ui.colorPair("Grape").Face, 4, "globe")
+	local text = if name ~= "" then Format.escape(name) .. " 서버 행운!" else "서버 행운!"
+	Hud.toast(text, Ui.colorPair("Grape").Face, 4, "globe")
 	play(luckSound)
 end
 

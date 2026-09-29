@@ -961,11 +961,8 @@ end
 -- 버튼이 좌우로 살짝 흔들림 (아직 못 누를 때)
 local function shake(target: GuiObject)
 	target.Rotation = 0
-	TweenService:Create(
-		target,
-		TweenInfo.new(0.05, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, 3, true),
-		{ Rotation = 4 }
-	):Play()
+	local info = TweenInfo.new(0.05, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, 3, true)
+	TweenService:Create(target, info, { Rotation = 4 }):Play()
 end
 
 -- 환생 버튼: 못 함 = 회색 / 가능 = Coral "환생" / 한 번 누름 = Sun "확인?" (3초)
@@ -1081,15 +1078,15 @@ local function buildRebirth(): View
 		CellPadding = UDim2.fromOffset(PASSPORT_GAP, PASSPORT_GAP),
 		FillDirectionMaxCells = REBIRTH_COLUMNS,
 		SortOrder = Enum.SortOrder.LayoutOrder,
-		HorizontalAlignment = Enum.HorizontalAlignment.Left,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
 		Parent = rebirthGrid,
 	})
 
 	-- 코인 막대: [동전] 12.3K / 50K [체크]
 	local bar = Ui.new("Frame", {
 		Name = "Coins",
-		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0, SECTION_PAD + 22, 1, -SECTION_PAD),
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -SECTION_PAD),
 		Size = UDim2.fromOffset(COIN_BAR.X, COIN_BAR.Y),
 		BackgroundColor3 = Theme.Cream,
 		Parent = rebirthSection,
@@ -1277,17 +1274,16 @@ local function renderRebirth(state: Snapshot)
 	rebirthLuck.Label.Text = Ui.times(luck)
 	rebirthIncome.Label.Text = Ui.times(income)
 	-- 발견 기록(Discovered)이 따로 있으면 보유 명소도 초기화되는 규칙(DESIGN v3)
-	rebirthWarning.Label.Text = if (state :: any).Discovered ~= nil then "코인·강화·명소 초기화" else "코인·강화 초기화"
+	rebirthWarning.Label.Text = if (state :: any).Discovered ~= nil
+		then "코인·강화·명소 초기화"
+		else "코인·강화 초기화"
 
 	local need = Perks.rebirthNeed(state)
 	local list = if need then need.Landmarks else {}
 	local wanted: { [string]: boolean } = {}
 	for order, id in list do
 		wanted[id] = true
-		local look = if owned(state, id) > 0
-			then "owned"
-			elseif Perks.discovered(state, id) then "seen"
-			else "unknown"
+		local look = if owned(state, id) > 0 then "owned" elseif Perks.discovered(state, id) then "seen" else "unknown"
 		local entry = rebirthCards[id]
 		if not entry or entry.Look ~= look then
 			if entry then

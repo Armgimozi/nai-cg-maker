@@ -1,9 +1,10 @@
 -- 환생 · 게임패스 · 개발자 상품 · 시간 부스트 · 서버 행운을 화면용으로 읽는 헬퍼 (DESIGN.md v3).
 -- Snapshot/Config 를 방어적으로 읽습니다: 필드가 없거나 형식이 조금 달라도(숫자/표) 화면이 깨지지 않게.
 --   Snapshot: Rebirths, NextRebirth = { Coins, Landmarks }, Discovered, Boosts = { [id] = 남은 초 },
---             Passes = { [passKey] = true }, ServerLuck (남은 초 / 끝나는 유닉스 시각 / 표 / true)
+--             Passes = { [passKey] = true }, ServerLuck (지금은 true/false. 남은 초 / 끝 시각 / 표도 받아 줌)
+--   ServerLuck 이벤트: { Name, Until(workspace:GetServerTimeNow 기준 끝 시각), Left(남은 초) }
 --   Config:   REBIRTH_LUCK_BONUS, REBIRTH_INCOME_BONUS, REBIRTHS, GamePasses, Products
---             (상품 항목은 숫자 Id 또는 { Id = 숫자, ... } 둘 다 받음. Id 가 0 이면 화면에 안 나옴)
+--             (상품 항목 { Id = "LuckVIP", Name, PassId/ProductId, LuckMult... }. 번호가 0 이면 화면에 안 나옴)
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Config = require(Shared.Config) :: any
@@ -79,7 +80,8 @@ local PRODUCT_INFO = {
 	{ Key = "CoinPack", Name = "코인 팩", Icon = "coin", Color = "Grape", EffectIcon = "coin" },
 }
 
--- Config.GamePasses / Products 에서 key 항목 찾기: { LuckVIP = 123 } / { LuckVIP = { Id = 123 } } / { { Key = "LuckVIP", Id = 123 } }
+-- Config.GamePasses / Products 에서 key 항목 찾기.
+-- 지금 형식: { { Id = "LuckVIP", Name, PassId = 123, LuckMult = 2 }, ... }. { LuckVIP = 123 } 같은 형식도 받아 줌
 local function lookup(group: any, key: string): any
 	if type(group) ~= "table" then
 		return nil
@@ -89,51 +91,65 @@ local function lookup(group: any, key: string): any
 		return entry
 	end
 	for _, value in group do
-		if type(value) == "table" and value.Key == key then
+		if type(value) == "table" and (value.Id == key or value.Key == key) then
 			return value
 		end
 	end
 	return nil
 end
 
+-- 로블록스 상품 번호 (없으면 0). 항목의 Id 는 문자열 키라서 숫자일 때만 번호로 봄
 local function idOf(entry: any): number
 	if type(entry) == "number" then
 		return entry
 	end
-	return pick(entry, { "Id", "PassId", "ProductId", "AssetId" }) or 0
+	return pick(entry, { "PassId", "ProductId", "AssetId", "Id" }) or 0
 end
 
+local MULT_KEYS = { "LuckMult", "CooldownMult", "IncomeMult", "Mult", "Multiplier" }
+
+-- Id 가 0 인(아직 안 만든) 상품도 포함한 전체 목록
 local function buildItems(group: any, infos: { any }, kind: string): { Item }
 	local items = {}
 	for _, info in infos do
 		local entry = lookup(group, info.Key)
-		local id = idOf(entry)
-		if id ~= 0 then
-			table.insert(items, {
-				Key = info.Key,
-				Kind = kind,
-				Id = id,
-				Name = info.Name,
-				Icon = info.Icon,
-				Color = info.Color,
-				EffectIcon = info.EffectIcon,
-				Mult = pick(entry, { "Mult", "Multiplier", "Factor" }) or info.Mult,
-				Seconds = pick(entry, { "Seconds", "Duration" }) or info.Seconds,
-			})
-		end
+		table.insert(items, {
+			Key = info.Key,
+			Kind = kind,
+			Id = idOf(entry),
+			Name = if type(entry) == "table" and type(entry.Name) == "string" then entry.Name else info.Name,
+			Icon = info.Icon,
+			Color = info.Color,
+			EffectIcon = info.EffectIcon,
+			Mult = pick(entry, MULT_KEYS) or info.Mult,
+			Seconds = pick(entry, { "Seconds", "Duration" }) or info.Seconds,
+		})
 	end
 	return items
 end
 
--- Id 가 0 이 아닌 것만 (Config 는 바뀌지 않으므로 한 번만 만듦)
-Perks.Passes = buildItems(Config.GamePasses, PASS_INFO, "Pass")
-Perks.Products = buildItems(Config.Products, PRODUCT_INFO, "Product")
+local function forSale(items: { Item }): { Item }
+	local list = {}
+	for _, item in items do
+		if item.Id ~= 0 then
+			table.insert(list, item)
+		end
+	end
+	return list
+end
+
+local allPasses = buildItems(Config.GamePasses, PASS_INFO, "Pass")
+local allProducts = buildItems(Config.Products, PRODUCT_INFO, "Product")
+
+-- 화면에 나오는 상품: Id 가 0 이 아닌 것만 (Config 는 바뀌지 않으므로 한 번만 만듦)
+Perks.Passes = forSale(allPasses)
+Perks.Products = forSale(allProducts)
 
 local itemsByKey: { [string]: Item } = {}
-for _, item in Perks.Passes do
+for _, item in allPasses do
 	itemsByKey[item.Key] = item
 end
-for _, item in Perks.Products do
+for _, item in allProducts do
 	itemsByKey[item.Key] = item
 end
 
@@ -153,23 +169,14 @@ function Perks.itemById(kind: string, id: number): Item?
 	return nil
 end
 
--- 설정에 없는(Id 0) 상품이어도 기본 배율/시간은 알려 줌 (서버 행운 띠, 부스트 딱지에서 씀)
-local function infoFor(key: string): any
-	local item = itemsByKey[key]
-	if item then
-		return item
-	end
-	for _, info in PRODUCT_INFO do
-		if info.Key == key then
-			return info
-		end
-	end
-	return nil
+-- 판매 여부와 상관없이 상품 정보 (서버 행운 띠, 부스트 딱지의 배율)
+function Perks.item(key: string): Item?
+	return itemsByKey[key]
 end
 
 function Perks.mult(key: string, default: number): number
-	local info = infoFor(key)
-	return if info and info.Mult then info.Mult else default
+	local item = itemsByKey[key]
+	return if item and item.Mult then item.Mult else default
 end
 
 -- 게임패스 보유 여부. Passes 의 키가 패스 이름이든 숫자 Id 든 받아 줌
@@ -327,7 +334,7 @@ function Perks.rebirthNeed(state: any): Need?
 		local coins = number(if type(step) == "table" then tonumber(step.Coins) else nil, 0)
 		local extra = math.max(0, nextNumber - #steps)
 		return {
-			Coins = coins * 4 ^ extra,
+			Coins = coins * number(Config.REBIRTH_COIN_GROWTH, 4) ^ extra,
 			Landmarks = landmarkList(if type(step) == "table" then step.Landmarks else nil),
 		}
 	end
