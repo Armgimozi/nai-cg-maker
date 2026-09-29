@@ -78,7 +78,7 @@ return function(K)
 		ball(c, 3.6, 0.5, -2.9, 0.9, LEAF, Mat.Grass)
 	end
 
-	-- 성산일출봉: 바다 위로 솟은 왕관 모양 분화구(가파른 주름 절벽 + 둘레 봉우리 + 안쪽 풀밭)
+	-- 성산일출봉: 바다 위로 솟은 왕관 모양 분화구(비탈진 주름 절벽 + 둘레의 들쭉날쭉한 봉우리 + 안쪽 풀밭)
 	--   + 뒤쪽 육지로 이어지는 풀밭 능선 + 떠오르는 해
 	B.seongsan = function(c)
 		local sea = mix(WATER, c.S, 0.35)
@@ -86,29 +86,36 @@ return function(K)
 		local green = c.P
 		box(c, 0, 0, 0, 9.8, 0.3, 9.8, sea, Mat.Glass, 0.1)
 		box(c, 1.6, 0, 4.2, 6.6, 0.6, 1.6, GRASS, Mat.Grass)
-		local cx, cz = -0.4, -0.6
-		col(c, cx, 0, cz, 0.9, 8.6, mix(tuff, ROCK, 0.4))
-		col(c, cx, 0.9, cz, 1.7, 8, tuff)
-		col(c, cx, 2.6, cz, 1.5, 7.5, green, Mat.Grass)
-		col(c, cx, 4.1, cz, 0.12, 6.4, mix(green, GRASS, 0.5), Mat.Grass)
-		-- 절벽 주름
+		local cx, cz = -0.4, -0.45
+		col(c, cx, 0, cz, 0.7, 8.8, mix(tuff, ROCK, 0.4))
+		col(c, cx, 0.7, cz, 1.3, 7.9, tuff)
+		col(c, cx, 2, cz, 1.2, 7, mix(tuff, green, 0.55), Mat.Grass)
+		col(c, cx, 3.2, cz, 0.9, 6.3, green, Mat.Grass)
+		col(c, cx, 4.1, cz, 0.1, 5.1, mix(green, GRASS, 0.5), Mat.Grass)
+		-- 절벽 주름(위로 갈수록 안쪽으로 기움)
 		for i = 0, 7 do
 			local cf = CFrame.new(cx, 0, cz) * CFrame.Angles(0, (i + 0.5) / 8 * TAU, 0)
-			block(c, cf * CFrame.new(0, 2.5, -3.95) * CFrame.Angles(0.12, 0, 0), V(0.8, 3.4, 0.6), mix(tuff, BLACK, 0.12))
+			local vegetated = i % 2 == 1
+			block(
+				c,
+				cf * CFrame.new(0, 2.2, -3.55) * CFrame.Angles(0.42, 0, 0),
+				V(1, 3.9, 0.7),
+				if vegetated then mix(green, tuff, 0.3) else mix(tuff, BLACK, 0.12),
+				if vegetated then Mat.Grass else nil
+			)
 		end
-		-- 둘레 봉우리(왕관)
-		local n = 14
-		for i = 0, n - 1 do
-			local h = if i % 2 == 0 then 1.7 else 1.1
+		-- 둘레 봉우리(왕관): 높이를 들쭉날쭉하게
+		local heights = { 1.6, 1, 1.9, 1.2, 0.8, 1.5, 1.1, 1.8, 0.9, 1.4, 0.8, 1.7 }
+		for i, h in heights do
 			local cf = CFrame.new(cx, 0, cz)
-				* CFrame.Angles(0, i / n * TAU, 0)
-				* CFrame.new(0, 4.1 + h / 2 - 0.2, -3.35)
-				* CFrame.Angles(-0.2, 0, 0)
+				* CFrame.Angles(0, i / #heights * TAU, 0)
+				* CFrame.new(0, 3.9 + h / 2, -2.8)
+				* CFrame.Angles(-0.12, 0, 0)
 			local rocky = i % 3 == 0
-			block(c, cf, V(1.55, h, 0.8), if rocky then tuff else green, if rocky then nil else Mat.Grass)
+			block(c, cf, V(1.65, h, 0.75), if rocky then tuff else green, if rocky then nil else Mat.Grass)
 		end
 		-- 육지에서 분화구로 오르는 능선
-		wedge(c, CFrame.new(1.9, 0.6 + 1.5, 3.1) * CFrame.Angles(0, PI, 0), V(2.2, 3, 3), GRASS, Mat.Grass)
+		wedge(c, CFrame.new(1.9, 0.6 + 1.5, 3.2) * CFrame.Angles(0, PI, 0), V(2.2, 3, 3), GRASS, Mat.Grass)
 		ball(c, 4, 0.9, 4.2, 1, LEAF, Mat.Grass)
 		ball(c, -1.4, 0.9, 4.3, 0.9, LEAF, Mat.Grass)
 		-- 떠오르는 해
@@ -210,72 +217,97 @@ return function(K)
 			y = ey + 0.22 + rh * 0.55
 		end
 		for _, sx in { -1, 1 } do
-			block(c, CFrame.new(sx * (lastW / 2 - 0.25), top + 0.1, z) * CFrame.Angles(0, 0, sx * 0.3), V(0.22, 0.6, 0.3), c.A, Mat.Metal)
+			block(
+				c,
+				CFrame.new(sx * (lastW / 2 - 0.25), top + 0.1, z) * CFrame.Angles(0, 0, sx * 0.3),
+				V(0.22, 0.6, 0.3),
+				c.A,
+				Mat.Metal
+			)
 		end
 	end
 
-	-- 파묵칼레: 흰 석회 언덕(뒤) + 앞으로 계단처럼 내려오는 반원 석회붕 + 옥빛 물웅덩이 + 언덕 위 히에라폴리스 기둥
+	-- 파묵칼레: 뒤쪽 흰 석회 언덕에서 앞으로 계단처럼 내려오는 석회붕(단마다 옥빛 물)
+	--   + 단 끝에 매달린 반원 웅덩이(흰 테두리 + 옥빛 물) + 언덕 위 히에라폴리스 기둥과 나무
 	B.pamukkale = function(c)
 		local white = c.P
 		local pool = c.S
 		box(c, 0, 0, 0, 9.8, 0.2, 9.8, mix(white, SAND, 0.3), Mat.Salt)
-		box(c, 0, 0.2, -4.4, 9.8, 0.1, 1, GRASS, Mat.Grass)
-		box(c, 0, 0.2, 3.5, 9.8, 5.2, 2.8, white)
-		-- 석회붕 줄: { z, 윗면, 지름, x 목록 }
-		local rows = {
-			{ 2, 4.9, 2.8, { -3.4, -0.5, 2.5 } },
-			{ 0.2, 3.5, 2.6, { -2.3, 0.6, 3.5 } },
-			{ -1.6, 2.2, 2.5, { -3.6, -0.7, 2.2 } },
-			{ -3.2, 1, 2.2, { -2.2, 0.6, 3.5 } },
+		-- 단: { 앞 z, 뒤 z, 윗면 }
+		local steps = {
+			{ 2.9, 4.9, 5.6 },
+			{ 1.3, 2.9, 4.4 },
+			{ -0.4, 1.3, 3.2 },
+			{ -2.1, -0.4, 2 },
+			{ -3.4, -2.1, 0.9 },
 		}
-		for _, row in rows do
-			local z, top, d = row[1], row[2], row[3]
-			for _, x in row[4] do
-				col(c, x, 0.2, z, top - 0.2, d, white)
-				col(c, x, top - 0.02, z, 0.1, d - 0.4, pool, Mat.Glass, 0.05)
+		for k, st in steps do
+			local zf, zb, top = st[1], st[2], st[3]
+			box(c, 0, 0.2, (zf + zb) / 2, 9.8, top - 0.2, zb - zf, white)
+			if k > 1 then
+				box(c, 0, top, (zf + zb) / 2 + 0.1, 9.4, 0.05, zb - zf - 0.4, pool, Mat.Glass, 0.05)
 			end
 		end
-		-- 언덕 위 유적 + 나무
-		for _, x in { -3.6, -2.6, -1.6 } do
-			col(c, x, 5.4, 3.4, 1.6, 0.35, mix(white, SAND, 0.45))
+		-- 단 끝의 웅덩이 줄: 단 번호 → x 목록
+		local rows = {
+			{ 2, 3.1, { -3.2, -0.1, 3 } },
+			{ 3, 3.1, { -3, 0.1, 3.2 } },
+			{ 4, 3, { -3.3, -0.2, 2.9 } },
+			{ 5, 2.8, { -2.9, 0.1, 3.1 } },
+		}
+		for _, row in rows do
+			local st = steps[row[1]]
+			local below = if row[1] < #steps then steps[row[1] + 1][3] else 0.2
+			local d = row[2]
+			local top = st[3] + 0.15
+			for _, x in row[3] do
+				local lip = math.min(top - below, 0.8)
+				col(c, x, top - lip, st[1], lip, d, white)
+				col(c, x, top - 0.02, st[1], 0.08, d - 0.4, pool, Mat.Glass, 0.05)
+			end
 		end
-		box(c, -2.6, 7, 3.4, 2.6, 0.3, 0.5, mix(white, SAND, 0.45))
-		plant(c, 2.4, 5.4, 3.6, 1, 1.3, LEAF)
-		plant(c, 3.8, 5.4, 3.2, 0.8, 1.1, LEAF)
+		for _, x in { -3.6, -2.6, -1.6 } do
+			col(c, x, 5.6, 3.9, 1.6, 0.35, mix(white, SAND, 0.45))
+		end
+		box(c, -2.6, 7.2, 3.9, 2.6, 0.3, 0.5, mix(white, SAND, 0.45))
+		plant(c, 2.4, 5.6, 4, 1, 1.3, LEAF)
+		plant(c, 3.8, 5.6, 3.6, 0.8, 1.1, LEAF)
 	end
 
-	-- 후지산: 숲 + 앞쪽 호수 + 아래가 넓게 퍼진 대칭 원뿔(얇은 원통 켜) + 흰 눈 모자 + 흘러내린 눈 줄기
-	--   + 벚꽃 나무 + 붉은 5층탑(추레이토)
+	-- 후지산: 숲 + 앞쪽 호수 + 매끈한 대칭 원뿔(비탈면에 붙인 판 두 고리: 아래는 완만한 푸른 비탈, 위는 가파른 눈 모자)
+	--   + 평평한 분화구 꼭대기 + 눈선 아래로 흘러내린 눈 자락 + 벚꽃 나무 + 붉은 5층탑(추레이토)
 	B.fuji = function(c)
 		local forest = mix(LEAF, c.P, 0.25)
 		box(c, 0, 0, 0, 9.8, 0.25, 9.8, forest, Mat.Grass)
 		box(c, 0, 0.25, -4.25, 9.8, 0.05, 1.3, WATER, Mat.Glass, 0.1)
-		local cx, cz = 0, 0.6
-		local n = 12
-		local layer = 0.45
-		local y = 0.25
-		local radius = {}
-		for k = 0, n - 1 do
-			local t = k / (n - 1)
-			local d = 1.9 + 6.5 * (1 - t) ^ 1.5
-			radius[k] = d / 2
-			local snowy = k >= 7
-			col(c, cx, y, cz, layer, d, if snowy then c.S else c.P, if snowy then Mat.Snow else nil)
-			y += layer
-		end
-		-- 눈 줄기: 눈선에서 비탈을 따라 흘러내림
-		for i = 0, 5 do
-			local a = (i + 0.5) / 6 * TAU
+		local center = V(0, 0, 0.6)
+		-- 원뿔 비탈을 판으로 덮음: 반지름 r1(높이 y1) → r2(높이 y2)
+		local function slab(a: number, r1: number, y1: number, r2: number, y2: number, w: number, color, material)
 			local dir = V(math.sin(a), 0, -math.cos(a))
-			local k1, k2 = 7, if i % 2 == 0 then 3 else 4
-			local p1 = V(cx, 0.25 + (k1 + 0.5) * layer, cz) + dir * (radius[k1] + 0.05)
-			local p2 = V(cx, 0.25 + (k2 + 0.5) * layer, cz) + dir * (radius[k2] + 0.05)
-			beam(c, p1, p2, 0.4, c.S, Mat.Snow)
+			local p1 = center + V(0, y1, 0) + dir * r1
+			local p2 = center + V(0, y2, 0) + dir * r2
+			local normal = V(0, r1 - r2, 0) + dir * (y2 - y1)
+			local mid = (p1 + p2) / 2 - normal.Unit * 0.2
+			block(c, CFrame.lookAt(mid, mid + (p2 - p1)), V(w, 0.4, (p2 - p1).Magnitude + 0.15), color, material)
+		end
+		for i = 0, 11 do
+			slab(i / 12 * TAU, 4.25, 0.45, 2.2, 2.55, 2.3, c.P)
+		end
+		for i = 0, 9 do
+			slab((i + 0.5) / 10 * TAU, 2.45, 2.35, 0.95, 4.6, 1.6, c.S, Mat.Snow)
+		end
+		col(c, center.X, 4.4, center.Z, 0.25, 2.1, c.S, Mat.Snow)
+		col(c, center.X, 4.45, center.Z, 0.25, 1.1, mix(c.S, ROCK, 0.35))
+		-- 눈 자락(아래 비탈 위에 얹힘): 길이를 번갈아
+		for i = 0, 5 do
+			local a = (i + 0.3) / 6 * TAU
+			local low = if i % 2 == 0 then 1.2 else 1.7
+			local t = (low - 0.25) / 2.3
+			slab(a, 4.25 - t * 2.05 + 0.08, low, 2.25, 2.55, 0.75, c.S, Mat.Snow)
 		end
 		-- 벚꽃
-		plant(c, -4, 0.25, -2.9, 0.9, 1.4, c.A)
-		plant(c, -3, 0.25, -3.5, 0.7, 1.1, c.A)
-		plant(c, 2.6, 0.25, -3.6, 0.7, 1.1, c.A)
+		plant(c, -3.9, 0.25, -3, 0.9, 1.5, c.A)
+		plant(c, -2.8, 0.25, -3.7, 0.7, 1.1, c.A)
 		-- 추레이토 탑
 		local red = rgb(200, 60, 50)
 		local px, pz = 3.9, -2.9
@@ -289,18 +321,20 @@ return function(K)
 		col(c, px, py, pz, 0.7, 0.12, c.A, Mat.Metal)
 	end
 
-	-- 석굴암: 안이 보이게 앞을 연 둥근 돌방(돌판 벽 + 안으로 기운 궁륭 2단) + 연꽃 대좌 위 흰 본존불
-	--   + 뒤벽의 둥근 광배 + 앞쪽 팔각 돌기둥 2개
+	-- 석굴암: 안이 보이게 앞을 연 둥근 화강암 돌방(돌판 벽 + 안으로 기운 궁륭 2단)
+	--   + 연꽃 대좌 위에 앉은 커다란 흰 본존불 + 뒤벽의 둥근 광배 + 앞쪽 돌기둥 2개
 	B.seokguram = function(c)
+		local shell = mix(c.S, c.P, 0.45)
+		local buddha = mix(c.P, WHITE, 0.45)
 		box(c, 0, 0, 0, 9.8, 0.25, 9.8, GRASS, Mat.Grass)
 		col(c, 0, 0.25, 0.9, 0.3, 8.2, c.S)
 		box(c, 0, 0.25, -3.4, 3.8, 0.3, 2.6, c.S)
 		local center = CFrame.new(0, 0, 0.9)
 		local shells = {
 			-- { 반지름, 바닥, 높이, 기울기, 개수, 각도 범위 }
-			{ 3.7, 0.55, 2.9, 0, 7, 105 },
-			{ 3.35, 3.45, 1.45, 0.4, 7, 105 },
-			{ 2.55, 4.9, 1.2, 0.8, 5, 80 },
+			{ 3.7, 0.55, 3.2, 0, 7, 105 },
+			{ 3.3, 3.75, 1.6, 0.4, 7, 105 },
+			{ 2.45, 5.3, 1.3, 0.8, 5, 80 },
 		}
 		for k, s in shells do
 			local r, y0, h, tilt, count, range = s[1], s[2], s[3], s[4], s[5], s[6]
@@ -309,24 +343,24 @@ return function(K)
 			for i = 0, count - 1 do
 				local a = math.rad(-range + i * step)
 				local cf = center * CFrame.Angles(0, a, 0) * CFrame.new(0, y0 + h / 2, r) * CFrame.Angles(-tilt, 0, 0)
-				block(c, cf, V(w, h, 0.5), if (i + k) % 2 == 0 then c.P else mix(c.P, c.S, 0.25))
+				block(c, cf, V(w, h, 0.5), if (i + k) % 2 == 0 then shell else mix(shell, BLACK, 0.1))
 			end
 		end
 		-- 본존불
-		local bz = 1.3
-		col(c, 0, 0.55, bz, 0.45, 3, c.S)
-		col(c, 0, 1, bz, 0.7, 1.7, c.P)
-		col(c, 0, 1.7, bz, 0.45, 3.1, c.P)
-		box(c, 0, 2.15, bz - 0.2, 2.9, 0.8, 1.9, c.P)
-		box(c, 0, 2.95, bz + 0.15, 1.8, 1.9, 1.1, c.P)
-		cyl(c, CFrame.new(0, 4.6, bz + 0.15), 2.1, 0.8, c.P)
-		beam(c, V(-1, 4.5, bz), V(-0.5, 3.1, bz - 0.8), 0.45, c.P)
-		beam(c, V(1, 4.5, bz), V(1.1, 3, bz - 0.9), 0.45, c.P)
-		ball(c, 0, 5.55, bz + 0.1, 1.3, c.P)
-		ball(c, 0, 6.2, bz + 0.15, 0.65, c.P)
-		cyl(c, CFrame.new(0, 5.7, 3.6) * ALONG_Z, 0.15, 2.6, c.A, Mat.Neon)
+		local bz = 1.1
+		col(c, 0, 0.55, bz, 0.5, 3.3, shell)
+		col(c, 0, 1.05, bz, 0.6, 1.9, buddha)
+		col(c, 0, 1.65, bz, 0.45, 3.4, buddha)
+		box(c, 0, 2.1, bz - 0.25, 3.2, 0.9, 2.1, buddha)
+		box(c, 0, 3, bz + 0.2, 2, 2.1, 1.2, buddha)
+		cyl(c, CFrame.new(0, 4.8, bz + 0.2), 2.4, 0.9, buddha)
+		beam(c, V(-1.15, 4.7, bz + 0.1), V(-0.6, 3.2, bz - 0.8), 0.5, buddha)
+		beam(c, V(1.15, 4.7, bz + 0.1), V(1.3, 3.1, bz - 0.95), 0.5, buddha)
+		ball(c, 0, 5.85, bz + 0.15, 1.5, buddha)
+		ball(c, 0, 6.6, bz + 0.2, 0.75, buddha)
+		cyl(c, CFrame.new(0, 5.9, 2.75) * ALONG_Z, 0.15, 3, c.A, Mat.Neon)
 		for _, sx in { -1, 1 } do
-			col(c, sx * 1.7, 0.55, -2.9, 3.4, 0.6, c.P)
+			col(c, sx * 1.7, 0.55, -2.9, 3.4, 0.7, shell)
 		end
 	end
 
@@ -381,9 +415,9 @@ return function(K)
 			col(c, x, y - d * 0.62, z, d * 0.3, d * 0.42, color)
 			box(c, x, y - d * 0.5 - 0.9, z, 0.45, 0.4, 0.45, WOOD, Mat.Wood)
 		end
-		balloon(-2.6, 13.5, -1.2, 2.2, c.A, rgb(255, 205, 70))
-		balloon(2.4, 15.8, 0.8, 2, rgb(255, 205, 70), c.A)
-		balloon(0.3, 11, -3, 1.6, rgb(70, 140, 230), WHITE)
+		balloon(-2.6, 13.5, -1.2, 2.6, c.A, rgb(255, 205, 70))
+		balloon(2.4, 15.6, 0.8, 2.4, rgb(255, 205, 70), c.A)
+		balloon(0.6, 10.8, -2.8, 2, rgb(70, 140, 230), WHITE)
 	end
 
 	-- 자금성(태화전): 돌 포장 광장 + 흰 대리석 3단 기단과 가운데 계단 + 붉은 기둥 전각
@@ -410,24 +444,27 @@ return function(K)
 		end
 	end
 
-	-- 진시황 병마용: 흙 구덩이(뒤·옆 둑 + 칸막이 흙벽 3줄) + 칸마다 앞을 보고 줄지어 선 흙빛 병사 4x4
+	-- 진시황 병마용: 흙 구덩이(뒤·옆 둑 + 칸막이 흙벽 3줄) + 칸마다 앞을 보고 줄지어 선 흙빛 병사 4x3
+	--   (병사 = 아래 전포 + 넓은 갑옷 상체 + 머리)
 	B.terracotta = function(c)
 		local earth = mix(c.S, SAND, 0.25)
 		box(c, 0, 0, 0, 9.8, 0.3, 9.8, mix(earth, BLACK, 0.12))
-		box(c, 0, 0.3, 4.5, 9.8, 1.5, 0.8, earth)
+		box(c, 0, 0.3, 4.5, 9.8, 1.6, 0.8, earth)
 		for _, sx in { -1, 1 } do
-			box(c, sx * 4.6, 0.3, 0, 0.6, 1.5, 9.8, earth)
+			box(c, sx * 4.6, 0.3, 0, 0.6, 1.6, 9.8, earth)
 		end
 		for _, x in { -2.2, 0, 2.2 } do
-			box(c, x, 0.3, 0.3, 0.5, 1.2, 7.8, earth)
+			box(c, x, 0.3, 0.4, 0.5, 1.3, 7.6, earth)
 		end
+		local armor = mix(c.P, c.S, 0.55)
 		local xs = { -3.3, -1.1, 1.1, 3.3 }
-		local zs = { -3.1, -1.4, 0.3, 2 }
+		local zs = { -3, -0.8, 1.4 }
 		for i, x in xs do
 			for j, z in zs do
-				local shade = if (i + j) % 2 == 0 then c.P else mix(c.P, c.A, 0.35)
-				box(c, x, 0.3, z, 0.8, 1.55, 0.55, shade)
-				ball(c, x, 2.1, z, 0.55, shade)
+				local clay = if (i + j) % 2 == 0 then c.P else mix(c.P, c.A, 0.3)
+				box(c, x, 0.3, z, 0.95, 1.2, 0.7, clay)
+				box(c, x, 1.5, z, 1.15, 1, 0.8, armor)
+				ball(c, x, 2.85, z, 0.72, mix(clay, c.A, 0.25))
 			end
 		end
 	end
@@ -488,21 +525,31 @@ return function(K)
 		ball(c, 0, y + 4.2, 0, 0.45, c.A, Mat.Neon)
 	end
 
-	-- 샹그릴라: 푸른 골짜기 + 뒤쪽의 눈 덮인 뾰족 봉우리 3개(가운데 카라칼) + 흰 벽과 금빛 지붕의 라마 사원
-	--   (본전 + 누각 + 양쪽 곁채) + 빛나는 창 + 개울 + 꽃나무 + 떠다니는 빛 구슬
+	-- 샹그릴라: 푸른 골짜기 + 개울 + 뒤쪽의 눈 덮인 뾰족 봉우리 3개(가운데 피라미드 모양 카라칼)
+	--   + 흰 벽과 금빛 지붕의 라마 사원(본전 + 누각 + 양쪽 곁채) + 빛나는 창 + 꽃나무
 	B.shangrila = function(c)
 		local rock = rgb(112, 120, 138)
 		box(c, 0, 0, 0, 9.8, 0.3, 9.8, rgb(110, 185, 90), Mat.Grass)
 		box(c, 0, 0.3, -4.3, 9.8, 0.05, 0.7, WATER, Mat.Glass, 0.1)
-		local function peak(x, z, w, h, d)
-			frontGable(c, x, 0.3, z, w, d, h, rock, Mat.Slate)
-			local sh = h * 0.38
-			local sw = w * sh / h
-			frontGable(c, x, 0.3 + h + 0.12 - sh, z, sw, d + 0.2, sh, CLOUD, Mat.Snow)
+		-- 용마루가 X 방향인 박공(옆에서 삼각형)
+		local function ridge(x, y, z, w, d, h, color, material)
+			wedge(c, CFrame.new(x, y + h / 2, z - d / 4), V(w, h, d / 2), color, material)
+			wedge(c, CFrame.new(x, y + h / 2, z + d / 4) * CFrame.Angles(0, PI, 0), V(w, h, d / 2), color, material)
 		end
-		peak(-2.4, 3.2, 5, 7.5, 2.4)
-		peak(3.2, 3, 3.4, 6.2, 2.2)
-		peak(0.6, 3.9, 7, 12.5, 2)
+		-- 봉우리: 정면 삼각형(폭 w, 두께 d) + (cross 가 있으면) 옆 삼각형(깊이 cross) + 같은 비율의 눈 모자
+		local function peak(x, z, w, h, d, cross)
+			local sh = h * 0.42
+			local top = 0.3 + h + 0.12
+			frontGable(c, x, 0.3, z, w, d, h, rock, Mat.Slate)
+			frontGable(c, x, top - sh, z, w * sh / h + 0.1, d + 0.2, sh, CLOUD, Mat.Snow)
+			if cross then
+				ridge(x, 0.3, z, d, cross, h, rock, Mat.Slate)
+				ridge(x, top - sh, z, d + 0.2, cross * sh / h + 0.1, sh, CLOUD, Mat.Snow)
+			end
+		end
+		peak(-2.4, 3.3, 5, 7.5, 2.4)
+		peak(3.2, 3.1, 3.4, 6.2, 2.2)
+		peak(0.6, 3.4, 7, 12.5, 1.2, 3)
 		local stone = mix(c.P, SAND, 0.35)
 		box(c, 0, 0.3, -0.6, 7.2, 0.9, 4.4, stone)
 		wedge(c, CFrame.new(0, 0.75, -3.3), V(1.4, 0.9, 1), stone)
@@ -515,13 +562,10 @@ return function(K)
 		ball(c, 0, 7.05, -0.2, 0.5, c.A, Mat.Neon)
 		for _, sx in { -1, 1 } do
 			box(c, sx * 2.9, 1.2, -0.8, 1.4, 1.5, 2, c.P)
-			box(c, sx * 2.9, 1.8, -1.82, 0.7, 0.4, 0.06, c.A, Mat.Neon)
 			gable(c, sx * 2.9, 2.7, -0.8, 1.7, 2.3, 0.6, c.S)
 		end
 		plant(c, -4.1, 0.3, -3.3, 1, 1.3, rgb(255, 170, 200))
 		plant(c, 4.1, 0.3, -3.1, 1.1, 1.4, LEAF)
-		ball(c, -3.6, 8.5, 1.4, 0.7, c.A, Mat.Neon, 0.3)
-		ball(c, 3.9, 10, 0.6, 0.6, c.A, Mat.Neon, 0.3)
 	end
 
 	return B
