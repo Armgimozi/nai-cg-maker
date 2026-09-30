@@ -122,18 +122,25 @@ local Config = {
 	REBIRTH_INCOME_BONUS = 0.5, -- 환생 1회마다 관광 수입 +50% (수입 × (1 + 0.5 × 환생 수))
 
 	-- 유료 상품(Robux) ----------------------------------------------------
-	-- Creator Hub 에서 만든 뒤 PassId / ProductId 를 넣으세요. 0 이면 그 상품은 비활성(화면에 안 나옴).
-	-- 추천 가격(Robux): LuckVIP 399, FastRoll 199, DoubleIncome 299
+	-- 2026-09-30 Open Cloud 로 등록한 번호(아이콘: art/products). 0 이면 그 상품은 비활성(화면에 안 나옴).
+	-- 가격(Robux): LuckVIP 399, FastRoll 199, DoubleIncome 299
 	GamePasses = {
-		{ Id = "LuckVIP", Name = "행운 VIP", PassId = 0, LuckMult = 2 },
-		{ Id = "FastRoll", Name = "빠른 굴림", PassId = 0, CooldownMult = 0.7 },
-		{ Id = "DoubleIncome", Name = "수입 2배", PassId = 0, IncomeMult = 2 },
+		{ Id = "LuckVIP", Name = "행운 VIP", PassId = 1999287690, LuckMult = 2 },
+		{ Id = "FastRoll", Name = "빠른 굴림", PassId = 2002682533, CooldownMult = 0.7 },
+		{ Id = "DoubleIncome", Name = "수입 2배", PassId = 2003390304, IncomeMult = 2 },
 	} :: { GamePass },
-	-- 추천 가격(Robux): LuckBoost 49, ServerLuck 99, CoinPack 79
+	-- 가격(Robux): LuckBoost 49, ServerLuck 99, CoinPack 79
 	Products = {
-		{ Id = "LuckBoost", Name = "행운 부스트", ProductId = 0, Seconds = 900, LuckMult = 2 },
-		{ Id = "ServerLuck", Name = "서버 행운", ProductId = 0, Seconds = 900, LuckMult = 2, ServerWide = true },
-		{ Id = "CoinPack", Name = "코인 팩", ProductId = 0, IncomeSeconds = 1800, MinCoins = 1000 },
+		{ Id = "LuckBoost", Name = "행운 부스트", ProductId = 3715550240, Seconds = 900, LuckMult = 2 },
+		{
+			Id = "ServerLuck",
+			Name = "서버 행운",
+			ProductId = 3715550255,
+			Seconds = 900,
+			LuckMult = 2,
+			ServerWide = true,
+		},
+		{ Id = "CoinPack", Name = "코인 팩", ProductId = 3715550261, IncomeSeconds = 1800, MinCoins = 1000 },
 	} :: { Product },
 	MAX_BOOST_SECONDS = 3 * 60 * 60, -- 시간 부스트(개인·서버)는 남은 시간이 이 이상 쌓이지 않음
 	MAX_RECEIPTS = 50, -- 중복 지급 방지용으로 기억하는 최근 구매 영수증(PurchaseId) 수
