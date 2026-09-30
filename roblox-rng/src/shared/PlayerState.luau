@@ -786,20 +786,41 @@ function PlayerState.missedByFullPark(data: Data | Snapshot, landmarkId: string)
 	return true
 end
 
--- 초당 관광 수입 = 전시 명소 합 × 입장료 × 환생 × 수입 2배 게임패스
-function PlayerState.incomePerSecond(data: Data | Snapshot, mods: Mods?): number
-	local total = 0
-	for _, id in PlayerState.park(data) do
-		total += PlayerState.landmarkIncome(Landmarks.ById[id], data.Inventory[id])
-	end
+-- 수입 배율 적용 = value × 입장료 × 환생 × 수입 2배 게임패스. 공원 전체(incomePerSecond)와 명소 하나(slotIncomes)가
+-- 이 한 식을 같이 써서 공원 이름표 수입의 합이 늘 초당 수입과 같음(tests/run.luau)
+local function withIncomeMult(value: number, data: Data | Snapshot, mods: Mods?): number
 	local ticket = PlayerState.UpgradesById.Ticket
-	local income = total
+	local income = value
 		* (1 + ticket.PerLevel * PlayerState.upgradeLevel(data, "Ticket"))
 		* PlayerState.rebirthIncomeMult(rebirthsOf(data))
 	for _, pass in ownedPasses(mods) do
 		income *= pass.IncomeMult or 1
 	end
 	return income
+end
+
+-- 초당 관광 수입 = 전시 명소 합 × 입장료 × 환생 × 수입 2배 게임패스
+function PlayerState.incomePerSecond(data: Data | Snapshot, mods: Mods?): number
+	local total = 0
+	for _, id in PlayerState.park(data) do
+		total += PlayerState.landmarkIncome(Landmarks.ById[id], data.Inventory[id])
+	end
+	return withIncomeMult(total, data, mods)
+end
+
+-- 전시 칸마다 그 명소가 버는 초당 수입(입장료·환생·게임패스 배율 포함, 빈 칸은 없음) — 공원 이름표 "+N/s"·동전 퐁.
+-- 칸들의 합 = incomePerSecond(부동소수 오차 안에서, 같은 withIncomeMult)
+function PlayerState.slotIncomes(data: Data | Snapshot, mods: Mods?): { [number]: number }
+	local slots, unlocked = PlayerState.parkSlots(data)
+	local result: { [number]: number } = {}
+	for slot = 1, unlocked do
+		local id = slots[slot]
+		if id then
+			result[slot] =
+				withIncomeMult(PlayerState.landmarkIncome(Landmarks.ById[id], data.Inventory[id] or 0), data, mods)
+		end
+	end
+	return result
 end
 
 -- dt 초 동안의 관광 수입을 더하고, 더한 양을 반환

@@ -1737,6 +1737,89 @@ test(
 		eq(#d.Display, 0)
 	end
 )
+test(
+	"명소별 수입(slotIncomes): 칸마다 명소 수입 × 입장료 × 환생 × 수입 2배, 합 = incomePerSecond (별·입장료·환생·게임패스·빈 칸·스냅샷)",
+	function()
+		local ticketPer = PlayerState.UpgradesById.Ticket.PerLevel
+		local ticketMax = PlayerState.UpgradesById.Ticket.MaxLevel or 10
+		local double = { Passes = { DoubleIncome = true } }
+		local cases = 0
+		local function check(d: any, mods: any, what: string)
+			cases += 1
+			local incomes = PlayerState.slotIncomes(d, mods)
+			local slots, unlocked = PlayerState.parkSlots(d)
+			local sum = 0
+			for slot = 1, PlayerState.MAX_SLOTS do
+				local id = slots[slot]
+				local income = incomes[slot]
+				if slot <= unlocked and id then
+					assert(type(income) == "number", what .. ": 칸 " .. slot .. " 수입 없음")
+					local mult = (1 + ticketPer * PlayerState.upgradeLevel(d, "Ticket"))
+						* PlayerState.rebirthIncomeMult(d.Rebirths or 0)
+						* (if mods and mods.Passes and mods.Passes.DoubleIncome then 2 else 1)
+					near(
+						income,
+						PlayerState.landmarkIncome(Landmarks.ById[id], d.Inventory[id]) * mult,
+						1e-9 * math.max(1, income),
+						what .. ": 칸 " .. slot
+					)
+					sum += income
+				else
+					eq(income, nil, what .. ": 빈 칸·잠긴 칸은 수입 없음 " .. slot)
+				end
+			end
+			local total = PlayerState.incomePerSecond(d, mods)
+			near(sum, total, 1e-9 * math.max(1, total), what .. ": 합 = incomePerSecond")
+			near(
+				sum,
+				PlayerState.snapshot(d, 1, mods).Income,
+				1e-9 * math.max(1, total),
+				what .. ": 합 = 스냅샷 Income(HUD)"
+			)
+		end
+		-- 별: 같은 명소를 여러 번(★0 ~ ★5)
+		local d = owning(EIGHT)
+		for _ = 1, 7 do
+			PlayerState.applyRoll(d, Landmarks.ById.eiffel)
+			PlayerState.applyRoll(d, Landmarks.ById.clocktower)
+		end
+		check(d, nil, "별")
+		-- 입장료 레벨 · 환생 · 수입 2배 조합
+		for _, ticket in { 0, 1, 3, ticketMax } do
+			for _, rebirths in { 0, 1, 4, Config.MAX_REBIRTHS } do
+				for _, mods in { nil, double, { Passes = { LuckVIP = true } } } do
+					d.Upgrades.Ticket = ticket
+					d.Rebirths = rebirths
+					check(
+						d,
+						mods,
+						string.format("입장료 %d · 환생 %d · 패스 %s", ticket, rebirths, tostring(mods ~= nil))
+					)
+				end
+			end
+		end
+		-- 직접 배치: 빈 칸이 섞여도, 자리를 바꿔도
+		PlayerState.setDisplay(d, 2, nil)
+		PlayerState.setDisplay(d, 5, "clocktower")
+		check(d, double, "직접 배치 + 빈 칸")
+		-- 공원 확장으로 칸이 늘고 많이 가진 경우(희귀 명소 포함)
+		local big = owning(EIGHT)
+		big.Upgrades.Park = 6
+		for index, landmark in Landmarks.RarestFirst do
+			if index > 30 then
+				break
+			end
+			big.Inventory[landmark.Id] = index % 7 + 1
+		end
+		check(big, double, "큰 공원")
+		check(PlayerState.snapshot(big, 3, double), double, "스냅샷을 넘겨도")
+		-- 빈 공원 = 빈 표
+		local empty = PlayerState.new()
+		eq(next(PlayerState.slotIncomes(empty)), nil, "빈 공원")
+		check(empty, double, "빈 공원")
+		assert(cases >= 37, "경우 수 " .. cases)
+	end
+)
 test("snapshot: 배치 복사본 + 자동 배치 설정 (옛 서버 스냅샷은 자동 배치로)", function()
 	local d = owning(EIGHT)
 	PlayerState.setDisplay(d, 1, "clocktower")
@@ -2718,6 +2801,124 @@ test(
 			eq(mine:GetAttribute("OwnerUserId"), nil, "주인 없음")
 			eq(#mine:FindFirstChild("Slots"):GetChildren(), 0, "칸 모델 치움")
 			checkGrid(mine)
+		end)
+	end
+)
+
+test(
+	"ParkService: 칸마다 Income(초당 수입)·Stars·Top 속성 + 이름표 수입 알약, 부지 Income = incomePerSecond, 간판 = 합 — 별·입장료·수입 2배가 바뀌면 같이 바뀜",
+	function()
+		withMock(function(H, Mock, sharedNode)
+			local Service = H.require(H.folder("src/server").ParkService)
+			local State = H.require(sharedNode.PlayerState)
+			local LandmarksM = H.require(sharedNode.Landmarks)
+			local player = { Name = "Tester", DisplayName = "테스터", UserId = 778 }
+			local data = State.new()
+			for _, id in { "clocktower", "lighthouse", "eiffel", "pyramid" } do
+				State.applyRoll(data, LandmarksM.ById[id])
+			end
+			local mods: any = nil
+			local function run(fn: () -> ())
+				local ok, err = Mock.run(fn)
+				assert(ok, err)
+			end
+			run(function()
+				Service.init()
+				Service.assign(player :: any)
+				Service.update(player :: any, data)
+			end)
+			local mine
+			for _, model in Mock.Workspace:FindFirstChild("Parks"):GetChildren() do
+				if model:GetAttribute("OwnerUserId") == player.UserId then
+					mine = model
+				end
+			end
+			assert(mine, "부지")
+			local function container(slot: number): any
+				for _, c in mine:FindFirstChild("Slots"):GetChildren() do
+					if c:GetAttribute("Slot") == slot then
+						return c
+					end
+				end
+				return nil
+			end
+			local function amountText(slot: number): string?
+				local label = container(slot):FindFirstChild("Amount", true)
+				return label and label.Text
+			end
+			local function signIncome(): string
+				local texts = {}
+				for _, d in mine:FindFirstChild("Sign"):GetDescendants() do
+					if d.Name == "Income" and d.ClassName == "TextLabel" then
+						table.insert(texts, d.Text)
+					end
+				end
+				eq(#texts, 2, "간판 앞뒤")
+				eq(texts[1], texts[2], "간판 앞뒤 같은 글자")
+				return texts[1]
+			end
+			local function incomeText(n: number): string
+				if n < 100 then
+					return "+" .. string.format("%.1f", math.floor(n * 10) / 10):gsub("%.0$", "") .. "/s"
+				end
+				return "+" .. Format.short(n) .. "/s"
+			end
+			local function verify(what: string)
+				local incomes = State.slotIncomes(data, mods)
+				local slots, unlocked = State.parkSlots(data)
+				local sum = 0
+				for slot = 1, State.MAX_SLOTS do
+					local c = container(slot)
+					local income = c:GetAttribute("Income")
+					if slot <= unlocked and slots[slot] then
+						near(income, incomes[slot], 1e-9, what .. ": 칸 " .. slot .. " Income")
+						eq(c:GetAttribute("Stars"), State.stars(data.Inventory[slots[slot]]), what .. ": Stars")
+						assert(type(c:GetAttribute("Top")) == "number", what .. ": Top")
+						eq(amountText(slot), incomeText(incomes[slot]), what .. ": 이름표 수입 글자")
+						sum += income
+					else
+						eq(income, nil, what .. ": 빈 칸·잠긴 칸 Income 없음")
+					end
+				end
+				local total = State.incomePerSecond(data, mods)
+				near(mine:GetAttribute("Income"), total, 1e-9, what .. ": 부지 Income")
+				near(sum, total, 1e-9 * math.max(1, total), what .. ": 칸 합 = 부지 Income")
+				eq(signIncome(), incomeText(total), what .. ": 간판")
+			end
+			verify("처음")
+			-- 별이 오름(에펠탑을 또 뽑음) · 입장료 · 수입 2배 · 환생 배율
+			local eiffelSlot = 0
+			for slot, id in (State.parkSlots(data)) do
+				if id == "eiffel" then
+					eiffelSlot = slot
+				end
+			end
+			local before = container(eiffelSlot):GetAttribute("Income")
+			State.applyRoll(data, LandmarksM.ById.eiffel)
+			run(function()
+				Service.update(player :: any, data)
+			end)
+			verify("별 +1")
+			assert(container(eiffelSlot):GetAttribute("Income") > before, "별이 오르면 그 칸 수입이 오름")
+			data.Upgrades.Ticket = 3
+			run(function()
+				Service.update(player :: any, data)
+			end)
+			verify("입장료 3")
+			mods = { Passes = { DoubleIncome = true } }
+			run(function()
+				Service.update(player :: any, data, mods)
+			end)
+			verify("수입 2배")
+			data.Rebirths = 2
+			run(function()
+				Service.update(player :: any, data, mods)
+			end)
+			verify("환생 2")
+			run(function()
+				Service.release(player :: any)
+			end)
+			eq(mine:GetAttribute("Income"), nil, "떠나면 부지 Income 없음")
 		end)
 	end
 )

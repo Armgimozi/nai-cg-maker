@@ -9566,20 +9566,41 @@ function PlayerState.missedByFullPark(data: Data | Snapshot, landmarkId: string)
 	return true
 end
 
--- 초당 관광 수입 = 전시 명소 합 × 입장료 × 환생 × 수입 2배 게임패스
-function PlayerState.incomePerSecond(data: Data | Snapshot, mods: Mods?): number
-	local total = 0
-	for _, id in PlayerState.park(data) do
-		total += PlayerState.landmarkIncome(Landmarks.ById[id], data.Inventory[id])
-	end
+-- 수입 배율 적용 = value × 입장료 × 환생 × 수입 2배 게임패스. 공원 전체(incomePerSecond)와 명소 하나(slotIncomes)가
+-- 이 한 식을 같이 써서 공원 이름표 수입의 합이 늘 초당 수입과 같음(tests/run.luau)
+local function withIncomeMult(value: number, data: Data | Snapshot, mods: Mods?): number
 	local ticket = PlayerState.UpgradesById.Ticket
-	local income = total
+	local income = value
 		* (1 + ticket.PerLevel * PlayerState.upgradeLevel(data, "Ticket"))
 		* PlayerState.rebirthIncomeMult(rebirthsOf(data))
 	for _, pass in ownedPasses(mods) do
 		income *= pass.IncomeMult or 1
 	end
 	return income
+end
+
+-- 초당 관광 수입 = 전시 명소 합 × 입장료 × 환생 × 수입 2배 게임패스
+function PlayerState.incomePerSecond(data: Data | Snapshot, mods: Mods?): number
+	local total = 0
+	for _, id in PlayerState.park(data) do
+		total += PlayerState.landmarkIncome(Landmarks.ById[id], data.Inventory[id])
+	end
+	return withIncomeMult(total, data, mods)
+end
+
+-- 전시 칸마다 그 명소가 버는 초당 수입(입장료·환생·게임패스 배율 포함, 빈 칸은 없음) — 공원 이름표 "+N/s"·동전 퐁.
+-- 칸들의 합 = incomePerSecond(부동소수 오차 안에서, 같은 withIncomeMult)
+function PlayerState.slotIncomes(data: Data | Snapshot, mods: Mods?): { [number]: number }
+	local slots, unlocked = PlayerState.parkSlots(data)
+	local result: { [number]: number } = {}
+	for slot = 1, unlocked do
+		local id = slots[slot]
+		if id then
+			result[slot] =
+				withIncomeMult(PlayerState.landmarkIncome(Landmarks.ById[id], data.Inventory[id] or 0), data, mods)
+		end
+	end
+	return result
 end
 
 -- dt 초 동안의 관광 수입을 더하고, 더한 양을 반환
@@ -11119,12 +11140,17 @@ return ParkLayout
 -- 전시 칸: 6x6 격자. 칸 자리(부지 좌표)와 칸 번호 -> 격자 자리는 Shared/ParkGrid(= PlayerState.slotCell: 입구에
 --   가까운 줄부터, 한 줄 안에서는 가운데에 가까운 칸부터 = 자동 배치에서 가장 희귀한 명소가 입구 정면).
 --   칸마다 무엇을 전시할지는 PlayerState.parkSlots(자동 배치 또는 플레이어가 고른 배치).
--- update 는 칸마다 이전 상태를 기억해 두고 바뀐 칸만 다시 만듭니다(별 개수는 이름표 글자만 바꿈).
+-- update 는 칸마다 이전 상태를 기억해 두고 바뀐 칸만 다시 만듭니다(별 개수·수입은 이름표 글자만 바꿈).
+-- 돈 버는 게 보이게(타이쿤처럼, 수입 규칙은 그대로): 전시 이름표 = 이름 딱지 + 별 + 초록 알약 [동전] "+N/s"(그 명소가 주인에게
+--   벌어 주는 초당 수입 = PlayerState.slotIncomes — 입장료·환생·수입 2배 포함, 공원 칸들의 합 = 주인 HUD 의 초당 수입).
+--   입구 간판은 주인 초당 수입 합을 크게. 클라이언트 IncomeFx 가 읽는 복제 속성(값이 바뀔 때만 씀, 초마다 보내지 않음):
+--   칸 모델 Income(초당 수입) · Stars(별 수) · Top(모형 높이), 부지 모델 Income(초당 수입 합).
 -- 클라이언트 3D 배치 모드(ParkEdit)용 복제 속성(서버는 ClickDetector 를 달지 않음):
 --   부지 모델: OwnerUserId(주인 UserId, 빈 부지는 nil), Origin(부지 CFrame: 중앙 바닥, -Z = 입구)
---   칸 모델(Slots 폴더, 36칸 모두 — 잠긴 칸 포함): Slot(칸 번호), Look("#locked" | "#empty" | 명소 Id)
+--   칸 모델(Slots 폴더, 36칸 모두 — 잠긴 칸 포함): Slot(칸 번호), Look("#locked" | "#empty" | 명소 Id),
+--     명소 칸만 Income(초당 수입) · Stars(별) · Top(받침대 윗면에서 모형 꼭대기까지)
 --   주인 클라이언트가 이걸 보고 자기 부지에서만 칸을 찾고(누르기·놓을 자리 표시) 집어서 옮김.
--- 간판: 주인이 있으면 입구 아치(나무 판자 + Ink 테두리 + 크림 글자판: 공원 아이콘 + 이름, 초록 알약: 동전 + "+X/s"),
+-- 간판: 주인이 있으면 입구 아치(나무 판자 + Ink 테두리 + 크림 글자판: 공원 아이콘 + 이름(위 작게), 큰 초록 알약: 동전 + "+X/s"),
 --   빈 부지는 길 옆 낮은 말뚝 간판("빈 부지")만 세워서 광장에서 볼 때 어지럽지 않게 합니다.
 -- 그림: Shared/ImageIds 에 park/coin 아이콘, panel_paper/pill 스킨 Id 가 있으면 간판에 그 그림을 씀(없으면 코드로 그림).
 -- 바닥: 밝고 따뜻한 돌 포석(Pavement). 빈 부지에는 칸 자리 36곳에 얇은 밝은 판(EmptyGrid 폴더, Slots 밖 — 배치 모드가
@@ -11186,8 +11212,13 @@ local STAKE_TILT = math.rad(-4) -- 말뚝을 살짝 기울여서 장난스럽게
 local FENCE_HEIGHT = 2.2
 local RAIL = Vector3.new(0.35, 0.35, 0.35) -- 울타리 가로대 단면
 
-local LABEL_WIDTH = 10 -- 전시 이름표 크기(스터드)
-local LABEL_HEIGHT = 2.6
+local LABEL_WIDTH = 10 -- 전시 이름표 크기(스터드): 이름 딱지 1.35 + 별 0.88 + 수입 알약 1.15 (+ 사이)
+local LABEL_HEIGHT = 3.9
+local LABEL_GAP = 0.1 -- 이름표 아래 끝 ~ 모형 꼭대기(스터드)
+-- 이름표 안 자리(이름표 높이 비율): 이름 딱지 · 별 줄 · 수입 알약(위 끝, 높이)
+local NAME_Y, NAME_H = 0, 0.346
+local STARS_Y, STARS_H = 0.43, 0.226
+local INCOME_Y, INCOME_H = 0.672, 0.29
 
 -- 부지 바닥: 따뜻하고 밝은 돌 포석(Pavement, 광장 포석과 한 집안). 둘레 잔디와 또렷이 갈리고 흰 받침대·명소가 돋보임.
 -- (예전 잔디색 Grass 바닥은 실제 게임에서 어둡게 그려져 위에서 보면 짙은 초록 판처럼 보였음)
@@ -11230,11 +11261,20 @@ local SKIN_RADIUS = 50 -- 스킨 그림 속 모서리 반지름(px)
 local KEY_LOCKED = ParkGrid.LOOK_LOCKED
 local KEY_EMPTY = ParkGrid.LOOK_EMPTY
 
+-- 전시 이름표에서 글자를 바꾸는 곳
+type Label = {
+	Stars: TextLabel,
+	Amount: TextLabel, -- 수입 알약 글자 "+N/s"
+	IncomeFace: Frame, -- 수입 알약(글자 길이에 맞춰 폭을 바꿈)
+	IncomeShadow: Frame,
+}
+
 type Slot = {
 	Key: string,
 	Container: Model,
-	StarLabel: TextLabel?,
+	Label: Label?,
 	Stars: number,
+	Income: number,
 }
 
 type Plot = {
@@ -11523,10 +11563,13 @@ local function surfaceGui(board: BasePart, face: Enum.NormalId): SurfaceGui
 	return gui
 end
 
--- 주인 간판 한 면: 가장자리에 나무가 보이는 크림 글자판 + [공원 아이콘] 이름(Ink) + 초록 알약 [동전] "+X/s".
--- 반환: 제목, 수입 라벨
+-- 주인 간판 한 면: 가장자리에 나무가 보이는 크림 글자판 + 위에 작게 [공원 아이콘] 이름(Ink) + 아래 크게 초록 알약 [동전] "+X/s"
+-- (주인의 초당 수입 합 — 광장에서 걸어오며 어느 공원이 많이 버는지 한눈에). 반환: 제목, 수입 라벨
 local PANEL_HEIGHT = BOARD_SIZE.Y * 40 - 36 -- 글자판 높이(px, PixelsPerStud 40)
-local TITLE_SIDE = 130 -- 제목 양옆 여백(px): 왼쪽엔 공원 아이콘, 오른쪽은 가운데 정렬용
+local TITLE_SIDE = 110 -- 제목 양옆 여백(px): 왼쪽엔 공원 아이콘, 오른쪽은 가운데 정렬용
+local SIGN_TITLE_H = 0.3 -- 제목 줄 높이(글자판 비율)
+local SIGN_PILL = Vector2.new(0.72, 0.52) -- 수입 알약(글자판 비율). 동전 뒤 글자는 남은 칸 가운데
+local SIGN_PILL_Y = 0.4
 
 local function signFace(board: BasePart, face: Enum.NormalId): (TextLabel, TextLabel)
 	local gui = surfaceGui(board, face)
@@ -11537,26 +11580,29 @@ local function signFace(board: BasePart, face: Enum.NormalId): (TextLabel, TextL
 	stroke(panel, 6)
 	skin(panel, "panel_paper", WHITE, 24)
 
-	icon(panel, "park", 0.42, UDim2.new(0, 34, 0.06, 0), Vector2.new(0, 0), drawTree)
-	local title = textLabel(panel, UDim2.new(1, -TITLE_SIDE * 2, 0.46, 0), UDim2.new(0, TITLE_SIDE, 0.06, 0), INK)
+	icon(panel, "park", SIGN_TITLE_H, UDim2.new(0, 34, 0.05, 0), Vector2.new(0, 0), drawTree)
+	local title =
+		textLabel(panel, UDim2.new(1, -TITLE_SIDE * 2, SIGN_TITLE_H, 0), UDim2.new(0, TITLE_SIDE, 0.05, 0), INK)
 	title.Name = "Title"
 
 	local pill = chunky(
 		panel,
-		UDim2.fromScale(0.62, 0.34),
-		UDim2.fromScale(0.5, 0.56),
-		UDim.new(0, 6),
+		UDim2.fromScale(SIGN_PILL.X, SIGN_PILL.Y),
+		UDim2.fromScale(0.5, SIGN_PILL_Y),
+		UDim.new(0, 7),
 		GRASS,
 		GRASS_SHADOW,
-		4,
+		5,
 		"pill",
-		math.floor(PANEL_HEIGHT * 0.34)
+		math.floor(PANEL_HEIGHT * SIGN_PILL.Y)
 	)
-	icon(pill, "coin", 0.82, UDim2.new(0, 10, 0.5, 0), Vector2.new(0, 0.5), drawCoin)
-	local income = textLabel(pill, UDim2.fromScale(1, 1), UDim2.new(), WHITE)
+	icon(pill, "coin", 0.95, UDim2.new(0, 8, 0.5, 0), Vector2.new(0, 0.5), drawCoin)
+	local pillHeight = PANEL_HEIGHT * SIGN_PILL.Y
+	local income =
+		textLabel(pill, UDim2.new(1, -pillHeight * 1.1 - 24, 1, 0), UDim2.new(0, pillHeight * 1.1, 0, 0), WHITE)
 	income.Name = "Income"
-	padding(income, UDim.new(0.14, 0), UDim.new(0.14, 0))
-	stroke(income, 3)
+	padding(income, UDim.new(0.02, 0), UDim.new(0.1, 0))
+	stroke(income, 4)
 	return title, income
 end
 
@@ -11828,11 +11874,13 @@ function ParkService.init()
 	parks.Parent = Workspace
 end
 
--- 칸 위 작은 이름표: 등급 색 둥근 딱지(흰 이름 + Ink 테두리) + 그 아래 별(해 색 + Ink 테두리)
-local function addLabel(pedestal: BasePart, landmark: Landmarks.Landmark, modelHeight: number): TextLabel
+-- 칸 위 작은 이름표: 등급 색 둥근 딱지(흰 이름 + Ink 테두리) + 그 아래 별(해 색 + Ink 테두리) + 초록 알약 [동전] "+N/s"
+-- (그 명소가 버는 초당 수입 — 글자는 update 가 채움). 알약 폭은 글자 길이에 맞춤(setIncome).
+-- 모두 "Body" 안(UIScale "Pop" — 별이 오르면 클라이언트 IncomeFx 가 잠깐 키움). 스터드 크기라 멀면 작아지고 MaxDistance 60 밖은 안 보임
+local function addLabel(pedestal: BasePart, landmark: Landmarks.Landmark, modelHeight: number): Label
 	local anchor = Instance.new("Attachment")
 	anchor.Name = "LabelAnchor"
-	anchor.Position = Vector3.new(0, PEDESTAL_HEIGHT / 2 + modelHeight + 1.4, 0)
+	anchor.Position = Vector3.new(0, PEDESTAL_HEIGHT / 2 + modelHeight + LABEL_GAP + LABEL_HEIGHT / 2, 0)
 	anchor.Parent = pedestal
 
 	local billboard = Instance.new("BillboardGui")
@@ -11841,17 +11889,26 @@ local function addLabel(pedestal: BasePart, landmark: Landmarks.Landmark, modelH
 	billboard.Size = UDim2.fromScale(LABEL_WIDTH, LABEL_HEIGHT)
 	billboard.MaxDistance = LABEL_DISTANCE
 	billboard.LightInfluence = 0
+	billboard.ClipsDescendants = false -- 별이 오를 때 잠깐 커져도 잘리지 않게
 	billboard.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+	local body = frame(billboard, UDim2.fromScale(1, 1), UDim2.fromScale(0.5, 0.5), WHITE)
+	body.Name = "Body"
+	body.AnchorPoint = Vector2.new(0.5, 0.5)
+	body.BackgroundTransparency = 1
+	local pop = Instance.new("UIScale")
+	pop.Name = "Pop"
+	pop.Parent = body
 
 	-- 딱지 너비는 이름 길이에 맞춤(한글 한 글자 폭 ≈ 글자 높이 ≈ 1 스터드)
 	local chars = utf8.len(landmark.Name) or #landmark.Name
 	local width = math.clamp((chars * 1.05 + 1.4) / LABEL_WIDTH, 0.3, 1)
 	local tier = landmark.Tier.Color
 	local tag = chunky(
-		billboard,
-		UDim2.fromScale(width, 0.52),
-		UDim2.fromScale(0.5, 0),
-		UDim.new(0.07, 0),
+		body,
+		UDim2.fromScale(width, NAME_H),
+		UDim2.fromScale(0.5, NAME_Y),
+		UDim.new(0.047, 0),
 		tier,
 		tier:Lerp(INK, 0.4),
 		2
@@ -11862,13 +11919,47 @@ local function addLabel(pedestal: BasePart, landmark: Landmarks.Landmark, modelH
 	padding(name, UDim.new(0.08, 0), UDim.new(0.14, 0))
 	stroke(name, 2)
 
-	local stars = textLabel(billboard, UDim2.fromScale(1, 0.34), UDim2.fromScale(0, 0.64), SUN)
+	local stars = textLabel(body, UDim2.fromScale(1, STARS_H), UDim2.fromScale(0, STARS_Y), SUN)
 	stars.Name = "Stars"
 	stars.RichText = true
 	stroke(stars, 2)
 
+	-- 수입 알약: 초록(간판 알약과 같은 색) + 왼쪽 끝을 살짝 넘는 동전 + 흰 글자
+	local shadow = frame(body, UDim2.fromScale(0.4, INCOME_H), UDim2.new(0.5, 0, INCOME_Y + 0.04, 0), GRASS_SHADOW)
+	shadow.Name = "IncomeShadow"
+	shadow.AnchorPoint = Vector2.new(0.5, 0)
+	shadow.ZIndex = 1
+	corner(shadow, UDim.new(0.5, 0))
+	stroke(shadow, 2)
+	local face = frame(body, UDim2.fromScale(0.4, INCOME_H), UDim2.fromScale(0.5, INCOME_Y), GRASS)
+	face.Name = "Income"
+	face.AnchorPoint = Vector2.new(0.5, 0)
+	face.ZIndex = 2
+	corner(face, UDim.new(0.5, 0))
+	stroke(face, 2)
+	icon(face, "coin", 1.25, UDim2.new(0, 0, 0.5, 0), Vector2.new(0.3, 0.5), drawCoin)
+	local amount = textLabel(face, UDim2.new(1, 0, 1, 0), UDim2.new(), WHITE)
+	amount.Name = "Amount"
+	amount.ZIndex = 4
+	padding(amount, UDim.new(), UDim.new(0.12, 0))
+	stroke(amount, 2)
+
 	billboard.Parent = anchor
-	return stars
+	return { Stars = stars, Amount = amount, IncomeFace = face, IncomeShadow = shadow }
+end
+
+-- 이름표 수입 글자 "+N/s" + 알약 폭(글자 수에 맞춤). 알약 높이 h 스터드 기준: 왼쪽 동전 자리 0.95h, 글자 한 칸 0.42h, 오른쪽 0.3h
+local function setIncome(label: Label, income: number)
+	local text = incomeText(income)
+	label.Amount.Text = text
+	local chars = utf8.len(text) or #text
+	local h = INCOME_H * LABEL_HEIGHT
+	local left, right = 0.95 * h, 0.3 * h
+	local w = math.min(left + chars * 0.42 * h + right, 0.95 * LABEL_WIDTH)
+	label.IncomeFace.Size = UDim2.fromScale(w / LABEL_WIDTH, INCOME_H)
+	label.IncomeShadow.Size = UDim2.fromScale(w / LABEL_WIDTH, INCOME_H)
+	label.Amount.Position = UDim2.fromScale(left / w, 0)
+	label.Amount.Size = UDim2.fromScale(1 - (left + right) / w, 1)
 end
 
 -- key: KEY_LOCKED(바닥에 얇은 밝은 판 = 빈 부지 칸 자리 표시와 같은 모습) / KEY_EMPTY(빈 받침대) / 명소 Id(받침대 + 미니어처 + 이름표)
@@ -11876,7 +11967,7 @@ local function buildSlot(plot: Plot, index: number, key: string): Slot
 	local floor = plot.CFrame * CFrame.new(SLOT_OFFSETS[index]) -- 칸 바닥 중앙(부지 윗면)
 	local container = Instance.new("Model")
 	container.Name = "Slot" .. index
-	local slot: Slot = { Key = key, Container = container, StarLabel = nil, Stars = -1 }
+	local slot: Slot = { Key = key, Container = container, Label = nil, Stars = -1, Income = -1 }
 
 	if key == KEY_LOCKED then
 		local tile = newPart(
@@ -11911,7 +12002,9 @@ local function buildSlot(plot: Plot, index: number, key: string): Slot
 			if not ok then
 				warn("[ParkService] " .. landmark.Id .. " 모형을 만들지 못했습니다: " .. tostring(result))
 			end
-			slot.StarLabel = addLabel(pedestal, landmark, if ok then result else 0)
+			local height = if ok then result else 0
+			slot.Label = addLabel(pedestal, landmark, height)
+			container:SetAttribute("Top", height) -- 클라이언트 동전 퐁이 모형 옆에서 솟게
 		end
 	end
 	-- 주인 클라이언트(배치 모드)가 칸 번호와 모습을 읽음. 모델을 만들 때 한 번 정하고 바꾸지 않음(모습이 바뀌면 새 모델)
@@ -11959,6 +12052,7 @@ function ParkService.release(player: Player)
 	plotByPlayer[player] = nil
 	plot.Owner = nil
 	plot.Model:SetAttribute("OwnerUserId", nil)
+	plot.Model:SetAttribute("Income", nil)
 	clearSlots(plot)
 	showOwned(plot, false)
 	setSign(plot, "", "")
@@ -11973,6 +12067,8 @@ function ParkService.update(player: Player, data: PlayerState.Data, mods: Player
 	end
 	local park, unlocked = PlayerState.parkSlots(data)
 	unlocked = math.min(unlocked, #SLOT_OFFSETS)
+	-- 칸마다 초당 수입(PlayerState 한 식 — 합 = incomePerSecond). 값이 바뀔 때만 속성·글자를 씀
+	local incomes = PlayerState.slotIncomes(data, mods)
 
 	for index = 1, #SLOT_OFFSETS do
 		local id = if index <= unlocked then park[index] else nil
@@ -11985,17 +12081,32 @@ function ParkService.update(player: Player, data: PlayerState.Data, mods: Player
 			slot = buildSlot(plot, index, key)
 			plot.Slots[index] = slot
 		end
-		local starLabel = slot.StarLabel
-		if id and starLabel then
+		if id then
+			local label = slot.Label
 			local stars = PlayerState.stars(data.Inventory[id] or 0)
 			if stars ~= slot.Stars then
 				slot.Stars = stars
-				starLabel.Text = starText(stars)
+				slot.Container:SetAttribute("Stars", stars)
+				if label then
+					label.Stars.Text = starText(stars)
+				end
+			end
+			local income = incomes[index] or 0
+			if income ~= slot.Income then
+				slot.Income = income
+				slot.Container:SetAttribute("Income", income)
+				if label then
+					setIncome(label, income)
+				end
 			end
 		end
 	end
 
-	setSign(plot, player.DisplayName, incomeText(PlayerState.incomePerSecond(data, mods)))
+	local total = PlayerState.incomePerSecond(data, mods)
+	if plot.Model:GetAttribute("Income") ~= total then
+		plot.Model:SetAttribute("Income", total)
+	end
+	setSign(plot, player.DisplayName, incomeText(total))
 end
 
 -- 공원 입구 안쪽 바닥(부지 윗면)에서 공원 안쪽을 바라보는 CFrame. 부지가 없으면 nil.
@@ -17777,7 +17888,7 @@ return World
           <string name="Name">Client</string>
           <string name="Source"><![CDATA[-- 클라이언트 진입점: 상태 동기화, 굴리기/자동 굴리기, 메뉴 연결, 뉴스 속보, 회전 모형,
 -- 환생 · Robux 상품 구매 요청 · 서버 행운 알림 (DESIGN.md v3), 3D 공원 배치 모드(ParkEdit: 내 공원에서 명소를
--- 직접 집어 옮김 — 여기서는 서버 요청·알림·HUD 연결만)
+-- 직접 집어 옮김 — 여기서는 서버 요청·알림·HUD 연결만), 수입 보이기(IncomeFx: 동전 퐁 · 내 공원 → 코인 알약 동전, 서버 속성만 읽음)
 -- (화면 글자에는 이모지를 쓰지 않음 — DESIGN.md UI 스타일 가이드 v2)
 -- 알림은 [아이콘] + 8글자 안팎 ("구매 완료", "코인 부족", "대표 지정"), 문장은 쓰지 않음
 
@@ -17796,6 +17907,7 @@ local PlayerState = require(Shared.PlayerState)
 
 local Hud = require(script.Hud)
 local Icons = require(script.Icons)
+local IncomeFx = require(script.IncomeFx)
 local Panels = require(script.Panels)
 local ParkEdit = require(script.ParkEdit)
 local Perks = require(script.Perks)
@@ -18383,6 +18495,16 @@ ParkEdit.init(gui, {
 		return Panels.current() == nil
 	end,
 })
+-- 수입 보이기: 전시 명소 동전 퐁 + 내 공원에서 코인 알약으로 날아가는 동전. 배치 모드면 모두 쉬고, 창이 열렸거나
+-- 굴림 연출 중이면 날아가는 동전만 쉼(창·연출을 가리지 않게)
+IncomeFx.init(playerGui, {
+	CoinTarget = Hud.coinTarget,
+	Bump = Hud.bumpCoins,
+	Editing = ParkEdit.isEditing,
+	Covered = function(): boolean
+		return Panels.current() ~= nil or revealing
+	end,
+})
 
 -- 다시 태어나면 광장(스폰 지점)에서 시작
 player.CharacterAdded:Connect(function()
@@ -18452,6 +18574,7 @@ local function setMyPlot(plot: Instance?)
 	myPlot = plot
 	Hud.setPlotOwned(plot ~= nil)
 	ParkEdit.setPlot(plot)
+	IncomeFx.setPlot(plot)
 end
 
 task.spawn(function()
@@ -18764,6 +18887,10 @@ local function buildStats()
 		Parent = container,
 	})
 	refs.CoinLabel = coins.Label
+	refs.CoinPill = coins.Root
+	refs.CoinIcon = coins.Icon
+	-- 내 공원에서 날아온 동전이 닿으면 알약이 톡(Hud.bumpCoins)
+	refs.CoinBump = Ui.new("UIScale", { Name = "Bump", Parent = coins.Root })
 
 	-- 초당 수입: 코인 바로 오른쪽 작은 칩 (위 화살표 + "+13.5/s")
 	refs.IncomeChip = Ui.chip({
@@ -19626,6 +19753,34 @@ function Hud.serverLuck(name: string, untilValue: number)
 	local text = if name ~= "" then Format.escape(name) .. " 서버 행운!" else "서버 행운!"
 	Hud.toast(text, Ui.colorPair("Grape").Face, 4, "globe")
 	play(luckSound)
+end
+
+-- 코인 알약의 동전 아이콘 가운데(이 ScreenGui 좌표, 화면 px) — IncomeFx 가 내 공원 동전을 날려 보낼 곳.
+-- 스탯이 숨어 있거나 아직 자리를 모르면 nil
+function Hud.coinTarget(): Vector2?
+	local icon: GuiObject? = refs.CoinIcon or refs.CoinPill
+	if not icon or not refs.CoinPill.Visible then
+		return nil
+	end
+	local size = icon.AbsoluteSize
+	if size.X <= 0 or size.Y <= 0 then
+		return nil
+	end
+	return icon.AbsolutePosition + size / 2
+end
+
+-- 날아온 동전이 코인 알약에 닿음: 알약이 살짝 커졌다 제자리(0.25초에 한 번까지 — 몰려 와도 떨리지 않게)
+local BUMP_TWEEN = TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, true)
+local lastBump = -math.huge
+function Hud.bumpCoins()
+	local now = os.clock()
+	if now - lastBump < 0.25 then
+		return
+	end
+	lastBump = now
+	local bump: UIScale = refs.CoinBump
+	bump.Scale = 1
+	TweenService:Create(bump, BUMP_TWEEN, { Scale = 1.09 }):Play()
 end
 
 -- 매 프레임 호출: 부드럽게 올라가는 코인 표시 (정수가 바뀔 때만 글자 갱신)
@@ -20984,6 +21139,695 @@ return Icons
           </Properties>
         </Item>
         <Item class="ModuleScript" referent="41">
+          <Properties>
+            <string name="Name">IncomeFx</string>
+            <string name="Source"><![CDATA[-- 돈 버는 게 보이게(타이쿤·"steal a …" 게임처럼) — 이 화면에서만 그리는 효과. 수입 규칙·코인·서버 통신은 그대로
+-- (DESIGN.md "수입 보이기"). 서버(ParkService)가 칸 모델에 붙인 복제 속성만 읽음: Look(명소 Id) · Income(그 명소의 초당 수입,
+-- PlayerState.slotIncomes) · Stars · Top(모형 높이). 값이 바뀔 때만 오고, 초마다 오가는 통신은 없음.
+--
+--  1) 동전 퐁: 카메라 가까이(POP_DISTANCE) 화면에 보이는 전시 명소마다 가끔 [동전] "+N" 이 모형 옆에서 솟았다 사라짐.
+--     N = 그 명소가 지난 퐁 뒤로 번 돈(Income × 간격), 간격은 등급이 높을수록 짧음(POP_EVERY). 화면 전체 초당 POP_RATE 개까지
+--     (넘치면 그 퐁은 건너뜀), 빌보드는 POP_POOL 개를 돌려 씀(새로 만들지 않음 — 몇 시간을 켜 둬도 인스턴스가 늘지 않음).
+--  2) 내 공원 → 코인: FLY_EVERY 초마다 화면에 보이는 내 명소에서 동전 몇 개가 곡선을 그리며 HUD 코인 알약으로 날아가고, 닿으면
+--     알약이 톡(Handlers.Bump). 코인 숫자는 원래처럼 매 프레임 부드럽게 오름. 동전은 HUD 아래 층 ScreenGui 라 알약 "안으로"
+--     들어가고 버튼·창을 가리지 않음(입력도 안 막음). 배치 모드(Editing)·창이 열림·굴림 연출 중(Covered)엔 날리지 않고 날던 것도 바로 치움.
+--  3) 별이 오르면(칸 Stars 속성이 커짐) 그 칸 이름표(ParkService 이름표 "Body" 의 UIScale "Pop")가 잠깐 커졌다 제자리.
+-- 배치 모드 동안은 퐁도 쉼(Editing — 위에서 보기 화면을 깔끔하게. ParkEdit 가 이름표도 끔).
+-- 화면 글자는 아이콘 + 숫자뿐, 이모지 없음 — DESIGN.md UI 스타일 가이드 v2.
+
+local GuiService = game:GetService("GuiService")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+
+local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
+local Format = require(Shared.Format)
+local Landmarks = require(Shared.Landmarks)
+local ParkGrid = require(Shared.ParkGrid)
+
+local Ui = require(script.Parent.Ui)
+local Theme = Ui.Theme
+
+export type Handlers = {
+	CoinTarget: () -> Vector2?, -- HUD 코인 아이콘 가운데(메인 ScreenGui 좌표 = 뷰포트 - 상단바). nil 이면 날리지 않음
+	Bump: () -> (), -- 날아간 동전이 코인 알약에 닿음
+	Editing: () -> boolean, -- 3D 배치 모드: 퐁·날리기 모두 쉼
+	Covered: () -> boolean, -- 창이 열림·굴림 연출 중: 날리기만 쉼(월드 퐁은 창 아래라 그대로)
+}
+
+-- 동전 퐁 -----------------------------------------------------------------------------
+local POP_POOL = 14 -- 빌보드 수(동시에 보이는 퐁 최대)
+local POP_RATE = 10 -- 화면 전체 초당 퐁 최대(토큰 통)
+local POP_BURST = 6 -- 토큰 통 크기(한꺼번에 몰려 나오지 않게)
+local POP_DISTANCE = 70 -- 카메라에서 이보다 먼 명소는 퐁 없음(스터드). 이름표 MaxDistance(60)보다 조금 멀리
+-- 등급(Rank 1~7)별 퐁 간격(초): 희귀할수록 자주. 처음 간격은 무작위로 흩어서 같이 터지지 않게
+local POP_EVERY = { 4.2, 3.8, 3.3, 2.8, 2.3, 1.9, 1.5 }
+local POP_RETRY = 0.35 -- 토큰·빌보드가 없어서 건너뛰면 이만큼 뒤에 다시
+local POP_LIFE = 1.15 -- 솟았다 사라지는 시간(초)
+-- 퐁은 모형 몸통(높이 20~45%)에서 솟아 모형 꼭대기 아래(최대 90%)에서 사라짐 — 모형 위 이름표를 가리지 않게
+local POP_START = { 0.2, 0.45 }
+local POP_RISE = { 1.2, 3 } -- 솟는 높이(스터드, 모형 높이 × 0.45 를 이 범위로)
+-- 크기: 이름표처럼 월드 크기(높이 POP_STUDS 스터드)로 보이게 띄울 때 한 번 정함(TextScaled·매 프레임 크기 바꾸기 없음).
+-- 너무 멀면 읽을 수 있게 최소, 너무 가까우면 화면을 덮지 않게 최대(px)
+local POP_STUDS = 2.2 -- 이름표 수입 알약(1.1 스터드)의 두 배쯤 — 돈이 먼저 눈에 띄게
+local POP_MIN_PX, POP_MAX_PX = 20, 46
+local POP_ASPECT = 3.1 -- 가로 = 세로 × 이 값(동전 + "+12.5K")
+local PEDESTAL_TOP = ParkGrid.PEDESTAL_HEIGHT / 2 -- 받침대 가운데 → 윗면
+
+-- 내 공원 → 코인 --------------------------------------------------------------------
+local FLY_EVERY = 1.6 -- 몇 초마다 한 번 몰아서
+local FLY_POOL = 10
+local FLY_MAX = 5 -- 한 번에 날리는 동전 수 최대
+local FLY_DISTANCE = 130 -- 이보다 먼 내 명소는 출발점으로 안 씀
+local FLY_SECONDS = 0.7
+local FLY_STAGGER = 0.07
+local FLY_SIZE = 34 -- px(배율 1)
+local FLASH_TWEEN = TweenInfo.new(0.16, Enum.EasingStyle.Back, Enum.EasingDirection.Out, 0, true)
+local FLASH_SCALE = 1.35 -- 별이 오르면 이름표가 이만큼 커졌다 제자리
+local FLASH_DISTANCE = 64 -- 이름표가 보이는 거리 안에서만(이름표 MaxDistance 60 + 여유)
+
+local POP_TEXT = Ui.colorPair("Sun").Face
+
+local IncomeFx = {}
+
+local handlers: Handlers
+local clock = 0 -- RenderStepped 로 흐르는 이 모듈의 시계(초)
+local random = Random.new()
+
+-- 전시 명소(모든 부지의 명소 칸)
+type Statue = {
+	Container: Instance,
+	Rank: number,
+	Income: number,
+	Stars: number?,
+	Next: number, -- 다음 퐁 시각(clock)
+	Connections: { RBXScriptConnection },
+}
+local statues: { [Instance]: Statue } = {}
+local folderConnections: { [Instance]: { RBXScriptConnection } } = {} -- 부지 Slots 폴더마다
+local myPlot: Instance? = nil
+
+-- 퐁 빌보드
+type Pop = {
+	Gui: BillboardGui,
+	Coin: ImageLabel,
+	Text: TextLabel,
+	Stroke: UIStroke,
+	Scale: UIScale,
+	Busy: boolean,
+	Start: number,
+	Base: Vector3, -- 받침대 기준 시작 자리(StudsOffsetWorldSpace)
+	Rise: number, -- 솟는 높이(스터드)
+}
+local pops: { Pop } = {}
+local popTokens = POP_BURST
+local popsSpawned = 0
+local popsSkipped = 0
+local fxFolder: Folder
+
+-- 날아가는 동전
+type Flight = {
+	Sprite: ImageLabel,
+	Scale: UIScale,
+	Busy: boolean,
+	Start: number,
+	Seconds: number,
+	From: Vector2,
+	Via: Vector2,
+	To: Vector2,
+	First: boolean, -- 이 묶음에서 가장 먼저 닿는 동전(닿으면 알약 톡)
+}
+local flights: { Flight } = {}
+local flyGui: ScreenGui
+local flyTimer = 0
+local flightsSpawned = 0
+local bursts = 0
+
+-- 도우미 ----------------------------------------------------------------------------
+
+local function guiInset(): Vector2
+	local ok, inset = pcall(function()
+		return (GuiService:GetGuiInset())
+	end)
+	return if ok and typeof(inset) == "Vector2" then inset else Vector2.zero
+end
+
+-- 초당 수입·퐁 금액 짧게: "1.8", "12.5K"
+local function amountText(amount: number): string
+	if amount < 100 then
+		local text = string.format("%.1f", math.floor(amount * 10) / 10):gsub("%.0$", "")
+		return text
+	end
+	return Format.short(amount)
+end
+
+local function pedestalOf(container: Instance): BasePart?
+	local pedestal = container:FindFirstChild("Pedestal")
+	return if pedestal and pedestal:IsA("BasePart") then pedestal else nil
+end
+
+local function isMine(container: Instance): boolean
+	local plot = myPlot
+	return plot ~= nil and container:IsDescendantOf(plot)
+end
+
+-- 이름표 몸통의 UIScale "Pop"(ParkService addLabel)
+local function labelPop(container: Instance): UIScale?
+	local pedestal = pedestalOf(container)
+	local body = pedestal and pedestal:FindFirstChild("Body", true)
+	local pop = body and body:FindFirstChild("Pop")
+	return if pop and pop:IsA("UIScale") then pop else nil
+end
+
+-- 명소 칸 따라가기 ------------------------------------------------------------------
+
+local function readIncome(container: Instance): number
+	local value = container:GetAttribute("Income")
+	return if type(value) == "number" and value > 0 then value else 0
+end
+
+local function readStars(container: Instance): number?
+	local value = container:GetAttribute("Stars")
+	return if type(value) == "number" then value else nil
+end
+
+local function flashLabel(container: Instance)
+	local pedestal = pedestalOf(container)
+	local camera = workspace.CurrentCamera
+	if not pedestal or not camera then
+		return
+	end
+	if (pedestal.Position - camera.CFrame.Position).Magnitude > FLASH_DISTANCE then
+		return -- 이름표가 안 보이는 거리: 트윈을 만들지 않음
+	end
+	local pop = labelPop(container)
+	if pop then
+		pop.Scale = 1
+		TweenService:Create(pop, FLASH_TWEEN, { Scale = FLASH_SCALE }):Play()
+	end
+end
+
+local function untrack(container: Instance)
+	local statue = statues[container]
+	if statue then
+		for _, connection in statue.Connections do
+			connection:Disconnect()
+		end
+		statues[container] = nil
+	end
+end
+
+local function track(container: Instance)
+	if statues[container] then
+		return
+	end
+	local look = container:GetAttribute("Look")
+	local landmark = if type(look) == "string" then Landmarks.ById[look] else nil
+	if not landmark then
+		return -- 빈 칸·잠긴 칸(명소 칸 모델은 모습이 바뀌면 새 모델이라 Look 은 그대로)
+	end
+	local rank = math.clamp(landmark.Tier.Rank, 1, #POP_EVERY)
+	local statue: Statue = {
+		Container = container,
+		Rank = rank,
+		Income = readIncome(container),
+		Stars = readStars(container),
+		Next = clock + random:NextNumber(0.2, POP_EVERY[rank]),
+		Connections = {},
+	}
+	statues[container] = statue
+	table.insert(
+		statue.Connections,
+		container:GetAttributeChangedSignal("Income"):Connect(function()
+			statue.Income = readIncome(container)
+		end)
+	)
+	table.insert(
+		statue.Connections,
+		container:GetAttributeChangedSignal("Stars"):Connect(function()
+			local stars = readStars(container)
+			local before = statue.Stars
+			statue.Stars = stars
+			if stars and before and stars > before then
+				flashLabel(container) -- 별 +1: 이름표가 톡
+			end
+		end)
+	)
+end
+
+local function watchSlots(folder: Instance)
+	if folderConnections[folder] then
+		return
+	end
+	folderConnections[folder] = {
+		folder.ChildAdded:Connect(track),
+		folder.ChildRemoved:Connect(untrack),
+	}
+	for _, container in folder:GetChildren() do
+		track(container)
+	end
+end
+
+local function watchPlot(plot: Instance)
+	local folder = plot:FindFirstChild("Slots")
+	if folder then
+		watchSlots(folder)
+		return
+	end
+	task.spawn(function()
+		local found = plot:WaitForChild("Slots", 30)
+		if found and plot.Parent then
+			watchSlots(found)
+		end
+	end)
+end
+
+-- 동전 퐁 -----------------------------------------------------------------------------
+
+local function newPop(index: number): Pop
+	local gui = Ui.new("BillboardGui", {
+		Name = "Pop" .. index,
+		Size = UDim2.fromOffset(POP_MAX_PX * POP_ASPECT, POP_MAX_PX),
+		AlwaysOnTop = true,
+		LightInfluence = 0,
+		MaxDistance = POP_DISTANCE + 10,
+		Enabled = false,
+		Active = false,
+		Parent = fxFolder,
+	})
+	local body = Ui.new("Frame", {
+		Name = "Body",
+		BackgroundTransparency = 1,
+		Size = UDim2.fromScale(1, 1),
+		Parent = gui,
+	})
+	local scale = Ui.new("UIScale", { Parent = body })
+	local coin = Ui.new("ImageLabel", {
+		Name = "Coin",
+		BackgroundTransparency = 1,
+		Image = Ui.imageId("coin") or "",
+		BackgroundColor3 = POP_TEXT,
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.fromScale(0, 0.5),
+		Size = UDim2.fromScale(0.3, 0.9),
+		SizeConstraint = Enum.SizeConstraint.RelativeYY,
+		Parent = body,
+	})
+	if coin.Image == "" then
+		-- 그림이 없으면 해 색 동그라미
+		coin.BackgroundTransparency = 0
+		Ui.round().Parent = coin
+		Ui.stroke(Theme.Ink, 2).Parent = coin
+	end
+	local text = Ui.new("TextLabel", {
+		Name = "Amount",
+		BackgroundTransparency = 1,
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.fromScale(0.3, 0.5),
+		Size = UDim2.fromScale(0.7, 1),
+		Font = Theme.Font,
+		TextSize = 24,
+		TextColor3 = POP_TEXT,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Text = "",
+		Parent = body,
+	})
+	local stroke = Ui.outline(text, 2.5)
+	return {
+		Gui = gui,
+		Coin = coin,
+		Text = text,
+		Stroke = stroke,
+		Scale = scale,
+		Busy = false,
+		Start = 0,
+		Base = Vector3.zero,
+		Rise = 0,
+	}
+end
+
+local function freePop(): Pop?
+	for _, pop in pops do
+		if not pop.Busy then
+			return pop
+		end
+	end
+	return nil
+end
+
+local function setPopFade(pop: Pop, alpha: number)
+	pop.Text.TextTransparency = alpha
+	pop.Stroke.Transparency = alpha
+	pop.Coin.ImageTransparency = alpha
+	if pop.Coin.Image == "" then
+		pop.Coin.BackgroundTransparency = alpha
+	end
+end
+
+-- 명소 하나에서 퐁. 반환: 띄웠는지. 크기는 이름표처럼 월드 크기(POP_STUDS)로 보이게 이 거리에서 한 번 정함
+local function spawnPop(statue: Statue, pedestal: BasePart, camera: Camera, distance: number, amount: number): boolean
+	local pop = freePop()
+	if not pop or popTokens < 1 then
+		return false
+	end
+	popTokens -= 1
+	popsSpawned += 1
+	local top = statue.Container:GetAttribute("Top")
+	local height = if type(top) == "number" and top > 0 then top else 4
+	-- 화면에서 모형 왼쪽·오른쪽 옆(카메라 오른쪽 방향)에서 솟음 — 모형 앞·위를 덮지 않게
+	local right = camera.CFrame.RightVector
+	local flat = Vector3.new(right.X, 0, right.Z)
+	flat = if flat.Magnitude > 1e-3 then flat.Unit else Vector3.new(1, 0, 0)
+	local side = random:NextNumber(1.6, 2.6) * (if random:NextNumber() < 0.5 then -1 else 1)
+	pop.Base = flat * side + Vector3.new(0, PEDESTAL_TOP + height * random:NextNumber(POP_START[1], POP_START[2]), 0)
+	pop.Rise = math.clamp(height * 0.45, POP_RISE[1], POP_RISE[2])
+	pop.Busy = true
+	pop.Start = clock
+	local perStud = camera.ViewportSize.Y / (2 * math.tan(math.rad(camera.FieldOfView) / 2) * math.max(distance, 1))
+	local h = math.clamp(POP_STUDS * perStud, POP_MIN_PX, POP_MAX_PX)
+	pop.Gui.Size = UDim2.fromOffset(h * POP_ASPECT, h)
+	pop.Text.TextSize = math.floor(h * 0.62 + 0.5)
+	pop.Text.Text = "+" .. amountText(amount)
+	pop.Gui.Adornee = pedestal
+	pop.Gui.StudsOffsetWorldSpace = pop.Base
+	pop.Scale.Scale = 0.6
+	setPopFade(pop, 0)
+	pop.Gui.Enabled = true
+	return true
+end
+
+local function stepPops(dt: number)
+	popTokens = math.min(POP_BURST, popTokens + POP_RATE * dt)
+	for _, pop in pops do
+		if pop.Busy then
+			local t = (clock - pop.Start) / POP_LIFE
+			local adornee = pop.Gui.Adornee
+			if t >= 1 or not adornee or not adornee.Parent then
+				pop.Busy = false
+				pop.Gui.Enabled = false
+				pop.Gui.Adornee = nil
+			else
+				local rise = 1 - (1 - t) ^ 2
+				pop.Gui.StudsOffsetWorldSpace = pop.Base + Vector3.new(0, pop.Rise * rise, 0)
+				pop.Scale.Scale = if t < 0.14
+					then 0.6 + 0.55 * (t / 0.14)
+					elseif t < 0.26 then 1.15 - 0.15 * ((t - 0.14) / 0.12)
+					else 1
+				setPopFade(pop, if t < 0.55 then 0 else (t - 0.55) / 0.45)
+			end
+		end
+	end
+end
+
+local function stopPops()
+	for _, pop in pops do
+		if pop.Busy then
+			pop.Busy = false
+			pop.Gui.Enabled = false
+			pop.Gui.Adornee = nil
+		end
+	end
+end
+
+-- 때가 된 명소마다: 가까이·화면 안이면 퐁(토큰·빌보드가 없으면 조금 뒤에 다시), 아니면 다음 차례로
+local function schedulePops(camera: Camera, editing: boolean)
+	local eye = camera.CFrame.Position
+	for container, statue in statues do
+		if clock >= statue.Next then
+			local every = POP_EVERY[statue.Rank]
+			local pedestal = pedestalOf(container)
+			if editing or statue.Income <= 0 or not pedestal or not container.Parent then
+				statue.Next = clock + every
+			else
+				local distance = (pedestal.Position - eye).Magnitude
+				local _, inside = camera:WorldToViewportPoint(pedestal.Position + Vector3.new(0, PEDESTAL_TOP + 2, 0))
+				if distance > POP_DISTANCE or not inside then
+					statue.Next = clock + every
+				elseif spawnPop(statue, pedestal, camera, distance, statue.Income * every) then
+					statue.Next = clock + every
+				else
+					popsSkipped += 1
+					statue.Next = clock + POP_RETRY + random:NextNumber(0, POP_RETRY)
+				end
+			end
+		end
+	end
+end
+
+-- 날아가는 동전 -------------------------------------------------------------------
+
+local function newFlight(index: number): Flight
+	local sprite = Ui.new("ImageLabel", {
+		Name = "Coin" .. index,
+		BackgroundTransparency = 1,
+		BackgroundColor3 = POP_TEXT,
+		Image = Ui.imageId("coin") or "",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Size = UDim2.fromOffset(FLY_SIZE, FLY_SIZE),
+		Active = false,
+		Visible = false,
+		Parent = flyGui,
+	})
+	if sprite.Image == "" then
+		sprite.BackgroundTransparency = 0
+		Ui.round().Parent = sprite
+		Ui.stroke(Theme.Ink, 2).Parent = sprite
+	end
+	local scale = Ui.new("UIScale", { Parent = sprite })
+	return {
+		Sprite = sprite,
+		Scale = scale,
+		Busy = false,
+		Start = 0,
+		Seconds = FLY_SECONDS,
+		From = Vector2.zero,
+		Via = Vector2.zero,
+		To = Vector2.zero,
+		First = false,
+	}
+end
+
+local function stopFlights()
+	for _, flight in flights do
+		if flight.Busy then
+			flight.Busy = false
+			flight.Sprite.Visible = false
+		end
+	end
+end
+
+local function bezier(a: Vector2, b: Vector2, c: Vector2, t: number): Vector2
+	local u = 1 - t
+	return a * (u * u) + b * (2 * u * t) + c * (t * t)
+end
+
+-- 곡선 가운데 점: 두 점 가운데에서 위로(화면 위쪽 = 코인 알약 쪽) 부풀림 — IncomeFx.curveVia(목업도 같은 식)
+function IncomeFx.curveVia(from: Vector2, to: Vector2, bend: number): Vector2
+	local mid = (from + to) / 2
+	local lift = math.min(220, (to - from).Magnitude * 0.35)
+	return mid + Vector2.new(bend * lift * 0.5, -lift)
+end
+
+-- 화면에 보이는 내 명소 출발점(메인 ScreenGui 좌표, 수입 큰 순서)
+local function flySources(camera: Camera): { Vector2 }
+	local eye = camera.CFrame.Position
+	local inset = guiInset()
+	local found: { { At: Vector2, Income: number } } = {}
+	for container, statue in statues do
+		if statue.Income > 0 and isMine(container) then
+			local pedestal = pedestalOf(container)
+			if pedestal and (pedestal.Position - eye).Magnitude <= FLY_DISTANCE then
+				local top = container:GetAttribute("Top")
+				local height = if type(top) == "number" then top else 4
+				local point = pedestal.Position + Vector3.new(0, PEDESTAL_TOP + height * 0.6, 0)
+				local screen, inside = camera:WorldToViewportPoint(point)
+				if inside and screen.Z > 0 then
+					table.insert(found, { At = Vector2.new(screen.X, screen.Y) - inset, Income = statue.Income })
+				end
+			end
+		end
+	end
+	table.sort(found, function(a, b)
+		return a.Income > b.Income
+	end)
+	local list = {}
+	for _, entry in found do
+		table.insert(list, entry.At)
+	end
+	return list
+end
+
+local function launch(camera: Camera): boolean
+	local target = handlers.CoinTarget()
+	if not target then
+		return false
+	end
+	local sources = flySources(camera)
+	if #sources == 0 then
+		return false -- 내 공원이 화면에 없음
+	end
+	local count = math.clamp(#sources, 2, FLY_MAX)
+	local launched = 0
+	bursts += 1
+	for index = 1, count do
+		local flight: Flight? = nil
+		for _, candidate in flights do
+			if not candidate.Busy then
+				flight = candidate
+				break
+			end
+		end
+		if not flight then
+			break
+		end
+		local from = sources[(index - 1) % #sources + 1]
+			+ Vector2.new(random:NextNumber(-10, 10), random:NextNumber(-8, 8))
+		flight.Busy = true
+		flight.Start = clock + (index - 1) * FLY_STAGGER
+		flight.Seconds = FLY_SECONDS + random:NextNumber(-0.08, 0.12)
+		flight.From = from
+		flight.To = target
+		flight.Via = IncomeFx.curveVia(from, target, random:NextNumber(-1, 1))
+		flight.First = index == 1
+		flight.Sprite.Position = UDim2.fromOffset(from.X, from.Y)
+		flight.Sprite.Size = UDim2.fromOffset(FLY_SIZE * Ui.scale(), FLY_SIZE * Ui.scale())
+		flight.Sprite.Visible = false -- 차례가 오면 보임
+		flight.Scale.Scale = 1
+		launched += 1
+		flightsSpawned += 1
+	end
+	return launched > 0
+end
+
+local function stepFlights()
+	for _, flight in flights do
+		if flight.Busy and clock >= flight.Start then
+			local t = (clock - flight.Start) / flight.Seconds
+			if t >= 1 then
+				flight.Busy = false
+				flight.Sprite.Visible = false
+				if flight.First then
+					handlers.Bump()
+				end
+			else
+				local eased = t * t * (3 - 2 * t)
+				local at = bezier(flight.From, flight.Via, flight.To, eased)
+				flight.Sprite.Position = UDim2.fromOffset(at.X, at.Y)
+				flight.Scale.Scale = if t < 0.15 then 0.5 + t / 0.15 * 0.7 else 1.2 - 0.45 * t
+				flight.Sprite.Visible = true
+			end
+		end
+	end
+end
+
+-- 매 프레임 --------------------------------------------------------------------------
+
+local function step(dt: number)
+	clock += dt
+	local camera = workspace.CurrentCamera
+	if not camera then
+		return
+	end
+	local editing = handlers.Editing()
+	if editing then
+		stopPops()
+	end
+	stepPops(dt)
+	schedulePops(camera, editing)
+
+	local quiet = editing or handlers.Covered()
+	if quiet then
+		stopFlights()
+		flyTimer = 0
+	else
+		flyTimer += dt
+		if flyTimer >= FLY_EVERY then
+			flyTimer = 0
+			launch(camera)
+		end
+		stepFlights()
+	end
+end
+
+-- 공개 -------------------------------------------------------------------------------
+
+-- 내 부지(OwnerUserId = 내 UserId 인 부지 모델, 없으면 nil) — 날아가는 동전의 출발점
+function IncomeFx.setPlot(model: Instance?)
+	myPlot = model
+	if model then
+		watchPlot(model)
+	end
+end
+
+-- 스모크 테스트용 숫자: 보이는 퐁·날아가는 동전, 지금까지 띄운 수, 따라가는 명소 수, 만든 인스턴스 수
+function IncomeFx.stats(): { [string]: number }
+	local activePops, activeFlights = 0, 0
+	for _, pop in pops do
+		if pop.Busy then
+			activePops += 1
+		end
+	end
+	for _, flight in flights do
+		if flight.Busy then
+			activeFlights += 1
+		end
+	end
+	local tracked = 0
+	for _ in statues do
+		tracked += 1
+	end
+	return {
+		Pops = activePops,
+		PopsSpawned = popsSpawned,
+		PopsSkipped = popsSkipped,
+		Flights = activeFlights,
+		FlightsSpawned = flightsSpawned,
+		Bursts = bursts,
+		Statues = tracked,
+		Instances = #fxFolder:GetDescendants() + #flyGui:GetDescendants(),
+	}
+end
+
+-- 이 명소 칸이 지금 버는 초당 수입(따라가는 명소가 아니면 nil) — 스모크 테스트용
+function IncomeFx.statueIncome(container: Instance): number?
+	local statue = statues[container]
+	return if statue then statue.Income else nil
+end
+
+function IncomeFx.init(playerGui: PlayerGui, callbacks: Handlers)
+	handlers = callbacks
+	fxFolder = Ui.new("Folder", { Name = "IncomeFx", Parent = workspace })
+	for index = 1, POP_POOL do
+		table.insert(pops, newPop(index))
+	end
+	-- 날아가는 동전: HUD(DisplayOrder 0)보다 아래 층 — 알약·버튼·창 뒤로 들어가고 입력을 막지 않음
+	flyGui = Ui.new("ScreenGui", {
+		Name = "IncomeFx",
+		ResetOnSpawn = false,
+		DisplayOrder = -1,
+		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+		Parent = playerGui,
+	})
+	for index = 1, FLY_POOL do
+		table.insert(flights, newFlight(index))
+	end
+	task.spawn(function()
+		local parks = workspace:FindFirstChild("Parks") or workspace:WaitForChild("Parks", 60)
+		if not parks then
+			return
+		end
+		parks.ChildAdded:Connect(watchPlot)
+		for _, plot in parks:GetChildren() do
+			watchPlot(plot)
+		end
+	end)
+	RunService.RenderStepped:Connect(step)
+end
+
+return IncomeFx
+]]></string>
+          </Properties>
+        </Item>
+        <Item class="ModuleScript" referent="42">
           <Properties>
             <string name="Name">Panels</string>
             <string name="Source"><![CDATA[-- 메뉴 창: 도감(대륙 탭 — 예전 여권 창을 합침: 지역별 발견 현황 + 도장, 대표 지정), 강화(업그레이드), 환생(조건 + 확인), 상점(Robux).
@@ -23123,7 +23967,7 @@ return Panels
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="42">
+        <Item class="ModuleScript" referent="43">
           <Properties>
             <string name="Name">ParkEdit</string>
             <string name="Source"><![CDATA[-- 3D 공원 배치 모드: 놀이공원 시뮬레이션처럼 메뉴 창 없이 내 공원에서 명소를 직접 눌러 집고, 다른 받침대를 눌러 놓음.
@@ -25700,7 +26544,7 @@ return ParkEdit
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="43">
+        <Item class="ModuleScript" referent="44">
           <Properties>
             <string name="Name">Perks</string>
             <string name="Source"><![CDATA[-- 환생 · 게임패스 · 개발자 상품 · 시간 부스트 · 서버 행운을 화면용으로 읽는 헬퍼 (DESIGN.md v3).
@@ -26090,7 +26934,7 @@ return Perks
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="44">
+        <Item class="ModuleScript" referent="45">
           <Properties>
             <string name="Name">Ui</string>
             <string name="Source"><![CDATA[-- UI 생성 헬퍼와 테마. 모든 화면은 코드로 만들어서 .rbxm 없이도 동작합니다.
@@ -27298,7 +28142,7 @@ return Ui
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="45">
+        <Item class="ModuleScript" referent="46">
           <Properties>
             <string name="Name">Viewport</string>
             <string name="Source"><![CDATA[-- ViewportFrame 에 명소 모형을 띄우는 헬퍼.
@@ -27478,12 +28322,12 @@ return Viewport
       </Item>
     </Item>
   </Item>
-  <Item class="Workspace" referent="46">
+  <Item class="Workspace" referent="47">
     <Properties>
       <string name="Name">Workspace</string>
       <bool name="NeedsPivotMigration">false</bool>
     </Properties>
-    <Item class="Part" referent="47">
+    <Item class="Part" referent="48">
       <Properties>
         <string name="Name">FallbackGround</string>
         <bool name="Anchored">true</bool>
@@ -27514,7 +28358,7 @@ return Viewport
         <token name="TopSurface">0</token>
       </Properties>
     </Item>
-    <Item class="SpawnLocation" referent="48">
+    <Item class="SpawnLocation" referent="49">
       <Properties>
         <string name="Name">SpawnLocation</string>
         <bool name="Anchored">true</bool>
@@ -27547,7 +28391,7 @@ return Viewport
         <float name="Transparency">1</float>
       </Properties>
     </Item>
-    <Item class="Terrain" referent="49">
+    <Item class="Terrain" referent="50">
       <Properties>
         <string name="Name">Terrain</string>
         <bool name="Decoration">true</bool>

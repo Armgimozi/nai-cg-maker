@@ -7,12 +7,17 @@
 -- 전시 칸: 6x6 격자. 칸 자리(부지 좌표)와 칸 번호 -> 격자 자리는 Shared/ParkGrid(= PlayerState.slotCell: 입구에
 --   가까운 줄부터, 한 줄 안에서는 가운데에 가까운 칸부터 = 자동 배치에서 가장 희귀한 명소가 입구 정면).
 --   칸마다 무엇을 전시할지는 PlayerState.parkSlots(자동 배치 또는 플레이어가 고른 배치).
--- update 는 칸마다 이전 상태를 기억해 두고 바뀐 칸만 다시 만듭니다(별 개수는 이름표 글자만 바꿈).
+-- update 는 칸마다 이전 상태를 기억해 두고 바뀐 칸만 다시 만듭니다(별 개수·수입은 이름표 글자만 바꿈).
+-- 돈 버는 게 보이게(타이쿤처럼, 수입 규칙은 그대로): 전시 이름표 = 이름 딱지 + 별 + 초록 알약 [동전] "+N/s"(그 명소가 주인에게
+--   벌어 주는 초당 수입 = PlayerState.slotIncomes — 입장료·환생·수입 2배 포함, 공원 칸들의 합 = 주인 HUD 의 초당 수입).
+--   입구 간판은 주인 초당 수입 합을 크게. 클라이언트 IncomeFx 가 읽는 복제 속성(값이 바뀔 때만 씀, 초마다 보내지 않음):
+--   칸 모델 Income(초당 수입) · Stars(별 수) · Top(모형 높이), 부지 모델 Income(초당 수입 합).
 -- 클라이언트 3D 배치 모드(ParkEdit)용 복제 속성(서버는 ClickDetector 를 달지 않음):
 --   부지 모델: OwnerUserId(주인 UserId, 빈 부지는 nil), Origin(부지 CFrame: 중앙 바닥, -Z = 입구)
---   칸 모델(Slots 폴더, 36칸 모두 — 잠긴 칸 포함): Slot(칸 번호), Look("#locked" | "#empty" | 명소 Id)
+--   칸 모델(Slots 폴더, 36칸 모두 — 잠긴 칸 포함): Slot(칸 번호), Look("#locked" | "#empty" | 명소 Id),
+--     명소 칸만 Income(초당 수입) · Stars(별) · Top(받침대 윗면에서 모형 꼭대기까지)
 --   주인 클라이언트가 이걸 보고 자기 부지에서만 칸을 찾고(누르기·놓을 자리 표시) 집어서 옮김.
--- 간판: 주인이 있으면 입구 아치(나무 판자 + Ink 테두리 + 크림 글자판: 공원 아이콘 + 이름, 초록 알약: 동전 + "+X/s"),
+-- 간판: 주인이 있으면 입구 아치(나무 판자 + Ink 테두리 + 크림 글자판: 공원 아이콘 + 이름(위 작게), 큰 초록 알약: 동전 + "+X/s"),
 --   빈 부지는 길 옆 낮은 말뚝 간판("빈 부지")만 세워서 광장에서 볼 때 어지럽지 않게 합니다.
 -- 그림: Shared/ImageIds 에 park/coin 아이콘, panel_paper/pill 스킨 Id 가 있으면 간판에 그 그림을 씀(없으면 코드로 그림).
 -- 바닥: 밝고 따뜻한 돌 포석(Pavement). 빈 부지에는 칸 자리 36곳에 얇은 밝은 판(EmptyGrid 폴더, Slots 밖 — 배치 모드가
@@ -74,8 +79,13 @@ local STAKE_TILT = math.rad(-4) -- 말뚝을 살짝 기울여서 장난스럽게
 local FENCE_HEIGHT = 2.2
 local RAIL = Vector3.new(0.35, 0.35, 0.35) -- 울타리 가로대 단면
 
-local LABEL_WIDTH = 10 -- 전시 이름표 크기(스터드)
-local LABEL_HEIGHT = 2.6
+local LABEL_WIDTH = 10 -- 전시 이름표 크기(스터드): 이름 딱지 1.35 + 별 0.88 + 수입 알약 1.15 (+ 사이)
+local LABEL_HEIGHT = 3.9
+local LABEL_GAP = 0.1 -- 이름표 아래 끝 ~ 모형 꼭대기(스터드)
+-- 이름표 안 자리(이름표 높이 비율): 이름 딱지 · 별 줄 · 수입 알약(위 끝, 높이)
+local NAME_Y, NAME_H = 0, 0.346
+local STARS_Y, STARS_H = 0.43, 0.226
+local INCOME_Y, INCOME_H = 0.672, 0.29
 
 -- 부지 바닥: 따뜻하고 밝은 돌 포석(Pavement, 광장 포석과 한 집안). 둘레 잔디와 또렷이 갈리고 흰 받침대·명소가 돋보임.
 -- (예전 잔디색 Grass 바닥은 실제 게임에서 어둡게 그려져 위에서 보면 짙은 초록 판처럼 보였음)
@@ -118,11 +128,20 @@ local SKIN_RADIUS = 50 -- 스킨 그림 속 모서리 반지름(px)
 local KEY_LOCKED = ParkGrid.LOOK_LOCKED
 local KEY_EMPTY = ParkGrid.LOOK_EMPTY
 
+-- 전시 이름표에서 글자를 바꾸는 곳
+type Label = {
+	Stars: TextLabel,
+	Amount: TextLabel, -- 수입 알약 글자 "+N/s"
+	IncomeFace: Frame, -- 수입 알약(글자 길이에 맞춰 폭을 바꿈)
+	IncomeShadow: Frame,
+}
+
 type Slot = {
 	Key: string,
 	Container: Model,
-	StarLabel: TextLabel?,
+	Label: Label?,
 	Stars: number,
+	Income: number,
 }
 
 type Plot = {
@@ -411,10 +430,13 @@ local function surfaceGui(board: BasePart, face: Enum.NormalId): SurfaceGui
 	return gui
 end
 
--- 주인 간판 한 면: 가장자리에 나무가 보이는 크림 글자판 + [공원 아이콘] 이름(Ink) + 초록 알약 [동전] "+X/s".
--- 반환: 제목, 수입 라벨
+-- 주인 간판 한 면: 가장자리에 나무가 보이는 크림 글자판 + 위에 작게 [공원 아이콘] 이름(Ink) + 아래 크게 초록 알약 [동전] "+X/s"
+-- (주인의 초당 수입 합 — 광장에서 걸어오며 어느 공원이 많이 버는지 한눈에). 반환: 제목, 수입 라벨
 local PANEL_HEIGHT = BOARD_SIZE.Y * 40 - 36 -- 글자판 높이(px, PixelsPerStud 40)
-local TITLE_SIDE = 130 -- 제목 양옆 여백(px): 왼쪽엔 공원 아이콘, 오른쪽은 가운데 정렬용
+local TITLE_SIDE = 110 -- 제목 양옆 여백(px): 왼쪽엔 공원 아이콘, 오른쪽은 가운데 정렬용
+local SIGN_TITLE_H = 0.3 -- 제목 줄 높이(글자판 비율)
+local SIGN_PILL = Vector2.new(0.72, 0.52) -- 수입 알약(글자판 비율). 동전 뒤 글자는 남은 칸 가운데
+local SIGN_PILL_Y = 0.4
 
 local function signFace(board: BasePart, face: Enum.NormalId): (TextLabel, TextLabel)
 	local gui = surfaceGui(board, face)
@@ -425,26 +447,29 @@ local function signFace(board: BasePart, face: Enum.NormalId): (TextLabel, TextL
 	stroke(panel, 6)
 	skin(panel, "panel_paper", WHITE, 24)
 
-	icon(panel, "park", 0.42, UDim2.new(0, 34, 0.06, 0), Vector2.new(0, 0), drawTree)
-	local title = textLabel(panel, UDim2.new(1, -TITLE_SIDE * 2, 0.46, 0), UDim2.new(0, TITLE_SIDE, 0.06, 0), INK)
+	icon(panel, "park", SIGN_TITLE_H, UDim2.new(0, 34, 0.05, 0), Vector2.new(0, 0), drawTree)
+	local title =
+		textLabel(panel, UDim2.new(1, -TITLE_SIDE * 2, SIGN_TITLE_H, 0), UDim2.new(0, TITLE_SIDE, 0.05, 0), INK)
 	title.Name = "Title"
 
 	local pill = chunky(
 		panel,
-		UDim2.fromScale(0.62, 0.34),
-		UDim2.fromScale(0.5, 0.56),
-		UDim.new(0, 6),
+		UDim2.fromScale(SIGN_PILL.X, SIGN_PILL.Y),
+		UDim2.fromScale(0.5, SIGN_PILL_Y),
+		UDim.new(0, 7),
 		GRASS,
 		GRASS_SHADOW,
-		4,
+		5,
 		"pill",
-		math.floor(PANEL_HEIGHT * 0.34)
+		math.floor(PANEL_HEIGHT * SIGN_PILL.Y)
 	)
-	icon(pill, "coin", 0.82, UDim2.new(0, 10, 0.5, 0), Vector2.new(0, 0.5), drawCoin)
-	local income = textLabel(pill, UDim2.fromScale(1, 1), UDim2.new(), WHITE)
+	icon(pill, "coin", 0.95, UDim2.new(0, 8, 0.5, 0), Vector2.new(0, 0.5), drawCoin)
+	local pillHeight = PANEL_HEIGHT * SIGN_PILL.Y
+	local income =
+		textLabel(pill, UDim2.new(1, -pillHeight * 1.1 - 24, 1, 0), UDim2.new(0, pillHeight * 1.1, 0, 0), WHITE)
 	income.Name = "Income"
-	padding(income, UDim.new(0.14, 0), UDim.new(0.14, 0))
-	stroke(income, 3)
+	padding(income, UDim.new(0.02, 0), UDim.new(0.1, 0))
+	stroke(income, 4)
 	return title, income
 end
 
@@ -716,11 +741,13 @@ function ParkService.init()
 	parks.Parent = Workspace
 end
 
--- 칸 위 작은 이름표: 등급 색 둥근 딱지(흰 이름 + Ink 테두리) + 그 아래 별(해 색 + Ink 테두리)
-local function addLabel(pedestal: BasePart, landmark: Landmarks.Landmark, modelHeight: number): TextLabel
+-- 칸 위 작은 이름표: 등급 색 둥근 딱지(흰 이름 + Ink 테두리) + 그 아래 별(해 색 + Ink 테두리) + 초록 알약 [동전] "+N/s"
+-- (그 명소가 버는 초당 수입 — 글자는 update 가 채움). 알약 폭은 글자 길이에 맞춤(setIncome).
+-- 모두 "Body" 안(UIScale "Pop" — 별이 오르면 클라이언트 IncomeFx 가 잠깐 키움). 스터드 크기라 멀면 작아지고 MaxDistance 60 밖은 안 보임
+local function addLabel(pedestal: BasePart, landmark: Landmarks.Landmark, modelHeight: number): Label
 	local anchor = Instance.new("Attachment")
 	anchor.Name = "LabelAnchor"
-	anchor.Position = Vector3.new(0, PEDESTAL_HEIGHT / 2 + modelHeight + 1.4, 0)
+	anchor.Position = Vector3.new(0, PEDESTAL_HEIGHT / 2 + modelHeight + LABEL_GAP + LABEL_HEIGHT / 2, 0)
 	anchor.Parent = pedestal
 
 	local billboard = Instance.new("BillboardGui")
@@ -729,17 +756,26 @@ local function addLabel(pedestal: BasePart, landmark: Landmarks.Landmark, modelH
 	billboard.Size = UDim2.fromScale(LABEL_WIDTH, LABEL_HEIGHT)
 	billboard.MaxDistance = LABEL_DISTANCE
 	billboard.LightInfluence = 0
+	billboard.ClipsDescendants = false -- 별이 오를 때 잠깐 커져도 잘리지 않게
 	billboard.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+	local body = frame(billboard, UDim2.fromScale(1, 1), UDim2.fromScale(0.5, 0.5), WHITE)
+	body.Name = "Body"
+	body.AnchorPoint = Vector2.new(0.5, 0.5)
+	body.BackgroundTransparency = 1
+	local pop = Instance.new("UIScale")
+	pop.Name = "Pop"
+	pop.Parent = body
 
 	-- 딱지 너비는 이름 길이에 맞춤(한글 한 글자 폭 ≈ 글자 높이 ≈ 1 스터드)
 	local chars = utf8.len(landmark.Name) or #landmark.Name
 	local width = math.clamp((chars * 1.05 + 1.4) / LABEL_WIDTH, 0.3, 1)
 	local tier = landmark.Tier.Color
 	local tag = chunky(
-		billboard,
-		UDim2.fromScale(width, 0.52),
-		UDim2.fromScale(0.5, 0),
-		UDim.new(0.07, 0),
+		body,
+		UDim2.fromScale(width, NAME_H),
+		UDim2.fromScale(0.5, NAME_Y),
+		UDim.new(0.047, 0),
 		tier,
 		tier:Lerp(INK, 0.4),
 		2
@@ -750,13 +786,47 @@ local function addLabel(pedestal: BasePart, landmark: Landmarks.Landmark, modelH
 	padding(name, UDim.new(0.08, 0), UDim.new(0.14, 0))
 	stroke(name, 2)
 
-	local stars = textLabel(billboard, UDim2.fromScale(1, 0.34), UDim2.fromScale(0, 0.64), SUN)
+	local stars = textLabel(body, UDim2.fromScale(1, STARS_H), UDim2.fromScale(0, STARS_Y), SUN)
 	stars.Name = "Stars"
 	stars.RichText = true
 	stroke(stars, 2)
 
+	-- 수입 알약: 초록(간판 알약과 같은 색) + 왼쪽 끝을 살짝 넘는 동전 + 흰 글자
+	local shadow = frame(body, UDim2.fromScale(0.4, INCOME_H), UDim2.new(0.5, 0, INCOME_Y + 0.04, 0), GRASS_SHADOW)
+	shadow.Name = "IncomeShadow"
+	shadow.AnchorPoint = Vector2.new(0.5, 0)
+	shadow.ZIndex = 1
+	corner(shadow, UDim.new(0.5, 0))
+	stroke(shadow, 2)
+	local face = frame(body, UDim2.fromScale(0.4, INCOME_H), UDim2.fromScale(0.5, INCOME_Y), GRASS)
+	face.Name = "Income"
+	face.AnchorPoint = Vector2.new(0.5, 0)
+	face.ZIndex = 2
+	corner(face, UDim.new(0.5, 0))
+	stroke(face, 2)
+	icon(face, "coin", 1.25, UDim2.new(0, 0, 0.5, 0), Vector2.new(0.3, 0.5), drawCoin)
+	local amount = textLabel(face, UDim2.new(1, 0, 1, 0), UDim2.new(), WHITE)
+	amount.Name = "Amount"
+	amount.ZIndex = 4
+	padding(amount, UDim.new(), UDim.new(0.12, 0))
+	stroke(amount, 2)
+
 	billboard.Parent = anchor
-	return stars
+	return { Stars = stars, Amount = amount, IncomeFace = face, IncomeShadow = shadow }
+end
+
+-- 이름표 수입 글자 "+N/s" + 알약 폭(글자 수에 맞춤). 알약 높이 h 스터드 기준: 왼쪽 동전 자리 0.95h, 글자 한 칸 0.42h, 오른쪽 0.3h
+local function setIncome(label: Label, income: number)
+	local text = incomeText(income)
+	label.Amount.Text = text
+	local chars = utf8.len(text) or #text
+	local h = INCOME_H * LABEL_HEIGHT
+	local left, right = 0.95 * h, 0.3 * h
+	local w = math.min(left + chars * 0.42 * h + right, 0.95 * LABEL_WIDTH)
+	label.IncomeFace.Size = UDim2.fromScale(w / LABEL_WIDTH, INCOME_H)
+	label.IncomeShadow.Size = UDim2.fromScale(w / LABEL_WIDTH, INCOME_H)
+	label.Amount.Position = UDim2.fromScale(left / w, 0)
+	label.Amount.Size = UDim2.fromScale(1 - (left + right) / w, 1)
 end
 
 -- key: KEY_LOCKED(바닥에 얇은 밝은 판 = 빈 부지 칸 자리 표시와 같은 모습) / KEY_EMPTY(빈 받침대) / 명소 Id(받침대 + 미니어처 + 이름표)
@@ -764,7 +834,7 @@ local function buildSlot(plot: Plot, index: number, key: string): Slot
 	local floor = plot.CFrame * CFrame.new(SLOT_OFFSETS[index]) -- 칸 바닥 중앙(부지 윗면)
 	local container = Instance.new("Model")
 	container.Name = "Slot" .. index
-	local slot: Slot = { Key = key, Container = container, StarLabel = nil, Stars = -1 }
+	local slot: Slot = { Key = key, Container = container, Label = nil, Stars = -1, Income = -1 }
 
 	if key == KEY_LOCKED then
 		local tile = newPart(
@@ -799,7 +869,9 @@ local function buildSlot(plot: Plot, index: number, key: string): Slot
 			if not ok then
 				warn("[ParkService] " .. landmark.Id .. " 모형을 만들지 못했습니다: " .. tostring(result))
 			end
-			slot.StarLabel = addLabel(pedestal, landmark, if ok then result else 0)
+			local height = if ok then result else 0
+			slot.Label = addLabel(pedestal, landmark, height)
+			container:SetAttribute("Top", height) -- 클라이언트 동전 퐁이 모형 옆에서 솟게
 		end
 	end
 	-- 주인 클라이언트(배치 모드)가 칸 번호와 모습을 읽음. 모델을 만들 때 한 번 정하고 바꾸지 않음(모습이 바뀌면 새 모델)
@@ -847,6 +919,7 @@ function ParkService.release(player: Player)
 	plotByPlayer[player] = nil
 	plot.Owner = nil
 	plot.Model:SetAttribute("OwnerUserId", nil)
+	plot.Model:SetAttribute("Income", nil)
 	clearSlots(plot)
 	showOwned(plot, false)
 	setSign(plot, "", "")
@@ -861,6 +934,8 @@ function ParkService.update(player: Player, data: PlayerState.Data, mods: Player
 	end
 	local park, unlocked = PlayerState.parkSlots(data)
 	unlocked = math.min(unlocked, #SLOT_OFFSETS)
+	-- 칸마다 초당 수입(PlayerState 한 식 — 합 = incomePerSecond). 값이 바뀔 때만 속성·글자를 씀
+	local incomes = PlayerState.slotIncomes(data, mods)
 
 	for index = 1, #SLOT_OFFSETS do
 		local id = if index <= unlocked then park[index] else nil
@@ -873,17 +948,32 @@ function ParkService.update(player: Player, data: PlayerState.Data, mods: Player
 			slot = buildSlot(plot, index, key)
 			plot.Slots[index] = slot
 		end
-		local starLabel = slot.StarLabel
-		if id and starLabel then
+		if id then
+			local label = slot.Label
 			local stars = PlayerState.stars(data.Inventory[id] or 0)
 			if stars ~= slot.Stars then
 				slot.Stars = stars
-				starLabel.Text = starText(stars)
+				slot.Container:SetAttribute("Stars", stars)
+				if label then
+					label.Stars.Text = starText(stars)
+				end
+			end
+			local income = incomes[index] or 0
+			if income ~= slot.Income then
+				slot.Income = income
+				slot.Container:SetAttribute("Income", income)
+				if label then
+					setIncome(label, income)
+				end
 			end
 		end
 	end
 
-	setSign(plot, player.DisplayName, incomeText(PlayerState.incomePerSecond(data, mods)))
+	local total = PlayerState.incomePerSecond(data, mods)
+	if plot.Model:GetAttribute("Income") ~= total then
+		plot.Model:SetAttribute("Income", total)
+	end
+	setSign(plot, player.DisplayName, incomeText(total))
 end
 
 -- 공원 입구 안쪽 바닥(부지 윗면)에서 공원 안쪽을 바라보는 CFrame. 부지가 없으면 nil.

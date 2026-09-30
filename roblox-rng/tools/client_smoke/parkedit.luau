@@ -172,6 +172,25 @@ end
 print("\n[배치 모드 밖]")
 Mock.runScheduler(1)
 check(detectorCount() == 0, "ClickDetector 없음(버튼·감지기 없이 내 공원을 직접 누름)")
+-- 전시 이름표 = 이름 딱지 + 별 + [동전] "+N/s"(그 명소 초당 수입) — 한 BillboardGui 안이라 배치 모드에서 같이 꺼짐
+do
+	local incomes = PlayerState.slotIncomes(data)
+	local ok = true
+	for slot, id in shownSlots() do
+		local label = container(slot):FindFirstChildWhichIsA("BillboardGui", true)
+		local amount = label and label:FindFirstChild("Amount", true)
+		local income = container(slot):GetAttribute("Income")
+		if
+			not amount
+			or not amount.Text:match("^%+[%d%.]+[KMBT]?/s$")
+			or math.abs((income or -1) - incomes[slot]) > 1e-9
+		then
+			ok = false
+			print("    칸", slot, id, amount and amount.Text, income, incomes[slot])
+		end
+	end
+	check(ok, "전시 이름표마다 수입 알약 [동전] +N/s + 칸 Income 속성 = PlayerState.slotIncomes")
+end
 check(not ParkEdit.isEditing(), "처음엔 배치 모드 아님")
 
 print("\n[들어가기]")

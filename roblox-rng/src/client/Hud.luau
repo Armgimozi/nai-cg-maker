@@ -204,6 +204,10 @@ local function buildStats()
 		Parent = container,
 	})
 	refs.CoinLabel = coins.Label
+	refs.CoinPill = coins.Root
+	refs.CoinIcon = coins.Icon
+	-- 내 공원에서 날아온 동전이 닿으면 알약이 톡(Hud.bumpCoins)
+	refs.CoinBump = Ui.new("UIScale", { Name = "Bump", Parent = coins.Root })
 
 	-- 초당 수입: 코인 바로 오른쪽 작은 칩 (위 화살표 + "+13.5/s")
 	refs.IncomeChip = Ui.chip({
@@ -1066,6 +1070,34 @@ function Hud.serverLuck(name: string, untilValue: number)
 	local text = if name ~= "" then Format.escape(name) .. " 서버 행운!" else "서버 행운!"
 	Hud.toast(text, Ui.colorPair("Grape").Face, 4, "globe")
 	play(luckSound)
+end
+
+-- 코인 알약의 동전 아이콘 가운데(이 ScreenGui 좌표, 화면 px) — IncomeFx 가 내 공원 동전을 날려 보낼 곳.
+-- 스탯이 숨어 있거나 아직 자리를 모르면 nil
+function Hud.coinTarget(): Vector2?
+	local icon: GuiObject? = refs.CoinIcon or refs.CoinPill
+	if not icon or not refs.CoinPill.Visible then
+		return nil
+	end
+	local size = icon.AbsoluteSize
+	if size.X <= 0 or size.Y <= 0 then
+		return nil
+	end
+	return icon.AbsolutePosition + size / 2
+end
+
+-- 날아온 동전이 코인 알약에 닿음: 알약이 살짝 커졌다 제자리(0.25초에 한 번까지 — 몰려 와도 떨리지 않게)
+local BUMP_TWEEN = TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, true)
+local lastBump = -math.huge
+function Hud.bumpCoins()
+	local now = os.clock()
+	if now - lastBump < 0.25 then
+		return
+	end
+	lastBump = now
+	local bump: UIScale = refs.CoinBump
+	bump.Scale = 1
+	TweenService:Create(bump, BUMP_TWEEN, { Scale = 1.09 }):Play()
 end
 
 -- 매 프레임 호출: 부드럽게 올라가는 코인 표시 (정수가 바뀔 때만 글자 갱신)

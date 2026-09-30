@@ -6,6 +6,7 @@
 --
 -- 더한 흉내(가짜 환경에 없거나 부르지 않는 것만):
 --   Parent 바꾸기 -> 부모의 ChildAdded/ChildRemoved 발생(서버가 칸 모델을 다시 만드는 것을 클라이언트가 봄)
+--   GetAttributeChangedSignal(이름) = 인스턴스·이름마다 같은 신호, SetAttribute 로 값이 바뀌면 발생(서버 속성 복제 흉내)
 --   GUI Absolute*/CanvasPosition 기본값, LocalTransparencyModifier 기본값, Sound:Play, 마우스/터치 GUI 이벤트
 --   UserInputService(입력 이벤트, GetMouseLocation, 글자 칸 포커스), GuiService:GetGuiInset(상단바), TweenService(Play = 바로 끝 값)
 --   카메라 ViewportSize · ViewportPointToRay, LocalPlayer + 캐릭터(HumanoidRootPart, Humanoid.Died)
@@ -59,7 +60,34 @@ return function(Mock: any, Harness: any, options: Options?): any
 		PromptGamePassPurchaseFinished = true,
 		PromptProductPurchaseFinished = true,
 	}
+	-- 속성 바뀜 신호(인스턴스·이름마다 하나)
+	local function attributeSignal(self: any, name: string): any
+		local signals = rawget(self, "__attributeSignals")
+		if not signals then
+			signals = {}
+			rawset(self, "__attributeSignals", signals)
+		end
+		local signal = signals[name]
+		if not signal then
+			signal = Signal.new()
+			signals[name] = signal
+		end
+		return signal
+	end
 	IMT.__index = function(self, k)
+		if k == "GetAttributeChangedSignal" then
+			return attributeSignal
+		elseif k == "SetAttribute" then
+			local set = oldIndex(self, k)
+			return function(this, name, value)
+				local before = this:GetAttribute(name)
+				set(this, name, value)
+				local signals = rawget(this, "__attributeSignals")
+				if before ~= value and signals and signals[name] then
+					signals[name]:Fire()
+				end
+			end
+		end
 		local v = oldIndex(self, k)
 		if v == nil then
 			if k == "AbsolutePosition" or k == "CanvasPosition" then

@@ -1593,5 +1593,265 @@ do
 	check(not window.Visible, "상점 버튼 다시 = 닫힘")
 end
 
+print(
+	"\n[수입 보이기: 이름표 수입 알약 · 간판 합 · 별 오르면 톡 · 동전 퐁(돌려 씀·상한) · 내 공원 → 코인 알약]"
+)
+do
+	local IncomeFx = Harness.require(client.IncomeFx)
+	local Panels = Harness.require(client.Panels)
+	local Format = Harness.require(E.shared.Format)
+	ParkEdit.exit()
+	Panels.close()
+	Mock.runScheduler(Mock.clock() + 0.5)
+	-- 꽉 찬 큰 공원(36칸, 희귀한 명소 많음 = 퐁이 자주 → 상한이 걸림)
+	data.Upgrades.Park = 10
+	data.Upgrades.Ticket = 2
+	for index, landmark in Landmarks.RarestFirst do
+		if index > 40 then
+			break
+		end
+		data.Inventory[landmark.Id] = math.max(data.Inventory[landmark.Id] or 0, index % 5 + 1)
+		data.Discovered[landmark.Id] = true
+	end
+	PlayerState.setSetting(data, "AutoPark", true)
+	mods.Passes.DoubleIncome = nil
+	local function pushServer()
+		ParkService.update(serverPlayer, data, mods)
+		remoteFolder:FindFirstChild("State").OnClientEvent:Fire(snap())
+		Mock.runScheduler(Mock.clock() + 0.1)
+	end
+	pushServer()
+	root.CFrame = origin * CFrame.new(0, 3.6, -37) -- 내 공원 입구 안쪽
+	camera.CameraType = Enum.CameraType.Custom
+	camera.FieldOfView = 70
+	lookIntoPark()
+	Mock.runScheduler(Mock.clock() + 0.5)
+
+	local function incomeText(n: number): string
+		if n < 100 then
+			return "+" .. string.format("%.1f", math.floor(n * 10) / 10):gsub("%.0$", "") .. "/s"
+		end
+		return "+" .. Format.short(n) .. "/s"
+	end
+	local function container(slot: number): any
+		for _, c in slotsFolder:GetChildren() do
+			if c:GetAttribute("Slot") == slot then
+				return c
+			end
+		end
+		return nil
+	end
+	local function checkTags(what: string)
+		local incomes = PlayerState.slotIncomes(data, mods)
+		local slots, unlocked = PlayerState.parkSlots(data)
+		local ok, sum, count = true, 0, 0
+		for slot = 1, unlocked do
+			if slots[slot] then
+				local c = container(slot)
+				local amount = findNamed(c, "Amount")
+				local want = incomeText(incomes[slot])
+				if not amount or amount.Text ~= want or IncomeFx.statueIncome(c) ~= c:GetAttribute("Income") then
+					ok = false
+					print("    칸", slot, amount and amount.Text, want, IncomeFx.statueIncome(c))
+				end
+				sum += c:GetAttribute("Income")
+				count += 1
+			end
+		end
+		check(
+			ok and count == unlocked,
+			what .. ": 전시 명소 " .. count .. "개 이름표 = [동전] +N/s (명소 수입 × 배율)"
+		)
+		local hudText = findNamed(findNamed(gui, "Stats"), "Income"):FindFirstChild("Label", true).Text
+		local total = PlayerState.incomePerSecond(data, mods)
+		check(
+			math.abs(sum - total) <= 1e-9 * math.max(1, total) and hudText == incomeText(total),
+			string.format("%s: 이름표 합 = HUD %s", what, hudText)
+		)
+		local sign = findNamed(plot:FindFirstChild("Sign"), "Income")
+		check(sign and sign.Text == incomeText(total), what .. ": 입구 간판 = 합 " .. tostring(sign and sign.Text))
+	end
+	checkTags("처음")
+
+	-- 별이 오름: 그 칸 수입·글자가 오르고 이름표가 잠깐 커짐(UIScale "Pop")
+	local starContainer = container(3)
+	local starId = starContainer:GetAttribute("Look")
+	local pop = findNamed(starContainer, "Pop")
+	local beforeIncome = starContainer:GetAttribute("Income")
+	check(pop ~= nil and pop:IsA("UIScale"), "이름표 몸통 UIScale Pop")
+	pop.Scale = 1 -- (가짜 트윈은 끝 값에 멈춤 — 앞선 별 상승이 남긴 값을 되돌림)
+	data.Inventory[starId] += 1 -- 또 뽑음 = ★+1
+	pushServer()
+	check(starContainer:GetAttribute("Income") > beforeIncome, "별 +1 = 그 칸 수입 오름")
+	check(pop.Scale > 1.2, "별 +1 = 이름표가 톡 커짐(" .. pop.Scale .. ")")
+	checkTags("별 +1")
+	-- 입장료 업그레이드 · 수입 2배 게임패스
+	data.Upgrades.Ticket = 5
+	pushServer()
+	checkTags("입장료 5")
+	mods.Passes.DoubleIncome = true
+	pushServer()
+	checkTags("수입 2배")
+
+	-- 동전 퐁: 공원을 보고 30초 — 돌려 쓰는 빌보드, 초당 10개 상한, 인스턴스가 늘지 않음
+	local fxFolder = workspace:FindFirstChild("IncomeFx")
+	local flyGui = playerGui:FindFirstChild("IncomeFx")
+	check(fxFolder ~= nil and flyGui ~= nil, "IncomeFx 폴더(퐁 빌보드) + ScreenGui(날아가는 동전)")
+	check(
+		(flyGui.DisplayOrder or 0) < (gui.DisplayOrder or 0),
+		"날아가는 동전은 HUD 아래 층(DisplayOrder " .. tostring(flyGui.DisplayOrder) .. ")"
+	)
+	local startStats = IncomeFx.stats()
+	local instancesBefore = #fxFolder:GetDescendants() + #flyGui:GetDescendants()
+	local maxPops, maxFlights = 0, 0
+	local bumpScale = 0
+	local bump = findNamed(findNamed(gui, "Stats"), "Bump")
+	bump.Scale = 1
+	local SECONDS = 30
+	for _ = 1, SECONDS * 30 do
+		frame(1 / 30)
+		local stats = IncomeFx.stats()
+		maxPops = math.max(maxPops, stats.Pops)
+		maxFlights = math.max(maxFlights, stats.Flights)
+		bumpScale = math.max(bumpScale, bump.Scale)
+	end
+	local stats = IncomeFx.stats()
+	local spawned = stats.PopsSpawned - startStats.PopsSpawned
+	check(stats.Statues >= 36, "따라가는 전시 명소 " .. stats.Statues .. "개")
+	check(spawned > 60, "동전 퐁이 뜸 (" .. spawned .. "개 / " .. SECONDS .. "초)")
+	check(
+		spawned <= SECONDS * 10 + 6,
+		string.format(
+			"초당 10개 상한 (%.1f/초, 건너뜀 %d)",
+			spawned / SECONDS,
+			stats.PopsSkipped - startStats.PopsSkipped
+		)
+	)
+	check(maxPops <= 14, "동시에 보이는 퐁 ≤ 빌보드 14개 (" .. maxPops .. ")")
+	-- 공원 36칸이 모두 가까이 보이게(바로 위에서 넓게): 퐁이 초당 10개를 넘으려 해도 상한에서 멈추고 나머지는 건너뜀
+	do
+		local center = origin.Position + Vector3.new(0, ParkGrid.BASE_TOP, 0)
+		local savedFov = camera.FieldOfView
+		camera.FieldOfView = 100
+		camera.CFrame = CFrame.lookAt(center + Vector3.new(0, 40, -1), center)
+		local capStart = IncomeFx.stats()
+		local capMax = 0
+		local CAP_SECONDS = 20
+		for _ = 1, CAP_SECONDS * 30 do
+			frame(1 / 30)
+			capMax = math.max(capMax, IncomeFx.stats().Pops)
+		end
+		local capStats = IncomeFx.stats()
+		local capSpawned = capStats.PopsSpawned - capStart.PopsSpawned
+		check(
+			capSpawned <= CAP_SECONDS * 10 + 6 and capSpawned >= CAP_SECONDS * 8,
+			string.format("많이 보여도 초당 10개 상한 (%.1f/초)", capSpawned / CAP_SECONDS)
+		)
+		check(
+			capStats.PopsSkipped > capStart.PopsSkipped,
+			"상한에 걸린 퐁은 건너뜀 (" .. (capStats.PopsSkipped - capStart.PopsSkipped) .. "번)"
+		)
+		check(capMax <= 14, "동시에 보이는 퐁 ≤ 빌보드 14개 (" .. capMax .. ")")
+		camera.FieldOfView = savedFov
+		lookIntoPark()
+	end
+	local popTexts = 0
+	for _, d in fxFolder:GetDescendants() do
+		if d.Name == "Amount" and d.Text:match("^%+[%d%.]+[KMBT]?$") then
+			popTexts += 1
+		end
+	end
+	check(popTexts > 0, '퐁 글자 = "+N"(아이콘 + 숫자)')
+	local instancesAfter = #fxFolder:GetDescendants() + #flyGui:GetDescendants()
+	check(
+		instancesAfter == instancesBefore and stats.Instances == instancesBefore,
+		"30초 뒤에도 인스턴스 수 그대로 (" .. instancesBefore .. " -> " .. instancesAfter .. ")"
+	)
+	-- 내 공원이 화면에 있으면: 몰아서 날아가는 동전 + 닿으면 코인 알약 톡
+	local bursts = stats.Bursts - startStats.Bursts
+	check(bursts >= 15, "내 공원이 보이면 약 1.6초마다 동전을 날림 (" .. bursts .. "번)")
+	check(
+		maxFlights >= 2 and maxFlights <= 10,
+		"한 번에 날아가는 동전 2~5개(풀 10) — 최대 " .. maxFlights
+	)
+	check(bumpScale > 1.05, "동전이 닿으면 코인 알약이 톡 (" .. bumpScale .. ")")
+	local activeInput = false
+	for _, d in flyGui:GetDescendants() do
+		if d:IsA("GuiObject") and d.Active then
+			activeInput = true
+		end
+	end
+	check(not activeInput, "날아가는 동전은 입력을 막지 않음(Active 없음)")
+
+	-- 내 공원이 화면에 없으면(하늘을 봄) 날리지 않음
+	camera.CFrame = CFrame.lookAt(root.Position + Vector3.new(0, 5, 0), root.Position + Vector3.new(0, 60, 5))
+	for _ = 1, 30 do
+		frame(1 / 30) -- 날던 동전은 마저 닿음
+	end
+	local awayStart = IncomeFx.stats()
+	for _ = 1, 8 * 30 do
+		frame(1 / 30)
+	end
+	local away = IncomeFx.stats()
+	check(away.Bursts == awayStart.Bursts, "내 공원이 화면에 없으면 동전을 안 날림")
+	check(away.PopsSpawned == awayStart.PopsSpawned, "화면 밖 명소는 퐁 없음")
+
+	-- 창이 열림: 날아가는 동전을 쉬고 날던 것도 치움(월드 퐁은 창 아래라 그대로)
+	lookIntoPark()
+	for _ = 1, 2 * 30 do
+		frame(1 / 30)
+	end
+	Panels.open("Collection")
+	frame(1 / 30)
+	check(IncomeFx.stats().Flights == 0, "창을 열면 날던 동전을 바로 치움")
+	local panelStart = IncomeFx.stats()
+	for _ = 1, 5 * 30 do
+		frame(1 / 30)
+	end
+	check(IncomeFx.stats().Bursts == panelStart.Bursts, "창이 열려 있으면 동전을 안 날림")
+	Panels.close()
+
+	-- 배치 모드: 퐁·날리기 모두 쉼, 배치 모드 입력은 그대로
+	E.tap(parkTap)
+	Mock.runScheduler(Mock.clock() + 2)
+	check(ParkEdit.isEditing(), "배치 모드")
+	frame(1 / 30)
+	local editStart = IncomeFx.stats()
+	check(editStart.Pops == 0 and editStart.Flights == 0, "배치 모드에 들어가면 퐁·동전을 바로 치움")
+	for _ = 1, 5 * 30 do
+		frame(1 / 30)
+	end
+	local editStats = IncomeFx.stats()
+	check(
+		editStats.PopsSpawned == editStart.PopsSpawned and editStats.Bursts == editStart.Bursts,
+		"배치 모드 동안 퐁·동전 없음(위에서 보기 화면을 가리지 않음)"
+	)
+	local shown = 0
+	for _, d in fxFolder:GetDescendants() do
+		if d:IsA("BillboardGui") and d.Enabled then
+			shown += 1
+		end
+	end
+	for _, d in flyGui:GetChildren() do
+		if d:IsA("GuiObject") and d.Visible then
+			shown += 1
+		end
+	end
+	check(shown == 0, "배치 모드: 보이는 효과 없음 (" .. shown .. ")")
+	if workspace:FindFirstChild("ParkEditLocal"):FindFirstChild("Held", true) then
+		key("Escape")
+		settle()
+	end
+	click(slotScreen(1, 2))
+	check(
+		workspace:FindFirstChild("ParkEditLocal"):FindFirstChild("Held", true) ~= nil,
+		"효과가 돌아도 배치 모드 누르기는 그대로(집음)"
+	)
+	key("Escape")
+	settle()
+	ParkEdit.exit()
+	mods.Passes.DoubleIncome = nil
+end
+
 print("\n[모듈 오류]")
 E.finish()

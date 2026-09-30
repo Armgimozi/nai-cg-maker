@@ -1,6 +1,6 @@
 -- 클라이언트 진입점: 상태 동기화, 굴리기/자동 굴리기, 메뉴 연결, 뉴스 속보, 회전 모형,
 -- 환생 · Robux 상품 구매 요청 · 서버 행운 알림 (DESIGN.md v3), 3D 공원 배치 모드(ParkEdit: 내 공원에서 명소를
--- 직접 집어 옮김 — 여기서는 서버 요청·알림·HUD 연결만)
+-- 직접 집어 옮김 — 여기서는 서버 요청·알림·HUD 연결만), 수입 보이기(IncomeFx: 동전 퐁 · 내 공원 → 코인 알약 동전, 서버 속성만 읽음)
 -- (화면 글자에는 이모지를 쓰지 않음 — DESIGN.md UI 스타일 가이드 v2)
 -- 알림은 [아이콘] + 8글자 안팎 ("구매 완료", "코인 부족", "대표 지정"), 문장은 쓰지 않음
 
@@ -19,6 +19,7 @@ local PlayerState = require(Shared.PlayerState)
 
 local Hud = require(script.Hud)
 local Icons = require(script.Icons)
+local IncomeFx = require(script.IncomeFx)
 local Panels = require(script.Panels)
 local ParkEdit = require(script.ParkEdit)
 local Perks = require(script.Perks)
@@ -606,6 +607,16 @@ ParkEdit.init(gui, {
 		return Panels.current() == nil
 	end,
 })
+-- 수입 보이기: 전시 명소 동전 퐁 + 내 공원에서 코인 알약으로 날아가는 동전. 배치 모드면 모두 쉬고, 창이 열렸거나
+-- 굴림 연출 중이면 날아가는 동전만 쉼(창·연출을 가리지 않게)
+IncomeFx.init(playerGui, {
+	CoinTarget = Hud.coinTarget,
+	Bump = Hud.bumpCoins,
+	Editing = ParkEdit.isEditing,
+	Covered = function(): boolean
+		return Panels.current() ~= nil or revealing
+	end,
+})
 
 -- 다시 태어나면 광장(스폰 지점)에서 시작
 player.CharacterAdded:Connect(function()
@@ -675,6 +686,7 @@ local function setMyPlot(plot: Instance?)
 	myPlot = plot
 	Hud.setPlotOwned(plot ~= nil)
 	ParkEdit.setPlot(plot)
+	IncomeFx.setPlot(plot)
 end
 
 task.spawn(function()
