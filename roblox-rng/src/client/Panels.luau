@@ -51,9 +51,9 @@ local TAB_TEXT = 19
 local COLLECTION_TOP = TAB_HEIGHT + TAB_GAP + HEADER_HEIGHT
 local ALL_TAB = "All"
 
--- Height: 창 높이(없으면 WINDOW_SIZE.Y). 도감은 탭 줄만큼 더 높게(카드 두 줄 가까이 보이게)
+-- Height: 창 높이(없으면 WINDOW_SIZE.Y). 도감은 탭 줄 때문에 조금 더 높게(아래로 늘림 — openOffset)
 local VIEWS: { [string]: { Title: string, Color: string, Top: number, Height: number? } } = {
-	Collection = { Title = "도감", Color = "Sky", Top = COLLECTION_TOP, Height = 540 },
+	Collection = { Title = "도감", Color = "Sky", Top = COLLECTION_TOP, Height = 530 },
 	Upgrade = { Title = "강화", Color = "Sun", Top = 4 },
 	Rebirth = { Title = "환생", Color = "Coral", Top = HEADER_HEIGHT },
 	Shop = { Title = "상점", Color = "Grass", Top = 4 }, -- Robux 상점: 코인으로 사는 강화(Sun)와 다른 색
@@ -1880,20 +1880,23 @@ local function showView(built: View, visible: boolean)
 	end
 end
 
--- 창 가운데 세로 자리(화면 가운데 기준 px): 화면 가운데 + OPEN_OFFSET(아래 굴리기 줄을 덜 가리게 조금 위).
--- 창(배율 적용, 아래 두께 포함)이 화면(ScreenGui) 위아래를 넘으면 넘지 않는 쪽으로 옮김 — 휴대폰(배율 0.55)에서 창 위 끝이
--- 상단바 밑으로 들어가지 않게. 창이 화면보다 크면 가운데
+-- 창 가운데 세로 자리(화면 가운데 기준 px). 기본 창(500)은 가운데 = 화면 가운데 + OPEN_OFFSET(아래 굴리기 줄을 덜 가리게 조금 위),
+-- 더 높은 창(도감)은 위 끝을 기본 창 위 끝에 맞추고 아래로 늘림(위 알림 줄이 제목 리본에 겹치지 않게 — 1280×720 에서 아래 끝은
+-- 굴리기 버튼 키캡 위). 창(배율 적용, 아래 두께 포함)이 화면(ScreenGui) 위아래를 넘으면 넘지 않는 쪽으로 옮김 — 휴대폰(배율 0.55)
+-- 에서 창 위 끝이 상단바 밑으로 들어가지 않게. 창이 화면보다 크면 가운데
 local function openOffset(height: number): number
 	local parent = window.Parent
 	local guiHeight = if parent and parent:IsA("GuiBase2d") then parent.AbsoluteSize.Y else 0
 	if guiHeight <= 0 then
 		return OPEN_OFFSET
 	end
-	local half = (height + WINDOW_LIP) * Ui.scale() / 2
+	local scale = Ui.scale()
+	local half = (height + WINDOW_LIP) * scale / 2
 	if half * 2 > guiHeight then
 		return 0
 	end
-	return math.clamp(guiHeight / 2 + OPEN_OFFSET, half, guiHeight - half) - guiHeight / 2
+	local top = guiHeight / 2 + OPEN_OFFSET - (WINDOW_SIZE.Y + WINDOW_LIP) * scale / 2
+	return math.clamp(top + half, half, guiHeight - half) - guiHeight / 2
 end
 
 -- 화면마다 창 높이(도감은 탭 줄만큼 높음)와 자리. animate = 아래에서 톡 튀어 오르며 열림

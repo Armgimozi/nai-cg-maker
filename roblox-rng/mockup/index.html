@@ -1505,9 +1505,9 @@ window.BACKDROPS = {"edit_pc": {"image": "data:image/jpeg;base64,/9j/4AAQSkZJRgA
   // 아이콘(도장 그림은 둘레에 빈 곳이 있어 앞면 위 끝에 붙여 크게) 위 3, 이름 칸은 아이콘 아래 LABEL_Y 부터(아이콘 그림 아래 빈 곳과 조금 겹침)
   const TAB = { HEIGHT: 74, GAP: 6, SPACING: 8, ICON: 50, LABEL_Y: 45, LABEL_H: 20, TEXT: 19 };
   const COLLECTION_TOP = TAB.HEIGHT + TAB.GAP + HEADER_HEIGHT;
-  // 창 높이: 기본 500, 도감은 탭 줄만큼 더 높게(카드 두 줄 가까이 보이게). 작은 화면에서는 창이 화면 안에 들어오게 가운데 쪽으로(Panels.openPosition)
+  // 창 높이: 기본 500, 도감은 탭 줄 때문에 조금 더 높게(아래로 늘림). 작은 화면에서는 창이 화면 안에 들어오게(Panels.openOffset)
   const VIEWS = {
-    Collection: { Title: '도감', Color: 'Sky', Top: COLLECTION_TOP, Height: 540 },
+    Collection: { Title: '도감', Color: 'Sky', Top: COLLECTION_TOP, Height: 530 },
     Upgrade: { Title: '강화', Color: 'Sun', Top: 4 },
   };
   const WINDOW_SIZE = [760, 500];
@@ -1992,14 +1992,15 @@ window.BACKDROPS = {"edit_pc": {"image": "data:image/jpeg;base64,/9j/4AAQSkZJRgA
     return { screenGui, cam, layout };
   }
 
-  // Panels.openOffset: 창 가운데 = 화면 가운데 + OPEN_OFFSET(아래 굴리기 줄을 덜 가리게 조금 위). 창(배율 적용)이 화면(ScreenGui)
-  // 위아래를 넘으면 넘지 않는 쪽으로 옮김 — 휴대폰(배율 0.55)에서 창 위 끝이 상단바 밑으로 들어가지 않게. 화면보다 크면 가운데
+  // Panels.openOffset: 기본 창(500) 가운데 = 화면 가운데 + OPEN_OFFSET(아래 굴리기 줄을 덜 가리게 조금 위), 더 높은 창(도감)은
+  // 위 끝을 기본 창 위 끝에 맞추고 아래로 늘림(위 알림 줄이 제목 리본에 안 겹치게). 창(배율 적용 + 아래 두께 8)이 화면(ScreenGui)
+  // 위아래를 넘으면 넘지 않는 쪽으로 옮김 — 휴대폰(배율 0.55)에서 창 위 끝이 상단바 밑으로 안 들어가게. 화면보다 크면 가운데
   function openOffset(windowHeight) {
     const guiH = view.h - view.inset;
-    const half = ((windowHeight + 8) * view.scale) / 2; // + 아래 두께(Lip) 8
-    const center = guiH / 2 + OPEN_OFFSET;
-    const clamped = half * 2 > guiH ? guiH / 2 : Math.min(Math.max(center, half), guiH - half);
-    return clamped - guiH / 2;
+    const half = ((windowHeight + 8) * view.scale) / 2;
+    if (half * 2 > guiH) return 0;
+    const top = guiH / 2 + OPEN_OFFSET - ((WINDOW_SIZE[1] + 8) * view.scale) / 2;
+    return Math.min(Math.max(top + half, half), guiH - half) - guiH / 2;
   }
 
   function buildPanel(screenGui, name, state, opts = {}) {
