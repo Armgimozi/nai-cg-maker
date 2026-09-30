@@ -243,7 +243,7 @@
     return true;
   }
   // PlayerState.betterHidden: 직접 배치 중 전시 칸의 가장 약한 명소보다 수입이 큰, 전시 안 된 보유 명소(희귀한 순서).
-  // 전시가 하나도 없으면 수입이 있는 보유 명소 전부, 자동 배치면 [] — [배치] 버튼 숫자 배지
+  // 전시가 하나도 없으면 수입이 있는 보유 명소 전부, 자동 배치면 [] — HUD [공원] 버튼 숫자 배지
   function betterHidden(s) {
     if (!s.Settings || s.Settings.AutoPark !== false) return [];
     const [ids, unlocked] = parkSlots(s);
@@ -1456,7 +1456,7 @@
     return row;
   }
 
-  // [전체] 머리 줄: [도감 23/150] [여권 = 도장 1/5] [클로버 +25%] …… [배치] [자동]
+  // [전체] 머리 줄: [도감 23/150] [여권 = 도장 1/5] [클로버 +25%] …… [자동]
   function buildAllHeader(body, state, shownCount) {
     const header = gui(body, { name: 'CollectionHeader', pos: [0, 0, 0, TAB.HEIGHT + TAB.GAP], size: [1, 0, 0, HEADER_HEIGHT] });
     const chips = chipRow(header);
@@ -1989,7 +1989,7 @@
   }
 
   // 6번 공원 배치: 자동 배치에서 시작해 좋아하는 도시 명소(이름이 긴 플린더스 스트리트 역)를 1번 칸(입구 정면)에, 대표 알렉산드리아 등대를
-  // 2번 칸에 놓은 직접 배치(열린 12칸이 다 참). 그 두 칸에 있던 더 희귀한 명소들이 전시에서 빠져서 [배치] 버튼에 숫자 배지가 뜸
+  // 2번 칸에 놓은 직접 배치(열린 12칸이 다 참). 그 두 칸에 있던 더 희귀한 명소들이 전시에서 빠져서 [공원] 버튼에 숫자 배지가 뜸
   const PARK_FAVORITE = 'flindersst';
   const PARK_STATE = withDerived({ ...STATE, Inventory: { ...STATE.Inventory, [PARK_FAVORITE]: 35 }, Settings: { ...STATE.Settings, AutoPark: true }, Display: [] });
   const AUTO_FRONT = parkSlots(STATE)[0][0];
@@ -2064,7 +2064,7 @@
       title: '기본 화면',
       note:
         `왼쪽 위: 코인 알약 + 초당 수입 칩, 아래 주사위(굴림 수) · 클로버(행운) 칩(환생 수 · 부스트 시간 칩은 해당될 때만). ` +
-        `왼쪽: 도감/강화/환생/공원 버튼 + 공원 버튼 옆 [배치](내 공원 부지가 있으면 늘, 메뉴 칸 수에는 안 셈. 자동 배치라 숫자 배지 없음)(PC 는 세로 한 줄, 화면이 낮으면 접힘 — 1-2~1-4; 도감 배지 = 도장 받은 대륙 수 / ${Regions.length}(여권은 도감 대륙 탭으로 합침); 환생 버튼의 "!" 배지는 ` +
+        `왼쪽: 도감/강화/환생/공원 버튼 네 개뿐(배치 버튼 없음 — 내 공원에서 내 명소·빈 받침대를 직접 톡 누르면 3D 배치 모드, 6번. 직접 배치 중 더 좋은 명소가 숨으면 [공원] 에 숫자 배지, 6-2 — 여기는 자동 배치라 없음)(PC 는 세로 한 줄, 화면이 낮으면 접힘 — 1-2~1-4; 도감 배지 = 도장 받은 대륙 수 / ${Regions.length}(여권은 도감 대륙 탭으로 합침); 환생 버튼의 "!" 배지는 ` +
         `${rebirthNeedText()}을 채우면 뜸 — 이 예시는 ${commas(STATE.Coins)} 코인이라 아직 안 뜸). ` +
         '환생 버튼 아이콘은 그림 파일이 없어 게임에서 3D 미니 모형으로 나옴(여기선 비슷한 모양으로 대신 그림). ' +
         '상점 버튼(오른쪽)은 Robux 상품 번호가 모두 0 이라 지금 코드로는 안 나옴. ' +
@@ -2151,9 +2151,8 @@
         '고른 탭은 제 색 그대로, 나머지는 옅은 색(글자는 모두 흰 글자 + Ink 테두리). 도장이 아직인 대륙 탭은 앞면 아래 끝에 가는 발견 막대(예전 여권처럼 어느 대륙이 도장에 가까운지 한눈에), ' +
         '도장을 받은 대륙 탭은 막대 대신 도장 그림 오른쪽 위에 작은 체크(앞면 안). ' +
         '전체 탭 = 예전 도감 그대로: 발견한 명소를 희귀한 순서로(위 띠 = 등급 색 + 확률), 왼쪽 위 빨간 "대표" 도장, 사진 왼쪽 아래 초록 칩 = 공원에 전시 중, 오른쪽 위 ×N = 발견 횟수, 아래 별 5칸. ' +
-        `머리 줄: 발견 수 / 전체, 여권 아이콘 = 받은 도장 수 / ${Regions.length}, 클로버 = 도장 행운(도장마다 +${REGION_BONUS}%, 없으면 회색), 오른쪽 [배치](창을 닫고 3D 배치 모드) · [자동](자동 대표 지정). ` +
-        `이 예시는 ${RegionById[STAMP_REGION].Name} 도장을 받은 자동 배치 공원이라 [배치] 숫자 배지 없음(직접 배치 중 더 좋은 명소가 숨으면 3-2 처럼 숫자). ` +
-        '[자동]의 ON 딱지·[배치] 숫자 배지는 버튼 오른쪽 아래(위에 두면 바로 위 탭 줄을 가림). ' +
+        `머리 줄: 발견 수 / 전체, 여권 아이콘 = 받은 도장 수 / ${Regions.length}, 클로버 = 도장 행운(도장마다 +${REGION_BONUS}%, 없으면 회색), 오른쪽 [자동](자동 대표 지정) — 배치 버튼은 없음(공원에서 직접 누름). ` +
+        '[자동]의 ON 딱지는 버튼 오른쪽 아래(위에 두면 바로 위 탭 줄을 가림). ' +
         '도감이 열려 있을 때 도장을 받으면 알림 없이 그 대륙 탭 체크가 톡 튀어나옴(알림 줄이 탭 줄·제목 리본을 가리지 않게 — 알림은 4-3).',
       build(root) {
         const screenGui = newScreen(root, this.id);
@@ -2181,9 +2180,9 @@
       extra: '3-2',
       note:
         `가장 작은 배율 ${uiScaleFor(667, 375).toFixed(2)}: 창 ${Math.round(WINDOW_SIZE[0] * uiScaleFor(667, 375))}×${Math.round(VIEWS.Collection.Height * uiScaleFor(667, 375))}px, ` +
-        `탭 앞면 ${Math.round((TAB.HEIGHT - 6) * uiScaleFor(667, 375))}px 높이(머리 줄 [배치]·[자동] 앞면 ${Math.round(44 * uiScaleFor(667, 375))}px 보다 큼), 탭 글자 ${Math.round(TAB.TEXT * uiScaleFor(667, 375))}px(메뉴 버튼 글자와 같음). ` +
+        `탭 앞면 ${Math.round((TAB.HEIGHT - 6) * uiScaleFor(667, 375))}px 높이(머리 줄 [자동] 앞면 ${Math.round(44 * uiScaleFor(667, 375))}px 보다 큼), 탭 글자 ${Math.round(TAB.TEXT * uiScaleFor(667, 375))}px(메뉴 버튼 글자와 같음). ` +
         `6-2 와 같은 공원(직접 배치, 꽉 참): 도장이 아직 없어 도장 행운 딱지는 회색 "+${REGION_BONUS}%"(도장 하나에 이만큼 — 대륙 탭의 회색 +${REGION_BONUS}% 와 같은 뜻, "+0%" 아님), ` +
-        `[배치] 오른쪽 아래 숫자 배지 ${betterHidden(PARK_FULL_STATE).length} = 더 좋은데 전시 안 된 명소 수, [자동] ${PARK_FULL_STATE.Settings.AutoFeature ? '켜짐(오른쪽 아래 ON 딱지)' : '꺼짐(회색)'} — 두 배지 모두 탭 줄을 가리지 않음.`,
+        `[자동] ${PARK_FULL_STATE.Settings.AutoFeature ? '켜짐(오른쪽 아래 ON 딱지 — 탭 줄을 가리지 않음)' : '꺼짐(회색)'}. 더 좋은데 전시 안 된 명소 수 ${betterHidden(PARK_FULL_STATE).length} 은 창 뒤 메뉴 [공원] 버튼 배지(광장에 있을 때).`,
       build(root) {
         const screenGui = newScreen(root, this.id, { width: 667, height: 375, touch: true });
         buildHud(screenGui, PARK_FULL_STATE, { auto: false });
@@ -2222,7 +2221,7 @@
       id: 'screen6',
       title: '3D 배치 모드 — 명소를 집어 옮기는 중',
       note:
-        `HUD [배치](또는 도감 [배치], 내 받침대 클릭)로 들어가면 창 없이 <b>내 공원 위 3/4 시점</b>(55도, ParkGrid.topView 가 상단바 아래 ~ 띠 위에 열린 줄 + 잠긴 줄 하나를 딱 맞춤 — 칸이 늘면 멀어짐, 휠로 조금 가까이/멀리)으로 카메라가 날아가고 ` +
+        `배치 버튼 없이 <b>내 공원에서 내 명소를 톡</b>(끌기 = 화면 돌리기는 아님, 남의 공원은 아무 일 없음, 마우스로 가리키면 옅은 흰 강조 + 손가락 커서) 누르면 그 명소를 든 채로, 빈 받침대를 누르면 그 칸을 채울 준비(칸이 초록으로 숨 쉬고 보관함 카드를 누르면 바로 그 칸으로)로 들어감. 창 없이 <b>내 공원 위 3/4 시점</b>(55도, ParkGrid.topView 가 상단바 아래 ~ 띠 위에 열린 줄 + 잠긴 줄 하나를 딱 맞춤 — 칸이 늘면 멀어짐, 휠로 조금 가까이/멀리)으로 카메라가 날아가고 ` +
         `왼쪽 메뉴·상점·굴리기 줄은 숨김(건설 모드). ${ById[PARK_FAVORITE].Name}을 1번 칸(입구 정면)에서 집어 든 상태: 원래 자리는 빈 받침대 + 흰 판, 반투명 복사본(노란 강조 + 흰 테두리, 머리 위 이름 + 별)이 ` +
         `가리키는 ${EDIT_TARGET}번 칸 위에 떠서 살짝 오르내리며 돎 — 놓을 수 있는 칸이 숨 쉬듯 빛남(빈 칸 초록 · 명소 칸 = 자리 바꿈 노랑), 잠긴 칸은 흐린 빨강. ` +
         `여기서 누르면 자리 바꿈(상대가 1번 칸으로 폴짝), 같은 칸 · Esc/Q · 오른쪽 클릭 · 부지 밖 = 내려놓기. 자동 배치 중 첫 편집이라 위에 "자동 꺼짐". ` +
@@ -2239,11 +2238,11 @@
       note:
         `6번 공원(직접 배치, 12칸 꽉 참)에서 자동 굴림으로 ${ById[FULL_FIND].Name}(${ById[FULL_FIND].Tier.Name})을 처음 얻은 뒤: 빈 칸이 없어 전시되지 않았고 ` +
         `연출이 끝나면 노란 알림 [공원] "공원 꽉 참"(PlayerState.missedByFullPark = ${missedByFullPark(PARK_FULL_STATE, FULL_FIND)}). 전시 중인 가장 약한 명소보다 수입이 커서 ` +
-        `왼쪽 메뉴 [배치] 배지가 ${betterHidden(PARK_STATE).length} → ${betterHidden(PARK_FULL_STATE).length}(도감 도장 배지와 같은 모양, 도감 머리 줄 [배치]에도 같은 숫자). ` +
-        '자동 배치 중이면 알림·배지 없음(자동 배치가 알아서 채움). 환생하면 자동 배치로 돌아감. [배치] 를 누르면 6번 3D 배치 모드(보관함 카드에 노란 위 화살표).',
+        `왼쪽 메뉴 [공원] 배지가 ${betterHidden(PARK_STATE).length} → ${betterHidden(PARK_FULL_STATE).length}(도감 도장 배지와 같은 모양, 광장에 있을 때만 — 공원에 있으면 버튼이 [광장]이라 숨김). ` +
+        '자동 배치 중이면 알림·배지 없음(자동 배치가 알아서 채움). 환생하면 자동 배치로 돌아감. [공원] 으로 가서 명소를 톡 누르면 6번 3D 배치 모드(보관함 카드에 노란 위 화살표).',
       build(root) {
         const screenGui = newScreen(root, this.id);
-        buildHud(screenGui, PARK_FULL_STATE, { auto: true, location: 'Park' });
+        buildHud(screenGui, PARK_FULL_STATE, { auto: true, location: 'Plaza' });
         buildNews(screenGui, [], [TOAST_PARK_FULL]);
       },
     },
@@ -2692,18 +2691,19 @@
       );
     }
 
-    // 8) [배치] 배지 = PlayerState.betterHidden 수 (직접 배치 화면만), 자동 배치 화면엔 없음
+    // 8) [공원] 버튼 배지 = PlayerState.betterHidden 수 (직접 배치 화면만), 자동 배치 화면엔 없음. [배치] 버튼은 어디에도 없음
     {
       const expect = { screen1: betterHidden(STATE).length, screen3: betterHidden(COLLECTION_STATE).length, screen3p: betterHidden(PARK_FULL_STATE).length, screen6b: betterHidden(PARK_FULL_STATE).length };
       const found = Object.entries(expect).map(([id, n]) => {
         const scr = document.getElementById(id);
-        const badge = scr && scr.querySelector('[data-name="Menu"] [data-name="Arrange"] [data-name="Better"]');
+        const badge = scr && scr.querySelector('[data-name="Menu"] [data-name="Teleport"] [data-name="Better"]');
         const shown = badge && badge.style.display !== 'none' ? Number(badge.textContent) : 0;
         return { id, n, shown, ok: shown === n };
       });
+      const arrange = document.querySelectorAll('[data-name="Arrange"]').length;
       items.push(
-        `<b>[배치] 버튼 배지</b> ${verdict(found.every((f) => f.ok))}: 직접 배치 중 전시 칸의 가장 약한 명소보다 수입이 큰, 전시 안 된 명소 수(0 이면 숨김) — ` +
-          found.map((f) => `${f.id} ${f.shown}${f.ok ? '' : `(기대 ${f.n})`}`).join(' · ') + '.'
+        `<b>[공원] 버튼 배지 · [배치] 버튼 없음</b> ${verdict(found.every((f) => f.ok) && arrange === 0)}: 직접 배치 중 전시 칸의 가장 약한 명소보다 수입이 큰, 전시 안 된 명소 수(0 이면 숨김) — ` +
+          found.map((f) => `${f.id} ${f.shown}${f.ok ? '' : `(기대 ${f.n})`}`).join(' · ') + ` · [배치] 버튼 ${arrange}개.`
       );
     }
 
@@ -2766,7 +2766,7 @@
             tabBits.push(`${region.Name} 막대 ${found}/${required}${clear ? '' : '(글자와 겹침)'}`);
           }
         }
-        // 머리 줄 버튼 배지(ON · [배치] 숫자)가 탭 줄을 가리지 않음
+        // 머리 줄 버튼 배지(ON)가 탭 줄을 가리지 않음
         const tabRect = rectIn(row, scr);
         const badges = Array.from(win.querySelectorAll('[data-name="CollectionHeader"] [data-name="On"], [data-name="CollectionHeader"] [data-name="Better"]')).filter((el) => el.offsetParent !== null);
         const badgeHit = badges.some((el) => rectIn(el, scr).top < tabRect.bottom - 0.5);
