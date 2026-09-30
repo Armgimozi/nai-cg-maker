@@ -115,7 +115,8 @@ local function fillOcean(terrain: Terrain, stats: TerrainStats)
 	local floorHeight = Island.SEA_FLOOR - Island.FLOOR_BOTTOM
 	local waterHeight = Island.WATER_LEVEL - Island.SEA_FLOOR
 	for _, tile in Island.oceanTiles() do
-		local floorY = (Island.FLOOR_BOTTOM + Island.SEA_FLOOR) / 2
+		-- 바닥 판(단단한 지형)은 Roblox 가 윗면을 반 칸 위에 그려서 SOLID_LIFT 만큼 내려 채움(보이는 윗면 = SEA_FLOOR)
+		local floorY = (Island.FLOOR_BOTTOM + Island.SEA_FLOOR) / 2 - Island.SOLID_LIFT
 		local waterY = (Island.SEA_FLOOR + Island.WATER_LEVEL) / 2
 		terrain:FillBlock(
 			CFrame.new(tile.X, floorY, tile.Z),

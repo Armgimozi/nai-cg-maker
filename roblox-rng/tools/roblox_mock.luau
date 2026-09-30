@@ -2723,10 +2723,9 @@ Mock.terrainColors = terrainColors
 -- 기둥 표면 ----------------------------------------------------------------------------
 -- 기둥(가로 4x4 스터드 복셀 한 줄 vx, vz)의 위 표면.
 -- 돌려줌: 땅 윗면 높이(없으면 nil), 윗면 재질 번호, 물 윗면(없거나 땅이 더 높으면 nil), 물 밑면(물 아래 땅이 없을 때)
--- 땅 높이: 맨 위 단단한 복셀 t 의 점유율 oT, 그 아래 복셀 oB 로
---   oT >= 0.5 이거나 아래가 꽉 참/빔 → t 바닥 + 4·oT (평평한 땅이면 정확히 채운 높이)
---   oT < 0.5 이고 0.5 <= oB < 1 → 두 복셀 가운데 사이에서 점유율 0.5 가 되는 곳(비탈)
---   둘 다 0.5 미만 → 아래 복셀 바닥 + 4·oB
+-- 땅 높이 = 맨 위 단단한 복셀 t 의 바닥 + 2 + 4·oT (실제 Roblox 에서 잰 규칙: 단단한 지형 윗면은 반 칸 위.
+--   [-4,0) 가득·위는 빔 → +2, [-4,0) 반 → 0, 1/4 → -1, 3/4 → +1 — Open Cloud Luau 실행으로 Raycast 해서 확인)
+-- 물 윗면은 복셀 바닥 + 4·점유율 그대로(같은 방법으로 확인)
 local function columnSurface(vx: number, vz: number): (number?, number, number?, number?)
 	local bounds = terrainState.bounds
 	if not bounds then
@@ -2786,15 +2785,8 @@ local function columnSurface(vx: number, vz: number): (number?, number, number?,
 	end
 	local smT, soT = readVoxel(vx, top, vz)
 	local smB, soB = readVoxel(vx, top - 1, vz)
-	local oT, oB = soT / 255, soB / 255
-	local h
-	if oT >= 0.5 or oB >= 0.99 or oB <= 0 then
-		h = top * 4 + oT * 4
-	elseif oB >= 0.5 then
-		h = (top - 1) * 4 + 2 + 4 * (oB - 0.5) / (oB - oT)
-	else
-		h = (top - 1) * 4 + oB * 4
-	end
+	local oT = soT / 255
+	local h = top * 4 + 2 + oT * 4
 	local material = if soT >= 64 or soB == 0 then smT else smB
 	if waterTop and waterTop <= h then
 		waterTop = nil

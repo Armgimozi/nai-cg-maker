@@ -1745,7 +1745,10 @@ test(
 		local zeroLayer = (0 - I.SEA_FLOOR) // V -- y -4~0 층 번호
 		for i = 1, 2 do
 			for k = 1, 2 do
-				eq(grid.Solid[i][zeroLayer][k], 1, "y -4~0 은 땅")
+				-- Roblox 는 단단한 지형 윗면을 "맨 위 땅 복셀 바닥 + 2 + 4·점유율" 에 그림(실측) → 윗면 0 = -4~0 층 반
+				eq(grid.Solid[i][zeroLayer][k], 0.5, "y -4~0 은 반만 땅")
+				eq(-4 + I.SOLID_LIFT + 4 * grid.Solid[i][zeroLayer][k], 0, "Roblox 가 그리는 윗면 = 0")
+				eq(grid.Solid[i][zeroLayer - 1][k], 1, "y -8~-4 는 가득")
 				eq(grid.Solid[i][zeroLayer + 1][k], 0, "y 0~4 는 빔")
 				eq(grid.Liquid[i][zeroLayer + 1][k], 0, "공원에 물 없음")
 			end

@@ -135,6 +135,10 @@ PlayerState 의 읽기 함수(park, parkSlots, stars, slots, completedRegions, u
   보이지 않는 벽(부두는 끝까지 감쌈). 배치·지형은 고정 시드라 매번 같음(미리보기 = 게임).
   파트 약 6060개(보이지 않는 벽·산책로·나무 줄기 마디 포함, 모두 Anchored·단순 모양), 구역별 수는 서버 출력 "[Scenery]" 줄.
   지형: 복셀 표 약 44만 칸(WriteVoxelChannels 7장: 본섬 + 먼 작은 섬 여섯) + 먼 바다 FillBlock 18번.
+  **실제 Roblox 규칙(실측)**: 단단한 지형 윗면은 "맨 위 땅 복셀 바닥 + 2 + 4·점유율"(복셀 반 칸 위)에, 물 윗면은 "복셀 바닥 + 4·점유율" 에 그려짐.
+  그래서 땅 점유율은 원하는 높이보다 Island.SOLID_LIFT(2) 낮춰 쓰고, 먼 바다 바닥 FillBlock 도 2 내려 채움.
+  (버전 13 까지는 이 규칙을 몰라 땅이 2 스터드 높게 그려져 광장·길·부지 바닥이 묻혔음. 규칙은 Open Cloud Luau 실행으로 Raycast 해서 잼.
+  미리보기의 가짜 지형(tools/roblox_mock.luau)도 같은 규칙으로 그림)
 
 ## 모형 교체 (AI 메쉬)
 

@@ -18,6 +18,10 @@ local TAU = math.pi * 2
 
 -- 기준 값 ------------------------------------------------------------------------
 Island.VOXEL = 4 -- 지형 복셀 한 변(스터드). 아래 높이 값은 모두 이 배수(복셀 경계)
+-- 실제 Roblox 는 단단한 지형 윗면을 "맨 위 땅 복셀 바닥 + 2 + 4·점유율" 에 그림(복셀 반 칸 위).
+-- Open Cloud Luau 실행으로 잰 값: [-4,0) 가득·위는 빔 → 윗면 +2, [-4,0) 반 → 0, FillBlock 윗면 0 → +2.
+-- 물(액체)은 "복셀 바닥 + 4·점유율" 그대로. 그래서 땅 점유율은 원하는 높이보다 이만큼 낮춰서 씀
+Island.SOLID_LIFT = 2
 Island.WATER_LEVEL = -4 -- 바다 물 윗면
 Island.SEA_FLOOR = -24 -- 먼 바다 바닥 윗면 = 섬 복셀 표 맨 아래
 Island.FLOOR_BOTTOM = -28 -- 먼 바다 바닥 판 밑면(FillBlock)
@@ -567,10 +571,12 @@ function Island.voxels(minX: number, minZ: number, sizeX: number, sizeZ: number,
 				name = painted
 			end
 			local solidMaterial = mat(name)
-			-- 칸 한 줄(아래 → 위): 땅 윗면 h 아래는 땅, 그 위 물 높이까지는 물
+			-- 칸 한 줄(아래 → 위): 땅 윗면 h 아래는 땅, 그 위 물 높이까지는 물.
+			-- 땅은 Roblox 가 반 칸 위에 그리므로 SOLID_LIFT 만큼 낮춘 높이로 점유율을 셈(보이는 윗면 = h)
+			local solidTop = h - Island.SOLID_LIFT
 			for j = 1, sizeY do
 				local bottom = minY + (j - 1) * V
-				local solid = (h - bottom) / V
+				local solid = (solidTop - bottom) / V
 				if solid >= 1 then
 					solid = 1
 				elseif solid <= 0 then
