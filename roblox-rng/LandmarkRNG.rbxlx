@@ -18372,6 +18372,7 @@ applyState(invoke("GetState"))
 
 local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Config = require(Shared.Config)
@@ -18838,9 +18839,10 @@ local function buildShop(onMenu: (string) -> ())
 end
 
 -- 상점 자리 (오른쪽 끝). 기본 = 오른쪽 가운데
---   터치 전용 기기: 점프 버튼(오른쪽 아래)과 닿으면 그만큼 위로
 --   키보드 기기: 오른쪽 위 로블록스 플레이어 목록(leaderstats 가 있어 펼쳐져 있고 사람 수만큼 길어짐, 게임 화면보다
 --     위에 그려져 클릭도 가져감)에 가리지 않게, 굴리기 줄 바로 위 높이까지 내림(오른쪽 아래는 PC 에서 비어 있음)
+--   터치가 되는 기기(터치 전용 + 키보드 겸용: 터치 노트북·키보드 붙인 태블릿 — 화면을 만지면 점프 버튼이 나옴):
+--     점프 버튼(오른쪽 아래) 위까지만. 닿으면 그만큼 위로
 local function placeShop(size: Vector2, scale: number, touch: boolean)
 	local shop = refs.Shop
 	if not shop then
@@ -18849,11 +18851,12 @@ local function placeShop(size: Vector2, scale: number, touch: boolean)
 	local center = size.Y / 2 + MENU_DROP
 	local half = MENU_BUTTON.Y * scale / 2
 	local target = center
-	if touch then
-		target = math.min(center, jumpTop(size) - MENU_CLEAR - half)
-	else
+	if not touch then
 		local rollTop = size.Y - ROLL_BAR_BOTTOM - ROLL_BAR.Y * scale
 		target = math.max(center, rollTop - MENU_CLEAR - half)
+	end
+	if touch or UserInputService.TouchEnabled then
+		target = math.min(target, jumpTop(size) - MENU_CLEAR - half)
 	end
 	shop.Position = UDim2.new(1, -MENU_X, 0.5, MENU_DROP + (target - center))
 end

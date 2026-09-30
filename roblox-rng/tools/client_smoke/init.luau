@@ -266,6 +266,27 @@ do
 				rollTop
 			)
 		)
+		-- 키보드 + 터치 겸용(터치 노트북·키보드 붙인 태블릿): 화면을 만지면 점프 버튼이 오른쪽 아래에 나오므로 그 위까지만
+		UIS.__props.TouchEnabled = true
+		Hud.setPlotOwned(false)
+		Hud.setPlotOwned(true)
+		local hybrid = size.Y * shopButton.Position.Y.Scale + shopButton.Position.Y.Offset
+		local jumpTop = size.Y - (if math.min(size.X, size.Y) <= 500 then 90 else 210)
+		check(
+			hybrid + 45 * scale <= jumpTop and hybrid < center,
+			string.format(
+				"터치 겸용 기기: 상점 버튼은 점프 버튼 위 — 가운데 %.0f, 점프 버튼 위 %.0f",
+				hybrid,
+				jumpTop
+			)
+		)
+		UIS.__props.TouchEnabled = false
+		Hud.setPlotOwned(false)
+		Hud.setPlotOwned(true)
+		check(
+			size.Y * shopButton.Position.Y.Scale + shopButton.Position.Y.Offset == center,
+			"터치 없는 키보드 기기로 돌아오면 다시 굴리기 줄 위"
+		)
 	end
 	local shopIcon = findNamed(shopButton, "Icon")
 	check(shopIcon and shopIcon:GetAttribute("Icon") == "robux", "상점 버튼 = Robux 표시(코인 아님)")
