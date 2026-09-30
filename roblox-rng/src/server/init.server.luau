@@ -1,5 +1,5 @@
 -- 서버 진입점: 플레이어 데이터, 굴림 판정(서버 권위), 관광 수입, 업그레이드, 환생, 유료 상품,
--- 공원/대표 명소 표시, 뉴스 속보
+-- 공원/대표 명소 표시, 뉴스 속보, 분석 기록(Analytics — 일이 생긴 곳마다 한 줄, 실패해도 게임은 그대로)
 
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
@@ -13,6 +13,7 @@ local Net = require(Shared.Net)
 local PlayerState = require(Shared.PlayerState)
 local RollLogic = require(Shared.RollLogic)
 
+local Analytics = require(script.Analytics)
 local DataService = require(script.DataService)
 local FeaturedDisplay = require(script.FeaturedDisplay)
 local ParkService = require(script.ParkService)
@@ -34,6 +35,7 @@ local EDIT_BURST = 10
 local EDIT_RATE = 4
 
 type Session = {
+	Player: Player,
 	Data: PlayerState.Data,
 	LockId: string?, -- nil 이면 저장하지 않음(Studio 등)
 	LastRoll: number,
@@ -80,7 +82,9 @@ end
 local function snapshot(session: Session): PlayerState.Snapshot
 	session.Revision += 1
 	session.LastSync = time()
-	return PlayerState.sync(session.Data, session.Revision, modsFor(session))
+	local state = PlayerState.sync(session.Data, session.Revision, modsFor(session))
+	Analytics.synced(session.Player, session.Data) -- 대륙 도장이 늘었으면(자동 발견 포함) 도장 퍼널
+	return state
 end
 
 local function pushState(player: Player)
@@ -121,6 +125,7 @@ local function refreshVisible(player: Player, session: Session)
 	if not ok then
 		warn("[LandmarkRNG] 공원 갱신 실패: " .. tostring(err))
 	end
+	Analytics.parkShown(player, session.Data, visible) -- 첫 전시(온보딩)
 end
 
 -- 공원 배치 바꾸기 속도 제한. 허용이면 토큰 하나를 씀
@@ -243,6 +248,9 @@ local purchaseDeps: Purchases.Deps = {
 	end,
 	serverLuck = extendServerLuck,
 	pushState = pushState,
+	granted = function(player: Player, session: Purchases.Session, grant: PlayerState.Grant)
+		Analytics.purchased(player, session.Data, grant.Product, grant.Coins)
+	end,
 	ownsPass = function(player: Player, passId: number): boolean
 		return MarketplaceService:UserOwnsGamePassAsync(player.UserId, passId)
 	end,
@@ -264,6 +272,8 @@ MarketplaceService.PromptGamePassPurchaseFinished:Connect(
 		end
 		if wasPurchased then
 			owned[pass.Id] = true
+			local session = sessions[player]
+			Analytics.purchased(player, if session then session.Data else nil, pass.Id, nil)
 			onPassesChanged(player)
 		else
 			Purchases.recheckPass(player, owned, pass, purchaseDeps)
@@ -309,6 +319,7 @@ local function onPlayerAdded(player: Player)
 	end
 
 	local session: Session = {
+		Player = player,
 		Data = data,
 		LockId = lockId,
 		LastRoll = -math.huge,
@@ -325,6 +336,7 @@ local function onPlayerAdded(player: Player)
 	sessions[player] = session
 	session.Stats.Rolls.Value = data.Rolls
 	session.Stats.Rebirths.Value = data.Rebirths
+	Analytics.playerAdded(player, data)
 
 	-- 공원 부지 배정 + 전시
 	local ok, result = pcall(ParkService.assign, player)
@@ -367,6 +379,7 @@ local function saveAndRelease(player: Player)
 		return
 	end
 	sessions[player] = nil
+	Analytics.playerRemoving(player, session.Data) -- 남은 수입 + 접속 시간 구간
 	if session.LockId then
 		trackedSave(player, session.Data, session.LockId, true)
 	end
@@ -429,7 +442,8 @@ task.spawn(function()
 			serverLuckOn = false
 		end
 		for player, session in sessions do
-			PlayerState.addIncome(session.Data, dt, modsFor(session))
+			local earned = PlayerState.addIncome(session.Data, dt, modsFor(session))
+			Analytics.earned(player, session.Data, earned) -- 모았다가 5분마다 경제 이벤트 한 번
 			local expired = PlayerState.tickBoosts(session.Data, dt)
 			if expired or serverLuckEnded or now - session.LastSync >= RESYNC_INTERVAL then
 				pushState(player)
@@ -531,6 +545,7 @@ Net.fn("Roll").OnServerInvoke = function(player: Player)
 	local luck = PlayerState.rollLuck(session.Data, mods)
 	local landmark = RollLogic.roll(Landmarks.RarestFirst, luck, nextNumber)
 	local bonus, isNew, starUp = PlayerState.applyRoll(session.Data, landmark)
+	Analytics.rolled(player, session.Data, landmark, isNew, bonus, luck) -- 온보딩 · 희귀 발견만(굴림마다 보내지 않음)
 	local rollNumber = session.Data.Rolls
 	session.Stats.Rolls.Value = rollNumber
 
@@ -575,8 +590,10 @@ Net.fn("BuyUpgrade").OnServerInvoke = function(player: Player, upgradeId: any)
 	if not session then
 		return { Ok = false, Reason = "데이터를 불러오는 중입니다" }
 	end
+	local coinsBefore = session.Data.Coins
 	local ok, reason = PlayerState.buyUpgrade(session.Data, upgradeId)
 	if ok then
+		Analytics.upgradeBought(player, session.Data, upgradeId, coinsBefore - session.Data.Coins)
 		-- 공원 확장(칸 수), 입장료(간판의 수입) 등이 바뀔 수 있음. 바뀐 칸만 다시 만듦
 		refreshVisible(player, session)
 	end
@@ -631,8 +648,10 @@ Net.fn("Rebirth").OnServerInvoke = function(player: Player)
 	if not session then
 		return { Ok = false, Reason = "데이터를 불러오는 중입니다" }
 	end
+	local coinsBefore = session.Data.Coins
 	local ok, reason = PlayerState.rebirth(session.Data)
 	if ok then
+		Analytics.rebirthed(player, session.Data, coinsBefore) -- 환생 퍼널 · 사라진 코인(경제 쓰기)
 		session.Stats.Rebirths.Value = session.Data.Rebirths
 		refreshVisible(player, session)
 		refreshFeatured(player)
@@ -650,6 +669,8 @@ Net.fn("BuyPass").OnServerInvoke = function(player: Player, passKey: any)
 	if not pass or pass.PassId <= 0 then
 		return { Ok = false }
 	end
+	local session = sessions[player]
+	Analytics.itemPressed(player, if session then session.Data else nil, pass.Id) -- 상점·구매 퍼널
 	-- 접속 때 확인이 오류였거나 웹사이트에서 산 경우를 위해 한 번 더 확인(가졌으면 구매 창 대신 바로 반영)
 	local owned = passesByPlayer[player]
 	if owned and Purchases.recheckPass(player, owned, pass, purchaseDeps) then
@@ -658,13 +679,20 @@ Net.fn("BuyPass").OnServerInvoke = function(player: Player, passKey: any)
 	local ok, err = pcall(function()
 		MarketplaceService:PromptGamePassPurchase(player, pass.PassId)
 	end)
-	if not ok then
+	if ok then
+		Analytics.promptShown(player, pass.Id)
+	else
 		warn("[LandmarkRNG] 게임패스 구매 창 실패: " .. tostring(err))
 	end
 	return { Ok = ok }
 end
 
 Net.fn("BuyProduct").OnServerInvoke = function(player: Player, productKey: any)
+	local known = if type(productKey) == "string" then PlayerState.ProductsById[productKey] else nil
+	if known and known.ProductId > 0 then
+		local session = sessions[player]
+		Analytics.itemPressed(player, if session then session.Data else nil, known.Id) -- 상점·구매 퍼널(창을 못 띄워도 누름은 셈)
+	end
 	-- 시간 부스트는 남은 시간이 최대(MAX_BOOST_SECONDS)를 넘게 되면 구매 창을 띄우지 않음(Purchases.promptCheck)
 	local product, reason = Purchases.promptCheck(productKey, sessions[player], serverLuckLeft())
 	if not product then
@@ -673,7 +701,9 @@ Net.fn("BuyProduct").OnServerInvoke = function(player: Player, productKey: any)
 	local ok, err = pcall(function()
 		MarketplaceService:PromptProductPurchase(player, product.ProductId)
 	end)
-	if not ok then
+	if ok then
+		Analytics.promptShown(player, product.Id)
+	else
 		warn("[LandmarkRNG] 개발자 상품 구매 창 실패: " .. tostring(err))
 	end
 	return { Ok = ok }
@@ -715,3 +745,11 @@ Net.fn("Teleport").OnServerInvoke = function(player: Player, where: any)
 	character:PivotTo(target)
 	return { Ok = true }
 end
+
+-- 분석: 화면에서만 알 수 있는 일(상점·도감 열기, AUTO 켜기, 내 공원을 톡 눌러 배치 모드). 이름·간격은 Analytics.clientEvent 가 거름
+Net.event("Track").OnServerEvent:Connect(function(player: Player, kind: any)
+	local session = sessions[player]
+	if session then
+		Analytics.clientEvent(player, session.Data, kind)
+	end
+end)

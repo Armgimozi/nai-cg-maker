@@ -37,6 +37,8 @@ export type Deps = {
 	save: (player: Player, session: Session) -> boolean, -- 저장(잠금 유지). 성공하면 true
 	serverLuck: (player: Player, seconds: number) -> (), -- 서버 행운 타이머에 더하고 모두에게 알림
 	pushState: (player: Player) -> (),
+	-- 영수증을 처음 지급했을 때(분석: 구매 퍼널·코인 팩 경제 이벤트). 없어도 됨, 오류가 나도 지급·저장은 그대로
+	granted: ((player: Player, session: Session, grant: PlayerState.Grant) -> ())?,
 	ownsPass: (player: Player, passId: number) -> boolean, -- UserOwnsGamePassAsync (오류는 그대로 던짐)
 	passesChanged: (player: Player) -> (), -- 가진 게임패스가 늘었음(상태 + 공원 간판 갱신)
 	wait: (seconds: number) -> (),
@@ -129,6 +131,13 @@ function Purchases.processReceipt(receiptInfo: { [string]: any }, deps: Deps): E
 			deps.serverLuck(player, grant.Seconds)
 		else
 			deps.pushState(player)
+		end
+		local granted = deps.granted
+		if granted then
+			local ok, err = pcall(granted, player, session, grant)
+			if not ok then
+				warn("[LandmarkRNG] 구매 분석 기록 실패: " .. tostring(err))
+			end
 		end
 	end
 

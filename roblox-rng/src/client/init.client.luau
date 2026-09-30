@@ -95,6 +95,7 @@ local function openStampRegion(regionId: string)
 	ParkEdit.exit()
 	Panels.open("Collection", regionId)
 	Hud.clearStampToasts()
+	trackOpened()
 end
 
 -- 서버 상태 반영. Revision 이 더 큰 것만 받아서 늦게 도착한 옛 상태가 덮어쓰지 않게 함.
@@ -159,6 +160,27 @@ local function findRemote(name: string, seconds: number): Instance?
 		return nil
 	end
 	return folder:FindFirstChild(name) or folder:WaitForChild(name, seconds)
+end
+
+-- 분석: 화면에서만 알 수 있는 일을 서버에 알림(kind: "ShopOpened" | "CollectionOpened" | "AutoOn" | "TapEdit" — 서버 Analytics 가
+-- 이름·간격을 거르고 AnalyticsService 로 보냄, 이벤트는 서버에서만 보낼 수 있음). 기다리지 않고, 실패해도 게임은 그대로
+local function track(kind: string)
+	task.spawn(function()
+		local remote = findRemote("Track", 5)
+		if remote and remote:IsA("RemoteEvent") then
+			pcall(function()
+				(remote :: RemoteEvent):FireServer(kind)
+			end)
+		end
+	end)
+end
+-- 창을 열었을 때 알릴 것(메뉴 · 도장 알림)
+local OPEN_EVENTS = { Shop = "ShopOpened", Collection = "CollectionOpened" }
+local function trackOpened()
+	local kind = OPEN_EVENTS[Panels.current() or ""]
+	if kind then
+		track(kind)
+	end
 end
 
 local function invoke(name: string, ...: any): any
@@ -327,6 +349,9 @@ end
 local function toggleAuto()
 	autoRoll = not autoRoll
 	Hud.setAuto(autoRoll)
+	if autoRoll then
+		track("AutoOn")
+	end
 	if not autoRoll then
 		Hud.setRolling(rolling)
 	end
@@ -552,6 +577,9 @@ local gui = Hud.init(playerGui, {
 		if Panels.current() == "Collection" then
 			Hud.clearStampToasts() -- 도감을 열었으면 도장 알림은 할 일을 다 함(탭 줄을 가리지 않게)
 		end
+		if Panels.current() == name then
+			trackOpened() -- 닫을 때는 안 알림
+		end
 	end,
 	Teleport = function()
 		task.spawn(teleport)
@@ -595,6 +623,9 @@ ParkEdit.init(gui, {
 		end
 		Hud.setEditing(editing)
 		autoPaused = editing
+		if editing then
+			track("TapEdit") -- 배치 버튼이 없어서 들어오는 길은 내 공원을 톡 누르는 것뿐
+		end
 		if editing then
 			Hud.setRolling(rolling) -- AUTO 가 쉬는 동안 지구본 아이콘도 멈춤(굴리던 것이 끝나면 roll 이 멈춤)
 		end

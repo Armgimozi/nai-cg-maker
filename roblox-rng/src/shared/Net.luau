@@ -24,6 +24,9 @@ local EVENTS = {
 	"State", -- 서버 -> 클라: Snapshot (관광 수입 등 서버 쪽 변화)
 	"Announce", -- 서버 -> 모두: 희귀 명소 발견 "뉴스 속보"
 	"ServerLuck", -- 서버 -> 모두: 서버 행운 시작/연장 { UserId, Name, Until, Left }
+	-- 클라 -> 서버: 화면에서만 알 수 있는 일(kind: "ShopOpened" | "CollectionOpened" | "AutoOn" | "TapEdit") — 분석 기록용.
+	-- 서버 Analytics 가 이름·간격을 거르고 AnalyticsService 로 보냄(이벤트는 서버에서만 보낼 수 있음). 게임 규칙에는 안 씀
+	"Track",
 }
 
 local folder: Folder
