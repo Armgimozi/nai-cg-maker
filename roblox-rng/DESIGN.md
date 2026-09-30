@@ -40,6 +40,7 @@ src/server/  (ServerScriptService.Server)
   ParkLayout.luau    부지·길 배치 기준(순수 계산) + 장식 금지 구역 판정 [서버 담당]
   Scenery/           주변 풍경(지형 섬·바다·산책로·정원·숲). Island=지형 모양(순수), Plan=배치(순수), Props=모양 [서버 담당]
   FeaturedDisplay.luau 대표 명소(캐릭터 옆) + 이름표       [서버 담당]
+  Analytics.luau     분석(AnalyticsService) — 온보딩·구매 퍼널, 경제, 진행, 희귀 발견 등(아래 "분석") [서버 담당]
   World.luau         광장 + 가운데 거대 지구본            [서버 담당]
 src/client/  (StarterPlayerScripts.Client)
   init.client.luau   상태 동기화, 굴리기 흐름, 입력       [화면 담당]
@@ -84,6 +85,7 @@ moai, stones, gardens, spiral, island, pagoda, skyisland, tree, globe.
 | Teleport | Function | ("Park" \| "Plaza") | { Ok } |
 | State | Event 서버→클라 | Snapshot | 상태가 바뀔 때 + 10초마다 재동기화 |
 | Announce | Event 서버→모두 | { UserId, Name, LandmarkId, Rolls, Hologram } | 뉴스 속보 |
+| Track | Event 클라→서버 | (kind) | 없음 — 분석 기록용("ShopOpened" \| "CollectionOpened" \| "AutoOn" \| "TapEdit"). 게임 규칙에는 안 씀(아래 "분석") |
 
 ```lua
 RollResponse =
@@ -355,6 +357,63 @@ ID 는 Creator Hub 에서 만든 뒤 `Config` 에 넣음. **ID 가 0 이면 그 
   `GetProductInfo` 로 실제 가격·상품 그림(구매 창과 같은 그림)을 받으면 바꿈. HUD 상점 버튼은 초록 + Robux 표시
   (코인 강화와 구별). PC 에서는 오른쪽 위 플레이어 목록에 가리지 않게 오른쪽 아래(굴리기 줄 위)에 둠.
   서버 행운 구매 시 `Announce` 와 별도로 `ServerLuck` 이벤트 `{ Name, Until }` 를 모두에게 보냄.
+
+## 분석 (Creator Hub 대시보드, v9)
+
+어디서 그만두는지(온보딩), 코인이 어디서 들어와 어디로 나가는지(경제), 상점에서 어디까지 가는지(구매 퍼널)를 Creator Hub
+분석 대시보드로 보려고 `AnalyticsService` 이벤트를 보냄. 보내는 곳은 **서버 `src/server/Analytics.luau` 하나**(AnalyticsService 는
+서버에서만 부를 수 있음 — 테스트가 다른 파일에서 안 쓰는지 확인). `init.server.luau` 가 일이 생긴 곳(굴림·강화·환생·구매·수입
+루프·접속/퇴장)에서 한 줄로 부르고, 영수증 첫 지급은 `Purchases` 의 `deps.granted` 로 알림.
+
+- **게임을 멈추지 않음**: 공개 함수는 모두 pcall 로 감쌈 + 서비스 호출도 pcall(오류는 같은 문장마다 한 번, 모두 20개까지 warn).
+  서비스가 없거나 Studio 면 보내지 않음(로블록스는 게시된 게임 서버에서 보낸 이벤트만 셈). 게임 코드는 결과를 기다리지 않음.
+- **화면에서만 알 수 있는 일**(상점·도감 열기, AUTO 켜기, 내 공원을 톡 눌러 배치 모드)은 클라이언트가 `Track` 원격으로 이름만
+  알리고 서버가 거름: `Analytics.CLIENT_EVENTS` 에 있는 이름만, 종류마다 최소 간격(열기 2초, AUTO·톡 30초). 창을 닫거나 AUTO 를
+  끌 때는 안 보냄.
+- **한도**(경험 전체): 사용자 지정 이벤트 이름 4개(한도 100) · 퍼널 4개 + 온보딩(한도 10) · 통화 1개 · 거래 종류 3개 ·
+  SKU 8개 · 사용자 지정 필드 값은 정해진 몇 가지(환생 구간 R0 · R1 · R2-3 · R4-6 · R7-9 · R10, 등급, 상품 키, 시간·레벨 구간)뿐 —
+  플레이어 이름·Id·명소 Id 같은 자유 값은 안 넣음(필드 조합 수가 터지지 않게). **굴림마다 보내지 않음**: 희귀 발견만, 공원 수입·
+  발견 보너스는 5분(`FLUSH_INTERVAL`)마다 합쳐서.
+- **속도 한도**: 서버 전체 분당 120 + 20 × 인원의 80% 안(토큰 통). 넘치면 버리는데 사용자 지정 이벤트(RareFind · AutoOn · TapEdit)는
+  통의 25% 를 남겨 두고 먼저 버림 — 퍼널·경제 이벤트가 밀리지 않게. 후반 AUTO 한 시간(굴림 8,571번)에 한 사람이 보내는 이벤트는
+  120개 이하(희귀 발견 60번 이하 — 테스트가 확인).
+
+| 무엇 | API · 이름 | 단계 / 값 | 필드(CustomField01 · 02 · 03) · 언제 |
+|---|---|---|---|
+| 온보딩 | `LogOnboardingFunnelStepEvent` | 1 Joined · 2 First Roll · 3 First New Landmark · 4 First Statue On Display · 5 First Upgrade · 6 Opened Collection · 7 First 1-in-1000 Find · 8 First Rebirth | 한 사람에 **한 번**(아래) |
+| 환생 | `LogProgressionEvent` 경로 `Rebirth` (Complete) + 한 번만 퍼널 `Rebirths` | 레벨·단계 = 환생 수 1 → 10 | 환생할 때 |
+| 대륙 도장 | `LogProgressionEvent` 경로 `Stamps` (Complete) + 한 번만 퍼널 `Stamps` | 레벨·단계 = 도장 수 1 → 5 | 도장이 늘 때(자동 발견 포함, 상태를 보낼 때 확인). 접속 때 가진 도장은 다시 안 보냄 |
+| 경제 벌기 | `LogEconomyEvent` Source, 통화 `Coins` | `Gameplay` · `ParkIncome` / `Gameplay` · `DiscoveryBonus` | 환생 구간 · 5분마다 합(+ 환생 직전 · 퇴장). 소수는 남겨 두었다가 다음에 |
+| | | `IAP` · `CoinPack` | 환생 구간 · 코인 팩 영수증 첫 지급 |
+| 경제 쓰기 | `LogEconomyEvent` Sink | `Shop` · `Upgrade_Globe` / `_Agency` / `_Park` / `_Ticket` | 환생 구간 · 산 뒤 레벨 구간(Lv1-5 …) · 강화 살 때마다 |
+| | | `Gameplay` · `RebirthReset` | 그 코인을 번 판의 환생 구간 · 환생으로 사라진 코인 전부 |
+| 상점 퍼널 | `LogFunnelStepEvent` `Shop` (세션 = 상점을 열 때마다 GUID) | 1 Shop Opened → 2 Item Pressed → 3 Prompt Shown → 4 Purchased | 연 때의 환생 구간(모든 단계 같음) |
+| 상품별 구매 퍼널 | `LogFunnelStepEvent` `Purchase` (세션 = 카드를 누를 때마다 GUID) | 1 Item Pressed → 2 Prompt Shown → 3 Purchased | **상품 키**(LuckVIP · FastRoll · DoubleIncome · LuckBoost · ServerLuck · CoinPack) · 환생 구간 — 모든 단계 같음(필드로 나눠 봐도 단계가 안 빠짐) |
+| 희귀 발견 | `LogCustomEvent` `RareFind` | 값 = 등급(5 불가사의 · 6 잃어버린 유산 · 7 전설) | `Tier N` · `New`/`Repeat` · 환생 구간. 등급 5 이상 + (처음 발견 또는 1/N ≥ 1,000 × 그 굴림 행운) — 후반 행운이 크면 거의 매번 나오는 불가사의는 안 보냄 |
+| AUTO 켬 | `LogCustomEvent` `AutoOn` | 1 | 환생 구간 |
+| 톡 배치 | `LogCustomEvent` `TapEdit` | 1 | 환생 구간 · `AutoPark`/`Manual`(그때 자동 배치였는지) |
+| 접속 시간 | `LogCustomEvent` `SessionEnd` | 값 = 분(소수 한 자리) | `<5m` · `5-15m` · `15-30m` · `30-60m` · `1-2h` · `2h+` · `First`/`Returning` · 환생 구간 — 퇴장·서버 종료 때 |
+
+- **온보딩은 한 사람에 한 번**: 해낸 단계를 `Data.Analytics.Onboarding` 비트로 저장(다시 접속해도, 환생해도 유지 — 스냅샷에는
+  없음). 로블록스 퍼널은 뒤 단계를 보내면 건너뛴 앞 단계도 한 것으로 치므로 **1번부터 빈틈없이 이어진 단계까지만** 보냄
+  (`PlayerState.onboardingStep` — 예: 강화(5) 전에 도감(6)을 열면 기억만 했다가 첫 강화 때 5 · 6 을 차례로).
+  4번(첫 전시)은 희귀 명소면 굴림 연출이 끝나 공원에 나타날 때.
+- **옛 저장**(분석을 넣기 전 저장 — `Analytics` 칸이 없고 굴림·환생·발견 기록이 있음)은 `reconcile` 이 `Legacy = true` 로 맞춤:
+  온보딩·환생·도장 퍼널에 넣지 않음(오늘 처음 온 사람처럼 세면 퍼널이 틀어짐). 경제·진행·사용자 지정 이벤트는 그대로 보냄.
+  굴린 적 없는 옛 저장은 새 플레이어처럼 1번부터.
+- **Creator Hub 에서 읽기**: Creator Hub → Creations → 이 게임 → **Analytics**. 게시된 게임에서만 쌓이고 대시보드에는 늦게 나타남.
+  - **Funnels**(퍼널): Onboarding — 1 → 8 단계별로 남은 비율 = 어디서 그만두는지(예: 3 → 4 가 크게 떨어지면 공원 전시를 못 보고
+    나감). `Shop` — 상점을 열고 카드까지 누르는지, `Purchase` — 필드 1(상품 키)로 나눠 보면 상품별 누름 → 구매 창 → 구매 전환.
+    `Rebirths` · `Stamps` — 몇 번째 환생·도장에서 멈추는지(한 번만 퍼널).
+  - **Economy**(경제): 통화 `Coins` 의 벌기(Sources)·쓰기(Sinks)를 거래 종류·SKU 별로 — 공원 수입 대비 발견 보너스·코인 팩 몫,
+    강화별로 쓰는 코인, 환생으로 사라지는 코인. 필드 1(환생 구간)로 나누면 판마다 흐름, 잔액 분포로 코인이 쌓이기만 하는지 봄.
+  - **Custom**(사용자 지정 이벤트): `RareFind`(등급·New/Repeat 별 횟수), `AutoOn` · `TapEdit`(기능을 쓰는 비율 — 이벤트를 보낸
+    사람 수 ÷ 활성 사용자), `SessionEnd`(시간 구간별 접속 수, 처음 온 사람만 보려면 필드 2 = First).
+  - 진행 이벤트(`Rebirth` · `Stamps` 경로)는 경로 이름으로 골라 레벨별 도달 인원을 봄(같은 내용을 한 번만 퍼널로도 보냄).
+- 확인: `tests/run.luau` "[분석 기록 — 온보딩 한 번만 · 옛 저장]"(비트·순서·reconcile) + "[분석 — Analytics 서버 모듈]"
+  (가짜 AnalyticsService 가 로블록스처럼 인자를 검사 — `tools/roblox_mock.luau` 의 `Mock.analytics`: 온보딩 한 번씩·다시 접속, 옛 플레이어,
+  경제 합치기·싱크, 희귀 발견 빈도, 구매 퍼널·필드, Track 거르기, 도장, 오류·속도 한도, 이름·SKU·필드 값 수, 서버 호출 자리) +
+  `tools/client_smoke/init.luau` "[분석 Track 원격]"(톡 배치 · AUTO 켜기 · 도감·상점 열기만 보내고 이름 = 서버 목록).
 
 ## 수입 보이기 (v8 — 타이쿤·"steal a …" 게임처럼 돈 버는 게 눈에 보이게)
 

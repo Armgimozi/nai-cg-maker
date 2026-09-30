@@ -27,7 +27,8 @@ Analytics.FLUSH_INTERVAL = 300
 -- 온보딩 "첫 1/1,000 이상 발견"(세계 명소 등급부터)
 Analytics.RARE_FIRST_ONE_IN = 1000
 -- 희귀 발견(RareFind): 이 등급 이상 + (처음 발견 또는 1/N ≥ RARE_RELATIVE × 그 굴림 행운 — 후반 행운이 크면 불가사의·잃어버린
--- 유산은 거의 매 굴림이라 그때는 보내지 않음. 후반 시간당 약 10번, 초반 약 2번)
+-- 유산은 거의 매 굴림이라 그때는 보내지 않음. 새 발견이 없으면 후반 AUTO 시간당 10번 안팎, 초반 약 2번 — 새 발견이 많은
+-- 후반 첫 한 시간도 60번 이하, 테스트가 확인)
 Analytics.RARE_MIN_RANK = 5
 Analytics.RARE_RELATIVE = 1000
 -- 서버 전체 속도 한도(분당 120 + 20 × 인원) 중 쓰는 몫, 사용자 지정 이벤트가 남겨 두는 몫
@@ -74,6 +75,24 @@ Analytics.CLIENT_EVENTS = {
 
 -- Enum.AnalyticsCustomFieldKeys.CustomField01~03 의 Name (customFields 표의 키)
 local FIELD1, FIELD2, FIELD3 = "CustomField01", "CustomField02", "CustomField03"
+
+-- 경제 거래 종류 = Enum.AnalyticsEconomyTransactionType 의 Name(로블록스 기본 종류라 경제 대시보드가 알아서 나눔).
+-- 열거형을 못 읽는 환경(가짜 Roblox 는 "이름.값" 문자열)이면 같은 이름 글자
+local function transactionName(item: string): string
+	local ok, name = pcall(function()
+		local value: any = (Enum :: any).AnalyticsEconomyTransactionType[item]
+		if typeof(value) == "EnumItem" then
+			return value.Name
+		end
+		return string.match(tostring(value), "([^%.]+)$")
+	end)
+	return if ok and type(name) == "string" and name ~= "" then name else item
+end
+Analytics.TRANSACTION = {
+	Gameplay = transactionName("Gameplay"), -- 공원 수입 · 발견 보너스 · 환생으로 사라진 코인
+	Shop = transactionName("Shop"), -- 코인으로 강화 사기
+	IAP = transactionName("IAP"), -- Robux 로 산 코인 팩
+}
 
 -- 보낸 수(테스트·서버 출력용)
 Analytics.stats = { Sent = 0, Dropped = 0, Failed = 0 }
@@ -123,7 +142,9 @@ local function guard(name: string, fn: (...any) -> ()): (...any) -> ()
 end
 
 -- 플레이어마다 이번 접속 동안만 기억하는 것
-type Pending = { Purchase: string, Shop: string? }
+-- 누른 뒤 아직 안 끝난 구매: 구매 퍼널 세션, 상점 퍼널 세션(상점을 열었으면), 단계마다 같이 보내는 필드
+-- (퍼널을 필드로 나눠 볼 때 모든 단계에 같은 값이 있어야 단계가 빠지지 않음)
+type Pending = { Purchase: string, Shop: string?, Fields: { [string]: string }, ShopFields: { [string]: string }? }
 type Tracked = {
 	JoinedAt: number,
 	FirstSession: boolean, -- 처음 해 보는 접속(굴림 0, 예전부터 하던 플레이어 아님)
@@ -132,6 +153,7 @@ type Tracked = {
 	Discovery: number, -- 아직 안 보낸 발견 보너스
 	FlushedAt: number,
 	Shop: string?, -- 지금 상점 퍼널 세션(마지막으로 연 상점)
+	ShopFields: { [string]: string }?, -- 그 상점 퍼널의 단계마다 같이 보내는 필드(연 때의 환생 구간)
 	Pending: { [string]: Pending }, -- 상품 키 → 누른 뒤 아직 안 끝난 구매 퍼널
 	ClientAt: { [string]: number }, -- 화면 이벤트 종류 → 마지막으로 받은 시각
 }
@@ -282,12 +304,28 @@ local function flush(player: Player, state: Tracked, balance: number, rebirths: 
 	local income = math.floor(state.Income)
 	if income > 0 then
 		state.Income -= income
-		economy(player, Enum.AnalyticsEconomyFlowType.Source, income, balance, "Gameplay", "ParkIncome", fields)
+		economy(
+			player,
+			Enum.AnalyticsEconomyFlowType.Source,
+			income,
+			balance,
+			Analytics.TRANSACTION.Gameplay,
+			"ParkIncome",
+			fields
+		)
 	end
 	local discovery = math.floor(state.Discovery)
 	if discovery > 0 then
 		state.Discovery -= discovery
-		economy(player, Enum.AnalyticsEconomyFlowType.Source, discovery, balance, "Gameplay", "DiscoveryBonus", fields)
+		economy(
+			player,
+			Enum.AnalyticsEconomyFlowType.Source,
+			discovery,
+			balance,
+			Analytics.TRANSACTION.Gameplay,
+			"DiscoveryBonus",
+			fields
+		)
 	end
 end
 
@@ -304,6 +342,7 @@ Analytics.playerAdded = guard("playerAdded", function(player: Player, data: Play
 		Discovery = 0,
 		FlushedAt = now,
 		Shop = nil,
+		ShopFields = nil,
 		Pending = {},
 		ClientAt = {},
 	}
@@ -363,17 +402,14 @@ Analytics.rolled = guard(
 )
 
 -- 공원을 다시 그림(visible = 연출 중인 발견을 뺀 데이터): 전시된 명소가 처음 생기면 온보딩 4
-Analytics.parkShown = guard(
-	"parkShown",
-	function(player: Player, data: PlayerState.Data, visible: PlayerState.Data)
-		if PlayerState.onboardingDone(data, Analytics.ONBOARDING.FirstStatue) then
-			return
-		end
-		if #PlayerState.park(visible) > 0 then
-			onboard(player, data, Analytics.ONBOARDING.FirstStatue)
-		end
+Analytics.parkShown = guard("parkShown", function(player: Player, data: PlayerState.Data, visible: PlayerState.Data)
+	if PlayerState.onboardingDone(data, Analytics.ONBOARDING.FirstStatue) then
+		return
 	end
-)
+	if #PlayerState.park(visible) > 0 then
+		onboard(player, data, Analytics.ONBOARDING.FirstStatue)
+	end
+end)
 
 -- 코인 강화를 삼(spent = 쓴 코인): 온보딩 5, 경제 쓰기(Shop, SKU Upgrade_<Id>)
 Analytics.upgradeBought = guard(
@@ -384,10 +420,18 @@ Analytics.upgradeBought = guard(
 			return
 		end
 		onboard(player, data, Analytics.ONBOARDING.FirstUpgrade)
-		economy(player, Enum.AnalyticsEconomyFlowType.Sink, spent, data.Coins, "Shop", "Upgrade_" .. upgrade.Id, {
-			[FIELD1] = Analytics.rebirthBucket(data.Rebirths),
-			[FIELD2] = Analytics.levelBucket(PlayerState.upgradeLevel(data, upgrade.Id)),
-		})
+		economy(
+			player,
+			Enum.AnalyticsEconomyFlowType.Sink,
+			spent,
+			data.Coins,
+			Analytics.TRANSACTION.Shop,
+			"Upgrade_" .. upgrade.Id,
+			{
+				[FIELD1] = Analytics.rebirthBucket(data.Rebirths),
+				[FIELD2] = Analytics.levelBucket(PlayerState.upgradeLevel(data, upgrade.Id)),
+			}
+		)
 	end
 )
 
@@ -404,7 +448,7 @@ Analytics.rebirthed = guard("rebirthed", function(player: Player, data: PlayerSt
 		Enum.AnalyticsEconomyFlowType.Sink,
 		math.floor(coinsBefore),
 		data.Coins,
-		"Gameplay",
+		Analytics.TRANSACTION.Gameplay,
 		"RebirthReset",
 		{ [FIELD1] = Analytics.rebirthBucket(n - 1) }
 	)
@@ -464,8 +508,10 @@ Analytics.clientEvent = guard("clientEvent", function(player: Player, data: Play
 	local stage = Analytics.rebirthBucket(data.Rebirths)
 	if kind == "ShopOpened" then
 		local id = guid()
+		local fields = { [FIELD1] = stage }
 		state.Shop = id
-		funnel(player, Analytics.FUNNEL_SHOP, id, 1, "Shop Opened", { [FIELD1] = stage })
+		state.ShopFields = fields
+		funnel(player, Analytics.FUNNEL_SHOP, id, 1, "Shop Opened", fields)
 	elseif kind == "CollectionOpened" then
 		onboard(player, data, Analytics.ONBOARDING.OpenedCollection)
 	elseif kind == "AutoOn" then
@@ -478,22 +524,24 @@ Analytics.clientEvent = guard("clientEvent", function(player: Player, data: Play
 	end
 end)
 
--- 상점 카드를 누름(BuyPass/BuyProduct 원격, sku = 게임패스·상품 키): 상점 퍼널 2(상점을 열었으면) + 구매 퍼널 1(새 세션)
+-- 상점 카드를 누름(BuyPass/BuyProduct 원격, sku = 게임패스·상품 키): 상점 퍼널 2(상점을 열었으면) + 구매 퍼널 1(새 세션).
+-- 구매 퍼널 필드(모든 단계 같음): 1 = 상품 키(상품별 전환), 2 = 환생 구간
 Analytics.itemPressed = guard("itemPressed", function(player: Player, data: PlayerState.Data?, sku: string)
 	local state = tracked[player]
 	if not state or not (PlayerState.PassesById[sku] or PlayerState.ProductsById[sku]) then
 		return
 	end
-	local shop = state.Shop
+	local shop, shopFields = state.Shop, state.ShopFields
 	if shop then
-		funnel(player, Analytics.FUNNEL_SHOP, shop, 2, "Item Pressed")
+		funnel(player, Analytics.FUNNEL_SHOP, shop, 2, "Item Pressed", shopFields)
 	end
 	local id = guid()
-	state.Pending[sku] = { Purchase = id, Shop = shop }
-	funnel(player, Analytics.FUNNEL_PURCHASE, id, 1, "Item Pressed", {
+	local fields = {
 		[FIELD1] = sku,
 		[FIELD2] = Analytics.rebirthBucket(if data then data.Rebirths else 0),
-	})
+	}
+	state.Pending[sku] = { Purchase = id, Shop = shop, Fields = fields, ShopFields = shopFields }
+	funnel(player, Analytics.FUNNEL_PURCHASE, id, 1, "Item Pressed", fields)
 end)
 
 -- 구매 창을 띄움: 상점 퍼널 3 + 구매 퍼널 2
@@ -504,31 +552,34 @@ Analytics.promptShown = guard("promptShown", function(player: Player, sku: strin
 		return
 	end
 	if pending.Shop then
-		funnel(player, Analytics.FUNNEL_SHOP, pending.Shop, 3, "Prompt Shown")
+		funnel(player, Analytics.FUNNEL_SHOP, pending.Shop, 3, "Prompt Shown", pending.ShopFields)
 	end
-	funnel(player, Analytics.FUNNEL_PURCHASE, pending.Purchase, 2, "Prompt Shown")
+	funnel(player, Analytics.FUNNEL_PURCHASE, pending.Purchase, 2, "Prompt Shown", pending.Fields)
 end)
 
 -- 샀음(게임패스 구매 완료 · 개발자 상품 첫 지급): 상점 퍼널 4 + 구매 퍼널 3(이 서버에서 누른 것만), 코인 팩이면 경제 벌기(IAP)
-Analytics.purchased = guard(
-	"purchased",
-	function(player: Player, data: PlayerState.Data?, sku: string, coins: number?)
-		local state = tracked[player]
-		local pending = if state then state.Pending[sku] else nil
-		if state and pending then
-			state.Pending[sku] = nil
-			if pending.Shop then
-				funnel(player, Analytics.FUNNEL_SHOP, pending.Shop, 4, "Purchased")
-			end
-			funnel(player, Analytics.FUNNEL_PURCHASE, pending.Purchase, 3, "Purchased")
+Analytics.purchased = guard("purchased", function(player: Player, data: PlayerState.Data?, sku: string, coins: number?)
+	local state = tracked[player]
+	local pending = if state then state.Pending[sku] else nil
+	if state and pending then
+		state.Pending[sku] = nil
+		if pending.Shop then
+			funnel(player, Analytics.FUNNEL_SHOP, pending.Shop, 4, "Purchased", pending.ShopFields)
 		end
-		if data and coins and coins > 0 then
-			economy(player, Enum.AnalyticsEconomyFlowType.Source, coins, data.Coins, "IAP", sku, {
-				[FIELD1] = Analytics.rebirthBucket(data.Rebirths),
-			})
-		end
+		funnel(player, Analytics.FUNNEL_PURCHASE, pending.Purchase, 3, "Purchased", pending.Fields)
 	end
-)
+	if data and coins and coins > 0 then
+		economy(
+			player,
+			Enum.AnalyticsEconomyFlowType.Source,
+			coins,
+			data.Coins,
+			Analytics.TRANSACTION.IAP,
+			sku,
+			{ [FIELD1] = Analytics.rebirthBucket(data.Rebirths) }
+		)
+	end
+end)
 
 -- 테스트용: 이번 서버의 기억(플레이어·속도 한도·보낸 수)을 비움
 function Analytics.reset()

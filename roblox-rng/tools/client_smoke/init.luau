@@ -9,7 +9,8 @@
 -- 별 상승 딱지(★+1 — AUTO 는 알림 줄에도 한 칸),
 -- 별 0(☆) 표시 · 환생 창 행운 ×2 · 자동 발견 알림,
 -- 도감 대륙 탭(여권 버튼 없음 · 도감 버튼 도장 배지 · [전체]/대륙 거르기와 순서 · 대륙 머리 줄 숫자 = PlayerState.regionProgress ·
--- 탭을 바꿔도 카드·3D 사진 그대로 · 열려 있는 동안 탭 기억 · 도장 알림을 누르면 그 대륙 탭)을 확인.
+-- 탭을 바꿔도 카드·3D 사진 그대로 · 열려 있는 동안 탭 기억 · 도장 알림을 누르면 그 대륙 탭),
+-- 분석 Track 원격(톡 배치 · AUTO 켜기 · 도감·상점 열기 — 닫기·끄기는 안 보냄, 이름 = 서버 Analytics.CLIENT_EVENTS)을 확인.
 -- 실행(roblox-rng 폴더에서): luaurun tools/client_smoke/init.luau   (끝 줄 "0 failed")
 
 local E = compile(readfile("tools/client_smoke/env.luau"), "tools/client_smoke/env.luau")()
@@ -35,6 +36,7 @@ local function snap()
 	return PlayerState.snapshot(data, revision, mods)
 end
 local buyReply: { [string]: any } = {} -- 상점 구매 원격이 돌려줄 값(상품 키 -> 응답)
+local tracked: { string } = {} -- 분석 Track 원격(RemoteEvent:FireServer)으로 보낸 kind 차례
 local Config = Harness.require(E.shared.Config)
 local RollLogic = Harness.require(E.shared.RollLogic)
 local rollLandmark = Landmarks.RarestFirst[#Landmarks.RarestFirst] -- 흔한 명소(연출 짧음)
@@ -149,9 +151,15 @@ for _, remote in remoteFolder:GetChildren() do
 		end
 	else
 		remote.__props.OnClientEvent = Signal.new()
+		if remote.Name == "Track" then
+			remote.__props.FireServer = function(_self, kind)
+				table.insert(tracked, tostring(kind))
+			end
+		end
 	end
 end
 check(Net ~= nil, "Net")
+check(remoteFolder:FindFirstChild("Track") ~= nil, "분석 Track 원격(서버 Net 이 만듦)")
 
 -- 3) 클라이언트 init.client.luau 그대로 ------------------------------------------------------
 game:GetService("RunService").__props.IsServer = function()
@@ -232,10 +240,12 @@ check(
 	"[공원] = 내 공원으로 이동(버튼은 [광장])"
 )
 check(not ParkEdit.isEditing(), "이동만 해서는 배치 모드 아님")
+check(table.find(tracked, "TapEdit") == nil, "배치 모드에 못 들어갔으면 분석 TapEdit 없음")
 lookIntoPark()
 E.tap(parkTap)
 Mock.runScheduler(Mock.clock() + 2)
 check(ParkEdit.isEditing(), "내 공원에서 내 명소를 톡 = 배치 모드")
+check(tracked[#tracked] == "TapEdit", "톡 배치 = 분석 Track(TapEdit)")
 check(workspace:FindFirstChild("ParkEditLocal"):FindFirstChild("Held", true) ~= nil, "그 명소를 바로 집음")
 key("Escape")
 settle()
@@ -351,10 +361,12 @@ do
 		return count
 	end
 	local revealFrame = findNamed(gui, "Reveal")
+	local trackedBefore = #tracked
 	key("T")
 	Mock.runScheduler(Mock.clock() + 4)
 	local before = rolls()
 	check(before >= 2, "T = 자동 굴리기 (" .. before .. "번)")
+	check(#tracked == trackedBefore + 1 and tracked[#tracked] == "AutoOn", "AUTO 켜기 = 분석 Track(AutoOn) 한 번")
 	face(findNamed(menu, "Teleport")).Activated:Fire() -- 내 공원으로
 	for _ = 1, 30 do
 		if hasText("광장") then
@@ -398,11 +410,13 @@ do
 	face(findNamed(findNamed(gui, "ParkEditBar"), "Done")).Activated:Fire()
 	Mock.runScheduler(Mock.clock() + 4)
 	check(not ParkEdit.isEditing() and rolls() > paused + 1, "나가면 자동 굴리기 다시 (" .. rolls() .. ")")
+	local trackedOff = #tracked
 	key("T")
 	Mock.runScheduler(Mock.clock() + 3)
 	local stopped = rolls()
 	Mock.runScheduler(Mock.clock() + 3)
 	check(rolls() == stopped, "T = 자동 굴리기 끔")
+	check(#tracked == trackedOff, "AUTO 끄기는 분석 없음")
 end
 
 print(
@@ -1201,9 +1215,15 @@ do
 	openMenu("Collection")
 	local _, back = Panels.current()
 	check(back == region.Id, "다른 창에 갔다 와도(창은 열린 채) 탭 유지")
+	local trackedClose = #tracked
 	openMenu("Collection") -- 닫기
 	check(not window.Visible, "도감 버튼 다시 = 닫힘")
+	check(#tracked == trackedClose, "창 닫기는 분석 없음")
 	openMenu("Collection")
+	check(
+		#tracked == trackedClose + 1 and tracked[#tracked] == "CollectionOpened",
+		"도감 열기 = 분석 Track(CollectionOpened)"
+	)
 	local _, reopened = Panels.current()
 	check(reopened == "All" and visibleCards()[1] == all[1], "닫았다 열면 [전체]부터")
 	Panels.close()
@@ -1531,10 +1551,15 @@ do
 	end
 	local shopIcon = findNamed(shopButton, "Icon")
 	check(shopIcon and shopIcon:GetAttribute("Icon") == "robux", "상점 버튼 = Robux 표시(코인 아님)")
+	local trackedShop = #tracked
 	face(shopButton).Activated:Fire()
 	Mock.runScheduler(Mock.clock() + 0.5)
 	local window = findNamed(gui, "Window")
 	check(window.Visible and hasText("상점"), "상점 창 열림")
+	check(
+		#tracked == trackedShop + 1 and tracked[#tracked] == "ShopOpened",
+		"상점 열기 = 분석 Track(ShopOpened, 상점 퍼널 1단계)"
+	)
 
 	local KEYS = { "LuckVIP", "FastRoll", "DoubleIncome", "LuckBoost", "ServerLuck", "CoinPack" }
 	local cards = {}
@@ -2100,6 +2125,20 @@ do
 	settle()
 	ParkEdit.exit()
 	mods.Passes.DoubleIncome = nil
+end
+
+print("\n[분석 Track 원격]")
+do
+	-- 보낸 이름 = 서버 Analytics.CLIENT_EVENTS(서버가 모르는 이름은 버리므로 이름이 어긋나면 기록이 조용히 사라짐)
+	local Analytics = Harness.require(E.server.Analytics)
+	local seen = {}
+	for _, kind in tracked do
+		check(Analytics.CLIENT_EVENTS[kind] ~= nil, "서버가 받는 이름 " .. kind)
+		seen[kind] = true
+	end
+	for kind in Analytics.CLIENT_EVENTS do
+		check(seen[kind] == true, "스모크 동안 보냄: " .. kind)
+	end
 end
 
 print("\n[모듈 오류]")
