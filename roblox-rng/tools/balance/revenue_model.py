@@ -4,18 +4,23 @@
 쓰는 법 (roblox-rng 폴더에서):
   python3 tools/balance/revenue_model.py                  # 표 출력 + balance/revenue_results.json
   python3 tools/balance/revenue_model.py --chart --font-regular R.ttf --font-bold B.ttf   # + 그림
-  python3 tools/balance/revenue_model.py --pass-value     # sim.py 로 상품별 진행 속도(약 1분) → balance/revenue_pass_value.json
+  python3 tools/balance/revenue_model.py --pass-value     # sim.py 로 상품별 진행 속도(약 2분) → balance/revenue_pass_value.json
 
 상품·가격은 src/shared/Config.luau 에서 읽음(가격을 바꾸면 다시 돌리면 됨). 나머지 숫자는 아래 FACTS(출처 있는 사실)와
 SCENARIOS·RETENTION·그 밖의 [가정] 값. 출처 목록은 balance/REVENUE.md 끝.
 
 모델(한 달 = 30일, 안정 상태 — 매달 같은 DAU 가 유지된다고 봄):
+  * 시나리오(비관·기본·낙관) = 리텐션 + 수익화 한 묶음(좋은 게임은 둘 다 좋고 나쁜 게임은 둘 다 나쁨 — 섞지 않음).
   * 수명 활동일 L = 1 + Σ_{d=1..180} R(d). R(d) 는 D1·D7·D30 을 지나는 거듭제곱 곡선(구간별), 30일 뒤는 7→30 기울기로 이어감.
   * 새 사용자/달 = DAU × 30 / L (DAU 를 유지하려면 이만큼 들어와야 함).
-  * 결제자/달 = 새 사용자 × 평생 결제 전환율. 결제자 1인 = 패스별 구매 확률 + 개발자 상품별 평생 구매 횟수.
-  * 총 Robux(플레이어가 쓴 것) = Σ 개수 × 가격 × 지역 가격 실현율(지역 가격 30~100%).
+  * 수익화 값(평생 결제 전환 · 결제자 1인 개발자 상품 개수)은 기준 수명 L_REF(= S7 중앙값 리텐션)에서의 값이고 수명에 따라
+    늘어남: 전환 × (L/L_REF)^CONV_EXP, 상품 개수 × (L/L_REF)^PRODUCT_EXP. 패스(한 번만 삼)는 결제자 1인 구매 확률 그대로.
+    → DAU 당 수익이 리텐션과 함께 줄지 않음(예전 모델은 새 사용자 수에만 비례해 리텐션이 좋을수록 DAU 당 수익이 줄었음).
+  * 총 Robux(플레이어가 쓴 것) = Σ 개수 × 가격 × 실현율. 패스는 지역 가격(Managed Pricing)이 기본으로 켜져 있어 실현율 < 100%,
+    개발자 상품은 직접 켜야 해서 지금은 100% [S5 creator-docs regional-pricing.md].
   * 개발자 몫 = 총 Robux × 70% (게임 안 판매 수수료 30%).
-  * Creator Rewards(일일 참여 보상) = DAU × Active Spender 비율 × 자격(10분+ · 그날 첫 3개 게임) × 5 R$ × 30일. 수수료 없음.
+  * Creator Rewards(일일 참여 보상) = DAU × Active Spender 비율 × 자격(10분+ · 그날 첫 3개 게임) × 5 R$ × 30일. 수수료 없음,
+    60일 보류 뒤 Earned R$.
   * USD = (개발자 몫 + Creator Rewards) × DevEx $0.0038 (미국 18+ 인증 구매분 $0.0054 는 기본 0% — 가정).
   * 대시보드 지표(라이브 뒤 비교용): 전환율 = 그날 결제한 사람 / DAU, ARPPU = 하루 결제액 / 그날 결제자, ARPDAU = 하루 결제액 / DAU.
     결제자 1인의 결제한 날 수 = 1 + 0.5 × (산 개수 - 1) [가정: 여러 개를 같은 날 사기도 함].
@@ -44,62 +49,75 @@ FACTS = {
     "devex": 0.0038,  # 1 Earned Robux = $0.0038 (2025-09-05 이후 번 것) [S2]
     "devex_us18": 0.0054,  # 미국 18+ 연령 인증 구매분(패스·개발자 상품, 자격 있는 게임만 — R15 등, 2026-06-08~) [S3]
     "devex_min": 30000,  # DevEx 최소 인출 30,000 Earned Robux (= $114) [S2]
-    "creator_reward": 5,  # Active Spender 1명이 그날 첫 3개 게임 중 하나로 10분+ 하면 5 R$ [S4]
+    "creator_reward": 5,  # Active Spender 1명이 그날 첫 3개 게임 중 하나로 10분+ 하면 5 R$ (60일 보류) [S4]
+    "creator_reward_hold_days": 60,
     "robux_asp": 0.01,  # [가정] 플레이어가 1 Robux 를 사는 평균 가격 약 $0.01 (400 R$ = $4.99 정가 $0.0125, 큰 묶음·Premium 은 더 쌈)
     "days": 30,
 }
 
-# [가정] 리텐션(D1, D7, D30). 참고: GameAnalytics 2026 Roblox 벤치마크 중앙값 10.3% / 1.6% / 0.5%, 상위 1% D30 4.7% [S7].
-# 기본은 중앙값보다 조금 위(= 게임이 괜찮다는 가정), 비관은 중앙값 아래, 낙관은 상위권
+# [가정] 리텐션(D1, D7, D30). S7 = GameAnalytics 2026: MAU 100만을 넘긴(= 성공한) 게임 500여 개의 중앙값 10.3% / 1.6% / 0.5%,
+# 상위 1% 22.2% / 9.1% / 4.7%. 한국어 전용 · 평가 단계 새 게임에는 중앙값도 후한 편이라 기본 = 중앙값, 비관 = 그 아래,
+# 낙관 = 중앙값과 상위 1% 사이
 RETENTION = {
-    "pess": (0.07, 0.012, 0.003),
-    "base": (0.12, 0.03, 0.01),
-    "opt": (0.22, 0.09, 0.045),
+    "pess": (0.06, 0.008, 0.002),
+    "base": (0.103, 0.016, 0.005),
+    "opt": (0.16, 0.045, 0.02),
 }
+REF_RETENTION = RETENTION["base"]  # 수익화 값(전환 · 상품 개수)을 정한 기준 리텐션 → L_REF
 
-# [가정] 수익화 시나리오. passes = 결제자 중 그 패스를 사는 비율, products = 결제자 1인 평생 구매 횟수
+# [가정] 수익화 시나리오(기준 수명 L_REF 에서). passes = 결제자 중 그 패스를 사는 비율, products = 결제자 1인 평생 구매 횟수.
+# 전환은 높게·1인 결제액은 낮게(결제자 대부분은 한두 개): S7 의 "1년 동안 결제한 플레이어 3.80%"(성공한 게임) 쪽 모양.
+# 새 사용자 1명당 결제(= 전환 × 1인 결제액)는 기본에서 약 2.7 R$ ≈ S7 3.80% × $0.70 을 $0.01/R$ 로 본 값
+PASS_REALIZED = {"pess": 0.75, "base": 0.85, "opt": 0.95}  # 패스 지역 가격 실현율(평균 판매가 / 정가) — Managed Pricing 기본 켜짐
 SCENARIOS = {
     "pess": {
         "label": "비관",
-        "payer_conv": 0.002,
-        "passes": {"DoubleIncome": 0.35, "LuckVIP": 0.25, "FastRoll": 0.15},
-        "products": {"LuckBoost": 1.0, "ServerLuck": 0.1, "CoinPack": 0.2},
-        "price_realized": 0.75,
+        "payer_conv": 0.005,
+        "passes": {"DoubleIncome": 0.15, "LuckVIP": 0.10, "FastRoll": 0.08},
+        "products": {"LuckBoost": 0.8, "ServerLuck": 0.05, "CoinPack": 0.15},
+        "price_realized": PASS_REALIZED["pess"],
+        "products_realized": 1.0,  # 개발자 상품은 지역 가격이 기본으로 꺼져 있음
         "active_spender": 0.05,
         "cr_qualify": 0.15,
     },
     "base": {
         "label": "기본",
-        "payer_conv": 0.006,
-        "passes": {"DoubleIncome": 0.5, "LuckVIP": 0.4, "FastRoll": 0.3},
-        "products": {"LuckBoost": 2.0, "ServerLuck": 0.3, "CoinPack": 0.5},
-        "price_realized": 0.85,
+        "payer_conv": 0.010,
+        "passes": {"DoubleIncome": 0.25, "LuckVIP": 0.20, "FastRoll": 0.15},
+        "products": {"LuckBoost": 1.0, "ServerLuck": 0.15, "CoinPack": 0.3},
+        "price_realized": PASS_REALIZED["base"],
+        "products_realized": 1.0,
         "active_spender": 0.08,
         "cr_qualify": 0.30,
     },
     "opt": {
         "label": "낙관",
-        "payer_conv": 0.012,
-        "passes": {"DoubleIncome": 0.6, "LuckVIP": 0.5, "FastRoll": 0.4},
-        "products": {"LuckBoost": 3.0, "ServerLuck": 0.6, "CoinPack": 1.0},
-        "price_realized": 0.95,
+        "payer_conv": 0.020,
+        "passes": {"DoubleIncome": 0.35, "LuckVIP": 0.30, "FastRoll": 0.20},
+        "products": {"LuckBoost": 1.5, "ServerLuck": 0.3, "CoinPack": 0.5},
+        "price_realized": PASS_REALIZED["opt"],
+        "products_realized": 1.0,
         "active_spender": 0.11,
         "cr_qualify": 0.50,
     },
 }
 SCEN_ORDER = ("pess", "base", "opt")
 
-DAU_TIERS = (50, 500, 5000, 50000)
+DAU_TIERS = (10, 50, 500, 5000, 50000)
 PLAYTIME_MIN_PER_DAU = 20.0  # [가정] 하루 플레이 시간(분) — CCU 환산용. GameAnalytics 세션 중앙값 9.8분 [S7], 하루 1~2번 + AUTO 굴림이라 조금 더
-CPP_USD = (0.05, 0.45)  # [가정·제3자] 광고 1플레이당 비용: 잘 되는 경우 / 평균 [S9]
-# 새 게임 평가(2026-05-19~): 나이 확인한 16+ "highly engaged"(최근 60일 결제 + 이 게임을 충분히 함) 250번의 고유 플레이 / 60일 [S10]
+CPP_USD = (0.05, 0.45)  # [가정·제3자] 광고 1플레이당 비용: 잘 되는 경우 / 평균 [S9] (전 연령 기준 — 16+ 만 노리면 더 비쌀 수 있음)
+# 새 게임 평가(2026-05-19~): 나이 확인한 16+ "highly engaged"(계정 기간 + 이 게임 플레이 시간 + 최근 60일 로블록스 어디서든 결제)
+# 250번의 고유 플레이 / 60일 [S10]
 EVAL_PLAYS = 250
-HE_SHARE = (0.30, 0.15)  # [가정] 16+ 방문 중 highly engaged 로 세는 비율: 잘 되면 / 보통
-PRICE_ELASTICITY = 1.3  # [가정] 가격 +1% → 결제자 -1.3% (가격 최적화 중앙값 +4% [S6] = 흔한 가격대가 크게 틀리지 않음)
-# [가정] 리텐션이 좋아지면(수명 L ↑) 결제 전환·반복 구매도 늘어남: 전환 ∝ (L/L0)^0.5, 개발자 상품 횟수 ∝ (L/L0)^0.7
-RET_CONV_EXP, RET_PRODUCT_EXP = 0.5, 0.7
+HE_SHARE = (0.15, 0.05)  # [가정] 16+ 방문 중 highly engaged 로 세는 비율: 잘 되면 / 보통 (최근 60일 결제한 사람만 — Active Spender 8% 가정과 맞춤)
+PRICE_ELASTICITY = 1.3  # [가정] 가격 +1% → 결제자 -1.3%. 1 에 가까워 가격을 바꿔도 수익이 거의 안 변하게 정해 둔 값(S6 +4% 로는 못 정함)
+# [가정] 수명이 길면(L ↑) 결제 전환·반복 구매도 늘어남: 전환 ∝ (L/L_REF)^0.8(첫날에 조금 몰림), 개발자 상품 개수 ∝ (L/L_REF)^0.7
+CONV_EXP, PRODUCT_EXP = 0.8, 0.7
 SAME_DAY_SHARE = 0.5  # [가정] 두 번째부터의 구매 중 앞 구매와 같은 날인 비율 → 결제한 날 = 1 + 0.5 × (개수 - 1)
 HORIZON_DAYS = 180
+# 개발자 상품 지역 가격 켜기(제안): 할인 지역 결제자 비율 [가정], 그곳 결제자 증가 +13.8~44.8% (패스, 멕시코~필리핀 [S5])
+RP_DISCOUNTED_SHARE = 0.35
+RP_PAYER_UPLIFT = (0.138, 0.448)
 
 
 # ---------------------------------------------------------------------------------------------
@@ -151,44 +169,82 @@ def retention_curve(d1: float, d7: float, d30: float, horizon: int = HORIZON_DAY
     return out
 
 
-def lifetime_days(ret: tuple[float, float, float]) -> float:
-    return 1.0 + sum(retention_curve(*ret))
+def lifetime_days(ret: tuple[float, float, float], horizon: int = HORIZON_DAYS) -> float:
+    return 1.0 + sum(retention_curve(*ret, horizon=horizon))
+
+
+def tail_share(ret: tuple[float, float, float]) -> float:
+    """첫날을 뺀 수명 중 31~180일에서 오는 몫(30일 뒤 곡선을 이어 붙인 가정이 얼마나 큰지)."""
+    curve = retention_curve(*ret)
+    return sum(curve[30:]) / sum(curve)
+
+
+def scaled(mon: dict, L: float, L_ref: float) -> dict:
+    """수익화 값을 수명 L 에 맞춤(기준 L_ref 에서 정한 전환·상품 개수 → L 일 때)."""
+    k = L / L_ref
+    m = copy.deepcopy(mon)
+    m["payer_conv"] = min(1.0, m["payer_conv"] * k**CONV_EXP)
+    m["products"] = {pid: n * k**PRODUCT_EXP for pid, n in m["products"].items()}
+    return m
 
 
 def payer_items(mon: dict) -> float:
     return sum(mon["passes"].values()) + sum(mon["products"].values())
 
 
-def payer_gross_list(mon: dict, products: dict) -> dict:
-    """결제자 1인 평생 총 Robux(정가) — 상품별."""
-    out = {pid: share * products[pid]["price"] for pid, share in mon["passes"].items()}
-    out.update({pid: n * products[pid]["price"] for pid, n in mon["products"].items()})
+def realized_rate(mon: dict, kind: str) -> float:
+    return mon["price_realized"] if kind == "pass" else mon.get("products_realized", 1.0)
+
+
+def payer_gross(mon: dict, products: dict) -> dict:
+    """결제자 1인 평생 총 Robux(실현율 반영) — 상품별."""
+    out = {}
+    for pid, share in mon["passes"].items():
+        out[pid] = share * products[pid]["price"] * realized_rate(mon, products[pid]["kind"])
+    for pid, n in mon["products"].items():
+        out[pid] = n * products[pid]["price"] * realized_rate(mon, products[pid]["kind"])
     return out
 
 
-def monthly(dau: float, mon: dict, products: dict, ret=RETENTION["base"], us18_share: float = 0.0) -> dict:
-    """DAU 가 한 달 내내 유지될 때 그 달의 수익."""
+def sales_usd(robux: float, us18_share: float = 0.0) -> float:
+    """게임 안 판매 Robux(플레이어가 쓴 것) → 개발자가 받는 USD."""
+    rate = FACTS["devex"] * (1 - us18_share) + FACTS["devex_us18"] * us18_share
+    return robux * FACTS["dev_share"] * rate
+
+
+def monthly(
+    dau: float,
+    mon: dict,
+    products: dict,
+    ret: tuple = REF_RETENTION,
+    us18_share: float = 0.0,
+    horizon: int = HORIZON_DAYS,
+) -> dict:
+    """DAU 가 한 달 내내 유지될 때 그 달의 수익. mon 은 L_REF 기준 값 — 여기서 ret 의 수명에 맞춰 늘리거나 줄임."""
     days = FACTS["days"]
-    L = lifetime_days(ret)
+    L = lifetime_days(ret, horizon)
+    L_ref = lifetime_days(REF_RETENTION, horizon)
+    m = scaled(mon, L, L_ref)
     new_users = dau * days / L
-    payers = new_users * mon["payer_conv"]
-    per_item_list = payer_gross_list(mon, products)
-    realized = mon["price_realized"]
-    by_product = {pid: payers * v * realized for pid, v in per_item_list.items()}
+    payers = new_users * m["payer_conv"]
+    by_product = {pid: payers * v for pid, v in payer_gross(m, products).items()}
     gross = sum(by_product.values())
     dev = gross * FACTS["dev_share"]
-    cr = dau * mon["active_spender"] * mon["cr_qualify"] * FACTS["creator_reward"] * days
+    cr = dau * m["active_spender"] * m["cr_qualify"] * FACTS["creator_reward"] * days
     earned = dev + cr
-    rate = FACTS["devex"] * (1 - us18_share) + FACTS["devex_us18"] * us18_share
-    # 대시보드 지표(하루 평균)
-    items = payer_items(mon)
+    items = payer_items(m)
     pay_days = 1 + (1 - SAME_DAY_SHARE) * max(0.0, items - 1)
     daily_payers = payers * pay_days / days
     gross_day = gross / days
     passes = sum(v for pid, v in by_product.items() if products[pid]["kind"] == "pass")
+    usd_sales = sales_usd(gross, us18_share)
+    usd_cr = cr * FACTS["devex"]  # Creator Rewards 는 게임 판매가 아니라 18+ 환율 대상 아님
     return {
         "dau": dau,
         "lifetime_days": L,
+        "payer_conv": m["payer_conv"],
+        "payer_items": items,
+        "payer_gross_robux": gross / payers if payers else 0.0,
         "new_users": new_users,
         "payers": payers,
         "gross_robux": gross,
@@ -200,143 +256,229 @@ def monthly(dau: float, mon: dict, products: dict, ret=RETENTION["base"], us18_s
         "dev_products_robux": (gross - passes) * FACTS["dev_share"],
         "creator_rewards_robux": cr,
         "earned_robux": earned,
-        "usd": dev * rate + cr * FACTS["devex"],  # Creator Rewards 는 게임 판매가 아니라 18+ 환율 대상 아님
+        "usd": usd_sales + usd_cr,
+        "usd_sales": usd_sales,
+        "usd_creator_rewards": usd_cr,
         "player_spend_usd": gross * FACTS["robux_asp"],
+        # 플레이어가 낸 돈 ÷ 개발자가 받은 판매분(Creator Rewards 빼고)
+        "spend_to_sales_ratio": (gross * FACTS["robux_asp"]) / usd_sales if usd_sales else 0.0,
         "months_to_devex": FACTS["devex_min"] / earned if earned > 0 else math.inf,
         "ccu": dau * PLAYTIME_MIN_PER_DAU / 1440,
         "dash_conversion": daily_payers / dau,
         "dash_arppu_robux": gross_day / daily_payers if daily_payers else 0.0,
         "dash_arpdau_robux": gross_day / dau,
-        "ltv_new_user_usd": (dev / new_users + cr / new_users) * FACTS["devex"],
+        "new_user_payment_robux": gross / new_users,
+        "ltv_new_user_usd": (usd_sales + usd_cr) / new_users,
     }
 
 
-def with_changes(mon: dict, conv=1.0, spend=1.0, products_mult=1.0, price=1.0, realized=None, qualify=None) -> dict:
+def scenario(dau: float, s: str, products: dict, **kw) -> dict:
+    """시나리오 = 리텐션 + 수익화 한 묶음."""
+    return monthly(dau, SCENARIOS[s], products, RETENTION[s], **kw)
+
+
+def with_changes(
+    mon: dict,
+    conv=1.0,
+    spend=1.0,
+    products_mult=1.0,
+    price=1.0,
+    realized=None,
+    products_realized=None,
+    qualify=None,
+) -> dict:
     m = copy.deepcopy(mon)
     m["payer_conv"] *= conv * price**-PRICE_ELASTICITY
-    m["passes"] = {k: v * spend for k, v in m["passes"].items()}
+    m["passes"] = {k: min(1.0, v * spend) for k, v in m["passes"].items()}
     m["products"] = {k: v * spend * products_mult for k, v in m["products"].items()}
     m["price_realized"] *= price
+    m["products_realized"] = m.get("products_realized", 1.0) * price
     if realized is not None:
         m["price_realized"] = realized
+    if products_realized is not None:
+        m["products_realized"] = products_realized
     if qualify is not None:
         m["cr_qualify"] = qualify
     return m
 
 
-def fixed_inflow(new_per_day: float, mon: dict, products: dict, ret: tuple) -> dict:
-    """새 사용자 유입(하루)을 고정하고 리텐션을 바꿈: DAU = 유입 × L, 전환·반복 구매는 L 에 따라 늘어남."""
-    L0 = lifetime_days(RETENTION["base"])
-    L = lifetime_days(ret)
-    m = copy.deepcopy(mon)
-    m["payer_conv"] *= (L / L0) ** RET_CONV_EXP
-    m["products"] = {k: v * (L / L0) ** RET_PRODUCT_EXP for k, v in m["products"].items()}
-    return monthly(new_per_day * L, m, products, ret)
+def fixed_inflow(new_per_day: float, mon: dict, products: dict, ret: tuple, horizon: int = HORIZON_DAYS) -> dict:
+    """새 사용자 유입(하루)을 고정하고 리텐션을 바꿈: DAU = 유입 × L (전환·반복 구매는 monthly 가 L 에 맞춤)."""
+    return monthly(new_per_day * lifetime_days(ret, horizon), mon, products, ret, horizon=horizon)
 
 
 def sensitivity(products: dict, dau: float = 5000) -> list[dict]:
-    """기본 시나리오, DAU 5,000(= 유입 고정) 기준으로 한 가지씩 바꿨을 때 월 USD 변화."""
+    """기본 시나리오, DAU 5,000 기준으로 한 가지씩 바꿨을 때 월 USD 변화(리텐션은 유입 고정)."""
     base = SCENARIOS["base"]
-    ref = monthly(dau, base, products)["usd"]
-    inflow = dau / lifetime_days(RETENTION["base"])
+    ret = RETENTION["base"]
+    ref = monthly(dau, base, products, ret)["usd"]
+    inflow = dau / lifetime_days(ret)
+    ref30 = monthly(dau, base, products, ret, horizon=30)["usd"]
+    inflow30 = dau / lifetime_days(ret, 30)
     rows = [
         (
-            "리텐션 D1·D7·D30",
-            "7%·1.2%·0.3%",
-            "22%·9%·4.5%",
-            fixed_inflow(inflow, base, products, RETENTION["pess"])["usd"],
-            fixed_inflow(inflow, base, products, RETENTION["opt"])["usd"],
+            "리텐션 D1·D7·D30 (유입 고정)",
+            "비관",
+            "낙관",
+            fixed_inflow(inflow, base, products, RETENTION["pess"])["usd"] / ref,
+            fixed_inflow(inflow, base, products, RETENTION["opt"])["usd"] / ref,
+        ),
+        (
+            "리텐션, 수명을 30일까지만 셀 때",
+            "비관",
+            "낙관",
+            fixed_inflow(inflow30, base, products, RETENTION["pess"], 30)["usd"] / ref30,
+            fixed_inflow(inflow30, base, products, RETENTION["opt"], 30)["usd"] / ref30,
         ),
         (
             "결제 전환율",
-            "×0.5 (0.3%)",
-            "×2 (1.2%)",
-            monthly(dau, with_changes(base, conv=0.5), products)["usd"],
-            monthly(dau, with_changes(base, conv=2.0), products)["usd"],
+            "×0.5",
+            "×2",
+            monthly(dau, with_changes(base, conv=0.5), products, ret)["usd"] / ref,
+            monthly(dau, with_changes(base, conv=2.0), products, ret)["usd"] / ref,
         ),
         (
             "결제자 1인 구매 개수",
             "×0.6",
             "×1.6",
-            monthly(dau, with_changes(base, spend=0.6), products)["usd"],
-            monthly(dau, with_changes(base, spend=1.6), products)["usd"],
+            monthly(dau, with_changes(base, spend=0.6), products, ret)["usd"] / ref,
+            monthly(dau, with_changes(base, spend=1.6), products, ret)["usd"] / ref,
         ),
         (
             "10분+ 플레이(Creator Rewards)",
             "15%",
             "50%",
-            monthly(dau, with_changes(base, qualify=0.15), products)["usd"],
-            monthly(dau, with_changes(base, qualify=0.50), products)["usd"],
+            monthly(dau, with_changes(base, qualify=0.15), products, ret)["usd"] / ref,
+            monthly(dau, with_changes(base, qualify=0.50), products, ret)["usd"] / ref,
         ),
         (
-            "지역 가격 실현율",
+            "패스 지역 가격 실현율",
             "75%",
             "95%",
-            monthly(dau, with_changes(base, realized=0.75), products)["usd"],
-            monthly(dau, with_changes(base, realized=0.95), products)["usd"],
+            monthly(dau, with_changes(base, realized=0.75), products, ret)["usd"] / ref,
+            monthly(dau, with_changes(base, realized=0.95), products, ret)["usd"] / ref,
         ),
         (
-            "모든 가격",
-            "-25%",
+            "모든 가격(탄력성 1.3 가정)",
             "+25%",
-            monthly(dau, with_changes(base, price=0.75), products)["usd"],
-            monthly(dau, with_changes(base, price=1.25), products)["usd"],
+            "-25%",
+            monthly(dau, with_changes(base, price=1.25), products, ret)["usd"] / ref,
+            monthly(dau, with_changes(base, price=0.75), products, ret)["usd"] / ref,
         ),
     ]
     out = []
     for name, lo_txt, hi_txt, lo, hi in rows:
         out.append(
-            {"name": name, "low_label": lo_txt, "high_label": hi_txt, "low_pct": lo / ref - 1, "high_pct": hi / ref - 1, "ref_usd": ref}
+            {"name": name, "low_label": lo_txt, "high_label": hi_txt, "low_pct": lo - 1, "high_pct": hi - 1, "ref_usd": ref}
         )
     return out
 
 
-def levers(products: dict, dau: float = 1000) -> list[dict]:
-    """제안별 대략 효과(기본 시나리오, 1,000 DAU). 효과 크기는 모두 [가정]."""
+def per_dau_by_retention(products: dict, dau: float = 1000) -> dict:
+    """DAU 를 고정하고 리텐션만 바꿈(수익화 기본): DAU 당 수익이 리텐션과 함께 줄지 않는지 확인용."""
     base = SCENARIOS["base"]
-    ref = monthly(dau, base, products)
-    inflow = dau / lifetime_days(RETENTION["base"])
+    return {k: monthly(dau, base, products, RETENTION[k])["usd"] for k in SCEN_ORDER}
+
+
+def levers(products: dict, dau: float = 1000) -> list[dict]:
+    """제안별 대략 효과(기본 시나리오, 1,000 DAU). 효과 크기는 모두 [가정].
+    lo = 새로 결제하게 된 사람은 제안한 그 상품 하나만 삼(하한), hi = 새 결제자도 평균 결제자처럼 삼(상한)."""
+    base = SCENARIOS["base"]
+    ret = RETENTION["base"]
+    ref = monthly(dau, base, products, ret)
+    inflow = dau / lifetime_days(ret)
     out = []
 
-    def add(name, res, note):
-        out.append({"name": name, "usd": res["usd"], "pct": res["usd"] / ref["usd"] - 1, "note": note})
+    def add(name, lo, hi, note):
+        lo, hi = min(lo, hi), max(lo, hi)
+        out.append(
+            {
+                "name": name,
+                "usd_lo": lo,
+                "usd_hi": hi,
+                "pct_lo": lo / ref["usd"] - 1,
+                "pct_hi": hi / ref["usd"] - 1,
+                "note": note,
+            }
+        )
 
-    # 스타터 팩 99 R$: 결제 전환 ×1.25, 결제자 40% 가 삼
+    # 스타터 팩 99 R$(한 번만): 결제 전환 ×1.25, 원래 결제자의 40% 도 삼
     sp = copy.deepcopy(products)
     sp["StarterPack"] = {"kind": "product", "name": "스타터 팩", "price": 99, "active": True}
-    m = with_changes(base, conv=1.25)
+    m = copy.deepcopy(base)
     m["products"]["StarterPack"] = 0.4
-    add("첫 구매 스타터 팩(99 R$, 한 번만)", monthly(dau, m, sp), "결제 전환 ×1.25 + 결제자 40% 구매")
-    add("상황별 구매 제안(첫 환생 뒤·코인 모자랄 때)", monthly(dau, with_changes(base, conv=1.2), products), "결제 전환 ×1.2")
-    add("반복 상품을 쓸모 있게(수입 부스트·큰 코인 팩)", monthly(dau, with_changes(base, products_mult=1.6), products), "개발자 상품 구매 ×1.6")
-    better = (
-        RETENTION["base"][0] + 0.03,
-        RETENTION["base"][1] + 0.01,
-        RETENTION["base"][2] + 0.004,
-    )
-    add("일일 보상·연속 접속·오프라인 수입(시간 상한 있음)", fixed_inflow(inflow, base, products, better), "D1 +3%p, D7 +1%p, D30 +0.4%p (유입 고정)")
+    hi = monthly(dau, with_changes(m, conv=1.25), sp, ret)["usd"]  # 상한: 새 결제자도 평균 결제자처럼 + 팩
+    # 하한: 팩을 산 원래 결제자는 행운 부스트 하나를 덜 삼(잠식), 새 결제자는 팩 하나만
+    m_lo = copy.deepcopy(m)
+    m_lo["products"]["LuckBoost"] = max(0.0, m_lo["products"]["LuckBoost"] - 0.4)
+    old = monthly(dau, m_lo, sp, ret)
+    extra_payers = old["payers"] * 0.25
+    lo = old["usd"] + sales_usd(extra_payers * 99 * base.get("products_realized", 1.0))
     add(
-        "미국 18+ DevEx $0.0054 자격(이미 R15 — 나머지 조건은 확인 필요)",
-        monthly(dau, base, products, us18_share=0.05),
-        "개발자 몫의 5% 가 미국 18+ 인증 구매라고 가정",
+        "첫 구매 스타터 팩(99 R$, 한 번만)",
+        lo,
+        hi,
+        "결제 전환 ×1.25, 원래 결제자 40% 도 삼. 하한 = 그 40% 는 행운 부스트 하나 대신 · 새 결제자는 팩만",
     )
+    # 상황별 제안(수입 2배 · 코인 팩 · 행운 부스트): 결제 전환 ×1.2, 하한 = 새 결제자는 제안받은 것 하나만(세 가지 평균 값)
+    extra_payers = ref["payers"] * 0.2
+    offered = [
+        products["DoubleIncome"]["price"] * base["price_realized"],
+        products["CoinPack"]["price"] * base.get("products_realized", 1.0),
+        products["LuckBoost"]["price"] * base.get("products_realized", 1.0),
+    ]
+    lo = ref["usd"] + sales_usd(extra_payers * sum(offered) / len(offered))
+    hi = monthly(dau, with_changes(base, conv=1.2), products, ret)["usd"]
+    add("상황별 구매 제안(첫 환생 뒤·코인 모자랄 때)", lo, hi, "결제 전환 ×1.2")
+    rep = monthly(dau, with_changes(base, products_mult=1.6), products, ret)["usd"]
+    add("반복 상품을 쓸모 있게(수입 부스트·큰 코인 팩)", rep, rep, "결제자 1인 개발자 상품 구매 ×1.6")
+    better = (ret[0] + 0.02, ret[1] + 0.006, ret[2] + 0.002)
+    ret_up = fixed_inflow(inflow, base, products, better)["usd"]
+    add("일일 보상·연속 접속·오프라인 수입(시간 상한 있음)", ret_up, ret_up, "D1 +2%p, D7 +0.6%p, D30 +0.2%p (유입 고정)")
+    # 개발자 상품 지역 가격: 할인 지역(결제자 35%)은 패스와 같은 평균 할인, 그곳 개발자 상품 구매 +13.8~44.8%
+    discount = (1 - base["price_realized"]) / RP_DISCOUNTED_SHARE
+    rp = []
+    for up in RP_PAYER_UPLIFT:
+        factor = (1 - RP_DISCOUNTED_SHARE) + RP_DISCOUNTED_SHARE * (1 + up) * (1 - discount)
+        rp.append(monthly(dau, with_changes(base, products_realized=factor), products, ret)["usd"])
+    add(
+        "개발자 상품 지역 가격 켜기(패스는 이미 켜짐)",
+        rp[0],
+        rp[1],
+        f"할인 지역 결제자 {RP_DISCOUNTED_SHARE:.0%}, 평균 할인 {discount:.0%}, 그곳 구매 +14~45%",
+    )
+    us = monthly(dau, base, products, ret, us18_share=0.05)["usd"]
+    add("미국 18+ DevEx $0.0054 자격(이미 R15 — 나머지 조건은 확인 필요)", us, us, "판매분의 5% 가 미국 18+ 인증 구매라고 가정")
     return out
 
 
 def results(products: dict) -> dict:
-    tiers = {s: [monthly(d, SCENARIOS[s], products) for d in DAU_TIERS] for s in SCEN_ORDER}
-    per1k = {s: monthly(1000, SCENARIOS[s], products) for s in SCEN_ORDER}
-    ret_L = {k: lifetime_days(v) for k, v in RETENTION.items()}
+    tiers = {s: [scenario(d, s, products) for d in DAU_TIERS] for s in SCEN_ORDER}
+    per1k = {s: scenario(1000, s, products) for s in SCEN_ORDER}
+    ret_info = {
+        k: {
+            "d": v,
+            "lifetime_days": lifetime_days(v),
+            "lifetime_days_30": lifetime_days(v, 30),
+            "tail_share_31_180": tail_share(v),
+        }
+        for k, v in RETENTION.items()
+    }
     ads = []
-    for d in DAU_TIERS:
-        new_day = d / ret_L["base"]
+    L = ret_info["base"]["lifetime_days"]
+    L30 = ret_info["base"]["lifetime_days_30"]
+    for i, d in enumerate(DAU_TIERS):
+        steady = d / L
+        first = d / L30  # 첫 달 끝에 이 DAU 가 되려면(30일 안에 들어온 사람만 남아 있음)
         ads.append(
             {
                 "dau": d,
-                "new_per_day": new_day,
+                "new_per_day": steady,
+                "new_per_day_first_month": first,
                 "ccu": d * PLAYTIME_MIN_PER_DAU / 1440,
-                "ads_usd_month": [new_day * c * FACTS["days"] for c in CPP_USD],
-                "base_usd": tiers["base"][DAU_TIERS.index(d)]["usd"],
+                "ads_usd_month": [steady * c * FACTS["days"] for c in CPP_USD],
+                "ads_usd_first_month": [first * c * FACTS["days"] for c in CPP_USD],
+                "base_usd": tiers["base"][i]["usd"],
             }
         )
     plays = [EVAL_PLAYS / h for h in HE_SHARE]
@@ -344,26 +486,32 @@ def results(products: dict) -> dict:
         "plays_needed": plays,
         "ads_usd": [plays[0] * CPP_USD[0], plays[1] * CPP_USD[1]],
     }
+    ltv = {s: per1k[s]["ltv_new_user_usd"] for s in SCEN_ORDER}
     return {
         "facts": FACTS,
-        "retention": {k: {"d": v, "lifetime_days": ret_L[k]} for k, v in RETENTION.items()},
+        "retention": ret_info,
         "scenarios": SCENARIOS,
         "products": products,
         "dau_tiers": DAU_TIERS,
         "tiers": tiers,
         "per_1000_dau": per1k,
+        "per_dau_by_retention": per_dau_by_retention(products),
         "ads": ads,
         "cpp_usd": CPP_USD,
+        "ad_payback": {s: [ltv[s] / c for c in CPP_USD] for s in SCEN_ORDER},
         "evaluation": evaluation,
         "sensitivity": sensitivity(products),
         "levers": levers(products),
         "assumptions": {
             "playtime_min_per_dau": PLAYTIME_MIN_PER_DAU,
             "price_elasticity": PRICE_ELASTICITY,
-            "ret_conv_exp": RET_CONV_EXP,
-            "ret_product_exp": RET_PRODUCT_EXP,
+            "conv_exp": CONV_EXP,
+            "product_exp": PRODUCT_EXP,
             "same_day_share": SAME_DAY_SHARE,
             "horizon_days": HORIZON_DAYS,
+            "he_share": HE_SHARE,
+            "rp_discounted_share": RP_DISCOUNTED_SHARE,
+            "rp_payer_uplift": RP_PAYER_UPLIFT,
         },
     }
 
@@ -379,11 +527,11 @@ def usd(v: float) -> str:
         return f"${v:.0f}"
     if v >= 1:
         return f"${v:.1f}"
-    return f"${v:.3f}"
+    return f"${v:.2f}"
 
 
 def usd_chart(v: float) -> str:
-    return f"${v:.2f}" if v < 1 else usd(v)
+    return usd(v)
 
 
 def rbx(v: float) -> str:
@@ -396,37 +544,53 @@ def rbx(v: float) -> str:
     return f"{v:.0f}"
 
 
+def months_text(m: float) -> str:
+    if m <= 1:
+        return "바로" if m <= 0.25 else f"{m * 30:.0f}일"
+    if m >= 24:
+        return f"{m / 12:.0f}년({m:.0f}달)"
+    return f"{m:.1f}달"
+
+
 def print_tables(res: dict) -> None:
     p = res["products"]
     print("상품:", ", ".join(f"{k} {v['price']} R$" for k, v in p.items()))
-    print("수명 활동일 L:", {k: round(v["lifetime_days"], 2) for k, v in res["retention"].items()})
-    print("\n## DAU별 월 수익 (리텐션 기본)")
+    print(
+        "수명 활동일 L (180일 / 30일 / 31~180일 몫):",
+        {k: (round(v["lifetime_days"], 2), round(v["lifetime_days_30"], 2), f"{v['tail_share_31_180']:.0%}") for k, v in res["retention"].items()},
+    )
+    print("\n## DAU별 월 수익 (시나리오 = 리텐션 + 수익화)")
     print("| DAU | 시나리오 | 플레이어가 쓴 Robux | 개발자 몫(70%) | Creator Rewards | 합계 Earned R$ | USD(DevEx) | DevEx 최소까지 |")
     print("|---|---|---|---|---|---|---|---|")
     for i, d in enumerate(DAU_TIERS):
         for s in SCEN_ORDER:
             r = res["tiers"][s][i]
-            mt = r["months_to_devex"]
             print(
                 f"| {d:,} | {SCENARIOS[s]['label']} | {rbx(r['gross_robux'])} | {rbx(r['dev_robux'])} | {rbx(r['creator_rewards_robux'])} |"
-                f" {rbx(r['earned_robux'])} | {usd(r['usd'])} | {mt:.1f}달 |"
+                f" {rbx(r['earned_robux'])} | {usd(r['usd'])} | {months_text(r['months_to_devex'])} |"
             )
     print("\n## 1,000 DAU 당 (한 달)")
     for s in SCEN_ORDER:
         r = res["per_1000_dau"][s]
         print(
-            f"{SCENARIOS[s]['label']}: 새 사용자 {r['new_users']:,.0f} · 결제자 {r['payers']:.0f} · 총 {rbx(r['gross_robux'])} R$ "
-            f"(패스 {rbx(r['passes_robux'])} / 상품 {rbx(r['products_robux'])}) · 개발자 {rbx(r['dev_robux'])} + CR {rbx(r['creator_rewards_robux'])}"
-            f" = {rbx(r['earned_robux'])} R$ = {usd(r['usd'])} · 대시보드 전환율 {r['dash_conversion']:.2%} · ARPPU {r['dash_arppu_robux']:.0f} R$"
-            f" · ARPDAU {r['dash_arpdau_robux']:.2f} R$ · 새 사용자 1명 가치 {usd(r['ltv_new_user_usd'])}"
+            f"{SCENARIOS[s]['label']}: L {r['lifetime_days']:.2f} · 새 사용자 {r['new_users']:,.0f} · 평생 전환 {r['payer_conv']:.2%} · 결제자 {r['payers']:.1f}"
+            f" · 1인 {r['payer_items']:.2f}개 {r['payer_gross_robux']:.0f} R$ · 총 {rbx(r['gross_robux'])} R$"
+            f" (패스 {rbx(r['passes_robux'])} / 상품 {rbx(r['products_robux'])}) · 개발자 {rbx(r['dev_robux'])} + CR {rbx(r['creator_rewards_robux'])}"
+            f" = {rbx(r['earned_robux'])} R$ = {usd(r['usd'])} (판매 {usd(r['usd_sales'])} + CR {usd(r['usd_creator_rewards'])})"
+            f" · 대시보드 전환율 {r['dash_conversion']:.2%} · ARPPU {r['dash_arppu_robux']:.0f} R$ · ARPDAU {r['dash_arpdau_robux']:.2f} R$"
+            f" · 새 사용자 1명 결제 {r['new_user_payment_robux']:.2f} R$ · 가치 ${r['ltv_new_user_usd']:.4f}"
+            f" · 쓴 돈/판매 몫 {r['spend_to_sales_ratio']:.2f}배"
         )
         print("   상품별(총 R$):", {k: round(v) for k, v in r["by_product_robux"].items()})
+    print("\n## DAU 1,000 고정, 리텐션만 바꿈(수익화 기본):", {k: usd(v) for k, v in res["per_dau_by_retention"].items()})
     print("\n## 트래픽 티어와 광고비(기본 리텐션)")
     for a in res["ads"]:
         print(
-            f"DAU {a['dau']:,}: 새 사용자 {a['new_per_day']:,.0f}/일 · CCU ≈ {a['ccu']:.1f} · 전부 광고로면 월 "
-            f"{usd(a['ads_usd_month'][0])}~{usd(a['ads_usd_month'][1])} vs 기본 수익 {usd(a['base_usd'])}"
+            f"DAU {a['dau']:,}: 새 사용자 {a['new_per_day']:,.1f}/일(안정) · 첫 달 {a['new_per_day_first_month']:,.1f}/일 · CCU ≈ {a['ccu']:.2f}"
+            f" · 광고 월 {usd(a['ads_usd_month'][0])}~{usd(a['ads_usd_month'][1])} (첫 달 {usd(a['ads_usd_first_month'][0])}~"
+            f"{usd(a['ads_usd_first_month'][1])}) vs 기본 수익 {usd(a['base_usd'])}"
         )
+    print("광고 회수(새 사용자 가치 ÷ 1플레이 비용 $0.05 / $0.45):", {SCENARIOS[s]["label"]: [round(x, 3) for x in v] for s, v in res["ad_payback"].items()})
     ev = res["evaluation"]
     print(
         f"평가 통과(16+ highly engaged {EVAL_PLAYS}번): 방문 {ev['plays_needed'][0]:,.0f}~{ev['plays_needed'][1]:,.0f}번"
@@ -437,7 +601,8 @@ def print_tables(res: dict) -> None:
         print(f"{r['name']}: {r['low_label']} {r['low_pct']:+.0%} / {r['high_label']} {r['high_pct']:+.0%}")
     print("\n## 제안별 효과 (기본, 1,000 DAU)")
     for r in res["levers"]:
-        print(f"{r['name']}: {usd(r['usd'])} ({r['pct']:+.0%}) — {r['note']}")
+        rng = f"{r['pct_lo']:+.0%}" if abs(r["pct_lo"] - r["pct_hi"]) < 0.005 else f"{r['pct_lo']:+.0%} ~ {r['pct_hi']:+.0%}"
+        print(f"{r['name']}: {usd(r['usd_lo'])}~{usd(r['usd_hi'])} ({rng}) — {r['note']}")
 
 
 # ---------------------------------------------------------------------------------------------
@@ -465,11 +630,13 @@ def pass_value(sims: int, horizon_days: float, seed: int) -> dict:
         ("행운 VIP", prof(["LuckVIP"])),
         ("빠른 굴림", prof(["FastRoll"])),
         ("패스 3종", prof(["DoubleIncome", "LuckVIP", "FastRoll"])),
-        # sim 의 "하루" = 온라인 24시간. 하루 20분 하는 사람이 매일 하나씩 사면 = 온라인 20분마다 하나(72개/온라인 하루)
+        # sim 의 "하루" = 온라인 24시간. 하루 20분 하는 사람이 매일 하나씩 사면 = 온라인 20분마다 하나(72개/온라인 하루).
+        # 행운 부스트는 15분짜리라 72개 = 75% 켜짐, 96개(15분마다) = 늘 켬
         ("무료 + 행운 부스트 온라인 24시간마다 1번", prof([], boosts=1.0)),
-        ("무료 + 행운 부스트 늘 켬(플레이 20분마다 1번)", prof([], boosts=96.0)),
+        ("무료 + 행운 부스트 매일 1개(하루 20분 플레이 = 온라인 20분마다, 75% 켜짐)", prof([], boosts=72.0)),
+        ("무료 + 행운 부스트 늘 켬(온라인 15분마다 1번 = 하루 96번)", prof([], boosts=96.0)),
         ("무료 + 코인 팩 온라인 24시간마다 1번", prof([], coinpacks=1.0)),
-        ("무료 + 코인 팩 플레이 20분마다 1번", prof([], coinpacks=72.0)),
+        ("무료 + 코인 팩 매일 1개(하루 20분 플레이 = 온라인 20분마다)", prof([], coinpacks=72.0)),
     ]
     out = []
     for name, p in profiles:
@@ -523,7 +690,7 @@ def chart(res: dict, out: Path, font_regular: str | None, font_bold: str | None)
         0.045,
         0.915,
         "개발자가 받는 돈(USD) = (패스·상품 판매 × 70% + Creator Rewards) × DevEx $0.0038.  DAU 가 한 달 내내 유지된다고 볼 때. "
-        "리텐션은 기본(D1 12%·D7 3%·D30 1%).",
+        "시나리오 = 리텐션 + 수익화 한 묶음 — 기본 리텐션은 성공한 게임 중앙값(D1 10.3%·D7 1.6%·D30 0.5%).",
         fontsize=10.5,
         color=INK2,
         va="top",
@@ -541,30 +708,35 @@ def chart(res: dict, out: Path, font_regular: str | None, font_bold: str | None)
     for x, y, a, b in zip(xs, mid, lo, hi):
         ax.text(x * 1.12, y, usd(y), fontsize=12, color=INK, fontproperties=bold, va="center", ha="left", zorder=5)
         ax.text(x * 1.12, y / 1.9, f"{usd_chart(a)}~{usd_chart(b)}", fontsize=9.5, color=INK2, va="center", ha="left", zorder=5)
-    ax.text(40, 22000, "지금(2026-09-30): 방문 0 · DAU 0", fontsize=11, color=INK, fontproperties=bold, va="top", ha="left")
+    # 지금 · 현실적인 구간 설명(격자선 10,000 과 1,000 사이 한 칸 안 — 격자선을 가리지 않게 배경 없음)
+    ax.text(7, 8200, "지금(2026-09-30): 방문 0 · DAU 0", fontsize=11, color=INK, fontproperties=bold, va="top", ha="left")
     ax.text(
-        40,
-        11500,
-        "공개 3일째, 아직 16+ 에게만 보이는 평가 단계.\n광고·외부 홍보가 없는 새 게임은 대부분 DAU 50 아래에 머묾",
+        7,
+        4300,
+        "공개 3일째, 아직 16+ 에게만 보이는 평가 단계. 지금처럼\n한국어 전용이면 DAU 0~10(왼쪽 첫 점)이 현실적",
         fontsize=9.5,
         color=INK2,
         va="top",
         ha="left",
         linespacing=1.4,
-        bbox={"facecolor": SURFACE, "edgecolor": "none", "pad": 2},
         zorder=6,
     )
     # DevEx 최소 인출 = 한 달에 $114 이상이면 매달 인출 가능
     ax.axhline(FACTS["devex_min"] * FACTS["devex"], color=MUTED, linewidth=1, zorder=2)
     ax.text(
-        38, FACTS["devex_min"] * FACTS["devex"] * 1.12, "DevEx 최소 인출 $114 (3만 R$)", fontsize=9, color=INK2, va="bottom", ha="left"
+        7, FACTS["devex_min"] * FACTS["devex"] * 1.12, "DevEx 최소 인출 $114 (3만 R$)", fontsize=9, color=INK2, va="bottom", ha="left"
     )
     ax.set_xscale("log")
     ax.set_yscale("log")
-    ax.set_xlim(35, 150000)
-    ax.set_ylim(0.5, 30000)
+    ax.set_xlim(6, 150000)
+    ax.set_ylim(0.15, 40000)
     ax.set_xticks(xs)
-    ax.set_xticklabels([f"{d:,}\nCCU≈{d * PLAYTIME_MIN_PER_DAU / 1440:.0f}" if d >= 500 else f"{d:,}\nCCU≈1" for d in xs])
+
+    def ccu_label(d: float) -> str:
+        c = d * PLAYTIME_MIN_PER_DAU / 1440
+        return f"{d:,}\nCCU≈{c:.0f}" if c >= 10 else f"{d:,}\nCCU≈{c:.1f}"
+
+    ax.set_xticklabels([ccu_label(d) for d in xs])
     yt = [1, 10, 100, 1000, 10000]
     ax.set_yticks(yt)
     ax.set_yticklabels([f"${v:,}" for v in yt])
@@ -580,7 +752,7 @@ def chart(res: dict, out: Path, font_regular: str | None, font_bold: str | None)
     ax.legend(
         handles=[
             Line2D([], [], color=BLUE, linewidth=2, marker="o", markersize=7, markeredgecolor=SURFACE, label="기본"),
-            Rectangle((0, 0), 1, 1, facecolor=BAND, edgecolor="none", label="비관 ~ 낙관"),
+            Rectangle((0, 0), 1, 1, facecolor=BAND, edgecolor="none", label="비관 ~ 낙관(리텐션 + 수익화)"),
         ],
         loc="lower left",
         bbox_to_anchor=(0.0, 1.0),
@@ -660,7 +832,8 @@ def chart(res: dict, out: Path, font_regular: str | None, font_bold: str | None)
     fig.text(
         0.045,
         0.035,
-        "리텐션은 유입(새 사용자/일)을 고정하고 바꿈 — DAU 도 함께 변함(추천 알고리즘이 더 보여 주는 효과는 뺌). "
+        "민감도의 리텐션은 유입(새 사용자/일)을 고정하고 바꿈 — DAU 도 함께 변함(추천 알고리즘이 더 보여 주는 효과는 뺌). "
+        "결제 전환·상품 개수는 수명에 따라 늘어남(∝ L^0.8 · L^0.7). "
         "숫자·가정·출처: balance/REVENUE.md · 다시 만들기: python3 tools/balance/revenue_model.py --chart",
         fontsize=8.5,
         color=MUTED,
