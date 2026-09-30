@@ -4,7 +4,7 @@
 
 ## 현재 위치
 - 단계: 1 (뼈대)
-- 작업 중 문서: 01_reference.md (초안 633줄 완료, 자가 점검 + r1 검수 진행 중)
+- 작업 중 문서: 01_reference.md r2 (수정+재검수 중), 02_concept.md 초안 작성 중(병렬)
 - 다음 할 일: 01 r1 리뷰 판정 → DECISIONS 기록 → 수정 → r2 / 통과 시 02_concept.md 초안
 - 비고: 2026-09-30 15:55 UTC 자가 점검 에이전트가 사용량 한도로 실패 → 22:30 UTC 재개
 
@@ -20,7 +20,7 @@
 ## 문서별 현황
 | 문서 | 배정 검수자 | 라운드 | 최신 판정 (S/L/T/M) | 상태 |
 |---|---|---|---|---|
-| 01_reference.md | lore, player-market, system | 1 | 검수 중 | 초안 완료(633줄), r1 검수 중 |
+| 01_reference.md | lore, player-market, system | 2 | r1: FAIL(중대6)/PASS(경미10)/FAIL(중대5) | r1 이슈 11건 전부 수용, r2 수정·검수 중 |
 | 02_concept.md | 전원 | 0 | - | 대기 |
 | 03_world.md | lore, player-market, roblox-tech | 0 | - | 대기 |
 | 04_progression.md | system, player-market, lore | 0 | - | 대기 |
@@ -38,3 +38,4 @@
 ## 라운드 로그
 | 일시 | 문서 | 라운드 | 검수자 | 판정 | 치명/중대/경미 | 리뷰 파일 |
 |---|---|---|---|---|---|---|
+| 2026-09-30 22:50 | 01 | r1 | lore / player-market / system | FAIL / PASS / FAIL | 0-6-1 / 0-0-10 / 0-5-9 | reviews/01_r1_*.md |
