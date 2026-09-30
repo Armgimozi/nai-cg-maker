@@ -218,12 +218,15 @@ def add_ribbon(im, a, color, core=None, deep=None, front=False):
     return fx.over(im, fx.solid((W, H), core, thin))
 
 
-def scatter_sparkles(im, rects, count, seed, color=WHITE, glow_color=fx.MINT, rmin=8, rmax=46, big=()):
+def scatter_sparkles(im, rects, count, seed, color=WHITE, glow_color=fx.MINT, rmin=8, rmax=46, big=(), avoid=None):
+    """반짝이 흩뿌리기. avoid(알파 0~1, H x W) 가 있으면 그 위(명소 모형 등)에는 두지 않음."""
     rnd = random.Random(seed)
     for _ in range(count):
         x0, y0, x1, y1 = rnd.choice(rects)
         x, y = rnd.uniform(x0, x1), rnd.uniform(y0, y1)
         r = rmin + (rmax - rmin) * rnd.random() ** 2.2
+        if avoid is not None and avoid[int(np.clip(y, 0, H - 1)), int(np.clip(x, 0, W - 1))] > 0.05:
+            continue
         s = fx.sparkle_sprite(r, color, glow_color, rot=rnd.uniform(-0.15, 0.15))
         im = fx.over(im, s, (x - s.width / 2, y - s.height / 2))
     for (x, y, r) in big:
@@ -788,9 +791,9 @@ def model_heights(ids, size=10.0):
 # 가장 희귀한 것(알렉산드리아 등대 1/15,000)을 가운데 위에 가장 크게, 흔한 것일수록 바깥·작게. 받침(판)은 뺌.
 COLLECT = [
     ("alexandria", 960, 420, 350, 100, 24, -4, 10),
-    ("moai", 640, 500, 205, 104, 10, 5, 6),  # 얼굴이 보이게(앞 = 카메라 쪽, 거의 정면)
+    ("moai", 640, 500, 205, 104, -30, 4, 8),  # 얼굴이 보이게(앞 = 카메라 쪽, 비스듬히 — 눈썹·코 옆모습)
     ("pyramid", 1275, 500, 175, 104, 28, -6, 24),
-    ("greatwall", 1545, 735, 200, 100, -32, 7, 40),  # 위에서 비스듬히: 성벽이 대각선 줄 + 성가퀴
+    ("greatwall", 1545, 725, 215, 100, -90, 8, 35),  # 위에서 비스듬히: 성가퀴 달린 성벽 길이 대각선으로 망루까지
     ("tajmahal", 375, 720, 215, 100, -20, -7, 10),
     ("colosseum", 1720, 420, 150, 100, 18, 8, 30),
     ("eiffel", 150, 430, 265, 100, -16, -9, 6),
@@ -953,8 +956,12 @@ def thumb_collect():
         im = fx.over(im, layer)
         im = fx.add(im, edge_light(layer, lighten(col, 0.6), (-5, 3), 1.2, 1.2), 0.9)
         im = fx.add(im, edge_light(layer, lighten(col, 0.6), (5, 3), 1.2, 1.2), 0.9)
-    im = scatter_sparkles(im, [(60, 280, 1860, 900)], 26, seed=81, glow_color=(150, 235, 255), rmin=7, rmax=28,
-                          big=[(600, 330, 40), (1340, 330, 44), (300, 900, 36), (1640, 600, 36), (820, 600, 30)])
+    models_a = np.zeros((H, W), np.float32)
+    for lid in placed:
+        models_a = np.maximum(models_a, fx.dilate(lay[f"L_{lid}"], 12))
+    im = scatter_sparkles(im, [(60, 280, 1860, 900)], 30, seed=81, glow_color=(150, 235, 255), rmin=7, rmax=28,
+                          big=[(600, 330, 40), (1340, 330, 44), (300, 900, 36), (1640, 600, 36), (820, 600, 30)],
+                          avoid=models_a)
     im = fx.add(im, fx.particles((W, H), (gx, gy - gr), 110, (1.5, 4), WHITE, seed=82, spread=(0.1, 0.5),
                                  glow_color=(150, 235, 255)), 1.0)
     # 아바타(왼쪽 아래, 올려다봄)
