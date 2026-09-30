@@ -1088,6 +1088,67 @@ check(
 )
 resetOutside()
 
+-- 이름표(BillboardGui — 광선에 안 맞음)를 누름 = 그 칸. 이름표 바로 뒤로 보이는 뒷줄 명소·바닥을 집지 않음(가리키기도 같음).
+-- 이름표 = 빌보드 위 절반(아래 끝 = 모형 꼭대기 + 0.1), 크기 = 스터드 + 픽셀. 수입 알약 가운데 = 아래 끝에서 이름표 높이 × 0.26 위
+do
+	local function tagPoints(c: Instance): (Vector2?, Vector2?)
+		local billboard = c:FindFirstChild("Label", true)
+		local anchor = billboard and billboard.Adornee
+		if not anchor then
+			return nil, nil
+		end
+		local screen = camera:WorldToViewportPoint(anchor.Parent.CFrame:PointToWorldSpace(anchor.Position))
+		local perStud = camera.ViewportSize.Y / (2 * math.tan(math.rad(camera.FieldOfView) / 2) * screen.Z)
+		local h = (billboard.Size.Y.Scale * perStud + billboard.Size.Y.Offset) / 2
+		return Vector2.new(screen.X, screen.Y - h * 0.26), Vector2.new(screen.X, screen.Y - h * 0.86)
+	end
+	local tagSlot, pillAt, nameAt, behind = 0, nil :: Vector2?, nil :: Vector2?, nil :: Instance?
+	for slot = 1, unlocked do
+		local c = container(slot)
+		if shownSlots()[slot] and (tagSlot == 0 or (behind and behind.Parent ~= slotsFolder)) then
+			local pill, name = tagPoints(c)
+			local first = pill and firstContainer(pill)
+			if pill and first ~= c and (tagSlot == 0 or (first and first.Parent == slotsFolder)) then
+				tagSlot, pillAt, nameAt, behind = slot, pill, name, first
+			end
+		end
+	end
+	check(
+		tagSlot > 0,
+		string.format(
+			"이름표 수입 알약 자리(칸 %d, 광선만 쏘면 %s)",
+			tagSlot,
+			if behind then "칸 " .. tostring(behind:GetAttribute("Slot")) else "바닥"
+		)
+	)
+	if pillAt and nameAt then
+		mouseTo(pillAt)
+		check(lightOn(container(tagSlot)), "이름표를 가리키면 그 칸 강조(뒤 명소 아님)")
+		mouseTo(offPoint)
+		tap(pillAt)
+		Mock.runScheduler(Mock.clock() + 1)
+		check(
+			ParkEdit.isEditing() and holding() and hiddenModel(tagSlot),
+			"이름표를 톡 = 그 칸 명소를 집음 (칸 " .. tagSlot .. ")"
+		)
+		resetOutside()
+		-- 멀어서 이름·별(Head)이 꺼진 이름표: 이름 자리는 이름표가 아님(광선대로)
+		local head = container(tagSlot):FindFirstChild("Head", true)
+		check(head ~= nil, "이름표 Head(이름·별)")
+		head.Visible = false
+		mouseTo(nameAt)
+		local nameFirst = firstContainer(nameAt)
+		check(
+			nameFirst == container(tagSlot) or not lightOn(container(tagSlot)),
+			"Head 가 꺼지면 이름 자리는 이름표로 안 셈"
+		)
+		mouseTo(pillAt)
+		check(lightOn(container(tagSlot)), "Head 가 꺼져도 수입 알약은 그 칸")
+		head.Visible = true
+		mouseTo(offPoint)
+	end
+end
+
 -- 빈 받침대를 톡 = 배치 모드 + 그 칸 채울 준비 → 보관함 카드 누름 = 바로 그 칸으로
 do
 	local emptyAt: Vector2? = nil

@@ -283,6 +283,55 @@ check(not ParkEdit.isEditing() and window.Visible, "창이 열려 있으면 공�
 face(findNamed(menu, "Collection")).Activated:Fire()
 frame()
 check(not window.Visible, "도감 닫힘")
+-- 굴림 결과 카드(가운데)는 입력을 막지 않음(Active 아님 — 카드 위에서 끌어도 화면이 돎): 카드가 덮은 내 명소를 눌러도
+-- 안 들어가고(init CanTap 이 카드 자리를 봄), 카드 밖은 그대로. 굴림 연출 중이면 어디를 눌러도 안 들어감
+do
+	local reveal = findNamed(gui, "Reveal")
+	local disc = findNamed(reveal, "Disc")
+	local inset = game:GetService("GuiService"):GetGuiInset()
+	local cardParts = { "Ribbon", "Region", "LandmarkName", "Odds", "TagRow" }
+	for _, name in cardParts do
+		local part = findNamed(reveal, name)
+		if part then
+			part.__props.AbsolutePosition = Vector2.new(-1000, -1000) -- 카드의 다른 딱지는 명소 점 밖
+			part.__props.AbsoluteSize = Vector2.new(10, 10)
+		end
+	end
+	reveal.Visible = true
+	disc.__props.AbsolutePosition = parkTap - inset - Vector2.new(60, 60)
+	disc.__props.AbsoluteSize = Vector2.new(120, 120)
+	E.tap(parkTap)
+	Mock.runScheduler(Mock.clock() + 2)
+	check(not ParkEdit.isEditing(), "굴림 결과 카드가 덮은 내 명소를 눌러도 안 들어감")
+	disc.__props.AbsolutePosition = parkTap - inset + Vector2.new(200, 200)
+	E.tap(parkTap)
+	Mock.runScheduler(Mock.clock() + 2)
+	check(ParkEdit.isEditing(), "카드 밖 내 명소를 톡 = 배치 모드")
+	key("Escape")
+	settle()
+	ParkEdit.exit()
+	settle()
+	lookIntoPark() -- (가짜 환경 카메라는 배치 모드 위에서 보기 자리에 남음)
+	reveal.Visible = false
+	-- 굴림 연출 중(수동 굴림 = 원래 길이): 카드 밖이어도 안 들어감
+	key("R")
+	Mock.runScheduler(Mock.clock() + 0.1)
+	check(reveal.Visible, "굴림 연출 중")
+	E.tap(parkTap)
+	Mock.runScheduler(Mock.clock() + 0.1)
+	check(not ParkEdit.isEditing(), "굴림 연출 중에는 내 명소를 눌러도 안 들어감")
+	Mock.runScheduler(Mock.clock() + 12)
+	check(not reveal.Visible, "연출·카드 끝")
+	for _, name in cardParts do
+		local part = findNamed(reveal, name)
+		if part then
+			part.__props.AbsolutePosition = nil
+			part.__props.AbsoluteSize = nil
+		end
+	end
+	disc.__props.AbsolutePosition = nil
+	disc.__props.AbsoluteSize = nil
+end
 E.tap(parkTap)
 Mock.runScheduler(Mock.clock() + 2)
 check(ParkEdit.isEditing(), "창을 닫으면 다시 톡 = 배치 모드")
@@ -1695,15 +1744,46 @@ do
 	local flyGui = playerGui:FindFirstChild("IncomeFx")
 	check(fxFolder ~= nil and flyGui ~= nil, "IncomeFx 폴더(퐁 빌보드) + ScreenGui(날아가는 동전)")
 	check(
-		(flyGui.DisplayOrder or 0) < (gui.DisplayOrder or 0),
-		"날아가는 동전은 HUD 아래 층(DisplayOrder " .. tostring(flyGui.DisplayOrder) .. ")"
+		(flyGui.DisplayOrder or 0) > (gui.DisplayOrder or 0) and flyGui.DisplayOrder < 5,
+		"날아가는 동전은 HUD 바로 위 층, 번쩍임(5) 아래 (DisplayOrder "
+			.. tostring(flyGui.DisplayOrder)
+			.. ")"
 	)
+	-- 퐁 금액 글자: 10 미만 소수 한 자리, 그 위 정수, 1000 부터 짧게
+	check(
+		IncomeFx.amountText(74.2) == "74"
+			and IncomeFx.amountText(7.46) == "7.5"
+			and IncomeFx.amountText(3) == "3"
+			and IncomeFx.amountText(999.4) == "999"
+			and IncomeFx.amountText(1234) == "1.2K",
+		"퐁 금액 = 정수(10 미만만 소수 한 자리, 1000 부터 1.2K)"
+	)
+	-- 퐁 동전은 정사각(RelativeYY = 두 값 모두 높이 비율, 늘이지 않고 맞춤)
+	local squareCoins = true
+	for _, d in fxFolder:GetDescendants() do
+		if d.Name == "Coin" then
+			squareCoins = squareCoins
+				and d.SizeConstraint == Enum.SizeConstraint.RelativeYY
+				and d.Size.X.Scale == d.Size.Y.Scale
+				and d.Size.X.Offset == d.Size.Y.Offset
+				and d.ScaleType == Enum.ScaleType.Fit
+		end
+	end
+	check(squareCoins, "퐁 동전 정사각(RelativeYY 0.9 × 0.9, Fit)")
 	local startStats = IncomeFx.stats()
 	local instancesBefore = #fxFolder:GetDescendants() + #flyGui:GetDescendants()
 	local maxPops, maxFlights = 0, 0
 	local bumpScale = 0
 	local bump = findNamed(findNamed(gui, "Stats"), "Bump")
+	check(
+		bump and bump.Parent and bump.Parent.Name == "Icon" and bump.Parent.AnchorPoint == Vector2.new(0.5, 0.5),
+		"코인 알약 톡은 동전 아이콘(가운데 기준)에"
+	)
 	bump.Scale = 1
+	-- 퐁 자리: 모형 가장자리(± 4.5 스터드)에서 바깥쪽으로(몸통이 바깥쪽 절반), 퐁 위 끝 ≤ 모형 꼭대기 - 0.2
+	local placedPops, badSide, badTop = 0, 0, 0
+	local sinkScale, sinkFade = math.huge, 0
+	local eyeRight = camera.CFrame.RightVector
 	local SECONDS = 30
 	for _ = 1, SECONDS * 30 do
 		frame(1 / 30)
@@ -1711,7 +1791,53 @@ do
 		maxPops = math.max(maxPops, stats.Pops)
 		maxFlights = math.max(maxFlights, stats.Flights)
 		bumpScale = math.max(bumpScale, bump.Scale)
+		for _, g in fxFolder:GetChildren() do
+			local pedestal = g.Enabled and g.Adornee
+			if pedestal then
+				placedPops += 1
+				local offset = g.StudsOffsetWorldSpace
+				local flat = Vector3.new(offset.X, 0, offset.Z)
+				local outward = flat:Dot(Vector3.new(eyeRight.X, 0, eyeRight.Z))
+				local body = g:FindFirstChild("Body")
+				if
+					math.abs(flat.Magnitude - ParkGrid.MINIATURE_SIZE / 2) > 1e-3
+					or body.Position.X.Scale ~= (if outward > 0 then 0.75 else 0.25)
+				then
+					badSide += 1
+				end
+				local distance = (pedestal.Position - camera.CFrame.Position).Magnitude
+				local perStud = camera.ViewportSize.Y
+					/ (2 * math.tan(math.rad(camera.FieldOfView) / 2) * math.max(distance, 1))
+				local top = pedestal.Parent:GetAttribute("Top") or 4
+				local popTop = offset.Y + g.Size.Y.Offset / perStud / 2
+				if popTop > ParkGrid.PEDESTAL_HEIGHT / 2 + top - 0.2 + 1e-3 then
+					badTop += 1
+				end
+			end
+		end
+		for _, sprite in flyGui:GetChildren() do
+			if sprite:IsA("GuiObject") and sprite.Visible then
+				local scale = sprite:FindFirstChildOfClass("UIScale")
+				local fade = if sprite.Image ~= "" then sprite.ImageTransparency else sprite.BackgroundTransparency
+				if fade > 0.3 then
+					sinkFade = math.max(sinkFade, fade)
+					sinkScale = math.min(sinkScale, scale.Scale)
+				end
+			end
+		end
 	end
+	check(
+		placedPops > 100 and badSide == 0,
+		string.format("퐁은 모형 가장자리에서 바깥쪽으로 (%d번 봄, 어긋남 %d)", placedPops, badSide)
+	)
+	check(
+		badTop == 0,
+		"퐁 위 끝 ≤ 모형 꼭대기 - 0.2(이름표·수입 알약을 안 가림) — 넘은 적 " .. badTop
+	)
+	check(
+		sinkFade > 0.5 and sinkScale < 0.7,
+		string.format("동전은 코인 아이콘 속으로 작아지며(%.2f배) 흐려짐(%.2f)", sinkScale, sinkFade)
+	)
 	local stats = IncomeFx.stats()
 	local spawned = stats.PopsSpawned - startStats.PopsSpawned
 	check(stats.Statues >= 36, "따라가는 전시 명소 " .. stats.Statues .. "개")
@@ -1749,12 +1875,133 @@ do
 			"상한에 걸린 퐁은 건너뜀 (" .. (capStats.PopsSkipped - capStart.PopsSkipped) .. "번)"
 		)
 		check(capMax <= 14, "동시에 보이는 퐁 ≤ 빌보드 14개 (" .. capMax .. ")")
+		-- 남의 공원 몫: 같은 36칸이 "남의 공원"이면(내 부지를 빈 부지로 바꿔 끼움) 초당 4개까지 — 내 퐁 몫 6개가 남음.
+		-- 상한에 걸려 건너뛰어도 퐁 금액은 그 사이 번 돈(보이는 명소 수입 × 시간과 거의 같음)
+		local emptyPlot = nil
+		for _, model in workspace.Parks:GetChildren() do
+			if model ~= plot and model:GetAttribute("OwnerUserId") == nil then
+				emptyPlot = model
+			end
+		end
+		IncomeFx.setPlot(emptyPlot)
+		for _ = 1, 3 * 30 do
+			frame(1 / 30)
+		end
+		local eye = camera.CFrame.Position
+		local visibleIncome = 0
+		for _, c in slotsFolder:GetChildren() do
+			local pedestal = c:FindFirstChild("Pedestal")
+			local income = c:GetAttribute("Income")
+			if pedestal and type(income) == "number" then
+				local _, inside =
+					camera:WorldToViewportPoint(pedestal.Position + Vector3.new(0, ParkGrid.PEDESTAL_HEIGHT / 2 + 2, 0))
+				if inside and (pedestal.Position - eye).Magnitude <= 70 then
+					visibleIncome += income
+				end
+			end
+		end
+		local otherStart = IncomeFx.stats()
+		local OTHER_SECONDS = 40
+		for _ = 1, OTHER_SECONDS * 30 do
+			frame(1 / 30)
+		end
+		local otherStats = IncomeFx.stats()
+		local otherSpawned = otherStats.PopsSpawned - otherStart.PopsSpawned
+		check(
+			otherSpawned <= OTHER_SECONDS * 4 + 3
+				and otherSpawned >= OTHER_SECONDS * 3
+				and otherStats.PopsMine == otherStart.PopsMine,
+			string.format(
+				"남의 공원 퐁은 초당 4개까지(%.1f/초) — 내 몫 6개는 남음",
+				otherSpawned / OTHER_SECONDS
+			)
+		)
+		local shownAmount = otherStats.PopAmount - otherStart.PopAmount
+		local ratio = shownAmount / (visibleIncome * OTHER_SECONDS)
+		check(
+			otherStats.PopsSkipped > otherStart.PopsSkipped and ratio > 0.85 and ratio < 1.15,
+			string.format(
+				"상한에 걸려 건너뛰어도 퐁 금액 합 = 번 돈 × %.2f (건너뜀 %d, 가려짐 %d)",
+				ratio,
+				otherStats.PopsSkipped - otherStart.PopsSkipped,
+				otherStats.PopsHidden - otherStart.PopsHidden
+			)
+		)
+		IncomeFx.setPlot(plot)
 		camera.FieldOfView = savedFov
 		lookIntoPark()
 	end
+	-- 가려진 명소(벽 뒤)는 퐁 없음(광선 하나 — 퐁이 벽·간판 위에 그려지지 않게)
+	do
+		local wall = Instance.new("Part")
+		wall.Name = "SmokeWall"
+		wall.Anchored = true
+		wall.Size = Vector3.new(400, 400, 1)
+		wall.CFrame = camera.CFrame * CFrame.new(0, 0, -6)
+		wall.Parent = workspace
+		for _ = 1, 30 do
+			frame(1 / 30)
+		end
+		local wallStart = IncomeFx.stats()
+		for _ = 1, 5 * 30 do
+			frame(1 / 30)
+		end
+		local wallStats = IncomeFx.stats()
+		check(
+			wallStats.PopsSpawned == wallStart.PopsSpawned and wallStats.PopsHidden > wallStart.PopsHidden,
+			"벽에 가려진 명소는 퐁 없음 (가려짐 "
+				.. (wallStats.PopsHidden - wallStart.PopsHidden)
+				.. "번)"
+		)
+		wall:Destroy()
+		frame(1 / 30)
+	end
+	-- 이름표 거리 단계: 멀면(30 스터드 넘게) 이름·별(Head)을 끄고 수입 알약만, 가까이 오면 다시 켬
+	do
+		local function head(slot: number): any
+			return findNamed(container(slot), "Head")
+		end
+		for _ = 1, 10 do
+			frame(1 / 30)
+		end
+		local far, nearShown = 0, true
+		for _, c in slotsFolder:GetChildren() do
+			local h = findNamed(c, "Head")
+			local pedestal = c:FindFirstChild("Pedestal")
+			local tagAt = pedestal
+				and pedestal.Position
+					+ Vector3.new(0, ParkGrid.PEDESTAL_HEIGHT / 2 + (c:GetAttribute("Top") or 4), 0)
+			if h and tagAt and (tagAt - camera.CFrame.Position).Magnitude > 31 then
+				if h.Visible then
+					nearShown = false
+				else
+					far += 1
+				end
+			end
+		end
+		local pill = findNamed(container(1), "Income")
+		check(
+			far > 0 and nearShown and pill and pill.Visible,
+			"먼 이름표는 이름·별을 끄고 수입 알약만 (" .. far .. "개)"
+		)
+		local pedestal = container(1):FindFirstChild("Pedestal")
+		camera.CFrame = CFrame.lookAt(pedestal.Position + Vector3.new(0, 8, -14), pedestal.Position)
+		for _ = 1, 10 do
+			frame(1 / 30)
+		end
+		check(head(1).Visible, "가까이 오면 이름·별 다시 켬")
+		lookIntoPark()
+		for _ = 1, 10 do
+			frame(1 / 30)
+		end
+		check(not head(1).Visible, "멀어지면 다시 끔")
+	end
 	local popTexts = 0
 	for _, d in fxFolder:GetDescendants() do
-		if d.Name == "Amount" and d.Text:match("^%+[%d%.]+[KMBT]?$") then
+		if
+			d.Name == "Amount"
+			and (d.Text:match("^%+%d+$") or d.Text:match("^%+%d%.%d$") or d.Text:match("^%+[%d%.]+[KMBT]$"))
+		then
 			popTexts += 1
 		end
 	end
@@ -1771,7 +2018,12 @@ do
 		maxFlights >= 2 and maxFlights <= 10,
 		"한 번에 날아가는 동전 2~5개(풀 10) — 최대 " .. maxFlights
 	)
-	check(bumpScale > 1.05, "동전이 닿으면 코인 알약이 톡 (" .. bumpScale .. ")")
+	check(bumpScale > 1.2, "동전이 닿으면 코인 아이콘이 톡 (" .. bumpScale .. ")")
+	local landed = stats.FlightsLanded - startStats.FlightsLanded
+	check(
+		landed >= 2 * bursts,
+		"동전마다 닿음(닿을 때마다 톡 — " .. landed .. "개 / " .. bursts .. "번)"
+	)
 	local activeInput = false
 	for _, d in flyGui:GetDescendants() do
 		if d:IsA("GuiObject") and d.Active then

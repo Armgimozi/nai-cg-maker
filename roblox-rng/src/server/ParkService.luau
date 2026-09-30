@@ -79,13 +79,18 @@ local STAKE_TILT = math.rad(-4) -- 말뚝을 살짝 기울여서 장난스럽게
 local FENCE_HEIGHT = 2.2
 local RAIL = Vector3.new(0.35, 0.35, 0.35) -- 울타리 가로대 단면
 
-local LABEL_WIDTH = 10 -- 전시 이름표 크기(스터드): 이름 딱지 1.35 + 별 0.88 + 수입 알약 1.15 (+ 사이)
+-- 전시 이름표 모양(칸): 10 × 3.9 — 이름 딱지 · 별 · 수입 알약. 크기 = 칸 × (LABEL_STUDS 스터드 + LABEL_PX 픽셀):
+-- 가까우면 거의 스터드 크기(모형 위 작은 딱지 — 가까이 갈수록 커짐), 멀면 픽셀 부분이 남아 휴대폰 60 스터드에서도 수입 글자가
+-- 약 12px(스터드만이면 4px — 못 읽음). 비율은 늘 10 : 3.9 라 안쪽 자리(비율)는 거리와 상관없이 그대로
+local LABEL_WIDTH = 10
 local LABEL_HEIGHT = 3.9
+local LABEL_STUDS = 2 / 3 -- 칸당 스터드(높이 2.6 스터드)
+local LABEL_PX = 20 / 3 -- 칸당 픽셀(높이 26px)
 local LABEL_GAP = 0.1 -- 이름표 아래 끝 ~ 모형 꼭대기(스터드)
--- 이름표 안 자리(이름표 높이 비율): 이름 딱지 · 별 줄 · 수입 알약(위 끝, 높이)
-local NAME_Y, NAME_H = 0, 0.346
-local STARS_Y, STARS_H = 0.43, 0.226
-local INCOME_Y, INCOME_H = 0.672, 0.29
+-- 이름표 안 자리(이름표 높이 비율): 이름 딱지 · 별 줄 · 수입 알약(위 끝, 높이) — 돈(수입 알약)이 가장 큼
+local NAME_Y, NAME_H = 0, 0.27
+local STARS_Y, STARS_H = 0.31, 0.19
+local INCOME_Y, INCOME_H = 0.53, 0.42
 
 -- 부지 바닥: 따뜻하고 밝은 돌 포석(Pavement, 광장 포석과 한 집안). 둘레 잔디와 또렷이 갈리고 흰 받침대·명소가 돋보임.
 -- (예전 잔디색 Grass 바닥은 실제 게임에서 어둡게 그려져 위에서 보면 짙은 초록 판처럼 보였음)
@@ -743,39 +748,49 @@ end
 
 -- 칸 위 작은 이름표: 등급 색 둥근 딱지(흰 이름 + Ink 테두리) + 그 아래 별(해 색 + Ink 테두리) + 초록 알약 [동전] "+N/s"
 -- (그 명소가 버는 초당 수입 — 글자는 update 가 채움). 알약 폭은 글자 길이에 맞춤(setIncome).
--- 모두 "Body" 안(UIScale "Pop" — 별이 오르면 클라이언트 IncomeFx 가 잠깐 키움). 스터드 크기라 멀면 작아지고 MaxDistance 60 밖은 안 보임
+-- 빌보드는 이름표 두 배 높이이고 이름표("Body")는 위 절반 — 빌보드 가운데(LabelAnchor = 모형 꼭대기 + LABEL_GAP)가 이름표
+-- 아래 끝이라 픽셀 부분이 커져도 명소를 덮지 않음. 이름 딱지·별은 "Head" 안(멀면 클라이언트 IncomeFx 가 Head 를 꺼서 수입 알약만),
+-- 별이 오르면 IncomeFx 가 "Body" 의 UIScale "Pop" 을 잠깐 키움(아래 끝 기준). MaxDistance 60 밖은 안 보임
 local function addLabel(pedestal: BasePart, landmark: Landmarks.Landmark, modelHeight: number): Label
 	local anchor = Instance.new("Attachment")
 	anchor.Name = "LabelAnchor"
-	anchor.Position = Vector3.new(0, PEDESTAL_HEIGHT / 2 + modelHeight + LABEL_GAP + LABEL_HEIGHT / 2, 0)
+	anchor.Position = Vector3.new(0, PEDESTAL_HEIGHT / 2 + modelHeight + LABEL_GAP, 0)
 	anchor.Parent = pedestal
 
 	local billboard = Instance.new("BillboardGui")
 	billboard.Name = "Label"
 	billboard.Adornee = anchor
-	billboard.Size = UDim2.fromScale(LABEL_WIDTH, LABEL_HEIGHT)
+	billboard.Size = UDim2.new(
+		LABEL_WIDTH * LABEL_STUDS,
+		LABEL_WIDTH * LABEL_PX,
+		2 * LABEL_HEIGHT * LABEL_STUDS,
+		2 * LABEL_HEIGHT * LABEL_PX
+	)
 	billboard.MaxDistance = LABEL_DISTANCE
 	billboard.LightInfluence = 0
 	billboard.ClipsDescendants = false -- 별이 오를 때 잠깐 커져도 잘리지 않게
 	billboard.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-	local body = frame(billboard, UDim2.fromScale(1, 1), UDim2.fromScale(0.5, 0.5), WHITE)
+	local body = frame(billboard, UDim2.fromScale(1, 0.5), UDim2.fromScale(0.5, 0.5), WHITE)
 	body.Name = "Body"
-	body.AnchorPoint = Vector2.new(0.5, 0.5)
+	body.AnchorPoint = Vector2.new(0.5, 1)
 	body.BackgroundTransparency = 1
 	local pop = Instance.new("UIScale")
 	pop.Name = "Pop"
 	pop.Parent = body
+	local head = frame(body, UDim2.fromScale(1, 1), UDim2.new(), WHITE)
+	head.Name = "Head"
+	head.BackgroundTransparency = 1
 
-	-- 딱지 너비는 이름 길이에 맞춤(한글 한 글자 폭 ≈ 글자 높이 ≈ 1 스터드)
+	-- 딱지 너비는 이름 길이에 맞춤(한글 한 글자 폭 ≈ 글자 높이 ≈ 딱지 높이 × 0.78)
 	local chars = utf8.len(landmark.Name) or #landmark.Name
-	local width = math.clamp((chars * 1.05 + 1.4) / LABEL_WIDTH, 0.3, 1)
+	local width = math.clamp((chars * 0.82 + 1.1) / LABEL_WIDTH, 0.3, 1)
 	local tier = landmark.Tier.Color
 	local tag = chunky(
-		body,
+		head,
 		UDim2.fromScale(width, NAME_H),
 		UDim2.fromScale(0.5, NAME_Y),
-		UDim.new(0.047, 0),
+		UDim.new(0.037, 0),
 		tier,
 		tier:Lerp(INK, 0.4),
 		2
@@ -786,7 +801,7 @@ local function addLabel(pedestal: BasePart, landmark: Landmarks.Landmark, modelH
 	padding(name, UDim.new(0.08, 0), UDim.new(0.14, 0))
 	stroke(name, 2)
 
-	local stars = textLabel(body, UDim2.fromScale(1, STARS_H), UDim2.fromScale(0, STARS_Y), SUN)
+	local stars = textLabel(head, UDim2.fromScale(1, STARS_H), UDim2.fromScale(0, STARS_Y), SUN)
 	stars.Name = "Stars"
 	stars.RichText = true
 	stroke(stars, 2)

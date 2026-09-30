@@ -2886,6 +2886,47 @@ test(
 				eq(signIncome(), incomeText(total), what .. ": 간판")
 			end
 			verify("처음")
+			-- 이름표 모양: 크기 = 스터드 + 픽셀(비율 같음 — 멀어도 수입 글자를 읽을 수 있게), 빌보드 위 절반이 이름표(아래 끝 =
+			-- 모형 꼭대기 + 0.1 = 빌보드 가운데), 수입 알약이 가장 큰 줄, 이름·별은 "Head" 안(멀면 클라이언트가 끔)
+			do
+				local slots = State.parkSlots(data)
+				local c = container(1)
+				assert(slots[1], "칸 1 전시")
+				local billboard = c:FindFirstChild("Label", true)
+				local size = billboard.Size
+				assert(size.X.Offset > 0 and size.Y.Offset > 0, "이름표 픽셀 바닥")
+				near(
+					size.X.Scale / size.Y.Scale,
+					size.X.Offset / size.Y.Offset,
+					1e-9,
+					"스터드·픽셀 비율 같음"
+				)
+				local body = billboard:FindFirstChild("Body")
+				eq(body.AnchorPoint, Vector2.new(0.5, 1), "Body 아래 가운데 기준")
+				eq(body.Position, UDim2.fromScale(0.5, 0.5), "Body 아래 끝 = 빌보드 가운데")
+				eq(body.Size, UDim2.fromScale(1, 0.5), "Body = 빌보드 위 절반")
+				local anchor = billboard.Adornee
+				local top = c:GetAttribute("Top")
+				near(
+					anchor.Position.Y,
+					0.3 + top + 0.1,
+					1e-6,
+					"LabelAnchor = 모형 꼭대기 + 0.1(받침대 가운데 기준)"
+				)
+				local head = body:FindFirstChild("Head")
+				assert(
+					head and head:FindFirstChild("Name", true) and head:FindFirstChild("Stars"),
+					"Head = 이름·별"
+				)
+				local pill = body:FindFirstChild("Income")
+				local nameFace = head:FindFirstChild("Face")
+				assert(
+					pill.Size.Y.Scale > nameFace.Size.Y.Scale
+						and pill.Size.Y.Scale > head:FindFirstChild("Stars").Size.Y.Scale,
+					"수입 알약이 가장 큰 줄"
+				)
+				assert(pill.Position.Y.Scale + pill.Size.Y.Scale + 0.04 <= 1 + 1e-9, "그림자까지 이름표 안")
+			end
 			-- 별이 오름(에펠탑을 또 뽑음) · 입장료 · 수입 2배 · 환생 배율
 			local eiffelSlot = 0
 			for slot, id in (State.parkSlots(data)) do

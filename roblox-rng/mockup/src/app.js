@@ -1817,13 +1817,20 @@
   // 배경 = 진짜 장면(mockup/edit_backdrops.sh income_* — 입구 간판 SurfaceGui 는 렌더러가 그대로 그림). 렌더러가 안 그리는
   // BillboardGui(전시 이름표·동전 퐁)는 hook 값(extra.Labels / Pops: 화면 자리·스터드당 px·글자)으로 여기서 같은 비율로 그림.
   // 날아가는 동전은 hook 의 출발점(extra.Sources = 화면에 보이는 내 명소)에서 이 화면 HUD 코인 아이콘까지 IncomeFx 와 같은 곡선 위에.
-  // ParkService addLabel: 이름표 10 × 3.9 스터드 — 이름 딱지 · 별 줄 · 수입 알약(이름표 높이 비율)
-  const TAG = { W: 10, H: 3.9, NAME_Y: 0, NAME_H: 0.346, STARS_Y: 0.43, STARS_H: 0.226, INCOME_Y: 0.672, INCOME_H: 0.29 };
+  // ParkService addLabel: 이름표 모양 10 : 3.9 — 이름 딱지 · 별 줄 · 수입 알약(이름표 높이 비율, 돈이 가장 큼). 크기는 hook 이
+  // 잰 빌보드 Size(스터드 + 픽셀)로: 이름표 = 빌보드 위 절반, 아래 끝 = 빌보드 가운데(모형 꼭대기 + 0.1). 멀면 Head(이름·별) 꺼짐
+  const TAG = { W: 10, H: 3.9, NAME_Y: 0, NAME_H: 0.27, STARS_Y: 0.31, STARS_H: 0.19, INCOME_Y: 0.53, INCOME_H: 0.42 };
   const TAG_STAR_EMPTY = [150, 146, 170]; // ParkService STAR_EMPTY
   const PARK_GRASS = [76, 217, 100];
   const PARK_GRASS_SHADOW = [46, 158, 69];
-  // IncomeFx 날아가는 동전: 크기(배율 1) · 곡선(IncomeFx.curveVia) · 부드러운 시작·끝(smoothstep) · 크기 변화
-  const FLY = { SIZE: 34, MAX: 5 };
+  // IncomeFx 날아가는 동전: 크기(배율 1) · 곡선(IncomeFx.curveVia) · 부드러운 시작·끝(smoothstep) · 크기·투명도(flightLook)
+  const FLY = { SIZE: 34, MAX: 5, SINK: 0.85 };
+  const flightLook = (t) => {
+    if (t < 0.15) return [0.5 + (t / 0.15) * 0.7, 0];
+    if (t < FLY.SINK) return [1.2 - (0.3 * (t - 0.15)) / (FLY.SINK - 0.15), 0];
+    const k = Math.min(1, (t - FLY.SINK) / (1 - FLY.SINK));
+    return [0.9 - 0.5 * k, k];
+  };
   const flyVia = (from, to, bend) => {
     const mid = [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2];
     const lift = Math.min(220, Math.hypot(to[0] - from[0], to[1] - from[1]) * 0.35);
@@ -1832,19 +1839,23 @@
   const bezier2 = (a, b, c, t) => [0, 1].map((i) => a[i] * (1 - t) * (1 - t) + b[i] * 2 * (1 - t) * t + c[i] * t * t);
 
   function worldTag(layer, t) {
-    const w = TAG.W * t.PxPerStud;
-    const h = TAG.H * t.PxPerStud;
-    const box = gui(layer, { name: 'Label', anchor: [0.5, 0.5], pos: [0, t.Screen[0], 0, t.Screen[1]], size: [0, w, 0, h], z: 1 });
+    const px = t.SizePx || [0, 0];
+    const w = t.Size[0] * t.PxPerStud + px[0];
+    const h = (t.Size[1] * t.PxPerStud + px[1]) / 2; // 이름표 = 빌보드 위 절반
+    const box = gui(layer, { name: 'Label', anchor: [0.5, 1], pos: [0, t.Screen[0], 0, t.Screen[1]], size: [0, w, 0, h], z: 1 });
     box.dataset.slot = String(t.Slot);
     box.dataset.amount = t.Amount || '';
-    const tier = t.Color.map((v) => v * 255);
-    const nameW = Math.min(Math.max(([...t.Name].length * 1.05 + 1.4) / TAG.W, 0.3), 1);
-    const drop = 0.047 * h;
-    gui(box, { name: 'Shadow', anchor: [0.5, 0], pos: [0.5, 0, 0, drop], size: [nameW, 0, TAG.NAME_H, 0], bg: lerp(tier, Theme.Ink, 0.4), corner: 'round', stroke: [Theme.Ink, 2] });
-    const face = gui(box, { name: 'Face', anchor: [0.5, 0], pos: [0.5, 0, 0, 0], size: [nameW, 0, TAG.NAME_H, 0], bg: tier, corner: 'round', stroke: [Theme.Ink, 2], z: 2 });
-    face.style.backgroundImage = 'linear-gradient(rgba(255,255,255,0), rgba(0,0,0,0.16))';
-    label(face, { name: 'Name', text: t.Name, color: WHITE, pos: [0.08, 0, 0.14, 0], size: [0.84, 0, 0.72, 0], outline: 2, z: 2 }, 200);
-    label(box, { name: 'Stars', rich: starsRich(t.Stars || 0, MAX_STARS, TAG_STAR_EMPTY), pos: [0, 0, TAG.STARS_Y, 0], size: [1, 0, TAG.STARS_H, 0], outline: 2, z: 2 }, 200);
+    box.dataset.head = t.Head === false ? '0' : '1';
+    if (t.Head !== false) {
+      const tier = t.Color.map((v) => v * 255);
+      const nameW = Math.min(Math.max(([...t.Name].length * 0.82 + 1.1) / TAG.W, 0.3), 1);
+      const drop = 0.037 * h;
+      gui(box, { name: 'Shadow', anchor: [0.5, 0], pos: [0.5, 0, 0, drop], size: [nameW, 0, TAG.NAME_H, 0], bg: lerp(tier, Theme.Ink, 0.4), corner: 'round', stroke: [Theme.Ink, 2] });
+      const face = gui(box, { name: 'Face', anchor: [0.5, 0], pos: [0.5, 0, 0, 0], size: [nameW, 0, TAG.NAME_H, 0], bg: tier, corner: 'round', stroke: [Theme.Ink, 2], z: 2 });
+      face.style.backgroundImage = 'linear-gradient(rgba(255,255,255,0), rgba(0,0,0,0.16))';
+      label(face, { name: 'Name', text: t.Name, color: WHITE, pos: [0.08, 0, 0.14, 0], size: [0.84, 0, 0.72, 0], outline: 2, z: 2 }, 200);
+      label(box, { name: 'Stars', rich: starsRich(t.Stars || 0, MAX_STARS, TAG_STAR_EMPTY), pos: [0, 0, TAG.STARS_Y, 0], size: [1, 0, TAG.STARS_H, 0], outline: 2, z: 2 }, 200);
+    }
     const pillW = t.PillWidth || 0.45;
     const ph = TAG.INCOME_H * h;
     gui(box, { name: 'IncomeShadow', anchor: [0.5, 0], pos: [0.5, 0, TAG.INCOME_Y + 0.04, 0], size: [pillW, 0, TAG.INCOME_H, 0], bg: PARK_GRASS_SHADOW, corner: 'round', stroke: [Theme.Ink, 2] });
@@ -1855,10 +1866,16 @@
     return box;
   }
 
+  // IncomeFx 퐁: 빌보드 가운데 = 모형 가장자리, 몸통은 바깥쪽 절반(Side 0.75 = 오른쪽으로 / 0.25 = 왼쪽으로), 커졌다 제자리는 몸통 가운데 기준.
+  // 동전 = 몸통 높이 × 0.9 정사각(RelativeYY), 글자는 TextX 부터 왼쪽 맞춤
   function worldPop(layer, p) {
-    const box = gui(layer, { name: 'Pop', anchor: [0.5, 0.5], pos: [0, p.Screen[0], 0, p.Screen[1]], size: [0, p.W, 0, p.H], uiScale: p.Scale || 1, z: 3 });
-    iconView(box, 'coin', { anchor: [0, 0.5], pos: [0, 0, 0.5, 0], size: [0, p.H * 0.9, 0, p.H * 0.9], transparency: p.Alpha || 0 });
-    label(box, { name: 'Amount', text: p.Text, color: COLORS.Sun.Face, xAlign: 'left', pos: [0.3, 0, 0, 0], size: [0.7, 0, 1, 0], scaled: false, textSize: p.TextSize, outline: 2.5, textT: p.Alpha || 0 }, p.TextSize);
+    const box = gui(layer, { name: 'Pop', anchor: [0.5, 0.5], pos: [0, p.Screen[0], 0, p.Screen[1]], size: [0, p.W, 0, p.H], z: 3 });
+    const body = gui(box, { name: 'Body', anchor: [0.5, 0.5], pos: [p.Side ?? 0.75, 0, 0.5, 0], size: [0.5, 0, 1, 0], uiScale: p.Scale || 1 });
+    body.dataset.side = String(p.Side ?? 0.75);
+    const coin = iconView(body, 'coin', { name: 'Coin', anchor: [0, 0.5], pos: [0, 0, 0.5, 0], size: [0, p.H * 0.9, 0, p.H * 0.9] });
+    if (p.Alpha) coin.style.opacity = String(1 - p.Alpha); // 그림째 흐려짐(ImageTransparency)
+    const textX = p.TextX ?? p.H * 0.98;
+    label(body, { name: 'Amount', text: p.Text, color: COLORS.Sun.Face, xAlign: 'left', pos: [0, textX, 0, 0], size: [1, -textX, 1, 0], scaled: false, textSize: p.TextSize, outline: 2.5, textT: p.Alpha || 0 }, p.TextSize);
     return box;
   }
 
@@ -1876,19 +1893,20 @@
     screen.dataset.backdrop = opts.backdrop;
     const info = backdrop.info;
     // 월드 위 BillboardGui 층(뷰포트 좌표 = 상단바 포함 화면): 먼 이름표부터 → 가까운 이름표가 위, 퐁은 AlwaysOnTop 이라 맨 위.
-    // 층 순서: 배경 → 이름표·퐁 → 날아가는 동전 → 로블록스 상단바 → HUD
+    // 층 순서: 배경 → 이름표·퐁 → HUD → 날아가는 동전(HUD 바로 위, 입력 안 막음)
     const world = document.createElement('div');
     world.className = 'world billboards';
     world.style.pointerEvents = 'none';
     screen.querySelector('img.world').after(world);
     for (const t of info.Labels || []) worldTag(world, t);
     for (const p of info.Pops || []) worldPop(world, p);
-    // 날아가는 동전(IncomeFx ScreenGui, DisplayOrder -1 = HUD 아래, 상단바 아래부터): 한 묶음이 떠 있는 순간 —
-    // 동전마다 FLY_STAGGER(0.07초) 늦게 떠서 첫 동전은 거의 닿고 마지막은 막 떠남
+    buildHud(screenGui, state, { auto: false, location: 'Park' });
+    // 날아가는 동전(IncomeFx ScreenGui, DisplayOrder 1 = HUD 바로 위 층, 상단바 아래부터 — Active 없음): 한 묶음이 떠 있는 순간 —
+    // 동전마다 FLY_STAGGER(0.07초) 늦게 떠서 첫 동전은 코인 아이콘 속으로 작아지며 스며들고 마지막은 막 떠남
     const fly = document.createElement('div');
     fly.className = 'gui';
     fly.dataset.name = 'IncomeFx';
-    world.after(fly);
+    screenGui.after(fly);
     // Hud 코인 알약의 동전 아이콘 가운데(Hud.coinTarget): 스탯 묶음 STATS_POS + (알약 왼쪽 20 + 아이콘 가운데 19, 알약 위 6 + 높이 52/2) × 배율
     const target = [STATS_POS[0] + (20 + Math.floor(68 * 0.28)) * view.scale, STATS_POS[1] + (6 + 52 / 2) * view.scale];
     const sources = (info.Sources || []).map((s) => [s.X, s.Y]);
@@ -1900,20 +1918,20 @@
       const from = sources[i % sources.length];
       const t = phases[i];
       const at = bezier2(from, flyVia(from, target, bends[i]), target, t * t * (3 - 2 * t));
-      const scale = t < 0.15 ? 0.5 + (t / 0.15) * 0.7 : 1.2 - 0.45 * t;
+      const [scale, alpha] = flightLook(t);
       const size = FLY.SIZE * view.scale;
       const coin = gui(fly, { name: 'Coin' + (i + 1), anchor: [0.5, 0.5], pos: [0, at[0], 0, at[1]], size: [0, size, 0, size], uiScale: scale, z: 1 });
-      iconView(coin, 'coin', { size: [1, 0, 1, 0] });
-      flights.push({ at, from });
+      iconView(coin, 'coin', { size: [1, 0, 1, 0], transparency: alpha });
+      flights.push({ at, from, scale, alpha });
     }
     screen.dataset.flights = JSON.stringify(flights.map((f) => f.at.map((v) => Math.round(v))));
+    screen.dataset.flightsFrom = JSON.stringify(flights.map((f) => f.from.map((v) => Math.round(v))));
     screen.dataset.target = JSON.stringify(target.map((v) => Math.round(v)));
-    buildHud(screenGui, state, { auto: false, location: 'Park' });
-    // 첫 동전이 곧 닿음 = 코인 알약이 살짝 커진 순간(Hud.bumpCoins 1.09 의 중간)
-    const coins = screenGui.querySelector('[data-name="Stats"] [data-name="Coins"]');
-    if (coins) {
-      coins.style.transformOrigin = '50% 50%';
-      coins.style.transform = (coins.style.transform ? coins.style.transform + ' ' : '') + 'scale(1.05)';
+    // 첫 동전이 방금 닿음 = 코인 아이콘이 톡 커진 순간(Hud.bumpCoins: 아이콘 가운데 기준 1.25 의 중간)
+    const coinIcon = screenGui.querySelector('[data-name="Stats"] [data-name="Coins"] [data-icon="coin"]');
+    if (coinIcon) {
+      coinIcon.style.transformOrigin = '50% 50%';
+      coinIcon.style.transform = (coinIcon.style.transform ? coinIcon.style.transform + ' ' : '') + 'scale(1.15)';
     }
   }
 
@@ -2384,11 +2402,13 @@
       id: 'income_preview',
       title: '수입 보이기 — 내 공원 (PC)',
       note:
-        `돈 버는 게 눈에 보이게(수입 규칙은 그대로, 자동으로 벌림): 전시 명소 이름표 = 이름 딱지 + 별 + <b>초록 알약 [동전] "+N/s"</b>(그 명소가 버는 초당 수입 — 입장료 Lv ${upgradeLevel(STATE, 'Ticket')} 포함, 한 공원 이름표 합 = HUD +${incomeText(STATE.Income)}/s). ` +
-        `입구 간판은 주인 초당 수입 합을 크게 [동전] "+${incomeText(STATE.Income)}/s". 명소 옆에서 가끔 [동전] "+N"(그 사이 번 돈)이 솟았다 사라짐 — 희귀할수록 자주, 화면 전체 초당 10개까지, 빌보드 14개를 돌려 씀. ` +
-        '내 공원이 화면에 보이면 1.6초마다 동전 2~5개가 곡선을 그리며 왼쪽 위 코인 알약으로 날아가 "안으로" 들어가고(HUD 아래 층 — 버튼·창을 안 가림) 알약이 살짝 톡. ' +
-        '배경은 진짜 장면(진짜 ParkService 부지·간판 + 진짜 IncomeFx 퐁을 돌린 hook), 이름표·퐁은 렌더러가 안 그리는 BillboardGui 라 hook 이 잰 화면 자리·크기로 얹음. ' +
-        '이름표는 스터드 크기라 멀면 작아지고 60 스터드 밖은 안 보임(가까운 명소만 이름표).',
+        `돈 버는 게 눈에 보이게(수입 규칙은 그대로, 자동으로 벌림): 전시 명소 이름표 = 이름 딱지 + 별 + <b>가장 큰 줄 초록 알약 [동전] "+N/s"</b>(그 명소가 버는 초당 수입 — 입장료 Lv ${upgradeLevel(STATE, 'Ticket')} 포함, 한 공원 이름표 합 = HUD +${incomeText(STATE.Income)}/s). ` +
+        '이름표 크기 = 스터드 + 픽셀(멀어도 수입 글자를 읽을 수 있게), 아래 끝은 모형 꼭대기 바로 위(명소를 안 덮음), 30 스터드보다 먼 이름표는 이름·별을 끄고 수입 알약만. ' +
+        `입구 간판은 주인 초당 수입 합을 크게 [동전] "+${incomeText(STATE.Income)}/s". 명소 가장자리에서 바깥쪽으로 가끔 [동전] "+N"(그 사이 번 돈, 정수)이 솟았다 사라짐 — 희귀할수록 자주, ` +
+        '화면 전체 초당 10개까지(내 공원 몫 6 + 남의 공원 몫 4), 간판·벽·다른 명소에 가려진 명소는 퐁 없음, 빌보드 14개를 돌려 씀. ' +
+        '내 공원이 화면에 보이면 1.6초마다 동전 2~5개가 곡선을 그리며 왼쪽 위 코인 아이콘으로 날아가 작아지며 스며들고(HUD 바로 위 층 — 입력은 안 막음, 창·배치 모드·굴림 연출 중엔 안 날림) 아이콘이 톡. ' +
+        '배경은 진짜 장면(진짜 ParkService 부지·간판 + 진짜 IncomeFx 퐁·거리 단계를 돌린 hook), 이름표·퐁은 렌더러가 안 그리는 BillboardGui 라 hook 이 잰 화면 자리·크기로 얹음. ' +
+        '이름표는 60 스터드 밖은 안 보임.',
       build(root) {
         buildIncomeScreen(root, this.id, STATE, { backdrop: 'income_pc' });
       },
@@ -2398,7 +2418,7 @@
       title: '수입 보이기 — 휴대폰 667×375',
       extra: '7-2',
       note:
-        `같은 장면을 가장 작은 배율 ${uiScaleFor(667, 375).toFixed(2)} 로: 이름표·퐁은 월드 크기라 그대로, 날아가는 동전(${Math.round(FLY.SIZE * uiScaleFor(667, 375))}px)·HUD 만 작아짐. ` +
+        `같은 장면을 가장 작은 배율 ${uiScaleFor(667, 375).toFixed(2)} 로: 이름표는 픽셀 바닥 덕에 멀어도 수입 글자가 읽히고, 퐁은 월드 크기(최소 20px), 날아가는 동전(${Math.round(FLY.SIZE * uiScaleFor(667, 375))}px)·HUD 는 작아짐. ` +
         '터치 전용이라 오른쪽 아래 점프·왼쪽 아래 조이스틱 자리. 배치 모드·창이 열림·굴림 연출 중에는 날아가는 동전을 쉼(배치 모드는 퐁도 쉼).',
       build(root) {
         buildIncomeScreen(root, this.id, STATE, { backdrop: 'income_phone667', width: 667, height: 375, touch: true });
@@ -2829,7 +2849,8 @@
     }
 
     // 9) 수입 보이기: hook 이 잰(진짜 ParkService) 내 명소 이름표 글자 = 명소 수입 × 입장료(이 목업 식), 공원 합 = HUD 초당 수입,
-    //    보이는 퐁 ≤ 빌보드 14개, 날아가는 동전 2~5개가 코인 알약 쪽으로(끝으로 갈수록 알약에 가까움), 이름표·퐁 글자는 아이콘 + 숫자만
+    //    보이는 퐁 ≤ 빌보드 14개(정수 "+N", 모형 가장자리 바깥쪽), 날아가는 동전 2~5개가 코인 알약 쪽으로(출발점보다 가깝고 가장 먼저 뜬
+    //    동전이 가장 가까움), 이름표·퐁 글자는 아이콘 + 숫자만
     {
       const parts = [];
       let good = true;
@@ -2854,16 +2875,20 @@
         }
         const totalOk = Math.abs(info.Income - STATE.Income) < 1e-6;
         const pops = (info.Pops || []).length;
-        const popTextOk = (info.Pops || []).every((p) => /^\+[\d.]+[KMBT]?$/.test(p.Text));
+        // 퐁 글자: 정수(10 미만만 소수 한 자리, 1000 부터 1.2K), 몸통은 모형 가장자리 바깥쪽 절반
+        const popTextOk = (info.Pops || []).every((p) => /^\+(\d+|\d\.\d|[\d.]+[KMBT])$/.test(p.Text) && (p.Side === 0.25 || p.Side === 0.75));
+        const headOff = info.Labels.filter((t) => t.Head === false).length;
         const flights = JSON.parse(scr.dataset.flights || '[]');
         const target = JSON.parse(scr.dataset.target || '[0,0]');
         const dist = (p) => Math.hypot(p[0] - target[0], p[1] - target[1]);
-        const toward = flights.every((p, i) => i === 0 || dist(p) >= dist(flights[i - 1]) - 1);
+        // 동전마다 제 출발점보다 코인 아이콘에 가까움(곡선을 따라 알약 쪽으로), 가장 먼저 뜬 동전이 가장 가까움
+        const froms = JSON.parse(scr.dataset.flightsFrom || '[]');
+        const toward = flights.every((p, i) => dist(p) < dist(froms[i]) && dist(p) >= dist(flights[0]) - 1);
         const ok = tagsOk && mine > 0 && totalOk && pops <= 14 && popTextOk && flights.length >= 2 && flights.length <= 5 && toward;
         good = good && ok;
         parts.push(
           `${id} ${verdict(ok)} 내 명소 이름표 ${mine}개 글자 ${tagsOk ? '= 명소 수입 × 입장료' : '다름'} · 합 +${incomeText(info.Income)}/s ${totalOk ? '= HUD' : '≠ HUD +' + incomeText(STATE.Income)} · ` +
-            `퐁 ${pops}개(${popTextOk ? '"+N"' : '글자 다름'}) · 날아가는 동전 ${flights.length}개${toward ? '' : ' (차례가 꼬임)'}`
+            `이름·별 끈 먼 이름표 ${headOff}개 · 퐁 ${pops}개(${popTextOk ? '"+N" 정수 · 가장자리 바깥쪽' : '글자·자리 다름'}) · 날아가는 동전 ${flights.length}개${toward ? '' : ' (차례가 꼬임)'}`
         );
       }
       items.push(`<b>수입 보이기</b> ${verdict(good)}: ` + parts.join(' / ') + '.');

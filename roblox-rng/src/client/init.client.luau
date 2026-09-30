@@ -602,9 +602,13 @@ ParkEdit.init(gui, {
 			Hud.toast("AUTO 쉬는 중", Ui.Theme.Ink, 2, "auto") -- 나가면 다시 돎
 		end
 	end,
-	-- 창(도감 등)이 열려 있으면 뒤 공원을 눌러도 배치 모드로 안 들어감(창 바탕 Frame 은 입력을 막지 않음)
-	CanTap = function(): boolean
-		return Panels.current() == nil
+	-- 창(도감 등)이 열려 있거나 굴림 연출 중이면 뒤 공원을 눌러도 배치 모드로 안 들어감(창 바탕·결과 카드는 입력을 막지
+	-- 않음). 연출이 끝나고 카드만 남아 있을 때(AUTO 중엔 거의 늘)는 카드가 덮은 곳만 안 받음(at = 뷰포트 px)
+	CanTap = function(at: Vector2?): boolean
+		if Panels.current() ~= nil or revealing then
+			return false
+		end
+		return at == nil or not Hud.revealCovers(at)
 	end,
 })
 -- 수입 보이기: 전시 명소 동전 퐁 + 내 공원에서 코인 알약으로 날아가는 동전. 배치 모드면 모두 쉬고, 창이 열렸거나

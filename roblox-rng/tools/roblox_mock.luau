@@ -1391,6 +1391,9 @@ local DEFAULTS: { [string]: { [string]: any } } = {
 	UIStroke = { Enabled = true, Thickness = 1, Transparency = 0 },
 	GuiObject = {
 		Visible = true,
+		AnchorPoint = vec2(0, 0),
+		Position = udim2(udim(0, 0), udim(0, 0)),
+		Size = udim2(udim(0, 0), udim(0, 0)),
 		BackgroundTransparency = 0,
 		BorderSizePixel = 1,
 		ZIndex = 1,

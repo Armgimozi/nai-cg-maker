@@ -4,7 +4,9 @@
 -- 들어가기: 버튼 없이 타이쿤처럼 직접 — 내 공원(부지 + 여유 14)에 있을 때 내 명소를 톡 누르면 배치 모드 + 그 명소를 바로 집음,
 --   내 빈 받침대를 누르면 배치 모드 + 그 칸을 채울 준비(칸이 초록으로 숨 쉬고, 보관함 카드를 누르면 바로 그 칸으로).
 --   톡 = 누른 곳에서 DRAG_PX 안에서 뗌(터치로 끌면 화면 돌리기라 안 들어감), 두 손가락이면 취소. 광선은 캐릭터만 빼고 쏴서
---   처음 맞은 것이 내 칸 모델일 때만(남의 공원은 눌러도 아무 일 없음). 창이 열려 있으면 안 받음(Handlers.CanTap).
+--   처음 맞은 것이 내 칸 모델일 때만(남의 공원은 눌러도 아무 일 없음). 칸 이름표(BillboardGui — 광선에 안 맞음)를 누르면
+--   그 칸(이름표가 맞은 파트보다 가까울 때 — 이름표 바로 뒤 다른 명소를 집지 않게). 창이 열려 있거나 굴림 연출 중·결과 카드
+--   위면 안 받음(Handlers.CanTap).
 --   마우스는 가리키는 내 칸에 옅은 흰 강조 + 손가락 커서(찾기 쉽게). 배치 모드 동안은 이 누르기를 쓰지 않음(직접 광선).
 -- 배치 모드 동안 HUD 는 왼쪽 메뉴·상점·굴리기 줄을 숨기고(부르는 쪽 Changed) 아래 띠만 남김 — 놀이공원 시뮬레이션의
 --   건설 모드처럼 공원과 띠에만 집중. 나가기 = [완료] · Esc/Q(들고 있으면 먼저 내려놓기) · 부지 밖으로 나가기.
@@ -62,7 +64,9 @@ export type Handlers = {
 	GoToPark: () -> boolean, -- 내 공원으로 순간 이동(기다림). 성공하면 true
 	Toast: (text: string, icon: string?, color: Color3?) -> (),
 	Changed: (editing: boolean) -> (), -- 배치 모드 켜짐/꺼짐 (HUD 메뉴·굴리기 줄 숨기기, 열린 창 닫기)
-	CanTap: (() -> boolean)?, -- 배치 모드 밖에서 내 공원을 눌러 들어가도 되는지(창이 열려 있으면 false). 없으면 늘 true
+	-- 배치 모드 밖에서 내 공원을 이 화면 점(뷰포트 px, 가리키기·누르기 자리)에서 눌러 들어가도 되는지(창이 열려 있음·굴림 연출
+	-- 중·결과 카드가 덮은 곳이면 false). 없으면 늘 true
+	CanTap: ((at: Vector2?) -> boolean)?,
 }
 
 -- 월드 ----------------------------------------------------------------------------
@@ -1645,19 +1649,92 @@ local outsideLight: Highlight? = nil
 local outsideSlot: number? = nil -- 마우스가 가리키는 내 칸(강조 중)
 local cursorSet = false -- 손가락 커서를 이 모듈이 켰는지(끌 때 남의 커서를 덮지 않게)
 
--- 지금 내 공원을 눌러 배치 모드에 들어갈 수 있는지
-local function canTap(): boolean
+-- 지금 내 공원을 (at 에서) 눌러 배치 모드에 들어갈 수 있는지
+local function canTap(at: Vector2?): boolean
 	if editing or entering or not plot or not origin or not slotsFolder then
 		return false
 	end
 	local allowed = handlers and handlers.CanTap
-	if allowed and not allowed() then
+	if allowed and not allowed(at) then
 		return false
 	end
 	return atPlot(LEAVE_MARGIN)
 end
 
--- 화면 점(뷰포트 px)에서 처음 맞는 것이 내 열린 칸이면 그 칸 번호
+-- GuiObject 의 화면 네모(부모 네모 기준 Size·Position·AnchorPoint, 스케일 + 픽셀 — 이름표에는 UIScale·SizeConstraint 없음)
+local function childRect(gui: GuiObject, parentAt: Vector2, parentSize: Vector2): (Vector2, Vector2)
+	local size = Vector2.new(
+		gui.Size.X.Scale * parentSize.X + gui.Size.X.Offset,
+		gui.Size.Y.Scale * parentSize.Y + gui.Size.Y.Offset
+	)
+	local at = parentAt
+		+ Vector2.new(
+			gui.Position.X.Scale * parentSize.X + gui.Position.X.Offset,
+			gui.Position.Y.Scale * parentSize.Y + gui.Position.Y.Offset
+		)
+		- gui.AnchorPoint * size
+	return at, size
+end
+
+-- 화면 점이 GuiObject 들의 보이는 판에 닿는지(투명한 틀 Frame 은 속으로 — 이름표 Body·Head)
+local function guiHits(parent: Instance, parentAt: Vector2, parentSize: Vector2, point: Vector2, depth: number): boolean
+	for _, child in parent:GetChildren() do
+		if child:IsA("GuiObject") and child.Visible then
+			local at, size = childRect(child, parentAt, parentSize)
+			if child:IsA("Frame") and child.BackgroundTransparency >= 1 and depth < 3 then
+				if guiHits(child, at, size, point, depth + 1) then
+					return true
+				end
+			elseif point.X >= at.X and point.X <= at.X + size.X and point.Y >= at.Y and point.Y <= at.Y + size.Y then
+				return true
+			end
+		end
+	end
+	return false
+end
+
+-- 화면 점(뷰포트 px)이 이 칸 이름표(ParkService "Label": 스터드 + 픽셀 크기, 거리 단계로 Head 가 꺼지면 수입 알약만)의
+-- 보이는 부분에 닿으면 카메라에서 이름표까지 거리
+local function tagHit(container: Instance, point: Vector2, camera: Camera): number?
+	local pedestal = container:FindFirstChild("Pedestal")
+	if not pedestal or not pedestal:IsA("BasePart") then
+		return nil
+	end
+	local eye = camera.CFrame.Position
+	if (pedestal.Position - eye).Magnitude > 90 then
+		return nil -- 이름표 MaxDistance(60) + 모형 높이 밖
+	end
+	local billboard = pedestal:FindFirstChild("Label", true)
+	if not billboard or not billboard:IsA("BillboardGui") or not billboard.Enabled then
+		return nil
+	end
+	local anchor = billboard.Adornee
+	local world = if anchor
+			and anchor:IsA("Attachment")
+			and anchor.Parent
+			and anchor.Parent:IsA("BasePart")
+		then (anchor.Parent :: BasePart).CFrame:PointToWorldSpace(anchor.Position)
+		elseif anchor and anchor:IsA("BasePart") then anchor.Position
+		else nil
+	if not world then
+		return nil
+	end
+	local distance = (world - eye).Magnitude
+	local screen = camera:WorldToViewportPoint(world)
+	if distance > billboard.MaxDistance or screen.Z <= 0 then
+		return nil
+	end
+	local perStud = camera.ViewportSize.Y / (2 * math.tan(math.rad(camera.FieldOfView) / 2) * screen.Z)
+	local size = Vector2.new(
+		billboard.Size.X.Scale * perStud + billboard.Size.X.Offset,
+		billboard.Size.Y.Scale * perStud + billboard.Size.Y.Offset
+	)
+	local at = Vector2.new(screen.X, screen.Y) - size / 2
+	return if guiHits(billboard, at, size, point, 0) then distance else nil
+end
+
+-- 화면 점(뷰포트 px)에서 처음 맞는 것이 내 열린 칸이면 그 칸 번호. 이름표는 광선에 안 맞으므로 먼저 봄: 내 칸 이름표가
+-- 광선이 맞은 파트보다 가까우면 그 칸(가장 가까운 이름표) — 앞 명소 이름표 뒤로 보이는 뒷줄 명소를 집지 않게
 local function tapSlot(at: Vector2): number?
 	local camera = workspace.CurrentCamera
 	local folder = slotsFolder
@@ -1668,7 +1745,17 @@ local function tapSlot(at: Vector2): number?
 	local character = player.Character
 	outsideParams.FilterDescendantsInstances = if character then { character } else {}
 	local hit = workspace:Raycast(ray.Origin, ray.Direction * RAY_LENGTH, outsideParams)
-	local container = if hit then containerOf(hit.Instance) else nil
+	local nearest = if hit then (hit.Position - ray.Origin).Magnitude else math.huge
+	local tagged: Instance? = nil
+	for _, candidate in containers do
+		if candidate.Parent == folder then
+			local distance = tagHit(candidate, at, camera)
+			if distance and distance < nearest then
+				tagged, nearest = candidate, distance
+			end
+		end
+	end
+	local container = tagged or (if hit then containerOf(hit.Instance) else nil)
 	if not container or container.Parent ~= folder then
 		return nil
 	end
@@ -1737,12 +1824,12 @@ local function outsideBegan(input: InputObject, processed: boolean)
 	elseif kind ~= Enum.UserInputType.MouseButton1 or processed then
 		return
 	end
-	if not canTap() then
-		return
-	end
 	local at = if kind == Enum.UserInputType.Touch
 		then toViewport(input.Position)
 		else UserInputService:GetMouseLocation()
+	if not canTap(at) then
+		return
+	end
 	local slot = tapSlot(at)
 	outsidePress = if slot then { Input = input, Kind = kind, Start = at, Slot = slot, Moved = false } else nil
 end
@@ -1760,7 +1847,7 @@ local function outsideChanged(input: InputObject, processed: boolean)
 			current.Moved = true
 		end
 		-- 화면 버튼 위(processed)면 강조를 끔(버튼 뒤 명소가 빛나 보이지 않게)
-		setOutsideHover(if not processed and canTap() then tapSlot(at) else nil)
+		setOutsideHover(if not processed and canTap(at) then tapSlot(at) else nil)
 	end
 end
 
@@ -1769,7 +1856,8 @@ local function refreshOutsideHover()
 	if outsideSlot == nil then
 		return
 	end
-	setOutsideHover(if canTap() then tapSlot(UserInputService:GetMouseLocation()) else nil)
+	local at = UserInputService:GetMouseLocation()
+	setOutsideHover(if canTap(at) then tapSlot(at) else nil)
 end
 
 local function outsideEnded(input: InputObject, processed: boolean)
@@ -1785,7 +1873,7 @@ local function outsideEnded(input: InputObject, processed: boolean)
 	local at = if kind == Enum.UserInputType.Touch
 		then toViewport(input.Position)
 		else UserInputService:GetMouseLocation()
-	if processed or current.Moved or (at - current.Start).Magnitude > DRAG_PX or not canTap() then
+	if processed or current.Moved or (at - current.Start).Magnitude > DRAG_PX or not canTap(at) then
 		return
 	end
 	if tapSlot(at) == current.Slot then

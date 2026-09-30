@@ -1,8 +1,9 @@
 -- world.luau hook: 맵 위에 "내 공원"을 하나 더 배정하고 진짜 클라이언트 IncomeFx(수입 보이기)를 돌려서, 목업 수입 화면
 -- (mockup/src/app.js 의 income_preview · income_preview_p)과 같은 상태·같은 화면 크기의 공원 장면을 만듦.
 -- 렌더러는 BillboardGui(전시 이름표·동전 퐁)를 그리지 않으므로, 돌려주는 표(extra)에 목업이 얹어 그릴 값을 넣음:
---   이름표(칸 위 BillboardGui: 화면 자리·스터드당 px·이름·별·수입 글자·등급 색), 지금 떠 있는 동전 퐁(IncomeFx 빌보드: 화면 자리·
---   크기·글자·투명도·배율), 날아갈 동전 출발점(화면에 보이는 내 명소, 수입 큰 순서), 초당 수입 합(= 이름표 합 = HUD).
+--   이름표(칸 위 BillboardGui: 아래 끝 화면 자리·스터드당 px·크기(스터드 + 픽셀)·이름·별·수입 글자·등급 색·거리 단계로
+--   이름·별이 꺼졌는지), 지금 떠 있는 동전 퐁(IncomeFx 빌보드: 모형 가장자리 화면 자리·크기·바깥쪽(왼/오른)·글자·투명도·배율),
+--   날아갈 동전 출발점(화면에 보이는 내 명소, 수입 큰 순서), 초당 수입 합(= 이름표 합 = HUD).
 -- 입구 간판(SurfaceGui: 이름 + 큰 [동전] "+X/s")은 렌더러가 그대로 그림.
 --
 -- 보통은 mockup/edit_backdrops.sh income_pc income_phone667 이 부름:
@@ -22,12 +23,13 @@ type Scenario = {
 }
 
 local SCENARIOS: { [string]: Scenario } = {
-	-- PC: 입구 앞 왼쪽 위에서 공원 안을 비스듬히 봄 — 왼쪽에 입구 간판(초당 수입 합), 오른쪽에 전시 명소와 이름표
+	-- PC: 입구 간판 바로 뒤 왼쪽 위에서 공원 안을 비스듬히 봄 — 왼쪽에 입구 간판(초당 수입 합), 오른쪽에 전시 명소와 이름표
+	-- (앞줄은 30 스터드 안이라 이름·별까지, 뒷줄은 수입 알약만 — IncomeFx 거리 단계)
 	pc = {
 		Viewport = Vector2.new(1280, 720),
 		Touch = false,
-		Eye = Vector3.new(-26, 24, -64),
-		Target = Vector3.new(10, 0, -14),
+		Eye = Vector3.new(-18, 20, -52),
+		Target = Vector3.new(6, 0, -12),
 		Fov = 70,
 		Seconds = 3.4,
 	},
@@ -35,8 +37,8 @@ local SCENARIOS: { [string]: Scenario } = {
 	phone667 = {
 		Viewport = Vector2.new(667, 375),
 		Touch = true,
-		Eye = Vector3.new(-26, 24, -64),
-		Target = Vector3.new(10, 0, -14),
+		Eye = Vector3.new(-18, 20, -52),
+		Target = Vector3.new(6, 0, -12),
 		Fov = 70,
 		Seconds = 3.4,
 	},
@@ -188,6 +190,7 @@ return function(ctx: any): any
 				local screen = screenOf(point)
 				local amount = billboard:FindFirstChild("Amount", true)
 				local face = billboard:FindFirstChild("Income", true)
+				local head = billboard:FindFirstChild("Head", true)
 				if screen and distance <= (billboard.MaxDistance or math.huge) then
 					table.insert(labels, {
 						Mine = park == plot,
@@ -204,7 +207,10 @@ return function(ctx: any): any
 						Distance = distance,
 						Screen = screen,
 						PxPerStud = pxPerStud(screen[3]),
+						-- 빌보드 크기(스터드 + 픽셀). 이름표 = 빌보드 위 절반, Screen = 빌보드 가운데 = 이름표 아래 끝
 						Size = { billboard.Size.X.Scale, billboard.Size.Y.Scale },
+						SizePx = { billboard.Size.X.Offset, billboard.Size.Y.Offset },
+						Head = head == nil or head.Visible ~= false, -- 거리 단계(IncomeFx): 멀면 이름·별 끔
 					})
 				end
 			end
@@ -222,12 +228,15 @@ return function(ctx: any): any
 			local point = adornee.Position + gui.StudsOffsetWorldSpace
 			local screen = screenOf(point)
 			local text = gui:FindFirstChild("Amount", true)
-			local scale = gui:FindFirstChild("Body"):FindFirstChildOfClass("UIScale")
+			local body = gui:FindFirstChild("Body")
+			local scale = body:FindFirstChildOfClass("UIScale")
 			if screen then
 				table.insert(pops, {
-					Screen = screen,
-					W = gui.Size.X.Offset,
+					Screen = screen, -- 빌보드 가운데 = 모형 가장자리
+					W = gui.Size.X.Offset, -- 빌보드 폭(몸통의 두 배 — 몸통은 바깥쪽 절반)
 					H = gui.Size.Y.Offset,
+					Side = body.Position.X.Scale, -- 0.75 = 오른쪽으로, 0.25 = 왼쪽으로
+					TextX = text.Position.X.Offset, -- 몸통 왼쪽 끝 ~ 글자(동전 0.9H 다음)
 					Text = text.Text,
 					TextSize = text.TextSize,
 					Alpha = text.TextTransparency,

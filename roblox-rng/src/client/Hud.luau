@@ -6,6 +6,7 @@
 -- 스타일은 DESIGN.md "UI 스타일 가이드 (v2)" — 통통한 버튼 + 굵은 Ink 테두리 + 아이콘, 이모지 없음
 -- 글자는 최소로: 아이콘 + 숫자 위주, 버튼 글자는 2~3글자, 알림은 8글자 안팎. 설명 문장은 쓰지 않음.
 
+local GuiService = game:GetService("GuiService")
 local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -206,8 +207,9 @@ local function buildStats()
 	refs.CoinLabel = coins.Label
 	refs.CoinPill = coins.Root
 	refs.CoinIcon = coins.Icon
-	-- 내 공원에서 날아온 동전이 닿으면 알약이 톡(Hud.bumpCoins)
-	refs.CoinBump = Ui.new("UIScale", { Name = "Bump", Parent = coins.Root })
+	-- 내 공원에서 날아온 동전이 닿으면 동전 아이콘이 톡(Hud.bumpCoins). 아이콘은 AnchorPoint 가운데라 제자리에서 커짐
+	-- (알약 Root 는 왼쪽 위 기준이라 오른쪽 끝이 옆 수입 칩 쪽으로 튐)
+	refs.CoinBump = Ui.new("UIScale", { Name = "Bump", Parent = coins.Icon or coins.Root })
 
 	-- 초당 수입: 코인 바로 오른쪽 작은 칩 (위 화살표 + "+13.5/s")
 	refs.IncomeChip = Ui.chip({
@@ -1086,8 +1088,9 @@ function Hud.coinTarget(): Vector2?
 	return icon.AbsolutePosition + size / 2
 end
 
--- 날아온 동전이 코인 알약에 닿음: 알약이 살짝 커졌다 제자리(0.25초에 한 번까지 — 몰려 와도 떨리지 않게)
+-- 날아온 동전이 코인 알약에 닿음: 동전 아이콘이 커졌다 제자리(0.25초에 한 번까지 — 몰려 와도 떨리지 않게)
 local BUMP_TWEEN = TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, true)
+local BUMP_SCALE = 1.25
 local lastBump = -math.huge
 function Hud.bumpCoins()
 	local now = os.clock()
@@ -1097,7 +1100,35 @@ function Hud.bumpCoins()
 	lastBump = now
 	local bump: UIScale = refs.CoinBump
 	bump.Scale = 1
-	TweenService:Create(bump, BUMP_TWEEN, { Scale = 1.09 }):Play()
+	TweenService:Create(bump, BUMP_TWEEN, { Scale = BUMP_SCALE }):Play()
+end
+
+-- 가운데 굴림 결과 카드(둥근 판·리본·지역 딱지·이름·확률·딱지 줄)가 이 화면 점(뷰포트 px, 상단바 포함)을 덮는지.
+-- 카드 뒤 내 공원을 눌러도 배치 모드로 안 들어가게(init CanTap). 카드는 입력을 막지 않음(Active 가 아님 — 카드 위에서
+-- 끌어도 화면이 돎. AUTO 중에는 카드가 거의 늘 떠 있음)
+function Hud.revealCovers(at: Vector2): boolean
+	local container: GuiObject? = refs.Reveal
+	if not container or not container.Visible then
+		return false
+	end
+	local ok, inset = pcall(function()
+		return (GuiService:GetGuiInset())
+	end)
+	local point = at - (if ok and typeof(inset) == "Vector2" then inset else Vector2.zero)
+	for _, part: GuiObject? in { refs.Disc, refs.Ribbon, refs.RegionTag, refs.RevealName, refs.RevealOdds, refs.TagRow } do
+		if part and part.Visible then
+			local corner, size = part.AbsolutePosition, part.AbsoluteSize
+			if
+				point.X >= corner.X
+				and point.X <= corner.X + size.X
+				and point.Y >= corner.Y
+				and point.Y <= corner.Y + size.Y
+			then
+				return true
+			end
+		end
+	end
+	return false
 end
 
 -- 매 프레임 호출: 부드럽게 올라가는 코인 표시 (정수가 바뀔 때만 글자 갱신)
