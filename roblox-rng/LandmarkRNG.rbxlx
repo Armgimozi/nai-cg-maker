@@ -11008,6 +11008,8 @@ return ParkLayout
 -- 간판: 주인이 있으면 입구 아치(나무 판자 + Ink 테두리 + 크림 글자판: 공원 아이콘 + 이름, 초록 알약: 동전 + "+X/s"),
 --   빈 부지는 길 옆 낮은 말뚝 간판("빈 부지")만 세워서 광장에서 볼 때 어지럽지 않게 합니다.
 -- 그림: Shared/ImageIds 에 park/coin 아이콘, panel_paper/pill 스킨 Id 가 있으면 간판에 그 그림을 씀(없으면 코드로 그림).
+-- 바닥: 밝고 따뜻한 돌 포석(Pavement). 빈 부지에는 칸 자리 36곳에 얇은 밝은 판(EmptyGrid 폴더, Slots 밖 — 배치 모드가
+--   칸으로 착각하지 않음)을 깔고, 주인이 오면 치움(받침대·잠긴 칸이 대신함, 잠긴 칸도 같은 색 판).
 -- 장식: 둘레 색 띠 + 네 귀퉁이 덤불 + 옆·뒤 낮은 울타리(입구 쪽은 비움). 위에서 봐도 부지가 구분됩니다.
 -- 글자 스타일은 DESIGN.md "UI 스타일 가이드 v2" 를 따름(FredokaOne, Ink 테두리, 이모지 없음).
 
@@ -11068,10 +11070,18 @@ local RAIL = Vector3.new(0.35, 0.35, 0.35) -- 울타리 가로대 단면
 local LABEL_WIDTH = 10 -- 전시 이름표 크기(스터드)
 local LABEL_HEIGHT = 2.6
 
-local BASE_COLOR = Color3.fromRGB(120, 190, 84) -- 잘 깎은 잔디(Grass): 둘레 잔디보다 아주 조금 밝게(떠 보이지 않게)
+-- 부지 바닥: 따뜻하고 밝은 돌 포석(Pavement, 광장 포석과 한 집안). 둘레 잔디와 또렷이 갈리고 흰 받침대·명소가 돋보임.
+-- (예전 잔디색 Grass 바닥은 실제 게임에서 어둡게 그려져 위에서 보면 짙은 초록 판처럼 보였음)
+local BASE_COLOR = Color3.fromRGB(236, 222, 194)
 local PATH_COLOR = Color3.fromRGB(218, 200, 166) -- 광장 → 입구 길(포석, 부지 바닥보다 조금 짙게)
 local PEDESTAL_COLOR = Color3.fromRGB(236, 234, 228)
-local LOCKED_COLOR = Color3.fromRGB(238, 222, 176) -- 잔디 위 흐릿한 모래색 칸(아직 못 여는 자리)
+-- 빈 부지(주인 없음)의 칸 자리 표시: 포석보다 살짝 밝은 매끈한 판 36개 = "명소가 올 자리".
+-- 주인 부지의 잠긴 칸(아직 못 여는 자리)도 같은 판이라 빈 부지와 같은 말로 읽힘(열린 칸은 흰 받침대)
+local GRID_MARK_COLOR = Color3.fromRGB(245, 237, 219)
+local LOCKED_COLOR = GRID_MARK_COLOR
+local GRID_MARK_SIZE = 9
+local GRID_MARK_THICK = 0.06
+local GRID_MARK_LIFT = 0.02 -- 판 밑면이 부지 윗면보다 이만큼 위(윗면은 +0.08: z-fighting 없음)
 
 -- UI 스타일 가이드 v2 팔레트
 local INK = Color3.fromRGB(30, 27, 46)
@@ -11115,6 +11125,7 @@ type Plot = {
 	SlotFolder: Folder,
 	OwnerSign: Model, -- 주인이 있을 때만 부지 모델 아래에 둠
 	EmptySign: Model, -- 빈 부지일 때만 부지 모델 아래에 둠
+	EmptyGrid: Folder, -- 빈 부지일 때만: 칸 자리 표시 판 36개(주인이 오면 받침대·잠긴 칸이 대신함)
 	TitleLabels: { TextLabel },
 	IncomeLabels: { TextLabel },
 	Owner: Player?,
@@ -11530,10 +11541,34 @@ local function setSign(plot: Plot, title: string, subtitle: string)
 	end
 end
 
--- 주인이 있으면 입구 아치 간판, 없으면 말뚝 간판만 보이게
-local function showSign(plot: Plot, owned: boolean)
+-- 주인이 있으면 입구 아치 간판, 없으면 말뚝 간판 + 칸 자리 표시 판만 보이게
+local function showOwned(plot: Plot, owned: boolean)
 	plot.OwnerSign.Parent = if owned then plot.Model else nil
 	plot.EmptySign.Parent = if owned then nil else plot.Model
+	plot.EmptyGrid.Parent = if owned then nil else plot.Model
+end
+
+-- 빈 부지 칸 자리 표시: 6x6 칸 가운데(SLOT_OFFSETS)마다 얇고 살짝 밝은 판. 부딪히지도 광선에 맞지도 않음.
+-- 부지 모델(Slots 폴더 밖)에 따로 둬서 클라이언트 배치 모드가 칸으로 착각하지 않음
+local function buildEmptyGrid(cf: CFrame): Folder
+	local grid = Instance.new("Folder")
+	grid.Name = "EmptyGrid"
+	local y = GRID_MARK_LIFT + GRID_MARK_THICK / 2 -- 부지 윗면 기준
+	for _, offset in SLOT_OFFSETS do
+		local mark = newPart(
+			grid,
+			"GridMark",
+			Vector3.new(GRID_MARK_SIZE, GRID_MARK_THICK, GRID_MARK_SIZE),
+			cf * CFrame.new(offset + Vector3.new(0, y, 0)),
+			GRID_MARK_COLOR,
+			Enum.Material.SmoothPlastic
+		)
+		mark.CanCollide = false
+		mark.CanQuery = false
+		mark.CanTouch = false
+		mark.CastShadow = false
+	end
+	return grid
 end
 
 -- 부지 장식 ---------------------------------------------------------------
@@ -11614,7 +11649,7 @@ local function buildPlot(parent: Instance, index: number, layout: Layout): Plot
 		Vector3.new(PLOT_WIDTH, BASE_TOP, PLOT_DEPTH),
 		cf * CFrame.new(0, BASE_TOP / 2, 0),
 		BASE_COLOR,
-		Enum.Material.Grass
+		Enum.Material.Pavement
 	)
 	decorate(model, cf)
 
@@ -11649,12 +11684,13 @@ local function buildPlot(parent: Instance, index: number, layout: Layout): Plot
 		SlotFolder = slotFolder,
 		OwnerSign = ownerSign,
 		EmptySign = emptySign,
+		EmptyGrid = buildEmptyGrid(cf),
 		TitleLabels = titleLabels,
 		IncomeLabels = incomeLabels,
 		Owner = nil,
 		Slots = {},
 	}
-	showSign(plot, false)
+	showOwned(plot, false)
 	model.Parent = parent
 	return plot
 end
@@ -11716,7 +11752,7 @@ local function addLabel(pedestal: BasePart, landmark: Landmarks.Landmark, modelH
 	return stars
 end
 
--- key: KEY_LOCKED(흐릿한 바닥) / KEY_EMPTY(빈 받침대) / 명소 Id(받침대 + 미니어처 + 이름표)
+-- key: KEY_LOCKED(바닥에 얇은 밝은 판 = 빈 부지 칸 자리 표시와 같은 모습) / KEY_EMPTY(빈 받침대) / 명소 Id(받침대 + 미니어처 + 이름표)
 local function buildSlot(plot: Plot, index: number, key: string): Slot
 	local floor = plot.CFrame * CFrame.new(SLOT_OFFSETS[index]) -- 칸 바닥 중앙(부지 윗면)
 	local container = Instance.new("Model")
@@ -11732,7 +11768,6 @@ local function buildSlot(plot: Plot, index: number, key: string): Slot
 			LOCKED_COLOR,
 			Enum.Material.SmoothPlastic
 		)
-		tile.Transparency = 0.7
 		tile.CanCollide = false
 		tile.CastShadow = false
 	else
@@ -11788,7 +11823,7 @@ function ParkService.assign(player: Player): number?
 			plotByPlayer[player] = plot
 			plot.Model:SetAttribute("OwnerUserId", player.UserId)
 			setSign(plot, player.DisplayName, incomeText(0))
-			showSign(plot, true)
+			showOwned(plot, true)
 			return plot.Index
 		end
 	end
@@ -11806,7 +11841,7 @@ function ParkService.release(player: Player)
 	plot.Owner = nil
 	plot.Model:SetAttribute("OwnerUserId", nil)
 	clearSlots(plot)
-	showSign(plot, false)
+	showOwned(plot, false)
 	setSign(plot, "", "")
 end
 
@@ -15071,8 +15106,9 @@ local PALM_LEAF = rgb(58, 172, 82)
 local PALM_LEAF_LIGHT = rgb(112, 204, 90)
 local COCONUT = rgb(116, 80, 46)
 local BUSH = { rgb(50, 142, 64), rgb(78, 180, 76), rgb(132, 214, 96) }
-local HEDGE = rgb(62, 158, 70)
-local HEDGE_TOP = rgb(92, 184, 82)
+local HEDGE = rgb(62, 158, 70) -- 토피어리 잎
+-- 산울타리 잎(짙음 → 밝음): 몸통은 1·2 사이, 윗면 잎 공은 셋을 섞음. Roblox 의 LeafyGrass 가 색을 어둡게 그려서 조금 밝게 잡음
+local HEDGE_LUMPS = { rgb(70, 164, 72), rgb(86, 178, 78), rgb(106, 194, 88) }
 local BLOSSOMS = { rgb(255, 128, 176), rgb(255, 250, 240), rgb(255, 214, 72), rgb(180, 130, 255) }
 local SOIL = rgb(126, 88, 60)
 local ROCK = rgb(160, 158, 156)
@@ -15619,39 +15655,64 @@ function BUILD.Bush(parent: Instance, item)
 	end
 end
 
--- 산울타리: 길이 Height 인 잎 판 + 위를 둥글게 덮는 원기둥. Turn = 길이 방향.
--- Style 2 = 조금 짙은 초록, 3 = 꽃 핀 산울타리(둥근 윗면에 작은 꽃이 드문드문, 색은 Tint)
+-- 산울타리(다듬은 생울타리): 길이 Height·폭 1.62 네모 잎 몸통(부딪힘, 땅에서 키 1.4) + 윗면을 따라 1.85 스터드
+-- 이하 간격으로 얹은 잎 공(가운데가 몸통 윗면 높이 → 반구 줄이 몸통보다 살짝 넓게 부풀어 둥글고 조금 울퉁불퉁한 윗면.
+-- 초록 세 가지, 크기·높이·옆 위치를 조금씩 흔듦). 양 끝 공은 끝면에 맞춰서 윗모서리가 둥긂.
+-- 공 지름 <= 1.74 · 옆 흔들림 <= 0.03 이라 폭은 Plan 의 반지름 0.9 안, 꼭대기는 땅에서 2.1~2.3. Turn = 길이 방향.
+-- 가로로 누운 원기둥(높은 데서 보면 통나무처럼 보임)은 쓰지 않음.
+-- Style 2 = 조금 짙은 초록, 3 = 꽃 핀 산울타리(잎 공 옆·위에 작은 꽃이 드문드문, 색은 Tint. 꽃도 폭 1.8 안)
+local HEDGE_WIDTH = 1.62
+local HEDGE_BODY = 1.6 -- 몸통 키(땅속 0.2 포함) → 윗면이 땅에서 1.4
+local HEDGE_LUMP_STEP = 1.85 -- 잎 공 사이 간격 상한
 function BUILD.Hedge(parent: Instance, item)
 	local length = item.Height
 	local cf = CFrame.new(basePoint(item)) * CFrame.Angles(0, -item.Turn, 0)
+	local rng = itemRng(item, 12)
 	local dark = if item.Style == 2 then 0.25 else 0
+	local top = HEDGE_BODY - 0.2
 	block(
 		parent,
 		"Hedge",
-		Vector3.new(length, 1.5, 1.7),
-		cf * CFrame.new(0, 0.55, 0),
-		HEDGE:Lerp(BUSH[1], dark),
+		Vector3.new(length, HEDGE_BODY, HEDGE_WIDTH),
+		cf * CFrame.new(0, top - HEDGE_BODY / 2, 0),
+		HEDGE_LUMPS[1]:Lerp(HEDGE_LUMPS[2], 0.4):Lerp(BUSH[1], dark),
 		LEAVES,
 		true
 	)
-	part(
-		parent,
-		"HedgeTop",
-		Enum.PartType.Cylinder,
-		Vector3.new(length, 1.7, 1.7),
-		cf * CFrame.new(0, 1.3, 0),
-		HEDGE_TOP:Lerp(BUSH[2], dark),
-		LEAVES
-	)
+	-- 잎 공: 양 끝 공은 끝면에 맞추고 사이는 고르게(간격 <= HEDGE_LUMP_STEP) + 조금씩 흔듦
+	local first = rng:NextNumber(1.64, 1.74)
+	local lumps = math.max(2, math.ceil((length - first) / HEDGE_LUMP_STEP) + 1)
+	local from, to = -length / 2 + first / 2, length / 2 - first / 2
+	local centers: { Vector3 } = {}
+	local sizes: { number } = {}
+	local shade = rng:NextInteger(1, 3)
+	for k = 1, lumps do
+		local d = if k == 1 or k == lumps then first else rng:NextNumber(1.48, 1.74)
+		local along = from + (to - from) * (k - 1) / (lumps - 1)
+		if k > 1 and k < lumps then
+			along += rng:NextNumber(-0.2, 0.2)
+		end
+		local center = Vector3.new(along, top - 0.08 + rng:NextNumber(-0.1, 0.08), rng:NextNumber(-0.03, 0.03))
+		shade = (shade + rng:NextInteger(0, 1)) % 3 + 1 -- 옆 공과 같은 색이 길게 이어지지 않게
+		local color = HEDGE_LUMPS[shade]:Lerp(HEDGE_LUMPS[2], rng:NextNumber(0, 0.3))
+		ball(parent, "HedgeTop", cf * center, d, color:Lerp(BUSH[1], dark), LEAVES)
+		centers[k], sizes[k] = center, d
+	end
 	if item.Style == 3 then
-		local rng = itemRng(item, 12)
 		local color = BLOSSOMS[math.floor(item.Tint * #BLOSSOMS) % #BLOSSOMS + 1]
-		local count = math.max(2, math.floor(length / 2.2))
+		local count = math.max(3, math.floor(length / 1.8))
 		for k = 1, count do
-			local along = (k - 0.5) / count * length - length / 2 + rng:NextNumber(-0.5, 0.5)
-			local around = rng:NextNumber(-0.9, 0.9) -- 둥근 윗면 위 각도(0 = 꼭대기)
-			local offset = Vector3.new(along, 1.3 + math.cos(around) * 0.8, math.sin(around) * 0.8)
-			ball(parent, "Flower", (cf * CFrame.new(offset)).Position, 0.5, if k % 3 == 0 then WHITE else color)
+			local size = rng:NextNumber(0.42, 0.52)
+			local j = math.clamp(math.floor((k - 0.5) / count * lumps) + 1, 1, lumps)
+			local a = (if k % 2 == 0 then 1 else -1) * math.pi / 2 + rng:NextNumber(-0.7, 0.7)
+			local up = rng:NextNumber(0.3, 0.9)
+			local flat = math.sqrt(1 - up * up)
+			local offset = centers[j]
+				+ Vector3.new(math.cos(a) * flat, up, math.sin(a) * flat) * (sizes[j] / 2 - size * 0.25)
+			-- 옆으로 폭 1.8 을 넘지 않게(Plan 의 산울타리 반지름 0.9: 길 옆 여유 안)
+			local limit = 0.9 - size / 2
+			offset = Vector3.new(offset.X, offset.Y, math.clamp(offset.Z, -limit, limit))
+			ball(parent, "Flower", cf * offset, size, if k % 4 == 0 then WHITE else color)
 		end
 	end
 end
@@ -26137,6 +26198,8 @@ return Viewport
           <R21>0</R21>
           <R22>1</R22>
         </CoordinateFrame>
+        <bool name="CanCollide">false</bool>
+        <bool name="CastShadow">false</bool>
         <Color3uint8 name="Color3uint8">15787727</Color3uint8>
         <int name="Duration">0</int>
         <token name="Material">784</token>
@@ -26146,6 +26209,7 @@ return Viewport
           <Z>10</Z>
         </Vector3>
         <token name="TopSurface">0</token>
+        <float name="Transparency">1</float>
       </Properties>
     </Item>
     <Item class="Terrain" referent="48">
