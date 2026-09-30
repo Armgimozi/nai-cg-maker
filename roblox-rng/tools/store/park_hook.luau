@@ -5,9 +5,11 @@
 --   * 배치 모드는 부지 간판을 숨기지만(hideSign) 썸네일에서는 수입 간판을 보여 주려고 다시 켬(간판 글자·수입은 진짜 값)
 -- 무대 JSON(stage=<경로>, stage_hook 과 같은 파일) 에 더하는 것:
 --   "myPark": { "level": 10, "display": { [칸 번호]: 명소 Id ... }, "storage": [명소 Id ...](보관함에만),
---               "pick": 집을 명소 Id(보관함), "target": 가리킬 칸 번호, "frames": 60, "name": "나", "counts": 1 }
---   counts = 전시 명소마다 보유 개수(없으면 칸마다 1~5)
--- 돌려주는 표(덤프 extra): 부지 Origin(CFrame 12값), 칸 가운데(월드), 칸 명소 Id, 들고 있는 명소, 간판 위치, 초당 수입
+--               "pick": 집을 명소 Id(보관함), "target": 가리킬 칸 번호, "frames": 60, "name": "You", "counts": 1 }
+--   counts = 전시 명소마다 보유 개수(없으면 칸마다 1~5). 1 = 처음 발견(☆0) = 등급 기본 수입
+--   name = 내 간판 이름(영어 — 스토어 그림에는 한글을 넣지 않음)
+-- 돌려주는 표(덤프 extra): 부지 Origin(CFrame 12값), 칸 가운데(월드), 칸 명소 Id, 들고 있는 명소, 간판 위치, 초당 수입,
+--   칸마다 그 명소의 초당 수입(PlayerState.landmarkIncome — 썸네일 말풍선 "+N/s" 는 이 값을 그대로 씀)
 -- 보통은 tools/store/thumbs.py(thumb_park)가 부름. Roblox API 호출·업로드 없음(가짜 환경).
 
 local GUI_INSET = 58
@@ -62,7 +64,7 @@ return function(ctx: any): any
 	end
 	for key, id in spec.display or {} do
 		local slot = tonumber(key)
-		-- counts = 보유 개수(1 이면 별 1개 = 명소 수입이 등급 기본값 Config.TIER_INCOME 그대로 — 썸네일 말풍선 숫자)
+		-- counts = 보유 개수(1 이면 처음 발견 ☆0 = 명소 수입이 등급 기본값 Config.TIER_INCOME 그대로)
 		own(id, spec.counts or (1 + (slot * 7) % 5))
 		data.Display[slot] = id
 	end
@@ -70,7 +72,7 @@ return function(ctx: any): any
 		own(id, 1 + i % 3)
 	end
 
-	local serverPlayer = { Name = "Me", DisplayName = spec.name or "나", UserId = 4242 }
+	local serverPlayer = { Name = "Me", DisplayName = spec.name or "You", UserId = 4242 }
 	ParkService.assign(serverPlayer)
 	ParkService.update(serverPlayer, data)
 	local plot
@@ -168,6 +170,19 @@ return function(ctx: any): any
 		slotIds[slot] = slots[slot] or ""
 	end
 	local income = PlayerState.incomePerSecond(data)
+	-- 칸마다 그 명소가 내는 초당 수입(게임 식 그대로): 명소 수입 × (입장료·환생·게임패스 배율 = 전체 수입 / 명소 합)
+	local baseSum = 0
+	for _, id in PlayerState.park(data) do
+		baseSum += PlayerState.landmarkIncome(Landmarks.ById[id], data.Inventory[id])
+	end
+	local mult = if baseSum > 0 then income / baseSum else 1
+	local slotIncome = {}
+	for slot = 1, unlocked do
+		local id = slots[slot]
+		slotIncome[slot] = if id then PlayerState.landmarkIncome(Landmarks.ById[id], data.Inventory[id]) * mult else 0
+	end
+	-- 그려지는 간판 글자는 영어만(내 간판까지 만든 뒤 한 번 더)
+	ctx.englishOnly()
 	ctx.note(
 		string.format(
 			"내 부지 %s: 열린 칸 %d, 들고 있음 %s, 초당 수입 %s",
@@ -187,5 +202,6 @@ return function(ctx: any): any
 		Target = spec.target,
 		Sign = signPos,
 		Income = income,
+		SlotIncome = slotIncome,
 	}
 end

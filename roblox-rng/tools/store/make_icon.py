@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""게임 아이콘(512x512) — 세계수(1/40,000,000, 전설 등급)가 빛을 뿜는 장면 + 위쪽 큰 확률 숫자 + 오른쪽 아래 주사위 쥔 손.
+"""게임 아이콘(512x512) — 세계수(전설 등급, 가장 희귀한 명소)가 빛을 뿜는 장면 + 위쪽 큰 확률 숫자 + 오른쪽 아래 주사위 쥔 손.
 
     python3 tools/store/make_icon.py            # art/store/icon_a.png, icon_b.png, icon.png(고른 것), icon_small.png(150px)
     python3 tools/store/make_icon.py a          # 한 변형만(icon.png 는 안 바꿈)
@@ -11,8 +11,9 @@
   2) tools/store/render3d.js 로 같은 카메라의 3D 층(땅, 금, 마법진, 모형, 결정 조각, 에너지 띠 ...)을 투명 PNG 로
   3) fx.py 로 합성: 하늘 + 초록 빛·햇살 + 어두운 구덩이·금·마법진 + 먹물 불꽃 + 나무(잎 그늘 에메랄드, 민트 테두리, 열매 빛)
      + 바위(잔금) + 깨진 결정(빛나는 면 선) + 에너지 띠 + 반짝이 + 확률 숫자 + 손·주사위(hand_dice.py, 3D)
-숫자는 Landmarks.luau 의 세계수 OneIn(40000000)을 읽어서 게임처럼 콤마로 씀.
-Roblox 가 모서리를 둥글게 자르므로 중요한 것은 가운데 88% 안에 둠.
+숫자는 Landmarks.luau 의 세계수 OneIn(10000000000)을 읽어서 게임처럼 콤마로 씀("1/10,000,000,000", 16글자).
+긴 숫자라 한 줄로 거의 전체 폭(930/1024) + 세로로 2.1배 늘여서 150px(스토어 목록 크기)에서도 읽히게, 나무는 숫자 아래로 내림.
+글자는 영어·숫자만(전 세계 스토어용). Roblox 가 모서리를 둥글게 자르므로 중요한 것은 가운데 88~91% 안에 둠.
 """
 from __future__ import annotations
 
@@ -486,7 +487,7 @@ def compose(v, L: dict, label: str, fruits: list) -> Image.Image:
 
 # 변형 --------------------------------------------------------------------------------------------
 BASE = dict(
-    seed=7, yaw=-20, elev=20, fov=60, top_y=0.0, base_y=0.9, tree_x=0.4,
+    seed=7, yaw=-20, elev=20, fov=60, top_y=0.14, base_y=0.93, tree_x=0.4,  # 잎 꼭대기가 숫자 띠 바로 아래
     grass=[0.2, 0.52, 0.3], rock=[0.24, 0.27, 0.38], rim=0.35, flare=150,
     shard_cols=[[0.19, 0.46, 0.37], [0.15, 0.39, 0.32], [0.24, 0.53, 0.42], [0.12, 0.33, 0.28]], shards=22,
     shard_rim=0.8, shard_top=290,
@@ -504,14 +505,15 @@ BASE = dict(
     lines=(4, 20, 60), lines_alpha=0.45,
     clouds=[(760, 250, 8), (900, 190, 12)],
     sparkles=[(150, 420, 30), (800, 360, 38), (90, 600, 20), (640, 300, 16), (330, 330, 18), (560, 520, 14)],
-    font="luckiest", text_w=960, text_stretch=1.12, text_y=26, text_rot=4.0,
-    text_sparkles=[(120, 70, 30), (610, 205, 20), (900, 40, 16)],
+    # 숫자: 폭 930(가운데 91%), 세로 2.1배, 거의 수평(1도) — 150px 에서 0 과 쉼표가 뭉개지지 않게. 반짝이는 숫자 양 끝 밖에만
+    font="luckiest", text_w=930, text_stretch=2.1, text_y=40, text_rot=1.0,
+    text_sparkles=[(40, 262, 24), (990, 250, 18)],
     hand_px=490, hand_xy=(578, 556), saturation=1.1,
 )
 
 VARIANTS = {
     # A: 카메라를 조금 높여 땅의 마법진·금이 더 보임 + 밝은 낮 하늘(하늘색)
-    "a": dict(BASE, seed=7, elev=26, base_y=0.86, top_y=0.02, fov=56, circle=21, crater=17, cracks=26,
+    "a": dict(BASE, seed=7, elev=26, base_y=0.9, top_y=0.15, fov=56, circle=21, crater=17, cracks=26,
               sky=[(0, (40, 128, 232)), (0.5, (110, 190, 250)), (1, (200, 236, 255))],
               lines=(18, 44, 110), lines_alpha=0.35, cloud_shade=(186, 220, 250), haze=(200, 245, 245), haze_k=0.5,
               grass=[0.4, 0.74, 0.24]),

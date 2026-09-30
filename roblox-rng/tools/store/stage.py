@@ -266,11 +266,20 @@ def _hash(obj) -> str:
     return hashlib.sha1(json.dumps(obj, sort_keys=True).encode()).hexdigest()[:16]
 
 
+def _code_digest() -> str:
+    """덤프에 영향을 주는 코드(게임 src·world_preview·스토어 hook)의 해시 — 확률·수입·간판 글자가 바뀌면 캐시도 새로."""
+    h = hashlib.sha1()
+    files = sorted((ROOT / "src").rglob("*.luau")) + sorted((ROOT / "tools/world_preview").glob("*.luau"))
+    files += sorted((ROOT / "tools/store").glob("*.luau"))
+    for path in files:
+        h.update(str(path.relative_to(ROOT)).encode())
+        h.update(path.read_bytes())
+    return h.hexdigest()[:16]
+
+
 def world_dump(stage: dict, players: int = 8, hook: str = "tools/store/stage_hook.luau") -> Path:
-    """무대를 올린 맵 덤프(JSON) 경로. 같은 무대면 캐시. hook = 다른 world.luau hook(예: park_hook.luau — 배치 모드)."""
-    default = hook == "tools/store/stage_hook.luau"
-    key = _hash({"stage": stage, "players": players, "v": 1} if default else
-                {"stage": stage, "players": players, "hook": hook, "src": (ROOT / hook).read_text(), "v": 1})
+    """무대를 올린 맵 덤프(JSON) 경로. 같은 무대·같은 코드면 캐시. hook = 다른 world.luau hook(예: park_hook.luau — 배치 모드)."""
+    key = _hash({"stage": stage, "players": players, "hook": hook, "code": _code_digest(), "v": 2})
     out = CACHE / "dumps" / f"{key}.json"
     if out.exists():
         return out

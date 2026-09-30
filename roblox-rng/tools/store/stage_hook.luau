@@ -32,6 +32,43 @@ local function cframeOf(list: { number }): CFrame
 	)
 end
 
+-- 샘플 플레이어 간판 이름(영어 — 로블록스 표시 이름처럼). 부지 간판(SurfaceGui)은 렌더러가 글자까지 그림
+local SIGN_NAMES = { "TravelKing", "Explorer", "LuckyLeo", "Nova", "MapMaster", "Wanderer", "Globetrotter", "Mochi" }
+
+local function hasHangul(text: string): boolean
+	for _, code in utf8.codes(text) do
+		if
+			(code >= 0xAC00 and code <= 0xD7A3)
+			or (code >= 0x1100 and code <= 0x11FF)
+			or (code >= 0x3130 and code <= 0x318F)
+		then
+			return true
+		end
+	end
+	return false
+end
+
+-- 게임 간판에 쓰는 한국어 글자 → 스토어 그림용 영어(ParkService 의 빈 부지 말뚝 간판)
+local ENGLISH = { ["빈 부지"] = "EMPTY PLOT" }
+
+-- 그려지는 글자(켜진 SurfaceGui 안의 글자): 아는 한국어는 영어로 바꾸고, 그래도 한글이 남으면 멈춤.
+-- BillboardGui(명소 이름표)는 렌더러가 그리지 않음
+local function englishOnly(root: any)
+	for _, gui in root:GetDescendants() do
+		if gui:IsA("SurfaceGui") and gui.Enabled ~= false then
+			for _, label in gui:GetDescendants() do
+				local isText = label:IsA("TextLabel") or label:IsA("TextButton") or label:IsA("TextBox")
+				local text = if isText then label.Text else nil
+				if type(text) == "string" and ENGLISH[text] then
+					label.Text = ENGLISH[text]
+				elseif type(text) == "string" and hasHangul(text) then
+					error("스토어 그림에 한글 글자: " .. label:GetFullName() .. " = " .. text)
+				end
+			end
+		end
+	end
+end
+
 return function(ctx: any): any
 	local Mock, Harness, shared, server, opts = ctx.Mock, ctx.Harness, ctx.shared, ctx.server, ctx.opts
 	local path = opts.stage
@@ -149,5 +186,23 @@ return function(ctx: any): any
 	for key, value in stage.lighting or {} do
 		Mock.Lighting[key] = value
 	end
+
+	-- 스토어 그림에는 한글을 넣지 않음(전 세계 스토어용): 샘플 플레이어 간판 이름을 영어로 바꿔 다시 전시
+	local ParkService = Harness.require(server.ParkService)
+	for i, sample in ctx.samples or {} do
+		sample.Player.DisplayName = SIGN_NAMES[(i - 1) % #SIGN_NAMES + 1]
+		local ok, err = Mock.run(function()
+			ParkService.update(sample.Player, sample.Data)
+		end)
+		if not ok then
+			ctx.note("간판 이름 바꾸기 실패(" .. i .. "): " .. tostring(err))
+		end
+	end
+	Mock.runScheduler(Mock.clock() + 1)
+	-- park_hook 처럼 뒤에 간판을 더 만드는 hook 은 마지막에 한 번 더 부름
+	ctx.englishOnly = function()
+		englishOnly(Mock.Workspace)
+	end
+	ctx.englishOnly()
 	return nil
 end
