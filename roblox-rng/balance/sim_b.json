@@ -14,7 +14,7 @@
   "server_luck_duty": 0.0,
   "paid_coinpacks_per_day": 0.0,
   "rtt": null,
-  "out": "balance/sim_b.md",
+  "out": "/home/user/nai-cg-maker/roblox-rng/balance/sim_b.md",
   "json": null,
   "check": false,
   "sensitivity": true,
@@ -194,7 +194,7 @@
     "tier6_s": 4836.451011802773,
     "tier7_s": 81282.20152342561,
     "rarest_s": 7017230.986734931,
-    "announce_per_h": 0.7886375935683532,
+    "announce_per_h": 0.7886375935683531,
     "hologram_per_h": 0.04429013895449763
    },
    "endgame_max": {
@@ -203,7 +203,7 @@
     "tier6_s": 4836.451011802774,
     "tier7_s": 81282.20152342561,
     "rarest_s": 7017230.986734931,
-    "announce_per_h": 0.7886375935683532,
+    "announce_per_h": 0.7886375935683531,
     "hologram_per_h": 0.04429013895449763
    }
   },
@@ -562,7 +562,7 @@
     "tier6_s": 4836.451011802773,
     "tier7_s": 81282.20152342561,
     "rarest_s": 7017230.986734931,
-    "announce_per_h": 0.7886375935683532,
+    "announce_per_h": 0.7886375935683531,
     "hologram_per_h": 0.04429013895449763
    },
    "endgame_max": {
@@ -571,7 +571,7 @@
     "tier6_s": 4836.451011802774,
     "tier7_s": 81282.20152342561,
     "rarest_s": 7017230.986734931,
-    "announce_per_h": 0.7886375935683532,
+    "announce_per_h": 0.7886375935683531,
     "hologram_per_h": 0.04429013895449763
    }
   },
@@ -745,7 +745,7 @@
     "tier6_s": 659.3351382571919,
     "tier7_s": 11080.896187826871,
     "rarest_s": 956632.6530612239,
-    "announce_per_h": 5.784929190095021,
+    "announce_per_h": 5.78492919009502,
     "hologram_per_h": 0.32488346961997966
    },
    "endgame_max": {
@@ -754,7 +754,7 @@
     "tier6_s": 659.3351382571919,
     "tier7_s": 11080.896187826871,
     "rarest_s": 956632.6530612239,
-    "announce_per_h": 5.784929190095021,
+    "announce_per_h": 5.78492919009502,
     "hologram_per_h": 0.32488346961997966
    }
   },
