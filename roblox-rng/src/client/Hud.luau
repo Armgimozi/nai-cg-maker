@@ -385,10 +385,13 @@ local function buildMenu(onMenu: (string) -> (), onTeleport: () -> (), onArrange
 			onMenu(entry.Id)
 		end)
 		if entry.Id == "Collection" then
-			-- 받은 대륙 도장 수 "1/5" 배지 (오른쪽 위)
+			-- 받은 대륙 도장 수 [여권] "1/5" 배지 (오른쪽 위). 여권 아이콘 = 도감 [전체] 머리 줄 도장 딱지와 같은 그림 —
+			-- 예전 여권 버튼을 찾는 사람에게 "도장은 도감 안에" 라는 표시
 			refs.StampBadge = Ui.chip({
 				Name = "Stamps",
 				Color = Theme.Ink,
+				Icon = "passport",
+				IconSize = 28,
 				Height = 24,
 				TextSize = 15,
 				AnchorPoint = Vector2.new(0.5, 0.5),
@@ -1219,6 +1222,26 @@ local function showRibbon(tier: Landmarks.Tier)
 end
 
 -- 알림 줄에 딱지 하나(오래된 것부터 밀려남) — Hud.toast · 배치 모드 굴림 결과가 같이 씀
+-- 알림 딱지 치우기: 0.16초 쪼그라든 뒤 지움(시간이 다 됐을 때 · 누른 도장 알림). 이미 치우는 중이거나 밀려나 지워졌으면 그대로
+local function dismissToast(box: GuiObject)
+	if not box.Parent or box:GetAttribute("Leaving") then
+		return
+	end
+	box:SetAttribute("Leaving", true)
+	local scale = box:FindFirstChild("Pop")
+	if scale then
+		TweenService:Create(scale, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Scale = 0 })
+			:Play()
+	end
+	task.delay(0.18, function()
+		local index = table.find(toasts, box)
+		if index then
+			table.remove(toasts, index)
+		end
+		box:Destroy()
+	end)
+end
+
 local function pushToast(text: string, color: Color3?, seconds: number?, icon: string?): Ui.Chip
 	toastOrder += 1
 	while #toasts >= MAX_TOASTS do
@@ -1242,23 +1265,11 @@ local function pushToast(text: string, color: Color3?, seconds: number?, icon: s
 	})
 	local box = chip.Root
 	table.insert(toasts, box)
-	local scale = Ui.new("UIScale", { Scale = 0.4, Parent = box })
+	local scale = Ui.new("UIScale", { Name = "Pop", Scale = 0.4, Parent = box })
 	TweenService:Create(scale, TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
 		:Play()
 
-	task.delay(seconds or 3, function()
-		if not box.Parent then
-			return -- 이미 밀려나서 지워짐
-		end
-		TweenService:Create(scale, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Scale = 0 })
-			:Play()
-		task.wait(0.18)
-		local index = table.find(toasts, box)
-		if index then
-			table.remove(toasts, index)
-		end
-		box:Destroy()
-	end)
+	task.delay(seconds or 3, dismissToast, box)
 	return chip
 end
 
@@ -1531,8 +1542,23 @@ function Hud.toast(text: string, color: Color3?, seconds: number?, icon: string?
 	pushToast(text, color, seconds, icon)
 end
 
--- 대륙 도장을 새로 받음: [도장 그림] "도장 +25%"(대륙 색) 알림 + 행운 소리. 알림을 누르면 onOpen(도감의 그 대륙 탭 열기)
-function Hud.stampToast(region: Landmarks.Region, onOpen: () -> ())
+-- 도장 알림을 누름: 딱지 위에서 눌렀다가 딱지 안에서 뗐을 때만(버튼처럼 — 딱지에서 시작한 끌기·밖에서 떼면 안 열림)
+local function isPress(input: InputObject): boolean
+	local kind = input.UserInputType
+	return kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch
+end
+local function inside(box: GuiObject, position: Vector3): boolean
+	local at, size = box.AbsolutePosition, box.AbsoluteSize
+	return position.X >= at.X and position.X <= at.X + size.X and position.Y >= at.Y and position.Y <= at.Y + size.Y
+end
+
+-- 대륙 도장을 새로 받음: 행운 소리 + onOpen 이 있으면 [도장 그림] "도장 +25%" [→](대륙 색, 5초) 알림 — 누르면 알림은 바로 쪼그라들어
+-- 사라지고 onOpen(도감의 그 대륙 탭 열기). onOpen 이 없으면(도감이 이미 열려 있어 탭 체크가 대신 톡 튐) 소리만
+function Hud.stampEarned(region: Landmarks.Region, onOpen: (() -> ())?)
+	play(luckSound)
+	if not onOpen then
+		return
+	end
 	local art = "stamp_" .. string.lower(region.Id)
 	local bonus = math.floor(Config.REGION_LUCK_BONUS * 100 + 0.5)
 	local chip =
@@ -1540,15 +1566,42 @@ function Hud.stampToast(region: Landmarks.Region, onOpen: () -> ())
 	local box = chip.Root
 	box.Name = "StampToast"
 	box:SetAttribute("Region", region.Id)
+	-- 끝에 "가기" 화살표(오른쪽으로 돌린 arrow_up): 누를 수 없는 다른 알림(도감 +N 등)과 달리 누르면 간다는 표시
+	local go = Icons.view(box, "arrow_up", {
+		Size = UDim2.fromOffset(30, 30),
+		LayoutOrder = 3,
+		Rotation = 90,
+		ZIndex = 3,
+	})
+	go.Name = "Go"
 	-- 딱지 안은 UIListLayout 이라 버튼을 넣지 않고 딱지 자체의 입력을 받음(Active = 뒤 3D 화면으로 안 넘김)
 	box.Active = true
+	local pressing = false
 	box.InputBegan:Connect(function(input: InputObject)
-		local kind = input.UserInputType
-		if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
+		if isPress(input) then
+			pressing = true
+		end
+	end)
+	box.InputEnded:Connect(function(input: InputObject)
+		if not isPress(input) then
+			return
+		end
+		local pressed = pressing
+		pressing = false
+		if pressed and not box:GetAttribute("Leaving") and inside(box, input.Position) then
+			dismissToast(box)
 			onOpen()
 		end
 	end)
-	play(luckSound)
+end
+
+-- 도장 알림 모두 치우기(도감이 열렸을 때 — 알림이 도감 탭 줄·제목 리본을 가리지 않게)
+function Hud.clearStampToasts()
+	for _, box in table.clone(toasts) do
+		if box.Name == "StampToast" then
+			dismissToast(box)
+		end
+	end
 end
 
 -- 서버 전체 "속보": 신문 띠가 오른쪽에서 밀려 들어와 잠시 머문 뒤 쏙 사라짐

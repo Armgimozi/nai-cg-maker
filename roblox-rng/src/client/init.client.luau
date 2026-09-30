@@ -93,6 +93,7 @@ end
 local function openStampRegion(regionId: string)
 	ParkEdit.exit()
 	Panels.open("Collection", regionId)
+	Hud.clearStampToasts()
 end
 
 -- 서버 상태 반영. Revision 이 더 큰 것만 받아서 늦게 도착한 옛 상태가 덮어쓰지 않게 함.
@@ -116,12 +117,18 @@ local function applyState(snapshot: any, receivedAt: number?)
 	if added > 0 then
 		Hud.toast("도감 +" .. added, Ui.colorPair("Sky").Face, 3, "album")
 	end
-	-- 대륙 도장을 새로 받음(굴림 연출이 끝난 뒤 · 자동 발견): [도장 그림] "도장 +25%" — 누르면 도감의 그 대륙 탭
+	-- 대륙 도장을 새로 받음(굴림 연출이 끝난 뒤 · 자동 발견): 행운 소리 +
+	--   도감이 열려 있으면 알림 없이 그 대륙 탭 체크가 톡(Panels.stampEarned — 알림이 탭 줄·제목 리본을 가리지 않게)
+	--   아니면 [도장 그림] "도장 +25%" 알림(누르면 도감의 그 대륙 탭) + 다음에 도감을 열면 그 탭으로 한 번(도장 쾅)
 	if previous then
 		for _, region in newStamps(previous, snapshot) do
-			Hud.stampToast(region, function()
-				openStampRegion(region.Id)
-			end)
+			if Panels.stampEarned(region.Id) then
+				Hud.stampEarned(region, nil)
+			else
+				Hud.stampEarned(region, function()
+					openStampRegion(region.Id)
+				end)
+			end
 		end
 	end
 end
@@ -541,6 +548,9 @@ local gui = Hud.init(playerGui, {
 	Menu = function(name: string)
 		ParkEdit.exit() -- 다른 창을 열면 배치 모드 끝
 		Panels.toggle(name)
+		if Panels.current() == "Collection" then
+			Hud.clearStampToasts() -- 도감을 열었으면 도장 알림은 할 일을 다 함(탭 줄을 가리지 않게)
+		end
 	end,
 	Teleport = function()
 		task.spawn(teleport)

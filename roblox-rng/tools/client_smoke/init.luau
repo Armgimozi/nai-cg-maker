@@ -1089,6 +1089,10 @@ do
 	local _, kept = Panels.current()
 	check(kept == region.Id, "상태가 바뀌어도 고른 탭 유지")
 	openMenu("Upgrade")
+	check(
+		window.Visible and not tabs.Visible and not findNamed(window, "CollectionHeader").Visible,
+		"강화 창에는 도감 탭 줄·머리 줄 안 보임"
+	)
 	openMenu("Collection")
 	local _, back = Panels.current()
 	check(back == region.Id, "다른 창에 갔다 와도(창은 열린 채) 탭 유지")
@@ -1099,29 +1103,127 @@ do
 	check(reopened == "All" and visibleCards()[1] == all[1], "닫았다 열면 [전체]부터")
 	Panels.close()
 
-	-- 도장 알림: 대륙 하나를 다 모으면(자동 발견 포함) [도장] "도장 +25%" — 누르면 도감이 그 대륙 탭으로 열림
-	local target
+	-- 도장 머리 줄 도장 그림: 받으면 진하게(투명 0), 아직이면 회색 + 흐리게(Panels FADED_STAMP_TRANSPARENCY 0.4 — 크림 바탕에서도 보임)
+	local function stampArt(regionId: string): any
+		local header = findNamed(findNamed(window, "CollectionHeader"), regionId)
+		local stamp = header and findNamed(header, "Stamp")
+		return stamp and findNamed(stamp, "Icon")
+	end
+	-- 대륙 탭: 도장이 아직이면 아래 발견 막대(regionProgress), 받았으면 막대 대신 체크
+	local function tabLooksRight(regionId: string): (boolean, string)
+		local button = findNamed(tabs, "Tab" .. regionId)
+		local strip, mark = findNamed(button, "Strip"), findNamed(button, "Stamped")
+		local got, need = PlayerState.regionProgress(data, regionId)
+		if got >= need then
+			return mark.Visible and not strip.Visible, "체크"
+		end
+		local fill = findNamed(strip, "Fill")
+		local ratio = fill.Size.X.Scale
+		return strip.Visible and not mark.Visible and math.abs(ratio - got / need) < 1e-6,
+			string.format("막대 %d/%d", got, need)
+	end
+	local function stampToasts(regionId: string?): { any }
+		local list = {}
+		for _, d in gui:GetDescendants() do
+			if d.Name == "StampToast" and (regionId == nil or d:GetAttribute("Region") == regionId) then
+				table.insert(list, d)
+			end
+		end
+		return list
+	end
+	-- 도장이 아직인 대륙 하나를 다 모음(도장 조건 명소만 Discovered — 자동 발견과 같음)
+	local added = {}
+	local function complete(regionId: string)
+		for _, landmark in Landmarks.ByRegion[regionId] do
+			if PlayerState.countsForStamp(landmark) and not PlayerState.isDiscovered(data, landmark.Id) then
+				data.Discovered[landmark.Id] = true
+				table.insert(added, landmark.Id)
+			end
+		end
+	end
+	local open = {}
 	for _, candidate in Landmarks.Regions do
 		local got, need = PlayerState.regionProgress(data, candidate.Id)
 		if got < need then
-			target = candidate
-			break
+			table.insert(open, candidate)
 		end
 	end
-	local added = {}
-	for _, landmark in Landmarks.ByRegion[target.Id] do
-		if PlayerState.countsForStamp(landmark) and not PlayerState.isDiscovered(data, landmark.Id) then
-			data.Discovered[landmark.Id] = true
-			table.insert(added, landmark.Id)
+	check(#open >= 3, "도장이 아직인 대륙 3개 이상 (" .. #open .. ")")
+	local target, second, third = open[1], open[2], open[3]
+
+	-- 탭 줄 발견 막대 · 도장 그림(아직) · 전체 탭 도장 행운 딱지
+	openMenu("Collection")
+	local stripsRight = true
+	local stripNotes = {}
+	for _, region in Landmarks.Regions do
+		local ok, note = tabLooksRight(region.Id)
+		stripsRight = stripsRight and ok
+		table.insert(stripNotes, region.Id .. " " .. note)
+	end
+	check(
+		stripsRight,
+		"대륙 탭 = 도장 아직이면 발견 막대(regionProgress), 받았으면 체크 ("
+			.. table.concat(stripNotes, " · ")
+			.. ")"
+	)
+	local bonusText = badgeText(allHeader, "StampBonus")
+	check(
+		bonusText == string.format("+%d%%", math.max(stamps, 1) * math.floor(Config.REGION_LUCK_BONUS * 100 + 0.5)),
+		"[전체] 도장 행운 = 도장 수 × 25% (도장 없으면 회색 +25%, +0% 아님) ("
+			.. tostring(bonusText)
+			.. ")"
+	)
+	pickTab(target.Id)
+	local faded = stampArt(target.Id)
+	check(
+		faded ~= nil and faded:GetAttribute("Transparency") == 0.4,
+		"도장 아직 = 머리 줄 도장 흐리게 0.4 ("
+			.. tostring(faded and faded:GetAttribute("Transparency"))
+			.. ")"
+	)
+	-- 도장에 안 세는 못 찾은 명소(불가사의보다 희귀) = 자물쇠 대신 전설 도장 그림, 세는 명소 = 자물쇠.
+	-- 가짜 데이터는 희귀 명소를 다 가지고 시작해서, 대표가 아닌 보너스 명소 하나를 잠깐 못 찾은 것으로
+	local hidden
+	for _, landmark in Landmarks.List do
+		if not PlayerState.countsForStamp(landmark) and data.Featured ~= landmark.Id then
+			hidden = landmark
 		end
 	end
+	local wasDiscovered = hidden and data.Discovered[hidden.Id]
+	local wasOwned = hidden and data.Inventory[hidden.Id]
+	if hidden then
+		data.Discovered[hidden.Id] = nil
+		data.Inventory[hidden.Id] = nil
+		pickTab(hidden.Region)
+		refresh()
+	end
+	local bonusRight, bonusCards = true, 0
+	for _, card in visibleCards() do
+		if card:GetAttribute("Unknown") == true then
+			local counts = PlayerState.countsForStamp(Landmarks.ById[card.Name])
+			if (card:GetAttribute("Bonus") == true) == counts then
+				bonusRight = false
+			end
+			if not counts then
+				bonusCards += 1
+			end
+		end
+	end
+	check(
+		bonusRight and bonusCards > 0,
+		"못 찾은 보너스 명소(" .. bonusCards .. "개)만 전설 도장 그림, 나머지는 자물쇠"
+	)
+	if hidden then
+		data.Discovered[hidden.Id] = wasDiscovered
+		data.Inventory[hidden.Id] = wasOwned
+		refresh()
+	end
+	Panels.close()
+
+	-- 도장 알림: 대륙 하나를 다 모으면(자동 발견 포함) [도장] "도장 +25%" — 누르면 도감이 그 대륙 탭으로 열림
+	complete(target.Id)
 	refresh()
-	local toast
-	for _, d in gui:GetDescendants() do
-		if d.Name == "StampToast" and d:GetAttribute("Region") == target.Id then
-			toast = d
-		end
-	end
+	local toast = stampToasts(target.Id)[1]
 	check(
 		toast ~= nil
 			and findNamed(toast, "Label").Text
@@ -1129,15 +1231,46 @@ do
 		target.Id .. " 도장 = 알림 [도장] 도장 +25%"
 	)
 	check(
-		badgeText(findNamed(menu, "Collection"), "Stamps") == string.format("%d/%d", stamps + 1, #Landmarks.Regions),
-		"도감 버튼 배지 +1 (" .. tostring(badgeText(findNamed(menu, "Collection"), "Stamps")) .. ")"
+		toast ~= nil and findNamed(toast, "Go") ~= nil,
+		"도장 알림 끝에 가기 화살표(누를 수 있는 알림)"
 	)
-	-- 배치 모드 중에 눌러도: 배치 모드를 끝내고 도감을 그 대륙 탭으로
+	local badgeAfter = badgeText(findNamed(menu, "Collection"), "Stamps")
+	check(
+		badgeAfter == string.format("%d/%d", stamps + 1, #Landmarks.Regions),
+		"도감 버튼 배지 +1 (" .. tostring(badgeAfter) .. ")"
+	)
+	-- 상태가 또 와도(AUTO 면 굴릴 때마다) 이미 받은 도장은 다시 알리지 않음
+	refresh()
+	refresh()
+	check(
+		#stampToasts(nil) == 1 and badgeText(findNamed(menu, "Collection"), "Stamps") == badgeAfter,
+		"같은 도장은 한 번만 알림 (" .. #stampToasts(nil) .. "개)"
+	)
+
+	-- 누름 = 알림 위에서 눌렀다 알림 안에서 뗌(버튼처럼). 밖에서 떼거나(끌기) 뗌만 오면 안 열림
+	if toast then
+		toast.__props.AbsolutePosition = Vector2.new(520, 60)
+		toast.__props.AbsoluteSize = Vector2.new(240, 40)
+		local onToast, offToast = Vector2.new(600, 36 + 80), Vector2.new(900, 36 + 400)
+		toast.InputBegan:Fire(input("MouseButton1", onToast), false)
+		frame()
+		check(not window.Visible, "누르는 순간에는 안 열림")
+		toast.InputEnded:Fire(input("MouseButton1", offToast), false)
+		frame()
+		check(not window.Visible, "알림에서 누르고 밖에서 떼면 안 열림(끌기)")
+		toast.InputEnded:Fire(input("Touch", onToast), false)
+		frame()
+		check(not window.Visible, "누르지 않고 뗌만 오면 안 열림")
+	end
+	-- 배치 모드 중에 눌러도: 배치 모드를 끝내고 도감을 그 대륙 탭으로, 알림은 바로 쪼그라들어 사라짐
 	ParkEdit.enter(nil)
 	Mock.runScheduler(Mock.clock() + 3)
 	local wasEditing = ParkEdit.isEditing()
 	if toast then
-		toast.InputBegan:Fire(E.input("MouseButton1"), false)
+		local at = Vector2.new(600, 36 + 80)
+		toast.InputBegan:Fire(input("Touch", at), false)
+		frame()
+		toast.InputEnded:Fire(input("Touch", at), false)
 		frame()
 	end
 	local openName, stampTab = Panels.current()
@@ -1152,6 +1285,12 @@ do
 			.. ")"
 	)
 	check(wasEditing and not ParkEdit.isEditing(), "배치 모드 중이면 먼저 나감")
+	check(toast ~= nil and toast:GetAttribute("Leaving") == true, "누른 알림은 바로 치움(쪼그라듦)")
+	Mock.runScheduler(Mock.clock() + 0.3)
+	check(
+		#stampToasts(nil) == 0,
+		"도감이 열린 뒤 도장 알림이 탭 줄을 가리지 않음 (" .. #stampToasts(nil) .. "개)"
+	)
 	local stampHeader = findNamed(findNamed(window, "CollectionHeader"), target.Id)
 	local got, need = PlayerState.regionProgress(data, target.Id)
 	check(
@@ -1164,16 +1303,70 @@ do
 	local bonus = findNamed(stampHeader, "Bonus")
 	local grass = Ui.colorPair("Grass").Face
 	check(bonus.ImageColor3 == grass or bonus.BackgroundColor3 == grass, "받은 도장 = +25% 초록")
-	local tabButton = findNamed(tabs, "Tab" .. target.Id)
+	local inked = stampArt(target.Id)
 	check(
-		tabButton:GetAttribute("Selected") == true and findNamed(tabButton, "Stamped").Visible,
-		"그 대륙 탭 = 고름 + 도장 체크"
+		inked ~= nil and inked:GetAttribute("Transparency") == 0,
+		"받은 도장 = 머리 줄 도장 진하게(투명 0) ("
+			.. tostring(inked and inked:GetAttribute("Transparency"))
+			.. ")"
+	)
+	local slam = findNamed(stampHeader, "Slam")
+	check(slam ~= nil and slam.Scale == 1, "알림으로 열면 도장 쾅(크게 → 제자리)")
+	local tabButton = findNamed(tabs, "Tab" .. target.Id)
+	local stampedOk, stampedNote = tabLooksRight(target.Id)
+	check(
+		tabButton:GetAttribute("Selected") == true and stampedOk,
+		"그 대륙 탭 = 고름 + 막대 대신 체크 (" .. stampedNote .. ")"
 	)
 	Panels.close()
+	openMenu("Collection")
+	local _, afterStamp = Panels.current()
+	check(afterStamp == "All", "알림으로 한 번 연 뒤에는 다시 [전체]부터")
+	Panels.close()
+
+	-- 알림을 안 눌러도(게임패드 · 놓침): 도장을 받은 뒤 처음 도감을 열면 그 대륙 탭으로 한 번 + 도장 쾅, 알림은 치움
+	complete(second.Id)
+	refresh()
+	check(#stampToasts(second.Id) == 1, second.Id .. " 도장 알림")
+	openMenu("Collection")
+	local _, pendingTab = Panels.current()
+	local secondHeader = findNamed(findNamed(window, "CollectionHeader"), second.Id)
+	check(
+		pendingTab == second.Id and findNamed(secondHeader, "Slam") ~= nil,
+		"도장 받은 뒤 처음 연 도감 = " .. second.Id .. " 탭 + 도장 쾅 (" .. tostring(pendingTab) .. ")"
+	)
+	Mock.runScheduler(Mock.clock() + 0.3)
+	check(#stampToasts(nil) == 0, "메뉴로 도감을 열어도 도장 알림 치움")
+	openMenu("Collection") -- 닫기
+	openMenu("Collection")
+	local _, onceTab = Panels.current()
+	check(onceTab == "All", "그 탭으로는 한 번만(다음엔 [전체])")
+
+	-- 도감이 열려 있을 때 받으면: 알림 없이(탭 줄·리본을 가리지 않게) 그 대륙 탭 체크가 톡, 보던 탭은 그대로
+	complete(third.Id)
+	refresh()
+	local _, stayTab = Panels.current()
+	local pop = findNamed(findNamed(tabs, "Tab" .. third.Id), "Pop")
+	check(#stampToasts(nil) == 0, "도감이 열려 있으면 도장 알림 없음 (" .. #stampToasts(nil) .. "개)")
+	check(
+		pop ~= nil and pop.Scale == 1 and stayTab == "All",
+		third.Id .. " 탭 체크가 톡(보던 [전체] 탭 그대로)"
+	)
+	check(
+		badgeText(findNamed(menu, "Collection"), "Stamps") == string.format("%d/%d", stamps + 3, #Landmarks.Regions),
+		"도감 버튼 배지 = 도장 3개 더"
+	)
+	Panels.close()
+	openMenu("Collection")
+	local _, noPending = Panels.current()
+	check(noPending == "All", "열려 있을 때 받은 도장은 다음 열기에 끌고 가지 않음")
+	Panels.close()
+
 	for _, id in added do
 		data.Discovered[id] = nil
 	end
 	refresh()
+	check(#stampToasts(nil) == 0, "도장이 줄어도 알림 없음")
 end
 
 print("\n[상점: 카드 6개 · Robux 가격 · 보유 도장 · 구매 원격]")

@@ -40,14 +40,19 @@ local REGION_BONUS = math.floor(Config.REGION_LUCK_BONUS * 100 + 0.5)
 local HEADER_HEIGHT = 50 -- 창 본문 맨 위 딱지 줄 높이
 
 -- 도감 대륙 탭: [전체] + 대륙마다 하나(예전 여권 창을 합침). 탭 = 세로 통통 버튼(왼쪽 메뉴 버튼처럼 아이콘 위 · 이름 아래),
--- 대륙 아이콘은 도장 그림. 여섯 개가 본문 폭을 똑같이 나눔(휴대폰 배율 0.55 에서 앞면 약 63×37px, 이름 10px)
+-- 대륙 아이콘은 도장 그림. 여섯 개가 본문 폭을 똑같이 나눔(휴대폰 배율 0.55 에서 앞면 약 63×37px, 이름 10px).
+-- 도장이 아직인 대륙 탭은 앞면 아래 끝에 가는 발견 막대(예전 여권의 대륙별 한눈 보기), 받으면 막대 대신 도장 그림 옆 체크
 local TAB_HEIGHT = 74 -- 앞면 68 + 그림자 6
 local TAB_GAP = 6 -- 탭 줄 ~ 머리 줄
 local TAB_SPACING = 8 -- 탭 사이
-local TAB_ICON = 50 -- 도장 그림은 둘레가 비어 있어 크게, 앞면 위 끝에 붙임
-local TAB_LABEL_Y = 45 -- 이름 칸 위 끝(아이콘 그림 아래 빈 곳과 조금 겹침)
+local TAB_ICON = 44 -- 도장 그림, 앞면 위 끝에 붙임(3)
+local TAB_LABEL_Y = 37 -- 이름 칸 위 끝(도장 그림 아래 테두리와 조금 겹침), 아래 막대와 안 닿게
 local TAB_LABEL_HEIGHT = 20
 local TAB_TEXT = 19
+local TAB_STRIP = 5 -- 발견 막대 높이
+local TAB_STRIP_X = 14 -- 막대 좌우 여백
+local TAB_STRIP_BOTTOM = 4 -- 막대 ~ 앞면 아래 끝
+local TAB_CHECK = 22 -- 도장 받은 대륙 체크 (도장 그림 오른쪽 위, 앞면 안)
 local COLLECTION_TOP = TAB_HEIGHT + TAB_GAP + HEADER_HEIGHT
 local ALL_TAB = "All"
 
@@ -63,7 +68,8 @@ local WHITE = Color3.new(1, 1, 1)
 local FEATURED_BG = Color3.fromRGB(255, 218, 128)
 local DIM_CHIP = Color3.fromRGB(172, 170, 190) -- 아직 못 받은 보너스 딱지
 local UNKNOWN_BG = Color3.fromRGB(58, 53, 80) -- 도감 대륙 탭의 못 찾은 명소 카드
-local FADED_STAMP = Color3.fromRGB(150, 146, 160) -- 아직 못 받은 도장(흐릿한 자국)
+local FADED_STAMP = Color3.fromRGB(150, 146, 160) -- 아직 못 받은 도장(회색으로 물들인 자국)
+local FADED_STAMP_TRANSPARENCY = 0.4 -- 크림 바탕에서도 도장 테두리가 보일 만큼만 흐리게
 
 local WINDOW_SIZE = Vector2.new(760, 500)
 local BODY_WIDTH = WINDOW_SIZE.X - 36 -- 창 본문 폭(Ui.window: 좌우 18)
@@ -173,6 +179,8 @@ do
 	end
 end
 local collectionTab = ALL_TAB -- 고른 탭("All" 또는 대륙 Id). 창이 열려 있는 동안 유지, 닫으면 전체로
+-- 도감이 닫혀 있을 때 새로 받은 도장의 대륙: 다음에 도감을 열면(탭을 안 정했으면) 그 탭으로 한 번 + 도장 쾅(Panels.stampEarned)
+local pendingStamp: string? = nil
 
 -- 도감 머리 줄 (전체 탭)
 local allRow: Frame
@@ -204,7 +212,7 @@ type Stamp = {
 	Art: Frame?, -- 도장 그림 아이콘(그림이 있을 때)
 	Color: Color3,
 }
-type TabButton = { Button: Ui.ChunkyButton, Stamped: Frame? }
+type TabButton = { Button: Ui.ChunkyButton, Stamped: Frame?, Strip: Frame?, StripFill: Frame? }
 local tabButtons: { [string]: TabButton } = {}
 type RegionHeader = { Frame: Frame, Stamp: Stamp, Fill: Frame, Count: TextLabel, Check: Frame, Bonus: Ui.Chip }
 local regionHeaders: { [string]: RegionHeader } = {}
@@ -343,8 +351,10 @@ local function photo(parent: GuiObject, landmark: Landmark, position: UDim2, siz
 	return frame
 end
 
--- 버튼 오른쪽 위 숫자 배지 (도감 버튼의 도장 "1/5" 배지와 같은 모양: Ink 딱지 + Sun 숫자, 살짝 기울임)
-local function countBadge(button: Ui.ChunkyButton, name: string): Ui.Chip
+-- 버튼 숫자 배지 (도감 버튼의 도장 "1/5" 배지와 같은 모양: Ink 딱지 + Sun 숫자, 살짝 기울임). 도감 머리 줄 버튼은 오른쪽 아래
+-- (BADGE_LOW — 오른쪽 위에 두면 바로 위 탭 줄을 가림)
+local BADGE_LOW = UDim2.new(1, -6, 1, -4)
+local function countBadge(button: Ui.ChunkyButton, name: string, position: UDim2): Ui.Chip
 	return Ui.chip({
 		Name = name,
 		Color = Theme.Ink,
@@ -352,7 +362,7 @@ local function countBadge(button: Ui.ChunkyButton, name: string): Ui.Chip
 		Height = 24,
 		TextSize = 15,
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(1, -6, 0, 2),
+		Position = position,
 		Rotation = 8,
 		ZIndex = 6,
 		Visible = false,
@@ -431,7 +441,7 @@ local function paintStamp(stamp: Stamp, complete: boolean)
 	local art = stamp.Art
 	if art then
 		Icons.setColor(art, if complete then WHITE else FADED_STAMP)
-		Icons.setTransparency(art, if complete then 0 else 0.75)
+		Icons.setTransparency(art, if complete then 0 else FADED_STAMP_TRANSPARENCY)
 		return
 	end
 	stamp.Frame.BackgroundTransparency = if complete then 0 else 0.8
@@ -600,7 +610,8 @@ local function collectionCard(parent: ScrollingFrame, landmark: Landmark): Colle
 end
 
 -- 대륙 탭의 아직 못 찾은 명소: 아는 카드와 같은 자리(확률 띠 · 사진 칸 · 이름 줄)의 어두운 카드 + 사진 칸에 자물쇠
--- (그림이 없으면 "?"), 이름 대신 "???". 3D 모형은 만들지 않음(가볍게)
+-- (그림이 없으면 "?"), 이름 대신 "???". 도장에 안 세는 명소(불가사의보다 희귀 — 보너스 수집)는 자물쇠 대신 전설 도장 그림
+-- (stamp_legend) — 막대가 다 차 체크가 떴는데 아래에 자물쇠가 남아 "덜 모은" 것처럼 보이지 않게. 3D 모형은 만들지 않음(가볍게)
 local function unknownCard(parent: ScrollingFrame, landmark: Landmark): Frame
 	local card = Ui.new("Frame", {
 		Name = landmark.Id,
@@ -620,7 +631,16 @@ local function unknownCard(parent: ScrollingFrame, landmark: Landmark): Frame
 	})
 	Ui.corner(8).Parent = hole
 	Ui.stroke(Theme.Ink, 2).Parent = hole
-	if Icons.imageId("lock") then
+	local bonus = not PlayerState.countsForStamp(landmark)
+	if bonus and Icons.imageId("stamp_legend") then
+		card:SetAttribute("Bonus", true)
+		Icons.view(hole, "stamp_legend", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromOffset(66, 66),
+			Transparency = 0.2,
+		})
+	elseif Icons.imageId("lock") then
 		Icons.view(hole, "lock", {
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.5, 0.5),
@@ -695,7 +715,9 @@ local function setShown(entry: CollectionCard, shown: boolean)
 	(chip :: Ui.Chip).Root.Visible = shown
 end
 
--- 탭 줄: 세로 통통 버튼 여섯 개가 본문 폭을 똑같이 나눔. 도장을 받은 대륙 탭은 오른쪽 위에 작은 체크
+-- 탭 줄: 세로 통통 버튼 여섯 개가 본문 폭을 똑같이 나눔. 대륙 탭은 도장이 아직이면 앞면 아래 끝에 가는 발견 막대
+-- (어두운 홈 + 대륙 색을 밝힌 채움 — 고른 탭(제 색)에서도 보임), 받았으면 막대 대신 도장 그림 오른쪽 위에 작은 체크(앞면 안 —
+-- 창 닫기 버튼 옆으로 삐져나와 "확인" 버튼처럼 보이지 않게)
 local function buildTabs(): Frame
 	local row = Ui.new("Frame", {
 		Name = "Tabs",
@@ -728,18 +750,41 @@ local function buildTabs(): Frame
 		button.Activated:Connect(function()
 			selectTab(tab.Id)
 		end)
-		local stamped: Frame? = nil
+		local entry: TabButton = { Button = button }
 		if tab.Region then
-			stamped = checkMark(button.Face, {
+			entry.Stamped = checkMark(button.Face, {
 				Name = "Stamped",
-				Position = UDim2.new(1, -5, 0, 3),
-				Size = UDim2.fromOffset(26, 26),
+				Position = UDim2.new(0.5, TAB_ICON / 2 - 3, 0, 13),
+				Size = UDim2.fromOffset(TAB_CHECK, TAB_CHECK),
 				Rotation = 8,
-				StrokeThickness = 2.5,
+				StrokeThickness = 2,
 				ZIndex = 6,
 			})
+			local strip = Ui.new("Frame", {
+				Name = "Strip",
+				Position = UDim2.new(0, TAB_STRIP_X, 1, -(TAB_STRIP + TAB_STRIP_BOTTOM)),
+				Size = UDim2.new(1, -2 * TAB_STRIP_X, 0, TAB_STRIP),
+				BackgroundColor3 = Theme.Ink,
+				BackgroundTransparency = 0.25,
+				BorderSizePixel = 0,
+				ZIndex = 5,
+				Visible = false,
+				Parent = button.Face,
+			})
+			Ui.round().Parent = strip
+			local fill = Ui.new("Frame", {
+				Name = "Fill",
+				Size = UDim2.fromScale(0, 1),
+				BackgroundColor3 = tab.Region.Color:Lerp(WHITE, 0.35),
+				BorderSizePixel = 0,
+				ZIndex = 6,
+				Parent = strip,
+			})
+			Ui.round().Parent = fill
+			entry.Strip = strip
+			entry.StripFill = fill
 		end
-		tabButtons[tab.Id] = { Button = button, Stamped = stamped }
+		tabButtons[tab.Id] = entry
 	end
 	return row
 end
@@ -854,7 +899,7 @@ local function buildCollection(): View
 		Height = 22,
 		TextSize = 15,
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(1, -8, 0, 2),
+		Position = BADGE_LOW, -- 오른쪽 아래(위에 두면 탭 줄을 가림)
 		Rotation = 12,
 		ZIndex = 6,
 		Visible = false,
@@ -877,7 +922,7 @@ local function buildCollection(): View
 	arrange.Activated:Connect(function()
 		handlers.Arrange()
 	end)
-	collectionArrangeBadge = countBadge(arrange, "Better")
+	collectionArrangeBadge = countBadge(arrange, "Better", BADGE_LOW)
 
 	for _, region in Landmarks.Regions do
 		regionHeaders[region.Id] = buildRegionHeader(header, region)
@@ -996,7 +1041,7 @@ local function renderCollection(state: Snapshot)
 		end
 	end
 
-	-- 탭: 고른 탭 = 제 색, 다른 탭 = 옅은 색. 도장을 받은 대륙 탭은 작은 체크
+	-- 탭: 고른 탭 = 제 색, 다른 탭 = 옅은 색. 대륙 탭은 도장을 받았으면 체크, 아직이면 발견 막대(PlayerState.regionProgress)
 	local stamped = {}
 	for _, id in PlayerState.completedRegions(state) do
 		stamped[id] = true
@@ -1006,9 +1051,16 @@ local function renderCollection(state: Snapshot)
 		local selected = other == tab
 		button.Button.SetColor(if selected then other.Selected else other.Idle)
 		button.Button.Root:SetAttribute("Selected", selected)
-		local mark = button.Stamped
-		if mark then
-			mark.Visible = stamped[other.Id] == true
+		local mark, strip, fill = button.Stamped, button.Strip, button.StripFill
+		if mark and strip and fill then
+			local done = stamped[other.Id] == true
+			mark.Visible = done
+			strip.Visible = not done
+			if not done then
+				local found, required = PlayerState.regionProgress(state, other.Id)
+				fill.Size = UDim2.fromScale(if required > 0 then math.clamp(found / required, 0, 1) else 0, 1)
+				fill.Visible = found > 0
+			end
 		end
 	end
 
@@ -1026,11 +1078,36 @@ local function renderCollection(state: Snapshot)
 	end
 	collectionCount.Label.Text = string.format("%d/%d", discovered, #Landmarks.List)
 	stampCount.Label.Text = string.format("%d/%d", stamps, #Landmarks.Regions)
-	stampBonus.Label.Text = string.format("+%d%%", stamps * REGION_BONUS)
+	-- 도장이 없으면 회색 "+25%"(도장 하나에 이만큼 — 대륙 탭의 회색 +25% 와 같은 뜻), 있으면 초록 합
+	stampBonus.Label.Text = string.format("+%d%%", math.max(stamps, 1) * REGION_BONUS)
 	paintBonus(stampBonus, stamps > 0)
 
 	emptyIcon.Visible = region == nil and discovered == 0
 	setCanvasHeight(scroller, gridHeight(visible, COLLECTION_COLUMNS, COLLECTION_CELL.Y, COLLECTION_GAP))
+end
+
+-- 도장 받은 순간 연출: 그 대륙 탭 체크가 톡 튀어나오고(slam 이면) 머리 줄 도장이 크게 떴다가 쾅 찍힘.
+-- 크기는 UIScale(체크 "Pop", 도장 "Slam" — 처음 쓸 때 만듦)만 바꿔서 자리·색 칠하기와 안 부딪힘
+local function scaleIn(target: GuiObject, name: string, from: number, seconds: number)
+	local scale = target:FindFirstChild(name) :: UIScale?
+	if not scale then
+		scale = Ui.new("UIScale", { Name = name, Parent = target })
+	end
+	local uiScale = scale :: UIScale
+	uiScale.Scale = from
+	TweenService:Create(uiScale, TweenInfo.new(seconds, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
+		:Play()
+end
+local function celebrateStamp(regionId: string, slam: boolean)
+	local button = tabButtons[regionId]
+	local mark = button and button.Stamped
+	if mark then
+		scaleIn(mark, "Pop", 0, 0.35)
+	end
+	local header = regionHeaders[regionId]
+	if slam and header then
+		scaleIn(header.Stamp.Frame, "Slam", 1.8, 0.3)
+	end
 end
 
 -- 탭 고르기: 카드는 그대로(보이기·순서만), 스크롤은 맨 위로
@@ -1995,10 +2072,20 @@ function Panels.init(parent: ScreenGui, callbacks: Handlers)
 end
 
 -- 창 열기(이미 열려 있으면 그 화면으로 바꿈). tab: 도감 탭("All" 또는 대륙 Id) — 도장 알림을 누르면 그 대륙 탭으로 바로 열림.
--- tab 을 안 주면 지금 탭 그대로(창이 열려 있는 동안 유지, 닫혀 있었으면 전체)
+-- tab 을 안 주면 지금 탭 그대로(창이 열려 있는 동안 유지, 닫혀 있었으면 전체). 단 도감이 닫혀 있는 동안 도장을 새로 받았으면
+-- 그 뒤 처음 열 때 한 번은 그 대륙 탭(도장 쾅) — 알림을 못 눌렀어도(게임패드 등) 도장 받은 대륙을 보게
 function Panels.open(name: string, tab: string?)
 	if not VIEWS[name] or (name == "Shop" and not Perks.anyForSale()) then
 		return
+	end
+	local slam: string? = nil
+	local pending = pendingStamp
+	if name == "Collection" and openName ~= "Collection" and pending then
+		pendingStamp = nil
+		tab = tab or pending
+		if tab == pending then
+			slam = pending
+		end
 	end
 	if name == "Collection" and tab and TAB_BY_ID[tab] and tab ~= collectionTab then
 		collectionTab = tab
@@ -2015,6 +2102,9 @@ function Panels.open(name: string, tab: string?)
 		placeWindow(not wasOpen)
 	end
 	render()
+	if slam and views.Collection then
+		celebrateStamp(slam, true)
+	end
 end
 
 -- 같은 창 버튼을 다시 누르면 닫힘
@@ -2044,6 +2134,22 @@ end
 -- 지금 열린 화면 이름(닫혀 있으면 nil)과 도감 탭 ("All" 또는 대륙 Id)
 function Panels.current(): (string?, string)
 	return openName, collectionTab
+end
+
+-- 대륙 도장을 새로 받음(상태를 반영한 뒤 부름). 도감이 열려 있으면 그 대륙 탭 체크가 톡 튀고(그 탭을 보고 있으면 머리 줄 도장도 쾅)
+-- true — 부르는 쪽은 알림을 띄우지 않음(휴대폰에서 알림 줄이 탭 줄을, PC 에서 둘째 알림이 제목 리본을 가림). 아니면 다음에
+-- 도감을 열 때 그 탭으로 한 번 열리게 기억하고 false(부르는 쪽이 누를 수 있는 알림을 띄움)
+function Panels.stampEarned(regionId: string): boolean
+	local tab = TAB_BY_ID[regionId]
+	if not tab or not tab.Region then
+		return false
+	end
+	if openName == "Collection" and views.Collection then
+		celebrateStamp(regionId, collectionTab == regionId)
+		return true
+	end
+	pendingStamp = regionId
+	return false
 end
 
 -- 서버 상태가 실제로 바뀌었을 때만 호출됨 (열린 화면만 갱신, 나머지는 열 때 갱신)

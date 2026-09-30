@@ -1018,11 +1018,13 @@
         textSize: 18,
       });
       if (entry.Id === 'Collection') {
-        // 대륙 도장 수 "1/5" 배지 (도감 대륙 탭에서 모은 도장)
+        // 대륙 도장 수 [여권] "1/5" 배지 (도감 대륙 탭에서 모은 도장 — 여권 아이콘 = 도감 [전체] 머리 줄 도장 딱지와 같은 그림)
         const stamps = completedRegions(state).length;
         chip(button.face, {
           name: 'Stamps',
           color: Theme.Ink,
+          icon: 'passport',
+          iconSize: 28,
           height: 24,
           textSize: 15,
           anchor: [0.5, 0.5],
@@ -1085,14 +1087,14 @@
   }
 
   // Panels.countBadge / Hud 배치 배지: 버튼 오른쪽 위 Ink 딱지 + Sun 숫자(도감 도장 "1/5" 배지와 같은 모양), 0 이면 숨김
-  function countBadge(face, count) {
+  function countBadge(face, count, pos = [1, -6, 0, 2]) {
     return chip(face, {
       name: 'Better',
       color: Theme.Ink,
       height: 24,
       textSize: 15,
       anchor: [0.5, 0.5],
-      pos: [1, -6, 0, 2],
+      pos,
       rot: 8,
       z: 6,
       text: String(count),
@@ -1260,7 +1262,9 @@
     const notices = gui(top, { name: 'Notices', flow: true, size: [0, 600, 0, 200] });
     list(notices, 'v', 8, 'center', 'top');
     for (const t of toasts) {
-      chip(notices, { name: 'Toast', flow: true, color: t.color, text: t.text, icon: t.icon, iconSize: 48, height: 40, textSize: 22, strokeThickness: 3 });
+      const toast = chip(notices, { name: t.name || 'Toast', flow: true, color: t.color, text: t.text, icon: t.icon, iconSize: 48, height: 40, textSize: 22, strokeThickness: 3 });
+      // 누를 수 있는 알림(도장): 끝에 "가기" 화살표(arrow_up 을 오른쪽으로 돌림)
+      if (t.go) iconView(toast.root, 'arrow_up', { name: 'Go', flow: true, size: [0, 30, 0, 30], rot: 90, z: 3 });
     }
   }
 
@@ -1337,7 +1341,7 @@
   // 도감 대륙 탭(Panels TAB_*): [전체] + 대륙마다 하나(여권을 합침). 탭 = 세로 통통 버튼(왼쪽 메뉴 버튼처럼 아이콘 위 · 이름 아래,
   // 앞면 68 + 그림자 6), 대륙 아이콘 = 도장 그림. 여섯 개가 본문 폭을 똑같이 나눔(휴대폰 배율 0.55 에서도 앞면 약 63×37px, 글자 10px)
   // 아이콘(도장 그림은 둘레에 빈 곳이 있어 앞면 위 끝에 붙여 크게) 위 3, 이름 칸은 아이콘 아래 LABEL_Y 부터(아이콘 그림 아래 빈 곳과 조금 겹침)
-  const TAB = { HEIGHT: 74, GAP: 6, SPACING: 8, ICON: 50, LABEL_Y: 45, LABEL_H: 20, TEXT: 19 };
+  const TAB = { HEIGHT: 74, GAP: 6, SPACING: 8, ICON: 44, LABEL_Y: 37, LABEL_H: 20, TEXT: 19, STRIP: 5, STRIP_X: 14, STRIP_BOTTOM: 4, CHECK: 22 };
   const COLLECTION_TOP = TAB.HEIGHT + TAB.GAP + HEADER_HEIGHT;
   // 창 높이: 기본 500, 도감은 탭 줄 때문에 조금 더 높게(아래로 늘림). 작은 화면에서는 창이 화면 안에 들어오게(Panels.openOffset)
   const VIEWS = {
@@ -1407,14 +1411,15 @@
   }
 
   // Panels.unknownCard: 대륙 탭의 아직 못 찾은 명소 — 어두운 카드(아는 카드와 같은 자리: 확률 띠 · 사진 칸 · 이름 줄) + 사진 칸에 자물쇠,
-  // 이름 대신 "?" 셋. 3D 모형은 만들지 않음(가볍게)
+  // 이름 대신 "?" 셋. 도장에 안 세는 명소(불가사의보다 희귀 — 보너스 수집)는 자물쇠 대신 전설 도장 그림(stamp_legend). 3D 모형은 만들지 않음(가볍게)
   const UNKNOWN_BG = [58, 53, 80];
   function unknownCard(parent, landmark) {
     const card = gui(parent, { name: landmark.Id, flow: true, size: [0, COLLECTION.CELL[0], 0, COLLECTION.CELL[1]], bg: UNKNOWN_BG, corner: 12, stroke: [Theme.Ink, 3] });
     card.dataset.unknown = '1';
     oddsBand(card, landmark);
     const hole = gui(card, { name: 'Photo', pos: [0, 7, 0, 33], size: [1, -14, 0, 84], bg: Theme.Ink, corner: 8, stroke: [Theme.Ink, 2] });
-    iconView(hole, 'lock', { anchor: [0.5, 0.5], pos: [0.5, 0, 0.5, 0], size: [0, 58, 0, 58], transparency: 0.1 });
+    const bonus = !countsForStamp(landmark);
+    iconView(hole, bonus ? 'stamp_legend' : 'lock', { anchor: [0.5, 0.5], pos: [0.5, 0, 0.5, 0], size: [0, bonus ? 66 : 58, 0, bonus ? 66 : 58], transparency: bonus ? 0.2 : 0.1 });
     label(card, { pos: [0, 6, 0, 124], size: [1, -12, 0, 24], text: '???', color: Theme.Paper, textT: 0.45 }, 20);
   }
 
@@ -1453,11 +1458,17 @@
         labelSize: [1, -8, 0, TAB.LABEL_H],
       });
       button.root.dataset.selected = on ? '1' : '';
-      // 도장을 받은 대륙: 오른쪽 위 작은 체크 동그라미
-      if (tab.Region && completed.has(tab.Id)) {
-        const mark = gui(button.face, { name: 'Stamped', anchor: [0.5, 0.5], pos: [1, -5, 0, 3], size: [0, 26, 0, 26], bg: Theme.Cream, corner: 'round', stroke: [Theme.Ink, 2.5], rot: 8, z: 6 });
+      if (!tab.Region) return;
+      // 도장을 받은 대륙: 도장 그림 오른쪽 위에 작은 체크 동그라미(앞면 안)
+      if (completed.has(tab.Id)) {
+        const mark = gui(button.face, { name: 'Stamped', anchor: [0.5, 0.5], pos: [0.5, TAB.ICON / 2 - 3, 0, 13], size: [0, TAB.CHECK, 0, TAB.CHECK], bg: Theme.Cream, corner: 'round', stroke: [Theme.Ink, 2], rot: 8, z: 6 });
         iconView(mark, 'check', { anchor: [0.5, 0.5], pos: [0.5, 0, 0.5, 0], size: [0.95, 0, 0.95, 0], z: 7 });
+        return;
       }
+      // 아직이면 앞면 아래 끝에 가는 발견 막대(어두운 홈 + 대륙 색, PlayerState.regionProgress) — 어느 대륙이 도장에 가까운지 한눈에
+      const [found, required] = regionProgress(state, tab.Id);
+      const track = gui(button.face, { name: 'Strip', pos: [0, TAB.STRIP_X, 1, -(TAB.STRIP + TAB.STRIP_BOTTOM)], size: [1, -2 * TAB.STRIP_X, 0, TAB.STRIP], bg: Theme.Ink, bgT: 0.25, corner: 'round', z: 5 });
+      gui(track, { name: 'Fill', size: [required > 0 ? Math.min(1, found / required) : 0, 0, 1, 0], bg: lerp(tab.Color, WHITE, 0.35), corner: 'round', z: 6 });
     });
     return row;
   }
@@ -1469,7 +1480,8 @@
     headerChip(chips, 'album', Theme.Ink, `${shownCount}/${List.length}`, 0, 'Count');
     const stamps = completedRegions(state).length;
     headerChip(chips, 'passport', Theme.Ink, `${stamps}/${Regions.length}`, 0, 'Stamps');
-    headerChip(chips, 'clover', stamps > 0 ? COLORS.Grass.Face : DIM_CHIP, `+${stamps * REGION_BONUS}%`, stamps > 0 ? 0 : 0.45, 'StampBonus');
+    // 도장이 없으면 회색 "+25%"(도장 하나에 이만큼 — 대륙 탭의 회색 +25% 와 같은 뜻), 있으면 초록 합
+    headerChip(chips, 'clover', stamps > 0 ? COLORS.Grass.Face : DIM_CHIP, `+${Math.max(stamps, 1) * REGION_BONUS}%`, stamps > 0 ? 0 : 0.45, 'StampBonus');
     const auto = chunkyButton(header, {
       name: 'AutoFeature',
       anchor: [1, 0],
@@ -1481,10 +1493,10 @@
       text: '자동',
       textSize: 22,
     });
-    chip(auto.face, { name: 'On', color: 'Coral', text: 'ON', height: 22, textSize: 15, anchor: [0.5, 0.5], pos: [1, -8, 0, 2], rot: 12, z: 6, visible: state.Settings.AutoFeature });
+    chip(auto.face, { name: 'On', color: 'Coral', text: 'ON', height: 22, textSize: 15, anchor: [0.5, 0.5], pos: [1, -6, 1, -4], rot: 12, z: 6, visible: state.Settings.AutoFeature });
     // 3D 배치 모드 켜기 (자동 버튼 왼쪽). 배지 = 더 좋은데 전시 안 된 명소 수(0 이면 숨김)
     const arrange = chunkyButton(header, { name: 'Arrange', anchor: [1, 0], pos: [1, -(8 + 136 + 10), 0, -4], size: [0, 124, 0, 50], color: 'Grass', icon: 'arrange', iconSize: 36, text: '배치', textSize: 22 });
-    countBadge(arrange.face, betterHidden(state).length);
+    countBadge(arrange.face, betterHidden(state).length, [1, -6, 1, -4]);
   }
 
   // 대륙 머리 줄: [도장(찍힘/흐림)]==== 발견 막대 "found/required" ====[체크] …… [클로버 +25%(받음 초록 / 아직 회색)]
@@ -1506,7 +1518,7 @@
       size: [1.12, 0, 1.12, 0],
       z: 2,
       color: complete ? null : [150, 146, 160],
-      transparency: complete ? 0 : 0.75,
+      transparency: complete ? 0 : 0.4,
     });
     // 발견 막대(대륙 색) + "찾은 수/필요 수", 다 모으면 오른쪽 끝에 체크
     const bar = gui(header, { name: 'Progress', anchor: [0, 0.5], pos: [0, BAR_LEFT, 0.5, 0], size: [1, -(BAR_LEFT + BAR_RIGHT), 0, BAR_HEIGHT], bg: Theme.Cream, corner: 'round', stroke: [Theme.Ink, 3] });
@@ -1538,7 +1550,9 @@
       cards = ByRegion[tab];
     }
     const canvas = gridHeight(cards.length, COLLECTION.COLS, COLLECTION.CELL[1], COLLECTION.GAP) + PAD_Y * 2;
-    const content = scroller(body, VIEWS.Collection.Top, canvas, scrollY, bodyHeight);
+    // scrollY = 'bottom' 이면 맨 아래까지 내린 모습
+    const maxScroll = Math.max(0, canvas - (bodyHeight - VIEWS.Collection.Top));
+    const content = scroller(body, VIEWS.Collection.Top, canvas, scrollY === 'bottom' ? maxScroll : Math.min(scrollY, maxScroll), bodyHeight);
     gridLayout(content, COLLECTION.CELL[0], COLLECTION.CELL[1], COLLECTION.GAP, COLLECTION.COLS, 'center', BODY_WIDTH - PAD_X - PAD_RIGHT);
     for (const landmark of cards) {
       if (isDiscovered(state, landmark.Id)) {
@@ -2046,7 +2060,7 @@
     if (countsForStamp(l) && !(COLLECTION_STATE.Inventory[l.Id] > 0)) COLLECTION_STATE.Inventory[l.Id] = l.OneIn < 1000 ? 3 : 1;
   }
   withDerived(COLLECTION_STATE);
-  const TOAST_STAMP = { text: `도장 +${REGION_BONUS}%`, icon: 'stamp_' + STAMP_REGION.toLowerCase(), color: RegionById[STAMP_REGION].Color };
+  const TOAST_STAMP = { name: 'StampToast', text: `도장 +${REGION_BONUS}%`, icon: 'stamp_' + STAMP_REGION.toLowerCase(), color: RegionById[STAMP_REGION].Color, go: true };
 
   // --- 화면 목록 -------------------------------------------------------------------
   // 받침에 맞는 조사: 을/를
@@ -2154,15 +2168,16 @@
       title: '도감 — 전체 탭',
       note:
         `위 탭 줄: [전체] + 대륙 ${Regions.length}개(${Regions.map((r) => r.Name).join(' · ')}) — 여권 창을 도감에 합침. 탭 = 통통 버튼(대륙 = 도장 그림 + 짧은 이름), ` +
-        '고른 탭은 제 색 그대로(흰 글자), 나머지는 옅은 색(Ink 글자). 도장을 받은 대륙 탭에는 작은 체크. ' +
+        '고른 탭은 제 색 그대로, 나머지는 옅은 색(글자는 모두 흰 글자 + Ink 테두리). 도장이 아직인 대륙 탭은 앞면 아래 끝에 가는 발견 막대(예전 여권처럼 어느 대륙이 도장에 가까운지 한눈에), ' +
+        '도장을 받은 대륙 탭은 막대 대신 도장 그림 오른쪽 위에 작은 체크(앞면 안). ' +
         '전체 탭 = 예전 도감 그대로: 발견한 명소를 희귀한 순서로(위 띠 = 등급 색 + 확률), 왼쪽 위 빨간 "대표" 도장, 사진 왼쪽 아래 초록 칩 = 공원에 전시 중, 오른쪽 위 ×N = 발견 횟수, 아래 별 5칸. ' +
         `머리 줄: 발견 수 / 전체, 여권 아이콘 = 받은 도장 수 / ${Regions.length}, 클로버 = 도장 행운(도장마다 +${REGION_BONUS}%, 없으면 회색), 오른쪽 [배치](창을 닫고 3D 배치 모드) · [자동](자동 대표 지정). ` +
-        `이 예시는 ${RegionById[STAMP_REGION].Name} 도장을 받은 자동 배치 공원이라 [배치] 숫자 배지 없음(직접 배치 중 더 좋은 명소가 숨으면 6-2 처럼 숫자). ` +
-        `위 알림 = 도장을 막 받은 순간(Hud.stampToast: [도장 그림] "도장 +${REGION_BONUS}%", 대륙 색, 5초) — 누르면 도감이 그 대륙 탭으로 열림(4-2).`,
+        `이 예시는 ${RegionById[STAMP_REGION].Name} 도장을 받은 자동 배치 공원이라 [배치] 숫자 배지 없음(직접 배치 중 더 좋은 명소가 숨으면 3-2 처럼 숫자). ` +
+        '[자동]의 ON 딱지·[배치] 숫자 배지는 버튼 오른쪽 아래(위에 두면 바로 위 탭 줄을 가림). ' +
+        '도감이 열려 있을 때 도장을 받으면 알림 없이 그 대륙 탭 체크가 톡 튀어나옴(알림 줄이 탭 줄·제목 리본을 가리지 않게 — 알림은 4-3).',
       build(root) {
         const screenGui = newScreen(root, this.id);
         buildHud(screenGui, COLLECTION_STATE, { auto: false });
-        buildNews(screenGui, [], [TOAST_STAMP]);
         buildPanel(screenGui, 'Collection', COLLECTION_STATE, { tab: 'All' });
       },
     },
@@ -2171,7 +2186,7 @@
       title: `도감 — 대륙 탭(${RegionById[PARTIAL_REGION].Name}, 도장 아직)`,
       note:
         `대륙 탭 = 그 대륙 명소만, 흔한 순서(여권 한 쪽과 같음). 발견한 명소는 전체 탭과 같은 카드(같은 카드를 옮겨 씀 — 3D 사진을 다시 만들지 않음), ` +
-        '못 찾은 명소는 어두운 카드 + 확률 띠 + 자물쇠. 머리 줄: 도장(아직이면 회색으로 흐리게) + 발견 막대(대륙 색) "찾은 수/필요 수" + 클로버 +' +
+        '못 찾은 명소는 어두운 카드 + 확률 띠 + 자물쇠. 머리 줄: 도장(아직이면 회색으로 물들이고 40% 투명 — 크림 바탕에서도 테두리가 보임) + 발견 막대(대륙 색) "찾은 수/필요 수" + 클로버 +' +
         `${REGION_BONUS}%(받으면 초록, 아직 회색). 도장 조건은 ${Tiers[Config.STAMP_MAX_RANK - 1].Name}(${Config.STAMP_MAX_RANK}등급)까지만 셈 — 더 희귀한 카드는 보이지만 막대 숫자에서 빠짐. ` +
         `${RegionById[PARTIAL_REGION].Name} ${regionProgress(COLLECTION_STATE, PARTIAL_REGION).join('/')}.`,
       build(root) {
@@ -2182,15 +2197,17 @@
     },
     {
       id: 'screen3p',
-      title: '도감 — 휴대폰 667×375, 전체 탭',
+      title: '도감 — 휴대폰 667×375, 전체 탭(도장 없음 · 직접 배치)',
       extra: '3-2',
       note:
-        `가장 작은 배율 ${uiScaleFor(667, 375).toFixed(2)}: 창 ${Math.round(WINDOW_SIZE[0] * uiScaleFor(667, 375))}×${Math.round(WINDOW_SIZE[1] * uiScaleFor(667, 375))}px, ` +
-        `탭 앞면 높이 ${Math.round((TAB.HEIGHT - 6) * uiScaleFor(667, 375))}px(머리 줄 [배치]·[자동]과 같은 높이), 탭 글자 ${Math.round(TAB.TEXT * uiScaleFor(667, 375))}px(메뉴 버튼 글자와 같음).`,
+        `가장 작은 배율 ${uiScaleFor(667, 375).toFixed(2)}: 창 ${Math.round(WINDOW_SIZE[0] * uiScaleFor(667, 375))}×${Math.round(VIEWS.Collection.Height * uiScaleFor(667, 375))}px, ` +
+        `탭 앞면 ${Math.round((TAB.HEIGHT - 6) * uiScaleFor(667, 375))}px 높이(머리 줄 [배치]·[자동] 앞면 ${Math.round(44 * uiScaleFor(667, 375))}px 보다 큼), 탭 글자 ${Math.round(TAB.TEXT * uiScaleFor(667, 375))}px(메뉴 버튼 글자와 같음). ` +
+        `6-2 와 같은 공원(직접 배치, 꽉 참): 도장이 아직 없어 도장 행운 딱지는 회색 "+${REGION_BONUS}%"(도장 하나에 이만큼 — 대륙 탭의 회색 +${REGION_BONUS}% 와 같은 뜻, "+0%" 아님), ` +
+        `[배치] 오른쪽 아래 숫자 배지 ${betterHidden(PARK_FULL_STATE).length} = 더 좋은데 전시 안 된 명소 수, [자동] ${PARK_FULL_STATE.Settings.AutoFeature ? '켜짐(오른쪽 아래 ON 딱지)' : '꺼짐(회색)'} — 두 배지 모두 탭 줄을 가리지 않음.`,
       build(root) {
         const screenGui = newScreen(root, this.id, { width: 667, height: 375, touch: true });
-        buildHud(screenGui, COLLECTION_STATE, { auto: false });
-        buildPanel(screenGui, 'Collection', COLLECTION_STATE, { tab: 'All' });
+        buildHud(screenGui, PARK_FULL_STATE, { auto: false });
+        buildPanel(screenGui, 'Collection', PARK_FULL_STATE, { tab: 'All' });
       },
     },
     {
@@ -2198,12 +2215,27 @@
       title: `도감 — 휴대폰 667×375, ${RegionById[STAMP_REGION].Name} 탭(도장 받음)`,
       extra: '4-2',
       note:
-        `다 모은 대륙: 도장이 진하게 찍히고 막대가 꽉 차 오른쪽 끝에 체크, +${REGION_BONUS}% 클로버가 초록. 탭 줄의 ${RegionById[STAMP_REGION].Name} 탭에도 작은 체크. ` +
-        `도장을 받은 순간의 알림 [도장 그림] "도장 +${REGION_BONUS}%"(대륙 색)를 누르면 이 탭으로 바로 열림. 도감 메뉴 버튼 배지 = 받은 도장 수.`,
+        `다 모은 대륙: 도장이 진하게 찍히고 막대가 꽉 차 오른쪽 끝에 체크, +${REGION_BONUS}% 클로버가 초록. 탭 줄의 ${RegionById[STAMP_REGION].Name} 탭은 발견 막대 대신 작은 체크. ` +
+        `맨 아래까지 내린 모습: 도장에 안 세는 ${Tiers[Config.STAMP_MAX_RANK].Name}·${Tiers[Config.STAMP_MAX_RANK + 1].Name} 등급(보너스 수집)은 못 찾았어도 자물쇠 대신 전설 도장 그림 — 막대가 다 찼는데 "덜 모은" 것처럼 보이지 않게. ` +
+        `도장 알림(4-3)을 누르거나, 알림을 놓쳤어도 도장을 받은 뒤 처음 도감을 열면 이 탭으로 한 번 열리고 도장이 크게 떴다가 쾅 찍힘. 도감 메뉴 버튼 배지 = [여권] 받은 도장 수.`,
       build(root) {
         const screenGui = newScreen(root, this.id, { width: 667, height: 375, touch: true });
         buildHud(screenGui, COLLECTION_STATE, { auto: false });
-        buildPanel(screenGui, 'Collection', COLLECTION_STATE, { tab: STAMP_REGION });
+        buildPanel(screenGui, 'Collection', COLLECTION_STATE, { tab: STAMP_REGION, scrollY: 'bottom' });
+      },
+    },
+    {
+      id: 'screen4s',
+      title: `도장 받은 순간 — 휴대폰 667×375(${RegionById[STAMP_REGION].Name})`,
+      extra: '4-3',
+      note:
+        `대륙 도장을 새로 받으면(굴림 연출이 끝난 뒤 · 자동 발견 포함) 행운 소리 + 대륙 색 알림 [도장 그림] "도장 +${REGION_BONUS}%" [→](5초, Hud.stampEarned) — 끝의 화살표 = 누를 수 있는 알림(도감 +N 같은 다른 알림에는 없음). ` +
+        '알림 위에서 눌렀다 알림 안에서 떼면(버튼처럼 — 알림에서 시작한 끌기는 안 열림) 알림은 바로 쪼그라들어 사라지고 도감이 그 대륙 탭(4-2)으로 열림(배치 모드면 먼저 나감). ' +
+        '도감을 메뉴로 열어도 도장 알림은 치움. 도감이 이미 열려 있으면 알림 대신 그 대륙 탭 체크가 톡. 도감 버튼 배지 [여권] 1/5 도 같이 오름.',
+      build(root) {
+        const screenGui = newScreen(root, this.id, { width: 667, height: 375, touch: true });
+        buildHud(screenGui, COLLECTION_STATE, { auto: false });
+        buildNews(screenGui, [], [TOAST_STAMP]);
       },
     },
     {
@@ -2682,7 +2714,7 @@
 
     // 8) [배치] 배지 = PlayerState.betterHidden 수 (직접 배치 화면만), 자동 배치 화면엔 없음
     {
-      const expect = { screen1: betterHidden(STATE).length, screen3: betterHidden(COLLECTION_STATE).length, screen6b: betterHidden(PARK_FULL_STATE).length };
+      const expect = { screen1: betterHidden(STATE).length, screen3: betterHidden(COLLECTION_STATE).length, screen3p: betterHidden(PARK_FULL_STATE).length, screen6b: betterHidden(PARK_FULL_STATE).length };
       const found = Object.entries(expect).map(([id, n]) => {
         const scr = document.getElementById(id);
         const badge = scr && scr.querySelector('[data-name="Menu"] [data-name="Arrange"] [data-name="Better"]');
@@ -2700,7 +2732,8 @@
     {
       const parts = [];
       let good = true;
-      for (const [id, tab] of [['screen3', 'All'], ['screen4', PARTIAL_REGION], ['screen3p', 'All'], ['screen4p', STAMP_REGION]]) {
+      const collectionShots = [['screen3', 'All', COLLECTION_STATE], ['screen4', PARTIAL_REGION, COLLECTION_STATE], ['screen3p', 'All', PARK_FULL_STATE], ['screen4p', STAMP_REGION, COLLECTION_STATE]];
+      for (const [id, tab, shotState] of collectionShots) {
         const scr = document.getElementById(id);
         const win = scr && scr.querySelector('[data-name="Window"]');
         const row = win && win.querySelector('[data-name="Tabs"]');
@@ -2718,20 +2751,51 @@
         const box = rectIn(win.querySelector('[data-name="Panel"]'), scr);
         const inside = box.top >= guiTop - 0.5 && box.bottom <= scr.offsetHeight + 0.5;
         const cards = win.querySelectorAll('[data-name="Content"] > .g').length;
-        const want = tab === 'All' ? List.filter((l) => isDiscovered(COLLECTION_STATE, l.Id)).length : ByRegion[tab].length;
+        const want = tab === 'All' ? List.filter((l) => isDiscovered(shotState, l.Id)).length : ByRegion[tab].length;
         let numbers = '';
         let numbersOk = true;
         if (tab !== 'All') {
-          const [found, required] = regionProgress(COLLECTION_STATE, tab);
+          const [found, required] = regionProgress(shotState, tab);
           const shown = win.querySelector('[data-name="RegionHeader"] [data-name="Count"]').textContent;
           numbersOk = shown === `${found}/${required}`;
           numbers = ` · 막대 ${shown}`;
         }
-        const ok = labels.length === Regions.length + 1 && smallest >= TAB.TEXT - 0.01 && inside && cards === want && numbersOk;
+        // 대륙 탭: 도장 아직 = 발견 막대(채움 = regionProgress, 글자 아래 끝보다 아래), 받음 = 막대 없이 체크(앞면 안)
+        const done = new Set(completedRegions(shotState));
+        let stripsOk = true;
+        let tabBits = [];
+        for (const region of Regions) {
+          const button = row.querySelector(`[data-name="Tab${region.Id}"]`);
+          const faceRect = rectIn(button.querySelector('[data-name="Face"]'), scr);
+          const strip = button.querySelector('[data-name="Strip"]');
+          const mark = button.querySelector('[data-name="Stamped"]');
+          if (done.has(region.Id)) {
+            const r = mark && rectIn(mark, scr);
+            const within = r && r.left >= faceRect.left - 0.5 && r.right <= faceRect.right + 0.5 && r.top >= faceRect.top - 0.5 && r.bottom <= faceRect.bottom + 0.5;
+            stripsOk = stripsOk && !strip && !!within;
+            tabBits.push(`${region.Name} 체크${within ? '' : '(앞면 밖)'}`);
+          } else {
+            const [found, required] = regionProgress(shotState, region.Id);
+            const fill = strip && strip.querySelector('[data-name="Fill"]');
+            const width = (r) => r.right - r.left;
+            const ratio = fill ? width(rectIn(fill, scr)) / width(rectIn(strip, scr)) : -1;
+            const text = rectIn(button.querySelector('[data-name="Label"] > span'), scr);
+            const clear = strip && text.bottom <= rectIn(strip, scr).top + 0.5;
+            const right = !mark && Math.abs(ratio - found / required) < 0.02 && clear;
+            stripsOk = stripsOk && right;
+            tabBits.push(`${region.Name} 막대 ${found}/${required}${clear ? '' : '(글자와 겹침)'}`);
+          }
+        }
+        // 머리 줄 버튼 배지(ON · [배치] 숫자)가 탭 줄을 가리지 않음
+        const tabRect = rectIn(row, scr);
+        const badges = Array.from(win.querySelectorAll('[data-name="CollectionHeader"] [data-name="On"], [data-name="CollectionHeader"] [data-name="Better"]')).filter((el) => el.offsetParent !== null);
+        const badgeHit = badges.some((el) => rectIn(el, scr).top < tabRect.bottom - 0.5);
+        const ok = labels.length === Regions.length + 1 && smallest >= TAB.TEXT - 0.01 && inside && cards === want && numbersOk && stripsOk && !badgeHit;
         good = good && ok;
         parts.push(
           `${id}(${tab === 'All' ? '전체' : RegionById[tab].Name}) ${verdict(ok)} 탭 ${labels.length}개 글자 ${smallest}px(화면 ${(smallest * scale).toFixed(1)}px) · ` +
-            `탭 앞면 ${Math.round(face.right - face.left)}×${Math.round(face.bottom - face.top)}px · 창 ${inside ? '화면 안' : '화면 밖으로 나감'} · 카드 ${cards}/${want}${numbers}`
+            `탭 앞면 ${Math.round(face.right - face.left)}×${Math.round(face.bottom - face.top)}px · 창 ${inside ? '화면 안' : '화면 밖으로 나감'} · 카드 ${cards}/${want}${numbers} · ` +
+            `${tabBits.join(', ')} · 머리 줄 배지 ${badges.length}개 ${badgeHit ? '탭 줄을 가림' : '탭 줄 안 가림'}`
         );
       }
       items.push(`<b>도감 대륙 탭</b> ${verdict(good)}: ` + parts.join(' / ') + '.');
