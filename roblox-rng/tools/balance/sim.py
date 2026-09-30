@@ -142,7 +142,7 @@ def parse_luau_regex() -> dict:
         return {k: v for k, v in re.findall(r"(\w+)\s*=\s*([\w.]+)", body)}
 
     passes = {}
-    for m in re.finditer(r'\{\s*Id\s*=\s*"(\w+)",\s*Name\s*=\s*"[^"]*",\s*PassId\s*=\s*\d+(.*?)\}', conf):
+    for m in re.finditer(r'\{\s*Id\s*=\s*"(\w+)",\s*Name\s*=\s*"[^"]*",\s*PassId\s*=\s*\d+(.*?)\}', conf, re.S):
         f = fields(m.group(2))
         passes[m.group(1)] = dict(
             luck_mult=float(f.get("LuckMult", 1)),
@@ -150,7 +150,7 @@ def parse_luau_regex() -> dict:
             income_mult=float(f.get("IncomeMult", 1)),
         )
     products = {}
-    for m in re.finditer(r'\{\s*Id\s*=\s*"(\w+)",\s*Name\s*=\s*"[^"]*",\s*ProductId\s*=\s*\d+(.*?)\}', conf):
+    for m in re.finditer(r'\{\s*Id\s*=\s*"(\w+)",\s*Name\s*=\s*"[^"]*",\s*ProductId\s*=\s*\d+(.*?)\}', conf, re.S):
         f = fields(m.group(2))
         products[m.group(1)] = dict(
             seconds=float(f.get("Seconds", 0)),
