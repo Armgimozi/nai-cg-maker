@@ -103,7 +103,7 @@ local Config = {
 
 	-- 환생 ---------------------------------------------------------------
 	-- REBIRTHS[n] = n 번째 환생 조건. 요구 명소는 이번 판에 보유하고 있어야 함(환생하면 보유 명소는 비워짐).
-	-- 목록을 넘어서면 마지막 단계의 명소 + 코인 × REBIRTH_COIN_GROWTH 씩 증가.
+	-- 환생은 MAX_REBIRTHS 번까지(목록 길이와 같음). 다 하면 더 환생할 수 없음.
 	-- (명소 목록이 늘어나도 그대로 쓸 수 있는 명소 Id 만 사용)
 	REBIRTHS = {
 		{ Coins = 5000, Landmarks = { "eiffel", "liberty" } },
@@ -114,8 +114,10 @@ local Config = {
 		{ Coins = 10000000, Landmarks = { "alexandria", "reef" } },
 		{ Coins = 40000000, Landmarks = { "babylon", "rhodes", "nanmadol" } },
 		{ Coins = 160000000, Landmarks = { "babel" } },
+		{ Coins = 640000000, Landmarks = { "atlantis", "eldorado" } },
+		{ Coins = 2560000000, Landmarks = { "yonggung" } },
 	} :: { RebirthStep },
-	REBIRTH_COIN_GROWTH = 4,
+	MAX_REBIRTHS = 10, -- 환생 상한(= REBIRTHS 단계 수). 보너스도 여기서 멈춤
 	REBIRTH_LUCK_BONUS = 0.2, -- 환생 1회마다 행운 +20% (행운 × (1 + 0.2 × 환생 수))
 	REBIRTH_INCOME_BONUS = 0.5, -- 환생 1회마다 관광 수입 +50% (수입 × (1 + 0.5 × 환생 수))
 

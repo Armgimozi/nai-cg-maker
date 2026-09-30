@@ -67,7 +67,7 @@ export type Snapshot = {
 	Boosts: { [string]: number }, -- 개인 부스트 남은 초
 	Passes: { [string]: boolean }, -- 가진 게임패스
 	ServerLuck: boolean, -- 서버 행운 부스트 중인지
-	NextRebirth: RebirthRequirement, -- 다음 환생 조건
+	NextRebirth: RebirthRequirement?, -- 다음 환생 조건(최대까지 했으면 nil)
 	Luck: number, -- mods 반영
 	Cooldown: number, -- mods 반영
 	Income: number, -- 초당 관광 수입(mods 반영)
@@ -805,21 +805,27 @@ end
 
 -- 환생 --------------------------------------------------------------------
 
--- rebirths 번 환생한 플레이어의 다음 환생 조건(복사본)
-function PlayerState.rebirthRequirement(rebirths: number): RebirthRequirement
-	local steps = Config.REBIRTHS
+-- rebirths 번 환생한 플레이어의 다음 환생 조건(복사본). 최대(Config.MAX_REBIRTHS)까지 했으면 nil
+function PlayerState.rebirthRequirement(rebirths: number): RebirthRequirement?
 	local n = math.max(0, math.floor(rebirths)) + 1
-	local step = steps[math.min(n, #steps)]
-	local coins = step.Coins
-	if n > #steps then
-		coins *= Config.REBIRTH_COIN_GROWTH ^ (n - #steps)
+	local step = if n <= Config.MAX_REBIRTHS then Config.REBIRTHS[n] else nil
+	if not step then
+		return nil
 	end
-	return { Coins = coins, Landmarks = table.clone(step.Landmarks) }
+	return { Coins = step.Coins, Landmarks = table.clone(step.Landmarks) }
 end
 
--- 반환: 환생 가능 여부, 이번 판에 없는 요구 명소 Id 목록, 모자란 코인(0 이상)
+-- 환생을 최대까지 했는지
+function PlayerState.rebirthMaxed(data: Data | Snapshot): boolean
+	return rebirthsOf(data) >= Config.MAX_REBIRTHS
+end
+
+-- 반환: 환생 가능 여부, 이번 판에 없는 요구 명소 Id 목록, 모자란 코인(0 이상). 최대까지 했으면 false, {}, 0
 function PlayerState.canRebirth(data: Data | Snapshot): (boolean, { string }, number)
 	local requirement = PlayerState.rebirthRequirement(rebirthsOf(data))
+	if not requirement then
+		return false, {}, 0
+	end
 	local missing = {}
 	for _, id in requirement.Landmarks do
 		if (data.Inventory[id] or 0) <= 0 then
@@ -836,6 +842,9 @@ end
 -- 유지: 발견 기록(Discovered = 도감·여권 도장), 그 밖의 설정(AutoFeature), 굴림 수, 부스트, 영수증.
 -- 반환: 성공 여부, 실패 사유(표시용)
 function PlayerState.rebirth(data: Data): (boolean, string?)
+	if PlayerState.rebirthMaxed(data) then
+		return false, "최대 환생입니다"
+	end
 	local ok, missing = PlayerState.canRebirth(data)
 	if not ok then
 		if #missing > 0 then

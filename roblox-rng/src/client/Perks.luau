@@ -315,11 +315,14 @@ function Perks.rebirthNeed(state: any): Need?
 	if type(state) ~= "table" then
 		return nil
 	end
+	local rebirths = Perks.rebirths(state)
+	if rebirths >= number(Config.MAX_REBIRTHS, math.huge) then
+		return nil -- 최대까지 환생함
+	end
 	local fromSnapshot = need(state.NextRebirth)
 	if fromSnapshot then
 		return fromSnapshot
 	end
-	local rebirths = Perks.rebirths(state)
 	if type(PlayerState.rebirthRequirement) == "function" then
 		local ok, result = pcall(PlayerState.rebirthRequirement, rebirths)
 		local parsed = if ok then need(result) else nil
@@ -328,17 +331,14 @@ function Perks.rebirthNeed(state: any): Need?
 		end
 	end
 	local steps = Config.REBIRTHS
-	if type(steps) == "table" and #steps > 0 then
-		local nextNumber = rebirths + 1
-		local step = steps[math.min(nextNumber, #steps)]
-		local coins = number(if type(step) == "table" then tonumber(step.Coins) else nil, 0)
-		local extra = math.max(0, nextNumber - #steps)
+	local step = if type(steps) == "table" then steps[rebirths + 1] else nil
+	if type(step) == "table" and rebirths < number(Config.MAX_REBIRTHS, #steps) then
 		return {
-			Coins = coins * number(Config.REBIRTH_COIN_GROWTH, 4) ^ extra,
-			Landmarks = landmarkList(if type(step) == "table" then step.Landmarks else nil),
+			Coins = number(tonumber(step.Coins), 0),
+			Landmarks = landmarkList(step.Landmarks),
 		}
 	end
-	return nil
+	return nil -- 최대까지 환생함
 end
 
 -- 이번 판에 보유한 수 (공원·별·환생 조건 기준)

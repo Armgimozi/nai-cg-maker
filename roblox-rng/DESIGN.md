@@ -184,7 +184,8 @@ Model 에 PrimaryPart 가 없어도 되고, 바닥 중앙을 피벗으로 맞춰
 "Steal a Brainrot" 식: **코인 + 특정 명소 보유**가 조건. 환생하면 영구적으로 행운·관광 수입이 오름.
 
 - 환생 단계마다 요구 사항은 `Config.REBIRTHS[n] = { Coins = number, Landmarks = { id, ... } }` (n = 다음 환생 번호).
-  목록을 넘어서면 마지막 단계 요구 명소 + 코인 ×4 씩 증가.
+  환생은 **최대 `Config.MAX_REBIRTHS`(10)번** — 단계 수와 같음. 9번째: 6억 4천만 + 아틀란티스·엘도라도, 10번째: 25억 6천만 + 용궁.
+  최대까지 하면 `rebirthRequirement` = nil(스냅샷 `NextRebirth` 없음), `rebirth` 는 "최대 환생입니다" 로 거절, 환생 창 버튼은 "최대".
   요구 명소는 **이번 판에서 보유**하고 있어야 함.
 - 환생 시 초기화: `Coins = 0`, `Upgrades` 전부 0, **`Inventory`(보유 명소·별·공원 전시) 비움**, `Featured = nil`,
   공원 직접 배치(`Display`) 비우고 **`Settings.AutoPark = true`**(자동 배치로 되돌림 — 아래 "공원 배치").

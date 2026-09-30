@@ -39,12 +39,9 @@ function Format.short(n: number): string
 	return Format.commas(n)
 end
 
--- 확률 표기: 1,000,000 미만은 콤마, 이상은 축약 ("1 in 2,500", "1 in 10M")
+-- 확률 표기: 항상 콤마 자연수 ("1 in 2,500", "1 in 40,000,000")
 function Format.oneIn(n: number): string
-	if n >= 1e6 then
-		return "1 in " .. Format.short(n)
-	end
-	return "1 in " .. Format.commas(n)
+	return "1 in " .. Format.commas(n) -- 백만 넘어도 줄이지 않고 그대로(1 in 40,000,000)
 end
 
 -- 1.5 -> "x1.5", 2 -> "x2", 1.25 -> "x1.25"

@@ -303,7 +303,7 @@
     }
     return commas(n);
   }
-  const oneIn = (n) => '1 in ' + (n >= 1e6 ? short(n) : commas(n));
+  const oneIn = (n) => '1 in ' + commas(n); // Format.oneIn: 항상 콤마 자연수
   const multiplier = (x) => 'x' + x.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
   const times = (x) => '×' + multiplier(x).slice(1); // Ui.times
   // Hud.luau incomeText

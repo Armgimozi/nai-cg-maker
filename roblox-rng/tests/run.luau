@@ -414,21 +414,51 @@ test("Config.REBIRTHS: 있는 명소만, 코인은 단계마다 증가", functio
 		end
 	end
 end)
-test("rebirthRequirement: 표 + 표를 넘으면 마지막 명소 + 코인 ×4", function()
+test("rebirthRequirement: 표 그대로, 최대(10번)까지 하면 nil", function()
+	eq(Config.MAX_REBIRTHS, 10)
+	eq(#Config.REBIRTHS, Config.MAX_REBIRTHS, "단계 수 = 최대")
 	local first = PlayerState.rebirthRequirement(0)
+	assert(first, "첫 환생 조건")
 	eq(first.Coins, 5000)
 	eq(first.Landmarks[1], "eiffel")
 	eq(first.Landmarks[2], "liberty")
-	local last = #Config.REBIRTHS
-	eq(PlayerState.rebirthRequirement(last - 1).Coins, Config.REBIRTHS[last].Coins, "마지막 단계")
-	local beyond1 = PlayerState.rebirthRequirement(last)
-	eq(beyond1.Coins, Config.REBIRTHS[last].Coins * 4, "표 +1")
-	eq(#beyond1.Landmarks, #Config.REBIRTHS[last].Landmarks, "표 +1 명소")
-	eq(beyond1.Landmarks[1], Config.REBIRTHS[last].Landmarks[1])
-	eq(PlayerState.rebirthRequirement(last + 1).Coins, Config.REBIRTHS[last].Coins * 16, "표 +2")
+	for n = 1, Config.MAX_REBIRTHS do
+		local req = PlayerState.rebirthRequirement(n - 1)
+		assert(req, n .. "번째 조건")
+		eq(req.Coins, Config.REBIRTHS[n].Coins, n .. "번째 코인")
+		eq(#req.Landmarks, #Config.REBIRTHS[n].Landmarks, n .. "번째 명소")
+	end
+	eq(PlayerState.rebirthRequirement(Config.MAX_REBIRTHS), nil, "최대 뒤에는 없음")
+	eq(PlayerState.rebirthRequirement(Config.MAX_REBIRTHS + 3), nil, "넘어도 없음")
 	-- 복사본이라 고쳐도 Config 는 그대로
 	first.Landmarks[1] = "hack"
 	eq(Config.REBIRTHS[1].Landmarks[1], "eiffel", "Config 불변")
+end)
+test("환생 최대: 10번 하면 더 못 하고, 스냅샷 NextRebirth 는 nil", function()
+	local d = PlayerState.new()
+	d.Rebirths = Config.MAX_REBIRTHS
+	d.Coins = 1e12
+	for _, step in Config.REBIRTHS do
+		for _, id in step.Landmarks do
+			d.Inventory[id] = 1
+		end
+	end
+	eq(PlayerState.rebirthMaxed(d), true)
+	local can, missing, short = PlayerState.canRebirth(d)
+	eq(can, false)
+	eq(#missing, 0)
+	eq(short, 0)
+	local ok, reason = PlayerState.rebirth(d)
+	eq(ok, false)
+	eq(reason, "최대 환생입니다")
+	eq(d.Rebirths, Config.MAX_REBIRTHS, "그대로")
+	eq(d.Coins, 1e12, "코인 그대로")
+	eq(PlayerState.snapshot(d, 1).NextRebirth, nil, "다음 조건 없음")
+	-- 9번 한 사람은 10번째 가능
+	d.Rebirths = Config.MAX_REBIRTHS - 1
+	eq(PlayerState.rebirthMaxed(d), false)
+	eq((PlayerState.rebirth(d)), true, "10번째 환생")
+	eq(d.Rebirths, Config.MAX_REBIRTHS)
 end)
 test("canRebirth: 모자란 명소와 코인", function()
 	local d = PlayerState.new()
@@ -1486,7 +1516,8 @@ test("short / oneIn", function()
 	eq(Format.short(100000000), "100M")
 	eq(Format.oneIn(2500), "1 in 2,500")
 	eq(Format.oneIn(404040), "1 in 404,040")
-	eq(Format.oneIn(1000000), "1 in 1M")
+	eq(Format.oneIn(1000000), "1 in 1,000,000")
+	eq(Format.oneIn(40000000), "1 in 40,000,000")
 end)
 test("multiplier / duration / hex / escape", function()
 	eq(Format.multiplier(1), "x1")

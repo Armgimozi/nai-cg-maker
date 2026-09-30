@@ -1011,22 +1011,22 @@ local function shake(target: GuiObject)
 	TweenService:Create(target, info, { Rotation = 4 }):Play()
 end
 
--- 환생 버튼: 못 함 = 회색 / 가능 = Coral "환생" / 한 번 누름 = Sun "확인?" (3초)
-local function paintRebirthButton(ready: boolean)
+-- 환생 버튼: 못 함 = 회색 / 가능 = Coral "환생" / 한 번 누름 = Sun "확인?" (3초) / 최대까지 함 = Grass "최대"
+local function paintRebirthButton(ready: boolean, maxed: boolean?)
 	local button = rebirthButton
 	if not button then
 		return
 	end
 	local confirming = ready and os.clock() < confirmUntil
-	local look = if confirming then "confirm" elseif ready then "ready" else "locked"
+	local look = if maxed then "max" elseif confirming then "confirm" elseif ready then "ready" else "locked"
 	if look == rebirthLook then
 		return
 	end
 	rebirthLook = look
-	button.SetText(if confirming then "확인?" else "환생")
-	button.SetColor(if confirming then "Sun" elseif ready then "Coral" else "Gray")
+	button.SetText(if maxed then "최대" elseif confirming then "확인?" else "환생")
+	button.SetColor(if maxed then "Grass" elseif confirming then "Sun" elseif ready then "Coral" else "Gray")
 	if button.Icon then
-		Icons.setTransparency(button.Icon, if ready then 0 else 0.45)
+		Icons.setTransparency(button.Icon, if ready or maxed then 0 else 0.45)
 	end
 end
 
@@ -1046,7 +1046,7 @@ local function refreshRebirth(coins: number)
 		rebirthCoinText.Text = text
 	end
 	rebirthCoinCheck.Visible = met
-	paintRebirthButton(ready)
+	paintRebirthButton(ready, need == nil and Perks.rebirths(state) >= Config.MAX_REBIRTHS)
 end
 
 local function onRebirthPressed()
@@ -1056,6 +1056,7 @@ local function onRebirthPressed()
 	end
 	local ready, missing, _, need = Perks.rebirthCheck(state, lastCoins)
 	if not need then
+		handlers.Toast("최대 환생", "rebirth")
 		return
 	end
 	if not ready then
@@ -1316,12 +1317,13 @@ end
 local function renderRebirth(state: Snapshot)
 	local rebirths = Perks.rebirths(state)
 	local luck, income = Perks.rebirthMults(rebirths)
-	rebirthCount.Label.Text = Format.commas(rebirths)
+	rebirthCount.Label.Text = Format.commas(rebirths) .. "/" .. Config.MAX_REBIRTHS
 	rebirthLuck.Label.Text = Ui.times(luck)
 	rebirthIncome.Label.Text = Ui.times(income)
 	-- 발견 기록(Discovered)이 따로 있으면 보유 명소도 초기화되는 규칙(DESIGN v3)
-	rebirthWarning.Label.Text = if (state :: any).Discovered ~= nil
-		then "코인·강화·명소 초기화"
+	rebirthWarning.Label.Text = if rebirths >= Config.MAX_REBIRTHS
+		then "최대 환생 달성"
+		elseif (state :: any).Discovered ~= nil then "코인·강화·명소 초기화"
 		else "코인·강화 초기화"
 
 	local need = Perks.rebirthNeed(state)
