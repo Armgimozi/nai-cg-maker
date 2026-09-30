@@ -182,6 +182,84 @@ test("몬테카를로: 실제 굴림 분포가 계산 확률과 일치 (200만 �
 	end
 end)
 
+test("굴림 간격 판정(cooldownGate): 허용 오차 안이면 받고, 더 이르면 남은 시간", function()
+	local cd, tol = 1.2, 0.15
+	local ok, value = RollLogic.cooldownGate(-math.huge, 10, cd, tol)
+	eq(ok, true, "첫 굴림")
+	near(value, 10 - tol, 1e-9, "첫 기준 = 닿은 시각 - 오차")
+	ok, value = RollLogic.cooldownGate(10, 11.2, cd, tol)
+	eq(ok, true, "제때")
+	near(value, 11.2, 1e-9, "기준 = 원래 가능했던 시각")
+	ok, value = RollLogic.cooldownGate(10, 11.06, cd, tol)
+	eq(ok, true, "0.14초 일찍 = 받음")
+	near(value, 11.2, 1e-9, "일찍 와도 기준은 원래 가능했던 시각(당겨지지 않음)")
+	ok, value = RollLogic.cooldownGate(10, 11.5, cd, tol)
+	eq(ok, true, "늦게")
+	near(value, 11.35, 1e-9, "늦게 닿으면 기준 = 닿은 시각 - 오차")
+	ok, value = RollLogic.cooldownGate(10, 11, cd, tol)
+	eq(ok, false, "0.2초 일찍 = 거절")
+	near(value, 0.2, 1e-9, "RetryIn = 원래 가능했던 시각까지")
+end)
+test(
+	"굴림 간격 판정: 굴림 간격대로 보낸 요청은 요청 지연이 2 × 오차 안에서 줄어도 받음",
+	function()
+		for _, cd in { 0.42, 0.84, 1.2 } do
+			-- AUTO 는 굴림 간격대로 보냄(보낸 시각 = k × 굴림 간격). 요청 지연 0.33 ↔ 0.04초 번갈아(0.29초 줄어듦)
+			local last = -math.huge
+			for k = 0, 199 do
+				local up = if k % 2 == 0 then 0.33 else 0.04
+				local ok, value = RollLogic.cooldownGate(last, 100 + k * cd + up, cd, 0.15)
+				assert(ok, string.format("굴림 간격 %.2f초 %d번째 거절", cd, k))
+				last = value
+			end
+			-- 늦게 닿은 요청 뒤 2 × 오차(0.3초)보다 더 일찍 닿으면 거절(서버가 속도를 지키는 한계)
+			local ok1, first = RollLogic.cooldownGate(-math.huge, 100 + 0.4, cd, 0.15)
+			local ok2 = RollLogic.cooldownGate(first, 100 + cd + 0.04, cd, 0.15)
+			eq(ok1 and not ok2, true, string.format("굴림 간격 %.2f초: 지연 0.36초 줄면 거절", cd))
+		end
+	end
+)
+test(
+	"굴림 간격 판정: 받아 주는 가장 이른 때마다 보내도 평균 속도 ≤ 1/굴림 간격",
+	function()
+		local cd, tol = 0.42, 0.15
+		-- (1) 매번 받아 주는 가장 이른 시각에
+		local last, now = -math.huge, 50
+		local accepted, firstAt, lastAt = 0, 0, 0
+		for _ = 1, 1000 do
+			local ok, value = RollLogic.cooldownGate(last, now, cd, tol)
+			assert(ok, "가장 이른 시각은 받아야 함")
+			accepted += 1
+			firstAt = if accepted == 1 then now else firstAt
+			lastAt = now
+			last = value
+			now = last + cd - tol
+		end
+		assert(
+			lastAt - firstAt >= (accepted - 1) * cd - 2 * tol - 1e-9,
+			string.format("1000번에 %.2f초 (최소 %.2f초)", lastAt - firstAt, (accepted - 1) * cd - 2 * tol)
+		)
+		-- (2) 무작위로 마구 보내도(거절되면 RetryIn 뒤) 받은 수 ≤ 걸린 시간 / 굴림 간격 + 1 + 2 × 오차 / 굴림 간격
+		math.randomseed(7)
+		last, now = -math.huge, 0
+		accepted, firstAt, lastAt = 0, 0, 0
+		for _ = 1, 20000 do
+			local ok, value = RollLogic.cooldownGate(last, now, cd, tol)
+			if ok then
+				accepted += 1
+				firstAt = if accepted == 1 then now else firstAt
+				lastAt = now
+				last = value
+			end
+			now += math.random() * 0.3
+		end
+		assert(
+			accepted <= (lastAt - firstAt) / cd + 1 + 2 * tol / cd,
+			string.format("%d번 / %.1f초 (굴림 간격 %.2f초)", accepted, lastAt - firstAt, cd)
+		)
+	end
+)
+
 print("\n[PlayerState]")
 local function owning(ids: { string }): any
 	local d = PlayerState.new()
@@ -844,7 +922,7 @@ test(
 	end
 )
 test(
-	"서버: 상태는 PlayerState.sync, 굴림 행운은 PlayerState.rollLuck 으로만 (자동 발견을 건너뛰지 않음)",
+	"서버: 상태는 PlayerState.sync, 굴림 행운은 PlayerState.rollLuck 으로만 (자동 발견을 건너뛰지 않음), 굴림 간격은 RollLogic.cooldownGate",
 	function()
 		local function scan(dir: string, fn: (string, string) -> ())
 			for _, name in listdir(dir) do
@@ -871,6 +949,14 @@ test(
 		assert(
 			rollLuckAt and rollAt and rollLuckAt < rollAt,
 			"굴림 판정(RollLogic.roll) 앞에서 PlayerState.rollLuck"
+		)
+		-- 굴림 간격 판정은 서버와 클라이언트 스모크의 가짜 서버가 같은 함수(둘이 따로 규칙을 들고 있으면 어긋남)
+		local gateAt = server:find("RollLogic.cooldownGate(", 1, true)
+		assert(gateAt and gateAt < rollAt, "서버 굴림 간격 = RollLogic.cooldownGate (굴림 판정 앞)")
+		local smoke = readfile("tools/client_smoke/init.luau") or ""
+		assert(
+			smoke:find("RollLogic.cooldownGate(", 1, true),
+			"스모크 가짜 서버 굴림 간격 = RollLogic.cooldownGate"
 		)
 	end
 )

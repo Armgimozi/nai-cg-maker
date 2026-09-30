@@ -69,11 +69,13 @@ export type Product = {
 local Config = {
 	-- 굴리기(지구본 돌리기) ----------------------------------------------
 	ROLL_COOLDOWN = 1.2, -- 굴리기 사이 최소 간격(초). 서버가 강제합니다.
-	COOLDOWN_TOLERANCE = 0.15, -- 네트워크 지연을 감안한 허용 오차(초)
+	-- 네트워크 지연을 감안한 허용 오차(초): 이만큼 일찍 닿아도 받음. 늦게 닿은 요청 뒤에는 2배까지(RollLogic.cooldownGate)
+	COOLDOWN_TOLERANCE = 0.15,
 	BASE_LUCK = 1,
 	-- 자동 굴림(AUTO) 중 이미 발견한 명소는 지구본을 돌리지 않고 결과 카드만 퐁(빠른 결과, 새 발견·수동 굴림은 원래 연출).
 	-- 연출을 기다리지 않아서 AUTO 는 굴림 간격대로 굴림 → 여행사(최대 -50%)·빠른 굴림(×0.7)이 AUTO 도 빠르게 함
-	-- (후반 시간당 3,000 / 4,286 / 6,000 / 8,571번 = 없음 / 빠른 굴림 / 여행사 최대 / 둘 다 — balance/sim_results.md 9번).
+	-- (후반 시간당 3,000 / 4,286 / 6,000 / 8,571번 = 없음 / 빠른 굴림 / 여행사 최대 / 둘 다 — 클라이언트가 원래 보낼 시각을
+	-- 기준으로 해서 프레임 늦음이 쌓이지 않아 평균이 굴림 간격 그대로. balance/sim_results.md 9번).
 	-- false 면 모든 결과를 등급 길이의 연출로(연출이 굴림 간격보다 길어 AUTO 가 느려짐)
 	AUTO_QUICK_REVEAL = true,
 
@@ -9836,6 +9838,20 @@ function RollLogic.probabilities(rarestFirst: { Rollable }, luck: number): { [st
 	return result
 end
 
+-- 서버 굴림 간격 판정(서버 Roll · 클라이언트 스모크의 가짜 서버가 같이 씀). lastRoll: 지난 굴림의 기준 시각,
+-- now: 요청이 서버에 닿은 시각. 받으면 (true, 새 기준 시각), 너무 이르면 (false, 다시 보낼 때까지 남은 초).
+-- 허용 오차(tolerance)만큼 일찍 와도 받음. 새 기준 = max(원래 가능했던 시각, 닿은 시각 - 오차):
+-- 받을 때마다 기준이 굴림 간격 이상 늘어나서 평균 속도는 1/굴림 간격을 넘지 못하고(오래 쉰 뒤 한 번만 2 × 오차 당겨짐),
+-- 한 번 늦게 닿은 요청(업로드 지연이 튐) 뒤에 제때 보낸 요청이 2 × 오차 안에서 일찍 닿아도 거절하지 않음
+-- (기준을 늦게 닿은 시각 그대로 두면 지연이 오차보다 줄어든 다음 굴림이 거절됨 — AUTO 가 굴림 간격대로 보내므로)
+function RollLogic.cooldownGate(lastRoll: number, now: number, cooldown: number, tolerance: number): (boolean, number)
+	local readyAt = lastRoll + cooldown
+	if now < readyAt - tolerance then
+		return false, readyAt - now
+	end
+	return true, math.max(readyAt, now - tolerance)
+end
+
 return RollLogic
 ]]></string>
         </Properties>
@@ -10363,16 +10379,21 @@ Net.fn("Roll").OnServerInvoke = function(player: Player)
 		return { Ok = false, Reason = "loading" }
 	end
 
-	-- 쿨타임: 허용 오차만큼 일찍 와도 받아주되, 기준 시각은 "원래 가능했던 시각"으로 밀어서
-	-- 오차를 반복 악용해도 평균 속도가 빨라지지 않게 합니다.
+	-- 쿨타임(RollLogic.cooldownGate): 허용 오차만큼 일찍 와도 받아주되, 기준 시각이 받을 때마다 굴림 간격 이상 밀려서
+	-- 오차를 반복 악용해도 평균 속도가 빨라지지 않음. 네트워크 지연이 들쭉날쭉해도(늦게 닿은 요청 뒤 제때 보낸 요청)
+	-- 거절하지 않게 기준은 "닿은 시각 - 오차"까지만 늦춤
 	local mods = modsFor(session)
 	local now = time()
-	local cooldown = PlayerState.cooldown(session.Data, mods)
-	local readyAt = session.LastRoll + cooldown
-	if now < readyAt - Config.COOLDOWN_TOLERANCE then
-		return { Ok = false, Reason = "cooldown", RetryIn = readyAt - now }
+	local ok, value = RollLogic.cooldownGate(
+		session.LastRoll,
+		now,
+		PlayerState.cooldown(session.Data, mods),
+		Config.COOLDOWN_TOLERANCE
+	)
+	if not ok then
+		return { Ok = false, Reason = "cooldown", RetryIn = value }
 	end
-	session.LastRoll = math.max(now, readyAt)
+	session.LastRoll = value
 
 	-- 굴리기 전에 자동 발견(도장이 늘면 행운이 오름 — rollLuck). 굴린 뒤의 자동 발견은 응답 State(snapshot)에서
 	local luck = PlayerState.rollLuck(session.Data, mods)
@@ -17795,7 +17816,10 @@ local autoRoll = false -- AUTO 켬(플레이어가 고른 것 — 굴리기 줄 
 -- 3D 배치 모드 동안 자동 굴리기는 쉼(나가면 AUTO 가 켜져 있으면 다시 돎): 배치 띠에는 이미 [자동](자동 배치)이 있어서
 -- 자동 굴리기 스위치를 하나 더 두면 아이들이 헷갈리고, 쉬는 동안은 새 명소가 빈 칸에 들어와 들고 있는 칸이 바뀌지도 않음
 local autoPaused = false
+-- 마지막 굴림을 보낸 시각(다음 굴림은 이 시각 + 굴림 간격부터). 굴림 간격을 기다렸다 보냈으면 "원래 보낼 수 있던 시각"
+-- (task.wait 는 다음 프레임에 깨서 조금 늦음 — 그 늦음이 굴림마다 쌓여 AUTO 가 굴림 간격보다 느려지지 않게)
 local lastRollSentAt = -math.huge
+local SEND_SLACK = 0.05 -- 기다림이 이만큼(프레임 몇 개) 늦게 끝난 것까지는 원래 시각으로 침
 local heldAnnouncements = {} -- 내 굴림 연출 중에 도착한 "내" 속보 (연출이 끝나면 표시)
 local location = "Plaza" -- 지금 있는 곳: "Plaza" | "Park"
 local teleporting = false
@@ -17971,8 +17995,10 @@ local function roll(fromAuto: boolean?)
 
 	-- 쿨타임이 남았으면 기다렸다가 요청. 자동 굴림은 연출이 끝나면 바로 여기로 돌아와 남은 굴림 간격(Cooldown)만 기다림
 	-- (서버가 거절하면 RetryIn). 이미 발견한 명소는 AUTO 에서 결과 카드만 퐁 하고 기다리지 않으므로(Hud.reveal 빠른 결과 —
-	-- Config.AUTO_QUICK_REVEAL) AUTO 속도 = 서버 굴림 간격(여행사·빠른 굴림). 간격보다 먼저 보내는 일은 없음
-	local waitFor = lastRollSentAt + (state :: PlayerState.Snapshot).Cooldown - time()
+	-- Config.AUTO_QUICK_REVEAL) AUTO 속도 = 서버 굴림 간격(여행사·빠른 굴림). 기다렸으면 기준은 원래 보낼 수 있던 시각이라
+	-- 평균 간격이 굴림 간격 그대로(프레임 늦음이 쌓이지 않음). 서버는 허용 오차 안에서 받음(RollLogic.cooldownGate)
+	local readyAt = lastRollSentAt + (state :: PlayerState.Snapshot).Cooldown
+	local waitFor = readyAt - time()
 	if waitFor > 0 then
 		task.wait(waitFor)
 	end
@@ -17981,7 +18007,10 @@ local function roll(fromAuto: boolean?)
 		Hud.setRolling(false)
 		return
 	end
-	lastRollSentAt = time()
+	local now = time()
+	lastRollSentAt = if waitFor > 0 then math.max(readyAt, now - SEND_SLACK) else now
+	-- 빠른 결과(AUTO)인지는 보낼 때 정함: 응답을 기다리는 사이 AUTO 를 꺼도 이 결과는 AUTO 결과(이미 발견 = 카드만 퐁)
+	local fast = autoRoll and not autoPaused
 	local response = invoke("Roll")
 	local receivedAt = time()
 
@@ -17992,7 +18021,7 @@ local function roll(fromAuto: boolean?)
 		end
 		revealing = true
 		local ok, err = pcall(Hud.reveal, landmark, {
-			Fast = autoRoll and not autoPaused,
+			Fast = fast,
 			IsNew = response.IsNew == true,
 			StarUp = response.StarUp == true,
 			Stars = tonumber(response.Stars) or 0,
@@ -18028,12 +18057,18 @@ local function roll(fromAuto: boolean?)
 	end
 
 	rolling = false
-	Hud.setRolling(false)
+	-- AUTO 가 계속 굴리면 굴리기 버튼의 지구본은 계속 돎(굴림마다 멈췄다 0° 로 돌아가는 떨림 없이). 끄면 toggleAuto 가 멈춤
+	if not (autoRoll and not autoPaused) then
+		Hud.setRolling(false)
+	end
 end
 
 local function toggleAuto()
 	autoRoll = not autoRoll
 	Hud.setAuto(autoRoll)
+	if not autoRoll then
+		Hud.setRolling(rolling)
+	end
 	if autoPaused then
 		-- 배치 모드(T 키): 굴리기 줄이 숨어 있으니 알림으로. 나가면 적용
 		Hud.toast(if autoRoll then "AUTO ON" else "AUTO OFF", Ui.Theme.Ink, 2, "auto")
@@ -18303,6 +18338,9 @@ ParkEdit.init(gui, {
 		end
 		Hud.setEditing(editing)
 		autoPaused = editing
+		if editing then
+			Hud.setRolling(rolling) -- AUTO 가 쉬는 동안 지구본 아이콘도 멈춤(굴리던 것이 끝나면 roll 이 멈춤)
+		end
 		if editing and autoRoll then
 			Hud.toast("AUTO 쉬는 중", Ui.Theme.Ink, 2, "auto") -- 나가면 다시 돎
 		end
@@ -18517,8 +18555,14 @@ local SUSPENSE_SECONDS = 0.9 -- 불가사의 이상 "? ? ?" 뜸 들이기
 -- 퐁 길이는 그보다 짧게. 새 발견·수동 굴림은 위의 원래 연출. (sim.py 가 아래 숫자를 읽음 — 이름을 바꾸면 sim.py 도)
 local QUICK_POP_SECONDS = 0.2 -- 결과 카드가 살짝 커졌다 제자리로
 local QUICK_RARE_RANK = 6 -- 이 등급 이상(잃어버린 유산·전설): 더 크게 퐁 + 햇살(전설은 희귀 소리 + 옅은 번쩍임)
+-- 단 전설 아래(6등급)는 지금 행운으로도 드물 때만: 1/N ≥ 이 값 × 굴림 행운(100번에 한 번보다 드묾). 후반 행운이 크면
+-- 6등급이 흔해서(행운 55,296 이면 굴림의 절반) 햇살이 0.42초마다 켜졌다 꺼지지 않게 — 햇살은 어느 행운에서나 굴림의 약 2% 이하
+local QUICK_RARE_LUCK = 100
 local QUICK_RARE_POP_SECONDS = 0.35
-local QUICK_HIDE_SECONDS = 1.5 -- 다음 결과가 안 오면(AUTO 끔) 이만큼 뒤에 카드를 숨김
+-- 다음 결과가 안 오면(AUTO 끔) 카드를 숨김: max(이 초, 굴림 간격 + QUICK_HIDE_AFTER_COOLDOWN) 뒤 — 네트워크가 잠깐 늦어
+-- 다음 결과가 굴림 간격보다 늦게 와도 카드가 숨었다 다시 뜨지 않게
+local QUICK_HIDE_SECONDS = 1.5
+local QUICK_HIDE_AFTER_COOLDOWN = 0.8
 local NEWS_SECONDS = 7
 local MAX_NEWS = 2
 local MAX_TOASTS = 4
@@ -18575,6 +18619,7 @@ local newsOrder = 0
 local toasts: { GuiObject } = {}
 local toastOrder = 0
 local burstTween: Tween? = nil
+local cooldownSeconds = 0 -- 마지막으로 받은 굴림 간격(Hud.startCooldown) — AUTO 빠른 결과 카드를 숨길 때
 local popTween: Tween? = nil -- 결과 카드 퐁(RevealScale). 다음 연출이 시작되면 멈춤
 local resultId: string? = nil -- ResultView 에 올려 둔 명소 Id(같은 명소가 또 나오면 모형을 다시 만들지 않음)
 
@@ -19623,6 +19668,7 @@ end
 
 -- 쿨타임 막대가 비었다가 seconds 동안 가득 참
 function Hud.startCooldown(seconds: number)
+	cooldownSeconds = seconds
 	local fill = refs.CooldownFill
 	fill.Size = UDim2.fromScale(0, 1)
 	TweenService:Create(fill, TweenInfo.new(seconds, Enum.EasingStyle.Linear), { Size = UDim2.fromScale(1, 1) }):Play()
@@ -19666,11 +19712,13 @@ local function showBurst(color: Color3)
 	end
 	refs.Burst.Visible = true
 	if not burstTween then
-		refs.Burst.Rotation = 0
+		-- 멈췄던 각도에서 이어서 돎(AUTO 빠른 결과가 햇살을 껐다 켜도 0° 로 튀지 않게)
+		local from = refs.Burst.Rotation % 360
+		refs.Burst.Rotation = from
 		local tween = TweenService:Create(
 			refs.Burst,
 			TweenInfo.new(10, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1),
-			{ Rotation = 360 }
+			{ Rotation = from + 360 }
 		)
 		tween:Play()
 		burstTween = tween
@@ -19869,11 +19917,13 @@ end
 
 -- AUTO 빠른 결과(이미 발견한 명소): 지구본 회전·착지·"? ? ?" 없이 결과 카드가 바로 퐁 — 등급 색 판·리본, 이름·확률,
 -- 별 딱지는 원래 연출과 같음. 기다리지 않음(yield 없음): 부르는 쪽(init roll)은 곧바로 다음 굴림을 준비해서 서버 굴림
--- 간격만 기다리고, 카드는 다음 결과가 덮을 때까지 보임. 6등급 이상은 더 크게 퐁 + 햇살, 전설은 희귀 소리 + 옅은 번쩍임
--- (퐁 0.35초 < 가장 짧은 굴림 간격 0.42초). 흔한 결과는 작은 착지 소리만(초당 2번 넘게 울려도 시끄럽지 않게)
+-- 간격만 기다리고, 카드는 다음 결과가 덮을 때까지 보임. 6등급 이상은 더 크게 퐁 + 햇살(6등급은 지금 행운으로도 드물 때만 —
+-- QUICK_RARE_LUCK), 전설은 희귀 소리 + 옅은 번쩍임 (퐁 0.35초 < 가장 짧은 굴림 간격 0.42초). 흔한 결과는 작은 착지 소리만
+-- (초당 2번 넘게 울려도 시끄럽지 않게)
 local function quickReveal(landmark: Landmarks.Landmark, info: RevealInfo)
 	local tier = landmark.Tier
-	local rare = tier.Rank >= QUICK_RARE_RANK
+	local rare = tier.Rank >= 7
+		or (tier.Rank >= QUICK_RARE_RANK and landmark.OneIn >= QUICK_RARE_LUCK * math.max(1, info.Luck))
 	refs.Reveal.Visible = true
 	showRegion(Landmarks.RegionById[landmark.Region] or Landmarks.Regions[1], true)
 	showResult(landmark, info)
@@ -19889,7 +19939,7 @@ local function quickReveal(landmark: Landmarks.Landmark, info: RevealInfo)
 	else
 		play(if rare then revealSound else landSound)
 	end
-	hideLater(QUICK_HIDE_SECONDS)
+	hideLater(math.max(QUICK_HIDE_SECONDS, cooldownSeconds + QUICK_HIDE_AFTER_COOLDOWN))
 end
 
 -- 굴림 연출. 결과를 보여 줄 때까지 기다립니다(yield) — AUTO 빠른 결과(quickReveal)만 기다리지 않음.

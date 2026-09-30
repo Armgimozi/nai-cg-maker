@@ -439,13 +439,15 @@ trip, longer than the 1.2 s cooldown once Agency / FastRoll shorten it, so the r
 - In AUTO an already-discovered landmark (`IsNew = false`, auto-discovered ones included) skips the globe spin, the landing
   and "? ? ?": the result card pops at once — `QUICK_POP_SECONDS` = 0.2 s scale pop of the same card as the full reveal
   (tier-coloured disc and ribbon, 3D model, name, odds, the "★★☆☆☆ +1" / "MAX" star chip, plus the ★+1 toast in the notice
-  row). Rank ≥ `QUICK_RARE_RANK` (6) gets a bigger 0.35 s pop and the rays; rank 7 also the rare chime and a light flash.
+  row). Rank 7 gets a bigger 0.35 s pop, the rays, the rare chime and a light flash; rank 6 (`QUICK_RARE_RANK`) gets the big
+  pop and the rays only when it is still rare for this player (1-in ≥ `QUICK_RARE_LUCK` = 100 × the roll's luck — 9f).
   Common results only play the soft land tick (up to 2.4 results per second).
 - `Hud.reveal` returns without yielding, so `roll()` in `init.client.luau` goes straight back to waiting for
   `lastRollSentAt + Cooldown`: the AUTO period is the server cooldown whenever rtt + loop wait (~0.18 s) is shorter
-  (the shortest cooldown is 1.2 × 0.5 × 0.7 = 0.42 s). The card stays up until the next result replaces it (1.5 s hide if
-  none comes); both pops are shorter than 0.42 s. The client never sends before `lastRollSentAt + Cooldown` and the server
-  still accepts ≥ cooldown − 0.15 s, so normal play gets no "cooldown" rejections.
+  (the shortest cooldown is 1.2 × 0.5 × 0.7 = 0.42 s). The card stays up until the next result replaces it (hidden after
+  max(1.5 s, cooldown + 0.8 s) if none comes — 9f); both pops are shorter than 0.42 s. After waiting, the next send is
+  planned from the planned time, so frame lateness does not add up, and the server (`RollLogic.cooldownGate`) accepts that
+  schedule under network jitter (9f).
 - NEW discoveries and manual rolls keep the full reveal (same timings the sim reads as before).
 - Toggling: `roll(fromAuto)` — if AUTO is switched off or edit mode starts while an AUTO roll waits for the cooldown, that roll
   is not sent (no extra full-length reveal after "AUTO OFF"); a [굴리기] / R press during the wait sends it as a manual roll.
@@ -480,8 +482,9 @@ so run 0 is lower (it starts at level 0).
 | **quick result (round 9)** | Agency max | 0.60 s | 3,545 | 5,998 | **6,000** | **×2.00** (= 1 / 0.5) |
 | **quick result (round 9)** | Agency max + FastRoll | 0.42 s | 4,755 | 8,568 | **8,571** | **×2.86** (= 1 / 0.35) |
 
-Before, all four did ~2,658 rolls per hour late — FastRoll and Agency changed nothing in AUTO. Now late AUTO is exactly
-3600 / cooldown. (Run 0 has many NEW discoveries, which keep the full reveal.)
+Before, all four did ~2,658 rolls per hour late — FastRoll and Agency changed nothing in AUTO. Now late AUTO is
+3600 / cooldown on average (exactly — the client keeps its send schedule instead of re-anchoring on the frame it woke up
+on, 9f). (Run 0 has many NEW discoveries, which keep the full reveal.)
 
 ### 9b. Same numbers with the quick result: too fast
 
@@ -535,6 +538,14 @@ also raises the hologram (0.11 / 0.33 vs 0.05 / 0.1 approved); the only rarer ch
 once per 80–240 player-hours), which would make the hologram practically never seen. Thresholds sit between landmark odds,
 so these are the only steps.
 
+**This departs from the approved design — open for the user (PROPOSAL.md round-9 note, options A–D):** the hologram is no
+longer a rarer tier of the news (every news is a hologram; round 8 kept it a strict subset), the hologram is 2.2–3.3× the
+approved rate (0.11 / 0.33 vs 0.049 / 0.098), the news is 37–55 % of the approved "special" rate (0.3 / 0.6; round 8
+0.22 / 0.44), a free player's first own news moves from ~3.3 d to 5.1 d, and skyisland (1 in 110M, the 10th-rebirth gate)
+no longer makes news. Alternatives: hologram at 10B (World Tree only, above), hologram ≥ 375M only on a first-ever find
+(`IsNew`, at most 2 per player), the approved thresholds (news 100M: 0.49 / 1.4), or the relative news rule
+(`announce_luck_ratio`, declined in round 8). Implemented default: both 375M (unchanged).
+
 ### 9e. Final numbers (implemented) and robustness
 
 | final variant | player | #1 | #2 | #3 | #5 | #10 | found 5 / 15 / 60 min | first legendary | World Tree wait at max | news = hologram per player-hour, run 10 | stamps 5/5 |
@@ -559,6 +570,26 @@ from 22.7 / 11.2 to **10.0 / 3.5 days** (free / paid) — still "days to weeks".
 ~20 / 7 days (section 8e), but `art/store` (icon, thumbnails, description) would have to be redrawn. First legendary moves from
 18.1 h to 11.6 h (still run 4).
 
+### 9f. Review fixes (client and economy review of 0e04193)
+
+No balance number changes; the sim model gains one term (`cooldown_late`, 0 for the fixed client) and the pacing tables
+above are reproduced unchanged by `python3 tools/balance/sim.py --check`.
+
+| finding (review) | fix | checked by |
+|---|---|---|
+| AUTO switched off while a roll is in flight → that known result got the full manual reveal (globe spin, "? ? ?"; ~10 % of presses at 1.2 s, ~29 % at 0.42 s) | `init.client.luau roll()`: `Fast` is decided when the roll is sent, not when the answer arrives | smoke 6c: T pressed 0.1 s after sending (0.3 s round trip) → quick card 0.35 s after sending, no "? ? ?", nothing more sent |
+| Network jitter → ~7 % of AUTO rolls rejected (server anchored on the latest arrival: an upload delay drop > 0.15 s after one late request was "early") | `RollLogic.cooldownGate` (server Roll and the smoke's fake server): new reference = max(ready time, arrival − 0.15 s). Still ≥ one cooldown per accepted roll, so the long-run rate stays ≤ 1 / cooldown (one extra 2 × 0.15 s after an idle) | unit tests (edge cases, alternating 0.33 / 0.04 s upload delay at 0.42 / 0.84 / 1.2 s = 0 rejections, a drop of 0.36 s is rejected, greedy / random senders never beat 1 / cooldown); smoke 7b: alternating 0.03 ↔ 0.25 s upload delay at 0.42 s, random 0.02–0.28 / 0.02–0.12 s at 0.84 s, round trip 0.05 ↔ 0.45 s at 1.2 s → 0 rejections, mean period = cooldown |
+| `task.wait` wakes on the next frame and the client re-anchored on it → the AUTO period rounded up to whole frames (0.42 → 0.433 s, 0.84 → 0.85 s at 60 fps; −3 % / −1.2 % for FastRoll buyers), not modelled | after waiting for the cooldown the client plans the next send from the planned time (`lastRollSentAt = max(readyAt, now − SEND_SLACK 0.05 s)`), so the period averages exactly the cooldown; the sim reads this (`send_anchored`) and would add half a frame per cooldown-bound roll without it (`cooldown_late`) | mock scheduler frame emulation (`Mock.frameSeconds = 1/60`, task.wait/delay wake on the next frame): every AUTO smoke case has single gaps within one frame and a mean within frame / n of the cooldown (0.4202 s, 0.8409 s, 1.2000 s); without the fix 0.4333 / 0.8500 s → FAIL |
+| Roll-button globe icon snapped back to 0° after every AUTO roll (`setRolling(false)` each roll, image icons reset below 180°/s) | the icon keeps spinning while AUTO runs; turning AUTO off / entering edit mode stops it | smoke: slowest spin while AUTO ran 420°/s, 60 after AUTO off and after a roll that was in flight |
+| Paid late game: rank 6 is up to 47 % of rolls, so the rare pop + sunburst toggled on almost every other 0.42 s roll and restarted at 0° | rank 6 counts as "rare" only when 1-in ≥ 100 × the roll's luck (rays ≤ ~2 % of rolls at any luck: 2.3 % free late, 1.1 % at 55,296); legends always; the rays resume at the angle they stopped | smoke 7c: rank-6 1 in 950,000 at luck 55,296 → no rays, at luck 1,000 → rays, legends at 55,296 → rays, rays resume at 123° |
+| Card hid after a fixed 1.5 s → with a slow answer at the 1.2 s cooldown it could hide and pop back | hide after max(1.5 s, cooldown + 0.8 s) | smoke 7b (3): result gaps up to 1.6 s, the card never hides |
+| Report hid that the news/hologram retune changes the approved rates and tiers | disclosed above (9d) and in PROPOSAL.md with options | — |
+| DESIGN.md line 18 still said news ≥ 1 in 100M | fixed (375M, news + hologram) | — |
+
+Mutation check (scratch copy): reverting each fix makes the matching smoke line fail (Fast at answer time → 6c; old
+server rule → 7b ×4 incl. 19 rejections; no send anchoring → 7 lines with 0.4333 / 0.8500 s; icon reset per roll; fixed 1.5 s
+hide; fixed rank-6 rays; rays restarting at 0°).
+
 ### Iteration log (continued)
 
 | # | tried | result | kept |
@@ -569,3 +600,4 @@ from 22.7 / 11.2 to **10.0 / 3.5 days** (free / paid) — still "days to weeks".
 | 16 | B vs B9 (9B at step 6) vs B9 with 350k (400 players) | B9 = B (22.9 d); 350k → 1st 16 min (p10 15) | B9 with 400k |
 | 17 | news 100M / 375M / 10B, hologram 375M / 10B | 100M 0.49 / 1.4 per endgame player-hour, 375M 0.11 / 0.33, 10B ~0.004 / 0.012 | news 375M, hologram 375M |
 | 18 | final: seeds 1 and 2, greedy policy, heavy spender; `sim.py --check`; client smoke with 0.12 s rtt | all targets hold; 0 mismatches; smoke gaps 1.20 / 0.84 / 0.42 s, 0 rejections | final = `balance/variant_rec.json` |
+| 19 | review fixes (9f): send anchoring, `RollLogic.cooldownGate`, Fast at send time, rank-6 rays by luck; smoke with 60 fps frames and jitter | same pacing (`sim.py --check`); mean AUTO period = cooldown with frames; 0 rejections under jitter | no number changes |

@@ -34,7 +34,11 @@ MODEL (one Monte-Carlo run = one player; S runs vectorised with numpy)
     Config.AUTO_QUICK_REVEAL = true (rules.quick_reveal_known, the game since the 2026-09-30 "AUTO follows the
     cooldown" round): in AUTO an already-discovered landmark only pops the result card (Hud.luau quickReveal,
     QUICK_POP_SECONDS) and Hud.reveal returns at once, so period = max(cooldown, rtt + loop wait) = the cooldown -
-    Agency and FastRoll set the AUTO speed. New discoveries and manual rolls keep their full reveal. Older rule
+    Agency and FastRoll set the AUTO speed. task.wait wakes on the next frame, but after waiting for the cooldown the
+    client plans the next send from the planned time (init.client.luau `lastRollSentAt = ... math.max(readyAt, now -
+    SEND_SLACK)`), so a cooldown-bound period averages exactly the cooldown (cooldown_late = 0; without it
+    ~cooldown + half a frame, which the model then adds). The server accepts that schedule under network jitter
+    (RollLogic.cooldownGate), so no rejections are modelled. New discoveries and manual rolls keep their full reveal. Older rule
     (rules.short_reveal_known / short_reveal_rank = the former Config.AUTO_KNOWN_REVEAL_RANK = k): a known landmark
     reveals like rank min(rank, k).
   * Luck = BASE * (1 + Globe) * (1 + REGION_LUCK_BONUS * stamps) * rebirthLuck(r) * VIP * boosts.
@@ -268,6 +272,8 @@ def parse_client_timing() -> dict:
         quick_pop=0.2,  # AUTO quick result (known landmark): card pop, Hud.reveal does not wait for it
         quick_rare_pop=0.35,  #   rank >= quick_rare_rank: bigger pop + rays
         quick_rare_rank=6,
+        quick_rare_luck=100,  #   ... rank 6 only when 1-in >= quick_rare_luck * roll luck (legends always)
+        send_anchored=True,  # init.client.luau keeps its send schedule (see cooldown_late)
     )
     try:
         hud = (ROOT / "src/client/Hud.luau").read_text(encoding="utf-8")
@@ -287,16 +293,34 @@ def parse_client_timing() -> dict:
         m = re.search(r"local interval = ([\d.]+) \+ t \* t \* ([\d.]+)", hud)
         if m:
             client["spin_base"], client["spin_growth"] = float(m.group(1)), float(m.group(2))
-        for key, name in (("quick_pop", "QUICK_POP_SECONDS"), ("quick_rare_pop", "QUICK_RARE_POP_SECONDS"), ("quick_rare_rank", "QUICK_RARE_RANK")):
+        for key, name in (
+            ("quick_pop", "QUICK_POP_SECONDS"),
+            ("quick_rare_pop", "QUICK_RARE_POP_SECONDS"),
+            ("quick_rare_rank", "QUICK_RARE_RANK"),
+            ("quick_rare_luck", "QUICK_RARE_LUCK"),
+        ):
             m = re.search(rf"\blocal {name}\s*=\s*([\d.]+)", hud)
             if m:
                 client[key] = float(m.group(1))
         # quickReveal must not wait (the model assumes Hud.reveal returns at once for a known landmark in AUTO)
         m = re.search(r"local function quickReveal\(.*?\nend\n", hud, re.S)
         client["quick_waits"] = bool(m and re.search(r"task\.wait\(", m.group(0)))
+        # init.client.luau roll(): after waiting for the cooldown the next send is planned from the planned time, not from
+        # the (up to a frame late) wake-up - `lastRollSentAt = if waitFor > 0 then math.max(readyAt, now - SEND_SLACK) ...`
+        init = (ROOT / "src/client/init.client.luau").read_text(encoding="utf-8")
+        client["send_anchored"] = (
+            re.search(r"lastRollSentAt\s*=\s*if waitFor > 0 then math\.max\(readyAt,\s*now - SEND_SLACK\)", init) is not None
+        )
     except OSError:
         pass
     return client
+
+
+def cooldown_late(client: dict) -> float:
+    """Seconds a cooldown-bound AUTO period runs over the cooldown on average. task.wait wakes on the next frame (~half a
+    frame late); the client plans each send from the previous planned time (send_anchored), so the lateness does not add
+    up and the period averages exactly the cooldown. Without that it would be ~cooldown + half a frame."""
+    return 0.0 if client.get("send_anchored", True) else client["frame"] / 2
 
 
 def load_current(source: str = "auto") -> dict:
@@ -548,6 +572,7 @@ class Game:
         if self.quick_reveal_known:
             self.overhead_known = np.full(self.M, self.overhead_quick)
         self.known_differs = self.short_reveal_known or self.quick_reveal_known
+        self.cd_late = cooldown_late(self.client)
         self.announce = self.N >= cfg["announce_one_in"]
         # proposed rule: news also when the find is rare *for this player*: 1-in >= ratio * permanent luck and >= min
         # (on top of the fixed ANNOUNCE_ONE_IN; set announce_one_in huge for a purely relative rule)
@@ -725,7 +750,7 @@ def simulate(game: Game, prof: dict, sims: int, seed: int, horizon: float, frac:
         cd = game.cooldown(l_, cdm)
         if period_is_auto:
             ov = np.where(d_, game.overhead_known[None, :], game.overhead[None, :]) if game.known_differs else game.overhead[None, :]
-            period = np.maximum(cd[:, None], ov)
+            period = np.maximum(cd[:, None] + game.cd_late, ov)
         else:
             period = np.repeat(cd[:, None], M, 1)
         spr = (p * period).sum(1)
@@ -940,7 +965,7 @@ def reference_sim(game: Game, prof: dict, seed: int, until_reb: int, policy: str
         i = min(i, M - 1)
         n_rolls += 1
         cd = cfg["roll_cooldown"] * (1 - game.up_per[A] * lvl[A]) * prof["cd_mult"]
-        dt = max(cd, game.overhead_known[i] if disc[i] else game.overhead[i])
+        dt = max(cd + game.cd_late, game.overhead_known[i] if disc[i] else game.overhead[i])
         if not disc[i]:
             coins += game.bonus[i]
             disc[i] = True
@@ -1063,7 +1088,7 @@ def endgame(game: Game, res: dict, mode: str, state: str) -> dict:
     p = sum(game.probs(luck * m) * w for m, w in prof["mix"])
     ov = np.where(known, game.overhead_known[None, :], game.overhead[None, :])
     cd = cfg["roll_cooldown"] * (1 - game.up_per[A] * lvl_a) * prof["cd_mult"]
-    period = np.maximum(cd[:, None], ov) if mode == "auto" else cd[:, None]
+    period = np.maximum(cd[:, None] + game.cd_late, ov) if mode == "auto" else cd[:, None]
     spr = (p * period).sum(1)
     out = dict(luck=float(np.median(luck)), s_per_roll=float(np.median(spr)))
     for key, mask in (("tier6_s", game.rank == 6), ("tier7_s", game.rank == 7), ("rarest_s", np.arange(game.M) == 0)):
@@ -1233,8 +1258,10 @@ def report(game: Game, results: dict, args, validation: str | None, elapsed: flo
     if args.mode == "auto" and game.quick_reveal_known:
         obs.append(
             f"AUTO follows the cooldown for already-discovered landmarks: the result card only pops ({c['quick_pop']:.2f} s,"
-            f" {c['quick_rare_pop']:.2f} s from rank {int(c['quick_rare_rank'])}) and Hud.reveal does not wait, so a known roll takes"
-            f" max(cooldown, rtt + loop wait = {game.overhead_quick:.2f} s) — {cfg['roll_cooldown']:.2f} s, Agency max"
+            f" {c['quick_rare_pop']:.2f} s from rank {int(c['quick_rare_rank'])} — below legends only when 1-in ≥"
+            f" {c['quick_rare_luck']:g} × luck) and Hud.reveal does not wait, so a known roll takes"
+            f" max(cooldown{'' if game.cd_late == 0 else f' + {game.cd_late:.3f} s frame lateness'}, rtt + loop wait ="
+            f" {game.overhead_quick:.2f} s) — {cfg['roll_cooldown']:.2f} s, Agency max"
             f" {fastest_cd / cfg['passes'].get('FastRoll', {}).get('cooldown_mult', 1):.2f} s, + FastRoll {fastest_cd:.2f} s."
             + (
                 f" The pop fits inside even the shortest cooldown ({c['quick_rare_pop']:.2f} < {fastest_cd:.2f} s)."
@@ -1304,8 +1331,8 @@ def report(game: Game, results: dict, args, validation: str | None, elapsed: flo
     for lvl_a in (0, 2, 4, 6, 10):
         for fast, name in ((1.0, "no pass"), (cfg["passes"].get("FastRoll", {}).get("cooldown_mult", 1), "FastRoll")):
             cd = cfg["roll_cooldown"] * (1 - game.up_per[A] * lvl_a) * fast
-            auto = float((p1 * np.maximum(cd, game.overhead)).sum())
-            known = float((p1 * np.maximum(cd, game.overhead_known)).sum())
+            auto = float((p1 * np.maximum(cd + game.cd_late, game.overhead)).sum())
+            known = float((p1 * np.maximum(cd + game.cd_late, game.overhead_known)).sum())
             rows.append(f"| {lvl_a} | {name} | {cd:.2f} | {auto:.2f} | {3600 / auto:.0f} | {known:.2f} | {3600 / known:.0f} |")
     lines.append("| Agency lvl | pass | cooldown (s) | AUTO s/roll, all new (@luck 1) | rolls/h | AUTO s/roll, all known | rolls/h |")
     lines.append("|---|---|---|---|---|---|---|")

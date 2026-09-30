@@ -2,9 +2,10 @@
 -- 원격(RemoteFunction.InvokeServer)은 PlayerState + ParkService 로 흉내. 내 부지 찾기 → HUD [배치] → 공원으로 이동 →
 -- 3D 배치 모드 → SetDisplay 원격(자동 꺼짐 · 공원 바뀜 알림) → [완료] · 다른 창 · 도감 [배치] · 이동 버튼 →
 -- 상점(카드 6개 · Robux 가격 · 보유 도장 · 구매 원격 BuyPass/BuyProduct · 실패 이유별 알림),
--- AUTO 빠른 결과(이미 발견한 명소 = 결과 카드만 퐁, 네트워크 왕복 0.12초 흉내에서도 굴림 간격대로 — 빠른 굴림 ×0.7 · 여행사 최대 +
--- 빠른 굴림 0.42초 · 서버 굴림 간격 거절 없음 · 기다리는 동안 AUTO 끄면 안 보냄 · RetryIn, 새 발견·수동 = 원래 길이), 별 상승 딱지(★+1 — AUTO 는
--- 알림 줄에도 한 칸),
+-- AUTO 빠른 결과(이미 발견한 명소 = 결과 카드만 퐁, 네트워크 왕복 0.12초 + 60fps 프레임 흉내에서도 평균 굴림 간격대로 — 빠른 굴림
+-- ×0.7 · 여행사 최대 + 빠른 굴림 0.42초 · 서버 굴림 간격 거절 없음(들쭉날쭉한 지연 포함, RollLogic.cooldownGate) · 기다리는 동안
+-- AUTO 끄면 안 보냄 · 가는 중에 끄면 카드만 · 지구본 아이콘 계속 돎 · 6등급 햇살은 행운 대비 · RetryIn, 새 발견·수동 = 원래 길이),
+-- 별 상승 딱지(★+1 — AUTO 는 알림 줄에도 한 칸),
 -- 별 0(☆) 표시 · 환생 창 행운 ×2 · 자동 발견 알림을 확인.
 -- 실행(roblox-rng 폴더에서): luaurun tools/client_smoke/init.luau   (끝 줄 "0 failed")
 
@@ -431,7 +432,10 @@ do
 	onSchedule(baseGaps, cooldown, 8, "이미 발견한 전설(왕복 " .. rollDelay .. "초)")
 	check(
 		lowestSpin >= 180,
-		string.format("AUTO 동안 굴리기 버튼 지구본이 계속 돎(굴림마다 0°로 안 튐, 가장 느릴 때 %d)", lowestSpin)
+		string.format(
+			"AUTO 동안 굴리기 버튼 지구본이 계속 돎(굴림마다 0°로 안 튐, 가장 느릴 때 %d)",
+			lowestSpin
+		)
 	)
 	check(rollSpin() < 180, "AUTO 끄면 지구본 아이콘 멈춤 (" .. rollSpin() .. ")")
 	local _, shownHigh = range(baseShown)
@@ -537,6 +541,26 @@ do
 		)
 	)
 
+	-- 6c) 요청이 서버로 가는 중(응답을 기다리는 중)에 AUTO 를 꺼도 그 결과는 AUTO 결과: 이미 발견 = 카드만 퐁(원래 길이
+	-- 연출·"? ? ?" 없음). 빠른 결과인지는 보낼 때 정함. 그 뒤로는 안 보냄
+	Mock.runScheduler(Mock.clock() + 8)
+	rollDelay = 0.3
+	key("T")
+	Mock.runScheduler(Mock.clock() + 0.1) -- 첫 굴림(바로 나감)이 서버로 가는 중(요청 0.15초)
+	sent = #rollTimes
+	key("T")
+	local flightSuspense, flightShown = watch(3)
+	check(
+		#rollTimes == sent and #flightShown == 1 and flightShown[1] <= rollDelay + SHOWN_WITHIN and not flightSuspense,
+		string.format(
+			'가는 중에 AUTO 끄면 그 결과는 카드만 퐁(요청 뒤 %.2f초, "? ? ?" 없음, %d번 더 보냄)',
+			flightShown[1] or -1,
+			#rollTimes - sent
+		)
+	)
+	check(rollSpin() < 180, "응답이 온 뒤 지구본 아이콘 멈춤")
+	rollDelay = 0.12
+
 	-- 7) 흔한 명소(이미 발견)도 굴림 간격대로
 	rollCycle = nil
 	rollLandmark = Landmarks.RarestFirst[#Landmarks.RarestFirst]
@@ -546,18 +570,108 @@ do
 		local common = revealFrame.Visible and nameLabel.Text == rollLandmark.Name
 		commonBurst = commonBurst or (common and burst.Visible)
 	end)
-	local cLow, cHigh = range(commonGaps)
 	check(not commonBurst, "흔한 명소 빠른 결과 = 햇살 없음(작은 퐁)")
-	check(
-		#commonGaps >= 8 and cLow >= both - 1e-6 and cHigh <= both + 0.02,
-		string.format("흔한 명소 = 굴림 간격대로 %.2f~%.2f초 (%.2f초)", cLow, cHigh, both)
-	)
+	onSchedule(commonGaps, both, 8, "흔한 명소 AUTO")
 	check(serverRejects == rejectsBefore, "서버 굴림 간격 거절 없음")
 
-	-- 되돌리기(아래 확인은 게임패스·여행사 없이, 네트워크 지연 없이)
+	-- 7b) 들쭉날쭉한 네트워크: 요청 지연이 굴림마다 바뀌어도(늦게 닿은 요청 뒤에 제때 보낸 요청이 일찍 닿음) 서버 거절
+	-- 없이 굴림 간격대로 — RollLogic.cooldownGate 가 기준을 "닿은 시각 - 허용 오차"까지만 늦춤(늦게 닿은 시각 그대로면
+	-- 지연이 허용 오차 0.15초보다 줄어든 다음 굴림이 거절됨)
+	rollCycle = legends
+	-- (1) 0.42초: 요청 지연 0.03 ↔ 0.25초 번갈아(0.22초 줄어듦), 응답 0.03초
+	local flip = false
+	rollLatency = function()
+		flip = not flip
+		return if flip then 0.25 else 0.03, 0.03
+	end
+	local _, altGaps = autoRun(8)
+	onSchedule(altGaps, both, 15, "요청 지연 0.03↔0.25초 번갈아(여행사 최대 + 빠른 굴림)")
+	-- (2) 0.84초(빠른 굴림만): 요청 0.02~0.28초 · 응답 0.02~0.12초 무작위(고정 씨앗)
+	data.Upgrades.Agency = agencyBefore
+	cooldownNow()
+	local seed = 12345
+	local function nextRandom(): number
+		seed = (seed * 1103515245 + 12345) % 2147483648
+		return seed / 2147483648
+	end
+	rollLatency = function()
+		return 0.02 + 0.26 * nextRandom(), 0.02 + 0.1 * nextRandom()
+	end
+	local _, randomGaps = autoRun(20)
+	onSchedule(randomGaps, fast, 20, "요청 0.02~0.28 · 응답 0.02~0.12초 무작위(빠른 굴림)")
+	-- (3) 1.2초(없음): 왕복 0.05 ↔ 0.45초 번갈아 → 결과 사이가 1.6초로 벌어져도 카드가 숨었다 다시 뜨지 않음
+	-- (숨기는 시각 = max(1.5초, 굴림 간격 + 0.8초))
+	mods.Passes.FastRoll = nil
+	cooldownNow()
+	rollLatency = function()
+		flip = not flip
+		local oneWay = if flip then 0.225 else 0.025
+		return oneWay, oneWay
+	end
+	local cardShown, cardHidden = false, false
+	local _, slowGaps = autoRun(12, function()
+		if revealFrame.Visible then
+			cardShown = true
+		elseif cardShown then
+			cardHidden = true
+		end
+	end)
+	onSchedule(slowGaps, cooldown, 8, "왕복 0.05↔0.45초 번갈아(게임패스 없음)")
+	check(
+		cardShown and not cardHidden,
+		"결과 사이가 굴림 간격보다 벌어져도 카드가 숨었다 뜨지 않음"
+	)
+	check(
+		serverRejects == rejectsBefore,
+		"들쭉날쭉한 네트워크에서도 서버 굴림 간격 거절 없음 ("
+			.. serverRejects - rejectsBefore
+			.. "번)"
+	)
+	rollLatency = nil
+
+	-- 7c) 6등급(잃어버린 유산)은 지금 행운으로도 드물 때만 햇살(1/N ≥ 100 × 굴림 행운): 후반 행운 55,296 이면 6등급이
+	-- 굴림의 절반이라 햇살이 굴림마다 켜졌다 꺼지지 않게. 전설은 행운과 상관없이 햇살
+	local lost: any = nil
+	for _, landmark in Landmarks.RarestFirst do
+		if landmark.Tier.Rank == 6 and landmark.OneIn < 1000000 then
+			lost = landmark
+			break
+		end
+	end
+	local function burstSeen(luck: number, names: { [string]: boolean }): boolean
+		rollReply.Luck = luck
+		local seen = false
+		autoRun(3, function()
+			seen = seen or (revealFrame.Visible and names[nameLabel.Text] == true and burst.Visible)
+		end)
+		return seen
+	end
+	rollCycle = nil
+	rollLandmark = lost
+	check(
+		not burstSeen(55296, { [lost.Name] = true }),
+		string.format("6등급 %s(1/%d) · 행운 55,296 = 햇살 없음(작은 퐁)", lost.Name, lost.OneIn)
+	)
+	burst.Rotation = 123 -- 햇살이 꺼진 동안의 각도: 다시 켜지면 여기서 이어서 돎(0° 로 튀지 않음)
+	check(burstSeen(1000, { [lost.Name] = true }), "같은 6등급 · 행운 1,000 = 햇살(희귀 퐁)")
+	check(
+		math.abs(burst.Rotation % 360 - 123) < 1e-6,
+		string.format("햇살이 다시 켜지면 멈췄던 각도에서 이어서 돎 (%.0f°)", burst.Rotation % 360)
+	)
+	rollCycle = legends
+	check(
+		burstSeen(55296, { [legends[1].Name] = true, [legends[2].Name] = true }),
+		"전설 · 행운 55,296 = 햇살(행운과 상관없이)"
+	)
+	rollReply.Luck = 1
+
+	-- 되돌리기(아래 확인은 게임패스·여행사 없이, 네트워크 지연·프레임 흉내 없이)
+	Mock.frameSeconds = 0
 	mods.Passes.FastRoll = nil
 	data.Upgrades.Agency = agencyBefore
 	rollDelay = 0
+	rollCycle = nil
+	rollLandmark = Landmarks.RarestFirst[#Landmarks.RarestFirst]
 	cooldown = cooldownNow()
 
 	-- 8) 서버가 굴림 간격으로 거절하면(RetryIn) 그만큼 기다렸다가 다시 요청
