@@ -2,7 +2,7 @@
 """UI 미리보기(mockup/index.html) 만들기 — 로블록스에 올리기 전에 브라우저로 보는 화면 시안.
 
     python3 mockup/build.py          # art/png + src/shared 를 읽어 mockup/index.html 을 새로 씀
-    node mockup/shoot.js             # (선택) index.html -> screen1..5.png, overview.png
+    node mockup/shoot.js             # (선택) index.html -> screen*.png(도감 전체·대륙 탭은 PC + 휴대폰 3-2·4-2), overview.png
 
 - 그림: art/png/*.png 를 base64 data URI 로 넣음 -> index.html 한 파일만 있으면 어디서나 열림.
 - 데이터: src/shared/Landmarks.luau (등급/대륙/명소), Config.luau (별/수입/업그레이드) 를 읽어서 넣음.

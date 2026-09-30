@@ -187,8 +187,11 @@ function Ui.list(direction: Enum.FillDirection, gap: number, hAlign: Enum.Horizo
 	})
 end
 
--- 이름 -> 색 쌍 (모르는 이름이면 회색)
-function Ui.colorPair(name: string?): ColorPair
+-- 이름 -> 색 쌍 (모르는 이름이면 회색). 색 쌍 표({ Face, Shadow })를 주면 그대로(도감 대륙 탭처럼 테마에 없는 색)
+function Ui.colorPair(name: (string | ColorPair)?): ColorPair
+	if type(name) == "table" then
+		return name
+	end
 	return COLORS[name or "Gray"] or COLORS.Gray
 end
 
@@ -527,7 +530,7 @@ export type ChunkyButton = {
 	Label: TextLabel,
 	Icon: Frame?,
 	Activated: RBXScriptSignal,
-	SetColor: (name: string) -> (),
+	SetColor: (name: string | ColorPair) -> (), -- 색 이름 또는 색 쌍 표(같은 표를 다시 주면 건너뜀)
 	SetText: (text: string) -> (),
 	SetIcon: (name: string?) -> (),
 }
@@ -549,7 +552,7 @@ UserInputService.InputEnded:Connect(function(input)
 	end
 end)
 
--- props: { Color = "Grass"|"Sky"|"Sun"|"Coral"|"Grape"|"Gray", Size, Position, AnchorPoint, LayoutOrder, Text,
+-- props: { Color = "Grass"|"Sky"|"Sun"|"Coral"|"Grape"|"Gray" 또는 색 쌍 표, Size, Position, AnchorPoint, LayoutOrder, Text,
 --          TextSize?(최대 글자 크기), Parent, Icon?(Icons 이름), IconSize?, IconSpin?, Vertical?(아이콘 위·글자 아래),
 --          Round?(동그라미), Name?, ZIndex?, Visible? }
 -- Size 는 그림자까지 포함한 전체 크기(오프셋). 앞면 높이 = Size.Y - 6. 글자가 비어 있으면 아이콘을 가운데에.
@@ -677,8 +680,8 @@ function Ui.chunkyButton(props: { [string]: any }): ChunkyButton
 		layout()
 	end
 
-	local colorName: string? = nil
-	local function setColor(name: string)
+	local colorName: (string | ColorPair)? = nil
+	local function setColor(name: string | ColorPair)
 		if name == colorName then
 			return
 		end

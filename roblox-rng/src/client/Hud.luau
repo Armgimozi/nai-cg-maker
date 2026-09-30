@@ -257,12 +257,12 @@ local function buildStats()
 	})
 end
 
--- 왼쪽: 네모 통통 버튼 5개 (큰 아이콘 + 2글자) -----------------------------------
+-- 왼쪽: 네모 통통 버튼 4개 (큰 아이콘 + 2글자) -----------------------------------
+-- (여권은 도감의 대륙 탭으로 합침 — 도장 수 배지는 도감 버튼에)
 -- PC 는 세로 한 줄로 왼쪽 가운데. 화면이 낮으면(휴대폰·태블릿) 여러 열로 접어 스탯·굴리기·조이스틱을 피함 (placeMenu)
 
 local MENU = {
-	{ Id = "Collection", Text = "도감", Color = "Sky", Icon = "album" },
-	{ Id = "Passport", Text = "여권", Color = "Grape", Icon = "passport", Badge = true },
+	{ Id = "Collection", Text = "도감", Color = "Sky", Icon = "album", Badge = true },
 	{ Id = "Upgrade", Text = "강화", Color = "Sun", Icon = "hammer" },
 	{ Id = "Rebirth", Text = "환생", Color = "Coral", Icon = "rebirth", Badge = true },
 }
@@ -291,7 +291,7 @@ local function jumpTop(size: Vector2): number
 end
 
 -- 메뉴 배치 규칙 (size = 이 ScreenGui 크기, viewport = 상단바를 포함한 화면 전체 크기, 둘 다 화면 px)
--- 버튼 묶음을 "스탯 칩 줄 아래 ~ 아래쪽 장애물 위" 띠에 넣음. 1열 → 2열(3줄) → 3열(2줄) → 가로 한 줄 순서로
+-- 버튼 묶음을 "스탯 칩 줄 아래 ~ 아래쪽 장애물 위" 띠에 넣음. 1열 → 2열(2줄) → 가로 한 줄 순서로(줄 수가 같은 배치는 건너뜀)
 -- 처음 들어가는 배치를 쓰고, 띠 안에서 묶음 가운데를 기본 자리(화면 가운데 + 16)에 가장 가깝게 둠.
 -- 아래쪽 장애물: 화면 아래 끝(여백 14) / 묶음이 가로로 닿으면 굴리기 줄 / 터치 전용 기기면 조이스틱 자리
 -- (화면 왼쪽 1/3 · 아래 절반). 1280x720·1920x1080 PC 는 기본 자리 그대로 1열(Shift = 0).
@@ -306,7 +306,7 @@ local function layoutMenu(count: number, size: Vector2, viewport: Vector2, scale
 	local place: MenuPlace? = nil
 	local rows = 0
 	for columns = 1, count do
-		if math.ceil(count / columns) ~= rows then -- 줄 수가 같은 배치는 건너뜀 (5개: 1·2·3·5열)
+		if math.ceil(count / columns) ~= rows then -- 줄 수가 같은 배치는 건너뜀 (4개: 1·2·4열)
 			rows = math.ceil(count / columns)
 			local block = menuBlock(count, columns) * scale
 			local bottom = size.Y - MENU_EDGE
@@ -341,7 +341,7 @@ local function placeMenu(size: Vector2, scale: number, touch: boolean)
 	container.Size = UDim2.fromOffset(block.X + 8, block.Y)
 	container.Position = UDim2.new(0, MENU_X, 0.5, MENU_DROP + place.Shift)
 
-	-- 내 공원 부지가 있으면: 공원 배치 버튼을 이동 버튼(마지막 칸) 바로 오른쪽에. 여러 열이면 그 자리는 비어 있는 칸,
+	-- 내 공원 부지가 있으면: 공원 배치 버튼을 이동 버튼(마지막 칸) 바로 오른쪽에. 여러 열이면 마지막 줄 오른쪽(2×2 면 묶음 옆),
 	-- 1열이면 묶음 옆 빈 자리. 가로 한 줄이면 묶음이 한 칸 넓어진 것으로 쳐서 위 가운데 묶음이 비켜 가게 함
 	local arrange: Ui.ChunkyButton? = refs.ArrangeButton
 	if arrange then
@@ -384,9 +384,9 @@ local function buildMenu(onMenu: (string) -> (), onTeleport: () -> (), onArrange
 		button.Activated:Connect(function()
 			onMenu(entry.Id)
 		end)
-		if entry.Id == "Passport" then
-			-- 여권 도장 수 "1/6" 배지 (오른쪽 위)
-			refs.PassportBadge = Ui.chip({
+		if entry.Id == "Collection" then
+			-- 받은 대륙 도장 수 "1/5" 배지 (오른쪽 위)
+			refs.StampBadge = Ui.chip({
 				Name = "Stamps",
 				Color = Theme.Ink,
 				Height = 24,
@@ -449,7 +449,7 @@ local function buildMenu(onMenu: (string) -> (), onTeleport: () -> (), onArrange
 		Parent = container,
 	})
 	refs.ArrangeButton.Activated:Connect(onArrange)
-	-- 직접 배치 중 더 좋은데 전시 안 된 명소 수 (여권 "1/6" 배지와 같은 모양, 0 이면 숨김)
+	-- 직접 배치 중 더 좋은데 전시 안 된 명소 수 (도감 버튼의 도장 "1/5" 배지와 같은 모양, 0 이면 숨김)
 	refs.ArrangeBadge = Ui.chip({
 		Name = "Better",
 		Color = Theme.Ink,
@@ -1029,7 +1029,7 @@ function Hud.render(state: PlayerState.Snapshot?, receivedAt: number?)
 		refs.RollsChip.Root.Visible = false
 		refs.LuckChip.Root.Visible = false
 		refs.RebirthChip.Root.Visible = false
-		refs.PassportBadge.Root.Visible = false
+		refs.StampBadge.Root.Visible = false
 		refs.ArrangeBadge.Root.Visible = false
 		setRebirthReady(false)
 		shownCoins = -1
@@ -1043,9 +1043,9 @@ function Hud.render(state: PlayerState.Snapshot?, receivedAt: number?)
 	refs.LuckChip.Label.Text = Ui.times(state.Luck)
 	refs.LuckChip.Root.Visible = true
 
-	-- 여권 버튼 배지: 도장 수 (하나라도 있으면 금색 숫자)
+	-- 도감 버튼 배지: 받은 대륙 도장 수 (하나라도 있으면 금색 숫자)
 	local stamps = #PlayerState.completedRegions(state)
-	local badge = refs.PassportBadge
+	local badge = refs.StampBadge
 	badge.Label.Text = string.format("%d/%d", stamps, #Landmarks.Regions)
 	badge.Label.TextColor3 = if stamps > 0 then Ui.colorPair("Sun").Face else WHITE
 	badge.Root.Visible = true
@@ -1529,6 +1529,26 @@ end
 -- 잠깐 떴다 사라지는 알림: [아이콘][짧은 글자] 색 딱지. color 는 딱지 바탕색, icon 은 Icons 이름
 function Hud.toast(text: string, color: Color3?, seconds: number?, icon: string?)
 	pushToast(text, color, seconds, icon)
+end
+
+-- 대륙 도장을 새로 받음: [도장 그림] "도장 +25%"(대륙 색) 알림 + 행운 소리. 알림을 누르면 onOpen(도감의 그 대륙 탭 열기)
+function Hud.stampToast(region: Landmarks.Region, onOpen: () -> ())
+	local art = "stamp_" .. string.lower(region.Id)
+	local bonus = math.floor(Config.REGION_LUCK_BONUS * 100 + 0.5)
+	local chip =
+		pushToast(string.format("도장 +%d%%", bonus), region.Color, 5, if Icons.imageId(art) then art else "passport")
+	local box = chip.Root
+	box.Name = "StampToast"
+	box:SetAttribute("Region", region.Id)
+	-- 딱지 안은 UIListLayout 이라 버튼을 넣지 않고 딱지 자체의 입력을 받음(Active = 뒤 3D 화면으로 안 넘김)
+	box.Active = true
+	box.InputBegan:Connect(function(input: InputObject)
+		local kind = input.UserInputType
+		if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
+			onOpen()
+		end
+	end)
+	play(luckSound)
 end
 
 -- 서버 전체 "속보": 신문 띠가 오른쪽에서 밀려 들어와 잠시 머문 뒤 쏙 사라짐

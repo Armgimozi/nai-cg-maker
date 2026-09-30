@@ -1,5 +1,5 @@
 -- ViewportFrame 에 명소 모형을 띄우는 헬퍼.
--- 정적인 썸네일(컬렉션/여권 카드)은 한 번 찍고 끝(매 프레임 작업 없음),
+-- 정적인 썸네일(도감 카드)은 한 번 찍고 끝(매 프레임 작업 없음),
 -- 회전이 필요한 화면(굴림 연출)만 setSpin 으로 등록해서 RenderStepped 루프 하나로 돌립니다.
 
 local RunService = game:GetService("RunService")

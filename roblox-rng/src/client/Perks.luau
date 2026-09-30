@@ -356,7 +356,7 @@ function Perks.owned(state: any, id: string): number
 	return if type(inventory) == "table" then number(inventory[id], 0) else 0
 end
 
--- 역대 발견 여부 (도감·여권 기준). 스냅샷에 Discovered 가 없으면 보유 기준
+-- 역대 발견 여부 (도감·대륙 도장 기준). 스냅샷에 Discovered 가 없으면 보유 기준
 function Perks.discovered(state: any, id: string): boolean
 	local discovered = if type(state) == "table" then state.Discovered else nil
 	if type(discovered) == "table" and discovered[id] then

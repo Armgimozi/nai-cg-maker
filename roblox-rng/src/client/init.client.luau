@@ -57,7 +57,7 @@ end
 
 -- 자동 발견으로 도감에 새로 들어온 명소 수: 서버는 확률(1/N)이 영구 행운 이하인 명소를 발견으로 침(PlayerState.autoDiscover —
 -- 환생·지구본·도장으로 행운이 오르면 그보다 흔한 명소는 굴림에서 다시 안 나옴). 클라이언트는 직접 계산하지 않고 서버가 보낸
--- Discovered 를 그대로 씀(도감·여권 숫자가 서버와 같음). 굴려서 얻은 명소(보유)는 연출이 이미 보여 줬으니 뺌
+-- Discovered 를 그대로 씀(도감·도장 숫자가 서버와 같음). 굴려서 얻은 명소(보유)는 연출이 이미 보여 줬으니 뺌
 local function autoDiscovered(before: PlayerState.Snapshot, after: PlayerState.Snapshot): number
 	local count = 0
 	for _, landmark in Landmarks.List do
@@ -71,6 +71,28 @@ local function autoDiscovered(before: PlayerState.Snapshot, after: PlayerState.S
 		end
 	end
 	return count
+end
+
+-- 새로 받은 대륙 도장(Landmarks.Regions 순서). 도장 규칙은 PlayerState.completedRegions 그대로(서버 Discovered 기준)
+local function newStamps(before: PlayerState.Snapshot, after: PlayerState.Snapshot): { Landmarks.Region }
+	local had = {}
+	for _, id in PlayerState.completedRegions(before) do
+		had[id] = true
+	end
+	local added = {}
+	for _, id in PlayerState.completedRegions(after) do
+		local region = Landmarks.RegionById[id]
+		if region and not had[id] then
+			table.insert(added, region)
+		end
+	end
+	return added
+end
+
+-- 도감을 그 대륙 탭으로 열기(도장 알림을 눌렀을 때). 배치 모드면 먼저 나감(다른 창을 열 때와 같게)
+local function openStampRegion(regionId: string)
+	ParkEdit.exit()
+	Panels.open("Collection", regionId)
 end
 
 -- 서버 상태 반영. Revision 이 더 큰 것만 받아서 늦게 도착한 옛 상태가 덮어쓰지 않게 함.
@@ -93,6 +115,14 @@ local function applyState(snapshot: any, receivedAt: number?)
 	local added = if previous then autoDiscovered(previous, snapshot) else 0
 	if added > 0 then
 		Hud.toast("도감 +" .. added, Ui.colorPair("Sky").Face, 3, "album")
+	end
+	-- 대륙 도장을 새로 받음(굴림 연출이 끝난 뒤 · 자동 발견): [도장 그림] "도장 +25%" — 누르면 도감의 그 대륙 탭
+	if previous then
+		for _, region in newStamps(previous, snapshot) do
+			Hud.stampToast(region, function()
+				openStampRegion(region.Id)
+			end)
+		end
 	end
 end
 

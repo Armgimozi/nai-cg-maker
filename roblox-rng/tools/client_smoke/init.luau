@@ -6,7 +6,9 @@
 -- ×0.7 · 여행사 최대 + 빠른 굴림 0.42초 · 서버 굴림 간격 거절 없음(들쭉날쭉한 지연 포함, RollLogic.cooldownGate) · 기다리는 동안
 -- AUTO 끄면 안 보냄 · 가는 중에 끄면 카드만 · 지구본 아이콘 계속 돎 · 6등급 햇살은 행운 대비 · RetryIn, 새 발견·수동 = 원래 길이),
 -- 별 상승 딱지(★+1 — AUTO 는 알림 줄에도 한 칸),
--- 별 0(☆) 표시 · 환생 창 행운 ×2 · 자동 발견 알림을 확인.
+-- 별 0(☆) 표시 · 환생 창 행운 ×2 · 자동 발견 알림,
+-- 도감 대륙 탭(여권 버튼 없음 · 도감 버튼 도장 배지 · [전체]/대륙 거르기와 순서 · 대륙 머리 줄 숫자 = PlayerState.regionProgress ·
+-- 탭을 바꿔도 카드·3D 사진 그대로 · 열려 있는 동안 탭 기억 · 도장 알림을 누르면 그 대륙 탭)을 확인.
 -- 실행(roblox-rng 폴더에서): luaurun tools/client_smoke/init.luau   (끝 줄 "0 failed")
 
 local E = compile(readfile("tools/client_smoke/env.luau"), "tools/client_smoke/env.luau")()
@@ -909,6 +911,269 @@ do
 	Mock.runScheduler(Mock.clock() + 0.3)
 	check(shown == 1 and discoveryToasts() == 1, "새로 들어온 명소가 없으면 알림 없음")
 	rollLandmark = Landmarks.RarestFirst[#Landmarks.RarestFirst]
+end
+
+print(
+	"\n[도감 대륙 탭: 여권을 합침 · 대륙 거르기 · 도장 머리 줄 · 도장 알림 · 탭을 바꿔도 3D 사진 그대로]"
+)
+do
+	local Panels = Harness.require(client.Panels)
+	local Ui = Harness.require(client.Ui)
+	local stateEvent = remoteFolder:FindFirstChild("State")
+	local function refresh()
+		stateEvent.OnClientEvent:Fire(snap())
+		Mock.runScheduler(Mock.clock() + 0.3)
+	end
+	local function openMenu(name: string)
+		face(findNamed(menu, name)).Activated:Fire()
+		frame()
+	end
+	local function badgeText(parent: Instance?, name: string): string?
+		local chip = parent and findNamed(parent, name)
+		local label = chip and findNamed(chip, "Label")
+		return label and label.Text
+	end
+
+	-- 메뉴: 여권 버튼 없음, 도장 수 배지는 도감 버튼에
+	check(findNamed(menu, "Passport") == nil, "메뉴에 여권 버튼 없음")
+	local stampBadge = findNamed(findNamed(menu, "Collection"), "Stamps")
+	local stamps = #PlayerState.completedRegions(data)
+	check(
+		stampBadge ~= nil
+			and stampBadge.Visible
+			and badgeText(findNamed(menu, "Collection"), "Stamps")
+				== string.format("%d/%d", stamps, #Landmarks.Regions),
+		"도감 버튼 배지 = 받은 도장 수 ("
+			.. tostring(badgeText(findNamed(menu, "Collection"), "Stamps"))
+			.. ")"
+	)
+
+	-- 탭: [전체] + 대륙마다 하나, 처음은 전체
+	Panels.close()
+	openMenu("Collection")
+	local window = findNamed(gui, "Window")
+	local tabs = findNamed(window, "Tabs")
+	local tabIds = { "All" }
+	for _, region in Landmarks.Regions do
+		table.insert(tabIds, region.Id)
+	end
+	local tabCount = 0
+	for _, id in tabIds do
+		if tabs and findNamed(tabs, "Tab" .. id) then
+			tabCount += 1
+		end
+	end
+	check(tabs ~= nil and tabs.Visible and tabCount == #tabIds, "탭 " .. tabCount .. "개 ([전체] + 대륙)")
+	local _, firstTab = Panels.current()
+	check(firstTab == "All", "처음 열면 [전체] 탭")
+	check(window.Size.Y.Offset > 500, "도감 창은 탭 줄만큼 더 높음 (" .. window.Size.Y.Offset .. ")")
+
+	local scroller = findNamed(window, "Collection")
+	local function visibleCards(): { any }
+		local cards = {}
+		for _, child in scroller:GetChildren() do
+			if Landmarks.ById[child.Name] and child.Visible then
+				table.insert(cards, child)
+			end
+		end
+		table.sort(cards, function(a, b)
+			return a.LayoutOrder < b.LayoutOrder
+		end)
+		return cards
+	end
+	local function viewports(): number
+		local count = 0
+		for _, d in window:GetDescendants() do
+			if d.ClassName == "ViewportFrame" then
+				count += 1
+			end
+		end
+		return count
+	end
+	local function pickTab(id: string)
+		face(findNamed(tabs, "Tab" .. id)).Activated:Fire()
+		frame()
+	end
+
+	-- [전체] = 발견한 명소만, 희귀한 순서
+	local all = visibleCards()
+	local discovered = 0
+	for _, landmark in Landmarks.List do
+		if PlayerState.isDiscovered(data, landmark.Id) then
+			discovered += 1
+		end
+	end
+	local rarestFirst = true
+	for i = 2, #all do
+		if Landmarks.ById[all[i].Name].OneIn > Landmarks.ById[all[i - 1].Name].OneIn then
+			rarestFirst = false
+		end
+	end
+	check(#all == discovered and rarestFirst, "[전체] = 발견한 명소 " .. #all .. "개, 희귀한 순서")
+	local allHeader = findNamed(findNamed(window, "CollectionHeader"), "All")
+	check(
+		allHeader.Visible
+			and badgeText(allHeader, "Count") == string.format("%d/%d", discovered, #Landmarks.List)
+			and badgeText(allHeader, "Stamps") == string.format("%d/%d", stamps, #Landmarks.Regions),
+		"[전체] 머리 줄: 발견 수 · 도장 수 ("
+			.. tostring(badgeText(allHeader, "Count"))
+			.. " · "
+			.. tostring(badgeText(allHeader, "Stamps"))
+			.. ")"
+	)
+	check(
+		findNamed(allHeader, "Arrange") ~= nil and findNamed(allHeader, "AutoFeature") ~= nil,
+		"[전체] 머리 줄 [배치] · [자동]"
+	)
+
+	-- 대륙 탭: 그 대륙 명소 전부(흔한 순서), 못 찾은 명소는 자물쇠 카드. 3D 사진은 다시 만들지 않음
+	local before = viewports()
+	local keep = all[1]
+	local region = Landmarks.Regions[1]
+	for _, candidate in Landmarks.Regions do
+		if candidate.Id == Landmarks.ById[keep.Name].Region then
+			region = candidate -- 첫 카드가 있는 대륙(대륙 탭에서도 같은 카드가 보이는지)
+		end
+	end
+	pickTab(region.Id)
+	local _, selected = Panels.current()
+	check(selected == region.Id, "탭 누름 = 그 대륙 (" .. tostring(selected) .. ")")
+	local cards = visibleCards()
+	local expected = Landmarks.ByRegion[region.Id]
+	local sameOrder = #cards == #expected
+	local lockedRight = true
+	for i, card in cards do
+		if not expected[i] or card.Name ~= expected[i].Id then
+			sameOrder = false
+		end
+		local known = PlayerState.isDiscovered(data, card.Name)
+		if (card:GetAttribute("Unknown") == true) == known then
+			lockedRight = false
+		end
+	end
+	check(sameOrder, region.Id .. " 탭 = 그 대륙 명소 " .. #cards .. "/" .. #expected .. "개, 흔한 순서")
+	check(lockedRight, "못 찾은 명소만 자물쇠 카드(3D 없음), 찾은 명소는 도감 카드")
+	check(keep.Parent == scroller and keep.Visible, "같은 카드를 그대로 씀(새로 만들지 않음)")
+	check(
+		viewports() == before,
+		"탭을 바꿔도 3D 사진(ViewportFrame) 수 그대로 (" .. before .. " -> " .. viewports() .. ")"
+	)
+	local headerFrame = findNamed(findNamed(window, "CollectionHeader"), region.Id)
+	local found, required = PlayerState.regionProgress(data, region.Id)
+	check(
+		headerFrame.Visible and not allHeader.Visible,
+		"대륙 머리 줄만 보임([배치]·[자동]은 전체 탭에)"
+	)
+	check(
+		findNamed(headerFrame, "Count").Text == string.format("%d/%d", found, required),
+		"발견 막대 숫자 = PlayerState.regionProgress (" .. findNamed(headerFrame, "Count").Text .. ")"
+	)
+	local fill = findNamed(headerFrame, "Fill")
+	check(
+		math.abs(fill.Size.X.Scale - found / required) < 1e-6,
+		string.format("막대 채움 = %d/%d", found, required)
+	)
+	-- 탭을 오가도 같은 카드 · 같은 3D 사진 수
+	for _, other in Landmarks.Regions do
+		pickTab(other.Id)
+	end
+	pickTab("All")
+	check(
+		keep.Parent == scroller and keep.Visible and viewports() == before and #visibleCards() == #all,
+		"여러 탭을 돌고 [전체]로 와도 카드·3D 사진 그대로"
+	)
+
+	-- 창이 열려 있는 동안 탭 기억(상태가 바뀌어도), 닫으면 다음엔 [전체]
+	pickTab(region.Id)
+	refresh()
+	local _, kept = Panels.current()
+	check(kept == region.Id, "상태가 바뀌어도 고른 탭 유지")
+	openMenu("Upgrade")
+	openMenu("Collection")
+	local _, back = Panels.current()
+	check(back == region.Id, "다른 창에 갔다 와도(창은 열린 채) 탭 유지")
+	openMenu("Collection") -- 닫기
+	check(not window.Visible, "도감 버튼 다시 = 닫힘")
+	openMenu("Collection")
+	local _, reopened = Panels.current()
+	check(reopened == "All" and visibleCards()[1] == all[1], "닫았다 열면 [전체]부터")
+	Panels.close()
+
+	-- 도장 알림: 대륙 하나를 다 모으면(자동 발견 포함) [도장] "도장 +25%" — 누르면 도감이 그 대륙 탭으로 열림
+	local target
+	for _, candidate in Landmarks.Regions do
+		local got, need = PlayerState.regionProgress(data, candidate.Id)
+		if got < need then
+			target = candidate
+			break
+		end
+	end
+	local added = {}
+	for _, landmark in Landmarks.ByRegion[target.Id] do
+		if PlayerState.countsForStamp(landmark) and not PlayerState.isDiscovered(data, landmark.Id) then
+			data.Discovered[landmark.Id] = true
+			table.insert(added, landmark.Id)
+		end
+	end
+	refresh()
+	local toast
+	for _, d in gui:GetDescendants() do
+		if d.Name == "StampToast" and d:GetAttribute("Region") == target.Id then
+			toast = d
+		end
+	end
+	check(
+		toast ~= nil
+			and findNamed(toast, "Label").Text
+				== string.format("도장 +%d%%", math.floor(Config.REGION_LUCK_BONUS * 100 + 0.5)),
+		target.Id .. " 도장 = 알림 [도장] 도장 +25%"
+	)
+	check(
+		badgeText(findNamed(menu, "Collection"), "Stamps") == string.format("%d/%d", stamps + 1, #Landmarks.Regions),
+		"도감 버튼 배지 +1 (" .. tostring(badgeText(findNamed(menu, "Collection"), "Stamps")) .. ")"
+	)
+	-- 배치 모드 중에 눌러도: 배치 모드를 끝내고 도감을 그 대륙 탭으로
+	ParkEdit.enter(nil)
+	Mock.runScheduler(Mock.clock() + 3)
+	local wasEditing = ParkEdit.isEditing()
+	if toast then
+		toast.InputBegan:Fire(E.input("MouseButton1"), false)
+		frame()
+	end
+	local openName, stampTab = Panels.current()
+	check(
+		openName == "Collection" and stampTab == target.Id and window.Visible,
+		"도장 알림을 누르면 도감 "
+			.. target.Id
+			.. " 탭 ("
+			.. tostring(openName)
+			.. " · "
+			.. tostring(stampTab)
+			.. ")"
+	)
+	check(wasEditing and not ParkEdit.isEditing(), "배치 모드 중이면 먼저 나감")
+	local stampHeader = findNamed(findNamed(window, "CollectionHeader"), target.Id)
+	local got, need = PlayerState.regionProgress(data, target.Id)
+	check(
+		stampHeader.Visible
+			and got == need
+			and findNamed(stampHeader, "Count").Text == string.format("%d/%d", got, need)
+			and findNamed(stampHeader, "Check").Visible,
+		"그 대륙 머리 줄: 막대 가득 + 체크 (" .. findNamed(stampHeader, "Count").Text .. ")"
+	)
+	local bonus = findNamed(stampHeader, "Bonus")
+	local grass = Ui.colorPair("Grass").Face
+	check(bonus.ImageColor3 == grass or bonus.BackgroundColor3 == grass, "받은 도장 = +25% 초록")
+	local tabButton = findNamed(tabs, "Tab" .. target.Id)
+	check(
+		tabButton:GetAttribute("Selected") == true and findNamed(tabButton, "Stamped").Visible,
+		"그 대륙 탭 = 고름 + 도장 체크"
+	)
+	Panels.close()
+	for _, id in added do
+		data.Discovered[id] = nil
+	end
+	refresh()
 end
 
 print("\n[상점: 카드 6개 · Robux 가격 · 보유 도장 · 구매 원격]")

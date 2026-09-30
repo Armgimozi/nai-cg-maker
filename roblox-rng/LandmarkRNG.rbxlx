@@ -17834,7 +17834,7 @@ end
 
 -- 자동 발견으로 도감에 새로 들어온 명소 수: 서버는 확률(1/N)이 영구 행운 이하인 명소를 발견으로 침(PlayerState.autoDiscover —
 -- 환생·지구본·도장으로 행운이 오르면 그보다 흔한 명소는 굴림에서 다시 안 나옴). 클라이언트는 직접 계산하지 않고 서버가 보낸
--- Discovered 를 그대로 씀(도감·여권 숫자가 서버와 같음). 굴려서 얻은 명소(보유)는 연출이 이미 보여 줬으니 뺌
+-- Discovered 를 그대로 씀(도감·도장 숫자가 서버와 같음). 굴려서 얻은 명소(보유)는 연출이 이미 보여 줬으니 뺌
 local function autoDiscovered(before: PlayerState.Snapshot, after: PlayerState.Snapshot): number
 	local count = 0
 	for _, landmark in Landmarks.List do
@@ -17848,6 +17848,28 @@ local function autoDiscovered(before: PlayerState.Snapshot, after: PlayerState.S
 		end
 	end
 	return count
+end
+
+-- 새로 받은 대륙 도장(Landmarks.Regions 순서). 도장 규칙은 PlayerState.completedRegions 그대로(서버 Discovered 기준)
+local function newStamps(before: PlayerState.Snapshot, after: PlayerState.Snapshot): { Landmarks.Region }
+	local had = {}
+	for _, id in PlayerState.completedRegions(before) do
+		had[id] = true
+	end
+	local added = {}
+	for _, id in PlayerState.completedRegions(after) do
+		local region = Landmarks.RegionById[id]
+		if region and not had[id] then
+			table.insert(added, region)
+		end
+	end
+	return added
+end
+
+-- 도감을 그 대륙 탭으로 열기(도장 알림을 눌렀을 때). 배치 모드면 먼저 나감(다른 창을 열 때와 같게)
+local function openStampRegion(regionId: string)
+	ParkEdit.exit()
+	Panels.open("Collection", regionId)
 end
 
 -- 서버 상태 반영. Revision 이 더 큰 것만 받아서 늦게 도착한 옛 상태가 덮어쓰지 않게 함.
@@ -17870,6 +17892,14 @@ local function applyState(snapshot: any, receivedAt: number?)
 	local added = if previous then autoDiscovered(previous, snapshot) else 0
 	if added > 0 then
 		Hud.toast("도감 +" .. added, Ui.colorPair("Sky").Face, 3, "album")
+	end
+	-- 대륙 도장을 새로 받음(굴림 연출이 끝난 뒤 · 자동 발견): [도장 그림] "도장 +25%" — 누르면 도감의 그 대륙 탭
+	if previous then
+		for _, region in newStamps(previous, snapshot) do
+			Hud.stampToast(region, function()
+				openStampRegion(region.Id)
+			end)
+		end
 	end
 end
 
@@ -18779,12 +18809,12 @@ local function buildStats()
 	})
 end
 
--- 왼쪽: 네모 통통 버튼 5개 (큰 아이콘 + 2글자) -----------------------------------
+-- 왼쪽: 네모 통통 버튼 4개 (큰 아이콘 + 2글자) -----------------------------------
+-- (여권은 도감의 대륙 탭으로 합침 — 도장 수 배지는 도감 버튼에)
 -- PC 는 세로 한 줄로 왼쪽 가운데. 화면이 낮으면(휴대폰·태블릿) 여러 열로 접어 스탯·굴리기·조이스틱을 피함 (placeMenu)
 
 local MENU = {
-	{ Id = "Collection", Text = "도감", Color = "Sky", Icon = "album" },
-	{ Id = "Passport", Text = "여권", Color = "Grape", Icon = "passport", Badge = true },
+	{ Id = "Collection", Text = "도감", Color = "Sky", Icon = "album", Badge = true },
 	{ Id = "Upgrade", Text = "강화", Color = "Sun", Icon = "hammer" },
 	{ Id = "Rebirth", Text = "환생", Color = "Coral", Icon = "rebirth", Badge = true },
 }
@@ -18813,7 +18843,7 @@ local function jumpTop(size: Vector2): number
 end
 
 -- 메뉴 배치 규칙 (size = 이 ScreenGui 크기, viewport = 상단바를 포함한 화면 전체 크기, 둘 다 화면 px)
--- 버튼 묶음을 "스탯 칩 줄 아래 ~ 아래쪽 장애물 위" 띠에 넣음. 1열 → 2열(3줄) → 3열(2줄) → 가로 한 줄 순서로
+-- 버튼 묶음을 "스탯 칩 줄 아래 ~ 아래쪽 장애물 위" 띠에 넣음. 1열 → 2열(2줄) → 가로 한 줄 순서로(줄 수가 같은 배치는 건너뜀)
 -- 처음 들어가는 배치를 쓰고, 띠 안에서 묶음 가운데를 기본 자리(화면 가운데 + 16)에 가장 가깝게 둠.
 -- 아래쪽 장애물: 화면 아래 끝(여백 14) / 묶음이 가로로 닿으면 굴리기 줄 / 터치 전용 기기면 조이스틱 자리
 -- (화면 왼쪽 1/3 · 아래 절반). 1280x720·1920x1080 PC 는 기본 자리 그대로 1열(Shift = 0).
@@ -18828,7 +18858,7 @@ local function layoutMenu(count: number, size: Vector2, viewport: Vector2, scale
 	local place: MenuPlace? = nil
 	local rows = 0
 	for columns = 1, count do
-		if math.ceil(count / columns) ~= rows then -- 줄 수가 같은 배치는 건너뜀 (5개: 1·2·3·5열)
+		if math.ceil(count / columns) ~= rows then -- 줄 수가 같은 배치는 건너뜀 (4개: 1·2·4열)
 			rows = math.ceil(count / columns)
 			local block = menuBlock(count, columns) * scale
 			local bottom = size.Y - MENU_EDGE
@@ -18863,7 +18893,7 @@ local function placeMenu(size: Vector2, scale: number, touch: boolean)
 	container.Size = UDim2.fromOffset(block.X + 8, block.Y)
 	container.Position = UDim2.new(0, MENU_X, 0.5, MENU_DROP + place.Shift)
 
-	-- 내 공원 부지가 있으면: 공원 배치 버튼을 이동 버튼(마지막 칸) 바로 오른쪽에. 여러 열이면 그 자리는 비어 있는 칸,
+	-- 내 공원 부지가 있으면: 공원 배치 버튼을 이동 버튼(마지막 칸) 바로 오른쪽에. 여러 열이면 마지막 줄 오른쪽(2×2 면 묶음 옆),
 	-- 1열이면 묶음 옆 빈 자리. 가로 한 줄이면 묶음이 한 칸 넓어진 것으로 쳐서 위 가운데 묶음이 비켜 가게 함
 	local arrange: Ui.ChunkyButton? = refs.ArrangeButton
 	if arrange then
@@ -18906,9 +18936,9 @@ local function buildMenu(onMenu: (string) -> (), onTeleport: () -> (), onArrange
 		button.Activated:Connect(function()
 			onMenu(entry.Id)
 		end)
-		if entry.Id == "Passport" then
-			-- 여권 도장 수 "1/6" 배지 (오른쪽 위)
-			refs.PassportBadge = Ui.chip({
+		if entry.Id == "Collection" then
+			-- 받은 대륙 도장 수 "1/5" 배지 (오른쪽 위)
+			refs.StampBadge = Ui.chip({
 				Name = "Stamps",
 				Color = Theme.Ink,
 				Height = 24,
@@ -18971,7 +19001,7 @@ local function buildMenu(onMenu: (string) -> (), onTeleport: () -> (), onArrange
 		Parent = container,
 	})
 	refs.ArrangeButton.Activated:Connect(onArrange)
-	-- 직접 배치 중 더 좋은데 전시 안 된 명소 수 (여권 "1/6" 배지와 같은 모양, 0 이면 숨김)
+	-- 직접 배치 중 더 좋은데 전시 안 된 명소 수 (도감 버튼의 도장 "1/5" 배지와 같은 모양, 0 이면 숨김)
 	refs.ArrangeBadge = Ui.chip({
 		Name = "Better",
 		Color = Theme.Ink,
@@ -19551,7 +19581,7 @@ function Hud.render(state: PlayerState.Snapshot?, receivedAt: number?)
 		refs.RollsChip.Root.Visible = false
 		refs.LuckChip.Root.Visible = false
 		refs.RebirthChip.Root.Visible = false
-		refs.PassportBadge.Root.Visible = false
+		refs.StampBadge.Root.Visible = false
 		refs.ArrangeBadge.Root.Visible = false
 		setRebirthReady(false)
 		shownCoins = -1
@@ -19565,9 +19595,9 @@ function Hud.render(state: PlayerState.Snapshot?, receivedAt: number?)
 	refs.LuckChip.Label.Text = Ui.times(state.Luck)
 	refs.LuckChip.Root.Visible = true
 
-	-- 여권 버튼 배지: 도장 수 (하나라도 있으면 금색 숫자)
+	-- 도감 버튼 배지: 받은 대륙 도장 수 (하나라도 있으면 금색 숫자)
 	local stamps = #PlayerState.completedRegions(state)
-	local badge = refs.PassportBadge
+	local badge = refs.StampBadge
 	badge.Label.Text = string.format("%d/%d", stamps, #Landmarks.Regions)
 	badge.Label.TextColor3 = if stamps > 0 then Ui.colorPair("Sun").Face else WHITE
 	badge.Root.Visible = true
@@ -20051,6 +20081,26 @@ end
 -- 잠깐 떴다 사라지는 알림: [아이콘][짧은 글자] 색 딱지. color 는 딱지 바탕색, icon 은 Icons 이름
 function Hud.toast(text: string, color: Color3?, seconds: number?, icon: string?)
 	pushToast(text, color, seconds, icon)
+end
+
+-- 대륙 도장을 새로 받음: [도장 그림] "도장 +25%"(대륙 색) 알림 + 행운 소리. 알림을 누르면 onOpen(도감의 그 대륙 탭 열기)
+function Hud.stampToast(region: Landmarks.Region, onOpen: () -> ())
+	local art = "stamp_" .. string.lower(region.Id)
+	local bonus = math.floor(Config.REGION_LUCK_BONUS * 100 + 0.5)
+	local chip =
+		pushToast(string.format("도장 +%d%%", bonus), region.Color, 5, if Icons.imageId(art) then art else "passport")
+	local box = chip.Root
+	box.Name = "StampToast"
+	box:SetAttribute("Region", region.Id)
+	-- 딱지 안은 UIListLayout 이라 버튼을 넣지 않고 딱지 자체의 입력을 받음(Active = 뒤 3D 화면으로 안 넘김)
+	box.Active = true
+	box.InputBegan:Connect(function(input: InputObject)
+		local kind = input.UserInputType
+		if kind == Enum.UserInputType.MouseButton1 or kind == Enum.UserInputType.Touch then
+			onOpen()
+		end
+	end)
+	play(luckSound)
 end
 
 -- 서버 전체 "속보": 신문 띠가 오른쪽에서 밀려 들어와 잠시 머문 뒤 쏙 사라짐
@@ -20906,12 +20956,13 @@ return Icons
         <Item class="ModuleScript" referent="41">
           <Properties>
             <string name="Name">Panels</string>
-            <string name="Source"><![CDATA[-- 메뉴 창: 도감(대표 지정), 여권(지역별 발견 현황 + 도장), 강화(업그레이드), 환생(조건 + 확인), 상점(Robux).
+            <string name="Source"><![CDATA[-- 메뉴 창: 도감(대륙 탭 — 예전 여권 창을 합침: 지역별 발견 현황 + 도장, 대표 지정), 강화(업그레이드), 환생(조건 + 확인), 상점(Robux).
 -- 공원 배치는 창이 아니라 내 공원에서 하는 3D 배치 모드(ParkEdit) — 도감 머리 줄 [배치] 버튼이 그 모드를 켬
--- 크림색 창(Ui.window) 하나를 쓰고, 화면마다 리본 색과 제목(2글자)만 바꿉니다.
+-- 크림색 창(Ui.window) 하나를 쓰고, 화면마다 리본 색과 제목(2글자)만 바꿉니다(도감은 탭 줄만큼 창이 조금 더 높음).
 -- 글자는 최소로: 설명 문장 없이 아이콘 + 숫자 딱지로 보여 줍니다.
 -- 화면마다 카드를 한 번 만들고 상태가 바뀌면 글자/색만 고칩니다. 썸네일(ViewportFrame)은
 -- 새로 발견했을 때만 만들어서, 자동 굴림 중에 창을 열어 둬도 매번 다시 만들지 않습니다.
+-- 도감 탭을 바꿔도 카드는 그대로 두고 보이기(Visible)·순서(LayoutOrder)만 바꿉니다(썸네일을 다시 만들지 않음).
 
 local MarketplaceService = game:GetService("MarketplaceService")
 local TweenService = game:GetService("TweenService")
@@ -20946,9 +20997,21 @@ local REGION_BONUS = math.floor(Config.REGION_LUCK_BONUS * 100 + 0.5)
 
 local HEADER_HEIGHT = 50 -- 창 본문 맨 위 딱지 줄 높이
 
-local VIEWS = {
-	Collection = { Title = "도감", Color = "Sky", Top = HEADER_HEIGHT },
-	Passport = { Title = "여권", Color = "Grape", Top = HEADER_HEIGHT },
+-- 도감 대륙 탭: [전체] + 대륙마다 하나(예전 여권 창을 합침). 탭 = 세로 통통 버튼(왼쪽 메뉴 버튼처럼 아이콘 위 · 이름 아래),
+-- 대륙 아이콘은 도장 그림. 여섯 개가 본문 폭을 똑같이 나눔(휴대폰 배율 0.55 에서 앞면 약 63×37px, 이름 10px)
+local TAB_HEIGHT = 74 -- 앞면 68 + 그림자 6
+local TAB_GAP = 6 -- 탭 줄 ~ 머리 줄
+local TAB_SPACING = 8 -- 탭 사이
+local TAB_ICON = 50 -- 도장 그림은 둘레가 비어 있어 크게, 앞면 위 끝에 붙임
+local TAB_LABEL_Y = 45 -- 이름 칸 위 끝(아이콘 그림 아래 빈 곳과 조금 겹침)
+local TAB_LABEL_HEIGHT = 20
+local TAB_TEXT = 19
+local COLLECTION_TOP = TAB_HEIGHT + TAB_GAP + HEADER_HEIGHT
+local ALL_TAB = "All"
+
+-- Height: 창 높이(없으면 WINDOW_SIZE.Y). 도감은 탭 줄만큼 더 높게(카드 두 줄 가까이 보이게)
+local VIEWS: { [string]: { Title: string, Color: string, Top: number, Height: number? } } = {
+	Collection = { Title = "도감", Color = "Sky", Top = COLLECTION_TOP, Height = 540 },
 	Upgrade = { Title = "강화", Color = "Sun", Top = 4 },
 	Rebirth = { Title = "환생", Color = "Coral", Top = HEADER_HEIGHT },
 	Shop = { Title = "상점", Color = "Grass", Top = 4 }, -- Robux 상점: 코인으로 사는 강화(Sun)와 다른 색
@@ -20957,9 +21020,12 @@ local VIEWS = {
 local WHITE = Color3.new(1, 1, 1)
 local FEATURED_BG = Color3.fromRGB(255, 218, 128)
 local DIM_CHIP = Color3.fromRGB(172, 170, 190) -- 아직 못 받은 보너스 딱지
+local UNKNOWN_BG = Color3.fromRGB(58, 53, 80) -- 도감 대륙 탭의 못 찾은 명소 카드
+local FADED_STAMP = Color3.fromRGB(150, 146, 160) -- 아직 못 받은 도장(흐릿한 자국)
 
 local WINDOW_SIZE = Vector2.new(760, 500)
-local BODY_HEIGHT = WINDOW_SIZE.Y - (45 + 16) -- 창 본문 높이(Ui.window: 창 높이 - 본문 위 45 - 아래 16)
+local BODY_WIDTH = WINDOW_SIZE.X - 36 -- 창 본문 폭(Ui.window: 좌우 18)
+local WINDOW_LIP = 8 -- 창 아래 두께(Ui.window 의 Lip)
 local OPEN_OFFSET = -30 -- 창을 화면 가운데보다 조금 위로 (아래쪽 굴리기 버튼을 가리지 않게)
 -- 스크롤 영역 안쪽 여백(오른쪽은 스크롤바 자리)
 local PAD_X, PAD_RIGHT, PAD_Y = 6, 14, 6
@@ -20968,17 +21034,22 @@ local COLLECTION_CELL = Vector2.new(128, 184)
 local COLLECTION_GAP = 12
 local COLLECTION_COLUMNS = 5
 
-local PASSPORT_CELL = Vector2.new(104, 124)
-local PASSPORT_GAP = 8
-local PASSPORT_COLUMNS = 6
-local PASSPORT_HEADER = 98
+-- 도감 대륙 머리 줄: [도장] [발견 막대 "찾은 수/필요 수"] …… [+25%]
+local STAMP_SIZE = 70
+local BAR_HEIGHT = 34
+local BAR_LEFT = 86 -- 도장 오른쪽
+local BAR_RIGHT = 150 -- 오른쪽 +25% 딱지 자리
+
+-- 환생 요구 명소 카드(작은 카드)
+local NEED_CELL = Vector2.new(104, 124)
+local NEED_GAP = 8
 local SECTION_PAD = 14
 local SECTION_GAP = 16
 
 local UPGRADE_ROW = 80
 local UPGRADE_GAP = 10
 
-local REBIRTH_COLUMNS = 6 -- 요구 명소 카드(여권 카드와 같은 크기)
+local REBIRTH_COLUMNS = 6 -- 요구 명소 카드
 local REBIRTH_FOOTER = 104 -- 창 아래 고정 줄: 보상 · 경고 · 환생 버튼
 local COIN_BAR = Vector2.new(380, 40)
 local CONFIRM_SECONDS = 3
@@ -21001,12 +21072,71 @@ local handlers: Handlers
 local openName: string? = nil
 local lastState: Snapshot? = nil
 local lastCoins = 0
+local openTween: Tween? = nil
 
 type View = { Scroller: ScrollingFrame, Header: Frame, Extra: GuiObject? }
 local views: { [string]: View } = {}
 
--- 도감 머리 줄
+-- 도감 탭: [전체](도감 아이콘, Sky) + 대륙(도장 그림, 대륙 색). 고른 탭 = 탭 색 그대로, 다른 탭 = 크림 쪽으로 옅게
+type Tab = {
+	Id: string,
+	Name: string,
+	Icon: string,
+	Selected: Ui.ColorPair,
+	Idle: Ui.ColorPair,
+	Region: Landmarks.Region?,
+	Order: { [string]: number }, -- 명소 Id -> 이 탭에서 몇 번째 (전체 = 희귀한 순서, 대륙 = 흔한 순서)
+}
+local function tabColors(color: Color3): (Ui.ColorPair, Ui.ColorPair)
+	return { Face = color, Shadow = color:Lerp(Theme.Ink, 0.35) }, {
+		Face = color:Lerp(Theme.Cream, 0.5),
+		Shadow = color:Lerp(Theme.Cream, 0.15),
+	}
+end
+local function orderOf(list: { Landmark }): { [string]: number }
+	local order = {}
+	for index, landmark in list do
+		order[landmark.Id] = index
+	end
+	return order
+end
+local TABS: { Tab } = {}
+local TAB_BY_ID: { [string]: Tab } = {}
+do
+	local selected, idle = tabColors(Ui.colorPair("Sky").Face)
+	table.insert(TABS, {
+		Id = ALL_TAB,
+		Name = "전체",
+		Icon = "album",
+		Selected = selected,
+		Idle = idle,
+		Region = nil,
+		Order = orderOf(Landmarks.RarestFirst),
+	})
+	for _, region in Landmarks.Regions do
+		local on, off = tabColors(region.Color)
+		local art = "stamp_" .. string.lower(region.Id)
+		table.insert(TABS, {
+			Id = region.Id,
+			Name = region.Name,
+			Icon = if Icons.imageId(art) then art else "globe",
+			Selected = on,
+			Idle = off,
+			Region = region,
+			Order = orderOf(Landmarks.ByRegion[region.Id]),
+		})
+	end
+	for _, tab in TABS do
+		TAB_BY_ID[tab.Id] = tab
+	end
+end
+local collectionTab = ALL_TAB -- 고른 탭("All" 또는 대륙 Id). 창이 열려 있는 동안 유지, 닫으면 전체로
+
+-- 도감 머리 줄 (전체 탭)
+local allRow: Frame
 local collectionCount: Ui.Chip
+local stampCount: Ui.Chip -- 받은 도장 수
+local stampBonus: Ui.Chip -- 도장 행운 합
 local autoButton: Ui.ChunkyButton
 local autoBadge: Ui.Chip
 local emptyIcon: Frame
@@ -21021,10 +21151,7 @@ type CollectionCard = {
 	Badge: Ui.Chip,
 }
 local collectionCards: { [string]: CollectionCard } = {}
-
--- 여권 머리 줄
-local stampCount: Ui.Chip
-local stampBonus: Ui.Chip
+local unknownCards: { [string]: Frame } = {} -- 대륙 탭의 못 찾은 명소(3D 사진 없음, 그 탭을 처음 볼 때 만듦)
 
 type Stamp = {
 	Frame: Frame,
@@ -21035,9 +21162,10 @@ type Stamp = {
 	Art: Frame?, -- 도장 그림 아이콘(그림이 있을 때)
 	Color: Color3,
 }
-type PassportSection = { Title: TextLabel, Fill: Frame, Bonus: Ui.Chip, Stamp: Stamp, Grid: Frame }
-local passportSections: { [string]: PassportSection } = {}
-local passportCards: { [string]: { Card: Frame, Known: boolean } } = {}
+type TabButton = { Button: Ui.ChunkyButton, Stamped: Frame? }
+local tabButtons: { [string]: TabButton } = {}
+type RegionHeader = { Frame: Frame, Stamp: Stamp, Fill: Frame, Count: TextLabel, Check: Frame, Bonus: Ui.Chip }
+local regionHeaders: { [string]: RegionHeader } = {}
 
 type UpgradeRow = {
 	Level: Ui.Chip,
@@ -21173,7 +21301,7 @@ local function photo(parent: GuiObject, landmark: Landmark, position: UDim2, siz
 	return frame
 end
 
--- 버튼 오른쪽 위 숫자 배지 (여권 "1/6" 배지와 같은 모양: Ink 딱지 + Sun 숫자, 살짝 기울임)
+-- 버튼 오른쪽 위 숫자 배지 (도감 버튼의 도장 "1/5" 배지와 같은 모양: Ink 딱지 + Sun 숫자, 살짝 기울임)
 local function countBadge(button: Ui.ChunkyButton, name: string): Ui.Chip
 	return Ui.chip({
 		Name = name,
@@ -21190,95 +21318,137 @@ local function countBadge(button: Ui.ChunkyButton, name: string): Ui.Chip
 	})
 end
 
--- 도감 -----------------------------------------------------------------------
+-- 도장 · 보너스 딱지 (도감 대륙 탭) --------------------------------------------
 
-local function buildCollection(): View
-	local header = newHeader("Collection")
-	local chips = chipRow(header)
-	collectionCount = headerChip(chips, "album", Theme.Ink, 1)
-
-	-- 자동 대표 지정: 별 아이콘 + "자동" (켜짐 = 초록 + ON 딱지, 꺼짐 = 회색)
-	autoButton = Ui.chunkyButton({
-		Name = "AutoFeature",
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -8, 0, -4),
-		Size = UDim2.fromOffset(136, 50),
-		Color = "Gray",
-		Icon = "star",
-		IconSize = 36,
-		Text = "자동",
-		TextSize = 22,
-		Parent = header,
+-- 대륙 도장: 그림(ImageIds.stamp_<대륙>)이 있으면 그 그림, 없으면 대륙 색 동그라미(기울임) + 흰 고리 + 대륙 이름
+-- place: { AnchorPoint, Position, Size }
+local function makeStamp(parent: GuiObject, region: Landmarks.Region, place: { [string]: any }): Stamp
+	local frame = Ui.new("Frame", {
+		Name = "Stamp",
+		AnchorPoint = place.AnchorPoint,
+		Position = place.Position,
+		Size = place.Size,
+		BackgroundColor3 = region.Color,
+		Rotation = -12,
+		ZIndex = 2,
+		Parent = parent,
 	})
-	autoButton.Activated:Connect(function()
-		handlers.ToggleAutoFeature()
-	end)
-	autoBadge = Ui.chip({
-		Name = "On",
-		Color = "Coral",
-		Text = "ON",
-		Height = 22,
-		TextSize = 15,
+	Ui.round().Parent = frame
+	local stroke = Ui.stroke(Theme.Ink, 3)
+	stroke.Parent = frame
+	local ring = Ui.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(1, -8, 0, 2),
-		Rotation = 12,
-		ZIndex = 6,
-		Visible = false,
-		Parent = autoButton.Face,
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(1, -14, 1, -14),
+		BackgroundTransparency = 1,
+		Parent = frame,
 	})
+	Ui.round().Parent = ring
+	local ringStroke = Ui.stroke(WHITE, 2)
+	ringStroke.Parent = ring
 
-	-- 3D 공원 배치 모드 켜기: 배치 아이콘(2×2 칸 판) + "배치" (자동 버튼 왼쪽). 배지 = 더 좋은데 전시 안 된 명소 수
-	local arrange = Ui.chunkyButton({
-		Name = "Arrange",
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -(8 + 136 + 10), 0, -4),
-		Size = UDim2.fromOffset(124, 50),
-		Color = "Grass",
-		Icon = "arrange",
-		IconSize = 36,
-		Text = "배치",
-		TextSize = 22,
-		Parent = header,
-	})
-	arrange.Activated:Connect(function()
-		handlers.Arrange()
-	end)
-	collectionArrangeBadge = countBadge(arrange, "Better")
+	local stamp: Stamp = {
+		Frame = frame,
+		Stroke = stroke,
+		RingStroke = ringStroke,
+		Labels = {},
+		Outlines = {},
+		Art = nil,
+		Color = region.Color,
+	}
 
-	-- 아직 아무것도 없을 때: 가운데에 천천히 도는 지구본
-	emptyIcon = Icons.view(body, "globe", {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.new(0.5, 0, 0.5, HEADER_HEIGHT / 2),
-		Size = UDim2.fromOffset(150, 150),
-		Spin = 40,
-		Transparency = 0.2,
-	})
-	emptyIcon.Visible = false
-
-	local scroller = newScroller("Collection", VIEWS.Collection.Top)
-	Ui.new("UIGridLayout", {
-		CellSize = UDim2.fromOffset(COLLECTION_CELL.X, COLLECTION_CELL.Y),
-		CellPadding = UDim2.fromOffset(COLLECTION_GAP, COLLECTION_GAP),
-		FillDirectionMaxCells = COLLECTION_COLUMNS,
-		SortOrder = Enum.SortOrder.LayoutOrder,
-		HorizontalAlignment = Enum.HorizontalAlignment.Center,
-		Parent = scroller,
-	})
-	return { Scroller = scroller, Header = header }
+	local art = "stamp_" .. string.lower(region.Id)
+	if Icons.imageId(art) then
+		frame.BackgroundTransparency = 1
+		stroke.Enabled = false
+		ring.Visible = false
+		stamp.Art = Icons.view(frame, art, {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(1.12, 1.12),
+			ZIndex = 2,
+		})
+	else
+		local name = Ui.label({
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(0.74, 0.4),
+			Text = region.Name,
+			TextColor3 = WHITE,
+			ZIndex = 2,
+			Parent = frame,
+		}, 20)
+		stamp.Labels = { name }
+		stamp.Outlines = { Ui.outline(name, 2) }
+	end
+	return stamp
 end
 
-local function collectionCard(parent: ScrollingFrame, landmark: Landmark): CollectionCard
-	local tier = landmark.Tier
-	local card = Ui.new("TextButton", {
-		Name = landmark.Id,
-		Text = "",
-		AutoButtonColor = false,
-		BackgroundColor3 = Theme.Paper,
-	})
-	Ui.corner(12).Parent = card
-	Ui.stroke(Theme.Ink, 3).Parent = card
+-- 다 모으면 진하게 찍힌 도장, 아니면 흐릿한 도장 자국
+local function paintStamp(stamp: Stamp, complete: boolean)
+	local art = stamp.Art
+	if art then
+		Icons.setColor(art, if complete then WHITE else FADED_STAMP)
+		Icons.setTransparency(art, if complete then 0 else 0.75)
+		return
+	end
+	stamp.Frame.BackgroundTransparency = if complete then 0 else 0.8
+	stamp.Stroke.Transparency = if complete then 0 else 0.65
+	stamp.RingStroke.Color = if complete then WHITE else stamp.Color
+	stamp.RingStroke.Transparency = if complete then 0.1 else 0.35
+	for _, label in stamp.Labels do
+		label.TextColor3 = if complete then WHITE else stamp.Color:Lerp(Theme.Ink, 0.25)
+		label.TextTransparency = if complete then 0 else 0.35
+	end
+	for _, outline in stamp.Outlines do
+		outline.Enabled = complete
+	end
+end
 
-	-- 등급 색 띠 + 확률 (위쪽 모서리만 둥글게: 아래 절반을 네모 판으로 덮음)
+-- 행운 보너스 딱지 색: 받았으면 초록 + 진한 아이콘, 아직이면 회색 + 흐린 아이콘
+local function paintBonus(chip: Ui.Chip, earned: boolean)
+	Ui.tint(chip.Root, if earned then Ui.colorPair("Grass").Face else DIM_CHIP)
+	if chip.Icon then
+		Icons.setTransparency(chip.Icon, if earned then 0 else 0.45)
+	end
+end
+
+-- 크림 동그라미 + 초록 체크 (도장 받은 대륙 탭 · 다 찬 발견 막대 끝)
+local function checkMark(parent: GuiObject, props: { [string]: any }): Frame
+	local mark = Ui.new("Frame", {
+		Name = props.Name or "Check",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = props.Position,
+		Size = props.Size,
+		Rotation = props.Rotation or 0,
+		BackgroundColor3 = Theme.Cream,
+		ZIndex = props.ZIndex or 4,
+		Visible = false,
+		Parent = parent,
+	})
+	Ui.round().Parent = mark
+	Ui.stroke(Theme.Ink, props.StrokeThickness or 3).Parent = mark
+	Icons.view(mark, "check", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromScale(0.95, 0.95),
+		ZIndex = (props.ZIndex or 4) + 1,
+	})
+	return mark
+end
+
+-- 도감 -----------------------------------------------------------------------
+-- 위 탭 줄([전체] + 대륙), 그 아래 머리 줄(탭마다 다름), 카드 격자 하나.
+--   [전체] = 발견한 명소(Discovered)만 희귀한 순서. 머리 줄: 발견 수 · 받은 도장 수 · 도장 행운 · [배치] · [자동]
+--   대륙 = 그 대륙 명소 전부, 흔한 순서(예전 여권 한 쪽). 못 찾은 명소는 어두운 자물쇠 카드.
+--          머리 줄: 도장(찍힘/흐림) · 발견 막대(도장 조건 = PlayerState.regionProgress) · +25%(받음 초록 / 아직 회색)
+-- 카드는 명소마다 한 번만 만들고, 탭을 바꾸면 보이기·순서만 바꿈(3D 사진을 다시 만들지 않음)
+
+local selectTab: (string) -> () -- 아래 renderCollection 뒤에서 정함
+
+-- 등급 색 띠 + 확률 (위쪽 모서리만 둥글게: 아래 절반을 네모 판으로 덮음). 아는 카드·모르는 카드 같이 씀
+local function oddsBand(card: GuiObject, landmark: Landmark)
+	local tier = landmark.Tier
 	local band = Ui.new("Frame", {
 		Name = "Band",
 		Size = UDim2.new(1, 0, 0, 26),
@@ -21311,6 +21481,18 @@ local function collectionCard(parent: ScrollingFrame, landmark: Landmark): Colle
 		Parent = band,
 	}, 15)
 	Ui.outline(bandLabel, 1.5)
+end
+
+local function collectionCard(parent: ScrollingFrame, landmark: Landmark): CollectionCard
+	local card = Ui.new("TextButton", {
+		Name = landmark.Id,
+		Text = "",
+		AutoButtonColor = false,
+		BackgroundColor3 = Theme.Paper,
+	})
+	Ui.corner(12).Parent = card
+	Ui.stroke(Theme.Ink, 3).Parent = card
+	oddsBand(card, landmark)
 
 	local picture = photo(card, landmark, UDim2.fromOffset(7, 33), UDim2.new(1, -14, 0, 84), 8)
 
@@ -21375,6 +21557,57 @@ local function collectionCard(parent: ScrollingFrame, landmark: Landmark): Colle
 	return { Card = card, Photo = picture, Stars = stars, Count = count, Shown = nil, Dim = nil, Badge = badge }
 end
 
+-- 대륙 탭의 아직 못 찾은 명소: 아는 카드와 같은 자리(확률 띠 · 사진 칸 · 이름 줄)의 어두운 카드 + 사진 칸에 자물쇠
+-- (그림이 없으면 "?"), 이름 대신 "???". 3D 모형은 만들지 않음(가볍게)
+local function unknownCard(parent: ScrollingFrame, landmark: Landmark): Frame
+	local card = Ui.new("Frame", {
+		Name = landmark.Id,
+		BackgroundColor3 = UNKNOWN_BG,
+	})
+	card:SetAttribute("Unknown", true)
+	Ui.corner(12).Parent = card
+	Ui.stroke(Theme.Ink, 3).Parent = card
+	oddsBand(card, landmark)
+
+	local hole = Ui.new("Frame", {
+		Name = "Photo",
+		Position = UDim2.fromOffset(7, 33),
+		Size = UDim2.new(1, -14, 0, 84),
+		BackgroundColor3 = Theme.Ink,
+		Parent = card,
+	})
+	Ui.corner(8).Parent = hole
+	Ui.stroke(Theme.Ink, 2).Parent = hole
+	if Icons.imageId("lock") then
+		Icons.view(hole, "lock", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromOffset(58, 58),
+			Transparency = 0.1,
+		})
+	else
+		Ui.label({
+			Size = UDim2.fromScale(1, 1),
+			Font = Theme.FontTitle,
+			Text = "?",
+			TextColor3 = Theme.Paper,
+			TextTransparency = 0.2,
+			Parent = hole,
+		}, 50)
+	end
+	Ui.label({
+		Position = UDim2.fromOffset(6, 124),
+		Size = UDim2.new(1, -12, 0, 24),
+		Text = "???",
+		TextColor3 = Theme.Paper,
+		TextTransparency = 0.45,
+		Parent = card,
+	}, 20)
+
+	card.Parent = parent
+	return card
+end
+
 -- 지금은 없는 명소: 사진 위에 어두운 막 (처음 필요할 때 만듦)
 local function setDim(entry: CollectionCard, dim: boolean)
 	local shade = entry.Dim
@@ -21420,8 +21653,234 @@ local function setShown(entry: CollectionCard, shown: boolean)
 	(chip :: Ui.Chip).Root.Visible = shown
 end
 
+-- 탭 줄: 세로 통통 버튼 여섯 개가 본문 폭을 똑같이 나눔. 도장을 받은 대륙 탭은 오른쪽 위에 작은 체크
+local function buildTabs(): Frame
+	local row = Ui.new("Frame", {
+		Name = "Tabs",
+		Size = UDim2.new(1, 0, 0, TAB_HEIGHT),
+		BackgroundTransparency = 1,
+		Visible = false,
+		Parent = body,
+	})
+	local layout = Ui.list(Enum.FillDirection.Horizontal, TAB_SPACING, Enum.HorizontalAlignment.Center)
+	layout.VerticalAlignment = Enum.VerticalAlignment.Top
+	layout.Parent = row
+	local width = math.floor((BODY_WIDTH - TAB_SPACING * (#TABS - 1)) / #TABS)
+	for order, tab in TABS do
+		local button = Ui.chunkyButton({
+			Name = "Tab" .. tab.Id,
+			LayoutOrder = order,
+			ZIndex = 2, -- 체크가 옆 탭에 가리지 않게
+			Size = UDim2.fromOffset(width, TAB_HEIGHT),
+			Color = tab.Idle,
+			Icon = tab.Icon,
+			IconSize = TAB_ICON,
+			Vertical = true,
+			Text = tab.Name,
+			TextSize = TAB_TEXT,
+			Parent = row,
+		})
+		-- 이름 칸은 아이콘 그림 아래 빈 곳과 조금 겹치게(도장 그림은 둘레가 비어 있음). 탭 글자·아이콘은 바뀌지 않아 그대로 유지됨
+		button.Label.Position = UDim2.fromOffset(4, TAB_LABEL_Y)
+		button.Label.Size = UDim2.new(1, -8, 0, TAB_LABEL_HEIGHT)
+		button.Activated:Connect(function()
+			selectTab(tab.Id)
+		end)
+		local stamped: Frame? = nil
+		if tab.Region then
+			stamped = checkMark(button.Face, {
+				Name = "Stamped",
+				Position = UDim2.new(1, -5, 0, 3),
+				Size = UDim2.fromOffset(26, 26),
+				Rotation = 8,
+				StrokeThickness = 2.5,
+				ZIndex = 6,
+			})
+		end
+		tabButtons[tab.Id] = { Button = button, Stamped = stamped }
+	end
+	return row
+end
+
+-- 대륙 머리 줄: [도장] [발견 막대(대륙 색) "찾은 수/필요 수" + 다 차면 체크] …… [클로버 +25%]
+local function buildRegionHeader(parent: Frame, region: Landmarks.Region): RegionHeader
+	local frame = Ui.new("Frame", {
+		Name = region.Id,
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Visible = false,
+		Parent = parent,
+	})
+	local stamp = makeStamp(frame, region, {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0, STAMP_SIZE / 2 + 2, 0.5, 0),
+		Size = UDim2.fromOffset(STAMP_SIZE, STAMP_SIZE),
+	})
+	local bar = Ui.new("Frame", {
+		Name = "Progress",
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, BAR_LEFT, 0.5, 0),
+		Size = UDim2.new(1, -(BAR_LEFT + BAR_RIGHT), 0, BAR_HEIGHT),
+		BackgroundColor3 = Theme.Cream,
+		Parent = frame,
+	})
+	Ui.round().Parent = bar
+	Ui.stroke(Theme.Ink, 3).Parent = bar
+	local fill = Ui.new("Frame", {
+		Name = "Fill",
+		Size = UDim2.fromScale(0, 1),
+		BackgroundColor3 = region.Color,
+		BorderSizePixel = 0,
+		Parent = bar,
+	})
+	Ui.round().Parent = fill
+	local count = Ui.label({
+		Name = "Count",
+		Position = UDim2.fromOffset(30, 3),
+		Size = UDim2.new(1, -60, 1, -6),
+		TextColor3 = WHITE,
+		ZIndex = 3,
+		Parent = bar,
+	}, 24)
+	Ui.outline(count, 2.5)
+	local check = checkMark(bar, {
+		Position = UDim2.new(1, -2, 0.5, 0),
+		Size = UDim2.fromOffset(40, 40),
+	})
+	local bonus = Ui.chip({
+		Name = "Bonus",
+		Color = DIM_CHIP,
+		Icon = "clover",
+		IconSize = 44,
+		Height = 34,
+		TextSize = 21,
+		Text = string.format("+%d%%", REGION_BONUS),
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -8, 0.5, 0),
+		Parent = frame,
+	})
+	return { Frame = frame, Stamp = stamp, Fill = fill, Count = count, Check = check, Bonus = bonus }
+end
+
+local function buildCollection(): View
+	local tabs = buildTabs()
+
+	-- 머리 줄: 탭 줄 아래. [전체] 줄 하나 + 대륙마다 한 줄(고른 탭만 보임)
+	local header = Ui.new("Frame", {
+		Name = "CollectionHeader",
+		Position = UDim2.fromOffset(0, TAB_HEIGHT + TAB_GAP),
+		Size = UDim2.new(1, 0, 0, HEADER_HEIGHT),
+		BackgroundTransparency = 1,
+		Visible = false,
+		Parent = body,
+	})
+	allRow = Ui.new("Frame", {
+		Name = ALL_TAB,
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Parent = header,
+	})
+	local chips = chipRow(allRow)
+	collectionCount = headerChip(chips, "album", Theme.Ink, 1)
+	collectionCount.Root.Name = "Count"
+	-- 받은 도장 수 · 도장 행운 합(예전 여권 머리 줄)
+	stampCount = headerChip(chips, "passport", Theme.Ink, 2)
+	stampCount.Root.Name = "Stamps"
+	stampBonus = headerChip(chips, "clover", "Grass", 3)
+	stampBonus.Root.Name = "StampBonus"
+
+	-- 자동 대표 지정: 별 아이콘 + "자동" (켜짐 = 초록 + ON 딱지, 꺼짐 = 회색)
+	autoButton = Ui.chunkyButton({
+		Name = "AutoFeature",
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -8, 0, -4),
+		Size = UDim2.fromOffset(136, 50),
+		Color = "Gray",
+		Icon = "star",
+		IconSize = 36,
+		Text = "자동",
+		TextSize = 22,
+		Parent = allRow,
+	})
+	autoButton.Activated:Connect(function()
+		handlers.ToggleAutoFeature()
+	end)
+	autoBadge = Ui.chip({
+		Name = "On",
+		Color = "Coral",
+		Text = "ON",
+		Height = 22,
+		TextSize = 15,
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(1, -8, 0, 2),
+		Rotation = 12,
+		ZIndex = 6,
+		Visible = false,
+		Parent = autoButton.Face,
+	})
+
+	-- 3D 공원 배치 모드 켜기: 배치 아이콘(2×2 칸 판) + "배치" (자동 버튼 왼쪽). 배지 = 더 좋은데 전시 안 된 명소 수
+	local arrange = Ui.chunkyButton({
+		Name = "Arrange",
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -(8 + 136 + 10), 0, -4),
+		Size = UDim2.fromOffset(124, 50),
+		Color = "Grass",
+		Icon = "arrange",
+		IconSize = 36,
+		Text = "배치",
+		TextSize = 22,
+		Parent = allRow,
+	})
+	arrange.Activated:Connect(function()
+		handlers.Arrange()
+	end)
+	collectionArrangeBadge = countBadge(arrange, "Better")
+
+	for _, region in Landmarks.Regions do
+		regionHeaders[region.Id] = buildRegionHeader(header, region)
+	end
+
+	-- 아직 아무것도 없을 때(전체 탭): 가운데에 천천히 도는 지구본
+	emptyIcon = Icons.view(body, "globe", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.new(0.5, 0, 0.5, COLLECTION_TOP / 2),
+		Size = UDim2.fromOffset(150, 150),
+		Spin = 40,
+		Transparency = 0.2,
+	})
+	emptyIcon.Visible = false
+
+	local scroller = newScroller("Collection", VIEWS.Collection.Top)
+	Ui.new("UIGridLayout", {
+		CellSize = UDim2.fromOffset(COLLECTION_CELL.X, COLLECTION_CELL.Y),
+		CellPadding = UDim2.fromOffset(COLLECTION_GAP, COLLECTION_GAP),
+		FillDirectionMaxCells = COLLECTION_COLUMNS,
+		SortOrder = Enum.SortOrder.LayoutOrder,
+		HorizontalAlignment = Enum.HorizontalAlignment.Center,
+		Parent = scroller,
+	})
+	return { Scroller = scroller, Header = header, Extra = tabs }
+end
+
+-- 대륙 머리 줄 숫자·색 (도장 규칙은 PlayerState.regionProgress 그대로: 불가사의 등급까지, 역대 발견 기준)
+local function paintRegionHeader(state: Snapshot, region: Landmarks.Region)
+	local header = regionHeaders[region.Id]
+	local found, required = PlayerState.regionProgress(state, region.Id)
+	local complete = required > 0 and found >= required
+	header.Count.Text = string.format("%d/%d", found, required)
+	header.Fill.Size = UDim2.fromScale(if required > 0 then math.clamp(found / required, 0, 1) else 0, 1)
+	header.Fill.Visible = found > 0
+	header.Check.Visible = complete
+	paintBonus(header.Bonus, complete)
+	paintStamp(header.Stamp, complete)
+end
+
 local function renderCollection(state: Snapshot)
 	local scroller = views.Collection.Scroller
+	local tab = TAB_BY_ID[collectionTab] or TABS[1]
+	local region = tab.Region
+
 	local autoFeature = state.Settings.AutoFeature
 	autoButton.SetColor(if autoFeature then "Grass" else "Gray")
 	autoBadge.Root.Visible = autoFeature
@@ -21438,320 +21897,114 @@ local function renderCollection(state: Snapshot)
 	end
 
 	-- 도감은 역대 발견(Discovered — 서버가 자동 발견한 명소도 들어 있음) 기준. 별·개수·전시는 지금 보유(Inventory) 기준.
-	-- 별은 가챠식(처음 발견 = 빈 별 5개 ☆0, 또 뽑을 때마다 ★+1): 보유하면 빈 별까지 보이고, 지금 없으면 별 줄을 비움
-	local shown = 0
+	-- 별은 가챠식(처음 발견 = 빈 별 5개 ☆0, 또 뽑을 때마다 ★+1): 보유하면 빈 별까지 보이고, 지금 없으면 별 줄을 비움.
+	-- 못 찾은 명소 카드(자물쇠)는 그 대륙 탭을 처음 볼 때 만들고, 발견하면 지움
+	local discovered = 0
 	for _, landmark in Landmarks.RarestFirst do
-		local count = owned(state, landmark.Id)
-		local entry = collectionCards[landmark.Id]
-		if Perks.discovered(state, landmark.Id) then
-			shown += 1
+		local id = landmark.Id
+		local count = owned(state, id)
+		local entry = collectionCards[id]
+		if Perks.discovered(state, id) then
+			discovered += 1
 			if not entry then
 				entry = collectionCard(scroller, landmark)
-				collectionCards[landmark.Id] = entry
+				collectionCards[id] = entry
 			end
-			local featured = state.Featured == landmark.Id
-			entry.Card.LayoutOrder = shown
+			local featured = state.Featured == id
 			entry.Card.BackgroundColor3 = if featured then FEATURED_BG else Theme.Paper
 			entry.Badge.Root.Visible = featured
 			entry.Stars.Text = if count > 0 then Ui.starsRich(PlayerState.stars(count), PlayerState.MAX_STARS) else ""
 			entry.Count.Label.Text = "×" .. Format.commas(count)
 			entry.Count.Root.Visible = count > 0
-			setShown(entry, inPark[landmark.Id] == true)
+			setShown(entry, inPark[id] == true)
 			setDim(entry, count <= 0)
-		elseif entry then
-			entry.Card:Destroy()
-			collectionCards[landmark.Id] = nil
-		end
-	end
-
-	collectionCount.Label.Text = string.format("%d/%d", shown, #Landmarks.List)
-	emptyIcon.Visible = shown == 0
-	setCanvasHeight(scroller, gridHeight(shown, COLLECTION_COLUMNS, COLLECTION_CELL.Y, COLLECTION_GAP))
-end
-
--- 여권 -----------------------------------------------------------------------
-
--- 지역 도장: 그림(ImageIds.stamp_<지역>)이 있으면 그 그림, 없으면 지역 색 동그라미(기울임) + 흰 고리 + 지역 이름
-local function makeStamp(parent: Frame, region: Landmarks.Region): Stamp
-	local frame = Ui.new("Frame", {
-		Name = "Stamp",
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -18, 0, 6),
-		Size = UDim2.fromOffset(88, 88),
-		BackgroundColor3 = region.Color,
-		Rotation = -12,
-		ZIndex = 2,
-		Parent = parent,
-	})
-	Ui.round().Parent = frame
-	local stroke = Ui.stroke(Theme.Ink, 3)
-	stroke.Parent = frame
-	local ring = Ui.new("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.new(1, -14, 1, -14),
-		BackgroundTransparency = 1,
-		Parent = frame,
-	})
-	Ui.round().Parent = ring
-	local ringStroke = Ui.stroke(WHITE, 2)
-	ringStroke.Parent = ring
-
-	local stamp: Stamp = {
-		Frame = frame,
-		Stroke = stroke,
-		RingStroke = ringStroke,
-		Labels = {},
-		Outlines = {},
-		Art = nil,
-		Color = region.Color,
-	}
-
-	local art = "stamp_" .. string.lower(region.Id)
-	if Icons.imageId(art) then
-		frame.BackgroundTransparency = 1
-		stroke.Enabled = false
-		ring.Visible = false
-		stamp.Art = Icons.view(frame, art, {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.5),
-			Size = UDim2.fromScale(1.12, 1.12),
-			ZIndex = 2,
-		})
-	else
-		local name = Ui.label({
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.5),
-			Size = UDim2.fromScale(0.74, 0.4),
-			Text = region.Name,
-			TextColor3 = WHITE,
-			ZIndex = 2,
-			Parent = frame,
-		}, 20)
-		stamp.Labels = { name }
-		stamp.Outlines = { Ui.outline(name, 2) }
-	end
-	return stamp
-end
-
--- 다 모으면 진하게 찍힌 도장, 아니면 흐릿한 도장 자국
-local function paintStamp(stamp: Stamp, complete: boolean)
-	local art = stamp.Art
-	if art then
-		Icons.setColor(art, if complete then WHITE else Color3.fromRGB(150, 146, 160))
-		Icons.setTransparency(art, if complete then 0 else 0.75)
-		return
-	end
-	stamp.Frame.BackgroundTransparency = if complete then 0 else 0.8
-	stamp.Stroke.Transparency = if complete then 0 else 0.65
-	stamp.RingStroke.Color = if complete then WHITE else stamp.Color
-	stamp.RingStroke.Transparency = if complete then 0.1 else 0.35
-	for _, label in stamp.Labels do
-		label.TextColor3 = if complete then WHITE else stamp.Color:Lerp(Theme.Ink, 0.25)
-		label.TextTransparency = if complete then 0 else 0.35
-	end
-	for _, outline in stamp.Outlines do
-		outline.Enabled = complete
-	end
-end
-
--- 행운 보너스 딱지 색: 받았으면 초록 + 진한 아이콘, 아직이면 회색 + 흐린 아이콘
-local function paintBonus(chip: Ui.Chip, earned: boolean)
-	Ui.tint(chip.Root, if earned then Ui.colorPair("Grass").Face else DIM_CHIP)
-	if chip.Icon then
-		Icons.setTransparency(chip.Icon, if earned then 0 else 0.45)
-	end
-end
-
-local function buildPassport(): View
-	local header = newHeader("Passport")
-	local chips = chipRow(header)
-	stampCount = headerChip(chips, "passport", Theme.Ink, 1)
-	stampBonus = headerChip(chips, "clover", "Grass", 2)
-
-	local scroller = newScroller("Passport", VIEWS.Passport.Top)
-	local layout = Ui.list(Enum.FillDirection.Vertical, SECTION_GAP)
-	layout.VerticalAlignment = Enum.VerticalAlignment.Top
-	layout.Parent = scroller
-
-	local total = 0
-	for order, region in Landmarks.Regions do
-		local list = Landmarks.ByRegion[region.Id]
-		local height = PASSPORT_HEADER
-			+ gridHeight(#list, PASSPORT_COLUMNS, PASSPORT_CELL.Y, PASSPORT_GAP)
-			+ SECTION_PAD
-		-- 여권 한 쪽
-		local section = Ui.new("Frame", {
-			Name = region.Id,
-			LayoutOrder = order,
-			Size = UDim2.new(1, 0, 0, height),
-			BackgroundColor3 = Theme.Paper,
-			Parent = scroller,
-		})
-		Ui.corner(14).Parent = section
-		Ui.stroke(Theme.Ink, 3).Parent = section
-
-		-- 지역 이름 + 발견 수 "3/7"
-		local title = Ui.label({
-			Position = UDim2.fromOffset(SECTION_PAD, 8),
-			Size = UDim2.new(0.6, 0, 0, 34),
-			TextXAlignment = Enum.TextXAlignment.Left,
-			Parent = section,
-		}, 28)
-		-- 발견 진행 막대
-		local track = Ui.new("Frame", {
-			Position = UDim2.fromOffset(SECTION_PAD, 46),
-			Size = UDim2.new(0.5, 0, 0, 14),
-			BackgroundColor3 = Theme.Cream,
-			Parent = section,
-		})
-		Ui.round().Parent = track
-		Ui.stroke(Theme.Ink, 2).Parent = track
-		local fill = Ui.new("Frame", {
-			Size = UDim2.fromScale(0, 1),
-			BackgroundColor3 = region.Color,
-			BorderSizePixel = 0,
-			Parent = track,
-		})
-		Ui.round().Parent = fill
-		-- 도장 보너스 "+25%" (네잎클로버)
-		local bonus = Ui.chip({
-			Name = "Bonus",
-			Color = DIM_CHIP,
-			Icon = "clover",
-			IconSize = 32,
-			Text = string.format("+%d%%", REGION_BONUS),
-			Height = 26,
-			TextSize = 16,
-			Position = UDim2.fromOffset(SECTION_PAD + 2, 66),
-			Parent = section,
-		})
-
-		local stamp = makeStamp(section, region)
-
-		local grid = Ui.new("Frame", {
-			Position = UDim2.fromOffset(SECTION_PAD, PASSPORT_HEADER),
-			Size = UDim2.new(1, -SECTION_PAD * 2, 1, -(PASSPORT_HEADER + SECTION_PAD)),
-			BackgroundTransparency = 1,
-			Parent = section,
-		})
-		Ui.new("UIGridLayout", {
-			CellSize = UDim2.fromOffset(PASSPORT_CELL.X, PASSPORT_CELL.Y),
-			CellPadding = UDim2.fromOffset(PASSPORT_GAP, PASSPORT_GAP),
-			FillDirectionMaxCells = PASSPORT_COLUMNS,
-			SortOrder = Enum.SortOrder.LayoutOrder,
-			HorizontalAlignment = Enum.HorizontalAlignment.Left,
-			Parent = grid,
-		})
-		passportSections[region.Id] = { Title = title, Fill = fill, Bonus = bonus, Stamp = stamp, Grid = grid }
-		total += height + (if order > 1 then SECTION_GAP else 0)
-	end
-	setCanvasHeight(scroller, total)
-	return { Scroller = scroller, Header = header }
-end
-
-local function passportCard(parent: Frame, landmark: Landmark, known: boolean, order: number): Frame
-	local tier = landmark.Tier
-	local card = Ui.new("Frame", {
-		Name = landmark.Id,
-		LayoutOrder = order,
-		BackgroundColor3 = if known then Theme.Cream else Theme.Ink,
-	})
-	Ui.corner(10).Parent = card
-	Ui.stroke(Theme.Ink, 2.5).Parent = card
-
-	if known then
-		photo(card, landmark, UDim2.fromOffset(5, 5), UDim2.new(1, -10, 0, 68), 7)
-		Ui.label({
-			Position = UDim2.fromOffset(4, 77),
-			Size = UDim2.new(1, -8, 0, 20),
-			Text = landmark.Name,
-			Parent = card,
-		}, 16)
-		Ui.label({
-			Position = UDim2.fromOffset(2, 99),
-			Size = UDim2.new(1, -4, 0, 17),
-			Text = Format.oneIn(landmark.OneIn),
-			TextColor3 = tier.Color:Lerp(Theme.Ink, 0.45),
-			Parent = card,
-		}, 14)
-	else
-		-- 아직 못 찾은 명소: 어두운 카드 + 자물쇠 그림(있으면) 또는 "?" + 확률
-		-- (3D 자물쇠는 카드가 많아 무거우니 그림이 있을 때만)
-		if Icons.imageId("lock") then
-			Icons.view(card, "lock", {
-				AnchorPoint = Vector2.new(0.5, 0),
-				Position = UDim2.new(0.5, 0, 0, 14),
-				Size = UDim2.fromOffset(56, 56),
-				Transparency = 0.15,
-			})
+			local unknown = unknownCards[id]
+			if unknown then
+				unknown:Destroy()
+				unknownCards[id] = nil
+			end
 		else
-			Ui.label({
-				Position = UDim2.fromOffset(5, 5),
-				Size = UDim2.new(1, -10, 0, 74),
-				Font = Theme.FontTitle,
-				Text = "?",
-				TextColor3 = Theme.Paper,
-				TextTransparency = 0.2,
-				Parent = card,
-			}, 50)
+			if entry then
+				entry.Card:Destroy()
+				collectionCards[id] = nil
+			end
+			if region and landmark.Region == region.Id and not unknownCards[id] then
+				unknownCards[id] = unknownCard(scroller, landmark)
+			end
 		end
-		Ui.label({
-			Position = UDim2.fromOffset(2, 90),
-			Size = UDim2.new(1, -4, 0, 20),
-			Text = Format.oneIn(landmark.OneIn),
-			TextColor3 = tier.Color,
-			Parent = card,
-		}, 16)
 	end
 
-	card.Parent = parent
-	return card
-end
+	-- 고른 탭의 카드만 보이게 + 탭 순서대로 (카드는 그대로 두고 Visible · LayoutOrder 만)
+	local order = tab.Order
+	local visible = 0
+	for id, entry in collectionCards do
+		local index = order[id]
+		entry.Card.Visible = index ~= nil
+		if index then
+			entry.Card.LayoutOrder = index
+			visible += 1
+		end
+	end
+	for id, card in unknownCards do
+		local index = if region then order[id] else nil
+		card.Visible = index ~= nil
+		if index then
+			card.LayoutOrder = index
+			visible += 1
+		end
+	end
 
-local function renderPassport(state: Snapshot)
+	-- 탭: 고른 탭 = 제 색, 다른 탭 = 옅은 색. 도장을 받은 대륙 탭은 작은 체크
+	local stamped = {}
+	for _, id in PlayerState.completedRegions(state) do
+		stamped[id] = true
+	end
+	for _, other in TABS do
+		local button = tabButtons[other.Id]
+		local selected = other == tab
+		button.Button.SetColor(if selected then other.Selected else other.Idle)
+		button.Button.Root:SetAttribute("Selected", selected)
+		local mark = button.Stamped
+		if mark then
+			mark.Visible = stamped[other.Id] == true
+		end
+	end
+
+	-- 머리 줄: 전체 = 발견 수 · 받은 도장 수 · 도장 행운 합, 대륙 = 그 대륙 도장 · 발견 막대 · +25%
+	allRow.Visible = region == nil
+	for id, header in regionHeaders do
+		header.Frame.Visible = region ~= nil and id == region.Id
+	end
+	if region then
+		paintRegionHeader(state, region)
+	end
 	local stamps = 0
-	for _, region in Landmarks.Regions do
-		local section = passportSections[region.Id]
-		local list = Landmarks.ByRegion[region.Id]
-		local discovered = 0
-		for order, landmark in list do
-			local known = Perks.discovered(state, landmark.Id)
-			if known then
-				discovered += 1
-			end
-			-- 발견 여부가 바뀐 카드만 다시 만듦
-			local entry = passportCards[landmark.Id]
-			if not entry or entry.Known ~= known then
-				if entry then
-					entry.Card:Destroy()
-				end
-				passportCards[landmark.Id] =
-					{ Card = passportCard(section.Grid, landmark, known, order), Known = known }
-			end
-		end
-
-		-- 도장은 전설급을 뺀 명소만 셈(PlayerState 규칙). 전설급은 카드로만 보이는 보너스 수집
-		local found, required = PlayerState.regionProgress(state, region.Id)
-		local complete = required > 0 and found >= required
-		if complete then
-			stamps += 1
-		end
-		section.Title.Text = string.format(
-			'%s  <font color="%s">%d/%d</font>',
-			region.Name,
-			Format.hex(region.Color:Lerp(Theme.Ink, 0.3)),
-			found,
-			required
-		)
-		section.Fill.Size = UDim2.fromScale(if required > 0 then found / required else 0, 1)
-		paintBonus(section.Bonus, complete)
-		paintStamp(section.Stamp, complete)
+	for _ in stamped do
+		stamps += 1
 	end
-
+	collectionCount.Label.Text = string.format("%d/%d", discovered, #Landmarks.List)
 	stampCount.Label.Text = string.format("%d/%d", stamps, #Landmarks.Regions)
 	stampBonus.Label.Text = string.format("+%d%%", stamps * REGION_BONUS)
 	paintBonus(stampBonus, stamps > 0)
+
+	emptyIcon.Visible = region == nil and discovered == 0
+	setCanvasHeight(scroller, gridHeight(visible, COLLECTION_COLUMNS, COLLECTION_CELL.Y, COLLECTION_GAP))
+end
+
+-- 탭 고르기: 카드는 그대로(보이기·순서만), 스크롤은 맨 위로
+selectTab = function(id: string)
+	if not TAB_BY_ID[id] or id == collectionTab then
+		return
+	end
+	collectionTab = id
+	local built = views.Collection
+	if built then
+		built.Scroller.CanvasPosition = Vector2.zero
+	end
+	local state = lastState
+	if openName == "Collection" and built and state then
+		renderCollection(state)
+	end
 end
 
 -- 강화 -----------------------------------------------------------------------
@@ -22045,8 +22298,8 @@ local function buildRebirth(): View
 		Parent = rebirthSection,
 	})
 	Ui.new("UIGridLayout", {
-		CellSize = UDim2.fromOffset(PASSPORT_CELL.X, PASSPORT_CELL.Y),
-		CellPadding = UDim2.fromOffset(PASSPORT_GAP, PASSPORT_GAP),
+		CellSize = UDim2.fromOffset(NEED_CELL.X, NEED_CELL.Y),
+		CellPadding = UDim2.fromOffset(NEED_GAP, NEED_GAP),
 		FillDirectionMaxCells = REBIRTH_COLUMNS,
 		SortOrder = Enum.SortOrder.LayoutOrder,
 		HorizontalAlignment = Enum.HorizontalAlignment.Center,
@@ -22273,7 +22526,7 @@ local function renderRebirth(state: Snapshot)
 		end
 	end
 
-	local gridSize = gridHeight(#list, REBIRTH_COLUMNS, PASSPORT_CELL.Y, PASSPORT_GAP)
+	local gridSize = gridHeight(#list, REBIRTH_COLUMNS, NEED_CELL.Y, NEED_GAP)
 	rebirthGrid.Size = UDim2.new(1, -SECTION_PAD * 2, 0, gridSize)
 	local height = SECTION_PAD + gridSize + (if gridSize > 0 then 14 else 0) + COIN_BAR.Y + SECTION_PAD
 	rebirthSection.Size = UDim2.new(1, 0, 0, height)
@@ -22564,7 +22817,6 @@ end
 
 local BUILDERS = {
 	Collection = buildCollection,
-	Passport = buildPassport,
 	Upgrade = buildUpgrade,
 	Rebirth = buildRebirth,
 	Shop = buildShop,
@@ -22572,7 +22824,6 @@ local BUILDERS = {
 
 local RENDERERS = {
 	Collection = renderCollection,
-	Passport = renderPassport,
 	Upgrade = renderUpgrade,
 	Rebirth = renderRebirth,
 	Shop = renderShop,
@@ -22584,6 +22835,48 @@ local function showView(built: View, visible: boolean)
 	local extra = built.Extra
 	if extra then
 		extra.Visible = visible
+	end
+end
+
+-- 창 가운데 세로 자리(화면 가운데 기준 px): 화면 가운데 + OPEN_OFFSET(아래 굴리기 줄을 덜 가리게 조금 위).
+-- 창(배율 적용, 아래 두께 포함)이 화면(ScreenGui) 위아래를 넘으면 넘지 않는 쪽으로 옮김 — 휴대폰(배율 0.55)에서 창 위 끝이
+-- 상단바 밑으로 들어가지 않게. 창이 화면보다 크면 가운데
+local function openOffset(height: number): number
+	local parent = window.Parent
+	local guiHeight = if parent and parent:IsA("GuiBase2d") then parent.AbsoluteSize.Y else 0
+	if guiHeight <= 0 then
+		return OPEN_OFFSET
+	end
+	local half = (height + WINDOW_LIP) * Ui.scale() / 2
+	if half * 2 > guiHeight then
+		return 0
+	end
+	return math.clamp(guiHeight / 2 + OPEN_OFFSET, half, guiHeight - half) - guiHeight / 2
+end
+
+-- 화면마다 창 높이(도감은 탭 줄만큼 높음)와 자리. animate = 아래에서 톡 튀어 오르며 열림
+local function placeWindow(animate: boolean)
+	local name = openName
+	if not name then
+		return
+	end
+	local height = VIEWS[name].Height or WINDOW_SIZE.Y
+	window.Size = UDim2.fromOffset(WINDOW_SIZE.X, height)
+	local offset = openOffset(height)
+	local tween = openTween
+	if tween then
+		tween:Cancel()
+		openTween = nil
+	end
+	if animate then
+		window.Position = UDim2.new(0.5, 0, 0.5, offset + 40)
+		local rise = TweenService:Create(window, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+			Position = UDim2.new(0.5, 0, 0.5, offset),
+		})
+		openTween = rise
+		rise:Play()
+	else
+		window.Position = UDim2.new(0.5, 0, 0.5, offset)
 	end
 end
 
@@ -22636,6 +22929,12 @@ function Panels.init(parent: ScreenGui, callbacks: Handlers)
 	body = win.Body
 	Ui.autoScale(window)
 	win.Close.Activated:Connect(Panels.close)
+	-- 화면 크기·배율이 바뀌면 열린 창 자리를 다시 잡음(휴대폰을 돌렸을 때 등)
+	Ui.onRescale(function()
+		if window.Visible then
+			placeWindow(false)
+		end
+	end)
 
 	-- 서버 데이터를 받기 전
 	loadingLabel = Ui.label({
@@ -22650,26 +22949,36 @@ function Panels.init(parent: ScreenGui, callbacks: Handlers)
 	}, 56)
 end
 
--- 같은 창 버튼을 다시 누르면 닫힘
-function Panels.toggle(name: string)
+-- 창 열기(이미 열려 있으면 그 화면으로 바꿈). tab: 도감 탭("All" 또는 대륙 Id) — 도장 알림을 누르면 그 대륙 탭으로 바로 열림.
+-- tab 을 안 주면 지금 탭 그대로(창이 열려 있는 동안 유지, 닫혀 있었으면 전체)
+function Panels.open(name: string, tab: string?)
 	if not VIEWS[name] or (name == "Shop" and not Perks.anyForSale()) then
 		return
 	end
+	if name == "Collection" and tab and TAB_BY_ID[tab] and tab ~= collectionTab then
+		collectionTab = tab
+		local built = views.Collection
+		if built then
+			built.Scroller.CanvasPosition = Vector2.zero
+		end
+	end
+	local wasOpen = window.Visible
+	local changed = openName ~= name
+	openName = name
+	window.Visible = true
+	if not wasOpen or changed then
+		placeWindow(not wasOpen)
+	end
+	render()
+end
+
+-- 같은 창 버튼을 다시 누르면 닫힘
+function Panels.toggle(name: string)
 	if openName == name then
 		Panels.close()
 		return
 	end
-	local wasOpen = window.Visible
-	openName = name
-	window.Visible = true
-	if not wasOpen then
-		-- 아래에서 톡 튀어 오르며 열림
-		window.Position = UDim2.new(0.5, 0, 0.5, OPEN_OFFSET + 40)
-		TweenService:Create(window, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-			Position = UDim2.new(0.5, 0, 0.5, OPEN_OFFSET),
-		}):Play()
-	end
-	render()
+	Panels.open(name)
 end
 
 function Panels.close()
@@ -22677,6 +22986,19 @@ function Panels.close()
 	window.Visible = false
 	confirmUntil = 0 -- 닫으면 환생 "확인?" 도 취소
 	confirmToken += 1
+	-- 도감 탭은 창이 열려 있는 동안만 기억: 다음에 열면 전체부터
+	if collectionTab ~= ALL_TAB then
+		collectionTab = ALL_TAB
+		local built = views.Collection
+		if built then
+			built.Scroller.CanvasPosition = Vector2.zero
+		end
+	end
+end
+
+-- 지금 열린 화면 이름(닫혀 있으면 nil)과 도감 탭 ("All" 또는 대륙 Id)
+function Panels.current(): (string?, string)
+	return openName, collectionTab
 end
 
 -- 서버 상태가 실제로 바뀌었을 때만 호출됨 (열린 화면만 갱신, 나머지는 열 때 갱신)
@@ -25431,7 +25753,7 @@ function Perks.owned(state: any, id: string): number
 	return if type(inventory) == "table" then number(inventory[id], 0) else 0
 end
 
--- 역대 발견 여부 (도감·여권 기준). 스냅샷에 Discovered 가 없으면 보유 기준
+-- 역대 발견 여부 (도감·대륙 도장 기준). 스냅샷에 Discovered 가 없으면 보유 기준
 function Perks.discovered(state: any, id: string): boolean
 	local discovered = if type(state) == "table" then state.Discovered else nil
 	if type(discovered) == "table" and discovered[id] then
@@ -25652,8 +25974,11 @@ function Ui.list(direction: Enum.FillDirection, gap: number, hAlign: Enum.Horizo
 	})
 end
 
--- 이름 -> 색 쌍 (모르는 이름이면 회색)
-function Ui.colorPair(name: string?): ColorPair
+-- 이름 -> 색 쌍 (모르는 이름이면 회색). 색 쌍 표({ Face, Shadow })를 주면 그대로(도감 대륙 탭처럼 테마에 없는 색)
+function Ui.colorPair(name: (string | ColorPair)?): ColorPair
+	if type(name) == "table" then
+		return name
+	end
 	return COLORS[name or "Gray"] or COLORS.Gray
 end
 
@@ -25992,7 +26317,7 @@ export type ChunkyButton = {
 	Label: TextLabel,
 	Icon: Frame?,
 	Activated: RBXScriptSignal,
-	SetColor: (name: string) -> (),
+	SetColor: (name: string | ColorPair) -> (), -- 색 이름 또는 색 쌍 표(같은 표를 다시 주면 건너뜀)
 	SetText: (text: string) -> (),
 	SetIcon: (name: string?) -> (),
 }
@@ -26014,7 +26339,7 @@ UserInputService.InputEnded:Connect(function(input)
 	end
 end)
 
--- props: { Color = "Grass"|"Sky"|"Sun"|"Coral"|"Grape"|"Gray", Size, Position, AnchorPoint, LayoutOrder, Text,
+-- props: { Color = "Grass"|"Sky"|"Sun"|"Coral"|"Grape"|"Gray" 또는 색 쌍 표, Size, Position, AnchorPoint, LayoutOrder, Text,
 --          TextSize?(최대 글자 크기), Parent, Icon?(Icons 이름), IconSize?, IconSpin?, Vertical?(아이콘 위·글자 아래),
 --          Round?(동그라미), Name?, ZIndex?, Visible? }
 -- Size 는 그림자까지 포함한 전체 크기(오프셋). 앞면 높이 = Size.Y - 6. 글자가 비어 있으면 아이콘을 가운데에.
@@ -26142,8 +26467,8 @@ function Ui.chunkyButton(props: { [string]: any }): ChunkyButton
 		layout()
 	end
 
-	local colorName: string? = nil
-	local function setColor(name: string)
+	local colorName: (string | ColorPair)? = nil
+	local function setColor(name: string | ColorPair)
 		if name == colorName then
 			return
 		end
@@ -26669,7 +26994,7 @@ return Ui
           <Properties>
             <string name="Name">Viewport</string>
             <string name="Source"><![CDATA[-- ViewportFrame 에 명소 모형을 띄우는 헬퍼.
--- 정적인 썸네일(컬렉션/여권 카드)은 한 번 찍고 끝(매 프레임 작업 없음),
+-- 정적인 썸네일(도감 카드)은 한 번 찍고 끝(매 프레임 작업 없음),
 -- 회전이 필요한 화면(굴림 연출)만 setSpin 으로 등록해서 RenderStepped 루프 하나로 돌립니다.
 
 local RunService = game:GetService("RunService")

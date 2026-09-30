@@ -1055,10 +1055,21 @@ check(
 )
 check(rollResult(second.Name) ~= nil, "결과는 알림 줄 딱지로")
 Hud.setEditing(false)
-for _, name in { "Collection", "Passport", "Upgrade", "Rebirth" } do
+for _, name in { "Collection", "Upgrade", "Rebirth" } do
 	Panels.toggle(name)
 end
+-- 여권은 도감 대륙 탭으로 합침: 옛 이름은 아무것도 열지 않음, 도감은 대륙 탭으로 바로 열 수 있음
+Panels.toggle("Passport")
+local openName = Panels.current()
+check(openName == "Rebirth", '옛 "Passport" 창 없음(열린 창 그대로)')
+for _, region in Landmarks.Regions do
+	Panels.open("Collection", region.Id)
+	local name, tab = Panels.current()
+	check(name == "Collection" and tab == region.Id, "도감 " .. region.Id .. " 탭으로 열기")
+end
 Panels.close()
+local _, reset = Panels.current()
+check(Panels.current() == nil and reset == "All", "닫으면 탭은 [전체]로")
 check(true, "Panels 창 전부 열고 닫기(오류 없음)")
 
 print("\n[모듈 오류]")
