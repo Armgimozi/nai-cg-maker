@@ -33,6 +33,7 @@ local COCONUT = rgb(116, 80, 46)
 local BUSH = { rgb(50, 142, 64), rgb(78, 180, 76), rgb(132, 214, 96) }
 local HEDGE = rgb(62, 158, 70)
 local HEDGE_TOP = rgb(92, 184, 82)
+local HEDGE_LUMPS = { rgb(70, 164, 72), rgb(86, 178, 78), rgb(106, 194, 88) } -- 산울타리 윗면 잎 공(짙음 → 밝음)
 local BLOSSOMS = { rgb(255, 128, 176), rgb(255, 250, 240), rgb(255, 214, 72), rgb(180, 130, 255) }
 local SOIL = rgb(126, 88, 60)
 local ROCK = rgb(160, 158, 156)
@@ -579,39 +580,63 @@ function BUILD.Bush(parent: Instance, item)
 	end
 end
 
--- 산울타리: 길이 Height 인 잎 판 + 위를 둥글게 덮는 원기둥. Turn = 길이 방향.
--- Style 2 = 조금 짙은 초록, 3 = 꽃 핀 산울타리(둥근 윗면에 작은 꽃이 드문드문, 색은 Tint)
+-- 산울타리(다듬은 생울타리): 길이 Height·폭 1.7 네모 잎 몸통(부딪힘) + 윗면을 따라 약 2 스터드마다 얹은 잎 공
+-- (몸통 윗면 높이에 가운데를 둔 반구 줄 → 둥글고 조금 울퉁불퉁한 윗면. 초록 세 가지, 크기·높이·옆 위치를 조금씩 흔듦).
+-- 양 끝 공은 끝면에 맞춰서 윗모서리가 둥긂. 공 지름 <= 1.74 · 옆 흔들림 <= 0.03 이라 폭은 Plan 의 반지름 0.9 안,
+-- 꼭대기는 땅에서 약 2.2. Turn = 길이 방향. 가로로 누운 원기둥(통나무처럼 보임)은 쓰지 않음.
+-- Style 2 = 조금 짙은 초록, 3 = 꽃 핀 산울타리(잎 공 겉에 작은 꽃이 드문드문, 색은 Tint. 꽃도 폭 1.8 안)
+local HEDGE_WIDTH = 1.62
+local HEDGE_BODY = 1.6 -- 몸통 키(땅속 0.2 포함) → 윗면이 땅에서 1.4
+local HEDGE_LUMP_STEP = 1.85 -- 잎 공 사이 간격 상한
 function BUILD.Hedge(parent: Instance, item)
 	local length = item.Height
 	local cf = CFrame.new(basePoint(item)) * CFrame.Angles(0, -item.Turn, 0)
+	local rng = itemRng(item, 12)
 	local dark = if item.Style == 2 then 0.25 else 0
+	local top = HEDGE_BODY - 0.2
 	block(
 		parent,
 		"Hedge",
-		Vector3.new(length, 1.5, 1.7),
-		cf * CFrame.new(0, 0.55, 0),
-		HEDGE:Lerp(BUSH[1], dark),
+		Vector3.new(length, HEDGE_BODY, HEDGE_WIDTH),
+		cf * CFrame.new(0, top - HEDGE_BODY / 2, 0),
+		HEDGE_LUMPS[1]:Lerp(HEDGE, 0.3):Lerp(BUSH[1], dark),
 		LEAVES,
 		true
 	)
-	part(
-		parent,
-		"HedgeTop",
-		Enum.PartType.Cylinder,
-		Vector3.new(length, 1.7, 1.7),
-		cf * CFrame.new(0, 1.3, 0),
-		HEDGE_TOP:Lerp(BUSH[2], dark),
-		LEAVES
-	)
+	-- 잎 공: 양 끝 공은 끝면에 맞추고 사이는 고르게(간격 <= HEDGE_LUMP_STEP) + 조금씩 흔듦
+	local first = rng:NextNumber(1.64, 1.74)
+	local lumps = math.max(2, math.ceil((length - first) / HEDGE_LUMP_STEP) + 1)
+	local from, to = -length / 2 + first / 2, length / 2 - first / 2
+	local centers: { Vector3 } = {}
+	local sizes: { number } = {}
+	local shade = rng:NextInteger(1, 3)
+	for k = 1, lumps do
+		local d = if k == 1 or k == lumps then first else rng:NextNumber(1.6, 1.74)
+		local along = from + (to - from) * (k - 1) / (lumps - 1)
+		if k > 1 and k < lumps then
+			along += rng:NextNumber(-0.2, 0.2)
+		end
+		local center = Vector3.new(along, top - 0.1 + rng:NextNumber(-0.05, 0.06), rng:NextNumber(-0.03, 0.03))
+		shade = (shade + rng:NextInteger(0, 1)) % 3 + 1 -- 옆 공과 같은 색이 길게 이어지지 않게
+		local color = HEDGE_LUMPS[shade]:Lerp(HEDGE_LUMPS[2], rng:NextNumber(0, 0.3))
+		ball(parent, "HedgeTop", cf * center, d, color:Lerp(BUSH[1], dark), LEAVES)
+		centers[k], sizes[k] = center, d
+	end
 	if item.Style == 3 then
-		local rng = itemRng(item, 12)
 		local color = BLOSSOMS[math.floor(item.Tint * #BLOSSOMS) % #BLOSSOMS + 1]
 		local count = math.max(2, math.floor(length / 2.2))
 		for k = 1, count do
-			local along = (k - 0.5) / count * length - length / 2 + rng:NextNumber(-0.5, 0.5)
-			local around = rng:NextNumber(-0.9, 0.9) -- 둥근 윗면 위 각도(0 = 꼭대기)
-			local offset = Vector3.new(along, 1.3 + math.cos(around) * 0.8, math.sin(around) * 0.8)
-			ball(parent, "Flower", (cf * CFrame.new(offset)).Position, 0.5, if k % 3 == 0 then WHITE else color)
+			local size = rng:NextNumber(0.42, 0.52)
+			local j = math.clamp(math.floor((k - 0.5) / count * lumps) + 1, 1, lumps)
+			local a = (if k % 2 == 0 then 1 else -1) * math.pi / 2 + rng:NextNumber(-0.7, 0.7)
+			local up = rng:NextNumber(0.3, 0.9)
+			local flat = math.sqrt(1 - up * up)
+			local offset = centers[j]
+				+ Vector3.new(math.cos(a) * flat, up, math.sin(a) * flat) * (sizes[j] / 2 - size * 0.25)
+			-- 옆으로 폭 1.8 을 넘지 않게(Plan 의 산울타리 반지름 0.9: 길 옆 여유 안)
+			local limit = 0.9 - size / 2
+			offset = Vector3.new(offset.X, offset.Y, math.clamp(offset.Z, -limit, limit))
+			ball(parent, "Flower", cf * offset, size, if k % 4 == 0 then WHITE else color)
 		end
 	end
 end

@@ -75,10 +75,18 @@ local RAIL = Vector3.new(0.35, 0.35, 0.35) -- 울타리 가로대 단면
 local LABEL_WIDTH = 10 -- 전시 이름표 크기(스터드)
 local LABEL_HEIGHT = 2.6
 
-local BASE_COLOR = Color3.fromRGB(120, 190, 84) -- 잘 깎은 잔디(Grass): 둘레 잔디보다 아주 조금 밝게(떠 보이지 않게)
+-- 부지 바닥: 따뜻하고 밝은 돌 포석(Pavement, 광장 포석과 한 집안). 둘레 잔디와 또렷이 갈리고 흰 받침대·명소가 돋보임.
+-- (예전 잔디색 Grass 바닥은 실제 게임에서 어둡게 그려져 위에서 보면 짙은 초록 판처럼 보였음)
+local BASE_COLOR = Color3.fromRGB(236, 222, 194)
 local PATH_COLOR = Color3.fromRGB(218, 200, 166) -- 광장 → 입구 길(포석, 부지 바닥보다 조금 짙게)
 local PEDESTAL_COLOR = Color3.fromRGB(236, 234, 228)
-local LOCKED_COLOR = Color3.fromRGB(238, 222, 176) -- 잔디 위 흐릿한 모래색 칸(아직 못 여는 자리)
+-- 빈 부지(주인 없음)의 칸 자리 표시: 포석보다 살짝 밝은 매끈한 판 36개 = "명소가 올 자리".
+-- 주인 부지의 잠긴 칸(아직 못 여는 자리)도 같은 판이라 빈 부지와 같은 말로 읽힘(열린 칸은 흰 받침대)
+local GRID_MARK_COLOR = Color3.fromRGB(245, 237, 219)
+local LOCKED_COLOR = GRID_MARK_COLOR
+local GRID_MARK_SIZE = 9
+local GRID_MARK_THICK = 0.06
+local GRID_MARK_LIFT = 0.02 -- 판 밑면이 부지 윗면보다 이만큼 위(윗면은 +0.08: z-fighting 없음)
 
 -- UI 스타일 가이드 v2 팔레트
 local INK = Color3.fromRGB(30, 27, 46)
@@ -122,6 +130,7 @@ type Plot = {
 	SlotFolder: Folder,
 	OwnerSign: Model, -- 주인이 있을 때만 부지 모델 아래에 둠
 	EmptySign: Model, -- 빈 부지일 때만 부지 모델 아래에 둠
+	EmptyGrid: Folder, -- 빈 부지일 때만: 칸 자리 표시 판 36개(주인이 오면 받침대·잠긴 칸이 대신함)
 	TitleLabels: { TextLabel },
 	IncomeLabels: { TextLabel },
 	Owner: Player?,
@@ -537,10 +546,34 @@ local function setSign(plot: Plot, title: string, subtitle: string)
 	end
 end
 
--- 주인이 있으면 입구 아치 간판, 없으면 말뚝 간판만 보이게
-local function showSign(plot: Plot, owned: boolean)
+-- 주인이 있으면 입구 아치 간판, 없으면 말뚝 간판 + 칸 자리 표시 판만 보이게
+local function showOwned(plot: Plot, owned: boolean)
 	plot.OwnerSign.Parent = if owned then plot.Model else nil
 	plot.EmptySign.Parent = if owned then nil else plot.Model
+	plot.EmptyGrid.Parent = if owned then nil else plot.Model
+end
+
+-- 빈 부지 칸 자리 표시: 6x6 칸 가운데(SLOT_OFFSETS)마다 얇고 살짝 밝은 판. 부딪히지도 광선에 맞지도 않음.
+-- 부지 모델(Slots 폴더 밖)에 따로 둬서 클라이언트 배치 모드가 칸으로 착각하지 않음
+local function buildEmptyGrid(cf: CFrame): Folder
+	local grid = Instance.new("Folder")
+	grid.Name = "EmptyGrid"
+	local y = GRID_MARK_LIFT + GRID_MARK_THICK / 2 -- 부지 윗면 기준
+	for _, offset in SLOT_OFFSETS do
+		local mark = newPart(
+			grid,
+			"GridMark",
+			Vector3.new(GRID_MARK_SIZE, GRID_MARK_THICK, GRID_MARK_SIZE),
+			cf * CFrame.new(offset + Vector3.new(0, y, 0)),
+			GRID_MARK_COLOR,
+			Enum.Material.SmoothPlastic
+		)
+		mark.CanCollide = false
+		mark.CanQuery = false
+		mark.CanTouch = false
+		mark.CastShadow = false
+	end
+	return grid
 end
 
 -- 부지 장식 ---------------------------------------------------------------
@@ -621,7 +654,7 @@ local function buildPlot(parent: Instance, index: number, layout: Layout): Plot
 		Vector3.new(PLOT_WIDTH, BASE_TOP, PLOT_DEPTH),
 		cf * CFrame.new(0, BASE_TOP / 2, 0),
 		BASE_COLOR,
-		Enum.Material.Grass
+		Enum.Material.Pavement
 	)
 	decorate(model, cf)
 
@@ -656,12 +689,13 @@ local function buildPlot(parent: Instance, index: number, layout: Layout): Plot
 		SlotFolder = slotFolder,
 		OwnerSign = ownerSign,
 		EmptySign = emptySign,
+		EmptyGrid = buildEmptyGrid(cf),
 		TitleLabels = titleLabels,
 		IncomeLabels = incomeLabels,
 		Owner = nil,
 		Slots = {},
 	}
-	showSign(plot, false)
+	showOwned(plot, false)
 	model.Parent = parent
 	return plot
 end
@@ -723,7 +757,7 @@ local function addLabel(pedestal: BasePart, landmark: Landmarks.Landmark, modelH
 	return stars
 end
 
--- key: KEY_LOCKED(흐릿한 바닥) / KEY_EMPTY(빈 받침대) / 명소 Id(받침대 + 미니어처 + 이름표)
+-- key: KEY_LOCKED(바닥에 얇은 밝은 판 = 빈 부지 칸 자리 표시와 같은 모습) / KEY_EMPTY(빈 받침대) / 명소 Id(받침대 + 미니어처 + 이름표)
 local function buildSlot(plot: Plot, index: number, key: string): Slot
 	local floor = plot.CFrame * CFrame.new(SLOT_OFFSETS[index]) -- 칸 바닥 중앙(부지 윗면)
 	local container = Instance.new("Model")
@@ -739,7 +773,6 @@ local function buildSlot(plot: Plot, index: number, key: string): Slot
 			LOCKED_COLOR,
 			Enum.Material.SmoothPlastic
 		)
-		tile.Transparency = 0.7
 		tile.CanCollide = false
 		tile.CastShadow = false
 	else
@@ -795,7 +828,7 @@ function ParkService.assign(player: Player): number?
 			plotByPlayer[player] = plot
 			plot.Model:SetAttribute("OwnerUserId", player.UserId)
 			setSign(plot, player.DisplayName, incomeText(0))
-			showSign(plot, true)
+			showOwned(plot, true)
 			return plot.Index
 		end
 	end
@@ -813,7 +846,7 @@ function ParkService.release(player: Player)
 	plot.Owner = nil
 	plot.Model:SetAttribute("OwnerUserId", nil)
 	clearSlots(plot)
-	showSign(plot, false)
+	showOwned(plot, false)
 	setSign(plot, "", "")
 end
 

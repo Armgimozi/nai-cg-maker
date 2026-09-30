@@ -2063,6 +2063,132 @@ test(
 	end
 )
 
+print("\n[ParkService — 부지 바닥·빈 부지 칸 자리 표시 (가짜 Roblox)]")
+-- 가짜 Roblox 전역(tools/roblox_mock.luau)은 이 테스트 동안만 깔고 끝나면 되돌림(다른 테스트는 하네스 전역을 씀)
+local function withMock(fn: (any, any, any) -> ())
+	local saved = {}
+	for key, value in _G do
+		saved[key] = value
+	end
+	local ok, err = pcall(function()
+		local H = compile(readfile("tests/harness.luau"), "tests/harness.luau")() -- 새 모듈 캐시(가짜 Color3 로 다시 읽음)
+		local Mock = compile(readfile("tools/roblox_mock.luau"), "tools/roblox_mock.luau")()
+		local sharedNode = H.folder("src/shared")
+		Mock.link(Mock.ReplicatedStorage, "Shared", sharedNode)
+		fn(H, Mock, sharedNode)
+	end)
+	for key in _G do
+		if saved[key] == nil then
+			_G[key] = nil
+		end
+	end
+	for key, value in saved do
+		_G[key] = value
+	end
+	assert(ok, err)
+end
+
+test(
+	"ParkService: 부지 바닥은 포석, 빈 부지에만 칸 자리 표시 판 36개(충돌·광선·그림자 없음) — 주인이 오면 치우고 떠나면 되돌림",
+	function()
+		withMock(function(H, Mock, sharedNode)
+			local Service = H.require(H.folder("src/server").ParkService)
+			local State = H.require(sharedNode.PlayerState)
+			local Grid = H.require(sharedNode.ParkGrid)
+			local player = { Name = "Tester", DisplayName = "테스터", UserId = 777 }
+			local built, buildError = Mock.run(function()
+				Service.init()
+			end)
+			assert(built, buildError)
+			local parks = Mock.Workspace:FindFirstChild("Parks")
+			assert(parks, "Parks 폴더")
+
+			local function checkGrid(model: any)
+				local grid = model:FindFirstChild("EmptyGrid")
+				assert(grid, model.Name .. ": EmptyGrid 없음")
+				local origin = model:GetAttribute("Origin")
+				local marks = grid:GetChildren()
+				eq(#marks, State.MAX_SLOTS, model.Name .. " 판 수")
+				local seen = {}
+				for _, mark in marks do
+					eq(mark.Name, "GridMark", "이름")
+					assert(
+						not mark.CanCollide and not mark.CanQuery and not mark.CanTouch and not mark.CastShadow,
+						"충돌·광선·닿기·그림자 끔"
+					)
+					local p = origin:PointToObjectSpace(mark.Position)
+					local bottom, top = p.Y - mark.Size.Y / 2, p.Y + mark.Size.Y / 2
+					assert(bottom > Grid.BASE_TOP + 0.005, "밑면이 부지 윗면보다 위(" .. bottom .. ")")
+					assert(top - Grid.BASE_TOP >= 0.05 and top - Grid.BASE_TOP <= 0.12, "윗면 높이 " .. top)
+					assert(mark.Size.X < Grid.SPACING and mark.Size.Z < Grid.SPACING, "칸보다 작음")
+					local slot = Grid.slotAt(p.X, p.Z, 0.01)
+					assert(slot and not seen[slot], "칸 가운데에 하나씩")
+					seen[slot] = true
+				end
+			end
+
+			local plots = parks:GetChildren()
+			eq(#plots, 8, "부지 수")
+			for _, model in plots do
+				local base = model:FindFirstChild("Base")
+				eq(base.Material, Enum.Material.Pavement, model.Name .. " 바닥 재질")
+				local c = base.Color
+				assert(
+					c.R > 0.85 and c.G > 0.8 and c.B > 0.7 and c.R > c.B,
+					model.Name .. " 바닥은 밝고 따뜻한 색"
+				)
+				checkGrid(model)
+				eq(#model:FindFirstChild("Slots"):GetChildren(), 0, "빈 부지에는 칸 모델 없음")
+			end
+
+			-- 주인 배정: 그 부지만 표시 판을 치우고, 받침대·잠긴 칸(Slot/Look 속성)이 대신함
+			local data = State.new()
+			local assigned, assignError = Mock.run(function()
+				Service.assign(player :: any)
+				Service.update(player :: any, data)
+			end)
+			assert(assigned, assignError)
+			local mine, others = nil, 0
+			for _, model in plots do
+				if model:GetAttribute("OwnerUserId") == player.UserId then
+					mine = model
+				else
+					others += 1
+					checkGrid(model)
+				end
+			end
+			assert(mine, "배정된 부지")
+			eq(others, 7, "나머지 빈 부지")
+			assert(not mine:FindFirstChild("EmptyGrid"), "주인 부지에는 표시 판 없음")
+			local containers = mine:FindFirstChild("Slots"):GetChildren()
+			eq(#containers, State.MAX_SLOTS, "칸 모델 36개")
+			local locked = 0
+			for _, container in containers do
+				assert(type(container:GetAttribute("Slot")) == "number", "Slot 속성")
+				local look = container:GetAttribute("Look")
+				if look == Grid.LOOK_LOCKED then
+					locked += 1
+					assert(container:FindFirstChild("Locked"), "잠긴 칸 판")
+				else
+					eq(look, Grid.LOOK_EMPTY, "명소 없는 열린 칸")
+					assert(container:FindFirstChild("Pedestal"), "빈 받침대")
+				end
+			end
+			local _, unlocked = State.parkSlots(data)
+			eq(locked, State.MAX_SLOTS - unlocked, "잠긴 칸 수")
+
+			-- 떠나면 칸 모델을 치우고 표시 판을 되돌림
+			local released, releaseError = Mock.run(function()
+				Service.release(player :: any)
+			end)
+			assert(released, releaseError)
+			eq(mine:GetAttribute("OwnerUserId"), nil, "주인 없음")
+			eq(#mine:FindFirstChild("Slots"):GetChildren(), 0, "칸 모델 치움")
+			checkGrid(mine)
+		end)
+	end
+)
+
 if not Harness.finish() then
 	error("테스트 실패")
 end
