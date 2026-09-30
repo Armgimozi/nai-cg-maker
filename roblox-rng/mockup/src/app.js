@@ -165,10 +165,13 @@
     return (
       Config.BASE_LUCK *
       (1 + globe.PerLevel * upgradeLevel(s, 'Globe')) *
-      (1 + Config.REGION_LUCK_BONUS * completedRegions(s).length)
+      (1 + Config.REGION_LUCK_BONUS * completedRegions(s).length) *
+      Math.pow(Config.REBIRTH_LUCK_MULT, rebirthsOf(s))
     );
   }
   const slots = (s) => Config.BASE_SLOTS + UpgradesById.Park.PerLevel * upgradeLevel(s, 'Park');
+  // PlayerState.stars: 가챠 중복처럼 처음 발견 = 별 0, 또 뽑을 때마다 +1 (STAR_THRESHOLDS = 2,3,4,5,6 -> 6번째 = ★5)
+  const MAX_STARS = Config.STAR_THRESHOLDS.length;
   function stars(count) {
     let n = 0;
     Config.STAR_THRESHOLDS.forEach((threshold, i) => {
@@ -258,10 +261,10 @@
     return true;
   }
 
+  // PlayerState.landmarkIncome: 보유(1개 이상)면 등급 수입 × (1 + 별 보너스 × 별). 처음 발견(☆0) = 등급 수입 그대로
   function landmarkIncome(l, count) {
-    const n = stars(count);
-    if (n === 0) return 0;
-    return (Config.TIER_INCOME[l.Tier.Rank - 1] || 0) * (1 + Config.STAR_INCOME_BONUS * (n - 1));
+    if (!(count > 0)) return 0;
+    return (Config.TIER_INCOME[l.Tier.Rank - 1] || 0) * (1 + Config.STAR_INCOME_BONUS * stars(count));
   }
   function incomePerSecond(s) {
     let total = 0;
@@ -314,6 +317,15 @@
     const filled = Math.max(0, Math.min(max, Math.floor(count)));
     return `<span style="color:${hex(COLORS.Sun.Face)}">${'★'.repeat(filled)}</span><span style="color:${hex(emptyColor)}">${'★'.repeat(max - filled)}</span>`;
   }
+  // Hud starUpText: 별 상승 딱지 = 채운 별(금색) + 빈 별 + "+1", 별이 가득 차면(★5) "MAX"
+  function starUpText(count) {
+    const n = Math.max(1, Math.min(MAX_STARS, Math.floor(count)));
+    return starsRich(n, MAX_STARS) + (n >= MAX_STARS ? ' MAX' : ' +1');
+  }
+  const starUpPlain = (count) => {
+    const n = Math.max(1, Math.min(MAX_STARS, Math.floor(count)));
+    return '★'.repeat(n) + '☆'.repeat(MAX_STARS - n) + (n >= MAX_STARS ? ' MAX' : ' +1');
+  };
 
   // --- 로블록스 GuiObject 흉내 ----------------------------------------------------------
   const ud = (scale, offset) => {
@@ -1300,7 +1312,7 @@
     const tagRow = gui(inner, { name: 'Tags', pos: [0, 0, 0, nameTop + 104], size: [1, 0, 0, 36], z: 4 });
     list(tagRow, 'h', 14, 'center');
     chip(tagRow, { name: 'New', flow: true, color: 'Coral', text: 'NEW', font: 'title', height: 32, textSize: 22, visible: info.IsNew });
-    chip(tagRow, { name: 'StarUp', flow: true, color: 'Grape', font: 'title', height: 32, textSize: 21, text: `★${info.Stars} UP`, visible: info.StarUp });
+    chip(tagRow, { name: 'StarUp', flow: true, color: 'Grape', font: 'title', height: 32, textSize: 21, rich: starUpText(info.Stars), visible: info.StarUp });
     pill(tagRow, {
       name: 'Bonus',
       flow: true,
@@ -1909,7 +1921,7 @@
   withDerived(STATE);
 
   // 굴림 결과(RollResponse)를 PlayerState.applyRoll 과 같은 규칙으로 만듦 -> 게임에서 실제로 나올 수 있는 조합만.
-  // 처음 발견 = NEW + 발견 보너스(★UP 없음), 이미 가진 명소를 또 찾아 별이 오르면 = ★N UP 만(보너스 없음).
+  // 처음 발견 = NEW + 발견 보너스(별 딱지 없음), 이미 가진 명소를 또 찾아 별이 오르면(2~6번째) = "★★☆☆☆ +1" 만(보너스 없음).
   // (환생 전 상태라 Discovered = 보유 기록과 같음)
   function rollResult(s, landmarkId) {
     const before = s.Inventory[landmarkId] || 0;
@@ -1959,9 +1971,9 @@
   const TOAST_AUTO_OFF = { text: '자동 꺼짐', icon: 'podium', color: Theme.Ink };
   const TOAST_PARK_FULL = { text: '공원 꽉 참', icon: 'park', color: COLORS.Sun.Face };
 
-  // 2번: 타지마할을 처음 발견 / 2-2번: 에펠탑을 또 찾아 별이 오름 (9번째 -> 10번째 = ★3)
+  // 2번: 타지마할을 처음 발견 / 2-2번: 앙코르와트를 또 찾아 별이 오름 (2번째 -> 3번째 = ★2)
   const NEW_FIND = 'tajmahal';
-  const STAR_FIND = 'eiffel';
+  const STAR_FIND = 'angkor';
   const STATE_BEFORE_NEW = stateWithout(STATE, NEW_FIND);
   const REVEAL_NEW = { ...rollResult(STATE_BEFORE_NEW, NEW_FIND), burstRotation: 8 };
   const REVEAL_STAR = { ...rollResult(STATE, STAR_FIND), burstRotation: 20 };
@@ -2063,7 +2075,7 @@
       title: '명소 공개 — 처음 발견',
       note:
         `${eul(newFind.Name)} 처음 찾은 순간: 뒤에 등급 색 햇살(sunburst), 대륙 딱지(${RegionById[newFind.Region].Name}), 등급 리본(${newFind.Tier.Name}), LuckiestGuy 이름 + 확률, ` +
-        `아래 딱지 줄 = NEW + 발견 보너스 코인 +${commas(REVEAL_NEW.Bonus)}(실제 계산값). 처음 발견에는 ★UP 딱지가 안 붙습니다. ` +
+        `아래 딱지 줄 = NEW + 발견 보너스 코인 +${commas(REVEAL_NEW.Bonus)}(실제 계산값). 처음 발견에는 별 딱지가 안 붙습니다(별 0 = ☆☆☆☆☆). ` +
         `연출이 끝나기 전까지 왼쪽 위 숫자는 굴리기 전 값이라 수입이 +${incomeText(STATE_BEFORE_NEW.Income)}/s 로 보임.`,
       build(root) {
         const screenGui = newScreen(root, this.id);
@@ -2076,8 +2088,8 @@
       title: '명소 공개 — 별 오름',
       extra: '2-2',
       note:
-        `이미 가진 ${eul(starFind.Name)} ${commas(STATE.Inventory[STAR_FIND] + 1)}번째로 찾아 별이 ${REVEAL_STAR.Stars}개가 된 순간: 딱지 줄에는 보라 "★${REVEAL_STAR.Stars} UP" 하나만(보너스 코인 없음). ` +
-        '별이 오르지 않는 평범한 재발견이면 딱지 줄 자체가 안 나옵니다.',
+        `이미 가진 ${eul(starFind.Name)} ${commas(STATE.Inventory[STAR_FIND] + 1)}번째로 찾아 별이 ${REVEAL_STAR.Stars}개가 된 순간(가챠 중복): 딱지 줄에는 보라 "${starUpPlain(REVEAL_STAR.Stars)}" 하나만(보너스 코인 없음, 퐁 튀어나오며 딩). ` +
+        `★${MAX_STARS}(6번째 발견)이 되면 "+1" 대신 "MAX", 그 뒤 재발견은 딱지 줄 자체가 안 나옵니다. AUTO 중 별 상승은 알림 줄에도 결과 딱지 + "★+1" 이 2.5초 남음.`,
       build(root) {
         const screenGui = newScreen(root, this.id);
         buildHud(screenGui, STATE, { auto: false });
@@ -2088,7 +2100,7 @@
       id: 'screen3',
       title: '도감',
       note:
-        '가진 명소를 희귀한 순서로(위 띠 = 등급 색 + 확률). 왼쪽 위 빨간 "대표" 도장, 사진 왼쪽 아래 초록 칩 = 공원에 전시 중, 오른쪽 위 ×N = 발견 횟수, 아래 별(★1~5). ' +
+        '가진 명소를 희귀한 순서로(위 띠 = 등급 색 + 확률). 왼쪽 위 빨간 "대표" 도장, 사진 왼쪽 아래 초록 칩 = 공원에 전시 중, 오른쪽 위 ×N = 발견 횟수, 아래 별 5칸(처음 발견 ☆0, 또 뽑을 때마다 ★+1, 6번째 = ★5). ' +
         '머리 줄: 발견 수 / 전체, 오른쪽 "자동"(더 희귀한 명소를 찾으면 자동으로 대표 지정, 켜짐 = 초록 + ON), 그 왼쪽 초록 "배치" = 창을 닫고 3D 배치 모드(6번) 켜기. ' +
         `이 예시는 6번과 같은 직접 배치 공원이라 "배치" 버튼(도감 머리 줄 · 왼쪽 메뉴)에 더 좋은데 전시 안 된 명소 수 배지 ${betterHidden(PARK_STATE).length}.`,
       build(root) {

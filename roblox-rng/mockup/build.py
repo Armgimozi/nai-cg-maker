@@ -155,6 +155,7 @@ def parse_config() -> dict:
         "TIER_INCOME": numbers("TIER_INCOME"),
         "STAR_THRESHOLDS": numbers("STAR_THRESHOLDS"),
         "STAR_INCOME_BONUS": number("STAR_INCOME_BONUS"),
+        "REBIRTH_LUCK_MULT": number("REBIRTH_LUCK_MULT"),
         "STAMP_MAX_RANK": number("STAMP_MAX_RANK"),
         "REGION_LUCK_BONUS": number("REGION_LUCK_BONUS"),
         "Upgrades": upgrades,
