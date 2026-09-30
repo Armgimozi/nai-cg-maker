@@ -1119,10 +1119,7 @@ do
 	)
 	local headerFrame = findNamed(findNamed(window, "CollectionHeader"), region.Id)
 	local found, required = PlayerState.regionProgress(data, region.Id)
-	check(
-		headerFrame.Visible and not allHeader.Visible,
-		"대륙 머리 줄만 보임([배치]·[자동]은 전체 탭에)"
-	)
+	check(headerFrame.Visible and not allHeader.Visible, "대륙 머리 줄만 보임([자동]은 전체 탭에)")
 	check(
 		findNamed(headerFrame, "Count").Text == string.format("%d/%d", found, required),
 		"발견 막대 숫자 = PlayerState.regionProgress (" .. findNamed(headerFrame, "Count").Text .. ")"
