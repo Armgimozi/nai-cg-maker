@@ -50,6 +50,7 @@ VARIANTS = {
     ),
 }
 MAIN = ["current", "A", "B", "rec"]
+EARLY_GROUP_MARKS = (5, 10, 15, 20, 30, 60)  # minutes
 
 
 PREFACE = """
@@ -64,17 +65,19 @@ What the recommended variant changes from A:
 
 | change | A | recommended | why |
 |---|---|---|---|
-| step 1 coins | 5k (4 min) | **100k (~10 min)** | the largest value that keeps landmarks found by minute 5 / 15 / 20 / 30 / 60 at or above today |
+| step 1 coins | 5k (4 min) | **300k (~17 min, p10–p90 15–19)** | inside the 15–30 min target; common/uncommon finds (tiers 1–2) are exactly as fast as today, only 2–3 tier-3/4 finds come later around minutes 15–20 (section 4) |
 | step 5 coins | 2B (5th at ~29 h) | **1.5B (~25 h)** | puts the 5th rebirth nearer "about a day" |
 | step 10 landmark | shangrila (1 in 375M) | **skyisland (1 in 110M)** | same median, but the free p90 for the 10th drops from ~33 d to ~25 d (the last gate alone was 7.4 days expected); shangrila and World Tree stay optional goals |
 | news / hologram | ≥ 1M / ≥ 8M | **≥ 25M / ≥ 100M** | A gave ~10 (free) and ~19 (paid) news per endgame player-hour; now ~0.3 / 0.6 |
 | auto-discover rule | missing from the JSON | **`rules.autoDiscoverBelowLuck: true`** | without it paying players end with 0/5 passport stamps (section 7) |
 
-**The targets contradict each other on the 1st rebirth.** "15–30 min" and "early game not slower, first-rebirth time
-similar" can't both hold, because today's 4-minute first rebirth is part of why ~88 landmarks are found by minute 15.
-The recommended 100k is the largest step-1 value that loses nothing early. Setting it to **250k** gives a ~15-minute first rebirth,
-at the cost of about 3–4 fewer landmarks found between minutes 15 and 30 (84 instead of 88 at 15 min). Nothing
-after the 2nd rebirth changes.
+**The targets contradict each other on the 1st rebirth.** Today's first rebirth takes 4 minutes, so "15–30 min" and
+"first-rebirth time stays similar" can't both hold. The recommended **300k** meets the 15–30 min number and keeps the
+common/uncommon cadence (tiers 1–2, 1 in 1–99) identical to today: 37 of 38 by minute 5, all 38 by minute 10, for
+every step-1 value tried. What it costs is 2–3 tier-3/4 finds around minutes 15–20 (85 vs 88 at 15 min, 91 vs 94 at
+20 min, 101 vs 102 at 30 min, 114 = 114 at 60 min), because today's early rebirth gives +20 % luck sooner. One number
+switches it: **5k** keeps today's 4-minute first rebirth, **100k** (~10 min) loses no find at any minute. Nothing after
+the 3rd rebirth changes.
 
 **Code changes the variant needs** (the simulator applies them; the game doesn't have them yet):
 1. `PlayerState.luck`: rebirth multiplier `2^rebirths` instead of `1 + 0.2 × rebirths`, plus the "+20%" texts and 2 tests.
@@ -107,8 +110,9 @@ Quick runs used 150–300 players per profile; the tables below use 400.
 | 3 | Globe growth 1.7 → 1.5–1.55, or +15 %/level | 15-min finds 85–86; +15 %/level also cuts the World Tree wait from 51 to 38 d | no |
 | 4 | step 10 landmark: skyisland vs shangrila (± short-reveal fix) | median 10th 22.9 vs 23.1 d; p90 24.4 vs 31.7 d (free), 12.3 vs 17.1 d (paid); with the fix both ~18.4 d | skyisland |
 | 5 | step 5 coins 2B → 1.5B / 1.25B | 5th 29.2 h → 25.2 / 23.2 h; 10th ~22.7 d | 1.5B |
-| 6 | step 1 fine grid, 400 players, landmarks found at 5/10/15/20/30/60 min | today 64/80/88/94/102/114; 80k (9 min) 64/78.5/89/96/104/116; **100k (10 min) 64/78/88/95/104/116**; 125k (11 min) 64/78/87/95/103/116; 250k (16 min) 64/78/85/92/101/114.5 | 100k |
+| 6 | step 1 fine grid, 400 players, landmarks found at 5/10/15/20/30/60 min | today 64/80/88/94/102/114; 80k (9 min) 64/78.5/89/96/104/116; **100k (10 min) 64/78/88/95/104/116**; 125k (11 min) 64/78/87/95/103/116; 250k (16 min) 64/78/85/92/101/114.5 | 100k (replaced in #8) |
 | 7 | news: fixed 2M / 8M / 25M / 100M; luck-relative ×10k / ×20k / ×30k; hybrid | per endgame player-hour (free / paid): 2M 4.1 / 8.2, 8M 0.82 / 1.6, 25M 0.31 / 0.61, 100M 0.05 / 0.1; a relative rule alone falls from ~0.7 (run 0) to ~0.01 (run 10) | 25M, hybrid as option |
+| 8 | step 1 = 100k / 150k / 200k / 250k / 300k / 350k, finds split into tiers 1–2 vs tier 3+ (400 players) | 1st 10 / 12 / 14 / 15.5 / 17 / 18.5 min (today 4); tiers 1–2 found by 5 / 10 min = 37 / 38 for every value and today; tier 3+ by 15 min 51 / 49 / 47 / 47 / 47 for 100k–300k (today 50); 3rd rebirth 2.75 h (100k) → 2.87 h (300k); 250k's p10 is 14 min | 300k (p10–p90 inside 15–30 min) |
 """
 
 
@@ -174,6 +178,17 @@ def job(spec: dict) -> dict:
     else:
         out["first_news"] = dict(median_s=None, reached=0.0, run=None)
     out["stamps_all_share"] = float((res["final_stamps"] == int((game.region_required > 0).sum())).mean())
+    # early feel split by tier group: common/uncommon (tiers 1-2) vs 1 in >= tier-3 minimum
+    early = {}
+    for m in EARLY_GROUP_MARKS:
+        found = res["disc_t"] <= m * MINUTE
+        early[m] = dict(
+            total=float(np.median(found.sum(1))),
+            common=float(np.median(found[:, game.rank <= 2].sum(1))),
+            rare=float(np.median(found[:, game.rank >= 3].sum(1))),
+        )
+    out["early_groups"] = early
+    out["n_common"] = int((game.rank <= 2).sum())
     # rebirth gates: how often the landmarks (not the coins) decided the rebirth, and median hunt share
     gates = []
     for k in range(1, R + 1):
@@ -345,6 +360,13 @@ def build_report(jobs: dict, args, elapsed: float) -> str:
             v = jobs[(key, "free", "")]["summary"]["early_distinct"][mark]
             row += f" {v:.0f} {'✓' if v >= base - 0.5 else f'({v - base:+.0f})'} |"
         L.append(row)
+    base_c = jobs[("current", "free", "")]["early_groups"]
+    row = "| common/uncommon (tiers 1–2) found by 5 / 10 min | = current (" + f"{base_c[5]['common']:.0f} / {base_c[10]['common']:.0f}) |"
+    for key in MAIN:
+        e = jobs[(key, "free", "")]["early_groups"]
+        ok = e[5]["common"] >= base_c[5]["common"] - 0.5 and e[10]["common"] >= base_c[10]["common"] - 0.5
+        row += f" {e[5]['common']:.0f} / {e[10]['common']:.0f} {'✓' if ok else '✗'} |"
+    L.append(row)
     row = "| first legendary (tier 7) | mid/late rebirths |"
     for key in MAIN:
         t = {x["rank"]: x for x in jobs[(key, "free", "")]["summary"]["tiers"]}.get(7)
@@ -443,6 +465,12 @@ def build_report(jobs: dict, args, elapsed: float) -> str:
             for key in MAIN:
                 row += f" {jobs[(key, kind, '')]['summary']['early_distinct'][mark]:.0f} |"
             L.append(row)
+    for m in EARLY_GROUP_MARKS:
+        row = f"| found by {m} min, free: tiers 1–2 + tier 3 and rarer = total |"
+        for key in MAIN:
+            e = jobs[(key, "free", "")]["early_groups"][m]
+            row += f" {e['common']:.0f} + {e['rare']:.0f} = {e['total']:.0f} |"
+        L.append(row)
     for rank in (4, 5):
         row = f"| first tier {rank}, free |"
         for key in MAIN:
@@ -587,7 +615,7 @@ def main() -> None:
     jobs = {(o["key"], o["kind"], o["tag"]): o for o in outs}
     elapsed = time.time() - started
     md = build_report(jobs, args, elapsed)
-    md += sensitivity_section(jobs) if args.extra else ""
+    md += ("\n" + sensitivity_section(jobs)) if args.extra else ""
     Path(args.out).write_text(md, encoding="utf-8")
     Path(args.out).with_suffix(".json").write_text(
         json.dumps({f"{k[0]}|{k[1]}|{k[2]}": v for k, v in jobs.items()}, ensure_ascii=False, indent=1, default=float), encoding="utf-8"

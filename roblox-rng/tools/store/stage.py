@@ -266,9 +266,11 @@ def _hash(obj) -> str:
     return hashlib.sha1(json.dumps(obj, sort_keys=True).encode()).hexdigest()[:16]
 
 
-def world_dump(stage: dict, players: int = 8) -> Path:
-    """무대를 올린 맵 덤프(JSON) 경로. 같은 무대면 캐시."""
-    key = _hash({"stage": stage, "players": players, "v": 1})
+def world_dump(stage: dict, players: int = 8, hook: str = "tools/store/stage_hook.luau") -> Path:
+    """무대를 올린 맵 덤프(JSON) 경로. 같은 무대면 캐시. hook = 다른 world.luau hook(예: park_hook.luau — 배치 모드)."""
+    default = hook == "tools/store/stage_hook.luau"
+    key = _hash({"stage": stage, "players": players, "v": 1} if default else
+                {"stage": stage, "players": players, "hook": hook, "src": (ROOT / hook).read_text(), "v": 1})
     out = CACHE / "dumps" / f"{key}.json"
     if out.exists():
         return out
@@ -276,7 +278,7 @@ def world_dump(stage: dict, players: int = 8) -> Path:
     stage_file = out.with_suffix(".stage.json")
     stage_file.write_text(json.dumps(stage))
     proc = subprocess.run(
-        [str(LUAURUN), "tools/world_preview/world.luau", f"players={players}", "hook=tools/store/stage_hook.luau",
+        [str(LUAURUN), "tools/world_preview/world.luau", f"players={players}", f"hook={hook}",
          f"stage={stage_file}"],
         cwd=ROOT, capture_output=True, text=True,
     )
@@ -284,17 +286,18 @@ def world_dump(stage: dict, players: int = 8) -> Path:
     if proc.returncode != 0 or "DUMP_BEGIN" not in text:
         raise RuntimeError(f"world.luau 실패:\n{text[-3000:]}\n{proc.stderr[-3000:]}")
     for line in text.splitlines():
-        if line.startswith("[world]") and ("실패" in line or "공원" in line):
+        if line.startswith("[world]") and ("실패" in line or "공원" in line or "부지" in line):
             print("   ", line)
     body = text.split("DUMP_BEGIN\n", 1)[1].split("\nDUMP_END", 1)[0]
     out.write_text(body)
     return out
 
 
-def render_layers(stage: dict, cam: Camera, layers: list, size=None, players: int = 8) -> dict:
+def render_layers(stage: dict, cam: Camera, layers: list, size=None, players: int = 8,
+                  hook: str = "tools/store/stage_hook.luau") -> dict:
     """레이어 PNG 경로 사전 {이름: 경로}. size = 렌더 크기(기본 카메라 크기)."""
     size = size or (cam.W, cam.H)
-    dump = world_dump(stage, players)
+    dump = world_dump(stage, players, hook)
     spec = {"size": list(size), "cam": cam.spec(), "layers": layers}
     key = _hash({"dump": dump.name, "spec": spec, "v": 2})
     out = CACHE / "layers" / key
