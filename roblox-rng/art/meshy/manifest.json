@@ -1,0 +1,62 @@
+{
+  "eiffel": {
+    "glb_bytes": 2507136,
+    "id": "eiffel",
+    "preview_credits": 5,
+    "preview_task": "01a0ebee-989b-76f5-8f18-6249383632c2",
+    "prompt": "Stylized low-poly tabletop miniature of the Eiffel Tower in Paris: tall tapering iron lattice tower on four wide arched legs, two viewing platforms, slim spire on top. Chunky simplified shapes, few large forms, no tiny details, sits on a small round stone base, centered single object, no text, game asset",
+    "refine_credits": 10,
+    "refine_task": "01a0ebee-d14b-711f-8095-e49c4df050d0",
+    "status": "done",
+    "texture_prompt": "warm bronze-brown painted iron, hand-painted stylized game texture, bright saturated colors, soft simple shading, clean surfaces, no text, no logos",
+    "thumb_bytes": 42490
+  },
+  "harbourbridge": {
+    "glb_bytes": 2578100,
+    "id": "harbourbridge",
+    "preview_credits": 5,
+    "preview_task": "01a0ebee-98ae-71f5-9647-6c658d8e5030",
+    "prompt": "Stylized low-poly tabletop miniature of the Sydney Harbour Bridge: large steel through-arch bridge shaped like a coat hanger, road deck passing through the arch, two granite pylon towers at each end, over blue water. Chunky simplified shapes, few large forms, no tiny details, sits on a small round stone base, centered single object, no text, game asset",
+    "refine_credits": 10,
+    "refine_task": "01a0ebee-d0c6-7432-8257-70a66125fe67",
+    "status": "done",
+    "texture_prompt": "grey steel arch, beige granite pylons, blue water, hand-painted stylized game texture, bright saturated colors, soft simple shading, clean surfaces, no text, no logos",
+    "thumb_bytes": 133357
+  },
+  "liberty": {
+    "glb_bytes": 3197760,
+    "id": "liberty",
+    "preview_credits": 5,
+    "preview_task": "01a0ebee-989a-71fe-996b-447a0fd80619",
+    "prompt": "Stylized low-poly tabletop miniature of the Statue of Liberty: robed woman raising a torch high in her right hand, spiked crown, tablet in left arm, standing on a tall square stone pedestal. Chunky simplified shapes, few large forms, no tiny details, sits on a small round stone base, centered single object, no text, game asset",
+    "refine_credits": 10,
+    "refine_task": "01a0ebee-edc0-7241-92bb-c8616e3b9fd9",
+    "status": "done",
+    "texture_prompt": "pale green copper statue, golden torch flame, grey-beige stone pedestal, hand-painted stylized game texture, bright saturated colors, soft simple shading, clean surfaces, no text, no logos",
+    "thumb_bytes": 69702
+  },
+  "sungnyemun": {
+    "glb_bytes": 3247508,
+    "id": "sungnyemun",
+    "preview_credits": 5,
+    "preview_task": "01a0ebee-9879-77dd-931d-28c223972ba8",
+    "prompt": "Stylized low-poly tabletop miniature of Sungnyemun, the Korean traditional city gate in Seoul: massive stone wall base with one arched tunnel, two-story wooden pavilion on top with red pillars and a dark tiled hipped roof with upturned curved eaves. Chunky simplified shapes, few large forms, no tiny details, sits on a small round stone base, centered single object, no text, game asset",
+    "refine_credits": 10,
+    "refine_task": "01a0ebee-d148-7033-8615-2b4dda583bc1",
+    "status": "done",
+    "texture_prompt": "grey granite base, red and green painted wood, dark grey roof tiles, hand-painted stylized game texture, bright saturated colors, soft simple shading, clean surfaces, no text, no logos",
+    "thumb_bytes": 197659
+  },
+  "tajmahal": {
+    "glb_bytes": 2095364,
+    "id": "tajmahal",
+    "preview_credits": 5,
+    "preview_task": "01a0ebee-9669-7382-b32b-303897670c03",
+    "prompt": "Stylized low-poly tabletop miniature of the Taj Mahal: white marble mausoleum with one big onion dome, four small domed kiosks, four slender minarets at the corners of a square raised plinth, big arched entrance. Chunky simplified shapes, few large forms, no tiny details, sits on a small round stone base, centered single object, no text, game asset",
+    "refine_credits": 10,
+    "refine_task": "01a0ebee-ec0b-73bd-8872-3067266dc765",
+    "status": "done",
+    "texture_prompt": "white and cream marble with subtle gold finial, hand-painted stylized game texture, bright saturated colors, soft simple shading, clean surfaces, no text, no logos",
+    "thumb_bytes": 117374
+  }
+}

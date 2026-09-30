@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- pill: 9-slice capsule for HUD counters. SliceCenter (64,64,192,192); corner radius = 64,
+       so with SliceScale = height/128 the ends are perfect half-circles.
+       Opaque Ink outline, Ink fill at 62% alpha, faint top gloss + inner light rim. -->
+  <defs>
+    <mask id="in"><rect x="11" y="11" width="234" height="234" rx="53" fill="#fff"/></mask>
+  </defs>
+  <rect x="6" y="6" width="244" height="244" rx="58" fill="#1E1B2E" fill-opacity=".62" stroke="#1E1B2E" stroke-width="10"/>
+  <g mask="url(#in)">
+    <rect x="0" y="0" width="256" height="58" fill="#FFFFFF" opacity=".14"/>
+    <rect x="0" y="222" width="256" height="34" fill="#000000" opacity=".18"/>
+  </g>
+  <rect x="14.5" y="14.5" width="227" height="227" rx="49.5" fill="none" stroke="#FFFFFF" stroke-opacity=".16" stroke-width="3"/>
+</svg>

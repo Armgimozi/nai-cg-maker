@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>Landmark RNG 맵 미리보기</title>
+    <!-- render.js 가 http://preview.local/ 요청을 파일로 돌려줌(page.route). three 는 node_modules 에서 -->
+    <script type="importmap">
+      { "imports": { "three": "/node_modules/three/build/three.module.js" } }
+    </script>
+    <style>
+      @font-face {
+        font-family: "Fredoka One";
+        src: url("/fonts/FredokaOne-latin.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "Luckiest Guy";
+        src: url("/fonts/LuckiestGuy-latin.woff2") format("woff2");
+      }
+      html,
+      body {
+        margin: 0;
+        background: #000;
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="view" width="1280" height="720"></canvas>
+    <script type="module" src="/scene.js"></script>
+  </body>
+</html>

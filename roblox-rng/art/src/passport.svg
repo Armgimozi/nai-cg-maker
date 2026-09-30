@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- passport: grape cover, gold globe crest, cream page block peeking out. Tilted. -->
+  <defs>
+    <rect id="cover" x="58" y="34" width="128" height="180" rx="18"/>
+    <rect id="pages" x="70" y="40" width="126" height="178" rx="16"/>
+    <mask id="cm"><use href="#cover" fill="#fff"/></mask>
+  </defs>
+  <g transform="translate(0,7) rotate(-8 128 128)" fill="#1E1B2E" stroke="#1E1B2E" stroke-width="24" stroke-linejoin="round">
+    <use href="#pages"/><use href="#cover"/>
+  </g>
+  <g transform="rotate(-8 128 128)">
+    <g fill="#1E1B2E" stroke="#1E1B2E" stroke-width="24" stroke-linejoin="round">
+      <use href="#pages"/><use href="#cover"/>
+    </g>
+    <!-- page block -->
+    <use href="#pages" fill="#E9C98A"/>
+    <path d="M190,62 V200 M183,216 H100" stroke="#FFF4DC" stroke-width="5" stroke-linecap="round"/>
+    <!-- cover: shade, then lit face shifted up-left -->
+    <use href="#cover" fill="#6A45C9"/>
+    <g mask="url(#cm)"><use href="#cover" transform="translate(-6,-8)" fill="#9B6BFF"/></g>
+    <use href="#cover" fill="none" stroke="#1E1B2E" stroke-width="6"/>
+    <!-- spine crease -->
+    <path d="M74,46 V202" stroke="#7C54E0" stroke-width="5" stroke-linecap="round"/>
+    <!-- gold crest: globe -->
+    <circle cx="126" cy="106" r="34" fill="#1E1B2E"/>
+    <circle cx="126" cy="106" r="28" fill="#D9900F"/>
+    <circle cx="123" cy="102" r="25" fill="#FFC53D"/>
+    <g fill="none" stroke="#B06F05" stroke-width="6" stroke-linecap="round">
+      <ellipse cx="126" cy="106" rx="10" ry="27"/>
+      <path d="M99,106 H153"/>
+    </g>
+    <!-- laurel ticks -->
+    <g fill="none" stroke="#FFC53D" stroke-width="7" stroke-linecap="round">
+      <path d="M86,92 Q82,112 94,132"/>
+      <path d="M166,92 Q170,112 158,132"/>
+    </g>
+    <!-- title bar + chip mark -->
+    <rect x="94" y="152" width="64" height="12" rx="6" fill="#FFC53D"/>
+    <rect x="112" y="176" width="28" height="18" rx="5" fill="none" stroke="#FFC53D" stroke-width="5"/>
+    <circle cx="126" cy="185" r="3.5" fill="#FFC53D"/>
+    <!-- highlight -->
+    <path d="M66,176 V58 Q66,44 80,44 H96" fill="none" stroke="#E3D4FF" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

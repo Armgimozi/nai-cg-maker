@@ -1,0 +1,32 @@
+[
+  {
+    "id": "eiffel",
+    "name": "the Eiffel Tower in Paris",
+    "features": "tall tapering iron lattice tower on four wide arched legs, two viewing platforms, slim spire on top",
+    "colors": "warm bronze-brown painted iron"
+  },
+  {
+    "id": "tajmahal",
+    "name": "the Taj Mahal",
+    "features": "white marble mausoleum with one big onion dome, four small domed kiosks, four slender minarets at the corners of a square raised plinth, big arched entrance",
+    "colors": "white and cream marble with subtle gold finial"
+  },
+  {
+    "id": "liberty",
+    "name": "the Statue of Liberty",
+    "features": "robed woman raising a torch high in her right hand, spiked crown, tablet in left arm, standing on a tall square stone pedestal",
+    "colors": "pale green copper statue, golden torch flame, grey-beige stone pedestal"
+  },
+  {
+    "id": "sungnyemun",
+    "name": "Sungnyemun, the Korean traditional city gate in Seoul",
+    "features": "massive stone wall base with one arched tunnel, two-story wooden pavilion on top with red pillars and a dark tiled hipped roof with upturned curved eaves",
+    "colors": "grey granite base, red and green painted wood, dark grey roof tiles"
+  },
+  {
+    "id": "harbourbridge",
+    "name": "the Sydney Harbour Bridge",
+    "features": "large steel through-arch bridge shaped like a coat hanger, road deck passing through the arch, two granite pylon towers at each end, over blue water",
+    "colors": "grey steel arch, beige granite pylons, blue water"
+  }
+]

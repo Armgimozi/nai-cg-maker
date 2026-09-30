@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- button_shadow: 9-slice plate drawn under button_face (offset a few px down).
+       Same silhouette as button_face. Interior is white so ImageColor3 = the dark shade colour
+       (e.g. Sky shadow #1F6FCC); ImageColor3 = Ink #1E1B2E gives a solid dark plate. -->
+  <rect x="2" y="2" width="252" height="252" rx="50" fill="#1E1B2E"/>
+  <rect x="14" y="14" width="228" height="228" rx="38" fill="#FFFFFF"/>
+</svg>

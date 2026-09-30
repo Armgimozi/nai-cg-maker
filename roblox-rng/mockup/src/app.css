@@ -1,0 +1,126 @@
+:root {
+  --page-bg: #24212f;
+  --page-fg: #f3efe6;
+  --page-dim: #b9b3c7;
+  --page-accent: #ffc53d;
+  --ink: #1e1b2e;
+  --font-body: 'Fredoka One', 'KR Fallback', 'Baloo 2', 'Nunito', 'Arial Rounded MT Bold', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+  --font-title: 'Luckiest Guy', 'KR Fallback', 'Fredoka One', 'Arial Rounded MT Bold', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+  --font-kr: 'KR Fallback', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) { --page-bg: #efe9dc; --page-fg: #1e1b2e; --page-dim: #5d566e; --page-accent: #c07a00; }
+}
+:root[data-theme="light"] { --page-bg: #efe9dc; --page-fg: #1e1b2e; --page-dim: #5d566e; --page-accent: #c07a00; }
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--page-bg);
+  color: var(--page-fg);
+  font-family: var(--font-kr);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 페이지 머리말 ----------------------------------------------------------- */
+.page-head { max-width: 1312px; margin: 0 auto; padding: 28px 16px 8px; word-break: keep-all; }
+.findings { max-width: 1312px; margin: 0 auto; padding: 10px 16px 0; word-break: keep-all; }
+.findings:empty { display: none; }
+.findings h2 { font-size: 18px; margin: 8px 0 6px; }
+.findings h2 .sub { font-size: 13px; font-weight: normal; color: var(--page-dim); }
+.findings ol { margin: 0; padding-left: 20px; color: var(--page-dim); font-size: 14px; line-height: 1.65; }
+.findings b { color: var(--page-fg); }
+.findings b.bad { color: #ff5e5b; }
+.page-head h1 { font-size: 26px; margin: 0 0 8px; }
+.page-head p { margin: 0 0 10px; line-height: 1.55; color: var(--page-dim); }
+.page-head code { font-size: 0.92em; color: var(--page-fg); }
+.legend { margin: 0; padding-left: 18px; color: var(--page-dim); line-height: 1.7; font-size: 14px; }
+.legend b { color: var(--page-fg); }
+.swatch.ph {
+  display: inline-block; width: 22px; height: 14px; vertical-align: -2px; border-radius: 4px;
+  border: 1.5px dashed rgba(30, 27, 46, 0.45); background: rgba(255, 255, 255, 0.55);
+}
+
+.shot { max-width: 1312px; margin: 0 auto; padding: 22px 16px 6px; }
+.shot h2 { font-size: 20px; margin: 0 0 4px; }
+.shot h2 .num { color: var(--page-accent); margin-right: 6px; }
+.shot .note { word-break: keep-all; margin: 0 0 10px; font-size: 13.5px; line-height: 1.55; color: var(--page-dim); }
+.shot .note b { color: var(--page-fg); }
+.frame-wrap { position: relative; overflow: hidden; border-radius: 6px; }
+.frame-wrap > .screen { transform-origin: 0 0; }
+
+/* 한 화면 (기본 1280x720, newScreen 이 가로·세로를 정함) --------------------- */
+.screen {
+  position: relative; width: 1280px; height: 720px; overflow: hidden;
+  background: #87cdf5; font-family: var(--font-body); color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+.screen.tall { height: auto; }
+.world { position: absolute; inset: 0; width: 100%; height: 100%; }
+img.world { object-fit: cover; display: block; }
+.world.no-backdrop { background: #8fb4c9; color: #fff; font: 600 18px sans-serif; display: flex; align-items: center; justify-content: center; }
+.topbar { position: absolute; left: 0; top: 0; width: 100%; height: 58px; z-index: 50; pointer-events: none; }
+.topbar .rbx-btn {
+  position: absolute; top: 7px; width: 44px; height: 44px; border-radius: 12px;
+  background: rgba(20, 22, 30, 0.42); display: grid; place-items: center;
+}
+.topbar .rbx-btn i { display: block; width: 18px; height: 3px; border-radius: 2px; background: rgba(255,255,255,0.8); box-shadow: 0 -6px 0 rgba(255,255,255,0.8), 0 6px 0 rgba(255,255,255,0.8); }
+.topbar .rbx-btn.chat i { width: 20px; height: 15px; border-radius: 5px; background: transparent; border: 3px solid rgba(255,255,255,0.8); box-shadow: none; }
+.gui { position: absolute; left: 0; top: 58px; right: 0; bottom: 0; z-index: 10; }
+/* 로블록스 기본 터치 조작 자리(터치 기기 화면만, 흐리게 — 게임 UI 가 아님) */
+.thumb-zone { border: 2px dashed rgba(255, 255, 255, 0.6); border-left: 0; border-bottom: 0; border-top-right-radius: 18px; background: rgba(20, 22, 30, 0.08); pointer-events: none; }
+.thumb-zone i { position: absolute; left: 50%; top: 58%; width: 44%; aspect-ratio: 1; max-width: 120px; transform: translate(-50%, -50%); border-radius: 50%; border: 3px solid rgba(255, 255, 255, 0.45); background: rgba(20, 22, 30, 0.12); }
+.thumb-zone span { position: absolute; left: 10px; bottom: 8px; font: 12px var(--font-kr); color: rgba(255, 255, 255, 0.85); letter-spacing: 0.02em; }
+.rbx-jump { border-radius: 50%; background: rgba(20, 22, 30, 0.35); box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.55); pointer-events: none; }
+.rbx-jump::after { content: ''; position: absolute; left: 50%; top: 56%; width: 34%; height: 34%; border-left: 5px solid rgba(255, 255, 255, 0.85); border-top: 5px solid rgba(255, 255, 255, 0.85); transform: translate(-50%, -50%) rotate(45deg); border-radius: 3px; }
+
+/* 로블록스 GuiObject 흉내 ----------------------------------------------- */
+.g { position: absolute; box-sizing: border-box; }
+.g.flow { position: relative; flex: none; }
+.skin { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; border-style: solid; border-width: 0; }
+.skin.stretch { background-size: 100% 100%; background-repeat: no-repeat; }
+.icon > img { display: block; width: 100%; height: 100%; object-fit: contain; }
+/* Ui.ribbon 꼬리 그림: ScaleType.Stretch */
+.tail-art > img { display: block; width: 100%; height: 100%; }
+
+.lbl {
+  display: flex; align-items: center; overflow: visible; white-space: normal;
+  word-break: keep-all; overflow-wrap: normal; line-height: 1; font-family: var(--font-body);
+}
+.lbl > span { display: inline-block; max-width: 100%; }
+.lbl.nowrap { white-space: nowrap; }
+/* TextWrapped + TextTruncate(AtEnd), 글자 크기 고정: 길면 --lines 줄까지, 넘치면 … */
+.lbl.wrap2 { overflow: hidden; }
+.lbl.wrap2 > span { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: var(--lines, 2); overflow: hidden; line-height: 1.12; }
+.lbl.nowrap > span { max-width: none; }
+.lbl.title { font-family: var(--font-title); }
+.lbl.stroked > span { -webkit-text-stroke: var(--sw) var(--sc); paint-order: stroke fill; }
+
+.flex-row { display: flex; flex-direction: row; }
+.flex-col { display: flex; flex-direction: column; }
+
+/* 칩/알약: 자동 가로 크기 */
+.auto-w { width: max-content; display: flex; flex-direction: row; align-items: center; white-space: nowrap; }
+
+/* 3D 모형 자리 */
+.ph3d {
+  position: absolute; inset: 0; border-radius: 12%;
+  border: 1.5px dashed rgba(30, 27, 46, 0.38); background: rgba(255, 255, 255, 0.42);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden;
+}
+.ph3d .ini { font-family: var(--font-kr); line-height: 1; }
+.ph3d .cap { font-family: var(--font-kr); line-height: 1; color: rgba(30, 27, 46, 0.62); white-space: nowrap; margin-top: 3%; letter-spacing: -0.02em; }
+
+/* 스크롤 막대(ScrollingFrame 흉내) */
+.scrollbar { position: absolute; right: 0; width: 8px; border-radius: 4px; background: rgba(30, 27, 46, 0.65); z-index: 20; }
+
+/* 전체 보기 캡션 */
+.overview-caption { font: 12px var(--font-kr); color: var(--page-dim); }
+
+/* 스크린샷 모드 (?shot=1): 머리말 없이 화면만, 배율 1 */
+.shot-mode .page-head, .shot-mode .findings, .shot-mode .shot h2, .shot-mode .shot .note { display: none; }
+.shot-mode .shot { max-width: none; padding: 0; margin: 0; }
+.shot-mode .frame-wrap { border-radius: 0; }
+
+/* 웹 글꼴이 없을 때(오프라인 빌드): 로컬 대체 글꼴을 굵게 */
+.no-webfonts .screen, .no-webfonts .ph3d .ini { font-weight: 700; }

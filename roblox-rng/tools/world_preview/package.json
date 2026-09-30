@@ -1,0 +1,9 @@
+{
+  "name": "world-preview",
+  "private": true,
+  "description": "Landmark RNG 전체 맵 미리보기 렌더러 (three.js + Playwright headless Chromium)",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "three": "0.186.1"
+  }
+}

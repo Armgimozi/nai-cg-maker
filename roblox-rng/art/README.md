@@ -1,0 +1,88 @@
+# art/ — UI image set (sticker style)
+
+Hand-authored SVG sources in `src/`, rendered PNGs in `png/`, contact sheet `preview.png`.
+
+```
+pip install resvg-py pillow pyoxipng      # pyoxipng optional (smaller PNGs)
+python3 art/build.py                      # render all svg -> png, rebuild preview.png
+python3 art/build.py coin dice            # render only some (preview still rebuilt)
+python3 art/stamps.py                     # regenerate the seven stamp_*.svg from one shared frame
+python3 art/stamps.py oceania             # regenerate only the named stamp(s)
+```
+
+## Style rules (all files follow these)
+
+- Outline: Ink `#1E1B2E`, 12px outside the silhouette at 256px (inner detail lines 5–7px).
+- Depth: the silhouette is repeated in Ink 7px lower, so every icon sits on a thick bottom edge.
+- Shading: flat base fill + one darker shade (the lit fill is shifted up-left inside a mask, leaving a
+  shade rim on the bottom-right) + one light highlight streak/dot at the top-left.
+- Palette: Sun `#FFC53D/#D9900F`, Sky `#39A0FF/#1F6FCC`, Grass `#4CD964/#2E9E45`,
+  Coral `#FF5E5B/#C93A38`, Grape `#9B6BFF/#6A45C9`, Cream `#FFF4DC`, Paper `#FFE6B0`.
+- No text inside any image.
+
+## Icons — 256x256, transparent
+
+| file | use |
+|---|---|
+| `coin` | currency (gold coin, globe emblem, sparkle) |
+| `globe` | roll button / roll count (desk globe on gold stand) |
+| `passport` | passport button (grape cover, gold globe crest) |
+| `album` | collection button (sky photo album, polaroid, bookmark) |
+| `hammer` | upgrades button |
+| `park` | "my park" teleport |
+| `plaza` | plaza teleport (fountain) |
+| `dice` | luck / roll (alt) |
+| `clover` | luck multiplier |
+| `star` / `star_empty` | star rating (same silhouette; empty = sunken dark slot) |
+| `news` | breaking-news banner |
+| `lock` | locked slot / upgrade |
+| `auto` | auto-roll toggle (white loop arrows + gold play; reads on grey OFF and orange ON) |
+| `close` | complete red round close button (use directly as ImageButton) |
+| `check` | complete green round "done/owned" badge |
+| `arrow_up` | upgrade available |
+| `stamp_home` `stamp_europe` `stamp_asia` `stamp_africa` `stamp_americas` `stamp_oceania` `stamp_legend` | passport stamps, ring colour = `Landmarks.Regions[].Color` family (oceania: `#46C8EB`, palm island + sea) |
+
+Icons are built to be legible at 36px (see the 36px strips in `preview.png`).
+Most icons fill ~90% of the square; give an ImageLabel the same size as the slot, no padding needed.
+
+## Skins
+
+All 9-slice skins are 256x256 with 64px corners: **`SliceCenter = Rect.new(64, 64, 192, 192)`** for every one.
+Drawn outer corner radii: button_face/shadow 50, panel_paper 46, tag 44, pill 64 (`Ui.luau` SKINS uses these).
+`SliceScale` sets how big the corners are on screen (64px x SliceScale).
+
+| file | SliceCenter | suggested SliceScale | colour / tint |
+|---|---|---|---|
+| `button_face` | 64,64,192,192 | 0.25–0.35 (corner radius ~16–22px) | grey, **tint with ImageColor3** = face colour. Body is 0.90 x tint, top gloss band 1.0 x, bottom lip 0.71 x. Ink outline stays dark. |
+| `button_shadow` | 64,64,192,192 | same as face | white body + Ink outline. Put it under the face, a few px lower; ImageColor3 = shadow colour (`#1F6FCC` for Sky etc.), or Ink for a plain dark plate. |
+| `panel_paper` | 64,64,192,192 | 0.35–0.5 (0.35 = ~4px outline, as in DESIGN) | cream paper, untinted. Dot grain + dashed stitch border inset 28px. On a wide window the centre slice stretches ~5x sideways and smears the grain, so `Ui.window` covers the centre slice with flat Cream `#FFF4DC` (`CenterColor`). |
+| `pill` | 64,64,192,192 | **height / 128** (makes perfect half-circle ends) | Ink at 62% alpha + opaque Ink outline + faint gloss. Untinted. |
+| `ribbon` | 64,64,192,192 | **height / 256** (then it only stretches sideways) | grey, **tint** with the title colour. Band is y 40..160 of 256, tails hang lower. |
+| `tag` | 64,64,192,192, or **46,46,210,210** for capsules | 0.2–0.3; capsule: **height / 92** with 46..210 | grey, **tint** (Cream for labels, Coral for the "속보" badge, tier colours...). Flatter than a button. Outer corner radius is 44 (not 64): cut at 46 (2px margin + 44) so corners of height/2 give round ends (`Ui.chip`). |
+
+`sunburst` — 512x512, not sliced. White rays with a soft centre glow, fading to fully transparent
+before the edge. Tint with ImageColor3 (tier colour), put it behind the reveal and rotate it
+(symmetric every 30 degrees, so any rotation speed loops cleanly).
+
+Roblox usage:
+
+```lua
+local img = Instance.new("ImageLabel")
+img.BackgroundTransparency = 1
+img.Image = "rbxassetid://<button_face id>"
+img.ScaleType = Enum.ScaleType.Slice
+img.SliceCenter = Rect.new(64, 64, 192, 192)
+img.SliceScale = 0.3
+img.ImageColor3 = Color3.fromRGB(57, 160, 255) -- Sky
+```
+
+The PNGs still have to be uploaded (Studio > Asset Manager > Bulk Import, or Open Cloud) to get
+`rbxassetid://` ids; nothing here references asset ids.
+
+## Files
+
+- `src/*.svg` — sources (31 files; stamp_* are generated by `stamps.py` but are plain SVG)
+- `png/*.png` — rendered, optimised (largest is `sunburst.png` ~41KB; icons 2–14KB)
+- `preview.png` — contact sheet: icons at 128px + at 36px on cream / dark pill / sky button,
+  skins raw (magenta box = SliceCenter) and in use (tinted buttons, passport window, HUD pills, ribbons)
+- `build.py`, `stamps.py`

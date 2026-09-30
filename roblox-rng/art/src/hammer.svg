@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- hammer: chunky claw hammer, steel head, wooden handle with coral grip. Drawn upright, rotated 40deg. -->
+  <defs>
+    <rect id="handle" x="114" y="92" width="28" height="140" rx="14"/>
+    <path id="head" stroke-linejoin="round" d="M84,56 H186 Q196,56 196,66 V112 Q196,122 186,122 H84 Q60,122 44,104 Q54,98 56,90 Q46,80 44,70 Q60,56 84,56 Z"/>
+    <mask id="hm"><use href="#head" fill="#fff"/></mask>
+    <mask id="hdm"><use href="#handle" fill="#fff"/></mask>
+  </defs>
+  <g transform="translate(0,7) rotate(40 128 142)" fill="#1E1B2E" stroke="#1E1B2E" stroke-width="24" stroke-linejoin="round">
+    <use href="#handle"/><use href="#head"/>
+  </g>
+  <g transform="rotate(40 128 142)">
+    <g fill="#1E1B2E" stroke="#1E1B2E" stroke-width="24" stroke-linejoin="round">
+      <use href="#handle"/><use href="#head"/>
+    </g>
+    <!-- handle -->
+    <use href="#handle" fill="#A65E22"/>
+    <g mask="url(#hdm)">
+      <use href="#handle" transform="translate(-6,0)" fill="#E0914A"/>
+      <rect x="100" y="178" width="60" height="54" fill="#C93A38"/>
+      <rect x="100" y="178" width="36" height="54" fill="#FF5E5B"/>
+      <path d="M100,194 H160 M100,212 H160" stroke="#1E1B2E" stroke-width="5"/>
+    </g>
+    <path d="M121,132 V168" stroke="#FFD2A6" stroke-width="7" stroke-linecap="round"/>
+    <!-- head -->
+    <use href="#head" fill="#7E8AA8"/>
+    <g mask="url(#hm)"><use href="#head" transform="translate(-4,-9)" fill="#C9D3E6"/></g>
+    <!-- striking face band -->
+    <rect x="166" y="56" width="30" height="66" rx="8" fill="#9AA6C2" stroke="#1E1B2E" stroke-width="6"/>
+    <rect x="172" y="62" width="10" height="44" rx="5" fill="#E4EAF5"/>
+    <path d="M70,72 Q86,66 150,66" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round"/>
+  </g>
+</svg>

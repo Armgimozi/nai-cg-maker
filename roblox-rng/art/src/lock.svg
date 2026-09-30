@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- lock: gold padlock with steel shackle and keyhole. -->
+  <defs>
+    <rect id="body" x="54" y="104" width="148" height="116" rx="26"/>
+    <path id="shackle" fill="none" d="M86,112 V84 A42,42 0 0 1 170,84 V112"/>
+    <mask id="bm"><use href="#body" fill="#fff"/></mask>
+  </defs>
+  <g fill="#1E1B2E" stroke="#1E1B2E">
+    <g transform="translate(0,7)"><use href="#body" stroke-width="24"/></g>
+    <use href="#shackle" fill="none" stroke-width="46"/>
+    <use href="#body" stroke-width="24"/>
+  </g>
+  <!-- shackle -->
+  <use href="#shackle" stroke="#7E8AA8" stroke-width="22"/>
+  <path d="M83,108 V84 A45,45 0 0 1 126,39" fill="none" stroke="#C9D3E6" stroke-width="10" stroke-linecap="round" transform="translate(-2,0)"/>
+  <!-- body -->
+  <use href="#body" fill="#D9900F"/>
+  <g mask="url(#bm)"><use href="#body" transform="translate(-6,-9)" fill="#FFC53D"/></g>
+  <path d="M70,196 V132 Q70,120 82,120 H100" fill="none" stroke="#FFF6D6" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- keyhole -->
+  <path d="M128,140 m-16,0 a16,16 0 1 1 25,13 l5,27 q1,6 -5,6 h-18 q-6,0 -5,-6 l5,-27 a16,16 0 0 1 -7,-13 Z" fill="#1E1B2E"/>
+</svg>

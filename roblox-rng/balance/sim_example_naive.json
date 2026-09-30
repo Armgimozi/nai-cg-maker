@@ -1,0 +1,395 @@
+{
+ "variant": "example: user's idea applied literally (x2 luck per rebirth, odds N^1.25)",
+ "args": {
+  "variant": "balance/example_variant_naive.json",
+  "source": "auto",
+  "sims": 200,
+  "seed": 1,
+  "horizon_days": 120.0,
+  "frac": 0.02,
+  "policy": "ready",
+  "mode": "auto",
+  "players": "free,paid",
+  "paid_boosts_per_day": 1.0,
+  "server_luck_duty": 0.0,
+  "paid_coinpacks_per_day": 0.0,
+  "rtt": null,
+  "out": "/home/user/nai-cg-maker/roblox-rng/balance/sim_example_naive.md",
+  "json": null,
+  "check": false,
+  "sensitivity": false,
+  "paid_pass_delay_min": 0.0,
+  "check_ref_sims": 200,
+  "dump_config": false,
+  "baseline": "/home/user/nai-cg-maker/roblox-rng/balance/sim_current.json"
+ },
+ "profiles": {
+  "free": {
+   "rebirths": [
+    {
+     "k": 1,
+     "median_s": 560.7714905185758,
+     "p10_s": 241.1400110176887,
+     "p90_s": 1380.9390902979399,
+     "reached": 1.0,
+     "run_median_s": 560.7714905185758,
+     "rolls_median": 403.0,
+     "luck_median": 1.7000000000000002
+    },
+    {
+     "k": 2,
+     "median_s": 1960.0463400168405,
+     "p10_s": 952.0819513848008,
+     "p90_s": 3813.533278497747,
+     "reached": 1.0,
+     "run_median_s": 1254.809452882363,
+     "rolls_median": 1388.0,
+     "luck_median": 4.2
+    },
+    {
+     "k": 3,
+     "median_s": 4382.892978703247,
+     "p10_s": 2249.381597430794,
+     "p90_s": 7320.09948301878,
+     "reached": 1.0,
+     "run_median_s": 1992.1765567971693,
+     "rolls_median": 3040.0,
+     "luck_median": 9.600000000000001
+    },
+    {
+     "k": 4,
+     "median_s": 8003.702800672614,
+     "p10_s": 4525.024762257023,
+     "p90_s": 12519.735919022358,
+     "reached": 1.0,
+     "run_median_s": 3296.6672646865345,
+     "rolls_median": 5419.0,
+     "luck_median": 21.6
+    },
+    {
+     "k": 5,
+     "median_s": 12576.185369611485,
+     "p10_s": 8261.364799896926,
+     "p90_s": 18781.961106479703,
+     "reached": 1.0,
+     "run_median_s": 3883.2651594299714,
+     "rolls_median": 8148.0,
+     "luck_median": 46.400000000000006
+    },
+    {
+     "k": 6,
+     "median_s": 17422.61689297886,
+     "p10_s": 12118.898405796319,
+     "p90_s": 23065.660688263935,
+     "reached": 1.0,
+     "run_median_s": 3481.640280375608,
+     "rolls_median": 10699.0,
+     "luck_median": 96.0
+    },
+    {
+     "k": 7,
+     "median_s": 29435.993925925737,
+     "p10_s": 20688.42293792432,
+     "p90_s": 43593.919443848215,
+     "reached": 1.0,
+     "run_median_s": 11011.413671329166,
+     "rolls_median": 15219.0,
+     "luck_median": 360.0
+    },
+    {
+     "k": 8,
+     "median_s": 44612.51929768532,
+     "p10_s": 33166.25781681254,
+     "p90_s": 69974.22651701447,
+     "reached": 1.0,
+     "run_median_s": 11295.130466521987,
+     "rolls_median": 19225.0,
+     "luck_median": 864.0
+    },
+    {
+     "k": 9,
+     "median_s": 110889.97835570805,
+     "p10_s": 63687.43018260203,
+     "p90_s": 204675.9457370882,
+     "reached": 1.0,
+     "run_median_s": 62305.36467063742,
+     "rolls_median": 33143.0,
+     "luck_median": 1728.0
+    },
+    {
+     "k": 10,
+     "median_s": 215034.05776931392,
+     "p10_s": 130279.3524037425,
+     "p90_s": 396418.0914487536,
+     "reached": 1.0,
+     "run_median_s": 75604.17539967221,
+     "rolls_median": 53425.0,
+     "luck_median": 3456.0
+    }
+   ],
+   "tiers": [
+    {
+     "rank": 1,
+     "name": "일반 명소",
+     "median_s": 1.3154010392780695,
+     "reached": 1.0,
+     "at_rebirth_median": 0.0
+    },
+    {
+     "rank": 2,
+     "name": "도시 명소",
+     "median_s": 2.7375032832553643,
+     "reached": 1.0,
+     "at_rebirth_median": 0.0
+    },
+    {
+     "rank": 3,
+     "name": "국가 명소",
+     "median_s": 19.201452571916107,
+     "reached": 1.0,
+     "at_rebirth_median": 0.0
+    },
+    {
+     "rank": 4,
+     "name": "세계 명소",
+     "median_s": 375.37539821420853,
+     "reached": 1.0,
+     "at_rebirth_median": 0.0
+    },
+    {
+     "rank": 5,
+     "name": "불가사의",
+     "median_s": 3131.5548374731206,
+     "reached": 1.0,
+     "at_rebirth_median": 2.0
+    },
+    {
+     "rank": 6,
+     "name": "잃어버린 유산",
+     "median_s": 17904.663745503563,
+     "reached": 1.0,
+     "at_rebirth_median": 6.0
+    },
+    {
+     "rank": 7,
+     "name": "전설",
+     "median_s": 70938.81220396224,
+     "reached": 1.0,
+     "at_rebirth_median": 8.0
+    }
+   ],
+   "early_distinct": {
+    "5min": 45.0,
+    "15min": 66.0,
+    "60min": 97.0
+   },
+   "final": {
+    "rebirths": 10.0,
+    "stamps": 5.0,
+    "luck": 6912.0
+   },
+   "endgame_simulated": {
+    "luck": 6912.0,
+    "s_per_roll": 5.279315280745902,
+    "tier6_s": 445.74239646001905,
+    "tier7_s": 12907.579794501295,
+    "rarest_s": 2444127.444789769,
+    "announce_per_h": 681.906612611203,
+    "hologram_per_h": 275.00002126868844
+   },
+   "endgame_max": {
+    "luck": 6912.0,
+    "s_per_roll": 5.279315280745902,
+    "tier6_s": 445.74239646001917,
+    "tier7_s": 12907.579794501295,
+    "rarest_s": 2444127.444789769,
+    "announce_per_h": 681.9066126112031,
+    "hologram_per_h": 275.00002126868844
+   }
+  },
+  "paid": {
+   "rebirths": [
+    {
+     "k": 1,
+     "median_s": 333.5221349409827,
+     "p10_s": 126.39199811266656,
+     "p90_s": 799.1433121627989,
+     "reached": 1.0,
+     "run_median_s": 333.5221349409827,
+     "rolls_median": 236.0,
+     "luck_median": 3.4000000000000004
+    },
+    {
+     "k": 2,
+     "median_s": 968.8122871251358,
+     "p10_s": 511.9128317376395,
+     "p90_s": 1866.7880278160155,
+     "reached": 1.0,
+     "run_median_s": 561.6815543027225,
+     "rolls_median": 668.0,
+     "luck_median": 8.4
+    },
+    {
+     "k": 3,
+     "median_s": 2105.8950366986437,
+     "p10_s": 1139.8223995869353,
+     "p90_s": 3509.5431017685305,
+     "reached": 1.0,
+     "run_median_s": 826.8732368457578,
+     "rolls_median": 1430.0,
+     "luck_median": 18.4
+    },
+    {
+     "k": 4,
+     "median_s": 4012.0606361073696,
+     "p10_s": 2361.014573373006,
+     "p90_s": 6505.657805465811,
+     "reached": 1.0,
+     "run_median_s": 1730.114732224028,
+     "rolls_median": 2572.0,
+     "luck_median": 43.2
+    },
+    {
+     "k": 5,
+     "median_s": 6516.333462208699,
+     "p10_s": 4350.7066155991115,
+     "p90_s": 9515.458881896817,
+     "reached": 1.0,
+     "run_median_s": 2269.6488829163377,
+     "rolls_median": 3913.0,
+     "luck_median": 92.80000000000001
+    },
+    {
+     "k": 6,
+     "median_s": 9326.916501550424,
+     "p10_s": 6390.337896122871,
+     "p90_s": 13306.349422135661,
+     "reached": 1.0,
+     "run_median_s": 1940.4345014523924,
+     "rolls_median": 4976.0,
+     "luck_median": 192.0
+    },
+    {
+     "k": 7,
+     "median_s": 17088.289904488356,
+     "p10_s": 12265.061372586733,
+     "p90_s": 25125.3722632396,
+     "reached": 1.0,
+     "run_median_s": 7018.739964991684,
+     "rolls_median": 7284.0,
+     "luck_median": 672.0
+    },
+    {
+     "k": 8,
+     "median_s": 27406.635344756225,
+     "p10_s": 18133.879706390355,
+     "p90_s": 45456.549997084665,
+     "reached": 1.0,
+     "run_median_s": 6889.497572933842,
+     "rolls_median": 9345.0,
+     "luck_median": 1728.0
+    },
+    {
+     "k": 9,
+     "median_s": 61237.55288359054,
+     "p10_s": 37175.21047864153,
+     "p90_s": 108749.9048016277,
+     "reached": 1.0,
+     "run_median_s": 30568.444079596356,
+     "rolls_median": 16238.0,
+     "luck_median": 3456.0
+    },
+    {
+     "k": 10,
+     "median_s": 114130.35947535814,
+     "p10_s": 71242.38729763479,
+     "p90_s": 200490.74916481526,
+     "reached": 1.0,
+     "run_median_s": 41032.202729691126,
+     "rolls_median": 26277.0,
+     "luck_median": 6912.0
+    }
+   ],
+   "tiers": [
+    {
+     "rank": 1,
+     "name": "일반 명소",
+     "median_s": 2.7375032832553643,
+     "reached": 1.0,
+     "at_rebirth_median": 0.0
+    },
+    {
+     "rank": 2,
+     "name": "도시 명소",
+     "median_s": 1.4221022439772948,
+     "reached": 1.0,
+     "at_rebirth_median": 0.0
+    },
+    {
+     "rank": 3,
+     "name": "국가 명소",
+     "median_s": 9.673541682871946,
+     "reached": 1.0,
+     "at_rebirth_median": 0.0
+    },
+    {
+     "rank": 4,
+     "name": "세계 명소",
+     "median_s": 178.20191840568128,
+     "reached": 1.0,
+     "at_rebirth_median": 0.0
+    },
+    {
+     "rank": 5,
+     "name": "불가사의",
+     "median_s": 1554.3635962982444,
+     "reached": 1.0,
+     "at_rebirth_median": 2.0
+    },
+    {
+     "rank": 6,
+     "name": "잃어버린 유산",
+     "median_s": 8792.522777821072,
+     "reached": 1.0,
+     "at_rebirth_median": 6.0
+    },
+    {
+     "rank": 7,
+     "name": "전설",
+     "median_s": 38769.03350636321,
+     "reached": 1.0,
+     "at_rebirth_median": 8.0
+    }
+   ],
+   "early_distinct": {
+    "5min": 56.0,
+    "15min": 80.0,
+    "60min": 111.0
+   },
+   "final": {
+    "rebirths": 10.0,
+    "stamps": 5.0,
+    "luck": 13824.0
+   },
+   "endgame_simulated": {
+    "luck": 13824.0,
+    "s_per_roll": 5.606656772412281,
+    "tier6_s": 235.53563151621978,
+    "tier7_s": 6784.226248762798,
+    "rarest_s": 1284457.4507244627,
+    "announce_per_h": 642.0938798525897,
+    "hologram_per_h": 420.07188006622056
+   },
+   "endgame_max": {
+    "luck": 13824.0,
+    "s_per_roll": 5.606656772412281,
+    "tier6_s": 235.53563151621978,
+    "tier7_s": 6784.226248762798,
+    "rarest_s": 1284457.4507244627,
+    "announce_per_h": 642.0938798525896,
+    "hologram_per_h": 420.07188006622056
+   }
+  }
+ },
+ "sensitivity": {}
+}

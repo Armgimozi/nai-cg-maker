@@ -1,0 +1,83 @@
+{
+  "name": "LandmarkRNG",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Shared": {
+        "$path": "src/shared"
+      }
+    },
+    "ServerScriptService": {
+      "Server": {
+        "$path": "src/server"
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "Client": {
+          "$path": "src/client"
+        }
+      }
+    },
+    "Lighting": {
+      "$properties": {
+        "ClockTime": 14.5,
+        "Brightness": 2,
+        "GlobalShadows": true
+      },
+      "Atmosphere": {
+        "$className": "Atmosphere",
+        "$properties": {
+          "Density": 0.3,
+          "Haze": 1.5
+        }
+      },
+      "Bloom": {
+        "$className": "BloomEffect",
+        "$properties": {
+          "Intensity": 0.25,
+          "Size": 16,
+          "Threshold": 2
+        }
+      }
+    },
+    "Workspace": {
+      "Terrain": {
+        "$className": "Terrain",
+        "$properties": {
+          "Decoration": true
+        }
+      },
+      "FallbackGround": {
+        "$className": "Part",
+        "$properties": {
+          "Anchored": true,
+          "Locked": true,
+          "Shape": "Cylinder",
+          "Size": [16, 450, 450],
+          "CFrame": { "CFrame": { "position": [0, -8.5, 0], "orientation": [[0, -1, 0], [1, 0, 0], [0, 0, 1]] } },
+          "Color": [0.42, 0.66, 0.31],
+          "Material": "Grass",
+          "TopSurface": "Smooth",
+          "BottomSurface": "Smooth"
+        }
+      },
+      "SpawnLocation": {
+        "$className": "SpawnLocation",
+        "$properties": {
+          "Anchored": true,
+          "Size": [10, 1, 10],
+          "CFrame": { "CFrame": { "position": [0, 1.5, 0], "orientation": [[1, 0, 0], [0, 1, 0], [0, 0, 1]] } },
+          "Color": [0.94, 0.9, 0.81],
+          "Material": "Marble",
+          "Transparency": 1,
+          "CanCollide": false,
+          "CastShadow": false,
+          "Duration": 0,
+          "TopSurface": "Smooth",
+          "BottomSurface": "Smooth"
+        }
+      }
+    }
+  }
+}

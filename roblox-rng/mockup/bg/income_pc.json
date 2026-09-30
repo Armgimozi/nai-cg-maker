@@ -1,0 +1,566 @@
+{
+ "Camera": {
+  "Fov": 70,
+  "Look": [
+   0.90908,
+   -0.39406,
+   -0.13527
+  ],
+  "Position": [
+   88.271,
+   20,
+   56.046
+  ],
+  "Up": [
+   0.38976,
+   0.91909,
+   -0.057999
+  ]
+ },
+ "Income": 345.78,
+ "Labels": [
+  {
+   "Amount": "+11.7/s",
+   "AmountBox": [
+    0.22673,
+    0.70167
+   ],
+   "Color": [
+    0.31373,
+    0.64706,
+    1
+   ],
+   "Distance": 54.6,
+   "Head": false,
+   "Id": "angkor",
+   "Income": 11.7,
+   "Mine": true,
+   "Name": "앙코르와트",
+   "PillWidth": 0.68632,
+   "PxPerStud": 11.281,
+   "Screen": [
+    314.98,
+    263.02,
+    45.576
+   ],
+   "Size": [
+    6.6667,
+    5.2
+   ],
+   "SizePx": [
+    66.667,
+    52
+   ],
+   "Slot": 6,
+   "Stars": 1,
+   "Tier": 3
+  },
+  {
+   "Amount": "+22.5/s",
+   "AmountBox": [
+    0.22673,
+    0.70167
+   ],
+   "Color": [
+    0.31373,
+    0.64706,
+    1
+   ],
+   "Distance": 50.914,
+   "Head": false,
+   "Id": "eiffel",
+   "Income": 22.5,
+   "Mine": true,
+   "Name": "에펠탑",
+   "PillWidth": 0.68632,
+   "PxPerStud": 11.37,
+   "Screen": [
+    499.61,
+    134.03,
+    45.219
+   ],
+   "Size": [
+    6.6667,
+    5.2
+   ],
+   "SizePx": [
+    66.667,
+    52
+   ],
+   "Slot": 10,
+   "Stars": 5,
+   "Tier": 3
+  },
+  {
+   "Amount": "+22.5/s",
+   "AmountBox": [
+    0.22673,
+    0.70167
+   ],
+   "Color": [
+    0.31373,
+    0.64706,
+    1
+   ],
+   "Distance": 45.372,
+   "Head": false,
+   "Id": "colosseum",
+   "Income": 22.5,
+   "Mine": true,
+   "Name": "콜로세움",
+   "PillWidth": 0.68632,
+   "PxPerStud": 11.399,
+   "Screen": [
+    616.54,
+    308.98,
+    45.104
+   ],
+   "Size": [
+    6.6667,
+    5.2
+   ],
+   "SizePx": [
+    66.667,
+    52
+   ],
+   "Slot": 8,
+   "Stars": 5,
+   "Tier": 3
+  },
+  {
+   "Amount": "+41/s",
+   "AmountBox": [
+    0.28358,
+    0.62687
+   ],
+   "Color": [
+    0.72549,
+    0.43137,
+    1
+   ],
+   "Distance": 45.199,
+   "Head": false,
+   "Id": "greatwall",
+   "Income": 41.04,
+   "Mine": true,
+   "Name": "만리장성",
+   "PillWidth": 0.54873,
+   "PxPerStud": 12.512,
+   "Screen": [
+    408.25,
+    317.57,
+    41.09
+   ],
+   "Size": [
+    6.6667,
+    5.2
+   ],
+   "SizePx": [
+    66.667,
+    52
+   ],
+   "Slot": 4,
+   "Stars": 3,
+   "Tier": 4
+  },
+  {
+   "Amount": "+14.4/s",
+   "AmountBox": [
+    0.22673,
+    0.70167
+   ],
+   "Color": [
+    0.31373,
+    0.64706,
+    1
+   ],
+   "Distance": 38.596,
+   "Head": false,
+   "Id": "tajmahal",
+   "Income": 14.4,
+   "Mine": true,
+   "Name": "타지마할",
+   "PillWidth": 0.68632,
+   "PxPerStud": 13.962,
+   "Screen": [
+    754.94,
+    246.59,
+    36.822
+   ],
+   "Size": [
+    6.6667,
+    5.2
+   ],
+   "SizePx": [
+    66.667,
+    52
+   ],
+   "Slot": 7,
+   "Stars": 2,
+   "Tier": 3
+  },
+  {
+   "Amount": "+22.5/s",
+   "AmountBox": [
+    0.22673,
+    0.70167
+   ],
+   "Color": [
+    0.31373,
+    0.64706,
+    1
+   ],
+   "Distance": 38.195,
+   "Head": false,
+   "Id": "apostles",
+   "Income": 22.5,
+   "Mine": true,
+   "Name": "12사도 바위",
+   "PillWidth": 0.68632,
+   "PxPerStud": 15.393,
+   "Screen": [
+    925.1,
+    353.32,
+    33.401
+   ],
+   "Size": [
+    6.6667,
+    5.2
+   ],
+   "SizePx": [
+    66.667,
+    52
+   ],
+   "Slot": 9,
+   "Stars": 5,
+   "Tier": 3
+  },
+  {
+   "Amount": "+22.5/s",
+   "AmountBox": [
+    0.22673,
+    0.70167
+   ],
+   "Color": [
+    0.31373,
+    0.64706,
+    1
+   ],
+   "Distance": 37.955,
+   "Head": false,
+   "Id": "namsan",
+   "Income": 22.5,
+   "Mine": true,
+   "Name": "남산타워",
+   "PillWidth": 0.68632,
+   "PxPerStud": 22.354,
+   "Screen": [
+    1284,
+    158.23,
+    23
+   ],
+   "Size": [
+    6.6667,
+    5.2
+   ],
+   "SizePx": [
+    66.667,
+    52
+   ],
+   "Slot": 11,
+   "Stars": 5,
+   "Tier": 3
+  },
+  {
+   "Amount": "+21.6/s",
+   "AmountBox": [
+    0.22673,
+    0.70167
+   ],
+   "Color": [
+    0.72549,
+    0.43137,
+    1
+   ],
+   "Distance": 34.674,
+   "Head": false,
+   "Id": "machupicchu",
+   "Income": 21.6,
+   "Mine": true,
+   "Name": "마추픽추",
+   "PillWidth": 0.68632,
+   "PxPerStud": 15.552,
+   "Screen": [
+    511.97,
+    259.58,
+    33.058
+   ],
+   "Size": [
+    6.6667,
+    5.2
+   ],
+   "SizePx": [
+    66.667,
+    52
+   ],
+   "Slot": 2,
+   "Stars": 0,
+   "Tier": 4
+  },
+  {
+   "Amount": "+54/s",
+   "AmountBox": [
+    0.28358,
+    0.62687
+   ],
+   "Color": [
+    0.72549,
+    0.43137,
+    1
+   ],
+   "Distance": 30.11,
+   "Head": false,
+   "Id": "sphinx",
+   "Income": 54,
+   "Mine": true,
+   "Name": "스핑크스",
+   "PillWidth": 0.54873,
+   "PxPerStud": 27.607,
+   "Screen": [
+    1265,
+    549.88,
+    18.623
+   ],
+   "Size": [
+    6.6667,
+    5.2
+   ],
+   "SizePx": [
+    66.667,
+    52
+   ],
+   "Slot": 5,
+   "Stars": 5,
+   "Tier": 4
+  },
+  {
+   "Amount": "+41/s",
+   "AmountBox": [
+    0.28358,
+    0.62687
+   ],
+   "Color": [
+    0.72549,
+    0.43137,
+    1
+   ],
+   "Distance": 28.118,
+   "Head": true,
+   "Id": "pyramid",
+   "Income": 41.04,
+   "Mine": true,
+   "Name": "기자 피라미드",
+   "PillWidth": 0.54873,
+   "PxPerStud": 20.826,
+   "Screen": [
+    897.15,
+    471.52,
+    24.688
+   ],
+   "Size": [
+    6.6667,
+    5.2
+   ],
+   "SizePx": [
+    66.667,
+    52
+   ],
+   "Slot": 3,
+   "Stars": 3,
+   "Tier": 4
+  },
+  {
+   "Amount": "+63/s",
+   "AmountBox": [
+    0.28358,
+    0.62687
+   ],
+   "Color": [
+    1,
+    0.68627,
+    0.17647
+   ],
+   "Distance": 26.835,
+   "Head": true,
+   "Id": "alexandria",
+   "Income": 63,
+   "Mine": true,
+   "Name": "알렉산드리아 등대",
+   "PillWidth": 0.54873,
+   "PxPerStud": 20.803,
+   "Screen": [
+    682.81,
+    146.75,
+    24.714
+   ],
+   "Size": [
+    6.6667,
+    5.2
+   ],
+   "SizePx": [
+    66.667,
+    52
+   ],
+   "Slot": 1,
+   "Stars": 0,
+   "Tier": 5
+  }
+ ],
+ "Plot": "Plot4",
+ "Pops": [
+  {
+   "Alpha": 0.51691,
+   "H": 34.342,
+   "Scale": 1,
+   "Screen": [
+    1125.3,
+    581.05,
+    19.216
+   ],
+   "Side": 0.25,
+   "Text": "+175",
+   "TextSize": 21,
+   "TextX": 33,
+   "W": 182
+  },
+  {
+   "Alpha": 0,
+   "H": 26.625,
+   "Scale": 1,
+   "Screen": [
+    1115.8,
+    332.54,
+    26.268
+   ],
+   "Side": 0.25,
+   "Text": "+82",
+   "TextSize": 17,
+   "TextX": 26,
+   "W": 120
+  },
+  {
+   "Alpha": 0,
+   "H": 20,
+   "Scale": 1,
+   "Screen": [
+    389.68,
+    258.48,
+    55.739
+   ],
+   "Side": 0.25,
+   "Text": "+36",
+   "TextSize": 12,
+   "TextX": 19,
+   "W": 90
+  },
+  {
+   "Alpha": 0,
+   "H": 27.755,
+   "Scale": 1.0555,
+   "Screen": [
+    981.75,
+    396.25,
+    34.634
+   ],
+   "Side": 0.75,
+   "Text": "+82",
+   "TextSize": 17,
+   "TextX": 27,
+   "W": 124
+  },
+  {
+   "Alpha": 0,
+   "H": 29.042,
+   "Scale": 0.6,
+   "Screen": [
+    586.21,
+    354.79,
+    35.672
+   ],
+   "Side": 0.75,
+   "Text": "+70",
+   "TextSize": 18,
+   "TextX": 28,
+   "W": 130
+  }
+ ],
+ "Scenario": "pc",
+ "Screen": {
+  "H": 720,
+  "Inset": 58,
+  "Scale": 0.9,
+  "W": 1280
+ },
+ "Sources": [
+  {
+   "Income": 63,
+   "X": 678.27,
+   "Y": 238.77
+  },
+  {
+   "Income": 54,
+   "X": 1238.2,
+   "Y": 535.14
+  },
+  {
+   "Income": 41.04,
+   "X": 890.28,
+   "Y": 442.58
+  },
+  {
+   "Income": 41.04,
+   "X": 413.36,
+   "Y": 286.93
+  },
+  {
+   "Income": 22.5,
+   "X": 616.97,
+   "Y": 273.68
+  },
+  {
+   "Income": 22.5,
+   "X": 1212.7,
+   "Y": 255.46
+  },
+  {
+   "Income": 22.5,
+   "X": 508.5,
+   "Y": 166.29
+  },
+  {
+   "Income": 22.5,
+   "X": 917.01,
+   "Y": 329.53
+  },
+  {
+   "Income": 21.6,
+   "X": 518.82,
+   "Y": 271.12
+  },
+  {
+   "Income": 14.4,
+   "X": 749.36,
+   "Y": 252.24
+  },
+  {
+   "Income": 11.7,
+   "X": 324.68,
+   "Y": 243.69
+  },
+  {
+   "Income": 9,
+   "X": 428.38,
+   "Y": 182.98
+  }
+ ]
+}

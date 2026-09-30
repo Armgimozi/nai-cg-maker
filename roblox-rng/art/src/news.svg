@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- news: breaking-news newspaper, coral headline block, photo box, text lines (no letters). -->
+  <defs>
+    <path id="front" stroke-linejoin="round" d="M44,50 H176 L200,74 V206 Q200,214 192,214 H52 Q44,214 44,206 Z"/>
+    <rect id="back" x="66" y="40" width="152" height="172" rx="8"/>
+    <mask id="fm"><use href="#front" fill="#fff"/></mask>
+  </defs>
+  <g fill="#1E1B2E" stroke="#1E1B2E" stroke-width="24" stroke-linejoin="round">
+    <g transform="translate(0,7)"><use href="#back" transform="rotate(8 142 126)"/><use href="#front" transform="rotate(-5 122 132)"/></g>
+    <use href="#back" transform="rotate(8 142 126)"/>
+    <use href="#front" transform="rotate(-5 122 132)"/>
+  </g>
+  <!-- back sheet -->
+  <g transform="rotate(8 142 126)">
+    <use href="#back" fill="#E9D3A6"/>
+    <path d="M186,70 H204 M186,86 H204 M186,102 H204 M186,118 H204" stroke="#CDB184" stroke-width="6" stroke-linecap="round"/>
+  </g>
+  <!-- front sheet -->
+  <g transform="rotate(-5 122 132)">
+    <use href="#front" fill="#E9D3A6"/>
+    <g mask="url(#fm)"><use href="#front" transform="translate(-5,-7)" fill="#FFF4DC"/></g>
+    <use href="#front" fill="none" stroke="#1E1B2E" stroke-width="6" stroke-linejoin="round"/>
+    <!-- folded corner -->
+    <path d="M176,50 V70 Q176,74 180,74 H200 Z" fill="#E0C089" stroke="#1E1B2E" stroke-width="6" stroke-linejoin="round"/>
+    <!-- headline -->
+    <rect x="60" y="66" width="104" height="30" rx="7" fill="#FF5E5B" stroke="#1E1B2E" stroke-width="5"/>
+    <rect x="68" y="72" width="44" height="7" rx="3.5" fill="#FFB0AE"/>
+    <!-- photo -->
+    <rect x="60" y="110" width="54" height="50" rx="5" fill="#9AD2FF" stroke="#1E1B2E" stroke-width="5"/>
+    <path d="M64,156 L80,132 L92,146 L98,138 L110,156 Z" fill="#4CD964"/>
+    <circle cx="100" cy="124" r="6" fill="#FFC53D"/>
+    <!-- text lines -->
+    <g stroke="#C4A77A" stroke-width="7" stroke-linecap="round">
+      <path d="M126,114 H182 M126,130 H182 M126,146 H170 M60,178 H182 M60,194 H150"/>
+    </g>
+  </g>
+</svg>

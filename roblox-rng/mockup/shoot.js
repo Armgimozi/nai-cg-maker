@@ -1,0 +1,56 @@
+// index.html -> screen1..6.png (+ screen1t/1p/1w = 태블릿·휴대폰 크기, screen2b.png, screen3p/4p = 도감 휴대폰, screen4s = 도장 알림, screen6b/6c/6p.png,
+//   income_preview.png / income_preview_p.png = 수입 보이기 PC·휴대폰) + overview.png
+//   node mockup/shoot.js            (playwright 가 전역 설치돼 있으면 NODE_PATH=$(npm root -g) 로)
+const path = require('path');
+const fs = require('fs');
+const { chromium } = require('playwright');
+
+const HERE = __dirname;
+const CHROME = ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome'].find((p) => fs.existsSync(p));
+
+(async () => {
+  const browser = await chromium.launch(CHROME ? { executablePath: CHROME } : {});
+  const page = await browser.newPage({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1 });
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(String(e)));
+  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
+  await page.goto('file://' + path.join(HERE, 'index.html') + '?shot=1');
+  await page.waitForFunction(() => window.__MOCKUP_READY === true, null, { timeout: 30000 });
+  const info = await page.evaluate(() => window.__MOCKUP);
+  const shots = [];
+  for (const id of info.SHOTS) {
+    const file = path.join(HERE, id + '.png');
+    await page.locator('#' + id).screenshot({ path: file });
+    shots.push({ id, file });
+  }
+  // 전체 보기: 화면들을 2열 격자로 줄여서 (그림은 data URI 로 넣음)
+  const titles = {
+    screen1: '1. 기본 화면', screen1t: '1-2. 기본 화면 (태블릿 1024×768)', screen1p: '1-3. 기본 화면 (휴대폰 667×375)', screen1w: '1-4. 기본 화면 (휴대폰 844×390)',
+    screen2: '2. 명소 공개 (처음 발견)', screen2b: '2-2. 명소 공개 (별 오름)', screen3: '3. 도감 — 전체 탭', screen3p: '3-2. 도감 전체 탭 (휴대폰 667×375, 도장 없음 · 직접 배치)',
+    screen4: '4. 도감 — 대륙 탭 (도장 아직)', screen4p: '4-2. 도감 대륙 탭 (휴대폰 667×375, 도장 받음 · 맨 아래)', screen4s: '4-3. 도장 받은 순간 (휴대폰 667×375, 알림)', screen5: '5. 강화',
+    screen6: '6. 3D 배치 모드 (명소를 집어 옮기는 중 · 자동 꺼짐)', screen6b: '6-2. 공원 꽉 참 ([공원] 배지)', screen6c: '6-3. 3D 배치 모드 (휴대폰 844×390, 빈 보관함)', screen6p: '6-4. 3D 배치 모드 (휴대폰 667×375, 보관함에서 집음)',
+    income_preview: '7. 수입 보이기 (이름표 +N/s · 간판 합 · 동전 퐁 · 코인 알약으로)', income_preview_p: '7-2. 수입 보이기 (휴대폰 667×375)',
+  };
+  const order = ['screen1', 'screen1t', 'screen1p', 'screen1w', 'screen2', 'screen2b', 'screen3', 'screen3p', 'screen4', 'screen4p', 'screen4s', 'screen5', 'screen6', 'screen6b', 'screen6c', 'screen6p', 'income_preview', 'income_preview_p'];
+  const cells = order
+    .map((id) => shots.find((s) => s.id === id))
+    .filter(Boolean)
+    .map((s) => {
+      const uri = 'data:image/png;base64,' + fs.readFileSync(s.file).toString('base64');
+      return `<figure><div class="cell"><img src="${uri}"></div><figcaption>${titles[s.id] || s.id}</figcaption></figure>`;
+    })
+    .join('');
+  const html = `<!doctype html><meta charset="utf-8"><style>
+    body{margin:0;background:#24212f;font:600 18px 'KR Fallback','Noto Sans KR',sans-serif;color:#f3efe6}
+    .grid{display:grid;grid-template-columns:repeat(2,640px);gap:16px;padding:16px}
+    figure{margin:0} .cell{width:640px;height:360px;display:flex;justify-content:center;background:#1a1824;border-radius:6px;overflow:hidden}
+    .cell img{max-width:640px;max-height:360px;display:block}
+    figcaption{padding:6px 2px 0}</style><div class="grid">${cells}</div>`;
+  const overviewPage = await browser.newPage({ viewport: { width: 1312, height: 800 } });
+  await overviewPage.setContent(html);
+  await overviewPage.waitForLoadState('load');
+  await overviewPage.screenshot({ path: path.join(HERE, 'overview.png'), fullPage: true });
+  await browser.close();
+  const checks = (info.findings || []).map((t) => t.replace(/<[^>]+>/g, ''));
+  console.log(JSON.stringify({ shots: shots.map((s) => path.basename(s.file)), fonts: info.fonts, checks, errors }, null, 1));
+})();

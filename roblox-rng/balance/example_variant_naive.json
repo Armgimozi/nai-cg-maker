@@ -1,0 +1,9 @@
+{
+  "name": "example: user's idea applied literally (x2 luck per rebirth, odds N^1.25)",
+  "notes": "Schema example only, not a proposal: rebirth luck 2^r, every 1-in raised to N^1.25 (commons barely change, 40M -> 3.2B), tier thresholds / news / hologram raised the same way, everything else as in the current game.",
+  "rebirth_luck": {"type": "mult", "base": 2},
+  "landmark_formula": {"type": "power", "exponent": 1.25, "scale": 1.0, "round_sig": 2, "min": 2},
+  "tier_min_one_in": [1, 18, 320, 5600, 100000, 1800000, 32000000],
+  "announce_one_in": 5600,
+  "hologram_one_in": 100000
+}

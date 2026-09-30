@@ -1,0 +1,284 @@
+{
+  "name": "A 순한 안 (moderate): 환생 행운 x2^r, 1~3등급 그대로, 가장 희귀 1/50억",
+  "landmarks": {
+    "clocktower": 2,
+    "lighthouse": 3,
+    "harbourbridge": 4,
+    "windmill": 5,
+    "dolhareubang": 6,
+    "fountain": 7,
+    "washingtonmonument": 8,
+    "moeraki": 9,
+    "gatewayarch": 10,
+    "cheomseongdae": 11,
+    "arc": 12,
+    "boulders": 13,
+    "flindersst": 14,
+    "brandenburg": 15,
+    "dabotap": 16,
+    "brooklynbridge": 18,
+    "bigben": 20,
+    "chefchaouen": 22,
+    "pancakerocks": 24,
+    "skytower": 25,
+    "trevi": 27,
+    "sungnyemun": 30,
+    "tablemountain": 32,
+    "sugarloaf": 35,
+    "towerbridge": 38,
+    "gyeongbokgung": 40,
+    "cathedralcove": 42,
+    "pisa": 45,
+    "baobab": 48,
+    "pragueclock": 50,
+    "seongsan": 55,
+    "goldengate": 60,
+    "lakehillier": 65,
+    "liberty": 70,
+    "venice": 75,
+    "chocolatehills": 80,
+    "aitbenhaddou": 88,
+    "pitons": 95,
+    "santorini": 100,
+    "hawamahal": 105,
+    "waverock": 110,
+    "whitehouse": 115,
+    "namsan": 120,
+    "deadvlei": 130,
+    "himeji": 140,
+    "oldfaithful": 145,
+    "pena": 155,
+    "rockislands": 165,
+    "kinkakuji": 175,
+    "niagara": 180,
+    "tsingy": 190,
+    "eiffel": 200,
+    "bran": 215,
+    "pamukkale": 225,
+    "morainelake": 240,
+    "apostles": 250,
+    "hungaryparliament": 265,
+    "templeofheaven": 280,
+    "rainbowmountain": 300,
+    "lalibela": 315,
+    "duomo": 330,
+    "colosseum": 350,
+    "fuji": 370,
+    "panamacanal": 390,
+    "borabora": 410,
+    "stbasil": 435,
+    "potala": 460,
+    "karnak": 485,
+    "stavechurch": 515,
+    "arenal": 540,
+    "seokguram": 570,
+    "tajmahal": 600,
+    "notredame": 640,
+    "peritomoreno": 675,
+    "hagiasophia": 715,
+    "alhambra": 750,
+    "meroe": 800,
+    "angkor": 850,
+    "tikal": 900,
+    "stpeters": 950,
+    "milfordsound": 1000,
+    "cappadocia": 1100,
+    "uyuni": 1200,
+    "sphinx": 1250,
+    "neuschwanstein": 1300,
+    "halong": 1400,
+    "kilimanjaro": 1500,
+    "greatwall": 1600,
+    "iguazu": 1700,
+    "montsaintmichel": 1800,
+    "victoriafalls": 1900,
+    "kilauea": 2000,
+    "pyramid": 2250,
+    "grandcanyon": 2500,
+    "zhangjiajie": 2600,
+    "segovia": 2750,
+    "reef": 3000,
+    "chichen": 3250,
+    "forbiddencity": 3500,
+    "serengeti": 3750,
+    "parthenon": 4000,
+    "machupicchu": 4500,
+    "amazon": 4700,
+    "borobudur": 5000,
+    "sahara": 5500,
+    "meteora": 6000,
+    "petra": 6250,
+    "galapagos": 7000,
+    "abusimbel": 7500,
+    "matterhorn": 7750,
+    "moai": 8000,
+    "angelfalls": 9000,
+    "everest": 9500,
+    "teotihuacan": 10000,
+    "stonehenge": 11000,
+    "waitomo": 12500,
+    "giantscauseway": 14000,
+    "terracotta": 16000,
+    "bluehole": 19000,
+    "alexandria": 20000,
+    "tutankhamun": 25000,
+    "nazca": 30000,
+    "yapstone": 32500,
+    "pompeii": 40000,
+    "babylon": 50000,
+    "richat": 55000,
+    "olmechead": 65000,
+    "artemis": 70000,
+    "nanmadol": 85000,
+    "greatzimbabwe": 95000,
+    "rhodes": 125000,
+    "tenochtitlan": 140000,
+    "zeus": 160000,
+    "heracleion": 180000,
+    "mausoleum": 225000,
+    "lochness": 250000,
+    "babel": 450000,
+    "trojanhorse": 650000,
+    "libraryalex": 950000,
+    "zealandia": 1200000,
+    "atlantis": 1900000,
+    "labyrinth": 2750000,
+    "hwangnyongsa": 4000000,
+    "eldorado": 5500000,
+    "fountainofyouth": 8000000,
+    "yonggung": 25000000,
+    "mu": 45000000,
+    "skyisland": 110000000,
+    "shangrila": 375000000,
+    "worldtree": 5000000000
+  },
+  "tiers": [
+    {
+      "rank": 1,
+      "name": "일반 명소",
+      "minOneIn": 1
+    },
+    {
+      "rank": 2,
+      "name": "도시 명소",
+      "minOneIn": 10
+    },
+    {
+      "rank": 3,
+      "name": "국가 명소",
+      "minOneIn": 100
+    },
+    {
+      "rank": 4,
+      "name": "세계 명소",
+      "minOneIn": 1000
+    },
+    {
+      "rank": 5,
+      "name": "불가사의",
+      "minOneIn": 12500
+    },
+    {
+      "rank": 6,
+      "name": "잃어버린 유산",
+      "minOneIn": 250000
+    },
+    {
+      "rank": 7,
+      "name": "전설",
+      "minOneIn": 8000000
+    }
+  ],
+  "tierIncome": [
+    1,
+    2,
+    5,
+    12,
+    35,
+    120,
+    500
+  ],
+  "rebirth": {
+    "luck": "x2",
+    "luckBase": 2,
+    "incomeBonus": 0.5,
+    "steps": [
+      {
+        "coins": 5000,
+        "landmarks": [
+          "eiffel",
+          "liberty"
+        ]
+      },
+      {
+        "coins": 1500000,
+        "landmarks": [
+          "pyramid",
+          "chichen"
+        ]
+      },
+      {
+        "coins": 25000000,
+        "landmarks": [
+          "moai",
+          "stonehenge",
+          "alexandria"
+        ]
+      },
+      {
+        "coins": 250000000,
+        "landmarks": [
+          "babylon",
+          "artemis",
+          "rhodes"
+        ]
+      },
+      {
+        "coins": 2000000000,
+        "landmarks": [
+          "zeus",
+          "mausoleum",
+          "trojanhorse"
+        ]
+      },
+      {
+        "coins": 6000000000,
+        "landmarks": [
+          "atlantis",
+          "labyrinth"
+        ]
+      },
+      {
+        "coins": 13000000000,
+        "landmarks": [
+          "hwangnyongsa",
+          "eldorado"
+        ]
+      },
+      {
+        "coins": 28000000000,
+        "landmarks": [
+          "fountainofyouth",
+          "yonggung"
+        ]
+      },
+      {
+        "coins": 65000000000,
+        "landmarks": [
+          "mu",
+          "zealandia"
+        ]
+      },
+      {
+        "coins": 140000000000,
+        "landmarks": [
+          "shangrila"
+        ]
+      }
+    ]
+  },
+  "announceOneIn": 1000000,
+  "hologramOneIn": 8000000,
+  "discoveryBonusMult": 5,
+  "notes": "변형 A(순한 안). 환생 행운 x2^r (10번 = x1024), 환생 수입은 지금처럼 +50%/회(선형). 1~3등급(N < 1,000) 확률은 그대로. N >= 1,000 은 x = log10(N/1000) 을 y = x + 0.099*x^2 로 늘리고 앞 두 자리가 깔끔한 수로 반올림(희귀도 순서·대륙·등급 소속은 그대로, 세계 명소는 거의 그대로, 희귀할수록 더 늘어남). 가장 희귀: 세계수 1 in 5,000,000,000. 등급 경계 1/10/100/1,000/12,500/250,000/8,000,000(이름 그대로). 등급 수입 T5 30->35, T6 80->120, T7 250->500. 발견 보너스 배율 5 그대로. 환생 1단계는 지금과 똑같음(첫 환생 시간 유지). 2~5단계에 세계 7대 불가사의 7개를 모두 모으고, 6~7단계는 잃어버린 유산, 8~10단계는 전설(샹그릴라가 마지막 관문, 사하라 신기루 성·세계수는 선택 꿈). 코인이 시계(AUTO 방치 기준 무료 R3 약 2.5시간, R5 약 1일, R10 약 3주), 명소는 지금 클라 기준 판의 25~70% 지점에서 모이게 맞춤. 뉴스 >= 1,000,000, 홀로그램 >= 8,000,000(= 전설). 같이 필요한 코드 수정: (1) PlayerState.luck 환생 배율 = 2^환생 수(+ Perks.luau/Panels.luau 의 +20% 표시, 테스트 2곳). (2) 영구 행운(부스트 제외) >= N 인 미발견 명소는 자동 발견 처리 — 안 하면 VIP 구매자는 흔한 명소 10~18개를 영영 못 얻어 여권 도장이 막힘(시뮬: 유료 도장 중앙값 5 -> 0, 무료도 약 20%가 도장 하나 이상 못 받음). 권장: (3) AUTO 에서 이미 발견한 명소는 짧은 연출(아니면 R4 이후 굴림 속도가 1/4), (4) 뉴스 판정을 N / 행운 기준으로. 자세한 근거: balance/variant_a.md, 재현: tools/balance/variant_a_design.py"
+}

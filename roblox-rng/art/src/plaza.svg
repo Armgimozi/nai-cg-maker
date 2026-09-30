@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <!-- plaza: town-square fountain. Centre jet shoots up and falls outward in two arcs (the
+       "umbrella" read), second arcs pour from the bowl into the basin. Stone = cream / paper. -->
+  <defs>
+    <path id="basin" stroke-linejoin="round" d="M34,172 H222 L210,214 Q207,222 198,222 H58 Q49,222 46,214 Z"/>
+    <path id="bowl" stroke-linejoin="round" d="M80,120 H176 Q170,146 146,148 H110 Q86,146 80,120 Z"/>
+    <g id="water" fill="none" stroke-linecap="round">
+      <path d="M128,120 V52"/>
+      <path d="M128,52 C108,34 80,40 70,96"/>
+      <path d="M128,52 C148,34 176,40 186,96"/>
+      <path d="M84,126 C66,130 58,144 56,164"/>
+      <path d="M172,126 C190,130 198,144 200,164"/>
+    </g>
+    <mask id="bm"><use href="#basin" fill="#fff" stroke="#fff" stroke-width="10"/></mask>
+    <mask id="bwm"><use href="#bowl" fill="#fff" stroke="#fff" stroke-width="10"/></mask>
+  </defs>
+  <g fill="#1E1B2E" stroke="#1E1B2E" stroke-linejoin="round">
+    <g transform="translate(0,7)"><use href="#basin" stroke-width="34"/></g>
+    <use href="#basin" stroke-width="34"/>
+    <rect x="110" y="140" width="36" height="40" stroke-width="24"/>
+    <use href="#bowl" stroke-width="34"/>
+    <use href="#water" stroke-width="38"/>
+  </g>
+  <!-- water -->
+  <use href="#water" stroke="#39A0FF" stroke-width="14"/>
+  <use href="#water" stroke="#6CC0FF" stroke-width="7" transform="translate(-2,-2)"/>
+  <g fill="none" stroke="#BFE3FF" stroke-width="5" stroke-linecap="round">
+    <path d="M124,110 V64"/>
+    <path d="M116,46 C100,42 86,50 80,70"/>
+    <path d="M78,130 C68,134 62,142 60,152"/>
+  </g>
+  <!-- droplets -->
+  <g fill="#39A0FF" stroke="#1E1B2E" stroke-width="5">
+    <circle cx="96" cy="28" r="7"/>
+    <circle cx="164" cy="26" r="6"/>
+    <circle cx="44" cy="108" r="6"/>
+    <circle cx="212" cy="110" r="6"/>
+  </g>
+  <!-- pillar -->
+  <rect x="110" y="140" width="36" height="40" fill="#E0B872"/>
+  <rect x="110" y="140" width="18" height="40" fill="#FFE6B0"/>
+  <path d="M110,140 V180 M146,140 V180" stroke="#1E1B2E" stroke-width="6"/>
+  <!-- basin -->
+  <use href="#basin" fill="#E0B872" stroke="#E0B872" stroke-width="10"/>
+  <g mask="url(#bm)"><use href="#basin" transform="translate(-6,-8)" fill="#FFE6B0" stroke="#FFE6B0" stroke-width="10"/></g>
+  <path d="M44,170 Q128,154 212,170 Q128,182 44,170 Z" fill="#39A0FF" stroke="#1E1B2E" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M72,166 Q96,161 116,161" fill="none" stroke="#BFE3FF" stroke-width="5" stroke-linecap="round"/>
+  <path d="M66,198 H190" stroke="#E0B872" stroke-width="6" stroke-linecap="round"/>
+  <!-- bowl -->
+  <use href="#bowl" fill="#E0B872" stroke="#E0B872" stroke-width="10"/>
+  <g mask="url(#bwm)"><use href="#bowl" transform="translate(-5,-6)" fill="#FFE6B0" stroke="#FFE6B0" stroke-width="10"/></g>
+  <ellipse cx="128" cy="120" rx="46" ry="7" fill="#39A0FF" stroke="#1E1B2E" stroke-width="5"/>
+</svg>
