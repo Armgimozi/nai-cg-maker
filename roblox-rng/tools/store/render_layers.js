@@ -15,6 +15,7 @@
 //     "exclude": ["Store"],                    이 경로로 시작하는 파트는 뺌
 //     "clear": { "until": 90, "margin": 1.3 }, 카메라 앞 until 스터드 안쪽, 화면 폭 margin 배 안의 파트는 뺌(시야 청소)
 //     "shadow": { "x":0, "y":0, "z":0, "size":200, "opacity":0.35 }  그림자만 받는 판
+//     "clearScreen": [[x0, y0, x1, y1]]        가운데가 화면(0~1 비율) 이 사각형 안에 보이는 파트는 뺌(아바타 머리 뒤 야자수 등)
 //   } ]
 // }
 // 페이지 파일은 render.js 와 같은 방식(http://preview.local/ 가짜 주소 → 디스크 파일)으로 엽니다.
@@ -63,9 +64,25 @@ function keeper(layer, cam, aspect) {
   const exclude = layer.exclude || [];
   const starts = (p, list) => list.some((prefix) => p === prefix || p.startsWith(prefix + "/"));
   const basis = layer.clear ? cameraBasis(cam) : null;
+  const rects = layer.clearScreen || [];
+  const sb = rects.length ? cameraBasis(cam) : null;
+  const onScreen = (pos) => {
+    const d = pos.map((v, k) => v - sb.e[k]);
+    const depth = d[0] * sb.fw[0] + d[1] * sb.fw[1] + d[2] * sb.fw[2];
+    if (depth <= 0) return null;
+    const up = [sb.r[1] * sb.fw[2] - sb.r[2] * sb.fw[1], sb.r[2] * sb.fw[0] - sb.r[0] * sb.fw[2], sb.r[0] * sb.fw[1] - sb.r[1] * sb.fw[0]];
+    const t = Math.tan((sb.fov * Math.PI) / 360);
+    const x = d[0] * sb.r[0] + d[1] * sb.r[1] + d[2] * sb.r[2];
+    const y = d[0] * up[0] + d[1] * up[1] + d[2] * up[2];
+    return [(x / (depth * t * aspect) + 1) / 2, (1 - y / (depth * t)) / 2];
+  };
   return (p, pos, radius) => {
     if (include && !starts(p, include)) return false;
     if (starts(p, exclude)) return false;
+    if (sb) {
+      const q = onScreen(pos);
+      if (q && rects.some(([x0, y0, x1, y1]) => q[0] >= x0 && q[0] <= x1 && q[1] >= y0 && q[1] <= y1)) return false;
+    }
     if (basis) {
       const d = pos.map((v, k) => v - basis.e[k]);
       const depth = d[0] * basis.fw[0] + d[1] * basis.fw[1] + d[2] * basis.fw[2];

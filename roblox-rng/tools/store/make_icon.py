@@ -163,7 +163,7 @@ def fruit_points(parts: list) -> list:
 def ground_textures(v, work: Path):
     """땅에 눕힐 그림(위에서 본 모습): 마법진 몸(두꺼움)·심(가늚), 금(어두운 테·빛 심), 소용돌이, 어두운 구덩이."""
     fx.magic_circle(2048, seed=v["seed"], width=v["circle_w"]).save(work / "circle_body.png")
-    fx.magic_circle(2048, seed=v["seed"], width=v["circle_w"] * 0.36).save(work / "circle_core.png")
+    fx.magic_circle(2048, seed=v["seed"], width=v["circle_w"] * 0.3).save(work / "circle_core.png")
     dark, core = fx.cracks(2048, seed=v["seed"] + 1, count=v["crack_count"], inner=0.14, reach=(0.86, 1.0),
                            width=v["crack_w"])
     dark.save(work / "cracks_dark.png")
@@ -377,9 +377,9 @@ def compose(v, L: dict, label: str, fruits: list) -> Image.Image:
     hz = np.array(v["haze"], np.float32) / 255
     g[..., :3] = g[..., :3] * (1 - haze[..., None]) + hz * haze[..., None]
     im = fx.over(im, fx.img(g))
-    pool = v["pool"]
-    im = fx.over(im, fx.radial((S, S), (bx, by - 30), 420, [(0, pool + (170,)), (0.5, pool + (70,)), (1, pool + (0,))],
-                               squash=0.5))
+    pool = v["pool"]  # 구덩이 둘레 땅을 어둡게(밝은 연두 바닥이 숫자·잎과 겹치지 않게)
+    im = fx.over(im, fx.radial((S, S), (bx, by - 20), 520, [(0, pool + (200,)), (0.55, pool + (120,)), (1, pool + (0,))],
+                               squash=0.45))
     lines = fx.speed_lines((S, S), (cx, cy + 40), count=70, color=v["lines"], inner=0.55, seed=v["seed"] + 5,
                            thickness=0.009, alpha=v["lines_alpha"])
     im = fx.over(im, fx.multiply_alpha(lines, np.clip((hy - ys) / 40, 0, 1)))  # 하늘에만(땅에 줄무늬 없게)
@@ -415,6 +415,8 @@ def compose(v, L: dict, label: str, fruits: list) -> Image.Image:
     im = fx.over(im, tree)
     im = fx.add(im, edge_light(tree, fx.MINT, (-7, 4), 1.2, 1.5), 0.9)
     im = fx.add(im, edge_light(tree, fx.MINT, (7, 4), 1.2, 1.5), 0.9)
+    im = fx.add(im, fx.radial((S, S), (bx, by - 14), 150, [(0, (220, 255, 245, 255)), (0.35, fx.MINT + (200,)),
+                                                          (1, fx.MINT + (0,))], squash=0.42), 0.95)
     for fp in fruits:
         x, y = P(fp)
         im = fx.add(im, fx.radial((S, S), (x, y), 34, [(0, (255, 255, 235, 255)), (0.3, (255, 245, 170, 220)),
@@ -484,8 +486,8 @@ def compose(v, L: dict, label: str, fruits: list) -> Image.Image:
 
 # 변형 --------------------------------------------------------------------------------------------
 BASE = dict(
-    seed=7, yaw=-20, elev=16, fov=58, top_y=0.1, base_y=0.86, tree_x=0.42,
-    grass=[0.34, 0.7, 0.26], rock=[0.24, 0.27, 0.38], rim=0.35, flare=150,
+    seed=7, yaw=-20, elev=20, fov=60, top_y=0.0, base_y=0.9, tree_x=0.4,
+    grass=[0.2, 0.52, 0.3], rock=[0.24, 0.27, 0.38], rim=0.35, flare=150,
     shard_cols=[[0.19, 0.46, 0.37], [0.15, 0.39, 0.32], [0.24, 0.53, 0.42], [0.12, 0.33, 0.28]], shards=22,
     shard_rim=0.8, shard_top=290,
     near_shards=[(40, 560, 1.5)],
@@ -496,25 +498,25 @@ BASE = dict(
     # 에너지 띠: (감는 수, 시작 반지름, 끝 반지름, 시작 높이, 끝 높이, 시작 각, 최대 폭)
     ribbons=[(1.25, 5.0, 2.8, 0.6, 12.5, 0.3, 0.8), (1.05, 5.6, 3.4, 2.0, 14.0, 3.3, 0.65),
              (0.85, 6.2, 4.2, 0.4, 8.0, 5.0, 0.5)],
-    circle=25, circle_w=1.5, crater=21, cracks=26, crack_count=7, crack_w=2.4, vignette=0.45,
+    circle=25, circle_w=3.6, crater=21, cracks=30, crack_count=8, crack_w=3.0, vignette=0.55,
     sky=[(0, (8, 58, 150)), (0.35, (20, 120, 210)), (0.6, (60, 200, 225)), (1, (140, 240, 235))],
-    glow=(120, 225, 255), aura=(120, 255, 235), pool=(60, 235, 150), haze=(175, 245, 225), haze_k=0.35, cloud_shade=(150, 200, 235),
+    glow=(120, 225, 255), aura=(120, 255, 235), pool=(4, 34, 30), haze=(120, 200, 190), haze_k=0.3, cloud_shade=(150, 200, 235),
     lines=(4, 20, 60), lines_alpha=0.45,
     clouds=[(760, 250, 8), (900, 190, 12)],
     sparkles=[(150, 420, 30), (800, 360, 38), (90, 600, 20), (640, 300, 16), (330, 330, 18), (560, 520, 14)],
     font="luckiest", text_w=960, text_stretch=1.12, text_y=26, text_rot=4.0,
     text_sparkles=[(120, 70, 30), (610, 205, 20), (900, 40, 16)],
-    hand_px=520, hand_xy=(540, 530), saturation=1.1,
+    hand_px=490, hand_xy=(578, 556), saturation=1.1,
 )
 
 VARIANTS = {
     # A: 카메라를 조금 높여 땅의 마법진·금이 더 보임 + 밝은 낮 하늘(하늘색)
-    "a": dict(BASE, seed=7, elev=24, base_y=0.82, top_y=0.11, circle=21, crater=17, cracks=24,
+    "a": dict(BASE, seed=7, elev=26, base_y=0.86, top_y=0.02, fov=56, circle=21, crater=17, cracks=26,
               sky=[(0, (40, 128, 232)), (0.5, (110, 190, 250)), (1, (200, 236, 255))],
               lines=(18, 44, 110), lines_alpha=0.35, cloud_shade=(186, 220, 250), haze=(200, 245, 245), haze_k=0.5,
               grass=[0.4, 0.74, 0.24]),
     # B: 짙은 청록 하늘에 초록 빛이 더 강함 — icon.png
-    "b": dict(BASE, seed=13),
+    "b": dict(BASE, seed=13, clouds=[]),
 }
 
 
