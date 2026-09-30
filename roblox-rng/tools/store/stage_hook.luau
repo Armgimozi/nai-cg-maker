@@ -5,7 +5,8 @@
 -- 사용법(보통은 tools/store/thumbs.py 가 부름):
 --   HOOK=tools/store/stage_hook.luau HOOK_ARGS="stage=<무대 JSON 경로>" tools/world_preview/preview.sh ...
 -- 무대 JSON = {
---   "models": [ { "folder": "Hero", "id": "worldtree", "size": 30, "cf": [x,y,z, r00,r01,r02, r10,r11,r12, r20,r21,r22] } ],
+--   "models": [ { "folder": "Hero", "id": "worldtree", "size": 30, "cf": [x,y,z, r00,r01,r02, r10,r11,r12, r20,r21,r22],
+--                 "dropBase": true } ],   dropBase = 바닥 전시 받침(얇고 넓은 판)은 뺌(선택)
 --   "parts":  [ { "folder": "Rocks", "shape": "Block|Ball|Cylinder|Wedge|CornerWedge", "size": [x,y,z], "cf": [...12],
 --                 "color": [r,g,b](0~255), "mat": "Slate", "t": 0, "shadow": true } ],
 --   "fillParks": { "level": 10, "count": 36, "ids": [...], "famous": 20, "maxOneIn": 100000 },   (선택)
@@ -60,6 +61,20 @@ return function(ctx: any): any
 		local landmark = if spec.id == "Globe" then Landmarks.Globe else Landmarks.ById[spec.id] -- Globe = 광장 지구본
 		assert(landmark, "없는 명소 id: " .. tostring(spec.id))
 		local model = Models.create(landmark, spec.size or 10)
+		if spec.dropBase then
+			-- 전시 받침(바닥에 깔린 얇고 넓은 판·원판)은 빼고 명소만: 스토어 그림에서 모형이 땅(빛)에서 바로 솟게
+			local size = spec.size or 10
+			for _, d in model:GetDescendants() do
+				if d:IsA("BasePart") and d ~= model.PrimaryPart then
+					local s = d.Size
+					local thin = math.min(s.X, s.Y, s.Z) < size * 0.07
+					local wide = math.max(s.X, s.Y, s.Z) > size * 0.55
+					if thin and wide and d.Position.Y < size * 0.05 then
+						d:Destroy()
+					end
+				end
+			end
+		end
 		model:PivotTo(cframeOf(spec.cf))
 		model.Parent = folder(spec.folder or "Hero")
 	end

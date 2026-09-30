@@ -11,13 +11,17 @@
 //     parts  : model_preview 덤프(mock.luau)의 파트 그대로 {c,s,p,m,z,col,t,mat} — 명소 모형을 진짜 빌더 결과로 그림
 //              (모양·재질 규칙은 tools/world_preview/scene.js 와 같음. 재질 무늬는 textures.js 를 그대로 씀)
 //     rocks  : [{ p, size:[x,y,z], rot:[rx,ry,rz](도), col, mat?, seed, points? }] 무작위 점 볼록 껍질(각진 바위)
-//     shards : [{ p, len, radius, rot, col, seed, emissive? }] 길쭉한 결정(볼록 껍질, 면마다 평평)
+//     shards : [{ p, len, radius, rot, col, seed, emissive?, shape?: "chunk" }] 길쭉한 결정(볼록 껍질, 면마다 평평)
+//              shape "chunk" = 한쪽이 뾰족한 들쭉날쭉 조각(깨진 수정)
 //     ribbons: [{ points:[[x,y,z]...], normal?: "out"|"up", width:[...], color:[r,g,b], alpha:[...] }] 띠(점마다 폭·투명도)
 //     quads  : [{ image:"/file/절대경로.png", p, size:[w,d], rotY, color?, opacity? }] 땅에 눕힌 그림(마법진·금 등)
+//     prims  : [{ type:"roundbox"|"capsule"|"sphere", col, rough?, rim?, parent?:{p,rot}, ... }] 둥근 상자·캡슐·타원체
+//              (아이콘의 주사위·손) — 자세한 값은 buildPrims 주석
 //   layers : [{ name, draw:[tag], occlude?:[tag], shadow?:[tag], exposure? }]
 //     draw = 그림, occlude = 깊이만(보이지 않지만 뒤를 가림), shadow = 그림자만 드리움. 배경은 늘 투명
 import * as THREE from "three";
 import { ConvexGeometry } from "three/addons/geometries/ConvexGeometry.js";
+import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { buildMaterialTextures, PART_MATERIALS } from "/wp/textures.js";
 import { PERTURB_GLSL, TRIPLANAR_GLSL } from "/wp/terrain.js";
 
@@ -259,6 +263,21 @@ function shardGeometry(seed, sides = 6) {
   return new ConvexGeometry(pts);
 }
 
+// 깨진 조각(chunk): 한쪽 끝이 뾰족하고 옆면이 들쭉날쭉한 볼록 껍질 — 반듯한 육각 기둥보다 부서진 수정처럼 보임
+function chunkGeometry(seed) {
+  const r = rng(seed);
+  const pts = [p3((r() - 0.5) * 0.15, 0.5, (r() - 0.5) * 0.15)];
+  if (r() < 0.6) pts.push(p3((r() - 0.5) * 0.2, -0.5, (r() - 0.5) * 0.2));
+  const n = 9 + Math.floor(r() * 4);
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2 + (r() - 0.5) * 0.5;
+    const y = -0.42 + r() * 0.62;
+    const k = (0.28 + r() * 0.22) * (1 - Math.max(0, y) * 0.9);
+    pts.push(p3(Math.cos(a) * k, y, Math.sin(a) * k));
+  }
+  return new ConvexGeometry(pts);
+}
+
 function buildRocks(obj) {
   for (const rock of obj.rocks) {
     const material = standard(rock.mat || "Slate", { rim: obj.rim || false, flat: true });
@@ -281,7 +300,8 @@ function buildShards(obj) {
       material.color = srgb(shard.col);
       material.roughness = shard.rough ?? 0.35;
     }
-    const mesh = new THREE.Mesh(shardGeometry(shard.seed || 1, shard.sides || 5), material);
+    const geo = shard.shape === "chunk" ? chunkGeometry(shard.seed || 1) : shardGeometry(shard.seed || 1, shard.sides || 5);
+    const mesh = new THREE.Mesh(geo, material);
     mesh.position.copy(v3(shard.p));
     mesh.rotation.copy(euler(shard.rot));
     const w = shard.radius * 2;
@@ -330,6 +350,62 @@ function buildRibbons(obj) {
       side: THREE.DoubleSide,
     });
     addMesh(obj.tag, new THREE.Mesh(g, material), false);
+  }
+}
+
+// 기본 입체(손·주사위처럼 부드러운 모양): { type: "roundbox"|"capsule"|"sphere", col, rough?, metal?, rim?, ... }
+//   roundbox: p, size:[x,y,z], radius, rot(도, YXZ) · capsule: a:[x,y,z], b:[x,y,z], r · sphere: p, scale:[x,y,z], rot
+function buildPrims(obj) {
+  for (const pr of obj.prims) {
+    const material = new THREE.MeshStandardMaterial({ roughness: pr.rough ?? 0.55, metalness: pr.metal ?? 0 });
+    material.color = srgb(pr.col);
+    const rim = pr.rim ?? obj.rim ?? 0;
+    if (rim) {
+      material.onBeforeCompile = (shader) => {
+        shader.uniforms.uRimColor = { value: srgb(rimSpec.color) };
+        shader.uniforms.uRimPow = { value: rimSpec.power };
+        shader.uniforms.uRimStrength = { value: rim };
+        shader.fragmentShader = shader.fragmentShader
+          .replace("#include <common>", "#include <common>\nuniform vec3 uRimColor;\nuniform float uRimPow;\nuniform float uRimStrength;")
+          .replace(
+            "#include <opaque_fragment>",
+            `float rimF = 1.0 - clamp( dot( normal, normalize( vViewPosition ) ), 0.0, 1.0 );
+outgoingLight += uRimColor * pow( rimF, uRimPow ) * uRimStrength;
+#include <opaque_fragment>`,
+          );
+      };
+      material.customProgramCacheKey = () => `prim-rim-${rim}`;
+    }
+    let mesh;
+    if (pr.type === "roundbox") {
+      mesh = new THREE.Mesh(new RoundedBoxGeometry(pr.size[0], pr.size[1], pr.size[2], 6, pr.radius ?? 0.1), material);
+      mesh.position.copy(v3(pr.p));
+      mesh.rotation.copy(euler(pr.rot));
+    } else if (pr.type === "capsule") {
+      const a = v3(pr.a);
+      const b = v3(pr.b);
+      const len = a.distanceTo(b);
+      mesh = new THREE.Mesh(new THREE.CapsuleGeometry(pr.r, len, 12, 32, 1), material);
+      mesh.position.copy(a).add(b).multiplyScalar(0.5);
+      mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
+      if (pr.scale) mesh.scale.copy(v3(pr.scale));
+    } else {
+      mesh = new THREE.Mesh(new THREE.SphereGeometry(1, 48, 32), material);
+      mesh.position.copy(v3(pr.p));
+      mesh.rotation.copy(euler(pr.rot));
+      mesh.scale.copy(v3(pr.scale || [pr.r, pr.r, pr.r]));
+    }
+    if (pr.parent) {
+      // 부모 묶음(예: 주사위 전체 돌림): parent = { p, rot } — 자식 좌표를 묶음 기준으로
+      const g = new THREE.Group();
+      g.position.copy(v3(pr.parent.p || [0, 0, 0]));
+      g.rotation.copy(euler(pr.parent.rot));
+      g.add(mesh);
+      g.updateMatrixWorld(true);
+      mesh.applyMatrix4(g.matrixWorld);
+      g.remove(mesh);
+    }
+    addMesh(obj.tag, mesh, obj.castShadow !== false);
   }
 }
 
@@ -414,6 +490,7 @@ async function load(spec) {
     if (obj.rocks) buildRocks(obj);
     if (obj.shards) buildShards(obj);
     if (obj.ribbons) buildRibbons(obj);
+    if (obj.prims) buildPrims(obj);
     if (obj.quads) await buildQuads(obj);
   }
   layers = spec.layers;

@@ -194,7 +194,7 @@ AVATAR_COLORS = {
 def avatar(folder, base, yaw, pose=None, colors=None, scale=1.0):
     """블록 아바타 파트 목록. base = 발 가운데(땅), yaw = 앞(-Z)이 향할 Y 각. pose(도):
     head=(숙임+/들기-, 좌우), arm_l/arm_r=(앞으로 들기, 옆으로 벌리기), leg_l/leg_r=(앞뒤), lean=몸 기울기,
-    mouth="o" 면 놀란 입."""
+    mouth="o" 면 놀란 입, face=False 면 얼굴(눈·입) 없음(뒷모습), tufts = 삐친 머리 뭉치 목록."""
     pose = pose or {}
     col = dict(AVATAR_COLORS, **(colors or {}))
     k = scale
@@ -226,20 +226,24 @@ def avatar(folder, base, yaw, pose=None, colors=None, scale=1.0):
         add(shape, size, center, Rh @ R_extra, color, mat)
 
     head_part("Cylinder", (1.2, 1.25, 1.25), (0, 0.62, 0), col["skin"], rz(90))
-    # 머리카락: 둥근 머리 위 덮개 + 뒷머리 + 옆머리 + 삐친 머리 몇 가닥(뒤에서 봐도 사람 머리로 보이게)
-    head_part("Ball", (1.42, 1.42, 1.42), (0, 0.92, 0.1), col["hair"])
-    head_part("Block", (1.3, 0.62, 0.34), (0, 0.66, 0.5), col["hair"])  # 뒷머리
-    head_part("Block", (0.26, 0.5, 1.0), (-0.6, 0.78, 0.08), col["hair"])
-    head_part("Block", (0.26, 0.5, 1.0), (0.6, 0.78, 0.08), col["hair"])
-    head_part("Block", (0.5, 0.22, 0.44), (0.18, 1.6, 0.22), col["hair"], ry(24) @ rx(18))  # 삐친 머리
-    head_part("Block", (1.0, 0.24, 0.3), (0, 1.02, -0.52), col["hair"])  # 앞머리
+    # 머리카락(뒤에서 봐도 사람 머리로): 머리를 감싸는 짧은 원통 껍질(얼굴 쪽은 비켜 뒤로 밀림) + 위 덮개
+    #   + 위·뒤로 삐친 뾰족한 뭉치 몇 개(모서리 쐐기) — 둥근 공 하나면 헬멧처럼 보임
+    head_part("Cylinder", (0.78, 1.4, 1.4), (0, 0.96, 0.1), col["hair"], rz(90))
+    head_part("Cylinder", (0.3, 1.3, 1.3), (0, 1.36, 0.06), col["hair"], rz(90))
+    for (x, z, yaw_t, tilt, s) in pose.get("tufts", ((-0.38, 0.28, 200, -32, 0.62), (0.34, 0.3, 160, -30, 0.66),
+                                                     (0.0, 0.46, 180, -52, 0.6), (-0.05, -0.02, 150, -18, 0.58),
+                                                     (0.42, -0.12, 120, -10, 0.46))):
+        head_part("CornerWedge", (s, s * 1.1, s), (x, 1.46 + s * 0.3, z), col["hair"], ry(yaw_t) @ rx(tilt))
+    head_part("Block", (1.16, 0.5, 0.3), (0, 0.5, 0.52), col["hair"])  # 뒷머리(목 위까지)
+    head_part("Block", (1.0, 0.24, 0.3), (0, 1.1, -0.55), col["hair"])  # 앞머리
     # 얼굴(앞 = -Z): 눈 둘 + 입
-    head_part("Block", (0.16, 0.26, 0.06), (-0.26, 0.7, -0.62), col["eye"])
-    head_part("Block", (0.16, 0.26, 0.06), (0.26, 0.7, -0.62), col["eye"])
-    if pose.get("mouth") == "o":  # 놀란 입
-        head_part("Block", (0.3, 0.3, 0.06), (0, 0.36, -0.62), col["eye"])
-    else:
-        head_part("Block", (0.46, 0.1, 0.06), (0, 0.38, -0.62), col["eye"])
+    if pose.get("face", True):  # 뒤에서 보는 그림은 얼굴을 빼서 옆으로 보이는 눈이 띠처럼 보이지 않게
+        head_part("Block", (0.16, 0.26, 0.06), (-0.26, 0.7, -0.62), col["eye"])
+        head_part("Block", (0.16, 0.26, 0.06), (0.26, 0.7, -0.62), col["eye"])
+        if pose.get("mouth") == "o":  # 놀란 입
+            head_part("Block", (0.3, 0.3, 0.06), (0, 0.36, -0.62), col["eye"])
+        else:
+            head_part("Block", (0.46, 0.1, 0.06), (0, 0.38, -0.62), col["eye"])
     # 팔: 어깨 관절(±1.5, 3.5), 팔 중심은 관절 아래 0.5
     for side, key in ((-1, "arm_l"), (1, "arm_r")):
         fwd, out_ang = pose.get(key, (0, 0))
@@ -311,3 +315,117 @@ def render_layers(stage: dict, cam: Camera, layers: list, size=None, players: in
             shutil.rmtree(out, ignore_errors=True)
             raise RuntimeError(f"render_layers 실패:\n{proc.stdout[-2000:]}\n{proc.stderr[-3000:]}")
     return {n: out / f"{n}.png" for n in names}
+
+
+# three.js 3D 층(render3d.js + scene3d.js) — 소품(볼록 바위·결정)·아바타·주인공을 같은 카메라로 ----------------------
+def sun_direction(clock=14.5, lat=41.733):
+    """world_preview/scene.js 의 해 방향(Lighting.ClockTime·GeographicLatitude) — 배경 그림자와 같은 쪽에서 빛이 오게."""
+    a = 2 * math.pi * clock / 24
+    x, y = math.sin(a), -math.cos(a)
+    la = math.radians(lat)
+    v = np.array([x, y * math.cos(la), y * math.sin(la)])
+    return (v / np.linalg.norm(v)).tolist()
+
+
+def cam3d(cam: Camera) -> dict:
+    return {"eye": cam.eye.round(4).tolist(), "target": cam.target.round(4).tolist(), "fov": cam.fov}
+
+
+def to3d(parts: list) -> list:
+    """무대 파트(part()) → scene3d.js 파트(덤프 모양 {c,s,p,m,z,col(0~1),mat,t})."""
+    out = []
+    for p in parts:
+        shape = p["shape"]
+        out.append({"c": {"Wedge": "WedgePart", "CornerWedge": "CornerWedgePart"}.get(shape, "Part"), "s": shape,
+                    "p": p["cf"][:3], "m": p["cf"][3:], "z": p["size"], "col": [c / 255 for c in p["color"]],
+                    "mat": p["mat"], "t": p.get("t", 0)})
+    return out
+
+
+def dump_parts(dump: Path, prefix: str) -> list:
+    """덤프에서 경로가 prefix 로 시작하는 파트(scene3d.js 에 그대로 넘길 수 있는 모양)."""
+    return [p for p in json.loads(Path(dump).read_text())["parts"] if p.get("path", "").startswith(prefix)]
+
+
+def render3d(scene: dict) -> dict:
+    """scene3d.js 장면(dict) → 층 PNG 경로 {이름: 경로}. 같은 장면이면 캐시(cache/r3d/<해시>)."""
+    key = _hash({"scene": scene, "v": 1})
+    out = CACHE / "r3d" / key
+    names = [layer["name"] for layer in scene["layers"]]
+    if not all((out / f"{n}.png").exists() for n in names):
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "scene.json").write_text(json.dumps(scene))
+        npm_root = subprocess.run(["npm", "root", "-g"], capture_output=True, text=True).stdout.strip()
+        env = dict(os.environ, NODE_PATH=npm_root)
+        proc = subprocess.run(["node", "tools/store/render3d.js", str(out / "scene.json"), str(out)], cwd=ROOT, env=env,
+                              capture_output=True, text=True)
+        if proc.returncode != 0:
+            shutil.rmtree(out, ignore_errors=True)
+            raise RuntimeError(f"render3d 실패:\n{proc.stdout[-2000:]}\n{proc.stderr[-3000:]}")
+    return {n: out / f"{n}.png" for n in names}
+
+
+def _outward_rot(direction, spin):
+    """scene3d 결정의 긴 축(로컬 Y)이 direction 을 향하는 오일러(YXZ, 도)."""
+    d = np.array(direction, float)
+    d /= np.linalg.norm(d)
+    return [math.degrees(math.acos(max(-1.0, min(1.0, d[1])))), math.degrees(math.atan2(d[0], d[2])), spin]
+
+
+def crystals3d(center, count, radius, height, length, seed, colors, cam: Camera, avoid=None, core=None, min_y=30):
+    """주인공 둘레에서 터져 나가는 길쭉한 결정(scene3d shards). 긴 축은 core(폭발 가운데)에서 바깥으로.
+    결과 (앞 목록, 뒤 목록): 카메라 기준 주인공 축보다 가까우면 앞. avoid(sx, sy) 가 참인 곳의 앞 결정은 건너뜀.
+    min_y = 화면에서 이보다 위(제목 글자 자리)에는 두지 않음."""
+    rnd = random.Random(seed)
+    c = np.array(center, float)
+    core = np.array(core if core is not None else c + np.array([0, height[1] * 0.45, 0]), float)
+    axis_depth = cam.project([c])[0][2]
+    front, back = [], []
+    tries = 0
+    while len(front) + len(back) < count and tries < count * 40:
+        tries += 1
+        a = rnd.uniform(0, math.tau)
+        rr = radius[0] + (radius[1] - radius[0]) * rnd.random() ** 0.8
+        y = height[0] + (height[1] - height[0]) * rnd.random() ** 0.9
+        p = c + np.array([math.cos(a) * rr, y, math.sin(a) * rr])
+        sx, sy, depth = cam.project([p])[0]
+        is_front = depth < axis_depth
+        if not (40 < sx < cam.W - 40 and min_y < sy < cam.H - 60):
+            continue
+        if avoid and is_front and avoid(sx, sy):
+            continue
+        L = length * (0.55 + rnd.random() ** 1.6 * 0.9)
+        out = p - core
+        out = out / np.linalg.norm(out) + np.array([rnd.uniform(-0.8, 0.8), rnd.uniform(-0.5, 0.8), rnd.uniform(-0.8, 0.8)])
+        item = {"p": p.round(3).tolist(), "len": round(L, 3), "radius": round(L * rnd.uniform(0.3, 0.4), 3),
+                "flat": rnd.uniform(0.75, 1.0), "rot": _outward_rot(out, rnd.uniform(0, 360)), "seed": 100 + tries,
+                "shape": "chunk", "col": [v / 255 for v in rnd.choice(colors)], "rough": 0.3}
+        (front if is_front else back).append(item)
+    return front, back
+
+
+def rocks3d(center, radius, count, scale, seed, color, skip_angles=(), jitter=0.3):
+    """주인공 발밑을 둘러싼 각진 바위(scene3d rocks, 볼록 껍질). skip_angles = [(가운데 각, 반폭)] 은 비움(앞 시야)."""
+    rnd = random.Random(seed)
+    c = np.array(center, float)
+    out = []
+    for i in range(count):
+        a = (i + rnd.uniform(-jitter, jitter)) / count * 360
+        if any(abs((a - s + 180) % 360 - 180) < w for s, w in skip_angles):
+            continue
+        rr = radius * rnd.uniform(0.85, 1.2)
+        s = scale * rnd.uniform(0.65, 1.3)
+        h = s * rnd.uniform(0.6, 1.0)
+        pos = c + np.array([math.cos(math.radians(a)) * rr, h * 0.36, math.sin(math.radians(a)) * rr])
+        shade = rnd.uniform(0.82, 1.1)
+        out.append({"p": pos.round(3).tolist(), "size": [s * rnd.uniform(1.0, 1.5), h, s * rnd.uniform(0.9, 1.3)],
+                    "rot": [rnd.uniform(-14, 14), rnd.uniform(0, 360), rnd.uniform(-16, 16)],
+                    "col": [min(1, v / 255 * shade) for v in color], "mat": "Slate", "seed": seed * 31 + i})
+        if rnd.random() < 0.6:  # 작은 돌 부스러기
+            a2 = math.radians(a + rnd.uniform(-9, 9))
+            r2 = rr + s * rnd.uniform(0.7, 1.2)
+            s2 = s * rnd.uniform(0.28, 0.45)
+            out.append({"p": (c + np.array([math.cos(a2) * r2, s2 * 0.25, math.sin(a2) * r2])).round(3).tolist(),
+                        "size": [s2 * 1.2, s2 * 0.8, s2], "rot": [0, rnd.uniform(0, 360), 0],
+                        "col": [min(1, v / 255 * shade * 0.92) for v in color], "mat": "Slate", "seed": seed * 57 + i})
+    return out

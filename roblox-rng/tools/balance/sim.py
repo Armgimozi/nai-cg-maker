@@ -65,7 +65,9 @@ VARIANT JSON (balance/variant_*.json) = a patch over the normalised config (see 
     "client": {"rtt", "loop_wait", "reveal_seconds": [7], "land_seconds", "suspense_seconds", ...},
     "rules": {"auto_discover_below_luck": true,   # proposed fix: 1-in <= permanent luck counts as discovered
               "short_reveal_known": true,         # proposed fix: already-discovered landmarks reveal like rank <= 3
-              "short_reveal_rank": 3}             #   (neither exists in the current game)
+              "short_reveal_rank": 3,             #   (neither exists in the current game)
+              "announce_luck_ratio": 0,           # proposed news rule: ALSO announce a find that is rare for the
+              "announce_min_one_in": 0}           #   player (1-in >= ratio * luck and >= min); 0 = off
   special keys (applied in this order):
     "landmark_formula": {"type": "power", "exponent": e, "scale": s}      N' = s * N^e
                       | {"type": "scale", "factor": f}                    N' = f * N
@@ -481,7 +483,19 @@ class Game:
         cap = int(self.rules.get("short_reveal_rank", self.client["rare_rank"] - 1))
         self.overhead_known = self.overhead_rank[np.minimum(self.rank, cap) - 1] if self.short_reveal_known else self.overhead
         self.announce = self.N >= cfg["announce_one_in"]
+        # proposed rule: news also when the find is rare *for this player*: 1-in >= ratio * permanent luck and >= min
+        # (on top of the fixed ANNOUNCE_ONE_IN; set announce_one_in huge for a purely relative rule)
+        self.announce_ratio = float(self.rules.get("announce_luck_ratio", 0.0) or 0.0)
+        self.announce_min = float(self.rules.get("announce_min_one_in", 0.0) or 0.0)
         self.hologram = self.N >= cfg["hologram_one_in"]
+
+    def announce_mask(self, luck: np.ndarray) -> np.ndarray:
+        """(len(luck), M) bool: which landmarks make server news for a player with this permanent luck."""
+        ann = np.broadcast_to(self.announce[None, :], (len(luck), self.M))
+        if self.announce_ratio > 0:
+            rel = (self.N[None, :] >= self.announce_ratio * luck[:, None]) & (self.N[None, :] >= self.announce_min)
+            ann = ann | rel
+        return ann
 
     # --- pure formulas (vectorised over players) -------------------------------------------
     def probs(self, luck: np.ndarray) -> np.ndarray:
@@ -682,7 +696,7 @@ def simulate(game: Game, prof: dict, sims: int, seed: int, horizon: float, frac:
         tt = t0 + dt
         spr_log[act, r_] += dt
         roll_log[act, r_] += K
-        announce_log[act, r_] += (draws * game.announce[None, :]).sum(1)
+        announce_log[act, r_] += (draws * game.announce_mask(luck)).sum(1)
         rolls[act] += K
         run_rolls[act] += K
 
@@ -966,7 +980,7 @@ def endgame(game: Game, res: dict, mode: str, state: str) -> dict:
     for key, mask in (("tier6_s", game.rank == 6), ("tier7_s", game.rank == 7), ("rarest_s", np.arange(game.M) == 0)):
         pr = p[:, mask].sum(1)
         out[key] = float(np.median(np.where(pr > 0, spr / np.maximum(pr, 1e-300), np.inf)))
-    out["announce_per_h"] = float(np.median(p[:, game.announce].sum(1) * 3600 / spr))
+    out["announce_per_h"] = float(np.median((p * game.announce_mask(np.atleast_1d(luck))).sum(1) * 3600 / spr))
     out["hologram_per_h"] = float(np.median(p[:, game.hologram].sum(1) * 3600 / spr))
     return out
 
@@ -1144,8 +1158,9 @@ def report(game: Game, results: dict, args, validation: str | None, elapsed: flo
     obs.append(
         "Server news (1 in ≥ "
         + fmt_num(cfg["announce_one_in"])
+        + (f", or ≥ {game.announce_ratio:g} × the player's luck and ≥ {fmt_num(game.announce_min)}" if game.announce_ratio > 0 else "")
         + ") per player per hour at the horizon: "
-        + ", ".join(f"{n} {v:.0f}" for n, v in ann.items())
+        + ", ".join(f"{n} {v:.2g}" for n, v in ann.items())
         + " — multiply by players in the server."
     )
     lines.append("Observations:\n")
@@ -1256,7 +1271,7 @@ def report(game: Game, results: dict, args, validation: str | None, elapsed: flo
             e = endgame(game, results[name], args.mode, label)
             lines.append(
                 f"| {name} | {label} | {e['luck']:.1f} | {e['s_per_roll']:.2f} | {fmt_num(DAY / e['s_per_roll'])} |"
-                f" {fmt_dur(e['tier6_s'])} | {fmt_dur(e['tier7_s'])} | {fmt_dur(e['rarest_s'])} | {e['announce_per_h']:.0f} | {e['hologram_per_h']:.1f} |"
+                f" {fmt_dur(e['tier6_s'])} | {fmt_dur(e['tier7_s'])} | {fmt_dur(e['rarest_s'])} | {e['announce_per_h']:.2g} | {e['hologram_per_h']:.2g} |"
             )
     lines.append("")
 
@@ -1299,7 +1314,7 @@ def report(game: Game, results: dict, args, validation: str | None, elapsed: flo
             res = results[name]
             sec = res["run_seconds"][:, k]
             ok = sec > 0
-            cells.append(f"{np.median(res['run_announce'][ok, k] / sec[ok] * 3600):.0f}" if ok.any() else "—")
+            cells.append(f"{np.median(res['run_announce'][ok, k] / sec[ok] * 3600):.2g}" if ok.any() else "—")
         lines.append(f"| {k} | " + " | ".join(cells) + " |")
     lines.append("")
 

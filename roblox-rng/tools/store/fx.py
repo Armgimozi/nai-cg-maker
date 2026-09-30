@@ -561,3 +561,173 @@ def round_mask_preview(im: Image.Image, radius_ratio=0.18, bg=(245, 246, 248)) -
     out = Image.new("RGBA", (w, h), bg + (255,))
     out.paste(im.convert("RGBA"), (0, 0), m)
     return out
+
+
+# 잡음·연기·결정 무늬(2차 수정: 먹물 연기, 결정 면 선, 바위 금) ------------------------------------------------
+def noise(size, scale, seed=1, octaves=4, persistence=0.5) -> np.ndarray:
+    """fBm 값 잡음(0~1, h x w): 작은 무작위 격자를 bicubic 으로 키운 것을 여러 겹(scale = 가장 큰 무늬 크기 px)."""
+    w, h = size
+    rnd = np.random.default_rng(seed)
+    out = np.zeros((h, w), np.float32)
+    amp, total = 1.0, 0.0
+    for o in range(octaves):
+        s = max(2.0, scale / 2 ** o)
+        gw, gh = int(w / s) + 3, int(h / s) + 3
+        g = Image.fromarray(rnd.random((gh, gw)).astype(np.float32), "F")
+        big = np.asarray(g.resize((int(gw * s), int(gh * s)), Image.Resampling.BICUBIC), np.float32)
+        ox, oy = int(rnd.random() * s), int(rnd.random() * s)
+        out += big[oy:oy + h, ox:ox + w] * amp
+        total += amp
+        amp *= persistence
+    out /= total
+    lo, hi = np.percentile(out, 1), np.percentile(out, 99)
+    return np.clip((out - lo) / max(hi - lo, 1e-6), 0, 1)
+
+
+def sample(a: np.ndarray, x: np.ndarray, y: np.ndarray) -> np.ndarray:
+    """a 를 (x, y) 실수 좌표에서 쌍선형으로 읽음(가장자리는 붙잡음)."""
+    h, w = a.shape[:2]
+    x = np.clip(x, 0, w - 1.001)
+    y = np.clip(y, 0, h - 1.001)
+    x0, y0 = x.astype(np.int32), y.astype(np.int32)
+    tx, ty = x - x0, y - y0
+    if a.ndim == 3:
+        tx, ty = tx[..., None], ty[..., None]
+    return (a[y0, x0] * (1 - tx) * (1 - ty) + a[y0, x0 + 1] * tx * (1 - ty) + a[y0 + 1, x0] * (1 - tx) * ty
+            + a[y0 + 1, x0 + 1] * tx * ty)
+
+
+def ink_wisps(size, base, top, width, seed=1, turns=1.1, density=0.5, thickness=0.14, flare=0.6) -> np.ndarray:
+    """주인공 둘레를 감아 오르는 어두운 먹물 연기(알파 0~1). base/top = 기둥 아래·위 화면 점, width = 아래 반폭(px).
+    잡음을 세로로 늘이고(연기 줄기) 높이마다 옆으로 밀어(나선) 가는 능선만 남김. 색·빛 테두리는 합성에서."""
+    w, h = size
+    ys, xs = np.mgrid[0:h, 0:w].astype(np.float32)
+    bx, by = base
+    tx, ty = top
+    span = max(1.0, by - ty)
+    v = (by - ys) / span  # 0 = 아래, 1 = 위
+    axis = bx + (tx - bx) * np.clip(v, 0, 1)
+    half = width * (1 + flare * np.clip(v, 0, 1.3))
+    u = (xs - axis) / half
+    field = noise((w, h), 150, seed, octaves=4, persistence=0.55)
+    warp = noise((w, h), 260, seed + 1, octaves=2)
+    sx = axis + (u * 0.8 + 0.5 * np.sin(v * math.tau * turns + seed) + (warp - 0.5) * 0.9) * half
+    sy = by - v * span * 0.35 + (warp - 0.5) * 60
+    n = sample(field, sx, sy)
+    ridge = 1 - np.abs(2 * n - 1)
+    wisp = np.clip((ridge - (1 - thickness)) / (thickness * 0.8), 0, 1) ** 1.3
+    blobs = np.clip((n - (1 - density * 0.5)) / 0.12, 0, 1)
+    env = np.exp(-(u ** 2) * 1.6) * np.clip((v + 0.02) / 0.12, 0, 1) * np.clip((1.08 - v) / 0.35, 0, 1)
+    return np.clip(np.maximum(wisp, blobs * 0.9) * env, 0, 1)
+
+
+def facet_edges(layer: Image.Image, threshold=0.05, soft=0.08) -> np.ndarray:
+    """평평한 면으로 그린 결정·바위의 면 경계(밝기가 갑자기 바뀌는 곳) + 바깥 윤곽 알파(0~1)."""
+    a = arr(layer)
+    al = a[..., 3]
+    lum = (a[..., :3] @ np.array([0.2126, 0.7152, 0.0722], np.float32)) * al
+    gx = np.zeros_like(lum)
+    gy = np.zeros_like(lum)
+    gx[:, 1:-1] = lum[:, 2:] - lum[:, :-2]
+    gy[1:-1] = lum[2:] - lum[:-2]
+    g = np.hypot(gx, gy)
+    L = Image.fromarray((np.clip(al, 0, 1) * 255).astype(np.uint8), "L")
+    inner = np.asarray(L.filter(ImageFilter.MinFilter(5)), np.float32) / 255
+    edges = np.clip((g - threshold) / soft, 0, 1) * inner
+    outline = np.clip(al - np.asarray(L.filter(ImageFilter.MinFilter(3)), np.float32) / 255, 0, 1)
+    return np.clip(np.maximum(edges, outline), 0, 1)
+
+
+def crack_lines(size, count, seed=1, length=(18, 60), width=2.2) -> np.ndarray:
+    """잔금(들쭉날쭉한 짧은 선) 알파 — 바위 알파(깎은 것)를 곱해 바위 표면 금으로."""
+    w, h = size
+    rnd = random.Random(seed)
+    s = 2
+    L = Image.new("L", (w * s, h * s), 0)
+    d = ImageDraw.Draw(L)
+    for _ in range(count):
+        x, y = rnd.uniform(0, w), rnd.uniform(0, h)
+        a = rnd.uniform(0, math.tau)
+        total = rnd.uniform(*length)
+        steps = rnd.randint(3, 6)
+        wd = width * rnd.uniform(0.7, 1.3)
+        for i in range(steps):
+            a += rnd.uniform(-0.8, 0.8)
+            nx, ny = x + math.cos(a) * total / steps, y + math.sin(a) * total / steps
+            d.line((x * s, y * s, nx * s, ny * s), fill=255, width=max(1, int(wd * s * (1 - i / steps * 0.6))))
+            if rnd.random() < 0.25:
+                b = a + rnd.choice([-1, 1]) * rnd.uniform(0.6, 1.2)
+                d.line((nx * s, ny * s, (nx + math.cos(b) * total / steps * 0.7) * s,
+                        (ny + math.sin(b) * total / steps * 0.7) * s), fill=255, width=max(1, int(wd * s * 0.5)))
+            x, y = nx, ny
+    return np.asarray(L.resize((w, h), Image.Resampling.LANCZOS), np.float32) / 255
+
+
+def erode(a: np.ndarray, px: int) -> np.ndarray:
+    L = Image.fromarray((np.clip(a, 0, 1) * 255).astype(np.uint8), "L")
+    return np.asarray(L.filter(ImageFilter.MinFilter(px * 2 + 1)), np.float32) / 255
+
+
+def shear(im: Image.Image, k: float) -> Image.Image:
+    """오른쪽으로 기울인 글자(이탤릭 느낌): 위쪽이 k*높이 만큼 오른쪽으로."""
+    w, h = im.size
+    extra = int(abs(k) * h) + 2
+    out = im.transform((w + extra, h), Image.Transform.AFFINE, (1, k, -k * h if k > 0 else 0, 0, 1, 0),
+                       Image.Resampling.BICUBIC)
+    return out.crop(out.getbbox())
+
+
+def badge_pill(segments, font_name, size=56, bg=(14, 36, 34), border=MINT, outline=INK, gap=0.35) -> Image.Image:
+    """어두운 알약 안에 글자 조각들: segments = [(글자, 글자색, 뱃지 배경색 또는 None)] — 예: 등급 뱃지 + 이름."""
+    f = font(font_name, size)
+    pad_x, pad_y = int(size * 0.5), int(size * 0.26)
+    widths = [f.getlength(t) + (size * 0.6 if b else 0) for t, _, b in segments]
+    inner_w = int(sum(widths) + size * gap * (len(segments) - 1))
+    h = int(size * 1.0 + pad_y * 2)
+    bw = max(3, size // 10)
+    depth = max(3, size // 10)
+    W_, H_ = inner_w + pad_x * 2 + bw * 2 + 6, h + bw * 2 + depth + 6
+    im = Image.new("RGBA", (W_ * 2, H_ * 2), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    x0, y0 = 3 * 2, 3 * 2
+    R = (h // 2 + bw) * 2
+    d.rounded_rectangle((x0, y0 + depth * 2, x0 + (inner_w + pad_x * 2 + bw * 2) * 2, y0 + (h + bw * 2 + depth) * 2),
+                        radius=R, fill=outline)
+    d.rounded_rectangle((x0, y0, x0 + (inner_w + pad_x * 2 + bw * 2) * 2, y0 + (h + bw * 2) * 2), radius=R, fill=border)
+    d.rounded_rectangle((x0 + bw * 2, y0 + bw * 2, x0 + (inner_w + pad_x * 2 + bw) * 2, y0 + (h + bw) * 2),
+                        radius=R - bw * 2, fill=bg)
+    f2 = font(font_name, size * 2)
+    x = x0 + (bw + pad_x) * 2
+    cy = y0 + (bw + h / 2) * 2
+    for (t, fg, b), wd in zip(segments, widths):
+        if b:
+            d.rounded_rectangle((x, cy - size * 0.62 * 2, x + wd * 2, cy + size * 0.62 * 2), radius=int(size * 0.5 * 2),
+                                fill=b)
+            d.text((x + wd, cy), t, font=f2, fill=fg, anchor="mm")
+        else:
+            d.text((x, cy), t, font=f2, fill=fg, anchor="lm")
+        x += (wd + size * gap) * 2
+    return im.resize((W_, H_), Image.Resampling.LANCZOS)
+
+
+def ink_flames(size, base, top, width, seed=1, scale=50, threshold=0.47, stretch=0.22, turns=0.8, soft=0.06,
+               flare=0.7) -> np.ndarray:
+    """먹물 튄 자국처럼 들쭉날쭉한 어두운 불꽃(알파 0~1) — 전설 빛 가운데 짙은 대비. 세로로 늘인 잡음을 문턱으로 자름.
+    threshold 가 낮을수록 많이 덮음. base/top = 기둥 아래·위 화면 점, width = 아래 반폭(px)."""
+    w, h = size
+    ys, xs = np.mgrid[0:h, 0:w].astype(np.float32)
+    bx, by = base
+    tx, ty = top
+    span = max(1.0, by - ty)
+    v = (by - ys) / span
+    axis = bx + (tx - bx) * np.clip(v, 0, 1)
+    half = width * (1 + flare * np.clip(v, 0, 1.3))
+    u = (xs - axis) / half
+    field = noise((w, h), scale, seed, octaves=5, persistence=0.62)
+    warp = noise((w, h), 220, seed + 1, octaves=2)
+    sx = axis + (u + 0.45 * np.sin(v * math.tau * turns + seed) + (warp - 0.5) * 0.8) * half
+    sy = by - v * span * stretch + (warp - 0.5) * 40
+    n = sample(field, sx, sy)
+    env = np.exp(-(u ** 2) * 1.3) * np.clip((v + 0.02) / 0.12, 0, 1) * np.clip((1.1 - v) / 0.4, 0, 1)
+    t = threshold + (1 - env) * 0.35
+    return np.clip((n - t) / soft, 0, 1) * np.clip(env * 3, 0, 1)
