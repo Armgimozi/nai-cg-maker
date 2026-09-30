@@ -965,57 +965,198 @@ def thumb_collect():
 
 
 # 4: 나만의 관광 공원 -----------------------------------------------------------------------------------
-# 부지 8곳을 모두 채운 진짜 맵(ParkService 전시) — 잘 알려진 명소를 앞에 두고 나머지는 목록에서 고름
+# 가까이서 본 "내 공원"(진짜 ParkEdit 3D 배치 모드: 빛나는 판 + 들고 있는 반투명 복사본) + 뒤로 흐린 광장·다른 공원.
+# 카메라는 내 부지 뒤(바다 쪽)에서 광장 지구본 쪽을 봄. 다른 샘플 플레이어 부지는 stage_hook 의 fillParks 로 가득.
 FAMOUS = ["eiffel", "tajmahal", "liberty", "colosseum", "bigben", "pyramid", "moai", "greatwall", "sphinx", "pisa",
           "goldengate", "fuji", "stbasil", "parthenon", "machupicchu", "chichen", "alexandria", "petra", "stonehenge",
           "santorini", "notredame", "neuschwanstein", "sungnyemun", "namsan", "towerbridge", "windmill"]
-PARK_CAM = ((-40, 80, 290), (-15, 0, 60), 52)
+# 내 공원: 줄(6 = 카메라 쪽 맨 앞) -> 카메라에서 본 왼쪽→오른쪽 명소. None = 빈 칸(들고 있는 명소를 놓을 칸)
+MY_PARK = {
+    1: ["notredame", "namsan", "bigben", "sungnyemun", "clocktower", "towerbridge"],
+    2: ["neuschwanstein", "stbasil", "goldengate", "pisa", "fuji", "lighthouse"],
+    3: ["skytower", "parthenon", "flindersst", "liberty", "angkor", "petra"],
+    4: ["moai", "atlantis", "machupicchu", "alexandria", "windmill", "chichen"],
+    5: ["tajmahal", "yonggung", "colosseum", "pyramid", "fountainofyouth", "santorini"],
+    6: ["harbourbridge", "stonehenge", None, "sphinx", "apostles", "greatwall"],
+}
+MY_HELD = "eiffel"  # 보관함에서 집어 빈 칸 위에 든 명소(반투명 복사본)
+POPUPS = ["yonggung", "fountainofyouth", "atlantis", "alexandria"]  # 초당 수입 말풍선(등급 기본 수입 = Config.TIER_INCOME)
+# 카메라(내 부지 좌표: 가운데 바닥 원점, -Z = 입구 = 광장 쪽): 눈, 겨냥, 시야각
+PARK_CAM = ((-10, 21, 69), (3, 6, -10), 55)
+PARK_AVATAR = {"local": (-19, 0, 50), "height_px": 470}
+
+
+def _row_slots(row: int) -> list:
+    """카메라(부지 뒤)에서 본 왼쪽→오른쪽 칸 번호. 한 줄 안 칸 번호는 입구에서 볼 때 가운데 오른쪽·가운데 왼쪽·…
+    (PlayerState.slotCell) 이라 뒤에서 보면 [5, 3, 1, 2, 4, 6] 순서."""
+    return [s + 6 * (row - 1) for s in (5, 3, 1, 2, 4, 6)]
+
+
+def tier_income(lid: str) -> int:
+    """Config.TIER_INCOME[등급] — 별 1개(보유 1~2개) 명소 하나의 기본 초당 수입."""
+    text = (ROOT / "src/shared/Config.luau").read_text()
+    table = [int(v) for v in re.search(r"TIER_INCOME = \{([^}]*)\}", text).group(1).split(",")]
+    rank = [t[0] for t in TIERS].index(tier(lid)[0])
+    return table[rank]
+
+
+def park_stage() -> dict:
+    display, target = {}, None
+    for row, ids in MY_PARK.items():
+        for slot, lid in zip(_row_slots(row), ids):
+            if lid:
+                display[str(slot)] = lid
+            else:
+                target = slot
+    return {"fillParks": {"level": 10, "count": 36, "famous": 22, "maxOneIn": 100000, "ids": FAMOUS},
+            "myPark": {"level": 10, "display": display, "storage": [MY_HELD], "pick": MY_HELD, "target": target,
+                       "frames": 60, "counts": 1}}
+
+
+def coin_popup(text: str, coin: Image.Image, size=110, color=(255, 214, 60)) -> Image.Image:
+    """동전 + "+250/s" 두꺼운 글자(게임 수입 칩처럼)."""
+    c = coin.resize((size, size), Image.Resampling.LANCZOS)
+    t = fx.chunky_text(text, "luckiest", int(size * 0.62), fill_stops=[(0, (255, 255, 230)), (0.5, color), (1, darken(color, 0.25))],
+                       outline_color=INK, outline=int(size * 0.075), inner=0, depth=int(size * 0.05), gloss=0.2)
+    w = c.width + t.width - int(size * 0.08)
+    h = max(c.height, t.height)
+    out = Image.new("RGBA", (w + 40, h + 40), (0, 0, 0, 0))
+    g = fx.glow(np.pad(fx.alpha_of(c), 20), 12, (255, 220, 90), 1.3)
+    out = fx.add(out, g, 0.9, (0, (h - c.height) // 2))
+    out = fx.over(out, c, (20, 20 + (h - c.height) // 2))
+    out = fx.over(out, t, (20 + c.width - int(size * 0.08), 20 + (h - t.height) // 2 + int(size * 0.04)))
+    return out
 
 
 def thumb_park():
-    stage = {"fillParks": {"level": 10, "count": 36, "famous": 22, "maxOneIn": 100000, "ids": FAMOUS}}
+    import json
+
+    stage = park_stage()
+    hook = "tools/store/park_hook.luau"
+    dump = st.world_dump(stage, players=7, hook=hook)
+    extra = json.loads(dump.read_text())["extra"]
+    o = np.array(extra["Origin"][:3], float)
+    Ro = np.array(extra["Origin"][3:], float).reshape(3, 3)
+    local = lambda v: o + Ro @ np.array(v, float)  # noqa: E731
     eye, target, fov = PARK_CAM
-    cam = st.Camera(eye, target, fov, (W, H))
-    L = st.render_layers(stage, cam, [{"name": "bg", "terrain": True}], size=(W * SS, H * SS), players=8)
-    bg = load_layer(L["bg"])
+    cam = st.Camera(local(eye), local(target), fov, (W, H))
+    plot = f"Parks/{extra['Plot']}"
+    held = f"ParkEditLocal/{extra['Held']}"
+    fence_depth = float(np.dot(local((0, 0, 40)) - cam.eye, cam.f))
+    layers = [
+        {"name": "bg", "terrain": True, "exclude": [plot, "ParkEditLocal"],
+         "clear": {"until": fence_depth - 2, "margin": 1.4}},
+        {"name": "park", "terrain": False, "include": [plot, "ParkEditLocal"], "exclude": [held]},
+        {"name": "ghost", "terrain": False, "include": [held]},
+    ]
+    L = st.render_layers(stage, cam, layers, size=(W * SS, H * SS), players=7, hook=hook)
 
-    # 하늘(맵 그림은 투명 배경) + 수평선 안개 + 구름
-    a = fx.alpha_of(bg)
-    rows = np.where(a[:, W // 2 - 400: W // 2 + 400].mean(1) > 0.5)[0]
-    edge = int(rows[0]) if len(rows) else int(H * 0.2)  # 바다가 끝나는 줄(그 위는 하늘)
-    im = fx.linear((W, H), [(0, (58, 140, 236)), (edge / H * 0.8, (140, 200, 250)), (edge / H, (214, 238, 255)),
-                            (1, (214, 238, 255))])
-    for (x, y, width, seed, alpha) in [(150, edge + 14, 330, 91, 0.95), (1760, edge + 16, 360, 92, 0.95),
-                                       (1420, edge + 10, 220, 93, 0.85), (430, edge + 8, 200, 94, 0.8)]:
+    # 아바타(scene3d, 같은 카메라): 부지 뒤 풀밭에서 들고 있는 명소를 향해 팔을 뻗음(배치하는 손짓)
+    ghost_at = np.array(extra["SlotWorld"][extra["Target"] - 1], float) + np.array([0, 6, 0])
+    av_base = local(PARK_AVATAR["local"])
+    av_depth = float(np.dot(av_base - cam.eye, cam.f))
+    av_scale = PARK_AVATAR["height_px"] / (5.6 * cam.scale_at(av_depth))
+    look = (ghost_at - av_base)[[0, 2]]
+    pose = {"head": (-18, -6), "arm_r": (128, -8), "arm_l": (18, 14), "leg_l": 5, "leg_r": -5, "face": False}
+    avatar = st.to3d(st.avatar("Avatar", av_base, st.yaw_facing(look), pose, scale=av_scale))
+    sun = st.sun_direction()
+    scene = {"size": [W * SS, H * SS], "camera": st.cam3d(cam),
+             "light": {"sun": sun, "sunIntensity": 1.0, "hemiIntensity": 0.85, "shadowCenter": av_base.tolist(),
+                       "shadowBox": 20},
+             "objects": [{"tag": "avatar", "parts": avatar, "castShadow": False}],
+             "layers": [{"name": "avatar", "draw": ["avatar"]}]}
+    L.update(st.render3d(scene))
+    lay = {k: load_layer(v) for k, v in L.items()}
+
+    # 하늘 + 구름(수평선 위) ---------------------------------------------------------------------------
+    horizon = cam.project([cam.eye + np.array([cam.f[0], 0, cam.f[2]]) * 3000])[0][1]
+    im = fx.linear((W, H), [(0, (40, 124, 230)), (max(0.05, horizon / H - 0.02), (140, 205, 252)), (horizon / H, (220, 240, 255)),
+                            (1, (220, 240, 255))])
+    for (x, dy, width, seed, alpha) in [(180, 20, 420, 91, 0.95), (1740, 24, 460, 92, 0.95), (560, 10, 260, 93, 0.85),
+                                        (1380, 12, 280, 94, 0.85)]:
         c = fx.cloud(width, seed=seed)
-        im = fx.over(im, c, (x - c.width / 2, y - c.height), alpha)
-    haze = fx.linear((W, H), [(0, (255, 255, 255, 0)), (max(0, edge - 30) / H, (255, 255, 255, 0)),
-                              (edge / H, (235, 246, 255, 200)), (min(1, edge + 40) / H, (235, 246, 255, 0)),
-                              (1, (255, 255, 255, 0))])
-    im = fx.over(im, bg)
-    im = fx.over(im, haze)
+        im = fx.over(im, c, (x - c.width / 2, horizon + dy - c.height), alpha)
 
-    # 빛: 왼쪽 위 햇빛 + 번짐(bloom) + 지구본 빛
-    im = fx.add(im, fx.radial((W, H), (120, -80), 1300, [(0, (255, 250, 220, 150)), (1, (255, 250, 220, 0))]), 0.35)
-    im = fx.add(im, fx.rays((W, H), (120, -80), count=14, color=(255, 252, 230), width=0.35, seed=96, falloff=1.3), 0.12)
-    globe = cam.project([(0, 20, -60)])[0]  # 광장 지구본 둘레(대략)
-    im = fx.add(im, fx.radial((W, H), globe[:2], 150, [(0, (200, 245, 255, 200)), (1, (200, 245, 255, 0))]), 0.3)
-    im = bloom(im, 0.86, 18, 0.28)
+    # 뒤(광장·다른 공원): 흐림 + 옅은 안개(멀수록) — 초점은 내 공원 ----------------------------------------------
+    bg = lay["bg"].filter(ImageFilter.GaussianBlur(3.2))
+    ba = fx.arr(bg)
+    ys = np.arange(H, dtype=np.float32)[:, None]
+    haze = np.clip(1 - (ys - horizon) / 420, 0, 1) ** 1.5 * 0.35
+    ba[..., :3] = ba[..., :3] * (1 - haze[..., None]) + np.array([0.86, 0.94, 1.0], np.float32) * haze[..., None]
+    im = fx.over(im, fx.img(ba))
+    # 광장 지구본 빛(멀리서도 눈에 띄게)
+    gp = cam.project([np.array([0, 22, 0])])[0]
+    im = fx.add(im, fx.radial((W, H), gp[:2], 170, [(0, (200, 245, 255, 190)), (1, (200, 245, 255, 0))]), 0.45)
 
-    # 수입 동전(게임 UI 동전 그림) + 반짝이: 앞 공원 위
+    # 내 공원(또렷) + 부지 둘레 그림자 ------------------------------------------------------------------------
+    pa = fx.alpha_of(lay["park"])
+    im = fx.over(im, fx.solid((W, H), (20, 60, 30), fx.blur_alpha(pa, 14) * (1 - pa) * 0.35))
+    im = fx.over(im, lay["park"])
+    # 가리키는 칸(초록 판) 빛: 게임의 강한 판 + 번짐
+    tgt = np.array(extra["SlotWorld"][extra["Target"] - 1], float)
+    q = ground_quad(cam, tgt + np.array([0, 0.05, 0]), 5.9)
+    plate = fx.alpha_of(fx.warp_quad(fx.radial((256, 256), (128, 128), 128, [(0, (255, 255, 255, 255)), (0.8, (255, 255, 255, 200)),
+                                                                          (1, (255, 255, 255, 0))]), q, (W, H)))
+    im = fx.add(im, fx.glow(plate, 22, (110, 240, 140), 1.2), 0.8)
+
+    # 들고 있는 명소(반투명 복사본): 노란 채우기(게임 Highlight 색) + 흰 테두리 + 빛 + 아래로 빛기둥 --------------------------
+    gl = lay["ghost"]
+    ga = fx.alpha_of(gl)
+    gx, gy, _ = cam.project([ghost_at])[0]
+    tx_, ty_, _ = cam.project([tgt])[0]
+    ys2, xs2 = np.mgrid[0:H, 0:W].astype(np.float32)
+    beam_half = 70
+    beam = np.clip(1 - np.abs(xs2 - tx_) / beam_half, 0, 1) ** 1.4 * ((ys2 < ty_) & (ys2 > gy - 40)) * \
+        np.clip((ty_ - ys2) / 30, 0, 1)
+    im = fx.add(im, fx.solid((W, H), (255, 236, 150), beam * 0.35))
+    im = fx.add(im, fx.glow(ga, 26, (255, 205, 70), 1.3, spread=4), 0.8)
+    sun_col = (255, 197, 61)  # Ui.colorPair("Sun").Face
+    ghost_rgb = fx.arr(gl)
+    ghost_rgb[..., :3] = ghost_rgb[..., :3] * 0.7 + np.array(sun_col, np.float32) / 255 * 0.3
+    im = fx.over(im, fx.img(ghost_rgb))
+    ring = np.clip(fx.dilate(ga, 3) - np.clip(ga * 3, 0, 1), 0, 1)
+    im = fx.over(im, fx.solid((W, H), WHITE, ring))
+
+    # 아바타: 접지 그림자 + 몸 + 빛 쪽 테두리 ----------------------------------------------------------------
+    foot_sh = fx.warp_quad(fx.radial((256, 256), (128, 128), 128, [(0, (0, 0, 0, 190)), (0.55, (0, 0, 0, 110)), (1, (0, 0, 0, 0))]),
+                           ground_quad(cam, av_base, 2.6 * av_scale), (W, H))
+    im = fx.over(im, foot_sh, opacity=0.8)
+    im = fx.over(im, lay["avatar"])
+    im = fx.add(im, edge_light(lay["avatar"], (255, 240, 190), (4, -2), 1.0, 1.2), 0.7)
+
+    # 수입: 동전 말풍선(등급 기본 수입, 진짜 값) + 간판으로 흘러가는 동전 줄 -------------------------------------------------
     coin = Image.open(ROOT / "art/png/coin.png").convert("RGBA")
+    sign = np.array(extra["Sign"], float) if extra.get("Sign") else local((0, 8, -40))
+    sx_, sy_, _ = cam.project([sign + np.array([0, 2.5, 0])])[0]
     rnd = random.Random(97)
-    for (x, y, s) in [(520, 560, 92), (660, 470, 70), (1340, 520, 96), (1500, 600, 74), (1180, 440, 62),
-                      (380, 470, 58)]:
-        c = fx.rotate(coin.resize((s, s), Image.Resampling.LANCZOS), rnd.uniform(-18, 18))
-        g = fx.glow(np.pad(fx.alpha_of(c), 30), 14, (255, 220, 90), 1.2)
-        im = fx.add(im, g, 0.8, (x - c.width / 2 - 30, y - c.height / 2 - 30))
-        im = fx.over(im, c, (x - c.width / 2, y - c.height / 2))
-    im = scatter_sparkles(im, [(120, 380, 900, 900), (1000, 380, 1820, 900)], 22, seed=98,
-                          glow_color=(255, 230, 140), rmin=6, rmax=26,
-                          big=[(300, 640, 40), (1640, 700, 44), (860, 400, 34)])
-    im = grade(im, 1.14, 1.04, 0.2)
-    im = caption_block(im, "나만의 관광 공원", "BUILD YOUR TOURIST PARK!", (W / 2, 10), kr_size=124, en_size=58,
+    placed = {lid: slot for slot, lid in enumerate(extra["Slots"], start=1) if lid}
+    pops = []
+    for k, lid in enumerate(POPUPS):
+        p = np.array(extra["SlotWorld"][placed[lid] - 1], float)
+        top = p + np.array([0, 11.5, 0])
+        px, py, _ = cam.project([top])[0]
+        pops.append((lid, px, py, 118 if k < 2 else 96))
+    # 동전 줄(뒤): 말풍선 → 간판, 멀어질수록 작게
+    for (lid, px, py, size) in pops:
+        n = 7
+        ctrl = ((px + sx_) / 2, min(py, sy_) - 120)
+        for i in range(1, n + 1):
+            t = i / (n + 1)
+            x = (1 - t) ** 2 * px + 2 * (1 - t) * t * ctrl[0] + t * t * sx_
+            y = (1 - t) ** 2 * py + 2 * (1 - t) * t * ctrl[1] + t * t * sy_
+            s = int(size * 0.42 * (1 - 0.6 * t))
+            c = fx.rotate(coin.resize((s, s), Image.Resampling.LANCZOS), rnd.uniform(-30, 30))
+            im = fx.add(im, fx.glow(np.pad(fx.alpha_of(c), 12), 6, (255, 220, 90), 1.0), 0.6,
+                        (x - c.width / 2 - 12, y - c.height / 2 - 12))
+            im = fx.over(im, c, (x - c.width / 2, y - c.height / 2), 0.95)
+    for (lid, px, py, size) in pops:
+        pop = coin_popup(f"+{tier_income(lid)}/s", coin, size, color=(255, 214, 60))
+        im = drop_shadow(im, pop, (px - pop.width / 2, py - pop.height), 6, 0.35)
+        im = fx.over(im, pop, (px - pop.width / 2, py - pop.height))
+    im = scatter_sparkles(im, [(200, 380, 900, 820), (1000, 380, 1800, 820)], 16, seed=98,
+                          glow_color=(255, 230, 140), rmin=6, rmax=22, big=[(gx + 150, gy - 120, 34), (gx - 170, gy + 40, 26)])
+    im = grade(im, 1.12, 1.04, 0.2)
+    im = caption_block(im, "나만의 관광 공원", "BUILD YOUR TOURIST PARK!", (W / 2, 10), kr_size=124, en_size=62,
                        align="center",
                        kr_stops=[(0, (255, 255, 255)), (0.55, (255, 246, 200)), (1, (255, 200, 70))],
                        en_stops=[(0, (210, 255, 200)), (1, (120, 235, 110))])

@@ -14,7 +14,7 @@
   "server_luck_duty": 0.0,
   "paid_coinpacks_per_day": 0.0,
   "rtt": null,
-  "out": "balance/sim_current.md",
+  "out": "/home/user/nai-cg-maker/roblox-rng/balance/sim_current.md",
   "json": null,
   "check": true,
   "sensitivity": true,

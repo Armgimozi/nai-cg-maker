@@ -5,7 +5,8 @@
 --   * 배치 모드는 부지 간판을 숨기지만(hideSign) 썸네일에서는 수입 간판을 보여 주려고 다시 켬(간판 글자·수입은 진짜 값)
 -- 무대 JSON(stage=<경로>, stage_hook 과 같은 파일) 에 더하는 것:
 --   "myPark": { "level": 10, "display": { [칸 번호]: 명소 Id ... }, "storage": [명소 Id ...](보관함에만),
---               "pick": 집을 명소 Id(보관함), "target": 가리킬 칸 번호, "frames": 60, "name": "나" }
+--               "pick": 집을 명소 Id(보관함), "target": 가리킬 칸 번호, "frames": 60, "name": "나", "counts": 1 }
+--   counts = 전시 명소마다 보유 개수(없으면 칸마다 1~5)
 -- 돌려주는 표(덤프 extra): 부지 Origin(CFrame 12값), 칸 가운데(월드), 칸 명소 Id, 들고 있는 명소, 간판 위치, 초당 수입
 -- 보통은 tools/store/thumbs.py(thumb_park)가 부름. Roblox API 호출·업로드 없음(가짜 환경).
 
@@ -61,7 +62,8 @@ return function(ctx: any): any
 	end
 	for key, id in spec.display or {} do
 		local slot = tonumber(key)
-		own(id, 1 + (slot * 7) % 5)
+		-- counts = 보유 개수(1 이면 별 1개 = 명소 수입이 등급 기본값 Config.TIER_INCOME 그대로 — 썸네일 말풍선 숫자)
+		own(id, spec.counts or (1 + (slot * 7) % 5))
 		data.Display[slot] = id
 	end
 	for i, id in spec.storage or {} do
