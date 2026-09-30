@@ -31,12 +31,21 @@ MODEL (one Monte-Carlo run = one player; S runs vectorised with numpy)
     (init.client.luau roll(): invoke -> Hud.reveal(Fast) -> task.wait(0.05) loop), so
     period = max(cooldown, rtt + reveal(rank of the result) + loop wait). cooldown = ROLL_COOLDOWN *
     (1 - Agency) * FastRoll. `--mode ideal` uses period = cooldown (what the upgrades promise).
+    Config.AUTO_KNOWN_REVEAL_RANK = k > 0 (rules.short_reveal_known / short_reveal_rank): in AUTO an
+    already-discovered landmark reveals like rank min(rank, k); new discoveries keep their full reveal.
   * Luck = BASE * (1 + Globe) * (1 + REGION_LUCK_BONUS * stamps) * rebirthLuck(r) * VIP * boosts.
     Stamps are exact: a continent counts once every landmark of rank <= STAMP_MAX_RANK in it was ever
     discovered (Discovered survives rebirths). Boosts = duty cycle (fraction of play time under x2),
-    mixed into the per-roll probability vector.
+    mixed into the per-roll probability vector. rebirthLuck = 2^r in the game since the 2026-09-30 rebalance
+    (Config.REBIRTH_LUCK_MULT; older configs: 1 + REBIRTH_LUCK_BONUS * r).
+  * Auto-discover (PlayerState.autoDiscover, rules.auto_discover_below_luck): every landmark whose 1-in <=
+    permanent luck (everything above except timed boosts / server luck) counts as discovered, repeated until
+    no new stamp raises the luck again. Only Discovered (collection, stamps) - never the inventory.
   * Income/s = sum over the park (AutoPark: rarest owned landmarks, `slots` of them) of
-    TIER_INCOME[rank] * (1 + STAR_INCOME_BONUS * (stars - 1)) * (1 + Ticket) * rebirthIncome(r) * 2x pass.
+    TIER_INCOME[rank] * (1 + STAR_INCOME_BONUS * (stars - s0)) * (1 + Ticket) * rebirthIncome(r) * 2x pass.
+    stars = STAR_THRESHOLDS reached by this run's count. s0 = 1 when the first find already gives a star
+    (the old rule {1, 3, 10, 30, 100}), else 0 (gacha rule {2, 3, 4, 5, 6}: first find = 0 stars, every
+    duplicate +1 star up to 5) - PlayerState.landmarkIncome either way.
     Coins also get the first-ever discovery bonus ceil(DISCOVERY_BONUS_MULT * sqrt(N)). Online only.
   * Rebirth: as soon as the coins AND the step's landmarks (owned this run) are there. Resets coins,
     upgrades, inventory; keeps discoveries (stamps).
@@ -65,7 +74,8 @@ VARIANT JSON (balance/variant_*.json) = a patch over the normalised config (see 
     "client": {"rtt", "loop_wait", "reveal_seconds": [7], "land_seconds", "suspense_seconds", ...},
     "rules": {"auto_discover_below_luck": true,   # proposed fix: 1-in <= permanent luck counts as discovered
               "short_reveal_known": true,         # proposed fix: already-discovered landmarks reveal like rank <= 3
-              "short_reveal_rank": 3,             #   (neither exists in the current game)
+              "short_reveal_rank": 3,             #   (Config.AUTO_KNOWN_REVEAL_RANK in the game)
+              "short_reveal_seconds": 0,          # instead: known landmarks take this many s per AUTO roll (flash)
               "announce_luck_ratio": 0,           # proposed news rule: ALSO announce a find that is rare for the
               "announce_min_one_in": 0}           #   player (1-in >= ratio * luck and >= min); 0 = off
   special keys (applied in this order):
@@ -120,6 +130,18 @@ def _num_expr(expr: str) -> float:
     for part in expr.split("*"):
         value *= float(part.strip())
     return value
+
+
+def _regex_rules(conf: str) -> dict:
+    """Rules the game code has (regex fallback of dump.luau's `rules`)."""
+    ps = (ROOT / "src/shared/PlayerState.luau").read_text(encoding="utf-8")
+    m = re.search(r"\bAUTO_KNOWN_REVEAL_RANK\s*=\s*(\d+)", conf)
+    rank = int(m.group(1)) if m else 0
+    return {
+        "auto_discover_below_luck": re.search(r"function PlayerState\.autoDiscover\b", ps) is not None,
+        "short_reveal_known": rank > 0,
+        "short_reveal_rank": rank if rank > 0 else 3,
+    }
 
 
 def parse_luau_regex() -> dict:
@@ -197,13 +219,18 @@ def parse_luau_regex() -> dict:
         tier_income=arr("TIER_INCOME"),
         star_thresholds=arr("STAR_THRESHOLDS"),
         star_income_bonus=num("STAR_INCOME_BONUS"),
+        rules=_regex_rules(conf),
         stamp_max_rank=num("STAMP_MAX_RANK"),
         region_luck_bonus=num("REGION_LUCK_BONUS"),
         upgrades=upgrades,
         upgrade_order=order,
         rebirths=rebirths,
         max_rebirths=int(num("MAX_REBIRTHS")),
-        rebirth_luck={"type": "linear", "per": num("REBIRTH_LUCK_BONUS")},
+        rebirth_luck=(
+            {"type": "mult", "base": num("REBIRTH_LUCK_MULT")}
+            if re.search(r"\bREBIRTH_LUCK_MULT\s*=", conf)
+            else {"type": "linear", "per": num("REBIRTH_LUCK_BONUS")}
+        ),
         rebirth_income={"type": "linear", "per": num("REBIRTH_INCOME_BONUS")},
         passes=passes,
         products=products,
@@ -453,6 +480,8 @@ class Game:
         self.star_cap = int(self.star_thr.max())
         self.star_lut = np.searchsorted(self.star_thr, np.arange(self.star_cap + 1), side="right")
         self.star_bonus = float(cfg["star_income_bonus"])
+        # stars that earn no bonus: 1 when the first find already gives a star (old {1, 3, 10, ...}), else 0
+        self.star_offset = 1 if self.star_thr.min() <= 1 else 0
         self.max_slots = int(cfg["park_grid"]) ** 2
         up = cfg["upgrades"]
         self.up = [up[u] for u in UPGRADE_IDS]
@@ -482,6 +511,11 @@ class Game:
         self.short_reveal_known = bool(self.rules.get("short_reveal_known"))
         cap = int(self.rules.get("short_reveal_rank", self.client["rare_rank"] - 1))
         self.overhead_known = self.overhead_rank[np.minimum(self.rank, cap) - 1] if self.short_reveal_known else self.overhead
+        # optional: a known landmark in AUTO takes a fixed time instead (seconds from sending a roll to sending the next,
+        # rtt included) - e.g. a flash reveal that fits inside the cooldown so Agency / FastRoll set the AUTO speed
+        flash = self.rules.get("short_reveal_seconds")
+        if self.short_reveal_known and flash:
+            self.overhead_known = np.full(self.M, float(flash))
         self.announce = self.N >= cfg["announce_one_in"]
         # proposed rule: news also when the find is rare *for this player*: 1-in >= ratio * permanent luck and >= min
         # (on top of the fixed ANNOUNCE_ONE_IN; set announce_one_in huge for a purely relative rule)
@@ -527,12 +561,14 @@ class Game:
     def cooldown(self, lvl: np.ndarray, cd_mult: float) -> np.ndarray:
         return self.cfg["roll_cooldown"] * (1 - self.up_per[A] * lvl[:, A]) * cd_mult
 
-    def park_income(self, cnt: np.ndarray, slots: np.ndarray) -> np.ndarray:
-        """Sum of landmark incomes on display (before Ticket / rebirth / pass multipliers)."""
+    def park_income(self, cnt: np.ndarray, slots: np.ndarray, star_bonus: bool = True) -> np.ndarray:
+        """Sum of landmark incomes on display (before Ticket / rebirth / pass multipliers).
+        star_bonus=False: the same park without the star bonus (for the "how much do stars add" metric)."""
         owned = cnt > 0
         shown = owned & (np.cumsum(owned, axis=1) <= slots[:, None])
         stars = self.star_lut[np.minimum(cnt, self.star_cap)]
-        per = self.item_income[None, :] * (1 + self.star_bonus * (stars - 1))
+        bonus = self.star_bonus if star_bonus else 0.0
+        per = self.item_income[None, :] * (1 + bonus * (stars - self.star_offset))
         return np.where(shown, per, 0.0).sum(1)
 
     def income(self, cnt, lvl, reb, income_mult: float) -> np.ndarray:
@@ -609,11 +645,15 @@ def simulate(game: Game, prof: dict, sims: int, seed: int, horizon: float, frac:
     ready_t = np.full((S, R + 1), np.nan)  # time the step's landmarks were all owned (this run)
     reb_luck = np.full((S, R + 1), np.nan)  # luck (no boosts) right before the rebirth
     reb_income = np.full((S, R + 1), np.nan)
+    reb_star_mult = np.full((S, R + 1), np.nan)  # park income with stars / without, right before the rebirth
+    n_rare = min(12, M)  # per-landmark draws of the rarest few, by run (news / hologram thresholds after the fact)
+    rare_draws = np.zeros((S, R + 1, n_rare))
     reb_stamps = np.full((S, R + 1), np.nan)
     reb_lvl = np.full((S, R + 1, 4), np.nan)
     spr_log = np.zeros((S, R + 1))  # seconds / rolls per run (effective roll period)
     roll_log = np.zeros((S, R + 1))
     announce_log = np.zeros((S, R + 1))
+    hologram_log = np.zeros((S, R + 1))
     delay = float(prof.get("pass_delay", 0.0))
     period_is_auto = mode == "auto"
     iters = 0
@@ -638,15 +678,17 @@ def simulate(game: Game, prof: dict, sims: int, seed: int, horizon: float, frac:
         st = game.stamps(d_)
         luck = game.luck(l_, st, r_, lm)
         if game.auto_discover:
-            # rule: a landmark whose 1-in <= permanent luck counts as discovered (it can no longer be rolled)
+            # rule: a landmark whose 1-in <= permanent luck counts as discovered (it can no longer be rolled);
+            # a stamp it completes raises the luck, so repeat like PlayerState.autoDiscover
             auto = (game.N[None, :] <= luck[:, None]) & ~d_
-            if auto.any():
+            while auto.any():
                 rows, cols = np.nonzero(auto)
                 disc_t[act[rows], cols] = t[act][rows]
                 disc_reb[act[rows], cols] = r_[rows]
                 d_ = d_ | auto
                 st = game.stamps(d_)
                 luck = game.luck(l_, st, r_, lm)
+                auto = (game.N[None, :] <= luck[:, None]) & ~d_
         p = all_probs(luck)
         cd = game.cooldown(l_, cdm)
         if period_is_auto:
@@ -697,6 +739,8 @@ def simulate(game: Game, prof: dict, sims: int, seed: int, horizon: float, frac:
         spr_log[act, r_] += dt
         roll_log[act, r_] += K
         announce_log[act, r_] += (draws * game.announce_mask(luck)).sum(1)
+        hologram_log[act, r_] += (draws * game.hologram[None, :]).sum(1)
+        rare_draws[act, r_] += draws[:, :n_rare]
         rolls[act] += K
         run_rolls[act] += K
 
@@ -754,6 +798,9 @@ def simulate(game: Game, prof: dict, sims: int, seed: int, horizon: float, frac:
             reb_rolls[ci, nr] = rolls[ci]
             reb_luck[ci, nr] = game.luck(l_[can], game.stamps(d_[can]), rr, lm[can])
             reb_income[ci, nr] = game.income(c[can], l_[can], rr, im[can])
+            sl = game.slots(l_[can][:, P])
+            with np.errstate(divide="ignore", invalid="ignore"):
+                reb_star_mult[ci, nr] = game.park_income(c[can], sl) / game.park_income(c[can], sl, star_bonus=False)
             reb_stamps[ci, nr] = game.stamps(d_[can])
             reb_lvl[ci, nr] = l_[can]
             c[can] = 0
@@ -780,6 +827,8 @@ def simulate(game: Game, prof: dict, sims: int, seed: int, horizon: float, frac:
         ready_t=ready_t,
         reb_luck=reb_luck,
         reb_income=reb_income,
+        reb_star_mult=reb_star_mult,
+        rare_draws=rare_draws,
         reb_stamps=reb_stamps,
         reb_lvl=reb_lvl,
         disc_t=disc_t,
@@ -787,6 +836,7 @@ def simulate(game: Game, prof: dict, sims: int, seed: int, horizon: float, frac:
         run_seconds=spr_log,
         run_rolls=roll_log,
         run_announce=announce_log,
+        run_hologram=hologram_log,
         final_luck=game.luck(lvl, game.stamps(disc), reb, np.where(t >= delay, prof["luck_mult"], 1.0)),
         final_reb=reb,
         final_lvl=lvl,
@@ -826,7 +876,7 @@ def reference_sim(game: Game, prof: dict, seed: int, until_reb: int, policy: str
                     break
                 shown += 1
                 stars = sum(1 for x in thr if cnt[i] >= x)
-                total += game.item_income[i] * (1 + game.star_bonus * (stars - 1))
+                total += game.item_income[i] * (1 + game.star_bonus * (stars - game.star_offset))
         return total * (1 + game.up_per[T] * lv[T]) * game.RI[reb] * prof["income_mult"]
 
     cache_key, cdf, n_rolls = None, None, 0
@@ -835,6 +885,13 @@ def reference_sim(game: Game, prof: dict, seed: int, until_reb: int, policy: str
     ub = rng.random(max_rolls)
     while reb < until_reb and n_rolls < max_rolls:
         L = luck_now()
+        while game.auto_discover:  # PlayerState.autoDiscover: 1-in <= permanent luck counts as discovered
+            fresh = [i for i in range(M) if not disc[i] and game.N[i] <= L]
+            if not fresh:
+                break
+            for i in fresh:
+                disc[i] = True
+            L = luck_now()
         key = (round(L, 12),)
         if key != cache_key:
             ps = [(game.probs(np.array([L * m]))[0], w) for m, w in prof["mix"]]
@@ -851,7 +908,7 @@ def reference_sim(game: Game, prof: dict, seed: int, until_reb: int, policy: str
         i = min(i, M - 1)
         n_rolls += 1
         cd = cfg["roll_cooldown"] * (1 - game.up_per[A] * lvl[A]) * prof["cd_mult"]
-        dt = max(cd, game.overhead[i])
+        dt = max(cd, game.overhead_known[i] if disc[i] else game.overhead[i])
         if not disc[i]:
             coins += game.bonus[i]
             disc[i] = True
@@ -1145,6 +1202,12 @@ def report(game: Game, results: dict, args, validation: str | None, elapsed: flo
             f"AUTO is gated by the reveal animation (~{game.overhead_rank[0]:.2f} s per common roll, {game.overhead_rank[3]:.1f}–{game.overhead_rank[-1]:.1f} s"
             f" for rank ≥ 4) — the {cfg['roll_cooldown']:.2f} s cooldown, Agency (→ {fastest_cd / game.cfg['passes'].get('FastRoll', {}).get('cooldown_mult', 1):.2f} s) and"
             f" FastRoll (→ {fastest_cd:.2f} s) change AUTO speed by only {100 * (1 - fast / slow):.0f}%. See `--mode ideal` in the sensitivity table."
+            + (
+                f" Already-discovered landmarks reveal like rank {int(game.rules.get('short_reveal_rank', 3))} in AUTO"
+                f" (~{float(game.overhead_known.max()):.2f} s at most), which is still longer than the cooldown."
+                if game.short_reveal_known and float(game.overhead_known.min()) > fastest_cd
+                else ""
+            )
         )
     for n in profiles:
         stamps = results[n]["final_stamps"]

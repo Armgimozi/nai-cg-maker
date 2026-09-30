@@ -1,8 +1,8 @@
 --!strict
 -- 플레이어 데이터와 그 데이터를 바꾸는 규칙(순수 함수). 서버가 유일한 진실의 원천이고,
 -- 클라이언트는 Snapshot 만 받아서 화면에 그립니다. Roblox 서비스에 의존하지 않아 테스트 가능.
--- 읽기 전용 함수(luck, park, parkSlots, stars, incomePerSecond 등)는 Data 대신 Snapshot 을 넘겨도 됩니다.
--- luck / cooldown / incomePerSecond / addIncome / snapshot 은 선택 인자 mods(게임패스·서버 행운)를 받습니다.
+-- 읽기 전용 함수(luck, permanentLuck, park, parkSlots, stars, incomePerSecond 등)는 Data 대신 Snapshot 을 넘겨도 됩니다.
+-- luck / permanentLuck / autoDiscover / cooldown / incomePerSecond / addIncome / snapshot 은 선택 인자 mods(게임패스·서버 행운)를 받습니다.
 -- mods 가 없으면 게임패스·서버 행운 없이 계산합니다. Snapshot 은 Passes/ServerLuck 필드가 있어서
 -- PlayerState.luck(snapshot, snapshot) 처럼 mods 자리에 그대로 넘겨도 됩니다.
 
@@ -69,6 +69,9 @@ export type Snapshot = {
 	ServerLuck: boolean, -- 서버 행운 부스트 중인지
 	NextRebirth: RebirthRequirement?, -- 다음 환생 조건(최대까지 했으면 nil)
 	Luck: number, -- mods 반영
+	-- 영구 행운 = Luck 에서 시간 부스트·서버 행운을 뺀 값(PlayerState.permanentLuck). 확률(OneIn)이 이 값 이하인
+	-- 명소는 자동 발견(Discovered 에 이미 들어 있음)이고 부스트 없이는 굴림에서 다시 안 나옴
+	PermanentLuck: number,
 	Cooldown: number, -- mods 반영
 	Income: number, -- 초당 관광 수입(mods 반영)
 }
@@ -94,6 +97,8 @@ end
 
 -- 공원 전시 칸 최대 수(격자 칸 수) = Data.Display 최대 길이
 PlayerState.MAX_SLOTS = Config.PARK_GRID * Config.PARK_GRID
+-- 별 최대 개수(★5). 처음 발견 = 별 0, 같은 명소를 또 뽑을 때마다 +1
+PlayerState.MAX_STARS = #Config.STAR_THRESHOLDS
 
 function PlayerState.new(): Data
 	local upgrades = {}
@@ -336,6 +341,18 @@ local function rebirthsOf(data: Data | Snapshot): number
 	return data.Rebirths or 0
 end
 
+-- 환생 rebirths 번의 행운 배율 = REBIRTH_LUCK_MULT ^ 환생 수 (1, 2, 4, … 10번 = 1,024). MAX_REBIRTHS 에서 멈춤
+function PlayerState.rebirthLuckMult(rebirths: number): number
+	local n = math.clamp(math.floor(rebirths), 0, Config.MAX_REBIRTHS)
+	return Config.REBIRTH_LUCK_MULT ^ n
+end
+
+-- 환생 rebirths 번의 관광 수입 배율 = 1 + REBIRTH_INCOME_BONUS × 환생 수 (MAX_REBIRTHS 에서 멈춤)
+function PlayerState.rebirthIncomeMult(rebirths: number): number
+	local n = math.clamp(math.floor(rebirths), 0, Config.MAX_REBIRTHS)
+	return 1 + Config.REBIRTH_INCOME_BONUS * n
+end
+
 -- mods 에 있는 게임패스 목록(Config.GamePasses 순서)
 local function ownedPasses(mods: Mods?): { GamePass }
 	local list = {}
@@ -393,16 +410,22 @@ end
 
 -- 행운 / 속도 -----------------------------------------------------------------
 
--- 이번 굴림에 적용할 행운 = 기본 × 지구본 × 여권 도장 × 환생 × VIP × 행운 부스트 × 서버 행운
-function PlayerState.luck(data: Data | Snapshot, mods: Mods?): number
+-- 영구 행운 = 기본 × 지구본 × 여권 도장 × 환생(2^환생 수) × 행운 VIP (시간 부스트·서버 행운 제외).
+-- 자동 발견(autoDiscover) 기준. 지구본은 환생하면 0 레벨로 돌아가므로 "영구"는 부스트가 아니라는 뜻
+function PlayerState.permanentLuck(data: Data | Snapshot, mods: Mods?): number
 	local globe = PlayerState.UpgradesById.Globe
 	local globeMult = 1 + globe.PerLevel * PlayerState.upgradeLevel(data, "Globe")
 	local regionMult = 1 + Config.REGION_LUCK_BONUS * #PlayerState.completedRegions(data)
-	local rebirthMult = 1 + Config.REBIRTH_LUCK_BONUS * rebirthsOf(data)
-	local luck = Config.BASE_LUCK * globeMult * regionMult * rebirthMult
+	local luck = Config.BASE_LUCK * globeMult * regionMult * PlayerState.rebirthLuckMult(rebirthsOf(data))
 	for _, pass in ownedPasses(mods) do
 		luck *= pass.LuckMult or 1
 	end
+	return luck
+end
+
+-- 이번 굴림에 적용할 행운 = 영구 행운 × 행운 부스트 × 서버 행운
+function PlayerState.luck(data: Data | Snapshot, mods: Mods?): number
+	local luck = PlayerState.permanentLuck(data, mods)
 	local serverLuck = mods ~= nil and mods.ServerLuck == true
 	for _, product in Config.Products do
 		if product.ServerWide then
@@ -414,6 +437,33 @@ function PlayerState.luck(data: Data | Snapshot, mods: Mods?): number
 		end
 	end
 	return luck
+end
+
+-- 자동 발견: 굴림은 희귀한 것부터 "행운 / N" 판정이라 행운 ≥ N 이면 그보다 흔한 명소는 다시는 안 나옴(RollLogic).
+-- 그래서 아직 발견하지 않은 명소 중 확률(OneIn)이 영구 행운(permanentLuck) 이하인 것은 발견한 것으로 칩니다
+-- (도감·여권 도장 기준인 Discovered 에 기록 — 행운이 나중에 내려가도 유지). 보유(Inventory)·공원 수입·
+-- 환생 조건·발견 보너스 코인은 그대로. 새로 채운 도장이 행운을 올리면 한 번 더 확인합니다.
+-- 서버가 상태를 보내기 전(접속·굴림·업그레이드·환생·게임패스)에 부름.
+-- 반환: 이번에 새로 발견 처리한 명소 Id 목록(흔한 것 → 희귀한 것)
+function PlayerState.autoDiscover(data: Data, mods: Mods?): { string }
+	local added = {}
+	while true do
+		local luck = PlayerState.permanentLuck(data, mods)
+		local changed = false
+		for _, landmark in Landmarks.List do
+			if landmark.OneIn > luck then
+				break -- List 는 흔한 것 → 희귀한 것
+			end
+			if not PlayerState.isDiscovered(data, landmark.Id) then
+				data.Discovered[landmark.Id] = true
+				table.insert(added, landmark.Id)
+				changed = true
+			end
+		end
+		if not changed then
+			return added
+		end
+	end
 end
 
 function PlayerState.cooldown(data: Data | Snapshot, mods: Mods?): number
@@ -432,7 +482,9 @@ function PlayerState.slots(data: Data | Snapshot): number
 	return Config.BASE_SLOTS + park.PerLevel * PlayerState.upgradeLevel(data, "Park")
 end
 
--- 발견 횟수 -> 별 개수(0~5). 0 이면 미발견.
+-- 이번 판 발견 횟수(보유 수) -> 별 개수(0~MAX_STARS). 가챠 중복처럼 처음 발견 = 별 0, 또 뽑을 때마다 +1
+-- (STAR_THRESHOLDS = { 2, 3, 4, 5, 6 }: 2번째 ★1 … 6번째 ★5). 보유하지 않았어도(0) 별 0 이므로 보유 여부는
+-- 개수(count > 0)로 판단. 별은 개수로 계산하고 따로 저장하지 않음
 function PlayerState.stars(count: number): number
 	local stars = 0
 	for i, threshold in Config.STAR_THRESHOLDS do
@@ -669,14 +721,13 @@ function fillSlots(data: Data, from: number, to: number)
 	end
 end
 
--- 명소 1개의 초당 수입 (입장료 업그레이드 제외)
+-- 명소 1개의 초당 수입 (입장료 업그레이드 제외) = 등급 수입 × (1 + 별 보너스 × 별 수). 보유하지 않으면 0
 function PlayerState.landmarkIncome(landmark: Landmark, count: number): number
-	local stars = PlayerState.stars(count)
-	if stars == 0 then
+	if not (count > 0) then
 		return 0
 	end
 	local base = Config.TIER_INCOME[landmark.Tier.Rank] or 0
-	return base * (1 + Config.STAR_INCOME_BONUS * (stars - 1))
+	return base * (1 + Config.STAR_INCOME_BONUS * PlayerState.stars(count))
 end
 
 -- 직접 배치 중 "전시하면 수입이 느는데 전시 안 된" 보유 명소 Id 목록(희귀한 순서): 전시 칸에 있는 명소 중
@@ -736,7 +787,7 @@ function PlayerState.incomePerSecond(data: Data | Snapshot, mods: Mods?): number
 	local ticket = PlayerState.UpgradesById.Ticket
 	local income = total
 		* (1 + ticket.PerLevel * PlayerState.upgradeLevel(data, "Ticket"))
-		* (1 + Config.REBIRTH_INCOME_BONUS * rebirthsOf(data))
+		* PlayerState.rebirthIncomeMult(rebirthsOf(data))
 	for _, pass in ownedPasses(mods) do
 		income *= pass.IncomeMult or 1
 	end
@@ -757,7 +808,8 @@ function PlayerState.discoveryBonus(landmark: Landmark): number
 end
 
 -- 굴림 결과 반영. 반환: 보너스 코인, 역대 처음 발견인지(보너스는 이때만), 별이 올랐는지
--- (환생 뒤 예전에 발견했던 명소를 다시 얻으면 처음 발견도 별 상승도 아님)
+-- (이번 판에 이미 보유한 명소를 또 뽑으면 별 +1(★5 까지). 환생 뒤 예전에 발견했던 명소를 다시 얻으면
+-- 처음 발견도 별 상승도 아님 — 별 0 부터 다시)
 -- 직접 배치 중 이번 판에 처음 얻은 명소는 첫 빈 전시 칸에 놓임(빈 칸이 없으면 안 놓임)
 function PlayerState.applyRoll(data: Data, landmark: Landmark): (number, boolean, boolean)
 	local before = data.Inventory[landmark.Id] or 0
@@ -939,6 +991,7 @@ function PlayerState.snapshot(data: Data, revision: number, mods: Mods?): Snapsh
 		ServerLuck = mods ~= nil and mods.ServerLuck == true,
 		NextRebirth = PlayerState.rebirthRequirement(data.Rebirths),
 		Luck = PlayerState.luck(data, mods),
+		PermanentLuck = PlayerState.permanentLuck(data, mods),
 		Cooldown = PlayerState.cooldown(data, mods),
 		Income = PlayerState.incomePerSecond(data, mods),
 	}

@@ -77,6 +77,8 @@ function encode(v: any): string
 end
 
 -- config ---------------------------------------------------------------------
+local knownRevealRank = (Config :: any).AUTO_KNOWN_REVEAL_RANK or 0
+
 local function dumpConfig()
 	local upgrades = {}
 	local order = {}
@@ -110,17 +112,22 @@ local function dumpConfig()
 	for _, tier in Landmarks.Tiers do
 		table.insert(tiers, { rank = tier.Rank, name = tier.Name, min_one_in = tier.MinOneIn })
 	end
-	local regions = {}
+	local regions, regionInfo = {}, {}
 	for _, region in Landmarks.Regions do
 		table.insert(regions, region.Id)
+		regionInfo[region.Id] = { name = region.Name, emoji = region.Emoji }
 	end
 	-- 정의 순서가 아니라 흔한 것 -> 희귀한 것(Landmarks.List). sim.py 가 다시 희귀한 순서로 정렬
 	local landmarks = {}
 	for _, lm in Landmarks.List do
-		table.insert(
-			landmarks,
-			{ id = lm.Id, name = lm.Name, one_in = lm.OneIn, region = lm.Region, rank = lm.Tier.Rank }
-		)
+		table.insert(landmarks, {
+			id = lm.Id,
+			name = lm.Name,
+			subtitle = lm.Subtitle,
+			one_in = lm.OneIn,
+			region = lm.Region,
+			rank = lm.Tier.Rank,
+		})
 	end
 	return {
 		source = "luaurun",
@@ -141,14 +148,24 @@ local function dumpConfig()
 		upgrade_order = order,
 		rebirths = rebirths,
 		max_rebirths = Config.MAX_REBIRTHS,
-		rebirth_luck = { type = "linear", per = Config.REBIRTH_LUCK_BONUS },
+		-- 환생 행운: 2026-09-30 부터 × REBIRTH_LUCK_MULT^환생 수(예전 설정은 1 + REBIRTH_LUCK_BONUS × 환생 수)
+		rebirth_luck = if Config.REBIRTH_LUCK_MULT
+			then { type = "mult", base = Config.REBIRTH_LUCK_MULT }
+			else { type = "linear", per = Config.REBIRTH_LUCK_BONUS },
 		rebirth_income = { type = "linear", per = Config.REBIRTH_INCOME_BONUS },
 		passes = passes,
 		products = products,
 		max_boost_seconds = Config.MAX_BOOST_SECONDS,
 		tiers = tiers,
 		regions = regions,
+		region_info = regionInfo,
 		landmarks = landmarks,
+		-- 게임 코드에 들어 있는 규칙(sim.py 의 rules): 자동 발견, AUTO 에서 이미 발견한 명소는 짧은 연출
+		rules = {
+			auto_discover_below_luck = PlayerState.autoDiscover ~= nil,
+			short_reveal_known = knownRevealRank > 0,
+			short_reveal_rank = if knownRevealRank > 0 then knownRevealRank else 3,
+		},
 	}
 end
 

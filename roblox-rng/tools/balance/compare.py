@@ -14,6 +14,10 @@ share of players held up by the landmark instead of the coins).
 Variants (paths relative to roblox-rng): current = the Luau sources on disk; A = balance/variant_a.json with the
 auto-discover rule its author lists as required (the JSON itself leaves it out; the as-published A is also run
 for the stamp table); B = balance/variant_b.json; rec = balance/variant_rec.json.
+
+Since the 2026-09-30 implementation round the game on disk IS the recommendation (plus the short AUTO reveal and
+gacha stars), so a re-run compares the implemented game with A / B. Section 8 of balance/sim_results.md (written from
+tools/balance/tune_final.py) is kept when this script rewrites the file.
 """
 
 from __future__ import annotations
@@ -616,7 +620,13 @@ def main() -> None:
     elapsed = time.time() - started
     md = build_report(jobs, args, elapsed)
     md += ("\n" + sensitivity_section(jobs)) if args.extra else ""
-    Path(args.out).write_text(md, encoding="utf-8")
+    out = Path(args.out)
+    if out.exists():  # keep the hand-written implementation round (section 8, tools/balance/tune_final.py)
+        old = out.read_text(encoding="utf-8")
+        cut = old.find("\n## 8. ")
+        if cut >= 0:
+            md = md.rstrip("\n") + "\n" + old[cut:]
+    out.write_text(md, encoding="utf-8")
     Path(args.out).with_suffix(".json").write_text(
         json.dumps({f"{k[0]}|{k[1]}|{k[2]}": v for k, v in jobs.items()}, ensure_ascii=False, indent=1, default=float), encoding="utf-8"
     )

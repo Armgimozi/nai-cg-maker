@@ -71,11 +71,16 @@ local Config = {
 	ROLL_COOLDOWN = 1.2, -- 굴리기 사이 최소 간격(초). 서버가 강제합니다.
 	COOLDOWN_TOLERANCE = 0.15, -- 네트워크 지연을 감안한 허용 오차(초)
 	BASE_LUCK = 1,
+	-- 자동 굴림(AUTO) 중 이미 발견한 명소는 등급과 상관없이 이 등급(Rank)의 AUTO 연출 길이로 보여 줌(새 발견·수동 굴림은
+	-- 원래 길이). 4등급 이상의 긴 정지가 없어져 후반 AUTO 가 약 4.5배 빨라짐. 0 이면 끔(모든 결과를 등급 길이대로).
+	-- 이 짧은 연출도 한 번에 약 1.3초(왕복 포함)라 굴림 간격(1.2초)보다 길어서 여행사·빠른 굴림은 AUTO 속도를 거의
+	-- 못 바꿈(balance/sim_results.md 8e)
+	AUTO_KNOWN_REVEAL_RANK = 3,
 
-	-- 1/N 이상 희귀한 명소를 발견하면 서버 전체에 "뉴스 속보"
-	ANNOUNCE_ONE_IN = 1000,
-	-- 1/N 이상이면 광장 하늘에 거대한 홀로그램까지 띄움
-	HOLOGRAM_ONE_IN = 10000,
+	-- 1/N 이상 희귀한 명소를 발견하면 서버 전체에 "뉴스 속보"(사하라 신기루 성·샹그릴라·세계수 = 후반 1인 시간당 약 0.2~0.4번)
+	ANNOUNCE_ONE_IN = 100000000,
+	-- 1/N 이상이면 광장 하늘에 거대한 홀로그램까지 띄움(샹그릴라·세계수)
+	HOLOGRAM_ONE_IN = 375000000,
 
 	-- 새 명소를 처음 발견했을 때 보너스 코인 = ceil(DISCOVERY_BONUS_MULT * N ^ 0.5)
 	DISCOVERY_BONUS_MULT = 5,
@@ -84,10 +89,11 @@ local Config = {
 	BASE_SLOTS = 6, -- 처음 전시 칸 수 (공원 확장 업그레이드로 늘어남)
 	PARK_GRID = 6, -- 공원 전시 격자 한 변의 칸 수(6×6 = 최대 36칸). 명소가 더 많으면 희귀한 순서로 36개만 전시
 	-- 등급(Rank 1~7)별 명소 1개의 초당 관광 수입
-	TIER_INCOME = { 1, 2, 5, 12, 30, 80, 250 },
-	-- 같은 명소를 여러 번 발견하면 별(★)이 오름. 별 k 개가 되는 누적 발견 수
-	STAR_THRESHOLDS = { 1, 3, 10, 30, 100 },
-	STAR_INCOME_BONUS = 0.5, -- 별 1개 추가마다 그 명소 수입 +50%
+	TIER_INCOME = { 1, 2, 5, 12, 35, 120, 500 },
+	-- 별(★): 가챠 중복처럼 같은 명소를 또 뽑을 때마다 +1. 처음 발견 = 별 0, 2번째 = ★1 … 6번째 = ★5(최대).
+	-- STAR_THRESHOLDS[k] = 별 k 개가 되는 이번 판 발견 수(보유 수). 별 수는 보유 수로 계산하고 저장하지 않음
+	STAR_THRESHOLDS = { 2, 3, 4, 5, 6 },
+	STAR_INCOME_BONUS = 0.3, -- 별 1개마다 그 명소 수입 +30% (★5 = ×2.5)
 
 	-- 여권 도장: 한 대륙에서 이 등급(Rank) 이하의 명소를 모두 발견하면 영구 행운 보너스(대륙마다 더해짐).
 	-- 5 = 불가사의까지. 그보다 희귀한 전설급은 도장에 필요 없는 보너스 수집.
@@ -142,20 +148,22 @@ local Config = {
 	-- REBIRTHS[n] = n 번째 환생 조건. 요구 명소는 이번 판에 보유하고 있어야 함(환생하면 보유 명소는 비워짐).
 	-- 환생은 MAX_REBIRTHS 번까지(목록 길이와 같음). 다 하면 더 환생할 수 없음.
 	-- (명소 목록이 늘어나도 그대로 쓸 수 있는 명소 Id 만 사용)
+	-- 요구 명소는 그 판에 부스트를 다 켠 최대 행운보다 희귀해야 함(행운 ≥ N 이면 굴림에서 못 나옴 — 테스트가 확인).
+	-- 진행 목표(무료, AUTO, 온라인 시간): 첫 환생 약 16분, 3번째 2.4시간, 5번째 18시간, 10번째 약 18일(balance/)
 	REBIRTHS = {
-		{ Coins = 5000, Landmarks = { "eiffel", "liberty" } },
-		{ Coins = 30000, Landmarks = { "colosseum", "tajmahal" } },
-		{ Coins = 150000, Landmarks = { "sphinx", "greatwall" } },
-		{ Coins = 600000, Landmarks = { "pyramid", "chichen", "machupicchu" } },
-		{ Coins = 2500000, Landmarks = { "petra", "moai", "stonehenge" } },
-		{ Coins = 10000000, Landmarks = { "alexandria", "reef" } },
-		{ Coins = 40000000, Landmarks = { "babylon", "rhodes", "nanmadol" } },
-		{ Coins = 160000000, Landmarks = { "babel" } },
-		{ Coins = 640000000, Landmarks = { "atlantis", "eldorado" } },
-		{ Coins = 2560000000, Landmarks = { "yonggung" } },
+		{ Coins = 300000, Landmarks = { "eiffel", "liberty" } },
+		{ Coins = 1500000, Landmarks = { "pyramid", "chichen" } },
+		{ Coins = 25000000, Landmarks = { "moai", "stonehenge", "alexandria" } },
+		{ Coins = 250000000, Landmarks = { "babylon", "artemis", "rhodes" } },
+		{ Coins = 1500000000, Landmarks = { "zeus", "mausoleum", "trojanhorse" } },
+		{ Coins = 6000000000, Landmarks = { "atlantis", "labyrinth" } },
+		{ Coins = 13000000000, Landmarks = { "hwangnyongsa", "eldorado" } },
+		{ Coins = 28000000000, Landmarks = { "fountainofyouth", "yonggung" } },
+		{ Coins = 65000000000, Landmarks = { "mu", "zealandia" } },
+		{ Coins = 140000000000, Landmarks = { "skyisland" } },
 	} :: { RebirthStep },
 	MAX_REBIRTHS = 10, -- 환생 상한(= REBIRTHS 단계 수). 보너스도 여기서 멈춤
-	REBIRTH_LUCK_BONUS = 0.2, -- 환생 1회마다 행운 +20% (행운 × (1 + 0.2 × 환생 수))
+	REBIRTH_LUCK_MULT = 2, -- 환생 1회마다 행운 ×2 (행운 × 2^환생 수: 10번 = ×1,024)
 	REBIRTH_INCOME_BONUS = 0.5, -- 환생 1회마다 관광 수입 +50% (수입 × (1 + 0.5 × 환생 수))
 
 	-- 유료 상품(Robux) ----------------------------------------------------
@@ -399,9 +407,9 @@ Landmarks.Tiers = {
 	{ Rank = 2, Name = "도시 명소", MinOneIn = 10, Color = Color3.fromRGB(110, 215, 120) },
 	{ Rank = 3, Name = "국가 명소", MinOneIn = 100, Color = Color3.fromRGB(80, 165, 255) },
 	{ Rank = 4, Name = "세계 명소", MinOneIn = 1000, Color = Color3.fromRGB(185, 110, 255) },
-	{ Rank = 5, Name = "불가사의", MinOneIn = 10000, Color = Color3.fromRGB(255, 175, 45) },
-	{ Rank = 6, Name = "잃어버린 유산", MinOneIn = 100000, Color = Color3.fromRGB(255, 85, 110) },
-	{ Rank = 7, Name = "전설", MinOneIn = 1000000, Color = Color3.fromRGB(120, 255, 235) },
+	{ Rank = 5, Name = "불가사의", MinOneIn = 12500, Color = Color3.fromRGB(255, 175, 45) },
+	{ Rank = 6, Name = "잃어버린 유산", MinOneIn = 250000, Color = Color3.fromRGB(255, 85, 110) },
+	{ Rank = 7, Name = "전설", MinOneIn = 8000000, Color = Color3.fromRGB(120, 255, 235) },
 } :: { Tier }
 
 -- 여권에 나오는 대륙(도장 대상). 순서 = 여권/지구본 연출 순서
@@ -518,9 +526,9 @@ local DEFINITIONS = {
 	{ "stpeters", "성 베드로 대성당", "St. Peter's Basilica", 950, "Europe", "dome", rgb(232, 223, 203), rgb(138, 154, 160), rgb(255, 216, 120), M.Limestone },
 
 	{ "milfordsound", "밀퍼드 사운드", "Milford Sound (Mitre Peak)", 1000, "Oceania", "island", rgb(60, 90, 80), rgb(30, 90, 140), rgb(255, 255, 255), M.Slate },
-	{ "cappadocia", "카파도키아", "Cappadocia", 1080, "Asia", "stones", rgb(230, 200, 160), rgb(180, 140, 100), rgb(255, 90, 90), M.Sandstone },
-	{ "uyuni", "우유니 소금사막", "Salar de Uyuni", 1150, "Americas", "island", rgb(245, 245, 245), rgb(150, 200, 240), rgb(255, 180, 200), M.Salt },
-	{ "sphinx", "스핑크스", "Great Sphinx", 1200, "Africa", "sphinx", rgb(215, 180, 120), rgb(190, 155, 100), rgb(80, 120, 200), M.Sandstone },
+	{ "cappadocia", "카파도키아", "Cappadocia", 1100, "Asia", "stones", rgb(230, 200, 160), rgb(180, 140, 100), rgb(255, 90, 90), M.Sandstone },
+	{ "uyuni", "우유니 소금사막", "Salar de Uyuni", 1200, "Americas", "island", rgb(245, 245, 245), rgb(150, 200, 240), rgb(255, 180, 200), M.Salt },
+	{ "sphinx", "스핑크스", "Great Sphinx", 1250, "Africa", "sphinx", rgb(215, 180, 120), rgb(190, 155, 100), rgb(80, 120, 200), M.Sandstone },
 	{ "neuschwanstein", "노이슈반슈타인 성", "Neuschwanstein Castle", 1300, "Europe", "facade", rgb(242, 239, 232), rgb(74, 111, 165), rgb(255, 216, 120), M.Limestone },
 	{ "halong", "하롱베이", "Ha Long Bay", 1400, "Asia", "seastacks", rgb(110, 140, 120), rgb(60, 180, 170), rgb(200, 60, 40), M.Rock },
 	{ "kilimanjaro", "킬리만자로산", "Mount Kilimanjaro", 1500, "Africa", "pyramid", rgb(110, 94, 78), rgb(245, 248, 250), rgb(124, 179, 66), M.Rock },
@@ -529,67 +537,67 @@ local DEFINITIONS = {
 	{ "montsaintmichel", "몽생미셸", "Mont-Saint-Michel", 1800, "Europe", "island", rgb(184, 174, 156), rgb(94, 107, 120), rgb(255, 211, 90), M.Slate },
 	{ "victoriafalls", "빅토리아 폭포", "Victoria Falls", 1900, "Africa", "fountain", rgb(79, 179, 232), rgb(94, 90, 85), rgb(244, 251, 255), M.Slate },
 	{ "kilauea", "킬라우에아 화산", "Kilauea Volcano", 2000, "Oceania", "island", rgb(60, 50, 50), rgb(255, 90, 30), rgb(255, 200, 60), M.Basalt },
-	{ "pyramid", "기자 피라미드", "Pyramids of Giza", 2200, "Africa", "pyramid", rgb(225, 195, 130), rgb(200, 170, 110), rgb(255, 225, 120), M.Sandstone },
-	{ "grandcanyon", "그랜드 캐니언", "Grand Canyon", 2400, "Americas", "terraces", rgb(200, 100, 60), rgb(230, 160, 100), rgb(90, 180, 230), M.Sandstone },
-	{ "zhangjiajie", "장가계", "Zhangjiajie Stone Pillars", 2500, "Asia", "seastacks", rgb(140, 130, 120), rgb(60, 160, 70), rgb(220, 240, 255), M.Rock },
-	{ "segovia", "세고비아 수도교", "Aqueduct of Segovia", 2650, "Europe", "arch", rgb(191, 168, 138), rgb(140, 122, 98), rgb(242, 221, 176), M.Granite },
-	{ "reef", "그레이트 배리어 리프", "Great Barrier Reef", 2800, "Oceania", "reef", rgb(255, 120, 150), rgb(40, 170, 210), rgb(255, 215, 90), M.SmoothPlastic },
-	{ "chichen", "치첸이트사", "Chichen Itza", 3000, "Americas", "steps", rgb(190, 180, 160), rgb(80, 140, 80), rgb(230, 220, 190), M.Limestone },
-	{ "forbiddencity", "자금성", "Forbidden City", 3300, "Asia", "temple", rgb(200, 50, 40), rgb(255, 200, 50), rgb(240, 230, 210), M.Brick },
-	{ "serengeti", "세렝게티 초원", "Serengeti", 3500, "Africa", "tree", rgb(217, 181, 74), rgb(107, 142, 35), rgb(242, 140, 40), M.Grass },
-	{ "parthenon", "파르테논 신전", "Parthenon", 3750, "Europe", "temple", rgb(240, 232, 216), rgb(200, 184, 154), rgb(111, 160, 216), M.Marble },
-	{ "machupicchu", "마추픽추", "Machu Picchu", 4000, "Americas", "terraces", rgb(150, 145, 135), rgb(90, 160, 80), rgb(200, 230, 255), M.Slate },
-	{ "amazon", "아마존 열대우림", "Amazon Rainforest", 4300, "Americas", "tree", rgb(46, 139, 60), rgb(140, 110, 60), rgb(255, 90, 60), M.LeafyGrass },
-	{ "borobudur", "보로부두르 사원", "Borobudur", 4600, "Asia", "steps", rgb(140, 140, 130), rgb(90, 150, 90), rgb(220, 210, 180), M.Basalt },
-	{ "sahara", "사하라 사막", "Sahara Desert", 4900, "Africa", "island", rgb(239, 194, 122), rgb(201, 139, 69), rgb(63, 163, 77), M.Sand },
-	{ "meteora", "메테오라 수도원", "Meteora Monasteries", 5200, "Europe", "seastacks", rgb(184, 164, 136), rgb(200, 96, 60), rgb(136, 184, 104), M.Rock },
-	{ "petra", "페트라", "Petra", 5500, "Asia", "facade", rgb(215, 130, 100), rgb(180, 100, 75), rgb(255, 200, 150), M.Sandstone },
-	{ "galapagos", "갈라파고스 제도", "Galapagos Islands", 5900, "Americas", "island", rgb(78, 140, 70), rgb(40, 160, 200), rgb(140, 122, 90), M.Ground },
-	{ "abusimbel", "아부심벨 신전", "Abu Simbel Temples", 6300, "Africa", "facade", rgb(217, 168, 108), rgb(168, 116, 63), rgb(242, 193, 78), M.Sandstone },
-	{ "matterhorn", "마터호른", "Matterhorn", 6600, "Europe", "pyramid", rgb(140, 138, 136), rgb(255, 255, 255), rgb(111, 176, 232), M.Rock },
-	{ "moai", "모아이 석상", "Moai", 7000, "Oceania", "moai", rgb(110, 105, 100), rgb(80, 150, 90), rgb(200, 60, 50), M.Basalt },
-	{ "angelfalls", "앙헬 폭포", "Angel Falls", 7500, "Americas", "fountain", rgb(110, 80, 70), rgb(70, 150, 60), rgb(240, 250, 255), M.Sandstone },
-	{ "everest", "에베레스트산", "Mount Everest", 8000, "Asia", "pyramid", rgb(245, 248, 255), rgb(110, 120, 135), rgb(255, 180, 90), M.Snow },
-	{ "teotihuacan", "테오티우아칸", "Teotihuacan", 8500, "Americas", "steps", rgb(160, 130, 100), rgb(110, 90, 70), rgb(255, 200, 120), M.Cobblestone },
-	{ "stonehenge", "스톤헨지", "Stonehenge", 9000, "Europe", "stones", rgb(150, 150, 145), rgb(90, 150, 80), rgb(200, 220, 255), M.Slate },
+	{ "pyramid", "기자 피라미드", "Pyramids of Giza", 2250, "Africa", "pyramid", rgb(225, 195, 130), rgb(200, 170, 110), rgb(255, 225, 120), M.Sandstone },
+	{ "grandcanyon", "그랜드 캐니언", "Grand Canyon", 2500, "Americas", "terraces", rgb(200, 100, 60), rgb(230, 160, 100), rgb(90, 180, 230), M.Sandstone },
+	{ "zhangjiajie", "장가계", "Zhangjiajie Stone Pillars", 2600, "Asia", "seastacks", rgb(140, 130, 120), rgb(60, 160, 70), rgb(220, 240, 255), M.Rock },
+	{ "segovia", "세고비아 수도교", "Aqueduct of Segovia", 2750, "Europe", "arch", rgb(191, 168, 138), rgb(140, 122, 98), rgb(242, 221, 176), M.Granite },
+	{ "reef", "그레이트 배리어 리프", "Great Barrier Reef", 3000, "Oceania", "reef", rgb(255, 120, 150), rgb(40, 170, 210), rgb(255, 215, 90), M.SmoothPlastic },
+	{ "chichen", "치첸이트사", "Chichen Itza", 3250, "Americas", "steps", rgb(190, 180, 160), rgb(80, 140, 80), rgb(230, 220, 190), M.Limestone },
+	{ "forbiddencity", "자금성", "Forbidden City", 3500, "Asia", "temple", rgb(200, 50, 40), rgb(255, 200, 50), rgb(240, 230, 210), M.Brick },
+	{ "serengeti", "세렝게티 초원", "Serengeti", 3750, "Africa", "tree", rgb(217, 181, 74), rgb(107, 142, 35), rgb(242, 140, 40), M.Grass },
+	{ "parthenon", "파르테논 신전", "Parthenon", 4000, "Europe", "temple", rgb(240, 232, 216), rgb(200, 184, 154), rgb(111, 160, 216), M.Marble },
+	{ "machupicchu", "마추픽추", "Machu Picchu", 4500, "Americas", "terraces", rgb(150, 145, 135), rgb(90, 160, 80), rgb(200, 230, 255), M.Slate },
+	{ "amazon", "아마존 열대우림", "Amazon Rainforest", 4700, "Americas", "tree", rgb(46, 139, 60), rgb(140, 110, 60), rgb(255, 90, 60), M.LeafyGrass },
+	{ "borobudur", "보로부두르 사원", "Borobudur", 5000, "Asia", "steps", rgb(140, 140, 130), rgb(90, 150, 90), rgb(220, 210, 180), M.Basalt },
+	{ "sahara", "사하라 사막", "Sahara Desert", 5500, "Africa", "island", rgb(239, 194, 122), rgb(201, 139, 69), rgb(63, 163, 77), M.Sand },
+	{ "meteora", "메테오라 수도원", "Meteora Monasteries", 6000, "Europe", "seastacks", rgb(184, 164, 136), rgb(200, 96, 60), rgb(136, 184, 104), M.Rock },
+	{ "petra", "페트라", "Petra", 6250, "Asia", "facade", rgb(215, 130, 100), rgb(180, 100, 75), rgb(255, 200, 150), M.Sandstone },
+	{ "galapagos", "갈라파고스 제도", "Galapagos Islands", 7000, "Americas", "island", rgb(78, 140, 70), rgb(40, 160, 200), rgb(140, 122, 90), M.Ground },
+	{ "abusimbel", "아부심벨 신전", "Abu Simbel Temples", 7500, "Africa", "facade", rgb(217, 168, 108), rgb(168, 116, 63), rgb(242, 193, 78), M.Sandstone },
+	{ "matterhorn", "마터호른", "Matterhorn", 7750, "Europe", "pyramid", rgb(140, 138, 136), rgb(255, 255, 255), rgb(111, 176, 232), M.Rock },
+	{ "moai", "모아이 석상", "Moai", 8000, "Oceania", "moai", rgb(110, 105, 100), rgb(80, 150, 90), rgb(200, 60, 50), M.Basalt },
+	{ "angelfalls", "앙헬 폭포", "Angel Falls", 9000, "Americas", "fountain", rgb(110, 80, 70), rgb(70, 150, 60), rgb(240, 250, 255), M.Sandstone },
+	{ "everest", "에베레스트산", "Mount Everest", 9500, "Asia", "pyramid", rgb(245, 248, 255), rgb(110, 120, 135), rgb(255, 180, 90), M.Snow },
+	{ "teotihuacan", "테오티우아칸", "Teotihuacan", 10000, "Americas", "steps", rgb(160, 130, 100), rgb(110, 90, 70), rgb(255, 200, 120), M.Cobblestone },
+	{ "stonehenge", "스톤헨지", "Stonehenge", 11000, "Europe", "stones", rgb(150, 150, 145), rgb(90, 150, 80), rgb(200, 220, 255), M.Slate },
 
-	{ "waitomo", "와이토모 반딧불이 동굴", "Waitomo Glowworm Caves", 10000, "Oceania", "arch", rgb(80, 75, 70), rgb(30, 40, 60), rgb(120, 240, 255), M.Rock },
-	{ "giantscauseway", "자이언츠 코즈웨이", "Giant's Causeway", 11000, "Europe", "steps", rgb(60, 60, 68), rgb(44, 143, 184), rgb(167, 216, 240), M.Basalt },
-	{ "terracotta", "진시황 병마용", "Terracotta Army", 12500, "Asia", "statue", rgb(160, 130, 110), rgb(120, 100, 80), rgb(200, 170, 140), M.Sandstone },
-	{ "bluehole", "그레이트 블루홀", "Great Blue Hole", 14000, "Americas", "reef", rgb(20, 40, 90), rgb(70, 200, 220), rgb(240, 230, 200), M.SmoothPlastic },
-	{ "alexandria", "알렉산드리아 등대", "Lighthouse of Alexandria", 15000, "Africa", "lighthouse", rgb(245, 240, 225), rgb(220, 200, 160), rgb(255, 170, 60), M.Marble },
-	{ "tutankhamun", "투탕카멘의 무덤", "Tomb of Tutankhamun", 17000, "Africa", "statue", rgb(232, 185, 35), rgb(30, 58, 138), rgb(201, 160, 106), M.Foil },
-	{ "nazca", "나스카 라인", "Nazca Lines", 20000, "Americas", "ruins", rgb(200, 150, 110), rgb(140, 100, 70), rgb(240, 220, 200), M.Sand },
-	{ "yapstone", "얍섬 돌 화폐", "Rai Stones of Yap", 22000, "Oceania", "ring", rgb(190, 180, 160), rgb(140, 130, 112), rgb(80, 160, 80), M.Limestone },
-	{ "pompeii", "폼페이", "Pompeii & Mount Vesuvius", 25000, "Europe", "ruins", rgb(201, 178, 142), rgb(106, 90, 80), rgb(255, 106, 42), M.Sandstone },
-	{ "babylon", "바빌론 공중정원", "Hanging Gardens of Babylon", 30000, "Asia", "gardens", rgb(210, 180, 130), rgb(60, 170, 70), rgb(120, 200, 255), M.Sandstone },
-	{ "richat", "사하라의 눈", "Richat Structure (Eye of the Sahara)", 33000, "Africa", "ring", rgb(217, 138, 78), rgb(138, 90, 60), rgb(242, 208, 138), M.Sand },
-	{ "olmechead", "올멕 거대 두상", "Olmec Colossal Head", 36000, "Americas", "moai", rgb(110, 105, 100), rgb(78, 140, 70), rgb(200, 160, 110), M.Basalt },
-	{ "artemis", "아르테미스 신전", "Temple of Artemis at Ephesus", 40000, "Asia", "temple", rgb(240, 235, 225), rgb(200, 180, 150), rgb(255, 210, 110), M.Marble },
-	{ "nanmadol", "난마돌", "Nan Madol", 45000, "Oceania", "ruins", rgb(70, 70, 78), rgb(40, 150, 175), rgb(110, 200, 110), M.Basalt },
-	{ "greatzimbabwe", "그레이트 짐바브웨", "Great Zimbabwe", 50000, "Africa", "ruins", rgb(154, 143, 126), rgb(107, 99, 88), rgb(201, 162, 74), M.Granite },
-	{ "rhodes", "로도스 거상", "Colossus of Rhodes", 60000, "Europe", "statue", rgb(190, 130, 60), rgb(230, 225, 210), rgb(255, 140, 40), M.Foil },
-	{ "tenochtitlan", "테노치티틀란", "Tenochtitlan", 65000, "Americas", "island", rgb(210, 180, 140), rgb(60, 150, 200), rgb(200, 60, 60), M.Limestone },
-	{ "zeus", "올림피아 제우스 상", "Statue of Zeus at Olympia", 72000, "Europe", "statue", rgb(242, 230, 204), rgb(212, 166, 42), rgb(127, 216, 255), M.Marble },
-	{ "heracleion", "헤라클레이온 해저 도시", "Sunken City of Heracleion", 80000, "Africa", "ruins", rgb(201, 185, 154), rgb(31, 127, 168), rgb(111, 224, 208), M.Limestone },
-	{ "mausoleum", "마우솔로스 영묘", "Mausoleum at Halicarnassus", 90000, "Asia", "temple", rgb(237, 230, 214), rgb(184, 159, 122), rgb(255, 210, 110), M.Marble },
+	{ "waitomo", "와이토모 반딧불이 동굴", "Waitomo Glowworm Caves", 12500, "Oceania", "arch", rgb(80, 75, 70), rgb(30, 40, 60), rgb(120, 240, 255), M.Rock },
+	{ "giantscauseway", "자이언츠 코즈웨이", "Giant's Causeway", 14000, "Europe", "steps", rgb(60, 60, 68), rgb(44, 143, 184), rgb(167, 216, 240), M.Basalt },
+	{ "terracotta", "진시황 병마용", "Terracotta Army", 16000, "Asia", "statue", rgb(160, 130, 110), rgb(120, 100, 80), rgb(200, 170, 140), M.Sandstone },
+	{ "bluehole", "그레이트 블루홀", "Great Blue Hole", 19000, "Americas", "reef", rgb(20, 40, 90), rgb(70, 200, 220), rgb(240, 230, 200), M.SmoothPlastic },
+	{ "alexandria", "알렉산드리아 등대", "Lighthouse of Alexandria", 20000, "Africa", "lighthouse", rgb(245, 240, 225), rgb(220, 200, 160), rgb(255, 170, 60), M.Marble },
+	{ "tutankhamun", "투탕카멘의 무덤", "Tomb of Tutankhamun", 25000, "Africa", "statue", rgb(232, 185, 35), rgb(30, 58, 138), rgb(201, 160, 106), M.Foil },
+	{ "nazca", "나스카 라인", "Nazca Lines", 30000, "Americas", "ruins", rgb(200, 150, 110), rgb(140, 100, 70), rgb(240, 220, 200), M.Sand },
+	{ "yapstone", "얍섬 돌 화폐", "Rai Stones of Yap", 32500, "Oceania", "ring", rgb(190, 180, 160), rgb(140, 130, 112), rgb(80, 160, 80), M.Limestone },
+	{ "pompeii", "폼페이", "Pompeii & Mount Vesuvius", 40000, "Europe", "ruins", rgb(201, 178, 142), rgb(106, 90, 80), rgb(255, 106, 42), M.Sandstone },
+	{ "babylon", "바빌론 공중정원", "Hanging Gardens of Babylon", 50000, "Asia", "gardens", rgb(210, 180, 130), rgb(60, 170, 70), rgb(120, 200, 255), M.Sandstone },
+	{ "richat", "사하라의 눈", "Richat Structure (Eye of the Sahara)", 55000, "Africa", "ring", rgb(217, 138, 78), rgb(138, 90, 60), rgb(242, 208, 138), M.Sand },
+	{ "olmechead", "올멕 거대 두상", "Olmec Colossal Head", 65000, "Americas", "moai", rgb(110, 105, 100), rgb(78, 140, 70), rgb(200, 160, 110), M.Basalt },
+	{ "artemis", "아르테미스 신전", "Temple of Artemis at Ephesus", 70000, "Asia", "temple", rgb(240, 235, 225), rgb(200, 180, 150), rgb(255, 210, 110), M.Marble },
+	{ "nanmadol", "난마돌", "Nan Madol", 85000, "Oceania", "ruins", rgb(70, 70, 78), rgb(40, 150, 175), rgb(110, 200, 110), M.Basalt },
+	{ "greatzimbabwe", "그레이트 짐바브웨", "Great Zimbabwe", 95000, "Africa", "ruins", rgb(154, 143, 126), rgb(107, 99, 88), rgb(201, 162, 74), M.Granite },
+	{ "rhodes", "로도스 거상", "Colossus of Rhodes", 125000, "Europe", "statue", rgb(190, 130, 60), rgb(230, 225, 210), rgb(255, 140, 40), M.Foil },
+	{ "tenochtitlan", "테노치티틀란", "Tenochtitlan", 140000, "Americas", "island", rgb(210, 180, 140), rgb(60, 150, 200), rgb(200, 60, 60), M.Limestone },
+	{ "zeus", "올림피아 제우스 상", "Statue of Zeus at Olympia", 160000, "Europe", "statue", rgb(242, 230, 204), rgb(212, 166, 42), rgb(127, 216, 255), M.Marble },
+	{ "heracleion", "헤라클레이온 해저 도시", "Sunken City of Heracleion", 180000, "Africa", "ruins", rgb(201, 185, 154), rgb(31, 127, 168), rgb(111, 224, 208), M.Limestone },
+	{ "mausoleum", "마우솔로스 영묘", "Mausoleum at Halicarnassus", 225000, "Asia", "temple", rgb(237, 230, 214), rgb(184, 159, 122), rgb(255, 210, 110), M.Marble },
 
-	{ "lochness", "네스호의 네시", "Loch Ness & Nessie", 100000, "Europe", "island", rgb(46, 90, 74), rgb(58, 110, 154), rgb(126, 216, 176), M.Slate },
-	{ "babel", "바벨탑", "Tower of Babel", 150000, "Asia", "spiral", rgb(200, 170, 120), rgb(150, 120, 90), rgb(255, 230, 180), M.Sandstone },
-	{ "trojanhorse", "트로이 목마", "Trojan Horse", 200000, "Asia", "statue", rgb(160, 120, 75), rgb(110, 80, 50), rgb(255, 220, 140), M.WoodPlanks },
-	{ "libraryalex", "알렉산드리아 도서관", "Library of Alexandria", 250000, "Africa", "temple", rgb(242, 237, 225), rgb(201, 163, 107), rgb(255, 179, 71), M.Marble },
-	{ "zealandia", "질랜디아", "Zealandia (Sunken Continent)", 300000, "Oceania", "island", rgb(60, 140, 110), rgb(10, 60, 120), rgb(120, 255, 230), M.Glass },
-	{ "atlantis", "아틀란티스", "Atlantis", 400000, "Europe", "island", rgb(230, 240, 250), rgb(40, 120, 200), rgb(90, 255, 230), M.Marble },
-	{ "labyrinth", "미노타우로스의 미궁", "Labyrinth of the Minotaur", 500000, "Europe", "ruins", rgb(216, 200, 168), rgb(184, 72, 58), rgb(255, 208, 106), M.Sandstone },
-	{ "hwangnyongsa", "황룡사 9층 목탑", "Hwangnyongsa Nine-Story Pagoda", 650000, "Asia", "pagoda", rgb(180, 70, 60), rgb(60, 110, 90), rgb(255, 210, 90), M.WoodPlanks },
-	{ "eldorado", "엘도라도", "El Dorado", 800000, "Americas", "steps", rgb(255, 200, 60), rgb(200, 140, 30), rgb(255, 250, 180), M.Foil },
+	{ "lochness", "네스호의 네시", "Loch Ness & Nessie", 250000, "Europe", "island", rgb(46, 90, 74), rgb(58, 110, 154), rgb(126, 216, 176), M.Slate },
+	{ "babel", "바벨탑", "Tower of Babel", 450000, "Asia", "spiral", rgb(200, 170, 120), rgb(150, 120, 90), rgb(255, 230, 180), M.Sandstone },
+	{ "trojanhorse", "트로이 목마", "Trojan Horse", 650000, "Asia", "statue", rgb(160, 120, 75), rgb(110, 80, 50), rgb(255, 220, 140), M.WoodPlanks },
+	{ "libraryalex", "알렉산드리아 도서관", "Library of Alexandria", 950000, "Africa", "temple", rgb(242, 237, 225), rgb(201, 163, 107), rgb(255, 179, 71), M.Marble },
+	{ "zealandia", "질랜디아", "Zealandia (Sunken Continent)", 1200000, "Oceania", "island", rgb(60, 140, 110), rgb(10, 60, 120), rgb(120, 255, 230), M.Glass },
+	{ "atlantis", "아틀란티스", "Atlantis", 1900000, "Europe", "island", rgb(230, 240, 250), rgb(40, 120, 200), rgb(90, 255, 230), M.Marble },
+	{ "labyrinth", "미노타우로스의 미궁", "Labyrinth of the Minotaur", 2750000, "Europe", "ruins", rgb(216, 200, 168), rgb(184, 72, 58), rgb(255, 208, 106), M.Sandstone },
+	{ "hwangnyongsa", "황룡사 9층 목탑", "Hwangnyongsa Nine-Story Pagoda", 4000000, "Asia", "pagoda", rgb(180, 70, 60), rgb(60, 110, 90), rgb(255, 210, 90), M.WoodPlanks },
+	{ "eldorado", "엘도라도", "El Dorado", 5500000, "Americas", "steps", rgb(255, 200, 60), rgb(200, 140, 30), rgb(255, 250, 180), M.Foil },
 
-	{ "fountainofyouth", "젊음의 샘", "Fountain of Youth", 1000000, "Americas", "fountain", rgb(230, 230, 220), rgb(80, 220, 200), rgb(255, 230, 120), M.Marble },
-	{ "yonggung", "용궁", "Dragon King's Palace", 2000000, "Asia", "pagoda", rgb(230, 70, 70), rgb(40, 130, 150), rgb(120, 255, 220), M.Glass },
-	{ "mu", "무 대륙", "Lost Continent of Mu", 3000000, "Oceania", "island", rgb(175, 165, 125), rgb(30, 110, 170), rgb(255, 210, 90), M.Slate },
-	{ "skyisland", "사하라 신기루 성", "Mirage Citadel of the Sahara", 5000000, "Africa", "skyisland", rgb(235, 200, 130), rgb(190, 140, 80), rgb(170, 240, 255), M.Sand },
-	{ "shangrila", "샹그릴라", "Shangri-La", 10000000, "Asia", "pagoda", rgb(250, 250, 250), rgb(255, 200, 70), rgb(255, 240, 180), M.Marble },
-	{ "worldtree", "세계수", "World Tree", 40000000, "Europe", "tree", rgb(120, 90, 60), rgb(90, 220, 120), rgb(255, 255, 200), M.Wood },
+	{ "fountainofyouth", "젊음의 샘", "Fountain of Youth", 8000000, "Americas", "fountain", rgb(230, 230, 220), rgb(80, 220, 200), rgb(255, 230, 120), M.Marble },
+	{ "yonggung", "용궁", "Dragon King's Palace", 25000000, "Asia", "pagoda", rgb(230, 70, 70), rgb(40, 130, 150), rgb(120, 255, 220), M.Glass },
+	{ "mu", "무 대륙", "Lost Continent of Mu", 45000000, "Oceania", "island", rgb(175, 165, 125), rgb(30, 110, 170), rgb(255, 210, 90), M.Slate },
+	{ "skyisland", "사하라 신기루 성", "Mirage Citadel of the Sahara", 110000000, "Africa", "skyisland", rgb(235, 200, 130), rgb(190, 140, 80), rgb(170, 240, 255), M.Sand },
+	{ "shangrila", "샹그릴라", "Shangri-La", 375000000, "Asia", "pagoda", rgb(250, 250, 250), rgb(255, 200, 70), rgb(255, 240, 180), M.Marble },
+	{ "worldtree", "세계수", "World Tree", 10000000000, "Europe", "tree", rgb(120, 90, 60), rgb(90, 220, 120), rgb(255, 255, 200), M.Wood },
 }
 
 Landmarks.List = {} :: { Landmark }
@@ -8769,8 +8777,8 @@ return ParkGrid
           <string name="Source"><![CDATA[--!strict
 -- 플레이어 데이터와 그 데이터를 바꾸는 규칙(순수 함수). 서버가 유일한 진실의 원천이고,
 -- 클라이언트는 Snapshot 만 받아서 화면에 그립니다. Roblox 서비스에 의존하지 않아 테스트 가능.
--- 읽기 전용 함수(luck, park, parkSlots, stars, incomePerSecond 등)는 Data 대신 Snapshot 을 넘겨도 됩니다.
--- luck / cooldown / incomePerSecond / addIncome / snapshot 은 선택 인자 mods(게임패스·서버 행운)를 받습니다.
+-- 읽기 전용 함수(luck, permanentLuck, park, parkSlots, stars, incomePerSecond 등)는 Data 대신 Snapshot 을 넘겨도 됩니다.
+-- luck / permanentLuck / autoDiscover / cooldown / incomePerSecond / addIncome / snapshot 은 선택 인자 mods(게임패스·서버 행운)를 받습니다.
 -- mods 가 없으면 게임패스·서버 행운 없이 계산합니다. Snapshot 은 Passes/ServerLuck 필드가 있어서
 -- PlayerState.luck(snapshot, snapshot) 처럼 mods 자리에 그대로 넘겨도 됩니다.
 
@@ -8837,6 +8845,9 @@ export type Snapshot = {
 	ServerLuck: boolean, -- 서버 행운 부스트 중인지
 	NextRebirth: RebirthRequirement?, -- 다음 환생 조건(최대까지 했으면 nil)
 	Luck: number, -- mods 반영
+	-- 영구 행운 = Luck 에서 시간 부스트·서버 행운을 뺀 값(PlayerState.permanentLuck). 확률(OneIn)이 이 값 이하인
+	-- 명소는 자동 발견(Discovered 에 이미 들어 있음)이고 부스트 없이는 굴림에서 다시 안 나옴
+	PermanentLuck: number,
 	Cooldown: number, -- mods 반영
 	Income: number, -- 초당 관광 수입(mods 반영)
 }
@@ -8862,6 +8873,8 @@ end
 
 -- 공원 전시 칸 최대 수(격자 칸 수) = Data.Display 최대 길이
 PlayerState.MAX_SLOTS = Config.PARK_GRID * Config.PARK_GRID
+-- 별 최대 개수(★5). 처음 발견 = 별 0, 같은 명소를 또 뽑을 때마다 +1
+PlayerState.MAX_STARS = #Config.STAR_THRESHOLDS
 
 function PlayerState.new(): Data
 	local upgrades = {}
@@ -9104,6 +9117,18 @@ local function rebirthsOf(data: Data | Snapshot): number
 	return data.Rebirths or 0
 end
 
+-- 환생 rebirths 번의 행운 배율 = REBIRTH_LUCK_MULT ^ 환생 수 (1, 2, 4, … 10번 = 1,024). MAX_REBIRTHS 에서 멈춤
+function PlayerState.rebirthLuckMult(rebirths: number): number
+	local n = math.clamp(math.floor(rebirths), 0, Config.MAX_REBIRTHS)
+	return Config.REBIRTH_LUCK_MULT ^ n
+end
+
+-- 환생 rebirths 번의 관광 수입 배율 = 1 + REBIRTH_INCOME_BONUS × 환생 수 (MAX_REBIRTHS 에서 멈춤)
+function PlayerState.rebirthIncomeMult(rebirths: number): number
+	local n = math.clamp(math.floor(rebirths), 0, Config.MAX_REBIRTHS)
+	return 1 + Config.REBIRTH_INCOME_BONUS * n
+end
+
 -- mods 에 있는 게임패스 목록(Config.GamePasses 순서)
 local function ownedPasses(mods: Mods?): { GamePass }
 	local list = {}
@@ -9161,16 +9186,22 @@ end
 
 -- 행운 / 속도 -----------------------------------------------------------------
 
--- 이번 굴림에 적용할 행운 = 기본 × 지구본 × 여권 도장 × 환생 × VIP × 행운 부스트 × 서버 행운
-function PlayerState.luck(data: Data | Snapshot, mods: Mods?): number
+-- 영구 행운 = 기본 × 지구본 × 여권 도장 × 환생(2^환생 수) × 행운 VIP (시간 부스트·서버 행운 제외).
+-- 자동 발견(autoDiscover) 기준. 지구본은 환생하면 0 레벨로 돌아가므로 "영구"는 부스트가 아니라는 뜻
+function PlayerState.permanentLuck(data: Data | Snapshot, mods: Mods?): number
 	local globe = PlayerState.UpgradesById.Globe
 	local globeMult = 1 + globe.PerLevel * PlayerState.upgradeLevel(data, "Globe")
 	local regionMult = 1 + Config.REGION_LUCK_BONUS * #PlayerState.completedRegions(data)
-	local rebirthMult = 1 + Config.REBIRTH_LUCK_BONUS * rebirthsOf(data)
-	local luck = Config.BASE_LUCK * globeMult * regionMult * rebirthMult
+	local luck = Config.BASE_LUCK * globeMult * regionMult * PlayerState.rebirthLuckMult(rebirthsOf(data))
 	for _, pass in ownedPasses(mods) do
 		luck *= pass.LuckMult or 1
 	end
+	return luck
+end
+
+-- 이번 굴림에 적용할 행운 = 영구 행운 × 행운 부스트 × 서버 행운
+function PlayerState.luck(data: Data | Snapshot, mods: Mods?): number
+	local luck = PlayerState.permanentLuck(data, mods)
 	local serverLuck = mods ~= nil and mods.ServerLuck == true
 	for _, product in Config.Products do
 		if product.ServerWide then
@@ -9182,6 +9213,33 @@ function PlayerState.luck(data: Data | Snapshot, mods: Mods?): number
 		end
 	end
 	return luck
+end
+
+-- 자동 발견: 굴림은 희귀한 것부터 "행운 / N" 판정이라 행운 ≥ N 이면 그보다 흔한 명소는 다시는 안 나옴(RollLogic).
+-- 그래서 아직 발견하지 않은 명소 중 확률(OneIn)이 영구 행운(permanentLuck) 이하인 것은 발견한 것으로 칩니다
+-- (도감·여권 도장 기준인 Discovered 에 기록 — 행운이 나중에 내려가도 유지). 보유(Inventory)·공원 수입·
+-- 환생 조건·발견 보너스 코인은 그대로. 새로 채운 도장이 행운을 올리면 한 번 더 확인합니다.
+-- 서버가 상태를 보내기 전(접속·굴림·업그레이드·환생·게임패스)에 부름.
+-- 반환: 이번에 새로 발견 처리한 명소 Id 목록(흔한 것 → 희귀한 것)
+function PlayerState.autoDiscover(data: Data, mods: Mods?): { string }
+	local added = {}
+	while true do
+		local luck = PlayerState.permanentLuck(data, mods)
+		local changed = false
+		for _, landmark in Landmarks.List do
+			if landmark.OneIn > luck then
+				break -- List 는 흔한 것 → 희귀한 것
+			end
+			if not PlayerState.isDiscovered(data, landmark.Id) then
+				data.Discovered[landmark.Id] = true
+				table.insert(added, landmark.Id)
+				changed = true
+			end
+		end
+		if not changed then
+			return added
+		end
+	end
 end
 
 function PlayerState.cooldown(data: Data | Snapshot, mods: Mods?): number
@@ -9200,7 +9258,9 @@ function PlayerState.slots(data: Data | Snapshot): number
 	return Config.BASE_SLOTS + park.PerLevel * PlayerState.upgradeLevel(data, "Park")
 end
 
--- 발견 횟수 -> 별 개수(0~5). 0 이면 미발견.
+-- 이번 판 발견 횟수(보유 수) -> 별 개수(0~MAX_STARS). 가챠 중복처럼 처음 발견 = 별 0, 또 뽑을 때마다 +1
+-- (STAR_THRESHOLDS = { 2, 3, 4, 5, 6 }: 2번째 ★1 … 6번째 ★5). 보유하지 않았어도(0) 별 0 이므로 보유 여부는
+-- 개수(count > 0)로 판단. 별은 개수로 계산하고 따로 저장하지 않음
 function PlayerState.stars(count: number): number
 	local stars = 0
 	for i, threshold in Config.STAR_THRESHOLDS do
@@ -9437,14 +9497,13 @@ function fillSlots(data: Data, from: number, to: number)
 	end
 end
 
--- 명소 1개의 초당 수입 (입장료 업그레이드 제외)
+-- 명소 1개의 초당 수입 (입장료 업그레이드 제외) = 등급 수입 × (1 + 별 보너스 × 별 수). 보유하지 않으면 0
 function PlayerState.landmarkIncome(landmark: Landmark, count: number): number
-	local stars = PlayerState.stars(count)
-	if stars == 0 then
+	if not (count > 0) then
 		return 0
 	end
 	local base = Config.TIER_INCOME[landmark.Tier.Rank] or 0
-	return base * (1 + Config.STAR_INCOME_BONUS * (stars - 1))
+	return base * (1 + Config.STAR_INCOME_BONUS * PlayerState.stars(count))
 end
 
 -- 직접 배치 중 "전시하면 수입이 느는데 전시 안 된" 보유 명소 Id 목록(희귀한 순서): 전시 칸에 있는 명소 중
@@ -9504,7 +9563,7 @@ function PlayerState.incomePerSecond(data: Data | Snapshot, mods: Mods?): number
 	local ticket = PlayerState.UpgradesById.Ticket
 	local income = total
 		* (1 + ticket.PerLevel * PlayerState.upgradeLevel(data, "Ticket"))
-		* (1 + Config.REBIRTH_INCOME_BONUS * rebirthsOf(data))
+		* PlayerState.rebirthIncomeMult(rebirthsOf(data))
 	for _, pass in ownedPasses(mods) do
 		income *= pass.IncomeMult or 1
 	end
@@ -9525,7 +9584,8 @@ function PlayerState.discoveryBonus(landmark: Landmark): number
 end
 
 -- 굴림 결과 반영. 반환: 보너스 코인, 역대 처음 발견인지(보너스는 이때만), 별이 올랐는지
--- (환생 뒤 예전에 발견했던 명소를 다시 얻으면 처음 발견도 별 상승도 아님)
+-- (이번 판에 이미 보유한 명소를 또 뽑으면 별 +1(★5 까지). 환생 뒤 예전에 발견했던 명소를 다시 얻으면
+-- 처음 발견도 별 상승도 아님 — 별 0 부터 다시)
 -- 직접 배치 중 이번 판에 처음 얻은 명소는 첫 빈 전시 칸에 놓임(빈 칸이 없으면 안 놓임)
 function PlayerState.applyRoll(data: Data, landmark: Landmark): (number, boolean, boolean)
 	local before = data.Inventory[landmark.Id] or 0
@@ -9707,6 +9767,7 @@ function PlayerState.snapshot(data: Data, revision: number, mods: Mods?): Snapsh
 		ServerLuck = mods ~= nil and mods.ServerLuck == true,
 		NextRebirth = PlayerState.rebirthRequirement(data.Rebirths),
 		Luck = PlayerState.luck(data, mods),
+		PermanentLuck = PlayerState.permanentLuck(data, mods),
 		Cooldown = PlayerState.cooldown(data, mods),
 		Income = PlayerState.incomePerSecond(data, mods),
 	}
@@ -9849,10 +9910,14 @@ local function modsFor(session: Session): PlayerState.Mods
 	return { Passes = session.Passes, ServerLuck = serverLuckLeft() > 0 }
 end
 
+-- 상태를 보낼 때마다 먼저 자동 발견(영구 행운 이하 확률의 미발견 명소 -> 발견 기록). 접속·굴림·업그레이드·환생·
+-- 게임패스 등 행운이 바뀌는 일은 모두 상태를 보내므로 도감·여권이 서버와 화면에서 늘 같음
 local function snapshot(session: Session): PlayerState.Snapshot
+	local mods = modsFor(session)
+	PlayerState.autoDiscover(session.Data, mods)
 	session.Revision += 1
 	session.LastSync = time()
-	return PlayerState.snapshot(session.Data, session.Revision, modsFor(session))
+	return PlayerState.snapshot(session.Data, session.Revision, mods)
 end
 
 local function pushState(player: Player)
@@ -10294,6 +10359,8 @@ Net.fn("Roll").OnServerInvoke = function(player: Player)
 	end
 	session.LastRoll = math.max(now, readyAt)
 
+	-- 굴리기 전에 자동 발견(도장이 늘면 행운이 오름). 굴린 뒤의 자동 발견은 응답 State(snapshot)에서
+	PlayerState.autoDiscover(session.Data, mods)
 	local luck = PlayerState.luck(session.Data, mods)
 	local landmark = RollLogic.roll(Landmarks.RarestFirst, luck, nextNumber)
 	local bonus, isNew, starUp = PlayerState.applyRoll(session.Data, landmark)

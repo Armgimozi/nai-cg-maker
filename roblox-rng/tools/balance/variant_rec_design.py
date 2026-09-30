@@ -23,6 +23,14 @@ A 에서 바꾼 것(모두 sim.py 로 반복 측정해서 고름 — balance/sim
      A 의 JSON 에는 빠져 있었음(없으면 VIP 구매자 여권 도장 중앙값 0/5).
 그대로 둔 것: 150개 명소 확률(A), 등급 경계 1/10/100/1,000/12,500/250,000/8,000,000, 등급 수입 1/2/5/12/35/120/500,
   환생 수입 +50%/회, 업그레이드·게임패스·상품(지구본 가격을 낮춰 보는 것도 시험했지만 15분 발견 수가 거의 안 바뀌어 뺌).
+
+구현 라운드(2026-09-30, 승인된 선택 — tools/balance/tune_final.py, balance/sim_results.md 8번):
+  6. "자동 굴림 빠르게": AUTO 에서 이미 발견한 명소는 3등급처럼 짧은 연출(rules.shortRevealKnown, shortRevealRank 3
+     = Config.AUTO_KNOWN_REVEAL_RANK). 후반 AUTO 가 시간당 약 600 -> 2,660번으로 빨라져서
+     세계수 1/50억 -> 1/100억(최대 상태 기대 대기 무료 22.7일 / 유료 11.2일), 속보 2,500만 -> 1억,
+     홀로그램 1억 -> 3.75억(후반 1인 시간당 속보 0.22 / 0.44, 홀로그램 0.05 / 0.1 = 승인안과 같은 빈도).
+  7. 가챠식 별: 처음 발견 = 별 0, 중복마다 +1(최대 5) -> STAR_THRESHOLDS {2, 3, 4, 5, 6}, 별 1개마다 수입 +30%
+     (5성 = ×2.5). +50% 는 5번째 환생 15시간·10번째 13.9일로 목표보다 빨라서 낮춤. 환생 코인은 그대로.
 """
 
 from __future__ import annotations
@@ -37,9 +45,12 @@ OUT = ROOT / "balance" / "variant_rec.json"
 
 STEP_COINS = {1: 300_000, 5: 1_500_000_000}  # 환생 단계(1부터) -> 코인
 STEP_LANDMARKS = {10: ["skyisland"]}  # 환생 단계 -> 필요한 명소
-ANNOUNCE_ONE_IN = 25_000_000
-HOLOGRAM_ONE_IN = 100_000_000
-RULES = {"autoDiscoverBelowLuck": True}
+ANNOUNCE_ONE_IN = 100_000_000  # 구현 라운드: 2,500만 -> 1억 (짧은 연출로 후반 굴림이 빨라짐)
+HOLOGRAM_ONE_IN = 375_000_000  # 구현 라운드: 1억 -> 3.75억(샹그릴라·세계수)
+LANDMARKS = {"worldtree": 10_000_000_000}  # 구현 라운드: 1/50억 -> 1/100억
+RULES = {"autoDiscoverBelowLuck": True, "shortRevealKnown": True, "shortRevealRank": 3}
+STAR_THRESHOLDS = [2, 3, 4, 5, 6]  # 가챠식: 처음 = 별 0, 중복마다 +1
+STAR_INCOME_BONUS = 0.3
 
 NOTES = (
     "추천안 = 변형 A(환생 행운 x2^r, 1~3등급 확률 그대로, 1/1,000 이상은 희귀할수록 더 늘림, 가장 희귀 세계수 1/50억) + "
@@ -51,14 +62,18 @@ NOTES = (
     "(2) 영구 행운(부스트 제외) >= N 인 미발견 명소 자동 발견(rules.autoDiscoverBelowLuck) — 없으면 VIP 구매자는 "
     "흔한 명소를 영영 못 얻어 여권 도장이 막힘. (3) Config/Landmarks 숫자(확률표·등급 경계·등급 수입·환생 표·뉴스/홀로그램). "
     "권장: AUTO 에서 이미 발견한 명소는 짧은 연출(후반 굴림이 4배 빨라짐 — 넣으면 세계수를 1/100억으로 올리고 뉴스 기준도 1억으로). "
-    "근거·표: balance/sim_results.md, 재현: tools/balance/variant_rec_design.py + tools/balance/compare.py"
+    "근거·표: balance/sim_results.md, 재현: tools/balance/variant_rec_design.py + tools/balance/compare.py. "
+    "구현 라운드(승인 뒤): AUTO 에서 이미 발견한 명소는 짧은 연출(shortRevealKnown, 3등급처럼) -> 세계수 1/100억, "
+    "속보 >= 1억, 홀로그램 >= 3.75억(후반 1인 시간당 속보 약 0.22 / 0.44회). 가챠식 별(처음 발견 별 0, 중복마다 +1, "
+    "최대 5) + 별 1개마다 수입 +30%. 환생 코인 그대로. 첫 환생 약 16분, 3번째 2.4시간, 5번째 18시간, 10번째 약 18일(무료). "
+    "근거: balance/sim_results.md 8번, 재현: tools/balance/tune_final.py"
 )
 
 
 def build() -> dict:
     base = json.loads(BASE.read_text(encoding="utf-8"))
     v = copy.deepcopy(base)
-    v["name"] = "추천안 (A 바탕): 환생 행운 x2^r, 첫 환생 약 17분, 10번째 약 3주, 가장 희귀 1/50억"
+    v["name"] = "최종안 (추천안 + 구현 라운드): 환생 행운 x2^r, 첫 환생 약 16분, 10번째 약 18일, 가장 희귀 1/100억, 가챠식 별"
     steps = v["rebirth"]["steps"]
     for k, coins in STEP_COINS.items():
         steps[k - 1]["coins"] = coins
@@ -66,7 +81,10 @@ def build() -> dict:
         steps[k - 1]["landmarks"] = list(ids)
     v["announceOneIn"] = ANNOUNCE_ONE_IN
     v["hologramOneIn"] = HOLOGRAM_ONE_IN
+    v["landmarks"].update(LANDMARKS)
     v["rules"] = dict(RULES)
+    v["starThresholds"] = list(STAR_THRESHOLDS)
+    v["starIncomeBonus"] = STAR_INCOME_BONUS
     v["notes"] = NOTES
     # 순서: 읽기 좋게 이름 -> 규칙 -> 나머지
     ordered = {"name": v.pop("name"), "rules": v.pop("rules")}

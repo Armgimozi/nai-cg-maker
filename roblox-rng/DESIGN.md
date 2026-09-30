@@ -5,15 +5,17 @@
 
 ## 게임 흐름
 
-1. **지구본 돌리기(굴리기)** → 명소 하나 발견 (1/2 시계탑 ~ 1/100,000,000 지구)
-2. 처음 발견하면 **발견 보너스 코인**, 이미 있는 명소면 발견 횟수가 쌓여 **별(★1~5)** 이 오름
+1. **지구본 돌리기(굴리기)** → 명소 하나 발견 (1/2 시계탑 ~ 1/10,000,000,000 세계수)
+2. 처음 발견하면 **발견 보너스 코인**(별 0 ☆). 이번 판에 이미 가진 명소를 또 뽑으면 가챠 중복처럼 **별 +1**
+   (2번째 ★1 … 6번째 ★5 최대, 별 1개마다 그 명소 수입 +30%)
 3. 가진 명소가 **내 공원 전시 칸**에 미니어처로 전시됨 — 기본은 희귀한 순서로 자동 배치,
    **3D 배치 모드**에서 놀이공원 시뮬레이션처럼 명소를 직접 눌러 집어 다른 받침대로 옮길 수도 있음(아래 "공원 배치")
 4. 전시된 명소가 **초당 관광 수입**을 벌어줌 (등급·별·입장료 업그레이드에 비례)
 5. 코인으로 **영구 업그레이드** 구매: 지구본(행운), 여행사(속도), 공원 확장(칸), 입장료(수입)
-6. 한 지역의 명소를 모두 모으면 **여권 도장** → 영구 행운 보너스
+6. 한 지역의 명소를 모두 모으면 **여권 도장** → 영구 행운 보너스. 영구 행운 이하 확률의 명소는 굴림에서 다시 안 나오므로
+   **자동 발견**(도감·여권만, 보유는 아님 — 아래 "밸런스")
 7. **대표 명소** 하나가 캐릭터 옆에 작게 떠다님(자랑용)
-8. 1/1,000 이상 발견 → 서버 전체 **📰 뉴스 속보**, 1/10,000 이상 → 광장 하늘에 거대 **홀로그램**
+8. 1/100,000,000 이상 발견 → 서버 전체 **📰 뉴스 속보**, 1/375,000,000 이상 → 광장 하늘에 거대 **홀로그램**
 
 Sol's RNG 와 겹치지 않게 뺀 것: 오라, 10번째 굴림 x2, 시간제 물약, 날씨/바이옴, [GLOBAL] 채팅 문구.
 
@@ -89,14 +91,16 @@ RollResponse =
 ```
 
 Snapshot 필드: Revision, Rolls, Coins, Inventory, Featured, Upgrades, Settings(AutoFeature, AutoPark), Display,
-Luck, Cooldown, Income (+ v3 필드).
+Luck, PermanentLuck(부스트·서버 행운 뺀 행운 = 자동 발견 기준), Cooldown, Income (+ v3 필드).
+`Discovered` 에는 자동 발견한 명소도 들어 있음(서버가 상태를 보내기 전에 `autoDiscover`) — 도감·여권 계산은 그대로 Discovered 기준.
 클라는 코인을 `Coins + Income × (지금 - 받은 시각)` 으로 부드럽게 올려서 표시.
 PlayerState 의 읽기 함수(park, parkSlots, stars, slots, completedRegions, upgradePrice …)는 Snapshot 을 넘겨도 됨.
 
 ## 계약 3: 서버 규칙
 
-- 굴림: 쿨타임 검증(허용 오차는 반복 악용 못 하게 기준 시각을 밀어 둠) → `PlayerState.luck` 으로 판정 →
-  `PlayerState.applyRoll`. 1초마다 `PlayerState.addIncome`.
+- 굴림: 쿨타임 검증(허용 오차는 반복 악용 못 하게 기준 시각을 밀어 둠) → `PlayerState.autoDiscover` →
+  `PlayerState.luck` 으로 판정 → `PlayerState.applyRoll`. 1초마다 `PlayerState.addIncome`.
+- 상태(Snapshot)를 만들 때마다 먼저 `PlayerState.autoDiscover(data, mods)`(접속·굴림·업그레이드·환생·게임패스 모두 상태를 보냄).
 - 스포일러 방지: 세계 명소(Rank 4) 이상은 **4.5초 뒤**에 리더보드 "최고" 갱신, 뉴스 속보, 홀로그램.
   굴린 본인 클라는 자기 연출이 끝날 때까지 자기 뉴스 속보를 보류.
 - 리더보드(leaderstats): "굴림"(IntValue), "최고"(StringValue, 가장 희귀한 명소 이름).
@@ -184,7 +188,8 @@ Model 에 PrimaryPart 가 없어도 되고, 바닥 중앙을 피벗으로 맞춰
 "Steal a Brainrot" 식: **코인 + 특정 명소 보유**가 조건. 환생하면 영구적으로 행운·관광 수입이 오름.
 
 - 환생 단계마다 요구 사항은 `Config.REBIRTHS[n] = { Coins = number, Landmarks = { id, ... } }` (n = 다음 환생 번호).
-  환생은 **최대 `Config.MAX_REBIRTHS`(10)번** — 단계 수와 같음. 9번째: 6억 4천만 + 아틀란티스·엘도라도, 10번째: 25억 6천만 + 용궁.
+  환생은 **최대 `Config.MAX_REBIRTHS`(10)번** — 단계 수와 같음. 표는 아래 "밸런스"(1번째 30만 + 에펠탑·자유의 여신상 …
+  10번째 1,400억 + 사하라 신기루 성).
   최대까지 하면 `rebirthRequirement` = nil(스냅샷 `NextRebirth` 없음), `rebirth` 는 "최대 환생입니다" 로 거절, 환생 창 버튼은 "최대".
   요구 명소는 **이번 판에서 보유**하고 있어야 함.
 - 환생 시 초기화: `Coins = 0`, `Upgrades` 전부 0, **`Inventory`(보유 명소·별·공원 전시) 비움**, `Featured = nil`,
@@ -192,11 +197,45 @@ Model 에 PrimaryPart 가 없어도 되고, 바닥 중앙을 피벗으로 맞춰
   유지: `Discovered`(역대 발견 기록 = 도감 표시), 여권 도장(= Discovered 기준), 그 밖의 `Settings`(AutoFeature), 환생 수.
 - `Data.Discovered: { [id]: true }` — 한 번이라도 발견한 명소. 도감의 "발견/미발견", 여권 진행도·도장은 이것 기준.
   발견 보너스 코인·"NEW" 표시는 **역대 처음**(Discovered 에 없을 때)만. 공원 전시·별·수입·환생 조건은 `Inventory` 기준.
-- 보상(누적, 곱): 행운 × (1 + `REBIRTH_LUCK_BONUS` × 환생 수), 관광 수입 × (1 + `REBIRTH_INCOME_BONUS` × 환생 수).
+- 보상(누적, 곱): 행운 × `REBIRTH_LUCK_MULT`^환생 수(2^환생 수, 10번 = ×1,024 — `PlayerState.rebirthLuckMult`),
+  관광 수입 × (1 + `REBIRTH_INCOME_BONUS` × 환생 수)(+50%씩 — `PlayerState.rebirthIncomeMult`).
 - 데이터: `Data.Rebirths: number`. 리더보드 "환생" 추가(IntValue).
 - 원격: `Rebirth` (Function) `() -> { Ok, Reason?, State }` — 서버가 조건 검사(코인·명소) 후 적용.
 - PlayerState: `rebirthRequirement(rebirths) -> { Coins, Landmarks }`, `canRebirth(data) -> (ok, missing: { string }, coinsShort: number)`,
   `rebirth(data) -> (ok, reason?)`.
+
+## 밸런스 (2026-09-30 재조정)
+
+근거·시뮬레이션: `balance/PROPOSAL.md`(승인안), `balance/sim_results.md`(8번 = 구현 라운드), 숫자 전체 `balance/variant_rec.json`.
+게임 숫자가 최종안과 같은지: `python3 tools/balance/apply_rec.py --check`. 진행 목표(무료, AUTO, 온라인 시간):
+첫 환생 약 16분 · 3번째 2.4시간 · 5번째 18시간 · 10번째 약 18일(유료 게임패스 3종 + 하루 부스트 1번 = 약 절반).
+
+- **확률**: 1/1,000 보다 흔한 1~3등급 80개는 그대로, 더 희귀한 것은 희귀할수록 늘림(순서·등급 그대로). 가장 희귀한 세계수 1/10,000,000,000.
+  UI 의 확률은 늘 콤마 자연수(`Format.oneIn` → "1 in 10,000,000,000"), 코인은 `Format.short`.
+- **등급**(`Landmarks.Tiers` MinOneIn / `Config.TIER_INCOME` 초당 수입):
+  1 일반 1~ / 1 · 2 도시 10~ / 2 · 3 국가 100~ / 5 · 4 세계 1,000~ / 12 · 5 불가사의 12,500~ / 35 · 6 잃어버린 유산 250,000~ / 120 ·
+  7 전설 8,000,000~ / 500.
+- **별**(가챠식): 별 = min(5, 이번 판 발견 수 − 1) — `STAR_THRESHOLDS = { 2, 3, 4, 5, 6 }`, `PlayerState.stars(count)`,
+  `PlayerState.MAX_STARS` = 5. 처음 발견 ☆0, 중복마다 ★+1(`applyRoll` 의 starUp = 굴림 응답 `StarUp`/`Stars`).
+  명소 수입 = 등급 수입 × (1 + 0.3 × 별)(★5 = ×2.5). 별은 보유 수로 계산하고 저장하지 않음(환생하면 보유와 함께 0 부터).
+- **환생 표**(`Config.REBIRTHS`, 코인 + 이번 판 보유 명소):
+  1 30만 에펠탑·자유의 여신상 · 2 150만 기자 피라미드·치첸이트사 · 3 2,500만 모아이·스톤헨지·알렉산드리아 등대 ·
+  4 2억 5천만 바빌론·아르테미스·로도스 · 5 15억 제우스 상·마우솔로스 영묘·트로이 목마 · 6 60억 아틀란티스·미노타우로스의 미궁 ·
+  7 130억 황룡사 9층 목탑·엘도라도 · 8 280억 젊음의 샘·용궁 · 9 650억 무 대륙·질랜디아 · 10 1,400억 사하라 신기루 성.
+  요구 명소는 그 판에 부스트를 다 켠 최대 행운보다 희귀함(테스트) — 행운이 너무 높아 못 뽑는 일 없음. 샹그릴라·세계수는 꿈 목표.
+- **자동 발견**(`PlayerState.autoDiscover(data, mods) -> { 새로 발견 처리한 Id }`): 굴림은 희귀한 것부터 `행운 / N` 판정이라
+  행운 ≥ N 이면 더 흔한 명소는 다시는 안 나옴. 그래서 아직 발견 안 한 명소 중 N ≤ 영구 행운(`permanentLuck`: 지구본 × 도장 ×
+  환생 × 행운 VIP)인 것은 `Discovered` 에 기록(도장이 새로 생겨 행운이 오르면 한 번 더). `Inventory`·공원 수입·환생 조건·
+  발견 보너스·NEW 는 그대로. 한 번 기록하면 행운이 내려가도(환생으로 지구본 0) 유지. 시간 부스트 중에는 영구 행운 ~ 부스트 행운
+  사이 명소가 잠깐 안 나오지만 부스트가 끝나면 다시 나옴.
+- **AUTO 짧은 연출**(`Config.AUTO_KNOWN_REVEAL_RANK` = 3, 클라이언트): AUTO 중 이미 발견한 명소(굴림 응답 `IsNew = false`)는
+  등급과 상관없이 3등급 AUTO 연출 길이로(4등급 이상의 긴 정지·뜸 들이기 없음). 새 발견·수동 굴림은 원래 길이. 0 이면 끔.
+  후반 AUTO 가 시간당 약 600 → 2,660번(시뮬레이션). 3등급 AUTO 연출도 왕복 포함 약 1.3~1.4초라 굴림 간격(1.2초)보다 길어서,
+  여행사·빠른 굴림은 여전히 AUTO 속도를 바꾸지 않음(수동 굴림 간격만) — `balance/sim_results.md` 8번.
+- **속보·홀로그램**: `ANNOUNCE_ONE_IN` 1억(사하라 신기루 성·샹그릴라·세계수), `HOLOGRAM_ONE_IN` 3.75억(샹그릴라·세계수).
+  후반 플레이어 1명이 시간당 약 0.2(무료)~0.4(유료)번 속보.
+- **옛 저장**: 저장 형식(`LandmarkRNG_v1`) 그대로 — 명소 Id·개수·발견·환생 수만 저장. 이미 환생한 플레이어는 환생 수 그대로
+  새 행운 배율(3번 = ×8, 10번 = ×1,024)과 새 표의 다음 단계, 별은 보유 수로 다시 계산, 접속하면 자동 발견.
 
 ## 유료 상품 (Robux, v3)
 
@@ -218,7 +257,8 @@ ID 는 Creator Hub 에서 만든 뒤 `Config` 에 넣음. **ID 가 0 이면 그 
   - 시간 부스트는 **접속 중에만** 줄어듦(`Data.Boosts[id] = 남은 초`). 서버 행운은 서버 변수(저장 안 함, 서버 전원 적용).
     남은 시간 + 15분이 `MAX_BOOST_SECONDS`(3시간)를 넘으면 구매 창을 안 띄움(`Reason = "max"`). 이미 결제된 영수증은
     3시간을 넘어도 산 시간을 다 더함(데이터 손상 방지 상한 `MAX_BOOST_STORED_SECONDS` = 24시간만).
-- 효과 합산(곱): 행운 = 기본 × 지구본 × 여권 도장 × 환생 × VIP × 행운 부스트 × 서버 행운.
+- 효과 합산(곱): 행운 = 기본 × 지구본 × 여권 도장 × 환생(2^환생 수) × VIP × 행운 부스트 × 서버 행운.
+  앞의 다섯(부스트·서버 행운 빼고)이 영구 행운(`PlayerState.permanentLuck`, 스냅샷 `PermanentLuck`).
   수입 = 기존 × 환생 × DoubleIncome. 쿨타임 = 기존 × FastRoll.
   PlayerState 읽기 함수는 선택 인자 `mods: { Passes: { [string]: boolean }?, ServerLuck: boolean? }` 를 받음
   (없으면 기존과 같은 결과). 스냅샷의 `Luck/Cooldown/Income` 은 mods 를 반영한 값.

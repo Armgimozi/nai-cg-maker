@@ -210,33 +210,56 @@ test("새 데이터 기본값", function()
 	eq(next(d.Boosts), nil, "Boosts")
 	eq(#d.Receipts, 0, "Receipts")
 end)
-test("applyRoll: 처음 발견 보너스, 중복은 보너스 없음, 별 상승", function()
+test("applyRoll: 처음 발견 보너스, 중복은 보너스 없음, 중복마다 별 +1 (가챠식)", function()
 	local d = PlayerState.new()
 	local eiffel = Landmarks.ById.eiffel
 	local bonus, isNew, starUp = PlayerState.applyRoll(d, eiffel)
 	eq(isNew, true, "첫 발견")
-	eq(starUp, false, "첫 발견은 별 상승 아님")
+	eq(starUp, false, "첫 발견은 별 상승 아님(별 0)")
+	eq(PlayerState.stars(d.Inventory.eiffel), 0, "첫 발견 = 별 0")
 	eq(bonus, math.ceil(Config.DISCOVERY_BONUS_MULT * 200 ^ 0.5), "보너스")
 	eq(d.Coins, bonus)
 	eq(d.Rolls, 1)
 	local bonus2, isNew2, starUp2 = PlayerState.applyRoll(d, eiffel)
 	eq(bonus2, 0, "중복 보너스 없음")
 	eq(isNew2, false)
-	eq(starUp2, false, "2회는 아직 1성")
-	local _, _, starUp3 = PlayerState.applyRoll(d, eiffel)
-	eq(starUp3, true, "3회 = 2성")
-	eq(d.Inventory.eiffel, 3)
+	eq(starUp2, true, "2번째 = ★1")
+	-- 3~6번째도 매번 별 +1, 7번째부터는 ★5 그대로
+	for n = 3, 6 do
+		local _, _, up = PlayerState.applyRoll(d, eiffel)
+		eq(up, true, n .. "번째 별 상승")
+		eq(PlayerState.stars(d.Inventory.eiffel), n - 1, n .. "번째 별")
+	end
+	local _, _, starUp7 = PlayerState.applyRoll(d, eiffel)
+	eq(starUp7, false, "★5(최대) 뒤로는 별 상승 없음")
+	eq(d.Inventory.eiffel, 7)
+	eq(PlayerState.stars(d.Inventory.eiffel), PlayerState.MAX_STARS)
 	eq(PlayerState.best(d), eiffel)
 end)
-test("별 기준", function()
-	eq(PlayerState.stars(0), 0)
-	eq(PlayerState.stars(1), 1)
-	eq(PlayerState.stars(2), 1)
-	eq(PlayerState.stars(3), 2)
-	eq(PlayerState.stars(10), 3)
-	eq(PlayerState.stars(99), 4)
-	eq(PlayerState.stars(100), 5)
+test("별 기준: 처음 발견 = 별 0, 중복마다 +1, 6번째에 ★5(최대)", function()
+	eq(PlayerState.MAX_STARS, 5)
+	eq(#Config.STAR_THRESHOLDS, PlayerState.MAX_STARS)
+	for count = 0, 12 do
+		eq(PlayerState.stars(count), math.clamp(count - 1, 0, 5), "발견 " .. count .. "번")
+	end
 	eq(PlayerState.stars(100000), 5)
+	-- 기준은 2부터 1씩: 처음 발견은 별이 없음
+	for k, threshold in Config.STAR_THRESHOLDS do
+		eq(threshold, k + 1, "STAR_THRESHOLDS[" .. k .. "]")
+	end
+end)
+test("별 수입: 기본 × (1 + 보너스 × 별), ★5 가 ★0 보다 확실히 많음", function()
+	local pyramid = Landmarks.ById.pyramid
+	local base = Config.TIER_INCOME[pyramid.Tier.Rank]
+	eq(PlayerState.landmarkIncome(pyramid, 0), 0, "보유 안 함 = 0")
+	near(PlayerState.landmarkIncome(pyramid, 1), base, 1e-9, "★0 = 기본")
+	near(PlayerState.landmarkIncome(pyramid, 2), base * (1 + Config.STAR_INCOME_BONUS), 1e-9, "★1")
+	near(PlayerState.landmarkIncome(pyramid, 6), base * (1 + 5 * Config.STAR_INCOME_BONUS), 1e-9, "★5")
+	near(PlayerState.landmarkIncome(pyramid, 500), PlayerState.landmarkIncome(pyramid, 6), 1e-9, "★5 에서 멈춤")
+	assert(
+		PlayerState.landmarkIncome(pyramid, 6) >= 2 * PlayerState.landmarkIncome(pyramid, 1),
+		"★5 는 ★0 의 2배 이상이어야 별이 의미 있음"
+	)
 end)
 test("공원: 희귀한 순서로 전시 칸만큼, 수입 계산", function()
 	local d = owning({ "clocktower", "lighthouse", "windmill", "fountain", "arc", "bigben", "eiffel", "pyramid" })
@@ -254,15 +277,15 @@ test("공원: 희귀한 순서로 전시 칸만큼, 수입 계산", function()
 	end
 	near(PlayerState.incomePerSecond(d), expected, 1e-9, "수입")
 
-	-- 별이 오르면 그 명소 수입이 늘어남
+	-- 별이 오르면 그 명소 수입이 늘어남(3번째 발견 = ★2)
 	for _ = 1, 2 do
 		PlayerState.applyRoll(d, Landmarks.ById.pyramid)
 	end
 	near(
 		PlayerState.incomePerSecond(d),
-		expected + Config.TIER_INCOME[4] * Config.STAR_INCOME_BONUS,
+		expected + Config.TIER_INCOME[4] * Config.STAR_INCOME_BONUS * 2,
 		1e-9,
-		"2성 수입"
+		"★2 수입"
 	)
 
 	-- 수입 적립
@@ -419,7 +442,7 @@ test("rebirthRequirement: 표 그대로, 최대(10번)까지 하면 nil", functi
 	eq(#Config.REBIRTHS, Config.MAX_REBIRTHS, "단계 수 = 최대")
 	local first = PlayerState.rebirthRequirement(0)
 	assert(first, "첫 환생 조건")
-	eq(first.Coins, 5000)
+	eq(first.Coins, 300000)
 	eq(first.Landmarks[1], "eiffel")
 	eq(first.Landmarks[2], "liberty")
 	for n = 1, Config.MAX_REBIRTHS do
@@ -467,15 +490,15 @@ test("canRebirth: 모자란 명소와 코인", function()
 	eq(#missing, 2, "명소 2개 없음")
 	eq(missing[1], "eiffel")
 	eq(missing[2], "liberty")
-	eq(short, 5000, "코인 부족분")
+	eq(short, 300000, "코인 부족분")
 	PlayerState.applyRoll(d, Landmarks.ById.eiffel)
 	PlayerState.applyRoll(d, Landmarks.ById.liberty)
-	d.Coins = 4000.5
+	d.Coins = 299000.5
 	ok, missing, short = PlayerState.canRebirth(d)
 	eq(ok, false)
 	eq(#missing, 0)
 	eq(short, 1000, "코인 부족분(올림)")
-	d.Coins = 5000
+	d.Coins = 300000
 	ok, missing, short = PlayerState.canRebirth(d)
 	eq(ok, true)
 	eq(short, 0)
@@ -510,7 +533,7 @@ test(
 		eq(d.Rebirths, 0, "실패 시 그대로")
 		eq(d.Coins, 100, "실패 시 코인 그대로")
 
-		d.Coins = 12345
+		d.Coins = Config.REBIRTHS[1].Coins + 12345
 		d.Upgrades.Globe = 3
 		d.Upgrades.Park = 2
 		d.Settings.AutoFeature = false
@@ -545,22 +568,323 @@ test(
 		eq(isNew, false, "재발견은 NEW 아님")
 		eq(starUp, false, "재발견은 별 상승 아님")
 		eq(d.Inventory.eiffel, 1)
-		eq(PlayerState.stars(d.Inventory.eiffel), 1)
+		eq(PlayerState.stars(d.Inventory.eiffel), 0, "환생 뒤 다시 얻으면 별 0 부터")
 		-- 처음 보는 명소는 여전히 NEW + 보너스
 		local bonus2, isNew2 = PlayerState.applyRoll(d, Landmarks.ById.namsan)
 		eq(isNew2, true)
 		eq(bonus2, PlayerState.discoveryBonus(Landmarks.ById.namsan))
 	end
 )
-test("환생 보상: 행운 +20%, 수입 +50% (누적)", function()
+test("환생 보상: 행운 ×2^환생 수(10번 = ×1,024), 수입 +50% (누적)", function()
+	eq(Config.REBIRTH_LUCK_MULT, 2)
 	local d = owning({ "clocktower" })
 	near(PlayerState.luck(d), 1, 1e-9, "0회")
 	near(PlayerState.incomePerSecond(d), 1, 1e-9, "0회 수입")
 	d.Rebirths = 2
-	near(PlayerState.luck(d), 1 + 2 * Config.REBIRTH_LUCK_BONUS, 1e-9, "2회 행운")
+	near(PlayerState.luck(d), 4, 1e-9, "2회 행운 ×4")
 	near(PlayerState.incomePerSecond(d), 1 + 2 * Config.REBIRTH_INCOME_BONUS, 1e-9, "2회 수입")
 	eq(PlayerState.cooldown(d), Config.ROLL_COOLDOWN, "쿨타임은 그대로")
+	for r = 0, Config.MAX_REBIRTHS do
+		eq(PlayerState.rebirthLuckMult(r), 2 ^ r, r .. "번 행운 배율")
+		near(PlayerState.rebirthIncomeMult(r), 1 + 0.5 * r, 1e-9, r .. "번 수입 배율")
+	end
+	eq(PlayerState.rebirthLuckMult(10), 1024, "10번 = ×1,024")
+	eq(PlayerState.rebirthLuckMult(Config.MAX_REBIRTHS + 5), 1024, "최대에서 멈춤")
+	eq(PlayerState.rebirthLuckMult(-3), 1, "음수 = 0번")
+	d.Rebirths = Config.MAX_REBIRTHS
+	near(PlayerState.luck(d), 1024, 1e-9, "10번 행운")
+	-- 최대: 지구본 20레벨 ×3, 도장 5개 ×2.25, 환생 ×1,024 = 6,912 (행운 VIP ×2 = 13,824)
+	d.Upgrades.Globe = PlayerState.UpgradesById.Globe.MaxLevel
+	for _, landmark in Landmarks.List do
+		if PlayerState.countsForStamp(landmark) then
+			d.Discovered[landmark.Id] = true
+		end
+	end
+	near(PlayerState.luck(d), 6912, 1e-6, "무료 최대 행운")
+	near(PlayerState.luck(d, { Passes = { LuckVIP = true } }), 13824, 1e-6, "행운 VIP 최대 행운")
 end)
+
+print("\n[밸런스 2026-09-30 · 자동 발견]")
+-- 승인된 추천안(balance/variant_rec.json, balance/PROPOSAL.md) + 구현 라운드(짧은 연출·가챠식 별)
+test("확률표: 등급 경계·등급별 명소 수(재조정 전과 같음)·가장 희귀 1/100억", function()
+	local mins, counts = {}, { 0, 0, 0, 0, 0, 0, 0 }
+	for _, tier in Landmarks.Tiers do
+		table.insert(mins, tier.MinOneIn)
+	end
+	eq(table.concat(mins, ","), "1,10,100,1000,12500,250000,8000000", "등급 경계")
+	for _, landmark in Landmarks.List do
+		counts[landmark.Tier.Rank] += 1
+	end
+	eq(table.concat(counts, ","), "8,30,42,35,20,9,6", "등급별 명소 수(어느 명소도 등급이 안 바뀜)")
+	eq(table.concat(Config.TIER_INCOME, ","), "1,2,5,12,35,120,500", "등급 수입")
+	-- 1/1,000 미만(1~3등급)은 그대로
+	eq(Landmarks.ById.liberty.OneIn, 70)
+	eq(Landmarks.ById.eiffel.OneIn, 200)
+	eq(Landmarks.ById.stpeters.OneIn, 950)
+	eq(Landmarks.ById.milfordsound.OneIn, 1000)
+	-- 희귀할수록 늘림(variant_rec.json)
+	eq(Landmarks.ById.sphinx.OneIn, 1250)
+	eq(Landmarks.ById.alexandria.OneIn, 20000)
+	eq(Landmarks.ById.trojanhorse.OneIn, 650000)
+	eq(Landmarks.ById.fountainofyouth.OneIn, 8000000)
+	eq(Landmarks.ById.skyisland.OneIn, 110000000)
+	eq(Landmarks.ById.shangrila.OneIn, 375000000)
+	eq(Landmarks.RarestFirst[1].Id, "worldtree", "가장 희귀")
+	eq(Landmarks.ById.worldtree.OneIn, 10000000000, "세계수 1/100억")
+	eq(Format.oneIn(Landmarks.ById.worldtree.OneIn), "1 in 10,000,000,000", "확률은 콤마 자연수")
+	eq(Format.oneIn(Landmarks.ById.shangrila.OneIn), "1 in 375,000,000")
+end)
+test("환생 표: 코인 30만 → 1,400억, 요구 명소", function()
+	local expected = {
+		{ 300000, "eiffel,liberty" },
+		{ 1500000, "pyramid,chichen" },
+		{ 25000000, "moai,stonehenge,alexandria" },
+		{ 250000000, "babylon,artemis,rhodes" },
+		{ 1500000000, "zeus,mausoleum,trojanhorse" },
+		{ 6000000000, "atlantis,labyrinth" },
+		{ 13000000000, "hwangnyongsa,eldorado" },
+		{ 28000000000, "fountainofyouth,yonggung" },
+		{ 65000000000, "mu,zealandia" },
+		{ 140000000000, "skyisland" },
+	}
+	eq(#Config.REBIRTHS, #expected, "단계 수")
+	for k, row in expected do
+		eq(Config.REBIRTHS[k].Coins, row[1], k .. "단계 코인")
+		eq(table.concat(Config.REBIRTHS[k].Landmarks, ","), row[2], k .. "단계 명소")
+	end
+end)
+test("환생 조건 명소는 그 판에 부스트를 다 켠 최대 행운에서도 굴림에서 나옴", function()
+	-- 그 판(환생 r 번)의 최대 행운: 지구본 최대, 도장 5개, 게임패스 전부, 행운 부스트, 서버 행운
+	local mods = { Passes = { LuckVIP = true, FastRoll = true, DoubleIncome = true }, ServerLuck = true }
+	for k, step in Config.REBIRTHS do
+		local d = PlayerState.new()
+		d.Rebirths = k - 1
+		d.Upgrades.Globe = PlayerState.UpgradesById.Globe.MaxLevel
+		for _, landmark in Landmarks.List do
+			if PlayerState.countsForStamp(landmark) then
+				d.Discovered[landmark.Id] = true
+			end
+		end
+		PlayerState.addBoost(d, "LuckBoost")
+		local maxLuck = PlayerState.luck(d, mods)
+		local probs = RollLogic.probabilities(Landmarks.RarestFirst, maxLuck)
+		for _, id in step.Landmarks do
+			local landmark = Landmarks.ById[id]
+			assert(
+				landmark.OneIn > maxLuck,
+				string.format("%d단계 %s (1/%d) ≤ 최대 행운 %g — 못 뽑음", k, id, landmark.OneIn, maxLuck)
+			)
+			assert(probs[id] > 0, k .. "단계 " .. id .. " 확률 0")
+			-- 자동 발견은 보유(Inventory)를 안 채우므로 조건은 직접 뽑아야 함
+			PlayerState.autoDiscover(d, mods)
+			eq(d.Inventory[id], nil, k .. "단계 " .. id .. " 자동 발견으로 보유되지 않음")
+		end
+	end
+end)
+test(
+	"속보·홀로그램 기준: 속보 = 사하라 신기루 성·샹그릴라·세계수, 홀로그램 = 샹그릴라·세계수",
+	function()
+		local news, hologram = {}, {}
+		for _, landmark in Landmarks.RarestFirst do
+			if landmark.OneIn >= Config.ANNOUNCE_ONE_IN then
+				table.insert(news, landmark.Id)
+			end
+			if landmark.OneIn >= Config.HOLOGRAM_ONE_IN then
+				table.insert(hologram, landmark.Id)
+			end
+		end
+		eq(table.concat(news, ","), "worldtree,shangrila,skyisland", "속보")
+		eq(table.concat(hologram, ","), "worldtree,shangrila", "홀로그램")
+		assert(Config.HOLOGRAM_ONE_IN >= Config.ANNOUNCE_ONE_IN, "홀로그램은 속보 중에서만")
+		eq(Config.AUTO_KNOWN_REVEAL_RANK, 3, "AUTO 에서 이미 발견한 명소는 3등급처럼 짧은 연출")
+	end
+)
+test("permanentLuck: 지구본·도장·환생·행운 VIP 만 (시간 부스트·서버 행운 제외)", function()
+	local d = PlayerState.new()
+	d.Rebirths = 3
+	d.Upgrades.Globe = 5
+	near(PlayerState.permanentLuck(d), 1.5 * 8, 1e-9, "지구본 ×1.5 × 환생 ×8")
+	near(PlayerState.permanentLuck(d, { Passes = { LuckVIP = true } }), 1.5 * 8 * 2, 1e-9, "VIP 포함")
+	PlayerState.addBoost(d, "LuckBoost")
+	local boosted = { Passes = { LuckVIP = true }, ServerLuck = true }
+	near(PlayerState.permanentLuck(d, boosted), 1.5 * 8 * 2, 1e-9, "부스트·서버 행운 제외")
+	near(PlayerState.luck(d, boosted), 1.5 * 8 * 2 * 2 * 2, 1e-9, "굴림 행운은 부스트 포함")
+end)
+test("autoDiscover: 영구 행운 이하 확률만 발견 기록, 보유·수입·코인은 그대로", function()
+	local d = PlayerState.new()
+	d.Rebirths = 2
+	d.Upgrades.Globe = 20 -- 행운 4 × 3 = 12
+	PlayerState.applyRoll(d, Landmarks.ById.arc) -- 1/12, 이미 발견
+	local coins, rolls = d.Coins, d.Rolls
+	local added = PlayerState.autoDiscover(d)
+	local expected = {}
+	for _, landmark in Landmarks.List do
+		if landmark.OneIn <= 12 and landmark.Id ~= "arc" then
+			table.insert(expected, landmark.Id)
+		end
+	end
+	eq(table.concat(added, ","), table.concat(expected, ","), "흔한 것부터, 이미 발견한 건 빼고")
+	for _, landmark in Landmarks.List do
+		eq(PlayerState.isDiscovered(d, landmark.Id), landmark.OneIn <= 12, landmark.Id)
+	end
+	eq(d.Inventory.arc, 1, "보유 그대로")
+	eq(d.Inventory.clocktower, nil, "자동 발견은 보유가 아님")
+	eq(table.concat(PlayerState.park(d), ","), "arc", "공원엔 보유한 것만")
+	eq(
+		PlayerState.incomePerSecond(d),
+		PlayerState.landmarkIncome(Landmarks.ById.arc, 1) * 2,
+		"수입 그대로(환생 2번 ×2)"
+	)
+	eq(d.Coins, coins, "발견 보너스 없음")
+	eq(d.Rolls, rolls, "굴림 수 그대로")
+	eq(#PlayerState.autoDiscover(d), 0, "두 번 불러도 더 없음")
+	-- 굴려서 다시 나오면(행운 = N 인 명소는 판정이 늘 성공해서 나올 수 있음) NEW·보너스 없이 보유만 늘어남
+	local bonus, isNew = PlayerState.applyRoll(d, Landmarks.ById.arc)
+	eq(bonus, 0)
+	eq(isNew, false)
+end)
+test("autoDiscover: 새 도장이 행운을 올리면 한 번 더 (고정점)", function()
+	local d = PlayerState.new()
+	d.Rebirths = 3 -- 행운 8
+	for _, landmark in Landmarks.ByRegion.Oceania do
+		if PlayerState.countsForStamp(landmark) and landmark.Id ~= "harbourbridge" then
+			d.Discovered[landmark.Id] = true -- 오세아니아 도장까지 하버 브리지(1/4) 하나만 남음
+		end
+	end
+	eq(#PlayerState.completedRegions(d), 0)
+	local added = PlayerState.autoDiscover(d)
+	eq(table.concat(PlayerState.completedRegions(d), ","), "Oceania", "자동 발견으로 도장")
+	near(PlayerState.permanentLuck(d), 8 * (1 + Config.REGION_LUCK_BONUS), 1e-9, "도장으로 행운 10")
+	eq(added[#added], "gatewayarch", "행운 10 이 되어 1/10 까지 한 번 더")
+	eq(PlayerState.isDiscovered(d, "gatewayarch"), true)
+	eq(PlayerState.isDiscovered(d, "cheomseongdae"), false, "1/11 은 아직")
+end)
+test("autoDiscover: 행운 VIP 로 시작한 새 플레이어도 여권이 막히지 않음", function()
+	local vip = { Passes = { LuckVIP = true } }
+	local d = PlayerState.new()
+	eq(#PlayerState.autoDiscover(d), 0, "무료 새 플레이어(행운 1)는 없음")
+	eq(
+		table.concat(PlayerState.autoDiscover(d, vip), ","),
+		"clocktower",
+		"행운 2 = 1/2 는 못 뽑으니 발견 처리"
+	)
+	-- 부스트·서버 행운은 기준이 아님
+	local e = PlayerState.new()
+	PlayerState.addBoost(e, "LuckBoost")
+	eq(#PlayerState.autoDiscover(e, { ServerLuck = true }), 0, "시간 부스트로는 자동 발견 안 함")
+	-- 모든 도장 조건 명소는 부스트 없이 굴려서 얻을 수 있거나 자동 발견됨: 여권 5개가 다 찰 수 있음
+	-- (시간 부스트 중에는 영구 행운 ~ 부스트 행운 사이 명소가 잠깐 안 나오지만 부스트가 끝나면 다시 나옴)
+	local full = PlayerState.new()
+	full.Rebirths = Config.MAX_REBIRTHS
+	full.Upgrades.Globe = PlayerState.UpgradesById.Globe.MaxLevel
+	PlayerState.autoDiscover(full, vip)
+	local luck = PlayerState.permanentLuck(full, vip)
+	local probs = RollLogic.probabilities(Landmarks.RarestFirst, luck)
+	for _, landmark in Landmarks.List do
+		if PlayerState.countsForStamp(landmark) then
+			assert(
+				probs[landmark.Id] > 0 or PlayerState.isDiscovered(full, landmark.Id),
+				landmark.Id .. " 못 뽑는데 자동 발견도 안 됨"
+			)
+		end
+	end
+end)
+test(
+	"snapshot: PermanentLuck + 자동 발견이 Discovered 에 들어 있어 화면 계산이 서버와 같음",
+	function()
+		local mods = { Passes = { LuckVIP = true } }
+		local d = PlayerState.new()
+		d.Rebirths = 4 -- 행운 16 × VIP 2 = 32
+		PlayerState.addBoost(d, "LuckBoost")
+		PlayerState.autoDiscover(d, mods) -- 서버: 상태를 보내기 전에 부름
+		local s = PlayerState.snapshot(d, 1, mods)
+		eq(s.PermanentLuck, 32)
+		eq(s.Luck, 64, "부스트 포함")
+		for _, landmark in Landmarks.List do
+			eq(s.Discovered[landmark.Id] == true, landmark.OneIn <= 32, landmark.Id)
+			eq(PlayerState.isDiscovered(s, landmark.Id), PlayerState.isDiscovered(d, landmark.Id), landmark.Id)
+		end
+		for _, region in Landmarks.Regions do
+			local a, b = PlayerState.regionProgress(s, region.Id)
+			local c, e = PlayerState.regionProgress(d, region.Id)
+			eq(a .. "/" .. b, c .. "/" .. e, region.Id .. " 여권 진행도")
+		end
+		eq(PlayerState.luck(s, s), s.Luck, "화면에서 다시 계산해도 같은 행운")
+		eq(PlayerState.permanentLuck(s, s), s.PermanentLuck)
+	end
+)
+test("옛 저장 불러오기: 예전 표로 환생한 플레이어 · 발견 기록 · 보유 · 공원", function()
+	-- 환생 10번(예전 표 = 약 4일)을 끝낸 저장: 행운 ×3 → ×1,024, 보유·발견 그대로, 별은 개수로 다시 계산
+	local old = {
+		Rolls = 250000,
+		Coins = 3000000000,
+		Rebirths = 10,
+		Inventory = { clocktower = 812, eiffel = 40, pyramid = 3, sphinx = 1, yonggung = 1, worldtree = 1 },
+		Discovered = {
+			eiffel = true,
+			pyramid = true,
+			sphinx = true,
+			yonggung = true,
+			worldtree = true,
+			atlantis = true,
+		},
+		Upgrades = { Globe = 20, Agency = 10, Park = 10, Ticket = 15 },
+		Settings = { AutoFeature = true, AutoPark = true },
+		Display = {},
+		Boosts = { LuckBoost = 120 },
+		Receipts = { "r1" },
+	}
+	local d = PlayerState.reconcile(old)
+	eq(d.Rebirths, 10, "환생 수 그대로")
+	eq(d.Inventory.clocktower, 812, "보유 수 그대로")
+	eq(PlayerState.stars(d.Inventory.clocktower), 5)
+	eq(PlayerState.stars(d.Inventory.pyramid), 2, "3번 발견 = ★2")
+	eq(PlayerState.stars(d.Inventory.sphinx), 0, "1번 발견 = ★0 (수입은 예전 ★1 과 같은 기본)")
+	eq(PlayerState.rebirthMaxed(d), true)
+	eq(PlayerState.snapshot(d, 1).NextRebirth, nil, "최대까지 했으면 다음 조건 없음")
+	local luck = PlayerState.permanentLuck(d)
+	near(luck, 1024 * 3, 1e-9, "도장 없이 ×1,024 × 지구본 ×3")
+	local added = PlayerState.autoDiscover(d)
+	assert(#added > 0, "행운이 올라 흔한 명소가 자동 발견됨")
+	for _, landmark in Landmarks.List do
+		if landmark.OneIn <= PlayerState.permanentLuck(d) then
+			eq(PlayerState.isDiscovered(d, landmark.Id), true, landmark.Id)
+		end
+	end
+	eq(d.Discovered.atlantis, true, "예전 발견 기록 유지")
+	eq(d.Inventory.atlantis, nil, "보유는 그대로(없음)")
+	eq(PlayerState.park(d)[1], "worldtree", "공원은 보유한 명소를 희귀한 순서로")
+	eq(#PlayerState.park(d), 6, "보유한 6개만 전시")
+	-- 환생 3번(예전 표 = 약 33분)에서 멈춘 저장: 행운 ×8, 다음은 새 표의 4단계
+	local mid = PlayerState.reconcile({ Rebirths = 3, Coins = 700000, Inventory = { babylon = 1 } })
+	near(PlayerState.luck(mid), 8, 1e-9, "환생 3번 = ×8")
+	local req = PlayerState.rebirthRequirement(mid.Rebirths)
+	eq(req.Coins, 250000000, "새 표 4단계 코인")
+	eq(table.concat(req.Landmarks, ","), "babylon,artemis,rhodes")
+	local can, missing, short = PlayerState.canRebirth(mid)
+	eq(can, false)
+	eq(table.concat(missing, ","), "artemis,rhodes", "보유한 바빌론은 인정")
+	eq(short, 250000000 - 700000)
+	-- 발견 기록이 없던 아주 옛 저장: 보유 → 발견, 그다음 자동 발견
+	local ancient = PlayerState.reconcile({ Rebirths = 1, Inventory = { eiffel = 2 } })
+	eq(ancient.Discovered.eiffel, true)
+	eq(table.concat(PlayerState.autoDiscover(ancient), ","), "clocktower", "행운 2 → 1/2 자동 발견")
+end)
+test(
+	"별은 보유 수로 계산 — 저장 데이터·스냅샷에 별 값이 없음(저장 형식 그대로)",
+	function()
+		local d = owning({ "eiffel", "eiffel", "eiffel" })
+		for key in d do
+			assert(not string.find(string.lower(key), "star"), "Data 에 별 값: " .. key)
+		end
+		for key in PlayerState.snapshot(d, 1) do
+			assert(not string.find(string.lower(key), "star"), "Snapshot 에 별 값: " .. key)
+		end
+		local r: any = PlayerState.reconcile({ Inventory = { eiffel = 3 }, Stars = { eiffel = 5 } })
+		eq(r.Stars, nil, "모르는 필드는 버림")
+		eq(PlayerState.stars(r.Inventory.eiffel), 2, "개수로 다시 계산")
+	end
+)
 
 print("\n[유료 상품]")
 local ALL_PASSES = { Passes = { LuckVIP = true, FastRoll = true, DoubleIncome = true } }
@@ -616,11 +940,19 @@ test("배율: 게임패스 / 서버 행운 / 행운 부스트 / 환생 곱", fun
 	d.Rebirths = 1
 	d.Upgrades.Globe = 1
 	local all = { Passes = ALL_PASSES.Passes, ServerLuck = true }
-	near(PlayerState.luck(d, all), 1.1 * 1.2 * 2 * 2 * 2, 1e-9, "전부 곱")
+	near(PlayerState.luck(d, all), 1.1 * 2 * 2 * 2 * 2, 1e-9, "전부 곱(환생 1번 = ×2)")
+	near(
+		PlayerState.permanentLuck(d, all),
+		1.1 * 2 * 2,
+		1e-9,
+		"영구 행운 = 부스트·서버 행운 빼고(VIP 는 포함)"
+	)
 	near(PlayerState.incomePerSecond(d, all), 1 * 1.5 * 2, 1e-9, "수입 전부 곱")
 	-- 스냅샷은 mods 반영 + Snapshot 을 mods 로 다시 넘겨도 같은 값
 	local s = PlayerState.snapshot(d, 1, all)
-	near(s.Luck, 1.1 * 1.2 * 8, 1e-9, "snapshot Luck")
+	near(s.Luck, 1.1 * 2 * 8, 1e-9, "snapshot Luck")
+	near(s.PermanentLuck, 1.1 * 2 * 2, 1e-9, "snapshot PermanentLuck")
+	near(PlayerState.permanentLuck(s, s), s.PermanentLuck, 1e-9, "permanentLuck(snapshot, snapshot)")
 	near(s.Cooldown, Config.ROLL_COOLDOWN * 0.7, 1e-9, "snapshot Cooldown")
 	near(s.Income, 3, 1e-9, "snapshot Income")
 	eq(s.ServerLuck, true)
