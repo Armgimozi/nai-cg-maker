@@ -143,6 +143,8 @@
     if (!u || level >= u.MaxLevel) return null;
     return Math.floor(u.BasePrice * Math.pow(u.Growth, level));
   }
+  // PlayerState.isDiscovered: 역대 발견(Discovered — 자동 발견 포함) 또는 지금 보유. 도감·대륙 도장은 이것 기준
+  const isDiscovered = (s, id) => !!(s.Discovered && s.Discovered[id]) || (s.Inventory[id] || 0) > 0;
   const countsForStamp = (l) => l.Tier.Rank <= Config.STAMP_MAX_RANK;
   function regionProgress(s, regionId) {
     let found = 0;
@@ -150,7 +152,7 @@
     for (const l of ByRegion[regionId] || []) {
       if (countsForStamp(l)) {
         required += 1;
-        if ((s.Inventory[l.Id] || 0) > 0) found += 1;
+        if (isDiscovered(s, l.Id)) found += 1;
       }
     }
     return [found, required];
