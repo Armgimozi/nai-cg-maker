@@ -377,6 +377,7 @@ HEROES = {
         "near": [(110, 360, 0.4, 0.13), (1800, 560, 0.42, 0.15), (1850, 900, 0.36, 0.12)],  # 화면 x, y, 깊이 비, 길이 비
         "wisps": 1.0,
         "ray_center": 0.62,
+        "base_glow": 0.85,
     },
     2: {
         "id": "shangrila",
@@ -718,6 +719,11 @@ def thumb_hero(n):
     im = fx.over(im, hero_layer)
     im = fx.add(im, edge_light(lay["hero"], aura2, (-4, 3), 1.0, 1.2), 0.6)
     im = fx.add(im, edge_light(lay["hero"], aura2, (4, 3), 1.0, 1.2), 0.6)
+    if cfg.get("base_glow"):  # 밑동 빛: 판자처럼 보이는 뿌리 이음매를 구덩이 빛 속에 묻음
+        bw = foot * 1.5 * cam.scale_at(base_px[2])
+        im = fx.add(im, fx.radial((W, H), (base_px[0], base_px[1] - bw * 0.12), bw,
+                                  [(0, (225, 255, 245, 255)), (0.35, aura2 + (190,)), (1, aura2 + (0,))], squash=0.4),
+                    cfg["base_glow"])
     if fruits:
         fp = cam.project(fruits)
         r0 = cam.scale_at(fp[0][2]) * cfg["size"] * 0.07 / 2  # 열매 반지름(px)
@@ -950,6 +956,11 @@ def thumb_collect():
     for lid, (sx, sy, hpx) in placed.items():
         col = tier(lid)[2]
         layer = lay[f"L_{lid}"]
+        la_ = fx.arr(layer)
+        mean = float((la_[..., :3].mean(-1) * la_[..., 3]).sum() / max(la_[..., 3].sum(), 1))
+        if mean < 0.42:  # 평균 밝기를 0.42 쪽으로(색은 그대로, 밝기만)
+            la_[..., :3] = np.clip(la_[..., :3] * min(1.5, 0.42 / max(mean, 1e-3)), 0, 1)
+            layer = fx.img(la_)
         la = fx.alpha_of(layer)
         im = fx.add(im, fx.glow(la, 16, col, 1.6, spread=5), 1.0)
         im = fx.over(im, fx.solid((W, H), darken(col, 0.35), np.clip(fx.dilate(la, 3) - la, 0, 1)))
@@ -1120,7 +1131,7 @@ def thumb_park():
     q = ground_quad(cam, tgt + np.array([0, 0.05, 0]), 5.9)
     plate = fx.alpha_of(fx.warp_quad(fx.radial((256, 256), (128, 128), 128, [(0, (255, 255, 255, 255)), (0.8, (255, 255, 255, 200)),
                                                                           (1, (255, 255, 255, 0))]), q, (W, H)))
-    im = fx.add(im, fx.glow(plate, 22, (110, 240, 140), 1.2), 0.8)
+    im = fx.add(im, fx.glow(plate, 26, (76, 217, 100), 1.0), 0.45)
 
     # 들고 있는 명소(반투명 복사본): 노란 채우기(게임 Highlight 색) + 흰 테두리 + 빛 + 아래로 빛기둥 --------------------------
     gl = lay["ghost"]
