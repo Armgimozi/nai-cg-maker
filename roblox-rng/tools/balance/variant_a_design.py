@@ -2,13 +2,19 @@
 """변형 A "순한 안" — 확률표·환생 단계 만들기 + 빠른 진행 속도 점검(몬테카를로).
 
 쓰는 법 (roblox-rng 폴더에서):
-  python3 tools/balance/variant_a_design.py                 # balance/variant_a.json 다시 쓰기 + 표 요약
-  python3 tools/balance/variant_a_design.py --sim 12        # 무료/유료 플레이어 시드 12개씩
-  python3 tools/balance/variant_a_design.py --sim 12 --baseline   # 지금 규칙(기준)도 같이
+  python3 tools/balance/variant_a_design.py                 # balance/variant_a.json 다시 쓰기 + 4~7등급 표
+  python3 tools/balance/variant_a_design.py --no-write --stages          # 단계별 굴림 모습·뉴스 빈도
+  python3 tools/balance/variant_a_design.py --no-write --sim 16 --models code,fix --autocredit
+  python3 tools/balance/variant_a_design.py --no-write --sim 12 --models code --baseline   # 지금 규칙(기준)도 같이
 
-게임 코드는 읽기만 합니다(src/shared/Landmarks.luau 에서 명소 Id·N·대륙).
+  --models: code = 지금 클라(AUTO 도 결과 연출이 끝나야 다음 굴림), fix = 이미 발견한 명소는 짧은 연출,
+            cd = 쿨타임만(연출 무시). --autocredit: 권장 코드 수정(영구 행운 ≥ N 인 명소 자동 발견) 적용.
+
+게임 코드는 읽기만 합니다(src/shared/Landmarks.luau 에서 명소 Id·N·대륙). 기준은 "변형 전" 확률(세계수 40,000,000)이라
+변형 A 를 게임에 넣은 뒤에는 다시 늘리지 않도록 멈춥니다.
 시뮬레이터는 PlayerState/RollLogic 규칙을 파이썬으로 옮긴 것(굴림 판정·별·공원 36칸·업그레이드·여권 도장·
 환생 초기화·게임패스·부스트) + AUTO 굴림 간격 모형(쿨타임과 결과 연출 시간 중 긴 쪽).
+교차 검증용 독립 시뮬레이터: tools/balance/sim.py --variant balance/variant_a.json
 """
 
 from __future__ import annotations
@@ -87,6 +93,11 @@ BASELINE = {
 KEEP_BELOW = 1000  # 1~3등급(N < 1,000)은 그대로
 OLD_RAREST = 40_000_000  # 세계수(지금)
 NEW_RAREST = 5_000_000_000  # 세계수(변형 A) — 50억
+if max(OLD_N.values()) != OLD_RAREST:
+    raise SystemExit(
+        f"Landmarks.luau 의 가장 희귀한 N 이 {max(OLD_N.values()):,} — 이 스크립트는 변형 전 확률(세계수 "
+        f"{OLD_RAREST:,})을 기준으로 늘립니다. 변형 A 가 이미 들어갔다면 balance/variant_a.json 을 그대로 쓰세요."
+    )
 
 # log10 공간에서 x = log10(N / 1000) 을 y = x + a·x² 로 늘림(1,000 에서 기울기 1 로 이어짐 → 세계 명소는 거의 그대로,
 # 희귀할수록 더 많이 늘어남). a 는 지금 가장 희귀한 4천만이 50억이 되게 풂.
@@ -162,27 +173,43 @@ VARIANT_A = {
     "name": "A 순한 안 (moderate): 환생 행운 x2^r, 1~3등급 그대로, 가장 희귀 1/50억",
     "landmarks": NEW_N,
     "tiers": [{"rank": i + 1, "name": TIER_NAMES[i], "minOneIn": m} for i, m in enumerate(NEW_TIERS)],
-    "tierIncome": [1, 2, 5, 12, 30, 80, 250],
+    "tierIncome": [1, 2, 5, 12, 35, 120, 500],
     "rebirth": {
         "luck": "x2",
         "luckBase": 2,
         "incomeBonus": 0.5,
         "steps": [
             {"coins": 5_000, "landmarks": ["eiffel", "liberty"]},
-            {"coins": 1_000_000, "landmarks": ["pyramid", "chichen"]},
-            {"coins": 15_000_000, "landmarks": ["moai", "stonehenge", "alexandria"]},
-            {"coins": 150_000_000, "landmarks": ["babylon", "artemis", "rhodes"]},
-            {"coins": 900_000_000, "landmarks": ["zeus", "mausoleum", "babel"]},
-            {"coins": 3_500_000_000, "landmarks": ["zealandia", "atlantis"]},
-            {"coins": 9_000_000_000, "landmarks": ["labyrinth", "hwangnyongsa"]},
-            {"coins": 20_000_000_000, "landmarks": ["eldorado", "fountainofyouth"]},
-            {"coins": 45_000_000_000, "landmarks": ["yonggung", "mu"]},
-            {"coins": 100_000_000_000, "landmarks": ["shangrila"]},
+            {"coins": 1_500_000, "landmarks": ["pyramid", "chichen"]},
+            {"coins": 25_000_000, "landmarks": ["moai", "stonehenge", "alexandria"]},
+            {"coins": 250_000_000, "landmarks": ["babylon", "artemis", "rhodes"]},
+            {"coins": 2_000_000_000, "landmarks": ["zeus", "mausoleum", "trojanhorse"]},
+            {"coins": 6_000_000_000, "landmarks": ["atlantis", "labyrinth"]},
+            {"coins": 13_000_000_000, "landmarks": ["hwangnyongsa", "eldorado"]},
+            {"coins": 28_000_000_000, "landmarks": ["fountainofyouth", "yonggung"]},
+            {"coins": 65_000_000_000, "landmarks": ["mu", "zealandia"]},
+            {"coins": 140_000_000_000, "landmarks": ["shangrila"]},
         ],
     },
-    "announceOneIn": 1000,
-    "hologramOneIn": 10000,
+    "announceOneIn": 1_000_000,
+    "hologramOneIn": 8_000_000,
     "discoveryBonusMult": 5,
+    "notes": (
+        "변형 A(순한 안). 환생 행운 x2^r (10번 = x1024), 환생 수입은 지금처럼 +50%/회(선형). "
+        "1~3등급(N < 1,000) 확률은 그대로. N >= 1,000 은 x = log10(N/1000) 을 y = x + 0.099*x^2 로 늘리고 "
+        "앞 두 자리가 깔끔한 수로 반올림(희귀도 순서·대륙·등급 소속은 그대로, 세계 명소는 거의 그대로, 희귀할수록 더 늘어남). "
+        "가장 희귀: 세계수 1 in 5,000,000,000. 등급 경계 1/10/100/1,000/12,500/250,000/8,000,000(이름 그대로). "
+        "등급 수입 T5 30->35, T6 80->120, T7 250->500. 발견 보너스 배율 5 그대로. "
+        "환생 1단계는 지금과 똑같음(첫 환생 시간 유지). 2~5단계에 세계 7대 불가사의 7개를 모두 모으고, "
+        "6~7단계는 잃어버린 유산, 8~10단계는 전설(샹그릴라가 마지막 관문, 사하라 신기루 성·세계수는 선택 꿈). "
+        "코인이 시계(AUTO 방치 기준 무료 R3 약 2.5시간, R5 약 1일, R10 약 3주), 명소는 지금 클라 기준 판의 25~70% 지점에서 모이게 맞춤. "
+        "뉴스 >= 1,000,000, 홀로그램 >= 8,000,000(= 전설). "
+        "같이 필요한 코드 수정: (1) PlayerState.luck 환생 배율 = 2^환생 수(+ Perks.luau/Panels.luau 의 +20% 표시, 테스트 2곳). "
+        "(2) 영구 행운(부스트 제외) >= N 인 미발견 명소는 자동 발견 처리 — 안 하면 VIP 구매자는 흔한 명소 10~18개를 영영 못 얻어 "
+        "여권 도장이 막힘(시뮬: 유료 도장 중앙값 5 -> 0, 무료도 약 20%가 도장 하나 이상 못 받음). "
+        "권장: (3) AUTO 에서 이미 발견한 명소는 짧은 연출(아니면 R4 이후 굴림 속도가 1/4), "
+        "(4) 뉴스 판정을 N / 행운 기준으로. 자세한 근거: balance/variant_a.md, 재현: tools/balance/variant_a_design.py"
+    ),
 }
 
 # ----------------------------------------------------------------------------- 시뮬레이터
@@ -220,8 +247,8 @@ def auto_reveal(rank: int) -> float:
 
 PLAYERS = {
     "free": dict(vip=False, fast=False, dbl=False, boost=0.0, server=0.0),
-    # 게임패스 3개 + 가끔 부스트: 15분 칸마다 개인 행운 부스트 8%, 서버 행운(누가 산 것) 10% 확률로 켜짐
-    "payer": dict(vip=True, fast=True, dbl=True, boost=0.08, server=0.10),
+    # 게임패스 3개 + 가끔 부스트: 15분 칸마다 개인 행운 부스트 3%(하루 약 3번), 서버 행운(누가 산 것) 5% 확률로 켜짐
+    "payer": dict(vip=True, fast=True, dbl=True, boost=0.03, server=0.05),
 }
 
 
@@ -232,10 +259,16 @@ def luck_mult(reb: dict, r: int) -> float:
 
 
 class Sim:
-    def __init__(self, v: dict, player: str, model: str, seed: int, max_days: float = 200):
+    def __init__(self, v: dict, player: str, model: str, seed: int, max_days: float = 200,
+                 autocredit: bool = False):
         self.v = v
+        # autocredit: 권장 코드 수정 — 영구 행운(부스트 제외) ≥ N 인 명소는 굴림에 다시 안 나오므로 자동으로 발견 처리
+        self.autocredit = autocredit
+        self.ascending = sorted(v["landmarks"].items(), key=lambda kv: kv[1])
         self.p = PLAYERS[player]
-        self.model = model  # "code": 지금 연출 시간 / "fix": 이미 발견한 명소는 짧은 연출
+        # "code": 지금 연출 시간(AUTO 에서도 세계 명소 이상은 4~6초) / "fix": 이미 발견한 명소는 짧은 연출
+        # "cd": 연출 무시, 쿨타임만(가장 빠른 가정)
+        self.model = model
         self.rng = random.Random(seed)
         self.max_t = max_days * 86400
         mins = [t["minOneIn"] for t in v["tiers"]]
@@ -294,6 +327,7 @@ class Sim:
         lm_met_at = None
         events = {"rebirth": [], "first_rank": {}, "first": {}, "runs": []}
         n_steps = len(self.steps)
+        credit_upto = 0.0
         while t < self.max_t:
             if t >= next_block:
                 boost_on = rng.random() < p["boost"]
@@ -302,6 +336,16 @@ class Sim:
             luck = (1 + 0.1 * up["Globe"]) * (1 + REGION_LUCK * stamps) * luck_mult(self.reb, r)
             if p["vip"]:
                 luck *= 2
+            if self.autocredit and luck >= credit_upto:
+                for oid, on in self.ascending:
+                    if on > luck:
+                        break
+                    if oid not in disc:
+                        disc.add(oid)
+                        events["first"].setdefault(oid, t)
+                        if self.rank[oid] <= STAMP_MAX_RANK:
+                            stamps = sum(1 for need in self.stamp_need.values() if need <= disc)
+                credit_upto = luck
             if boost_on:
                 luck *= 2
             if server_on:
@@ -342,11 +386,14 @@ class Sim:
                 if p["dbl"]:
                     income *= 2
                 income_dirty = False
-            if self.model == "fix" and not is_new:
-                rev = auto_reveal(min(rk, 3))
+            if self.model == "cd":
+                dt = cd
             else:
-                rev = auto_reveal(rk)
-            dt = max(cd, RTT + rev)
+                if self.model == "fix" and not is_new:
+                    rev = auto_reveal(min(rk, 3))
+                else:
+                    rev = auto_reveal(rk)
+                dt = max(cd, RTT + rev)
             t += dt
             coins += income * dt
 
@@ -372,7 +419,10 @@ class Sim:
                     lm_met_at = None
                     income_dirty = True
                     if r == n_steps:
-                        events["end_state"] = dict(t=t, disc=set(disc), stamps=stamps)
+                        # 다시는 못 얻는 미발견 명소: 지구본 0레벨이어도 행운 ≥ N 이면 더 흔한 명소는 확률 0
+                        floor_luck = luck_mult(self.reb, r) * (1 + REGION_LUCK * stamps)
+                        locked = [i for i, nn in self.n.items() if i not in disc and nn < floor_luck]
+                        events["end_state"] = dict(t=t, stamps=stamps, locked=locked)
                         break
                     continue
             else:
@@ -418,7 +468,7 @@ def endgame(v: dict, player: str, model: str, globe: int = 20, stamps: int = 5) 
         prev = acc
         rk = sim.rank[lid]
         rev = auto_reveal(min(rk, 3) if model == "fix" else rk)
-        mean_dt += pr * max(cd, RTT + rev)
+        mean_dt += pr * (cd if model == "cd" else max(cd, RTT + rev))
     per_day = 86400 / mean_dt
     out = {"luck": luck, "rolls_per_day": per_day, "items": {}}
     boost_avg = (1 + p["boost"]) * (1 + p["server"])  # 평균 부스트 배율(대략)
@@ -430,8 +480,8 @@ def endgame(v: dict, player: str, model: str, globe: int = 20, stamps: int = 5) 
 
 
 def _run(args):
-    v, player, model, seed = args
-    ev = Sim(v, player, model, seed).run()
+    v, player, model, seed, autocredit = args
+    ev = Sim(v, player, model, seed, autocredit=autocredit).run()
     ev.pop("disc", None)
     if "end_state" in ev:
         ev["end_state"].pop("disc", None)
@@ -456,10 +506,10 @@ def fmt_h(sec: float) -> str:
     return f"{h / 24:.1f}d"
 
 
-def report(v: dict, player: str, model: str, seeds: int, pool: Pool) -> dict:
-    evs = pool.map(_run, [(v, player, model, s) for s in range(seeds)])
+def report(v: dict, player: str, model: str, seeds: int, pool: Pool, autocredit: bool = False) -> dict:
+    evs = pool.map(_run, [(v, player, model, s, autocredit) for s in range(seeds)])
     n_steps = len(v["rebirth"]["steps"])
-    print(f"\n== {v['name']} | {player} | roll model={model} | seeds={seeds}")
+    print(f"\n== {v['name']} | {player} | roll model={model} | autocredit={autocredit} | seeds={seeds}")
     print(" rb  cum-median   (p10..p90)    run-median  rolls/run   lm-met(run)  coins-bound  luck@end   income/s@end")
     summary = {"rebirth": []}
     for k in range(n_steps):
@@ -493,7 +543,14 @@ def report(v: dict, player: str, model: str, seeds: int, pool: Pool) -> dict:
         ts = [e["first"][lid] for e in evs if lid in e["first"]]
         parts.append(f"{lid} {len(ts)}/{seeds}" + (f" med {fmt_h(statistics.median(ts))}" if ts else ""))
     print(" legends found before 10th rebirth: " + "; ".join(parts))
+    ends = [e["end_state"] for e in evs if "end_state" in e]
+    if ends:
+        locked = [len(x["locked"]) for x in ends]
+        print(f" at 10th rebirth: stamps median {statistics.median([x['stamps'] for x in ends])}, "
+              f"permanently-locked undiscovered landmarks: max {max(locked)} "
+              f"({sorted({i for x in ends for i in x['locked']})})")
     summary["first_rank_h"] = {rk: t / 3600 for rk, t in fr.items()}
+    summary["legends"] = parts
     return summary
 
 
@@ -508,13 +565,49 @@ def print_table(v: dict):
         print(f"T{rk} {TIER_NAMES[rk - 1]} ({len(rows)}): " + ", ".join(f"{i} {o:,}->{n:,}" for i, o, n in rows))
 
 
+# 단계별 대표 행운(무료, 판 중간쯤: 환생 배율 × 지구본 × 도장) — 굴림 한 번의 모습·알림 빈도 표용
+STAGE_LUCK = [("R0", 1.3), ("R1", 3), ("R2", 8), ("R3", 20), ("R4", 60), ("R5", 168), ("R6", 432),
+              ("R7", 864), ("R8", 1728), ("R9", 3456), ("R10", 6912), ("R10+VIP", 13824),
+              ("R10+VIP+부스트2", 55296)]
+
+
+def stage_table(v: dict):
+    """단계마다: 굴림 한 번이 각 등급일 확률, 시간당 뉴스/홀로그램 횟수(연출 모형 code/fix)."""
+    sim = Sim(v, "free", "code", 0)
+    mins = [t["minOneIn"] for t in v["tiers"]]
+    print("\nstage  luck    P(tier) T1..T7 per roll                         rolls/h code|fix   news/h code|fix   holo/h code|fix")
+    for name, luck in STAGE_LUCK:
+        c = sim.cdf(luck)
+        prev = 0.0
+        pt = [0.0] * 7
+        ann = holo = 0.0
+        dt_code = dt_fix = 0.0
+        cd = ROLL_COOLDOWN * 0.5
+        for (lid, n), acc in zip(sim.order, c):
+            pr = acc - prev
+            prev = acc
+            rk = rank_of(n, mins)
+            pt[rk - 1] += pr
+            if n >= v["announceOneIn"]:
+                ann += pr
+            if n >= v["hologramOneIn"]:
+                holo += pr
+            dt_code += pr * max(cd, RTT + auto_reveal(rk))
+            dt_fix += pr * max(cd, RTT + auto_reveal(min(rk, 3)))
+        rc, rf = 3600 / dt_code, 3600 / dt_fix
+        print(f"{name:>15} {luck:>6.0f}  " + " ".join(f"{x * 100:5.1f}%" for x in pt)
+              + f"   {rc:5.0f}|{rf:<5.0f}  {ann * rc:6.2f}|{ann * rf:<6.2f}  {holo * rc:6.3f}|{holo * rf:<6.3f}")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--sim", type=int, default=0)
+    ap.add_argument("--stages", action="store_true", help="단계별 굴림 모습·알림 빈도 표")
     ap.add_argument("--baseline", action="store_true")
     ap.add_argument("--models", default="code,fix")
     ap.add_argument("--players", default="free,payer")
     ap.add_argument("--no-write", action="store_true")
+    ap.add_argument("--autocredit", action="store_true", help="권장 코드 수정(행운 ≥ N 명소 자동 발견) 적용")
     args = ap.parse_args()
     print_table(VARIANT_A)
     if not args.no_write:
@@ -522,13 +615,17 @@ def main():
             json.dump(VARIANT_A, f, ensure_ascii=False, indent=2)
             f.write("\n")
         print("wrote", OUT_JSON)
+    if args.stages:
+        for v in ([BASELINE] if args.baseline else []) + [VARIANT_A]:
+            print(f"\n== {v['name']}: news ≥ {v['announceOneIn']:,}, hologram ≥ {v['hologramOneIn']:,}")
+            stage_table(v)
     if args.sim:
         with Pool() as pool:
             variants = ([BASELINE] if args.baseline else []) + [VARIANT_A]
             for v in variants:
                 for model in args.models.split(","):
                     for player in args.players.split(","):
-                        report(v, player, model, args.sim, pool)
+                        report(v, player, model, args.sim, pool, args.autocredit)
                         eg = endgame(v, player, model)
                         print(f" endgame luck {eg['luck']:.0f}, {eg['rolls_per_day']:.0f} rolls/day; expected days: "
                               + ", ".join(f"{k} {d:.1f}" for k, d in eg["items"].items()))
