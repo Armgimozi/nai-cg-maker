@@ -41,15 +41,16 @@ PASS_VALUE_JSON = ROOT / "balance" / "revenue_pass_value.json"
 # 사실(출처: balance/REVENUE.md "출처" — S 번호)
 FACTS = {
     "dev_share": 0.70,  # 게임 안 판매(패스·개발자 상품)에서 제작자 몫 70% [S1]
-    "devex": 0.0038,  # 1 Earned Robux = $0.0038 (2025-09-05 이후 번 것) [S3]
-    "devex_us18": 0.0054,  # 미국 18+ 연령 인증 구매분(패스·개발자 상품, R15 전용 게임만, 2026-06-08~) [S3][S4]
-    "devex_min": 30000,  # DevEx 최소 인출 30,000 Earned Robux (= $114) [S3]
-    "creator_reward": 5,  # Active Spender 1명이 그날 첫 3개 게임 중 하나로 10분+ 하면 5 R$ [S5]
-    "robux_asp": 0.01,  # 플레이어가 1 Robux 를 사는 평균 가격 $0.01 (2025) [S1]
+    "devex": 0.0038,  # 1 Earned Robux = $0.0038 (2025-09-05 이후 번 것) [S2]
+    "devex_us18": 0.0054,  # 미국 18+ 연령 인증 구매분(패스·개발자 상품, 자격 있는 게임만 — R15 등, 2026-06-08~) [S3]
+    "devex_min": 30000,  # DevEx 최소 인출 30,000 Earned Robux (= $114) [S2]
+    "creator_reward": 5,  # Active Spender 1명이 그날 첫 3개 게임 중 하나로 10분+ 하면 5 R$ [S4]
+    "robux_asp": 0.01,  # [가정] 플레이어가 1 Robux 를 사는 평균 가격 약 $0.01 (400 R$ = $4.99 정가 $0.0125, 큰 묶음·Premium 은 더 쌈)
     "days": 30,
 }
 
-# [가정] 리텐션(D1, D7, D30). 참고: GameAnalytics 2026 Roblox 벤치마크 중앙값 10.3% / 1.6% / 0.5%, 상위 1% 22.2% / 9.1% / 4.7% [S13]
+# [가정] 리텐션(D1, D7, D30). 참고: GameAnalytics 2026 Roblox 벤치마크 중앙값 10.3% / 1.6% / 0.5%, 상위 1% D30 4.7% [S7].
+# 기본은 중앙값보다 조금 위(= 게임이 괜찮다는 가정), 비관은 중앙값 아래, 낙관은 상위권
 RETENTION = {
     "pess": (0.07, 0.012, 0.003),
     "base": (0.12, 0.03, 0.01),
@@ -89,9 +90,12 @@ SCENARIOS = {
 SCEN_ORDER = ("pess", "base", "opt")
 
 DAU_TIERS = (50, 500, 5000, 50000)
-PLAYTIME_MIN_PER_DAU = 20.0  # [가정] 하루 플레이 시간(분) — CCU 환산용. GameAnalytics 중앙값 9.8분 × 1.56번 ≈ 15분 [S13], AUTO 굴림이라 조금 더
-CPP_USD = (0.20, 0.45)  # [가정·제3자] 광고 1플레이당 비용: 잘 되는 경우 / 평균 [S14]
-PRICE_ELASTICITY = 1.3  # [가정] 가격 +1% → 결제자 -1.3% (가격 최적화 중앙값 +4% [S15] = 지금 가격대가 크게 틀리지 않음)
+PLAYTIME_MIN_PER_DAU = 20.0  # [가정] 하루 플레이 시간(분) — CCU 환산용. GameAnalytics 세션 중앙값 9.8분 [S7], 하루 1~2번 + AUTO 굴림이라 조금 더
+CPP_USD = (0.05, 0.45)  # [가정·제3자] 광고 1플레이당 비용: 잘 되는 경우 / 평균 [S9]
+# 새 게임 평가(2026-05-19~): 나이 확인한 16+ "highly engaged"(최근 60일 결제 + 이 게임을 충분히 함) 250번의 고유 플레이 / 60일 [S10]
+EVAL_PLAYS = 250
+HE_SHARE = (0.30, 0.15)  # [가정] 16+ 방문 중 highly engaged 로 세는 비율: 잘 되면 / 보통
+PRICE_ELASTICITY = 1.3  # [가정] 가격 +1% → 결제자 -1.3% (가격 최적화 중앙값 +4% [S6] = 흔한 가격대가 크게 틀리지 않음)
 # [가정] 리텐션이 좋아지면(수명 L ↑) 결제 전환·반복 구매도 늘어남: 전환 ∝ (L/L0)^0.5, 개발자 상품 횟수 ∝ (L/L0)^0.7
 RET_CONV_EXP, RET_PRODUCT_EXP = 0.5, 0.7
 SAME_DAY_SHARE = 0.5  # [가정] 두 번째부터의 구매 중 앞 구매와 같은 날인 비율 → 결제한 날 = 1 + 0.5 × (개수 - 1)
@@ -310,8 +314,12 @@ def levers(products: dict, dau: float = 1000) -> list[dict]:
         RETENTION["base"][1] + 0.01,
         RETENTION["base"][2] + 0.004,
     )
-    add("일일 보상·연속 접속·오프라인 수입(상한)", fixed_inflow(inflow, base, products, better), "D1 +3%p, D7 +1%p, D30 +0.4%p (유입 고정)")
-    add("R15 전용 → 미국 18+ DevEx $0.0054", monthly(dau, base, products, us18_share=0.05), "개발자 몫의 5% 가 미국 18+ 인증 구매라고 가정")
+    add("일일 보상·연속 접속·오프라인 수입(시간 상한 있음)", fixed_inflow(inflow, base, products, better), "D1 +3%p, D7 +1%p, D30 +0.4%p (유입 고정)")
+    add(
+        "미국 18+ DevEx $0.0054 자격(이미 R15 — 나머지 조건은 확인 필요)",
+        monthly(dau, base, products, us18_share=0.05),
+        "개발자 몫의 5% 가 미국 18+ 인증 구매라고 가정",
+    )
     return out
 
 
@@ -331,6 +339,11 @@ def results(products: dict) -> dict:
                 "base_usd": tiers["base"][DAU_TIERS.index(d)]["usd"],
             }
         )
+    plays = [EVAL_PLAYS / h for h in HE_SHARE]
+    evaluation = {
+        "plays_needed": plays,
+        "ads_usd": [plays[0] * CPP_USD[0], plays[1] * CPP_USD[1]],
+    }
     return {
         "facts": FACTS,
         "retention": {k: {"d": v, "lifetime_days": ret_L[k]} for k, v in RETENTION.items()},
@@ -341,6 +354,7 @@ def results(products: dict) -> dict:
         "per_1000_dau": per1k,
         "ads": ads,
         "cpp_usd": CPP_USD,
+        "evaluation": evaluation,
         "sensitivity": sensitivity(products),
         "levers": levers(products),
         "assumptions": {
@@ -413,6 +427,11 @@ def print_tables(res: dict) -> None:
             f"DAU {a['dau']:,}: 새 사용자 {a['new_per_day']:,.0f}/일 · CCU ≈ {a['ccu']:.1f} · 전부 광고로면 월 "
             f"{usd(a['ads_usd_month'][0])}~{usd(a['ads_usd_month'][1])} vs 기본 수익 {usd(a['base_usd'])}"
         )
+    ev = res["evaluation"]
+    print(
+        f"평가 통과(16+ highly engaged {EVAL_PLAYS}번): 방문 {ev['plays_needed'][0]:,.0f}~{ev['plays_needed'][1]:,.0f}번"
+        f" · 전부 광고로면 {usd(ev['ads_usd'][0])}~{usd(ev['ads_usd'][1])}"
+    )
     print("\n## 민감도 (기본, DAU 5,000, 월 USD 대비)")
     for r in res["sensitivity"]:
         print(f"{r['name']}: {r['low_label']} {r['low_pct']:+.0%} / {r['high_label']} {r['high_pct']:+.0%}")
@@ -522,14 +541,18 @@ def chart(res: dict, out: Path, font_regular: str | None, font_bold: str | None)
     for x, y, a, b in zip(xs, mid, lo, hi):
         ax.text(x * 1.12, y, usd(y), fontsize=12, color=INK, fontproperties=bold, va="center", ha="left", zorder=5)
         ax.text(x * 1.12, y / 1.9, f"{usd_chart(a)}~{usd_chart(b)}", fontsize=9.5, color=INK2, va="center", ha="left", zorder=5)
+    ax.text(40, 22000, "지금(2026-09-30): 방문 0 · DAU 0", fontsize=11, color=INK, fontproperties=bold, va="top", ha="left")
     ax.text(
-        30000,
-        1.3,
-        "새 게임 대부분은 추천·광고 없이\n왼쪽 끝(DAU 50 안팎)에 머묾",
-        ha="right",
-        va="bottom",
+        40,
+        11500,
+        "공개 3일째, 아직 16+ 에게만 보이는 평가 단계.\n광고·외부 홍보가 없는 새 게임은 대부분 DAU 50 아래에 머묾",
         fontsize=9.5,
         color=INK2,
+        va="top",
+        ha="left",
+        linespacing=1.4,
+        bbox={"facecolor": SURFACE, "edgecolor": "none", "pad": 2},
+        zorder=6,
     )
     # DevEx 최소 인출 = 한 달에 $114 이상이면 매달 인출 가능
     ax.axhline(FACTS["devex_min"] * FACTS["devex"], color=MUTED, linewidth=1, zorder=2)
