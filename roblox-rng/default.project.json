@@ -70,6 +70,9 @@
           "CFrame": { "CFrame": { "position": [0, 1.5, 0], "orientation": [[1, 0, 0], [0, 1, 0], [0, 0, 1]] } },
           "Color": [0.94, 0.9, 0.81],
           "Material": "Marble",
+          "Transparency": 1,
+          "CanCollide": false,
+          "CastShadow": false,
           "Duration": 0,
           "TopSurface": "Smooth",
           "BottomSurface": "Smooth"
