@@ -4,7 +4,7 @@
 --             Passes = { [passKey] = true }, ServerLuck (지금은 true/false. 남은 초 / 끝 시각 / 표도 받아 줌)
 --   ServerLuck 이벤트: { Name, Until(workspace:GetServerTimeNow 기준 끝 시각), Left(남은 초) }
 --   Config:   REBIRTH_LUCK_BONUS, REBIRTH_INCOME_BONUS, REBIRTHS, GamePasses, Products
---             (상품 항목 { Id = "LuckVIP", Name, PassId/ProductId, LuckMult... }. 번호가 0 이면 화면에 안 나옴)
+--             (상품 항목 { Id = "LuckVIP", Name, PassId/ProductId, LuckMult..., Price }. 번호가 0 이면 화면에 안 나옴)
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Config = require(Shared.Config) :: any
@@ -49,13 +49,15 @@ export type Item = {
 	EffectIcon: string,
 	Mult: number?, -- 배율 (×2, 굴림 간격 ×0.7)
 	Seconds: number?, -- 시간 부스트 길이
+	Price: number?, -- Robux 가격(Config). 상점이 GetProductInfo 로 실제 가격을 받으면 화면만 그 값으로 바꿈
 }
 
--- 화면에 보여 줄 순서와 모양(띠 색은 아이콘과 대비되게, 한 줄 안에서 겹치지 않게).
+-- 화면에 보여 줄 순서와 모양. 띠 색·아이콘은 구매 창에 나오는 상품 그림(art/products)에 맞추고, 한 줄 안에서는
+-- 띠 색이 겹치지 않게(코인 팩 그림은 서버 행운처럼 금색 바탕이라 띠만 Coral).
 -- 효과 숫자(Mult/Seconds)는 Config 항목에 있으면 그 값을 씀
 local PASS_INFO = {
 	{ Key = "LuckVIP", Name = "행운 VIP", Icon = "clover", Color = "Grape", EffectIcon = "clover", Mult = 2 },
-	{ Key = "FastRoll", Name = "빠른 굴림", Icon = "plane", Color = "Sun", EffectIcon = "dice", Mult = 0.7 },
+	{ Key = "FastRoll", Name = "빠른 굴림", Icon = "dice", Color = "Sky", EffectIcon = "dice", Mult = 0.7 },
 	{ Key = "DoubleIncome", Name = "수입 2배", Icon = "coin", Color = "Grass", EffectIcon = "arrow_up", Mult = 2 },
 }
 local PRODUCT_INFO = {
@@ -63,7 +65,7 @@ local PRODUCT_INFO = {
 		Key = "LuckBoost",
 		Name = "행운 부스트",
 		Icon = "clover",
-		Color = "Sky",
+		Color = "Grass",
 		EffectIcon = "clover",
 		Mult = 2,
 		Seconds = 900,
@@ -72,12 +74,12 @@ local PRODUCT_INFO = {
 		Key = "ServerLuck",
 		Name = "서버 행운",
 		Icon = "globe",
-		Color = "Coral",
+		Color = "Sun",
 		EffectIcon = "clover",
 		Mult = 2,
 		Seconds = 900,
 	},
-	{ Key = "CoinPack", Name = "코인 팩", Icon = "coin", Color = "Grape", EffectIcon = "coin" },
+	{ Key = "CoinPack", Name = "코인 팩", Icon = "coin", Color = "Coral", EffectIcon = "coin" },
 }
 
 -- Config.GamePasses / Products 에서 key 항목 찾기.
@@ -123,6 +125,7 @@ local function buildItems(group: any, infos: { any }, kind: string): { Item }
 			EffectIcon = info.EffectIcon,
 			Mult = pick(entry, MULT_KEYS) or info.Mult,
 			Seconds = pick(entry, { "Seconds", "Duration" }) or info.Seconds,
+			Price = pick(entry, { "Price", "PriceInRobux" }),
 		})
 	end
 	return items

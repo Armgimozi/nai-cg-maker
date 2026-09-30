@@ -445,7 +445,7 @@ local function buildMenu(onMenu: (string) -> (), onTeleport: () -> (), onArrange
 	})
 end
 
--- 오른쪽 가운데: 상점 (Robux 상품이 하나도 없으면 안 만듦)
+-- 오른쪽: 상점 (Robux 상품이 하나도 없으면 안 만듦). 초록 + Robux 표시 — 코인으로 사는 강화(노랑 + 동전)와 구별
 local function buildShop(onMenu: (string) -> ())
 	if not Perks.anyForSale() then
 		return
@@ -460,10 +460,9 @@ local function buildShop(onMenu: (string) -> ())
 	local button = Ui.chunkyButton({
 		Name = "Shop",
 		Size = UDim2.fromOffset(MENU_BUTTON.X, MENU_BUTTON.Y),
-		Color = "Sun",
-		Icon = "coin",
+		Color = "Grass",
+		Icon = "robux",
 		IconSize = MENU_ICON,
-		IconSpin = 45,
 		Vertical = true,
 		Text = "상점",
 		TextSize = 18,
@@ -474,18 +473,25 @@ local function buildShop(onMenu: (string) -> ())
 	end)
 end
 
--- 상점 자리: 기본은 오른쪽 가운데. 터치 전용 기기에서 점프 버튼(오른쪽 아래)과 닿으면 그만큼 위로
+-- 상점 자리 (오른쪽 끝). 기본 = 오른쪽 가운데
+--   터치 전용 기기: 점프 버튼(오른쪽 아래)과 닿으면 그만큼 위로
+--   키보드 기기: 오른쪽 위 로블록스 플레이어 목록(leaderstats 가 있어 펼쳐져 있고 사람 수만큼 길어짐, 게임 화면보다
+--     위에 그려져 클릭도 가져감)에 가리지 않게, 굴리기 줄 바로 위 높이까지 내림(오른쪽 아래는 PC 에서 비어 있음)
 local function placeShop(size: Vector2, scale: number, touch: boolean)
 	local shop = refs.Shop
 	if not shop then
 		return
 	end
-	local shift = 0
+	local center = size.Y / 2 + MENU_DROP
+	local half = MENU_BUTTON.Y * scale / 2
+	local target = center
 	if touch then
-		local limit = jumpTop(size) - MENU_CLEAR - MENU_BUTTON.Y * scale / 2 -- 상점 가운데가 올 수 있는 가장 아래
-		shift = math.min(0, limit - (size.Y / 2 + MENU_DROP))
+		target = math.min(center, jumpTop(size) - MENU_CLEAR - half)
+	else
+		local rollTop = size.Y - ROLL_BAR_BOTTOM - ROLL_BAR.Y * scale
+		target = math.max(center, rollTop - MENU_CLEAR - half)
 	end
-	shop.Position = UDim2.new(1, -MENU_X, 0.5, MENU_DROP + shift)
+	shop.Position = UDim2.new(1, -MENU_X, 0.5, MENU_DROP + (target - center))
 end
 
 -- 아래 가운데: 굴리기 + 자동 (키보드가 있으면 버튼 모서리에 R / T 키캡) --------------

@@ -16,6 +16,7 @@ local RollLogic = require(Shared.RollLogic)
 local DataService = require(script.DataService)
 local FeaturedDisplay = require(script.FeaturedDisplay)
 local ParkService = require(script.ParkService)
+local Purchases = require(script.Purchases)
 local Scenery = require(script.Scenery)
 local World = require(script.World)
 
@@ -53,6 +54,8 @@ local sessions: { [Player]: Session } = {}
 local started: { [Player]: boolean } = {}
 -- 게임패스 소유 정보. 데이터 로드와 동시에 확인하므로 세션보다 먼저 만들어 두고 세션이 같은 표를 씀
 local passesByPlayer: { [Player]: { [string]: boolean } } = {}
+-- 접속 시 게임패스 확인(다시 확인 포함)이 끝났는지. 실패로 끝나도 true (코인 팩 영수증이 이걸 잠깐 기다림)
+local passesReady: { [Player]: boolean } = {}
 local rng = Random.new()
 
 -- 서버 행운(서버 전원에게 적용, 저장 안 함). os.clock() 기준 끝나는 시각
@@ -181,57 +184,14 @@ end
 
 -- 게임패스 ----------------------------------------------------------------
 
-local function passByPassId(passId: number): Config.GamePass?
-	for _, pass in Config.GamePasses do
-		if pass.PassId > 0 and pass.PassId == passId then
-			return pass
-		end
-	end
-	return nil
-end
-
--- 접속 시 게임패스 소유 확인. owned 는 세션과 같은 표라서 확인이 끝나는 대로 반영됨
-local function loadPasses(player: Player, owned: { [string]: boolean })
-	local found = false
-	for _, pass in Config.GamePasses do
-		if pass.PassId > 0 then
-			local ok, result = pcall(function()
-				return MarketplaceService:UserOwnsGamePassAsync(player.UserId, pass.PassId)
-			end)
-			if ok and result == true then
-				owned[pass.Id] = true
-				found = true
-			elseif not ok then
-				warn(
-					string.format(
-						"[LandmarkRNG] %s 게임패스(%s) 확인 실패: %s",
-						player.Name,
-						pass.Id,
-						tostring(result)
-					)
-				)
-			end
-		end
-	end
-	-- 세션이 아직 없으면 세션을 만들 때 보내는 첫 상태에 포함됨
-	if found and sessions[player] then
+-- 가진 게임패스가 늘었을 때: 내 화면(상태) + 모두가 보는 공원 간판(수입 2배가 간판 수입에 들어감)
+local function onPassesChanged(player: Player)
+	local session = sessions[player]
+	if session then
+		refreshVisible(player, session)
 		pushState(player)
 	end
 end
-
-MarketplaceService.PromptGamePassPurchaseFinished:Connect(
-	function(player: Player, passId: number, wasPurchased: boolean)
-		if not wasPurchased then
-			return
-		end
-		local pass = passByPassId(passId)
-		local owned = passesByPlayer[player]
-		if pass and owned then
-			owned[pass.Id] = true
-			pushState(player)
-		end
-	end
-)
 
 -- 서버 행운 ----------------------------------------------------------------
 
@@ -246,14 +206,75 @@ local function serverLuckInfo()
 	}
 end
 
+-- 결제된 시간은 다 더함(구매 창 상한 MAX_BOOST_SECONDS 로 자르지 않음 — Purchases.extendUntil)
 local function extendServerLuck(buyer: Player, seconds: number)
-	local now = os.clock()
-	serverLuckUntil = math.min(math.max(serverLuckUntil, now) + seconds, now + Config.MAX_BOOST_SECONDS)
+	local added
+	serverLuckUntil, added = Purchases.extendUntil(serverLuckUntil, os.clock(), seconds)
 	serverLuckOn = true
 	serverLuckBy = { UserId = buyer.UserId, Name = buyer.DisplayName }
 	Net.event("ServerLuck"):FireAllClients(serverLuckInfo())
 	pushStateAll()
-	print(string.format("[LandmarkRNG] %s 님이 서버 행운 %d초 추가", buyer.Name, seconds))
+	print(string.format("[LandmarkRNG] %s 님이 서버 행운 %d초 추가", buyer.Name, math.floor(added + 0.5)))
+end
+
+-- 유료 상품 처리(Purchases)에 넘기는 서버 쪽 일 --------------------------------------
+
+local purchaseDeps: Purchases.Deps = {
+	findPlayer = function(userId: number): Player?
+		return Players:GetPlayerByUserId(userId)
+	end,
+	session = function(player: Player): Purchases.Session?
+		return sessions[player]
+	end,
+	inGame = function(player: Player): boolean
+		return player.Parent == Players
+	end,
+	passesReady = function(player: Player): boolean
+		return passesReady[player] == true
+	end,
+	mods = function(session: Purchases.Session): PlayerState.Mods
+		return modsFor(session :: any)
+	end,
+	save = function(player: Player, session: Purchases.Session): boolean
+		local lockId = session.LockId
+		return lockId ~= nil and trackedSave(player, session.Data, lockId, false)
+	end,
+	serverLuck = extendServerLuck,
+	pushState = pushState,
+	ownsPass = function(player: Player, passId: number): boolean
+		return MarketplaceService:UserOwnsGamePassAsync(player.UserId, passId)
+	end,
+	passesChanged = onPassesChanged,
+	wait = function(seconds: number)
+		task.wait(seconds)
+	end,
+	clock = os.clock,
+}
+
+-- 게임패스 구매 창이 닫힘: 샀으면 바로 반영. 안 샀는데 아직 모르는 패스면 한 번 더 확인
+-- (이미 가진 패스라서 로블록스가 "이미 보유" 로 닫은 경우 — 접속 확인이 오류였던 때)
+MarketplaceService.PromptGamePassPurchaseFinished:Connect(
+	function(player: Player, passId: number, wasPurchased: boolean)
+		local pass = Purchases.passByPassId(passId)
+		local owned = passesByPlayer[player]
+		if not pass or not owned or owned[pass.Id] then
+			return
+		end
+		if wasPurchased then
+			owned[pass.Id] = true
+			onPassesChanged(player)
+		else
+			Purchases.recheckPass(player, owned, pass, purchaseDeps)
+		end
+	end
+)
+
+-- 접속 시 게임패스 확인(오류 난 패스는 몇 번 다시). owned 는 세션과 같은 표라서 확인되는 대로 반영됨
+local function loadPasses(player: Player, owned: { [string]: boolean })
+	Purchases.checkPasses(player, owned, purchaseDeps)
+	if passesByPlayer[player] == owned then -- 그사이 나갔다 들어오지 않았으면
+		passesReady[player] = true
+	end
 end
 
 -- 플레이어 입장/퇴장 -----------------------------------------------------------
@@ -274,6 +295,7 @@ local function onPlayerAdded(player: Player)
 		-- 불러오는 동안 나감: 방금 건 세션 잠금을 풀어 둬야 다음 접속이 기다리지 않음
 		started[player] = nil
 		passesByPlayer[player] = nil
+		passesReady[player] = nil
 		if data and lockId then
 			trackedSave(player, data, lockId, true)
 		end
@@ -333,6 +355,7 @@ end
 local function saveAndRelease(player: Player)
 	started[player] = nil
 	passesByPlayer[player] = nil
+	passesReady[player] = nil
 	local ok, err = pcall(ParkService.release, player)
 	if not ok then
 		warn("[LandmarkRNG] 공원 부지 정리 실패: " .. tostring(err))
@@ -452,52 +475,11 @@ local function revealLater(player: Player, session: Session, landmark: Landmarks
 end
 
 -- 개발자 상품 구매 처리 --------------------------------------------------------
--- 지급 + 저장 성공 후에만 PurchaseGranted. 같은 PurchaseId 는 Data.Receipts 로 한 번만 지급.
--- 저장이 실패하면 NotProcessedYet → Roblox 가 나중에 다시 부르고, 그때는 영수증이 이미 있으니 저장만 다시 시도.
-
-local function productByProductId(productId: number): Config.Product?
-	for _, product in Config.Products do
-		if product.ProductId > 0 and product.ProductId == productId then
-			return product
-		end
-	end
-	return nil
-end
+-- 규칙은 Purchases.processReceipt: 지급 + 저장 성공 후에만 PurchaseGranted, 같은 PurchaseId 는 Data.Receipts 로
+-- 한 번만 지급, 데이터를 불러오는 중이면 세션을 기다림. 저장이 실패하면 NotProcessedYet → Roblox 가 나중에 다시 부름.
 
 local function processReceipt(receiptInfo: { [string]: any }): Enum.ProductPurchaseDecision
-	local player = Players:GetPlayerByUserId(receiptInfo.PlayerId)
-	local session = if player then sessions[player] else nil
-	if not player or not session then
-		return Enum.ProductPurchaseDecision.NotProcessedYet
-	end
-
-	local purchaseId = tostring(receiptInfo.PurchaseId)
-	if not PlayerState.hasReceipt(session.Data, purchaseId) then
-		local product = productByProductId(receiptInfo.ProductId)
-		if not product then
-			warn("[LandmarkRNG] 모르는 개발자 상품: " .. tostring(receiptInfo.ProductId))
-			return Enum.ProductPurchaseDecision.NotProcessedYet
-		end
-		local ok, grant = PlayerState.grantProduct(session.Data, product.Id, modsFor(session))
-		if not ok or not grant then
-			return Enum.ProductPurchaseDecision.NotProcessedYet
-		end
-		PlayerState.addReceipt(session.Data, purchaseId)
-		if grant.ServerWide then
-			extendServerLuck(player, grant.Seconds)
-		else
-			pushState(player)
-		end
-	end
-
-	-- Studio(저장 안 함)에서는 효과만 적용되고 완료 처리는 되지 않음
-	if not session.LockId then
-		return Enum.ProductPurchaseDecision.NotProcessedYet
-	end
-	if trackedSave(player, session.Data, session.LockId, false) then
-		return Enum.ProductPurchaseDecision.PurchaseGranted
-	end
-	return Enum.ProductPurchaseDecision.NotProcessedYet
+	return Purchases.processReceipt(receiptInfo, purchaseDeps)
 end
 
 MarketplaceService.ProcessReceipt = function(receiptInfo)
@@ -652,15 +634,18 @@ Net.fn("Rebirth").OnServerInvoke = function(player: Player)
 	return { Ok = ok, Reason = reason, State = snapshot(session) }
 end
 
--- 구매 창 띄우기. 결과는 구매 완료 이벤트 / ProcessReceipt 에서 State(+ServerLuck) 이벤트로 반영됨
+-- 구매 창 띄우기. 결과는 구매 완료 이벤트 / ProcessReceipt 에서 State(+ServerLuck) 이벤트로 반영됨.
+-- 못 띄우면 { Ok = false, Reason }: "owned" 이미 가진 게임패스, "loading" 데이터 불러오는 중,
+-- "max" 부스트 시간이 가득 참(3시간), nil 그 밖의 실패
 Net.fn("BuyPass").OnServerInvoke = function(player: Player, passKey: any)
 	local pass = if type(passKey) == "string" then PlayerState.PassesById[passKey] else nil
 	if not pass or pass.PassId <= 0 then
 		return { Ok = false }
 	end
+	-- 접속 때 확인이 오류였거나 웹사이트에서 산 경우를 위해 한 번 더 확인(가졌으면 구매 창 대신 바로 반영)
 	local owned = passesByPlayer[player]
-	if owned and owned[pass.Id] then
-		return { Ok = false }
+	if owned and Purchases.recheckPass(player, owned, pass, purchaseDeps) then
+		return { Ok = false, Reason = "owned" }
 	end
 	local ok, err = pcall(function()
 		MarketplaceService:PromptGamePassPurchase(player, pass.PassId)
@@ -672,21 +657,10 @@ Net.fn("BuyPass").OnServerInvoke = function(player: Player, passKey: any)
 end
 
 Net.fn("BuyProduct").OnServerInvoke = function(player: Player, productKey: any)
-	local product = if type(productKey) == "string" then PlayerState.ProductsById[productKey] else nil
-	if not product or product.ProductId <= 0 then
-		return { Ok = false }
-	end
-	local session = sessions[player]
-	if not session then
-		return { Ok = false }
-	end
-	-- 시간 부스트는 최대 시간을 넘겨서 사면 남는 시간이 버려지므로 구매 창을 띄우지 않음
-	local seconds = product.Seconds
-	if seconds then
-		local left = if product.ServerWide then serverLuckLeft() else PlayerState.boostLeft(session.Data, product.Id)
-		if left + seconds > Config.MAX_BOOST_SECONDS then
-			return { Ok = false }
-		end
+	-- 시간 부스트는 남은 시간이 최대(MAX_BOOST_SECONDS)를 넘게 되면 구매 창을 띄우지 않음(Purchases.promptCheck)
+	local product, reason = Purchases.promptCheck(productKey, sessions[player], serverLuckLeft())
+	if not product then
+		return { Ok = false, Reason = reason }
 	end
 	local ok, err = pcall(function()
 		MarketplaceService:PromptProductPurchase(player, product.ProductId)

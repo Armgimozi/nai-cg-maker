@@ -50,6 +50,7 @@ export type GamePass = {
 	LuckMult: number?, -- 행운 배율
 	CooldownMult: number?, -- 굴림 간격 배율
 	IncomeMult: number?, -- 관광 수입 배율
+	Price: number?, -- Robux 가격(상점 버튼에 먼저 보여 줌. 클라이언트가 GetProductInfo 로 실제 가격을 받으면 그 값으로 바꿈)
 }
 
 -- 개발자 상품(여러 번 구매). ProductId 가 0 이면 비활성(화면에 안 나옴)
@@ -62,6 +63,7 @@ export type Product = {
 	ServerWide: boolean?, -- true 면 서버 전체 부스트(저장 안 하는 서버 변수), 아니면 개인 부스트(Data.Boosts)
 	IncomeSeconds: number?, -- 코인 팩: 초당 관광 수입 × 이 초만큼 코인
 	MinCoins: number?, -- 코인 팩: 최소 코인
+	Price: number?, -- Robux 가격(게임패스와 같음)
 }
 
 local Config = {
@@ -158,15 +160,21 @@ local Config = {
 
 	-- 유료 상품(Robux) ----------------------------------------------------
 	-- 2026-09-30 Open Cloud 로 등록한 번호(아이콘: art/products). 0 이면 그 상품은 비활성(화면에 안 나옴).
-	-- 가격(Robux): LuckVIP 399, FastRoll 199, DoubleIncome 299
+	-- Price 는 Creator Hub 에 넣은 Robux 가격과 같게 유지(상점 버튼에 먼저 보이는 값. 실제 가격은 클라이언트가 다시 받음)
 	GamePasses = {
-		{ Id = "LuckVIP", Name = "행운 VIP", PassId = 1999287690, LuckMult = 2 },
-		{ Id = "FastRoll", Name = "빠른 굴림", PassId = 2002682533, CooldownMult = 0.7 },
-		{ Id = "DoubleIncome", Name = "수입 2배", PassId = 2003390304, IncomeMult = 2 },
+		{ Id = "LuckVIP", Name = "행운 VIP", PassId = 1999287690, LuckMult = 2, Price = 399 },
+		{ Id = "FastRoll", Name = "빠른 굴림", PassId = 2002682533, CooldownMult = 0.7, Price = 199 },
+		{ Id = "DoubleIncome", Name = "수입 2배", PassId = 2003390304, IncomeMult = 2, Price = 299 },
 	} :: { GamePass },
-	-- 가격(Robux): LuckBoost 49, ServerLuck 99, CoinPack 79
 	Products = {
-		{ Id = "LuckBoost", Name = "행운 부스트", ProductId = 3715550240, Seconds = 900, LuckMult = 2 },
+		{
+			Id = "LuckBoost",
+			Name = "행운 부스트",
+			ProductId = 3715550240,
+			Seconds = 900,
+			LuckMult = 2,
+			Price = 49,
+		},
 		{
 			Id = "ServerLuck",
 			Name = "서버 행운",
@@ -174,11 +182,25 @@ local Config = {
 			Seconds = 900,
 			LuckMult = 2,
 			ServerWide = true,
+			Price = 99,
 		},
-		{ Id = "CoinPack", Name = "코인 팩", ProductId = 3715550261, IncomeSeconds = 1800, MinCoins = 1000 },
+		{
+			Id = "CoinPack",
+			Name = "코인 팩",
+			ProductId = 3715550261,
+			IncomeSeconds = 1800,
+			MinCoins = 1000,
+			Price = 79,
+		},
 	} :: { Product },
-	MAX_BOOST_SECONDS = 3 * 60 * 60, -- 시간 부스트(개인·서버)는 남은 시간이 이 이상 쌓이지 않음
-	MAX_RECEIPTS = 50, -- 중복 지급 방지용으로 기억하는 최근 구매 영수증(PurchaseId) 수
+	-- 시간 부스트(개인·서버): 남은 시간 + 부스트 시간이 이 값을 넘으면 서버가 구매 창을 띄우지 않음.
+	-- 이미 결제된 영수증은 이 값과 상관없이 산 시간을 다 더함(동시에 연 구매 창, 늦게 온 영수증 — 돈 낸 시간을 버리지 않음)
+	MAX_BOOST_SECONDS = 3 * 60 * 60,
+	-- 지급·저장할 때의 남은 시간 상한. 데이터 손상 방지용일 뿐이라 보통은 닿지 않게 아주 큼
+	MAX_BOOST_STORED_SECONDS = 24 * 60 * 60,
+	-- 중복 지급 방지용으로 기억하는 최근 구매 영수증(PurchaseId) 수. 저장이 계속 실패하는 동안 쌓인 영수증이
+	-- 밀려나 다시 지급되지 않도록 넉넉하게(1000개 ≈ 40KB, DataStore 한도 4MB)
+	MAX_RECEIPTS = 1000,
 
 	-- 저장 ---------------------------------------------------------------
 	DATASTORE_NAME = "LandmarkRNG_v1",
@@ -8976,7 +8998,7 @@ function PlayerState.reconcile(raw: any): Data
 		for _, product in Config.Products do
 			local left = raw.Boosts[product.Id]
 			if isPersonalBoost(product) and type(left) == "number" and left == left and left > 0 then
-				data.Boosts[product.Id] = math.min(left, Config.MAX_BOOST_SECONDS)
+				data.Boosts[product.Id] = math.min(left, Config.MAX_BOOST_STORED_SECONDS)
 			end
 		end
 	end
@@ -9102,14 +9124,20 @@ function PlayerState.boostLeft(data: Data | Snapshot, productKey: string): numbe
 	return if boosts then boosts[productKey] or 0 else 0
 end
 
--- 개인 시간 부스트(예: LuckBoost)의 남은 시간을 더함(MAX_BOOST_SECONDS 까지). 개인 부스트 상품이 아니면 false.
+-- 남은 시간 left 에 seconds 를 더한 값. 이미 결제된 시간이라 구매 창 상한(MAX_BOOST_SECONDS)으로 자르지 않고,
+-- 데이터 손상 방지용 상한(MAX_BOOST_STORED_SECONDS)까지만 막음. 개인 부스트와 서버 행운이 같이 씀
+function PlayerState.stackSeconds(left: number, seconds: number): number
+	return math.min(Config.MAX_BOOST_STORED_SECONDS, math.max(0, left) + math.max(0, seconds))
+end
+
+-- 개인 시간 부스트(예: LuckBoost)의 남은 시간을 더함(stackSeconds). 개인 부스트 상품이 아니면 false.
 function PlayerState.addBoost(data: Data, productKey: any): boolean
 	local product = if type(productKey) == "string" then PlayerState.ProductsById[productKey] else nil
 	if not product or not isPersonalBoost(product) then
 		return false
 	end
 	local left = data.Boosts[product.Id] or 0
-	data.Boosts[product.Id] = math.min(Config.MAX_BOOST_SECONDS, left + (product.Seconds or 0))
+	data.Boosts[product.Id] = PlayerState.stackSeconds(left, product.Seconds or 0)
 	return true
 end
 
@@ -9619,7 +9647,7 @@ function PlayerState.hasReceipt(data: Data, purchaseId: any): boolean
 	return table.find(data.Receipts, tostring(purchaseId)) ~= nil
 end
 
--- 지급한 영수증을 기록(이미 있으면 그대로). 최근 MAX_RECEIPTS 개만 보관.
+-- 지급한 영수증을 기록(이미 있으면 그대로). 최근 MAX_RECEIPTS 개만 보관(오래된 것부터 지움).
 function PlayerState.addReceipt(data: Data, purchaseId: any)
 	local key = tostring(purchaseId)
 	if table.find(data.Receipts, key) then
@@ -9762,6 +9790,7 @@ local RollLogic = require(Shared.RollLogic)
 local DataService = require(script.DataService)
 local FeaturedDisplay = require(script.FeaturedDisplay)
 local ParkService = require(script.ParkService)
+local Purchases = require(script.Purchases)
 local Scenery = require(script.Scenery)
 local World = require(script.World)
 
@@ -9799,6 +9828,8 @@ local sessions: { [Player]: Session } = {}
 local started: { [Player]: boolean } = {}
 -- 게임패스 소유 정보. 데이터 로드와 동시에 확인하므로 세션보다 먼저 만들어 두고 세션이 같은 표를 씀
 local passesByPlayer: { [Player]: { [string]: boolean } } = {}
+-- 접속 시 게임패스 확인(다시 확인 포함)이 끝났는지. 실패로 끝나도 true (코인 팩 영수증이 이걸 잠깐 기다림)
+local passesReady: { [Player]: boolean } = {}
 local rng = Random.new()
 
 -- 서버 행운(서버 전원에게 적용, 저장 안 함). os.clock() 기준 끝나는 시각
@@ -9927,57 +9958,14 @@ end
 
 -- 게임패스 ----------------------------------------------------------------
 
-local function passByPassId(passId: number): Config.GamePass?
-	for _, pass in Config.GamePasses do
-		if pass.PassId > 0 and pass.PassId == passId then
-			return pass
-		end
-	end
-	return nil
-end
-
--- 접속 시 게임패스 소유 확인. owned 는 세션과 같은 표라서 확인이 끝나는 대로 반영됨
-local function loadPasses(player: Player, owned: { [string]: boolean })
-	local found = false
-	for _, pass in Config.GamePasses do
-		if pass.PassId > 0 then
-			local ok, result = pcall(function()
-				return MarketplaceService:UserOwnsGamePassAsync(player.UserId, pass.PassId)
-			end)
-			if ok and result == true then
-				owned[pass.Id] = true
-				found = true
-			elseif not ok then
-				warn(
-					string.format(
-						"[LandmarkRNG] %s 게임패스(%s) 확인 실패: %s",
-						player.Name,
-						pass.Id,
-						tostring(result)
-					)
-				)
-			end
-		end
-	end
-	-- 세션이 아직 없으면 세션을 만들 때 보내는 첫 상태에 포함됨
-	if found and sessions[player] then
+-- 가진 게임패스가 늘었을 때: 내 화면(상태) + 모두가 보는 공원 간판(수입 2배가 간판 수입에 들어감)
+local function onPassesChanged(player: Player)
+	local session = sessions[player]
+	if session then
+		refreshVisible(player, session)
 		pushState(player)
 	end
 end
-
-MarketplaceService.PromptGamePassPurchaseFinished:Connect(
-	function(player: Player, passId: number, wasPurchased: boolean)
-		if not wasPurchased then
-			return
-		end
-		local pass = passByPassId(passId)
-		local owned = passesByPlayer[player]
-		if pass and owned then
-			owned[pass.Id] = true
-			pushState(player)
-		end
-	end
-)
 
 -- 서버 행운 ----------------------------------------------------------------
 
@@ -9992,14 +9980,75 @@ local function serverLuckInfo()
 	}
 end
 
+-- 결제된 시간은 다 더함(구매 창 상한 MAX_BOOST_SECONDS 로 자르지 않음 — Purchases.extendUntil)
 local function extendServerLuck(buyer: Player, seconds: number)
-	local now = os.clock()
-	serverLuckUntil = math.min(math.max(serverLuckUntil, now) + seconds, now + Config.MAX_BOOST_SECONDS)
+	local added
+	serverLuckUntil, added = Purchases.extendUntil(serverLuckUntil, os.clock(), seconds)
 	serverLuckOn = true
 	serverLuckBy = { UserId = buyer.UserId, Name = buyer.DisplayName }
 	Net.event("ServerLuck"):FireAllClients(serverLuckInfo())
 	pushStateAll()
-	print(string.format("[LandmarkRNG] %s 님이 서버 행운 %d초 추가", buyer.Name, seconds))
+	print(string.format("[LandmarkRNG] %s 님이 서버 행운 %d초 추가", buyer.Name, math.floor(added + 0.5)))
+end
+
+-- 유료 상품 처리(Purchases)에 넘기는 서버 쪽 일 --------------------------------------
+
+local purchaseDeps: Purchases.Deps = {
+	findPlayer = function(userId: number): Player?
+		return Players:GetPlayerByUserId(userId)
+	end,
+	session = function(player: Player): Purchases.Session?
+		return sessions[player]
+	end,
+	inGame = function(player: Player): boolean
+		return player.Parent == Players
+	end,
+	passesReady = function(player: Player): boolean
+		return passesReady[player] == true
+	end,
+	mods = function(session: Purchases.Session): PlayerState.Mods
+		return modsFor(session :: any)
+	end,
+	save = function(player: Player, session: Purchases.Session): boolean
+		local lockId = session.LockId
+		return lockId ~= nil and trackedSave(player, session.Data, lockId, false)
+	end,
+	serverLuck = extendServerLuck,
+	pushState = pushState,
+	ownsPass = function(player: Player, passId: number): boolean
+		return MarketplaceService:UserOwnsGamePassAsync(player.UserId, passId)
+	end,
+	passesChanged = onPassesChanged,
+	wait = function(seconds: number)
+		task.wait(seconds)
+	end,
+	clock = os.clock,
+}
+
+-- 게임패스 구매 창이 닫힘: 샀으면 바로 반영. 안 샀는데 아직 모르는 패스면 한 번 더 확인
+-- (이미 가진 패스라서 로블록스가 "이미 보유" 로 닫은 경우 — 접속 확인이 오류였던 때)
+MarketplaceService.PromptGamePassPurchaseFinished:Connect(
+	function(player: Player, passId: number, wasPurchased: boolean)
+		local pass = Purchases.passByPassId(passId)
+		local owned = passesByPlayer[player]
+		if not pass or not owned or owned[pass.Id] then
+			return
+		end
+		if wasPurchased then
+			owned[pass.Id] = true
+			onPassesChanged(player)
+		else
+			Purchases.recheckPass(player, owned, pass, purchaseDeps)
+		end
+	end
+)
+
+-- 접속 시 게임패스 확인(오류 난 패스는 몇 번 다시). owned 는 세션과 같은 표라서 확인되는 대로 반영됨
+local function loadPasses(player: Player, owned: { [string]: boolean })
+	Purchases.checkPasses(player, owned, purchaseDeps)
+	if passesByPlayer[player] == owned then -- 그사이 나갔다 들어오지 않았으면
+		passesReady[player] = true
+	end
 end
 
 -- 플레이어 입장/퇴장 -----------------------------------------------------------
@@ -10020,6 +10069,7 @@ local function onPlayerAdded(player: Player)
 		-- 불러오는 동안 나감: 방금 건 세션 잠금을 풀어 둬야 다음 접속이 기다리지 않음
 		started[player] = nil
 		passesByPlayer[player] = nil
+		passesReady[player] = nil
 		if data and lockId then
 			trackedSave(player, data, lockId, true)
 		end
@@ -10079,6 +10129,7 @@ end
 local function saveAndRelease(player: Player)
 	started[player] = nil
 	passesByPlayer[player] = nil
+	passesReady[player] = nil
 	local ok, err = pcall(ParkService.release, player)
 	if not ok then
 		warn("[LandmarkRNG] 공원 부지 정리 실패: " .. tostring(err))
@@ -10198,52 +10249,11 @@ local function revealLater(player: Player, session: Session, landmark: Landmarks
 end
 
 -- 개발자 상품 구매 처리 --------------------------------------------------------
--- 지급 + 저장 성공 후에만 PurchaseGranted. 같은 PurchaseId 는 Data.Receipts 로 한 번만 지급.
--- 저장이 실패하면 NotProcessedYet → Roblox 가 나중에 다시 부르고, 그때는 영수증이 이미 있으니 저장만 다시 시도.
-
-local function productByProductId(productId: number): Config.Product?
-	for _, product in Config.Products do
-		if product.ProductId > 0 and product.ProductId == productId then
-			return product
-		end
-	end
-	return nil
-end
+-- 규칙은 Purchases.processReceipt: 지급 + 저장 성공 후에만 PurchaseGranted, 같은 PurchaseId 는 Data.Receipts 로
+-- 한 번만 지급, 데이터를 불러오는 중이면 세션을 기다림. 저장이 실패하면 NotProcessedYet → Roblox 가 나중에 다시 부름.
 
 local function processReceipt(receiptInfo: { [string]: any }): Enum.ProductPurchaseDecision
-	local player = Players:GetPlayerByUserId(receiptInfo.PlayerId)
-	local session = if player then sessions[player] else nil
-	if not player or not session then
-		return Enum.ProductPurchaseDecision.NotProcessedYet
-	end
-
-	local purchaseId = tostring(receiptInfo.PurchaseId)
-	if not PlayerState.hasReceipt(session.Data, purchaseId) then
-		local product = productByProductId(receiptInfo.ProductId)
-		if not product then
-			warn("[LandmarkRNG] 모르는 개발자 상품: " .. tostring(receiptInfo.ProductId))
-			return Enum.ProductPurchaseDecision.NotProcessedYet
-		end
-		local ok, grant = PlayerState.grantProduct(session.Data, product.Id, modsFor(session))
-		if not ok or not grant then
-			return Enum.ProductPurchaseDecision.NotProcessedYet
-		end
-		PlayerState.addReceipt(session.Data, purchaseId)
-		if grant.ServerWide then
-			extendServerLuck(player, grant.Seconds)
-		else
-			pushState(player)
-		end
-	end
-
-	-- Studio(저장 안 함)에서는 효과만 적용되고 완료 처리는 되지 않음
-	if not session.LockId then
-		return Enum.ProductPurchaseDecision.NotProcessedYet
-	end
-	if trackedSave(player, session.Data, session.LockId, false) then
-		return Enum.ProductPurchaseDecision.PurchaseGranted
-	end
-	return Enum.ProductPurchaseDecision.NotProcessedYet
+	return Purchases.processReceipt(receiptInfo, purchaseDeps)
 end
 
 MarketplaceService.ProcessReceipt = function(receiptInfo)
@@ -10398,15 +10408,18 @@ Net.fn("Rebirth").OnServerInvoke = function(player: Player)
 	return { Ok = ok, Reason = reason, State = snapshot(session) }
 end
 
--- 구매 창 띄우기. 결과는 구매 완료 이벤트 / ProcessReceipt 에서 State(+ServerLuck) 이벤트로 반영됨
+-- 구매 창 띄우기. 결과는 구매 완료 이벤트 / ProcessReceipt 에서 State(+ServerLuck) 이벤트로 반영됨.
+-- 못 띄우면 { Ok = false, Reason }: "owned" 이미 가진 게임패스, "loading" 데이터 불러오는 중,
+-- "max" 부스트 시간이 가득 참(3시간), nil 그 밖의 실패
 Net.fn("BuyPass").OnServerInvoke = function(player: Player, passKey: any)
 	local pass = if type(passKey) == "string" then PlayerState.PassesById[passKey] else nil
 	if not pass or pass.PassId <= 0 then
 		return { Ok = false }
 	end
+	-- 접속 때 확인이 오류였거나 웹사이트에서 산 경우를 위해 한 번 더 확인(가졌으면 구매 창 대신 바로 반영)
 	local owned = passesByPlayer[player]
-	if owned and owned[pass.Id] then
-		return { Ok = false }
+	if owned and Purchases.recheckPass(player, owned, pass, purchaseDeps) then
+		return { Ok = false, Reason = "owned" }
 	end
 	local ok, err = pcall(function()
 		MarketplaceService:PromptGamePassPurchase(player, pass.PassId)
@@ -10418,21 +10431,10 @@ Net.fn("BuyPass").OnServerInvoke = function(player: Player, passKey: any)
 end
 
 Net.fn("BuyProduct").OnServerInvoke = function(player: Player, productKey: any)
-	local product = if type(productKey) == "string" then PlayerState.ProductsById[productKey] else nil
-	if not product or product.ProductId <= 0 then
-		return { Ok = false }
-	end
-	local session = sessions[player]
-	if not session then
-		return { Ok = false }
-	end
-	-- 시간 부스트는 최대 시간을 넘겨서 사면 남는 시간이 버려지므로 구매 창을 띄우지 않음
-	local seconds = product.Seconds
-	if seconds then
-		local left = if product.ServerWide then serverLuckLeft() else PlayerState.boostLeft(session.Data, product.Id)
-		if left + seconds > Config.MAX_BOOST_SECONDS then
-			return { Ok = false }
-		end
+	-- 시간 부스트는 남은 시간이 최대(MAX_BOOST_SECONDS)를 넘게 되면 구매 창을 띄우지 않음(Purchases.promptCheck)
+	local product, reason = Purchases.promptCheck(productKey, sessions[player], serverLuckLeft())
+	if not product then
+		return { Ok = false, Reason = reason }
 	end
 	local ok, err = pcall(function()
 		MarketplaceService:PromptProductPurchase(player, product.ProductId)
@@ -11910,6 +11912,265 @@ return ParkService
       </Item>
       <Item class="ModuleScript" referent="29">
         <Properties>
+          <string name="Name">Purchases</string>
+          <string name="Source"><![CDATA[-- 유료 상품(Robux) 서버 규칙: 개발자 상품 영수증(ProcessReceipt) 판정·지급, 게임패스 소유 확인, 구매 창 조건.
+-- 세션 표·저장·이벤트 같은 서버 일은 init.server 가 deps 로 넘김 → 테스트(tests/run.luau)가 가짜 deps 로 그대로 돌림.
+--
+-- 영수증 규칙:
+--   · 지급 + 저장 성공 뒤에만 PurchaseGranted. 저장이 실패하면 NotProcessedYet → Roblox 가 나중에 다시 부름
+--   · 같은 PurchaseId 는 Data.Receipts 로 한 번만 지급(다시 불리면 저장만 다시 시도)
+--   · 접속 직후 데이터를 불러오는 중이면 세션이 생길 때까지 기다림. 여기서 바로 NotProcessedYet 을 돌려주면
+--     접속 때 다시 온 영수증이 다음 구매나 다음 접속 때까지 지급되지 않음
+--   · 코인 팩(초당 수입 기준)은 접속 시 게임패스(수입 2배) 확인이 끝날 때까지 잠깐 기다린 뒤 지급
+
+local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
+local Config = require(Shared.Config)
+local PlayerState = require(Shared.PlayerState)
+
+local Purchases = {}
+
+-- 데이터를 불러오는 동안 영수증이 기다리는 최대 초 (DataService.load 는 세션 잠금 대기까지 약 25~30초)
+Purchases.SESSION_WAIT = 60
+-- 코인 팩이 접속 시 게임패스 확인(다시 확인 포함)을 기다리는 최대 초
+Purchases.PASS_WAIT = 15
+Purchases.POLL = 0.25
+-- 게임패스 확인이 오류 나면 이만큼(초) 기다렸다가 오류 난 패스만 다시 확인. 모두 실패하면 이번 접속은 포기
+Purchases.PASS_RETRY = { 1, 2, 4 }
+
+export type Session = {
+	Data: PlayerState.Data,
+	LockId: string?, -- nil 이면 저장하지 않음(Studio)
+	Passes: { [string]: boolean },
+}
+
+export type Deps = {
+	findPlayer: (userId: number) -> Player?, -- Players:GetPlayerByUserId
+	session: (player: Player) -> Session?, -- 데이터를 다 불러온 세션(아직이면 nil)
+	inGame: (player: Player) -> boolean, -- 아직 이 서버에 있는지(나가거나 Kick 되면 false)
+	passesReady: (player: Player) -> boolean, -- 접속 시 게임패스 확인(다시 확인 포함)이 끝났는지
+	mods: (session: Session) -> PlayerState.Mods,
+	save: (player: Player, session: Session) -> boolean, -- 저장(잠금 유지). 성공하면 true
+	serverLuck: (player: Player, seconds: number) -> (), -- 서버 행운 타이머에 더하고 모두에게 알림
+	pushState: (player: Player) -> (),
+	ownsPass: (player: Player, passId: number) -> boolean, -- UserOwnsGamePassAsync (오류는 그대로 던짐)
+	passesChanged: (player: Player) -> (), -- 가진 게임패스가 늘었음(상태 + 공원 간판 갱신)
+	wait: (seconds: number) -> (),
+	clock: () -> number,
+}
+
+function Purchases.productByProductId(productId: any): Config.Product?
+	local id = tonumber(productId)
+	if not id then
+		return nil
+	end
+	for _, product in Config.Products do
+		if product.ProductId > 0 and product.ProductId == id then
+			return product
+		end
+	end
+	return nil
+end
+
+function Purchases.passByPassId(passId: any): Config.GamePass?
+	local id = tonumber(passId)
+	if not id then
+		return nil
+	end
+	for _, pass in Config.GamePasses do
+		if pass.PassId > 0 and pass.PassId == id then
+			return pass
+		end
+	end
+	return nil
+end
+
+-- ready() 가 true 가 될 때까지 기다림. 플레이어가 나가거나 seconds 초가 지나면 그만. 반환: ready() 결과
+local function waitFor(deps: Deps, player: Player, seconds: number, ready: () -> boolean): boolean
+	local deadline = deps.clock() + seconds
+	while not ready() do
+		if not deps.inGame(player) or deps.clock() >= deadline then
+			return false
+		end
+		deps.wait(Purchases.POLL)
+	end
+	return true
+end
+
+-- MarketplaceService.ProcessReceipt 본체(오류는 부르는 쪽 pcall 이 NotProcessedYet 으로 바꿈)
+function Purchases.processReceipt(receiptInfo: { [string]: any }, deps: Deps): Enum.ProductPurchaseDecision
+	local notYet = Enum.ProductPurchaseDecision.NotProcessedYet
+	local player = deps.findPlayer(receiptInfo.PlayerId)
+	if not player then
+		return notYet -- 이 서버에 없음: 다음 접속 때 다시 옴
+	end
+	local purchaseId = tostring(receiptInfo.PurchaseId)
+	local product = Purchases.productByProductId(receiptInfo.ProductId)
+
+	-- 데이터를 불러오는 중: 세션이 생길 때까지 기다림(불러오기 실패 = Kick, 도중에 나감 → 바로 그만)
+	local loaded = waitFor(deps, player, Purchases.SESSION_WAIT, function()
+		return deps.session(player) ~= nil
+	end)
+	if not loaded then
+		return notYet
+	end
+	-- 코인 팩은 초당 수입(수입 2배 게임패스 포함)으로 정하므로 접속 시 게임패스 확인을 잠깐 기다림.
+	-- 확인이 끝나지 않아도 PASS_WAIT 가 지나면 지금 아는 대로 지급(무한정 미루지 않음)
+	if product and product.IncomeSeconds then
+		local session = deps.session(player)
+		if session and not PlayerState.hasReceipt(session.Data, purchaseId) then
+			waitFor(deps, player, Purchases.PASS_WAIT, function()
+				return deps.passesReady(player)
+			end)
+		end
+	end
+
+	-- 기다리는 동안 나갔을 수 있으니 세션을 다시 읽음. 여기서 지급·영수증 기록까지는 멈추지 않음(같은 영수증이
+	-- 동시에 불려도 한쪽만 지급)
+	local session = deps.session(player)
+	if not session then
+		return notYet
+	end
+	if not PlayerState.hasReceipt(session.Data, purchaseId) then
+		if not product then
+			warn("[LandmarkRNG] 모르는 개발자 상품: " .. tostring(receiptInfo.ProductId))
+			return notYet
+		end
+		local ok, grant = PlayerState.grantProduct(session.Data, product.Id, deps.mods(session))
+		if not ok or not grant then
+			return notYet
+		end
+		PlayerState.addReceipt(session.Data, purchaseId)
+		if grant.ServerWide then
+			deps.serverLuck(player, grant.Seconds)
+		else
+			deps.pushState(player)
+		end
+	end
+
+	-- Studio(저장 안 함)에서는 효과만 적용되고 완료 처리는 되지 않음
+	if not session.LockId then
+		return notYet
+	end
+	if deps.save(player, session) then
+		return Enum.ProductPurchaseDecision.PurchaseGranted
+	end
+	return notYet
+end
+
+-- 서버 행운 타이머 늘리기: (지금 끝나는 시각, 지금 시각, 더할 초) -> (새 끝나는 시각, 실제로 더한 초).
+-- 결제된 시간이라 구매 창 상한(MAX_BOOST_SECONDS)으로 자르지 않음(PlayerState.stackSeconds)
+function Purchases.extendUntil(untilTime: number, now: number, seconds: number): (number, number)
+	local left = math.max(0, untilTime - now)
+	local after = PlayerState.stackSeconds(left, seconds)
+	return now + after, after - left
+end
+
+-- BuyProduct 원격: 구매 창을 띄워도 되는지. 반환: (상품, nil) 이면 띄움, 아니면 (nil, 이유)
+--   이유 "loading" = 데이터를 불러오는 중, "max" = 남은 부스트 시간 + 이번 시간이 MAX_BOOST_SECONDS 를 넘음, nil = 모르는 상품
+-- serverLuckLeft: 지금 서버 행운 남은 초
+function Purchases.promptCheck(productKey: any, session: Session?, serverLuckLeft: number): (Config.Product?, string?)
+	local product = if type(productKey) == "string" then PlayerState.ProductsById[productKey] else nil
+	if not product or product.ProductId <= 0 then
+		return nil, nil
+	end
+	if not session then
+		return nil, "loading"
+	end
+	local seconds = product.Seconds
+	if seconds then
+		local left = if product.ServerWide then serverLuckLeft else PlayerState.boostLeft(session.Data, product.Id)
+		if left + seconds > Config.MAX_BOOST_SECONDS then
+			return nil, "max"
+		end
+	end
+	return product, nil
+end
+
+-- 게임패스 ----------------------------------------------------------------
+
+-- 접속 시 게임패스 소유 확인. owned 는 세션과 같은 표라서 확인되는 대로 반영됨.
+-- 오류 난 패스만 PASS_RETRY 간격으로 다시 확인하고(나가면 그만), 새로 찾은 패스가 있으면 그때마다 passesChanged.
+-- 반환: 끝까지 확인하지 못한 패스 수(0 = 모두 확인)
+function Purchases.checkPasses(player: Player, owned: { [string]: boolean }, deps: Deps): number
+	local pending: { Config.GamePass } = {}
+	for _, pass in Config.GamePasses do
+		if pass.PassId > 0 then
+			table.insert(pending, pass)
+		end
+	end
+	local tries = #Purchases.PASS_RETRY + 1
+	for attempt = 1, tries do
+		local failed = {}
+		local found = false
+		for _, pass in pending do
+			if owned[pass.Id] then
+				continue -- 그사이 구매 완료 이벤트로 받음
+			end
+			local ok, result = pcall(deps.ownsPass, player, pass.PassId)
+			if not ok then
+				table.insert(failed, pass)
+				warn(
+					string.format(
+						"[LandmarkRNG] %s 게임패스(%s) 확인 실패(%d/%d): %s",
+						player.Name,
+						pass.Id,
+						attempt,
+						tries,
+						tostring(result)
+					)
+				)
+			elseif result == true then
+				owned[pass.Id] = true
+				found = true
+			end
+		end
+		if found then
+			deps.passesChanged(player)
+		end
+		pending = failed
+		if #pending == 0 or attempt == tries then
+			break
+		end
+		deps.wait(Purchases.PASS_RETRY[attempt])
+		if not deps.inGame(player) then
+			break
+		end
+	end
+	return #pending
+end
+
+-- BuyPass 원격: 구매 창을 띄우기 전에 한 번 더 확인(접속 때 확인이 오류였거나 웹사이트에서 산 경우).
+-- 새로 가진 걸 알게 되면 passesChanged. 반환: 가졌는지(true 면 구매 창을 띄우지 않음)
+function Purchases.recheckPass(player: Player, owned: { [string]: boolean }, pass: Config.GamePass, deps: Deps): boolean
+	if owned[pass.Id] then
+		return true
+	end
+	local ok, result = pcall(deps.ownsPass, player, pass.PassId)
+	if not ok then
+		warn(
+			string.format(
+				"[LandmarkRNG] %s 게임패스(%s) 다시 확인 실패: %s",
+				player.Name,
+				pass.Id,
+				tostring(result)
+			)
+		)
+		return false
+	end
+	if result == true then
+		owned[pass.Id] = true
+		deps.passesChanged(player)
+		return true
+	end
+	return false
+end
+
+return Purchases
+]]></string>
+        </Properties>
+      </Item>
+      <Item class="ModuleScript" referent="30">
+        <Properties>
           <string name="Name">Scenery</string>
           <string name="Source"><![CDATA[-- 주변 풍경: 공원을 바다 위 휴양 섬으로 만듭니다. 서버 시작 때 한 번만 만듭니다.
 --   지형(Workspace.Terrain): 구불구불한 해안선의 섬(공원 자리는 y = 0 으로 평평, 부지 뒤 숲띠는 낮은 잔디 언덕)
@@ -12323,7 +12584,7 @@ end
 return Scenery
 ]]></string>
         </Properties>
-        <Item class="ModuleScript" referent="30">
+        <Item class="ModuleScript" referent="31">
           <Properties>
             <string name="Name">Island</string>
             <string name="Source"><![CDATA[--!strict
@@ -13034,7 +13295,7 @@ return Island
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="31">
+        <Item class="ModuleScript" referent="32">
           <Properties>
             <string name="Name">Plan</string>
             <string name="Source"><![CDATA[--!strict
@@ -15085,7 +15346,7 @@ return Plan
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="32">
+        <Item class="ModuleScript" referent="33">
           <Properties>
             <string name="Name">Props</string>
             <string name="Source"><![CDATA[-- 풍경 장식 파트 만들기(Plan 의 Item 하나 → 파트 몇 개). 게임 전체와 같은 통통하고 밝은 만화풍이지만
@@ -16913,7 +17174,7 @@ return Props
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="33">
+        <Item class="ModuleScript" referent="34">
           <Properties>
             <string name="Name">Rng</string>
             <string name="Source"><![CDATA[--!strict
@@ -16983,7 +17244,7 @@ return Rng
           </Properties>
         </Item>
       </Item>
-      <Item class="ModuleScript" referent="34">
+      <Item class="ModuleScript" referent="35">
         <Properties>
           <string name="Name">World</string>
           <string name="Source"><![CDATA[-- 광장(스폰) + 받침대 위의 거대 지구본 + 광장 둘레 나무 + 뉴스 속보 홀로그램
@@ -17401,15 +17662,15 @@ return World
       </Item>
     </Item>
   </Item>
-  <Item class="StarterPlayer" referent="35">
+  <Item class="StarterPlayer" referent="36">
     <Properties>
       <string name="Name">StarterPlayer</string>
     </Properties>
-    <Item class="StarterPlayerScripts" referent="36">
+    <Item class="StarterPlayerScripts" referent="37">
       <Properties>
         <string name="Name">StarterPlayerScripts</string>
       </Properties>
-      <Item class="LocalScript" referent="37">
+      <Item class="LocalScript" referent="38">
         <Properties>
           <string name="Name">Client</string>
           <string name="Source"><![CDATA[-- 클라이언트 진입점: 상태 동기화, 굴리기/자동 굴리기, 메뉴 연결, 뉴스 속보, 회전 모형,
@@ -17814,10 +18075,16 @@ local function buyRobux(remoteName: string, key: string)
 		applyState(response.State)
 	end
 	if response.Ok == false then
-		-- 시간 부스트는 최대 시간(3시간)이 차 있으면 서버가 구매 창을 안 띄움
+		-- 서버가 구매 창을 안 띄운 이유: "max" 시간 부스트가 최대(3시간)까지 참, "owned" 이미 가진 게임패스
+		-- (서버가 방금 확인해서 상태도 보냄), "loading" 데이터를 불러오는 중, 그 밖 = 실패
 		local item = Perks.item(key)
-		if item and item.Seconds then
-			Hud.toast("MAX", Ui.Theme.Bad, 2, item.Icon)
+		local icon = if item then item.Icon else "close"
+		if response.Reason == "max" then
+			Hud.toast("MAX", Ui.Theme.Bad, 2, icon)
+		elseif response.Reason == "owned" then
+			Hud.toast("보유", Ui.Theme.Good, 2, icon)
+		elseif response.Reason == "loading" then
+			Hud.toast("불러오는 중", Ui.Theme.Bad, 2, "auto")
 		else
 			Hud.toast("구매 실패", Ui.Theme.Bad, 2, "close")
 		end
@@ -18092,7 +18359,7 @@ end)
 applyState(invoke("GetState"))
 ]]></string>
         </Properties>
-        <Item class="ModuleScript" referent="38">
+        <Item class="ModuleScript" referent="39">
           <Properties>
             <string name="Name">Hud</string>
             <string name="Source"><![CDATA[-- 기본 화면(HUD): 코인·수입·스탯, 메뉴 버튼, 굴리기 버튼, 지구본 굴림 연출, 뉴스 속보, 알림,
@@ -18542,7 +18809,7 @@ local function buildMenu(onMenu: (string) -> (), onTeleport: () -> (), onArrange
 	})
 end
 
--- 오른쪽 가운데: 상점 (Robux 상품이 하나도 없으면 안 만듦)
+-- 오른쪽: 상점 (Robux 상품이 하나도 없으면 안 만듦). 초록 + Robux 표시 — 코인으로 사는 강화(노랑 + 동전)와 구별
 local function buildShop(onMenu: (string) -> ())
 	if not Perks.anyForSale() then
 		return
@@ -18557,10 +18824,9 @@ local function buildShop(onMenu: (string) -> ())
 	local button = Ui.chunkyButton({
 		Name = "Shop",
 		Size = UDim2.fromOffset(MENU_BUTTON.X, MENU_BUTTON.Y),
-		Color = "Sun",
-		Icon = "coin",
+		Color = "Grass",
+		Icon = "robux",
 		IconSize = MENU_ICON,
-		IconSpin = 45,
 		Vertical = true,
 		Text = "상점",
 		TextSize = 18,
@@ -18571,18 +18837,25 @@ local function buildShop(onMenu: (string) -> ())
 	end)
 end
 
--- 상점 자리: 기본은 오른쪽 가운데. 터치 전용 기기에서 점프 버튼(오른쪽 아래)과 닿으면 그만큼 위로
+-- 상점 자리 (오른쪽 끝). 기본 = 오른쪽 가운데
+--   터치 전용 기기: 점프 버튼(오른쪽 아래)과 닿으면 그만큼 위로
+--   키보드 기기: 오른쪽 위 로블록스 플레이어 목록(leaderstats 가 있어 펼쳐져 있고 사람 수만큼 길어짐, 게임 화면보다
+--     위에 그려져 클릭도 가져감)에 가리지 않게, 굴리기 줄 바로 위 높이까지 내림(오른쪽 아래는 PC 에서 비어 있음)
 local function placeShop(size: Vector2, scale: number, touch: boolean)
 	local shop = refs.Shop
 	if not shop then
 		return
 	end
-	local shift = 0
+	local center = size.Y / 2 + MENU_DROP
+	local half = MENU_BUTTON.Y * scale / 2
+	local target = center
 	if touch then
-		local limit = jumpTop(size) - MENU_CLEAR - MENU_BUTTON.Y * scale / 2 -- 상점 가운데가 올 수 있는 가장 아래
-		shift = math.min(0, limit - (size.Y / 2 + MENU_DROP))
+		target = math.min(center, jumpTop(size) - MENU_CLEAR - half)
+	else
+		local rollTop = size.Y - ROLL_BAR_BOTTOM - ROLL_BAR.Y * scale
+		target = math.max(center, rollTop - MENU_CLEAR - half)
 	end
-	shop.Position = UDim2.new(1, -MENU_X, 0.5, MENU_DROP + shift)
+	shop.Position = UDim2.new(1, -MENU_X, 0.5, MENU_DROP + (target - center))
 end
 
 -- 아래 가운데: 굴리기 + 자동 (키보드가 있으면 버튼 모서리에 R / T 키캡) --------------
@@ -19610,7 +19883,7 @@ return Hud
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="39">
+        <Item class="ModuleScript" referent="40">
           <Properties>
             <string name="Name">Icons</string>
             <string name="Source"><![CDATA[-- 아이콘 (이모지 대신). 모든 아이콘은 Icons.view 하나로 그립니다(Ui.icon 도 이걸 부름).
@@ -19622,7 +19895,8 @@ return Hud
 -- 아이콘: coin, globe(=roll), passport, album(=collection), hammer, park, plaza, dice, clover(=luck), star,
 --   star_empty, news, lock, auto, close, check, arrow_up, plane, ticket, rebirth,
 --   podium(공원 자동 배치: 1·2·3등 시상대 + 별), arrange(공원 배치 모드: 2×2 칸 판 위 미니 명소 셋 + 빈 칸 "+"),
---   crate(배치 모드 보관: 뚜껑 열린 나무 상자 + 미니 명소), camera(배치 모드 시점 바꾸기: 사진기)
+--   crate(배치 모드 보관: 뚜껑 열린 나무 상자 + 미니 명소), camera(배치 모드 시점 바꾸기: 사진기),
+--   robux(Robux 표시: 흰 육각형 + 가운데 네모 구멍 — 상점 버튼·Robux 가격)
 --   (stamp_* 는 그림이 있을 때만 씀)
 
 local RunService = game:GetService("RunService")
@@ -20093,6 +20367,18 @@ function BUILDERS.camera(m)
 	block(m, base * CFrame.new(1.45, 2.25, -0.82), V(0.6, 0.35, 0.1), SNOW)
 end
 
+-- Robux 표시(상점 버튼, 가격 버튼): 모서리가 위아래인 흰 육각판 + 가운데 진한 네모 구멍 (파트 4개).
+-- 육각형 = 가로 a√3 × 세로 a 판 3장을 0/60/120도 돌려 겹친 것(a = 한 변). 정면이 카메라 쪽을 보게 살짝 젖힘
+function BUILDERS.robux(m)
+	local a = 2
+	local depth = 0.5
+	local base = FACE * CFrame.new(0, a, 0) * CFrame.Angles(math.rad(16), 0, 0)
+	for k = 0, 2 do
+		block(m, base * CFrame.Angles(0, 0, k * PI / 3), V(a * math.sqrt(3), a, depth), SNOW)
+	end
+	block(m, base * CFrame.new(0, 0, -depth / 2 - 0.02), V(a * 0.78, a * 0.78, 0.06), INK)
+end
+
 -- 예전 이름 -> 지금 이름 (ImageIds 와 같은 이름을 씀)
 local ALIASES = {
 	roll = "globe",
@@ -20320,7 +20606,7 @@ return Icons
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="40">
+        <Item class="ModuleScript" referent="41">
           <Properties>
             <string name="Name">Panels</string>
             <string name="Source"><![CDATA[-- 메뉴 창: 도감(대표 지정), 여권(지역별 발견 현황 + 도장), 강화(업그레이드), 환생(조건 + 확인), 상점(Robux).
@@ -20330,6 +20616,7 @@ return Icons
 -- 화면마다 카드를 한 번 만들고 상태가 바뀌면 글자/색만 고칩니다. 썸네일(ViewportFrame)은
 -- 새로 발견했을 때만 만들어서, 자동 굴림 중에 창을 열어 둬도 매번 다시 만들지 않습니다.
 
+local MarketplaceService = game:GetService("MarketplaceService")
 local TweenService = game:GetService("TweenService")
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
@@ -20367,7 +20654,7 @@ local VIEWS = {
 	Passport = { Title = "여권", Color = "Grape", Top = HEADER_HEIGHT },
 	Upgrade = { Title = "강화", Color = "Sun", Top = 4 },
 	Rebirth = { Title = "환생", Color = "Coral", Top = HEADER_HEIGHT },
-	Shop = { Title = "상점", Color = "Sun", Top = 4 },
+	Shop = { Title = "상점", Color = "Grass", Top = 4 }, -- Robux 상점: 코인으로 사는 강화(Sun)와 다른 색
 }
 
 local WHITE = Color3.new(1, 1, 1)
@@ -20403,7 +20690,9 @@ local SHOP_CELL = Vector2.new(216, 196)
 local SHOP_GAP = 12
 local SHOP_COLUMNS = 3
 local SHOP_BAND = 74
+local SHOP_ART = 68 -- 로블록스에서 받은 상품 그림(구매 창과 같은 그림) 크기. 아이콘(62)을 덮음
 local BUY_COOLDOWN = 1
+local INFO_RETRY = 3 -- 상품 정보(GetProductInfo)를 못 받으면 이만큼 뒤에 한 번 더
 
 local Panels = {}
 
@@ -20479,8 +20768,18 @@ local confirmToken = 0
 local rebirthLook = ""
 
 -- 상점
-type ShopCard = { Item: Perks.Item, Button: Ui.ChunkyButton, Effect: Ui.Chip, Owned: Ui.Chip? }
+type ShopCard = {
+	Item: Perks.Item,
+	Button: Ui.ChunkyButton,
+	Effect: Ui.Chip,
+	Owned: Ui.Chip?,
+	Band: Frame,
+	Art: ImageLabel?, -- 로블록스에서 받은 상품 그림(받았을 때만)
+}
 local shopCards: { ShopCard } = {}
+-- 로블록스에서 받은 상품 정보("Pass:123" -> 실제 Robux 가격 · 상품 그림). 한 번 받으면 다시 묻지 않음
+type ShopInfo = { Price: number?, Art: string? }
+local shopInfo: { [string]: ShopInfo } = {}
 
 local collectionArrangeBadge: Ui.Chip? = nil -- 도감 머리 줄 [배치] 배지
 local function owned(state: Snapshot, id: string): number
@@ -21703,7 +22002,13 @@ local function durationText(seconds: number): string
 	return Format.duration(seconds)
 end
 
--- 상품 카드: 색 띠 + 큰 아이콘 / 이름 / 효과 딱지(+시간) / 초록 "구매" 버튼 (게임패스를 가졌으면 "보유" 도장)
+-- 가격 버튼 글자: Robux 숫자(가격을 모르면 "구매"). 버튼 왼쪽에 Robux 표시(육각형 아이콘)가 붙음
+local function priceText(price: number?): string
+	return if price then Format.commas(price) else "구매"
+end
+
+-- 상품 카드: 색 띠 + 큰 아이콘 / 이름 / 효과 딱지(+시간) / 초록 [Robux 표시 + 가격] 버튼
+-- (게임패스를 가졌으면 버튼 대신 "보유" 도장). 가격은 Config 값으로 먼저 그리고, 로블록스에서 실제 가격을 받으면 바꿈
 local function shopCard(parent: Frame, item: Perks.Item, order: number): ShopCard
 	local pair = Ui.colorPair(item.Color)
 	local card = Ui.new("Frame", {
@@ -21790,8 +22095,9 @@ local function shopCard(parent: Frame, item: Perks.Item, order: number): ShopCar
 		Position = UDim2.new(0.5, 0, 1, -6),
 		Size = UDim2.fromOffset(150, 52),
 		Color = "Grass",
-		Text = "구매",
-		TextSize = 24,
+		Icon = "robux",
+		Text = priceText(item.Price),
+		TextSize = 26,
 		Parent = card,
 	})
 	local lastPress = -math.huge
@@ -21831,7 +22137,58 @@ local function shopCard(parent: Frame, item: Perks.Item, order: number): ShopCar
 	end
 
 	card.Parent = parent
-	return { Item = item, Button = button, Effect = effect, Owned = ownedStamp }
+	return { Item = item, Button = button, Effect = effect, Owned = ownedStamp, Band = band, Art = nil }
+end
+
+-- 로블록스에서 상품 정보(실제 가격 · 상품 그림)를 받아 옴. 실패하면 INFO_RETRY 초 뒤 한 번 더, 그래도 안 되면 nil
+local function fetchShopInfo(item: Perks.Item): ShopInfo?
+	local key = item.Kind .. ":" .. item.Id
+	local cached = shopInfo[key]
+	if cached then
+		return cached
+	end
+	local infoType = if item.Kind == "Pass" then Enum.InfoType.GamePass else Enum.InfoType.Product
+	for attempt = 1, 2 do
+		local ok, info = pcall(function()
+			return MarketplaceService:GetProductInfo(item.Id, infoType)
+		end)
+		if ok and type(info) == "table" then
+			local price = info.PriceInRobux
+			local art = tonumber(info.IconImageAssetId)
+			local result: ShopInfo = {
+				Price = if type(price) == "number" and price > 0 then price else nil,
+				Art = if art and art > 0 then "rbxassetid://" .. string.format("%d", art) else nil,
+			}
+			shopInfo[key] = result
+			return result
+		end
+		if attempt == 1 then
+			task.wait(INFO_RETRY)
+		end
+	end
+	return nil
+end
+
+-- 받은 정보로 카드 고치기: 가격 글자, 띠 가운데 상품 그림(구매 창과 같은 그림. 아이콘 위에 덮어서, 그림을
+-- 못 불러오면 아래 아이콘이 그대로 보임)
+local function applyShopInfo(entry: ShopCard, info: ShopInfo)
+	if info.Price then
+		entry.Button.Label.Text = priceText(info.Price)
+	end
+	local art = info.Art
+	if art and not entry.Art then
+		entry.Art = Ui.new("ImageLabel", {
+			Name = "Art",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromOffset(SHOP_ART, SHOP_ART),
+			BackgroundTransparency = 1,
+			Image = art,
+			ScaleType = Enum.ScaleType.Fit,
+			ZIndex = 3,
+			Parent = entry.Band,
+		})
+	end
 end
 
 local function buildShop(): View
@@ -21871,6 +22228,15 @@ local function buildShop(): View
 		total += height + (if sections > 1 then SECTION_GAP else 0)
 	end
 	setCanvasHeight(scroller, total)
+	-- 실제 가격 · 상품 그림은 기다리지 않고 받는 대로 채움
+	for _, entry in shopCards do
+		task.spawn(function()
+			local info = fetchShopInfo(entry.Item)
+			if info then
+				applyShopInfo(entry, info)
+			end
+		end)
+	end
 	return { Scroller = scroller, Header = header }
 end
 
@@ -22032,7 +22398,7 @@ return Panels
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="41">
+        <Item class="ModuleScript" referent="42">
           <Properties>
             <string name="Name">ParkEdit</string>
             <string name="Source"><![CDATA[-- 3D 공원 배치 모드: 놀이공원 시뮬레이션처럼 메뉴 창 없이 내 공원에서 명소를 직접 눌러 집고, 다른 받침대를 눌러 놓음.
@@ -24398,7 +24764,7 @@ return ParkEdit
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="42">
+        <Item class="ModuleScript" referent="43">
           <Properties>
             <string name="Name">Perks</string>
             <string name="Source"><![CDATA[-- 환생 · 게임패스 · 개발자 상품 · 시간 부스트 · 서버 행운을 화면용으로 읽는 헬퍼 (DESIGN.md v3).
@@ -24407,7 +24773,7 @@ return ParkEdit
 --             Passes = { [passKey] = true }, ServerLuck (지금은 true/false. 남은 초 / 끝 시각 / 표도 받아 줌)
 --   ServerLuck 이벤트: { Name, Until(workspace:GetServerTimeNow 기준 끝 시각), Left(남은 초) }
 --   Config:   REBIRTH_LUCK_BONUS, REBIRTH_INCOME_BONUS, REBIRTHS, GamePasses, Products
---             (상품 항목 { Id = "LuckVIP", Name, PassId/ProductId, LuckMult... }. 번호가 0 이면 화면에 안 나옴)
+--             (상품 항목 { Id = "LuckVIP", Name, PassId/ProductId, LuckMult..., Price }. 번호가 0 이면 화면에 안 나옴)
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Config = require(Shared.Config) :: any
@@ -24452,13 +24818,15 @@ export type Item = {
 	EffectIcon: string,
 	Mult: number?, -- 배율 (×2, 굴림 간격 ×0.7)
 	Seconds: number?, -- 시간 부스트 길이
+	Price: number?, -- Robux 가격(Config). 상점이 GetProductInfo 로 실제 가격을 받으면 화면만 그 값으로 바꿈
 }
 
--- 화면에 보여 줄 순서와 모양(띠 색은 아이콘과 대비되게, 한 줄 안에서 겹치지 않게).
+-- 화면에 보여 줄 순서와 모양. 띠 색·아이콘은 구매 창에 나오는 상품 그림(art/products)에 맞추고, 한 줄 안에서는
+-- 띠 색이 겹치지 않게(코인 팩 그림은 서버 행운처럼 금색 바탕이라 띠만 Coral).
 -- 효과 숫자(Mult/Seconds)는 Config 항목에 있으면 그 값을 씀
 local PASS_INFO = {
 	{ Key = "LuckVIP", Name = "행운 VIP", Icon = "clover", Color = "Grape", EffectIcon = "clover", Mult = 2 },
-	{ Key = "FastRoll", Name = "빠른 굴림", Icon = "plane", Color = "Sun", EffectIcon = "dice", Mult = 0.7 },
+	{ Key = "FastRoll", Name = "빠른 굴림", Icon = "dice", Color = "Sky", EffectIcon = "dice", Mult = 0.7 },
 	{ Key = "DoubleIncome", Name = "수입 2배", Icon = "coin", Color = "Grass", EffectIcon = "arrow_up", Mult = 2 },
 }
 local PRODUCT_INFO = {
@@ -24466,7 +24834,7 @@ local PRODUCT_INFO = {
 		Key = "LuckBoost",
 		Name = "행운 부스트",
 		Icon = "clover",
-		Color = "Sky",
+		Color = "Grass",
 		EffectIcon = "clover",
 		Mult = 2,
 		Seconds = 900,
@@ -24475,12 +24843,12 @@ local PRODUCT_INFO = {
 		Key = "ServerLuck",
 		Name = "서버 행운",
 		Icon = "globe",
-		Color = "Coral",
+		Color = "Sun",
 		EffectIcon = "clover",
 		Mult = 2,
 		Seconds = 900,
 	},
-	{ Key = "CoinPack", Name = "코인 팩", Icon = "coin", Color = "Grape", EffectIcon = "coin" },
+	{ Key = "CoinPack", Name = "코인 팩", Icon = "coin", Color = "Coral", EffectIcon = "coin" },
 }
 
 -- Config.GamePasses / Products 에서 key 항목 찾기.
@@ -24526,6 +24894,7 @@ local function buildItems(group: any, infos: { any }, kind: string): { Item }
 			EffectIcon = info.EffectIcon,
 			Mult = pick(entry, MULT_KEYS) or info.Mult,
 			Seconds = pick(entry, { "Seconds", "Duration" }) or info.Seconds,
+			Price = pick(entry, { "Price", "PriceInRobux" }),
 		})
 	end
 	return items
@@ -24779,7 +25148,7 @@ return Perks
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="43">
+        <Item class="ModuleScript" referent="44">
           <Properties>
             <string name="Name">Ui</string>
             <string name="Source"><![CDATA[-- UI 생성 헬퍼와 테마. 모든 화면은 코드로 만들어서 .rbxm 없이도 동작합니다.
@@ -25980,7 +26349,7 @@ return Ui
 ]]></string>
           </Properties>
         </Item>
-        <Item class="ModuleScript" referent="44">
+        <Item class="ModuleScript" referent="45">
           <Properties>
             <string name="Name">Viewport</string>
             <string name="Source"><![CDATA[-- ViewportFrame 에 명소 모형을 띄우는 헬퍼.
@@ -26160,12 +26529,12 @@ return Viewport
       </Item>
     </Item>
   </Item>
-  <Item class="Workspace" referent="45">
+  <Item class="Workspace" referent="46">
     <Properties>
       <string name="Name">Workspace</string>
       <bool name="NeedsPivotMigration">false</bool>
     </Properties>
-    <Item class="Part" referent="46">
+    <Item class="Part" referent="47">
       <Properties>
         <string name="Name">FallbackGround</string>
         <bool name="Anchored">true</bool>
@@ -26196,7 +26565,7 @@ return Viewport
         <token name="TopSurface">0</token>
       </Properties>
     </Item>
-    <Item class="SpawnLocation" referent="47">
+    <Item class="SpawnLocation" referent="48">
       <Properties>
         <string name="Name">SpawnLocation</string>
         <bool name="Anchored">true</bool>
@@ -26229,7 +26598,7 @@ return Viewport
         <float name="Transparency">1</float>
       </Properties>
     </Item>
-    <Item class="Terrain" referent="48">
+    <Item class="Terrain" referent="49">
       <Properties>
         <string name="Name">Terrain</string>
         <bool name="Decoration">true</bool>

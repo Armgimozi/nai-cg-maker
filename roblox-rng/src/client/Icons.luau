@@ -7,7 +7,8 @@
 -- 아이콘: coin, globe(=roll), passport, album(=collection), hammer, park, plaza, dice, clover(=luck), star,
 --   star_empty, news, lock, auto, close, check, arrow_up, plane, ticket, rebirth,
 --   podium(공원 자동 배치: 1·2·3등 시상대 + 별), arrange(공원 배치 모드: 2×2 칸 판 위 미니 명소 셋 + 빈 칸 "+"),
---   crate(배치 모드 보관: 뚜껑 열린 나무 상자 + 미니 명소), camera(배치 모드 시점 바꾸기: 사진기)
+--   crate(배치 모드 보관: 뚜껑 열린 나무 상자 + 미니 명소), camera(배치 모드 시점 바꾸기: 사진기),
+--   robux(Robux 표시: 흰 육각형 + 가운데 네모 구멍 — 상점 버튼·Robux 가격)
 --   (stamp_* 는 그림이 있을 때만 씀)
 
 local RunService = game:GetService("RunService")
@@ -476,6 +477,18 @@ function BUILDERS.camera(m)
 	cyl(m, base * CFrame.new(0.2, 1.5, -1.3) * ALONG_Z, 0.2, 1.4, SKY)
 	cyl(m, base * CFrame.new(1.35, 2.95, 0) * UPRIGHT, 0.3, 0.7, CORAL)
 	block(m, base * CFrame.new(1.45, 2.25, -0.82), V(0.6, 0.35, 0.1), SNOW)
+end
+
+-- Robux 표시(상점 버튼, 가격 버튼): 모서리가 위아래인 흰 육각판 + 가운데 진한 네모 구멍 (파트 4개).
+-- 육각형 = 가로 a√3 × 세로 a 판 3장을 0/60/120도 돌려 겹친 것(a = 한 변). 정면이 카메라 쪽을 보게 살짝 젖힘
+function BUILDERS.robux(m)
+	local a = 2
+	local depth = 0.5
+	local base = FACE * CFrame.new(0, a, 0) * CFrame.Angles(math.rad(16), 0, 0)
+	for k = 0, 2 do
+		block(m, base * CFrame.Angles(0, 0, k * PI / 3), V(a * math.sqrt(3), a, depth), SNOW)
+	end
+	block(m, base * CFrame.new(0, 0, -depth / 2 - 0.02), V(a * 0.78, a * 0.78, 0.06), INK)
 end
 
 -- 예전 이름 -> 지금 이름 (ImageIds 와 같은 이름을 씀)

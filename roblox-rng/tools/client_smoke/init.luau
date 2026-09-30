@@ -1,6 +1,7 @@
 -- 클라이언트 진입점(src/client/init.client.luau) 스모크 테스트: 가짜 환경에서 init.client 를 그대로 실행하고
 -- 원격(RemoteFunction.InvokeServer)은 PlayerState + ParkService 로 흉내. 내 부지 찾기 → HUD [배치] → 공원으로 이동 →
--- 3D 배치 모드 → SetDisplay 원격(자동 꺼짐 · 공원 바뀜 알림) → [완료] · 다른 창 · 도감 [배치] · 이동 버튼을 확인.
+-- 3D 배치 모드 → SetDisplay 원격(자동 꺼짐 · 공원 바뀜 알림) → [완료] · 다른 창 · 도감 [배치] · 이동 버튼 →
+-- 상점(카드 6개 · Robux 가격 · 보유 도장 · 구매 원격 BuyPass/BuyProduct · 실패 이유별 알림)을 확인.
 -- 실행(roblox-rng 폴더에서): luaurun tools/client_smoke/init.luau   (끝 줄 "0 failed")
 
 local E = compile(readfile("tools/client_smoke/env.luau"), "tools/client_smoke/env.luau")()
@@ -20,10 +21,12 @@ root.CFrame = CFrame.new(0, 4, 0) -- 광장
 
 local revision = 0
 local calls: { string } = {}
+local mods = { Passes = {} } -- 가진 게임패스(상점 확인용)
 local function snap()
 	revision += 1
-	return PlayerState.snapshot(data, revision)
+	return PlayerState.snapshot(data, revision, mods)
 end
+local buyReply: { [string]: any } = {} -- 상점 구매 원격이 돌려줄 값(상품 키 -> 응답)
 local rollLandmark = Landmarks.RarestFirst[#Landmarks.RarestFirst] -- 흔한 명소(연출 짧음)
 local SERVER = {
 	GetState = function()
@@ -46,6 +49,14 @@ local SERVER = {
 		local done = PlayerState.setSetting(data, key, value)
 		ParkService.update(serverPlayer, data)
 		return { Ok = done, State = snap() }
+	end,
+	BuyPass = function(key)
+		table.insert(calls, "BuyPass " .. tostring(key))
+		return buyReply[key] or { Ok = true }
+	end,
+	BuyProduct = function(key)
+		table.insert(calls, "BuyProduct " .. tostring(key))
+		return buyReply[key] or { Ok = true }
 	end,
 	Teleport = function(where)
 		table.insert(calls, "Teleport " .. tostring(where))
@@ -217,6 +228,153 @@ do
 	local stopped = rolls()
 	Mock.runScheduler(Mock.clock() + 3)
 	check(rolls() == stopped, "T = 자동 굴리기 끔")
+end
+
+print("\n[상점: 카드 6개 · Robux 가격 · 보유 도장 · 구매 원격]")
+do
+	local Config = Harness.require(E.shared.Config)
+	local vip = Config.GamePasses[1]
+	-- 로블록스 상품 정보: 행운 VIP 만 받아짐(실제 가격 350 · 그림 777), 나머지는 오류 → Config 가격 그대로
+	local infoCalls = 0
+	game:GetService("MarketplaceService").__props.GetProductInfo = function(_self, id, infoType)
+		infoCalls += 1
+		if id == vip.PassId and infoType == Enum.InfoType.GamePass then
+			return { PriceInRobux = 350, IconImageAssetId = 777 }
+		end
+		error("HTTP 500 (가짜)")
+	end
+	-- 빠른 굴림은 이미 가짐(서버 상태 이벤트로)
+	mods.Passes.FastRoll = true
+	remoteFolder:FindFirstChild("State").OnClientEvent:Fire(snap())
+	Mock.runScheduler(Mock.clock() + 0.5)
+
+	local shopButton = findNamed(gui, "Shop")
+	check(shopButton and shopButton.Visible, "HUD 상점 버튼")
+	do
+		-- 키보드 기기(1280×684): 오른쪽 위 플레이어 목록에 가리지 않게 굴리기 줄 바로 위 높이까지 내려감
+		local Hud, Ui = Harness.require(client.Hud), Harness.require(client.Ui)
+		Hud.setPlotOwned(false) -- 자리 다시 잡기(가짜 환경은 AbsoluteSize 바뀜 이벤트가 없음)
+		Hud.setPlotOwned(true)
+		local size, scale = gui.AbsoluteSize, Ui.scale()
+		local center = size.Y * shopButton.Position.Y.Scale + shopButton.Position.Y.Offset
+		local rollTop = size.Y - 14 - 100 * scale
+		check(
+			center > size.Y / 2 + 16 and center + 45 * scale <= rollTop,
+			string.format(
+				"상점 버튼은 오른쪽 아래(굴리기 줄 위) — 가운데 %.0f, 굴리기 줄 위 %.0f",
+				center,
+				rollTop
+			)
+		)
+	end
+	local shopIcon = findNamed(shopButton, "Icon")
+	check(shopIcon and shopIcon:GetAttribute("Icon") == "robux", "상점 버튼 = Robux 표시(코인 아님)")
+	face(shopButton).Activated:Fire()
+	Mock.runScheduler(Mock.clock() + 0.5)
+	local window = findNamed(gui, "Window")
+	check(window.Visible and hasText("상점"), "상점 창 열림")
+
+	local KEYS = { "LuckVIP", "FastRoll", "DoubleIncome", "LuckBoost", "ServerLuck", "CoinPack" }
+	local cards = {}
+	for _, key in KEYS do
+		cards[key] = findNamed(window, key)
+	end
+	local found = 0
+	for _, key in KEYS do
+		if cards[key] and findNamed(cards[key], "Buy") then
+			found += 1
+		end
+	end
+	check(found == 6, "카드 6개 + 구매 버튼 (" .. found .. ")")
+	local function price(key: string): string?
+		local label = findNamed(findNamed(cards[key], "Buy"), "Label")
+		return label and label.Text
+	end
+	local function buyIcon(key: string): string?
+		local icon = findNamed(findNamed(cards[key], "Buy"), "Icon")
+		return icon and icon:GetAttribute("Icon")
+	end
+	-- 처음부터 가격이 있음(빈 버튼·"구매" 없음). 상품 정보는 받는 대로(실패하면 3초 뒤 한 번 더)
+	local priced = 0
+	for _, key in KEYS do
+		local text = price(key)
+		if text and text:match("^%d[%d,]*$") then
+			priced += 1
+		end
+	end
+	check(priced == 6, "열자마자 버튼 6개 모두 Robux 숫자 (" .. priced .. ")")
+	Mock.runScheduler(Mock.clock() + 4)
+	check(
+		infoCalls == 1 + 5 * 2,
+		"상품 정보 요청: 받은 것 1번 + 실패 5개는 한 번씩 더 (" .. infoCalls .. ")"
+	)
+	check(price("LuckVIP") == "350", "받은 실제 가격으로 바뀜 (" .. tostring(price("LuckVIP")) .. ")")
+	local configPrices = true
+	for _, key in { "DoubleIncome", "LuckBoost", "ServerLuck", "CoinPack" } do
+		local item = PlayerState.PassesById[key] or PlayerState.ProductsById[key]
+		if price(key) ~= tostring(item.Price) then
+			configPrices = false
+			print("       " .. key .. " 가격 " .. tostring(price(key)))
+		end
+	end
+	check(configPrices, "못 받으면 Config 가격(49·99·79·299)")
+	local marks = 0
+	for _, key in KEYS do
+		if buyIcon(key) == "robux" then
+			marks += 1
+		end
+	end
+	check(marks == 6, "구매 버튼마다 Robux 표시 (" .. marks .. ")")
+	local art = findNamed(findNamed(cards.LuckVIP, "Band"), "Art")
+	check(art and art.Image == "rbxassetid://777", "받은 상품 그림을 띠에 (구매 창과 같은 그림)")
+	check(findNamed(findNamed(cards.CoinPack, "Band"), "Art") == nil, "그림을 못 받으면 아이콘 그대로")
+	local fastBuy, fastOwned = findNamed(cards.FastRoll, "Buy"), findNamed(cards.FastRoll, "Owned")
+	check(
+		not fastBuy.Visible and fastOwned and fastOwned.Visible,
+		"가진 게임패스 = 보유 도장(구매 버튼 숨김)"
+	)
+	check(findNamed(cards.LuckVIP, "Buy").Visible, "안 가진 게임패스 = 구매 버튼")
+
+	-- 알림 줄의 가장 최근 알림 글자
+	local function lastToast(): string?
+		local newest, order = nil, -math.huge
+		for _, d in gui:GetDescendants() do
+			if d.Name == "Toast" and d.LayoutOrder > order then
+				newest, order = d, d.LayoutOrder
+			end
+		end
+		local label = newest and findNamed(newest, "Label")
+		return label and label.Text
+	end
+	local function press(key: string)
+		face(findNamed(cards[key], "Buy")).Activated:Fire()
+		Mock.runScheduler(Mock.clock() + 0.1)
+	end
+	local before = #calls
+	press("LuckVIP")
+	check(calls[#calls] == "BuyPass LuckVIP", "행운 VIP = BuyPass(LuckVIP) (" .. tostring(calls[#calls]) .. ")")
+	press("FastRoll")
+	check(calls[#calls] == "BuyPass LuckVIP", "보유한 패스는 원격을 부르지 않음")
+	buyReply.LuckBoost = { Ok = false, Reason = "max" }
+	press("LuckBoost")
+	check(calls[#calls] == "BuyProduct LuckBoost", "행운 부스트 = BuyProduct(LuckBoost)")
+	check(lastToast() == "MAX", "Reason max = MAX 알림 (" .. tostring(lastToast()) .. ")")
+	buyReply.ServerLuck = { Ok = false, Reason = "loading" }
+	press("ServerLuck")
+	check(calls[#calls] == "BuyProduct ServerLuck", "서버 행운 = BuyProduct(ServerLuck)")
+	check(lastToast() == "불러오는 중", "Reason loading = MAX 아님 (" .. tostring(lastToast()) .. ")")
+	buyReply.CoinPack = { Ok = false }
+	press("CoinPack")
+	check(calls[#calls] == "BuyProduct CoinPack", "코인 팩 = BuyProduct(CoinPack)")
+	check(lastToast() == "구매 실패", "이유 없음 = 구매 실패 (" .. tostring(lastToast()) .. ")")
+	buyReply.DoubleIncome = { Ok = false, Reason = "owned" }
+	press("DoubleIncome")
+	check(calls[#calls] == "BuyPass DoubleIncome", "수입 2배 = BuyPass(DoubleIncome)")
+	check(lastToast() == "보유", "Reason owned = 보유 알림 (" .. tostring(lastToast()) .. ")")
+	check(#calls - before == 5, "구매 원격 5번 (" .. (#calls - before) .. ")")
+	face(shopButton).Activated:Fire()
+	frame()
+	check(not window.Visible, "상점 버튼 다시 = 닫힘")
 end
 
 print("\n[모듈 오류]")

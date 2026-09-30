@@ -5,6 +5,7 @@
 -- 화면마다 카드를 한 번 만들고 상태가 바뀌면 글자/색만 고칩니다. 썸네일(ViewportFrame)은
 -- 새로 발견했을 때만 만들어서, 자동 굴림 중에 창을 열어 둬도 매번 다시 만들지 않습니다.
 
+local MarketplaceService = game:GetService("MarketplaceService")
 local TweenService = game:GetService("TweenService")
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
@@ -42,7 +43,7 @@ local VIEWS = {
 	Passport = { Title = "여권", Color = "Grape", Top = HEADER_HEIGHT },
 	Upgrade = { Title = "강화", Color = "Sun", Top = 4 },
 	Rebirth = { Title = "환생", Color = "Coral", Top = HEADER_HEIGHT },
-	Shop = { Title = "상점", Color = "Sun", Top = 4 },
+	Shop = { Title = "상점", Color = "Grass", Top = 4 }, -- Robux 상점: 코인으로 사는 강화(Sun)와 다른 색
 }
 
 local WHITE = Color3.new(1, 1, 1)
@@ -78,7 +79,9 @@ local SHOP_CELL = Vector2.new(216, 196)
 local SHOP_GAP = 12
 local SHOP_COLUMNS = 3
 local SHOP_BAND = 74
+local SHOP_ART = 68 -- 로블록스에서 받은 상품 그림(구매 창과 같은 그림) 크기. 아이콘(62)을 덮음
 local BUY_COOLDOWN = 1
+local INFO_RETRY = 3 -- 상품 정보(GetProductInfo)를 못 받으면 이만큼 뒤에 한 번 더
 
 local Panels = {}
 
@@ -154,8 +157,18 @@ local confirmToken = 0
 local rebirthLook = ""
 
 -- 상점
-type ShopCard = { Item: Perks.Item, Button: Ui.ChunkyButton, Effect: Ui.Chip, Owned: Ui.Chip? }
+type ShopCard = {
+	Item: Perks.Item,
+	Button: Ui.ChunkyButton,
+	Effect: Ui.Chip,
+	Owned: Ui.Chip?,
+	Band: Frame,
+	Art: ImageLabel?, -- 로블록스에서 받은 상품 그림(받았을 때만)
+}
 local shopCards: { ShopCard } = {}
+-- 로블록스에서 받은 상품 정보("Pass:123" -> 실제 Robux 가격 · 상품 그림). 한 번 받으면 다시 묻지 않음
+type ShopInfo = { Price: number?, Art: string? }
+local shopInfo: { [string]: ShopInfo } = {}
 
 local collectionArrangeBadge: Ui.Chip? = nil -- 도감 머리 줄 [배치] 배지
 local function owned(state: Snapshot, id: string): number
@@ -1378,7 +1391,13 @@ local function durationText(seconds: number): string
 	return Format.duration(seconds)
 end
 
--- 상품 카드: 색 띠 + 큰 아이콘 / 이름 / 효과 딱지(+시간) / 초록 "구매" 버튼 (게임패스를 가졌으면 "보유" 도장)
+-- 가격 버튼 글자: Robux 숫자(가격을 모르면 "구매"). 버튼 왼쪽에 Robux 표시(육각형 아이콘)가 붙음
+local function priceText(price: number?): string
+	return if price then Format.commas(price) else "구매"
+end
+
+-- 상품 카드: 색 띠 + 큰 아이콘 / 이름 / 효과 딱지(+시간) / 초록 [Robux 표시 + 가격] 버튼
+-- (게임패스를 가졌으면 버튼 대신 "보유" 도장). 가격은 Config 값으로 먼저 그리고, 로블록스에서 실제 가격을 받으면 바꿈
 local function shopCard(parent: Frame, item: Perks.Item, order: number): ShopCard
 	local pair = Ui.colorPair(item.Color)
 	local card = Ui.new("Frame", {
@@ -1465,8 +1484,9 @@ local function shopCard(parent: Frame, item: Perks.Item, order: number): ShopCar
 		Position = UDim2.new(0.5, 0, 1, -6),
 		Size = UDim2.fromOffset(150, 52),
 		Color = "Grass",
-		Text = "구매",
-		TextSize = 24,
+		Icon = "robux",
+		Text = priceText(item.Price),
+		TextSize = 26,
 		Parent = card,
 	})
 	local lastPress = -math.huge
@@ -1506,7 +1526,58 @@ local function shopCard(parent: Frame, item: Perks.Item, order: number): ShopCar
 	end
 
 	card.Parent = parent
-	return { Item = item, Button = button, Effect = effect, Owned = ownedStamp }
+	return { Item = item, Button = button, Effect = effect, Owned = ownedStamp, Band = band, Art = nil }
+end
+
+-- 로블록스에서 상품 정보(실제 가격 · 상품 그림)를 받아 옴. 실패하면 INFO_RETRY 초 뒤 한 번 더, 그래도 안 되면 nil
+local function fetchShopInfo(item: Perks.Item): ShopInfo?
+	local key = item.Kind .. ":" .. item.Id
+	local cached = shopInfo[key]
+	if cached then
+		return cached
+	end
+	local infoType = if item.Kind == "Pass" then Enum.InfoType.GamePass else Enum.InfoType.Product
+	for attempt = 1, 2 do
+		local ok, info = pcall(function()
+			return MarketplaceService:GetProductInfo(item.Id, infoType)
+		end)
+		if ok and type(info) == "table" then
+			local price = info.PriceInRobux
+			local art = tonumber(info.IconImageAssetId)
+			local result: ShopInfo = {
+				Price = if type(price) == "number" and price > 0 then price else nil,
+				Art = if art and art > 0 then "rbxassetid://" .. string.format("%d", art) else nil,
+			}
+			shopInfo[key] = result
+			return result
+		end
+		if attempt == 1 then
+			task.wait(INFO_RETRY)
+		end
+	end
+	return nil
+end
+
+-- 받은 정보로 카드 고치기: 가격 글자, 띠 가운데 상품 그림(구매 창과 같은 그림. 아이콘 위에 덮어서, 그림을
+-- 못 불러오면 아래 아이콘이 그대로 보임)
+local function applyShopInfo(entry: ShopCard, info: ShopInfo)
+	if info.Price then
+		entry.Button.Label.Text = priceText(info.Price)
+	end
+	local art = info.Art
+	if art and not entry.Art then
+		entry.Art = Ui.new("ImageLabel", {
+			Name = "Art",
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromOffset(SHOP_ART, SHOP_ART),
+			BackgroundTransparency = 1,
+			Image = art,
+			ScaleType = Enum.ScaleType.Fit,
+			ZIndex = 3,
+			Parent = entry.Band,
+		})
+	end
 end
 
 local function buildShop(): View
@@ -1546,6 +1617,15 @@ local function buildShop(): View
 		total += height + (if sections > 1 then SECTION_GAP else 0)
 	end
 	setCanvasHeight(scroller, total)
+	-- 실제 가격 · 상품 그림은 기다리지 않고 받는 대로 채움
+	for _, entry in shopCards do
+		task.spawn(function()
+			local info = fetchShopInfo(entry.Item)
+			if info then
+				applyShopInfo(entry, info)
+			end
+		end)
+	end
 	return { Scroller = scroller, Header = header }
 end
 

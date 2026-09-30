@@ -643,7 +643,13 @@ test("부스트: 추가·누적·최대·시간 경과", function()
 	for _ = 1, 20 do
 		PlayerState.addBoost(d, "LuckBoost")
 	end
-	eq(d.Boosts.LuckBoost, Config.MAX_BOOST_SECONDS, "최대 시간")
+	eq(d.Boosts.LuckBoost, 22 * 900, "결제된 시간은 구매 창 상한(3시간)을 넘어도 다 더함")
+	d.Boosts.LuckBoost = Config.MAX_BOOST_STORED_SECONDS - 100
+	PlayerState.addBoost(d, "LuckBoost")
+	eq(d.Boosts.LuckBoost, Config.MAX_BOOST_STORED_SECONDS, "저장 상한(데이터 손상 방지)에서만 멈춤")
+	eq(PlayerState.stackSeconds(100, 900), 1000)
+	eq(PlayerState.stackSeconds(-5, 900), 900, "음수 남은 시간 = 0")
+	eq(PlayerState.stackSeconds(Config.MAX_BOOST_SECONDS, 900), Config.MAX_BOOST_SECONDS + 900)
 	eq(PlayerState.addBoost(d, "ServerLuck"), false, "서버 행운은 개인 부스트 아님")
 	eq(PlayerState.addBoost(d, "CoinPack"), false, "코인 팩은 부스트 아님")
 	eq(PlayerState.addBoost(d, "Nope"), false)
@@ -662,7 +668,9 @@ test("부스트: 추가·누적·최대·시간 경과", function()
 	eq(PlayerState.tickBoosts(d, 1), false, "부스트 없음")
 	eq(PlayerState.luck(d), 1, "끝나면 행운 원래대로")
 end)
-test("영수증: 중복 기록 없음, 최근 50개만", function()
+test("영수증: 중복 기록 없음, 최근 MAX_RECEIPTS 개만", function()
+	-- 저장이 계속 실패하는 동안 한 세션에서 수십 번 사도 밀려나지 않을 만큼 넉넉해야 함(밀려난 영수증은 다시 지급됨)
+	assert(Config.MAX_RECEIPTS >= 500, "MAX_RECEIPTS 가 너무 작음: " .. Config.MAX_RECEIPTS)
 	local d = PlayerState.new()
 	eq(PlayerState.hasReceipt(d, "abc"), false)
 	PlayerState.addReceipt(d, "abc")
@@ -672,15 +680,16 @@ test("영수증: 중복 기록 없음, 최근 50개만", function()
 	PlayerState.addReceipt(d, 12345)
 	eq(PlayerState.hasReceipt(d, "12345"), true, "숫자도 문자열로")
 	eq(PlayerState.hasReceipt(d, 12345), true)
-	for i = 1, 60 do
+	local total = Config.MAX_RECEIPTS + 10
+	for i = 1, total do
 		PlayerState.addReceipt(d, "p" .. i)
 	end
 	eq(#d.Receipts, Config.MAX_RECEIPTS, "최대 개수")
 	eq(PlayerState.hasReceipt(d, "abc"), false, "오래된 것 삭제")
 	eq(PlayerState.hasReceipt(d, "p10"), false, "오래된 것 삭제")
-	eq(PlayerState.hasReceipt(d, "p11"), true, "최근 50개 유지")
-	eq(PlayerState.hasReceipt(d, "p60"), true)
-	eq(d.Receipts[#d.Receipts], "p60", "최근 것이 끝")
+	eq(PlayerState.hasReceipt(d, "p11"), true, "최근 MAX_RECEIPTS 개 유지")
+	eq(PlayerState.hasReceipt(d, "p" .. total), true)
+	eq(d.Receipts[#d.Receipts], "p" .. total, "최근 것이 끝")
 end)
 test("grantProduct: 코인 팩 = max(1000, 초당 수입 × 1800), 부스트, 서버 행운", function()
 	local d = PlayerState.new()
@@ -704,7 +713,8 @@ test("grantProduct: 코인 팩 = max(1000, 초당 수입 × 1800), 부스트, �
 	eq(d.Boosts.LuckBoost, 900)
 	d.Boosts.LuckBoost = Config.MAX_BOOST_SECONDS - 100
 	ok, grant = PlayerState.grantProduct(d, "LuckBoost")
-	eq(grant.Seconds, 100, "최대 시간까지만")
+	eq(grant.Seconds, 900, "결제된 시간은 구매 창 상한(3시간)을 넘어도 다 더함")
+	eq(d.Boosts.LuckBoost, Config.MAX_BOOST_SECONDS + 800)
 
 	local coins = d.Coins
 	ok, grant = PlayerState.grantProduct(d, "ServerLuck")
@@ -719,7 +729,8 @@ test("grantProduct: 코인 팩 = max(1000, 초당 수입 × 1800), 부스트, �
 end)
 test("reconcile: 환생·발견·부스트·영수증 정리", function()
 	local receipts = { 5, "x", false }
-	for i = 1, 55 do
+	local total = Config.MAX_RECEIPTS + 5
+	for i = 1, total do
 		table.insert(receipts, "r" .. i)
 	end
 	local d = PlayerState.reconcile({
@@ -735,13 +746,13 @@ test("reconcile: 환생·발견·부스트·영수증 정리", function()
 	eq(d.Discovered.eiffel, true, "보유 ⇒ 발견")
 	eq(d.Discovered.bad, nil, "true 가 아니면 무시")
 	eq(d.Discovered[3], nil, "문자열 Id 만")
-	eq(d.Boosts.LuckBoost, Config.MAX_BOOST_SECONDS, "최대 시간으로 제한")
+	eq(d.Boosts.LuckBoost, Config.MAX_BOOST_STORED_SECONDS, "저장 상한으로 제한")
 	eq(d.Boosts.ServerLuck, nil, "서버 행운은 저장 안 함")
 	eq(d.Boosts.CoinPack, nil)
 	eq(d.Boosts.Nope, nil)
-	eq(#d.Receipts, Config.MAX_RECEIPTS, "최근 50개")
+	eq(#d.Receipts, Config.MAX_RECEIPTS, "최근 MAX_RECEIPTS 개")
 	eq(d.Receipts[1], "r6", "오래된 것부터 삭제")
-	eq(d.Receipts[#d.Receipts], "r55")
+	eq(d.Receipts[#d.Receipts], "r" .. total)
 	eq(PlayerState.hasReceipt(d, "x"), false)
 
 	local bad = PlayerState.reconcile({ Rebirths = -2, Boosts = { LuckBoost = -5 }, Receipts = "x", Discovered = 7 })
@@ -750,6 +761,11 @@ test("reconcile: 환생·발견·부스트·영수증 정리", function()
 	eq(#bad.Receipts, 0)
 	eq(next(bad.Discovered), nil)
 	eq(PlayerState.reconcile({ Boosts = { LuckBoost = 0 / 0 } }).Boosts.LuckBoost, nil, "NaN 부스트")
+	eq(
+		PlayerState.reconcile({ Boosts = { LuckBoost = Config.MAX_BOOST_SECONDS + 500 } }).Boosts.LuckBoost,
+		Config.MAX_BOOST_SECONDS + 500,
+		"구매 창 상한을 넘게 산 시간도 다음 접속에 그대로"
+	)
 	eq(PlayerState.reconcile({ Rebirths = math.huge }).Rebirths, 0, "inf")
 end)
 
@@ -2285,6 +2301,429 @@ test(
 		end)
 	end
 )
+
+print("\n[유료 상품 — 영수증 처리 · 게임패스 확인 (Purchases, 가짜 Roblox)]")
+-- src/server/Purchases.luau 를 실제 Config 상품 번호로 돌림. 서버 쪽 일(세션 표·저장·이벤트·UserOwnsGamePassAsync)은
+-- 가짜 deps 로 바꾸고, 기다림(deps.wait)은 가짜 시계만 넘김(onWait 로 "기다리는 동안 생기는 일"을 흉내)
+withMock(function(H, _Mock, sharedNode)
+	local Purchases = H.require(H.folder("src/server").Purchases)
+	local State = H.require(sharedNode.PlayerState)
+	local Cfg = H.require(sharedNode.Config)
+	local Marks = H.require(sharedNode.Landmarks)
+	local GRANTED = Enum.ProductPurchaseDecision.PurchaseGranted
+	local NOT_YET = Enum.ProductPurchaseDecision.NotProcessedYet
+
+	-- 가짜 서버: 플레이어·세션·저장·알림 기록
+	local function world(): any
+		local w: any = {
+			now = 0,
+			players = {},
+			sessions = {},
+			present = {},
+			ready = {},
+			saves = 0,
+			saveOk = true,
+			pushes = 0,
+			serverLuck = {},
+			owns = {}, -- PassId -> { 차례로 돌려줄 값("error" = 오류) }. 마지막 값을 계속 씀
+			ownsCalls = {},
+			changed = 0,
+			waits = {},
+			onWait = nil,
+		}
+		w.deps = {
+			findPlayer = function(userId)
+				return w.players[userId]
+			end,
+			session = function(player)
+				return w.sessions[player]
+			end,
+			inGame = function(player)
+				return w.present[player] == true
+			end,
+			passesReady = function(player)
+				return w.ready[player] == true
+			end,
+			mods = function(session)
+				return { Passes = session.Passes, ServerLuck = false }
+			end,
+			save = function()
+				w.saves += 1
+				return w.saveOk
+			end,
+			serverLuck = function(_player, seconds)
+				table.insert(w.serverLuck, seconds)
+			end,
+			pushState = function()
+				w.pushes += 1
+			end,
+			ownsPass = function(_player, passId)
+				w.ownsCalls[passId] = (w.ownsCalls[passId] or 0) + 1
+				local script = w.owns[passId] or { false }
+				local value = script[math.min(w.ownsCalls[passId], #script)]
+				if value == "error" then
+					error("HTTP 503 (가짜)")
+				end
+				return value
+			end,
+			passesChanged = function()
+				w.changed += 1
+			end,
+			wait = function(seconds)
+				table.insert(w.waits, seconds)
+				w.now += seconds
+				if w.onWait then
+					w.onWait(w)
+				end
+			end,
+			clock = function()
+				return w.now
+			end,
+		}
+		return w
+	end
+	-- 접속해서 데이터까지 불러온 플레이어(loaded = false 면 서버에는 있지만 아직 불러오는 중)
+	local function join(w: any, userId: number, loaded: boolean?): (any, any)
+		local player = { Name = "P" .. userId, DisplayName = "플레이어", UserId = userId }
+		w.players[userId] = player
+		w.present[player] = true
+		local session = { Data = State.new(), LockId = "lock-" .. userId, Passes = {} }
+		if loaded ~= false then
+			w.sessions[player] = session
+			w.ready[player] = true
+		end
+		return player, session
+	end
+	local function receipt(userId: number, productKey: string, purchaseId: string): { [string]: any }
+		return {
+			PlayerId = userId,
+			ProductId = State.ProductsById[productKey].ProductId,
+			PurchaseId = purchaseId,
+			CurrencySpent = 49,
+			PlaceIdWherePurchased = 1,
+		}
+	end
+	local function process(w: any, info: { [string]: any }): any
+		return Purchases.processReceipt(info, w.deps)
+	end
+
+	test(
+		"Config: 실제 상품 번호 6개(0 아님·겹치지 않음) + Robux 가격, 번호로 상품 찾기",
+		function()
+			local seen = {}
+			for _, pass in Cfg.GamePasses do
+				assert(pass.PassId > 0, pass.Id .. " PassId 가 0")
+				assert(not seen[pass.PassId], "번호 중복 " .. pass.PassId)
+				seen[pass.PassId] = true
+				assert(type(pass.Price) == "number" and pass.Price > 0, pass.Id .. " Price")
+				eq(Purchases.passByPassId(pass.PassId), pass, pass.Id)
+				eq(
+					Purchases.productByProductId(pass.PassId),
+					nil,
+					pass.Id .. " 게임패스 번호는 개발자 상품이 아님"
+				)
+			end
+			for _, product in Cfg.Products do
+				assert(product.ProductId > 0, product.Id .. " ProductId 가 0")
+				assert(not seen[product.ProductId], "번호 중복 " .. product.ProductId)
+				seen[product.ProductId] = true
+				assert(type(product.Price) == "number" and product.Price > 0, product.Id .. " Price")
+				eq(Purchases.productByProductId(product.ProductId), product, product.Id)
+				eq(
+					Purchases.productByProductId(tostring(product.ProductId)),
+					product,
+					product.Id .. " 문자열 번호"
+				)
+				eq(Purchases.passByPassId(product.ProductId), nil)
+			end
+			eq(Purchases.productByProductId(0), nil, "0 = 없음")
+			eq(Purchases.productByProductId(nil), nil)
+			eq(Purchases.passByPassId(12345), nil)
+			assert(
+				Cfg.MAX_BOOST_STORED_SECONDS > Cfg.MAX_BOOST_SECONDS * 2,
+				"저장 상한은 구매 창 상한보다 훨씬 커야 함"
+			)
+		end
+	)
+
+	test(
+		"영수증: PurchaseId 마다 한 번만 지급, 같은 영수증을 다시 불러도 저장만 다시(PurchaseGranted)",
+		function()
+			local w = world()
+			local _, session = join(w, 1)
+			eq(process(w, receipt(1, "LuckBoost", "p1")), GRANTED, "첫 지급")
+			eq(session.Data.Boosts.LuckBoost, 900, "행운 부스트 15분")
+			eq(w.saves, 1, "저장 1번")
+			eq(w.pushes, 1, "상태 보냄")
+			eq(State.hasReceipt(session.Data, "p1"), true, "영수증 기록")
+			eq(process(w, receipt(1, "LuckBoost", "p1")), GRANTED, "다시 불림")
+			eq(session.Data.Boosts.LuckBoost, 900, "두 번 지급 안 함")
+			eq(w.saves, 2, "저장만 다시")
+			eq(w.pushes, 1)
+			eq(process(w, receipt(1, "LuckBoost", "p2")), GRANTED, "다른 구매")
+			eq(session.Data.Boosts.LuckBoost, 1800, "시간 누적")
+			eq(#w.waits, 0, "데이터가 있으면 기다리지 않음")
+		end
+	)
+
+	test(
+		"영수증: 저장 실패 = NotProcessedYet(효과는 한 번만), 다시 불렸을 때 저장되면 PurchaseGranted",
+		function()
+			local w = world()
+			local _, session = join(w, 2)
+			w.saveOk = false
+			eq(process(w, receipt(2, "CoinPack", "c1")), NOT_YET, "저장 실패")
+			eq(session.Data.Coins, 1000, "코인은 바로 줌(수입 0 이면 최소 1000)")
+			eq(process(w, receipt(2, "CoinPack", "c1")), NOT_YET, "또 저장 실패")
+			eq(session.Data.Coins, 1000, "다시 불려도 두 번 주지 않음")
+			w.saveOk = true
+			eq(process(w, receipt(2, "CoinPack", "c1")), GRANTED, "저장 성공")
+			eq(session.Data.Coins, 1000)
+			eq(w.saves, 3)
+		end
+	)
+
+	test(
+		"영수증: 모르는 상품 · 서버에 없는 플레이어 · Studio(저장 안 함) = NotProcessedYet",
+		function()
+			local w = world()
+			local _, session = join(w, 3)
+			local unknown = receipt(3, "CoinPack", "u1")
+			unknown.ProductId = 999
+			eq(process(w, unknown), NOT_YET, "모르는 상품 번호")
+			local passNumber = receipt(3, "CoinPack", "u2")
+			passNumber.ProductId = Cfg.GamePasses[1].PassId
+			eq(process(w, passNumber), NOT_YET, "게임패스 번호")
+			eq(#session.Data.Receipts, 0, "영수증 기록 없음")
+			eq(session.Data.Coins, 0, "아무것도 안 줌")
+			eq(w.saves, 0, "저장 안 함")
+			eq(process(w, receipt(404, "CoinPack", "u3")), NOT_YET, "서버에 없는 플레이어")
+			eq(#w.waits, 0, "없는 플레이어는 기다리지 않음")
+
+			session.LockId = nil
+			eq(process(w, receipt(3, "LuckBoost", "s1")), NOT_YET, "Studio: 완료 처리 안 함")
+			eq(session.Data.Boosts.LuckBoost, 900, "효과는 적용")
+			eq(process(w, receipt(3, "LuckBoost", "s1")), NOT_YET)
+			eq(session.Data.Boosts.LuckBoost, 900, "두 번 지급 안 함")
+			eq(w.saves, 0)
+		end
+	)
+
+	test(
+		"영수증: 데이터를 불러오는 중이면 세션이 생길 때까지 기다렸다가 지급(나가거나 너무 오래면 NotProcessedYet)",
+		function()
+			local w = world()
+			local player, session = join(w, 4, false)
+			w.onWait = function(world)
+				if world.now >= 3 then
+					world.sessions[player] = session
+				end
+			end
+			eq(process(w, receipt(4, "LuckBoost", "l1")), GRANTED, "불러온 뒤 지급")
+			near(w.now, 3, 1e-9, "3초 기다림")
+			eq(session.Data.Boosts.LuckBoost, 900)
+
+			w = world()
+			player, session = join(w, 5, false)
+			eq(process(w, receipt(5, "LuckBoost", "l2")), NOT_YET, "끝내 못 불러옴")
+			assert(w.now >= Purchases.SESSION_WAIT and w.now < Purchases.SESSION_WAIT + 1, "최대 대기 " .. w.now)
+			eq(session.Data.Boosts.LuckBoost, nil, "지급 안 함")
+
+			w = world()
+			player, session = join(w, 6, false)
+			w.onWait = function(world)
+				if world.now >= 2 then
+					world.present[player] = false -- 불러오는 중에 나감(또는 불러오기 실패로 Kick)
+				end
+			end
+			eq(process(w, receipt(6, "LuckBoost", "l3")), NOT_YET, "나가면 바로 그만")
+			assert(w.now < 3, "나간 뒤 더 기다리지 않음 " .. w.now)
+			eq(session.Data.Boosts.LuckBoost, nil)
+			eq(w.saves, 0)
+		end
+	)
+
+	test(
+		"코인 팩: max(1000, 초당 수입 × 1800), 수입 2배 반영 — 접속 시 게임패스 확인을 기다렸다가 지급",
+		function()
+			local function withPyramid(w: any, userId: number): (any, any)
+				local player, session = join(w, userId)
+				State.applyRoll(session.Data, Marks.ById.pyramid) -- 초당 12
+				session.Data.Coins = 0
+				return player, session
+			end
+			local w = world()
+			local _, session = withPyramid(w, 7)
+			eq(process(w, receipt(7, "CoinPack", "k1")), GRANTED)
+			eq(session.Data.Coins, 12 * 1800, "초당 수입 × 1800")
+
+			-- 게임패스 확인 중에 온 코인 팩: 확인이 끝나(수입 2배 보유) 2배로 지급
+			w = world()
+			local player
+			player, session = withPyramid(w, 8)
+			w.ready[player] = false
+			w.onWait = function(world)
+				if world.now >= 2 then
+					session.Passes.DoubleIncome = true
+					world.ready[player] = true
+				end
+			end
+			eq(process(w, receipt(8, "CoinPack", "k2")), GRANTED)
+			eq(session.Data.Coins, 24 * 1800, "수입 2배 확인 뒤 지급")
+			near(w.now, 2, 1e-9, "확인이 끝날 때까지만 기다림")
+			w.now = 0
+			eq(process(w, receipt(8, "CoinPack", "k2")), GRANTED, "같은 영수증")
+			eq(w.now, 0, "이미 준 영수증은 기다리지 않음")
+			eq(session.Data.Coins, 24 * 1800)
+
+			-- 확인이 끝나지 않으면 PASS_WAIT 뒤 지금 아는 대로(무한정 미루지 않음)
+			w = world()
+			player, session = withPyramid(w, 9)
+			w.ready[player] = false
+			eq(process(w, receipt(9, "CoinPack", "k3")), GRANTED)
+			eq(session.Data.Coins, 12 * 1800)
+			assert(w.now >= Purchases.PASS_WAIT and w.now < Purchases.PASS_WAIT + 1, "PASS_WAIT " .. w.now)
+
+			-- 부스트는 게임패스와 상관없으니 기다리지 않음
+			w = world()
+			player, session = join(w, 10)
+			w.ready[player] = false
+			eq(process(w, receipt(10, "LuckBoost", "k4")), GRANTED)
+			eq(w.now, 0, "행운 부스트는 바로")
+		end
+	)
+
+	test(
+		"시간 부스트: 결제된 시간은 3시간 넘어도 다 더함, 서버 행운은 서버 타이머로, 구매 창은 3시간에서 막음",
+		function()
+			local w = world()
+			local _, session = join(w, 11)
+			session.Data.Boosts.LuckBoost = Cfg.MAX_BOOST_SECONDS - 100
+			eq(process(w, receipt(11, "LuckBoost", "b1")), GRANTED)
+			eq(session.Data.Boosts.LuckBoost, Cfg.MAX_BOOST_SECONDS + 800, "15분 다")
+			eq(process(w, receipt(11, "ServerLuck", "b2")), GRANTED)
+			eq(#w.serverLuck, 1, "서버 행운 한 번")
+			eq(w.serverLuck[1], 900, "15분")
+			eq(session.Data.Boosts.ServerLuck, nil, "개인 데이터에 저장 안 함")
+			eq(process(w, receipt(11, "ServerLuck", "b2")), GRANTED)
+			eq(#w.serverLuck, 1, "같은 영수증은 한 번만")
+
+			-- 서버 행운 타이머: (끝나는 시각, 지금, 초) -> (새 끝나는 시각, 더한 초)
+			local untilTime, added = Purchases.extendUntil(0, 100, 900)
+			eq(untilTime, 1000, "꺼져 있으면 지금부터")
+			eq(added, 900)
+			untilTime, added = Purchases.extendUntil(100 + Cfg.MAX_BOOST_SECONDS - 100, 100, 900)
+			eq(added, 900, "3시간 가까이 남아도 다 더함")
+			eq(untilTime, 100 + Cfg.MAX_BOOST_SECONDS + 800)
+			untilTime, added = Purchases.extendUntil(100 + Cfg.MAX_BOOST_STORED_SECONDS - 10, 100, 900)
+			eq(added, 10, "저장 상한에서만 멈춤")
+
+			-- 구매 창 조건(BuyProduct): 남은 시간 + 15분이 3시간을 넘으면 "max"
+			local product, reason = Purchases.promptCheck("LuckBoost", nil, 0)
+			eq(product, nil)
+			eq(reason, "loading", "세션 없음 = 불러오는 중")
+			session.Data.Boosts.LuckBoost = nil
+			product, reason = Purchases.promptCheck("LuckBoost", session, 0)
+			eq(product, State.ProductsById.LuckBoost, "부스트 없음 = 구매 창")
+			eq(reason, nil)
+			session.Data.Boosts.LuckBoost = Cfg.MAX_BOOST_SECONDS - 900
+			eq(
+				(Purchases.promptCheck("LuckBoost", session, 0)),
+				State.ProductsById.LuckBoost,
+				"딱 3시간까지는 됨"
+			)
+			session.Data.Boosts.LuckBoost = Cfg.MAX_BOOST_SECONDS - 899
+			product, reason = Purchases.promptCheck("LuckBoost", session, 0)
+			eq(product, nil)
+			eq(reason, "max", "3시간 넘음")
+			product, reason = Purchases.promptCheck("ServerLuck", session, Cfg.MAX_BOOST_SECONDS - 899)
+			eq(reason, "max", "서버 행운은 서버 타이머 기준")
+			eq((Purchases.promptCheck("ServerLuck", session, 0)), State.ProductsById.ServerLuck)
+			eq((Purchases.promptCheck("CoinPack", session, Cfg.MAX_BOOST_SECONDS)), State.ProductsById.CoinPack)
+			product, reason = Purchases.promptCheck("Nope", session, 0)
+			eq(product, nil)
+			eq(reason, nil, "모르는 상품")
+			eq((Purchases.promptCheck(5, session, 0)), nil)
+		end
+	)
+
+	test(
+		"게임패스: 접속 확인이 오류 나면 오류 난 패스만 1·2·4초 뒤 다시, 찾으면 바로 반영",
+		function()
+			local VIP = State.PassesById.LuckVIP.PassId
+			local FAST = State.PassesById.FastRoll.PassId
+			local DOUBLE = State.PassesById.DoubleIncome.PassId
+			local w = world()
+			local player = join(w, 20)
+			w.owns[VIP] = { true }
+			w.owns[FAST] = { false }
+			w.owns[DOUBLE] = { "error", "error", true }
+			local owned = {}
+			eq(Purchases.checkPasses(player, owned, w.deps), 0, "모두 확인")
+			eq(owned.LuckVIP, true)
+			eq(owned.FastRoll, nil, "안 가진 패스")
+			eq(owned.DoubleIncome, true, "세 번째에 확인")
+			eq(w.ownsCalls[VIP], 1, "확인된 패스는 다시 안 물음")
+			eq(w.ownsCalls[FAST], 1)
+			eq(w.ownsCalls[DOUBLE], 3)
+			eq(w.changed, 2, "찾을 때마다 반영(처음 VIP, 나중에 수입 2배)")
+			eq(w.now, 1 + 2, "1초, 2초 기다림")
+
+			w = world()
+			player = join(w, 21)
+			w.owns[VIP] = { "error" }
+			w.owns[FAST] = { "error" }
+			w.owns[DOUBLE] = { "error" }
+			owned = {}
+			eq(Purchases.checkPasses(player, owned, w.deps), 3, "끝까지 실패")
+			eq(w.ownsCalls[VIP], 1 + #Purchases.PASS_RETRY, "처음 + 다시 확인")
+			eq(w.now, 1 + 2 + 4)
+			eq(next(owned), nil)
+			eq(w.changed, 0)
+
+			w = world()
+			player = join(w, 22)
+			w.owns[DOUBLE] = { "error" }
+			w.onWait = function(world)
+				world.present[player] = false
+			end
+			owned = {}
+			eq(Purchases.checkPasses(player, owned, w.deps), 1, "나가면 그만")
+			eq(w.ownsCalls[DOUBLE], 1)
+			eq(#w.waits, 1)
+		end
+	)
+
+	test(
+		"게임패스: 구매 창 전에 다시 확인(접속 확인 실패·웹사이트 구매) — 가졌으면 반영하고 창을 안 띄움",
+		function()
+			local pass = State.PassesById.DoubleIncome
+			local w = world()
+			local player = join(w, 30)
+			local owned = { DoubleIncome = true }
+			eq(Purchases.recheckPass(player, owned, pass, w.deps), true, "이미 앎")
+			eq(w.ownsCalls[pass.PassId], nil, "묻지 않음")
+			owned = {}
+			w.owns[pass.PassId] = { true }
+			eq(Purchases.recheckPass(player, owned, pass, w.deps), true, "다시 확인하니 가짐")
+			eq(owned.DoubleIncome, true)
+			eq(w.changed, 1, "상태·간판 갱신")
+			owned = {}
+			w.owns[pass.PassId] = { false }
+			w.ownsCalls = {}
+			eq(Purchases.recheckPass(player, owned, pass, w.deps), false, "안 가짐 = 구매 창")
+			w.owns[pass.PassId] = { "error" }
+			w.ownsCalls = {}
+			eq(
+				Purchases.recheckPass(player, owned, pass, w.deps),
+				false,
+				"오류 = 구매 창(로블록스가 중복 결제는 막음)"
+			)
+			eq(owned.DoubleIncome, nil)
+			eq(w.changed, 1)
+		end
+	)
+end)
 
 if not Harness.finish() then
 	error("테스트 실패")

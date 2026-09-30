@@ -230,7 +230,7 @@ function PlayerState.reconcile(raw: any): Data
 		for _, product in Config.Products do
 			local left = raw.Boosts[product.Id]
 			if isPersonalBoost(product) and type(left) == "number" and left == left and left > 0 then
-				data.Boosts[product.Id] = math.min(left, Config.MAX_BOOST_SECONDS)
+				data.Boosts[product.Id] = math.min(left, Config.MAX_BOOST_STORED_SECONDS)
 			end
 		end
 	end
@@ -356,14 +356,20 @@ function PlayerState.boostLeft(data: Data | Snapshot, productKey: string): numbe
 	return if boosts then boosts[productKey] or 0 else 0
 end
 
--- 개인 시간 부스트(예: LuckBoost)의 남은 시간을 더함(MAX_BOOST_SECONDS 까지). 개인 부스트 상품이 아니면 false.
+-- 남은 시간 left 에 seconds 를 더한 값. 이미 결제된 시간이라 구매 창 상한(MAX_BOOST_SECONDS)으로 자르지 않고,
+-- 데이터 손상 방지용 상한(MAX_BOOST_STORED_SECONDS)까지만 막음. 개인 부스트와 서버 행운이 같이 씀
+function PlayerState.stackSeconds(left: number, seconds: number): number
+	return math.min(Config.MAX_BOOST_STORED_SECONDS, math.max(0, left) + math.max(0, seconds))
+end
+
+-- 개인 시간 부스트(예: LuckBoost)의 남은 시간을 더함(stackSeconds). 개인 부스트 상품이 아니면 false.
 function PlayerState.addBoost(data: Data, productKey: any): boolean
 	local product = if type(productKey) == "string" then PlayerState.ProductsById[productKey] else nil
 	if not product or not isPersonalBoost(product) then
 		return false
 	end
 	local left = data.Boosts[product.Id] or 0
-	data.Boosts[product.Id] = math.min(Config.MAX_BOOST_SECONDS, left + (product.Seconds or 0))
+	data.Boosts[product.Id] = PlayerState.stackSeconds(left, product.Seconds or 0)
 	return true
 end
 
@@ -873,7 +879,7 @@ function PlayerState.hasReceipt(data: Data, purchaseId: any): boolean
 	return table.find(data.Receipts, tostring(purchaseId)) ~= nil
 end
 
--- 지급한 영수증을 기록(이미 있으면 그대로). 최근 MAX_RECEIPTS 개만 보관.
+-- 지급한 영수증을 기록(이미 있으면 그대로). 최근 MAX_RECEIPTS 개만 보관(오래된 것부터 지움).
 function PlayerState.addReceipt(data: Data, purchaseId: any)
 	local key = tostring(purchaseId)
 	if table.find(data.Receipts, key) then

@@ -400,10 +400,16 @@ local function buyRobux(remoteName: string, key: string)
 		applyState(response.State)
 	end
 	if response.Ok == false then
-		-- 시간 부스트는 최대 시간(3시간)이 차 있으면 서버가 구매 창을 안 띄움
+		-- 서버가 구매 창을 안 띄운 이유: "max" 시간 부스트가 최대(3시간)까지 참, "owned" 이미 가진 게임패스
+		-- (서버가 방금 확인해서 상태도 보냄), "loading" 데이터를 불러오는 중, 그 밖 = 실패
 		local item = Perks.item(key)
-		if item and item.Seconds then
-			Hud.toast("MAX", Ui.Theme.Bad, 2, item.Icon)
+		local icon = if item then item.Icon else "close"
+		if response.Reason == "max" then
+			Hud.toast("MAX", Ui.Theme.Bad, 2, icon)
+		elseif response.Reason == "owned" then
+			Hud.toast("보유", Ui.Theme.Good, 2, icon)
+		elseif response.Reason == "loading" then
+			Hud.toast("불러오는 중", Ui.Theme.Bad, 2, "auto")
 		else
 			Hud.toast("구매 실패", Ui.Theme.Bad, 2, "close")
 		end

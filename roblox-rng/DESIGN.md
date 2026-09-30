@@ -201,22 +201,34 @@ Model 에 PrimaryPart 가 없어도 되고, 바닥 중앙을 피벗으로 맞춰
 ## 유료 상품 (Robux, v3)
 
 ID 는 Creator Hub 에서 만든 뒤 `Config` 에 넣음. **ID 가 0 이면 그 상품은 화면에 안 나옴**(게임은 정상 동작).
+`Config` 항목의 `Price` 는 Creator Hub 가격과 같게 유지(상점 버튼에 먼저 보이는 값).
+서버 규칙(영수증·게임패스 확인·구매 창 조건)은 `src/server/Purchases.luau`(서버 일은 deps 로 받아 tests/run.luau 에서 가짜로 돌림).
 
 - **게임패스**(한 번 사면 영구, `Config.GamePasses`):
   - `LuckVIP` 행운 ×2 · `FastRoll` 굴림 간격 ×0.7 · `DoubleIncome` 관광 수입 ×2
-  - 소유 여부는 서버가 접속 시 `MarketplaceService:UserOwnsGamePassAsync` 로 확인 + 구매 완료 이벤트로 갱신,
-    세션에만 저장(`Session.Passes`). 스냅샷에 `Passes: { [id]: true }` 포함.
+  - 소유 여부는 서버가 접속 시 `MarketplaceService:UserOwnsGamePassAsync` 로 확인(오류 난 패스만 1·2·4초 뒤 다시)
+    + 구매 완료 이벤트로 갱신 + `BuyPass` 때 구매 창 전에 한 번 더 확인(가졌으면 창 대신 반영, `Reason = "owned"`).
+    세션에만 저장(`Session.Passes`). 스냅샷에 `Passes: { [id]: true }` 포함. 패스가 늘면 상태와 공원 간판(수입)을 같이 갱신.
 - **개발자 상품**(여러 번 구매, `Config.Products`):
   - `LuckBoost` 행운 ×2 15분(시간 누적) · `ServerLuck` **서버 전체** 행운 ×2 15분 · `CoinPack` 코인 = max(1000, 초당 수입 × 1800)
-  - `MarketplaceService.ProcessReceipt`: 세션이 있고 지급 + **저장 성공 후에만** `PurchaseGranted`.
-    같은 `PurchaseId` 는 한 번만 지급(`Data.Receipts` 에 최근 50개 보관). 실패하면 `NotProcessedYet`.
+  - `MarketplaceService.ProcessReceipt`: 지급 + **저장 성공 후에만** `PurchaseGranted`.
+    같은 `PurchaseId` 는 한 번만 지급(`Data.Receipts` 에 최근 `MAX_RECEIPTS` = 1000개 보관). 실패하면 `NotProcessedYet`.
+    데이터를 불러오는 중이면 세션이 생길 때까지 기다림(최대 60초, 나가면 그만 — 접속 때 다시 온 영수증을 바로 지급).
+    코인 팩은 접속 시 게임패스 확인(수입 2배)이 끝날 때까지 최대 15초 기다린 뒤 지급.
   - 시간 부스트는 **접속 중에만** 줄어듦(`Data.Boosts[id] = 남은 초`). 서버 행운은 서버 변수(저장 안 함, 서버 전원 적용).
+    남은 시간 + 15분이 `MAX_BOOST_SECONDS`(3시간)를 넘으면 구매 창을 안 띄움(`Reason = "max"`). 이미 결제된 영수증은
+    3시간을 넘어도 산 시간을 다 더함(데이터 손상 방지 상한 `MAX_BOOST_STORED_SECONDS` = 24시간만).
 - 효과 합산(곱): 행운 = 기본 × 지구본 × 여권 도장 × 환생 × VIP × 행운 부스트 × 서버 행운.
   수입 = 기존 × 환생 × DoubleIncome. 쿨타임 = 기존 × FastRoll.
   PlayerState 읽기 함수는 선택 인자 `mods: { Passes: { [string]: boolean }?, ServerLuck: boolean? }` 를 받음
   (없으면 기존과 같은 결과). 스냅샷의 `Luck/Cooldown/Income` 은 mods 를 반영한 값.
-- 원격: `BuyPass` (Function) `(passKey) -> { Ok }` → 서버가 `PromptGamePassPurchase`,
-  `BuyProduct` (Function) `(productKey) -> { Ok }` → 서버가 `PromptProductPurchase`. 결과는 State/Announce 이벤트로 반영.
+- 원격: `BuyPass` (Function) `(passKey) -> { Ok, Reason? }` → 서버가 `PromptGamePassPurchase`,
+  `BuyProduct` (Function) `(productKey) -> { Ok, Reason? }` → 서버가 `PromptProductPurchase`. 결과는 State/Announce 이벤트로 반영.
+  `Reason`: `"owned"` 이미 가진 패스, `"loading"` 데이터 불러오는 중, `"max"` 부스트 3시간 가득, 없음 = 그 밖의 실패
+  (클라이언트 알림: 보유 / 불러오는 중 / MAX / 구매 실패).
+- 상점 화면: 카드 = 상품 그림 띠 + 이름 + 효과 딱지 + 초록 [Robux 표시 + 가격] 버튼. 가격은 `Config.Price` 로 먼저 그리고
+  `GetProductInfo` 로 실제 가격·상품 그림(구매 창과 같은 그림)을 받으면 바꿈. HUD 상점 버튼은 초록 + Robux 표시
+  (코인 강화와 구별). PC 에서는 오른쪽 위 플레이어 목록에 가리지 않게 오른쪽 아래(굴리기 줄 위)에 둠.
   서버 행운 구매 시 `Announce` 와 별도로 `ServerLuck` 이벤트 `{ Name, Until }` 를 모두에게 보냄.
 
 ## 공원 배치 (v4)

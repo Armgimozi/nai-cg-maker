@@ -15,6 +15,7 @@ export type GamePass = {
 	LuckMult: number?, -- 행운 배율
 	CooldownMult: number?, -- 굴림 간격 배율
 	IncomeMult: number?, -- 관광 수입 배율
+	Price: number?, -- Robux 가격(상점 버튼에 먼저 보여 줌. 클라이언트가 GetProductInfo 로 실제 가격을 받으면 그 값으로 바꿈)
 }
 
 -- 개발자 상품(여러 번 구매). ProductId 가 0 이면 비활성(화면에 안 나옴)
@@ -27,6 +28,7 @@ export type Product = {
 	ServerWide: boolean?, -- true 면 서버 전체 부스트(저장 안 하는 서버 변수), 아니면 개인 부스트(Data.Boosts)
 	IncomeSeconds: number?, -- 코인 팩: 초당 관광 수입 × 이 초만큼 코인
 	MinCoins: number?, -- 코인 팩: 최소 코인
+	Price: number?, -- Robux 가격(게임패스와 같음)
 }
 
 local Config = {
@@ -123,15 +125,21 @@ local Config = {
 
 	-- 유료 상품(Robux) ----------------------------------------------------
 	-- 2026-09-30 Open Cloud 로 등록한 번호(아이콘: art/products). 0 이면 그 상품은 비활성(화면에 안 나옴).
-	-- 가격(Robux): LuckVIP 399, FastRoll 199, DoubleIncome 299
+	-- Price 는 Creator Hub 에 넣은 Robux 가격과 같게 유지(상점 버튼에 먼저 보이는 값. 실제 가격은 클라이언트가 다시 받음)
 	GamePasses = {
-		{ Id = "LuckVIP", Name = "행운 VIP", PassId = 1999287690, LuckMult = 2 },
-		{ Id = "FastRoll", Name = "빠른 굴림", PassId = 2002682533, CooldownMult = 0.7 },
-		{ Id = "DoubleIncome", Name = "수입 2배", PassId = 2003390304, IncomeMult = 2 },
+		{ Id = "LuckVIP", Name = "행운 VIP", PassId = 1999287690, LuckMult = 2, Price = 399 },
+		{ Id = "FastRoll", Name = "빠른 굴림", PassId = 2002682533, CooldownMult = 0.7, Price = 199 },
+		{ Id = "DoubleIncome", Name = "수입 2배", PassId = 2003390304, IncomeMult = 2, Price = 299 },
 	} :: { GamePass },
-	-- 가격(Robux): LuckBoost 49, ServerLuck 99, CoinPack 79
 	Products = {
-		{ Id = "LuckBoost", Name = "행운 부스트", ProductId = 3715550240, Seconds = 900, LuckMult = 2 },
+		{
+			Id = "LuckBoost",
+			Name = "행운 부스트",
+			ProductId = 3715550240,
+			Seconds = 900,
+			LuckMult = 2,
+			Price = 49,
+		},
 		{
 			Id = "ServerLuck",
 			Name = "서버 행운",
@@ -139,11 +147,25 @@ local Config = {
 			Seconds = 900,
 			LuckMult = 2,
 			ServerWide = true,
+			Price = 99,
 		},
-		{ Id = "CoinPack", Name = "코인 팩", ProductId = 3715550261, IncomeSeconds = 1800, MinCoins = 1000 },
+		{
+			Id = "CoinPack",
+			Name = "코인 팩",
+			ProductId = 3715550261,
+			IncomeSeconds = 1800,
+			MinCoins = 1000,
+			Price = 79,
+		},
 	} :: { Product },
-	MAX_BOOST_SECONDS = 3 * 60 * 60, -- 시간 부스트(개인·서버)는 남은 시간이 이 이상 쌓이지 않음
-	MAX_RECEIPTS = 50, -- 중복 지급 방지용으로 기억하는 최근 구매 영수증(PurchaseId) 수
+	-- 시간 부스트(개인·서버): 남은 시간 + 부스트 시간이 이 값을 넘으면 서버가 구매 창을 띄우지 않음.
+	-- 이미 결제된 영수증은 이 값과 상관없이 산 시간을 다 더함(동시에 연 구매 창, 늦게 온 영수증 — 돈 낸 시간을 버리지 않음)
+	MAX_BOOST_SECONDS = 3 * 60 * 60,
+	-- 지급·저장할 때의 남은 시간 상한. 데이터 손상 방지용일 뿐이라 보통은 닿지 않게 아주 큼
+	MAX_BOOST_STORED_SECONDS = 24 * 60 * 60,
+	-- 중복 지급 방지용으로 기억하는 최근 구매 영수증(PurchaseId) 수. 저장이 계속 실패하는 동안 쌓인 영수증이
+	-- 밀려나 다시 지급되지 않도록 넉넉하게(1000개 ≈ 40KB, DataStore 한도 4MB)
+	MAX_RECEIPTS = 1000,
 
 	-- 저장 ---------------------------------------------------------------
 	DATASTORE_NAME = "LandmarkRNG_v1",
