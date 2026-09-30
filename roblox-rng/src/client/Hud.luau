@@ -1221,7 +1221,6 @@ local function showRibbon(tier: Landmarks.Tier)
 	refs.Ribbon.Visible = true
 end
 
--- 알림 줄에 딱지 하나(오래된 것부터 밀려남) — Hud.toast · 배치 모드 굴림 결과가 같이 씀
 -- 알림 딱지 치우기: 0.16초 쪼그라든 뒤 지움(시간이 다 됐을 때 · 누른 도장 알림). 이미 치우는 중이거나 밀려나 지워졌으면 그대로
 local function dismissToast(box: GuiObject)
 	if not box.Parent or box:GetAttribute("Leaving") then
@@ -1242,6 +1241,7 @@ local function dismissToast(box: GuiObject)
 	end)
 end
 
+-- 알림 줄에 딱지 하나(오래된 것부터 밀려남) — Hud.toast · 배치 모드 굴림 결과가 같이 씀
 local function pushToast(text: string, color: Color3?, seconds: number?, icon: string?): Ui.Chip
 	toastOrder += 1
 	while #toasts >= MAX_TOASTS do

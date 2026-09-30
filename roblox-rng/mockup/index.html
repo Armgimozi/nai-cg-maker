@@ -2369,7 +2369,7 @@ window.BACKDROPS = {"edit_pc": {"image": "data:image/jpeg;base64,/9j/4AAQSkZJRgA
         `가장 작은 배율 ${uiScaleFor(667, 375).toFixed(2)}: 창 ${Math.round(WINDOW_SIZE[0] * uiScaleFor(667, 375))}×${Math.round(VIEWS.Collection.Height * uiScaleFor(667, 375))}px, ` +
         `탭 앞면 ${Math.round((TAB.HEIGHT - 6) * uiScaleFor(667, 375))}px 높이(머리 줄 [배치]·[자동] 앞면 ${Math.round(44 * uiScaleFor(667, 375))}px 보다 큼), 탭 글자 ${Math.round(TAB.TEXT * uiScaleFor(667, 375))}px(메뉴 버튼 글자와 같음). ` +
         `6-2 와 같은 공원(직접 배치, 꽉 참): 도장이 아직 없어 도장 행운 딱지는 회색 "+${REGION_BONUS}%"(도장 하나에 이만큼 — 대륙 탭의 회색 +${REGION_BONUS}% 와 같은 뜻, "+0%" 아님), ` +
-        `[배치] 오른쪽 아래 숫자 배지 ${betterHidden(PARK_FULL_STATE).length} = 더 좋은데 전시 안 된 명소 수, [자동] 꺼짐(회색, ON 딱지 없음).`,
+        `[배치] 오른쪽 아래 숫자 배지 ${betterHidden(PARK_FULL_STATE).length} = 더 좋은데 전시 안 된 명소 수, [자동] ${PARK_FULL_STATE.Settings.AutoFeature ? '켜짐(오른쪽 아래 ON 딱지)' : '꺼짐(회색)'} — 두 배지 모두 탭 줄을 가리지 않음.`,
       build(root) {
         const screenGui = newScreen(root, this.id, { width: 667, height: 375, touch: true });
         buildHud(screenGui, PARK_FULL_STATE, { auto: false });
@@ -2395,7 +2395,7 @@ window.BACKDROPS = {"edit_pc": {"image": "data:image/jpeg;base64,/9j/4AAQSkZJRgA
       title: `도장 받은 순간 — 휴대폰 667×375(${RegionById[STAMP_REGION].Name})`,
       extra: '4-3',
       note:
-        `대륙 도장을 새로 받으면(굴림 연출이 끝난 뒤 · 자동 발견 포함) 행운 소리 + 대륙 색 알림 [도장 그림] "도장 +${REGION_BONUS}%"(5초, Hud.stampEarned). ` +
+        `대륙 도장을 새로 받으면(굴림 연출이 끝난 뒤 · 자동 발견 포함) 행운 소리 + 대륙 색 알림 [도장 그림] "도장 +${REGION_BONUS}%" [→](5초, Hud.stampEarned) — 끝의 화살표 = 누를 수 있는 알림(도감 +N 같은 다른 알림에는 없음). ` +
         '알림 위에서 눌렀다 알림 안에서 떼면(버튼처럼 — 알림에서 시작한 끌기는 안 열림) 알림은 바로 쪼그라들어 사라지고 도감이 그 대륙 탭(4-2)으로 열림(배치 모드면 먼저 나감). ' +
         '도감을 메뉴로 열어도 도장 알림은 치움. 도감이 이미 열려 있으면 알림 대신 그 대륙 탭 체크가 톡. 도감 버튼 배지 [여권] 1/5 도 같이 오름.',
       build(root) {
