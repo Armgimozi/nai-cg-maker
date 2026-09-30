@@ -272,3 +272,6 @@ REBIRTH_LUCK_MULT = 2, -- 환생 1회마다 행운 ×2 (행운 × 2^환생 수)
 - 시간은 온라인 시간만 셉니다. 로블록스는 20분 동안 입력이 없으면 내보내므로 "몇 주 AFK 자동 굴림"은 그 대책이 있어야 성립합니다.
 - 굴림 1회 네트워크 왕복 0.12초는 가정값입니다.
 - 재현: `python3 tools/balance/variant_rec_design.py && python3 tools/balance/compare.py` · 그림: `python3 tools/balance/proposal_chart.py --font-regular <NotoSansKR-Regular.ttf> --font-bold <NotoSansKR-Bold.ttf>`
+
+> **결정(9번 라운드 뒤)**: 속보·홀로그램은 D안 — 속보 1/100,000,000 이상(사하라 신기루 성·샹그릴라·세계수), 홀로그램 1/375,000,000 이상(샹그릴라·세계수).
+> 후반 1인 시간당 속보 약 0.49(무료) / 1.4(유료)번 = 후반 8명 서버에서 5~15분에 한 번꼴, 홀로그램은 약 0.11 / 0.33번. 진행 속도는 그대로.

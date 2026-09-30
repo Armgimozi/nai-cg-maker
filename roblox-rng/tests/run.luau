@@ -759,22 +759,29 @@ test("환생 조건 명소는 그 판에 부스트를 다 켠 최대 행운에�
 		end
 	end
 end)
-test("속보·홀로그램 기준: 속보 = 홀로그램 = 샹그릴라·세계수, AUTO 빠른 결과 켬", function()
-	local news, hologram = {}, {}
-	for _, landmark in Landmarks.RarestFirst do
-		if landmark.OneIn >= Config.ANNOUNCE_ONE_IN then
-			table.insert(news, landmark.Id)
+test(
+	"속보·홀로그램 기준: 속보 = 사하라 신기루 성·샹그릴라·세계수, 홀로그램 = 샹그릴라·세계수, AUTO 빠른 결과 켬",
+	function()
+		local news, hologram = {}, {}
+		for _, landmark in Landmarks.RarestFirst do
+			if landmark.OneIn >= Config.ANNOUNCE_ONE_IN then
+				table.insert(news, landmark.Id)
+			end
+			if landmark.OneIn >= Config.HOLOGRAM_ONE_IN then
+				table.insert(hologram, landmark.Id)
+			end
 		end
-		if landmark.OneIn >= Config.HOLOGRAM_ONE_IN then
-			table.insert(hologram, landmark.Id)
-		end
+		eq(table.concat(news, ","), "worldtree,shangrila,skyisland", "속보")
+		eq(table.concat(hologram, ","), "worldtree,shangrila", "홀로그램")
+		assert(Config.HOLOGRAM_ONE_IN >= Config.ANNOUNCE_ONE_IN, "홀로그램은 속보 중에서만")
+		eq(
+			Config.AUTO_QUICK_REVEAL,
+			true,
+			"AUTO 에서 이미 발견한 명소는 결과 카드만(굴림 간격대로)"
+		)
+		eq((Config :: any).AUTO_KNOWN_REVEAL_RANK, nil, "예전 3등급 짧은 연출 설정은 없음")
 	end
-	eq(table.concat(news, ","), "worldtree,shangrila", "속보")
-	eq(table.concat(hologram, ","), "worldtree,shangrila", "홀로그램")
-	assert(Config.HOLOGRAM_ONE_IN >= Config.ANNOUNCE_ONE_IN, "홀로그램은 속보 중에서만")
-	eq(Config.AUTO_QUICK_REVEAL, true, "AUTO 에서 이미 발견한 명소는 결과 카드만(굴림 간격대로)")
-	eq((Config :: any).AUTO_KNOWN_REVEAL_RANK, nil, "예전 3등급 짧은 연출 설정은 없음")
-end)
+)
 test("permanentLuck: 지구본·도장·환생·행운 VIP 만 (시간 부스트·서버 행운 제외)", function()
 	local d = PlayerState.new()
 	d.Rebirths = 3

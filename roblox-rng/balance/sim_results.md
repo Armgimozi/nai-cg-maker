@@ -546,6 +546,11 @@ no longer makes news. Alternatives: hologram at 10B (World Tree only, above), ho
 (`IsNew`, at most 2 per player), the approved thresholds (news 100M: 0.49 / 1.4), or the relative news rule
 (`announce_luck_ratio`, declined in round 8). Implemented default: both 375M (unchanged).
 
+
+**Decision (user, after round 9): option D.** `ANNOUNCE_ONE_IN` back to 100,000,000 (skyisland, Shangri-La, World Tree),
+`HOLOGRAM_ONE_IN` stays 375,000,000 (Shangri-La, World Tree). Late-game news ≈ 0.49 free / 1.4 paid per player-hour
+(an 8-player late server sees news every ~5-15 min); the hologram stays the rarer tier (0.11 / 0.33). Pacing is unaffected
+(news does not change luck, income or cooldown).
 ### 9e. Final numbers (implemented) and robustness
 
 | final variant | player | #1 | #2 | #3 | #5 | #10 | found 5 / 15 / 60 min | first legendary | World Tree wait at max | news = hologram per player-hour, run 10 | stamps 5/5 |
