@@ -147,22 +147,39 @@ UPGRADES = {  # Config.Upgrades 에서 바뀌는 값만 (가격 = floor(BasePric
 }
 REGION_LUCK_BONUS = 0.5
 STEPS = [
-    {"coins": 10, "landmarks": ["eiffel", "liberty"]},
-    {"coins": 20, "landmarks": ["colosseum", "niagara"]},
-    {"coins": 30, "landmarks": ["tajmahal", "angkor"]},
-    {"coins": 40, "landmarks": ["sphinx", "pyramid", "greatwall"]},
-    {"coins": 50, "landmarks": ["chichen", "machupicchu", "grandcanyon"]},
-    {"coins": 60, "landmarks": ["petra", "moai", "stonehenge"]},
-    {"coins": 70, "landmarks": ["alexandria", "babylon"]},
-    {"coins": 80, "landmarks": ["rhodes", "nanmadol", "babel"]},
-    {"coins": 90, "landmarks": ["atlantis", "zealandia"]},
-    {"coins": 100, "landmarks": ["yonggung"]},
+    {"coins": 250_000, "landmarks": ["eiffel", "liberty"]},
+    {"coins": 2_000_000, "landmarks": ["colosseum", "niagara"]},
+    {"coins": 20_000_000, "landmarks": ["tajmahal", "angkor"]},
+    {"coins": 200_000_000, "landmarks": ["sphinx", "pyramid", "greatwall"]},
+    {"coins": 1_000_000_000, "landmarks": ["chichen", "machupicchu", "grandcanyon"]},
+    {"coins": 5_000_000_000, "landmarks": ["petra", "moai", "stonehenge"]},
+    {"coins": 15_000_000_000, "landmarks": ["alexandria", "babylon"]},
+    {"coins": 50_000_000_000, "landmarks": ["rhodes", "nanmadol", "babel"]},
+    {"coins": 150_000_000_000, "landmarks": ["atlantis", "zealandia"]},
+    {"coins": 400_000_000_000, "landmarks": ["yonggung"]},
 ]
 ANNOUNCE_ONE_IN = 100_000_000
 HOLOGRAM_ONE_IN = 1_000_000_000
 DISCOVERY_BONUS_MULT = 5
 
-NOTES = "변형 B(과감한 안) — 초안"
+NOTES = (
+    "변형 B(과감한 안). 환생 행운 x2^r (10번 = x1,024), 환생 수입은 지금처럼 +50%/회(선형). "
+    "확률표: 일반 명소(N<10)는 그대로, 도시·국가·세계 명소(10<=N<10,000)는 N^2/10('자릿수 두 배': 1/100 -> 1/1,000, "
+    "1/1,000 -> 1/100,000), 불가사의 이상(N>=10,000)은 N x 1,000(두 식은 1/10,000 -> 1/10,000,000 에서 만남). "
+    "앞자리가 깔끔한 수로 반올림, 희귀도 순서·대륙·등급 소속은 150개 모두 그대로. 가장 희귀: 세계수 1 in 40,000,000,000(400억). "
+    "등급 경계 1/10/1,000/100,000/10,000,000/100,000,000/1,000,000,000(이름 그대로). 요청 안의 위쪽 경계(10억/1,000억, 가장 희귀 1조)는 "
+    "환생 x2 로 늘어나는 행운(최대 무료 약 2.5만, VIP 약 5만)과 AUTO 굴림 수(하루 2만~6만)로는 10번 환생한 VIP 도 첫 전설 약 5주, "
+    "1조짜리 약 3년이라 불가사의 위로는 x1,000 으로 줄였음. 행운원 보강(초반이 덜 느려지게): 지구본 +10%/레벨 400*1.7^L -> +30%/레벨 100*1.5^L(20레벨, 최대 x3 -> x7), "
+    "여권 도장 +25% -> +50%/대륙(최대 x2.25 -> x3.5). 등급 수입 1/3/10/40/150/600/2500. 발견 보너스 배율 5 그대로. "
+    "환생 코인 250K/2M/20M/200M/1B/5B/15B/50B/150B/400B, 요구 명소는 그 판 길이의 31~74% 지점에서 모이게 고름(1단계 첫 명소는 여전히 eiffel). "
+    "sim.py 400명(무료, 지금 클라): 1번째 23분, 3번째 2.8시간, 5번째 22시간, 10번째 24.8일, 첫 전설 6.1일(7번째 판), 10번 환생 뒤 세계수 기대 81일(VIP 44일). "
+    "유료(패스 3개+부스트 하루 1번): 11분 / 85분 / 11시간 / 13.3일. 뉴스 >= 100,000,000(잃어버린 유산 이상), 홀로그램 >= 1,000,000,000(= 전설). "
+    "초반 발견 수는 줄어듦(5/15/60분 40/52/72, 지금 64/88/114): 국가 명소가 1/1,000부터라 피할 수 없음(처음 20개까지는 지금과 같은 속도). "
+    "같이 필요한 코드 수정: (1) PlayerState.luck 환생 배율 = 2^환생 수. (2) 영구 행운(부스트 제외) >= N 인 미발견 명소 자동 발견(이 JSON 의 rules). "
+    "(3) Config: 지구본 Description '+30%', REGION_LUCK_BONUS 0.5, Landmarks.Tiers MinOneIn, 테스트 숫자(지구본 가격·행운 1.1). "
+    "권장: (4) AUTO 에서 이미 발견한 명소는 짧은 연출 — 후반 굴림이 1/3 로 느려지는 것을 막음(세계수 기대 81일 -> 25일, VIP 44일 -> 12일, 10번째 환생 24.8일 -> 20.6일). "
+    "자세한 근거: balance/variant_b.md, 재현: tools/balance/variant_b_design.py, tools/balance/sim.py --variant balance/variant_b.json"
+)
 
 
 def variant() -> dict:
@@ -242,15 +259,22 @@ def stage_rows(v: dict, stages: list[tuple[str, float]]):
     return rows
 
 
+# 무료 플레이어가 판 r 후반에 보통 갖는 여권 도장 수(시뮬 중앙값: 불가사의까지 다 모아야 도장이라 6~7판에 몰려서 받음)
+TYPICAL_STAMPS = [0, 0, 0, 0, 0, 0, 4, 5, 5, 5, 5]
+
+
 def stage_luck(v: dict) -> list[tuple[str, float]]:
+    """판 r 후반의 대표 행운(무료): 2^r × 지구본 최대 × 그때쯤 도장. R0 은 지구본 10레벨쯤."""
     up = v.get("upgrades", {}).get("Globe", {})
-    globe_max = 1 + up.get("perLevel", 0.1) * up.get("maxLevel", 20)
-    stamp_max = 1 + v.get("regionLuckBonus", 0.25) * 5
-    out = []
-    for r in range(11):
-        out.append((f"R{r} max", 2 ** r * globe_max * stamp_max))
-    out.append(("R10 +VIP", 2 ** 10 * globe_max * stamp_max * 2))
-    out.append(("R10 +VIP+부스트2", 2 ** 10 * globe_max * stamp_max * 8))
+    per = up.get("perLevel", 0.1)
+    globe_max = 1 + per * up.get("maxLevel", 20)
+    bonus = v.get("regionLuckBonus", 0.25)
+    out = [("R0", 1 + per * 10)]
+    for r in range(1, 11):
+        out.append((f"R{r}", 2 ** r * globe_max * (1 + bonus * TYPICAL_STAMPS[r])))
+    top = 2 ** 10 * globe_max * (1 + bonus * 5)
+    out.append(("R10 + VIP", top * 2))
+    out.append(("R10 + VIP + 부스트 2개", top * 8))
     return out
 
 
@@ -324,8 +348,42 @@ def run_sim(v: dict, sims: int, fix: bool, extra: list[str]) -> dict:
     return js
 
 
+def early_rhythm(v: dict, sims: int = 200, hours: float = 3.0):
+    """초반 흐름: k 번째 새 명소를 발견한 시각(중앙값)과 시각별 발견 수 — 지금 게임 vs 변형 B (무료, AUTO)."""
+    sys.path.insert(0, os.path.dirname(SIM))
+    import numpy as np
+    import sim as S
+
+    base = S.load_current("auto")
+    rows = []
+    for label, cfg in (("지금", base), ("변형 B", S.apply_variant(base, v))):
+        game = S.Game(cfg)
+        prof = S.make_profile(game, "free", 0.0, 0.0, 0.0)
+        res = S.simulate(game, prof, sims, 7, hours * 3600, 0.02, "ready", "auto")
+        dt = np.sort(np.where(np.isnan(res["disc_t"]), np.inf, res["disc_t"]), axis=1)
+        kth = {k: float(np.median(dt[:, k - 1])) for k in (10, 20, 30, 40, 50, 60, 70, 80)}
+        cnt = {m: float(np.median((dt <= m * 60).sum(1))) for m in (1, 5, 15, 30, 60, 120, 180)}
+        rows.append((label, kth, cnt))
+
+    def t(s):
+        if not math.isfinite(s):
+            return f"> {hours:g}시간"
+        return f"{s:.0f}초" if s < 90 else (f"{s / 60:.0f}분" if s < 5400 else f"{s / 3600:.1f}시간")
+
+    print("| | " + " | ".join(f"{k}번째" for k in rows[0][1]) + " |")
+    print("|---|" + "---|" * len(rows[0][1]))
+    for label, kth, _ in rows:
+        print(f"| {label} | " + " | ".join(t(x) for x in kth.values()) + " |")
+    print()
+    print("| 발견한 명소 수 | " + " | ".join(f"{m}분" for m in rows[0][2]) + " |")
+    print("|---|" + "---|" * len(rows[0][2]))
+    for label, _, cnt in rows:
+        print(f"| {label} | " + " | ".join(f"{x:.0f}" for x in cnt.values()) + " |")
+
+
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("--early", action="store_true", help="초반 발견 흐름: 지금 vs 변형 B")
     ap.add_argument("--no-write", action="store_true")
     ap.add_argument("--table", action="store_true", help="150개 전체 표(markdown)")
     ap.add_argument("--stages", action="store_true", help="단계별 굴림 모습·뉴스 빈도")
@@ -343,6 +401,8 @@ def main():
         print("wrote", OUT_JSON)
     if args.stages:
         print_stages(v)
+    if args.early:
+        early_rhythm(v)
     if args.sim:
         run_sim(v, args.sim, args.fix, args.sim_args.split())
 
