@@ -32,15 +32,18 @@ local function snap()
 end
 local buyReply: { [string]: any } = {} -- 상점 구매 원격이 돌려줄 값(상품 키 -> 응답)
 local Config = Harness.require(E.shared.Config)
+local RollLogic = Harness.require(E.shared.RollLogic)
 local rollLandmark = Landmarks.RarestFirst[#Landmarks.RarestFirst] -- 흔한 명소(연출 짧음)
 -- 굴림 응답의 나머지(바꿔 가며 확인) · 굴림 요청을 보낸 가짜 시각 · 다음 한 번을 "cooldown" + RetryIn 으로 거절
-local rollReply = { IsNew = false, StarUp = false, Stars = 0, Bonus = 0 }
+local rollReply = { IsNew = false, StarUp = false, Stars = 0, Bonus = 0, Luck = 1 }
 local rollCycle: { any }? = nil -- 있으면 굴릴 때마다 이 명소들을 돌아가며(같은 이름이 계속 보이지 않게)
 local rollTimes: { number } = {}
 local cooldownOnce: number? = nil
--- 흉내 네트워크 왕복(초): 절반은 요청이 서버에 닿기까지, 절반은 응답이 돌아오기까지(0 이면 바로)
+-- 흉내 네트워크 왕복(초): 절반은 요청이 서버에 닿기까지, 절반은 응답이 돌아오기까지(0 이면 바로).
+-- rollLatency 가 있으면 굴림마다 (요청, 응답) 지연을 따로 받음(들쭉날쭉한 네트워크)
 local rollDelay = 0
--- 서버 굴림 간격 규칙(init.server.luau Roll 그대로: 허용 오차만큼 일찍 와도 받되 기준 시각은 원래 가능했던 시각)
+local rollLatency: (() -> (number, number))? = nil
+-- 서버 굴림 간격 규칙: init.server.luau Roll 과 같은 RollLogic.cooldownGate(허용 오차만큼 일찍 와도 받음)
 local serverLastRoll = -math.huge
 local serverRejects = 0
 local SERVER = {
@@ -50,21 +53,33 @@ local SERVER = {
 	Roll = function()
 		table.insert(calls, "Roll")
 		table.insert(rollTimes, Mock.clock())
-		if rollDelay > 0 then
-			task.wait(rollDelay / 2)
+		local up, down = rollDelay / 2, rollDelay / 2
+		local latency = rollLatency
+		if latency then
+			up, down = latency()
+		end
+		if up > 0 then
+			task.wait(up)
 		end
 		local retry = cooldownOnce
 		if retry then
 			cooldownOnce = nil
 			return { Ok = false, Reason = "cooldown", RetryIn = retry }
 		end
-		local now = Mock.clock()
-		local readyAt = serverLastRoll + PlayerState.cooldown(data, mods)
-		if now < readyAt - Config.COOLDOWN_TOLERANCE then
+		local ok, value = RollLogic.cooldownGate(
+			serverLastRoll,
+			Mock.clock(),
+			PlayerState.cooldown(data, mods),
+			Config.COOLDOWN_TOLERANCE
+		)
+		if not ok then
 			serverRejects += 1
-			return { Ok = false, Reason = "cooldown", RetryIn = readyAt - now }
+			if down > 0 then
+				task.wait(down)
+			end
+			return { Ok = false, Reason = "cooldown", RetryIn = value }
 		end
-		serverLastRoll = math.max(now, readyAt)
+		serverLastRoll = value
 		local landmark = rollLandmark
 		local cycle = rollCycle
 		if cycle then
@@ -78,9 +93,10 @@ local SERVER = {
 			StarUp = rollReply.StarUp,
 			Stars = rollReply.Stars,
 			Bonus = rollReply.Bonus,
+			Luck = rollReply.Luck,
 		}
-		if rollDelay > 0 then
-			task.wait(rollDelay / 2)
+		if down > 0 then
+			task.wait(down)
 		end
 		return reply
 	end,
