@@ -75,14 +75,12 @@ local function modsFor(session: Session): PlayerState.Mods
 	return { Passes = session.Passes, ServerLuck = serverLuckLeft() > 0 }
 end
 
--- 상태를 보낼 때마다 먼저 자동 발견(영구 행운 이하 확률의 미발견 명소 -> 발견 기록). 접속·굴림·업그레이드·환생·
--- 게임패스 등 행운이 바뀌는 일은 모두 상태를 보내므로 도감·여권이 서버와 화면에서 늘 같음
+-- 상태를 보낼 때마다 먼저 자동 발견(PlayerState.sync — 영구 행운 이하 확률의 미발견 명소 -> 발견 기록). 접속·굴림·
+-- 업그레이드·환생·게임패스 등 행운이 바뀌는 일은 모두 상태를 보내므로 도감·여권이 서버와 화면에서 늘 같음
 local function snapshot(session: Session): PlayerState.Snapshot
-	local mods = modsFor(session)
-	PlayerState.autoDiscover(session.Data, mods)
 	session.Revision += 1
 	session.LastSync = time()
-	return PlayerState.snapshot(session.Data, session.Revision, mods)
+	return PlayerState.sync(session.Data, session.Revision, modsFor(session))
 end
 
 local function pushState(player: Player)
@@ -524,9 +522,8 @@ Net.fn("Roll").OnServerInvoke = function(player: Player)
 	end
 	session.LastRoll = math.max(now, readyAt)
 
-	-- 굴리기 전에 자동 발견(도장이 늘면 행운이 오름). 굴린 뒤의 자동 발견은 응답 State(snapshot)에서
-	PlayerState.autoDiscover(session.Data, mods)
-	local luck = PlayerState.luck(session.Data, mods)
+	-- 굴리기 전에 자동 발견(도장이 늘면 행운이 오름 — rollLuck). 굴린 뒤의 자동 발견은 응답 State(snapshot)에서
+	local luck = PlayerState.rollLuck(session.Data, mods)
 	local landmark = RollLogic.roll(Landmarks.RarestFirst, luck, nextNumber)
 	local bonus, isNew, starUp = PlayerState.applyRoll(session.Data, landmark)
 	local rollNumber = session.Data.Rolls

@@ -796,8 +796,7 @@ test(
 		local d = PlayerState.new()
 		d.Rebirths = 4 -- 행운 16 × VIP 2 = 32
 		PlayerState.addBoost(d, "LuckBoost")
-		PlayerState.autoDiscover(d, mods) -- 서버: 상태를 보내기 전에 부름
-		local s = PlayerState.snapshot(d, 1, mods)
+		local s = PlayerState.sync(d, 1, mods) -- 서버가 보내는 상태 = 자동 발견 + snapshot
 		eq(s.PermanentLuck, 32)
 		eq(s.Luck, 64, "부스트 포함")
 		for _, landmark in Landmarks.List do
@@ -811,6 +810,70 @@ test(
 		end
 		eq(PlayerState.luck(s, s), s.Luck, "화면에서 다시 계산해도 같은 행운")
 		eq(PlayerState.permanentLuck(s, s), s.PermanentLuck)
+	end
+)
+test("sync: 자동 발견을 먼저 하고 스냅샷 (snapshot 은 Data 를 바꾸지 않음)", function()
+	local d = PlayerState.new()
+	d.Rebirths = 3 -- 행운 8
+	local plain = PlayerState.snapshot(d, 1)
+	eq(next(plain.Discovered), nil, "snapshot 만으로는 자동 발견 안 함")
+	eq(next(d.Discovered), nil)
+	local s = PlayerState.sync(d, 2)
+	eq(s.Revision, 2)
+	for _, landmark in Landmarks.List do
+		eq(s.Discovered[landmark.Id] == true, landmark.OneIn <= 8, "스냅샷 " .. landmark.Id)
+		eq(d.Discovered[landmark.Id] == true, landmark.OneIn <= 8, "Data " .. landmark.Id)
+	end
+	eq(next(d.Inventory), nil, "보유는 그대로(없음)")
+end)
+test(
+	"rollLuck: 굴리기 전에 자동 발견 — 새로 생긴 도장 행운이 이번 굴림에 들어감",
+	function()
+		local d = PlayerState.new()
+		d.Rebirths = 3 -- 행운 8
+		for _, landmark in Landmarks.ByRegion.Oceania do
+			if PlayerState.countsForStamp(landmark) and landmark.Id ~= "harbourbridge" then
+				d.Discovered[landmark.Id] = true -- 오세아니아 도장까지 하버 브리지(1/4) 하나만 남음
+			end
+		end
+		PlayerState.addBoost(d, "LuckBoost")
+		near(PlayerState.luck(d), 8 * 2, 1e-9, "자동 발견 전 = 도장 없음")
+		local luck = PlayerState.rollLuck(d)
+		eq(PlayerState.isDiscovered(d, "harbourbridge"), true, "1/4 자동 발견")
+		eq(d.Inventory.harbourbridge, nil, "보유는 아님")
+		near(luck, 8 * (1 + Config.REGION_LUCK_BONUS) * 2, 1e-9, "도장 +25% 와 부스트까지")
+		eq(luck, PlayerState.luck(d), "rollLuck = 자동 발견 뒤의 luck")
+	end
+)
+test(
+	"서버: 상태는 PlayerState.sync, 굴림 행운은 PlayerState.rollLuck 으로만 (자동 발견을 건너뛰지 않음)",
+	function()
+		local function scan(dir: string, fn: (string, string) -> ())
+			for _, name in listdir(dir) do
+				local path = dir .. "/" .. name
+				if name:match("%.luau$") then
+					fn(path, readfile(path) or "")
+				elseif not name:find("%.") then
+					scan(path, fn)
+				end
+			end
+		end
+		scan("src/server", function(path, source)
+			for _, call in { "PlayerState.snapshot(", "PlayerState.luck(", "PlayerState.autoDiscover(" } do
+				assert(
+					not source:find(call, 1, true),
+					path .. " 가 " .. call .. ") 를 직접 부름 — sync/rollLuck 을 쓸 것"
+				)
+			end
+		end)
+		local server = readfile("src/server/init.server.luau") or ""
+		assert(server:find("PlayerState.sync(", 1, true), "서버 상태 = PlayerState.sync")
+		local rollLuckAt = server:find("PlayerState.rollLuck(", 1, true)
+		local rollAt = server:find("RollLogic.roll(", 1, true)
+		assert(
+			rollLuckAt and rollAt and rollLuckAt < rollAt,
+			"굴림 판정(RollLogic.roll) 앞에서 PlayerState.rollLuck"
+		)
 	end
 )
 test("옛 저장 불러오기: 예전 표로 환생한 플레이어 · 발견 기록 · 보유 · 공원", function()

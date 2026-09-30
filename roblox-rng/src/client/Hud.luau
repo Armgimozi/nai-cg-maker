@@ -1250,17 +1250,17 @@ local function starUpText(stars: number): string
 	return Ui.starsRich(count, max) .. (if count >= max then " MAX" else " +1")
 end
 
--- 배치 모드의 굴림 결과: 가운데 연출 대신 알림 줄에 [지구본] 명소 이름(등급 색) 딱지 하나 + 오른쪽 위 작은 딱지
--- (처음 발견 = NEW, 또 뽑아 별이 오름 = "★+1"). 보너스는 생략(코인은 위에서 올라감). 희귀하면 소리만 다르게(번쩍임 없음)
-local function compactReveal(landmark: Landmarks.Landmark, info: RevealInfo)
-	local tier = landmark.Tier
-	local chip = pushToast(landmark.Name, tier.Color, 2.5, "globe")
-	chip.Root.Name = "RollResult"
+-- 알림 줄의 굴림 결과 딱지: [지구본] 명소 이름(등급 색) + 오른쪽 위 작은 딱지(처음 발견 = NEW, 또 뽑아 별이 오름 = "★+1",
+-- ★5 가 되면 "★MAX"). 배치 모드 결과(compactReveal)와 AUTO 별 상승 알림(starUpToast)이 같이 씀. 소리는 부르는 쪽에서
+local function resultToast(landmark: Landmarks.Landmark, info: RevealInfo, name: string): Ui.Chip
+	local chip = pushToast(landmark.Name, landmark.Tier.Color, 2.5, "globe")
+	chip.Root.Name = name
 	if info.IsNew or info.StarUp then
+		local maxed = (info.Stars or 0) >= PlayerState.MAX_STARS
 		Ui.chip({
 			Name = if info.IsNew then "New" else "StarUp",
 			Color = if info.IsNew then "Coral" else "Grape",
-			Text = if info.IsNew then "NEW" else Ui.starsRich(1, 1) .. "+1",
+			Text = if info.IsNew then "NEW" else Ui.starsRich(1, 1) .. (if maxed then "MAX" else "+1"),
 			Height = 20,
 			TextSize = 14,
 			AnchorPoint = Vector2.new(0.5, 0.5),
@@ -1270,10 +1270,33 @@ local function compactReveal(landmark: Landmarks.Landmark, info: RevealInfo)
 			Parent = chip.Root,
 		})
 	end
-	play(if tier.Rank >= 4 then rareSound else revealSound)
+	return chip
+end
+
+-- 배치 모드의 굴림 결과: 가운데 연출 대신 알림 줄에 결과 딱지 하나(resultToast). 보너스는 생략(코인은 위에서 올라감).
+-- 희귀하면 소리만 다르게(번쩍임 없음)
+local function compactReveal(landmark: Landmarks.Landmark, info: RevealInfo)
+	resultToast(landmark, info, "RollResult")
+	play(if landmark.Tier.Rank >= 4 then rareSound else revealSound)
 	if info.StarUp then
 		play(starSound)
 	end
+end
+
+-- AUTO 중 별 상승(가챠 중복): 다음 굴림이 곧 가운데 연출을 덮으므로(이미 발견한 명소는 짧은 연출이라 딱지가 0.2초쯤만
+-- 보임) 알림 줄에도 결과 딱지 + "★+1"/"★MAX" 를 2.5초 남김. AUTO 속도는 그대로. 별 상승 알림은 한 칸만 씀 — 초반 AUTO 는
+-- 거의 매번 별이 올라서, 새 것이 이전 별 알림을 바꿔 다른 알림(도감 +N·구매 등)을 밀어내지 않게
+local starToast: GuiObject? = nil
+local function starUpToast(landmark: Landmarks.Landmark, info: RevealInfo)
+	local previous = starToast
+	if previous and previous.Parent then
+		local index = table.find(toasts, previous)
+		if index then
+			table.remove(toasts, index)
+		end
+		previous:Destroy()
+	end
+	starToast = resultToast(landmark, info, "StarUpToast").Root
 end
 
 -- 연출 길이를 정하는 등급: 자동 굴림(Fast) 중 이미 발견한 명소(IsNew 아님 — 자동 발견 포함)는
@@ -1412,6 +1435,9 @@ function Hud.reveal(landmark: Landmarks.Landmark, info: RevealInfo)
 		TweenService:Create(pop, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
 			:Play()
 		play(starSound)
+		if info.Fast then
+			starUpToast(landmark, info)
+		end
 	end
 
 	-- 결과를 잠깐 보여 줌 (자동 굴림 중에도 희귀 명소는 바로 덮이지 않게)

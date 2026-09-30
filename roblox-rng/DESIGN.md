@@ -92,15 +92,16 @@ RollResponse =
 
 Snapshot 필드: Revision, Rolls, Coins, Inventory, Featured, Upgrades, Settings(AutoFeature, AutoPark), Display,
 Luck, PermanentLuck(부스트·서버 행운 뺀 행운 = 자동 발견 기준), Cooldown, Income (+ v3 필드).
-`Discovered` 에는 자동 발견한 명소도 들어 있음(서버가 상태를 보내기 전에 `autoDiscover`) — 도감·여권 계산은 그대로 Discovered 기준.
+`Discovered` 에는 자동 발견한 명소도 들어 있음(서버 상태 = `PlayerState.sync` = `autoDiscover` → `snapshot`) — 도감·여권 계산은 그대로 Discovered 기준.
 클라는 코인을 `Coins + Income × (지금 - 받은 시각)` 으로 부드럽게 올려서 표시.
 PlayerState 의 읽기 함수(park, parkSlots, stars, slots, completedRegions, upgradePrice …)는 Snapshot 을 넘겨도 됨.
 
 ## 계약 3: 서버 규칙
 
-- 굴림: 쿨타임 검증(허용 오차는 반복 악용 못 하게 기준 시각을 밀어 둠) → `PlayerState.autoDiscover` →
-  `PlayerState.luck` 으로 판정 → `PlayerState.applyRoll`. 1초마다 `PlayerState.addIncome`.
-- 상태(Snapshot)를 만들 때마다 먼저 `PlayerState.autoDiscover(data, mods)`(접속·굴림·업그레이드·환생·게임패스 모두 상태를 보냄).
+- 굴림: 쿨타임 검증(허용 오차는 반복 악용 못 하게 기준 시각을 밀어 둠) → `PlayerState.rollLuck`(`autoDiscover` → `luck`)
+  으로 판정 → `PlayerState.applyRoll`. 1초마다 `PlayerState.addIncome`.
+- 상태(Snapshot)는 늘 `PlayerState.sync(data, revision, mods)`(`autoDiscover` → `snapshot`)로 만듦(접속·굴림·업그레이드·환생·
+  게임패스 모두 상태를 보냄). 서버 코드는 `snapshot`/`luck`/`autoDiscover` 를 직접 부르지 않음(테스트가 확인).
 - 스포일러 방지: 세계 명소(Rank 4) 이상은 **4.5초 뒤**에 리더보드 "최고" 갱신, 뉴스 속보, 홀로그램.
   굴린 본인 클라는 자기 연출이 끝날 때까지 자기 뉴스 속보를 보류.
 - 리더보드(leaderstats): "굴림"(IntValue), "최고"(StringValue, 가장 희귀한 명소 이름).
@@ -221,7 +222,9 @@ Model 에 PrimaryPart 가 없어도 되고, 바닥 중앙을 피벗으로 맞춰
   명소 수입 = 등급 수입 × (1 + 0.3 × 별)(★5 = ×2.5). 별은 보유 수로 계산하고 저장하지 않음(환생하면 보유와 함께 0 부터).
   화면: 별 줄은 늘 5칸(채운 별 금색 + 빈 별 흐린 색) — ☆0 = 빈 별 5개(도감 카드·공원 이름표·배치 보관함 카드·배치 이름표),
   도감에서 지금 없는 명소(예전에 발견·자동 발견)는 별 줄을 비움. 굴림 연출 딱지 줄: 또 뽑아 별이 오르면 보라 딱지
-  "★★☆☆☆ +1"(★5 가 되면 "MAX")가 퐁 튀어나오며 딩 소리, 배치 모드 결과 딱지에는 작은 "★+1".
+  "★★☆☆☆ +1"(★5 가 되면 "MAX")가 퐁 튀어나오며 딩 소리, 배치 모드 결과 딱지에는 작은 "★+1"(★5 = "★MAX").
+  AUTO 중 별 상승은 알림 줄에도 같은 결과 딱지를 2.5초(짧은 연출이라 가운데 딱지는 다음 굴림에 곧 덮임 — AUTO 속도는 그대로).
+  별 알림은 한 칸만 써서 새 것이 이전 별 알림을 바꿈(초반 AUTO 는 거의 매번 별이 올라 다른 알림을 밀어내지 않게).
 - **환생 표**(`Config.REBIRTHS`, 코인 + 이번 판 보유 명소):
   1 30만 에펠탑·자유의 여신상 · 2 150만 기자 피라미드·치첸이트사 · 3 2,500만 모아이·스톤헨지·알렉산드리아 등대 ·
   4 2억 5천만 바빌론·아르테미스·로도스 · 5 15억 제우스 상·마우솔로스 영묘·트로이 목마 · 6 60억 아틀란티스·미노타우로스의 미궁 ·

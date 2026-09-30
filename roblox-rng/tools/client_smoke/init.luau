@@ -2,7 +2,8 @@
 -- 원격(RemoteFunction.InvokeServer)은 PlayerState + ParkService 로 흉내. 내 부지 찾기 → HUD [배치] → 공원으로 이동 →
 -- 3D 배치 모드 → SetDisplay 원격(자동 꺼짐 · 공원 바뀜 알림) → [완료] · 다른 창 · 도감 [배치] · 이동 버튼 →
 -- 상점(카드 6개 · Robux 가격 · 보유 도장 · 구매 원격 BuyPass/BuyProduct · 실패 이유별 알림),
--- AUTO 연출(이미 발견한 명소 = 짧게 · 서버 굴림 간격 · RetryIn, 새 발견·수동 = 원래 길이), 별 상승 딱지(★+1),
+-- AUTO 연출(이미 발견한 명소 = 짧게 · 서버 굴림 간격 · RetryIn, 새 발견·수동 = 원래 길이), 별 상승 딱지(★+1 — AUTO 는
+-- 알림 줄에도 한 칸),
 -- 별 0(☆) 표시 · 환생 창 행운 ×2 · 자동 발견 알림을 확인.
 -- 실행(roblox-rng 폴더에서): luaurun tools/client_smoke/init.luau   (끝 줄 "0 failed")
 
@@ -396,6 +397,94 @@ do
 	Mock.runScheduler(Mock.clock() + 3)
 	check(not starChip.Visible and findNamed(revealFrame, "New").Visible, "처음 발견 = NEW(별 딱지 없음)")
 	rollReply.IsNew = false
+
+	-- 6b) AUTO 중 별 상승: 이미 발견한 명소는 짧은 연출이라 가운데 딱지는 다음 굴림에 곧 덮임 → 알림 줄에 결과 딱지 +
+	-- "★+1"(★5 = "★MAX")을 2.5초 남김. 별 알림은 한 칸만(새 것이 옛 것을 바꿈 — 다른 알림을 밀어내지 않음), AUTO 속도 그대로
+	do
+		local Hud = Harness.require(client.Hud)
+		local function starToasts(): { any }
+			local list = {}
+			for _, d in gui:GetDescendants() do
+				if d.Name == "StarUpToast" then
+					table.insert(list, d)
+				end
+			end
+			return list
+		end
+		local function badge(toast: any): string
+			local chip = findNamed(toast, "StarUp")
+			local label = chip and findNamed(chip, "Label")
+			return if label then label.Text else ""
+		end
+		Hud.toast("다른 알림", nil, 30)
+		rollLandmark = Landmarks.RarestFirst[1] -- 이미 발견한 전설 = 짧은 연출
+		rollReply.IsNew, rollReply.StarUp, rollReply.Stars = false, true, 2
+		local from = #rollTimes + 1
+		local born: { [any]: number } = {}
+		local died: { [any]: number } = {}
+		local most, plusOne, named = 0, true, true
+		local function step()
+			Mock.runScheduler(Mock.clock() + 0.05)
+			local list = starToasts()
+			most = math.max(most, #list)
+			for _, toast in list do
+				if not born[toast] then
+					born[toast] = Mock.clock()
+					plusOne = plusOne and badge(toast):find("+1", 1, true) ~= nil
+					named = named and findNamed(toast, "Label").Text == rollLandmark.Name
+				end
+			end
+			for toast in born do
+				if not died[toast] and not table.find(list, toast) then
+					died[toast] = Mock.clock()
+				end
+			end
+		end
+		key("T")
+		local stop = Mock.clock() + 8
+		while Mock.clock() < stop do
+			step()
+		end
+		key("T") -- 돌던 굴림은 끝까지(그 결과가 마지막 별 알림)
+		for _ = 1, 100 do
+			step()
+		end
+		local list = gaps(from)
+		local made, last, lastBorn = 0, nil, -math.huge
+		for toast, at in born do
+			made += 1
+			if at > lastBorn then
+				last, lastBorn = toast, at
+			end
+		end
+		local _, high = range(list)
+		check(
+			made >= 5 and made == #list + 1,
+			string.format("AUTO 별 상승마다 알림 줄 딱지 (%d개, 굴림 %d번)", made, #list + 1)
+		)
+		check(plusOne and named, '알림 딱지 = 명소 이름 + "★+1"')
+		check(most == 1, "별 알림은 한 칸만 (동시에 최대 " .. most .. "개)")
+		local lastFor = (died[last] or Mock.clock()) - lastBorn
+		check(
+			lastFor >= 2.4,
+			string.format("마지막 별 알림은 다음 굴림이 없어도 %.2f초 보임", lastFor)
+		)
+		check(hasText("다른 알림"), "별 알림이 다른 알림을 밀어내지 않음")
+		check(high < 1.45, string.format("AUTO 속도 그대로 (굴림 간격 최대 %.2f초)", high))
+		-- ★5 = "★MAX" · 수동 굴림은 가운데 딱지가 오래 보이므로 알림 줄 딱지 없음
+		rollReply.Stars = PlayerState.MAX_STARS
+		key("T")
+		Mock.runScheduler(Mock.clock() + 1.5)
+		key("T")
+		local maxToast = starToasts()[1]
+		check(maxToast ~= nil and badge(maxToast):find("MAX", 1, true) ~= nil, '★5 알림 딱지 = "★MAX"')
+		Mock.runScheduler(Mock.clock() + 8)
+		key("R")
+		Mock.runScheduler(Mock.clock() + 8)
+		check(#starToasts() == 0, "수동 굴림 별 상승 = 가운데 딱지만(알림 줄 딱지 없음)")
+		rollReply.StarUp, rollReply.Stars = false, 0
+		rollLandmark = Landmarks.RarestFirst[#Landmarks.RarestFirst]
+	end
 
 	-- 7) 별 0(☆) 표시: 도감 카드 — 보유 1개 = 빈 별 5개, 6개 = ★5, 발견했지만 지금 없음 = 별 줄 비움
 	local ids = {}

@@ -1021,6 +1021,12 @@ check(
 	dupeLabel ~= nil and dupeLabel.Text:find("+1", 1, true) ~= nil and dupeChip:FindFirstChild("New", true) == nil,
 	'또 뽑음 = 명소 이름 딱지 + "★+1"'
 )
+local maxed = Landmarks.RarestFirst[4]
+task.spawn(Hud.reveal, maxed, { Fast = true, IsNew = false, StarUp = true, Stars = 5, Bonus = 0, Luck = 1 })
+local maxedChip = rollResult(maxed.Name)
+local maxedStar = maxedChip and maxedChip:FindFirstChild("StarUp", true)
+local maxedLabel = maxedStar and maxedStar:FindFirstChild("Label", true)
+check(maxedLabel ~= nil and maxedLabel.Text:find("MAX", 1, true) ~= nil, '★5 가 됨 = "★MAX"')
 check(
 	chip ~= nil
 		and (

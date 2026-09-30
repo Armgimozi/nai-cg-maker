@@ -2,7 +2,8 @@
 -- 플레이어 데이터와 그 데이터를 바꾸는 규칙(순수 함수). 서버가 유일한 진실의 원천이고,
 -- 클라이언트는 Snapshot 만 받아서 화면에 그립니다. Roblox 서비스에 의존하지 않아 테스트 가능.
 -- 읽기 전용 함수(luck, permanentLuck, park, parkSlots, stars, incomePerSecond 등)는 Data 대신 Snapshot 을 넘겨도 됩니다.
--- luck / permanentLuck / autoDiscover / cooldown / incomePerSecond / addIncome / snapshot 은 선택 인자 mods(게임패스·서버 행운)를 받습니다.
+-- luck / permanentLuck / autoDiscover / rollLuck / cooldown / incomePerSecond / addIncome / snapshot / sync 는
+-- 선택 인자 mods(게임패스·서버 행운)를 받습니다.
 -- mods 가 없으면 게임패스·서버 행운 없이 계산합니다. Snapshot 은 Passes/ServerLuck 필드가 있어서
 -- PlayerState.luck(snapshot, snapshot) 처럼 mods 자리에 그대로 넘겨도 됩니다.
 
@@ -443,7 +444,8 @@ end
 -- 그래서 아직 발견하지 않은 명소 중 확률(OneIn)이 영구 행운(permanentLuck) 이하인 것은 발견한 것으로 칩니다
 -- (도감·여권 도장 기준인 Discovered 에 기록 — 행운이 나중에 내려가도 유지). 보유(Inventory)·공원 수입·
 -- 환생 조건·발견 보너스 코인은 그대로. 새로 채운 도장이 행운을 올리면 한 번 더 확인합니다.
--- 서버가 상태를 보내기 전(접속·굴림·업그레이드·환생·게임패스)에 부름.
+-- 서버는 직접 부르지 않고 PlayerState.sync(상태 보내기 전 — 접속·굴림·업그레이드·환생·게임패스)와
+-- PlayerState.rollLuck(굴리기 전)로만 씀(빠뜨리면 도감·여권이 굴린 명소만 세게 되므로 한곳에 묶어 둠 — 테스트가 확인).
 -- 반환: 이번에 새로 발견 처리한 명소 Id 목록(흔한 것 → 희귀한 것)
 function PlayerState.autoDiscover(data: Data, mods: Mods?): { string }
 	local added = {}
@@ -464,6 +466,12 @@ function PlayerState.autoDiscover(data: Data, mods: Mods?): { string }
 			return added
 		end
 	end
+end
+
+-- 서버 굴림에 쓸 행운: 먼저 자동 발견(새 도장이 영구 행운을 올릴 수 있음), 그다음 luck(부스트·서버 행운 포함)
+function PlayerState.rollLuck(data: Data, mods: Mods?): number
+	PlayerState.autoDiscover(data, mods)
+	return PlayerState.luck(data, mods)
 end
 
 function PlayerState.cooldown(data: Data | Snapshot, mods: Mods?): number
@@ -995,6 +1003,13 @@ function PlayerState.snapshot(data: Data, revision: number, mods: Mods?): Snapsh
 		Cooldown = PlayerState.cooldown(data, mods),
 		Income = PlayerState.incomePerSecond(data, mods),
 	}
+end
+
+-- 서버가 보내는 상태: 먼저 자동 발견(autoDiscover — Data.Discovered 에 기록), 그다음 snapshot.
+-- 서버는 상태를 늘 이것으로 만듦(snapshot 을 직접 부르지 않음 — 도감·여권이 서버와 화면에서 늘 같게. 테스트가 확인)
+function PlayerState.sync(data: Data, revision: number, mods: Mods?): Snapshot
+	PlayerState.autoDiscover(data, mods)
+	return PlayerState.snapshot(data, revision, mods)
 end
 
 return PlayerState

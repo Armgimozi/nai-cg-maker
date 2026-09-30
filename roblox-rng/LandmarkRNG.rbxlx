@@ -8778,7 +8778,8 @@ return ParkGrid
 -- 플레이어 데이터와 그 데이터를 바꾸는 규칙(순수 함수). 서버가 유일한 진실의 원천이고,
 -- 클라이언트는 Snapshot 만 받아서 화면에 그립니다. Roblox 서비스에 의존하지 않아 테스트 가능.
 -- 읽기 전용 함수(luck, permanentLuck, park, parkSlots, stars, incomePerSecond 등)는 Data 대신 Snapshot 을 넘겨도 됩니다.
--- luck / permanentLuck / autoDiscover / cooldown / incomePerSecond / addIncome / snapshot 은 선택 인자 mods(게임패스·서버 행운)를 받습니다.
+-- luck / permanentLuck / autoDiscover / rollLuck / cooldown / incomePerSecond / addIncome / snapshot / sync 는
+-- 선택 인자 mods(게임패스·서버 행운)를 받습니다.
 -- mods 가 없으면 게임패스·서버 행운 없이 계산합니다. Snapshot 은 Passes/ServerLuck 필드가 있어서
 -- PlayerState.luck(snapshot, snapshot) 처럼 mods 자리에 그대로 넘겨도 됩니다.
 
@@ -9219,7 +9220,8 @@ end
 -- 그래서 아직 발견하지 않은 명소 중 확률(OneIn)이 영구 행운(permanentLuck) 이하인 것은 발견한 것으로 칩니다
 -- (도감·여권 도장 기준인 Discovered 에 기록 — 행운이 나중에 내려가도 유지). 보유(Inventory)·공원 수입·
 -- 환생 조건·발견 보너스 코인은 그대로. 새로 채운 도장이 행운을 올리면 한 번 더 확인합니다.
--- 서버가 상태를 보내기 전(접속·굴림·업그레이드·환생·게임패스)에 부름.
+-- 서버는 직접 부르지 않고 PlayerState.sync(상태 보내기 전 — 접속·굴림·업그레이드·환생·게임패스)와
+-- PlayerState.rollLuck(굴리기 전)로만 씀(빠뜨리면 도감·여권이 굴린 명소만 세게 되므로 한곳에 묶어 둠 — 테스트가 확인).
 -- 반환: 이번에 새로 발견 처리한 명소 Id 목록(흔한 것 → 희귀한 것)
 function PlayerState.autoDiscover(data: Data, mods: Mods?): { string }
 	local added = {}
@@ -9240,6 +9242,12 @@ function PlayerState.autoDiscover(data: Data, mods: Mods?): { string }
 			return added
 		end
 	end
+end
+
+-- 서버 굴림에 쓸 행운: 먼저 자동 발견(새 도장이 영구 행운을 올릴 수 있음), 그다음 luck(부스트·서버 행운 포함)
+function PlayerState.rollLuck(data: Data, mods: Mods?): number
+	PlayerState.autoDiscover(data, mods)
+	return PlayerState.luck(data, mods)
 end
 
 function PlayerState.cooldown(data: Data | Snapshot, mods: Mods?): number
@@ -9773,6 +9781,13 @@ function PlayerState.snapshot(data: Data, revision: number, mods: Mods?): Snapsh
 	}
 end
 
+-- 서버가 보내는 상태: 먼저 자동 발견(autoDiscover — Data.Discovered 에 기록), 그다음 snapshot.
+-- 서버는 상태를 늘 이것으로 만듦(snapshot 을 직접 부르지 않음 — 도감·여권이 서버와 화면에서 늘 같게. 테스트가 확인)
+function PlayerState.sync(data: Data, revision: number, mods: Mods?): Snapshot
+	PlayerState.autoDiscover(data, mods)
+	return PlayerState.snapshot(data, revision, mods)
+end
+
 return PlayerState
 ]]></string>
         </Properties>
@@ -9910,14 +9925,12 @@ local function modsFor(session: Session): PlayerState.Mods
 	return { Passes = session.Passes, ServerLuck = serverLuckLeft() > 0 }
 end
 
--- 상태를 보낼 때마다 먼저 자동 발견(영구 행운 이하 확률의 미발견 명소 -> 발견 기록). 접속·굴림·업그레이드·환생·
--- 게임패스 등 행운이 바뀌는 일은 모두 상태를 보내므로 도감·여권이 서버와 화면에서 늘 같음
+-- 상태를 보낼 때마다 먼저 자동 발견(PlayerState.sync — 영구 행운 이하 확률의 미발견 명소 -> 발견 기록). 접속·굴림·
+-- 업그레이드·환생·게임패스 등 행운이 바뀌는 일은 모두 상태를 보내므로 도감·여권이 서버와 화면에서 늘 같음
 local function snapshot(session: Session): PlayerState.Snapshot
-	local mods = modsFor(session)
-	PlayerState.autoDiscover(session.Data, mods)
 	session.Revision += 1
 	session.LastSync = time()
-	return PlayerState.snapshot(session.Data, session.Revision, mods)
+	return PlayerState.sync(session.Data, session.Revision, modsFor(session))
 end
 
 local function pushState(player: Player)
@@ -10359,9 +10372,8 @@ Net.fn("Roll").OnServerInvoke = function(player: Player)
 	end
 	session.LastRoll = math.max(now, readyAt)
 
-	-- 굴리기 전에 자동 발견(도장이 늘면 행운이 오름). 굴린 뒤의 자동 발견은 응답 State(snapshot)에서
-	PlayerState.autoDiscover(session.Data, mods)
-	local luck = PlayerState.luck(session.Data, mods)
+	-- 굴리기 전에 자동 발견(도장이 늘면 행운이 오름 — rollLuck). 굴린 뒤의 자동 발견은 응답 State(snapshot)에서
+	local luck = PlayerState.rollLuck(session.Data, mods)
 	local landmark = RollLogic.roll(Landmarks.RarestFirst, luck, nextNumber)
 	local bonus, isNew, starUp = PlayerState.applyRoll(session.Data, landmark)
 	local rollNumber = session.Data.Rolls
@@ -19706,17 +19718,17 @@ local function starUpText(stars: number): string
 	return Ui.starsRich(count, max) .. (if count >= max then " MAX" else " +1")
 end
 
--- 배치 모드의 굴림 결과: 가운데 연출 대신 알림 줄에 [지구본] 명소 이름(등급 색) 딱지 하나 + 오른쪽 위 작은 딱지
--- (처음 발견 = NEW, 또 뽑아 별이 오름 = "★+1"). 보너스는 생략(코인은 위에서 올라감). 희귀하면 소리만 다르게(번쩍임 없음)
-local function compactReveal(landmark: Landmarks.Landmark, info: RevealInfo)
-	local tier = landmark.Tier
-	local chip = pushToast(landmark.Name, tier.Color, 2.5, "globe")
-	chip.Root.Name = "RollResult"
+-- 알림 줄의 굴림 결과 딱지: [지구본] 명소 이름(등급 색) + 오른쪽 위 작은 딱지(처음 발견 = NEW, 또 뽑아 별이 오름 = "★+1",
+-- ★5 가 되면 "★MAX"). 배치 모드 결과(compactReveal)와 AUTO 별 상승 알림(starUpToast)이 같이 씀. 소리는 부르는 쪽에서
+local function resultToast(landmark: Landmarks.Landmark, info: RevealInfo, name: string): Ui.Chip
+	local chip = pushToast(landmark.Name, landmark.Tier.Color, 2.5, "globe")
+	chip.Root.Name = name
 	if info.IsNew or info.StarUp then
+		local maxed = (info.Stars or 0) >= PlayerState.MAX_STARS
 		Ui.chip({
 			Name = if info.IsNew then "New" else "StarUp",
 			Color = if info.IsNew then "Coral" else "Grape",
-			Text = if info.IsNew then "NEW" else Ui.starsRich(1, 1) .. "+1",
+			Text = if info.IsNew then "NEW" else Ui.starsRich(1, 1) .. (if maxed then "MAX" else "+1"),
 			Height = 20,
 			TextSize = 14,
 			AnchorPoint = Vector2.new(0.5, 0.5),
@@ -19726,10 +19738,33 @@ local function compactReveal(landmark: Landmarks.Landmark, info: RevealInfo)
 			Parent = chip.Root,
 		})
 	end
-	play(if tier.Rank >= 4 then rareSound else revealSound)
+	return chip
+end
+
+-- 배치 모드의 굴림 결과: 가운데 연출 대신 알림 줄에 결과 딱지 하나(resultToast). 보너스는 생략(코인은 위에서 올라감).
+-- 희귀하면 소리만 다르게(번쩍임 없음)
+local function compactReveal(landmark: Landmarks.Landmark, info: RevealInfo)
+	resultToast(landmark, info, "RollResult")
+	play(if landmark.Tier.Rank >= 4 then rareSound else revealSound)
 	if info.StarUp then
 		play(starSound)
 	end
+end
+
+-- AUTO 중 별 상승(가챠 중복): 다음 굴림이 곧 가운데 연출을 덮으므로(이미 발견한 명소는 짧은 연출이라 딱지가 0.2초쯤만
+-- 보임) 알림 줄에도 결과 딱지 + "★+1"/"★MAX" 를 2.5초 남김. AUTO 속도는 그대로. 별 상승 알림은 한 칸만 씀 — 초반 AUTO 는
+-- 거의 매번 별이 올라서, 새 것이 이전 별 알림을 바꿔 다른 알림(도감 +N·구매 등)을 밀어내지 않게
+local starToast: GuiObject? = nil
+local function starUpToast(landmark: Landmarks.Landmark, info: RevealInfo)
+	local previous = starToast
+	if previous and previous.Parent then
+		local index = table.find(toasts, previous)
+		if index then
+			table.remove(toasts, index)
+		end
+		previous:Destroy()
+	end
+	starToast = resultToast(landmark, info, "StarUpToast").Root
 end
 
 -- 연출 길이를 정하는 등급: 자동 굴림(Fast) 중 이미 발견한 명소(IsNew 아님 — 자동 발견 포함)는
@@ -19868,6 +19903,9 @@ function Hud.reveal(landmark: Landmarks.Landmark, info: RevealInfo)
 		TweenService:Create(pop, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
 			:Play()
 		play(starSound)
+		if info.Fast then
+			starUpToast(landmark, info)
+		end
 	end
 
 	-- 결과를 잠깐 보여 줌 (자동 굴림 중에도 희귀 명소는 바로 덮이지 않게)
