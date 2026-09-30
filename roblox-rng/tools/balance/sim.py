@@ -745,13 +745,13 @@ def reference_sim(game: Game, prof: dict, seed: int, until_reb: int, policy: str
         n_rolls += 1
         cd = cfg["roll_cooldown"] * (1 - game.up_per[A] * lvl[A]) * prof["cd_mult"]
         dt = max(cd, game.overhead[i])
-        coins += inc * dt  # income during this roll's period (state before the result)
-        t += dt
         if not disc[i]:
             coins += game.bonus[i]
             disc[i] = True
         cnt[i] += 1
-        inc = income_now()
+        inc = income_now()  # the server applies the result at once; income ticks while it is revealed
+        coins += inc * dt
+        t += dt
         # purchases
         C = game.reb_coins[reb]
         req = np.flatnonzero(game.reb_req[reb])
