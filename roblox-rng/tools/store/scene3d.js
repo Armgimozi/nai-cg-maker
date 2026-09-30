@@ -7,7 +7,7 @@
 //   light  : { sun:[방향](빛이 오는 쪽), sunColor, sunIntensity, hemiSky, hemiGround, hemiIntensity,
 //              rims:[{ dir, color, intensity }], shadowCenter:[x,y,z], shadowBox: 반 크기 }
 //   rim    : { color:[r,g,b], power, strength } — rim:true 인 물체에 프레넬 테두리 빛(전설 등급 느낌)
-//   objects: [{ tag, rim?, castShadow?, parts?, rocks?, shards?, ribbons?, quads? }]
+//   objects: [{ tag, rim?(true 또는 세기 숫자), castShadow?, parts?, rocks?, shards?, ribbons?, quads? }]
 //     parts  : model_preview 덤프(mock.luau)의 파트 그대로 {c,s,p,m,z,col,t,mat} — 명소 모형을 진짜 빌더 결과로 그림
 //              (모양·재질 규칙은 tools/world_preview/scene.js 와 같음. 재질 무늬는 textures.js 를 그대로 씀)
 //     rocks  : [{ p, size:[x,y,z], rot:[rx,ry,rz](도), col, mat?, seed, points? }] 무작위 점 볼록 껍질(각진 바위)
@@ -129,7 +129,7 @@ function standard(matName, { alpha = 1, rim = false, flat = false, scaleFromMatr
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uRimColor = { value: srgb(rimSpec.color) };
     shader.uniforms.uRimPow = { value: rimSpec.power };
-    shader.uniforms.uRimStrength = { value: rim ? rimSpec.strength : 0 };
+    shader.uniforms.uRimStrength = { value: typeof rim === "number" ? rim : rim ? rimSpec.strength : 0 };
     let head = "#include <common>\nuniform vec3 uRimColor;\nuniform float uRimPow;\nuniform float uRimStrength;";
     if (textured) {
       Object.assign(shader.uniforms, {
@@ -210,7 +210,7 @@ function buildParts(obj) {
     let material;
     if (mat === "Neon") material = neonMaterial(part.col, alpha);
     else {
-      material = standard(mat, { alpha, rim: !!obj.rim });
+      material = standard(mat, { alpha, rim: obj.rim || false });
       material.color = srgb(part.col);
     }
     const mesh = new THREE.Mesh(GEOMETRY[shape], material);
@@ -244,24 +244,24 @@ function rockGeometry(seed, count = 14) {
   return new ConvexGeometry(pts);
 }
 
-// 결정: 가운데가 굵고 양 끝이 뾰족한 길쭉한 볼록 껍질(위 끝이 더 김)
-function shardGeometry(seed, sides = 5) {
+// 결정: 육각(또는 5각) 기둥 + 양 끝 뾰족(수정 결정처럼 긴 면이 보임). 위 끝이 더 김
+function shardGeometry(seed, sides = 6) {
   const r = rng(seed);
-  const pts = [p3(0, 0.62, 0), p3((r() - 0.5) * 0.1, -0.38, (r() - 0.5) * 0.1)];
-  for (let ring = 0; ring < 2; ring++) {
-    const y = ring === 0 ? 0.12 + r() * 0.1 : -0.12 - r() * 0.08;
-    for (let i = 0; i < sides; i++) {
-      const a = (i / sides) * Math.PI * 2 + r() * 0.5 + ring * 0.4;
-      const k = 0.3 + r() * 0.22;
-      pts.push(p3(Math.cos(a) * k * 0.5, y, Math.sin(a) * k * 0.5));
-    }
+  const pts = [p3((r() - 0.5) * 0.08, 0.5, (r() - 0.5) * 0.08), p3((r() - 0.5) * 0.12, -0.5, (r() - 0.5) * 0.12)];
+  const top = 0.12 + r() * 0.12;
+  const bottom = -0.22 - r() * 0.1;
+  for (let i = 0; i < sides; i++) {
+    const a = (i / sides) * Math.PI * 2 + (r() - 0.5) * 0.3;
+    const k = 0.4 + r() * 0.12;
+    pts.push(p3(Math.cos(a) * k * 0.5, top + (r() - 0.5) * 0.08, Math.sin(a) * k * 0.5));
+    pts.push(p3(Math.cos(a) * k * 0.46, bottom + (r() - 0.5) * 0.06, Math.sin(a) * k * 0.46));
   }
   return new ConvexGeometry(pts);
 }
 
 function buildRocks(obj) {
   for (const rock of obj.rocks) {
-    const material = standard(rock.mat || "Slate", { rim: !!obj.rim, flat: true });
+    const material = standard(rock.mat || "Slate", { rim: obj.rim || false, flat: true });
     material.color = srgb(rock.col || [0.6, 0.6, 0.64]);
     const mesh = new THREE.Mesh(rockGeometry(rock.seed || 1, rock.points || 14), material);
     mesh.position.copy(v3(rock.p));
@@ -277,7 +277,7 @@ function buildShards(obj) {
     if (shard.emissive) {
       material = new THREE.MeshBasicMaterial({ color: srgb(shard.col) });
     } else {
-      material = standard(shard.mat || "SmoothPlastic", { rim: obj.rim !== false, flat: true });
+      material = standard(shard.mat || "SmoothPlastic", { rim: obj.rim ?? true, flat: true });
       material.color = srgb(shard.col);
       material.roughness = shard.rough ?? 0.35;
     }

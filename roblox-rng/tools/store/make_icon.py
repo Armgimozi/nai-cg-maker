@@ -3,7 +3,8 @@
 
     python3 tools/store/make_icon.py            # art/store/icon_a.png, icon_b.png, icon.png(고른 것), icon_small.png(150px)
     python3 tools/store/make_icon.py a          # 한 변형만(icon.png 는 안 바꿈)
-    KEEP=1 python3 tools/store/make_icon.py     # 중간 레이어를 art/store/_work/ 에 남김(점검용, 커밋하지 않음)
+    KEEP=1 python3 tools/store/make_icon.py     # 중간 3D 레이어를 art/store/_work/ 에 남김(점검용, .gitignore)
+    PICK=a python3 tools/store/make_icon.py     # icon.png 로 쓸 변형(기본 b)
 
 만드는 법
   1) 진짜 명소 빌더(src/shared/Models)로 세계수 파트를 덤프(tools/model_preview/mock.luau, 업로드·API 없음)
@@ -80,11 +81,26 @@ def project(cam, p, size=S):
     return ((x + 1) / 2 * size, (1 - y) / 2 * size)
 
 
-def fit_camera(yaw, height, fov, top_y, base_y, center_x, top=20.9):
-    """나무 꼭대기(top)·밑동(0)이 화면 top_y·base_y(0~1)에 오도록 거리·바라보는 높이를 찾음. center_x 로 좌우 이동."""
+def unproject(cam, px, py, depth, size=S):
+    """화면 점(px, py)에서 카메라로부터 depth 스터드 떨어진 3D 점."""
+    eye, target = np.array(cam["eye"], float), np.array(cam["target"], float)
+    f = target - eye
+    f /= np.linalg.norm(f)
+    r = np.cross(f, [0, 1, 0])
+    r /= np.linalg.norm(r)
+    u = np.cross(r, f)
+    t = math.tan(math.radians(cam["fov"]) / 2)
+    d = f + ((px / size) * 2 - 1) * t * r + (1 - (py / size) * 2) * t * u
+    return eye + d / np.linalg.norm(d) * depth
+
+
+def fit_camera(yaw, elev, fov, top_y, base_y, center_x, top=20.9):
+    """나무 꼭대기(top)·밑동(0)이 화면 top_y·base_y(0~1)에 오도록 거리·바라보는 높이를 찾음.
+    elev = 밑동에서 카메라를 올려다본 각(도, 클수록 땅의 마법진이 둥글게 보임). center_x 로 좌우 이동."""
     best = None
-    for dist in np.linspace(20, 80, 241):
-        for ty in np.linspace(2, 18, 161):
+    for dist in np.linspace(15, 90, 301):
+        height = dist * math.tan(math.radians(elev))
+        for ty in np.linspace(0, 20, 201):
             cam = cam_at(yaw, height, dist, ty, fov, 0)
             y0 = project(cam, (0, 0, 0))[1] / S
             y1 = project(cam, (0, top, 0))[1] / S
@@ -92,6 +108,7 @@ def fit_camera(yaw, height, fov, top_y, base_y, center_x, top=20.9):
             if best is None or err < best[0]:
                 best = (err, dist, ty)
     _, dist, ty = best
+    height = dist * math.tan(math.radians(elev))
     # 좌우: 바라보는 점을 옆으로 옮겨 나무가 center_x 에 오게
     shift = 0.0
     for _ in range(30):
@@ -112,17 +129,28 @@ def cam_at(yaw, height, dist, ty, fov, shift):
 
 
 # 3D 장면 ---------------------------------------------------------------------------------------
+def without_base(parts: list) -> list:
+    """전시용 받침(바닥 원판 + 얇은 빛 고리)은 빼고 나무만: 장면에서는 땅(마법진)에서 바로 자라게."""
+    out = []
+    for p in parts:
+        flat_disc = p["s"] == "PartType.Cylinder" and p["z"][0] <= 0.3 and p["p"][1] < 0.5
+        if not flat_disc:
+            out.append(p)
+    return out
+
+
 def build_scene(v, tree, work: Path):
     rnd = random.Random(v["seed"])
     cam = v["camera"]
     # 땅 무늬 그림(위에서 본 모습) → 3D 판
-    circle = fx.magic_circle(2048, seed=v["seed"])
+    circle = fx.magic_circle(2048, seed=v["seed"], width=0.6)
     circle.save(work / "circle_tex.png")
-    dark, core = fx.cracks(2048, seed=v["seed"] + 1, count=13, inner=0.18, reach=(0.55, 1.0))
+    dark, core = fx.cracks(2048, seed=v["seed"] + 1, count=14, inner=0.3, reach=(0.6, 1.0))
     dark.save(work / "cracks_dark.png")
+    fx.vortex(1024, center=(6, 26, 48), swirl=(110, 245, 255), seed=v["seed"]).save(work / "vortex.png")
     core.save(work / "cracks_core.png")
     ground = [{"c": "Part", "s": "PartType.Block", "p": [0, -0.705, 0], "m": [1, 0, 0, 0, 1, 0, 0, 0, 1],
-               "z": [600, 2, 600], "col": v["grass"], "t": 0, "mat": "Material.Grass"}]
+               "z": [8000, 2, 8000], "col": v["grass"], "t": 0, "mat": "Material.Grass"}]
     # 둥그렇게 둘러싼 각진 바위(앞쪽 가운데는 비워서 마법진이 보이게)
     rocks = []
     yaw = math.radians(v["yaw"])
@@ -157,18 +185,28 @@ def build_scene(v, tree, work: Path):
         yaw_d = math.degrees(math.atan2(out[0], out[2]))
         pitch = math.degrees(math.acos(max(-1, min(1, out[1]))))
         big = rnd.random() < 0.3
-        L = rnd.uniform(2.6, 4.2) if big else rnd.uniform(1.2, 2.4)
-        item = {"p": p.round(3).tolist(), "len": L, "radius": L * rnd.uniform(0.2, 0.3),
-                "rot": [pitch, yaw_d, rnd.uniform(-20, 20)], "seed": 100 + i, "sides": rnd.choice([4, 5, 6])}
+        L = rnd.uniform(3.0, 4.6) if big else rnd.uniform(1.4, 2.6)
+        item = {"p": p.round(3).tolist(), "len": L, "radius": L * rnd.uniform(0.22, 0.3), "flat": 1.0,
+                "rot": [pitch, yaw_d, rnd.uniform(-20, 20)], "seed": 100 + i, "sides": rnd.choice([5, 6])}
         if rnd.random() < v["debris_ratio"]:
-            debris.append({"p": item["p"], "size": [L * 0.6, L * 0.45, L * 0.55], "rot": [rnd.uniform(0, 360)] * 3,
+            debris.append({"p": item["p"], "size": [L * 0.5, L * 0.4, L * 0.45], "rot": [rnd.uniform(0, 360)] * 3,
                            "col": v["rock"], "mat": "Slate", "seed": 300 + i})
         else:
             item["col"] = rnd.choice(v["shard_cols"])
             shards.append(item)
+    # 카메라 가까이 큰 조각(화면 가장자리, 일부는 잘림): 깊이감
+    eye = np.array(cam["eye"])
+    for j, (px, py, L) in enumerate(v["near_shards"]):
+        depth = np.linalg.norm(eye - np.array([0, 10, 0])) * rnd.uniform(0.45, 0.6)
+        q = unproject(cam, px, py, depth)
+        out = q - center
+        out /= np.linalg.norm(out)
+        shards.append({"p": q.round(3).tolist(), "len": L, "radius": L * 0.27, "flat": 1.0, "seed": 500 + j, "sides": 6,
+                       "rot": [math.degrees(math.acos(max(-1, min(1, out[1])))), math.degrees(math.atan2(out[0], out[2])),
+                               rnd.uniform(-30, 30)], "col": v["shard_cols"][j % 2]})
     # 에너지 띠: 나무를 감고 올라가는 나선 두 줄
     ribbons = []
-    for k, (turns, r0, r1, y0, y1, phase, wmax) in enumerate(v["ribbons"]):
+    for turns, r0, r1, y0, y1, phase, wmax in v["ribbons"]:
         pts, w, al = [], [], []
         n = 140
         for j in range(n):
@@ -178,14 +216,14 @@ def build_scene(v, tree, work: Path):
             pts.append([math.cos(th) * r, y0 + (y1 - y0) * t, math.sin(th) * r])
             env = math.sin(math.pi * t)
             w.append(0.15 + wmax * env ** 0.8)
-            al.append(min(1, 1.3 * env ** 0.6))
+            al.append(min(1, 1.1 * env ** 0.7) * 0.85)
         ribbons.append({"points": pts, "width": w, "alpha": al, "color": [0.8, 1, 0.96]})
     quads_circle = [{"image": "/file" + str(work / "circle_tex.png"), "p": [0, 0.33, 0], "size": [v["circle"]] * 2,
                      "rotY": v["seed"] * 7}]
+    quads_vortex = [{"image": "/file" + str(work / "vortex.png"), "p": [0, 0.305, 0], "size": [v["circle"] * 1.05] * 2}]
     quads_dark = [{"image": "/file" + str(work / "cracks_dark.png"), "p": [0, 0.31, 0], "size": [v["cracks"]] * 2}]
     quads_core = [{"image": "/file" + str(work / "cracks_core.png"), "p": [0, 0.32, 0], "size": [v["cracks"]] * 2}]
-    fwd = np.array([math.sin(yaw), 0, math.cos(yaw)])
-    side = np.array([-math.cos(yaw), 0, math.sin(yaw)])
+    # 해는 카메라 왼쪽 앞 위, 민트 테두리 빛은 뒤 양옆(나무 가장자리가 전설 색으로 빛남)
     sun = (-fwd * 0.55 - side * 0.5 + np.array([0, 0.85, 0])).tolist()
     rim_l = (fwd * 0.8 - side * 0.7 + np.array([0, 0.35, 0])).tolist()
     rim_r = (fwd * 0.8 + side * 0.7 + np.array([0, 0.35, 0])).tolist()
@@ -194,24 +232,26 @@ def build_scene(v, tree, work: Path):
         "camera": cam,
         "light": {"sun": sun, "sunColor": [1, 0.97, 0.9], "sunIntensity": 1.05, "hemiSky": [0.8, 0.95, 1],
                   "hemiGround": [0.5, 0.65, 0.5], "hemiIntensity": 0.8,
-                  "rims": [{"dir": rim_l, "color": list(np.array(fx.MINT) / 255), "intensity": 1.3},
-                           {"dir": rim_r, "color": list(np.array(fx.MINT) / 255), "intensity": 1.1}],
+                  "rims": [{"dir": rim_l, "color": list(np.array(fx.MINT) / 255), "intensity": 0.9},
+                           {"dir": rim_r, "color": list(np.array(fx.MINT) / 255), "intensity": 0.8}],
                   "shadowCenter": [0, 6, 0], "shadowBox": 28},
         "rim": {"color": list(np.array(fx.MINT) / 255), "power": 2.6, "strength": v["rim"]},
         "objects": [
             {"tag": "ground", "parts": ground},
-            {"tag": "tree", "rim": True, "parts": tree},
-            {"tag": "rocks", "rim": True, "rocks": rocks},
-            {"tag": "shards", "rim": True, "shards": shards},
-            {"tag": "debris", "rim": True, "rocks": debris, "castShadow": False},
+            {"tag": "tree", "rim": True, "parts": without_base(tree)},
+            {"tag": "rocks", "rocks": rocks},
+            {"tag": "shards", "rim": v["shard_rim"], "shards": shards},
+            {"tag": "debris", "rocks": debris, "castShadow": False},
             {"tag": "ribbons", "ribbons": ribbons},
             {"tag": "circle", "quads": quads_circle},
+            {"tag": "vortex", "quads": quads_vortex},
             {"tag": "cracksdark", "quads": quads_dark},
             {"tag": "crackscore", "quads": quads_core},
         ],
         "layers": [
             {"name": "ground", "draw": ["ground"], "shadow": ["tree", "rocks"]},
             {"name": "cracksdark", "draw": ["cracksdark"], "occlude": ["tree", "rocks"]},
+            {"name": "vortex", "draw": ["vortex"], "occlude": ["tree", "rocks"]},
             {"name": "crackscore", "draw": ["crackscore"], "occlude": ["tree", "rocks"]},
             {"name": "model", "draw": ["tree", "rocks"]},
             {"name": "tree", "draw": ["tree"]},
@@ -279,8 +319,7 @@ def hand_dice_svg(skin="#FFD1A3", shade="#E9A273", light="#FFE9D3") -> str:
 <path d="M-89,-48 L0,2 L89,-48 M0,2 V98" fill="none" stroke="#8F88AE" stroke-width="5" stroke-linecap="round"/>
 <g transform="matrix(44.7,24.7,-44.7,24.7,0,-50)"><circle r="0.36" fill="#FF5E5B"/></g>
 <g transform="matrix(44.7,24.7,0,50.6,-44.7,24.7)" fill="{INK_HEX}"><circle cx="-0.48" cy="-0.5" r="0.2"/><circle cx="0.48" cy="0.5" r="0.2"/></g>
-<g transform="matrix(44.7,-24.7,0,50.6,44.7,24.7)" fill="{INK_HEX}"><circle cx="-0.52" cy="-0.52" r="0.2"/><circle r="0.2"/><circle cx="0.52" cy="0.52" r="0.2"/></g>
-<path d="M-70,-52 L-52,-62" stroke="#FFFFFF" stroke-width="0" />"""
+<g transform="matrix(44.7,-24.7,0,50.6,44.7,24.7)" fill="{INK_HEX}"><circle cx="-0.52" cy="-0.52" r="0.2"/><circle r="0.2"/><circle cx="0.52" cy="0.52" r="0.2"/></g>"""
     body = [silhouette(12, 9), silhouette(12, 0),
             "\n".join([cap(arm[0], arm[1], arm[2], INK_HEX, 6), cap(arm[0], arm[1], arm[2], shade),
                        cap(arm[0], arm[1], arm[2] - 6, skin, 0, -4, -5)]),
@@ -308,65 +347,76 @@ def compose(v, L: dict, label: str) -> Image.Image:
     tx, ty = P((0, 20.9, 0))  # 꼭대기
     hy = P((math.sin(math.radians(v["yaw"])) * 1e5, 0, math.cos(math.radians(v["yaw"])) * 1e5))[1]  # 지평선
 
-    # 1) 하늘 + 큰 빛 + 햇살
+    # 1) 하늘 + 큰 빛(민트로 물들임) + 햇살. 밝은 하늘에 민트를 더하면(add) 하얗게 날아가므로 색 빛은 over 로 입힘
     im = fx.linear((S, S), v["sky"])
-    im = fx.add(im, fx.radial((S, S), (cx, cy), 620, [(0, (255, 255, 255, 255)), (0.25, v["glow"] + (200,)),
-                                                    (0.6, v["glow"] + (70,)), (1, v["glow"] + (0,))]), 0.9)
-    im = fx.add(im, fx.rays((S, S), (cx, cy), count=26, width=0.42, seed=v["seed"], falloff=1.1, inner=60), 0.55)
-    im = fx.add(im, fx.rays((S, S), (cx, cy), count=14, color=v["glow"], width=0.6, seed=v["seed"] + 9, falloff=0.9),
-                0.35)
+    im = fx.over(im, fx.radial((S, S), (cx, cy), 560, [(0, v["glow"] + (235,)), (0.35, v["glow"] + (150,)),
+                                                     (0.7, v["glow"] + (45,)), (1, v["glow"] + (0,))]))
+    im = fx.add(im, fx.radial((S, S), (cx, cy), 300, [(0, (255, 255, 255, 200)), (1, (255, 255, 255, 0))]), 0.8)
+    im = fx.add(im, fx.rays((S, S), (cx, cy), count=26, width=0.4, seed=v["seed"], falloff=1.0, inner=40), 0.45)
+    im = fx.over(im, fx.rays((S, S), (cx, cy), count=14, color=v["glow"], width=0.55, seed=v["seed"] + 9,
+                             falloff=0.8), opacity=0.45)
     # 2) 지평선 구름
     rnd = random.Random(v["seed"] + 3)
     for x, w, dy in v["clouds"]:
         c = fx.cloud(w, seed=rnd.randrange(1000), bottom=v["cloud_shade"])
         im = fx.over(im, c, (x, hy - c.height + dy), opacity=0.95)
-    # 3) 땅(먼 곳은 하늘빛으로 흐리게) + 집중선
+    # 3) 땅(먼 곳은 하늘빛으로 조금 흐리게) + 집중선
     g = fx.arr(L["ground"])
     ys = np.arange(S, dtype=np.float32)[:, None]
-    haze = np.clip(1 - (ys - hy) / 200, 0, 1) ** 1.6 * 0.75
+    haze = np.clip(1 - (ys - hy) / 150, 0, 1) ** 1.8 * v["haze_k"]
     hz = np.array(v["haze"], np.float32) / 255
     g[..., :3] = g[..., :3] * (1 - haze[..., None]) + hz * haze[..., None]
     im = fx.over(im, fx.img(g))
     im = fx.over(im, fx.speed_lines((S, S), (cx, cy + 40), count=80, color=v["lines"], inner=0.5, seed=v["seed"] + 5,
                                     thickness=0.01, alpha=v["lines_alpha"]))
-    # 4) 땅 갈라짐(어두운 금 + 빛나는 속)
-    im = fx.over(im, fx.solid((S, S), (28, 40, 44), fx.alpha_of(L["cracksdark"]) * 0.9))
-    core = fx.alpha_of(L["crackscore"])
-    im = fx.add(im, fx.glow(core, 10, fx.MINT, 1.6), 0.9)
-    im = fx.add(im, fx.solid((S, S), (225, 255, 250), core), 1.0)
-    # 5) 빛 기둥 + 나무 뒤 오라
+    # 4) 빛 기둥 + 나무 뒤 오라(민트)
     ys2, xs2 = np.mgrid[0:S, 0:S].astype(np.float32)
-    half = 120 * (0.55 + 0.45 * np.clip((ys2 - ty) / max(1, by - ty), 0, 1))
-    beam = np.clip(1 - np.abs(xs2 - bx) / half, 0, 1) ** 1.8 * np.clip((by + 20 - ys2) / 120, 0, 1)
-    beam *= np.clip(1 - (by - ys2) / (by - ty + 260), 0, 1) ** 0.7
-    im = fx.add(im, fx.solid((S, S), (210, 255, 248), beam), 0.75)
+    half = 90 * (0.5 + 0.5 * np.clip((ys2 - ty) / max(1, by - ty), 0, 1))
+    beam = np.clip(1 - np.abs(xs2 - bx) / half, 0, 1) ** 1.6 * np.clip((by - ys2) / 60, 0, 1)
+    beam *= np.clip(1 - (by - ys2) / (by - ty + 200), 0, 1) ** 0.6
+    im = fx.over(im, fx.solid((S, S), v["glow"], beam * 0.6))
+    im = fx.add(im, fx.solid((S, S), (255, 255, 255), beam), 0.35)
+    # 잎 뒤 큰 별빛(전설 번쩍임) + 가로 빛줄
+    fl = fx.sparkle_sprite(v["flare"], color=(255, 255, 255), glow_color=v["glow"], pinch=3.4, aspect=1.35)
+    im = fx.add(im, fl, 0.9, (cx - fl.width / 2, cy - 40 - fl.height / 2))
+    streak = fx.radial((S, S), (cx, cy - 40), 420, [(0, (255, 255, 255, 230)), (1, (255, 255, 255, 0))], squash=0.035)
+    im = fx.add(im, streak, 0.8)
     tree_a = fx.alpha_of(L["tree"])
-    im = fx.add(im, fx.glow(tree_a, 70, v["aura"], 1.3, spread=16), 0.9)
-    im = fx.add(im, fx.glow(tree_a, 22, (220, 255, 250), 1.4, spread=8), 0.9)
+    im = fx.over(im, fx.glow(tree_a, 70, v["aura"], 1.25, spread=16))
+    im = fx.over(im, fx.glow(tree_a, 16, v["aura"], 1.3, spread=8))
+    im = fx.add(im, fx.glow(tree_a, 8, (255, 255, 255), 1.0, spread=4), 0.5)
+    # 5) 땅 갈라짐(어두운 금 + 빛나는 속) + 소용돌이 구멍
+    im = fx.over(im, fx.solid((S, S), (24, 36, 42), fx.alpha_of(L["cracksdark"]) * 0.95))
+    im = fx.over(im, L["vortex"], opacity=v["vortex"])
+    core = fx.alpha_of(L["crackscore"])
+    im = fx.over(im, fx.glow(core, 6, fx.MINT, 1.2))
+    im = fx.add(im, fx.solid((S, S), (225, 255, 250), core), 0.8)
     # 6) 모형(나무 + 바위)
     im = fx.over(im, L["model"])
-    # 7) 마법진(발 밑, 빛남)
+    # 7) 마법진(발 밑, 민트 빛)
     ca = fx.alpha_of(L["circle"])
-    im = fx.add(im, fx.glow(ca, 26, fx.MINT, 2.2), 0.8)
-    im = fx.add(im, fx.glow(ca, 6, fx.MINT, 1.8), 0.9)
+    im = fx.over(im, fx.glow(ca, 10, fx.MINT, v["circle_glow"]))
+    im = fx.over(im, fx.glow(ca, 2.5, fx.MINT, 1.3))
     im = fx.add(im, fx.solid((S, S), (235, 255, 252), ca), 1.0)
     # 8) 결정 조각·부스러기 + 테두리 빛, 에너지 띠
     sa = fx.alpha_of(L["shards"])
-    im = fx.add(im, fx.glow(sa, 14, fx.MINT, 1.0), 0.7)
+    im = fx.over(im, fx.glow(sa, 10, fx.MINT, 1.1, spread=3))
     im = fx.over(im, L["shards"])
     ra = fx.alpha_of(L["ribbons"])
-    im = fx.add(im, fx.glow(ra, 18, fx.MINT, 1.5), 0.8)
-    im = fx.add(im, fx.solid((S, S), (235, 255, 250), ra), 0.95)
+    im = fx.over(im, fx.glow(ra, 16, fx.MINT, 1.8, spread=2))
+    im = fx.over(im, fx.solid((S, S), (200, 255, 245), ra * 0.9))
+    im = fx.add(im, fx.solid((S, S), (255, 255, 255), fx.dilate(ra, 0) ** 3), 0.6)
     # 9) 반짝이 + 빛 알갱이
     im = fx.over(im, fx.particles((S, S), (cx, cy), 70, (1.5, 4.5), seed=v["seed"] + 7, spread=(0.06, 0.55)))
     for x, y, r in v["sparkles"]:
         sp = fx.sparkle_sprite(r, glow_color=fx.MINT, rot=0)
         im = fx.over(im, sp, (x - sp.width / 2, y - sp.height / 2))
+    im = fx.over(im, fx.vignette((S, S), v["lines"], strength=v["vignette"], inner=0.5, center=(cx, cy + 60)))
     # 10) 확률 숫자
     text = fx.chunky_text(label, v["font"], size=220, gloss=0.32)
     text = fx.rotate(text, v["text_rot"])
     tw = v["text_w"]
-    text = text.resize((tw, int(text.height * tw / text.width)), Image.Resampling.LANCZOS)
+    text = text.resize((tw, int(text.height * tw / text.width * v["text_stretch"])), Image.Resampling.LANCZOS)
     im = fx.over(im, text, ((S - tw) / 2 + v.get("text_dx", 0), v["text_y"]))
     for x, y, r in v["text_sparkles"]:
         sp = fx.sparkle_sprite(r, glow_color=(255, 255, 200))
@@ -386,32 +436,39 @@ def compose(v, L: dict, label: str) -> Image.Image:
 
 # 변형 --------------------------------------------------------------------------------------------
 BASE = dict(
-    seed=7, yaw=0, height=6.5, fov=34, top_y=0.2, base_y=0.845, tree_x=0.46,
-    grass=[0.36, 0.76, 0.26], rock=[0.66, 0.68, 0.74], rim=0.7,
-    shard_cols=[[0.08, 0.3, 0.36], [0.12, 0.42, 0.46], [0.3, 0.75, 0.72]], shards=34, debris_ratio=0.3,
-    rocks=[(-62, 10.5, 3.6), (-40, 11.5, 2.6), (-88, 9.5, 3.2), (-120, 9.0, 2.4), (50, 11, 3.0), (72, 10, 3.8),
-           (100, 9.5, 2.8), (135, 9, 2.4), (-160, 9.5, 2.2), (170, 9.5, 2.6), (25, 12.5, 1.6), (-22, 12.8, 1.5)],
-    ribbons=[(1.35, 8.5, 3.5, 0.8, 21.5, 0.4, 1.1), (1.1, 7.5, 5.5, 3.0, 19.0, 3.6, 0.8)],
-    circle=21, cracks=34,
-    sky=[(0, (26, 118, 238)), (0.45, (66, 178, 255)), (0.7, (150, 226, 255)), (1, (190, 240, 255))],
-    glow=(150, 255, 238), aura=fx.MINT, haze=(200, 245, 245), cloud_shade=(186, 220, 250),
+    seed=7, yaw=0, elev=12, fov=54, top_y=0.235, base_y=0.86, tree_x=0.46,
+    grass=[0.42, 0.74, 0.22], rock=[0.5, 0.5, 0.53], rim=0.85, flare=170,
+    shard_cols=[[0.08, 0.36, 0.44], [0.14, 0.52, 0.58], [0.06, 0.28, 0.36], [0.3, 0.8, 0.76]], shards=46, shard_rim=1.4,
+    near_shards=[(70, 330, 2.6), (960, 250, 2.2), (60, 640, 2.0), (930, 470, 1.8)],
+    debris_ratio=0.3,
+    # 바위: (각도 0=앞·양수=오른쪽, 거리, 크기)
+    rocks=[(-30, 5.5, 3.2), (-58, 10.5, 4.6), (-36, 12.0, 3.0), (-84, 10.0, 4.0), (-118, 9.5, 3.0), (46, 11, 3.6), (68, 10, 4.8),
+           (96, 9.5, 3.6), (130, 9.5, 3.0), (-160, 10, 2.8), (168, 10, 3.0), (22, 13.0, 2.0), (-16, 13.5, 1.8)],
+    # 에너지 띠: (감는 수, 시작 반지름, 끝 반지름, 시작 높이, 끝 높이, 시작 각, 최대 폭)
+    ribbons=[(0.95, 11.0, 7.5, 0.6, 4.0, 0.3, 0.45), (0.8, 9.5, 6.5, 1.5, 8.5, 3.3, 0.35)],
+    circle=30, cracks=46, vignette=0.5, vortex=1.0, circle_glow=0.4,
+    sky=[(0, (20, 96, 225)), (0.45, (48, 160, 250)), (0.7, (120, 210, 255)), (1, (170, 232, 255))],
+    glow=(150, 255, 238), aura=fx.MINT, haze=(200, 245, 245), haze_k=0.6, cloud_shade=(186, 220, 250),
     lines=(18, 44, 110), lines_alpha=0.55,
     clouds=[(-60, 330, 30), (180, 220, 34), (620, 260, 30), (820, 300, 28)],
     sparkles=[(180, 330, 34), (800, 300, 42), (140, 600, 22), (880, 520, 26), (300, 250, 16), (690, 420, 18),
               (250, 760, 16), (600, 230, 14)],
-    font="luckiest", text_w=900, text_y=40, text_rot=3.5, text_sparkles=[(90, 70, 26), (960, 170, 18)],
-    hand_px=520, hand_xy=(560, 560),
+    font="luckiest", text_w=940, text_stretch=1.15, text_y=30, text_rot=3.5, text_sparkles=[(90, 70, 26), (960, 170, 18)],
+    hand_px=500, hand_xy=(575, 575),
 )
 
 VARIANTS = {
-    # A: 정면, 밝은 낮 하늘(참고 그림 느낌)
+    # A: 정면, 카메라를 조금 높여 땅의 마법진·금이 잘 보임, 밝은 낮 하늘
     "a": dict(BASE),
-    # B: 3/4 각도·더 낮은 카메라, 짙은 청록 하늘에 빛이 더 강함
-    "b": dict(BASE, seed=13, yaw=-32, height=4.2, fov=36, top_y=0.19, base_y=0.85, tree_x=0.45,
+    # B: 땅에 거의 붙은 카메라로 올려다본 영웅 각도(나무가 크게 솟음), 짙은 청록 하늘에 빛이 더 강함 — icon.png
+    "b": dict(BASE, seed=13, yaw=-20, elev=5, fov=62, top_y=0.235, base_y=0.89, tree_x=0.45, haze_k=0.3,
+              circle=34, cracks=50, circle_glow=0.9,
               sky=[(0, (8, 58, 150)), (0.4, (20, 120, 210)), (0.72, (60, 200, 225)), (1, (140, 240, 235))],
-              glow=(130, 255, 235), haze=(150, 235, 230), cloud_shade=(150, 200, 235), lines=(4, 20, 60),
-              lines_alpha=0.7, rim=1.0, text_rot=-3, grass=[0.3, 0.72, 0.3],
-              text_sparkles=[(950, 60, 24), (70, 200, 18)]),
+              glow=(130, 255, 235), haze=(175, 245, 225), cloud_shade=(150, 200, 235), lines=(4, 20, 60),
+              lines_alpha=0.7, rim=1.0, text_rot=2.5, grass=[0.36, 0.74, 0.24], rock=[0.44, 0.45, 0.5],
+              rocks=[r for r in BASE["rocks"] if r[1] > 6], clouds=[(-70, 230, 6), (150, 170, 8), (700, 230, 6)],
+              text_sparkles=[(950, 60, 24), (70, 200, 18)],
+              ribbons=[(1.15, 9.0, 6.5, 0.5, 11.0, 0.3, 0.5), (0.9, 9.5, 7.5, 4.0, 15.0, 3.6, 0.4)]),
 }
 
 
@@ -424,7 +481,7 @@ def main():
     made = {}
     for name in wanted:
         v = dict(VARIANTS[name])
-        v["camera"] = fit_camera(v["yaw"], v["height"], v["fov"], v["top_y"], v["base_y"], v["tree_x"])
+        v["camera"] = fit_camera(v["yaw"], v["elev"], v["fov"], v["top_y"], v["base_y"], v["tree_x"])
         work = Path(tempfile.mkdtemp(prefix=f"icon_{name}_"))
         try:
             layers = render_layers(build_scene(v, tree, work), work)
@@ -440,7 +497,7 @@ def main():
         finally:
             shutil.rmtree(work, ignore_errors=True)
     if not sys.argv[1:]:
-        pick = os.environ.get("PICK", "a")
+        pick = os.environ.get("PICK", "b")
         made[pick].save(OUT / "icon.png", optimize=True)
         made[pick].resize((150, 150), Image.Resampling.LANCZOS).save(OUT / "icon_small.png", optimize=True)
         print(f"[icon] icon.png = icon_{pick}.png, icon_small.png (150px)")

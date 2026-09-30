@@ -303,7 +303,7 @@ def cloud(width, seed=4, top=(255, 255, 255), bottom=(196, 222, 250), puffs=7) -
         cx = W * (0.1 + 0.8 * t) + (rnd.random() - 0.5) * W * 0.06
         bump = math.sin(math.pi * t) ** 0.8
         r = W * (0.09 + 0.12 * bump) * (0.8 + rnd.random() * 0.45)
-        cy = base - r * (0.55 + 0.6 * bump)
+        cy = base - r * (1.0 + 0.35 * bump)  # 공 아래가 바닥선 위에(바닥은 둥근 띠가 만듦)
         d.ellipse((cx - r, cy - r, cx + r, cy + r), fill=255)
     d.rounded_rectangle((W * 0.06, base - H * 0.2, W * 0.94, base), radius=H * 0.1, fill=255)
     L = L.crop((0, 0, W, int(base) + 1)).resize((int(width), int((base + 1) / s)), Image.Resampling.LANCZOS)
@@ -380,6 +380,37 @@ def magic_circle(px=2048, color=WHITE, seed=5, width=1.0) -> Image.Image:
     d.polygon(pts, outline=255, width=int(1.8 * lw))
     ring(0.12, 2.0)
     return solid((s, s), color, np.asarray(L, np.float32) / 255)
+
+
+def vortex(px=1024, center=(8, 22, 40), swirl=(90, 230, 255), arms=7, twist=3.2, seed=8, edge=0.92) -> Image.Image:
+    """소용돌이 구멍(위에서 본 모습): 가운데 짙은 색 → 가장자리 투명 + 밝은 나선 줄기. 마법진 밑 땅에 깔아 씀."""
+    rnd = random.Random(seed)
+    ys, xs = np.mgrid[0:px, 0:px].astype(np.float32)
+    c = px / 2
+    dx, dy = (xs - c) / c, (ys - c) / c
+    r = np.hypot(dx, dy)
+    th = np.arctan2(dy, dx)
+    body = np.clip(1 - (r / edge) ** 2, 0, 1) ** 1.2
+    phase = rnd.random() * math.tau
+    s = np.sin(arms * (th + twist * np.log(np.maximum(r, 0.02))) + phase)
+    streak = np.clip((s - 0.55) / 0.45, 0, 1) ** 1.5 * np.clip(r / 0.25, 0, 1) * np.clip(1 - r / edge, 0, 1) ** 0.5
+    out = np.zeros((px, px, 4), np.float32)
+    col = np.array(center, np.float32) / 255
+    sw = np.array(swirl, np.float32) / 255
+    k = streak[..., None] * 0.8
+    out[..., :3] = col * (1 - k) + sw * k
+    out[..., 3] = np.clip(body * 0.85 + streak * 0.3, 0, 1)
+    return img(out)
+
+
+def vignette(size, color=(10, 30, 90), strength=0.55, inner=0.55, center=None) -> Image.Image:
+    """가장자리 어둡게(색 + 알파). over() 로 겹침."""
+    w, h = size
+    cx, cy = center or (w / 2, h / 2)
+    ys, xs = np.mgrid[0:h, 0:w].astype(np.float32)
+    r = np.hypot((xs - cx) / (w / 2), (ys - cy) / (h / 2)) / math.sqrt(2)
+    a = np.clip((r - inner) / (1 - inner), 0, 1) ** 1.6 * strength
+    return solid(size, color, a)
 
 
 def cracks(px=2048, seed=6, count=11, inner=0.2, reach=(0.6, 0.98), width=1.0):
