@@ -143,20 +143,20 @@ for _id, _n in NEW_N.items():  # 등급 소속 그대로(여권 도장 대상·�
 
 TIER_INCOME = [1, 3, 10, 40, 150, 600, 2500]
 UPGRADES = {  # Config.Upgrades 에서 바뀌는 값만 (가격 = floor(BasePrice * Growth ^ 레벨))
-    "Globe": {"basePrice": 100, "growth": 1.5, "maxLevel": 30, "perLevel": 0.2},
+    "Globe": {"basePrice": 100, "growth": 1.5, "maxLevel": 20, "perLevel": 0.3},
 }
 REGION_LUCK_BONUS = 0.5
 STEPS = [
     {"coins": 10, "landmarks": ["eiffel", "liberty"]},
     {"coins": 20, "landmarks": ["colosseum", "niagara"]},
-    {"coins": 30, "landmarks": ["tajmahal", "stbasil"]},
-    {"coins": 40, "landmarks": ["sphinx", "greatwall"]},
-    {"coins": 50, "landmarks": ["pyramid", "chichen", "machupicchu"]},
+    {"coins": 30, "landmarks": ["tajmahal", "angkor"]},
+    {"coins": 40, "landmarks": ["sphinx", "pyramid", "greatwall"]},
+    {"coins": 50, "landmarks": ["chichen", "machupicchu", "grandcanyon"]},
     {"coins": 60, "landmarks": ["petra", "moai", "stonehenge"]},
     {"coins": 70, "landmarks": ["alexandria", "babylon"]},
     {"coins": 80, "landmarks": ["rhodes", "nanmadol", "babel"]},
     {"coins": 90, "landmarks": ["atlantis", "zealandia"]},
-    {"coins": 100, "landmarks": ["fountainofyouth"]},
+    {"coins": 100, "landmarks": ["yonggung"]},
 ]
 ANNOUNCE_ONE_IN = 100_000_000
 HOLOGRAM_ONE_IN = 1_000_000_000
