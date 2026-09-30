@@ -556,6 +556,8 @@ def simulate(game: Game, prof: dict, sims: int, seed: int, horizon: float, frac:
         prices[:, P] = np.where((owned_n > slots) & (slots < game.max_slots), prices[:, P], np.inf)
         req = game.reb_req[r_]
         req_ok = ~(req & (c <= 0)).any(1)
+        # a price already <= coins was declined by the policy (saving for rebirth) -> not a target
+        prices = np.where(prices > coins[act][:, None], prices, np.inf)
         target = np.minimum(prices.min(1), np.where(req_ok, game.reb_coins[r_], np.inf))
         rate = inc * spr  # coins per roll
         with np.errstate(divide="ignore", invalid="ignore"):
@@ -973,27 +975,67 @@ def report(game: Game, results: dict, args, validation: str | None, elapsed: flo
     lines.append("")
 
     # --- endgame analytic ---
-    lines.append("## Endgame odds (analytic, max rebirth, Globe max, all stamps)\n")
-    lines.append("| profile | luck | AUTO s/roll | rolls/day | expected time: tier 6 any | tier 7 any | rarest | announce/h |")
-    lines.append("|---|---|---|---|---|---|---|---|")
+    lines.append("## Endgame odds (analytic from a state)\n")
+    lines.append(
+        "`simulated` = each player's state at the horizon (median over players); `max` = theoretical cap"
+        " (last rebirth, Globe and Agency maxed, every stamp). Expected online time until the first such roll.\n"
+    )
+    lines.append("| profile | state | luck | AUTO s/roll | rolls/day | tier 6 any | tier 7 any | rarest | announce/h |")
+    lines.append("|---|---|---|---|---|---|---|---|---|")
+    max_stamps = int((game.region_required > 0).sum())
     for name in profiles:
-        prof = results[name]["profile"]
-        luck = (
-            cfg["base_luck"]
-            * (1 + game.up_per[G] * game.up_max[G])
-            * (1 + cfg["region_luck_bonus"] * int((game.region_required > 0).sum()))
-            * game.RL[R]
-            * prof["luck_mult"]
+        res = results[name]
+        prof = res["profile"]
+        states = {
+            "simulated": (res["final_luck"], res["final_lvl"][:, A]),
+            "max": (
+                np.array([cfg["base_luck"] * (1 + game.up_per[G] * game.up_max[G]) * (1 + cfg["region_luck_bonus"] * max_stamps)
+                          * game.RL[R] * prof["luck_mult"]]),
+                np.array([game.up_max[A]]),
+            ),
+        }
+        for label, (luck, lvl_a) in states.items():
+            p = sum(game.probs(luck * m) * w for m, w in prof["mix"])
+            cd = cfg["roll_cooldown"] * (1 - game.up_per[A] * lvl_a) * prof["cd_mult"]
+            period = np.maximum(cd[:, None], game.overhead[None, :]) if args.mode == "auto" else cd[:, None]
+            spr = (p * period).sum(1)
+            cells = []
+            for mask in (game.rank == 6, game.rank == 7, np.arange(game.M) == 0):
+                pr = p[:, mask].sum(1)
+                cells.append(fmt_dur(float(np.median(np.where(pr > 0, spr / np.maximum(pr, 1e-300), np.inf)))))
+            ann = float(np.median(p[:, game.announce].sum(1) * 3600 / spr))
+            lines.append(
+                f"| {name} | {label} | {np.median(luck):.1f} | {np.median(spr):.2f} | {fmt_num(DAY / np.median(spr))} |"
+                f" {cells[0]} | {cells[1]} | {cells[2]} | {ann:.0f} |"
+            )
+    lines.append("")
+
+    # --- stamp blockers ---
+    stamp_cols = np.flatnonzero(game.rank <= cfg["stamp_max_rank"])
+    lines.append("## Passport-stamp blockers (landmarks never discovered by the horizon)\n")
+    lines.append(
+        "A roll never reaches a landmark once luck ≥ the 1-in of a rarer one (RollLogic tests rarest first and stops at the first"
+        " success), so commons whose 1-in is below the player's luck become unobtainable — and a continent stamp needs *every*"
+        f" landmark of rank ≤ {cfg['stamp_max_rank']} in it.\n"
+    )
+    any_row = False
+    for name in profiles:
+        res = results[name]
+        missing = np.isnan(res["disc_t"][:, stamp_cols]).mean(0)
+        bad = [(stamp_cols[i], missing[i]) for i in np.argsort(-missing) if missing[i] >= 0.05]
+        if bad:
+            any_row = True
+            txt = ", ".join(
+                f"`{game.ids[i]}` (1 in {fmt_num(game.N[i])}, {game.regions[int(np.argmax(game.region_members[:, i]))]}) {m:.0%}"
+                for i, m in bad[:10]
+            )
+            lines.append(f"- {name}: {txt}")
+        stamps = res["final_stamps"]
+        lines.append(
+            f"- {name}: stamps at the horizon — median {np.median(stamps):.0f}/{max_stamps}, all {max_stamps}: {(stamps == max_stamps).mean():.0%} of players."
         )
-        p = sum(game.probs(np.array([luck * m]))[0] * w for m, w in prof["mix"])
-        cd = cfg["roll_cooldown"] * (1 - game.up_per[A] * game.up_max[A]) * prof["cd_mult"]
-        spr = float((p * (np.maximum(cd, game.overhead) if args.mode == "auto" else cd)).sum())
-        cells = []
-        for mask in (game.rank == 6, game.rank == 7, np.arange(game.M) == 0):
-            pr = p[mask].sum()
-            cells.append(fmt_dur(spr / pr) if pr > 0 else "—")
-        ann = p[game.announce].sum() * 3600 / spr
-        lines.append(f"| {name} | {luck:.1f} | {spr:.2f} | {fmt_num(DAY / spr)} | {cells[0]} | {cells[1]} | {cells[2]} | {ann:.1f} |")
+    if not any_row:
+        lines.append("- every stamp landmark was found by ≥95% of players.")
     lines.append("")
 
     # --- announce rate by stage ---
