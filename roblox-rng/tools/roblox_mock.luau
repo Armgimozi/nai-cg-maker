@@ -1138,6 +1138,17 @@ local function resume(thread: thread, ...)
 	end
 end
 
+-- 프레임 흉내(선택, 기본 0 = 끔): 0 보다 크면 task.wait / task.delay 가 Roblox 처럼 기다린 시간이 지난 뒤의 첫 프레임
+-- 경계(Mock.frameSeconds 의 배수)에서 깸 — 기다림이 프레임 단위로 조금씩 늦는 것을 확인할 때(클라이언트 스모크 AUTO 간격)
+Mock.frameSeconds = 0
+local function onFrame(at: number): number
+	local frame = Mock.frameSeconds
+	if frame > 0 then
+		return math.ceil(at / frame - 1e-9) * frame
+	end
+	return at
+end
+
 local function schedule(at: number, thread: thread, ...)
 	seq += 1
 	table.insert(queue, { At = at, Seq = seq, Thread = thread, Args = table.pack(...) })
@@ -1164,14 +1175,14 @@ function task.defer(f: any, ...)
 end
 function task.delay(t: number?, f: any, ...)
 	local thread = toThread(f)
-	schedule(clock + (t or 0), thread, ...)
+	schedule(onFrame(clock + (t or 0)), thread, ...)
 	return thread
 end
 function task.wait(t: number?)
 	local dt = max(t or 0, 1 / 60)
 	if coroutine.isyieldable() then
 		local start = clock
-		schedule(clock + dt, coroutine.running())
+		schedule(onFrame(clock + dt), coroutine.running())
 		coroutine.yield()
 		return clock - start
 	end

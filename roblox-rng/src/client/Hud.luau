@@ -33,8 +33,14 @@ local SUSPENSE_SECONDS = 0.9 -- 불가사의 이상 "? ? ?" 뜸 들이기
 -- 퐁 길이는 그보다 짧게. 새 발견·수동 굴림은 위의 원래 연출. (sim.py 가 아래 숫자를 읽음 — 이름을 바꾸면 sim.py 도)
 local QUICK_POP_SECONDS = 0.2 -- 결과 카드가 살짝 커졌다 제자리로
 local QUICK_RARE_RANK = 6 -- 이 등급 이상(잃어버린 유산·전설): 더 크게 퐁 + 햇살(전설은 희귀 소리 + 옅은 번쩍임)
+-- 단 전설 아래(6등급)는 지금 행운으로도 드물 때만: 1/N ≥ 이 값 × 굴림 행운(100번에 한 번보다 드묾). 후반 행운이 크면
+-- 6등급이 흔해서(행운 55,296 이면 굴림의 절반) 햇살이 0.42초마다 켜졌다 꺼지지 않게 — 햇살은 어느 행운에서나 굴림의 약 2% 이하
+local QUICK_RARE_LUCK = 100
 local QUICK_RARE_POP_SECONDS = 0.35
-local QUICK_HIDE_SECONDS = 1.5 -- 다음 결과가 안 오면(AUTO 끔) 이만큼 뒤에 카드를 숨김
+-- 다음 결과가 안 오면(AUTO 끔) 카드를 숨김: max(이 초, 굴림 간격 + QUICK_HIDE_AFTER_COOLDOWN) 뒤 — 네트워크가 잠깐 늦어
+-- 다음 결과가 굴림 간격보다 늦게 와도 카드가 숨었다 다시 뜨지 않게
+local QUICK_HIDE_SECONDS = 1.5
+local QUICK_HIDE_AFTER_COOLDOWN = 0.8
 local NEWS_SECONDS = 7
 local MAX_NEWS = 2
 local MAX_TOASTS = 4
@@ -91,6 +97,7 @@ local newsOrder = 0
 local toasts: { GuiObject } = {}
 local toastOrder = 0
 local burstTween: Tween? = nil
+local cooldownSeconds = 0 -- 마지막으로 받은 굴림 간격(Hud.startCooldown) — AUTO 빠른 결과 카드를 숨길 때
 local popTween: Tween? = nil -- 결과 카드 퐁(RevealScale). 다음 연출이 시작되면 멈춤
 local resultId: string? = nil -- ResultView 에 올려 둔 명소 Id(같은 명소가 또 나오면 모형을 다시 만들지 않음)
 
@@ -1139,6 +1146,7 @@ end
 
 -- 쿨타임 막대가 비었다가 seconds 동안 가득 참
 function Hud.startCooldown(seconds: number)
+	cooldownSeconds = seconds
 	local fill = refs.CooldownFill
 	fill.Size = UDim2.fromScale(0, 1)
 	TweenService:Create(fill, TweenInfo.new(seconds, Enum.EasingStyle.Linear), { Size = UDim2.fromScale(1, 1) }):Play()
@@ -1182,11 +1190,13 @@ local function showBurst(color: Color3)
 	end
 	refs.Burst.Visible = true
 	if not burstTween then
-		refs.Burst.Rotation = 0
+		-- 멈췄던 각도에서 이어서 돎(AUTO 빠른 결과가 햇살을 껐다 켜도 0° 로 튀지 않게)
+		local from = refs.Burst.Rotation % 360
+		refs.Burst.Rotation = from
 		local tween = TweenService:Create(
 			refs.Burst,
 			TweenInfo.new(10, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, -1),
-			{ Rotation = 360 }
+			{ Rotation = from + 360 }
 		)
 		tween:Play()
 		burstTween = tween
@@ -1385,11 +1395,13 @@ end
 
 -- AUTO 빠른 결과(이미 발견한 명소): 지구본 회전·착지·"? ? ?" 없이 결과 카드가 바로 퐁 — 등급 색 판·리본, 이름·확률,
 -- 별 딱지는 원래 연출과 같음. 기다리지 않음(yield 없음): 부르는 쪽(init roll)은 곧바로 다음 굴림을 준비해서 서버 굴림
--- 간격만 기다리고, 카드는 다음 결과가 덮을 때까지 보임. 6등급 이상은 더 크게 퐁 + 햇살, 전설은 희귀 소리 + 옅은 번쩍임
--- (퐁 0.35초 < 가장 짧은 굴림 간격 0.42초). 흔한 결과는 작은 착지 소리만(초당 2번 넘게 울려도 시끄럽지 않게)
+-- 간격만 기다리고, 카드는 다음 결과가 덮을 때까지 보임. 6등급 이상은 더 크게 퐁 + 햇살(6등급은 지금 행운으로도 드물 때만 —
+-- QUICK_RARE_LUCK), 전설은 희귀 소리 + 옅은 번쩍임 (퐁 0.35초 < 가장 짧은 굴림 간격 0.42초). 흔한 결과는 작은 착지 소리만
+-- (초당 2번 넘게 울려도 시끄럽지 않게)
 local function quickReveal(landmark: Landmarks.Landmark, info: RevealInfo)
 	local tier = landmark.Tier
-	local rare = tier.Rank >= QUICK_RARE_RANK
+	local rare = tier.Rank >= 7
+		or (tier.Rank >= QUICK_RARE_RANK and landmark.OneIn >= QUICK_RARE_LUCK * math.max(1, info.Luck))
 	refs.Reveal.Visible = true
 	showRegion(Landmarks.RegionById[landmark.Region] or Landmarks.Regions[1], true)
 	showResult(landmark, info)
@@ -1405,7 +1417,7 @@ local function quickReveal(landmark: Landmarks.Landmark, info: RevealInfo)
 	else
 		play(if rare then revealSound else landSound)
 	end
-	hideLater(QUICK_HIDE_SECONDS)
+	hideLater(math.max(QUICK_HIDE_SECONDS, cooldownSeconds + QUICK_HIDE_AFTER_COOLDOWN))
 end
 
 -- 굴림 연출. 결과를 보여 줄 때까지 기다립니다(yield) — AUTO 빠른 결과(quickReveal)만 기다리지 않음.

@@ -511,16 +511,21 @@ Net.fn("Roll").OnServerInvoke = function(player: Player)
 		return { Ok = false, Reason = "loading" }
 	end
 
-	-- 쿨타임: 허용 오차만큼 일찍 와도 받아주되, 기준 시각은 "원래 가능했던 시각"으로 밀어서
-	-- 오차를 반복 악용해도 평균 속도가 빨라지지 않게 합니다.
+	-- 쿨타임(RollLogic.cooldownGate): 허용 오차만큼 일찍 와도 받아주되, 기준 시각이 받을 때마다 굴림 간격 이상 밀려서
+	-- 오차를 반복 악용해도 평균 속도가 빨라지지 않음. 네트워크 지연이 들쭉날쭉해도(늦게 닿은 요청 뒤 제때 보낸 요청)
+	-- 거절하지 않게 기준은 "닿은 시각 - 오차"까지만 늦춤
 	local mods = modsFor(session)
 	local now = time()
-	local cooldown = PlayerState.cooldown(session.Data, mods)
-	local readyAt = session.LastRoll + cooldown
-	if now < readyAt - Config.COOLDOWN_TOLERANCE then
-		return { Ok = false, Reason = "cooldown", RetryIn = readyAt - now }
+	local ok, value = RollLogic.cooldownGate(
+		session.LastRoll,
+		now,
+		PlayerState.cooldown(session.Data, mods),
+		Config.COOLDOWN_TOLERANCE
+	)
+	if not ok then
+		return { Ok = false, Reason = "cooldown", RetryIn = value }
 	end
-	session.LastRoll = math.max(now, readyAt)
+	session.LastRoll = value
 
 	-- 굴리기 전에 자동 발견(도장이 늘면 행운이 오름 — rollLuck). 굴린 뒤의 자동 발견은 응답 State(snapshot)에서
 	local luck = PlayerState.rollLuck(session.Data, mods)

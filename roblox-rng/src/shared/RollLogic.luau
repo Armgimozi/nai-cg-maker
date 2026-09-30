@@ -37,4 +37,18 @@ function RollLogic.probabilities(rarestFirst: { Rollable }, luck: number): { [st
 	return result
 end
 
+-- 서버 굴림 간격 판정(서버 Roll · 클라이언트 스모크의 가짜 서버가 같이 씀). lastRoll: 지난 굴림의 기준 시각,
+-- now: 요청이 서버에 닿은 시각. 받으면 (true, 새 기준 시각), 너무 이르면 (false, 다시 보낼 때까지 남은 초).
+-- 허용 오차(tolerance)만큼 일찍 와도 받음. 새 기준 = max(원래 가능했던 시각, 닿은 시각 - 오차):
+-- 받을 때마다 기준이 굴림 간격 이상 늘어나서 평균 속도는 1/굴림 간격을 넘지 못하고(오래 쉰 뒤 한 번만 2 × 오차 당겨짐),
+-- 한 번 늦게 닿은 요청(업로드 지연이 튐) 뒤에 제때 보낸 요청이 2 × 오차 안에서 일찍 닿아도 거절하지 않음
+-- (기준을 늦게 닿은 시각 그대로 두면 지연이 오차보다 줄어든 다음 굴림이 거절됨 — AUTO 가 굴림 간격대로 보내므로)
+function RollLogic.cooldownGate(lastRoll: number, now: number, cooldown: number, tolerance: number): (boolean, number)
+	local readyAt = lastRoll + cooldown
+	if now < readyAt - tolerance then
+		return false, readyAt - now
+	end
+	return true, math.max(readyAt, now - tolerance)
+end
+
 return RollLogic

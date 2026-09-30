@@ -39,7 +39,10 @@ local autoRoll = false -- AUTO 켬(플레이어가 고른 것 — 굴리기 줄 
 -- 3D 배치 모드 동안 자동 굴리기는 쉼(나가면 AUTO 가 켜져 있으면 다시 돎): 배치 띠에는 이미 [자동](자동 배치)이 있어서
 -- 자동 굴리기 스위치를 하나 더 두면 아이들이 헷갈리고, 쉬는 동안은 새 명소가 빈 칸에 들어와 들고 있는 칸이 바뀌지도 않음
 local autoPaused = false
+-- 마지막 굴림을 보낸 시각(다음 굴림은 이 시각 + 굴림 간격부터). 굴림 간격을 기다렸다 보냈으면 "원래 보낼 수 있던 시각"
+-- (task.wait 는 다음 프레임에 깨서 조금 늦음 — 그 늦음이 굴림마다 쌓여 AUTO 가 굴림 간격보다 느려지지 않게)
 local lastRollSentAt = -math.huge
+local SEND_SLACK = 0.05 -- 기다림이 이만큼(프레임 몇 개) 늦게 끝난 것까지는 원래 시각으로 침
 local heldAnnouncements = {} -- 내 굴림 연출 중에 도착한 "내" 속보 (연출이 끝나면 표시)
 local location = "Plaza" -- 지금 있는 곳: "Plaza" | "Park"
 local teleporting = false
@@ -215,8 +218,10 @@ local function roll(fromAuto: boolean?)
 
 	-- 쿨타임이 남았으면 기다렸다가 요청. 자동 굴림은 연출이 끝나면 바로 여기로 돌아와 남은 굴림 간격(Cooldown)만 기다림
 	-- (서버가 거절하면 RetryIn). 이미 발견한 명소는 AUTO 에서 결과 카드만 퐁 하고 기다리지 않으므로(Hud.reveal 빠른 결과 —
-	-- Config.AUTO_QUICK_REVEAL) AUTO 속도 = 서버 굴림 간격(여행사·빠른 굴림). 간격보다 먼저 보내는 일은 없음
-	local waitFor = lastRollSentAt + (state :: PlayerState.Snapshot).Cooldown - time()
+	-- Config.AUTO_QUICK_REVEAL) AUTO 속도 = 서버 굴림 간격(여행사·빠른 굴림). 기다렸으면 기준은 원래 보낼 수 있던 시각이라
+	-- 평균 간격이 굴림 간격 그대로(프레임 늦음이 쌓이지 않음). 서버는 허용 오차 안에서 받음(RollLogic.cooldownGate)
+	local readyAt = lastRollSentAt + (state :: PlayerState.Snapshot).Cooldown
+	local waitFor = readyAt - time()
 	if waitFor > 0 then
 		task.wait(waitFor)
 	end
@@ -225,7 +230,10 @@ local function roll(fromAuto: boolean?)
 		Hud.setRolling(false)
 		return
 	end
-	lastRollSentAt = time()
+	local now = time()
+	lastRollSentAt = if waitFor > 0 then math.max(readyAt, now - SEND_SLACK) else now
+	-- 빠른 결과(AUTO)인지는 보낼 때 정함: 응답을 기다리는 사이 AUTO 를 꺼도 이 결과는 AUTO 결과(이미 발견 = 카드만 퐁)
+	local fast = autoRoll and not autoPaused
 	local response = invoke("Roll")
 	local receivedAt = time()
 
@@ -236,7 +244,7 @@ local function roll(fromAuto: boolean?)
 		end
 		revealing = true
 		local ok, err = pcall(Hud.reveal, landmark, {
-			Fast = autoRoll and not autoPaused,
+			Fast = fast,
 			IsNew = response.IsNew == true,
 			StarUp = response.StarUp == true,
 			Stars = tonumber(response.Stars) or 0,
@@ -272,12 +280,18 @@ local function roll(fromAuto: boolean?)
 	end
 
 	rolling = false
-	Hud.setRolling(false)
+	-- AUTO 가 계속 굴리면 굴리기 버튼의 지구본은 계속 돎(굴림마다 멈췄다 0° 로 돌아가는 떨림 없이). 끄면 toggleAuto 가 멈춤
+	if not (autoRoll and not autoPaused) then
+		Hud.setRolling(false)
+	end
 end
 
 local function toggleAuto()
 	autoRoll = not autoRoll
 	Hud.setAuto(autoRoll)
+	if not autoRoll then
+		Hud.setRolling(rolling)
+	end
 	if autoPaused then
 		-- 배치 모드(T 키): 굴리기 줄이 숨어 있으니 알림으로. 나가면 적용
 		Hud.toast(if autoRoll then "AUTO ON" else "AUTO OFF", Ui.Theme.Ink, 2, "auto")
@@ -547,6 +561,9 @@ ParkEdit.init(gui, {
 		end
 		Hud.setEditing(editing)
 		autoPaused = editing
+		if editing then
+			Hud.setRolling(rolling) -- AUTO 가 쉬는 동안 지구본 아이콘도 멈춤(굴리던 것이 끝나면 roll 이 멈춤)
+		end
 		if editing and autoRoll then
 			Hud.toast("AUTO 쉬는 중", Ui.Theme.Ink, 2, "auto") -- 나가면 다시 돎
 		end
