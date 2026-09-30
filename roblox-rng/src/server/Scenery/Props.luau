@@ -31,9 +31,9 @@ local PALM_LEAF = rgb(58, 172, 82)
 local PALM_LEAF_LIGHT = rgb(112, 204, 90)
 local COCONUT = rgb(116, 80, 46)
 local BUSH = { rgb(50, 142, 64), rgb(78, 180, 76), rgb(132, 214, 96) }
-local HEDGE = rgb(62, 158, 70)
-local HEDGE_TOP = rgb(92, 184, 82)
-local HEDGE_LUMPS = { rgb(70, 164, 72), rgb(86, 178, 78), rgb(106, 194, 88) } -- 산울타리 윗면 잎 공(짙음 → 밝음)
+local HEDGE = rgb(62, 158, 70) -- 토피어리 잎
+-- 산울타리 잎(짙음 → 밝음): 몸통은 1·2 사이, 윗면 잎 공은 셋을 섞음. Roblox 의 LeafyGrass 가 색을 어둡게 그려서 조금 밝게 잡음
+local HEDGE_LUMPS = { rgb(70, 164, 72), rgb(86, 178, 78), rgb(106, 194, 88) }
 local BLOSSOMS = { rgb(255, 128, 176), rgb(255, 250, 240), rgb(255, 214, 72), rgb(180, 130, 255) }
 local SOIL = rgb(126, 88, 60)
 local ROCK = rgb(160, 158, 156)
@@ -580,11 +580,12 @@ function BUILD.Bush(parent: Instance, item)
 	end
 end
 
--- 산울타리(다듬은 생울타리): 길이 Height·폭 1.7 네모 잎 몸통(부딪힘) + 윗면을 따라 약 2 스터드마다 얹은 잎 공
--- (몸통 윗면 높이에 가운데를 둔 반구 줄 → 둥글고 조금 울퉁불퉁한 윗면. 초록 세 가지, 크기·높이·옆 위치를 조금씩 흔듦).
--- 양 끝 공은 끝면에 맞춰서 윗모서리가 둥긂. 공 지름 <= 1.74 · 옆 흔들림 <= 0.03 이라 폭은 Plan 의 반지름 0.9 안,
--- 꼭대기는 땅에서 약 2.2. Turn = 길이 방향. 가로로 누운 원기둥(통나무처럼 보임)은 쓰지 않음.
--- Style 2 = 조금 짙은 초록, 3 = 꽃 핀 산울타리(잎 공 겉에 작은 꽃이 드문드문, 색은 Tint. 꽃도 폭 1.8 안)
+-- 산울타리(다듬은 생울타리): 길이 Height·폭 1.62 네모 잎 몸통(부딪힘, 땅에서 키 1.4) + 윗면을 따라 1.85 스터드
+-- 이하 간격으로 얹은 잎 공(가운데가 몸통 윗면 높이 → 반구 줄이 몸통보다 살짝 넓게 부풀어 둥글고 조금 울퉁불퉁한 윗면.
+-- 초록 세 가지, 크기·높이·옆 위치를 조금씩 흔듦). 양 끝 공은 끝면에 맞춰서 윗모서리가 둥긂.
+-- 공 지름 <= 1.74 · 옆 흔들림 <= 0.03 이라 폭은 Plan 의 반지름 0.9 안, 꼭대기는 땅에서 2.1~2.3. Turn = 길이 방향.
+-- 가로로 누운 원기둥(높은 데서 보면 통나무처럼 보임)은 쓰지 않음.
+-- Style 2 = 조금 짙은 초록, 3 = 꽃 핀 산울타리(잎 공 옆·위에 작은 꽃이 드문드문, 색은 Tint. 꽃도 폭 1.8 안)
 local HEDGE_WIDTH = 1.62
 local HEDGE_BODY = 1.6 -- 몸통 키(땅속 0.2 포함) → 윗면이 땅에서 1.4
 local HEDGE_LUMP_STEP = 1.85 -- 잎 공 사이 간격 상한
@@ -599,7 +600,7 @@ function BUILD.Hedge(parent: Instance, item)
 		"Hedge",
 		Vector3.new(length, HEDGE_BODY, HEDGE_WIDTH),
 		cf * CFrame.new(0, top - HEDGE_BODY / 2, 0),
-		HEDGE_LUMPS[1]:Lerp(HEDGE, 0.3):Lerp(BUSH[1], dark),
+		HEDGE_LUMPS[1]:Lerp(HEDGE_LUMPS[2], 0.4):Lerp(BUSH[1], dark),
 		LEAVES,
 		true
 	)
@@ -611,12 +612,12 @@ function BUILD.Hedge(parent: Instance, item)
 	local sizes: { number } = {}
 	local shade = rng:NextInteger(1, 3)
 	for k = 1, lumps do
-		local d = if k == 1 or k == lumps then first else rng:NextNumber(1.6, 1.74)
+		local d = if k == 1 or k == lumps then first else rng:NextNumber(1.48, 1.74)
 		local along = from + (to - from) * (k - 1) / (lumps - 1)
 		if k > 1 and k < lumps then
 			along += rng:NextNumber(-0.2, 0.2)
 		end
-		local center = Vector3.new(along, top - 0.1 + rng:NextNumber(-0.05, 0.06), rng:NextNumber(-0.03, 0.03))
+		local center = Vector3.new(along, top - 0.08 + rng:NextNumber(-0.1, 0.08), rng:NextNumber(-0.03, 0.03))
 		shade = (shade + rng:NextInteger(0, 1)) % 3 + 1 -- 옆 공과 같은 색이 길게 이어지지 않게
 		local color = HEDGE_LUMPS[shade]:Lerp(HEDGE_LUMPS[2], rng:NextNumber(0, 0.3))
 		ball(parent, "HedgeTop", cf * center, d, color:Lerp(BUSH[1], dark), LEAVES)
@@ -624,7 +625,7 @@ function BUILD.Hedge(parent: Instance, item)
 	end
 	if item.Style == 3 then
 		local color = BLOSSOMS[math.floor(item.Tint * #BLOSSOMS) % #BLOSSOMS + 1]
-		local count = math.max(2, math.floor(length / 2.2))
+		local count = math.max(3, math.floor(length / 1.8))
 		for k = 1, count do
 			local size = rng:NextNumber(0.42, 0.52)
 			local j = math.clamp(math.floor((k - 0.5) / count * lumps) + 1, 1, lumps)

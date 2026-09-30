@@ -2189,6 +2189,72 @@ test(
 	end
 )
 
+print("\n[Scenery — 산울타리 모양 (가짜 Roblox)]")
+test(
+	"Scenery: 산울타리는 네모 몸통 + 윗면 잎 공 줄(누운 원기둥 없음), 폭·키·충돌은 예전 발자국 그대로",
+	function()
+		withMock(function(H)
+			local Props = H.require(H.folder("src/server").Scenery.Props)
+			for _, length in { 7.5, 12, 22.77 } do
+				for style = 1, 3 do
+					local folder = Instance.new("Folder")
+					local item =
+						{ Kind = "Hedge", X = 40.3, Y = 0, Z = -17.8, Turn = 0.7, Height = length, Style = style }
+					item.Tint, item.Scale, item.Radius = 0.3, 1, 0.9
+					assert(Props.build(folder, item), "Hedge 를 만들지 못함")
+					local frame = CFrame.new(item.X, item.Y, item.Z) * CFrame.Angles(0, -item.Turn, 0)
+					local what = string.format("길이 %.2f Style %d", length, style)
+					local solids, lumps, flowers = 0, 0, 0
+					local parts = folder:GetChildren()
+					for _, part in parts do
+						assert(part.Shape ~= Enum.PartType.Cylinder, what .. ": 원기둥(통나무처럼 보임)")
+						local p = frame:PointToObjectSpace(part.Position)
+						local size = part.Size
+						local halfAlong, halfAcross, halfUp = size.X / 2, size.Z / 2, size.Y / 2
+						if part.Shape == Enum.PartType.Block then
+							local rel = frame:ToObjectSpace(part.CFrame)
+							assert(math.abs(rel.RightVector.X) > 0.999, what .. ": 몸통이 길이 방향")
+						end
+						assert(
+							math.abs(p.X) + halfAlong <= length / 2 + 0.01,
+							what .. ": 끝보다 길게 " .. part.Name
+						)
+						assert(math.abs(p.Z) + halfAcross <= 0.92, what .. ": 폭 1.84 넘음 " .. part.Name)
+						assert(p.Y + halfUp <= 2.35, what .. ": 너무 높음 " .. part.Name)
+						if math.max(size.X, size.Y, size.Z) < 1.2 then
+							assert(not part.CastShadow, what .. ": 작은 조각 그림자")
+						end
+						if part.CanCollide then
+							solids += 1
+							eq(part.Name, "Hedge", what .. ": 부딪히는 건 몸통 하나")
+							near(part.Size.X, length, 1e-6, what .. ": 몸통 길이")
+							assert(
+								p.Y + halfUp >= 1.2 and p.Y - halfUp <= 0,
+								what .. ": 몸통이 땅부터 1.2 이상"
+							)
+						else
+							assert(not part.CanQuery and not part.CanTouch, what .. ": 잎·꽃 검색·닿기 끔")
+						end
+						if part.Name == "HedgeTop" then
+							lumps += 1
+							eq(part.Shape, Enum.PartType.Ball, what .. ": 잎 공")
+						elseif part.Name == "Flower" then
+							flowers += 1
+						end
+					end
+					eq(solids, 1, what .. ": 부딪히는 몸통")
+					assert(
+						lumps >= math.max(2, length / 2.5) and lumps <= length / 1.6 + 2,
+						what .. ": 잎 공 " .. lumps
+					)
+					eq(flowers > 0, style == 3, what .. ": 꽃은 꽃 산울타리(Style 3)만")
+					eq(#parts, 1 + lumps + flowers, what .. ": 조각 수")
+				end
+			end
+		end)
+	end
+)
+
 if not Harness.finish() then
 	error("테스트 실패")
 end
