@@ -6,12 +6,16 @@
 --   HOOK=tools/store/stage_hook.luau HOOK_ARGS="stage=<무대 JSON 경로>" tools/world_preview/preview.sh ...
 -- 무대 JSON = {
 --   "models": [ { "folder": "Hero", "id": "worldtree", "size": 30, "cf": [x,y,z, r00,r01,r02, r10,r11,r12, r20,r21,r22],
---                 "dropBase": true } ],   dropBase = 바닥 전시 받침(얇고 넓은 판)은 뺌(선택)
+--                 "dropBase": true, "keep": { "materials": ["WoodPlanks"], "shapes": ["Ball"] } } ],
+--        dropBase = 바닥 전시 받침(얇고 넓은 판)은 뺌(선택). keep = 이 재질(과 모양)의 파트만 남김(선택 — 썸네일의
+--        "아직 못 찾은 명소" 그림자에서 받침·뒷벽을 빼고 명소 주인공 모양만: 트로이 목마의 나무 말, 네시의 목·등)
 --   "parts":  [ { "folder": "Rocks", "shape": "Block|Ball|Cylinder|Wedge|CornerWedge", "size": [x,y,z], "cf": [...12],
 --                 "color": [r,g,b](0~255), "mat": "Slate", "t": 0, "shadow": true } ],
 --   "fillParks": { "level": 10, "count": 36, "ids": [...], "famous": 20, "maxOneIn": 100000 },   (선택)
 --        공원 확장 레벨 · 보관함 명소 수 · 꼭 넣을 명소(플레이어마다 famous 개) · 이보다 희귀한 건 안 넣음
 --   "lighting": { "ClockTime": 15 }              (선택) Lighting 속성 덮어쓰기
+--   "hologram": "shangrila"                     (선택) 진짜 World.hologram(명소) — 광장 하늘의 거대 홀로그램(게임과 같은
+--        자리·크기·재질). 홀로그램 아래 제목(BillboardGui: "속보!" + 한국어 이름)은 스토어 그림에 한글이 들어가지 않게 지움
 -- }
 -- 돌려주는 표(덤프 extra)는 없음 — 카메라는 thumbs.py 가 render_layers.js 에 직접 넘김.
 
@@ -35,6 +39,14 @@ end
 -- 샘플 플레이어 간판 이름(영어 — 로블록스 표시 이름처럼). 부지 간판(SurfaceGui)은 렌더러가 글자까지 그림
 local SIGN_NAMES = { "TravelKing", "Explorer", "LuckyLeo", "Nova", "MapMaster", "Wanderer", "Globetrotter", "Mochi" }
 
+-- Enum 값 이름("Material.WoodPlanks" 문자열 또는 EnumItem) → "WoodPlanks"
+local function enumName(value: any): string
+	if type(value) == "string" then
+		return value:match("%.([^%.]+)$") or value
+	end
+	return value.Name
+end
+
 local function hasHangul(text: string): boolean
 	for _, code in utf8.codes(text) do
 		if
@@ -52,8 +64,14 @@ end
 local ENGLISH = { ["빈 부지"] = "EMPTY PLOT" }
 
 -- 그려지는 글자(켜진 SurfaceGui 안의 글자): 아는 한국어는 영어로 바꾸고, 그래도 한글이 남으면 멈춤.
--- BillboardGui(명소 이름표)는 렌더러가 그리지 않음
+-- BillboardGui(명소 이름표, 홀로그램 제목 "속보!" 등)는 렌더러가 그리지 않지만, 나중에 그리게 되어도 한글이 새지 않게
+-- 스토어 그림 덤프에서는 모두 지움
 local function englishOnly(root: any)
+	for _, gui in root:GetDescendants() do
+		if gui:IsA("BillboardGui") then
+			gui:Destroy()
+		end
+	end
 	for _, gui in root:GetDescendants() do
 		if gui:IsA("SurfaceGui") and gui.Enabled ~= false then
 			for _, label in gui:GetDescendants() do
@@ -107,6 +125,25 @@ return function(ctx: any): any
 					local thin = math.min(s.X, s.Y, s.Z) < size * 0.07
 					local wide = math.max(s.X, s.Y, s.Z) > size * 0.55
 					if thin and wide and d.Position.Y < size * 0.05 then
+						d:Destroy()
+					end
+				end
+			end
+		end
+		if spec.keep then
+			local materials, shapes = {}, {}
+			for _, name in spec.keep.materials or {} do
+				materials[name] = true
+			end
+			for _, name in spec.keep.shapes or {} do
+				shapes[name] = true
+			end
+			for _, d in model:GetDescendants() do
+				if d:IsA("BasePart") and d ~= model.PrimaryPart then
+					local shape = if d.ClassName == "Part" then enumName(d.Shape) else "Block"
+					local keepMaterial = next(materials) == nil or materials[enumName(d.Material)]
+					local keepShape = next(shapes) == nil or shapes[shape]
+					if not (keepMaterial and keepShape) then
 						d:Destroy()
 					end
 				end
@@ -185,6 +222,16 @@ return function(ctx: any): any
 
 	for key, value in stage.lighting or {} do
 		Mock.Lighting[key] = value
+	end
+
+	if stage.hologram then
+		local World = Harness.require(server.World)
+		local landmark = Landmarks.ById[stage.hologram]
+		assert(landmark, "없는 명소 id: " .. tostring(stage.hologram))
+		local ok, err = Mock.run(function()
+			World.hologram(landmark)
+		end)
+		assert(ok, "홀로그램 실패: " .. tostring(err))
 	end
 
 	-- 스토어 그림에는 한글을 넣지 않음(전 세계 스토어용): 샘플 플레이어 간판 이름을 영어로 바꿔 다시 전시

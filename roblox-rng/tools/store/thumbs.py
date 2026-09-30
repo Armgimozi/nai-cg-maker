@@ -274,6 +274,31 @@ def title_line(im, text, xy, size=120, stops=None, outline=INK, align="center", 
     return fx.over(im, t, (tx, y)), (tx, y, tx + t.width, y + t.height)
 
 
+def tier_badge(lid: str, size=84, bg=(18, 20, 44), tilt=-3.0) -> Image.Image:
+    """두 줄 등급 뱃지: 위 = 작은 등급 칩(어두운 알약 + 등급 색 테, "LEGENDARY"), 아래 = 큰 명소 영어 이름(두꺼운 테 글자,
+    흰색 → 등급 색). 한 줄 알약보다 폭이 좁아 주인공을 덜 가리고, 작은 화면에서도 글자가 큼."""
+    col = tier(lid)[2]
+    stops = [(0, (255, 255, 255)), (0.5, lighten(col, 0.4)), (1, col)]
+    name = fx.chunky_text(LANDMARKS[lid]["en"].upper(), "luckiest", size, fill_stops=stops, outline_color=INK,
+                          outline=int(size * 0.14), inner=int(size * 0.05), depth=int(size * 0.09), gloss=0.3)
+    word = fx.chunky_text(tier_en(lid), "luckiest", int(size * 0.6), fill_stops=stops, outline_color=INK,
+                          outline=int(size * 0.08), inner=0, depth=int(size * 0.04), gloss=0.2)
+    pad_x, pad_y, bw = int(size * 0.28), int(size * 0.1), max(4, size // 14)
+    chip = Image.new("RGBA", (word.width + pad_x * 2 + bw * 2, word.height + pad_y * 2 + bw * 2 + 6), (0, 0, 0, 0))
+    d = ImageDraw.Draw(chip)
+    r = (chip.height - 6) // 2
+    d.rounded_rectangle((0, 6, chip.width - 1, chip.height - 1), radius=r, fill=INK + (255,))
+    d.rounded_rectangle((0, 0, chip.width - 1, chip.height - 7), radius=r, fill=col + (255,))
+    d.rounded_rectangle((bw, bw, chip.width - 1 - bw, chip.height - 7 - bw), radius=r - bw, fill=bg + (255,))
+    chip = fx.over(chip, word, (bw + pad_x, bw + pad_y))
+    w = max(chip.width, name.width)
+    gap = int(size * 0.02)
+    out = Image.new("RGBA", (w + 20, chip.height + name.height + gap + 20), (0, 0, 0, 0))
+    out = fx.over(out, chip, (10 + int(size * 0.2), 10))
+    out = fx.over(out, name, (10 + (w - name.width) / 2, 10 + chip.height + gap))
+    return fx.rotate(out, tilt) if tilt else out
+
+
 def save(im: Image.Image, name: str) -> Path:
     OUT.mkdir(parents=True, exist_ok=True)
     path = OUT / name
@@ -324,6 +349,13 @@ def frame_camera(hero, height, eye_h, fov, base_y, top_y, look):
     return st.Camera(eye, hero + np.array([0, th, 0]), fov, (W, H))
 
 
+def avatar3d(base, yaw, pose, scale):
+    """scene3d 아바타 물체 둘: (몸 파트 목록, 얼굴 그림 목록). pose["face"] 가 표정 이름이면 큰 얼굴 그림(stage.face_decal)."""
+    parts = st.to3d(st.avatar("Avatar", base, yaw, pose, scale=scale))
+    decals = [st.face_decal(base, yaw, pose, scale)] if isinstance(pose.get("face"), str) else []
+    return parts, decals
+
+
 def ground_from_screen(cam: st.Camera, sx: float, sy: float):
     """화면 점 (sx, sy) 로 보이는 땅(y=0) 위 점."""
     d = cam.f + cam.r * ((sx / W * 2 - 1) * cam.t * (W / H)) + cam.u * ((1 - sy / H * 2) * cam.t)
@@ -331,27 +363,27 @@ def ground_from_screen(cam: st.Camera, sx: float, sy: float):
     return cam.eye + d * k
 
 
-# 1·5: 전설 명소 등장 -------------------------------------------------------------------------------
+# 1: 전설 명소 등장 --------------------------------------------------------------------------------
 # 배경(섬 지형)과 주인공 그림자는 맵 미리보기 렌더(render_layers.js), 주인공·바위·결정·아바타는 scene3d.js(render3d.js)로
 # 같은 카메라에서 따로 그려 합성. 결정은 볼록 껍질(면이 평평한 뾰족한 수정), 바위도 볼록 껍질(각진 돌).
-AWE = {"head": (-26, 10), "arm_r": (124, 8), "arm_l": (14, 16), "leg_l": 6, "leg_r": -6, "face": False}  # 올려다보며 한 팔을 뻗음
-HOORAY = {"head": (-16, 0), "arm_r": (158, 52), "arm_l": (158, 52), "leg_l": 8, "leg_r": -4, "face": False}  # 두 팔 V
+SHOCK = {"head": (-6, 0), "arm_r": (166, 30), "arm_l": (166, 30), "leg_l": 4, "leg_r": -4, "face": "shock"}  # 두 팔 번쩍 + 놀란 얼굴
 
 HEROES = {
     1: {
         "id": "worldtree",
-        "number_w": 1800,  # 1/10,000,000,000(16글자) — 화면 폭 거의 다
+        "number_w": 1800,  # 1/10,000,000,000(16글자) — 화면 폭 거의 다(글자 상자 y 12~276)
         "angle": 337.5,  # 광장에서 본 방향(부지 사이 틈) — 해를 등지고 바다 쪽을 봄
         "radius": 214,
         "size": 26,
         "yaw": 20,
         "fov": 50,
-        "eye_h": 21,
-        "base_y": 1010,
-        "top_y": 130,  # 잎 꼭대기가 숫자 아래 띠 뒤로 조금 들어감(참고 그림의 칼끝처럼)
+        "eye_h": 9.0,  # 낮은 눈높이에서 올려다봄(나무가 크고 웅장하게)
+        "base_y": 1330,  # 밑동은 화면 아래 밖 — 잎이 화면 가운데를 크게 채움
+        "top_y": 345,  # 잎 꼭대기와 숫자 아래 사이 50px 넘게 비움
         "aura": (40, 230, 130),  # 세계수 초록 — 가운데 빛은 흰색이 아니라 초록
         "aura2": (120, 255, 235),  # 전설 등급 민트(테두리·결정 모서리·마법진)
         "core": (170, 255, 200),
+        "gold": (255, 206, 90),  # 따뜻한 강조(금빛 반짝이·테두리) — 초록·민트뿐인 화면에 한 점
         "ink": (4, 30, 20),
         "number": [(0, (240, 255, 130)), (0.45, (130, 245, 70)), (0.8, (40, 200, 60)), (1, (20, 150, 55))],
         "number_outline": (10, 58, 22),
@@ -359,60 +391,20 @@ HEROES = {
         "rock_color": (62, 70, 96),
         "crater": (10, 40, 30),
         "tip_rocks": {"angles": [i * 60 + 17.2 for i in range(6)], "r": 4.1 / 9.6},  # 뿌리 끝(모형 비율) 위 바위
-        "avatar": {"sx": 300, "sy": 1150, "height_px": 480, "face": 0.0, "pose": AWE},
-        "sky": [(0, (40, 128, 232)), (0.55, (110, 190, 250)), (0.8, (190, 230, 255)), (1, (215, 240, 255))],
-        "clouds": [(150, 14, 470, 3, 1), (1790, 16, 470, 5, 1), (470, -46, 280, 8, 0.85), (1560, -66, 260, 9, 0.8),
-                   (-30, -270, 360, 10, 0.7), (1970, -300, 400, 13, 0.7)],
-        "cloud_colors": ((255, 255, 255), (205, 228, 250)),
-        "bg_tint": None,
+        # 아바타: 왼쪽 아래, 거의 정면(3/4)으로 두 팔 번쩍 + 놀란 얼굴(허리 위가 화면 높이 약 35%)
+        "avatar": {"sx": 330, "sy": 1330, "height_px": 660, "face": 0.78, "pose": SHOCK},
+        # 하늘: 잎 뒤는 짙은 남색 → 청록(밝은 잎이 떠 보이게), 지평선 쪽만 밝게
+        "sky": [(0, (8, 22, 70)), (0.3, (12, 60, 118)), (0.6, (20, 128, 160)), (0.85, (110, 210, 220)),
+                (1, (170, 236, 235))],
+        "clouds": [(150, 14, 470, 3, 0.9), (1790, 16, 470, 5, 0.9), (470, -46, 280, 8, 0.7), (1560, -66, 260, 9, 0.7)],
+        "cloud_colors": ((225, 245, 250), (120, 180, 200)),
+        "bg_tint": (0.85, 0.95, 1.0),
         "pill_side": "right",
-        "near": [(110, 360, 0.4, 0.13), (1800, 560, 0.42, 0.15), (1850, 900, 0.36, 0.12)],  # 화면 x, y, 깊이 비, 길이 비
-        "wisps": 1.0,
+        "pill_y": 660,  # 등급 알약: 아래 12% 밖(작은 화면에서도 읽히게 1.45배)
+        "near": [(110, 360, 0.4, 0.13), (1800, 520, 0.42, 0.15)],  # 화면 x, y, 깊이 비, 길이 비
+        "wisps": 0.0,  # 짙은 먹물 연기는 작은 화면에서 얼룩처럼 보여서 뺌
         "ray_center": 0.62,
         "base_glow": 0.85,
-    },
-    5: {
-        "id": "shangrila",
-        "seed": 2,  # 먹물 불꽃 무늬(예전 2번 썸네일과 같은 모양)
-        "angle": 292.5,
-        "radius": 212,
-        "size": 30,
-        "yaw": -28,
-        "fov": 50,
-        "eye_h": 9.0,
-        "base_y": 915,
-        "top_y": 300,
-        "aura": (255, 150, 40),  # 노을 금빛(샹그릴라 지붕 금색 = 모형 둘째 색)
-        "aura2": (255, 214, 110),
-        "core": (255, 200, 120),
-        "ink": (40, 14, 60),
-        "number": [(0, (255, 252, 200)), (0.42, (255, 222, 80)), (0.78, (255, 160, 30)), (1, (226, 104, 18))],
-        "number_outline": (74, 30, 8),
-        "crystal_colors": [(250, 170, 60), (230, 140, 40), (255, 200, 90), (210, 115, 35)],  # 호박빛 결정
-        "rock_color": (96, 84, 120),
-        "crater": (40, 16, 56),
-        "tip_rocks": None,
-        "rocks_r": 1.02,
-        "avatar": {"sx": 1540, "sy": 1150, "height_px": 430, "face": 0.1, "pose": HOORAY},
-        "sky": [(0, (60, 36, 150)), (0.35, (140, 70, 190)), (0.62, (236, 120, 170)), (0.82, (255, 180, 140)),
-                (1, (255, 214, 160))],
-        "clouds": [(160, 10, 460, 21, 1), (1760, 16, 520, 22, 1), (560, -70, 300, 23, 0.9), (1380, -40, 280, 24, 0.9),
-                   (-20, -300, 400, 25, 0.75), (1940, -260, 380, 26, 0.75)],
-        "cloud_colors": ((255, 232, 226), (220, 150, 196)),
-        "bg_tint": (1.0, 0.86, 0.98),
-        "bg_desat": 0.55,
-        "pill_side": "left",
-        "near": [(1800, 420, 0.42, 0.1), (110, 520, 0.44, 0.1)],
-        "wisps": 0.8,
-        "ray_center": 0.45,  # 빛 가운데 = 탑 지붕 뒤(흰 봉우리 끝이 날아가지 않게)
-        "aura_k": 0.45,
-        "sun_side": 0.9,
-        "crystal_len": 0.22,
-        "ribbon_k": 0.7,
-        "purple_back": (58, 18, 104),
-        "clear_screen": [[0.72, 0.5, 0.88, 0.74]],  # 아바타 머리 뒤 먼 야자수(머리에 싹이 난 것처럼 보임)는 뺌
-        "pill_bg": (38, 18, 60),
-        "white_guard": True,
     },
 }
 
@@ -517,12 +509,9 @@ def hero_stage(cfg):
     to_hero = (hero - av_base)[[0, 2]]
     to_c = (cam.eye - av_base)[[0, 2]]
     look = to_hero / np.linalg.norm(to_hero) * (1 - av["face"]) + to_c / np.linalg.norm(to_c) * av["face"]
-    avatar = st.to3d(st.avatar("Avatar", av_base, st.yaw_facing(look), av["pose"], scale=av_scale))
+    avatar, face = avatar3d(av_base, st.yaw_facing(look), av["pose"], av_scale)
 
     sun = st.sun_direction()
-    if cfg.get("sun_side"):  # 옆에서 오는 빛(흰 면마다 밝기가 달라 모양이 보이게): 화면 오른쪽 뒤 위
-        k = cfg["sun_side"]
-        sun = (cam.r * k - cam.f * 0.35 + np.array([0, 0.75, 0])).tolist()
     side = cam.r
     back = cam.f
     a2 = [v / 255 for v in cfg["aura2"]]
@@ -545,6 +534,7 @@ def hero_stage(cfg):
             {"tag": "dback", "rocks": dback, "castShadow": False, "rim": 0.4},
             {"tag": "near", "shards": near, "rim": 1.3},
             {"tag": "avatar", "parts": avatar, "castShadow": False},
+            {"tag": "face", "decals": face},
         ],
         "layers": [
             {"name": "hero", "draw": ["hero"], "occlude": ["rocks"]},
@@ -552,7 +542,7 @@ def hero_stage(cfg):
             {"name": "sback", "draw": ["cback", "dback"], "occlude": ["hero", "rocks"]},
             {"name": "sfront", "draw": ["cfront", "dfront"], "occlude": ["rocks"]},
             {"name": "snear", "draw": ["near"]},
-            {"name": "avatar", "draw": ["avatar"]},
+            {"name": "avatar", "draw": ["avatar", "face"]},
         ],
     }
     L.update(st.render3d(scene))
@@ -643,11 +633,6 @@ def thumb_hero(n):
         c = fx.cloud(width, seed=seed, top=ctop, bottom=cbottom)
         im = fx.over(im, c, (x - c.width / 2, horizon + dy - c.height), alpha)
     bg = lay["bg"]
-    if cfg.get("bg_desat"):  # 노을 장면: 풀밭 초록을 눌러 보라·금 두 색이 주인공이 되게
-        ba = fx.arr(bg)
-        gray = ba[..., :3].mean(-1, keepdims=True)
-        ba[..., :3] = gray + (ba[..., :3] - gray) * (1 - cfg["bg_desat"])
-        bg = fx.img(ba)
     if cfg["bg_tint"]:
         bg = tint(bg, cfg["bg_tint"])
     im = fx.over(im, bg)
@@ -658,10 +643,6 @@ def thumb_hero(n):
     ak = cfg.get("aura_k", 1.0)
     im = fx.over(im, fx.radial((W, H), core[:2], 760, [(0, aura + (int(170 * ak),)), (0.4, aura + (int(95 * ak),)),
                                                         (1, aura + (0,))]))
-    if cfg.get("purple_back"):  # 흰 봉우리 뒤는 짙은 보라(흰 것이 흰 빛에 묻히지 않게)
-        pb = cfg["purple_back"]
-        im = fx.over(im, fx.radial((W, H), (top_px[0], top_px[1] + (base_px[1] - top_px[1]) * 0.3), 520,
-                                   [(0, pb + (230,)), (0.55, pb + (150,)), (1, pb + (0,))], squash=1.2))
     im = fx.add(im, fx.multiply_alpha(fx.rays((W, H), core[:2], count=26, color=lighten(aura, 0.45), width=0.4,
                                               seed=21, falloff=1.15, inner=60), ground_fade), 0.45)
     im = fx.add(im, fx.multiply_alpha(fx.rays((W, H), core[:2], count=12, color=WHITE, width=0.16, seed=22,
@@ -680,7 +661,8 @@ def thumb_hero(n):
                                   scale=40, threshold=0.56, stretch=0.45, turns=0.6, soft=0.03),
                     fx.ink_flames((W, H), (base_px[0], base_px[1] - 10), (top_px[0], top_px[1] + 40), col_w, seed=8 + n,
                                   scale=60, threshold=0.56, stretch=0.8, turns=0.3, soft=0.03))
-    im = add_wisps(im, wb, cfg["ink"], aura, wk)
+    if wk:
+        im = add_wisps(im, wb, cfg["ink"], aura, wk)
 
     # 리본(뒤) + 결정(뒤)
     rib = [
@@ -704,13 +686,7 @@ def thumb_hero(n):
 
     # 주인공: 바깥 빛(색) + 본체 + 양옆 민트 테두리 + 열매 빛
     im = fx.add(im, fx.glow(lay["hero"], 26, aura, 1.3, spread=6), 0.7)
-    hero_layer = lay["hero"]
-    if cfg.get("white_guard"):  # 흰 대리석이 하얗게 날아가지 않게 밝은 곳을 눌러 줌 + 노을빛
-        ha = fx.arr(hero_layer)
-        rgb = ha[..., :3] * np.array([1.0, 0.93, 0.9], np.float32)
-        ha[..., :3] = np.where(rgb > 0.7, 0.7 + (rgb - 0.7) * 0.55, rgb)
-        hero_layer = fx.img(ha)
-    im = fx.over(im, hero_layer)
+    im = fx.over(im, lay["hero"])
     im = fx.add(im, edge_light(lay["hero"], aura2, (-4, 3), 1.0, 1.2), 0.6)
     im = fx.add(im, edge_light(lay["hero"], aura2, (4, 3), 1.0, 1.2), 0.6)
     if cfg.get("base_glow"):  # 밑동 빛: 판자처럼 보이는 뿌리 이음매를 구덩이 빛 속에 묻음
@@ -718,18 +694,19 @@ def thumb_hero(n):
         im = fx.add(im, fx.radial((W, H), (base_px[0], base_px[1] - bw * 0.12), bw,
                                   [(0, (225, 255, 245, 255)), (0.35, aura2 + (190,)), (1, aura2 + (0,))], squash=0.4),
                     cfg["base_glow"])
-    if fruits:
+    if fruits:  # 열매: 금빛으로 빛나게(따뜻한 강조)
         fp = cam.project(fruits)
         r0 = cam.scale_at(fp[0][2]) * cfg["size"] * 0.07 / 2  # 열매 반지름(px)
         for (x, y, _) in fp:
-            im = fx.add(im, fx.radial((W, H), (x, y), r0 * 2.6, [(0, (255, 255, 230, 255)), (0.3, (255, 245, 160, 170)),
-                                                                  (1, (255, 230, 120, 0))]), 0.3)
+            im = fx.add(im, fx.radial((W, H), (x, y), r0 * 3.2, [(0, (255, 255, 230, 255)), (0.3, (255, 220, 110, 200)),
+                                                                  (1, (255, 190, 70, 0))]), 0.75)
 
     # 앞: 먹물 연기(옅게), 리본, 결정, 알갱이, 반짝이
     wf = fx.ink_flames((W, H), (base_px[0], base_px[1] - 10), (top_px[0], top_px[1] + 120), col_w * 1.1, seed=21 + n,
                        scale=40, threshold=0.62, stretch=0.45, turns=0.6, soft=0.03)
     wf *= 1 - fx.dilate(lay["hero"], 5)
-    im = add_wisps(im, wf, cfg["ink"], aura, 0.9 * wk)
+    if wk:
+        im = add_wisps(im, wf, cfg["ink"], aura, 0.9 * wk)
     im = add_ribbon(im, rf, aura2, deep=darken(aura, 0.35), front=True)
     im = add_crystals(im, lay["sfront"], aura2, aura)
     im = fx.add(im, fx.particles((W, H), core[:2], 90, (1.5, 4.5), lighten(aura2, 0.6), seed=41, spread=(0.05, 0.42),
@@ -738,8 +715,14 @@ def thumb_hero(n):
     im = scatter_sparkles(im, [(hx0, top_px[1] + 60, top_px[0] - 230, base_px[1] - 60),
                                (top_px[0] + 230, top_px[1] + 60, hx1, base_px[1] - 60)], 14, seed=51,
                           color=lighten(aura2, 0.7), glow_color=aura2, rmin=7, rmax=28)
-    im = bloom(im, threshold=0.95, strength=0.15,
-               exclude=fx.dilate(lay["hero"], 3) if cfg.get("white_guard") else None)
+    gold = cfg.get("gold")
+    if gold:  # 따뜻한 강조: 금빛 테두리(빛 쪽) + 금 반짝이·알갱이
+        im = fx.add(im, edge_light(lay["hero"], gold, (5, 4), 1.0, 1.4), 0.55)
+        im = fx.add(im, fx.particles((W, H), core[:2], 60, (2, 5), lighten(gold, 0.5), seed=43, spread=(0.12, 0.5),
+                                     glow_color=gold), 1.0)
+        im = scatter_sparkles(im, [(hx0 - 200, top_px[1] + 40, hx1 + 200, min(H - 200, base_px[1] - 200))], 12, seed=53,
+                              color=(255, 246, 200), glow_color=gold, rmin=16, rmax=46, avoid=fx.dilate(lay["hero"], 6))
+    im = bloom(im, threshold=0.95, strength=0.15)
     im = add_crystals(im, lay["snear"], aura2, aura, blur=3.0, glow_k=0.6)
 
     # 아바타(빛 뒤에 맨 앞): 발밑 접지 그림자 + 몸 + 주인공 쪽 가는 테두리 빛
@@ -763,11 +746,12 @@ def thumb_hero(n):
                       (x0 + (x1 - x0) * 0.23, y1 + 34, 22), (120, 520, 34), (1800, 330, 28)]:
         s = fx.sparkle_sprite(r, WHITE, aura2)
         im = fx.over(im, s, (x - s.width / 2, y - s.height / 2))
-    t = tier(lid)
-    pill = fx.badge_pill([(tier_en(lid), INK, t[2]), (LANDMARKS[lid]["en"].upper(), t[2], None)], "luckiest", 60,
-                         bg=cfg.get("pill_bg", (16, 30, 38)), border=t[2], outline=INK)
-    x = W - pill.width - 36 if cfg["pill_side"] == "right" else 36
-    im = fx.over(im, pill, (x, H - pill.height - 30))
+    pill = tier_badge(lid, 96)
+    x = W - pill.width - 40 if cfg["pill_side"] == "right" else 40
+    y = cfg.get("pill_y", H - pill.height - 30)
+    assert y + pill.height <= H * 0.88, "등급 알약은 아래 12% 밖에"
+    im = drop_shadow(im, pill, (x, y), 8, 0.45)
+    im = fx.over(im, pill, (x, y))
     return im
 
 
@@ -777,7 +761,8 @@ def thumb_hero(n):
 # 3D(계단·아바타)는 scene3d.js, 카메라 공간에서 화면 자리·깊이로 놓음(world_at).
 STEP_COLORS = [(70, 150, 255), (90, 120, 255), (130, 100, 255), (170, 90, 250), (215, 85, 220), (245, 85, 160),
                (255, 110, 90), (255, 150, 50), (255, 190, 40), (255, 214, 70)]  # 아래(파랑) → 꼭대기(금)
-CHEER = {"head": (-8, 0), "arm_r": (160, 40), "arm_l": (160, 40), "leg_l": 10, "leg_r": -6, "mouth": "o"}  # 두 팔 V + 놀란 입
+# 점프 환호: 두 팔 V + 다리 벌림 + 신난 얼굴(카메라 쪽)
+CHEER = {"head": (-4, 0), "arm_r": (164, 42), "arm_l": (164, 42), "leg_l": 22, "leg_r": -18, "face": "happy"}
 
 
 def rebirth_numbers():
@@ -787,22 +772,44 @@ def rebirth_numbers():
     return mult, count, int(mult ** count)
 
 
-def svg_icon(name: str, px: int) -> Image.Image:
-    """게임 아이콘(art/src/<name>.svg)을 원하는 크기로(선명하게)."""
+def svg_icon(name: str, px: int, thin=False) -> Image.Image:
+    """게임 아이콘(art/src/<name>.svg)을 원하는 크기로(선명하게). thin = 바깥 검은 테·아래 두께를 얇게(3D 장면 위에서
+    두꺼운 검은 판처럼 보이지 않게 — 클로버 svg 의 테 24 → 12, 줄기 38 → 26, 두께 7 → 3)."""
     import resvg_py
 
-    data = bytes(resvg_py.svg_to_bytes(svg_path=str(ROOT / "art/src" / f"{name}.svg"), width=px, height=px))
+    svg = (ROOT / "art/src" / f"{name}.svg").read_text()
+    if thin:
+        svg = (svg.replace('stroke-width="24"', 'stroke-width="12"').replace('stroke-width="38"', 'stroke-width="26"')
+               .replace('translate(0,7)', 'translate(0,3)'))
+    data = bytes(resvg_py.svg_to_bytes(svg_string=svg, width=px, height=px))
     return Image.open(io.BytesIO(data)).convert("RGBA")
+
+
+def bevel(layer: Image.Image, radius=9.0, strength=0.55, light=(-0.6, -0.8)) -> Image.Image:
+    """평평한 그림에 볼록한 입체감: 밝은(검은 테가 아닌) 곳을 높이로 보고 흐린 높이의 기울기로 왼쪽 위는 밝게, 오른쪽 아래는
+    어둡게(검은 테는 그대로)."""
+    a = fx.arr(layer)
+    lum = a[..., :3] @ np.array([0.2126, 0.7152, 0.0722], np.float32)
+    body = np.clip((lum - 0.18) / 0.1, 0, 1) * a[..., 3]
+    h = fx.blur_alpha(body, radius)
+    gy, gx = np.gradient(h)
+    shade = -(gx * light[0] + gy * light[1]) * radius * 2.2
+    shade = np.clip(shade, -1, 1) * body
+    rgb = a[..., :3]
+    up = np.clip(shade, 0, 1)[..., None] * strength
+    down = np.clip(-shade, 0, 1)[..., None] * strength * 0.8
+    a[..., :3] = rgb + (1 - rgb) * up - rgb * down
+    return fx.img(a)
 
 
 def rebirth_stage(steps: int):
     cam = st.Camera((0, 0, 0), (0, 0, -1), 40, (W, H))
-    # 칸 자리(화면 x, 윗면 y, 깊이): 가운데 아래에서 오른쪽 위로, 올라갈수록 조금씩 뒤로
+    # 칸 자리(화면 x, 윗면 y, 깊이): 가운데 아래에서 오른쪽 위로, 올라갈수록 조금씩 뒤로. 맨 아래 칸도 화면 안(잘리지 않게)
     pts = []
     for i in range(steps):
         t = i / (steps - 1)
-        sx = 860 + 600 * t + 40 * math.sin(t * math.pi)
-        sy = 1060 - 470 * t ** 0.92
+        sx = 880 + 600 * t + 40 * math.sin(t * math.pi)
+        sy = 1000 - 300 * t ** 0.92
         depth = 62 + 10 * t
         pts.append((sx, sy, depth))
     prims = []
@@ -816,9 +823,11 @@ def rebirth_stage(steps: int):
         prims.append({"type": "roundbox", "p": center.round(4).tolist(), "size": size, "radius": 0.6,
                       "rot": [0, -28, 0], "col": col, "rough": 0.35})
         tops.append(top)
-    av_base = tops[-1] + np.array([0.2, 0, -0.4])
-    av_scale = 300 / (5.6 * cam.scale_at(pts[-1][2]))
-    avatar = st.to3d(st.avatar("Avatar", av_base, st.yaw_facing((0.25, 1)), CHEER, scale=av_scale))
+    # 아바타: 꼭대기 칸 위로 뛰어오른 모습(발이 칸에서 조금 뜸), 예전보다 1.6배 크게, 얼굴은 카메라 쪽
+    hop = 1.4
+    av_base = tops[-1] + np.array([0.0, hop, -0.4])
+    av_scale = 480 / (5.6 * cam.scale_at(pts[-1][2]))
+    avatar, face = avatar3d(av_base, st.yaw_facing((0.18, 1)), CHEER, av_scale)
     scene = {
         "size": [W * SS, H * SS],
         "camera": st.cam3d(cam),
@@ -830,24 +839,25 @@ def rebirth_stage(steps: int):
         "objects": [
             {"tag": "steps", "prims": prims, "rim": 0.45},
             {"tag": "avatar", "parts": avatar, "castShadow": True},
+            {"tag": "face", "decals": face},
         ],
         "layers": [
-            {"name": "steps", "draw": ["steps"], "shadow": ["avatar"]},
-            {"name": "avatar", "draw": ["avatar"]},
+            {"name": "steps", "draw": ["steps"]},
+            {"name": "avatar", "draw": ["avatar", "face"]},
         ],
     }
     L = st.render3d(scene)
     screen_tops = [cam.project([p])[0] for p in tops]
-    av_px = cam.project([av_base, av_base + np.array([0, 5.6 * av_scale, 0])])
-    return cam, L, screen_tops, av_px
+    av_px = cam.project([av_base, av_base + np.array([0, 5.6 * av_scale, 0]), tops[-1] + np.array([0, 0, -0.4])])
+    return cam, L, screen_tops, av_px, av_scale
 
 
 def thumb_rebirth():
     mult, steps, top_mult = rebirth_numbers()
-    cam, L, tops, av_px = rebirth_stage(steps)
+    cam, L, tops, av_px, av_scale = rebirth_stage(steps)
     lay = {k: load_layer(v) for k, v in L.items()}
-    (fx0, fy0, _), (hx, hy, _) = av_px
-    clover_c = (min(hx + 290, W - 235), max(hy + 10, 240))  # 클로버 가운데(아바타 오른쪽 위, 화면 안)
+    (fx0, fy0, _), (hx, hy, _), (sx0, sy0, _) = av_px
+    clover_c = (W - 165, 250)  # 클로버 가운데(오른쪽 위 구석, 아바타 머리 옆)
 
     # 하늘: 짙은 보라 → 자홍 → 금빛 지평 + 클로버에서 뿜는 햇살 + 집중선 + 아래 구름
     im = fx.linear((W, H), [(0, (46, 22, 120)), (0.45, (120, 40, 170)), (0.78, (236, 96, 150)), (1, (255, 170, 110))])
@@ -881,8 +891,13 @@ def thumb_rebirth():
     beam = np.clip(1 - np.abs(xs2 - tx) / 150, 0, 1) ** 1.5 * np.clip((ty - ys2) / 40, 0, 1) * np.clip(1 - (ty - ys2) / 700, 0, 1)
     im = fx.add(im, fx.solid((W, H), (255, 236, 160), beam * 0.5))
 
-    # 클로버(게임 행운 아이콘): 빛 + 흰 테두리 빛 + 본체
-    clover = svg_icon("clover", 460)
+    # 뛰어오른 아바타 밑 칸 위 그림자(떠 있는 것이 보이게)
+    shadow_q = ground_quad(cam, world_at(cam, sx0, sy0, tops[-1][2]), 1.6 * av_scale)
+    im = fx.over(im, fx.warp_quad(fx.radial((256, 256), (128, 128), 128, [(0, (40, 10, 60, 170)), (0.6, (40, 10, 60, 90)),
+                                                                          (1, (40, 10, 60, 0))]), shadow_q, (W, H)))
+
+    # 클로버(게임 행운 아이콘): 빛 + 흰 테두리 빛 + 본체(얇은 테 + 볼록한 입체)
+    clover = bevel(svg_icon("clover", 330, thin=True), 6, 0.6)
     clover = fx.rotate(clover, -8)
     cx0, cy0 = clover_c[0] - clover.width / 2, clover_c[1] - clover.height / 2
     ca = np.zeros((H, W), np.float32)
@@ -903,7 +918,7 @@ def thumb_rebirth():
     # 반짝이 + 빛 알갱이
     avoid = np.maximum(fx.dilate(lay["avatar"], 10), fx.dilate(ca, 10))
     im = scatter_sparkles(im, [(960, 110, 1880, 760)], 22, seed=221, color=WHITE, glow_color=(255, 220, 140), rmin=8,
-                          rmax=34, big=[(clover_c[0] - 200, clover_c[1] - 190, 44), (clover_c[0] + 60, clover_c[1] + 330, 30)],
+                          rmax=34, big=[(clover_c[0] - 190, clover_c[1] - 150, 40), (clover_c[0] + 40, clover_c[1] + 290, 30)],
                           avoid=avoid)
     im = fx.add(im, fx.particles((W, H), clover_c, 90, (1.5, 4.5), (255, 245, 200), seed=222, spread=(0.05, 0.5),
                                  glow_color=(255, 210, 120)), 1.0)
@@ -911,18 +926,30 @@ def thumb_rebirth():
 
     # 글자: 큰 배율(금) + LUCK!(클로버 초록) + 작은 줄
     gold = [(0, (255, 252, 200)), (0.42, (255, 222, 80)), (0.78, (255, 160, 30)), (1, (226, 104, 18))]
-    num = fitted_text(f"x{top_mult:,}", 900, "luckiest", tracking=-4, fill_stops=gold, outline_color=(74, 24, 60),
+    num = fitted_text(f"x{top_mult:,}", 820, "luckiest", tracking=-4, fill_stops=gold, outline_color=(74, 24, 60),
                       depth_color=(40, 10, 34), gloss=0.35)
     num = fx.rotate(num, 4)
     nx, ny = 60, 30
     im = drop_shadow(im, num, (nx, ny), 10, 0.5, (4, 12))
     im = fx.over(im, num, (nx, ny))
     green = [(0, (240, 255, 150)), (0.45, (130, 245, 80)), (0.8, (40, 200, 70)), (1, (20, 150, 60))]
-    im, box = title_line(im, "LUCK!", (nx + 60, ny + num.height - 40), size=260, stops=green, outline=(12, 56, 30),
+    im, box = title_line(im, "LUCK!", (nx + 60, ny + num.height - 40), size=235, stops=green, outline=(12, 56, 30),
                          align="left", tilt=4)
+    # 작은 줄: 짙은 보라 리본 위 노란 글자(밝은 구름 위에서도 읽히게), 덜 기울임
     sub = f"x{mult:g} EVERY REBIRTH!"
-    im, _ = title_line(im, sub, (nx + 40, box[3] + 30), size=92,
-                       stops=[(0, (255, 255, 255)), (1, (200, 255, 245))], outline=(40, 16, 70), align="left", tilt=4)
+    yellow = [(0, (255, 255, 210)), (0.5, (255, 228, 90)), (1, (255, 180, 40))]
+    t = fx.chunky_text(sub, "luckiest", 115, fill_stops=yellow, outline_color=(40, 12, 64), outline=14, inner=5, depth=9,
+                       depth_color=(24, 6, 40), gloss=0.3)
+    rx0, ry0 = nx + 10, box[3] + 30
+    assert ry0 + 200 < H * 0.88, "작은 줄은 아래 12% 밖에"
+    rib = Image.new("RGBA", (t.width + 90, t.height + 44), (0, 0, 0, 0))
+    ImageDraw.Draw(rib).rounded_rectangle((0, 8, rib.width - 1, rib.height - 1), radius=rib.height // 2, fill=(20, 6, 36, 255))
+    ImageDraw.Draw(rib).rounded_rectangle((0, 0, rib.width - 1, rib.height - 9), radius=rib.height // 2,
+                                          fill=(70, 22, 110, 255), outline=(255, 214, 90, 255), width=5)
+    rib = fx.over(rib, t, (45, 14))
+    rib = fx.rotate(rib, 2)
+    im = drop_shadow(im, rib, (rx0, ry0), 10, 0.5, (4, 10))
+    im = fx.over(im, rib, (rx0, ry0))
     return im
 
 
@@ -941,18 +968,22 @@ def model_heights(ids, size=10.0):
     return out
 
 
-# (명소, 화면 x, 화면 y(모형 가운데), 화면 키(px), 깊이, 좌우 돌림, 기울임, 앞으로 숙임)
-# 가장 희귀한 것(알렉산드리아 등대 1/15,000)을 가운데 위에 가장 크게, 흔한 것일수록 바깥·작게. 받침(판)은 뺌.
+# (명소, 화면 x, 화면 y(모형 가운데), 화면 키(px), 깊이, 좌우 돌림, 기울임, 앞으로 숙임, 종류)
+# 왼쪽 아래(흔함, 작게) → 가운데 위(가장 희귀, 가장 크게)로 오르는 호. 오른쪽은 아직 못 찾은 명소 그림자("?").
+# 종류: show = 보이는 명소, hero = 가운데 주인공(가장 희귀), mystery = 까만 그림자 + "?"(아직 발견 못 함 — 게임 도감처럼)
 COLLECT = [
-    ("alexandria", 960, 420, 350, 100, 24, -4, 10),
-    ("moai", 640, 500, 205, 104, -30, 4, 8),  # 얼굴이 보이게(앞 = 카메라 쪽, 비스듬히 — 눈썹·코 옆모습)
-    ("pyramid", 1275, 500, 175, 104, 28, -6, 24),
-    ("greatwall", 1545, 725, 215, 100, -90, 8, 35),  # 위에서 비스듬히: 성가퀴 달린 성벽 길이 대각선으로 망루까지
-    ("tajmahal", 375, 720, 215, 100, -20, -7, 10),
-    ("colosseum", 1720, 420, 150, 100, 18, 8, 30),
-    ("eiffel", 150, 430, 265, 100, -16, -9, 6),
-    ("liberty", 1805, 760, 250, 100, 26, 9, 6),
+    ("liberty", 190, 745, 215, 100, 26, 6, 6, "show"),  # 1/70
+    ("eiffel", 330, 575, 250, 100, -16, -6, 6, "show"),  # 1/200
+    ("tajmahal", 520, 440, 190, 100, -20, -4, 10, "show"),  # 1/600
+    ("pyramid", 670, 350, 130, 104, 28, -3, 22, "show"),  # 1/2,250
+    ("yonggung", 960, 470, 390, 96, 18, 0, 8, "hero"),  # 1/25,000,000 전설 — 용궁(금빛 용)
+    ("trojanhorse", 1300, 420, 300, 100, -30, 3, 6, "mystery"),
+    ("lochness", 1590, 560, 300, 100, 8, 2, 12, "mystery"),
 ]
+COLLECT_TAGS = ("liberty", "yonggung")  # 확률 딱지는 두 개만(가장 흔한 것 → 가장 희귀한 것)
+# 그림자로 보일 명소에서 남길 파트(받침·뒷벽·섬을 빼고 주인공 모양만): 트로이 목마 = 나무 말, 네시 = 목·등(공·원기둥)
+MYSTERY_KEEP = {"trojanhorse": {"materials": ["WoodPlanks"]},
+                "lochness": {"materials": ["Slate"], "shapes": ["Ball", "Cylinder"]}}
 
 
 def world_at(cam: st.Camera, sx, sy, depth):
@@ -967,15 +998,18 @@ def collect_stage():
     cam = st.Camera(origin + np.array([0, 0, 100.0]), origin, 45, (W, H))
     models = []
     placed = {}
-    for (lid, sx, sy, hpx, depth, yaw, roll, pitch) in COLLECT:
+    for (lid, sx, sy, hpx, depth, yaw, roll, pitch, kind) in COLLECT:
         size = hpx / (ratio[lid] * cam.scale_at(depth))
         center = world_at(cam, sx, sy, depth)
         R = st.rz(roll) @ st.rx(pitch) @ st.ry(yaw)  # 카메라(+Z) 쪽을 보고 조금 돌리고 기울임
         R = R @ st.ry(180)  # 모형 앞(-Z)이 카메라(+Z)를 보게
         h = ratio[lid] * size
         pivot = center - R @ np.array([0, h / 2, 0])
-        models.append({"folder": f"L_{lid}", "id": lid, "size": size, "cf": st.cf(pivot, R), "dropBase": True})
-        placed[lid] = (sx, sy, hpx)
+        spec = {"folder": f"L_{lid}", "id": lid, "size": size, "cf": st.cf(pivot, R), "dropBase": True}
+        if kind == "mystery" and lid in MYSTERY_KEEP:
+            spec["keep"] = MYSTERY_KEEP[lid]
+        models.append(spec)
+        placed[lid] = (sx, sy, hpx, kind)
     globe_depth = 84
     globe_center = world_at(cam, 960, 1090, globe_depth)
     gsize = 44
@@ -986,17 +1020,19 @@ def collect_stage():
     layers += [{"name": f"L_{lid}", "terrain": False, "include": [f"Store/L_{lid}"]} for lid in ids]
     L = st.render_layers({"models": models}, cam, layers, size=(W * SS, H * SS), players=0)
     gp = cam.project([globe_center])[0]
-    # 왼쪽 아래 작은 아바타(뒤에서, 올려다봄) — scene3d 로 같은 카메라
+    # 오른쪽 아래 아바타: 거의 정면, 놀란 얼굴로 가운데 주인공을 가리킴 — scene3d 로 같은 카메라
     av_depth = 60
-    av_base = world_at(cam, 175, 1150, av_depth)
-    av_scale = 330 / (5.6 * cam.scale_at(av_depth))
-    look = world_at(cam, 960, 420, 100) - av_base
-    avatar = st.to3d(st.avatar("Avatar", av_base, st.yaw_facing((look[0], look[2])),
-                               {"head": (-30, 6), "arm_r": (150, 20), "arm_l": (20, 18), "face": False}, scale=av_scale))
+    av_base = world_at(cam, 1650, 1240, av_depth)
+    av_scale = 560 / (5.6 * cam.scale_at(av_depth))
+    to_cam = (cam.eye - av_base)[[0, 2]]
+    to_hero = (world_at(cam, 960, 470, 96) - av_base)[[0, 2]]
+    look = to_cam / np.linalg.norm(to_cam) * 0.75 + to_hero / np.linalg.norm(to_hero) * 0.25
+    pose = {"head": (-10, -14), "arm_l": (150, -22), "arm_r": (26, 18), "leg_l": 4, "leg_r": -4, "face": "shock"}
+    avatar, face = avatar3d(av_base, st.yaw_facing(look), pose, av_scale)
     scene = {"size": [W * SS, H * SS], "camera": st.cam3d(cam),
              "light": {"sun": [-0.4, 0.8, 0.6], "hemiIntensity": 0.85, "shadowCenter": av_base.tolist(), "shadowBox": 20},
-             "objects": [{"tag": "avatar", "parts": avatar, "castShadow": False}],
-             "layers": [{"name": "avatar", "draw": ["avatar"]}]}
+             "objects": [{"tag": "avatar", "parts": avatar, "castShadow": False}, {"tag": "face", "decals": face}],
+             "layers": [{"name": "avatar", "draw": ["avatar", "face"]}]}
     L.update(st.render3d(scene))
     return cam, placed, (gp[0], gp[1], gsize / 2 * cam.scale_at(gp[2])), L
 
@@ -1032,10 +1068,27 @@ def motion_blur(a: np.ndarray, direction, length=40, steps=12) -> np.ndarray:
     return out
 
 
+def odds_tag(lid: str, size: int) -> Image.Image:
+    """확률 딱지: 어두운 알약(등급 색 테) 위 밝은 글자(흰 → 등급 색) — 초록 위 초록 같은 낮은 대비가 없게."""
+    col = tier(lid)[2]
+    t = fx.chunky_text(odds(lid), "luckiest", size, fill_stops=[(0, (255, 255, 255)), (0.55, lighten(col, 0.45)), (1, col)],
+                       outline_color=INK, outline=int(size * 0.12), inner=0, depth=int(size * 0.06), gloss=0.2)
+    pad_x, pad_y = int(size * 0.34), int(size * 0.16)
+    w, h = t.width + pad_x * 2, t.height + pad_y * 2
+    bw = max(4, size // 12)
+    out = Image.new("RGBA", (w + bw * 2, h + bw * 2 + 8), (0, 0, 0, 0))
+    d = ImageDraw.Draw(out)
+    d.rounded_rectangle((0, 8, w + bw * 2 - 1, h + bw * 2 + 7), radius=(h + bw * 2) // 2, fill=INK + (255,))
+    d.rounded_rectangle((0, 0, w + bw * 2 - 1, h + bw * 2 - 1), radius=(h + bw * 2) // 2, fill=col + (255,))
+    d.rounded_rectangle((bw, bw, w + bw - 1, h + bw - 1), radius=h // 2, fill=(18, 20, 44, 255))
+    return fx.over(out, t, (bw + pad_x, bw + pad_y))
+
+
 def thumb_collect():
     cam, placed, (gx, gy, gr), L = collect_stage()
     lay = {k: load_layer(v) for k, v in L.items()}
     src = (gx, gy - gr * 0.55)
+    hero = next(lid for lid, v in placed.items() if v[3] == "hero")
 
     # 배경: 하늘색 방사(가운데 청록, 아래로 짙은 파랑) + 햇살 + 아래 구름(하늘빛 그늘)
     im = fx.radial((W, H), (gx, gy - gr * 0.9), 1500, [(0, (130, 225, 255)), (0.3, (70, 175, 245)),
@@ -1048,28 +1101,30 @@ def thumb_collect():
         c = fx.cloud(width, seed=seed, top=(225, 240, 255), bottom=(120, 170, 235))
         im = fx.over(im, c, (x - c.width / 2, y - c.height), alpha)
 
-    # 꼬리: 지구본 → 명소, 등급 색 + 흰 심, 움직임 흐림
-    for lid, (sx, sy, hpx) in placed.items():
+    # 꼬리: 지구본 → 명소, 등급 색 + 흰 심, 움직임 흐림(못 찾은 명소는 옅게)
+    for lid, (sx, sy, hpx, kind) in placed.items():
         col = tier(lid)[2]
+        k = 0.28 if kind == "mystery" else 1.0
         dx, dy = sx - src[0], sy - src[1]
         start = (src[0] + dx * 0.12, src[1] + dy * 0.12)
         end = (sx - dx * 0.1, sy - dy * 0.1)
         a, t = streak((W, H), start, end, 8, hpx * 0.26)
-        body = motion_blur(a * np.clip(t * 1.4, 0, 1) ** 0.8, (dx, dy), 40)
+        body = motion_blur(a * np.clip(t * 1.4, 0, 1) ** 0.8, (dx, dy), 40) * k
         im = fx.add(im, fx.glow(body, 16, col, 1.5), 0.7)
         im = fx.over(im, fx.solid((W, H), darken(col, 0.1), np.clip(body * 0.95, 0, 1)))
         core_a, _ = streak((W, H), start, end, 2, hpx * 0.06)
-        im = fx.over(im, fx.solid((W, H), lighten(col, 0.75), np.clip(fx.blur_alpha(core_a * t ** 1.3, 1.5), 0, 1)))
-        glow_r = hpx * (1.05 if lid == "alexandria" else 0.75)
-        im = fx.add(im, fx.radial((W, H), (sx, sy), glow_r, [(0, col + (210,)), (0.5, col + (80,)), (1, col + (0,))]),
-                    0.85)
-    # 가장 희귀한 것: 뒤에 주황 햇살
-    ax, ay, ahp = placed["alexandria"]
-    acol = tier("alexandria")[2]
-    im = fx.over(im, fx.radial((W, H), (ax, ay), ahp * 0.9, [(0, acol + (230,)), (0.55, acol + (120,)),
-                                                            (1, acol + (0,))]))
-    im = fx.add(im, fx.rays((W, H), (ax, ay), count=16, color=lighten(acol, 0.35), width=0.5, seed=63, falloff=1.0,
-                            length=ahp * 1.5), 0.8)
+        im = fx.over(im, fx.solid((W, H), lighten(col, 0.75), np.clip(fx.blur_alpha(core_a * t ** 1.3, 1.5) * k, 0, 1)))
+        glow_r = hpx * (1.1 if kind == "hero" else 0.75)
+        im = fx.add(im, fx.radial((W, H), (sx, sy), glow_r, [(0, col + (int(210 * k),)), (0.5, col + (int(80 * k),)),
+                                                              (1, col + (0,))]), 0.85)
+    # 가장 희귀한 것: 뒤에 등급 색 햇살 + 금빛 햇살
+    ax, ay, ahp, _ = placed[hero]
+    acol = tier(hero)[2]
+    im = fx.over(im, fx.radial((W, H), (ax, ay), ahp * 0.95, [(0, acol + (235,)), (0.55, acol + (130,)), (1, acol + (0,))]))
+    im = fx.add(im, fx.rays((W, H), (ax, ay), count=18, color=lighten(acol, 0.35), width=0.5, seed=63, falloff=1.0,
+                            length=ahp * 1.6), 0.8)
+    im = fx.add(im, fx.rays((W, H), (ax, ay), count=10, color=(255, 220, 120), width=0.25, seed=64, falloff=1.2,
+                            length=ahp * 1.4), 0.5)
 
     # 지구본: 빛 + 도는 궤적(호) + 민트 고리 + 본체
     im = fx.add(im, fx.radial((W, H), (gx, gy), gr * 1.7, [(0, (200, 250, 255, 220)), (0.55, (120, 230, 255, 120)),
@@ -1100,46 +1155,73 @@ def thumb_collect():
     im = fx.over(im, fx.solid((W, H), fx.MINT, ring_front))
     im = fx.over(im, fx.solid((W, H), (235, 255, 250), fx.erode(ring_front, 2)))
 
-    # 명소: 등급 색 번짐 + 등급 색 얇은 테 + 본체 + 흰 테두리 빛(양옆)
-    for lid, (sx, sy, hpx) in placed.items():
+    # 명소: 등급 색 번짐 + 얇은 테 + 본체 + 흰 테두리 빛. 못 찾은 명소 = 짙은 남색 그림자 + 등급 색 테 + 큰 "?"
+    for lid, (sx, sy, hpx, kind) in placed.items():
         col = tier(lid)[2]
         layer = lay[f"L_{lid}"]
+        la = fx.alpha_of(layer)
+        if kind == "mystery":
+            im = fx.add(im, fx.glow(la, 18, col, 1.6, spread=6), 0.9)
+            im = fx.over(im, fx.solid((W, H), (14, 18, 52), la))
+            im = fx.add(im, edge_light(layer, lighten(col, 0.3), (-5, 3), 1.2, 1.5), 1.0)
+            im = fx.add(im, edge_light(layer, lighten(col, 0.3), (5, 3), 1.2, 1.5), 1.0)
+            # "?": 그림자 위(오른쪽 위 모서리) — 모양은 가리지 않게
+            ys_, xs_ = np.nonzero(la > 0.3)
+            qx, qy = xs_.max() + 20, ys_.min() + 70
+            q = fx.rotate(fx.chunky_text("?", "luckiest", 150, fill_stops=[(0, (255, 255, 255)), (1, lighten(col, 0.3))],
+                                         outline_color=INK, gloss=0.2), -8)
+            im = fx.add(im, fx.glow(np.pad(fx.alpha_of(q), 30), 14, col, 1.4), 0.9,
+                        (qx - q.width / 2 - 30, qy - q.height / 2 - 30))
+            im = fx.over(im, q, (qx - q.width / 2, qy - q.height / 2))
+            continue
         la_ = fx.arr(layer)
         mean = float((la_[..., :3].mean(-1) * la_[..., 3]).sum() / max(la_[..., 3].sum(), 1))
         if mean < 0.42:  # 평균 밝기를 0.42 쪽으로(색은 그대로, 밝기만)
             la_[..., :3] = np.clip(la_[..., :3] * min(1.5, 0.42 / max(mean, 1e-3)), 0, 1)
             layer = fx.img(la_)
-        la = fx.alpha_of(layer)
-        im = fx.add(im, fx.glow(la, 16, col, 1.6, spread=5), 1.0)
+        im = fx.add(im, fx.glow(la, 16 if kind == "show" else 26, col, 1.6, spread=5), 1.0)
         im = fx.over(im, fx.solid((W, H), darken(col, 0.35), np.clip(fx.dilate(la, 3) - la, 0, 1)))
         im = fx.over(im, layer)
         im = fx.add(im, edge_light(layer, lighten(col, 0.6), (-5, 3), 1.2, 1.2), 0.9)
         im = fx.add(im, edge_light(layer, lighten(col, 0.6), (5, 3), 1.2, 1.2), 0.9)
+        if kind == "hero":
+            im = fx.add(im, edge_light(layer, (255, 214, 110), (0, -5), 1.2, 1.5), 0.7)
     models_a = np.zeros((H, W), np.float32)
     for lid in placed:
         models_a = np.maximum(models_a, fx.dilate(lay[f"L_{lid}"], 12))
     im = scatter_sparkles(im, [(60, 280, 1860, 900)], 30, seed=81, glow_color=(150, 235, 255), rmin=7, rmax=28,
-                          big=[(600, 330, 40), (1340, 330, 44), (300, 900, 36), (1640, 600, 36), (820, 600, 30)],
+                          big=[(ax - 250, ay - 150, 44), (ax + 230, ay - 120, 40), (ax + 170, ay + 170, 30)],
                           avoid=models_a)
     im = fx.add(im, fx.particles((W, H), (gx, gy - gr), 110, (1.5, 4), WHITE, seed=82, spread=(0.1, 0.5),
                                  glow_color=(150, 235, 255)), 1.0)
-    # 아바타(왼쪽 아래, 올려다봄)
+    # 아바타(오른쪽 아래, 놀란 얼굴로 가리킴)
     im = fx.over(im, lay["avatar"])
-    im = fx.add(im, edge_light(lay["avatar"], (190, 245, 255), (4, -2), 1.0, 1.0), 0.8)
+    im = fx.add(im, edge_light(lay["avatar"], (190, 245, 255), (-4, -2), 1.0, 1.0), 0.8)
 
-    # 확률 표(명소 아래), 제목
-    for lid, (sx, sy, hpx) in placed.items():
-        col = tier(lid)[2]
-        big = lid == "alexandria"
-        tag = fx.chunky_text(odds(lid), "luckiest", 84 if big else 62,
-                             fill_stops=[(0, lighten(col, 0.55)), (0.5, lighten(col, 0.1)), (1, darken(col, 0.15))],
-                             outline_color=INK, outline=11 if big else 9, inner=4, depth=6 if big else 5, gloss=0.25)
-        tag = fx.rotate(tag, random.Random(lid).uniform(-5, 5))
-        ty = sy + hpx * 0.5 - tag.height * 0.35
-        im = drop_shadow(im, tag, (sx - tag.width / 2, ty), 6, 0.4)
+    # 확률 딱지 둘(가장 흔한 것, 가장 희귀한 것)
+    for lid in COLLECT_TAGS:
+        sx, sy, hpx, kind = placed[lid]
+        big = kind == "hero"
+        tag = fx.rotate(odds_tag(lid, 92 if big else 66), -3 if big else 4)
+        ty = sy + hpx * 0.5 - tag.height * (0.1 if big else 0.35)
+        im = drop_shadow(im, tag, (sx - tag.width / 2, ty), 8, 0.45)
         im = fx.over(im, tag, (sx - tag.width / 2, ty))
     im = grade(im, 1.1, 1.04, 0.18)
-    im, _ = title_line(im, f"COLLECT {len(LANDMARKS)} LANDMARKS!", (W / 2, 14), size=128)
+    # 제목: "COLLECT 150 LANDMARKS!" 에서 150 을 가장 크게(한 줄, 작은 두 낱말은 가운데 높이)
+    gold = [(0, (255, 255, 255)), (0.55, (255, 246, 200)), (1, (255, 200, 70))]
+    n = fx.chunky_text(str(len(LANDMARKS)), "luckiest", 250, fill_stops=[(0, (255, 255, 210)), (0.45, (255, 222, 80)),
+                                                                          (0.8, (255, 160, 30)), (1, (226, 104, 18))],
+                       outline_color=INK, outline=30, inner=10, depth=18, gloss=0.35)
+    w1 = fx.chunky_text("COLLECT", "luckiest", 112, fill_stops=gold, outline_color=INK, outline=14, inner=5, depth=9)
+    w2 = fx.chunky_text("LANDMARKS!", "luckiest", 112, fill_stops=gold, outline_color=INK, outline=14, inner=5, depth=9)
+    gap = 18
+    total = w1.width + n.width + w2.width + gap * 2
+    x = (W - total) / 2
+    y_n = 6
+    y_w = y_n + n.height * 0.5 - w1.height / 2
+    for part, px_, py_ in [(w1, x, y_w), (n, x + w1.width + gap, y_n), (w2, x + w1.width + n.width + gap * 2, y_w)]:
+        im = drop_shadow(im, part, (px_, py_), 9, 0.45, (4, 10))
+        im = fx.over(im, part, (px_, py_))
     return im
 
 
@@ -1155,15 +1237,17 @@ MY_PARK = {
     2: ["neuschwanstein", "stbasil", "moeraki", "sungnyemun", "fuji", "lighthouse"],
     3: ["skytower", "parthenon", "angkor", "flindersst", "liberty", "petra"],
     4: ["moai", "machupicchu", "alexandria", "windmill", "chichen", "santorini"],
-    5: ["tajmahal", "colosseum", "yonggung", "pyramid", "fountainofyouth", "apostles"],
-    6: ["harbourbridge", None, "stonehenge", "sphinx", "atlantis", "greatwall"],
+    5: ["tajmahal", None, "fountainofyouth", "yonggung", "pyramid", "apostles"],
+    6: ["harbourbridge", "colosseum", "stonehenge", "sphinx", "atlantis", "greatwall"],
 }
 MY_HELD = "eiffel"  # 보관함에서 집어 빈 칸 위에 든 명소(반투명 복사본)
-# 초당 수입 말풍선(명소, 받침 위 높이). 숫자는 park_hook 이 게임 코드로 계산한 그 칸 명소의 수입(extra.SlotIncome)
-POPUPS = [("yonggung", 7.5), ("fountainofyouth", 7.5), ("atlantis", 5.0)]
-# 카메라(내 부지 좌표: 가운데 바닥 원점, -Z = 입구 = 광장 쪽): 눈, 겨냥, 시야각
-PARK_CAM = ((-10, 21, 69), (3, 6, -10), 55)
-PARK_AVATAR = {"sx": 290, "sy": 1150, "height_px": 530}  # 화면 발 자리·키(px)
+# 초당 수입 말풍선 하나: 가운데 빛나는 명소(용궁, 전설). 숫자는 park_hook 이 게임 코드로 계산한 그 칸 명소의 수입
+# (extra.SlotIncome)
+POPUP = "yonggung"
+# 카메라(내 부지 좌표: 가운데 바닥 원점, -Z = 입구 = 광장 쪽): 눈, 겨냥, 시야각 — 앞 세 줄 x 세 칸(명소 9개 안팎)을
+# 가깝고 조금 높게(잡동사니 없이 또렷하게)
+PARK_CAM = ((-3, 30, 70), (-4, 2, 10), 40)
+PARK_AVATAR = {"sx": 250, "sy": 1230, "height_px": 450}  # 왼쪽 아래(화면 발 자리·키, px): 카메라 쪽을 보고 신난 얼굴
 
 
 def _row_slots(row: int) -> list:
@@ -1221,6 +1305,23 @@ def coin_popup(text: str, coin: Image.Image, size=110, color=(255, 214, 60)) -> 
     return out
 
 
+def down_arrow(size=120, color=(76, 217, 100)) -> Image.Image:
+    """놓을 자리를 가리키는 아래 화살표(두꺼운 V 두 개, 흰 테 + 어두운 테) — 글자 없음."""
+    k = 4
+    s_ = size * k
+    im = Image.new("RGBA", (s_, int(s_ * 1.1)), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    for j, y in enumerate((0.1, 0.45)):
+        pts = [(0.08, y), (0.5, y + 0.36), (0.92, y), (0.92, y + 0.2), (0.5, y + 0.56), (0.08, y + 0.2)]
+        poly = [(x * s_, yy * s_) for x, yy in pts]
+        d.polygon(poly, fill=INK + (255,))
+        inner = [(x * s_ + (0.5 * s_ - x * s_) * 0.12, yy * s_ + (0.03 if j else 0.03) * s_) for x, yy in pts]
+        d.polygon(inner, fill=WHITE + (255,))
+        inner2 = [(x * s_ + (0.5 * s_ - x * s_) * 0.2, yy * s_ + 0.06 * s_) for x, yy in pts]
+        d.polygon(inner2, fill=color + (255,))
+    return im.resize((size, int(size * 1.1)), Image.Resampling.LANCZOS)
+
+
 def thumb_park():
     import json
 
@@ -1235,127 +1336,141 @@ def thumb_park():
     cam = st.Camera(local(eye), local(target), fov, (W, H))
     plot = f"Parks/{extra['Plot']}"
     held = f"ParkEditLocal/{extra['Held']}"
+    placed = {lid: slot for slot, lid in enumerate(extra["Slots"], start=1) if lid}
+    pop_lid = POPUP
+    pop_slot = placed[pop_lid]
+    star_path = f"{plot}/Slots/Slot{pop_slot}"
     fence_depth = float(np.dot(local((0, 0, 40)) - cam.eye, cam.f))
     layers = [
         {"name": "bg", "terrain": True, "exclude": [plot, "ParkEditLocal"],
          "clear": {"until": fence_depth - 2, "margin": 1.4}},
-        {"name": "park", "terrain": False, "include": [plot, "ParkEditLocal"], "exclude": [held]},
+        {"name": "park", "terrain": False, "include": [plot, "ParkEditLocal"], "exclude": [held, star_path]},
+        {"name": "star", "terrain": False, "include": [star_path]},
         {"name": "ghost", "terrain": False, "include": [held]},
     ]
     L = st.render_layers(stage, cam, layers, size=(W * SS, H * SS), players=7, hook=hook)
 
-    # 아바타(scene3d, 같은 카메라): 부지 뒤 풀밭에서 들고 있는 명소를 향해 팔을 뻗음(배치하는 손짓)
-    ghost_at = np.array(extra["SlotWorld"][extra["Target"] - 1], float) + np.array([0, 6, 0])
+    # 아바타(scene3d, 같은 카메라): 오른쪽 아래 풀밭, 카메라 쪽을 보고 한 팔 번쩍 + 신난 얼굴
+    star_at = np.array(extra["SlotWorld"][pop_slot - 1], float)
     av_base = ground_from_screen(cam, PARK_AVATAR["sx"], PARK_AVATAR["sy"])
     av_depth = float(np.dot(av_base - cam.eye, cam.f))
     av_scale = PARK_AVATAR["height_px"] / (5.6 * cam.scale_at(av_depth))
-    look = (ghost_at - av_base)[[0, 2]]
-    pose = {"head": (-18, -6), "arm_r": (128, -8), "arm_l": (18, 14), "leg_l": 5, "leg_r": -5, "face": False}
-    avatar = st.to3d(st.avatar("Avatar", av_base, st.yaw_facing(look), pose, scale=av_scale))
+    to_cam = (cam.eye - av_base)[[0, 2]]
+    to_star = (star_at - av_base)[[0, 2]]
+    look = to_cam / np.linalg.norm(to_cam) * 0.7 + to_star / np.linalg.norm(to_star) * 0.3
+    pose = {"head": (-6, -8), "arm_l": (166, -24), "arm_r": (30, 10), "leg_l": 5, "leg_r": -5, "face": "happy"}
+    avatar, face = avatar3d(av_base, st.yaw_facing(look), pose, av_scale)
     sun = st.sun_direction()
     scene = {"size": [W * SS, H * SS], "camera": st.cam3d(cam),
-             "light": {"sun": sun, "sunIntensity": 1.0, "hemiIntensity": 0.85, "shadowCenter": av_base.tolist(),
+             "light": {"sun": sun, "sunIntensity": 1.0, "hemiIntensity": 0.9, "shadowCenter": av_base.tolist(),
                        "shadowBox": 20},
-             "objects": [{"tag": "avatar", "parts": avatar, "castShadow": False}],
-             "layers": [{"name": "avatar", "draw": ["avatar"]}]}
+             "objects": [{"tag": "avatar", "parts": avatar, "castShadow": False}, {"tag": "face", "decals": face}],
+             "layers": [{"name": "avatar", "draw": ["avatar", "face"]}]}
     L.update(st.render3d(scene))
     lay = {k: load_layer(v) for k, v in L.items()}
 
     # 하늘 + 구름(수평선 위) ---------------------------------------------------------------------------
     horizon = cam.project([cam.eye + np.array([cam.f[0], 0, cam.f[2]]) * 3000])[0][1]
-    im = fx.linear((W, H), [(0, (40, 124, 230)), (max(0.05, horizon / H - 0.02), (140, 205, 252)), (horizon / H, (220, 240, 255)),
+    im = fx.linear((W, H), [(0, (40, 124, 230)), (max(0.05, horizon / H - 0.02), (140, 205, 252)), (min(0.99, horizon / H), (220, 240, 255)),
                             (1, (220, 240, 255))])
-    for (x, dy, width, seed, alpha) in [(180, 20, 420, 91, 0.95), (1740, 24, 460, 92, 0.95), (560, 10, 260, 93, 0.85),
-                                        (1380, 12, 280, 94, 0.85)]:
-        c = fx.cloud(width, seed=seed)
-        im = fx.over(im, c, (x - c.width / 2, horizon + dy - c.height), alpha)
-
-    # 뒤(광장·다른 공원): 흐림 + 옅은 안개(멀수록) — 초점은 내 공원 ----------------------------------------------
-    bg = lay["bg"].filter(ImageFilter.GaussianBlur(3.2))
+    # 뒤(광장·다른 공원): 흐림 + 옅은 안개 — 초점은 내 공원
+    bg = lay["bg"].filter(ImageFilter.GaussianBlur(3.0))
     ba = fx.arr(bg)
     ys = np.arange(H, dtype=np.float32)[:, None]
-    haze = np.clip(1 - (ys - horizon) / 420, 0, 1) ** 1.5 * 0.35
+    haze = np.clip(1 - (ys - horizon) / 420, 0, 1) ** 1.5 * 0.3
     ba[..., :3] = ba[..., :3] * (1 - haze[..., None]) + np.array([0.86, 0.94, 1.0], np.float32) * haze[..., None]
     im = fx.over(im, fx.img(ba))
-    # 광장 지구본 빛(멀리서도 눈에 띄게)
-    gp = cam.project([np.array([0, 22, 0])])[0]
-    im = fx.add(im, fx.radial((W, H), gp[:2], 170, [(0, (200, 245, 255, 190)), (1, (200, 245, 255, 0))]), 0.45)
 
-    # 내 공원(또렷) + 부지 둘레 그림자 ------------------------------------------------------------------------
+    # 내 공원(또렷) + 부지 둘레 그림자
     pa = fx.alpha_of(lay["park"])
     im = fx.over(im, fx.solid((W, H), (20, 60, 30), fx.blur_alpha(pa, 14) * (1 - pa) * 0.35))
     im = fx.over(im, lay["park"])
-    # 가리키는 칸(초록 판) 빛: 게임의 강한 판 + 번짐
+    # 놓을 칸: 게임의 초록 판을 더 진하게(번짐 + 테두리 빛) — 들고 있는 명소를 놓을 곳이 한눈에
     tgt = np.array(extra["SlotWorld"][extra["Target"] - 1], float)
     q = ground_quad(cam, tgt + np.array([0, 0.05, 0]), 5.9)
-    plate = fx.alpha_of(fx.warp_quad(fx.radial((256, 256), (128, 128), 128, [(0, (255, 255, 255, 255)), (0.8, (255, 255, 255, 200)),
+    plate = fx.alpha_of(fx.warp_quad(fx.radial((256, 256), (128, 128), 128, [(0, (255, 255, 255, 255)), (0.8, (255, 255, 255, 230)),
                                                                           (1, (255, 255, 255, 0))]), q, (W, H)))
-    im = fx.add(im, fx.glow(plate, 26, (76, 217, 100), 1.0), 0.45)
+    green = (76, 217, 100)
+    im = fx.add(im, fx.glow(plate, 22, green, 1.2), 0.7)
+    im = fx.over(im, fx.solid((W, H), green, plate * 0.55))
+    edge = np.clip(fx.dilate(plate, 3) - fx.erode(plate, 3), 0, 1)
+    im = fx.over(im, fx.solid((W, H), (230, 255, 235), edge * 0.9))
 
-    # 들고 있는 명소(반투명 복사본): 노란 채우기(게임 Highlight 색) + 흰 테두리 + 빛 + 아래로 빛기둥 --------------------------
+    # 빛나는 명소(용궁): 등급 색 번짐 + 본체 + 테두리 빛 + 발밑 빛 고리
+    star_col = tier(pop_lid)[2]
+    sa = fx.alpha_of(lay["star"])
+    im = fx.add(im, fx.glow(sa, 30, star_col, 1.5, spread=6), 0.95)
+    im = fx.over(im, lay["star"])
+    im = fx.add(im, edge_light(lay["star"], lighten(star_col, 0.5), (-4, 3), 1.2, 1.2), 0.9)
+    im = fx.add(im, edge_light(lay["star"], lighten(star_col, 0.5), (4, 3), 1.2, 1.2), 0.9)
+    sq = ground_quad(cam, star_at + np.array([0, 0.1, 0]), 6.8)
+    ring = fx.alpha_of(fx.warp_quad(fx.radial((256, 256), (128, 128), 128, [(0, (255, 255, 255, 0)), (0.72, (255, 255, 255, 0)),
+                                                                         (0.86, (255, 255, 255, 255)), (1, (255, 255, 255, 0))]), sq, (W, H)))
+    im = fx.add(im, fx.glow(ring, 10, star_col, 1.4), 0.9)
+
+    # 들고 있는 명소(반투명 복사본): 옅은 노란 채우기(게임 Highlight 색) + 흰 테두리 — 번짐은 약하게
     gl = lay["ghost"]
     ga = fx.alpha_of(gl)
-    gx, gy, _ = cam.project([ghost_at])[0]
-    tx_, ty_, _ = cam.project([tgt])[0]
-    ys2, xs2 = np.mgrid[0:H, 0:W].astype(np.float32)
-    beam_half = 70
-    beam = np.clip(1 - np.abs(xs2 - tx_) / beam_half, 0, 1) ** 1.4 * ((ys2 < ty_) & (ys2 > gy - 40)) * \
-        np.clip((ty_ - ys2) / 30, 0, 1)
-    im = fx.add(im, fx.solid((W, H), (255, 236, 150), beam * 0.35))
-    im = fx.add(im, fx.glow(ga, 26, (255, 205, 70), 1.3, spread=4), 0.8)
+    im = fx.add(im, fx.glow(ga, 12, (255, 205, 70), 1.0, spread=2), 0.35)
     sun_col = (255, 197, 61)  # Ui.colorPair("Sun").Face
     ghost_rgb = fx.arr(gl)
-    ghost_rgb[..., :3] = ghost_rgb[..., :3] * 0.7 + np.array(sun_col, np.float32) / 255 * 0.3
+    ghost_rgb[..., :3] = ghost_rgb[..., :3] * 0.75 + np.array(sun_col, np.float32) / 255 * 0.25
     im = fx.over(im, fx.img(ghost_rgb))
-    ring = np.clip(fx.dilate(ga, 3) - np.clip(ga * 3, 0, 1), 0, 1)
-    im = fx.over(im, fx.solid((W, H), WHITE, ring))
+    ring2 = np.clip(fx.dilate(ga, 3) - np.clip(ga * 3, 0, 1), 0, 1)
+    im = fx.over(im, fx.solid((W, H), WHITE, ring2))
+    # 아래 화살표: 초록 판 바로 위(들고 있는 명소를 여기에 놓음)
+    tx_, ty_, _ = cam.project([tgt])[0]
+    arrow = down_arrow(120, green)
+    ax_, ay_ = tx_ - arrow.width / 2, ty_ - arrow.height - 30
+    im = drop_shadow(im, arrow, (ax_, ay_), 6, 0.4)
+    im = fx.over(im, arrow, (ax_, ay_))
 
-    # 수입: 동전 말풍선(등급 기본 수입, 진짜 값) + 간판으로 흘러가는 동전 줄 -------------------------------------------------
+    # 수입: 명소에서 솟는 동전 + 큰 말풍선 하나(꼬리가 명소를 가리킴) -----------------------------------------------
     coin = Image.open(ROOT / "art/png/coin.png").convert("RGBA")
-    sign = np.array(extra["Sign"], float) if extra.get("Sign") else local((0, 8, -40))
-    sx_, sy_, _ = cam.project([sign + np.array([0, 2.5, 0])])[0]
-    rnd = random.Random(97)
-    placed = {lid: slot for slot, lid in enumerate(extra["Slots"], start=1) if lid}
-    pops = []
+    income = extra["SlotIncome"][pop_slot - 1]
     counts = stage["myPark"]["counts"]
-    for lid, above in POPUPS:
-        slot = placed[lid]
-        p = np.array(extra["SlotWorld"][slot - 1], float)
-        px, py, _ = cam.project([p + np.array([0, above, 0])])[0]
-        income = extra["SlotIncome"][slot - 1]
-        assert abs(income - expected_income(lid, counts)) < 1e-6, (lid, income, expected_income(lid, counts))
-        size = 116 if income >= 250 else 100
-        pops.append((lid, px, py, size, income))
-        print(f"[thumbs] 공원 말풍선 {lid}: {income_text(income)} (보유 {counts}개, 게임 계산 {income})")
-    # 동전 줄(뒤): 말풍선 → 간판, 멀어질수록 작게
-    for (lid, px, py, size, _) in pops:
-        n = 6
-        ctrl = ((px + sx_) / 2, min(py - size * 0.6, sy_) - 110)
-        trail = Image.new("L", (W * SS, H * SS), 0)
-        pts = []
-        for i in range(41):
-            t = i / 40
-            pts.append((((1 - t) ** 2 * px + 2 * (1 - t) * t * ctrl[0] + t * t * sx_) * SS,
-                        ((1 - t) ** 2 * (py - size * 0.6) + 2 * (1 - t) * t * ctrl[1] + t * t * sy_) * SS))
-        ImageDraw.Draw(trail).line(pts, fill=255, width=int(10 * SS), joint="curve")
-        ta_ = fx.blur_alpha(mask_img(trail), 4)
-        im = fx.add(im, fx.solid((W, H), (255, 230, 120), ta_), 0.45)
-        for i in range(1, n + 1):
-            t = i / (n + 1)
-            x = (1 - t) ** 2 * px + 2 * (1 - t) * t * ctrl[0] + t * t * sx_
-            y = (1 - t) ** 2 * (py - size * 0.6) + 2 * (1 - t) * t * ctrl[1] + t * t * sy_
-            s = int(size * 0.42 * (1 - 0.6 * t))
-            c = fx.rotate(coin.resize((s, s), Image.Resampling.LANCZOS), rnd.uniform(-30, 30))
-            im = fx.add(im, fx.glow(np.pad(fx.alpha_of(c), 12), 6, (255, 220, 90), 1.0), 0.6,
-                        (x - c.width / 2 - 12, y - c.height / 2 - 12))
-            im = fx.over(im, c, (x - c.width / 2, y - c.height / 2), 0.95)
-    for (lid, px, py, size, income) in pops:
-        pop = coin_popup(income_text(income), coin, size, color=(255, 214, 60))
-        im = drop_shadow(im, pop, (px - pop.width / 2, py - pop.height), 6, 0.35)
-        im = fx.over(im, pop, (px - pop.width / 2, py - pop.height))
-    im = scatter_sparkles(im, [(200, 380, 900, 820), (1000, 380, 1800, 820)], 16, seed=98,
-                          glow_color=(255, 230, 140), rmin=6, rmax=22, big=[(gx + 150, gy - 120, 34), (gx - 170, gy + 40, 26)])
-    # 아바타: 접지 그림자 + 몸 + 빛 쪽 테두리 ----------------------------------------------------------------
+    assert abs(income - expected_income(pop_lid, counts)) < 1e-6, (pop_lid, income, expected_income(pop_lid, counts))
+    print(f"[thumbs] 공원 말풍선 {pop_lid}: {income_text(income)} (보유 {counts}개, 게임 계산 {income})")
+    ys_s, xs_s = np.nonzero(sa > 0.3)
+    top_x, top_y = float(xs_s.mean()), float(ys_s.min())
+    # 말풍선: 명소 오른쪽 위(제목 아래), 꼬리가 지붕을 가리킴. 동전은 지붕에서 말풍선 쪽으로 솟음
+    px, py = top_x + 330, max(top_y - 70, 420)
+    rnd = random.Random(97)
+    made = 0
+    while made < 12:  # 동전 분수: 지붕에서 위·옆으로(말풍선 자리는 비움)
+        ang = math.radians(rnd.uniform(-175, -60))
+        dist = rnd.uniform(70, 230)
+        x = top_x + math.cos(ang) * dist * 1.25
+        y = top_y + 30 + math.sin(ang) * dist
+        if x > px - 300 and y < py + 20:
+            continue
+        made += 1
+        sz = int(rnd.uniform(44, 72))
+        c = fx.rotate(coin.resize((sz, sz), Image.Resampling.LANCZOS), rnd.uniform(-40, 40))
+        im = fx.add(im, fx.glow(np.pad(fx.alpha_of(c), 12), 6, (255, 220, 90), 1.0), 0.6,
+                    (x - c.width / 2 - 12, y - c.height / 2 - 12))
+        im = fx.over(im, c, (x - c.width / 2, y - c.height / 2))
+    pop = coin_popup(income_text(income), coin, 138, color=(255, 214, 60))
+    # 꼬리(아래 뾰족): 말풍선 아래 가운데 → 명소 지붕
+    stem = Image.new("L", (W * SS, H * SS), 0)
+    bx0, by0 = px - 60, py - 40
+    ImageDraw.Draw(stem).polygon([((bx0 - 40) * SS, by0 * SS), ((bx0 + 40) * SS, by0 * SS), ((top_x + 20) * SS, (top_y + 30) * SS)],
+                                 fill=255)
+    stem_a = mask_img(stem)
+    im = fx.over(im, fx.solid((W, H), INK, np.clip(fx.dilate(stem_a, 5), 0, 1)))
+    im = fx.over(im, fx.solid((W, H), (255, 222, 90), stem_a))
+    bubble = Image.new("RGBA", (pop.width + 60, pop.height + 30), (0, 0, 0, 0))
+    ImageDraw.Draw(bubble).rounded_rectangle((0, 8, bubble.width - 1, bubble.height - 1), radius=bubble.height // 2,
+                                             fill=INK + (255,))
+    ImageDraw.Draw(bubble).rounded_rectangle((0, 0, bubble.width - 1, bubble.height - 9), radius=bubble.height // 2,
+                                             fill=(40, 30, 70, 255), outline=(255, 214, 60, 255), width=6)
+    bubble = fx.over(bubble, pop, (30, 4))
+    bx, by = px - bubble.width / 2, py - bubble.height
+    im = drop_shadow(im, bubble, (bx, by), 8, 0.4)
+    im = fx.over(im, bubble, (bx, by))
+    im = scatter_sparkles(im, [(200, 380, 900, 820), (1000, 380, 1800, 820)], 12, seed=98,
+                          glow_color=(255, 230, 140), rmin=6, rmax=22, avoid=np.maximum(fx.dilate(sa, 8), fx.dilate(ga, 8)))
+    # 아바타: 접지 그림자 + 몸 + 빛 쪽 테두리
     foot_sh = fx.warp_quad(fx.radial((256, 256), (128, 128), 128, [(0, (0, 0, 0, 190)), (0.55, (0, 0, 0, 110)), (1, (0, 0, 0, 0))]),
                            ground_quad(cam, av_base, 2.6 * av_scale), (W, H))
     im = fx.over(im, foot_sh, opacity=0.8)
@@ -1364,6 +1479,139 @@ def thumb_park():
 
     im = grade(im, 1.12, 1.04, 0.2)
     im, _ = title_line(im, "BUILD YOUR PARK!", (W / 2, 14), size=150)
+    return im
+
+
+# 5: 거대 홀로그램 ---------------------------------------------------------------------------------------
+# 1/375,000,000(Config.HOLOGRAM_ONE_IN) 이상인 명소를 뽑으면 광장 하늘에 뜨는 거대 홀로그램. 진짜 World.hologram(샹그릴라,
+# 1/375,000,000 = 바로 그 기준)을 stage_hook 이 불러 게임과 같은 자리·크기로 만들고, 광장에서 올려다보는 아바타들.
+# 홀로그램 아래 제목(한국어 "속보!" + 이름)은 스토어 그림에 한글을 넣지 않으려고 덤프에서 지움(그림에 없음).
+HOLO_ID = "shangrila"
+# 광장 밖 멀리서(홀로그램 앞모습 + 지평선의 광장·지구본). 홀로그램 앞(-Z, 스폰에서 지구본 쪽)을 보도록 -Z 쪽에서
+HOLO_CAM = ((-17, 34, -178), (0, 88, 0), 48)
+# 아바타: (화면 발 x, 발 y, 화면 키 px, 카메라 쪽으로 돌린 정도(0 = 홀로그램 쪽, 1 = 카메라 쪽), 자세)
+POINT_UP = {"head": (-22, 0), "arm_r": (172, 8), "arm_l": (20, 12), "leg_l": 4, "leg_r": -4, "face": "shock"}
+HOLO_AVATARS = [
+    (330, 1440, 780, 0.8, POINT_UP),  # 앞 왼쪽: 크게, 놀란 얼굴로 하늘을 가리킴
+    (1590, 1330, 560, 0.72, dict(POINT_UP, arm_r=(166, 26), arm_l=(166, 26))),  # 앞 오른쪽: 두 팔 번쩍 + 놀란 얼굴
+]
+
+
+def holo_numbers():
+    """(홀로그램 기준 N, 명소 확률 N) — Config.HOLOGRAM_ONE_IN 과 Landmarks 에서. 샹그릴라가 바로 그 기준이어야 함."""
+    threshold = int(config_number("HOLOGRAM_ONE_IN"))
+    one_in = LANDMARKS[HOLO_ID]["one_in"]
+    assert one_in >= threshold, (HOLO_ID, one_in, threshold)
+    return threshold, one_in
+
+
+def thumb_hologram():
+    import json
+
+    threshold, one_in = holo_numbers()
+    stage = {"hologram": HOLO_ID}
+    dump = st.world_dump(stage)
+    holo_parts = [p for p in json.loads(dump.read_text())["parts"]
+                  if p["path"].startswith("World/Hologram/") and p["t"] < 0.999]
+    assert holo_parts, "홀로그램 파트가 덤프에 없습니다"
+    assert all(p["mat"] == "ForceField" for p in holo_parts), "홀로그램 재질(ForceField)이 아님"
+    eye, target, fov = HOLO_CAM
+    cam = st.Camera(eye, target, fov, (W, H))
+    layers = [{"name": "bg", "terrain": True, "exclude": ["World/Hologram"], "clear": {"until": 70, "margin": 1.4}}]
+    L = st.render_layers(stage, cam, layers, size=(W * SS, H * SS))
+
+    # 홀로그램(불투명으로 그려서 합성에서 반투명·빛·줄무늬) + 아바타들: scene3d, 같은 카메라
+    solid_parts = [dict(p, mat="SmoothPlastic", t=0) for p in holo_parts]
+    objects = [{"tag": "holo", "parts": solid_parts, "castShadow": False, "rim": 0.3}]
+    av_layers = []
+    for i, (sx, sy, hpx, face_k, pose) in enumerate(HOLO_AVATARS):
+        base = ground_from_screen(cam, sx, sy)
+        depth = float(np.dot(base - cam.eye, cam.f))
+        scale = hpx / (5.6 * cam.scale_at(depth))
+        to_holo = (np.array([0, 0, 0]) - base)[[0, 2]]
+        to_cam = (cam.eye - base)[[0, 2]]
+        look = to_holo / np.linalg.norm(to_holo) * (1 - face_k) + to_cam / np.linalg.norm(to_cam) * face_k
+        parts, face = avatar3d(base, st.yaw_facing(look), pose, scale)
+        objects += [{"tag": f"av{i}", "parts": parts, "castShadow": False}, {"tag": f"face{i}", "decals": face}]
+        av_layers.append({"name": f"av{i}", "draw": [f"av{i}", f"face{i}"]})
+    scene = {"size": [W * SS, H * SS], "camera": st.cam3d(cam),
+             "light": {"sun": [0.35, 0.6, -0.7], "sunColor": [1, 0.85, 0.7], "sunIntensity": 0.9, "hemiSky": [0.75, 0.7, 1],
+                       "hemiGround": [0.55, 0.45, 0.6], "hemiIntensity": 0.85, "shadowCenter": [0, 80, 0], "shadowBox": 60,
+                       "rims": [{"dir": [0, 0.5, -1], "color": [0.6, 0.95, 1], "intensity": 0.6}]},
+             "rim": {"color": [0.7, 1, 1], "power": 2.0, "strength": 0.6},
+             "objects": objects,
+             "layers": [{"name": "holo", "draw": ["holo"]}] + av_layers}
+    L.update(st.render3d(scene))
+    lay = {k: load_layer(v) for k, v in L.items()}
+
+    # 하늘: 해 질 녘(짙은 보라 → 자홍 → 주황 지평) + 별
+    horizon = cam.project([cam.eye + np.array([cam.f[0], 0, cam.f[2]]) * 3000])[0][1]
+    hz = float(np.clip(horizon / H, 0.3, 1.0))
+    im = fx.linear((W, H), [(0, (20, 10, 60)), (hz * 0.45, (60, 24, 120)), (hz * 0.8, (170, 60, 150)), (hz, (255, 150, 110)),
+                            (1, (255, 190, 140))])
+    im = fx.add(im, fx.particles((W, H), (W / 2, H * 0.3), 160, (1, 2.6), (255, 255, 255), seed=301, spread=(0.2, 1.0),
+                                 glow_color=(200, 200, 255)), 0.7)
+    # 배경(광장·지구본·공원): 노을빛으로 물들이고 살짝 어둡게(홀로그램이 주인공)
+    bg = fx.arr(lay["bg"])
+    bg[..., :3] = bg[..., :3] * np.array([0.78, 0.66, 0.86], np.float32) + np.array([0.08, 0.03, 0.1], np.float32)
+    im = fx.over(im, fx.img(bg))
+
+    # 홀로그램: 큰 빛(청록) + 반투명 몸(원래 색 + 청록 빛) + 가로 줄무늬 + 밝은 테두리 + 반짝이
+    ha = fx.alpha_of(lay["holo"])
+    ys_, xs_ = np.nonzero(ha > 0.3)
+    hc = (float(xs_.mean()), float(ys_.mean()))
+    hr = float(max(xs_.max() - xs_.min(), ys_.max() - ys_.min()))
+    cyan = (110, 240, 255)
+    im = fx.over(im, fx.radial((W, H), hc, hr * 0.95, [(0, (70, 150, 255, 120)), (0.5, (120, 90, 255, 70)),
+                                                       (1, (120, 90, 255, 0))]))
+    im = fx.add(im, fx.rays((W, H), hc, count=20, color=(170, 240, 255), width=0.35, seed=305, falloff=1.1,
+                            inner=hr * 0.3), 0.3)
+    im = fx.add(im, fx.multiply_alpha(fx.glow(ha, 34, cyan, 1.3, spread=8), 1 - 0.8 * ha), 0.8)
+    body = fx.arr(lay["holo"])
+    rgb = body[..., :3]
+    rgb = rgb * 0.84 + np.array(cyan, np.float32) / 255 * 0.16  # 원래 색(흰 대리석·금 지붕) + 옅은 청록
+    rgb = 1 - (1 - rgb) * 0.9  # 조금 밝게(빛나는 느낌)
+    yy = np.arange(H, dtype=np.float32)[:, None]
+    lines = 0.82 + 0.18 * (np.sin(yy / 5.5 * math.pi) > 0)  # 가로 줄무늬(홀로그램)
+    body[..., :3] = rgb
+    body[..., 3] = body[..., 3] * 0.9 * lines
+    im = fx.over(im, fx.img(body))
+    im = fx.add(im, edge_light(lay["holo"], (220, 255, 255), (-4, 0), 1.2, 1.4), 0.9)
+    im = fx.add(im, edge_light(lay["holo"], (220, 255, 255), (4, 0), 1.2, 1.4), 0.9)
+    scan = np.clip(1 - np.abs(yy - (ys_.min() + (ys_.max() - ys_.min()) * 0.62)) / 6, 0, 1) * ha
+    im = fx.add(im, fx.solid((W, H), (220, 255, 255), scan), 0.8)
+    im = scatter_sparkles(im, [(hc[0] - hr * 0.8, hc[1] - hr * 0.55, hc[0] + hr * 0.8, hc[1] + hr * 0.5)], 18, seed=307,
+                          color=WHITE, glow_color=cyan, rmin=8, rmax=34, avoid=fx.dilate(ha, 4))
+
+    # 아바타들(먼 것부터): 발밑 그림자 없이(광장 조명) + 청록 테두리 빛(홀로그램 쪽)
+    for i in reversed(range(len(HOLO_AVATARS))):
+        la = lay[f"av{i}"]
+        im = fx.over(im, la)
+        im = fx.add(im, edge_light(la, (170, 245, 255), (0, -5), 1.2, 1.2), 0.8)
+        im = fx.add(im, edge_light(la, (255, 190, 150), (5, 0), 1.0, 1.2), 0.5)
+    im = grade(im, 1.12, 1.05, 0.22)
+
+    # 글자: 확률 숫자(금) + "GIANT HOLOGRAM!" 띠(오른쪽 아래, 아래 12% 밖)
+    num = [(0, (255, 252, 200)), (0.42, (255, 222, 80)), (0.78, (255, 160, 30)), (1, (226, 104, 18))]
+    im, box = headline(im, f"1/{one_in:,}", num, y=12, width=1640, outline_color=(74, 30, 8), tracking=-6, slant=0.12)
+    # "GIANT / HOLOGRAM!" 두 줄 띠: 홀로그램 오른쪽 빈 하늘
+    stops = [(0, (255, 255, 255)), (0.5, (190, 250, 255)), (1, (90, 220, 255))]
+    kw = dict(fill_stops=stops, outline_color=(20, 12, 60), outline=13, inner=5, depth=9, depth_color=(10, 6, 30), gloss=0.3)
+    t1 = fx.chunky_text("GIANT", "luckiest", 118, **kw)
+    t2 = fx.chunky_text("HOLOGRAM!", "luckiest", 118, **kw)
+    wid = max(t1.width, t2.width) + 80
+    rib = Image.new("RGBA", (wid, t1.height + t2.height + 50), (0, 0, 0, 0))
+    ImageDraw.Draw(rib).rounded_rectangle((0, 8, rib.width - 1, rib.height - 1), radius=60, fill=(10, 6, 30, 255))
+    ImageDraw.Draw(rib).rounded_rectangle((0, 0, rib.width - 1, rib.height - 9), radius=60, fill=(50, 26, 110, 255),
+                                          outline=cyan + (255,), width=5)
+    rib = fx.over(rib, t1, ((wid - t1.width) / 2, 14))
+    rib = fx.over(rib, t2, ((wid - t2.width) / 2, 14 + t1.height - 6))
+    rib = fx.rotate(rib, -4)
+    rx, ry = W - rib.width - 50, box[3] + 60
+    assert ry + rib.height < H * 0.88
+    im = drop_shadow(im, rib, (rx, ry), 10, 0.5, (4, 10))
+    im = fx.over(im, rib, (rx, ry))
+    print(f"[thumbs] 홀로그램: {LANDMARKS[HOLO_ID]['en']} 1/{one_in:,} (기준 Config.HOLOGRAM_ONE_IN = {threshold:,})")
     return im
 
 
@@ -1398,6 +1646,8 @@ def main(which):
             made[n] = save(thumb_collect(), "thumb_3.png")
         elif n == 4:
             made[n] = save(thumb_park(), "thumb_4.png")
+        elif n == 5:
+            made[n] = save(thumb_hologram(), "thumb_5.png")
     return made
 
 

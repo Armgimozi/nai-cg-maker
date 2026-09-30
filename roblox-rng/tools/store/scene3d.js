@@ -15,6 +15,7 @@
 //              shape "chunk" = 한쪽이 뾰족한 들쭉날쭉 조각(깨진 수정)
 //     ribbons: [{ points:[[x,y,z]...], normal?: "out"|"up", width:[...], color:[r,g,b], alpha:[...] }] 띠(점마다 폭·투명도)
 //     quads  : [{ image:"/file/절대경로.png", p, size:[w,d], rotY, color?, opacity? }] 땅에 눕힌 그림(마법진·금 등)
+//     decals : [{ image, p, m, radius, height, arc }] 원기둥 머리를 감싸는 얼굴 그림(buildDecals 주석)
 //     prims  : [{ type:"roundbox"|"capsule"|"sphere", col, rough?, rim?, parent?:{p,rot}, ... }] 둥근 상자·캡슐·타원체
 //              (아이콘의 주사위·손) — 자세한 값은 buildPrims 주석
 //   layers : [{ name, draw:[tag], occlude?:[tag], shadow?:[tag], exposure? }]
@@ -432,6 +433,35 @@ async function buildQuads(obj) {
   }
 }
 
+// 얼굴 그림(데칼): 원기둥 머리 앞쪽을 감싸는 휜 판에 투명 그림 — Roblox 머리의 얼굴 데칼처럼 머리와 같은 빛을 받음
+//   { image:"/file/절대경로.png", p:[머리 가운데], m:[회전 9개(행 순서, 로컬 Y = 머리 위, -Z = 앞)], radius, height, arc(도) }
+//   그림 왼쪽 = 정면에서 볼 때 왼쪽(= 아바타의 오른쪽, 로컬 +X)
+async function buildDecals(obj) {
+  const loader = new THREE.TextureLoader();
+  for (const d of obj.decals) {
+    const tex = await loader.loadAsync(d.image);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 16;
+    const material = new THREE.MeshStandardMaterial({
+      map: tex,
+      transparent: true,
+      depthWrite: false,
+      roughness: 0.6,
+      polygonOffset: true,
+      polygonOffsetFactor: -2,
+      polygonOffsetUnits: -2,
+    });
+    const arc = ((d.arc ?? 160) * Math.PI) / 180;
+    const g = new THREE.CylinderGeometry(d.radius, d.radius, d.height, 48, 1, true, Math.PI - arc / 2, arc);
+    const mesh = new THREE.Mesh(g, material);
+    const m = d.m;
+    mesh.matrixAutoUpdate = false;
+    mesh.matrix.set(m[0], m[1], m[2], d.p[0], m[3], m[4], m[5], d.p[1], m[6], m[7], m[8], d.p[2], 0, 0, 0, 1);
+    mesh.renderOrder = 2;
+    addMesh(obj.tag, mesh, false);
+  }
+}
+
 // 빛 ----------------------------------------------------------------------------------
 let sun = null;
 function setupLight(L = {}) {
@@ -492,6 +522,7 @@ async function load(spec) {
     if (obj.ribbons) buildRibbons(obj);
     if (obj.prims) buildPrims(obj);
     if (obj.quads) await buildQuads(obj);
+    if (obj.decals) await buildDecals(obj);
   }
   layers = spec.layers;
   return { objects: objects.length, layers: layers.map((l) => l.name) };

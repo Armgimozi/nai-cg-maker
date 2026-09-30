@@ -134,13 +134,39 @@ return function(ctx: any): any
 		card.Activated:Fire()
 		C.frame()
 	end
+	-- 빈 칸 위를 가리킴: 위에서 보기 카메라에서 앞줄 명소가 칸을 가리면 광선이 그 명소에 맞으므로, 칸 안 여러 점을
+	-- 차례로 가리켜 들고 있는 명소(반투명 복사본)가 정말 그 칸 위로 가는 점을 씀(아니면 멈춤 — 그림이 틀리지 않게)
+	local frames = spec.frames or 60
 	if spec.target then
 		local x, z = ParkGrid.slotOffset(spec.target)
-		local at = C.toScreen(origin:PointToWorldSpace(Vector3.new(x, ParkGrid.BASE_TOP + 0.6, z)))
-		C.mouseTo(at)
-	end
-	for _ = 1, spec.frames or 60 do
-		C.frame(1 / 60)
+		local goal = origin:PointToWorldSpace(Vector3.new(x, 0, z))
+		local function ghostOnTarget(): boolean
+			local folder = workspace:FindFirstChild("ParkEditLocal")
+			local ghost = folder and folder:FindFirstChild(picked)
+			if not ghost then
+				return false
+			end
+			local p = ghost:GetPivot().Position
+			return Vector2.new(p.X - goal.X, p.Z - goal.Z).Magnitude < 1.5
+		end
+		local ok = false
+		for _, offset in { { 0, 0 }, { 0, -4 }, { 0, -5.5 }, { -3, -5 }, { 3, -5 }, { 0, 4 } } do
+			local at =
+				C.toScreen(origin:PointToWorldSpace(Vector3.new(x + offset[1], ParkGrid.BASE_TOP + 0.6, z + offset[2])))
+			C.mouseTo(at)
+			for _ = 1, frames do
+				C.frame(1 / 60)
+			end
+			if ghostOnTarget() then
+				ok = true
+				break
+			end
+		end
+		assert(ok, "들고 있는 명소가 칸 " .. tostring(spec.target) .. " 위로 가지 않았습니다")
+	else
+		for _ = 1, frames do
+			C.frame(1 / 60)
+		end
 	end
 
 	-- 4) 간판 다시 보이기(배치 모드는 숨김) — 썸네일에서 수입 간판을 보여 줌

@@ -236,8 +236,8 @@ def avatar(folder, base, yaw, pose=None, colors=None, scale=1.0):
         head_part("CornerWedge", (s, s * 1.1, s), (x, 1.46 + s * 0.3, z), col["hair"], ry(yaw_t) @ rx(tilt))
     head_part("Block", (1.16, 0.5, 0.3), (0, 0.5, 0.52), col["hair"])  # 뒷머리(목 위까지)
     head_part("Block", (1.0, 0.24, 0.3), (0, 1.1, -0.55), col["hair"])  # 앞머리
-    # 얼굴(앞 = -Z): 눈 둘 + 입
-    if pose.get("face", True):  # 뒤에서 보는 그림은 얼굴을 빼서 옆으로 보이는 눈이 띠처럼 보이지 않게
+    # 얼굴(앞 = -Z): 눈 둘 + 입. face 가 글자(표정 이름)면 블록 대신 얼굴 그림(face_decal — 머리를 감싸는 데칼)
+    if pose.get("face", True) is True:  # 뒤에서 보는 그림은 얼굴을 빼서 옆으로 보이는 눈이 띠처럼 보이지 않게
         head_part("Block", (0.16, 0.26, 0.06), (-0.26, 0.7, -0.62), col["eye"])
         head_part("Block", (0.16, 0.26, 0.06), (0.26, 0.7, -0.62), col["eye"])
         if pose.get("mouth") == "o":  # 놀란 입
@@ -259,6 +259,107 @@ def avatar(folder, base, yaw, pose=None, colors=None, scale=1.0):
         limb(pivot, Rj, (0, -1.0, 0), (1, 2, 1), col["pants"])
         limb(pivot, Rj, (0, -1.85, -0.08), (1.04, 0.32, 1.2), col["shoe"])
     return out
+
+
+HEAD_RADIUS, HEAD_HEIGHT, HEAD_CENTER = 0.625, 1.2, 0.62  # 머리 원기둥(목 위 가운데 높이)
+FACE_ARC = 150  # 얼굴 그림이 감싸는 각(도)
+FACE_PX = 1024  # 얼굴 그림 세로 픽셀
+
+
+def _face_png(style: str) -> Path:
+    """표정 그림(투명 PNG, 머리 원기둥 앞 FACE_ARC 도를 펼친 것). 스토어 그림용 큰 표정 — 작은 썸네일에서도 읽히게
+    눈·입을 크게, 어두운 테두리. style: shock(놀람: 동그란 눈 + 올린 눈썹 + 크게 벌린 O 입), happy(신남: 반짝 눈 + 활짝 D 입).
+    글자 없음(그림만). 내용이 바뀌면 파일 이름(해시)도 바뀌어 3D 캐시가 새로 그림."""
+    from PIL import Image, ImageDraw
+
+    width_st = HEAD_RADIUS * math.radians(FACE_ARC)  # 펼친 폭(스터드)
+    k = 4  # 4배로 그려서 줄임
+    H = FACE_PX * k
+    Wp = int(H * width_st / HEAD_HEIGHT)
+    im = Image.new("RGBA", (Wp, H), (0, 0, 0, 0))
+    d = ImageDraw.Draw(im)
+    s = H / HEAD_HEIGHT  # 1 스터드 = s 픽셀
+
+    def P(x, y):  # (가운데에서 오른쪽 +x 스터드, 머리 바닥에서 위 y 스터드) → 픽셀
+        return (Wp / 2 + x * s, H - y * s)
+
+    def ellipse(cx, cy, w, h, fill, outline=None, width=0.0):
+        x0, y0 = P(cx - w / 2, cy + h / 2)
+        x1, y1 = P(cx + w / 2, cy - h / 2)
+        d.ellipse((x0, y0, x1, y1), fill=fill, outline=outline, width=int(width * s) if outline else 0)
+
+    def thick_arc(cx, cy, w, h, a0, a1, width, fill):
+        x0, y0 = P(cx - w / 2, cy + h / 2)
+        x1, y1 = P(cx + w / 2, cy - h / 2)
+        d.arc((x0, y0, x1, y1), a0, a1, fill=fill, width=int(width * s))
+
+    ink = (30, 27, 46, 255)
+    white = (255, 255, 255, 255)
+    if style == "shock":
+        for side in (-1, 1):
+            ex = side * 0.235
+            ellipse(ex, 0.64, 0.32, 0.4, white, ink, 0.035)  # 흰자(큰 동그라미)
+            ellipse(ex + side * -0.012, 0.625, 0.16, 0.22, ink)  # 눈동자(가운데로 모임 = 놀람)
+            ellipse(ex - 0.035, 0.68, 0.06, 0.07, white)  # 반짝
+            # 올린 눈썹(둥근 호)
+            thick_arc(ex, 0.87, 0.3, 0.14, 200, 340, 0.06, ink)
+        # 크게 벌린 O 입: 어두운 입 안 + 아래 분홍 혀 + 테두리
+        ellipse(0, 0.3, 0.29, 0.33, (90, 24, 40, 255), ink, 0.035)
+        ellipse(0, 0.21, 0.17, 0.1, (255, 120, 140, 255))
+    elif style == "happy":
+        for side in (-1, 1):
+            ex = side * 0.235
+            ellipse(ex, 0.68, 0.17, 0.27, ink)  # 세로로 긴 까만 눈
+            ellipse(ex - 0.03, 0.73, 0.07, 0.08, white)  # 큰 반짝
+            ellipse(ex + 0.035, 0.63, 0.035, 0.04, white)  # 작은 반짝
+            thick_arc(ex, 0.93, 0.24, 0.1, 200, 340, 0.045, ink)
+        # 활짝 웃는 D 입: 위는 평평, 아래는 둥글게 — 윗니(흰 띠) + 혀(분홍)
+        x0, y0 = P(-0.27, 0.5)
+        x1, y1 = P(0.27, 0.12)
+        mouth = Image.new("L", im.size, 0)
+        md = ImageDraw.Draw(mouth)
+        md.chord((x0, y0 - (y1 - y0), x1, y1), 0, 180, fill=255)
+        dark = Image.new("RGBA", im.size, (90, 24, 40, 255))
+        im.paste(dark, (0, 0), mouth)
+        teeth = Image.new("L", im.size, 0)
+        ImageDraw.Draw(teeth).rectangle((x0, y0, x1, y0 + 0.07 * s), fill=255)
+        from PIL import ImageChops
+
+        im.paste(Image.new("RGBA", im.size, white), (0, 0), ImageChops.multiply(teeth, mouth))
+        tongue = Image.new("L", im.size, 0)
+        tx0, ty0 = P(-0.15, 0.24)
+        tx1, ty1 = P(0.15, 0.08)
+        ImageDraw.Draw(tongue).ellipse((tx0, ty0, tx1, ty1), fill=255)
+        im.paste(Image.new("RGBA", im.size, (255, 120, 140, 255)), (0, 0), ImageChops.multiply(tongue, mouth))
+        d = ImageDraw.Draw(im)
+        d.chord((x0, y0 - (y1 - y0), x1, y1), 0, 180, outline=ink, width=int(0.035 * s))
+    else:
+        raise ValueError(f"없는 표정: {style}")
+    im = im.resize((Wp // k, H // k), Image.Resampling.LANCZOS)
+    import io
+
+    buf = io.BytesIO()
+    im.save(buf, "PNG")
+    data = buf.getvalue()
+    path = CACHE / "faces" / f"{style}_{hashlib.sha1(data).hexdigest()[:10]}.png"
+    if not path.exists():
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(data)
+    return path
+
+
+def face_decal(base, yaw, pose=None, scale=1.0) -> dict:
+    """avatar() 와 같은 자세의 머리에 붙일 얼굴 그림(scene3d decals 항목). pose["face"] = 표정 이름(shock, happy)."""
+    pose = pose or {}
+    W = ry(yaw) @ rx(pose.get("lean", 0))
+    hp, hy = pose.get("head", (0, 0))
+    Rh = ry(hy) @ rx(-hp)
+    neck = np.array([0, 4.0, 0])
+    center = np.array(base, float) + W @ ((neck + Rh @ np.array([0, HEAD_CENTER, 0])) * scale)
+    R = W @ Rh
+    return {"image": "/file" + str(_face_png(pose["face"])), "p": center.round(5).tolist(),
+            "m": [float(v) for v in (R * scale).reshape(-1)], "radius": HEAD_RADIUS * 1.012, "height": HEAD_HEIGHT,
+            "arc": FACE_ARC}
 
 
 # 실행 -------------------------------------------------------------------------------

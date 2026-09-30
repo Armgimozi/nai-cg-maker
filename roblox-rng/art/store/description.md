@@ -96,3 +96,24 @@ RNG(이름), landmarks, globe, legends, rebirth, luck, tycoon, park, hologram / 
 - 이모지는 스토어 페이지에서만 씁니다. 게임 안 UI 에는 쓰지 않습니다.
 - 그림: `art/store/icon.png`(512), `thumb_1.png` ~ `thumb_5.png`(1920×1080, 올리는 순서대로), 한눈에 보기 `overview.png`.
   다시 그리기: `python3 tools/store/make_icon.py && python3 tools/store/thumbs.py && python3 tools/store/overview.py`.
+
+## 그림마다 약속 하나 (올리는 순서)
+
+| 그림 | 약속(글자) | 코드 근거 |
+|---|---|---|
+| `thumb_1.png` | 희귀: "1/10,000,000,000" + "LEGENDARY / WORLD TREE" | 세계수 OneIn 10000000000, 전설 등급(MinOneIn 8000000) |
+| `thumb_2.png` | 성장: "X1,024 LUCK!" + "X2 EVERY REBIRTH!" | `REBIRTH_LUCK_MULT` 2 ^ `MAX_REBIRTHS` 10 = 1,024 |
+| `thumb_3.png` | 수집: "COLLECT 150 LANDMARKS!" + 딱지 "1/70"(자유의 여신상) · "1/25,000,000"(용궁, 전설) + "?" 그림자 둘(트로이 목마 · 네시 — 아직 못 찾은 명소) | 명소 150줄, 각 OneIn |
+| `thumb_4.png` | 타이쿤: "BUILD YOUR PARK!" + 용궁 위 "+500/s" 하나(꼬리가 용궁을 가리킴) | 진짜 `PlayerState.landmarkIncome`(처음 발견 ☆0 = `TIER_INCOME` 전설 500) — 그림 만들 때 파이썬 식과 같은지 확인 |
+| `thumb_5.png` | 특별 연출: "1/375,000,000" + "GIANT HOLOGRAM!" — 진짜 `World.hologram(샹그릴라)` 자리·크기 | 샹그릴라 OneIn = `HOLOGRAM_ONE_IN` 375000000(바로 그 기준) |
+
+- 모든 썸네일에 얼굴이 보이는 블록 아바타(놀람·신남 표정, 자리는 왼쪽 아래 · 오른쪽 계단 · 오른쪽 아래 · 왼쪽 아래 · 양쪽 앞).
+- 중요한 글자는 아래 12% 밖(작은 화면·가림 방지). 그림 속 글자는 영어·숫자만 — `fx.no_hangul` 이 그리는 글자를 검사하고,
+  덤프에서는 BillboardGui(명소 이름표, 홀로그램 제목 "속보!"+한국어 이름)를 지우고 SurfaceGui 간판 글자를 검사(한글이면 멈춤).
+  그래서 5번 홀로그램에는 게임 속 제목 띠가 없습니다(모형·자리·크기는 게임 그대로).
+
+## A/B 시험(Creator Hub → 아이콘·썸네일 A/B 테스트)
+
+- 아이콘: `icon.png`(세계수 + 놀란 아바타, 기본) ↔ `icon_a.png`(같은 장면, 밝은 낮 하늘) ↔ `icon_globe.png`(지구본에서 에펠탑·피라미드·
+  자유의 여신상이 튀어나옴 — "명소 게임"이 한눈에 보이는 안). 셋 다 숫자는 같은 1/10,000,000,000.
+- 썸네일 첫 장: `thumb_1.png`(희귀) ↔ `thumb_2.png`(환생 행운) 을 첫 자리에 바꿔 시험.

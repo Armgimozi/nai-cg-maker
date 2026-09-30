@@ -449,11 +449,21 @@ def cracks(px=2048, seed=6, count=11, inner=0.2, reach=(0.6, 0.98), width=1.0):
 
 
 # 글자 --------------------------------------------------------------------------------------
+def no_hangul(text: str) -> str:
+    """스토어 그림에 그리는 글자는 영어·숫자만(전 세계 스토어용) — 한글(음절·자모)이 있으면 멈춤."""
+    for ch in text:
+        code = ord(ch)
+        if 0xAC00 <= code <= 0xD7A3 or 0x1100 <= code <= 0x11FF or 0x3130 <= code <= 0x318F or 0xA960 <= code <= 0xA97F:
+            raise ValueError(f"스토어 그림 글자에 한글: {text!r}")
+    return text
+
+
 def chunky_text(text, font_name="luckiest", size=200, fill_stops=None, outline=None, outline_color=INK,
                 inner=None, inner_color=WHITE, depth=None, depth_color=None, gloss=0.28, tracking=0,
                 shadow=None) -> Image.Image:
     """굵은 게임 글자: 세로 그라데이션 채움 + 흰 안쪽 테 + 두꺼운 어두운 바깥 테 + 아래로 두께(depth) + 윗부분 광택.
     fill_stops 기본 = 밝은 연두 → 초록. 결과는 글자에 딱 맞춘 투명 그림(여백 = 테·두께만큼)."""
+    no_hangul(text)
     f = font(font_name, size)
     outline = int(size * 0.11) if outline is None else outline
     inner = int(size * 0.045) if inner is None else inner
@@ -514,8 +524,9 @@ def rotate(im: Image.Image, deg: float) -> Image.Image:
 
 
 def pill(text, font_name="fredoka", size=48, fg=WHITE, bg=(255, 94, 91), outline=INK, pad=(0.55, 0.28),
-         border=None) -> Image.Image:
+         border=None, stroke=None) -> Image.Image:
     """둥근 알약 이름표(테두리 + 아래 두께) + 가운데 글자."""
+    no_hangul(text)
     f = font(font_name, size)
     tw = f.getlength(text)
     asc, desc = f.getmetrics()
@@ -533,8 +544,8 @@ def pill(text, font_name="fredoka", size=48, fg=WHITE, bg=(255, 94, 91), outline
     d.rounded_rectangle((x0, y0, x0 + w, y0 + h), radius=h // 2, fill=bg)
     hl = tuple(min(255, int(v + (255 - v) * 0.35)) for v in bg[:3])
     d.rounded_rectangle((x0 + h * 0.25, y0 + h * 0.12, x0 + w - h * 0.25, y0 + h * 0.3), radius=h // 8, fill=hl)
-    d.text((x0 + w / 2, y0 + h / 2), text, font=f, fill=fg, anchor="mm", stroke_width=max(1, size // 16),
-           stroke_fill=outline)
+    stroke = max(1, size // 16) if stroke is None else stroke
+    d.text((x0 + w / 2, y0 + h / 2), text, font=f, fill=fg, anchor="mm", stroke_width=stroke, stroke_fill=outline)
     return im
 
 
@@ -679,6 +690,8 @@ def shear(im: Image.Image, k: float) -> Image.Image:
 
 def badge_pill(segments, font_name, size=56, bg=(14, 36, 34), border=MINT, outline=INK, gap=0.35) -> Image.Image:
     """어두운 알약 안에 글자 조각들: segments = [(글자, 글자색, 뱃지 배경색 또는 None)] — 예: 등급 뱃지 + 이름."""
+    for t, _, _ in segments:
+        no_hangul(t)
     f = font(font_name, size)
     pad_x, pad_y = int(size * 0.5), int(size * 0.26)
     widths = [f.getlength(t) + (size * 0.6 if b else 0) for t, _, b in segments]
