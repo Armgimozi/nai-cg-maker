@@ -38,6 +38,17 @@ export type Grant = {
 	ServerWide: boolean, -- true 면 서버가 서버 행운 타이머에 Seconds 를 더해야 함(Data 는 안 바뀜)
 }
 
+-- 분석(서버 Analytics → AnalyticsService) 기록 중 저장해야 하는 것: 한 사람에 한 번만 보내는 온보딩 퍼널이 다시 접속해도
+-- 또 가지 않게. 화면·규칙에는 안 씀(스냅샷에도 없음)
+export type AnalyticsRecord = {
+	-- 온보딩 단계 중 "해냈음" 비트(1번 단계 = 1, 2번 = 2, 3번 = 4 …). 보낸 단계 = 1번부터 빈틈없이 이어진 앞부분
+	-- (PlayerState.onboardingStep — 순서를 건너뛴 단계는 앞 단계를 해낼 때 같이 보냄)
+	Onboarding: number,
+	-- 분석을 넣기 전부터 하던 플레이어(옛 저장에 이미 굴린 기록): 온보딩·환생·도장 퍼널에 넣지 않음 —
+	-- 그날 처음 들어온 사람처럼 세면(퍼널은 첫 단계 날짜로 묶고 건너뛴 앞 단계를 다 한 것으로 침) 퍼널이 틀어짐
+	Legacy: boolean,
+}
+
 export type Data = {
 	Rolls: number,
 	Coins: number, -- 관광 수입이 초 단위로 쌓이므로 소수일 수 있음(표시할 때 버림)
@@ -52,6 +63,7 @@ export type Data = {
 	Rebirths: number, -- 환생 횟수
 	Boosts: { [string]: number }, -- 개인 시간 부스트 상품 Id -> 남은 초(접속 중에만 줄어듦)
 	Receipts: { string }, -- 최근에 지급한 구매 영수증 PurchaseId (중복 지급 방지, 최근 MAX_RECEIPTS 개)
+	Analytics: AnalyticsRecord, -- 분석 기록(온보딩 퍼널 한 번만). 환생해도 유지
 }
 
 export type Snapshot = {
@@ -100,6 +112,8 @@ end
 PlayerState.MAX_SLOTS = Config.PARK_GRID * Config.PARK_GRID
 -- 별 최대 개수(★5). 처음 발견 = 별 0, 같은 명소를 또 뽑을 때마다 +1
 PlayerState.MAX_STARS = #Config.STAR_THRESHOLDS
+-- 온보딩 단계 번호 상한(Data.Analytics.Onboarding 비트 수). 실제 단계 목록은 서버 Analytics.ONBOARDING
+PlayerState.ONBOARDING_MAX_STEP = 30
 
 function PlayerState.new(): Data
 	local upgrades = {}
@@ -118,6 +132,7 @@ function PlayerState.new(): Data
 		Rebirths = 0,
 		Boosts = {},
 		Receipts = {},
+		Analytics = { Onboarding = 0, Legacy = false },
 	}
 end
 
@@ -250,7 +265,67 @@ function PlayerState.reconcile(raw: any): Data
 		trimReceipts(data.Receipts)
 	end
 
+	-- 분석 기록. 없으면 분석을 넣기 전 저장: 이미 굴려 봤으면(굴림·환생·발견 기록) 예전부터 하던 플레이어 → 퍼널 밖
+	-- (굴린 적 없이 들어왔다 나간 저장은 새 플레이어처럼 1번 단계부터)
+	local analytics = raw.Analytics
+	if type(analytics) == "table" then
+		local steps = nonNegativeInt(analytics.Onboarding) or 0
+		if steps >= 2 ^ PlayerState.ONBOARDING_MAX_STEP then
+			steps = 0 -- 깨진 값
+		end
+		data.Analytics.Onboarding = steps
+		data.Analytics.Legacy = analytics.Legacy == true
+	else
+		data.Analytics.Legacy = data.Rolls > 0 or data.Rebirths > 0 or next(data.Discovered) ~= nil
+	end
+
 	return data
+end
+
+-- 분석 기록 ------------------------------------------------------------------
+
+local function onboardingBit(step: number): number
+	return bit32.lshift(1, step - 1)
+end
+
+-- 온보딩 step 단계를 이미 해냈는지(예전부터 하던 플레이어는 늘 true — 퍼널 밖)
+function PlayerState.onboardingDone(data: Data, step: number): boolean
+	if data.Analytics.Legacy then
+		return true
+	end
+	return bit32.btest(data.Analytics.Onboarding, onboardingBit(step))
+end
+
+-- 온보딩 step 단계를 해냈다고 적고, 지금 보낼 단계 번호 목록을 돌려줌(작은 번호부터).
+-- 퍼널은 앞 단계를 건너뛰고 뒤 단계를 보내면 앞 단계도 한 것으로 치므로, 1번부터 빈틈없이 이어진 단계까지만 보냄:
+-- 예) 1·2·3·4 뒤에 6(도감 열기)을 먼저 하면 아무것도 안 보내고 기억만, 나중에 5(첫 강화)를 하면 {5, 6}.
+-- 이미 적힌 단계 · 예전부터 하던 플레이어 · 범위 밖 단계 = 빈 목록(한 사람에 한 번만 — 다시 접속해도 저장된 비트로 거름)
+function PlayerState.onboardingStep(data: Data, step: number): { number }
+	local record = data.Analytics
+	if
+		record.Legacy
+		or type(step) ~= "number"
+		or step ~= math.floor(step)
+		or step < 1
+		or step > PlayerState.ONBOARDING_MAX_STEP
+		or bit32.btest(record.Onboarding, onboardingBit(step))
+	then
+		return {}
+	end
+	local function prefix(mask: number): number
+		local n = 0
+		while n < PlayerState.ONBOARDING_MAX_STEP and bit32.btest(mask, onboardingBit(n + 1)) do
+			n += 1
+		end
+		return n
+	end
+	local before = prefix(record.Onboarding)
+	record.Onboarding = bit32.bor(record.Onboarding, onboardingBit(step))
+	local send = {}
+	for n = before + 1, prefix(record.Onboarding) do
+		table.insert(send, n)
+	end
+	return send
 end
 
 -- 업그레이드 ---------------------------------------------------------------
@@ -926,7 +1001,7 @@ end
 -- 환생: 코인·업그레이드·보유 명소·대표 명소·직접 배치(Display) 초기화, 환생 수 +1.
 -- 공원은 자동 배치로 되돌림(AutoPark = true): 빈 공원에서 직접 배치로 다시 시작하면 새로 얻는 명소가
 -- 첫 빈 칸부터 차고 공원이 꽉 찬 뒤에는 더 좋은 명소를 얻어도 전시가 안 되기 때문.
--- 유지: 발견 기록(Discovered = 도감·여권 도장), 그 밖의 설정(AutoFeature), 굴림 수, 부스트, 영수증.
+-- 유지: 발견 기록(Discovered = 도감·여권 도장), 그 밖의 설정(AutoFeature), 굴림 수, 부스트, 영수증, 분석 기록.
 -- 반환: 성공 여부, 실패 사유(표시용)
 function PlayerState.rebirth(data: Data): (boolean, string?)
 	if PlayerState.rebirthMaxed(data) then
