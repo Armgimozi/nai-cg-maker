@@ -2,7 +2,8 @@
 -- 원격(RemoteFunction.InvokeServer)은 PlayerState + ParkService 로 흉내. 내 부지 찾기 → HUD [배치] → 공원으로 이동 →
 -- 3D 배치 모드 → SetDisplay 원격(자동 꺼짐 · 공원 바뀜 알림) → [완료] · 다른 창 · 도감 [배치] · 이동 버튼 →
 -- 상점(카드 6개 · Robux 가격 · 보유 도장 · 구매 원격 BuyPass/BuyProduct · 실패 이유별 알림),
--- AUTO 연출(이미 발견한 명소 = 짧게 · 서버 굴림 간격 · RetryIn, 새 발견·수동 = 원래 길이), 별 상승 딱지(★+1 — AUTO 는
+-- AUTO 빠른 결과(이미 발견한 명소 = 결과 카드만 퐁, 네트워크 왕복 0.12초 흉내에서도 굴림 간격대로 — 빠른 굴림 ×0.7 · 여행사 최대 +
+-- 빠른 굴림 0.42초 · 서버 굴림 간격 거절 없음 · 기다리는 동안 AUTO 끄면 안 보냄 · RetryIn, 새 발견·수동 = 원래 길이), 별 상승 딱지(★+1 — AUTO 는
 -- 알림 줄에도 한 칸),
 -- 별 0(☆) 표시 · 환생 창 행운 ×2 · 자동 발견 알림을 확인.
 -- 실행(roblox-rng 폴더에서): luaurun tools/client_smoke/init.luau   (끝 줄 "0 failed")
@@ -30,11 +31,18 @@ local function snap()
 	return PlayerState.snapshot(data, revision, mods)
 end
 local buyReply: { [string]: any } = {} -- 상점 구매 원격이 돌려줄 값(상품 키 -> 응답)
+local Config = Harness.require(E.shared.Config)
 local rollLandmark = Landmarks.RarestFirst[#Landmarks.RarestFirst] -- 흔한 명소(연출 짧음)
--- 굴림 응답의 나머지(바꿔 가며 확인) · 굴림 요청을 받은 가짜 시각 · 다음 한 번을 "cooldown" + RetryIn 으로 거절
+-- 굴림 응답의 나머지(바꿔 가며 확인) · 굴림 요청을 보낸 가짜 시각 · 다음 한 번을 "cooldown" + RetryIn 으로 거절
 local rollReply = { IsNew = false, StarUp = false, Stars = 0, Bonus = 0 }
+local rollCycle: { any }? = nil -- 있으면 굴릴 때마다 이 명소들을 돌아가며(같은 이름이 계속 보이지 않게)
 local rollTimes: { number } = {}
 local cooldownOnce: number? = nil
+-- 흉내 네트워크 왕복(초): 절반은 요청이 서버에 닿기까지, 절반은 응답이 돌아오기까지(0 이면 바로)
+local rollDelay = 0
+-- 서버 굴림 간격 규칙(init.server.luau Roll 그대로: 허용 오차만큼 일찍 와도 받되 기준 시각은 원래 가능했던 시각)
+local serverLastRoll = -math.huge
+local serverRejects = 0
 local SERVER = {
 	GetState = function()
 		return snap()
@@ -42,20 +50,39 @@ local SERVER = {
 	Roll = function()
 		table.insert(calls, "Roll")
 		table.insert(rollTimes, Mock.clock())
+		if rollDelay > 0 then
+			task.wait(rollDelay / 2)
+		end
 		local retry = cooldownOnce
 		if retry then
 			cooldownOnce = nil
 			return { Ok = false, Reason = "cooldown", RetryIn = retry }
 		end
-		return {
+		local now = Mock.clock()
+		local readyAt = serverLastRoll + PlayerState.cooldown(data, mods)
+		if now < readyAt - Config.COOLDOWN_TOLERANCE then
+			serverRejects += 1
+			return { Ok = false, Reason = "cooldown", RetryIn = readyAt - now }
+		end
+		serverLastRoll = math.max(now, readyAt)
+		local landmark = rollLandmark
+		local cycle = rollCycle
+		if cycle then
+			landmark = cycle[(#rollTimes - 1) % #cycle + 1]
+		end
+		local reply = {
 			Ok = true,
-			LandmarkId = rollLandmark.Id,
+			LandmarkId = landmark.Id,
 			State = snap(),
 			IsNew = rollReply.IsNew,
 			StarUp = rollReply.StarUp,
 			Stars = rollReply.Stars,
 			Bonus = rollReply.Bonus,
 		}
+		if rollDelay > 0 then
+			task.wait(rollDelay / 2)
+		end
+		return reply
 	end,
 	SetDisplay = function(slot, id, expected, from)
 		table.insert(calls, "SetDisplay")
@@ -251,34 +278,50 @@ do
 	check(rolls() == stopped, "T = 자동 굴리기 끔")
 end
 
-print("\n[AUTO 연출: 이미 발견 = 짧게(서버 굴림 간격), 새 발견·수동 = 원래 길이]")
+print(
+	"\n[AUTO 빠른 결과: 이미 발견 = 결과 카드만 퐁 · 굴림 간격대로(빠른 굴림·여행사), 새 발견·수동 = 원래 길이]"
+)
 do
-	local Config = Harness.require(E.shared.Config)
 	local Ui = Harness.require(client.Ui)
 	local revealFrame = findNamed(gui, "Reveal")
 	local nameLabel = findNamed(revealFrame, "LandmarkName")
 	check(nameLabel ~= nil, "굴림 연출 명소 이름 글자")
-	check(Config.AUTO_KNOWN_REVEAL_RANK == 3, "Config.AUTO_KNOWN_REVEAL_RANK = 3")
-	local cooldown = PlayerState.cooldown(data, mods)
+	check(Config.AUTO_QUICK_REVEAL == true, "Config.AUTO_QUICK_REVEAL = true")
+	local stateEvent = remoteFolder:FindFirstChild("State")
+	-- 게임패스·여행사를 바꾼 뒤 클라이언트에 새 굴림 간격을 알림(서버가 상태를 보내는 것처럼)
+	local function cooldownNow(): number
+		stateEvent.OnClientEvent:Fire(snap())
+		return PlayerState.cooldown(data, mods)
+	end
+	local cooldown = cooldownNow()
 	-- 앞 확인에서 돌던 굴림이 끝날 때까지
 	Mock.runScheduler(Mock.clock() + 8)
 
-	-- 가짜 시계를 0.05초씩 돌리며 "? ? ?"(불가사의 이상 뜸 들이기)를 봤는지, 굴림 요청 뒤 명소 이름이 보이기까지 걸린 시간
-	local function watch(seconds: number, name: string): (boolean, { number })
+	-- n 번째 굴림 요청의 결과 이름(rollCycle 이면 돌아가며)
+	local function nameFor(n: number): string
+		local cycle = rollCycle
+		return if cycle then cycle[(n - 1) % #cycle + 1].Name else rollLandmark.Name
+	end
+	-- 가짜 시계를 0.05초씩 돌리며 "? ? ?"(불가사의 이상 뜸 들이기)를 봤는지, 굴림 요청마다 그 결과 이름이 가운데 카드에
+	-- 보이기까지 걸린 시간
+	local function watch(seconds: number, probe: (() -> ())?): (boolean, { number })
 		local suspense = false
 		local shownAfter: { number } = {}
-		local lastShown = false
+		local seen: { [number]: boolean } = {}
 		local stop = Mock.clock() + seconds
 		while Mock.clock() < stop do
 			Mock.runScheduler(Mock.clock() + 0.05)
+			if probe then
+				probe()
+			end
 			if nameLabel.Text == "? ? ?" then
 				suspense = true
 			end
-			local shown = revealFrame.Visible and nameLabel.Text == name
-			if shown and not lastShown then
-				table.insert(shownAfter, Mock.clock() - rollTimes[#rollTimes])
+			local n = #rollTimes
+			if n > 0 and not seen[n] and revealFrame.Visible and nameLabel.Text == nameFor(n) then
+				seen[n] = true
+				table.insert(shownAfter, Mock.clock() - rollTimes[n])
 			end
-			lastShown = shown
 		end
 		return suspense, shownAfter
 	end
@@ -297,68 +340,184 @@ do
 		end
 		return low, high
 	end
-	local function autoRun(seconds: number, name: string): (boolean, { number }, { number })
+	local function mean(list: { number }): number
+		local sum = 0
+		for _, v in list do
+			sum += v
+		end
+		return if #list > 0 then sum / #list else 0
+	end
+	local function autoRun(seconds: number, probe: (() -> ())?): (boolean, { number }, { number })
 		local from = #rollTimes + 1
 		key("T")
-		local suspense, shownAfter = watch(seconds, name)
+		local suspense, shownAfter = watch(seconds, probe)
 		key("T")
 		Mock.runScheduler(Mock.clock() + 8) -- 마지막 연출 끝
-		local list = gaps(from)
-		-- AUTO 를 끈 뒤에 끝난 마지막 굴림 뒤로는 요청이 없어야 함
-		return suspense, list, shownAfter
+		return suspense, gaps(from), shownAfter
 	end
 
-	-- 1) 이미 발견한 전설(세계수, 원래 AUTO 연출 약 6.5초) = 3등급 AUTO 길이: 굴림 간격 ≈ 1.2~1.3초, 뜸 들이기 없음
-	local rare = Landmarks.RarestFirst[1]
-	check(rare.Tier.Rank == 7, "세계수 = 7등급")
-	rollLandmark = rare
+	-- 네트워크 왕복 0.12초 흉내(요청이 서버에 닿기까지 0.06 + 응답 0.06), 결과는 이미 발견한 전설 둘을 번갈아
+	-- (세계수 ↔ 샹그릴라 — 이름이 바뀌어야 "새 결과가 보였다"를 셀 수 있음)
+	rollDelay = 0.12
+	local rejectsBefore = serverRejects
+	local legends = { Landmarks.RarestFirst[1], Landmarks.RarestFirst[2] }
+	check(legends[1].Tier.Rank == 7 and legends[2].Tier.Rank == 7, "세계수·샹그릴라 = 7등급")
+	rollCycle = legends
 	rollReply.IsNew, rollReply.StarUp, rollReply.Stars = false, false, 0
-	local suspense, knownGaps, knownShown = autoRun(13, rare.Name)
-	local low, high = range(knownGaps)
-	check(#knownGaps >= 8, "AUTO 13초 동안 이미 발견한 세계수 " .. (#knownGaps + 1) .. "번")
+
+	-- 1) 게임패스·여행사 없음: 이미 발견한 전설도 굴림 간격(1.2초)대로, 결과 카드는 응답이 오자마자.
+	-- 6등급 이상은 햇살(희귀 퐁), 흔한 명소는 햇살 없음(7번)
+	local burst = findNamed(revealFrame, "Burst")
+	local rareBurst = false
+	local suspense, baseGaps, baseShown = autoRun(12, function()
+		rareBurst = rareBurst or (revealFrame.Visible and burst.Visible)
+	end)
+	local low, high = range(baseGaps)
 	check(
-		low >= cooldown - 1e-6 and high < 1.45,
+		#baseGaps >= 8 and low >= cooldown - 1e-6 and high <= cooldown + 0.02,
 		string.format(
-			"이미 발견 = 짧은 연출: 굴림 간격 %.2f~%.2f초 (굴림 간격 %.2f초 이상)",
+			"이미 발견한 전설 = 굴림 간격대로 %.2f~%.2f초 (굴림 간격 %.2f초, 왕복 %.2f초)",
 			low,
 			high,
-			cooldown
+			cooldown,
+			rollDelay
 		)
 	)
-	local _, shownHigh = range(knownShown)
-	check(#knownShown >= 8 and shownHigh < 1.1, string.format("요청 뒤 %.2f초 안에 이름 공개", shownHigh))
+	local _, shownHigh = range(baseShown)
+	check(
+		#baseShown >= #baseGaps and shownHigh <= rollDelay + 0.051,
+		string.format(
+			"결과마다 응답이 오자마자 카드(요청 뒤 %.2f초 안, %d번)",
+			shownHigh,
+			#baseShown
+		)
+	)
 	check(not suspense, '이미 발견 = "? ? ?" 뜸 들이기 없음')
+	check(rareBurst, "이미 발견한 전설 = 빠른 결과에도 햇살(희귀 퐁)")
 
-	-- 2) 새 발견(IsNew) = AUTO 여도 원래 길이(회전 3.3 + 착지 0.4 + 뜸 0.9 + 1.8초 보여 주기)
+	-- 2) 빠른 굴림(굴림 간격 ×0.7): AUTO 간격도 ×0.7
+	mods.Passes.FastRoll = true
+	local fast = cooldownNow()
+	check(
+		math.abs(fast - cooldown * 0.7) < 1e-9,
+		string.format("빠른 굴림 굴림 간격 %.2f초 = %.2f × 0.7", fast, cooldown)
+	)
+	local _, fastGaps, fastShown = autoRun(10)
+	local fLow, fHigh = range(fastGaps)
+	check(
+		#fastGaps >= 10 and fLow >= fast - 1e-6 and fHigh <= fast + 0.02,
+		string.format("빠른 굴림 = AUTO 간격 %.2f~%.2f초 (%.2f초)", fLow, fHigh, fast)
+	)
+	check(
+		math.abs(mean(fastGaps) / mean(baseGaps) - 0.7) < 0.02,
+		string.format("빠른 굴림 AUTO 간격 = 없을 때 × %.3f (0.7)", mean(fastGaps) / mean(baseGaps))
+	)
+	check(#fastShown >= #fastGaps, "빠른 굴림: 결과마다 카드 (" .. #fastShown .. "번)")
+
+	-- 3) 여행사 최대(-50%) + 빠른 굴림: 1.2 × 0.5 × 0.7 = 0.42초, 서버 굴림 간격 거절 없음
+	local agencyMax = 0
+	for _, upgrade in Config.Upgrades do
+		if upgrade.Id == "Agency" then
+			agencyMax = upgrade.MaxLevel
+		end
+	end
+	local agencyBefore = data.Upgrades.Agency
+	data.Upgrades.Agency = agencyMax
+	local both = cooldownNow()
+	local bothSuspense, bothGaps, bothShown = autoRun(8)
+	local bLow, bHigh = range(bothGaps)
+	check(
+		#bothGaps >= 15 and bLow >= both - 1e-6 and bHigh <= both + 0.02,
+		string.format("여행사 최대 + 빠른 굴림 = AUTO 간격 %.2f~%.2f초 (%.2f초)", bLow, bHigh, both)
+	)
+	check(
+		math.abs(mean(bothGaps) / mean(baseGaps) - 0.35) < 0.01,
+		string.format(
+			"여행사 최대 + 빠른 굴림 AUTO 간격 = 없을 때 × %.3f (0.5 × 0.7)",
+			mean(bothGaps) / mean(baseGaps)
+		)
+	)
+	local _, bothShownHigh = range(bothShown)
+	check(
+		#bothShown >= #bothGaps and bothShownHigh <= rollDelay + 0.051 and not bothSuspense,
+		string.format("0.42초 간격에도 결과마다 카드(요청 뒤 %.2f초 안)", bothShownHigh)
+	)
+	check(
+		serverRejects == rejectsBefore,
+		"서버 굴림 간격 거절 없음 (" .. serverRejects - rejectsBefore .. "번)"
+	)
+
+	-- 4) 새 발견(IsNew) = AUTO·빠른 굴림이어도 원래 길이(회전 3.3 + 착지 0.4 + 뜸 0.9 + 1.8초 보여 주기)
 	rollReply.IsNew = true
-	local newSuspense, newGaps = autoRun(15, rare.Name)
+	local newSuspense, newGaps = autoRun(15)
 	local newLow = range(newGaps)
 	check(
 		#newGaps >= 1 and newLow > 5.5,
 		string.format("새 발견 = 원래 연출: 굴림 간격 %.2f초 이상", newLow)
 	)
 	check(newSuspense, '새 발견 = "? ? ?" 뜸 들이기')
-
-	-- 3) 수동 굴림(AUTO 끔) = 이미 발견해도 원래 길이
 	rollReply.IsNew = false
+
+	-- 5) 수동 굴림(AUTO 끔) = 이미 발견해도 원래 길이
 	key("R")
-	local manualSuspense, manualShown = watch(8, rare.Name)
+	local manualSuspense, manualShown = watch(8)
 	check(
 		#manualShown == 1 and manualShown[1] > 4,
 		string.format("수동 굴림 = 원래 연출(이름 공개까지 %.2f초)", manualShown[1] or -1)
 	)
 	check(manualSuspense, '수동 굴림 = "? ? ?" 뜸 들이기')
 
-	-- 4) 흔한 명소는 연출(약 0.9초)이 굴림 간격보다 짧음 -> 다음 굴림은 서버 굴림 간격(1.2초)을 기다림
-	rollLandmark = Landmarks.RarestFirst[#Landmarks.RarestFirst]
-	local _, commonGaps = autoRun(7, rollLandmark.Name)
-	local cLow, cHigh = range(commonGaps)
+	-- 6) 굴림 간격을 기다리는 동안 AUTO 를 끄면 그 굴림은 보내지 않음(끈 뒤 원래 길이 연출이 하나 더 뜨지 않음),
+	-- 마지막 카드는 잠시 뒤 숨음. 기다리는 동안 R 을 누르면 그 굴림은 수동으로 나감
+	Mock.runScheduler(Mock.clock() + 3)
+	key("T")
+	Mock.runScheduler(Mock.clock() + 0.3) -- 첫 결과(0.12초) 뒤 다음 굴림이 0.42초를 기다리는 중
+	local sent = #rollTimes
+	key("T")
+	local offSuspense = watch(3)
+	check(#rollTimes == sent, "AUTO 끄면 기다리던 굴림은 안 보냄 (" .. #rollTimes - sent .. "번 더)")
 	check(
-		#commonGaps >= 4 and cLow >= cooldown - 1e-6 and cHigh <= cooldown + 0.07,
-		string.format("흔한 명소 = 굴림 간격대로 %.2f~%.2f초 (%.2f초)", cLow, cHigh, cooldown)
+		not offSuspense and not revealFrame.Visible,
+		"끈 뒤 원래 길이 연출 없음, 카드는 잠시 뒤 숨음"
+	)
+	key("T")
+	Mock.runScheduler(Mock.clock() + 0.3)
+	sent = #rollTimes
+	key("T")
+	key("R")
+	local keptSuspense, keptShown = watch(8) -- 앞 결과(이미 보인 카드) + 수동 굴림 결과
+	check(
+		#rollTimes == sent + 1 and keptSuspense and (keptShown[#keptShown] or 0) > 4,
+		string.format(
+			"기다리는 동안 AUTO 끄고 R = 그 굴림은 수동(원래 연출, 이름까지 %.2f초)으로 나감",
+			keptShown[#keptShown] or -1
+		)
 	)
 
-	-- 5) 서버가 굴림 간격으로 거절하면(RetryIn) 그만큼 기다렸다가 다시 요청
+	-- 7) 흔한 명소(이미 발견)도 굴림 간격대로
+	rollCycle = nil
+	rollLandmark = Landmarks.RarestFirst[#Landmarks.RarestFirst]
+	local commonBurst = false
+	local _, commonGaps = autoRun(5, function()
+		-- (앞 수동 굴림의 세계수 카드가 아직 남아 있을 수 있어 흔한 명소 카드일 때만)
+		local common = revealFrame.Visible and nameLabel.Text == rollLandmark.Name
+		commonBurst = commonBurst or (common and burst.Visible)
+	end)
+	local cLow, cHigh = range(commonGaps)
+	check(not commonBurst, "흔한 명소 빠른 결과 = 햇살 없음(작은 퐁)")
+	check(
+		#commonGaps >= 8 and cLow >= both - 1e-6 and cHigh <= both + 0.02,
+		string.format("흔한 명소 = 굴림 간격대로 %.2f~%.2f초 (%.2f초)", cLow, cHigh, both)
+	)
+	check(serverRejects == rejectsBefore, "서버 굴림 간격 거절 없음")
+
+	-- 되돌리기(아래 확인은 게임패스·여행사 없이, 네트워크 지연 없이)
+	mods.Passes.FastRoll = nil
+	data.Upgrades.Agency = agencyBefore
+	rollDelay = 0
+	cooldown = cooldownNow()
+
+	-- 8) 서버가 굴림 간격으로 거절하면(RetryIn) 그만큼 기다렸다가 다시 요청
 	cooldownOnce = 0.7
 	local from = #rollTimes + 1
 	key("T")
@@ -398,7 +557,7 @@ do
 	check(not starChip.Visible and findNamed(revealFrame, "New").Visible, "처음 발견 = NEW(별 딱지 없음)")
 	rollReply.IsNew = false
 
-	-- 6b) AUTO 중 별 상승: 이미 발견한 명소는 짧은 연출이라 가운데 딱지는 다음 굴림에 곧 덮임 → 알림 줄에 결과 딱지 +
+	-- 6b) AUTO 중 별 상승: 이미 발견한 명소는 빠른 결과라 가운데 딱지는 다음 굴림(굴림 간격)에 곧 덮임 → 알림 줄에 결과 딱지 +
 	-- "★+1"(★5 = "★MAX")을 2.5초 남김. 별 알림은 한 칸만(새 것이 옛 것을 바꿈 — 다른 알림을 밀어내지 않음), AUTO 속도 그대로
 	do
 		local Hud = Harness.require(client.Hud)
@@ -417,7 +576,7 @@ do
 			return if label then label.Text else ""
 		end
 		Hud.toast("다른 알림", nil, 30)
-		rollLandmark = Landmarks.RarestFirst[1] -- 이미 발견한 전설 = 짧은 연출
+		rollLandmark = Landmarks.RarestFirst[1] -- 이미 발견한 전설 = 빠른 결과
 		rollReply.IsNew, rollReply.StarUp, rollReply.Stars = false, true, 2
 		local from = #rollTimes + 1
 		local born: { [any]: number } = {}
@@ -470,7 +629,10 @@ do
 			string.format("마지막 별 알림은 다음 굴림이 없어도 %.2f초 보임", lastFor)
 		)
 		check(hasText("다른 알림"), "별 알림이 다른 알림을 밀어내지 않음")
-		check(high < 1.45, string.format("AUTO 속도 그대로 (굴림 간격 최대 %.2f초)", high))
+		check(
+			high <= cooldown + 0.02,
+			string.format("AUTO 속도 그대로 (굴림 간격 최대 %.2f초, 굴림 간격 %.2f초)", high, cooldown)
+		)
 		-- ★5 = "★MAX" · 수동 굴림은 가운데 딱지가 오래 보이므로 알림 줄 딱지 없음
 		rollReply.Stars = PlayerState.MAX_STARS
 		key("T")

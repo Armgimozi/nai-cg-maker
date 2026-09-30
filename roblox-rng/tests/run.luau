@@ -442,7 +442,7 @@ test("rebirthRequirement: 표 그대로, 최대(10번)까지 하면 nil", functi
 	eq(#Config.REBIRTHS, Config.MAX_REBIRTHS, "단계 수 = 최대")
 	local first = PlayerState.rebirthRequirement(0)
 	assert(first, "첫 환생 조건")
-	eq(first.Coins, 300000)
+	eq(first.Coins, 400000)
 	eq(first.Landmarks[1], "eiffel")
 	eq(first.Landmarks[2], "liberty")
 	for n = 1, Config.MAX_REBIRTHS do
@@ -490,15 +490,15 @@ test("canRebirth: 모자란 명소와 코인", function()
 	eq(#missing, 2, "명소 2개 없음")
 	eq(missing[1], "eiffel")
 	eq(missing[2], "liberty")
-	eq(short, 300000, "코인 부족분")
+	eq(short, 400000, "코인 부족분")
 	PlayerState.applyRoll(d, Landmarks.ById.eiffel)
 	PlayerState.applyRoll(d, Landmarks.ById.liberty)
-	d.Coins = 299000.5
+	d.Coins = 399000.5
 	ok, missing, short = PlayerState.canRebirth(d)
 	eq(ok, false)
 	eq(#missing, 0)
 	eq(short, 1000, "코인 부족분(올림)")
-	d.Coins = 300000
+	d.Coins = 400000
 	ok, missing, short = PlayerState.canRebirth(d)
 	eq(ok, true)
 	eq(short, 0)
@@ -634,18 +634,18 @@ test("확률표: 등급 경계·등급별 명소 수(재조정 전과 같음)·�
 	eq(Format.oneIn(Landmarks.ById.worldtree.OneIn), "1 in 10,000,000,000", "확률은 콤마 자연수")
 	eq(Format.oneIn(Landmarks.ById.shangrila.OneIn), "1 in 375,000,000")
 end)
-test("환생 표: 코인 30만 → 1,400억, 요구 명소", function()
+test("환생 표: 코인 40만 → 2,000억(AUTO 빠른 결과 뒤 다시 맞춤), 요구 명소", function()
 	local expected = {
-		{ 300000, "eiffel,liberty" },
-		{ 1500000, "pyramid,chichen" },
-		{ 25000000, "moai,stonehenge,alexandria" },
-		{ 250000000, "babylon,artemis,rhodes" },
-		{ 1500000000, "zeus,mausoleum,trojanhorse" },
-		{ 6000000000, "atlantis,labyrinth" },
-		{ 13000000000, "hwangnyongsa,eldorado" },
-		{ 28000000000, "fountainofyouth,yonggung" },
-		{ 65000000000, "mu,zealandia" },
-		{ 140000000000, "skyisland" },
+		{ 400000, "eiffel,liberty" },
+		{ 4000000, "pyramid,chichen" },
+		{ 60000000, "moai,stonehenge,alexandria" },
+		{ 500000000, "babylon,artemis,rhodes" },
+		{ 3000000000, "zeus,mausoleum,trojanhorse" },
+		{ 9000000000, "atlantis,labyrinth" },
+		{ 18000000000, "hwangnyongsa,eldorado" },
+		{ 40000000000, "fountainofyouth,yonggung" },
+		{ 90000000000, "mu,zealandia" },
+		{ 200000000000, "skyisland" },
 	}
 	eq(#Config.REBIRTHS, #expected, "단계 수")
 	for k, row in expected do
@@ -681,24 +681,22 @@ test("환생 조건 명소는 그 판에 부스트를 다 켠 최대 행운에�
 		end
 	end
 end)
-test(
-	"속보·홀로그램 기준: 속보 = 사하라 신기루 성·샹그릴라·세계수, 홀로그램 = 샹그릴라·세계수",
-	function()
-		local news, hologram = {}, {}
-		for _, landmark in Landmarks.RarestFirst do
-			if landmark.OneIn >= Config.ANNOUNCE_ONE_IN then
-				table.insert(news, landmark.Id)
-			end
-			if landmark.OneIn >= Config.HOLOGRAM_ONE_IN then
-				table.insert(hologram, landmark.Id)
-			end
+test("속보·홀로그램 기준: 속보 = 홀로그램 = 샹그릴라·세계수, AUTO 빠른 결과 켬", function()
+	local news, hologram = {}, {}
+	for _, landmark in Landmarks.RarestFirst do
+		if landmark.OneIn >= Config.ANNOUNCE_ONE_IN then
+			table.insert(news, landmark.Id)
 		end
-		eq(table.concat(news, ","), "worldtree,shangrila,skyisland", "속보")
-		eq(table.concat(hologram, ","), "worldtree,shangrila", "홀로그램")
-		assert(Config.HOLOGRAM_ONE_IN >= Config.ANNOUNCE_ONE_IN, "홀로그램은 속보 중에서만")
-		eq(Config.AUTO_KNOWN_REVEAL_RANK, 3, "AUTO 에서 이미 발견한 명소는 3등급처럼 짧은 연출")
+		if landmark.OneIn >= Config.HOLOGRAM_ONE_IN then
+			table.insert(hologram, landmark.Id)
+		end
 	end
-)
+	eq(table.concat(news, ","), "worldtree,shangrila", "속보")
+	eq(table.concat(hologram, ","), "worldtree,shangrila", "홀로그램")
+	assert(Config.HOLOGRAM_ONE_IN >= Config.ANNOUNCE_ONE_IN, "홀로그램은 속보 중에서만")
+	eq(Config.AUTO_QUICK_REVEAL, true, "AUTO 에서 이미 발견한 명소는 결과 카드만(굴림 간격대로)")
+	eq((Config :: any).AUTO_KNOWN_REVEAL_RANK, nil, "예전 3등급 짧은 연출 설정은 없음")
+end)
 test("permanentLuck: 지구본·도장·환생·행운 VIP 만 (시간 부스트·서버 행운 제외)", function()
 	local d = PlayerState.new()
 	d.Rebirths = 3
@@ -922,12 +920,12 @@ test("옛 저장 불러오기: 예전 표로 환생한 플레이어 · 발견 �
 	local mid = PlayerState.reconcile({ Rebirths = 3, Coins = 700000, Inventory = { babylon = 1 } })
 	near(PlayerState.luck(mid), 8, 1e-9, "환생 3번 = ×8")
 	local req = PlayerState.rebirthRequirement(mid.Rebirths)
-	eq(req.Coins, 250000000, "새 표 4단계 코인")
+	eq(req.Coins, 500000000, "새 표 4단계 코인")
 	eq(table.concat(req.Landmarks, ","), "babylon,artemis,rhodes")
 	local can, missing, short = PlayerState.canRebirth(mid)
 	eq(can, false)
 	eq(table.concat(missing, ","), "artemis,rhodes", "보유한 바빌론은 인정")
-	eq(short, 250000000 - 700000)
+	eq(short, 500000000 - 700000)
 	-- 발견 기록이 없던 아주 옛 저장: 보유 → 발견, 그다음 자동 발견
 	local ancient = PlayerState.reconcile({ Rebirths = 1, Inventory = { eiffel = 2 } })
 	eq(ancient.Discovered.eiffel, true)

@@ -31,8 +31,12 @@ MODEL (one Monte-Carlo run = one player; S runs vectorised with numpy)
     (init.client.luau roll(): invoke -> Hud.reveal(Fast) -> task.wait(0.05) loop), so
     period = max(cooldown, rtt + reveal(rank of the result) + loop wait). cooldown = ROLL_COOLDOWN *
     (1 - Agency) * FastRoll. `--mode ideal` uses period = cooldown (what the upgrades promise).
-    Config.AUTO_KNOWN_REVEAL_RANK = k > 0 (rules.short_reveal_known / short_reveal_rank): in AUTO an
-    already-discovered landmark reveals like rank min(rank, k); new discoveries keep their full reveal.
+    Config.AUTO_QUICK_REVEAL = true (rules.quick_reveal_known, the game since the 2026-09-30 "AUTO follows the
+    cooldown" round): in AUTO an already-discovered landmark only pops the result card (Hud.luau quickReveal,
+    QUICK_POP_SECONDS) and Hud.reveal returns at once, so period = max(cooldown, rtt + loop wait) = the cooldown -
+    Agency and FastRoll set the AUTO speed. New discoveries and manual rolls keep their full reveal. Older rule
+    (rules.short_reveal_known / short_reveal_rank = the former Config.AUTO_KNOWN_REVEAL_RANK = k): a known landmark
+    reveals like rank min(rank, k).
   * Luck = BASE * (1 + Globe) * (1 + REGION_LUCK_BONUS * stamps) * rebirthLuck(r) * VIP * boosts.
     Stamps are exact: a continent counts once every landmark of rank <= STAMP_MAX_RANK in it was ever
     discovered (Discovered survives rebirths). Boosts = duty cycle (fraction of play time under x2),
@@ -73,8 +77,10 @@ VARIANT JSON (balance/variant_*.json) = a patch over the normalised config (see 
     "tiers": [{"rank", "name", "min_one_in"}] or shortcut "tier_min_one_in": [1, 10, ...],
     "client": {"rtt", "loop_wait", "reveal_seconds": [7], "land_seconds", "suspense_seconds", ...},
     "rules": {"auto_discover_below_luck": true,   # proposed fix: 1-in <= permanent luck counts as discovered
-              "short_reveal_known": true,         # proposed fix: already-discovered landmarks reveal like rank <= 3
-              "short_reveal_rank": 3,             #   (Config.AUTO_KNOWN_REVEAL_RANK in the game)
+              "quick_reveal_known": true,         # the game (Config.AUTO_QUICK_REVEAL): known landmarks in AUTO pop the
+                                                  #   result card without waiting -> AUTO period = cooldown
+              "short_reveal_known": true,         # older rule: already-discovered landmarks reveal like rank <= 3
+              "short_reveal_rank": 3,             #   (the former Config.AUTO_KNOWN_REVEAL_RANK)
               "short_reveal_seconds": 0,          # instead: known landmarks take this many s per AUTO roll (flash)
               "announce_luck_ratio": 0,           # proposed news rule: ALSO announce a find that is rare for the
               "announce_min_one_in": 0}           #   player (1-in >= ratio * luck and >= min); 0 = off
@@ -139,6 +145,7 @@ def _regex_rules(conf: str) -> dict:
     rank = int(m.group(1)) if m else 0
     return {
         "auto_discover_below_luck": re.search(r"function PlayerState\.autoDiscover\b", ps) is not None,
+        "quick_reveal_known": re.search(r"\bAUTO_QUICK_REVEAL\s*=\s*true\b", conf) is not None,
         "short_reveal_known": rank > 0,
         "short_reveal_rank": rank if rank > 0 else 3,
     }
@@ -258,6 +265,9 @@ def parse_client_timing() -> dict:
         loop_wait=0.05,  # init.client.luau AUTO loop task.wait(0.05)
         rtt=0.12,  # RemoteFunction round trip incl. server frame (assumption)
         frame=1 / 60,  # every task.wait overshoots ~half a frame on average
+        quick_pop=0.2,  # AUTO quick result (known landmark): card pop, Hud.reveal does not wait for it
+        quick_rare_pop=0.35,  #   rank >= quick_rare_rank: bigger pop + rays
+        quick_rare_rank=6,
     )
     try:
         hud = (ROOT / "src/client/Hud.luau").read_text(encoding="utf-8")
@@ -277,6 +287,13 @@ def parse_client_timing() -> dict:
         m = re.search(r"local interval = ([\d.]+) \+ t \* t \* ([\d.]+)", hud)
         if m:
             client["spin_base"], client["spin_growth"] = float(m.group(1)), float(m.group(2))
+        for key, name in (("quick_pop", "QUICK_POP_SECONDS"), ("quick_rare_pop", "QUICK_RARE_POP_SECONDS"), ("quick_rare_rank", "QUICK_RARE_RANK")):
+            m = re.search(rf"\blocal {name}\s*=\s*([\d.]+)", hud)
+            if m:
+                client[key] = float(m.group(1))
+        # quickReveal must not wait (the model assumes Hud.reveal returns at once for a known landmark in AUTO)
+        m = re.search(r"local function quickReveal\(.*?\nend\n", hud, re.S)
+        client["quick_waits"] = bool(m and re.search(r"task\.wait\(", m.group(0)))
     except OSError:
         pass
     return client
@@ -452,6 +469,15 @@ def auto_overhead(client: dict, rank: int) -> float:
     return client["rtt"] + total + client["loop_wait"] + half
 
 
+def auto_overhead_quick(client: dict) -> float:
+    """Seconds from sending a roll to being ready for the next one in AUTO when the result is an already-discovered
+    landmark (Hud quickReveal: the card pops, Hud.reveal returns at once): rtt + the AUTO loop wait. The next roll then
+    waits for the rest of the cooldown, so the period is the cooldown whenever this is shorter."""
+    if client.get("quick_waits"):
+        raise ValueError("Hud.luau quickReveal waits (task.wait) - update auto_overhead_quick to the new client timing")
+    return client["rtt"] + client["loop_wait"] + client["frame"] / 2
+
+
 class Game:
     def __init__(self, cfg: dict):
         self.cfg = cfg
@@ -508,7 +534,8 @@ class Game:
         # optional rule changes (variant "rules"): not in the current game
         self.rules = dict(cfg.get("rules") or {})
         self.auto_discover = bool(self.rules.get("auto_discover_below_luck"))
-        self.short_reveal_known = bool(self.rules.get("short_reveal_known"))
+        self.quick_reveal_known = bool(self.rules.get("quick_reveal_known"))
+        self.short_reveal_known = bool(self.rules.get("short_reveal_known")) and not self.quick_reveal_known
         cap = int(self.rules.get("short_reveal_rank", self.client["rare_rank"] - 1))
         self.overhead_known = self.overhead_rank[np.minimum(self.rank, cap) - 1] if self.short_reveal_known else self.overhead
         # optional: a known landmark in AUTO takes a fixed time instead (seconds from sending a roll to sending the next,
@@ -516,6 +543,11 @@ class Game:
         flash = self.rules.get("short_reveal_seconds")
         if self.short_reveal_known and flash:
             self.overhead_known = np.full(self.M, float(flash))
+        # the game: known landmarks in AUTO pop the result card without waiting (Config.AUTO_QUICK_REVEAL)
+        self.overhead_quick = auto_overhead_quick(self.client) if self.quick_reveal_known else float("nan")
+        if self.quick_reveal_known:
+            self.overhead_known = np.full(self.M, self.overhead_quick)
+        self.known_differs = self.short_reveal_known or self.quick_reveal_known
         self.announce = self.N >= cfg["announce_one_in"]
         # proposed rule: news also when the find is rare *for this player*: 1-in >= ratio * permanent luck and >= min
         # (on top of the fixed ANNOUNCE_ONE_IN; set announce_one_in huge for a purely relative rule)
@@ -692,7 +724,7 @@ def simulate(game: Game, prof: dict, sims: int, seed: int, horizon: float, frac:
         p = all_probs(luck)
         cd = game.cooldown(l_, cdm)
         if period_is_auto:
-            ov = np.where(d_, game.overhead_known[None, :], game.overhead[None, :]) if game.short_reveal_known else game.overhead[None, :]
+            ov = np.where(d_, game.overhead_known[None, :], game.overhead[None, :]) if game.known_differs else game.overhead[None, :]
             period = np.maximum(cd[:, None], ov)
         else:
             period = np.repeat(cd[:, None], M, 1)
@@ -1197,7 +1229,21 @@ def report(game: Game, results: dict, args, validation: str | None, elapsed: flo
     slow = float((p1 * np.maximum(cfg["roll_cooldown"], game.overhead)).sum())
     fastest_cd = cfg["roll_cooldown"] * (1 - game.up_per[A] * game.up_max[A]) * cfg["passes"].get("FastRoll", {}).get("cooldown_mult", 1)
     fast = float((p1 * np.maximum(fastest_cd, game.overhead)).sum())
-    if args.mode == "auto" and fast > 0.95 * slow:
+    c = game.client
+    if args.mode == "auto" and game.quick_reveal_known:
+        obs.append(
+            f"AUTO follows the cooldown for already-discovered landmarks: the result card only pops ({c['quick_pop']:.2f} s,"
+            f" {c['quick_rare_pop']:.2f} s from rank {int(c['quick_rare_rank'])}) and Hud.reveal does not wait, so a known roll takes"
+            f" max(cooldown, rtt + loop wait = {game.overhead_quick:.2f} s) — {cfg['roll_cooldown']:.2f} s, Agency max"
+            f" {fastest_cd / cfg['passes'].get('FastRoll', {}).get('cooldown_mult', 1):.2f} s, + FastRoll {fastest_cd:.2f} s."
+            + (
+                f" The pop fits inside even the shortest cooldown ({c['quick_rare_pop']:.2f} < {fastest_cd:.2f} s)."
+                if c["quick_rare_pop"] < fastest_cd
+                else f" WARNING: the rare pop ({c['quick_rare_pop']:.2f} s) is longer than the shortest cooldown ({fastest_cd:.2f} s)."
+            )
+            + f" New discoveries keep the full reveal ({game.overhead_rank[0]:.2f}–{game.overhead_rank[-1]:.1f} s per roll in AUTO)."
+        )
+    elif args.mode == "auto" and fast > 0.95 * slow:
         obs.append(
             f"AUTO is gated by the reveal animation (~{game.overhead_rank[0]:.2f} s per common roll, {game.overhead_rank[3]:.1f}–{game.overhead_rank[-1]:.1f} s"
             f" for rank ≥ 4) — the {cfg['roll_cooldown']:.2f} s cooldown, Agency (→ {fastest_cd / game.cfg['passes'].get('FastRoll', {}).get('cooldown_mult', 1):.2f} s) and"
@@ -1231,24 +1277,38 @@ def report(game: Game, results: dict, args, validation: str | None, elapsed: flo
     lines.append("")
 
     # --- roll rate ---
-    c = game.client
     lines.append("## Roll rate (AUTO)\n")
     lines.append(
-        "AUTO sends the next roll only after the Fast reveal animation (Hud.reveal) and a 0.05 s loop wait, so the real period is "
-        f"`max(cooldown, rtt + reveal(rank) + wait)` with rtt = {c['rtt']:.2f} s assumed and ~half a frame per `task.wait`.\n"
+        "AUTO sends the next roll only after Hud.reveal returned and a 0.05 s loop wait, so the real period is "
+        f"`max(cooldown, rtt + reveal + wait)` with rtt = {c['rtt']:.2f} s assumed and ~half a frame per `task.wait`."
+        + (
+            " A NEW discovery takes the full Fast reveal of its rank (row below); an already-discovered landmark only pops the"
+            f" result card and Hud.reveal returns at once (`quickReveal`), so it takes max(cooldown, {game.overhead_quick:.2f} s)."
+            if game.quick_reveal_known
+            else ""
+        )
+        + "\n"
     )
     lines.append("| result rank | " + " | ".join(f"{r}" for r in range(1, game.n_tiers + 1)) + " |")
     lines.append("|---|" + "---|" * game.n_tiers)
-    lines.append("| AUTO time per roll (s, cooldown aside) | " + " | ".join(f"{v:.2f}" for v in game.overhead_rank) + " |\n")
+    lines.append("| AUTO time per roll, new discovery (s, cooldown aside) | " + " | ".join(f"{v:.2f}" for v in game.overhead_rank) + " |")
+    if game.known_differs:
+        cells = []
+        for r in range(1, game.n_tiers + 1):
+            members = np.flatnonzero(game.rank == r)
+            cells.append(f"{game.overhead_known[members[0]]:.2f}" if members.size else "—")
+        lines.append("| AUTO time per roll, already discovered (s, cooldown aside) | " + " | ".join(cells) + " |")
+    lines.append("")
     p1 = game.probs(np.array([1.0]))[0]
     rows = []
     for lvl_a in (0, 2, 4, 6, 10):
         for fast, name in ((1.0, "no pass"), (cfg["passes"].get("FastRoll", {}).get("cooldown_mult", 1), "FastRoll")):
             cd = cfg["roll_cooldown"] * (1 - game.up_per[A] * lvl_a) * fast
             auto = float((p1 * np.maximum(cd, game.overhead)).sum())
-            rows.append(f"| {lvl_a} | {name} | {cd:.2f} | {auto:.2f} | {3600 / auto:.0f} |")
-    lines.append("| Agency lvl | pass | cooldown (s) | AUTO s/roll @luck 1 | rolls/h |")
-    lines.append("|---|---|---|---|---|")
+            known = float((p1 * np.maximum(cd, game.overhead_known)).sum())
+            rows.append(f"| {lvl_a} | {name} | {cd:.2f} | {auto:.2f} | {3600 / auto:.0f} | {known:.2f} | {3600 / known:.0f} |")
+    lines.append("| Agency lvl | pass | cooldown (s) | AUTO s/roll, all new (@luck 1) | rolls/h | AUTO s/roll, all known | rolls/h |")
+    lines.append("|---|---|---|---|---|---|---|")
     lines.extend(rows)
     lines.append("")
 

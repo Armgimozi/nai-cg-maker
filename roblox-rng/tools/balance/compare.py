@@ -219,7 +219,7 @@ def job(spec: dict) -> dict:
 
 def period_vector(game: S.Game, luck: float, prof_mix, cd: float, known: bool = True) -> tuple[np.ndarray, float]:
     p = sum(game.probs(np.array([luck * m]))[0] * w for m, w in prof_mix)
-    ov = game.overhead_known if (known and game.short_reveal_known) else game.overhead
+    ov = game.overhead_known if (known and game.known_differs) else game.overhead
     period = np.maximum(cd, ov)
     return p, float((p * period).sum())
 

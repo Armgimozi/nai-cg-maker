@@ -23,11 +23,18 @@ local Viewport = require(script.Parent.Viewport)
 local Theme = Ui.Theme
 
 -- 등급(Rank)별 지구본이 도는 시간(초). 빠른 모드(자동 굴림)에서는 세계 명소 미만만 절반으로 줄임.
--- 자동 굴림 중 이미 발견한 명소(IsNew 아님)는 등급과 상관없이 Config.AUTO_KNOWN_REVEAL_RANK 등급의 길이로(revealPace).
 -- (tools/balance/sim.py 가 아래 숫자·식을 이 파일에서 그대로 읽어 AUTO 속도를 계산함 — 모양을 바꾸면 sim.py 도 함께)
 local REVEAL_SECONDS = { 0.9, 1.1, 1.5, 2.1, 2.7, 3.1, 3.3 }
 local LAND_SECONDS = 0.4 -- 결과 지역에 멈춘 뒤 결과가 나오기까지
 local SUSPENSE_SECONDS = 0.9 -- 불가사의 이상 "? ? ?" 뜸 들이기
+-- AUTO 빠른 결과(Config.AUTO_QUICK_REVEAL): 자동 굴림 중 이미 발견한 명소(IsNew 아님)는 지구본을 돌리지 않고 결과 카드만
+-- 퐁(quickReveal). Hud.reveal 은 기다리지 않고 바로 돌아가서 다음 굴림은 서버 굴림 간격대로 나감 → 여행사·빠른 굴림이
+-- AUTO 를 그만큼 빠르게 함. 카드는 다음 결과까지(굴림 간격, 가장 짧아도 1.2 × 0.5 × 0.7 = 0.42초) 그대로 보이므로
+-- 퐁 길이는 그보다 짧게. 새 발견·수동 굴림은 위의 원래 연출. (sim.py 가 아래 숫자를 읽음 — 이름을 바꾸면 sim.py 도)
+local QUICK_POP_SECONDS = 0.2 -- 결과 카드가 살짝 커졌다 제자리로
+local QUICK_RARE_RANK = 6 -- 이 등급 이상(잃어버린 유산·전설): 더 크게 퐁 + 햇살(전설은 희귀 소리 + 옅은 번쩍임)
+local QUICK_RARE_POP_SECONDS = 0.35
+local QUICK_HIDE_SECONDS = 1.5 -- 다음 결과가 안 오면(AUTO 끔) 이만큼 뒤에 카드를 숨김
 local NEWS_SECONDS = 7
 local MAX_NEWS = 2
 local MAX_TOASTS = 4
@@ -84,6 +91,8 @@ local newsOrder = 0
 local toasts: { GuiObject } = {}
 local toastOrder = 0
 local burstTween: Tween? = nil
+local popTween: Tween? = nil -- 결과 카드 퐁(RevealScale). 다음 연출이 시작되면 멈춤
+local resultId: string? = nil -- ResultView 에 올려 둔 명소 Id(같은 명소가 또 나오면 모형을 다시 만들지 않음)
 
 -- 타이머(부스트·서버 행운)와 환생 배지: render 에서 기준값을 받고 tick 에서 글자만 고침
 local hudState: PlayerState.Snapshot? = nil
@@ -1283,8 +1292,8 @@ local function compactReveal(landmark: Landmarks.Landmark, info: RevealInfo)
 	end
 end
 
--- AUTO 중 별 상승(가챠 중복): 다음 굴림이 곧 가운데 연출을 덮으므로(이미 발견한 명소는 짧은 연출이라 딱지가 0.2초쯤만
--- 보임) 알림 줄에도 결과 딱지 + "★+1"/"★MAX" 를 2.5초 남김. AUTO 속도는 그대로. 별 상승 알림은 한 칸만 씀 — 초반 AUTO 는
+-- AUTO 중 별 상승(가챠 중복): 다음 굴림이 곧 가운데 카드를 덮으므로(이미 발견한 명소는 빠른 결과라 굴림 간격, 짧으면
+-- 0.42초만 보임) 알림 줄에도 결과 딱지 + "★+1"/"★MAX" 를 2.5초 남김. AUTO 속도는 그대로. 별 상승 알림은 한 칸만 씀 — 초반 AUTO 는
 -- 거의 매번 별이 올라서, 새 것이 이전 별 알림을 바꿔 다른 알림(도감 +N·구매 등)을 밀어내지 않게
 local starToast: GuiObject? = nil
 local function starUpToast(landmark: Landmarks.Landmark, info: RevealInfo)
@@ -1299,31 +1308,127 @@ local function starUpToast(landmark: Landmarks.Landmark, info: RevealInfo)
 	starToast = resultToast(landmark, info, "StarUpToast").Root
 end
 
--- 연출 길이를 정하는 등급: 자동 굴림(Fast) 중 이미 발견한 명소(IsNew 아님 — 자동 발견 포함)는
--- Config.AUTO_KNOWN_REVEAL_RANK 등급까지만. 4등급 이상도 짧은 회전·착지·잠깐 보여 주기로 끝나고 "? ? ?" 뜸 들이기·
--- 화면 번쩍임·희귀 소리가 없음(몇 주씩 도는 후반 AUTO 가 이미 발견한 희귀 명소마다 5~7초씩 멈추지 않게. 짧은 연출도
--- 약 1.2초라 AUTO 는 굴림 간격 1.2초와 거의 같은 속도 — balance/sim_results.md 8e). 새 발견·수동 굴림은 원래 등급 그대로.
--- 0 이면 끔
-local function revealPace(rank: number, info: RevealInfo): number
-	local short = tonumber(Config.AUTO_KNOWN_REVEAL_RANK) or 0
-	if info.Fast and not info.IsNew and short > 0 then
-		return math.min(rank, short)
-	end
-	return rank
+-- AUTO 빠른 결과를 쓸지: 자동 굴림(Fast) 중 이미 발견한 명소(IsNew 아님 — 자동 발견 포함). Config.AUTO_QUICK_REVEAL 이
+-- false 면 모든 결과를 등급 길이의 연출로
+local function quickPace(info: RevealInfo): boolean
+	return info.Fast and not info.IsNew and Config.AUTO_QUICK_REVEAL == true
 end
 
--- 굴림 연출. 결과를 보여 줄 때까지 기다립니다(yield).
+-- 결과 카드 퐁: RevealScale 을 from 에서 1 로(이전 퐁은 멈춤)
+local function popCard(from: number, seconds: number)
+	local previous = popTween
+	if previous then
+		previous:Cancel()
+	end
+	refs.RevealScale.Scale = from
+	local tween = TweenService:Create(
+		refs.RevealScale,
+		TweenInfo.new(seconds, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+		{ Scale = 1 }
+	)
+	popTween = tween
+	tween:Play()
+end
+
+-- 결과 카드 내용: 지구본 → 명소 모형(같은 명소면 모형을 다시 만들지 않음), 등급 색 판·리본, 이름·확률,
+-- 딱지 줄(NEW · 별 상승 "★★☆☆☆ +1" · 발견 보너스). 별이 오르면 딱지가 퐁 + 딩 소리, AUTO 면 알림 줄에도(starUpToast)
+local function showResult(landmark: Landmarks.Landmark, info: RevealInfo)
+	local tier = landmark.Tier
+	Viewport.setSpin(refs.EarthView, 0)
+	refs.EarthView.Visible = false
+	if resultId ~= landmark.Id then
+		resultId = if Viewport.setLandmark(refs.ResultView, landmark, 10) then landmark.Id else nil
+	end
+	refs.ResultView.Visible = true
+	Viewport.setSpin(refs.ResultView, 40)
+	refs.Disc.BackgroundColor3 = tier.Color:Lerp(WHITE, 0.6)
+	showRibbon(tier)
+
+	refs.RevealName.Text = landmark.Name
+	refs.RevealName.TextColor3 = tier.Color
+	refs.RevealOdds.Text = Format.oneIn(landmark.OneIn)
+
+	local bonus = info.Bonus or 0
+	refs.NewChip.Root.Visible = info.IsNew
+	refs.StarChip.Root.Visible = info.StarUp
+	if info.StarUp then
+		refs.StarChip.Label.Text = starUpText(info.Stars or 0)
+	end
+	refs.BonusPill.Root.Visible = bonus > 0
+	if bonus > 0 then
+		refs.BonusPill.Label.Text = "+" .. Format.commas(bonus)
+	end
+	refs.TagRow.Visible = info.IsNew or info.StarUp or bonus > 0
+	if info.StarUp then
+		local pop = refs.StarChipScale
+		pop.Scale = 0.3
+		TweenService:Create(pop, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
+			:Play()
+		play(starSound)
+		if info.Fast then
+			starUpToast(landmark, info)
+		end
+	end
+end
+
+-- seconds 뒤에 가운데 카드를 숨김(그 사이 다음 연출이 시작됐으면 그대로 둠)
+local function hideLater(seconds: number)
+	local token = hideToken
+	task.delay(seconds, function()
+		if token == hideToken then
+			refs.Reveal.Visible = false
+			Viewport.setSpin(refs.ResultView, 0)
+			hideBurst()
+		end
+	end)
+end
+
+-- AUTO 빠른 결과(이미 발견한 명소): 지구본 회전·착지·"? ? ?" 없이 결과 카드가 바로 퐁 — 등급 색 판·리본, 이름·확률,
+-- 별 딱지는 원래 연출과 같음. 기다리지 않음(yield 없음): 부르는 쪽(init roll)은 곧바로 다음 굴림을 준비해서 서버 굴림
+-- 간격만 기다리고, 카드는 다음 결과가 덮을 때까지 보임. 6등급 이상은 더 크게 퐁 + 햇살, 전설은 희귀 소리 + 옅은 번쩍임
+-- (퐁 0.35초 < 가장 짧은 굴림 간격 0.42초). 흔한 결과는 작은 착지 소리만(초당 2번 넘게 울려도 시끄럽지 않게)
+local function quickReveal(landmark: Landmarks.Landmark, info: RevealInfo)
+	local tier = landmark.Tier
+	local rare = tier.Rank >= QUICK_RARE_RANK
+	refs.Reveal.Visible = true
+	showRegion(Landmarks.RegionById[landmark.Region] or Landmarks.Regions[1], true)
+	showResult(landmark, info)
+	if rare then
+		showBurst(tier.Color)
+	else
+		hideBurst()
+	end
+	popCard(if rare then 1.35 else 1.15, if rare then QUICK_RARE_POP_SECONDS else QUICK_POP_SECONDS)
+	if tier.Rank >= 7 then
+		flash(tier.Color, 0.35)
+		play(rareSound)
+	else
+		play(if rare then revealSound else landSound)
+	end
+	hideLater(QUICK_HIDE_SECONDS)
+end
+
+-- 굴림 연출. 결과를 보여 줄 때까지 기다립니다(yield) — AUTO 빠른 결과(quickReveal)만 기다리지 않음.
 -- 1) 지구본이 빠르게 돌며 지역 이름이 바뀌다 점점 느려짐 → 2) 결과 지역에 멈춤 → 3) 명소 공개
 -- 배치 모드면(도는 중에 들어가도) 가운데 연출 없이 결과만 작은 딱지로(compactReveal) — 결과를 보인 뒤에 돌아감.
--- 길이·뜸 들이기·번쩍임은 연출 등급(revealPace: 자동 굴림 중 이미 발견한 명소는 짧게), 색·리본은 명소의 진짜 등급
+-- 자동 굴림 중 이미 발견한 명소는 결과 카드만 퐁(quickReveal). 새 발견·수동 굴림은 등급 길이 그대로
 function Hud.reveal(landmark: Landmarks.Landmark, info: RevealInfo)
 	hideToken += 1
+	local previous = popTween
+	if previous then
+		previous:Cancel()
+		popTween = nil
+	end
 	if editing then
 		compactReveal(landmark, info)
 		return
 	end
+	if quickPace(info) then
+		quickReveal(landmark, info)
+		return
+	end
 	local tier = landmark.Tier
-	local rank = revealPace(tier.Rank, info)
+	local rank = tier.Rank
 	local duration = REVEAL_SECONDS[rank] or 3
 	if info.Fast and rank < 4 then
 		duration = math.max(0.35, duration * 0.5)
@@ -1393,65 +1498,20 @@ function Hud.reveal(landmark: Landmarks.Landmark, info: RevealInfo)
 
 	-- 3) 결과 공개: 지구본 → 명소 모형(배치 모드에 잠깐 들어갔다 나와서 숨었어도 다시 보임)
 	container.Visible = true
-	Viewport.setSpin(refs.EarthView, 0)
-	refs.EarthView.Visible = false
-	Viewport.setLandmark(refs.ResultView, landmark, 10)
-	refs.ResultView.Visible = true
-	Viewport.setSpin(refs.ResultView, 40)
-	refs.Disc.BackgroundColor3 = tier.Color:Lerp(WHITE, 0.6)
+	showResult(landmark, info)
 	showBurst(tier.Color)
-	showRibbon(tier)
-
-	refs.RevealName.Text = landmark.Name
-	refs.RevealName.TextColor3 = tier.Color
-	refs.RevealOdds.Text = Format.oneIn(landmark.OneIn)
-
-	local bonus = info.Bonus or 0
-	refs.NewChip.Root.Visible = info.IsNew
-	-- 또 뽑아 별이 오름(가챠 중복): "★★☆☆☆ +1" 딱지가 퐁 튀어나옴 + 딩 소리
-	refs.StarChip.Root.Visible = info.StarUp
-	if info.StarUp then
-		refs.StarChip.Label.Text = starUpText(info.Stars or 0)
-	end
-	refs.BonusPill.Root.Visible = bonus > 0
-	if bonus > 0 then
-		refs.BonusPill.Label.Text = "+" .. Format.commas(bonus)
-	end
-	refs.TagRow.Visible = info.IsNew or info.StarUp or bonus > 0
-
-	refs.RevealScale.Scale = 1.35
-	TweenService:Create(refs.RevealScale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-		Scale = 1,
-	}):Play()
+	popCard(1.35, 0.35)
 	if rank >= 4 then
 		flash(tier.Color, math.min(0.25 + rank * 0.08, 0.8))
 		play(rareSound)
 	else
 		play(revealSound)
 	end
-	if info.StarUp then
-		local pop = refs.StarChipScale
-		pop.Scale = 0.3
-		TweenService:Create(pop, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
-			:Play()
-		play(starSound)
-		if info.Fast then
-			starUpToast(landmark, info)
-		end
-	end
 
 	-- 결과를 잠깐 보여 줌 (자동 굴림 중에도 희귀 명소는 바로 덮이지 않게)
 	local hold = if rank >= 4 then (if info.Fast then 1.8 else 0.6) else (if info.Fast then 0.2 else 0.1)
 	task.wait(hold)
-
-	local token = hideToken
-	task.delay(if info.Fast then 1 else 2.5, function()
-		if token == hideToken then
-			container.Visible = false
-			Viewport.setSpin(refs.ResultView, 0)
-			hideBurst()
-		end
-	end)
+	hideLater(if info.Fast then 1 else 2.5)
 end
 
 -- 잠깐 떴다 사라지는 알림: [아이콘][짧은 글자] 색 딱지. color 는 딱지 바탕색, icon 은 Icons 이름

@@ -160,9 +160,11 @@ local function dumpConfig()
 		regions = regions,
 		region_info = regionInfo,
 		landmarks = landmarks,
-		-- 게임 코드에 들어 있는 규칙(sim.py 의 rules): 자동 발견, AUTO 에서 이미 발견한 명소는 짧은 연출
+		-- 게임 코드에 들어 있는 규칙(sim.py 의 rules): 자동 발견, AUTO 에서 이미 발견한 명소는 결과 카드만 퐁(빠른 결과 —
+		-- 굴림 간격대로). short_reveal_* 는 예전 규칙(AUTO_KNOWN_REVEAL_RANK: 3등급처럼 짧은 연출)
 		rules = {
 			auto_discover_below_luck = PlayerState.autoDiscover ~= nil,
+			quick_reveal_known = (Config :: any).AUTO_QUICK_REVEAL == true,
 			short_reveal_known = knownRevealRank > 0,
 			short_reveal_rank = if knownRevealRank > 0 then knownRevealRank else 3,
 		},

@@ -198,18 +198,32 @@ local function autoFeature(landmark: Landmarks.Landmark)
 	end
 end
 
-local function roll()
+-- fromAuto: 자동 굴리기가 부른 굴림(자동 루프 · AUTO 켜기). 굴림 간격을 기다리는 동안 AUTO 를 끄거나 배치 모드에
+-- 들어가면 요청을 보내지 않고 그만둠(끈 뒤에 굴림이 하나 더 나가 원래 길이 연출이 뜨지 않게). 그 사이 [굴리기]·R 을
+-- 눌렀으면(manualAsked) 그만두지 않고 그 굴림으로 보냄
+local manualAsked = false
+local function roll(fromAuto: boolean?)
 	if rolling or not state then
+		if rolling and not fromAuto then
+			manualAsked = true
+		end
 		return
 	end
 	rolling = true
+	manualAsked = false
 	Hud.setRolling(true)
 
 	-- 쿨타임이 남았으면 기다렸다가 요청. 자동 굴림은 연출이 끝나면 바로 여기로 돌아와 남은 굴림 간격(Cooldown)만 기다림
-	-- (서버가 거절하면 RetryIn). 이미 발견한 명소는 AUTO 연출이 짧음(Hud.reveal — Config.AUTO_KNOWN_REVEAL_RANK)
+	-- (서버가 거절하면 RetryIn). 이미 발견한 명소는 AUTO 에서 결과 카드만 퐁 하고 기다리지 않으므로(Hud.reveal 빠른 결과 —
+	-- Config.AUTO_QUICK_REVEAL) AUTO 속도 = 서버 굴림 간격(여행사·빠른 굴림). 간격보다 먼저 보내는 일은 없음
 	local waitFor = lastRollSentAt + (state :: PlayerState.Snapshot).Cooldown - time()
 	if waitFor > 0 then
 		task.wait(waitFor)
+	end
+	if fromAuto and not manualAsked and (not autoRoll or autoPaused) then
+		rolling = false
+		Hud.setRolling(false)
+		return
 	end
 	lastRollSentAt = time()
 	local response = invoke("Roll")
@@ -270,7 +284,7 @@ local function toggleAuto()
 		return
 	end
 	if autoRoll and not rolling then
-		task.spawn(roll)
+		task.spawn(roll, true)
 	end
 end
 
@@ -699,7 +713,7 @@ end)
 task.spawn(function()
 	while true do
 		if autoRoll and not autoPaused and not rolling then
-			roll()
+			roll(true)
 		end
 		task.wait(0.05)
 	end

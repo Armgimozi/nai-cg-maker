@@ -10,7 +10,7 @@
   1. 150개 명소가 모두 최종안에 있고, 확률(N) 순서가 예전과 같음(동점 없음) — 굴림 순서·도감 순서가 그대로.
   2. 모든 명소의 등급이 예전과 같음(예전 N·예전 경계 vs 새 N·새 경계) — 색·수입 등급·여권 도장 대상이 그대로.
   3. (--check 또는 쓴 뒤) 실제 Luau 모듈을 불러온 게임 숫자(tools/balance/dump.luau)가 최종안을 적용한 숫자와 같음:
-     명소 확률, 등급 경계, 등급 수입, 환생 표·행운 규칙, 속보/홀로그램 기준, 별 기준·보너스, 규칙(자동 발견·짧은 연출).
+     명소 확률, 등급 경계, 등급 수입, 환생 표·행운 규칙, 속보/홀로그램 기준, 별 기준·보너스, 규칙(자동 발견·AUTO 빠른 결과).
      Config.luau 는 손으로 고친 뒤 여기서 대조합니다.
 """
 
@@ -103,7 +103,7 @@ def compare_game(rec: dict) -> list[str]:
     same("별 기준", [float(x) for x in game["star_thresholds"]], [float(x) for x in want["star_thresholds"]])
     same("별 보너스", float(game["star_income_bonus"]), float(want["star_income_bonus"]))
     same("발견 보너스", float(game["discovery_bonus_mult"]), float(want["discovery_bonus_mult"]))
-    for key in ("auto_discover_below_luck", "short_reveal_known", "short_reveal_rank"):
+    for key in ("auto_discover_below_luck", "quick_reveal_known", "short_reveal_known"):
         same(f"규칙 {key}", game["rules"].get(key), want["rules"].get(key, game["rules"].get(key)))
     return problems
 

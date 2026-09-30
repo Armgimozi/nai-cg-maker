@@ -15,6 +15,8 @@
 결과 표(마크다운)는 표준 출력으로 나오고, balance/sim_results.md 의 "8. Implementation round" 에 옮겨 적음.
 최종 선택: 세계수 1/100억, 속보 >= 1억, 홀로그램 >= 3.75억, 별 +30%/개, 환생 코인 그대로(tools/balance/variant_rec_design.py).
 모델·가정은 tools/balance/sim.py 그대로(온라인 시간만, AUTO, 업그레이드 정책 ready).
+그 뒤 9번 라운드(AUTO 빠른 결과 → 환생 코인·속보 다시)는 tools/balance/tune_quick.py. 여기 reveal/stars/flash 라운드는 빠른 결과를
+끈 채로(quickRevealKnown False) 8번 결과를 그대로 재현하고, --round final 은 지금 최종안(balance/variant_rec.json)을 돌림.
 """
 
 from __future__ import annotations
@@ -42,7 +44,8 @@ APPROVED = {
     "worldtree": 5_000_000_000,
     "announceOneIn": 25_000_000,
     "hologramOneIn": 100_000_000,
-    "rules": {"autoDiscoverBelowLuck": True, "shortRevealKnown": False},
+    # quickRevealKnown False: 이 라운드는 빠른 결과(9번 라운드, tools/balance/tune_quick.py) 전 — 게임 코드가 바뀌어도 재현되게
+    "rules": {"autoDiscoverBelowLuck": True, "shortRevealKnown": False, "quickRevealKnown": False},
     "starThresholds": [1, 3, 10, 30, 100],
     "starIncomeBonus": 0.5,
 }
@@ -68,6 +71,7 @@ def approved_variant() -> dict:
     v["rules"] = dict(APPROVED["rules"])
     v["starThresholds"] = list(APPROVED["starThresholds"])
     v["starIncomeBonus"] = APPROVED["starIncomeBonus"]
+    v["tierIncome"] = [1, 2, 5, 12, 35, 120, 500]
     # 승인 전 환생 표(최종안이 코인을 바꿨어도 출발점은 그대로)
     v["rebirth"] = dict(v["rebirth"])
     v["rebirth"]["steps"] = [dict(st) for st in v["rebirth"]["steps"]]
@@ -135,8 +139,21 @@ ROUNDS = {
 
 def load(spec: dict) -> S.Game:
     cfg = S.load_current("auto")
-    v = final_variant() if spec.get("final") else scenario(**spec["scenario"])
+    if spec.get("variant"):  # 변형 JSON 전체(tools/balance/tune_quick.py)
+        v = spec["variant"]
+    else:
+        v = final_variant() if spec.get("final") else scenario(**spec["scenario"])
     return S.Game(S.apply_variant(cfg, v))
+
+
+def with_passes(game: S.Game, prof: dict, owned: list[str]) -> dict:
+    """프로필의 게임패스를 owned 로 바꿈(예: 빠른 굴림만 산 무료 플레이어)."""
+    passes = game.cfg["passes"]
+    prof = dict(prof, passes=list(owned))
+    prof["luck_mult"] = float(np.prod([passes[p].get("luck_mult", 1) for p in owned])) if owned else 1.0
+    prof["cd_mult"] = float(np.prod([passes[p].get("cooldown_mult", 1) for p in owned])) if owned else 1.0
+    prof["income_mult"] = float(np.prod([passes[p].get("income_mult", 1) for p in owned])) if owned else 1.0
+    return prof
 
 
 def job(spec: dict) -> dict:
@@ -144,6 +161,8 @@ def job(spec: dict) -> dict:
     kind = spec["kind"]
     boosts = spec.get("boosts", 1.0) if kind == "paid" else 0.0
     prof = S.make_profile(game, kind, boosts, spec.get("server_luck", 0.0) if kind == "paid" else 0.0, 0.0)
+    if spec.get("passes") is not None:
+        prof = with_passes(game, prof, spec["passes"])
     t0 = time.time()
     res = S.simulate(game, prof, spec["sims"], spec["seed"], spec["horizon"], 0.02, spec.get("policy", "ready"), "auto")
     sm = S.summarize(game, res)
@@ -155,14 +174,14 @@ def job(spec: dict) -> dict:
     n_rare = res["rare_draws"].shape[2]
     rare_n = game.N[:n_rare]
     out["rare_by_threshold"] = {}
-    for thr in (8e6, 25e6, 45e6, 100e6, 375e6, 1e9):
+    for thr in (8e6, 25e6, 45e6, 100e6, 375e6, 1e9, 10e9):
         mask = rare_n >= thr
         out["rare_by_threshold"][str(int(thr))] = [
             float(res["rare_draws"][:, r, mask].sum() / secs[:, r].sum() * 3600) if secs[:, r].sum() > 0 else None for r in range(R + 1)
         ]
     # 첫 자기 속보(기준마다): 그 기준 이상 명소를 처음 발견한 시각
     out["first_news"] = {}
-    for thr in (25e6, 45e6, 100e6):
+    for thr in (25e6, 45e6, 100e6, 375e6):
         cols = np.flatnonzero(game.N >= thr)
         dt = res["disc_t"][:, cols]
         has = ~np.isnan(dt)

@@ -31,6 +31,15 @@ A 에서 바꾼 것(모두 sim.py 로 반복 측정해서 고름 — balance/sim
      홀로그램 1억 -> 3.75억(후반 1인 시간당 속보 0.22 / 0.44, 홀로그램 0.05 / 0.1 = 승인안과 같은 빈도).
   7. 가챠식 별: 처음 발견 = 별 0, 중복마다 +1(최대 5) -> STAR_THRESHOLDS {2, 3, 4, 5, 6}, 별 1개마다 수입 +30%
      (5성 = ×2.5). +50% 는 5번째 환생 15시간·10번째 13.9일로 목표보다 빨라서 낮춤. 환생 코인은 그대로.
+
+9번 라운드(2026-09-30, "자동 굴림 빠르게"를 제대로 — tools/balance/tune_quick.py, balance/sim_results.md 9번):
+  8. 3등급 짧은 연출도 왕복 포함 약 1.35초라 굴림 간격보다 길어서 여행사·빠른 굴림이 AUTO 를 못 빠르게 했음 ->
+     AUTO 중 이미 발견한 명소는 결과 카드만 퐁(rules.quickRevealKnown = Config.AUTO_QUICK_REVEAL, 기다리지 않음) ->
+     AUTO 속도 = 굴림 간격(후반 시간당 3,000 / 4,286 / 6,000 / 8,571번 = 없음 / 빠른 굴림 / 여행사 최대 / 둘 다).
+     숫자 그대로면 3번째 1.8시간·5번째 15시간(목표보다 빠름) -> 환생 코인 다시: 1단계 30만 -> 40만(첫 환생 약 17분),
+     2~5단계 약 ×2~2.7(3번째 약 2.8시간, 5번째 약 26시간), 6~10단계 약 ×1.4(10번째 약 23일) — 승인안의 진행 속도와 같음.
+     속보 1억 -> 3.75억(샹그릴라·세계수 = 홀로그램과 같음. 1억이면 후반 1인 시간당 0.49 / 1.4번 — 승인안 0.22 / 0.44 의 2~3배).
+     별 보너스·등급 수입·명소 확률(세계수 1/100억 — 스토어 그림)은 그대로.
 """
 
 from __future__ import annotations
@@ -43,12 +52,25 @@ ROOT = Path(__file__).resolve().parents[2]
 BASE = ROOT / "balance" / "variant_a.json"
 OUT = ROOT / "balance" / "variant_rec.json"
 
-STEP_COINS = {1: 300_000, 5: 1_500_000_000}  # 환생 단계(1부터) -> 코인
+# 환생 단계(1부터) -> 코인. 9번 라운드(빠른 결과): 30만·150만·2,500만·2.5억·15억·60억·130억·280억·650억·1,400억 에서
+STEP_COINS = {
+    1: 400_000,
+    2: 4_000_000,
+    3: 60_000_000,
+    4: 500_000_000,
+    5: 3_000_000_000,
+    6: 9_000_000_000,
+    7: 18_000_000_000,
+    8: 40_000_000_000,
+    9: 90_000_000_000,
+    10: 200_000_000_000,
+}
 STEP_LANDMARKS = {10: ["skyisland"]}  # 환생 단계 -> 필요한 명소
-ANNOUNCE_ONE_IN = 100_000_000  # 구현 라운드: 2,500만 -> 1억 (짧은 연출로 후반 굴림이 빨라짐)
+ANNOUNCE_ONE_IN = 375_000_000  # 구현 라운드: 2,500만 -> 1억, 9번 라운드(빠른 결과): 1억 -> 3.75억(= 홀로그램)
 HOLOGRAM_ONE_IN = 375_000_000  # 구현 라운드: 1억 -> 3.75억(샹그릴라·세계수)
 LANDMARKS = {"worldtree": 10_000_000_000}  # 구현 라운드: 1/50억 -> 1/100억
-RULES = {"autoDiscoverBelowLuck": True, "shortRevealKnown": True, "shortRevealRank": 3}
+# 9번 라운드: AUTO 에서 이미 발견한 명소 = 결과 카드만 퐁(Config.AUTO_QUICK_REVEAL). 예전 3등급 짧은 연출(shortReveal)은 끔
+RULES = {"autoDiscoverBelowLuck": True, "shortRevealKnown": False, "quickRevealKnown": True}
 STAR_THRESHOLDS = [2, 3, 4, 5, 6]  # 가챠식: 처음 = 별 0, 중복마다 +1
 STAR_INCOME_BONUS = 0.3
 
@@ -66,14 +88,19 @@ NOTES = (
     "구현 라운드(승인 뒤): AUTO 에서 이미 발견한 명소는 짧은 연출(shortRevealKnown, 3등급처럼) -> 세계수 1/100억, "
     "속보 >= 1억, 홀로그램 >= 3.75억(후반 1인 시간당 속보 약 0.22 / 0.44회). 가챠식 별(처음 발견 별 0, 중복마다 +1, "
     "최대 5) + 별 1개마다 수입 +30%. 환생 코인 그대로. 첫 환생 약 16분, 3번째 2.4시간, 5번째 18시간, 10번째 약 18일(무료). "
-    "근거: balance/sim_results.md 8번, 재현: tools/balance/tune_final.py"
+    "근거: balance/sim_results.md 8번, 재현: tools/balance/tune_final.py. "
+    "9번 라운드(자동 굴림 빠르게): AUTO 에서 이미 발견한 명소는 결과 카드만 퐁 하고 기다리지 않음(quickRevealKnown = "
+    "Config.AUTO_QUICK_REVEAL) -> AUTO 속도 = 굴림 간격(여행사·빠른 굴림이 AUTO 도 빠르게, 후반 시간당 3,000~8,571번). "
+    "환생 코인 40만·400만·6,000만·5억·30억·90억·180억·400억·900억·2,000억(첫 환생 약 17분, 3번째 2.8시간, 5번째 약 26시간, "
+    "10번째 약 23일 — 승인안과 같은 속도), 속보 >= 3.75억(= 홀로그램, 후반 1인 시간당 약 0.11 / 0.33회). "
+    "근거: balance/sim_results.md 9번, 재현: tools/balance/tune_quick.py"
 )
 
 
 def build() -> dict:
     base = json.loads(BASE.read_text(encoding="utf-8"))
     v = copy.deepcopy(base)
-    v["name"] = "최종안 (추천안 + 구현 라운드): 환생 행운 x2^r, 첫 환생 약 16분, 10번째 약 18일, 가장 희귀 1/100억, 가챠식 별"
+    v["name"] = "최종안 (추천안 + 구현 라운드 + 빠른 결과): 환생 행운 x2^r, 첫 환생 약 17분, 10번째 약 23일, 가장 희귀 1/100억, 가챠식 별"
     steps = v["rebirth"]["steps"]
     for k, coins in STEP_COINS.items():
         steps[k - 1]["coins"] = coins

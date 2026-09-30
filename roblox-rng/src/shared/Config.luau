@@ -36,15 +36,16 @@ local Config = {
 	ROLL_COOLDOWN = 1.2, -- 굴리기 사이 최소 간격(초). 서버가 강제합니다.
 	COOLDOWN_TOLERANCE = 0.15, -- 네트워크 지연을 감안한 허용 오차(초)
 	BASE_LUCK = 1,
-	-- 자동 굴림(AUTO) 중 이미 발견한 명소는 등급과 상관없이 이 등급(Rank)의 AUTO 연출 길이로 보여 줌(새 발견·수동 굴림은
-	-- 원래 길이). 4등급 이상의 긴 정지가 없어져 후반 AUTO 가 약 4.5배 빨라짐. 0 이면 끔(모든 결과를 등급 길이대로).
-	-- 이 짧은 연출도 한 번에 약 1.3초(왕복 포함)라 굴림 간격(1.2초)보다 길어서 여행사·빠른 굴림은 AUTO 속도를 거의
-	-- 못 바꿈(balance/sim_results.md 8e)
-	AUTO_KNOWN_REVEAL_RANK = 3,
+	-- 자동 굴림(AUTO) 중 이미 발견한 명소는 지구본을 돌리지 않고 결과 카드만 퐁(빠른 결과, 새 발견·수동 굴림은 원래 연출).
+	-- 연출을 기다리지 않아서 AUTO 는 굴림 간격대로 굴림 → 여행사(최대 -50%)·빠른 굴림(×0.7)이 AUTO 도 빠르게 함
+	-- (후반 시간당 3,000 / 4,286 / 6,000 / 8,571번 = 없음 / 빠른 굴림 / 여행사 최대 / 둘 다 — balance/sim_results.md 9번).
+	-- false 면 모든 결과를 등급 길이의 연출로(연출이 굴림 간격보다 길어 AUTO 가 느려짐)
+	AUTO_QUICK_REVEAL = true,
 
-	-- 1/N 이상 희귀한 명소를 발견하면 서버 전체에 "뉴스 속보"(사하라 신기루 성·샹그릴라·세계수 = 후반 1인 시간당 약 0.2~0.4번)
-	ANNOUNCE_ONE_IN = 100000000,
-	-- 1/N 이상이면 광장 하늘에 거대한 홀로그램까지 띄움(샹그릴라·세계수)
+	-- 1/N 이상 희귀한 명소를 발견하면 서버 전체에 "뉴스 속보"(샹그릴라·세계수 = 후반 1인 시간당 약 0.1~0.3번. AUTO 가 굴림
+	-- 간격대로 빨라져서 1억(사하라 신기루 성 포함)이면 0.5~1.4번 — balance/sim_results.md 9번)
+	ANNOUNCE_ONE_IN = 375000000,
+	-- 1/N 이상이면 광장 하늘에 거대한 홀로그램까지 띄움(샹그릴라·세계수 — 속보와 같음)
 	HOLOGRAM_ONE_IN = 375000000,
 
 	-- 새 명소를 처음 발견했을 때 보너스 코인 = ceil(DISCOVERY_BONUS_MULT * N ^ 0.5)
@@ -114,18 +115,19 @@ local Config = {
 	-- 환생은 MAX_REBIRTHS 번까지(목록 길이와 같음). 다 하면 더 환생할 수 없음.
 	-- (명소 목록이 늘어나도 그대로 쓸 수 있는 명소 Id 만 사용)
 	-- 요구 명소는 그 판에 부스트를 다 켠 최대 행운보다 희귀해야 함(행운 ≥ N 이면 굴림에서 못 나옴 — 테스트가 확인).
-	-- 진행 목표(무료, AUTO, 온라인 시간): 첫 환생 약 16분, 3번째 2.4시간, 5번째 18시간, 10번째 약 18일(balance/)
+	-- 진행 목표(무료, AUTO, 온라인 시간): 첫 환생 약 17분, 3번째 2.8시간, 5번째 약 26시간, 10번째 약 23일
+	-- (유료 게임패스 3종 + 하루 부스트 1번 = 8분 · 78분 · 12시간 · 11일 — balance/sim_results.md 9번)
 	REBIRTHS = {
-		{ Coins = 300000, Landmarks = { "eiffel", "liberty" } },
-		{ Coins = 1500000, Landmarks = { "pyramid", "chichen" } },
-		{ Coins = 25000000, Landmarks = { "moai", "stonehenge", "alexandria" } },
-		{ Coins = 250000000, Landmarks = { "babylon", "artemis", "rhodes" } },
-		{ Coins = 1500000000, Landmarks = { "zeus", "mausoleum", "trojanhorse" } },
-		{ Coins = 6000000000, Landmarks = { "atlantis", "labyrinth" } },
-		{ Coins = 13000000000, Landmarks = { "hwangnyongsa", "eldorado" } },
-		{ Coins = 28000000000, Landmarks = { "fountainofyouth", "yonggung" } },
-		{ Coins = 65000000000, Landmarks = { "mu", "zealandia" } },
-		{ Coins = 140000000000, Landmarks = { "skyisland" } },
+		{ Coins = 400000, Landmarks = { "eiffel", "liberty" } },
+		{ Coins = 4000000, Landmarks = { "pyramid", "chichen" } },
+		{ Coins = 60000000, Landmarks = { "moai", "stonehenge", "alexandria" } },
+		{ Coins = 500000000, Landmarks = { "babylon", "artemis", "rhodes" } },
+		{ Coins = 3000000000, Landmarks = { "zeus", "mausoleum", "trojanhorse" } },
+		{ Coins = 9000000000, Landmarks = { "atlantis", "labyrinth" } },
+		{ Coins = 18000000000, Landmarks = { "hwangnyongsa", "eldorado" } },
+		{ Coins = 40000000000, Landmarks = { "fountainofyouth", "yonggung" } },
+		{ Coins = 90000000000, Landmarks = { "mu", "zealandia" } },
+		{ Coins = 200000000000, Landmarks = { "skyisland" } },
 	} :: { RebirthStep },
 	MAX_REBIRTHS = 10, -- 환생 상한(= REBIRTHS 단계 수). 보너스도 여기서 멈춤
 	REBIRTH_LUCK_MULT = 2, -- 환생 1회마다 행운 ×2 (행운 × 2^환생 수: 10번 = ×1,024)
