@@ -22152,9 +22152,15 @@ local function fetchShopInfo(item: Perks.Item): ShopInfo?
 	end
 	local infoType = if item.Kind == "Pass" then Enum.InfoType.GamePass else Enum.InfoType.Product
 	for attempt = 1, 2 do
+		-- 새 이름(GetProductInfoAsync)을 먼저, 없거나 실패하면 옛 이름(GetProductInfo)
 		local ok, info = pcall(function()
-			return MarketplaceService:GetProductInfo(item.Id, infoType)
+			return (MarketplaceService :: any):GetProductInfoAsync(item.Id, infoType)
 		end)
+		if not ok then
+			ok, info = pcall(function()
+				return MarketplaceService:GetProductInfo(item.Id, infoType)
+			end)
+		end
 		if ok and type(info) == "table" then
 			local price = info.PriceInRobux
 			local art = tonumber(info.IconImageAssetId)
