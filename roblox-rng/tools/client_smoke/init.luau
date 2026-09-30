@@ -312,6 +312,22 @@ do
 	local cooldown = cooldownNow()
 	-- 앞 확인에서 돌던 굴림이 끝날 때까지
 	Mock.runScheduler(Mock.clock() + 8)
+	-- 프레임 흉내(60fps): Roblox 처럼 task.wait 가 기다린 뒤 첫 프레임에 깸 — 늦음이 굴림마다 쌓이면 AUTO 가 굴림
+	-- 간격보다 느려짐(0.42초 → 26프레임 0.433초). 클라이언트는 원래 보낼 수 있던 시각을 기준으로 해서 평균이 굴림 간격 그대로
+	local FRAME = 1 / 60
+	Mock.frameSeconds = FRAME
+	-- 굴리기 버튼 지구본 아이콘의 회전 속도(Icons.setSpin — 180 이상이면 돎, 60 은 멈춰서 0°)
+	local rollIcon: Instance? = nil
+	for _, d in findNamed(findNamed(gui, "RollBar"), "Roll"):GetDescendants() do
+		if d:GetAttribute("Spin") ~= nil then
+			rollIcon = d
+			break
+		end
+	end
+	check(rollIcon ~= nil, "굴리기 버튼 지구본 아이콘")
+	local function rollSpin(): number
+		return if rollIcon then tonumber(rollIcon:GetAttribute("Spin")) or 0 else 0
+	end
 
 	-- n 번째 굴림 요청의 결과 이름(rollCycle 이면 돌아가며)
 	local function nameFor(n: number): string
@@ -371,6 +387,28 @@ do
 		Mock.runScheduler(Mock.clock() + 8) -- 마지막 연출 끝
 		return suspense, gaps(from), shownAfter
 	end
+	-- 굴림 간격대로인지: 한 번 한 번은 프레임 하나 안(task.wait 는 다음 프레임에 깸), 평균은 굴림 간격 그대로
+	-- (보낸 시각 합 = n × 굴림 간격 + 마지막·처음 프레임 늦음 차이 → 평균 오차 ≤ 프레임 / n)
+	local function onSchedule(list: { number }, period: number, minCount: number, label: string)
+		local low, high = range(list)
+		local average = mean(list)
+		check(
+			#list >= minCount
+				and low >= period - FRAME - 1e-6
+				and high <= period + FRAME + 1e-6
+				and math.abs(average - period) <= FRAME / #list + 1e-6,
+			string.format(
+				"%s = 굴림 간격대로 평균 %.4f초 (%.3f~%.3f, 굴림 간격 %.2f초, %d번)",
+				label,
+				average,
+				low,
+				high,
+				period,
+				#list
+			)
+		)
+	end
+	local SHOWN_WITHIN = 2 * FRAME + 0.051 -- 응답이 온 뒤 카드가 보이기까지(프레임 2개 + 확인 간격 0.05초)
 
 	-- 네트워크 왕복 0.12초 흉내(요청이 서버에 닿기까지 0.06 + 응답 0.06), 결과는 이미 발견한 전설 둘을 번갈아
 	-- (세계수 ↔ 샹그릴라 — 이름이 바뀌어야 "새 결과가 보였다"를 셀 수 있음)
@@ -385,23 +423,20 @@ do
 	-- 6등급 이상은 햇살(희귀 퐁), 흔한 명소는 햇살 없음(7번)
 	local burst = findNamed(revealFrame, "Burst")
 	local rareBurst = false
+	local lowestSpin = math.huge
 	local suspense, baseGaps, baseShown = autoRun(12, function()
 		rareBurst = rareBurst or (revealFrame.Visible and burst.Visible)
+		lowestSpin = math.min(lowestSpin, rollSpin())
 	end)
-	local low, high = range(baseGaps)
+	onSchedule(baseGaps, cooldown, 8, "이미 발견한 전설(왕복 " .. rollDelay .. "초)")
 	check(
-		#baseGaps >= 8 and low >= cooldown - 1e-6 and high <= cooldown + 0.02,
-		string.format(
-			"이미 발견한 전설 = 굴림 간격대로 %.2f~%.2f초 (굴림 간격 %.2f초, 왕복 %.2f초)",
-			low,
-			high,
-			cooldown,
-			rollDelay
-		)
+		lowestSpin >= 180,
+		string.format("AUTO 동안 굴리기 버튼 지구본이 계속 돎(굴림마다 0°로 안 튐, 가장 느릴 때 %d)", lowestSpin)
 	)
+	check(rollSpin() < 180, "AUTO 끄면 지구본 아이콘 멈춤 (" .. rollSpin() .. ")")
 	local _, shownHigh = range(baseShown)
 	check(
-		#baseShown >= #baseGaps and shownHigh <= rollDelay + 0.051,
+		#baseShown >= #baseGaps and shownHigh <= rollDelay + SHOWN_WITHIN,
 		string.format(
 			"결과마다 응답이 오자마자 카드(요청 뒤 %.2f초 안, %d번)",
 			shownHigh,
@@ -419,13 +454,9 @@ do
 		string.format("빠른 굴림 굴림 간격 %.2f초 = %.2f × 0.7", fast, cooldown)
 	)
 	local _, fastGaps, fastShown = autoRun(10)
-	local fLow, fHigh = range(fastGaps)
+	onSchedule(fastGaps, fast, 10, "빠른 굴림 AUTO")
 	check(
-		#fastGaps >= 10 and fLow >= fast - 1e-6 and fHigh <= fast + 0.02,
-		string.format("빠른 굴림 = AUTO 간격 %.2f~%.2f초 (%.2f초)", fLow, fHigh, fast)
-	)
-	check(
-		math.abs(mean(fastGaps) / mean(baseGaps) - 0.7) < 0.02,
+		math.abs(mean(fastGaps) / mean(baseGaps) - 0.7) < 0.005,
 		string.format("빠른 굴림 AUTO 간격 = 없을 때 × %.3f (0.7)", mean(fastGaps) / mean(baseGaps))
 	)
 	check(#fastShown >= #fastGaps, "빠른 굴림: 결과마다 카드 (" .. #fastShown .. "번)")
@@ -441,13 +472,9 @@ do
 	data.Upgrades.Agency = agencyMax
 	local both = cooldownNow()
 	local bothSuspense, bothGaps, bothShown = autoRun(8)
-	local bLow, bHigh = range(bothGaps)
+	onSchedule(bothGaps, both, 15, "여행사 최대 + 빠른 굴림 AUTO")
 	check(
-		#bothGaps >= 15 and bLow >= both - 1e-6 and bHigh <= both + 0.02,
-		string.format("여행사 최대 + 빠른 굴림 = AUTO 간격 %.2f~%.2f초 (%.2f초)", bLow, bHigh, both)
-	)
-	check(
-		math.abs(mean(bothGaps) / mean(baseGaps) - 0.35) < 0.01,
+		math.abs(mean(bothGaps) / mean(baseGaps) - 0.35) < 0.005,
 		string.format(
 			"여행사 최대 + 빠른 굴림 AUTO 간격 = 없을 때 × %.3f (0.5 × 0.7)",
 			mean(bothGaps) / mean(baseGaps)
@@ -455,7 +482,7 @@ do
 	)
 	local _, bothShownHigh = range(bothShown)
 	check(
-		#bothShown >= #bothGaps and bothShownHigh <= rollDelay + 0.051 and not bothSuspense,
+		#bothShown >= #bothGaps and bothShownHigh <= rollDelay + SHOWN_WITHIN and not bothSuspense,
 		string.format("0.42초 간격에도 결과마다 카드(요청 뒤 %.2f초 안)", bothShownHigh)
 	)
 	check(
