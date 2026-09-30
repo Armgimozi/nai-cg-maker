@@ -90,6 +90,40 @@ local function newStamps(before: PlayerState.Snapshot, after: PlayerState.Snapsh
 	return added
 end
 
+-- 원격 찾기. 서버가 아직 모르는 원격(예: 옛 서버에 Rebirth 가 없음)이면 영원히 기다리지 않고 nil
+local remoteFolder: Instance? = nil
+local function findRemote(name: string, seconds: number): Instance?
+	if not remoteFolder then
+		remoteFolder = Net.fn("GetState").Parent
+	end
+	local folder = remoteFolder
+	if not folder then
+		return nil
+	end
+	return folder:FindFirstChild(name) or folder:WaitForChild(name, seconds)
+end
+
+-- 분석: 화면에서만 알 수 있는 일을 서버에 알림(kind: "ShopOpened" | "CollectionOpened" | "AutoOn" | "TapEdit" — 서버 Analytics 가
+-- 이름·간격을 거르고 AnalyticsService 로 보냄, 이벤트는 서버에서만 보낼 수 있음). 기다리지 않고, 실패해도 게임은 그대로
+local function track(kind: string)
+	task.spawn(function()
+		local remote = findRemote("Track", 5)
+		if remote and remote:IsA("RemoteEvent") then
+			pcall(function()
+				(remote :: RemoteEvent):FireServer(kind)
+			end)
+		end
+	end)
+end
+-- 창을 열었을 때 알릴 것(메뉴 · 도장 알림)
+local OPEN_EVENTS = { Shop = "ShopOpened", Collection = "CollectionOpened" }
+local function trackOpened()
+	local kind = OPEN_EVENTS[Panels.current() or ""]
+	if kind then
+		track(kind)
+	end
+end
+
 -- 도감을 그 대륙 탭으로 열기(도장 알림을 눌렀을 때). 배치 모드면 먼저 나감(다른 창을 열 때와 같게)
 local function openStampRegion(regionId: string)
 	ParkEdit.exit()
@@ -147,40 +181,6 @@ local function onStateEvent(snapshot: any)
 		return
 	end
 	applyState(snapshot)
-end
-
--- 원격 찾기. 서버가 아직 모르는 원격(예: 옛 서버에 Rebirth 가 없음)이면 영원히 기다리지 않고 nil
-local remoteFolder: Instance? = nil
-local function findRemote(name: string, seconds: number): Instance?
-	if not remoteFolder then
-		remoteFolder = Net.fn("GetState").Parent
-	end
-	local folder = remoteFolder
-	if not folder then
-		return nil
-	end
-	return folder:FindFirstChild(name) or folder:WaitForChild(name, seconds)
-end
-
--- 분석: 화면에서만 알 수 있는 일을 서버에 알림(kind: "ShopOpened" | "CollectionOpened" | "AutoOn" | "TapEdit" — 서버 Analytics 가
--- 이름·간격을 거르고 AnalyticsService 로 보냄, 이벤트는 서버에서만 보낼 수 있음). 기다리지 않고, 실패해도 게임은 그대로
-local function track(kind: string)
-	task.spawn(function()
-		local remote = findRemote("Track", 5)
-		if remote and remote:IsA("RemoteEvent") then
-			pcall(function()
-				(remote :: RemoteEvent):FireServer(kind)
-			end)
-		end
-	end)
-end
--- 창을 열었을 때 알릴 것(메뉴 · 도장 알림)
-local OPEN_EVENTS = { Shop = "ShopOpened", Collection = "CollectionOpened" }
-local function trackOpened()
-	local kind = OPEN_EVENTS[Panels.current() or ""]
-	if kind then
-		track(kind)
-	end
 end
 
 local function invoke(name: string, ...: any): any

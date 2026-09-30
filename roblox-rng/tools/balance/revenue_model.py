@@ -258,7 +258,7 @@ def sensitivity(products: dict, dau: float = 5000) -> list[dict]:
             monthly(dau, with_changes(base, spend=1.6), products)["usd"],
         ),
         (
-            "10분+ 플레이 비율(Creator Rewards)",
+            "10분+ 플레이(Creator Rewards)",
             "15%",
             "50%",
             monthly(dau, with_changes(base, qualify=0.15), products)["usd"],
@@ -368,6 +368,10 @@ def usd(v: float) -> str:
     return f"${v:.3f}"
 
 
+def usd_chart(v: float) -> str:
+    return f"${v:.2f}" if v < 1 else usd(v)
+
+
 def rbx(v: float) -> str:
     if v >= 1e6:
         return f"{v / 1e6:.2f}M"
@@ -442,8 +446,11 @@ def pass_value(sims: int, horizon_days: float, seed: int) -> dict:
         ("행운 VIP", prof(["LuckVIP"])),
         ("빠른 굴림", prof(["FastRoll"])),
         ("패스 3종", prof(["DoubleIncome", "LuckVIP", "FastRoll"])),
-        ("무료 + 행운 부스트 하루 1번", prof([], boosts=1.0)),
-        ("무료 + 코인 팩 하루 1번", prof([], coinpacks=1.0)),
+        # sim 의 "하루" = 온라인 24시간. 하루 20분 하는 사람이 매일 하나씩 사면 = 온라인 20분마다 하나(72개/온라인 하루)
+        ("무료 + 행운 부스트 온라인 24시간마다 1번", prof([], boosts=1.0)),
+        ("무료 + 행운 부스트 늘 켬(플레이 20분마다 1번)", prof([], boosts=96.0)),
+        ("무료 + 코인 팩 온라인 24시간마다 1번", prof([], coinpacks=1.0)),
+        ("무료 + 코인 팩 플레이 20분마다 1번", prof([], coinpacks=72.0)),
     ]
     out = []
     for name, p in profiles:
@@ -489,6 +496,7 @@ def chart(res: dict, out: Path, font_regular: str | None, font_bold: str | None)
         font_manager.fontManager.addfont(str(reg.get_file()))
         plt.rcParams["font.family"] = reg.get_name()
     plt.rcParams["axes.unicode_minus"] = False
+    plt.rcParams["text.parse_math"] = False  # "$114 (3만 R$)" 처럼 $ 가 둘인 글자를 수식으로 읽지 않게
 
     fig = plt.figure(figsize=(15.5, 9.6), dpi=150, facecolor=SURFACE)
     fig.text(0.045, 0.955, "LANDMARK RNG! 예상 월 수익", fontsize=20, color=INK, fontproperties=bold, va="top")
@@ -503,7 +511,7 @@ def chart(res: dict, out: Path, font_regular: str | None, font_bold: str | None)
     )
 
     # 1) DAU → 월 USD (로그-로그) --------------------------------------------------------------
-    ax = fig.add_axes([0.06, 0.12, 0.42, 0.72], facecolor=SURFACE)
+    ax = fig.add_axes([0.06, 0.12, 0.40, 0.66], facecolor=SURFACE)
     xs = list(DAU_TIERS)
     lo = [r["usd"] for r in res["tiers"]["pess"]]
     mid = [r["usd"] for r in res["tiers"]["base"]]
@@ -513,7 +521,16 @@ def chart(res: dict, out: Path, font_regular: str | None, font_bold: str | None)
     ax.plot(xs, mid, linestyle="none", marker="o", markersize=8, markerfacecolor=BLUE, markeredgecolor=SURFACE, markeredgewidth=2, zorder=4)
     for x, y, a, b in zip(xs, mid, lo, hi):
         ax.text(x * 1.12, y, usd(y), fontsize=12, color=INK, fontproperties=bold, va="center", ha="left", zorder=5)
-        ax.text(x * 1.12, y / 1.9, f"{usd(a)}~{usd(b)}", fontsize=9.5, color=INK2, va="center", ha="left", zorder=5)
+        ax.text(x * 1.12, y / 1.9, f"{usd_chart(a)}~{usd_chart(b)}", fontsize=9.5, color=INK2, va="center", ha="left", zorder=5)
+    ax.text(
+        30000,
+        1.3,
+        "새 게임 대부분은 추천·광고 없이\n왼쪽 끝(DAU 50 안팎)에 머묾",
+        ha="right",
+        va="bottom",
+        fontsize=9.5,
+        color=INK2,
+    )
     # DevEx 최소 인출 = 한 달에 $114 이상이면 매달 인출 가능
     ax.axhline(FACTS["devex_min"] * FACTS["devex"], color=MUTED, linewidth=1, zorder=2)
     ax.text(
@@ -522,7 +539,7 @@ def chart(res: dict, out: Path, font_regular: str | None, font_bold: str | None)
     ax.set_xscale("log")
     ax.set_yscale("log")
     ax.set_xlim(35, 150000)
-    ax.set_ylim(0.5, 60000)
+    ax.set_ylim(0.5, 30000)
     ax.set_xticks(xs)
     ax.set_xticklabels([f"{d:,}\nCCU≈{d * PLAYTIME_MIN_PER_DAU / 1440:.0f}" if d >= 500 else f"{d:,}\nCCU≈1" for d in xs])
     yt = [1, 10, 100, 1000, 10000]
@@ -595,7 +612,7 @@ def chart(res: dict, out: Path, font_regular: str | None, font_bold: str | None)
             ax3.barh(i, pct * 100, height=0.56, color=color, edgecolor=SURFACE, linewidth=2, zorder=3)
             ha = "left" if pct >= 0 else "right"
             off = 3 if pct >= 0 else -3
-            ax3.text(pct * 100 + off, i, f"{lab}  {pct:+.0%}", va="center", ha=ha, fontsize=9, color=INK2)
+            ax3.text(pct * 100 + off, i, f"{lab} → {pct:+.0%}", va="center", ha=ha, fontsize=9, color=INK2)
     ax3.axvline(0, color=MUTED, linewidth=1, zorder=4)
     ax3.set_yticks(range(len(sens)))
     ax3.set_yticklabels([r["name"] for r in sens])

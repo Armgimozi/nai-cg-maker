@@ -287,6 +287,8 @@ test("새 데이터 기본값", function()
 	eq(next(d.Discovered), nil, "Discovered")
 	eq(next(d.Boosts), nil, "Boosts")
 	eq(#d.Receipts, 0, "Receipts")
+	eq(d.Analytics.Onboarding, 0, "분석: 보낸 온보딩 단계 없음")
+	eq(d.Analytics.Legacy, false, "분석: 새 플레이어 = 퍼널 안")
 end)
 test("applyRoll: 처음 발견 보너스, 중복은 보너스 없음, 중복마다 별 +1 (가챠식)", function()
 	local d = PlayerState.new()
@@ -1253,6 +1255,81 @@ test("reconcile: 환생·발견·부스트·영수증 정리", function()
 		"구매 창 상한을 넘게 산 시간도 다음 접속에 그대로"
 	)
 	eq(PlayerState.reconcile({ Rebirths = math.huge }).Rebirths, 0, "inf")
+end)
+
+print("\n[분석 기록 — 온보딩 한 번만 · 옛 저장 (PlayerState)]")
+local function stepsText(list: { number }): string
+	local parts = {}
+	for i, n in list do
+		parts[i] = tostring(n)
+	end
+	return table.concat(parts, ",")
+end
+test("onboardingStep: 한 단계에 한 번, 1번부터 빈틈없이 이어진 단계까지만 보냄(건너뛴 단계는 앞 단계와 같이)", function()
+	local d = PlayerState.new()
+	for step = 1, 4 do
+		eq(stepsText(PlayerState.onboardingStep(d, step)), tostring(step), "단계 " .. step)
+		eq(stepsText(PlayerState.onboardingStep(d, step)), "", "같은 단계 두 번째 " .. step)
+	end
+	eq(stepsText(PlayerState.onboardingStep(d, 6)), "", "5 전에 6: 기억만(퍼널은 건너뛴 앞 단계를 다 한 것으로 침)")
+	eq(PlayerState.onboardingDone(d, 6), true, "6 은 해냄으로 적힘")
+	eq(PlayerState.onboardingDone(d, 5), false)
+	eq(stepsText(PlayerState.onboardingStep(d, 8)), "", "8 도 기억만")
+	eq(stepsText(PlayerState.onboardingStep(d, 5)), "5,6", "5 를 하면 5·6 을 차례로")
+	eq(stepsText(PlayerState.onboardingStep(d, 7)), "7,8", "7 을 하면 7·8")
+	eq(stepsText(PlayerState.onboardingStep(d, 6)), "", "이미 보낸 단계")
+	eq(d.Analytics.Onboarding, 255, "8단계 비트")
+	for _, bad in { 0, -1, 1.5, PlayerState.ONBOARDING_MAX_STEP + 1, 0 / 0 } do
+		eq(stepsText(PlayerState.onboardingStep(d, bad)), "", "범위 밖 단계 " .. tostring(bad))
+	end
+	eq(d.Analytics.Onboarding, 255, "범위 밖 단계는 안 적힘")
+end)
+test("onboardingStep: 저장·불러오기(reconcile) 뒤에도 보낸 단계는 또 안 보냄, 환생해도 유지", function()
+	local d = PlayerState.new()
+	PlayerState.onboardingStep(d, 1)
+	PlayerState.onboardingStep(d, 2)
+	PlayerState.onboardingStep(d, 4) -- 3 을 기다림
+	local saved = PlayerState.reconcile({
+		Rolls = 3,
+		Analytics = { Onboarding = d.Analytics.Onboarding, Legacy = false },
+	})
+	eq(saved.Analytics.Legacy, false, "분석 기록이 있으면 굴림이 있어도 새 플레이어 그대로")
+	eq(stepsText(PlayerState.onboardingStep(saved, 1)), "", "다시 접속: 1 은 이미 보냄")
+	eq(stepsText(PlayerState.onboardingStep(saved, 2)), "", "2 도")
+	eq(stepsText(PlayerState.onboardingStep(saved, 3)), "3,4", "기다리던 4 는 3 과 같이")
+	saved.Coins = Config.REBIRTHS[1].Coins
+	for _, id in Config.REBIRTHS[1].Landmarks do
+		saved.Inventory[id] = 1
+	end
+	assert(PlayerState.rebirth(saved), "환생")
+	eq(saved.Analytics.Onboarding, 15, "환생해도 분석 기록 유지")
+end)
+test("reconcile 분석 기록: 옛 저장(굴림·환생·발견 기록 있음) = 예전부터 하던 플레이어(퍼널 밖), 깨진 값 정리", function()
+	local legacy = PlayerState.reconcile({ Rolls = 812, Coins = 50, Inventory = { eiffel = 2 } })
+	eq(legacy.Analytics.Legacy, true, "굴림이 있는 옛 저장")
+	eq(legacy.Analytics.Onboarding, 0)
+	eq(PlayerState.onboardingDone(legacy, 1), true, "퍼널 밖 = 다 한 것으로")
+	for step = 1, 8 do
+		eq(stepsText(PlayerState.onboardingStep(legacy, step)), "", "옛 플레이어는 온보딩을 안 보냄 " .. step)
+	end
+	eq(PlayerState.reconcile({ Rebirths = 2 }).Analytics.Legacy, true, "환생만 있는 옛 저장")
+	eq(PlayerState.reconcile({ Discovered = { eiffel = true } }).Analytics.Legacy, true, "발견만 있는 옛 저장")
+	eq(PlayerState.reconcile({ Rolls = 0, Coins = 0 }).Analytics.Legacy, false, "굴린 적 없는 옛 저장 = 새 플레이어")
+	eq(PlayerState.reconcile(nil).Analytics.Legacy, false, "저장 없음 = 새 플레이어")
+	eq(PlayerState.reconcile({}).Analytics.Legacy, false)
+	local kept = PlayerState.reconcile({ Rolls = 9, Analytics = { Onboarding = 7, Legacy = true } })
+	eq(kept.Analytics.Onboarding, 7)
+	eq(kept.Analytics.Legacy, true, "저장된 Legacy 그대로")
+	local bad = PlayerState.reconcile({ Rolls = 9, Analytics = { Onboarding = -3, Legacy = "yes" } })
+	eq(bad.Analytics.Onboarding, 0, "음수")
+	eq(bad.Analytics.Legacy, false, "true 가 아니면 false")
+	eq(PlayerState.reconcile({ Analytics = { Onboarding = 2 ^ 40 } }).Analytics.Onboarding, 0, "너무 큰 값")
+	eq(PlayerState.reconcile({ Analytics = { Onboarding = 5.7 } }).Analytics.Onboarding, 5, "소수 버림")
+	eq(PlayerState.reconcile({ Analytics = { Onboarding = 0 / 0 } }).Analytics.Onboarding, 0, "NaN")
+	eq(PlayerState.reconcile({ Analytics = "x" }).Analytics.Legacy, false, "표가 아니면 옛 저장처럼(굴림 없음)")
+	for key in PlayerState.snapshot(PlayerState.new(), 1) do
+		assert(key ~= "Analytics", "스냅샷에는 분석 기록이 없음(화면에 안 씀)")
+	end
 end)
 
 print("\n[공원 배치]")
@@ -3451,6 +3528,695 @@ withMock(function(H, _Mock, sharedNode)
 			eq(w.changed, 1)
 		end
 	)
+
+	test(
+		"영수증: 처음 지급할 때만 deps.granted(분석 기록) — 다시 불린 영수증·저장 재시도는 안 부름, granted 오류여도 지급·저장 그대로",
+		function()
+			local w = world()
+			local _player, session = join(w, 60)
+			local grants = {}
+			w.deps.granted = function(_player, grantedSession, grant)
+				assert(grantedSession == session, "세션")
+				table.insert(grants, grant.Product .. ":" .. grant.Coins)
+			end
+			eq(process(w, receipt(60, "CoinPack", "g1")), GRANTED)
+			eq(process(w, receipt(60, "CoinPack", "g1")), GRANTED, "같은 영수증 다시")
+			eq(table.concat(grants, " "), "CoinPack:1000", "한 번만, 지급 결과(코인)와 함께")
+			w.saveOk = false
+			eq(process(w, receipt(60, "LuckBoost", "g2")), NOT_YET, "저장 실패")
+			w.saveOk = true
+			eq(process(w, receipt(60, "LuckBoost", "g2")), GRANTED, "저장 재시도")
+			eq(table.concat(grants, " "), "CoinPack:1000 LuckBoost:0", "저장 재시도는 다시 안 부름")
+			w.deps.granted = function()
+				error("분석 오류(가짜)")
+			end
+			eq(process(w, receipt(60, "CoinPack", "g3")), GRANTED, "granted 오류여도 완료")
+			eq(session.Data.Coins, 2000, "코인 팩 두 번 지급")
+			w.deps.granted = nil
+			eq(process(w, receipt(60, "CoinPack", "g4")), GRANTED, "granted 없음(옛 deps)")
+		end
+	)
+end)
+
+print("\n[분석 — Analytics 서버 모듈 (가짜 AnalyticsService)]")
+-- src/server/Analytics.luau 를 가짜 AnalyticsService(tools/roblox_mock.luau — 인자를 로블록스처럼 검사, Mock.analytics 에 적음)로 돌림.
+-- 시계는 가짜(A.clock). 끝나면 잘못된 인자로 보낸 이벤트(Failed)가 없는지 봄
+local function withAnalytics(fn: (any) -> ())
+	withMock(function(H, Mock, sharedNode)
+		local A = H.require(H.folder("src/server").Analytics)
+		local env: any = {
+			A = A,
+			Mock = Mock,
+			State = H.require(sharedNode.PlayerState),
+			Marks = H.require(sharedNode.Landmarks),
+			Cfg = H.require(sharedNode.Config),
+			Roll = H.require(sharedNode.RollLogic),
+			now = 0,
+		}
+		A.clock = function()
+			return env.now
+		end
+		A.reset()
+		-- method 로 보낸 것(first 가 있으면 첫 인자 = 퍼널·이벤트 이름이 같은 것만)
+		function env.logged(method: string, first: any?, player: any?): { any }
+			local out = {}
+			for _, e in Mock.analytics do
+				if e.Method == method and (first == nil or e.Args[1] == first) and (player == nil or e.Player == player) then
+					table.insert(out, e)
+				end
+			end
+			return out
+		end
+		-- 온보딩으로 보낸 단계 "1,2,3"
+		function env.onboarding(player: any): string
+			local parts = {}
+			for _, e in env.logged("LogOnboardingFunnelStepEvent", nil, player) do
+				table.insert(parts, tostring(e.Args[1]))
+			end
+			return table.concat(parts, ",")
+		end
+		-- 퍼널 단계 "1,2,3" (+ 세션 Id 목록)
+		function env.funnel(name: string, player: any?): (string, { any })
+			local parts, sessions = {}, {}
+			for _, e in env.logged("LogFunnelStepEvent", name, player) do
+				table.insert(parts, tostring(e.Args[3]))
+				table.insert(sessions, e.Args[2] or false)
+			end
+			return table.concat(parts, ","), sessions
+		end
+		function env.rebirthReady(d: any)
+			local step = env.Cfg.REBIRTHS[d.Rebirths + 1]
+			d.Coins = math.max(d.Coins, step.Coins) + 0.75
+			for _, id in step.Landmarks do
+				d.Inventory[id] = math.max(d.Inventory[id] or 0, 1)
+			end
+		end
+		fn(env)
+		eq(A.stats.Failed, 0, "잘못된 인자로 보낸 이벤트 없음(가짜 서비스가 로블록스처럼 검사)")
+	end)
+end
+
+test("Analytics 온보딩: 1~8 단계를 한 번씩 차례대로 — 다시 접속(저장·불러오기)해도 또 안 보냄", function()
+	withAnalytics(function(env)
+		local A, State, Marks = env.A, env.State, env.Marks
+		local player = { Name = "New", UserId = 101 }
+		local d = State.new()
+		A.playerAdded(player, d)
+		eq(env.onboarding(player), "1", "들어옴")
+		local first = Marks.ById.clocktower
+		local bonus, isNew = State.applyRoll(d, first)
+		A.rolled(player, d, first, isNew, bonus, 1)
+		eq(env.onboarding(player), "1,2,3", "첫 굴림 = 첫 새 명소")
+		A.parkShown(player, d, d)
+		eq(env.onboarding(player), "1,2,3,4", "공원에 첫 전시")
+		A.parkShown(player, d, d)
+		A.clientEvent(player, d, "CollectionOpened")
+		eq(env.onboarding(player), "1,2,3,4", "강화 전에 도감: 기억만")
+		d.Coins = 10000
+		local before = d.Coins
+		assert(State.buyUpgrade(d, "Park"))
+		A.upgradeBought(player, d, "Park", before - d.Coins)
+		eq(env.onboarding(player), "1,2,3,4,5,6", "첫 강화 → 5 와 기다리던 6")
+		local common = Marks.ById.lighthouse
+		bonus, isNew = State.applyRoll(d, common)
+		A.rolled(player, d, common, isNew, bonus, 1)
+		eq(env.onboarding(player), "1,2,3,4,5,6", "흔한 명소는 온보딩 없음")
+		local sphinx = Marks.ById.sphinx
+		assert(sphinx.OneIn >= 1000 and sphinx.Tier.Rank == 4, "스핑크스 = 세계 명소")
+		bonus, isNew = State.applyRoll(d, sphinx)
+		A.rolled(player, d, sphinx, isNew, bonus, 1)
+		eq(env.onboarding(player), "1,2,3,4,5,6,7", "첫 1/1,000 이상")
+		env.rebirthReady(d)
+		local coins = d.Coins
+		assert(State.rebirth(d))
+		A.rebirthed(player, d, coins)
+		eq(env.onboarding(player), "1,2,3,4,5,6,7,8", "첫 환생")
+		for i, e in env.logged("LogOnboardingFunnelStepEvent") do
+			eq(e.Args[2], A.ONBOARDING_NAMES[i], "단계 이름 " .. i)
+		end
+		eq(A.ONBOARDING.FirstRebirth, #A.ONBOARDING_NAMES, "단계 이름 = 단계 수")
+
+		-- 나갔다 다시 들어옴: 저장(JSON) → 불러오기 → 같은 일을 또 해도 온보딩은 그대로 8개
+		A.playerRemoving(player, d)
+		local loaded = State.reconcile(env.Mock.json.decode(env.Mock.json.encode(d)))
+		eq(loaded.Analytics.Onboarding, 255, "저장된 단계")
+		A.playerAdded(player, loaded)
+		bonus, isNew = State.applyRoll(loaded, Marks.ById.windmill)
+		A.rolled(player, loaded, Marks.ById.windmill, isNew, bonus, 2)
+		A.parkShown(player, loaded, loaded)
+		A.clientEvent(player, loaded, "CollectionOpened")
+		loaded.Coins = 10000
+		before = loaded.Coins
+		assert(State.buyUpgrade(loaded, "Globe"))
+		A.upgradeBought(player, loaded, "Globe", before - loaded.Coins)
+		env.rebirthReady(loaded)
+		coins = loaded.Coins
+		assert(State.rebirth(loaded))
+		A.rebirthed(player, loaded, coins)
+		eq(env.onboarding(player), "1,2,3,4,5,6,7,8", "다시 접속해도 온보딩은 한 번씩")
+		eq((env.funnel(A.FUNNEL_REBIRTHS, player)), "1,2", "환생 퍼널 1 → 2")
+		local _, rebirthSessions = env.funnel(A.FUNNEL_REBIRTHS, player)
+		eq(rebirthSessions[1], false, "환생 퍼널 = 한 번만 퍼널(세션 Id 없음)")
+		local progress = env.logged("LogProgressionEvent", "Rebirth")
+		eq(#progress, 2, "진행 이벤트 Rebirth")
+		eq(progress[2].Args[3], 2, "레벨 = 환생 수")
+		eq(progress[2].Args[2], Enum.AnalyticsProgressionType.Complete)
+	end)
+end)
+
+test("Analytics 옛 플레이어(분석 전 저장): 온보딩·환생·도장 퍼널 없음, 경제·진행 이벤트는 그대로", function()
+	withAnalytics(function(env)
+		local A, State, Marks = env.A, env.State, env.Marks
+		local player = { Name = "Old", UserId = 102 }
+		local d = State.reconcile({ Rolls = 5000, Coins = 10, Rebirths = 2, Inventory = { eiffel = 3 } })
+		eq(d.Analytics.Legacy, true)
+		A.playerAdded(player, d)
+		local landmark = Marks.ById.tajmahal
+		local bonus, isNew = State.applyRoll(d, landmark)
+		A.rolled(player, d, landmark, isNew, bonus, 4)
+		A.parkShown(player, d, d)
+		A.clientEvent(player, d, "CollectionOpened")
+		env.rebirthReady(d)
+		local coins = d.Coins
+		assert(State.rebirth(d))
+		A.rebirthed(player, d, coins)
+		eq(env.onboarding(player), "", "온보딩 없음")
+		eq((env.funnel(A.FUNNEL_REBIRTHS)), "", "환생 퍼널 없음(4단계로 들어와 1~3을 한 것처럼 세지 않게)")
+		eq(#env.logged("LogProgressionEvent", "Rebirth"), 1, "진행 이벤트는 보냄")
+		local sinks = env.logged("LogEconomyEvent")
+		local reset = sinks[#sinks]
+		eq(reset.Args[1], Enum.AnalyticsEconomyFlowType.Sink)
+		eq(reset.Args[6], "RebirthReset")
+		eq(reset.Args[3], math.floor(coins), "사라진 코인(정수)")
+		eq(reset.Args[4], 0, "환생 뒤 잔액 0")
+		eq(reset.Args[5], "Gameplay")
+		eq(reset.Args[7].CustomField01, "R2-3", "그 코인을 번 판(환생 2번)")
+	end)
+end)
+
+test("Analytics 경제: 공원 수입·발견 보너스는 5분마다 합쳐서 한 번(굴림마다 없음), 강화·환생·코인 팩은 그때그때", function()
+	withAnalytics(function(env)
+		local A, State, Marks = env.A, env.State, env.Marks
+		local player = { Name = "Eco", UserId = 103 }
+		local d = State.new()
+		A.playerAdded(player, d)
+		local bonuses = 0
+		local rolled = 0
+		for _, landmark in Marks.List do
+			if rolled >= 30 then
+				break
+			end
+			rolled += 1
+			local bonus, isNew = State.applyRoll(d, landmark)
+			bonuses += bonus
+			A.rolled(player, d, landmark, isNew, bonus, 1)
+		end
+		for _ = 1, 299 do
+			env.now += 1
+			d.Coins += 2.5
+			A.earned(player, d, 2.5)
+		end
+		eq(#env.logged("LogEconomyEvent"), 0, "5분 전에는 경제 이벤트 없음(굴림 30번 포함)")
+		env.now += 1
+		d.Coins += 2.5
+		A.earned(player, d, 2.5)
+		local events = env.logged("LogEconomyEvent")
+		eq(#events, 2, "5분: 공원 수입 + 발견 보너스")
+		local income, discovery = events[1].Args, events[2].Args
+		eq(income[1], Enum.AnalyticsEconomyFlowType.Source)
+		eq(income[2], "Coins")
+		eq(income[3], 750, "300초 × 2.5")
+		eq(income[4], math.floor(d.Coins), "잔액 = 지금 코인(정수)")
+		eq(income[5], "Gameplay")
+		eq(income[6], "ParkIncome")
+		eq(income[7].CustomField01, "R0")
+		eq(discovery[6], "DiscoveryBonus")
+		eq(discovery[3], bonuses, "발견 보너스 합")
+		-- 소수는 남겨 두었다가 다음에: 0.4 × 3 = 1.2 → 퇴장 때 1
+		for _ = 1, 3 do
+			env.now += 1
+			A.earned(player, d, 0.4)
+		end
+		d.Coins = 10000
+		local before = d.Coins
+		assert(State.buyUpgrade(d, "Ticket"))
+		A.upgradeBought(player, d, "Ticket", before - d.Coins)
+		local sink = env.logged("LogEconomyEvent")[3].Args
+		eq(sink[1], Enum.AnalyticsEconomyFlowType.Sink)
+		eq(sink[3], State.upgradePrice("Ticket", 0), "강화 가격")
+		eq(sink[4], math.floor(d.Coins))
+		eq(sink[5], "Shop")
+		eq(sink[6], "Upgrade_Ticket")
+		eq(sink[7].CustomField02, "Lv1-5")
+		A.upgradeBought(player, d, "Nope", 5)
+		eq(#env.logged("LogEconomyEvent"), 3, "모르는 강화 = 안 보냄(SKU 가 늘지 않게)")
+		A.purchased(player, d, "CoinPack", 1000)
+		local iap = env.logged("LogEconomyEvent")[4].Args
+		eq(iap[5], "IAP")
+		eq(iap[6], "CoinPack")
+		eq(iap[3], 1000)
+		env.now += 600
+		A.playerRemoving(player, d)
+		local last = env.logged("LogEconomyEvent")
+		eq(#last, 5, "퇴장: 남은 수입")
+		eq(last[5].Args[3], 1, "남은 소수 1.2 → 1")
+		local ended = env.logged("LogCustomEvent", "SessionEnd")
+		eq(#ended, 1, "접속 시간")
+		eq(ended[1].Args[2], 15.1, "값 = 분(소수 한 자리)")
+		eq(ended[1].Args[3].CustomField01, "15-30m")
+		eq(ended[1].Args[3].CustomField02, "First", "처음 해 보는 접속")
+		A.earned(player, d, 100)
+		A.playerRemoving(player, d)
+		eq(#env.logged("LogEconomyEvent"), 5, "나간 뒤에는 아무것도 안 보냄")
+		eq(A.sessionBucket(4.9) .. A.sessionBucket(5) .. A.sessionBucket(59) .. A.sessionBucket(60) .. A.sessionBucket(125), "<5m5-15m30-60m1-2h2h+")
+		eq(A.levelBucket(1) .. " " .. A.levelBucket(5) .. " " .. A.levelBucket(6) .. " " .. A.levelBucket(20), "Lv1-5 Lv1-5 Lv6-10 Lv16-20")
+		local buckets = {}
+		for n = 0, 11 do
+			table.insert(buckets, A.rebirthBucket(n))
+		end
+		eq(table.concat(buckets, " "), "R0 R1 R2-3 R2-3 R4-6 R4-6 R4-6 R7-9 R7-9 R7-9 R10 R10")
+	end)
+end)
+
+test("Analytics 희귀 발견(RareFind): 불가사의 이상 + 처음이거나 그 행운으로도 1/1,000 이상만 — AUTO 1시간에 몇 번뿐", function()
+	withAnalytics(function(env)
+		local A, State, Marks = env.A, env.State, env.Marks
+		local player = { Name = "Rare", UserId = 104 }
+		local d = State.new()
+		A.playerAdded(player, d)
+		local function rare(): number
+			return #env.logged("LogCustomEvent", "RareFind")
+		end
+		A.rolled(player, d, Marks.ById.clocktower, true, 10, 1)
+		A.rolled(player, d, Marks.ById.sphinx, true, 10, 1)
+		eq(rare(), 0, "세계 명소까지는 없음")
+		local wonder = Marks.ById.alexandria
+		eq(wonder.Tier.Rank, 5)
+		A.rolled(player, d, wonder, true, 10, 1)
+		eq(rare(), 1, "불가사의 처음")
+		local e = env.logged("LogCustomEvent", "RareFind")[1].Args
+		eq(e[2], 5, "값 = 등급")
+		eq(e[3].CustomField01, "Tier 5")
+		eq(e[3].CustomField02, "New")
+		eq(e[3].CustomField03, "R0")
+		A.rolled(player, d, wonder, false, 0, 1)
+		eq(rare(), 2, "행운 1 에서 또 = 그래도 1/20,000")
+		A.rolled(player, d, wonder, false, 0, 100)
+		eq(rare(), 2, "행운 100 이면 1/200 꼴이라 안 보냄")
+		A.rolled(player, d, Marks.ById.fountainofyouth, false, 0, 6912)
+		eq(rare(), 3, "후반 행운 6,912 에서 전설(1/8,000,000)은 보냄")
+		A.rolled(player, d, Marks.ById.atlantis, false, 0, 6912)
+		eq(rare(), 3, "후반 잃어버린 유산은 흔해서 안 보냄")
+		-- 실제 굴림 분포: 후반(행운 6,912) AUTO 한 시간(8,571번, 0.42초 간격)
+		local rng = Random.new(11)
+		local function roll(luck: number): any
+			return env.Roll.roll(Marks.RarestFirst, luck, function()
+				return rng:NextNumber()
+			end)
+		end
+		local startRare, startAll = rare(), #env.Mock.analytics
+		for _ = 1, 8571 do
+			env.now += 0.42
+			local landmark = roll(6912)
+			local bonus, isNew = State.applyRoll(d, landmark)
+			A.rolled(player, d, landmark, isNew, bonus, 6912)
+		end
+		local lateRare = rare() - startRare
+		assert(lateRare <= 60, "후반 한 시간 희귀 발견 " .. lateRare .. "번(굴림 8,571번)")
+		assert(#env.Mock.analytics - startAll <= 120, "후반 한 시간 전체 이벤트 " .. (#env.Mock.analytics - startAll))
+		-- 초반(행운 1) 한 시간(3,000번)
+		startRare = rare()
+		for _ = 1, 3000 do
+			env.now += 1.2
+			local landmark = roll(1)
+			local bonus, isNew = State.applyRoll(d, landmark)
+			A.rolled(player, d, landmark, isNew, bonus, 1)
+		end
+		local earlyRare = rare() - startRare
+		assert(earlyRare <= 30, "초반 한 시간 희귀 발견 " .. earlyRare .. "번")
+		eq(A.stats.Dropped, 0, "속도 한도에 안 걸림")
+	end)
+end)
+
+test("Analytics 구매 퍼널: 상점 열기 → 카드 → 구매 창 → 구매(Shop 1~4) + 상품별 Purchase 1~3(필드 1 = 상품 키)", function()
+	withAnalytics(function(env)
+		local A, State = env.A, env.State
+		local player = { Name = "Buyer", UserId = 105 }
+		local d = State.new()
+		A.playerAdded(player, d)
+		A.itemPressed(player, d, "LuckVIP")
+		eq((env.funnel(A.FUNNEL_SHOP)), "", "상점을 안 열었으면 상점 퍼널 없음")
+		eq((env.funnel(A.FUNNEL_PURCHASE)), "1", "구매 퍼널은 누름부터")
+		A.clientEvent(player, d, "ShopOpened")
+		A.itemPressed(player, d, "LuckVIP")
+		A.promptShown(player, "LuckVIP")
+		A.purchased(player, d, "LuckVIP", nil)
+		local shopSteps, shopSessions = env.funnel(A.FUNNEL_SHOP)
+		eq(shopSteps, "1,2,3,4", "상점 퍼널")
+		for _, id in shopSessions do
+			assert(type(id) == "string" and #id >= 32, "상점 세션 Id = GUID")
+			eq(id, shopSessions[1], "같은 상점 세션")
+		end
+		local buySteps, buySessions = env.funnel(A.FUNNEL_PURCHASE)
+		eq(buySteps, "1,1,2,3", "누를 때마다 새 구매 세션")
+		assert(buySessions[1] ~= buySessions[2], "새 세션 Id")
+		eq(buySessions[2], buySessions[4], "누름 → 구매가 같은 세션")
+		assert(buySessions[2] ~= shopSessions[1], "상점 세션과 다름")
+		local pressed = env.logged("LogFunnelStepEvent", A.FUNNEL_PURCHASE)[2].Args
+		eq(pressed[5].CustomField01, "LuckVIP", "상품별로 나눠 보기(첫 단계 필드)")
+		eq(pressed[5].CustomField02, "R0")
+		-- 다시 구매 완료가 와도(다른 경로) 퍼널은 한 번
+		A.purchased(player, d, "LuckVIP", nil)
+		eq((env.funnel(A.FUNNEL_PURCHASE)), "1,1,2,3")
+		-- 부스트 MAX 처럼 구매 창을 못 띄움: 누름만
+		A.itemPressed(player, d, "LuckBoost")
+		eq((env.funnel(A.FUNNEL_PURCHASE)), "1,1,2,3,1")
+		-- 모르는 상품 키 · 누르지 않은 구매(다른 서버에서 누른 영수증): 퍼널 없음, 코인 팩 경제만
+		A.itemPressed(player, d, "Hack")
+		A.promptShown(player, "Hack")
+		A.purchased(player, d, "CoinPack", 1200)
+		eq((env.funnel(A.FUNNEL_PURCHASE)), "1,1,2,3,1", "모르는 상품·누르지 않은 구매는 퍼널 없음")
+		eq(#env.logged("LogEconomyEvent"), 1, "코인 팩 = 경제 벌기(IAP)")
+		-- 상점을 다시 열면 새 상점 세션
+		env.now += 5
+		A.clientEvent(player, d, "ShopOpened")
+		local _, again = env.funnel(A.FUNNEL_SHOP)
+		assert(again[#again] ~= shopSessions[1], "다시 연 상점 = 새 세션")
+	end)
+end)
+
+test("Analytics 화면 이벤트(Track): 목록에 있는 이름만, 종류마다 간격 — AutoOn · TapEdit 필드", function()
+	withAnalytics(function(env)
+		local A, State = env.A, env.State
+		local player = { Name = "Ui", UserId = 106 }
+		local d = State.new()
+		A.clientEvent(player, d, "AutoOn")
+		eq(#env.Mock.analytics, 0, "세션 전(playerAdded 전)에는 안 받음")
+		A.playerAdded(player, d)
+		local base = #env.Mock.analytics
+		for _, bad in { "Hack", "__index", 5, nil, { "AutoOn" }, "autoon" } do
+			A.clientEvent(player, d, bad)
+		end
+		eq(#env.Mock.analytics, base, "모르는 이름은 버림")
+		A.clientEvent(player, d, "AutoOn")
+		A.clientEvent(player, d, "AutoOn")
+		env.now += 29
+		A.clientEvent(player, d, "AutoOn")
+		eq(#env.logged("LogCustomEvent", "AutoOn"), 1, "30초 안에 또 켜도 한 번")
+		env.now += 2
+		A.clientEvent(player, d, "AutoOn")
+		eq(#env.logged("LogCustomEvent", "AutoOn"), 2, "30초 뒤")
+		A.clientEvent(player, d, "TapEdit")
+		d.Settings.AutoPark = false
+		env.now += 31
+		A.clientEvent(player, d, "TapEdit")
+		local taps = env.logged("LogCustomEvent", "TapEdit")
+		eq(taps[1].Args[3].CustomField02, "AutoPark")
+		eq(taps[2].Args[3].CustomField02, "Manual")
+		for name in A.CLIENT_EVENTS do
+			assert(({ ShopOpened = true, CollectionOpened = true, AutoOn = true, TapEdit = true })[name], name)
+		end
+	end)
+end)
+
+test("Analytics 대륙 도장: 늘 때만 도장 퍼널(한 번만) + 진행 이벤트, 접속 때 가진 도장은 다시 안 보냄", function()
+	withAnalytics(function(env)
+		local A, State, Marks = env.A, env.State, env.Marks
+		local function complete(d: any, regionId: string)
+			for _, landmark in Marks.ByRegion[regionId] do
+				if State.countsForStamp(landmark) then
+					d.Discovered[landmark.Id] = true
+				end
+			end
+		end
+		local player = { Name = "Stamp", UserId = 107 }
+		local d = State.new()
+		complete(d, "Oceania") -- 지난 접속에 받은 도장
+		A.playerAdded(player, d)
+		A.synced(player, d)
+		eq((env.funnel(A.FUNNEL_STAMPS)), "", "접속 때 가진 도장은 이미 보냄")
+		complete(d, "Asia")
+		complete(d, "Europe")
+		A.synced(player, d)
+		A.synced(player, d)
+		eq((env.funnel(A.FUNNEL_STAMPS)), "2,3", "새 도장(한 번에 둘이면 차례로)")
+		local progress = env.logged("LogProgressionEvent", "Stamps")
+		eq(#progress, 2)
+		eq(progress[2].Args[3], 3)
+		local old = { Name = "OldStamp", UserId = 108 }
+		local legacy = State.reconcile({ Rolls = 50 })
+		A.playerAdded(old, legacy)
+		complete(legacy, "Africa")
+		A.synced(old, legacy)
+		eq((env.funnel(A.FUNNEL_STAMPS, old)), "", "옛 플레이어는 도장 퍼널 없음")
+		eq(#env.logged("LogProgressionEvent", "Stamps", old), 1, "진행 이벤트는 보냄")
+	end)
+end)
+
+test("Analytics 는 게임을 멈추지 않음: 서비스 오류·없음·이상한 인자 → 오류 없이 넘어감, 속도 한도 넘으면 사용자 지정부터 버림", function()
+	withAnalytics(function(env)
+		local A, State, Marks = env.A, env.State, env.Marks
+		local player = { Name = "Err", UserId = 109 }
+		local d = State.new()
+		local calls = 0
+		A.setService(setmetatable({}, {
+			__index = function()
+				return function()
+					calls += 1
+					error("HTTP 500 (가짜)")
+				end
+			end,
+		}))
+		A.playerAdded(player, d)
+		A.rolled(player, d, Marks.ById.skyisland, true, 50000, 1)
+		A.clientEvent(player, d, "ShopOpened")
+		A.itemPressed(player, d, "LuckVIP")
+		A.playerRemoving(player, d)
+		assert(calls >= 4, "보내려고는 함 " .. calls)
+		eq(A.stats.Failed, calls, "실패 수")
+		-- 이상한 인자: 오류를 밖으로 내보내지 않음
+		A.playerAdded(player, nil)
+		A.rolled(player, d, nil, true, 1, 1)
+		A.upgradeBought(nil, nil, nil, nil)
+		A.rebirthed(player, nil, nil)
+		A.earned(player, nil, nil)
+		A.parkShown(player, d, nil)
+		-- 서비스 없음(Studio)
+		A.setService(nil)
+		A.reset()
+		A.playerAdded(player, State.new())
+		eq(A.stats.Sent, 0, "서비스가 없으면 안 보냄")
+		-- 속도 한도: 한 명 = 분당 0.8 × 140 = 112. 같은 순간 희귀 발견 300번 → 사용자 지정은 25% 를 남기고 버림
+		A.setService(game:GetService("AnalyticsService"))
+		A.reset()
+		table.clear(env.Mock.analytics)
+		local p2 = { Name = "Burst", UserId = 110 }
+		local d2 = State.new()
+		A.playerAdded(p2, d2)
+		for _ = 1, 300 do
+			A.rolled(p2, d2, Marks.ById.skyisland, true, 0, 1)
+		end
+		local sent = #env.logged("LogCustomEvent", "RareFind")
+		assert(sent > 50 and sent < 112, "사용자 지정은 한도의 75% 쯤에서 멈춤: " .. sent)
+		assert(A.stats.Dropped > 150, "나머지는 버림 " .. A.stats.Dropped)
+		d2.Coins = 5000
+		local before = d2.Coins
+		assert(State.buyUpgrade(d2, "Park"))
+		A.upgradeBought(p2, d2, "Park", before - d2.Coins)
+		eq(#env.logged("LogEconomyEvent"), 1, "남겨 둔 몫으로 경제 이벤트는 감")
+		env.now += 60
+		A.rolled(p2, d2, Marks.ById.skyisland, true, 0, 1)
+		eq(#env.logged("LogCustomEvent", "RareFind"), sent + 1, "1분 뒤 다시 참")
+		A.stats.Failed = 0 -- 위의 일부러 낸 오류
+	end)
+end)
+
+test("Analytics 한도: 이벤트 이름·퍼널·SKU·거래 종류·필드 값이 정해진 몇 가지뿐(플레이어 이름·Id 없음) — 여러 명이 온갖 일을 해도", function()
+	withAnalytics(function(env)
+		local A, State, Marks = env.A, env.State, env.Marks
+		local rng = Random.new(5)
+		for index = 1, 6 do
+			local player = { Name = "Player" .. index, UserId = 900000 + index }
+			local d = State.new()
+			if index == 6 then
+				d = State.reconcile({ Rolls = 10, Rebirths = 4 })
+			end
+			A.playerAdded(player, d)
+			A.clientEvent(player, d, "ShopOpened")
+			A.clientEvent(player, d, "CollectionOpened")
+			A.clientEvent(player, d, "AutoOn")
+			A.clientEvent(player, d, "TapEdit")
+			for key in State.PassesById do
+				A.itemPressed(player, d, key)
+				A.promptShown(player, key)
+				A.purchased(player, d, key, nil)
+			end
+			for key in State.ProductsById do
+				A.itemPressed(player, d, key)
+				A.promptShown(player, key)
+				A.purchased(player, d, key, if key == "CoinPack" then 1000 else 0)
+			end
+			for _ = 1, 400 do
+				env.now += 1
+				local landmark = env.Roll.roll(Marks.RarestFirst, 50, function()
+					return rng:NextNumber()
+				end)
+				local bonus, isNew = State.applyRoll(d, landmark)
+				A.rolled(player, d, landmark, isNew, bonus, 50)
+				d.Coins += 1000
+				A.earned(player, d, 1000)
+				for _, upgrade in env.Cfg.Upgrades do
+					local before = d.Coins
+					if State.buyUpgrade(d, upgrade.Id) then
+						A.upgradeBought(player, d, upgrade.Id, before - d.Coins)
+					end
+				end
+			end
+			env.rebirthReady(d)
+			local coins = d.Coins
+			assert(State.rebirth(d))
+			A.rebirthed(player, d, coins)
+			A.synced(player, d)
+			A.playerRemoving(player, d)
+		end
+		local names, funnels, skus, transactions, currencies, values, combos = {}, {}, {}, {}, {}, {}, {}
+		local function count(t: any): number
+			local n = 0
+			for _ in t do
+				n += 1
+			end
+			return n
+		end
+		for _, e in env.Mock.analytics do
+			local args = e.Args
+			local fields
+			if e.Method == "LogCustomEvent" then
+				names[args[1]] = true
+				fields = args[3]
+			elseif e.Method == "LogFunnelStepEvent" then
+				funnels[args[1]] = true
+				fields = args[5]
+			elseif e.Method == "LogEconomyEvent" then
+				currencies[args[2]] = true
+				transactions[args[5]] = true
+				skus[args[6]] = true
+				fields = args[7]
+			end
+			if fields then
+				local parts = {}
+				for key, value in fields do
+					values[key .. "=" .. value] = true
+					table.insert(parts, key .. "=" .. value)
+					assert(not value:find("Player") and not value:find("9000"), "필드에 플레이어 이름·Id: " .. value)
+				end
+				table.sort(parts)
+				combos[e.Method .. ":" .. table.concat(parts, "&")] = true
+			end
+		end
+		for name in names do
+			assert(({ RareFind = true, AutoOn = true, TapEdit = true, SessionEnd = true })[name], "이벤트 이름 " .. name)
+		end
+		for name in funnels do
+			assert(({ Shop = true, Purchase = true, Rebirths = true, Stamps = true })[name], "퍼널 " .. name)
+		end
+		for sku in skus do
+			local known = sku == "ParkIncome" or sku == "DiscoveryBonus" or sku == "RebirthReset" or sku == "CoinPack"
+			known = known or (sku:match("^Upgrade_") and State.UpgradesById[sku:sub(9)] ~= nil)
+			assert(known, "SKU " .. sku)
+		end
+		for kind in transactions do
+			assert(({ Gameplay = true, Shop = true, IAP = true })[kind], "거래 종류 " .. kind)
+		end
+		eq(count(currencies), 1, "통화 하나(Coins)")
+		assert(count(names) <= 4 and count(funnels) <= 4, "이름 수")
+		assert(count(skus) <= 8, "SKU " .. count(skus))
+		assert(count(values) <= 40, "필드 값 " .. count(values))
+		assert(count(combos) <= 200, "필드 조합 " .. count(combos))
+		print("DEBUG dropped", A.stats.Dropped, #env.logged("LogOnboardingFunnelStepEvent"))
+		for index = 1, 6 do
+			local parts = {}
+			for _, e in env.Mock.analytics do
+				if e.Method == "LogOnboardingFunnelStepEvent" and e.Player.UserId == 900000 + index then
+					table.insert(parts, e.Args[1])
+				end
+			end
+			print("DEBUG", index, table.concat(parts, ","))
+		end
+		assert(#env.logged("LogOnboardingFunnelStepEvent") == 5 * 8, "새 플레이어 5명 × 8단계")
+	end)
+end)
+
+test("분석 호출 자리: 서버가 일이 생긴 곳에서 Analytics 를 부름, AnalyticsService 는 Analytics.luau 에서만, 클라이언트 Track 이름 = 서버 목록", function()
+	withAnalytics(function(env)
+		local A = env.A
+		local server = readfile("src/server/init.server.luau") or ""
+		local function at(text: string, from: number?): number
+			local i = server:find(text, from or 1, true)
+			assert(i, "init.server 에 " .. text .. " 없음")
+			return i :: number
+		end
+		local function count(text: string): number
+			local n, from = 0, 1
+			while true do
+				local i = server:find(text, from, true)
+				if not i then
+					return n
+				end
+				n += 1
+				from = i + 1
+			end
+		end
+		for name in server:gmatch("Analytics%.(%w+)%(") do
+			assert(type(A[name]) == "function", "Analytics." .. name .. " 가 없음")
+		end
+		assert(at("PlayerState.applyRoll(") < at("Analytics.rolled("), "굴림: applyRoll 뒤")
+		assert(at("Analytics.rolled(") < at("State = snapshot(session)", at("Analytics.rolled(")), "굴림 응답 전")
+		assert(at("PlayerState.buyUpgrade(") < at("Analytics.upgradeBought("), "강화 성공 뒤")
+		assert(at("PlayerState.rebirth(session.Data)") < at("Analytics.rebirthed("), "환생 성공 뒤")
+		assert(at("coinsBefore = session.Data.Coins", at("Net.fn(\"Rebirth\")")) < at("PlayerState.rebirth(session.Data)"), "환생 전 코인")
+		assert(at("PlayerState.sync(") < at("Analytics.synced("), "상태(자동 발견) 뒤 도장")
+		assert(at("ParkService.update, player, visible") < at("Analytics.parkShown("), "공원 그린 뒤 전시")
+		assert(at("sessions[player] = session") < at("Analytics.playerAdded("), "세션 뒤 들어옴")
+		assert(at("Analytics.playerRemoving(") < at("trackedSave(player, session.Data, session.LockId, true)"), "저장 전 퇴장")
+		assert(at("PlayerState.addIncome(") < at("Analytics.earned("), "수입 루프")
+		eq(count("Analytics.itemPressed("), 2, "카드 누름 = BuyPass · BuyProduct")
+		eq(count("Analytics.promptShown("), 2, "구매 창 = 게임패스 · 개발자 상품")
+		eq(count("Analytics.purchased("), 2, "구매 = 게임패스 구매 완료 · 영수증 첫 지급(granted)")
+		assert(at("granted = function") < at("Analytics.purchased(", at("granted = function")), "영수증 지급(deps.granted)")
+		assert(at("Net.event(\"Track\").OnServerEvent") < at("Analytics.clientEvent("), "Track 원격")
+		-- AnalyticsService 는 서버 Analytics 모듈에서만(클라이언트는 보낼 수 없음 — Track 원격으로 서버에 알림)
+		local function scan(dir: string)
+			for _, name in listdir(dir) do
+				local path = dir .. "/" .. name
+				if name:match("%.luau$") then
+					if path ~= "src/server/Analytics.luau" then
+						assert(not (readfile(path) or ""):find("AnalyticsService", 1, true), path .. " 가 AnalyticsService 를 씀")
+					end
+				elseif not name:find("%.") then
+					scan(path)
+				end
+			end
+		end
+		scan("src")
+		-- 클라이언트가 보내는 Track 이름 = 서버가 받는 목록(Analytics.CLIENT_EVENTS)
+		local client = readfile("src/client/init.client.luau") or ""
+		local sent = {}
+		for kind in client:gmatch('track%("(%w+)"%)') do
+			sent[kind] = true
+		end
+		local openLine = client:match("local OPEN_EVENTS = (%b{})") or ""
+		for kind in openLine:gmatch('"(%w+)"') do
+			sent[kind] = true
+		end
+		for kind in A.CLIENT_EVENTS do
+			assert(sent[kind], "클라이언트가 " .. kind .. " 를 안 보냄")
+		end
+		for kind in sent do
+			assert(A.CLIENT_EVENTS[kind], "서버가 모르는 Track 이름 " .. kind)
+		end
+		local net = readfile("src/shared/Net.luau") or ""
+		assert(net:find('"Track"', 1, true), "Net 에 Track 원격")
+	end)
 end)
 
 if not Harness.finish() then

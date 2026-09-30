@@ -3356,6 +3356,81 @@ PhysicsService.__props.IsCollisionGroupRegistered = function()
 	return true
 end
 
+-- AnalyticsService: 보낸 이벤트를 Mock.analytics 에 차례로 적음 { Method, Player, Args = table.pack(플레이어 뒤 인자) }.
+-- 로블록스 API 처럼 인자를 검사해서 틀리면 오류(서버 Analytics 는 pcall 로 감싸 Failed 로 셈 — 테스트가 0 인지 봄):
+-- 이름·단계·금액 형식, 금액 > 0, 잔액 ≥ 0, customFields 키는 CustomField01~03 이고 값은 문자열
+local AnalyticsService = service("AnalyticsService")
+Mock.analytics = {}
+do
+	local FIELD_KEYS = { CustomField01 = true, CustomField02 = true, CustomField03 = true }
+	local function isEnum(value: any, enumName: string): boolean
+		return type(value) == "string" and value:sub(1, #enumName + 1) == enumName .. "."
+	end
+	local function checkName(value: any, label: string)
+		assert(type(value) == "string" and value ~= "", label .. ": 빈 문자열이 아닌 문자열")
+		assert(not value:find("[,\"'\n]"), label .. ": 쉼표·따옴표·줄바꿈 불가 (" .. value .. ")")
+	end
+	local function checkOptionalString(value: any, label: string)
+		assert(value == nil or type(value) == "string", label .. ": 문자열 또는 nil")
+	end
+	local function checkStep(value: any, label: string)
+		assert(type(value) == "number" and value == math.floor(value) and value >= 1 and value <= 100, label .. ": 1~100 정수")
+	end
+	local function checkFields(value: any)
+		if value == nil then
+			return
+		end
+		assert(type(value) == "table", "customFields: 표")
+		for key, field in value do
+			assert(FIELD_KEYS[key], "customFields 키는 CustomField01~03: " .. tostring(key))
+			assert(type(field) == "string" and field ~= "", "customFields 값은 문자열: " .. tostring(field))
+		end
+	end
+	local CHECKS = {
+		LogOnboardingFunnelStepEvent = function(step, stepName, fields)
+			checkStep(step, "step")
+			checkOptionalString(stepName, "stepName")
+			checkFields(fields)
+		end,
+		LogFunnelStepEvent = function(funnelName, sessionId, step, stepName, fields)
+			checkName(funnelName, "funnelName")
+			checkOptionalString(sessionId, "funnelSessionId")
+			checkStep(step, "step")
+			checkOptionalString(stepName, "stepName")
+			checkFields(fields)
+		end,
+		LogEconomyEvent = function(flowType, currency, amount, balance, transaction, sku, fields)
+			assert(isEnum(flowType, "AnalyticsEconomyFlowType"), "flowType: Enum.AnalyticsEconomyFlowType")
+			checkName(currency, "currencyType")
+			assert(type(amount) == "number" and amount > 0 and amount < math.huge, "amount: 양수")
+			assert(type(balance) == "number" and balance >= 0 and balance < math.huge, "endingBalance: 0 이상")
+			checkName(transaction, "transactionType")
+			checkOptionalString(sku, "itemSku")
+			checkFields(fields)
+		end,
+		LogCustomEvent = function(eventName, value, fields)
+			checkName(eventName, "eventName")
+			assert(value == nil or (type(value) == "number" and value == value), "value: 숫자")
+			checkFields(fields)
+		end,
+		LogProgressionEvent = function(path, status, level, levelName, fields)
+			checkName(path, "progressionPathName")
+			assert(isEnum(status, "AnalyticsProgressionType"), "status: Enum.AnalyticsProgressionType")
+			assert(type(level) == "number" and level == math.floor(level), "level: 정수")
+			checkOptionalString(levelName, "levelName")
+			checkFields(fields)
+		end,
+	}
+	for method, check in CHECKS do
+		AnalyticsService.__props[method] = function(self, player, ...)
+			assert(self == AnalyticsService, method .. " 는 AnalyticsService:" .. method .. " 로 부름")
+			assert(type(player) == "table", method .. ": 플레이어")
+			check(...)
+			table.insert(Mock.analytics, { Method = method, Player = player, Args = table.pack(...) })
+		end
+	end
+end
+
 function methods.GetService(self, name)
 	assert(self == game, "GetService 는 game 에서만")
 	return service(name)

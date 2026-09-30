@@ -1,0 +1,730 @@
+{
+ "facts": {
+  "dev_share": 0.7,
+  "devex": 0.0038,
+  "devex_us18": 0.0054,
+  "devex_min": 30000,
+  "creator_reward": 5,
+  "robux_asp": 0.01,
+  "days": 30
+ },
+ "retention": {
+  "pess": {
+   "d": [
+    0.07,
+    0.012,
+    0.003
+   ],
+   "lifetime_days": 1.4844897449171433
+  },
+  "base": {
+   "d": [
+    0.12,
+    0.03,
+    0.01
+   ],
+   "lifetime_days": 2.423082591319584
+  },
+  "opt": {
+   "d": [
+    0.22,
+    0.09,
+    0.045
+   ],
+   "lifetime_days": 7.271208392548063
+  }
+ },
+ "scenarios": {
+  "pess": {
+   "label": "비관",
+   "payer_conv": 0.002,
+   "passes": {
+    "DoubleIncome": 0.35,
+    "LuckVIP": 0.25,
+    "FastRoll": 0.15
+   },
+   "products": {
+    "LuckBoost": 1.0,
+    "ServerLuck": 0.1,
+    "CoinPack": 0.2
+   },
+   "price_realized": 0.75,
+   "active_spender": 0.05,
+   "cr_qualify": 0.15
+  },
+  "base": {
+   "label": "기본",
+   "payer_conv": 0.006,
+   "passes": {
+    "DoubleIncome": 0.5,
+    "LuckVIP": 0.4,
+    "FastRoll": 0.3
+   },
+   "products": {
+    "LuckBoost": 2.0,
+    "ServerLuck": 0.3,
+    "CoinPack": 0.5
+   },
+   "price_realized": 0.85,
+   "active_spender": 0.08,
+   "cr_qualify": 0.3
+  },
+  "opt": {
+   "label": "낙관",
+   "payer_conv": 0.012,
+   "passes": {
+    "DoubleIncome": 0.6,
+    "LuckVIP": 0.5,
+    "FastRoll": 0.4
+   },
+   "products": {
+    "LuckBoost": 3.0,
+    "ServerLuck": 0.6,
+    "CoinPack": 1.0
+   },
+   "price_realized": 0.95,
+   "active_spender": 0.11,
+   "cr_qualify": 0.5
+  }
+ },
+ "products": {
+  "LuckVIP": {
+   "kind": "pass",
+   "name": "행운 VIP",
+   "price": 399,
+   "active": true
+  },
+  "FastRoll": {
+   "kind": "pass",
+   "name": "빠른 굴림",
+   "price": 199,
+   "active": true
+  },
+  "DoubleIncome": {
+   "kind": "pass",
+   "name": "수입 2배",
+   "price": 299,
+   "active": true
+  },
+  "LuckBoost": {
+   "kind": "product",
+   "name": "행운 부스트",
+   "price": 49,
+   "active": true
+  },
+  "ServerLuck": {
+   "kind": "product",
+   "name": "서버 행운",
+   "price": 99,
+   "active": true
+  },
+  "CoinPack": {
+   "kind": "product",
+   "name": "코인 팩",
+   "price": 79,
+   "active": true
+  }
+ },
+ "dau_tiers": [
+  50,
+  500,
+  5000,
+  50000
+ ],
+ "tiers": {
+  "pess": [
+   {
+    "dau": 50,
+    "lifetime_days": 2.423082591319584,
+    "new_users": 619.046170928543,
+    "payers": 1.238092341857086,
+    "gross_robux": 286.88147176255995,
+    "passes_robux": 217.51734831001676,
+    "products_robux": 69.3641234525432,
+    "by_product_robux": {
+     "DoubleIncome": 97.17477268150803,
+     "LuckVIP": 92.62478332518324,
+     "FastRoll": 27.71779230332551,
+     "LuckBoost": 45.49989356324791,
+     "ServerLuck": 9.192835638288864,
+     "CoinPack": 14.671394251006468
+    },
+    "dev_robux": 200.81703023379197,
+    "dev_passes_robux": 152.26214381701172,
+    "dev_products_robux": 48.554886416780235,
+    "creator_rewards_robux": 56.25,
+    "earned_robux": 257.06703023379197,
+    "usd": 0.9768547148884095,
+    "player_spend_usd": 2.8688147176256,
+    "months_to_devex": 116.7010797639675,
+    "ccu": 0.6944444444444444,
+    "dash_conversion": 0.0012587272142213707,
+    "dash_arppu_robux": 151.94262295081964,
+    "dash_arpdau_robux": 0.1912543145083733,
+    "ltv_new_user_usd": 0.0015779997692630403
+   },
+   {
+    "dau": 500,
+    "lifetime_days": 2.423082591319584,
+    "new_users": 6190.46170928543,
+    "payers": 12.380923418570859,
+    "gross_robux": 2868.8147176255998,
+    "passes_robux": 2175.1734831001677,
+    "products_robux": 693.6412345254321,
+    "by_product_robux": {
+     "DoubleIncome": 971.7477268150802,
+     "LuckVIP": 926.2478332518324,
+     "FastRoll": 277.17792303325507,
+     "LuckBoost": 454.99893563247906,
+     "ServerLuck": 91.92835638288864,
+     "CoinPack": 146.71394251006467
+    },
+    "dev_robux": 2008.1703023379198,
+    "dev_passes_robux": 1522.6214381701172,
+    "dev_products_robux": 485.54886416780244,
+    "creator_rewards_robux": 562.5,
+    "earned_robux": 2570.6703023379196,
+    "usd": 9.768547148884096,
+    "player_spend_usd": 28.688147176256,
+    "months_to_devex": 11.67010797639675,
+    "ccu": 6.944444444444445,
+    "dash_conversion": 0.0012587272142213705,
+    "dash_arppu_robux": 151.94262295081967,
+    "dash_arpdau_robux": 0.19125431450837332,
+    "ltv_new_user_usd": 0.0015779997692630405
+   },
+   {
+    "dau": 5000,
+    "lifetime_days": 2.423082591319584,
+    "new_users": 61904.6170928543,
+    "payers": 123.8092341857086,
+    "gross_robux": 28688.147176256003,
+    "passes_robux": 21751.73483100168,
+    "products_robux": 6936.4123452543245,
+    "by_product_robux": {
+     "DoubleIncome": 9717.477268150804,
+     "LuckVIP": 9262.478332518325,
+     "FastRoll": 2771.7792303325514,
+     "LuckBoost": 4549.9893563247915,
+     "ServerLuck": 919.2835638288864,
+     "CoinPack": 1467.139425100647
+    },
+    "dev_robux": 20081.7030233792,
+    "dev_passes_robux": 15226.214381701175,
+    "dev_products_robux": 4855.488641678026,
+    "creator_rewards_robux": 5625.0,
+    "earned_robux": 25706.7030233792,
+    "usd": 97.68547148884096,
+    "player_spend_usd": 286.88147176256,
+    "months_to_devex": 1.1670107976396749,
+    "ccu": 69.44444444444444,
+    "dash_conversion": 0.0012587272142213707,
+    "dash_arppu_robux": 151.94262295081967,
+    "dash_arpdau_robux": 0.19125431450837335,
+    "ltv_new_user_usd": 0.0015779997692630405
+   },
+   {
+    "dau": 50000,
+    "lifetime_days": 2.423082591319584,
+    "new_users": 619046.170928543,
+    "payers": 1238.092341857086,
+    "gross_robux": 286881.4717625601,
+    "passes_robux": 217517.34831001682,
+    "products_robux": 69364.12345254325,
+    "by_product_robux": {
+     "DoubleIncome": 97174.77268150804,
+     "LuckVIP": 92624.78332518325,
+     "FastRoll": 27717.79230332551,
+     "LuckBoost": 45499.89356324791,
+     "ServerLuck": 9192.835638288865,
+     "CoinPack": 14671.39425100647
+    },
+    "dev_robux": 200817.03023379203,
+    "dev_passes_robux": 152262.14381701176,
+    "dev_products_robux": 48554.886416780275,
+    "creator_rewards_robux": 56250.0,
+    "earned_robux": 257067.03023379203,
+    "usd": 976.8547148884097,
+    "player_spend_usd": 2868.8147176256007,
+    "months_to_devex": 0.11670107976396747,
+    "ccu": 694.4444444444445,
+    "dash_conversion": 0.0012587272142213707,
+    "dash_arppu_robux": 151.9426229508197,
+    "dash_arpdau_robux": 0.19125431450837338,
+    "ltv_new_user_usd": 0.0015779997692630407
+   }
+  ],
+  "base": [
+   {
+    "dau": 50,
+    "lifetime_days": 2.423082591319584,
+    "new_users": 619.046170928543,
+    "payers": 3.714277025571258,
+    "gross_robux": 1692.224612850265,
+    "passes_robux": 1164.351561976078,
+    "products_robux": 527.8730508741869,
+    "by_product_robux": {
+     "DoubleIncome": 471.99175302446764,
+     "LuckVIP": 503.8788212889969,
+     "FastRoll": 188.48098766261347,
+     "LuckBoost": 309.3992762300858,
+     "ServerLuck": 93.7669235105464,
+     "CoinPack": 124.70685113355499
+    },
+    "dev_robux": 1184.5572289951854,
+    "dev_passes_robux": 815.0460933832546,
+    "dev_products_robux": 369.5111356119308,
+    "creator_rewards_robux": 180.0,
+    "earned_robux": 1364.5572289951854,
+    "usd": 5.185317470181705,
+    "player_spend_usd": 16.92224612850265,
+    "months_to_devex": 21.98515339814,
+    "ccu": 0.6944444444444444,
+    "dash_conversion": 0.006190461709285429,
+    "dash_arppu_robux": 182.23999999999998,
+    "dash_arpdau_robux": 1.1281497419001767,
+    "ltv_new_user_usd": 0.008376301661641728
+   },
+   {
+    "dau": 500,
+    "lifetime_days": 2.423082591319584,
+    "new_users": 6190.46170928543,
+    "payers": 37.14277025571258,
+    "gross_robux": 16922.246128502647,
+    "passes_robux": 11643.515619760778,
+    "products_robux": 5278.73050874187,
+    "by_product_robux": {
+     "DoubleIncome": 4719.917530244676,
+     "LuckVIP": 5038.788212889969,
+     "FastRoll": 1884.8098766261344,
+     "LuckBoost": 3093.9927623008575,
+     "ServerLuck": 937.6692351054638,
+     "CoinPack": 1247.0685113355498
+    },
+    "dev_robux": 11845.572289951853,
+    "dev_passes_robux": 8150.460933832544,
+    "dev_products_robux": 3695.1113561193088,
+    "creator_rewards_robux": 1800.0,
+    "earned_robux": 13645.572289951853,
+    "usd": 51.85317470181704,
+    "player_spend_usd": 169.22246128502647,
+    "months_to_devex": 2.198515339814,
+    "ccu": 6.944444444444445,
+    "dash_conversion": 0.006190461709285429,
+    "dash_arppu_robux": 182.23999999999995,
+    "dash_arpdau_robux": 1.1281497419001765,
+    "ltv_new_user_usd": 0.008376301661641728
+   },
+   {
+    "dau": 5000,
+    "lifetime_days": 2.423082591319584,
+    "new_users": 61904.6170928543,
+    "payers": 371.4277025571258,
+    "gross_robux": 169222.46128502648,
+    "passes_robux": 116435.1561976078,
+    "products_robux": 52787.30508741869,
+    "by_product_robux": {
+     "DoubleIncome": 47199.17530244676,
+     "LuckVIP": 50387.88212889969,
+     "FastRoll": 18848.098766261348,
+     "LuckBoost": 30939.92762300858,
+     "ServerLuck": 9376.692351054642,
+     "CoinPack": 12470.6851133555
+    },
+    "dev_robux": 118455.72289951853,
+    "dev_passes_robux": 81504.60933832545,
+    "dev_products_robux": 36951.11356119308,
+    "creator_rewards_robux": 18000.0,
+    "earned_robux": 136455.72289951853,
+    "usd": 518.5317470181704,
+    "player_spend_usd": 1692.2246128502647,
+    "months_to_devex": 0.2198515339814,
+    "ccu": 69.44444444444444,
+    "dash_conversion": 0.006190461709285431,
+    "dash_arppu_robux": 182.23999999999995,
+    "dash_arpdau_robux": 1.1281497419001765,
+    "ltv_new_user_usd": 0.008376301661641727
+   },
+   {
+    "dau": 50000,
+    "lifetime_days": 2.423082591319584,
+    "new_users": 619046.170928543,
+    "payers": 3714.277025571258,
+    "gross_robux": 1692224.612850265,
+    "passes_robux": 1164351.561976078,
+    "products_robux": 527873.0508741871,
+    "by_product_robux": {
+     "DoubleIncome": 471991.7530244676,
+     "LuckVIP": 503878.8212889969,
+     "FastRoll": 188480.98766261345,
+     "LuckBoost": 309399.2762300858,
+     "ServerLuck": 93766.9235105464,
+     "CoinPack": 124706.85113355498
+    },
+    "dev_robux": 1184557.2289951856,
+    "dev_passes_robux": 815046.0933832545,
+    "dev_products_robux": 369511.135611931,
+    "creator_rewards_robux": 180000.0,
+    "earned_robux": 1364557.2289951856,
+    "usd": 5185.317470181705,
+    "player_spend_usd": 16922.24612850265,
+    "months_to_devex": 0.021985153398139997,
+    "ccu": 694.4444444444445,
+    "dash_conversion": 0.00619046170928543,
+    "dash_arppu_robux": 182.23999999999998,
+    "dash_arpdau_robux": 1.1281497419001767,
+    "ltv_new_user_usd": 0.00837630166164173
+   }
+  ],
+  "opt": [
+   {
+    "dau": 50,
+    "lifetime_days": 2.423082591319584,
+    "new_users": 619.046170928543,
+    "payers": 7.428554051142516,
+    "gross_robux": 5249.796290712672,
+    "passes_robux": 3235.6924308264015,
+    "products_robux": 2014.1038598862706,
+    "by_product_robux": {
+     "DoubleIncome": 1266.048466936219,
+     "LuckVIP": 1407.8967065427853,
+     "FastRoll": 561.7472573473971,
+     "LuckBoost": 1037.3975732420524,
+     "ServerLuck": 419.1933051059722,
+     "CoinPack": 557.5129815382459
+    },
+    "dev_robux": 3674.85740349887,
+    "dev_passes_robux": 2264.984701578481,
+    "dev_products_robux": 1409.8727019203893,
+    "creator_rewards_robux": 412.5,
+    "earned_robux": 4087.35740349887,
+    "usd": 15.531958133295706,
+    "player_spend_usd": 52.49796290712672,
+    "months_to_devex": 7.339705594210901,
+    "ccu": 0.6944444444444444,
+    "dash_conversion": 0.017580911254370623,
+    "dash_arppu_robux": 199.07183098591548,
+    "dash_arpdau_robux": 3.4998641938084476,
+    "ltv_new_user_usd": 0.025090144907928963
+   },
+   {
+    "dau": 500,
+    "lifetime_days": 2.423082591319584,
+    "new_users": 6190.46170928543,
+    "payers": 74.28554051142515,
+    "gross_robux": 52497.96290712671,
+    "passes_robux": 32356.92430826401,
+    "products_robux": 20141.038598862702,
+    "by_product_robux": {
+     "DoubleIncome": 12660.48466936219,
+     "LuckVIP": 14078.967065427853,
+     "FastRoll": 5617.47257347397,
+     "LuckBoost": 10373.975732420522,
+     "ServerLuck": 4191.933051059721,
+     "CoinPack": 5575.129815382457
+    },
+    "dev_robux": 36748.5740349887,
+    "dev_passes_robux": 22649.847015784806,
+    "dev_products_robux": 14098.72701920389,
+    "creator_rewards_robux": 4125.0,
+    "earned_robux": 40873.5740349887,
+    "usd": 155.31958133295706,
+    "player_spend_usd": 524.9796290712671,
+    "months_to_devex": 0.7339705594210901,
+    "ccu": 6.944444444444445,
+    "dash_conversion": 0.01758091125437062,
+    "dash_arppu_robux": 199.07183098591548,
+    "dash_arpdau_robux": 3.4998641938084476,
+    "ltv_new_user_usd": 0.025090144907928963
+   },
+   {
+    "dau": 5000,
+    "lifetime_days": 2.423082591319584,
+    "new_users": 61904.6170928543,
+    "payers": 742.8554051142517,
+    "gross_robux": 524979.6290712672,
+    "passes_robux": 323569.24308264017,
+    "products_robux": 201410.38598862704,
+    "by_product_robux": {
+     "DoubleIncome": 126604.84669362189,
+     "LuckVIP": 140789.67065427854,
+     "FastRoll": 56174.72573473972,
+     "LuckBoost": 103739.75732420525,
+     "ServerLuck": 41919.33051059722,
+     "CoinPack": 55751.29815382458
+    },
+    "dev_robux": 367485.740349887,
+    "dev_passes_robux": 226498.47015784812,
+    "dev_products_robux": 140987.2701920389,
+    "creator_rewards_robux": 41250.0,
+    "earned_robux": 408735.740349887,
+    "usd": 1553.1958133295707,
+    "player_spend_usd": 5249.796290712672,
+    "months_to_devex": 0.07339705594210902,
+    "ccu": 69.44444444444444,
+    "dash_conversion": 0.017580911254370623,
+    "dash_arppu_robux": 199.0718309859155,
+    "dash_arpdau_robux": 3.499864193808448,
+    "ltv_new_user_usd": 0.025090144907928963
+   },
+   {
+    "dau": 50000,
+    "lifetime_days": 2.423082591319584,
+    "new_users": 619046.170928543,
+    "payers": 7428.554051142516,
+    "gross_robux": 5249796.290712671,
+    "passes_robux": 3235692.4308264013,
+    "products_robux": 2014103.85988627,
+    "by_product_robux": {
+     "DoubleIncome": 1266048.466936219,
+     "LuckVIP": 1407896.7065427853,
+     "FastRoll": 561747.257347397,
+     "LuckBoost": 1037397.5732420522,
+     "ServerLuck": 419193.30510597216,
+     "CoinPack": 557512.9815382458
+    },
+    "dev_robux": 3674857.40349887,
+    "dev_passes_robux": 2264984.7015784807,
+    "dev_products_robux": 1409872.701920389,
+    "creator_rewards_robux": 412500.0,
+    "earned_robux": 4087357.40349887,
+    "usd": 15531.958133295706,
+    "player_spend_usd": 52497.96290712671,
+    "months_to_devex": 0.007339705594210901,
+    "ccu": 694.4444444444445,
+    "dash_conversion": 0.017580911254370623,
+    "dash_arppu_robux": 199.07183098591545,
+    "dash_arpdau_robux": 3.4998641938084476,
+    "ltv_new_user_usd": 0.025090144907928963
+   }
+  ]
+ },
+ "per_1000_dau": {
+  "pess": {
+   "dau": 1000,
+   "lifetime_days": 2.423082591319584,
+   "new_users": 12380.92341857086,
+   "payers": 24.761846837141718,
+   "gross_robux": 5737.6294352511995,
+   "passes_robux": 4350.346966200335,
+   "products_robux": 1387.2824690508642,
+   "by_product_robux": {
+    "DoubleIncome": 1943.4954536301605,
+    "LuckVIP": 1852.4956665036648,
+    "FastRoll": 554.3558460665101,
+    "LuckBoost": 909.9978712649581,
+    "ServerLuck": 183.85671276577727,
+    "CoinPack": 293.42788502012934
+   },
+   "dev_robux": 4016.3406046758396,
+   "dev_passes_robux": 3045.2428763402345,
+   "dev_products_robux": 971.0977283356049,
+   "creator_rewards_robux": 1125.0,
+   "earned_robux": 5141.340604675839,
+   "usd": 19.537094297768192,
+   "player_spend_usd": 57.376294352512,
+   "months_to_devex": 5.835053988198375,
+   "ccu": 13.88888888888889,
+   "dash_conversion": 0.0012587272142213705,
+   "dash_arppu_robux": 151.94262295081967,
+   "dash_arpdau_robux": 0.19125431450837332,
+   "ltv_new_user_usd": 0.0015779997692630405
+  },
+  "base": {
+   "dau": 1000,
+   "lifetime_days": 2.423082591319584,
+   "new_users": 12380.92341857086,
+   "payers": 74.28554051142515,
+   "gross_robux": 33844.492257005295,
+   "passes_robux": 23287.031239521555,
+   "products_robux": 10557.46101748374,
+   "by_product_robux": {
+    "DoubleIncome": 9439.835060489351,
+    "LuckVIP": 10077.576425779938,
+    "FastRoll": 3769.6197532522688,
+    "LuckBoost": 6187.985524601715,
+    "ServerLuck": 1875.3384702109277,
+    "CoinPack": 2494.1370226710997
+   },
+   "dev_robux": 23691.144579903706,
+   "dev_passes_robux": 16300.921867665087,
+   "dev_products_robux": 7390.2227122386175,
+   "creator_rewards_robux": 3600.0,
+   "earned_robux": 27291.144579903706,
+   "usd": 103.70634940363408,
+   "player_spend_usd": 338.44492257005294,
+   "months_to_devex": 1.099257669907,
+   "ccu": 13.88888888888889,
+   "dash_conversion": 0.006190461709285429,
+   "dash_arppu_robux": 182.23999999999995,
+   "dash_arpdau_robux": 1.1281497419001765,
+   "ltv_new_user_usd": 0.008376301661641728
+  },
+  "opt": {
+   "dau": 1000,
+   "lifetime_days": 2.423082591319584,
+   "new_users": 12380.92341857086,
+   "payers": 148.5710810228503,
+   "gross_robux": 104995.92581425342,
+   "passes_robux": 64713.84861652802,
+   "products_robux": 40282.077197725404,
+   "by_product_robux": {
+    "DoubleIncome": 25320.96933872438,
+    "LuckVIP": 28157.934130855705,
+    "FastRoll": 11234.94514694794,
+    "LuckBoost": 20747.951464841044,
+    "ServerLuck": 8383.866102119442,
+    "CoinPack": 11150.259630764915
+   },
+   "dev_robux": 73497.1480699774,
+   "dev_passes_robux": 45299.69403156961,
+   "dev_products_robux": 28197.45403840778,
+   "creator_rewards_robux": 8250.0,
+   "earned_robux": 81747.1480699774,
+   "usd": 310.6391626659141,
+   "player_spend_usd": 1049.9592581425343,
+   "months_to_devex": 0.36698527971054506,
+   "ccu": 13.88888888888889,
+   "dash_conversion": 0.01758091125437062,
+   "dash_arppu_robux": 199.07183098591548,
+   "dash_arpdau_robux": 3.4998641938084476,
+   "ltv_new_user_usd": 0.025090144907928963
+  }
+ },
+ "ads": [
+  {
+   "dau": 50,
+   "new_per_day": 20.634872364284767,
+   "ccu": 0.6944444444444444,
+   "ads_usd_month": [
+    123.8092341857086,
+    278.5707769178444
+   ],
+   "base_usd": 5.185317470181705
+  },
+  {
+   "dau": 500,
+   "new_per_day": 206.34872364284766,
+   "ccu": 6.944444444444445,
+   "ads_usd_month": [
+    1238.092341857086,
+    2785.7077691784434
+   ],
+   "base_usd": 51.85317470181704
+  },
+  {
+   "dau": 5000,
+   "new_per_day": 2063.4872364284765,
+   "ccu": 69.44444444444444,
+   "ads_usd_month": [
+    12380.92341857086,
+    27857.077691784434
+   ],
+   "base_usd": 518.5317470181704
+  },
+  {
+   "dau": 50000,
+   "new_per_day": 20634.872364284765,
+   "ccu": 694.4444444444445,
+   "ads_usd_month": [
+    123809.2341857086,
+    278570.77691784437
+   ],
+   "base_usd": 5185.317470181705
+  }
+ ],
+ "cpp_usd": [
+  0.2,
+  0.45
+ ],
+ "sensitivity": [
+  {
+   "name": "리텐션 D1·D7·D30",
+   "low_label": "7%·1.2%·0.3%",
+   "high_label": "22%·9%·4.5%",
+   "low_pct": -0.30125769801399327,
+   "high_pct": 1.4428572928711798,
+   "ref_usd": 518.5317470181704
+  },
+  {
+   "name": "결제 전환율",
+   "low_label": "×0.5 (0.3%)",
+   "high_label": "×2 (1.2%)",
+   "low_pct": -0.43404453980558,
+   "high_pct": 0.8680890796111598,
+   "ref_usd": 518.5317470181704
+  },
+  {
+   "name": "결제자 1인 구매 개수",
+   "low_label": "×0.6",
+   "high_label": "×1.6",
+   "low_pct": -0.34723563184446393,
+   "high_pct": 0.5208534477666964,
+   "ref_usd": 518.5317470181704
+  },
+  {
+   "name": "10분+ 플레이(Creator Rewards)",
+   "low_label": "15%",
+   "high_label": "50%",
+   "low_pct": -0.06595546019442011,
+   "high_pct": 0.08794061359256,
+   "ref_usd": 518.5317470181704
+  },
+  {
+   "name": "지역 가격 실현율",
+   "low_label": "75%",
+   "high_label": "95%",
+   "low_pct": -0.10212812701307772,
+   "high_pct": 0.10212812701307783,
+   "ref_usd": 518.5317470181704
+  },
+  {
+   "name": "모든 가격",
+   "low_label": "-25%",
+   "high_label": "+25%",
+   "low_pct": 0.07824812386003988,
+   "high_pct": -0.05621011533305431,
+   "ref_usd": 518.5317470181704
+  }
+ ],
+ "levers": [
+  {
+   "name": "첫 구매 스타터 팩(99 R$, 한 번만)",
+   "usd": 134.52693730581106,
+   "pct": 0.2971909442325522,
+   "note": "결제 전환 ×1.25 + 결제자 40% 구매"
+  },
+  {
+   "name": "상황별 구매 제안(첫 환생 뒤·코인 모자랄 때)",
+   "usd": 121.71161928436092,
+   "pct": 0.17361781592223235,
+   "note": "결제 전환 ×1.2"
+  },
+  {
+   "name": "반복 상품을 쓸모 있게(수입 부스트·큰 코인 팩)",
+   "usd": 120.55605718753813,
+   "pct": 0.1624751799749844,
+   "note": "개발자 상품 구매 ×1.6"
+  },
+  {
+   "name": "일일 보상·연속 접속·오프라인 수입(상한)",
+   "usd": 121.15647410096096,
+   "pct": 0.16826476679272062,
+   "note": "D1 +3%p, D7 +1%p, D30 +0.4%p (유입 고정)"
+  },
+  {
+   "name": "R15 전용 → 미국 18+ DevEx $0.0054",
+   "usd": 105.60164097002638,
+   "pct": 0.018275559570761324,
+   "note": "개발자 몫의 5% 가 미국 18+ 인증 구매라고 가정"
+  }
+ ],
+ "assumptions": {
+  "playtime_min_per_dau": 20.0,
+  "price_elasticity": 1.3,
+  "ret_conv_exp": 0.5,
+  "ret_product_exp": 0.7,
+  "same_day_share": 0.5,
+  "horizon_days": 180
+ }
+}
