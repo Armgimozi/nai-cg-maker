@@ -3654,7 +3654,7 @@ local function withAnalytics(fn: (any) -> ())
 end
 
 test(
-	"Analytics 온보딩: 1~8 단계를 한 번씩 차례대로 — 다시 접속(저장·불러오기)해도 또 안 보냄",
+	"Analytics 온보딩: 1~7 단계를 한 번씩 차례대로(도감을 안 열어도 끝까지) — 다시 접속(저장·불러오기)해도 또 안 보냄",
 	function()
 		withAnalytics(function(env)
 			local A, State, Marks = env.A, env.State, env.Marks
@@ -3669,41 +3669,49 @@ test(
 			A.parkShown(player, d, d)
 			eq(env.onboarding(player), "1,2,3,4", "공원에 첫 전시")
 			A.parkShown(player, d, d)
-			A.clientEvent(player, d, "CollectionOpened")
-			eq(env.onboarding(player), "1,2,3,4", "강화 전에 도감: 기억만")
+			local common = Marks.ById.lighthouse
+			bonus, isNew = State.applyRoll(d, common)
+			A.rolled(player, d, common, isNew, bonus, 1)
+			eq(env.onboarding(player), "1,2,3,4", "흔한 명소는 온보딩 없음")
+			-- 첫 1/1,000(보통 1분 남짓)이 첫 강화보다 먼저 오면 기억만 했다가 강화 때 5 · 6 을 차례로
+			local sphinx = Marks.ById.sphinx
+			assert(sphinx.OneIn >= 1000 and sphinx.Tier.Rank == 4, "스핑크스 = 세계 명소")
+			bonus, isNew = State.applyRoll(d, sphinx)
+			A.rolled(player, d, sphinx, isNew, bonus, 1)
+			eq(env.onboarding(player), "1,2,3,4", "강화 전에 첫 1/1,000: 기억만")
 			d.Coins = 10000
 			local before = d.Coins
 			assert(State.buyUpgrade(d, "Park"))
 			A.upgradeBought(player, d, "Park", before - d.Coins)
 			eq(env.onboarding(player), "1,2,3,4,5,6", "첫 강화 → 5 와 기다리던 6")
-			local common = Marks.ById.lighthouse
-			bonus, isNew = State.applyRoll(d, common)
-			A.rolled(player, d, common, isNew, bonus, 1)
-			eq(env.onboarding(player), "1,2,3,4,5,6", "흔한 명소는 온보딩 없음")
-			local sphinx = Marks.ById.sphinx
-			assert(sphinx.OneIn >= 1000 and sphinx.Tier.Rank == 4, "스핑크스 = 세계 명소")
-			bonus, isNew = State.applyRoll(d, sphinx)
-			A.rolled(player, d, sphinx, isNew, bonus, 1)
-			eq(env.onboarding(player), "1,2,3,4,5,6,7", "첫 1/1,000 이상")
 			env.rebirthReady(d)
 			local coins = d.Coins
 			assert(State.rebirth(d))
 			A.rebirthed(player, d, coins)
-			eq(env.onboarding(player), "1,2,3,4,5,6,7,8", "첫 환생")
+			eq(env.onboarding(player), "1,2,3,4,5,6,7", "첫 환생(도감을 한 번도 안 열어도)")
 			for i, e in env.logged("LogOnboardingFunnelStepEvent") do
 				eq(e.Args[2], A.ONBOARDING_NAMES[i], "단계 이름 " .. i)
 			end
 			eq(A.ONBOARDING.FirstRebirth, #A.ONBOARDING_NAMES, "단계 이름 = 단계 수")
+			for key, step in A.ONBOARDING do
+				assert(A.ONBOARDING_NAMES[step] ~= nil, "단계 번호 " .. key)
+			end
+			eq(#env.logged("LogCustomEvent", "CollectionOpened"), 0)
 
-			-- 나갔다 다시 들어옴: 저장(JSON) → 불러오기 → 같은 일을 또 해도 온보딩은 그대로 8개
+			-- 나갔다 다시 들어옴: 저장(JSON) → 불러오기 → 같은 일을 또 해도 온보딩은 그대로 7개. 도감 열기는 온보딩 밖
 			A.playerRemoving(player, d)
 			local loaded = State.reconcile(env.Mock.json.decode(env.Mock.json.encode(d)))
-			eq(loaded.Analytics.Onboarding, 255, "저장된 단계")
+			eq(loaded.Analytics.Onboarding, 127, "저장된 단계")
 			A.playerAdded(player, loaded)
 			bonus, isNew = State.applyRoll(loaded, Marks.ById.windmill)
 			A.rolled(player, loaded, Marks.ById.windmill, isNew, bonus, 2)
 			A.parkShown(player, loaded, loaded)
 			A.clientEvent(player, loaded, "CollectionOpened")
+			local opened = env.logged("LogCustomEvent", "CollectionOpened")
+			eq(#opened, 1, "도감 열기 = 사용자 지정 이벤트")
+			eq(opened[1].Args[2], 1)
+			eq(opened[1].Args[3].CustomField01, "R1", "환생 구간")
+			eq(opened[1].Args[3].CustomField02, "Returning", "두 번째 접속")
 			loaded.Coins = 10000
 			before = loaded.Coins
 			assert(State.buyUpgrade(loaded, "Globe"))
@@ -3712,7 +3720,7 @@ test(
 			coins = loaded.Coins
 			assert(State.rebirth(loaded))
 			A.rebirthed(player, loaded, coins)
-			eq(env.onboarding(player), "1,2,3,4,5,6,7,8", "다시 접속해도 온보딩은 한 번씩")
+			eq(env.onboarding(player), "1,2,3,4,5,6,7", "다시 접속해도 온보딩은 한 번씩")
 			eq((env.funnel(A.FUNNEL_REBIRTHS, player)), "1,2", "환생 퍼널 1 → 2")
 			local _, rebirthSessions = env.funnel(A.FUNNEL_REBIRTHS, player)
 			eq(rebirthSessions[1], false, "환생 퍼널 = 한 번만 퍼널(세션 Id 없음)")
@@ -3859,6 +3867,36 @@ test(
 )
 
 test(
+	"Analytics 처음 온 접속(SessionEnd 필드 2): 굴리지 않고 나갔다 와도 두 번째부터 Returning, 옛 저장도 Returning",
+	function()
+		withAnalytics(function(env)
+			local A, State = env.A, env.State
+			local player = { Name = "Bounce", UserId = 111 }
+			local d = State.new()
+			A.playerAdded(player, d)
+			env.now += 60
+			A.playerRemoving(player, d) -- 굴림 0 으로 나감
+			eq(d.Rolls, 0)
+			local loaded = State.reconcile(env.Mock.json.decode(env.Mock.json.encode(d)))
+			A.playerAdded(player, loaded)
+			env.now += 60
+			A.playerRemoving(player, loaded)
+			local ended = env.logged("LogCustomEvent", "SessionEnd")
+			eq(#ended, 2)
+			eq(ended[1].Args[3].CustomField02, "First", "처음 접속")
+			eq(ended[2].Args[3].CustomField02, "Returning", "굴림 0 이어도 두 번째 접속")
+			eq(env.onboarding(player), "1", "들어옴은 한 번")
+			local old = { Name = "OldBounce", UserId = 112 }
+			local legacy = State.reconcile({ Rolls = 40 })
+			A.playerAdded(old, legacy)
+			A.playerRemoving(old, legacy)
+			local last = env.logged("LogCustomEvent", "SessionEnd", old)
+			eq(last[1].Args[3].CustomField02, "Returning", "옛 저장")
+		end)
+	end
+)
+
+test(
 	"Analytics 희귀 발견(RareFind): 불가사의 이상 + 처음이거나 그 행운으로도 1/1,000 이상만 — AUTO 1시간에 몇 번뿐",
 	function()
 		withAnalytics(function(env)
@@ -3993,7 +4031,7 @@ test(
 )
 
 test(
-	"Analytics 화면 이벤트(Track): 목록에 있는 이름만, 종류마다 간격 — AutoOn · TapEdit 필드",
+	"Analytics 화면 이벤트(Track): 목록에 있는 이름만, 종류마다 간격 — AutoOn · TapEdit · CollectionOpened 필드",
 	function()
 		withAnalytics(function(env)
 			local A, State = env.A, env.State
@@ -4022,6 +4060,14 @@ test(
 			local taps = env.logged("LogCustomEvent", "TapEdit")
 			eq(taps[1].Args[3].CustomField02, "AutoPark")
 			eq(taps[2].Args[3].CustomField02, "Manual")
+			A.clientEvent(player, d, "CollectionOpened")
+			env.now += 10
+			A.clientEvent(player, d, "CollectionOpened")
+			local opened = env.logged("LogCustomEvent", "CollectionOpened")
+			eq(#opened, 1, "도감을 30초 안에 또 열어도 한 번")
+			eq(opened[1].Args[3].CustomField01, "R0")
+			eq(opened[1].Args[3].CustomField02, "First", "처음 해 보는 접속")
+			eq(env.onboarding(player), "1", "도감 열기는 온보딩 밖")
 			for name in A.CLIENT_EVENTS do
 				assert(({ ShopOpened = true, CollectionOpened = true, AutoOn = true, TapEdit = true })[name], name)
 			end
@@ -4217,7 +4263,7 @@ test(
 			end
 			for name in names do
 				assert(
-					({ RareFind = true, AutoOn = true, TapEdit = true, SessionEnd = true })[name],
+					({ RareFind = true, AutoOn = true, TapEdit = true, CollectionOpened = true, SessionEnd = true })[name],
 					"이벤트 이름 " .. name
 				)
 			end
@@ -4236,7 +4282,7 @@ test(
 				assert(({ Gameplay = true, Shop = true, IAP = true })[kind], "거래 종류 " .. kind)
 			end
 			eq(count(currencies), 1, "통화 하나(Coins)")
-			assert(count(names) <= 4 and count(funnels) <= 4, "이름 수")
+			assert(count(names) <= 5 and count(funnels) <= 4, "이름 수")
 			assert(count(skus) <= 8, "SKU " .. count(skus))
 			assert(count(values) <= 40, "필드 값 " .. count(values))
 			assert(count(combos) <= 200, "필드 조합 " .. count(combos))
@@ -4248,7 +4294,7 @@ test(
 						break
 					end
 				end
-				local expected = if index == 6 then "" else "1,2,3,4,5,6,7,8"
+				local expected = if index == 6 then "" else "1,2,3,4,5,6,7"
 				eq(
 					env.onboarding(player),
 					expected,

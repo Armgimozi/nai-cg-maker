@@ -4,13 +4,13 @@
 -- 지키는 것
 --   · 게임을 멈추지 않음: 공개 함수는 모두 pcall 로 감쌈(오류는 같은 문장마다 한 번만 warn), 서비스가 없거나 Studio 면
 --     보내지 않음(로블록스는 게시된 게임의 서버에서 보낸 이벤트만 받음)
---   · 한도(경험 전체): 사용자 지정 이벤트 이름 4개(RareFind · AutoOn · TapEdit · SessionEnd, 한도 100), 퍼널 4개 + 온보딩
---     (한도 10), 통화 1개(Coins, 한도 5), 거래 종류 3개(Gameplay · Shop · IAP, 한도 20), SKU 8개(한도 100).
+--   · 한도(경험 전체): 사용자 지정 이벤트 이름 5개(RareFind · AutoOn · TapEdit · CollectionOpened · SessionEnd, 한도 100),
+--     퍼널 4개 + 온보딩(한도 10), 통화 1개(Coins, 한도 5), 거래 종류 3개(Gameplay · Shop · IAP, 한도 20), SKU 8개(한도 100).
 --     사용자 지정 필드 값은 정해진 몇 가지(등급 · 환생 구간 · 상품 키 · 시간 구간 …)뿐 — 플레이어 이름·Id·명소 Id 같은
 --     자유 값은 넣지 않음(세 필드 값 조합 8,000 개 한도)
 --   · 굴림마다 보내지 않음: 희귀 발견(불가사의 이상 + 처음이거나 그 굴림 행운으로도 1/1,000 이상)만. 발견 보너스·공원 수입은
 --     FLUSH_INTERVAL(5분)마다 합쳐서 한 번(+ 환생·퇴장 때). 화면 이벤트(클라이언트 Track)는 종류마다 최소 간격
---   · 서버 전체 속도 한도(분당 120 + 20 × 인원)의 RATE_SHARE(80%) 안: 넘치면 버림. 사용자 지정 이벤트(희귀 발견·AUTO·톡 배치)는
+--   · 서버 전체 속도 한도(분당 120 + 20 × 인원)의 RATE_SHARE(80%) 안: 넘치면 버림. 사용자 지정 이벤트(희귀 발견·AUTO·톡 배치·도감)는
 --     LOW_RESERVE(25%)를 남겨 두고 먼저 버림 — 퍼널·경제 이벤트가 밀리지 않게
 
 local HttpService = game:GetService("HttpService")
@@ -36,16 +36,17 @@ Analytics.RATE_SHARE = 0.8
 Analytics.LOW_RESERVE = 0.25
 
 -- 온보딩 퍼널(한 사람에 한 번 — Data.Analytics.Onboarding 에 저장, 1번부터 빈틈없이 이어진 단계까지만 보냄:
--- PlayerState.onboardingStep). 번호 = Creator Hub 퍼널 단계
+-- PlayerState.onboardingStep). 번호 = Creator Hub 퍼널 단계.
+-- 계속 하면 누구나 거치는 일만 넣음: 안 해도 되는 일(도감 열기 같은)이 가운데 있으면 그걸 안 한 사람은 뒤 단계를 다 해도
+-- 영영 안 보내져 "거기서 그만둠"으로 보임 → 그런 일은 사용자 지정 이벤트로(CollectionOpened)
 Analytics.ONBOARDING = {
 	Joined = 1, -- 처음 들어옴
 	FirstRoll = 2, -- 첫 굴림
 	FirstNew = 3, -- 첫 새 명소(발견 보너스)
 	FirstStatue = 4, -- 내 공원에 첫 명소가 전시됨(희귀하면 연출이 끝난 뒤)
 	FirstUpgrade = 5, -- 첫 강화
-	OpenedCollection = 6, -- 도감 열기
-	FirstRare = 7, -- 첫 1/1,000 이상 발견(굴려서)
-	FirstRebirth = 8, -- 첫 환생
+	FirstRare = 6, -- 첫 1/1,000 이상 발견(굴려서)
+	FirstRebirth = 7, -- 첫 환생
 }
 Analytics.ONBOARDING_NAMES = {
 	"Joined",
@@ -53,7 +54,6 @@ Analytics.ONBOARDING_NAMES = {
 	"First New Landmark",
 	"First Statue On Display",
 	"First Upgrade",
-	"Opened Collection",
 	"First 1-in-1000 Find",
 	"First Rebirth",
 }
@@ -68,7 +68,7 @@ Analytics.FUNNEL_STAMPS = "Stamps" -- 대륙 도장 1 → 5 (한 사람에 한 �
 -- 이 목록에 없는 이름은 버림(가짜 클라이언트가 이벤트 이름을 늘리지 못하게)
 Analytics.CLIENT_EVENTS = {
 	ShopOpened = 2, -- 상점 퍼널 1단계
-	CollectionOpened = 2, -- 온보딩 6단계
+	CollectionOpened = 30, -- 사용자 지정 CollectionOpened(도감 열기 — 안 해도 되는 일이라 온보딩 밖)
 	AutoOn = 30, -- 사용자 지정 AutoOn
 	TapEdit = 30, -- 사용자 지정 TapEdit(내 공원을 톡 눌러 배치 모드)
 }
@@ -147,7 +147,7 @@ end
 type Pending = { Purchase: string, Shop: string?, Fields: { [string]: string }, ShopFields: { [string]: string }? }
 type Tracked = {
 	JoinedAt: number,
-	FirstSession: boolean, -- 처음 해 보는 접속(굴림 0, 예전부터 하던 플레이어 아님)
+	FirstSession: boolean, -- 처음 해 보는 접속(온보딩 1단계를 이번에 처음 보냄 — 굴리지 않고 나갔다 와도 Returning)
 	Stamps: number, -- 이미 알린 대륙 도장 수(접속할 때 가진 수부터)
 	Income: number, -- 아직 안 보낸 공원 수입
 	Discovery: number, -- 아직 안 보낸 발견 보너스
@@ -293,6 +293,8 @@ local function economy(
 	)
 end
 
+-- 진행 이벤트: 공식 문서(AnalyticsService:LogProgressionEvent)대로 지금은 Creator Hub 어느 차트에도 안 나옴 — 환생·도장은
+-- 한 번만 퍼널(Rebirths · Stamps)로 읽고, 이건 차트가 생길 때를 위해(퍼널 밖인 옛 플레이어 것도) 남김. 한 사람 평생 15번 이하
 local function progression(player: Player, path: string, level: number, levelName: string)
 	send(false, "LogProgressionEvent", player, path, Enum.AnalyticsProgressionType.Complete, level, levelName)
 end
@@ -331,12 +333,13 @@ end
 
 -- 공개: 서버가 일이 생긴 곳에서 부름 -----------------------------------------------------------
 
--- 데이터를 다 불러와 세션이 생김: 온보딩 1단계, 접속 시간·도장 기준
+-- 데이터를 다 불러와 세션이 생김: 온보딩 1단계, 접속 시간·도장 기준.
+-- 처음 해 보는 접속 = 저장에 온보딩 1단계 비트가 없음(퇴장 때 저장됨 → 다음 접속부터 Returning, 옛 저장도 Returning)
 Analytics.playerAdded = guard("playerAdded", function(player: Player, data: PlayerState.Data)
 	local now = Analytics.clock()
 	tracked[player] = {
 		JoinedAt = now,
-		FirstSession = data.Rolls == 0 and not data.Analytics.Legacy,
+		FirstSession = not PlayerState.onboardingDone(data, Analytics.ONBOARDING.Joined),
 		Stamps = #PlayerState.completedRegions(data),
 		Income = 0,
 		Discovery = 0,
@@ -365,7 +368,7 @@ Analytics.playerRemoving = guard("playerRemoving", function(player: Player, data
 	})
 end)
 
--- 굴림 판정 뒤(applyRoll 결과): 온보딩 2·3·7, 발견 보너스 모으기, 희귀 발견(RareFind)
+-- 굴림 판정 뒤(applyRoll 결과): 온보딩 2·3·6, 발견 보너스 모으기, 희귀 발견(RareFind)
 Analytics.rolled = guard(
 	"rolled",
 	function(
@@ -436,7 +439,7 @@ Analytics.upgradeBought = guard(
 )
 
 -- 환생함(data 는 이미 초기화됨, coinsBefore = 환생 직전 코인): 모아 둔 수입 먼저 보냄 → 경제 쓰기(RebirthReset = 사라진 코인),
--- 온보딩 8, 환생 퍼널(n 단계), 진행 이벤트(Rebirth, n)
+-- 온보딩 7, 환생 퍼널(n 단계), 진행 이벤트(Rebirth, n — 지금은 Creator Hub 차트에 안 나옴: 퍼널로 읽음, 옛 플레이어도 남기려고 보냄)
 Analytics.rebirthed = guard("rebirthed", function(player: Player, data: PlayerState.Data, coinsBefore: number)
 	local n = data.Rebirths
 	local state = tracked[player]
@@ -459,7 +462,7 @@ Analytics.rebirthed = guard("rebirthed", function(player: Player, data: PlayerSt
 	progression(player, "Rebirth", n, "Rebirth " .. n)
 end)
 
--- 상태를 보낸 뒤(자동 발견까지 끝남): 대륙 도장이 늘었으면 도장 퍼널 + 진행 이벤트(Stamps, 도장 수)
+-- 상태를 보낸 뒤(자동 발견까지 끝남): 대륙 도장이 늘었으면 도장 퍼널 + 진행 이벤트(Stamps, 도장 수 — 환생과 같음, 차트는 퍼널)
 Analytics.synced = guard("synced", function(player: Player, data: PlayerState.Data)
 	local state = tracked[player]
 	if not state then
@@ -513,7 +516,10 @@ Analytics.clientEvent = guard("clientEvent", function(player: Player, data: Play
 		state.ShopFields = fields
 		funnel(player, Analytics.FUNNEL_SHOP, id, 1, "Shop Opened", fields)
 	elseif kind == "CollectionOpened" then
-		onboard(player, data, Analytics.ONBOARDING.OpenedCollection)
+		send(true, "LogCustomEvent", player, "CollectionOpened", 1, {
+			[FIELD1] = stage,
+			[FIELD2] = if state.FirstSession then "First" else "Returning",
+		})
 	elseif kind == "AutoOn" then
 		send(true, "LogCustomEvent", player, "AutoOn", 1, { [FIELD1] = stage })
 	elseif kind == "TapEdit" then
