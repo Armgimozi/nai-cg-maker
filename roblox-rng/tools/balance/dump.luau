@@ -117,7 +117,10 @@ local function dumpConfig()
 	-- 정의 순서가 아니라 흔한 것 -> 희귀한 것(Landmarks.List). sim.py 가 다시 희귀한 순서로 정렬
 	local landmarks = {}
 	for _, lm in Landmarks.List do
-		table.insert(landmarks, { id = lm.Id, name = lm.Name, one_in = lm.OneIn, region = lm.Region, rank = lm.Tier.Rank })
+		table.insert(
+			landmarks,
+			{ id = lm.Id, name = lm.Name, one_in = lm.OneIn, region = lm.Region, rank = lm.Tier.Rank }
+		)
 	end
 	return {
 		source = "luaurun",

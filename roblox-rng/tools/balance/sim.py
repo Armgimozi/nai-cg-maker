@@ -16,6 +16,11 @@ Run from anywhere (paths resolve relative to the roblox-rng folder):
   python3 tools/balance/sim.py --mode ideal            # ignore the AUTO reveal animation (period = cooldown)
   python3 tools/balance/sim.py --policy greedy         # never save for rebirth (see POLICY below)
   python3 tools/balance/sim.py --dump-config           # print the normalised config JSON (the variant base)
+  python3 tools/balance/sim.py --variant V --no-sensitivity --sims 200   # quick variant iteration (~20 s)
+  Other knobs: --horizon-days 120, --seed, --frac 0.02, --paid-boosts-per-day 1, --server-luck-duty 0,
+  --paid-coinpacks-per-day 0, --paid-pass-delay-min 0, --rtt 0.12, --baseline <sim_*.json> (a variant run
+  compares itself with balance/sim_current.json automatically), --source auto|luaurun|regex.
+  Outputs: <out>.md (report) + <out>.json (medians per rebirth / tier / endgame, for comparing variants).
 
 MODEL (one Monte-Carlo run = one player; S runs vectorised with numpy)
   * Rolls: exact RollLogic probabilities for the current luck (rarest first, success = min(1, luck/N),
@@ -57,7 +62,10 @@ VARIANT JSON (balance/variant_*.json) = a patch over the normalised config (see 
     "passes": {"LuckVIP": {"luck_mult"}, "FastRoll": {"cooldown_mult"}, "DoubleIncome": {"income_mult"}},
     "products": {"LuckBoost": {"seconds", "luck_mult"}, "ServerLuck": {...}, "CoinPack": {...}},
     "tiers": [{"rank", "name", "min_one_in"}] or shortcut "tier_min_one_in": [1, 10, ...],
-    "client": {"rtt", "loop_wait", "reveal_seconds": [7], "land_seconds", "suspense_seconds", ...}
+    "client": {"rtt", "loop_wait", "reveal_seconds": [7], "land_seconds", "suspense_seconds", ...},
+    "rules": {"auto_discover_below_luck": true,   # proposed fix: 1-in <= permanent luck counts as discovered
+              "short_reveal_known": true,         # proposed fix: already-discovered landmarks reveal like rank <= 3
+              "short_reveal_rank": 3}             #   (neither exists in the current game)
   special keys (applied in this order):
     "landmark_formula": {"type": "power", "exponent": e, "scale": s}      N' = s * N^e
                       | {"type": "scale", "factor": f}                    N' = f * N
@@ -67,7 +75,12 @@ VARIANT JSON (balance/variant_*.json) = a patch over the normalised config (see 
     "landmark_one_in": {"eiffel": 5000, ...}        explicit per-landmark overrides
     "landmarks_extra": [{"id", "name", "one_in", "region"}]
     "name", "notes": free text (shown in the report)
+  camelCase shape is accepted too (tools/balance/variant_a_design.py style): "landmarks": {id: N},
+    "tiers": [{"rank", "name", "minOneIn"}], "tierIncome", "announceOneIn", "hologramOneIn", "discoveryBonusMult",
+    "rebirth": {"luck": "x2" | "linear", "luckBase", "luckBonus", "income", "incomeBase", "incomeBonus", "steps": [...]}
+  Example: balance/example_variant_naive.json.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -271,8 +284,66 @@ def _round_sig(x: float, sig: int) -> float:
 SPECIAL = ("landmark_formula", "landmark_one_in", "landmarks_extra", "tier_min_one_in", "name", "notes")
 
 
+def _snake(key: str) -> str:
+    return re.sub(r"(?<=[a-z0-9])([A-Z])", r"_\1", key).lower()
+
+
+def _rebirth_rule(kind, base, per, default: dict) -> dict:
+    if isinstance(kind, dict):
+        return kind
+    if isinstance(kind, str) and kind.lower().startswith("x"):
+        return {"type": "mult", "base": float(base if base is not None else kind[1:])}
+    if kind in ("mult", "exp", "exponential"):
+        return {"type": "mult", "base": float(base if base is not None else 2)}
+    if isinstance(kind, list):
+        return {"type": "table", "values": kind}
+    if per is not None:
+        return {"type": "linear", "per": float(per)}
+    if base is not None:
+        return {"type": "mult", "base": float(base)}
+    return default
+
+
+def normalize_variant(v: dict, cfg: dict) -> dict:
+    """Accept the camelCase shape too (e.g. {"landmarks": {id: N}, "tiers": [{"minOneIn"}], "tierIncome",
+    "rebirth": {"luck": "x2", "luckBase", "luckBonus", "income", "incomeBase", "incomeBonus", "steps"},
+    "announceOneIn", "hologramOneIn", "discoveryBonusMult", ...}) and map it onto the native snake_case patch."""
+    out: dict = {}
+    for key, val in v.items():
+        k = key if key in SPECIAL else _snake(key)
+        if k == "landmarks" and isinstance(val, dict):
+            out.setdefault("landmark_one_in", {}).update(val)
+        elif k == "landmarks" and isinstance(val, list) and val and isinstance(val[0], dict) and "region" not in val[0]:
+            for item in val:
+                n = item.get("one_in", item.get("oneIn", item.get("n", item.get("N"))))
+                out.setdefault("landmark_one_in", {})[item["id"]] = n
+        elif k == "tiers" and isinstance(val, list):
+            out["tiers"] = [{_snake(a): b for a, b in t.items()} for t in val]
+        elif k == "rebirth" and isinstance(val, dict):
+            r = {_snake(a): b for a, b in val.items()}
+            if "steps" in r:
+                out["rebirths"] = [{"coins": st["coins"], "landmarks": list(st["landmarks"])} for st in r["steps"]]
+            if any(x in r for x in ("luck", "luck_base", "luck_bonus")):
+                out["rebirth_luck"] = _rebirth_rule(r.get("luck"), r.get("luck_base"), r.get("luck_bonus"), cfg["rebirth_luck"])
+            if any(x in r for x in ("income", "income_base", "income_bonus")):
+                out["rebirth_income"] = _rebirth_rule(r.get("income"), r.get("income_base"), r.get("income_bonus"), cfg["rebirth_income"])
+            if "max" in r:
+                out["max_rebirths"] = r["max"]
+        elif k in ("upgrades", "passes", "products") and isinstance(val, dict):
+            out[k] = {uid: {_snake(a): b for a, b in u.items()} for uid, u in val.items()}
+        elif k in ("client", "rules") and isinstance(val, dict):
+            out[k] = {_snake(a): b for a, b in val.items()}
+        else:
+            out[k] = val
+    return out
+
+
 def apply_variant(cfg: dict, variant: dict) -> dict:
+    variant = normalize_variant(variant, cfg)
     out = _deep_merge(cfg, {k: v for k, v in variant.items() if k not in SPECIAL})
+    for rule in ("rebirth_luck", "rebirth_income"):  # a rule is replaced, not merged
+        if rule in variant:
+            out[rule] = copy.deepcopy(variant[rule])
     out["variant_name"] = variant.get("name", "variant")
     out["variant_notes"] = variant.get("notes", "")
     if "rebirths" in variant and "max_rebirths" not in variant:
@@ -377,6 +448,8 @@ class Game:
         self.region_members = np.stack([(reg == r) & stamp for r in range(len(self.regions))]).astype(np.int32)
         self.region_required = self.region_members.sum(1)
         self.star_thr = np.array(cfg["star_thresholds"], dtype=float)
+        self.star_cap = int(self.star_thr.max())
+        self.star_lut = np.searchsorted(self.star_thr, np.arange(self.star_cap + 1), side="right")
         self.star_bonus = float(cfg["star_income_bonus"])
         self.max_slots = int(cfg["park_grid"]) ** 2
         up = cfg["upgrades"]
@@ -401,6 +474,12 @@ class Game:
         self.client = cfg["client"]
         self.overhead_rank = np.array([auto_overhead(self.client, r) for r in range(1, self.n_tiers + 1)])
         self.overhead = self.overhead_rank[self.rank - 1]
+        # optional rule changes (variant "rules"): not in the current game
+        self.rules = dict(cfg.get("rules") or {})
+        self.auto_discover = bool(self.rules.get("auto_discover_below_luck"))
+        self.short_reveal_known = bool(self.rules.get("short_reveal_known"))
+        cap = int(self.rules.get("short_reveal_rank", self.client["rare_rank"] - 1))
+        self.overhead_known = self.overhead_rank[np.minimum(self.rank, cap) - 1] if self.short_reveal_known else self.overhead
         self.announce = self.N >= cfg["announce_one_in"]
         self.hologram = self.N >= cfg["hologram_one_in"]
 
@@ -438,24 +517,21 @@ class Game:
         """Sum of landmark incomes on display (before Ticket / rebirth / pass multipliers)."""
         owned = cnt > 0
         shown = owned & (np.cumsum(owned, axis=1) <= slots[:, None])
-        stars = np.searchsorted(self.star_thr, cnt, side="right")
+        stars = self.star_lut[np.minimum(cnt, self.star_cap)]
         per = self.item_income[None, :] * (1 + self.star_bonus * (stars - 1))
         return np.where(shown, per, 0.0).sum(1)
 
     def income(self, cnt, lvl, reb, income_mult: float) -> np.ndarray:
-        return (
-            self.park_income(cnt, self.slots(lvl[:, P]))
-            * (1 + self.up_per[T] * lvl[:, T])
-            * self.RI[reb]
-            * income_mult
-        )
+        return self.park_income(cnt, self.slots(lvl[:, P])) * (1 + self.up_per[T] * lvl[:, T]) * self.RI[reb] * income_mult
 
 
 # ---------------------------------------------------------------------------------------------
 # player profiles
 
 
-def make_profile(game: Game, kind: str, boost_per_day: float | None, server_luck_duty: float, coinpacks_per_day: float):
+def make_profile(
+    game: Game, kind: str, boost_per_day: float | None, server_luck_duty: float, coinpacks_per_day: float, pass_delay: float = 0.0
+):
     passes = game.cfg["passes"]
     products = game.cfg["products"]
     owned = list(passes) if kind == "paid" else []
@@ -487,6 +563,7 @@ def make_profile(game: Game, kind: str, boost_per_day: float | None, server_luck
         server_luck_duty=server_luck_duty,
         mix=mix,
         coinpacks_per_day=coinpacks_per_day,
+        pass_delay=pass_delay,  # passes switch on after this many seconds of play (boosts are always on)
         coinpack_seconds=float(coin.get("income_seconds", 0)),
         coinpack_min=float(coin.get("min_coins", 0)),
     )
@@ -523,9 +600,7 @@ def simulate(game: Game, prof: dict, sims: int, seed: int, horizon: float, frac:
     spr_log = np.zeros((S, R + 1))  # seconds / rolls per run (effective roll period)
     roll_log = np.zeros((S, R + 1))
     announce_log = np.zeros((S, R + 1))
-    lm = prof["luck_mult"]
-    cdm = prof["cd_mult"]
-    im = prof["income_mult"]
+    delay = float(prof.get("pass_delay", 0.0))
     period_is_auto = mode == "auto"
     iters = 0
 
@@ -542,11 +617,29 @@ def simulate(game: Game, prof: dict, sims: int, seed: int, horizon: float, frac:
             break
         iters += 1
         c, d_, l_, r_ = cnt[act], disc[act], lvl[act], reb[act]
+        on = t[act] >= delay
+        lm = np.where(on, prof["luck_mult"], 1.0)
+        cdm = np.where(on, prof["cd_mult"], 1.0)
+        im = np.where(on, prof["income_mult"], 1.0)
         st = game.stamps(d_)
         luck = game.luck(l_, st, r_, lm)
+        if game.auto_discover:
+            # rule: a landmark whose 1-in <= permanent luck counts as discovered (it can no longer be rolled)
+            auto = (game.N[None, :] <= luck[:, None]) & ~d_
+            if auto.any():
+                rows, cols = np.nonzero(auto)
+                disc_t[act[rows], cols] = t[act][rows]
+                disc_reb[act[rows], cols] = r_[rows]
+                d_ = d_ | auto
+                st = game.stamps(d_)
+                luck = game.luck(l_, st, r_, lm)
         p = all_probs(luck)
         cd = game.cooldown(l_, cdm)
-        period = np.maximum(cd[:, None], game.overhead[None, :]) if period_is_auto else np.repeat(cd[:, None], M, 1)
+        if period_is_auto:
+            ov = np.where(d_, game.overhead_known[None, :], game.overhead[None, :]) if game.short_reveal_known else game.overhead[None, :]
+            period = np.maximum(cd[:, None], ov)
+        else:
+            period = np.repeat(cd[:, None], M, 1)
         spr = (p * period).sum(1)
         inc = game.income(c, l_, r_, im)
         # coin target: next purchase or rebirth coins (so windows stop right there)
@@ -564,7 +657,8 @@ def simulate(game: Game, prof: dict, sims: int, seed: int, horizon: float, frac:
             k_coin = np.where((rate > 0) & np.isfinite(target), np.ceil((target - coins[act]) / rate), np.inf)
         k_frac = np.maximum(1, np.floor(frac * run_rolls[act]))
         k_hor = np.ceil(np.maximum(horizon - t[act], 0) / spr) + 1
-        K = np.minimum(np.minimum(k_frac, np.maximum(k_coin, 1)), k_hor).astype(np.int64)
+        k_pass = np.where(on, np.inf, np.ceil((delay - t[act]) / spr))
+        K = np.minimum(np.minimum(np.minimum(k_frac, np.maximum(k_coin, 1)), k_hor), np.maximum(k_pass, 1)).astype(np.int64)
         K = np.maximum(K, 1)
         draws = rng.multinomial(K, p)
         dt = (draws * period).sum(1)
@@ -579,7 +673,9 @@ def simulate(game: Game, prof: dict, sims: int, seed: int, horizon: float, frac:
         c = c + draws
         d_ = d_ | (draws > 0)
         inc_end = game.income(c, l_, r_, im)
-        coin_gain = 0.5 * (inc + inc_end) * dt + bonus
+        # each roll's result earns during its own reveal period: K=1 -> end income, large K -> trapezoid
+        w_end = (K + 1) / (2 * K)
+        coin_gain = ((1 - w_end) * inc + w_end * inc_end) * dt + bonus
         if prof["coinpacks_per_day"] > 0:
             coin_gain += prof["coinpacks_per_day"] * dt / DAY * np.maximum(prof["coinpack_min"], inc_end * prof["coinpack_seconds"])
         co = coins[act] + coin_gain
@@ -603,17 +699,19 @@ def simulate(game: Game, prof: dict, sims: int, seed: int, horizon: float, frac:
             slots = game.slots(l_[:, P])
             park_useful = (owned_n > slots) & (slots < game.max_slots)
             prices[:, P] = np.where(park_useful, prices[:, P], np.inf)
-            if saving.any():
-                # only buys that bring the rebirth coins sooner (payback before rebirth)
-                s_idx = np.flatnonzero(saving)
-                i0 = game.income(c[s_idx], l_[s_idx], r_[s_idx], im)
+            # saving rows: only buys that bring the rebirth coins sooner (payback before rebirth)
+            s_all = saving & (np.minimum(prices[:, T], prices[:, P]) <= co)
+            prices[saving & ~s_all] = np.inf
+            if s_all.any():
+                s_idx = np.flatnonzero(s_all)
+                i0 = game.income(c[s_idx], l_[s_idx], r_[s_idx], im[s_idx])
                 gap = C[s_idx] - co[s_idx]
                 lt = l_[s_idx].copy()
                 lt[:, T] += 1
-                i_t = game.income(c[s_idx], lt, r_[s_idx], im)
+                i_t = game.income(c[s_idx], lt, r_[s_idx], im[s_idx])
                 lp = l_[s_idx].copy()
                 lp[:, P] += 1
-                i_p = game.income(c[s_idx], lp, r_[s_idx], im)
+                i_p = game.income(c[s_idx], lp, r_[s_idx], im[s_idx])
                 with np.errstate(divide="ignore", invalid="ignore"):
                     base_wait = gap / i0
                     ok_t = (gap > 0) & ((gap + prices[s_idx, T]) / i_t < base_wait)
@@ -640,8 +738,8 @@ def simulate(game: Game, prof: dict, sims: int, seed: int, horizon: float, frac:
             nr = rr + 1
             reb_t[ci, nr] = tt[can]
             reb_rolls[ci, nr] = rolls[ci]
-            reb_luck[ci, nr] = game.luck(l_[can], game.stamps(d_[can]), rr, lm)
-            reb_income[ci, nr] = game.income(c[can], l_[can], rr, im)
+            reb_luck[ci, nr] = game.luck(l_[can], game.stamps(d_[can]), rr, lm[can])
+            reb_income[ci, nr] = game.income(c[can], l_[can], rr, im[can])
             reb_stamps[ci, nr] = game.stamps(d_[can])
             reb_lvl[ci, nr] = l_[can]
             c[can] = 0
@@ -675,10 +773,11 @@ def simulate(game: Game, prof: dict, sims: int, seed: int, horizon: float, frac:
         run_seconds=spr_log,
         run_rolls=roll_log,
         run_announce=announce_log,
-        final_luck=game.luck(lvl, game.stamps(disc), reb, lm),
+        final_luck=game.luck(lvl, game.stamps(disc), reb, np.where(t >= delay, prof["luck_mult"], 1.0)),
         final_reb=reb,
         final_lvl=lvl,
         final_stamps=game.stamps(disc),
+        final_disc=disc,
     )
 
 
@@ -701,13 +800,7 @@ def reference_sim(game: Game, prof: dict, seed: int, until_reb: int, policy: str
 
     def luck_now():
         stamps = sum(1 for mem in stamp_members if len(mem) and all(disc[i] for i in mem))
-        return (
-            cfg["base_luck"]
-            * (1 + game.up_per[G] * lvl[G])
-            * (1 + cfg["region_luck_bonus"] * stamps)
-            * game.RL[reb]
-            * prof["luck_mult"]
-        )
+        return cfg["base_luck"] * (1 + game.up_per[G] * lvl[G]) * (1 + cfg["region_luck_bonus"] * stamps) * game.RL[reb] * prof["luck_mult"]
 
     def income_now(lv=None):
         lv = lv or lvl
@@ -835,8 +928,55 @@ def dur_cell(x: np.ndarray, horizon: float) -> str:
     return f"**{fmt_dur(med)}** ({fmt_dur(lo)}–{tail})"
 
 
+# pacing targets (free player, AUTO, cumulative online time) — from the design brief
+TARGETS = [
+    ("1st rebirth", 1, 15 * MINUTE, 30 * MINUTE),
+    ("3rd rebirth", 3, 2 * HOUR, 4 * HOUR),
+    ("5th rebirth", 5, 16 * HOUR, 36 * HOUR),
+    ("10th rebirth", 10, 14 * DAY, 42 * DAY),
+]
+EARLY_MARKS = (5 * MINUTE, 15 * MINUTE, HOUR)
+
+
+def endgame(game: Game, res: dict, mode: str, state: str) -> dict:
+    """Expected online time to a tier-6 / tier-7 / rarest roll from the horizon state or the theoretical max."""
+    cfg, prof, R = game.cfg, res["profile"], game.max_reb
+    if state == "simulated":
+        luck, lvl_a = res["final_luck"], res["final_lvl"][:, A]
+        known = res["final_disc"]
+    else:
+        stamps = int((game.region_required > 0).sum())
+        luck = np.array(
+            [
+                cfg["base_luck"]
+                * (1 + game.up_per[G] * game.up_max[G])
+                * (1 + cfg["region_luck_bonus"] * stamps)
+                * game.RL[R]
+                * prof["luck_mult"]
+            ]
+        )
+        lvl_a = np.array([game.up_max[A]])
+        known = np.ones((1, game.M), dtype=bool)
+    p = sum(game.probs(luck * m) * w for m, w in prof["mix"])
+    ov = np.where(known, game.overhead_known[None, :], game.overhead[None, :])
+    cd = cfg["roll_cooldown"] * (1 - game.up_per[A] * lvl_a) * prof["cd_mult"]
+    period = np.maximum(cd[:, None], ov) if mode == "auto" else cd[:, None]
+    spr = (p * period).sum(1)
+    out = dict(luck=float(np.median(luck)), s_per_roll=float(np.median(spr)))
+    for key, mask in (("tier6_s", game.rank == 6), ("tier7_s", game.rank == 7), ("rarest_s", np.arange(game.M) == 0)):
+        pr = p[:, mask].sum(1)
+        out[key] = float(np.median(np.where(pr > 0, spr / np.maximum(pr, 1e-300), np.inf)))
+    out["announce_per_h"] = float(np.median(p[:, game.announce].sum(1) * 3600 / spr))
+    out["hologram_per_h"] = float(np.median(p[:, game.hologram].sum(1) * 3600 / spr))
+    return out
+
+
+def early_counts(res: dict) -> list:
+    return [float(np.median((res["disc_t"] <= mark).sum(1))) for mark in EARLY_MARKS]
+
+
 def summarize(game: Game, res: dict) -> dict:
-    """Numbers for JSON / comparisons."""
+    """Numbers for JSON / comparisons between variants."""
     R = game.max_reb
     out = {"rebirths": [], "tiers": []}
     for k in range(1, R + 1):
@@ -854,11 +994,27 @@ def summarize(game: Game, res: dict) -> dict:
                 luck_median=float(np.nanmedian(res["reb_luck"][:, k])) if np.isfinite(x).any() else None,
             )
         )
-    for r in range(game.n_tiers):
-        cols = game.rank == r + 1
-        first = np.nanmin(np.where(np.isnan(res["disc_t"][:, cols]), np.inf, res["disc_t"][:, cols]), axis=1)
-        first = np.where(np.isinf(first), np.nan, first)
-        out["tiers"].append(dict(rank=r + 1, name=game.tier_names[r], median_s=cq(first, 0.5), reached=float(np.isfinite(first).mean())))
+    for r in range(1, game.n_tiers + 1):
+        if not (game.rank == r).any():
+            continue
+        first, rb = tier_first(game, res, r)
+        out["tiers"].append(
+            dict(
+                rank=r,
+                name=game.tier_names[r - 1],
+                median_s=cq(first, 0.5),
+                reached=float(np.isfinite(first).mean()),
+                at_rebirth_median=float(np.median(rb[rb >= 0])) if (rb >= 0).any() else None,
+            )
+        )
+    out["early_distinct"] = dict(zip(("5min", "15min", "60min"), early_counts(res)))
+    out["final"] = dict(
+        rebirths=float(np.median(res["final_reb"])),
+        stamps=float(np.median(res["final_stamps"])),
+        luck=float(np.median(res["final_luck"])),
+    )
+    out["endgame_simulated"] = endgame(game, res, res["mode"], "simulated")
+    out["endgame_max"] = endgame(game, res, res["mode"], "max")
     return out
 
 
@@ -872,21 +1028,129 @@ def tier_first(game: Game, res: dict, rank: int):
     return first, rb
 
 
-def report(game: Game, results: dict, args, validation: str | None, elapsed: float) -> str:
+def report(game: Game, results: dict, args, validation: str | None, elapsed: float, sens: list | None = None) -> str:
     cfg = game.cfg
     lines = []
     title = cfg.get("variant_name") if cfg.get("variant_name") else "current game"
     lines.append(f"# Landmark RNG — progression simulation ({title})\n")
     lines.append(
         f"Generated by `tools/balance/sim.py` on {time.strftime('%Y-%m-%d')} — config source: `{cfg.get('source')}`"
-        + (f", variant `{args.variant}`" if args.variant else " (src/shared/*.luau as committed)")
+        + (f", variant `{args.variant}`" if args.variant else " (src/shared/*.luau + src/client/Hud.luau on disk)")
         + f". {args.sims} Monte-Carlo players per profile, seed {args.seed}, horizon {fmt_dur(args.horizon_days * DAY)} of"
         f" online play, window frac {args.frac}, policy `{args.policy}`, roll mode `{args.mode}`; {elapsed:.0f} s.\n"
     )
     if cfg.get("variant_notes"):
         lines.append(f"> {cfg['variant_notes']}\n")
-    lines.append("Re-run: `python3 tools/balance/sim.py" + (f" --variant {args.variant}" if args.variant else "") + " --check`\n")
+    lines.append(
+        "Re-run: `python3 tools/balance/sim.py" + (f" --variant {args.variant}" if args.variant else "") + " --check`"
+        " (model, policy and the variant JSON schema are documented in the script's docstring / `--help`).\n"
+    )
     lines.append("Cells: **median** (p10–p90) of cumulative online play time. `—` = not reached within the horizon.\n")
+
+    profiles = list(results)
+    base = None
+    if args.baseline and Path(args.baseline).exists():
+        base = json.loads(Path(args.baseline).read_text(encoding="utf-8"))["profiles"]
+    sums = {n: summarize(game, results[n]) for n in profiles}
+    lines.append("## Pacing vs targets\n")
+    head = "| metric | target |" + "".join(f" {n} |" for n in profiles) + (" baseline free | baseline paid |" if base else "")
+    lines.append(head)
+    lines.append("|---|---|" + "---|" * len(profiles) + ("---|---|" if base else ""))
+
+    def verdict(v, lo, hi):
+        if not np.isfinite(v):
+            return "not reached"
+        if v < lo:
+            return f"{fmt_dur(v)} (too fast ×{lo / v:.1f})"
+        if v > hi:
+            return f"{fmt_dur(v)} (too slow ×{v / hi:.1f})"
+        return f"{fmt_dur(v)} ✓"
+
+    for label, k, lo, hi in TARGETS:
+        if k > game.max_reb:
+            continue
+        row = f"| {label} | {fmt_dur(lo)}–{fmt_dur(hi)} |"
+        for n in profiles:
+            v = sums[n]["rebirths"][k - 1]["median_s"]
+            row += f" {verdict(v, lo, hi) if n == 'free' else fmt_dur(v)} |"
+        if base:
+            for n in ("free", "paid"):
+                b = base.get(n, {}).get("rebirths", [])
+                row += f" {fmt_dur(b[k - 1]['median_s']) if len(b) >= k and b[k - 1]['median_s'] is not None else '—'} |"
+        lines.append(row)
+    for j, mark in enumerate(("5min", "15min", "60min")):
+        row = f"| distinct landmarks found by {mark} | ≥ now |"
+        for n in profiles:
+            row += f" {sums[n]['early_distinct'][mark]:.0f} |"
+        if base:
+            for n in ("free", "paid"):
+                v = base.get(n, {}).get("early_distinct", {}).get(mark)
+                row += f" {v:.0f} |" if v is not None else " — |"
+        lines.append(row)
+    for r in (6, 7):
+        tiers = {t["rank"]: t for t in sums[profiles[0]]["tiers"]}
+        if r not in tiers:
+            continue
+        row = f"| first tier {r} ({game.tier_names[r - 1]}): time / at rebirth # | {'mid/late rebirths' if r == 7 else '—'} |"
+        for n in profiles:
+            t = {x["rank"]: x for x in sums[n]["tiers"]}.get(r)
+            rb = t["at_rebirth_median"] if t else None
+            row += f" {fmt_dur(t['median_s']) if t else '—'} / {'—' if rb is None else f'{rb:.0f}'} |"
+        if base:
+            for n in ("free", "paid"):
+                t = {x["rank"]: x for x in base.get(n, {}).get("tiers", [])}.get(r)
+                rb = t.get("at_rebirth_median") if t else None
+                row += f" {fmt_dur(t['median_s']) if t else '—'} / {'—' if rb is None else f'{rb:.0f}'} |"
+        lines.append(row)
+    row = "| rarest landmark, expected time at the max state | days–weeks |"
+    for n in profiles:
+        row += f" {fmt_dur(sums[n]['endgame_max']['rarest_s'])} |"
+    if base:
+        for n in ("free", "paid"):
+            e = base.get(n, {}).get("endgame_max")
+            row += f" {fmt_dur(e['rarest_s']) if e else '—'} |"
+    lines.append(row)
+    row = "| stamps at the horizon (median) | all |"
+    for n in profiles:
+        row += f" {sums[n]['final']['stamps']:.0f}/{int((game.region_required > 0).sum())} |"
+    if base:
+        for n in ("free", "paid"):
+            f_ = base.get(n, {}).get("final")
+            row += f" {f_['stamps']:.0f} |" if f_ else " — |"
+    lines.append(row)
+    lines.append("")
+
+    # --- auto-generated observations ---
+    obs = []
+    p1 = game.probs(np.array([1.0]))[0]
+    slow = float((p1 * np.maximum(cfg["roll_cooldown"], game.overhead)).sum())
+    fastest_cd = cfg["roll_cooldown"] * (1 - game.up_per[A] * game.up_max[A]) * cfg["passes"].get("FastRoll", {}).get("cooldown_mult", 1)
+    fast = float((p1 * np.maximum(fastest_cd, game.overhead)).sum())
+    if args.mode == "auto" and fast > 0.95 * slow:
+        obs.append(
+            f"AUTO is gated by the reveal animation (~{game.overhead_rank[0]:.2f} s per common roll, {game.overhead_rank[3]:.1f}–{game.overhead_rank[-1]:.1f} s"
+            f" for rank ≥ 4) — the {cfg['roll_cooldown']:.2f} s cooldown, Agency (→ {fastest_cd / game.cfg['passes'].get('FastRoll', {}).get('cooldown_mult', 1):.2f} s) and"
+            f" FastRoll (→ {fastest_cd:.2f} s) change AUTO speed by only {100 * (1 - fast / slow):.0f}%. See `--mode ideal` in the sensitivity table."
+        )
+    for n in profiles:
+        stamps = results[n]["final_stamps"]
+        mx = int((game.region_required > 0).sum())
+        if np.median(stamps) < mx:
+            obs.append(
+                f"{n}: median {np.median(stamps):.0f}/{mx} passport stamps at the horizon — commons with 1-in ≤ luck can no longer be rolled"
+                " (see stamp blockers)."
+            )
+    ann = {n: endgame(game, results[n], args.mode, "simulated")["announce_per_h"] for n in profiles}
+    obs.append(
+        "Server news (1 in ≥ "
+        + fmt_num(cfg["announce_one_in"])
+        + ") per player per hour at the horizon: "
+        + ", ".join(f"{n} {v:.0f}" for n, v in ann.items())
+        + " — multiply by players in the server."
+    )
+    lines.append("Observations:\n")
+    lines.extend(f"- {o}" for o in obs)
+    lines.append("")
 
     # --- roll rate ---
     c = game.client
@@ -911,7 +1175,6 @@ def report(game: Game, results: dict, args, validation: str | None, elapsed: flo
     lines.append("")
 
     # --- timeline ---
-    profiles = list(results)
     R = game.max_reb
     lines.append("## Rebirth timeline\n")
     for name in profiles:
@@ -964,14 +1227,20 @@ def report(game: Game, results: dict, args, validation: str | None, elapsed: flo
         for name in profiles:
             first, rb = tier_first(game, results[name], r)
             med_rb = np.median(rb[rb >= 0]) if (rb >= 0).any() else float("nan")
-            cells += f" {dur_cell(first, results[name]['horizon'])} | {med_rb:.0f} |" if np.isfinite(med_rb) else f" {dur_cell(first, results[name]['horizon'])} | — |"
+            cells += (
+                f" {dur_cell(first, results[name]['horizon'])} | {med_rb:.0f} |"
+                if np.isfinite(med_rb)
+                else f" {dur_cell(first, results[name]['horizon'])} | — |"
+            )
         lines.append(f"| {r} {game.tier_names[r - 1]} ({cols.sum()}) | {rng_txt} | {p1[cols].sum():.3g} |{cells}")
     lines.append("")
     rare_idx = 0  # rarest landmark
     for name in profiles:
         res = results[name]
         got = np.isfinite(res["disc_t"][:, rare_idx]).mean()
-        lines.append(f"- {name}: rarest `{game.ids[rare_idx]}` (1 in {fmt_num(game.N[rare_idx])}) found within the horizon by {got:.0%} of players.")
+        lines.append(
+            f"- {name}: rarest `{game.ids[rare_idx]}` (1 in {fmt_num(game.N[rare_idx])}) found within the horizon by {got:.0%} of players."
+        )
     lines.append("")
 
     # --- endgame analytic ---
@@ -980,38 +1249,20 @@ def report(game: Game, results: dict, args, validation: str | None, elapsed: flo
         "`simulated` = each player's state at the horizon (median over players); `max` = theoretical cap"
         " (last rebirth, Globe and Agency maxed, every stamp). Expected online time until the first such roll.\n"
     )
-    lines.append("| profile | state | luck | AUTO s/roll | rolls/day | tier 6 any | tier 7 any | rarest | announce/h |")
-    lines.append("|---|---|---|---|---|---|---|---|---|")
-    max_stamps = int((game.region_required > 0).sum())
+    lines.append("| profile | state | luck | s/roll | rolls/day | tier 6 any | tier 7 any | rarest | announce/h | hologram/h |")
+    lines.append("|---|---|---|---|---|---|---|---|---|---|")
     for name in profiles:
-        res = results[name]
-        prof = res["profile"]
-        states = {
-            "simulated": (res["final_luck"], res["final_lvl"][:, A]),
-            "max": (
-                np.array([cfg["base_luck"] * (1 + game.up_per[G] * game.up_max[G]) * (1 + cfg["region_luck_bonus"] * max_stamps)
-                          * game.RL[R] * prof["luck_mult"]]),
-                np.array([game.up_max[A]]),
-            ),
-        }
-        for label, (luck, lvl_a) in states.items():
-            p = sum(game.probs(luck * m) * w for m, w in prof["mix"])
-            cd = cfg["roll_cooldown"] * (1 - game.up_per[A] * lvl_a) * prof["cd_mult"]
-            period = np.maximum(cd[:, None], game.overhead[None, :]) if args.mode == "auto" else cd[:, None]
-            spr = (p * period).sum(1)
-            cells = []
-            for mask in (game.rank == 6, game.rank == 7, np.arange(game.M) == 0):
-                pr = p[:, mask].sum(1)
-                cells.append(fmt_dur(float(np.median(np.where(pr > 0, spr / np.maximum(pr, 1e-300), np.inf)))))
-            ann = float(np.median(p[:, game.announce].sum(1) * 3600 / spr))
+        for label in ("simulated", "max"):
+            e = endgame(game, results[name], args.mode, label)
             lines.append(
-                f"| {name} | {label} | {np.median(luck):.1f} | {np.median(spr):.2f} | {fmt_num(DAY / np.median(spr))} |"
-                f" {cells[0]} | {cells[1]} | {cells[2]} | {ann:.0f} |"
+                f"| {name} | {label} | {e['luck']:.1f} | {e['s_per_roll']:.2f} | {fmt_num(DAY / e['s_per_roll'])} |"
+                f" {fmt_dur(e['tier6_s'])} | {fmt_dur(e['tier7_s'])} | {fmt_dur(e['rarest_s'])} | {e['announce_per_h']:.0f} | {e['hologram_per_h']:.1f} |"
             )
     lines.append("")
 
     # --- stamp blockers ---
     stamp_cols = np.flatnonzero(game.rank <= cfg["stamp_max_rank"])
+    max_stamps = int((game.region_required > 0).sum())
     lines.append("## Passport-stamp blockers (landmarks never discovered by the horizon)\n")
     lines.append(
         "A roll never reaches a landmark once luck ≥ the 1-in of a rarer one (RollLogic tests rarest first and stops at the first"
@@ -1048,9 +1299,22 @@ def report(game: Game, results: dict, args, validation: str | None, elapsed: flo
             res = results[name]
             sec = res["run_seconds"][:, k]
             ok = sec > 0
-            cells.append(f"{np.median(res['run_announce'][ok, k] / sec[ok] * 3600):.2f}" if ok.any() else "—")
+            cells.append(f"{np.median(res['run_announce'][ok, k] / sec[ok] * 3600):.0f}" if ok.any() else "—")
         lines.append(f"| {k} | " + " | ".join(cells) + " |")
     lines.append("")
+
+    if sens:
+        lines.append("## Sensitivity (median cumulative time)\n")
+        ks = [k for k in (1, 3, 5, 8, 10) if k <= R]
+        lines.append("| scenario | " + " | ".join(f"#{k}" for k in ks) + " | stamps at horizon | luck at horizon |")
+        lines.append("|---|" + "---|" * len(ks) + "---|---|")
+        rows = [(f"{n} (main)", results[n]) for n in profiles] + sens
+        for label, res in rows:
+            cells = [fmt_dur(cq(res["reb_t"][:, k], 0.5)) for k in ks]
+            lines.append(
+                f"| {label} | " + " | ".join(cells) + f" | {np.median(res['final_stamps']):.0f} | {np.median(res['final_luck']):.1f} |"
+            )
+        lines.append("")
 
     if validation:
         lines.append("## Validation\n")
@@ -1105,7 +1369,7 @@ def validate(game: Game, args) -> str:
     out = []
     if not LUAURUN.exists():
         return "luaurun not built — Luau cross-checks skipped.\n"
-    v = _run_luau("validate", "60", "300000")
+    v = _run_luau("validate", "60", "1000000")
     # 1) formulas vs PlayerState
     worst = 0.0
     mism = 0
@@ -1148,7 +1412,9 @@ def validate(game: Game, args) -> str:
             z = (obs - pa) / math.sqrt(max(pa * (1 - pa) / n, 1e-300))
             out.append(f"  | {entry['luck']:g} | {r} | {pa:.5f} | {obs:.5f} | {z:+.1f} |")
     bonus_ok = all(game.bonus[game.index[k]] == b for k, b in v["discovery_bonus"].items())
-    out.append(f"\n- **Discovery bonus** ceil({game.cfg['discovery_bonus_mult']}·√N) matches `PlayerState.discoveryBonus` for all {len(v['discovery_bonus'])}: {bonus_ok}.")
+    out.append(
+        f"\n- **Discovery bonus** ceil({game.cfg['discovery_bonus_mult']}·√N) matches `PlayerState.discoveryBonus` for all {len(v['discovery_bonus'])}: {bonus_ok}."
+    )
     # 4) regex loader agrees with luaurun loader
     try:
         rx = parse_luau_regex()
@@ -1157,7 +1423,10 @@ def validate(game: Game, args) -> str:
             [(x["id"], float(x["one_in"]), x["region"]) for x in rx["landmarks"]]
             == [(x["id"], float(x["one_in"]), x["region"]) for x in cur["landmarks"]]
             and rx["rebirths"] == [{"coins": float(s["coins"]), "landmarks": s["landmarks"]} for s in cur["rebirths"]]
-            and all(rx["upgrades"][u] == {k: float(v) if k != "max_level" else int(v) for k, v in cur["upgrades"][u].items()} for u in UPGRADE_IDS)
+            and all(
+                rx["upgrades"][u] == {k: float(v) if k != "max_level" else int(v) for k, v in cur["upgrades"][u].items()}
+                for u in UPGRADE_IDS
+            )
             and rx["passes"] == {k: {kk: float(vv) for kk, vv in v_.items()} for k, v_ in cur["passes"].items()}
         )
         out.append(f"- **Regex fallback loader == luaurun loader** (landmarks, rebirth steps, upgrades, passes): {same}.")
@@ -1165,29 +1434,30 @@ def validate(game: Game, args) -> str:
         out.append(f"- Regex fallback loader failed: {exc}")
     # 5) windowed sim vs per-roll reference (early game, where windows are most delicate)
     n_ref = args.check_ref_sims
-    until = 3
+    until = 4
     prof = make_profile(game, "free", 0.0, 0.0, 0.0)
     t0 = time.time()
     ref = [reference_sim(game, prof, 1000 + s, until, args.policy) for s in range(n_ref)]
     ref = np.array([x + [np.nan] * (until - len(x)) for x in ref])
     ref_s = time.time() - t0
-    fast = simulate(game, prof, max(200, n_ref), args.seed + 7, 40 * DAY, args.frac, args.policy, "auto")
-    fine = simulate(game, prof, max(200, n_ref), args.seed + 8, 40 * DAY, args.frac / 4, args.policy, "auto")
+    fast = simulate(game, prof, max(400, n_ref), args.seed + 7, 40 * DAY, args.frac, args.policy, "auto")
+    fine = simulate(game, prof, max(400, n_ref), args.seed + 8, 40 * DAY, args.frac / 4, args.policy, "auto")
     out.append(
         f"\n- **Windowed Monte Carlo vs exact per-roll loop** (free player, policy `{args.policy}`; reference = {n_ref} players"
-        f" simulated one roll at a time, {ref_s:.0f} s), median time to rebirth k:\n"
+        f" simulated one roll at a time by an independent scalar implementation, {ref_s:.0f} s; sims = 400 players each):"
+        " time to rebirth k, median (p10–p90)\n"
     )
     out.append(f"  | k | per-roll reference | sim (frac {args.frac}) | sim (frac {args.frac / 4:g}) |")
     out.append("  |---|---|---|---|")
     for k in range(1, until + 1):
         out.append(
-            f"  | {k} | {fmt_dur(cq(ref[:, k - 1], 0.5))} | {fmt_dur(cq(fast['reb_t'][:, k], 0.5))} | {fmt_dur(cq(fine['reb_t'][:, k], 0.5))} |"
+            f"  | {k} | {dur_cell(ref[:, k - 1], 40 * DAY)} | {dur_cell(fast['reb_t'][:, k], 40 * DAY)} | {dur_cell(fine['reb_t'][:, k], 40 * DAY)} |"
         )
     out.append(
-        f"\n  Later rebirths, window-size sensitivity (frac {args.frac} vs {args.frac / 4:g}): "
+        f"\n  Later rebirths, window-size sensitivity (median, frac {args.frac} vs {args.frac / 4:g}): "
         + ", ".join(
             f"#{k} {fmt_dur(cq(fast['reb_t'][:, k], 0.5))} vs {fmt_dur(cq(fine['reb_t'][:, k], 0.5))}"
-            for k in range(4, game.max_reb + 1)
+            for k in range(until + 1, game.max_reb + 1)
             if np.isfinite(cq(fine["reb_t"][:, k], 0.5)) or np.isfinite(cq(fast["reb_t"][:, k], 0.5))
         )
         + "."
@@ -1216,8 +1486,13 @@ def main() -> None:
     ap.add_argument("--out", default=None, help="markdown output (default balance/sim_current.md or sim_<variant>.md)")
     ap.add_argument("--json", default=None, help="summary JSON output (default next to --out)")
     ap.add_argument("--check", action="store_true", help="run validation against the Luau code")
-    ap.add_argument("--check-ref-sims", type=int, default=40)
+    ap.add_argument("--no-sensitivity", dest="sensitivity", action="store_false", help="skip the sensitivity runs")
+    ap.add_argument("--paid-pass-delay-min", type=float, default=0.0, help="paid: passes switch on after N minutes")
+    ap.add_argument("--check-ref-sims", type=int, default=200)
     ap.add_argument("--dump-config", action="store_true")
+    ap.add_argument(
+        "--baseline", default=None, help="summary JSON to compare with (default: balance/sim_current.json when --variant is given)"
+    )
     args = ap.parse_args()
 
     cfg = load_current(args.source)
@@ -1229,6 +1504,8 @@ def main() -> None:
     if args.dump_config:
         print(json.dumps(cfg, ensure_ascii=False, indent=1))
         return
+    if args.baseline is None and args.variant and (ROOT / "balance" / "sim_current.json").exists():
+        args.baseline = str(ROOT / "balance" / "sim_current.json")
     game = Game(cfg)
     started = time.time()
     results = {}
@@ -1239,13 +1516,37 @@ def main() -> None:
             args.paid_boosts_per_day if kind == "paid" else 0.0,
             args.server_luck_duty,
             args.paid_coinpacks_per_day if kind == "paid" else 0.0,
+            pass_delay=args.paid_pass_delay_min * MINUTE if kind == "paid" else 0.0,
         )
         t0 = time.time()
         results[kind] = simulate(game, prof, args.sims, args.seed, args.horizon_days * DAY, args.frac, args.policy, args.mode)
         print(f"[sim] {kind}: {time.time() - t0:.1f} s, {results[kind]['iterations']} steps", file=sys.stderr)
+    sens = []
+    if args.sensitivity:
+        n_sens = max(100, args.sims // 2)
+        scenarios = [
+            ("free, policy greedy (buys every upgrade cheaper than the rebirth first)", "free", "greedy", args.mode, 0.0),
+            ("free, mode ideal (no reveal gating: period = cooldown)", "free", args.policy, "ideal", 0.0),
+            ("paid, passes bought after 30 min of play", "paid", args.policy, args.mode, 30 * MINUTE),
+            ("paid, mode ideal (FastRoll/Agency fully effective)", "paid", args.policy, "ideal", 0.0),
+        ]
+        for label, kind, policy, mode, delay in scenarios:
+            if kind not in results:
+                continue
+            prof = make_profile(
+                game,
+                kind,
+                args.paid_boosts_per_day if kind == "paid" else 0.0,
+                args.server_luck_duty,
+                args.paid_coinpacks_per_day if kind == "paid" else 0.0,
+                pass_delay=delay,
+            )
+            t0 = time.time()
+            sens.append((label, simulate(game, prof, n_sens, args.seed + 101, args.horizon_days * DAY, args.frac, policy, mode)))
+            print(f"[sim] sensitivity '{label}': {time.time() - t0:.1f} s", file=sys.stderr)
     validation = validate(game, args) if args.check else None
     elapsed = time.time() - started
-    md = report(game, results, args, validation, elapsed)
+    md = report(game, results, args, validation, elapsed, sens)
     if args.out is None:
         stem = "sim_current" if not args.variant else "sim_" + Path(args.variant).stem.replace("variant_", "")
         args.out = str(ROOT / "balance" / f"{stem}.md")
@@ -1256,6 +1557,7 @@ def main() -> None:
         "variant": cfg.get("variant_name", "current"),
         "args": vars(args),
         "profiles": {k: summarize(game, v) for k, v in results.items()},
+        "sensitivity": {label: summarize(game, res) for label, res in sens},
     }
     Path(json_path).write_text(json.dumps(summary, ensure_ascii=False, indent=1, default=float), encoding="utf-8")
     print(md)
