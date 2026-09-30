@@ -1722,6 +1722,13 @@ local function outsideBegan(input: InputObject, processed: boolean)
 		if processed then
 			return -- 화면 버튼·조이스틱(그 손가락은 세지 않음 — 조이스틱으로 걸으며 다른 손가락으로 톡 누를 수 있음)
 		end
+		for other in outsideFingers do
+			-- 뗌(InputEnded)을 못 받고 끝난 손가락은 뺌
+			local state = (other :: any).UserInputState
+			if state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
+				outsideFingers[other] = nil
+			end
+		end
 		outsideFingers[input] = true
 		if next(outsideFingers, next(outsideFingers)) ~= nil then
 			outsidePress = nil -- 두 손가락 = 확대/돌리기
@@ -1740,7 +1747,7 @@ local function outsideBegan(input: InputObject, processed: boolean)
 	outsidePress = if slot then { Input = input, Kind = kind, Start = at, Slot = slot, Moved = false } else nil
 end
 
-local function outsideChanged(input: InputObject, _processed: boolean)
+local function outsideChanged(input: InputObject, processed: boolean)
 	local kind = input.UserInputType
 	local current = outsidePress
 	if kind == Enum.UserInputType.Touch then
@@ -1752,8 +1759,17 @@ local function outsideChanged(input: InputObject, _processed: boolean)
 		if current and current.Kind == Enum.UserInputType.MouseButton1 and (at - current.Start).Magnitude > DRAG_PX then
 			current.Moved = true
 		end
-		setOutsideHover(if canTap() then tapSlot(at) else nil)
+		-- 화면 버튼 위(processed)면 강조를 끔(버튼 뒤 명소가 빛나 보이지 않게)
+		setOutsideHover(if not processed and canTap() then tapSlot(at) else nil)
 	end
+end
+
+-- 마우스를 가만히 두고 걷거나 카메라가 돌아도 강조가 옛 칸에 남지 않게: 강조 중일 때만 가끔 다시 봄
+local function refreshOutsideHover()
+	if outsideSlot == nil then
+		return
+	end
+	setOutsideHover(if canTap() then tapSlot(UserInputService:GetMouseLocation()) else nil)
 end
 
 local function outsideEnded(input: InputObject, processed: boolean)
@@ -2544,6 +2560,12 @@ function ParkEdit.init(parent: ScreenGui, callbacks: Handlers)
 	UserInputService.InputBegan:Connect(outsideBegan)
 	UserInputService.InputChanged:Connect(outsideChanged)
 	UserInputService.InputEnded:Connect(outsideEnded)
+	task.spawn(function()
+		while true do
+			task.wait(0.2)
+			refreshOutsideHover()
+		end
+	end)
 end
 
 return ParkEdit

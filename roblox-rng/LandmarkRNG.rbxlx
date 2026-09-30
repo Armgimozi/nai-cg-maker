@@ -17995,7 +17995,7 @@ local function showAnnouncement(info: any, landmark: Landmarks.Landmark)
 end
 
 -- 직접 배치 중 이번 판에 처음 얻은 명소가 공원이 꽉 차서 전시되지 못했으면 연출이 끝난 뒤 "공원 꽉 참" 알림
--- (더 좋은 명소면 [배치] 버튼 숫자 배지도 늘어 있음)
+-- (더 좋은 명소면 [공원] 버튼 숫자 배지도 늘어 있음)
 local function parkFullNotice(landmark: Landmarks.Landmark)
 	local current = state
 	if current and PlayerState.missedByFullPark(current, landmark.Id) then
@@ -18332,9 +18332,6 @@ local gui = Hud.init(playerGui, {
 	Teleport = function()
 		task.spawn(teleport)
 	end,
-	Arrange = function()
-		ParkEdit.toggle()
-	end,
 })
 Panels.init(gui, {
 	Feature = function(landmarkId: string?)
@@ -18358,10 +18355,6 @@ Panels.init(gui, {
 	Toast = function(text: string, icon: string?, color: Color3?)
 		Hud.toast(text, color or Ui.Theme.Bad, 2, icon)
 	end,
-	Arrange = function()
-		Panels.close()
-		ParkEdit.enter(nil)
-	end,
 })
 ParkEdit.init(gui, {
 	SetDisplay = setDisplay,
@@ -18384,6 +18377,10 @@ ParkEdit.init(gui, {
 		if editing and autoRoll then
 			Hud.toast("AUTO 쉬는 중", Ui.Theme.Ink, 2, "auto") -- 나가면 다시 돎
 		end
+	end,
+	-- 창(도감 등)이 열려 있으면 뒤 공원을 눌러도 배치 모드로 안 들어감(창 바탕 Frame 은 입력을 막지 않음)
+	CanTap = function(): boolean
+		return Panels.current() == nil
 	end,
 })
 
@@ -18443,8 +18440,9 @@ end)
 
 -- 내 공원 ---------------------------------------------------------------------
 -- 서버(ParkService)가 부지 모델에 OwnerUserId(주인)·Origin(부지 CFrame), 칸 모델에 Slot·Look 속성을 붙여 둠.
--- 내 부지를 찾으면 HUD [배치] 버튼을 보이고 ParkEdit 에 넘김(내 부지의 열린 칸에만 이 클라이언트에서 ClickDetector —
--- 남의 공원 받침대에는 손가락 커서가 안 뜸, 누르면 서버를 거치지 않고 바로 배치 모드 + 그 명소를 집음)
+-- 내 부지를 찾으면 ParkEdit 에 넘기고 HUD [공원] 버튼 배지를 켤 수 있게 함. 배치 버튼은 없음: 내 공원에서 내 명소·빈 받침대를
+-- 톡 누르면(끌기 = 화면 돌리기는 아님) 서버를 거치지 않고 바로 배치 모드 + 그 명소를 집음 / 그 빈 칸을 채울 준비(ParkEdit).
+-- 남의 공원은 눌러도 아무 일 없음. 창이 열려 있으면 누르기를 받지 않음(CanTap — 창 바탕은 입력을 막지 않음)
 local myPlot: Instance? = nil
 
 local function setMyPlot(plot: Instance?)
@@ -18562,9 +18560,9 @@ applyState(invoke("GetState"))
             <string name="Name">Hud</string>
             <string name="Source"><![CDATA[-- 기본 화면(HUD): 코인·수입·스탯, 메뉴 버튼, 굴리기 버튼, 지구본 굴림 연출, 뉴스 속보, 알림,
 -- 환생 수·부스트 타이머·서버 행운 띠(v3), 상점 버튼(오른쪽, 팔 상품이 있을 때만),
--- 공원 배치 버튼(내 공원 부지가 있으면 이동 버튼 옆, 더 좋은데 전시 안 된 명소 수 배지 — 누르면 3D 배치 모드,
--- 배치 모드 동안은 메뉴·상점·굴리기 줄을 숨김: 아래 가운데는 ParkEdit 보관함 띠 자리. 굴림 결과도 가운데 연출 대신
--- 위쪽 알림 줄의 작은 등급 색 딱지로 — 공원을 가리지 않게)
+-- 공원 배치 버튼은 없음(내 공원에서 명소·빈 받침대를 직접 누르면 3D 배치 모드 — ParkEdit). 더 좋은데 전시 안 된 명소 수
+-- 배지는 이동 버튼 [공원] 에(내 공원 부지가 있을 때). 배치 모드 동안은 메뉴·상점·굴리기 줄을 숨김: 아래 가운데는 ParkEdit
+-- 보관함 띠 자리. 굴림 결과도 가운데 연출 대신 위쪽 알림 줄의 작은 등급 색 딱지로 — 공원을 가리지 않게
 -- 스타일은 DESIGN.md "UI 스타일 가이드 (v2)" — 통통한 버튼 + 굵은 Ink 테두리 + 아이콘, 이모지 없음
 -- 글자는 최소로: 아이콘 + 숫자 위주, 버튼 글자는 2~3글자, 알림은 8글자 안팎. 설명 문장은 쓰지 않음.
 
@@ -18643,7 +18641,6 @@ export type Handlers = {
 	ToggleAuto: () -> (),
 	Menu: (string) -> (),
 	Teleport: () -> (),
-	Arrange: () -> (), -- [배치]: 3D 공원 배치 모드 켜기/끄기
 }
 
 local Hud = {}
@@ -18674,6 +18671,9 @@ local eventLuckUntil = 0 -- ServerLuck 이벤트가 알려 준 끝 시각
 local rebirthReady = false
 local badgeTween: Tween? = nil
 local editing = false -- 3D 배치 모드(Hud.setEditing): 굴림 결과는 작은 딱지(compactReveal)
+local better = 0 -- 더 좋은데 전시 안 된 명소 수(PlayerState.betterHidden) — [공원] 버튼 배지
+local plotOwned = false -- 내 공원 부지가 있음(Hud.setPlotOwned)
+local atPark = false -- 이동 버튼이 [광장](지금 공원)
 
 local function makeSound(pitch: number, volume: number): Sound
 	return Ui.new("Sound", {
@@ -18902,20 +18902,9 @@ local function placeMenu(size: Vector2, scale: number, touch: boolean)
 	local container = refs.Menu
 	container.Size = UDim2.fromOffset(block.X + 8, block.Y)
 	container.Position = UDim2.new(0, MENU_X, 0.5, MENU_DROP + place.Shift)
-
-	-- 내 공원 부지가 있으면: 공원 배치 버튼을 이동 버튼(마지막 칸) 바로 오른쪽에. 여러 열이면 마지막 줄 오른쪽(2×2 면 묶음 옆),
-	-- 1열이면 묶음 옆 빈 자리. 가로 한 줄이면 묶음이 한 칸 넓어진 것으로 쳐서 위 가운데 묶음이 비켜 가게 함
-	local arrange: Ui.ChunkyButton? = refs.ArrangeButton
-	if arrange then
-		local last = buttons[#buttons]
-		arrange.Root.Position = last.Position + UDim2.fromOffset(MENU_BUTTON.X + MENU_GAP, 0)
-		if arrange.Root.Visible and place.Columns >= #buttons then
-			place.Width += (MENU_BUTTON.X + MENU_GAP) * scale
-		end
-	end
 end
 
-local function buildMenu(onMenu: (string) -> (), onTeleport: () -> (), onArrange: () -> ())
+local function buildMenu(onMenu: (string) -> (), onTeleport: () -> ())
 	local count = #MENU + 1
 	refs.Menu = anchor(
 		"Menu",
@@ -18999,23 +18988,9 @@ local function buildMenu(onMenu: (string) -> (), onTeleport: () -> (), onArrange
 	table.insert(buttons, refs.TeleportButton.Root)
 	refs.TeleportButton.Activated:Connect(onTeleport)
 
-	-- 3D 공원 배치 모드 켜기 (내 공원 부지가 있으면 보임 — Hud.setPlotOwned, 자리는 placeMenu). 메뉴 칸 수에는 안 셈
-	refs.ArrangeButton = Ui.chunkyButton({
-		Name = "Arrange",
-		ZIndex = 2, -- 오른쪽 위 배지
-		Size = UDim2.fromOffset(MENU_BUTTON.X, MENU_BUTTON.Y),
-		Color = "Grass",
-		Icon = "arrange", -- 옆 이동 버튼의 공원(나무) 아이콘과 다르게
-		IconSize = MENU_ICON,
-		Vertical = true,
-		Text = "배치",
-		TextSize = 18,
-		Visible = false,
-		Parent = container,
-	})
-	refs.ArrangeButton.Activated:Connect(onArrange)
-	-- 직접 배치 중 더 좋은데 전시 안 된 명소 수 (도감 버튼의 도장 "1/5" 배지와 같은 모양, 0 이면 숨김)
-	refs.ArrangeBadge = Ui.chip({
+	-- 직접 배치 중 더 좋은데 전시 안 된 명소 수 (도감 버튼의 도장 "1/5" 배지와 같은 모양, 0 이면 숨김). [공원] 일 때만
+	-- (내 공원에 가서 명소를 누르면 배치 모드 — 광장으로 가는 [광장] 버튼에는 안 붙임)
+	refs.BetterBadge = Ui.chip({
 		Name = "Better",
 		Color = Theme.Ink,
 		TextColor3 = Ui.colorPair("Sun").Face,
@@ -19026,7 +19001,7 @@ local function buildMenu(onMenu: (string) -> (), onTeleport: () -> (), onArrange
 		Rotation = 8,
 		ZIndex = 6,
 		Visible = false,
-		Parent = refs.ArrangeButton.Face,
+		Parent = refs.TeleportButton.Face,
 	})
 end
 
@@ -19492,7 +19467,7 @@ function Hud.init(playerGui: PlayerGui, handlers: Handlers): ScreenGui
 	starSound = makeSound(1.9, 0.5)
 
 	buildStats()
-	buildMenu(handlers.Menu, handlers.Teleport, handlers.Arrange)
+	buildMenu(handlers.Menu, handlers.Teleport)
 	buildShop(handlers.Menu)
 	buildRollBar(handlers.Roll, handlers.ToggleAuto)
 	buildReveal()
@@ -19502,6 +19477,16 @@ function Hud.init(playerGui: PlayerGui, handlers: Handlers): ScreenGui
 	relayout()
 	Hud.render(nil)
 	return gui
+end
+
+-- [공원] 버튼 배지: 내 부지가 있고 버튼이 [공원](광장 쪽)일 때만 더 좋은데 전시 안 된 명소 수(0 이면 숨김)
+local function paintBetter()
+	local badge: Ui.Chip? = refs.BetterBadge
+	if not badge then
+		return
+	end
+	badge.Label.Text = tostring(better)
+	badge.Root.Visible = plotOwned and not atPark and better > 0
 end
 
 -- 환생 가능 배지: 켜질 때만 통통 뛰는 애니메이션을 돌림
@@ -19595,7 +19580,8 @@ function Hud.render(state: PlayerState.Snapshot?, receivedAt: number?)
 		refs.LuckChip.Root.Visible = false
 		refs.RebirthChip.Root.Visible = false
 		refs.StampBadge.Root.Visible = false
-		refs.ArrangeBadge.Root.Visible = false
+		better = 0
+		paintBetter()
 		setRebirthReady(false)
 		shownCoins = -1
 		return
@@ -19615,10 +19601,9 @@ function Hud.render(state: PlayerState.Snapshot?, receivedAt: number?)
 	badge.Label.TextColor3 = if stamps > 0 then Ui.colorPair("Sun").Face else WHITE
 	badge.Root.Visible = true
 
-	-- 배치 버튼 배지: 직접 배치 중 전시하면 수입이 느는 명소 수 (0 이면 숨김)
-	local better = #PlayerState.betterHidden(state)
-	refs.ArrangeBadge.Label.Text = tostring(better)
-	refs.ArrangeBadge.Root.Visible = better > 0
+	-- [공원] 버튼 배지: 직접 배치 중 전시하면 수입이 느는 명소 수 (0 이면 숨김)
+	better = #PlayerState.betterHidden(state)
+	paintBetter()
 
 	-- 환생 수 딱지 (0 이면 숨김)
 	local rebirths = Perks.rebirths(state)
@@ -19669,27 +19654,31 @@ end
 -- where: 지금 있는 곳 ("Plaza" | "Park"). 버튼은 반대쪽으로 가는 버튼이 됨
 function Hud.setLocation(where: string)
 	local button = refs.TeleportButton
-	if where == "Park" then
+	atPark = where == "Park"
+	if atPark then
 		button.SetText("광장")
 		button.SetIcon("plaza")
 	else
 		button.SetText("공원")
 		button.SetIcon("park")
 	end
+	paintBetter()
 end
 
--- 내 공원 부지가 있으면(어디에 있든) 이동 버튼 옆에 공원 배치 버튼
+-- 내 공원 부지가 있는지(어디에 있든): [공원] 버튼의 "더 좋은 명소" 배지는 부지가 있을 때만
 function Hud.setPlotOwned(owned: boolean)
-	local arrange: Ui.ChunkyButton = refs.ArrangeButton
-	if arrange.Root.Visible ~= owned then
-		arrange.Root.Visible = owned
-		relayout() -- 가로 한 줄 메뉴면 묶음 폭이 바뀜
-	end
+	plotOwned = owned
+	paintBetter()
+end
+
+-- 메뉴·상점·굴리기 줄 자리를 지금 화면 크기로 다시 잡음(화면 크기·배율이 바뀌면 저절로 — 가짜 환경 스모크 테스트용)
+function Hud.relayout()
+	relayout()
 end
 
 local hideBurst: () -> ()
 
--- 3D 배치 모드(ParkEdit): 왼쪽 메뉴(+ [배치])·상점·굴리기 줄을 숨기고 아래 가운데를 보관함 띠에 내줌
+-- 3D 배치 모드(ParkEdit): 왼쪽 메뉴·상점·굴리기 줄을 숨기고 아래 가운데를 보관함 띠에 내줌
 -- (놀이공원 시뮬레이션의 건설 모드처럼 공원 + 띠만). 위쪽 코인·알림은 그대로. 굴림 결과는 가운데 연출(공원 한가운데를
 -- 가림) 대신 알림 줄의 작은 딱지 — 도는 중이던 연출도 바로 숨기고 결과만 딱지로(Hud.reveal).
 -- 자동 굴리기는 부르는 쪽(init)이 배치 모드 동안 쉬게 함
@@ -20304,7 +20293,7 @@ return Hud
 -- 3D 모형은 이름별로 한 번만 만들어 두고 복제해서 씁니다. 파트 수는 아이콘마다 3~15개 정도로 작게 유지.
 -- 아이콘: coin, globe(=roll), passport, album(=collection), hammer, park, plaza, dice, clover(=luck), star,
 --   star_empty, news, lock, auto, close, check, arrow_up, plane, ticket, rebirth,
---   podium(공원 자동 배치: 1·2·3등 시상대 + 별), arrange(공원 배치 모드: 2×2 칸 판 위 미니 명소 셋 + 빈 칸 "+"),
+--   podium(공원 자동 배치: 1·2·3등 시상대 + 별),
 --   crate(배치 모드 보관: 뚜껑 열린 나무 상자 + 미니 명소), camera(배치 모드 시점 바꾸기: 사진기),
 --   robux(Robux 표시: 흰 육각형 + 가운데 네모 구멍 — 상점 버튼·Robux 가격)
 --   (stamp_* 는 그림이 있을 때만 씀)
@@ -20725,28 +20714,6 @@ function BUILDERS.podium(m)
 	buildStar(m, GOLD, FACE * CFrame.new(0, 2.7 + 1.25, 0), 0.6)
 end
 
--- 공원 배치(창 열기 버튼): 잔디 판 위 2×2 칸 — 세 칸에 색 블록(미니 명소), 한 칸은 빈 칸 초록 "+".
--- 이동 버튼의 공원(나무 + 벤치) 아이콘과 나란히 있어도 다르게 보이도록 (파트 10개)
-function BUILDERS.arrange(m)
-	local base = FACE
-	block(m, base * CFrame.new(0, 0.2, 0), V(5.4, 0.4, 5.4), GRASS)
-	local cells = {
-		{ X = -1.3, Z = 1.3, Height = 1.7, Color = SKY }, -- 뒤 왼쪽
-		{ X = 1.3, Z = 1.3, Height = 2.6, Color = SUN }, -- 뒤 오른쪽(가장 높음)
-		{ X = -1.3, Z = -1.3, Height = 1.1, Color = CORAL }, -- 앞 왼쪽
-		{ X = 1.3, Z = -1.3, Height = 0, Color = GRASS }, -- 앞 오른쪽: 빈 칸
-	}
-	for _, cell in cells do
-		block(m, base * CFrame.new(cell.X, 0.5, cell.Z), V(2.3, 0.2, 2.3), CREAM)
-		if cell.Height > 0 then
-			block(m, base * CFrame.new(cell.X, 0.6 + cell.Height / 2, cell.Z), V(1.3, cell.Height, 1.3), cell.Color)
-		end
-	end
-	-- 빈 칸의 "+"
-	block(m, base * CFrame.new(1.3, 0.68, -1.3), V(1.4, 0.18, 0.4), LEAF)
-	block(m, base * CFrame.new(1.3, 0.68, -1.3), V(0.4, 0.18, 1.4), LEAF)
-end
-
 -- 보관(배치 모드): 뚜껑이 뒤로 열린 나무 상자 + 안에서 삐죽 나온 미니 명소(Sky 블록) (파트 9개)
 function BUILDERS.crate(m)
 	local base = FACE
@@ -21020,7 +20987,7 @@ return Icons
           <Properties>
             <string name="Name">Panels</string>
             <string name="Source"><![CDATA[-- 메뉴 창: 도감(대륙 탭 — 예전 여권 창을 합침: 지역별 발견 현황 + 도장, 대표 지정), 강화(업그레이드), 환생(조건 + 확인), 상점(Robux).
--- 공원 배치는 창이 아니라 내 공원에서 하는 3D 배치 모드(ParkEdit) — 도감 머리 줄 [배치] 버튼이 그 모드를 켬
+-- 공원 배치는 창·버튼이 아니라 내 공원에서 명소·빈 받침대를 직접 눌러 들어가는 3D 배치 모드(ParkEdit)
 -- 크림색 창(Ui.window) 하나를 쓰고, 화면마다 리본 색과 제목(2글자)만 바꿉니다(도감은 탭 줄만큼 창이 조금 더 높음).
 -- 글자는 최소로: 설명 문장 없이 아이콘 + 숫자 딱지로 보여 줍니다.
 -- 화면마다 카드를 한 번 만들고 상태가 바뀌면 글자/색만 고칩니다. 썸네일(ViewportFrame)은
@@ -21053,7 +21020,6 @@ export type Handlers = {
 	BuyPass: (string) -> (), -- Config.GamePasses 키
 	BuyProduct: (string) -> (), -- Config.Products 키
 	Toast: (text: string, icon: string?, color: Color3?) -> (), -- 짧은 알림 (기본 실패 색, 예: "코인 부족")
-	Arrange: () -> (), -- 도감 [배치]: 3D 공원 배치 모드 켜기(창은 부르는 쪽이 닫음)
 }
 
 local REGION_BONUS = math.floor(Config.REGION_LUCK_BONUS * 100 + 0.5)
@@ -21277,7 +21243,6 @@ local shopCards: { ShopCard } = {}
 type ShopInfo = { Price: number?, Art: string? }
 local shopInfo: { [string]: ShopInfo } = {}
 
-local collectionArrangeBadge: Ui.Chip? = nil -- 도감 머리 줄 [배치] 배지
 local function owned(state: Snapshot, id: string): number
 	return state.Inventory[id] or 0
 end
@@ -21372,24 +21337,8 @@ local function photo(parent: GuiObject, landmark: Landmark, position: UDim2, siz
 	return frame
 end
 
--- 버튼 숫자 배지 (도감 버튼의 도장 "1/5" 배지와 같은 모양: Ink 딱지 + Sun 숫자, 살짝 기울임). 도감 머리 줄 버튼은 오른쪽 아래
--- (BADGE_LOW — 오른쪽 위에 두면 바로 위 탭 줄을 가림)
+-- 도감 머리 줄 버튼 배지 자리: 오른쪽 아래(오른쪽 위에 두면 바로 위 탭 줄을 가림)
 local BADGE_LOW = UDim2.new(1, -6, 1, -4)
-local function countBadge(button: Ui.ChunkyButton, name: string, position: UDim2): Ui.Chip
-	return Ui.chip({
-		Name = name,
-		Color = Theme.Ink,
-		TextColor3 = Ui.colorPair("Sun").Face,
-		Height = 24,
-		TextSize = 15,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = position,
-		Rotation = 8,
-		ZIndex = 6,
-		Visible = false,
-		Parent = button.Face,
-	})
-end
 
 -- 도장 · 보너스 딱지 (도감 대륙 탭) --------------------------------------------
 
@@ -21512,7 +21461,7 @@ end
 
 -- 도감 -----------------------------------------------------------------------
 -- 위 탭 줄([전체] + 대륙), 그 아래 머리 줄(탭마다 다름), 카드 격자 하나.
---   [전체] = 발견한 명소(Discovered)만 희귀한 순서. 머리 줄: 발견 수 · 받은 도장 수 · 도장 행운 · [배치] · [자동]
+--   [전체] = 발견한 명소(Discovered)만 희귀한 순서. 머리 줄: 발견 수 · 받은 도장 수 · 도장 행운 · [자동]
 --   대륙 = 그 대륙 명소 전부, 흔한 순서(예전 여권 한 쪽). 못 찾은 명소는 어두운 자물쇠 카드.
 --          머리 줄: 도장(찍힘/흐림) · 발견 막대(도장 조건 = PlayerState.regionProgress) · +25%(받음 초록 / 아직 회색)
 -- 카드는 명소마다 한 번만 만들고, 탭을 바꾸면 보이기·순서만 바꿈(3D 사진을 다시 만들지 않음)
@@ -21927,24 +21876,6 @@ local function buildCollection(): View
 		Parent = autoButton.Face,
 	})
 
-	-- 3D 공원 배치 모드 켜기: 배치 아이콘(2×2 칸 판) + "배치" (자동 버튼 왼쪽). 배지 = 더 좋은데 전시 안 된 명소 수
-	local arrange = Ui.chunkyButton({
-		Name = "Arrange",
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -(8 + 136 + 10), 0, -4),
-		Size = UDim2.fromOffset(124, 50),
-		Color = "Grass",
-		Icon = "arrange",
-		IconSize = 36,
-		Text = "배치",
-		TextSize = 22,
-		Parent = allRow,
-	})
-	arrange.Activated:Connect(function()
-		handlers.Arrange()
-	end)
-	collectionArrangeBadge = countBadge(arrange, "Better", BADGE_LOW)
-
 	for _, region in Landmarks.Regions do
 		regionHeaders[region.Id] = buildRegionHeader(header, region)
 	end
@@ -21992,12 +21923,6 @@ local function renderCollection(state: Snapshot)
 	local autoFeature = state.Settings.AutoFeature
 	autoButton.SetColor(if autoFeature then "Grass" else "Gray")
 	autoBadge.Root.Visible = autoFeature
-	local badge = collectionArrangeBadge
-	if badge then
-		local better = #PlayerState.betterHidden(state)
-		badge.Label.Text = tostring(better)
-		badge.Root.Visible = better > 0
-	end
 
 	local inPark = {}
 	for _, id in PlayerState.park(state) do
@@ -23204,8 +23129,11 @@ return Panels
             <string name="Source"><![CDATA[-- 3D 공원 배치 모드: 놀이공원 시뮬레이션처럼 메뉴 창 없이 내 공원에서 명소를 직접 눌러 집고, 다른 받침대를 눌러 놓음.
 -- (DESIGN.md "공원 배치" — 규칙·계획은 Shared/ParkGrid, 편집 규칙은 PlayerState.setDisplay, 서버 상태가 진실)
 --
--- 들어가기: HUD [배치] · 도감 [배치] 버튼(내 공원 밖이면 먼저 내 공원으로 순간 이동), 또는 배치 모드 밖에서 내 공원의
---   받침대·명소를 누름(이 클라이언트만의 ClickDetector — 명소면 들어가면서 바로 집음).
+-- 들어가기: 버튼 없이 타이쿤처럼 직접 — 내 공원(부지 + 여유 14)에 있을 때 내 명소를 톡 누르면 배치 모드 + 그 명소를 바로 집음,
+--   내 빈 받침대를 누르면 배치 모드 + 그 칸을 채울 준비(칸이 초록으로 숨 쉬고, 보관함 카드를 누르면 바로 그 칸으로).
+--   톡 = 누른 곳에서 DRAG_PX 안에서 뗌(터치로 끌면 화면 돌리기라 안 들어감), 두 손가락이면 취소. 광선은 캐릭터만 빼고 쏴서
+--   처음 맞은 것이 내 칸 모델일 때만(남의 공원은 눌러도 아무 일 없음). 창이 열려 있으면 안 받음(Handlers.CanTap).
+--   마우스는 가리키는 내 칸에 옅은 흰 강조 + 손가락 커서(찾기 쉽게). 배치 모드 동안은 이 누르기를 쓰지 않음(직접 광선).
 -- 배치 모드 동안 HUD 는 왼쪽 메뉴·상점·굴리기 줄을 숨기고(부르는 쪽 Changed) 아래 띠만 남김 — 놀이공원 시뮬레이션의
 --   건설 모드처럼 공원과 띠에만 집중. 나가기 = [완료] · Esc/Q(들고 있으면 먼저 내려놓기) · 부지 밖으로 나가기.
 -- 시점: 들어가면 카메라가 부지 위 3/4 시점으로 날아감(Scriptable, ParkGrid.topView 가 HUD 가 가리지 않은 곳에
@@ -23262,6 +23190,7 @@ export type Handlers = {
 	GoToPark: () -> boolean, -- 내 공원으로 순간 이동(기다림). 성공하면 true
 	Toast: (text: string, icon: string?, color: Color3?) -> (),
 	Changed: (editing: boolean) -> (), -- 배치 모드 켜짐/꺼짐 (HUD 메뉴·굴리기 줄 숨기기, 열린 창 닫기)
+	CanTap: (() -> boolean)?, -- 배치 모드 밖에서 내 공원을 눌러 들어가도 되는지(창이 열려 있으면 false). 없으면 늘 true
 }
 
 -- 월드 ----------------------------------------------------------------------------
@@ -23278,7 +23207,7 @@ local HOP = 4 -- 자리 바꿈 상대가 폴짝 뛰는 높이
 local EDIT_HOLD = 3 -- 옮긴 칸의 로컬 모형(proxy)을 서버 칸이 맞을 때까지 기다리는 최대 시간(초)
 local DRAG_PX = 10 -- 이보다 많이 움직이면 끌기(터치: 따라가는 시점에서는 화면 돌리기)
 local LEAVE_MARGIN = 14 -- 부지 밖으로 이만큼 나가면 배치 모드 끝(스터드)
-local CLICK_DISTANCE = 40 -- 배치 모드 밖에서 내 받침대를 눌러 들어오는 거리
+local POINTING_HAND = "rbxasset://SystemCursors/PointingHand" -- 배치 모드 밖: 내 칸을 가리키면 손가락 커서
 local RAY_LENGTH = 1000
 local MARKER_SIZE = ParkGrid.PEDESTAL_SIZE + 1.6 -- 받침대 둘레로 삐져나와 빛나는 판
 -- 빛나는 판 투명도(들고 있을 때): 놓을 수 있는 칸은 은은하게(빈 칸이 자리 바꿈 칸보다 조금 진하게),
@@ -23298,6 +23227,8 @@ local TEXT_GRACE = 0.25 -- 글자 칸에서 빠져나온 직후 이 시간(초) 
 -- 이름표가 칸 바로 위에 옴(70 이면 카메라가 30~50 스터드로 가까워 화면 가장자리 칸 위의 것이 바깥으로 크게 밀려남)
 local EDIT_FOV = 40
 local CAMERA_TWEEN = TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+-- 채울 빈 칸을 정하면 보관함 앞 카드들이 한 번 톡(커졌다 제자리)
+local CARD_NUDGE = TweenInfo.new(0.14, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, 0, true)
 
 -- 아래 띠 (설계 px, Ui.autoScale 배율을 받음) --------------------------------------
 local BAR_HEIGHT = 132
@@ -23353,6 +23284,9 @@ local markerPulse: BasePart? = nil -- 들고 있을 때 숨 쉬듯 빛나는 판
 local painted: { Slots: { [number]: string }, Unlocked: number, HeldFrom: number }? = nil -- 마지막 reconcile 값
 local hoverLight: Highlight? = nil
 local hoverSlot: number? = nil
+-- 채울 빈 칸: 빈 받침대를 눌러 들어왔거나(배치 모드 밖) 들고 있지 않을 때 빈 받침대를 누름. 그 칸 판이 초록으로 숨 쉬고,
+-- 보관함 카드를 누르면 집어 들 필요 없이 바로 그 칸으로 날아감. 칸이 차거나 다른 명소를 집으면 풂
+local fillSlot: number? = nil
 local viewMode = "Top" -- "Top"(위에서 보기) | "Follow"(평소 카메라)
 local zoom = 1
 local fitRows = Config.PARK_GRID -- 위에서 보기가 맞춘 줄 수(ParkGrid.topRows: 열린 줄 + 잠긴 줄 하나)
@@ -23750,6 +23684,10 @@ local function paintMarkers(slots: { [number]: string }, unlocked: number, heldF
 			end
 		elseif not locked and not id then
 			color, transparency = Ui.colorPair("Grass").Face, 0.62 -- 빈 칸
+			if slot == fillSlot then
+				transparency = MARK_TARGET -- 채울 빈 칸: 진하게 숨 쉬듯(step)
+				markerPulse = marker
+			end
 		end
 		if color then
 			marker.Color = color
@@ -23769,6 +23707,10 @@ local function reconcile()
 		return
 	end
 	local slots, unlocked = PlayerState.parkSlots(view)
+	local fill = fillSlot
+	if fill and (held or fill > unlocked or slots[fill] ~= nil) then
+		fillSlot = nil -- 칸이 참(자동 굴림이 새 명소를 놓음 등)·잠김·명소를 집음
+	end
 	local heldFrom = 0
 	if held then
 		for slot = 1, unlocked do
@@ -23877,8 +23819,9 @@ local function returnHeld(silent: boolean?)
 	renderBar()
 end
 
--- 명소 집기. from: 전시 칸(0 = 보관함). 이미 들고 있으면 그것은 제자리로
-local function pickUp(id: string, from: number)
+-- 명소 집기. from: 전시 칸(0 = 보관함). 이미 들고 있으면 그것은 제자리로.
+-- at: 보관함에서 집을 때 떠오를 칸(없으면 ParkGrid.storageStart — 채울 빈 칸이 있으면 그 칸)
+local function pickUp(id: string, from: number, at: number?)
 	local landmark = Landmarks.ById[id]
 	local view = viewState()
 	if not landmark or not view or not localFolder or not origin then
@@ -23894,8 +23837,11 @@ local function pickUp(id: string, from: number)
 	if not ghost then
 		return
 	end
+	if from > 0 then
+		fillSlot = nil -- 전시 명소를 집음 = 빈 칸 채우기는 그만
+	end
 	-- 처음 자리: 전시 칸이면 그 받침대 위, 보관함이면 첫 빈 칸(꽉 찼으면 가장 약한 전시 명소 칸) 위 — 가리키면 그리로 감
-	local start = slotTop(if from > 0 then from else ParkGrid.storageStart(view)).Position
+	local start = slotTop(if from > 0 then from else at or ParkGrid.storageStart(view)).Position
 	moveRig(ghost.Rig, CFrame.new(start + Vector3.new(0, LIFT, 0)) * plotRotation())
 	ghost.Model.Parent = localFolder
 	held = { Id = id, Ghost = ghost, Position = start, Target = start, Lift = LIFT, Angle = 0 }
@@ -24033,6 +23979,43 @@ local function storeHeld()
 	end)
 	reconcile()
 	renderBar()
+end
+
+-- 채울 빈 칸 정하기(nil = 풂). 정하면 보관함을 맨 앞(가장 희귀한 명소)으로 돌리고 앞 카드들이 톡 — "여기서 골라 넣어요"
+local function setFill(slot: number?)
+	if fillSlot == slot then
+		return
+	end
+	fillSlot = slot
+	reconcile()
+	if slot and scroller then
+		scroller.CanvasPosition = Vector2.zero
+		for _, card in cards do
+			if card.Button.LayoutOrder <= 4 then
+				TweenService:Create(card.Scale, CARD_NUDGE, { Scale = 1.12 }):Play()
+			end
+		end
+	end
+end
+
+-- 보관함 카드를 누름: 채울 빈 칸이 있으면 집어서 누를 필요 없이 바로 그 칸으로 날아감(true). 없으면 false(보통 집기)
+local function fillWith(id: string): boolean
+	local target = fillSlot
+	local view = viewState()
+	if not target or not view or viewLook(target) ~= ParkGrid.LOOK_EMPTY or ParkGrid.slotOf(view, id) > 0 then
+		return false
+	end
+	fillSlot = nil
+	pickUp(id, 0, target) -- 그 칸 위에 떠오름
+	local current = held
+	if not current or current.Id ~= id then
+		return true
+	end
+	local plan = ParkGrid.dropPlan(view, id, target)
+	if plan.Kind == "place" then
+		commit(plan) -- 받침대로 내려앉음
+	end
+	return true
 end
 
 -- [자동]: 켜기/끄기. 끄면 지금 배치 그대로(화면 안 바뀜). 켜서 직접 고른 배치가 바뀌면 3초 안에 한 번 더 눌러야 함
@@ -24428,7 +24411,11 @@ local function onInputEnded(input: InputObject, processed: boolean)
 			handlers.Toast("공원 확장", "lock")
 		elseif look and Landmarks.ById[look] then
 			pickUp(look, hit.Slot) -- 평소 카메라에서 터치로 톡
+		elseif look == ParkGrid.LOOK_EMPTY then
+			setFill(if fillSlot == hit.Slot then nil else hit.Slot) -- 빈 받침대 = 채울 칸(다시 누르면 풂)
 		end
+	elseif not moved and not hit.OnPlot then
+		setFill(nil)
 	end
 end
 
@@ -24579,6 +24566,10 @@ local function step(dt: number)
 		end
 	end
 
+	if not slot and not current and fillSlot then
+		slot = fillSlot -- 가리키는 곳이 없으면 채울 빈 칸을 강조
+	end
+
 	-- 가리키는 칸 강조: 잠긴 칸 빨강. 들고 있으면 놓을 칸 = 흰 테두리(빈 칸 초록 · 자리 바꿈 노랑 채우기 — 둘레에
 	-- 노랗게 빛나는 판들 사이에서도 어느 칸인지 보이게), 아니면 명소 노랑 · 빈 칸 초록
 	local look = if slot then viewLook(slot) else nil
@@ -24628,6 +24619,10 @@ local function step(dt: number)
 		setTag(look, slotTop(slot).Position + Vector3.new(0, statueHeight(slot) + TAG_GAP, 0))
 	else
 		setTag(nil)
+	end
+	local pulse = markerPulse
+	if not current and pulse then
+		pulse.Transparency = MARK_TARGET + math.sin(now * 5) * MARK_TARGET_PULSE -- 채울 빈 칸의 판도 숨 쉬듯
 	end
 
 	-- 날아가는 모형
@@ -24762,39 +24757,168 @@ local function applyView()
 	end
 end
 
--- 월드 칸 모델 · ClickDetector ---------------------------------------------------------
+-- 배치 모드 밖: 내 공원 누르기 ---------------------------------------------------------
+-- 버튼 없이 타이쿤처럼: 내 공원(부지 + 여유 LEAVE_MARGIN)에 있을 때 내 명소·빈 받침대를 톡 누르면 배치 모드
+-- (명소 = 바로 집음, 빈 받침대 = 그 칸을 채울 준비). 톡 = 누른 곳에서 DRAG_PX 안에서 뗌 — 터치로 끌면 화면 돌리기라
+-- 안 들어감, 두 번째 손가락이 닿으면 취소(두 손가락 확대). 광선은 캐릭터만 빼고 쏴서 처음 맞은 것이 내 칸 모델일 때만
+-- (남의 공원·나무 뒤에 가린 명소는 아님). 잠긴 칸은 안 받음. 서버 ClickDetector 없이 이 클라이언트 입력만 봄.
+-- 마우스로 가리키면 그 칸에 옅은 흰 강조(Highlight 하나) + 손가락 커서 — 누를 수 있다는 것이 보이게
 
--- 배치 모드 밖: 내 부지의 열린 칸에 이 클라이언트에서만 ClickDetector (누르면 배치 모드 + 그 칸 명소를 집음).
--- 남의 공원 받침대에는 손가락 커서가 안 뜸
-local function addDetector(container: Instance)
+type OutsidePress = { Input: InputObject, Kind: Enum.UserInputType, Start: Vector2, Slot: number, Moved: boolean }
+local outsidePress: OutsidePress? = nil
+local outsideFingers: { [InputObject]: boolean } = {} -- 3D 화면에 닿아 있는 손가락(화면 버튼·조이스틱 제외)
+local outsideParams = RaycastParams.new()
+outsideParams.FilterType = Enum.RaycastFilterType.Exclude
+local outsideLight: Highlight? = nil
+local outsideSlot: number? = nil -- 마우스가 가리키는 내 칸(강조 중)
+local cursorSet = false -- 손가락 커서를 이 모듈이 켰는지(끌 때 남의 커서를 덮지 않게)
+
+-- 지금 내 공원을 눌러 배치 모드에 들어갈 수 있는지
+local function canTap(): boolean
+	if editing or entering or not plot or not origin or not slotsFolder then
+		return false
+	end
+	local allowed = handlers and handlers.CanTap
+	if allowed and not allowed() then
+		return false
+	end
+	return atPlot(LEAVE_MARGIN)
+end
+
+-- 화면 점(뷰포트 px)에서 처음 맞는 것이 내 열린 칸이면 그 칸 번호
+local function tapSlot(at: Vector2): number?
+	local camera = workspace.CurrentCamera
+	local folder = slotsFolder
+	if not camera or not folder then
+		return nil
+	end
+	local ray = camera:ViewportPointToRay(at.X, at.Y)
+	local character = player.Character
+	outsideParams.FilterDescendantsInstances = if character then { character } else {}
+	local hit = workspace:Raycast(ray.Origin, ray.Direction * RAY_LENGTH, outsideParams)
+	local container = if hit then containerOf(hit.Instance) else nil
+	if not container or container.Parent ~= folder then
+		return nil
+	end
 	local slot = slotOf(container)
-	if not slot or not container:IsA("Model") or container:FindFirstChild("ParkClick") then
-		return
+	if not slot or container:GetAttribute("Look") == ParkGrid.LOOK_LOCKED then
+		return nil
 	end
-	if container:GetAttribute("Look") == ParkGrid.LOOK_LOCKED then
-		return
-	end
-	local detector = Instance.new("ClickDetector")
-	detector.Name = "ParkClick"
-	detector.MaxActivationDistance = CLICK_DISTANCE
-	detector.MouseClick:Connect(function()
-		ParkEdit.enter(slot)
-	end)
-	detector.Parent = container
+	return slot
 end
 
-local function removeDetectors()
-	for _, container in containers do
-		local detector = container:FindFirstChild("ParkClick")
-		if detector then
-			detector:Destroy()
+-- 가리키는 내 칸 강조 + 손가락 커서(nil = 끔)
+local function setOutsideHover(slot: number?)
+	local target = if slot then containers[slot] else nil
+	if not target then
+		slot = nil
+	end
+	if outsideSlot == slot and (not outsideLight or outsideLight.Adornee == target) then
+		return
+	end
+	outsideSlot = slot
+	local light = outsideLight
+	if target and not light then
+		light = Ui.new("Highlight", {
+			Name = "ParkTapHover",
+			FillColor = WHITE,
+			FillTransparency = 0.86,
+			OutlineColor = WHITE,
+			OutlineTransparency = 0.25,
+			DepthMode = Enum.HighlightDepthMode.Occluded,
+			Enabled = false,
+			Parent = workspace,
+		})
+		outsideLight = light
+	end
+	if light then
+		light.Adornee = target
+		light.Enabled = target ~= nil
+	end
+	local want = target ~= nil
+	if want ~= cursorSet then
+		cursorSet = want
+		pcall(function()
+			UserInputService.MouseIcon = if want then POINTING_HAND else ""
+		end)
+	end
+end
+
+local function outsideBegan(input: InputObject, processed: boolean)
+	local kind = input.UserInputType
+	if kind == Enum.UserInputType.Touch then
+		if processed then
+			return -- 화면 버튼·조이스틱(그 손가락은 세지 않음 — 조이스틱으로 걸으며 다른 손가락으로 톡 누를 수 있음)
 		end
+		for other in outsideFingers do
+			-- 뗌(InputEnded)을 못 받고 끝난 손가락은 뺌
+			local state = (other :: any).UserInputState
+			if state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
+				outsideFingers[other] = nil
+			end
+		end
+		outsideFingers[input] = true
+		if next(outsideFingers, next(outsideFingers)) ~= nil then
+			outsidePress = nil -- 두 손가락 = 확대/돌리기
+			return
+		end
+	elseif kind ~= Enum.UserInputType.MouseButton1 or processed then
+		return
+	end
+	if not canTap() then
+		return
+	end
+	local at = if kind == Enum.UserInputType.Touch
+		then toViewport(input.Position)
+		else UserInputService:GetMouseLocation()
+	local slot = tapSlot(at)
+	outsidePress = if slot then { Input = input, Kind = kind, Start = at, Slot = slot, Moved = false } else nil
+end
+
+local function outsideChanged(input: InputObject, processed: boolean)
+	local kind = input.UserInputType
+	local current = outsidePress
+	if kind == Enum.UserInputType.Touch then
+		if current and current.Input == input and (toViewport(input.Position) - current.Start).Magnitude > DRAG_PX then
+			current.Moved = true -- 끌기 = 화면 돌리기
+		end
+	elseif kind == Enum.UserInputType.MouseMovement then
+		local at = UserInputService:GetMouseLocation()
+		if current and current.Kind == Enum.UserInputType.MouseButton1 and (at - current.Start).Magnitude > DRAG_PX then
+			current.Moved = true
+		end
+		-- 화면 버튼 위(processed)면 강조를 끔(버튼 뒤 명소가 빛나 보이지 않게)
+		setOutsideHover(if not processed and canTap() then tapSlot(at) else nil)
 	end
 end
 
-local function addDetectors()
-	for _, container in containers do
-		addDetector(container)
+-- 마우스를 가만히 두고 걷거나 카메라가 돌아도 강조가 옛 칸에 남지 않게: 강조 중일 때만 가끔 다시 봄
+local function refreshOutsideHover()
+	if outsideSlot == nil then
+		return
+	end
+	setOutsideHover(if canTap() then tapSlot(UserInputService:GetMouseLocation()) else nil)
+end
+
+local function outsideEnded(input: InputObject, processed: boolean)
+	local kind = input.UserInputType
+	if kind == Enum.UserInputType.Touch then
+		outsideFingers[input] = nil
+	end
+	local current = outsidePress
+	if not current or current.Kind ~= kind or (kind == Enum.UserInputType.Touch and current.Input ~= input) then
+		return
+	end
+	outsidePress = nil
+	local at = if kind == Enum.UserInputType.Touch
+		then toViewport(input.Position)
+		else UserInputService:GetMouseLocation()
+	if processed or current.Moved or (at - current.Start).Magnitude > DRAG_PX or not canTap() then
+		return
+	end
+	if tapSlot(at) == current.Slot then
+		setOutsideHover(nil)
+		ParkEdit.enter(current.Slot)
 	end
 end
 
@@ -24806,8 +24930,6 @@ local function onContainerAdded(container: Instance)
 	containers[slot] = container
 	if editing then
 		reconcile()
-	else
-		addDetector(container)
 	end
 end
 
@@ -24817,6 +24939,9 @@ local function onContainerRemoved(container: Instance)
 		containers[slot] = nil
 	end
 	hidden[container] = nil
+	if outsideSlot == slot then
+		setOutsideHover(nil)
+	end
 	if editing then
 		if hoverSlot == slot then
 			setHover(nil, HOVER_COLOR)
@@ -24940,7 +25065,7 @@ local function newCard(landmark: Landmark): Card
 	button.Activated:Connect(function()
 		if held and held.Id == landmark.Id then
 			returnHeld() -- 같은 카드를 다시 누름 = 내려놓기
-		else
+		elseif not fillWith(landmark.Id) then
 			pickUp(landmark.Id, 0)
 		end
 	end)
@@ -25255,6 +25380,16 @@ local function connectEdit(signal: RBXScriptSignal, callback: (...any) -> ())
 	table.insert(editConnections, signal:Connect(callback))
 end
 
+-- 들어오게 한 칸(배치 모드 밖에서 누른 칸): 명소면 바로 집고, 빈 받침대면 그 칸을 채울 준비
+local function pressSlot(slot: number)
+	local look = viewLook(slot)
+	if look and Landmarks.ById[look] then
+		pickUp(look, slot)
+	elseif look == ParkGrid.LOOK_EMPTY then
+		setFill(slot)
+	end
+end
+
 local function begin(slot: number?)
 	if editing or not origin or not plot then
 		return
@@ -25301,7 +25436,8 @@ local function begin(slot: number?)
 	folder.Parent = workspace
 	hideSign(true)
 
-	removeDetectors()
+	outsidePress = nil
+	setOutsideHover(nil)
 	-- HUD 를 먼저 바꾸고(메뉴·굴리기 줄 숨김, 열린 창 닫기) 띠 자리를 잡은 뒤에 카메라(띠 위 영역에 맞춤)
 	handlers.Changed(true)
 	bar.Visible = true
@@ -25327,13 +25463,8 @@ local function begin(slot: number?)
 
 	renderBar()
 	reconcile()
-
 	if slot then
-		local view = viewState()
-		local id = if view then PlayerState.parkSlots(view)[slot] else nil
-		if id then
-			pickUp(id, slot)
-		end
+		pressSlot(slot)
 	end
 
 	-- 부지 밖으로 걸어가거나 순간 이동하면 끝
@@ -25348,15 +25479,12 @@ local function begin(slot: number?)
 	end)
 end
 
--- 배치 모드 켜기. slot: 받침대를 눌러 들어왔으면 그 칸 명소를 바로 집음. 내 공원 밖이면 먼저 순간 이동
+-- 배치 모드 켜기. slot: 내 공원의 칸을 눌러 들어왔으면 그 칸 명소를 바로 집음(빈 받침대면 그 칸을 채울 준비).
+-- 내 공원 밖이면 먼저 순간 이동
 function ParkEdit.enter(slot: number?)
 	if editing then
 		if slot then
-			local view = viewState()
-			local id = if view then PlayerState.parkSlots(view)[slot] else nil
-			if id then
-				pickUp(id, slot)
-			end
+			pressSlot(slot)
 		end
 		return
 	end
@@ -25431,6 +25559,7 @@ function ParkEdit.exit()
 	painted = nil
 	hoverLight = nil
 	hoverSlot = nil
+	fillSlot = nil
 	local folder = localFolder
 	localFolder = nil
 	if folder then
@@ -25466,16 +25595,7 @@ function ParkEdit.exit()
 		tagChip.Root:Destroy()
 		tagChip = nil
 	end
-	addDetectors()
 	handlers.Changed(false)
-end
-
-function ParkEdit.toggle()
-	if editing or entering then
-		ParkEdit.exit()
-	else
-		ParkEdit.enter(nil)
-	end
 end
 
 function ParkEdit.isEditing(): boolean
@@ -25485,6 +25605,11 @@ end
 -- 화면 이름표가 붙은 월드 점(이름표 아래 끝, 화면 밖으로 안 나가게 가두기 전). 이름표가 없으면 nil — 스모크 테스트용
 function ParkEdit.tagAnchor(): Vector3?
 	return tagAnchor
+end
+
+-- 채울 빈 칸(빈 받침대를 눌러 정함, 없으면 nil) — 스모크 테스트용
+function ParkEdit.fillTarget(): number?
+	return fillSlot
 end
 
 -- 서버 상태가 바뀜(applyState). 들고 있던 명소를 더는 갖고 있지 않으면(환생) 내려놓음
@@ -25511,7 +25636,8 @@ function ParkEdit.setPlot(model: Instance?)
 	end
 	ParkEdit.exit()
 	disconnectAll(plotConnections)
-	removeDetectors()
+	outsidePress = nil
+	setOutsideHover(nil)
 	table.clear(containers)
 	plot = model
 	origin = nil
@@ -25558,6 +25684,16 @@ function ParkEdit.init(parent: ScreenGui, callbacks: Handlers)
 	dropSound = makeSound(0.9, 0.45)
 	cancelSound = makeSound(0.65, 0.3)
 	buildBar()
+	-- 배치 모드 밖: 내 공원의 명소·빈 받침대를 톡 누르면 들어감(늘 지켜보지만 내 공원에 없으면 바로 돌아감 — 광선도 안 쏨)
+	UserInputService.InputBegan:Connect(outsideBegan)
+	UserInputService.InputChanged:Connect(outsideChanged)
+	UserInputService.InputEnded:Connect(outsideEnded)
+	task.spawn(function()
+		while true do
+			task.wait(0.2)
+			refreshOutsideHover()
+		end
+	end)
 end
 
 return ParkEdit

@@ -984,6 +984,15 @@ check(
 mouseTo(offPoint)
 check(not lightOn(container(tapSlotNo)) and (UIS.MouseIcon or "") == "", "빈 곳 = 강조·커서 끔")
 check(not ParkEdit.isEditing(), "가리키기만 해서는 안 들어감")
+mouseTo(statuePoint)
+placeCharacter(origin * CFrame.new(0, 3.6, -80)) -- 마우스는 그대로 두고 공원 밖으로 걸어감
+Mock.runScheduler(Mock.clock() + 0.5)
+check(
+	not lightOn(container(tapSlotNo)) and (UIS.MouseIcon or "") == "",
+	"마우스를 가만히 두고 공원 밖으로 걸어가도 강조·커서가 남지 않음"
+)
+placeCharacter(origin * CFrame.new(0, 3.6, -37))
+mouseTo(offPoint)
 
 -- 끌기 = 화면 돌리기(안 들어감)
 drag(statuePoint, statuePoint + Vector2.new(80, 10))
