@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>Store art 3D layers</title>
+    <!-- render3d.js 가 http://store.local/ 요청을 파일로 돌려줌(page.route). three 는 tools/world_preview/node_modules 에서 -->
+    <script type="importmap">
+      { "imports": { "three": "/node_modules/three/build/three.module.js", "three/addons/": "/node_modules/three/examples/jsm/" } }
+    </script>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: transparent;
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="view" width="1024" height="1024"></canvas>
+    <script type="module" src="/scene3d.js"></script>
+  </body>
+</html>

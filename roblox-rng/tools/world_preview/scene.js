@@ -27,6 +27,8 @@
 // preview.render(시점, "jpeg", 품질) 이면 JPEG
 // 안 그리는 것: BillboardGui(이름표), 파티클, 빛(PointLight), Decal/Texture/SurfaceAppearance, MeshPart 실제 모양(상자로 대신),
 //   MaterialVariant(기본 재질만), 물 파트(Material=Water 인 Part)의 물 효과, 물속 시점, 지형 동굴·튀어나온 절벽 밑면
+// 투명 배경(page.html?alpha): 하늘을 안 그리고 배경 알파 0 으로(스토어 그림처럼 레이어로 겹쳐 합성할 때 — tools/store).
+//   load({ shadowCatcher: { x, y, z, size, opacity } }) 이면 그 높이에 그림자만 받는 투명 판(ShadowMaterial)을 깖
 
 import * as THREE from "three";
 import { buildMaterialTextures, PART_MATERIALS } from "./textures.js";
@@ -37,7 +39,9 @@ import { makeTerrainGrid } from "./terrain_grid.mjs";
 let W = 1280;
 let H = 720;
 const canvas = document.getElementById("view");
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true });
+const ALPHA = new URLSearchParams(location.search).has("alpha"); // 투명 배경 모드(위 설명)
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true, alpha: ALPHA });
+if (ALPHA) renderer.setClearColor(0x000000, 0);
 renderer.setSize(W, H, false);
 renderer.setPixelRatio(1);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -669,7 +673,7 @@ function setupLighting(lighting) {
   );
   scene.add(hemi);
 
-  scene.add(makeSky(sunDir));
+  if (!ALPHA) scene.add(makeSky(sunDir));
   lightEnv = {
     sunDir: sunDir.clone(),
     sunColor: srgb([1, 0.97, 0.9]).multiplyScalar(sun.intensity / Math.PI),
@@ -870,6 +874,7 @@ async function load(opts = {}) {
   if (dump.meta && dump.meta.test) window.preview.views = TEST_VIEWS;
   buildParts(dump.parts);
   buildHighlights(dump.hl, dump.parts);
+  if (options.shadowCatcher) addShadowCatcher(options.shadowCatcher);
   await document.fonts.load('40px "Fredoka One"').catch(() => {});
   await document.fonts.load('40px "Luckiest Guy"').catch(() => {});
   for (const record of dump.gui || []) await drawGui(record);
@@ -881,6 +886,18 @@ async function load(opts = {}) {
     frame: Math.round(frame.radius),
     textureMs: Math.round(textureMs),
   };
+}
+
+// 그림자만 받는 투명 판(투명 배경 레이어를 배경 그림 위에 겹칠 때 바닥 그림자)
+function addShadowCatcher(c) {
+  const size = c.size || 200;
+  const plane = new THREE.Mesh(
+    new THREE.PlaneGeometry(size, size).rotateX(-Math.PI / 2),
+    new THREE.ShadowMaterial({ opacity: c.opacity ?? 0.35 }),
+  );
+  plane.position.set(c.x || 0, c.y || 0, c.z || 0);
+  plane.receiveShadow = true;
+  scene.add(plane);
 }
 
 // 임의 시점: "cam:x,y,z:tx,ty,tz[:fov]" (예: cam:0,60,120:0,0,0:50) — 특정 자리를 자세히 볼 때
@@ -939,7 +956,7 @@ function setupWaterPass() {
       depthWrite: false,
       vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4( position.xy, 0.0, 1.0 ); }`,
       fragmentShader: `uniform sampler2D tScene; varying vec2 vUv;
-void main() { gl_FragColor = vec4( texture( tScene, vUv ).rgb, 1.0 ); 
+void main() { vec4 c = texture( tScene, vUv ); gl_FragColor = vec4( c.rgb, ${ALPHA ? "c.a" : "1.0"} ); 
 #include <colorspace_fragment>
 }`,
     }),
