@@ -809,6 +809,45 @@ for _, id in better do
 end
 check(betterShown, "더 좋은 명소 카드에 딱지 (" .. #better .. ")")
 
+print("\n[별(가챠식): 처음 발견 ☆0 · 또 뽑을 때마다 ★+1 — 보관함 카드 · 이름표]")
+do
+	local function goldStars(text: string): number
+		local gold = text:match('^<font color="[^"]*">(.-)</font>') or ""
+		return select(2, gold:gsub("★", ""))
+	end
+	local function allStars(text: string): number
+		return select(2, text:gsub("★", ""))
+	end
+	local card = scroller:FindFirstChild(s3)
+	local starsLabel = card and card:FindFirstChild("Stars")
+	local saved = data.Inventory[s3]
+	local seen = {}
+	for _, count in { 1, 2, 6, 9 } do
+		data.Inventory[s3] = count
+		pushState()
+		table.insert(seen, string.format("%d개=%d/%d", count, goldStars(starsLabel.Text), allStars(starsLabel.Text)))
+	end
+	check(
+		table.concat(seen, " ") == "1개=0/5 2개=1/5 6개=5/5 9개=5/5",
+		"보관함 카드 별 = min(5, 개수 - 1), 빈 별까지 5개 (" .. table.concat(seen, " ") .. ")"
+	)
+	data.Inventory[s3] = saved
+	-- 전시 칸 명소 이름표: 처음 발견(1개) = 빈 별 5개
+	local shownId = shownSlots()[4]
+	local savedShown = data.Inventory[shownId]
+	data.Inventory[shownId] = 1
+	pushState()
+	mouseTo(slotScreen(4))
+	local tagStars = gui:FindFirstChild("ParkEditTag"):FindFirstChild("Stars")
+	check(
+		tagText() == Landmarks.ById[shownId].Name and goldStars(tagStars.Text) == 0 and allStars(tagStars.Text) == 5,
+		"이름표: 처음 발견 = 빈 별 5개 ☆0"
+	)
+	data.Inventory[shownId] = savedShown
+	pushState()
+	mouseTo(Vector2.new(20, 60))
+end
+
 print("\n[환생: 들고 있던 명소가 없어짐]")
 click(slotScreen(2, 2))
 check(localFolder():FindFirstChild("Held", true) ~= nil, "들고 있음")
@@ -972,6 +1011,16 @@ end)
 check(revealDone and not revealFrame.Visible, "배치 모드 굴림 = 가운데 연출 없이 바로 끝남")
 local chip = rollResult(first.Name)
 check(chip ~= nil and chip:FindFirstChild("New", true) ~= nil, "알림 줄에 명소 이름 딱지 + NEW")
+-- 또 뽑아 별이 오름 = 작은 "★+1" 딱지
+local dupe = Landmarks.RarestFirst[3]
+task.spawn(Hud.reveal, dupe, { Fast = true, IsNew = false, StarUp = true, Stars = 2, Bonus = 0, Luck = 1 })
+local dupeChip = rollResult(dupe.Name)
+local dupeStar = dupeChip and dupeChip:FindFirstChild("StarUp", true)
+local dupeLabel = dupeStar and dupeStar:FindFirstChild("Label", true)
+check(
+	dupeLabel ~= nil and dupeLabel.Text:find("+1", 1, true) ~= nil and dupeChip:FindFirstChild("New", true) == nil,
+	'또 뽑음 = 명소 이름 딱지 + "★+1"'
+)
 check(
 	chip ~= nil
 		and (

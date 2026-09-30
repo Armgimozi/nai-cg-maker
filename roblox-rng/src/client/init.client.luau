@@ -52,6 +52,24 @@ local function currentCoins(): number
 	return state.Coins + state.Income * math.max(0, time() - stateReceivedAt)
 end
 
+-- 자동 발견으로 도감에 새로 들어온 명소 수: 서버는 확률(1/N)이 영구 행운 이하인 명소를 발견으로 침(PlayerState.autoDiscover —
+-- 환생·지구본·도장으로 행운이 오르면 그보다 흔한 명소는 굴림에서 다시 안 나옴). 클라이언트는 직접 계산하지 않고 서버가 보낸
+-- Discovered 를 그대로 씀(도감·여권 숫자가 서버와 같음). 굴려서 얻은 명소(보유)는 연출이 이미 보여 줬으니 뺌
+local function autoDiscovered(before: PlayerState.Snapshot, after: PlayerState.Snapshot): number
+	local count = 0
+	for _, landmark in Landmarks.List do
+		local id = landmark.Id
+		if
+			PlayerState.isDiscovered(after, id)
+			and not PlayerState.isDiscovered(before, id)
+			and (after.Inventory[id] or 0) <= 0
+		then
+			count += 1
+		end
+	end
+	return count
+end
+
 -- 서버 상태 반영. Revision 이 더 큰 것만 받아서 늦게 도착한 옛 상태가 덮어쓰지 않게 함.
 -- receivedAt: 스냅샷을 실제로 받은 시각(코인 표시 기준). 늦게 반영할 때 넘겨줌.
 local function applyState(snapshot: any, receivedAt: number?)
@@ -61,12 +79,18 @@ local function applyState(snapshot: any, receivedAt: number?)
 	if state and snapshot.Revision <= state.Revision then
 		return
 	end
+	local previous = state
 	state = snapshot
 	stateReceivedAt = receivedAt or time()
 	Hud.render(snapshot, stateReceivedAt)
 	Hud.setCoins(currentCoins())
 	Panels.render(snapshot)
 	ParkEdit.render(snapshot)
+	-- 자동 발견: [도감] "도감 +12" (환생 직후처럼 행운이 크게 오를 때 도감 숫자가 왜 늘었는지)
+	local added = if previous then autoDiscovered(previous, snapshot) else 0
+	if added > 0 then
+		Hud.toast("도감 +" .. added, Ui.colorPair("Sky").Face, 3, "album")
+	end
 end
 
 -- 서버가 보내는 재동기화. 내 굴림 연출 중이면 결과가 미리 보이지 않게 연출이 끝난 뒤 반영
@@ -181,7 +205,8 @@ local function roll()
 	rolling = true
 	Hud.setRolling(true)
 
-	-- 쿨타임이 남았으면 기다렸다가 요청
+	-- 쿨타임이 남았으면 기다렸다가 요청. 자동 굴림은 연출이 끝나면 바로 여기로 돌아와 남은 굴림 간격(Cooldown)만 기다림
+	-- (서버가 거절하면 RetryIn). 이미 발견한 명소는 AUTO 연출이 짧음(Hud.reveal — Config.AUTO_KNOWN_REVEAL_RANK)
 	local waitFor = lastRollSentAt + (state :: PlayerState.Snapshot).Cooldown - time()
 	if waitFor > 0 then
 		task.wait(waitFor)

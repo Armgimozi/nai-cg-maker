@@ -393,9 +393,10 @@ local function collectionCard(parent: ScrollingFrame, landmark: Landmark): Colle
 		BorderSizePixel = 0,
 		Parent = band,
 	})
+	-- 확률은 늘 콤마 자연수라 가장 긴 "1 in 10,000,000,000"(세계수)도 들어가게 좌우 여백 4
 	local bandLabel = Ui.label({
-		Position = UDim2.fromOffset(8, 4),
-		Size = UDim2.new(1, -16, 1, -7),
+		Position = UDim2.fromOffset(4, 4),
+		Size = UDim2.new(1, -8, 1, -7),
 		Text = Format.oneIn(landmark.OneIn),
 		TextColor3 = WHITE,
 		ZIndex = 2,
@@ -412,6 +413,7 @@ local function collectionCard(parent: ScrollingFrame, landmark: Landmark): Colle
 		Parent = card,
 	}, 19)
 	local stars = Ui.label({
+		Name = "Stars",
 		Position = UDim2.fromOffset(6, 149),
 		Size = UDim2.new(1, -12, 0, 24),
 		Parent = card,
@@ -527,7 +529,8 @@ local function renderCollection(state: Snapshot)
 		inPark[id] = true
 	end
 
-	-- 도감은 역대 발견(Discovered) 기준. 별·개수·전시는 지금 보유(Inventory) 기준
+	-- 도감은 역대 발견(Discovered — 서버가 자동 발견한 명소도 들어 있음) 기준. 별·개수·전시는 지금 보유(Inventory) 기준.
+	-- 별은 가챠식(처음 발견 = 빈 별 5개 ☆0, 또 뽑을 때마다 ★+1): 보유하면 빈 별까지 보이고, 지금 없으면 별 줄을 비움
 	local shown = 0
 	for _, landmark in Landmarks.RarestFirst do
 		local count = owned(state, landmark.Id)
@@ -542,7 +545,7 @@ local function renderCollection(state: Snapshot)
 			entry.Card.LayoutOrder = shown
 			entry.Card.BackgroundColor3 = if featured then FEATURED_BG else Theme.Paper
 			entry.Badge.Root.Visible = featured
-			entry.Stars.Text = Ui.starsRich(PlayerState.stars(count), #Config.STAR_THRESHOLDS)
+			entry.Stars.Text = if count > 0 then Ui.starsRich(PlayerState.stars(count), PlayerState.MAX_STARS) else ""
 			entry.Count.Label.Text = "×" .. Format.commas(count)
 			entry.Count.Root.Visible = count > 0
 			setShown(entry, inPark[landmark.Id] == true)
@@ -758,8 +761,8 @@ local function passportCard(parent: Frame, landmark: Landmark, known: boolean, o
 			Parent = card,
 		}, 16)
 		Ui.label({
-			Position = UDim2.fromOffset(4, 99),
-			Size = UDim2.new(1, -8, 0, 17),
+			Position = UDim2.fromOffset(2, 99),
+			Size = UDim2.new(1, -4, 0, 17),
 			Text = Format.oneIn(landmark.OneIn),
 			TextColor3 = tier.Color:Lerp(Theme.Ink, 0.45),
 			Parent = card,
@@ -786,8 +789,8 @@ local function passportCard(parent: Frame, landmark: Landmark, known: boolean, o
 			}, 50)
 		end
 		Ui.label({
-			Position = UDim2.fromOffset(4, 90),
-			Size = UDim2.new(1, -8, 0, 20),
+			Position = UDim2.fromOffset(2, 90),
+			Size = UDim2.new(1, -4, 0, 20),
 			Text = Format.oneIn(landmark.OneIn),
 			TextColor3 = tier.Color,
 			Parent = card,
@@ -1195,7 +1198,8 @@ local function buildRebirth(): View
 		ZIndex = 5,
 	})
 
-	-- 아래 고정 줄: [위 화살표][행운 +20%][수입 +50%] / [코인·강화 초기화]   [환생]
+	-- 아래 고정 줄: [위 화살표][행운 ×2][수입 +50%] / [코인·강화 초기화]   [환생]
+	-- (환생 1번마다: 행운은 곱해짐 ×2 → ×4 → … ×1,024, 수입은 더해짐 +50%)
 	local footer = Ui.new("Frame", {
 		Name = "RebirthFooter",
 		AnchorPoint = Vector2.new(0, 1),
@@ -1214,8 +1218,7 @@ local function buildRebirth(): View
 	})
 	Ui.list(Enum.FillDirection.Horizontal, 10).Parent = rewards
 	Icons.view(rewards, "arrow_up", { Size = UDim2.fromOffset(38, 38), LayoutOrder = 1 })
-	headerChip(rewards, "clover", "Grape", 2).Label.Text =
-		string.format("+%d%%", math.floor(Perks.REBIRTH_LUCK * 100 + 0.5))
+	headerChip(rewards, "clover", "Grape", 2).Label.Text = Ui.times(Perks.REBIRTH_LUCK_MULT)
 	headerChip(rewards, "coin", "Grass", 3).Label.Text =
 		string.format("+%d%%", math.floor(Perks.REBIRTH_INCOME * 100 + 0.5))
 
@@ -1293,8 +1296,8 @@ local function rebirthCard(parent: Frame, landmark: Landmark, look: string, orde
 		Parent = card,
 	}, 16)
 	Ui.label({
-		Position = UDim2.fromOffset(4, 99),
-		Size = UDim2.new(1, -8, 0, 17),
+		Position = UDim2.fromOffset(2, 99),
+		Size = UDim2.new(1, -4, 0, 17),
 		Text = Format.oneIn(landmark.OneIn),
 		TextColor3 = if known then tier.Color:Lerp(Theme.Ink, 0.45) else tier.Color,
 		Parent = card,

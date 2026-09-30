@@ -1311,7 +1311,7 @@ local function setTag(id: string?, point: Vector3?)
 		})
 		chip.Label.TextColor3 = WHITE
 		tagChip = chip
-		tagStars.Text = Ui.starsRich(stars, #Config.STAR_THRESHOLDS)
+		tagStars.Text = Ui.starsRich(stars, PlayerState.MAX_STARS)
 	end
 	local screen, _ = camera:WorldToViewportPoint(point)
 	if screen.Z <= 0 then
@@ -1800,7 +1800,7 @@ function renderBar()
 			card.Stroke.Color = if picked then Ui.colorPair("Sun").Face else Theme.Ink
 			card.Stroke.Thickness = if picked then 4 else 3
 			card.Scale.Scale = if picked then 1.08 else 1
-			card.Stars.Text = Ui.starsRich(PlayerState.stars(view.Inventory[id] or 0), #Config.STAR_THRESHOLDS)
+			card.Stars.Text = Ui.starsRich(PlayerState.stars(view.Inventory[id] or 0), PlayerState.MAX_STARS)
 			card.Better.Root.Visible = better[id] == true
 		end
 	end

@@ -1,7 +1,9 @@
 -- 클라이언트 진입점(src/client/init.client.luau) 스모크 테스트: 가짜 환경에서 init.client 를 그대로 실행하고
 -- 원격(RemoteFunction.InvokeServer)은 PlayerState + ParkService 로 흉내. 내 부지 찾기 → HUD [배치] → 공원으로 이동 →
 -- 3D 배치 모드 → SetDisplay 원격(자동 꺼짐 · 공원 바뀜 알림) → [완료] · 다른 창 · 도감 [배치] · 이동 버튼 →
--- 상점(카드 6개 · Robux 가격 · 보유 도장 · 구매 원격 BuyPass/BuyProduct · 실패 이유별 알림)을 확인.
+-- 상점(카드 6개 · Robux 가격 · 보유 도장 · 구매 원격 BuyPass/BuyProduct · 실패 이유별 알림),
+-- AUTO 연출(이미 발견한 명소 = 짧게 · 서버 굴림 간격 · RetryIn, 새 발견·수동 = 원래 길이), 별 상승 딱지(★+1),
+-- 별 0(☆) 표시 · 환생 창 행운 ×2 · 자동 발견 알림을 확인.
 -- 실행(roblox-rng 폴더에서): luaurun tools/client_smoke/init.luau   (끝 줄 "0 failed")
 
 local E = compile(readfile("tools/client_smoke/env.luau"), "tools/client_smoke/env.luau")()
@@ -28,13 +30,31 @@ local function snap()
 end
 local buyReply: { [string]: any } = {} -- 상점 구매 원격이 돌려줄 값(상품 키 -> 응답)
 local rollLandmark = Landmarks.RarestFirst[#Landmarks.RarestFirst] -- 흔한 명소(연출 짧음)
+-- 굴림 응답의 나머지(바꿔 가며 확인) · 굴림 요청을 받은 가짜 시각 · 다음 한 번을 "cooldown" + RetryIn 으로 거절
+local rollReply = { IsNew = false, StarUp = false, Stars = 0, Bonus = 0 }
+local rollTimes: { number } = {}
+local cooldownOnce: number? = nil
 local SERVER = {
 	GetState = function()
 		return snap()
 	end,
 	Roll = function()
 		table.insert(calls, "Roll")
-		return { Ok = true, LandmarkId = rollLandmark.Id, State = snap(), IsNew = false, Stars = 1, Bonus = 0 }
+		table.insert(rollTimes, Mock.clock())
+		local retry = cooldownOnce
+		if retry then
+			cooldownOnce = nil
+			return { Ok = false, Reason = "cooldown", RetryIn = retry }
+		end
+		return {
+			Ok = true,
+			LandmarkId = rollLandmark.Id,
+			State = snap(),
+			IsNew = rollReply.IsNew,
+			StarUp = rollReply.StarUp,
+			Stars = rollReply.Stars,
+			Bonus = rollReply.Bonus,
+		}
 	end,
 	SetDisplay = function(slot, id, expected, from)
 		table.insert(calls, "SetDisplay")
@@ -228,6 +248,259 @@ do
 	local stopped = rolls()
 	Mock.runScheduler(Mock.clock() + 3)
 	check(rolls() == stopped, "T = 자동 굴리기 끔")
+end
+
+print("\n[AUTO 연출: 이미 발견 = 짧게(서버 굴림 간격), 새 발견·수동 = 원래 길이]")
+do
+	local Config = Harness.require(E.shared.Config)
+	local Ui = Harness.require(client.Ui)
+	local revealFrame = findNamed(gui, "Reveal")
+	local nameLabel = findNamed(revealFrame, "LandmarkName")
+	check(nameLabel ~= nil, "굴림 연출 명소 이름 글자")
+	check(Config.AUTO_KNOWN_REVEAL_RANK == 3, "Config.AUTO_KNOWN_REVEAL_RANK = 3")
+	local cooldown = PlayerState.cooldown(data, mods)
+	-- 앞 확인에서 돌던 굴림이 끝날 때까지
+	Mock.runScheduler(Mock.clock() + 8)
+
+	-- 가짜 시계를 0.05초씩 돌리며 "? ? ?"(불가사의 이상 뜸 들이기)를 봤는지, 굴림 요청 뒤 명소 이름이 보이기까지 걸린 시간
+	local function watch(seconds: number, name: string): (boolean, { number })
+		local suspense = false
+		local shownAfter: { number } = {}
+		local lastShown = false
+		local stop = Mock.clock() + seconds
+		while Mock.clock() < stop do
+			Mock.runScheduler(Mock.clock() + 0.05)
+			if nameLabel.Text == "? ? ?" then
+				suspense = true
+			end
+			local shown = revealFrame.Visible and nameLabel.Text == name
+			if shown and not lastShown then
+				table.insert(shownAfter, Mock.clock() - rollTimes[#rollTimes])
+			end
+			lastShown = shown
+		end
+		return suspense, shownAfter
+	end
+	-- from 번째 굴림 요청부터의 간격(초)
+	local function gaps(from: number): { number }
+		local out = {}
+		for i = from + 1, #rollTimes do
+			table.insert(out, rollTimes[i] - rollTimes[i - 1])
+		end
+		return out
+	end
+	local function range(list: { number }): (number, number)
+		local low, high = math.huge, -math.huge
+		for _, v in list do
+			low, high = math.min(low, v), math.max(high, v)
+		end
+		return low, high
+	end
+	local function autoRun(seconds: number, name: string): (boolean, { number }, { number })
+		local from = #rollTimes + 1
+		key("T")
+		local suspense, shownAfter = watch(seconds, name)
+		key("T")
+		Mock.runScheduler(Mock.clock() + 8) -- 마지막 연출 끝
+		local list = gaps(from)
+		-- AUTO 를 끈 뒤에 끝난 마지막 굴림 뒤로는 요청이 없어야 함
+		return suspense, list, shownAfter
+	end
+
+	-- 1) 이미 발견한 전설(세계수, 원래 AUTO 연출 약 6.5초) = 3등급 AUTO 길이: 굴림 간격 ≈ 1.2~1.3초, 뜸 들이기 없음
+	local rare = Landmarks.RarestFirst[1]
+	check(rare.Tier.Rank == 7, "세계수 = 7등급")
+	rollLandmark = rare
+	rollReply.IsNew, rollReply.StarUp, rollReply.Stars = false, false, 0
+	local suspense, knownGaps, knownShown = autoRun(13, rare.Name)
+	local low, high = range(knownGaps)
+	check(#knownGaps >= 8, "AUTO 13초 동안 이미 발견한 세계수 " .. (#knownGaps + 1) .. "번")
+	check(
+		low >= cooldown - 1e-6 and high < 1.45,
+		string.format(
+			"이미 발견 = 짧은 연출: 굴림 간격 %.2f~%.2f초 (굴림 간격 %.2f초 이상)",
+			low,
+			high,
+			cooldown
+		)
+	)
+	local _, shownHigh = range(knownShown)
+	check(#knownShown >= 8 and shownHigh < 1.1, string.format("요청 뒤 %.2f초 안에 이름 공개", shownHigh))
+	check(not suspense, '이미 발견 = "? ? ?" 뜸 들이기 없음')
+
+	-- 2) 새 발견(IsNew) = AUTO 여도 원래 길이(회전 3.3 + 착지 0.4 + 뜸 0.9 + 1.8초 보여 주기)
+	rollReply.IsNew = true
+	local newSuspense, newGaps = autoRun(15, rare.Name)
+	local newLow = range(newGaps)
+	check(
+		#newGaps >= 1 and newLow > 5.5,
+		string.format("새 발견 = 원래 연출: 굴림 간격 %.2f초 이상", newLow)
+	)
+	check(newSuspense, '새 발견 = "? ? ?" 뜸 들이기')
+
+	-- 3) 수동 굴림(AUTO 끔) = 이미 발견해도 원래 길이
+	rollReply.IsNew = false
+	key("R")
+	local manualSuspense, manualShown = watch(8, rare.Name)
+	check(
+		#manualShown == 1 and manualShown[1] > 4,
+		string.format("수동 굴림 = 원래 연출(이름 공개까지 %.2f초)", manualShown[1] or -1)
+	)
+	check(manualSuspense, '수동 굴림 = "? ? ?" 뜸 들이기')
+
+	-- 4) 흔한 명소는 연출(약 0.9초)이 굴림 간격보다 짧음 -> 다음 굴림은 서버 굴림 간격(1.2초)을 기다림
+	rollLandmark = Landmarks.RarestFirst[#Landmarks.RarestFirst]
+	local _, commonGaps = autoRun(7, rollLandmark.Name)
+	local cLow, cHigh = range(commonGaps)
+	check(
+		#commonGaps >= 4 and cLow >= cooldown - 1e-6 and cHigh <= cooldown + 0.07,
+		string.format("흔한 명소 = 굴림 간격대로 %.2f~%.2f초 (%.2f초)", cLow, cHigh, cooldown)
+	)
+
+	-- 5) 서버가 굴림 간격으로 거절하면(RetryIn) 그만큼 기다렸다가 다시 요청
+	cooldownOnce = 0.7
+	local from = #rollTimes + 1
+	key("T")
+	Mock.runScheduler(Mock.clock() + 1)
+	key("T")
+	Mock.runScheduler(Mock.clock() + 4)
+	local retryGap = rollTimes[from + 1] and rollTimes[from + 1] - rollTimes[from] or -1
+	check(
+		retryGap >= 0.7 - 1e-6 and retryGap <= 0.8,
+		string.format("RetryIn 0.7초 뒤 다시 요청 (%.2f초)", retryGap)
+	)
+
+	-- 6) 또 뽑아 별이 오름(가챠 중복): "★★☆☆☆ +1" 딱지, ★5 가 되면 "MAX". 처음 발견 = 별 딱지 없음
+	local starChip = findNamed(revealFrame, "StarUp")
+	local function goldStars(text: string): number
+		local gold = text:match('^<font color="[^"]*">(.-)</font>') or ""
+		return select(2, gold:gsub("★", ""))
+	end
+	rollReply.StarUp, rollReply.Stars = true, 2
+	key("R")
+	Mock.runScheduler(Mock.clock() + 3)
+	local starLabel = findNamed(starChip, "Label")
+	check(
+		starChip.Visible and starLabel.Text:find("+1", 1, true) ~= nil and goldStars(starLabel.Text) == 2,
+		'2번째 → 3번째 발견 = 별 2개 + "+1" 딱지 (' .. starLabel.Text .. ")"
+	)
+	rollReply.Stars = PlayerState.MAX_STARS
+	key("R")
+	Mock.runScheduler(Mock.clock() + 3)
+	check(
+		starChip.Visible and starLabel.Text:find("MAX", 1, true) ~= nil and goldStars(starLabel.Text) == 5,
+		'★5 = "MAX" 딱지'
+	)
+	rollReply.StarUp, rollReply.Stars, rollReply.IsNew = false, 0, true
+	key("R")
+	Mock.runScheduler(Mock.clock() + 3)
+	check(not starChip.Visible and findNamed(revealFrame, "New").Visible, "처음 발견 = NEW(별 딱지 없음)")
+	rollReply.IsNew = false
+
+	-- 7) 별 0(☆) 표시: 도감 카드 — 보유 1개 = 빈 별 5개, 6개 = ★5, 발견했지만 지금 없음 = 별 줄 비움
+	local ids = {}
+	for _, landmark in Landmarks.RarestFirst do
+		if data.Inventory[landmark.Id] and #ids < 3 then
+			table.insert(ids, landmark.Id)
+		end
+	end
+	data.Inventory[ids[1]] = 1
+	data.Inventory[ids[2]] = 7
+	data.Inventory[ids[3]] = nil -- Discovered 에는 남음
+	remoteFolder:FindFirstChild("State").OnClientEvent:Fire(snap())
+	Mock.runScheduler(Mock.clock() + 0.3)
+	face(findNamed(menu, "Collection")).Activated:Fire()
+	frame()
+	local window = findNamed(gui, "Window")
+	local function cardStars(id: string): string?
+		local card = findNamed(window, id)
+		local label = card and card:FindFirstChild("Stars")
+		return label and label.Text
+	end
+	local one, seven, gone = cardStars(ids[1]) or "?", cardStars(ids[2]) or "?", cardStars(ids[3])
+	check(
+		goldStars(one) == 0 and select(2, one:gsub("★", "")) == 5,
+		"도감: 1개(처음 발견) = 빈 별 5개 ☆0"
+	)
+	check(goldStars(seven) == 5, "도감: 7개 = ★5 (최대)")
+	check(gone == "", "도감: 발견했지만 지금 없음 = 별 줄 없음 (" .. tostring(gone) .. ")")
+	face(findNamed(menu, "Collection")).Activated:Fire()
+	frame()
+	data.Inventory[ids[1]], data.Inventory[ids[2]], data.Inventory[ids[3]] = 5, 5, 5
+
+	-- 8) 환생 창: 행운은 환생마다 ×2(곱), 수입 +50%(더함). 지금 배율 = 3번 ×8 / 10번 ×1,024(콤마)
+	local function panelHas(text: string): boolean
+		for _, d in window:GetDescendants() do
+			if d.ClassName == "TextLabel" and d.Text == text then
+				return true
+			end
+		end
+		return false
+	end
+	data.Rebirths = 3
+	remoteFolder:FindFirstChild("State").OnClientEvent:Fire(snap())
+	Mock.runScheduler(Mock.clock() + 0.3)
+	face(findNamed(menu, "Rebirth")).Activated:Fire()
+	frame()
+	check(panelHas("×2") and panelHas("+50%"), "환생 창 아래 줄: 행운 ×2 · 수입 +50%")
+	check(not panelHas("+20%"), '옛 규칙 "+20%" 없음')
+	check(panelHas("×8") and panelHas("×2.5"), "환생 3번: 행운 ×8 · 수입 ×2.5")
+	data.Rebirths = Config.MAX_REBIRTHS
+	remoteFolder:FindFirstChild("State").OnClientEvent:Fire(snap())
+	Mock.runScheduler(Mock.clock() + 0.3)
+	check(panelHas("×1,024") and panelHas("×6"), "환생 10번: 행운 ×1,024(콤마) · 수입 ×6")
+	local luckChip = findNamed(findNamed(gui, "Stats"), "Luck")
+	local luckText = luckChip and findNamed(luckChip, "Label").Text
+	check(
+		luckText == Ui.times(PlayerState.luck(data, mods)),
+		"HUD 행운 = 스냅샷 Luck (" .. tostring(luckText) .. ")"
+	)
+	check(luckText ~= nil and luckText:match("^×%d[%d,]*$") ~= nil and #luckText > 6, "큰 행운은 콤마 자연수")
+	face(findNamed(menu, "Rebirth")).Activated:Fire()
+	frame()
+	data.Rebirths = 0
+
+	-- 9) 자동 발견(서버가 Discovered 에 넣음): 굴리지 않은 명소가 도감에 들어오면 [도감] "도감 +N". 굴려서 얻은(보유) 명소는 안 셈
+	local function lastToast(): string?
+		local newest, order = nil, -math.huge
+		for _, d in gui:GetDescendants() do
+			if d.Name == "Toast" and d.LayoutOrder > order then
+				newest, order = d, d.LayoutOrder
+			end
+		end
+		local label = newest and findNamed(newest, "Label")
+		return label and label.Text
+	end
+	local fresh = {}
+	for _, landmark in Landmarks.List do
+		if not PlayerState.isDiscovered(data, landmark.Id) and #fresh < 4 then
+			table.insert(fresh, landmark.Id)
+		end
+	end
+	for i, id in fresh do
+		data.Discovered[id] = true
+		if i == 4 then
+			data.Inventory[id] = 1 -- 굴려서 얻음(연출이 보여 줌)
+		end
+	end
+	remoteFolder:FindFirstChild("State").OnClientEvent:Fire(snap())
+	Mock.runScheduler(Mock.clock() + 0.3)
+	check(lastToast() == "도감 +3", '자동 발견 3개 = "도감 +3" 알림 (' .. tostring(lastToast()) .. ")")
+	local function discoveryToasts(): number
+		local count = 0
+		for _, d in gui:GetDescendants() do
+			local label = d.Name == "Toast" and findNamed(d, "Label")
+			if label and label.Text:sub(1, #"도감 +") == "도감 +" then
+				count += 1
+			end
+		end
+		return count
+	end
+	local shown = discoveryToasts()
+	remoteFolder:FindFirstChild("State").OnClientEvent:Fire(snap())
+	Mock.runScheduler(Mock.clock() + 0.3)
+	check(shown == 1 and discoveryToasts() == 1, "새로 들어온 명소가 없으면 알림 없음")
+	rollLandmark = Landmarks.RarestFirst[#Landmarks.RarestFirst]
 end
 
 print("\n[상점: 카드 6개 · Robux 가격 · 보유 도장 · 구매 원격]")

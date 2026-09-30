@@ -17794,6 +17794,24 @@ local function currentCoins(): number
 	return state.Coins + state.Income * math.max(0, time() - stateReceivedAt)
 end
 
+-- 자동 발견으로 도감에 새로 들어온 명소 수: 서버는 확률(1/N)이 영구 행운 이하인 명소를 발견으로 침(PlayerState.autoDiscover —
+-- 환생·지구본·도장으로 행운이 오르면 그보다 흔한 명소는 굴림에서 다시 안 나옴). 클라이언트는 직접 계산하지 않고 서버가 보낸
+-- Discovered 를 그대로 씀(도감·여권 숫자가 서버와 같음). 굴려서 얻은 명소(보유)는 연출이 이미 보여 줬으니 뺌
+local function autoDiscovered(before: PlayerState.Snapshot, after: PlayerState.Snapshot): number
+	local count = 0
+	for _, landmark in Landmarks.List do
+		local id = landmark.Id
+		if
+			PlayerState.isDiscovered(after, id)
+			and not PlayerState.isDiscovered(before, id)
+			and (after.Inventory[id] or 0) <= 0
+		then
+			count += 1
+		end
+	end
+	return count
+end
+
 -- 서버 상태 반영. Revision 이 더 큰 것만 받아서 늦게 도착한 옛 상태가 덮어쓰지 않게 함.
 -- receivedAt: 스냅샷을 실제로 받은 시각(코인 표시 기준). 늦게 반영할 때 넘겨줌.
 local function applyState(snapshot: any, receivedAt: number?)
@@ -17803,12 +17821,18 @@ local function applyState(snapshot: any, receivedAt: number?)
 	if state and snapshot.Revision <= state.Revision then
 		return
 	end
+	local previous = state
 	state = snapshot
 	stateReceivedAt = receivedAt or time()
 	Hud.render(snapshot, stateReceivedAt)
 	Hud.setCoins(currentCoins())
 	Panels.render(snapshot)
 	ParkEdit.render(snapshot)
+	-- 자동 발견: [도감] "도감 +12" (환생 직후처럼 행운이 크게 오를 때 도감 숫자가 왜 늘었는지)
+	local added = if previous then autoDiscovered(previous, snapshot) else 0
+	if added > 0 then
+		Hud.toast("도감 +" .. added, Ui.colorPair("Sky").Face, 3, "album")
+	end
 end
 
 -- 서버가 보내는 재동기화. 내 굴림 연출 중이면 결과가 미리 보이지 않게 연출이 끝난 뒤 반영
@@ -17923,7 +17947,8 @@ local function roll()
 	rolling = true
 	Hud.setRolling(true)
 
-	-- 쿨타임이 남았으면 기다렸다가 요청
+	-- 쿨타임이 남았으면 기다렸다가 요청. 자동 굴림은 연출이 끝나면 바로 여기로 돌아와 남은 굴림 간격(Cooldown)만 기다림
+	-- (서버가 거절하면 RetryIn). 이미 발견한 명소는 AUTO 연출이 짧음(Hud.reveal — Config.AUTO_KNOWN_REVEAL_RANK)
 	local waitFor = lastRollSentAt + (state :: PlayerState.Snapshot).Cooldown - time()
 	if waitFor > 0 then
 		task.wait(waitFor)
@@ -18454,6 +18479,8 @@ local Viewport = require(script.Parent.Viewport)
 local Theme = Ui.Theme
 
 -- 등급(Rank)별 지구본이 도는 시간(초). 빠른 모드(자동 굴림)에서는 세계 명소 미만만 절반으로 줄임.
+-- 자동 굴림 중 이미 발견한 명소(IsNew 아님)는 등급과 상관없이 Config.AUTO_KNOWN_REVEAL_RANK 등급의 길이로(revealPace).
+-- (tools/balance/sim.py 가 아래 숫자·식을 이 파일에서 그대로 읽어 AUTO 속도를 계산함 — 모양을 바꾸면 sim.py 도 함께)
 local REVEAL_SECONDS = { 0.9, 1.1, 1.5, 2.1, 2.7, 3.1, 3.3 }
 local LAND_SECONDS = 0.4 -- 결과 지역에 멈춘 뒤 결과가 나오기까지
 local SUSPENSE_SECONDS = 0.9 -- 불가사의 이상 "? ? ?" 뜸 들이기
@@ -18541,6 +18568,7 @@ local revealSound: Sound
 local rareSound: Sound
 local newsSound: Sound
 local luckSound: Sound
+local starSound: Sound
 
 local function play(sound: Sound?)
 	if sound then
@@ -19143,6 +19171,7 @@ local function buildReveal()
 
 	local nameTop = centerY + VIEW_SIZE / 2 + 34
 	refs.RevealName = Ui.label({
+		Name = "LandmarkName",
 		Position = UDim2.fromOffset(0, nameTop),
 		Size = UDim2.new(1, 0, 0, 66),
 		Font = Theme.FontTitle,
@@ -19151,6 +19180,7 @@ local function buildReveal()
 	}, 62)
 	Ui.outline(refs.RevealName, 4)
 	refs.RevealOdds = Ui.label({
+		Name = "Odds",
 		Position = UDim2.fromOffset(0, nameTop + 66),
 		Size = UDim2.new(1, 0, 0, 30),
 		Font = Theme.FontTitle,
@@ -19160,7 +19190,7 @@ local function buildReveal()
 	}, 28)
 	Ui.outline(refs.RevealOdds, 2.5)
 
-	-- 딱지 줄: NEW / ★3 UP / 발견 보너스(코인 + 숫자)
+	-- 딱지 줄: NEW / 별 상승 "★★☆☆☆ +1"(가챠 중복) / 발견 보너스(코인 + 숫자)
 	local tagRow = Ui.new("Frame", {
 		Name = "Tags",
 		Position = UDim2.fromOffset(0, nameTop + 104),
@@ -19191,6 +19221,7 @@ local function buildReveal()
 		LayoutOrder = 2,
 		Parent = tagRow,
 	})
+	refs.StarChipScale = Ui.new("UIScale", { Parent = refs.StarChip.Root }) -- 결과가 나온 뒤 "퐁" 하고 커짐
 	refs.BonusPill = Ui.pill({
 		Name = "Bonus",
 		AutoWidth = true,
@@ -19333,6 +19364,7 @@ function Hud.init(playerGui: PlayerGui, handlers: Handlers): ScreenGui
 	rareSound = makeSound(0.5, 1)
 	newsSound = makeSound(0.7, 0.5)
 	luckSound = makeSound(0.6, 0.7)
+	starSound = makeSound(1.9, 0.5)
 
 	buildStats()
 	buildMenu(handlers.Menu, handlers.Teleport, handlers.Arrange)
@@ -19667,17 +19699,24 @@ local function pushToast(text: string, color: Color3?, seconds: number?, icon: s
 	return chip
 end
 
--- 배치 모드의 굴림 결과: 가운데 연출 대신 알림 줄에 [지구본] 명소 이름(등급 색) 딱지 하나 + 처음이면 작은 NEW 딱지.
--- 별·보너스는 생략(코인은 위에서 올라감). 희귀하면 소리만 다르게(화면 번쩍임 없음)
+-- 별 상승 딱지 글자(가챠 중복): 채운 별(금색) + 빈 별 + "+1". 별이 가득 차면(★5) "+1" 대신 "MAX"
+local function starUpText(stars: number): string
+	local max = PlayerState.MAX_STARS
+	local count = math.clamp(math.floor(stars), 1, max)
+	return Ui.starsRich(count, max) .. (if count >= max then " MAX" else " +1")
+end
+
+-- 배치 모드의 굴림 결과: 가운데 연출 대신 알림 줄에 [지구본] 명소 이름(등급 색) 딱지 하나 + 오른쪽 위 작은 딱지
+-- (처음 발견 = NEW, 또 뽑아 별이 오름 = "★+1"). 보너스는 생략(코인은 위에서 올라감). 희귀하면 소리만 다르게(번쩍임 없음)
 local function compactReveal(landmark: Landmarks.Landmark, info: RevealInfo)
 	local tier = landmark.Tier
 	local chip = pushToast(landmark.Name, tier.Color, 2.5, "globe")
 	chip.Root.Name = "RollResult"
-	if info.IsNew then
+	if info.IsNew or info.StarUp then
 		Ui.chip({
-			Name = "New",
-			Color = "Coral",
-			Text = "NEW",
+			Name = if info.IsNew then "New" else "StarUp",
+			Color = if info.IsNew then "Coral" else "Grape",
+			Text = if info.IsNew then "NEW" else Ui.starsRich(1, 1) .. "+1",
 			Height = 20,
 			TextSize = 14,
 			AnchorPoint = Vector2.new(0.5, 0.5),
@@ -19688,11 +19727,28 @@ local function compactReveal(landmark: Landmarks.Landmark, info: RevealInfo)
 		})
 	end
 	play(if tier.Rank >= 4 then rareSound else revealSound)
+	if info.StarUp then
+		play(starSound)
+	end
+end
+
+-- 연출 길이를 정하는 등급: 자동 굴림(Fast) 중 이미 발견한 명소(IsNew 아님 — 자동 발견 포함)는
+-- Config.AUTO_KNOWN_REVEAL_RANK 등급까지만. 4등급 이상도 짧은 회전·착지·잠깐 보여 주기로 끝나고 "? ? ?" 뜸 들이기·
+-- 화면 번쩍임·희귀 소리가 없음(몇 주씩 도는 후반 AUTO 가 이미 발견한 희귀 명소마다 5~7초씩 멈추지 않게. 짧은 연출도
+-- 약 1.2초라 AUTO 는 굴림 간격 1.2초와 거의 같은 속도 — balance/sim_results.md 8e). 새 발견·수동 굴림은 원래 등급 그대로.
+-- 0 이면 끔
+local function revealPace(rank: number, info: RevealInfo): number
+	local short = tonumber(Config.AUTO_KNOWN_REVEAL_RANK) or 0
+	if info.Fast and not info.IsNew and short > 0 then
+		return math.min(rank, short)
+	end
+	return rank
 end
 
 -- 굴림 연출. 결과를 보여 줄 때까지 기다립니다(yield).
 -- 1) 지구본이 빠르게 돌며 지역 이름이 바뀌다 점점 느려짐 → 2) 결과 지역에 멈춤 → 3) 명소 공개
--- 배치 모드면(도는 중에 들어가도) 가운데 연출 없이 결과만 작은 딱지로(compactReveal) — 결과를 보인 뒤에 돌아감
+-- 배치 모드면(도는 중에 들어가도) 가운데 연출 없이 결과만 작은 딱지로(compactReveal) — 결과를 보인 뒤에 돌아감.
+-- 길이·뜸 들이기·번쩍임은 연출 등급(revealPace: 자동 굴림 중 이미 발견한 명소는 짧게), 색·리본은 명소의 진짜 등급
 function Hud.reveal(landmark: Landmarks.Landmark, info: RevealInfo)
 	hideToken += 1
 	if editing then
@@ -19700,7 +19756,7 @@ function Hud.reveal(landmark: Landmarks.Landmark, info: RevealInfo)
 		return
 	end
 	local tier = landmark.Tier
-	local rank = tier.Rank
+	local rank = revealPace(tier.Rank, info)
 	local duration = REVEAL_SECONDS[rank] or 3
 	if info.Fast and rank < 4 then
 		duration = math.max(0.35, duration * 0.5)
@@ -19785,10 +19841,10 @@ function Hud.reveal(landmark: Landmarks.Landmark, info: RevealInfo)
 
 	local bonus = info.Bonus or 0
 	refs.NewChip.Root.Visible = info.IsNew
+	-- 또 뽑아 별이 오름(가챠 중복): "★★☆☆☆ +1" 딱지가 퐁 튀어나옴 + 딩 소리
 	refs.StarChip.Root.Visible = info.StarUp
 	if info.StarUp then
-		local stars = math.clamp(math.floor(info.Stars or 0), 0, #Config.STAR_THRESHOLDS)
-		refs.StarChip.Label.Text = string.format("★%d UP", stars)
+		refs.StarChip.Label.Text = starUpText(info.Stars or 0)
 	end
 	refs.BonusPill.Root.Visible = bonus > 0
 	if bonus > 0 then
@@ -19805,6 +19861,13 @@ function Hud.reveal(landmark: Landmarks.Landmark, info: RevealInfo)
 		play(rareSound)
 	else
 		play(revealSound)
+	end
+	if info.StarUp then
+		local pop = refs.StarChipScale
+		pop.Scale = 0.3
+		TweenService:Create(pop, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
+			:Play()
+		play(starSound)
 	end
 
 	-- 결과를 잠깐 보여 줌 (자동 굴림 중에도 희귀 명소는 바로 덮이지 않게)
@@ -21074,9 +21137,10 @@ local function collectionCard(parent: ScrollingFrame, landmark: Landmark): Colle
 		BorderSizePixel = 0,
 		Parent = band,
 	})
+	-- 확률은 늘 콤마 자연수라 가장 긴 "1 in 10,000,000,000"(세계수)도 들어가게 좌우 여백 4
 	local bandLabel = Ui.label({
-		Position = UDim2.fromOffset(8, 4),
-		Size = UDim2.new(1, -16, 1, -7),
+		Position = UDim2.fromOffset(4, 4),
+		Size = UDim2.new(1, -8, 1, -7),
 		Text = Format.oneIn(landmark.OneIn),
 		TextColor3 = WHITE,
 		ZIndex = 2,
@@ -21093,6 +21157,7 @@ local function collectionCard(parent: ScrollingFrame, landmark: Landmark): Colle
 		Parent = card,
 	}, 19)
 	local stars = Ui.label({
+		Name = "Stars",
 		Position = UDim2.fromOffset(6, 149),
 		Size = UDim2.new(1, -12, 0, 24),
 		Parent = card,
@@ -21208,7 +21273,8 @@ local function renderCollection(state: Snapshot)
 		inPark[id] = true
 	end
 
-	-- 도감은 역대 발견(Discovered) 기준. 별·개수·전시는 지금 보유(Inventory) 기준
+	-- 도감은 역대 발견(Discovered — 서버가 자동 발견한 명소도 들어 있음) 기준. 별·개수·전시는 지금 보유(Inventory) 기준.
+	-- 별은 가챠식(처음 발견 = 빈 별 5개 ☆0, 또 뽑을 때마다 ★+1): 보유하면 빈 별까지 보이고, 지금 없으면 별 줄을 비움
 	local shown = 0
 	for _, landmark in Landmarks.RarestFirst do
 		local count = owned(state, landmark.Id)
@@ -21223,7 +21289,7 @@ local function renderCollection(state: Snapshot)
 			entry.Card.LayoutOrder = shown
 			entry.Card.BackgroundColor3 = if featured then FEATURED_BG else Theme.Paper
 			entry.Badge.Root.Visible = featured
-			entry.Stars.Text = Ui.starsRich(PlayerState.stars(count), #Config.STAR_THRESHOLDS)
+			entry.Stars.Text = if count > 0 then Ui.starsRich(PlayerState.stars(count), PlayerState.MAX_STARS) else ""
 			entry.Count.Label.Text = "×" .. Format.commas(count)
 			entry.Count.Root.Visible = count > 0
 			setShown(entry, inPark[landmark.Id] == true)
@@ -21439,8 +21505,8 @@ local function passportCard(parent: Frame, landmark: Landmark, known: boolean, o
 			Parent = card,
 		}, 16)
 		Ui.label({
-			Position = UDim2.fromOffset(4, 99),
-			Size = UDim2.new(1, -8, 0, 17),
+			Position = UDim2.fromOffset(2, 99),
+			Size = UDim2.new(1, -4, 0, 17),
 			Text = Format.oneIn(landmark.OneIn),
 			TextColor3 = tier.Color:Lerp(Theme.Ink, 0.45),
 			Parent = card,
@@ -21467,8 +21533,8 @@ local function passportCard(parent: Frame, landmark: Landmark, known: boolean, o
 			}, 50)
 		end
 		Ui.label({
-			Position = UDim2.fromOffset(4, 90),
-			Size = UDim2.new(1, -8, 0, 20),
+			Position = UDim2.fromOffset(2, 90),
+			Size = UDim2.new(1, -4, 0, 20),
 			Text = Format.oneIn(landmark.OneIn),
 			TextColor3 = tier.Color,
 			Parent = card,
@@ -21876,7 +21942,8 @@ local function buildRebirth(): View
 		ZIndex = 5,
 	})
 
-	-- 아래 고정 줄: [위 화살표][행운 +20%][수입 +50%] / [코인·강화 초기화]   [환생]
+	-- 아래 고정 줄: [위 화살표][행운 ×2][수입 +50%] / [코인·강화 초기화]   [환생]
+	-- (환생 1번마다: 행운은 곱해짐 ×2 → ×4 → … ×1,024, 수입은 더해짐 +50%)
 	local footer = Ui.new("Frame", {
 		Name = "RebirthFooter",
 		AnchorPoint = Vector2.new(0, 1),
@@ -21895,8 +21962,7 @@ local function buildRebirth(): View
 	})
 	Ui.list(Enum.FillDirection.Horizontal, 10).Parent = rewards
 	Icons.view(rewards, "arrow_up", { Size = UDim2.fromOffset(38, 38), LayoutOrder = 1 })
-	headerChip(rewards, "clover", "Grape", 2).Label.Text =
-		string.format("+%d%%", math.floor(Perks.REBIRTH_LUCK * 100 + 0.5))
+	headerChip(rewards, "clover", "Grape", 2).Label.Text = Ui.times(Perks.REBIRTH_LUCK_MULT)
 	headerChip(rewards, "coin", "Grass", 3).Label.Text =
 		string.format("+%d%%", math.floor(Perks.REBIRTH_INCOME * 100 + 0.5))
 
@@ -21974,8 +22040,8 @@ local function rebirthCard(parent: Frame, landmark: Landmark, look: string, orde
 		Parent = card,
 	}, 16)
 	Ui.label({
-		Position = UDim2.fromOffset(4, 99),
-		Size = UDim2.new(1, -8, 0, 17),
+		Position = UDim2.fromOffset(2, 99),
+		Size = UDim2.new(1, -4, 0, 17),
 		Text = Format.oneIn(landmark.OneIn),
 		TextColor3 = if known then tier.Color:Lerp(Theme.Ink, 0.45) else tier.Color,
 		Parent = card,
@@ -23790,7 +23856,7 @@ local function setTag(id: string?, point: Vector3?)
 		})
 		chip.Label.TextColor3 = WHITE
 		tagChip = chip
-		tagStars.Text = Ui.starsRich(stars, #Config.STAR_THRESHOLDS)
+		tagStars.Text = Ui.starsRich(stars, PlayerState.MAX_STARS)
 	end
 	local screen, _ = camera:WorldToViewportPoint(point)
 	if screen.Z <= 0 then
@@ -24279,7 +24345,7 @@ function renderBar()
 			card.Stroke.Color = if picked then Ui.colorPair("Sun").Face else Theme.Ink
 			card.Stroke.Thickness = if picked then 4 else 3
 			card.Scale.Scale = if picked then 1.08 else 1
-			card.Stars.Text = Ui.starsRich(PlayerState.stars(view.Inventory[id] or 0), #Config.STAR_THRESHOLDS)
+			card.Stars.Text = Ui.starsRich(PlayerState.stars(view.Inventory[id] or 0), PlayerState.MAX_STARS)
 			card.Better.Root.Visible = better[id] == true
 		end
 	end
@@ -24848,7 +24914,7 @@ return ParkEdit
 --   Snapshot: Rebirths, NextRebirth = { Coins, Landmarks }, Discovered, Boosts = { [id] = 남은 초 },
 --             Passes = { [passKey] = true }, ServerLuck (지금은 true/false. 남은 초 / 끝 시각 / 표도 받아 줌)
 --   ServerLuck 이벤트: { Name, Until(workspace:GetServerTimeNow 기준 끝 시각), Left(남은 초) }
---   Config:   REBIRTH_LUCK_BONUS, REBIRTH_INCOME_BONUS, REBIRTHS, GamePasses, Products
+--   Config:   REBIRTH_LUCK_MULT, REBIRTH_INCOME_BONUS, MAX_REBIRTHS, REBIRTHS, GamePasses, Products
 --             (상품 항목 { Id = "LuckVIP", Name, PassId/ProductId, LuckMult..., Price }. 번호가 0 이면 화면에 안 나옴)
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
@@ -24876,7 +24942,8 @@ local function pick(entry: any, keys: { string }): number?
 	return nil
 end
 
-Perks.REBIRTH_LUCK = number(Config.REBIRTH_LUCK_BONUS, 0.2)
+-- 환생 1회마다: 행운 ×REBIRTH_LUCK_MULT(곱해짐 — 2^환생 수), 수입 +REBIRTH_INCOME(더해짐 — 1 + 0.5 × 환생 수)
+Perks.REBIRTH_LUCK_MULT = number(Config.REBIRTH_LUCK_MULT, 2)
 Perks.REBIRTH_INCOME = number(Config.REBIRTH_INCOME_BONUS, 0.5)
 
 -- 서버 행운 이벤트/스냅샷의 시각이 이보다 크면 유닉스 시각(초), 작으면 남은 초로 봄
@@ -25120,9 +25187,14 @@ function Perks.rebirths(state: any): number
 	return if type(state) == "table" then math.max(0, math.floor(number(state.Rebirths, 0))) else 0
 end
 
--- 환생 수 -> 지금 받는 (행운 배율, 수입 배율)
+-- 환생 수 -> 지금 받는 (행운 배율, 수입 배율) = (2^환생 수, 1 + 0.5 × 환생 수). 서버와 같은 PlayerState 규칙
+-- (MAX_REBIRTHS 에서 멈춤). PlayerState 에 함수가 없는 옛 모듈이면 같은 식으로 계산
 function Perks.rebirthMults(rebirths: number): (number, number)
-	return 1 + Perks.REBIRTH_LUCK * rebirths, 1 + Perks.REBIRTH_INCOME * rebirths
+	if type(PlayerState.rebirthLuckMult) == "function" and type(PlayerState.rebirthIncomeMult) == "function" then
+		return PlayerState.rebirthLuckMult(rebirths), PlayerState.rebirthIncomeMult(rebirths)
+	end
+	local n = math.clamp(math.floor(rebirths), 0, number(Config.MAX_REBIRTHS, math.huge))
+	return Perks.REBIRTH_LUCK_MULT ^ n, 1 + Perks.REBIRTH_INCOME * n
 end
 
 -- 요구 명소 목록: 배열 { id, ... } 또는 { [id] = true } 둘 다 받음. 모르는 Id 는 뺌
@@ -25475,8 +25547,12 @@ function Ui.starsRich(count: number, max: number?, emptyColor: Color3?): string
 	)
 end
 
--- 1.25 -> "×1.25"
+-- 1.25 -> "×1.25", 100 이상은 소수 없이 콤마 자연수(버림): 1024 -> "×1,024", 15360.4 -> "×15,360"
+-- (환생 행운이 ×2^환생 수라 후반 행운 딱지가 "×15360.4" 처럼 길어지지 않게)
 function Ui.times(value: number): string
+	if value >= 100 then
+		return "×" .. Format.commas(math.floor(value + 1e-9))
+	end
 	return "×" .. Format.multiplier(value):sub(2)
 end
 

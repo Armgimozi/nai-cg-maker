@@ -246,8 +246,12 @@ function Ui.starsRich(count: number, max: number?, emptyColor: Color3?): string
 	)
 end
 
--- 1.25 -> "×1.25"
+-- 1.25 -> "×1.25", 100 이상은 소수 없이 콤마 자연수(버림): 1024 -> "×1,024", 15360.4 -> "×15,360"
+-- (환생 행운이 ×2^환생 수라 후반 행운 딱지가 "×15360.4" 처럼 길어지지 않게)
 function Ui.times(value: number): string
+	if value >= 100 then
+		return "×" .. Format.commas(math.floor(value + 1e-9))
+	end
 	return "×" .. Format.multiplier(value):sub(2)
 end
 

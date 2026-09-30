@@ -407,6 +407,14 @@ cooldown-bound — but then this balance is too fast and would need another roun
 | flash, World Tree 1 in 20B | 15 min / 1.8 h / 15.3 h / 16.6 d (fast / fast / fast / ✓) | 7 min / 49 min / 7.0 h / 8.0 d | 6,000 / 8,571 | 20.1 d / 7.0 d | 0.49 / 1.4 |
 | flash, +20 %/star | 15 min / 1.9 h / 17.4 h / 20.0 d (✓ / fast / ✓ / ✓) | 8 min / 53 min / 8.0 h / 9.7 d | 6,000 / 8,571 | 10.0 d / 3.5 d | 0.49 / 1.4 |
 
+Client side (`src/client/Hud.luau` `revealPace`): implemented exactly as simulated. In AUTO an already-discovered landmark
+(`IsNew = false`, auto-discovered ones included) uses the timing of rank min(rank, 3): spin 0.75 s, land 0.2 s, no "? ? ?"
+pause, hold 0.2 s, and no screen flash. NEW discoveries and manual rolls keep the full reveal. `sim.py --check` still reads the
+same client timings from `Hud.luau` (free 10th rebirth 18.2 d median at 100 players). The client smoke test
+(`tools/client_smoke/init.luau`, mock clock, no network delay) measures: a known World Tree in AUTO every 1.21–1.24 s, a NEW
+World Tree every 6.6 s, a manual roll 4.8 s until the name shows, common landmarks exactly at the 1.20 s cooldown, and a
+server `RetryIn` of 0.7 s honoured before the next request.
+
 ### Iteration log (continued)
 
 | # | tried | result | kept |

@@ -23,6 +23,8 @@ local Viewport = require(script.Parent.Viewport)
 local Theme = Ui.Theme
 
 -- 등급(Rank)별 지구본이 도는 시간(초). 빠른 모드(자동 굴림)에서는 세계 명소 미만만 절반으로 줄임.
+-- 자동 굴림 중 이미 발견한 명소(IsNew 아님)는 등급과 상관없이 Config.AUTO_KNOWN_REVEAL_RANK 등급의 길이로(revealPace).
+-- (tools/balance/sim.py 가 아래 숫자·식을 이 파일에서 그대로 읽어 AUTO 속도를 계산함 — 모양을 바꾸면 sim.py 도 함께)
 local REVEAL_SECONDS = { 0.9, 1.1, 1.5, 2.1, 2.7, 3.1, 3.3 }
 local LAND_SECONDS = 0.4 -- 결과 지역에 멈춘 뒤 결과가 나오기까지
 local SUSPENSE_SECONDS = 0.9 -- 불가사의 이상 "? ? ?" 뜸 들이기
@@ -110,6 +112,7 @@ local revealSound: Sound
 local rareSound: Sound
 local newsSound: Sound
 local luckSound: Sound
+local starSound: Sound
 
 local function play(sound: Sound?)
 	if sound then
@@ -712,6 +715,7 @@ local function buildReveal()
 
 	local nameTop = centerY + VIEW_SIZE / 2 + 34
 	refs.RevealName = Ui.label({
+		Name = "LandmarkName",
 		Position = UDim2.fromOffset(0, nameTop),
 		Size = UDim2.new(1, 0, 0, 66),
 		Font = Theme.FontTitle,
@@ -720,6 +724,7 @@ local function buildReveal()
 	}, 62)
 	Ui.outline(refs.RevealName, 4)
 	refs.RevealOdds = Ui.label({
+		Name = "Odds",
 		Position = UDim2.fromOffset(0, nameTop + 66),
 		Size = UDim2.new(1, 0, 0, 30),
 		Font = Theme.FontTitle,
@@ -729,7 +734,7 @@ local function buildReveal()
 	}, 28)
 	Ui.outline(refs.RevealOdds, 2.5)
 
-	-- 딱지 줄: NEW / ★3 UP / 발견 보너스(코인 + 숫자)
+	-- 딱지 줄: NEW / 별 상승 "★★☆☆☆ +1"(가챠 중복) / 발견 보너스(코인 + 숫자)
 	local tagRow = Ui.new("Frame", {
 		Name = "Tags",
 		Position = UDim2.fromOffset(0, nameTop + 104),
@@ -760,6 +765,7 @@ local function buildReveal()
 		LayoutOrder = 2,
 		Parent = tagRow,
 	})
+	refs.StarChipScale = Ui.new("UIScale", { Parent = refs.StarChip.Root }) -- 결과가 나온 뒤 "퐁" 하고 커짐
 	refs.BonusPill = Ui.pill({
 		Name = "Bonus",
 		AutoWidth = true,
@@ -902,6 +908,7 @@ function Hud.init(playerGui: PlayerGui, handlers: Handlers): ScreenGui
 	rareSound = makeSound(0.5, 1)
 	newsSound = makeSound(0.7, 0.5)
 	luckSound = makeSound(0.6, 0.7)
+	starSound = makeSound(1.9, 0.5)
 
 	buildStats()
 	buildMenu(handlers.Menu, handlers.Teleport, handlers.Arrange)
@@ -1236,17 +1243,24 @@ local function pushToast(text: string, color: Color3?, seconds: number?, icon: s
 	return chip
 end
 
--- 배치 모드의 굴림 결과: 가운데 연출 대신 알림 줄에 [지구본] 명소 이름(등급 색) 딱지 하나 + 처음이면 작은 NEW 딱지.
--- 별·보너스는 생략(코인은 위에서 올라감). 희귀하면 소리만 다르게(화면 번쩍임 없음)
+-- 별 상승 딱지 글자(가챠 중복): 채운 별(금색) + 빈 별 + "+1". 별이 가득 차면(★5) "+1" 대신 "MAX"
+local function starUpText(stars: number): string
+	local max = PlayerState.MAX_STARS
+	local count = math.clamp(math.floor(stars), 1, max)
+	return Ui.starsRich(count, max) .. (if count >= max then " MAX" else " +1")
+end
+
+-- 배치 모드의 굴림 결과: 가운데 연출 대신 알림 줄에 [지구본] 명소 이름(등급 색) 딱지 하나 + 오른쪽 위 작은 딱지
+-- (처음 발견 = NEW, 또 뽑아 별이 오름 = "★+1"). 보너스는 생략(코인은 위에서 올라감). 희귀하면 소리만 다르게(번쩍임 없음)
 local function compactReveal(landmark: Landmarks.Landmark, info: RevealInfo)
 	local tier = landmark.Tier
 	local chip = pushToast(landmark.Name, tier.Color, 2.5, "globe")
 	chip.Root.Name = "RollResult"
-	if info.IsNew then
+	if info.IsNew or info.StarUp then
 		Ui.chip({
-			Name = "New",
-			Color = "Coral",
-			Text = "NEW",
+			Name = if info.IsNew then "New" else "StarUp",
+			Color = if info.IsNew then "Coral" else "Grape",
+			Text = if info.IsNew then "NEW" else Ui.starsRich(1, 1) .. "+1",
 			Height = 20,
 			TextSize = 14,
 			AnchorPoint = Vector2.new(0.5, 0.5),
@@ -1257,11 +1271,28 @@ local function compactReveal(landmark: Landmarks.Landmark, info: RevealInfo)
 		})
 	end
 	play(if tier.Rank >= 4 then rareSound else revealSound)
+	if info.StarUp then
+		play(starSound)
+	end
+end
+
+-- 연출 길이를 정하는 등급: 자동 굴림(Fast) 중 이미 발견한 명소(IsNew 아님 — 자동 발견 포함)는
+-- Config.AUTO_KNOWN_REVEAL_RANK 등급까지만. 4등급 이상도 짧은 회전·착지·잠깐 보여 주기로 끝나고 "? ? ?" 뜸 들이기·
+-- 화면 번쩍임·희귀 소리가 없음(몇 주씩 도는 후반 AUTO 가 이미 발견한 희귀 명소마다 5~7초씩 멈추지 않게. 짧은 연출도
+-- 약 1.2초라 AUTO 는 굴림 간격 1.2초와 거의 같은 속도 — balance/sim_results.md 8e). 새 발견·수동 굴림은 원래 등급 그대로.
+-- 0 이면 끔
+local function revealPace(rank: number, info: RevealInfo): number
+	local short = tonumber(Config.AUTO_KNOWN_REVEAL_RANK) or 0
+	if info.Fast and not info.IsNew and short > 0 then
+		return math.min(rank, short)
+	end
+	return rank
 end
 
 -- 굴림 연출. 결과를 보여 줄 때까지 기다립니다(yield).
 -- 1) 지구본이 빠르게 돌며 지역 이름이 바뀌다 점점 느려짐 → 2) 결과 지역에 멈춤 → 3) 명소 공개
--- 배치 모드면(도는 중에 들어가도) 가운데 연출 없이 결과만 작은 딱지로(compactReveal) — 결과를 보인 뒤에 돌아감
+-- 배치 모드면(도는 중에 들어가도) 가운데 연출 없이 결과만 작은 딱지로(compactReveal) — 결과를 보인 뒤에 돌아감.
+-- 길이·뜸 들이기·번쩍임은 연출 등급(revealPace: 자동 굴림 중 이미 발견한 명소는 짧게), 색·리본은 명소의 진짜 등급
 function Hud.reveal(landmark: Landmarks.Landmark, info: RevealInfo)
 	hideToken += 1
 	if editing then
@@ -1269,7 +1300,7 @@ function Hud.reveal(landmark: Landmarks.Landmark, info: RevealInfo)
 		return
 	end
 	local tier = landmark.Tier
-	local rank = tier.Rank
+	local rank = revealPace(tier.Rank, info)
 	local duration = REVEAL_SECONDS[rank] or 3
 	if info.Fast and rank < 4 then
 		duration = math.max(0.35, duration * 0.5)
@@ -1354,10 +1385,10 @@ function Hud.reveal(landmark: Landmarks.Landmark, info: RevealInfo)
 
 	local bonus = info.Bonus or 0
 	refs.NewChip.Root.Visible = info.IsNew
+	-- 또 뽑아 별이 오름(가챠 중복): "★★☆☆☆ +1" 딱지가 퐁 튀어나옴 + 딩 소리
 	refs.StarChip.Root.Visible = info.StarUp
 	if info.StarUp then
-		local stars = math.clamp(math.floor(info.Stars or 0), 0, #Config.STAR_THRESHOLDS)
-		refs.StarChip.Label.Text = string.format("★%d UP", stars)
+		refs.StarChip.Label.Text = starUpText(info.Stars or 0)
 	end
 	refs.BonusPill.Root.Visible = bonus > 0
 	if bonus > 0 then
@@ -1374,6 +1405,13 @@ function Hud.reveal(landmark: Landmarks.Landmark, info: RevealInfo)
 		play(rareSound)
 	else
 		play(revealSound)
+	end
+	if info.StarUp then
+		local pop = refs.StarChipScale
+		pop.Scale = 0.3
+		TweenService:Create(pop, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
+			:Play()
+		play(starSound)
 	end
 
 	-- 결과를 잠깐 보여 줌 (자동 굴림 중에도 희귀 명소는 바로 덮이지 않게)

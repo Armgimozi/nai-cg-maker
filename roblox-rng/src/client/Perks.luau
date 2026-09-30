@@ -3,7 +3,7 @@
 --   Snapshot: Rebirths, NextRebirth = { Coins, Landmarks }, Discovered, Boosts = { [id] = 남은 초 },
 --             Passes = { [passKey] = true }, ServerLuck (지금은 true/false. 남은 초 / 끝 시각 / 표도 받아 줌)
 --   ServerLuck 이벤트: { Name, Until(workspace:GetServerTimeNow 기준 끝 시각), Left(남은 초) }
---   Config:   REBIRTH_LUCK_BONUS, REBIRTH_INCOME_BONUS, REBIRTHS, GamePasses, Products
+--   Config:   REBIRTH_LUCK_MULT, REBIRTH_INCOME_BONUS, MAX_REBIRTHS, REBIRTHS, GamePasses, Products
 --             (상품 항목 { Id = "LuckVIP", Name, PassId/ProductId, LuckMult..., Price }. 번호가 0 이면 화면에 안 나옴)
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
@@ -31,7 +31,8 @@ local function pick(entry: any, keys: { string }): number?
 	return nil
 end
 
-Perks.REBIRTH_LUCK = number(Config.REBIRTH_LUCK_BONUS, 0.2)
+-- 환생 1회마다: 행운 ×REBIRTH_LUCK_MULT(곱해짐 — 2^환생 수), 수입 +REBIRTH_INCOME(더해짐 — 1 + 0.5 × 환생 수)
+Perks.REBIRTH_LUCK_MULT = number(Config.REBIRTH_LUCK_MULT, 2)
 Perks.REBIRTH_INCOME = number(Config.REBIRTH_INCOME_BONUS, 0.5)
 
 -- 서버 행운 이벤트/스냅샷의 시각이 이보다 크면 유닉스 시각(초), 작으면 남은 초로 봄
@@ -275,9 +276,14 @@ function Perks.rebirths(state: any): number
 	return if type(state) == "table" then math.max(0, math.floor(number(state.Rebirths, 0))) else 0
 end
 
--- 환생 수 -> 지금 받는 (행운 배율, 수입 배율)
+-- 환생 수 -> 지금 받는 (행운 배율, 수입 배율) = (2^환생 수, 1 + 0.5 × 환생 수). 서버와 같은 PlayerState 규칙
+-- (MAX_REBIRTHS 에서 멈춤). PlayerState 에 함수가 없는 옛 모듈이면 같은 식으로 계산
 function Perks.rebirthMults(rebirths: number): (number, number)
-	return 1 + Perks.REBIRTH_LUCK * rebirths, 1 + Perks.REBIRTH_INCOME * rebirths
+	if type(PlayerState.rebirthLuckMult) == "function" and type(PlayerState.rebirthIncomeMult) == "function" then
+		return PlayerState.rebirthLuckMult(rebirths), PlayerState.rebirthIncomeMult(rebirths)
+	end
+	local n = math.clamp(math.floor(rebirths), 0, number(Config.MAX_REBIRTHS, math.huge))
+	return Perks.REBIRTH_LUCK_MULT ^ n, 1 + Perks.REBIRTH_INCOME * n
 end
 
 -- 요구 명소 목록: 배열 { id, ... } 또는 { [id] = true } 둘 다 받음. 모르는 Id 는 뺌
