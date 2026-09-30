@@ -139,20 +139,27 @@ def rock_ring(center, radius, count, scale, seed, folder="Rocks", color=(150, 15
 
 
 def shards(center, count, radius, height, scale, seed, colors, folder_front, folder_back, cam: Camera,
-           mat="SmoothPlastic", earth=0.0):
-    """주인공 둘레를 날아다니는 조각들. 카메라 기준 주인공 축보다 앞/뒤로 폴더를 나눔(합성 순서)."""
+           mat="SmoothPlastic", earth=0.0, avoid=None):
+    """주인공 둘레를 날아다니는 조각들. 카메라 기준 주인공 축보다 앞/뒤로 폴더를 나눔(합성 순서).
+    avoid(화면 x, y) 가 참인 곳의 앞 조각은 건너뜀(주인공을 가리지 않게)."""
     rnd = random.Random(seed)
     out = []
     axis_depth = cam.project([center])[0][2]
-    for i in range(count):
+    made = 0
+    for _ in range(count * 6):
+        if made >= count:
+            break
         a = rnd.uniform(0, 360)
         rr = radius[0] + (radius[1] - radius[0]) * rnd.random() ** 0.7
         y = height[0] + (height[1] - height[0]) * rnd.random()
         p = (center[0] + math.cos(math.radians(a)) * rr, center[1] + y, center[2] + math.sin(math.radians(a)) * rr)
         s = scale * rnd.uniform(0.45, 1.3)
         R = ry(rnd.uniform(0, 360)) @ rx(rnd.uniform(-70, 70)) @ rz(rnd.uniform(-70, 70))
-        depth = cam.project([p])[0][2]
+        sx, sy, depth = cam.project([p])[0]
         folder = folder_front if depth < axis_depth else folder_back
+        if avoid and folder == folder_front and avoid(sx, sy):
+            continue
+        made += 1
         if rnd.random() < earth:
             # 흙덩이(위는 풀): 땅이 터져 떠오른 조각
             size = (s * 1.3, s * 0.8, s * 1.1)
@@ -161,7 +168,7 @@ def shards(center, count, radius, height, scale, seed, colors, folder_front, fol
             out.append(part(folder, "Block", (size[0] * 1.02, 0.25 * s, size[2] * 1.02), top, R, (96, 190, 70), "Grass"))
         else:
             col = rnd.choice(colors)
-            size = (s * 0.7, s * 2.2, s * 0.7)
+            size = (s * 0.95, s * 1.9, s * 0.75)
             R2 = R @ ry(45)
             out.append(part(folder, "Block", size, p, R2, col, mat))
             # 뾰족한 끝(위아래 쐐기 둘)
@@ -186,7 +193,8 @@ AVATAR_COLORS = {
 
 def avatar(folder, base, yaw, pose=None, colors=None, scale=1.0):
     """블록 아바타 파트 목록. base = 발 가운데(땅), yaw = 앞(-Z)이 향할 Y 각. pose(도):
-    head=(숙임+/들기-, 좌우), arm_l/arm_r=(앞으로 들기, 옆으로 벌리기), leg_l/leg_r=(앞뒤), lean=몸 기울기."""
+    head=(숙임+/들기-, 좌우), arm_l/arm_r=(앞으로 들기, 옆으로 벌리기), leg_l/leg_r=(앞뒤), lean=몸 기울기,
+    mouth="o" 면 놀란 입."""
     pose = pose or {}
     col = dict(AVATAR_COLORS, **(colors or {}))
     k = scale
@@ -218,15 +226,20 @@ def avatar(folder, base, yaw, pose=None, colors=None, scale=1.0):
         add(shape, size, center, Rh @ R_extra, color, mat)
 
     head_part("Cylinder", (1.2, 1.25, 1.25), (0, 0.62, 0), col["skin"], rz(90))
-    head_part("Block", (1.34, 0.42, 1.34), (0, 1.12, 0.05), col["hair"])
-    head_part("Block", (1.34, 0.8, 0.4), (0, 0.78, 0.5), col["hair"])  # 뒷머리
-    head_part("Block", (0.3, 0.6, 1.1), (-0.58, 0.8, 0.12), col["hair"])
-    head_part("Block", (0.3, 0.6, 1.1), (0.58, 0.8, 0.12), col["hair"])
-    head_part("Block", (0.5, 0.3, 0.5), (0.25, 1.35, 0.1), col["hair"], ry(20))
+    # 머리카락: 둥근 머리 위 덮개 + 뒷머리 + 옆머리 + 삐친 머리 몇 가닥(뒤에서 봐도 사람 머리로 보이게)
+    head_part("Ball", (1.42, 1.42, 1.42), (0, 0.92, 0.1), col["hair"])
+    head_part("Block", (1.3, 0.62, 0.34), (0, 0.66, 0.5), col["hair"])  # 뒷머리
+    head_part("Block", (0.26, 0.5, 1.0), (-0.6, 0.78, 0.08), col["hair"])
+    head_part("Block", (0.26, 0.5, 1.0), (0.6, 0.78, 0.08), col["hair"])
+    head_part("Block", (0.5, 0.22, 0.44), (0.18, 1.6, 0.22), col["hair"], ry(24) @ rx(18))  # 삐친 머리
+    head_part("Block", (1.0, 0.24, 0.3), (0, 1.02, -0.52), col["hair"])  # 앞머리
     # 얼굴(앞 = -Z): 눈 둘 + 입
     head_part("Block", (0.16, 0.26, 0.06), (-0.26, 0.7, -0.62), col["eye"])
     head_part("Block", (0.16, 0.26, 0.06), (0.26, 0.7, -0.62), col["eye"])
-    head_part("Block", (0.46, 0.1, 0.06), (0, 0.38, -0.62), col["eye"])
+    if pose.get("mouth") == "o":  # 놀란 입
+        head_part("Block", (0.3, 0.3, 0.06), (0, 0.36, -0.62), col["eye"])
+    else:
+        head_part("Block", (0.46, 0.1, 0.06), (0, 0.38, -0.62), col["eye"])
     # 팔: 어깨 관절(±1.5, 3.5), 팔 중심은 관절 아래 0.5
     for side, key in ((-1, "arm_l"), (1, "arm_r")):
         fwd, out_ang = pose.get(key, (0, 0))

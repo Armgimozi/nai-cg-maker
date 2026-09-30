@@ -8,7 +8,8 @@
 --   "models": [ { "folder": "Hero", "id": "worldtree", "size": 30, "cf": [x,y,z, r00,r01,r02, r10,r11,r12, r20,r21,r22] } ],
 --   "parts":  [ { "folder": "Rocks", "shape": "Block|Ball|Cylinder|Wedge|CornerWedge", "size": [x,y,z], "cf": [...12],
 --                 "color": [r,g,b](0~255), "mat": "Slate", "t": 0, "shadow": true } ],
---   "fillParks": { "level": 10, "count": 40 },   (선택)
+--   "fillParks": { "level": 10, "count": 36, "ids": [...], "famous": 20, "maxOneIn": 100000 },   (선택)
+--        공원 확장 레벨 · 보관함 명소 수 · 꼭 넣을 명소(플레이어마다 famous 개) · 이보다 희귀한 건 안 넣음
 --   "lighting": { "ClockTime": 15 }              (선택) Lighting 속성 덮어쓰기
 -- }
 -- 돌려주는 표(덤프 extra)는 없음 — 카메라는 thumbs.py 가 render_layers.js 에 직접 넘김.
@@ -90,14 +91,33 @@ return function(ctx: any): any
 		local list = Landmarks.List
 		for i, sample in ctx.samples do
 			local data = sample.Data
-			data.Upgrades.Park = math.max(data.Upgrades.Park or 0, (fill.level or 10) - (i - 1) % 3)
-			-- 부지마다 다른 명소: 목록을 플레이어마다 다른 간격으로 훑음(흔한 것 위주 + 가끔 희귀한 것)
+			data.Upgrades.Park = math.max(data.Upgrades.Park or 0, fill.level or 10)
+			-- 부지마다 다른 명소: fill.ids(잘 알려진 명소, 앞에서부터 플레이어마다 조금씩 밀어서) + 목록을 플레이어마다
+			-- 다른 간격으로 훑어 count 개까지. 자동 전시는 희귀한 순서라 count 가 전시 칸 수(36)면 모두 전시됨
 			local count = fill.count or 40
-			for k = 1, count do
+			local owned = 0
+			local function give(id: string, amount: number)
+				if data.Inventory[id] == nil then
+					owned += 1
+				end
+				data.Inventory[id] = amount
+				data.Discovered[id] = true
+			end
+			local ids = fill.ids or {}
+			for k = 1, math.min(#ids, fill.famous or #ids) do
+				local id = ids[(k + i * 3 - 1) % #ids + 1]
+				if Landmarks.ById[id] and owned < count then
+					give(id, 1 + (k * 5 + i) % 30)
+				end
+			end
+			local k = 0
+			while owned < count and k < #list * 2 do
+				k += 1
 				local index = (i * 17 + k * (7 + 2 * i)) % #list + 1
 				local landmark = list[index]
-				data.Inventory[landmark.Id] = 1 + (index * 7) % 40
-				data.Discovered[landmark.Id] = true
+				if landmark.OneIn < (fill.maxOneIn or math.huge) and data.Inventory[landmark.Id] == nil then
+					give(landmark.Id, 1 + (index * 7) % 40)
+				end
 			end
 			local ok, err = Mock.run(function()
 				ParkService.update(sample.Player, data)
