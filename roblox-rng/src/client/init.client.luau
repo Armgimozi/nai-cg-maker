@@ -218,7 +218,7 @@ local function showAnnouncement(info: any, landmark: Landmarks.Landmark)
 end
 
 -- 직접 배치 중 이번 판에 처음 얻은 명소가 공원이 꽉 차서 전시되지 못했으면 연출이 끝난 뒤 "공원 꽉 참" 알림
--- (더 좋은 명소면 [배치] 버튼 숫자 배지도 늘어 있음)
+-- (더 좋은 명소면 [공원] 버튼 숫자 배지도 늘어 있음)
 local function parkFullNotice(landmark: Landmarks.Landmark)
 	local current = state
 	if current and PlayerState.missedByFullPark(current, landmark.Id) then
@@ -555,9 +555,6 @@ local gui = Hud.init(playerGui, {
 	Teleport = function()
 		task.spawn(teleport)
 	end,
-	Arrange = function()
-		ParkEdit.toggle()
-	end,
 })
 Panels.init(gui, {
 	Feature = function(landmarkId: string?)
@@ -581,10 +578,6 @@ Panels.init(gui, {
 	Toast = function(text: string, icon: string?, color: Color3?)
 		Hud.toast(text, color or Ui.Theme.Bad, 2, icon)
 	end,
-	Arrange = function()
-		Panels.close()
-		ParkEdit.enter(nil)
-	end,
 })
 ParkEdit.init(gui, {
 	SetDisplay = setDisplay,
@@ -607,6 +600,10 @@ ParkEdit.init(gui, {
 		if editing and autoRoll then
 			Hud.toast("AUTO 쉬는 중", Ui.Theme.Ink, 2, "auto") -- 나가면 다시 돎
 		end
+	end,
+	-- 창(도감 등)이 열려 있으면 뒤 공원을 눌러도 배치 모드로 안 들어감(창 바탕 Frame 은 입력을 막지 않음)
+	CanTap = function(): boolean
+		return Panels.current() == nil
 	end,
 })
 
@@ -666,8 +663,9 @@ end)
 
 -- 내 공원 ---------------------------------------------------------------------
 -- 서버(ParkService)가 부지 모델에 OwnerUserId(주인)·Origin(부지 CFrame), 칸 모델에 Slot·Look 속성을 붙여 둠.
--- 내 부지를 찾으면 HUD [배치] 버튼을 보이고 ParkEdit 에 넘김(내 부지의 열린 칸에만 이 클라이언트에서 ClickDetector —
--- 남의 공원 받침대에는 손가락 커서가 안 뜸, 누르면 서버를 거치지 않고 바로 배치 모드 + 그 명소를 집음)
+-- 내 부지를 찾으면 ParkEdit 에 넘기고 HUD [공원] 버튼 배지를 켤 수 있게 함. 배치 버튼은 없음: 내 공원에서 내 명소·빈 받침대를
+-- 톡 누르면(끌기 = 화면 돌리기는 아님) 서버를 거치지 않고 바로 배치 모드 + 그 명소를 집음 / 그 빈 칸을 채울 준비(ParkEdit).
+-- 남의 공원은 눌러도 아무 일 없음. 창이 열려 있으면 누르기를 받지 않음(CanTap — 창 바탕은 입력을 막지 않음)
 local myPlot: Instance? = nil
 
 local function setMyPlot(plot: Instance?)

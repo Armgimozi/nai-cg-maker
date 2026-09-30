@@ -1,6 +1,7 @@
 -- 클라이언트 진입점(src/client/init.client.luau) 스모크 테스트: 가짜 환경에서 init.client 를 그대로 실행하고
--- 원격(RemoteFunction.InvokeServer)은 PlayerState + ParkService 로 흉내. 내 부지 찾기 → HUD [배치] → 공원으로 이동 →
--- 3D 배치 모드 → SetDisplay 원격(자동 꺼짐 · 공원 바뀜 알림) → [완료] · 다른 창 · 도감 [배치] · 이동 버튼 →
+-- 원격(RemoteFunction.InvokeServer)은 PlayerState + ParkService 로 흉내. 내 부지 찾기 → [배치] 버튼 없음 · 배지는 [공원] →
+-- 광장에서 내 명소를 눌러도 안 들어감 → [공원] 으로 이동 → 내 명소를 톡 = 3D 배치 모드 + 집음 → SetDisplay 원격(자동 꺼짐 ·
+-- 공원 바뀜 알림) → [완료] · 다른 창(창이 열려 있으면 공원을 눌러도 안 들어감) · 이동 버튼 →
 -- 상점(카드 6개 · Robux 가격 · 보유 도장 · 구매 원격 BuyPass/BuyProduct · 실패 이유별 알림),
 -- AUTO 빠른 결과(이미 발견한 명소 = 결과 카드만 퐁, 네트워크 왕복 0.12초 + 60fps 프레임 흉내에서도 평균 굴림 간격대로 — 빠른 굴림
 -- ×0.7 · 여행사 최대 + 빠른 굴림 0.42초 · 서버 굴림 간격 거절 없음(들쭉날쭉한 지연 포함, RollLogic.cooldownGate) · 기다리는 동안
@@ -183,16 +184,63 @@ local function hasText(text: string): boolean
 	return false
 end
 print("\n[init 연결]")
-local arrange = findNamed(gui, "Arrange")
-check(arrange and arrange.Visible, "내 부지 있음 -> HUD [배치] 보임")
-check(slotsFolder:FindFirstChild("Slot1"):FindFirstChild("ParkClick") ~= nil, "내 받침대에 ClickDetector")
-face(arrange).Activated:Fire()
-Mock.runScheduler(3)
-check(table.find(calls, "Teleport Park") ~= nil, "광장에서 [배치] = 공원으로 이동")
-check(ParkEdit.isEditing(), "배치 모드")
+check(findNamed(gui, "Arrange") == nil, "HUD 에 [배치] 버튼 없음")
+check(
+	E.plot:FindFirstChildWhichIsA("ClickDetector", true) == nil,
+	"내 받침대에 ClickDetector 없음(직접 누름)"
+)
+local teleportButton = findNamed(gui, "Teleport")
+check(teleportButton and findNamed(teleportButton, "Better") ~= nil, "더 좋은 명소 배지는 [공원] 버튼에")
+-- 평소 카메라처럼: 내 공원 입구 뒤 위에서 공원 안을 봄. 내 명소를 누를 화면 점(처음 맞는 것이 그 칸 모델)
+local function lookIntoPark()
+	camera.CFrame = CFrame.lookAt(
+		origin:PointToWorldSpace(Vector3.new(0, 46, -64)),
+		origin:PointToWorldSpace(Vector3.new(0, 0, -4))
+	)
+end
+local function statuePoint(slot: number): Vector2?
+	local x, z = ParkGrid.slotOffset(slot)
+	for _, height in { 2.5, 1.5, 3.5, 0.9, 5 } do
+		local at = E.toScreen(
+			origin:PointToWorldSpace(Vector3.new(x, ParkGrid.BASE_TOP + ParkGrid.PEDESTAL_HEIGHT + height, z))
+		)
+		local ray = camera:ViewportPointToRay(at.X, at.Y)
+		local params = RaycastParams.new()
+		params.FilterType = Enum.RaycastFilterType.Exclude
+		params.FilterDescendantsInstances = { E.character }
+		local hit = workspace:Raycast(ray.Origin, ray.Direction * 1000, params)
+		local node = hit and hit.Instance
+		while node and node.Parent ~= slotsFolder do
+			node = node.Parent
+		end
+		if node and node:GetAttribute("Slot") == slot then
+			return at
+		end
+	end
+	return nil
+end
+lookIntoPark()
+local parkTap = statuePoint(1) :: Vector2
+check(parkTap ~= nil, "누를 수 있는 내 명소(칸 1)")
+E.tap(parkTap)
+Mock.runScheduler(Mock.clock() + 2)
+check(not ParkEdit.isEditing(), "광장에 있으면 내 명소를 눌러도 안 들어감")
+face(teleportButton).Activated:Fire()
+Mock.runScheduler(Mock.clock() + 2)
+check(
+	table.find(calls, "Teleport Park") ~= nil and hasText("광장"),
+	"[공원] = 내 공원으로 이동(버튼은 [광장])"
+)
+check(not ParkEdit.isEditing(), "이동만 해서는 배치 모드 아님")
+lookIntoPark()
+E.tap(parkTap)
+Mock.runScheduler(Mock.clock() + 2)
+check(ParkEdit.isEditing(), "내 공원에서 내 명소를 톡 = 배치 모드")
+check(workspace:FindFirstChild("ParkEditLocal"):FindFirstChild("Held", true) ~= nil, "그 명소를 바로 집음")
+key("Escape")
+settle()
 local menu = findNamed(gui, "Menu")
 check(not menu.Visible and not findNamed(gui, "RollBar").Visible, "HUD 메뉴·굴리기 줄 숨김")
-check(findNamed(gui, "Teleport") and hasText("광장"), "이동 버튼 = 광장(지금 공원)")
 local tray = findNamed(gui, "Tray")
 tray.__props.AbsolutePosition = Vector2.new(109, 684 - 12 - 132 * 0.9)
 tray.__props.AbsoluteSize = Vector2.new(1062, 132 * 0.9)
@@ -218,25 +266,28 @@ print("\n[완료 · 다른 창]")
 face(findNamed(tray, "Done")).Activated:Fire()
 frame()
 check(not ParkEdit.isEditing() and menu.Visible, "[완료] = 나가기, 메뉴 다시 보임")
-ParkEdit.enter(nil)
-Mock.runScheduler(5)
-check(ParkEdit.isEditing(), "다시 들어감")
+lookIntoPark()
+E.tap(parkTap)
+Mock.runScheduler(Mock.clock() + 2)
+check(ParkEdit.isEditing(), "다시 톡 = 배치 모드")
 face(findNamed(menu, "Collection")).Activated:Fire()
 frame()
 check(not ParkEdit.isEditing(), "다른 창(도감)을 열면 배치 모드 끝")
 local window = findNamed(gui, "Window")
 check(window.Visible, "도감 열림")
-local docArrange
-for _, d in window:GetDescendants() do
-	if d.Name == "Arrange" then
-		docArrange = d
-	end
-end
-face(docArrange).Activated:Fire()
-Mock.runScheduler(7)
-check(ParkEdit.isEditing() and not window.Visible, "도감 [배치] = 창 닫고 배치 모드")
+-- 창이 열려 있으면 뒤 공원을 눌러도 안 들어감(창 바탕 Frame 은 입력을 막지 않음 — init 의 CanTap)
+lookIntoPark()
+E.tap(parkTap)
+Mock.runScheduler(Mock.clock() + 2)
+check(not ParkEdit.isEditing() and window.Visible, "창이 열려 있으면 공원을 눌러도 안 들어감")
+face(findNamed(menu, "Collection")).Activated:Fire()
+frame()
+check(not window.Visible, "도감 닫힘")
+E.tap(parkTap)
+Mock.runScheduler(Mock.clock() + 2)
+check(ParkEdit.isEditing(), "창을 닫으면 다시 톡 = 배치 모드")
 face(findNamed(menu, "Teleport")).Activated:Fire()
-Mock.runScheduler(9)
+Mock.runScheduler(Mock.clock() + 2)
 check(not ParkEdit.isEditing(), "이동(광장) = 배치 모드 끝")
 
 print("\n[자동 굴리기: 배치 모드 동안 쉼, 나가면 다시]")
@@ -255,7 +306,15 @@ do
 	Mock.runScheduler(Mock.clock() + 4)
 	local before = rolls()
 	check(before >= 2, "T = 자동 굴리기 (" .. before .. "번)")
-	face(arrange).Activated:Fire()
+	face(findNamed(menu, "Teleport")).Activated:Fire() -- 내 공원으로
+	for _ = 1, 30 do
+		if hasText("광장") then
+			break
+		end
+		Mock.runScheduler(Mock.clock() + 0.1)
+	end
+	lookIntoPark()
+	E.tap(parkTap) -- 내 명소를 톡
 	for _ = 1, 30 do
 		if ParkEdit.isEditing() then
 			break
@@ -1022,8 +1081,8 @@ do
 			.. ")"
 	)
 	check(
-		findNamed(allHeader, "Arrange") ~= nil and findNamed(allHeader, "AutoFeature") ~= nil,
-		"[전체] 머리 줄 [배치] · [자동]"
+		findNamed(allHeader, "Arrange") == nil and findNamed(allHeader, "AutoFeature") ~= nil,
+		"[전체] 머리 줄 [자동](배치 버튼 없음)"
 	)
 
 	-- 대륙 탭: 그 대륙 명소 전부(흔한 순서), 못 찾은 명소는 자물쇠 카드. 3D 사진은 다시 만들지 않음
@@ -1392,8 +1451,7 @@ do
 	do
 		-- 키보드 기기(1280×684): 오른쪽 위 플레이어 목록에 가리지 않게 굴리기 줄 바로 위 높이까지 내려감
 		local Hud, Ui = Harness.require(client.Hud), Harness.require(client.Ui)
-		Hud.setPlotOwned(false) -- 자리 다시 잡기(가짜 환경은 AbsoluteSize 바뀜 이벤트가 없음)
-		Hud.setPlotOwned(true)
+		Hud.relayout() -- 자리 다시 잡기(가짜 환경은 AbsoluteSize 바뀜 이벤트가 없음)
 		local size, scale = gui.AbsoluteSize, Ui.scale()
 		local center = size.Y * shopButton.Position.Y.Scale + shopButton.Position.Y.Offset
 		local rollTop = size.Y - 14 - 100 * scale
@@ -1407,8 +1465,7 @@ do
 		)
 		-- 키보드 + 터치 겸용(터치 노트북·키보드 붙인 태블릿): 화면을 만지면 점프 버튼이 오른쪽 아래에 나오므로 그 위까지만
 		UIS.__props.TouchEnabled = true
-		Hud.setPlotOwned(false)
-		Hud.setPlotOwned(true)
+		Hud.relayout()
 		local hybrid = size.Y * shopButton.Position.Y.Scale + shopButton.Position.Y.Offset
 		local jumpTop = size.Y - (if math.min(size.X, size.Y) <= 500 then 90 else 210)
 		check(
@@ -1420,8 +1477,7 @@ do
 			)
 		)
 		UIS.__props.TouchEnabled = false
-		Hud.setPlotOwned(false)
-		Hud.setPlotOwned(true)
+		Hud.relayout()
 		check(
 			size.Y * shopButton.Position.Y.Scale + shopButton.Position.Y.Offset == center,
 			"터치 없는 키보드 기기로 돌아오면 다시 굴리기 줄 위"

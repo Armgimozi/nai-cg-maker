@@ -992,7 +992,8 @@
   const menuNote = (w, h, touch, inset = GUI_INSET) =>
     menuName(layoutMenu(MENU.length + 1, w, h - inset, h, uiScaleFor(w, h), touch));
 
-  // plot = 내 공원 부지가 있음(서버가 부지 모델에 OwnerUserId 를 붙임) -> 이동 버튼 옆에 [배치] (어디에 있든)
+  // plot = 내 공원 부지가 있음(서버가 부지 모델에 OwnerUserId 를 붙임) -> [공원] 버튼에 더 좋은 명소 수 배지(광장에 있을 때).
+  // 배치 버튼은 없음: 내 공원에서 내 명소·빈 받침대를 직접 누르면 3D 배치 모드(ParkEdit)
   function buildMenu(screenGui, state, location, plot = true) {
     const count = MENU.length + 1;
     const place = layoutMenu(count, view.w, view.h - view.inset, view.h, view.scale, view.touch);
@@ -1052,9 +1053,9 @@
       }
     });
     const inPark = location === 'Park';
-    chunkyButton(container, {
+    const teleport = chunkyButton(container, {
       name: 'Teleport',
-      ...cell(count),
+      ...cell(count, true),
       size: [0, MENU_BUTTON[0], 0, MENU_BUTTON[1]],
       color: 'Grass',
       icon: inPark ? 'plaza' : 'park',
@@ -1063,30 +1064,12 @@
       text: inPark ? '광장' : '공원',
       textSize: 18,
     });
-    // 내 공원 부지가 있으면: 공원 배치 버튼을 이동 버튼 바로 오른쪽 칸에 (메뉴 칸 수에는 안 셈).
-    // 가로 한 줄이면 묶음이 한 칸 넓어진 것으로 쳐서 위 가운데 묶음이 비켜 감.
-    // 배지 = 직접 배치 중 더 좋은데 전시 안 된 명소 수(PlayerState.betterHidden, 도장 배지와 같은 모양, 0 이면 숨김)
-    if (plot) {
-      const last = cell(count).pos;
-      const arrange = chunkyButton(container, {
-        name: 'Arrange',
-        pos: [0, last[1] + MENU_BUTTON[0] + MENU_GAP, 0, last[3]],
-        z: 2,
-        size: [0, MENU_BUTTON[0], 0, MENU_BUTTON[1]],
-        color: 'Grass',
-        icon: 'arrange', // 옆 이동 버튼의 공원(나무) 아이콘과 다르게
-        iconSize: 58,
-        vertical: true,
-        text: '배치',
-        textSize: 18,
-      });
-      const better = betterHidden(state).length;
-      countBadge(arrange.face, better);
-      if (place.columns >= count) view.menu = { ...place, width: place.width + (MENU_BUTTON[0] + MENU_GAP) * view.scale };
-    }
+    // Hud BetterBadge: 직접 배치 중 더 좋은데 전시 안 된 명소 수(PlayerState.betterHidden, 도장 배지와 같은 모양) —
+    // 내 부지가 있고 버튼이 [공원](광장에 있음)일 때만, 0 이면 숨김
+    countBadge(teleport.face, plot && !inPark ? betterHidden(state).length : 0);
   }
 
-  // Panels.countBadge / Hud 배치 배지: 버튼 오른쪽 위 Ink 딱지 + Sun 숫자(도감 도장 "1/5" 배지와 같은 모양), 0 이면 숨김
+  // Hud [공원] 버튼 배지: 버튼 오른쪽 위 Ink 딱지 + Sun 숫자(도감 도장 "1/5" 배지와 같은 모양), 0 이면 숨김
   function countBadge(face, count, pos = [1, -6, 0, 2]) {
     return chip(face, {
       name: 'Better',
@@ -1494,9 +1477,6 @@
       textSize: 22,
     });
     chip(auto.face, { name: 'On', color: 'Coral', text: 'ON', height: 22, textSize: 15, anchor: [0.5, 0.5], pos: [1, -6, 1, -4], rot: 12, z: 6, visible: state.Settings.AutoFeature });
-    // 3D 배치 모드 켜기 (자동 버튼 왼쪽). 배지 = 더 좋은데 전시 안 된 명소 수(0 이면 숨김)
-    const arrange = chunkyButton(header, { name: 'Arrange', anchor: [1, 0], pos: [1, -(8 + 136 + 10), 0, -4], size: [0, 124, 0, 50], color: 'Grass', icon: 'arrange', iconSize: 36, text: '배치', textSize: 22 });
-    countBadge(arrange.face, betterHidden(state).length, [1, -6, 1, -4]);
   }
 
   // 대륙 머리 줄: [도장(찍힘/흐림)]==== 발견 막대 "found/required" ====[체크] …… [클로버 +25%(받음 초록 / 아직 회색)]

@@ -1,6 +1,7 @@
 -- 3D 공원 배치 모드(src/client/ParkEdit.luau) 스모크 테스트: 가짜 환경에서 진짜 ParkService 부지 + ParkEdit 를 돌려
 -- 들어가기 · 집기 · 옮기기 · 자리 바꾸기 · 보관함 · 보관 · stale · 서버가 늦을 때 · 터치 · 시점 · 나가기(Esc·죽음·부지 밖)를 확인.
--- 서버 원격은 바로 PlayerState + ParkService 로 흉내. 끝에 HUD/도감 [배치] 버튼 연결도 봄.
+-- 배치 모드 밖에서 내 공원을 톡 눌러 들어가기(명소 = 바로 집음, 빈 받침대 = 그 칸 채우기 · 끌기/두 손가락/남의 공원/창 열림은 안 됨),
+-- 서버 원격은 바로 PlayerState + ParkService 로 흉내. 끝에 HUD/도감에 [배치] 버튼이 없고 배지가 [공원] 에 있는지도 봄.
 -- 실행(roblox-rng 폴더에서): luaurun tools/client_smoke/parkedit.luau   (약 5초, 끝 줄 "0 failed")
 
 local E = compile(readfile("tools/client_smoke/env.luau"), "tools/client_smoke/env.luau")()
@@ -115,8 +116,8 @@ local function groundSlot(at: Vector2): number?
 end
 local function detectorCount(): number
 	local count = 0
-	for _, child in slotsFolder:GetChildren() do
-		if child:FindFirstChild("ParkClick") then
+	for _, d in workspace:GetDescendants() do
+		if d.ClassName == "ClickDetector" then
 			count += 1
 		end
 	end
@@ -170,7 +171,7 @@ end
 
 print("\n[배치 모드 밖]")
 Mock.runScheduler(1)
-check(detectorCount() == unlocked, "열린 칸마다 ClickDetector (" .. detectorCount() .. ")")
+check(detectorCount() == 0, "ClickDetector 없음(버튼·감지기 없이 내 공원을 직접 누름)")
 check(not ParkEdit.isEditing(), "처음엔 배치 모드 아님")
 
 print("\n[들어가기]")
@@ -202,7 +203,6 @@ check(
 	plot:FindFirstChild("Sign") ~= nil and signHidden(),
 	"입구 간판은 이 화면에서만 숨김(띠 위로 삐져나오지 않게)"
 )
-check(detectorCount() == 0, "배치 모드 동안 ClickDetector 없음")
 local barFrame = gui:FindFirstChild("ParkEditBar")
 check(barFrame and barFrame.Visible, "아래 띠 보임")
 -- 카메라가 맞출 줄(열린 줄 + 잠긴 줄 하나)을 모두 화면 안(상단바 아래 ~ 띠 위)에 담는지
@@ -892,7 +892,7 @@ check(changes[#changes] == false, "Changed(false)")
 check(localFolder() == nil, "로컬 폴더 지움")
 check(camera.CameraType == Enum.CameraType.Custom, "카메라 되돌림")
 check(handlerCount() == baseHandlers, "입력 연결 정리 (" .. handlerCount() .. " / " .. baseHandlers .. ")")
-check(detectorCount() == unlocked, "ClickDetector 다시 닮")
+check(detectorCount() == 0, "나가도 ClickDetector 없음")
 check(not barFrame.Visible, "띠 숨김")
 check(not signHidden(), "나가면 입구 간판 다시 보임")
 local allLabels = true
@@ -903,29 +903,310 @@ for slot, _ in shownSlots() do
 end
 check(allLabels and labelsOn() > 1, "나가면 전시 칸 이름표 모두 다시 켜짐 (" .. labelsOn() .. "개)")
 
-print("\n[받침대 클릭으로 들어가기 + 바로 집기]")
-local clicked = container(2):FindFirstChild("ParkClick")
-clicked.MouseClick:Fire()
-Mock.runScheduler(3)
-check(ParkEdit.isEditing(), "받침대 클릭 = 배치 모드")
-check(localFolder():FindFirstChild("Held", true) ~= nil and hiddenModel(2), "그 칸 명소를 바로 집음")
+print("\n[배치 모드 밖: 내 공원을 톡 눌러 들어가기]")
+-- 평소 카메라처럼: 입구 뒤 위에서 공원 안을 봄(캐릭터는 입구 안쪽)
+local POINTING = "rbxasset://SystemCursors/PointingHand"
+local function lookInto(o: CFrame)
+	camera.CFrame =
+		CFrame.lookAt(o:PointToWorldSpace(Vector3.new(0, 46, -64)), o:PointToWorldSpace(Vector3.new(0, 0, -4)))
+end
+lookInto(origin)
+placeCharacter(origin * CFrame.new(0, 3.6, -37))
+-- 화면 점에서 처음 맞는 것(캐릭터만 뺌 — ParkEdit 와 같은 광선)의 칸 모델
+local function firstContainer(at: Vector2): Instance?
+	local ray = camera:ViewportPointToRay(at.X, at.Y)
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { E.character }
+	local hit = workspace:Raycast(ray.Origin, ray.Direction * 1000, params)
+	local node = hit and hit.Instance
+	while node and not (node.Parent and node.Parent.Name == "Slots") do
+		node = node.Parent
+	end
+	return node
+end
+-- 칸 folder 의 slot 을 누를 화면 점(처음 맞는 것이 그 칸 모델인 곳 — 명소 몸통 높이부터)
+local function tapPoint(folder: Instance, o: CFrame, slot: number): Vector2?
+	local x, z = ParkGrid.slotOffset(slot)
+	for _, height in { 2.5, 1.5, 3.5, 0.9, 5, 0.3 } do
+		local at =
+			E.toScreen(o:PointToWorldSpace(Vector3.new(x, ParkGrid.BASE_TOP + ParkGrid.PEDESTAL_HEIGHT + height, z)))
+		local c = firstContainer(at)
+		if c and c.Parent == folder and c:GetAttribute("Slot") == slot then
+			return at
+		end
+	end
+	return nil
+end
+local function tapLight(): any
+	return workspace:FindFirstChild("ParkTapHover")
+end
+local function lightOn(target: Instance?): boolean
+	local light = tapLight()
+	return light ~= nil and light.Enabled ~= false and light.Adornee == target
+end
+local function resetOutside()
+	if ParkEdit.isEditing() then
+		if holding() then
+			key("Escape")
+			settle()
+		end
+		ParkEdit.exit()
+	end
+	lookInto(origin)
+	placeCharacter(origin * CFrame.new(0, 3.6, -37))
+	mouseTo(Vector2.new(20, 60))
+end
+local tapSlotNo = 0
+local statueAt: Vector2? = nil
+for slot = 1, unlocked do
+	if not statueAt and shownSlots()[slot] then
+		local at = tapPoint(slotsFolder, origin, slot)
+		if at then
+			tapSlotNo, statueAt = slot, at
+		end
+	end
+end
+check(statueAt ~= nil, "평소 카메라에서 누를 수 있는 내 명소 (칸 " .. tapSlotNo .. ")")
+local tapId = shownSlots()[tapSlotNo]
+local statuePoint = statueAt :: Vector2
+local offPoint = Vector2.new(20, 60) -- 하늘
+
+-- 마우스: 가리키면 옅은 흰 강조 + 손가락 커서, 떠나면 끔
+mouseTo(statuePoint)
+check(lightOn(container(tapSlotNo)), "마우스로 내 명소를 가리키면 그 칸 강조")
+check(UIS.MouseIcon == POINTING, "손가락 커서")
+local light = tapLight()
+check(
+	light ~= nil and light.FillTransparency > 0.7,
+	"강조는 옅게(채우기 투명도 " .. tostring(light and light.FillTransparency) .. ")"
+)
+mouseTo(offPoint)
+check(not lightOn(container(tapSlotNo)) and (UIS.MouseIcon or "") == "", "빈 곳 = 강조·커서 끔")
+check(not ParkEdit.isEditing(), "가리키기만 해서는 안 들어감")
+
+-- 끌기 = 화면 돌리기(안 들어감)
+drag(statuePoint, statuePoint + Vector2.new(80, 10))
+Mock.runScheduler(Mock.clock() + 1)
+check(not ParkEdit.isEditing(), "마우스로 끌기 = 안 들어감")
+touchDrag(statuePoint, statuePoint + Vector2.new(-10, 90))
+Mock.runScheduler(Mock.clock() + 1)
+check(not ParkEdit.isEditing(), "터치로 끌기(화면 돌리기) = 안 들어감")
+-- 두 손가락(확대): 두 번째 손가락이 닿으면 취소
+do
+	local first = input("Touch", statuePoint)
+	local second = input("Touch", statuePoint + Vector2.new(160, 40))
+	UIS.InputBegan:Fire(first, false)
+	UIS.InputBegan:Fire(second, false)
+	frame()
+	UIS.InputEnded:Fire(second, false)
+	UIS.InputEnded:Fire(first, false)
+	frame()
+	Mock.runScheduler(Mock.clock() + 1)
+	check(not ParkEdit.isEditing(), "두 손가락 = 안 들어감")
+end
+-- 화면 버튼 위(processed)
+do
+	local t = input("Touch", statuePoint)
+	UIS.InputBegan:Fire(t, true)
+	UIS.InputEnded:Fire(t, true)
+	frame()
+	Mock.runScheduler(Mock.clock() + 1)
+	check(not ParkEdit.isEditing(), "화면 버튼을 누른 입력(processed) = 안 들어감")
+end
+-- 창이 열려 있음(CanTap = false)
+handlers.CanTap = function()
+	return false
+end
+tap(statuePoint)
+Mock.runScheduler(Mock.clock() + 1)
+check(not ParkEdit.isEditing(), "창이 열려 있으면(CanTap false) 안 들어감")
+mouseTo(statuePoint)
+check(not lightOn(container(tapSlotNo)), "창이 열려 있으면 강조도 없음")
+mouseTo(offPoint)
+handlers.CanTap = nil
+-- 잠긴 칸
+do
+	local lockedAt = tapPoint(slotsFolder, origin, unlocked + 1)
+	local toastCount = #toasts
+	if lockedAt then
+		tap(lockedAt)
+		Mock.runScheduler(Mock.clock() + 1)
+	end
+	check(not ParkEdit.isEditing() and #toasts == toastCount, "잠긴 칸을 눌러도 안 들어감(알림도 없음)")
+end
+-- 내 공원 밖(광장 쪽 멀리)에서 내 명소를 누름
+placeCharacter(origin * CFrame.new(0, 3.6, -80))
+tap(statuePoint)
+Mock.runScheduler(Mock.clock() + 1)
+check(not ParkEdit.isEditing(), "내 공원 밖에 있으면 눌러도 안 들어감")
+mouseTo(statuePoint)
+check(not lightOn(container(tapSlotNo)), "내 공원 밖이면 강조도 없음")
+resetOutside()
+
+-- 톡 = 배치 모드 + 그 명소를 바로 집음 (터치 · 마우스)
+tap(statuePoint)
+Mock.runScheduler(Mock.clock() + 1)
+check(ParkEdit.isEditing(), "내 명소를 톡 = 배치 모드")
+check(holding() and hiddenModel(tapSlotNo), "그 칸 명소를 바로 집음")
+check(not lightOn(container(tapSlotNo)), "배치 모드에서는 바깥 강조 끔")
+resetOutside()
+check(not ParkEdit.isEditing() and not holding(), "나감")
+click(statuePoint)
+Mock.runScheduler(Mock.clock() + 1)
+check(
+	ParkEdit.isEditing() and holding() and hiddenModel(tapSlotNo),
+	"마우스 클릭도 같음(배치 모드 + 집음)"
+)
+resetOutside()
+
+-- 빈 받침대를 톡 = 배치 모드 + 그 칸 채울 준비 → 보관함 카드 누름 = 바로 그 칸으로
+do
+	local emptyAt: Vector2? = nil
+	local target = 0
+	-- 앞줄에서 빈 칸 하나 만들기(보관)
+	for slot = 1, unlocked do
+		if target == 0 and shownSlots()[slot] and slot ~= tapSlotNo and tapPoint(slotsFolder, origin, slot) then
+			target = slot
+		end
+	end
+	PlayerState.setDisplay(data, target, nil)
+	ParkService.update(serverPlayer, data)
+	pushState()
+	frame()
+	emptyAt = tapPoint(slotsFolder, origin, target)
+	check(look(target) == ParkGrid.LOOK_EMPTY and emptyAt ~= nil, "빈 받침대 (칸 " .. target .. ")")
+	if emptyAt then
+		mouseTo(emptyAt)
+		check(lightOn(container(target)), "빈 받침대도 가리키면 강조")
+		tap(emptyAt)
+		Mock.runScheduler(Mock.clock() + 1)
+		check(ParkEdit.isEditing() and not holding(), "빈 받침대를 톡 = 배치 모드(들고 있는 것 없음)")
+		check(ParkEdit.fillTarget() == target, "그 칸을 채울 준비 (" .. tostring(ParkEdit.fillTarget()) .. ")")
+		frame()
+		local mark = localFolder():FindFirstChild("Mark" .. target)
+		check(mark and mark.Transparency < 0.3, "그 칸 판이 진하게 숨 쉼")
+		local hoverFill = localFolder():FindFirstChild("Hover")
+		mouseTo(offPoint)
+		frame()
+		check(
+			hoverFill.Enabled and hoverFill.Adornee == container(target),
+			"가리키는 곳이 없으면 그 칸 강조"
+		)
+		local storageNow = ParkGrid.storage(PlayerState.snapshot(data, 0))
+		local fillId = storageNow[1]
+		local fillCard = tray:FindFirstChild("Storage"):FindFirstChild(fillId)
+		check(fillCard ~= nil, "보관함 맨 앞 카드 (" .. tostring(fillId) .. ")")
+		local requestCount = #requests
+		fillCard.Activated:Fire()
+		frame()
+		settle()
+		check(
+			shownSlots()[target] == fillId,
+			"카드 누름 = 집어 들 필요 없이 바로 그 칸으로: " .. dump()
+		)
+		check(
+			#requests == requestCount + 1 and requests[#requests] == string.format("%d %s  0", target, fillId),
+			"요청 한 번 = SetDisplay(칸, Id, '', 0) " .. tostring(requests[#requests])
+		)
+		check(not holding() and ParkEdit.fillTarget() == nil, "채운 뒤 들고 있는 것 없음 · 채울 칸 풂")
+		-- 배치 모드 안에서도: 빈 받침대를 누름 = 채울 칸, 다시 누름 = 풂
+		click(slotScreen(tapSlotNo, 2))
+		key("Delete")
+		settle()
+		check(shownSlots()[tapSlotNo] == nil, "하나 보관(빈 칸 " .. tapSlotNo .. ")")
+		click(slotScreen(tapSlotNo, 0.6))
+		check(ParkEdit.fillTarget() == tapSlotNo and not holding(), "배치 모드: 빈 받침대 누름 = 채울 칸")
+		click(slotScreen(tapSlotNo, 0.6))
+		check(ParkEdit.fillTarget() == nil, "다시 누름 = 풂")
+		click(slotScreen(tapSlotNo, 0.6))
+		click(offPoint)
+		check(ParkEdit.fillTarget() == nil, "부지 밖 누름 = 풂")
+		click(slotScreen(tapSlotNo, 0.6))
+		click(slotScreen(target, 2))
+		check(holding() and ParkEdit.fillTarget() == nil, "전시 명소를 집으면 채울 칸 풂")
+		key("Escape")
+		settle()
+		-- 다시 채움(아래 시험들이 앞줄 명소를 씀)
+		PlayerState.setDisplay(data, tapSlotNo, tapId)
+		ParkService.update(serverPlayer, data)
+		pushState()
+		frame()
+	end
+	resetOutside()
+	check(shownSlots()[tapSlotNo] == tapId, "원래대로")
+end
+
+-- 남의 공원: 눌러도·가리켜도 아무 일 없음
+do
+	local other = { Name = "Other", DisplayName = "남", UserId = 777 }
+	local otherData = PlayerState.new()
+	local n = 0
+	for _, landmark in Landmarks.RarestFirst do
+		if n >= 6 then
+			break
+		end
+		n += 1
+		otherData.Inventory[landmark.Id] = 2
+	end
+	local assigned = Mock.run(function()
+		ParkService.assign(other)
+		ParkService.update(other, otherData)
+	end)
+	local otherPlot
+	for _, model in workspace.Parks:GetChildren() do
+		if model:GetAttribute("OwnerUserId") == 777 then
+			otherPlot = model
+		end
+	end
+	check(assigned and otherPlot ~= nil, "남의 공원")
+	if otherPlot then
+		local otherOrigin: CFrame = otherPlot:GetAttribute("Origin")
+		local otherSlots = otherPlot:FindFirstChild("Slots")
+		lookInto(otherOrigin)
+		local otherAt = tapPoint(otherSlots, otherOrigin, 1)
+		check(otherAt ~= nil, "남의 명소를 누를 화면 점")
+		if otherAt then
+			-- 내 공원에 서서 남의 공원을 봄 / 남의 공원에 서서 봄
+			for _, stand in { origin * CFrame.new(0, 3.6, -37), otherOrigin * CFrame.new(0, 3.6, -37) } do
+				placeCharacter(stand)
+				mouseTo(otherAt)
+				check(
+					not lightOn(otherSlots:FindFirstChild("Slot1")) and (UIS.MouseIcon or "") == "",
+					"남의 명소 = 강조·커서 없음"
+				)
+				tap(otherAt)
+				click(otherAt)
+				Mock.runScheduler(Mock.clock() + 1)
+				check(not ParkEdit.isEditing(), "남의 명소를 눌러도 안 들어감")
+			end
+		end
+		Mock.run(function()
+			ParkService.release(other)
+		end)
+	end
+	resetOutside()
+end
 
 print("\n[죽으면 나감]")
+tap(statuePoint)
+Mock.runScheduler(Mock.clock() + 1)
+check(ParkEdit.isEditing() and hiddenModel(tapSlotNo), "톡 = 배치 모드 + 집음")
 humanoid.Died:Fire()
-Mock.runScheduler(4)
+Mock.runScheduler(Mock.clock() + 1)
 check(not ParkEdit.isEditing() and localFolder() == nil, "죽음 = 나가기")
-check(not hiddenModel(2), "숨긴 명소 되돌림")
+check(not hiddenModel(tapSlotNo), "숨긴 명소 되돌림")
 
 print("\n[부지 밖으로 걸어가면 나감 / 밖에서 들어가면 공원으로 이동]")
 ParkEdit.enter(nil)
-Mock.runScheduler(5)
+Mock.runScheduler(Mock.clock() + 1)
 check(ParkEdit.isEditing(), "다시 들어감")
 placeCharacter(origin * CFrame.new(0, 3.6, -80))
-Mock.runScheduler(6)
+Mock.runScheduler(Mock.clock() + 1)
 check(not ParkEdit.isEditing(), "부지 밖 = 나가기")
 ParkEdit.enter(1)
-Mock.runScheduler(7)
-check(ParkEdit.isEditing(), "밖에서 [배치] = 공원으로 이동 후 들어감")
+Mock.runScheduler(Mock.clock() + 1)
+check(ParkEdit.isEditing(), "밖에서 ParkEdit.enter = 공원으로 이동 후 들어감")
 check(localFolder():FindFirstChild("Held", true) ~= nil, "칸 1 명소 집음")
 
 print("\n[부지 잃음]")
@@ -933,10 +1214,9 @@ ParkEdit.setPlot(nil)
 check(not ParkEdit.isEditing() and localFolder() == nil, "부지가 사라지면 나가기")
 check(handlerCount() == baseHandlers, "입력 연결 정리")
 
-print("\n[HUD · 도감 [배치] 버튼]")
+print("\n[HUD · 도감: [배치] 버튼 없음, 더 좋은 명소 배지는 [공원]]")
 local Hud = Harness.require(client.Hud)
 local Panels = Harness.require(client.Panels)
-local arranged = 0
 local menus: { string } = {}
 local hudGui = Hud.init(playerGui, {
 	Roll = function() end,
@@ -945,9 +1225,6 @@ local hudGui = Hud.init(playerGui, {
 		table.insert(menus, name)
 	end,
 	Teleport = function() end,
-	Arrange = function()
-		arranged += 1
-	end,
 })
 hudGui.AbsoluteSize = Vector2.new(1280, 684)
 Panels.init(hudGui, {
@@ -958,32 +1235,54 @@ Panels.init(hudGui, {
 	BuyPass = function() end,
 	BuyProduct = function() end,
 	Toast = function() end,
-	Arrange = function()
-		arranged += 10
-	end,
 })
-local state = PlayerState.snapshot(data, 99)
+-- 직접 배치 중 가장 희귀한 명소를 보관 = 전시하면 수입이 느는 명소 1개 이상
+local betterData = table.clone(data)
+betterData.Inventory = table.clone(data.Inventory)
+betterData.Settings = table.clone(data.Settings)
+betterData.Display = table.clone(data.Display or {})
+PlayerState.setDisplay(betterData, 1, nil)
+local state = PlayerState.snapshot(betterData, 99)
+local betterCount = #PlayerState.betterHidden(state)
+check(betterCount > 0, "더 좋은데 전시 안 된 명소 " .. betterCount .. "개")
 Hud.render(state)
+Hud.setLocation("Plaza")
 Hud.setPlotOwned(true)
 Panels.render(state)
 Panels.toggle("Collection")
-local arrangeHud = hudGui:FindFirstChild("Arrange", true)
-local arrangeFace = arrangeHud:FindFirstChild("Face", true) or arrangeHud
-arrangeFace.Activated:Fire()
-check(arranged == 1, "HUD [배치] = Arrange 핸들러")
+check(hudGui:FindFirstChild("Arrange", true) == nil, "HUD·도감 어디에도 [배치] 버튼 없음")
 local window = hudGui:FindFirstChild("Window", true)
-local collectionArrange
-for _, d in window:GetDescendants() do
-	if d.Name == "Arrange" then
-		collectionArrange = d
+local anyArrange = false
+for _, d in hudGui:GetDescendants() do
+	if d.Name == "Arrange" or ((d.ClassName == "TextLabel" or d.ClassName == "TextButton") and d.Text == "배치") then
+		anyArrange = true
 	end
 end
-check(collectionArrange ~= nil, "도감 머리 줄 [배치]")
-local cface = collectionArrange:FindFirstChild("Face", true) or collectionArrange
-cface.Activated:Fire()
-check(arranged == 11, "도감 [배치] = Arrange 핸들러")
-local better = collectionArrange:FindFirstChild("Better", true)
-check(better ~= nil, "도감 [배치] 배지")
+check(window ~= nil and window.Visible and not anyArrange, '도감을 열어도 "배치" 글자·버튼 없음')
+local teleportButton = hudGui:FindFirstChild("Teleport", true)
+local betterBadge = teleportButton and teleportButton:FindFirstChild("Better", true)
+local betterLabel = betterBadge and betterBadge:FindFirstChild("Label", true)
+check(
+	betterBadge ~= nil and betterBadge.Visible and betterLabel and betterLabel.Text == tostring(betterCount),
+	"[공원] 버튼에 더 좋은 명소 수 배지 (" .. tostring(betterLabel and betterLabel.Text) .. ")"
+)
+Hud.setLocation("Park")
+check(not betterBadge.Visible, "공원에 있으면(버튼 = [광장]) 배지 숨김")
+Hud.setLocation("Plaza")
+check(betterBadge.Visible, "광장으로 오면 다시 보임")
+Hud.setPlotOwned(false)
+check(not betterBadge.Visible, "내 부지가 없으면 배지 없음")
+Hud.setPlotOwned(true)
+Hud.render(PlayerState.snapshot(data, 100))
+check(not betterBadge.Visible, "더 좋은 명소가 없으면(자동 배치) 배지 없음")
+local menuButtons = 0
+for _, child in hudGui:FindFirstChild("Menu", true):GetChildren() do
+	if child:IsA("GuiObject") then
+		menuButtons += 1
+	end
+end
+check(menuButtons == 4, "왼쪽 메뉴 버튼 4개(도감·강화·환생·공원) — " .. menuButtons)
+Panels.close()
 Hud.setEditing(true)
 local menuFrame = hudGui:FindFirstChild("Menu", true)
 local rollBar = hudGui:FindFirstChild("RollBar", true)

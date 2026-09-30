@@ -1,5 +1,5 @@
 -- 메뉴 창: 도감(대륙 탭 — 예전 여권 창을 합침: 지역별 발견 현황 + 도장, 대표 지정), 강화(업그레이드), 환생(조건 + 확인), 상점(Robux).
--- 공원 배치는 창이 아니라 내 공원에서 하는 3D 배치 모드(ParkEdit) — 도감 머리 줄 [배치] 버튼이 그 모드를 켬
+-- 공원 배치는 창·버튼이 아니라 내 공원에서 명소·빈 받침대를 직접 눌러 들어가는 3D 배치 모드(ParkEdit)
 -- 크림색 창(Ui.window) 하나를 쓰고, 화면마다 리본 색과 제목(2글자)만 바꿉니다(도감은 탭 줄만큼 창이 조금 더 높음).
 -- 글자는 최소로: 설명 문장 없이 아이콘 + 숫자 딱지로 보여 줍니다.
 -- 화면마다 카드를 한 번 만들고 상태가 바뀌면 글자/색만 고칩니다. 썸네일(ViewportFrame)은
@@ -32,7 +32,6 @@ export type Handlers = {
 	BuyPass: (string) -> (), -- Config.GamePasses 키
 	BuyProduct: (string) -> (), -- Config.Products 키
 	Toast: (text: string, icon: string?, color: Color3?) -> (), -- 짧은 알림 (기본 실패 색, 예: "코인 부족")
-	Arrange: () -> (), -- 도감 [배치]: 3D 공원 배치 모드 켜기(창은 부르는 쪽이 닫음)
 }
 
 local REGION_BONUS = math.floor(Config.REGION_LUCK_BONUS * 100 + 0.5)
@@ -256,7 +255,6 @@ local shopCards: { ShopCard } = {}
 type ShopInfo = { Price: number?, Art: string? }
 local shopInfo: { [string]: ShopInfo } = {}
 
-local collectionArrangeBadge: Ui.Chip? = nil -- 도감 머리 줄 [배치] 배지
 local function owned(state: Snapshot, id: string): number
 	return state.Inventory[id] or 0
 end
@@ -351,24 +349,8 @@ local function photo(parent: GuiObject, landmark: Landmark, position: UDim2, siz
 	return frame
 end
 
--- 버튼 숫자 배지 (도감 버튼의 도장 "1/5" 배지와 같은 모양: Ink 딱지 + Sun 숫자, 살짝 기울임). 도감 머리 줄 버튼은 오른쪽 아래
--- (BADGE_LOW — 오른쪽 위에 두면 바로 위 탭 줄을 가림)
+-- 도감 머리 줄 버튼 배지 자리: 오른쪽 아래(오른쪽 위에 두면 바로 위 탭 줄을 가림)
 local BADGE_LOW = UDim2.new(1, -6, 1, -4)
-local function countBadge(button: Ui.ChunkyButton, name: string, position: UDim2): Ui.Chip
-	return Ui.chip({
-		Name = name,
-		Color = Theme.Ink,
-		TextColor3 = Ui.colorPair("Sun").Face,
-		Height = 24,
-		TextSize = 15,
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = position,
-		Rotation = 8,
-		ZIndex = 6,
-		Visible = false,
-		Parent = button.Face,
-	})
-end
 
 -- 도장 · 보너스 딱지 (도감 대륙 탭) --------------------------------------------
 
@@ -491,7 +473,7 @@ end
 
 -- 도감 -----------------------------------------------------------------------
 -- 위 탭 줄([전체] + 대륙), 그 아래 머리 줄(탭마다 다름), 카드 격자 하나.
---   [전체] = 발견한 명소(Discovered)만 희귀한 순서. 머리 줄: 발견 수 · 받은 도장 수 · 도장 행운 · [배치] · [자동]
+--   [전체] = 발견한 명소(Discovered)만 희귀한 순서. 머리 줄: 발견 수 · 받은 도장 수 · 도장 행운 · [자동]
 --   대륙 = 그 대륙 명소 전부, 흔한 순서(예전 여권 한 쪽). 못 찾은 명소는 어두운 자물쇠 카드.
 --          머리 줄: 도장(찍힘/흐림) · 발견 막대(도장 조건 = PlayerState.regionProgress) · +25%(받음 초록 / 아직 회색)
 -- 카드는 명소마다 한 번만 만들고, 탭을 바꾸면 보이기·순서만 바꿈(3D 사진을 다시 만들지 않음)
@@ -906,24 +888,6 @@ local function buildCollection(): View
 		Parent = autoButton.Face,
 	})
 
-	-- 3D 공원 배치 모드 켜기: 배치 아이콘(2×2 칸 판) + "배치" (자동 버튼 왼쪽). 배지 = 더 좋은데 전시 안 된 명소 수
-	local arrange = Ui.chunkyButton({
-		Name = "Arrange",
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -(8 + 136 + 10), 0, -4),
-		Size = UDim2.fromOffset(124, 50),
-		Color = "Grass",
-		Icon = "arrange",
-		IconSize = 36,
-		Text = "배치",
-		TextSize = 22,
-		Parent = allRow,
-	})
-	arrange.Activated:Connect(function()
-		handlers.Arrange()
-	end)
-	collectionArrangeBadge = countBadge(arrange, "Better", BADGE_LOW)
-
 	for _, region in Landmarks.Regions do
 		regionHeaders[region.Id] = buildRegionHeader(header, region)
 	end
@@ -971,12 +935,6 @@ local function renderCollection(state: Snapshot)
 	local autoFeature = state.Settings.AutoFeature
 	autoButton.SetColor(if autoFeature then "Grass" else "Gray")
 	autoBadge.Root.Visible = autoFeature
-	local badge = collectionArrangeBadge
-	if badge then
-		local better = #PlayerState.betterHidden(state)
-		badge.Label.Text = tostring(better)
-		badge.Root.Visible = better > 0
-	end
 
 	local inPark = {}
 	for _, id in PlayerState.park(state) do

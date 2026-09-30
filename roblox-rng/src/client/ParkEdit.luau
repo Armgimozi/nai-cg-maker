@@ -1,8 +1,11 @@
 -- 3D 공원 배치 모드: 놀이공원 시뮬레이션처럼 메뉴 창 없이 내 공원에서 명소를 직접 눌러 집고, 다른 받침대를 눌러 놓음.
 -- (DESIGN.md "공원 배치" — 규칙·계획은 Shared/ParkGrid, 편집 규칙은 PlayerState.setDisplay, 서버 상태가 진실)
 --
--- 들어가기: HUD [배치] · 도감 [배치] 버튼(내 공원 밖이면 먼저 내 공원으로 순간 이동), 또는 배치 모드 밖에서 내 공원의
---   받침대·명소를 누름(이 클라이언트만의 ClickDetector — 명소면 들어가면서 바로 집음).
+-- 들어가기: 버튼 없이 타이쿤처럼 직접 — 내 공원(부지 + 여유 14)에 있을 때 내 명소를 톡 누르면 배치 모드 + 그 명소를 바로 집음,
+--   내 빈 받침대를 누르면 배치 모드 + 그 칸을 채울 준비(칸이 초록으로 숨 쉬고, 보관함 카드를 누르면 바로 그 칸으로).
+--   톡 = 누른 곳에서 DRAG_PX 안에서 뗌(터치로 끌면 화면 돌리기라 안 들어감), 두 손가락이면 취소. 광선은 캐릭터만 빼고 쏴서
+--   처음 맞은 것이 내 칸 모델일 때만(남의 공원은 눌러도 아무 일 없음). 창이 열려 있으면 안 받음(Handlers.CanTap).
+--   마우스는 가리키는 내 칸에 옅은 흰 강조 + 손가락 커서(찾기 쉽게). 배치 모드 동안은 이 누르기를 쓰지 않음(직접 광선).
 -- 배치 모드 동안 HUD 는 왼쪽 메뉴·상점·굴리기 줄을 숨기고(부르는 쪽 Changed) 아래 띠만 남김 — 놀이공원 시뮬레이션의
 --   건설 모드처럼 공원과 띠에만 집중. 나가기 = [완료] · Esc/Q(들고 있으면 먼저 내려놓기) · 부지 밖으로 나가기.
 -- 시점: 들어가면 카메라가 부지 위 3/4 시점으로 날아감(Scriptable, ParkGrid.topView 가 HUD 가 가리지 않은 곳에
@@ -59,6 +62,7 @@ export type Handlers = {
 	GoToPark: () -> boolean, -- 내 공원으로 순간 이동(기다림). 성공하면 true
 	Toast: (text: string, icon: string?, color: Color3?) -> (),
 	Changed: (editing: boolean) -> (), -- 배치 모드 켜짐/꺼짐 (HUD 메뉴·굴리기 줄 숨기기, 열린 창 닫기)
+	CanTap: (() -> boolean)?, -- 배치 모드 밖에서 내 공원을 눌러 들어가도 되는지(창이 열려 있으면 false). 없으면 늘 true
 }
 
 -- 월드 ----------------------------------------------------------------------------
@@ -75,7 +79,7 @@ local HOP = 4 -- 자리 바꿈 상대가 폴짝 뛰는 높이
 local EDIT_HOLD = 3 -- 옮긴 칸의 로컬 모형(proxy)을 서버 칸이 맞을 때까지 기다리는 최대 시간(초)
 local DRAG_PX = 10 -- 이보다 많이 움직이면 끌기(터치: 따라가는 시점에서는 화면 돌리기)
 local LEAVE_MARGIN = 14 -- 부지 밖으로 이만큼 나가면 배치 모드 끝(스터드)
-local CLICK_DISTANCE = 40 -- 배치 모드 밖에서 내 받침대를 눌러 들어오는 거리
+local POINTING_HAND = "rbxasset://SystemCursors/PointingHand" -- 배치 모드 밖: 내 칸을 가리키면 손가락 커서
 local RAY_LENGTH = 1000
 local MARKER_SIZE = ParkGrid.PEDESTAL_SIZE + 1.6 -- 받침대 둘레로 삐져나와 빛나는 판
 -- 빛나는 판 투명도(들고 있을 때): 놓을 수 있는 칸은 은은하게(빈 칸이 자리 바꿈 칸보다 조금 진하게),
@@ -95,6 +99,8 @@ local TEXT_GRACE = 0.25 -- 글자 칸에서 빠져나온 직후 이 시간(초) 
 -- 이름표가 칸 바로 위에 옴(70 이면 카메라가 30~50 스터드로 가까워 화면 가장자리 칸 위의 것이 바깥으로 크게 밀려남)
 local EDIT_FOV = 40
 local CAMERA_TWEEN = TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+-- 채울 빈 칸을 정하면 보관함 앞 카드들이 한 번 톡(커졌다 제자리)
+local CARD_NUDGE = TweenInfo.new(0.14, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, 0, true)
 
 -- 아래 띠 (설계 px, Ui.autoScale 배율을 받음) --------------------------------------
 local BAR_HEIGHT = 132
@@ -150,6 +156,9 @@ local markerPulse: BasePart? = nil -- 들고 있을 때 숨 쉬듯 빛나는 판
 local painted: { Slots: { [number]: string }, Unlocked: number, HeldFrom: number }? = nil -- 마지막 reconcile 값
 local hoverLight: Highlight? = nil
 local hoverSlot: number? = nil
+-- 채울 빈 칸: 빈 받침대를 눌러 들어왔거나(배치 모드 밖) 들고 있지 않을 때 빈 받침대를 누름. 그 칸 판이 초록으로 숨 쉬고,
+-- 보관함 카드를 누르면 집어 들 필요 없이 바로 그 칸으로 날아감. 칸이 차거나 다른 명소를 집으면 풂
+local fillSlot: number? = nil
 local viewMode = "Top" -- "Top"(위에서 보기) | "Follow"(평소 카메라)
 local zoom = 1
 local fitRows = Config.PARK_GRID -- 위에서 보기가 맞춘 줄 수(ParkGrid.topRows: 열린 줄 + 잠긴 줄 하나)
@@ -547,6 +556,10 @@ local function paintMarkers(slots: { [number]: string }, unlocked: number, heldF
 			end
 		elseif not locked and not id then
 			color, transparency = Ui.colorPair("Grass").Face, 0.62 -- 빈 칸
+			if slot == fillSlot then
+				transparency = MARK_TARGET -- 채울 빈 칸: 진하게 숨 쉬듯(step)
+				markerPulse = marker
+			end
 		end
 		if color then
 			marker.Color = color
@@ -566,6 +579,10 @@ local function reconcile()
 		return
 	end
 	local slots, unlocked = PlayerState.parkSlots(view)
+	local fill = fillSlot
+	if fill and (held or fill > unlocked or slots[fill] ~= nil) then
+		fillSlot = nil -- 칸이 참(자동 굴림이 새 명소를 놓음 등)·잠김·명소를 집음
+	end
 	local heldFrom = 0
 	if held then
 		for slot = 1, unlocked do
@@ -674,8 +691,9 @@ local function returnHeld(silent: boolean?)
 	renderBar()
 end
 
--- 명소 집기. from: 전시 칸(0 = 보관함). 이미 들고 있으면 그것은 제자리로
-local function pickUp(id: string, from: number)
+-- 명소 집기. from: 전시 칸(0 = 보관함). 이미 들고 있으면 그것은 제자리로.
+-- at: 보관함에서 집을 때 떠오를 칸(없으면 ParkGrid.storageStart — 채울 빈 칸이 있으면 그 칸)
+local function pickUp(id: string, from: number, at: number?)
 	local landmark = Landmarks.ById[id]
 	local view = viewState()
 	if not landmark or not view or not localFolder or not origin then
@@ -691,8 +709,11 @@ local function pickUp(id: string, from: number)
 	if not ghost then
 		return
 	end
+	if from > 0 then
+		fillSlot = nil -- 전시 명소를 집음 = 빈 칸 채우기는 그만
+	end
 	-- 처음 자리: 전시 칸이면 그 받침대 위, 보관함이면 첫 빈 칸(꽉 찼으면 가장 약한 전시 명소 칸) 위 — 가리키면 그리로 감
-	local start = slotTop(if from > 0 then from else ParkGrid.storageStart(view)).Position
+	local start = slotTop(if from > 0 then from else at or ParkGrid.storageStart(view)).Position
 	moveRig(ghost.Rig, CFrame.new(start + Vector3.new(0, LIFT, 0)) * plotRotation())
 	ghost.Model.Parent = localFolder
 	held = { Id = id, Ghost = ghost, Position = start, Target = start, Lift = LIFT, Angle = 0 }
@@ -830,6 +851,43 @@ local function storeHeld()
 	end)
 	reconcile()
 	renderBar()
+end
+
+-- 채울 빈 칸 정하기(nil = 풂). 정하면 보관함을 맨 앞(가장 희귀한 명소)으로 돌리고 앞 카드들이 톡 — "여기서 골라 넣어요"
+local function setFill(slot: number?)
+	if fillSlot == slot then
+		return
+	end
+	fillSlot = slot
+	reconcile()
+	if slot and scroller then
+		scroller.CanvasPosition = Vector2.zero
+		for _, card in cards do
+			if card.Button.LayoutOrder <= 4 then
+				TweenService:Create(card.Scale, CARD_NUDGE, { Scale = 1.12 }):Play()
+			end
+		end
+	end
+end
+
+-- 보관함 카드를 누름: 채울 빈 칸이 있으면 집어서 누를 필요 없이 바로 그 칸으로 날아감(true). 없으면 false(보통 집기)
+local function fillWith(id: string): boolean
+	local target = fillSlot
+	local view = viewState()
+	if not target or not view or viewLook(target) ~= ParkGrid.LOOK_EMPTY or ParkGrid.slotOf(view, id) > 0 then
+		return false
+	end
+	fillSlot = nil
+	pickUp(id, 0, target) -- 그 칸 위에 떠오름
+	local current = held
+	if not current or current.Id ~= id then
+		return true
+	end
+	local plan = ParkGrid.dropPlan(view, id, target)
+	if plan.Kind == "place" then
+		commit(plan) -- 받침대로 내려앉음
+	end
+	return true
 end
 
 -- [자동]: 켜기/끄기. 끄면 지금 배치 그대로(화면 안 바뀜). 켜서 직접 고른 배치가 바뀌면 3초 안에 한 번 더 눌러야 함
@@ -1225,7 +1283,11 @@ local function onInputEnded(input: InputObject, processed: boolean)
 			handlers.Toast("공원 확장", "lock")
 		elseif look and Landmarks.ById[look] then
 			pickUp(look, hit.Slot) -- 평소 카메라에서 터치로 톡
+		elseif look == ParkGrid.LOOK_EMPTY then
+			setFill(if fillSlot == hit.Slot then nil else hit.Slot) -- 빈 받침대 = 채울 칸(다시 누르면 풂)
 		end
+	elseif not moved and not hit.OnPlot then
+		setFill(nil)
 	end
 end
 
@@ -1376,6 +1438,10 @@ local function step(dt: number)
 		end
 	end
 
+	if not slot and not current and fillSlot then
+		slot = fillSlot -- 가리키는 곳이 없으면 채울 빈 칸을 강조
+	end
+
 	-- 가리키는 칸 강조: 잠긴 칸 빨강. 들고 있으면 놓을 칸 = 흰 테두리(빈 칸 초록 · 자리 바꿈 노랑 채우기 — 둘레에
 	-- 노랗게 빛나는 판들 사이에서도 어느 칸인지 보이게), 아니면 명소 노랑 · 빈 칸 초록
 	local look = if slot then viewLook(slot) else nil
@@ -1425,6 +1491,10 @@ local function step(dt: number)
 		setTag(look, slotTop(slot).Position + Vector3.new(0, statueHeight(slot) + TAG_GAP, 0))
 	else
 		setTag(nil)
+	end
+	local pulse = markerPulse
+	if not current and pulse then
+		pulse.Transparency = MARK_TARGET + math.sin(now * 5) * MARK_TARGET_PULSE -- 채울 빈 칸의 판도 숨 쉬듯
 	end
 
 	-- 날아가는 모형
@@ -1559,39 +1629,152 @@ local function applyView()
 	end
 end
 
--- 월드 칸 모델 · ClickDetector ---------------------------------------------------------
+-- 배치 모드 밖: 내 공원 누르기 ---------------------------------------------------------
+-- 버튼 없이 타이쿤처럼: 내 공원(부지 + 여유 LEAVE_MARGIN)에 있을 때 내 명소·빈 받침대를 톡 누르면 배치 모드
+-- (명소 = 바로 집음, 빈 받침대 = 그 칸을 채울 준비). 톡 = 누른 곳에서 DRAG_PX 안에서 뗌 — 터치로 끌면 화면 돌리기라
+-- 안 들어감, 두 번째 손가락이 닿으면 취소(두 손가락 확대). 광선은 캐릭터만 빼고 쏴서 처음 맞은 것이 내 칸 모델일 때만
+-- (남의 공원·나무 뒤에 가린 명소는 아님). 잠긴 칸은 안 받음. 서버 ClickDetector 없이 이 클라이언트 입력만 봄.
+-- 마우스로 가리키면 그 칸에 옅은 흰 강조(Highlight 하나) + 손가락 커서 — 누를 수 있다는 것이 보이게
 
--- 배치 모드 밖: 내 부지의 열린 칸에 이 클라이언트에서만 ClickDetector (누르면 배치 모드 + 그 칸 명소를 집음).
--- 남의 공원 받침대에는 손가락 커서가 안 뜸
-local function addDetector(container: Instance)
+type OutsidePress = { Input: InputObject, Kind: Enum.UserInputType, Start: Vector2, Slot: number, Moved: boolean }
+local outsidePress: OutsidePress? = nil
+local outsideFingers: { [InputObject]: boolean } = {} -- 3D 화면에 닿아 있는 손가락(화면 버튼·조이스틱 제외)
+local outsideParams = RaycastParams.new()
+outsideParams.FilterType = Enum.RaycastFilterType.Exclude
+local outsideLight: Highlight? = nil
+local outsideSlot: number? = nil -- 마우스가 가리키는 내 칸(강조 중)
+local cursorSet = false -- 손가락 커서를 이 모듈이 켰는지(끌 때 남의 커서를 덮지 않게)
+
+-- 지금 내 공원을 눌러 배치 모드에 들어갈 수 있는지
+local function canTap(): boolean
+	if editing or entering or not plot or not origin or not slotsFolder then
+		return false
+	end
+	local allowed = handlers and handlers.CanTap
+	if allowed and not allowed() then
+		return false
+	end
+	return atPlot(LEAVE_MARGIN)
+end
+
+-- 화면 점(뷰포트 px)에서 처음 맞는 것이 내 열린 칸이면 그 칸 번호
+local function tapSlot(at: Vector2): number?
+	local camera = workspace.CurrentCamera
+	local folder = slotsFolder
+	if not camera or not folder then
+		return nil
+	end
+	local ray = camera:ViewportPointToRay(at.X, at.Y)
+	local character = player.Character
+	outsideParams.FilterDescendantsInstances = if character then { character } else {}
+	local hit = workspace:Raycast(ray.Origin, ray.Direction * RAY_LENGTH, outsideParams)
+	local container = if hit then containerOf(hit.Instance) else nil
+	if not container or container.Parent ~= folder then
+		return nil
+	end
 	local slot = slotOf(container)
-	if not slot or not container:IsA("Model") or container:FindFirstChild("ParkClick") then
-		return
+	if not slot or container:GetAttribute("Look") == ParkGrid.LOOK_LOCKED then
+		return nil
 	end
-	if container:GetAttribute("Look") == ParkGrid.LOOK_LOCKED then
-		return
-	end
-	local detector = Instance.new("ClickDetector")
-	detector.Name = "ParkClick"
-	detector.MaxActivationDistance = CLICK_DISTANCE
-	detector.MouseClick:Connect(function()
-		ParkEdit.enter(slot)
-	end)
-	detector.Parent = container
+	return slot
 end
 
-local function removeDetectors()
-	for _, container in containers do
-		local detector = container:FindFirstChild("ParkClick")
-		if detector then
-			detector:Destroy()
+-- 가리키는 내 칸 강조 + 손가락 커서(nil = 끔)
+local function setOutsideHover(slot: number?)
+	local target = if slot then containers[slot] else nil
+	if not target then
+		slot = nil
+	end
+	if outsideSlot == slot and (not outsideLight or outsideLight.Adornee == target) then
+		return
+	end
+	outsideSlot = slot
+	local light = outsideLight
+	if target and not light then
+		light = Ui.new("Highlight", {
+			Name = "ParkTapHover",
+			FillColor = WHITE,
+			FillTransparency = 0.86,
+			OutlineColor = WHITE,
+			OutlineTransparency = 0.25,
+			DepthMode = Enum.HighlightDepthMode.Occluded,
+			Enabled = false,
+			Parent = workspace,
+		})
+		outsideLight = light
+	end
+	if light then
+		light.Adornee = target
+		light.Enabled = target ~= nil
+	end
+	local want = target ~= nil
+	if want ~= cursorSet then
+		cursorSet = want
+		pcall(function()
+			UserInputService.MouseIcon = if want then POINTING_HAND else ""
+		end)
+	end
+end
+
+local function outsideBegan(input: InputObject, processed: boolean)
+	local kind = input.UserInputType
+	if kind == Enum.UserInputType.Touch then
+		if processed then
+			return -- 화면 버튼·조이스틱(그 손가락은 세지 않음 — 조이스틱으로 걸으며 다른 손가락으로 톡 누를 수 있음)
 		end
+		outsideFingers[input] = true
+		if next(outsideFingers, next(outsideFingers)) ~= nil then
+			outsidePress = nil -- 두 손가락 = 확대/돌리기
+			return
+		end
+	elseif kind ~= Enum.UserInputType.MouseButton1 or processed then
+		return
+	end
+	if not canTap() then
+		return
+	end
+	local at = if kind == Enum.UserInputType.Touch
+		then toViewport(input.Position)
+		else UserInputService:GetMouseLocation()
+	local slot = tapSlot(at)
+	outsidePress = if slot then { Input = input, Kind = kind, Start = at, Slot = slot, Moved = false } else nil
+end
+
+local function outsideChanged(input: InputObject, _processed: boolean)
+	local kind = input.UserInputType
+	local current = outsidePress
+	if kind == Enum.UserInputType.Touch then
+		if current and current.Input == input and (toViewport(input.Position) - current.Start).Magnitude > DRAG_PX then
+			current.Moved = true -- 끌기 = 화면 돌리기
+		end
+	elseif kind == Enum.UserInputType.MouseMovement then
+		local at = UserInputService:GetMouseLocation()
+		if current and current.Kind == Enum.UserInputType.MouseButton1 and (at - current.Start).Magnitude > DRAG_PX then
+			current.Moved = true
+		end
+		setOutsideHover(if canTap() then tapSlot(at) else nil)
 	end
 end
 
-local function addDetectors()
-	for _, container in containers do
-		addDetector(container)
+local function outsideEnded(input: InputObject, processed: boolean)
+	local kind = input.UserInputType
+	if kind == Enum.UserInputType.Touch then
+		outsideFingers[input] = nil
+	end
+	local current = outsidePress
+	if not current or current.Kind ~= kind or (kind == Enum.UserInputType.Touch and current.Input ~= input) then
+		return
+	end
+	outsidePress = nil
+	local at = if kind == Enum.UserInputType.Touch
+		then toViewport(input.Position)
+		else UserInputService:GetMouseLocation()
+	if processed or current.Moved or (at - current.Start).Magnitude > DRAG_PX or not canTap() then
+		return
+	end
+	if tapSlot(at) == current.Slot then
+		setOutsideHover(nil)
+		ParkEdit.enter(current.Slot)
 	end
 end
 
@@ -1603,8 +1786,6 @@ local function onContainerAdded(container: Instance)
 	containers[slot] = container
 	if editing then
 		reconcile()
-	else
-		addDetector(container)
 	end
 end
 
@@ -1614,6 +1795,9 @@ local function onContainerRemoved(container: Instance)
 		containers[slot] = nil
 	end
 	hidden[container] = nil
+	if outsideSlot == slot then
+		setOutsideHover(nil)
+	end
 	if editing then
 		if hoverSlot == slot then
 			setHover(nil, HOVER_COLOR)
@@ -1737,7 +1921,7 @@ local function newCard(landmark: Landmark): Card
 	button.Activated:Connect(function()
 		if held and held.Id == landmark.Id then
 			returnHeld() -- 같은 카드를 다시 누름 = 내려놓기
-		else
+		elseif not fillWith(landmark.Id) then
 			pickUp(landmark.Id, 0)
 		end
 	end)
@@ -2052,6 +2236,16 @@ local function connectEdit(signal: RBXScriptSignal, callback: (...any) -> ())
 	table.insert(editConnections, signal:Connect(callback))
 end
 
+-- 들어오게 한 칸(배치 모드 밖에서 누른 칸): 명소면 바로 집고, 빈 받침대면 그 칸을 채울 준비
+local function pressSlot(slot: number)
+	local look = viewLook(slot)
+	if look and Landmarks.ById[look] then
+		pickUp(look, slot)
+	elseif look == ParkGrid.LOOK_EMPTY then
+		setFill(slot)
+	end
+end
+
 local function begin(slot: number?)
 	if editing or not origin or not plot then
 		return
@@ -2098,7 +2292,8 @@ local function begin(slot: number?)
 	folder.Parent = workspace
 	hideSign(true)
 
-	removeDetectors()
+	outsidePress = nil
+	setOutsideHover(nil)
 	-- HUD 를 먼저 바꾸고(메뉴·굴리기 줄 숨김, 열린 창 닫기) 띠 자리를 잡은 뒤에 카메라(띠 위 영역에 맞춤)
 	handlers.Changed(true)
 	bar.Visible = true
@@ -2124,13 +2319,8 @@ local function begin(slot: number?)
 
 	renderBar()
 	reconcile()
-
 	if slot then
-		local view = viewState()
-		local id = if view then PlayerState.parkSlots(view)[slot] else nil
-		if id then
-			pickUp(id, slot)
-		end
+		pressSlot(slot)
 	end
 
 	-- 부지 밖으로 걸어가거나 순간 이동하면 끝
@@ -2145,15 +2335,12 @@ local function begin(slot: number?)
 	end)
 end
 
--- 배치 모드 켜기. slot: 받침대를 눌러 들어왔으면 그 칸 명소를 바로 집음. 내 공원 밖이면 먼저 순간 이동
+-- 배치 모드 켜기. slot: 내 공원의 칸을 눌러 들어왔으면 그 칸 명소를 바로 집음(빈 받침대면 그 칸을 채울 준비).
+-- 내 공원 밖이면 먼저 순간 이동
 function ParkEdit.enter(slot: number?)
 	if editing then
 		if slot then
-			local view = viewState()
-			local id = if view then PlayerState.parkSlots(view)[slot] else nil
-			if id then
-				pickUp(id, slot)
-			end
+			pressSlot(slot)
 		end
 		return
 	end
@@ -2228,6 +2415,7 @@ function ParkEdit.exit()
 	painted = nil
 	hoverLight = nil
 	hoverSlot = nil
+	fillSlot = nil
 	local folder = localFolder
 	localFolder = nil
 	if folder then
@@ -2263,16 +2451,7 @@ function ParkEdit.exit()
 		tagChip.Root:Destroy()
 		tagChip = nil
 	end
-	addDetectors()
 	handlers.Changed(false)
-end
-
-function ParkEdit.toggle()
-	if editing or entering then
-		ParkEdit.exit()
-	else
-		ParkEdit.enter(nil)
-	end
 end
 
 function ParkEdit.isEditing(): boolean
@@ -2282,6 +2461,11 @@ end
 -- 화면 이름표가 붙은 월드 점(이름표 아래 끝, 화면 밖으로 안 나가게 가두기 전). 이름표가 없으면 nil — 스모크 테스트용
 function ParkEdit.tagAnchor(): Vector3?
 	return tagAnchor
+end
+
+-- 채울 빈 칸(빈 받침대를 눌러 정함, 없으면 nil) — 스모크 테스트용
+function ParkEdit.fillTarget(): number?
+	return fillSlot
 end
 
 -- 서버 상태가 바뀜(applyState). 들고 있던 명소를 더는 갖고 있지 않으면(환생) 내려놓음
@@ -2308,7 +2492,8 @@ function ParkEdit.setPlot(model: Instance?)
 	end
 	ParkEdit.exit()
 	disconnectAll(plotConnections)
-	removeDetectors()
+	outsidePress = nil
+	setOutsideHover(nil)
 	table.clear(containers)
 	plot = model
 	origin = nil
@@ -2355,6 +2540,10 @@ function ParkEdit.init(parent: ScreenGui, callbacks: Handlers)
 	dropSound = makeSound(0.9, 0.45)
 	cancelSound = makeSound(0.65, 0.3)
 	buildBar()
+	-- 배치 모드 밖: 내 공원의 명소·빈 받침대를 톡 누르면 들어감(늘 지켜보지만 내 공원에 없으면 바로 돌아감 — 광선도 안 쏨)
+	UserInputService.InputBegan:Connect(outsideBegan)
+	UserInputService.InputChanged:Connect(outsideChanged)
+	UserInputService.InputEnded:Connect(outsideEnded)
 end
 
 return ParkEdit
