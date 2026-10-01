@@ -26,7 +26,7 @@
 | 03_world.md | lore, player-market, roblox-tech | 3 | r3: L PASS / M PASS, r2: T PASS | **통과** (3라운드) |
 | 04_progression.md | system, player-market, lore | 3 | r2: S FAIL(중대2) / M PASS / L PASS | 중대 2건 수용(D-51), r3 수정·system 재검수 중 |
 | 05_classes_skills.md | system, roblox-tech, player-market | 3 | r2: S FAIL(중대3) / T FAIL(중대2) / M FAIL(중대2) | 7건 수용(D-52~D-54), r3 수정·검수 중 |
-| 06_items_crafting.md | system, roblox-tech, player-market | 1 | 검수 중 | 초안 1,236줄, 자가 점검 + r1 검수 중 |
+| 06_items_crafting.md | system, roblox-tech, player-market | 2 | r1: S FAIL(중대3) / T FAIL(중대5) / M FAIL(중대6) | 14건 수용(D-55~D-58), r2 수정·검수 중 |
 | 07_stories_hidden.md | lore, system, player-market | 0 | - | 초안 작성 중 |
 | 08_social_raid.md | system, roblox-tech, player-market | 0 | - | 대기 |
 | 09_ranking.md | system, roblox-tech, player-market | 0 | - | 대기 |
@@ -52,3 +52,4 @@
 | 2026-10-01 09:20 | 05 | r1 | system / roblox-tech / player-market | FAIL ×3 | 1-7-6 / 0-3-8 / 0-3-7 | reviews/05_r1_*.md |
 | 2026-10-01 09:40 | 04 | r2 | system / player-market / lore | FAIL / PASS / PASS | 0-2-7 / 0-0-4 / 0-0-2 | reviews/04_r2_*.md |
 | 2026-10-01 10:10 | 05 | r2 | system / roblox-tech / player-market | FAIL ×3 | 0-3-8 / 0-2-4 / 0-2-6 | reviews/05_r2_*.md |
+| 2026-10-01 10:30 | 06 | r1 | system / roblox-tech / player-market | FAIL ×3 | 0-3-7 / 0-5-8 / 0-6-4 | reviews/06_r1_*.md |
