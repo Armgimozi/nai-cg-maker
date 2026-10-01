@@ -24,7 +24,7 @@
 | 01_reference.md | lore, player-market, system | 3 | r3: lore PASS / r2: player-market PASS, system PASS | **통과** (3라운드) |
 | 02_concept.md | 전원 | 3 | r3: M PASS / S PASS / T PASS, r2: L PASS | **통과** (3라운드) |
 | 03_world.md | lore, player-market, roblox-tech | 3 | r3: L PASS / M PASS, r2: T PASS | **통과** (3라운드) |
-| 04_progression.md | system, player-market, lore | 4 | r3: S FAIL(중대1), r2: M PASS / L PASS | 중대 1건 수용(파티원 분당 상한 1.1), r4 system 재검수 중 |
+| 04_progression.md | system, player-market, lore | 5 | r4: S FAIL(중대1), r2: M PASS / L PASS | 중대 1건 수용(상한을 몬스터 레벨 연동), r5(최종) system 재검수 중 |
 | 05_classes_skills.md | system, roblox-tech, player-market | 3 | r2: S FAIL(중대3) / T FAIL(중대2) / M FAIL(중대2) | 7건 수용(D-52~D-54), r3 수정·검수 중 |
 | 06_items_crafting.md | system, roblox-tech, player-market | 2 | r1: S FAIL(중대3) / T FAIL(중대5) / M FAIL(중대6) | 14건 수용(D-55~D-58), r2 수정·검수 중 |
 | 07_stories_hidden.md | lore, system, player-market | 0 | - | 초안 작성 중 |
@@ -54,3 +54,4 @@
 | 2026-10-01 10:10 | 05 | r2 | system / roblox-tech / player-market | FAIL ×3 | 0-3-8 / 0-2-4 / 0-2-6 | reviews/05_r2_*.md |
 | 2026-10-01 10:30 | 06 | r1 | system / roblox-tech / player-market | FAIL ×3 | 0-3-7 / 0-5-8 / 0-6-4 | reviews/06_r1_*.md |
 | 2026-10-01 10:50 | 04 | r3 | system | FAIL | 0-1-3 | reviews/04_r3_system-reviewer.md |
+| 2026-10-01 11:10 | 04 | r4 | system | FAIL | 0-1-1 | reviews/04_r4_system-reviewer.md |
