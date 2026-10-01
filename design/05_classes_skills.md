@@ -783,13 +783,13 @@ flowchart LR
 |---|---|---|---|---|---|
 | ButtonA | 점프 | — | — | 확인 · 선택(로블록스 관례) | 없음 |
 | ButtonB | 대시 | 직업 스킬 1 (Z) | 특수 스킬 (V) | 취소 · 닫기(관례) | 없음(조합 중 단독 입력 무시) |
-| ButtonX | 상호작용(문맥) | 무기 스킬 1 (Q) | 직업 스킬 2 (X) | — | **엔진 기본 바인딩 충돌 → 해제**: ProximityPrompt의 GamepadKeyCode는 수식 키 조건 없이 그대로 발동하므로(L1 + X = Q 스킬 + 상호작용 동시 발동) 프롬프트를 **Style = Custom**으로 두고 GamepadKeyCode 경로를 쓰지 않는다. ButtonX는 자체 ContextActionService 핸들러가 받아 L1/R1 조합이 아닐 때만 `prompt:InputHoldBegin()` / `InputHoldEnd()` 호출(11.4, D-45) [7] |
+| ButtonX | 상호작용(문맥) | 무기 스킬 1 (Q) | 직업 스킬 2 (X) | — | **엔진 기본 바인딩 충돌 → 해제**: ProximityPrompt의 GamepadKeyCode는 수식 키 조건 없이 그대로 발동하므로(L1 + X = Q 스킬 + 상호작용 동시 발동) 프롬프트를 **Style = Custom**으로 두고 GamepadKeyCode 경로를 쓰지 않는다. ButtonX는 자체 ContextActionService 핸들러가 받아 L1/R1 조합이 아닐 때만 `prompt:InputHoldBegin()` / `InputHoldEnd()` 호출(11.4, D-45) [12] |
 | ButtonY | 프리셋 전환(비전투만) | 무기 스킬 2 (E) | 직업 스킬 3 (C) | — | 없음 |
 | ButtonL1 / ButtonR1 | (수식 키, 단독 동작 없음) | — | — | 탭 이동 | 로블록스 기본 Backpack(도구 전환)과의 충돌 가능성(공식 문서 미확인, 14.1 #6) → **Backpack CoreGui를 끈다**(10.3 #6, 어느 쪽이든 유효) |
 | ButtonL2 (LT) | 예비(미사용) | — | — | — | — |
 | ButtonR2 (RT) | 기본 공격 | — | — | — | 없음 |
 | ButtonL3 | 예비(미사용) | — | — | — | — |
-| ButtonR3 | 짧게: 조준 모드 켜기(켜진 상태면 대상 고정) · 길게 0.4초: 조준 모드 끄기 | — | — | 확인 팝업 중에는 ButtonA가 확인 | **기본 바인딩 충돌 → 해제**: 로블록스 기본 카메라(PlayerModule)가 ButtonR3를 카메라 줌 단계 전환(RbxCameraGamepadZoom)에 쓴다. PlayerModule 포크로 이 바인딩을 지운다(10.3 #2-b, D-45) [8] |
+| ButtonR3 | 짧게: 조준 모드 켜기(켜진 상태면 대상 고정) · 길게 0.4초: 조준 모드 끄기 | — | — | 확인 팝업 중에는 ButtonA가 확인 | **기본 바인딩 충돌 → 해제**: 로블록스 기본 카메라(PlayerModule)가 ButtonR3를 카메라 줌 단계 전환(RbxCameraGamepadZoom)에 쓴다. PlayerModule 포크로 이 바인딩을 지운다(10.3 #2-b, D-45) [13] |
 | DPadLeft / Right | 소모품 1 / 2 | — | — | 좌우 이동 | 없음 |
 | DPadUp / Down | 메뉴 / 지도 | — | — | 상하 이동 | 없음 |
 | ButtonStart | 로블록스 예약(메뉴) | — | — | — | 우리 바인딩 없음 |
@@ -804,20 +804,24 @@ flowchart LR
 | 단계 | 구현 | 사실 / 추정 | 출처 |
 |---|---|---|---|
 | 1 | `StarterPlayer.EnableMouseLockOption = false`로 로블록스 기본 시프트 락(Shift 키 카메라 잠금 토글)을 끈다. 플레이어별 `Player.DevEnableMouseLock`도 false로 맞춘다 | 사실(속성 존재 확인). 기본값은 문서에 미기재 → 명시적으로 false 설정 | [1], [2] |
-| 2 | Shift를 `ContextActionService:BindAction("Dash", handler, true, Enum.KeyCode.LeftShift, Enum.KeyCode.ButtonB)`로 대시에 바인딩한다. 세 번째 인수(createTouchButton)는 false로 두고 모바일 버튼은 자체 GUI로 만든다(10.4) | 사실(API) | [3] |
+| 2 | Shift를 `ContextActionService:BindAction("Dash", handler, false, Enum.KeyCode.LeftShift, Enum.KeyCode.RightShift, Enum.KeyCode.ButtonB)`로 대시에 바인딩한다. 세 번째 인수(createTouchButton)는 **false**(모바일 버튼은 자체 GUI, 11장). 기본 시프트 락이 왼쪽 · 오른쪽 Shift를 둘 다 썼으므로 RightShift도 대시 기본값에 포함(재배치 가능, 05-r1-T-04) | 사실(API) | [3] |
+| 2-b | **기본 카메라 바인딩 해제(D-45)**: PlayerModule을 StarterPlayerScripts로 포크해 CameraInput(카메라 모듈)에서 **게임패드 ButtonR3 줌 단계 전환(RbxCameraGamepadZoom)** 과 **키보드 I · O 줌(RbxCameraKeypress의 줌 부분)** 바인딩을 지운다. 줌은 마우스 휠 · 핀치로만 남긴다. 런타임 `UnbindAction`은 PlayerModule 초기화와 경합할 수 있어 포크를 기본으로 하고, 대안은 같은 키를 `BindActionAtPriority`(기본보다 높은 우선순위)로 바인딩해 Sink를 반환하는 방식. ←/→ 카메라 회전 바인딩은 우리 키와 겹치지 않아 유지 | 사실(DevForum 보고: 기본 카메라의 R3 · I/O 바인딩 존재) · 설계(해제 방식) | [3], [13] |
 | 3 | 자체 조준 모드: 휠 클릭(`Enum.UserInputType.MouseButton3`) · ButtonR3(짧게 = 켜기, 길게 0.4초 = 끄기, 10.1) 시 `UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter`, 카메라를 어깨 너머 오프셋으로 전환, 해제 시 `Default`. 시프트 락 관련 API가 폐기 예정일 수 있어 MouseBehavior 기반 자체 구현을 기본으로 한다(02 9.3) | 사실(API) · 추정(폐기 예정) | [4], 02 [P-6-06] |
 | 4 | 모바일: 조준 버튼 없음. 자동 조준 보조(10.5)가 기본 켜짐, 설정에서 끌 수 있다(D-16) | 설계 | D-16 |
 | 5 | 입력 판별: `UserInputService.PreferredInput`(Touch / Gamepad / KeyboardAndMouse)으로 UI 세트를 바꾼다. TouchEnabled로 모바일을 판별하지 않는다(02 9.2) | 사실(API) | [4] |
-| 6 | 로블록스 코어 GUI 중 **Backpack · PlayerList를 끈다**(`StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)` 등). 이유: Backpack은 숫자 키 1~9 · ` 키 · 게임패드 L1/R1을 도구 전환에 쓰고, PlayerList는 Tab을 쓴다. 가방 · 파티 목록은 자체 UI(18행) | 사실(API 존재) · 추정(키 선점 범위, 14.1 #6 · #7) | [5] |
-| 7 | 설정 메뉴에서 모든 키 재배치 허용(10.4). 재배치 시 ContextActionService의 BindAction을 새 KeyCode로 다시 바인딩 | 설계 | 02 9.1 |
+| 6 | 로블록스 코어 GUI 중 **Backpack · PlayerList를 끈다**(`StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)` 등). 이유: Backpack은 숫자 키 1~9 · ` 키(게임패드 L1/R1 사용 여부는 공식 문서 미확인)를 도구 전환에 쓰고, PlayerList는 Tab을 쓴다. 가방 · 파티 목록은 자체 UI(18행) | 사실(API 존재) · 추정(키 선점 범위, 14.1 #6 · #7) | [5] |
+| 7 | 상호작용 프롬프트(D-45): 모든 ProximityPrompt를 `Style = Enum.ProximityPromptStyle.Custom`으로 만들고 GamepadKeyCode · KeyboardKeyCode 기본 발동을 쓰지 않는다. F · ButtonX를 자체 핸들러에 바인딩해 L1/R1 조합이 아닐 때만 가장 가까운 프롬프트의 `InputHoldBegin()` / `InputHoldEnd()`를 호출(11.4) | 사실(API: Style · InputHoldBegin/End) · 설계 | [12] |
+| 8 | 설정 메뉴에서 모든 키 재배치 허용(10.4). 재배치 시 ContextActionService의 BindAction을 새 KeyCode로 다시 바인딩 | 설계 | 02 9.1 |
 
 ### 10.4 키 재배치 설정 원칙
 
 | 원칙 | 내용 |
 |---|---|
 | 범위 | 10.1의 PC 키 전부(이동 WASD 포함) · 게임패드 버튼 전부(수식 키 L1/R1 포함) 재배치 가능. 모바일은 버튼 **위치 · 크기 · 투명도** 조정(드래그 편집 모드) |
-| 금지 | 로블록스 예약 키(Esc, ButtonStart, 채팅 /)와 코어 GUI 키는 배정 불가 목록으로 표시. 한 키에 두 동작 배정 시 경고 후 이전 배정 해제 |
-| 저장 | 계정 설정(캐릭터 공통)으로 저장(12장 `inputBindings`). 플랫폼별로 따로 저장(PC · 패드 · 모바일 레이아웃) |
+| 금지 ① 예약 키 | 로블록스가 쓰고 우리가 바꿀 수 없는 키: Esc, ButtonStart, ButtonSelect(게임패드 UI 내비게이션), 채팅 / · Enter. 배정 불가 목록으로 표시 |
+| 금지 ② 해제한 기본 키 | 우리가 엔진 기본 바인딩을 지우고 자체 동작에 쓰는 키: LeftShift · RightShift(시프트 락 해제 → 대시), ButtonR3(카메라 줌 해제 → 조준 모드), I · O(카메라 줌 해제 → I는 가방 탭, O는 비움), Tab(PlayerList 해제 → 통합 메뉴), 숫자 1~9 · `(Backpack 해제 → 1 · 2 소모품). 재배치는 가능하지만 **기본 바인딩은 되살리지 않는다**(재배치 화면에 '기본 기능 해제됨' 표시) |
+| 중복 | 한 키에 두 동작 배정 시 경고 후 이전 배정 해제 |
+| 저장 | 계정 설정(캐릭터 공통)으로 저장(12.1 계정 키 `inputBindings`). 플랫폼별로 따로 저장(PC · 패드 · 모바일 레이아웃) |
 | 프리셋 | '기본' · '왼손잡이(모바일 좌우 반전)' · '패드 트리거 수식'(수식 키를 L1/R1 → L2/R2로 옮김: L2 + X/Y/B = 스킬 1~3, R2 + X/Y/B = 스킬 4~6, 기본 공격은 R2 → R1로 이동. 나머지 배치는 10.1과 같음) 3종 제공. 프리셋을 바꿔도 10.2 충돌 검사 규칙(수식 키를 누른 채 X/Y/B → 단독 동작 무시)은 같다 |
 | 초기화 | 1버튼 초기화. 튜토리얼 0장 안에는 재배치 안내 없음(설정에서만) |
 
@@ -830,7 +834,7 @@ flowchart LR
 | 스킬별 조준 | 단일 = 자동 대상. 직선 = 대상 방향. 지점형 = 대상 발밑(지점 수동 지정 없음, 모바일 비고 열). 자기 중심 = 조준 불필요. 아군 대상(회복 · 보강) = 체력 비율 최저 파티원 자동(탭으로 파티 프레임 선택 가능) |
 | 설정에서 끄면 | 모바일: 탭 대상 지정만(마지막 탭 대상 유지). 패드: R3 고정 대상만. 끄는 것은 선택이며 판정 · 수치는 동일(3-C 공정성) |
 | PC | 자동 조준 보조 없음. 조준 모드(휠 클릭)에서 화면 중앙 대상, 비조준 모드에서는 커서 방향 · 가장 가까운 적 |
-| 판정 동등 | 대시 무적 0.2초 · 시전 시간 · 판정 창은 플랫폼 공통. 모바일 · 패드에는 입력 지연 보정(서버 수신 시각 기준, RTT/2만큼 쿨타임 허용 오차, 11) |
+| 판정 동등 | 대시 무적 0.2초 · 시전 시간 · 판정 창은 플랫폼 공통. 지연 보정 2종(모든 플랫폼 같은 식): 쿨타임 허용 오차 min(RTT/2, 150ms)(10.6), **대시 무적 시작 시각 되감기 min(RTT/2, 150ms)**(10.6 '이동형 스킬 권한', D-44) |
 
 ### 10.6 매크로 대책 · 서버 권한(상세는 11)
 
