@@ -24,7 +24,7 @@
 | 01_reference.md | lore, player-market, system | 3 | r3: lore PASS / r2: player-market PASS, system PASS | **통과** (3라운드) |
 | 02_concept.md | 전원 | 3 | r3: M PASS / S PASS / T PASS, r2: L PASS | **통과** (3라운드) |
 | 03_world.md | lore, player-market, roblox-tech | 3 | r3: L PASS / M PASS, r2: T PASS | **통과** (3라운드) |
-| 04_progression.md | system, player-market, lore | 5 | r4: S FAIL(중대1), r2: M PASS / L PASS | 중대 1건 수용(상한을 몬스터 레벨 연동), r5(최종) system 재검수 중 |
+| 04_progression.md | system, player-market, lore | 5 | r5: S PASS, r2: M PASS / L PASS | **통과** (5라운드) |
 | 05_classes_skills.md | system, roblox-tech, player-market | 4 | r3: S PASS / T FAIL(중대1) / M PASS | 1건 수용(D-60), r4 roblox-tech 재검수 중 |
 | 06_items_crafting.md | system, roblox-tech, player-market | 2 | r1: S FAIL(중대3) / T FAIL(중대5) / M FAIL(중대6) | 14건 수용(D-55~D-58), r2 수정·검수 중 |
 | 07_stories_hidden.md | lore, system, player-market | 1 | 검수 중 | 초안 1,387줄(아크 30·연결 55·히든 피스 53), 자가 점검 + r1 검수 중 |
@@ -56,3 +56,4 @@
 | 2026-10-01 10:50 | 04 | r3 | system | FAIL | 0-1-3 | reviews/04_r3_system-reviewer.md |
 | 2026-10-01 11:10 | 04 | r4 | system | FAIL | 0-1-1 | reviews/04_r4_system-reviewer.md |
 | 2026-10-01 11:30 | 05 | r3 | system / roblox-tech / player-market | PASS / FAIL / PASS | 0-0-2 / 0-1-2 / 0-0-2 | reviews/05_r3_*.md |
+| 2026-10-01 11:45 | 04 | r5 | system | PASS | 0-0-2 | reviews/04_r5_system-reviewer.md |
