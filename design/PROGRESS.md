@@ -4,7 +4,7 @@
 
 ## 현재 위치
 - 단계: 2 (상세)
-- 작업 중 문서: 04 r2, 05 r2, 06 r1, 07 초안 — 병렬
+- 작업 중 문서: 07 r2, 08·09·10 초안 — 병렬
 - 비고: 사용량 한도 중단 이력 — 09-30 15:55~22:30, 10-01 01:00~03:30, 10-01 06:40~08:30 UTC. 08:32 재개(04 r1·05 r1·06 초안 재실행)
 - 다음 할 일: 02 r1 판정 → DECISIONS → 수정 → r2 / 03 초안 자가 점검 후 검수
 - 비고: 2026-09-30 15:55 UTC 자가 점검 에이전트가 사용량 한도로 실패 → 22:30 UTC 재개
@@ -27,10 +27,10 @@
 | 04_progression.md | system, player-market, lore | 5 | r5: S PASS, r2: M PASS / L PASS | **통과** (5라운드) |
 | 05_classes_skills.md | system, roblox-tech, player-market | 5 | r5: T PASS, r3: S PASS / M PASS | **통과** (5라운드) |
 | 06_items_crafting.md | system, roblox-tech, player-market | 3 | r3: T PASS / M PASS, r2: S PASS | **통과** (3라운드) |
-| 07_stories_hidden.md | lore, system, player-market | 1 | 검수 중 | 초안 1,387줄(아크 30·연결 55·히든 피스 53), 자가 점검 + r1 검수 중 |
+| 07_stories_hidden.md | lore, system, player-market | 2 | r1: L FAIL(중대2) / S FAIL(중대7) / M FAIL(중대4) | 13건 수용(D-62), r2 수정·검수 중 |
 | 08_social_raid.md | system, roblox-tech, player-market | 0 | - | 초안 작성 중 |
-| 09_ranking.md | system, roblox-tech, player-market | 0 | - | 대기 |
-| 10_economy.md | system, player-market, roblox-tech | 0 | - | 대기 |
+| 09_ranking.md | system, roblox-tech, player-market | 0 | - | 초안 작성 중 |
+| 10_economy.md | system, player-market, roblox-tech | 0 | - | 초안 작성 중 |
 | 11_roblox_tech.md | roblox-tech, system, player-market | 0 | - | 대기 |
 | 12_mvp_roadmap.md | player-market, roblox-tech, system | 0 | - | 대기 |
 | 통합 검수 | 전원 | 0 | - | 대기 |
@@ -61,3 +61,4 @@
 | 2026-10-01 12:05 | 05 | r5 | roblox-tech | PASS | 0-0-1 | reviews/05_r5_roblox-tech-reviewer.md |
 | 2026-10-01 12:20 | 06 | r2 | system / roblox-tech / player-market | PASS / FAIL / FAIL | 0-0-8 / 0-3-7 / 0-1-4 | reviews/06_r2_*.md |
 | 2026-10-01 12:40 | 06 | r3 | roblox-tech / player-market | PASS / PASS | 0-0-3 / 0-0-2 | reviews/06_r3_*.md |
+| 2026-10-01 12:50 | 07 | r1 | lore / system / player-market | FAIL ×3 | 0-2-11 / 0-7-8 / 0-4-8 | reviews/07_r1_*.md |
