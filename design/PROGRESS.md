@@ -4,7 +4,8 @@
 
 ## 현재 위치
 - 단계: 1 (뼈대)
-- 작업 중 문서: 02_concept.md r1(4인 검수 중), 03_world.md 초안 작성 중(병렬)
+- 작업 중 문서: 02 r3(M·S·T), 03 r1(L·M·T), 04 초안 — 병렬
+- 비고: 2026-10-01 01:00~03:30 UTC 사용량 한도로 중단, 03:32 재개
 - 다음 할 일: 02 r1 판정 → DECISIONS → 수정 → r2 / 03 초안 자가 점검 후 검수
 - 비고: 2026-09-30 15:55 UTC 자가 점검 에이전트가 사용량 한도로 실패 → 22:30 UTC 재개
 
@@ -21,9 +22,9 @@
 | 문서 | 배정 검수자 | 라운드 | 최신 판정 (S/L/T/M) | 상태 |
 |---|---|---|---|---|
 | 01_reference.md | lore, player-market, system | 3 | r3: lore PASS / r2: player-market PASS, system PASS | **통과** (3라운드) |
-| 02_concept.md | 전원 | 2 | r1: L FAIL(중대2) / M FAIL(중대6) / S FAIL(중대4) / T FAIL(중대1) | r1 중대 13건 전부 수용(D-10~D-19 신설), r2 수정·검수 중 |
-| 03_world.md | lore, player-market, roblox-tech | 0 | - | 초안 작성 중(02 검수와 병렬) |
-| 04_progression.md | system, player-market, lore | 0 | - | 대기 |
+| 02_concept.md | 전원 | 3 | r2: L PASS / M FAIL(중대1) / S FAIL(중대1) / T 미완료 | r2 중대 2건 수용(D-24, D-25), r3 수정·검수 중(M·S·T) |
+| 03_world.md | lore, player-market, roblox-tech | 1 | 검수 중 | 초안 906줄, r1 검수 중(한도로 1회 실패 후 재실행) |
+| 04_progression.md | system, player-market, lore | 0 | - | 초안 작성 중(한도로 1회 실패 후 재실행) |
 | 05_classes_skills.md | system, roblox-tech, player-market | 0 | - | 대기 |
 | 06_items_crafting.md | system, roblox-tech, player-market | 0 | - | 대기 |
 | 07_stories_hidden.md | lore, system, player-market | 0 | - | 대기 |
@@ -42,3 +43,4 @@
 | 2026-09-30 23:20 | 01 | r2 | lore / player-market / system | FAIL / PASS / PASS | 0-1-3 / 0-0-4 / 0-0-4 | reviews/01_r2_*.md |
 | 2026-09-30 23:30 | 01 | r3 | lore | PASS | 0-0-1 | reviews/01_r3_lore-reviewer.md |
 | 2026-10-01 00:10 | 02 | r1 | lore / player-market / system / roblox-tech | FAIL ×4 | 0-2-8 / 0-6-10 / 0-4-9 / 0-1-7 | reviews/02_r1_*.md |
+| 2026-10-01 01:00 | 02 | r2 | lore / player-market / system / roblox-tech | PASS / FAIL / FAIL / 미완료 | 0-0-4 / 0-1-6 / 0-1-3 / - | reviews/02_r2_*.md |

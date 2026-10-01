@@ -55,7 +55,7 @@
 - 등급: 경미
 - 위치: 6장 PE-2 과금 상품 '길드 전용 프라이빗 서버(검토)'(274줄), 12장 프라이빗 서버 행(527줄), 8.3 금지 열 '시간당 산출(드롭 · 제작 · 판매)을 늘리는 편의'(357줄)
 - 위반 조항: 3-C 과금(돈으로 스탯·등급을 사는 구조의 한계선), 3-B-4(길드 필수)
-- 수정 제안: 필드 플레이스의 유료 프라이빗 서버는 필드 보스·채집 노드·몬스터를 다른 유저와 나누지 않고 독점하게 해 준다. 그래서 8.3이 금지한 '시간당 산출 증가 편의'에 해당할 수 있다. 그런데 8.3에 판정이 없다. 또 공식 문서에 따르면 프라이빗 서버는 설정에 따라 13세 미만이 입장하지 못할 수 있어, 평가 통과 후 1순위인 PE-1(9~15세)의 일부가 자기 길드 서버에 못 들어가는 일이 생긴다. 8.3에 한 줄 추가한다. "프라이빗 서버는 무료로 제공하거나, 유료일 경우 비산출 공간(길드 홀 · 레이드 대기실 · 결투장)만 제공한다. 필드 플레이스 유료 프라이빗 서버에서는 필드 보스 · 채집 노드 산출이 공개 서버와 같고, 재료 일일 산출 상한도 똑같이 적용된다." 13세 미만 입장 설정 확인은 11번 항목에 넣는다.
+- 수정 제안: 필드 플레이스의 유료 프라이빗 서버는 필드 보스·채집 노드·몬스터를 다른 유저와 나누지 않고 독점하게 해 준다. 그래서 8.3이 금지한 '시간당 산출 증가 편의'에 해당할 수 있다. 그런데 8.3에 판정이 없다. 또 공식 문서에 따르면 13세 미만은 개인정보·보호자 설정에 따라 프라이빗 서버에 입장하지 못할 수 있어, 평가 통과 후 1순위인 PE-1(9~15세)의 일부가 자기 길드 서버에 못 들어가는 일이 생긴다. 8.3에 한 줄 추가한다. "프라이빗 서버는 무료로 제공하거나, 유료일 경우 비산출 공간(길드 홀 · 레이드 대기실 · 결투장)만 제공한다. 필드 플레이스 유료 프라이빗 서버에서는 필드 보스 · 채집 노드 산출이 공개 서버와 같고, 재료 일일 산출 상한도 똑같이 적용된다." 길드 콘텐츠(길드 목표·레이드 집결)가 프라이빗 서버 입장을 전제로 하지 않는다는 원칙도 08에 넘긴다.
 
 ### 02-r2-M-06
 - 등급: 경미
@@ -71,4 +71,4 @@
 
 ## 확인한 외부 출처
 - https://create.roblox.com/docs/production/publishing/kids-and-select — 평가 기간에는 "The game is first made available only to age-checked users 16 and older". 평가 기준은 "250 unique plays by highly engaged age-checked users within a 60-day window"(계정 기간·게임 플레이 시간·최근 60일 결제 이력). 긴급 심사는 게임당 50,000 로벅스(환불성). 60일 안에 평가를 못 채웠을 때의 처리·재평가 조건은 문서에 명시되어 있지 않다(02-r2-M-06, 확인 필요). 02 12장·A-09 문구와 일치한다(02-r1-M-05 해결 판정 근거).
-- https://create.roblox.com/docs/production/monetization/private-servers (메인 조사 파일 2-05 항목에서 재확인) — 프라이빗 서버는 무료 또는 월 로벅스 구독형이며, 유료 액세스와 병행할 수 없다. 13세 미만은 설정에 따라 입장이 막힐 수 있다(02-r2-M-05).
+- https://create.roblox.com/docs/production/monetization/private-servers — "While private servers can be free, you can also use private servers as a method of monetization by charging … a monthly Robux fee." "You cannot enable paid access … and private servers at the same time." "Players under the age of 13 may not be able to join private servers depending on their privacy and parental control settings." (02-r2-M-05)
