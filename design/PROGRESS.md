@@ -4,7 +4,8 @@
 
 ## 현재 위치
 - 단계: 2 (상세)
-- 작업 중 문서: 07 r2, 08·09·10 초안 — 병렬
+- 작업 중 문서: 07 r2, 08 r1, 09 r1, 10 초안 — 병렬
+- 비고: 10-01 12:55~13:30 UTC 한도 중단(14:53 재개). 07 r2·10 초안 재실행
 - 비고: 사용량 한도 중단 이력 — 09-30 15:55~22:30, 10-01 01:00~03:30, 10-01 06:40~08:30 UTC. 08:32 재개(04 r1·05 r1·06 초안 재실행)
 - 다음 할 일: 02 r1 판정 → DECISIONS → 수정 → r2 / 03 초안 자가 점검 후 검수
 - 비고: 2026-09-30 15:55 UTC 자가 점검 에이전트가 사용량 한도로 실패 → 22:30 UTC 재개
@@ -28,8 +29,8 @@
 | 05_classes_skills.md | system, roblox-tech, player-market | 5 | r5: T PASS, r3: S PASS / M PASS | **통과** (5라운드) |
 | 06_items_crafting.md | system, roblox-tech, player-market | 3 | r3: T PASS / M PASS, r2: S PASS | **통과** (3라운드) |
 | 07_stories_hidden.md | lore, system, player-market | 2 | r1: L FAIL(중대2) / S FAIL(중대7) / M FAIL(중대4) | 13건 수용(D-62), r2 수정·검수 중 |
-| 08_social_raid.md | system, roblox-tech, player-market | 0 | - | 초안 작성 중 |
-| 09_ranking.md | system, roblox-tech, player-market | 0 | - | 초안 927줄 완료, 08 초안 완료 후 r1 예정 |
+| 08_social_raid.md | system, roblox-tech, player-market | 1 | 검수 중 | 초안 1,173줄(레이드 보스 6·거점 6·분쟁 구역 3), r1 검수 중 |
+| 09_ranking.md | system, roblox-tech, player-market | 1 | 검수 중 | 초안 927줄, r1 검수 중 |
 | 10_economy.md | system, player-market, roblox-tech | 0 | - | 초안 작성 중 |
 | 11_roblox_tech.md | roblox-tech, system, player-market | 0 | - | 대기 |
 | 12_mvp_roadmap.md | player-market, roblox-tech, system | 0 | - | 대기 |
