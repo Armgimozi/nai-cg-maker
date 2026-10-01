@@ -27,8 +27,8 @@
 | 04_progression.md | system, player-market, lore | 5 | r4: S FAIL(중대1), r2: M PASS / L PASS | 중대 1건 수용(상한을 몬스터 레벨 연동), r5(최종) system 재검수 중 |
 | 05_classes_skills.md | system, roblox-tech, player-market | 3 | r2: S FAIL(중대3) / T FAIL(중대2) / M FAIL(중대2) | 7건 수용(D-52~D-54), r3 수정·검수 중 |
 | 06_items_crafting.md | system, roblox-tech, player-market | 2 | r1: S FAIL(중대3) / T FAIL(중대5) / M FAIL(중대6) | 14건 수용(D-55~D-58), r2 수정·검수 중 |
-| 07_stories_hidden.md | lore, system, player-market | 0 | - | 초안 작성 중 |
-| 08_social_raid.md | system, roblox-tech, player-market | 0 | - | 대기 |
+| 07_stories_hidden.md | lore, system, player-market | 1 | 검수 중 | 초안 1,387줄(아크 30·연결 55·히든 피스 53), 자가 점검 + r1 검수 중 |
+| 08_social_raid.md | system, roblox-tech, player-market | 0 | - | 초안 작성 중 |
 | 09_ranking.md | system, roblox-tech, player-market | 0 | - | 대기 |
 | 10_economy.md | system, player-market, roblox-tech | 0 | - | 대기 |
 | 11_roblox_tech.md | roblox-tech, system, player-market | 0 | - | 대기 |
