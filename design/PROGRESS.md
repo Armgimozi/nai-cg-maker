@@ -24,8 +24,8 @@
 | 01_reference.md | lore, player-market, system | 3 | r3: lore PASS / r2: player-market PASS, system PASS | **통과** (3라운드) |
 | 02_concept.md | 전원 | 3 | r3: M PASS / S PASS / T PASS, r2: L PASS | **통과** (3라운드) |
 | 03_world.md | lore, player-market, roblox-tech | 2 | r1: L FAIL(중대5) / M FAIL(중대9) / T FAIL(중대2) | 중대 16건 전부 수용(D-26~D-32, 가정 접두어 AS-), r2 수정·검수 중 |
-| 04_progression.md | system, player-market, lore | 0 | - | 초안 작성 중(한도로 1회 실패 후 재실행) |
-| 05_classes_skills.md | system, roblox-tech, player-market | 0 | - | 대기 |
+| 04_progression.md | system, player-market, lore | 0 | - | 초안 815줄 완료, 03 r2 종료 후 자가 점검·r1 예정 |
+| 05_classes_skills.md | system, roblox-tech, player-market | 0 | - | 초안 작성 중 |
 | 06_items_crafting.md | system, roblox-tech, player-market | 0 | - | 대기 |
 | 07_stories_hidden.md | lore, system, player-market | 0 | - | 대기 |
 | 08_social_raid.md | system, roblox-tech, player-market | 0 | - | 대기 |
