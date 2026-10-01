@@ -29,7 +29,7 @@
 | 06_items_crafting.md | system, roblox-tech, player-market | 3 | r3: T PASS / M PASS, r2: S PASS | **통과** (3라운드) |
 | 07_stories_hidden.md | lore, system, player-market | 2 | r1: L FAIL(중대2) / S FAIL(중대7) / M FAIL(중대4) | 13건 수용(D-62), r2 수정·검수 중 |
 | 08_social_raid.md | system, roblox-tech, player-market | 0 | - | 초안 작성 중 |
-| 09_ranking.md | system, roblox-tech, player-market | 0 | - | 초안 작성 중 |
+| 09_ranking.md | system, roblox-tech, player-market | 0 | - | 초안 927줄 완료, 08 초안 완료 후 r1 예정 |
 | 10_economy.md | system, player-market, roblox-tech | 0 | - | 초안 작성 중 |
 | 11_roblox_tech.md | roblox-tech, system, player-market | 0 | - | 대기 |
 | 12_mvp_roadmap.md | player-market, roblox-tech, system | 0 | - | 대기 |
