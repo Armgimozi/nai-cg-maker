@@ -5,6 +5,7 @@ local Realms = require(script.Parent.Realms)
 local Balance = require(script.Parent.Balance)
 local Insights = require(script.Parent.Insights)
 local MartialRanks = require(script.Parent.MartialRanks)
+local Josa = require(script.Parent.Josa)
 
 export type Data = {
 	version: number,
@@ -123,13 +124,13 @@ end
 
 function Progression.canBreakthrough(data: Data): (boolean, string?)
 	if data.step >= Realms.maxStep then
-		return false, "더 오를 경지가 없다"
+		return false, "더 오를 경지가 없다."
 	end
 	if not Realms.nextIsMajor(data.step) then
-		return false, "병목이 아니다  ·  영력이 차면 저절로 오른다"
+		return false, "아직 병목이 아니다. 같은 경지 안에서는 영력이 차면 저절로 오른다."
 	end
 	if data.qi < Balance.qiRequired(data.step) then
-		return false, "영력이 아직 차지 않았다"
+		return false, "영력이 아직 덜 찼다."
 	end
 	return true, nil
 end
@@ -197,19 +198,19 @@ end
 function Progression.buyInsight(data: Data, id: string): (boolean, string)
 	local def = Insights.byId[id]
 	if not def then
-		return false, "알 수 없는 깨달음"
+		return false, "알 수 없는 깨달음이다."
 	end
 	local level = Progression.insight(data, id)
 	if level >= def.maxLevel then
-		return false, def.name .. "  ·  이미 완성"
+		return false, Josa.eun(def.name) .. " 이미 끝까지 깨우쳤다."
 	end
 	local cost = Insights.cost(id, level)
 	if data.enlightenment < cost then
-		return false, "깨달음이 부족하다"
+		return false, "깨달음이 부족하다."
 	end
 	data.enlightenment -= cost
 	data.insights[id] = level + 1
-	return true, string.format("%s Lv.%d", def.name, level + 1)
+	return true, string.format("%s 깊어졌다. (Lv.%d)", Josa.i(def.name), level + 1)
 end
 
 -- 반환: 새로 오른 무공 경지 인덱스 (안 올랐으면 nil)

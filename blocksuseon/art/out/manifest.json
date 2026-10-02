@@ -1,0 +1,162 @@
+{
+  "panel": {
+    "file": "panel.png",
+    "source": "assets.html",
+    "width": 256,
+    "height": 256,
+    "slice": "80,80,176,176",
+    "meta": null
+  },
+  "plaque": {
+    "file": "plaque.png",
+    "source": "assets.html",
+    "width": 512,
+    "height": 112,
+    "slice": "120,44,392,68",
+    "meta": null
+  },
+  "barTrack": {
+    "file": "barTrack.png",
+    "source": "assets.html",
+    "width": 256,
+    "height": 28,
+    "slice": "16,13,240,15",
+    "meta": null
+  },
+  "barJade": {
+    "file": "barJade.png",
+    "source": "assets.html",
+    "width": 256,
+    "height": 20,
+    "slice": "10,9,246,11",
+    "meta": null
+  },
+  "barGold": {
+    "file": "barGold.png",
+    "source": "assets.html",
+    "width": 256,
+    "height": 20,
+    "slice": "10,9,246,11",
+    "meta": null
+  },
+  "orbJade": {
+    "file": "orbJade.png",
+    "source": "assets.html",
+    "width": 256,
+    "height": 256,
+    "slice": null,
+    "meta": null
+  },
+  "orbStone": {
+    "file": "orbStone.png",
+    "source": "assets.html",
+    "width": 256,
+    "height": 256,
+    "slice": null,
+    "meta": null
+  },
+  "orbGold": {
+    "file": "orbGold.png",
+    "source": "assets.html",
+    "width": 256,
+    "height": 256,
+    "slice": null,
+    "meta": null
+  },
+  "halo": {
+    "file": "halo.png",
+    "source": "assets.html",
+    "width": 256,
+    "height": 256,
+    "slice": null,
+    "meta": null
+  },
+  "iconLotus": {
+    "file": "iconLotus.png",
+    "source": "assets.html",
+    "width": 128,
+    "height": 128,
+    "slice": null,
+    "meta": null
+  },
+  "iconSword": {
+    "file": "iconSword.png",
+    "source": "assets.html",
+    "width": 128,
+    "height": 128,
+    "slice": null,
+    "meta": null
+  },
+  "iconScroll": {
+    "file": "iconScroll.png",
+    "source": "assets.html",
+    "width": 128,
+    "height": 128,
+    "slice": null,
+    "meta": null
+  },
+  "iconDummy": {
+    "file": "iconDummy.png",
+    "source": "assets.html",
+    "width": 128,
+    "height": 128,
+    "slice": null,
+    "meta": null
+  },
+  "divider": {
+    "file": "divider.png",
+    "source": "assets.html",
+    "width": 512,
+    "height": 32,
+    "slice": null,
+    "meta": null
+  },
+  "gem": {
+    "file": "gem.png",
+    "source": "assets.html",
+    "width": 32,
+    "height": 32,
+    "slice": null,
+    "meta": null
+  },
+  "pillJade": {
+    "file": "pillJade.png",
+    "source": "assets.html",
+    "width": 160,
+    "height": 56,
+    "slice": "22,22,138,34",
+    "meta": null
+  },
+  "pillStone": {
+    "file": "pillStone.png",
+    "source": "assets.html",
+    "width": 160,
+    "height": 56,
+    "slice": "22,22,138,34",
+    "meta": null
+  },
+  "swash": {
+    "file": "swash.png",
+    "source": "assets.html",
+    "width": 1024,
+    "height": 256,
+    "slice": null,
+    "meta": null
+  },
+  "mist": {
+    "file": "mist.png",
+    "source": "assets.html",
+    "width": 512,
+    "height": 320,
+    "slice": null,
+    "meta": null
+  },
+  "iconClose": {
+    "file": "iconClose.png",
+    "source": "assets.html",
+    "width": 64,
+    "height": 64,
+    "slice": null,
+    "meta": null
+  }
+}

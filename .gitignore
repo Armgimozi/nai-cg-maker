@@ -14,3 +14,6 @@ config.yml
 
 # 블록수선전 빌드 중간 산출물 (완성본 BlockSuseon.rbxl 은 커밋한다)
 blocksuseon/build/
+
+# 블록수선전 UI 글꼴 (tools/fetch_fonts.py 가 받아 옴)
+blocksuseon/art/fonts/

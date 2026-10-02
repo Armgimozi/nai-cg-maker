@@ -62,6 +62,21 @@ tools/publish.py          Open Cloud 로 게시
 밸런스는 [`src/shared/Balance.luau`](src/shared/Balance.luau)의 숫자만 바꾸면 된다. 지금 값으로는 강화 없이
 결단기까지 약 23분, 성반기까지 약 2시간 10분(각 경지에 맞는 최고 영맥 기준)이 걸린다. `lune run tests/run`이 이 표를 출력한다.
 
+## UI 그림과 글꼴
+
+Roblox 에는 한글 명조·붓글씨 글꼴이 없어서 HUD 글자도 그림으로 찍는다.
+
+```sh
+python3 tools/fetch_fonts.py      # 코드에 나오는 한글만 담아 송명·나눔명조 글꼴 받기 → art/fonts/
+node tools/build_glyphs.mjs       # 글자판(아틀라스) 그리기 → art/out/glyphs_*.png
+node tools/render_art.mjs         # art/assets.html 의 판·버튼·아이콘 그리기 → art/out/*.png
+python3 tools/upload_art.py       # 바뀐 그림만 Roblox 이미지 에셋으로 올리고 src/client/Art.luau 갱신
+```
+
+`node` 스크립트는 Playwright 가 필요하다 (`NODE_PATH` 에 전역 playwright 경로, 필요하면 `CHROMIUM_PATH`).
+HUD 에 새 한글 문구를 넣었으면 위 네 단계를 다시 돌린다. `lune run tests/hud` 가 빠진 글자를 잡아 준다.
+알림은 화면에 따로 띄우지 않고 채팅창 시스템 메시지로 보낸다.
+
 ## 개발
 
 필요한 도구: [Rojo](https://rojo.space) 7, [Lune](https://lune-org.github.io/docs) 0.10 (선택: StyLua, Selene)

@@ -92,7 +92,32 @@ playerGui.Name = "PlayerGui"
 local sharedFolder = Harness.new({}).folder("src/shared")
 
 local tweensPlayed = 0
+local chatMessages: { string } = {}
+local fakeChannel = {
+	Parent = true,
+	IsA = function(_, className)
+		return className == "TextChannel"
+	end,
+	DisplaySystemMessage = function(_, message)
+		table.insert(chatMessages, message)
+	end,
+}
 local services = {
+	TextChatService = {
+		ChatVersion = roblox.Enum.ChatVersion.TextChatService,
+		WaitForChild = function()
+			return {
+				WaitForChild = function()
+					return fakeChannel
+				end,
+			}
+		end,
+	},
+	StarterGui = {
+		SetCore = function()
+			error("예전 채팅으로 가면 안 된다")
+		end,
+	},
 	Players = {
 		LocalPlayer = {
 			WaitForChild = function()
@@ -221,14 +246,15 @@ task.wait(4)
 
 local hud = playerGui:FindFirstChild("BlockSuseonHud")
 assert(hud, "HUD ScreenGui 가 없다")
-local feed = hud:FindFirstChild("Feed")
-local lines = 0
-for _, child in feed:GetChildren() do
-	if child:IsA("TextLabel") then
-		lines += 1
-	end
-end
-assert(lines <= 4, `알림이 {lines}줄 남았다 (최대 4)`)
+-- 알림 6개 + 첫 접속 안내 2개가 채팅으로 가야 한다
+assert(#chatMessages == 8, `채팅 알림 {#chatMessages}개 (8개 기대)`)
+assert(string.find(chatMessages[1], '<font color="#', 1, true), "알림에 색이 없다")
+Hud.toast("<b>깨짐</b> & 확인", "info")
+task.wait(0.1)
+assert(
+	string.find(chatMessages[#chatMessages], "&lt;b&gt;", 1, true),
+	"알림 글자를 이스케이프하지 않았다"
+)
 assert(playerGui:FindFirstChild("BlockSuseonCinematic"), "연출 ScreenGui 가 없다")
 
 local count = 0
@@ -236,3 +262,43 @@ for _, _ in hud:GetDescendants() do
 	count += 1
 end
 print(`HUD 통과 · 인스턴스 {count}개 · 트윈 {tweensPlayed}회 · 상태 {#cases}가지`)
+
+-- 화면에 나올 수 있는 글자가 모두 글자판에 있는지 -----------------------------------------
+local Art = loader.require(loader.folder("src/client").Art)
+local Realms = loader.require(sharedFolder.Realms)
+local Insights = loader.require(sharedFolder.Insights)
+local MartialRanks = loader.require(sharedFolder.MartialRanks)
+local missing = {}
+local function need(fontName: string, text: string)
+	for _, code in utf8.codes(text) do
+		local ch = utf8.char(code)
+		if not Art.fonts[fontName].glyphs[ch] then
+			missing[`{fontName}:{ch}`] = text
+		end
+	end
+end
+for step = 1, Realms.maxStep do
+	local s = Realms.get(step)
+	need("title", Realms.label(step))
+	need("title", s.realm.name)
+	need("title", s.sub)
+	need("body", s.realm.blurb)
+	if s.realm.tribulation then
+		need("title", s.realm.tribulation.name)
+	end
+end
+for _, def in Insights.list do
+	need("title", def.name)
+	need("body", def.stat)
+	for level = 0, def.maxLevel do
+		need("body", def.show(level))
+	end
+end
+for _, rank in MartialRanks.list do
+	need("body", "무공 " .. rank.name)
+end
+for key, text in missing do
+	print(`  글자판에 없음 {key} ← "{text}"`)
+end
+assert(next(missing) == nil, "글자판에 없는 글자가 있다 — tools/fetch_fonts.py 부터 다시")
+print("글자판 검사 통과")

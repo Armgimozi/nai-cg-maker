@@ -1,0 +1,94 @@
+{
+  "gem.png": {
+    "sha256": "a167a22502bb22e16881ccbe9d473d4f6ad0a209a118c9123e6c934202f3f5d2",
+    "assetId": "96451851922551"
+  },
+  "panel.png": {
+    "sha256": "1fba63de5a3fe6a795d6fa0d1c76e9ca92978ed44ec3983193aadaae6dd06aef",
+    "assetId": "94682426330883"
+  },
+  "plaque.png": {
+    "sha256": "11ea2b3dd50a6e33285a4a31943a7ee5af9420bfa2e121e4b146d9e38e275184",
+    "assetId": "90995391289401"
+  },
+  "barTrack.png": {
+    "sha256": "ac49de1099097af8c290661e9ff98de67c502823d40ac7966e280fa073791c0e",
+    "assetId": "119354371375504"
+  },
+  "barJade.png": {
+    "sha256": "f57e69a3c55b7fbe7d9a0ffc29af7537680198a4f1c5ee577a0131c0c0cedce1",
+    "assetId": "76368238571206"
+  },
+  "barGold.png": {
+    "sha256": "7395d6f10cd2afe5accd851a4b72b2b465e11c7d6cff2bd596caf49221beab28",
+    "assetId": "76893992200624"
+  },
+  "orbJade.png": {
+    "sha256": "14e482aee95c8c1d7d27545af3f6aa3531e5e79647c24523a41463ed2833db27",
+    "assetId": "110841856614537"
+  },
+  "orbStone.png": {
+    "sha256": "43fc797c74a45268c37978b5a307c84d3762e06a0f71c651c9b3ed5f27ab4a76",
+    "assetId": "70489786068090"
+  },
+  "orbGold.png": {
+    "sha256": "5557fc96d7eaeccbe0580b831d881fb8903d021c0e85b1fae6e993ea55ddb7ca",
+    "assetId": "121331139571277"
+  },
+  "halo.png": {
+    "sha256": "297f1c33af83b9848d1c50223740ee9b051a8869954bf4c530bb7ce8160ddeac",
+    "assetId": "88997332153955"
+  },
+  "iconLotus.png": {
+    "sha256": "360207e97ffe94731d66a3510989f78b12e77042d2a112f00e4ba0f5550a6395",
+    "assetId": "108850705583184"
+  },
+  "iconSword.png": {
+    "sha256": "1d1b4f792fd40d9aede7b32c8cb2d5e30040d6fbdb1bb4178ffc96f03d558211",
+    "assetId": "79778128000196"
+  },
+  "iconScroll.png": {
+    "sha256": "029acd8737f63d5932024ca9c25554aa4f7c14ff9dfbc64b1818c4663a03d01b",
+    "assetId": "97517117328315"
+  },
+  "iconDummy.png": {
+    "sha256": "4edfa778c173df3d2d20e51bc26b2b7a68936b96be0ecac357cf1cf6539f35cd",
+    "assetId": "119848059827434"
+  },
+  "divider.png": {
+    "sha256": "2335ec7d4183c456de58befe9337e53db8f21d63bfdb21e861ddbb0486a70c46",
+    "assetId": "85552072629408"
+  },
+  "pillJade.png": {
+    "sha256": "f22e99cbc6ce32f7683165cd667c5c4251628eab6e9ff0de404bef6bf728e4b2",
+    "assetId": "130158039426652"
+  },
+  "pillStone.png": {
+    "sha256": "39f8c571d7e6fc37a995b91e4fa0ad1fd1160eca5ea996fb5443d1ae5646e1ca",
+    "assetId": "103757234464937"
+  },
+  "swash.png": {
+    "sha256": "923431138d4c769ea4c9ce8003838f2ece8068a49e953a2e3e326687e1b3259d",
+    "assetId": "71171194584098"
+  },
+  "mist.png": {
+    "sha256": "f566c7ff072dbed0d0dce5a2c42c5460e826397748379561b8673147ffbbc1ad",
+    "assetId": "110884637445639"
+  },
+  "iconClose.png": {
+    "sha256": "c0242888175b8b5da41eaf3718dc4ab797e88d760a3f948c28ab8efffbfa214e",
+    "assetId": "83569591119407"
+  },
+  "glyphs_body_0.png": {
+    "sha256": "99095e7ece2e5a788ebce0aaf65849d87cdd3a01edcb6fdf1791f3cde88665e3",
+    "assetId": "90031694511701"
+  },
+  "glyphs_title_0.png": {
+    "sha256": "a68447658a662ff4fc3939b9020928381975152d0b01bf406ee3f8962254114f",
+    "assetId": "109753201302496"
+  },
+  "glyphs_title_1.png": {
+    "sha256": "a9f06521825b09bc79e0934db6aeb715e99f90d3b72dfc20dfa6a2985ff9f67a",
+    "assetId": "102800769881874"
+  }
+}

@@ -81,10 +81,12 @@ function Harness.robloxGlobals(game: any): { [string]: any }
 			"UDim",
 			"UDim2",
 			"ColorSequence",
+			"ColorSequenceKeypoint",
 			"NumberRange",
 			"NumberSequence",
 			"NumberSequenceKeypoint",
 			"Font",
+			"Rect",
 		}
 	do
 		env[name] = roblox[name]

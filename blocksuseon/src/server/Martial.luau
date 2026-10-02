@@ -42,10 +42,14 @@ local function train(player: Player, post: BasePart)
 		local rank = MartialRanks.list[rankUp]
 		Characters.applyStats(player, false)
 		Fx.burst(player.Character, RANK_COLOR, 30)
-		Sync.notify(player, string.format("무공 %s  ·  체력과 경공이 오른다", rank.name), "good")
+		Sync.notify(
+			player,
+			string.format("무공이 %s에 이르렀다. 체력과 경공이 올랐다.", rank.name),
+			"good"
+		)
 		if rankUp >= ANNOUNCE_FROM then
 			Sync.broadcast(
-				string.format("%s님의 무공이 %s에 이르렀다", player.DisplayName, rank.name),
+				string.format("%s님의 무공이 %s에 이르렀다.", player.DisplayName, rank.name),
 				"world"
 			)
 		end

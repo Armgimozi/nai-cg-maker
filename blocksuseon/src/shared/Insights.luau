@@ -37,13 +37,13 @@ Insights.list = {
 		id = "dosim",
 		name = "도심",
 		hanja = "道心",
-		stat = "돌파 성공률 · 실패 손실",
+		stat = "돌파 확률, 실패 손실",
 		perLevel = 0.02,
 		maxLevel = 15,
 		baseCost = 6,
 		costGrowth = 1.3,
 		show = function(level)
-			return string.format("+%dp · -%s", 2 * level, pct(math.min(0.6, 0.04 * level)))
+			return string.format("+%dp, -%s", 2 * level, pct(math.min(0.6, 0.04 * level)))
 		end,
 	},
 	{

@@ -7,6 +7,7 @@ local Realms = require(Shared.Realms)
 local Balance = require(Shared.Balance)
 local Progression = require(Shared.Progression)
 local Format = require(Shared.Format)
+local Josa = require(Shared.Josa)
 local PlayerData = require(script.Parent.PlayerData)
 local Session = require(script.Parent.Session)
 local Sync = require(script.Parent.Sync)
@@ -65,7 +66,7 @@ function Cultivation.setMeditating(player: Player, on: boolean)
 	if on then
 		local root = Characters.root(player)
 		if session.tribulation then
-			Sync.notify(player, "천겁 중에는 운기조식할 수 없다", "bad")
+			Sync.notify(player, "천겁을 맞는 중에는 운기조식을 할 수 없다.", "bad")
 			return
 		end
 		if not humanoid or not root then
@@ -96,17 +97,23 @@ function Cultivation.grantQi(player: Player, amount: number)
 	local advanced, points = Progression.addQi(data, amount)
 
 	if advanced > 0 then
-		Sync.notify(player, string.format("%s  ·  깨달음 +%d", Realms.label(data.step), points), "good")
+		Sync.notify(player, string.format("%s에 올랐다. (깨달음 +%d)", Realms.label(data.step), points), "good")
 		Fx.burst(player.Character, STEP_COLOR, 25)
 	end
 	if not wasFull and isFull(data) then
 		if data.step >= Realms.maxStep then
-			Sync.notify(player, "최고 경지에 이르렀다", "good")
+			Sync.notify(player, "더 오를 경지가 없다. 지금으로서는 여기가 끝이다.", "good")
 		else
 			local target = Realms.get(data.step + 1).realm
 			local message = if target.tribulation
-				then string.format("병목  ·  %s는 천겁을 넘어야 오른다", target.name)
-				else string.format("병목  ·  %s로 돌파할 수 있다", target.name)
+				then string.format(
+					"영력이 가득 찼다. %s에 오르려면 천겁을 넘어야 한다.",
+					target.name
+				)
+				else string.format(
+					"영력이 가득 찼다. 이제 %s 돌파할 수 있다.",
+					Josa.ro(target.name)
+				)
 			Sync.notify(player, message, "good")
 		end
 	end
@@ -155,7 +162,7 @@ function Cultivation.breakthrough(player: Player)
 		return
 	end
 	if session.tribulation then
-		Sync.notify(player, "이미 천겁 중이다", "bad")
+		Sync.notify(player, "이미 천겁을 맞고 있다.", "bad")
 		return
 	end
 	if not Characters.humanoid(player) then
@@ -164,12 +171,12 @@ function Cultivation.breakthrough(player: Player)
 
 	local result = Progression.attemptBreakthrough(data, rng:NextNumber())
 	if result.kind == "blocked" then
-		Sync.notify(player, result.reason or "돌파할 수 없다", "bad")
+		Sync.notify(player, result.reason or "지금은 돌파할 수 없다.", "bad")
 	elseif result.kind == "success" then
 		Characters.applyStats(player, true)
 		Fx.burst(player.Character, MAJOR_COLOR, 60)
-		Sync.notify(player, string.format("돌파 성공  ·  깨달음 +%d", result.points or 0), "good")
-		Sync.broadcast(string.format("%s님이 %s에 올랐다", player.DisplayName, Realms.label(data.step)), "world")
+		Sync.notify(player, string.format("돌파에 성공했다! (깨달음 +%d)", result.points or 0), "good")
+		Sync.broadcast(string.format("%s님이 %s에 올랐다.", player.DisplayName, Realms.label(data.step)), "world")
 		Sync.cinematic(player, {
 			kind = "ascend",
 			step = data.step,
@@ -177,7 +184,14 @@ function Cultivation.breakthrough(player: Player)
 			blurb = Realms.get(data.step).realm.blurb,
 		})
 	elseif result.kind == "fail" then
-		Sync.notify(player, string.format("주화입마  ·  영력 -%s", Format.qi(result.lost or 0)), "bad")
+		Sync.notify(
+			player,
+			string.format(
+				"돌파에 실패해 주화입마에 빠졌다. 영력 %s 잃었다.",
+				Josa.eul(Format.qi(result.lost or 0))
+			),
+			"bad"
+		)
 	elseif result.kind == "tribulation" then
 		Cultivation.setMeditating(player, false)
 		Tribulation.start(player)
