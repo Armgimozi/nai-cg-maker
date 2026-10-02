@@ -455,7 +455,7 @@ end
 
 -- 과업을 실제로 켠 마지막 단계. 그 뒤 단계는 아직 예전처럼 영력만으로 오른다.
 -- 경지별 과업을 하나씩 내보낼 때마다 늘린다.
-Tasks.LIVE_UNTIL = 2
+Tasks.LIVE_UNTIL = 16 -- 연기기 14성까지
 
 function Tasks.isLive(step: number): boolean
 	return step <= Tasks.LIVE_UNTIL

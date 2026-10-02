@@ -19,6 +19,7 @@ local Sync = require(script.Parent.Sync)
 local Characters = require(script.Parent.Characters)
 local Fx = require(script.Parent.Fx)
 local DayNight = require(script.Parent.DayNight)
+local Ritual = require(script.Parent.Ritual)
 
 local TaskService = {}
 
@@ -318,6 +319,21 @@ function TaskService.trialResult(player: Player, payload: any)
 	if trial.purpose == "entry" then
 		TaskService.onEntryTrial(player, success)
 		return
+	elseif trial.purpose == "craft" then
+		if success and Progression.takeItems(data, Balance.PILL_RECIPE) then
+			Progression.addItem(data, "pill")
+			Fx.burst(player.Character, Color3.fromRGB(255, 200, 120), 40)
+			Sync.notify(player, "축기단을 빚었다! 무극영운을 시작할 때 저절로 삼킨다.", "good")
+			TaskService.settle(player)
+		elseif not success then
+			Sync.notify(
+				player,
+				"불이 고르지 않아 약이 엉겼다. 재료는 그대로다. 다시 달여 본다.",
+				"bad"
+			)
+		end
+		Sync.state(player)
+		return
 	end
 	local task = trial.taskId and Tasks.find(data, trial.taskId)
 	if not task then
@@ -349,6 +365,184 @@ end
 function TaskService.hasTrial(player: Player): boolean
 	local session = Session.get(player)
 	return session ~= nil and session.trial ~= nil
+end
+
+-- 만지는 자리 (팔괘 기둥, 칠성단, 연단로) -------------------------------------------------
+
+local function findTask(data, kind: string): Tasks.Task?
+	for _, task in (Tasks.list(data)) do
+		if task.kind == kind and Tasks.isOpen(data, task) and not Tasks.isDone(data, task) then
+			return task
+		end
+	end
+	return nil
+end
+
+local function touchTrigram(player: Player, data, id: string)
+	local task = findTask(data, "touch")
+	if not task then
+		Sync.notify(player, "팔괘가 새겨진 기둥이다. 연기기 6성 팔괘완로에서 쓴다.", "info")
+		return
+	end
+	local expected = Tasks.pendingSites(data, task)[1]
+	local name = siteName(id)
+	if id == expected then
+		local done = Tasks.finishSite(data, task, id)
+		Fx.burst(player.Character, Color3.fromRGB(255, 225, 160), 14)
+		Sync.notify(
+			player,
+			string.format("%s 영맥에 새겼다. (%d / %d)", Josa.eul(name), Tasks.value(data, task), task.max),
+			"good"
+		)
+		if done then
+			Sync.notify(
+				player,
+				"여덟 괘가 원을 그렸다. 전신 영맥이 하나의 길로 이어진다.",
+				"good"
+			)
+			finished(player, task)
+		end
+	else
+		Tasks.set(data, task.id, 0)
+		Sync.notify(player, "순서가 어긋나 진도가 흩어졌다. 건부터 다시 새긴다.", "bad")
+	end
+	Sync.markDirty(player)
+end
+
+local function useAltar(player: Player, data, part: BasePart)
+	local offer = findTask(data, "offer")
+	if offer then
+		local count = Progression.itemCount(data, offer.item or "herb")
+		if not Progression.takeItems(data, { [offer.item or "herb"] = 7 }) then
+			Sync.notify(
+				player,
+				string.format("제물로 영초 일곱 뿌리가 든다. 지금 %d뿌리다.", count),
+				"bad"
+			)
+			return
+		end
+		Sync.notify(
+			player,
+			"칠성단에 영초 일곱 뿌리를 바쳤다. 밤의 시운을 기다려 제의를 올린다.",
+			"good"
+		)
+		if Tasks.add(data, offer, 1) then
+			finished(player, offer)
+		end
+		Sync.markDirty(player)
+		return
+	end
+	local rite = findTask(data, "ritual")
+	if rite then
+		Ritual.start(player, part.Position, function(success, caught)
+			local current = PlayerData.get(player)
+			if not current or current.step ~= data.step then
+				return
+			end
+			if success then
+				Tasks.set(current, rite.id, rite.max)
+				Progression.addLog(current, "chilseong")
+				Sync.notify(
+					player,
+					"일곱 별이 제의를 받아들였다. 이제 자신의 명을 읽을 수 있다.",
+					"good"
+				)
+				Sync.broadcast(string.format("%s님이 칠성제의를 마쳤다.", player.DisplayName), "world")
+				finished(player, rite)
+			else
+				local offerTask = Tasks.find(current, "offer")
+				if offerTask then
+					Tasks.set(current, offerTask.id, 0)
+				end
+				Sync.notify(
+					player,
+					string.format(
+						"별빛을 %d줄기밖에 받지 못했다. 제물이 흩어졌다. 다시 바치고 다음 시운에 올린다.",
+						caught
+					),
+					"bad"
+				)
+			end
+			Sync.state(player)
+		end)
+		return
+	end
+	Sync.notify(player, "칠성단이다. 연기기 7성 칠성제의에서 쓴다.", "info")
+end
+
+local function useFurnace(player: Player, data, session)
+	if not Progression.canCraftPill(data) then
+		Sync.notify(
+			player,
+			string.format(
+				"축기단을 빚으려면 영초 6뿌리와 천년영지 1개가 든다. 지금 영초 %d, 천년영지 %d.",
+				Progression.itemCount(data, "herb"),
+				Progression.itemCount(data, "lingzhi")
+			),
+			"bad"
+		)
+		return
+	end
+	if session.trial or session.tribulation then
+		return
+	end
+	local trial = newTrial(session, "balance", "craft", {
+		bars = 1,
+		target = 10,
+		labels = { "불" },
+		band = Progression.trialBand(data),
+		turbulence = 1,
+	})
+	openTrial(
+		player,
+		session,
+		trial,
+		"축기단 빚기",
+		"불 세기를 금색 띠 안에 맞춰 영초와 천년영지를 달인다."
+	)
+end
+
+function TaskService.onPrompt(player: Player, id: string)
+	local data = PlayerData.get(player)
+	local session = Session.get(player)
+	local part = TaskService.site(id)
+	if not data or not session or not part or not Characters.humanoid(player) then
+		return
+	end
+	if string.sub(id, 1, 4) == "tri_" then
+		touchTrigram(player, data, id)
+	elseif id == "altar" then
+		useAltar(player, data, part)
+	elseif id == "furnace" then
+		useFurnace(player, data, session)
+	end
+	Sync.state(player)
+end
+
+-- Prompt 속성이 있는 자리에 F 버튼을 단다. 누가 볼지는 클라이언트가 과업을 보고 정한다
+function TaskService.setupPrompts()
+	refreshSites()
+	for id, part in sites do
+		local label = part:GetAttribute("Prompt")
+		if type(label) == "string" and not part:FindFirstChildOfClass("ProximityPrompt") then
+			local prompt = Instance.new("ProximityPrompt")
+			prompt.ObjectText = label
+			prompt.ActionText = if id == "furnace"
+				then "축기단 빚기"
+				elseif id == "altar" then "제의"
+				else "괘 새기기"
+			prompt.KeyboardKeyCode = Enum.KeyCode.F
+			prompt.HoldDuration = 0.4
+			prompt.MaxActivationDistance = if id == "altar" then 14 else 10
+			prompt.RequiresLineOfSight = false
+			prompt:SetAttribute("Site", id)
+			prompt:AddTag("TaskPrompt")
+			prompt.Parent = part
+			prompt.Triggered:Connect(function(player)
+				TaskService.onPrompt(player, id)
+			end)
+		end
+	end
 end
 
 -- 주머니에 넣는다 (영초 채집 등)

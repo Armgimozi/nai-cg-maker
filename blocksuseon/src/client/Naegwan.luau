@@ -355,11 +355,484 @@ local function playBalance(params: { [string]: any }, puzzle)
 	)
 end
 
+-- 순서: 빛나는 순서를 기억해 같은 순서로 짚는다 (칠십이지살, 삼십육천강) --------------------------
+
+local function playSequence(_params: { [string]: any }, puzzle)
+	local stage = ui.stage
+	local rounds = puzzle.rounds
+	local labels = puzzle.labels
+	local nodes = {}
+	local size = if labels then 92 else 56
+	local gap = if labels then 14 else 16
+	local gridWidth = size * 3 + gap * 2
+	local left = 260 - gridWidth / 2
+	for n = 1, 9 do
+		local r = (n - 1) // 3
+		local c = (n - 1) % 3
+		local x = left + c * (size + gap) + size / 2
+		local y = 20 + r * (size * (if labels then 0.62 else 1) + gap) + size / 2
+		local node
+		if labels then
+			node = new("TextButton", {
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromOffset(x, y),
+				Size = UDim2.fromOffset(size, size * 0.56),
+				BackgroundColor3 = C.ink,
+				BackgroundTransparency = 0.2,
+				Text = "",
+				AutoButtonColor = false,
+				Parent = stage,
+			}, { new("UICorner", { CornerRadius = UDim.new(0, 10) }) })
+			local labelRow = row({ Size = UDim2.new(1, 0, 1, -4), Parent = node })
+			nodes[n] = { button = node, label = text("title", 24, { color = C.cream, parent = labelRow }) }
+		else
+			node = new("TextButton", {
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromOffset(x, y),
+				Size = UDim2.fromOffset(size, size),
+				BackgroundColor3 = C.ink,
+				BackgroundTransparency = 0.2,
+				Text = "",
+				AutoButtonColor = false,
+				Parent = stage,
+			}, { new("UICorner", { CornerRadius = UDim.new(1, 0) }) })
+			nodes[n] = { button = node }
+		end
+		nodes[n].stroke = new("UIStroke", { Color = C.gold, Thickness = 2, Transparency = 0.3, Parent = node })
+	end
+	local roundRow = row({ Position = UDim2.fromOffset(0, 236), Size = UDim2.new(1, 0, 0, 30), Parent = stage })
+	local roundText = text("title", 22, { gradient = Ui.GOLD_TEXT, parent = roundRow })
+
+	local mine = generation
+	local round = 1
+	local entered: { number } = {}
+	local answers = {}
+	local accepting = false
+
+	local function light(n: number, color: Color3)
+		local node = nodes[n]
+		node.button.BackgroundColor3 = color
+		node.button.BackgroundTransparency = 0
+	end
+	local function unlight(n: number)
+		local node = nodes[n]
+		node.button.BackgroundColor3 = C.ink
+		node.button.BackgroundTransparency = 0.2
+	end
+
+	local show
+	local function startRound()
+		if mine ~= generation then
+			return
+		end
+		entered = {}
+		local names = labels and labels[round]
+		for n, node in nodes do
+			if node.label then
+				node.label:set(names[n])
+			end
+		end
+		roundText:set(
+			string.format(if labels then "천강 아홉 별, %d / %d" else "지살 아홉 맥, %d / %d", round, #rounds)
+		)
+		show()
+	end
+
+	show = function()
+		accepting = false
+		setStatus("빛나는 순서를 잘 본다.")
+		task.spawn(function()
+			task.wait(0.5)
+			for _, n in rounds[round] do
+				if mine ~= generation then
+					return
+				end
+				light(n, C.jade)
+				task.wait(0.5)
+				unlight(n)
+				task.wait(0.15)
+			end
+			if mine ~= generation then
+				return
+			end
+			accepting = true
+			setStatus("같은 순서로 짚는다.")
+		end)
+	end
+
+	for n, node in nodes do
+		table.insert(
+			connections,
+			node.button.Activated:Connect(function()
+				if not accepting or mine ~= generation then
+					return
+				end
+				local sequence = rounds[round]
+				local index = #entered + 1
+				if sequence[index] == n then
+					table.insert(entered, n)
+					light(n, C.gold)
+					task.delay(0.18, function()
+						if mine == generation then
+							unlight(n)
+						end
+					end)
+					if #entered == #sequence then
+						answers[round] = table.clone(entered)
+						accepting = false
+						if round == #rounds then
+							setStatus("맥이 모두 열렸다.", C.jade)
+							task.delay(0.5, finish, true, answers)
+						else
+							round += 1
+							task.delay(0.6, startRound)
+						end
+					end
+				else
+					accepting = false
+					light(n, C.red)
+					setStatus("어긋났다. 다시 보여 준다.", C.red)
+					task.delay(0.5, function()
+						if mine ~= generation then
+							return
+						end
+						unlight(n)
+						entered = {}
+						show()
+					end)
+				end
+			end)
+		)
+	end
+	startRound()
+end
+
+-- 응집: 줄어드는 고리가 단전의 점에 겹칠 때 누른다 (일원일응) -----------------------------------
+
+local function playRing(params: { [string]: any })
+	local stage = ui.stage
+	local center = Vector2.new(260, 120)
+	local hits = params.hits or 3
+	local tolerance = 12 * (params.band or 1)
+	local dotSize = 26
+	local maxSize = 230
+	local period = 1.7
+
+	circle(maxSize, C.ink, {
+		Position = UDim2.fromOffset(center.X, center.Y),
+		BackgroundTransparency = 0.55,
+		Parent = stage,
+	})
+	local dot = circle(dotSize, C.gold, { Position = UDim2.fromOffset(center.X, center.Y), Parent = stage })
+	local ring = circle(maxSize, C.jade, {
+		Position = UDim2.fromOffset(center.X, center.Y),
+		BackgroundTransparency = 1,
+		Parent = stage,
+	})
+	local stroke = new("UIStroke", { Color = C.jade, Thickness = 4, Parent = ring })
+	local countRow = row({ Position = UDim2.fromOffset(0, 240), Size = UDim2.new(1, 0, 0, 30), Parent = stage })
+	local countText = text("title", 24, { gradient = Ui.GOLD_TEXT, parent = countRow })
+	local hitArea = new("TextButton", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Text = "",
+		ZIndex = 3,
+		Parent = stage,
+	})
+
+	local streak = 0
+	local clock = 0
+	local done = false
+	local flashUntil = 0
+	local function refresh()
+		countText:set(string.format("잇달아 %d / %d", streak, hits))
+	end
+	refresh()
+	setStatus("고리가 가운데 점에 겹치는 순간 누른다. 세 번 잇달아.")
+
+	local function currentSize(): number
+		return maxSize * (1 - (clock % period) / period)
+	end
+
+	table.insert(
+		connections,
+		hitArea.Activated:Connect(function()
+			if done then
+				return
+			end
+			if math.abs(currentSize() - dotSize) <= tolerance then
+				streak += 1
+				Ui.tween(dot, TweenInfo.new(0.2), { Size = UDim2.fromOffset(dotSize * 1.4, dotSize * 1.4) })
+				task.delay(0.2, function()
+					dot.Size = UDim2.fromOffset(dotSize, dotSize)
+				end)
+				clock = 0
+				period = math.max(1.1, period * 0.9)
+				if streak >= hits then
+					done = true
+					setStatus("영력이 한 점으로 모였다.", C.jade)
+					task.delay(0.4, finish, true, true)
+				end
+			else
+				streak = 0
+				flashUntil = os.clock() + 0.3
+				stroke.Color = C.red
+			end
+			refresh()
+		end)
+	)
+	local mine = generation
+	table.insert(
+		connections,
+		RunService.Heartbeat:Connect(function(dt)
+			if done or mine ~= generation then
+				return
+			end
+			clock += dt
+			local size = currentSize()
+			ring.Size = UDim2.fromOffset(size, size)
+			if os.clock() > flashUntil then
+				stroke.Color = C.jade
+			end
+		end)
+	)
+end
+
+-- 배치: 구궁판 (가로·세로·대각선 합 15) --------------------------------------------------------
+
+local function playArrange(_params: { [string]: any }, puzzle)
+	local stage = ui.stage
+	local grid = table.clone(puzzle.start)
+	local fixed = {}
+	for _, index in puzzle.fixed do
+		fixed[index] = true
+	end
+	local size = 72
+	local gap = 8
+	local left = 150
+	local top = 6
+	local tiles = {}
+	local selected: number? = nil
+	local done = false
+
+	local function sumLabel(x: number, y: number)
+		local labelRow = row({
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromOffset(x, y),
+			Size = UDim2.fromOffset(50, 26),
+			Parent = stage,
+		})
+		return text("body", 15, { color = C.dim, parent = labelRow })
+	end
+	local lines = {
+		{ 1, 2, 3 },
+		{ 4, 5, 6 },
+		{ 7, 8, 9 },
+		{ 1, 4, 7 },
+		{ 2, 5, 8 },
+		{ 3, 6, 9 },
+		{ 1, 5, 9 },
+		{ 3, 5, 7 },
+	}
+	local lineLabels = {}
+	for r = 0, 2 do
+		lineLabels[r + 1] = sumLabel(left + 3 * (size + gap) + 22, top + r * (size + gap) + size / 2)
+	end
+	for c = 0, 2 do
+		lineLabels[c + 4] = sumLabel(left + c * (size + gap) + size / 2, top + 3 * (size + gap) + 10)
+	end
+	lineLabels[7] = sumLabel(left + 3 * (size + gap) + 22, top + 3 * (size + gap) + 10)
+	lineLabels[8] = sumLabel(left - 26, top + 3 * (size + gap) + 10)
+
+	local function refresh()
+		for index, tile in tiles do
+			local value = grid[index]
+			tile.number:set(tostring(value))
+			tile.name:set(Trials.GUGUNG[value])
+			tile.button.BackgroundColor3 = if selected == index
+				then Color3.fromRGB(70, 110, 96)
+				elseif fixed[index] then Color3.fromRGB(58, 48, 30)
+				else C.ink
+		end
+		for i, line in lines do
+			local sum = 0
+			for _, index in line do
+				sum += grid[index]
+			end
+			lineLabels[i]:set(tostring(sum))
+			lineLabels[i]:setColor(if sum == 15 then C.jade else C.dim)
+		end
+	end
+
+	for index = 1, 9 do
+		local r = (index - 1) // 3
+		local c = (index - 1) % 3
+		local button = new("TextButton", {
+			Position = UDim2.fromOffset(left + c * (size + gap), top + r * (size + gap)),
+			Size = UDim2.fromOffset(size, size),
+			BackgroundColor3 = C.ink,
+			BackgroundTransparency = 0.1,
+			Text = "",
+			AutoButtonColor = false,
+			Parent = stage,
+		}, {
+			new("UICorner", { CornerRadius = UDim.new(0, 10) }),
+			new("UIStroke", {
+				Color = if fixed[index] then C.gold else C.dim,
+				Thickness = if fixed[index] then 3 else 1.5,
+			}),
+		})
+		local numberRow = row({ Position = UDim2.fromOffset(0, 4), Size = UDim2.new(1, 0, 0, 40), Parent = button })
+		local number = text("title", 32, { gradient = Ui.GOLD_TEXT, parent = numberRow })
+		local nameRow = row({ Position = UDim2.fromOffset(0, 44), Size = UDim2.new(1, 0, 0, 22), Parent = button })
+		local name = text("body", 13, { color = C.cream, parent = nameRow })
+		tiles[index] = { button = button, number = number, name = name }
+		table.insert(
+			connections,
+			button.Activated:Connect(function()
+				if done or fixed[index] then
+					return
+				end
+				if not selected then
+					selected = index
+				elseif selected == index then
+					selected = nil
+				else
+					grid[selected], grid[index] = grid[index], grid[selected]
+					selected = nil
+					if Trials.isMagic(grid) then
+						done = true
+						refresh()
+						setStatus("아홉 별이 한 점으로 귀일했다.", C.jade)
+						task.delay(0.6, finish, true, grid)
+						return
+					end
+				end
+				refresh()
+			end)
+		)
+	end
+	setStatus("두 패를 차례로 눌러 맞바꾼다. 금테 패는 움직이지 않는다.")
+	refresh()
+end
+
+-- 가닥: 무극영운. 흩어지는 변화 가닥을 시간 안에 모두 붙잡는다 --------------------------------------
+
+local function playStrands(params: { [string]: any }, puzzle)
+	local stage = ui.stage
+	local center = Vector2.new(260, 112)
+	local field = 112
+	local total = params.time or 10
+	local speedMult = params.speed or 1
+	local band = params.band or 1
+
+	circle(field * 2, C.ink, {
+		Position = UDim2.fromOffset(center.X, center.Y),
+		BackgroundTransparency = 0.35,
+		Parent = stage,
+	})
+	local cloud = circle(30, Color3.fromRGB(200, 220, 255), {
+		Position = UDim2.fromOffset(center.X, center.Y),
+		BackgroundTransparency = 0.3,
+		Parent = stage,
+	})
+	local timerTrack = image("barTrack", {
+		Position = UDim2.fromOffset(110, 236),
+		Size = UDim2.fromOffset(300, 16),
+		SliceScale = 0.6,
+		Parent = stage,
+	})
+	local timerFill = image("barGold", {
+		Position = UDim2.fromOffset(3, 3),
+		Size = UDim2.fromOffset(294, 10),
+		SliceScale = 0.5,
+		Parent = timerTrack,
+	})
+
+	local strands = {}
+	local remaining = #puzzle.strands
+	local done = false
+	for _, def in puzzle.strands do
+		local button = new("TextButton", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Size = UDim2.fromOffset(34 * band, 12 * band),
+			BackgroundColor3 = Color3.fromRGB(255, 220, 150),
+			Text = "",
+			AutoButtonColor = false,
+			ZIndex = 2,
+			Parent = stage,
+		}, { new("UICorner", { CornerRadius = UDim.new(1, 0) }) })
+		local strand = {
+			button = button,
+			angle = def.angle,
+			speed = def.speed * speedMult,
+			radius = def.radius,
+			caught = false,
+		}
+		table.insert(
+			connections,
+			button.Activated:Connect(function()
+				if strand.caught or done then
+					return
+				end
+				strand.caught = true
+				remaining -= 1
+				Ui.tween(button, TweenInfo.new(0.3), {
+					Position = UDim2.fromOffset(center.X, center.Y),
+					BackgroundTransparency = 1,
+				})
+				cloud.Size = UDim2.fromOffset(30 + (#strands - remaining) * 4, 30 + (#strands - remaining) * 4)
+				setStatus(string.format("남은 가닥 %d", remaining))
+				if remaining <= 0 then
+					done = true
+					setStatus("영운이 피어난다.", C.jade)
+					task.delay(0.5, finish, true, true)
+				end
+			end)
+		)
+		table.insert(strands, strand)
+	end
+	setStatus(string.format("단전이 터진다. 흩어지는 가닥 %d개를 모두 눌러 붙잡는다.", remaining))
+
+	local left = total
+	local clock = 0
+	local mine = generation
+	table.insert(
+		connections,
+		RunService.Heartbeat:Connect(function(dt)
+			if done or mine ~= generation then
+				return
+			end
+			clock += dt
+			left -= dt
+			timerFill.Size = UDim2.fromOffset(294 * math.clamp(left / total, 0, 1), 10)
+			for _, strand in strands do
+				if not strand.caught then
+					strand.angle += strand.speed * dt
+					local r = field * (strand.radius + 0.12 * math.sin(clock * 2 + strand.angle))
+					local position = center + Vector2.new(math.cos(strand.angle), math.sin(strand.angle)) * r
+					strand.button.Position = UDim2.fromOffset(position.X, position.Y)
+					strand.button.Rotation = math.deg(strand.angle) + 90
+				end
+			end
+			if left <= 0 then
+				done = true
+				setStatus("가닥이 폭주한다!", C.red)
+				task.delay(0.6, finish, false, false)
+			end
+		end)
+	)
+end
+
 -- 공개 ---------------------------------------------------------------------------------
 
 local PLAYERS = {
 	rhythm = playRhythm,
 	balance = playBalance,
+	sequence = playSequence,
+	ring = playRing,
+	arrange = playArrange,
+	strands = playStrands,
 }
 
 function Naegwan.supports(mode: string): boolean

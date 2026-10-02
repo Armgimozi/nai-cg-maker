@@ -540,17 +540,32 @@ check("연국 맵 짓기", function()
 	eq(tags.Vein, 3, "Vein 태그")
 	eq(tags.HerbZone, 1, "HerbZone 태그")
 	eq(tags.ManualSpot, 18, "ManualSpot 태그")
-	eq(tags.Site, 5, "Site 태그 (오행처 다섯)")
+	-- 과업이 가리키는 자리는 모두 맵에 있어야 한다
+	local siteIds: { [string]: boolean } = {}
 	for _, inst in map:GetDescendants() do
 		if inst:HasTag("Site") then
 			local id = inst:GetAttribute("Site")
-			local known = false
-			for _, element in Roots.ELEMENTS do
-				known = known or Roots.ELEMENT[element].site == id
-			end
-			assert(known, "오행처 id " .. tostring(id))
+			assert(not siteIds[id], "자리 id 가 겹친다: " .. tostring(id))
+			siteIds[id] = true
 		end
 	end
+	eq(tags.Site, 34, "Site 태그")
+	for step = 1, Realms.maxStep do
+		for _, combo in { { "wood", "fire", "earth", "metal", "water" } } do
+			for _, element in combo do
+				local data = Progression.newData()
+				data.step = step
+				data.root = Roots.make(combo)
+				data.choice = { chilsu = "cheong", element = element }
+				for _, job in Tasks.list(data) do
+					for _, site in job.sites or {} do
+						assert(siteIds[site], `{Realms.label(step)} {job.label} 의 자리 {site} 가 맵에 없다`)
+					end
+				end
+			end
+		end
+	end
+	assert(siteIds.furnace, "연단로")
 	for _, inst in map:GetDescendants() do
 		if inst:HasTag("Vein") then
 			assert(Balance.VEINS[inst:GetAttribute("VeinId")], "영맥 id")

@@ -377,6 +377,21 @@ for _ = 1, 10 do
 	fire(heartbeatKey, "Heartbeat", 0.05)
 end
 Hud.openTrial({ close = true })
+for id, case in
+	{
+		{ "sequence", { nodes = 9, lengths = { 3, 3 }, style = "dots" } },
+		{ "sequence", { nodes = 9, lengths = { 4 }, style = "cheongang" } },
+		{ "ring", { hits = 3, band = 1 } },
+		{ "arrange", { band = 1 } },
+		{ "strands", { count = 9, time = 17, speed = 1, band = 1 } },
+	}
+do
+	Hud.openTrial({ id = 10 + id, mode = case[1], seed = 42, params = case[2], title = "내관" })
+	for _ = 1, 20 do
+		fire(heartbeatKey, "Heartbeat", 0.05)
+	end
+	Hud.openTrial({ close = true })
+end
 -- 술법 쿨타임이 단축칸에 그려지는지
 -- 단축키 바꾸기 모드
 Hud.startBinding(2)
@@ -490,6 +505,17 @@ for _, def in Tasks.CHILSU do
 end
 for _, name in Clock.PHASE_NAME do
 	need("body", name)
+end
+local Trials = loader.require(sharedFolder.Trials)
+for _, name in Trials.CHEONGANG do
+	need("title", name)
+end
+for i, name in Trials.GUGUNG do
+	need("body", name)
+	need("title", tostring(i))
+end
+for _, def in Tasks.CHILSU do
+	need("body", string.format("%s 시운, 3분 12초 남았다 %s 시운까지 40초", def.name, def.name))
 end
 need("body", "주머니  영초 3  천년영지 1  홍령삼 1  축기단 1 주머니 비었다 끝 12 / 30초")
 for key, text in missing do

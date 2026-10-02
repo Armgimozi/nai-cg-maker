@@ -1,5 +1,6 @@
 -- 블록수선전 클라이언트 진입점: 입력과 서버 이벤트를 UI 에 잇는다.
 
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -66,9 +67,46 @@ local actions = {
 
 Hud.build(actions)
 
+-- 과업 자리의 F 버튼(팔괘 기둥, 칠성단)은 지금 쓸 때만 보이게 한다 (내 화면에서만 바뀐다)
+local function promptUse(site: string, snapshot): string?
+	if site == "furnace" then
+		return "축기단 빚기"
+	end
+	for _, job in snapshot.tasks or {} do
+		if job.open and not job.done then
+			if job.kind == "touch" and string.sub(site, 1, 4) == "tri_" then
+				return "괘 새기기"
+			elseif job.kind == "offer" and site == "altar" then
+				return "제물 바치기"
+			elseif job.kind == "ritual" and site == "altar" then
+				return "제의 올리기"
+			end
+		end
+	end
+	return nil
+end
+
+local function refreshPrompts()
+	if not state then
+		return
+	end
+	for _, prompt in CollectionService:GetTagged("TaskPrompt") do
+		local site = prompt:GetAttribute("Site")
+		local use = if type(site) == "string" then promptUse(site, state) else nil
+		prompt.Enabled = use ~= nil
+		if use then
+			prompt.ActionText = use
+		end
+	end
+end
+CollectionService:GetInstanceAddedSignal("TaskPrompt"):Connect(function()
+	task.defer(refreshPrompts)
+end)
+
 remotes.State.OnClientEvent:Connect(function(snapshot)
 	state = snapshot
 	Hud.update(snapshot)
+	refreshPrompts()
 end)
 remotes.Notify.OnClientEvent:Connect(Hud.toast)
 remotes.Cinematic.OnClientEvent:Connect(Hud.cinematic)

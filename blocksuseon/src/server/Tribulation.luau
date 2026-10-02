@@ -67,11 +67,11 @@ local function groundAt(position: Vector3): Vector3
 	return position - Vector3.new(0, 3, 0)
 end
 
-local function mark(ground: Vector3, radius: number, duration: number)
+local function mark(ground: Vector3, radius: number, duration: number, color: Color3?)
 	local marker = fxPart(
 		Vector3.new(0.2, radius * 2, radius * 2),
 		CFrame.new(ground + Vector3.new(0, 0.15, 0)) * FLAT_DISC,
-		WARNING_COLOR
+		color or WARNING_COLOR
 	)
 	marker.Shape = Enum.PartType.Cylinder
 	marker.Transparency = 0.8
@@ -277,6 +277,11 @@ function Tribulation.fail(player: Player)
 	Sync.broadcast(string.format("%s님이 천겁을 넘지 못했다.", player.DisplayName), "tribulation")
 	Sync.markDirty(player)
 end
+
+-- 제의 별빛처럼 다른 곳에서도 쓰는 연출
+Tribulation.groundAt = groundAt
+Tribulation.mark = mark
+Tribulation.strike = strike
 
 function Tribulation.isActive(player: Player): boolean
 	local session = Session.get(player)

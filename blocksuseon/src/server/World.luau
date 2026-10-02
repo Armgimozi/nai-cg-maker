@@ -83,6 +83,73 @@ local ELEMENT_SITES = {
 }
 World.ELEMENT_SITES = ELEMENT_SITES
 
+-- 십이지율: 광장 네 귀퉁이에 셋씩 모인 율점 등롱 (양률과 음려가 번갈아)
+World.LU_NAMES = {
+	"황종",
+	"대려",
+	"태주",
+	"협종",
+	"고선",
+	"중려",
+	"유빈",
+	"임종",
+	"이칙",
+	"남려",
+	"무역",
+	"응종",
+}
+local LU_CLUSTERS = {
+	Vector3.new(24, 0.5, 24),
+	Vector3.new(-24, 0.5, 24),
+	Vector3.new(-24, 0.5, -24),
+	Vector3.new(24, 0.5, -24),
+}
+
+-- 팔괘: 천겁대 기둥에 선천팔괘 자리대로 단다 (건은 남, 곤은 북, 리는 동, 감은 서).
+-- 각도는 천겁대 중심에서 (cos, sin) = (x, z). 순서는 건 태 리 진 손 감 간 곤
+World.TRIGRAMS = {
+	{ name = "건", angle = 90 },
+	{ name = "태", angle = 45 },
+	{ name = "리", angle = 0 },
+	{ name = "진", angle = 315 },
+	{ name = "손", angle = 135 },
+	{ name = "감", angle = 180 },
+	{ name = "간", angle = 225 },
+	{ name = "곤", angle = 270 },
+}
+
+-- 사방 성대 (육합만로, 축기·결단에서도 다시 쓴다)
+local STAR_ALTARS = {
+	{
+		id = "star_east",
+		name = "동쪽 성대",
+		sub = "청룡 일곱 별",
+		position = Vector3.new(330, 0, 20),
+		color = Color3.fromRGB(80, 200, 170),
+	},
+	{
+		id = "star_west",
+		name = "서쪽 성대",
+		sub = "백호 일곱 별",
+		position = Vector3.new(-330, 0, 0),
+		color = Color3.fromRGB(235, 235, 240),
+	},
+	{
+		id = "star_south",
+		name = "남쪽 성대",
+		sub = "주작 일곱 별",
+		position = Vector3.new(0, 0, 330),
+		color = Color3.fromRGB(230, 90, 70),
+	},
+	{
+		id = "star_north",
+		name = "북쪽 성대",
+		sub = "현무 일곱 별",
+		position = Vector3.new(0, 0, -362),
+		color = Color3.fromRGB(90, 100, 170),
+	},
+}
+
 -- 매번 같은 지형이 나오도록 고정 시드 난수 (Park–Miller)
 local function makeRng(seed: number)
 	local state = seed
@@ -233,8 +300,8 @@ local function sign(parent: Instance, position: Vector3, title: string, subtitle
 	end
 end
 
--- 과업 자리 표시: 보이지 않는 판에 Site 태그를 단다
-local function siteMarker(parent: Instance, id: string, position: Vector3, radius: number): Part
+-- 과업 자리 표시: 보이지 않는 판에 Site 태그를 단다. prompt 면 F 로 만지는 자리 (TaskService 가 버튼을 단다)
+local function siteMarker(parent: Instance, id: string, position: Vector3, radius: number, prompt: string?): Part
 	local marker = block(parent, "Site_" .. id, Vector3.new(2, 0.2, 2), CFrame.new(position), C.stone)
 	marker.Transparency = 1
 	marker.CanCollide = false
@@ -242,6 +309,9 @@ local function siteMarker(parent: Instance, id: string, position: Vector3, radiu
 	marker.CanTouch = false
 	marker:SetAttribute("Site", id)
 	marker:SetAttribute("Radius", radius)
+	if prompt then
+		marker:SetAttribute("Prompt", prompt)
+	end
 	marker:AddTag("Site")
 	return marker
 end
@@ -417,11 +487,73 @@ local function buildVillage(root: Instance, rng)
 		house(village, cf, rng(13, 17), rng(10, 13), roofColor)
 	end
 
-	for _, corner in
-		{ Vector3.new(30, 0, 30), Vector3.new(-30, 0, 30), Vector3.new(30, 0, -30), Vector3.new(-30, 0, -30) }
-	do
-		lantern(village, corner + Vector3.new(0, 0.5, 0))
+	-- 율점 등롱: 귀퉁이마다 셋. 가운데 앉으면 셋 모두 곁이다
+	local lu = folder(village, "율점")
+	for cluster, center in LU_CLUSTERS do
+		for k = 0, 2 do
+			local index = (cluster - 1) * 3 + k + 1
+			local angle = math.rad(90 + k * 120)
+			local position = center + Vector3.new(math.cos(angle), 0, math.sin(angle)) * 4.5
+			local m = model(lu, World.LU_NAMES[index])
+			lantern(m, position)
+			siteMarker(m, "lu_" .. index, position, 6)
+			sign(m, position + Vector3.new(0, 10.5, 0), World.LU_NAMES[index], nil, Color3.fromRGB(255, 200, 150))
+		end
 	end
+	siteMarker(village, "plaza", Vector3.new(0, 1, 0), 12)
+
+	-- 연단로
+	local furnace = model(village, "연단로")
+	local fpos = Vector3.new(-12, 0.5, -22)
+	block(
+		furnace,
+		"Base",
+		Vector3.new(7, 2, 7),
+		CFrame.new(fpos + Vector3.new(0, 1, 0)),
+		C.stoneDark,
+		Enum.Material.Brick
+	)
+	local pot = block(
+		furnace,
+		"Cauldron",
+		Vector3.new(4, 5, 5),
+		CFrame.new(fpos + Vector3.new(0, 4.4, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+		Color3.fromRGB(150, 110, 60),
+		Enum.Material.Metal
+	)
+	pot.Shape = Enum.PartType.Cylinder
+	for _, offset in { Vector3.new(2, 0, 2), Vector3.new(-2, 0, 2), Vector3.new(0, 0, -2.6) } do
+		block(
+			furnace,
+			"Leg",
+			Vector3.new(0.8, 2.4, 0.8),
+			CFrame.new(fpos + offset + Vector3.new(0, 2.6, 0)),
+			Color3.fromRGB(120, 86, 46),
+			Enum.Material.Metal
+		)
+	end
+	local ember = block(
+		furnace,
+		"Ember",
+		Vector3.new(3, 0.6, 3),
+		CFrame.new(fpos + Vector3.new(0, 2.2, 0)),
+		Color3.fromRGB(255, 120, 50),
+		Enum.Material.Neon
+	)
+	ember.CanCollide = false
+	local smoke = Instance.new("Smoke")
+	smoke.Size = 2
+	smoke.RiseVelocity = 3
+	smoke.Opacity = 0.15
+	smoke.Parent = pot
+	siteMarker(furnace, "furnace", fpos + Vector3.new(0, 3, 0), 6, "연단")
+	sign(
+		furnace,
+		fpos + Vector3.new(0, 10, 0),
+		"연단로",
+		"영초 6, 천년영지 1로 축기단",
+		Color3.fromRGB(255, 190, 120)
+	)
 
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Name = "SpawnLocation"
@@ -485,6 +617,14 @@ local function buildForest(root: Instance, rng)
 	river.Transparency = 0.25
 	river.CanCollide = false
 	river.CanQuery = false
+	siteMarker(root, "down", Vector3.new(-95, 0.2, -60), 7)
+	sign(
+		root,
+		Vector3.new(-95, 8, -60),
+		"개울 바닥",
+		"땅의 기운이 고이는 곳",
+		Color3.fromRGB(150, 200, 240)
+	)
 	local bridge = model(root, "다리")
 	block(bridge, "Deck", Vector3.new(22, 1, 10), CFrame.new(-95, 0.9, 0), C.wood, Enum.Material.WoodPlanks)
 	for _, z in { -4.6, 4.6 } do
@@ -534,6 +674,7 @@ local function buildMountain(root: Instance)
 
 	local top = center + Vector3.new(0, layers * layerH, 0)
 	vein(mountain, "high", top, 9)
+	siteMarker(mountain, "up", top + Vector3.new(0, 0.6, 0), 9)
 	sign(mountain, top + Vector3.new(0, 11, 0), "상품 영맥", "결단기부터, 흡수 ×4", VEIN_COLORS.high)
 	for _, corner in
 		{ Vector3.new(13, 0, 13), Vector3.new(-13, 0, 13), Vector3.new(13, 0, -13), Vector3.new(-13, 0, -13) }
@@ -712,25 +853,90 @@ local function buildTribulationAltar(root: Instance)
 	local center = Vector3.new(200, 0, -160)
 	disc(altar, "Floor", center + Vector3.new(0, 0.5, 0), 34, 1, C.stone, Enum.Material.Slate)
 	disc(altar, "Inner", center + Vector3.new(0, 1.05, 0), 10, 0.1, C.stoneDark, Enum.Material.Slate)
-	for i = 1, 8 do
-		local a = math.rad(i * 45)
+	-- 칠성단: 가운데 낮은 단과 일곱 별 등잔
+	local dan = model(altar, "칠성단")
+	block(
+		dan,
+		"Table",
+		Vector3.new(6, 2.2, 3),
+		CFrame.new(center + Vector3.new(0, 2.1, -6)),
+		C.woodDark,
+		Enum.Material.Wood
+	)
+	for i = 0, 6 do
+		local a = math.rad(200 + i * 20)
+		local star = block(
+			dan,
+			"Lamp",
+			Vector3.new(0.7, 0.7, 0.7),
+			CFrame.new(center + Vector3.new(math.cos(a) * 8, 1.6, math.sin(a) * 8)),
+			Color3.fromRGB(160, 200, 255),
+			Enum.Material.Neon
+		)
+		star.Shape = Enum.PartType.Ball
+	end
+	siteMarker(dan, "altar", center + Vector3.new(0, 1.2, 0), 10, "칠성단")
+
+	for i, trigram in World.TRIGRAMS do
+		local a = math.rad(trigram.angle)
 		local pos = center + Vector3.new(math.cos(a) * 31, 0, math.sin(a) * 31)
+		local m = model(altar, trigram.name .. " 기둥")
 		block(
-			altar,
+			m,
 			"Pillar",
 			Vector3.new(2.4, 12, 2.4),
 			CFrame.new(pos + Vector3.new(0, 6, 0)),
 			C.stoneDark,
 			Enum.Material.Rock
 		)
+		siteMarker(m, "tri_" .. i, pos + Vector3.new(0, 3, 0), 6, trigram.name)
+		sign(m, pos + Vector3.new(0, 14, 0), trigram.name, nil, Color3.fromRGB(255, 225, 160))
 	end
 	sign(
 		altar,
-		center + Vector3.new(0, 14, 0),
+		center + Vector3.new(0, 16, 0),
 		"천겁대",
-		"탁 트인 곳에서 겁을 맞이하라",
+		"칠성단과 팔괘 기둥",
 		Color3.fromRGB(255, 160, 160)
 	)
+end
+
+-- 사방 성대
+local function buildStarAltars(root: Instance)
+	local altars = folder(root, "성대")
+	for _, def in STAR_ALTARS do
+		local m = model(altars, def.name)
+		local base = def.position
+		disc(m, "Floor", base + Vector3.new(0, 0.4, 0), 9, 0.8, C.stoneDark, Enum.Material.Slate)
+		for k = 0, 3 do
+			local a = math.rad(45 + k * 90)
+			block(
+				m,
+				"Post",
+				Vector3.new(1.2, 7, 1.2),
+				CFrame.new(base + Vector3.new(math.cos(a) * 7, 3.5, math.sin(a) * 7)),
+				C.stone,
+				Enum.Material.Rock
+			)
+		end
+		local orb = block(
+			m,
+			"Star",
+			Vector3.new(2.6, 2.6, 2.6),
+			CFrame.new(base + Vector3.new(0, 11, 0)),
+			def.color,
+			Enum.Material.Neon
+		)
+		orb.Shape = Enum.PartType.Ball
+		orb.CanCollide = false
+		local light = Instance.new("PointLight")
+		light.Color = def.color
+		light.Range = 24
+		light.Brightness = 2
+		light.Parent = orb
+		siteMarker(m, def.id, base + Vector3.new(0, 0.8, 0), 8)
+		sign(m, base + Vector3.new(0, 16, 0), def.name, def.sub, def.color)
+	end
 end
 
 local function setupLighting(lighting: Instance)
@@ -789,6 +995,7 @@ function World.build(workspaceRoot: Instance, lighting: Instance): Model
 	buildMountain(root)
 	buildTribulationAltar(root)
 	buildElementSites(root)
+	buildStarAltars(root)
 
 	local spots = folder(root, "비급자리")
 	for _, position in MANUAL_SPOTS do

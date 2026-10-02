@@ -17,6 +17,7 @@ local Progression = require(Shared.Progression)
 local Format = require(Shared.Format)
 local Roots = require(Shared.Roots)
 local Clock = require(Shared.Clock)
+local Tasks = require(Shared.Tasks)
 local Ui = require(script.Parent.Ui)
 local Chat = require(script.Parent.Chat)
 local Choice = require(script.Parent.Choice)
@@ -1172,6 +1173,20 @@ local function clockLine(): string
 	end
 	local t = (Workspace:GetServerTimeNow() - origin) % Clock.CYCLE
 	local phase = Clock.phase(t)
+	-- 칠성제의를 기다리는 중이면 시운을 보여 준다
+	local state = lastState
+	local chilsu = state and state.choice and state.choice.chilsu
+	if state and chilsu then
+		for _, job in state.tasks or {} do
+			if job.kind == "ritual" and job.open and not job.done then
+				local inside, seconds = Clock.sigunState(t, chilsu, Roots.window(state.root))
+				local name = Tasks.CHILSU[chilsu].name
+				return if inside
+					then string.format("%s 시운, %s 남았다", name, Clock.format(seconds))
+					else string.format("%s 시운까지 %s", name, Clock.format(seconds))
+			end
+		end
+	end
 	if phase == "day" then
 		return string.format("낮, 밤까지 %s", Clock.format(Clock.untilPhase(t, "night")))
 	elseif phase == "night" then

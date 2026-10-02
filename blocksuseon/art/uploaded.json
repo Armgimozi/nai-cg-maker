@@ -76,16 +76,16 @@
     "assetId": "83569591119407"
   },
   "glyphs_body_0.png": {
-    "sha256": "cd626bb1e3f773ab1a0748250ea945748f37ec486ad7cc66d50bea22b7712403",
-    "assetId": "101054070076240"
+    "sha256": "799b1ff7eef565b1a0082fa07539d6440f48325fdd64da7e63c17349430f04ae",
+    "assetId": "85468954056473"
   },
   "glyphs_title_0.png": {
-    "sha256": "cfa4a7b9679550b663e065f93cdd4bb6f2cfe61225bc098ba7859df34fbf8a45",
-    "assetId": "86336427336883"
+    "sha256": "10a9d039bdb11927b2ed675e8b95b678e8a54c23e2d59052b0ee529706a27d62",
+    "assetId": "104716636730570"
   },
   "glyphs_title_1.png": {
-    "sha256": "8fd22db04e8c181af7a9bdedd090a741844a189bd8bd13c9c8fc374e5e76c3b4",
-    "assetId": "112976126896863"
+    "sha256": "74222a14707e88d0347cecb9f3b2ef8f862730e7f50b8a1f6e72343565d7e4f8",
+    "assetId": "122253042572493"
   },
   "slot.png": {
     "sha256": "f9540ca98dca50ec4b6cbeafa7e9a4861f97529f0f20f16b79ca9bce5238e704",
@@ -134,5 +134,13 @@
   "iconStatus.png": {
     "sha256": "5af4c7ca38f87602017dddcbb5a7275ba1ad54a237d5aa0dcaf8dbe5b844e775",
     "assetId": "115133593895137"
+  },
+  "glyphs_body_1.png": {
+    "sha256": "82d7069313a9ee2d34fc89b6294d09bca2f61e9e0f977e149d23f97e0a019181",
+    "assetId": "109714195837219"
+  },
+  "glyphs_title_2.png": {
+    "sha256": "370c2acc89b2ec5d5727275c0419b45c0ba2d33c1237252fc67372a9bdbafb9b",
+    "assetId": "90776474588093"
   }
 }

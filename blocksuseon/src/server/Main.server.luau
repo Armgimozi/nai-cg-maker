@@ -31,6 +31,7 @@ if not Workspace:FindFirstChild(World.MODEL_NAME) then
 end
 
 DayNight.start()
+TaskService.setupPrompts()
 Herbs.start()
 Manuals.start()
 PlayerData.startAutosave()

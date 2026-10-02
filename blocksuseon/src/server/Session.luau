@@ -31,6 +31,7 @@ export type Session = {
 	inFormation: boolean,
 	trial: Trial?, -- 진행 중인 내관
 	trialCount: number,
+	ritual: boolean, -- 칠성제의 중
 	dirty: boolean,
 }
 
@@ -53,6 +54,7 @@ function Session.start(player: Player): Session
 		inFormation = false,
 		trial = nil,
 		trialCount = 0,
+		ritual = false,
 		dirty = true,
 	}
 	sessions[player] = session
