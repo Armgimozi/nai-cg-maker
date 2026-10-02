@@ -12,7 +12,6 @@ local Workspace = game:GetService("Workspace")
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 
 local Realms = require(Shared.Realms)
-local Balance = require(Shared.Balance)
 local Progression = require(Shared.Progression)
 local Format = require(Shared.Format)
 local Josa = require(Shared.Josa)
@@ -126,10 +125,12 @@ local function succeed(player: Player, session, state, color: Color3)
 	if not data or data.step + 1 ~= state.targetStep then
 		return
 	end
-	local points = Progression.passTribulation(data)
+	local slotsBefore = Progression.slots(data)
+	Progression.passTribulation(data)
 	Characters.applyStats(player, true)
 	Fx.burst(player.Character, color, 80)
-	Sync.notify(player, string.format("천겁을 넘었다! (깨달음 +%d)", points), "good")
+	Sync.notify(player, "천겁을 넘었다!", "good")
+	Sync.announceSlots(player, slotsBefore)
 	Sync.broadcast(
 		string.format("%s님이 천겁을 넘어 %s에 올랐다.", player.DisplayName, Realms.label(data.step)),
 		"world"
@@ -159,7 +160,7 @@ local function run(player: Player, session, state, trib)
 	task.wait(GATHER_TIME)
 
 	local data = PlayerData.get(player)
-	local telegraph = Balance.telegraphTime(trib.telegraph, if data then Progression.insight(data, "geobun") else 0)
+	local telegraph = if data then Progression.telegraphTime(data, trib.telegraph) else trib.telegraph
 	local passed = true
 
 	for wave = 1, trib.waves do
@@ -206,7 +207,14 @@ local function run(player: Player, session, state, trib)
 			end
 		end
 		if hits > 0 then
-			humanoid:TakeDamage(trib.damage * hits)
+			if os.clock() < session.shieldUntil then
+				-- 호신강기가 막았다
+				Fx.burst(player.Character, Color3.fromRGB(255, 225, 140), 30)
+			else
+				local current = PlayerData.get(player)
+				local damage = if current then Progression.tribulationDamage(current, trib.damage) else trib.damage
+				humanoid:TakeDamage(damage * hits)
+			end
 		end
 
 		task.wait(trib.interval)

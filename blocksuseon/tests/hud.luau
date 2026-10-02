@@ -105,6 +105,7 @@ playerGui.Name = "PlayerGui"
 local sharedFolder = Harness.new({}).folder("src/shared")
 
 local tweensPlayed = 0
+local heartbeatKey = {}
 local chatMessages: { string } = {}
 local fakeChannel = {
 	Parent = true,
@@ -158,6 +159,7 @@ local services = {
 		end,
 	},
 	UserInputService = { KeyboardEnabled = true, TouchEnabled = false },
+	RunService = { Heartbeat = fakeSignal(heartbeatKey, "Heartbeat") },
 	Workspace = { CurrentCamera = nil },
 	Lighting = wrap(real:GetService("Lighting")),
 	ReplicatedStorage = {
@@ -197,7 +199,7 @@ sharedFolder = loader.folder("src/shared")
 local Hud = loader.require(loader.folder("src/client").Hud)
 
 local noop = function() end
-Hud.build({ meditate = noop, breakthrough = noop, buyInsight = noop })
+Hud.build({ meditate = noop, breakthrough = noop, useSkill = noop, equip = noop })
 
 local function state(overrides)
 	local s = {
@@ -209,8 +211,11 @@ local function state(overrides)
 		veinId = nil,
 		veinBlocked = nil,
 		breakChance = nil,
-		enlightenment = 0,
-		insights = {},
+		skills = {},
+		equipped = {},
+		slots = 1,
+		stats = { tribulations = 0, herbs = 0, manuals = 0 },
+		inFormation = false,
 		maxHealth = 125,
 		tribulation = nil,
 		canSave = true,
@@ -236,8 +241,21 @@ local cases = {
 		state({ step = 44, qi = 999, req = 999, tribulation = { name = "천겁", wave = 3, waves = 9 } }),
 	},
 	{ "천겁 끝", state({ step = 45 }) },
-	{ "깨달음 살 수 있음", state({ enlightenment = 50, insights = { gongbeop = 3 } }) },
-	{ "깨달음 완성", state({ enlightenment = 5, insights = { geobun = 10 } }) },
+	{
+		"술법·공법 익힘",
+		state({ skills = { gyeongsin = true, tonap = true, baekcho = true }, equipped = { "tonap" } }),
+	},
+	{
+		"공법 칸 가득",
+		state({
+			step = 45,
+			slots = 3,
+			skills = { tonap = true, baekcho = true, geumgang = true, piroe = true },
+			equipped = { "tonap", "baekcho", "geumgang" },
+			inFormation = true,
+			veinId = "high",
+		}),
+	},
 	{ "최고 경지", state({ step = 81, qi = 1e12, req = 1e12 }) },
 }
 for _, case in cases do
@@ -247,8 +265,12 @@ for _, case in cases do
 	end
 end
 
-Hud.togglePanel()
-Hud.togglePanel(false)
+Hud.toggleStatus()
+Hud.toggleStatus(false)
+-- 술법 쿨타임이 단축칸에 그려지는지
+Hud.skillUsed({ id = "gyeongsin", cooldown = 5 })
+fire(heartbeatKey, "Heartbeat", 0.016)
+assert(Hud.cooldownReady("gyeongsin") == false, "쿨타임 중인데 바로 쓸 수 있다")
 for i = 1, 6 do
 	Hud.toast("알림 " .. i, if i % 2 == 0 then "good" else "bad")
 end
@@ -262,8 +284,8 @@ task.wait(4)
 
 local hud = playerGui:FindFirstChild("BlockSuseonHud")
 assert(hud, "HUD ScreenGui 가 없다")
--- 알림 6개 + 첫 접속 안내 2개가 채팅으로 가야 한다
-assert(#chatMessages == 8, `채팅 알림 {#chatMessages}개 (8개 기대)`)
+-- 알림 6개 + 첫 접속 안내 3개가 채팅으로 가야 한다
+assert(#chatMessages == 9, `채팅 알림 {#chatMessages}개 (9개 기대)`)
 assert(string.find(chatMessages[1], '<font color="#', 1, true), "알림에 색이 없다")
 Hud.toast("<b>깨짐</b> & 확인", "info")
 task.wait(0.1)
@@ -293,7 +315,7 @@ print(`HUD 통과 · 인스턴스 {count}개 · 트윈 {tweensPlayed}회 · 상�
 -- 화면에 나올 수 있는 글자가 모두 글자판에 있는지 -----------------------------------------
 local Art = loader.require(loader.folder("src/client").Art)
 local Realms = loader.require(sharedFolder.Realms)
-local Insights = loader.require(sharedFolder.Insights)
+local Skills = loader.require(sharedFolder.Skills)
 local missing = {}
 local function need(fontName: string, text: string)
 	for _, code in utf8.codes(text) do
@@ -313,12 +335,10 @@ for step = 1, Realms.maxStep do
 		need("title", s.realm.tribulation.name)
 	end
 end
-for _, def in Insights.list do
+for _, def in Skills.list do
 	need("title", def.name)
-	need("body", def.stat)
-	for level = 0, def.maxLevel do
-		need("body", def.show(level))
-	end
+	need("body", def.summary)
+	need("body", string.format("%s부터 익힐 수 있다", Realms.byId[def.minRealm].name))
 end
 for key, text in missing do
 	print(`  글자판에 없음 {key} ← "{text}"`)

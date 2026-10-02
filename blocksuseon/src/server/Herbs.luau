@@ -4,7 +4,6 @@ local CollectionService = game:GetService("CollectionService")
 local Workspace = game:GetService("Workspace")
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 
-local Balance = require(Shared.Balance)
 local Progression = require(Shared.Progression)
 local Format = require(Shared.Format)
 local PlayerData = require(script.Parent.PlayerData)
@@ -80,16 +79,7 @@ local function collect(player: Player, herb: Model, rare: boolean)
 	data.stats.herbs += 1
 	local amount = Progression.herbQi(data, rare)
 	if rare then
-		data.enlightenment += Balance.RARE_HERB_POINTS
-		Sync.notify(
-			player,
-			string.format(
-				"천년영지를 먹었다! 영력 +%s, 깨달음 +%d",
-				Format.qi(amount),
-				Balance.RARE_HERB_POINTS
-			),
-			"good"
-		)
+		Sync.notify(player, string.format("천년영지를 먹었다! 영력 +%s", Format.qi(amount)), "good")
 	else
 		Sync.notify(player, string.format("영초를 먹었다. 영력 +%s", Format.qi(amount)), "good")
 	end

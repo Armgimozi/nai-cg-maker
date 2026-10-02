@@ -76,15 +76,63 @@
     "assetId": "83569591119407"
   },
   "glyphs_body_0.png": {
-    "sha256": "926221b12cb0f11af7090f57319b4b4b9cb1cdf833d69634dc58a23fc6dab1cd",
-    "assetId": "90031694511701"
+    "sha256": "a79b7892ca85a50eb58a20e1ce7bef2f8fe5b978bf1f414efab285a615d71844",
+    "assetId": "120227498747215"
   },
   "glyphs_title_0.png": {
-    "sha256": "01afa25360dd49309e74a9ce950e8b4b33f84b3bd7ae4223efba651cb4b03fb1",
-    "assetId": "109753201302496"
+    "sha256": "c3d0ac341ab5bf4b9aef0e6091040291b5ed49edda532c45b5146880d262ef6d",
+    "assetId": "100627837517688"
   },
   "glyphs_title_1.png": {
-    "sha256": "a45eed89f4301aeef1321f08b18e77c5e87caae493ca60aed0214ff3f3e5faa3",
-    "assetId": "102800769881874"
+    "sha256": "06cfeab8a5d57d5edc36e58145bda9d0e9e771d83fe814995eef37c272c183d7",
+    "assetId": "131494938730430"
+  },
+  "slot.png": {
+    "sha256": "f9540ca98dca50ec4b6cbeafa7e9a4861f97529f0f20f16b79ca9bce5238e704",
+    "assetId": "99842070728166"
+  },
+  "skillDash.png": {
+    "sha256": "18e112ef9e1dea59e3c672d5803dc0910070b8c275e5ac05f2b3b7a07dc52fae",
+    "assetId": "116229736125296"
+  },
+  "skillEye.png": {
+    "sha256": "e1eb3280e4236662a41f986a7a9635a3078fc1280540a58e69016b4a8d5f5218",
+    "assetId": "103683415535316"
+  },
+  "skillFormation.png": {
+    "sha256": "300ad71f80961356c911855ec5096747875e56f855a36331ba85a62be79d2743",
+    "assetId": "86168641395751"
+  },
+  "skillShield.png": {
+    "sha256": "13963ee077dd1d157889d4766a78428f68b87e54a1f584e1301f810a6c7b181b",
+    "assetId": "132175232251249"
+  },
+  "skillBreath.png": {
+    "sha256": "2b6ce27e267876595799df2cdd3ed4c6a512e3f0881254bb8b8fb1ef3f620cff",
+    "assetId": "124676874583685"
+  },
+  "skillHerb.png": {
+    "sha256": "a937abf92feec440fd8d5bae2cb698621fe2b3c0f0abffd8cf828d8e1e4fae30",
+    "assetId": "132752849018105"
+  },
+  "skillCalm.png": {
+    "sha256": "cc15c1246ddccd47a13c141fe588f649421d754cf51c686e882a3e82d48b9f44",
+    "assetId": "138522499184129"
+  },
+  "skillVajra.png": {
+    "sha256": "80c978937ac9f8424f7f9c8c154964901207e524563f87ff9c27e8c6c4335c0d",
+    "assetId": "133344937455109"
+  },
+  "skillBolt.png": {
+    "sha256": "729e89c9c9cf30b76e8bb1ba219615d9fc5c826af6357ae1f79fb343a335c0c1",
+    "assetId": "70760824199685"
+  },
+  "skillStar.png": {
+    "sha256": "351945ca4e035e0c5fd06614d30f1db759488413b9fe204548b0c1c60274daf0",
+    "assetId": "121458714415966"
+  },
+  "iconStatus.png": {
+    "sha256": "5af4c7ca38f87602017dddcbb5a7275ba1ad54a237d5aa0dcaf8dbe5b844e775",
+    "assetId": "115133593895137"
   }
 }

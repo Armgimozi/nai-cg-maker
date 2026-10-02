@@ -6,6 +6,7 @@ local Realms = require(Shared.Realms)
 local Balance = require(Shared.Balance)
 local Progression = require(Shared.Progression)
 local Net = require(Shared.Net)
+local Skills = require(Shared.Skills)
 local PlayerData = require(script.Parent.PlayerData)
 local Session = require(script.Parent.Session)
 
@@ -47,13 +48,20 @@ function Sync.state(player: Player)
 		step = data.step,
 		qi = data.qi,
 		req = Balance.qiRequired(data.step),
-		gain = Progression.qiPerSecond(data, session.veinMult),
+		gain = Progression.qiPerSecond(
+			data,
+			session.veinMult,
+			if session.inFormation then Skills.EFFECT.formationMult else 1
+		),
 		meditating = session.meditating,
 		veinId = session.veinId,
 		veinBlocked = session.veinBlocked,
 		breakChance = Progression.breakChance(data),
-		enlightenment = data.enlightenment,
-		insights = data.insights,
+		skills = data.skills,
+		equipped = data.equipped,
+		slots = Progression.slots(data),
+		stats = data.stats,
+		inFormation = session.inFormation,
 		maxHealth = Progression.maxHealth(data),
 		tribulation = if tribulation
 			then { name = tribulation.name, wave = tribulation.wave, waves = tribulation.waves }
@@ -61,6 +69,14 @@ function Sync.state(player: Player)
 		canSave = PlayerData.canSave(player),
 	})
 	updateLeaderstats(player, data)
+end
+
+-- 대경지에 올라 공법 칸이 늘었으면 알린다
+function Sync.announceSlots(player: Player, before: number)
+	local data = PlayerData.get(player)
+	if data and Progression.slots(data) > before then
+		Sync.notify(player, string.format("공법 칸이 %d칸으로 늘었다.", Progression.slots(data)), "good")
+	end
 end
 
 function Sync.markDirty(player: Player)

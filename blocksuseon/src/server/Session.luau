@@ -15,6 +15,10 @@ export type Session = {
 	veinBlocked: string?, -- 서 있지만 경지가 모자라 못 쓰는 영맥
 	tribulation: TribulationState?,
 	lastRequest: number,
+	cooldowns: { [string]: number }, -- 술법별로 다시 쓸 수 있는 os.clock() 시각
+	shieldUntil: number, -- 호신강기
+	formation: { position: Vector3, untilTime: number }?, -- 취령진
+	inFormation: boolean,
 	dirty: boolean,
 }
 
@@ -31,6 +35,10 @@ function Session.start(player: Player): Session
 		veinBlocked = nil,
 		tribulation = nil,
 		lastRequest = 0,
+		cooldowns = {},
+		shieldUntil = 0,
+		formation = nil,
+		inFormation = false,
 		dirty = true,
 	}
 	sessions[player] = session

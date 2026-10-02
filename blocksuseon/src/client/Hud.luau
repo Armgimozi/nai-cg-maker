@@ -4,6 +4,7 @@
 
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
@@ -11,7 +12,7 @@ local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 
 local Realms = require(Shared.Realms)
 local Balance = require(Shared.Balance)
-local Insights = require(Shared.Insights)
+local Skills = require(Shared.Skills)
 local Format = require(Shared.Format)
 local Art = require(script.Parent.Art)
 local BitmapText = require(script.Parent.BitmapText)
@@ -20,7 +21,8 @@ local Chat = require(script.Parent.Chat)
 export type Actions = {
 	meditate: () -> (),
 	breakthrough: () -> (),
-	buyInsight: (id: string) -> (),
+	useSkill: (id: string) -> (),
+	equip: (id: string, on: boolean) -> (),
 }
 
 local IMG = Art.images
@@ -50,7 +52,11 @@ local actions: Actions
 local scales: { UIScale } = {}
 local ui: { [string]: any } = {}
 local orbs: { [string]: { [string]: any } } = {}
-local insightRows: { [string]: { [string]: any } } = {}
+local skillRows: { [string]: { [string]: any } } = {}
+local hotbar: { [string]: { [string]: any } } = {}
+local passiveSlots: { { [string]: any } } = {}
+local cooldownEnd: { [string]: number } = {}
+local cooldownTotal: { [string]: number } = {}
 local pulses: { [Instance]: Tween } = {}
 local cinematicToken = 0
 local lastState: { [string]: any }? = nil
@@ -171,7 +177,7 @@ end
 
 -- 만들기 ---------------------------------------------------------------------------
 
--- 왼쪽 상태창: 경지 현판, 영력, 깨달음
+-- 왼쪽 요약: 경지 현판, 영력, 장착한 공법
 local function buildStatus(gui: ScreenGui)
 	local status = scaled(new("Frame", {
 		Name = "Status",
@@ -219,10 +225,24 @@ local function buildStatus(gui: ScreenGui)
 	ui.veinText.frame.Position = UDim2.fromOffset(20, 123)
 	ui.veinText.frame.Parent = status
 
-	image("gem", { Position = UDim2.fromOffset(24, 154), Size = UDim2.fromOffset(18, 18), Parent = status })
-	ui.pointsText = text("body", 16, { color = C.cream })
-	ui.pointsText.frame.Position = UDim2.fromOffset(46, 150)
-	ui.pointsText.frame.Parent = status
+	ui.passiveLabel = text("body", 15, { color = C.dim, text = "공법" })
+	ui.passiveLabel.frame.Position = UDim2.fromOffset(20, 152)
+	ui.passiveLabel.frame.Parent = status
+	for index = 1, #Skills.SLOT_REALMS do
+		local slot = image("slot", {
+			Position = UDim2.fromOffset(66 + (index - 1) * 38, 148),
+			Size = UDim2.fromOffset(32, 32),
+			Parent = status,
+		})
+		local icon = image("skillBreath", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(0.74, 0.74),
+			Visible = false,
+			Parent = slot,
+		})
+		passiveSlots[index] = { slot = slot, icon = icon }
+	end
 end
 
 -- 둥근 옥 버튼 하나
@@ -304,12 +324,12 @@ local function orb(parent: Instance, key: string, size: number, icon: string, ho
 	return holder
 end
 
--- 오른쪽 아래: 운기조식(큰 버튼), 돌파, 깨달음
+-- 오른쪽 아래: 운기조식(큰 버튼), 돌파, 상태창
 local function buildActions(gui: ScreenGui)
 	local cluster = scaled(new("Frame", {
 		Name = "Actions",
 		AnchorPoint = Vector2.new(1, 1),
-		Position = UDim2.new(1, if touchOnly then -170 else -20, 1, -10),
+		Position = if touchOnly then UDim2.new(1, -16, 1, -190) else UDim2.new(1, -20, 1, -10),
 		Size = UDim2.fromOffset(300, 240),
 		BackgroundTransparency = 1,
 		Parent = gui,
@@ -322,8 +342,8 @@ local function buildActions(gui: ScreenGui)
 		actions.breakthrough()
 	end).Position =
 		UDim2.fromOffset(72, 120)
-	orb(cluster, "insight", 64, "iconScroll", "T", function()
-		Hud.togglePanel()
+	orb(cluster, "status", 64, "iconStatus", "C", function()
+		Hud.toggleStatus()
 	end).Position =
 		UDim2.fromOffset(232, 0)
 end
@@ -348,13 +368,94 @@ local function buildTribulation(gui: ScreenGui)
 	ui.tribWave.frame.LayoutOrder = 2
 end
 
--- 가운데: 깨달음 창
-local function buildPanel(gui: ScreenGui)
+-- 아래 가운데: 술법 단축칸 (1~4)
+local function buildHotbar(gui: ScreenGui)
+	local bar = scaled(new("Frame", {
+		Name = "Hotbar",
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -12),
+		Size = UDim2.fromOffset(#Skills.actives * 76, 92),
+		BackgroundTransparency = 1,
+		Parent = gui,
+	}, {
+		new("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			HorizontalAlignment = Enum.HorizontalAlignment.Center,
+			SortOrder = Enum.SortOrder.LayoutOrder,
+			Padding = UDim.new(0, 10),
+		}),
+	}))
+
+	for index, def in Skills.actives do
+		local holder = new("Frame", {
+			LayoutOrder = index,
+			Size = UDim2.fromOffset(66, 92),
+			BackgroundTransparency = 1,
+			Parent = bar,
+		})
+		local button = image("slot", { Size = UDim2.fromOffset(66, 66), Parent = holder }, "ImageButton")
+		local press = new("UIScale", { Parent = button })
+		local icon = image(def.icon, {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(0.74, 0.74),
+			Parent = button,
+		})
+		-- 쿨타임: 아래에서부터 줄어드는 그늘과 남은 초
+		local shade = new("Frame", {
+			AnchorPoint = Vector2.new(0, 1),
+			Position = UDim2.new(0, 5, 1, -5),
+			Size = UDim2.new(1, -10, 0, 0),
+			BackgroundColor3 = Color3.new(0, 0, 0),
+			BackgroundTransparency = 0.4,
+			BorderSizePixel = 0,
+			Parent = button,
+		}, { new("UICorner", { CornerRadius = UDim.new(0, 9) }) })
+		local timeRow = row({ Size = UDim2.new(1, 0, 1, -8), Parent = button })
+		local timeText = text("body", 22, { color = C.cream, parent = timeRow })
+		if keyboard then
+			local badge = new("Frame", {
+				Position = UDim2.fromOffset(3, 3),
+				Size = UDim2.fromOffset(18, 18),
+				BackgroundColor3 = C.keyBack,
+				Parent = button,
+			}, { new("UICorner", { CornerRadius = UDim.new(0, 5) }) })
+			local keyRow = row({ Size = UDim2.fromScale(1, 1), Parent = badge })
+			text("body", 12, { color = C.keyText, text = tostring(def.key), parent = keyRow })
+		end
+		local labelRow = row({
+			Position = UDim2.fromOffset(-30, 66),
+			Size = UDim2.new(1, 60, 0, 24),
+			Parent = holder,
+		})
+		local label = text("title", 17, { color = C.cream, text = def.name, parent = labelRow })
+
+		button.MouseButton1Down:Connect(function()
+			press.Scale = 0.92
+		end)
+		button.MouseButton1Up:Connect(function()
+			press.Scale = 1
+		end)
+		button.MouseLeave:Connect(function()
+			press.Scale = 1
+		end)
+		button.Activated:Connect(function()
+			press.Scale = 1
+			actions.useSkill(def.id)
+		end)
+		hotbar[def.id] = { icon = icon, shade = shade, timeText = timeText, label = label }
+	end
+end
+
+-- 가운데: 상태창 (C)
+local STAT_KEYS = { "체력", "영력", "흡수", "돌파", "천겁", "영초", "비급" }
+
+local function buildStatusWindow(gui: ScreenGui)
 	local panel = scaled(image("panel", {
-		Name = "Insights",
+		Name = "StatusWindow",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(480, 540),
+		Size = UDim2.fromOffset(700, 560),
 		SliceScale = 0.8,
 		Visible = false,
 		Active = true,
@@ -363,16 +464,13 @@ local function buildPanel(gui: ScreenGui)
 	ui.panel = panel
 
 	local titleRow = row({ Position = UDim2.fromOffset(0, 22), Size = UDim2.new(1, 0, 0, 56), Parent = panel })
-	text("title", 40, { gradient = GOLD_TEXT, text = "깨달음", parent = titleRow })
+	text("title", 40, { gradient = GOLD_TEXT, text = "상태창", parent = titleRow })
 	image("divider", {
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, 80),
-		Size = UDim2.fromOffset(400, 25),
+		Size = UDim2.fromOffset(600, 25),
 		Parent = panel,
 	})
-	local pointsRow = row({ Position = UDim2.fromOffset(0, 104), Size = UDim2.new(1, 0, 0, 26), Parent = panel })
-	ui.panelPoints = text("body", 16, { color = C.dim, parent = pointsRow })
-
 	local close = image("iconClose", {
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, -24, 0, 24),
@@ -380,12 +478,68 @@ local function buildPanel(gui: ScreenGui)
 		Parent = panel,
 	}, "ImageButton")
 	close.Activated:Connect(function()
-		Hud.togglePanel(false)
+		Hud.toggleStatus(false)
 	end)
 
+	-- 왼쪽: 이름, 경지, 능력치
+	local left = new("Frame", {
+		Position = UDim2.fromOffset(44, 118),
+		Size = UDim2.fromOffset(250, 410),
+		BackgroundTransparency = 1,
+		Parent = panel,
+	})
+	-- 이름은 아무 글자나 올 수 있어서 글자판 대신 Roblox 글꼴로 쓴다
+	new("TextLabel", {
+		Size = UDim2.new(1, 0, 0, 22),
+		BackgroundTransparency = 1,
+		Font = Enum.Font.GothamMedium,
+		TextSize = 16,
+		TextColor3 = C.dim,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Text = player.DisplayName,
+		Parent = left,
+	})
+	ui.swRealm = text("title", 32, { gradient = GOLD_TEXT })
+	ui.swRealm.frame.Position = UDim2.fromOffset(-6, 24)
+	ui.swRealm.frame.Parent = left
+	ui.swTier = text("body", 15, { color = C.dim })
+	ui.swTier.frame.Position = UDim2.fromOffset(-4, 68)
+	ui.swTier.frame.Parent = left
+
+	ui.swStats = {}
+	for index, key in STAT_KEYS do
+		local y = 106 + (index - 1) * 40
+		local name = text("body", 16, { color = C.dim, text = key })
+		name.frame.Position = UDim2.fromOffset(-4, y)
+		name.frame.Parent = left
+		local value = text("body", 16, { color = C.cream })
+		value.frame.AnchorPoint = Vector2.new(1, 0)
+		value.frame.Position = UDim2.new(1, 4, 0, y)
+		value.frame.Parent = left
+		new("Frame", {
+			Position = UDim2.fromOffset(0, y + 30),
+			Size = UDim2.new(1, 0, 0, 1),
+			BackgroundColor3 = C.gold,
+			BackgroundTransparency = 0.85,
+			BorderSizePixel = 0,
+			Parent = left,
+		})
+		ui.swStats[key] = value
+	end
+
+	new("Frame", {
+		Position = UDim2.fromOffset(318, 116),
+		Size = UDim2.fromOffset(1, 410),
+		BackgroundColor3 = C.gold,
+		BackgroundTransparency = 0.75,
+		BorderSizePixel = 0,
+		Parent = panel,
+	})
+
+	-- 오른쪽: 술법·공법 목록
 	local list = new("ScrollingFrame", {
-		Position = UDim2.fromOffset(34, 140),
-		Size = UDim2.new(1, -62, 1, -170),
+		Position = UDim2.fromOffset(338, 112),
+		Size = UDim2.fromOffset(330, 420),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ScrollBarThickness = 4,
@@ -395,70 +549,79 @@ local function buildPanel(gui: ScreenGui)
 		Parent = panel,
 	}, { new("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder }) })
 
-	for index, def in Insights.list do
-		local item = new("Frame", {
-			LayoutOrder = index,
-			Size = UDim2.new(1, -8, 0, 76),
+	local order = 0
+	local function header(title: string)
+		order += 1
+		local holder = new("Frame", {
+			LayoutOrder = order,
+			Size = UDim2.new(1, -8, 0, 42),
 			BackgroundTransparency = 1,
 			Parent = list,
 		})
-		local nameRow = row(
-			{ Position = UDim2.fromOffset(0, 4), Size = UDim2.new(1, -110, 0, 36), Parent = item },
-			Enum.HorizontalAlignment.Left,
-			10
-		)
-		local name = text("title", 25, { color = C.cream, text = def.name, parent = nameRow })
-		name.frame.LayoutOrder = 1
-		local level = text("body", 14, { color = C.gold, parent = nameRow })
-		level.frame.LayoutOrder = 2
+		local r = row({ Size = UDim2.fromScale(1, 1), Parent = holder }, Enum.HorizontalAlignment.Left, 10)
+		local t = text("title", 26, { gradient = GOLD_TEXT, text = title, parent = r })
+		t.frame.LayoutOrder = 1
+		local extra = text("body", 15, { color = C.dim, parent = r })
+		extra.frame.LayoutOrder = 2
+		return extra
+	end
 
-		local effectRow = row(
-			{ Position = UDim2.fromOffset(0, 40), Size = UDim2.new(1, -110, 0, 26), Parent = item },
-			Enum.HorizontalAlignment.Left,
-			6
-		)
-		local stat = text("body", 15, { color = C.dim, text = def.stat, parent = effectRow })
-		local current = text("body", 15, { color = C.cream, parent = effectRow })
-		local arrow = text("body", 15, { color = C.dim, text = "→", parent = effectRow })
-		local nextValue = text("body", 15, { color = C.jade, parent = effectRow })
-		for i, t in { stat, current, arrow, nextValue } do
-			t.frame.LayoutOrder = i
-		end
-
-		local buy = image("pillJade", {
-			AnchorPoint = Vector2.new(1, 0.5),
-			Position = UDim2.new(1, -4, 0.5, -2),
-			Size = UDim2.fromOffset(96, 42),
-			SliceScale = 0.8,
-			Parent = item,
-		}, "ImageButton")
-		local buyRow = row({ Size = UDim2.new(1, 0, 1, -4), Parent = buy }, nil, 4)
-		local buyGem = image("gem", { Size = UDim2.fromOffset(16, 16), LayoutOrder = 1, Parent = buyRow })
-		local cost = text("body", 18, { color = C.cream, parent = buyRow })
-		cost.frame.LayoutOrder = 2
-		buy.Activated:Connect(function()
-			actions.buyInsight(def.id)
-		end)
-
-		new("Frame", {
-			AnchorPoint = Vector2.new(0, 1),
-			Position = UDim2.fromScale(0, 1),
-			Size = UDim2.new(1, 0, 0, 1),
-			BackgroundColor3 = C.gold,
-			BackgroundTransparency = 0.78,
-			BorderSizePixel = 0,
-			Parent = item,
+	local function skillRow(def)
+		order += 1
+		local item = new("Frame", {
+			LayoutOrder = order,
+			Size = UDim2.new(1, -8, 0, 66),
+			BackgroundTransparency = 1,
+			Parent = list,
 		})
+		local slot =
+			image("slot", { Position = UDim2.fromOffset(0, 6), Size = UDim2.fromOffset(50, 50), Parent = item })
+		local icon = image(def.icon, {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromScale(0.5, 0.5),
+			Size = UDim2.fromScale(0.72, 0.72),
+			Parent = slot,
+		})
+		local name = text("title", 21, { color = C.cream, text = def.name })
+		name.frame.Position = UDim2.fromOffset(58, 2)
+		name.frame.Parent = item
+		local summary = text("body", 13, { color = C.dim })
+		summary.frame.Position = UDim2.fromOffset(58, 34)
+		summary.frame.Parent = item
 
-		insightRows[def.id] = {
-			level = level,
-			current = current,
-			arrow = arrow,
-			nextValue = nextValue,
-			buy = buy,
-			buyGem = buyGem,
-			cost = cost,
-		}
+		local entry = { icon = icon, name = name, summary = summary }
+		if def.kind == "passive" then
+			local button = image("pillJade", {
+				AnchorPoint = Vector2.new(1, 0),
+				Position = UDim2.new(1, 0, 0, 4),
+				Size = UDim2.fromOffset(64, 30),
+				SliceScale = 0.55,
+				Parent = item,
+			}, "ImageButton")
+			local buttonRow = row({ Size = UDim2.new(1, 0, 1, -2), Parent = button })
+			entry.button = button
+			entry.buttonText = text("body", 14, { color = C.cream, parent = buttonRow })
+			button.Activated:Connect(function()
+				local equipped = lastState ~= nil and table.find(lastState.equipped, def.id) ~= nil
+				actions.equip(def.id, not equipped)
+			end)
+		else
+			local keyText = text("body", 13, { color = C.gold, text = string.format("단축키 %d", def.key) })
+			keyText.frame.AnchorPoint = Vector2.new(1, 0)
+			keyText.frame.Position = UDim2.new(1, 0, 0, 10)
+			keyText.frame.Parent = item
+			entry.keyText = keyText
+		end
+		skillRows[def.id] = entry
+	end
+
+	header("술법")
+	for _, def in Skills.actives do
+		skillRow(def)
+	end
+	ui.swSlots = header("공법")
+	for _, def in Skills.passives do
+		skillRow(def)
 	end
 end
 
@@ -523,7 +686,8 @@ function Hud.build(newActions: Actions)
 	buildStatus(gui)
 	buildActions(gui)
 	buildTribulation(gui)
-	buildPanel(gui)
+	buildHotbar(gui)
+	buildStatusWindow(gui)
 	buildCinematic()
 
 	-- 천겁이 내릴 때 화면을 어둡게
@@ -580,19 +744,30 @@ local function updateStatus(state)
 		ui.rateText:setColor(C.jade)
 	end
 
+	local places = {}
+	local placeColor = C.jade
 	if state.veinId then
 		local vein = Balance.VEINS[state.veinId]
-		ui.veinText:set(string.format("%s 위 (흡수 ×%s)", vein.name, tostring(vein.mult)))
-		ui.veinText:setColor(C.jade)
+		table.insert(places, string.format("%s 위 (흡수 ×%s)", vein.name, tostring(vein.mult)))
 	elseif state.veinBlocked then
 		local vein = Balance.VEINS[state.veinBlocked]
-		ui.veinText:set(string.format("%s %s 이상만 쓸 수 있다", vein.name, Realms.byId[vein.minRealm].name))
-		ui.veinText:setColor(C.red)
-	else
-		ui.veinText:set("")
+		table.insert(places, string.format("%s %s부터 쓸 수 있다", vein.name, Realms.byId[vein.minRealm].name))
+		placeColor = C.red
 	end
+	if state.inFormation then
+		table.insert(places, string.format("취령진 안 (×%d)", Skills.EFFECT.formationMult))
+	end
+	ui.veinText:set(table.concat(places, ", "))
+	ui.veinText:setColor(placeColor)
 
-	ui.pointsText:set(string.format("깨달음 %d", state.enlightenment))
+	for index, slot in passiveSlots do
+		slot.slot.Visible = index <= state.slots
+		local id = state.equipped[index]
+		slot.icon.Visible = id ~= nil
+		if id then
+			slot.icon.Image = IMG[Skills.byId[id].icon].id
+		end
+	end
 
 	local trib = state.tribulation
 	ui.tribulation.Visible = trib ~= nil
@@ -635,49 +810,88 @@ local function updateOrbs(state)
 		setOrb("breakthrough", "stone", "돌파", false)
 	end
 
-	local affordable = false
-	for _, def in Insights.list do
-		local level = state.insights[def.id] or 0
-		if level < def.maxLevel and state.enlightenment >= Insights.cost(def.id, level) then
-			affordable = true
-			break
-		end
-	end
-	setOrb("insight", "jade", "깨달음", false)
-	orbs.insight.gem.Visible = affordable
+	setOrb("status", "jade", "상태창", false)
 end
 
-local function updatePanel(state)
-	ui.panelPoints:set(string.format("남은 깨달음 %d", state.enlightenment))
-	for id, r in insightRows do
-		local def = Insights.byId[id]
-		local level = state.insights[id] or 0
-		r.level:set(string.format("%d / %d", level, def.maxLevel))
-		r.current:set(def.show(level))
-		local maxed = level >= def.maxLevel
-		r.arrow.frame.Visible = not maxed
-		r.nextValue.frame.Visible = not maxed
-		r.buy.Visible = not maxed
-		if not maxed then
-			r.nextValue:set(def.show(level + 1))
-			local price = Insights.cost(id, level)
-			local canBuy = state.enlightenment >= price
-			setImage(r.buy, if canBuy then "pillJade" else "pillStone")
-			r.cost:set(tostring(price))
-			r.cost:setColor(if canBuy then C.cream else C.dim)
-			r.buyGem.ImageTransparency = if canBuy then 0 else 0.5
+local function updateStatusWindow(state)
+	local step = Realms.get(state.step)
+	ui.swRealm:set(Realms.label(state.step))
+	ui.swTier:set(step.realm.tier)
+
+	local stats = state.stats or {}
+	local breakText = "-"
+	if state.step >= Realms.maxStep then
+		breakText = "최고 경지"
+	elseif Realms.nextIsMajor(state.step) then
+		breakText = if Realms.get(state.step + 1).realm.tribulation
+			then "천겁"
+			else Format.percent(state.breakChance or 0)
+	end
+	local values = {
+		["체력"] = tostring(state.maxHealth),
+		["영력"] = string.format("%s / %s", Format.qi(state.qi), Format.qi(state.req)),
+		["흡수"] = string.format("%s / 초", Format.rate(state.gain)),
+		["돌파"] = breakText,
+		["천겁"] = string.format("%d회 넘음", stats.tribulations or 0),
+		["영초"] = string.format("%d개", stats.herbs or 0),
+		["비급"] = string.format("%d권", stats.manuals or 0),
+	}
+	for key, label in ui.swStats do
+		label:set(values[key] or "-")
+	end
+	ui.swSlots:set(string.format("장착 %d / %d", #state.equipped, state.slots))
+
+	for id, entry in skillRows do
+		local def = Skills.byId[id]
+		local known = state.skills[id] == true
+		local equipped = table.find(state.equipped, id) ~= nil
+		entry.icon.ImageColor3 = if known then Color3.new(1, 1, 1) else Color3.fromRGB(70, 66, 60)
+		entry.name:setColor(if equipped then C.gold elseif known then C.cream else C.dim)
+		if known then
+			entry.summary:set(def.summary)
+			entry.summary:setColor(if equipped then C.jade else C.dim)
+		else
+			local realmIndex = state.step >= Realms.firstStepById[def.minRealm]
+			entry.summary:set(
+				if realmIndex
+					then "비급을 찾으면 익힐 수 있다"
+					else string.format("%s부터 익힐 수 있다", Realms.byId[def.minRealm].name)
+			)
+			entry.summary:setColor(C.dim)
 		end
+		if entry.keyText then
+			entry.keyText.frame.Visible = known
+		end
+		if entry.button then
+			entry.button.Visible = known
+			if known then
+				local free = #state.equipped < state.slots
+				setImage(entry.button, if equipped or not free then "pillStone" else "pillJade")
+				entry.buttonText:set(if equipped then "해제" else "장착")
+				entry.buttonText:setColor(if equipped or free then C.cream else C.dim)
+			end
+		end
+	end
+end
+
+local function updateHotbar(state)
+	for id, slot in hotbar do
+		local known = state.skills[id] == true
+		slot.icon.ImageColor3 = if known then Color3.new(1, 1, 1) else Color3.fromRGB(70, 66, 60)
+		slot.icon.ImageTransparency = if known then 0 else 0.35
+		slot.label:setColor(if known then C.cream else C.dim)
 	end
 end
 
 function Hud.update(state)
 	updateStatus(state)
 	updateOrbs(state)
-	updatePanel(state)
+	updateStatusWindow(state)
+	updateHotbar(state)
 	lastState = state
 end
 
-function Hud.togglePanel(open: boolean?)
+function Hud.toggleStatus(open: boolean?)
 	local panel = ui.panel :: ImageLabel
 	panel.Visible = if open == nil then not panel.Visible else open
 end
@@ -685,6 +899,36 @@ end
 function Hud.toast(message: string, kind: string?)
 	Chat.system(message, kind)
 end
+
+-- 술법 ---------------------------------------------------------------------------
+
+function Hud.knows(id: string): boolean
+	return lastState ~= nil and lastState.skills[id] == true
+end
+
+function Hud.cooldownReady(id: string): boolean
+	return os.clock() >= (cooldownEnd[id] or 0)
+end
+
+-- 서버가 술법을 허락했다: 쿨타임 시작
+function Hud.skillUsed(payload: { [string]: any })
+	local cooldown = payload.cooldown or 0
+	cooldownEnd[payload.id] = os.clock() + cooldown
+	cooldownTotal[payload.id] = math.max(cooldown, 0.01)
+end
+
+RunService.Heartbeat:Connect(function()
+	local now = os.clock()
+	for id, slot in hotbar do
+		local finish = cooldownEnd[id]
+		local remaining = if finish then math.max(0, finish - now) else 0
+		slot.shade.Size = UDim2.new(1, -10, remaining / (cooldownTotal[id] or 1), if remaining > 0 then -10 else 0)
+		slot.timeText:set(if remaining > 0 then tostring(math.ceil(remaining)) else "")
+		if finish and remaining <= 0 then
+			cooldownEnd[id] = nil
+		end
+	end
+end)
 
 -- 연출 ---------------------------------------------------------------------------
 
@@ -732,12 +976,22 @@ function Hud.cinematic(payload: { [string]: any })
 		if not payload.returning then
 			task.delay(3.5, function()
 				if keyboard then
-					Chat.system("R 키로 운기조식, B 키로 돌파, T 키로 깨달음 창을 연다.", "info")
+					Chat.system(
+						"R 키로 운기조식, B 키로 돌파, C 키로 상태창을 연다. 1~4 키는 술법이다.",
+						"info"
+					)
 				else
-					Chat.system("오른쪽 아래 옥 버튼으로 운기조식하고 돌파한다.", "info")
+					Chat.system(
+						"오른쪽 옥 버튼으로 운기조식하고 돌파한다. 아래 칸은 술법이다.",
+						"info"
+					)
 				end
 				Chat.system(
 					"광장 가운데 영맥 위에서 운기조식하면 영력이 더 빨리 모인다.",
+					"info"
+				)
+				Chat.system(
+					"맵 곳곳에서 빛나는 비급을 찾으면 술법과 공법을 익힐 수 있다.",
 					"info"
 				)
 			end)

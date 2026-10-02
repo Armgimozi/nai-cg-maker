@@ -6,9 +6,16 @@ local UserInputService = game:GetService("UserInputService")
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 
 local Net = require(Shared.Net)
+local Skills = require(Shared.Skills)
 local Hud = require(script.Parent.Hud)
+local Effects = require(script.Parent.Effects)
 
 local player = Players.LocalPlayer
+
+-- 도구를 쓰지 않으니 기본 가방을 꺼서 1~4 키를 술법에 쓴다
+pcall(function()
+	game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+end)
 local remotes = Net.get()
 local state: { [string]: any }? = nil
 
@@ -25,9 +32,24 @@ local actions = {
 	breakthrough = function()
 		request("Breakthrough")
 	end,
-	buyInsight = function(id: string)
-		request("BuyInsight", id)
+	useSkill = function(id: string)
+		if not Hud.knows(id) then
+			Hud.toast("아직 익히지 못한 술법이다. 맵에서 비급을 찾아야 한다.", "bad")
+		elseif Hud.cooldownReady(id) then
+			request("UseSkill", id)
+		end
 	end,
+	equip = function(id: string, on: boolean)
+		request(if on then "Equip" else "Unequip", id)
+	end,
+}
+
+-- 숫자 키 → 술법
+local SKILL_KEYS = {
+	[Enum.KeyCode.One] = 1,
+	[Enum.KeyCode.Two] = 2,
+	[Enum.KeyCode.Three] = 3,
+	[Enum.KeyCode.Four] = 4,
 }
 
 Hud.build(actions)
@@ -38,6 +60,14 @@ remotes.State.OnClientEvent:Connect(function(snapshot)
 end)
 remotes.Notify.OnClientEvent:Connect(Hud.toast)
 remotes.Cinematic.OnClientEvent:Connect(Hud.cinematic)
+remotes.Skill.OnClientEvent:Connect(function(payload)
+	Hud.skillUsed(payload)
+	if payload.id == "gyeongsin" then
+		Effects.dash()
+	elseif payload.id == "yeongan" then
+		Effects.sight(payload.duration or 10)
+	end
+end)
 
 UserInputService.InputBegan:Connect(function(input: InputObject, processed: boolean)
 	if processed then
@@ -47,8 +77,13 @@ UserInputService.InputBegan:Connect(function(input: InputObject, processed: bool
 		actions.meditate()
 	elseif input.KeyCode == Enum.KeyCode.B then
 		actions.breakthrough()
-	elseif input.KeyCode == Enum.KeyCode.T then
-		Hud.togglePanel()
+	elseif input.KeyCode == Enum.KeyCode.C then
+		Hud.toggleStatus()
+	elseif SKILL_KEYS[input.KeyCode] then
+		local skill = Skills.actives[SKILL_KEYS[input.KeyCode]]
+		if skill then
+			actions.useSkill(skill.id)
+		end
 	end
 end)
 

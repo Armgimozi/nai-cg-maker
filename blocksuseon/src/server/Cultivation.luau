@@ -1,4 +1,4 @@
--- 운기조식(영력 흡수), 영맥 판정, 돌파, 깨달음 강화.
+-- 운기조식(영력 흡수), 영맥·취령진 판정, 돌파.
 
 local CollectionService = game:GetService("CollectionService")
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
@@ -8,6 +8,7 @@ local Balance = require(Shared.Balance)
 local Progression = require(Shared.Progression)
 local Format = require(Shared.Format)
 local Josa = require(Shared.Josa)
+local Skills = require(Shared.Skills)
 local PlayerData = require(script.Parent.PlayerData)
 local Session = require(script.Parent.Session)
 local Sync = require(script.Parent.Sync)
@@ -94,10 +95,10 @@ function Cultivation.grantQi(player: Player, amount: number)
 		return
 	end
 	local wasFull = isFull(data)
-	local advanced, points = Progression.addQi(data, amount)
+	local advanced = Progression.addQi(data, amount)
 
 	if advanced > 0 then
-		Sync.notify(player, string.format("%s에 올랐다. (깨달음 +%d)", Realms.label(data.step), points), "good")
+		Sync.notify(player, string.format("%s에 올랐다.", Realms.label(data.step)), "good")
 		Fx.burst(player.Character, STEP_COLOR, 25)
 	end
 	if not wasFull and isFull(data) then
@@ -139,6 +140,23 @@ function Cultivation.tick(dt: number)
 		end
 		session.veinMult = mult
 
+		-- 취령진: 진 안에 있으면 흡수 배율이 붙는다
+		local formation = session.formation
+		local inFormation = false
+		if formation then
+			if os.clock() > formation.untilTime then
+				session.formation = nil
+			elseif root then
+				local dy = root.Position.Y - formation.position.Y
+				inFormation = flatDistance(root.Position, formation.position) <= Skills.EFFECT.formationRadius
+					and math.abs(dy) < 8
+			end
+		end
+		if inFormation ~= session.inFormation then
+			session.inFormation = inFormation
+			session.dirty = true
+		end
+
 		if session.meditating then
 			local anchor = session.anchor
 			if
@@ -149,7 +167,7 @@ function Cultivation.tick(dt: number)
 			then
 				Cultivation.setMeditating(player, false)
 			elseif not isFull(data) then
-				Cultivation.grantQi(player, Progression.qiPerSecond(data, mult) * dt)
+				Cultivation.grantQi(player, Progression.qiPerSecond(data, mult, Cultivation.extraMult(session)) * dt)
 			end
 		end
 	end
@@ -169,13 +187,15 @@ function Cultivation.breakthrough(player: Player)
 		return
 	end
 
+	local slotsBefore = Progression.slots(data)
 	local result = Progression.attemptBreakthrough(data, rng:NextNumber())
 	if result.kind == "blocked" then
 		Sync.notify(player, result.reason or "지금은 돌파할 수 없다.", "bad")
 	elseif result.kind == "success" then
 		Characters.applyStats(player, true)
 		Fx.burst(player.Character, MAJOR_COLOR, 60)
-		Sync.notify(player, string.format("돌파에 성공했다! (깨달음 +%d)", result.points or 0), "good")
+		Sync.notify(player, "돌파에 성공했다!", "good")
+		Sync.announceSlots(player, slotsBefore)
 		Sync.broadcast(string.format("%s님이 %s에 올랐다.", player.DisplayName, Realms.label(data.step)), "world")
 		Sync.cinematic(player, {
 			kind = "ascend",
@@ -199,21 +219,9 @@ function Cultivation.breakthrough(player: Player)
 	Sync.state(player)
 end
 
-function Cultivation.buyInsight(player: Player, id: string)
-	local data = PlayerData.get(player)
-	if not data then
-		return
-	end
-	local ok, message = Progression.buyInsight(data, id)
-	if ok then
-		Sync.notify(player, message, "good")
-		if id == "danche" then
-			Characters.applyStats(player, false)
-		end
-	else
-		Sync.notify(player, message, "bad")
-	end
-	Sync.state(player)
+-- 영맥 말고 그 밖의 흡수 배율 (취령진)
+function Cultivation.extraMult(session): number
+	return if session.inFormation then Skills.EFFECT.formationMult else 1
 end
 
 return Cultivation

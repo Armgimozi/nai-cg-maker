@@ -1,7 +1,6 @@
 -- 수치 공식 모음. 밸런스는 여기 숫자만 바꾸면 된다.
 
 local Realms = require(script.Parent.Realms)
-local Insights = require(script.Parent.Insights)
 
 local Balance = {}
 
@@ -29,64 +28,27 @@ function Balance.qiRequired(step: number): number
 	return math.floor(req)
 end
 
-function Balance.qiPerSecond(step: number, veinMult: number, gongbeopLevel: number): number
-	return Balance.GAIN_BASE
-		* Balance.GAIN_GROWTH ^ (step - 1)
-		* veinMult
-		* (1 + Insights.value("gongbeop", gongbeopLevel))
+function Balance.qiPerSecond(step: number, veinMult: number): number
+	return Balance.GAIN_BASE * Balance.GAIN_GROWTH ^ (step - 1) * veinMult
 end
 
-function Balance.herbQi(step: number, gamdyeolLevel: number, rare: boolean): number
-	local share = if rare then 1.2 else 0.3
-	return Balance.qiRequired(step) * share * (1 + Insights.value("gamdyeol", gamdyeolLevel))
+function Balance.herbQi(step: number, rare: boolean): number
+	local share = if rare then 1.5 else 0.3
+	return Balance.qiRequired(step) * share
 end
 
 -- 돌파 -------------------------------------------------------------------------
 
-function Balance.breakChance(baseChance: number, dosimLevel: number): number
-	return math.min(0.98, baseChance + Insights.value("dosim", dosimLevel))
-end
-
--- 주화입마(돌파 실패) 때 잃는 영력 비율
-function Balance.deviationLoss(dosimLevel: number): number
-	return 0.4 * (1 - math.min(0.6, 0.04 * dosimLevel))
-end
-
--- 천겁에 쓰러졌을 때 잃는 영력 비율. 경지는 떨어지지 않는다.
-function Balance.tribulationLoss(dosimLevel: number): number
-	return 0.5 * (1 - math.min(0.6, 0.04 * dosimLevel))
-end
-
-function Balance.telegraphTime(baseTelegraph: number, geobunLevel: number): number
-	return baseTelegraph + Insights.value("geobun", geobunLevel)
-end
-
--- 깨달음 -----------------------------------------------------------------------
-
--- 같은 경지 안에서 한 단계 오를 때
-function Balance.stepPoints(newStep: number): number
-	return 1 + math.floor(newStep / 6)
-end
-
--- 대경지를 돌파했을 때 (천겁 없이)
-function Balance.breakthroughPoints(realmIndex: number): number
-	return 5 * realmIndex
-end
-
--- 천겁을 넘겼을 때
-function Balance.tribulationPoints(realmIndex: number): number
-	return 12 * realmIndex
-end
-
-Balance.RARE_HERB_POINTS = 3
+Balance.DEVIATION_LOSS = 0.4 -- 주화입마(돌파 실패) 때 잃는 영력 비율
+Balance.TRIBULATION_LOSS = 0.5 -- 천겁에 쓰러졌을 때 잃는 영력 비율. 경지는 떨어지지 않는다.
+Balance.MAX_BREAK_CHANCE = 0.98
 
 -- 몸 ---------------------------------------------------------------------------
 
 Balance.BASE_HP = 100
 
-function Balance.maxHealth(step: number, dancheLevel: number): number
-	local realm = Realms.get(step).realm
-	return math.floor(Balance.BASE_HP * realm.hpMult * (1 + Insights.value("danche", dancheLevel)))
+function Balance.maxHealth(step: number): number
+	return math.floor(Balance.BASE_HP * Realms.get(step).realm.hpMult)
 end
 
 return Balance

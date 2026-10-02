@@ -3,16 +3,19 @@
 -- Request  (클라 → 서버) action, arg
 --     "Meditate" (boolean)   운기조식 시작/중지
 --     "Breakthrough"         돌파
---     "BuyInsight" (string)  깨달음 강화
+--     "UseSkill" (string)    술법 쓰기
+--     "Equip" (string)       공법 장착
+--     "Unequip" (string)     공법 해제
 -- State    (서버 → 클라) 내 상태 스냅숏
 -- Notify   (서버 → 클라) text, kind
 -- Cinematic(서버 → 클라) 화면 연출 { kind = ... }
+-- Skill    (서버 → 클라) 술법이 나갔다 { id, cooldown, duration }
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local FOLDER_NAME = "BlockSuseonNet"
-local EVENTS = { "Request", "State", "Notify", "Cinematic" }
+local EVENTS = { "Request", "State", "Notify", "Cinematic", "Skill" }
 
 local Net = {}
 

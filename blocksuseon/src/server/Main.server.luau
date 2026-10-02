@@ -15,6 +15,8 @@ local Characters = require(script.Parent.Characters)
 local Cultivation = require(script.Parent.Cultivation)
 local Tribulation = require(script.Parent.Tribulation)
 local Herbs = require(script.Parent.Herbs)
+local Manuals = require(script.Parent.Manuals)
+local SkillService = require(script.Parent.SkillService)
 
 local RESPAWN_DELAY = 4
 local REQUEST_INTERVAL = 0.12
@@ -27,6 +29,7 @@ if not Workspace:FindFirstChild(World.MODEL_NAME) then
 end
 
 Herbs.start()
+Manuals.start()
 PlayerData.startAutosave()
 
 local function onCharacterAdded(player: Player, character: Model)
@@ -108,8 +111,10 @@ Sync.remotes.Request.OnServerEvent:Connect(function(player: Player, action: any,
 		Sync.state(player)
 	elseif action == "Breakthrough" then
 		Cultivation.breakthrough(player)
-	elseif action == "BuyInsight" and type(arg) == "string" then
-		Cultivation.buyInsight(player, arg)
+	elseif action == "UseSkill" and type(arg) == "string" then
+		SkillService.use(player, arg)
+	elseif (action == "Equip" or action == "Unequip") and type(arg) == "string" then
+		SkillService.setEquipped(player, arg, action == "Equip")
 	end
 end)
 

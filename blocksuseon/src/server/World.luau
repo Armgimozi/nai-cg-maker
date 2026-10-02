@@ -6,11 +6,41 @@
 --   Ground        - 영초가 돋는 바닥
 --   Vein          - 영맥 (속성 VeinId, Radius)
 --   HerbZone      - 영초가 돋는 범위
+--   ManualSpot    - 비급이 나타나는 자리
 -- Studio 에서 맵을 직접 고쳐도 태그만 유지하면 그대로 동작한다.
 
 local World = {}
 
 World.MODEL_NAME = "연국"
+
+-- 비급이 나타날 수 있는 자리 (바닥 높이까지 맞춘 좌표).
+-- 영산 층계 모서리, 숲, 마을 바깥, 강가, 천겁대, 맵 가장자리에 흩어 둔다.
+local MANUAL_SPOTS = {
+	-- 영산: 중심 (0, -250), i 층 윗면 높이 (i+1)*4, 모서리는 비탈이 없는 자리
+	Vector3.new(78.75, 8, -171.25),
+	Vector3.new(-63.75, 16, -313.75),
+	Vector3.new(48.75, 24, -298.75),
+	Vector3.new(-33.75, 32, -216.25),
+	Vector3.new(0, 40, -232),
+	-- 영초숲
+	Vector3.new(-150, 0, -120),
+	Vector3.new(-235, 0, -40),
+	Vector3.new(-250, 0, 150),
+	Vector3.new(-160, 0, 40),
+	-- 마을 바깥과 강가
+	Vector3.new(0, 0, 80),
+	Vector3.new(-62, 0, -58),
+	Vector3.new(96, 0, 10),
+	Vector3.new(-80, 0, 120),
+	-- 천겁대 위
+	Vector3.new(191, 1, -137.7),
+	-- 맵 가장자리
+	Vector3.new(260, 0, 180),
+	Vector3.new(-310, 0, -260),
+	Vector3.new(150, 0, 250),
+	Vector3.new(300, 0, -300),
+}
+World.MANUAL_SPOTS = MANUAL_SPOTS
 
 -- 매번 같은 지형이 나오도록 고정 시드 난수 (Park–Miller)
 local function makeRng(seed: number)
@@ -323,7 +353,7 @@ local function buildVillage(root: Instance, rng)
 	local village = folder(root, "마을")
 	block(village, "광장", Vector3.new(64, 1, 64), CFrame.new(0, 0, 0), C.stone, Enum.Material.Slate)
 	vein(village, "low", Vector3.new(0, 0.5, 0), 12)
-	sign(village, Vector3.new(0, 10, 0), "하품 영맥", "누구나 · 영기 흡수 x1.5", VEIN_COLORS.low)
+	sign(village, Vector3.new(0, 10, 0), "하품 영맥", "누구나, 흡수 ×1.5", VEIN_COLORS.low)
 
 	for _, angle in { 30, 70, 110, 150, 215, 250 } do
 		local rad = math.rad(angle)
@@ -373,13 +403,19 @@ local function buildForest(root: Instance, rng)
 		-- 중품 영맥 자리와 다리 앞은 비워 둔다
 		local nearVein = (Vector3.new(x, 0, z) - Vector3.new(-200, 0, 100)).Magnitude < 22
 		local nearBridge = x > -140 and math.abs(z) < 8
-		if not nearVein and not nearBridge then
+		local nearManual = false
+		for _, spot in MANUAL_SPOTS do
+			if (Vector3.new(x, 0, z) - Vector3.new(spot.X, 0, spot.Z)).Magnitude < 9 then
+				nearManual = true
+			end
+		end
+		if not nearVein and not nearBridge and not nearManual then
 			tree(trees, Vector3.new(x, 0, z), rng, rng(0, 1) > 0.8)
 		end
 	end
 
 	vein(forest, "mid", Vector3.new(-200, 0, 100), 11)
-	sign(forest, Vector3.new(-200, 10, 100), "중품 영맥", "축기기 이상 · 영기 흡수 x2.5", VEIN_COLORS.mid)
+	sign(forest, Vector3.new(-200, 10, 100), "중품 영맥", "축기기부터, 흡수 ×2.5", VEIN_COLORS.mid)
 	sign(
 		forest,
 		Vector3.new(-115, 12, 0),
@@ -443,13 +479,7 @@ local function buildMountain(root: Instance)
 
 	local top = center + Vector3.new(0, layers * layerH, 0)
 	vein(mountain, "high", top, 9)
-	sign(
-		mountain,
-		top + Vector3.new(0, 11, 0),
-		"상품 영맥",
-		"결단기 이상 · 영기 흡수 x4",
-		VEIN_COLORS.high
-	)
+	sign(mountain, top + Vector3.new(0, 11, 0), "상품 영맥", "결단기부터, 흡수 ×4", VEIN_COLORS.high)
 	for _, corner in
 		{ Vector3.new(13, 0, 13), Vector3.new(-13, 0, 13), Vector3.new(13, 0, -13), Vector3.new(-13, 0, -13) }
 	do
@@ -545,6 +575,17 @@ function World.build(workspaceRoot: Instance, lighting: Instance): Model
 	buildForest(root, rng)
 	buildMountain(root)
 	buildTribulationAltar(root)
+
+	local spots = folder(root, "비급자리")
+	for _, position in MANUAL_SPOTS do
+		local spot = block(spots, "ManualSpot", Vector3.new(2, 0.2, 2), CFrame.new(position), C.stone)
+		spot.Transparency = 1
+		spot.CanCollide = false
+		spot.CanQuery = false
+		spot.CanTouch = false
+		spot:AddTag("ManualSpot")
+	end
+
 	setupLighting(lighting)
 
 	root.Parent = workspaceRoot

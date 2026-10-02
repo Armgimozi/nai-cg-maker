@@ -31,7 +31,7 @@ local shared = loader.folder("src/shared")
 
 local Realms = loader.require(shared.Realms)
 local Balance = loader.require(shared.Balance)
-local Insights = loader.require(shared.Insights)
+local Skills = loader.require(shared.Skills)
 local Progression = loader.require(shared.Progression)
 local Format = loader.require(shared.Format)
 
@@ -68,14 +68,14 @@ check("병목 배율", function()
 	eq(Balance.qiRequired(3), plain, "연기기 1층 필요 영력")
 	eq(Balance.qiRequired(1), math.floor(Balance.QI_BASE * Balance.BOTTLENECK_MULT), "범인 필요 영력")
 end)
-check("깨달음 비용 증가", function()
-	for _, def in Insights.list do
-		local last = 0
-		for level = 0, def.maxLevel - 1 do
-			local cost = Insights.cost(def.id, level)
-			assert(cost >= last and cost > 0, `{def.id} Lv.{level} 비용 {cost}`)
-			last = cost
-		end
+check("술법·공법 데이터", function()
+	eq(#Skills.actives, 4, "술법 4개")
+	for index, def in Skills.actives do
+		eq(def.key, index, def.name .. " 단축키")
+		assert(def.cooldown and def.cooldown > 0, def.name .. " 쿨타임")
+	end
+	for _, def in Skills.list do
+		assert(Realms.byId[def.minRealm], def.name .. " 경지 id")
 	end
 end)
 check("숫자 포맷", function()
@@ -91,10 +91,9 @@ print("진행")
 check("같은 경지 안에서는 저절로 오르고 병목에서 멈춘다", function()
 	local data = Progression.newData()
 	data.step = 3 -- 연기기 1층
-	local advanced, points = Progression.addQi(data, 1e12)
+	local advanced = Progression.addQi(data, 1e12)
 	eq(data.step, 16, "연기기 14층에서 멈춤")
 	eq(advanced, 13)
-	assert(points > 0, "깨달음을 얻어야 한다")
 	eq(data.qi, Balance.qiRequired(16), "병목에서 영력 상한")
 	eq(Progression.isCapped(data), true)
 end)
@@ -111,12 +110,10 @@ check("돌파 성공/실패", function()
 	eq(blocked.kind, "blocked", "영력이 모자라면 막힘")
 
 	data.qi = Balance.qiRequired(16)
-	local before = data.enlightenment
 	local ok = Progression.attemptBreakthrough(data, 0)
 	eq(ok.kind, "success")
 	eq(data.step, 17, "축기기 영성 1")
 	eq(data.qi, 0)
-	eq(data.enlightenment - before, Balance.breakthroughPoints(4))
 end)
 check("같은 경지 안에서는 돌파 버튼이 막힌다", function()
 	local data = Progression.newData()
@@ -137,9 +134,8 @@ check("천겁", function()
 	eq(data.stats.tribulationFails, 1)
 
 	data.qi = Balance.qiRequired(44)
-	local points = Progression.passTribulation(data)
+	Progression.passTribulation(data)
 	eq(data.step, 45, "결단기 초기")
-	eq(points, Balance.tribulationPoints(5))
 	eq(data.stats.tribulations, 1)
 end)
 check("최고 경지", function()
@@ -150,40 +146,83 @@ check("최고 경지", function()
 	eq(data.qi, Balance.qiRequired(Realms.maxStep))
 	eq(Progression.attemptBreakthrough(data, 0).kind, "blocked")
 end)
-check("깨달음 강화", function()
+check("비급 익히기와 공법 장착", function()
 	local data = Progression.newData()
-	local ok = Progression.buyInsight(data, "gongbeop")
-	eq(ok, false, "깨달음 없으면 실패")
-	data.enlightenment = 1000
-	ok = Progression.buyInsight(data, "gongbeop")
-	eq(ok, true)
-	eq(data.insights.gongbeop, 1)
-	eq(data.enlightenment, 1000 - Insights.cost("gongbeop", 0))
-	eq((Progression.buyInsight(data, "없는것")), false)
-	data.insights.geobun = Insights.byId.geobun.maxLevel
-	eq((Progression.buyInsight(data, "geobun")), false, "최대 레벨")
+	eq(Progression.slots(data), 1, "범인은 공법 1칸")
+	eq((Progression.learn(data, "chwiryeong")), false, "연기기부터 익힐 수 있는 비급")
+	eq((Progression.learn(data, "없는것")), false)
+
+	eq((Progression.learn(data, "tonap")), true)
+	eq(Progression.knows(data, "tonap"), true)
+	eq(Progression.passive(data, "tonap"), true, "빈 칸이 있으면 바로 장착")
+	eq((Progression.learn(data, "tonap")), false, "같은 비급은 다시 못 익힌다")
+
+	eq((Progression.learn(data, "baekcho")), true)
+	eq(Progression.passive(data, "baekcho"), false, "칸이 없으면 익히기만")
+	eq((Progression.equip(data, "baekcho")), false, "칸이 모자라다")
+	eq((Progression.unequip(data, "tonap")), true)
+	eq((Progression.equip(data, "baekcho")), true)
+	eq(Progression.passive(data, "baekcho"), true)
+	eq((Progression.equip(data, "gyeongsin")), false, "술법은 장착하지 않는다")
+
+	data.step = Realms.firstStepById.yeongi
+	eq(Progression.slots(data), 2, "연기기부터 2칸")
+	data.step = Realms.firstStepById.gyeoldan
+	eq(Progression.slots(data), 3, "결단기부터 3칸")
+	eq(data.stats.manuals, 2)
+end)
+check("공법 효과", function()
+	local data = Progression.newData()
+	data.step = 45
+	local baseRate = Progression.qiPerSecond(data, 1)
+	local baseHp = Progression.maxHealth(data)
+	local baseHerb = Progression.herbQi(data, false)
+	for _, id in { "tonap", "geumgang", "baekcho", "piroe", "cheongi", "cheongsim" } do
+		data.skills[id] = true
+	end
+	data.equipped = { "tonap", "geumgang", "baekcho" }
+	assert(Progression.qiPerSecond(data, 1) > baseRate * 1.29, "토납법")
+	assert(Progression.qiPerSecond(data, 1, 2) > Progression.qiPerSecond(data, 1) * 1.99, "취령진 배율")
+	assert(Progression.maxHealth(data) > baseHp * 1.39, "금강체")
+	assert(Progression.herbQi(data, false) > baseHerb * 1.59, "백초경")
+	eq(Progression.tribulationDamage(data, 100), 100, "피뢰결 안 끼면 그대로")
+	data.equipped = { "piroe", "cheongi", "cheongsim" }
+	eq(Progression.tribulationDamage(data, 100), 70, "피뢰결")
+	eq(Progression.telegraphTime(data, 1), 1.4, "천기감응")
+
+	local d2 = Progression.newData()
+	d2.step = 16
+	local plain = Progression.breakChance(d2) :: number
+	d2.skills.cheongsim = true
+	d2.equipped = { "cheongsim" }
+	eq(Progression.breakChance(d2), plain + 0.15, "청심결 돌파 확률")
 end)
 check("체력", function()
 	local data = Progression.newData()
 	eq(Progression.maxHealth(data), Balance.BASE_HP, "범인 기본 체력")
 	data.step = 45
-	data.insights.danche = 5
-	assert(Progression.maxHealth(data) > Balance.BASE_HP * 2, "경지와 신체 단련이 체력을 올린다")
+	assert(Progression.maxHealth(data) >= Balance.BASE_HP * 2, "경지가 체력을 올린다")
 end)
 check("저장 데이터 정리", function()
 	local data = Progression.reconcile({
 		step = 9999,
 		qi = -5,
-		enlightenment = 12.7,
-		insights = { gongbeop = 999, unknown = 3, dosim = "x" },
+		enlightenment = 12.7, -- 예전 판의 깨달음은 버린다
+		insights = { gongbeop = 3 },
+		skills = { tonap = true, baekcho = true, unknown = true, cheongi = "x" },
+		equipped = { "tonap", "tonap", "baekcho", "gyeongsin", "unknown", "cheongsim" },
 		stats = { herbs = 4 },
 	})
 	eq(data.step, Realms.maxStep)
 	eq(data.qi, 0)
-	eq(data.enlightenment, 12)
-	eq(data.insights.gongbeop, Insights.byId.gongbeop.maxLevel)
-	eq(data.insights.unknown, nil)
-	eq(data.insights.dosim, nil)
+	eq((data :: any).enlightenment, nil)
+	eq((data :: any).insights, nil)
+	eq(data.skills.tonap, true)
+	eq(data.skills.unknown, nil)
+	eq(data.skills.cheongi, nil)
+	eq(#data.equipped, 2, "익힌 공법만, 겹치지 않게")
+	eq(data.equipped[1], "tonap")
+	eq(data.equipped[2], "baekcho")
 	eq(data.stats.herbs, 4)
 	eq(data.stats.tribulations, 0)
 	eq(Progression.reconcile(nil).step, 1)
@@ -230,6 +269,7 @@ check("연국 맵 짓기", function()
 	eq(tags.Ground, 1, "Ground 태그")
 	eq(tags.Vein, 3, "Vein 태그")
 	eq(tags.HerbZone, 1, "HerbZone 태그")
+	eq(tags.ManualSpot, 18, "ManualSpot 태그")
 	for _, inst in map:GetDescendants() do
 		if inst:HasTag("Vein") then
 			assert(Balance.VEINS[inst:GetAttribute("VeinId")], "영맥 id")

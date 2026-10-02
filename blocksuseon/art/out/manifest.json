@@ -150,5 +150,101 @@
     "height": 64,
     "slice": null,
     "meta": null
+  },
+  "slot": {
+    "file": "slot.png",
+    "source": "assets.html",
+    "width": 128,
+    "height": 128,
+    "slice": null,
+    "meta": null
+  },
+  "skillDash": {
+    "file": "skillDash.png",
+    "source": "assets.html",
+    "width": 128,
+    "height": 128,
+    "slice": null,
+    "meta": null
+  },
+  "skillEye": {
+    "file": "skillEye.png",
+    "source": "assets.html",
+    "width": 128,
+    "height": 128,
+    "slice": null,
+    "meta": null
+  },
+  "skillFormation": {
+    "file": "skillFormation.png",
+    "source": "assets.html",
+    "width": 128,
+    "height": 128,
+    "slice": null,
+    "meta": null
+  },
+  "skillShield": {
+    "file": "skillShield.png",
+    "source": "assets.html",
+    "width": 128,
+    "height": 128,
+    "slice": null,
+    "meta": null
+  },
+  "skillBreath": {
+    "file": "skillBreath.png",
+    "source": "assets.html",
+    "width": 128,
+    "height": 128,
+    "slice": null,
+    "meta": null
+  },
+  "skillHerb": {
+    "file": "skillHerb.png",
+    "source": "assets.html",
+    "width": 128,
+    "height": 128,
+    "slice": null,
+    "meta": null
+  },
+  "skillCalm": {
+    "file": "skillCalm.png",
+    "source": "assets.html",
+    "width": 128,
+    "height": 128,
+    "slice": null,
+    "meta": null
+  },
+  "skillVajra": {
+    "file": "skillVajra.png",
+    "source": "assets.html",
+    "width": 128,
+    "height": 128,
+    "slice": null,
+    "meta": null
+  },
+  "skillBolt": {
+    "file": "skillBolt.png",
+    "source": "assets.html",
+    "width": 128,
+    "height": 128,
+    "slice": null,
+    "meta": null
+  },
+  "skillStar": {
+    "file": "skillStar.png",
+    "source": "assets.html",
+    "width": 128,
+    "height": 128,
+    "slice": null,
+    "meta": null
+  },
+  "iconStatus": {
+    "file": "iconStatus.png",
+    "source": "assets.html",
+    "width": 128,
+    "height": 128,
+    "slice": null,
+    "meta": null
   }
 }
