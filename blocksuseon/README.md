@@ -54,6 +54,7 @@ src/shared/               서버·클라 공용: 경지, 깨달음, 무공, 수�
 src/server/               서버: 운기조식, 천겁, 영초, 목인장, 저장, 맵 생성
 src/client/               UI
 tests/run.luau            로직·맵 테스트 (Lune)
+tests/hud.luau            화면 UI 생성 테스트 (Lune)
 tools/bake_place.luau     Rojo 빌드 + 맵 굽기 → BlockSuseon.rbxl
 tools/publish.py          Open Cloud 로 게시
 ```
@@ -67,7 +68,8 @@ tools/publish.py          Open Cloud 로 게시
 
 ```sh
 rojo serve                      # Studio 의 Rojo 플러그인과 실시간 연동
-lune run tests/run              # 테스트
+lune run tests/run              # 로직·맵 테스트
+lune run tests/hud              # 화면 UI 를 실제 인스턴스로 만들어 속성 검사
 lune run tools/bake_place       # BlockSuseon.rbxl 다시 만들기
 ROBLOX_API_KEY=... python3 tools/publish.py   # 플레이스 71891059039004 에 게시
 ```

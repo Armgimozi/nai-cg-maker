@@ -72,7 +72,7 @@ local function collect(player: Player, herb: Model, rare: boolean)
 		return
 	end
 	if Cultivation.isFull(player) then
-		Sync.notify(player, "영력이 가득 차 더 받아들일 수 없다. 먼저 돌파하라.", "bad")
+		Sync.notify(player, "영력이 가득 찼다  ·  먼저 돌파하라", "bad")
 		return
 	end
 
@@ -84,14 +84,14 @@ local function collect(player: Player, herb: Model, rare: boolean)
 		Sync.notify(
 			player,
 			string.format(
-				"천년영지를 먹었다! 영력 +%s · 깨달음 +%d",
+				"천년영지  ·  영력 +%s  ·  깨달음 +%d",
 				Format.qi(amount),
 				Balance.RARE_HERB_POINTS
 			),
 			"good"
 		)
 	else
-		Sync.notify(player, string.format("영초를 먹었다. 영력 +%s", Format.qi(amount)), "good")
+		Sync.notify(player, string.format("영초  ·  영력 +%s", Format.qi(amount)), "good")
 	end
 	Cultivation.grantQi(player, amount)
 	task.delay(rng:NextNumber(RESPAWN_MIN, RESPAWN_MAX), spawnHerb)

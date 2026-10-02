@@ -1,4 +1,5 @@
--- 화면 UI: 경지·영력 패널, 무공 패널, 행동 버튼, 깨달음 창, 알림, 연출.
+-- 화면 UI.
+-- 수묵·인장 느낌: 상자 대신 글자와 가는 먹선, 버튼은 붉은 인장, 깨달음 창은 한지 족자 한 폭.
 
 local Players = game:GetService("Players")
 local Lighting = game:GetService("Lighting")
@@ -19,40 +20,51 @@ export type Actions = {
 	buyInsight: (id: string) -> (),
 }
 
-local THEME = {
-	panel = Color3.fromRGB(18, 20, 28),
-	button = Color3.fromRGB(42, 46, 60),
-	buttonOn = Color3.fromRGB(32, 112, 120),
-	buttonReady = Color3.fromRGB(160, 112, 36),
-	buttonTrib = Color3.fromRGB(150, 50, 44),
-	gold = Color3.fromRGB(255, 214, 140),
-	text = Color3.fromRGB(236, 236, 242),
-	dim = Color3.fromRGB(160, 166, 184),
-	qiA = Color3.fromRGB(110, 235, 230),
-	qiB = Color3.fromRGB(90, 140, 255),
-	martial = Color3.fromRGB(255, 160, 110),
-	info = Color3.fromRGB(236, 236, 242),
-	good = Color3.fromRGB(150, 240, 170),
-	bad = Color3.fromRGB(255, 130, 120),
-	tribulation = Color3.fromRGB(255, 120, 90),
-	world = Color3.fromRGB(255, 214, 140),
+local C = {
+	paper = Color3.fromRGB(236, 228, 210),
+	paperShade = Color3.fromRGB(214, 203, 180),
+	ink = Color3.fromRGB(30, 27, 24),
+	inkSoft = Color3.fromRGB(110, 100, 88),
+	white = Color3.fromRGB(246, 242, 232),
+	seal = Color3.fromRGB(170, 52, 42),
+	sealDim = Color3.fromRGB(96, 82, 76),
+	jade = Color3.fromRGB(110, 196, 166),
+	jadeDeep = Color3.fromRGB(46, 120, 100),
+	gold = Color3.fromRGB(226, 188, 108),
+	red = Color3.fromRGB(238, 122, 106),
 }
 
-local MAX_TOASTS = 6
-local TOAST_TIME = 6
+local FEED_COLORS = {
+	info = C.white,
+	good = C.jade,
+	bad = C.red,
+	tribulation = C.red,
+	world = C.gold,
+}
+local FEED_MAX = 4
+local FEED_TIME = 4.5
+
+local SEALS = {
+	{ key = "meditate", glyph = "運", caption = "운기조식", hotkey = "R" },
+	{ key = "breakthrough", glyph = "破", caption = "돌파", hotkey = "B" },
+	{ key = "insight", glyph = "悟", caption = "깨달음", hotkey = "T" },
+}
 
 local Hud = {}
 
 local player = Players.LocalPlayer
+local keyboard = UserInputService.KeyboardEnabled
 local actions: Actions
 local scales: { UIScale } = {}
-local refs: { [string]: any } = {}
+local ui: { [string]: any } = {}
+local seals: { [string]: { [string]: any } } = {}
 local insightRows: { [string]: { [string]: any } } = {}
-local toastOrder = 0
+local pulses: { [Instance]: Tween } = {}
+local feedOrder = 0
 local cinematicToken = 0
 local lastState: { [string]: any }? = nil
 
--- 인스턴스 생성 도우미 ------------------------------------------------------------
+-- 도우미 ---------------------------------------------------------------------------
 
 local function new(className: string, props: { [string]: any }?, children: { Instance }?): any
 	local inst = Instance.new(className)
@@ -73,348 +85,505 @@ local function new(className: string, props: { [string]: any }?, children: { Ins
 	return inst
 end
 
-local function corner(radius: number): UICorner
-	return new("UICorner", { CornerRadius = UDim.new(0, radius) })
+local function hex(color: Color3): string
+	return string.format(
+		"#%02X%02X%02X",
+		math.floor(color.R * 255 + 0.5),
+		math.floor(color.G * 255 + 0.5),
+		math.floor(color.B * 255 + 0.5)
+	)
 end
 
-local function stroke(color: Color3, transparency: number): UIStroke
-	return new("UIStroke", { Color = color, Transparency = transparency, Thickness = 1 })
+local function corner(px: number): UICorner
+	return new("UICorner", { CornerRadius = UDim.new(0, px) })
 end
 
-local function label(props: { [string]: any }): TextLabel
-	local defaults = {
+local function border(color: Color3, thickness: number, transparency: number): UIStroke
+	return new("UIStroke", {
+		Color = color,
+		Thickness = thickness,
+		Transparency = transparency,
+		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+	})
+end
+
+-- 3D 화면 위에 바로 얹는 글자. 먹선을 둘러 어디서나 읽히게 한다.
+local function text(props: { [string]: any }): TextLabel
+	local base: { [string]: any } = {
 		BackgroundTransparency = 1,
 		Font = Enum.Font.GothamMedium,
-		TextColor3 = THEME.text,
-		TextSize = 16,
-		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = C.white,
+		TextStrokeColor3 = C.ink,
+		TextStrokeTransparency = 0.45,
+		TextSize = 15,
 		RichText = true,
+		Text = "",
 	}
 	for key, value in props do
-		defaults[key] = value
+		base[key] = value
 	end
-	return new("TextLabel", defaults)
+	return new("TextLabel", base)
 end
 
-local function button(props: { [string]: any }): TextButton
-	local defaults = {
-		AutoButtonColor = true,
-		BackgroundColor3 = THEME.button,
-		Font = Enum.Font.GothamBold,
-		TextColor3 = THEME.text,
-		TextSize = 17,
-	}
-	for key, value in props do
-		defaults[key] = value
-	end
-	return new("TextButton", defaults, { corner(10), stroke(Color3.new(1, 1, 1), 0.85) })
+-- 종이 위의 먹 글씨
+local function inkText(props: { [string]: any }): TextLabel
+	props.TextColor3 = props.TextColor3 or C.ink
+	props.TextStrokeTransparency = 1
+	return text(props)
 end
 
--- 패널마다 붙여서 작은 화면에서 기준점(AnchorPoint) 쪽으로 줄어들게 한다
+local function tween(target: Instance, info: TweenInfo, goal: { [string]: any })
+	TweenService:Create(target, info, goal):Play()
+end
+
+-- 숨 쉬듯 반복하는 트윈. 끄면 rest 값으로 되돌린다.
+local function pulse(target: Instance, on: boolean, goal: { [string]: any }, rest: { [string]: any })
+	local running = pulses[target]
+	if on and running then
+		return
+	end
+	if running then
+		running:Cancel()
+		pulses[target] = nil
+	end
+	if on then
+		local t = TweenService:Create(
+			target,
+			TweenInfo.new(0.9, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+			goal
+		)
+		pulses[target] = t
+		t:Play()
+	else
+		for key, value in rest do
+			(target :: any)[key] = value
+		end
+	end
+end
+
+-- 작은 화면에서는 각 묶음이 자기 기준점(AnchorPoint) 쪽으로 줄어든다
 local function scaled(frame: GuiObject): GuiObject
-	local scale = new("UIScale", { Parent = frame })
-	table.insert(scales, scale)
+	table.insert(scales, new("UIScale", { Parent = frame }))
 	return frame
 end
 
 local function rescale()
 	local camera = Workspace.CurrentCamera
 	local size = if camera then camera.ViewportSize else Vector2.new(1280, 720)
-	local value = math.clamp(math.min(size.X / 1280, size.Y / 720), 0.55, 1)
+	local value = math.clamp(math.min(size.X / 1280, size.Y / 720), 0.6, 1)
 	for _, scale in scales do
 		scale.Scale = value
 	end
 end
 
-local function rgbHex(color: Color3): string
-	return string.format(
-		"#%02X%02X%02X",
-		math.floor(color.R * 255),
-		math.floor(color.G * 255),
-		math.floor(color.B * 255)
-	)
+-- "結丹期" → "結"
+local function firstChar(s: string?): string?
+	if not s or s == "" then
+		return nil
+	end
+	local second = utf8.offset(s, 2)
+	return if second then string.sub(s, 1, second - 1) else s
 end
 
--- 만들기 -----------------------------------------------------------------------
-
-local function buildStatus(gui: ScreenGui)
-	local panel = scaled(new("Frame", {
-		Name = "Status",
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 8),
-		Size = UDim2.fromOffset(460, 110),
-		BackgroundColor3 = THEME.panel,
-		BackgroundTransparency = 0.2,
-		Parent = gui,
-	}, { corner(12), stroke(THEME.gold, 0.7) }))
-
-	refs.realm = label({
-		Position = UDim2.fromOffset(14, 8),
-		Size = UDim2.new(1, -150, 0, 34),
-		Font = Enum.Font.GothamBold,
-		TextSize = 28,
-		TextColor3 = THEME.gold,
-		Text = "…",
-		Parent = panel,
-	})
-	refs.enlightenment = label({
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -14, 0, 14),
-		Size = UDim2.fromOffset(140, 24),
-		TextXAlignment = Enum.TextXAlignment.Right,
-		TextColor3 = THEME.text,
-		Text = "",
-		Parent = panel,
-	})
-
-	local bar = new("Frame", {
-		Position = UDim2.fromOffset(14, 48),
-		Size = UDim2.new(1, -28, 0, 22),
-		BackgroundColor3 = Color3.fromRGB(8, 10, 16),
-		Parent = panel,
-	}, { corner(6) })
-	refs.qiFill = new("Frame", {
-		Size = UDim2.fromScale(0, 1),
-		BackgroundColor3 = Color3.new(1, 1, 1),
-		Parent = bar,
-	}, {
-		corner(6),
-		new("UIGradient", { Color = ColorSequence.new(THEME.qiA, THEME.qiB) }),
-	})
-	refs.qiText = label({
+-- 인장 하나: 붉은 바탕, 안쪽 가는 테, 가운데 한 글자
+local function stamp(
+	parent: Instance,
+	size: number,
+	glyph: string,
+	glyphSize: number,
+	className: string?
+): (GuiObject, TextLabel)
+	local frame = new(className or "Frame", {
+		Size = UDim2.fromOffset(size, size),
+		BackgroundColor3 = C.seal,
+		BorderSizePixel = 0,
+		Parent = parent,
+	}, { corner(math.max(3, math.floor(size / 12))) })
+	if frame:IsA("TextButton") then
+		frame.AutoButtonColor = false
+		frame.Text = ""
+	end
+	new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.new(1, -math.floor(size / 7), 1, -math.floor(size / 7)),
+		BackgroundTransparency = 1,
+		Parent = frame,
+	}, { corner(math.max(2, math.floor(size / 18))), border(C.paper, 1.5, 0.4) })
+	local label = text({
 		Size = UDim2.fromScale(1, 1),
-		TextXAlignment = Enum.TextXAlignment.Center,
-		TextSize = 14,
 		Font = Enum.Font.GothamBold,
-		TextStrokeTransparency = 0.5,
-		Text = "",
-		ZIndex = 2,
-		Parent = bar,
+		TextSize = glyphSize,
+		TextColor3 = C.paper,
+		TextStrokeTransparency = 1,
+		RichText = false,
+		Text = glyph,
+		Parent = frame,
 	})
+	return frame, label
+end
 
-	refs.info = label({
-		Position = UDim2.fromOffset(14, 78),
-		Size = UDim2.new(1, -28, 0, 22),
-		TextSize = 14,
-		TextColor3 = THEME.dim,
-		Text = "",
-		Parent = panel,
-	})
+-- 만들기 ---------------------------------------------------------------------------
 
-	refs.tribulation = label({
+-- 위 가운데: 경지 이름, 영력 먹선, 상태 한 줄, 천겁
+local function buildTop(gui: ScreenGui)
+	local top = scaled(new("Frame", {
+		Name = "Realm",
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 1, 10),
-		Size = UDim2.fromOffset(460, 30),
-		TextXAlignment = Enum.TextXAlignment.Center,
-		Font = Enum.Font.GothamBold,
-		TextSize = 20,
-		TextColor3 = THEME.tribulation,
-		TextStrokeTransparency = 0.3,
-		Visible = false,
-		Text = "",
-		Parent = panel,
-	})
-end
-
-local function buildMartial(gui: ScreenGui)
-	local panel = scaled(new("Frame", {
-		Name = "Martial",
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 10, 0.42, 0),
-		Size = UDim2.fromOffset(230, 72),
-		BackgroundColor3 = THEME.panel,
-		BackgroundTransparency = 0.25,
+		Position = UDim2.new(0.5, 0, 0, 6),
+		Size = UDim2.fromOffset(420, 132),
+		BackgroundTransparency = 1,
 		Parent = gui,
-	}, { corner(10), stroke(THEME.martial, 0.75) }))
+	}))
 
-	refs.martialRank = label({
-		Position = UDim2.fromOffset(12, 6),
-		Size = UDim2.new(1, -24, 0, 22),
+	ui.realm = text({
+		Size = UDim2.new(1, 0, 0, 38),
 		Font = Enum.Font.GothamBold,
-		TextSize = 17,
-		TextColor3 = THEME.martial,
-		Text = "",
-		Parent = panel,
+		TextSize = 30,
+		TextStrokeTransparency = 0.3,
+		Parent = top,
 	})
-	local bar = new("Frame", {
-		Position = UDim2.fromOffset(12, 32),
-		Size = UDim2.new(1, -24, 0, 8),
-		BackgroundColor3 = Color3.fromRGB(8, 10, 16),
-		Parent = panel,
-	}, { corner(4) })
-	refs.martialFill = new("Frame", {
+
+	local track = new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 44),
+		Size = UDim2.fromOffset(300, 4),
+		BackgroundColor3 = C.ink,
+		BackgroundTransparency = 0.35,
+		BorderSizePixel = 0,
+		Parent = top,
+	})
+	ui.qiFill = new("Frame", {
 		Size = UDim2.fromScale(0, 1),
-		BackgroundColor3 = THEME.martial,
-		Parent = bar,
-	}, { corner(4) })
-	refs.martialInfo = label({
-		Position = UDim2.fromOffset(12, 44),
-		Size = UDim2.new(1, -24, 0, 20),
+		BackgroundColor3 = C.jade,
+		BorderSizePixel = 0,
+		Parent = track,
+	})
+	-- 병목 표시: 줄 끝의 마름모
+	ui.qiCap = new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(1, 0.5),
+		Size = UDim2.fromOffset(9, 9),
+		Rotation = 45,
+		BackgroundColor3 = C.paper,
+		BorderSizePixel = 0,
+		Visible = false,
+		Parent = track,
+	})
+
+	ui.qiText = text({
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 52),
+		Size = UDim2.fromOffset(360, 18),
 		TextSize = 13,
-		TextColor3 = THEME.dim,
-		Text = "",
-		Parent = panel,
+		TextStrokeTransparency = 0.5,
+		Parent = top,
+	})
+	ui.status = text({
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 70),
+		Size = UDim2.fromOffset(400, 18),
+		TextSize = 13,
+		TextColor3 = C.jade,
+		Parent = top,
+	})
+	ui.tribulation = text({
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 94),
+		Size = UDim2.fromOffset(420, 34),
+		Font = Enum.Font.GothamBold,
+		TextSize = 24,
+		TextColor3 = C.red,
+		TextStrokeTransparency = 0.2,
+		Visible = false,
+		Parent = top,
 	})
 end
 
-local function buildActions(gui: ScreenGui)
+-- 아래 가운데: 인장 버튼 세 개
+local function buildSeals(gui: ScreenGui)
 	local bar = scaled(new("Frame", {
-		Name = "Actions",
+		Name = "Seals",
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -14),
-		Size = UDim2.fromOffset(450, 58),
+		Position = UDim2.new(0.5, 0, 1, -12),
+		Size = UDim2.fromOffset(260, 88),
 		BackgroundTransparency = 1,
 		Parent = gui,
 	}, {
 		new("UIListLayout", {
 			FillDirection = Enum.FillDirection.Horizontal,
 			HorizontalAlignment = Enum.HorizontalAlignment.Center,
-			Padding = UDim.new(0, 10),
 			SortOrder = Enum.SortOrder.LayoutOrder,
+			Padding = UDim.new(0, 18),
 		}),
 	}))
 
-	refs.meditate = button({ LayoutOrder = 1, Size = UDim2.new(0, 150, 1, 0), Text = "운기조식", Parent = bar })
-	refs.breakthrough = button({ LayoutOrder = 2, Size = UDim2.new(0, 140, 1, 0), Text = "돌파", Parent = bar })
-	refs.insightButton = button({ LayoutOrder = 3, Size = UDim2.new(0, 140, 1, 0), Text = "깨달음", Parent = bar })
+	for index, def in SEALS do
+		local holder = new("Frame", {
+			LayoutOrder = index,
+			Size = UDim2.fromOffset(62, 88),
+			BackgroundTransparency = 1,
+			Parent = bar,
+		})
+		local button, glyph = stamp(holder, 58, def.glyph, 30, "TextButton")
+		button.AnchorPoint = Vector2.new(0.5, 0)
+		button.Position = UDim2.fromScale(0.5, 0)
+		local press = new("UIScale", { Parent = button })
+		local glow = border(C.gold, 2.5, 1)
+		glow.Parent = button
 
-	refs.meditate.Activated:Connect(function()
-		actions.meditate()
-	end)
-	refs.breakthrough.Activated:Connect(function()
-		actions.breakthrough()
-	end)
-	refs.insightButton.Activated:Connect(function()
-		Hud.togglePanel()
-	end)
+		text({
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, -6, 0, 4),
+			Size = UDim2.fromOffset(12, 12),
+			TextSize = 10,
+			TextColor3 = C.paper,
+			TextTransparency = 0.4,
+			TextStrokeTransparency = 1,
+			RichText = false,
+			Text = def.hotkey,
+			Visible = keyboard,
+			Parent = button,
+		})
+		local badge = new("Frame", {
+			AnchorPoint = Vector2.new(0.5, 0.5),
+			Position = UDim2.fromOffset(4, 4),
+			Size = UDim2.fromOffset(10, 10),
+			BackgroundColor3 = C.jade,
+			BorderSizePixel = 0,
+			Visible = false,
+			Parent = button,
+		}, { corner(5), border(C.ink, 1, 0.3) })
+		local caption = text({
+			AnchorPoint = Vector2.new(0.5, 0),
+			Position = UDim2.new(0.5, 0, 0, 63),
+			Size = UDim2.fromOffset(110, 18),
+			TextSize = 13,
+			Text = def.caption,
+			Parent = holder,
+		})
+
+		button.MouseButton1Down:Connect(function()
+			press.Scale = 0.92
+		end)
+		button.MouseButton1Up:Connect(function()
+			press.Scale = 1
+		end)
+		button.MouseLeave:Connect(function()
+			press.Scale = 1
+		end)
+		button.Activated:Connect(function()
+			press.Scale = 1
+			if def.key == "meditate" then
+				actions.meditate()
+			elseif def.key == "breakthrough" then
+				actions.breakthrough()
+			else
+				Hud.togglePanel()
+			end
+		end)
+
+		seals[def.key] = { button = button, glyph = glyph, caption = caption, glow = glow, badge = badge }
+	end
 end
 
-local function buildInsightPanel(gui: ScreenGui)
-	local panel = scaled(new("Frame", {
+-- 왼쪽: 무공
+local function buildMartial(gui: ScreenGui)
+	local box = scaled(new("Frame", {
+		Name = "Martial",
+		AnchorPoint = Vector2.new(0, 0.5),
+		Position = UDim2.new(0, 16, 0.56, 0),
+		Size = UDim2.fromOffset(200, 50),
+		BackgroundTransparency = 1,
+		Parent = gui,
+	}))
+	stamp(box, 24, "武", 14)
+	ui.martialRank = text({
+		Position = UDim2.fromOffset(32, 0),
+		Size = UDim2.new(1, -32, 0, 24),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Font = Enum.Font.GothamBold,
+		TextSize = 17,
+		Parent = box,
+	})
+	local track = new("Frame", {
+		Position = UDim2.fromOffset(0, 31),
+		Size = UDim2.fromOffset(150, 2),
+		BackgroundColor3 = C.ink,
+		BackgroundTransparency = 0.35,
+		BorderSizePixel = 0,
+		Parent = box,
+	})
+	ui.martialFill = new("Frame", {
+		Size = UDim2.fromScale(0, 1),
+		BackgroundColor3 = C.paper,
+		BorderSizePixel = 0,
+		Parent = track,
+	})
+	ui.martialInfo = text({
+		Position = UDim2.fromOffset(0, 36),
+		Size = UDim2.new(1, 0, 0, 14),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextSize = 12,
+		TextTransparency = 0.15,
+		Parent = box,
+	})
+end
+
+-- 아래 가운데, 인장 위: 알림 몇 줄
+local function buildFeed(gui: ScreenGui)
+	ui.feed = scaled(new("Frame", {
+		Name = "Feed",
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -110),
+		Size = UDim2.fromOffset(600, 100),
+		BackgroundTransparency = 1,
+		Parent = gui,
+	}, {
+		new("UIListLayout", {
+			VerticalAlignment = Enum.VerticalAlignment.Bottom,
+			HorizontalAlignment = Enum.HorizontalAlignment.Center,
+			SortOrder = Enum.SortOrder.LayoutOrder,
+			Padding = UDim.new(0, 2),
+		}),
+	}))
+end
+
+-- 깨달음 창: 한지 족자
+local function buildPanel(gui: ScreenGui)
+	local sheet = scaled(new("Frame", {
 		Name = "Insights",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(520, 470),
-		BackgroundColor3 = THEME.panel,
-		BackgroundTransparency = 0.08,
+		Size = UDim2.fromOffset(440, 480),
+		BackgroundColor3 = C.paper,
+		BorderSizePixel = 0,
 		Visible = false,
 		Parent = gui,
-	}, { corner(14), stroke(THEME.gold, 0.5) }))
-	refs.panel = panel
+	}, { border(C.ink, 1.5, 0.2) }))
+	ui.panel = sheet
 
-	refs.panelTitle = label({
-		Position = UDim2.fromOffset(18, 12),
-		Size = UDim2.new(1, -120, 0, 30),
+	-- 족자 위아래 축
+	for _, y in { 0, 1 } do
+		new("Frame", {
+			AnchorPoint = Vector2.new(0.5, y),
+			Position = UDim2.new(0.5, 0, y, if y == 0 then -6 else 6),
+			Size = UDim2.new(1, 28, 0, 10),
+			BackgroundColor3 = C.ink,
+			BorderSizePixel = 0,
+			Parent = sheet,
+		}, { corner(3) })
+	end
+
+	local seal = stamp(sheet, 44, "悟", 26)
+	seal.Position = UDim2.fromOffset(26, 28)
+	ui.panelTitle = inkText({
+		Position = UDim2.fromOffset(84, 28),
+		Size = UDim2.new(1, -150, 0, 26),
+		TextXAlignment = Enum.TextXAlignment.Left,
 		Font = Enum.Font.GothamBold,
 		TextSize = 22,
-		TextColor3 = THEME.gold,
 		Text = "깨달음",
-		Parent = panel,
+		Parent = sheet,
 	})
-	label({
-		Position = UDim2.fromOffset(18, 42),
-		Size = UDim2.new(1, -36, 0, 18),
+	ui.panelPoints = inkText({
+		Position = UDim2.fromOffset(84, 54),
+		Size = UDim2.new(1, -150, 0, 18),
+		TextXAlignment = Enum.TextXAlignment.Left,
 		TextSize = 13,
-		TextColor3 = THEME.dim,
-		Text = "경지가 오르고 천겁을 넘을 때마다 깨달음을 얻는다.",
-		Parent = panel,
+		TextColor3 = C.inkSoft,
+		Parent = sheet,
 	})
-	local close = button({
+
+	local close = new("TextButton", {
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -12, 0, 12),
-		Size = UDim2.fromOffset(72, 32),
-		TextSize = 15,
-		Text = "닫기",
-		Parent = panel,
+		Position = UDim2.new(1, -18, 0, 24),
+		Size = UDim2.fromOffset(32, 32),
+		BackgroundTransparency = 1,
+		Font = Enum.Font.GothamMedium,
+		TextSize = 26,
+		TextColor3 = C.ink,
+		Text = "×",
+		Parent = sheet,
 	})
 	close.Activated:Connect(function()
 		Hud.togglePanel(false)
 	end)
 
+	new("Frame", {
+		Position = UDim2.fromOffset(26, 88),
+		Size = UDim2.new(1, -52, 0, 1),
+		BackgroundColor3 = C.ink,
+		BackgroundTransparency = 0.6,
+		BorderSizePixel = 0,
+		Parent = sheet,
+	})
+
 	local list = new("ScrollingFrame", {
-		Position = UDim2.fromOffset(12, 68),
-		Size = UDim2.new(1, -24, 1, -80),
+		Position = UDim2.fromOffset(26, 96),
+		Size = UDim2.new(1, -46, 1, -116),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
-		ScrollBarThickness = 6,
+		ScrollBarThickness = 3,
+		ScrollBarImageColor3 = C.ink,
 		CanvasSize = UDim2.new(),
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
-		Parent = panel,
+		Parent = sheet,
 	}, {
-		new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }),
+		new("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder }),
 	})
 
 	for index, def in Insights.list do
 		local row = new("Frame", {
 			LayoutOrder = index,
-			Size = UDim2.new(1, -10, 0, 96),
-			BackgroundColor3 = THEME.button,
-			BackgroundTransparency = 0.25,
+			Size = UDim2.new(1, -8, 0, 62),
+			BackgroundTransparency = 1,
 			Parent = list,
-		}, { corner(10) })
-		local title = label({
-			Position = UDim2.fromOffset(12, 6),
-			Size = UDim2.new(1, -140, 0, 24),
+		})
+		local name = inkText({
+			Position = UDim2.fromOffset(0, 9),
+			Size = UDim2.new(1, -92, 0, 22),
+			TextXAlignment = Enum.TextXAlignment.Left,
 			Font = Enum.Font.GothamBold,
 			TextSize = 17,
 			Parent = row,
 		})
-		local current = label({
-			Position = UDim2.fromOffset(12, 32),
-			Size = UDim2.new(1, -140, 0, 18),
+		local effect = inkText({
+			Position = UDim2.fromOffset(0, 33),
+			Size = UDim2.new(1, -92, 0, 18),
+			TextXAlignment = Enum.TextXAlignment.Left,
 			TextSize = 13,
-			TextColor3 = THEME.text,
-			TextTruncate = Enum.TextTruncate.AtEnd,
+			TextColor3 = C.inkSoft,
 			Parent = row,
 		})
-		local nextLine = label({
-			Position = UDim2.fromOffset(12, 52),
-			Size = UDim2.new(1, -140, 0, 18),
-			TextSize = 13,
-			TextColor3 = THEME.gold,
-			TextTruncate = Enum.TextTruncate.AtEnd,
-			Parent = row,
-		})
-		label({
-			Position = UDim2.fromOffset(12, 72),
-			Size = UDim2.new(1, -140, 0, 16),
-			TextSize = 12,
-			Font = Enum.Font.Gotham,
-			TextColor3 = THEME.dim,
-			TextTruncate = Enum.TextTruncate.AtEnd,
-			Text = def.flavor,
-			Parent = row,
-		})
-		local buy = button({
+		local buy = new("TextButton", {
 			AnchorPoint = Vector2.new(1, 0.5),
-			Position = UDim2.new(1, -10, 0.5, 0),
-			Size = UDim2.fromOffset(112, 60),
-			TextSize = 15,
+			Position = UDim2.fromScale(1, 0.5),
+			Size = UDim2.fromOffset(76, 38),
+			BackgroundColor3 = C.seal,
+			AutoButtonColor = false,
+			BorderSizePixel = 0,
+			Font = Enum.Font.GothamBold,
+			TextSize = 16,
+			TextColor3 = C.paper,
+			RichText = true,
 			Text = "",
+			Parent = row,
+		}, { corner(4) })
+		new("Frame", {
+			AnchorPoint = Vector2.new(0, 1),
+			Position = UDim2.fromScale(0, 1),
+			Size = UDim2.new(1, 0, 0, 1),
+			BackgroundColor3 = C.ink,
+			BackgroundTransparency = 0.82,
+			BorderSizePixel = 0,
 			Parent = row,
 		})
 		buy.Activated:Connect(function()
 			actions.buyInsight(def.id)
 		end)
-		insightRows[def.id] = { title = title, current = current, nextLine = nextLine, buy = buy }
+		insightRows[def.id] = { name = name, effect = effect, buy = buy }
 	end
-end
-
-local function buildToasts(gui: ScreenGui)
-	refs.toasts = scaled(new("Frame", {
-		Name = "Toasts",
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -10, 0, 8),
-		Size = UDim2.fromOffset(330, 400),
-		BackgroundTransparency = 1,
-		Parent = gui,
-	}, {
-		new("UIListLayout", {
-			Padding = UDim.new(0, 6),
-			SortOrder = Enum.SortOrder.LayoutOrder,
-			HorizontalAlignment = Enum.HorizontalAlignment.Right,
-		}),
-	}))
 end
 
 local function buildCinematic()
@@ -425,42 +594,55 @@ local function buildCinematic()
 		DisplayOrder = 10,
 		Parent = player:WaitForChild("PlayerGui"),
 	})
-	refs.cineBack = new("Frame", {
+	ui.cineBack = new("Frame", {
 		Size = UDim2.fromScale(1, 1),
-		BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundColor3 = C.ink,
 		BackgroundTransparency = 1,
-		Active = false,
+		BorderSizePixel = 0,
 		Parent = gui,
 	})
-	refs.cineTitle = label({
+	-- 제목 뒤에 크게 깔리는 한자
+	ui.cineHanja = text({
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.42),
-		Size = UDim2.new(0.9, 0, 0, 70),
-		TextXAlignment = Enum.TextXAlignment.Center,
+		Position = UDim2.fromScale(0.5, 0.45),
+		Size = UDim2.new(1, 0, 0, 170),
+		Font = Enum.Font.GothamBold,
+		TextSize = 150,
+		TextColor3 = C.paper,
+		TextTransparency = 1,
+		TextStrokeTransparency = 1,
+		RichText = false,
+		Parent = gui,
+	})
+	ui.cineTitle = text({
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.45),
+		Size = UDim2.new(1, 0, 0, 64),
 		Font = Enum.Font.GothamBlack,
-		TextSize = 56,
-		TextColor3 = THEME.gold,
+		TextSize = 50,
 		TextTransparency = 1,
 		TextStrokeTransparency = 1,
-		TextStrokeColor3 = Color3.fromRGB(60, 30, 0),
-		Text = "",
+		RichText = false,
 		Parent = gui,
 	})
-	refs.cineSub = label({
+	ui.cineTitleScale = new("UIScale", { Parent = ui.cineTitle })
+	ui.cineSub = text({
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.fromScale(0.5, 0.42),
-		Size = UDim2.new(0.9, 0, 0, 30),
-		TextXAlignment = Enum.TextXAlignment.Center,
-		Font = Enum.Font.GothamMedium,
-		TextSize = 20,
-		TextColor3 = THEME.text,
+		Position = UDim2.new(0.5, 0, 0.45, 40),
+		Size = UDim2.new(1, 0, 0, 26),
+		TextSize = 18,
 		TextTransparency = 1,
 		TextStrokeTransparency = 1,
-		Text = "",
+		RichText = false,
 		Parent = gui,
 	})
-	refs.cineSub.Position = UDim2.new(0.5, 0, 0.42, 44)
-	refs.cineScale = new("UIScale", { Parent = refs.cineTitle })
+	local seal, glyph = stamp(gui, 58, "", 32)
+	seal.AnchorPoint = Vector2.new(0.5, 0.5)
+	seal.Position = UDim2.new(0.5, 0, 0.45, -84)
+	ui.cineSeal = seal
+	ui.cineSealGlyph = glyph
+	ui.cineSealScale = new("UIScale", { Parent = seal })
+	seal.Visible = false
 end
 
 function Hud.build(newActions: Actions)
@@ -471,15 +653,15 @@ function Hud.build(newActions: Actions)
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		Parent = player:WaitForChild("PlayerGui"),
 	})
-	buildStatus(gui)
+	buildTop(gui)
 	buildMartial(gui)
-	buildActions(gui)
-	buildInsightPanel(gui)
-	buildToasts(gui)
+	buildFeed(gui)
+	buildSeals(gui)
+	buildPanel(gui)
 	buildCinematic()
 
-	-- 3D 공간 색보정: 천겁이 내릴 때 어둡게
-	refs.tint = new("ColorCorrectionEffect", { Name = "천겁색보정", Parent = Lighting })
+	-- 천겁이 내릴 때 화면을 어둡게
+	ui.tint = new("ColorCorrectionEffect", { Name = "천겁색보정", Parent = Lighting })
 
 	rescale()
 	local camera = Workspace.CurrentCamera
@@ -488,85 +670,77 @@ function Hud.build(newActions: Actions)
 	end
 end
 
--- 갱신 -------------------------------------------------------------------------
-
-local function keyHint(key: string): string
-	if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
-		return ""
-	end
-	return string.format(' <font size="12" color="%s">[%s]</font>', rgbHex(THEME.dim), key)
-end
+-- 갱신 ---------------------------------------------------------------------------
 
 local function setTribulationMood(active: boolean)
 	local goal = if active
 		then { Brightness = -0.08, Contrast = 0.15, Saturation = -0.45, TintColor = Color3.fromRGB(190, 195, 255) }
 		else { Brightness = 0, Contrast = 0, Saturation = 0, TintColor = Color3.new(1, 1, 1) }
-	TweenService:Create(refs.tint, TweenInfo.new(1.2), goal):Play()
+	tween(ui.tint, TweenInfo.new(1.2), goal)
 end
 
-local function updateStatus(state)
+local function updateTop(state)
 	local step = Realms.get(state.step)
-	local tierText = if step.realm.tier ~= step.realm.name
-		then string.format('  <font size="15" color="%s">%s</font>', rgbHex(THEME.dim), step.realm.tier)
+	local realm = step.realm
+	local sub = if step.sub ~= "" then string.format(' <font size="22">%s</font>', step.sub) else ""
+	local hanja = if realm.hanja
+		then string.format('  <font size="16" transparency="0.35">%s</font>', realm.hanja)
 		else ""
-	refs.realm.Text = Realms.label(state.step) .. tierText
-	refs.enlightenment.Text =
-		string.format('깨달음 <font color="%s"><b>%d</b></font>', rgbHex(THEME.gold), state.enlightenment)
+	ui.realm.Text = realm.name .. sub .. hanja
 
 	local ratio = if state.req > 0 then math.clamp(state.qi / state.req, 0, 1) else 1
-	TweenService:Create(refs.qiFill, TweenInfo.new(0.45, Enum.EasingStyle.Linear), { Size = UDim2.fromScale(ratio, 1) })
-		:Play()
+	tween(ui.qiFill, TweenInfo.new(0.45, Enum.EasingStyle.Linear), { Size = UDim2.fromScale(ratio, 1) })
 
 	local atMax = state.step >= Realms.maxStep
 	local bottleneck = Realms.nextIsMajor(state.step)
 	local full = ratio >= 1 and (bottleneck or atMax)
+	ui.qiFill.BackgroundColor3 = if full then C.gold else C.jade
+	ui.qiCap.Visible = bottleneck
+	ui.qiCap.BackgroundColor3 = if full then C.seal else C.paper
+
 	if atMax and full then
-		refs.qiText.Text = "최고 경지 — 지금 갈 수 있는 끝"
+		ui.qiText.Text = "최고 경지"
 	elseif full then
-		refs.qiText.Text = string.format("병목 — %s 돌파 가능", Realms.get(state.step + 1).realm.name)
+		local target = Realms.get(state.step + 1).realm
+		ui.qiText.Text = if target.tribulation
+			then string.format('<font color="%s">병목</font>  ·  %s 천겁', hex(C.gold), target.name)
+			else string.format(
+				'<font color="%s">병목</font>  ·  %s 돌파 %s',
+				hex(C.gold),
+				target.name,
+				Format.percent(state.breakChance or 0)
+			)
 	else
-		refs.qiText.Text = string.format("영력 %s / %s", Format.qi(state.qi), Format.qi(state.req))
+		ui.qiText.Text = string.format("%s / %s", Format.qi(state.qi), Format.qi(state.req))
 	end
 
 	local parts = {}
 	if state.meditating then
-		table.insert(
-			parts,
-			string.format(
-				'<font color="%s">운기조식 중</font> · +%s/초',
-				rgbHex(THEME.qiA),
-				Format.rate(state.gain)
-			)
-		)
-	else
-		table.insert(parts, "제자리에서 운기조식해 영기를 모으라" .. keyHint("R"))
+		table.insert(parts, string.format("운기 +%s/초", Format.rate(state.gain)))
 	end
 	if state.veinId then
 		local vein = Balance.VEINS[state.veinId]
-		table.insert(
-			parts,
-			string.format('<font color="%s">%s x%s</font>', rgbHex(THEME.qiA), vein.name, tostring(vein.mult))
-		)
+		table.insert(parts, string.format("%s ×%s", vein.name, tostring(vein.mult)))
 	elseif state.veinBlocked then
 		local vein = Balance.VEINS[state.veinBlocked]
 		table.insert(
 			parts,
 			string.format(
-				'<font color="%s">%s: %s 이상만 감당한다</font>',
-				rgbHex(THEME.bad),
+				'<font color="%s">%s · %s부터</font>',
+				hex(C.red),
 				vein.name,
 				Realms.byId[vein.minRealm].name
 			)
 		)
 	end
-	refs.info.Text = table.concat(parts, "  ·  ")
+	ui.status.Text = table.concat(parts, "   ·   ")
 
 	local trib = state.tribulation
-	refs.tribulation.Visible = trib ~= nil
+	ui.tribulation.Visible = trib ~= nil
 	if trib then
-		refs.tribulation.Text = if trib.wave == 0
-			then string.format("[%s] 겁운이 모여든다…", trib.name)
-			else string.format("[%s] 뇌격 %d / %d — 붉은 원을 피하라", trib.name, trib.wave, trib.waves)
+		ui.tribulation.Text = if trib.wave == 0
+			then string.format('劫  %s  <font size="16">겁운이 모인다</font>', trib.name)
+			else string.format('劫  %s  <font size="18">%d / %d</font>', trib.name, trib.wave, trib.waves)
 	end
 	local wasTrib = lastState ~= nil and lastState.tribulation ~= nil
 	if (trib ~= nil) ~= wasTrib then
@@ -574,205 +748,233 @@ local function updateStatus(state)
 	end
 end
 
-local function updateActions(state)
-	local meditate = refs.meditate :: TextButton
-	meditate.RichText = true
-	meditate.Text = (if state.meditating then "운기조식 중…" else "운기조식") .. keyHint("R")
-	meditate.BackgroundColor3 = if state.meditating then THEME.buttonOn else THEME.button
+local function setSeal(key: string, color: Color3, glyph: string, caption: string, glowColor: Color3?)
+	local seal = seals[key]
+	seal.button.BackgroundColor3 = color
+	seal.glyph.Text = glyph
+	seal.caption.Text = caption
+	if glowColor then
+		seal.glow.Color = glowColor
+	end
+	pulse(seal.glow, glowColor ~= nil, { Transparency = 0.05 }, { Transparency = 1 })
+end
 
-	local breakthrough = refs.breakthrough :: TextButton
-	breakthrough.RichText = true
-	local ready = Realms.nextIsMajor(state.step) and state.qi >= state.req and state.tribulation == nil
-	local text = "돌파"
-	local color = THEME.button
-	if ready then
-		local target = Realms.get(state.step + 1).realm
-		if target.tribulation then
-			text = "천겁 맞기"
-			color = THEME.buttonTrib
-		else
-			text = string.format("돌파 %s", Format.percent(state.breakChance or 0))
-			color = THEME.buttonReady
+local function updateSeals(state)
+	if state.meditating then
+		setSeal("meditate", C.jadeDeep, "運", "운기 중", C.jade)
+	else
+		setSeal("meditate", C.seal, "運", "운기조식", nil)
+	end
+
+	local ready = Realms.nextIsMajor(state.step) and state.qi >= state.req
+	if state.tribulation then
+		setSeal("breakthrough", C.sealDim, "劫", "천겁 중", nil)
+	elseif state.step >= Realms.maxStep then
+		setSeal("breakthrough", C.sealDim, "破", "끝", nil)
+	elseif ready and Realms.get(state.step + 1).realm.tribulation then
+		setSeal("breakthrough", C.seal, "劫", "천겁 맞기", C.gold)
+	elseif ready then
+		setSeal("breakthrough", C.seal, "破", "돌파 " .. Format.percent(state.breakChance or 0), C.gold)
+	else
+		setSeal("breakthrough", C.sealDim, "破", "돌파", nil)
+	end
+
+	local affordable = false
+	for _, def in Insights.list do
+		local level = state.insights[def.id] or 0
+		if level < def.maxLevel and state.enlightenment >= Insights.cost(def.id, level) then
+			affordable = true
+			break
 		end
 	end
-	breakthrough.Text = text .. keyHint("B")
-	breakthrough.BackgroundColor3 = color
-
-	local insight = refs.insightButton :: TextButton
-	insight.RichText = true
-	insight.Text = string.format("깨달음 %d", state.enlightenment) .. keyHint("T")
+	setSeal("insight", C.seal, "悟", string.format("깨달음 %d", state.enlightenment), nil)
+	seals.insight.badge.Visible = affordable
 end
 
 local function updateMartial(state)
 	local index = MartialRanks.indexFor(state.martialExp)
 	local rank = MartialRanks.list[index]
 	local nextRank = MartialRanks.list[index + 1]
-	refs.martialRank.Text = "무공 · "
-		.. rank.name
-		.. (if rank.hanja then string.format(' <font size="13">%s</font>', rank.hanja) else "")
+	ui.martialRank.Text = rank.name
+		.. (if rank.hanja then string.format('  <font size="12" transparency="0.4">%s</font>', rank.hanja) else "")
 	if nextRank then
 		local ratio = (state.martialExp - rank.exp) / (nextRank.exp - rank.exp)
-		refs.martialFill.Size = UDim2.fromScale(math.clamp(ratio, 0, 1), 1)
-		refs.martialInfo.Text = string.format(
-			"다음 %s %d/%d · 체력 %d",
-			nextRank.name,
-			math.floor(state.martialExp),
-			nextRank.exp,
-			state.maxHealth
-		)
+		ui.martialFill.Size = UDim2.fromScale(math.clamp(ratio, 0, 1), 1)
+		ui.martialInfo.Text =
+			string.format("%s까지 %d / %d", nextRank.name, math.floor(state.martialExp), nextRank.exp)
 	else
-		refs.martialFill.Size = UDim2.fromScale(1, 1)
-		refs.martialInfo.Text = string.format("무공의 끝 · 체력 %d", state.maxHealth)
+		ui.martialFill.Size = UDim2.fromScale(1, 1)
+		ui.martialInfo.Text = "무공의 끝"
 	end
 end
 
-local function updateInsights(state)
-	refs.panelTitle.Text =
-		string.format('깨달음 <font color="%s">%d</font>', rgbHex(THEME.text), state.enlightenment)
+local function updatePanel(state)
+	ui.panelPoints.Text = string.format("남은 깨달음  %d", state.enlightenment)
 	for id, row in insightRows do
 		local def = Insights.byId[id]
 		local level = state.insights[id] or 0
-		row.title.Text = string.format(
-			'%s <font size="13" color="%s">%s</font>  <font size="14" color="%s">Lv.%d/%d</font>',
+		row.name.Text = string.format(
+			'%s  <font size="13" color="%s">%s</font>   <font size="13" color="%s">%d / %d</font>',
 			def.name,
-			rgbHex(THEME.dim),
+			hex(C.inkSoft),
 			def.hanja or "",
-			rgbHex(THEME.gold),
+			hex(C.seal),
 			level,
 			def.maxLevel
 		)
-		row.current.Text = "현재  " .. def.describe(level)
 		local buy = row.buy :: TextButton
 		if level >= def.maxLevel then
-			row.nextLine.Text = "끝까지 깨달았다"
-			buy.Text = "완성"
-			buy.BackgroundColor3 = THEME.button
-			buy.AutoButtonColor = false
+			row.effect.Text = string.format("%s  %s  · 완성", def.stat, def.show(level))
+			buy.Visible = false
 		else
+			row.effect.Text = string.format(
+				'%s  %s  <font color="%s">→ %s</font>',
+				def.stat,
+				def.show(level),
+				hex(C.jadeDeep),
+				def.show(level + 1)
+			)
 			local cost = Insights.cost(id, level)
-			local affordable = state.enlightenment >= cost
-			row.nextLine.Text = "다음  " .. def.describe(level + 1)
-			buy.Text = string.format("깨닫기\n%d", cost)
-			buy.BackgroundColor3 = if affordable then THEME.buttonReady else THEME.button
-			buy.AutoButtonColor = affordable
+			local canBuy = state.enlightenment >= cost
+			buy.Visible = true
+			buy.Text = string.format('<font size="12">悟</font> %d', cost)
+			buy.BackgroundColor3 = if canBuy then C.seal else C.paperShade
+			buy.TextColor3 = if canBuy then C.paper else C.inkSoft
 		end
 	end
 end
 
 function Hud.update(state)
-	updateStatus(state)
-	updateActions(state)
+	updateTop(state)
+	updateSeals(state)
 	updateMartial(state)
-	updateInsights(state)
+	updatePanel(state)
 	lastState = state
 end
 
 function Hud.togglePanel(open: boolean?)
-	local panel = refs.panel :: Frame
-	if open == nil then
-		open = not panel.Visible
-	end
-	panel.Visible = open :: boolean
+	local panel = ui.panel :: Frame
+	panel.Visible = if open == nil then not panel.Visible else open
 end
 
--- 알림 -------------------------------------------------------------------------
+-- 알림 ---------------------------------------------------------------------------
 
-function Hud.toast(text: string, kind: string?)
-	toastOrder += 1
-	local color = THEME[kind or "info"] or THEME.text
-	local frame = new("Frame", {
-		LayoutOrder = toastOrder,
-		Size = UDim2.new(1, 0, 0, 0),
-		AutomaticSize = Enum.AutomaticSize.Y,
-		BackgroundColor3 = THEME.panel,
-		BackgroundTransparency = 0.2,
-		Parent = refs.toasts,
-	}, {
-		corner(8),
-		new("UIPadding", {
-			PaddingTop = UDim.new(0, 6),
-			PaddingBottom = UDim.new(0, 6),
-			PaddingLeft = UDim.new(0, 10),
-			PaddingRight = UDim.new(0, 10),
-		}),
-	})
-	local text_ = label({
-		Size = UDim2.new(1, 0, 0, 0),
-		AutomaticSize = Enum.AutomaticSize.Y,
-		TextWrapped = true,
-		TextSize = 15,
-		TextColor3 = color,
+function Hud.toast(message: string, kind: string?)
+	feedOrder += 1
+	local line = text({
+		LayoutOrder = feedOrder,
+		Size = UDim2.new(1, 0, 0, 22),
+		TextSize = 16,
+		TextColor3 = FEED_COLORS[kind or "info"] or C.white,
+		TextTransparency = 1,
+		TextStrokeTransparency = 1,
 		RichText = false,
-		Text = text,
-		Parent = frame,
+		Text = message,
+		Parent = ui.feed,
 	})
+	tween(line, TweenInfo.new(0.2), { TextTransparency = 0, TextStrokeTransparency = 0.35 })
 
-	local frames = {}
-	for _, child in refs.toasts:GetChildren() do
-		if child:IsA("Frame") then
-			table.insert(frames, child)
+	local lines = {}
+	for _, child in ui.feed:GetChildren() do
+		if child:IsA("TextLabel") then
+			table.insert(lines, child)
 		end
 	end
-	table.sort(frames, function(a, b)
+	table.sort(lines, function(a, b)
 		return a.LayoutOrder < b.LayoutOrder
 	end)
-	for i = 1, #frames - MAX_TOASTS do
-		frames[i]:Destroy()
+	for i = 1, #lines - FEED_MAX do
+		lines[i]:Destroy()
 	end
 
-	task.delay(TOAST_TIME, function()
-		if frame.Parent then
-			local info = TweenInfo.new(0.6)
-			TweenService:Create(frame, info, { BackgroundTransparency = 1 }):Play()
-			TweenService:Create(text_, info, { TextTransparency = 1 }):Play()
-			task.wait(0.6)
-			frame:Destroy()
+	task.delay(FEED_TIME, function()
+		if line.Parent then
+			tween(line, TweenInfo.new(0.8), { TextTransparency = 1, TextStrokeTransparency = 1 })
+			task.wait(0.8)
+			line:Destroy()
 		end
 	end)
 end
 
--- 연출 -------------------------------------------------------------------------
+-- 연출 ---------------------------------------------------------------------------
 
-local function showCinematic(title: string, subtitle: string, dark: boolean, hold: number)
+type CinematicOptions = { dark: boolean, hold: number, hanja: string?, seal: string? }
+
+local function showCinematic(title: string, subtitle: string, options: CinematicOptions)
 	cinematicToken += 1
 	local token = cinematicToken
-	refs.cineTitle.Text = title
-	refs.cineSub.Text = subtitle
-	refs.cineScale.Scale = 0.85
 
-	local fadeIn = TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-	TweenService:Create(refs.cineBack, fadeIn, { BackgroundTransparency = if dark then 0.15 else 1 }):Play()
-	TweenService:Create(refs.cineTitle, fadeIn, { TextTransparency = 0, TextStrokeTransparency = 0.3 }):Play()
-	TweenService:Create(refs.cineSub, fadeIn, { TextTransparency = 0, TextStrokeTransparency = 0.6 }):Play()
-	TweenService
-		:Create(
-			refs.cineScale,
-			TweenInfo.new(hold + 0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-			{ Scale = 1 }
-		)
-		:Play()
+	ui.cineTitle.Text = title
+	ui.cineSub.Text = subtitle
+	ui.cineHanja.Text = options.hanja or ""
+	ui.cineTitleScale.Scale = 0.94
 
-	task.delay(hold, function()
+	local fadeIn = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	tween(ui.cineBack, fadeIn, { BackgroundTransparency = if options.dark then 0.2 else 1 })
+	tween(ui.cineHanja, TweenInfo.new(1.4), { TextTransparency = 0.9 })
+	tween(ui.cineTitle, fadeIn, { TextTransparency = 0, TextStrokeTransparency = 0.3 })
+	tween(ui.cineSub, fadeIn, { TextTransparency = 0.1, TextStrokeTransparency = 0.5 })
+	tween(ui.cineTitleScale, TweenInfo.new(options.hold + 0.5, Enum.EasingStyle.Quad), { Scale = 1 })
+
+	-- 인장이 쾅 찍힌다
+	local seal = ui.cineSeal :: Frame
+	seal.Visible = options.seal ~= nil
+	if options.seal then
+		ui.cineSealGlyph.Text = options.seal
+		ui.cineSealScale.Scale = 1.8
+		seal.BackgroundTransparency = 1
+		ui.cineSealGlyph.TextTransparency = 1
+		task.delay(0.35, function()
+			if token ~= cinematicToken then
+				return
+			end
+			local hit = TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+			tween(ui.cineSealScale, hit, { Scale = 1 })
+			tween(seal, TweenInfo.new(0.12), { BackgroundTransparency = 0 })
+			tween(ui.cineSealGlyph, TweenInfo.new(0.12), { TextTransparency = 0 })
+		end)
+	end
+
+	task.delay(options.hold, function()
 		if token ~= cinematicToken then
 			return
 		end
 		local fadeOut = TweenInfo.new(0.9)
-		TweenService:Create(refs.cineBack, fadeOut, { BackgroundTransparency = 1 }):Play()
-		TweenService:Create(refs.cineTitle, fadeOut, { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
-		TweenService:Create(refs.cineSub, fadeOut, { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
+		tween(ui.cineBack, fadeOut, { BackgroundTransparency = 1 })
+		tween(ui.cineHanja, fadeOut, { TextTransparency = 1 })
+		tween(ui.cineTitle, fadeOut, { TextTransparency = 1, TextStrokeTransparency = 1 })
+		tween(ui.cineSub, fadeOut, { TextTransparency = 1, TextStrokeTransparency = 1 })
+		tween(seal, fadeOut, { BackgroundTransparency = 1 })
+		tween(ui.cineSealGlyph, fadeOut, { TextTransparency = 1 })
 	end)
 end
 
 function Hud.cinematic(payload: { [string]: any })
 	if payload.kind == "intro" then
-		local subtitle = if payload.returning
-			then string.format("다시 연국(連國)으로 · %s", payload.realm)
-			else "연국(連國) — 영기를 받아들여 선(仙)의 길에 올라라"
-		showCinematic("블록수선전", subtitle, true, 3)
+		local subtitle = if payload.returning then "연국 · " .. payload.realm else "연국(連國)"
+		showCinematic("블록수선전", subtitle, { dark = true, hold = 3, hanja = "修仙", seal = "修" })
+		if not payload.returning then
+			task.delay(3.6, function()
+				Hud.toast(
+					if keyboard
+						then "R 운기조식  ·  B 돌파  ·  T 깨달음"
+						else "아래 인장으로 운기조식 · 돌파 · 깨달음",
+					"info"
+				)
+				Hud.toast("광장 가운데 영맥 위에서 운기조식하면 더 빠르다", "info")
+			end)
+		end
 	elseif payload.kind == "ascend" then
-		showCinematic(payload.realm, payload.blurb or "", false, 2.6)
+		local realm = if payload.step then Realms.get(payload.step).realm else nil
+		local hanja = realm and realm.hanja
+		showCinematic(payload.realm, payload.blurb or "", {
+			dark = false,
+			hold = 2.6,
+			hanja = hanja,
+			seal = firstChar(hanja) or "破",
+		})
 	elseif payload.kind == "down" then
-		showCinematic("쓰러졌다", "잠시 후 마을에서 깨어난다.", true, 3)
+		showCinematic("쓰러졌다", "잠시 후 마을에서 깨어난다", { dark = true, hold = 3 })
 	end
 end
 

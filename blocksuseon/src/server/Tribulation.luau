@@ -128,20 +128,17 @@ local function succeed(player: Player, session, state, color: Color3)
 	local points = Progression.passTribulation(data)
 	Characters.applyStats(player, true)
 	Fx.burst(player.Character, color, 80)
-	Sync.notify(player, string.format("천겁을 넘었다! 깨달음 +%d", points), "good")
+	Sync.notify(player, string.format("천겁을 넘었다  ·  깨달음 +%d", points), "good")
 	Sync.broadcast(
-		string.format(
-			"[%s] %s님이 천겁을 넘어 %s에 올랐다!",
-			state.name,
-			player.DisplayName,
-			Realms.label(data.step)
-		),
+		string.format("%s님이 천겁을 넘어 %s에 올랐다", player.DisplayName, Realms.label(data.step)),
 		"world"
 	)
-	Sync.cinematic(
-		player,
-		{ kind = "ascend", realm = Realms.label(data.step), blurb = Realms.get(data.step).realm.blurb }
-	)
+	Sync.cinematic(player, {
+		kind = "ascend",
+		step = data.step,
+		realm = Realms.label(data.step),
+		blurb = Realms.get(data.step).realm.blurb,
+	})
 	Sync.markDirty(player)
 end
 
@@ -241,15 +238,8 @@ function Tribulation.start(player: Player)
 
 	local state = { name = trib.name, wave = 0, waves = trib.waves, targetStep = target.index }
 	session.tribulation = state
-	Sync.notify(
-		player,
-		"천겁이 내린다! 붉은 원이 보이면 벗어나라. 끝까지 버티면 돌파한다.",
-		"tribulation"
-	)
-	Sync.broadcast(
-		string.format("[%s] %s님 머리 위로 겁운이 모여든다!", trib.name, player.DisplayName),
-		"tribulation"
-	)
+	Sync.notify(player, "붉은 원을 피해 끝까지 버텨라", "tribulation")
+	Sync.broadcast(string.format("%s님 머리 위로 겁운이 모여든다", player.DisplayName), "tribulation")
 	Sync.markDirty(player)
 	task.spawn(run, player, session, state, trib)
 end
@@ -264,15 +254,8 @@ function Tribulation.fail(player: Player)
 	end
 	session.tribulation = nil
 	local lost = Progression.failTribulation(data)
-	Sync.notify(
-		player,
-		string.format("%s에 쓰러졌다… 경지는 지켰지만 영력 -%s", state.name, Format.qi(lost)),
-		"bad"
-	)
-	Sync.broadcast(
-		string.format("[%s] %s님이 천겁을 넘지 못했다.", state.name, player.DisplayName),
-		"tribulation"
-	)
+	Sync.notify(player, string.format("천겁 실패  ·  경지는 지켰다  ·  영력 -%s", Format.qi(lost)), "bad")
+	Sync.broadcast(string.format("%s님이 천겁을 넘지 못했다", player.DisplayName), "tribulation")
 	Sync.markDirty(player)
 end
 

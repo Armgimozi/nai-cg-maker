@@ -74,11 +74,7 @@ local function onPlayerAdded(player: Player)
 		returning = data.step > 1 or data.martialExp > 0,
 	})
 	if not canSave then
-		Sync.notify(
-			player,
-			"저장소에 연결하지 못했다. 이번 접속의 수련은 저장되지 않는다.",
-			"bad"
-		)
+		Sync.notify(player, "저장소 연결 실패  ·  이번 접속 기록은 저장되지 않는다", "bad")
 	end
 	Sync.state(player)
 end
