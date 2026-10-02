@@ -11,3 +11,6 @@ data/danbooru.csv
 resp.json
 config.yml
 .claude/
+
+# 블록수선전 빌드 중간 산출물 (완성본 BlockSuseon.rbxl 은 커밋한다)
+blocksuseon/build/

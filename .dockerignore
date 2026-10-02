@@ -7,3 +7,6 @@ __pycache__/
 *.pyc
 .git/
 data/danbooru.csv
+
+# 로블록스 게임(블록수선전) — 웹앱 이미지에는 필요 없음
+blocksuseon/
