@@ -95,14 +95,6 @@
     "slice": null,
     "meta": null
   },
-  "iconDummy": {
-    "file": "iconDummy.png",
-    "source": "assets.html",
-    "width": 128,
-    "height": 128,
-    "slice": null,
-    "meta": null
-  },
   "divider": {
     "file": "divider.png",
     "source": "assets.html",

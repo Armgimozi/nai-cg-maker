@@ -4,14 +4,12 @@
 local Realms = require(script.Parent.Realms)
 local Balance = require(script.Parent.Balance)
 local Insights = require(script.Parent.Insights)
-local MartialRanks = require(script.Parent.MartialRanks)
 local Josa = require(script.Parent.Josa)
 
 export type Data = {
 	version: number,
 	step: number,
 	qi: number,
-	martialExp: number,
 	enlightenment: number,
 	insights: { [string]: number },
 	stats: { [string]: number },
@@ -34,7 +32,6 @@ function Progression.newData(): Data
 		version = Progression.DATA_VERSION,
 		step = 1,
 		qi = 0,
-		martialExp = 0,
 		enlightenment = 0,
 		insights = {},
 		stats = {
@@ -58,7 +55,7 @@ function Progression.reconcile(saved: any): Data
 		return data
 	end
 
-	for _, key in { "step", "qi", "martialExp", "enlightenment" } do
+	for _, key in { "step", "qi", "enlightenment" } do
 		if isNumber(saved[key]) then
 			data[key] = saved[key]
 		end
@@ -81,7 +78,6 @@ function Progression.reconcile(saved: any): Data
 
 	data.step = math.clamp(math.floor(data.step), 1, Realms.maxStep)
 	data.qi = math.clamp(data.qi, 0, Balance.qiRequired(data.step))
-	data.martialExp = math.max(0, data.martialExp)
 	data.enlightenment = math.max(0, math.floor(data.enlightenment))
 	return data
 end
@@ -213,17 +209,6 @@ function Progression.buyInsight(data: Data, id: string): (boolean, string)
 	return true, string.format("%s 깊어졌다. (Lv.%d)", Josa.i(def.name), level + 1)
 end
 
--- 반환: 새로 오른 무공 경지 인덱스 (안 올랐으면 nil)
-function Progression.addMartialExp(data: Data, amount: number): number?
-	local before = MartialRanks.indexFor(data.martialExp)
-	data.martialExp += amount
-	local after = MartialRanks.indexFor(data.martialExp)
-	if after > before then
-		return after
-	end
-	return nil
-end
-
 function Progression.qiPerSecond(data: Data, veinMult: number): number
 	return Balance.qiPerSecond(data.step, veinMult, Progression.insight(data, "gongbeop"))
 end
@@ -233,11 +218,7 @@ function Progression.herbQi(data: Data, rare: boolean): number
 end
 
 function Progression.maxHealth(data: Data): number
-	return Balance.maxHealth(data.step, data.martialExp, Progression.insight(data, "danche"))
-end
-
-function Progression.walkSpeed(data: Data): number
-	return Balance.walkSpeed(data.martialExp)
+	return Balance.maxHealth(data.step, Progression.insight(data, "danche"))
 end
 
 return Progression

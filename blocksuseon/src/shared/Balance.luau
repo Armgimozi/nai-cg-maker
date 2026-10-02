@@ -2,7 +2,6 @@
 
 local Realms = require(script.Parent.Realms)
 local Insights = require(script.Parent.Insights)
-local MartialRanks = require(script.Parent.MartialRanks)
 
 local Balance = {}
 
@@ -84,24 +83,10 @@ Balance.RARE_HERB_POINTS = 3
 -- 몸 ---------------------------------------------------------------------------
 
 Balance.BASE_HP = 100
-Balance.BASE_WALKSPEED = 16
 
-function Balance.maxHealth(step: number, martialExp: number, dancheLevel: number): number
+function Balance.maxHealth(step: number, dancheLevel: number): number
 	local realm = Realms.get(step).realm
-	local rank = MartialRanks.get(martialExp)
-	return math.floor(Balance.BASE_HP * realm.hpMult * rank.hpMult * (1 + Insights.value("danche", dancheLevel)))
+	return math.floor(Balance.BASE_HP * realm.hpMult * (1 + Insights.value("danche", dancheLevel)))
 end
-
-function Balance.walkSpeed(martialExp: number): number
-	return Balance.BASE_WALKSPEED + MartialRanks.get(martialExp).speed
-end
-
--- 무공 -------------------------------------------------------------------------
-
-function Balance.martialExpPerHit(step: number, oseongLevel: number): number
-	return (1 + 0.1 * (step - 1)) * (1 + Insights.value("oseong", oseongLevel))
-end
-
-Balance.MARTIAL_COOLDOWN = 0.3
 
 return Balance

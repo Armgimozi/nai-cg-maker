@@ -15,7 +15,6 @@ export type Session = {
 	veinBlocked: string?, -- 서 있지만 경지가 모자라 못 쓰는 영맥
 	tribulation: TribulationState?,
 	lastRequest: number,
-	lastTraining: number,
 	dirty: boolean,
 }
 
@@ -32,7 +31,6 @@ function Session.start(player: Player): Session
 		veinBlocked = nil,
 		tribulation = nil,
 		lastRequest = 0,
-		lastTraining = 0,
 		dirty = true,
 	}
 	sessions[player] = session

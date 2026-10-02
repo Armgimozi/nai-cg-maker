@@ -4,7 +4,6 @@ local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 
 local Realms = require(Shared.Realms)
 local Balance = require(Shared.Balance)
-local MartialRanks = require(Shared.MartialRanks)
 local Progression = require(Shared.Progression)
 local Net = require(Shared.Net)
 local PlayerData = require(script.Parent.PlayerData)
@@ -21,9 +20,6 @@ function Sync.setupLeaderstats(player: Player)
 	local realm = Instance.new("StringValue")
 	realm.Name = "경지"
 	realm.Parent = stats
-	local martial = Instance.new("StringValue")
-	martial.Name = "무공"
-	martial.Parent = stats
 	stats.Parent = player
 end
 
@@ -33,12 +29,8 @@ local function updateLeaderstats(player: Player, data)
 		return
 	end
 	local realm = stats:FindFirstChild("경지") :: StringValue?
-	local martial = stats:FindFirstChild("무공") :: StringValue?
 	if realm then
 		realm.Value = Realms.label(data.step)
-	end
-	if martial then
-		martial.Value = MartialRanks.get(data.martialExp).name
 	end
 end
 
@@ -62,7 +54,6 @@ function Sync.state(player: Player)
 		breakChance = Progression.breakChance(data),
 		enlightenment = data.enlightenment,
 		insights = data.insights,
-		martialExp = data.martialExp,
 		maxHealth = Progression.maxHealth(data),
 		tribulation = if tribulation
 			then { name = tribulation.name, wave = tribulation.wave, waves = tribulation.waves }

@@ -1,4 +1,4 @@
--- 캐릭터 스탯(체력·이동 속도) 적용.
+-- 캐릭터 스탯(체력) 적용.
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 
@@ -36,7 +36,6 @@ function Characters.applyStats(player: Player, heal: boolean)
 	else
 		humanoid.Health = math.min(maxHealth, humanoid.Health + gained)
 	end
-	humanoid.WalkSpeed = Progression.walkSpeed(data)
 end
 
 return Characters

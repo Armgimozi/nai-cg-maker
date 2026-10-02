@@ -12,7 +12,6 @@ local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Realms = require(Shared.Realms)
 local Balance = require(Shared.Balance)
 local Insights = require(Shared.Insights)
-local MartialRanks = require(Shared.MartialRanks)
 local Format = require(Shared.Format)
 local Art = require(script.Parent.Art)
 local BitmapText = require(script.Parent.BitmapText)
@@ -172,13 +171,13 @@ end
 
 -- 만들기 ---------------------------------------------------------------------------
 
--- 왼쪽 상태창: 경지 현판, 영력, 무공, 깨달음
+-- 왼쪽 상태창: 경지 현판, 영력, 깨달음
 local function buildStatus(gui: ScreenGui)
 	local status = scaled(new("Frame", {
 		Name = "Status",
 		AnchorPoint = Vector2.new(0, 0.5),
 		Position = UDim2.new(0, 14, 0.5, -20),
-		Size = UDim2.fromOffset(350, 214),
+		Size = UDim2.fromOffset(350, 180),
 		BackgroundTransparency = 1,
 		Parent = gui,
 	}))
@@ -220,26 +219,9 @@ local function buildStatus(gui: ScreenGui)
 	ui.veinText.frame.Position = UDim2.fromOffset(20, 123)
 	ui.veinText.frame.Parent = status
 
-	image("iconDummy", { Position = UDim2.fromOffset(20, 152), Size = UDim2.fromOffset(26, 26), Parent = status })
-	ui.martialText = text("body", 16, { color = C.cream })
-	ui.martialText.frame.Position = UDim2.fromOffset(46, 151)
-	ui.martialText.frame.Parent = status
-	local mini = image("barTrack", {
-		Position = UDim2.fromOffset(176, 160),
-		Size = UDim2.fromOffset(140, 10),
-		SliceScale = 0.35,
-		Parent = status,
-	})
-	ui.martialFill = image("barGold", {
-		Position = UDim2.fromOffset(2, 2),
-		Size = UDim2.fromOffset(0, 6),
-		SliceScale = 0.3,
-		Parent = mini,
-	})
-
-	image("gem", { Position = UDim2.fromOffset(24, 186), Size = UDim2.fromOffset(18, 18), Parent = status })
+	image("gem", { Position = UDim2.fromOffset(24, 154), Size = UDim2.fromOffset(18, 18), Parent = status })
 	ui.pointsText = text("body", 16, { color = C.cream })
-	ui.pointsText.frame.Position = UDim2.fromOffset(46, 182)
+	ui.pointsText.frame.Position = UDim2.fromOffset(46, 150)
 	ui.pointsText.frame.Parent = status
 end
 
@@ -495,26 +477,39 @@ local function buildCinematic()
 		BorderSizePixel = 0,
 		Parent = gui,
 	})
-	local group = new("CanvasGroup", {
+	-- CanvasGroup 은 기기에 따라 그룹 투명도가 무시돼 연출이 안 사라질 수 있어서 쓰지 않는다.
+	-- 대신 fade 값 하나를 트윈하고, 바뀔 때마다 붓질·글자 투명도에 그대로 옮긴다.
+	local stage = new("Frame", {
+		Name = "Stage",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.44),
 		Size = UDim2.fromOffset(1000, 300),
 		BackgroundTransparency = 1,
-		GroupTransparency = 1,
+		Visible = false,
 		Parent = gui,
 	})
-	ui.cineGroup = group
-	ui.cineScale = new("UIScale", { Parent = group })
-	image("swash", {
+	ui.cineStage = stage
+	ui.cineScale = new("UIScale", { Parent = stage })
+	ui.cineSwash = image("swash", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.fromOffset(920, 230),
-		Parent = group,
+		ImageTransparency = 1,
+		Parent = stage,
 	})
-	local titleRow = row({ Position = UDim2.fromOffset(0, 74), Size = UDim2.new(1, 0, 0, 100), Parent = group })
+	local titleRow = row({ Position = UDim2.fromOffset(0, 74), Size = UDim2.new(1, 0, 0, 100), Parent = stage })
 	ui.cineTitle = text("title", 68, { gradient = GOLD_TEXT, parent = titleRow })
-	local subRow = row({ Position = UDim2.fromOffset(0, 172), Size = UDim2.new(1, 0, 0, 34), Parent = group })
+	local subRow = row({ Position = UDim2.fromOffset(0, 172), Size = UDim2.new(1, 0, 0, 34), Parent = stage })
 	ui.cineSub = text("body", 20, { color = C.cream, parent = subRow })
+
+	local fade = new("NumberValue", { Value = 1 })
+	fade.Changed:Connect(function(value: number)
+		ui.cineSwash.ImageTransparency = value
+		ui.cineTitle:setTransparency(value)
+		ui.cineSub:setTransparency(value)
+		stage.Visible = value < 0.995
+	end)
+	ui.cineFade = fade
 end
 
 function Hud.build(newActions: Actions)
@@ -596,14 +591,6 @@ local function updateStatus(state)
 	else
 		ui.veinText:set("")
 	end
-
-	local index = MartialRanks.indexFor(state.martialExp)
-	local rank = MartialRanks.list[index]
-	local nextRank = MartialRanks.list[index + 1]
-	ui.martialText:set("무공 " .. rank.name)
-	local martialRatio = if nextRank then (state.martialExp - rank.exp) / (nextRank.exp - rank.exp) else 1
-	ui.martialFill.Size = UDim2.fromOffset(136 * math.clamp(martialRatio, 0, 1), 6)
-	ui.martialFill.Visible = martialRatio > 0.05
 
 	ui.pointsText:set(string.format("깨달음 %d", state.enlightenment))
 
@@ -710,16 +697,25 @@ local function showCinematic(title: string, subtitle: string, dark: boolean, hol
 
 	local fadeIn = TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 	tween(ui.cineBack, fadeIn, { BackgroundTransparency = if dark then 0.3 else 1 })
-	tween(ui.cineGroup, fadeIn, { GroupTransparency = 0 })
+	tween(ui.cineFade, fadeIn, { Value = 0 })
 	tween(ui.cineScale, TweenInfo.new(hold + 0.6, Enum.EasingStyle.Quad), { Scale = 1 })
 
+	local fadeOutTime = 0.9
 	task.delay(hold, function()
 		if token ~= cinematicToken then
 			return
 		end
-		local fadeOut = TweenInfo.new(0.9)
+		local fadeOut = TweenInfo.new(fadeOutTime)
 		tween(ui.cineBack, fadeOut, { BackgroundTransparency = 1 })
-		tween(ui.cineGroup, fadeOut, { GroupTransparency = 1 })
+		tween(ui.cineFade, fadeOut, { Value = 1 })
+	end)
+	-- 트윈이 어떤 이유로든 끝나지 않아도 화면에 남지 않게 마지막에 확실히 치운다
+	task.delay(hold + fadeOutTime + 0.3, function()
+		if token ~= cinematicToken then
+			return
+		end
+		ui.cineFade.Value = 1
+		ui.cineBack.BackgroundTransparency = 1
 	end)
 end
 

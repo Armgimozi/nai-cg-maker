@@ -6,7 +6,6 @@
 --   Ground        - 영초가 돋는 바닥
 --   Vein          - 영맥 (속성 VeinId, Radius)
 --   HerbZone      - 영초가 돋는 범위
---   TrainingDummy - 목인장
 -- Studio 에서 맵을 직접 고쳐도 태그만 유지하면 그대로 동작한다.
 
 local World = {}
@@ -355,52 +354,6 @@ local function buildVillage(root: Instance, rng)
 	sign(village, Vector3.new(0, 14, 40), "연국 (連國)", "블록수선전", Color3.fromRGB(255, 220, 150))
 end
 
-local function buildTrainingGround(root: Instance)
-	local ground = folder(root, "목인장")
-	local center = Vector3.new(96, 0, 10)
-	block(ground, "Floor", Vector3.new(44, 1, 44), CFrame.new(center), C.dirt, Enum.Material.Ground)
-	sign(
-		ground,
-		center + Vector3.new(0, 12, -18),
-		"목인장",
-		"무공 수련 · 체력과 경공",
-		Color3.fromRGB(255, 190, 150)
-	)
-
-	for row = -1, 1, 2 do
-		for col = -1, 1 do
-			local base = center + Vector3.new(col * 12, 0.5, row * 9)
-			local dummy = model(ground, "목인장")
-			local post = block(
-				dummy,
-				"Post",
-				Vector3.new(1.6, 6, 1.6),
-				CFrame.new(base + Vector3.new(0, 3, 0)),
-				C.wood,
-				Enum.Material.Wood
-			)
-			post:AddTag("TrainingDummy")
-			block(
-				dummy,
-				"Arms",
-				Vector3.new(5, 0.7, 0.7),
-				CFrame.new(base + Vector3.new(0, 4.4, 0)),
-				C.woodDark,
-				Enum.Material.Wood
-			)
-			block(
-				dummy,
-				"Head",
-				Vector3.new(1.8, 1.8, 1.8),
-				CFrame.new(base + Vector3.new(0, 6.9, 0)),
-				C.wood,
-				Enum.Material.Wood
-			)
-			dummy.PrimaryPart = post
-		end
-	end
-end
-
 local function buildForest(root: Instance, rng)
 	local forest = folder(root, "영초숲")
 	local center = Vector3.new(-190, 0, 0)
@@ -584,13 +537,11 @@ function World.build(workspaceRoot: Instance, lighting: Instance): Model
 	end
 
 	local paths = folder(root, "길")
-	path(paths, Vector3.new(32, 0, 0), Vector3.new(74, 0, 6), 8)
 	path(paths, Vector3.new(0, 0, -32), Vector3.new(0, 0, -158), 8)
 	path(paths, Vector3.new(-32, 0, 0), Vector3.new(-106, 0, 0), 8)
 	path(paths, Vector3.new(24, 0, -24), Vector3.new(176, 0, -146), 8)
 
 	buildVillage(root, rng)
-	buildTrainingGround(root)
 	buildForest(root, rng)
 	buildMountain(root)
 	buildTribulationAltar(root)

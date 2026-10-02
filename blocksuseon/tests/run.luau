@@ -32,7 +32,6 @@ local shared = loader.folder("src/shared")
 local Realms = loader.require(shared.Realms)
 local Balance = loader.require(shared.Balance)
 local Insights = loader.require(shared.Insights)
-local MartialRanks = loader.require(shared.MartialRanks)
 local Progression = loader.require(shared.Progression)
 local Format = loader.require(shared.Format)
 
@@ -78,11 +77,6 @@ check("깨달음 비용 증가", function()
 			last = cost
 		end
 	end
-end)
-check("무공 경지", function()
-	eq(MartialRanks.indexFor(0), 1)
-	eq(MartialRanks.indexFor(20), 2)
-	eq(MartialRanks.indexFor(1e9), #MartialRanks.list)
 end)
 check("숫자 포맷", function()
 	eq(Format.qi(999), "999")
@@ -169,25 +163,23 @@ check("깨달음 강화", function()
 	data.insights.geobun = Insights.byId.geobun.maxLevel
 	eq((Progression.buyInsight(data, "geobun")), false, "최대 레벨")
 end)
-check("무공 수련", function()
+check("체력", function()
 	local data = Progression.newData()
-	eq(Progression.addMartialExp(data, 5), nil)
-	eq(Progression.addMartialExp(data, 20), 2, "삼류")
-	assert(Progression.maxHealth(data) > Balance.BASE_HP, "무공이 체력을 올린다")
-	assert(Progression.walkSpeed(data) > Balance.BASE_WALKSPEED, "무공이 경공을 올린다")
+	eq(Progression.maxHealth(data), Balance.BASE_HP, "범인 기본 체력")
+	data.step = 45
+	data.insights.danche = 5
+	assert(Progression.maxHealth(data) > Balance.BASE_HP * 2, "경지와 신체 단련이 체력을 올린다")
 end)
 check("저장 데이터 정리", function()
 	local data = Progression.reconcile({
 		step = 9999,
 		qi = -5,
-		martialExp = 0 / 0,
 		enlightenment = 12.7,
 		insights = { gongbeop = 999, unknown = 3, dosim = "x" },
 		stats = { herbs = 4 },
 	})
 	eq(data.step, Realms.maxStep)
 	eq(data.qi, 0)
-	eq(data.martialExp, 0, "NaN 은 버린다")
 	eq(data.enlightenment, 12)
 	eq(data.insights.gongbeop, Insights.byId.gongbeop.maxLevel)
 	eq(data.insights.unknown, nil)
@@ -238,7 +230,6 @@ check("연국 맵 짓기", function()
 	eq(tags.Ground, 1, "Ground 태그")
 	eq(tags.Vein, 3, "Vein 태그")
 	eq(tags.HerbZone, 1, "HerbZone 태그")
-	eq(tags.TrainingDummy, 6, "TrainingDummy 태그")
 	for _, inst in map:GetDescendants() do
 		if inst:HasTag("Vein") then
 			assert(Balance.VEINS[inst:GetAttribute("VeinId")], "영맥 id")

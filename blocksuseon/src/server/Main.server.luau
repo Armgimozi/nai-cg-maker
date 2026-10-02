@@ -15,7 +15,6 @@ local Characters = require(script.Parent.Characters)
 local Cultivation = require(script.Parent.Cultivation)
 local Tribulation = require(script.Parent.Tribulation)
 local Herbs = require(script.Parent.Herbs)
-local Martial = require(script.Parent.Martial)
 
 local RESPAWN_DELAY = 4
 local REQUEST_INTERVAL = 0.12
@@ -28,7 +27,6 @@ if not Workspace:FindFirstChild(World.MODEL_NAME) then
 end
 
 Herbs.start()
-Martial.start()
 PlayerData.startAutosave()
 
 local function onCharacterAdded(player: Player, character: Model)
@@ -71,7 +69,7 @@ local function onPlayerAdded(player: Player)
 	Sync.cinematic(player, {
 		kind = "intro",
 		realm = Realms.label(data.step),
-		returning = data.step > 1 or data.martialExp > 0,
+		returning = data.step > 1,
 	})
 	if not canSave then
 		Sync.notify(

@@ -89,24 +89,4 @@ function Fx.burst(character: Model?, color: Color3, amount: number?)
 	Debris:AddItem(attachment, 2)
 end
 
--- 목인장을 칠 때 튀는 불티
-function Fx.spark(part: BasePart, color: Color3)
-	local attachment = Instance.new("Attachment")
-	attachment.Position = Vector3.new(0, 1.4, 0)
-	attachment.Parent = part
-
-	local sparks = Instance.new("ParticleEmitter")
-	sparks.Color = ColorSequence.new(color)
-	sparks.LightEmission = 1
-	sparks.Rate = 0
-	sparks.Lifetime = NumberRange.new(0.3, 0.5)
-	sparks.Speed = NumberRange.new(8, 14)
-	sparks.SpreadAngle = Vector2.new(60, 60)
-	sparks.Size = NumberSequence.new(0.25)
-	sparks.Parent = attachment
-	sparks:Emit(10)
-
-	Debris:AddItem(attachment, 1)
-end
-
 return Fx

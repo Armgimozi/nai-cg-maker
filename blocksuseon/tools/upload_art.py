@@ -74,7 +74,14 @@ def upload(name, path):
 
 
 def sha256(path):
-    return hashlib.sha256(open(path, "rb").read()).hexdigest()
+    # 같은 그림을 다시 그려도 PNG 바이트는 달라질 수 있어서 픽셀로 비교한다
+    try:
+        from PIL import Image
+
+        image = Image.open(path).convert("RGBA")
+        return hashlib.sha256(f"{image.size}".encode() + image.tobytes()).hexdigest()
+    except ImportError:
+        return hashlib.sha256(open(path, "rb").read()).hexdigest()
 
 
 def lua_string(s):

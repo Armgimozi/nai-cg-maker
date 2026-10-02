@@ -60,19 +60,6 @@ Insights.list = {
 		end,
 	},
 	{
-		id = "oseong",
-		name = "무공 오성",
-		hanja = "悟性",
-		stat = "무공 수련",
-		perLevel = 0.25,
-		maxLevel = 20,
-		baseCost = 3,
-		costGrowth = 1.25,
-		show = function(level)
-			return "+" .. pct(0.25 * level)
-		end,
-	},
-	{
 		id = "geobun",
 		name = "겁운 감지",
 		hanja = "劫運",

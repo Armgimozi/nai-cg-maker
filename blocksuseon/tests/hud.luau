@@ -9,12 +9,24 @@ local Harness = require("./harness")
 
 -- 가짜 신호 ------------------------------------------------------------------------
 
-local function fakeSignal()
+-- 인스턴스별로 연결된 콜백을 기억해 두었다가 fire 로 부를 수 있다
+local listeners: { [any]: { [string]: { (...any) -> () } } } = setmetatable({}, { __mode = "k" }) :: any
+
+local function fakeSignal(inst: any, name: string)
 	return {
-		Connect = function()
+		Connect = function(_, callback)
+			listeners[inst] = listeners[inst] or {}
+			listeners[inst][name] = listeners[inst][name] or {}
+			table.insert(listeners[inst][name], callback)
 			return { Disconnect = function() end }
 		end,
 	}
+end
+
+local function fire(inst: any, name: string, ...: any)
+	for _, callback in (listeners[inst] or {})[name] or {} do
+		callback(...)
+	end
 end
 
 local EVENTS = {
@@ -23,6 +35,7 @@ local EVENTS = {
 	MouseButton1Up = true,
 	MouseLeave = true,
 	MouseEnter = true,
+	Changed = true,
 }
 
 -- Lune 인스턴스를 감싸 이벤트 접근만 가짜로 돌려준다
@@ -47,11 +60,11 @@ function wrap(inst)
 	local proxy = setmetatable({ __inst = inst }, {
 		__index = function(_, key)
 			if EVENTS[key] then
-				return fakeSignal()
+				return fakeSignal(inst, key)
 			end
 			if key == "GetPropertyChangedSignal" then
-				return function()
-					return fakeSignal()
+				return function(_, property)
+					return fakeSignal(inst, "Changed:" .. property)
 				end
 			end
 			local value = inst[key]
@@ -128,8 +141,13 @@ local services = {
 	TweenService = {
 		Create = function(_, target, _info, goal)
 			-- 목표 속성이 진짜 있는지 확인하려고 바로 대입해 본다
+			local inst = unwrap(target)
 			for key, value in goal do
-				unwrap(target)[key] = value
+				inst[key] = value
+			end
+			-- NumberValue 처럼 값이 바뀌면 Changed 를 쏜다 (트윈이 끝난 상태를 바로 흉내 낸다)
+			if goal.Value ~= nil then
+				fire(inst, "Changed", goal.Value)
 			end
 			return {
 				Play = function()
@@ -193,7 +211,6 @@ local function state(overrides)
 		breakChance = nil,
 		enlightenment = 0,
 		insights = {},
-		martialExp = 0,
 		maxHealth = 125,
 		tribulation = nil,
 		canSave = true,
@@ -221,7 +238,6 @@ local cases = {
 	{ "천겁 끝", state({ step = 45 }) },
 	{ "깨달음 살 수 있음", state({ enlightenment = 50, insights = { gongbeop = 3 } }) },
 	{ "깨달음 완성", state({ enlightenment = 5, insights = { geobun = 10 } }) },
-	{ "무공 최고", state({ martialExp = 1e6 }) },
 	{ "최고 경지", state({ step = 81, qi = 1e12, req = 1e12 }) },
 }
 for _, case in cases do
@@ -255,7 +271,18 @@ assert(
 	string.find(chatMessages[#chatMessages], "&lt;b&gt;", 1, true),
 	"알림 글자를 이스케이프하지 않았다"
 )
-assert(playerGui:FindFirstChild("BlockSuseonCinematic"), "연출 ScreenGui 가 없다")
+local cinematicGui = playerGui:FindFirstChild("BlockSuseonCinematic")
+assert(cinematicGui, "연출 ScreenGui 가 없다")
+-- 연출이 끝나면 화면에서 사라져야 한다 (지난번에 계속 남아 있던 문제)
+task.wait(1.5)
+local stage = cinematicGui:FindFirstChild("Stage")
+assert(stage, "연출 Stage 가 없다")
+assert(stage.Visible == false, "연출이 끝났는데 화면에 남아 있다")
+for _, child in cinematicGui:GetChildren() do
+	if child:IsA("Frame") and child.Name ~= "Stage" then
+		assert(child.BackgroundTransparency == 1, "연출 배경이 어둡게 남아 있다")
+	end
+end
 
 local count = 0
 for _, _ in hud:GetDescendants() do
@@ -267,7 +294,6 @@ print(`HUD 통과 · 인스턴스 {count}개 · 트윈 {tweensPlayed}회 · 상�
 local Art = loader.require(loader.folder("src/client").Art)
 local Realms = loader.require(sharedFolder.Realms)
 local Insights = loader.require(sharedFolder.Insights)
-local MartialRanks = loader.require(sharedFolder.MartialRanks)
 local missing = {}
 local function need(fontName: string, text: string)
 	for _, code in utf8.codes(text) do
@@ -293,9 +319,6 @@ for _, def in Insights.list do
 	for level = 0, def.maxLevel do
 		need("body", def.show(level))
 	end
-end
-for _, rank in MartialRanks.list do
-	need("body", "무공 " .. rank.name)
 end
 for key, text in missing do
 	print(`  글자판에 없음 {key} ← "{text}"`)
