@@ -13,6 +13,7 @@ local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Realms = require(Shared.Realms)
 local Balance = require(Shared.Balance)
 local Skills = require(Shared.Skills)
+local Progression = require(Shared.Progression)
 local Format = require(Shared.Format)
 local Art = require(script.Parent.Art)
 local BitmapText = require(script.Parent.BitmapText)
@@ -21,8 +22,9 @@ local Chat = require(script.Parent.Chat)
 export type Actions = {
 	meditate: () -> (),
 	breakthrough: () -> (),
-	useSkill: (id: string) -> (),
+	useSlot: (slot: number) -> (),
 	equip: (id: string, on: boolean) -> (),
+	assign: (slot: number, id: string) -> (),
 }
 
 local IMG = Art.images
@@ -53,7 +55,9 @@ local scales: { UIScale } = {}
 local ui: { [string]: any } = {}
 local orbs: { [string]: { [string]: any } } = {}
 local skillRows: { [string]: { [string]: any } } = {}
-local hotbar: { [string]: { [string]: any } } = {}
+local hotbar: { { [string]: any } } = {}
+local keyPills: { { [string]: any } } = {}
+local bindingSlot: number? = nil
 local passiveSlots: { { [string]: any } } = {}
 local cooldownEnd: { [string]: number } = {}
 local cooldownTotal: { [string]: number } = {}
@@ -368,13 +372,13 @@ local function buildTribulation(gui: ScreenGui)
 	ui.tribWave.frame.LayoutOrder = 2
 end
 
--- 아래 가운데: 술법 단축칸 (1~4)
+-- 아래 가운데: 술법 단축칸 (기본 Q·E·Z·X, 상태창에서 바꾼다)
 local function buildHotbar(gui: ScreenGui)
 	local bar = scaled(new("Frame", {
 		Name = "Hotbar",
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -12),
-		Size = UDim2.fromOffset(#Skills.actives * 76, 92),
+		Size = UDim2.fromOffset(Progression.HOTBAR_SIZE * 76, 92),
 		BackgroundTransparency = 1,
 		Parent = gui,
 	}, {
@@ -386,19 +390,20 @@ local function buildHotbar(gui: ScreenGui)
 		}),
 	}))
 
-	for index, def in Skills.actives do
+	for slot = 1, Progression.HOTBAR_SIZE do
 		local holder = new("Frame", {
-			LayoutOrder = index,
+			LayoutOrder = slot,
 			Size = UDim2.fromOffset(66, 92),
 			BackgroundTransparency = 1,
 			Parent = bar,
 		})
 		local button = image("slot", { Size = UDim2.fromOffset(66, 66), Parent = holder }, "ImageButton")
 		local press = new("UIScale", { Parent = button })
-		local icon = image(def.icon, {
+		local icon = image("skillDash", {
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.5, 0.5),
 			Size = UDim2.fromScale(0.74, 0.74),
+			Visible = false,
 			Parent = button,
 		})
 		-- 쿨타임: 아래에서부터 줄어드는 그늘과 남은 초
@@ -413,6 +418,7 @@ local function buildHotbar(gui: ScreenGui)
 		}, { new("UICorner", { CornerRadius = UDim.new(0, 9) }) })
 		local timeRow = row({ Size = UDim2.new(1, 0, 1, -8), Parent = button })
 		local timeText = text("body", 22, { color = C.cream, parent = timeRow })
+		local keyText = nil
 		if keyboard then
 			local badge = new("Frame", {
 				Position = UDim2.fromOffset(3, 3),
@@ -421,14 +427,14 @@ local function buildHotbar(gui: ScreenGui)
 				Parent = button,
 			}, { new("UICorner", { CornerRadius = UDim.new(0, 5) }) })
 			local keyRow = row({ Size = UDim2.fromScale(1, 1), Parent = badge })
-			text("body", 12, { color = C.keyText, text = tostring(def.key), parent = keyRow })
+			keyText = text("body", 12, { color = C.keyText, parent = keyRow })
 		end
 		local labelRow = row({
 			Position = UDim2.fromOffset(-30, 66),
 			Size = UDim2.new(1, 60, 0, 24),
 			Parent = holder,
 		})
-		local label = text("title", 17, { color = C.cream, text = def.name, parent = labelRow })
+		local label = text("title", 17, { color = C.dim, text = "빈 칸", parent = labelRow })
 
 		button.MouseButton1Down:Connect(function()
 			press.Scale = 0.92
@@ -441,9 +447,15 @@ local function buildHotbar(gui: ScreenGui)
 		end)
 		button.Activated:Connect(function()
 			press.Scale = 1
-			actions.useSkill(def.id)
+			local id = lastState and lastState.hotbar[slot]
+			if id and id ~= "" then
+				actions.useSlot(slot)
+			else
+				-- 빈 칸을 누르면 술법을 넣을 수 있는 상태창을 연다
+				Hud.toggleStatus(true)
+			end
 		end)
-		hotbar[def.id] = { icon = icon, shade = shade, timeText = timeText, label = label }
+		hotbar[slot] = { icon = icon, shade = shade, timeText = timeText, keyText = keyText, label = label }
 	end
 end
 
@@ -574,13 +586,13 @@ local function buildStatusWindow(gui: ScreenGui)
 			BackgroundTransparency = 1,
 			Parent = list,
 		})
-		local slot =
+		local frame =
 			image("slot", { Position = UDim2.fromOffset(0, 6), Size = UDim2.fromOffset(50, 50), Parent = item })
 		local icon = image(def.icon, {
 			AnchorPoint = Vector2.new(0.5, 0.5),
 			Position = UDim2.fromScale(0.5, 0.5),
 			Size = UDim2.fromScale(0.72, 0.72),
-			Parent = slot,
+			Parent = frame,
 		})
 		local name = text("title", 21, { color = C.cream, text = def.name })
 		name.frame.Position = UDim2.fromOffset(58, 2)
@@ -606,13 +618,56 @@ local function buildStatusWindow(gui: ScreenGui)
 				actions.equip(def.id, not equipped)
 			end)
 		else
-			local keyText = text("body", 13, { color = C.gold, text = string.format("단축키 %d", def.key) })
-			keyText.frame.AnchorPoint = Vector2.new(1, 0)
-			keyText.frame.Position = UDim2.new(1, 0, 0, 10)
-			keyText.frame.Parent = item
-			entry.keyText = keyText
+			-- 단축칸마다 작은 버튼: 누르면 그 칸에 넣는다 (이미 그 칸이면 뺀다)
+			local slotRow = row({
+				AnchorPoint = Vector2.new(1, 0),
+				Position = UDim2.new(1, 0, 0, 6),
+				Size = UDim2.fromOffset(Progression.HOTBAR_SIZE * 31, 26),
+				Parent = item,
+			}, Enum.HorizontalAlignment.Right, 3)
+			entry.slotButtons = {}
+			for slot = 1, Progression.HOTBAR_SIZE do
+				local pill = image("pillStone", {
+					LayoutOrder = slot,
+					Size = UDim2.fromOffset(28, 24),
+					SliceScale = 0.4,
+					Parent = slotRow,
+				}, "ImageButton")
+				local pillRow = row({ Size = UDim2.new(1, 0, 1, -2), Parent = pill })
+				local pillText = text("body", 13, { color = C.cream, parent = pillRow })
+				pill.Activated:Connect(function()
+					local current = lastState and lastState.hotbar[slot]
+					actions.assign(slot, if current == def.id then "" else def.id)
+				end)
+				entry.slotButtons[slot] = { pill = pill, text = pillText }
+			end
+			entry.slotRow = slotRow
 		end
 		skillRows[def.id] = entry
+	end
+
+	ui.keyHint = header("단축키")
+	order += 1
+	local keyLine = new("Frame", {
+		LayoutOrder = order,
+		Size = UDim2.new(1, -8, 0, 44),
+		BackgroundTransparency = 1,
+		Parent = list,
+	})
+	local keyRow = row({ Size = UDim2.fromScale(1, 1), Parent = keyLine }, Enum.HorizontalAlignment.Left, 8)
+	for slot = 1, Progression.HOTBAR_SIZE do
+		local pill = image("pillJade", {
+			LayoutOrder = slot,
+			Size = UDim2.fromOffset(58, 36),
+			SliceScale = 0.55,
+			Parent = keyRow,
+		}, "ImageButton")
+		local pillRow = row({ Size = UDim2.new(1, 0, 1, -2), Parent = pill })
+		local pillText = text("body", 17, { color = C.cream, parent = pillRow })
+		pill.Activated:Connect(function()
+			Hud.startBinding(slot)
+		end)
+		keyPills[slot] = { pill = pill, text = pillText }
 	end
 
 	header("술법")
@@ -840,6 +895,11 @@ local function updateStatusWindow(state)
 		label:set(values[key] or "-")
 	end
 	ui.swSlots:set(string.format("장착 %d / %d", #state.equipped, state.slots))
+	ui.keyHint:set(if bindingSlot then "바꿀 키를 누른다" else "눌러서 키를 바꾼다")
+	for slot, pill in keyPills do
+		pill.text:set(if bindingSlot == slot then "?" else state.keys[slot])
+		setImage(pill.pill, if bindingSlot == slot then "pillStone" else "pillJade")
+	end
 
 	for id, entry in skillRows do
 		local def = Skills.byId[id]
@@ -859,8 +919,14 @@ local function updateStatusWindow(state)
 			)
 			entry.summary:setColor(C.dim)
 		end
-		if entry.keyText then
-			entry.keyText.frame.Visible = known
+		if entry.slotRow then
+			entry.slotRow.Visible = known
+			for slot, button in entry.slotButtons do
+				local here = state.hotbar[slot] == id
+				setImage(button.pill, if here then "pillJade" else "pillStone")
+				button.text:set(state.keys[slot])
+				button.text:setColor(if here then C.cream else C.dim)
+			end
 		end
 		if entry.button then
 			entry.button.Visible = known
@@ -875,11 +941,21 @@ local function updateStatusWindow(state)
 end
 
 local function updateHotbar(state)
-	for id, slot in hotbar do
-		local known = state.skills[id] == true
-		slot.icon.ImageColor3 = if known then Color3.new(1, 1, 1) else Color3.fromRGB(70, 66, 60)
-		slot.icon.ImageTransparency = if known then 0 else 0.35
-		slot.label:setColor(if known then C.cream else C.dim)
+	for slot, entry in hotbar do
+		local id = state.hotbar[slot]
+		local def = if id and id ~= "" then Skills.byId[id] else nil
+		entry.icon.Visible = def ~= nil
+		if def then
+			entry.icon.Image = IMG[def.icon].id
+			entry.label:set(def.name)
+			entry.label:setColor(C.cream)
+		else
+			entry.label:set("빈 칸")
+			entry.label:setColor(C.dim)
+		end
+		if entry.keyText then
+			entry.keyText:set(state.keys[slot])
+		end
 	end
 end
 
@@ -910,6 +986,25 @@ function Hud.cooldownReady(id: string): boolean
 	return os.clock() >= (cooldownEnd[id] or 0)
 end
 
+-- 단축키 바꾸기: 상태창에서 칸을 누르면 다음에 누르는 키를 그 칸에 묶는다
+function Hud.startBinding(slot: number)
+	bindingSlot = slot
+	if lastState then
+		Hud.update(lastState)
+	end
+end
+
+function Hud.bindingSlot(): number?
+	return bindingSlot
+end
+
+function Hud.stopBinding()
+	bindingSlot = nil
+	if lastState then
+		Hud.update(lastState)
+	end
+end
+
 -- 서버가 술법을 허락했다: 쿨타임 시작
 function Hud.skillUsed(payload: { [string]: any })
 	local cooldown = payload.cooldown or 0
@@ -919,14 +1014,13 @@ end
 
 RunService.Heartbeat:Connect(function()
 	local now = os.clock()
-	for id, slot in hotbar do
-		local finish = cooldownEnd[id]
+	for slot, entry in hotbar do
+		local id = if lastState then lastState.hotbar[slot] else nil
+		local finish = if id then cooldownEnd[id] else nil
 		local remaining = if finish then math.max(0, finish - now) else 0
-		slot.shade.Size = UDim2.new(1, -10, remaining / (cooldownTotal[id] or 1), if remaining > 0 then -10 else 0)
-		slot.timeText:set(if remaining > 0 then tostring(math.ceil(remaining)) else "")
-		if finish and remaining <= 0 then
-			cooldownEnd[id] = nil
-		end
+		entry.shade.Size =
+			UDim2.new(1, -10, remaining / ((id and cooldownTotal[id]) or 1), if remaining > 0 then -10 else 0)
+		entry.timeText:set(if remaining > 0 then tostring(math.ceil(remaining)) else "")
 	end
 end)
 
@@ -977,7 +1071,7 @@ function Hud.cinematic(payload: { [string]: any })
 			task.delay(3.5, function()
 				if keyboard then
 					Chat.system(
-						"R 키로 운기조식, B 키로 돌파, C 키로 상태창을 연다. 1~4 키는 술법이다.",
+						"R 키로 운기조식, B 키로 돌파, C 키로 상태창을 연다. 술법은 화면 아래 Q, E, Z, X 칸에 넣어 쓴다.",
 						"info"
 					)
 				else

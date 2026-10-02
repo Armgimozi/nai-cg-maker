@@ -156,6 +156,7 @@ spawnManual = function()
 
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = "익히기"
+	prompt.KeyboardKeyCode = Enum.KeyCode.F
 	prompt.ObjectText = model.Name
 	prompt.HoldDuration = 1
 	prompt.MaxActivationDistance = 10

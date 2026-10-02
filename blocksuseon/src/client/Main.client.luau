@@ -6,16 +6,11 @@ local UserInputService = game:GetService("UserInputService")
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 
 local Net = require(Shared.Net)
-local Skills = require(Shared.Skills)
+local Progression = require(Shared.Progression)
 local Hud = require(script.Parent.Hud)
 local Effects = require(script.Parent.Effects)
 
 local player = Players.LocalPlayer
-
--- 도구를 쓰지 않으니 기본 가방을 꺼서 1~4 키를 술법에 쓴다
-pcall(function()
-	game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
-end)
 local remotes = Net.get()
 local state: { [string]: any }? = nil
 
@@ -32,24 +27,23 @@ local actions = {
 	breakthrough = function()
 		request("Breakthrough")
 	end,
-	useSkill = function(id: string)
-		if not Hud.knows(id) then
+	-- 단축칸에 넣은 술법을 쓴다
+	useSlot = function(slot: number)
+		local id = state and state.hotbar[slot]
+		if not id or id == "" then
+			Hud.toast("이 칸에 넣은 술법이 없다. 상태창(C)에서 넣을 수 있다.", "info")
+		elseif not Hud.knows(id) then
 			Hud.toast("아직 익히지 못한 술법이다. 맵에서 비급을 찾아야 한다.", "bad")
 		elseif Hud.cooldownReady(id) then
 			request("UseSkill", id)
 		end
 	end,
+	assign = function(slot: number, id: string)
+		request("AssignSkill", { slot = slot, id = id })
+	end,
 	equip = function(id: string, on: boolean)
 		request(if on then "Equip" else "Unequip", id)
 	end,
-}
-
--- 숫자 키 → 술법
-local SKILL_KEYS = {
-	[Enum.KeyCode.One] = 1,
-	[Enum.KeyCode.Two] = 2,
-	[Enum.KeyCode.Three] = 3,
-	[Enum.KeyCode.Four] = 4,
 }
 
 Hud.build(actions)
@@ -70,19 +64,38 @@ remotes.Skill.OnClientEvent:Connect(function(payload)
 end)
 
 UserInputService.InputBegan:Connect(function(input: InputObject, processed: boolean)
-	if processed then
+	if processed or input.UserInputType ~= Enum.UserInputType.Keyboard then
 		return
 	end
+	local keyName = input.KeyCode.Name
+
+	-- 상태창에서 단축키를 바꾸는 중이면 이번 키를 그 칸에 묶는다
+	local binding = Hud.bindingSlot()
+	if binding then
+		Hud.stopBinding()
+		if Progression.isBindable(keyName) then
+			request("BindKey", { slot = binding, key = keyName })
+		else
+			Hud.toast(
+				"그 키는 단축키로 쓸 수 없다. ("
+					.. table.concat(Progression.BINDABLE_KEYS, " ")
+					.. " 중에서)",
+				"bad"
+			)
+		end
+		return
+	end
+
 	if input.KeyCode == Enum.KeyCode.R then
 		actions.meditate()
 	elseif input.KeyCode == Enum.KeyCode.B then
 		actions.breakthrough()
 	elseif input.KeyCode == Enum.KeyCode.C then
 		Hud.toggleStatus()
-	elseif SKILL_KEYS[input.KeyCode] then
-		local skill = Skills.actives[SKILL_KEYS[input.KeyCode]]
-		if skill then
-			actions.useSkill(skill.id)
+	elseif state then
+		local slot = table.find(state.keys, keyName)
+		if slot then
+			actions.useSlot(slot)
 		end
 	end
 end)

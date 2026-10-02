@@ -6,6 +6,8 @@
 --     "UseSkill" (string)    술법 쓰기
 --     "Equip" (string)       공법 장착
 --     "Unequip" (string)     공법 해제
+--     "AssignSkill" { slot, id }  단축칸에 술법 넣기 (id "" 는 비우기)
+--     "BindKey" { slot, key }     단축칸 키 바꾸기
 -- State    (서버 → 클라) 내 상태 스냅숏
 -- Notify   (서버 → 클라) text, kind
 -- Cinematic(서버 → 클라) 화면 연출 { kind = ... }

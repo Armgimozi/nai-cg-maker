@@ -143,6 +143,7 @@ spawnHerb = function()
 
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.ActionText = "채집"
+	prompt.KeyboardKeyCode = Enum.KeyCode.F
 	prompt.ObjectText = name
 	prompt.HoldDuration = 0.6
 	prompt.MaxActivationDistance = 10

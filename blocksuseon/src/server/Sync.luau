@@ -59,6 +59,8 @@ function Sync.state(player: Player)
 		breakChance = Progression.breakChance(data),
 		skills = data.skills,
 		equipped = data.equipped,
+		hotbar = data.hotbar,
+		keys = data.keys,
 		slots = Progression.slots(data),
 		stats = data.stats,
 		inFormation = session.inFormation,

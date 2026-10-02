@@ -69,4 +69,24 @@ function SkillService.setEquipped(player: Player, id: string, equip: boolean)
 	Sync.state(player)
 end
 
+function SkillService.assign(player: Player, slot: any, id: any)
+	local data = PlayerData.get(player)
+	if not data or type(id) ~= "string" then
+		return
+	end
+	local ok, message = Progression.assignSkill(data, slot, id)
+	Sync.notify(player, message, if ok then "info" else "bad")
+	Sync.state(player)
+end
+
+function SkillService.bindKey(player: Player, slot: any, key: any)
+	local data = PlayerData.get(player)
+	if not data then
+		return
+	end
+	local ok, message = Progression.bindKey(data, slot, key)
+	Sync.notify(player, message, if ok then "info" else "bad")
+	Sync.state(player)
+end
+
 return SkillService

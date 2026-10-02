@@ -70,9 +70,14 @@ check("병목 배율", function()
 end)
 check("술법·공법 데이터", function()
 	eq(#Skills.actives, 4, "술법 4개")
-	for index, def in Skills.actives do
-		eq(def.key, index, def.name .. " 단축키")
+	for _, def in Skills.actives do
 		assert(def.cooldown and def.cooldown > 0, def.name .. " 쿨타임")
+	end
+	for _, key in Progression.DEFAULT_KEYS do
+		assert(Progression.isBindable(key), key .. " 기본 키는 쓸 수 있어야 한다")
+	end
+	for _, reserved in { "W", "A", "S", "D", "R", "B", "C", "F", "One", "Two", "Space" } do
+		eq(Progression.isBindable(reserved), false, reserved .. " 는 막아야 한다")
 	end
 	for _, def in Skills.list do
 		assert(Realms.byId[def.minRealm], def.name .. " 경지 id")
@@ -171,6 +176,35 @@ check("비급 익히기와 공법 장착", function()
 	eq(Progression.slots(data), 3, "결단기부터 3칸")
 	eq(data.stats.manuals, 2)
 end)
+check("술법 단축칸과 키", function()
+	local data = Progression.newData()
+	eq(#data.hotbar, Progression.HOTBAR_SIZE)
+	eq(data.keys[1], "Q")
+	eq(data.keys[2], "E")
+
+	Progression.learn(data, "gyeongsin")
+	eq(data.hotbar[1], "gyeongsin", "익힌 술법은 빈 칸에 들어간다")
+	data.step = Realms.firstStepById.dansu
+	Progression.learn(data, "yeongan")
+	eq(data.hotbar[2], "yeongan")
+
+	eq((Progression.assignSkill(data, 1, "yeongan")), true)
+	eq(data.hotbar[1], "yeongan", "맞바꾼다")
+	eq(data.hotbar[2], "gyeongsin")
+	eq((Progression.assignSkill(data, 3, "hosin")), false, "안 익힌 술법")
+	eq((Progression.assignSkill(data, 9, "yeongan")), false, "없는 칸")
+	eq((Progression.assignSkill(data, 1.5, "yeongan")), false, "없는 칸")
+	eq((Progression.assignSkill(data, 2, "")), true)
+	eq(data.hotbar[2], "", "비우기")
+
+	eq((Progression.bindKey(data, 1, "T")), true)
+	eq(data.keys[1], "T")
+	eq((Progression.bindKey(data, 1, "E")), true, "다른 칸이 쓰던 키면 맞바꾼다")
+	eq(data.keys[1], "E")
+	eq(data.keys[2], "T")
+	eq((Progression.bindKey(data, 1, "W")), false, "이동 키는 막는다")
+	eq((Progression.bindKey(data, 1, "One")), false, "숫자 키는 도구 칸")
+end)
 check("공법 효과", function()
 	local data = Progression.newData()
 	data.step = 45
@@ -223,6 +257,26 @@ check("저장 데이터 정리", function()
 	eq(#data.equipped, 2, "익힌 공법만, 겹치지 않게")
 	eq(data.equipped[1], "tonap")
 	eq(data.equipped[2], "baekcho")
+
+	-- 단축칸이 없던 예전 기록: 익힌 술법을 빈 칸에 채운다
+	local old = Progression.reconcile({ step = 20, skills = { gyeongsin = true, yeongan = true } })
+	eq(old.hotbar[1], "gyeongsin")
+	eq(old.hotbar[2], "yeongan")
+	eq(old.keys[1], "Q")
+	-- 이상한 키·겹친 키·안 익힌 술법은 걸러 낸다
+	local messy = Progression.reconcile({
+		step = 20,
+		skills = { gyeongsin = true },
+		hotbar = { "hosin", "gyeongsin", "gyeongsin", 5 },
+		keys = { "W", "E", "E", "Z" },
+	})
+	eq(messy.hotbar[1], "")
+	eq(messy.hotbar[2], "gyeongsin")
+	eq(messy.hotbar[3], "")
+	eq(messy.keys[2], "E")
+	eq(messy.keys[4], "Z")
+	eq(messy.keys[1], "Q", "막힌 키 자리는 기본값으로")
+	eq(messy.keys[3], "X", "이미 쓰는 기본값은 건너뛴다")
 	eq(data.stats.herbs, 4)
 	eq(data.stats.tribulations, 0)
 	eq(Progression.reconcile(nil).step, 1)

@@ -1,5 +1,5 @@
 -- 술법과 공법.
---   술법(active)  : 1~4 키나 버튼으로 쓴다. 쿨타임이 있다.
+--   술법(active)  : 단축칸(기본 Q·E·Z·X)에 넣어 쓴다. 쿨타임이 있다.
 --   공법(passive) : 장착해 두면 늘 효과가 걸린다. 장착 칸은 경지에 따라 늘어난다.
 -- 둘 다 맵 곳곳에 나타나는 비급을 주워 익힌다. 비급마다 이해할 수 있는 최소 경지가 있다.
 
@@ -12,7 +12,6 @@ export type Skill = {
 	summary: string, -- 상태창 설명 한 줄
 	cooldown: number?, -- 술법
 	duration: number?, -- 술법 지속 시간
-	key: number?, -- 술법 단축키(1~4)
 }
 
 local Skills = {}
@@ -21,7 +20,6 @@ Skills.list = {
 	{
 		id = "gyeongsin",
 		kind = "active",
-		key = 1,
 		name = "경신술",
 		icon = "skillDash",
 		minRealm = "mortal",
@@ -31,7 +29,6 @@ Skills.list = {
 	{
 		id = "yeongan",
 		kind = "active",
-		key = 2,
 		name = "영안",
 		icon = "skillEye",
 		minRealm = "dansu",
@@ -42,7 +39,6 @@ Skills.list = {
 	{
 		id = "chwiryeong",
 		kind = "active",
-		key = 3,
 		name = "취령진",
 		icon = "skillFormation",
 		minRealm = "yeongi",
@@ -53,7 +49,6 @@ Skills.list = {
 	{
 		id = "hosin",
 		kind = "active",
-		key = 4,
 		name = "호신강기",
 		icon = "skillShield",
 		minRealm = "chukgi",
@@ -133,9 +128,6 @@ for _, skill in Skills.list do
 	Skills.byId[skill.id] = skill
 	table.insert(if skill.kind == "active" then Skills.actives else Skills.passives, skill)
 end
-table.sort(Skills.actives, function(a, b)
-	return (a.key or 0) < (b.key or 0)
-end)
 
 -- 공법 장착 칸: 처음 1칸, 연기기부터 2칸, 결단기부터 3칸
 Skills.SLOT_REALMS = { "mortal", "yeongi", "gyeoldan" }

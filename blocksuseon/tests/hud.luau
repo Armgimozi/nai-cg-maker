@@ -199,7 +199,7 @@ sharedFolder = loader.folder("src/shared")
 local Hud = loader.require(loader.folder("src/client").Hud)
 
 local noop = function() end
-Hud.build({ meditate = noop, breakthrough = noop, useSkill = noop, equip = noop })
+Hud.build({ meditate = noop, breakthrough = noop, useSlot = noop, equip = noop, assign = noop })
 
 local function state(overrides)
 	local s = {
@@ -213,6 +213,8 @@ local function state(overrides)
 		breakChance = nil,
 		skills = {},
 		equipped = {},
+		hotbar = { "", "", "", "" },
+		keys = { "Q", "E", "Z", "X" },
 		slots = 1,
 		stats = { tribulations = 0, herbs = 0, manuals = 0 },
 		inFormation = false,
@@ -243,7 +245,12 @@ local cases = {
 	{ "천겁 끝", state({ step = 45 }) },
 	{
 		"술법·공법 익힘",
-		state({ skills = { gyeongsin = true, tonap = true, baekcho = true }, equipped = { "tonap" } }),
+		state({
+			skills = { gyeongsin = true, yeongan = true, tonap = true, baekcho = true },
+			equipped = { "tonap" },
+			hotbar = { "gyeongsin", "", "yeongan", "" },
+			keys = { "Q", "T", "Z", "X" },
+		}),
 	},
 	{
 		"공법 칸 가득",
@@ -268,6 +275,11 @@ end
 Hud.toggleStatus()
 Hud.toggleStatus(false)
 -- 술법 쿨타임이 단축칸에 그려지는지
+-- 단축키 바꾸기 모드
+Hud.startBinding(2)
+assert(Hud.bindingSlot() == 2, "단축키 바꾸기 모드가 아니다")
+Hud.stopBinding()
+assert(Hud.bindingSlot() == nil, "단축키 바꾸기 모드가 안 끝났다")
 Hud.skillUsed({ id = "gyeongsin", cooldown = 5 })
 fire(heartbeatKey, "Heartbeat", 0.016)
 assert(Hud.cooldownReady("gyeongsin") == false, "쿨타임 중인데 바로 쓸 수 있다")

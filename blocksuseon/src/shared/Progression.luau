@@ -12,6 +12,8 @@ export type Data = {
 	qi: number,
 	skills: { [string]: boolean }, -- 익힌 술법·공법
 	equipped: { string }, -- 장착한 공법
+	hotbar: { string }, -- 술법 단축칸마다 넣은 술법 ("" 은 빈 칸)
+	keys: { string }, -- 단축칸마다 쓰는 키 이름 (KeyCode.Name)
 	stats: { [string]: number },
 }
 
@@ -26,7 +28,37 @@ local EFFECT = Skills.EFFECT
 
 local Progression = {}
 
-Progression.DATA_VERSION = 2
+Progression.DATA_VERSION = 3
+
+-- 술법 단축칸. 숫자 키는 장비·도구 칸으로 남겨 두고, 손이 쉽게 가는 글자 키를 쓴다.
+Progression.HOTBAR_SIZE = 4
+Progression.DEFAULT_KEYS = { "Q", "E", "Z", "X" }
+-- 단축키로 쓸 수 있는 키 (이동 WASD, 운기 R, 돌파 B, 상태창 C, 채집 F 등은 뺀다)
+Progression.BINDABLE_KEYS = {
+	"Q",
+	"E",
+	"T",
+	"Y",
+	"U",
+	"G",
+	"H",
+	"J",
+	"K",
+	"L",
+	"Z",
+	"X",
+	"V",
+	"N",
+	"P",
+}
+local BINDABLE: { [string]: boolean } = {}
+for _, key in Progression.BINDABLE_KEYS do
+	BINDABLE[key] = true
+end
+
+function Progression.isBindable(key: any): boolean
+	return type(key) == "string" and BINDABLE[key] == true
+end
 
 function Progression.newData(): Data
 	return {
@@ -35,6 +67,8 @@ function Progression.newData(): Data
 		qi = 0,
 		skills = {},
 		equipped = {},
+		hotbar = table.create(Progression.HOTBAR_SIZE, ""),
+		keys = table.clone(Progression.DEFAULT_KEYS),
 		stats = {
 			breakthroughs = 0,
 			deviations = 0,
@@ -106,6 +140,48 @@ function Progression.reconcile(saved: any): Data
 			end
 		end
 	end
+
+	-- 단축칸: 익힌 술법만, 한 술법은 한 칸에만
+	if type(saved.hotbar) == "table" then
+		for slot = 1, Progression.HOTBAR_SIZE do
+			local id = saved.hotbar[slot]
+			local def = Skills.byId[id]
+			if def and def.kind == "active" and data.skills[id] and not table.find(data.hotbar, id) then
+				data.hotbar[slot] = id
+			end
+		end
+	end
+	-- 예전 기록처럼 단축칸이 없으면 익힌 술법을 빈 칸에 채운다
+	for _, def in Skills.actives do
+		if data.skills[def.id] and not table.find(data.hotbar, def.id) then
+			local empty = table.find(data.hotbar, "")
+			if empty then
+				data.hotbar[empty] = def.id
+			end
+		end
+	end
+
+	-- 키: 쓸 수 있는 키만, 겹치지 않게. 모자라면 기본값부터 채운다
+	local keys = table.create(Progression.HOTBAR_SIZE, "")
+	if type(saved.keys) == "table" then
+		for slot = 1, Progression.HOTBAR_SIZE do
+			local key = saved.keys[slot]
+			if Progression.isBindable(key) and not table.find(keys, key) then
+				keys[slot] = key
+			end
+		end
+	end
+	for slot = 1, Progression.HOTBAR_SIZE do
+		if keys[slot] == "" then
+			for _, candidate in Progression.DEFAULT_KEYS do
+				if not table.find(keys, candidate) then
+					keys[slot] = candidate
+					break
+				end
+			end
+		end
+	end
+	data.keys = keys
 	return data
 end
 
@@ -147,6 +223,13 @@ function Progression.learn(data: Data, id: string): (boolean, string)
 		table.insert(data.equipped, id)
 		return true, string.format("%s 익혀 장착했다!", Josa.eul(def.name))
 	end
+	if def.kind == "active" then
+		local empty = table.find(data.hotbar, "")
+		if empty then
+			data.hotbar[empty] = id
+			return true, string.format("%s 익혀 %s 키 칸에 넣었다!", Josa.eul(def.name), data.keys[empty])
+		end
+	end
 	return true, string.format("%s 익혔다!", Josa.eul(def.name))
 end
 
@@ -172,6 +255,43 @@ function Progression.unequip(data: Data, id: string): (boolean, string)
 	end
 	table.remove(data.equipped, index)
 	return true, string.format("%s 해제했다.", Josa.eul(Skills.byId[id].name))
+end
+
+-- 술법을 단축칸에 넣는다. 이미 다른 칸에 있던 술법이면 두 칸을 맞바꾼다. id 가 "" 이면 비운다.
+function Progression.assignSkill(data: Data, slot: any, id: any): (boolean, string)
+	if type(slot) ~= "number" or slot % 1 ~= 0 or slot < 1 or slot > Progression.HOTBAR_SIZE then
+		return false, "없는 단축칸이다."
+	end
+	if id == "" then
+		data.hotbar[slot] = ""
+		return true, string.format("%s 키 칸을 비웠다.", data.keys[slot])
+	end
+	local def = Skills.byId[id]
+	if not def or def.kind ~= "active" or not Progression.knows(data, id) then
+		return false, "익히지 않은 술법은 넣을 수 없다."
+	end
+	local current = table.find(data.hotbar, id)
+	if current then
+		data.hotbar[current] = data.hotbar[slot]
+	end
+	data.hotbar[slot] = id
+	return true, string.format("%s %s 키 칸에 넣었다.", Josa.eul(def.name), data.keys[slot])
+end
+
+-- 단축칸의 키를 바꾼다. 다른 칸이 쓰던 키면 두 칸의 키를 맞바꾼다.
+function Progression.bindKey(data: Data, slot: any, key: any): (boolean, string)
+	if type(slot) ~= "number" or slot % 1 ~= 0 or slot < 1 or slot > Progression.HOTBAR_SIZE then
+		return false, "없는 단축칸이다."
+	end
+	if not Progression.isBindable(key) then
+		return false, "그 키는 단축키로 쓸 수 없다."
+	end
+	local other = table.find(data.keys, key)
+	if other then
+		data.keys[other] = data.keys[slot]
+	end
+	data.keys[slot] = key
+	return true, string.format("단축키를 %s 키로 바꿨다.", key)
 end
 
 -- 영력과 단계 -----------------------------------------------------------------------

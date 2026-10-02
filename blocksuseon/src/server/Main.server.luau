@@ -115,6 +115,10 @@ Sync.remotes.Request.OnServerEvent:Connect(function(player: Player, action: any,
 		SkillService.use(player, arg)
 	elseif (action == "Equip" or action == "Unequip") and type(arg) == "string" then
 		SkillService.setEquipped(player, arg, action == "Equip")
+	elseif action == "AssignSkill" and type(arg) == "table" then
+		SkillService.assign(player, arg.slot, arg.id)
+	elseif action == "BindKey" and type(arg) == "table" then
+		SkillService.bindKey(player, arg.slot, arg.key)
 	end
 end)
 
