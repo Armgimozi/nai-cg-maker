@@ -1,27 +1,34 @@
--- 영초숲(HerbZone 태그) 바닥에 영초와 드물게 천년영지가 돋는다.
+-- 영초숲(HerbZone 태그) 바닥에 영초와 드물게 천년영지, 아주 드물게 홍령삼이 돋는다.
+-- 캐면 주머니에 담긴다. 먹을지, 제물로 바칠지, 단약 재료로 쓸지는 플레이어가 고른다.
 
 local CollectionService = game:GetService("CollectionService")
 local Workspace = game:GetService("Workspace")
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 
+local Balance = require(Shared.Balance)
 local Progression = require(Shared.Progression)
-local Format = require(Shared.Format)
+local Josa = require(Shared.Josa)
 local PlayerData = require(script.Parent.PlayerData)
 local Sync = require(script.Parent.Sync)
-local Cultivation = require(script.Parent.Cultivation)
 
 local MAX_HERBS = 16
-local RARE_CHANCE = 0.06
+local RARE_CHANCE = 0.1
+local HONGSAM_CHANCE = 0.02
+local HONGSAM_COOLDOWN = 15 * 60 -- 서버에 홍령삼은 15분에 많아야 한 뿌리
 local RESPAWN_MIN, RESPAWN_MAX = 20, 40
 
-local HERB_COLOR = Color3.fromRGB(120, 255, 170)
-local RARE_COLOR = Color3.fromRGB(255, 210, 90)
+local KINDS = {
+	herb = { color = Color3.fromRGB(120, 255, 170), light = 7 },
+	lingzhi = { color = Color3.fromRGB(255, 210, 90), light = 12 },
+	hongsam = { color = Color3.fromRGB(255, 80, 70), light = 16 },
+}
 local STEM_COLOR = Color3.fromRGB(70, 140, 60)
 
 local Herbs = {}
 
 local rng = Random.new()
 local folder: Folder
+local lastHongsam = -math.huge
 
 local function randomGroundPoint(): Vector3?
 	local zones = CollectionService:GetTagged("HerbZone")
@@ -62,7 +69,7 @@ end
 
 local spawnHerb: () -> ()
 
-local function collect(player: Player, herb: Model, rare: boolean)
+local function collect(player: Player, herb: Model, kind: string)
 	if herb.Parent == nil then
 		return -- 이미 누가 캤다
 	end
@@ -70,21 +77,30 @@ local function collect(player: Player, herb: Model, rare: boolean)
 	if not data then
 		return
 	end
-	if Cultivation.isFull(player) then
-		Sync.notify(player, "영력이 가득 차서 더 받아들일 수 없다. 먼저 돌파해야 한다.", "bad")
-		return
-	end
-
 	herb:Destroy()
-	data.stats.herbs += 1
-	local amount = Progression.herbQi(data, rare)
-	if rare then
-		Sync.notify(player, string.format("천년영지를 먹었다! 영력 +%s", Format.qi(amount)), "good")
-	else
-		Sync.notify(player, string.format("영초를 먹었다. 영력 +%s", Format.qi(amount)), "good")
+	Progression.addItem(data, kind)
+	local name = Balance.ITEMS[kind].name
+	local message = string.format(
+		"%s 주머니에 담았다. (%d개) 왼쪽 주머니나 상태창(C)에서 먹을 수 있다.",
+		Josa.eul(name),
+		Progression.itemCount(data, kind)
+	)
+	if kind == "hongsam" then
+		message = "홍령삼을 캤다! 결단기 전에 먹으면 몸이 홍령수지체로 바뀐다."
+		Sync.broadcast(string.format("%s님이 홍령삼을 찾았다.", player.DisplayName), "world")
 	end
-	Cultivation.grantQi(player, amount)
+	Sync.notify(player, message, "good")
+	Sync.markDirty(player)
 	task.delay(rng:NextNumber(RESPAWN_MIN, RESPAWN_MAX), spawnHerb)
+end
+
+local function pickKind(): string
+	local roll = rng:NextNumber()
+	if roll < HONGSAM_CHANCE and os.clock() - lastHongsam > HONGSAM_COOLDOWN then
+		lastHongsam = os.clock()
+		return "hongsam"
+	end
+	return if roll < RARE_CHANCE then "lingzhi" else "herb"
 end
 
 spawnHerb = function()
@@ -92,12 +108,14 @@ spawnHerb = function()
 	if not position then
 		return
 	end
-	local rare = rng:NextNumber() < RARE_CHANCE
-	local name = if rare then "천년영지" else "영초"
-	local color = if rare then RARE_COLOR else HERB_COLOR
+	local kind = pickKind()
+	local rare = kind ~= "herb"
+	local name = Balance.ITEMS[kind].name
+	local color = KINDS[kind].color
 
 	local herb = Instance.new("Model")
 	herb.Name = name
+	herb:SetAttribute("Item", kind)
 	herbPart(
 		herb,
 		Vector3.new(0.3, 1.6, 0.3),
@@ -126,7 +144,7 @@ spawnHerb = function()
 
 	local light = Instance.new("PointLight")
 	light.Color = color
-	light.Range = if rare then 12 else 7
+	light.Range = KINDS[kind].light
 	light.Brightness = 1.5
 	light.Parent = bulb
 
@@ -134,7 +152,7 @@ spawnHerb = function()
 		local sparkle = Instance.new("ParticleEmitter")
 		sparkle.Color = ColorSequence.new(color)
 		sparkle.LightEmission = 1
-		sparkle.Rate = 6
+		sparkle.Rate = if kind == "hongsam" then 14 else 6
 		sparkle.Lifetime = NumberRange.new(1, 1.6)
 		sparkle.Speed = NumberRange.new(1, 2)
 		sparkle.Size = NumberSequence.new(0.25)
@@ -150,7 +168,7 @@ spawnHerb = function()
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = bulb
 	prompt.Triggered:Connect(function(player)
-		collect(player, herb, rare)
+		collect(player, herb, kind)
 	end)
 
 	herb.PrimaryPart = bulb

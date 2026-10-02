@@ -158,9 +158,21 @@ local services = {
 			}
 		end,
 	},
-	UserInputService = { KeyboardEnabled = true, TouchEnabled = false },
+	UserInputService = {
+		KeyboardEnabled = true,
+		TouchEnabled = false,
+		InputEnded = fakeSignal(heartbeatKey, "InputEnded"),
+	},
 	RunService = { Heartbeat = fakeSignal(heartbeatKey, "Heartbeat") },
-	Workspace = { CurrentCamera = nil },
+	Workspace = {
+		CurrentCamera = nil,
+		GetAttribute = function()
+			return 0
+		end,
+		GetServerTimeNow = function()
+			return 500 -- 밤
+		end,
+	},
 	Lighting = wrap(real:GetService("Lighting")),
 	ReplicatedStorage = {
 		WaitForChild = function(_, name)
@@ -199,7 +211,25 @@ sharedFolder = loader.folder("src/shared")
 local Hud = loader.require(loader.folder("src/client").Hud)
 
 local noop = function() end
-Hud.build({ meditate = noop, breakthrough = noop, useSlot = noop, equip = noop, assign = noop })
+local sent: { [string]: any } = {}
+local function record(name: string)
+	return function(...)
+		sent[name] = { ... }
+	end
+end
+Hud.build({
+	meditate = noop,
+	breakthrough = noop,
+	useSlot = noop,
+	equip = noop,
+	assign = noop,
+	startTask = record("startTask"),
+	skipTask = record("skipTask"),
+	choose = record("choose"),
+	eat = record("eat"),
+	trialResult = record("trialResult"),
+	trialCancel = record("trialCancel"),
+})
 
 local function state(overrides)
 	local s = {
@@ -210,7 +240,15 @@ local function state(overrides)
 		meditating = false,
 		veinId = nil,
 		veinBlocked = nil,
-		breakChance = nil,
+		needsBreak = false,
+		ready = false,
+		tasksDone = false,
+		entry = nil,
+		tasks = {},
+		root = nil,
+		choice = {},
+		items = {},
+		inTrial = false,
 		skills = {},
 		equipped = {},
 		hotbar = { "", "", "", "" },
@@ -228,12 +266,52 @@ local function state(overrides)
 	return s
 end
 
+local Tasks0 = loader.require(sharedFolder.Tasks)
+local Progression0 = loader.require(sharedFolder.Progression)
+local Roots0 = loader.require(sharedFolder.Roots)
+local function tasksFor(step: number, root)
+	local data = Progression0.newData()
+	data.step = step
+	data.root = root
+	return Tasks0.snapshot(data)
+end
+
 local cases = {
 	{ "기본", state() },
+	{ "범인 과업", state({ step = 1, tasks = tasksFor(1, nil) }) },
+	{
+		"단수기 과업",
+		state({
+			step = 2,
+			root = Roots0.make({ "wood", "fire" }),
+			tasks = tasksFor(2, Roots0.make({ "wood", "fire" })),
+			items = { herb = 3, lingzhi = 1 },
+		}),
+	},
+	{
+		"돌파 준비 끝",
+		state({
+			step = 16,
+			qi = 999,
+			req = 999,
+			ready = true,
+			tasksDone = true,
+			entry = { kind = "trial", title = "무극영운" },
+		}),
+	},
+	{ "과업 남음", state({ step = 3, qi = 999, req = 999, tasksDone = false }) },
 	{ "운기 중 + 영맥", state({ meditating = true, veinId = "low" }) },
 	{ "영맥 경지 부족", state({ veinBlocked = "mid" }) },
-	{ "병목 돌파", state({ step = 16, qi = 999, req = 999, breakChance = 0.8 }) },
-	{ "병목 천겁", state({ step = 44, qi = 999, req = 999 }) },
+	{
+		"병목 천겁",
+		state({
+			step = 48,
+			qi = 999,
+			req = 999,
+			ready = true,
+			entry = { kind = "tribulation", title = "천겁 맞기" },
+		}),
+	},
 	{
 		"천겁 모이는 중",
 		state({ step = 44, qi = 999, req = 999, tribulation = { name = "천겁", wave = 0, waves = 9 } }),
@@ -263,7 +341,7 @@ local cases = {
 			veinId = "high",
 		}),
 	},
-	{ "최고 경지", state({ step = 81, qi = 1e12, req = 1e12 }) },
+	{ "최고 경지", state({ step = 56, qi = 1e12, req = 1e12 }) },
 }
 for _, case in cases do
 	local ok, err = pcall(Hud.update, case[2])
@@ -274,6 +352,31 @@ end
 
 Hud.toggleStatus()
 Hud.toggleStatus(false)
+
+-- 내관 창: 박자와 균형
+Hud.openTrial({
+	id = 1,
+	mode = "rhythm",
+	seed = 9,
+	params = { beats = 2, interval = 0.9, band = 1 },
+	title = "음양지의",
+	hint = "박자에 맞춰 누른다.",
+})
+for _ = 1, 30 do
+	fire(heartbeatKey, "Heartbeat", 0.05)
+end
+Hud.openTrial({ close = true })
+Hud.openTrial({
+	id = 2,
+	mode = "balance",
+	seed = 3,
+	params = { bars = 3, target = 1, band = 1.3, turbulence = 1 },
+	title = "혼원지의",
+})
+for _ = 1, 10 do
+	fire(heartbeatKey, "Heartbeat", 0.05)
+end
+Hud.openTrial({ close = true })
 -- 술법 쿨타임이 단축칸에 그려지는지
 -- 단축키 바꾸기 모드
 Hud.startBinding(2)
@@ -296,8 +399,8 @@ task.wait(4)
 
 local hud = playerGui:FindFirstChild("BlockSuseonHud")
 assert(hud, "HUD ScreenGui 가 없다")
--- 알림 6개 + 첫 접속 안내 3개가 채팅으로 가야 한다
-assert(#chatMessages == 9, `채팅 알림 {#chatMessages}개 (9개 기대)`)
+-- 알림 6개 + 첫 접속 안내 3개 + 새로 열린 과업 안내 4개(범인 2, 단수기 2)가 채팅으로 가야 한다
+assert(#chatMessages == 13, `채팅 알림 {#chatMessages}개 (13개 기대)`)
 assert(string.find(chatMessages[1], '<font color="#', 1, true), "알림에 색이 없다")
 Hud.toast("<b>깨짐</b> & 확인", "info")
 task.wait(0.1)
@@ -352,6 +455,43 @@ for _, def in Skills.list do
 	need("body", def.summary)
 	need("body", string.format("%s부터 익힐 수 있다", Realms.byId[def.minRealm].name))
 end
+local Tasks = loader.require(sharedFolder.Tasks)
+local Roots = loader.require(sharedFolder.Roots)
+local Progression = loader.require(sharedFolder.Progression)
+local Clock = loader.require(sharedFolder.Clock)
+Tasks.LIVE_UNTIL = Realms.maxStep
+for step = 1, Realms.maxStep do
+	for _, combo in { { "wood" }, { "wood", "fire", "earth", "metal", "water" } } do
+		local data = Progression.newData()
+		data.step = step
+		data.root = Roots.make(combo)
+		data.choice = { chilsu = "baek", element = combo[1] }
+		for _, job in Tasks.list(data) do
+			need("title", job.label)
+			need("body", job.hint)
+		end
+	end
+	if Realms.get(step).realm.entry then
+		need("title", Realms.get(step).realm.entry.title)
+		need("body", "B 로 " .. Realms.get(step).realm.entry.title)
+	end
+end
+for _, element in Roots.ELEMENTS do
+	need("title", Roots.ELEMENT[element].name .. " 속성")
+	need("body", Roots.ELEMENT[element].place .. "에서 닦는다")
+end
+for _, kind in Roots.KIND do
+	need("title", kind.name)
+	need("body", kind.summary)
+end
+for _, def in Tasks.CHILSU do
+	need("title", def.name)
+	need("body", def.summary)
+end
+for _, name in Clock.PHASE_NAME do
+	need("body", name)
+end
+need("body", "주머니  영초 3  천년영지 1  홍령삼 1  축기단 1 주머니 비었다 끝 12 / 30초")
 for key, text in missing do
 	print(`  글자판에 없음 {key} ← "{text}"`)
 end

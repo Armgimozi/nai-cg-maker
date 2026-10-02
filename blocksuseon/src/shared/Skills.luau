@@ -42,8 +42,8 @@ Skills.list = {
 		name = "취령진",
 		icon = "skillFormation",
 		minRealm = "yeongi",
-		cooldown = 60,
-		duration = 20,
+		cooldown = 30,
+		duration = 15,
 		summary = "진 안에서 운기조식하면 흡수가 두 배",
 	},
 	{
@@ -78,7 +78,7 @@ Skills.list = {
 		name = "청심결",
 		icon = "skillCalm",
 		minRealm = "dansu",
-		summary = "돌파 확률 +15%p, 실패 손실 절반",
+		summary = "내관 판정 폭 +20%, 실패 손실 절반",
 	},
 	{
 		id = "geumgang",
@@ -93,7 +93,7 @@ Skills.list = {
 		kind = "passive",
 		name = "피뢰결",
 		icon = "skillBolt",
-		minRealm = "chukgi",
+		minRealm = "gyeoldan",
 		summary = "천겁 낙뢰 피해 -30%",
 	},
 	{
@@ -101,8 +101,8 @@ Skills.list = {
 		kind = "passive",
 		name = "천기감응",
 		icon = "skillStar",
-		minRealm = "chukgi",
-		summary = "천겁 낙뢰 예고 +0.4초",
+		minRealm = "gyeoldan",
+		summary = "천겁 낙뢰와 제의 별빛 예고 +0.4초",
 	},
 } :: { Skill }
 
@@ -110,7 +110,7 @@ Skills.list = {
 Skills.EFFECT = {
 	tonap = 0.3, -- 흡수 배율 +
 	baekcho = 0.6, -- 영초 영력 배율 +
-	cheongsimChance = 0.15, -- 돌파 확률 +
+	cheongsimBand = 0.2, -- 내관 판정 폭 +
 	cheongsimLoss = 0.5, -- 실패 손실 배율
 	geumgang = 0.4, -- 최대 체력 배율 +
 	piroe = 0.3, -- 낙뢰 피해 감소

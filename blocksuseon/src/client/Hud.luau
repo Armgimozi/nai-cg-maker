@@ -15,9 +15,12 @@ local Balance = require(Shared.Balance)
 local Skills = require(Shared.Skills)
 local Progression = require(Shared.Progression)
 local Format = require(Shared.Format)
-local Art = require(script.Parent.Art)
-local BitmapText = require(script.Parent.BitmapText)
+local Roots = require(Shared.Roots)
+local Clock = require(Shared.Clock)
+local Ui = require(script.Parent.Ui)
 local Chat = require(script.Parent.Chat)
+local Choice = require(script.Parent.Choice)
+local Naegwan = require(script.Parent.Naegwan)
 
 export type Actions = {
 	meditate: () -> (),
@@ -25,25 +28,18 @@ export type Actions = {
 	useSlot: (slot: number) -> (),
 	equip: (id: string, on: boolean) -> (),
 	assign: (slot: number, id: string) -> (),
+	startTask: (id: string) -> (),
+	skipTask: (id: string) -> (),
+	choose: (key: string, value: any) -> (),
+	eat: (item: string) -> (),
+	trialResult: (payload: { [string]: any }) -> (),
+	trialCancel: () -> (),
 }
 
-local IMG = Art.images
-
-local C = {
-	cream = Color3.fromRGB(239, 226, 192),
-	dim = Color3.fromRGB(178, 166, 138),
-	jade = Color3.fromRGB(150, 222, 192),
-	red = Color3.fromRGB(240, 140, 120),
-	gold = Color3.fromRGB(240, 212, 140),
-	keyBack = Color3.fromRGB(226, 196, 122),
-	keyText = Color3.fromRGB(58, 42, 16),
-}
-local GOLD_TEXT = ColorSequence.new({
-	ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 246, 214)),
-	ColorSequenceKeypoint.new(0.55, Color3.fromRGB(226, 188, 110)),
-	ColorSequenceKeypoint.new(1, Color3.fromRGB(178, 136, 66)),
-})
-local RED_TEXT = ColorSequence.new(Color3.fromRGB(255, 220, 180), Color3.fromRGB(218, 86, 62))
+local IMG = Ui.IMG
+local C = Ui.C
+local GOLD_TEXT = Ui.GOLD_TEXT
+local RED_TEXT = Ui.RED_TEXT
 
 local Hud = {}
 
@@ -64,82 +60,16 @@ local cooldownTotal: { [string]: number } = {}
 local pulses: { [Instance]: Tween } = {}
 local cinematicToken = 0
 local lastState: { [string]: any }? = nil
+local taskLines: { { [string]: any } } = {}
+local pouchRows: { [string]: { [string]: any } } = {}
+local announcedTasks: { [string]: boolean } = {}
+local autoOpened: { [string]: boolean } = {}
+local skipArmed: { [string]: number } = {}
+local MAX_TASK_LINES = 4
 
 -- 도우미 ---------------------------------------------------------------------------
 
-local function new(className: string, props: { [string]: any }?, children: { Instance }?): any
-	local inst = Instance.new(className)
-	local parent = nil
-	for key, value in props or {} do
-		if key == "Parent" then
-			parent = value
-		else
-			(inst :: any)[key] = value
-		end
-	end
-	for _, child in children or {} do
-		child.Parent = inst
-	end
-	if parent then
-		inst.Parent = parent
-	end
-	return inst
-end
-
--- Art 그림 하나. 9-slice 그림이면 Slice 로 늘인다.
-local function image(name: string, props: { [string]: any }, className: string?): any
-	local def = IMG[name]
-	local base: { [string]: any } = {
-		BackgroundTransparency = 1,
-		Image = def.id,
-	}
-	if def.slice and props.ScaleType == nil then
-		base.ScaleType = Enum.ScaleType.Slice
-		base.SliceCenter = def.slice
-	end
-	if className == "ImageButton" then
-		base.AutoButtonColor = false
-	end
-	for key, value in props do
-		base[key] = value
-	end
-	return new(className or "ImageLabel", base)
-end
-
-local function setImage(target: ImageLabel | ImageButton, name: string)
-	local def = IMG[name]
-	target.Image = def.id
-	if def.slice then
-		target.SliceCenter = def.slice
-	end
-end
-
-local function text(font: string, size: number, props: { [string]: any }?)
-	local options = { font = font, size = size }
-	for key, value in props or {} do
-		options[key] = value
-	end
-	return BitmapText.new(options :: any)
-end
-
--- 가운데 정렬 등 줄 배치용 틀
-local function row(props: { [string]: any }, align: Enum.HorizontalAlignment?, padding: number?): Frame
-	local frame = new("Frame", props)
-	frame.BackgroundTransparency = 1
-	new("UIListLayout", {
-		FillDirection = Enum.FillDirection.Horizontal,
-		HorizontalAlignment = align or Enum.HorizontalAlignment.Center,
-		VerticalAlignment = Enum.VerticalAlignment.Bottom,
-		SortOrder = Enum.SortOrder.LayoutOrder,
-		Padding = UDim.new(0, padding or 6),
-		Parent = frame,
-	})
-	return frame
-end
-
-local function tween(target: Instance, info: TweenInfo, goal: { [string]: any })
-	TweenService:Create(target, info, goal):Play()
-end
+local new, image, setImage, text, row, tween = Ui.new, Ui.image, Ui.setImage, Ui.text, Ui.row, Ui.tween
 
 local function pulse(target: Instance, on: boolean, goal: { [string]: any }, rest: { [string]: any })
 	local running = pulses[target]
@@ -186,8 +116,8 @@ local function buildStatus(gui: ScreenGui)
 	local status = scaled(new("Frame", {
 		Name = "Status",
 		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 14, 0.5, -20),
-		Size = UDim2.fromOffset(350, 180),
+		Position = UDim2.new(0, 14, 0.5, 10),
+		Size = UDim2.fromOffset(350, 380),
 		BackgroundTransparency = 1,
 		Parent = gui,
 	}))
@@ -247,6 +177,78 @@ local function buildStatus(gui: ScreenGui)
 		})
 		passiveSlots[index] = { slot = slot, icon = icon }
 	end
+
+	-- 낮밤
+	ui.clockText = text("body", 15, { color = C.dim })
+	ui.clockText.frame.Position = UDim2.fromOffset(20, 188)
+	ui.clockText.frame.Parent = status
+
+	-- 과업
+	for index = 1, MAX_TASK_LINES do
+		local y = 216 + (index - 1) * 32
+		local line = new("Frame", {
+			Position = UDim2.fromOffset(18, y),
+			Size = UDim2.fromOffset(330, 30),
+			BackgroundTransparency = 1,
+			Visible = false,
+			Parent = status,
+		})
+		local bullet = image("gem", {
+			Position = UDim2.fromOffset(0, 8),
+			Size = UDim2.fromOffset(14, 14),
+			Parent = line,
+		})
+		local labelRow = row({
+			Position = UDim2.fromOffset(20, 0),
+			Size = UDim2.fromOffset(200, 28),
+			Parent = line,
+		}, Enum.HorizontalAlignment.Left, 8)
+		local label = text("title", 18, { color = C.cream, parent = labelRow })
+		label.frame.LayoutOrder = 1
+		local progress = text("body", 13, { color = C.dim, parent = labelRow })
+		progress.frame.LayoutOrder = 2
+		-- 줄을 누르면 할 일을 채팅으로 다시 알려 준다
+		local hintButton = new("TextButton", {
+			Size = UDim2.new(1, -130, 1, 0),
+			BackgroundTransparency = 1,
+			Text = "",
+			Parent = line,
+		})
+		local entry = { line = line, bullet = bullet, label = label, progress = progress }
+		hintButton.Activated:Connect(function()
+			if entry.hint then
+				Chat.system(string.format("%s: %s", entry.labelText or "", entry.hint), "info")
+			end
+		end)
+		local main, mainText = Ui.pill("내관", 60, 26, 13, line, function()
+			if entry.onMain then
+				entry.onMain()
+			end
+		end)
+		main.AnchorPoint = Vector2.new(1, 0)
+		main.Position = UDim2.new(1, -66, 0, 2)
+		local alt, altText = Ui.pill("건너뛰기", 62, 26, 12, line, function()
+			if entry.onAlt then
+				entry.onAlt()
+			end
+		end)
+		alt.AnchorPoint = Vector2.new(1, 0)
+		alt.Position = UDim2.new(1, 0, 0, 2)
+		setImage(alt, "pillStone")
+		entry.main, entry.mainText, entry.alt, entry.altText = main, mainText, alt, altText
+		taskLines[index] = entry
+	end
+
+	-- 주머니
+	ui.pouchText = text("body", 15, { color = C.cream })
+	ui.pouchText.frame.Position = UDim2.fromOffset(20, 350)
+	ui.pouchText.frame.Parent = status
+	local eatButton, eatText = Ui.pill("영초 먹기", 84, 26, 13, status, function()
+		actions.eat("herb")
+	end)
+	eatButton.AnchorPoint = Vector2.new(1, 0)
+	eatButton.Position = UDim2.fromOffset(348, 348)
+	ui.eatButton, ui.eatText = eatButton, eatText
 end
 
 -- 둥근 옥 버튼 하나
@@ -460,7 +462,7 @@ local function buildHotbar(gui: ScreenGui)
 end
 
 -- 가운데: 상태창 (C)
-local STAT_KEYS = { "체력", "영력", "흡수", "돌파", "천겁", "영초", "비급" }
+local STAT_KEYS = { "체력", "영력", "흡수", "영근", "천겁", "영초", "비급" }
 
 local function buildStatusWindow(gui: ScreenGui)
 	local panel = scaled(image("panel", {
@@ -678,6 +680,32 @@ local function buildStatusWindow(gui: ScreenGui)
 	for _, def in Skills.passives do
 		skillRow(def)
 	end
+
+	header("주머니")
+	for _, id in Balance.ITEM_ORDER do
+		order += 1
+		local item = new("Frame", {
+			LayoutOrder = order,
+			Size = UDim2.new(1, -8, 0, 40),
+			BackgroundTransparency = 1,
+			Parent = list,
+		})
+		local name = text("title", 20, { color = C.cream, text = Balance.ITEMS[id].name })
+		name.frame.Position = UDim2.fromOffset(4, 4)
+		name.frame.Parent = item
+		local count = text("body", 15, { color = C.dim })
+		count.frame.Position = UDim2.fromOffset(130, 10)
+		count.frame.Parent = item
+		local button = nil
+		if id ~= "pill" then
+			button = Ui.pill("먹기", 64, 30, 14, item, function()
+				actions.eat(id)
+			end)
+			button.AnchorPoint = Vector2.new(1, 0)
+			button.Position = UDim2.new(1, 0, 0, 4)
+		end
+		pouchRows[id] = { frame = item, count = count, button = button }
+	end
 end
 
 local function buildCinematic()
@@ -743,6 +771,16 @@ function Hud.build(newActions: Actions)
 	buildTribulation(gui)
 	buildHotbar(gui)
 	buildStatusWindow(gui)
+	Choice.build(gui, function(key, value)
+		actions.choose(key, value)
+	end)
+	Naegwan.build(gui, function(payload)
+		actions.trialResult(payload)
+	end, function()
+		actions.trialCancel()
+	end)
+	table.insert(scales, (gui:FindFirstChild("Choice") :: any):FindFirstChildOfClass("UIScale"))
+	table.insert(scales, (gui:FindFirstChild("Naegwan") :: any):FindFirstChildOfClass("UIScale"))
 	buildCinematic()
 
 	-- 천겁이 내릴 때 화면을 어둡게
@@ -772,26 +810,28 @@ local function updateStatus(state)
 
 	local ratio = if state.req > 0 then math.clamp(state.qi / state.req, 0, 1) else 1
 	local atMax = state.step >= Realms.maxStep
-	local bottleneck = Realms.nextIsMajor(state.step)
-	local full = ratio >= 1 and (bottleneck or atMax)
-	setImage(ui.qiFill, if full then "barGold" else "barJade")
+	local full = ratio >= 1
+	setImage(ui.qiFill, if full and (state.ready or atMax) then "barGold" else "barJade")
 	ui.qiFill.Visible = ratio > 0.04
 	tween(ui.qiFill, TweenInfo.new(0.45, Enum.EasingStyle.Linear), { Size = UDim2.fromOffset(286 * ratio, 12) })
 
 	if atMax and full then
-		ui.qiText:set("최고 경지")
+		ui.qiText:set("하계의 끝")
 		ui.qiText:setColor(C.gold)
 		ui.rateText:set("")
 	elseif full then
-		local target = Realms.get(state.step + 1).realm
 		ui.qiText:set("영력이 가득 찼다")
 		ui.qiText:setColor(C.gold)
-		ui.rateText:set(
-			if target.tribulation
-				then "천겁을 넘어야 한다"
-				else string.format("돌파 확률 %s", Format.percent(state.breakChance or 0))
-		)
-		ui.rateText:setColor(C.gold)
+		if state.ready then
+			local title = if state.entry and state.entry.title then state.entry.title else "돌파"
+			ui.rateText:set(string.format("B 로 %s", title))
+			ui.rateText:setColor(C.gold)
+		elseif not state.tasksDone then
+			ui.rateText:set("과업이 남았다")
+			ui.rateText:setColor(C.red)
+		else
+			ui.rateText:set("")
+		end
 	else
 		ui.qiText:set(string.format("영력 %s / %s", Format.qi(state.qi), Format.qi(state.req)))
 		ui.qiText:setColor(C.cream)
@@ -854,13 +894,11 @@ local function updateOrbs(state)
 		setOrb("meditate", "jade", "운기조식", false)
 	end
 
-	local ready = Realms.nextIsMajor(state.step) and state.qi >= state.req
 	if state.tribulation then
 		setOrb("breakthrough", "stone", "천겁 중", false)
-	elseif ready and Realms.get(state.step + 1).realm.tribulation then
-		setOrb("breakthrough", "gold", "천겁 맞기", true)
-	elseif ready then
-		setOrb("breakthrough", "gold", "돌파", true)
+	elseif state.ready then
+		local title = if state.entry and state.entry.title then state.entry.title else "돌파"
+		setOrb("breakthrough", "gold", title, true)
 	else
 		setOrb("breakthrough", "stone", "돌파", false)
 	end
@@ -874,19 +912,11 @@ local function updateStatusWindow(state)
 	ui.swTier:set(step.realm.tier)
 
 	local stats = state.stats or {}
-	local breakText = "-"
-	if state.step >= Realms.maxStep then
-		breakText = "최고 경지"
-	elseif Realms.nextIsMajor(state.step) then
-		breakText = if Realms.get(state.step + 1).realm.tribulation
-			then "천겁"
-			else Format.percent(state.breakChance or 0)
-	end
 	local values = {
 		["체력"] = tostring(state.maxHealth),
 		["영력"] = string.format("%s / %s", Format.qi(state.qi), Format.qi(state.req)),
 		["흡수"] = string.format("%s / 초", Format.rate(state.gain)),
-		["돌파"] = breakText,
+		["영근"] = if state.root then (string.gsub(Roots.describe(state.root), "[(),]", "")) else "아직 모름",
 		["천겁"] = string.format("%d회 넘음", stats.tribulations or 0),
 		["영초"] = string.format("%d개", stats.herbs or 0),
 		["비급"] = string.format("%d권", stats.manuals or 0),
@@ -895,6 +925,13 @@ local function updateStatusWindow(state)
 		label:set(values[key] or "-")
 	end
 	ui.swSlots:set(string.format("장착 %d / %d", #state.equipped, state.slots))
+	for id, entry in pouchRows do
+		local count = (state.items or {})[id] or 0
+		entry.count:set(string.format("%d개", count))
+		if entry.button then
+			entry.button.Visible = count > 0
+		end
+	end
 	ui.keyHint:set(if bindingSlot then "바꿀 키를 누른다" else "눌러서 키를 바꾼다")
 	for slot, pill in keyPills do
 		pill.text:set(if bindingSlot == slot then "?" else state.keys[slot])
@@ -959,8 +996,113 @@ local function updateHotbar(state)
 	end
 end
 
+local function taskProgress(job): string
+	if job.done then
+		return "끝"
+	elseif job.kind == "meditate" and not job.sites then
+		return string.format("%d / %d초", math.floor(job.value), job.max)
+	elseif job.max > 1 then
+		return string.format("%d / %d", job.value, job.max)
+	end
+	return ""
+end
+
+local function updateTasks(state)
+	local tasks = state.tasks or {}
+	local canSkip = Roots.canSkip(state.root)
+	for index, entry in taskLines do
+		local job = tasks[index]
+		entry.line.Visible = job ~= nil
+		if not job then
+			continue
+		end
+		entry.hint = job.hint
+		entry.labelText = job.label
+		entry.label:set(job.label)
+		entry.label:setColor(if job.done then C.dim elseif job.open then C.cream else C.dim)
+		entry.progress:set(taskProgress(job))
+		entry.progress:setColor(if job.done then C.jade else C.dim)
+		entry.bullet.ImageColor3 = if job.done
+			then Color3.fromRGB(255, 220, 140)
+			elseif job.open then Color3.new(1, 1, 1)
+			else Color3.fromRGB(90, 86, 80)
+
+		local main: string? = nil
+		entry.onMain, entry.onAlt = nil, nil
+		if job.open and not job.done then
+			if job.kind == "trial" then
+				main = "내관"
+				entry.onMain = function()
+					actions.startTask(job.id)
+				end
+			elseif job.kind == "choose" then
+				main = "고르기"
+				entry.onMain = function()
+					Choice.open(job.key, lastState or state)
+				end
+			elseif job.kind == "eat" and ((state.items or {})[job.item or "herb"] or 0) > 0 then
+				main = "먹기"
+				entry.onMain = function()
+					actions.eat("herb")
+				end
+			end
+		end
+		entry.main.Visible = main ~= nil
+		if main then
+			entry.mainText:set(main)
+		end
+		local skippable = job.skippable and canSkip and job.open and not job.done
+		entry.alt.Visible = skippable
+		if skippable then
+			entry.onAlt = function()
+				-- 영력이 드는 일이라 두 번 눌러야 건너뛴다
+				local armed = skipArmed[job.id]
+				if armed and os.clock() - armed < 5 then
+					skipArmed[job.id] = nil
+					actions.skipTask(job.id)
+				else
+					skipArmed[job.id] = os.clock()
+					Chat.system(
+						"한 번 더 누르면 퍼즐을 건너뛴다. 대신 이 단계에 영력이 2.5배 든다 (선통후각).",
+						"info"
+					)
+				end
+			end
+		end
+
+		-- 새로 열린 과업은 할 일을 채팅으로 알려 준다
+		local key = string.format("%d:%s", state.step, job.id)
+		if job.open and not job.done and not announcedTasks[key] then
+			announcedTasks[key] = true
+			Chat.system(string.format("할 일, %s: %s", job.label, job.hint), "info")
+		end
+		-- 영근 고르기는 열리자마자 창을 띄운다
+		if job.kind == "choose" and job.open and not job.done and not autoOpened[key] then
+			autoOpened[key] = true
+			task.defer(function()
+				if not Choice.isOpen() then
+					Choice.open(job.key, lastState or state)
+				end
+			end)
+		end
+	end
+
+	local items = state.items or {}
+	local parts = {}
+	for _, id in Balance.ITEM_ORDER do
+		local count = items[id] or 0
+		if count > 0 then
+			table.insert(parts, string.format("%s %d", Balance.ITEMS[id].name, count))
+		end
+	end
+	ui.pouchText:set(if #parts > 0 then "주머니  " .. table.concat(parts, "  ") else "주머니 비었다")
+	ui.pouchText:setColor(if #parts > 0 then C.cream else C.dim)
+	ui.eatButton.Visible = (items.herb or 0) > 0
+end
+
 function Hud.update(state)
 	updateStatus(state)
+	updateTasks(state)
 	updateOrbs(state)
 	updateStatusWindow(state)
 	updateHotbar(state)
@@ -970,6 +1112,17 @@ end
 function Hud.toggleStatus(open: boolean?)
 	local panel = ui.panel :: ImageLabel
 	panel.Visible = if open == nil then not panel.Visible else open
+end
+
+-- 내관 창
+function Hud.openTrial(payload: { [string]: any })
+	if payload.close then
+		Naegwan.close()
+		return
+	end
+	Hud.toggleStatus(false)
+	Choice.close()
+	Naegwan.open(payload :: any, lastState and lastState.root)
 end
 
 function Hud.toast(message: string, kind: string?)
@@ -1012,7 +1165,28 @@ function Hud.skillUsed(payload: { [string]: any })
 	cooldownTotal[payload.id] = math.max(cooldown, 0.01)
 end
 
-RunService.Heartbeat:Connect(function()
+local function clockLine(): string
+	local origin = Workspace:GetAttribute(Clock.ATTRIBUTE)
+	if type(origin) ~= "number" then
+		return ""
+	end
+	local t = (Workspace:GetServerTimeNow() - origin) % Clock.CYCLE
+	local phase = Clock.phase(t)
+	if phase == "day" then
+		return string.format("낮, 밤까지 %s", Clock.format(Clock.untilPhase(t, "night")))
+	elseif phase == "night" then
+		return string.format("밤, 날이 밝기까지 %s", Clock.format(Clock.remaining(t) + 30))
+	end
+	return Clock.PHASE_NAME[phase]
+end
+
+local clockElapsed = 1
+RunService.Heartbeat:Connect(function(dt)
+	clockElapsed += dt
+	if clockElapsed >= 0.5 and ui.clockText then
+		clockElapsed = 0
+		ui.clockText:set(clockLine())
+	end
 	local now = os.clock()
 	for slot, entry in hotbar do
 		local id = if lastState then lastState.hotbar[slot] else nil

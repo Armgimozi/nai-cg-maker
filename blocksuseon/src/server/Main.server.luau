@@ -17,6 +17,8 @@ local Tribulation = require(script.Parent.Tribulation)
 local Herbs = require(script.Parent.Herbs)
 local Manuals = require(script.Parent.Manuals)
 local SkillService = require(script.Parent.SkillService)
+local TaskService = require(script.Parent.TaskService)
+local DayNight = require(script.Parent.DayNight)
 
 local RESPAWN_DELAY = 4
 local REQUEST_INTERVAL = 0.12
@@ -28,6 +30,7 @@ if not Workspace:FindFirstChild(World.MODEL_NAME) then
 	World.build(Workspace, Lighting)
 end
 
+DayNight.start()
 Herbs.start()
 Manuals.start()
 PlayerData.startAutosave()
@@ -43,6 +46,7 @@ local function onCharacterAdded(player: Player, character: Model)
 			session.meditating = false
 			session.anchor = nil
 		end
+		TaskService.cancelTrial(player)
 		Tribulation.fail(player)
 		Sync.markDirty(player)
 		task.delay(RESPAWN_DELAY, function()
@@ -91,6 +95,7 @@ end
 
 Players.PlayerRemoving:Connect(function(player)
 	Tribulation.fail(player) -- 천겁 도중에 나가면 실패로 친다
+	TaskService.cancelTrial(player) -- 돌파 내관 도중에 나가도 실패
 	Session.stop(player)
 	PlayerData.release(player)
 end)
@@ -119,11 +124,28 @@ Sync.remotes.Request.OnServerEvent:Connect(function(player: Player, action: any,
 		SkillService.assign(player, arg.slot, arg.id)
 	elseif action == "BindKey" and type(arg) == "table" then
 		SkillService.bindKey(player, arg.slot, arg.key)
+	elseif action == "StartTask" then
+		TaskService.startTask(player, arg)
+	elseif action == "SkipTask" then
+		TaskService.skip(player, arg)
+	elseif action == "TrialResult" then
+		TaskService.trialResult(player, arg)
+	elseif action == "TrialCancel" then
+		TaskService.cancelTrial(player)
+	elseif action == "Choose" and type(arg) == "table" then
+		TaskService.choose(player, arg.key, arg.value)
+	elseif action == "Eat" then
+		local qi = TaskService.eat(player, arg)
+		if qi then
+			Cultivation.grantQi(player, qi)
+		end
+		Sync.state(player)
 	end
 end)
 
 while true do
 	local dt = task.wait(Balance.TICK)
+	DayNight.tick()
 	Cultivation.tick(dt)
 	Sync.flush()
 end

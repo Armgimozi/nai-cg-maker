@@ -35,37 +35,53 @@ local Skills = loader.require(shared.Skills)
 local Progression = loader.require(shared.Progression)
 local Format = loader.require(shared.Format)
 
+local Roots = loader.require(shared.Roots)
+local Tasks = loader.require(shared.Tasks)
+local Clock = loader.require(shared.Clock)
+local Trials = loader.require(shared.Trials)
+
+-- 테스트는 모든 경지의 과업을 켠 상태로 검사한다
+Tasks.LIVE_UNTIL = Realms.maxStep
+local YEONGI = Realms.firstStepById.yeongi
+local CHUKGI = Realms.firstStepById.chukgi
+
 print("경지")
 check("단계 수", function()
-	eq(Realms.maxStep, 81, "maxStep")
+	eq(Realms.maxStep, 56, "maxStep (범인~천인기)")
 	eq(Realms.label(1), "범인")
 	eq(Realms.label(2), "단수기")
-	eq(Realms.label(3), "연기기 1층")
-	eq(Realms.label(16), "연기기 14층")
-	eq(Realms.label(17), "축기기 영성 1")
-	eq(Realms.label(45), "결단기 초기")
-	eq(Realms.label(81), "성반기 8도")
+	eq(Realms.label(3), "연기기 1성 칠십이지살")
+	eq(Realms.label(16), "연기기 14성 무극영운")
+	eq(Realms.label(17), "축기기 각수성")
+	eq(Realms.label(44), "축기기 진수성")
+	eq(Realms.label(45), "결단기 천시원")
+	eq(Realms.label(56), "천인기 천원")
 end)
 check("병목 위치", function()
 	eq(Realms.nextIsMajor(1), true, "범인→단수기")
-	eq(Realms.nextIsMajor(3), false, "연기기 1층→2층")
-	eq(Realms.nextIsMajor(16), true, "연기기 14층→축기기")
-	eq(Realms.nextIsMajor(81), false, "최고 경지")
+	eq(Realms.nextIsMajor(3), false, "연기기 1성→2성")
+	eq(Realms.nextIsMajor(16), true, "연기기 14성→축기기")
+	eq(Realms.nextIsMajor(56), false, "최고 경지")
 	eq(Realms.firstStepById.gyeoldan, 45)
 end)
-check("천겁은 결단기부터", function()
-	for _, realm in Realms.list do
-		local index = table.find(Realms.list, realm) :: number
-		local needs = index >= table.find(Realms.list, Realms.byId.gyeoldan) :: number
-		eq(realm.tribulation ~= nil, needs, realm.name .. " 천겁")
-		eq(realm.breakChance ~= nil, not needs and index > 1, realm.name .. " 돌파 확률")
+check("천겁은 원영기부터, 원작 줄기 수", function()
+	for step = 1, Realms.firstStepById.wonyeong - 2 do
+		eq(Realms.tribulationAfter(step), nil, Realms.label(step) .. " 다음 천겁 없음")
 	end
+	local counts = {}
+	for step = Realms.firstStepById.wonyeong - 1, Realms.maxStep - 1 do
+		local trib = Realms.tribulationAfter(step)
+		assert(trib, Realms.label(step) .. " 다음 천겁")
+		table.insert(counts, trib.waves * trib.simul)
+	end
+	eq(table.concat(counts, " "), "1 2 3 4 5 10 15 20", "원영 1~4, 천인 5~20")
+	eq(Realms.tribulationAfter(Realms.maxStep), nil)
 end)
 
 print("공식")
 check("병목 배율", function()
 	local plain = math.floor(Balance.QI_BASE * Balance.QI_GROWTH ^ 2)
-	eq(Balance.qiRequired(3), plain, "연기기 1층 필요 영력")
+	eq(Balance.qiRequired(3), plain, "연기기 1성 필요 영력")
 	eq(Balance.qiRequired(1), math.floor(Balance.QI_BASE * Balance.BOTTLENECK_MULT), "범인 필요 영력")
 end)
 check("술법·공법 데이터", function()
@@ -92,64 +108,257 @@ check("숫자 포맷", function()
 	eq(Format.percent(0.805), "81%")
 end)
 
+print("영근과 시계")
+check("영근 고르기", function()
+	eq(Roots.make({ "wood" }).kind, "cheon")
+	eq(Roots.make({ "fire", "wood" }).kind, "jin")
+	eq(Roots.make({ "fire", "wood" }).elements[1], "wood", "오행 순서로 정리")
+	eq(Roots.make({ "wood", "fire", "earth", "metal" }).kind, "jap")
+	eq(Roots.make({}), nil)
+	eq(Roots.make({ "wood", "wood" }), nil, "겹치면 거절")
+	eq(Roots.make({ "light" }), nil)
+	eq(Roots.strands(Roots.make({ "wood", "fire", "earth", "metal", "water" })), 25)
+	eq(Roots.strands(Roots.hong()), 4)
+	assert(Roots.gain(Roots.make({ "wood" })) > Roots.gain(Roots.make({ "wood", "fire", "earth", "metal", "water" })))
+	eq(Roots.canSkip(Roots.make({ "wood", "fire", "earth", "metal" })), false, "잡영근은 선각후통만")
+	eq(Roots.describe(Roots.make({ "water", "wood" })), "진영근 (목, 수)")
+end)
+check("낮밤과 시운", function()
+	eq(Clock.phase(0), "day")
+	eq(Clock.phase(430), "dusk")
+	eq(Clock.phase(500), "night")
+	eq(Clock.phase(700), "dawn")
+	eq(Clock.clockTime(0), 6)
+	eq(Clock.clockTime(450), 20)
+	eq(Clock.untilPhase(400, "night"), 50)
+	eq(Clock.untilPhase(500, "night"), 0)
+	local from, to = Clock.sigun("cheong", 30)
+	eq(to - from, 30, "천영근 시운 30초")
+	local inside, left = Clock.sigunState(from + 5, "cheong", 30)
+	eq(inside, true)
+	eq(left, 25)
+	local outside, wait = Clock.sigunState(0, "yang", 120)
+	eq(outside, false)
+	assert(wait > 0)
+	eq(Clock.format(192), "3분 12초")
+	eq(Clock.format(40), "40초")
+end)
+check("내관 문제와 답", function()
+	local params = { nodes = 9, lengths = { 3, 4 } }
+	local a = Trials.generate("sequence", 77, params)
+	local b = Trials.generate("sequence", 77, params)
+	eq(table.concat(a.rounds[2], ","), table.concat(b.rounds[2], ","), "같은 seed 같은 문제")
+	eq(Trials.check("sequence", a, a.rounds), true)
+	eq(Trials.check("sequence", a, { a.rounds[1] }), false)
+	for seed = 1, 30 do
+		local puzzle = Trials.generate("arrange", seed, {})
+		eq(Trials.isMagic(puzzle.start), false, "섞인 판은 정답이 아니다")
+		eq(#puzzle.fixed, 3)
+		eq(Trials.check("arrange", puzzle, puzzle.start), false)
+	end
+	local puzzle = Trials.generate("arrange", 5, {})
+	-- 고정 칸을 지키는 정답이 하나는 있다: 낙서를 돌리고 뒤집은 8가지 중에서 찾는다
+	local found = false
+	for _, grid in
+		{
+			{ 4, 9, 2, 3, 5, 7, 8, 1, 6 },
+			{ 8, 3, 4, 1, 5, 9, 6, 7, 2 },
+			{ 6, 1, 8, 7, 5, 3, 2, 9, 4 },
+			{ 2, 7, 6, 9, 5, 1, 4, 3, 8 },
+			{ 2, 9, 4, 7, 5, 3, 6, 1, 8 },
+			{ 4, 3, 8, 9, 5, 1, 2, 7, 6 },
+			{ 8, 1, 6, 3, 5, 7, 4, 9, 2 },
+			{ 6, 7, 2, 1, 5, 9, 8, 3, 4 },
+		}
+	do
+		if Trials.check("arrange", puzzle, grid) then
+			found = true
+		end
+	end
+	eq(found, true, "풀 수 있는 구궁")
+	eq(Trials.check("balance", {}, true), true)
+	eq(Trials.check("balance", {}, "yes"), false)
+end)
+
 print("진행")
-check("같은 경지 안에서는 저절로 오르고 병목에서 멈춘다", function()
+local function fill(data)
+	-- 이 단계의 과업을 모두 끝낸 것으로 친다 (choose 는 직접 고른다)
+	for _, task in (Tasks.list(data)) do
+		if task.kind == "choose" then
+			if task.key == "root" then
+				data.root = Roots.make({ "wood", "fire" })
+			elseif task.key == "chilsu" then
+				data.choice.chilsu = "cheong"
+			elseif task.key == "element" then
+				data.choice.element = data.root.elements[1]
+			end
+		elseif task.kind == "have" then
+			data.items[task.item] = task.max
+		else
+			Tasks.set(data, task.id, task.max)
+		end
+	end
+end
+check("과업이 남으면 영력이 차도 오르지 않는다", function()
 	local data = Progression.newData()
-	data.step = 3 -- 연기기 1층
+	data.root = Roots.make({ "wood" })
+	data.step = YEONGI -- 연기기 1성
 	local advanced = Progression.addQi(data, 1e12)
-	eq(data.step, 16, "연기기 14층에서 멈춤")
-	eq(advanced, 13)
-	eq(data.qi, Balance.qiRequired(16), "병목에서 영력 상한")
+	eq(advanced, 0, "칠십이지살을 안 풀었으면 그대로")
+	eq(data.qi, Progression.requiredQi(data), "필요량에서 멈춤")
+	fill(data)
+	advanced = Progression.tryAdvance(data)
+	eq(advanced, 1, "과업을 마치면 오른다")
+	eq(data.step, YEONGI + 1)
+	eq(data.prog.step, YEONGI + 1, "새 단계는 진행을 비운다")
+	eq(Tasks.allDone(data), false, "2성 과업이 새로 생긴다")
+end)
+check("과업 없는 단계는 영력만으로 오르고 병목에서 멈춘다", function()
+	local data = Progression.newData()
+	data.root = Roots.make({ "wood" })
+	data.choice.chilsu = "cheong"
+	data.step = CHUKGI
+	Progression.addQi(data, 1e15)
+	eq(data.step, 44, "축기기 진수성에서 멈춤")
 	eq(Progression.isCapped(data), true)
 end)
-check("돌파 성공/실패", function()
+check("범인부터 단수기까지", function()
 	local data = Progression.newData()
+	local tasks = Tasks.list(data)
+	eq(#tasks, 3, "영기 느끼기, 영근, 영초")
+	eq((Progression.choose(data, "root", { "wood" })), false, "영기를 느끼기 전에는 못 고른다")
+	Tasks.set(data, "sense", 30)
+	eq((Progression.choose(data, "root", { "wood", "fire", "fire" })), false)
+	eq((Progression.choose(data, "root", { "wood", "fire" })), true)
+	eq(data.root.kind, "jin")
+	eq((Progression.choose(data, "root", { "wood" })), false, "다시 못 고른다")
+	eq(data.log[1].e, "root", "수행 일지")
+
+	data.qi = Progression.requiredQi(data)
+	eq(Progression.attemptBreakthrough(data).kind, "blocked", "영초를 안 먹었다")
+	Progression.addItem(data, "herb", 2)
+	local eaten = Progression.eat(data, "herb")
+	eq(eaten.ok, true, "영력이 가득 차도 먹을 수는 있다")
+	eq(eaten.qi, 0, "넘치는 영력은 흩어진다")
+	Progression.addItem(data, "herb", 1)
+	data.qi = 0
+	eaten = Progression.eat(data, "herb")
+	eq(eaten.ok, true)
+	assert((eaten.qi or 0) > 0, "영초 영력")
+	Tasks.add(data, Tasks.find(data, "herb") :: any, 1)
+	data.qi = Progression.requiredQi(data)
+	eq(Progression.attemptBreakthrough(data).kind, "success")
+	eq(data.step, 2, "단수기")
+	eq(#Tasks.list(data), 3, "오행지의 음양지의 혼원지의")
+	eq(Tasks.find(data, "ohaeng").max, 2, "진영근 두 속성 = 오행처 두 곳")
+end)
+check("선통후각은 천·진영근만", function()
+	local data = Progression.newData()
+	data.step = YEONGI
+	data.root = Roots.make({ "wood", "fire", "earth", "metal" })
+	eq((Progression.skipTask(data, "jisal")), false, "잡영근")
+	data.root = Roots.make({ "wood" })
+	local before = Progression.requiredQi(data)
+	eq((Progression.skipTask(data, "jisal")), true)
+	eq(Tasks.allDone(data), true)
+	eq(Progression.requiredQi(data), before + math.floor(before * Tasks.SKIP_EXTRA), "2.5배")
+	eq((Progression.skipTask(data, "jisal")), false, "이미 끝냄")
+end)
+check("연기기 3성에 오르면 취령진을 받는다", function()
+	local data = Progression.newData()
+	data.root = Roots.make({ "wood" })
+	data.step = YEONGI + 1
+	fill(data)
+	data.qi = Progression.requiredQi(data)
+	local advanced, notes = Progression.tryAdvance(data)
+	eq(advanced, 1)
+	eq(data.skills.chwiryeong, true)
+	eq(#notes, 1)
+end)
+check("칠수와 본명 속성", function()
+	local data = Progression.newData()
+	data.root = Roots.make({ "wood", "water" })
+	eq((Progression.choose(data, "chilsu", "cheong")), false, "7성 전에는 못 고른다")
+	data.step = YEONGI + 6
+	eq((Progression.choose(data, "chilsu", "moon")), false)
+	eq((Progression.choose(data, "chilsu", "baek")), true)
+	data.step = YEONGI + 8
+	eq((Progression.choose(data, "element", "fire")), false, "영근에 없는 속성")
+	eq((Progression.choose(data, "element", "water")), true)
+	eq(Tasks.find(data, "ohaengjin").sites[1], "el_water")
+end)
+check("무극영운은 내관, 실패하면 영력 손실", function()
+	local data = Progression.newData()
+	data.root = Roots.make({ "wood" })
+	data.choice.chilsu = "cheong"
 	data.step = 16
-	data.qi = Balance.qiRequired(16)
-	local fail = Progression.attemptBreakthrough(data, 0.9999)
-	eq(fail.kind, "fail")
+	data.qi = Progression.requiredQi(data)
+	local result = Progression.attemptBreakthrough(data)
+	eq(result.kind, "trial", "축단 없이도 시도할 수 있다 (선택 과업)")
+	eq(result.mode, "strands")
+	local lost = Progression.failTrial(data)
+	assert(lost > 0)
 	eq(data.step, 16, "실패해도 경지 유지")
-	assert(data.qi < Balance.qiRequired(16), "주화입마로 영력 손실")
-
-	local blocked = Progression.attemptBreakthrough(data, 0)
-	eq(blocked.kind, "blocked", "영력이 모자라면 막힘")
-
-	data.qi = Balance.qiRequired(16)
-	local ok = Progression.attemptBreakthrough(data, 0)
-	eq(ok.kind, "success")
-	eq(data.step, 17, "축기기 영성 1")
+	data.qi = Progression.requiredQi(data)
+	Progression.passBreakthrough(data, false)
+	eq(data.step, 17, "축기기 각수성")
 	eq(data.qi, 0)
 end)
-check("같은 경지 안에서는 돌파 버튼이 막힌다", function()
+check("결단기까지는 천겁이 없고 원영기 진입은 천겁", function()
 	local data = Progression.newData()
-	data.step = 5
-	data.qi = 1e9
-	eq(Progression.attemptBreakthrough(data, 0).kind, "blocked")
-end)
-check("천겁", function()
-	local data = Progression.newData()
-	data.step = 44 -- 축기기 영성 28
-	data.qi = Balance.qiRequired(44)
-	eq(Progression.attemptBreakthrough(data, 0).kind, "tribulation")
-	eq(data.step, 44, "천겁 시작만으로는 오르지 않는다")
-
+	data.root = Roots.make({ "wood" })
+	data.choice.chilsu = "cheong"
+	data.step = 44
+	data.qi = Progression.requiredQi(data)
+	eq(Progression.attemptBreakthrough(data).kind, "success", "결단기")
+	data.step = 48
+	data.qi = Progression.requiredQi(data)
+	eq(Progression.attemptBreakthrough(data).kind, "tribulation", "원영기")
+	eq(data.step, 48, "천겁 시작만으로는 오르지 않는다")
 	local lost = Progression.failTribulation(data)
 	assert(lost > 0, "천겁 실패 손실")
-	eq(data.step, 44, "천겁 실패해도 경지 유지")
 	eq(data.stats.tribulationFails, 1)
-
-	data.qi = Balance.qiRequired(44)
-	Progression.passTribulation(data)
-	eq(data.step, 45, "결단기 초기")
+	data.qi = Progression.requiredQi(data)
+	Progression.passBreakthrough(data, true)
+	eq(data.step, 49, "원영기 여월지긍")
 	eq(data.stats.tribulations, 1)
+	-- 원영기 안에서도 단계마다 천겁
+	data.qi = Progression.requiredQi(data)
+	eq(Progression.isCapped(data), true)
+	eq(Progression.attemptBreakthrough(data).kind, "tribulation", "여월지긍→여일지승")
 end)
 check("최고 경지", function()
 	local data = Progression.newData()
+	data.root = Roots.make({ "wood" })
+	data.choice.chilsu = "cheong"
 	data.step = Realms.maxStep
 	Progression.addQi(data, 1e30)
 	eq(data.step, Realms.maxStep)
-	eq(data.qi, Balance.qiRequired(Realms.maxStep))
-	eq(Progression.attemptBreakthrough(data, 0).kind, "blocked")
+	eq(data.qi, Progression.requiredQi(data))
+	eq(Progression.attemptBreakthrough(data).kind, "blocked")
+end)
+check("홍령삼", function()
+	local data = Progression.newData()
+	data.root = Roots.make({ "wood", "fire", "earth", "metal", "water" })
+	data.step = 10
+	Progression.addItem(data, "hongsam")
+	eq(Progression.eat(data, "hongsam").ok, true)
+	eq(data.root.kind, "hong")
+	eq(Progression.itemCount(data, "hongsam"), 0)
+	Progression.addItem(data, "hongsam")
+	data.root = Roots.make({ "wood" })
+	data.step = 45
+	eq(Progression.eat(data, "hongsam").ok, false, "결단기부터는 안 바뀐다")
+end)
+check("축기단 재료", function()
+	local data = Progression.newData()
+	eq(Progression.canCraftPill(data), false)
+	Progression.addItem(data, "herb", 6)
+	Progression.addItem(data, "lingzhi", 1)
+	eq(Progression.canCraftPill(data), true)
+	eq(Progression.takeItems(data, Balance.PILL_RECIPE), true)
+	eq(Progression.itemCount(data, "herb"), 0)
+	eq(data.items.herb, nil, "다 쓰면 칸을 지운다")
 end)
 check("비급 익히기와 공법 장착", function()
 	local data = Progression.newData()
@@ -210,7 +419,7 @@ check("공법 효과", function()
 	data.step = 45
 	local baseRate = Progression.qiPerSecond(data, 1)
 	local baseHp = Progression.maxHealth(data)
-	local baseHerb = Progression.herbQi(data, false)
+	local baseHerb = Progression.herbQi(data, "herb")
 	for _, id in { "tonap", "geumgang", "baekcho", "piroe", "cheongi", "cheongsim" } do
 		data.skills[id] = true
 	end
@@ -218,18 +427,12 @@ check("공법 효과", function()
 	assert(Progression.qiPerSecond(data, 1) > baseRate * 1.29, "토납법")
 	assert(Progression.qiPerSecond(data, 1, 2) > Progression.qiPerSecond(data, 1) * 1.99, "취령진 배율")
 	assert(Progression.maxHealth(data) > baseHp * 1.39, "금강체")
-	assert(Progression.herbQi(data, false) > baseHerb * 1.59, "백초경")
+	assert(Progression.herbQi(data, "herb") > baseHerb * 1.59, "백초경")
 	eq(Progression.tribulationDamage(data, 100), 100, "피뢰결 안 끼면 그대로")
 	data.equipped = { "piroe", "cheongi", "cheongsim" }
 	eq(Progression.tribulationDamage(data, 100), 70, "피뢰결")
 	eq(Progression.telegraphTime(data, 1), 1.4, "천기감응")
-
-	local d2 = Progression.newData()
-	d2.step = 16
-	local plain = Progression.breakChance(d2) :: number
-	d2.skills.cheongsim = true
-	d2.equipped = { "cheongsim" }
-	eq(Progression.breakChance(d2), plain + 0.15, "청심결 돌파 확률")
+	eq(Progression.trialBand(data), 1.2, "청심결 판정 폭")
 end)
 check("체력", function()
 	local data = Progression.newData()
@@ -240,6 +443,10 @@ end)
 check("저장 데이터 정리", function()
 	local data = Progression.reconcile({
 		step = 9999,
+		root = { kind = "jin", elements = { "fire", "wood" } },
+		choice = { chilsu = "baek", element = "metal" },
+		items = { herb = 3.7, bogus = 2, pill = -1 },
+		prog = { step = 9999, t = { x = 1 } },
 		qi = -5,
 		enlightenment = 12.7, -- 예전 판의 깨달음은 버린다
 		insights = { gongbeop = 3 },
@@ -247,8 +454,17 @@ check("저장 데이터 정리", function()
 		equipped = { "tonap", "tonap", "baekcho", "gyeongsin", "unknown", "cheongsim" },
 		stats = { herbs = 4 },
 	})
-	eq(data.step, Realms.maxStep)
+	eq(data.step, Realms.maxStep, "사축기 이상은 천인 대원만으로")
 	eq(data.qi, 0)
+	eq(data.root.kind, "jin")
+	eq(data.root.elements[1], "wood")
+	eq(data.choice.chilsu, "baek")
+	eq(data.choice.element, nil, "영근에 없는 본명 속성은 버린다")
+	eq(data.items.herb, 3)
+	eq(data.items.bogus, nil)
+	eq(data.items.pill, nil)
+	eq(data.prog.step, Realms.maxStep)
+	eq(data.prog.t.x, nil, "다른 단계의 진행은 버린다")
 	eq((data :: any).enlightenment, nil)
 	eq((data :: any).insights, nil)
 	eq(data.skills.tonap, true)
@@ -324,6 +540,17 @@ check("연국 맵 짓기", function()
 	eq(tags.Vein, 3, "Vein 태그")
 	eq(tags.HerbZone, 1, "HerbZone 태그")
 	eq(tags.ManualSpot, 18, "ManualSpot 태그")
+	eq(tags.Site, 5, "Site 태그 (오행처 다섯)")
+	for _, inst in map:GetDescendants() do
+		if inst:HasTag("Site") then
+			local id = inst:GetAttribute("Site")
+			local known = false
+			for _, element in Roots.ELEMENTS do
+				known = known or Roots.ELEMENT[element].site == id
+			end
+			assert(known, "오행처 id " .. tostring(id))
+		end
+	end
 	for _, inst in map:GetDescendants() do
 		if inst:HasTag("Vein") then
 			assert(Balance.VEINS[inst:GetAttribute("VeinId")], "영맥 id")
@@ -333,7 +560,9 @@ check("연국 맵 짓기", function()
 	print(`  파트 {parts}개`)
 end)
 
-print("\n진행 속도 (영맥 없이 / 각 경지에 맞는 최고 영맥, 강화 없음)")
+print(
+	"\n진행 속도 (영맥 없이 / 각 경지에 맞는 최고 영맥, 진영근 둘, 과업 시간 빼고 영력만)"
+)
 do
 	local veinFor = function(step: number): number
 		local best = 1
@@ -345,10 +574,15 @@ do
 		return best
 	end
 	local plain, veined = 0, 0
+	local data = Progression.newData()
+	data.root = Roots.make({ "wood", "fire" })
+	data.choice.chilsu = "cheong"
+	data.choice.element = "wood"
 	for step = 1, Realms.maxStep - 1 do
-		local req = Balance.qiRequired(step)
-		plain += req / Balance.qiPerSecond(step, 1, 0)
-		veined += req / Balance.qiPerSecond(step, veinFor(step), 0)
+		data.step = step
+		local req = Progression.requiredQi(data)
+		plain += req / Progression.qiPerSecond(data, 1)
+		veined += req / Progression.qiPerSecond(data, veinFor(step))
 		if Realms.nextIsMajor(step) then
 			local target = Realms.get(step + 1).realm
 			print(string.format("  %-6s 도달: %6.1f분 / %6.1f분", target.name, plain / 60, veined / 60))

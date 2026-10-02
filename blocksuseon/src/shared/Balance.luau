@@ -20,6 +20,7 @@ Balance.VEINS = {
 	high = { name = "상품 영맥", mult = 4, minRealm = "gyeoldan" },
 }
 
+-- 과업 배율(Tasks)을 곱하기 전의 기본 필요 영력
 function Balance.qiRequired(step: number): number
 	local req = Balance.QI_BASE * Balance.QI_GROWTH ^ (step - 1)
 	if Realms.nextIsMajor(step) then
@@ -32,16 +33,28 @@ function Balance.qiPerSecond(step: number, veinMult: number): number
 	return Balance.GAIN_BASE * Balance.GAIN_GROWTH ^ (step - 1) * veinMult
 end
 
-function Balance.herbQi(step: number, rare: boolean): number
-	local share = if rare then 1.5 else 0.3
-	return Balance.qiRequired(step) * share
+function Balance.herbQi(step: number, item: string): number
+	return Balance.qiRequired(step) * (Balance.ITEMS[item].qi or 0)
 end
 
 -- 돌파 -------------------------------------------------------------------------
 
-Balance.DEVIATION_LOSS = 0.4 -- 주화입마(돌파 실패) 때 잃는 영력 비율
+Balance.TRIAL_LOSS = 0.4 -- 무극영운 같은 돌파 내관에 실패했을 때 잃는 영력 비율
 Balance.TRIBULATION_LOSS = 0.5 -- 천겁에 쓰러졌을 때 잃는 영력 비율. 경지는 떨어지지 않는다.
-Balance.MAX_BREAK_CHANCE = 0.98
+
+-- 물건 ---------------------------------------------------------------------------
+
+-- 주머니에 담기는 것. qi 는 먹었을 때 그 단계 필요 영력의 몇 배를 얻는가
+Balance.ITEMS = {
+	herb = { name = "영초", qi = 0.3 },
+	lingzhi = { name = "천년영지", qi = 1.5 },
+	hongsam = { name = "홍령삼" },
+	pill = { name = "축기단" },
+}
+Balance.ITEM_ORDER = { "herb", "lingzhi", "hongsam", "pill" }
+
+-- 축기단 연단 재료
+Balance.PILL_RECIPE = { herb = 6, lingzhi = 1 }
 
 -- 몸 ---------------------------------------------------------------------------
 

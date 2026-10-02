@@ -7,6 +7,16 @@ export type TribulationState = {
 	targetStep: number,
 }
 
+export type Trial = {
+	id: number,
+	mode: string,
+	purpose: string, -- "task" | "entry"
+	taskId: string?,
+	seed: number,
+	params: { [string]: any },
+	startedAt: number,
+}
+
 export type Session = {
 	meditating: boolean,
 	anchor: Vector3?, -- 운기조식을 시작한 자리
@@ -19,6 +29,8 @@ export type Session = {
 	shieldUntil: number, -- 호신강기
 	formation: { position: Vector3, untilTime: number }?, -- 취령진
 	inFormation: boolean,
+	trial: Trial?, -- 진행 중인 내관
+	trialCount: number,
 	dirty: boolean,
 }
 
@@ -39,6 +51,8 @@ function Session.start(player: Player): Session
 		shieldUntil = 0,
 		formation = nil,
 		inFormation = false,
+		trial = nil,
+		trialCount = 0,
 		dirty = true,
 	}
 	sessions[player] = session

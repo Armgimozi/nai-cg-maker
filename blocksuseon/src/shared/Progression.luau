@@ -5,11 +5,18 @@ local Realms = require(script.Parent.Realms)
 local Balance = require(script.Parent.Balance)
 local Skills = require(script.Parent.Skills)
 local Josa = require(script.Parent.Josa)
+local Roots = require(script.Parent.Roots)
+local Tasks = require(script.Parent.Tasks)
 
 export type Data = {
 	version: number,
 	step: number,
 	qi: number,
+	root: Roots.Root?, -- 영근
+	prog: Tasks.Progress, -- 지금 단계의 과업 진행
+	choice: { [string]: string }, -- 칠수(chilsu), 본명 속성(element)
+	items: { [string]: number }, -- 주머니
+	log: { { e: string, s: number } }, -- 수행 일지 (원영기 주마등에 쓴다)
 	skills: { [string]: boolean }, -- 익힌 술법·공법
 	equipped: { string }, -- 장착한 공법
 	hotbar: { string }, -- 술법 단축칸마다 넣은 술법 ("" 은 빈 칸)
@@ -18,17 +25,17 @@ export type Data = {
 }
 
 export type BreakResult = {
-	kind: "blocked" | "success" | "fail" | "tribulation",
+	kind: "blocked" | "success" | "trial" | "tribulation",
 	reason: string?,
-	chance: number?,
-	lost: number?,
+	mode: string?,
 }
 
 local EFFECT = Skills.EFFECT
 
 local Progression = {}
 
-Progression.DATA_VERSION = 3
+Progression.DATA_VERSION = 4
+Progression.LOG_SIZE = 40
 
 -- 술법 단축칸. 숫자 키는 장비·도구 칸으로 남겨 두고, 손이 쉽게 가는 글자 키를 쓴다.
 Progression.HOTBAR_SIZE = 4
@@ -65,13 +72,18 @@ function Progression.newData(): Data
 		version = Progression.DATA_VERSION,
 		step = 1,
 		qi = 0,
+		root = nil,
+		prog = { step = 1, t = {}, debt = 0 },
+		choice = {},
+		items = {},
+		log = {},
 		skills = {},
 		equipped = {},
 		hotbar = table.create(Progression.HOTBAR_SIZE, ""),
 		keys = table.clone(Progression.DEFAULT_KEYS),
 		stats = {
 			breakthroughs = 0,
-			deviations = 0,
+			trialFails = 0,
 			tribulations = 0,
 			tribulationFails = 0,
 			herbs = 0,
@@ -82,6 +94,12 @@ end
 
 local function isNumber(value: any): boolean
 	return type(value) == "number" and value == value and value ~= math.huge and value ~= -math.huge
+end
+
+-- 지금 단계를 마치는 데 필요한 영력 (과업 배율과 건너뛴 퍼즐 몫 포함)
+function Progression.requiredQi(data: Data): number
+	local prog = Tasks.ensure(data)
+	return math.floor(Balance.qiRequired(data.step) * Tasks.qiMult(data)) + math.floor(prog.debt)
 end
 
 -- 공법 장착 칸 수
@@ -96,7 +114,7 @@ function Progression.slots(data: Data): number
 end
 
 -- 저장소에서 읽은 값을 현재 형식에 맞춘다. 빠진 칸은 기본값, 이상한 값은 버린다.
--- (예전 판의 깨달음·무공 기록은 여기서 버려진다)
+-- (예전 판의 깨달음·무공 기록, 사축기 이상 경지는 여기서 버려진다)
 function Progression.reconcile(saved: any): Data
 	local data = Progression.newData()
 	if type(saved) ~= "table" then
@@ -124,7 +142,51 @@ function Progression.reconcile(saved: any): Data
 	end
 
 	data.step = math.clamp(math.floor(data.step), 1, Realms.maxStep)
-	data.qi = math.clamp(data.qi, 0, Balance.qiRequired(data.step))
+	data.root = Roots.reconcile(saved.root)
+
+	-- 과업 진행은 같은 단계일 때만 이어 간다. 예전 판 기록은 지금 단계를 새로 시작한다
+	-- (지난 단계의 과업은 끝낸 것으로 친다)
+	local prog = saved.prog
+	if type(prog) == "table" and prog.step == data.step and type(prog.t) == "table" then
+		for id, value in prog.t do
+			if type(id) == "string" and isNumber(value) and value >= 0 then
+				data.prog.t[id] = value
+			end
+		end
+		if isNumber(prog.debt) and prog.debt > 0 then
+			data.prog.debt = prog.debt
+		end
+	end
+	data.prog.step = data.step
+
+	if type(saved.choice) == "table" then
+		if table.find(Tasks.CHOICES.chilsu, saved.choice.chilsu) then
+			data.choice.chilsu = saved.choice.chilsu
+		end
+		local element = saved.choice.element
+		if data.root and table.find(data.root.elements, element) then
+			data.choice.element = element
+		end
+	end
+	if type(saved.items) == "table" then
+		for id, count in saved.items do
+			if Balance.ITEMS[id] and isNumber(count) and count >= 1 then
+				data.items[id] = math.floor(count)
+			end
+		end
+	end
+	if type(saved.log) == "table" then
+		for _, entry in saved.log do
+			if type(entry) == "table" and type(entry.e) == "string" and isNumber(entry.s) then
+				table.insert(data.log, { e = entry.e, s = entry.s })
+			end
+		end
+		while #data.log > Progression.LOG_SIZE do
+			table.remove(data.log, 1)
+		end
+	end
+
+	data.qi = math.clamp(data.qi, 0, Progression.requiredQi(data))
 
 	if type(saved.equipped) == "table" then
 		for _, id in saved.equipped do
@@ -296,100 +358,154 @@ end
 
 -- 영력과 단계 -----------------------------------------------------------------------
 
-function Progression.isCapped(data: Data): boolean
-	return data.step >= Realms.maxStep or Realms.nextIsMajor(data.step)
+-- 이 단계에서 다음 단계로 가려면 돌파(B)가 필요한가: 새 경지, 또는 경지 안 천겁
+function Progression.needsBreakthrough(step: number): boolean
+	return Realms.nextIsMajor(step) or Realms.tribulationAfter(step) ~= nil
 end
 
--- 영력을 더하고, 같은 대경지 안이면 단계를 저절로 올린다.
--- 병목(대경지 직전)이나 최고 경지에서는 필요량 이상 쌓이지 않는다.
--- 반환: 오른 단계 수
-function Progression.addQi(data: Data, amount: number): number
-	if not isNumber(amount) or amount <= 0 then
-		return 0
-	end
-	data.qi += amount
+function Progression.isCapped(data: Data): boolean
+	return data.step >= Realms.maxStep or Progression.needsBreakthrough(data.step) or not Tasks.allDone(data)
+end
 
-	local advanced = 0
-	while not Progression.isCapped(data) do
-		local req = Balance.qiRequired(data.step)
-		if data.qi < req then
-			break
+function Progression.isFull(data: Data): boolean
+	return data.qi >= Progression.requiredQi(data)
+end
+
+function Progression.addLog(data: Data, event: string)
+	table.insert(data.log, { e = event, s = data.step })
+	while #data.log > Progression.LOG_SIZE do
+		table.remove(data.log, 1)
+	end
+end
+
+-- 새 단계에 들어설 때 주는 것. 반환: 알릴 문구 목록
+local function enterStep(data: Data): { string }
+	local notes = {}
+	-- 연기기 3성 십이지율은 진법을 직접 펼쳐 봐야 한다. 취령진이 없으면 기초본을 준다
+	if data.step == Realms.firstStepById.yeongi + 2 and not data.skills.chwiryeong then
+		data.skills.chwiryeong = true
+		local empty = table.find(data.hotbar, "")
+		if empty then
+			data.hotbar[empty] = "chwiryeong"
 		end
-		data.qi -= req
-		data.step += 1
+		table.insert(
+			notes,
+			"십이지율을 닦으려면 진법을 펼쳐 봐야 한다. 취령진 기초본을 익혔다."
+		)
+	end
+	return notes
+end
+
+local function advanceStep(data: Data, carry: boolean): { string }
+	local req = Progression.requiredQi(data)
+	data.qi = if carry then math.max(0, data.qi - req) else 0
+	data.step += 1
+	Tasks.ensure(data)
+	return enterStep(data)
+end
+
+-- 같은 경지 안이고 영력과 과업이 다 찼으면 단계를 올린다. 반환: 오른 단계 수, 알릴 문구
+function Progression.tryAdvance(data: Data): (number, { string })
+	local advanced = 0
+	local notes = {}
+	while not Progression.isCapped(data) and Progression.isFull(data) do
+		for _, note in advanceStep(data, true) do
+			table.insert(notes, note)
+		end
 		advanced += 1
 	end
-
 	if Progression.isCapped(data) then
-		data.qi = math.min(data.qi, Balance.qiRequired(data.step))
+		data.qi = math.min(data.qi, Progression.requiredQi(data))
 	end
-	return advanced
+	return advanced, notes
+end
+
+-- 영력을 더하고, 같은 경지 안에서 과업까지 끝났으면 단계를 저절로 올린다.
+-- 과업이 남았거나 돌파가 필요한 단계에서는 필요량 이상 쌓이지 않는다.
+-- 반환: 오른 단계 수, 알릴 문구
+function Progression.addQi(data: Data, amount: number): (number, { string })
+	if not isNumber(amount) or amount <= 0 then
+		return 0, {}
+	end
+	data.qi += amount
+	return Progression.tryAdvance(data)
 end
 
 function Progression.canBreakthrough(data: Data): (boolean, string?)
 	if data.step >= Realms.maxStep then
-		return false, "더 오를 경지가 없다."
+		return false, "하계에서 오를 수 있는 끝이다."
 	end
-	if not Realms.nextIsMajor(data.step) then
-		return false, "아직 병목이 아니다. 같은 경지 안에서는 영력이 차면 저절로 오른다."
+	if not Progression.needsBreakthrough(data.step) then
+		return false, "같은 경지 안에서는 영력과 과업을 채우면 저절로 오른다."
 	end
-	if data.qi < Balance.qiRequired(data.step) then
+	if not Tasks.allDone(data) then
+		return false, "아직 이 단계의 과업이 남았다."
+	end
+	if not Progression.isFull(data) then
 		return false, "영력이 아직 덜 찼다."
 	end
 	return true, nil
 end
 
-function Progression.breakChance(data: Data): number?
+-- 다음 경지로 넘어가는 방식
+function Progression.nextEntry(data: Data): Realms.Entry?
 	if data.step >= Realms.maxStep then
 		return nil
 	end
-	local target = Realms.get(data.step + 1).realm
-	if not target.breakChance then
-		return nil
+	if Realms.tribulationAfter(data.step) then
+		return { kind = "tribulation", title = "천겁 맞기" }
 	end
-	local bonus = if Progression.passive(data, "cheongsim") then EFFECT.cheongsimChance else 0
-	return math.min(Balance.MAX_BREAK_CHANCE, target.breakChance + bonus)
+	if Realms.nextIsMajor(data.step) then
+		local entry = Realms.get(data.step + 1).realm.entry
+		-- 과업을 아직 켜지 않은 경지의 돌파 내관은 미뤄 두고 바로 오른다
+		if entry and entry.kind == "trial" and not Tasks.isLive(data.step) then
+			return { kind = "plain", title = "돌파" }
+		end
+		return entry
+	end
+	return nil
 end
 
--- 돌파·천겁 실패 손실에 곱하는 값
-local function lossMult(data: Data): number
-	return if Progression.passive(data, "cheongsim") then EFFECT.cheongsimLoss else 1
-end
-
-local function advanceMajor(data: Data)
-	data.step += 1
-	data.qi = 0
+local function advanceMajor(data: Data): { string }
 	data.stats.breakthroughs += 1
+	return advanceStep(data, false)
 end
 
--- roll: 0 이상 1 미만의 난수
-function Progression.attemptBreakthrough(data: Data, roll: number): BreakResult
+-- 돌파 버튼. plain 이면 바로 오르고, 아니면 무엇을 시작해야 하는지 돌려준다
+function Progression.attemptBreakthrough(data: Data): BreakResult
 	local ok, reason = Progression.canBreakthrough(data)
 	if not ok then
 		return { kind = "blocked", reason = reason }
 	end
-
-	local target = Realms.get(data.step + 1)
-	if target.realm.tribulation then
+	local entry = Progression.nextEntry(data)
+	if entry and entry.kind == "tribulation" then
 		return { kind = "tribulation" }
+	elseif entry and entry.kind == "trial" then
+		return { kind = "trial", mode = entry.mode }
 	end
-
-	local chance = Progression.breakChance(data) :: number
-	if roll < chance then
-		advanceMajor(data)
-		return { kind = "success", chance = chance }
-	end
-
-	local lost = data.qi * Balance.DEVIATION_LOSS * lossMult(data)
-	data.qi -= lost
-	data.stats.deviations += 1
-	return { kind = "fail", chance = chance, lost = lost }
+	advanceMajor(data)
+	return { kind = "success" }
 end
 
--- 천겁을 끝까지 버텼다.
-function Progression.passTribulation(data: Data)
-	advanceMajor(data)
-	data.stats.tribulations += 1
+-- 돌파 내관(무극영운)이나 천겁을 넘었다. 반환: 알릴 문구
+function Progression.passBreakthrough(data: Data, viaTribulation: boolean): { string }
+	if viaTribulation then
+		data.stats.tribulations += 1
+	end
+	return advanceMajor(data)
+end
+
+-- 실패 손실에 곱하는 값 (청심결)
+local function lossMult(data: Data): number
+	return if Progression.passive(data, "cheongsim") then EFFECT.cheongsimLoss else 1
+end
+
+-- 돌파 내관에 실패했다. 경지는 그대로, 영력 일부를 잃는다
+function Progression.failTrial(data: Data): number
+	local lost = data.qi * Balance.TRIAL_LOSS * lossMult(data)
+	data.qi -= lost
+	data.stats.trialFails += 1
+	return lost
 end
 
 -- 천겁에 쓰러졌다(또는 도중에 떠났다). 경지는 그대로, 영력만 잃는다.
@@ -400,17 +516,182 @@ function Progression.failTribulation(data: Data): number
 	return lost
 end
 
+-- 과업 ------------------------------------------------------------------------------
+
+-- 선통후각: 영력을 더 내고 퍼즐을 건너뛴다 (천·진영근만)
+function Progression.skipTask(data: Data, id: string): (boolean, string)
+	local task = Tasks.find(data, id)
+	if not task or task.kind ~= "trial" or not task.skippable then
+		return false, "건너뛸 수 없는 과업이다."
+	end
+	if Tasks.isDone(data, task) then
+		return false, "이미 끝낸 과업이다."
+	end
+	if not Tasks.isOpen(data, task) then
+		return false, "앞의 과업부터 끝내야 한다."
+	end
+	if not Roots.canSkip(data.root) then
+		return false, "잡영근은 구결을 먼저 깨쳐야 한다(선각후통). 직접 풀어야 한다."
+	end
+	local prog = Tasks.ensure(data)
+	prog.debt += math.floor(Balance.qiRequired(data.step) * Tasks.qiMult(data) * Tasks.SKIP_EXTRA)
+	Tasks.set(data, task.id, task.max)
+	return true,
+		string.format("%s 재능으로 먼저 뚫었다. 이 단계에 영력이 더 든다.", Josa.eul(task.label))
+end
+
+-- 고르기: 영근(root), 칠수(chilsu), 본명 속성(element)
+function Progression.choose(data: Data, key: any, value: any): (boolean, string)
+	if key == "root" then
+		if data.root then
+			return false, "영근은 이미 깨어났다."
+		end
+		local sense = Tasks.find(data, "sense")
+		if sense and not Tasks.isDone(data, sense) then
+			return false, "먼저 영기를 느껴야 한다. 운기조식을 이어 간다."
+		end
+		local root = Roots.make(value)
+		if not root then
+			return false, "고를 수 없는 기운이다."
+		end
+		data.root = root
+		Progression.addLog(data, "root")
+		return true, string.format("%s 깨어났다.", Josa.i(Roots.describe(root)))
+	elseif key == "chilsu" then
+		if data.choice.chilsu then
+			return false, "칠수는 이미 정했다."
+		end
+		if data.step < Realms.firstStepById.yeongi + 6 then
+			return false, "칠수는 연기기 7성에서 고른다."
+		end
+		if not table.find(Tasks.CHOICES.chilsu, value) then
+			return false, "고를 수 없는 칠수다."
+		end
+		data.choice.chilsu = value
+		Progression.addLog(data, "chilsu")
+		return true, string.format("%s에게 제사를 올리기로 했다.", Tasks.CHILSU[value].name)
+	elseif key == "element" then
+		if data.choice.element then
+			return false, "본명 속성은 이미 정했다."
+		end
+		if data.step < Realms.firstStepById.yeongi + 8 then
+			return false, "본명 속성은 연기기 9성에서 고른다."
+		end
+		if not data.root or not table.find(data.root.elements, value) then
+			return false, "내 영근에 없는 속성이다."
+		end
+		data.choice.element = value
+		return true, string.format("본명 속성을 %s 정했다.", Josa.ro(Roots.ELEMENT[value].name))
+	end
+	return false, "고를 수 없다."
+end
+
+-- 주머니 ------------------------------------------------------------------------------
+
+function Progression.itemCount(data: Data, id: string): number
+	return data.items[id] or 0
+end
+
+function Progression.addItem(data: Data, id: string, count: number?)
+	data.items[id] = (data.items[id] or 0) + (count or 1)
+end
+
+-- 반환: 다 있어서 뺐는가
+function Progression.takeItems(data: Data, cost: { [string]: number }): boolean
+	for id, count in cost do
+		if Progression.itemCount(data, id) < count then
+			return false
+		end
+	end
+	for id, count in cost do
+		data.items[id] -= count
+		if data.items[id] <= 0 then
+			data.items[id] = nil
+		end
+	end
+	return true
+end
+
+export type EatResult = {
+	ok: boolean,
+	message: string,
+	qi: number?,
+	rootChanged: boolean?,
+}
+
+-- 주머니에서 하나 먹는다
+function Progression.eat(data: Data, id: any): EatResult
+	local def = Balance.ITEMS[id]
+	if not def or Progression.itemCount(data, id) < 1 then
+		return { ok = false, message = "주머니에 없다." }
+	end
+	if id == "pill" then
+		return { ok = false, message = "축기단은 무극영운을 시작할 때 저절로 먹는다." }
+	end
+	if id == "hongsam" then
+		if data.step >= Realms.firstStepById.gyeoldan then
+			return { ok = false, message = "결단기에 이른 몸은 홍령삼으로 바뀌지 않는다." }
+		end
+		if data.root and data.root.kind == "hong" then
+			return { ok = false, message = "이미 홍령수지체다." }
+		end
+		Progression.takeItems(data, { hongsam = 1 })
+		data.root = Roots.hong()
+		if data.choice.element and not table.find(data.root.elements, data.choice.element) then
+			data.choice.element = nil
+		end
+		Progression.addLog(data, "hongsam")
+		return {
+			ok = true,
+			message = "홍령삼을 먹었다. 몸이 홍령수지체로 바뀌었다!",
+			rootChanged = true,
+		}
+	end
+	-- 영력이 가득 차 있어도 먹을 수는 있다 (영초 먹기 과업이 막히지 않게). 넘치는 영력은 흩어진다
+	local wasted = Progression.isFull(data) and Progression.isCapped(data)
+	Progression.takeItems(data, { [id] = 1 })
+	data.stats.herbs += 1
+	if data.stats.herbs == 1 then
+		Progression.addLog(data, "firstHerb")
+	end
+	if wasted then
+		return {
+			ok = true,
+			message = string.format("%s 먹었지만 영력이 이미 가득 차 흩어졌다.", Josa.eul(def.name)),
+			qi = 0,
+		}
+	end
+	local amount = Progression.herbQi(data, id)
+	return { ok = true, message = string.format("%s 먹었다.", Josa.eul(def.name)), qi = amount }
+end
+
+-- 축기단 빚기 재료가 있는가
+function Progression.canCraftPill(data: Data): boolean
+	for id, count in Balance.PILL_RECIPE do
+		if Progression.itemCount(data, id) < count then
+			return false
+		end
+	end
+	return true
+end
+
 -- 공법이 반영된 수치 ------------------------------------------------------------------
 
 -- extraMult: 취령진 같은 그 밖의 배율
 function Progression.qiPerSecond(data: Data, veinMult: number, extraMult: number?): number
 	local mult = if Progression.passive(data, "tonap") then 1 + EFFECT.tonap else 1
-	return Balance.qiPerSecond(data.step, veinMult) * mult * (extraMult or 1)
+	return Balance.qiPerSecond(data.step, veinMult) * mult * Roots.gain(data.root) * (extraMult or 1)
 end
 
-function Progression.herbQi(data: Data, rare: boolean): number
+function Progression.herbQi(data: Data, item: string): number
 	local mult = if Progression.passive(data, "baekcho") then 1 + EFFECT.baekcho else 1
-	return Balance.herbQi(data.step, rare) * mult
+	return Balance.herbQi(data.step, item) * mult
+end
+
+-- 내관 미니게임 판정 폭 배율 (잡영근은 넉넉하고, 청심결은 더 넓힌다)
+function Progression.trialBand(data: Data): number
+	local mult = if Progression.passive(data, "cheongsim") then 1 + EFFECT.cheongsimBand else 1
+	return Roots.band(data.root) * mult
 end
 
 function Progression.maxHealth(data: Data): number

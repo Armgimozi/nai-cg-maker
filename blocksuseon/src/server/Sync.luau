@@ -3,10 +3,10 @@
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 
 local Realms = require(Shared.Realms)
-local Balance = require(Shared.Balance)
 local Progression = require(Shared.Progression)
 local Net = require(Shared.Net)
 local Skills = require(Shared.Skills)
+local Tasks = require(Shared.Tasks)
 local PlayerData = require(script.Parent.PlayerData)
 local Session = require(script.Parent.Session)
 
@@ -44,10 +44,12 @@ function Sync.state(player: Player)
 	session.dirty = false
 
 	local tribulation = session.tribulation
+	local entry = Progression.nextEntry(data)
 	remotes.State:FireClient(player, {
 		step = data.step,
 		qi = data.qi,
-		req = Balance.qiRequired(data.step),
+		req = Progression.requiredQi(data),
+		debt = data.prog.debt,
 		gain = Progression.qiPerSecond(
 			data,
 			session.veinMult,
@@ -56,7 +58,15 @@ function Sync.state(player: Player)
 		meditating = session.meditating,
 		veinId = session.veinId,
 		veinBlocked = session.veinBlocked,
-		breakChance = Progression.breakChance(data),
+		needsBreak = Progression.needsBreakthrough(data.step),
+		ready = (Progression.canBreakthrough(data)),
+		tasksDone = Tasks.allDone(data),
+		entry = entry,
+		tasks = Tasks.snapshot(data),
+		root = data.root,
+		choice = data.choice,
+		items = data.items,
+		inTrial = session.trial ~= nil,
 		skills = data.skills,
 		equipped = data.equipped,
 		hotbar = data.hotbar,

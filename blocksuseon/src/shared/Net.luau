@@ -8,16 +8,23 @@
 --     "Unequip" (string)     공법 해제
 --     "AssignSkill" { slot, id }  단축칸에 술법 넣기 (id "" 는 비우기)
 --     "BindKey" { slot, key }     단축칸 키 바꾸기
+--     "StartTask" (string)        과업 내관(미니게임) 시작
+--     "SkipTask" (string)         영력을 더 내고 퍼즐 건너뛰기 (천·진영근)
+--     "TrialResult" { id, ok, answer, elapsed }  내관 결과
+--     "TrialCancel"               내관 그만두기
+--     "Choose" { key, value }     영근·칠수·본명 속성 고르기
+--     "Eat" (string)              주머니에서 먹기
 -- State    (서버 → 클라) 내 상태 스냅숏
 -- Notify   (서버 → 클라) text, kind
 -- Cinematic(서버 → 클라) 화면 연출 { kind = ... }
 -- Skill    (서버 → 클라) 술법이 나갔다 { id, cooldown, duration }
+-- Trial    (서버 → 클라) 내관을 연다 { id, mode, seed, params, title } / 닫는다 { close = true }
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local FOLDER_NAME = "BlockSuseonNet"
-local EVENTS = { "Request", "State", "Notify", "Cinematic", "Skill" }
+local EVENTS = { "Request", "State", "Notify", "Cinematic", "Skill", "Trial" }
 
 local Net = {}
 

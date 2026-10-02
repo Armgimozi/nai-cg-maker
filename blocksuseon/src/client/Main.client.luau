@@ -44,6 +44,24 @@ local actions = {
 	equip = function(id: string, on: boolean)
 		request(if on then "Equip" else "Unequip", id)
 	end,
+	startTask = function(id: string)
+		request("StartTask", id)
+	end,
+	skipTask = function(id: string)
+		request("SkipTask", id)
+	end,
+	choose = function(key: string, value: any)
+		request("Choose", { key = key, value = value })
+	end,
+	eat = function(item: string)
+		request("Eat", item)
+	end,
+	trialResult = function(payload)
+		request("TrialResult", payload)
+	end,
+	trialCancel = function()
+		request("TrialCancel")
+	end,
 }
 
 Hud.build(actions)
@@ -54,6 +72,7 @@ remotes.State.OnClientEvent:Connect(function(snapshot)
 end)
 remotes.Notify.OnClientEvent:Connect(Hud.toast)
 remotes.Cinematic.OnClientEvent:Connect(Hud.cinematic)
+remotes.Trial.OnClientEvent:Connect(Hud.openTrial)
 remotes.Skill.OnClientEvent:Connect(function(payload)
 	Hud.skillUsed(payload)
 	if payload.id == "gyeongsin" then

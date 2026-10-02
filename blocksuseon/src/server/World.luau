@@ -7,6 +7,7 @@
 --   Vein          - 영맥 (속성 VeinId, Radius)
 --   HerbZone      - 영초가 돋는 범위
 --   ManualSpot    - 비급이 나타나는 자리
+--   Site          - 과업 자리 (속성 Site = 자리 id, Radius). 오행처 el_wood 등
 -- Studio 에서 맵을 직접 고쳐도 태그만 유지하면 그대로 동작한다.
 
 local World = {}
@@ -41,6 +42,46 @@ local MANUAL_SPOTS = {
 	Vector3.new(300, 0, -300),
 }
 World.MANUAL_SPOTS = MANUAL_SPOTS
+
+-- 오행처: 영근 속성마다 운기하는 자리 (Tasks.luau 의 el_* 와 맞춘다)
+local ELEMENT_SITES = {
+	{
+		id = "el_wood",
+		name = "목 오행처",
+		place = "영초숲 고목",
+		position = Vector3.new(-140, 0, 60),
+		color = Color3.fromRGB(110, 200, 120),
+	},
+	{
+		id = "el_fire",
+		name = "화 오행처",
+		place = "대장간 화덕",
+		position = Vector3.new(54, 0, 2),
+		color = Color3.fromRGB(240, 120, 80),
+	},
+	{
+		id = "el_earth",
+		name = "토 오행처",
+		place = "영산 기슭 바위",
+		position = Vector3.new(62, 0, -146),
+		color = Color3.fromRGB(210, 170, 100),
+	},
+	{
+		id = "el_metal",
+		name = "금 오행처",
+		place = "천겁대 쇠기둥",
+		position = Vector3.new(236, 0, -112),
+		color = Color3.fromRGB(235, 235, 240),
+	},
+	{
+		id = "el_water",
+		name = "수 오행처",
+		place = "개울가",
+		position = Vector3.new(-80, 0, 44),
+		color = Color3.fromRGB(90, 140, 230),
+	},
+}
+World.ELEMENT_SITES = ELEMENT_SITES
 
 -- 매번 같은 지형이 나오도록 고정 시드 난수 (Park–Miller)
 local function makeRng(seed: number)
@@ -190,6 +231,19 @@ local function sign(parent: Instance, position: Vector3, title: string, subtitle
 		sub.TextStrokeTransparency = 0.5
 		sub.Parent = gui
 	end
+end
+
+-- 과업 자리 표시: 보이지 않는 판에 Site 태그를 단다
+local function siteMarker(parent: Instance, id: string, position: Vector3, radius: number): Part
+	local marker = block(parent, "Site_" .. id, Vector3.new(2, 0.2, 2), CFrame.new(position), C.stone)
+	marker.Transparency = 1
+	marker.CanCollide = false
+	marker.CanQuery = false
+	marker.CanTouch = false
+	marker:SetAttribute("Site", id)
+	marker:SetAttribute("Radius", radius)
+	marker:AddTag("Site")
+	return marker
 end
 
 local function lantern(parent: Instance, position: Vector3)
@@ -403,13 +457,14 @@ local function buildForest(root: Instance, rng)
 		-- 중품 영맥 자리와 다리 앞은 비워 둔다
 		local nearVein = (Vector3.new(x, 0, z) - Vector3.new(-200, 0, 100)).Magnitude < 22
 		local nearBridge = x > -140 and math.abs(z) < 8
+		local nearSite = (Vector3.new(x, 0, z) - Vector3.new(-140, 0, 55)).Magnitude < 18
 		local nearManual = false
 		for _, spot in MANUAL_SPOTS do
 			if (Vector3.new(x, 0, z) - Vector3.new(spot.X, 0, spot.Z)).Magnitude < 9 then
 				nearManual = true
 			end
 		end
-		if not nearVein and not nearBridge and not nearManual then
+		if not nearVein and not nearBridge and not nearManual and not nearSite then
 			tree(trees, Vector3.new(x, 0, z), rng, rng(0, 1) > 0.8)
 		end
 	end
@@ -494,6 +549,164 @@ local function buildMountain(root: Instance)
 	)
 end
 
+-- 오행처: 돌단 위에 속성 빛 구슬. 화 오행처는 대장간 화덕, 목은 고목, 수는 물가 돌판
+local function buildElementSites(root: Instance)
+	local sites = folder(root, "오행처")
+	for _, def in ELEMENT_SITES do
+		local m = model(sites, def.name)
+		local base = def.position
+		if def.id == "el_wood" then
+			-- 고목: 굵은 줄기와 넓은 잎
+			block(
+				m,
+				"Trunk",
+				Vector3.new(5, 22, 5),
+				CFrame.new(base + Vector3.new(0, 11, -7)),
+				C.woodDark,
+				Enum.Material.Wood
+			)
+			block(
+				m,
+				"Leaves",
+				Vector3.new(22, 9, 22),
+				CFrame.new(base + Vector3.new(0, 23, -7)),
+				C.leaf,
+				Enum.Material.Grass
+			)
+			block(
+				m,
+				"Leaves",
+				Vector3.new(13, 7, 13),
+				CFrame.new(base + Vector3.new(1, 29, -6)),
+				C.leafLight,
+				Enum.Material.Grass
+			)
+		elseif def.id == "el_fire" then
+			-- 대장간 화덕: 돌 화덕과 지붕
+			block(
+				m,
+				"Hearth",
+				Vector3.new(6, 4, 5),
+				CFrame.new(base + Vector3.new(6, 2, 0)),
+				C.stoneDark,
+				Enum.Material.Brick
+			)
+			local flame = block(
+				m,
+				"Flame",
+				Vector3.new(3, 1.5, 2.5),
+				CFrame.new(base + Vector3.new(6, 4.6, 0)),
+				Color3.fromRGB(255, 120, 50),
+				Enum.Material.Neon
+			)
+			flame.CanCollide = false
+			local fire = Instance.new("Fire")
+			fire.Size = 5
+			fire.Heat = 8
+			fire.Parent = flame
+			for _, z in { -5, 5 } do
+				block(
+					m,
+					"Post",
+					Vector3.new(1, 10, 1),
+					CFrame.new(base + Vector3.new(9, 5, z)),
+					C.wood,
+					Enum.Material.Wood
+				)
+				block(
+					m,
+					"Post",
+					Vector3.new(1, 10, 1),
+					CFrame.new(base + Vector3.new(-3, 5, z)),
+					C.wood,
+					Enum.Material.Wood
+				)
+			end
+			block(m, "Roof", Vector3.new(15, 1, 13), CFrame.new(base + Vector3.new(3, 10.5, 0)), C.roof)
+			block(
+				m,
+				"Anvil",
+				Vector3.new(2.4, 2, 1.4),
+				CFrame.new(base + Vector3.new(1, 1, 3.5)),
+				C.stoneDark,
+				Enum.Material.Metal
+			)
+		elseif def.id == "el_earth" then
+			block(
+				m,
+				"Boulder",
+				Vector3.new(11, 8, 9),
+				CFrame.new(base + Vector3.new(0, 4, -8)) * CFrame.Angles(0, math.rad(20), math.rad(6)),
+				C.dirt,
+				Enum.Material.Rock
+			)
+			block(
+				m,
+				"Boulder",
+				Vector3.new(6, 5, 6),
+				CFrame.new(base + Vector3.new(6, 2.5, -4)) * CFrame.Angles(0, math.rad(-15), 0),
+				C.stoneDark,
+				Enum.Material.Rock
+			)
+		elseif def.id == "el_metal" then
+			block(
+				m,
+				"Pillar",
+				Vector3.new(3, 16, 3),
+				CFrame.new(base + Vector3.new(0, 8, -6)),
+				Color3.fromRGB(150, 156, 166),
+				Enum.Material.DiamondPlate
+			)
+			block(
+				m,
+				"Cap",
+				Vector3.new(4.4, 1, 4.4),
+				CFrame.new(base + Vector3.new(0, 16.5, -6)),
+				Color3.fromRGB(190, 196, 206),
+				Enum.Material.Metal
+			)
+		elseif def.id == "el_water" then
+			block(
+				m,
+				"Stone",
+				Vector3.new(4, 3, 4),
+				CFrame.new(base + Vector3.new(-4, 1.5, -5)),
+				C.stone,
+				Enum.Material.Slate
+			)
+		end
+
+		disc(m, "Dais", base + Vector3.new(0, 0.3, 0), 6, 0.6, C.stone, Enum.Material.Slate)
+		local orb = block(
+			m,
+			"Orb",
+			Vector3.new(2, 2, 2),
+			CFrame.new(base + Vector3.new(0, 4, 0)),
+			def.color,
+			Enum.Material.Neon
+		)
+		orb.Shape = Enum.PartType.Ball
+		orb.CanCollide = false
+		local light = Instance.new("PointLight")
+		light.Color = def.color
+		light.Range = 14
+		light.Brightness = 1.5
+		light.Parent = orb
+		local motes = Instance.new("ParticleEmitter")
+		motes.Color = ColorSequence.new(def.color)
+		motes.LightEmission = 1
+		motes.Rate = 6
+		motes.Lifetime = NumberRange.new(1.5, 2.5)
+		motes.Speed = NumberRange.new(0.5, 1.5)
+		motes.SpreadAngle = Vector2.new(180, 180)
+		motes.Size = NumberSequence.new(0.25)
+		motes.Parent = orb
+
+		siteMarker(m, def.id, base + Vector3.new(0, 0.6, 0), 7)
+		sign(m, base + Vector3.new(0, 9, 0), def.name, def.place, def.color)
+	end
+end
+
 local function buildTribulationAltar(root: Instance)
 	local altar = folder(root, "천겁대")
 	local center = Vector3.new(200, 0, -160)
@@ -575,6 +788,7 @@ function World.build(workspaceRoot: Instance, lighting: Instance): Model
 	buildForest(root, rng)
 	buildMountain(root)
 	buildTribulationAltar(root)
+	buildElementSites(root)
 
 	local spots = folder(root, "비급자리")
 	for _, position in MANUAL_SPOTS do

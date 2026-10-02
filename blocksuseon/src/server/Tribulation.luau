@@ -1,4 +1,4 @@
--- 천겁: 대경지(결단기 이상)로 돌파할 때 내리는 낙뢰.
+-- 천겁: 원영기부터 내리는 금색 낙뢰. 원영 진입과 원영·천인 안의 단계마다 내린다(Realms.tribulationAfter).
 --
 -- 매 뇌격마다 붉은 원으로 낙뢰 자리를 예고하고, 잠시 뒤 그 자리에 벼락이 떨어진다.
 -- 첫 줄기는 언제나 발밑을 노리므로 움직여서 피해야 한다. 끝까지 버티면 돌파,
@@ -126,7 +126,11 @@ local function succeed(player: Player, session, state, color: Color3)
 		return
 	end
 	local slotsBefore = Progression.slots(data)
-	Progression.passTribulation(data)
+	local notes = Progression.passBreakthrough(data, true)
+	Progression.addLog(data, "tribulation")
+	for _, note in notes do
+		Sync.notify(player, note, "good")
+	end
 	Characters.applyStats(player, true)
 	Fx.burst(player.Character, color, 80)
 	Sync.notify(player, "천겁을 넘었다!", "good")
@@ -239,13 +243,12 @@ function Tribulation.start(player: Player)
 	if not data or not session or session.tribulation or data.step >= Realms.maxStep then
 		return
 	end
-	local target = Realms.get(data.step + 1)
-	local trib = target.realm.tribulation
+	local trib = Realms.tribulationAfter(data.step)
 	if not trib then
 		return
 	end
 
-	local state = { name = trib.name, wave = 0, waves = trib.waves, targetStep = target.index }
+	local state = { name = trib.name, wave = 0, waves = trib.waves, targetStep = data.step + 1 }
 	session.tribulation = state
 	Sync.notify(player, "천겁이 내린다! 붉은 원을 피해 끝까지 버텨라.", "tribulation")
 	Sync.broadcast(string.format("%s님에게 천겁이 내린다.", player.DisplayName), "tribulation")
