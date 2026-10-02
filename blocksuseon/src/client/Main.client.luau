@@ -77,10 +77,14 @@ local function promptUse(site: string, snapshot): string?
 	end
 	for _, job in snapshot.tasks or {} do
 		if job.open and not job.done then
+			local here = job.sites ~= nil and table.find(job.sites, site) ~= nil
 			if job.kind == "touch" and string.sub(site, 1, 4) == "tri_" then
 				return "괘 새기기"
-			elseif job.kind == "offer" and site == "altar" then
-				return "제물 바치기"
+			elseif job.kind == "offer" and here then
+				if string.sub(site, 1, 6) == "elder_" then
+					return "영초 건네기"
+				end
+				return if job.id == "offer" then "제물 바치기" else "내려놓기"
 			elseif job.kind == "ritual" and site == "altar" then
 				return "제의 올리기"
 			end

@@ -11,6 +11,7 @@
 --   ring     : 줄어드는 고리가 점에 겹칠 때 누른다
 --   arrange  : 구궁판의 패를 맞바꿔 가로·세로·대각선 합을 같게 만든다
 --   strands  : 흩어지는 변화 가닥을 시간 안에 모두 붙잡는다
+--   order    : 주마등. 수행의 기억을 최근 것부터 태어난 날까지 거슬러 짚는다
 
 local Trials = {}
 
@@ -66,6 +67,21 @@ Trials.CHEONGANG = {
 	"천곡",
 	"천교",
 }
+
+-- 주마등에 비치는 수행 일지 (Progression.addLog 의 이름)
+Trials.MEMORIES = {
+	root = "영근이 깨어난 날",
+	firstHerb = "처음 영초를 먹은 날",
+	hongsam = "홍령삼을 먹은 날",
+	chilsu = "칠수를 고른 날",
+	rite = "칠성제의를 올린 밤",
+	entry_dansu = "법화단전을 빚기 시작한 날",
+	entry_yeongi = "연기기에 든 날",
+	entry_chukgi = "단전이 터져 영운이 핀 날",
+	entry_gyeoldan = "금단이 맺힌 날",
+	cheonsang = "천상열차분야를 새긴 밤",
+}
+Trials.BIRTH = "연국에 처음 온 날"
 
 -- 구궁의 아홉 별 (낙서 숫자 1~9 순)
 Trials.GUGUNG = { "태을", "섭제", "헌원", "초요", "천부", "청룡", "함지", "태음", "천을" }
@@ -190,6 +206,18 @@ function Trials.generate(mode: string, seed: number, params: { [string]: any }):
 		end
 		table.sort(fixedList)
 		return { start = start, fixed = fixedList }
+	elseif mode == "order" then
+		-- 주마등: 기억 카드(최근 것부터 태어난 날까지)를 섞어 놓는다
+		local count = #params.items
+		local cards = {}
+		for i = 1, count do
+			cards[i] = i
+		end
+		for i = count, 2, -1 do
+			local j = randomInt(rand, 1, i)
+			cards[i], cards[j] = cards[j], cards[i]
+		end
+		return { cards = cards }
 	elseif mode == "strands" then
 		local strands = {}
 		for i = 1, params.count do
@@ -221,6 +249,8 @@ function Trials.minTime(mode: string, params: { [string]: any }): number
 		return params.hits * 0.5
 	elseif mode == "arrange" then
 		return 2
+	elseif mode == "order" then
+		return #params.items * 0.3
 	elseif mode == "strands" then
 		return params.count * 0.12
 	end
@@ -262,6 +292,17 @@ function Trials.check(mode: string, puzzle: Puzzle, answer: any): boolean
 			end
 		end
 		return isMagic(answer)
+	elseif mode == "order" then
+		-- 카드를 거꾸로 거슬러 1, 2, 3 … 순서로 짚어야 한다
+		if type(answer) ~= "table" or #answer ~= #puzzle.cards then
+			return false
+		end
+		for i, item in answer do
+			if item ~= i then
+				return false
+			end
+		end
+		return true
 	end
 	return answer == true
 end

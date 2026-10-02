@@ -824,6 +824,67 @@ local function playStrands(params: { [string]: any }, puzzle)
 	)
 end
 
+-- 주마등: 기억 카드를 최근 것부터 태어난 날까지 거슬러 짚는다 ----------------------------------------
+
+local function playOrder(params: { [string]: any }, puzzle)
+	local stage = ui.stage
+	local items: { string } = params.items
+	local cards = puzzle.cards
+	local picked: { number } = {}
+	local done = false
+	local buttons = {}
+	local columns = if #cards > 3 then 2 else 1
+	local width = if columns == 2 then 240 else 360
+	for slot, item in cards do
+		local col = (slot - 1) % columns
+		local r = (slot - 1) // columns
+		local x = if columns == 2 then 14 + col * (width + 12) else 80
+		local button = new("TextButton", {
+			Position = UDim2.fromOffset(x, 4 + r * 62),
+			Size = UDim2.fromOffset(width, 52),
+			BackgroundColor3 = C.ink,
+			BackgroundTransparency = 0.15,
+			Text = "",
+			AutoButtonColor = false,
+			Parent = stage,
+		}, {
+			new("UICorner", { CornerRadius = UDim.new(0, 10) }),
+			new("UIStroke", { Color = C.dim, Thickness = 1.5 }),
+		})
+		local labelRow = row({ Size = UDim2.new(1, 0, 1, -4), Parent = button })
+		local label = text("body", 16, { color = C.cream, text = items[item], parent = labelRow })
+		buttons[slot] = { button = button, label = label, item = item }
+		table.insert(
+			connections,
+			button.Activated:Connect(function()
+				if done or table.find(picked, item) then
+					return
+				end
+				if item == #picked + 1 then
+					table.insert(picked, item)
+					button.BackgroundColor3 = Color3.fromRGB(70, 60, 30)
+					label:setColor(C.gold)
+					if #picked == #items then
+						done = true
+						setStatus("태어난 날의 기록에 닿았다.", C.jade)
+						task.delay(0.6, finish, true, picked)
+					else
+						setStatus(string.format("%d / %d, 그보다 앞선 기억은?", #picked, #items))
+					end
+				else
+					picked = {}
+					setStatus("기억의 순서가 엉켰다. 가장 최근 기억부터 다시.", C.red)
+					for _, entry in buttons do
+						entry.button.BackgroundColor3 = C.ink
+						entry.label:setColor(C.cream)
+					end
+				end
+			end)
+		)
+	end
+	setStatus("가장 최근의 기억부터 태어난 날까지 거슬러 짚는다.")
+end
+
 -- 공개 ---------------------------------------------------------------------------------
 
 local PLAYERS = {
@@ -833,6 +894,7 @@ local PLAYERS = {
 	ring = playRing,
 	arrange = playArrange,
 	strands = playStrands,
+	order = playOrder,
 }
 
 function Naegwan.supports(mode: string): boolean

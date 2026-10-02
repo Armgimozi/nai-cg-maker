@@ -85,7 +85,7 @@ check("병목 배율", function()
 	eq(Balance.qiRequired(1), math.floor(Balance.QI_BASE * Balance.BOTTLENECK_MULT), "범인 필요 영력")
 end)
 check("술법·공법 데이터", function()
-	eq(#Skills.actives, 4, "술법 4개")
+	eq(#Skills.actives, 7, "술법 7개 (경지에서 얻는 셋 포함)")
 	for _, def in Skills.actives do
 		assert(def.cooldown and def.cooldown > 0, def.name .. " 쿨타임")
 	end
@@ -191,6 +191,10 @@ local function fill(data)
 				data.choice.chilsu = "cheong"
 			elseif task.key == "element" then
 				data.choice.element = data.root.elements[1]
+			elseif task.key == "center" then
+				data.choice.center = "wood"
+			elseif task.key == "dosim" then
+				data.choice.dosim = "sitting"
 			end
 		elseif task.kind == "have" then
 			data.items[task.item] = task.max
@@ -338,7 +342,11 @@ check("결단기까지는 천겁이 없고 원영기 진입은 천겁", function
 	data.step = 48
 	fill(data)
 	data.qi = Progression.requiredQi(data)
-	eq(Progression.attemptBreakthrough(data).kind, "tribulation", "원영기")
+	local toWonyeong = Progression.attemptBreakthrough(data)
+	eq(toWonyeong.kind, "trial", "원영기는 주마등부터")
+	eq(toWonyeong.mode, "order")
+	eq(Progression.nextEntry(data).after, "tribulation", "주마등 뒤에 천겁")
+	assert(Realms.tribulationAfter(48), "결단 대원만 다음 천겁")
 	eq(data.step, 48, "천겁 시작만으로는 오르지 않는다")
 	local lost = Progression.failTribulation(data)
 	assert(lost > 0, "천겁 실패 손실")
@@ -348,9 +356,33 @@ check("결단기까지는 천겁이 없고 원영기 진입은 천겁", function
 	eq(data.step, 49, "원영기 여월지긍")
 	eq(data.stats.tribulations, 1)
 	-- 원영기 안에서도 단계마다 천겁
+	fill(data)
 	data.qi = Progression.requiredQi(data)
 	eq(Progression.isCapped(data), true)
 	eq(Progression.attemptBreakthrough(data).kind, "tribulation", "여월지긍→여일지승")
+end)
+check("원영기 술법과 천인기 도심", function()
+	local data = Progression.newData()
+	data.root = Roots.make({ "wood" })
+	data.choice.chilsu = "cheong"
+	data.step = Realms.firstStepById.wonyeong - 1
+	fill(data)
+	data.qi = Progression.requiredQi(data)
+	Progression.passBreakthrough(data, true)
+	eq(data.skills.heogong, true, "원영기에 들면 허공이동")
+	eq(Tasks.find(data, "moon").when, "night")
+	data.step = Realms.firstStepById.wonyeong + 2
+	eq(Tasks.find(data, "missing").max, 4, "천영근은 없는 속성 넷")
+	eq((Progression.choose(data, "dosim", "herb")), false, "도심은 불건불붕에서")
+	data.step += 1
+	eq((Progression.choose(data, "dosim", "herb")), true)
+	data.step = Realms.firstStepById.cheonin
+	local job = Tasks.find(data, "madness")
+	eq(job.event, "herb", "채약 도심은 영초를 캘 때")
+	eq(job.label, "광기 (채약)")
+	local base = Progression.telegraphTime(data, 1)
+	data.step += 2
+	eq(Progression.telegraphTime(data, 1), base + Skills.EFFECT.foresight, "지천명 예지")
 end)
 check("최고 경지", function()
 	local data = Progression.newData()
@@ -575,7 +607,7 @@ check("연국 맵 짓기", function()
 			siteIds[id] = true
 		end
 	end
-	eq(tags.Site, 34, "Site 태그")
+	eq(tags.Site, 37, "Site 태그")
 	for step = 1, Realms.maxStep do
 		for _, combo in { { "wood", "fire", "earth", "metal", "water" } } do
 			for _, element in combo do

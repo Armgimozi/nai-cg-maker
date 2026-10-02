@@ -18,6 +18,7 @@ export type Tribulation = {
 	interval: number, -- 뇌격 사이 간격(초)
 	color: { number }, -- RGB
 	track: number?, -- 예고가 플레이어를 따라오는 시간(초). 있으면 무거운 금뢰
+	gather: number?, -- 겁운이 모이는 시간(초). 기본 3
 }
 
 -- 다음 경지로 넘어가는 방식
@@ -29,6 +30,8 @@ export type Entry = {
 	mode: string?, -- trial 의 미니게임 방식
 	params: { [string]: any }?, -- trial 의 미니게임 조건
 	title: string?, -- 돌파 버튼 이름
+	after: string?, -- trial 을 넘으면 이어서 시작할 것 ("tribulation")
+	noLoss: boolean?, -- trial 에 실패해도 영력을 잃지 않는다
 }
 
 export type Realm = {
@@ -166,18 +169,20 @@ Realms.list = {
 		tier = "소경계",
 		subs = { "여월지긍", "여일지승", "여오악지수", "불건불붕" },
 		hpMult = 2.6,
-		entry = { kind = "tribulation", title = "천겁 맞기" },
+		-- 주마등을 거슬러 태어난 날에 닿으면 원영이 맺히고, 이어서 첫 금색 천겁이 내린다
+		entry = { kind = "trial", mode = "order", title = "주마등", after = "tribulation", noLoss = true },
 		tribulation = {
 			name = "금색 천겁",
 			waves = 1,
 			simul = 1,
-			damage = 70,
+			damage = 120,
 			telegraph = 1.6,
-			radius = 10,
+			radius = 11,
 			spread = 0,
 			interval = 1,
 			color = { 255, 210, 90 },
 			track = 4,
+			gather = 8,
 		},
 		blurb = "혼의 계위에 올라 원영을 빚는다. 처음으로 금색 천겁이 내린다.",
 	},
@@ -193,7 +198,8 @@ Realms.list = {
 			name = "천겁 다섯 줄기",
 			waves = 1,
 			simul = 5,
-			damage = 45,
+			damage = 60,
+			gather = 6,
 			telegraph = 1.6,
 			radius = 7,
 			spread = 14,
@@ -258,13 +264,14 @@ local INNER_TRIBULATIONS = {
 			name = string.format("금색 천겁 %d줄기", count),
 			waves = count,
 			simul = 1,
-			damage = 70,
+			damage = 110,
 			telegraph = 1.6,
 			radius = 10,
 			spread = 0,
 			interval = 1.2,
 			color = { 255, 210, 90 },
 			track = 3,
+			gather = 6,
 		}
 	end,
 	cheonin = function(subIndex: number): Tribulation
@@ -273,7 +280,8 @@ local INNER_TRIBULATIONS = {
 			name = string.format("천겁 %d줄기", waves * 5),
 			waves = waves,
 			simul = 5,
-			damage = 45,
+			damage = 55,
+			gather = 6,
 			telegraph = 1.6,
 			radius = 7,
 			spread = 14,
@@ -291,7 +299,8 @@ function Realms.tribulationAfter(step: number): Tribulation?
 	local nextStep = Realms.steps[step + 1]
 	if nextStep.isMajor then
 		local entry = nextStep.realm.entry
-		return if entry and entry.kind == "tribulation" then nextStep.realm.tribulation else nil
+		local withTribulation = entry ~= nil and (entry.kind == "tribulation" or entry.after == "tribulation")
+		return if withTribulation then nextStep.realm.tribulation else nil
 	end
 	local inner = INNER_TRIBULATIONS[nextStep.realm.id]
 	return if inner then inner(Realms.steps[step].subIndex) else nil

@@ -12,6 +12,7 @@ export type Skill = {
 	summary: string, -- 상태창 설명 한 줄
 	cooldown: number?, -- 술법
 	duration: number?, -- 술법 지속 시간
+	granted: boolean?, -- 비급이 아니라 경지에 올라 저절로 얻는다
 }
 
 local Skills = {}
@@ -55,6 +56,36 @@ Skills.list = {
 		cooldown = 25,
 		duration = 3,
 		summary = "3초 동안 천겁 낙뢰를 막는다",
+	},
+	{
+		id = "heogong",
+		kind = "active",
+		name = "허공이동",
+		icon = "skillBlink",
+		minRealm = "wonyeong",
+		cooldown = 15,
+		granted = true,
+		summary = "계위를 건너 보는 방향으로 순간이동한다",
+	},
+	{
+		id = "yeongchul",
+		kind = "active",
+		name = "원영 출규",
+		icon = "skillSpirit",
+		minRealm = "cheonin",
+		cooldown = 40,
+		granted = true,
+		summary = "원영을 내보내 먼 곳의 영초를 대신 캔다",
+	},
+	{
+		id = "yudo",
+		kind = "active",
+		name = "천기유도",
+		icon = "skillWeather",
+		minRealm = "cheonin",
+		cooldown = 300,
+		granted = true,
+		summary = "중심 속성의 천지 현상을 일으킨다",
 	},
 	{
 		id = "tonap",
@@ -119,6 +150,9 @@ Skills.EFFECT = {
 	formationRadius = 10, -- 취령진 반경(스터드)
 	dashSpeed = 85, -- 경신술 속도
 	dashTime = 0.22, -- 경신술 지속(초)
+	blinkDistance = 45, -- 허공이동 거리
+	spiritRange = 90, -- 원영 출규가 닿는 거리
+	foresight = 0.6, -- 지천명 예지: 낙뢰 예고 +초
 }
 
 Skills.byId = {} :: { [string]: Skill }

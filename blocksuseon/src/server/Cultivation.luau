@@ -8,6 +8,7 @@ local Balance = require(Shared.Balance)
 local Progression = require(Shared.Progression)
 local Tasks = require(Shared.Tasks)
 local Roots = require(Shared.Roots)
+local Trials = require(Shared.Trials)
 local Format = require(Shared.Format)
 local Josa = require(Shared.Josa)
 local Skills = require(Shared.Skills)
@@ -261,6 +262,24 @@ local function startEntryTrial(player: Player, data, mode: string, title: string
 			time = (8 + count) * (if pill then 1.5 else 1),
 			speed = if pill then 0.6 else 1,
 		})
+	elseif mode == "order" then
+		-- 주마등: 수행 일지를 최근 것부터 거슬러 태어난 날까지
+		local items = {}
+		local seen = {}
+		for i = #data.log, 1, -1 do
+			local memory = Trials.MEMORIES[data.log[i].e]
+			if memory and not seen[memory] and #items < 5 then
+				seen[memory] = true
+				table.insert(items, memory)
+			end
+		end
+		table.insert(items, Trials.BIRTH)
+		Sync.notify(
+			player,
+			"혼의 계위로 올라선다. 지난 수행이 주마등처럼 거꾸로 흐른다.",
+			"good"
+		)
+		TaskService.startEntry(player, mode, title, { items = items })
 	else
 		local entry = Progression.nextEntry(data)
 		TaskService.startEntry(player, mode, title, if entry and entry.params then entry.params else {})
@@ -270,6 +289,23 @@ end
 TaskService.onEntryTrial = function(player: Player, success: boolean)
 	local data = PlayerData.get(player)
 	if not data or not (Progression.canBreakthrough(data)) then
+		return
+	end
+	local entry = Progression.nextEntry(data)
+	if success and entry and entry.after == "tribulation" then
+		Sync.notify(
+			player,
+			"주마등의 끝, 태어난 날에 닿았다. 원영이 맺힌다. 하늘이 겁을 내린다!",
+			"good"
+		)
+		Cultivation.setMeditating(player, false)
+		Tribulation.start(player)
+		Sync.state(player)
+		return
+	end
+	if not success and entry and entry.noLoss then
+		Sync.notify(player, "기억이 어지럽게 엉켰다. 숨을 고르고 다시 거슬러 간다.", "bad")
+		Sync.state(player)
 		return
 	end
 	if success then

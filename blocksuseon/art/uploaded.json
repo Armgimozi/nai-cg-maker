@@ -76,16 +76,16 @@
     "assetId": "83569591119407"
   },
   "glyphs_body_0.png": {
-    "sha256": "d53e86bdde6e3ca6d35853738507cb0748480ab9bc36385d98d37eb9351a7f96",
-    "assetId": "120131292412026"
+    "sha256": "9661b87393d5ad12b0d2867d19d9a0f73652bd5e447ccda10e617a33b59f9777",
+    "assetId": "72827681573291"
   },
   "glyphs_title_0.png": {
-    "sha256": "3055701441aae2414a5d20081239d4ce2d8dae90a3d73dc594e61d3cfc3d3c61",
-    "assetId": "111229017079869"
+    "sha256": "e1ce0f229fdd87eec984e7a431e0a1ca0cc72fc7d9de96013256cdc9e269bfaa",
+    "assetId": "88329691737166"
   },
   "glyphs_title_1.png": {
-    "sha256": "fc30aaf7ef631b605ec63163693bd5de30a438dc9b4a54e329c56c720134a9a0",
-    "assetId": "132344575724365"
+    "sha256": "f4ed2720c049605511c19a7328713c885cbc8069c1e23413d2916a83a4c36443",
+    "assetId": "87993811966163"
   },
   "slot.png": {
     "sha256": "f9540ca98dca50ec4b6cbeafa7e9a4861f97529f0f20f16b79ca9bce5238e704",
@@ -136,11 +136,23 @@
     "assetId": "115133593895137"
   },
   "glyphs_body_1.png": {
-    "sha256": "67a0141868439e07009bdf3d4a52cf4287726c2e0f7863926efef0d8554c11f1",
-    "assetId": "119861612737620"
+    "sha256": "d2f37cf4432412c3a97149f68d286d7f4e167dd1faea0b4aaf8650553cf15eb9",
+    "assetId": "106162474144227"
   },
   "glyphs_title_2.png": {
-    "sha256": "fce8cc31c559b0e6d2a2cce0e3817a8de1d87a94bb3e469551a99bce9dcb0758",
-    "assetId": "128147928629015"
+    "sha256": "f112d891dc0428f2ff52477fc34635d74e888b7ef56596b217474c6f5a8ef21d",
+    "assetId": "90233010122643"
+  },
+  "skillBlink.png": {
+    "sha256": "3ba221b2a3276a6f93cb0dd4d2d70a91468c499934e0f50e8763b0bcb8ec4a3d",
+    "assetId": "94928612220765"
+  },
+  "skillSpirit.png": {
+    "sha256": "2e31b7656647d88e8e36523ef975d44f8616dfcccc8dd17d24fb55d3d5dfeccd",
+    "assetId": "86654181526067"
+  },
+  "skillWeather.png": {
+    "sha256": "fe4288e25e137f8c457f0268c0a8a44847bf612fb4c56a97e56f9b136e642fbf",
+    "assetId": "131674330641355"
   }
 }

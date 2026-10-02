@@ -167,6 +167,12 @@ function Progression.reconcile(saved: any): Data
 		if data.root and table.find(data.root.elements, element) then
 			data.choice.element = element
 		end
+		if Roots.isElement(saved.choice.center) then
+			data.choice.center = saved.choice.center
+		end
+		if table.find(Tasks.CHOICES.dosim, saved.choice.dosim) then
+			data.choice.dosim = saved.choice.dosim
+		end
 	end
 	if type(saved.items) == "table" then
 		for id, count in saved.items do
@@ -393,6 +399,34 @@ local function enterStep(data: Data): { string }
 			"십이지율을 닦으려면 진법을 펼쳐 봐야 한다. 취령진 기초본을 익혔다."
 		)
 	end
+	local function grant(id: string, note: string)
+		if data.skills[id] then
+			return
+		end
+		data.skills[id] = true
+		local empty = table.find(data.hotbar, "")
+		if empty then
+			data.hotbar[empty] = id
+		end
+		table.insert(notes, note)
+	end
+	local wonyeong = Realms.firstStepById.wonyeong
+	local cheonin = Realms.firstStepById.cheonin
+	if data.step >= wonyeong then
+		grant("heogong", "원영이 혼의 계위를 알아본다. 허공이동을 얻었다.")
+	end
+	if data.step >= cheonin then
+		grant("yudo", "천지 현상을 의지로 비튼다. 천기유도를 얻었다.")
+	end
+	if data.step >= cheonin + 1 then
+		grant("yeongchul", "이립에 이르러 원영이 몸 밖으로 나간다. 원영 출규를 얻었다.")
+	end
+	if data.step == cheonin + 2 then
+		table.insert(
+			notes,
+			"지천명에 이르렀다. 천겁 낙뢰가 떨어질 자리를 조금 더 일찍 본다(예지)."
+		)
+	end
 	if data.step == Realms.firstStepById.gyeoldan and data.skills.gyeongsin then
 		table.insert(
 			notes,
@@ -464,9 +498,6 @@ function Progression.nextEntry(data: Data): Realms.Entry?
 	if data.step >= Realms.maxStep then
 		return nil
 	end
-	if Realms.tribulationAfter(data.step) then
-		return { kind = "tribulation", title = "천겁 맞기" }
-	end
 	if Realms.nextIsMajor(data.step) then
 		local entry = Realms.get(data.step + 1).realm.entry
 		-- 과업을 아직 켜지 않은 경지의 돌파 내관은 미뤄 두고 바로 오른다
@@ -474,6 +505,9 @@ function Progression.nextEntry(data: Data): Realms.Entry?
 			return { kind = "plain", title = "돌파" }
 		end
 		return entry
+	end
+	if Realms.tribulationAfter(data.step) then
+		return { kind = "tribulation", title = "천겁 맞기" }
 	end
 	return nil
 end
@@ -594,6 +628,31 @@ function Progression.choose(data: Data, key: any, value: any): (boolean, string)
 		end
 		data.choice.element = value
 		return true, string.format("본명 속성을 %s 정했다.", Josa.ro(Roots.ELEMENT[value].name))
+	elseif key == "center" then
+		if data.choice.center then
+			return false, "오악의 중심은 이미 정했다."
+		end
+		if data.step < Realms.firstStepById.wonyeong + 2 then
+			return false, "오악은 원영기 여오악지수에서 세운다."
+		end
+		if not Roots.isElement(value) then
+			return false, "고를 수 없는 속성이다."
+		end
+		data.choice.center = value
+		return true, string.format("오악의 중심을 %s 삼았다.", Josa.ro(Roots.ELEMENT[value].name))
+	elseif key == "dosim" then
+		if data.choice.dosim then
+			return false, "도심은 이미 정했다."
+		end
+		if data.step < Realms.firstStepById.wonyeong + 3 then
+			return false, "도심은 천인기에 들기 전에 고른다."
+		end
+		if not table.find(Tasks.CHOICES.dosim, value) then
+			return false, "고를 수 없는 도심이다."
+		end
+		data.choice.dosim = value
+		Progression.addLog(data, "dosim")
+		return true, string.format("%s에 미치기로 했다.", Tasks.DOSIM[value].name)
 	end
 	return false, "고를 수 없다."
 end
@@ -728,7 +787,12 @@ function Progression.tribulationDamage(data: Data, damage: number): number
 end
 
 function Progression.telegraphTime(data: Data, baseTime: number): number
-	return baseTime + (if Progression.passive(data, "cheongi") then EFFECT.cheongi else 0)
+	local extra = if Progression.passive(data, "cheongi") then EFFECT.cheongi else 0
+	-- 천인기 지천명의 예지
+	if data.step >= Realms.firstStepById.cheonin + 2 then
+		extra += EFFECT.foresight
+	end
+	return baseTime + extra
 end
 
 return Progression

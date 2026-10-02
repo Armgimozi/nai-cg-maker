@@ -246,5 +246,29 @@
     "height": 128,
     "slice": null,
     "meta": null
+  },
+  "skillBlink": {
+    "file": "skillBlink.png",
+    "source": "assets.html",
+    "width": 128,
+    "height": 128,
+    "slice": null,
+    "meta": null
+  },
+  "skillSpirit": {
+    "file": "skillSpirit.png",
+    "source": "assets.html",
+    "width": 128,
+    "height": 128,
+    "slice": null,
+    "meta": null
+  },
+  "skillWeather": {
+    "file": "skillWeather.png",
+    "source": "assets.html",
+    "width": 128,
+    "height": 128,
+    "slice": null,
+    "meta": null
   }
 }

@@ -10,6 +10,7 @@ local Progression = require(Shared.Progression)
 local Josa = require(Shared.Josa)
 local PlayerData = require(script.Parent.PlayerData)
 local Sync = require(script.Parent.Sync)
+local TaskService = require(script.Parent.TaskService)
 
 local MAX_HERBS = 16
 local RARE_CHANCE = 0.1
@@ -90,8 +91,17 @@ local function collect(player: Player, herb: Model, kind: string)
 		Sync.broadcast(string.format("%s님이 홍령삼을 찾았다.", player.DisplayName), "world")
 	end
 	Sync.notify(player, message, "good")
+	TaskService.counter(player, "herb", 10)
 	Sync.markDirty(player)
 	task.delay(rng:NextNumber(RESPAWN_MIN, RESPAWN_MAX), spawnHerb)
+end
+
+-- 원영 출규: 멀리서 캔다
+function Herbs.collectFrom(player: Player, herb: Model)
+	local kind = herb:GetAttribute("Item")
+	if type(kind) == "string" then
+		collect(player, herb, kind)
+	end
 end
 
 local function pickKind(): string
@@ -103,12 +113,7 @@ local function pickKind(): string
 	return if roll < RARE_CHANCE then "lingzhi" else "herb"
 end
 
-spawnHerb = function()
-	local position = randomGroundPoint()
-	if not position then
-		return
-	end
-	local kind = pickKind()
+local function spawnAt(position: Vector3, kind: string)
 	local rare = kind ~= "herb"
 	local name = Balance.ITEMS[kind].name
 	local color = KINDS[kind].color
@@ -173,6 +178,33 @@ spawnHerb = function()
 
 	herb.PrimaryPart = bulb
 	herb.Parent = folder
+end
+
+spawnHerb = function()
+	local position = randomGroundPoint()
+	if position then
+		spawnAt(position, pickKind())
+	end
+end
+
+-- 천기유도: 둘레에 영초를 돋운다
+function Herbs.spawnNear(center: Vector3, count: number, kind: string?)
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Include
+	params.FilterDescendantsInstances = CollectionService:GetTagged("Ground")
+	for _ = 1, count do
+		local angle = rng:NextNumber(0, math.pi * 2)
+		local distance = rng:NextNumber(4, 14)
+		local origin = center + Vector3.new(math.cos(angle) * distance, 40, math.sin(angle) * distance)
+		local hit = Workspace:Raycast(origin, Vector3.new(0, -120, 0), params)
+		if hit then
+			spawnAt(hit.Position, kind or "herb")
+		end
+	end
+end
+
+function Herbs.folder(): Folder
+	return folder
 end
 
 function Herbs.start()

@@ -47,13 +47,17 @@ local function pickSkill(): string
 		spawned[model:GetAttribute("SkillId")] = true
 	end
 	local candidates = {}
+	local pool = {}
 	for _, skill in Skills.list do
-		if not spawned[skill.id] then
-			table.insert(candidates, skill.id)
+		if not skill.granted then
+			table.insert(pool, skill.id)
+			if not spawned[skill.id] then
+				table.insert(candidates, skill.id)
+			end
 		end
 	end
 	if #candidates == 0 then
-		return Skills.list[rng:NextInteger(1, #Skills.list)].id
+		return pool[rng:NextInteger(1, #pool)]
 	end
 	return candidates[rng:NextInteger(1, #candidates)]
 end
@@ -169,6 +173,11 @@ spawnManual = function()
 	model.PrimaryPart = paper
 	model.Parent = folder
 	occupied[spot] = model
+end
+
+-- 천기유도(토): 비급 하나를 바로 드러낸다
+function Manuals.spawnNow()
+	spawnManual()
 end
 
 function Manuals.start()

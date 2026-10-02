@@ -282,6 +282,38 @@ function Choice.open(key: string, state: { [string]: any })
 			})
 		end
 		showOptions("내 영근 속성 가운데 공법의 주 속성으로 삼을 하나를 고른다.", options)
+	elseif key == "center" then
+		ui.title:set("오악의 중심")
+		local options = {}
+		local effects = {
+			water = "비를 불러 영초를 돋운다",
+			wood = "숲을 키워 천년영지를 돋운다",
+			earth = "땅을 흔들어 비급을 드러낸다",
+			fire = "들불로 둘레 수도자에게 영력을 준다",
+			metal = "폭풍으로 둘레의 영물을 끌어온다",
+		}
+		for _, element in Roots.ELEMENTS do
+			local def = Roots.ELEMENT[element]
+			table.insert(
+				options,
+				{ value = element, name = def.name .. " 속성", summary = "천기유도: " .. effects[element] }
+			)
+		end
+		showOptions(
+			"오악 가운데 중심에 둘 속성을 고른다. 천인기의 천기유도가 이 속성을 따른다.",
+			options
+		)
+	elseif key == "dosim" then
+		ui.title:set("도심")
+		local options = {}
+		for _, id in Tasks.CHOICES.dosim do
+			local def = Tasks.DOSIM[id]
+			table.insert(options, { value = id, name = def.name, summary = def.summary })
+		end
+		showOptions(
+			"미쳐 버릴 만큼 몰입할 일을 고른다. 천인기에서는 이 일을 할 때만 광기가 찬다.",
+			options
+		)
 	end
 	ui.panel.Visible = true
 end

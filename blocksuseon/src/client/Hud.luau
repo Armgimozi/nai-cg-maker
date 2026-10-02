@@ -1005,7 +1005,7 @@ local function taskProgress(job, items): string
 	elseif job.kind == "meditate" and not job.sites then
 		return string.format("%d / %d초", math.floor(job.value), job.max)
 	elseif job.max > 1 then
-		return string.format("%d / %d", job.value, job.max)
+		return string.format("%d / %d", math.floor(job.value), job.max)
 	end
 	return ""
 end

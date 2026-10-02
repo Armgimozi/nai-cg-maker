@@ -161,7 +161,7 @@ local function run(player: Player, session, state, trib)
 	cloud.Material = Enum.Material.SmoothPlastic
 	cloud.Transparency = 0.15
 
-	task.wait(GATHER_TIME)
+	task.wait(trib.gather or GATHER_TIME)
 
 	local data = PlayerData.get(player)
 	local telegraph = if data then Progression.telegraphTime(data, trib.telegraph) else trib.telegraph
@@ -179,16 +179,41 @@ local function run(player: Player, session, state, trib)
 		TweenService:Create(cloud, TweenInfo.new(0.5), { CFrame = cloudCFrame(root.Position) }):Play()
 
 		local targets = {}
-		for i = 1, trib.simul do
-			local offset = Vector3.zero
-			if i > 1 then
-				local angle = rng:NextNumber(0, math.pi * 2)
-				local distance = rng:NextNumber(trib.radius * 0.8, math.max(trib.spread, trib.radius))
-				offset = Vector3.new(math.cos(angle) * distance, 0, math.sin(angle) * distance)
+		if trib.track then
+			-- 무거운 금뢰: 예고 원이 한동안 플레이어를 따라오다가 멈추고, 그 자리에 떨어진다
+			local follower = fxPart(
+				Vector3.new(0.2, trib.radius * 2, trib.radius * 2),
+				CFrame.new(groundAt(root.Position) + Vector3.new(0, 0.15, 0)) * FLAT_DISC,
+				color
+			)
+			follower.Shape = Enum.PartType.Cylinder
+			follower.Transparency = 0.6
+			local untilTime = os.clock() + trib.track
+			while os.clock() < untilTime do
+				local current = Characters.root(player)
+				if not stillGoing(player, session, state) or not current then
+					break
+				end
+				local goal = CFrame.new(groundAt(current.Position) + Vector3.new(0, 0.15, 0)) * FLAT_DISC
+				TweenService:Create(follower, TweenInfo.new(0.2, Enum.EasingStyle.Linear), { CFrame = goal }):Play()
+				task.wait(0.2)
 			end
-			local ground = groundAt(root.Position + offset)
+			local ground = follower.Position - Vector3.new(0, 0.15, 0)
+			follower:Destroy()
 			table.insert(targets, ground)
 			mark(ground, trib.radius, telegraph)
+		else
+			for i = 1, trib.simul do
+				local offset = Vector3.zero
+				if i > 1 then
+					local angle = rng:NextNumber(0, math.pi * 2)
+					local distance = rng:NextNumber(trib.radius * 0.8, math.max(trib.spread, trib.radius))
+					offset = Vector3.new(math.cos(angle) * distance, 0, math.sin(angle) * distance)
+				end
+				local ground = groundAt(root.Position + offset)
+				table.insert(targets, ground)
+				mark(ground, trib.radius, telegraph)
+			end
 		end
 
 		task.wait(telegraph)
@@ -250,7 +275,13 @@ function Tribulation.start(player: Player)
 
 	local state = { name = trib.name, wave = 0, waves = trib.waves, targetStep = data.step + 1 }
 	session.tribulation = state
-	Sync.notify(player, "천겁이 내린다! 붉은 원을 피해 끝까지 버텨라.", "tribulation")
+	Sync.notify(
+		player,
+		if trib.track
+			then "금색 천겁이 내린다! 예고가 따라오다 멈추면 그 자리를 벗어난다. 호신강기로 막을 수도 있다."
+			else "천겁이 내린다! 붉은 원을 피해 끝까지 버텨라.",
+		"tribulation"
+	)
 	Sync.broadcast(string.format("%s님에게 천겁이 내린다.", player.DisplayName), "tribulation")
 	Sync.markDirty(player)
 	task.spawn(run, player, session, state, trib)

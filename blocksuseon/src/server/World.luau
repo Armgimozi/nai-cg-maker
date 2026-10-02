@@ -118,6 +118,28 @@ World.TRIGRAMS = {
 	{ name = "곤", angle = 270 },
 }
 
+-- 천인기 천순: 마지막 부탁을 하는 마을 노인 셋
+local ELDERS = {
+	{
+		id = "elder_1",
+		name = "늙은 약초꾼",
+		position = Vector3.new(-26, 0.5, 8),
+		robe = Color3.fromRGB(96, 120, 84),
+	},
+	{
+		id = "elder_2",
+		name = "늙은 대장장이",
+		position = Vector3.new(42, 0, 14),
+		robe = Color3.fromRGB(110, 84, 64),
+	},
+	{
+		id = "elder_3",
+		name = "늙은 뱃사공",
+		position = Vector3.new(-82, 0, 20),
+		robe = Color3.fromRGB(70, 92, 120),
+	},
+}
+
 -- 사방 성대 (육합만로, 축기·결단에서도 다시 쓴다)
 local STAR_ALTARS = {
 	{
@@ -901,6 +923,45 @@ local function buildTribulationAltar(root: Instance)
 	)
 end
 
+-- 마을 노인: 블록 사람 하나와 앉을 돌
+local function buildElders(root: Instance)
+	local elders = folder(root, "노인")
+	for _, def in ELDERS do
+		local m = model(elders, def.name)
+		local base = def.position
+		local skin = Color3.fromRGB(226, 196, 160)
+		block(
+			m,
+			"Stool",
+			Vector3.new(3, 1.6, 3),
+			CFrame.new(base + Vector3.new(0, 0.8, 0)),
+			C.stone,
+			Enum.Material.Slate
+		)
+		block(
+			m,
+			"Robe",
+			Vector3.new(2.4, 3, 1.6),
+			CFrame.new(base + Vector3.new(0, 3.1, 0)),
+			def.robe,
+			Enum.Material.Fabric
+		)
+		block(m, "Head", Vector3.new(1.4, 1.4, 1.4), CFrame.new(base + Vector3.new(0, 5.3, 0)), skin)
+		block(m, "Beard", Vector3.new(1, 1, 0.4), CFrame.new(base + Vector3.new(0, 4.6, -0.8)), C.snow)
+		block(m, "Hat", Vector3.new(2.6, 0.3, 2.6), CFrame.new(base + Vector3.new(0, 6.1, 0)), C.woodDark)
+		block(
+			m,
+			"Staff",
+			Vector3.new(0.3, 5.5, 0.3),
+			CFrame.new(base + Vector3.new(1.6, 2.8, -0.4)),
+			C.wood,
+			Enum.Material.Wood
+		)
+		siteMarker(m, def.id, base + Vector3.new(0, 3, 0), 7, def.name)
+		sign(m, base + Vector3.new(0, 8.5, 0), def.name, nil, Color3.fromRGB(230, 220, 200))
+	end
+end
+
 -- 사방 성대
 local function buildStarAltars(root: Instance)
 	local altars = folder(root, "성대")
@@ -996,6 +1057,7 @@ function World.build(workspaceRoot: Instance, lighting: Instance): Model
 	buildTribulationAltar(root)
 	buildElementSites(root)
 	buildStarAltars(root)
+	buildElders(root)
 
 	local spots = folder(root, "비급자리")
 	for _, position in MANUAL_SPOTS do

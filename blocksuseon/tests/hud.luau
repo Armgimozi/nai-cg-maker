@@ -384,6 +384,7 @@ for id, case in
 		{ "ring", { hits = 3, band = 1 } },
 		{ "arrange", { band = 1 } },
 		{ "strands", { count = 9, time = 17, speed = 1, band = 1 } },
+		{ "order", { items = { "금단이 맺힌 날", "영근이 깨어난 날", "연국에 처음 온 날" } } },
 	}
 do
 	Hud.openTrial({ id = 10 + id, mode = case[1], seed = 42, params = case[2], title = "내관" })
@@ -507,6 +508,14 @@ for _, name in Clock.PHASE_NAME do
 	need("body", name)
 end
 local Trials = loader.require(sharedFolder.Trials)
+for _, memory in Trials.MEMORIES do
+	need("body", memory)
+end
+need("body", Trials.BIRTH)
+for _, def in Tasks.DOSIM do
+	need("title", def.name)
+	need("body", def.summary)
+end
 for mansion = 1, 4 do
 	for _, name in Tasks.mansionStars(mansion) do
 		need("title", name)

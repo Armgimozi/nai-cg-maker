@@ -36,6 +36,8 @@ export type Task = {
 	after: string?, -- 이 과업이 끝나야 시작할 수 있다
 	optional: boolean?,
 	cost: { [string]: number }?, -- trial: 시작할 때 있어야 하고, 성공하면 쓰는 물건
+	count: number?, -- offer: 자리마다 바칠 개수
+	event: string?, -- counter: 이 일이 일어날 때마다 오른다
 }
 
 export type Progress = {
@@ -52,6 +54,16 @@ Tasks.SKIP_EXTRA = 1.5
 -- 고를 수 있는 것들
 Tasks.CHOICES = {
 	chilsu = { "cheong", "eum", "baek", "yang" },
+	dosim = { "herb", "formation", "alchemy", "astronomy", "sitting" },
+}
+
+-- 천인기 도심: 미쳐 버릴 만큼 몰입할 일. 그 일을 할 때만 광기가 찬다
+Tasks.DOSIM = {
+	herb = { name = "채약", event = "herb", summary = "영초를 캘 때마다 광기가 찬다." },
+	formation = { name = "진법", event = "formation", summary = "취령진 안에서 운기하는 동안 찬다." },
+	alchemy = { name = "연단", event = "craft", summary = "연단로에서 단약을 빚을 때 크게 찬다." },
+	astronomy = { name = "천문", event = "stargaze", summary = "밤하늘 아래 운기하는 동안 찬다." },
+	sitting = { name = "좌관", event = "meditate", summary = "어디서든 운기하는 동안 느리게 찬다." },
 }
 Tasks.CHILSU = {
 	cheong = {
@@ -296,6 +308,7 @@ STEP_TASKS["yeongi:7"] = function(data)
 			label = "제물 바치기 (영초 7)",
 			hint = "천겁대 칠성단에 영초 일곱 뿌리를 바친다(F).",
 			sites = { "altar" },
+			count = 7,
 			max = 1,
 		},
 		{
@@ -652,6 +665,206 @@ STEP_TASKS["gyeoldan:4"] = function(_data)
 		0.6
 end
 
+-- 원영기: 음신(밤), 양신(해돋이), 오악, 일월오악도 ---------------------------------------------
+
+STEP_TASKS["wonyeong:1"] = function(_data)
+	return {
+		{
+			id = "moon",
+			kind = "meditate",
+			label = "여월지긍 (밤, 개울)",
+			hint = "달빛이 물에 비치는 밤, 개울 바닥에서 30초 운기해 음신을 빚는다.",
+			sites = { "down" },
+			seconds = 30,
+			when = "night",
+			max = 1,
+		},
+	},
+		0.6
+end
+
+STEP_TASKS["wonyeong:2"] = function(_data)
+	return {
+		{
+			id = "sunrise",
+			kind = "meditate",
+			label = "여일지승 (새벽, 동쪽 성대)",
+			hint = "해가 떠오르는 새벽, 동쪽 성대에서 15초 운기해 양신을 빚는다. 새벽은 30초뿐이니 미리 가 있는다.",
+			sites = { "star_east" },
+			seconds = 15,
+			when = "dawn",
+			max = 1,
+		},
+	},
+		0.6
+end
+
+STEP_TASKS["wonyeong:3"] = function(data)
+	local own = elementSites(data.root)
+	local missing = {}
+	for _, site in ALL_ELEMENT_SITES do
+		if not table.find(own, site) then
+			table.insert(missing, site)
+		end
+	end
+	return {
+		{
+			id = "center",
+			kind = "choose",
+			key = "center",
+			label = "오악의 중심",
+			hint = "다섯 오악 가운데 중심에 둘 속성을 고른다. 천인기 천기유도가 이 속성을 따른다.",
+			max = 1,
+		},
+		{
+			id = "own",
+			kind = "meditate",
+			label = "오악 세우기 (내 속성)",
+			hint = "내 영근 속성의 오행처에서 15초씩 운기해 정수를 모은다.",
+			sites = own,
+			seconds = 15,
+			max = #own,
+		},
+		{
+			id = "missing",
+			kind = "meditate",
+			label = "오악 세우기 (없는 속성)",
+			hint = "내 영근에 없는 속성은 정수를 얻기 어렵다. 그 오행처에서 40초씩 운기한다.",
+			sites = missing,
+			seconds = 40,
+			max = #missing,
+		},
+	},
+		0.6
+end
+
+STEP_TASKS["wonyeong:4"] = function(_data)
+	return {
+		{
+			id = "ilwol",
+			kind = "trial",
+			mode = "sequence",
+			params = {
+				nodes = 7,
+				lengths = { 5, 6, 7 },
+				labels = { "해", "달", "목악", "화악", "토악", "금악", "수악" },
+			},
+			label = "일월오악도",
+			hint = "해는 왼쪽 위, 달은 오른쪽 위, 오악은 제자리에. 빛나는 순서대로 짚어 일월오악도를 그린다.",
+			skippable = true,
+			max = 1,
+		},
+		{
+			id = "dosim",
+			kind = "choose",
+			key = "dosim",
+			label = "도심 고르기",
+			hint = "미쳐 버릴 만큼 몰입할 일을 고른다. 고르지 않으면 천인기에 들 수 없다.",
+			max = 1,
+		},
+	},
+		0.6
+end
+
+-- 천인기: 원영이 사계를 따라 늙는다. 도심에 몰입해 광기를 채운다 ---------------------------------------
+
+local function madness(data, target: number): Task
+	local dosim = data.choice and data.choice.dosim
+	local def = Tasks.DOSIM[dosim or "sitting"]
+	return {
+		id = "madness",
+		kind = "counter",
+		event = def.event,
+		label = string.format("광기 (%s)", def.name),
+		hint = string.format("도심에 몰입한다. %s", def.summary),
+		max = target,
+	}
+end
+
+STEP_TASKS["cheonin:1"] = function(data)
+	return {
+		madness(data, 120),
+		{
+			id = "spring",
+			kind = "meditate",
+			label = "봄 (목 오행처, 낮)",
+			hint = "새싹이 돋는 봄의 기운을 받는다. 낮에 영초숲 고목에서 30초 운기한다.",
+			sites = { "el_wood" },
+			seconds = 30,
+			when = "day",
+			max = 1,
+		},
+	},
+		0.6
+end
+
+STEP_TASKS["cheonin:2"] = function(data)
+	return {
+		madness(data, 150),
+		{
+			id = "summer",
+			kind = "meditate",
+			label = "여름 (화 오행처, 낮)",
+			hint = "한낮의 뜨거운 기운을 받는다. 낮에 대장간 화덕에서 40초 운기한다.",
+			sites = { "el_fire" },
+			seconds = 40,
+			when = "day",
+			max = 1,
+		},
+	},
+		0.6
+end
+
+STEP_TASKS["cheonin:3"] = function(data)
+	return {
+		madness(data, 180),
+		{
+			id = "elders",
+			kind = "offer",
+			item = "herb",
+			count = 2,
+			label = "노인들의 마지막 부탁",
+			hint = "마을 노인 셋에게 영초를 두 뿌리씩 건네고(F) 마지막 이야기를 듣는다.",
+			sites = { "elder_1", "elder_2", "elder_3" },
+			max = 3,
+		},
+		{
+			id = "letgo",
+			kind = "offer",
+			item = "lingzhi",
+			count = 1,
+			label = "종심 (내려놓기)",
+			hint = "아끼던 천년영지 하나를 칠성단에 내려놓는다(F).",
+			sites = { "altar" },
+			max = 1,
+			after = "elders",
+		},
+	},
+		0.6
+end
+
+STEP_TASKS["cheonin:4"] = function(data)
+	local season = function(id: string, when: string, label: string): Task
+		return {
+			id = id,
+			kind = "meditate",
+			label = label,
+			hint = "사계를 한 바퀴 돈다. 그때가 오면 어디서든 15초 운기한다.",
+			seconds = 15,
+			when = when,
+			max = 15,
+		}
+	end
+	return {
+		madness(data, 200),
+		season("cycle_day", "day", "한낮"),
+		season("cycle_dusk", "dusk", "해질녘"),
+		season("cycle_night", "night", "한밤"),
+		season("cycle_dawn", "dawn", "새벽"),
+	},
+		0.6
+end
+
 local function keyFor(step: number): string
 	local s = Realms.get(step)
 	return s.realm.id .. ":" .. s.subIndex
@@ -659,7 +872,7 @@ end
 
 -- 과업을 실제로 켠 마지막 단계. 그 뒤 단계는 아직 예전처럼 영력만으로 오른다.
 -- 경지별 과업을 하나씩 내보낼 때마다 늘린다.
-Tasks.LIVE_UNTIL = 48 -- 결단기 천상열차분야까지
+Tasks.LIVE_UNTIL = 56 -- 천인기 천원까지 (수계 전부)
 
 function Tasks.isLive(step: number): boolean
 	return step <= Tasks.LIVE_UNTIL
