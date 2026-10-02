@@ -274,12 +274,24 @@ function TaskService.startTask(player: Player, id: any)
 		Sync.notify(player, "앞의 과업부터 끝내야 한다.", "bad")
 		return
 	end
-	if session.trial or session.tribulation then
+	if session.trial or session.tribulation or session.ritual then
 		Sync.notify(player, "지금은 내관할 수 없다.", "bad")
 		return
 	end
 	if not Characters.humanoid(player) then
 		return
+	end
+	for item, count in task.cost or {} do
+		if Progression.itemCount(data, item) < count then
+			Sync.notify(
+				player,
+				if item == "starSeed"
+					then "별씨가 없다. 밤에 내리는 영성우에서 별씨를 줍는다."
+					else string.format("%s 모자라다.", Josa.i(Balance.ITEMS[item].name)),
+				"bad"
+			)
+			return
+		end
 	end
 	TaskService.setMeditating(player, true)
 	if not session.meditating then
@@ -338,6 +350,10 @@ function TaskService.trialResult(player: Player, payload: any)
 	local task = trial.taskId and Tasks.find(data, trial.taskId)
 	if not task then
 		return
+	end
+	if success and task.cost and not Progression.takeItems(data, task.cost) then
+		Sync.notify(player, "쓸 물건이 주머니에 없다.", "bad")
+		success = false
 	end
 	if success then
 		Tasks.set(data, task.id, task.max)
@@ -434,7 +450,8 @@ local function useAltar(player: Player, data, part: BasePart)
 	end
 	local rite = findTask(data, "ritual")
 	if rite then
-		Ritual.start(player, part.Position, function(success, caught)
+		local anyNight = rite.params ~= nil and rite.params.anyNight == true
+		Ritual.start(player, part.Position, anyNight, function(success, caught)
 			local current = PlayerData.get(player)
 			if not current or current.step ~= data.step then
 				return
@@ -467,7 +484,7 @@ local function useAltar(player: Player, data, part: BasePart)
 		end)
 		return
 	end
-	Sync.notify(player, "칠성단이다. 연기기 7성 칠성제의에서 쓴다.", "info")
+	Sync.notify(player, "칠성단이다. 칠성제의와 결단기 제의에서 쓴다.", "info")
 end
 
 local function useFurnace(player: Player, data, session)

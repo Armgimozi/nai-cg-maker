@@ -27,6 +27,7 @@ export type Tribulation = {
 export type Entry = {
 	kind: "plain" | "trial" | "tribulation",
 	mode: string?, -- trial 의 미니게임 방식
+	params: { [string]: any }?, -- trial 의 미니게임 조건
 	title: string?, -- 돌파 버튼 이름
 }
 
@@ -150,7 +151,12 @@ Realms.list = {
 		tier = "소경계",
 		subs = { "천시원", "태미원", "자미원", "천상열차분야" },
 		hpMult = 2.0,
-		entry = { kind = "plain", title = "금단 맺기" },
+		entry = {
+			kind = "trial",
+			mode = "balance",
+			params = { bars = 3, target = 25, labels = { "천", "지", "인" } },
+			title = "금단 응결",
+		},
 		blurb = "스물여덟 별로 하늘을 그려 금단을 맺는다.",
 	},
 	{

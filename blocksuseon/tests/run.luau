@@ -213,14 +213,33 @@ check("과업이 남으면 영력이 차도 오르지 않는다", function()
 	eq(data.prog.step, YEONGI + 1, "새 단계는 진행을 비운다")
 	eq(Tasks.allDone(data), false, "2성 과업이 새로 생긴다")
 end)
-check("과업 없는 단계는 영력만으로 오르고 병목에서 멈춘다", function()
+check("축기기는 별마다 과업을 채우며 진수성까지 오르고 병목에서 멈춘다", function()
 	local data = Progression.newData()
 	data.root = Roots.make({ "wood" })
 	data.choice.chilsu = "cheong"
 	data.step = CHUKGI
-	Progression.addQi(data, 1e15)
+	for _ = 1, 40 do
+		fill(data)
+		Progression.addQi(data, 1e15)
+	end
 	eq(data.step, 44, "축기기 진수성에서 멈춤")
+	fill(data)
 	eq(Progression.isCapped(data), true)
+	eq(Progression.attemptBreakthrough(data).kind, "trial", "금단 응결")
+end)
+check("제사한 칠수의 수에서는 별씨가 덜 든다", function()
+	local data = Progression.newData()
+	data.root = Roots.make({ "wood" })
+	data.choice.chilsu = "cheong"
+	data.step = CHUKGI + 1 -- 1수 두 번째 별
+	eq(Tasks.find(data, "condense").cost, nil, "청존칠수는 1수 짝수 별에 별씨가 안 든다")
+	local favored = Progression.requiredQi(data)
+	data.choice.chilsu = "yang"
+	assert(Tasks.find(data, "condense").cost.starSeed == 1)
+	assert(Progression.requiredQi(data) > favored, "제사한 수는 영력도 덜 든다")
+	data.step = CHUKGI + 6
+	eq(Tasks.find(data, "seat").sites[1], "star_east", "1수 마지막 별은 동쪽 성대")
+	eq(Tasks.find(data, "constellation").params.labels[1], "각")
 end)
 check("범인부터 단수기까지", function()
 	local data = Progression.newData()
@@ -309,9 +328,15 @@ check("결단기까지는 천겁이 없고 원영기 진입은 천겁", function
 	data.root = Roots.make({ "wood" })
 	data.choice.chilsu = "cheong"
 	data.step = 44
+	fill(data)
 	data.qi = Progression.requiredQi(data)
-	eq(Progression.attemptBreakthrough(data).kind, "success", "결단기")
+	eq(Progression.attemptBreakthrough(data).kind, "trial", "결단기는 금단 응결")
+	for step = 17, 44 do
+		data.step = step
+		eq(Realms.tribulationAfter(step), nil, "축기기 천겁 없음")
+	end
 	data.step = 48
+	fill(data)
 	data.qi = Progression.requiredQi(data)
 	eq(Progression.attemptBreakthrough(data).kind, "tribulation", "원영기")
 	eq(data.step, 48, "천겁 시작만으로는 오르지 않는다")
@@ -428,9 +453,10 @@ check("공법 효과", function()
 	assert(Progression.qiPerSecond(data, 1, 2) > Progression.qiPerSecond(data, 1) * 1.99, "취령진 배율")
 	assert(Progression.maxHealth(data) > baseHp * 1.39, "금강체")
 	assert(Progression.herbQi(data, "herb") > baseHerb * 1.59, "백초경")
-	eq(Progression.tribulationDamage(data, 100), 100, "피뢰결 안 끼면 그대로")
+	eq(Progression.pureForce(data), 4, "결단기는 네 수를 모두 완성했다")
+	eq(Progression.tribulationDamage(data, 100), 80, "정순지력 -20%")
 	data.equipped = { "piroe", "cheongi", "cheongsim" }
-	eq(Progression.tribulationDamage(data, 100), 70, "피뢰결")
+	eq(math.round(Progression.tribulationDamage(data, 100)), 56, "피뢰결 -30%, 정순지력 -20%")
 	eq(Progression.telegraphTime(data, 1), 1.4, "천기감응")
 	eq(Progression.trialBand(data), 1.2, "청심결 판정 폭")
 end)

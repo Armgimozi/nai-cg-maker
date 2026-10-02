@@ -50,8 +50,13 @@ Balance.ITEMS = {
 	lingzhi = { name = "천년영지", qi = 1.5 },
 	hongsam = { name = "홍령삼" },
 	pill = { name = "축기단" },
+	starSeed = { name = "별씨" },
 }
-Balance.ITEM_ORDER = { "herb", "lingzhi", "hongsam", "pill" }
+Balance.ITEM_ORDER = { "herb", "lingzhi", "hongsam", "pill", "starSeed" }
+
+-- 정순지력: 축기기에서 수(宿)를 하나 완성할 때마다 오르는 몸의 단단함
+Balance.PURE_FORCE_HP = 0.05 -- 수마다 최대 체력 +
+Balance.PURE_FORCE_GUARD = 0.05 -- 수마다 천겁 피해 -
 
 -- 축기단 연단 재료
 Balance.PILL_RECIPE = { herb = 6, lingzhi = 1 }

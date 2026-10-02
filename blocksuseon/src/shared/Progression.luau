@@ -393,6 +393,18 @@ local function enterStep(data: Data): { string }
 			"십이지율을 닦으려면 진법을 펼쳐 봐야 한다. 취령진 기초본을 익혔다."
 		)
 	end
+	if data.step == Realms.firstStepById.gyeoldan and data.skills.gyeongsin then
+		table.insert(
+			notes,
+			"금단이 맺히자 경신술이 비둔술로 바뀌었다. 빛줄기처럼 더 멀리 난다."
+		)
+	end
+	if data.step == Realms.firstStepById.gyeoldan + 3 then
+		table.insert(
+			notes,
+			"자미원을 새겼다. 이제 쓰러져도 금단이 몸을 다시 빚는다(10분에 한 번)."
+		)
+	end
 	return notes
 end
 
@@ -628,6 +640,9 @@ function Progression.eat(data: Data, id: any): EatResult
 	if id == "pill" then
 		return { ok = false, message = "축기단은 무극영운을 시작할 때 저절로 먹는다." }
 	end
+	if id == "starSeed" then
+		return { ok = false, message = "별씨는 먹는 것이 아니라 단전에 별로 응결한다." }
+	end
 	if id == "hongsam" then
 		if data.step >= Realms.firstStepById.gyeoldan then
 			return { ok = false, message = "결단기에 이른 몸은 홍령삼으로 바뀌지 않는다." }
@@ -694,13 +709,22 @@ function Progression.trialBand(data: Data): number
 	return Roots.band(data.root) * mult
 end
 
+-- 정순지력: 축기기에서 완성한 수(宿)의 수 (0~4)
+function Progression.pureForce(data: Data): number
+	local first = Realms.firstStepById.chukgi
+	return math.clamp((data.step - first) // 7, 0, 4)
+end
+
 function Progression.maxHealth(data: Data): number
 	local mult = if Progression.passive(data, "geumgang") then 1 + EFFECT.geumgang else 1
+	mult *= 1 + Balance.PURE_FORCE_HP * Progression.pureForce(data)
 	return math.floor(Balance.maxHealth(data.step) * mult)
 end
 
 function Progression.tribulationDamage(data: Data, damage: number): number
-	return if Progression.passive(data, "piroe") then damage * (1 - EFFECT.piroe) else damage
+	local mult = if Progression.passive(data, "piroe") then 1 - EFFECT.piroe else 1
+	mult *= 1 - Balance.PURE_FORCE_GUARD * Progression.pureForce(data)
+	return damage * mult
 end
 
 function Progression.telegraphTime(data: Data, baseTime: number): number

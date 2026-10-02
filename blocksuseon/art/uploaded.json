@@ -76,16 +76,16 @@
     "assetId": "83569591119407"
   },
   "glyphs_body_0.png": {
-    "sha256": "799b1ff7eef565b1a0082fa07539d6440f48325fdd64da7e63c17349430f04ae",
-    "assetId": "85468954056473"
+    "sha256": "d53e86bdde6e3ca6d35853738507cb0748480ab9bc36385d98d37eb9351a7f96",
+    "assetId": "120131292412026"
   },
   "glyphs_title_0.png": {
-    "sha256": "10a9d039bdb11927b2ed675e8b95b678e8a54c23e2d59052b0ee529706a27d62",
-    "assetId": "104716636730570"
+    "sha256": "3055701441aae2414a5d20081239d4ce2d8dae90a3d73dc594e61d3cfc3d3c61",
+    "assetId": "111229017079869"
   },
   "glyphs_title_1.png": {
-    "sha256": "74222a14707e88d0347cecb9f3b2ef8f862730e7f50b8a1f6e72343565d7e4f8",
-    "assetId": "122253042572493"
+    "sha256": "fc30aaf7ef631b605ec63163693bd5de30a438dc9b4a54e329c56c720134a9a0",
+    "assetId": "132344575724365"
   },
   "slot.png": {
     "sha256": "f9540ca98dca50ec4b6cbeafa7e9a4861f97529f0f20f16b79ca9bce5238e704",
@@ -136,11 +136,11 @@
     "assetId": "115133593895137"
   },
   "glyphs_body_1.png": {
-    "sha256": "82d7069313a9ee2d34fc89b6294d09bca2f61e9e0f977e149d23f97e0a019181",
-    "assetId": "109714195837219"
+    "sha256": "67a0141868439e07009bdf3d4a52cf4287726c2e0f7863926efef0d8554c11f1",
+    "assetId": "119861612737620"
   },
   "glyphs_title_2.png": {
-    "sha256": "370c2acc89b2ec5d5727275c0419b45c0ba2d33c1237252fc67372a9bdbafb9b",
-    "assetId": "90776474588093"
+    "sha256": "fce8cc31c559b0e6d2a2cce0e3817a8de1d87a94bb3e469551a99bce9dcb0758",
+    "assetId": "128147928629015"
   }
 }

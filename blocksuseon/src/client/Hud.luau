@@ -997,9 +997,11 @@ local function updateHotbar(state)
 	end
 end
 
-local function taskProgress(job): string
+local function taskProgress(job, items): string
 	if job.done then
 		return "끝"
+	elseif job.cost and job.cost.starSeed then
+		return string.format("별씨 %d", items.starSeed or 0)
 	elseif job.kind == "meditate" and not job.sites then
 		return string.format("%d / %d초", math.floor(job.value), job.max)
 	elseif job.max > 1 then
@@ -1021,7 +1023,7 @@ local function updateTasks(state)
 		entry.labelText = job.label
 		entry.label:set(job.label)
 		entry.label:setColor(if job.done then C.dim elseif job.open then C.cream else C.dim)
-		entry.progress:set(taskProgress(job))
+		entry.progress:set(taskProgress(job, state.items or {}))
 		entry.progress:setColor(if job.done then C.jade else C.dim)
 		entry.bullet.ImageColor3 = if job.done
 			then Color3.fromRGB(255, 220, 140)

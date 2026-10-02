@@ -35,6 +35,7 @@ export type Task = {
 	skippable: boolean?,
 	after: string?, -- 이 과업이 끝나야 시작할 수 있다
 	optional: boolean?,
+	cost: { [string]: number }?, -- trial: 시작할 때 있어야 하고, 성공하면 쓰는 물건
 }
 
 export type Progress = {
@@ -448,6 +449,209 @@ STEP_TASKS["yeongi:14"] = function(_data)
 		0.6
 end
 
+-- 축기기: 스물여덟 별, 일곱씩 네 수(宿). 수의 마지막 별은 그 방위 성대에서 밤에 맺는다
+Tasks.MANSIONS = {
+	{ name = "1수", chilsu = "cheong", site = "star_east", dir = "동쪽" },
+	{ name = "2수", chilsu = "eum", site = "star_north", dir = "북쪽" },
+	{ name = "3수", chilsu = "baek", site = "star_west", dir = "서쪽" },
+	{ name = "4수", chilsu = "yang", site = "star_south", dir = "남쪽" },
+}
+local STAR_SITES = { "star_east", "star_north", "star_west", "star_south" }
+
+local function starName(index: number): string
+	return Realms.CHUKGI_SUBS[index]
+end
+
+local function mansionStars(mansion: number): { string }
+	local names = {}
+	for i = 1, 7 do
+		-- "각수성" → "각"
+		names[i] = utf8.char(utf8.codepoint(starName((mansion - 1) * 7 + i), 1))
+	end
+	return names
+end
+Tasks.mansionStars = mansionStars
+
+for star = 1, 28 do
+	STEP_TASKS["chukgi:" .. star] = function(data)
+		local mansion = (star - 1) // 7 + 1
+		local inMansion = (star - 1) % 7 + 1
+		local def = Tasks.MANSIONS[mansion]
+		local favored = data.choice and data.choice.chilsu == def.chilsu
+		-- 제사한 칠수의 수에서는 별씨 하나로 별 둘을 맺는다
+		local needsSeed = not favored or inMansion % 2 == 1
+		local name = starName(star)
+		local tasks: { Task } = {
+			{
+				id = "condense",
+				kind = "trial",
+				mode = "ring",
+				params = { hits = if mansion >= 3 then 3 else 2 },
+				label = string.format("%s 응결", name),
+				hint = if needsSeed
+					then "밤에 내리는 영성우에서 별씨를 주워, 운기하며 별씨가 단전의 점에 겹칠 때 응결한다."
+					else "제사한 칠수의 힘으로 별씨 없이 별을 하나 더 맺는다. 운기하며 응결한다.",
+				cost = if needsSeed then { starSeed = 1 } else nil,
+				max = 1,
+			},
+		}
+		if inMansion == 7 then
+			table.insert(tasks, {
+				id = "seat",
+				kind = "meditate",
+				label = string.format("%s 성대에서 맺기 (밤)", def.dir),
+				hint = string.format(
+					"%s의 마지막 별은 %s 성대에서 밤에 20초 운기해 자리를 잡는다.",
+					def.name,
+					def.dir
+				),
+				sites = { def.site },
+				seconds = 20,
+				when = "night",
+				max = 1,
+			})
+			table.insert(tasks, {
+				id = "constellation",
+				kind = "trial",
+				mode = "sequence",
+				params = { nodes = 7, lengths = { 7 }, labels = mansionStars(mansion), ordered = true },
+				label = string.format("%s 별자리 긋기", def.name),
+				hint = "단전 하늘의 일곱 별을 맺은 순서대로 이어 별자리를 긋는다.",
+				skippable = true,
+				max = 1,
+				after = "seat",
+			})
+		end
+		if star == 28 then
+			table.insert(tasks, {
+				id = "rejesa",
+				kind = "meditate",
+				label = "재제의",
+				hint = "사방 성대 네 곳을 돌며 15초씩 운기해 수마다 천기를 깃들인다.",
+				sites = STAR_SITES,
+				seconds = 15,
+				max = 4,
+			})
+			table.insert(tasks, {
+				id = "cheongu",
+				kind = "trial",
+				mode = "sequence",
+				params = {
+					nodes = 4,
+					lengths = { 4, 4, 4, 4 },
+					labels = { "1수", "2수", "3수", "4수" },
+				},
+				label = "천구도",
+				hint = "스물여덟 별을 사방 별자리대로 이어 하늘의 그림을 완성한다.",
+				skippable = true,
+				max = 1,
+				after = "rejesa",
+			})
+		end
+		local mult = 0.6
+		if favored then
+			mult *= 0.5
+		elseif mansion >= 3 then
+			mult *= 1.5 -- 3·4수는 후반기 고비
+		end
+		return tasks, mult
+	end
+end
+
+-- 결단기: 금단에 3원(천시원·태미원·자미원)과 천상열차분야를 새긴다
+STEP_TASKS["gyeoldan:1"] = function(_data)
+	return {
+		{
+			id = "market",
+			kind = "meditate",
+			label = "천시원 (광장)",
+			hint = "천시원은 하늘의 저잣거리다. 사람이 오가는 마을 광장 영맥에서 40초 운기한다.",
+			sites = { "plaza" },
+			seconds = 40,
+			max = 1,
+		},
+		{
+			id = "veins",
+			kind = "trial",
+			mode = "ring",
+			params = { hits = 4 },
+			label = "기혈 정돈",
+			hint = "금단에서 흘러나오는 기혈을 한 점에 네 번 잇달아 모은다.",
+			skippable = true,
+			max = 1,
+		},
+	},
+		0.6
+end
+
+STEP_TASKS["gyeoldan:2"] = function(_data)
+	return {
+		{
+			id = "taemi_day",
+			kind = "meditate",
+			label = "태미원 낮 제의",
+			hint = "칠성단에서 낮에 20초 운기한다.",
+			sites = { "altar" },
+			seconds = 20,
+			when = "day",
+			max = 1,
+		},
+		{
+			id = "taemi_night",
+			kind = "meditate",
+			label = "태미원 밤 제의",
+			hint = "칠성단에서 밤에 20초 운기한다.",
+			sites = { "altar" },
+			seconds = 20,
+			when = "night",
+			max = 1,
+		},
+	},
+		0.6
+end
+
+STEP_TASKS["gyeoldan:3"] = function(_data)
+	return {
+		{
+			id = "jami_seat",
+			kind = "meditate",
+			label = "자미원 (영산 꼭대기, 밤)",
+			hint = "북극성을 둘러싼 자미원을 그린다. 밤에 영산 꼭대기에서 30초 운기한다.",
+			sites = { "up" },
+			seconds = 30,
+			when = "night",
+			max = 1,
+		},
+		{
+			id = "jami_link",
+			kind = "trial",
+			mode = "sequence",
+			params = { nodes = 9, lengths = { 5, 6, 7 }, style = "dots" },
+			label = "자미원 별 잇기",
+			hint = "북극성을 감싸는 별들을 빛나는 순서대로 잇는다.",
+			skippable = true,
+			max = 1,
+			after = "jami_seat",
+		},
+	},
+		0.6
+end
+
+STEP_TASKS["gyeoldan:4"] = function(_data)
+	return {
+		{
+			id = "cheonsang",
+			kind = "ritual",
+			label = "천상열차분야 제의 (밤)",
+			hint = "3원이 모두 뜨는 밤에 칠성단에서 제의를 올리고 푸른 원으로 별빛을 받는다.",
+			sites = { "altar" },
+			params = { anyNight = true },
+			max = 1,
+		},
+	},
+		0.6
+end
+
 local function keyFor(step: number): string
 	local s = Realms.get(step)
 	return s.realm.id .. ":" .. s.subIndex
@@ -455,7 +659,7 @@ end
 
 -- 과업을 실제로 켠 마지막 단계. 그 뒤 단계는 아직 예전처럼 영력만으로 오른다.
 -- 경지별 과업을 하나씩 내보낼 때마다 늘린다.
-Tasks.LIVE_UNTIL = 16 -- 연기기 14성까지
+Tasks.LIVE_UNTIL = 48 -- 결단기 천상열차분야까지
 
 function Tasks.isLive(step: number): boolean
 	return step <= Tasks.LIVE_UNTIL
@@ -627,6 +831,7 @@ function Tasks.snapshot(data: any): { { [string]: any } }
 				else nil,
 			when = task.when,
 			seconds = task.seconds,
+			cost = task.cost,
 		})
 	end
 	return out

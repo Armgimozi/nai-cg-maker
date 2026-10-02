@@ -6,6 +6,7 @@ local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 
 local Skills = require(Shared.Skills)
 local Progression = require(Shared.Progression)
+local Realms = require(Shared.Realms)
 local PlayerData = require(script.Parent.PlayerData)
 local Session = require(script.Parent.Session)
 local Sync = require(script.Parent.Sync)
@@ -48,7 +49,9 @@ function SkillService.use(player: Player, id: string)
 		Sync.markDirty(player)
 	end
 
-	Sync.remotes.Skill:FireClient(player, { id = id, cooldown = def.cooldown, duration = def.duration })
+	-- 결단기부터 경신술은 비둔술: 빛줄기로 더 멀리, 조금 떠서 난다
+	local power = if id == "gyeongsin" and data.step >= Realms.firstStepById.gyeoldan then 1.6 else 1
+	Sync.remotes.Skill:FireClient(player, { id = id, cooldown = def.cooldown, duration = def.duration, power = power })
 end
 
 function SkillService.setEquipped(player: Player, id: string, equip: boolean)

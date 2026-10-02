@@ -130,7 +130,7 @@ function Trials.generate(mode: string, seed: number, params: { [string]: any }):
 		local nodes = params.nodes or 9
 		local rounds = {}
 		local labels = nil
-		if params.style == "cheongang" then
+		if params.style == "cheongang" or params.labels then
 			labels = {}
 		end
 		for round, length in params.lengths do
@@ -141,10 +141,13 @@ function Trials.generate(mode: string, seed: number, params: { [string]: any }):
 				if i > 1 and node == sequence[i - 1] then
 					node = node % nodes + 1
 				end
-				sequence[i] = node
+				-- 별자리 잇기는 정해진 순서대로
+				sequence[i] = if params.ordered then i else node
 			end
 			rounds[round] = sequence
-			if labels then
+			if params.labels then
+				labels[round] = params.labels
+			elseif labels then
 				-- 천강 서른여섯을 아홉씩 네 번에 나눠 쓴다
 				local names = {}
 				for n = 1, nodes do

@@ -19,8 +19,10 @@ local Manuals = require(script.Parent.Manuals)
 local SkillService = require(script.Parent.SkillService)
 local TaskService = require(script.Parent.TaskService)
 local DayNight = require(script.Parent.DayNight)
+local StarRain = require(script.Parent.StarRain)
 
 local RESPAWN_DELAY = 4
+local REGEN_COOLDOWN = 600 -- 금단 재생: 10분에 한 번 쓰러진 자리에서 일어난다
 local REQUEST_INTERVAL = 0.12
 
 -- 데이터를 다 불러온 뒤에 캐릭터를 내보낸다
@@ -33,6 +35,7 @@ end
 DayNight.start()
 TaskService.setupPrompts()
 Herbs.start()
+StarRain.start()
 Manuals.start()
 PlayerData.startAutosave()
 
@@ -50,9 +53,31 @@ local function onCharacterAdded(player: Player, character: Model)
 		TaskService.cancelTrial(player)
 		Tribulation.fail(player)
 		Sync.markDirty(player)
-		task.delay(RESPAWN_DELAY, function()
-			if player.Parent then
-				player:LoadCharacter()
+
+		local data = PlayerData.get(player)
+		local root = Characters.root(player)
+		local deathPosition = root and root.Position
+		local regen = data ~= nil
+			and session ~= nil
+			and deathPosition ~= nil
+			and data.step >= Realms.firstStepById.gyeoldan + 3
+			and os.clock() - session.lastRegen >= REGEN_COOLDOWN
+		task.delay(if regen then 2 else RESPAWN_DELAY, function()
+			if not player.Parent then
+				return
+			end
+			player:LoadCharacter()
+			if regen and session and deathPosition then
+				session.lastRegen = os.clock()
+				local newRoot = player.Character and player.Character:WaitForChild("HumanoidRootPart", 5)
+				if newRoot and newRoot:IsA("BasePart") then
+					newRoot.CFrame = CFrame.new(deathPosition + Vector3.new(0, 3, 0))
+				end
+				Sync.notify(
+					player,
+					"금단이 몸을 다시 빚었다. 쓰러진 자리에서 일어난다. (10분에 한 번)",
+					"good"
+				)
 			end
 		end)
 	end)

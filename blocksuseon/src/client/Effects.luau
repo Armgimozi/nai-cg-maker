@@ -9,14 +9,16 @@ local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 
 local Skills = require(Shared.Skills)
 
-local SIGHT_FOLDERS = { "영초", "비급" }
+local SIGHT_FOLDERS = { "영초", "비급", "별씨" }
 local SIGHT_COLOR = Color3.fromRGB(150, 236, 205)
 
 local Effects = {}
 
 local player = Players.LocalPlayer
 
-function Effects.dash()
+-- power: 결단기 비둔술이면 1보다 크다
+function Effects.dash(power: number?)
+	local strength = power or 1
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
@@ -41,7 +43,7 @@ function Effects.dash()
 	push.MaxForce = math.huge
 	push.RelativeTo = Enum.ActuatorRelativeTo.World
 	push.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
-	push.VectorVelocity = direction * Skills.EFFECT.dashSpeed + Vector3.new(0, 6, 0)
+	push.VectorVelocity = direction * Skills.EFFECT.dashSpeed * strength + Vector3.new(0, 6 + (strength - 1) * 30, 0)
 	push.Parent = root
 	Debris:AddItem(push, Skills.EFFECT.dashTime)
 	Debris:AddItem(attachment, Skills.EFFECT.dashTime)

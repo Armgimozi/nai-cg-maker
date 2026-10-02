@@ -32,6 +32,7 @@ export type Session = {
 	trial: Trial?, -- 진행 중인 내관
 	trialCount: number,
 	ritual: boolean, -- 칠성제의 중
+	lastRegen: number, -- 금단 재생을 쓴 os.clock()
 	dirty: boolean,
 }
 
@@ -55,6 +56,7 @@ function Session.start(player: Player): Session
 		trial = nil,
 		trialCount = 0,
 		ritual = false,
+		lastRegen = -math.huge,
 		dirty = true,
 	}
 	sessions[player] = session

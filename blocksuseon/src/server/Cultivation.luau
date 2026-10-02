@@ -262,7 +262,8 @@ local function startEntryTrial(player: Player, data, mode: string, title: string
 			speed = if pill then 0.6 else 1,
 		})
 	else
-		TaskService.startEntry(player, mode, title, {})
+		local entry = Progression.nextEntry(data)
+		TaskService.startEntry(player, mode, title, if entry and entry.params then entry.params else {})
 	end
 end
 
@@ -275,9 +276,12 @@ TaskService.onEntryTrial = function(player: Player, success: boolean)
 		local slotsBefore = Progression.slots(data)
 		local notes = Progression.passBreakthrough(data, false)
 		Progression.addLog(data, "entry_" .. Realms.get(data.step).realm.id)
+		local realmId = Realms.get(data.step).realm.id
 		Sync.notify(
 			player,
-			"단전이 터지며 영운이 피어났다. 그 안에 첫 영성이 태어난다!",
+			if realmId == "chukgi"
+				then "단전이 터지며 영운이 피어났다. 그 안에 첫 영성이 태어난다!"
+				else "스물여덟 별이 한데 엉겨 금단이 맺혔다!",
 			"good"
 		)
 		ascended(player, data, slotsBefore, notes)
@@ -286,7 +290,7 @@ TaskService.onEntryTrial = function(player: Player, success: boolean)
 		Sync.notify(
 			player,
 			string.format(
-				"가닥을 다 붙잡지 못해 수행이 흔들렸다. 영력 %s 잃었다.",
+				"돌파하지 못하고 수행이 흔들렸다. 영력 %s 잃었다.",
 				Josa.eul(Format.qi(lost))
 			),
 			"bad"

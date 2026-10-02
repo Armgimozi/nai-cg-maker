@@ -8,6 +8,7 @@ local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 
 local Net = require(Shared.Net)
 local Progression = require(Shared.Progression)
+local Realms = require(Shared.Realms)
 local Hud = require(script.Parent.Hud)
 local Effects = require(script.Parent.Effects)
 
@@ -71,6 +72,8 @@ Hud.build(actions)
 local function promptUse(site: string, snapshot): string?
 	if site == "furnace" then
 		return "축기단 빚기"
+	elseif site == "starseed" then
+		return if Realms.get(snapshot.step).realm.id == "chukgi" then "별씨 줍기" else nil
 	end
 	for _, job in snapshot.tasks or {} do
 		if job.open and not job.done then
@@ -114,7 +117,7 @@ remotes.Trial.OnClientEvent:Connect(Hud.openTrial)
 remotes.Skill.OnClientEvent:Connect(function(payload)
 	Hud.skillUsed(payload)
 	if payload.id == "gyeongsin" then
-		Effects.dash()
+		Effects.dash(payload.power)
 	elseif payload.id == "yeongan" then
 		Effects.sight(payload.duration or 10)
 	end

@@ -36,15 +36,26 @@ function Ritual.inWindow(data): (boolean, number)
 	return Clock.sigunState(DayNight.time(), chilsu, Roots.window(data.root))
 end
 
--- onDone(success, caught)
-function Ritual.start(player: Player, altar: Vector3, onDone: (boolean, number) -> ())
+-- anyNight 면 칠수 시운이 아니라 밤이면 언제든 (결단기 천상열차분야). onDone(success, caught)
+function Ritual.start(player: Player, altar: Vector3, anyNight: boolean, onDone: (boolean, number) -> ())
 	local data = PlayerData.get(player)
 	local session = Session.get(player)
 	if not data or not session or session.ritual or session.tribulation or session.trial then
 		return
 	end
+	if anyNight and DayNight.phase() ~= "night" then
+		Sync.notify(
+			player,
+			string.format(
+				"3원은 밤에만 하늘에 뜬다. 밤까지 %s 남았다.",
+				Clock.format(Clock.untilPhase(DayNight.time(), "night"))
+			),
+			"bad"
+		)
+		return
+	end
 	local inside, wait = Ritual.inWindow(data)
-	if not inside then
+	if not anyNight and not inside then
 		local name = Tasks.CHILSU[data.choice.chilsu or "cheong"].name
 		Sync.notify(
 			player,

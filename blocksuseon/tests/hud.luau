@@ -507,6 +507,14 @@ for _, name in Clock.PHASE_NAME do
 	need("body", name)
 end
 local Trials = loader.require(sharedFolder.Trials)
+for mansion = 1, 4 do
+	for _, name in Tasks.mansionStars(mansion) do
+		need("title", name)
+	end
+	need("title", Tasks.MANSIONS[mansion].name)
+end
+need("title", "천지인")
+need("body", "별씨 12")
 for _, name in Trials.CHEONGANG do
 	need("title", name)
 end
