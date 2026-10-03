@@ -14,6 +14,7 @@ local Hud = require(script.Parent.Hud)
 local Effects = require(script.Parent.Effects)
 local NpcLook = require(script.Parent.NpcLook)
 local Plaques = require(script.Parent.Plaques)
+local MobAnimator = require(script.Parent.MobAnimator)
 
 local player = Players.LocalPlayer
 local remotes = Net.get()
@@ -146,6 +147,7 @@ remotes.Speak.OnClientEvent:Connect(function(part: BasePart, text: string)
 end)
 NpcLook.start()
 Plaques.start()
+MobAnimator.start()
 
 -- 전송진: F 를 누르면 갈 곳 고르는 창을 연다. 진에서 멀어지면 닫는다
 local travelPad: BasePart? = nil

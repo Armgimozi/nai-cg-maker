@@ -29,6 +29,8 @@ export type Mob = {
 	color: { number }, -- 맞았을 때 번쩍이는 빛
 	asset: number?, -- Meshy 모델 에셋 id (InsertService)
 	assetSize: number?, -- 모델 가장 긴 변을 이 길이로 맞춘다
+	anim: string?, -- 움직임 꼴: quad(네 발) serpent bird biped crawler (client/MobAnimator.luau)
+	fly: boolean?, -- 땅에서 떠서 난다
 	parts: { Part },
 }
 
@@ -331,6 +333,29 @@ function Mobs.pick(placeId: string, tier: number, roll: number): Mob?
 	end
 	local from = if #liked > 0 then liked else pool
 	return from[math.clamp(math.floor(roll * #from) + 1, 1, #from)]
+end
+
+-- Meshy 로 만든 모델 (tools/meshy/specs.json → manifest.json). size 는 가장 긴 변(스터드)
+local MESH = {
+	ashwolf = { asset = 100330875981043, size = 6.5, anim = "quad" },
+	thornboar = { asset = 108172341813179, size = 6.5, anim = "quad" },
+	bluescale = { asset = 125917193136983, size = 8, anim = "serpent" },
+	rockbear = { asset = 139436529541504, size = 9, anim = "quad" },
+	emberbird = { asset = 107319776790840, size = 8, anim = "bird", fly = true },
+	sandstinger = { asset = 110919573822521, size = 8, anim = "crawler" },
+	stonegeneral = { asset = 99975372220787, size = 11, anim = "biped" },
+	silverfox = { asset = 77529898167579, size = 7, anim = "quad" },
+}
+for _, mob in Mobs.list do
+	local mesh = MESH[mob.id]
+	if mesh then
+		mob.anim = mesh.anim
+		mob.fly = mesh.fly
+		if mesh.asset > 0 then
+			mob.asset = mesh.asset
+			mob.assetSize = mesh.size
+		end
+	end
 end
 
 return Mobs

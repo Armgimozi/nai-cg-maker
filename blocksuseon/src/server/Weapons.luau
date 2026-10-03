@@ -155,21 +155,34 @@ local function buildTool(weapon: Combat.Weapon, index: number, player: Player): 
 	tool.GripUp = Vector3.new(0, 0, 1)
 
 	local handle = part(tool, "Handle", Vector3.new(0.3, 0.3, 1.4), HILT, Enum.Material.Wood)
-	local asset = (kind :: any).asset
-	local mesh = if type(asset) == "number" and asset > 0 then loadMesh(asset) else nil
-	if mesh then
+	local spec = Combat.MESH[weapon.kind]
+	local mesh = if spec and spec.asset > 0 then loadMesh(spec.asset) else nil
+	local body: BasePart? = nil
+	local copy = mesh and mesh:Clone()
+	if copy then
+		for _, piece in copy:GetDescendants() do
+			if piece:IsA("BasePart") and (not body or piece.Size.Magnitude > body.Size.Magnitude) then
+				body = piece
+			end
+		end
+	end
+	if copy and body and spec then
 		handle.Transparency = 1
-		local copy = mesh:Clone()
-		local _, size = copy:GetBoundingBox()
+		local box, size = copy:GetBoundingBox()
+		copy.WorldPivot = CFrame.new(box.Position) * body.CFrame.Rotation
 		local longest = math.max(size.X, size.Y, size.Z)
 		if longest > 0 then
-			copy:ScaleTo(copy:GetScale() * 5 / longest)
+			copy:ScaleTo(copy:GetScale() * spec.length / longest)
 		end
-		copy:PivotTo(handle.CFrame * CFrame.new(0, 0, 1.8))
+		-- 날 끝(±Y)이 손잡이 +Z 로 가게 돌리고, 쥐는 자리를 손잡이 가운데에 둔다
+		copy:PivotTo(
+			handle.CFrame * CFrame.Angles(spec.tip * math.pi / 2, 0, 0) * CFrame.new(0, -spec.grip * spec.length, 0)
+		)
 		for _, piece in copy:GetDescendants() do
 			if piece:IsA("BasePart") then
 				piece.CanCollide = false
 				piece.CanQuery = false
+				piece.CanTouch = false
 				piece.Massless = true
 				piece.Anchored = false
 				local weld = Instance.new("WeldConstraint")
@@ -179,6 +192,14 @@ local function buildTool(weapon: Combat.Weapon, index: number, player: Player): 
 			end
 		end
 		copy.Parent = tool
+		-- 영·천 등급은 빛이 돈다
+		if weapon.grade >= 4 then
+			local light = Instance.new("PointLight")
+			light.Color = GRADE_LOOK[weapon.grade].blade
+			light.Range = 6
+			light.Brightness = 1.2
+			light.Parent = body
+		end
 	else
 		buildBlocks(tool, handle, weapon)
 	end

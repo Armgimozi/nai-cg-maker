@@ -17,3 +17,6 @@ blocksuseon/build/
 
 # 블록수선전 UI 글꼴 (tools/fetch_fonts.py 가 받아 옴)
 blocksuseon/art/fonts/
+
+# Meshy 가 만든 GLB (tools/meshy/manifest.json 에 에셋 ID 가 남는다)
+blocksuseon/tools/meshy/models/

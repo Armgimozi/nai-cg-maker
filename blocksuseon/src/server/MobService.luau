@@ -82,14 +82,8 @@ local function safeAt(position: Vector3): boolean
 end
 
 -- Meshy 모델: 처음 한 번 불러와 둔다. 못 불러오면 블록 모양으로
-local function template(def: Mobs.Mob): Model?
-	if not def.asset or def.asset == 0 then
-		return nil
-	end
-	local cached = templates[def.id]
-	if cached ~= nil then
-		return cached or nil
-	end
+-- Meshy 모델을 미리 불러 둔다 (start 에서). 다 불러오기 전에는 그 요수를 띄우지 않는다
+local function preload(def: Mobs.Mob)
 	local ok, result = pcall(function()
 		return InsertService:LoadAsset(def.asset :: number)
 	end)
@@ -113,11 +107,22 @@ local function template(def: Mobs.Mob): Model?
 				modelFound = wrap
 			end
 		end
-	else
+	end
+	if not modelFound then
 		warn("[블록수선전] 요수 모델을 못 불러왔다:", def.name, result)
 	end
 	templates[def.id] = modelFound or false
-	return modelFound
+end
+
+local function hasMesh(def: Mobs.Mob): boolean
+	return def.asset ~= nil and def.asset > 0
+end
+
+local function template(def: Mobs.Mob): Model?
+	if not hasMesh(def) then
+		return nil
+	end
+	return templates[def.id] or nil
 end
 
 local function weld(part: BasePart, root: BasePart)
@@ -147,18 +152,57 @@ local function build(def: Mobs.Mob, at: CFrame): Live
 	local mesh = template(def)
 	if mesh then
 		local copy = mesh:Clone()
-		local _, size = copy:GetBoundingBox()
-		local longest = math.max(size.X, size.Y, size.Z)
-		if longest > 0 then
-			copy:ScaleTo(copy:GetScale() * (def.assetSize or def.radius * 2.6) / longest)
-		end
-		copy:PivotTo(at)
-		for _, part in copy:GetDescendants() do
-			if part:IsA("BasePart") then
-				weld(part, root)
+		-- 클라이언트가 Bone.Transform 으로 흔든다. 들어 있던 애니메이터는 치운다
+		for _, child in copy:GetDescendants() do
+			if child:IsA("AnimationController") or child:IsA("Animator") then
+				child:Destroy()
 			end
 		end
-		copy.Parent = model
+		-- 가장 큰 파트가 몸이다. 몸의 앞(LookVector)이 머리 쪽이다
+		local body: BasePart? = nil
+		local count = 0
+		for _, part in copy:GetDescendants() do
+			if part:IsA("BasePart") then
+				count += 1
+				if not body or part.Size.Magnitude > body.Size.Magnitude then
+					body = part
+				end
+			end
+		end
+		if body then
+			local box, size = copy:GetBoundingBox()
+			if count == 1 then
+				box, size = body.CFrame, body.Size
+			end
+			copy.WorldPivot = CFrame.new(box.Position) * body.CFrame.Rotation
+			local longest = math.max(size.X, size.Y, size.Z)
+			local scale = if longest > 0 then (def.assetSize or def.radius * 2.6) / longest else 1
+			copy:ScaleTo(copy:GetScale() * scale)
+			-- 발이 땅에 닿게 (나는 요수는 뿌리 높이에 뜬다)
+			local lift = if def.fly then 0 else size.Y * scale / 2 - def.height
+			copy:PivotTo(at * CFrame.new(0, lift, 0))
+			for _, part in copy:GetDescendants() do
+				if part:IsA("BasePart") then
+					part.Anchored = false
+					part.CanCollide = false
+					part.CanQuery = false
+					part.CanTouch = false
+					part.Massless = true
+					if part == body then
+						local motor = Instance.new("Motor6D")
+						motor.Name = "Body"
+						motor.Part0 = root
+						motor.Part1 = part
+						motor.C0 = root.CFrame:ToObjectSpace(part.CFrame)
+						motor.Parent = root
+					else
+						weld(part, body)
+					end
+				end
+			end
+			copy.Parent = model
+			model:SetAttribute("Size", def.assetSize or longest * scale)
+		end
 	else
 		for _, spec in def.parts do
 			local part = Instance.new("Part")
@@ -199,8 +243,9 @@ local function build(def: Mobs.Mob, at: CFrame): Live
 	model:SetAttribute("Tier", def.tier)
 	model:SetAttribute("Hp", def.hp)
 	model:SetAttribute("MaxHp", def.hp)
+	model:SetAttribute("Anim", def.anim or "quad")
 	model:AddTag("Mob")
-	model.Parent = folder
+	model.Parent = folder or Workspace
 	pcall(function()
 		root:SetNetworkOwner(nil)
 	end)
@@ -322,6 +367,9 @@ local function attack(mob: Live, targetRoot: BasePart)
 	local radius = def.reach * 0.6
 	local ground = Tribulation.groundAt(center)
 	Tribulation.mark(ground, radius, def.windup, Color3.fromRGB(255, 80, 60))
+	-- 클라이언트가 이 때를 보고 웅크렸다가 덮친다 (client/MobAnimator.luau)
+	mob.model:SetAttribute("Windup", def.windup)
+	mob.model:SetAttribute("Strike", Workspace:GetServerTimeNow() + def.windup)
 	task.delay(def.windup, function()
 		if mob.dead then
 			return
@@ -425,7 +473,8 @@ local function trySpawn(player: Player)
 			local region = Places.regionAt(ground.X, ground.Z, ground.Y)
 			if region.tier > 0 then
 				local def = Mobs.pick(region.id, region.tier, rng:NextNumber())
-				if def then
+				-- 모델을 불러오는 중이면 다음에
+				if def and not (hasMesh(def) and templates[def.id] == nil) then
 					local mob = build(def, CFrame.new(ground + Vector3.new(0, def.height + 0.5, 0)))
 					table.insert(live, mob)
 					return
@@ -457,10 +506,25 @@ local function sweep(now: number)
 	end
 end
 
+-- 이 자리에 바로 띄운다 (시험용)
+function MobService.spawnAt(def: Mobs.Mob, position: Vector3): Live
+	if hasMesh(def) and templates[def.id] == nil then
+		preload(def)
+	end
+	local mob = build(def, CFrame.new(position + Vector3.new(0, def.height + 0.5, 0)))
+	table.insert(live, mob)
+	return mob
+end
+
 function MobService.start()
 	folder = Instance.new("Folder")
 	folder.Name = "요수"
 	folder.Parent = Workspace
+	for _, def in Mobs.list do
+		if hasMesh(def) then
+			task.spawn(preload, def)
+		end
+	end
 	local thinkElapsed, spawnElapsed = 0, 0
 	RunService.Heartbeat:Connect(function(dt)
 		thinkElapsed += dt
