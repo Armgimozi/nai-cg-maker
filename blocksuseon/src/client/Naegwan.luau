@@ -206,14 +206,16 @@ local function playBalance(params: { [string]: any }, puzzle)
 	local rand = Trials.rng(current and current.seed or 1)
 	local _ = puzzle
 
+	-- 수치는 사람 반응(0.25초 늦게 보고 막대 하나씩 누름)을 흉내 낸 시뮬레이션으로 맞췄다.
+	-- 막대가 많을수록(잡영근) 어렵지만, 띠를 벗어나도 쌓은 시간이 줄지 않고 멈추기만 한다.
 	local trackHeight = 190
-	local width = 54
-	local gap = 26
+	local width = 64
+	local gap = 22
 	local totalWidth = count * width + (count - 1) * gap
 	local left = 260 - totalWidth / 2
-	local halfBand = math.min(0.24, 0.1 * band)
-	local rise = 0.5
-	local fall = 0.11 + 0.03 * turbulence
+	local halfBand = math.min(0.28, 0.13 * band)
+	local rise = 0.35
+	local fall = (0.1 + 0.03 * turbulence) / math.sqrt(count)
 
 	local bars = {}
 	for i = 1, count do
@@ -280,12 +282,7 @@ local function playBalance(params: { [string]: any }, puzzle)
 				bar.holding = false
 			end)
 		)
-		table.insert(
-			connections,
-			button.MouseLeave:Connect(function()
-				bar.holding = false
-			end)
-		)
+		-- 누른 채 손이 조금 벗어나도 놓친 것으로 치지 않는다 (떼는 것은 아래 InputEnded 가 본다)
 		bars[i] = bar
 	end
 	table.insert(
@@ -315,7 +312,11 @@ local function playBalance(params: { [string]: any }, puzzle)
 		Parent = progressTrack,
 	})
 
-	setStatus("막대를 누르고 있으면 바늘이 오른다. 모든 바늘을 금색 띠 안에 둔다.")
+	setStatus(
+		if count > 1
+			then "누르고 있으면 바늘이 오르고 떼면 내려간다. 모든 바늘이 띠 안에 있을 때만 찬다."
+			else "누르고 있으면 바늘이 오르고 떼면 내려간다. 바늘을 금색 띠 안에 둔다."
+	)
 	local held = 0
 	local clock = 0
 	local done = false
@@ -329,7 +330,7 @@ local function playBalance(params: { [string]: any }, puzzle)
 			clock += dt
 			local allIn = true
 			for _, bar in bars do
-				local drift = math.sin(clock * bar.speed + bar.phase) * 0.06 * turbulence
+				local drift = math.sin(clock * bar.speed + bar.phase) * 0.05 * turbulence
 				local push = if bar.holding then rise else -fall
 				bar.value = math.clamp(bar.value + (push + drift) * dt, 0, 1)
 				bar.needle.Position = UDim2.fromScale(0.5, 1 - bar.value)
@@ -339,10 +340,9 @@ local function playBalance(params: { [string]: any }, puzzle)
 					allIn = false
 				end
 			end
+			-- 띠를 벗어나면 멈출 뿐 줄지 않는다
 			if allIn then
 				held += dt
-			else
-				held = math.max(0, held - dt * 0.5)
 			end
 			progressFill.Size = UDim2.fromOffset(294 * math.clamp(held / target, 0, 1), 10)
 			progressFill.Visible = held > 0.2

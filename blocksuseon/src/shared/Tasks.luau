@@ -174,7 +174,7 @@ STEP_TASKS["dansu:1"] = function(data)
 			id = "honwon",
 			kind = "trial",
 			mode = "balance",
-			params = { bars = count, target = 20 },
+			params = { bars = count, target = 15 },
 			label = "혼원지의",
 			hint = "영력 농도가 흔들리지 않게 붙잡아 혼원진기로 바꾼다.",
 			skippable = true,

@@ -157,7 +157,7 @@ Realms.list = {
 		entry = {
 			kind = "trial",
 			mode = "balance",
-			params = { bars = 3, target = 25, labels = { "천", "지", "인" } },
+			params = { bars = 3, target = 18, labels = { "천", "지", "인" } },
 			title = "금단 응결",
 		},
 		blurb = "스물여덟 별로 하늘을 그려 금단을 맺는다.",
