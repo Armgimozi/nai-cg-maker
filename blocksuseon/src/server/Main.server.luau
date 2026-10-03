@@ -22,6 +22,7 @@ local DayNight = require(script.Parent.DayNight)
 local StarRain = require(script.Parent.StarRain)
 local DevCommands = require(script.Parent.DevCommands)
 local Villagers = require(script.Parent.Villagers)
+local Travel = require(script.Parent.Travel)
 
 local RESPAWN_DELAY = 4
 local REGEN_COOLDOWN = 600 -- 금단 재생: 10분에 한 번 쓰러진 자리에서 일어난다
@@ -41,6 +42,7 @@ Herbs.start()
 StarRain.start()
 Villagers.start()
 Manuals.start()
+Travel.start()
 PlayerData.startAutosave()
 
 local function onCharacterAdded(player: Player, character: Model)
@@ -127,6 +129,7 @@ end
 Players.PlayerRemoving:Connect(function(player)
 	Tribulation.fail(player) -- 천겁 도중에 나가면 실패로 친다
 	TaskService.cancelTrial(player) -- 돌파 내관 도중에 나가도 실패
+	Travel.forget(player)
 	Session.stop(player)
 	PlayerData.release(player)
 end)
@@ -165,6 +168,8 @@ Sync.remotes.Request.OnServerEvent:Connect(function(player: Player, action: any,
 		TaskService.cancelTrial(player)
 	elseif action == "Choose" and type(arg) == "table" then
 		TaskService.choose(player, arg.key, arg.value)
+	elseif action == "Travel" then
+		Travel.go(player, arg)
 	elseif action == "Eat" then
 		local qi = TaskService.eat(player, arg)
 		if qi then

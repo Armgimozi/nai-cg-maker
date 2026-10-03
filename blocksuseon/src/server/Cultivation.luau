@@ -30,30 +30,24 @@ local function flatDistance(a: Vector3, b: Vector3): number
 	return Vector3.new(a.X - b.X, 0, a.Z - b.Z).Magnitude
 end
 
--- 서 있는 자리의 영맥. 반환: 쓸 수 있는 영맥 id, 배율, 경지가 모자라 못 쓰는 영맥 id
-local function veinAt(position: Vector3?, step: number): (string?, number, string?)
+-- 서 있는 자리의 영맥. 반환: 영맥 id, 배율
+local function veinAt(position: Vector3?): (string?, number)
 	if not position then
-		return nil, 1, nil
+		return nil, 1
 	end
-	local bestId, bestMult, blockedId = nil, 1, nil
+	local bestId, bestMult = nil, 1
 	for _, pool in CollectionService:GetTagged("Vein") do
 		local id = pool:GetAttribute("VeinId")
 		local radius = pool:GetAttribute("Radius")
 		local def = Balance.VEINS[id]
 		if def and type(radius) == "number" and pool:IsA("BasePart") then
 			local dy = position.Y - pool.Position.Y
-			if flatDistance(position, pool.Position) <= radius and dy > -4 and dy < 10 then
-				if step >= Realms.firstStepById[def.minRealm] then
-					if def.mult > bestMult then
-						bestId, bestMult = id, def.mult
-					end
-				else
-					blockedId = id
-				end
+			if flatDistance(position, pool.Position) <= radius and dy > -4 and dy < 10 and def.mult > bestMult then
+				bestId, bestMult = id, def.mult
 			end
 		end
 	end
-	return bestId, bestMult, if bestId then nil else blockedId
+	return bestId, bestMult
 end
 
 -- 더 쌓이지 않는 상태 (영력이 찼는데 과업이 남았거나 돌파가 필요하다)
@@ -182,9 +176,9 @@ function Cultivation.tick(dt: number)
 			continue
 		end
 		local root = Characters.root(player)
-		local veinId, mult, blockedId = veinAt(root and root.Position, data.step)
-		if veinId ~= session.veinId or blockedId ~= session.veinBlocked then
-			session.veinId, session.veinBlocked = veinId, blockedId
+		local veinId, mult = veinAt(root and root.Position)
+		if veinId ~= session.veinId then
+			session.veinId = veinId
 			session.dirty = true
 		end
 		session.veinMult = mult

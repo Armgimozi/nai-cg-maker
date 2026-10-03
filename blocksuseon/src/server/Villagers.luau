@@ -220,27 +220,6 @@ local function play(npc: Live, name: string)
 	end
 end
 
-local function nameTag(npc: Live)
-	local adornee = npc.head or npc.root
-	local gui = Instance.new("BillboardGui")
-	gui.Name = "이름"
-	gui.Size = UDim2.fromOffset(160, 26)
-	gui.StudsOffset = Vector3.new(0, 2.2, 0)
-	gui.MaxDistance = 45
-	gui.LightInfluence = 0
-	gui.Adornee = adornee
-	local label = Instance.new("TextLabel")
-	label.BackgroundTransparency = 1
-	label.Size = UDim2.fromScale(1, 1)
-	label.FontFace = Font.fromEnum(Enum.Font.GothamMedium)
-	label.TextScaled = true
-	label.Text = npc.def.name
-	label.TextColor3 = Color3.fromRGB(240, 228, 200)
-	label.TextStrokeTransparency = 0.5
-	label.Parent = gui
-	gui.Parent = adornee
-end
-
 local function seatOf(id: string): Seat?
 	for _, seat in Workspace:GetDescendants() do
 		if seat:IsA("Seat") and seat:GetAttribute("NpcSeat") == id then
@@ -302,10 +281,7 @@ local function spawn(def: Npcs.Npc)
 		pausedUntil = 0,
 	}
 	live[def.id] = npc
-	-- 앉은 노인은 맵 표지판이 이름을 보여 준다
-	if not def.seated then
-		nameTag(npc)
-	end
+	-- 이름은 머리 위에 띄우지 않는다. 다가가면 말 걸기 버튼에 이름이 뜬다
 
 	if seat then
 		seat:Sit(humanoid)

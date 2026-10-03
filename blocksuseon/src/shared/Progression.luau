@@ -22,6 +22,7 @@ export type Data = {
 	hotbar: { string }, -- 술법 단축칸마다 넣은 술법 ("" 은 빈 칸)
 	keys: { string }, -- 단축칸마다 쓰는 키 이름 (KeyCode.Name)
 	stats: { [string]: number },
+	waypoints: { [string]: boolean }, -- 밟아 본 전송진
 }
 
 export type BreakResult = {
@@ -81,6 +82,7 @@ function Progression.newData(): Data
 		equipped = {},
 		hotbar = table.create(Progression.HOTBAR_SIZE, ""),
 		keys = table.clone(Progression.DEFAULT_KEYS),
+		waypoints = {},
 		stats = {
 			breakthroughs = 0,
 			trialFails = 0,
@@ -172,6 +174,14 @@ function Progression.reconcile(saved: any): Data
 		end
 		if table.find(Tasks.CHOICES.dosim, saved.choice.dosim) then
 			data.choice.dosim = saved.choice.dosim
+		end
+	end
+	-- 전송진 id 는 맵이 정하므로 여기서는 모양만 본다 (없는 진은 Travel 이 무시한다)
+	if type(saved.waypoints) == "table" then
+		for id, open in saved.waypoints do
+			if type(id) == "string" and #id <= 40 and open == true then
+				data.waypoints[id] = true
+			end
 		end
 	end
 	if type(saved.items) == "table" then

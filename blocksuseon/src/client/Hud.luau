@@ -18,8 +18,11 @@ local Format = require(Shared.Format)
 local Roots = require(Shared.Roots)
 local Clock = require(Shared.Clock)
 local Tasks = require(Shared.Tasks)
+local Places = require(Shared.Places)
 local Ui = require(script.Parent.Ui)
 local Notice = require(script.Parent.Notice)
+local PlaceBanner = require(script.Parent.PlaceBanner)
+local TravelMenu = require(script.Parent.TravelMenu)
 local Choice = require(script.Parent.Choice)
 local Naegwan = require(script.Parent.Naegwan)
 
@@ -35,6 +38,7 @@ export type Actions = {
 	eat: (item: string) -> (),
 	trialResult: (payload: { [string]: any }) -> (),
 	trialCancel: () -> (),
+	travel: (id: string) -> (),
 }
 
 local IMG = Ui.IMG
@@ -782,8 +786,14 @@ function Hud.build(newActions: Actions)
 	end, function()
 		actions.trialCancel()
 	end)
+	TravelMenu.build(gui, function(id)
+		actions.travel(id)
+	end)
+	local banner = PlaceBanner.build(gui)
 	table.insert(scales, (gui:FindFirstChild("Choice") :: any):FindFirstChildOfClass("UIScale"))
 	table.insert(scales, (gui:FindFirstChild("Naegwan") :: any):FindFirstChildOfClass("UIScale"))
+	table.insert(scales, (gui:FindFirstChild("TravelMenu") :: any):FindFirstChildOfClass("UIScale"))
+	table.insert(scales, banner:FindFirstChildOfClass("UIScale"))
 	buildCinematic()
 
 	-- 천겁이 내릴 때 화면을 어둡게
@@ -803,6 +813,49 @@ local function setTribulationMood(active: boolean)
 		then { Brightness = -0.08, Contrast = 0.15, Saturation = -0.45, TintColor = Color3.fromRGB(190, 195, 255) }
 		else { Brightness = 0, Contrast = 0, Saturation = 0, TintColor = Color3.new(1, 1, 1) }
 	tween(ui.tint, TweenInfo.new(1.2), goal)
+end
+
+-- 지금 있는 곳, 영맥, 취령진을 한 줄에
+local currentPlace: Places.Region? = nil
+local function refreshPlaceLine(state)
+	local places = {}
+	if currentPlace then
+		table.insert(places, currentPlace.name)
+	end
+	if state.veinId then
+		local vein = Balance.VEINS[state.veinId]
+		table.insert(places, string.format("%s 위 (흡수 ×%s)", vein.name, tostring(vein.mult)))
+	end
+	if state.inFormation then
+		table.insert(places, string.format("취령진 안 (×%d)", Skills.EFFECT.formationMult))
+	end
+	ui.veinText:set(table.concat(places, ", "))
+	ui.veinText:setColor(if state.veinId or state.inFormation then C.jade else C.dim)
+end
+
+-- 땅이 바뀌면 그 땅 이름을 화면에 띄운다 (맵에는 이름표를 띄우지 않는다).
+-- 경지 연출이 화면을 덮는 동안에는 기다렸다가 걷힌 뒤에 띄운다
+local cinematicUntil = 0
+local function refreshPlace()
+	if os.clock() < cinematicUntil then
+		return
+	end
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if not root or not root:IsA("BasePart") then
+		return
+	end
+	local region = Places.regionAt(root.Position.X, root.Position.Z, root.Position.Y)
+	if region == currentPlace then
+		return
+	end
+	currentPlace = region
+	if region then
+		PlaceBanner.show(region.name, region.sub)
+	end
+	if lastState then
+		refreshPlaceLine(lastState)
+	end
 end
 
 local function updateStatus(state)
@@ -842,21 +895,7 @@ local function updateStatus(state)
 		ui.rateText:setColor(C.jade)
 	end
 
-	local places = {}
-	local placeColor = C.jade
-	if state.veinId then
-		local vein = Balance.VEINS[state.veinId]
-		table.insert(places, string.format("%s 위 (흡수 ×%s)", vein.name, tostring(vein.mult)))
-	elseif state.veinBlocked then
-		local vein = Balance.VEINS[state.veinBlocked]
-		table.insert(places, string.format("%s %s부터 쓸 수 있다", vein.name, Realms.byId[vein.minRealm].name))
-		placeColor = C.red
-	end
-	if state.inFormation then
-		table.insert(places, string.format("취령진 안 (×%d)", Skills.EFFECT.formationMult))
-	end
-	ui.veinText:set(table.concat(places, ", "))
-	ui.veinText:setColor(placeColor)
+	refreshPlaceLine(state)
 
 	for index, slot in passiveSlots do
 		slot.slot.Visible = index <= state.slots
@@ -1043,6 +1082,7 @@ local function updateTasks(state)
 			elseif job.kind == "choose" then
 				main = "고르기"
 				entry.onMain = function()
+					TravelMenu.close()
 					Choice.open(job.key, lastState or state)
 				end
 			elseif job.kind == "eat" and ((state.items or {})[job.item or "herb"] or 0) > 0 then
@@ -1086,6 +1126,7 @@ local function updateTasks(state)
 			autoOpened[key] = true
 			task.defer(function()
 				if not Choice.isOpen() then
+					TravelMenu.close()
 					Choice.open(job.key, lastState or state)
 				end
 			end)
@@ -1112,6 +1153,24 @@ function Hud.update(state)
 	updateStatusWindow(state)
 	updateHotbar(state)
 	lastState = state
+	-- 전송진 창이 열려 있으면 방금 열린 진도 바로 보이게 다시 그린다
+	TravelMenu.refresh(state)
+end
+
+-- 전송진 위에서 F: 갈 곳 고르기
+function Hud.openTravel(fromId: string)
+	if lastState and not Naegwan.isOpen() then
+		Choice.close()
+		TravelMenu.open(fromId, lastState)
+	end
+end
+
+function Hud.closeTravel()
+	TravelMenu.close()
+end
+
+function Hud.travelOpen(): boolean
+	return TravelMenu.isOpen()
 end
 
 function Hud.toggleStatus(open: boolean?)
@@ -1127,6 +1186,7 @@ function Hud.openTrial(payload: { [string]: any })
 	end
 	Hud.toggleStatus(false)
 	Choice.close()
+	TravelMenu.close()
 	Naegwan.open(payload :: any, lastState and lastState.root)
 end
 
@@ -1205,8 +1265,15 @@ RunService.Heartbeat:Connect(function(dt)
 	if clockElapsed >= 0.5 and ui.clockText then
 		clockElapsed = 0
 		ui.clockText:set(clockLine())
-		-- 창이 열려 있으면 알림이 창 제목을 가리지 않게 화면 맨 위로 올린다
-		Notice.setCompact((ui.panel and ui.panel.Visible) or Choice.isOpen() or Naegwan.isOpen())
+		refreshPlace()
+		-- 창이 열려 있거나 땅 이름이 떠 있으면 알림이 가리지 않게 화면 맨 위로 올린다
+		Notice.setCompact(
+			(ui.panel and ui.panel.Visible)
+				or Choice.isOpen()
+				or Naegwan.isOpen()
+				or TravelMenu.isOpen()
+				or PlaceBanner.isShowing()
+		)
 	end
 	local now = os.clock()
 	for slot, entry in hotbar do
@@ -1236,6 +1303,7 @@ local function showCinematic(title: string, subtitle: string, dark: boolean, hol
 	local fadeOutTime = 0.9
 	-- 연출이 화면을 덮는 동안 알림은 잠시 멈췄다가 연출이 걷힌 뒤 띄운다
 	Notice.hold(hold + fadeOutTime)
+	cinematicUntil = os.clock() + hold + fadeOutTime
 	task.delay(hold, function()
 		if token ~= cinematicToken then
 			return

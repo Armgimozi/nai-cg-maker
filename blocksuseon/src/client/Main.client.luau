@@ -9,9 +9,11 @@ local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Net = require(Shared.Net)
 local Progression = require(Shared.Progression)
 local Realms = require(Shared.Realms)
+local Places = require(Shared.Places)
 local Hud = require(script.Parent.Hud)
 local Effects = require(script.Parent.Effects)
 local NpcLook = require(script.Parent.NpcLook)
+local Plaques = require(script.Parent.Plaques)
 
 local player = Players.LocalPlayer
 local remotes = Net.get()
@@ -64,6 +66,9 @@ local actions = {
 	end,
 	trialCancel = function()
 		request("TrialCancel")
+	end,
+	travel = function(id: string)
+		request("Travel", id)
 	end,
 }
 
@@ -139,6 +144,35 @@ remotes.Speak.OnClientEvent:Connect(function(part: BasePart, text: string)
 	end
 end)
 NpcLook.start()
+Plaques.start()
+
+-- 전송진: F 를 누르면 갈 곳 고르는 창을 연다. 진에서 멀어지면 닫는다
+local travelPad: BasePart? = nil
+game:GetService("ProximityPromptService").PromptTriggered:Connect(function(prompt: ProximityPrompt)
+	local id = prompt:GetAttribute("Waypoint")
+	local pad = prompt.Parent
+	if type(id) == "string" and pad and pad:IsA("BasePart") then
+		travelPad = pad
+		Hud.openTravel(id)
+	end
+end)
+RunService.Heartbeat:Connect(function()
+	local pad = travelPad
+	if not pad or not Hud.travelOpen() then
+		travelPad = nil
+		return
+	end
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	-- 서버가 받아 주는 거리(수평 Places.WAYPOINT_RADIUS)를 벗어나면 닫는다
+	local offset = if root and root:IsA("BasePart") then root.Position - pad.Position else nil
+	local far = offset == nil
+		or Vector3.new(offset.X, 0, offset.Z).Magnitude > Places.WAYPOINT_RADIUS
+		or math.abs(offset.Y) >= 14
+	if far or not pad.Parent then
+		travelPad = nil
+		Hud.closeTravel()
+	end
+end)
 remotes.Skill.OnClientEvent:Connect(function(payload)
 	Hud.skillUsed(payload)
 	if payload.id == "gyeongsin" then

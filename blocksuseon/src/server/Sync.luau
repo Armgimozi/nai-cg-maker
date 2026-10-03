@@ -9,6 +9,7 @@ local Skills = require(Shared.Skills)
 local Tasks = require(Shared.Tasks)
 local PlayerData = require(script.Parent.PlayerData)
 local Session = require(script.Parent.Session)
+local Waypoints = require(script.Parent.Waypoints)
 
 local Sync = {}
 
@@ -57,7 +58,6 @@ function Sync.state(player: Player)
 		),
 		meditating = session.meditating,
 		veinId = session.veinId,
-		veinBlocked = session.veinBlocked,
 		needsBreak = Progression.needsBreakthrough(data.step),
 		ready = (Progression.canBreakthrough(data)),
 		tasksDone = Tasks.allDone(data),
@@ -79,6 +79,7 @@ function Sync.state(player: Player)
 			then { name = tribulation.name, wave = tribulation.wave, waves = tribulation.waves }
 			else nil,
 		canSave = PlayerData.canSave(player),
+		waypoints = Waypoints.snapshot(data),
 	})
 	updateLeaderstats(player, data)
 end

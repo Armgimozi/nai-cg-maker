@@ -43,7 +43,24 @@ function Harness.new(globals: { [string]: any }): Loader
 		return folder
 	end
 
+	-- 진짜 인스턴스 트리(Rojo 로 지은 플레이스, Harness.mount)의 ModuleScript 는 같은 이름의 src 파일로 바꾼다.
+	-- 예: ReplicatedStorage.Shared.Land → src/shared/Land.luau
+	local ROOTS = { Shared = "src/shared", Server = "src/server", Client = "src/client" }
+	local folders: { [string]: any } = {}
+	local function fromInstance(inst: any): any
+		local parent = inst.Parent
+		local dir = parent and ROOTS[parent.Name]
+		assert(dir, `{inst:GetFullName()} 은 Harness 가 아는 폴더(Shared, Server, Client)에 있지 않다`)
+		folders[dir] = folders[dir] or makeFolder(dir)
+		local ref = rawget(folders[dir], inst.Name)
+		assert(ref and ref.__path, `{dir}/{inst.Name}.luau 가 없다`)
+		return ref
+	end
+
 	local function load(ref: any): any
+		if typeof(ref) == "Instance" then
+			ref = fromInstance(ref)
+		end
 		assert(type(ref) == "table" and ref.__path, "Harness 는 script 경로 require 만 지원한다")
 		local cached = cache[ref.__path]
 		if cached ~= nil then
@@ -61,6 +78,27 @@ function Harness.new(globals: { [string]: any }): Loader
 	loader.folder = makeFolder
 	loader.require = load
 	return loader
+end
+
+-- 빈 DataModel 에 ReplicatedStorage.Shared 를 만들어 src/shared 모듈 자리를 채운다.
+-- (World 처럼 game:GetService("ReplicatedStorage").Shared 의 모듈을 require 하는 서버 모듈을 테스트에서 부를 때)
+function Harness.mount(game: any)
+	local roblox = require("@lune/roblox") :: any
+	local storage = game:GetService("ReplicatedStorage")
+	local shared = storage:FindFirstChild("Shared")
+	if not shared then
+		shared = roblox.Instance.new("Folder")
+		shared.Name = "Shared"
+		shared.Parent = storage
+	end
+	for _, entry in fs.readDir("src/shared") do
+		local name = string.match(entry, "^(.-)%.luau$")
+		if name and not shared:FindFirstChild(name) then
+			local module = roblox.Instance.new("ModuleScript")
+			module.Name = name
+			module.Parent = shared
+		end
+	end
 end
 
 -- World 처럼 Roblox 데이터 타입을 쓰는 모듈을 Lune 에서 돌릴 때 넣을 전역

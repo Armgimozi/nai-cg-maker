@@ -190,6 +190,16 @@ local VEIN_COLORS = {
 	high = Color3.fromRGB(255, 205, 100),
 }
 
+-- at 에 서서 target 쪽(수평)을 보는 CFrame.
+-- CFrame.lookAt 은 Lune(맵을 굽는 곳)에서 Z 방향이 뒤집혀 나오므로 쓰지 않는다. Angles 는 Lune 과 Roblox 가 같다.
+local function face(at: Vector3, target: Vector3): CFrame
+	local dx, dz = target.X - at.X, target.Z - at.Z
+	if dx * dx + dz * dz < 1e-6 then
+		return CFrame.new(at)
+	end
+	return CFrame.new(at) * CFrame.Angles(0, math.atan2(-dx, -dz), 0)
+end
+
 local function block(
 	parent: Instance,
 	name: string,
@@ -267,44 +277,76 @@ local function model(parent: Instance, name: string): Model
 	return m
 end
 
-local function sign(parent: Instance, position: Vector3, title: string, subtitle: string?, color: Color3?)
-	local anchor = block(parent, "표지", Vector3.new(1, 1, 1), CFrame.new(position), C.stone)
-	anchor.Transparency = 1
-	anchor.CanCollide = false
-	anchor.CanQuery = false
-	anchor.CanTouch = false
-
-	local gui = Instance.new("BillboardGui")
-	gui.Name = "Label"
-	gui.Size = UDim2.fromOffset(240, 64)
-	gui.MaxDistance = 160
-	gui.LightInfluence = 0
-	gui.Parent = anchor
-
-	local titleLabel = Instance.new("TextLabel")
-	titleLabel.Name = "Title"
-	titleLabel.BackgroundTransparency = 1
-	titleLabel.Size = UDim2.new(1, 0, 0.6, 0)
-	titleLabel.FontFace = Font.fromEnum(Enum.Font.GothamBold)
-	titleLabel.TextScaled = true
-	titleLabel.Text = title
-	titleLabel.TextColor3 = color or Color3.fromRGB(255, 244, 220)
-	titleLabel.TextStrokeTransparency = 0.4
-	titleLabel.Parent = gui
-
-	if subtitle then
-		local sub = Instance.new("TextLabel")
-		sub.Name = "Subtitle"
-		sub.BackgroundTransparency = 1
-		sub.Position = UDim2.new(0, 0, 0.6, 0)
-		sub.Size = UDim2.new(1, 0, 0.4, 0)
-		sub.FontFace = Font.fromEnum(Enum.Font.Gotham)
-		sub.TextScaled = true
-		sub.Text = subtitle
-		sub.TextColor3 = Color3.fromRGB(230, 230, 230)
-		sub.TextStrokeTransparency = 0.5
-		sub.Parent = gui
+-- 글자를 새길 판에 표시만 한다. 글자는 클라이언트(Plaques.luau)가 붓글씨 글자판으로 겉면에 새긴다.
+-- 공중에 띄우는 이름표(BillboardGui)는 쓰지 않는다.
+local function engrave(part: BasePart, text: string, faces: string?, vertical: boolean?, ink: string?)
+	part:SetAttribute("Text", text)
+	part:SetAttribute("Faces", faces or "Front")
+	if vertical then
+		part:SetAttribute("Vertical", true)
 	end
+	if ink then
+		part:SetAttribute("Ink", ink)
+	end
+	part:AddTag("Plaque")
+end
+
+-- 땅에 박은 나무 현판. 앞면이 faces 쪽(기본은 마을 광장)을 본다. 앞뒤 두 면에 새긴다
+local function signboard(parent: Instance, ground: Vector3, text: string, faces: Vector3?)
+	local target = faces or Vector3.zero
+	local flat = Vector3.new(target.X, ground.Y, target.Z)
+	if (flat - ground).Magnitude < 0.1 then
+		flat = ground + Vector3.new(0, 0, 1)
+	end
+	local look = face(ground, flat)
+	local m = model(parent, "현판")
+	local width = math.max(4.2, (utf8.len(text) or 2) * 1.5 + 1.6)
+	for _, x in { -1, 1 } do
+		block(
+			m,
+			"Post",
+			Vector3.new(0.45, 4.8, 0.45),
+			look * CFrame.new(x * (width / 2 - 0.35), 2.4, 0),
+			C.woodDark,
+			Enum.Material.Wood
+		)
+	end
+	local board = block(
+		m,
+		"Board",
+		Vector3.new(width, 1.7, 0.3),
+		look * CFrame.new(0, 3.5, 0),
+		Color3.fromRGB(58, 34, 28),
+		Enum.Material.Wood
+	)
+	engrave(board, text, "Front,Back")
+	block(m, "Cap", Vector3.new(width + 0.8, 0.3, 0.9), look * CFrame.new(0, 4.55, 0), C.roof)
+	return m
+end
+
+-- 돌 비석. 세로로 새긴다 (땅 이름)
+local function stele(parent: Instance, ground: Vector3, text: string, faces: Vector3?)
+	local target = faces or Vector3.zero
+	local flat = Vector3.new(target.X, ground.Y, target.Z)
+	if (flat - ground).Magnitude < 0.1 then
+		flat = ground + Vector3.new(0, 0, 1)
+	end
+	local look = face(ground, flat)
+	local count = utf8.len(text) or 2
+	local height = 2.2 * count + 1.6
+	local m = model(parent, "비석")
+	block(m, "Base", Vector3.new(4.6, 1, 2.6), look * CFrame.new(0, 0.5, 0), C.stoneDark, Enum.Material.Slate)
+	local slab = block(
+		m,
+		"Slab",
+		Vector3.new(3, height, 1),
+		look * CFrame.new(0, 1 + height / 2, 0),
+		C.stone,
+		Enum.Material.Slate
+	)
+	engrave(slab, text, "Front,Back", true, "ink")
+	block(m, "Cap", Vector3.new(3.6, 0.6, 1.5), look * CFrame.new(0, 1.3 + height, 0), C.stoneDark, Enum.Material.Slate)
+	return m
 end
 
 -- 과업 자리 표시: 보이지 않는 판에 Site 태그를 단다. prompt 면 F 로 만지는 자리 (TaskService 가 버튼을 단다)
@@ -474,7 +516,7 @@ local function path(parent: Instance, from: Vector3, to: Vector3, width: number)
 		parent,
 		"길",
 		Vector3.new(width, 0.4, flat.Magnitude),
-		CFrame.lookAt(Vector3.new(mid.X, 0.2, mid.Z), Vector3.new(to.X, 0.2, to.Z)),
+		face(Vector3.new(mid.X, 0.2, mid.Z), Vector3.new(to.X, 0.2, to.Z)),
 		C.stone,
 		Enum.Material.Cobblestone
 	)
@@ -484,12 +526,11 @@ local function buildVillage(root: Instance, rng)
 	local village = folder(root, "마을")
 	block(village, "광장", Vector3.new(64, 1, 64), CFrame.new(0, 0, 0), C.stone, Enum.Material.Slate)
 	vein(village, "low", Vector3.new(0, 0.5, 0), 12)
-	sign(village, Vector3.new(0, 10, 0), "하품 영맥", "누구나, 흡수 ×1.5", VEIN_COLORS.low)
 
 	for _, angle in { 30, 70, 110, 150, 215, 250 } do
 		local rad = math.rad(angle)
 		local pos = Vector3.new(math.cos(rad) * 54, 0, math.sin(rad) * 54)
-		local cf = CFrame.lookAt(pos, Vector3.new(0, 0, 0))
+		local cf = face(pos, Vector3.new(0, 0, 0))
 		local roofColor = if rng(0, 1) > 0.6 then C.red else C.roof
 		house(village, cf, rng(13, 17), rng(10, 13), roofColor)
 	end
@@ -504,7 +545,18 @@ local function buildVillage(root: Instance, rng)
 			local m = model(lu, World.LU_NAMES[index])
 			lantern(m, position)
 			siteMarker(m, "lu_" .. index, position, 6)
-			sign(m, position + Vector3.new(0, 10.5, 0), World.LU_NAMES[index], nil, Color3.fromRGB(255, 200, 150))
+			-- 기둥에 건 나무 패. 가운데(운기하는 자리)를 본다
+			local inward = (center - position).Unit
+			local tag = block(
+				m,
+				"Tag",
+				Vector3.new(0.9, 2.4, 0.15),
+				face(position + inward * 0.5 + Vector3.new(0, 4, 0), center + Vector3.new(0, 4, 0)),
+				Color3.fromRGB(58, 34, 28),
+				Enum.Material.Wood
+			)
+			tag.CanCollide = false
+			engrave(tag, World.LU_NAMES[index], "Front", true)
 		end
 	end
 	siteMarker(village, "plaza", Vector3.new(0, 1, 0), 12)
@@ -554,13 +606,7 @@ local function buildVillage(root: Instance, rng)
 	smoke.Opacity = 0.15
 	smoke.Parent = pot
 	siteMarker(furnace, "furnace", fpos + Vector3.new(0, 3, 0), 6, "연단")
-	sign(
-		furnace,
-		fpos + Vector3.new(0, 10, 0),
-		"연단로",
-		"영초 6, 천년영지 1로 축기단",
-		Color3.fromRGB(255, 190, 120)
-	)
+	signboard(furnace, Vector3.new(fpos.X + 6, 0.5, fpos.Z + 3), "연단로", Vector3.new(0, 0.5, 0))
 
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Name = "SpawnLocation"
@@ -574,7 +620,22 @@ local function buildVillage(root: Instance, rng)
 	spawn.TopSurface = Enum.SurfaceType.Smooth
 	spawn.Parent = village
 
-	sign(village, Vector3.new(0, 14, 40), "연국 (連國)", "블록수선전", Color3.fromRGB(255, 220, 150))
+	-- 마을 북쪽 어귀의 문. 나와 선 자리(남쪽)에서 현판이 보인다
+	local gate = model(village, "마을 문")
+	for _, x in { -6.5, 6.5 } do
+		block(gate, "Post", Vector3.new(1.2, 13, 1.2), CFrame.new(x, 6.5, -40), C.red, Enum.Material.Wood)
+	end
+	block(gate, "Beam", Vector3.new(16, 1, 1.4), CFrame.new(0, 12.2, -40), C.red, Enum.Material.Wood)
+	block(gate, "Roof", Vector3.new(18, 0.8, 3), CFrame.new(0, 13.4, -40), C.roof)
+	local board = block(
+		gate,
+		"Board",
+		Vector3.new(6, 2.2, 0.3),
+		face(Vector3.new(0, 10.6, -39.2), Vector3.new(0, 10.6, 0)),
+		Color3.fromRGB(58, 34, 28),
+		Enum.Material.Wood
+	)
+	engrave(board, "연국", "Front,Back")
 end
 
 local function buildForest(root: Instance, rng)
@@ -597,6 +658,7 @@ local function buildForest(root: Instance, rng)
 		local nearVein = (Vector3.new(x, 0, z) - Vector3.new(-200, 0, 100)).Magnitude < 22
 		local nearBridge = x > -140 and math.abs(z) < 8
 		local nearSite = (Vector3.new(x, 0, z) - Vector3.new(-140, 0, 55)).Magnitude < 18
+			or (Vector3.new(x, 0, z) - Vector3.new(-112, 0, 10)).Magnitude < 9
 		local nearManual = false
 		for _, spot in MANUAL_SPOTS do
 			if (Vector3.new(x, 0, z) - Vector3.new(spot.X, 0, spot.Z)).Magnitude < 9 then
@@ -609,14 +671,7 @@ local function buildForest(root: Instance, rng)
 	end
 
 	vein(forest, "mid", Vector3.new(-200, 0, 100), 11)
-	sign(forest, Vector3.new(-200, 10, 100), "중품 영맥", "축기기부터, 흡수 ×2.5", VEIN_COLORS.mid)
-	sign(
-		forest,
-		Vector3.new(-115, 12, 0),
-		"영초숲",
-		"영초와 천년영지가 돋는 숲",
-		Color3.fromRGB(170, 240, 170)
-	)
+	stele(forest, Vector3.new(-112, 0, 10), "영초숲", Vector3.new(0, 0, 10))
 
 	-- 마을과 숲 사이 개울과 다리
 	local river =
@@ -625,13 +680,7 @@ local function buildForest(root: Instance, rng)
 	river.CanCollide = false
 	river.CanQuery = false
 	siteMarker(root, "down", Vector3.new(-95, 0.2, -60), 7)
-	sign(
-		root,
-		Vector3.new(-95, 8, -60),
-		"개울 바닥",
-		"땅의 기운이 고이는 곳",
-		Color3.fromRGB(150, 200, 240)
-	)
+	signboard(root, Vector3.new(-84, 0, -60), "개울 바닥", Vector3.new(0, 0, -60))
 	local bridge = model(root, "다리")
 	block(bridge, "Deck", Vector3.new(22, 1, 10), CFrame.new(-95, 0.9, 0), C.wood, Enum.Material.WoodPlanks)
 	for _, z in { -4.6, 4.6 } do
@@ -669,32 +718,19 @@ local function buildMountain(root: Instance)
 			local side = sides[(i - 1) % 4 + 1]
 			local depth = shrink / 2
 			local pos = center + side * (size / 2 + depth / 2) + Vector3.new(0, i * layerH + layerH / 2, 0)
-			wedge(
-				mountain,
-				Vector3.new(10, layerH, depth),
-				CFrame.lookAt(pos, pos + side),
-				C.stone,
-				Enum.Material.Cobblestone
-			)
+			wedge(mountain, Vector3.new(10, layerH, depth), face(pos, pos + side), C.stone, Enum.Material.Cobblestone)
 		end
 	end
 
 	local top = center + Vector3.new(0, layers * layerH, 0)
 	vein(mountain, "high", top, 9)
 	siteMarker(mountain, "up", top + Vector3.new(0, 0.6, 0), 9)
-	sign(mountain, top + Vector3.new(0, 11, 0), "상품 영맥", "결단기부터, 흡수 ×4", VEIN_COLORS.high)
 	for _, corner in
 		{ Vector3.new(13, 0, 13), Vector3.new(-13, 0, 13), Vector3.new(13, 0, -13), Vector3.new(-13, 0, -13) }
 	do
 		lantern(mountain, top + corner)
 	end
-	sign(
-		mountain,
-		center + Vector3.new(0, 10, baseSize / 2 + 8),
-		"영산",
-		"비탈을 따라 산을 감아 오르라",
-		Color3.fromRGB(200, 220, 255)
-	)
+	stele(mountain, center + Vector3.new(8, 0, baseSize / 2 + 8), "영산", Vector3.new(0, 0, 0))
 end
 
 -- 오행처: 돌단 위에 속성 빛 구슬. 화 오행처는 대장간 화덕, 목은 고목, 수는 물가 돌판
@@ -851,7 +887,9 @@ local function buildElementSites(root: Instance)
 		motes.Parent = orb
 
 		siteMarker(m, def.id, base + Vector3.new(0, 0.6, 0), 7)
-		sign(m, base + Vector3.new(0, 9, 0), def.name, def.place, def.color)
+		-- 현판은 마을 쪽으로 9스터드 앞에 (오는 길에서 보인다)
+		local toward = Vector3.new(-base.X, 0, -base.Z).Unit
+		signboard(m, base + toward * 9, def.name, Vector3.zero)
 	end
 end
 
@@ -888,24 +926,18 @@ local function buildTribulationAltar(root: Instance)
 		local a = math.rad(trigram.angle)
 		local pos = center + Vector3.new(math.cos(a) * 31, 0, math.sin(a) * 31)
 		local m = model(altar, trigram.name .. " 기둥")
-		block(
+		local pillar = block(
 			m,
 			"Pillar",
 			Vector3.new(2.4, 12, 2.4),
-			CFrame.new(pos + Vector3.new(0, 6, 0)),
+			face(pos + Vector3.new(0, 6, 0), center + Vector3.new(0, 6, 0)),
 			C.stoneDark,
 			Enum.Material.Rock
 		)
+		engrave(pillar, trigram.name, "Front,Back,Left,Right", true, "gold")
 		siteMarker(m, "tri_" .. i, pos + Vector3.new(0, 3, 0), 6, trigram.name)
-		sign(m, pos + Vector3.new(0, 14, 0), trigram.name, nil, Color3.fromRGB(255, 225, 160))
 	end
-	sign(
-		altar,
-		center + Vector3.new(0, 16, 0),
-		"천겁대",
-		"칠성단과 팔괘 기둥",
-		Color3.fromRGB(255, 160, 160)
-	)
+	stele(altar, Vector3.new(171, 0, -126), "천겁대", Vector3.zero)
 end
 
 -- 마을 노인이 앉는 자리. 사람은 서버가 띄울 때 카탈로그 옷을 입혀 앉힌다(Villagers.luau).
@@ -915,7 +947,7 @@ local function buildElders(root: Instance)
 	for _, def in ELDERS do
 		local m = model(elders, def.name)
 		local base = def.position
-		local look = CFrame.lookAt(base, Vector3.new(def.faces.X, base.Y, def.faces.Z))
+		local look = face(base, Vector3.new(def.faces.X, base.Y, def.faces.Z))
 		block(m, "Stool", Vector3.new(3, 1.6, 3), look * CFrame.new(0, 0.8, 0), C.stone, Enum.Material.Slate)
 		local seat = Instance.new("Seat")
 		seat.Name = "자리"
@@ -1016,7 +1048,6 @@ local function buildElders(root: Instance)
 		end
 
 		siteMarker(m, def.id, base + Vector3.new(0, 3, 0), 7, def.name)
-		sign(m, base + Vector3.new(0, 8, 0), def.name, nil, Color3.fromRGB(230, 220, 200))
 	end
 end
 
@@ -1054,7 +1085,7 @@ local function buildStarAltars(root: Instance)
 		light.Brightness = 2
 		light.Parent = orb
 		siteMarker(m, def.id, base + Vector3.new(0, 0.8, 0), 8)
-		sign(m, base + Vector3.new(0, 16, 0), def.name, def.sub, def.color)
+		stele(m, base + (Vector3.zero - base).Unit * 12, def.name, Vector3.new(0, 0, 0))
 	end
 end
 

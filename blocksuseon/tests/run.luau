@@ -745,7 +745,8 @@ check("연국 맵 짓기", function()
 			seats[inst:GetAttribute("NpcSeat")] = true
 		end
 	end
-	local SLOTS = { Hat = true, Hair = true, Face = true, Back = true, Waist = true, Neck = true, Front = true, Shoulders = true }
+	local SLOTS =
+		{ Hat = true, Hair = true, Face = true, Back = true, Waist = true, Neck = true, Front = true, Shoulders = true }
 	for _, npc in Npcs.list do
 		local look = Npcs.look(npc.id)
 		assert(look, npc.name .. " 생김새")
@@ -771,6 +772,35 @@ check("연국 맵 짓기", function()
 	for _, id in { "elder_1", "elder_2", "elder_3" } do
 		assert(Npcs.byId[id], id)
 	end
+	-- 공중에 뜨는 이름표는 없고, 현판 글자는 모두 붓글씨 글자판에 있다
+	local Art = worldLoader.require(worldLoader.folder("src/client").Art)
+	local plaques = 0
+	for _, inst in map:GetDescendants() do
+		assert(not inst:IsA("BillboardGui"), "맵에 공중 이름표가 있다: " .. inst:GetFullName())
+		if inst:HasTag("Plaque") then
+			plaques += 1
+			local text = inst:GetAttribute("Text")
+			assert(type(text) == "string" and text ~= "", "현판에 글이 없다")
+			for _, code in utf8.codes(text) do
+				local ch = utf8.char(code)
+				assert(ch == " " or Art.fonts.title.glyphs[ch], `현판 글자 {ch} 가 글자판에 없다 ({text})`)
+			end
+		end
+	end
+	assert(plaques >= 30, `현판 {plaques}개`)
+	-- 판은 정해진 쪽을 본다 (Lune 의 CFrame.lookAt 은 Z 가 뒤집혀 나와서 World 는 face() 를 쓴다)
+	local gateBoard = map:FindFirstChild("마을", true):FindFirstChild("마을 문"):FindFirstChild("Board")
+	assert(gateBoard.CFrame.LookVector.Z > 0.99, "마을 문 현판은 마을(남쪽)을 본다")
+	for _, inst in map:GetDescendants() do
+		if inst.Name == "Tag" and inst:HasTag("Plaque") then
+			local lantern = inst.Parent:FindFirstChild("Lamp", true)
+			local away = inst.CFrame.Position - lantern.CFrame.Position
+			assert(
+				inst.CFrame.LookVector:Dot(roblox.Vector3.new(away.X, 0, away.Z).Unit) > 0.9,
+				"율점 패는 기둥 바깥(가운데)을 본다"
+			)
+		end
+	end
 	for _, inst in map:GetDescendants() do
 		if inst:HasTag("Vein") then
 			assert(Balance.VEINS[inst:GetAttribute("VeinId")], "영맥 id")
@@ -780,16 +810,12 @@ check("연국 맵 짓기", function()
 	print(`  파트 {parts}개`)
 end)
 
-print(
-	"\n진행 속도 (영맥 없이 / 각 경지에 맞는 최고 영맥, 진영근 둘, 과업 시간 빼고 영력만)"
-)
+print("\n진행 속도 (영맥 없이 / 상품 영맥, 진영근 둘, 과업 시간 빼고 영력만)")
 do
-	local veinFor = function(step: number): number
+	local veinFor = function(_step: number): number
 		local best = 1
 		for _, vein in Balance.VEINS do
-			if step >= Realms.firstStepById[vein.minRealm] then
-				best = math.max(best, vein.mult)
-			end
+			best = math.max(best, vein.mult)
 		end
 		return best
 	end

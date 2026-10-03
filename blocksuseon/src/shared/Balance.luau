@@ -13,11 +13,11 @@ Balance.GAIN_BASE = 2 -- 범인이 운기조식으로 1초에 얻는 영력
 Balance.GAIN_GROWTH = 1.13 -- 단계마다 흡수 속도 배율
 Balance.TICK = 0.5 -- 서버가 영력을 정산하는 주기(초)
 
--- 영맥: 그 위에서 운기조식하면 흡수 배율이 붙는다. 경지가 모자라면 거친 영기를 받아들이지 못한다.
+-- 영맥: 그 위에서 운기조식하면 흡수 배율이 붙는다. 경지와 상관없이 누구나 쓸 수 있다.
 Balance.VEINS = {
-	low = { name = "하품 영맥", mult = 1.5, minRealm = "mortal" },
-	mid = { name = "중품 영맥", mult = 2.5, minRealm = "chukgi" },
-	high = { name = "상품 영맥", mult = 4, minRealm = "gyeoldan" },
+	low = { name = "하품 영맥", mult = 1.5 },
+	mid = { name = "중품 영맥", mult = 2.5 },
+	high = { name = "상품 영맥", mult = 4 },
 }
 
 -- 과업 배율(Tasks)을 곱하기 전의 기본 필요 영력

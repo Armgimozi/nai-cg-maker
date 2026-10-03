@@ -117,6 +117,14 @@ local fakeChannel = {
 	end,
 }
 local services = {
+	CollectionService = {
+		GetTagged = function()
+			return {}
+		end,
+		GetInstanceAddedSignal = function()
+			return fakeSignal(heartbeatKey, "TagAdded")
+		end,
+	},
 	TextChatService = {
 		ChatVersion = roblox.Enum.ChatVersion.TextChatService,
 		WaitForChild = function()
@@ -237,6 +245,7 @@ Hud.build({
 	eat = record("eat"),
 	trialResult = record("trialResult"),
 	trialCancel = record("trialCancel"),
+	travel = record("travel"),
 })
 
 local function state(overrides)
@@ -247,7 +256,6 @@ local function state(overrides)
 		gain = 4.5,
 		meditating = false,
 		veinId = nil,
-		veinBlocked = nil,
 		needsBreak = false,
 		ready = false,
 		tasksDone = false,
@@ -309,7 +317,6 @@ local cases = {
 	},
 	{ "과업 남음", state({ step = 3, qi = 999, req = 999, tasksDone = false }) },
 	{ "운기 중 + 영맥", state({ meditating = true, veinId = "low" }) },
-	{ "영맥 경지 부족", state({ veinBlocked = "mid" }) },
 	{
 		"병목 천겁",
 		state({
@@ -360,6 +367,68 @@ end
 
 Hud.toggleStatus()
 Hud.toggleStatus(false)
+
+-- 전송진 창: 열린 진만 고를 수 있고, 고르면 서버에 보낸다
+Hud.update(state({
+	waypoints = {
+		{ id = "wp_yeonguk", name = "연국", open = true },
+		{ id = "wp_two", name = "영산", open = true },
+		{ id = "wp_three", name = "천겁대", open = false },
+	},
+}))
+Hud.openTravel("wp_yeonguk")
+assert(Hud.travelOpen(), "전송진 창이 열리지 않았다")
+do
+	local menu = playerGui:FindFirstChild("BlockSuseonHud"):FindFirstChild("TravelMenu")
+	local buttons = {}
+	for _, item in menu:GetDescendants() do
+		if item:IsA("ImageButton") and item.Visible and item.LayoutOrder > 0 then
+			buttons[item.LayoutOrder] = item
+		end
+	end
+	assert(buttons[1] and buttons[2] and buttons[3] and not buttons[4], "진 셋만 보여야 한다")
+	fire(buttons[3], "Activated")
+	assert(sent.travel == nil and Hud.travelOpen(), "닫힌 진은 고를 수 없다")
+	fire(buttons[1], "Activated")
+	assert(sent.travel == nil, "지금 선 진은 고를 수 없다")
+	fire(buttons[2], "Activated")
+	assert(sent.travel and sent.travel[1] == "wp_two", "고른 진을 보내야 한다")
+	assert(not Hud.travelOpen(), "고르면 창이 닫힌다")
+end
+
+-- 땅 이름 띄우기
+loader.require(loader.folder("src/client").PlaceBanner).show("영초숲", "영초와 천년영지가 돋는 숲")
+
+-- 현판: 판자 겉면에 붓글씨 글자를 붙인다 (가로, 세로)
+do
+	local Plaques = loader.require(loader.folder("src/client").Plaques)
+	for _, case in
+		{ { "연국", false, roblox.Vector3.new(8, 3, 0.6) }, { "천겁대", true, roblox.Vector3.new(3, 10, 1.2) } }
+	do
+		local board = roblox.Instance.new("Part")
+		board.Size = case[3]
+		board:SetAttribute("Text", case[1])
+		board:SetAttribute("Vertical", case[2])
+		board:SetAttribute("Faces", "Front,Back")
+		Plaques.decorate(wrap(board))
+		local guis = 0
+		for _, child in board:GetChildren() do
+			if child:IsA("SurfaceGui") then
+				guis += 1
+				local glyphs = 0
+				for _, item in child:GetDescendants() do
+					if item:IsA("ImageLabel") then
+						glyphs += 1
+					end
+				end
+				assert(glyphs == utf8.len(case[1]), `현판 글자 수 {glyphs} ({case[1]})`)
+			end
+		end
+		assert(guis == 2, "앞뒤 두 면에 새겨야 한다")
+		Plaques.decorate(wrap(board))
+		assert(#board:GetChildren() == 2, "두 번 새기면 안 된다")
+	end
+end
 
 -- 내관 창: 박자와 균형
 Hud.openTrial({
@@ -591,6 +660,14 @@ for mansion = 1, 4 do
 	need("title", Tasks.MANSIONS[mansion].name)
 end
 need("title", "천지인")
+-- 땅 이름 (들어설 때 화면에 띄운다)
+for _, region in loader.require(sharedFolder.Places).REGIONS do
+	need("title", region.name)
+	need("body", region.name)
+	if region.sub then
+		need("body", region.sub)
+	end
+end
 need("body", "별씨 12")
 for _, name in Trials.CHEONGANG do
 	need("title", name)
@@ -606,10 +683,6 @@ need("body", "주머니  영초 3  천년영지 1  홍령삼 1  축기단 1 주�
 -- 서버가 보내는 알림 문구 (화면에 글자판으로 찍는다)
 local fs = require("@lune/fs")
 for _, file in fs.readDir("src/server") do
-	-- 맵(표지판·모델 이름)은 Roblox 글꼴로 찍으므로 뺀다
-	if file == "World.luau" then
-		continue
-	end
 	local source = fs.readFile("src/server/" .. file)
 	source = string.gsub(source, "%-%-[^\n]*", "")
 	for literal in string.gmatch(source, '"([^"\n]*)"') do
