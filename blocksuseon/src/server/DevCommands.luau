@@ -1,6 +1,6 @@
 -- 검수용 채팅 명령 (shared/Commands.luau). 플레이스 주인과 Studio 에서만 듣는다.
 -- TextChatCommand 는 서버에서 만들어야 명령 글이 다른 사람 채팅에 나가지 않는다(클라이언트에서 만든 명령은
--- 메시지를 삼키지 못한다). 주인이 아닌 사람이 쳐도 글은 삼켜지고 아무 일도 없다.
+-- 메시지를 삼키지 못한다). 주인이 아닌 사람이 치면 글은 삼켜지고 "주인만 쓴다"는 알림만 간다.
 -- 기록을 바꾸는 명령은 처음 쓸 때 원래 기록을 따로 보관한다(PlayerData.backupOnce, /복구 확인).
 
 local Players = game:GetService("Players")
@@ -180,7 +180,13 @@ local function runCommand(player: Player, text: any)
 			end
 			return
 		end
-		local ok, message = PlayerData.restoreBackup(player)
+		local ok, message = PlayerData.restoreBackup(player, function()
+			return PlayerData.get(player) == data
+				and Session.get(player) == session
+				and not session.tribulation
+				and not session.trial
+				and not session.ritual
+		end)
 		if ok then
 			Characters.applyStats(player, true)
 		end

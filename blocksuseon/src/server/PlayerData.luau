@@ -168,8 +168,9 @@ function PlayerData.describeBackup(player: Player): (number?, number?, string?)
 	return Progression.reconcile(saved).step, savedAt, nil
 end
 
--- 보관본으로 되돌리고 보관본은 지운다 (다음 검수 때 새로 보관한다). 반환: 성공했는가, 알릴 문구
-function PlayerData.restoreBackup(player: Player): (boolean, string)
+-- 보관본으로 되돌린다. 되돌린 기록을 먼저 저장하고, 저장에 성공했을 때만 보관본을 지운다.
+-- canApply 는 보관본을 읽은 뒤(기다린 뒤) 바꿔도 되는지 다시 묻는다. 반환: 성공했는가, 알릴 문구
+function PlayerData.restoreBackup(player: Player, canApply: () -> boolean): (boolean, string)
 	local profile = profiles[player] :: any
 	if not profile or not profile.canSave or not store then
 		return false, "저장소에 연결하지 못해 되돌릴 수 없다."
@@ -177,6 +178,9 @@ function PlayerData.restoreBackup(player: Player): (boolean, string)
 	local saved, _, err = readBackup(player)
 	if not saved then
 		return false, err or "보관본이 없다."
+	end
+	if profiles[player] ~= profile or not canApply() then
+		return false, "그사이 상태가 바뀌어 되돌리지 않았다. 다시 친다."
 	end
 	local restored = Progression.reconcile(saved)
 	local data = profile.data :: any
@@ -186,11 +190,23 @@ function PlayerData.restoreBackup(player: Player): (boolean, string)
 	for key, value in restored :: any do
 		data[key] = value
 	end
-	pcall(function()
+	local ok, saveErr = pcall(function()
+		store:UpdateAsync(keyFor(player), function()
+			return profile.data
+		end)
+	end)
+	if not ok then
+		warn(string.format("[블록수선전] %s 복구 저장 실패: %s", player.Name, tostring(saveErr)))
+		return true, "검수하기 전의 기록으로 되돌렸다. 저장이 늦어 보관본은 남겨 두었다."
+	end
+	local removed = pcall(function()
 		store:RemoveAsync(keyFor(player) .. BACKUP_SUFFIX)
 	end)
-	profile.backedUp = false
-	return true, "검수하기 전의 기록으로 되돌렸다. 보관본은 지웠다."
+	if removed then
+		profile.backedUp = false
+		return true, "검수하기 전의 기록으로 되돌렸다. 보관본은 지웠다."
+	end
+	return true, "검수하기 전의 기록으로 되돌렸다. 보관본은 남아 있다."
 end
 
 function PlayerData.release(player: Player)

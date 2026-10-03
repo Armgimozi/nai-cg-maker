@@ -99,7 +99,8 @@ function Commands.parse(text: any): Parsed?
 		local validSub = sub ~= nil and sub == sub and sub % 1 == 0 and sub >= 1 and sub < 1000
 		local step = if list[2] then Commands.stepOf(list[2], 1) else nil
 		if step and not validSub then
-			parsed.error = "단계 번호는 1 이상의 정수다. 예: /경지 연기기 7"
+			parsed.error =
+				"단계 번호는 1부터 그 경지의 단계 수까지의 정수다. 예: /경지 연기기 7"
 		elseif step then
 			parsed.step = Commands.stepOf(list[2], sub)
 		else
