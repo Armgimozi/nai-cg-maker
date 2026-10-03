@@ -51,7 +51,16 @@ local function step(dt: number)
 		local blend = 1 - math.exp(-6 * dt)
 		look.yaw += (targetYaw - look.yaw) * blend
 		look.pitch += (targetPitch - look.pitch) * blend
-		if math.abs(look.yaw) > 0.001 or math.abs(look.pitch) > 0.001 then
+		-- 동작 계산을 건너뛴 프레임에는 지난 자세가 남아 있으므로 얹지 않는다 (겹쳐 돌아가지 않게)
+		local humanoid = model:FindFirstChildOfClass("Humanoid")
+		local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
+		local throttled = false
+		if animator then
+			pcall(function()
+				throttled = (animator :: any).EvaluationThrottled == true
+			end)
+		end
+		if not throttled and (math.abs(look.yaw) > 0.001 or math.abs(look.pitch) > 0.001) then
 			pcall(function()
 				neck.Transform = CFrame.Angles(look.pitch, look.yaw, 0) * neck.Transform
 			end)

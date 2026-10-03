@@ -160,7 +160,7 @@ local function safeDescribe(look: Npcs.Look, withAccessories: boolean): Humanoid
 	if ok then
 		return desc
 	end
-	warn("[블록수선전] NPC 생김새 오류:", desc)
+	warn("[블록수선전] NPC HumanoidDescription 오류:", desc)
 	return nil
 end
 
@@ -190,6 +190,10 @@ local function loadTracks(humanoid: Humanoid): { [string]: AnimationTrack }
 		animator = Instance.new("Animator")
 		animator.Parent = humanoid
 	end
+	-- 멀리서 동작을 건너뛰면 고개 돌림(NpcLook)이 같은 자세 위에 겹쳐 쌓인다. 일곱 명뿐이라 꺼 둔다
+	pcall(function()
+		(animator :: any).PreferLodEnabled = false
+	end)
 	local tracks = {}
 	for name, id in ANIMATIONS do
 		local animation = Instance.new("Animation")
@@ -298,11 +302,19 @@ local function spawn(def: Npcs.Npc)
 		pausedUntil = 0,
 	}
 	live[def.id] = npc
-	nameTag(npc)
+	-- 앉은 노인은 맵 표지판이 이름을 보여 준다
+	if not def.seated then
+		nameTag(npc)
+	end
 
 	if seat then
 		seat:Sit(humanoid)
 		play(npc, "sit")
+		return
+	elseif def.seated then
+		-- 앉을 자리가 없는 맵(예전 판): 그 자리에 서 있게 한다
+		root.Anchored = true
+		play(npc, "idle")
 		return
 	end
 
@@ -331,8 +343,9 @@ local function spawn(def: Npcs.Npc)
 		prompt.ActionText = "말 걸기"
 		prompt.ObjectText = def.name
 		prompt.KeyboardKeyCode = Enum.KeyCode.F
-		prompt.HoldDuration = 0
-		prompt.MaxActivationDistance = 10
+		-- 영초·노인 버튼과 F 를 나눠 쓰므로 조금 눌러야 하고, 가까이 가야 뜬다
+		prompt.HoldDuration = 0.3
+		prompt.MaxActivationDistance = 7
 		prompt.RequiresLineOfSight = false
 		local attachment = Instance.new("Attachment")
 		attachment.Position = Vector3.new(0, 1, 0)
@@ -346,25 +359,47 @@ local function spawn(def: Npcs.Npc)
 	task.spawn(function()
 		local route = def.route or { def.position }
 		local index = 1
+		local resume = false -- 말 거느라 멈췄으면 가던 곳으로 다시 간다
 		while npc.model.Parent do
 			if os.clock() < npc.pausedUntil then
+				resume = true
 				task.wait(0.5)
 				continue
 			end
-			index = index % #route + 1
-			humanoid:MoveTo(route[index])
-			local reached = false
-			local connection = humanoid.MoveToFinished:Connect(function()
-				reached = true
+			if not resume then
+				index = index % #route + 1
+			end
+			resume = false
+			local goal = route[index]
+			-- MoveTo 는 8초가 지나면 저절로 끝나므로 5초마다 다시 건다. 12초 안에 못 닿으면 걸린 것으로 본다
+			local finished, reached = false, false
+			local connection = humanoid.MoveToFinished:Connect(function(ok)
+				finished, reached = true, ok
 			end)
-			local deadline = os.clock() + 12
-			while not reached and os.clock() < deadline and os.clock() >= npc.pausedUntil do
+			humanoid:MoveTo(goal)
+			local started = os.clock()
+			local lastIssue = started
+			while not reached and os.clock() - started < 12 do
+				if os.clock() < npc.pausedUntil then
+					break
+				end
+				if finished and not reached then
+					finished = false
+					humanoid:MoveTo(goal)
+					lastIssue = os.clock()
+				elseif os.clock() - lastIssue > 5 then
+					humanoid:MoveTo(goal)
+					lastIssue = os.clock()
+				end
 				task.wait(0.25)
 			end
 			connection:Disconnect()
-			if not reached and os.clock() >= npc.pausedUntil then
-				-- 어디 걸렸으면 다음 자리로 옮겨 놓는다
-				model:PivotTo(CFrame.new(route[index] + Vector3.new(0, 3.5, 0)))
+			if os.clock() < npc.pausedUntil then
+				continue
+			end
+			if not reached then
+				-- 어디 걸렸으면 가려던 자리로 옮겨 놓는다
+				model:PivotTo(CFrame.new(goal + Vector3.new(0, 3.5, 0)))
 			end
 			task.wait(2 + (#def.name % 3))
 		end

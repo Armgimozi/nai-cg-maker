@@ -614,16 +614,22 @@ function TaskService.onPrompt(player: Player, id: string)
 	elseif id == "furnace" then
 		useFurnace(player, data, session)
 	elseif Npcs.byId[id] then
-		-- 노인: 부탁할 때가 되었는데 영초가 없으면 부탁을, 아니면 평소 이야기를 한다
+		-- 노인: 이미 부탁을 들어주었으면 인사를, 아니면 평소 이야기를 한다
+		-- (부탁할 때인데 영초가 없으면 위의 offerAt → useOffer 가 부탁을 말한다)
 		local npc = Npcs.byId[id]
-		local asking = false
+		local thanked = false
 		for _, task in (Tasks.list(data)) do
-			if task.kind == "offer" and task.sites and table.find(task.sites, id) and Tasks.isOpen(data, task) then
-				asking = true
+			if
+				task.kind == "offer"
+				and task.sites
+				and table.find(task.sites, id)
+				and not table.find(Tasks.pendingSites(data, task), id)
+			then
+				thanked = true
 			end
 		end
-		if asking and npc.request then
-			Villagers.say(player, id, npc.request)
+		if thanked and npc.thanks then
+			Villagers.say(player, id, npc.thanks)
 		else
 			Villagers.talk(player, id)
 		end

@@ -98,6 +98,14 @@
 경지는 [`src/shared/Realms.luau`](src/shared/Realms.luau), 단계별 과업은 [`src/shared/Tasks.luau`](src/shared/Tasks.luau),
 영근은 [`src/shared/Roots.luau`](src/shared/Roots.luau) 에서 고친다.
 
+### 마을 사람
+
+노인 셋(늙은 약초꾼, 늙은 대장장이, 늙은 뱃사공)은 자리에 앉아 있고, 마을 사람 넷(약초 캐는 청년, 바구니 든 아낙,
+마을 아이, 떠돌이 수도자)은 길을 오간다. 가까이 가면 고개를 돌려 보고, F 로 말을 걸면 말풍선으로 이야기한다
+(말을 건 사람에게만 보인다). 노인들은 천인기 "천순과 종심"에서 마지막 부탁을 한다.
+생김새(카탈로그 아이템), 자리, 동선, 대사는 [`src/shared/Npcs.luau`](src/shared/Npcs.luau), 띄우는 코드는
+[`src/server/Villagers.luau`](src/server/Villagers.luau). 아이템을 못 불러오면 옷만, 그것도 안 되면 맨몸으로 선다.
+
 ### 맵: 연국(連國)
 
 마을 광장(하품 영맥, 스폰) · 서쪽 개울 건너 영초숲(중품 영맥) · 북쪽 영산(층층이 감아 오르는 비탈, 꼭대기에 상품 영맥) · 북동쪽 천겁대.
