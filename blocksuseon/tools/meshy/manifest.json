@@ -263,22 +263,6 @@
   "origAssetId": "107627005816375",
   "postfix": "glbfix: rotated -19.7 deg so the diagonal blade is on Y, dropped the side-swept tassel ribbons that pushed the box off the handle"
  },
- "saber_5": {
-  "kind": "weapon",
-  "meshyPreview": "01a1021a-ed06-7558-a003-925a43bec340",
-  "meshyRefine": "01a1021b-21a2-7141-ad06-3d7a7a4c469e",
-  "tris": 3260,
-  "bbox": [
-   0.1826,
-   1.0,
-   0.0443
-  ],
-  "guardY": 0.2625,
-  "tipDir": -1,
-  "assetId": "97821682414639",
-  "moderation": "Approved",
-  "seconds": 88
- },
  "spear_1": {
   "kind": "weapon",
   "meshyPreview": "01a1021b-f630-75d8-b18f-14063cea29ed",
@@ -438,5 +422,23 @@
   "assetId": "125930421375492",
   "moderation": "Approved",
   "seconds": 92
+ },
+ "saber_5": {
+  "kind": "weapon",
+  "meshyPreview": "01a1022f-0f6b-7728-9da9-e7a97e818ee7",
+  "meshyRefine": "01a10231-2a04-72ef-8ab0-e3eaea8e3532",
+  "tris": 3115,
+  "bbox": [
+   0.1608,
+   0.9992,
+   0.0447
+  ],
+  "guardY": 0.2625,
+  "tipDir": -1,
+  "assetId": "134817477132852",
+  "moderation": "Approved",
+  "seconds": 53,
+  "oldAssetId": "97821682414639",
+  "note": "regenerated: old model was a narrow straight jian; new prompt asks for a dao blade that widens toward the tip and curves"
  }
 }
