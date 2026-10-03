@@ -20,3 +20,4 @@ blocksuseon/art/fonts/
 
 # Meshy 가 만든 GLB (tools/meshy/manifest.json 에 에셋 ID 가 남는다)
 blocksuseon/tools/meshy/models/
+blocksuseon/tools/meshy/run.log
