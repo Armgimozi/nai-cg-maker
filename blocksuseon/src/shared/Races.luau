@@ -117,7 +117,7 @@ end
 Races.TOTAL_WEIGHT = totalWeight
 
 -- 다시 뽑기 개발자 상품 (Creator Hub 에서 만든 id, 49 로벅스)
-Races.REROLL_PRODUCT_ID = 0
+Races.REROLL_PRODUCT_ID = 3716222762
 Races.REROLL_PRICE = 49
 
 -- roll: 0 이상 1 미만의 수. except 와 다른 종족이 나올 때까지 몫을 다시 나눈다

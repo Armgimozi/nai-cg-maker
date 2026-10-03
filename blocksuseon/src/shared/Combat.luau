@@ -63,16 +63,40 @@ Combat.KINDS = {
 } :: { [string]: WeaponKind }
 Combat.KIND_ORDER = { "sword", "saber", "spear", "fan" }
 
--- Meshy 로 만든 무기 모델 (tools/meshy/specs.json → manifest.json).
+-- Meshy 로 만든 무기 모델 (tools/meshy/specs.json → manifest.json). 종류마다, 등급마다 하나씩.
 --   length 모델 가장 긴 변(스터드). 긴 변이 모델의 세로(Y)다
 --   tip    날 끝이 +Y 쪽(1)인지 -Y 쪽(-1)인지
 --   grip   손이 쥐는 자리. 모델 가운데에서 세로로 떨어진 거리를 가장 긴 변으로 나눈 값
+export type MeshSpec = { asset: number, length: number, tip: number, grip: number }
 Combat.MESH = {
-	sword = { asset = 117737538022358, length = 4.5, tip = -1, grip = 0.281 },
-	saber = { asset = 80885908489967, length = 4.2, tip = -1, grip = 0.281 },
-	spear = { asset = 87579725321424, length = 8, tip = 1, grip = -0.12 },
-	fan = { asset = 90072943116000, length = 3, tip = 1, grip = -0.27 },
-}
+	sword = {
+		[3] = { asset = 117737538022358, length = 4.5, tip = -1, grip = 0.281 },
+	},
+	saber = {
+		[2] = { asset = 80885908489967, length = 4.2, tip = -1, grip = 0.281 },
+	},
+	spear = {
+		[2] = { asset = 87579725321424, length = 8, tip = 1, grip = -0.12 },
+	},
+	fan = {
+		[3] = { asset = 90072943116000, length = 3, tip = 1, grip = -0.27 },
+	},
+} :: { [string]: { [number]: MeshSpec } }
+
+-- 이 무기의 모델. 그 등급 모델이 없으면 가장 가까운 등급 모델
+function Combat.meshFor(weapon: Weapon): MeshSpec?
+	local byGrade = Combat.MESH[weapon.kind]
+	if not byGrade then
+		return nil
+	end
+	for offset = 0, #Combat.GRADES do
+		local spec = byGrade[weapon.grade - offset] or byGrade[weapon.grade + offset]
+		if spec and spec.asset > 0 then
+			return spec
+		end
+	end
+	return nil
+end
 
 -- 등급: 이름 앞말과 피해 배율. 요수 위험도(1~5)와 같은 등급이 떨어진다
 Combat.GRADES = {

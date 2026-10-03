@@ -11,6 +11,7 @@
 --   Site          - 과업 자리 (속성 Site = 자리 id, Radius). 오행처 el_wood 등
 --   Waypoint      - 전송진 (속성 WaypointId, Name, Order)
 --   Plaque        - 글자를 새길 판 (속성 Text 등, client/Plaques.luau)
+--   MarketSpot    - 상점 자리 (속성 Shop = "market" 만물상 | "smith" 대장간). F 버튼이 붙어 있다 (server/Market.luau)
 -- 땅마다 원작 수계의 방위를 따른다 (Land.luau 머리말).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -128,6 +129,11 @@ local ELDERS = {
 	{ id = "elder_3", name = "늙은 뱃사공", position = Vector3.new(-82, 0, 20), faces = Vector3.new(-95, 0, 20) },
 }
 
+-- 만물상: 광장 동북쪽, 대장간과 연국 전송진 사이. 판대 앞이 광장을 본다.
+-- 주인(Npcs.luau 의 merchant)은 판대 뒤 걸상에 앉는다 (Npcs 의 position 은 그 걸상 자리)
+local STALL = { id = "merchant", position = Vector3.new(48, 0, -26), faces = Vector3.zero }
+World.STALL = STALL
+
 -- 사방 성대 (육합만로, 축기·결단에서도 다시 쓴다)
 local STAR_ALTARS = {
 	{
@@ -213,6 +219,267 @@ local tree = Kit.tree
 local palm = Kit.palm
 local rock = Kit.rock
 local waypoint = Kit.waypoint
+local marketSpot = Kit.marketSpot
+
+-- 만물상: 줄무늬 차양을 친 판대. 앞 판대에 물건을 늘어놓고, 뒤 벽에 선반과 무기를 건다.
+-- 판대 가운데에 상점 자리(F 버튼)를 두고, 주인은 그 뒤 걸상에 앉아 손님 쪽을 본다
+local function buildStall(parent: Instance)
+	local m = model(parent, "만물상")
+	local ground = at(STALL.position.X, STALL.position.Z)
+	local look = face(ground, Vector3.new(STALL.faces.X, ground.Y, STALL.faces.Z))
+	local function put(name: string, size: Vector3, x: number, y: number, z: number, color: Color3, material)
+		return block(m, name, size, look * CFrame.new(x, y, z), color, material)
+	end
+	local function upright(
+		name: string,
+		length: number,
+		diameter: number,
+		x: number,
+		y: number,
+		z: number,
+		color,
+		material
+	)
+		-- 원기둥을 세운다 (Cylinder 의 축은 X)
+		local part = block(
+			m,
+			name,
+			Vector3.new(length, diameter, diameter),
+			look * CFrame.new(x, y, z) * CFrame.Angles(0, 0, math.rad(90)),
+			color,
+			material
+		)
+		part.Shape = Enum.PartType.Cylinder
+		return part
+	end
+
+	-- 바닥과 기둥: 앞 기둥이 낮아 차양이 앞으로 비탈진다
+	put("Deck", Vector3.new(12.4, 0.5, 8), 0, 0.25, 1.4, C.wood, Enum.Material.WoodPlanks)
+	local frontTop, backTop = 9.2, 11
+	for _, x in { -5.8, 5.8 } do
+		put("Post", Vector3.new(0.7, frontTop, 0.7), x, frontTop / 2, -2.2, C.woodDark, Enum.Material.Wood)
+		put("Post", Vector3.new(0.7, backTop, 0.7), x, backTop / 2, 5, C.woodDark, Enum.Material.Wood)
+	end
+	put("Beam", Vector3.new(12.6, 0.5, 0.5), 0, frontTop - 0.25, -2.2, C.wood, Enum.Material.Wood)
+	put("Beam", Vector3.new(12.6, 0.5, 0.5), 0, backTop - 0.25, 5, C.wood, Enum.Material.Wood)
+	local rise, run = backTop - frontTop, 7.2
+	local slope = math.atan2(rise, run)
+	local railY = frontTop - 0.25 + rise / 2
+	for _, x in { -5.8, 5.8 } do
+		block(
+			m,
+			"Rail",
+			Vector3.new(0.5, 0.5, run / math.cos(slope) + 0.4),
+			look * CFrame.new(x, railY, 1.4) * CFrame.Angles(-slope, 0, 0),
+			C.wood,
+			Enum.Material.Wood
+		)
+	end
+
+	-- 줄무늬 차양과 앞 끝에 늘어뜨린 천
+	local stripes, width, length = 7, 13.4, 9.7
+	local strip = width / stripes
+	local centerZ = 0.9
+	local centerY = railY + (centerZ - 1.4) * math.tan(slope) + 0.36
+	local edgeZ = centerZ - length / 2 * math.cos(slope)
+	local edgeY = centerY - length / 2 * math.sin(slope)
+	for i = 1, stripes do
+		local x = -width / 2 + (i - 0.5) * strip
+		local red = i % 2 == 1
+		block(
+			m,
+			"Awning",
+			Vector3.new(strip + 0.02, 0.2, length),
+			look * CFrame.new(x, centerY, centerZ) * CFrame.Angles(-slope, 0, 0),
+			if red then C.red else C.felt,
+			Enum.Material.Fabric
+		)
+		put(
+			"Valance",
+			Vector3.new(strip + 0.02, 0.9, 0.12),
+			x,
+			edgeY - 0.5,
+			edgeZ,
+			if red then C.felt else C.red,
+			Enum.Material.Fabric
+		)
+	end
+
+	-- 뒤 벽, 선반, 걸어 둔 무기 (만물상에서 파는 창·도·선)
+	put("Back", Vector3.new(10.9, 6, 0.3), 0, 3.5, 5.2, C.woodDark, Enum.Material.WoodPlanks)
+	-- 뒤 벽 바깥 띠목 (전송진 쪽에서 보이는 면)
+	for _, y in { 1.4, 5.6 } do
+		put("Batten", Vector3.new(10.9, 0.3, 0.15), 0, y, 5.42, C.wood, Enum.Material.Wood)
+	end
+	for _, x in { -2.7, 2.7 } do
+		put("Batten", Vector3.new(0.3, 6, 0.15), x, 3.5, 5.42, C.wood, Enum.Material.Wood)
+	end
+	put("Shelf", Vector3.new(10.4, 0.25, 1.1), 0, 4.4, 4.5, C.wood, Enum.Material.Wood)
+	for _, x in { -4.6, 4.6 } do
+		put("Bracket", Vector3.new(0.3, 0.6, 0.8), x, 3.98, 4.6, C.woodDark, Enum.Material.Wood)
+	end
+	local shelfTop = 4.525
+	for i, color in { C.jade, C.plaster, C.red } do
+		local x = -5.2 + i
+		upright("Jar", 0.9, 0.7, x, shelfTop + 0.45, 4.5, color, Enum.Material.SmoothPlastic)
+		put("Cork", Vector3.new(0.3, 0.2, 0.3), x, shelfTop + 1, 4.5, C.dirt, Enum.Material.Wood)
+	end
+	put("Box", Vector3.new(1, 0.7, 0.8), 2.4, shelfTop + 0.35, 4.5, C.gold, Enum.Material.Fabric)
+	put("Box", Vector3.new(0.9, 0.6, 0.8), 3.6, shelfTop + 0.3, 4.5, C.roof, Enum.Material.Fabric)
+	put("Box", Vector3.new(0.7, 0.45, 0.6), 3.0, shelfTop + 0.92, 4.5, C.red, Enum.Material.Fabric)
+	for i = 0, 1 do
+		local scroll = block(
+			m,
+			"Scroll",
+			Vector3.new(1.6, 0.35, 0.35),
+			look * CFrame.new(0.4, shelfTop + 0.18 + i * 0.34, 4.45 - i * 0.08),
+			C.felt,
+			Enum.Material.Fabric
+		)
+		scroll.Shape = Enum.PartType.Cylinder
+	end
+	local steel = Color3.fromRGB(170, 172, 178)
+	put("SpearShaft", Vector3.new(8, 0.22, 0.22), -0.4, 6, 4.9, C.wood, Enum.Material.Wood)
+	put("SpearHead", Vector3.new(1.2, 0.5, 0.1), 4.2, 6, 4.9, steel, Enum.Material.Metal)
+	put("Tassel", Vector3.new(0.4, 0.5, 0.4), 3.4, 5.75, 4.9, C.red, Enum.Material.Fabric)
+	put("SaberHilt", Vector3.new(0.22, 0.7, 0.22), -3.8, 3.75, 4.95, C.lacquer, Enum.Material.Wood)
+	put("SaberGuard", Vector3.new(0.8, 0.2, 0.22), -3.8, 3.3, 4.95, C.gold, Enum.Material.Metal)
+	put("SaberBlade", Vector3.new(0.5, 2.4, 0.08), -3.7, 2.0, 4.97, steel, Enum.Material.Metal)
+	for k = -2, 2 do
+		block(
+			m,
+			"FanLeaf",
+			Vector3.new(0.45, 1.6, 0.06),
+			look * CFrame.new(3.8, 2.0, 4.97) * CFrame.Angles(0, 0, math.rad(k * 18)) * CFrame.new(0, 0.8, 0),
+			if k % 2 == 0 then C.felt else C.plaster,
+			Enum.Material.Wood
+		)
+	end
+
+	-- 판대: 붉은 천을 덮고 물건을 늘어놓는다
+	put("Plinth", Vector3.new(11.2, 0.4, 2), 0, 0.2, -1.7, C.woodDark, Enum.Material.Wood)
+	put("Counter", Vector3.new(11, 2.9, 1.8), 0, 1.45, -1.7, C.wood, Enum.Material.WoodPlanks)
+	put("CounterTop", Vector3.new(11.6, 0.3, 2.3), 0, 3.05, -1.75, C.lacquer, Enum.Material.Wood)
+	put("Runner", Vector3.new(5.5, 0.06, 2.3), 0, 3.23, -1.75, C.red, Enum.Material.Fabric)
+	put("Runner", Vector3.new(5.5, 1.6, 0.08), 0, 2.45, -2.94, C.red, Enum.Material.Fabric)
+	local top = 3.2
+	-- 영석 한 소반 (빛이 은은히 돈다)
+	local stoneColor = Color3.fromRGB(130, 230, 235)
+	local tray = put("Tray", Vector3.new(2.2, 0.25, 1.4), -3.8, top + 0.125, -1.7, C.woodDark, Enum.Material.Wood)
+	light(tray, stoneColor, 7, 0.8)
+	for i, spec in
+		{
+			{ -0.7, -0.3, 0.45 },
+			{ -0.2, 0.25, 0.4 },
+			{ 0.4, -0.2, 0.5 },
+			{ 0.75, 0.3, 0.38 },
+			{ -0.6, 0.35, 0.35 },
+			{ 0.1, -0.35, 0.36 },
+			{ 0.15, 0.05, 0.42 },
+		}
+	do
+		local size = spec[3]
+		local crystal = block(
+			m,
+			"Stone",
+			Vector3.new(size, size * 1.3, size),
+			look
+				* CFrame.new(-3.8 + spec[1], top + 0.25 + size * 0.5, -1.7 + spec[2])
+				* CFrame.Angles(math.rad(i * 23), math.rad(i * 47), math.rad(i * 31)),
+			stoneColor,
+			Enum.Material.Neon
+		)
+		crystal.Transparency = 0.15
+	end
+	-- 영초 다발
+	for i = 0, 2 do
+		local x = -2.1 + i * 0.5
+		put("Herbs", Vector3.new(0.4, 0.4, 1.2), x, top + 0.26, -1.8, C.leafLight, Enum.Material.Grass)
+		put("Tie", Vector3.new(0.45, 0.45, 0.15), x, top + 0.26, -1.8, C.felt, Enum.Material.Fabric)
+	end
+	-- 주판
+	put("Abacus", Vector3.new(1.8, 0.12, 1), 0.9, top + 0.1, -1.6, C.woodDark, Enum.Material.Wood)
+	for row = 0, 2 do
+		local z = -1.9 + row * 0.3
+		put("Rod", Vector3.new(1.6, 0.06, 0.06), 0.9, top + 0.2, z, C.gold, Enum.Material.Metal)
+		for bead = 0, 1 do
+			put("Bead", Vector3.new(0.18, 0.16, 0.18), 0.5 + bead * 0.25 + row * 0.15, top + 0.24, z, C.red)
+		end
+	end
+	-- 영약 병과 요단 한 사발
+	for i, color in { C.jade, C.plaster } do
+		local x = 1.6 + i * 0.75
+		upright("Bottle", 0.8, 0.5, x, top + 0.46, -1.8, color, Enum.Material.SmoothPlastic)
+		put("Cork", Vector3.new(0.22, 0.16, 0.22), x, top + 0.94, -1.8, C.red, Enum.Material.Wood)
+	end
+	disc(m, "Bowl", (look * CFrame.new(4.3, top + 0.18, -1.75)).Position, 0.65, 0.3, C.woodDark, Enum.Material.Wood)
+	for _, offset in
+		{ Vector3.new(-0.2, 0, -0.15), Vector3.new(0.2, 0, -0.1), Vector3.new(0, 0, 0.2), Vector3.new(0.05, 0.25, 0) }
+	do
+		ball(
+			m,
+			"Yodan",
+			(look * CFrame.new(4.3 + offset.X, top + 0.5 + offset.Y, -1.75 + offset.Z)).Position,
+			0.35,
+			Color3.fromRGB(230, 120, 60),
+			Enum.Material.Neon
+		)
+	end
+	marketSpot(m, "market", (look * CFrame.new(0, top + 0.3, -1.7)).Position, "상점", "만물상")
+
+	-- 주인이 앉는 걸상 (Villagers.luau 가 앉힌다)
+	put("Stool", Vector3.new(2.2, 1.9, 2.2), 0, 1.45, 1.4, C.woodDark, Enum.Material.Wood)
+	local seat = Instance.new("Seat")
+	seat.Name = "자리"
+	seat.Anchored = true
+	seat.Size = Vector3.new(2, 0.2, 2)
+	seat.CFrame = look * CFrame.new(0, 2.5, 1.4)
+	seat.Transparency = 1
+	seat.CanCollide = false
+	seat:SetAttribute("NpcSeat", STALL.id)
+	seat.Parent = m
+
+	-- 앞 들보에 매단 현판과 양쪽 기둥의 등롱
+	for _, x in { -2.2, 2.2 } do
+		put("Cord", Vector3.new(0.1, 0.5, 0.1), x, frontTop - 0.75, -2.2, C.woodDark, Enum.Material.Fabric)
+	end
+	local board = put("Board", Vector3.new(6.1, 1.7, 0.3), 0, frontTop - 1.85, -2.2, C.lacquer, Enum.Material.Wood)
+	engrave(board, "만물상", "Front,Back")
+	put("Trim", Vector3.new(6.5, 0.2, 0.4), 0, frontTop - 0.9, -2.2, C.red)
+	for _, x in { -5.8, 5.8 } do
+		put("Bracket", Vector3.new(0.2, 0.2, 1.1), x, frontTop - 1.3, -3, C.woodDark, Enum.Material.Wood)
+		put("Cord", Vector3.new(0.08, 0.5, 0.08), x, frontTop - 1.6, -3.45, C.woodDark, Enum.Material.Fabric)
+		local lamp = put("Lamp", Vector3.new(1, 1.3, 1), x, frontTop - 2.5, -3.45, C.red, Enum.Material.Neon)
+		light(lamp, Color3.fromRGB(255, 170, 120), 12, 1.2)
+	end
+
+	-- 곁에 쌓은 궤짝과 자루, 나무통
+	put("Crate", Vector3.new(2, 2, 2), 7.6, 1, 2.6, C.wood, Enum.Material.WoodPlanks)
+	put("Band", Vector3.new(2.06, 0.25, 2.06), 7.6, 1.6, 2.6, C.woodDark, Enum.Material.Wood)
+	block(
+		m,
+		"Crate",
+		Vector3.new(1.6, 1.6, 1.6),
+		look * CFrame.new(7.5, 2.8, 2.5) * CFrame.Angles(0, math.rad(15), 0),
+		C.wood,
+		Enum.Material.WoodPlanks
+	)
+	block(
+		m,
+		"Sack",
+		Vector3.new(1.4, 1.5, 1.2),
+		look * CFrame.new(7.5, 0.75, 0.3) * CFrame.Angles(0, math.rad(-10), 0),
+		C.felt,
+		Enum.Material.Fabric
+	)
+	put("SackTie", Vector3.new(0.5, 0.3, 0.5), 7.5, 1.6, 0.3, C.dirt, Enum.Material.Fabric)
+	upright("Barrel", 2.4, 1.8, -7.3, 1.2, 2.8, C.wood, Enum.Material.Wood)
+	for _, y in { 0.5, 1.9 } do
+		upright("Hoop", 0.15, 1.9, -7.3, y, 2.8, C.woodDark, Enum.Material.Metal)
+	end
+	put("Herbs", Vector3.new(1.2, 0.5, 1.2), -7.3, 2.65, 2.8, C.leaf, Enum.Material.Grass)
+	return m
+end
 
 -- 연국 ---------------------------------------------------------------------------------
 
@@ -359,6 +626,121 @@ local function buildVillage(root: Instance, rng)
 		C.stoneDark,
 		Enum.Material.Metal
 	)
+	-- 모루 머리와 뿔, 올려 둔 망치. 무기를 벼리는 자리(F)는 모루 위다 (노인 말 걸기 버튼과 떨어져 있다)
+	local iron = Color3.fromRGB(84, 84, 90)
+	block(
+		smithy,
+		"AnvilFace",
+		Vector3.new(3.2, 0.5, 1.3),
+		CFrame.new(sbase + Vector3.new(1, 2.25, 3.5)),
+		iron,
+		Enum.Material.Metal
+	)
+	block(
+		smithy,
+		"AnvilHorn",
+		Vector3.new(0.9, 0.35, 0.7),
+		CFrame.new(sbase + Vector3.new(3, 2.3, 3.5)),
+		iron,
+		Enum.Material.Metal
+	)
+	block(
+		smithy,
+		"HammerHead",
+		Vector3.new(0.45, 0.45, 0.9),
+		CFrame.new(sbase + Vector3.new(0.4, 2.72, 3.5)),
+		C.stoneDark,
+		Enum.Material.Metal
+	)
+	block(
+		smithy,
+		"HammerHandle",
+		Vector3.new(1.5, 0.18, 0.18),
+		CFrame.new(sbase + Vector3.new(1.3, 2.62, 3.5)),
+		C.wood,
+		Enum.Material.Wood
+	)
+	marketSpot(smithy, "smith", sbase + Vector3.new(1, 2.9, 3.5), "대장간", "무기 강화")
+	-- 벼린 칼을 세워 둔 시렁 (북쪽 기둥 곁)
+	local steel = Color3.fromRGB(170, 172, 178)
+	for _, x in { 0.5, 4.5 } do
+		block(
+			smithy,
+			"RackPost",
+			Vector3.new(0.3, 3.4, 0.3),
+			CFrame.new(sbase + Vector3.new(x, 1.7, -4.2)),
+			C.wood,
+			Enum.Material.Wood
+		)
+	end
+	for _, y in { 0.7, 2.9 } do
+		block(
+			smithy,
+			"RackBar",
+			Vector3.new(4.4, 0.25, 0.3),
+			CFrame.new(sbase + Vector3.new(2.5, y, -4.2)),
+			C.wood,
+			Enum.Material.Wood
+		)
+	end
+	for i = 0, 3 do
+		local x = 1.3 + i * 0.8
+		block(
+			smithy,
+			"Blade",
+			Vector3.new(0.3, 2.6, 0.08),
+			CFrame.new(sbase + Vector3.new(x, 1.9, -4.05)),
+			steel,
+			Enum.Material.Metal
+		)
+		block(
+			smithy,
+			"Guard",
+			Vector3.new(0.6, 0.15, 0.2),
+			CFrame.new(sbase + Vector3.new(x, 3.25, -4.05)),
+			C.gold,
+			Enum.Material.Metal
+		)
+		block(
+			smithy,
+			"Hilt",
+			Vector3.new(0.18, 0.7, 0.18),
+			CFrame.new(sbase + Vector3.new(x, 3.65, -4.05)),
+			C.lacquer,
+			Enum.Material.Wood
+		)
+	end
+	-- 서쪽(광장 쪽) 들보에 매단 현판
+	block(
+		smithy,
+		"SignBeam",
+		Vector3.new(0.6, 0.6, 9.4),
+		CFrame.new(sbase + Vector3.new(-3, 9.6, 0)),
+		C.wood,
+		Enum.Material.Wood
+	)
+	for _, z in { -2.2, 2.2 } do
+		block(
+			smithy,
+			"Cord",
+			Vector3.new(0.1, 0.4, 0.1),
+			CFrame.new(sbase + Vector3.new(-3, 9.1, z)),
+			C.woodDark,
+			Enum.Material.Fabric
+		)
+	end
+	local signPos = sbase + Vector3.new(-3, 8.05, 0)
+	local sign = block(
+		smithy,
+		"Board",
+		Vector3.new(6.1, 1.7, 0.3),
+		face(signPos, signPos - Vector3.new(1, 0, 0)),
+		C.lacquer,
+		Enum.Material.Wood
+	)
+	engrave(sign, "대장간", "Front,Back")
+
+	buildStall(village)
 
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Name = "SpawnLocation"

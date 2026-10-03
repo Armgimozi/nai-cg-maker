@@ -573,6 +573,29 @@ local function waypoint(parent: Instance, def, order: number)
 	return m
 end
 
+-- 상점 자리: 보이지 않는 판에 MarketSpot 태그(속성 Shop)와 F 버튼을 단다. 버튼은 화면에 창만 연다.
+-- 사고 강화하는 요청은 서버(Market.luau)가 이 판 곁에 섰는지 다시 본다
+local function marketSpot(parent: Instance, kind: string, position: Vector3, action: string, object: string): Part
+	local spot = block(parent, "MarketSpot_" .. kind, Vector3.new(2, 0.2, 2), CFrame.new(position), C.stone)
+	spot.Transparency = 1
+	spot.CanCollide = false
+	spot.CanQuery = false
+	spot.CanTouch = false
+	spot:SetAttribute("Shop", kind)
+	spot:AddTag("MarketSpot")
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "ShopPrompt"
+	prompt.ActionText = action
+	prompt.ObjectText = object
+	prompt.KeyboardKeyCode = Enum.KeyCode.F
+	prompt.HoldDuration = 0.2
+	prompt.RequiresLineOfSight = false
+	prompt.MaxActivationDistance = 10
+	prompt:SetAttribute("Shop", kind)
+	prompt.Parent = spot
+	return spot
+end
+
 Kit.at = at
 Kit.atGround = atGround
 Kit.makeRng = makeRng
@@ -604,5 +627,6 @@ Kit.tree = tree
 Kit.palm = palm
 Kit.rock = rock
 Kit.waypoint = waypoint
+Kit.marketSpot = marketSpot
 
 return Kit
