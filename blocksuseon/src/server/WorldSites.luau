@@ -63,10 +63,10 @@ add("wp", "wp_south", "남명대", 22, 1178)
 add("wp", "wp_port", "백사포", -420, 1548)
 add("wp", "wp_mesa", "관성대", -625, 625)
 add("wp", "wp_ruins", "침사국 옛터", -1120, 1020)
-add("wp", "wp_sky", "청허경", 1350, -1350, { sky = true })
+add("wp", "wp_sky", "청허경", 1310, -1340, { sky = true }) -- 극품 영맥(섬 가운데 쪽)과 40 남짓 떨어진 서남쪽 (운제가 닿는 쪽)
 
 -- 영맥
-add("vein", "low@plaza", "하품: 송계 광장", 0, 0)
+add("vein", "low@plaza", "하품: 송계 광장", 0, 0, { radius = 12 })
 add("vein", "low@camp", "하품: 마령채", 600, -820)
 add("vein", "low@oasis", "하품: 녹주", -1030, 668)
 add("vein", "low@port", "하품: 백사포 해신당", -470, 1530)
@@ -75,9 +75,9 @@ add("vein", "mid@ungok", "중품: 운곡 석종굴", -585, 30)
 add("vein", "mid@lake", "중품: 경심정", Land.ISLET.x, Land.ISLET.z, { radius = 14 })
 add("vein", "mid@hermit", "중품: 청음암", Land.HERMIT.x, Land.HERMIT.z)
 add("vein", "mid@temple", "중품: 무명사 옛터", Land.TEMPLE.x, Land.TEMPLE.z)
-add("vein", "high@summit", "상품: 관운봉 꼭대기", Land.PEAK.x + 12, Land.PEAK.z - 12)
+add("vein", "high@summit", "상품: 관운봉 꼭대기", Land.PEAK.x + 14, Land.PEAK.z - 14) -- '위' 자리와 20 떨어지게
 add("vein", "high@tarn", "상품: 빙경담", Land.TARN.x, Land.TARN.z)
-add("vein", "high@volcano", "상품: 주염산 화구 둘레", 0, 0, { volcano = true })
+add("vein", "high@volcano", "상품: 주염산 화구 둘레", 0, 0, { volcano = true, radius = 6 }) -- 화구 길 끝 좁은 턱
 add("vein", "high@ruins", "상품: 침사국 옛터", Land.RUINS.x, Land.RUINS.z)
 add("vein", "top@sky", "극품: 청허경", Land.SKY.x - 20, Land.SKY.z + 20, { sky = true })
 
@@ -121,6 +121,12 @@ for _, s in L do
 	end
 end
 
+-- 영맥 못 반지름 (자리에 radius 가 없을 때)
+Sites.VEIN_RADIUS = { low = 10, mid = 10, high = 8, top = 12 }
+for _, s in Sites.VEINS do
+	s.radius = s.radius or Sites.VEIN_RADIUS[s.grade]
+end
+
 -- 오행처 빛깔 (영근 속성)
 Sites.ELEMENT_COLORS = {
 	el_wood = Color3.fromRGB(110, 200, 120),
@@ -138,9 +144,10 @@ Sites.STAR_ALTARS = {
 	{ id = "star_north", name = "북진대", carve = "북방 현무", color = Color3.fromRGB(90, 100, 170) },
 }
 
--- 영초가 돋는 범위 { 이름, 가운데 x, z, 너비 x, z, 귀한 영초 배율 }
+-- 영초가 돋는 범위 { 이름, 가운데 x, z, 너비 x, z, 귀한 영초 배율, weight: 고를 때 넓이에 곱하는 값 }
+-- 청송림은 범인이 처음 영초를 캐러 가는 숲이라 넓이보다 자주 고른다
 Sites.HERB_ZONES = {
-	{ name = "청송림", x = -280, z = 0, sx = 330, sz = 660, rare = 1 },
+	{ name = "청송림", x = -280, z = 0, sx = 330, sz = 660, rare = 1, weight = 3 },
 	{ name = "태고림", x = 1110, z = -130, sx = 900, sz = 900, rare = 1.5 },
 	{ name = "청음죽림", x = 580, z = 300, sx = 360, sz = 360, rare = 1.2 },
 	{ name = "무택", x = 130, z = 1270, sx = 400, sz = 400, rare = 1.5 },
@@ -162,9 +169,9 @@ Sites.MANUALS = {
 	{ -250, 220 },
 	{ -360, 180 },
 	-- 백령과 서쪽
-	{ -660, -150 },
-	{ -620, -330 },
-	{ -980, -640 },
+	{ -688, -122 }, -- (가파른 비탈을 피해 옮겼다)
+	{ -561, -204 }, -- 관운잔도 위
+	{ -992, -660 },
 	{ -600, 120 },
 	{ -1250, 60 },
 	-- 북쪽 (명경호, 설원, 초원)
@@ -178,7 +185,7 @@ Sites.MANUALS = {
 	{ 620, 260 },
 	-- 남쪽 (홍로성, 주염산, 무택)
 	{ 420, 640 },
-	{ 700, 800 },
+	{ 703, 766 }, -- 주염산 길 위
 	{ 80, 1100 },
 	{ 300, 1250 },
 	-- 남서 (황구, 한해)

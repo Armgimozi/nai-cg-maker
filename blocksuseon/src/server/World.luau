@@ -1,91 +1,77 @@
--- 수계(하계) 맵. 땅은 지형(Terrain)이고, 그 위의 마을·자리·진은 블록으로 짓는다.
+-- 옥반(玉盤) 맵. 땅은 지형(Terrain)이고, 그 위의 마을·자리·진·나무는 블록으로 짓는다.
 --
 -- 땅 모양은 Shared.Land 한 곳에 있다. 지형은 tools/bake_place.luau 가 그 모양대로 플레이스 파일에
--- 구워 넣고, 여기서는 그 높이(Land.height)를 따라 나머지를 놓는다 (맵을 굽는 Lune 에서는 레이캐스트가 없다).
--- 게임 서버는 Workspace 에 "연국" 이 없을 때만 이걸 다시 부른다 (지형은 server/TerrainGen.luau).
+-- 구워 넣고, 여기서는 그 높이(Land.surface)를 따라 나머지를 놓는다 (맵을 굽는 Lune 에서는 레이캐스트가 없다).
+-- 게임 서버는 Workspace 에 "옥반" 이 없을 때만 이걸 다시 부른다 (지형은 server/TerrainGen.luau).
+--
+-- 여기서 짓는 것: 송계 마을(스폰), 벽계와 다리·징검돌·벽담, 청송림과 영천굴, 그리고 땅마다 쓰는 자리 전부
+-- (과업 자리, 오행처 받침, 사방 성대, 관성대 칠성단과 팔괘 기둥, 전송진, 영맥, 영초 범위, 비급 자리).
+-- 자리 좌표는 WorldSites.luau 한 곳에 있다. 그 둘레의 땅은 땅마다의 World*.luau 가 꾸민다 (끝에서 차례로 부른다).
 -- 다른 시스템은 이름이 아니라 태그로 맵을 찾는다:
---   Ground        - 영초가 돋는 바닥 판 (지형 말고)
---   Vein          - 영맥 (속성 VeinId, Radius)
---   HerbZone      - 영초가 돋는 범위 (속성 RareMult 가 있으면 귀한 영초가 더 잘 돋는다)
+--   Ground        - 영초·요수·별씨가 놓이는 바닥 판 (지형 말고)
+--   Vein          - 영맥 (속성 VeinId = 등급, Radius)
+--   HerbZone      - 영초가 돋는 범위 (속성 RareMult: 귀한 영초 배율, Weight: 고르는 비중)
 --   ManualSpot    - 비급이 나타나는 자리
 --   Site          - 과업 자리 (속성 Site = 자리 id, Radius). 오행처 el_wood 등
 --   Waypoint      - 전송진 (속성 WaypointId, Name, Order)
 --   Plaque        - 글자를 새길 판 (속성 Text 등, client/Plaques.luau)
 --   MarketSpot    - 상점 자리 (속성 Shop = "market" 만물상 | "smith" 대장간). F 버튼이 붙어 있다 (server/Market.luau)
--- 땅마다 원작 수계의 방위를 따른다 (Land.luau 머리말).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:FindFirstChild("Shared") or ReplicatedStorage:WaitForChild("Shared")
 
 local Land = require(Shared.Land)
+local Npcs = require(Shared.Npcs)
+local Kit = require(script.Parent.WorldKit)
+local Build = require(script.Parent.WorldBuild)
+local Sites = require(script.Parent.WorldSites)
 
 local World = {}
 
-World.MODEL_NAME = "연국"
+World.MODEL_NAME = "옥반"
 
-local function at(x: number, z: number, lift: number?): Vector3
-	return Vector3.new(x, Land.surface(x, z) + (lift or 0), z)
-end
+local at = Kit.at
 World.at = at
 
--- 땅 위 (등선향 아래의 폐허처럼 떠 있는 섬 밑에 놓을 때)
-local function atGround(x: number, z: number, lift: number?): Vector3
-	return Vector3.new(x, Land.height(x, z) + (lift or 0), z)
-end
+local makeRng = Kit.makeRng
+local C = Kit.C
+local P = Build.P
+local face = Kit.face
+local block = Build.block -- 작은 부품은 그림자를 안 드리운다
+local disc = Kit.disc
+local ball = Kit.ball
+local folder = Kit.folder
+local model = Kit.model
+local light = Kit.light
+local motes = Kit.motes
+local engrave = Kit.engrave
+local signboard = Kit.signboard
+local stele = Kit.stele
+local siteMarker = Kit.siteMarker
+local marketSpot = Kit.marketSpot
+local beam = Build.beam
+local cyl = Build.cyl
+local deco = Build.deco
+local V3 = Vector3.new
+local CF = CFrame.new
+local Mat = Enum.Material
+local SITE = Sites.byId
 
--- 비급이 나타날 수 있는 자리. 마을 둘레에 몇 곳, 나머지는 땅마다 흩어 둔다
-local MANUAL_XZ = {
-	-- 연국 둘레
-	{ 0, 80 },
-	{ -62, -58 },
-	{ 96, 10 },
-	{ 70, 140 },
-	-- 영초숲
-	{ -200, -200 },
-	{ -420, -20 },
-	{ -250, 220 },
-	{ -360, 180 },
-	-- 쇄천봉과 서쪽
-	{ -660, -150 },
-	{ -620, -330 },
-	{ -980, -640 },
-	{ -600, 120 },
-	{ -1100, 70 },
-	-- 북방 대초원
-	{ -200, -950 },
-	{ 300, -1100 },
-	{ 110, -790 },
-	-- 벽라국
-	{ 470, -245 },
-	{ 330, 320 },
-	{ 480, 180 },
-	-- 답천사막
-	{ 800, -300 },
-	{ 1000, 250 },
-	{ 880, -750 },
-	{ 1130, -560 },
-	-- 등선향
-	{ 960, -20 },
-	-- 남해
-	{ -330, 735 },
-	{ 40, 1150 },
-	{ 700, 700 },
-}
+-- 비급이 나타날 수 있는 자리 (WorldSites.MANUALS). 하늘섬 자리는 섬 위에 놓인다
 local MANUAL_SPOTS = {}
-for _, xz in MANUAL_XZ do
+for _, xz in Sites.MANUALS do
 	table.insert(MANUAL_SPOTS, at(xz[1], xz[2], 0.2))
 end
 World.MANUAL_SPOTS = MANUAL_SPOTS
 
 -- 오행처: 영근 속성마다 운기하는 자리 (Tasks.luau 의 el_* 와 맞춘다)
-local ELEMENT_SITES = {
-	{ id = "el_wood", name = "목 오행처", x = -330, z = -90, color = Color3.fromRGB(110, 200, 120) },
-	{ id = "el_fire", name = "화 오행처", x = 420, z = -66, color = Color3.fromRGB(240, 120, 80) },
-	{ id = "el_earth", name = "토 오행처", x = 860, z = 10, color = Color3.fromRGB(210, 170, 100) },
-	{ id = "el_metal", name = "금 오행처", x = -458, z = -66, color = Color3.fromRGB(235, 235, 240) },
-	{ id = "el_water", name = "수 오행처", x = -80, z = 650, color = Color3.fromRGB(90, 140, 230) },
-}
-World.ELEMENT_SITES = ELEMENT_SITES
+World.ELEMENT_SITES = {}
+for _, s in Sites.TASK do
+	if string.sub(s.id, 1, 3) == "el_" then
+		table.insert(World.ELEMENT_SITES, s)
+	end
+end
+World.WAYPOINTS = Sites.WAYPOINTS
 
 -- 십이지율: 광장 네 귀퉁이에 셋씩 모인 율점 등롱 (양률과 음려가 번갈아)
 World.LU_NAMES = {
@@ -102,15 +88,16 @@ World.LU_NAMES = {
 	"무역",
 	"응종",
 }
+local PLAZA_TOP = 0.5 -- 광장 윗면
 local LU_CLUSTERS = {
-	Vector3.new(24, 0.5, 24),
-	Vector3.new(-24, 0.5, 24),
-	Vector3.new(-24, 0.5, -24),
-	Vector3.new(24, 0.5, -24),
+	Vector3.new(24, PLAZA_TOP, 24),
+	Vector3.new(-24, PLAZA_TOP, 24),
+	Vector3.new(-24, PLAZA_TOP, -24),
+	Vector3.new(24, PLAZA_TOP, -24),
 }
 
--- 팔괘: 답천대 천겁대 기둥에 선천팔괘 자리대로 단다 (건은 남, 곤은 북, 리는 동, 감은 서).
--- 각도는 천겁대 중심에서 (cos, sin) = (x, z). 순서는 건 태 리 진 손 감 간 곤
+-- 팔괘: 관성대 칠성단 둘레 기둥에 선천팔괘 자리대로 단다 (건은 남, 곤은 북, 리는 동, 감은 서).
+-- 각도는 칠성단 가운데에서 (cos, sin) = (x, z). 순서는 건 태 리 진 손 감 간 곤 (WorldSites 의 tri_1~8 과 같다)
 World.TRIGRAMS = {
 	{ name = "건", angle = 90 },
 	{ name = "태", angle = 45 },
@@ -121,105 +108,731 @@ World.TRIGRAMS = {
 	{ name = "간", angle = 225 },
 	{ name = "곤", angle = 270 },
 }
-
--- 천인기 천순: 마지막 부탁을 하는 마을 노인 셋
-local ELDERS = {
-	{ id = "elder_1", name = "늙은 약초꾼", position = Vector3.new(-26, 0.5, 8), faces = Vector3.new(0, 0.5, 0) },
-	{ id = "elder_2", name = "늙은 대장장이", position = Vector3.new(42, 0, 14), faces = Vector3.new(60, 0, 2) },
-	{ id = "elder_3", name = "늙은 뱃사공", position = Vector3.new(-82, 0, 20), faces = Vector3.new(-95, 0, 20) },
+-- 괘의 효 (아래에서 위로, 1 양효 · 0 음효)
+local GUA = {
+	["건"] = { 1, 1, 1 },
+	["태"] = { 1, 1, 0 },
+	["리"] = { 1, 0, 1 },
+	["진"] = { 1, 0, 0 },
+	["손"] = { 0, 1, 1 },
+	["감"] = { 0, 1, 0 },
+	["간"] = { 0, 0, 1 },
+	["곤"] = { 0, 0, 0 },
 }
 
--- 만물상: 광장 동북쪽, 대장간과 연국 전송진 사이. 판대 앞이 광장을 본다.
+-- 천인기 천순: 마지막 부탁을 하는 마을 노인 셋 (자리는 WorldSites, 바라보는 곳은 여기)
+local ELDERS = {
+	{ id = "elder_1", y = PLAZA_TOP, faces = Vector3.new(0, 0, 0) }, -- 광장 가운데 영맥
+	{ id = "elder_2", y = 0, faces = Vector3.new(60, 0, 18) }, -- 대장간 모루
+	{ id = "elder_3", y = 0, faces = Vector3.new(-95, 0, 20) }, -- 벽계 물
+}
+
+-- 만물상: 광장 동북쪽, 대장간과 송계 전송진 사이. 판대 앞이 광장을 본다.
 -- 주인(Npcs.luau 의 merchant)은 판대 뒤 걸상에 앉는다 (Npcs 의 position 은 그 걸상 자리)
 local STALL = { id = "merchant", position = Vector3.new(48, 0, -26), faces = Vector3.zero }
 World.STALL = STALL
 
--- 사방 성대 (육합만로, 축기·결단에서도 다시 쓴다)
-local STAR_ALTARS = {
-	{
-		id = "star_east",
-		name = "동쪽 성대",
-		carve = "동방 청룡",
-		x = 1190,
-		z = -40,
-		color = Color3.fromRGB(80, 200, 170),
-	},
-	{
-		id = "star_west",
-		name = "서쪽 성대",
-		carve = "서방 백호",
-		x = -1180,
-		z = 40,
-		color = Color3.fromRGB(235, 235, 240),
-	},
-	{
-		id = "star_south",
-		name = "남쪽 성대",
-		carve = "남방 주작",
-		x = 40,
-		z = 1150,
-		color = Color3.fromRGB(230, 90, 70),
-	},
-	{
-		id = "star_north",
-		name = "북쪽 성대",
-		carve = "북방 현무",
-		x = 0,
-		z = -1180,
-		color = Color3.fromRGB(90, 100, 170),
-	},
-}
+-- 자리 비워 두기 ----------------------------------------------------------------------------
+-- 나무·살림을 흩뿌릴 때 피하는 곳: 자리(과업·전송진·영맥), 비급 자리, 길, 마을 사람 동선, 먼저 지은 건물
 
--- 전송진 (Travel.luau). 연국 진은 처음부터 열려 있다
-local WAYPOINTS = {
-	{ id = "wp_yeonguk", name = "연국", x = 60, z = -60 },
-	{ id = "wp_yeonsan", name = "영초숲", x = -300, z = -70 },
-	{ id = "wp_seoak", name = "서악 마을", x = -490, z = 0 },
-	{ id = "wp_summit", name = "쇄천봉 꼭대기", x = -842, z = -206 },
-	{ id = "wp_star_west", name = "서천 설원", x = -1160, z = 60 },
-	{ id = "wp_star_north", name = "북방 성대", x = 24, z = -1160 },
-	{ id = "wp_cheonsaek", name = "천색성", x = 420, z = 10 },
-	{ id = "wp_dapcheon", name = "답천대", x = 740, z = -340 },
-	{ id = "wp_ruins", name = "중령성국 폐허", x = 830, z = -60, ground = true }, -- 등선향 밑
-	{ id = "wp_star_east", name = "동쪽 성대", x = 1170, z = -20 },
-	{ id = "wp_coast", name = "연하 하구", x = -55, z = 640 },
-	{ id = "wp_star_south", name = "남천도", x = 62, z = 1130 },
-	{ id = "wp_deungseon", name = "등선향", x = 840, z = -168 },
-}
-World.WAYPOINTS = WAYPOINTS
+local ROAD_POLYS = {}
+for _, road in Land.ROADS do
+	table.insert(ROAD_POLYS, Land.poly(road))
+end
+for _, bench in Land.BENCHES do
+	table.insert(ROAD_POLYS, bench)
+end
 
--- 매번 같은 모양이 나오도록 고정 시드 난수 (Park–Miller)
-local Kit = require(script.Parent.WorldKit)
-local makeRng = Kit.makeRng
-local C = Kit.C
-local VEIN_COLORS = Kit.VEIN_COLORS
-local face = Kit.face
-local block = Kit.block
-local wedge = Kit.wedge
-local disc = Kit.disc
-local ball = Kit.ball
-local folder = Kit.folder
-local model = Kit.model
-local light = Kit.light
-local motes = Kit.motes
-local spanAt = Kit.spanAt
-local footing = Kit.footing
-local engrave = Kit.engrave
-local facing = Kit.facing
-local signboard = Kit.signboard
-local stele = Kit.stele
-local gateway = Kit.gateway
-local siteMarker = Kit.siteMarker
-local lantern = Kit.lantern
-local VEIN_NAMES = Kit.VEIN_NAMES
-local vein = Kit.vein
-local house = Kit.house
-local houseAt = Kit.houseAt
-local tree = Kit.tree
-local palm = Kit.palm
-local rock = Kit.rock
-local waypoint = Kit.waypoint
-local marketSpot = Kit.marketSpot
+local function segDist(px: number, pz: number, ax: number, az: number, bx: number, bz: number): number
+	local vx, vz = bx - ax, bz - az
+	local t = math.clamp(((px - ax) * vx + (pz - az) * vz) / math.max(vx * vx + vz * vz, 1e-6), 0, 1)
+	local dx, dz = px - (ax + vx * t), pz - (az + vz * t)
+	return math.sqrt(dx * dx + dz * dz)
+end
+
+local ROUTES = {}
+for _, npc in Npcs.list do
+	local route = npc.route
+	if route then
+		for i = 1, #route do
+			local a, b = route[i], route[i % #route + 1]
+			table.insert(ROUTES, { a.X, a.Z, b.X, b.Z })
+		end
+	end
+end
+
+local taken: { { number } } = {}
+local function take(x: number, z: number, r: number)
+	table.insert(taken, { x, z, r })
+end
+
+local function roadDist(x: number, z: number): number
+	local best = math.huge
+	for _, p in ROAD_POLYS do
+		local d = Land.polyDist(x, z, p, 40)
+		if d < best then
+			best = d
+		end
+	end
+	return best
+end
+
+-- 반지름 r 짜리를 (x, z) 에 놓아도 되는가. roadGap: 길 가운데에서 더 띄울 거리
+local function clearOf(x: number, z: number, r: number, roadGap: number?): boolean
+	for _, s in Sites.LIST do
+		if s.kind ~= "poi" then
+			local keep = if s.kind == "wp"
+				then 10
+				elseif s.kind == "vein" then s.radius + 3
+				else math.max(7, s.radius or 0) + 1
+			local dx, dz = x - s.x, z - s.z
+			if dx * dx + dz * dz < (keep + r) ^ 2 then
+				return false
+			end
+		end
+	end
+	for _, m in Sites.MANUALS do
+		if (x - m[1]) ^ 2 + (z - m[2]) ^ 2 < (r + 3) ^ 2 then
+			return false
+		end
+	end
+	for _, t in taken do
+		local dx, dz = x - t[1], z - t[2]
+		if dx * dx + dz * dz < (r + t[3]) ^ 2 then
+			return false
+		end
+	end
+	for _, s in ROUTES do
+		if segDist(x, z, s[1], s[2], s[3], s[4]) < r + 2.5 then
+			return false
+		end
+	end
+	if roadDist(x, z) < r + (roadGap or 4.5) then
+		return false
+	end
+	return true
+end
+
+-- 땅 -----------------------------------------------------------------------------------
+
+local function yawTo(x: number, z: number, tx: number, tz: number): number
+	return math.atan2(-(tx - x), -(tz - z))
+end
+
+-- 네모 자리 (가운데 x z, 너비 w 깊이 d, 돌림 yaw) 밑 땅의 가장 낮은 곳과 높은 곳
+local function rectSpan(x: number, z: number, w: number, d: number, yaw: number): (number, number)
+	local lo, hi = math.huge, -math.huge
+	local c, s = math.cos(yaw), math.sin(yaw)
+	for _, u in { -0.5, 0, 0.5 } do
+		for _, v in { -0.5, 0, 0.5 } do
+			local lx, lz = u * w, v * d
+			local y = Land.surface(x + lx * c + lz * s, z - lx * s + lz * c)
+			lo, hi = math.min(lo, y), math.max(hi, y)
+		end
+	end
+	return lo, hi
+end
+
+-- 비탈이면 밑을 돌로 메운다 (윗면 = 가장 높은 땅). 윗면 높이를 돌려준다
+local function bed(
+	parent: Instance,
+	x: number,
+	z: number,
+	w: number,
+	d: number,
+	yaw: number,
+	color: Color3?,
+	material: Enum.Material?
+): number
+	local lo, hi = rectSpan(x, z, w, d, yaw)
+	if hi - lo > 0.35 then
+		local depth = hi - lo + 1.4
+		block(
+			parent,
+			"Badak",
+			V3(w, depth, d),
+			CF(x, hi - depth / 2 + 0.05, z) * CFrame.Angles(0, yaw, 0),
+			color or P.graniteDark,
+			material or Mat.Cobblestone
+		)
+	end
+	return hi
+end
+
+-- 등성이·비탈에 걸친 긴 판 (길): a→b 사이 땅이 꺼지면 나눈다
+local function trail(parent: Instance, a: Vector3, b: Vector3, width: number, color: Color3, depth: number?)
+	local mid = (a + b) / 2
+	local g = Land.surface(mid.X, mid.Z)
+	if (b - a).Magnitude > 4 and math.abs(g - mid.Y) > 0.35 then
+		local m = V3(mid.X, g + 0.05, mid.Z)
+		trail(parent, a, m, width, color, depth)
+		trail(parent, m, b, width, color, depth)
+		return
+	end
+	local p = beam(parent, "Gil", a, b + (b - a).Unit * 0.6, width, 0.3, color, Mat.Ground)
+	p.CanCollide = false
+	p.CastShadow = false
+end
+
+-- 작은 건물과 살림 ---------------------------------------------------------------------------
+
+local STRAW = Color3.fromRGB(178, 150, 98)
+local STRAW_DARK = Color3.fromRGB(138, 112, 72)
+local MUD = Color3.fromRGB(200, 178, 140)
+local BRONZE = Color3.fromRGB(150, 112, 62)
+local SOIL = Color3.fromRGB(112, 86, 62)
+local WATTLE = Color3.fromRGB(150, 122, 86)
+
+-- 초가 지붕: 앞뒤 사다리꼴 + 양 끝 세모 (우진각). frame 은 처마 높이 가운데. a ≥ b 는 처마 반너비·반깊이
+local function thatch(parent: Instance, frame: CFrame, a: number, b: number, rise: number)
+	local m = model(parent, "초가지붕")
+	local t = 1.3
+	local up = frame.UpVector
+	local function W(x: number, y: number, z: number): Vector3
+		return frame:PointToWorldSpace(V3(x, y, z))
+	end
+	local r = math.max(a - b, 0)
+	for _, s in { -1, 1 } do
+		if r > 0.05 then
+			Build.slab(
+				m,
+				"Jip",
+				W(-r, 0, s * b),
+				W(r, 0, s * b) - W(-r, 0, s * b),
+				W(-r, rise, 0) - W(-r, 0, s * b),
+				t,
+				up,
+				STRAW,
+				Mat.Grass
+			)
+		end
+		for _, e in { -1, 1 } do
+			Build.rightTri(m, "Jip", W(e * r, 0, s * b), W(e * a, 0, s * b), W(e * r, rise, 0), t, up, STRAW, Mat.Grass)
+		end
+		Build.tri(
+			m,
+			"Jip",
+			W(s * a, 0, -b),
+			W(s * a, 0, b),
+			W(s * r, rise, 0),
+			t,
+			up,
+			STRAW:Lerp(STRAW_DARK, 0.15),
+			Mat.Grass
+		)
+	end
+	if r > 0.05 then
+		cyl(m, "Yongmareum", W(-r - 0.9, rise + 0.1, 0), W(r + 0.9, rise + 0.1, 0), 1.5, STRAW_DARK, Mat.Grass)
+	else
+		Build.ball(m, "Yongmareum", W(0, rise, 0), 1.8, STRAW_DARK, Mat.Grass)
+	end
+	return m
+end
+
+-- 초가집: 막돌 기단, 흙벽 몸채, 툇마루, 굴뚝, 볏짚 지붕. (tx, tz) 쪽이 앞(마당)
+local function choga(parent: Instance, x: number, z: number, tx: number, tz: number, w: number, d: number)
+	local m = model(parent, "초가")
+	local yaw = yawTo(x, z, tx, tz)
+	local y = bed(m, x, z, w + 3, d + 6, yaw, P.graniteDark, Mat.Cobblestone)
+	local cf = CF(x, y, z) * CFrame.Angles(0, yaw, 0)
+	local base, wallH = 0.9, 6.2
+	block(m, "Gidan", V3(w + 2.4, base + 0.6, d + 2.4), cf * CF(0, base / 2 - 0.3, 0), P.graniteDark, Mat.Cobblestone)
+	block(m, "Byeok", V3(w, wallH, d), cf * CF(0, base + wallH / 2, 0), MUD, Mat.Plaster)
+	for _, px in { -w / 2, w / 2 } do
+		for _, pz in { -d / 2, d / 2 } do
+			block(m, "Gidung", V3(0.75, wallH, 0.75), cf * CF(px, base + wallH / 2, pz), P.wood, Mat.Wood)
+		end
+	end
+	block(m, "Dori", V3(w + 0.9, 0.6, d + 0.9), cf * CF(0, base + wallH + 0.3, 0), P.woodDark, Mat.Wood)
+	local doorX = -w * 0.2
+	block(m, "Mun", V3(2.8, 4.6, 0.3), cf * CF(doorX, base + 2.5, -d / 2 - 0.12), P.woodDark, Mat.Wood)
+	block(m, "Hanji", V3(2.2, 3.9, 0.34), cf * CF(doorX, base + 2.6, -d / 2 - 0.13), P.hanji, Mat.SmoothPlastic)
+	block(m, "Chang", V3(2.2, 1.8, 0.3), cf * CF(w * 0.24, base + 3.9, -d / 2 - 0.12), P.woodDark, Mat.Wood)
+	block(m, "Hanji", V3(1.7, 1.35, 0.34), cf * CF(w * 0.24, base + 3.9, -d / 2 - 0.13), P.hanji, Mat.SmoothPlastic)
+	block(m, "Toenmaru", V3(w - 0.6, 0.35, 2.4), cf * CF(0, base + 1.0, -d / 2 - 1.2), P.wood, Mat.WoodPlanks)
+	block(m, "Daetdol", V3(2.6, 0.5, 1.4), cf * CF(doorX, 0.2, -d / 2 - 3.1), P.granite, Mat.Granite)
+	block(
+		m,
+		"Gulttuk",
+		V3(1.3, 4.6, 1.3),
+		cf * CF(w / 2 + 1.6, 2.0, d * 0.25),
+		MUD:Lerp(P.graniteDark, 0.35),
+		Mat.Cobblestone
+	)
+	thatch(m, cf * CF(0, base + wallH + 0.55, 0), w / 2 + 2.3, d / 2 + 2.3, math.min(w, d) * 0.42 + 1.2)
+	take(x, z, math.max(w, d) / 2 + 3.5)
+	return m, cf
+end
+
+-- 기와집 (Build.house): (tx, tz) 쪽이 앞(마당). 비탈이면 밑을 메운다
+local function houseAt(parent: Instance, x: number, z: number, tx: number, tz: number, opts)
+	local bay = opts.bay or 5
+	local W = opts.bays[1] * bay + 4.4
+	local D = opts.bays[2] * bay + 4.4 + 2.4
+	local yaw = yawTo(x, z, tx, tz)
+	local y = bed(parent, x, z, W, D, yaw)
+	local cf = CF(x, y, z) * CFrame.Angles(0, yaw, 0)
+	local m, info = Build.house(parent, cf, opts)
+	take(x, z, math.max(W, D) / 2 + 2)
+	return m, cf, info
+end
+
+-- 싸리 울타리 (엮은 판 + 윗대): a→b
+local function wattle(parent: Instance, a: Vector3, b: Vector3)
+	local len = (b - a).Magnitude
+	local cf = face((a + b) / 2, b)
+	block(parent, "Ssari", V3(0.3, 2.6, len), cf * CF(0, 1.1, 0), WATTLE, Mat.Wood)
+	block(parent, "Ssaridae", V3(0.45, 0.3, len + 0.3), cf * CF(0, 2.45, 0), WATTLE:Lerp(P.woodDark, 0.4), Mat.Wood)
+end
+
+-- 볏가리 (짚단 무더기)
+local function haystack(parent: Instance, ground: Vector3, size: number)
+	local m = model(parent, "볏가리")
+	cyl(m, "Jip", ground - V3(0, 0.3, 0), ground + V3(0, size * 0.75, 0), size, STRAW, Mat.Grass)
+	Build.ball(m, "Jipkkokji", ground + V3(0, size * 0.78, 0), size * 1.06, STRAW:Lerp(STRAW_DARK, 0.25), Mat.Grass)
+	return m
+end
+
+-- 장작더미: 둥근 통나무를 눕혀 쌓는다
+local function woodpile(parent: Instance, cf: CFrame)
+	local m = model(parent, "장작")
+	for row = 0, 1 do
+		for i = 0, 2 - row do
+			local x = -1.0 + i * 1.0 + row * 0.5
+			local y = 0.45 + row * 0.85
+			cyl(
+				m,
+				"Jangjak",
+				(cf * CF(x, y, -1.4)).Position,
+				(cf * CF(x, y, 1.4)).Position,
+				0.9,
+				Color3.fromRGB(124, 92, 62),
+				Mat.Wood
+			)
+		end
+	end
+	return m
+end
+
+-- 허수아비
+local function scarecrow(parent: Instance, ground: Vector3, yaw: number)
+	local m = model(parent, "허수아비")
+	local cf = CF(ground) * CFrame.Angles(0, yaw, 0)
+	beam(m, "Gidung", ground - V3(0, 0.5, 0), ground + V3(0, 5.6, 0), 0.3, 0.3, P.woodDark, Mat.Wood)
+	beam(m, "Pal", (cf * CF(-2.2, 4.3, 0)).Position, (cf * CF(2.2, 4.3, 0)).Position, 0.25, 0.25, P.woodDark, Mat.Wood)
+	block(m, "Ot", V3(1.6, 2.2, 0.9), cf * CF(0, 3.6, 0), Color3.fromRGB(150, 160, 170), Mat.Fabric)
+	Build.ball(m, "Meori", ground + V3(0, 5.4, 0), 1.2, STRAW, Mat.Fabric)
+	cyl(m, "Satgat", ground + V3(0, 5.9, 0), ground + V3(0, 6.2, 0), 2.6, STRAW_DARK, Mat.Grass)
+	return m
+end
+
+-- 감나무: 둥근 나무에 주홍 감 몇 알
+local function persimmon(parent: Instance, base: Vector3, rng)
+	local height = rng(10, 12.5)
+	local m = Build.broadleaf(
+		parent,
+		base,
+		rng,
+		{ name = "감나무", height = height, blobs = 6, branches = 2, leaves = { P.leafDeep, P.leaf, P.leafYellow } }
+	)
+	local center = base + V3(0, height * 0.71, 0)
+	local rx = height * 0.36
+	for _ = 1, 5 do
+		local a = rng(0, math.pi * 2)
+		local yy = rng(-0.6, 0.25)
+		local dir = V3(math.cos(a) * math.sqrt(1 - yy * yy), yy, math.sin(a) * math.sqrt(1 - yy * yy))
+		deco(Build.ball(m, "Gam", center + dir * rx * 1.02, 0.75, Color3.fromRGB(232, 120, 40), Mat.SmoothPlastic))
+	end
+	return m
+end
+
+-- 장승: 마을 어귀를 지키는 나무 장승 (몸에 이름을 새긴다)
+local function jangseung(parent: Instance, ground: Vector3, toward: Vector3, text: string, female: boolean)
+	local m = model(parent, "장승")
+	local look = face(ground, V3(toward.X, ground.Y, toward.Z))
+	local H = if female then 8.6 else 9.4
+	local wood = Color3.fromRGB(128, 104, 80)
+	cyl(m, "Mom", ground - V3(0, 0.8, 0), ground + V3(0, H - 2.4, 0), 1.5, wood, Mat.Wood)
+	block(m, "Meori", V3(1.9, 2.6, 1.8), look * CF(0, H - 1.5, 0), wood:Lerp(P.bark, 0.2), Mat.Wood)
+	if female then
+		block(m, "Gwan", V3(1.7, 0.6, 1.6), look * CF(0, H + 0.05, 0), P.meok, Mat.Wood)
+	else
+		block(m, "Gwanmo", V3(1.5, 1.7, 1.4), look * CF(0, H + 0.5, 0), P.meok, Mat.Wood)
+		block(m, "Gwanmo", V3(2.6, 0.25, 2.2), look * CF(0, H - 0.2, 0), P.meok, Mat.Wood)
+	end
+	for _, sx in { -1, 1 } do
+		block(
+			m,
+			"Nun",
+			V3(0.55, 0.4, 0.2),
+			look * CF(sx * 0.45, H - 1.0, -0.92),
+			Color3.fromRGB(240, 236, 226),
+			Mat.SmoothPlastic
+		)
+		block(m, "Nunsseop", V3(0.7, 0.18, 0.2), look * CF(sx * 0.45, H - 0.62, -0.93), P.meok, Mat.SmoothPlastic)
+	end
+	block(m, "Ko", V3(0.45, 0.8, 0.35), look * CF(0, H - 1.6, -1.0), wood:Lerp(P.juhong, 0.25), Mat.Wood)
+	block(m, "Ip", V3(1.0, 0.25, 0.2), look * CF(0, H - 2.35, -0.92), P.juhong, Mat.SmoothPlastic)
+	local plate = block(
+		m,
+		"Pan",
+		V3(1.0, H - 4.4, 0.2),
+		look * CF(0, (H - 4.4) / 2 + 0.6, -0.72),
+		wood:Lerp(P.plaster, 0.15),
+		Mat.Wood
+	)
+	engrave(plate, text, "Front", true, "ink")
+	take(ground.X, ground.Z, 1.5)
+	return m
+end
+
+-- 논 한 배미: 흙 둑 안에 물을 대고 모를 줄지어 심는다. 비탈이면 낮은 쪽에 흙 둑이 드러난다 (다랑이)
+local function paddy(parent: Instance, x: number, z: number, sx: number, sz: number, yaw: number)
+	local m = model(parent, "논")
+	local lo, hi = rectSpan(x, z, sx + 1.6, sz + 1.6, yaw)
+	local top = hi + 0.2
+	local cf = CF(x, top, z) * CFrame.Angles(0, yaw, 0)
+	local depth = top - lo + 1.2
+	block(m, "Heuk", V3(sx + 1.6, depth, sz + 1.6), cf * CF(0, -depth / 2, 0), SOIL, Mat.Ground)
+	local water = block(m, "Mul", V3(sx, 0.2, sz), cf * CF(0, 0.12, 0), Color3.fromRGB(118, 150, 138), Mat.Glass)
+	water.Transparency = 0.25
+	for _, s in { -1, 1 } do
+		block(
+			m,
+			"Dureong",
+			V3(sx + 1.6, 0.6, 0.8),
+			cf * CF(0, 0.2, s * (sz / 2 + 0.4)),
+			P.leaf:Lerp(SOIL, 0.35),
+			Mat.Grass
+		)
+		block(m, "Dureong", V3(0.8, 0.6, sz), cf * CF(s * (sx / 2 + 0.4), 0.2, 0), P.leaf:Lerp(SOIL, 0.35), Mat.Grass)
+	end
+	local rows = math.max(2, math.floor(sz / 3.2))
+	for i = 1, rows do
+		local rz = -sz / 2 + (i - 0.5) * sz / rows
+		deco(
+			block(
+				m,
+				"Mo",
+				V3(sx - 1.2, 0.7, 0.7),
+				cf * CF(0, 0.45, rz),
+				P.yangrok:Lerp(P.leafYellow, 0.2),
+				Mat.LeafyGrass
+			)
+		)
+	end
+	take(x, z, math.max(sx, sz) / 2 + 0.5)
+	return m
+end
+
+-- 밭 한 뙈기: 고랑 셋과 푸성귀
+local function field(parent: Instance, x: number, z: number, sx: number, sz: number, yaw: number)
+	local m = model(parent, "밭")
+	local lo, hi = rectSpan(x, z, sx, sz, yaw)
+	local top = hi + 0.1
+	local cf = CF(x, top, z) * CFrame.Angles(0, yaw, 0)
+	local depth = top - lo + 1
+	block(m, "Heuk", V3(sx, depth, sz), cf * CF(0, -depth / 2, 0), SOIL:Lerp(P.wood, 0.2), Mat.Ground)
+	for i = 1, 3 do
+		local rz = -sz / 2 + (i - 0.5) * sz / 3
+		block(m, "Ijang", V3(sx - 1, 0.6, sz / 3 - 1.4), cf * CF(0, 0.2, rz), SOIL, Mat.Ground)
+		deco(block(m, "Namul", V3(sx - 2, 0.7, sz / 3 - 2.4), cf * CF(0, 0.75, rz), P.leafLight, Mat.LeafyGrass))
+	end
+	take(x, z, math.max(sx, sz) / 2)
+	return m
+end
+
+-- 우물 곁 빨래줄, 장독대 같은 살림을 흩지 않고 집마다 정해 둔다
+
+-- 송계 마을 -------------------------------------------------------------------------------
+--
+-- 광장(하품 영맥, 율점 등롱 열둘, 연단로) 둘레에 기와집 여섯, 바깥 들길 가에 초가 여덟.
+-- 어귀마다 일주문(북, 동, 남동)과 서쪽 다리머리 장승, 북쪽 어귀에 당산나무. 동쪽에 다랑이 논.
+
+-- 율점 등롱: 기둥 + 등 + 갓. 양률(홀수)은 붉은 등, 음려(짝수)는 푸른 등
+local function luLantern(parent: Instance, index: number, position: Vector3, center: Vector3)
+	local m = model(parent, World.LU_NAMES[index])
+	local yang = index % 2 == 1
+	block(m, "Chojeok", V3(1.5, 0.6, 1.5), CF(position + V3(0, 0.15, 0)), P.granite, Mat.Granite)
+	block(m, "Post", V3(0.7, 7.4, 0.7), CF(position + V3(0, 3.6, 0)), P.woodDark, Mat.Wood)
+	block(m, "Pan", V3(2.0, 0.25, 2.0), CF(position + V3(0, 6.4, 0)), P.meok, Mat.Wood)
+	local color = if yang then Color3.fromRGB(214, 84, 60) else Color3.fromRGB(80, 136, 176)
+	local lamp = block(m, "Lamp", V3(1.6, 2.0, 1.6), CF(position + V3(0, 7.55, 0)), color, Mat.Neon)
+	block(m, "Gat", V3(2.3, 0.35, 2.3), CF(position + V3(0, 8.7, 0)), P.giwaDark, Mat.Slate)
+	ball(m, "Boju", position + V3(0, 9.15, 0), 0.6, P.hwang, Mat.Metal)
+	light(lamp, if yang then Color3.fromRGB(255, 170, 120) else Color3.fromRGB(160, 205, 255), 16, 1.4)
+	siteMarker(m, "lu_" .. index, position, 6)
+	-- 기둥에 건 나무 패. 가운데(운기하는 자리)를 본다
+	local inward = (center - position).Unit
+	local tag = block(
+		m,
+		"Tag",
+		V3(0.9, 2.4, 0.15),
+		face(position + inward * 0.5 + V3(0, 4, 0), center + V3(0, 4, 0)),
+		C.lacquer,
+		Mat.Wood
+	)
+	tag.CanCollide = false
+	engrave(tag, World.LU_NAMES[index], "Front,Back", true)
+end
+
+local function buildPlaza(village: Instance)
+	local plaza =
+		block(village, "광장", V3(60, 3, 60), CF(0, PLAZA_TOP - 1.5, 0), Color3.fromRGB(176, 168, 152), Mat.Pavement)
+	plaza:AddTag("Ground")
+	-- 장대석 테두리
+	for _, s in { { 0, -31, 64, 2 }, { 0, 31, 64, 2 }, { -31, 0, 2, 60 }, { 31, 0, 2, 60 } } do
+		block(village, "Teduri", V3(s[3], 3.2, s[4]), CF(s[1], PLAZA_TOP + 0.2 - 1.6, s[2]), P.granite, Mat.Granite)
+	end
+	-- 영맥 둘레 팔각 돌판과 네 갈래 길 무늬, 율점 자리 둥근 돌판
+	for _, a in { 22.5, 67.5 } do
+		block(
+			village,
+			"Palgak",
+			V3(31, 0.1, 31),
+			CF(0, PLAZA_TOP + 0.02, 0) * CFrame.Angles(0, math.rad(a), 0),
+			P.graniteDark,
+			Mat.Granite
+		)
+	end
+	for _, d in { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } } do
+		local size = if d[1] ~= 0 then V3(14.5, 0.1, 3.2) else V3(3.2, 0.1, 14.5)
+		block(village, "Gilmunui", size, CF(d[1] * 22.75, PLAZA_TOP + 0.02, d[2] * 22.75), P.graniteDark, Mat.Granite)
+	end
+	local lu = folder(village, "율점")
+	for cluster, center in LU_CLUSTERS do
+		disc(lu, "Jari", center + V3(0, 0.03, 0), 6.4, 0.1, P.granite, Mat.Granite)
+		for k = 0, 2 do
+			local index = (cluster - 1) * 3 + k + 1
+			local angle = math.rad(90 + k * 120)
+			luLantern(lu, index, center + V3(math.cos(angle), 0, math.sin(angle)) * 4.5, center)
+		end
+	end
+	siteMarker(model(village, SITE.plaza.name), "plaza", V3(0, 1, 0), 12)
+	take(0, 0, 33)
+end
+
+-- 연단로: 팔각 받침 위 벽돌 아궁이와 세 발 솥
+local function buildFurnace(village: Instance)
+	local m = model(village, "연단로")
+	local s = SITE.furnace
+	local base = V3(s.x, PLAZA_TOP, s.z)
+	for _, yaw in { 0, 45 } do
+		block(
+			m,
+			"Batchim",
+			V3(7.2, 0.8, 7.2),
+			CF(base + V3(0, 0.3, 0)) * CFrame.Angles(0, math.rad(yaw), 0),
+			P.granite,
+			Mat.Granite
+		)
+	end
+	block(m, "Agungi", V3(4.6, 2.2, 4.6), CF(base + V3(0, 1.8, 0)), Color3.fromRGB(122, 74, 56), Mat.Brick)
+	local ember =
+		block(m, "Ember", V3(2.0, 1.1, 0.3), CF(base + V3(0, 1.6, 2.32)), Color3.fromRGB(255, 120, 50), Mat.Neon)
+	ember.CanCollide = false
+	light(ember, Color3.fromRGB(255, 140, 70), 12, 1.6)
+	for k = 0, 2 do
+		local a = math.rad(90 + k * 120)
+		local foot = base + V3(math.cos(a) * 1.6, 2.9, math.sin(a) * 1.6)
+		cyl(m, "Bal", foot, foot + V3(0, 1.3, 0), 0.55, BRONZE, Mat.Metal)
+	end
+	local pot = cyl(m, "Sot", base + V3(0, 4.1, 0), base + V3(0, 6.6, 0), 4.4, BRONZE, Mat.Metal)
+	for _, sx in { -1, 1 } do
+		block(m, "Gwi", V3(0.35, 1.3, 1.2), CF(base + V3(sx * 2.25, 7.0, 0)), BRONZE:Lerp(P.meok, 0.3), Mat.Metal)
+	end
+	cyl(m, "Ttukkeong", base + V3(0, 6.6, 0), base + V3(0, 7.1, 0), 4.0, BRONZE:Lerp(P.meok, 0.2), Mat.Metal)
+	ball(m, "Kkokji", base + V3(0, 7.45, 0), 0.8, P.hwang, Mat.Metal)
+	local smoke = Instance.new("Smoke")
+	smoke.Size = 2
+	smoke.RiseVelocity = 3
+	smoke.Opacity = 0.15
+	smoke.Parent = pot
+	siteMarker(m, "furnace", base + V3(0, 2.5, 0), 6, "연단")
+	signboard(m, V3(base.X + 6, PLAZA_TOP, base.Z + 3), "연단로", V3(0, PLAZA_TOP, 0))
+	take(base.X, base.Z, 5)
+end
+
+-- 대장간: 동쪽 길 남쪽의 맞배지붕 헛간. 동쪽에 화덕과 굴뚝, 가운데 모루(F: 무기 강화), 서쪽 들보에 현판
+local SMITHY = V3(60, 0, 18)
+local function buildSmithy(village: Instance)
+	local m = model(village, "대장간")
+	local b = SMITHY
+	block(m, "Badak", V3(16, 0.3, 14), CF(b + V3(0, 0.1, 0)), Color3.fromRGB(110, 92, 74), Mat.Ground)
+	local postTop = 8.6
+	for _, x in { -7.5, 7.5 } do
+		for _, z in { -6.5, 0, 6.5 } do
+			block(m, "Post", V3(0.8, postTop + 0.5, 0.8), CF(b + V3(x, postTop / 2 - 0.25, z)), P.wood, Mat.Wood)
+		end
+		block(m, "Dori", V3(0.9, 0.9, 14.4), CF(b + V3(x, postTop + 0.2, 0)), P.woodDark, Mat.Wood)
+	end
+	for _, z in { -6.5, 6.5 } do
+		block(m, "Bo", V3(16, 0.8, 0.8), CF(b + V3(0, postTop + 0.2, z)), P.woodDark, Mat.Wood)
+	end
+	-- 맞배지붕 (용마루가 동서로)
+	local spec = {
+		ex = 9.6,
+		ez = 9.2,
+		eave = 2.4,
+		bands = 2,
+		kind = "gable",
+		lift = 0,
+		flare = 0,
+		pitchLow = 20,
+		pitchHigh = 36,
+		t = 0.6,
+		segs = 1,
+	}
+	local _, _, hh, pitches = Build.profile(spec)
+	local under = hh[1] - 0.6 / math.cos(math.rad(pitches[1]))
+	Build.roof(m, CF(b + V3(0, postTop + 0.65 - under, 0)), spec)
+	-- 화덕과 굴뚝, 풀무
+	block(m, "Hwadeok", V3(4.6, 3.4, 5), CF(b + V3(5, 1.7, 0)), Color3.fromRGB(110, 70, 54), Mat.Brick)
+	local flame = block(m, "Flame", V3(2.6, 1.2, 2.6), CF(b + V3(5, 3.7, 0)), Color3.fromRGB(255, 120, 50), Mat.Neon)
+	flame.CanCollide = false
+	local fire = Instance.new("Fire")
+	fire.Size = 4
+	fire.Heat = 8
+	fire.Parent = flame
+	light(flame, Color3.fromRGB(255, 150, 80), 18, 1.8)
+	block(m, "Gulttuk", V3(2, 13.5, 2), CF(b + V3(6.4, 6.75, -1.6)), Color3.fromRGB(104, 66, 52), Mat.Brick)
+	block(m, "Pulmu", V3(2.2, 1.4, 1.6), CF(b + V3(5, 0.85, 4.2)), P.woodDark, Mat.Wood)
+	beam(m, "Pulmudae", b + V3(4, 1.6, 4.2), b + V3(2.6, 2.6, 4.2), 0.2, 0.2, P.wood, Mat.Wood)
+	-- 모루: 무기를 벼리는 자리 (늙은 대장장이 말 걸기 버튼과 13 넘게 떨어져 있다)
+	local iron = Color3.fromRGB(84, 84, 90)
+	local anvil = b + V3(-1, 0, 0)
+	block(m, "Anvil", V3(1.6, 1.9, 1.6), CF(anvil + V3(0, 0.95, 0)), C.stoneDark, Mat.Slate)
+	block(m, "AnvilFace", V3(3.0, 0.5, 1.2), CF(anvil + V3(0, 2.15, 0)), iron, Mat.Metal)
+	block(m, "AnvilHorn", V3(0.9, 0.35, 0.7), CF(anvil + V3(1.9, 2.2, 0)), iron, Mat.Metal)
+	block(m, "HammerHead", V3(0.45, 0.45, 0.9), CF(anvil + V3(-0.6, 2.62, 0.1)), C.stoneDark, Mat.Metal)
+	block(m, "HammerHandle", V3(1.5, 0.18, 0.18), CF(anvil + V3(0.3, 2.52, 0.1)), C.wood, Mat.Wood)
+	marketSpot(m, "smith", anvil + V3(0, 2.8, 0), "대장간", "무기 강화")
+	-- 담금질 물통과 숯 더미
+	block(m, "Multong", V3(2.6, 1.2, 1.4), CF(b + V3(1.5, 0.6, -4.6)), P.woodDark, Mat.Wood)
+	block(m, "Mul", V3(2.2, 0.1, 1.0), CF(b + V3(1.5, 1.16, -4.6)), Color3.fromRGB(46, 70, 80), Mat.Glass)
+	block(
+		m,
+		"Sut",
+		V3(1.8, 0.8, 1.6),
+		CF(b + V3(5.6, 0.4, -4.4)) * CFrame.Angles(0, 0.4, 0.15),
+		Color3.fromRGB(40, 38, 38),
+		Mat.Slate
+	)
+	-- 벼린 칼을 세워 둔 시렁 (남쪽)
+	local steel = Color3.fromRGB(170, 172, 178)
+	for _, x in { -5.4, -1.4 } do
+		block(m, "RackPost", V3(0.3, 3.4, 0.3), CF(b + V3(x, 1.7, 5.6)), C.wood, Mat.Wood)
+	end
+	for _, y in { 0.7, 2.9 } do
+		block(m, "RackBar", V3(4.4, 0.25, 0.3), CF(b + V3(-3.4, y, 5.6)), C.wood, Mat.Wood)
+	end
+	for i = 0, 2 do
+		local x = -4.6 + i * 1.2
+		block(m, "Blade", V3(0.3, 2.6, 0.08), CF(b + V3(x, 1.9, 5.45)), steel, Mat.Metal)
+		block(m, "Guard", V3(0.6, 0.15, 0.2), CF(b + V3(x, 3.25, 5.45)), C.gold, Mat.Metal)
+		block(m, "Hilt", V3(0.18, 0.7, 0.18), CF(b + V3(x, 3.65, 5.45)), C.lacquer, Mat.Wood)
+	end
+	-- 서쪽(광장 쪽) 들보에 매단 현판
+	for _, z in { -2.2, 2.2 } do
+		block(m, "Cord", V3(0.1, 0.4, 0.1), CF(b + V3(-7.9, postTop - 0.45, z)), C.woodDark, Mat.Fabric)
+	end
+	local signPos = b + V3(-7.9, postTop - 1.5, 0)
+	local sign = block(m, "Board", V3(6.1, 1.7, 0.3), face(signPos, signPos - V3(1, 0, 0)), C.lacquer, Mat.Wood)
+	engrave(sign, "대장간", "Front,Back")
+	Build.banner(m, b + V3(-9.5, 0, -7.5), b + V3(-20, 0, -7.5), Color3.fromRGB(70, 74, 86), 9)
+	take(b.X, b.Z, 10)
+end
+
+-- 마을 노인이 앉는 자리. 사람은 서버가 띄울 때 카탈로그 옷을 입혀 앉힌다(Villagers.luau).
+-- 여기서는 앉을 돌, 앉는 자리(Seat, 속성 NpcSeat), 과업 자리, 노인마다 곁의 살림만 짓는다.
+local function buildElders(village: Instance)
+	local elders = folder(village, "노인")
+	for _, def in ELDERS do
+		local s = SITE[def.id]
+		local m = model(elders, s.name)
+		local base = V3(s.x, def.y, s.z)
+		local look = face(base, V3(def.faces.X, base.Y, def.faces.Z))
+		block(m, "Stool", V3(3, 1.6, 3), look * CF(0, 0.8, 0), C.stone, Mat.Slate)
+		local seat = Instance.new("Seat")
+		seat.Name = "자리"
+		seat.Anchored = true
+		seat.Size = V3(2, 0.2, 2)
+		seat.CFrame = look * CF(0, 1.7, 0)
+		seat.Transparency = 1
+		seat.CanCollide = false
+		seat:SetAttribute("NpcSeat", def.id)
+		seat.Parent = m
+		if def.id == "elder_1" then
+			-- 말리는 약초 시렁과 약초 바구니
+			for _, x in { -2.2, 2.2 } do
+				block(m, "RackPost", V3(0.3, 4, 0.3), look * CF(x, 2, 2.6), C.wood, Mat.Wood)
+			end
+			block(m, "RackBar", V3(4.8, 0.25, 0.25), look * CF(0, 3.8, 2.6), C.wood, Mat.Wood)
+			for i = -2, 2 do
+				block(m, "Herb", V3(0.5, 1, 0.3), look * CF(i * 0.9, 3.2, 2.6), C.leafLight, Mat.Grass)
+			end
+			local basket = block(
+				m,
+				"Basket",
+				V3(1, 1.6, 1.6),
+				look * CF(2.4, 0.5, -0.6) * CFrame.Angles(0, 0, math.rad(90)),
+				Color3.fromRGB(176, 140, 86),
+				Mat.Fabric
+			)
+			basket.Shape = Enum.PartType.Cylinder
+			block(m, "Herbs", V3(1.2, 0.4, 1.2), look * CF(2.4, 1.1, -0.6), C.leaf, Mat.Grass)
+		elseif def.id == "elder_2" then
+			-- 쇠막대 몇 개와 물통
+			for i = 0, 2 do
+				block(m, "Bar", V3(0.3, 0.3, 3), look * CF(-2.2 + i * 0.4, 0.2, 0.4), C.stoneDark, Mat.Metal)
+			end
+			local bucket = block(
+				m,
+				"Bucket",
+				V3(1.2, 1.4, 1.4),
+				look * CF(2.3, 0.6, 0.4) * CFrame.Angles(0, 0, math.rad(90)),
+				C.woodDark,
+				Mat.Wood
+			)
+			bucket.Shape = Enum.PartType.Cylinder
+		elseif def.id == "elder_3" then
+			-- 벽계 물가에 매어 둔 작은 나룻배 (수면 -1)
+			local boat = model(m, "나룻배")
+			local boatCf = CF(-95, -0.9, 26) * CFrame.Angles(0, math.rad(90), 0)
+			block(boat, "Hull", V3(3, 0.6, 9), boatCf, C.wood, Mat.WoodPlanks)
+			for _, x in { -1.4, 1.4 } do
+				block(boat, "Side", V3(0.3, 0.8, 9), boatCf * CF(x, 0.6, 0), C.woodDark, Mat.WoodPlanks)
+			end
+			for _, z in { -4.4, 4.4 } do
+				block(boat, "Kkeut", V3(2.8, 0.9, 0.4), boatCf * CF(0, 0.55, z), C.woodDark, Mat.WoodPlanks)
+			end
+			block(boat, "Seat", V3(2.6, 0.3, 0.8), boatCf * CF(0, 0.5, 1.5), C.woodDark, Mat.Wood)
+			beam(
+				boat,
+				"No",
+				(boatCf * CF(0.6, 0.9, -1)).Position,
+				(boatCf * CF(1.0, 0.7, 3.6)).Position,
+				0.2,
+				0.2,
+				C.wood,
+				Mat.Wood
+			)
+			block(m, "Post", V3(0.5, 7, 0.5), CF(-87.5, -1.5, 26), C.woodDark, Mat.Wood)
+			beam(
+				m,
+				"Batjul",
+				V3(-87.5, 1.2, 26),
+				(boatCf * CF(0, 0.6, -4)).Position,
+				0.12,
+				0.12,
+				STRAW_DARK,
+				Mat.Fabric
+			)
+		end
+		siteMarker(m, def.id, base + V3(0, 3, 0), 7, s.name)
+		take(base.X, base.Z, 3)
+	end
+end
 
 -- 만물상: 줄무늬 차양을 친 판대. 앞 판대에 물건을 늘어놓고, 뒤 벽에 선반과 무기를 건다.
 -- 판대 가운데에 상점 자리(F 버튼)를 두고, 주인은 그 뒤 걸상에 앉아 손님 쪽을 본다
@@ -478,1578 +1091,1269 @@ local function buildStall(parent: Instance)
 		upright("Hoop", 0.15, 1.9, -7.3, y, 2.8, C.woodDark, Enum.Material.Metal)
 	end
 	put("Herbs", Vector3.new(1.2, 0.5, 1.2), -7.3, 2.65, 2.8, C.leaf, Enum.Material.Grass)
+	take(STALL.position.X, STALL.position.Z, 9)
 	return m
 end
 
--- 연국 ---------------------------------------------------------------------------------
+-- 집 자리 ---------------------------------------------------------------------------------
+
+local HOUSE_3 = { bays = { 3, 2 }, bay = 5.2, roof = "gable", detail = 0, bands = 3 }
+local HOUSES = {
+	{ x = -22, z = -52, tx = -22, tz = 0, opts = HOUSE_3, tree = "persimmon" },
+	{
+		x = 24,
+		z = -54,
+		tx = 24,
+		tz = 0,
+		opts = { bays = { 4, 2 }, bay = 5.2, roof = "paljak", detail = 1, bands = 3, name = "촌장댁" },
+		tree = "pine",
+	},
+	{
+		x = -54,
+		z = -24,
+		tx = 0,
+		tz = -24,
+		opts = { bays = { 3, 2 }, bay = 5.2, roof = "paljak", detail = 1, bands = 3 },
+		tree = "blossom",
+	},
+	{ x = -52, z = 26, tx = 0, tz = 26, opts = HOUSE_3, tree = "persimmon" },
+	{ x = -24, z = 54, tx = -24, tz = 0, opts = HOUSE_3, tree = "blossom" },
+	{ x = 60, z = 46, tx = 0, tz = 46, opts = HOUSE_3, tree = "persimmon" },
+}
+
+-- 초가: { x, z, 앞이 볼 곳 x, z, 너비, 깊이, 울타리, 장독, 볏가리, 장작 }
+local CHOGA = {
+	{ 96, -42, 96, 0, 11, 8.5, true, true, false, true },
+	{ 40, -98, 40, -60, 10, 8, true, false, true, false },
+	{ -40, -92, -40, -50, 11, 8.5, false, true, true, true },
+	{ -46, 92, -46, 40, 11, 8.5, true, true, true, false },
+	{ 28, 100, 28, 50, 10, 8, false, false, true, true },
+	{ 112, 30, 60, 30, 11, 8.5, true, true, true, false },
+}
+
+local function yardTree(parent: Instance, kind: string, base: Vector3, rng)
+	if kind == "persimmon" then
+		persimmon(parent, base, rng)
+	elseif kind == "pine" then
+		Build.pine(parent, base, rng, { height = rng(13, 16) })
+	else
+		Build.blossom(parent, base, rng, { blobs = 7 })
+	end
+end
+
+local function buildHouses(village: Instance, rng)
+	local houses = folder(village, "집")
+	for _, def in HOUSES do
+		local m, cf = houseAt(houses, def.x, def.z, def.tx, def.tz, def.opts)
+		-- 뒤뜰: 기와 얹은 돌담 셋 (왼쪽 담에 쪽문 틈), 장독대와 나무 한 그루
+		local W = def.opts.bays[1] * def.opts.bay + 4.4
+		local D = def.opts.bays[2] * def.opts.bay + 4.4
+		local hw, back, far = W / 2, D / 2 - 3, D / 2 + 11
+		local function p(x: number, z: number): Vector3
+			local q = cf:PointToWorldSpace(V3(x, 0, z))
+			return V3(q.X, Land.surface(q.X, q.Z), q.Z)
+		end
+		Build.stoneWall(m, p(-hw, back), p(-hw, far - 5.5))
+		Build.stoneWall(m, p(-hw, far - 2.5), p(-hw, far))
+		Build.stoneWall(m, p(-hw, far), p(hw, far))
+		Build.stoneWall(m, p(hw, far), p(hw, back))
+		Build.jars(m, cf * CF(hw * 0.45, 0, D / 2 + 5.6) * CFrame.Angles(0, math.rad(180), 0), rng, 4)
+		local t = cf:PointToWorldSpace(V3(-hw * 0.45, 0, D / 2 + 6))
+		yardTree(m, def.tree, V3(t.X, Land.surface(t.X, t.Z), t.Z), rng)
+		local q = cf:PointToWorldSpace(V3(0, 0, D / 2 + 4))
+		take(q.X, q.Z, math.max(W, 12) / 2 + 1)
+		if def.opts.name == "촌장댁" then
+			-- 촌장댁 앞마당: 소나무 둘과 깃발
+			for _, sx in { -1, 1 } do
+				local f = cf:PointToWorldSpace(V3(sx * (hw + 3.5), 0, -D / 2 - 1))
+				Build.pine(m, V3(f.X, Land.surface(f.X, f.Z), f.Z), rng, { height = rng(14, 17) })
+				take(f.X, f.Z, 3)
+			end
+		end
+	end
+	for _, def in CHOGA do
+		local x, z, w, d = def[1], def[2], def[5], def[6]
+		local m, cf = choga(houses, x, z, def[3], def[4], w, d)
+		local function p(lx: number, lz: number): Vector3
+			local q = cf:PointToWorldSpace(V3(lx, 0, lz))
+			return V3(q.X, Land.surface(q.X, q.Z), q.Z)
+		end
+		local fx, fz = w / 2 + 2.6, -(d / 2 + 9)
+		if def[7] then
+			-- 앞마당 싸리 울타리 (가운데 사립문 틈)
+			wattle(m, p(-fx, -d / 2 - 1.5), p(-fx, fz))
+			wattle(m, p(-fx, fz), p(-1.8, fz))
+			wattle(m, p(1.8, fz), p(fx, fz))
+			wattle(m, p(fx, fz), p(fx, -d / 2 - 1.5))
+		end
+		if def[8] then
+			Build.jars(m, CF(p(w / 2 - 0.5, -d / 2 - 6)) * (cf - cf.Position), rng, 4)
+		end
+		if def[9] then
+			haystack(m, p(-w / 2 + 1, -d / 2 - 6), rng(2.6, 3.4))
+		end
+		if def[10] then
+			woodpile(m, CF(p(-(w / 2 + 2.2), 0.5)) * (cf - cf.Position))
+		end
+		local q = cf:PointToWorldSpace(V3(0, 0, -d / 2 - 5))
+		take(q.X, q.Z, w / 2 + 2)
+	end
+end
+
+-- 마을 어귀 -------------------------------------------------------------------------------
+
+-- 길(Land.ROADS[i])이 송계에서 반지름 r 을 넘는 자리와 그 안쪽(마을 쪽) 점
+local function roadCrossing(index: number, r: number): (Vector3, Vector3)
+	local road = Land.ROADS[index]
+	for i = 1, #road - 1 do
+		local a, b = road[i], road[i + 1]
+		local ra, rb = math.sqrt(a[1] ^ 2 + a[2] ^ 2), math.sqrt(b[1] ^ 2 + b[2] ^ 2)
+		if ra <= r and rb >= r then
+			local lo, hi = 0, 1
+			for _ = 1, 30 do
+				local mid = (lo + hi) / 2
+				local x, z = a[1] + (b[1] - a[1]) * mid, a[2] + (b[2] - a[2]) * mid
+				if x * x + z * z < r * r then
+					lo = mid
+				else
+					hi = mid
+				end
+			end
+			local x, z = a[1] + (b[1] - a[1]) * lo, a[2] + (b[2] - a[2]) * lo
+			return V3(x, 0, z), V3(a[1], 0, a[2])
+		end
+	end
+	error("길이 그 반지름을 넘지 않는다: " .. index)
+end
+
+-- 홍살문: 붉은 두 기둥과 가로대 둘, 위로 솟은 붉은 살, 가운데 둥근 태극 판. 현판(board)을 돌려준다
+local function hongsalmun(parent: Instance, ground: Vector3, toward: Vector3, width: number?)
+	local w = width or 12
+	local m = model(parent, "홍살문")
+	local look = face(ground, V3(toward.X, ground.Y, toward.Z))
+	local red = Color3.fromRGB(168, 52, 40)
+	local H = 10.5
+	local function W(x: number, y: number, z: number): Vector3
+		return (look * CF(x, y, z)).Position
+	end
+	for _, s in { -1, 1 } do
+		block(m, "Choseok", V3(1.9, 1.0, 1.9), look * CF(s * w / 2, 0.1, 0), P.granite, Mat.Granite)
+		cyl(m, "Gidung", W(s * w / 2, 0.5, 0), W(s * w / 2, H + 0.4, 0), 1.1, red, Mat.Wood)
+	end
+	for _, y in { H - 3.4, H - 0.6 } do
+		beam(m, "Garodae", W(-w / 2 - 0.9, y, 0), W(w / 2 + 0.9, y, 0), 0.5, 0.6, red, Mat.Wood)
+	end
+	for i = 1, 8 do
+		local x = -w / 2 + w * i / 9
+		if math.abs(x) > 1.4 then
+			beam(m, "Sal", W(x, H - 3.4, 0), W(x, H + 2.0, 0), 0.24, 0.24, red, Mat.Wood)
+		end
+	end
+	cyl(m, "Taegeuk", W(0, H + 1.0, -0.15), W(0, H + 1.0, 0.15), 2.3, P.juhong, Mat.Wood)
+	cyl(m, "Taegeuk", W(-0.3, H + 0.62, -0.18), W(-0.3, H + 0.62, -0.16), 1.15, P.gunjeong, Mat.Wood)
+	beam(m, "Samjichang", W(0, H + 2.15, 0), W(0, H + 3.6, 0), 0.22, 0.22, red, Mat.Wood)
+	local board = block(m, "Hyeonpan", V3(4.4, 1.6, 0.3), look * CF(0, H - 2.0, -0.4), P.meok, Mat.Wood)
+	block(m, "Te", V3(4.9, 2.0, 0.25), look * CF(0, H - 2.0, -0.28), P.hwang, Mat.Wood)
+	return m, board
+end
+
+-- 마을 어귀 문 셋: 북(명경호 길)·동(만년목 길)은 일주문, 남동(홍로성 길)은 홍살문. 현판 앞이 마을을 본다
+local GATES = {
+	{ road = 1, sign = "명경호, 북진대", kind = "iljumun" },
+	{ road = 4, sign = "만년목, 조양대", kind = "iljumun" },
+	{ road = 5, sign = "홍로성, 무택", kind = "hongsal" },
+}
+local GATE_R = 118
+
+local function buildGates(village: Instance)
+	local gates = folder(village, "어귀")
+	for _, def in GATES do
+		local p, inner = roadCrossing(def.road, GATE_R)
+		local dir = (inner - p).Unit -- 마을 쪽
+		local side = V3(-dir.Z, 0, dir.X)
+		local lo, hi = math.huge, -math.huge
+		for _, s in { -1, 0, 1 } do
+			local q = p + side * s * 7
+			local y = Land.surface(q.X, q.Z)
+			lo, hi = math.min(lo, y), math.max(hi, y)
+		end
+		local ground = V3(p.X, hi, p.Z)
+		if hi - lo > 0.4 then
+			block(
+				gates,
+				"Badak",
+				V3(17, hi - lo + 1, 3),
+				face(ground - V3(0, (hi - lo + 1) / 2 - 0.2, 0), ground + dir),
+				P.graniteDark,
+				Mat.Granite
+			)
+		end
+		local m, board
+		if def.kind == "hongsal" then
+			m, board = hongsalmun(gates, ground, ground + dir * 10, 12)
+		else
+			m, board = Build.iljumun(gates, ground, ground + dir * 10, 12)
+		end
+		m.Name = "송계 문"
+		engrave(board, "송계", "Front,Back")
+		-- 문 안쪽 석등, 바깥 갈림길 현판
+		local lamp = p + dir * 3.5 + side * 9.5
+		Build.stoneLantern(m, V3(lamp.X, Land.surface(lamp.X, lamp.Z), lamp.Z))
+		local sign = p - dir * 4 - side * 9
+		signboard(m, V3(sign.X, Land.surface(sign.X, sign.Z), sign.Z), def.sign, Vector3.zero)
+		take(p.X, p.Z, 9)
+		take(lamp.X, lamp.Z, 2)
+		take(sign.X, sign.Z, 3)
+	end
+	-- 서쪽 다리머리: 장승 한 쌍과 갈림길 현판
+	jangseung(gates, at(-75, -6.5), V3(-200, 0, -6.5), "천하대장군", false)
+	jangseung(gates, at(-75, 6.5), V3(-200, 0, 6.5), "지하여장군", true)
+	signboard(gates, at(-69, -12), "청송림, 운곡, 관운봉", V3(-200, 0, -12))
+	take(-69, -12, 3)
+	-- 남쪽 벼랑길 들머리 현판
+	signboard(gates, at(-46, 104), "벽담", Vector3.zero)
+	take(-46, 104, 3)
+end
+
+-- 당산나무: 북쪽 어귀의 큰 느티나무. 돌로 두른 둔덕, 금줄, 돌 제단
+local function guardianTree(village: Instance, x: number, z: number, rng)
+	local m = model(village, "당산나무")
+	local g = Land.surface(x, z)
+	for _, a in { 0, 45 } do
+		block(
+			m,
+			"Dundeok",
+			V3(11, 1.4, 11),
+			CF(x, g + 0.2, z) * CFrame.Angles(0, math.rad(a), 0),
+			P.graniteDark,
+			Mat.Cobblestone
+		)
+	end
+	local top = V3(x, g + 0.9, z)
+	block(
+		m,
+		"Heuk",
+		V3(10, 0.1, 10),
+		CF(top + V3(0, 0.02, 0)) * CFrame.Angles(0, math.rad(22.5), 0),
+		Color3.fromRGB(96, 110, 66),
+		Mat.Grass
+	)
+	local height = 27
+	Build.broadleaf(m, top, rng, { name = "느티나무", height = height, blobs = 12, branches = 4 })
+	local rr = height * 0.11 * 0.62 + 0.35
+	local h = top.Y + 3.2
+	for k = 0, 3 do
+		local a0, a1 = math.rad(45 + k * 90), math.rad(135 + k * 90)
+		beam(
+			m,
+			"Geumjul",
+			V3(x + math.cos(a0) * rr * 1.42, h, z + math.sin(a0) * rr * 1.42),
+			V3(x + math.cos(a1) * rr * 1.42, h, z + math.sin(a1) * rr * 1.42),
+			0.22,
+			0.22,
+			STRAW_DARK,
+			Mat.Fabric
+		)
+	end
+	for k = 0, 7 do
+		local a = math.rad(k * 45 + 20)
+		local q = V3(x + math.cos(a) * (rr * 1.25 + 0.15), h - 0.55, z + math.sin(a) * (rr * 1.25 + 0.15))
+		deco(block(m, "Sul", V3(0.3, 0.9, 0.06), face(q, V3(x, q.Y, z)), P.hanji, Mat.SmoothPlastic))
+	end
+	-- 제단: 길 쪽
+	local toRoad = V3(1, 0, 0)
+	local altar = top + toRoad * 5.2
+	block(m, "Jedan", V3(2.2, 0.5, 4), CF(altar + V3(0, 0.75, 0)), P.granite, Mat.Granite)
+	for _, s in { -1, 1 } do
+		block(m, "Dari", V3(1.6, 0.6, 0.6), CF(altar + V3(0, 0.2, s * 1.4)), P.graniteDark, Mat.Granite)
+	end
+	cyl(m, "Hyangno", altar + V3(0, 1.0, 0), altar + V3(0, 1.5, 0), 0.8, BRONZE, Mat.Metal)
+	take(x, z, 9)
+end
+
+-- 길가 청사초롱: 마을 안 길을 따라 번갈아
+local function streetLamps(village: Instance)
+	local lamps = folder(village, "청사초롱")
+	for _, index in { 1, 4, 5, 9, 12 } do
+		local road = Land.ROADS[index]
+		local travelled, nextAt, sideSign = 0, 12, 1
+		for i = 1, #road - 1 do
+			local a, b = V3(road[i][1], 0, road[i][2]), V3(road[i + 1][1], 0, road[i + 1][2])
+			local len = (b - a).Magnitude
+			local dir = (b - a) / len
+			while nextAt <= travelled + len do
+				local p = a + dir * (nextAt - travelled)
+				local r = p.Magnitude
+				local q = p + V3(-dir.Z, 0, dir.X) * 6.2 * sideSign
+				if r > 36 and r < GATE_R - 6 and clearOf(q.X, q.Z, 1.2, 1.6) then
+					Build.chorong(lamps, V3(q.X, Land.surface(q.X, q.Z), q.Z), V3(p.X, 0, p.Z))
+					take(q.X, q.Z, 1.5)
+					sideSign = -sideSign
+				end
+				nextAt += 21
+			end
+			travelled += len
+		end
+	end
+end
+
+-- 마을 살림: 우물, 수레, 깃발, 나무
+local function buildYards(village: Instance, rng)
+	local yards = folder(village, "살림")
+	for _, spot in { { -38, 40 }, { 86, 50 } } do
+		if clearOf(spot[1], spot[2], 3.5, 2) then
+			Build.well(yards, at(spot[1], spot[2]))
+			take(spot[1], spot[2], 3.5)
+		end
+	end
+	for _, spot in { { 62, -38, 0.6 }, { 108, -26, 2.4 }, { -32, 106, 1.2 } } do
+		if clearOf(spot[1], spot[2], 4, 2) then
+			local g = at(spot[1], spot[2])
+			Build.cart(yards, CF(g) * CFrame.Angles(0, spot[3], 0))
+			take(spot[1], spot[2], 4)
+		end
+	end
+	-- 만물상 곁 깃발 둘
+	for _, spot in { { 38, -36 }, { 58, -14 } } do
+		if clearOf(spot[1], spot[2], 1, 1.5) then
+			Build.banner(yards, at(spot[1], spot[2]), V3(0, 0, 0), P.juhong:Lerp(P.plaster, 0.25), 10)
+			take(spot[1], spot[2], 1.5)
+		end
+	end
+	-- 마을 나무: 길가와 집 사이 빈 곳에
+	local planted = 0
+	for _ = 1, 260 do
+		if planted >= 12 then
+			break
+		end
+		local a = rng(0, math.pi * 2)
+		local r = rng(40, 112)
+		local x, z = math.cos(a) * r, math.sin(a) * r
+		if x > -84 and clearOf(x, z, 3.2, 3) then
+			local base = at(x, z)
+			local kind = rng(0, 1)
+			if kind < 0.35 then
+				persimmon(yards, base, rng)
+			elseif kind < 0.6 then
+				Build.blossom(yards, base, rng, { blobs = 7 })
+			elseif kind < 0.85 then
+				Build.pine(yards, base, rng, { height = rng(12, 16), tiers = 4 })
+			else
+				Build.broadleaf(yards, base, rng, { height = rng(11, 14), blobs = 7 })
+			end
+			take(x, z, 6)
+			planted += 1
+		end
+	end
+	-- 덤불과 꽃: 담 밑, 길가
+	local bushes = 0
+	for _ = 1, 300 do
+		if bushes >= 16 then
+			break
+		end
+		local a = rng(0, math.pi * 2)
+		local r = rng(36, 118)
+		local x, z = math.cos(a) * r, math.sin(a) * r
+		if x > -84 and clearOf(x, z, 1.4, 2.5) then
+			local flowers = if rng(0, 1) > 0.7
+				then (if rng(0, 1) > 0.5 then P.blossomDeep else Color3.fromRGB(240, 210, 90))
+				else nil
+			Build.shrub(yards, at(x, z), rng, { size = rng(2.2, 3.6), flowers = flowers })
+			take(x, z, 2)
+			bushes += 1
+		end
+	end
+end
+
+-- 들판: 마을 동쪽 다랑이 논, 북쪽 어귀 밖 밭
+local function buildFields(village: Instance, rng)
+	local fields = folder(village, "들판")
+	for i = 0, 2 do
+		for j = 0, 3 do
+			local x, z = 140 + i * 25 + rng(-1.5, 1.5), 18 + j * 19 + rng(-1, 1)
+			if clearOf(x, z, 5.5, 8) and roadDist(x, z) > 18 then
+				paddy(fields, x, z, 22, 15, rng(-0.04, 0.04))
+			end
+		end
+	end
+	for _, spot in { { -42, -146 }, { -64, -150 }, { -46, -168 }, { -68, -172 }, { 36, -150 } } do
+		if clearOf(spot[1], spot[2], 5, 6) then
+			field(fields, spot[1], spot[2], 18, 12, rng(-0.1, 0.1))
+		end
+	end
+	-- 논두렁 볏가리와 허수아비
+	for _, spot in { { 128, 20 }, { 128, 48 }, { 241, 30 }, { 241, 70 }, { 128, 92 } } do
+		if clearOf(spot[1], spot[2], 2, 3) then
+			haystack(fields, at(spot[1], spot[2]), rng(2.6, 3.4))
+			take(spot[1], spot[2], 2.5)
+		end
+	end
+	for _, spot in { { 165, 46 }, { 215, 84 } } do
+		scarecrow(fields, at(spot[1], spot[2], 0.3), rng(0, 6))
+	end
+end
 
 local function buildVillage(root: Instance, rng)
-	local village = folder(root, "마을")
-	local plaza = block(village, "광장", Vector3.new(64, 3, 64), CFrame.new(0, -1, 0), C.stone, Enum.Material.Slate)
-	plaza:AddTag("Ground")
-	vein(village, "low", Vector3.new(0, 0.5, 0), 12)
-
-	for _, angle in { 30, 70, 110, 150, 215, 250 } do
-		local rad = math.rad(angle)
-		local pos = Vector3.new(math.cos(rad) * 54, 0, math.sin(rad) * 54)
-		local roofColor = if rng(0, 1) > 0.6 then C.red else C.roof
-		house(village, face(pos, Vector3.zero), rng(13, 17), rng(10, 13), roofColor)
-	end
-	-- 바깥 마을: 들길 가의 집 몇 채
-	for _, spot in { { 96, -36 }, { -60, 95 }, { 85, 75 }, { -66, -96 }, { 112, 40 } } do
-		houseAt(
-			village,
-			spot[1],
-			spot[2],
-			Vector3.zero,
-			rng(12, 15),
-			rng(9, 12),
-			if rng(0, 1) > 0.5 then C.red else C.roof
-		)
-	end
-
-	-- 율점 등롱: 귀퉁이마다 셋. 가운데 앉으면 셋 모두 곁이다
-	local lu = folder(village, "율점")
-	for cluster, center in LU_CLUSTERS do
-		for k = 0, 2 do
-			local index = (cluster - 1) * 3 + k + 1
-			local angle = math.rad(90 + k * 120)
-			local position = center + Vector3.new(math.cos(angle), 0, math.sin(angle)) * 4.5
-			local m = model(lu, World.LU_NAMES[index])
-			lantern(m, position)
-			siteMarker(m, "lu_" .. index, position, 6)
-			-- 기둥에 건 나무 패. 가운데(운기하는 자리)를 본다
-			local inward = (center - position).Unit
-			local tag = block(
-				m,
-				"Tag",
-				Vector3.new(0.9, 2.4, 0.15),
-				face(position + inward * 0.5 + Vector3.new(0, 4, 0), center + Vector3.new(0, 4, 0)),
-				C.lacquer,
-				Enum.Material.Wood
-			)
-			tag.CanCollide = false
-			engrave(tag, World.LU_NAMES[index], "Front,Back", true)
-		end
-	end
-	siteMarker(village, "plaza", Vector3.new(0, 1, 0), 12)
-
-	-- 연단로
-	local furnace = model(village, "연단로")
-	local fpos = Vector3.new(-12, 0.5, -22)
-	block(
-		furnace,
-		"Base",
-		Vector3.new(7, 2, 7),
-		CFrame.new(fpos + Vector3.new(0, 1, 0)),
-		C.stoneDark,
-		Enum.Material.Brick
-	)
-	local pot = block(
-		furnace,
-		"Cauldron",
-		Vector3.new(4, 5, 5),
-		CFrame.new(fpos + Vector3.new(0, 4.4, 0)) * CFrame.Angles(0, 0, math.rad(90)),
-		Color3.fromRGB(150, 110, 60),
-		Enum.Material.Metal
-	)
-	pot.Shape = Enum.PartType.Cylinder
-	for _, offset in { Vector3.new(2, 0, 2), Vector3.new(-2, 0, 2), Vector3.new(0, 0, -2.6) } do
-		block(
-			furnace,
-			"Leg",
-			Vector3.new(0.8, 2.4, 0.8),
-			CFrame.new(fpos + offset + Vector3.new(0, 2.6, 0)),
-			Color3.fromRGB(120, 86, 46),
-			Enum.Material.Metal
-		)
-	end
-	local ember = block(
-		furnace,
-		"Ember",
-		Vector3.new(3, 0.6, 3),
-		CFrame.new(fpos + Vector3.new(0, 2.2, 0)),
-		Color3.fromRGB(255, 120, 50),
-		Enum.Material.Neon
-	)
-	ember.CanCollide = false
-	local smoke = Instance.new("Smoke")
-	smoke.Size = 2
-	smoke.RiseVelocity = 3
-	smoke.Opacity = 0.15
-	smoke.Parent = pot
-	siteMarker(furnace, "furnace", fpos + Vector3.new(0, 3, 0), 6, "연단")
-	signboard(furnace, Vector3.new(fpos.X + 6, 0.5, fpos.Z + 3), "연단로", Vector3.new(0, 0.5, 0))
-
-	-- 마을 대장간 (늙은 대장장이가 바라보는 화덕)
-	local smithy = model(village, "대장간")
-	local sbase = Vector3.new(54, 0, 2)
-	block(
-		smithy,
-		"Hearth",
-		Vector3.new(6, 4, 5),
-		CFrame.new(sbase + Vector3.new(6, 2, 0)),
-		C.stoneDark,
-		Enum.Material.Brick
-	)
-	local flame = block(
-		smithy,
-		"Flame",
-		Vector3.new(3, 1.5, 2.5),
-		CFrame.new(sbase + Vector3.new(6, 4.6, 0)),
-		Color3.fromRGB(255, 120, 50),
-		Enum.Material.Neon
-	)
-	flame.CanCollide = false
-	local fire = Instance.new("Fire")
-	fire.Size = 5
-	fire.Heat = 8
-	fire.Parent = flame
-	for _, z in { -5, 5 } do
-		for _, x in { 9, -3 } do
-			block(
-				smithy,
-				"Post",
-				Vector3.new(1, 11, 1),
-				CFrame.new(sbase + Vector3.new(x, 4.5, z)),
-				C.wood,
-				Enum.Material.Wood
-			)
-		end
-	end
-	block(smithy, "Roof", Vector3.new(15, 1, 13), CFrame.new(sbase + Vector3.new(3, 10.5, 0)), C.roof)
-	block(
-		smithy,
-		"Anvil",
-		Vector3.new(2.4, 2, 1.4),
-		CFrame.new(sbase + Vector3.new(1, 1, 3.5)),
-		C.stoneDark,
-		Enum.Material.Metal
-	)
-	-- 모루 머리와 뿔, 올려 둔 망치. 무기를 벼리는 자리(F)는 모루 위다 (노인 말 걸기 버튼과 떨어져 있다)
-	local iron = Color3.fromRGB(84, 84, 90)
-	block(
-		smithy,
-		"AnvilFace",
-		Vector3.new(3.2, 0.5, 1.3),
-		CFrame.new(sbase + Vector3.new(1, 2.25, 3.5)),
-		iron,
-		Enum.Material.Metal
-	)
-	block(
-		smithy,
-		"AnvilHorn",
-		Vector3.new(0.9, 0.35, 0.7),
-		CFrame.new(sbase + Vector3.new(3, 2.3, 3.5)),
-		iron,
-		Enum.Material.Metal
-	)
-	block(
-		smithy,
-		"HammerHead",
-		Vector3.new(0.45, 0.45, 0.9),
-		CFrame.new(sbase + Vector3.new(0.4, 2.72, 3.5)),
-		C.stoneDark,
-		Enum.Material.Metal
-	)
-	block(
-		smithy,
-		"HammerHandle",
-		Vector3.new(1.5, 0.18, 0.18),
-		CFrame.new(sbase + Vector3.new(1.3, 2.62, 3.5)),
-		C.wood,
-		Enum.Material.Wood
-	)
-	marketSpot(smithy, "smith", sbase + Vector3.new(1, 2.9, 3.5), "대장간", "무기 강화")
-	-- 벼린 칼을 세워 둔 시렁 (북쪽 기둥 곁)
-	local steel = Color3.fromRGB(170, 172, 178)
-	for _, x in { 0.5, 4.5 } do
-		block(
-			smithy,
-			"RackPost",
-			Vector3.new(0.3, 3.4, 0.3),
-			CFrame.new(sbase + Vector3.new(x, 1.7, -4.2)),
-			C.wood,
-			Enum.Material.Wood
-		)
-	end
-	for _, y in { 0.7, 2.9 } do
-		block(
-			smithy,
-			"RackBar",
-			Vector3.new(4.4, 0.25, 0.3),
-			CFrame.new(sbase + Vector3.new(2.5, y, -4.2)),
-			C.wood,
-			Enum.Material.Wood
-		)
-	end
-	for i = 0, 3 do
-		local x = 1.3 + i * 0.8
-		block(
-			smithy,
-			"Blade",
-			Vector3.new(0.3, 2.6, 0.08),
-			CFrame.new(sbase + Vector3.new(x, 1.9, -4.05)),
-			steel,
-			Enum.Material.Metal
-		)
-		block(
-			smithy,
-			"Guard",
-			Vector3.new(0.6, 0.15, 0.2),
-			CFrame.new(sbase + Vector3.new(x, 3.25, -4.05)),
-			C.gold,
-			Enum.Material.Metal
-		)
-		block(
-			smithy,
-			"Hilt",
-			Vector3.new(0.18, 0.7, 0.18),
-			CFrame.new(sbase + Vector3.new(x, 3.65, -4.05)),
-			C.lacquer,
-			Enum.Material.Wood
-		)
-	end
-	-- 서쪽(광장 쪽) 들보에 매단 현판
-	block(
-		smithy,
-		"SignBeam",
-		Vector3.new(0.6, 0.6, 9.4),
-		CFrame.new(sbase + Vector3.new(-3, 9.6, 0)),
-		C.wood,
-		Enum.Material.Wood
-	)
-	for _, z in { -2.2, 2.2 } do
-		block(
-			smithy,
-			"Cord",
-			Vector3.new(0.1, 0.4, 0.1),
-			CFrame.new(sbase + Vector3.new(-3, 9.1, z)),
-			C.woodDark,
-			Enum.Material.Fabric
-		)
-	end
-	local signPos = sbase + Vector3.new(-3, 8.05, 0)
-	local sign = block(
-		smithy,
-		"Board",
-		Vector3.new(6.1, 1.7, 0.3),
-		face(signPos, signPos - Vector3.new(1, 0, 0)),
-		C.lacquer,
-		Enum.Material.Wood
-	)
-	engrave(sign, "대장간", "Front,Back")
-
+	local village = folder(root, "송계 마을")
+	buildPlaza(village)
+	buildFurnace(village)
+	buildSmithy(village)
 	buildStall(village)
+	buildElders(village)
 
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Name = "SpawnLocation"
 	spawn.Anchored = true
 	spawn.Neutral = true
 	spawn.Duration = 0
-	spawn.Size = Vector3.new(10, 1, 10)
-	spawn.CFrame = CFrame.new(0, 0.6, 24)
-	spawn.Color = C.stoneDark
-	spawn.Material = Enum.Material.Slate
+	spawn.Size = V3(10, 1, 10)
+	spawn.CFrame = CF(0, 0.6, 24)
+	spawn.Color = P.granite
+	spawn.Material = Mat.Granite
 	spawn.TopSurface = Enum.SurfaceType.Smooth
 	spawn.Parent = village
 
-	-- 마을 어귀의 패루 셋 (서쪽은 다리)
-	gateway(village, at(0, -125), Vector3.zero, "연국")
-	gateway(village, at(125, 0), Vector3.zero, "연국")
-	gateway(village, at(0, 125), Vector3.zero, "연국")
-	-- 갈림길 현판: 어귀마다 그 길이 가는 곳
-	signboard(village, at(12, -132), "북방 대초원", Vector3.zero)
-	signboard(village, at(132, 12), "천색성, 답천사막", Vector3.zero)
-	signboard(village, at(-12, 132), "용소, 남해", Vector3.zero)
-	signboard(village, at(-118, 12), "영초숲, 서악, 쇄천봉", Vector3.zero)
+	buildGates(village)
+	guardianTree(village, -28, -110, rng)
+	buildHouses(village, rng)
+	streetLamps(village)
+	buildFields(village, rng)
+	buildYards(village, rng)
 end
 
--- 연하: 다리, 징검돌, 폭포와 용소 ---------------------------------------------------------
+-- 벽계: 다리, 징검돌, 폭포와 벽담 ---------------------------------------------------------
 
-local function buildRiver(root: Instance)
-	local river = folder(root, "연하")
-	local bridge = model(river, "다리")
-	local deck =
-		block(bridge, "Deck", Vector3.new(24, 1, 10), CFrame.new(-95, 0.9, 0), C.wood, Enum.Material.WoodPlanks)
+-- 벽계 다리: 귀틀석 위 널마루, 물속 교각 둘, 돌난간
+local function buildBridge(river: Instance)
+	local def = Sites.BRIDGES[1]
+	local a, b = V3(def[1], def[5], def[2]), V3(def[3], def[5], def[4])
+	local len = (b - a).Magnitude
+	local mid = (a + b) / 2
+	local look = face(mid, b) -- 앞(-Z)이 b 쪽, 다리 길이 방향이 Z
+	local m = model(river, "벽계 다리")
+	local deck = block(m, "Deck", V3(8.4, 1, len + 2), look * CF(0, -0.5, 0), P.wood, Mat.WoodPlanks)
 	deck:AddTag("Ground")
-	for _, z in { -4.6, 4.6 } do
-		block(bridge, "Rail", Vector3.new(24, 1.6, 0.6), CFrame.new(-95, 2.2, z), C.red)
+	for _, s in { -1, 1 } do
+		block(m, "Gwiteul", V3(1.1, 1.5, len + 2.4), look * CF(s * 4.6, -0.55, 0), P.granite, Mat.Granite)
+		-- 돌난간: 기둥 다섯과 난간대 둘
+		local posts = {}
+		for i = 0, 4 do
+			local z = -len / 2 + i * len / 4
+			local post = look * CF(s * 4.6, 1.15, z)
+			block(m, "Nangan", V3(0.8, 2.3, 0.8), post, P.granite, Mat.Granite)
+			ball(m, "Boju", (post * CF(0, 1.35, 0)).Position, 0.75, P.granite, Mat.Granite)
+			table.insert(posts, post)
+		end
+		beam(
+			m,
+			"Nangandae",
+			(posts[1] * CF(0, 0.75, 0)).Position,
+			(posts[5] * CF(0, 0.75, 0)).Position,
+			0.45,
+			0.45,
+			P.granite,
+			Mat.Granite
+		)
+		beam(
+			m,
+			"Nangandae",
+			(posts[1] * CF(0, -0.35, 0)).Position,
+			(posts[5] * CF(0, -0.35, 0)).Position,
+			0.35,
+			0.35,
+			P.graniteDark,
+			Mat.Granite
+		)
 	end
-	for _, x in { -104, -86 } do
-		block(bridge, "Pier", Vector3.new(1.4, 7, 9), CFrame.new(x, -2.6, 0), C.stoneDark, Enum.Material.Slate)
+	for _, z in { -len / 6, len / 6 } do
+		block(m, "Gyogak", V3(7.6, 6.6, 2.2), look * CF(0, -4.3, z), P.graniteDark, Mat.Granite)
 	end
-
-	-- 북쪽 들길이 강을 건너는 징검돌
-	local ford = model(river, "징검돌")
-	for i = -3, 3 do
-		local p = Vector3.new(-260 + i * 4, -0.6, -405 + i * 0.6)
-		block(ford, "Stone", Vector3.new(3, 1.6, 3), CFrame.new(p), C.stone, Enum.Material.Slate)
+	for _, e in { -1, 1 } do
+		block(m, "Meori", V3(11, 2.4, 3.2), look * CF(0, -1.25, e * (len / 2 + 0.4)), P.granite, Mat.Granite)
+		-- 다리 끝 비탈 (땅 높이 0 에서 널마루 0.9 로)
+		Build.wedge(
+			m,
+			"Gyeongsa",
+			V3(8.4, def[5], 2.6),
+			look * CF(0, def[5] / 2 - 0.02, e * (len / 2 + 2.3)) * CFrame.Angles(0, if e > 0 then math.pi else 0, 0),
+			P.wood,
+			Mat.WoodPlanks
+		)
 	end
+	take(mid.X, mid.Z, len / 2 + 3)
+	-- 숲 쪽 다리머리 석등 (마을 쪽은 장승)
+	local q = look * CF(6.8, 0, len / 2 + 3)
+	Build.stoneLantern(m, at(q.X, q.Z))
+	take(q.X, q.Z, 2)
+end
 
-	-- 폭포: 강(수면 -1)이 협곡의 용소(수면 -20)로 떨어진다
-	local falls = model(river, "폭포")
-	local sheet = block(
-		falls,
-		"Sheet",
-		Vector3.new(17, 20, 1),
-		CFrame.new(-95, -10.5, 131.5),
-		Color3.fromRGB(200, 230, 245),
-		Enum.Material.Glass
-	)
-	sheet.Transparency = 0.35
-	sheet.CanCollide = false
-	sheet.CanQuery = false
-	local mist = block(falls, "Mist", Vector3.new(16, 1, 6), CFrame.new(-95, -19.5, 136), C.water)
-	mist.Transparency = 1
-	mist.CanCollide = false
-	mist.CanQuery = false
-	local spray = Instance.new("ParticleEmitter")
-	spray.Color = ColorSequence.new(Color3.fromRGB(235, 245, 255))
-	spray.Rate = 40
-	spray.Lifetime = NumberRange.new(1.5, 3)
-	spray.Speed = NumberRange.new(2, 5)
-	spray.SpreadAngle = Vector2.new(60, 60)
-	spray.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 2), NumberSequenceKeypoint.new(1, 5) })
-	spray.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.6), NumberSequenceKeypoint.new(1, 1) })
-	spray.Parent = mist
-
-	-- 용소 벼랑길 난간과 너럭바위 ('아래' 자리)
-	local bench = { Vector3.new(-58, 0, 112), Vector3.new(-62, -10, 150), Vector3.new(-68, -19, 176) }
-	for i = 1, #bench - 1 do
-		local a, b = bench[i], bench[i + 1]
-		local steps = math.floor((b - a).Magnitude / 6)
-		local side = Vector3.new(-(b.Z - a.Z), 0, b.X - a.X).Unit * 5.5
-		for k = 0, steps do
-			local p = a:Lerp(b, k / steps) + side
-			local post = Vector3.new(p.X, Land.height(p.X, p.Z), p.Z)
+-- 징검돌: 명경호 길이 벽계를 건너는 곳 (WorldSites.BRIDGES[2])
+local function buildFord(river: Instance, rng)
+	local def = Sites.BRIDGES[2]
+	local a, b = V3(def[1], 0, def[2]), V3(def[3], 0, def[4])
+	local m = model(river, "징검돌")
+	local n = math.floor((b - a).Magnitude / 3.4)
+	for i = 0, n do
+		local p = a:Lerp(b, i / n)
+		local g = Land.height(p.X, p.Z)
+		if g < def[5] - 0.2 then
+			local s = rng(2.4, 3.2)
+			local h = def[5] - g + 0.8
 			block(
-				river,
-				"Rail",
-				Vector3.new(0.5, 4, 0.5),
-				CFrame.new(post + Vector3.new(0, 1.2, 0)),
-				C.wood,
-				Enum.Material.Wood
+				m,
+				"Dol",
+				V3(s, h, s * rng(0.8, 1)),
+				CF(p.X, def[5] - h / 2, p.Z) * CFrame.Angles(0, rng(0, 3), 0),
+				P.granite:Lerp(P.graniteDark, rng(0, 0.6)),
+				Mat.Granite
 			)
 		end
 	end
-	local slab =
-		block(river, "너럭바위", Vector3.new(14, 3, 10), CFrame.new(-70, -20.5, 180), C.stone, Enum.Material.Slate)
-	slab:AddTag("Ground")
-	siteMarker(river, "down", Vector3.new(-70, -18.4, 180), 7)
-	signboard(river, at(-48, 108), "용소", Vector3.zero)
 end
 
--- 영초숲 ---------------------------------------------------------------------------------
-
-local function buildForest(root: Instance, rng)
-	local forest = folder(root, "영초숲")
-	local zone = block(forest, "HerbZone", Vector3.new(330, 70, 660), CFrame.new(-280, 25, 0), C.grass)
-	zone.Transparency = 1
-	zone.CanCollide = false
-	zone.CanQuery = false
-	zone.CanTouch = false
-	zone:AddTag("HerbZone")
-
-	local keepClear = {
-		{ -330, -90, 26 }, -- 고목
-		{ -300, -70, 14 }, -- 전송진
-		{ -380, 110, 24 }, -- 용혈샘
-		{ -118, 30, 8 }, -- 숲 비석
-	}
-	for _, spot in MANUAL_XZ do
-		table.insert(keepClear, { spot[1], spot[2], 8 })
+-- 벽담 벼랑길 밧줄 난간: 길 바깥(협곡 쪽) 가장자리를 따라
+local function benchRail(river: Instance)
+	local m = model(river, "벼랑길 난간")
+	local pts = Land.BENCHES.pool.pts
+	local posts = {}
+	for i = 1, #pts - 1 do
+		local a, b = V3(pts[i][1], 0, pts[i][2]), V3(pts[i + 1][1], 0, pts[i + 1][2])
+		local dir = (b - a).Unit
+		local out = V3(dir.Z, 0, -dir.X) -- 길의 서쪽(협곡 쪽)
+		if out.X > 0 then
+			out = -out
+		end
+		local steps = math.max(1, math.floor((b - a).Magnitude / 6))
+		for k = (if i == 1 then 0 else 1), steps do
+			local p = a:Lerp(b, k / steps) + out * 4.2
+			table.insert(posts, V3(p.X, Land.height(p.X, p.Z), p.Z))
+		end
 	end
-	local trees = folder(forest, "Trees")
-	local planted = 0
-	for _ = 1, 700 do
-		if planted >= 240 then
+	for i, p in posts do
+		beam(m, "Malttuk", p - V3(0, 0.8, 0), p + V3(0, 3.2, 0), 0.4, 0.4, P.woodDark, Mat.Wood)
+		if i > 1 then
+			beam(m, "Batjul", posts[i - 1] + V3(0, 2.9, 0), p + V3(0, 2.9, 0), 0.16, 0.16, STRAW_DARK, Mat.Fabric)
+		end
+	end
+end
+
+local function buildRiver(root: Instance, rng)
+	local river = folder(root, "벽계")
+	buildBridge(river)
+	buildFord(river, rng)
+
+	-- 벽계 폭포: 강(수면 -1)이 벽계협의 벽담(수면 -20)으로 떨어진다. 물이 넘는 턱 양옆에 바위
+	Build.waterfall(river, V3(-95, -0.9, 128.2), V3(0, 0, 1), 16, 19)
+	for _, spot in { { -106.5, 126, 6.5 }, { -83.5, 125, 5.5 }, { -110, 133, 4.5 }, { -80, 131, 4 } } do
+		Build.rocks(river, V3(spot[1], Land.height(spot[1], spot[2]), spot[2]), spot[3], rng, { count = 2 })
+	end
+	-- 벽담 서쪽 벼랑: 바위 판을 겹쳐 세운다 (복셀 계단 대신)
+	local function rimTop(x: number, z: number): number
+		return Land.height(x - 7, z) - 0.5
+	end
+	local function poolFloor(_x: number, _z: number): number
+		return -20.5
+	end
+	Build.cliffFace(river, V3(-121, 0, 136), V3(-125, 0, 214), V3(1, 0, 0), rimTop, poolFloor, rng, { spacing = 4.6 })
+	local function rimTopE(x: number, z: number): number
+		return Land.height(x + 7, z) - 0.5
+	end
+	Build.cliffFace(river, V3(-66, 0, 192), V3(-58, 0, 236), V3(-1, 0, 0), rimTopE, poolFloor, rng, { spacing = 4.6 })
+	benchRail(river)
+
+	-- 너럭바위 ('아래' 자리): 벽담가 넓은 바위
+	local down = SITE.down
+	local slab = block(
+		river,
+		"너럭바위",
+		V3(15, 3, 11),
+		CF(down.x, -20.5, down.z) * CFrame.Angles(0, 0.12, 0),
+		C.stone,
+		Mat.Slate
+	)
+	slab:AddTag("Ground")
+	for _, spot in { { 9, 4, 3.5 }, { -7, -6, 2.6 }, { 4, -7, 2.2 } } do
+		Build.rocks(river, V3(down.x + spot[1], -19.4, down.z + spot[2]), spot[3], rng, { count = 1 })
+	end
+	local downModel = model(river, down.name)
+	siteMarker(downModel, "down", V3(down.x, -18.4, down.z), down.radius)
+
+	-- 관폭정: 벽담 동쪽 벼랑 위 정자 (폭포와 못을 본다)
+	local px, pz = -44, 166
+	local y = bed(river, px, pz, 14, 14, 0)
+	Build.pavilion(river, face(V3(px, y, pz), V3(-95, y, 170)), { name = "관폭정", bay = 8.5, detail = 1 })
+	take(px, pz, 10)
+
+	-- 물가 버드나무와 갈대 (마을 쪽 둑과 숲 쪽 둑)
+	for _, spot in { { -79, -112 }, { -80, -44 }, { -78, 56 }, { -113, -70 }, { -112, -170 } } do
+		if clearOf(spot[1], spot[2], 3, 2) then
+			Build.willow(river, at(spot[1], spot[2]), rng, { strands = 14, blobs = 5 })
+			take(spot[1], spot[2], 6)
+		end
+	end
+	for _, spot in
+		{
+			{ -85.5, -90 },
+			{ -85.5, -24 },
+			{ -104.5, -40 },
+			{ -104.5, 40 },
+			{ -85.5, 112 },
+		}
+	do
+		Build.reeds(
+			river,
+			V3(spot[1], math.max(Land.height(spot[1], spot[2]), -1.2), spot[2]),
+			rng,
+			{ count = 6, radius = 1.8 }
+		)
+	end
+end
+
+-- 청송림 ----------------------------------------------------------------------------------
+--
+-- 다리 건너 서쪽 솔숲 (영초가 돋는다). 적송 사이에 참나무·은행·벚나무가 섞이고, 길가는 빽빽하게,
+-- 안쪽은 무리 지어 자란다. 남쪽 골짜기에 영천굴(중품 영맥), 숲 들머리에 약초막.
+
+local GROVE = { x0 = -465, x1 = -118, z0 = -335, z1 = 325 }
+
+local function inGrove(x: number, z: number): boolean
+	if x < GROVE.x0 or x > GROVE.x1 or z < GROVE.z0 or z > GROVE.z1 then
+		return false
+	end
+	local vw = Land.VILLAGE_W -- 운곡 마을 (다른 땅)
+	if (x - vw.x) ^ 2 + (z - vw.z) ^ 2 < 120 ^ 2 then
+		return false
+	end
+	local k = Land.KNOLL -- 백금굴 바위 언덕
+	if (x - k.x) ^ 2 + (z - k.z) ^ 2 < 75 ^ 2 then
+		return false
+	end
+	return true
+end
+
+local function jitterColor(color: Color3, rng, amount: number): Color3
+	local k = 1 + rng(-amount, amount)
+	return Color3.new(math.clamp(color.R * k, 0, 1), math.clamp(color.G * k, 0, 1), math.clamp(color.B * k, 0, 1))
+end
+
+-- 영천굴: 서쪽 반원으로 큰 바위를 두르고 덮개바위를 얹은 굴 어귀. 덮개 끝에서 실폭포가 못(영맥)으로 떨어진다
+local function buildCave(grove: Instance, rng)
+	local v = SITE["mid@grove"]
+	local c = V3(v.x, Land.surface(v.x, v.z), v.z)
+	local m = model(grove, "영천굴")
+	local rock = Color3.fromRGB(104, 106, 100)
+	for k = 0, 8 do
+		local a = math.rad(100 + k * 20)
+		local r = v.radius + 5 + rng(-0.4, 1)
+		local p = c + V3(math.cos(a) * r, 0, math.sin(a) * r)
+		local g = Land.surface(p.X, p.Z)
+		local h = 8 + 7 * -math.cos(a) + rng(-1, 1)
+		local cf = face(V3(p.X, g + h / 2 - 1.4, p.Z), V3(c.X, g + h / 2, c.Z))
+			* CFrame.Angles(math.rad(rng(-8, 2)), 0, math.rad(rng(-6, 6)))
+		block(m, "Bawi", V3(rng(6.5, 8.5), h, rng(5, 7)), cf, jitterColor(rock, rng, 0.07), Mat.Slate)
+	end
+	for k = 0, 4 do
+		local a = math.rad(130 + k * 25)
+		local r = v.radius + 11 + rng(0, 1.5)
+		local p = c + V3(math.cos(a) * r, 0, math.sin(a) * r)
+		local g = Land.surface(p.X, p.Z)
+		local h = rng(15, 19)
+		local cf = face(V3(p.X, g + h / 2 - 1.6, p.Z), V3(c.X, g + h / 2, c.Z))
+			* CFrame.Angles(math.rad(rng(-10, -2)), rng(-0.3, 0.3), 0)
+		block(
+			m,
+			"Bawi",
+			V3(rng(9, 12), h, rng(7, 9)),
+			cf,
+			jitterColor(rock:Lerp(P.graniteDark, 0.25), rng, 0.06),
+			Mat.Rock
+		)
+	end
+	local lintel = block(
+		m,
+		"Deopgae",
+		V3(17, 3.2, 26),
+		CF(c + V3(-10, 14.2, 0)) * CFrame.Angles(0, 0, math.rad(-7)),
+		rock:Lerp(P.graniteDark, 0.3),
+		Mat.Slate
+	)
+	deco(
+		block(
+			m,
+			"Ikki",
+			V3(14.5, 0.5, 21),
+			lintel.CFrame * CF(-0.5, 1.7, 0),
+			Color3.fromRGB(84, 112, 62),
+			Mat.LeafyGrass
+		)
+	)
+	for _, s in { -1, 1 } do
+		deco(
+			block(
+				m,
+				"Ikki",
+				V3(6, 0.5, 5),
+				lintel.CFrame * CF(-3, 1.8, s * 12) * CFrame.Angles(0, 0.4 * s, 0.2),
+				Color3.fromRGB(78, 108, 58),
+				Mat.LeafyGrass
+			)
+		)
+	end
+	Build.waterfall(m, c + V3(-2.2, 12.3, 0), V3(1, 0, 0), 3, 11.6)
+	-- 어귀 석등 둘, 비석, 둘레 고사리
+	for _, s in { -1, 1 } do
+		local q = c + V3(v.radius + 5.5, 0, s * 7)
+		Build.stoneLantern(m, at(q.X, q.Z))
+	end
+	local st = c + V3(v.radius + 8, 0, 13)
+	stele(m, at(st.X, st.Z), "영천굴", V3(c.X + 60, 0, c.Z))
+	for k = 0, 7 do
+		local a = math.rad(110 + k * 20)
+		local r = v.radius + 13 + rng(0, 4)
+		local q = c + V3(math.cos(a) * r, 0, math.sin(a) * r)
+		Build.shrub(m, at(q.X, q.Z), rng, { size = rng(2.4, 3.6), leaves = { P.leafDeep, P.pine, P.leaf } })
+	end
+	take(c.X - 6, c.Z, 24)
+	take(c.X + v.radius + 6, c.Z, 9)
+	-- 숲길에서 굴로 내려오는 오솔길
+	local road = Land.ROADS[11]
+	local from =
+		V3(-372, 0, road[1][2] + (road[2][2] - road[1][2]) * ((-372 - road[1][1]) / (road[2][1] - road[1][1])) + 5)
+	local to = V3(c.X + v.radius + 9, 0, c.Z + 1)
+	local pts = {}
+	for i = 0, 8 do
+		local t = i / 8
+		local q = from:Lerp(to, t) + V3(math.sin(t * math.pi * 2) * 9, 0, 0)
+		table.insert(pts, V3(q.X, Land.surface(q.X, q.Z) + 0.05, q.Z))
+	end
+	local path = model(grove, "영천굴 오솔길")
+	for i = 1, #pts - 1 do
+		trail(path, pts[i], pts[i + 1], 3.4, Color3.fromRGB(118, 96, 72))
+		local mid = (pts[i] + pts[i + 1]) / 2
+		take(mid.X, mid.Z, 4)
+	end
+end
+
+-- 약초막: 숲 들머리 초가와 약초 말리는 덕, 바구니
+local function buildHerbHut(grove: Instance, rng)
+	local x, z = -206, -80
+	local m, cf = choga(grove, x, z, x, z + 40, 9.5, 7.5)
+	m.Name = "약초막"
+	local function p(lx: number, lz: number): Vector3
+		local q = cf:PointToWorldSpace(V3(lx, 0, lz))
+		return V3(q.X, Land.surface(q.X, q.Z), q.Z)
+	end
+	-- 덕: 기둥 넷에 발을 얹고 약초 다발을 늘어놓는다
+	local corners = { p(-9, -6), p(-3, -6), p(-9, -10), p(-3, -10) }
+	local topY = math.max(corners[1].Y, corners[2].Y, corners[3].Y, corners[4].Y) + 3
+	for _, q in corners do
+		beam(m, "Deokgidung", q - V3(0, 0.5, 0), V3(q.X, topY, q.Z), 0.35, 0.35, P.woodDark, Mat.Wood)
+	end
+	local center = (corners[1] + corners[4]) / 2
+	local rack = CF(center.X, topY + 0.1, center.Z) * (cf - cf.Position)
+	block(m, "Bal", V3(6.4, 0.2, 4.4), rack, STRAW, Mat.Fabric)
+	for i = 0, 4 do
+		block(
+			m,
+			"Yakcho",
+			V3(0.6, 0.35, 3.4),
+			rack * CF(-2.4 + i * 1.2, 0.25, 0),
+			if i % 2 == 0 then P.leafLight else P.leaf,
+			Mat.Grass
+		)
+	end
+	for i, q in { p(5.2, -6.5), p(6.4, -4.8), p(-1.5, -7.5) } do
+		local basket = block(
+			m,
+			"Baguni",
+			V3(1.0, 1.4 + i * 0.1, 1.4 + i * 0.1),
+			CF(q + V3(0, 0.5, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+			Color3.fromRGB(176, 140, 86),
+			Mat.Fabric
+		)
+		basket.Shape = Enum.PartType.Cylinder
+		deco(block(m, "Yakcho", V3(1.0, 0.35, 1.0), CF(q + V3(0, 1.05, 0)), P.leafLight, Mat.Grass))
+	end
+	local pot = p(4.5, -10)
+	for k = 0, 2 do
+		local a = math.rad(k * 120)
+		block(
+			m,
+			"Dol",
+			V3(0.9, 0.8, 0.9),
+			CF(pot + V3(math.cos(a) * 1.1, 0.3, math.sin(a) * 1.1)),
+			P.graniteDark,
+			Mat.Slate
+		)
+	end
+	cyl(m, "Sot", pot + V3(0, 0.6, 0), pot + V3(0, 1.9, 0), 1.8, P.meok, Mat.Metal)
+	take(x, z - 6, 9)
+end
+
+-- 나무, 덤불, 바위
+local function plantGrove(grove: Instance, rng)
+	local trees = folder(grove, "나무")
+	local floor = folder(grove, "숲바닥")
+	local planted, cap = 0, 125
+	local step = 14
+	for gx = GROVE.x0, GROVE.x1, step do
+		for gz = GROVE.z0, GROVE.z1, step do
+			if planted >= cap then
+				break
+			end
+			local x, z = gx + rng(0, step), gz + rng(0, step)
+			if inGrove(x, z) then
+				local h = Land.height(x, z)
+				local roadD = roadDist(x, z)
+				local clump = math.noise(x / 70, z / 70, 0.731)
+				local edge = math.min(x - GROVE.x0, GROVE.x1 - x, z - GROVE.z0, GROVE.z1 - z)
+				local density = if roadD < 36 then 0.34 elseif clump > 0.08 then 0.26 else 0.05
+				if edge < 30 then
+					density *= 0.6
+				end
+				if rng(0, 1) < density and h > 1.5 and Land.water(x, z, h) == nil then
+					local slope = math.abs(Land.height(x + 3, z) - h) + math.abs(Land.height(x, z + 3) - h)
+					if slope < 4.5 and clearOf(x, z, 2.4, 3.6) then
+						local base = V3(x, h, z)
+						local near = roadD < 36
+						local kind = rng(0, 1)
+						if kind < 0.56 then
+							Build.pine(trees, base, rng, { height = rng(13, 19), tiers = if near then 4 else 3 })
+						elseif kind < 0.8 then
+							Build.broadleaf(trees, base, rng, {
+								height = rng(10, 15),
+								blobs = if near then 6 else 3,
+								branches = if near then 2 else 1,
+							})
+						elseif kind < 0.88 and near then
+							Build.blossom(trees, base, rng, { blobs = 7 })
+						elseif kind < 0.94 then
+							-- 은행: 노란 잎
+							Build.broadleaf(trees, base, rng, {
+								name = "은행나무",
+								height = rng(12, 15),
+								blobs = 5,
+								branches = 2,
+								leaves = {
+									P.leafYellow,
+									Color3.fromRGB(196, 186, 84),
+									Color3.fromRGB(224, 204, 96),
+								},
+							})
+						else
+							Build.pine(trees, base, rng, { height = rng(16, 21), tiers = 4 })
+						end
+						take(x, z, 4.6)
+						planted += 1
+						-- 나무 밑 덤불·고사리
+						if rng(0, 1) < 0.32 then
+							local a = rng(0, math.pi * 2)
+							local q = V3(x + math.cos(a) * 4, 0, z + math.sin(a) * 4)
+							if clearOf(q.X, q.Z, 1.2, 3) then
+								local fern = rng(0, 1) < 0.5
+								Build.shrub(floor, at(q.X, q.Z), rng, {
+									size = if fern then rng(1.8, 2.6) else rng(2.4, 3.8),
+									blobs = if fern then 2 else 3,
+									leaves = if fern then { P.pine, P.leafDeep } else nil,
+									flowers = if not fern and rng(0, 1) < 0.25
+										then Color3.fromRGB(236, 226, 240)
+										else nil,
+								})
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+	-- 이끼 낀 바위와 쓰러진 통나무
+	local rocks = 0
+	for _ = 1, 400 do
+		if rocks >= 22 then
 			break
 		end
-		local x, z = rng(-460, -120), rng(-330, 330)
-		local h = Land.height(x, z)
-		local clear = h > 1
-			and Land.water(x, z, h) == nil
-			and Land.polyDist(x, z, Land.ROADS[5]) > 8
-			and Land.polyDist(x, z, Land.ROADS[6]) > 8
-		for _, spot in keepClear do
-			if (x - spot[1]) ^ 2 + (z - spot[2]) ^ 2 < spot[3] ^ 2 then
-				clear = false
+		local x, z = rng(GROVE.x0, GROVE.x1), rng(GROVE.z0, GROVE.z1)
+		if inGrove(x, z) and clearOf(x, z, 3, 4) then
+			local h = Land.height(x, z)
+			if h > 1 and Land.water(x, z, h) == nil then
+				Build.rocks(floor, V3(x, h, z), rng(2.5, 6), rng, { count = 2 })
+				take(x, z, 4)
+				rocks += 1
 			end
 		end
-		local slope = math.abs(Land.height(x + 4, z) - h) + math.abs(Land.height(x, z + 4) - h)
-		if clear and slope < 5 then
-			tree(trees, Vector3.new(x, h, z), rng, rng(0, 1) > 0.8)
-			planted += 1
+	end
+	local logs = 0
+	for _ = 1, 200 do
+		if logs >= 6 then
+			break
+		end
+		local x, z = rng(GROVE.x0, GROVE.x1), rng(GROVE.z0, GROVE.z1)
+		if inGrove(x, z) and clearOf(x, z, 4, 5) then
+			local a = rng(0, math.pi)
+			local d = V3(math.cos(a), 0, math.sin(a)) * rng(3.5, 5)
+			local p0, p1 = V3(x, 0, z) - d, V3(x, 0, z) + d
+			local y0, y1 = Land.height(p0.X, p0.Z), Land.height(p1.X, p1.Z)
+			if math.abs(y0 - y1) < 2 then
+				local log = cyl(
+					floor,
+					"Tongnamu",
+					V3(p0.X, y0 + 0.5, p0.Z),
+					V3(p1.X, y1 + 0.5, p1.Z),
+					rng(1.1, 1.5),
+					P.bark,
+					Mat.Wood
+				)
+				deco(
+					block(
+						floor,
+						"Ikki",
+						V3(log.Size.X * 0.6, 0.2, 0.9),
+						log.CFrame * CF(0, 0, 0) * CFrame.new(0, log.Size.Y * 0.48, 0),
+						Color3.fromRGB(84, 112, 62),
+						Mat.LeafyGrass
+					)
+				)
+				take(x, z, 5)
+				logs += 1
+			end
 		end
 	end
+end
 
-	-- 목 오행처: 고목
-	local def = ELEMENT_SITES[1]
-	local base = at(def.x, def.z)
-	local m = model(forest, def.name)
-	block(m, "Trunk", Vector3.new(8, 46, 8), CFrame.new(base + Vector3.new(0, 21, -10)), C.woodDark, Enum.Material.Wood)
-	for k = 0, 3 do
-		local a = math.rad(k * 90 + 45)
-		block(
-			m,
-			"Root",
-			Vector3.new(3, 4, 9),
-			face(base + Vector3.new(math.cos(a) * 5, 1, math.sin(a) * 5 - 10), base + Vector3.new(0, 1, -10)),
-			C.woodDark,
-			Enum.Material.Wood
-		)
-	end
-	block(m, "Leaves", Vector3.new(44, 14, 44), CFrame.new(base + Vector3.new(0, 44, -10)), C.leaf, Enum.Material.Grass)
-	block(
+local function buildGrove(root: Instance, rng)
+	local grove = folder(root, "청송림")
+	stele(grove, at(-121, 18), "청송림", V3(0, 0, 18))
+	take(-121, 18, 3)
+	buildCave(grove, rng)
+	buildHerbHut(grove, rng)
+	plantGrove(grove, rng)
+end
+
+-- 땅마다 쓰는 자리 ------------------------------------------------------------------------
+--
+-- 자리 둘레(전송진 9, 과업 자리·영맥 7)는 땅마다의 모듈이 비워 둔다. 여기 것은 그 안에 든다.
+
+-- 송계 쪽 수평 방향 (비석·표석이 그쪽을 본다)
+local function homeward(x: number, z: number): Vector3
+	local v = V3(-x, 0, -z)
+	return if v.Magnitude > 1 then v.Unit else V3(0, 0, 1)
+end
+
+-- 오행처 받침: 팔각 두 단, 가운데 속성 빛 돌, 청동 받침 위 빛 구슬, 송계 쪽 비석
+local function buildElementDais(parent: Instance, s)
+	local color = Sites.ELEMENT_COLORS[s.id]
+	local label = string.match(s.name, "^(.-):") or s.name
+	local m = model(parent, s.name)
+	local yaw = yawTo(s.x, s.z, 0, 0)
+	local rockBed = s.id == "el_water" -- 물가 바위
+	local y = bed(
 		m,
-		"Leaves",
-		Vector3.new(28, 10, 28),
-		CFrame.new(base + Vector3.new(2, 54, -8)),
-		C.leafLight,
-		Enum.Material.Grass
+		s.x,
+		s.z,
+		12.4,
+		12.4,
+		yaw,
+		if rockBed then Color3.fromRGB(100, 104, 108) else P.graniteDark,
+		if rockBed then Mat.Slate else Mat.Cobblestone
 	)
-	block(m, "Leaves", Vector3.new(24, 8, 20), CFrame.new(base + Vector3.new(-14, 38, 2)), C.leaf, Enum.Material.Grass)
-
-	-- 중품 영맥 용혈샘: 바위 틈 동굴
-	local grotto = model(forest, "용혈샘")
-	local gpos = at(-380, 110)
-	for k = 0, 5 do
-		local a = math.rad(k * 50 + 200)
-		rock(grotto, gpos + Vector3.new(math.cos(a) * 17, 0, math.sin(a) * 17), rng(8, 12), rng)
+	local base = V3(s.x, y, s.z)
+	for _, a in { 22.5, 67.5 } do
+		local rot = CFrame.Angles(0, yaw + math.rad(a), 0)
+		block(m, "Dan", V3(11, 1.0, 11), CF(base + V3(0, 0.2, 0)) * rot, P.granite, Mat.Granite)
+		block(m, "Dan2", V3(7.6, 0.6, 7.6), CF(base + V3(0, 1.0, 0)) * rot, P.granite:Lerp(color, 0.12), Mat.Granite)
 	end
-	block(
-		grotto,
-		"Lintel",
-		Vector3.new(30, 4, 14),
-		CFrame.new(gpos + Vector3.new(0, 16, -8)) * CFrame.Angles(0.1, 0.3, 0),
-		C.stoneDark,
-		Enum.Material.Rock
-	)
-	vein(grotto, "mid", gpos, 11)
-
-	stele(forest, at(-118, 30), "영초숲", Vector3.new(0, 0, 30))
+	disc(m, "Inlay", base + V3(0, 1.32, 0), 2.6, 0.06, color:Lerp(P.granite, 0.3), Mat.SmoothPlastic)
+	cyl(m, "Batchimdae", base + V3(0, 1.3, 0), base + V3(0, 3.0, 0), 0.7, BRONZE, Mat.Metal)
+	cyl(m, "Batchim", base + V3(0, 3.0, 0), base + V3(0, 3.35, 0), 1.7, BRONZE, Mat.Metal)
+	local orb = ball(m, "Orb", base + V3(0, 4.45, 0), 2, color, Mat.Neon)
+	orb.CanCollide = false
+	light(orb, color, 14, 1.5)
+	motes(orb, color, 6)
+	siteMarker(m, s.id, base + V3(0, 1.9, 0), 7)
+	local q = base + homeward(s.x, s.z) * 9.5
+	stele(m, V3(q.X, Land.surface(q.X, q.Z), q.Z), label, Vector3.zero, color:Lerp(C.stone, 0.7))
 end
 
--- 쇄천봉, 서악 마을, 서천 설원 -----------------------------------------------------------
-
-local function buildMountain(root: Instance, rng)
-	local mountain = folder(root, "쇄천봉")
-	local peak = Land.PEAK
-	local top = at(peak.x, peak.z)
-	vein(mountain, "high", top, 9)
-	siteMarker(mountain, "up", top + Vector3.new(0, 0.6, 0), 9)
-	for _, corner in { { -13, 13 }, { 13, -13 }, { -13, -13 } } do
-		lantern(mountain, at(top.X + corner[1], top.Z + corner[2]))
+-- 사방 성대: 두 단 장대석 단, 네 귀 돌기둥, 가운데 돌기둥 위 별 구슬, 송계 쪽 계단과 비석·새긴 돌
+local function buildStarAltar(parent: Instance, def)
+	local s = SITE[def.id]
+	local m = model(parent, def.name)
+	local yaw = yawTo(s.x, s.z, 0, 0)
+	local y = bed(m, s.x, s.z, 18, 18, yaw, P.graniteDark, Mat.Slate)
+	local cf = CF(s.x, y, s.z) * CFrame.Angles(0, yaw, 0) -- 앞(-Z)이 송계 쪽
+	local stone = P.granite:Lerp(def.color, 0.06)
+	block(m, "Dan", V3(18, 1.4, 18), cf * CF(0, 0.1, 0), stone, Mat.Granite)
+	block(m, "Dan2", V3(12, 1.0, 12), cf * CF(0, 1.3, 0), stone, Mat.Granite)
+	block(m, "Gyedan", V3(4.4, 0.45, 1.2), cf * CF(0, 1.025, -6.6), P.granite, Mat.Granite)
+	block(m, "Gyedan", V3(5, 0.45, 1.4), cf * CF(0, 0.22, -9.7), P.granite, Mat.Granite)
+	for _, c in { { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 } } do
+		local p = cf * CF(c[1] * 7.6, 0, c[2] * 7.6)
+		block(m, "Gidung", V3(1.3, 6.4, 1.3), p * CF(0, 0.8 + 3.2, 0), stone, Mat.Granite)
+		block(m, "Gat", V3(2.0, 0.5, 2.0), p * CF(0, 0.8 + 6.65, 0), P.graniteDark, Mat.Granite)
+		ball(m, "Boju", (p * CF(0, 0.8 + 7.25, 0)).Position, 0.8, def.color:Lerp(P.granite, 0.4), Mat.Granite)
 	end
-	-- 천뢰번: 쇠 장대와 깃발
-	local pole = top + Vector3.new(-18, 0, 10)
-	block(
-		mountain,
-		"천뢰번",
-		Vector3.new(0.8, 26, 0.8),
-		CFrame.new(pole + Vector3.new(0, 12, 0)),
-		C.stoneDark,
-		Enum.Material.Metal
-	)
-	block(
-		mountain,
-		"깃발",
-		Vector3.new(0.2, 8, 5),
-		CFrame.new(pole + Vector3.new(0, 20, 2.6)),
-		C.gold,
-		Enum.Material.Fabric
-	)
-	stele(mountain, top + Vector3.new(16, 0, -6), "쇄천봉", Vector3.new(peak.x, 0, peak.z))
-	-- 들머리 비석
-	stele(mountain, at(-436, -138), "쇄천봉", Vector3.zero)
-
-	-- 금신천뢰문 옛터: 무너진 문과 아홉 빛 띠 깃발
-	local ruin = model(mountain, "금신천뢰문 옛터")
-	local rpos = at(-660, -165)
-	local floorTop = footing(ruin, rpos.X, rpos.Z, 34, 26, C.stone)
-	for _, x in { -8, 8 } do
-		local height = if x < 0 then 16 else 9
-		block(
-			ruin,
-			"Pillar",
-			Vector3.new(2.4, height, 2.4),
-			CFrame.new(rpos.X + x, floorTop + height / 2, rpos.Z - 8),
-			C.stoneDark,
-			Enum.Material.Rock
-		)
-	end
-	block(
-		ruin,
-		"FallenBeam",
-		Vector3.new(18, 2, 2.4),
-		CFrame.new(rpos.X + 2, floorTop + 1, rpos.Z - 2) * CFrame.Angles(0, 0.4, 0.1),
-		C.stoneDark,
-		Enum.Material.Rock
-	)
-	local belts = {
-		Color3.fromRGB(200, 50, 40),
-		Color3.fromRGB(230, 110, 50),
-		Color3.fromRGB(230, 200, 60),
-		Color3.fromRGB(70, 160, 80),
-		Color3.fromRGB(60, 110, 200),
-		Color3.fromRGB(60, 60, 140),
-		Color3.fromRGB(130, 70, 170),
-		C.gold,
-		Color3.fromRGB(240, 240, 240),
-	}
-	for i, color in belts do
-		local x = rpos.X - 14 + (i - 1) * 3.5
-		block(
-			ruin,
-			"BannerPole",
-			Vector3.new(0.3, 9, 0.3),
-			CFrame.new(x, floorTop + 4.5, rpos.Z + 10),
-			C.woodDark,
-			Enum.Material.Wood
-		)
-		block(
-			ruin,
-			"Banner",
-			Vector3.new(1.6, 4, 0.1),
-			CFrame.new(x + 0.9, floorTop + 6.6, rpos.Z + 10),
-			color,
-			Enum.Material.Fabric
-		)
-	end
-	signboard(ruin, Vector3.new(rpos.X + 14, floorTop, rpos.Z - 12), "금신천뢰문", Vector3.new(-560, 0, -110))
-
-	-- 금 오행처: 금맥굴 입구 (바위 언덕 동쪽 면)
-	local def = ELEMENT_SITES[4]
-	local base = at(def.x, def.z)
-	local mine = model(mountain, def.name)
-	local mineFace = face(base, Vector3.new(def.x + 1, base.Y, def.z))
-	for _, z in { -4, 4 } do
-		block(mine, "Post", Vector3.new(1.2, 10, 1.2), mineFace * CFrame.new(z, 4, 6), C.wood, Enum.Material.Wood)
-	end
-	block(mine, "Lintel", Vector3.new(10, 1.2, 1.4), mineFace * CFrame.new(0, 9, 6), C.wood, Enum.Material.Wood)
-	block(mine, "Dark", Vector3.new(7, 8, 1), mineFace * CFrame.new(0, 4, 7.5), Color3.fromRGB(20, 18, 18))
-	block(
-		mine,
-		"Pillar",
-		Vector3.new(3, 14, 3),
-		CFrame.new(base + Vector3.new(0, 6, -7)),
-		Color3.fromRGB(150, 156, 166),
-		Enum.Material.DiamondPlate
-	)
-	block(
-		mine,
-		"Cap",
-		Vector3.new(4.4, 1, 4.4),
-		CFrame.new(base + Vector3.new(0, 13.5, -7)),
-		Color3.fromRGB(190, 196, 206),
-		Enum.Material.Metal
-	)
-	for k = 1, 5 do
-		block(
-			mine,
-			"Ore",
-			Vector3.new(0.6, rng(2, 5), 0.6),
-			mineFace * CFrame.new(rng(-3, 3), rng(2, 8), 7.2 + k * 0.05) * CFrame.Angles(0, 0, rng(-0.6, 0.6)),
-			C.gold,
-			Enum.Material.Metal
-		)
-	end
-	local board = block(
-		mine,
-		"Board",
-		Vector3.new(6, 1.6, 0.3),
-		mineFace * CFrame.new(0, 10.4, 5.4),
-		C.lacquer,
-		Enum.Material.Wood
-	)
-	engrave(board, "금맥굴", "Front")
-end
-
-local function buildSeoak(root: Instance, rng)
-	local seoak = folder(root, "서악 마을")
-	local cx, cz, y = Land.SEOAK.x, Land.SEOAK.z, Land.SEOAK.height
-	local center = Vector3.new(cx, y, cz)
-	for _, spot in { { 40, -30 }, { -42, -26 }, { -45, 30 }, { 30, 42 }, { -10, 50 } } do
-		houseAt(
-			seoak,
-			cx + spot[1],
-			cz + spot[2],
-			center,
-			rng(12, 15),
-			rng(9, 12),
-			if rng(0, 1) > 0.5 then C.red else C.roof
-		)
-	end
-	-- 쌍선무 마당: 둘레에 등롱
-	local square =
-		block(seoak, "마당", Vector3.new(30, 2, 30), CFrame.new(cx, y - 0.8, cz), C.stone, Enum.Material.Slate)
-	square:AddTag("Ground")
+	cyl(m, "Byeolgidung", (cf * CF(0, 1.8, 0)).Position, (cf * CF(0, 5.6, 0)).Position, 1.3, stone, Mat.Granite)
+	cyl(m, "Batchim", (cf * CF(0, 5.6, 0)).Position, (cf * CF(0, 6.0, 0)).Position, 2.4, BRONZE, Mat.Metal)
 	for k = 0, 3 do
-		local a = math.rad(k * 90 + 45)
-		lantern(seoak, Vector3.new(cx + math.cos(a) * 16, y, cz + math.sin(a) * 16))
-	end
-	gateway(seoak, at(-490, -16), center, "서악 마을")
-
-	-- 오공굴: 지네 요괴가 살던 동굴, 안에 중품 영맥
-	local cave = model(seoak, "오공굴")
-	local cpos = at(-588, 22)
-	for k = 0, 6 do
-		local a = math.rad(k * 40 + 100)
-		rock(cave, cpos + Vector3.new(math.cos(a) * 16, 0, math.sin(a) * 16), rng(9, 13), rng)
-	end
-	block(
-		cave,
-		"Roof",
-		Vector3.new(34, 4, 30),
-		CFrame.new(cpos + Vector3.new(-6, 15, 0)) * CFrame.Angles(0, 0, 0.12),
-		C.stoneDark,
-		Enum.Material.Rock
-	)
-	vein(cave, "mid", cpos, 11)
-	signboard(cave, at(-566, 34), "오공굴", center)
-end
-
-local function buildSnowfield(root: Instance, rng)
-	local snow = folder(root, "서천 설원")
-	for _ = 1, 30 do
-		local x, z = rng(-1260, -1010), rng(-640, 400)
-		if (x + 1180) ^ 2 + (z - 40) ^ 2 > 30 ^ 2 and (x + 1160) ^ 2 + (z - 60) ^ 2 > 20 ^ 2 then
-			rock(snow, at(x, z, -1), rng(4, 10), rng, Color3.fromRGB(150, 156, 166))
-		end
-	end
-	-- 백호 석상
-	local base = at(-1180, 40)
-	local tiger = model(snow, "백호")
-	local t = base + Vector3.new(0, 0, -15)
-	block(tiger, "Body", Vector3.new(4, 4, 10), CFrame.new(t + Vector3.new(0, 3, 0)), C.snow, Enum.Material.Marble)
-	block(tiger, "Head", Vector3.new(4.4, 4, 4), CFrame.new(t + Vector3.new(0, 5.5, 6)), C.snow, Enum.Material.Marble)
-	for _, leg in { { 1.4, 3.5 }, { -1.4, 3.5 }, { 1.4, -3.5 }, { -1.4, -3.5 } } do
-		block(
-			tiger,
-			"Leg",
-			Vector3.new(1.2, 3, 1.2),
-			CFrame.new(t + Vector3.new(leg[1], 0.5, leg[2])),
-			C.snow,
-			Enum.Material.Marble
-		)
-	end
-	for k = 0, 2 do
-		block(tiger, "Stripe", Vector3.new(4.2, 0.4, 0.6), CFrame.new(t + Vector3.new(0, 5.1, -3 + k * 2.5)), C.basalt)
-	end
-end
-
--- 북방 대초원 ----------------------------------------------------------------------------
-
-local function buildSteppe(root: Instance, rng)
-	local steppe = folder(root, "북방 대초원")
-	-- 유목민 천막
-	local camp = at(140, -820)
-	for k = 0, 4 do
-		local a = math.rad(k * 72 + 10)
-		local p = at(140 + math.cos(a) * 22, -820 + math.sin(a) * 22)
-		local ger = model(steppe, "천막")
-		disc(ger, "Floor", p + Vector3.new(0, -0.4, 0), 5.4, 1.6, C.wood, Enum.Material.WoodPlanks)
-		local wall = block(
-			ger,
-			"Wall",
-			Vector3.new(4.4, 10, 10),
-			CFrame.new(p + Vector3.new(0, 2.2, 0)) * CFrame.Angles(0, 0, math.rad(90)),
-			C.felt,
-			Enum.Material.Fabric
-		)
-		wall.Shape = Enum.PartType.Cylinder
-		disc(ger, "Roof", p + Vector3.new(0, 4.8, 0), 5.6, 0.8, C.felt, Enum.Material.Fabric)
-		disc(ger, "Roof", p + Vector3.new(0, 5.6, 0), 3.8, 0.8, C.felt, Enum.Material.Fabric)
-		disc(ger, "Crown", p + Vector3.new(0, 6.3, 0), 1.6, 0.6, C.wood, Enum.Material.Wood)
-		block(
-			ger,
-			"Door",
-			Vector3.new(2, 3, 0.4),
-			face(p + Vector3.new(0, 1.5, 0), camp) * CFrame.new(0, 0, -5),
-			C.red,
-			Enum.Material.Wood
-		)
-	end
-	vein(steppe, "low", at(180, -860, 0.3), 10)
-	-- 창경천라진: 푸른 빛 바닥의 선돌 여덟
-	local ring = model(steppe, "창경천라진")
-	local rc = at(-200, -950)
-	for k = 0, 7 do
-		local a = math.rad(k * 45)
-		local p = at(rc.X + math.cos(a) * 16, rc.Z + math.sin(a) * 16)
-		block(
-			ring,
-			"Stone",
-			Vector3.new(2.4, 8, 1.6),
-			face(p + Vector3.new(0, 3, 0), rc),
-			C.stoneDark,
-			Enum.Material.Slate
-		)
-	end
-	local glow =
-		disc(ring, "Glow", rc + Vector3.new(0, 0.3, 0), 13, 0.2, Color3.fromRGB(90, 140, 255), Enum.Material.Neon)
-	glow.Transparency = 0.7
-	glow.CanCollide = false
-	-- 흩어진 바위와 나무 몇 그루
-	for _ = 1, 50 do
-		local x, z = rng(-600, 560), rng(-1240, -640)
-		local h = Land.height(x, z)
-		local near = (x - 140) ^ 2 + (z + 820) ^ 2 < 50 ^ 2
-			or (x + 200) ^ 2 + (z + 950) ^ 2 < 30 ^ 2
-			or x * x + (z + 1180) ^ 2 < 40 ^ 2
-			or Land.polyDist(x, z, Land.ROADS[1]) < 8
-		if Land.water(x, z, h) == nil and not near then
-			if rng(0, 1) > 0.5 then
-				rock(steppe, Vector3.new(x, h - 1, z), rng(3, 7), rng)
-			else
-				tree(steppe, Vector3.new(x, h, z), rng, false)
-			end
-		end
-	end
-	-- 현무 석상: 거북 등에 뱀이 감겼다
-	local base = at(0, -1180)
-	local tortoise = model(steppe, "현무")
-	local t = base + Vector3.new(0, 0, 14)
-	block(
-		tortoise,
-		"Shell",
-		Vector3.new(10, 4, 12),
-		CFrame.new(t + Vector3.new(0, 2.5, 0)),
-		C.basalt,
-		Enum.Material.Slate
-	)
-	block(
-		tortoise,
-		"Head",
-		Vector3.new(3, 2.4, 3.4),
-		CFrame.new(t + Vector3.new(0, 2, -7.4)),
-		C.basalt,
-		Enum.Material.Slate
-	)
-	for k = 0, 9 do
-		local a = math.rad(k * 40)
-		local p = t + Vector3.new(math.cos(a) * 5.4, 4.4 + k * 0.3, math.sin(a) * 6.2)
-		local q = t + Vector3.new(math.cos(a + 0.5) * 5.4, 4.4 + k * 0.3, math.sin(a + 0.5) * 6.2)
-		block(tortoise, "Snake", Vector3.new(1.2, 1.2, 2.6), face(p, q), C.jade, Enum.Material.Slate)
-	end
-end
-
--- 벽라국: 천색성과 화구산 -----------------------------------------------------------------
-
-local function buildByeokra(root: Instance, rng)
-	local land = folder(root, "벽라국")
-	local town = Land.TOWN
-	local y = town.height
-	local center = Vector3.new(town.x, y, town.z)
-	-- 성벽 (서문과 동문을 비운다)
-	local walls = model(land, "천색성 성벽")
-	local half, wallH = 70, 14
-	for _, side in { -1, 1 } do
-		block(
-			walls,
-			"Wall",
-			Vector3.new(half * 2, wallH, 3),
-			CFrame.new(town.x, y + wallH / 2 - 1, town.z + side * half),
-			C.sandstone,
-			Enum.Material.Brick
-		)
-		for _, piece in { -1, 1 } do
-			block(
-				walls,
-				"Wall",
-				Vector3.new(3, wallH, 56),
-				CFrame.new(town.x + side * half, y + wallH / 2 - 1, town.z + piece * 42),
-				C.sandstone,
-				Enum.Material.Brick
-			)
-		end
-	end
-	for _, corner in { { -1, -1 }, { 1, -1 }, { -1, 1 }, { 1, 1 } } do
-		block(
-			walls,
-			"Tower",
-			Vector3.new(8, wallH + 6, 8),
-			CFrame.new(town.x + corner[1] * half, y + (wallH + 6) / 2 - 1, town.z + corner[2] * half),
-			C.sandstoneDark,
-			Enum.Material.Brick
-		)
-	end
-	gateway(land, Vector3.new(town.x - half - 4, y, town.z), Vector3.new(0, y, town.z), "천색성", 16)
-	-- 공방과 법기 가게
-	for _, spot in { { -40, -40 }, { 0, -42 }, { 40, -40 }, { -40, 40 }, { 0, 42 }, { 40, 40 } } do
-		house(
-			land,
-			face(Vector3.new(town.x + spot[1], y, town.z + spot[2]), center),
-			rng(14, 18),
-			rng(10, 12),
-			if rng(0, 1) > 0.5 then C.red else C.roof,
-			Color3.fromRGB(226, 206, 176)
-		)
-	end
-	-- 추모 묘역
-	for k = 0, 5 do
-		local p = Vector3.new(town.x + 30 + (k % 3) * 6, y, town.z - 4 + (k // 3) * 8)
-		block(
-			land,
-			"Grave",
-			Vector3.new(1.6, 3, 0.6),
-			CFrame.new(p + Vector3.new(0, 1, 0)),
-			C.stone,
-			Enum.Material.Slate
-		)
-	end
-	signboard(land, Vector3.new(town.x + 36, y, town.z + 14), "추모비", center)
-
-	-- 화 오행처: 용암 화로 (북쪽 성벽 안)
-	local def = ELEMENT_SITES[2]
-	local base = Vector3.new(def.x, y, def.z)
-	local forge = model(land, def.name)
-	block(
-		forge,
-		"Hearth",
-		Vector3.new(10, 5, 4),
-		CFrame.new(base + Vector3.new(0, 2, -8.5)),
-		C.basalt,
-		Enum.Material.Basalt
-	)
-	local fire = block(
-		forge,
-		"Lava",
-		Vector3.new(7, 1, 2.6),
-		CFrame.new(base + Vector3.new(0, 4.8, -8.5)),
-		C.lava,
-		Enum.Material.Neon
-	)
-	fire.CanCollide = false
-	local flames = Instance.new("Fire")
-	flames.Size = 6
-	flames.Heat = 9
-	flames.Parent = fire
-	-- 용암 물길: 화구산 가장자리에서 북쪽 성벽 밖까지 땅을 따라 흘러내린다
-	local from, to = Vector2.new(470, -245), Vector2.new(def.x, town.z - half - 4)
-	local steps = math.floor((to - from).Magnitude / 8)
-	for k = 0, steps - 1 do
-		local p = from:Lerp(to, k / steps)
-		local q = from:Lerp(to, (k + 1) / steps)
-		local hp, hq = Land.height(p.X, p.Y), Land.height(q.X, q.Y)
-		local a, b = Vector3.new(p.X, hp + 0.15, p.Y), Vector3.new(q.X, hq + 0.15, q.Y)
-		-- 수평 방향은 face 로 (CFrame.new(p, q) 도 Lune 에서 Z 가 뒤집힌다), 기울기는 Angles 로
-		local pitch = math.atan2(b.Y - a.Y, Vector2.new(b.X - a.X, b.Z - a.Z).Magnitude)
-		local seg = block(
-			forge,
-			"Flow",
-			Vector3.new(3, 0.5, (b - a).Magnitude + 0.6),
-			face((a + b) / 2, b) * CFrame.Angles(pitch, 0, 0),
-			C.lava,
-			Enum.Material.Neon
-		)
-		seg.CanCollide = false
-	end
-
-	-- 화구산: 용암 못과 높은 연기
-	local volcano = model(land, "화구산")
-	local vc = Land.VOLCANO
-	local lava = disc(volcano, "Lava", Vector3.new(vc.x, 126, vc.z), 34, 1, C.lava, Enum.Material.Neon)
-	light(lava, C.lava, 60, 3)
-	local plume = Instance.new("ParticleEmitter")
-	plume.Color = ColorSequence.new(Color3.fromRGB(90, 86, 84), Color3.fromRGB(160, 156, 150))
-	plume.Rate = 12
-	plume.Lifetime = NumberRange.new(10, 16)
-	plume.Speed = NumberRange.new(14, 22)
-	plume.SpreadAngle = Vector2.new(12, 12)
-	plume.EmissionDirection = Enum.NormalId.Right
-	plume.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 18), NumberSequenceKeypoint.new(1, 60) })
-	plume.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.4), NumberSequenceKeypoint.new(1, 1) })
-	plume.Parent = lava
-	stele(volcano, at(500, -150), "화구산", center)
-end
-
--- 답천사막 ------------------------------------------------------------------------------
-
-local function buildDesert(root: Instance, rng)
-	local desert = folder(root, "답천사막")
-
-	-- 답천대: 탁상 바위 위 천겁대
-	local altar = model(desert, "천겁대")
-	local mesa = Land.MESA
-	local center = Vector3.new(mesa.x, mesa.height, mesa.z)
-	disc(altar, "Floor", center + Vector3.new(0, 0.5, 0), 34, 1, C.sandstone, Enum.Material.Slate)
-	disc(altar, "Inner", center + Vector3.new(0, 1.05, 0), 10, 0.1, C.sandstoneDark, Enum.Material.Slate)
-	local dan = model(altar, "칠성단")
-	block(
-		dan,
-		"Table",
-		Vector3.new(6, 2.2, 3),
-		CFrame.new(center + Vector3.new(0, 2.1, -6)),
-		C.woodDark,
-		Enum.Material.Wood
-	)
-	for i = 0, 6 do
-		local a = math.rad(200 + i * 20)
-		ball(
-			dan,
-			"Lamp",
-			center + Vector3.new(math.cos(a) * 8, 1.6, math.sin(a) * 8),
-			0.7,
-			Color3.fromRGB(160, 200, 255),
-			Enum.Material.Neon
-		)
-	end
-	siteMarker(dan, "altar", center + Vector3.new(0, 1.2, 0), 10, "칠성단")
-	-- 중령성국의 부서진 하늘 제단 기둥 여덟 (꼭대기에 뱀 머리)
-	for i, trigram in World.TRIGRAMS do
-		local a = math.rad(trigram.angle)
-		local pos = center + Vector3.new(math.cos(a) * 31, 0, math.sin(a) * 31)
-		local m = model(altar, trigram.name .. " 기둥")
-		local height = 9 + (i * 37 % 6)
-		local pillar = block(
+		local a = math.rad(45 + k * 90)
+		local tip = cf * CF(math.cos(a) * 1.4, 7.6, math.sin(a) * 1.4)
+		beam(
 			m,
+			"Gal",
+			(cf * CF(math.cos(a) * 0.9, 5.9, math.sin(a) * 0.9)).Position,
+			tip.Position,
+			0.22,
+			0.22,
+			BRONZE,
+			Mat.Metal
+		)
+	end
+	local orb = ball(m, "Star", (cf * CF(0, 8.0, 0)).Position, 2.6, def.color, Mat.Neon)
+	orb.CanCollide = false
+	light(orb, def.color, 24, 2)
+	motes(orb, def.color, 4)
+	siteMarker(m, def.id, (cf * CF(0, 2.4, 0)).Position, 8)
+	-- 비석(이름)과 새긴 돌(방위 신수)
+	local q = (cf * CF(6.5, 0, -13)).Position
+	stele(m, V3(q.X, Land.surface(q.X, q.Z), q.Z), def.name, Vector3.zero, def.color:Lerp(C.stone, 0.6))
+	local t = (cf * CF(-6.5, 0, -12.5)).Position
+	local tg = Land.surface(t.X, t.Z)
+	local look = face(V3(t.X, tg, t.Z), V3(0, tg, 0))
+	block(m, "Badim", V3(4.8, 1.0, 1.8), look * CF(0, 0.2, 0), P.graniteDark, Mat.Granite)
+	local tablet = block(m, "Saegin", V3(4.2, 2.2, 0.7), look * CF(0, 1.8, 0), def.color:Lerp(C.stone, 0.75), Mat.Slate)
+	engrave(tablet, def.carve, "Front", false, "ink")
+end
+
+-- 관성대 칠성단: 둥근 돌바닥, 세 단 칠성단과 제상, 북두칠성 등 일곱, 팔괘 기둥 여덟, 오르막 끝 비석
+local function buildMesaAltar(parent: Instance)
+	local mesa = Land.MESA
+	local m = model(parent, "관성대")
+	local g = Land.surface(mesa.x, mesa.z)
+	local center = V3(mesa.x, g, mesa.z)
+	local sand = Color3.fromRGB(186, 152, 114)
+	disc(m, "Badak", center + V3(0, 0.15, 0), 37, 0.5, sand, Mat.Sandstone)
+	disc(m, "Tti", center + V3(0, 0.2, 0), 34.5, 0.5, sand:Lerp(P.graniteDark, 0.35), Mat.Sandstone)
+	disc(m, "An", center + V3(0, 0.25, 0), 27.5, 0.5, sand:Lerp(P.plaster, 0.15), Mat.Sandstone)
+	local floor = g + 0.5
+	local dan = model(m, "칠성단")
+	disc(dan, "Dan1", V3(center.X, floor + 0.5, center.Z), 10, 1.0, P.granite, Mat.Granite)
+	disc(dan, "Dan2", V3(center.X, floor + 1.5, center.Z), 7.4, 1.0, P.granite, Mat.Granite)
+	disc(dan, "Dan3", V3(center.X, floor + 2.3, center.Z), 4.8, 0.6, P.graniteDark, Mat.Granite)
+	local top = floor + 2.6
+	-- 제상과 향로, 정화수 그릇
+	block(dan, "Jesang", V3(3.6, 1.1, 2.0), CF(center + V3(0, top - g + 0.55, 0)), P.woodDark, Mat.Wood)
+	cyl(
+		dan,
+		"Hyangno",
+		V3(center.X - 0.9, top + 1.1, center.Z),
+		V3(center.X - 0.9, top + 1.6, center.Z),
+		0.8,
+		BRONZE,
+		Mat.Metal
+	)
+	cyl(
+		dan,
+		"Geureut",
+		V3(center.X + 0.9, top + 1.1, center.Z),
+		V3(center.X + 0.9, top + 1.35, center.Z),
+		0.9,
+		P.hanji,
+		Mat.SmoothPlastic
+	)
+	siteMarker(dan, "altar", V3(center.X, floor + 2.7, center.Z), 10, "칠성단")
+	-- 북두칠성: 칠성단 북쪽 바닥에 국자 모양으로 (돌 받침 위 별빛)
+	local DIPPER = { { 0, 0 }, { 0, 1.0 }, { 1.3, 1.25 }, { 1.55, 0.3 }, { 2.6, 0.15 }, { 3.6, 0.3 }, { 4.7, -0.3 } }
+	for i, d in DIPPER do
+		local p = V3(center.X - 8 + d[1] * 3.4, floor, center.Z - 15 - d[2] * 3.4)
+		block(dan, "Byeolbatchim", V3(1.0, 1.2, 1.0), CF(p + V3(0, 0.6, 0)), P.granite, Mat.Granite)
+		local star = ball(dan, "Byeol", p + V3(0, 1.65, 0), 0.9, Color3.fromRGB(170, 205, 255), Mat.Neon)
+		star.CanCollide = false
+		if i == 1 or i == 7 then
+			light(star, Color3.fromRGB(170, 205, 255), 10, 1)
+		end
+	end
+	-- 팔괘 기둥: 이름은 네 면에 세로로, 괘(효 셋)는 기둥머리 위 검은 돌판에 (가운데를 본다)
+	for i, trigram in World.TRIGRAMS do
+		local s = SITE["tri_" .. i]
+		local pos = V3(s.x, floor, s.z)
+		local pm = model(m, trigram.name .. " 기둥")
+		local height = 9.5 + (i * 37 % 5) * 0.5
+		local look = face(pos, V3(center.X, floor, center.Z))
+		block(pm, "Chumdol", V3(3.8, 1.0, 3.8), look * CF(0, 0.3, 0), P.granite, Mat.Granite)
+		local pillar = block(
+			pm,
 			"Pillar",
-			Vector3.new(2.6, height, 2.6),
-			face(pos + Vector3.new(0, height / 2, 0), center + Vector3.new(0, height / 2, 0)),
-			C.sandstoneDark,
-			Enum.Material.Sandstone
+			V3(2.4, height, 2.4),
+			look * CF(0, 0.8 + height / 2, 0),
+			C.sandstone:Lerp(sand, 0.4),
+			Mat.Sandstone
 		)
 		engrave(pillar, trigram.name, "Front,Back,Left,Right", true, "gold")
-		block(
-			m,
-			"SnakeHead",
-			Vector3.new(2.4, 1.6, 3.6),
-			face(pos + Vector3.new(0, height + 0.8, 0), center + Vector3.new(0, height + 0.8, 0))
-				* CFrame.new(0, 0, -0.8),
-			C.jade,
-			Enum.Material.Slate
-		)
-		siteMarker(m, "tri_" .. i, pos + Vector3.new(0, 3, 0), 6, trigram.name)
-	end
-	stele(desert, at(704, -306), "답천대", Vector3.zero)
-
-	-- 운제: 답천대에서 등선향으로 오르는 구름 계단
-	local stair = model(desert, "운제")
-	local hub = Vector2.new(811, -235)
-	local startAngle = math.atan2(-55, -14)
-	local count = 51
-	for k = 0, count - 1 do
-		local t = k / (count - 1)
-		local a = startAngle + t * math.pi * 3
-		-- 마지막 두 칸은 섬 가장자리 윗면(약 302~305)에 얹힌다
-		local p = Vector3.new(hub.X + math.cos(a) * 60, 98 + t * 208, hub.Y + math.sin(a) * 60)
-		local tangent = Vector3.new(-math.sin(a), 0, math.cos(a))
-		local step = block(stair, "Step", Vector3.new(9, 1.6, 10), face(p, p + tangent), C.stone, Enum.Material.Slate)
-		if k % 3 == 0 then
-			local cloud = Instance.new("ParticleEmitter")
-			cloud.Color = ColorSequence.new(Color3.fromRGB(250, 250, 255))
-			cloud.Rate = 3
-			cloud.Lifetime = NumberRange.new(3, 5)
-			cloud.Speed = NumberRange.new(0.3, 0.8)
-			cloud.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 4), NumberSequenceKeypoint.new(1, 7) })
-			cloud.Transparency =
-				NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.6), NumberSequenceKeypoint.new(1, 1) })
-			cloud.Parent = step
+		local capY = 0.8 + height
+		block(pm, "Gaeseok", V3(3.2, 0.7, 3.2), look * CF(0, capY + 0.35, 0), P.graniteDark, Mat.Granite)
+		block(pm, "Gwaepan", V3(2.4, 2.6, 0.45), look * CF(0, capY + 2.0, 0), P.meok, Mat.Slate)
+		for k, yang in GUA[trigram.name] do
+			local yy = capY + 1.1 + (k - 1) * 0.72
+			if yang == 1 then
+				block(pm, "Hyo", V3(1.8, 0.42, 0.1), look * CF(0, yy, -0.27), P.hwang, Mat.SmoothPlastic)
+			else
+				for _, sx in { -1, 1 } do
+					block(pm, "Hyo", V3(0.72, 0.42, 0.1), look * CF(sx * 0.54, yy, -0.27), P.hwang, Mat.SmoothPlastic)
+				end
+			end
 		end
+		siteMarker(pm, "tri_" .. i, pos + V3(0, 2.6, 0), 6, trigram.name)
 	end
-
-	-- 중령성국 폐허: 부러진 기둥과 반쯤 묻힌 뱀 머리
-	local ruins = model(desert, "중령성국 폐허")
-	local rc = Vector3.new(Land.RUINS.x, Land.RUINS.height, Land.RUINS.z)
-	for k = 0, 11 do
-		local a = math.rad(k * 30 + 15)
-		local p = rc + Vector3.new(math.cos(a) * 48, 0, math.sin(a) * 48)
-		local height = rng(4, 16)
-		block(
-			ruins,
-			"Column",
-			Vector3.new(3, height, 3),
-			CFrame.new(p + Vector3.new(0, height / 2 - 1, 0)),
-			C.sandstone,
-			Enum.Material.Sandstone
-		)
-		if height < 8 then
-			block(
-				ruins,
-				"Drum",
-				Vector3.new(3, 3, 3),
-				CFrame.new(p + Vector3.new(rng(2, 5), 0.8, rng(-3, 3))) * CFrame.Angles(0, 0, math.rad(90)),
-				C.sandstone,
-				Enum.Material.Sandstone
-			)
-		end
-	end
-	local def = ELEMENT_SITES[3]
-	local base = Vector3.new(def.x, Land.height(def.x, def.z), def.z)
-	local head = model(ruins, def.name)
-	local hcf = face(base + Vector3.new(0, 0, 16), base)
-	block(head, "Skull", Vector3.new(16, 10, 18), hcf * CFrame.new(0, 3, 0), C.sandstoneDark, Enum.Material.Sandstone)
-	block(
-		head,
-		"Jaw",
-		Vector3.new(14, 3, 10),
-		hcf * CFrame.new(0, -0.5, -10) * CFrame.Angles(-0.15, 0, 0),
-		C.sandstoneDark,
-		Enum.Material.Sandstone
-	)
-	for _, x in { -5, 5 } do
-		ball(head, "Eye", (hcf * CFrame.new(x, 6, -8.6)).Position, 2.4, C.jade, Enum.Material.Neon)
-	end
-	-- 하늘에서 떨어진 양수진 비석 윗동 (북쪽 잔해밭)
-	local debris = at(880, -760)
-	local fallen = block(
-		desert,
-		"비석 윗동",
-		Vector3.new(4, 12, 1.6),
-		CFrame.new(debris + Vector3.new(0, 3, 0)) * CFrame.Angles(0.5, 0.4, 0.2),
-		C.stone,
-		Enum.Material.Slate
-	)
-	engrave(fallen, "금신자", "Front", true, "ink")
-
-	-- 오아시스: 종려나무와 마른 용맥의 마지막 한 줄기
-	for k = 0, 7 do
-		local a = math.rad(k * 45 + 10)
-		palm(desert, at(Land.OASIS.x + math.cos(a) * 24, Land.OASIS.z + math.sin(a) * 24, -0.5), rng)
-	end
-	vein(desert, "low", at(752, 210, 0.3), 10)
-
-	-- 동쪽 성대 바위의 청룡 아치
-	local arch = model(desert, "청룡 아치")
-	local ac = at(1190, -40)
-	for _, x in { -9, 9 } do
-		block(
-			arch,
-			"Leg",
-			Vector3.new(4, 16, 4),
-			CFrame.new(ac + Vector3.new(x, 7, 15)),
-			C.sandstone,
-			Enum.Material.Sandstone
-		)
-	end
-	block(
-		arch,
-		"Top",
-		Vector3.new(24, 4, 5),
-		CFrame.new(ac + Vector3.new(0, 16, 15)),
-		C.sandstone,
-		Enum.Material.Sandstone
-	)
-	for k = 0, 6 do
-		block(
-			arch,
-			"Dragon",
-			Vector3.new(2.6, 1.4, 1),
-			CFrame.new(ac + Vector3.new(-9 + k * 3, 16 + math.sin(k) * 1.2, 12.4)),
-			Color3.fromRGB(80, 200, 170),
-			Enum.Material.Slate
-		)
-	end
-
-	-- 모래 속 바위
-	for _ = 1, 40 do
-		local x, z = rng(640, 1260), rng(-1240, 600)
-		local h = Land.height(x, z)
-		local far = (x - mesa.x) ^ 2 + (z - mesa.z) ^ 2 > 110 ^ 2
-			and (x - rc.X) ^ 2 + (z - rc.Z) ^ 2 > 110 ^ 2
-			and (x - 1190) ^ 2 + (z + 40) ^ 2 > 40 ^ 2
-			and (x - Land.OASIS.x) ^ 2 + (z - Land.OASIS.z) ^ 2 > 50 ^ 2
-		if far and Land.water(x, z, h) == nil then
-			rock(desert, Vector3.new(x, h - 1.5, z), rng(4, 12), rng, C.sandstoneDark)
-		end
+	-- 오르막(서쪽에서 올라선다) 끝 비석과 석등 둘
+	local a = math.rad(190)
+	local st = V3(center.X + math.cos(a) * 62, 0, center.Z + math.sin(a) * 62)
+	stele(m, V3(st.X, Land.surface(st.X, st.Z), st.Z), "관성대", center)
+	for _, da in { -9, 9 } do
+		local b = math.rad(190 + da)
+		local q = V3(center.X + math.cos(b) * 58, 0, center.Z + math.sin(b) * 58)
+		Build.stoneLantern(m, at(q.X, q.Z))
 	end
 end
 
--- 등선향 --------------------------------------------------------------------------------
+-- 영맥 못: Kit.vein 을 땅에 맞춰 놓는다. 비탈이면 못을 조금 들고 아래를 돌로 받친다. 등급 돌은 땅에 박는다
+local function placeVein(parent: Instance, s)
+	local r = s.radius
+	local sf = Land.surface(s.x, s.z)
+	local lo, hi = Kit.spanAt(s.x, s.z, r + 1.5)
+	local y = sf
+	if s.id == "low@plaza" then
+		y = PLAZA_TOP
+	elseif hi - sf > 0.6 then
+		y = sf + math.min(hi - sf - 0.4, 4)
+	end
+	local m = Kit.vein(parent, s.grade, V3(s.x, y, s.z), r)
+	m.Name = s.name
+	if s.id ~= "low@plaza" and y - 2.4 > lo - 0.5 then
+		local bottom = lo - 1.5
+		local depth = (y - 2.4) - bottom
+		if depth > 0.4 then
+			disc(m, "Footing", V3(s.x, bottom + depth / 2, s.z), r + 1.5, depth, C.stoneDark, Mat.Slate)
+		end
+	end
+	local mark = m:FindFirstChild("Mark") :: BasePart?
+	if mark then
+		local p = mark.CFrame.Position
+		local g = Land.surface(p.X, p.Z)
+		mark.CFrame = (mark.CFrame - p) + V3(p.X, math.max(g, y - 0.4) + 1.9, p.Z)
+	end
+	return m
+end
 
-local function buildIsland(root: Instance, rng)
-	local island = folder(root, "등선향")
-	local isle = Land.ISLAND
-	local zone = block(island, "HerbZone", Vector3.new(220, 50, 220), CFrame.new(isle.x, 315, isle.z), C.grass)
+-- 영초가 돋는 범위: 땅(하늘섬은 섬 윗면) 높낮이를 다 덮는 보이지 않는 상자. Herbs 는 상자 위에서 아래로 쏜다
+local function placeHerbZone(parent: Instance, def)
+	local lo, hi = math.huge, -math.huge
+	for x = def.x - def.sx / 2, def.x + def.sx / 2, 10 do
+		for z = def.z - def.sz / 2, def.z + def.sz / 2, 10 do
+			local y = if def.sky then select(2, Land.island(x, z)) else Land.height(x, z)
+			if y then
+				lo, hi = math.min(lo, y), math.max(hi, y)
+			end
+		end
+	end
+	local zone =
+		block(parent, "HerbZone", V3(def.sx, hi - lo + 24, def.sz), CF(def.x, (lo + hi) / 2 + 4, def.z), C.grass)
 	zone.Transparency = 1
 	zone.CanCollide = false
 	zone.CanQuery = false
 	zone.CanTouch = false
-	zone:SetAttribute("RareMult", 3)
+	zone.CastShadow = false
+	zone:SetAttribute("Name", def.name)
+	zone:SetAttribute("RareMult", def.rare or 1)
+	zone:SetAttribute("Weight", def.weight or 1)
 	zone:AddTag("HerbZone")
-	local clearings =
-		{ { 875, -70, 22 }, { 900, -110, 24 }, { 840, -168, 18 }, { 960, -20, 20 }, { 830, -110, 18 }, { 846, -94, 8 } }
-	local trees = folder(island, "Trees")
-	local planted = 0
-	for _ = 1, 200 do
-		if planted >= 60 then
-			break
-		end
-		local x, z = isle.x + rng(-140, 140), isle.z + rng(-140, 140)
-		local _, top = Land.island(x, z)
-		local clear = true
-		for _, c in clearings do
-			if (x - c[1]) ^ 2 + (z - c[2]) ^ 2 < c[3] ^ 2 then
-				clear = false
-			end
-		end
-		if top and top > 300 and clear then
-			tree(trees, Vector3.new(x, top, z), rng, rng(0, 1) > 0.6)
-			planted += 1
-		end
-	end
-	vein(island, "top", at(875, -70, 0.3), 8)
-	-- 승천문: 돌 고리 안에 비친 하늘 틈
-	local gate = model(island, "승천문")
-	local gc = at(900, -110)
-	local gateFace = face(gc, gc + Vector3.new(-1, 0, 1))
-	for k = 0, 19 do
-		local a = math.rad(k * 18)
-		block(
-			gate,
-			"Stone",
-			Vector3.new(3.4, 4.6, 3),
-			gateFace * CFrame.new(math.cos(a) * 13, 14 + math.sin(a) * 13, 0) * CFrame.Angles(0, 0, a),
-			C.basalt,
-			Enum.Material.Slate
-		)
-	end
-	local rift = block(
-		gate,
-		"Rift",
-		Vector3.new(0.4, 23, 23),
-		gateFace * CFrame.new(0, 14, 0) * CFrame.Angles(0, math.rad(90), 0),
-		Color3.fromRGB(200, 220, 255),
-		Enum.Material.ForceField
-	)
-	rift.Shape = Enum.PartType.Cylinder
-	rift.CanCollide = false
-	light(rift, Color3.fromRGB(200, 220, 255), 40, 2)
-	-- 양수진 사당과 경고비
-	local shrineAt = at(830, -110)
-	local shrineTop = footing(island, shrineAt.X, shrineAt.Z, 14, 12, C.stone)
-	house(
-		island,
-		face(Vector3.new(shrineAt.X, shrineTop, shrineAt.Z), gc),
-		12,
-		10,
-		C.red,
-		Color3.fromRGB(236, 226, 206)
-	)
-	stele(island, at(846, -94), "금신자 경고비", gc)
-	-- 시호 굴
-	local den = model(island, "시호 굴")
-	local dc = at(960, -20)
-	for k = 0, 5 do
-		local a = math.rad(k * 45 + 80)
-		rock(den, dc + Vector3.new(math.cos(a) * 12, 0, math.sin(a) * 12), rng(7, 10), rng)
-	end
-	block(
-		den,
-		"Roof",
-		Vector3.new(24, 3, 22),
-		CFrame.new(dc + Vector3.new(4, 11, 0)) * CFrame.Angles(0.1, 0, 0.1),
-		C.stoneDark,
-		Enum.Material.Rock
-	)
+	return zone
 end
 
--- 남해 ----------------------------------------------------------------------------------
-
-local function buildCoast(root: Instance, rng)
-	local coast = folder(root, "남해")
-	-- 수 오행처: 연하 하구 갯바위와 나무 잔교
-	local def = ELEMENT_SITES[5]
-	local base = Vector3.new(def.x, -20.2, def.z)
-	local m = model(coast, def.name)
-	local tide = block(
-		m,
-		"갯바위",
-		Vector3.new(16, 6, 14),
-		CFrame.new(base + Vector3.new(0, -2.6, 0)),
-		C.stoneDark,
-		Enum.Material.Slate
-	)
-	tide:AddTag("Ground")
-	for k = 0, 4 do
-		block(
-			m,
-			"Jetty",
-			Vector3.new(4.2, 0.6, 4),
-			CFrame.new(base + Vector3.new(-10 - k * 4, 0.3, 2)),
-			C.wood,
-			Enum.Material.WoodPlanks
-		)
-		block(
-			m,
-			"Post",
-			Vector3.new(0.6, 6, 0.6),
-			CFrame.new(base + Vector3.new(-10 - k * 4, -2.6, 4)),
-			C.woodDark,
-			Enum.Material.Wood
-		)
+local function buildShared(root: Instance)
+	local sites = folder(root, "자리")
+	local daises = folder(sites, "오행처")
+	for _, s in World.ELEMENT_SITES do
+		buildElementDais(daises, s)
 	end
-
-	-- 해룡 사당: 곶 끝의 정자, 중품 영맥
-	local shrine = model(coast, "해룡 사당")
-	local sc = at(-330, 735)
-	for _, corner in { { 10, 10 }, { -10, 10 }, { 10, -10 }, { -10, -10 } } do
-		block(
-			shrine,
-			"Pillar",
-			Vector3.new(1.4, 13, 1.4),
-			CFrame.new(sc + Vector3.new(corner[1], 5, corner[2])),
-			C.red,
-			Enum.Material.Wood
-		)
+	local altars = folder(sites, "성대")
+	for _, def in Sites.STAR_ALTARS do
+		buildStarAltar(altars, def)
 	end
-	block(shrine, "Roof", Vector3.new(26, 1.2, 26), CFrame.new(sc + Vector3.new(0, 11.5, 0)), C.roof)
-	block(shrine, "Ridge", Vector3.new(16, 2, 16), CFrame.new(sc + Vector3.new(0, 13, 0)), C.roof)
-	vein(shrine, "mid", sc + Vector3.new(0, 0.3, 0), 8)
-	local lintel = block(
-		shrine,
-		"Lintel",
-		Vector3.new(8, 1.6, 0.3),
-		face(sc + Vector3.new(0, 9.6, -10.8), sc + Vector3.new(0, 9.6, -40)),
-		C.lacquer,
-		Enum.Material.Wood
-	)
-	engrave(lintel, "해룡 사당", "Front,Back")
-
-	-- 난파한 유령선
-	local wreck = model(coast, "난파선")
-	local tilt = CFrame.new(520, -24, 780) * CFrame.Angles(0.12, 0.6, 0.25)
-	block(wreck, "Hull", Vector3.new(10, 5, 34), tilt, Color3.fromRGB(46, 40, 38), Enum.Material.WoodPlanks)
-	block(wreck, "Deck", Vector3.new(9, 0.6, 26), tilt * CFrame.new(0, 2.6, -2), C.woodDark, Enum.Material.WoodPlanks)
-	block(
-		wreck,
-		"Mast",
-		Vector3.new(1, 18, 1),
-		tilt * CFrame.new(0, 10, 4) * CFrame.Angles(0.3, 0, 0.2),
-		C.woodDark,
-		Enum.Material.Wood
-	)
-	local ghost = block(
-		wreck,
-		"Lantern",
-		Vector3.new(1.2, 1.6, 1.2),
-		tilt * CFrame.new(0, 4, -12),
-		Color3.fromRGB(120, 255, 200),
-		Enum.Material.Neon
-	)
-	light(ghost, Color3.fromRGB(120, 255, 200), 24, 1.5)
-
-	-- 남천도 해룡족 천문대 터: 별 지도 바닥과 혼천의 고리, 밤에 보이는 등대 빛
-	local isle = Land.SOUTH_ISLE
-	local oc = at(isle.x, isle.z)
-	local observatory = model(coast, "천문대")
-	disc(observatory, "Floor", oc + Vector3.new(0, 0.2, 0), 20, 1, Color3.fromRGB(34, 40, 70), Enum.Material.Slate)
-	for _ = 1, 24 do
-		local a, r = rng(0, math.pi * 2), rng(3, 18)
-		block(
-			observatory,
-			"StarMark",
-			Vector3.new(0.6, 0.12, 0.6),
-			CFrame.new(oc + Vector3.new(math.cos(a) * r, 0.75, math.sin(a) * r)),
-			Color3.fromRGB(200, 220, 255),
-			Enum.Material.Neon
-		)
-	end
-	local ringCenter = oc + Vector3.new(0, 12, 14)
-	for ringIndex, tiltAngle in { 0, 60, 120 } do
-		for k = 0, 17 do
-			local a = math.rad(k * 20)
-			block(
-				observatory,
-				"Ring" .. ringIndex,
-				Vector3.new(0.6, 0.6, 2.2),
-				CFrame.new(ringCenter)
-					* CFrame.Angles(0, math.rad(tiltAngle), 0)
-					* CFrame.new(math.cos(a) * 7, math.sin(a) * 7, 0)
-					* CFrame.Angles(0, 0, a),
-				C.gold,
-				Enum.Material.Metal
-			)
-		end
-	end
-	block(
-		observatory,
-		"Stand",
-		Vector3.new(1.2, 5, 1.2),
-		CFrame.new(ringCenter - Vector3.new(0, 9.5, 0)),
-		C.stoneDark,
-		Enum.Material.Metal
-	)
-	local beacon = ball(observatory, "Beacon", ringCenter, 2.4, Color3.fromRGB(255, 220, 160), Enum.Material.Neon)
-	light(beacon, Color3.fromRGB(255, 220, 160), 60, 2)
-	local lintelStone = block(
-		observatory,
-		"Lintel",
-		Vector3.new(8, 1.6, 0.6),
-		face(oc + Vector3.new(0, 4, -21), oc + Vector3.new(0, 4, -60)),
-		C.stone,
-		Enum.Material.Slate
-	)
-	for _, x in { -4.4, 4.4 } do
-		block(
-			observatory,
-			"Post",
-			Vector3.new(1.2, 6, 1.2),
-			CFrame.new(oc + Vector3.new(x, 1.5, -21)),
-			C.stone,
-			Enum.Material.Slate
-		)
-	end
-	engrave(lintelStone, "천문대", "Front,Back", false, "ink")
-end
-
--- 사방 성대 -----------------------------------------------------------------------------
-
-local function buildStarAltars(root: Instance)
-	local altars = folder(root, "성대")
-	for _, def in STAR_ALTARS do
-		local m = model(altars, def.name)
-		local top = footing(m, def.x, def.z, 18, 18, C.stoneDark)
-		local base = Vector3.new(def.x, top, def.z)
-		disc(m, "Floor", base + Vector3.new(0, 0.1, 0), 9, 0.8, C.stoneDark, Enum.Material.Slate)
-		for k = 0, 3 do
-			local a = math.rad(45 + k * 90)
-			block(
-				m,
-				"Post",
-				Vector3.new(1.2, 7, 1.2),
-				CFrame.new(base + Vector3.new(math.cos(a) * 7, 3.5, math.sin(a) * 7)),
-				C.stone,
-				Enum.Material.Rock
-			)
-		end
-		local orb = ball(m, "Star", base + Vector3.new(0, 11, 0), 2.6, def.color, Enum.Material.Neon)
-		orb.CanCollide = false
-		light(orb, def.color, 24, 2)
-		siteMarker(m, def.id, base + Vector3.new(0, 0.5, 0), 8)
-		local toward = Vector3.new(-def.x, 0, -def.z).Unit
-		local stonePos = base + toward * 12
-		stele(
-			m,
-			Vector3.new(stonePos.X, Land.surface(stonePos.X, stonePos.Z), stonePos.Z),
-			def.carve,
-			Vector3.zero,
-			def.color:Lerp(C.stone, 0.6)
-		)
-	end
-end
-
--- 오행처 받침 (곁의 모양은 땅마다 위에서 지었다) ----------------------------------------------
-
-local function buildElementDais(root: Instance)
-	local sites = folder(root, "오행처")
-	for _, def in ELEMENT_SITES do
-		local m = model(sites, def.name .. " 자리")
-		local base = if def.id == "el_water"
-			then Vector3.new(def.x, -20.2, def.z)
-			elseif def.id == "el_fire" then Vector3.new(def.x, Land.TOWN.height, def.z)
-			elseif def.id == "el_earth" then atGround(def.x, def.z) -- 등선향 밑 폐허
-			else at(def.x, def.z)
-		disc(m, "Dais", base + Vector3.new(0, 0.3, 0), 6, 0.6, C.stone, Enum.Material.Slate)
-		disc(m, "DaisFoot", base + Vector3.new(0, -1.2, 0), 6, 2.4, C.stoneDark, Enum.Material.Slate)
-		local orb = ball(m, "Orb", base + Vector3.new(0, 4, 0), 2, def.color, Enum.Material.Neon)
-		orb.CanCollide = false
-		light(orb, def.color, 14, 1.5)
-		motes(orb, def.color, 6)
-		siteMarker(m, def.id, base + Vector3.new(0, 0.6, 0), 7)
-		local toward = Vector3.new(-def.x, 0, -def.z).Unit
-		local stonePos = base + toward * 9
-		local ground = if def.id == "el_water" or def.id == "el_fire"
-			then Vector3.new(stonePos.X, base.Y, stonePos.Z)
-			elseif def.id == "el_earth" then atGround(stonePos.X, stonePos.Z)
-			else Vector3.new(stonePos.X, Land.surface(stonePos.X, stonePos.Z), stonePos.Z)
-		stele(m, ground, def.name, Vector3.zero, def.color:Lerp(C.stone, 0.7))
-	end
-end
-
--- 마을 노인이 앉는 자리. 사람은 서버가 띄울 때 카탈로그 옷을 입혀 앉힌다(Villagers.luau).
--- 여기서는 앉을 돌, 앉는 자리(Seat, 속성 NpcSeat), 과업 자리, 노인마다 곁의 살림만 짓는다.
-local function buildElders(root: Instance)
-	local elders = folder(root, "노인")
-	for _, def in ELDERS do
-		local m = model(elders, def.name)
-		local base = def.position
-		local look = face(base, Vector3.new(def.faces.X, base.Y, def.faces.Z))
-		block(m, "Stool", Vector3.new(3, 1.6, 3), look * CFrame.new(0, 0.8, 0), C.stone, Enum.Material.Slate)
-		local seat = Instance.new("Seat")
-		seat.Name = "자리"
-		seat.Anchored = true
-		seat.Size = Vector3.new(2, 0.2, 2)
-		seat.CFrame = look * CFrame.new(0, 1.7, 0)
-		seat.Transparency = 1
-		seat.CanCollide = false
-		seat:SetAttribute("NpcSeat", def.id)
-		seat.Parent = m
-
-		if def.id == "elder_1" then
-			-- 말리는 약초 시렁과 약초 바구니
-			for _, x in { -2.2, 2.2 } do
-				block(m, "RackPost", Vector3.new(0.3, 4, 0.3), look * CFrame.new(x, 2, 2.6), C.wood, Enum.Material.Wood)
-			end
-			block(
-				m,
-				"RackBar",
-				Vector3.new(4.8, 0.25, 0.25),
-				look * CFrame.new(0, 3.8, 2.6),
-				C.wood,
-				Enum.Material.Wood
-			)
-			for i = -2, 2 do
-				block(
-					m,
-					"Herb",
-					Vector3.new(0.5, 1, 0.3),
-					look * CFrame.new(i * 0.9, 3.2, 2.6),
-					C.leafLight,
-					Enum.Material.Grass
-				)
-			end
-			local basket = block(
-				m,
-				"Basket",
-				Vector3.new(1.6, 1, 1.6),
-				look * CFrame.new(2.4, 0.5, -0.6) * CFrame.Angles(0, 0, math.rad(90)),
-				Color3.fromRGB(176, 140, 86),
-				Enum.Material.Fabric
-			)
-			basket.Shape = Enum.PartType.Cylinder
-			block(
-				m,
-				"Herbs",
-				Vector3.new(1.2, 0.4, 1.2),
-				look * CFrame.new(2.4, 1.1, -0.6),
-				C.leaf,
-				Enum.Material.Grass
-			)
-		elseif def.id == "elder_2" then
-			-- 쇠막대 몇 개와 물통
-			for i = 0, 2 do
-				block(
-					m,
-					"Bar",
-					Vector3.new(0.3, 0.3, 3),
-					look * CFrame.new(-2.2 + i * 0.4, 0.2, 0.4),
-					C.stoneDark,
-					Enum.Material.Metal
-				)
-			end
-			local bucket = block(
-				m,
-				"Bucket",
-				Vector3.new(1.4, 1.2, 1.2),
-				look * CFrame.new(2.3, 0.7, 0.4) * CFrame.Angles(0, 0, math.rad(90)),
-				C.woodDark,
-				Enum.Material.Wood
-			)
-			bucket.Shape = Enum.PartType.Cylinder
-		elseif def.id == "elder_3" then
-			-- 강가에 매어 둔 작은 나룻배 (수면 -1)
-			local boat = model(m, "나룻배")
-			local boatCf = CFrame.new(-95, -0.9, 26) * CFrame.Angles(0, math.rad(90), 0)
-			block(boat, "Hull", Vector3.new(3, 0.6, 9), boatCf, C.wood, Enum.Material.WoodPlanks)
-			for _, x in { -1.4, 1.4 } do
-				block(
-					boat,
-					"Side",
-					Vector3.new(0.3, 0.8, 9),
-					boatCf * CFrame.new(x, 0.6, 0),
-					C.woodDark,
-					Enum.Material.WoodPlanks
-				)
-			end
-			block(
-				boat,
-				"Seat",
-				Vector3.new(2.6, 0.3, 0.8),
-				boatCf * CFrame.new(0, 0.5, 1.5),
-				C.woodDark,
-				Enum.Material.Wood
-			)
-			block(m, "Post", Vector3.new(0.5, 7, 0.5), CFrame.new(-87.5, -1.5, 26), C.woodDark, Enum.Material.Wood)
-		end
-
-		siteMarker(m, def.id, base + Vector3.new(0, 3, 0), 7, def.name)
-	end
-end
-
--- 세계순력: 세상 끝을 두른 힘의 벽
-local function buildWorldEdge(root: Instance)
-	local edge = folder(root, "세계순력")
-	local span = Land.EDGE * 2 + 8
-	for _, side in { Vector3.new(1, 0, 0), Vector3.new(-1, 0, 0), Vector3.new(0, 0, 1), Vector3.new(0, 0, -1) } do
-		local wall = block(
-			edge,
-			"Wall",
-			Vector3.new(if side.X ~= 0 then 4 else span, 820, if side.Z ~= 0 then 4 else span),
-			CFrame.new(side * Land.EDGE + Vector3.new(0, 346, 0)),
-			Color3.fromRGB(140, 190, 255),
-			Enum.Material.ForceField
-		)
-		wall.CastShadow = false
-	end
-end
-
-local function setupLighting(lighting: Instance)
-	lighting.ClockTime = 15.5
-	lighting.Brightness = 2.2
-	lighting.Ambient = Color3.fromRGB(90, 90, 100)
-	lighting.OutdoorAmbient = Color3.fromRGB(135, 135, 150)
-	lighting.GlobalShadows = true
-
-	local atmosphere = lighting:FindFirstChildOfClass("Atmosphere")
-	if not atmosphere then
-		atmosphere = Instance.new("Atmosphere")
-		atmosphere.Parent = lighting
-	end
-	atmosphere.Density = 0.38
-	atmosphere.Offset = 0.05
-	atmosphere.Color = Color3.fromRGB(205, 215, 225)
-	atmosphere.Decay = Color3.fromRGB(110, 118, 135)
-	atmosphere.Glare = 0.2
-	atmosphere.Haze = 1.6
-	if not lighting:FindFirstChildOfClass("BloomEffect") then
-		local bloom = Instance.new("BloomEffect")
-		bloom.Intensity = 0.6
-		bloom.Size = 24
-		bloom.Threshold = 1.4
-		bloom.Parent = lighting
-	end
-end
-
-function World.build(workspaceRoot: Instance, lighting: Instance): Model
-	local rng = makeRng(20261003)
-	local root = Instance.new("Model")
-	root.Name = World.MODEL_NAME
-
-	buildVillage(root, rng)
-	buildRiver(root)
-	buildForest(root, rng)
-	buildMountain(root, rng)
-	buildSeoak(root, rng)
-	buildSnowfield(root, rng)
-	buildSteppe(root, rng)
-	buildByeokra(root, rng)
-	buildDesert(root, rng)
-	buildIsland(root, rng)
-	buildCoast(root, rng)
-	buildStarAltars(root)
-	buildElementDais(root)
-	buildElders(root)
-	buildWorldEdge(root)
+	buildMesaAltar(sites)
+	-- '위' 자리: 관운봉 꼭대기 (꼭대기 꾸밈은 산 담당)
+	local up = SITE.up
+	local upModel = model(sites, up.name)
+	siteMarker(upModel, "up", at(up.x, up.z, 1), 8)
 
 	local pads = folder(root, "전송진")
-	for order, def in WAYPOINTS do
-		waypoint(pads, def, order)
+	for order, def in Sites.WAYPOINTS do
+		Kit.waypoint(pads, def, order)
 	end
-
+	local veins = folder(root, "영맥")
+	for _, s in Sites.VEINS do
+		placeVein(veins, s)
+	end
+	local zones = folder(root, "영초 범위")
+	for _, def in Sites.HERB_ZONES do
+		placeHerbZone(zones, def)
+	end
 	local spots = folder(root, "비급자리")
 	for _, position in MANUAL_SPOTS do
-		local spot = block(spots, "ManualSpot", Vector3.new(2, 0.2, 2), CFrame.new(position), C.stone)
+		local spot = block(spots, "ManualSpot", V3(2, 0.2, 2), CF(position), C.stone)
 		spot.Transparency = 1
 		spot.CanCollide = false
 		spot.CanQuery = false
 		spot.CanTouch = false
 		spot:AddTag("ManualSpot")
 	end
+end
 
-	setupLighting(lighting)
+-- 짓기 ------------------------------------------------------------------------------------
+
+-- 송계와 자리만 (땅마다의 모듈 없이). 미리보기와 테스트가 따로 부른다
+function World.buildHub(root: Instance)
+	table.clear(taken)
+	buildVillage(root, makeRng(20261003))
+	buildRiver(root, makeRng(20261004))
+	buildGrove(root, makeRng(20261005))
+	buildShared(root)
+end
+
+-- 땅마다의 모듈: 차례와 시드 (시드를 바꾸면 그 땅 모양이 바뀐다)
+World.REGIONS = {
+	{ module = "WorldNorth", seed = 7101 },
+	{ module = "WorldMountains", seed = 7202 },
+	{ module = "WorldEast", seed = 7303 },
+	{ module = "WorldSouth", seed = 7404 },
+	{ module = "WorldWest", seed = 7505 },
+	{ module = "WorldSea", seed = 7606 },
+}
+World.REGION_ERRORS = {} :: { string }
+World.TIMINGS = {} :: { [string]: number }
+
+function World.build(workspaceRoot: Instance, lighting: Instance): Model
+	local root = Instance.new("Model")
+	root.Name = World.MODEL_NAME
+
+	local started = os.clock()
+	World.buildHub(root)
+	World.TIMINGS.hub = os.clock() - started
+	table.clear(World.REGION_ERRORS)
+	for _, region in World.REGIONS do
+		local t0 = os.clock()
+		-- 한 땅이 잘못돼도 나머지 맵은 짓는다 (테스트가 REGION_ERRORS 를 본다)
+		local ok, err = pcall(function()
+			require((script.Parent :: any)[region.module]).build(root, makeRng(region.seed))
+		end)
+		World.TIMINGS[region.module] = os.clock() - t0
+		if not ok then
+			local message = region.module .. ": " .. tostring(err)
+			table.insert(World.REGION_ERRORS, message)
+			warn("[옥반] 땅을 짓지 못했다 " .. message)
+		end
+	end
+
+	require(script.Parent.WorldLighting)(lighting)
 
 	root.Parent = workspaceRoot
 	return root
