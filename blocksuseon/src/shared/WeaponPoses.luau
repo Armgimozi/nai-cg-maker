@@ -1,18 +1,18 @@
 -- 무기 든 자세와 휘두르기. 순수 계산만 있다 (인스턴스를 만들지 않는다. tests/weapons.luau 가 Lune 에서 검사한다).
 --
 -- 자세는 "오른손에 쥔 손잡이(Handle)가 윗몸(UpperTorso) 기준 어디서 어느 쪽을 보나"로 적는다.
---   손잡이 틀: +Z 가 날 끝, +X 가 날 쪽(도는 날, 부채는 펼친 쪽). 자리는 기본 R15 몸 크기(스터드)로 적고
---   몸이 작으면 팔 길이 비로 줄인다.
---   어깨·팔꿈치·손목은 그 자리에 손이 오도록 두 마디 IK 로 푼다 (R15 어깨 축이 위팔 가운데에서 비켜난 것까지 그대로 푼다).
+--   at     손잡이 자리 (윗몸 가운데 기준, 기본 R15 몸 크기 스터드. 몸이 작으면 팔 길이 비로 줄인다)
+--   blade  날 끝이 향한 쪽 (손잡이 +Z)
+--   edge   날 쪽(손잡이 +X)이 보았으면 하는 쪽. 손목이 꺾이지 않는 데까지만 따른다 (0 이면 손목을 곧게)
+--   어깨·팔꿈치·손목은 그 자리에 손이 오도록 두 마디 IK 로 푼다 (R15 어깨 축이 위팔 가운데에서 비켜난 것까지 그대로)
 --   허리·목·뿌리·엉덩이·무릎은 Animator 가 낸 값에 덧곱하는 각도(도)다. 걷기는 다리 애니메이션이 그대로 한다.
 -- 공격은 젖힘(windup) → 벰(strike) → 따라감(follow) → 멈춤(hold) → 거둠(recover).
 -- 서버는 휘두르기 요청을 받자마자 피해를 주므로 벰은 0.1초 안팎에 닿는다 (Attack.hit).
 --
--- 관절 방향 (엔진에서 잰 값, CFrame.Angles 의 양의 각):
---   어깨 X  팔을 앞으로 든다        어깨 Z  오른팔을 바깥(오른쪽)으로, 왼팔은 안쪽으로
---   팔꿈치 X 아래팔을 앞으로 굽힌다   허리 X  윗몸이 뒤로 젖는다 (앞으로 숙이면 음)
---   허리 Y  윗몸이 왼쪽으로 돈다      허리 Z  윗몸이 왼쪽으로 기운다
---   엉덩이 X 다리를 앞으로 든다      무릎 X  음이면 정강이가 뒤로 접힌다
+-- 관절 방향 (엔진의 R15 붙이개로 잰 값, CFrame.Angles 의 양의 각):
+--   어깨 X  팔을 앞으로 든다          팔꿈치 X 아래팔을 앞으로 굽힌다
+--   허리 X  윗몸이 뒤로 젖는다 (숙이면 음)  허리 Y  윗몸이 왼쪽으로 돈다   허리 Z  윗몸이 왼쪽으로 기운다
+--   엉덩이 X 다리를 앞으로 든다        무릎 X  음이면 정강이가 뒤로 접힌다   뿌리 -Z 몸이 앞으로 나간다
 
 local WeaponPoses = {}
 
@@ -34,18 +34,19 @@ export type Rig = {
 	scale: number, -- 기본 R15 에 견준 팔 길이
 }
 
--- 한 순간의 자세. 모든 칸이 다 있어야 섞을 수 있다 (WeaponPoses.pose 가 빈 칸을 채운다)
+-- 한 순간의 자세. 모든 칸이 있어야 섞을 수 있다 (WeaponPoses.pose 가 빈 칸을 채운다)
 export type Pose = {
-	grip: CFrame, -- 오른손 손잡이 틀 (윗몸 기준, 기본 몸 크기)
-	pole: Vector3, -- 오른 팔꿈치가 나갈 쪽 (윗몸 기준)
+	at: Vector3, -- 오른손 손잡이 자리 (윗몸 기준)
+	blade: Vector3, -- 날 끝 쪽
+	edge: Vector3, -- 날 쪽 (0 이면 손목을 곧게)
+	pole: Vector3, -- 오른 팔꿈치가 나갈 쪽
 	left: CFrame, -- 왼손이 자루를 잡지 않을 때 왼손 틀 (윗몸 기준, 손 가운데)
 	lpole: Vector3,
-	hold: number, -- 왼손이 자루를 잡는 자리: 손잡이에서 +Z 로 몇 스터드
-	holdRoll: number, -- 그때 왼손을 자루 둘레로 돌린 각(도)
+	hold: number, -- 왼손이 자루를 잡는 자리: 손잡이에서 날 쪽으로 몇 스터드 (음이면 손잡이 끝 쪽)
 	holdW: number, -- 1 이면 왼손이 자루를 잡는다, 0 이면 left 틀
 	waist: Vector3, -- 허리 덧각 (도)
 	neck: Vector3,
-	root: Vector3, -- 몸 전체를 미는 거리 (스터드, 뿌리 기준. 앞이 -Z)
+	root: Vector3, -- 몸 전체를 미는 거리 (스터드, 앞이 -Z)
 	rootTurn: Vector3, -- 몸 전체 덧각 (도)
 	hipR: Vector3,
 	hipL: Vector3,
@@ -66,7 +67,7 @@ export type Attack = {
 
 -- 기본 R15 (엔진에서 잰 붙이개 자리). 실제 몸은 WeaponAnim 이 관절에서 다시 잰다
 local GA = CFrame.new(0, -0.158, 0) * CFrame.Angles(-math.pi / 2, 0, 0)
-local function arm(side: number): Arm
+local function defaultArm(side: number): Arm
 	return {
 		s0 = CFrame.new(0.972 * side, 0.598, 0),
 		s1 = CFrame.new(-0.501 * side, 0.419, 0),
@@ -77,8 +78,8 @@ local function arm(side: number): Arm
 		grip = GA,
 	}
 end
-WeaponPoses.DEFAULT_RIG = { right = arm(1), left = arm(-1), scale = 1 } :: Rig
--- 기본 R15 의 뿌리·허리·목·엉덩이·무릎 붙이개 (테스트의 FK 와 몸 크기 재기에 쓴다)
+WeaponPoses.DEFAULT_RIG = { right = defaultArm(1), left = defaultArm(-1), scale = 1 } :: Rig
+-- 기본 R15 의 몸 관절 붙이개 (C0, C1). 테스트의 FK 에 쓴다
 WeaponPoses.DEFAULT_BODY = {
 	Root = { CFrame.new(0, -1, 0), CFrame.new(0, -0.2, 0) },
 	Waist = { CFrame.new(0, 0.2, 0), CFrame.new(0, -0.849, 0) },
@@ -87,13 +88,24 @@ WeaponPoses.DEFAULT_BODY = {
 	LeftHip = { CFrame.new(-0.5, -0.2, 0), CFrame.new(0, 0.471, 0) },
 	RightKnee = { CFrame.new(0, -0.449, 0), CFrame.new(0, 0.413, 0) },
 	LeftKnee = { CFrame.new(0, -0.449, 0), CFrame.new(0, 0.413, 0) },
+	RightAnkle = { CFrame.new(0, -0.596, 0), CFrame.new(0, 0.106, 0) },
+	LeftAnkle = { CFrame.new(0, -0.596, 0), CFrame.new(0, 0.106, 0) },
 }
 local DEFAULT_REACH = 0.922 + 0.807 -- 어깨 축→팔꿈치, 팔꿈치→손목
+local MAX_BEND = rad(50) -- 손목이 아래팔에서 꺾이는 데까지
 
--- 도구 Grip. 손잡이 +Z(날)가 주먹 엄지 쪽(손 -Z)으로, +X(날 쪽)가 손가락 끝 쪽(손 -Y)으로 나온다.
--- 팔을 내리면 날이 앞을 보고, 기본 도구 자세(팔을 앞으로 듦)에서는 날이 위로 서고 날 쪽이 앞을 본다
-local HANDLE_IN_HAND = CFrame.fromMatrix(Vector3.zero, Vector3.new(0, -1, 0), Vector3.new(-1, 0, 0))
+-- 도구 Grip. 손잡이 +Z(날)가 주먹 엄지 쪽(손 -Z)으로 나오되 손가락 쪽(손 -Y)으로 TILT 만큼 기운다
+-- (주먹 속에서 자루가 비스듬히 놓이는 그대로). +X(날 쪽)는 손가락 끝 쪽을 본다.
+-- 기본 도구 자세(팔을 앞으로 듦)에서는 날이 위로 서되 앞으로 30도 기운다
+local TILT = rad(30)
+local HANDLE_IN_HAND = CFrame.fromMatrix(
+	Vector3.zero,
+	Vector3.new(0, -math.cos(TILT), math.sin(TILT)),
+	Vector3.new(-1, 0, 0)
+)
 WeaponPoses.GRIP = (HANDLE_IN_HAND:Inverse() * GA).Rotation :: CFrame
+-- 손가락 쪽(손 -Y)을 손잡이 틀로 보면 날 쪽(+X)으로 cos, 날 끝(+Z)으로 sin
+local FINGER_EDGE, FINGER_BLADE = math.cos(TILT), math.sin(TILT)
 
 -- 무기마다 이어치기 수 (서버 CombatService 도 같은 수로 돈다)
 WeaponPoses.COMBO = { sword = 3, saber = 2, spear = 2, fan = 1 } :: { [string]: number }
@@ -107,6 +119,10 @@ end
 
 -- 도움 함수 --------------------------------------------------------------------------
 
+local function v(x: number, y: number, z: number): Vector3
+	return Vector3.new(x, y, z)
+end
+
 -- 방향: az 는 앞(-Z)에서 오른쪽(+X)으로 돈 각, el 은 위로 든 각 (도)
 local function dir(az: number, el: number): Vector3
 	local a, e = rad(az), rad(el)
@@ -114,64 +130,56 @@ local function dir(az: number, el: number): Vector3
 end
 WeaponPoses.dir = dir
 
--- 손잡이 틀: 자리, 날 끝 쪽, 날 쪽(대충이면 된다. 날에 수직으로 바로잡는다)
-local function grip(at: Vector3, blade: Vector3, edge: Vector3): CFrame
-	local z = blade.Unit
-	local x = edge - z * edge:Dot(z)
-	if x.Magnitude < 1e-4 then
-		x = Vector3.new(0, 1, 0):Cross(z)
-	end
-	x = x.Unit
-	return CFrame.fromMatrix(at, x, z:Cross(x))
-end
-WeaponPoses.grip = grip
-
--- 손 틀: 손 가운데 자리, 손가락이 뻗는 쪽(손 -Y), 손바닥이 보는 쪽(왼손 +X, 오른손 -X)
-local function hand(at: Vector3, fingers: Vector3, palm: Vector3, side: number): CFrame
+-- 손 틀: 손 가운데 자리, 손가락이 뻗는 쪽(손 -Y), 손바닥이 보는 쪽 (왼손 기준. 왼손 손바닥은 +X)
+local function hand(at: Vector3, fingers: Vector3, palm: Vector3): CFrame
 	local y = -fingers.Unit
-	local x = palm * side
-	x = x - y * x:Dot(y)
-	x = x.Unit
-	return CFrame.fromMatrix(at, x, y)
+	local x = palm - y * palm:Dot(y)
+	return CFrame.fromMatrix(at, x.Unit, y)
 end
 WeaponPoses.hand = hand
 
-local function v(x: number, y: number, z: number): Vector3
-	return Vector3.new(x, y, z)
-end
-
--- 두 벡터 사이 가장 짧게 돌리기
-local function between(a: Vector3, b: Vector3): CFrame
+-- a 에서 b 로 가장 짧게 돌리는 축과 각
+local function axisAngle(a: Vector3, b: Vector3): (Vector3, number)
 	a, b = a.Unit, b.Unit
 	local dot = math.clamp(a:Dot(b), -1, 1)
 	local axis = a:Cross(b)
 	if axis.Magnitude < 1e-6 then
 		if dot > 0 then
-			return CFrame.identity
+			return Vector3.xAxis, 0
 		end
 		local other = if math.abs(a.X) < 0.9 then Vector3.xAxis else Vector3.yAxis
-		return CFrame.fromAxisAngle(a:Cross(other).Unit, math.pi)
+		return a:Cross(other).Unit, math.pi
 	end
-	return CFrame.fromAxisAngle(axis.Unit, math.acos(dot))
+	return axis.Unit, math.acos(dot)
+end
+
+local function between(a: Vector3, b: Vector3): CFrame
+	local axis, angle = axisAngle(a, b)
+	return CFrame.fromAxisAngle(axis, angle)
+end
+
+local function slerp(a: Vector3, b: Vector3, t: number): Vector3
+	local axis, angle = axisAngle(a, b)
+	return CFrame.fromAxisAngle(axis, angle * t) * a.Unit
+end
+
+local function flat(a: Vector3, n: Vector3): Vector3
+	return a - n * a:Dot(n)
 end
 
 -- 팔 IK ------------------------------------------------------------------------------
 
--- 팔꿈치 X 각에 따라 어깨 축에서 손목 축까지 (위팔 s1 틀 기준)
-local function wristOffset(a: Arm, theta: number): Vector3
-	return (a.s1:Inverse() * a.e0 * CFrame.Angles(theta, 0, 0) * a.e1:Inverse() * a.w0).Position
-end
-
--- 손 틀(윗몸 기준)에 손이 오도록 어깨·팔꿈치·손목 Transform 을 푼다. 닿지 않으면 그쪽으로 팔을 뻗는다
-local function solveArm(a: Arm, handCF: CFrame, pole: Vector3): (CFrame, CFrame, CFrame)
+-- 손 틀(윗몸 기준)에 손이 오도록 어깨·팔꿈치·손목 Transform 을 푼다. 닿지 않으면 그쪽으로 팔을 뻗는다.
+-- 넷째 값은 아래팔이 뻗은 쪽 (팔꿈치→손목)
+local function solveArm(a: Arm, handCF: CFrame, pole: Vector3): (CFrame, CFrame, CFrame, Vector3)
 	local shoulder = a.s0.Position
 	local wrist = (handCF * a.w1).Position
 	local want = wrist - shoulder
-	-- 팔꿈치 각: |v_u + Rx(θ) v_l| = 거리 를 푼다
-	local vu = (a.s1:Inverse() * a.e0).Position
-	local vl = (a.e1:Inverse() * a.w0).Position
-	local eRot = (a.s1:Inverse() * a.e0).Rotation
-	local vuE = eRot:Inverse() * vu -- 팔꿈치 틀에서 본 위팔 벡터
+	-- 팔꿈치 각 θ: |vu + Rx(θ)·vl| = 어깨→손목 거리. 팔꿈치 틀에서 A cosθ + B sinθ = D 를 푼다
+	local s1e0 = a.s1:Inverse() * a.e0
+	local vu = s1e0.Position -- 위팔 s1 틀에서 어깨 축→팔꿈치 축
+	local vl = (a.e1:Inverse() * a.w0).Position -- 아래팔: 팔꿈치 축→손목 축
+	local vuE = s1e0.Rotation:Inverse() * vu
 	local A = vuE.Y * vl.Y + vuE.Z * vl.Z
 	local B = vuE.Z * vl.Y - vuE.Y * vl.Z
 	local K = vuE.X * vl.X
@@ -179,54 +187,101 @@ local function solveArm(a: Arm, handCF: CFrame, pole: Vector3): (CFrame, CFrame,
 	local base = vu.Magnitude ^ 2 + vl.Magnitude ^ 2
 	local far = math.sqrt(math.max(0, base + 2 * (K + R)))
 	local near = math.sqrt(math.max(0, base + 2 * (K - R)))
-	local c = math.clamp(want.Magnitude, near + 0.02, far - 0.002)
+	local c = math.clamp(want.Magnitude, near + 0.05, far - 0.002)
 	local D = (c * c - base) / 2 - K
 	local phi = math.atan2(B, A)
 	local spread = math.acos(math.clamp(D / math.max(R, 1e-6), -1, 1))
-	local theta = phi + spread
-	if theta < -0.05 or theta > math.pi + 0.05 then
-		theta = phi - spread
+	local theta = (phi + spread + math.pi) % (2 * math.pi) - math.pi
+	if theta < -0.05 then
+		theta = (phi - spread + math.pi) % (2 * math.pi) - math.pi
 	end
-	theta = (theta + math.pi) % (2 * math.pi) - math.pi
-	-- 어깨: 손목 벡터를 목표 쪽으로 돌리고, 팔꿈치가 pole 쪽으로 가게 그 축으로 돌린다
-	local wLocal = wristOffset(a, theta)
+	local elbowT = CFrame.Angles(theta, 0, 0)
+	-- 어깨: 손목 쪽을 목표로 돌리고, 팔꿈치가 pole 쪽으로 가게 그 축으로 돌린다
+	local wLocal = (s1e0 * elbowT * a.e1:Inverse() * a.w0).Position
 	local u = if want.Magnitude > 1e-4 then want.Unit else Vector3.new(0, -1, 0)
 	local q = between(wLocal, u)
-	local elbow = q * vu
-	local e = elbow - u * elbow:Dot(u)
-	local p = pole - u * pole:Dot(u)
-	local swing = CFrame.identity
+	local e = flat(q * vu, u)
+	local p = flat(pole, u)
+	local joint = q
 	if e.Magnitude > 1e-4 and p.Magnitude > 1e-4 then
 		e, p = e.Unit, p.Unit
-		local angle = math.atan2(e:Cross(p):Dot(u), e:Dot(p))
-		swing = CFrame.fromAxisAngle(u, angle)
+		joint = CFrame.fromAxisAngle(u, math.atan2(e:Cross(p):Dot(u), e:Dot(p))) * q
 	end
-	local joint = swing * q -- 위팔 s1 틀의 회전 (윗몸 기준)
 	local shoulderT = (a.s0.Rotation:Inverse() * joint).Rotation
-	local elbowT = CFrame.Angles(theta, 0, 0)
 	-- 손목: 아래팔 끝 틀에서 손 틀까지 남은 회전
 	local upper = CFrame.new(shoulder) * joint * a.s1:Inverse()
-	local lowerEnd = upper * a.e0 * elbowT * a.e1:Inverse() * a.w0
+	local elbowAt = upper * a.e0
+	local lowerEnd = elbowAt * elbowT * a.e1:Inverse() * a.w0
 	local wristT = (lowerEnd:Inverse() * handCF * a.w1).Rotation
-	return shoulderT, elbowT, wristT
+	return shoulderT, elbowT, wristT, (lowerEnd.Position - elbowAt.Position).Unit
 end
 WeaponPoses.solveArm = solveArm
 
--- 자세 하나를 관절 Transform 으로. arms 는 덮어쓰고(override), body 는 Animator 값에 곱한다(additive)
-function WeaponPoses.solve(rig: Rig, pose: Pose): ({ [string]: CFrame }, { [string]: CFrame })
+-- 날 쪽을 고른다: 손목이 가장 곧은 쪽(아래팔을 날에 수직으로 내린 쪽)에서 want 쪽으로,
+-- 손목이 MAX_BEND 넘게 꺾이지 않는 데까지만 돌린다
+local function edgeFor(blade: Vector3, forearm: Vector3, want: Vector3, extra: number): Vector3
+	local straight = flat(forearm, blade)
+	if straight.Magnitude < 1e-3 then
+		straight = flat(Vector3.new(0, -1, 0), blade)
+		if straight.Magnitude < 1e-3 then
+			straight = flat(Vector3.new(0, 0, -1), blade)
+		end
+	end
+	local reach = straight.Magnitude
+	straight = straight.Unit
+	local side = blade:Cross(straight)
+	local psi = extra
+	local w = flat(want, blade)
+	if w.Magnitude > 1e-3 then
+		psi += math.atan2(w:Dot(side), w:Dot(straight)) * math.min(1, w.Magnitude)
+	end
+	-- 손가락 쪽과 아래팔 사이: cos = FINGER_BLADE·(아래팔·날) + FINGER_EDGE·reach·cos ψ
+	local need = (math.cos(MAX_BEND) - FINGER_BLADE * forearm:Dot(blade)) / math.max(FINGER_EDGE * reach, 1e-3)
+	local limit = if need >= 1 then 0 else math.acos(math.max(need, -1))
+	psi = math.clamp(psi, -limit, limit)
+	return straight * math.cos(psi) + side * math.sin(psi)
+end
+
+-- 손잡이 틀: 자리, 날 끝 쪽, 날 쪽
+local function handleFrame(at: Vector3, blade: Vector3, edge: Vector3): CFrame
+	local z = blade.Unit
+	local x = flat(edge, z).Unit
+	return CFrame.fromMatrix(at, x, z:Cross(x))
+end
+WeaponPoses.handleFrame = handleFrame
+
+-- 한 손으로 손잡이 틀을 잡는다. 손목 자리가 손 방향에 따라 바뀌므로 몇 번 되풀이해 푼다
+local PASSES = 3
+local function grasp(a: Arm, at: Vector3, blade: Vector3, edge: Vector3, extra: number, pole: Vector3)
+	local forearm = (at - a.s0.Position).Unit
+	local handle, s, e, w
+	for _ = 1, PASSES do
+		handle = handleFrame(at, blade, edgeFor(blade, forearm, edge, extra))
+		s, e, w, forearm = solveArm(a, handle * WeaponPoses.GRIP * a.grip:Inverse(), pole)
+	end
+	return s, e, w, handle
+end
+
+-- 자세 하나를 관절 Transform 으로. arms 는 Animator 값을 덮어쓰고, body 는 Animator 값 앞에 곱한다.
+-- 셋째 값은 오른손 손잡이 틀 (윗몸 기준)
+function WeaponPoses.solve(rig: Rig, pose: Pose): ({ [string]: CFrame }, { [string]: CFrame }, CFrame)
 	local s = rig.scale
-	local g = pose.grip
-	local handle = CFrame.new(g.Position * s) * g.Rotation
-	local rightHand = handle * WeaponPoses.GRIP * rig.right.grip:Inverse()
-	local rs, re, rw = solveArm(rig.right, rightHand, pose.pole)
-	local free = CFrame.new(pose.left.Position * s) * pose.left.Rotation
-	local onShaft = handle
-		* CFrame.new(0, 0, pose.hold * s)
-		* CFrame.Angles(0, 0, rad(pose.holdRoll))
-		* WeaponPoses.GRIP
-		* rig.left.grip:Inverse()
-	local leftHand = if pose.holdW <= 0 then free elseif pose.holdW >= 1 then onShaft else free:Lerp(onShaft, pose.holdW)
-	local ls, le, lw = solveArm(rig.left, leftHand, pose.lpole)
+	local at = pose.at * s
+	local rs, re, rw, handle = grasp(rig.right, at, pose.blade, pose.edge, 0, pose.pole)
+	local ls, le, lw
+	if pose.holdW >= 0.999 then
+		ls, le, lw = grasp(rig.left, (handle * v(0, 0, pose.hold * s)), pose.blade, Vector3.zero, 0, pose.lpole)
+	else
+		local free = CFrame.new(pose.left.Position * s) * pose.left.Rotation
+		ls, le, lw = solveArm(rig.left, free, pose.lpole)
+		if pose.holdW > 0.001 then
+			local hs, he, hw = grasp(rig.left, (handle * v(0, 0, pose.hold * s)), pose.blade, Vector3.zero, 0, pose.lpole)
+			ls, le, lw = ls:Lerp(hs, pose.holdW), le:Lerp(he, pose.holdW), lw:Lerp(hw, pose.holdW)
+		end
+	end
+	local function angles(a: Vector3): CFrame
+		return CFrame.Angles(rad(a.X), rad(a.Y), rad(a.Z))
+	end
 	local arms = {
 		RightShoulder = rs,
 		RightElbow = re,
@@ -235,9 +290,6 @@ function WeaponPoses.solve(rig: Rig, pose: Pose): ({ [string]: CFrame }, { [stri
 		LeftElbow = le,
 		LeftWrist = lw,
 	}
-	local function angles(a: Vector3): CFrame
-		return CFrame.Angles(rad(a.X), rad(a.Y), rad(a.Z))
-	end
 	local body = {
 		Waist = angles(pose.waist),
 		Neck = angles(pose.neck),
@@ -247,7 +299,7 @@ function WeaponPoses.solve(rig: Rig, pose: Pose): ({ [string]: CFrame }, { [stri
 		RightKnee = CFrame.Angles(rad(pose.kneeR), 0, 0),
 		LeftKnee = CFrame.Angles(rad(pose.kneeL), 0, 0),
 	}
-	return arms, body
+	return arms, body, handle
 end
 
 -- 섞기 -------------------------------------------------------------------------------
@@ -259,12 +311,13 @@ function WeaponPoses.lerp(a: Pose, b: Pose, t: number): Pose
 		return b
 	end
 	return {
-		grip = a.grip:Lerp(b.grip, t),
+		at = a.at:Lerp(b.at, t),
+		blade = slerp(a.blade, b.blade, t),
+		edge = a.edge:Lerp(b.edge, t),
 		pole = a.pole:Lerp(b.pole, t),
 		left = a.left:Lerp(b.left, t),
 		lpole = a.lpole:Lerp(b.lpole, t),
 		hold = a.hold + (b.hold - a.hold) * t,
-		holdRoll = a.holdRoll + (b.holdRoll - a.holdRoll) * t,
 		holdW = a.holdW + (b.holdW - a.holdW) * t,
 		waist = a.waist:Lerp(b.waist, t),
 		neck = a.neck:Lerp(b.neck, t),
@@ -306,10 +359,10 @@ local function pose(base: Pose?, fields: { [string]: any }): Pose
 	for key, value in fields do
 		out[key] = value
 	end
+	out.edge = out.edge or ZERO
 	out.pole = out.pole or v(1, -0.6, 0.4)
 	out.lpole = out.lpole or v(-1, -0.6, 0.4)
 	out.hold = out.hold or 1.2
-	out.holdRoll = out.holdRoll or 0
 	out.holdW = out.holdW or 0
 	out.waist = out.waist or ZERO
 	out.neck = out.neck or ZERO
@@ -319,11 +372,39 @@ local function pose(base: Pose?, fields: { [string]: any }): Pose
 	out.hipL = out.hipL or ZERO
 	out.kneeR = out.kneeR or 0
 	out.kneeL = out.kneeL or 0
-	out.left = out.left or hand(v(-1.45, -1.15, 0.05), v(0, -1, 0), v(1, 0, 0), 1)
-	assert(out.grip, "grip 이 없다")
+	out.left = out.left or hand(v(-1.45, -1.15, 0.05), v(0, -1, 0), v(1, 0, 0))
+	assert(out.at and out.blade, "at, blade 가 없다")
+	out.blade = out.blade.Unit
 	return out :: Pose
 end
 WeaponPoses.pose = pose
+
+-- 벰 길 위의 자세들: 가운데 c 에서 f(0도)→d(90도) 평면으로, 손은 반지름 r 의 phi 도 자리, 날은 phi + lag 도.
+-- 날 쪽은 휘두르는 쪽(phi 가 줄어드는 쪽)을 본다. extra[i] 는 그 자리 자세에 덧붙일 칸 (blade 를 주면 그 쪽으로)
+local function arc(
+	base: Pose,
+	c: Vector3,
+	f: Vector3,
+	d: Vector3,
+	r: number,
+	marks: { { number } }, -- { 손 phi, 날 phi }
+	extra: { { [string]: any } }
+): { Pose }
+	local out = {}
+	local fu, du = f.Unit, d.Unit
+	for i, mark in marks do
+		local a, b = rad(mark[1]), rad(mark[2])
+		local radial = fu * math.cos(a) + du * math.sin(a)
+		local blade = fu * math.cos(b) + du * math.sin(b)
+		local motion = fu * math.sin(b) - du * math.cos(b)
+		local fields = table.clone(extra[i] or {})
+		fields.at = c + radial * r
+		fields.blade = fields.blade or blade
+		fields.edge = fields.edge or motion
+		out[i] = pose(base, fields)
+	end
+	return out
+end
 
 -- 무기마다: 든 자세(idle)와 이어치기 ----------------------------------------------------------
 
@@ -339,238 +420,163 @@ local function attack(timing: { number }, keys: { windup: Pose, path: { Pose }, 
 		hold = hold,
 		recover = recover,
 		duration = windup + strike + follow + hold + recover,
-		hit = windup + strike * (hitAt or 0.7),
+		hit = windup + strike * (hitAt or 0.75),
 		keys = keys,
 	}
 end
 
--- 검: 한 손 중단세. 칼끝이 앞 위를 보고, 왼손은 검결(손가락 둘을 세운 손)
-do
-	local idle = pose(nil, {
-		grip = grip(v(0.62, -0.95, -1.05), dir(-8, 38), v(0, -1, -0.3)),
-		pole = v(1, -0.5, 0.5),
-		left = hand(v(-0.95, 0.2, -0.95), dir(30, 70), v(1, 0, 0.3), 1),
-		lpole = v(-1, -0.4, 0.2),
-		waist = v(0, 8, 0),
-		neck = v(0, -6, 0),
-	})
-	local swing1 = attack({ 0.05, 0.07, 0.08, 0.06, 0.22 }, {
-		-- 오른 어깨 위로 젖혔다가 왼 허리로 비스듬히 벤다
-		windup = pose(idle, {
-			grip = grip(v(1.15, 1.15, -0.25), dir(130, 55), v(0.5, 1, 0.3)),
-			pole = v(1, 0.2, 0.6),
-			waist = v(0, 22, -4),
-			neck = v(0, -18, 0),
-		}),
-		path = {
-			pose(idle, {
-				grip = grip(v(0.55, 0.5, -1.35), dir(15, 40), v(1, 0.3, 0)),
-				pole = v(1, 0, 0.5),
-				waist = v(0, 0, 0),
-				neck = v(0, 0, 0),
-			}),
-			pose(idle, {
-				grip = grip(v(-0.45, -0.85, -1.2), dir(-95, -30), v(0, -1, -0.5)),
-				pole = v(1, -0.3, 0.3),
-				waist = v(-6, -25, 4),
-				neck = v(0, 20, 0),
-			}),
-		},
-		follow = pose(idle, {
-			grip = grip(v(-0.75, -1.1, -0.6), dir(-140, -35), v(0, -1, 0.3)),
-			pole = v(1, -0.2, 0.2),
-			waist = v(-8, -32, 5),
-			neck = v(0, 26, 0),
-		}),
-	})
-	local swing2 = attack({ 0.05, 0.07, 0.08, 0.06, 0.22 }, {
-		-- 왼쪽으로 감았다가 가슴 높이로 가로 벤다 (왼→오)
-		windup = pose(idle, {
-			grip = grip(v(-0.7, -0.2, -0.8), dir(-150, 5), v(0, 0.2, -1)),
-			pole = v(1, -0.6, -0.2),
-			waist = v(0, -30, 0),
-			neck = v(0, 24, 0),
-		}),
-		path = {
-			pose(idle, {
-				grip = grip(v(0.2, -0.1, -1.55), dir(-10, 8), v(1, 0, 0)),
-				pole = v(1, -0.5, 0.3),
-				waist = v(0, -5, 0),
-				neck = v(0, 4, 0),
-			}),
-			pose(idle, {
-				grip = grip(v(1.25, -0.15, -1.2), dir(80, 5), v(0.2, 0, 1)),
-				pole = v(1, -0.3, 0.5),
-				waist = v(0, 20, 0),
-				neck = v(0, -16, 0),
-			}),
-		},
-		follow = pose(idle, {
-			grip = grip(v(1.55, -0.2, -0.5), dir(125, 0), v(-0.3, 0, 1)),
-			pole = v(1, -0.2, 0.6),
-			waist = v(0, 28, 0),
-			neck = v(0, -22, 0),
-		}),
-	})
-	local swing3 = attack({ 0.05, 0.07, 0.1, 0.08, 0.24 }, {
-		-- 오른 아래에서 왼 위로 올려 벤다
-		windup = pose(idle, {
-			grip = grip(v(1.15, -1.2, -0.2), dir(150, -25), v(0, -1, 0.4)),
-			pole = v(1, -0.3, 0.6),
-			waist = v(4, 26, -4),
-			neck = v(0, -20, 0),
-		}),
-		path = {
-			pose(idle, {
-				grip = grip(v(0.5, -0.7, -1.4), dir(20, -5), v(-0.4, 1, 0)),
-				pole = v(1, -0.4, 0.4),
-				waist = v(0, 5, 0),
-				neck = v(0, -4, 0),
-			}),
-			pose(idle, {
-				grip = grip(v(-0.5, 0.6, -1.15), dir(-60, 50), v(-1, 0.6, 0)),
-				pole = v(0.6, -0.8, 0.2),
-				waist = v(-4, -22, -3),
-				neck = v(0, 18, 0),
-			}),
-		},
-		follow = pose(idle, {
-			grip = grip(v(-0.7, 1.1, -0.7), dir(-90, 70), v(-1, 0.2, 0.5)),
-			pole = v(0.6, -0.8, 0),
-			waist = v(-6, -28, -4),
-			neck = v(0, 22, 0),
-		}),
-	})
-	DEFS.sword = { idle = idle, attacks = { swing1, swing2, swing3 } }
+-- 길(windup, path..., follow)을 attack 의 keys 로
+local function keysOf(list: { Pose }): { windup: Pose, path: { Pose }, follow: Pose }
+	local path = {}
+	for i = 2, #list - 1 do
+		table.insert(path, list[i])
+	end
+	return { windup = list[1], path = path, follow = list[#list] }
 end
 
--- 도: 오른 허리에 비껴 들고 왼손은 칼등 곁. 머리 위로 크게 들어 비스듬히 내리찍는다
+-- 검: 한 손 중단세. 칼끝이 앞 위를 보고, 왼손은 검결(손가락 둘을 세운 손)을 가슴 앞에 둔다
 do
 	local idle = pose(nil, {
-		grip = grip(v(0.75, -1.05, -0.85), dir(15, 30), v(0, -0.6, -1)),
+		at = v(0.75, -0.95, -1.0),
+		blade = dir(-10, 38),
+		edge = v(0, -1, -0.4),
+		pole = v(1, -0.7, 0.4),
+		left = hand(v(-0.45, 0.2, -1.05), dir(15, 80), v(1, 0, 0.3)),
+		lpole = v(-0.5, -1, 0.3),
+		waist = v(0, -8, 0),
+		neck = v(0, 6, 0),
+	})
+	local timing = { 0.05, 0.07, 0.08, 0.06, 0.22 }
+	-- 1: 오른 어깨 위에서 왼 허리로 비스듬히 내려 벤다
+	local slash1 = arc(idle, v(0.3, 0.35, -0.55), v(0, 0, -1), v(0.82, 0.57, 0), 1.05, {
+		{ 100, 125 },
+		{ 60, 80 },
+		{ 10, 15 },
+		{ -40, -45 },
+		{ -75, -85 },
+		{ -95, -110 },
+	}, {
+		{ waist = v(4, -24, -4), neck = v(0, 18, 0), pole = v(1, 0.3, 0.6), blade = dir(150, 55) },
+		{ waist = v(0, -14, -2), neck = v(0, 10, 0), pole = v(1, 0, 0.5) },
+		{ waist = v(-4, 0, 0), neck = v(0, 0, 0), pole = v(1, -0.3, 0.4) },
+		{ waist = v(-5, 14, 3), neck = v(3, -10, 0), pole = v(1, -0.5, 0.2) },
+		{ waist = v(-5, 24, 5), neck = v(3, -18, 0), pole = v(1, -0.4, 0) },
+		{ waist = v(-5, 30, 6), neck = v(3, -22, 0), pole = v(1, -0.3, -0.1) },
+	})
+	-- 2: 왼쪽으로 감았다가 가슴 높이로 가로 벤다 (왼→오, 손등 쪽)
+	local slash2 = arc(idle, v(0.2, -0.2, -0.45), v(0, 0, -1), v(-1, 0.08, 0), 1.1, {
+		{ 75, 120 },
+		{ 40, 60 },
+		{ 0, 5 },
+		{ -40, -50 },
+		{ -75, -95 },
+		{ -95, -125 },
+	}, {
+		{ waist = v(0, 30, 0), neck = v(0, -24, 0), pole = v(0.6, -0.8, -0.3) },
+		{ waist = v(0, 18, 0), neck = v(0, -14, 0), pole = v(0.8, -0.6, 0) },
+		{ waist = v(0, 0, 0), neck = v(0, 0, 0), pole = v(1, -0.5, 0.3) },
+		{ waist = v(0, -16, 0), neck = v(0, 12, 0), pole = v(1, -0.4, 0.5) },
+		{ waist = v(0, -26, 0), neck = v(0, 20, 0), pole = v(1, -0.3, 0.6) },
+		{ waist = v(0, -30, 0), neck = v(0, 24, 0), pole = v(1, -0.2, 0.7) },
+	})
+	-- 3: 오른 아래에서 왼 위로 올려 벤다 (마무리, 몸을 크게 쓴다)
+	local slash3 = arc(idle, v(0.15, 0.15, -0.55), v(0, 0, -1), v(0.75, -0.66, 0), 1.1, {
+		{ 100, 120 },
+		{ 60, 80 },
+		{ 10, 15 },
+		{ -40, -50 },
+		{ -85, -105 },
+		{ -105, -135 },
+	}, {
+		{ waist = v(6, -26, 6), neck = v(-4, 20, 0), pole = v(1, -0.5, 0.6), root = v(0, -0.2, 0.1), blade = dir(140, -18) },
+		{ waist = v(2, -16, 4), neck = v(-2, 12, 0), pole = v(1, -0.6, 0.4), root = v(0, -0.15, -0.1) },
+		{ waist = v(-2, 0, 0), neck = v(0, 0, 0), pole = v(1, -0.6, 0.2), root = v(0, -0.05, -0.3) },
+		{ waist = v(-6, 16, -4), neck = v(2, -12, 0), pole = v(0.6, -0.8, 0), root = v(0, 0, -0.35) },
+		{ waist = v(-8, 26, -6), neck = v(4, -20, 0), pole = v(0.4, -0.9, -0.1), root = v(0, 0, -0.35) },
+		{ waist = v(-8, 30, -6), neck = v(4, -24, 0), pole = v(0.4, -0.9, -0.2), root = v(0, 0, -0.3) },
+	})
+	DEFS.sword = {
+		idle = idle,
+		attacks = { attack(timing, keysOf(slash1)), attack(timing, keysOf(slash2)), attack({ 0.05, 0.07, 0.1, 0.08, 0.24 }, keysOf(slash3)) },
+	}
+end
+
+-- 도: 오른 허리에 비껴 들고 왼손은 칼등 곁. 1: 머리 위로 크게 들어 두 손으로 비스듬히 내리찍는다 2: 허리 높이 가로 베기
+do
+	local idle = pose(nil, {
+		at = v(0.8, -1.0, -0.8),
+		blade = dir(20, 28),
+		edge = v(0, -0.6, -1),
 		pole = v(1, -0.6, 0.4),
-		left = hand(v(-0.55, -0.35, -1.0), dir(40, 30), v(1, 0, 0), 1),
+		left = hand(v(-0.5, -0.45, -1.05), dir(40, 25), v(1, 0, 0)),
 		lpole = v(-1, -0.6, 0.2),
-		waist = v(0, 12, 0),
-		neck = v(0, -10, 0),
+		waist = v(0, -12, 0),
+		neck = v(0, 10, 0),
 	})
-	local chop = attack({ 0.07, 0.07, 0.12, 0.12, 0.35 }, {
-		windup = pose(idle, {
-			grip = grip(v(0.7, 1.55, 0.1), dir(160, 40), v(0, 1, -0.6)),
-			pole = v(1, 0.6, 0.3),
-			holdW = 1,
-			hold = -0.55,
-			holdRoll = 0,
-			lpole = v(-1, 0.2, 0.3),
-			waist = v(10, 18, -6),
-			neck = v(-8, -14, 0),
-			root = v(0, 0.05, 0.25),
-		}),
-		path = {
-			pose(idle, {
-				grip = grip(v(0.35, 1.0, -1.35), dir(5, 45), v(0, 0.3, -1)),
-				pole = v(1, 0.1, 0.3),
-				holdW = 1,
-				hold = -0.55,
-				lpole = v(-1, -0.2, 0.3),
-				waist = v(-6, 5, 0),
-				neck = v(0, -4, 0),
-				root = v(0, -0.05, -0.2),
-			}),
-			pose(idle, {
-				grip = grip(v(-0.2, -1.05, -1.3), dir(-40, -35), v(0, -1, -0.4)),
-				pole = v(1, -0.4, 0.2),
-				holdW = 1,
-				hold = -0.55,
-				lpole = v(-1, -0.6, 0.2),
-				waist = v(-22, -12, 6),
-				neck = v(16, 8, 0),
-				root = v(0, -0.35, -0.55),
-				hipR = v(-12, 0, 0),
-				hipL = v(30, 0, 0),
-				kneeL = -25,
-				kneeR = -12,
-			}),
-		},
-		follow = pose(idle, {
-			grip = grip(v(-0.5, -1.35, -0.95), dir(-70, -50), v(0, -1, 0.2)),
-			pole = v(1, -0.5, 0.1),
-			holdW = 1,
-			hold = -0.55,
-			lpole = v(-1, -0.6, 0.2),
-			waist = v(-26, -16, 8),
-			neck = v(20, 10, 0),
-			root = v(0, -0.45, -0.6),
-			hipR = v(-14, 0, 0),
-			hipL = v(34, 0, 0),
-			kneeL = -30,
-			kneeR = -15,
-		}),
+	local chop = arc(idle, v(0.25, 0.6, -0.5), v(0, 0, -1), v(0.45, 0.89, 0), 1.15, {
+		{ 105, 125 },
+		{ 70, 85 },
+		{ 30, 35 },
+		{ -5, -5 },
+		{ -25, -15 },
+		{ -35, -22 },
+	}, {
+		{ holdW = 1, hold = -0.55, waist = v(12, -20, -6), neck = v(-8, 16, 0), root = v(0, 0.05, 0.3), pole = v(1, 0.6, 0.3), lpole = v(-1, 0.3, 0.3) },
+		{ holdW = 1, hold = -0.55, waist = v(4, -12, -3), neck = v(-4, 10, 0), root = v(0, 0, 0.1), pole = v(1, 0.3, 0.3), lpole = v(-1, 0, 0.3) },
+		{ holdW = 1, hold = -0.55, waist = v(-8, 0, 0), neck = v(4, 0, 0), root = v(0, -0.15, -0.25), pole = v(1, -0.2, 0.3), lpole = v(-1, -0.3, 0.3) },
+		{ holdW = 1, hold = -0.55, waist = v(-10, 10, 4), neck = v(12, -6, 0), root = v(0, -0.25, -0.5), pole = v(1, -0.5, 0.2), lpole = v(-1, -0.5, 0.2), hipL = v(25, 0, 0), hipR = v(-12, 0, 0), kneeL = -20, kneeR = -14 },
+		{ holdW = 1, hold = -0.55, waist = v(-14, 16, 6), neck = v(18, -10, 0), root = v(0, -0.26, -0.65), pole = v(1, -0.5, 0.1), lpole = v(-1, -0.6, 0.2), hipL = v(34, 0, 0), hipR = v(-16, 0, 0), kneeL = -32, kneeR = -20 },
+		{ holdW = 1, hold = -0.55, waist = v(-14, 18, 6), neck = v(20, -12, 0), root = v(0, -0.28, -0.7), pole = v(1, -0.4, 0), lpole = v(-1, -0.6, 0.2), hipL = v(36, 0, 0), hipR = v(-18, 0, 0), kneeL = -36, kneeR = -22 },
 	})
-	local sweep = attack({ 0.07, 0.07, 0.12, 0.12, 0.35 }, {
-		-- 왼쪽으로 감아 허리 높이로 크게 가로 벤다 (왼→오)
-		windup = pose(idle, {
-			grip = grip(v(-0.9, 0.1, 0.2), dir(-170, 15), v(0, 0, -1)),
-			pole = v(1, -0.4, -0.3),
-			waist = v(0, -40, 0),
-			neck = v(0, 32, 0),
-			root = v(0, -0.15, 0),
-		}),
-		path = {
-			pose(idle, {
-				grip = grip(v(0, -0.6, -1.5), dir(-15, 0), v(1, -0.2, 0)),
-				pole = v(1, -0.6, 0.3),
-				waist = v(-6, -8, 0),
-				neck = v(0, 6, 0),
-				root = v(0, -0.3, -0.3),
-			}),
-			pose(idle, {
-				grip = grip(v(1.3, -0.5, -1.05), dir(85, -5), v(0, 0, 1)),
-				pole = v(1, -0.4, 0.5),
-				waist = v(-8, 25, 0),
-				neck = v(0, -20, 0),
-				root = v(0, -0.3, -0.35),
-			}),
-		},
-		follow = pose(idle, {
-			grip = grip(v(1.5, -0.5, -0.3), dir(140, -10), v(-0.4, 0, 1)),
-			pole = v(1, -0.3, 0.6),
-			waist = v(-8, 38, 0),
-			neck = v(0, -30, 0),
-			root = v(0, -0.3, -0.3),
-		}),
+	local sweep = arc(idle, v(0.15, -0.55, -0.4), v(0, 0, -1), v(-1, 0.1, 0), 1.2, {
+		{ 80, 135 },
+		{ 45, 65 },
+		{ 0, 0 },
+		{ -45, -55 },
+		{ -80, -100 },
+		{ -100, -130 },
+	}, {
+		{ waist = v(0, 42, 0), neck = v(0, -32, 0), root = v(0, -0.15, 0), pole = v(0.6, -0.8, -0.3) },
+		{ waist = v(-2, 26, 0), neck = v(0, -20, 0), root = v(0, -0.25, -0.1), pole = v(0.8, -0.6, 0) },
+		{ waist = v(-6, 0, 0), neck = v(0, 0, 0), root = v(0, -0.3, -0.3), pole = v(1, -0.5, 0.3) },
+		{ waist = v(-8, -22, 0), neck = v(0, 18, 0), root = v(0, -0.3, -0.35), pole = v(1, -0.4, 0.5) },
+		{ waist = v(-8, -36, 0), neck = v(0, 28, 0), root = v(0, -0.3, -0.35), pole = v(1, -0.3, 0.6) },
+		{ waist = v(-8, -42, 0), neck = v(0, 32, 0), root = v(0, -0.3, -0.3), pole = v(1, -0.2, 0.7) },
 	})
-	DEFS.saber = { idle = idle, attacks = { chop, sweep } }
+	local heavy = { 0.07, 0.07, 0.12, 0.12, 0.35 }
+	DEFS.saber = { idle = idle, attacks = { attack(heavy, keysOf(chop)), attack(heavy, keysOf(sweep)) } }
 end
 
--- 창: 허리 높이에 수평으로 앞을 겨누고 두 손으로 쥔다 (오른손 뒤, 왼손 앞)
+-- 창: 허리 높이에 수평으로 앞을 겨누고 두 손으로 쥔다 (오른손 뒤 허리께, 왼손 앞)
 do
 	local idle = pose(nil, {
-		grip = grip(v(0.55, -1.05, -0.35), dir(-6, 3), v(0, -1, 0)),
-		pole = v(1, -0.5, 0.6),
+		at = v(0.6, -1.05, -0.1),
+		blade = dir(-24, 2),
+		pole = v(1, -0.6, 0.6),
 		holdW = 1,
-		hold = 1.6,
-		holdRoll = 0,
+		hold = 1.7,
 		lpole = v(-1, -0.8, 0),
-		waist = v(0, 18, 0),
-		neck = v(0, -14, 0),
+		waist = v(0, -20, 0),
+		neck = v(0, 16, 0),
 	})
 	local thrust = attack({ 0.05, 0.06, 0.1, 0.1, 0.25 }, {
 		windup = pose(idle, {
-			grip = grip(v(0.65, -0.95, 0.25), dir(-4, 4), v(0, -1, 0)),
-			hold = 1.5,
-			waist = v(4, 26, 0),
-			neck = v(0, -22, 0),
+			at = v(0.65, -0.95, 0.35),
+			blade = dir(-4, 3),
+			hold = 1.55,
+			waist = v(4, -28, 0),
+			neck = v(0, 22, 0),
 			root = v(0, 0, 0.2),
 		}),
 		path = {
 			pose(idle, {
-				grip = grip(v(0.2, -0.9, -1.9), dir(-2, 2), v(0, -1, 0)),
-				hold = 1.0,
+				at = v(0.2, -0.9, -1.8),
+				blade = dir(-1, 1),
+				hold = 1.05,
 				pole = v(1, -0.6, 0.2),
 				lpole = v(-1, -0.6, -0.2),
-				waist = v(-8, 2, 0),
-				neck = v(6, -2, 0),
+				waist = v(-8, -2, 0),
+				neck = v(6, 2, 0),
 				root = v(0, -0.3, -1.0),
 				hipL = v(35, 0, 0),
 				hipR = v(-20, 0, 0),
@@ -579,8 +585,9 @@ do
 			}),
 		},
 		follow = pose(idle, {
-			grip = grip(v(0.1, -0.85, -2.2), dir(-1, 1), v(0, -1, 0)),
-			hold = 0.9,
+			at = v(0.1, -0.85, -2.1),
+			blade = dir(0, 1),
+			hold = 0.95,
 			pole = v(1, -0.6, 0.1),
 			lpole = v(-1, -0.6, -0.2),
 			waist = v(-10, 0, 0),
@@ -592,85 +599,53 @@ do
 			kneeR = -12,
 		}),
 	}, 1)
-	local sweep = attack({ 0.05, 0.07, 0.1, 0.1, 0.25 }, {
-		-- 창끝으로 앞을 오른쪽에서 왼쪽으로 크게 쓸어 벤다
-		windup = pose(idle, {
-			grip = grip(v(-0.1, -0.85, 0.1), dir(60, 8), v(0, -1, 0)),
-			hold = 1.4,
-			waist = v(0, 35, 0),
-			neck = v(0, -28, 0),
-		}),
-		path = {
-			pose(idle, {
-				grip = grip(v(0.4, -0.9, -0.7), dir(0, 2), v(0, -1, 0)),
-				hold = 1.4,
-				waist = v(-4, 5, 0),
-				neck = v(0, -4, 0),
-				root = v(0, -0.15, -0.4),
-			}),
-			pose(idle, {
-				grip = grip(v(0.9, -0.8, -0.6), dir(-65, 0), v(0, -1, 0)),
-				hold = 1.4,
-				pole = v(1, -0.3, 0.6),
-				waist = v(-4, -28, 0),
-				neck = v(0, 22, 0),
-				root = v(0, -0.2, -0.5),
-			}),
-		},
-		follow = pose(idle, {
-			grip = grip(v(1.1, -0.75, -0.3), dir(-95, 0), v(0, -1, 0)),
-			hold = 1.4,
-			pole = v(1, -0.2, 0.6),
-			waist = v(-4, -38, 0),
-			neck = v(0, 30, 0),
-			root = v(0, -0.2, -0.5),
-		}),
+	-- 2: 창끝으로 앞을 오른쪽에서 왼쪽으로 크게 쓸어 벤다
+	local sweep = arc(idle, v(0.3, -0.95, -0.2), v(0, 0, -1), v(1, 0, 0), 0.6, {
+		{ 50, 65 },
+		{ 25, 30 },
+		{ 0, 0 },
+		{ -25, -35 },
+		{ -50, -70 },
+		{ -60, -90 },
+	}, {
+		{ waist = v(0, -35, 0), neck = v(0, 28, 0), hold = 1.5 },
+		{ waist = v(-2, -18, 0), neck = v(0, 14, 0), hold = 1.5, root = v(0, -0.1, -0.2) },
+		{ waist = v(-4, 0, 0), neck = v(0, 0, 0), hold = 1.5, root = v(0, -0.2, -0.4) },
+		{ waist = v(-4, 18, 0), neck = v(0, -14, 0), hold = 1.5, root = v(0, -0.2, -0.5) },
+		{ waist = v(-4, 32, 0), neck = v(0, -26, 0), hold = 1.5, root = v(0, -0.2, -0.5) },
+		{ waist = v(-4, 38, 0), neck = v(0, -30, 0), hold = 1.5, root = v(0, -0.2, -0.45) },
 	})
-	DEFS.spear = { idle = idle, attacks = { thrust, sweep } }
+	DEFS.spear = { idle = idle, attacks = { thrust, attack({ 0.05, 0.07, 0.1, 0.1, 0.25 }, keysOf(sweep)) } }
 end
 
 -- 부채: 펼친 부채를 가슴 앞 오른쪽에 세워 든다. 왼쪽으로 감았다가 크게 펼쳐 쳐서 바람칼을 날린다
 do
 	local idle = pose(nil, {
-		grip = grip(v(0.7, -0.15, -1.0), dir(-20, 62), v(-1, 0.2, -0.3)),
-		pole = v(1, -0.8, 0.3),
-		left = hand(v(-0.8, -0.85, -0.55), dir(20, -40), v(1, 0, 0), 1),
+		at = v(0.85, -0.25, -1.0),
+		blade = dir(-15, 65),
+		edge = v(-1, 0, 0),
+		pole = v(1, -0.9, 0.2),
+		left = hand(v(-0.8, -0.85, -0.55), dir(20, -40), v(1, 0, 0)),
 		lpole = v(-1, -0.6, 0.2),
-		waist = v(0, 10, 0),
-		neck = v(0, -8, 0),
+		waist = v(0, -10, 0),
+		neck = v(0, 8, 0),
 	})
-	local flick = attack({ 0.06, 0.07, 0.12, 0.12, 0.35 }, {
-		windup = pose(idle, {
-			grip = grip(v(-0.55, 0.45, -0.75), dir(-120, 30), v(0, 0.4, -1)),
-			pole = v(1, -0.2, -0.4),
-			waist = v(0, -32, 0),
-			neck = v(0, 26, 0),
-		}),
-		path = {
-			pose(idle, {
-				grip = grip(v(0.3, 0.2, -1.55), dir(-15, 20), v(1, 0, 0)),
-				pole = v(1, -0.5, 0.2),
-				waist = v(-4, -4, 0),
-				neck = v(0, 4, 0),
-				root = v(0, 0, -0.2),
-			}),
-			pose(idle, {
-				grip = grip(v(1.4, 0.05, -1.05), dir(70, 15), v(0, 0, 1)),
-				pole = v(1, -0.4, 0.4),
-				waist = v(-4, 24, 0),
-				neck = v(0, -18, 0),
-				root = v(0, 0, -0.25),
-			}),
-		},
-		follow = pose(idle, {
-			grip = grip(v(1.6, 0, -0.55), dir(105, 10), v(-0.4, 0, 1)),
-			pole = v(1, -0.3, 0.6),
-			waist = v(-4, 32, 0),
-			neck = v(0, -24, 0),
-			root = v(0, 0, -0.25),
-		}),
+	local flick = arc(idle, v(0.25, 0, -0.45), v(0, 0, -1), v(-1, 0.15, 0), 1.15, {
+		{ 80, 110 },
+		{ 45, 55 },
+		{ 0, 0 },
+		{ -45, -55 },
+		{ -80, -95 },
+		{ -95, -115 },
+	}, {
+		{ waist = v(0, 34, 0), neck = v(0, -26, 0), pole = v(0.6, -0.8, -0.3), edge = v(0, 1, 0) },
+		{ waist = v(0, 20, 0), neck = v(0, -16, 0), pole = v(0.8, -0.6, 0), edge = v(0, 1, 0) },
+		{ waist = v(-4, 0, 0), neck = v(0, 0, 0), pole = v(1, -0.5, 0.3), edge = v(0, 1, 0), root = v(0, 0, -0.2) },
+		{ waist = v(-4, -20, 0), neck = v(0, 16, 0), pole = v(1, -0.4, 0.5), edge = v(0, 1, 0), root = v(0, 0, -0.25) },
+		{ waist = v(-4, -30, 0), neck = v(0, 24, 0), pole = v(1, -0.3, 0.6), edge = v(0, 1, 0), root = v(0, 0, -0.25) },
+		{ waist = v(-4, -34, 0), neck = v(0, 26, 0), pole = v(1, -0.2, 0.7), edge = v(0, 1, 0), root = v(0, 0, -0.2) },
 	})
-	DEFS.fan = { idle = idle, attacks = { flick } }
+	DEFS.fan = { idle = idle, attacks = { attack({ 0.06, 0.07, 0.12, 0.12, 0.35 }, keysOf(flick)) } }
 end
 
 WeaponPoses.DEFS = DEFS
@@ -681,7 +656,7 @@ function WeaponPoses.idle(kind: string, t: number): Pose
 	local base = def.idle
 	local breathe = math.sin(t * 2.1)
 	local out = table.clone(base)
-	out.grip = CFrame.new(0, 0.035 * breathe, 0) * base.grip
+	out.at = base.at + Vector3.new(0, 0.035 * breathe, 0)
 	out.left = CFrame.new(0, 0.03 * breathe, 0) * base.left
 	out.waist = base.waist + Vector3.new(-1.2 * breathe, 0, 0)
 	return out

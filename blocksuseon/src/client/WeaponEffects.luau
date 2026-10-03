@@ -3,7 +3,9 @@
 -- 서버(server/CombatService.luau)가 remotes.Combat 로 "swing"·"impact"·"wave" 를 모두에게 보내므로
 -- 남의 칼질도 모든 클라이언트에서 보인다 (CombatHud.event 가 나눠 준다).
 --
---   swing(character, tool, kind, grade, combo, duration)  duration 동안 날이 빠르게 움직일 때만 자취를 켜고 바람 소리를 낸다
+--   swing(character, tool, kind, grade, combo, duration)  바람 소리를 내고, 벰 동안 날이 빠르게 움직일 때만 자취를 켠다.
+--       duration 이 젖힘~따라감(또는 공격 전체)을 덮으면 휘두르기 시작에 부른 것으로 보고 젖힘이 끝난 뒤 켠다
+--       (마디 시간은 shared/WeaponPoses). 아니면 지금부터 duration 동안
 --   impact(position, kind, grade, isLocalAttacker)          맞은 자리. 내가 맞혔으면 카메라가 살짝 튀고 몸짓이 잠깐 멈춘다
 --   wave(from, to, grade, hit)                              초승달 바람칼이 from 에서 to 로 날아간다
 --   hitstop()                                               몸짓을 멈출 남은 시간(초). 매 프레임 불러도 된다 (0 이면 멈추지 않는다)
@@ -14,6 +16,8 @@
 
 local ContentProvider = game:GetService("ContentProvider")
 local Debris = game:GetService("Debris")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
@@ -27,12 +31,12 @@ local WAVE_END = 0.2 -- 닿은 뒤 흩어지는 시간
 local KICK_TIME = 0.14 -- 내가 맞혔을 때 카메라가 튀는 시간
 local POOL = 8 -- 맞은 자리 효과 묶음을 이만큼 만들어 돌려 쓴다
 
--- 클라이언트 콘텐츠 폴더에 있는 것만 쓴다 (엔진에서 PreloadAsync 로 확인한 것: swoosh.wav 는 없다)
+-- 클라이언트 콘텐츠 폴더에 있는 것만 쓴다 (엔진에서 PreloadAsync 로 확인한 것. swoosh.wav 는 없다)
 local SOUND = {
-	slash = "rbxasset://sounds/swordslash.wav",
-	lunge = "rbxasset://sounds/swordlunge.wav",
-	hit = "rbxasset://sounds/hit.wav",
-	wind = "rbxasset://sounds/Rocket whoosh 01.wav",
+	slash = "rbxasset://sounds/swordslash.wav", -- 0.65초
+	lunge = "rbxasset://sounds/swordlunge.wav", -- 0.78초. 낮추면 바람 소리
+	hit = "rbxasset://sounds/hit.wav", -- 0.84초
+	thump = "rbxasset://sounds/action_jump_land.mp3", -- 0.26초 둔탁한 울림 (무게)
 }
 local TEXTURE = {
 	spark = "rbxasset://textures/particles/sparkles_main.dds",
@@ -129,9 +133,11 @@ local STYLE: { [string]: Style } = {
 }
 
 local started = false
+local poses: any = nil -- shared/WeaponPoses (있으면 휘두르기 마디 시간을 읽어 자취를 벰에 맞춘다)
 local folder: Folder? = nil
 local hitstopUntil = 0
 local kickUntil, kickPower, kickYaw = 0, 0, 0
+local lastHitSound = 0
 
 local function kp(t: number, value: number): NumberSequenceKeypoint
 	return NumberSequenceKeypoint.new(t, value)
@@ -213,9 +219,12 @@ type Rig = {
 }
 type Swing = {
 	rig: Rig,
+	root: BasePart?, -- 몸이 달리는 빠르기는 빼고 날만의 빠르기를 잰다
 	kind: string,
 	combo: number,
 	colors: Palette,
+	mine: boolean, -- 내 캐릭터 (맞힘 멈춤 동안 시계를 멈춘다)
+	startAt: number,
 	untilAt: number,
 	threshold: number,
 	last: Vector3?,
@@ -315,7 +324,30 @@ local function pierce(at: Vector3, direction: Vector3, colors: Palette)
 	burst.ring:Emit(1)
 end
 
--- 휘두르기: duration 동안, 날 끝이 빠르게 움직일 때만 자취를 켠다 (늘어지는 준비·거두는 몸짓에는 자취가 없다)
+-- 자취를 켤 때: 부른 뒤 몇 초 뒤부터 몇 초 동안.
+-- WeaponPoses 의 마디 시간이 있고 duration 이 젖힘부터 따라감까지(또는 공격 전체)를 덮으면 휘두르기를 시작할 때
+-- 부른 것으로 보고, 젖히는 동안은 끄고 벰과 따라감 동안만 켠다. 아니면 지금부터 duration 동안
+local function trailWindow(kind: string, combo: number, duration: number?, style: Style): (number, number)
+	local on = math.clamp(duration or style.window, 0.08, style.window)
+	if poses and duration then
+		local ok, a = pcall(poses.attack, kind, combo)
+		if
+			ok
+			and type(a) == "table"
+			and type(a.windup) == "number"
+			and type(a.strike) == "number"
+			and type(a.follow) == "number"
+		then
+			local fast = a.windup + a.strike + a.follow
+			if duration >= fast - 0.01 then
+				return a.windup, math.min(a.strike + a.follow + 0.02, style.window)
+			end
+		end
+	end
+	return 0, on
+end
+
+-- 휘두르기: 벰 동안, 날 끝이 빠르게 움직일 때만 자취를 켠다 (젖히기·거두는 몸짓에는 자취가 없다)
 function WeaponEffects.swing(
 	character: Model,
 	tool: Tool?,
@@ -351,16 +383,23 @@ function WeaponEffects.swing(
 	rig.edge.Color = ColorSequence.new(colors.core, colors.edge)
 	rig.main.Lifetime = style.lifetime * (if finisher then 1.3 else 1)
 	rig.edge.Lifetime = style.lifetime * 1.4
-	-- 날 길이(아바타 크기에 맞춘 길이)에 비례한 빠르기를 넘을 때만 켠다
+	-- 날 길이(아바타 크기에 맞춘 길이)에 비례한 빠르기를 넘을 때만 켠다.
+	-- 앞 칼질이 아직 남았으면(연속 공격) 켜짐과 지난 자리를 이어받는다
+	local previous = rig.swing
+	local delay, on = trailWindow(weaponKind, combo, tonumber(duration), style)
+	local now = os.clock()
 	local entry: Swing = {
 		rig = rig,
+		root = if root and root:IsA("BasePart") then root else nil,
 		kind = weaponKind,
 		combo = combo,
 		colors = colors,
-		untilAt = os.clock() + math.clamp(tonumber(duration) or style.window, 0.08, style.window),
+		mine = Players.LocalPlayer ~= nil and character == Players.LocalPlayer.Character,
+		startAt = now + delay,
+		untilAt = now + delay + on,
 		threshold = rig.length * 4,
-		last = nil,
-		on = false,
+		last = if previous then previous.last else nil,
+		on = if previous then previous.on else false,
 		speed = 0,
 		pierced = false,
 	}
@@ -376,6 +415,11 @@ local function stepSwings(dt: number)
 	for i = #swings, 1, -1 do
 		local entry = swings[i]
 		local rig = entry.rig
+		-- 내가 맞혀 몸짓이 멈춘 동안은 자취 시계도 멈춘다
+		if entry.mine and hitstopUntil > now then
+			entry.startAt += dt
+			entry.untilAt += dt
+		end
 		local alive = rig.swing == entry and now < entry.untilAt and rig.handle:IsDescendantOf(Workspace)
 		if not alive then
 			if rig.swing == entry then
@@ -385,10 +429,13 @@ local function stepSwings(dt: number)
 			table.remove(swings, i)
 		else
 			local tip = rig.tip.WorldPosition
-			local speed = if entry.last and dt > 0 then (tip - entry.last).Magnitude / dt else 0
-			entry.last = tip
-			-- 켜기와 끄기 사이에 틈을 두어 깜빡이지 않게
-			local on = if entry.on then speed > entry.threshold * 0.5 else speed > entry.threshold
+			local body = entry.root
+			local relative = if body then tip - body.Position else tip
+			local speed = if entry.last and dt > 0 then (relative - entry.last).Magnitude / dt else 0
+			entry.last = relative
+			-- 켜기와 끄기 사이에 틈을 두어 깜빡이지 않게. 젖히는 동안은 끈다
+			local on = now >= entry.startAt
+				and (if entry.on then speed > entry.threshold * 0.5 else speed > entry.threshold)
 			if on ~= entry.on then
 				entry.on = on
 				setTrails(rig, on)
@@ -553,10 +600,16 @@ function WeaponEffects.impact(position: Vector3, weaponKind: string, grade: numb
 		end
 	end
 
-	play(SOUND.hit, burst.spot, 0.55, between(style.hitPitch))
+	-- 한 번에 여럿을 베면 소리는 한 번만 (겹치면 너무 시끄럽다)
+	local now = os.clock()
+	if now - lastHitSound > 0.05 then
+		lastHitSound = now
+		local pitch = between(style.hitPitch)
+		play(SOUND.hit, burst.spot, 0.55, pitch)
+		play(SOUND.thump, burst.spot, 0.45, pitch * 0.8)
+	end
 
 	if isLocalAttacker then
-		local now = os.clock()
 		-- 한 번에 여럿을 베도 멈춤은 한 번만 (길어지지 않는다)
 		if style.hitstop > 0 and hitstopUntil < now then
 			hitstopUntil = now + style.hitstop
@@ -685,6 +738,8 @@ type Wave = {
 	parts: { Part },
 	meshes: { SpecialMesh },
 	pieces: { Piece },
+	moved: { BasePart }, -- 가운데 파트와 조각들 (BulkMoveTo 차례)
+	frames: { CFrame },
 	wisps: ParticleEmitter,
 	motes: ParticleEmitter,
 	ended: boolean,
@@ -720,19 +775,24 @@ local function placeWave(wave: Wave): boolean
 		end
 	end
 	local base = CFrame.lookAt(position, position + direction) * wave.turn * CFrame.Angles(0, 0, flutter)
-	wave.carrier.CFrame = base * CFrame.new(0, 0, CARRIER_Z * scale)
+	local frames = wave.frames
+	frames[1] = base * CFrame.new(0, 0, CARRIER_Z * scale) -- 가운데 파트
 	for i, attachment in wave.horns do
 		attachment.Position = (wave.hornAt[i] - Vector3.new(0, 0, CARRIER_Z)) * scale
 	end
+	local meshScale = Vector3.new(scale * stretch, scale * thin, scale * thin)
 	for i, piece in wave.pieces do
-		local part = wave.parts[i]
 		local offset = piece.offset
-		part.CFrame = base
+		frames[i + 1] = base
 			* CFrame.new(offset.Position * scale + piece.normal * spread * (0.6 + (i % 3) * 0.3))
 			* offset.Rotation
-		wave.meshes[i].Scale = Vector3.new(scale * stretch, scale * thin, scale * thin)
-		part.Transparency = piece.alpha + (1 - piece.alpha) * fade
+		wave.meshes[i].Scale = meshScale
+		if fade > 0 then
+			wave.parts[i].Transparency = piece.alpha + (1 - piece.alpha) * fade
+		end
 	end
+	-- 파트 서른몇 개를 한 번에 옮긴다 (하나씩 CFrame 을 바꾸는 것보다 빠르다)
+	Workspace:BulkMoveTo(wave.moved, frames, Enum.BulkMoveMode.FireCFrameChanged)
 	return e >= 1
 end
 
@@ -761,7 +821,7 @@ function WeaponEffects.wave(from: Vector3, to: Vector3, grade: number, hit: bool
 	carrier.CFrame = CFrame.lookAt(from, to)
 	carrier.Parent = model
 
-	local parts, meshes = {}, {}
+	local parts, meshes, moved = {}, {}, { carrier }
 	local pieces = WeaponEffects.crescent(grade)
 	for _, piece in pieces do
 		local part, mesh = glow(piece.layer, piece.size, piece.color, piece.alpha)
@@ -769,6 +829,7 @@ function WeaponEffects.wave(from: Vector3, to: Vector3, grade: number, hit: bool
 		part.Parent = model
 		table.insert(parts, part)
 		table.insert(meshes, mesh)
+		table.insert(moved, part)
 	end
 
 	-- 꼬리 자취: 두 뿔 끝의 가는 빛줄기, 꼭지점 뒤로 남는 옅은 바람 막
@@ -856,6 +917,8 @@ function WeaponEffects.wave(from: Vector3, to: Vector3, grade: number, hit: bool
 		parts = parts,
 		meshes = meshes,
 		pieces = pieces,
+		moved = moved,
+		frames = table.create(#moved),
 		wisps = wisps,
 		motes = motes,
 		ended = false,
@@ -863,7 +926,7 @@ function WeaponEffects.wave(from: Vector3, to: Vector3, grade: number, hit: bool
 	-- 첫 프레임 전에 자리를 잡아 두어야 꼬리 자취가 엉뚱한 데서 시작하지 않는다
 	placeWave(wave)
 	model.Parent = effectsFolder()
-	play(SOUND.wind, carrier, 0.4, 1.45 + math.random() * 0.15)
+	play(SOUND.lunge, carrier, 0.4, 0.72 + math.random() * 0.1) -- 낮춘 휙 소리가 바람칼을 따라간다
 	table.insert(waves, wave)
 	Debris:AddItem(model, travel + WAVE_END + 0.7)
 end
@@ -905,6 +968,14 @@ function WeaponEffects.start()
 		return
 	end
 	started = true
+	local shared = ReplicatedStorage:FindFirstChild("Shared")
+	local module = shared and shared:FindFirstChild("WeaponPoses")
+	if module and module:IsA("ModuleScript") then
+		local ok, result = pcall(require, module)
+		if ok and type(result) == "table" and type(result.attack) == "function" then
+			poses = result
+		end
+	end
 	task.spawn(function()
 		local list = {}
 		for _, id in SOUND do
