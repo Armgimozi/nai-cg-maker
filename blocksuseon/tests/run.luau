@@ -39,6 +39,9 @@ local Roots = loader.require(shared.Roots)
 local Tasks = loader.require(shared.Tasks)
 local Clock = loader.require(shared.Clock)
 local Trials = loader.require(shared.Trials)
+local Races = loader.require(shared.Races)
+local Combat = loader.require(shared.Combat)
+local Mobs = loader.require(shared.Mobs)
 
 -- 테스트는 모든 경지의 과업을 켠 상태로 검사한다
 Tasks.LIVE_UNTIL = Realms.maxStep
@@ -108,20 +111,143 @@ check("숫자 포맷", function()
 	eq(Format.percent(0.805), "81%")
 end)
 
+print("종족")
+check("종족 뽑기", function()
+	local total = 0
+	for _, race in Races.list do
+		total += race.weight
+		assert(race.summary ~= "", race.id .. " 설명")
+	end
+	eq(total, 100, "몫을 모두 더하면 100")
+	eq(Races.pick(0), Races.list[1].id, "가장 흔한 종족이 앞")
+	eq(Races.pick(0.9999), Races.list[#Races.list].id, "가장 드문 종족이 끝")
+	-- 다시 뽑기는 지금과 다른 종족
+	for i = 0, 99 do
+		assert(Races.pick(i / 100, "human") ~= "human", "다시 뽑으면 다른 종족")
+	end
+	-- 뽑힌 몫이 weight 와 맞다
+	local counts = {}
+	for i = 0, 9999 do
+		local id = Races.pick((i + 0.5) / 10000)
+		counts[id] = (counts[id] or 0) + 1
+	end
+	for _, race in Races.list do
+		eq(counts[race.id], race.weight * 100, race.id .. " 몫")
+	end
+	assert(Races.effects("stone"):find("체력 %+20%%"), Races.effects("stone"))
+	assert(Races.effects("stone"):find("천겁 피해 %-12%%"), Races.effects("stone"))
+end)
+check("종족 효과와 기록", function()
+	local data = Progression.newData()
+	data.step = 10
+	data.root = Roots.make({ "wood" })
+	local plain = Progression.qiPerSecond(data, 1)
+	data.race = "moon"
+	eq(Progression.qiPerSecond(data, 1), plain, "월영족 낮")
+	assert(math.abs(Progression.qiPerSecond(data, 1, 1, true) - plain * 1.3) < 1e-6, "월영족 밤 +30%")
+	data.race = "stone"
+	assert(Progression.maxHealth(data) > (function()
+		data.race = "human"
+		return Progression.maxHealth(data)
+	end)(), "석령족 체력")
+	data.race = "dragon"
+	local saved = Progression.reconcile({ step = 3, race = "dragon", receipts = { "a", "b" } })
+	eq(saved.race, "dragon")
+	eq(#saved.receipts, 2)
+	eq(Progression.reconcile({ race = "elf" }).race, nil, "모르는 종족은 버린다")
+	-- 같은 구매는 한 번만
+	eq(Progression.claimReceipt(saved, "c"), true)
+	eq(Progression.claimReceipt(saved, "c"), false)
+	for i = 1, 80 do
+		Progression.claimReceipt(saved, "p" .. i)
+	end
+	eq(#saved.receipts, Progression.RECEIPT_KEEP, "기록은 50개까지")
+	local before = saved.race
+	Progression.rollRace(saved, 0.5, true)
+	assert(saved.race ~= before, "다시 뽑으면 바뀐다")
+end)
+
+print("싸움")
+check("무기와 피해", function()
+	eq(Combat.weaponName({ kind = "sword", grade = 1 }), "목검")
+	eq(Combat.weaponName({ kind = "fan", grade = 1 }), "죽선")
+	eq(Combat.weaponName({ kind = "spear", grade = 3 }), "청강창")
+	assert(
+		Combat.damage(20, { kind = "sword", grade = 1 }) > Combat.damage(10, { kind = "sword", grade = 1 }),
+		"경지가 오르면 세진다"
+	)
+	assert(
+		Combat.damage(10, { kind = "sword", grade = 3 }) > Combat.damage(10, { kind = "sword", grade = 1 }),
+		"등급"
+	)
+	assert(
+		Combat.damage(10, { kind = "sword", grade = 1 }, "ember") > Combat.damage(10, { kind = "sword", grade = 1 }),
+		"염린족"
+	)
+	local sword = { kind = "sword", grade = 1 }
+	-- 앞(-z)을 보고 선 사람 앞 6스터드 요수는 맞고, 뒤는 안 맞는다
+	eq(Combat.inReach(0, 0, 0, -1, 0, -6, 2, sword), true)
+	eq(Combat.inReach(0, 0, 0, -1, 0, 6, 2, sword), false, "뒤")
+	eq(Combat.inReach(0, 0, 0, -1, 0, -30, 2, sword), false, "멀다")
+	eq(Combat.inReach(0, 0, 0, -1, 0, 1, 2, sword), true, "붙어 있으면 방향 상관없이")
+	local fan = { kind = "fan", grade = 1 }
+	eq(Combat.inReach(0, 0, 0, -1, 1, -30, 2, fan), true, "부채는 멀리 앞 줄")
+	eq(Combat.inReach(0, 0, 0, -1, 10, -30, 2, fan), false, "줄에서 비켜남")
+	eq(Combat.isWeapon({ kind = "axe", grade = 1 }), false)
+	eq(Combat.isWeapon({ kind = "sword", grade = 6 }), false)
+end)
+check("무기 얻기", function()
+	local data = Progression.newData()
+	eq(#data.weapons, 1, "처음엔 목검")
+	eq(Progression.addWeapon(data, { kind = "sword", grade = 1 }), false, "같은 것")
+	eq(Progression.addWeapon(data, { kind = "sword", grade = 2 }), true, "더 좋은 검은 바꾼다")
+	eq(#data.weapons, 1)
+	eq(data.weapons[1].grade, 2)
+	eq(Progression.addWeapon(data, { kind = "spear", grade = 1 }), true)
+	eq(#data.weapons, 2)
+	local saved = Progression.reconcile({ weapons = { { kind = "fan", grade = 4 }, { kind = "x", grade = 1 } } })
+	eq(#saved.weapons, 1)
+	eq(saved.weapons[1].kind, "fan")
+	eq(#Progression.reconcile({}).weapons, 1, "기록이 없으면 목검")
+end)
+check("요수", function()
+	for _, mob in Mobs.list do
+		assert(mob.tier >= 1 and mob.tier <= 5, mob.id .. " 위험도")
+		assert(#mob.parts > 0, mob.id .. " 모양")
+		assert(Mobs.LOOT[mob.tier], mob.id .. " 전리품")
+	end
+	for tier = 1, 5 do
+		assert(Mobs.pick("nowhere", tier, 0.5), "위험도 " .. tier .. " 요수")
+	end
+	eq(Mobs.pick("desert", 3, 0.1).id, "sandstinger", "사막은 황사갈")
+	eq(Mobs.pick("deungseon", 5, 0.9).id, "silverfox")
+	-- 요수 피해는 그 위험도에 맞는 경지 체력으로 몇 번은 버틴다
+	local recommended = { 6, 16, 30, 48, 54 }
+	for _, mob in Mobs.list do
+		local hp = Balance.maxHealth(recommended[mob.tier])
+		assert(hp / mob.damage >= 3, `{mob.name} 이 너무 세다 ({hp} / {mob.damage})`)
+		local hits = mob.hp / Combat.damage(recommended[mob.tier], { kind = "sword", grade = mob.tier })
+		assert(hits >= 2 and hits <= 20, `{mob.name} 잡는 데 {hits} 번`)
+	end
+end)
+
 print("영근과 시계")
 check("영근 고르기", function()
+	-- 영근은 한 속성만
 	eq(Roots.make({ "wood" }).kind, "cheon")
-	eq(Roots.make({ "fire", "wood" }).kind, "jin")
-	eq(Roots.make({ "fire", "wood" }).elements[1], "wood", "오행 순서로 정리")
-	eq(Roots.make({ "wood", "fire", "earth", "metal" }).kind, "jap")
+	eq(Roots.make("fire").elements[1], "fire", "문자열도 받는다")
+	eq(Roots.make({ "fire", "wood" }), nil, "둘 이상은 거절")
 	eq(Roots.make({}), nil)
-	eq(Roots.make({ "wood", "wood" }), nil, "겹치면 거절")
 	eq(Roots.make({ "light" }), nil)
-	eq(Roots.strands(Roots.make({ "wood", "fire", "earth", "metal", "water" })), 25)
-	eq(Roots.strands(Roots.hong()), 4)
-	assert(Roots.gain(Roots.make({ "wood" })) > Roots.gain(Roots.make({ "wood", "fire", "earth", "metal", "water" })))
-	eq(Roots.canSkip(Roots.make({ "wood", "fire", "earth", "metal" })), false, "잡영근은 선각후통만")
-	eq(Roots.describe(Roots.make({ "water", "wood" })), "진영근 (목, 수)")
+	eq(Roots.strands(Roots.make({ "wood" })), Roots.STRANDS)
+	eq(Roots.hong("water").elements[1], "water", "홍령수지체도 속성은 그대로")
+	assert(Roots.gain(Roots.hong("water")) > Roots.gain(Roots.make({ "water" })))
+	eq(Roots.describe(Roots.make({ "water" })), "천영근 (수)")
+	-- 예전 판 여러 속성 영근: 본명 속성 또는 첫 속성 하나만 남는다
+	eq(Roots.reconcile({ kind = "jin", elements = { "fire", "wood" } }).elements[1], "fire")
+	eq(Roots.reconcile({ kind = "jin", elements = { "fire", "wood" } }, "wood").elements[1], "wood")
+	eq(#Roots.reconcile({ kind = "jap", elements = { "wood", "fire", "earth", "metal" } }).elements, 1)
+	eq(Roots.reconcile({ kind = "hong", elements = { "wood", "earth" } }, "earth").kind, "hong")
 end)
 check("낮밤과 시운", function()
 	eq(Clock.phase(0), "day")
@@ -186,7 +312,7 @@ local function fill(data)
 	for _, task in (Tasks.list(data)) do
 		if task.kind == "choose" then
 			if task.key == "root" then
-				data.root = Roots.make({ "wood", "fire" })
+				data.root = Roots.make({ "wood" })
 			elseif task.key == "chilsu" then
 				data.choice.chilsu = "cheong"
 			elseif task.key == "element" then
@@ -251,9 +377,10 @@ check("범인부터 단수기까지", function()
 	eq(#tasks, 3, "영기 느끼기, 영근, 영초")
 	eq((Progression.choose(data, "root", { "wood" })), false, "영기를 느끼기 전에는 못 고른다")
 	Tasks.set(data, "sense", 30)
-	eq((Progression.choose(data, "root", { "wood", "fire", "fire" })), false)
-	eq((Progression.choose(data, "root", { "wood", "fire" })), true)
-	eq(data.root.kind, "jin")
+	eq((Progression.choose(data, "root", { "wood", "fire" })), false, "속성은 하나만")
+	eq((Progression.choose(data, "root", { "wood" })), true)
+	eq(data.root.kind, "cheon")
+	eq(data.choice.element, "wood", "영근 속성이 곧 본명 속성")
 	eq((Progression.choose(data, "root", { "wood" })), false, "다시 못 고른다")
 	eq(data.log[1].e, "root", "수행 일지")
 
@@ -273,13 +400,13 @@ check("범인부터 단수기까지", function()
 	eq(Progression.attemptBreakthrough(data).kind, "success")
 	eq(data.step, 2, "단수기")
 	eq(#Tasks.list(data), 3, "오행지의 음양지의 혼원지의")
-	eq(Tasks.find(data, "ohaeng").max, 2, "진영근 두 속성 = 오행처 두 곳")
+	eq(Tasks.find(data, "ohaeng").max, 1, "영근 속성 하나 = 오행처 한 곳")
 end)
-check("선통후각은 천·진영근만", function()
+check("선통후각은 영근이 깨어난 뒤에", function()
 	local data = Progression.newData()
 	data.step = YEONGI
-	data.root = Roots.make({ "wood", "fire", "earth", "metal" })
-	eq((Progression.skipTask(data, "jisal")), false, "잡영근")
+	data.root = nil
+	eq((Progression.skipTask(data, "jisal")), false, "영근이 없다")
 	data.root = Roots.make({ "wood" })
 	local before = Progression.requiredQi(data)
 	eq((Progression.skipTask(data, "jisal")), true)
@@ -300,7 +427,7 @@ check("연기기 3성에 오르면 취령진을 받는다", function()
 end)
 check("칠수와 본명 속성", function()
 	local data = Progression.newData()
-	data.root = Roots.make({ "wood", "water" })
+	data.root = Roots.make({ "water" })
 	eq((Progression.choose(data, "chilsu", "cheong")), false, "7성 전에는 못 고른다")
 	data.step = YEONGI + 6
 	eq((Progression.choose(data, "chilsu", "moon")), false)
@@ -397,11 +524,12 @@ check("최고 경지", function()
 end)
 check("홍령삼", function()
 	local data = Progression.newData()
-	data.root = Roots.make({ "wood", "fire", "earth", "metal", "water" })
+	data.root = Roots.make({ "metal" })
 	data.step = 10
 	Progression.addItem(data, "hongsam")
 	eq(Progression.eat(data, "hongsam").ok, true)
 	eq(data.root.kind, "hong")
+	eq(data.root.elements[1], "metal", "속성은 그대로")
 	eq(Progression.itemCount(data, "hongsam"), 0)
 	Progression.addItem(data, "hongsam")
 	data.root = Roots.make({ "wood" })
@@ -515,10 +643,11 @@ check("저장 데이터 정리", function()
 	})
 	eq(data.step, Realms.maxStep, "사축기 이상은 천인 대원만으로")
 	eq(data.qi, 0)
-	eq(data.root.kind, "jin")
-	eq(data.root.elements[1], "wood")
+	eq(data.root.kind, "cheon", "예전 진영근은 천영근 하나로")
+	eq(data.root.elements[1], "fire")
+	eq(#data.root.elements, 1)
 	eq(data.choice.chilsu, "baek")
-	eq(data.choice.element, nil, "영근에 없는 본명 속성은 버린다")
+	eq(data.choice.element, "fire", "본명 속성은 영근 속성")
 	eq(data.items.herb, 3)
 	eq(data.items.bogus, nil)
 	eq(data.items.pill, nil)
@@ -629,7 +758,7 @@ check("검수용 단계 옮기기", function()
 end)
 check("건너뛴 고르기는 뒤 단계에서 먼저 고른다", function()
 	local data = Progression.newData()
-	data.root = Roots.make({ "wood", "fire" })
+	data.root = Roots.make({ "fire" })
 	data.choice.chilsu = "cheong"
 	data.step = Realms.firstStepById.cheonin
 	local ids = {}
@@ -788,7 +917,7 @@ check("연국 맵 짓기", function()
 			for _, element in combo do
 				local data = Progression.newData()
 				data.step = step
-				data.root = Roots.make(combo)
+				data.root = Roots.make({ element })
 				data.choice = { chilsu = "cheong", element = element }
 				for _, job in Tasks.list(data) do
 					for _, site in job.sites or {} do
@@ -882,7 +1011,7 @@ check("연국 맵 짓기", function()
 	print(`  파트 {parts}개`)
 end)
 
-print("\n진행 속도 (영맥 없이 / 상품 영맥, 진영근 둘, 과업 시간 빼고 영력만)")
+print("\n진행 속도 (영맥 없이 / 상품 영맥, 천영근, 과업 시간 빼고 영력만)")
 do
 	local veinFor = function(_step: number): number
 		local best = 1
@@ -893,7 +1022,7 @@ do
 	end
 	local plain, veined = 0, 0
 	local data = Progression.newData()
-	data.root = Roots.make({ "wood", "fire" })
+	data.root = Roots.make({ "wood" })
 	data.choice.chilsu = "cheong"
 	data.choice.element = "wood"
 	for step = 1, Realms.maxStep - 1 do

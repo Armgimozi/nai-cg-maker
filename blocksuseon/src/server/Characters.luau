@@ -3,9 +3,14 @@
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 
 local Progression = require(Shared.Progression)
+local Races = require(Shared.Races)
 local PlayerData = require(script.Parent.PlayerData)
 
 local Characters = {}
+
+local BASE_WALK = 16
+local BASE_JUMP_POWER = 50
+local BASE_JUMP_HEIGHT = 7.2
 
 function Characters.humanoid(player: Player): Humanoid?
 	local character = player.Character
@@ -27,6 +32,13 @@ function Characters.applyStats(player: Player, heal: boolean)
 	local humanoid = Characters.humanoid(player)
 	if not data or not humanoid then
 		return
+	end
+	-- 종족에 따라 걸음과 도약이 다르다
+	humanoid.WalkSpeed = BASE_WALK * Races.mult(data.race, "speed")
+	if humanoid.UseJumpPower then
+		humanoid.JumpPower = BASE_JUMP_POWER * math.sqrt(Races.mult(data.race, "jump"))
+	else
+		humanoid.JumpHeight = BASE_JUMP_HEIGHT * Races.mult(data.race, "jump")
 	end
 	local maxHealth = Progression.maxHealth(data)
 	local gained = math.max(0, maxHealth - humanoid.MaxHealth)

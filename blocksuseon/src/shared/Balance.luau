@@ -52,8 +52,9 @@ Balance.ITEMS = {
 	hongsam = { name = "홍령삼" },
 	pill = { name = "축기단" },
 	starSeed = { name = "별씨" },
+	yodan = { name = "요단", qi = 0.25 }, -- 요수를 잡으면 나오는 내단
 }
-Balance.ITEM_ORDER = { "herb", "lingzhi", "hongsam", "pill", "starSeed" }
+Balance.ITEM_ORDER = { "herb", "lingzhi", "yodan", "hongsam", "pill", "starSeed" }
 
 -- 정순지력: 축기기에서 수(宿)를 하나 완성할 때마다 오르는 몸의 단단함
 Balance.PURE_FORCE_HP = 0.05 -- 수마다 최대 체력 +

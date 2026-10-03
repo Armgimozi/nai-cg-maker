@@ -8,6 +8,8 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
+local MarketplaceService = game:GetService("MarketplaceService")
+local PolicyService = game:GetService("PolicyService")
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 
 local Realms = require(Shared.Realms)
@@ -19,10 +21,12 @@ local Roots = require(Shared.Roots)
 local Clock = require(Shared.Clock)
 local Tasks = require(Shared.Tasks)
 local Places = require(Shared.Places)
+local Races = require(Shared.Races)
 local Ui = require(script.Parent.Ui)
 local Notice = require(script.Parent.Notice)
 local PlaceBanner = require(script.Parent.PlaceBanner)
 local TravelMenu = require(script.Parent.TravelMenu)
+local CombatHud = require(script.Parent.CombatHud)
 local Choice = require(script.Parent.Choice)
 local Naegwan = require(script.Parent.Naegwan)
 
@@ -379,12 +383,13 @@ local function buildTribulation(gui: ScreenGui)
 	ui.tribWave.frame.LayoutOrder = 2
 end
 
--- 아래 가운데: 술법 단축칸 (기본 Q·E·Z·X, 상태창에서 바꾼다)
+-- 아래 가운데: 술법 단축칸 (기본 Q·E·Z·X, 상태창에서 바꾼다).
+-- 맨 아래에는 Roblox 도구 칸(무기, 숫자 키 1~9)이 있으므로 그 위에 둔다
 local function buildHotbar(gui: ScreenGui)
 	local bar = scaled(new("Frame", {
 		Name = "Hotbar",
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -12),
+		Position = UDim2.new(0.5, 0, 1, -84),
 		Size = UDim2.fromOffset(Progression.HOTBAR_SIZE * 76, 92),
 		BackgroundTransparency = 1,
 		Parent = gui,
@@ -467,7 +472,8 @@ local function buildHotbar(gui: ScreenGui)
 end
 
 -- 가운데: 상태창 (C)
-local STAT_KEYS = { "체력", "영력", "흡수", "영근", "천겁", "영초", "비급" }
+local STAT_KEYS = { "체력", "영력", "흡수", "영근", "종족", "천겁", "영초", "비급" }
+local STAT_GAP = 34
 
 local function buildStatusWindow(gui: ScreenGui)
 	local panel = scaled(image("panel", {
@@ -527,7 +533,7 @@ local function buildStatusWindow(gui: ScreenGui)
 
 	ui.swStats = {}
 	for index, key in STAT_KEYS do
-		local y = 106 + (index - 1) * 40
+		local y = 106 + (index - 1) * STAT_GAP
 		local name = text("body", 16, { color = C.dim, text = key })
 		name.frame.Position = UDim2.fromOffset(-4, y)
 		name.frame.Parent = left
@@ -545,6 +551,83 @@ local function buildStatusWindow(gui: ScreenGui)
 		})
 		ui.swStats[key] = value
 	end
+	-- 종족 효과와 다시 뽑기 (로벅스)
+	local effects, setEffects = Ui.paragraph("body", 13, 250, 2, C.jade, left)
+	effects.Position = UDim2.fromOffset(-2, 106 + #STAT_KEYS * STAT_GAP)
+	ui.setRaceEffects = setEffects
+	local reroll = Ui.pill(
+		string.format("다시 뽑기 %d 로벅스", Races.REROLL_PRICE),
+		132,
+		26,
+		13,
+		left,
+		function()
+			if Races.REROLL_PRODUCT_ID == 0 then
+				Hud.toast("종족 다시 뽑기는 아직 준비 중이다.", "info")
+				return
+			end
+			MarketplaceService:PromptProductPurchase(player, Races.REROLL_PRODUCT_ID)
+		end
+	)
+	reroll.AnchorPoint = Vector2.new(1, 0)
+	reroll.Position = UDim2.new(1, 4, 0, -2)
+	-- 유료 뽑기는 사기 전에 확률을 보여 준다 (Roblox 규칙)
+	local odds = Ui.pill("확률 보기", 78, 26, 13, left, function()
+		ui.oddsPanel.Visible = not ui.oddsPanel.Visible
+	end)
+	odds.AnchorPoint = Vector2.new(1, 0)
+	odds.Position = UDim2.new(1, -134, 0, -2)
+	-- 유료 랜덤 아이템을 못 사는 곳의 사람에게는 다시 뽑기를 숨긴다
+	task.spawn(function()
+		local ok, info = pcall(function()
+			return PolicyService:GetPolicyInfoForPlayerAsync(player)
+		end)
+		if ok and info and info.ArePaidRandomItemsRestricted then
+			reroll.Visible = false
+		end
+	end)
+
+	-- 확률 창
+	local oddsPanel = image("panel", {
+		Name = "Odds",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(420, 460),
+		SliceScale = 0.7,
+		Visible = false,
+		ZIndex = 6,
+		Parent = panel,
+	})
+	local oddsTitle = row({ Position = UDim2.fromOffset(0, 18), Size = UDim2.new(1, 0, 0, 40), Parent = oddsPanel })
+	text("title", 28, { gradient = GOLD_TEXT, text = "종족 확률", parent = oddsTitle })
+	local oddsClose = image("iconClose", {
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -18, 0, 18),
+		Size = UDim2.fromOffset(28, 28),
+		Parent = oddsPanel,
+	}, "ImageButton")
+	oddsClose.Activated:Connect(function()
+		oddsPanel.Visible = false
+	end)
+	ui.oddsIntro = text("body", 13, { color = C.dim })
+	ui.oddsIntro.frame.Position = UDim2.fromOffset(34, 64)
+	ui.oddsIntro.frame.Parent = oddsPanel
+	ui.oddsRows = {}
+	for index, race in Races.list do
+		local y = 90 + (index - 1) * 44
+		local name = text("body", 16, { color = C.cream, text = race.name })
+		name.frame.Position = UDim2.fromOffset(34, y)
+		name.frame.Parent = oddsPanel
+		local percent = text("body", 16, { color = C.gold })
+		percent.frame.AnchorPoint = Vector2.new(1, 0)
+		percent.frame.Position = UDim2.new(1, -34, 0, y)
+		percent.frame.Parent = oddsPanel
+		local summary = text("body", 12, { color = C.dim, text = Races.effects(race.id) })
+		summary.frame.Position = UDim2.fromOffset(34, y + 21)
+		summary.frame.Parent = oddsPanel
+		ui.oddsRows[race.id] = { name = name, percent = percent }
+	end
+	ui.oddsPanel = oddsPanel
 
 	new("Frame", {
 		Position = UDim2.fromOffset(318, 116),
@@ -790,6 +873,9 @@ function Hud.build(newActions: Actions)
 		actions.travel(id)
 	end)
 	local banner = PlaceBanner.build(gui)
+	local combat = CombatHud.build(gui)
+	table.insert(scales, combat:FindFirstChildOfClass("UIScale"))
+	table.insert(scales, (gui:FindFirstChild("MyHealth") :: any):FindFirstChildOfClass("UIScale"))
 	table.insert(scales, (gui:FindFirstChild("Choice") :: any):FindFirstChildOfClass("UIScale"))
 	table.insert(scales, (gui:FindFirstChild("Naegwan") :: any):FindFirstChildOfClass("UIScale"))
 	table.insert(scales, (gui:FindFirstChild("TravelMenu") :: any):FindFirstChildOfClass("UIScale"))
@@ -976,6 +1062,7 @@ local function updateStatusWindow(state)
 		["영력"] = string.format("%s / %s", Format.qi(state.qi), Format.qi(state.req)),
 		["흡수"] = string.format("%s / 초", Format.rate(state.gain)),
 		["영근"] = if state.root then (string.gsub(Roots.describe(state.root), "[(),]", "")) else "아직 모름",
+		["종족"] = if state.race then Races.get(state.race).name else "-",
 		["천겁"] = string.format("%d회 넘음", stats.tribulations or 0),
 		["영초"] = string.format("%d개", stats.herbs or 0),
 		["비급"] = string.format("%d권", stats.manuals or 0),
@@ -983,6 +1070,14 @@ local function updateStatusWindow(state)
 	for key, label in ui.swStats do
 		label:set(values[key] or "-")
 	end
+	ui.setRaceEffects(if state.race then Races.effects(state.race) else "")
+	-- 다시 뽑으면 지금 종족은 나오지 않는다: 그만큼 나눠 보인다
+	for id, entry in ui.oddsRows do
+		local isMine = id == state.race
+		entry.percent:set(if isMine then "지금 종족" else string.format("%.1f%%", Races.chance(id, state.race)))
+		entry.name:setColor(if isMine then C.gold else C.cream)
+	end
+	ui.oddsIntro:set("다시 뽑으면 지금 종족을 뺀 나머지에서 이 확률로 나온다.")
 	ui.swSlots:set(string.format("장착 %d / %d", #state.equipped, state.slots))
 	for id, entry in pouchRows do
 		local count = (state.items or {})[id] or 0
@@ -1205,6 +1300,10 @@ function Hud.openTrial(payload: { [string]: any })
 	Choice.close()
 	TravelMenu.close()
 	Naegwan.open(payload :: any, lastState and lastState.root)
+end
+
+function Hud.combat(payload: { [string]: any })
+	CombatHud.event(payload, Hud.toast)
 end
 
 function Hud.toast(message: string, kind: string?)

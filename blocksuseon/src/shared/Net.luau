@@ -20,12 +20,13 @@
 -- Skill    (서버 → 클라) 술법이 나갔다 { id, cooldown, duration }
 -- Trial    (서버 → 클라) 내관을 연다 { id, mode, seed, params, title } / 닫는다 { close = true }
 -- Speak    (서버 → 클라) 마을 사람 말풍선 (머리 파트, 대사)
+-- Combat   (서버 → 클라) 싸움 { kind = "hit" | "hurt" | "blocked", ... } (화면 위 대상 창, 맞은 느낌)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local FOLDER_NAME = "BlockSuseonNet"
-local EVENTS = { "Request", "State", "Notify", "Cinematic", "Skill", "Trial", "Speak" }
+local EVENTS = { "Request", "State", "Notify", "Cinematic", "Skill", "Trial", "Speak", "Combat" }
 
 local Net = {}
 

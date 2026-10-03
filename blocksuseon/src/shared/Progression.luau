@@ -6,6 +6,8 @@ local Balance = require(script.Parent.Balance)
 local Skills = require(script.Parent.Skills)
 local Josa = require(script.Parent.Josa)
 local Roots = require(script.Parent.Roots)
+local Races = require(script.Parent.Races)
+local Combat = require(script.Parent.Combat)
 local Tasks = require(script.Parent.Tasks)
 
 export type Data = {
@@ -23,6 +25,9 @@ export type Data = {
 	keys: { string }, -- 단축칸마다 쓰는 키 이름 (KeyCode.Name)
 	stats: { [string]: number },
 	waypoints: { [string]: boolean }, -- 밟아 본 전송진
+	race: string?, -- 종족 (Races.luau). 처음 들어올 때 서버가 뽑는다
+	weapons: { Combat.Weapon }, -- 지닌 무기 (숫자 키 1~9 도구 칸)
+	receipts: { string }, -- 처리한 로벅스 구매 (같은 구매를 두 번 주지 않으려고)
 }
 
 export type BreakResult = {
@@ -35,8 +40,9 @@ local EFFECT = Skills.EFFECT
 
 local Progression = {}
 
-Progression.DATA_VERSION = 4
+Progression.DATA_VERSION = 5
 Progression.LOG_SIZE = 40
+Progression.RECEIPT_KEEP = 50
 
 -- 술법 단축칸. 숫자 키는 장비·도구 칸으로 남겨 두고, 손이 쉽게 가는 글자 키를 쓴다.
 Progression.HOTBAR_SIZE = 4
@@ -83,6 +89,9 @@ function Progression.newData(): Data
 		hotbar = table.create(Progression.HOTBAR_SIZE, ""),
 		keys = table.clone(Progression.DEFAULT_KEYS),
 		waypoints = {},
+		race = nil,
+		receipts = {},
+		weapons = { { kind = "sword", grade = 1 } },
 		stats = {
 			breakthroughs = 0,
 			trialFails = 0,
@@ -144,7 +153,8 @@ function Progression.reconcile(saved: any): Data
 	end
 
 	data.step = math.clamp(math.floor(data.step), 1, Realms.maxStep)
-	data.root = Roots.reconcile(saved.root)
+	local savedElement = if type(saved.choice) == "table" then saved.choice.element else nil
+	data.root = Roots.reconcile(saved.root, savedElement)
 
 	-- 과업 진행은 같은 단계일 때만 이어 간다. 예전 판 기록은 지금 단계를 새로 시작한다
 	-- (지난 단계의 과업은 끝낸 것으로 친다)
@@ -165,16 +175,37 @@ function Progression.reconcile(saved: any): Data
 		if table.find(Tasks.CHOICES.chilsu, saved.choice.chilsu) then
 			data.choice.chilsu = saved.choice.chilsu
 		end
-		local element = saved.choice.element
-		if data.root and table.find(data.root.elements, element) then
-			data.choice.element = element
-		end
 		if Roots.isElement(saved.choice.center) then
 			data.choice.center = saved.choice.center
 		end
 		if table.find(Tasks.CHOICES.dosim, saved.choice.dosim) then
 			data.choice.dosim = saved.choice.dosim
 		end
+	end
+	if Races.isRace(saved.race) then
+		data.race = saved.race
+	end
+	if type(saved.weapons) == "table" then
+		local weapons = {}
+		for _, weapon in saved.weapons do
+			if Combat.isWeapon(weapon) and #weapons < Combat.MAX_WEAPONS then
+				table.insert(weapons, { kind = weapon.kind, grade = weapon.grade })
+			end
+		end
+		if #weapons > 0 then
+			data.weapons = weapons
+		end
+	end
+	if type(saved.receipts) == "table" then
+		for _, id in saved.receipts do
+			if type(id) == "string" and #id <= 80 and #data.receipts < Progression.RECEIPT_KEEP then
+				table.insert(data.receipts, id)
+			end
+		end
+	end
+	-- 영근 속성이 하나뿐이니 본명 속성은 그 속성이다
+	if data.root then
+		data.choice.element = Roots.element(data.root)
 	end
 	-- 전송진 id 는 맵이 정하므로 여기서는 모양만 본다 (없는 진은 Travel 이 무시한다)
 	if type(saved.waypoints) == "table" then
@@ -637,6 +668,51 @@ function Progression.skipTask(data: Data, id: string): (boolean, string)
 		string.format("%s 재능으로 먼저 뚫었다. 이 단계에 영력이 더 든다.", Josa.eul(task.label))
 end
 
+-- 무기 ------------------------------------------------------------------------------
+
+-- 무기를 얻는다. 같은 종류를 같거나 더 높은 등급으로 이미 가졌거나 칸이 차면 false
+function Progression.addWeapon(data: Data, weapon: Combat.Weapon): boolean
+	if not Combat.isWeapon(weapon) then
+		return false
+	end
+	for i, owned in data.weapons do
+		if owned.kind == weapon.kind then
+			if owned.grade >= weapon.grade then
+				return false
+			end
+			-- 더 좋은 같은 종류는 그 칸을 바꾼다
+			data.weapons[i] = { kind = weapon.kind, grade = weapon.grade }
+			return true
+		end
+	end
+	if #data.weapons >= Combat.MAX_WEAPONS then
+		return false
+	end
+	table.insert(data.weapons, { kind = weapon.kind, grade = weapon.grade })
+	return true
+end
+
+-- 종족 ------------------------------------------------------------------------------
+
+-- 종족을 뽑는다 (roll: 0~1). 다시 뽑기면 지금과 다른 종족이 나온다
+function Progression.rollRace(data: Data, roll: number, reroll: boolean?): string
+	local race = Races.pick(roll, if reroll then data.race else nil)
+	data.race = race
+	return race
+end
+
+-- 이 로벅스 구매를 이미 처리했는가. 아니면 기록한다 (오래된 것부터 지운다)
+function Progression.claimReceipt(data: Data, purchaseId: string): boolean
+	if table.find(data.receipts, purchaseId) then
+		return false
+	end
+	table.insert(data.receipts, purchaseId)
+	while #data.receipts > Progression.RECEIPT_KEEP do
+		table.remove(data.receipts, 1)
+	end
+	return true
+end
+
 -- 고르기: 영근(root), 칠수(chilsu), 본명 속성(element)
 function Progression.choose(data: Data, key: any, value: any): (boolean, string)
 	if key == "root" then
@@ -652,6 +728,8 @@ function Progression.choose(data: Data, key: any, value: any): (boolean, string)
 			return false, "고를 수 없는 기운이다."
 		end
 		data.root = root
+		-- 속성이 하나뿐이니 그 속성이 곧 본명 속성이다
+		data.choice.element = Roots.element(root)
 		Progression.addLog(data, "root")
 		return true, string.format("%s 깨어났다.", Josa.i(Roots.describe(root)))
 	elseif key == "chilsu" then
@@ -761,10 +839,8 @@ function Progression.eat(data: Data, id: any): EatResult
 			return { ok = false, message = "이미 홍령수지체다." }
 		end
 		Progression.takeItems(data, { hongsam = 1 })
-		data.root = Roots.hong()
-		if data.choice.element and not table.find(data.root.elements, data.choice.element) then
-			data.choice.element = nil
-		end
+		data.root = Roots.hong(Roots.element(data.root))
+		data.choice.element = Roots.element(data.root)
 		Progression.addLog(data, "hongsam")
 		return {
 			ok = true,
@@ -802,21 +878,22 @@ end
 
 -- 공법이 반영된 수치 ------------------------------------------------------------------
 
--- extraMult: 취령진 같은 그 밖의 배율
-function Progression.qiPerSecond(data: Data, veinMult: number, extraMult: number?): number
+-- extraMult: 취령진 같은 그 밖의 배율. isNight: 지금 밤인가 (월영족)
+function Progression.qiPerSecond(data: Data, veinMult: number, extraMult: number?, isNight: boolean?): number
 	local mult = if Progression.passive(data, "tonap") then 1 + EFFECT.tonap else 1
+	mult *= Races.mult(data.race, "gain") * (if isNight then Races.mult(data.race, "night") else 1)
 	return Balance.qiPerSecond(data.step, veinMult) * mult * Roots.gain(data.root) * (extraMult or 1)
 end
 
 function Progression.herbQi(data: Data, item: string): number
 	local mult = if Progression.passive(data, "baekcho") then 1 + EFFECT.baekcho else 1
-	return Balance.herbQi(data.step, item) * mult
+	return Balance.herbQi(data.step, item) * mult * Races.mult(data.race, "herb")
 end
 
 -- 내관 미니게임 판정 폭 배율 (잡영근은 넉넉하고, 청심결은 더 넓힌다)
 function Progression.trialBand(data: Data): number
 	local mult = if Progression.passive(data, "cheongsim") then 1 + EFFECT.cheongsimBand else 1
-	return Roots.band(data.root) * mult
+	return Roots.band(data.root) * mult * Races.mult(data.race, "band")
 end
 
 -- 정순지력: 축기기에서 완성한 수(宿)의 수 (0~4)
@@ -828,12 +905,14 @@ end
 function Progression.maxHealth(data: Data): number
 	local mult = if Progression.passive(data, "geumgang") then 1 + EFFECT.geumgang else 1
 	mult *= 1 + Balance.PURE_FORCE_HP * Progression.pureForce(data)
+	mult *= Races.mult(data.race, "hp")
 	return math.floor(Balance.maxHealth(data.step) * mult)
 end
 
 function Progression.tribulationDamage(data: Data, damage: number): number
 	local mult = if Progression.passive(data, "piroe") then 1 - EFFECT.piroe else 1
 	mult *= 1 - Balance.PURE_FORCE_GUARD * Progression.pureForce(data)
+	mult *= Races.mult(data.race, "guard")
 	return damage * mult
 end
 

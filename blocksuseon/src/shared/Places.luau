@@ -17,6 +17,7 @@ export type Region = {
 	z1: number?,
 	z2: number?,
 	minY: number?, -- 이 높이보다 위에 있어야 이 땅
+	tier: number, -- 요수 위험도 (0 이면 요수가 들어오지 않는 곳)
 	test: ((x: number, z: number) -> boolean)?,
 }
 
@@ -30,6 +31,7 @@ local peak = Land.PEAK
 Places.REGIONS = {
 	{
 		id = "deungseon",
+		tier = 5,
 		name = "등선향",
 		sub = "답천사막 위에 뜬 섬, 승천문이 있는 곳",
 		x = Land.ISLAND.x,
@@ -37,9 +39,10 @@ Places.REGIONS = {
 		r = 175,
 		minY = 200,
 	},
-	{ id = "yeonguk", name = "연국", sub = "연산 아래 작은 마을", x = 0, z = 0, r = 140 },
+	{ id = "yeonguk", tier = 0, name = "연국", sub = "연산 아래 작은 마을", x = 0, z = 0, r = 140 },
 	{
 		id = "cheonsaek",
+		tier = 0,
 		name = "천색성",
 		sub = "벽라국 장인들의 성",
 		x1 = 330,
@@ -49,6 +52,7 @@ Places.REGIONS = {
 	},
 	{
 		id = "volcano",
+		tier = 3,
 		name = "화구산",
 		sub = "불이 꺼지지 않는 산",
 		x = Land.VOLCANO.x,
@@ -57,6 +61,7 @@ Places.REGIONS = {
 	},
 	{
 		id = "dapcheondae",
+		tier = 4,
 		name = "답천대",
 		sub = "하늘을 밟는 바위",
 		x = Land.MESA.x,
@@ -65,6 +70,7 @@ Places.REGIONS = {
 	},
 	{
 		id = "ruins",
+		tier = 4,
 		name = "중령성국 폐허",
 		sub = "용맥을 빼앗기고 모래에 묻힌 나라",
 		x = Land.RUINS.x,
@@ -73,15 +79,25 @@ Places.REGIONS = {
 	},
 	{
 		id = "seoak",
+		tier = 0,
 		name = "서악 마을",
 		sub = "쇄천봉 기슭의 마을",
 		x = Land.SEOAK.x,
 		z = Land.SEOAK.z,
 		r = 100,
 	},
-	{ id = "summit", name = "쇄천봉 꼭대기", sub = "구름보다 높은 곳", x = peak.x, z = peak.z, r = 70 },
+	{
+		id = "summit",
+		tier = 4,
+		name = "쇄천봉 꼭대기",
+		sub = "구름보다 높은 곳",
+		x = peak.x,
+		z = peak.z,
+		r = 70,
+	},
 	{
 		id = "swaecheon",
+		tier = 3,
 		name = "쇄천봉",
 		sub = "하늘을 부순다는 서쪽의 큰 산",
 		test = function(x, z)
@@ -98,6 +114,7 @@ Places.REGIONS = {
 	},
 	{
 		id = "snowfield",
+		tier = 4,
 		name = "서천 설원",
 		sub = "세상 서쪽 끝의 눈벌",
 		test = function(x, z)
@@ -106,6 +123,7 @@ Places.REGIONS = {
 	},
 	{
 		id = "pool",
+		tier = 1,
 		name = "용소",
 		sub = "폭포가 떨어지는 깊은 못",
 		x = Land.POOL.x,
@@ -114,6 +132,7 @@ Places.REGIONS = {
 	},
 	{
 		id = "gorge",
+		tier = 2,
 		name = "연하 협곡",
 		sub = "바다로 흘러가는 물길",
 		test = function(x, z)
@@ -122,15 +141,25 @@ Places.REGIONS = {
 	},
 	{
 		id = "southisle",
+		tier = 3,
 		name = "남천도",
 		sub = "해룡족 천문대가 있던 섬",
 		x = Land.SOUTH_ISLE.x,
 		z = Land.SOUTH_ISLE.z,
 		r = 100,
 	},
-	{ id = "haeryong", name = "해룡 사당", sub = "바다를 굽어보는 곶", x = -330, z = 730, r = 70 },
+	{
+		id = "haeryong",
+		tier = 2,
+		name = "해룡 사당",
+		sub = "바다를 굽어보는 곶",
+		x = -330,
+		z = 730,
+		r = 70,
+	},
 	{
 		id = "sea",
+		tier = 2,
 		name = "남해",
 		sub = "끝없는 바다",
 		test = function(x, z)
@@ -139,6 +168,7 @@ Places.REGIONS = {
 	},
 	{
 		id = "steppe",
+		tier = 2,
 		name = "북방 대초원",
 		sub = "바람이 그치지 않는 들",
 		test = function(_x, z)
@@ -147,6 +177,7 @@ Places.REGIONS = {
 	},
 	{
 		id = "desert",
+		tier = 3,
 		name = "답천사막",
 		sub = "수계 한가운데의 모래바다",
 		test = function(x, _z)
@@ -155,6 +186,7 @@ Places.REGIONS = {
 	},
 	{
 		id = "byeokra",
+		tier = 2,
 		name = "벽라국",
 		sub = "사막과 맞닿은 메마른 땅",
 		test = function(x, _z)
@@ -163,6 +195,7 @@ Places.REGIONS = {
 	},
 	{
 		id = "forest",
+		tier = 1,
 		name = "영초숲",
 		sub = "영초와 천년영지가 돋는 숲",
 		x1 = -470,
@@ -170,7 +203,7 @@ Places.REGIONS = {
 		z1 = -340,
 		z2 = 330,
 	},
-	{ id = "fields", name = "연국 들판", sub = "논밭과 들길" },
+	{ id = "fields", tier = 1, name = "연국 들판", sub = "논밭과 들길" },
 } :: { Region }
 
 Places.byId = {} :: { [string]: Region }
@@ -204,6 +237,11 @@ function Places.regionAt(x: number, z: number, y: number?): Region
 		end
 	end
 	return Places.REGIONS[#Places.REGIONS]
+end
+
+-- 이 자리의 요수 위험도 (0 은 안전한 곳)
+function Places.tierAt(x: number, z: number, y: number?): number
+	return Places.regionAt(x, z, y).tier
 end
 
 return Places

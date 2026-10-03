@@ -78,10 +78,11 @@ function PlayerData.canSave(player: Player): boolean
 	return profile ~= nil and profile.canSave
 end
 
-function PlayerData.save(player: Player)
+-- 저장했으면 true
+function PlayerData.save(player: Player): boolean
 	local profile = profiles[player]
 	if not profile or not profile.canSave or not store then
-		return
+		return false
 	end
 	local ok, err = pcall(function()
 		store:UpdateAsync(keyFor(player), function()
@@ -91,6 +92,7 @@ function PlayerData.save(player: Player)
 	if not ok then
 		warn(string.format("[블록수선전] %s 저장 실패: %s", player.Name, tostring(err)))
 	end
+	return ok
 end
 
 -- 검수 명령 ------------------------------------------------------------------------------

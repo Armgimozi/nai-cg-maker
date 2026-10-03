@@ -147,19 +147,18 @@ end
 
 STEP_TASKS["dansu:1"] = function(data)
 	local root = data.root
-	local count = if root then #root.elements else 1
 	return {
 		{
 			id = "ohaeng",
 			kind = "meditate",
 			label = "오행지의",
 			hint = string.format(
-				"내 영근 속성(%s)의 오행처에서 20초씩 운기조식한다.",
+				"내 영근 속성(%s)의 오행처에서 20초 운기조식한다.",
 				elementNames(root)
 			),
 			sites = elementSites(root),
 			seconds = 20,
-			max = count,
+			max = 1,
 		},
 		{
 			id = "yinyang",
@@ -174,7 +173,7 @@ STEP_TASKS["dansu:1"] = function(data)
 			id = "honwon",
 			kind = "trial",
 			mode = "balance",
-			params = { bars = count, target = 15 },
+			params = { bars = 2, target = 15, labels = { "음", "양" } },
 			label = "혼원지의",
 			hint = "영력 농도가 흔들리지 않게 붙잡아 혼원진기로 바꾼다.",
 			skippable = true,
@@ -343,17 +342,13 @@ end
 
 STEP_TASKS["yeongi:9"] = function(data)
 	local element = data.choice and data.choice.element
-	local root = data.root
-	local single = root and #root.elements == 1
 	return {
 		{
 			id = "bonmyeong",
 			kind = "choose",
 			key = "element",
 			label = "본명 속성 고르기",
-			hint = if single
-				then "천영근은 지닌 속성이 곧 본명 속성이다."
-				else "내 영근 속성 가운데 공법의 주 속성으로 삼을 하나를 고른다.",
+			hint = "영근이 지닌 한 속성이 곧 본명 속성이다.",
 			max = 1,
 		},
 		{

@@ -67,6 +67,11 @@ function wrap(inst)
 					return fakeSignal(inst, "Changed:" .. property)
 				end
 			end
+			if key == "GetAttributeChangedSignal" then
+				return function(_, attribute)
+					return fakeSignal(inst, "Attribute:" .. attribute)
+				end
+			end
 			local value = inst[key]
 			if type(value) == "function" then
 				return function(_, ...)
@@ -117,6 +122,14 @@ local fakeChannel = {
 	end,
 }
 local services = {
+	MarketplaceService = {
+		PromptProductPurchase = function() end,
+	},
+	PolicyService = {
+		GetPolicyInfoForPlayerAsync = function()
+			return { ArePaidRandomItemsRestricted = false }
+		end,
+	},
 	CollectionService = {
 		GetTagged = function()
 			return {}
@@ -171,7 +184,10 @@ local services = {
 		TouchEnabled = false,
 		InputEnded = fakeSignal(heartbeatKey, "InputEnded"),
 	},
-	RunService = { Heartbeat = fakeSignal(heartbeatKey, "Heartbeat") },
+	RunService = {
+		Heartbeat = fakeSignal(heartbeatKey, "Heartbeat"),
+		RenderStepped = fakeSignal(heartbeatKey, "Heartbeat"),
+	},
 	-- 글자 크기 재기: Roblox 글꼴 폭을 대충 흉내 낸다
 	TextService = {
 		GetTextSize = function(_, text, size, _font, frame)
@@ -216,7 +232,13 @@ env.TweenInfo = {
 		return { ... }
 	end,
 }
-env.typeof = typeof
+env.typeof = function(value)
+	-- 감싼 인스턴스도 인스턴스로 본다
+	if type(value) == "table" and rawget(value, "__inst") then
+		return "Instance"
+	end
+	return typeof(value)
+end
 env.task = task
 
 -- 실제로 만들고 갱신해 본다 ----------------------------------------------------------
@@ -418,6 +440,22 @@ do
 	fire(buttons[2], "Activated")
 	assert(sent.travel and sent.travel[1] == "wp_two", "고른 진을 보내야 한다")
 	assert(not Hud.travelOpen(), "고르면 창이 닫힌다")
+end
+
+-- 싸움: 대상 창과 맞은 느낌
+do
+	local mob = roblox.Instance.new("Model")
+	mob:SetAttribute("Hp", 40)
+	mob:SetAttribute("MaxHp", 60)
+	mob:SetAttribute("Tier", 1)
+	mob.Parent = real:GetService("Workspace")
+	Hud.combat({ kind = "hit", mob = wrap(mob), name = "잿빛이리", tier = 1, hp = 40, maxHp = 60 })
+	local frame = playerGui:FindFirstChild("BlockSuseonHud"):FindFirstChild("Target")
+	assert(frame and frame.Visible, "대상 창이 떠야 한다")
+	Hud.combat({ kind = "hurt", amount = 8, name = "잿빛이리", mob = wrap(mob) })
+	Hud.combat({ kind = "blocked", name = "잿빛이리" })
+	Hud.combat({ kind = "hit", mob = wrap(mob), name = "잿빛이리", tier = 1, hp = 0, maxHp = 60, killed = true })
+	assert(not frame.Visible, "쓰러뜨리면 대상 창이 닫힌다")
 end
 
 -- 땅 이름 띄우기
@@ -684,6 +722,14 @@ for mansion = 1, 4 do
 	need("title", Tasks.MANSIONS[mansion].name)
 end
 need("title", "천지인")
+-- 종족 (상태창)
+local RacesForGlyphs = loader.require(sharedFolder.Races)
+for _, race in RacesForGlyphs.list do
+	need("body", race.name)
+	need("body", race.summary)
+	need("body", RacesForGlyphs.effects(race.id))
+end
+need("body", "종족 다시 뽑기 49 로벅스")
 -- 땅 이름 (들어설 때 화면에 띄운다)
 for _, region in loader.require(sharedFolder.Places).REGIONS do
 	need("title", region.name)

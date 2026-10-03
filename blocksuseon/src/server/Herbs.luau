@@ -9,6 +9,7 @@ local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Balance = require(Shared.Balance)
 local Progression = require(Shared.Progression)
 local Josa = require(Shared.Josa)
+local Races = require(Shared.Races)
 local PlayerData = require(script.Parent.PlayerData)
 local Sync = require(script.Parent.Sync)
 local TaskService = require(script.Parent.TaskService)
@@ -115,6 +116,11 @@ local function collect(player: Player, herb: Model, kind: string)
 	end
 	herb:Destroy()
 	Progression.addItem(data, kind)
+	-- 인족, 청림족은 하나 더 얻기도 한다 (홍령삼은 빼고)
+	local extra = Races.get(data.race).doubleHerb or 0
+	if kind ~= "hongsam" and rng:NextNumber() < extra then
+		Progression.addItem(data, kind)
+	end
 	local name = Balance.ITEMS[kind].name
 	local message = string.format(
 		"%s 주머니에 담았다. (%d개) 왼쪽 주머니나 상태창(C)에서 먹을 수 있다.",

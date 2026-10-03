@@ -1,13 +1,12 @@
 -- 영근(靈根)과 오행.
 --
--- 원작: 영근은 천지의 영기를 느끼는 능력이다. 속성이 하나면 천영근, 둘·셋이면 진영근, 넷·다섯이면
--- 잡영근이다. 속성이 많을수록 여러 공법을 다룰 수 있지만 수련 속도는 기하급수적으로 느려진다.
--- 홍령삼을 먹은 범인은 홍령수지체(목·토)가 되어 천영근만큼 빠르게 닦는다.
--- 영근을 고르는 절차는 원작에 없어서, 여기서는 첫 운기 뒤 반응한 기운을 플레이어가 고른다(게임 규칙).
+-- 영근은 천지의 영기를 느끼는 능력이다. 이 게임에서 영근은 오행 가운데 한 속성만 지닌다(게임 규칙).
+-- 첫 운기 뒤 반응한 기운 하나를 플레이어가 고른다. 홍령삼을 먹은 범인은 홍령수지체가 되어 더 빨리 닦는다.
+-- 사람마다 다른 점은 종족(Races.luau)이 맡는다.
 
 export type Root = {
-	kind: string, -- "cheon" | "jin" | "jap" | "hong"
-	elements: { string },
+	kind: string, -- "cheon" | "hong"
+	elements: { string }, -- 언제나 한 속성
 }
 
 local Roots = {}
@@ -24,104 +23,77 @@ Roots.ELEMENT = {
 
 -- 영근 종류별 효과. 숫자는 게임 밸런스 값이다.
 --   gain   : 운기조식 흡수 배율
---   band   : 내관 미니게임 판정 폭 배율 (잡영근은 넉넉하다)
---   window : 칠성제의 시운 길이(초). 천영근은 시운을 정확히 맞춰야 해서 가장 짧다
---   skip   : 영력을 더 내고 퍼즐을 건너뛸 수 있는가 (선통후각은 천·진영근만)
+--   band   : 내관 미니게임 판정 폭 배율
+--   window : 칠성제의 시운 길이(초)
+--   skip   : 영력을 더 내고 퍼즐을 건너뛸 수 있는가 (선통후각)
 Roots.KIND = {
 	cheon = {
 		name = "천영근",
 		gain = 1.3,
 		band = 1,
-		window = 30,
+		window = 45,
 		skip = true,
-		summary = "가장 빠르다. 퍼즐을 영력으로 건너뛸 수 있다. 칠성제의 시운이 가장 짧다.",
-	},
-	jin = {
-		name = "진영근",
-		gain = 1.1,
-		band = 1.1,
-		window = 60,
-		skip = true,
-		summary = "무난하다. 퍼즐을 영력으로 건너뛸 수 있다.",
-	},
-	jap = {
-		name = "잡영근",
-		gain = 0.85,
-		band = 1.3,
-		window = 120,
-		skip = false,
-		summary = "느리고 무극영운이 험하다. 대신 내관 판정이 넉넉하고 시운이 길다.",
+		summary = "한 속성만 지닌 영근. 퍼즐을 영력으로 건너뛸 수 있다.",
 	},
 	hong = {
 		name = "홍령수지체",
-		gain = 1.3,
+		gain = 1.45,
 		band = 1.1,
 		window = 60,
 		skip = true,
-		summary = "홍령삼을 먹고 바뀐 몸. 목과 토를 지녔지만 천영근만큼 빠르다.",
+		summary = "홍령삼을 먹고 바뀐 몸. 같은 속성으로 더 빨리 닦는다.",
 	},
 }
 
--- 속성 수에 따라 더 느려진다 (진영근 셋, 잡영근 다섯은 한 단계 더)
-local COUNT_GAIN = { 1, 1, 0.92, 1, 0.88 }
-
-function Roots.kindFor(count: number): string
-	if count <= 1 then
-		return "cheon"
-	elseif count <= 3 then
-		return "jin"
-	end
-	return "jap"
-end
+-- 무극영운에서 잡아야 할 변화 가닥 수
+Roots.STRANDS = 4
 
 function Roots.isElement(value: any): boolean
 	return type(value) == "string" and Roots.ELEMENT[value] ~= nil
 end
 
--- 고른 속성 목록이 올바르면 영근을 만든다. 겹치거나 모르는 속성은 거절
+-- 고른 속성이 올바르면 영근을 만든다. 속성 하나(문자열 또는 하나짜리 목록)만 받는다
 function Roots.make(elements: any): Root?
-	if type(elements) ~= "table" or #elements < 1 or #elements > 5 then
-		return nil
-	end
-	local seen = {}
-	local list = {}
-	for _, element in Roots.ELEMENTS do
-		if table.find(elements, element) then
-			table.insert(list, element)
-			seen[element] = true
-		end
-	end
-	if #list ~= #elements then
-		return nil -- 겹친 속성
-	end
-	for _, value in elements do
-		if not seen[value] then
+	local element = elements
+	if type(elements) == "table" then
+		if #elements ~= 1 then
 			return nil
 		end
+		element = elements[1]
 	end
-	return { kind = Roots.kindFor(#list), elements = list }
+	if not Roots.isElement(element) then
+		return nil
+	end
+	return { kind = "cheon", elements = { element } }
 end
 
-function Roots.hong(): Root
-	return { kind = "hong", elements = { "wood", "earth" } }
+-- 홍령삼을 먹은 몸: 속성은 그대로, 종류만 바뀐다
+function Roots.hong(element: string?): Root
+	return { kind = "hong", elements = { if Roots.isElement(element) then element :: string else "wood" } }
 end
 
--- 저장된 값이 올바른 영근인가
-function Roots.reconcile(saved: any): Root?
-	if type(saved) ~= "table" then
+-- 저장된 값을 지금 형식에 맞춘다. 예전 판의 여러 속성 영근은 prefer(본명 속성) 또는 첫 속성 하나만 남긴다
+function Roots.reconcile(saved: any, prefer: string?): Root?
+	if type(saved) ~= "table" or type(saved.elements) ~= "table" then
+		return nil
+	end
+	local element = nil
+	for _, value in saved.elements do
+		if Roots.isElement(value) and (element == nil or value == prefer) then
+			element = value
+		end
+	end
+	if not element then
 		return nil
 	end
 	if saved.kind == "hong" then
-		return Roots.hong()
+		return Roots.hong(element)
 	end
-	return Roots.make(saved.elements)
+	return Roots.make(element)
 end
 
 function Roots.gain(root: Root?): number
-	if not root then
-		return 1
-	end
-	return Roots.KIND[root.kind].gain * (if root.kind == "hong" then 1 else COUNT_GAIN[#root.elements])
+	return if root then Roots.KIND[root.kind].gain else 1
 end
 
 function Roots.band(root: Root?): number
@@ -136,13 +108,16 @@ function Roots.canSkip(root: Root?): boolean
 	return root ~= nil and Roots.KIND[root.kind].skip
 end
 
--- 무극영운에서 잡아야 할 변화 가닥 수: 속성 수의 제곱 (홍령수지체는 둘로 친다)
-function Roots.strands(root: Root?): number
-	local count = if root then #root.elements else 1
-	return count * count
+function Roots.strands(_root: Root?): number
+	return Roots.STRANDS
 end
 
--- "진영근 (목, 화)"
+-- 영근의 속성
+function Roots.element(root: Root?): string?
+	return if root then root.elements[1] else nil
+end
+
+-- "천영근 (목)"
 function Roots.describe(root: Root?): string
 	if not root then
 		return "아직 모름"

@@ -19,6 +19,7 @@ local Characters = require(script.Parent.Characters)
 local Fx = require(script.Parent.Fx)
 local Tribulation = require(script.Parent.Tribulation)
 local TaskService = require(script.Parent.TaskService)
+local DayNight = require(script.Parent.DayNight)
 
 local MOVE_TOLERANCE = 3 -- 운기조식 중 이만큼 움직이면 풀린다
 local STEP_COLOR = Color3.fromRGB(150, 235, 255)
@@ -214,7 +215,7 @@ function Cultivation.tick(dt: number)
 				if not isFull(data) then
 					Cultivation.grantQi(
 						player,
-						Progression.qiPerSecond(data, mult, Cultivation.extraMult(session)) * dt
+						Progression.qiPerSecond(data, mult, Cultivation.extraMult(session), Cultivation.isNight()) * dt
 					)
 				end
 			end
@@ -366,6 +367,11 @@ function Cultivation.breakthrough(player: Player)
 end
 
 -- 영맥 말고 그 밖의 흡수 배율 (취령진)
+-- 지금 밤인가 (월영족 흡수)
+function Cultivation.isNight(): boolean
+	return DayNight.phase() == "night"
+end
+
 function Cultivation.extraMult(session): number
 	return if session.inFormation then Skills.EFFECT.formationMult else 1
 end

@@ -10,6 +10,7 @@ local Tasks = require(Shared.Tasks)
 local PlayerData = require(script.Parent.PlayerData)
 local Session = require(script.Parent.Session)
 local Waypoints = require(script.Parent.Waypoints)
+local DayNight = require(script.Parent.DayNight)
 
 local Sync = {}
 
@@ -54,8 +55,10 @@ function Sync.state(player: Player)
 		gain = Progression.qiPerSecond(
 			data,
 			session.veinMult,
-			if session.inFormation then Skills.EFFECT.formationMult else 1
+			if session.inFormation then Skills.EFFECT.formationMult else 1,
+			DayNight.phase() == "night"
 		),
+		race = data.race,
 		meditating = session.meditating,
 		veinId = session.veinId,
 		needsBreak = Progression.needsBreakthrough(data.step),

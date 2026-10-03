@@ -54,7 +54,7 @@ local function refreshRoot()
 			)
 		)
 	else
-		ui.rootName:set("기운을 하나 이상 고른다")
+		ui.rootName:set("기운 하나를 고른다")
 		ui.setRootSummary("")
 		ui.rootStats:set("")
 	end
@@ -72,7 +72,7 @@ local function buildRoot(panel: Instance)
 	local _, setIntro = Ui.paragraph("body", 16, 520, 2, C.cream, page)
 	_.Position = UDim2.fromOffset(50, 96)
 	setIntro(
-		"몸에 반응하는 기운을 고른다. 하나면 천영근, 둘이나 셋이면 진영근, 넷이나 다섯이면 잡영근이다. 한 번 깨어난 영근은 바꿀 수 없다."
+		"몸에 반응하는 기운 하나를 고른다. 그 속성이 영근이자 본명 속성이 된다. 한 번 깨어난 영근은 바꿀 수 없다."
 	)
 
 	local buttons = row({
@@ -97,12 +97,8 @@ local function buildRoot(panel: Instance)
 			parent = nameRow,
 		})
 		button.Activated:Connect(function()
-			local at = table.find(picked, element)
-			if at then
-				table.remove(picked, at)
-			else
-				table.insert(picked, element)
-			end
+			-- 영근은 한 속성만 지닌다: 누르면 그 속성 하나로 바뀐다
+			picked = if picked[1] == element then {} else { element }
 			refreshRoot()
 		end)
 		table.insert(ui.elementButtons, { element = element, button = button })
