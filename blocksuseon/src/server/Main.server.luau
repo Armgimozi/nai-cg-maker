@@ -35,6 +35,7 @@ end
 
 DayNight.start()
 TaskService.setupPrompts()
+DevCommands.setup()
 Herbs.start()
 StarRain.start()
 Manuals.start()
@@ -161,8 +162,6 @@ Sync.remotes.Request.OnServerEvent:Connect(function(player: Player, action: any,
 		TaskService.cancelTrial(player)
 	elseif action == "Choose" and type(arg) == "table" then
 		TaskService.choose(player, arg.key, arg.value)
-	elseif action == "Dev" then
-		DevCommands.run(player, arg)
 	elseif action == "Eat" then
 		local qi = TaskService.eat(player, arg)
 		if qi then

@@ -897,6 +897,33 @@ local PENDING_CHILSU: Task = {
 	max = 1,
 }
 
+local PENDING_ELEMENT: Task = {
+	id = "bonmyeong",
+	kind = "choose",
+	key = "element",
+	label = "본명 속성 고르기",
+	hint = "연기기 9성에서 정했어야 할 본명 속성을 고른다.",
+	max = 1,
+}
+
+local PENDING_CENTER: Task = {
+	id = "center",
+	kind = "choose",
+	key = "center",
+	label = "오악의 중심",
+	hint = "원영기에서 세운 오악의 중심 속성을 고른다. 천기유도가 이 속성을 따른다.",
+	max = 1,
+}
+
+local PENDING_DOSIM: Task = {
+	id = "dosim",
+	kind = "choose",
+	key = "dosim",
+	label = "도심 고르기",
+	hint = "미쳐 버릴 만큼 몰입할 일을 고른다. 천인기의 광기가 이 일로 찬다.",
+	max = 1,
+}
+
 -- 이 단계의 과업 목록과 영력 배율
 function Tasks.list(data: any): ({ Task }, number)
 	local builder = if Tasks.isLive(data.step) then STEP_TASKS[keyFor(data.step)] else nil
@@ -913,6 +940,18 @@ function Tasks.list(data: any): ({ Task }, number)
 	end
 	if data.step > seven and Tasks.isLive(seven) and not (data.choice and data.choice.chilsu) then
 		table.insert(list, 1, PENDING_CHILSU)
+	end
+	-- 예전 기록이나 검수로 건너뛴 고르기도 그 뒤 어느 단계에서든 먼저 고른다
+	local choice = data.choice or {}
+	local wonyeong = Realms.firstStepById.wonyeong
+	if data.root and data.step > seven + 2 and Tasks.isLive(seven + 2) and not choice.element then
+		table.insert(list, 1, PENDING_ELEMENT)
+	end
+	if data.step > wonyeong + 2 and Tasks.isLive(wonyeong + 2) and not choice.center then
+		table.insert(list, 1, PENDING_CENTER)
+	end
+	if data.step > wonyeong + 3 and Tasks.isLive(wonyeong + 3) and not choice.dosim then
+		table.insert(list, 1, PENDING_DOSIM)
 	end
 	return list, qiMult
 end

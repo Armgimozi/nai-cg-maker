@@ -481,10 +481,12 @@ for step = 1, Realms.maxStep do
 		local data = Progression.newData()
 		data.step = step
 		data.root = Roots.make(combo)
-		data.choice = { chilsu = "baek", element = combo[1] }
-		for _, job in Tasks.list(data) do
-			need("title", job.label)
-			need("body", job.hint)
+		for _, choice in { { chilsu = "baek", element = combo[1] }, {} } do
+			data.choice = choice
+			for _, job in Tasks.list(data) do
+				need("title", job.label)
+				need("body", job.hint)
+			end
 		end
 	end
 	if Realms.get(step).realm.entry then

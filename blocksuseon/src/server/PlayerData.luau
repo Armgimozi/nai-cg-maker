@@ -93,6 +93,75 @@ function PlayerData.save(player: Player)
 	end
 end
 
+-- 검수 명령 ------------------------------------------------------------------------------
+-- 검수 명령으로 기록을 처음 바꾸기 전에 지금 기록을 따로 한 번 보관한다. 저장소에 보관본이 이미 있으면
+-- 덮어쓰지 않는다 (가장 처음 검수하기 전의 기록이 남는다). /복구 확인 으로 되돌린다.
+
+local BACKUP_SUFFIX = "_before_dev"
+
+local function deepCopy(value: any): any
+	if type(value) ~= "table" then
+		return value
+	end
+	local out = {}
+	for key, item in value do
+		out[key] = deepCopy(item)
+	end
+	return out
+end
+
+-- 반환: 이번에 새로 보관했는가
+function PlayerData.backupOnce(player: Player): boolean
+	local profile = profiles[player] :: any
+	if not profile or not profile.canSave or not store or profile.backedUp then
+		return false
+	end
+	profile.backedUp = true
+	local snapshot = deepCopy(profile.data)
+	local created = false
+	local ok, err = pcall(function()
+		store:UpdateAsync(keyFor(player) .. BACKUP_SUFFIX, function(old)
+			if old ~= nil then
+				return nil -- 이미 있으면 그대로 둔다
+			end
+			created = true
+			return snapshot
+		end)
+	end)
+	if not ok then
+		warn(string.format("[블록수선전] %s 보관 실패: %s", player.Name, tostring(err)))
+		profile.backedUp = false
+		return false
+	end
+	return created
+end
+
+-- 보관본으로 되돌린다. 반환: 성공했는가, 알릴 문구
+function PlayerData.restoreBackup(player: Player): (boolean, string)
+	local profile = profiles[player]
+	if not profile or not profile.canSave or not store then
+		return false, "저장소에 연결하지 못해 되돌릴 수 없다."
+	end
+	local ok, saved = pcall(function()
+		return store:GetAsync(keyFor(player) .. BACKUP_SUFFIX)
+	end)
+	if not ok then
+		return false, "보관본을 읽지 못했다: " .. tostring(saved)
+	end
+	if saved == nil then
+		return false, "보관본이 없다. 검수 명령으로 기록을 바꾼 적이 없다."
+	end
+	local restored = Progression.reconcile(saved)
+	local data = profile.data :: any
+	for key in data do
+		data[key] = nil
+	end
+	for key, value in restored :: any do
+		data[key] = value
+	end
+	return true, "검수하기 전의 기록으로 되돌렸다."
+end
+
 function PlayerData.release(player: Player)
 	PlayerData.save(player)
 	profiles[player] = nil

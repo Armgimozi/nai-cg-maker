@@ -452,9 +452,25 @@ end
 
 -- 검수용: 단계를 바로 옮긴다. 영력과 과업 진행은 비우고, 그 단계까지 얻는 술법은 준다
 function Progression.jumpTo(data: Data, step: number): { string }
+	if not isNumber(step) then
+		return {}
+	end
 	data.step = math.clamp(math.floor(step), 1, Realms.maxStep)
 	data.qi = 0
 	data.prog = { step = data.step, t = {}, debt = 0 }
+	-- 내려갔으면 그 경지에 맞게: 공법 칸을 넘는 장착은 풀고, 더 높은 경지에서 얻는 술법은 거둔다
+	while #data.equipped > Progression.slots(data) do
+		table.remove(data.equipped)
+	end
+	for _, def in Skills.list do
+		if def.granted and data.skills[def.id] and not Progression.canComprehend(data, def.id) then
+			data.skills[def.id] = nil
+			local slot = table.find(data.hotbar, def.id)
+			if slot then
+				data.hotbar[slot] = ""
+			end
+		end
+	end
 	-- 연기기 3성을 건너뛰었으면 취령진도 준다 (십이지율 이후 과업이 진법을 쓴다)
 	if data.step > Realms.firstStepById.yeongi + 2 and not data.skills.chwiryeong then
 		data.skills.chwiryeong = true

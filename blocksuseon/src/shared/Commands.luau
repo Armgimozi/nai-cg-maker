@@ -7,6 +7,7 @@
 --   /주머니 영초 10  주머니에 넣는다
 --   /시간 밤         낮, 해질녘, 밤, 새벽으로 넘긴다
 --   /초기화 확인     기록을 지우고 범인부터
+--   /복구 확인       검수 명령을 처음 쓰기 전의 기록으로 되돌린다
 --   /도움            명령 목록
 
 local Realms = require(script.Parent.Realms)
@@ -23,11 +24,12 @@ Commands.ALIASES = {
 	{ "주머니", "item" },
 	{ "시간", "time" },
 	{ "초기화", "reset" },
+	{ "복구", "restore" },
 	{ "도움", "devhelp" },
 }
 
 Commands.HELP = table.concat({
-	"/경지 연기기 7, /단계 23, /영력, /과업, /주머니 영초 10, /시간 밤, /초기화 확인",
+	"/경지 연기기 7, /단계 23, /영력, /과업, /주머니 영초 10, /시간 밤, /초기화 확인, /복구 확인",
 	"경지 이름: 범인 단수기 연기기 축기기 결단기 원영기 천인기. 시간: 낮 해질녘 밤 새벽",
 }, "\n")
 
@@ -72,11 +74,8 @@ function Commands.stepOf(realmName: string, sub: number?): number?
 end
 
 function Commands.itemOf(name: string): string?
-	if Balance.ITEMS[name] then
-		return name
-	end
 	for id, def in Balance.ITEMS do
-		if def.name == name then
+		if def.name == name or string.lower(id) == string.lower(name) then
 			return id
 		end
 	end
@@ -88,14 +87,17 @@ function Commands.parse(text: any): Parsed?
 	if type(text) ~= "string" or string.sub(text, 1, 1) ~= "/" then
 		return nil
 	end
-	local list = words(string.sub(text, 2))
+	-- 채팅 명령 별칭은 대소문자를 가리지 않으므로 여기서도 소문자로 맞춘다 (한글은 그대로)
+	local list = words(string.lower(string.sub(text, 2)))
 	local command = NAME_OF[list[1] or ""]
 	if not command then
 		return nil
 	end
 	local parsed: Parsed = { command = command }
 	if command == "경지" then
-		local step = list[2] and Commands.stepOf(list[2], tonumber(list[3]))
+		local sub = tonumber(list[3] or "1")
+		local validSub = sub ~= nil and sub == sub and sub % 1 == 0 and sub >= 1 and sub < 1000
+		local step = if list[2] and validSub then Commands.stepOf(list[2], sub) else nil
 		if step then
 			parsed.step = step
 		else
@@ -104,7 +106,7 @@ function Commands.parse(text: any): Parsed?
 		end
 	elseif command == "단계" then
 		local step = tonumber(list[2])
-		if step and step % 1 == 0 and step >= 1 and step <= Realms.maxStep then
+		if step and step == step and step % 1 == 0 and step >= 1 and step <= Realms.maxStep then
 			parsed.step = step
 		else
 			parsed.error = string.format("단계는 1부터 %d까지의 수다.", Realms.maxStep)
@@ -112,7 +114,7 @@ function Commands.parse(text: any): Parsed?
 	elseif command == "주머니" then
 		local item = list[2] and Commands.itemOf(list[2])
 		local count = tonumber(list[3] or "1")
-		if item and count and count >= 1 and count <= 999 then
+		if item and count and count == count and count >= 1 and count <= 999 then
 			parsed.item = item
 			parsed.count = math.floor(count)
 		else
@@ -125,7 +127,7 @@ function Commands.parse(text: any): Parsed?
 		else
 			parsed.error = "예: /시간 밤 (낮, 해질녘, 밤, 새벽)"
 		end
-	elseif command == "초기화" then
+	elseif command == "초기화" or command == "복구" then
 		parsed.confirmed = list[2] == "확인" or list[2] == "confirm"
 	end
 	return parsed

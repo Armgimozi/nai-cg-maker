@@ -314,6 +314,7 @@ check("무극영운은 내관, 실패하면 영력 손실", function()
 	local data = Progression.newData()
 	data.root = Roots.make({ "wood" })
 	data.choice.chilsu = "cheong"
+	data.choice.element = "wood"
 	data.step = 16
 	data.qi = Progression.requiredQi(data)
 	local result = Progression.attemptBreakthrough(data)
@@ -578,6 +579,13 @@ check("채팅 명령 읽기", function()
 	eq(Commands.parse("/초기화").confirmed, false)
 	eq(Commands.parse("/초기화 확인").confirmed, true)
 	eq(Commands.parse("/영력").command, "영력")
+	eq(Commands.parse("/REALM Yeongi 3").step, YEONGI + 2, "대소문자를 가리지 않는다")
+	eq(Commands.parse("/Item StarSeed 2").item, "starSeed")
+	eq(Commands.parse("/TIME Night").phase, "night")
+	assert(Commands.parse("/경지 연기기 nan").error, "NaN 단계")
+	assert(Commands.parse("/단계 nan").error, "NaN")
+	assert(Commands.parse("/주머니 영초 nan").error, "NaN 개수")
+	eq(Commands.parse("/복구 확인").confirmed, true)
 end)
 check("검수용 단계 옮기기", function()
 	local data = Progression.newData()
@@ -593,8 +601,41 @@ check("검수용 단계 옮기기", function()
 	eq(data.skills.yeongchul, true)
 	eq(data.skills.chwiryeong, true, "취령진도")
 	assert(#notes >= 3, "얻은 술법을 알린다")
+	-- 내려가면 그 경지에 맞게
+	data.skills.tonap, data.skills.baekcho, data.skills.geumgang = true, true, true
+	data.equipped = { "tonap", "baekcho", "geumgang" }
+	Progression.jumpTo(data, YEONGI)
+	eq(#data.equipped, 2, "연기기는 공법 2칸")
+	eq(data.skills.heogong, nil, "원영기 술법은 거둔다")
+	eq(table.find(data.hotbar, "heogong"), nil, "단축칸에서도 뺀다")
+	eq(data.skills.gyeongsin, nil, "비급 술법은 원래 없었다")
+	Progression.jumpTo(data, 0 / 0)
+	eq(data.step, YEONGI, "NaN 은 무시한다")
 	Progression.jumpTo(data, 1)
 	eq(data.step, 1)
+end)
+check("건너뛴 고르기는 뒤 단계에서 먼저 고른다", function()
+	local data = Progression.newData()
+	data.root = Roots.make({ "wood", "fire" })
+	data.choice.chilsu = "cheong"
+	data.step = Realms.firstStepById.cheonin
+	local ids = {}
+	for _, job in Tasks.list(data) do
+		ids[job.id] = job.kind
+	end
+	eq(ids.bonmyeong, "choose", "본명 속성")
+	eq(ids.center, "choose", "오악 중심")
+	eq(ids.dosim, "choose", "도심")
+	eq(Tasks.allDone(data), false)
+	eq((Progression.choose(data, "element", "fire")), true)
+	eq((Progression.choose(data, "center", "water")), true)
+	eq((Progression.choose(data, "dosim", "herb")), true)
+	ids = {}
+	for _, job in Tasks.list(data) do
+		ids[job.id] = true
+	end
+	eq(ids.bonmyeong, nil)
+	eq(ids.dosim, nil)
 end)
 
 print("조사")
