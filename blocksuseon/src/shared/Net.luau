@@ -19,12 +19,13 @@
 -- Cinematic(서버 → 클라) 화면 연출 { kind = ... }
 -- Skill    (서버 → 클라) 술법이 나갔다 { id, cooldown, duration }
 -- Trial    (서버 → 클라) 내관을 연다 { id, mode, seed, params, title } / 닫는다 { close = true }
+-- Speak    (서버 → 클라) 마을 사람 말풍선 (머리 파트, 대사)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local FOLDER_NAME = "BlockSuseonNet"
-local EVENTS = { "Request", "State", "Notify", "Cinematic", "Skill", "Trial" }
+local EVENTS = { "Request", "State", "Notify", "Cinematic", "Skill", "Trial", "Speak" }
 
 local Net = {}
 

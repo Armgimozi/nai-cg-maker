@@ -21,6 +21,7 @@ local TaskService = require(script.Parent.TaskService)
 local DayNight = require(script.Parent.DayNight)
 local StarRain = require(script.Parent.StarRain)
 local DevCommands = require(script.Parent.DevCommands)
+local Villagers = require(script.Parent.Villagers)
 
 local RESPAWN_DELAY = 4
 local REGEN_COOLDOWN = 600 -- 금단 재생: 10분에 한 번 쓰러진 자리에서 일어난다
@@ -38,11 +39,13 @@ TaskService.setupPrompts()
 DevCommands.setup()
 Herbs.start()
 StarRain.start()
+Villagers.start()
 Manuals.start()
 PlayerData.startAutosave()
 
 local function onCharacterAdded(player: Player, character: Model)
 	local humanoid = character:WaitForChild("Humanoid") :: Humanoid
+	Villagers.tagCharacter(character)
 	Characters.applyStats(player, true)
 	Sync.markDirty(player)
 

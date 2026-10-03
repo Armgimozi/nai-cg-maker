@@ -20,6 +20,8 @@ local Characters = require(script.Parent.Characters)
 local Fx = require(script.Parent.Fx)
 local DayNight = require(script.Parent.DayNight)
 local Ritual = require(script.Parent.Ritual)
+local Villagers = require(script.Parent.Villagers)
+local Npcs = require(Shared.Npcs)
 
 local TaskService = {}
 
@@ -470,17 +472,15 @@ local function offerAt(data, id: string): Tasks.Task?
 	return nil
 end
 
-local ELDER_WORDS = {
-	elder_1 = "약초꾼이 영초 향을 맡고 웃는다. 젊을 적 숲에서 길을 잃었던 이야기를 하다 조용히 눈을 감는다.",
-	elder_2 = "대장장이가 영초를 쥐고 화덕을 바라본다. 끝내 못 벼린 칼 이야기를 남기고 숨을 거둔다.",
-	elder_3 = "뱃사공이 개울 소리를 들으며 영초를 받는다. 강 건너 고향 이야기를 하다 잠든다.",
-}
-
 local function useOffer(player: Player, data, task: Tasks.Task, id: string)
 	local item = task.item or "herb"
 	local count = task.count or 1
 	local have = Progression.itemCount(data, item)
 	if not Progression.takeItems(data, { [item] = count }) then
+		local npc = Npcs.byId[id]
+		if npc and npc.request then
+			Villagers.say(player, id, npc.request)
+		end
 		Sync.notify(
 			player,
 			string.format("%s %d개가 든다. 지금 %d개다.", Balance.ITEMS[item].name, count, have),
@@ -489,8 +489,19 @@ local function useOffer(player: Player, data, task: Tasks.Task, id: string)
 		return
 	end
 	local done = Tasks.finishSite(data, task, id)
-	if ELDER_WORDS[id] then
-		Sync.notify(player, ELDER_WORDS[id], "info")
+	local npc = Npcs.byId[id]
+	if npc and npc.thanks then
+		Villagers.say(player, id, npc.thanks)
+		Sync.notify(
+			player,
+			string.format(
+				"%s의 마지막 부탁을 들어주었다. (%d / %d)",
+				npc.name,
+				Tasks.value(data, task),
+				task.max
+			),
+			"good"
+		)
 	elseif task.id == "offer" then
 		Sync.notify(
 			player,
@@ -602,8 +613,20 @@ function TaskService.onPrompt(player: Player, id: string)
 		useAltar(player, data, part)
 	elseif id == "furnace" then
 		useFurnace(player, data, session)
-	elseif string.sub(id, 1, 6) == "elder_" then
-		Sync.notify(player, "노인이 볕을 쬐며 꾸벅꾸벅 존다.", "info")
+	elseif Npcs.byId[id] then
+		-- 노인: 부탁할 때가 되었는데 영초가 없으면 부탁을, 아니면 평소 이야기를 한다
+		local npc = Npcs.byId[id]
+		local asking = false
+		for _, task in (Tasks.list(data)) do
+			if task.kind == "offer" and task.sites and table.find(task.sites, id) and Tasks.isOpen(data, task) then
+				asking = true
+			end
+		end
+		if asking and npc.request then
+			Villagers.say(player, id, npc.request)
+		else
+			Villagers.talk(player, id)
+		end
 	end
 	Sync.state(player)
 end

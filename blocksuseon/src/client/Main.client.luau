@@ -11,6 +11,7 @@ local Progression = require(Shared.Progression)
 local Realms = require(Shared.Realms)
 local Hud = require(script.Parent.Hud)
 local Effects = require(script.Parent.Effects)
+local NpcLook = require(script.Parent.NpcLook)
 
 local player = Players.LocalPlayer
 local remotes = Net.get()
@@ -72,6 +73,14 @@ Hud.build(actions)
 local function promptUse(site: string, snapshot): string?
 	if site == "furnace" then
 		return "축기단 빚기"
+	elseif string.sub(site, 1, 6) == "elder_" then
+		-- 노인은 언제든 말을 걸 수 있다. 부탁할 때면 영초를 건넨다
+		for _, job in snapshot.tasks or {} do
+			if job.kind == "offer" and job.open and not job.done and job.sites and table.find(job.sites, site) then
+				return "영초 건네기"
+			end
+		end
+		return "말 걸기"
 	elseif site == "starseed" then
 		return if Realms.get(snapshot.step).realm.id == "chukgi" then "별씨 줍기" else nil
 	end
@@ -118,6 +127,18 @@ end)
 remotes.Notify.OnClientEvent:Connect(Hud.toast)
 remotes.Cinematic.OnClientEvent:Connect(Hud.cinematic)
 remotes.Trial.OnClientEvent:Connect(Hud.openTrial)
+remotes.Speak.OnClientEvent:Connect(function(part: BasePart, text: string)
+	if typeof(part) ~= "Instance" or type(text) ~= "string" then
+		return
+	end
+	local ok = pcall(function()
+		game:GetService("TextChatService"):DisplayBubble(part, text)
+	end)
+	if not ok then
+		Hud.toast(text, "info")
+	end
+end)
+NpcLook.start()
 remotes.Skill.OnClientEvent:Connect(function(payload)
 	Hud.skillUsed(payload)
 	if payload.id == "gyeongsin" then

@@ -736,6 +736,41 @@ check("연국 맵 짓기", function()
 		end
 	end
 	assert(siteIds.furnace, "연단로")
+
+	-- 마을 사람: 노인은 자리(Seat)와 과업 자리가 있고, 모두 생김새가 있다
+	local Npcs = worldLoader.require(worldLoader.folder("src/shared").Npcs)
+	local seats = {}
+	for _, inst in map:GetDescendants() do
+		if inst:IsA("Seat") and inst:GetAttribute("NpcSeat") then
+			seats[inst:GetAttribute("NpcSeat")] = true
+		end
+	end
+	local SLOTS = { Hat = true, Hair = true, Face = true, Back = true, Waist = true, Neck = true, Front = true, Shoulders = true }
+	for _, npc in Npcs.list do
+		local look = Npcs.look(npc.id)
+		assert(look, npc.name .. " 생김새")
+		assert(#npc.lines >= 3, npc.name .. " 대사")
+		for slot, ids in look.rigid or {} do
+			assert(SLOTS[slot], `{npc.name}: 모르는 장신구 칸 {slot}`)
+			for _, id in ids do
+				assert(type(id) == "number" and id > 0, npc.name .. " 아이템 id")
+			end
+		end
+		for _, item in look.layered or {} do
+			assert(roblox.Enum.AccessoryType[item.type], `{npc.name}: 모르는 레이어드 종류 {item.type}`)
+		end
+		if npc.seated then
+			assert(seats[npc.id], npc.name .. " 앉을 자리")
+			assert(siteIds[npc.site], npc.name .. " 과업 자리")
+			assert(npc.request and npc.thanks, npc.name .. " 부탁과 인사")
+		else
+			assert(npc.route and #npc.route >= 2, npc.name .. " 동선")
+		end
+	end
+	-- 천순 과업이 가리키는 노인은 모두 있다
+	for _, id in { "elder_1", "elder_2", "elder_3" } do
+		assert(Npcs.byId[id], id)
+	end
 	for _, inst in map:GetDescendants() do
 		if inst:HasTag("Vein") then
 			assert(Balance.VEINS[inst:GetAttribute("VeinId")], "영맥 id")

@@ -120,24 +120,9 @@ World.TRIGRAMS = {
 
 -- 천인기 천순: 마지막 부탁을 하는 마을 노인 셋
 local ELDERS = {
-	{
-		id = "elder_1",
-		name = "늙은 약초꾼",
-		position = Vector3.new(-26, 0.5, 8),
-		robe = Color3.fromRGB(96, 120, 84),
-	},
-	{
-		id = "elder_2",
-		name = "늙은 대장장이",
-		position = Vector3.new(42, 0, 14),
-		robe = Color3.fromRGB(110, 84, 64),
-	},
-	{
-		id = "elder_3",
-		name = "늙은 뱃사공",
-		position = Vector3.new(-82, 0, 20),
-		robe = Color3.fromRGB(70, 92, 120),
-	},
+	{ id = "elder_1", name = "늙은 약초꾼", position = Vector3.new(-26, 0.5, 8), faces = Vector3.new(0, 0.5, 0) },
+	{ id = "elder_2", name = "늙은 대장장이", position = Vector3.new(42, 0, 14), faces = Vector3.new(60, 0, 2) },
+	{ id = "elder_3", name = "늙은 뱃사공", position = Vector3.new(-82, 0, 20), faces = Vector3.new(-95, 0, 20) },
 }
 
 -- 사방 성대 (육합만로, 축기·결단에서도 다시 쓴다)
@@ -923,42 +908,115 @@ local function buildTribulationAltar(root: Instance)
 	)
 end
 
--- 마을 노인: 블록 사람 하나와 앉을 돌
+-- 마을 노인이 앉는 자리. 사람은 서버가 띄울 때 카탈로그 옷을 입혀 앉힌다(Villagers.luau).
+-- 여기서는 앉을 돌, 앉는 자리(Seat, 속성 NpcSeat), 과업 자리, 이름표, 노인마다 곁의 살림만 짓는다.
 local function buildElders(root: Instance)
 	local elders = folder(root, "노인")
 	for _, def in ELDERS do
 		local m = model(elders, def.name)
 		local base = def.position
-		local skin = Color3.fromRGB(226, 196, 160)
-		block(
-			m,
-			"Stool",
-			Vector3.new(3, 1.6, 3),
-			CFrame.new(base + Vector3.new(0, 0.8, 0)),
-			C.stone,
-			Enum.Material.Slate
-		)
-		block(
-			m,
-			"Robe",
-			Vector3.new(2.4, 3, 1.6),
-			CFrame.new(base + Vector3.new(0, 3.1, 0)),
-			def.robe,
-			Enum.Material.Fabric
-		)
-		block(m, "Head", Vector3.new(1.4, 1.4, 1.4), CFrame.new(base + Vector3.new(0, 5.3, 0)), skin)
-		block(m, "Beard", Vector3.new(1, 1, 0.4), CFrame.new(base + Vector3.new(0, 4.6, -0.8)), C.snow)
-		block(m, "Hat", Vector3.new(2.6, 0.3, 2.6), CFrame.new(base + Vector3.new(0, 6.1, 0)), C.woodDark)
-		block(
-			m,
-			"Staff",
-			Vector3.new(0.3, 5.5, 0.3),
-			CFrame.new(base + Vector3.new(1.6, 2.8, -0.4)),
-			C.wood,
-			Enum.Material.Wood
-		)
+		local look = CFrame.lookAt(base, Vector3.new(def.faces.X, base.Y, def.faces.Z))
+		block(m, "Stool", Vector3.new(3, 1.6, 3), look * CFrame.new(0, 0.8, 0), C.stone, Enum.Material.Slate)
+		local seat = Instance.new("Seat")
+		seat.Name = "자리"
+		seat.Anchored = true
+		seat.Size = Vector3.new(2, 0.2, 2)
+		seat.CFrame = look * CFrame.new(0, 1.7, 0)
+		seat.Transparency = 1
+		seat.CanCollide = false
+		seat:SetAttribute("NpcSeat", def.id)
+		seat.Parent = m
+
+		if def.id == "elder_1" then
+			-- 말리는 약초 시렁과 약초 바구니
+			for _, x in { -2.2, 2.2 } do
+				block(m, "RackPost", Vector3.new(0.3, 4, 0.3), look * CFrame.new(x, 2, 2.6), C.wood, Enum.Material.Wood)
+			end
+			block(
+				m,
+				"RackBar",
+				Vector3.new(4.8, 0.25, 0.25),
+				look * CFrame.new(0, 3.8, 2.6),
+				C.wood,
+				Enum.Material.Wood
+			)
+			for i = -2, 2 do
+				block(
+					m,
+					"Herb",
+					Vector3.new(0.5, 1, 0.3),
+					look * CFrame.new(i * 0.9, 3.2, 2.6),
+					C.leafLight,
+					Enum.Material.Grass
+				)
+			end
+			local basket = block(
+				m,
+				"Basket",
+				Vector3.new(1.6, 1, 1.6),
+				look * CFrame.new(2.4, 0.5, -0.6),
+				Color3.fromRGB(176, 140, 86),
+				Enum.Material.Fabric
+			)
+			basket.Shape = Enum.PartType.Cylinder
+			basket.CFrame = look * CFrame.new(2.4, 0.5, -0.6) * CFrame.Angles(0, 0, math.rad(90))
+			block(
+				m,
+				"Herbs",
+				Vector3.new(1.2, 0.4, 1.2),
+				look * CFrame.new(2.4, 1.1, -0.6),
+				C.leaf,
+				Enum.Material.Grass
+			)
+		elseif def.id == "elder_2" then
+			-- 쇠막대 몇 개와 물통
+			for i = 0, 2 do
+				block(
+					m,
+					"Bar",
+					Vector3.new(0.3, 0.3, 3),
+					look * CFrame.new(-2.2 + i * 0.4, 0.2, 0.4),
+					C.stoneDark,
+					Enum.Material.Metal
+				)
+			end
+			local bucket = block(
+				m,
+				"Bucket",
+				Vector3.new(1.4, 1.2, 1.2),
+				look * CFrame.new(2.3, 0.7, 0.4) * CFrame.Angles(0, 0, math.rad(90)),
+				C.woodDark,
+				Enum.Material.Wood
+			)
+			bucket.Shape = Enum.PartType.Cylinder
+		elseif def.id == "elder_3" then
+			-- 개울가에 매어 둔 작은 나룻배
+			local boat = model(m, "나룻배")
+			local boatCf = CFrame.new(-95, 0.4, 26) * CFrame.Angles(0, math.rad(90), 0)
+			block(boat, "Hull", Vector3.new(3, 0.6, 9), boatCf, C.wood, Enum.Material.WoodPlanks)
+			for _, x in { -1.4, 1.4 } do
+				block(
+					boat,
+					"Side",
+					Vector3.new(0.3, 0.8, 9),
+					boatCf * CFrame.new(x, 0.6, 0),
+					C.woodDark,
+					Enum.Material.WoodPlanks
+				)
+			end
+			block(
+				boat,
+				"Seat",
+				Vector3.new(2.6, 0.3, 0.8),
+				boatCf * CFrame.new(0, 0.5, 1.5),
+				C.woodDark,
+				Enum.Material.Wood
+			)
+			block(m, "Post", Vector3.new(0.5, 3, 0.5), CFrame.new(-87.5, 1.5, 26), C.woodDark, Enum.Material.Wood)
+		end
+
 		siteMarker(m, def.id, base + Vector3.new(0, 3, 0), 7, def.name)
-		sign(m, base + Vector3.new(0, 8.5, 0), def.name, nil, Color3.fromRGB(230, 220, 200))
+		sign(m, base + Vector3.new(0, 8, 0), def.name, nil, Color3.fromRGB(230, 220, 200))
 	end
 end
 
