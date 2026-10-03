@@ -59,6 +59,8 @@ function Sync.state(player: Player)
 			DayNight.phase() == "night"
 		),
 		race = data.race,
+		stones = data.stones,
+		weapons = data.weapons,
 		meditating = session.meditating,
 		veinId = session.veinId,
 		needsBreak = Progression.needsBreakthrough(data.step),

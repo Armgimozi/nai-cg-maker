@@ -8,6 +8,7 @@ local Josa = require(script.Parent.Josa)
 local Roots = require(script.Parent.Roots)
 local Races = require(script.Parent.Races)
 local Combat = require(script.Parent.Combat)
+local Currency = require(script.Parent.Currency)
 local Tasks = require(script.Parent.Tasks)
 
 export type Data = {
@@ -28,6 +29,7 @@ export type Data = {
 	race: string?, -- 종족 (Races.luau). 처음 들어올 때 서버가 뽑는다
 	weapons: { Combat.Weapon }, -- 지닌 무기 (숫자 키 1~9 도구 칸)
 	receipts: { string }, -- 처리한 로벅스 구매 (같은 구매를 두 번 주지 않으려고)
+	stones: number, -- 영석 (Currency.luau)
 }
 
 export type BreakResult = {
@@ -40,7 +42,7 @@ local EFFECT = Skills.EFFECT
 
 local Progression = {}
 
-Progression.DATA_VERSION = 5
+Progression.DATA_VERSION = 6
 Progression.LOG_SIZE = 40
 Progression.RECEIPT_KEEP = 50
 
@@ -92,6 +94,7 @@ function Progression.newData(): Data
 		race = nil,
 		receipts = {},
 		weapons = { { kind = "sword", grade = 1 } },
+		stones = Currency.START,
 		stats = {
 			breakthroughs = 0,
 			trialFails = 0,
@@ -195,6 +198,10 @@ function Progression.reconcile(saved: any): Data
 		if #weapons > 0 then
 			data.weapons = weapons
 		end
+	end
+	-- 영석 (예전 판 기록에는 없어서 처음 값을 준다)
+	if isNumber(saved.stones) then
+		data.stones = math.clamp(math.floor(saved.stones), 0, Currency.MAX)
 	end
 	if type(saved.receipts) == "table" then
 		for _, id in saved.receipts do
@@ -690,6 +697,76 @@ function Progression.addWeapon(data: Data, weapon: Combat.Weapon): boolean
 	end
 	table.insert(data.weapons, { kind = weapon.kind, grade = weapon.grade })
 	return true
+end
+
+-- 영석 ------------------------------------------------------------------------------
+
+function Progression.addStones(data: Data, amount: number)
+	data.stones = math.clamp(data.stones + math.floor(amount), 0, Currency.MAX)
+end
+
+-- 반환: 넉넉해서 뺐는가
+function Progression.spendStones(data: Data, amount: number): boolean
+	amount = math.floor(amount)
+	if amount < 0 or data.stones < amount then
+		return false
+	end
+	data.stones -= amount
+	return true
+end
+
+local function short(price: number): string
+	return string.format("영석이 모자라다. (%s 필요)", Currency.format(price))
+end
+
+-- 마을 상점에서 산다. 반환: 샀는가, 알림
+function Progression.buy(data: Data, wareId: any): (boolean, string)
+	local ware = if type(wareId) == "string" then Currency.wareById[wareId] else nil
+	if not ware then
+		return false, "그런 물건은 없다."
+	end
+	local weapon = ware.weapon
+	if weapon then
+		for _, owned in data.weapons do
+			if owned.kind == weapon.kind then
+				return false, "이미 지닌 종류의 무기다. 대장간에서 강화할 수 있다."
+			end
+		end
+		if #data.weapons >= Combat.MAX_WEAPONS then
+			return false, "무기 칸이 다 찼다."
+		end
+	end
+	if not Progression.spendStones(data, ware.price) then
+		return false, short(ware.price)
+	end
+	if weapon then
+		local bought = { kind = weapon.kind, grade = weapon.grade }
+		Progression.addWeapon(data, bought)
+		return true, string.format("%s 샀다.", Josa.eul(Combat.weaponName(bought)))
+	end
+	local item = ware.item :: string
+	local count = ware.count or 1
+	Progression.addItem(data, item, count)
+	return true, string.format("%s %d개를 샀다.", Balance.ITEMS[item].name, count)
+end
+
+-- 대장간에서 index 칸 무기를 한 등급 올린다. 반환: 올렸는가, 알림
+function Progression.upgradeWeapon(data: Data, index: any): (boolean, string)
+	local weapon = if type(index) == "number" then data.weapons[index] else nil
+	if not weapon then
+		return false, "그 칸에 무기가 없다."
+	end
+	local cost = Currency.upgradeCost(weapon.grade)
+	if not cost then
+		return false, "더 올릴 수 없는 등급이다."
+	end
+	if not Progression.spendStones(data, cost) then
+		return false, short(cost)
+	end
+	local before = Combat.weaponName(weapon)
+	local after = { kind = weapon.kind, grade = weapon.grade + 1 }
+	data.weapons[index] = after
+	return true, string.format("%s %s 거듭났다.", Josa.i(before), Josa.ro(Combat.weaponName(after)))
 end
 
 -- 종족 ------------------------------------------------------------------------------

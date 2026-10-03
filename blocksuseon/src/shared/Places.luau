@@ -25,6 +25,8 @@ local Places = {}
 
 -- 전송진 위에 섰다고 치는 거리 (수평, 스터드). 서버(Travel)와 화면(전송진 창 닫기)이 같이 쓴다
 Places.WAYPOINT_RADIUS = 14
+-- 처음부터 열려 있는 집 전송진 (여기로 가는 삯은 공짜)
+Places.HOME_WAYPOINT = "wp_yeonguk"
 
 local peak = Land.PEAK
 

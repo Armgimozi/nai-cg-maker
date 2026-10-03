@@ -28,6 +28,8 @@ local Shop = require(script.Parent.Shop)
 local MobService = require(script.Parent.MobService)
 local CombatService = require(script.Parent.CombatService)
 local Weapons = require(script.Parent.Weapons)
+local Market = require(script.Parent.Market)
+local Ores = require(script.Parent.Ores)
 
 local RESPAWN_DELAY = 4
 local REGEN_COOLDOWN = 600 -- 금단 재생: 10분에 한 번 쓰러진 자리에서 일어난다
@@ -59,6 +61,8 @@ Travel.start()
 Shop.start()
 CombatService.start()
 MobService.start()
+Market.start()
+Ores.start()
 PlayerData.startAutosave()
 
 local function onCharacterAdded(player: Player, character: Model)
@@ -194,6 +198,10 @@ Sync.remotes.Request.OnServerEvent:Connect(function(player: Player, action: any,
 		TaskService.choose(player, arg.key, arg.value)
 	elseif action == "Travel" then
 		Travel.go(player, arg)
+	elseif action == "Buy" then
+		Market.buy(player, arg)
+	elseif action == "Upgrade" then
+		Market.upgrade(player, arg)
 	elseif action == "Eat" then
 		local qi = TaskService.eat(player, arg)
 		if qi then

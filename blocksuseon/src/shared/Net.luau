@@ -14,6 +14,9 @@
 --     "TrialCancel"               내관 그만두기
 --     "Choose" { key, value }     영근·칠수·본명 속성 고르기
 --     "Eat" (string)              주머니에서 먹기
+--     "Travel" (string)           전송진 id 로 떠나기 (영석 삯을 낸다, Currency.travelFee)
+--     "Buy" (string)              마을 상점에서 사기 (Currency.WARES 의 id). 상인 곁에서만
+--     "Upgrade" (number)          대장간에서 그 칸 무기를 한 등급 올리기. 대장장이 곁에서만
 -- State    (서버 → 클라) 내 상태 스냅숏
 -- Notify   (서버 → 클라) text, kind
 -- Cinematic(서버 → 클라) 화면 연출 { kind = ... }

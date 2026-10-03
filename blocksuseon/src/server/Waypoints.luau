@@ -2,11 +2,12 @@
 -- 맵(World.luau)이 진 바닥에 Waypoint 태그와 속성 WaypointId, Name, Order 를 달아 둔다.
 
 local CollectionService = game:GetService("CollectionService")
+local Places = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared").Places)
 
 local Waypoints = {}
 
 -- 처음부터 열려 있는 진 (연국)
-Waypoints.HOME = "wp_yeonguk"
+Waypoints.HOME = Places.HOME_WAYPOINT
 
 function Waypoints.pads(): { BasePart }
 	local out = {}
