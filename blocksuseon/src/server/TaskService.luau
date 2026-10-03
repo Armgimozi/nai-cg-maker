@@ -155,7 +155,12 @@ function TaskService.counter(player: Player, event: string, amount: number)
 		return
 	end
 	for _, task in (Tasks.list(data)) do
-		if task.kind == "counter" and task.event == event and not Tasks.isDone(data, task) then
+		if
+			task.kind == "counter"
+			and task.event == event
+			and Tasks.isOpen(data, task)
+			and not Tasks.isDone(data, task)
+		then
 			if Tasks.add(data, task, amount) then
 				Sync.notify(player, "광기가 무르익었다. 자아가 한 겹 벗겨진다.", "good")
 				finished(player, task)

@@ -583,6 +583,12 @@ check("채팅 명령 읽기", function()
 	eq(Commands.parse("/Item StarSeed 2").item, "starSeed")
 	eq(Commands.parse("/TIME Night").phase, "night")
 	assert(Commands.parse("/경지 연기기 nan").error, "NaN 단계")
+	assert(
+		string.find(Commands.parse("/경지 연기기 0").error, "단계 번호", 1, true),
+		"단계 번호 오류는 따로"
+	)
+	assert(string.find(Commands.parse("/경지 없는경지").error, "경지 이름", 1, true))
+	eq(Commands.parse("/검수").command, "검수")
 	assert(Commands.parse("/단계 nan").error, "NaN")
 	assert(Commands.parse("/주머니 영초 nan").error, "NaN 개수")
 	eq(Commands.parse("/복구 확인").confirmed, true)
@@ -609,6 +615,13 @@ check("검수용 단계 옮기기", function()
 	eq(data.skills.heogong, nil, "원영기 술법은 거둔다")
 	eq(table.find(data.hotbar, "heogong"), nil, "단축칸에서도 뺀다")
 	eq(data.skills.gyeongsin, nil, "비급 술법은 원래 없었다")
+	-- 경지 술법은 얻는 단계 기준으로 거둔다 (원영 출규는 천인기 2단계부터)
+	Progression.jumpTo(data, Realms.firstStepById.cheonin + 2)
+	eq(data.skills.yeongchul, true)
+	Progression.jumpTo(data, Realms.firstStepById.cheonin)
+	eq(data.skills.yeongchul, nil, "천인기 1단계로 내려가면 원영 출규를 거둔다")
+	eq(data.skills.yudo, true, "천기유도는 남는다")
+	Progression.jumpTo(data, YEONGI)
 	Progression.jumpTo(data, 0 / 0)
 	eq(data.step, YEONGI, "NaN 은 무시한다")
 	Progression.jumpTo(data, 1)
@@ -623,6 +636,12 @@ check("건너뛴 고르기는 뒤 단계에서 먼저 고른다", function()
 	for _, job in Tasks.list(data) do
 		ids[job.id] = job.kind
 	end
+	local order = {}
+	for _, job in Tasks.list(data) do
+		table.insert(order, job.id)
+	end
+	eq(table.concat(order, " ", 1, 3), "bonmyeong center dosim", "게임 순서대로 앞에")
+	eq(Tasks.isOpen(data, Tasks.find(data, "madness")), false, "도심을 고르기 전에는 광기가 안 찬다")
 	eq(ids.bonmyeong, "choose", "본명 속성")
 	eq(ids.center, "choose", "오악 중심")
 	eq(ids.dosim, "choose", "도심")

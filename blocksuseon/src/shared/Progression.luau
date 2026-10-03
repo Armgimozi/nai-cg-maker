@@ -384,6 +384,26 @@ function Progression.addLog(data: Data, event: string)
 	end
 end
 
+-- 비급이 아니라 경지에 올라 얻는 술법과 그 단계
+local GRANTS = {
+	{
+		id = "heogong",
+		step = Realms.firstStepById.wonyeong,
+		note = "원영이 혼의 계위를 알아본다. 허공이동을 얻었다.",
+	},
+	{
+		id = "yudo",
+		step = Realms.firstStepById.cheonin,
+		note = "천지 현상을 의지로 비튼다. 천기유도를 얻었다.",
+	},
+	{
+		id = "yeongchul",
+		step = Realms.firstStepById.cheonin + 1,
+		note = "이립에 이르러 원영이 몸 밖으로 나간다. 원영 출규를 얻었다.",
+	},
+}
+Progression.GRANTS = GRANTS
+
 -- 새 단계에 들어설 때 주는 것. 반환: 알릴 문구 목록
 local function enterStep(data: Data): { string }
 	local notes = {}
@@ -399,28 +419,17 @@ local function enterStep(data: Data): { string }
 			"십이지율을 닦으려면 진법을 펼쳐 봐야 한다. 취령진 기초본을 익혔다."
 		)
 	end
-	local function grant(id: string, note: string)
-		if data.skills[id] then
-			return
+	for _, grant in GRANTS do
+		if data.step >= grant.step and not data.skills[grant.id] then
+			data.skills[grant.id] = true
+			local empty = table.find(data.hotbar, "")
+			if empty then
+				data.hotbar[empty] = grant.id
+			end
+			table.insert(notes, grant.note)
 		end
-		data.skills[id] = true
-		local empty = table.find(data.hotbar, "")
-		if empty then
-			data.hotbar[empty] = id
-		end
-		table.insert(notes, note)
 	end
-	local wonyeong = Realms.firstStepById.wonyeong
 	local cheonin = Realms.firstStepById.cheonin
-	if data.step >= wonyeong then
-		grant("heogong", "원영이 혼의 계위를 알아본다. 허공이동을 얻었다.")
-	end
-	if data.step >= cheonin then
-		grant("yudo", "천지 현상을 의지로 비튼다. 천기유도를 얻었다.")
-	end
-	if data.step >= cheonin + 1 then
-		grant("yeongchul", "이립에 이르러 원영이 몸 밖으로 나간다. 원영 출규를 얻었다.")
-	end
 	if data.step == cheonin + 2 then
 		table.insert(
 			notes,
@@ -462,10 +471,10 @@ function Progression.jumpTo(data: Data, step: number): { string }
 	while #data.equipped > Progression.slots(data) do
 		table.remove(data.equipped)
 	end
-	for _, def in Skills.list do
-		if def.granted and data.skills[def.id] and not Progression.canComprehend(data, def.id) then
-			data.skills[def.id] = nil
-			local slot = table.find(data.hotbar, def.id)
+	for _, grant in GRANTS do
+		if data.step < grant.step and data.skills[grant.id] then
+			data.skills[grant.id] = nil
+			local slot = table.find(data.hotbar, grant.id)
 			if slot then
 				data.hotbar[slot] = ""
 			end

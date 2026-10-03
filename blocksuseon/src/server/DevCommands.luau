@@ -43,10 +43,23 @@ local function reply(player: Player, text: string, kind: string?)
 	Sync.notify(player, "[검수] " .. text, kind or "info")
 end
 
-function DevCommands.run(player: Player, text: any)
-	if not DevCommands.allowed(player) then
-		return
+-- 명령은 한 사람에 하나씩 (보관 중에 다음 명령이 먼저 끝나지 않게)
+local busy: { [Player]: boolean } = {}
+
+local function formatAge(savedAt: number?): string
+	if not savedAt then
+		return "보관한 때는 모른다"
 	end
+	local minutes = math.max(0, os.time() - savedAt) // 60
+	if minutes < 60 then
+		return string.format("%d분 전에 보관", minutes)
+	elseif minutes < 60 * 24 then
+		return string.format("%d시간 전에 보관", minutes // 60)
+	end
+	return string.format("%d일 전에 보관", minutes // (60 * 24))
+end
+
+local function runCommand(player: Player, text: any)
 	local parsed = Commands.parse(text)
 	local data = PlayerData.get(player)
 	local session = Session.get(player)
@@ -54,7 +67,7 @@ function DevCommands.run(player: Player, text: any)
 		return
 	end
 	if not parsed then
-		reply(player, "모르는 명령이다. /도움", "bad")
+		reply(player, "모르는 명령이다. /검수 로 목록을 본다.", "bad")
 		return
 	end
 	if parsed.error then
@@ -67,13 +80,27 @@ function DevCommands.run(player: Player, text: any)
 	end
 
 	local command = parsed.command
-	if command == "과업" and not data.root then
+	if command == "과업" and not data.root and data.step > 1 then
 		reply(player, "영근부터 고른다. 영근에 따라 과업이 달라진다.", "bad")
 		return
 	end
 	local changes = CHANGES[command] and not (command == "초기화" and not parsed.confirmed)
-	if changes and PlayerData.backupOnce(player) then
-		reply(player, "원래 기록을 따로 보관했다. /복구 확인 으로 언제든 되돌린다.", "good")
+	if changes then
+		local status = PlayerData.backupOnce(player)
+		if status == "failed" then
+			reply(player, "원래 기록을 보관하지 못해 명령을 멈췄다. 잠시 뒤 다시.", "bad")
+			return
+		elseif status == "created" then
+			reply(player, "원래 기록을 따로 보관했다. /복구 확인 으로 언제든 되돌린다.", "good")
+		end
+		-- 보관하는 동안 상황이 바뀌었을 수 있다
+		if PlayerData.get(player) ~= data or Session.get(player) ~= session then
+			return
+		end
+		if session.tribulation or session.trial or session.ritual then
+			reply(player, "그사이 천겁, 내관, 제의가 시작됐다. 끝난 뒤에 다시.", "bad")
+			return
+		end
 	end
 
 	if command == "경지" or command == "단계" then
@@ -138,11 +165,19 @@ function DevCommands.run(player: Player, text: any)
 		reply(player, "기록을 지웠다. 범인부터 다시 시작한다.", "good")
 	elseif command == "복구" then
 		if not parsed.confirmed then
-			reply(
-				player,
-				"검수 명령을 처음 쓰기 전의 기록으로 되돌린다. 정말이면 /복구 확인",
-				"bad"
-			)
+			local step, savedAt, err = PlayerData.describeBackup(player)
+			if not step then
+				reply(player, err or "보관본이 없다.", "bad")
+			else
+				reply(
+					player,
+					string.format(
+						"보관본: %s, %s. 지금 기록을 버리고 되돌리려면 /복구 확인",
+						Realms.label(step),
+						formatAge(savedAt)
+					)
+				)
+			end
 			return
 		end
 		local ok, message = PlayerData.restoreBackup(player)
@@ -150,10 +185,29 @@ function DevCommands.run(player: Player, text: any)
 			Characters.applyStats(player, true)
 		end
 		reply(player, message, if ok then "good" else "bad")
-	elseif command == "도움" then
+	elseif command == "검수" then
 		reply(player, Commands.HELP)
 	end
 	Sync.state(player)
+end
+
+function DevCommands.run(player: Player, text: any)
+	if not DevCommands.allowed(player) then
+		-- 서버에 만든 명령이라 누가 쳐도 글이 삼켜진다. 아무 일 없이 사라지지 않게 알린다
+		Sync.notify(player, "그 명령은 플레이스 주인만 쓴다.", "bad")
+		return
+	end
+	if busy[player] then
+		reply(player, "앞 명령을 처리하는 중이다. 잠시 뒤 다시.", "bad")
+		return
+	end
+	busy[player] = true
+	local ok, err = pcall(runCommand, player, text)
+	busy[player] = nil
+	if not ok then
+		warn("[블록수선전] 검수 명령 오류:", err)
+		reply(player, "명령을 처리하다 오류가 났다.", "bad")
+	end
 end
 
 -- 명령을 서버에 만든다. 예전 채팅이면 Player.Chatted 로 듣는다

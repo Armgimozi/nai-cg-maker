@@ -778,6 +778,7 @@ local function madness(data, target: number): Task
 		label = string.format("광기 (%s)", def.name),
 		hint = string.format("도심에 몰입한다. %s", def.summary),
 		max = target,
+		after = "dosim", -- 도심을 고르기 전에는 차지 않는다 (고르기가 없으면 열려 있다)
 	}
 end
 
@@ -934,24 +935,29 @@ function Tasks.list(data: any): ({ Task }, number)
 		list = tasks
 		qiMult = mult or 1
 	end
+	-- 예전 기록이나 검수로 건너뛴 고르기는 그 뒤 어느 단계에서든 먼저 고른다 (게임 순서대로 앞에 놓는다)
 	local seven = Realms.firstStepById.yeongi + 6
-	if data.step > 1 and not data.root then
-		table.insert(list, 1, PENDING_ROOT)
-	end
-	if data.step > seven and Tasks.isLive(seven) and not (data.choice and data.choice.chilsu) then
-		table.insert(list, 1, PENDING_CHILSU)
-	end
-	-- 예전 기록이나 검수로 건너뛴 고르기도 그 뒤 어느 단계에서든 먼저 고른다
-	local choice = data.choice or {}
 	local wonyeong = Realms.firstStepById.wonyeong
+	local choice = data.choice or {}
+	local pending: { Task } = {}
+	if data.step > 1 and not data.root then
+		table.insert(pending, PENDING_ROOT)
+	end
+	if data.step > seven and Tasks.isLive(seven) and not choice.chilsu then
+		table.insert(pending, PENDING_CHILSU)
+	end
 	if data.root and data.step > seven + 2 and Tasks.isLive(seven + 2) and not choice.element then
-		table.insert(list, 1, PENDING_ELEMENT)
+		table.insert(pending, PENDING_ELEMENT)
 	end
 	if data.step > wonyeong + 2 and Tasks.isLive(wonyeong + 2) and not choice.center then
-		table.insert(list, 1, PENDING_CENTER)
+		table.insert(pending, PENDING_CENTER)
 	end
 	if data.step > wonyeong + 3 and Tasks.isLive(wonyeong + 3) and not choice.dosim then
-		table.insert(list, 1, PENDING_DOSIM)
+		table.insert(pending, PENDING_DOSIM)
+	end
+	if #pending > 0 then
+		table.move(list, 1, #list, #pending + 1, pending)
+		list = pending
 	end
 	return list, qiMult
 end

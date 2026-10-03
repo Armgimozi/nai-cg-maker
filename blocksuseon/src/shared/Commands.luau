@@ -8,7 +8,7 @@
 --   /시간 밤         낮, 해질녘, 밤, 새벽으로 넘긴다
 --   /초기화 확인     기록을 지우고 범인부터
 --   /복구 확인       검수 명령을 처음 쓰기 전의 기록으로 되돌린다
---   /도움            명령 목록
+--   /검수            명령 목록
 
 local Realms = require(script.Parent.Realms)
 local Balance = require(script.Parent.Balance)
@@ -25,7 +25,7 @@ Commands.ALIASES = {
 	{ "시간", "time" },
 	{ "초기화", "reset" },
 	{ "복구", "restore" },
-	{ "도움", "devhelp" },
+	{ "검수", "devhelp" },
 }
 
 Commands.HELP = table.concat({
@@ -97,9 +97,11 @@ function Commands.parse(text: any): Parsed?
 	if command == "경지" then
 		local sub = tonumber(list[3] or "1")
 		local validSub = sub ~= nil and sub == sub and sub % 1 == 0 and sub >= 1 and sub < 1000
-		local step = if list[2] and validSub then Commands.stepOf(list[2], sub) else nil
-		if step then
-			parsed.step = step
+		local step = if list[2] then Commands.stepOf(list[2], 1) else nil
+		if step and not validSub then
+			parsed.error = "단계 번호는 1 이상의 정수다. 예: /경지 연기기 7"
+		elseif step then
+			parsed.step = Commands.stepOf(list[2], sub)
 		else
 			parsed.error =
 				"경지 이름을 모르겠다. 범인 단수기 연기기 축기기 결단기 원영기 천인기 중에서."
