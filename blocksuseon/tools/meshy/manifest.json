@@ -178,5 +178,213 @@
   "assetId": "90072943116000",
   "moderation": "Approved",
   "seconds": 117
+ },
+ "sword_2": {
+  "kind": "weapon",
+  "meshyPreview": "01a10219-5f34-714f-92ad-f5a59439a167",
+  "meshyRefine": "01a1021a-2182-7341-960a-5f19eeca4b32",
+  "tris": 2702,
+  "bbox": [
+   0.1841,
+   0.9971,
+   0.0199
+  ],
+  "guardY": 0.2617,
+  "tipDir": -1,
+  "assetId": "73087619795995",
+  "moderation": "Approved",
+  "seconds": 95
+ },
+ "sword_5": {
+  "kind": "weapon",
+  "meshyPreview": "01a10219-5fe7-70b2-93dd-b5583a505f88",
+  "meshyRefine": "01a1021a-2565-74da-9434-705da0227951",
+  "tris": 3130,
+  "bbox": [
+   0.1558,
+   0.9994,
+   0.0392
+  ],
+  "guardY": 0.2622,
+  "tipDir": -1,
+  "assetId": "91449203543147",
+  "moderation": "Approved",
+  "seconds": 102
+ },
+ "saber_1": {
+  "kind": "weapon",
+  "meshyPreview": "01a1021a-c507-72e8-a0ba-c05a80d6c54c",
+  "meshyRefine": "01a1021b-04f6-7042-917e-9e6eacdf918f",
+  "tris": 3126,
+  "bbox": [
+   0.1463,
+   1.0,
+   0.0747
+  ],
+  "guardY": -0.1875,
+  "tipDir": 1,
+  "assetId": "120663707114268",
+  "moderation": "Approved",
+  "seconds": 78
+ },
+ "saber_3": {
+  "kind": "weapon",
+  "meshyPreview": "01a1021a-cab7-73db-a3bf-129ccee9ac07",
+  "meshyRefine": "01a1021b-1105-7711-b50b-856b79dd4a82",
+  "tris": 2743,
+  "bbox": [
+   0.1679,
+   1.0,
+   0.0303
+  ],
+  "guardY": -0.4625,
+  "tipDir": 1,
+  "assetId": "105251398530605",
+  "moderation": "Approved",
+  "seconds": 82
+ },
+ "saber_4": {
+  "kind": "weapon",
+  "meshyPreview": "01a1021a-d1d6-771e-930a-369b6d2b39c1",
+  "meshyRefine": "01a1021b-031a-72be-9c53-a45803defb56",
+  "tris": 2857,
+  "bbox": [
+   0.4177,
+   1.0,
+   0.0627
+  ],
+  "guardY": -0.4375,
+  "tipDir": 1,
+  "assetId": "107627005816375",
+  "moderation": "Approved",
+  "seconds": 91
+ },
+ "saber_5": {
+  "kind": "weapon",
+  "meshyPreview": "01a1021a-ed06-7558-a003-925a43bec340",
+  "meshyRefine": "01a1021b-21a2-7141-ad06-3d7a7a4c469e",
+  "tris": 3260,
+  "bbox": [
+   0.1826,
+   1.0,
+   0.0443
+  ],
+  "guardY": 0.2625,
+  "tipDir": -1,
+  "assetId": "97821682414639",
+  "moderation": "Approved",
+  "seconds": 88
+ },
+ "spear_1": {
+  "kind": "weapon",
+  "meshyPreview": "01a1021b-f630-75d8-b18f-14063cea29ed",
+  "meshyRefine": "01a1021c-4341-70b3-a285-597ac8546c93",
+  "tris": 2375,
+  "bbox": [
+   0.1684,
+   1.0,
+   0.0681
+  ],
+  "guardY": 0.0625,
+  "tipDir": -1,
+  "assetId": "115297038342490",
+  "moderation": "Approved",
+  "seconds": 85
+ },
+ "spear_3": {
+  "kind": "weapon",
+  "meshyPreview": "01a1021c-0979-7017-b550-ce13cf2391cb",
+  "meshyRefine": "01a1021c-4f74-7143-b4b6-3f8e44db8c0a",
+  "tris": 2485,
+  "bbox": [
+   0.0385,
+   1.0,
+   0.035
+  ],
+  "guardY": 0.3125,
+  "tipDir": -1,
+  "assetId": "123876479650138",
+  "moderation": "Approved",
+  "seconds": 88
+ },
+ "spear_4": {
+  "kind": "weapon",
+  "meshyPreview": "01a1021c-3506-748e-8866-4781a6e0251e",
+  "meshyRefine": "01a1021c-6842-75b4-b12e-df46d354386d",
+  "tris": 2669,
+  "bbox": [
+   0.1365,
+   1.0,
+   0.0399
+  ],
+  "guardY": 0.2875,
+  "tipDir": -1,
+  "assetId": "98483663850535",
+  "moderation": "Approved",
+  "seconds": 67
+ },
+ "spear_5": {
+  "kind": "weapon",
+  "meshyPreview": "01a1021c-455a-714f-bc9b-4f038ac48f80",
+  "meshyRefine": "01a1021c-7605-7281-a855-33b165998eb3",
+  "tris": 2648,
+  "bbox": [
+   0.2243,
+   0.999,
+   0.0694
+  ],
+  "guardY": 0.3376,
+  "tipDir": -1,
+  "assetId": "108593917905308",
+  "moderation": "Approved",
+  "seconds": 79
+ },
+ "fan_2": {
+  "kind": "weapon",
+  "meshyPreview": "01a1021d-4169-7321-9071-c856d8065400",
+  "meshyRefine": "01a1021d-d949-76ac-ac65-a727a67e1ca5",
+  "tris": 3044,
+  "bbox": [
+   1.0,
+   0.7303,
+   0.0813
+  ],
+  "guardY": 0.028,
+  "tipDir": -1,
+  "assetId": "73743642074002",
+  "moderation": "Approved",
+  "seconds": 92
+ },
+ "fan_4": {
+  "kind": "weapon",
+  "meshyPreview": "01a1021d-6027-7025-881f-7862bf1cae95",
+  "meshyRefine": "01a1021d-f8bb-7429-bdbf-6710f020c1ba",
+  "tris": 2725,
+  "bbox": [
+   1.0,
+   0.7504,
+   0.1015
+  ],
+  "guardY": -0.0481,
+  "tipDir": 1,
+  "assetId": "78530076214418",
+  "moderation": "Approved",
+  "seconds": 87
+ },
+ "fan_5": {
+  "kind": "weapon",
+  "meshyPreview": "01a1021d-797c-75f4-ae46-5009cb8ed5b9",
+  "meshyRefine": "01a1021e-6b9c-722a-a1ad-af40c29bd7fa",
+  "tris": 3095,
+  "bbox": [
+   1.0,
+   1.0,
+   0.0857
+  ],
+  "guardY": -0.0625,
+  "tipDir": 1,
+  "assetId": "98897519397317",
+  "moderation": "Approved",
+  "seconds": 113
  }
 }

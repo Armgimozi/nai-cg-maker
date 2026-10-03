@@ -15,16 +15,17 @@ for key, entry in manifest.items():
     V, tris, lo, hi = glb_stats(os.path.join(HERE, "models", key + ".glb"))
     axis = weapon_axis(V, lo, hi)
     tip, guard = axis["tipDir"], axis["guardY"]
-    if key == "spear":
+    kind = key.split("_")[0]  # "spear_3" -> spear (종류_등급)
+    if kind == "spear":
         # 창은 날(창끝)이 가장 넓다: 넓은 쪽이 날 끝이다
         tip = 1 if guard > (hi[1] + lo[1]) / 2 else -1
     length = hi[1] - lo[1]
     center = (hi[1] + lo[1]) / 2
     butt = lo[1] if tip == 1 else hi[1]
     point = hi[1] if tip == 1 else lo[1]
-    if key == "spear":
+    if kind == "spear":
         grip = butt + 0.38 * (point - butt)
-    elif key == "fan":
+    elif kind == "fan":
         grip = butt + 0.1 * (point - butt)
     else:
         grip = guard + 0.3 * (butt - guard)
