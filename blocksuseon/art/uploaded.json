@@ -76,16 +76,16 @@
     "assetId": "83569591119407"
   },
   "glyphs_body_0.png": {
-    "sha256": "7fe4881bf436a4bd730b77f519327f3275cc5331c7c7765625d2cc85752d8e55",
-    "assetId": "113619062818353"
+    "sha256": "bef44f97a641e01b7420f476ed068ac6aafbad7e93a872c9a93404d1560e7b3d",
+    "assetId": "126683168678685"
   },
   "glyphs_title_0.png": {
-    "sha256": "8cf8df630f6ea289538dde3f168aa267baf1748b37a4355aeced5d900bb63c0e",
-    "assetId": "84817417115305"
+    "sha256": "ab3d78da26dbbc9bcc90f8534764d1d1168208d3f06d5cfbe4b0801b7422ba68",
+    "assetId": "95238841701649"
   },
   "glyphs_title_1.png": {
-    "sha256": "dfe2c321dd942bdfaabfa0069b07aea408c8519c0d1967c2c69917ca80711abb",
-    "assetId": "112098625513449"
+    "sha256": "1e13906eb3d9f1b5cd35530fb5646a1af846ee3f398d94e4ac08988d5e4e07e1",
+    "assetId": "115312617442820"
   },
   "slot.png": {
     "sha256": "2d3c6563b4eba53ae9903a8d229ab707f4193327114d389a4728ad080781fdd4",
@@ -136,12 +136,12 @@
     "assetId": "115133593895137"
   },
   "glyphs_body_1.png": {
-    "sha256": "d22f1a35bf9d15e8f1d232bba0c6aedd4de269c908d49b07ef75b95941e3fb3e",
-    "assetId": "100723748564796"
+    "sha256": "5ef1db78fe4bd3a0033f121710ccb8c822c02d853f084da6b898b7cba4cccc57",
+    "assetId": "117960758816217"
   },
   "glyphs_title_2.png": {
-    "sha256": "40317c96420e3689c693a906118cfb75eaadd36edcba51c53d41547f9d784e26",
-    "assetId": "99967303651121"
+    "sha256": "c011a62be392b4733ad33c9d25145d004d7683724f5a54ea15250d3bd816d0d7",
+    "assetId": "130856255024858"
   },
   "skillBlink.png": {
     "sha256": "c91713cdbd0d1ebb4036755f73899965cf945e7245a7bd245ba08525c5539b6a",
@@ -158,5 +158,9 @@
   "notice.png": {
     "sha256": "8bfa781ec37b94116e33bba1a2001fc5d1b46e2279c5bde0c6b60727d70e93d7",
     "assetId": "132319100856468"
+  },
+  "glyphs_title_3.png": {
+    "sha256": "35b0e68b88d048e40e3c1009fb888ab2360639074729f10a721bf40888cc5a98",
+    "assetId": "71414184887530"
   }
 }
