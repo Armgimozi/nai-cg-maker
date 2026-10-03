@@ -23,6 +23,31 @@
       "$properties": {
         "CharacterAutoLoads": false
       }
+    },
+    "TextChatService": {
+      "$properties": {
+        "ChatVersion": "TextChatService",
+        "CreateDefaultTextChannels": true,
+        "CreateDefaultCommands": true
+      },
+      "ChatWindowConfiguration": {
+        "$className": "ChatWindowConfiguration",
+        "$properties": {
+          "Enabled": true
+        }
+      },
+      "ChatInputBarConfiguration": {
+        "$className": "ChatInputBarConfiguration",
+        "$properties": {
+          "Enabled": true
+        }
+      },
+      "BubbleChatConfiguration": {
+        "$className": "BubbleChatConfiguration",
+        "$properties": {
+          "Enabled": true
+        }
+      }
     }
   }
 }

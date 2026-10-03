@@ -23,7 +23,9 @@ local function generalChannel(): TextChannel?
 	if channel and channel.Parent then
 		return channel
 	end
-	local channels = TextChatService:WaitForChild("TextChannels", 10)
+	-- ChatVersion 값만 믿지 않고 기본 채널이 실제로 있는지 본다 (예전 판 플레이스는 값이 예전 채팅으로 남아 있었다)
+	local usesTextChat = TextChatService.ChatVersion == Enum.ChatVersion.TextChatService
+	local channels = TextChatService:WaitForChild("TextChannels", if usesTextChat then 10 else 3)
 	local general = channels and channels:WaitForChild("RBXGeneral", 10)
 	if general and general:IsA("TextChannel") then
 		channel = general
@@ -34,12 +36,10 @@ end
 function Chat.system(text: string, kind: string?)
 	local color = COLORS[kind or "info"] or COLORS.info
 	task.spawn(function()
-		if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
-			local general = generalChannel()
-			if general then
-				general:DisplaySystemMessage(string.format('<font color="%s">%s</font>', color, escape(text)))
-				return
-			end
+		local general = generalChannel()
+		if general then
+			general:DisplaySystemMessage(string.format('<font color="%s">%s</font>', color, escape(text)))
+			return
 		end
 		-- 예전 채팅 시스템
 		for _ = 1, 10 do
