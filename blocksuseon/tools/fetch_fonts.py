@@ -25,7 +25,10 @@ UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chr
 def charset() -> str:
     chars = set(EXTRA)
     # 서버 알림도 화면에 글자판으로 찍으므로 src/server 의 문구까지 모은다
-    for path in glob.glob("src/shared/*.luau") + glob.glob("src/client/*.luau") + glob.glob("src/server/*.luau"):
+    paths = glob.glob("src/shared/*.luau") + glob.glob("src/client/*.luau") + glob.glob("src/server/*.luau")
+    # 맵 표지판과 NPC 말풍선은 Roblox 글꼴로 찍으므로 글자판에 넣지 않는다
+    skip = {"src/server/World.luau", "src/shared/Npcs.luau"}
+    for path in [p for p in paths if p not in skip]:
         text = open(path, encoding="utf-8").read()
         # 주석은 빼고 문자열 안의 한글만
         text = re.sub(r"--[^\n]*", "", text)
