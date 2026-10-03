@@ -62,9 +62,9 @@ end
 -- 로벅스로 사는 영석 묶음 (개발자 상품). productId 는 Creator Hub 에서 만든 id (0 이면 아직 준비 중)
 export type Pack = { key: string, name: string, stones: number, robux: number, productId: number }
 Currency.PACKS = {
-	{ key = "handful", name = "영석 한 줌", stones = 120, robux = 25, productId = 0 },
-	{ key = "pouch", name = "영석 주머니", stones = 700, robux = 129, productId = 0 },
-	{ key = "chest", name = "영석 상자", stones = 1600, robux = 279, productId = 0 },
+	{ key = "handful", name = "영석 한 줌", stones = 120, robux = 25, productId = 3716222765 },
+	{ key = "pouch", name = "영석 주머니", stones = 700, robux = 129, productId = 3716222767 },
+	{ key = "chest", name = "영석 상자", stones = 1600, robux = 279, productId = 3716222768 },
 } :: { Pack }
 
 function Currency.packByProduct(productId: number): Pack?
