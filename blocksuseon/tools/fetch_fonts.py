@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """HUD 비트맵 글꼴에 쓸 글꼴 파일을 받는다.
 
-src/shared, src/client 의 한글과 기본 ASCII 를 모아 Google Fonts 에서 그 글자만 담긴
+src/shared, src/client, src/server 의 한글과 기본 ASCII 를 모아 Google Fonts 에서 그 글자만 담긴
 woff2 를 받아 art/fonts/ 에 저장하고, 글자 목록을 art/fonts/charset.txt 에 쓴다.
 
     python3 tools/fetch_fonts.py
@@ -17,14 +17,15 @@ FONTS = {
     "title": "Song+Myung",
     "body": "Nanum+Myeongjo:wght@800",
 }
-EXTRA = "0123456789+-−×→/%.,:()[]!?~'\"# abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ…"
+EXTRA = "0123456789+-−×→/%.,:()[]!?~'\"#_&@= abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ…"
 CHUNK = 120
 UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36"
 
 
 def charset() -> str:
     chars = set(EXTRA)
-    for path in glob.glob("src/shared/*.luau") + glob.glob("src/client/*.luau"):
+    # 서버 알림도 화면에 글자판으로 찍으므로 src/server 의 문구까지 모은다
+    for path in glob.glob("src/shared/*.luau") + glob.glob("src/client/*.luau") + glob.glob("src/server/*.luau"):
         text = open(path, encoding="utf-8").read()
         # 주석은 빼고 문자열 안의 한글만
         text = re.sub(r"--[^\n]*", "", text)

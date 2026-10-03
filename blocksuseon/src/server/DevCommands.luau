@@ -216,23 +216,22 @@ function DevCommands.run(player: Player, text: any)
 	end
 end
 
--- 명령을 서버에 만든다. 예전 채팅이면 Player.Chatted 로 듣는다
-function DevCommands.setup()
-	local TextChatService = game:GetService("TextChatService")
-	if TextChatService.ChatVersion ~= Enum.ChatVersion.TextChatService then
-		local function listen(player: Player)
-			player.Chatted:Connect(function(message)
-				if Commands.parse(message) then
-					DevCommands.run(player, message)
-				end
-			end)
-		end
-		Players.PlayerAdded:Connect(listen)
-		for _, player in Players:GetPlayers() do
-			listen(player)
-		end
+-- 명령을 서버에 만든다. 지금 Roblox 는 TextChatService 만 쓰므로 ChatVersion 값과 상관없이 만든다.
+-- 한글 별칭이 채팅 명령으로 잡히지 않을 때를 대비해 Player.Chatted 로도 듣는다(잡힌 명령은 글이 삼켜져
+-- Chatted 가 오지 않는다). 같은 글이 두 길로 오면 한 번만 실행한다.
+local recent: { [Player]: { text: string, at: number } } = {}
+
+local function handle(player: Player, text: string)
+	local last = recent[player]
+	if last and last.text == text and os.clock() - last.at < 1 then
 		return
 	end
+	recent[player] = { text = text, at = os.clock() }
+	DevCommands.run(player, text)
+end
+
+function DevCommands.setup()
+	local TextChatService = game:GetService("TextChatService")
 	for _, alias in Commands.ALIASES do
 		local command = Instance.new("TextChatCommand")
 		command.Name = "BlockSuseon_" .. alias[2]
@@ -245,11 +244,26 @@ function DevCommands.setup()
 		command.Triggered:Connect(function(source: TextSource, text: string)
 			local player = Players:GetPlayerByUserId(source.UserId)
 			if player then
-				DevCommands.run(player, text)
+				handle(player, text)
 			end
 		end)
 		command.Parent = TextChatService
 	end
+
+	local function listen(player: Player)
+		player.Chatted:Connect(function(message)
+			if Commands.parse(message) then
+				handle(player, message)
+			end
+		end)
+	end
+	Players.PlayerAdded:Connect(listen)
+	for _, player in Players:GetPlayers() do
+		listen(player)
+	end
+	Players.PlayerRemoving:Connect(function(player)
+		recent[player] = nil
+	end)
 end
 
 return DevCommands

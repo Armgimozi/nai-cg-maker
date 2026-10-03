@@ -415,15 +415,31 @@ task.wait(4)
 
 local hud = playerGui:FindFirstChild("BlockSuseonHud")
 assert(hud, "HUD ScreenGui 가 없다")
--- 알림 6개 + 첫 접속 안내 3개 + 새로 열린 과업 안내 4개(범인 2, 단수기 2)가 채팅으로 가야 한다
-assert(#chatMessages == 13, `채팅 알림 {#chatMessages}개 (13개 기대)`)
-assert(string.find(chatMessages[1], '<font color="#', 1, true), "알림에 색이 없다")
-Hud.toast("<b>깨짐</b> & 확인", "info")
-task.wait(0.1)
-assert(
-	string.find(chatMessages[#chatMessages], "&lt;b&gt;", 1, true),
-	"알림 글자를 이스케이프하지 않았다"
-)
+-- 알림은 화면 위 가운데 띠로 뜬다. 한 번에 넷까지
+local Notice = loader.require(loader.folder("src/client").Notice)
+local notices = hud:FindFirstChild("Notices")
+assert(notices, "화면 알림 틀이 없다")
+assert(#chatMessages == 0, "알림을 채팅으로 보내면 안 된다")
+assert(Notice.count() <= 4, `화면 알림 {Notice.count()}개 (넷까지)`)
+local before = Notice.count()
+Hud.toast("겹침 확인", "info")
+Hud.toast("겹침 확인", "info")
+assert(Notice.count() == math.min(4, before + 1), "같은 알림은 겹쳐 띄우지 않는다")
+Hud.toast("Ωmega님이 결단기에 올랐다.", "world")
+local fallback = false
+for _, item in notices:GetDescendants() do
+	if item:IsA("TextLabel") and string.find(item.Text, "Ωmega", 1, true) then
+		fallback = true
+	end
+end
+assert(fallback, "글자판에 없는 글자가 있으면 Roblox 글꼴로 찍어야 한다")
+Hud.toast("영력이 가득 찼다. 남은 과업을 마치면 오른다.", "info")
+for _, item in notices:GetDescendants() do
+	assert(
+		not item:IsA("TextLabel") or string.find(item.Text, "Ωmega", 1, true),
+		"글자판으로 찍을 수 있는 알림이 Roblox 글꼴로 갔다"
+	)
+end
 local cinematicGui = playerGui:FindFirstChild("BlockSuseonCinematic")
 assert(cinematicGui, "연출 ScreenGui 가 없다")
 -- 연출이 끝나면 화면에서 사라져야 한다 (지난번에 계속 남아 있던 문제)
@@ -436,6 +452,9 @@ for _, child in cinematicGui:GetChildren() do
 		assert(child.BackgroundTransparency == 1, "연출 배경이 어둡게 남아 있다")
 	end
 end
+
+task.wait(10)
+assert(Notice.count() == 0, "알림이 사라지지 않았다")
 
 local count = 0
 for _, _ in hud:GetDescendants() do
@@ -537,6 +556,21 @@ for _, def in Tasks.CHILSU do
 	need("body", string.format("%s 시운, 3분 12초 남았다 %s 시운까지 40초", def.name, def.name))
 end
 need("body", "주머니  영초 3  천년영지 1  홍령삼 1  축기단 1 주머니 비었다 끝 12 / 30초")
+-- 서버가 보내는 알림 문구 (화면에 글자판으로 찍는다)
+local fs = require("@lune/fs")
+for _, file in fs.readDir("src/server") do
+	-- 맵(표지판·모델 이름)은 Roblox 글꼴로 찍으므로 뺀다
+	if file == "World.luau" then
+		continue
+	end
+	local source = fs.readFile("src/server/" .. file)
+	source = string.gsub(source, "%-%-[^\n]*", "")
+	for literal in string.gmatch(source, '"([^"\n]*)"') do
+		if string.find(literal, "[\234-\237]") then
+			need("body", (string.gsub(literal, "%%[%a%.%d]+", "")))
+		end
+	end
+end
 for key, text in missing do
 	print(`  글자판에 없음 {key} ← "{text}"`)
 end

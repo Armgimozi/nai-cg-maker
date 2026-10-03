@@ -1,6 +1,6 @@
 -- 화면 UI. 선협풍: 칠기 현판과 금테, 옥 버튼, 붓글씨·명조 글자.
 -- 그림은 art/assets.html 에서 그려 올린 것(Art), 글자는 BitmapText 로 찍는다.
--- 알림은 채팅창 시스템 메시지(Chat)로 보낸다.
+-- 알림은 화면 위 가운데에 칠기 띠로 띄운다(Notice).
 
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
@@ -19,7 +19,7 @@ local Roots = require(Shared.Roots)
 local Clock = require(Shared.Clock)
 local Tasks = require(Shared.Tasks)
 local Ui = require(script.Parent.Ui)
-local Chat = require(script.Parent.Chat)
+local Notice = require(script.Parent.Notice)
 local Choice = require(script.Parent.Choice)
 local Naegwan = require(script.Parent.Naegwan)
 
@@ -218,7 +218,7 @@ local function buildStatus(gui: ScreenGui)
 		local entry = { line = line, bullet = bullet, label = label, progress = progress }
 		hintButton.Activated:Connect(function()
 			if entry.hint then
-				Chat.system(string.format("%s: %s", entry.labelText or "", entry.hint), "info")
+				Hud.toast(string.format("%s: %s", entry.labelText or "", entry.hint), "info")
 			end
 		end)
 		local main, mainText = Ui.pill("내관", 60, 26, 13, line, function()
@@ -772,6 +772,8 @@ function Hud.build(newActions: Actions)
 	buildTribulation(gui)
 	buildHotbar(gui)
 	buildStatusWindow(gui)
+	local notices = Notice.build(gui)
+	table.insert(scales, notices:FindFirstChildOfClass("UIScale"))
 	Choice.build(gui, function(key, value)
 		actions.choose(key, value)
 	end)
@@ -1065,7 +1067,7 @@ local function updateTasks(state)
 					actions.skipTask(job.id)
 				else
 					skipArmed[job.id] = os.clock()
-					Chat.system(
+					Hud.toast(
 						"한 번 더 누르면 퍼즐을 건너뛴다. 대신 이 단계에 영력이 2.5배 든다 (선통후각).",
 						"info"
 					)
@@ -1077,7 +1079,7 @@ local function updateTasks(state)
 		local key = string.format("%d:%s", state.step, job.id)
 		if job.open and not job.done and not announcedTasks[key] then
 			announcedTasks[key] = true
-			Chat.system(string.format("할 일, %s: %s", job.label, job.hint), "info")
+			Hud.toast(string.format("할 일, %s: %s", job.label, job.hint), "info")
 		end
 		-- 영근 고르기는 열리자마자 창을 띄운다
 		if job.kind == "choose" and job.open and not job.done and not autoOpened[key] then
@@ -1129,7 +1131,7 @@ function Hud.openTrial(payload: { [string]: any })
 end
 
 function Hud.toast(message: string, kind: string?)
-	Chat.system(message, kind)
+	Notice.show(message, kind)
 end
 
 -- 술법 ---------------------------------------------------------------------------
@@ -1261,21 +1263,21 @@ function Hud.cinematic(payload: { [string]: any })
 		if not payload.returning then
 			task.delay(3.5, function()
 				if keyboard then
-					Chat.system(
+					Hud.toast(
 						"R 키로 운기조식, B 키로 돌파, C 키로 상태창을 연다. 술법은 화면 아래 Q, E, Z, X 칸에 넣어 쓴다.",
 						"info"
 					)
 				else
-					Chat.system(
+					Hud.toast(
 						"오른쪽 옥 버튼으로 운기조식하고 돌파한다. 아래 칸은 술법이다.",
 						"info"
 					)
 				end
-				Chat.system(
+				Hud.toast(
 					"광장 가운데 영맥 위에서 운기조식하면 영력이 더 빨리 모인다.",
 					"info"
 				)
-				Chat.system(
+				Hud.toast(
 					"맵 곳곳에서 빛나는 비급을 찾으면 술법과 공법을 익힐 수 있다.",
 					"info"
 				)

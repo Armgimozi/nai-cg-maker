@@ -657,6 +657,18 @@ check("건너뛴 고르기는 뒤 단계에서 먼저 고른다", function()
 	eq(ids.dosim, nil)
 end)
 
+print("플레이스 설정")
+check("새 채팅(TextChatService)을 켜 둔다", function()
+	-- 플레이스 파일에 TextChatService 가 없으면 ChatVersion 이 예전 채팅으로 저장된다 (알림이 안 뜨던 원인)
+	local fs = require("@lune/fs")
+	local serde = require("@lune/serde")
+	local project = serde.decode("json", fs.readFile("default.project.json"))
+	local service = project.tree.TextChatService
+	assert(service, "default.project.json 에 TextChatService 가 없다")
+	eq(service["$properties"].ChatVersion, "TextChatService")
+	eq(service["$properties"].CreateDefaultTextChannels, true)
+end)
+
 print("조사")
 check("받침에 맞는 조사", function()
 	local Josa = loader.require(shared.Josa)
