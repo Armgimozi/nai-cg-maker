@@ -450,6 +450,22 @@ local function advanceStep(data: Data, carry: boolean): { string }
 	return enterStep(data)
 end
 
+-- 검수용: 단계를 바로 옮긴다. 영력과 과업 진행은 비우고, 그 단계까지 얻는 술법은 준다
+function Progression.jumpTo(data: Data, step: number): { string }
+	data.step = math.clamp(math.floor(step), 1, Realms.maxStep)
+	data.qi = 0
+	data.prog = { step = data.step, t = {}, debt = 0 }
+	-- 연기기 3성을 건너뛰었으면 취령진도 준다 (십이지율 이후 과업이 진법을 쓴다)
+	if data.step > Realms.firstStepById.yeongi + 2 and not data.skills.chwiryeong then
+		data.skills.chwiryeong = true
+		local empty = table.find(data.hotbar, "")
+		if empty then
+			data.hotbar[empty] = "chwiryeong"
+		end
+	end
+	return enterStep(data)
+end
+
 -- 같은 경지 안이고 영력과 과업이 다 찼으면 단계를 올린다. 반환: 오른 단계 수, 알릴 문구
 function Progression.tryAdvance(data: Data): (number, { string })
 	local advanced = 0

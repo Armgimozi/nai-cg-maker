@@ -9,6 +9,7 @@ local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Net = require(Shared.Net)
 local Progression = require(Shared.Progression)
 local Realms = require(Shared.Realms)
+local Commands = require(Shared.Commands)
 local Hud = require(script.Parent.Hud)
 local Effects = require(script.Parent.Effects)
 
@@ -67,6 +68,28 @@ local actions = {
 }
 
 Hud.build(actions)
+
+-- 검수용 채팅 명령: 플레이스 주인(또는 Studio)일 때만 만든다. 서버가 한 번 더 확인한다.
+local function setupDevCommands()
+	if player.UserId ~= game.CreatorId and not RunService:IsStudio() then
+		return
+	end
+	local TextChatService = game:GetService("TextChatService")
+	if TextChatService.ChatVersion ~= Enum.ChatVersion.TextChatService then
+		return
+	end
+	for _, alias in Commands.ALIASES do
+		local command = Instance.new("TextChatCommand")
+		command.Name = "BlockSuseon_" .. alias[2]
+		command.PrimaryAlias = "/" .. alias[1]
+		command.SecondaryAlias = "/" .. alias[2]
+		command.Triggered:Connect(function(_source, text)
+			request("Dev", text)
+		end)
+		command.Parent = TextChatService
+	end
+end
+task.spawn(setupDevCommands)
 
 -- 과업 자리의 F 버튼(팔괘 기둥, 칠성단)은 지금 쓸 때만 보이게 한다 (내 화면에서만 바뀐다)
 local function promptUse(site: string, snapshot): string?

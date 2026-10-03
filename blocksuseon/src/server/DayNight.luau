@@ -27,6 +27,18 @@ function DayNight.phase(): string
 	return Clock.phase(DayNight.time())
 end
 
+-- 검수용: 그 때의 첫머리로 시계를 옮긴다
+function DayNight.setPhase(phase: string)
+	for _, segment in Clock.SEGMENTS do
+		if segment.phase == phase then
+			origin = Workspace:GetServerTimeNow() - (segment.start + 1)
+			Workspace:SetAttribute(Clock.ATTRIBUTE, origin)
+			DayNight.tick()
+			return
+		end
+	end
+end
+
 function DayNight.tick()
 	Lighting.ClockTime = Clock.clockTime(DayNight.time())
 end

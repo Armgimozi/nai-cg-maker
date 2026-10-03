@@ -20,6 +20,7 @@ local SkillService = require(script.Parent.SkillService)
 local TaskService = require(script.Parent.TaskService)
 local DayNight = require(script.Parent.DayNight)
 local StarRain = require(script.Parent.StarRain)
+local DevCommands = require(script.Parent.DevCommands)
 
 local RESPAWN_DELAY = 4
 local REGEN_COOLDOWN = 600 -- 금단 재생: 10분에 한 번 쓰러진 자리에서 일어난다
@@ -160,6 +161,8 @@ Sync.remotes.Request.OnServerEvent:Connect(function(player: Player, action: any,
 		TaskService.cancelTrial(player)
 	elseif action == "Choose" and type(arg) == "table" then
 		TaskService.choose(player, arg.key, arg.value)
+	elseif action == "Dev" then
+		DevCommands.run(player, arg)
 	elseif action == "Eat" then
 		local qi = TaskService.eat(player, arg)
 		if qi then
