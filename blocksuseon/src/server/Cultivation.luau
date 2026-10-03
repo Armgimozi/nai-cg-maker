@@ -104,7 +104,7 @@ local function announce(player: Player, data, advanced: number, notes: { string 
 		Sync.notify(player, note, "good")
 	end
 	if data.step >= Realms.maxStep and isFull(data) and not wasFull then
-		Sync.notify(player, "천인 대원만, 하계에서 오를 수 있는 끝에 닿았다.", "good")
+		Sync.notify(player, "천인 대원, 이 세계에서 오를 수 있는 끝에 닿았다.", "good")
 		return
 	end
 	if isReady(data) and not wasReady then

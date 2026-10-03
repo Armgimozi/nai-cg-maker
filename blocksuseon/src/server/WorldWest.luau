@@ -3,7 +3,8 @@
 --   황구     누런 흙 언덕, 지층 띠를 두른 탁상 바위 다섯, 바위 굴집 마을, 황구 토단(오색토 제단과 흙 무사)
 --   단애곡   붉은 지층 벼랑, 서쪽 벽의 잔도, 돌기둥(후두), 마른 나무
 --   관성대   지층 벼랑, 오르막 난간과 축대, 꼭대기 천문 옛터 (혼천의, 첨성대, 성도 비석, 부러진 열주, 규표)
---   한해     바람 깎인 바위, 큰 요수 뼈, 모래에 묻힌 대상 수레, 묻힌 기둥, 마른 나무와 사막 덤불, 돌무더기 길표
+--   한해     바람구멍 바위(길을 가로지른다), 바람등과 버섯바위, 큰 요수 뼈, 모래에 묻힌 대상 수레, 묻힌 기둥, 경계 비석,
+--            마른 나무와 사막 덤불, 돌무더기 길표
 --   침사국 옛터  모래에 잠긴 성벽과 홍예문, 쓰러진 거상 머리, 열주, 부서진 계단, 모래 찬 뜰
 --   녹주     종려, 갈대, 돌 우물, 대상 천막과 깔개, 낙타
 --   소금벌   소금 껍질 무늬, 소금 결정, 거울 못, 소금 더미와 고무래, 소금막
@@ -1714,7 +1715,19 @@ local function mesa(parent: Instance, rng)
 			if y1 > y0 + 0.4 then
 				local mid = mesaPoint(318.5, 83)
 				local back = rad(4.5) * 83
-				slabAlong(cliff, mid.X, mid.Z, -tx, -tz, -back * 0.5 - rng(0.2, 0.9), back * 0.5, y0, y1, 23, jitter(b[3], rng, 0.05))
+				slabAlong(
+					cliff,
+					mid.X,
+					mid.Z,
+					-tx,
+					-tz,
+					-back * 0.5 - rng(0.2, 0.9),
+					back * 0.5,
+					y0,
+					y1,
+					23,
+					jitter(b[3], rng, 0.05)
+				)
 			end
 		end
 	end
@@ -1863,6 +1876,2020 @@ local function mesa(parent: Instance, rng)
 	return f
 end
 
+-- 한해 ---------------------------------------------------------------------------------
+-- 모래 언덕 물결은 WIND 쪽으로 오르내리고 (Land 의 dunes: x*0.83 + z*0.55), 등성이는 CREST 쪽으로 달린다.
+-- 바람 깎인 바위는 긴 쪽이 바람결: 바람 오는 쪽(머리)이 뭉툭하고 가는 쪽(꼬리)이 가늘다. 모래 더미는 바람 그늘에 쌓인다.
+-- 흩뿌리는 것은 길과 관성대·옛터·녹주·소금벌을 비켜 간다 (desertFree).
+local WIND = V3(0.83, 0, 0.55).Unit
+local CREST = V3(-WIND.Z, 0, WIND.X)
+local BONE = M.Limestone
+local RUIN_STONE = rgb(206, 180, 136) -- 침사국 돌 (모래빛 사암)
+local RUIN_DARK = rgb(168, 138, 98)
+
+local function dist2(x: number, z: number, c): number
+	return (x - c.x) ^ 2 + (z - c.z) ^ 2
+end
+
+local function desertFree(x: number, z: number, pad: number): boolean
+	if regionId(x, z) ~= "desert" then
+		return false
+	end
+	if not clearOf(x, z, pad) or roadDist(x, z) < 8 + pad then
+		return false
+	end
+	if
+		dist2(x, z, MESA) < (120 + pad) ^ 2
+		or dist2(x, z, RUINS) < (108 + pad) ^ 2
+		or dist2(x, z, OASIS) < (75 + pad) ^ 2
+	then
+		return false
+	end
+	if Land.polyDist(x, z, Land.CANYON, 60) < 50 then
+		return false
+	end
+	local g = H(x, z)
+	return g > 5 and g < 60 and relief(x, z, 2 + pad) < 2.6 + pad * 0.4
+end
+
+-- 모래 더미 (쐐기): foot 에서 out 쪽으로 length 만큼 가며 낮아진다. foot 쪽 높이는 foot.Y + h
+local function drift(parent: Instance, foot: Vector3, out: Vector3, width: number, length: number, h: number, rng)
+	local far = foot + out * length
+	local bottom = min(H(far.X, far.Z), H(foot.X, foot.Z)) - 0.8
+	local top = foot.Y + h
+	local c = (foot + far) / 2
+	return wedge(
+		parent,
+		"Morae",
+		V3(width, top - bottom, length),
+		face(V3(c.X, (top + bottom) / 2, c.Z), far),
+		jitter(C.sand, rng, 0.03),
+		M.Sand
+	)
+end
+
+-- 바람등 (바람에 깎인 긴 바위 등성이): 켜 셋, 위 켜일수록 짧고 좁다. 켜마다 몸(네모)과 꼬리(쐐기, 바람 가는 쪽으로 낮아진다)
+local function yardang(parent: Instance, x: number, z: number, rng)
+	local m = model(parent, "바람등")
+	local L, W = rng(24, 38), rng(7, 10)
+	local dir = (WIND + CREST * rng(-0.15, 0.15)).Unit
+	local y = lowAt(x, z, L * 0.5) - 1
+	local frame = face(V3(x, 0, z), V3(x, 0, z) + dir) -- 앞(-Z)이 바람 가는 쪽, 뒤(+Z)가 머리
+	local k = floor(rng(0, #BANDS))
+	for i = 1, 3 do
+		local len = L * (1 - 0.26 * (i - 1))
+		local wid = W * (1 - 0.17 * (i - 1))
+		local th = rng(3, 4.2) + (if i == 1 then 1.2 else 0)
+		local head = L / 2 - (i - 1) * rng(0.5, 1.4)
+		local bodyLen = len * 0.58
+		local tailLen = len - bodyLen
+		local col = jitter(BANDS[(k + i) % #BANDS + 1], rng, 0.05)
+		local yaw = CFrame.Angles(0, rng(-0.04, 0.04), 0)
+		block(
+			m,
+			"Mom",
+			V3(wid, th, bodyLen),
+			frame * CFrame.new(0, y + th / 2, head - bodyLen / 2) * yaw,
+			col,
+			M.Sandstone
+		)
+		wedge(
+			m,
+			"Kkori",
+			V3(wid * 0.92, th, tailLen),
+			frame * CFrame.new(0, y + th / 2, head - bodyLen - tailLen / 2 + 0.05) * yaw,
+			col,
+			M.Sandstone
+		)
+		y += th - 0.15
+	end
+	return m
+end
+
+-- 버섯바위: 넓은 밑동, 잘록한 허리, 넓고 납작한 갓 (갓 위에 옅은 갓바위 한 켜), 떨어진 조각, 바람 그늘 모래 더미
+local function mushroomRock(parent: Instance, x: number, z: number, rng)
+	local m = model(parent, "버섯바위")
+	local h = rng(9, 14)
+	local y = lowAt(x, z, 3) - 0.8
+	local k = floor(rng(0, #BANDS))
+	local w0 = rng(5, 7)
+	block(
+		m,
+		"Mitdong",
+		V3(w0, h * 0.4, w0 * rng(0.8, 1)),
+		CFrame.new(x, y + h * 0.2, z) * CFrame.Angles(0, rng(0, TAU), 0),
+		jitter(BANDS[k % #BANDS + 1], rng, 0.05),
+		M.Sandstone
+	)
+	local neck = h * 0.45
+	block(
+		m,
+		"Heori",
+		V3(w0 * 0.52, neck + 0.4, w0 * 0.48),
+		CFrame.new(x + rng(-0.3, 0.3), y + h * 0.4 + neck / 2, z + rng(-0.3, 0.3))
+			* CFrame.Angles(rng(-0.05, 0.05), rng(0, TAU), rng(-0.05, 0.05)),
+		jitter(BANDS[(k + 1) % #BANDS + 1], rng, 0.05),
+		M.Sandstone
+	)
+	local capW = w0 * rng(1.5, 1.85)
+	local capCf = CFrame.new(x, y + h * 0.95, z) * CFrame.Angles(rng(-0.1, 0.1), rng(0, TAU), rng(-0.1, 0.1))
+	block(
+		m,
+		"Gat",
+		V3(capW, h * 0.2, capW * rng(0.75, 0.95)),
+		capCf,
+		jitter(BANDS[(k + 2) % #BANDS + 1], rng, 0.05),
+		M.Sandstone
+	)
+	block(
+		m,
+		"Gatbawi",
+		V3(capW * 0.8, h * 0.14, capW * 0.66),
+		capCf * CFrame.new(rng(-0.5, 0.5), h * 0.16, rng(-0.5, 0.5)) * CFrame.Angles(0, rad(40), 0),
+		jitter(CAPROCK, rng, 0.04),
+		M.Sandstone
+	)
+	local a = rng(0, TAU)
+	boulder(m, x + cos(a) * (w0 + 1.2), z + sin(a) * (w0 + 1.2), rng(1.8, 2.6), rng, BANDS[(k + 2) % #BANDS + 1])
+	local foot = V3(x, 0, z) + WIND * w0 * 0.35
+	drift(m, V3(foot.X, H(foot.X, foot.Z), foot.Z), WIND, w0 * 0.8, rng(5, 7.5), rng(1.4, 2.2), rng)
+	return m
+end
+
+-- 바람구멍 바위: 바람에 뚫린 돌다리. 길(along 쪽으로 달린다)을 가로질러 다리 둘이 선다
+local function rockArch(parent: Instance, cx: number, cz: number, along: Vector3, rng)
+	local m = model(parent, "바람구멍바위")
+	local side = V3(-along.Z, 0, along.X)
+	local span, legW, thick = 18, 8, 7
+	local off = span / 2 + legW / 2
+	local legs = {}
+	local gMax = H(cx, cz)
+	for _, s in { -1, 1 } do
+		local p = V3(cx, 0, cz) + side * s * off
+		gMax = max(gMax, highAt(p.X, p.Z, 3))
+		table.insert(legs, { p = p, g = lowAt(p.X, p.Z, 4.5), s = s })
+	end
+	local yTop = gMax + 20
+	local yUnder = yTop - 6
+	local k = floor(rng(0, #BANDS))
+	for _, leg in legs do
+		local look = face(V3(leg.p.X, 0, leg.p.Z), V3(leg.p.X, 0, leg.p.Z) + along)
+		-- 다리: 띠 셋, 아래가 넓고 띠마다 조금씩 들고 난다 (바깥쪽이 더 깎였다)
+		local y0 = leg.g - 1.5
+		local cuts = { 0, rng(0.3, 0.42), rng(0.62, 0.74), 1 }
+		for j = 1, 3 do
+			local ya, yb = y0 + (yUnder - y0) * cuts[j], y0 + (yUnder - y0) * cuts[j + 1] + 0.3
+			local wj = legW + 2.2 - j * 0.8 + rng(-0.4, 0.4)
+			block(
+				m,
+				"Dari",
+				V3(wj, yb - ya, thick + 1.6 - j * 0.45),
+				look
+					* CFrame.new(-leg.s * (j - 1) * 0.35, (ya + yb) / 2, rng(-0.3, 0.3))
+					* CFrame.Angles(0, rng(-0.07, 0.07), 0),
+				jitter(BANDS[(k + j) % #BANDS + 1], rng, 0.05),
+				M.Sandstone
+			)
+		end
+		for _ = 1, 2 do
+			local a = rng(0, TAU)
+			local bx, bz = leg.p.X + cos(a) * (legW * 0.7 + 2), leg.p.Z + sin(a) * (legW * 0.7 + 2)
+			if roadDist(bx, bz) > 5 then
+				boulder(m, bx, bz, rng(2, 3.4), rng, BANDS[(k + 2) % #BANDS + 1])
+			end
+		end
+	end
+	-- 돌다리 (두 토막이 가운데에서 조금 솟는다), 갓바위, 안쪽 귀 (둥글게 깎인 자리)
+	local c = V3(cx, 0, cz)
+	local look = face(c, c + along)
+	for _, s in { -1, 1 } do
+		block(
+			m,
+			"Hongye",
+			V3(span / 2 + legW + 1, 6 - (s + 1) * 0.3, thick + s * 0.3),
+			look * CFrame.new(s * (span / 4 + legW / 2 - 0.5), yTop - 3, 0) * CFrame.Angles(0, 0, rad(s * 3)),
+			jitter(BANDS[(k + 4) % #BANDS + 1], rng, 0.05),
+			M.Sandstone
+		)
+	end
+	block(
+		m,
+		"Gatbawi",
+		V3(span + legW * 1.1, 2.0, thick - 1),
+		look * CFrame.new(rng(-1, 1), yTop + 0.7, 0) * CFrame.Angles(0, rng(-0.05, 0.05), rad(rng(-2, 2))),
+		jitter(CAPROCK, rng, 0.04),
+		M.Sandstone
+	)
+	block(
+		m,
+		"Gatbawi",
+		V3(span * 0.6, 1.4, thick - 2.2),
+		look * CFrame.new(rng(-3, 3), yTop + 2.2, rng(-0.4, 0.4)) * CFrame.Angles(0, rng(-0.1, 0.1), 0),
+		jitter(CAPROCK, rng, 0.05),
+		M.Sandstone
+	)
+	for _, s in { -1, 1 } do
+		local R = c + side * s * (span / 2) + V3(0, yUnder + 0.1, 0)
+		Build.rightTri(
+			m,
+			"Gwi",
+			R,
+			R - V3(0, 7.5, 0),
+			R - side * s * 6.5,
+			thick,
+			nil,
+			jitter(BANDS[(k + 1) % #BANDS + 1], rng, 0.05),
+			M.Sandstone
+		)
+	end
+	return m
+end
+
+-- 큰 요수 뼈: 꼬리는 모래에 묻히고 등뼈가 솟았다가 목에서 다시 내려와 머리뼈가 모래 위에 눕는다.
+-- 갈비 여덟 쌍 (몇은 부러져 끝 토막이 모래에 떨어졌다), 머리뼈 (뿔 둘, 벌어진 아래턱, 엄니), 앞다리 뼈, 골반
+local function beastBones(parent: Instance, cx: number, cz: number, dir: Vector3, s: number, rng)
+	local m = model(parent, "요수 뼈")
+	local side = V3(-dir.Z, 0, dir.X)
+	local L = 58 * s
+	local up = Vector3.yAxis
+	local function spine(t: number): Vector3
+		local p = V3(cx, 0, cz) + dir * (t - 0.5) * L
+		local lift
+		if t < 0.24 then
+			lift = -1.2 + 6.2 * (t / 0.24)
+		elseif t < 0.7 then
+			lift = 5 + 2.6 * sin((t - 0.24) / 0.46 * math.pi)
+		else
+			lift = 5 - 3.4 * ((t - 0.7) / 0.3)
+		end
+		return V3(p.X, H(p.X, p.Z) + lift * s, p.Z)
+	end
+	local function ground(p: Vector3, lift: number): Vector3
+		return V3(p.X, H(p.X, p.Z) + lift, p.Z)
+	end
+	-- 등뼈 마디와 가시 돌기
+	local n = 20
+	for i = 0, n - 1 do
+		local t = 0.03 + i * 0.84 / (n - 1)
+		local w = (if t > 0.7 then 1.3 elseif t < 0.24 then 0.9 + t * 2 else 1.7) * s
+		beam(m, "Cheokchu", spine(t - 0.016), spine(t + 0.016), w, w * 0.9, jitter(C.bone, rng, 0.04), BONE)
+		if t > 0.26 and t < 0.68 and i % 2 == 0 then
+			local p = spine(t)
+			beam(m, "Dolgi", p, p + (up * 2.6 - dir * 0.9) * s, 0.9 * s, 0.5 * s, jitter(C.boneDark, rng, 0.04), BONE)
+		end
+	end
+	-- 갈비
+	local nr = 8
+	for i = 1, nr do
+		local t = 0.31 + (i - 1) * 0.34 / (nr - 1)
+		local P = spine(t)
+		local f = (0.78 + 0.22 * sin(math.pi * (i - 0.5) / nr)) * s
+		local hgt = P.Y - H(P.X, P.Z)
+		for _, sg in { -1, 1 } do
+			local out = side * sg
+			local col = jitter(C.bone, rng, 0.05)
+			local w = 0.8 * s
+			local q0 = P + out * 0.6 * s
+			local q1 = P + out * 3.8 * f + up * 0.9 * f - dir * 0.4 * f
+			local q2 = P + out * 6.4 * f - up * hgt * 0.42 - dir * 1.0 * f
+			local q3 = ground(P + out * 7.0 * f - dir * 1.3 * f, -0.7)
+			beam(m, "Galbi", q0, q1, w, w * 0.7, col, BONE)
+			if rng(0, 1) < 0.2 then
+				-- 부러진 갈비: 끝 토막이 모래에 떨어졌다
+				beam(m, "Galbi", q1, q1:Lerp(q2, 0.45), w, w * 0.7, col, BONE)
+				local a = ground(q3 + out * 1.2, 0.25)
+				local b = ground(a + (out + dir * rng(-0.8, 0.8)).Unit * 3.6 * f, 0.25)
+				beam(m, "Tomak", a, b, w, w * 0.7, col, BONE)
+			else
+				beam(m, "Galbi", q1, q2, w, w * 0.7, col, BONE)
+				beam(m, "Galbi", q2, q3, w * 0.9, w * 0.65, col, BONE)
+			end
+		end
+	end
+	-- 골반 (꼬리 쪽, 반쯤 묻혔다)
+	do
+		local p = spine(0.24) - up * 0.3 * s
+		local look = face(p, p + dir)
+		for _, sg in { -1, 1 } do
+			block(
+				m,
+				"Golban",
+				V3(3.6, 0.7, 3.0) * s,
+				look * CFrame.new(sg * 1.9 * s, -0.4 * s, 0) * CFrame.Angles(rad(rng(-10, 10)), 0, rad(sg * 28)),
+				jitter(C.boneDark, rng, 0.04),
+				BONE
+			)
+		end
+	end
+	-- 앞다리 뼈: 갈비 곁에 하나씩 누웠다 (긴 뼈 + 두 끝 마디)
+	for _, sg in { -1, 1 } do
+		local base = spine(0.62) + side * sg * 9 * s
+		local a = rng(0, TAU)
+		local d = V3(cos(a), 0, sin(a))
+		local p0 = ground(base - d * 3.6 * s, 0.35 * s)
+		local p1 = ground(base + d * 3.6 * s, 0.35 * s)
+		beam(m, "Darippyeo", p0, p1, 1.0 * s, 0.9 * s, jitter(C.bone, rng, 0.04), BONE)
+		ball(m, "Madi", p0, 1.7 * s, jitter(C.boneDark, rng, 0.04), BONE)
+		ball(m, "Madi", p1, 1.5 * s, jitter(C.boneDark, rng, 0.04), BONE)
+	end
+	-- 머리뼈 (앞 -Z 가 dir 쪽, 조금 기울어 모래에 앉았다)
+	local hp = spine(0.94)
+	hp = V3(hp.X, H(hp.X, hp.Z) - 0.6 * s, hp.Z)
+	local F = face(hp, hp + dir) * CFrame.Angles(0, 0, rad(rng(-14, 14)))
+	local function at3(x: number, y: number, z: number): Vector3
+		return F:PointToWorldSpace(V3(x, y, z) * s)
+	end
+	local function put(name: string, size: Vector3, x: number, y: number, z: number, color: Color3)
+		return block(m, name, size * s, F * CFrame.new(x * s, y * s, z * s), color, BONE)
+	end
+	put("Meori", V3(4.4, 3.4, 4.6), 0, 1.5, 0, jitter(C.bone, rng, 0.03))
+	put("Nunsseop", V3(4.8, 1.0, 1.5), 0, 2.8, -1.9, jitter(C.bone, rng, 0.03))
+	put("Judung", V3(2.9, 2.0, 4.8), 0, 1.0, -4.4, jitter(C.bone, rng, 0.03))
+	put("Kkeut", V3(2.3, 1.7, 1.8), 0, 0.85, -7.2, jitter(C.boneDark, rng, 0.03))
+	for _, sg in { -1, 1 } do
+		put("Nunkumeong", V3(1.2, 1.1, 1.4), sg * 1.85, 2.0, -1.7, rgb(64, 54, 44))
+		local h0, h1 = at3(sg * 1.9, 2.9, 0.6), at3(sg * 3.0, 4.2, 2.6)
+		local h2, h3 = at3(sg * 3.4, 4.6, 5.0), at3(sg * 2.8, 3.9, 6.8)
+		beam(m, "Ppul", h0, h1, 1.0 * s, 1.0 * s, C.boneDark, BONE)
+		beam(m, "Ppul", h1, h2, 0.8 * s, 0.8 * s, C.boneDark, BONE)
+		beam(m, "Ppul", h2, h3, 0.55 * s, 0.55 * s, C.boneDark, BONE)
+		beam(m, "Teok", at3(sg * 1.8, 0.35, 0.4), at3(sg * 2.1, 0.3, -6.0), 0.7 * s, 0.8 * s, C.bone, BONE)
+		beam(m, "Eomni", at3(sg * 1.0, 0.7, -6.8), at3(sg * 1.4, 2.4, -8.6), 0.5 * s, 0.5 * s, C.bone, BONE)
+	end
+	-- 꼬리 끝을 덮은 모래
+	drift(m, ground(spine(0.08), 0), -dir, 5 * s, 6 * s, 1.6 * s, rng)
+	return m
+end
+
+-- 작은 뼈 무더기: 모래에서 솟은 한쪽 갈비 넷, 등뼈 마디 셋, 작은 머리뼈
+local function boneRemnant(parent: Instance, x: number, z: number, rng)
+	local m = model(parent, "뼈 무더기")
+	local a = rng(0, TAU)
+	local dir = V3(cos(a), 0, sin(a))
+	local side = V3(-dir.Z, 0, dir.X)
+	local function ground(p: Vector3, lift: number): Vector3
+		return V3(p.X, H(p.X, p.Z) + lift, p.Z)
+	end
+	local c = V3(x, 0, z)
+	for i = 1, 4 do
+		local base = ground(c + dir * (i - 2.5) * 2.2, -0.4)
+		local top = base + side * 2.2 + V3(0, 3.0 - abs(i - 2.5) * 0.5, 0)
+		local tip = ground(c + dir * (i - 2.5) * 2.4 + side * 4.4, -0.5)
+		local col = jitter(C.bone, rng, 0.05)
+		beam(m, "Galbi", base, top, 0.6, 0.45, col, BONE)
+		beam(m, "Galbi", top, tip, 0.55, 0.42, col, BONE)
+	end
+	for i = 1, 3 do
+		local p = ground(c - side * 0.8 + dir * (i - 2) * 2.4, 0.3)
+		beam(m, "Cheokchu", p - dir * 0.6, p + dir * 0.6, 1.1, 0.9, jitter(C.boneDark, rng, 0.05), BONE)
+	end
+	local hp = ground(c + dir * 7 - side * 1.5, 0.1)
+	local F = face(hp, hp + dir) * CFrame.Angles(0, 0, rad(rng(-25, 25)))
+	block(m, "Meori", V3(2.2, 1.6, 2.4), F * CFrame.new(0, 0.5, 0), jitter(C.bone, rng, 0.04), BONE)
+	block(m, "Judung", V3(1.4, 1.1, 2.4), F * CFrame.new(0, 0.3, -2.2), jitter(C.bone, rng, 0.04), BONE)
+	beam(
+		m,
+		"Ppul",
+		F:PointToWorldSpace(V3(0.8, 1.1, 0.4)),
+		F:PointToWorldSpace(V3(1.8, 2.4, 2.0)),
+		0.5,
+		0.5,
+		C.boneDark,
+		BONE
+	)
+	return m
+end
+
+-- 모래에 묻힌 대상: 기운 수레 (한쪽 바퀴가 묻혔다), 거의 묻힌 수레 (바퀴와 끌채 끝만), 짐 상자·자루·독, 쓰러진 깃대
+local function buriedCaravan(parent: Instance, cx: number, cz: number, dir: Vector3, rng)
+	local m = model(parent, "묻힌 대상")
+	local side = V3(-dir.Z, 0, dir.X)
+	local c = V3(cx, H(cx, cz), cz)
+	local cartCf = face(c - V3(0, 1.3, 0), c - V3(0, 1.3, 0) + dir) * CFrame.Angles(rad(-8), 0, rad(16))
+	Build.cart(m, cartCf)
+	-- 덮개 친 짐과 묶은 줄
+	local load = cartCf * CFrame.new(0.1, 3.0, 0.3)
+	block(m, "Jim", V3(3.2, 1.6, 4.2), load, jitter(C.felt, rng, 0.04), M.Fabric)
+	for _, z in { -1.1, 1.1 } do
+		block(m, "Jul", V3(3.3, 1.7, 0.18), load * CFrame.new(0, 0, z), C.straw, M.Fabric)
+	end
+	-- 찢어진 덮개 천이 옆으로 늘어졌다
+	block(
+		m,
+		"Cheon",
+		V3(0.2, 2.2, 3.6),
+		load * CFrame.new(1.9, -1.0, 0) * CFrame.Angles(0, 0, rad(-14)),
+		jitter(C.madder, rng, 0.05),
+		M.Fabric
+	)
+	-- 낮은 쪽 옆구리와 앞을 묻은 모래
+	local low = cartCf:PointToWorldSpace(V3(-2.4, 0, 0))
+	drift(m, V3(low.X, H(low.X, low.Z), low.Z), -side, 6.5, 6, 2.2, rng)
+	drift(m, c + dir * 2.8, dir, 4, 5, 1.6, rng)
+	-- 거의 묻힌 둘째 수레: 바퀴 반쪽과 들린 끌채
+	do
+		local p = c + side * 8 - dir * 3
+		local g = H(p.X, p.Z)
+		local hub = V3(p.X, g - 0.3, p.Z)
+		cyl(m, "Bakwi", hub - side * 0.15, hub + side * 0.15, 3.4, P.woodDark, M.Wood)
+		cyl(m, "Tong", hub - side * 0.3, hub + side * 0.3, 0.7, P.meok, M.Metal)
+		local a = V3(p.X, g - 0.5, p.Z) + dir * 2
+		beam(m, "Kkeulchae", a, a + dir * 3.5 + V3(0, 2.2, 0), 0.3, 0.3, P.wood, M.Wood)
+	end
+	-- 상자·자루·독 (모래에 반쯤)
+	local spots = {
+		{ -4.5, 3.5, "box" },
+		{ -6.2, 0.8, "box" },
+		{ 3.5, 5.0, "sack" },
+		{ 4.6, 3.0, "sack" },
+		{ -3.2, -4.6, "jar" },
+		{ 5.2, -3.8, "jar" },
+		{ 1.0, 7.4, "lid" },
+	}
+	for _, sp in spots do
+		local p = c + side * sp[1] + dir * sp[2]
+		local g = H(p.X, p.Z)
+		local kind = sp[3]
+		local tilt = CFrame.Angles(rng(-0.3, 0.3), rng(0, TAU), rng(-0.3, 0.3))
+		if kind == "box" then
+			block(
+				m,
+				"Sangja",
+				V3(2.2, 1.8, 2.6),
+				CFrame.new(p.X, g + 0.3, p.Z) * tilt,
+				jitter(P.wood, rng, 0.08),
+				M.WoodPlanks
+			)
+		elseif kind == "lid" then
+			block(
+				m,
+				"Ttukkeong",
+				V3(2.4, 0.25, 2.8),
+				CFrame.new(p.X, g + 0.05, p.Z) * CFrame.Angles(rng(-0.1, 0.1), rng(0, TAU), rng(-0.1, 0.1)),
+				jitter(P.wood, rng, 0.08),
+				M.WoodPlanks
+			)
+		elseif kind == "sack" then
+			block(
+				m,
+				"Jaru",
+				V3(1.6, 1.2, 2.2),
+				CFrame.new(p.X, g + 0.25, p.Z) * tilt,
+				jitter(C.straw, rng, 0.08),
+				M.Fabric
+			)
+		else
+			local jc = V3(p.X, g + 0.2, p.Z)
+			local col = jitter(rgb(120, 76, 48), rng, 0.08)
+			ball(m, "Dok", jc, 1.9, col, M.SmoothPlastic).CastShadow = false
+			local na = rng(0, TAU)
+			local nd = V3(cos(na) * 0.6, 0.6, sin(na) * 0.6)
+			cyl(m, "Mok", jc + nd * 0.9, jc + nd * 1.4, 1.0, col, M.SmoothPlastic)
+		end
+	end
+	-- 쓰러진 깃대와 해진 기
+	do
+		local p0 = c - side * 5 + dir * 7
+		local a = V3(p0.X, H(p0.X, p0.Z) + 0.15, p0.Z)
+		local b0 = a + (dir + side * 0.6).Unit * 8
+		local b = V3(b0.X, H(b0.X, b0.Z) + 0.15, b0.Z)
+		beam(m, "Gitdae", a, b, 0.3, 0.3, P.woodDark, M.Wood)
+		local q = b:Lerp(a, 0.12)
+		block(
+			m,
+			"Gi",
+			V3(2.4, 0.08, 1.6),
+			face(q + V3(0, 0.1, 0), q + side) * CFrame.Angles(0, 0, rad(4)),
+			jitter(C.ochreCloth, rng, 0.06),
+			M.Fabric
+		)
+	end
+	return m
+end
+
+-- 모래에 묻힌 옛 기둥 (침사국 둘레): 1 기운 기둥과 주두, 2 주두와 짧은 몸만, 3 기둥 둘과 들보 (모래 위로 나온 문틀)
+local function sandPillar(parent: Instance, x: number, z: number, kind: number, rng)
+	local m = model(parent, "묻힌 기둥")
+	local g = lowAt(x, z, 2)
+	local col = jitter(RUIN_STONE, rng, 0.05)
+	if kind == 1 then
+		local a = rng(0, TAU)
+		local lean = V3(cos(a), 0, sin(a)) * math.tan(rad(rng(8, 22)))
+		local h = rng(6, 10)
+		local base = V3(x, g - 3, z)
+		local top = base + (Vector3.yAxis + lean).Unit * (h + 3)
+		cyl(m, "Gidung", base, top, 2.6, col, M.Sandstone)
+		local cap = CFrame.new(top) * CFrame.Angles(lean.Z * 0.9, rng(0, TAU), -lean.X * 0.9)
+		block(m, "Judu", V3(3.8, 1.2, 3.8), cap, jitter(RUIN_DARK, rng, 0.05), M.Sandstone)
+	elseif kind == 2 then
+		local h = rng(1.2, 2.6)
+		cyl(m, "Gidung", V3(x, g - 1, z), V3(x, g + h, z), 2.6, col, M.Sandstone)
+		block(
+			m,
+			"Judu",
+			V3(3.8, 1.2, 3.8),
+			CFrame.new(x, g + h + 0.4, z) * CFrame.Angles(rng(-0.12, 0.12), rng(0, TAU), rng(-0.12, 0.12)),
+			jitter(RUIN_DARK, rng, 0.05),
+			M.Sandstone
+		)
+	else
+		local a = rng(0, TAU)
+		local d = V3(cos(a), 0, sin(a))
+		local gl = math.huge
+		for _, s in { -1, 1 } do
+			local p = V3(x, 0, z) + d * s * 4.5
+			gl = min(gl, lowAt(p.X, p.Z, 1.5))
+		end
+		local top = gl + rng(4.5, 6.5)
+		for _, s in { -1, 1 } do
+			local p = V3(x, 0, z) + d * s * 4.5
+			cyl(m, "Gidung", V3(p.X, gl - 2, p.Z), V3(p.X, top, p.Z), 2.4, jitter(RUIN_STONE, rng, 0.05), M.Sandstone)
+		end
+		local mid = V3(x, top + 0.8, z)
+		block(
+			m,
+			"Deulbo",
+			V3(2.6, 1.6, 13),
+			face(mid, mid + d) * CFrame.Angles(rad(rng(-4, 4)), 0, 0),
+			jitter(RUIN_DARK, rng, 0.05),
+			M.Sandstone
+		)
+		-- 문틀 밑으로 불어 든 모래
+		drift(m, V3(x, H(x, z), z), V3(-d.Z, 0, d.X), 7, 6, 1.8, rng)
+	end
+	return m
+end
+
+-- 모래에 반쯤 묻힌 경계 비석 (거북 받침): 옛 나라 이름이 새겨져 있다. 앞(-Z)이 toward 쪽
+local function borderStele(parent: Instance, x: number, z: number, toward: Vector3, rng)
+	local m = model(parent, "경계 비석")
+	local g = lowAt(x, z, 3)
+	local look = face(V3(x, g, z), toward)
+	block(
+		m,
+		"Gwibu",
+		V3(4.6, 2.4, 6.4),
+		look * CFrame.new(0, 0.2, 0.4) * CFrame.Angles(rad(3), 0, rad(-4)),
+		jitter(RUIN_DARK, rng, 0.05),
+		M.Sandstone
+	)
+	block(
+		m,
+		"Gwibumeori",
+		V3(1.8, 1.4, 2.0),
+		look * CFrame.new(0, 0.6, -3.6) * CFrame.Angles(rad(-10), 0, 0),
+		jitter(RUIN_DARK, rng, 0.05),
+		M.Sandstone
+	)
+	local slab = block(
+		m,
+		"Bimom",
+		V3(3.4, 7.4, 1.1),
+		look * CFrame.new(0, 4.4, 0.6) * CFrame.Angles(rad(-6), 0, rad(8)),
+		jitter(RUIN_STONE, rng, 0.04),
+		M.Sandstone
+	)
+	Kit.engrave(slab, "침사국", "Front", true)
+	return m
+end
+
+-- 길 곁 돌무더기 길표: 사막을 지나는 길을 따라 every 마다 (길 양옆을 번갈아)
+local function roadCairns(parent: Instance, every: number, rng)
+	local n = 0
+	for _, road in Land.ROADS do
+		for i = 1, #road - 1 do
+			local a, b = road[i], road[i + 1]
+			local dx, dz = b[1] - a[1], b[2] - a[2]
+			local len = sqrt(dx * dx + dz * dz)
+			local ux, uz = dx / len, dz / len
+			local t = every * 0.5
+			while t < len do
+				n += 1
+				local s = if n % 2 == 0 then 1 else -1
+				local x, z = a[1] + ux * t - uz * s * 7, a[2] + uz * t + ux * s * 7
+				if
+					regionId(x, z) == "desert"
+					and clearOf(x, z, 3)
+					and dist2(x, z, MESA) > 125 ^ 2
+					and dist2(x, z, RUINS) > 100 ^ 2
+					and dist2(x, z, OASIS) > 70 ^ 2
+				then
+					cairn(parent, x, z, rng, rgb(168, 132, 96))
+				end
+				t += every
+			end
+		end
+	end
+end
+
+-- 관성대에서 옛터로 가는 길 (Land.ROADS 의 14 번째 길 끝 토막)
+local RUIN_ROAD_A, RUIN_ROAD_B = V3(-900, 0, 850), V3(-1100, 0, 1010)
+
+local function desert(parent: Instance, rng)
+	local f = folder(parent, "한해")
+	local along = (RUIN_ROAD_B - RUIN_ROAD_A).Unit
+	local across = V3(-along.Z, 0, along.X)
+	-- 바람구멍 바위: 옛터 가는 길을 가로지른다
+	local archAt = RUIN_ROAD_A + along * 160
+	rockArch(f, archAt.X, archAt.Z, along, rng)
+	-- 큰 요수 뼈: 길 서쪽 골 (등성이를 따라 눕는다)
+	beastBones(f, -1000, 868, V3(-0.49, 0, 0.87).Unit, 1, rng)
+	-- 묻힌 대상: 녹주 가는 길 곁 골
+	buriedCaravan(f, -978, 800, V3(-0.66, 0, -0.75).Unit, rng)
+	-- 경계 비석: 옛터 가는 길 곁 (길을 본다)
+	local steleAt = RUIN_ROAD_A + along * 205 - across * 11
+	borderStele(f, steleAt.X, steleAt.Z, steleAt + across * 11, rng)
+	local box = { -1460, -440, 600, 1500 }
+	local taken = {
+		{ -1000, 868, 40 },
+		{ -978, 800, 24 },
+		{ archAt.X, archAt.Z, 34 },
+		{ steleAt.X, steleAt.Z, 12 },
+	}
+	local function pick(count: number, spacing: number, pad: number, accept: ((number, number) -> boolean)?)
+		return scatter(rng, count, box, spacing, function(x, z)
+			return desertFree(x, z, pad) and (accept == nil or accept(x, z))
+		end, taken)
+	end
+	local function reserve(p, r: number)
+		table.insert(taken, { p[1], p[2], r })
+	end
+	-- 바람 깎인 바위들
+	for _, p in
+		pick(5, 120, 12, function(x, z)
+			return relief(x, z, 10) < 4
+		end)
+	do
+		yardang(f, p[1], p[2], rng)
+		reserve(p, 24)
+	end
+	for _, p in pick(4, 110, 8) do
+		mushroomRock(f, p[1], p[2], rng)
+		reserve(p, 16)
+	end
+	-- 옛 나라의 흔적: 옛터 둘레 (125~270) 에 묻힌 기둥
+	local kinds = { 1, 2, 3, 1, 2, 1, 3, 2 }
+	for i, p in
+		pick(8, 45, 6, function(x, z)
+			local d = dist2(x, z, RUINS)
+			return d > 125 ^ 2 and d < 270 ^ 2
+		end)
+	do
+		sandPillar(f, p[1], p[2], kinds[i], rng)
+		reserve(p, 14)
+	end
+	-- 작은 뼈 무더기
+	for _, p in pick(2, 200, 6) do
+		boneRemnant(f, p[1], p[2], rng)
+		reserve(p, 12)
+	end
+	-- 마른 나무, 사막 덤불, 마른 풀, 바위
+	for _, p in pick(5, 70, 3) do
+		deadTree(f, p[1], p[2], rng, {
+			height = rng(6, 10),
+			color = if rng(0, 1) < 0.6 then C.deadwoodPale else C.deadwood,
+		})
+	end
+	local palettes = {
+		{ C.sageDark, C.sage, C.dustLeaf },
+		{ rgb(140, 132, 90), C.sage, rgb(160, 150, 104) },
+		{ rgb(150, 116, 90), rgb(128, 110, 84), C.sageDark }, -- 붉게 마른 위성류
+	}
+	for _, p in pick(24, 22, 1) do
+		dryShrub(f, p[1], p[2], rng, rng(1.8, 3.4), palettes[floor(rng(1, #palettes + 0.99))])
+	end
+	for _, p in pick(14, 18, 0) do
+		tuft(f, p[1], p[2], rng)
+	end
+	for _, p in pick(9, 40, 2) do
+		boulder(f, p[1], p[2], rng(1.6, 3.8), rng, BANDS[floor(rng(1, #BANDS + 0.99))])
+	end
+	roadCairns(f, 85, rng)
+	return f
+end
+
+-- 침사국 옛터 ----------------------------------------------------------------------------
+-- 모래에 가라앉은 나라: 지형이 가운데(반지름 62)를 18 높이로 판판하게 파 두었고 둘레는 모래 언덕(30~47)이 덮는다.
+-- 큰길(RU)은 가운데에서 북동쪽 대문으로 (관성대에서 오는 길이 이 쪽으로 들어온다). RV 는 큰길을 가로지르는 쪽.
+-- (a, p): 가운데에서 큰길 쪽 a, 가로 p. 성벽은 a, p = ±58 네모 (모서리는 모래 언덕에 묻혔다).
+-- 큰길: 대문(a 58) → 전송진(a 42) → 열주(a 30~-20) → 영맥(가운데) → 부서진 계단과 궁 터 기단(a -34~-54).
+-- 서쪽 뜰(p<0)에 쓰러진 거상 머리와 발만 남은 받침, 동쪽 뜰(p>0)에 모래 찬 못. 영맥 7·전송진 9 는 비워 둔다.
+local RU = V3(0.783, 0, -0.622).Unit
+local RV = V3(-RU.Z, 0, RU.X)
+local FLOOR = RUINS.height
+local function rxz(a: number, p: number): (number, number)
+	return RUINS.x + RU.X * a + RV.X * p, RUINS.z + RU.Z * a + RV.Z * p
+end
+-- (a, p) 의 높이 y 에 서서 대문 쪽(-Z = RU)을 본다. 로컬 +X 가 +p
+local function rframe(a: number, p: number, y: number): CFrame
+	local x, z = rxz(a, p)
+	return face(V3(x, y, z), V3(x + RU.X, y, z + RU.Z))
+end
+
+-- 옛터 기둥 (굵은 돌기둥): kind 1 온전 (두 마디, 주두와 대접받침), 2 부러짐 (떨어진 마디 하나), 3 쓰러짐 (마디들이 fall 쪽으로 누웠다)
+local function ruinColumn(parent: Instance, x: number, z: number, height: number, kind: number, rng, fall: Vector3?)
+	local m = model(parent, "옛터 기둥")
+	local g = lowAt(x, z, 2.2)
+	local col = jitter(RUIN_STONE, rng, 0.05)
+	local d = 2.8
+	block(
+		m,
+		"Chuchu",
+		V3(4.2, 1.6, 4.2),
+		CFrame.new(x, g + 0.3, z) * CFrame.Angles(0, rng(0, 1.5), 0),
+		jitter(RUIN_DARK, rng, 0.05),
+		M.Sandstone
+	)
+	local y0 = g + 1.05
+	if kind == 1 then
+		local yTop = g + height - 1.7
+		local ym = (y0 + yTop) / 2 + rng(-0.5, 0.5)
+		cyl(m, "Gidung", V3(x, y0, z), V3(x, ym, z), d, col, M.Sandstone)
+		cyl(m, "Gidung", V3(x, ym - 0.05, z), V3(x, yTop, z), d * 0.96, jitter(col, rng, 0.03), M.Sandstone)
+		block(m, "Judu", V3(3.6, 1.0, 3.6), CFrame.new(x, yTop + 0.5, z), jitter(RUIN_DARK, rng, 0.04), M.Sandstone)
+		block(m, "Daejeop", V3(4.6, 0.7, 4.6), CFrame.new(x, yTop + 1.35, z), col, M.Sandstone)
+		return m, yTop + 1.7
+	elseif kind == 2 then
+		local h = height * rng(0.3, 0.6)
+		cyl(m, "Gidung", V3(x, y0, z), V3(x + rng(-0.15, 0.15), y0 + h, z + rng(-0.15, 0.15)), d, col, M.Sandstone)
+		local a = rng(0, TAU)
+		local p = V3(x, 0, z) + V3(cos(a), 0, sin(a)) * rng(4, 6)
+		local b = rng(0, TAU)
+		local dd = V3(cos(b), 0, sin(b)) * 1.6
+		local gp = H(p.X, p.Z) + d * 0.4
+		cyl(m, "Madi", V3(p.X, gp, p.Z) - dd, V3(p.X, gp, p.Z) + dd, d, jitter(col, rng, 0.04), M.Sandstone)
+	else
+		local dir = fall or V3(1, 0, 0)
+		cyl(m, "Gidung", V3(x, y0, z), V3(x, y0 + rng(0.8, 1.8), z), d, col, M.Sandstone)
+		local t = 2.2
+		local seg = (height - 3) / 3
+		for i = 1, 3 do
+			local p0 = V3(x, 0, z) + dir * t
+			local p1 = p0 + dir * (seg - 0.3)
+			local yy = min(H(p0.X, p0.Z), H(p1.X, p1.Z)) + d * 0.4
+			local kink = V3(-dir.Z, 0, dir.X) * rng(-0.6, 0.6)
+			cyl(m, "Madi", V3(p0.X, yy, p0.Z) + kink, V3(p1.X, yy, p1.Z) - kink, d, jitter(col, rng, 0.04), M.Sandstone)
+			t += seg + rng(0.1, 0.8)
+			dir = (dir + V3(-dir.Z, 0, dir.X) * rng(-0.12, 0.12)).Unit
+		end
+		local p = V3(x, 0, z) + dir * (t + 1.2)
+		block(
+			m,
+			"Judu",
+			V3(4.6, 1.4, 4.6),
+			CFrame.new(p.X, H(p.X, p.Z) + 0.9, p.Z) * CFrame.Angles(rng(-0.2, 0.2), rng(0, TAU), rad(rng(60, 80))),
+			jitter(RUIN_DARK, rng, 0.04),
+			M.Sandstone
+		)
+	end
+	return m, nil
+end
+
+-- 큰 대문: 두 문대, 홍예(귀를 깎은 문길), 문 위 여장과 무너진 문루 (기둥 밑동, 떨어진 지붕 조각), 돌 현판.
+-- 바깥(+a)쪽은 모래가 문대 허리까지 쌓였다. 문길 바닥은 비워 둔다 (길이 지난다)
+local function greatGate(parent: Instance, rng)
+	local m = model(parent, "침사국 대문")
+	local G = rframe(58, 0, 0)
+	local function put(name: string, size: Vector3, x: number, y: number, z: number, color: Color3?, rot: CFrame?, mat)
+		return block(
+			m,
+			name,
+			size,
+			G * CFrame.new(x, y, z) * (rot or CFrame.new()),
+			color or jitter(RUIN_STONE, rng, 0.04),
+			mat or M.Sandstone
+		)
+	end
+	local function wp(x: number, y: number, z: number): Vector3
+		return G:PointToWorldSpace(V3(x, y, z))
+	end
+	local base, top, under = FLOOR - 3, FLOOR + 20, FLOOR + 13
+	for _, s in { -1, 1 } do
+		put("Mundae", V3(12, top - base, 10), s * 11, (base + top) / 2, 0)
+		put("Ttidol", V3(12.5, 1.2, 10.5), s * 11, FLOOR + 6.5, 0, jitter(RUIN_DARK, rng, 0.04))
+		Build.rightTri(
+			m,
+			"Hongye",
+			wp(s * 5, under + 0.05, 0),
+			wp(s * 5, under - 4.6, 0),
+			wp(s * 1.6, under + 0.05, 0),
+			10,
+			nil,
+			jitter(RUIN_STONE, rng, 0.04),
+			M.Sandstone
+		)
+	end
+	put("Inbang", V3(10.4, top - under, 10), 0, (under + top) / 2, 0)
+	put("Cheomdol", V3(35, 1.2, 11), 0, top - 0.6, 0, jitter(RUIN_DARK, rng, 0.04))
+	put("Yeojang", V3(34, 1.6, 9), 0, top + 0.8, 0)
+	-- 여장 위 타(垜): 바깥 여섯 (둘은 무너졌다), 안쪽 셋
+	for i = 0, 5 do
+		if rng(0, 1) > 0.3 then
+			put("Ta", V3(2.8, 2.2, 1.4), -15 + i * 6, top + 2.7, -3.9)
+		end
+	end
+	for i = 0, 2 do
+		put("Ta", V3(2.8, rng(1.2, 2.2), 1.4), -12 + i * 12, top + 2.4, 3.9)
+	end
+	-- 문루 기둥 밑동과 떨어진 지붕 조각, 위에 쌓인 모래
+	for _, q in { { -7, -2.4 }, { 7, -2.4 }, { -7, 2.4 }, { 7, 2.4 } } do
+		local h = rng(1.2, 5)
+		cyl(
+			m,
+			"Mullu",
+			wp(q[1], top + 1.5, q[2]),
+			wp(q[1], top + 1.6 + h, q[2]),
+			1.6,
+			jitter(rgb(96, 70, 52), rng, 0.08),
+			M.Wood
+		)
+	end
+	put(
+		"Jibung",
+		V3(9, 0.8, 6),
+		2.5,
+		top + 2.6,
+		0.4,
+		P.giwa,
+		CFrame.Angles(rad(16), rad(20), rad(-12)),
+		M.ClayRoofTiles
+	)
+	put("Maru", V3(0.6, 0.5, 6.4), 2.5, top + 3.1, 0.4, P.giwaDark, CFrame.Angles(rad(16), rad(20), rad(-12)), M.Slate)
+	put("Morae", V3(7, 1.2, 5.6), -8, top + 2.0, 0.8, C.sand, CFrame.Angles(0, rad(12), rad(4)), M.Sand)
+	-- 돌 현판 (바깥을 본다)
+	put("Te", V3(8.8, 3.4, 0.35), 0, under + 2.6, -5.12, jitter(RUIN_DARK, rng, 0.04))
+	local board = put("Hyeonpan", V3(8, 2.6, 0.5), 0, under + 2.6, -5.3, rgb(150, 124, 92))
+	Kit.engrave(board, "침사국", "Front")
+	-- 안쪽 문대에 기대 쓰러진 청동 문짝
+	put("Munjjak", V3(4.6, 9, 0.6), 10, FLOOR + 3.2, 7.0, C.verdigris, CFrame.Angles(rad(-20), rad(8), 0), M.Metal)
+	-- 바깥 모래 더미 (문대 허리까지), 안쪽 작은 더미
+	for _, s in { -1, 1 } do
+		local f0 = wp(s * 11, 0, -5)
+		drift(m, V3(f0.X, H(f0.X, f0.Z), f0.Z), RU, 12, 14, 8, rng)
+		local f1 = wp(s * 14, 0, 5)
+		drift(m, V3(f1.X, H(f1.X, f1.Z), f1.Z), -RU, 6, 3.5, 2.2, rng)
+	end
+	return m
+end
+
+-- 성벽: 네모 (a, p = ±58), 토막마다 높이가 다르고 (무너진 토막은 낮다) 몇 토막은 뚫렸다. 모래가 덮은 토막은 건너뛴다.
+-- 북쪽 모서리에 기운 망루, 서쪽 모서리에 망루 밑동
+local function ruinWalls(parent: Instance, rng)
+	local m = model(parent, "침사국 성벽")
+	local S, n = 58, 16
+	local seg = 2 * S / n
+	for side = 1, 4 do
+		for i = 0, n - 1 do
+			local u = -S + (i + 0.5) * seg
+			local a, p, ra, rp
+			if side == 1 then
+				a, p, ra, rp = S, u, 0, 1
+			elseif side == 2 then
+				a, p, ra, rp = -S, u, 0, 1
+			elseif side == 3 then
+				a, p, ra, rp = u, S, 1, 0
+			else
+				a, p, ra, rp = u, -S, 1, 0
+			end
+			local gate = side == 1 and abs(u) < 18
+			if not gate and rng(0, 1) > 0.12 then
+				local x, z = rxz(a, p)
+				local x0, z0 = rxz(a - ra * seg / 2, p - rp * seg / 2)
+				local x1, z1 = rxz(a + ra * seg / 2, p + rp * seg / 2)
+				local intact = rng(0, 1) < 0.6
+				local top = FLOOR + (if intact then 9 + rng(-0.6, 0.6) else rng(3, 7.5))
+				local g = max(H(x, z), H(x0, z0), H(x1, z1))
+				if g < top - 1.2 then
+					local low = min(H(x0, z0), H(x1, z1), H(x, z)) - 1.5
+					local run = V3(x1 - x0, 0, z1 - z0).Unit
+					local look = face(V3(x, 0, z), V3(x, 0, z) + run)
+					block(
+						m,
+						"Seongbyeok",
+						V3(4.5, top - low, seg + 0.15),
+						look * CFrame.new(0, (low + top) / 2, 0) * CFrame.Angles(0, 0, rad(rng(-0.8, 0.8))),
+						jitter(RUIN_STONE, rng, 0.05),
+						M.Sandstone
+					)
+					if intact then
+						block(
+							m,
+							"Gatdol",
+							V3(5.1, 0.8, seg + 0.2),
+							look * CFrame.new(0, top + 0.4, 0),
+							jitter(RUIN_DARK, rng, 0.04),
+							M.Sandstone
+						)
+						if side == 1 and abs(u) < 34 then
+							block(
+								m,
+								"Ta",
+								V3(1.3, 2, 2.4),
+								look * CFrame.new(-1.9, top + 1.8, 0),
+								jitter(RUIN_STONE, rng, 0.04),
+								M.Sandstone
+							)
+						end
+					end
+				end
+			end
+		end
+	end
+	-- 북쪽 모서리 망루: 모래 언덕에서 기울어 솟는다 (멀리서 옛터를 알린다)
+	do
+		local x, z = rxz(62, -62)
+		local g = lowAt(x, z, 6) - 2
+		local look = face(V3(x, g, z), V3(RUINS.x, g, RUINS.z)) * CFrame.Angles(rad(-4), 0, rad(3))
+		local tw = model(m, "망루")
+		block(tw, "Mom", V3(10, 15, 10), look * CFrame.new(0, 7.5, 0), jitter(RUIN_STONE, rng, 0.04), M.Sandstone)
+		block(tw, "Mom", V3(8.8, 11, 8.8), look * CFrame.new(0, 20.5, 0), jitter(RUIN_STONE, rng, 0.04), M.Sandstone)
+		block(tw, "Ttidol", V3(10.4, 1, 10.4), look * CFrame.new(0, 15, 0), jitter(RUIN_DARK, rng, 0.04), M.Sandstone)
+		block(tw, "Cheomdol", V3(9.8, 1, 9.8), look * CFrame.new(0, 26.4, 0), jitter(RUIN_DARK, rng, 0.04), M.Sandstone)
+		for _, q in { { -3.6, -3.6 }, { 3.6, -3.6 }, { 3.6, 3.6 } } do
+			block(
+				tw,
+				"Ta",
+				V3(2.2, 2.2, 2.2),
+				look * CFrame.new(q[1], 28, q[2]),
+				jitter(RUIN_STONE, rng, 0.04),
+				M.Sandstone
+			)
+		end
+		for _, y in { 19, 23 } do
+			block(tw, "Chang", V3(1.2, 2.6, 0.4), look * CFrame.new(0, y, -4.5), rgb(54, 44, 36), M.Slate)
+		end
+	end
+	-- 서쪽 모서리 망루 밑동
+	do
+		local x, z = rxz(-60, -60)
+		local g = lowAt(x, z, 6) - 2
+		local look = face(V3(x, g, z), V3(RUINS.x, g, RUINS.z))
+		local h = max(H(x, z) - g + 7, 9)
+		block(
+			m,
+			"Mangrumitdong",
+			V3(10, h, 10),
+			look * CFrame.new(0, h / 2, 0) * CFrame.Angles(0, 0, rad(2)),
+			jitter(RUIN_STONE, rng, 0.04),
+			M.Sandstone
+		)
+		block(
+			m,
+			"Mangrumitdong",
+			V3(6, 3, 5),
+			look * CFrame.new(-1.5, h + 1, 1) * CFrame.Angles(rad(8), rad(15), 0),
+			jitter(RUIN_STONE, rng, 0.04),
+			M.Sandstone
+		)
+	end
+	return m
+end
+
+-- 궁 터 기단 (a -34~-54, p ±30): 장대석 단, 앞의 부서진 계단과 소맷돌, 초석과 기둥 밑동, 쓰러진 들보, 무너진 지붕 조각,
+-- 뒤쪽 가운데 깨진 돌 옥좌. 옆구리로 모래가 타고 올랐다
+local function palaceTerrace(parent: Instance, rng)
+	local m = model(parent, "궁 터")
+	local A0, A1, W = -34, -54, 30
+	local topY = FLOOR + 5.9
+	local ac = (A0 + A1) / 2
+	local depth = A0 - A1
+	block(
+		m,
+		"Gidan",
+		V3(W * 2, topY - 1 - (FLOOR - 1.5), depth),
+		rframe(ac, 0, (topY - 1 + FLOOR - 1.5) / 2),
+		jitter(RUIN_STONE, rng, 0.03),
+		M.Sandstone
+	)
+	block(
+		m,
+		"Gapseok",
+		V3(W * 2 + 0.8, 1, depth + 0.8),
+		rframe(ac, 0, topY - 0.5),
+		jitter(RUIN_DARK, rng, 0.03),
+		M.Sandstone
+	)
+	-- 계단 여섯 (기단 앞, 큰길 쪽으로 내려간다). 셋째·다섯째는 가운데가 깨져 나갔다
+	local rise, tread, half = (topY - FLOOR) / 6, 1.5, 8
+	for i = 1, 6 do
+		local aFront = A0 + tread * (7 - i)
+		local yTop = FLOOR + rise * i
+		local len = aFront - A0
+		local ac2 = A0 + len / 2
+		local col = jitter(RUIN_STONE, rng, 0.04)
+		if i == 3 or i == 5 then
+			local gap = rng(-3, 3)
+			local wl = gap + half - 1.4
+			local wr = half - gap - 1.4
+			block(
+				m,
+				"Gyedan",
+				V3(wl, yTop - FLOOR + 1, len),
+				rframe(ac2, -half + wl / 2, (yTop + FLOOR - 1) / 2),
+				col,
+				M.Sandstone
+			)
+			block(
+				m,
+				"Gyedan",
+				V3(wr, yTop - FLOOR + 1, len),
+				rframe(ac2, half - wr / 2, (yTop + FLOOR - 1) / 2),
+				col,
+				M.Sandstone
+			)
+			block(
+				m,
+				"Gyedan",
+				V3(2.8, yTop - FLOOR + 1 - rise, len),
+				rframe(ac2, gap, (yTop - rise + FLOOR - 1) / 2),
+				col,
+				M.Sandstone
+			)
+		else
+			block(
+				m,
+				"Gyedan",
+				V3(half * 2, yTop - FLOOR + 1, len),
+				rframe(ac2, 0, (yTop + FLOOR - 1) / 2),
+				col,
+				M.Sandstone
+			)
+		end
+	end
+	-- 떨어진 계단 돌
+	block(
+		m,
+		"Gyedandol",
+		V3(4, 0.9, 1.5),
+		rframe(A0 + 10.5, half + 3, FLOOR + 0.3) * CFrame.Angles(rad(8), rad(35), rad(-6)),
+		jitter(RUIN_STONE, rng, 0.04),
+		M.Sandstone
+	)
+	-- 소맷돌 (비탈 쐐기: 높은 쪽 +Z 가 기단 쪽). 왼쪽은 온전, 오른쪽은 아래 토막만 남고 윗토막이 떨어졌다
+	local run = tread * 6
+	local cheekH = topY - FLOOR + 1
+	wedge(
+		m,
+		"Somaet",
+		V3(1.4, cheekH, run),
+		rframe(A0 + run / 2, -half - 0.7, FLOOR - 1 + cheekH / 2),
+		jitter(RUIN_DARK, rng, 0.04),
+		M.Sandstone
+	)
+	wedge(
+		m,
+		"Somaet",
+		V3(1.4, cheekH * 0.55, run * 0.55),
+		rframe(A0 + run * 0.725, half + 0.7, FLOOR - 1 + cheekH * 0.275),
+		jitter(RUIN_DARK, rng, 0.04),
+		M.Sandstone
+	)
+	block(
+		m,
+		"Somaetjogak",
+		V3(1.4, 1.6, 3.6),
+		rframe(A0 + run + 2, half + 3.5, FLOOR + 0.5) * CFrame.Angles(rad(-12), rad(50), rad(70)),
+		jitter(RUIN_DARK, rng, 0.04),
+		M.Sandstone
+	)
+	-- 초석과 기둥 밑동, 쓰러진 들보
+	local stumps = { [2] = rng(1.5, 2.5), [3] = rng(4, 6.5), [6] = rng(2.5, 4) }
+	local k = 0
+	for _, a in { -38.5, -50 } do
+		for _, p in { -21, -7, 7, 21 } do
+			k += 1
+			block(m, "Choseok", V3(2.8, 0.5, 2.8), rframe(a, p, topY + 0.2), jitter(RUIN_DARK, rng, 0.05), M.Sandstone)
+			if stumps[k] then
+				local x, z = rxz(a, p)
+				cyl(
+					m,
+					"Gidung",
+					V3(x, topY + 0.4, z),
+					V3(x, topY + 0.4 + stumps[k], z),
+					2.1,
+					jitter(rgb(96, 70, 52), rng, 0.08),
+					M.Wood
+				)
+			end
+		end
+	end
+	block(
+		m,
+		"Deulbo",
+		V3(1.3, 1.2, 15),
+		rframe(-44, 12, topY + 0.6) * CFrame.Angles(0, rad(64), rad(5)),
+		rgb(70, 52, 40),
+		M.Wood
+	)
+	-- 무너진 지붕 조각 (뒤 구석, 모래에 반쯤)
+	block(
+		m,
+		"Jibung",
+		V3(14, 1, 9),
+		rframe(-52, -22, topY + 1.5) * CFrame.Angles(rad(14), rad(-18), rad(10)),
+		P.giwa,
+		M.ClayRoofTiles
+	)
+	block(
+		m,
+		"Maru",
+		V3(0.7, 0.6, 14.5),
+		rframe(-52, -22, topY + 2.4) * CFrame.Angles(rad(14), rad(-18 + 90), rad(10)),
+		P.giwaDark,
+		M.Slate
+	)
+	-- 돌 옥좌 (등받이가 깨져 기울었다)
+	local tf = rframe(-51.5, 0, topY)
+	block(m, "Dan", V3(9, 1.2, 4.6), tf * CFrame.new(0, 0.6, 0), jitter(RUIN_DARK, rng, 0.03), M.Sandstone)
+	block(m, "Jari", V3(3.8, 1.3, 2.6), tf * CFrame.new(0, 1.85, -0.2), jitter(RUIN_STONE, rng, 0.03), M.Marble)
+	block(
+		m,
+		"Deungbadi",
+		V3(3.8, 3.6, 0.8),
+		tf * CFrame.new(0.3, 3.8, 1.0) * CFrame.Angles(rad(9), 0, rad(-7)),
+		jitter(RUIN_STONE, rng, 0.03),
+		M.Marble
+	)
+	for _, s in { -1, 1 } do
+		block(
+			m,
+			"Paltong",
+			V3(0.8, 1.4, 2.6),
+			tf * CFrame.new(s * 2.3, 2.9, -0.2),
+			jitter(RUIN_STONE, rng, 0.03),
+			M.Marble
+		)
+	end
+	-- 기단 옆구리로 타고 오른 모래
+	for _, s in { -1, 1 } do
+		local x, z = rxz(ac + rng(-3, 3), s * W)
+		drift(m, V3(x, FLOOR, z), RV * s, 9, 9, topY - FLOOR - 0.6, rng)
+	end
+	return m
+end
+
+-- 쓰러진 거상 머리: 관을 쓴 옛 왕의 얼굴. 오른뺨을 대고 누워 반쯤 모래에 묻혔다 (얼굴이 큰길을 본다)
+local function colossusHead(parent: Instance, a: number, p: number, rng)
+	local m = model(parent, "거상 머리")
+	local x, z = rxz(a, p)
+	local c = V3(x, H(x, z) + 3.2, z)
+	local F = face(c, c + RV) * CFrame.Angles(rad(14), 0, rad(80))
+	local stone = rgb(204, 182, 142)
+	local function put(name: string, size: Vector3, px: number, py: number, pz: number, color: Color3?, rot: CFrame?)
+		return block(
+			m,
+			name,
+			size,
+			F * CFrame.new(px, py, pz) * (rot or CFrame.new()),
+			color or jitter(stone, rng, 0.03),
+			M.Sandstone
+		)
+	end
+	put("Eolgul", V3(8.4, 10, 8.6), 0, 0, 0.4)
+	put("Teok", V3(7.4, 3.6, 7.6), 0, -5.4, 0.1)
+	put("Gwan", V3(9.2, 3.4, 9.2), 0, 6.4, 0.4, jitter(RUIN_DARK, rng, 0.03))
+	put("Gwanmeori", V3(6.4, 1.6, 6.4), 0, 8.7, 0.4, jitter(RUIN_DARK, rng, 0.03))
+	put("Gwanjang", V3(3.0, 3.4, 0.8), 0, 8.3, -4.2, jitter(C.verdigris, rng, 0.05), CFrame.new()).Material = M.Metal
+	put("Ima", V3(7.6, 2.2, 0.8), 0, 3.6, -4.3)
+	for _, s in { -1, 1 } do
+		put("Nunsseop", V3(3.2, 0.8, 1.2), s * 2.0, 2.4, -4.6, nil, CFrame.Angles(0, 0, rad(s * -6)))
+		put("Nun", V3(2.6, 0.7, 0.6), s * 2.0, 1.3, -4.7, rgb(84, 70, 56))
+		put("Gwangdae", V3(2.2, 2.4, 0.8), s * 2.6, -1.4, -4.3)
+		put("Gwi", V3(1.2, 6.2, 2.6), s * 4.7, -0.2, 0.6)
+	end
+	put("Ko", V3(2.2, 4.2, 2.2), 0, -0.4, -4.6, nil, CFrame.Angles(rad(12), 0, 0))
+	put("Kotbang", V3(2.8, 0.9, 1.4), 0, -2.3, -5.0)
+	put("Ip", V3(3.6, 1.0, 1.0), 0, -3.6, -4.5, rgb(150, 100, 76))
+	put("Mok", V3(6.2, 3, 6.2), 0, -8.4, 0.6, rgb(160, 136, 100))
+	-- 머리 둘레에 튄 돌 조각과 쌓인 모래
+	for _ = 1, 3 do
+		local q = c + RU * rng(-10, 10) + RV * rng(5, 9)
+		boulder(m, q.X, q.Z, rng(1.2, 2.2), rng, stone)
+	end
+	drift(m, V3(x, H(x, z), z) - RV * 4, -RV, 14, 6, 3, rng)
+	return m
+end
+
+-- 발만 남은 거상 받침: 두 발과 깨진 발목
+local function colossusFeet(parent: Instance, a: number, p: number, rng)
+	local m = model(parent, "거상 받침")
+	local x, z = rxz(a, p)
+	local g = lowAt(x, z, 6)
+	local look = face(V3(x, g, z), V3(x, g, z) + RV)
+	block(m, "Batchim", V3(12, 3.6, 9), look * CFrame.new(0, 1.2, 0), jitter(RUIN_DARK, rng, 0.03), M.Sandstone)
+	block(m, "Batchim", V3(12.8, 0.8, 9.8), look * CFrame.new(0, 3.2, 0), jitter(RUIN_STONE, rng, 0.03), M.Sandstone)
+	for _, s in { -1, 1 } do
+		block(m, "Bal", V3(3.2, 2.0, 5.6), look * CFrame.new(s * 2.4, 4.6, -0.6), rgb(204, 182, 142), M.Sandstone)
+		cyl(
+			m,
+			"Balmok",
+			look:PointToWorldSpace(V3(s * 2.4, 5.2, 0.8)),
+			look:PointToWorldSpace(V3(s * 2.4 + s * 0.2, 5.2 + rng(1.6, 3.4), 0.9)),
+			2.6,
+			rgb(198, 176, 136),
+			M.Sandstone
+		)
+	end
+	return m
+end
+
+-- 모래 찬 못 (동쪽 뜰): 네모 돌 테, 모래가 찬 바닥, 가운데 깨진 물그릇 받침
+local function dryPool(parent: Instance, a: number, p: number, rng)
+	local m = model(parent, "마른 못")
+	local half = 7
+	for k = 0, 3 do
+		local ang = k * math.pi / 2
+		local oa, op = cos(ang) * half, sin(ang) * half
+		local rot = if k % 2 == 0 then 0 else 90
+		local x, z = rxz(a + oa, p + op)
+		block(
+			m,
+			"Dolte",
+			V3(1.4, 1.6, half * 2 + 1.4),
+			rframe(a + oa, p + op, H(x, z) + 0.3) * CFrame.Angles(0, rad(rot + 90), 0),
+			jitter(RUIN_DARK, rng, 0.04),
+			M.Sandstone
+		)
+	end
+	local x, z = rxz(a, p)
+	block(
+		m,
+		"Morae",
+		V3(half * 2 - 0.4, 0.8, half * 2 - 0.4),
+		rframe(a, p, H(x, z) + 0.2),
+		jitter(C.sand, rng, 0.03),
+		M.Sand
+	)
+	cyl(m, "Batchim", V3(x, H(x, z), z), V3(x, H(x, z) + 2.6, z), 2.4, jitter(RUIN_STONE, rng, 0.04), M.Sandstone)
+	block(
+		m,
+		"Geureut",
+		V3(4.2, 0.6, 3.2),
+		CFrame.new(x, H(x, z) + 2.9, z) * CFrame.Angles(rad(9), rng(0, TAU), rad(-5)),
+		jitter(RUIN_STONE, rng, 0.04),
+		M.Sandstone
+	)
+	return m
+end
+
+local function ruins(parent: Instance, rng)
+	local f = folder(parent, "침사국 옛터")
+	greatGate(f, rng)
+	ruinWalls(f, rng)
+	palaceTerrace(f, rng)
+	-- 열주: 큰길 양옆 (p ±13), 대문 쪽은 거의 서 있고 안쪽일수록 부러지고 쓰러졌다. 나란히 선 둘에 들보를 얹는다
+	local cols = folder(f, "열주")
+	local kinds = { { 1, 1, 1, 2, 3, 1 }, { 1, 1, 2, 1, 1, 3 } }
+	for side, s in { -1, 1 } do
+		local prevTop = nil
+		for i, a in { 30, 20, 10, 0, -10, -20 } do
+			local x, z = rxz(a, s * 13)
+			local kind = kinds[side][i]
+			local fall = (RU * (if rng(0, 1) < 0.5 then 1 else -1) + RV * s * rng(0.2, 0.6)).Unit
+			local _, topY = ruinColumn(cols, x, z, 14, kind, rng, fall)
+			if topY and prevTop and rng(0, 1) < 0.75 then
+				local px, pz = rxz(a + 10, s * 13)
+				local y = max(topY, prevTop) + 0.55
+				local mid = V3((x + px) / 2, y, (z + pz) / 2)
+				block(
+					cols,
+					"Pyeongbang",
+					V3(2.4, 1.1, 14),
+					face(mid, V3(px, y, pz)),
+					jitter(RUIN_DARK, rng, 0.04),
+					M.Sandstone
+				)
+				prevTop = nil
+			else
+				prevTop = topY
+			end
+		end
+	end
+	-- 서쪽 뜰: 쓰러진 거상 머리, 발만 남은 받침
+	colossusHead(f, -6, -36, rng)
+	colossusFeet(f, -24, -44, rng)
+	-- 동쪽 뜰: 모래 찬 못
+	dryPool(f, -2, 38, rng)
+	-- 뜰을 가르는 낮은 담 (p ±24, 무너져 드문드문)
+	local walls = model(f, "뜰 담")
+	for _, s in { -1, 1 } do
+		for i = 0, 7 do
+			local a = 26 - i * 7.2
+			if rng(0, 1) > 0.3 and not (s < 0 and a < 6 and a > -18) then
+				local x, z = rxz(a, s * 24)
+				local h = rng(2.2, 4.4)
+				local g = H(x, z)
+				block(
+					walls,
+					"Dam",
+					V3(2, h + 1, 7.4),
+					rframe(a, s * 24, g + h / 2 - 0.5) * CFrame.Angles(0, 0, rad(rng(-1, 1))),
+					jitter(RUIN_STONE, rng, 0.05),
+					M.Sandstone
+				)
+				if rng(0, 1) < 0.4 then
+					drift(walls, V3(x, g, z) + RV * s * 1, RV * s, 6.5, 5, h * 0.7, rng)
+				end
+			end
+		end
+	end
+	-- 흩어진 다듬돌과 들뜬 박석, 뜰에 쌓인 모래 둔덕
+	local taken = {
+		{ RUINS.x, RUINS.z, 10 },
+		{ (rxz(-6, -36)), select(2, rxz(-6, -36)), 14 },
+		{ (rxz(-24, -44)), select(2, rxz(-24, -44)), 9 },
+		{ (rxz(-2, 38)), select(2, rxz(-2, 38)), 10 },
+	}
+	local function inside(x: number, z: number, pad: number): boolean
+		local dx, dz = x - RUINS.x, z - RUINS.z
+		local a, p = dx * RU.X + dz * RU.Z, dx * RV.X + dz * RV.Z
+		if abs(a) > 52 or abs(p) > 52 or (a < -31 and abs(p) < 32) then
+			return false
+		end
+		if abs(p) < 7 + pad or abs(abs(p) - 13) < 3 + pad or abs(abs(p) - 24) < 1.6 + pad then
+			return false
+		end
+		return clearOf(x, z, pad) and H(x, z) < FLOOR + 1.5
+	end
+	local box = { RUINS.x - 75, RUINS.x + 75, RUINS.z - 75, RUINS.z + 75 }
+	local rubble = folder(f, "돌 부스러기")
+	for _, q in
+		scatter(rng, 12, box, 7, function(x, z)
+			return inside(x, z, 1.5)
+		end, taken)
+	do
+		local g = H(q[1], q[2])
+		local s = V3(rng(2.4, 4.2), rng(1.2, 2), rng(1.6, 2.6))
+		block(
+			rubble,
+			"Dadeumdol",
+			s,
+			CFrame.new(q[1], g + s.Y * 0.25, q[2]) * CFrame.Angles(rng(-0.25, 0.25), rng(0, TAU), rng(-0.25, 0.25)),
+			jitter(RUIN_STONE, rng, 0.06),
+			M.Sandstone
+		)
+	end
+	for _, q in
+		scatter(rng, 7, box, 9, function(x, z)
+			return inside(x, z, 1)
+		end, taken)
+	do
+		local g = H(q[1], q[2])
+		block(
+			rubble,
+			"Bakseok",
+			V3(rng(3, 4.5), 0.5, rng(2.6, 3.6)),
+			CFrame.new(q[1], g + 0.15, q[2]) * CFrame.Angles(rng(0.05, 0.16), rng(0, TAU), rng(-0.1, 0.1)),
+			jitter(rgb(176, 160, 132), rng, 0.05),
+			M.Pavement
+		)
+	end
+	for _, q in
+		scatter(rng, 5, box, 16, function(x, z)
+			return inside(x, z, 4)
+		end, taken)
+	do
+		local g = H(q[1], q[2])
+		block(
+			rubble,
+			"Moraedundeok",
+			V3(rng(7, 11), 1.6, rng(5, 8)),
+			CFrame.new(q[1], g + 0.1, q[2]) * CFrame.Angles(rng(-0.06, 0.06), rng(0, TAU), rng(-0.06, 0.06)),
+			jitter(C.sand, rng, 0.03),
+			M.Sand
+		)
+	end
+	-- 옛터 마른 덤불 몇
+	for _, q in
+		scatter(rng, 6, box, 12, function(x, z)
+			return inside(x, z, 1)
+		end, taken)
+	do
+		dryShrub(f, q[1], q[2], rng, rng(1.6, 2.6))
+	end
+	return f
+end
+
+-- 녹주 ---------------------------------------------------------------------------------
+-- 마른 바다 한가운데 샘: 지형이 가운데 못(수면 16, 반지름 14~17)과 둘레 판판한 테(18, 반지름 30 안팎)를 지어 두었다.
+-- 못가에 대추야자를 두르고, 서쪽 테에 대상 천막 셋, 북동쪽에 돌 우물과 구유, 남쪽 길머리에 이름 비석.
+-- 영맥(Sites 의 low@oasis, 북동 못가) 7 과 볼거리 자리(동쪽) 둘레는 비워 둔다.
+local OASIS_WATER = 16
+local PALM_LEAF = { rgb(84, 118, 62), rgb(104, 136, 70), rgb(124, 148, 82) }
+
+-- 대추야자: 굽은 줄기 (마디 빛깔을 번갈아), 위아래 두 켜의 잎 (잎마다 오르는 마디와 처지는 마디), 열매 송이 둘
+local function palm(parent: Instance, x: number, z: number, rng, opts)
+	opts = opts or {}
+	local m = model(parent, "대추야자")
+	local height = opts.height or rng(11, 15)
+	local base = V3(x, lowAt(x, z, 0.8) - 0.6, z)
+	local la = opts.lean or rng(0, TAU)
+	local lean = V3(cos(la), 0, sin(la)) * rng(0.12, 0.3)
+	local p = base
+	for i = 1, 4 do
+		local t = i / 4
+		local dir = (Vector3.yAxis + lean * (0.5 + 1.5 * t)).Unit
+		local q = p + dir * (height / 4)
+		cyl(
+			m,
+			"Julgi",
+			p,
+			q + dir * 0.2,
+			1.35 - 0.3 * t,
+			if i % 2 == 0 then rgb(118, 96, 70) else rgb(140, 116, 86),
+			M.Wood
+		)
+		p = q
+	end
+	local top = p
+	block(m, "Mokdeol", V3(1.8, 1.4, 1.8), CFrame.new(top) * CFrame.Angles(0, rng(0, TAU), 0), rgb(112, 92, 60), M.Wood)
+	local nf = opts.fronds or 6
+	local a0 = rng(0, TAU)
+	for k = 1, nf do
+		local upper = k % 2 == 0
+		local a = a0 + k * TAU / nf + rng(-0.2, 0.2)
+		local out = V3(cos(a), 0, sin(a))
+		local len = rng(3.4, 4.4)
+		local root = top + V3(0, 0.5, 0)
+		local mid = root + out * len + V3(0, if upper then len * 0.55 else len * 0.12, 0)
+		local tip = mid + out * len * 0.95 - V3(0, if upper then len * 0.45 else len * 0.95, 0)
+		local col = jitter(PALM_LEAF[1 + k % #PALM_LEAF], rng, 0.06)
+		deco(beam(m, "Ip", root, mid, if upper then 1.7 else 1.9, 0.2, col, M.LeafyGrass))
+		deco(beam(m, "Ipkkeut", mid, tip, 1.5, 0.18, col, M.LeafyGrass))
+	end
+	for _ = 1, 1 do
+		local a = rng(0, TAU)
+		local d = ball(m, "Yeolmae", top + V3(cos(a) * 0.9, -1.0, sin(a) * 0.9), 1.1, rgb(176, 98, 40), M.SmoothPlastic)
+		deco(d).CastShadow = false
+	end
+	return m
+end
+
+-- 대상 천막: 앞(-Z, toward 쪽)이 열린 맞배 천막. 용마루 기둥 둘, 앞 차양과 차양 기둥, 뒤·옆 휘장 (옆은 뒤 반만 막았다),
+-- 앞에 깐 깔개(테두리와 가운데 무늬), 방석, 짐, 버팀줄
+local function tent(
+	parent: Instance,
+	x: number,
+	z: number,
+	toward: Vector3,
+	roof: Color3,
+	awning: Color3,
+	rug: Color3,
+	rng
+)
+	local m = model(parent, "대상 천막")
+	local g = H(x, z)
+	local look = face(V3(x, g, z), V3(toward.X, g, toward.Z))
+	local function wp(px: number, py: number, pz: number): Vector3
+		return look:PointToWorldSpace(V3(px, py, pz))
+	end
+	local rel = lowAt(x, z, 5) - 0.5 - g -- 땅이 기운 곳은 기둥과 휘장 밑을 더 묻는다
+	local pole = P.woodDark
+	for _, s in { -1, 1 } do
+		beam(m, "Gidung", wp(s * 3.9, rel, 0), wp(s * 3.9, 6.5, 0), 0.4, 0.4, pole, M.Wood)
+		beam(m, "Chayanggidung", wp(s * 4.4, rel, -6.3), wp(s * 4.4, 3.55, -6.3), 0.3, 0.3, pole, M.Wood)
+	end
+	beam(m, "Yongmaru", wp(-4.7, 6.3, 0), wp(4.7, 6.3, 0), 0.3, 0.3, pole, M.Wood)
+	local X = look.RightVector
+	local Y = Vector3.yAxis
+	local Zb = -look.LookVector -- 뒤쪽
+	Build.slab(m, "Jibung", wp(-4.8, 6.2, 0), X * 9.6, Y * -2.0 - Zb * 3.4, 0.2, Y, jitter(roof, rng, 0.04), M.Fabric)
+	Build.slab(m, "Jibung", wp(-4.8, 6.2, 0), X * 9.6, Y * -3.8 + Zb * 3.6, 0.2, Y, jitter(roof, rng, 0.04), M.Fabric)
+	Build.slab(
+		m,
+		"Chayang",
+		wp(-4.8, 4.2, -3.4),
+		X * 9.6,
+		Y * -0.7 - Zb * 3.0,
+		0.18,
+		Y,
+		jitter(awning, rng, 0.04),
+		M.Fabric
+	)
+	block(
+		m,
+		"Dwitwijang",
+		V3(9.6, 2.4 - rel + 0.1, 0.15),
+		look * CFrame.new(0, (2.4 + rel) / 2, 3.55),
+		jitter(roof, rng, 0.06),
+		M.Fabric
+	)
+	for _, s in { -1, 1 } do
+		local xs = s * 4.75
+		block(
+			m,
+			"Yeopwijang",
+			V3(0.15, 2.4 - rel, 3.6),
+			look * CFrame.new(xs, (2.4 + rel) / 2, 1.8),
+			jitter(roof, rng, 0.06),
+			M.Fabric
+		)
+		Build.rightTri(
+			m,
+			"Bakgong",
+			wp(xs, 2.4, 0),
+			wp(xs, 6.2, 0),
+			wp(xs, 2.4, 3.55),
+			0.15,
+			nil,
+			jitter(roof, rng, 0.06),
+			M.Fabric
+		)
+		Build.rightTri(
+			m,
+			"Bakgong",
+			wp(xs, 4.2, 0),
+			wp(xs, 6.2, 0),
+			wp(xs, 4.2, -3.4),
+			0.15,
+			nil,
+			jitter(roof, rng, 0.06),
+			M.Fabric
+		)
+		deco(beam(m, "Jul", wp(s * 3.9, 6.4, 0), wp(s * 7.6, -0.3, 0.4), 0.08, 0.08, C.straw, M.Fabric))
+	end
+	-- 깔개, 방석, 짐
+	block(m, "Kkalgae", V3(7, 0.1, 5.6), look * CFrame.new(0, 0.04, -1.6), rgb(70, 50, 40), M.Fabric)
+	block(m, "Kkalgae", V3(6.4, 0.1, 5.0), look * CFrame.new(0, 0.1, -1.6), jitter(rug, rng, 0.04), M.Fabric)
+	block(
+		m,
+		"Munui",
+		V3(2.2, 0.1, 1.8),
+		look * CFrame.new(0, 0.16, -1.6) * CFrame.Angles(0, rad(45), 0),
+		C.ochreCloth,
+		M.Fabric
+	)
+	for _, s in { -1, 1 } do
+		block(
+			m,
+			"Bangseok",
+			V3(1.5, 0.6, 1.1),
+			look * CFrame.new(s * 1.8, 0.4, 1.2),
+			jitter(if s < 0 then C.ochreCloth else C.felt, rng, 0.05),
+			M.Fabric
+		)
+	end
+	block(
+		m,
+		"Sangja",
+		V3(1.8, 1.4, 1.6),
+		look * CFrame.new(3.3, 0.6, 2.6) * CFrame.Angles(0, rng(-0.3, 0.3), 0),
+		jitter(P.wood, rng, 0.06),
+		M.WoodPlanks
+	)
+	block(
+		m,
+		"Jaru",
+		V3(1.4, 1.1, 1.8),
+		look * CFrame.new(-3.3, 0.5, 2.4) * CFrame.Angles(0, rng(-0.4, 0.4), rad(6)),
+		jitter(C.straw, rng, 0.06),
+		M.Fabric
+	)
+	ball(m, "Dok", wp(-3.4, 0.75, 0.4), 1.5, jitter(rgb(150, 92, 56), rng, 0.06), M.SmoothPlastic).CastShadow = false
+	return m
+end
+
+-- 낙타: 앞(-Z)이 toward 쪽. kneel 이면 다리를 접고 엎드린다. 등에 꼭두서니 깔개와 짐 자루 둘
+local function camel(parent: Instance, ground: Vector3, toward: Vector3, kneel: boolean, rng)
+	local m = model(parent, "낙타")
+	local look = face(ground, V3(toward.X, ground.Y, toward.Z))
+	local fur = jitter(rgb(178, 140, 94), rng, 0.05)
+	local function put(name: string, size: Vector3, x: number, y: number, z: number, color: Color3?, rot: CFrame?)
+		return block(m, name, size, look * CFrame.new(x, y, z) * (rot or CFrame.new()), color or fur, M.Fabric)
+	end
+	local function wp(x: number, y: number, z: number): Vector3
+		return look:PointToWorldSpace(V3(x, y, z))
+	end
+	local by = if kneel then 1.7 else 5.6
+	put("Mom", V3(2.4, 2.6, 5.2), 0, by, 0)
+	put("Hok", V3(1.9, 1.6, 2.6), 0, by + 1.8, 0.3)
+	put("Kkalgae", V3(2.7, 1.4, 1.8), 0, by + 0.7, 0.3, jitter(C.madder, rng, 0.05))
+	for _, s in { -1, 1 } do
+		put("Jimjaru", V3(0.8, 1.3, 1.5), s * 1.6, by - 0.1, 0.7, jitter(if s < 0 then C.indigo else C.felt, rng, 0.05))
+	end
+	local neck0 = wp(0, by + 0.4, -2.4)
+	local neck1 = wp(0, by - 0.2, -3.8)
+	local head = if kneel then wp(0, by + 3.4, -4.4) else wp(0, by + 2.6, -4.8)
+	beam(m, "Mok", neck0, neck1, 1.0, 1.2, fur, M.Fabric)
+	beam(m, "Mok", neck1, head, 0.9, 1.0, fur, M.Fabric)
+	put(
+		"Meori",
+		V3(1.0, 1.0, 2.2),
+		0,
+		if kneel then by + 3.6 else by + 2.8,
+		if kneel then -5.0 else -5.4,
+		fur,
+		CFrame.Angles(rad(-12), 0, 0)
+	)
+	beam(m, "Kkori", wp(0, by + 0.6, 2.6), wp(0, by - 1.2, 3.0), 0.3, 0.3, fur, M.Fabric)
+	if kneel then
+		for _, z in { -1.6, 1.8 } do
+			put("Dari", V3(2.8, 0.8, 1.4), 0, 0.2, z, jitter(fur, rng, 0.04))
+		end
+	else
+		for _, q in { { -0.8, -1.9 }, { 0.8, -1.9 }, { -0.8, 1.9 }, { 0.8, 1.9 } } do
+			beam(m, "Dari", wp(q[1], by - 1.1, q[2]), wp(q[1] * 1.1, -0.2, q[2] * 1.05), 0.55, 0.55, fur, M.Fabric)
+		end
+	end
+	return m
+end
+
+local function oasis(parent: Instance, rng)
+	local f = folder(parent, "녹주")
+	local ox, oz = OASIS.x, OASIS.z
+	local vein = Sites.byId["low@oasis"]
+	local poi = Sites.byId.oasis
+	local function polar(deg: number, r: number): (number, number)
+		local a = rad(deg)
+		return ox + cos(a) * r, oz + sin(a) * r
+	end
+	local function free(x: number, z: number, pad: number): boolean
+		if vein and (x - vein.x) ^ 2 + (z - vein.z) ^ 2 < (8 + pad) ^ 2 then
+			return false
+		end
+		if poi and (x - poi.x) ^ 2 + (z - poi.z) ^ 2 < (6 + pad) ^ 2 then
+			return false
+		end
+		return clearOf(x, z, pad)
+	end
+	local center = V3(ox, OASIS_WATER, oz)
+	-- 대상 천막 셋 (못을 본다)
+	local tents = {
+		{ 205, 27, C.madder, C.felt, C.indigo },
+		{ 150, 27, C.indigo, C.madder, C.madder },
+		{ 250, 26, C.felt, C.indigo, rgb(120, 70, 52) },
+	}
+	for _, t in tents do
+		local x, z = polar(t[1], t[2])
+		if free(x, z, 8) then
+			tent(f, x, z, center, t[3], t[4], t[5], rng)
+		end
+	end
+	-- 대추야자: 못가에 둘러 (못 쪽으로 기운다), 천막 뒤로 둘
+	local palms = folder(f, "대추야자")
+	local spots = {
+		{ 5, 19.5 },
+		{ 72, 20 },
+		{ 104, 19.5 },
+		{ 132, 20 },
+		{ 178, 19.5 },
+		{ 228, 20 },
+		{ 276, 19.5 },
+		{ 322, 20 },
+		{ 190, 36 },
+		{ 140, 37 },
+	}
+	for _, q in spots do
+		local x, z = polar(q[1] + rng(-4, 4), q[2] + rng(-0.8, 0.8))
+		if free(x, z, 2) and H(x, z) < 30 then
+			palm(palms, x, z, rng, { lean = math.atan2(oz - z, ox - x) + rng(-0.4, 0.4), height = rng(11, 15.5) })
+		end
+	end
+	-- 물가 갈대와 연잎
+	for _, deg in { 30, 95, 160, 215, 260, 340 } do
+		local x, z = polar(deg + rng(-6, 6), rng(15.2, 16.6))
+		if free(x, z, 1) then
+			Build.reeds(f, V3(x, H(x, z), z), rng, { count = 3, radius = 1.4 })
+		end
+	end
+	for _ = 1, 6 do
+		local x, z = polar(rng(0, 360), rng(4, 11))
+		deco(
+			cyl(
+				f,
+				"Yeonip",
+				V3(x, OASIS_WATER + 0.02, z),
+				V3(x, OASIS_WATER + 0.1, z),
+				rng(1.6, 2.6),
+				jitter(rgb(86, 132, 70), rng, 0.08),
+				M.LeafyGrass
+			)
+		)
+	end
+	for _ = 1, 2 do
+		local x, z = polar(rng(0, 360), rng(5, 10))
+		deco(
+			block(
+				f,
+				"Yeonkkot",
+				V3(0.7, 0.5, 0.7),
+				CFrame.new(x, OASIS_WATER + 0.3, z) * CFrame.Angles(0, rng(0, 1.5), 0),
+				P.blossom,
+				M.SmoothPlastic
+			)
+		)
+	end
+	-- 돌 우물과 구유 (북동)
+	local wellX, wellZ = polar(300, 24)
+	if free(wellX, wellZ, 4) then
+		Build.well(f, V3(wellX, lowAt(wellX, wellZ, 2.6), wellZ))
+		local tx, tz = polar(314, 29)
+		local look = face(V3(tx, H(tx, tz), tz), center)
+		block(f, "Guyu", V3(6, 1.2, 2), look * CFrame.new(0, 0.35, 0), P.granite, M.Granite)
+		block(f, "Guyumul", V3(5.4, 0.12, 1.4), look * CFrame.new(0, 0.92, 0), rgb(60, 104, 116), M.Glass).Transparency =
+			0.25
+	end
+	-- 매어 둔 낙타 (서쪽)와 엎드린 낙타 (남쪽 길머리)
+	do
+		local x, z = polar(180, 34)
+		if free(x, z, 5) then
+			camel(f, V3(x, H(x, z), z), V3(ox - 6, 0, oz - 14), false, rng)
+			local px, pz = polar(188, 38)
+			local post = V3(px, H(px, pz), pz)
+			beam(f, "Malttuk", post - V3(0, 0.6, 0), post + V3(0, 3.2, 0), 0.4, 0.4, P.woodDark, M.Wood)
+			deco(
+				beam(
+					f,
+					"Gotppi",
+					post + V3(0, 2.6, 0),
+					V3(x, H(x, z) + 7.6, z):Lerp(post + V3(0, 2.6, 0), 0.5),
+					0.08,
+					0.08,
+					C.straw,
+					M.Fabric
+				)
+			)
+		end
+	end
+	do
+		local x, z = polar(118, 31)
+		if free(x, z, 5) then
+			camel(f, V3(x, H(x, z), z), V3(ox, 0, oz), true, rng)
+		end
+	end
+	-- 길머리 이름 비석 (길 쪽을 본다)
+	do
+		local x, z = polar(76, 35)
+		if free(x, z, 3) then
+			Kit.stele(f, V3(x, lowAt(x, z, 2) + 0.4, z), "녹주", V3(x + 8, 0, z + 20), rgb(196, 176, 140))
+		end
+	end
+	-- 푸른 덤불 (협죽도: 둘은 꽃이 핀다)과 풀
+	local green = { P.leafDeep, P.leaf, P.leafLight }
+	local taken = {}
+	local box = { ox - 34, ox + 34, oz - 34, oz + 34 }
+	local function ring(x: number, z: number, pad: number): boolean
+		local d = sqrt((x - ox) ^ 2 + (z - oz) ^ 2)
+		if d < 18.5 or d > 33 or H(x, z) > 24 or not free(x, z, pad) then
+			return false
+		end
+		for _, t in tents do
+			local tx, tz = polar(t[1], t[2])
+			if (x - tx) ^ 2 + (z - tz) ^ 2 < (8.5 + pad) ^ 2 then
+				return false
+			end
+		end
+		return (x - wellX) ^ 2 + (z - wellZ) ^ 2 > (6 + pad) ^ 2
+	end
+	for i, q in
+		scatter(rng, 7, box, 7, function(x, z)
+			return ring(x, z, 1.5)
+		end, taken)
+	do
+		Build.shrub(f, V3(q[1], H(q[1], q[2]) - 0.3, q[2]), rng, {
+			size = rng(2.4, 3.6),
+			blobs = 2,
+			leaves = green,
+			flowers = if i == 1 then rgb(232, 140, 170) else nil,
+		})
+	end
+	for _, q in
+		scatter(rng, 6, box, 4, function(x, z)
+			return ring(x, z, 0.5)
+		end, taken)
+	do
+		tuft(f, q[1], q[2], rng, P.leafLight)
+	end
+	return f
+end
+
+-- 소금벌 ---------------------------------------------------------------------------------
+-- 옛 바다가 마른 흰 벌 (지형 높이 6, Salt 재질). 껍질이 갈라져 솟은 육각 무늬, 소금 결정 무리, 하늘이 비치는 얕은 거울 못.
+-- 북동쪽 가장자리에 소금 일꾼 자리: 둑으로 나눈 소금밭 (물 고인 칸, 소금 앉은 칸), 소금 더미와 고무래, 소금막, 소금 수레.
+local MIRROR = rgb(176, 204, 220)
+
+-- 육각 무늬 한 무리: 가운데 칸과 둘레 여섯 칸 (꼭짓점을 조금씩 흔들되 이웃 칸과 같은 자리를 쓴다)
+local function saltPolygons(parent: Instance, cx: number, cz: number, R: number, rng)
+	local m = model(parent, "소금 껍질")
+	local verts = {}
+	local function vert(x: number, z: number): Vector3
+		local key = string.format("%d,%d", floor(x * 2 + 0.5), floor(z * 2 + 0.5))
+		local v = verts[key]
+		if not v then
+			local jx, jz = x + rng(-0.6, 0.6), z + rng(-0.6, 0.6)
+			v = V3(jx, H(jx, jz) + 0.12, jz)
+			verts[key] = v
+		end
+		return v
+	end
+	local done = {}
+	local centers = { { cx, cz } }
+	local step = sqrt(3) * R
+	for k = 0, 5 do
+		local a = rad(k * 60)
+		table.insert(centers, { cx + cos(a) * step, cz + sin(a) * step })
+	end
+	for _, c in centers do
+		for k = 0, 5 do
+			local a0, a1 = rad(30 + k * 60), rad(90 + k * 60)
+			local va = vert(c[1] + cos(a0) * R, c[2] + sin(a0) * R)
+			local vb = vert(c[1] + cos(a1) * R, c[2] + sin(a1) * R)
+			local mx, mz = (va.X + vb.X) / 2, (va.Z + vb.Z) / 2
+			local key = string.format("%d,%d", floor(mx + 0.5), floor(mz + 0.5))
+			if not done[key] then
+				done[key] = true
+				local d = (vb - va).Unit
+				deco(
+					beam(m, "Teol", va - d * 0.3, vb + d * 0.3, 0.75, rng(0.3, 0.45), jitter(C.salt, rng, 0.02), M.Salt)
+				)
+			end
+		end
+	end
+	return m
+end
+
+-- 소금 결정 무리: 흰 덩이 하나에 비스듬히 솟은 결정 넷
+local function saltCrystals(parent: Instance, x: number, z: number, rng)
+	local m = model(parent, "소금 결정")
+	local g = H(x, z)
+	block(
+		m,
+		"Deongi",
+		V3(rng(2, 2.8), 0.8, rng(1.8, 2.6)),
+		CFrame.new(x, g + 0.2, z) * CFrame.Angles(0, rng(0, TAU), 0),
+		C.saltShade,
+		M.Salt
+	)
+	for k = 1, 4 do
+		local a = rng(0, TAU)
+		local h = rng(1.6, 3.6)
+		local base = V3(x + cos(a) * rng(0.2, 0.8), g, z + sin(a) * rng(0.2, 0.8))
+		local tip = base + V3(cos(a) * h * 0.35, h, sin(a) * h * 0.35)
+		local w = rng(0.5, 0.9)
+		local p = beam(
+			m,
+			"Gyeoljeong",
+			base - V3(0, 0.4, 0),
+			tip,
+			w,
+			w,
+			if k == 2 then rgb(240, 222, 222) else C.salt,
+			M.Glass
+		)
+		p.Transparency = 0.15
+	end
+	return m
+end
+
+-- 거울 못: 겹친 둥근 판 둘 (하늘빛, 반쯤 비친다). 둘레에서 가장 판판한 자리를 골라, 윗면을 가장 높은 땅에 맞춘다
+local function mirrorPool(parent: Instance, x: number, z: number, r: number, rng)
+	local m = model(parent, "거울 못")
+	local best = math.huge
+	local bx, bz = x, z
+	for dx = -15, 15, 5 do
+		for dz = -15, 15, 5 do
+			local rl = relief(x + dx, z + dz, r) + relief(x + dx, z + dz, r * 0.5)
+			if rl < best then
+				best, bx, bz = rl, x + dx, z + dz
+			end
+		end
+	end
+	local top = max(highAt(bx, bz, r), highAt(bx, bz, r * 0.5)) + 0.05
+	local low = min(lowAt(bx, bz, r), lowAt(bx, bz, r * 0.5)) - 0.1
+	for k = 1, 2 do
+		local a = rng(0, TAU)
+		local px = bx + (if k == 1 then 0 else cos(a) * r * 0.45)
+		local pz = bz + (if k == 1 then 0 else sin(a) * r * 0.45)
+		local d = if k == 1 then r * 2 else r * rng(1.1, 1.5)
+		local y = top + (k - 1) * 0.01
+		local p = cyl(m, "Mul", V3(px, low, pz), V3(px, y, pz), d, MIRROR, M.Glass)
+		p.Transparency = 0.3
+		p.Reflectance = 0.25
+		p.CanCollide = false
+	end
+	return m
+end
+
+-- 소금 일꾼 자리: look 의 앞(-Z)이 소금밭 쪽
+local function saltWorks(parent: Instance, x: number, z: number, toward: Vector3, rng)
+	local m = model(parent, "소금 일꾼 자리")
+	local g = H(x, z)
+	local look = face(V3(x, g, z), V3(toward.X, g, toward.Z))
+	local dike = rgb(150, 128, 104)
+	-- 소금밭: 셋 × 둘 칸, 둑 (흙)
+	local pc = look:PointToWorldSpace(V3(0, 0, -16))
+	local pan = look * CFrame.new(0, max(highAt(pc.X, pc.Z, 12), highAt(pc.X, pc.Z, 6)) - g, -16)
+	for i = 0, 3 do
+		block(m, "Duk", V3(0.9, 1.3, 14.9), pan * CFrame.new(-12 + i * 8, -0.15, 0), dike, M.Ground)
+	end
+	for j = 0, 2 do
+		block(m, "Duk", V3(24.9, 1.3, 0.9), pan * CFrame.new(0, -0.15, -7 + j * 7), dike, M.Ground)
+	end
+	for i = 0, 2 do
+		for j = 0, 1 do
+			local c = pan * CFrame.new(-8 + i * 8, 0.12, -3.5 + j * 7)
+			if (i + j) % 2 == 0 then
+				local p = block(m, "Mul", V3(7.1, 0.6, 6.1), c * CFrame.new(0, -0.25, 0), MIRROR, M.Glass)
+				p.Transparency = 0.3
+				p.Reflectance = 0.2
+				p.CanCollide = false
+			else
+				block(m, "Sogeum", V3(7.1, 0.7, 6.1), c * CFrame.new(0, -0.2, 0), C.salt, M.Salt)
+			end
+		end
+	end
+	-- 소금 더미 (뿔) 넷과 고무래
+	local piles = { { -9, -2.5, 3.4 }, { -4, -0.5, 4.2 }, { 4.5, -1.5, 3.6 }, { 9.5, -3, 2.8 } }
+	for _, q in piles do
+		local c = look:PointToWorldSpace(V3(q[1], 0, q[2]))
+		Build.pyramid(m, "Sogeumdeomi", V3(c.X, H(c.X, c.Z) - 0.1, c.Z), q[3] * 1.5, q[3], rng(0, 1.5), C.salt, M.Salt)
+	end
+	local function rake(a: Vector3, b: Vector3)
+		beam(m, "Jaru", a, b, 0.22, 0.22, P.wood, M.Wood)
+		local d = (b - a).Unit
+		local side = V3(-d.Z, 0, d.X)
+		block(m, "Gomurae", V3(2.2, 0.45, 0.3), face(b, b + side) * CFrame.Angles(0, rad(90), 0), P.woodDark, M.Wood)
+	end
+	do
+		local a = look:PointToWorldSpace(V3(-4, 3.2, 2.6))
+		local b = look:PointToWorldSpace(V3(-4.6, 0.25, -1.6))
+		rake(a, V3(b.X, H(b.X, b.Z) + 0.25, b.Z))
+		local c = look:PointToWorldSpace(V3(2, 0, -9))
+		local d = look:PointToWorldSpace(V3(6.5, 0, -10.2))
+		rake(V3(c.X, H(c.X, c.Z) + 0.3, c.Z), V3(d.X, H(d.X, d.Z) + 0.3, d.Z))
+	end
+	-- 소금막: 앞이 높은 외쪽 지붕 (짚), 뒤 엮은 벽, 안에 소금 자루와 바구니
+	local hut = look * CFrame.new(0, 0, 9)
+	local function hp(px: number, py: number, pz: number): Vector3
+		return hut:PointToWorldSpace(V3(px, py, pz))
+	end
+	for _, q in { { -4, -3, 4.6 }, { 4, -3, 4.6 }, { -4, 3, 3.0 }, { 4, 3, 3.0 } } do
+		beam(m, "Gidung", hp(q[1], -0.6, q[2]), hp(q[1], q[3], q[2]), 0.4, 0.4, P.wood, M.Wood)
+	end
+	local X = hut.RightVector
+	local back = -hut.LookVector
+	Build.slab(
+		m,
+		"Jibung",
+		hp(-4.8, 4.8, -3.8),
+		X * 9.6,
+		back * 7.8 + V3(0, -1.75, 0),
+		0.4,
+		Vector3.yAxis,
+		C.straw,
+		M.Grass
+	)
+	block(m, "Byeok", V3(8.2, 3.2, 0.3), hut * CFrame.new(0, 1.2, 3.1), rgb(150, 126, 88), M.WoodPlanks)
+	for k = 0, 2 do
+		block(
+			m,
+			"Sogeumjaru",
+			V3(1.5, 1.0, 2.2),
+			hut
+				* CFrame.new(-2.6 + k * 1.7, 0.4 + (if k == 1 then 0.9 else 0), 1.6)
+				* CFrame.Angles(0, rng(-0.2, 0.2), 0),
+			jitter(C.felt, rng, 0.04),
+			M.Fabric
+		)
+	end
+	for _, q in { { 2.6, 0.2 }, { 3.0, -2.2 } } do
+		local c = hp(q[1], 0, q[2])
+		cyl(m, "Bagani", c - V3(0, 0.3, 0), c + V3(0, 1.1, 0), 1.6, C.straw, M.Fabric)
+		cyl(m, "Sogeum", c + V3(0, 1.05, 0), c + V3(0, 1.2, 0), 1.4, C.salt, M.Salt)
+	end
+	-- 소금 실은 수레
+	local cartCf = look * CFrame.new(-11, 0, 6) * CFrame.Angles(0, rad(-35), 0)
+	Build.cart(m, cartCf)
+	block(m, "Sogeumjim", V3(3.2, 1.0, 4.4), cartCf * CFrame.new(0, 2.6, 0), C.salt, M.Salt)
+	return m
+end
+
+local function saltFlat(parent: Instance, rng)
+	local f = folder(parent, "소금벌")
+	saltWorks(f, -1236, 738, V3(-1260, 0, 752), rng)
+	local pools = { { -1330, 745, 14 }, { -1372, 800, 11 }, { -1296, 815, 12 }, { -1396, 736, 9 } }
+	for _, q in pools do
+		mirrorPool(f, q[1], q[2], q[3], rng)
+	end
+	saltPolygons(f, -1346, 782, 5.5, rng)
+	saltPolygons(f, -1288, 770, 5, rng)
+	local taken = {
+		{ -1250, 742, 26 },
+		{ -1346, 782, 20 },
+		{ -1288, 770, 18 },
+	}
+	for _, q in pools do
+		table.insert(taken, { q[1], q[2], q[3] + 5 })
+	end
+	for _, q in
+		scatter(rng, 7, { -1420, -1210, 670, 860 }, 22, function(x, z)
+			return regionId(x, z) == "salt" and H(x, z) < 7.5 and clearOf(x, z, 3)
+		end, taken)
+	do
+		saltCrystals(f, q[1], q[2], rng)
+	end
+	return f
+end
+
 function Region.build(root: Instance, rng: (number, number) -> number)
 	local top = folder(root, "서남")
 	local loess = folder(top, "황구")
@@ -1882,6 +3909,10 @@ function Region.build(root: Instance, rng: (number, number) -> number)
 	loessNature(loess, rng)
 	canyon(top, rng)
 	mesa(top, rng)
+	desert(top, rng)
+	ruins(top, rng)
+	oasis(top, rng)
+	saltFlat(top, rng)
 end
 
 return Region

@@ -401,36 +401,62 @@ Hud.toggleStatus(false)
 -- 전송진 창: 열린 진만 고를 수 있고, 고르면 서버에 보낸다
 Hud.update(state({
 	waypoints = {
-		{ id = "wp_yeonguk", name = "연국", open = true },
+		{ id = "wp_home", name = "송계 마을", open = true },
 		{ id = "wp_two", name = "영산", open = true },
 		{ id = "wp_three", name = "천겁대", open = false },
 	},
 }))
--- 맵의 전송진이 모두 창에 들어간다
+-- 맵의 전송진(WorldSites 의 16 곳)이 모두 창에 들어가고, 이름이 칸 안에 들며, 창이 화면(1280×720 기준) 안에 든다
 do
+	local fs = require("@lune/fs")
 	local many = {}
-	for i = 1, 13 do
-		table.insert(many, { id = "wp_" .. i, name = "연국", open = true })
+	for id, name in string.gmatch(fs.readFile("src/server/WorldSites.luau"), 'add%("wp", "([%w_]+)", "([^"]+)"') do
+		table.insert(many, { id = id, name = name, open = true })
 	end
+	assert(#many == 16, `WorldSites 의 전송진 {#many}곳 (16)`)
 	Hud.update(state({ waypoints = many }))
-	Hud.openTravel("wp_1")
-	local shown = 0
-	for _, item in playerGui:FindFirstChild("BlockSuseonHud"):FindFirstChild("TravelMenu"):GetDescendants() do
+	Hud.openTravel(many[2].id)
+	local menu = playerGui:FindFirstChild("BlockSuseonHud"):FindFirstChild("TravelMenu")
+	local shown, cellWidth = 0, nil
+	for _, item in menu:GetDescendants() do
+		if item:IsA("ImageButton") and item.Visible and item.LayoutOrder > 0 then
+			shown += 1
+		elseif item:IsA("UIGridLayout") then
+			cellWidth = item.CellSize.X.Offset
+		end
+	end
+	assert(shown == #many, `전송진 {shown}개만 보인다 ({#many})`)
+	local BitmapTextForMenu = loader.require(loader.folder("src/client").BitmapText)
+	for _, point in many do
+		local width = BitmapTextForMenu.measure("title", 19, point.name).X
+		assert(width < cellWidth - 12, `{point.name} 이 칸({cellWidth})보다 넓다 ({width})`)
+	end
+	assert(BitmapTextForMenu.measure("title", 19, "가 보지 못한 곳").X < cellWidth - 12, "가 보지 못한 곳")
+	assert(menu.Size.X.Offset <= 1280 - 80 and menu.Size.Y.Offset <= 720 - 80, `전송진 창이 크다 ({menu.Size})`)
+	-- 진이 더 늘어도 스물까지는 들어간다
+	local more = table.clone(many)
+	for i = #many + 1, 20 do
+		table.insert(more, { id = "wp_more" .. i, name = "청허경", open = true })
+	end
+	Hud.update(state({ waypoints = more }))
+	Hud.openTravel(many[2].id)
+	shown = 0
+	for _, item in menu:GetDescendants() do
 		if item:IsA("ImageButton") and item.Visible and item.LayoutOrder > 0 then
 			shown += 1
 		end
 	end
-	assert(shown == 13, `전송진 {shown}개만 보인다 (13)`)
+	assert(shown == 20, `전송진 {shown}개만 보인다 (20)`)
 	Hud.closeTravel()
 end
 Hud.update(state({
 	waypoints = {
-		{ id = "wp_yeonguk", name = "연국", open = true },
+		{ id = "wp_home", name = "송계 마을", open = true },
 		{ id = "wp_two", name = "영산", open = true },
 		{ id = "wp_three", name = "천겁대", open = false },
 	},
 }))
-Hud.openTravel("wp_yeonguk")
+Hud.openTravel("wp_home")
 assert(Hud.travelOpen(), "전송진 창이 열리지 않았다")
 do
 	local menu = playerGui:FindFirstChild("BlockSuseonHud"):FindFirstChild("TravelMenu")
@@ -636,16 +662,16 @@ do
 	assert(not Hud.shopOpen(), "상태창을 열면 상점 창을 닫는다")
 	Hud.toggleStatus(false)
 
-	-- 전송진 삯: 선 진과 갈 진 바닥 사이 거리로 센다. 연국으로는 공짜
+	-- 전송진 삯: 선 진과 갈 진 바닥 사이 거리로 센다. 송계 마을(Places.HOME_WAYPOINT)로는 공짜
 	local function pad(id: string, x: number, z: number)
 		local part = roblox.Instance.new("Part")
 		part.Position = roblox.Vector3.new(x, 0, z)
 		part:SetAttribute("WaypointId", id)
 		return wrap(part)
 	end
-	tagged.Waypoint = { pad("wp_yeonguk", 0, 0), pad("wp_two", 600, 0), pad("wp_three", 0, 5000) }
+	tagged.Waypoint = { pad("wp_home", 0, 0), pad("wp_two", 600, 0), pad("wp_three", 0, 5000) }
 	local points = {
-		{ id = "wp_yeonguk", name = "연국", open = true },
+		{ id = "wp_home", name = "송계 마을", open = true },
 		{ id = "wp_two", name = "영산", open = true },
 		{ id = "wp_three", name = "천겁대", open = true },
 	}
@@ -663,7 +689,7 @@ do
 	end
 	local buttons = entries()
 	assert(shows(find(menu, "Stones"), "body", "5"), "전송진 창에 지닌 영석")
-	assert(shows(find(buttons[1], "Fee"), "body", "공짜"), "연국으로 가는 길은 공짜")
+	assert(shows(find(buttons[1], "Fee"), "body", "공짜"), "송계 마을로 가는 길은 공짜")
 	assert(not find(buttons[2], "Fee").Visible, "지금 선 진에는 삯이 없다")
 	local far = Currency.travelFee(math.sqrt(600 ^ 2 + 5000 ^ 2), false)
 	assert(shows(find(buttons[3], "Fee"), "body", "영석 " .. far), readText(find(buttons[3], "Fee")))
@@ -672,8 +698,8 @@ do
 	assert(sent.travel == nil, "삯이 모자라면 보내지 않는다")
 	assert(Hud.travelOpen(), "삯이 모자라면 창을 닫지 않는다")
 	fire(buttons[1], "Activated")
-	assert(sent.travel[1] == "wp_yeonguk", "공짜 길은 바로 간다")
-	Hud.openTravel("wp_yeonguk")
+	assert(sent.travel[1] == "wp_home", "공짜 길은 바로 간다")
+	Hud.openTravel("wp_home")
 	buttons = entries()
 	local near = Currency.travelFee(600, false)
 	assert(shows(find(buttons[2], "Fee"), "body", "영석 " .. near), "가까운 진 삯")
@@ -699,13 +725,13 @@ do
 end
 
 -- 땅 이름 띄우기
-loader.require(loader.folder("src/client").PlaceBanner).show("영초숲", "영초와 천년영지가 돋는 숲")
+loader.require(loader.folder("src/client").PlaceBanner).show("청송림", "다리 건너 영초가 돋는 솔숲")
 
 -- 현판: 판자 겉면에 붓글씨 글자를 붙인다 (가로, 세로)
 do
 	local Plaques = loader.require(loader.folder("src/client").Plaques)
 	for _, case in
-		{ { "연국", false, roblox.Vector3.new(8, 3, 0.6) }, { "천겁대", true, roblox.Vector3.new(3, 10, 1.2) } }
+		{ { "송계", false, roblox.Vector3.new(8, 3, 0.6) }, { "관성대", true, roblox.Vector3.new(3, 10, 1.2) } }
 	do
 		local board = roblox.Instance.new("Part")
 		board.Size = case[3]
@@ -763,7 +789,10 @@ for id, case in
 		{ "ring", { hits = 3, band = 1 } },
 		{ "arrange", { band = 1 } },
 		{ "strands", { count = 9, time = 17, speed = 1, band = 1 } },
-		{ "order", { items = { "금단이 맺힌 날", "영근이 깨어난 날", "연국에 처음 온 날" } } },
+		{
+			"order",
+			{ items = { "금단이 맺힌 날", "영근이 깨어난 날", "송계 마을에 처음 온 날" } },
+		},
 	}
 do
 	Hud.openTrial({ id = 10 + id, mode = case[1], seed = 42, params = case[2], title = "내관" })
@@ -990,9 +1019,16 @@ for _, def in Tasks.CHILSU do
 	need("body", string.format("%s 시운, 3분 12초 남았다 %s 시운까지 40초", def.name, def.name))
 end
 need("body", "주머니  영초 3  천년영지 1  홍령삼 1  축기단 1 주머니 비었다 끝 12 / 30초")
--- 서버가 보내는 알림 문구 (화면에 글자판으로 찍는다)
+-- 서버가 보내는 알림 문구 (화면에 글자판으로 찍는다).
+-- 맵 짓는 World*.luau 의 글은 부품 이름과 현판 글(붓글씨, tests/run 이 본다)이라 빼고, 전송진 이름만 창에 나온다
 local fs = require("@lune/fs")
+for id, name in string.gmatch(fs.readFile("src/server/WorldSites.luau"), 'add%("wp", "([%w_]+)", "([^"]+)"') do
+	need("title", name)
+end
 for _, file in fs.readDir("src/server") do
+	if string.match(file, "^World") then
+		continue
+	end
 	local source = fs.readFile("src/server/" .. file)
 	source = string.gsub(source, "%-%-[^\n]*", "")
 	for literal in string.gmatch(source, '"([^"\n]*)"') do

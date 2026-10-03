@@ -1,4 +1,4 @@
--- 수계 하늘과 빛 (World.setupLighting 갈음). Lune(굽기)과 서버 둘 다에서 돈다.
+-- 옥반 하늘과 빛 (World.setupLighting 갈음). Lune(굽기)과 서버 둘 다에서 돈다.
 -- Technology 는 스크립트로 못 바꾸는 속성이라 pcall: Lune 에서는 되고(플레이스 파일에 저장), 서버에서는 조용히 넘어간다.
 -- 하나만 있어야 하는 것(Atmosphere, Sky, Bloom...)은 클래스로 찾고, 색보정처럼 여럿 겹치는 것은 이름으로 찾는다
 local function ensure(parent: Instance, className: string, name: string, byName: boolean?): Instance

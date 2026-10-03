@@ -583,7 +583,7 @@ end
 
 function Progression.canBreakthrough(data: Data): (boolean, string?)
 	if data.step >= Realms.maxStep then
-		return false, "하계에서 오를 수 있는 끝이다."
+		return false, "이 세계에서 오를 수 있는 끝이다."
 	end
 	if not Progression.needsBreakthrough(data.step) then
 		return false, "같은 경지 안에서는 영력과 과업을 채우면 저절로 오른다."

@@ -234,7 +234,7 @@ local function facing(position: Vector3, toward: Vector3?): CFrame
 	return face(position, flat)
 end
 
--- 땅에 박은 나무 현판. 앞면이 toward 쪽(기본은 연국 광장)을 본다. 앞뒤 두 면에 새긴다
+-- 땅에 박은 나무 현판. 앞면이 toward 쪽(기본은 송계 광장)을 본다. 앞뒤 두 면에 새긴다
 local function signboard(parent: Instance, ground: Vector3, text: string, toward: Vector3?)
 	local look = facing(ground, toward)
 	local m = model(parent, "현판")
@@ -374,7 +374,7 @@ local function vein(parent: Instance, id: string, center: Vector3, radius: numbe
 	emitter.ShapeStyle = Enum.ParticleEmitterShapeStyle.Volume
 	emitter.Parent = pool
 
-	-- 못가에 세운 작은 돌. 연국 광장 쪽을 보고 등급을 새긴다
+	-- 못가에 세운 작은 돌. 송계 광장 쪽을 보고 등급을 새긴다
 	local toward = Vector3.new(-center.X, 0, -center.Z)
 	local dir = if toward.Magnitude > 1 then toward.Unit else Vector3.new(0, 0, 1)
 	local stonePos = center + dir * (radius + 2.6) + Vector3.new(0, 1, 0)
@@ -556,7 +556,7 @@ local function waypoint(parent: Instance, def, order: number)
 		local p = Vector3.new(def.x + math.cos(a) * 6.2, top + 1.1, def.z + math.sin(a) * 6.2)
 		block(m, "Rune", Vector3.new(0.9, 0.5, 0.9), CFrame.new(p), C.stoneDark, Enum.Material.Slate)
 	end
-	-- 표석: 진 바깥, 연국 쪽
+	-- 표석: 진 바깥, 송계 쪽
 	local toward = Vector3.new(-def.x, 0, -def.z)
 	local dir = if toward.Magnitude > 1 then toward.Unit else Vector3.new(0, 0, 1)
 	local base = Vector3.new(def.x, 0, def.z) + dir * 9.5

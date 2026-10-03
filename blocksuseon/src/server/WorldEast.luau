@@ -17,7 +17,8 @@ local Sites = require(script.Parent.WorldSites)
 local Region = {}
 
 local P = Build.P
-local block, wedge, beam, cyl, ball, deco, face = Build.block, Build.wedge, Build.beam, Build.cyl, Build.ball, Build.deco, Build.face
+local block, wedge, beam, cyl, ball, deco, face =
+	Build.block, Build.wedge, Build.beam, Build.cyl, Build.ball, Build.deco, Build.face
 local V3 = Vector3.new
 local CF = CFrame.new
 local ANG = CFrame.Angles
@@ -242,7 +243,16 @@ local function free(x: number, z: number, r: number, opts: FreeOpts?): boolean
 end
 
 -- 기단 놓기: 집 cf (기단 밑 가운데) 를 돌려준다. 비탈이면 높은 쪽을 조금 묻고 낮은 쪽은 장대석으로 받친다
-local function siteCf(parent: Instance, x: number, z: number, tx: number, tz: number, hx: number, hz: number, sink: number?): CFrame
+local function siteCf(
+	parent: Instance,
+	x: number,
+	z: number,
+	tx: number,
+	tz: number,
+	hx: number,
+	hz: number,
+	sink: number?
+): CFrame
 	local yaw = yawTo(x, z, tx, tz)
 	local lo, hi = rectSpan(x, z, yaw, hx, hz)
 	local y = max(lo + 0.5, hi - (sink or 1.1))
@@ -262,7 +272,14 @@ end
 
 -- 작은 꾸밈 ---------------------------------------------------------------------------------
 
-local function decoBlock(parent: Instance, name: string, size: Vector3, cf: CFrame, color: Color3, material: Enum.Material?)
+local function decoBlock(
+	parent: Instance,
+	name: string,
+	size: Vector3,
+	cf: CFrame,
+	color: Color3,
+	material: Enum.Material?
+)
 	local p = deco(block(parent, name, size, cf, color, material))
 	p.CastShadow = false
 	return p
@@ -292,7 +309,8 @@ local function stoneStack(parent: Instance, x: number, z: number, n: number, siz
 			m,
 			"Dol",
 			V3(s, h, s * R(0.8, 1)),
-			CF(x + R(-0.12, 0.12) * s, y + h / 2, z + R(-0.12, 0.12) * s) * ANG(R(-0.08, 0.08), R(0, TAU), R(-0.08, 0.08)),
+			CF(x + R(-0.12, 0.12) * s, y + h / 2, z + R(-0.12, 0.12) * s)
+				* ANG(R(-0.08, 0.08), R(0, TAU), R(-0.08, 0.08)),
 			(color or P.granite):Lerp(P.graniteDark, R(0, 0.6)),
 			MAT.Slate
 		)
@@ -333,7 +351,8 @@ local function tuft(parent: Instance, x: number, z: number, s: number, colorIdx:
 		local foot = V3(x + cos(a) * 0.35, g - 0.35, z + sin(a) * 0.35)
 		local lean = R(0.25, 0.6)
 		local dir = V3(cos(a) * lean, 1, sin(a) * lean).Unit
-		local p = deco(beam(m, "Pul", foot, foot + dir * h, R(0.5, 0.9), 0.14, col:Lerp(GRASS[4], R(0, 0.3)), MAT.Grass))
+		local p =
+			deco(beam(m, "Pul", foot, foot + dir * h, R(0.5, 0.9), 0.14, col:Lerp(GRASS[4], R(0, 0.3)), MAT.Grass))
 		p.CastShadow = false
 	end
 	return m
@@ -442,10 +461,25 @@ local function fallenLog(parent: Instance, x: number, z: number, len: number)
 	local pb = V3(bx, lowAt(bx, bz, d / 2) + d * 0.32, bz)
 	cyl(m, "Tong", pa, pb, d, rgb(96, 78, 60), MAT.Wood)
 	local mid = (pa + pb) / 2
-	decoBlock(m, "Ikki", V3(d * 0.7, 0.3, len * 0.6), face(mid + V3(0, d * 0.45, 0), pb + V3(0, d * 0.45, 0)), C.moss, MAT.LeafyGrass)
+	decoBlock(
+		m,
+		"Ikki",
+		V3(d * 0.7, 0.3, len * 0.6),
+		face(mid + V3(0, d * 0.45, 0), pb + V3(0, d * 0.45, 0)),
+		C.moss,
+		MAT.LeafyGrass
+	)
 	-- 뿌리 판 (뽑힌 밑동)
 	local u = (pb - pa).Unit
-	cyl(m, "Ppuri", pa - u * 0.4 + V3(0, d * 0.5, 0), pa - u * 1.1 + V3(0, d * 0.5, 0), d * 2.2, rgb(88, 70, 54), MAT.Ground)
+	cyl(
+		m,
+		"Ppuri",
+		pa - u * 0.4 + V3(0, d * 0.5, 0),
+		pa - u * 1.1 + V3(0, d * 0.5, 0),
+		d * 2.2,
+		rgb(88, 70, 54),
+		MAT.Ground
+	)
 	take(x, z, len / 2 + 1)
 	return m
 end
@@ -478,13 +512,29 @@ local function ancientTree(root: Instance)
 		local fr = R(11, 13)
 		local fx, fz = tx + cos(a) * fr, tz + sin(a) * fr
 		local top = V3(tx + cos(a) * 4, y0 + R(14, 22), tz + sin(a) * 4)
-		cyl(m, "Panppuri", V3(fx, surf(fx, fz) - 2.2, fz), top, R(6.5, 8), if k % 2 == 0 then bark else barkLight, MAT.Wood)
+		cyl(
+			m,
+			"Panppuri",
+			V3(fx, surf(fx, fz) - 2.2, fz),
+			top,
+			R(6.5, 8),
+			if k % 2 == 0 then bark else barkLight,
+			MAT.Wood
+		)
 	end
 	-- 비틀린 줄기 셋: 몸통 겉을 감아 오른다
 	for k = 0, 2 do
 		local a = a0 + 0.45 + k * TAU / 3
 		local b = a + rad(75)
-		cyl(m, "Kkoim", V3(tx + cos(a) * 7.6, y0 + 3, tz + sin(a) * 7.6), V3(tx + cos(b) * 5.8, y0 + 34, tz + sin(b) * 5.8), 4.4, barkLight, MAT.Wood)
+		cyl(
+			m,
+			"Kkoim",
+			V3(tx + cos(a) * 7.6, y0 + 3, tz + sin(a) * 7.6),
+			V3(tx + cos(b) * 5.8, y0 + 34, tz + sin(b) * 5.8),
+			4.4,
+			barkLight,
+			MAT.Wood
+		)
 	end
 	-- 이끼 (몸통 겉에 붙은 판)
 	for _ = 1, 5 do
@@ -520,7 +570,16 @@ local function ancientTree(root: Instance)
 	end
 	for k = 1, 6 do
 		local a = b0 + (k + 0.5) * TAU / 6
-		Build.canopy(canopy, fork + V3(cos(a) * 36, R(8, 12), sin(a) * 36), 13, 6, 4, R, { rgb(44, 84, 50), rgb(62, 108, 60), rgb(90, 138, 74) }, 0.75)
+		Build.canopy(
+			canopy,
+			fork + V3(cos(a) * 36, R(8, 12), sin(a) * 36),
+			13,
+			6,
+			4,
+			R,
+			{ rgb(44, 84, 50), rgb(62, 108, 60), rgb(90, 138, 74) },
+			0.75
+		)
 	end
 	-- 영기: 잎 사이로 옥빛 티끌
 	Kit.motes(canopy:GetChildren()[1] :: BasePart, rgb(176, 255, 190), 8)
@@ -542,7 +601,14 @@ local function ancientTree(root: Instance)
 		local len = R(6, 16)
 		local q = V3(pos.X + R(-0.3, 0.3) * p.Size.X, bottom - len / 2, pos.Z + R(-0.3, 0.3) * p.Size.Z)
 		local a = R(0, TAU)
-		decoBlock(m, "Mosa", V3(R(0.35, 0.7), len, 0.18), face(q, q + V3(cos(a), 0, sin(a))) * ANG(rad(R(-5, 5)), 0, 0), C.mossHang, MAT.LeafyGrass)
+		decoBlock(
+			m,
+			"Mosa",
+			V3(R(0.35, 0.7), len, 0.18),
+			face(q, q + V3(cos(a), 0, sin(a))) * ANG(rad(R(-5, 5)), 0, 0),
+			C.mossHang,
+			MAT.LeafyGrass
+		)
 	end
 
 	-- 뿌리: 판뿌리 사이로 땅 위를 기어 나가 묻힌다 (자리 쪽으로는 짧게)
@@ -573,7 +639,14 @@ local function ancientTree(root: Instance)
 		local mid = (p1 + p2) / 2
 		local out = V3(cos((a1 + a2) / 2), 0, sin((a1 + a2) / 2))
 		local col = if k % 3 == 0 then OBANG[1 + (k // 3) % 5] else C.hanji
-		decoBlock(m, "Jongi", V3(0.8, 1.7, 0.06), face(mid + out * 0.3 - V3(0, 1.05, 0), mid + out * 2), col, MAT.Fabric)
+		decoBlock(
+			m,
+			"Jongi",
+			V3(0.8, 1.7, 0.06),
+			face(mid + out * 0.3 - V3(0, 1.05, 0), mid + out * 2),
+			col,
+			MAT.Fabric
+		)
 	end
 	-- 돌 제단과 제물 (자리를 바라본다)
 	local dir = (V3(sx, 0, sz) - V3(tx, 0, tz)).Unit
@@ -587,7 +660,14 @@ local function ancientTree(root: Instance)
 	for _, s in { -1, 1 } do
 		local bowl = (acf * CF(s * 1.5, 2.6, 0.2)).Position
 		cyl(m, "Gureut", bowl - V3(0, 0.2, 0), bowl + V3(0, 0.25, 0), 1.0, rgb(214, 206, 188), MAT.SmoothPlastic)
-		ball(m, "Gwail", bowl + V3(0, 0.5, 0), 0.7, if s > 0 then rgb(196, 74, 52) else rgb(222, 170, 70), MAT.SmoothPlastic)
+		ball(
+			m,
+			"Gwail",
+			bowl + V3(0, 0.5, 0),
+			0.7,
+			if s > 0 then rgb(196, 74, 52) else rgb(222, 170, 70),
+			MAT.SmoothPlastic
+		)
 	end
 	local censer = (acf * CF(0, 2.4, 0)).Position
 	local hyang = cyl(m, "Hyangno", censer, censer + V3(0, 0.8, 0), 1.1, C.bronze, MAT.Metal)
@@ -633,7 +713,14 @@ local function ancientTree(root: Instance)
 					MAT.Slate
 				)
 				if k % 3 == 0 then
-					decoBlock(ring, "Ikki", V3(s.Size.X * 0.8, 0.3, s.Size.Z * 1.05), s.CFrame * CF(0, s.Size.Y / 2, 0), C.moss, MAT.LeafyGrass)
+					decoBlock(
+						ring,
+						"Ikki",
+						V3(s.Size.X * 0.8, 0.3, s.Size.Z * 1.05),
+						s.CFrame * CF(0, s.Size.Y / 2, 0),
+						C.moss,
+						MAT.LeafyGrass
+					)
 				end
 			end
 		end
@@ -669,7 +756,14 @@ local function forestMask(x: number, z: number): number
 end
 
 -- 꺾은선 pts 를 따라 step 마다 양쪽에 place(x, z, side) 를 부른다
-local function alongPath(pts: { { number } }, step: number, near: number, far: number, chance: number, place: (number, number, number) -> ())
+local function alongPath(
+	pts: { { number } },
+	step: number,
+	near: number,
+	far: number,
+	chance: number,
+	place: (number, number, number) -> ()
+)
 	local carry = R(0, step)
 	for i = 1, #pts - 1 do
 		local a, b = pts[i], pts[i + 1]
@@ -706,11 +800,21 @@ local function dirtPath(parent: Instance, pts: { { number } }, every: number, wi
 			local x1, z1 = a[1] + ux * t1, a[2] + uz * t1
 			-- 가로 기울기만큼 조금 더 묻는다
 			local cx, cz = (x0 + x1) / 2, (z0 + z1) / 2
-			local tilt = abs(surf(cx - uz * width / 2, cz + ux * width / 2) - surf(cx + uz * width / 2, cz - ux * width / 2))
+			local tilt =
+				abs(surf(cx - uz * width / 2, cz + ux * width / 2) - surf(cx + uz * width / 2, cz - ux * width / 2))
 			local sink = 0.12 + tilt * 0.5
 			local pa = V3(x0, surf(x0, z0) - sink, z0)
 			local pb = V3(x1, surf(x1, z1) - sink, z1)
-			local p = beam(m, "Heukgil", pa, pb, width * R(0.85, 1.05), 0.4, C.earth:Lerp(rgb(96, 82, 62), R(0, 1)), MAT.Ground)
+			local p = beam(
+				m,
+				"Heukgil",
+				pa,
+				pb,
+				width * R(0.85, 1.05),
+				0.4,
+				C.earth:Lerp(rgb(96, 82, 62), R(0, 1)),
+				MAT.Ground
+			)
 			p.CastShadow = false
 		end
 	end
@@ -728,7 +832,14 @@ local function jangseung(parent: Instance, x: number, z: number, toward: Vector3
 	for _, s in { -1, 1 } do
 		block(m, "Nun", V3(0.55, 0.4, 0.2), head.CFrame * CF(s * 0.5, 0.35, -0.9), P.meok, MAT.SmoothPlastic)
 	end
-	block(m, "Ip", V3(1.2, 0.3, 0.2), head.CFrame * CF(0, -0.55, -0.9), if female then P.juhong else P.meok, MAT.SmoothPlastic)
+	block(
+		m,
+		"Ip",
+		V3(1.2, 0.3, 0.2),
+		head.CFrame * CF(0, -0.55, -0.9),
+		if female then P.juhong else P.meok,
+		MAT.SmoothPlastic
+	)
 	if female then
 		block(m, "Gat", V3(2.2, 0.6, 2.0), look * CF(0, 8.5, 0), rgb(70, 60, 50), MAT.Wood)
 	else
@@ -824,11 +935,22 @@ local function forest(root: Instance)
 		end
 		local roll = R(0, 1)
 		if roll < 0.66 then
-			Build.shrub(under, V3(x, surf(x, z) - 0.3, z), R, { size = R(3, 5), leaves = { P.leafDeep, P.leaf, rgb(76, 120, 66) } })
+			Build.shrub(
+				under,
+				V3(x, surf(x, z) - 0.3, z),
+				R,
+				{ size = R(3, 5), leaves = { P.leafDeep, P.leaf, rgb(76, 120, 66) } }
+			)
 			take(x, z, 2)
 		elseif roll < 0.82 then
 			if free(x, z, 4, { path = 3 }) then
-				Build.rocks(under, V3(x, lowAt(x, z, 2) - 0.6, z), R(3.5, 6), R, { count = 2, color = rgb(116, 116, 106) })
+				Build.rocks(
+					under,
+					V3(x, lowAt(x, z, 2) - 0.6, z),
+					R(3.5, 6),
+					R,
+					{ count = 2, color = rgb(116, 116, 106) }
+				)
 				take(x, z, 4)
 			end
 		elseif roll < 0.92 then
@@ -851,7 +973,16 @@ end
 -- (위층 지붕은 무너져 없다), 맨 뒤 금당 터(장대석 기단과 주춧돌, 무너진 지붕 한 덩이). 동서 요사 터, 쓰러진 석등,
 -- 허물어진 돌담, 기단을 덮은 덤불. 숲길이 남서쪽에서 들어온다.
 
-local function ruinBase(parent: Instance, x: number, z: number, w: number, d: number, cols: number, rows: number, keep: number)
+local function ruinBase(
+	parent: Instance,
+	x: number,
+	z: number,
+	w: number,
+	d: number,
+	cols: number,
+	rows: number,
+	keep: number
+)
 	local m = Kit.model(parent, "건물 터")
 	local cf = siteCf(m, x, z, x, z + 10, w / 2, d / 2, 0.9)
 	block(m, "Gidan", V3(w, 1.3, d), cf * CF(0, 0.05, 0), P.granite:Lerp(P.graniteDark, 0.3), MAT.Granite)
@@ -860,7 +991,14 @@ local function ruinBase(parent: Instance, x: number, z: number, w: number, d: nu
 			if (i == 0 or i == cols - 1 or j == 0 or j == rows - 1) and R(0, 1) < keep then
 				local px = -w / 2 + 2.4 + (w - 4.8) * i / math.max(cols - 1, 1)
 				local pz = -d / 2 + 2.4 + (d - 4.8) * j / math.max(rows - 1, 1)
-				block(m, "Juchu", V3(1.8, 0.6, 1.8), cf * CF(px, 0.95, pz) * ANG(0, R(-0.2, 0.2), 0), P.graniteDark, MAT.Granite)
+				block(
+					m,
+					"Juchu",
+					V3(1.8, 0.6, 1.8),
+					cf * CF(px, 0.95, pz) * ANG(0, R(-0.2, 0.2), 0),
+					P.graniteDark,
+					MAT.Granite
+				)
 			end
 		end
 	end
@@ -902,7 +1040,14 @@ local function temple(root: Instance)
 		local a, r = R(-0.6, 1.2), R(8, 13)
 		local x, z = px + cos(a) * r, pz + sin(a) * r
 		local s = rubble[i]
-		block(f, "Giwa", V3(math.min(s.X, 4), 0.6, math.min(s.Z, 3)), CF(x, surf(x, z) + 0.05, z) * ANG(R(-0.4, 0.4), R(0, TAU), R(-0.4, 0.4)), P.giwa, MAT.ClayRoofTiles)
+		block(
+			f,
+			"Giwa",
+			V3(math.min(s.X, 4), 0.6, math.min(s.Z, 3)),
+			CF(x, surf(x, z) + 0.05, z) * ANG(R(-0.4, 0.4), R(0, TAU), R(-0.4, 0.4)),
+			P.giwa,
+			MAT.ClayRoofTiles
+		)
 	end
 	take(px, pz, 12)
 
@@ -912,17 +1057,58 @@ local function temple(root: Instance)
 	-- 남은 기둥 밑동 둘과 쓰러진 기둥 하나
 	for _, q in { { -9.2, -5.1, 3.2 }, { 4.6, -5.1, 1.6 } } do
 		local b = hcf * CF(q[1], 1.2, q[2])
-		cyl(hall, "Gidung", b.Position, (b * CF(0, q[3], 0)).Position, 1.15, P.seokganju:Lerp(P.woodDark, 0.4), MAT.Wood)
+		cyl(
+			hall,
+			"Gidung",
+			b.Position,
+			(b * CF(0, q[3], 0)).Position,
+			1.15,
+			P.seokganju:Lerp(P.woodDark, 0.4),
+			MAT.Wood
+		)
 	end
-	cyl(hall, "Gidung", (hcf * CF(-3, 1.3, 1)).Position, (hcf * CF(6.5, 1.3, 4.5)).Position, 1.15, P.seokganju:Lerp(P.woodDark, 0.5), MAT.Wood)
+	cyl(
+		hall,
+		"Gidung",
+		(hcf * CF(-3, 1.3, 1)).Position,
+		(hcf * CF(6.5, 1.3, 4.5)).Position,
+		1.15,
+		P.seokganju:Lerp(P.woodDark, 0.5),
+		MAT.Wood
+	)
 	-- 무너진 지붕 한 덩이: 기와 판 셋이 서로 기대고, 용마루 토막과 서까래가 삐져나온다
 	local rc = hcf * CF(7, 1.2, 1.5)
 	block(hall, "Giwa", V3(9, 0.7, 6), rc * CF(0, 1.4, -1.6) * ANG(rad(28), rad(8), 0), P.giwa, MAT.ClayRoofTiles)
 	block(hall, "Giwa", V3(8, 0.7, 5.5), rc * CF(0.5, 1.2, 2.2) * ANG(rad(-32), rad(-6), 0), P.giwa, MAT.ClayRoofTiles)
-	block(hall, "Giwa", V3(6, 0.7, 4), rc * CF(-5, 0.6, 0.5) * ANG(rad(12), rad(30), rad(14)), P.giwa:Lerp(P.giwaDark, 0.5), MAT.ClayRoofTiles)
-	beam(hall, "Maru", (rc * CF(-4, 2.6, 0.2)).Position, (rc * CF(4, 3.0, 0.4)).Position, 1.1, 1.1, P.giwaDark, MAT.Slate)
+	block(
+		hall,
+		"Giwa",
+		V3(6, 0.7, 4),
+		rc * CF(-5, 0.6, 0.5) * ANG(rad(12), rad(30), rad(14)),
+		P.giwa:Lerp(P.giwaDark, 0.5),
+		MAT.ClayRoofTiles
+	)
+	beam(
+		hall,
+		"Maru",
+		(rc * CF(-4, 2.6, 0.2)).Position,
+		(rc * CF(4, 3.0, 0.4)).Position,
+		1.1,
+		1.1,
+		P.giwaDark,
+		MAT.Slate
+	)
 	for _, s in { -1.5, 1.5 } do
-		beam(hall, "Seokkarae", (rc * CF(s, 0.4, -4)).Position, (rc * CF(s * 1.4, 3.2, 1)).Position, 0.45, 0.45, P.woodDark, MAT.Wood)
+		beam(
+			hall,
+			"Seokkarae",
+			(rc * CF(s, 0.4, -4)).Position,
+			(rc * CF(s * 1.4, 3.2, 1)).Position,
+			0.45,
+			0.45,
+			P.woodDark,
+			MAT.Wood
+		)
 	end
 	take(hx, hz, 16)
 
@@ -931,7 +1117,15 @@ local function temple(root: Instance)
 	beam(wing, "Bo", (wcf * CF(-2, 1.0, -4)).Position, (wcf * CF(3, 2.2, 5)).Position, 0.8, 0.9, P.woodDark, MAT.Wood)
 	take(vx + 30, vz - 4, 10)
 	local wing2, wcf2 = ruinBase(f, vx - 30, vz - 4, 11, 16, 2, 4, 0.6)
-	cyl(wing2, "Gidung", (wcf2 * CF(-3.1, 1.2, -5.6)).Position, (wcf2 * CF(-3.1, 6.0, -5.6)).Position, 1.1, P.woodDark, MAT.Wood)
+	cyl(
+		wing2,
+		"Gidung",
+		(wcf2 * CF(-3.1, 1.2, -5.6)).Position,
+		(wcf2 * CF(-3.1, 6.0, -5.6)).Position,
+		1.1,
+		P.woodDark,
+		MAT.Wood
+	)
 	take(vx - 30, vz - 4, 10)
 
 	-- 남쪽 문터: 기둥 밑동 둘, 떨어진 창방
@@ -940,9 +1134,26 @@ local function temple(root: Instance)
 		local x = gx + s * 6
 		local g = lowAt(x, gz, 1.4)
 		block(f, "Choseok", V3(2.4, 1.0, 2.4), CF(x, g + 0.1, gz), P.granite, MAT.Granite)
-		cyl(f, "Gidung", V3(x, g + 0.5, gz), V3(x, g + (if s < 0 then 4.5 else 2.4), gz), 1.5, P.seokganju:Lerp(P.woodDark, 0.35), MAT.Wood)
+		cyl(
+			f,
+			"Gidung",
+			V3(x, g + 0.5, gz),
+			V3(x, g + (if s < 0 then 4.5 else 2.4), gz),
+			1.5,
+			P.seokganju:Lerp(P.woodDark, 0.35),
+			MAT.Wood
+		)
 	end
-	beam(f, "Changbang", V3(gx - 1, lowAt(gx - 1, gz + 3, 1) + 0.4, gz + 3), V3(gx + 8, lowAt(gx + 8, gz + 1, 1) + 0.5, gz + 1), 0.9, 1.0, P.noerok:Lerp(P.woodDark, 0.5), MAT.Wood)
+	beam(
+		f,
+		"Changbang",
+		V3(gx - 1, lowAt(gx - 1, gz + 3, 1) + 0.4, gz + 3),
+		V3(gx + 8, lowAt(gx + 8, gz + 1, 1) + 0.5, gz + 1),
+		0.9,
+		1.0,
+		P.noerok:Lerp(P.woodDark, 0.5),
+		MAT.Wood
+	)
 	take(gx, gz, 8)
 	-- 비석 (문터 곁, 조금 기울었다)
 	local sg = lowAt(gx - 11, gz - 2, 2)
@@ -961,7 +1172,14 @@ local function temple(root: Instance)
 	local bg = surf(bx, bz)
 	block(f, "Hadae", V3(2.6, 0.9, 2.6), CF(bx, bg + 0.3, bz) * ANG(0, rad(45), 0), P.granite, MAT.Granite)
 	cyl(f, "Ganju", V3(bx, bg + 0.7, bz), V3(bx, bg + 2.6, bz), 0.9, P.granite, MAT.Granite)
-	block(f, "Okgae", V3(2.4, 0.9, 2.4), CF(bx + 2.2, bg + 0.3, bz + 1.4) * ANG(rad(16), rad(20), rad(-10)), P.graniteDark, MAT.Granite)
+	block(
+		f,
+		"Okgae",
+		V3(2.4, 0.9, 2.4),
+		CF(bx + 2.2, bg + 0.3, bz + 1.4) * ANG(rad(16), rad(20), rad(-10)),
+		P.graniteDark,
+		MAT.Granite
+	)
 	take(vx, vz - 12.5, 11)
 
 	-- 허물어진 돌담 (서쪽과 북동쪽에 토막)
@@ -983,7 +1201,12 @@ local function temple(root: Instance)
 		local a, r = R(0, TAU), R(10, 44)
 		local x, z = vx + cos(a) * r, vz + sin(a) * r
 		if not inClear(x, z, 1.5) and not nearPath(x, z, 2) then
-			Build.shrub(plants, V3(x, surf(x, z) - 0.2, z), R, { size = R(2.5, 4.5), leaves = { P.leafDeep, P.leaf, P.leafYellow } })
+			Build.shrub(
+				plants,
+				V3(x, surf(x, z) - 0.2, z),
+				R,
+				{ size = R(2.5, 4.5), leaves = { P.leafDeep, P.leaf, P.leafYellow } }
+			)
 		end
 	end
 	-- 금당 터에서 자란 어린 나무
@@ -1056,7 +1279,15 @@ local function eastHill(root: Instance)
 		-- 살 (붉은 화살대 줄): 가로대 사이 한 판
 		local mid = (a + b) / 2 + V3(0, 0.75, 0)
 		block(m, "Sal", V3((b - a).Magnitude - 0.8, 1.2, 0.12), face(mid, mid + V3(tx, 0, tz)), P.juhong, MAT.Wood)
-		local tg = cyl(m, "Taegeuk", mid + V3(0, 1.6, 0) - V3(tx, 0, tz) * 0.15, mid + V3(0, 1.6, 0) + V3(tx, 0, tz) * 0.15, 1.6, P.gunjeong, MAT.SmoothPlastic)
+		local tg = cyl(
+			m,
+			"Taegeuk",
+			mid + V3(0, 1.6, 0) - V3(tx, 0, tz) * 0.15,
+			mid + V3(0, 1.6, 0) + V3(tx, 0, tz) * 0.15,
+			1.6,
+			P.gunjeong,
+			MAT.SmoothPlastic
+		)
 		tg.CastShadow = false
 		take(gx, gz, 7)
 	end
@@ -1087,7 +1318,14 @@ local function eastHill(root: Instance)
 		local g = surf(x, z)
 		local topY = min(y1, max(g, last[2] + (k + 1) * (y1 - last[2]) / 4))
 		local depth = topY - (lowAt(x, z, 3) - 1)
-		block(f, "Dolgyedan", V3(7.5, depth, 1.9), face(V3(x, topY - depth / 2, z), V3(x + ix, topY - depth / 2, z + iz)), P.granite, MAT.Granite)
+		block(
+			f,
+			"Dolgyedan",
+			V3(7.5, depth, 1.9),
+			face(V3(x, topY - depth / 2, z), V3(x + ix, topY - depth / 2, z + iz)),
+			P.granite,
+			MAT.Granite
+		)
 	end
 	for _, s in { -1, 1 } do
 		local x, z = ex + ix * 8 - iz * s * 5.5, ez + iz * 8 + ix * s * 5.5
@@ -1176,7 +1414,14 @@ local function bambooClump(parent: Instance, x: number, z: number, n: number, ra
 	for i = 1, 2 do
 		local s = radius * 2 + R(3, 5)
 		local p = c + V3(R(-1.5, 1.5), -2.5 - (i - 1) * 3.5, R(-1.5, 1.5))
-		decoBlock(m, "Ip", V3(s, R(2.2, 3.2), s * R(0.75, 1)), CF(p) * ANG(R(-0.3, 0.3), R(0, pi), R(-0.3, 0.3)), if i == 1 then P.bambooLeaf else P.bambooLeaf:Lerp(P.leafLight, 0.3), MAT.LeafyGrass)
+		decoBlock(
+			m,
+			"Ip",
+			V3(s, R(2.2, 3.2), s * R(0.75, 1)),
+			CF(p) * ANG(R(-0.3, 0.3), R(0, pi), R(-0.3, 0.3)),
+			if i == 1 then P.bambooLeaf else P.bambooLeaf:Lerp(P.leafLight, 0.3),
+			MAT.LeafyGrass
+		)
 	end
 	take(x, z, radius + 1)
 	return m
@@ -1190,7 +1435,11 @@ local function hermitage(root: Instance)
 	-- 법당 (북쪽, 마당을 본다)
 	local hx, hz = vx, vz - 22
 	local hcf = siteCf(f, hx, hz, vx, vz, 9.8, 9.5, 1.0)
-	local hall = Build.house(f, hcf, { bays = { 3, 2 }, bay = 5, style = "temple", detail = 0, bands = 3, pillarH = 8, name = "청음암 법당" })
+	local hall = Build.house(
+		f,
+		hcf,
+		{ bays = { 3, 2 }, bay = 5, style = "temple", detail = 0, bands = 3, pillarH = 8, name = "청음암 법당" }
+	)
 	local board = block(hall, "Hyeonpan", V3(4.2, 1.4, 0.25), hcf * CF(0, 1.6 + 8 - 0.5, -5 - 0.75), P.meok, MAT.Wood)
 	block(hall, "Te", V3(4.7, 1.85, 0.2), hcf * CF(0, 1.6 + 8 - 0.5, -5 - 0.62), P.hwang, MAT.Wood)
 	Kit.engrave(board, "청음암", "Front")
@@ -1235,7 +1484,14 @@ local function hermitage(root: Instance)
 	})
 	for k = 1, 4 do
 		local x, z = gx + 6 + k * 2.6, gz + 3 - k * 0.6
-		block(f, "Didimdol", V3(1.8, 0.4, 1.5), CF(x, surf(x, z) - 0.05, z) * ANG(0, R(0, 1), 0), P.granite, MAT.Granite)
+		block(
+			f,
+			"Didimdol",
+			V3(1.8, 0.4, 1.5),
+			CF(x, surf(x, z) - 0.05, z) * ANG(0, R(0, 1), 0),
+			P.granite,
+			MAT.Granite
+		)
 	end
 	take(gx, gz, 11)
 
@@ -1260,7 +1516,16 @@ local function hermitage(root: Instance)
 			cyl(m, "Gidung", p - V3(0, 0.8, 0), V3(p.X, top + 7.2, p.Z), 0.7, P.wood, MAT.Wood)
 		end
 		local across = V3(-dz, 0, dx)
-		beam(m, "Inbang", V3(feet[1].X, top + 6.8, feet[1].Z) - across * 0.8, V3(feet[2].X, top + 6.8, feet[2].Z) + across * 0.8, 0.6, 0.7, P.wood, MAT.Wood)
+		beam(
+			m,
+			"Inbang",
+			V3(feet[1].X, top + 6.8, feet[1].Z) - across * 0.8,
+			V3(feet[2].X, top + 6.8, feet[2].Z) + across * 0.8,
+			0.6,
+			0.7,
+			P.wood,
+			MAT.Wood
+		)
 		-- 맞배 이엉 지붕 (작은 갓): 쐐기 둘, 높은 쪽이 가운데
 		local mid = V3(ex, top + 7.55, ez)
 		for _, s in { -1, 1 } do
@@ -1278,7 +1543,12 @@ local function hermitage(root: Instance)
 		local a, r = R(0, TAU), R(12, 30)
 		local x, z = vx + cos(a) * r, vz + sin(a) * r
 		if free(x, z, 2, { path = 2 }) then
-			Build.shrub(f, V3(x, surf(x, z) - 0.25, z), R, { size = R(2, 3.2), flowers = if R(0, 1) < 0.5 then FLOWERS[3] else nil })
+			Build.shrub(
+				f,
+				V3(x, surf(x, z) - 0.25, z),
+				R,
+				{ size = R(2, 3.2), flowers = if R(0, 1) < 0.5 then FLOWERS[3] else nil }
+			)
 			take(x, z, 2)
 		end
 	end
@@ -1500,11 +1770,26 @@ local function camp(root: Instance)
 		local g = lowAt(fireX, fireZ, 2.5)
 		for k = 0, 6 do
 			local a = k * TAU / 7
-			block(m, "Dol", V3(1.2, 0.8, 1.0), CF(fireX + cos(a) * 2.2, g + 0.15, fireZ + sin(a) * 2.2) * ANG(R(-0.2, 0.2), a, R(-0.2, 0.2)), P.graniteDark, MAT.Slate)
+			block(
+				m,
+				"Dol",
+				V3(1.2, 0.8, 1.0),
+				CF(fireX + cos(a) * 2.2, g + 0.15, fireZ + sin(a) * 2.2) * ANG(R(-0.2, 0.2), a, R(-0.2, 0.2)),
+				P.graniteDark,
+				MAT.Slate
+			)
 		end
 		for k = 0, 1 do
 			local a = k * pi / 2 + 0.4
-			cyl(m, "Jangjak", V3(fireX - cos(a) * 1.6, g + 0.3, fireZ - sin(a) * 1.6), V3(fireX + cos(a) * 1.6, g + 0.3, fireZ + sin(a) * 1.6), 0.5, P.woodDark, MAT.Wood)
+			cyl(
+				m,
+				"Jangjak",
+				V3(fireX - cos(a) * 1.6, g + 0.3, fireZ - sin(a) * 1.6),
+				V3(fireX + cos(a) * 1.6, g + 0.3, fireZ + sin(a) * 1.6),
+				0.5,
+				P.woodDark,
+				MAT.Wood
+			)
 		end
 		local fire = block(m, "Bul", V3(1.2, 0.6, 1.2), CF(fireX, g + 0.5, fireZ), rgb(255, 150, 70), MAT.Neon)
 		fire.CanCollide = false
@@ -1518,7 +1803,16 @@ local function camp(root: Instance)
 		local apex = V3(fireX, g + 5.2, fireZ)
 		for k = 0, 2 do
 			local a = k * TAU / 3 + 0.3
-			beam(m, "Sambal", V3(fireX + cos(a) * 2.6, g - 0.3, fireZ + sin(a) * 2.6), apex, 0.3, 0.3, P.woodDark, MAT.Wood)
+			beam(
+				m,
+				"Sambal",
+				V3(fireX + cos(a) * 2.6, g - 0.3, fireZ + sin(a) * 2.6),
+				apex,
+				0.3,
+				0.3,
+				P.woodDark,
+				MAT.Wood
+			)
 		end
 		deco(beam(m, "Jul", apex, apex - V3(0, 2.1, 0), 0.1, 0.1, P.meok, MAT.Metal))
 		ball(m, "Sot", apex - V3(0, 2.6, 0), 1.6, P.meok, MAT.Metal)
@@ -1549,9 +1843,24 @@ local function camp(root: Instance)
 			local q = V3(x, 0, z) + inw * 2.6
 			local qg = lowAt(q.X, q.Z, 1.5)
 			if k == 1 then
-				block(m, "Guyu", V3(5, 1.1, 1.4), face(V3(q.X, qg + 0.3, q.Z), V3(q.X, qg + 0.3, q.Z) + inw), P.woodDark, MAT.WoodPlanks)
+				block(
+					m,
+					"Guyu",
+					V3(5, 1.1, 1.4),
+					face(V3(q.X, qg + 0.3, q.Z), V3(q.X, qg + 0.3, q.Z) + inw),
+					P.woodDark,
+					MAT.WoodPlanks
+				)
 			else
-				cyl(m, "Geoncho", V3(q.X, qg + 1.0, q.Z) - tg * 1.4, V3(q.X, qg + 1.0, q.Z) + tg * 1.4, 2.6, rgb(206, 184, 112), MAT.Grass)
+				cyl(
+					m,
+					"Geoncho",
+					V3(q.X, qg + 1.0, q.Z) - tg * 1.4,
+					V3(q.X, qg + 1.0, q.Z) + tg * 1.4,
+					2.6,
+					rgb(206, 184, 112),
+					MAT.Grass
+				)
 			end
 			take(x, z, 4.5)
 		end
@@ -1594,8 +1903,22 @@ local function camp(root: Instance)
 			cyl(m, "Gidung", pb - V3(0, 0.8, 0), pb + V3(0, 4.6, 0), 0.45, P.wood, MAT.Wood)
 			cyl(m, "Jangdae", pa + V3(0, 4.3, 0), pb + V3(0, 4.3, 0), 0.35, P.wood, MAT.Wood)
 			local mid = (pa + pb) / 2
-			decoBlock(m, "Gajuk", V3(2.4, 2.8, 0.1), CF(mid.X - 1.3, max(pa.Y, pb.Y) + 2.85, mid.Z), rgb(166, 120, 80), MAT.Fabric)
-			decoBlock(m, "Gajuk", V3(2.0, 2.4, 0.1), CF(mid.X + 1.4, max(pa.Y, pb.Y) + 3.05, mid.Z), rgb(200, 176, 140), MAT.Fabric)
+			decoBlock(
+				m,
+				"Gajuk",
+				V3(2.4, 2.8, 0.1),
+				CF(mid.X - 1.3, max(pa.Y, pb.Y) + 2.85, mid.Z),
+				rgb(166, 120, 80),
+				MAT.Fabric
+			)
+			decoBlock(
+				m,
+				"Gajuk",
+				V3(2.0, 2.4, 0.1),
+				CF(mid.X + 1.4, max(pa.Y, pb.Y) + 3.05, mid.Z),
+				rgb(200, 176, 140),
+				MAT.Fabric
+			)
 			take(x, z, 4)
 		end
 	end
@@ -1610,9 +1933,23 @@ local function standingStones(root: Instance)
 	local g = surf(cx, cz)
 	-- 가운데 너럭바위 (탁자식 고인돌)
 	for _, s in { -1, 1 } do
-		block(f, "Goindol", V3(1.4, 2.6, 4.2), CF(cx + s * 2.6, g + 0.8, cz) * ANG(0, 0, rad(s * 3)), P.graniteDark, MAT.Slate)
+		block(
+			f,
+			"Goindol",
+			V3(1.4, 2.6, 4.2),
+			CF(cx + s * 2.6, g + 0.8, cz) * ANG(0, 0, rad(s * 3)),
+			P.graniteDark,
+			MAT.Slate
+		)
 	end
-	local top = block(f, "Deopgae", V3(9, 1.4, 6.4), CF(cx, g + 2.75, cz) * ANG(rad(2), rad(12), rad(-1.5)), P.granite:Lerp(P.graniteDark, 0.4), MAT.Slate)
+	local top = block(
+		f,
+		"Deopgae",
+		V3(9, 1.4, 6.4),
+		CF(cx, g + 2.75, cz) * ANG(rad(2), rad(12), rad(-1.5)),
+		P.granite:Lerp(P.graniteDark, 0.4),
+		MAT.Slate
+	)
 	decoBlock(f, "Ikki", V3(4.2, 0.2, 2.6), top.CFrame * CF(-1.6, 0.75, 0.9), C.lichen, MAT.LeafyGrass)
 	-- 선돌 여덟: 팔방
 	for k = 0, 7 do
@@ -1637,7 +1974,14 @@ local function standingStones(root: Instance)
 			MAT.LeafyGrass
 		)
 		-- 선돌 밑 빛나는 표 (진의 눈)
-		local mark = block(f, "Nun", V3(1.2, 0.08, 1.2), CF(cx + cos(a) * 18.5, g + 0.06, cz + sin(a) * 18.5) * ANG(0, a + pi / 4, 0), C.rune, MAT.Neon)
+		local mark = block(
+			f,
+			"Nun",
+			V3(1.2, 0.08, 1.2),
+			CF(cx + cos(a) * 18.5, g + 0.06, cz + sin(a) * 18.5) * ANG(0, a + pi / 4, 0),
+			C.rune,
+			MAT.Neon
+		)
 		mark.Transparency = 0.45
 		mark.CanCollide = false
 		mark.CastShadow = false
@@ -1647,7 +1991,14 @@ local function standingStones(root: Instance)
 	for k = 0, n - 1 do
 		local a = (k + 0.5) * TAU / n
 		local x, z = cx + cos(a) * 14, cz + sin(a) * 14
-		local seg = block(f, "Jingori", V3(0.45, 0.06, 2 * 14 * sin(pi / n) + 0.1), face(V3(x, g + 0.05, z), V3(x - sin(a), g, z + cos(a))), C.rune, MAT.Neon)
+		local seg = block(
+			f,
+			"Jingori",
+			V3(0.45, 0.06, 2 * 14 * sin(pi / n) + 0.1),
+			face(V3(x, g + 0.05, z), V3(x - sin(a), g, z + cos(a))),
+			C.rune,
+			MAT.Neon
+		)
 		seg.Transparency = 0.55
 		seg.CanCollide = false
 		seg.CastShadow = false
@@ -1674,7 +2025,14 @@ local function steppe(root: Instance, campX: number, campZ: number, campR: numbe
 		return Land.blob(x, z, S) > 0.55 and Land.blob(x, z, Land.FOREST) < 0.2
 	end
 	-- 풀 무더기: 큰 덤불 하나에 풀포기 둘 (길과 마령채, 석진 둘레에 많이)
-	local anchors = { { campX, campZ, campR + 30 }, { 420, -1040, 60 }, { 760, -880, 90 }, { 900, -1000, 90 }, { 560, -1180, 120 }, { 820, -1250, 120 } }
+	local anchors = {
+		{ campX, campZ, campR + 30 },
+		{ 420, -1040, 60 },
+		{ 760, -880, 90 },
+		{ 900, -1000, 90 },
+		{ 560, -1180, 120 },
+		{ 820, -1250, 120 },
+	}
 	local patches = 0
 	for _ = 1, 400 do
 		if patches >= 18 then
@@ -1684,7 +2042,12 @@ local function steppe(root: Instance, campX: number, campZ: number, campR: numbe
 		local a, r = R(0, TAU), R(an[3] * 0.4, an[3])
 		local x, z = an[1] + cos(a) * r, an[2] + sin(a) * r
 		if inSteppe(x, z) and free(x, z, 5, { path = 3 }) then
-			Build.shrub(f, V3(x, surf(x, z) - 0.35, z), R, { size = R(2.6, 4), blobs = 2, leaves = { GRASS[3], GRASS[1], GRASS[5] } })
+			Build.shrub(
+				f,
+				V3(x, surf(x, z) - 0.35, z),
+				R,
+				{ size = R(2.6, 4), blobs = 2, leaves = { GRASS[3], GRASS[1], GRASS[5] } }
+			)
 			for _ = 1, 2 do
 				tuft(f, x + R(-3.5, 3.5), z + R(-3.5, 3.5), R(3, 5))
 			end
@@ -1754,7 +2117,8 @@ end
 -- 운제: 가운데 (1233, -1233), 반지름 45, 63 계단. i 번째 계단은 135° + 14.06°·i, 윗면 높이 116 + 4·i.
 -- 계단 판은 길이 12.5 (호 간격 11.0 보다 길어 앞뒤가 겹친다), 너비 7, 두께 1.2. 밑에 구름 덩이.
 
-local STAIR = { x = 1233, z = -1233, r = 45, n = 63, a0 = 135, da = 14.06, y0 = 116, dy = 4, len = 12.5, width = 7, thick = 1.2 }
+local STAIR =
+	{ x = 1233, z = -1233, r = 45, n = 63, a0 = 135, da = 14.06, y0 = 116, dy = 4, len = 12.5, width = 7, thick = 1.2 }
 Region.STAIR = STAIR
 
 local function stairStep(i: number): (Vector3, Vector3)
@@ -1771,17 +2135,26 @@ local function cloudStair(root: Instance)
 		local p, t = stairStep(i)
 		local out = V3(t.Z, 0, -t.X) -- 바깥 (가운데 반대쪽)
 		local center = p - V3(0, STAIR.thick / 2, 0)
-		local step = block(f, "Gyedan", V3(STAIR.width, STAIR.thick, STAIR.len), face(center, center + t), C.marble, MAT.Marble)
+		local step =
+			block(f, "Gyedan", V3(STAIR.width, STAIR.thick, STAIR.len), face(center, center + t), C.marble, MAT.Marble)
 		step:SetAttribute("Step", i)
 		if i % 7 == 3 then
-			local inlay = block(f, "Mun", V3(0.5, 0.06, STAIR.len - 3), face(p + V3(0, 0.02, 0), p + t), C.rune, MAT.Neon)
+			local inlay =
+				block(f, "Mun", V3(0.5, 0.06, STAIR.len - 3), face(p + V3(0, 0.02, 0), p + t), C.rune, MAT.Neon)
 			inlay.Transparency = 0.45
 			inlay.CanCollide = false
 			inlay.CastShadow = false
 		end
 		-- 구름 덩이: 계단 밑에 하나, 셋째마다 하나 더 (부딪히지 않는다)
 		if i > 0 and i < STAIR.n - 1 then
-			local puff = ball(f, "Gureum", p - V3(0, 3.2, 0) + out * R(-0.5, 1.5) + t * R(-1.5, 1.5), R(6.5, 8), C.cloud, MAT.SmoothPlastic)
+			local puff = ball(
+				f,
+				"Gureum",
+				p - V3(0, 3.2, 0) + out * R(-0.5, 1.5) + t * R(-1.5, 1.5),
+				R(6.5, 8),
+				C.cloud,
+				MAT.SmoothPlastic
+			)
 			deco(puff)
 			puff.Transparency = 0.3
 			puff.CastShadow = false
@@ -1789,7 +2162,14 @@ local function cloudStair(root: Instance)
 				Kit.light(puff, rgb(210, 228, 255), 12, 0.7)
 			end
 			if i % 3 == 0 then
-				local p2 = ball(f, "Gureum", p - V3(0, 2.4, 0) + out * R(2.5, 4) - t * R(3, 5), R(4.5, 6), C.cloud, MAT.SmoothPlastic)
+				local p2 = ball(
+					f,
+					"Gureum",
+					p - V3(0, 2.4, 0) + out * R(2.5, 4) - t * R(3, 5),
+					R(4.5, 6),
+					C.cloud,
+					MAT.SmoothPlastic
+				)
 				deco(p2)
 				p2.Transparency = 0.35
 				p2.CastShadow = false
@@ -1827,7 +2207,8 @@ local function cape(root: Instance)
 			local post = V3(x, surf(x, z), z)
 			cyl(f, "Malttuk", post - V3(0, 1.0, 0), post + V3(0, 3.2, 0), 0.55, rgb(120, 92, 66), MAT.Wood)
 			if prev then
-				local rope = beam(f, "Batjul", prev + V3(0, 2.7, 0), post + V3(0, 2.7, 0), 0.22, 0.22, C.straw, MAT.Fabric)
+				local rope =
+					beam(f, "Batjul", prev + V3(0, 2.7, 0), post + V3(0, 2.7, 0), 0.22, 0.22, C.straw, MAT.Fabric)
 				rope.CastShadow = false
 			end
 			prev = post
@@ -1866,10 +2247,21 @@ local function cape(root: Instance)
 		local x, z = cpe.x + cos(a) * r, cpe.z + sin(a) * r
 		if free(x, z, 3, { path = 4, shore = 6 }) then
 			if R(0, 1) < 0.45 then
-				Build.rocks(f, V3(x, lowAt(x, z, 2) - 0.5, z), R(3.5, 6.5), R, { count = 2, color = rgb(104, 108, 114) })
+				Build.rocks(
+					f,
+					V3(x, lowAt(x, z, 2) - 0.5, z),
+					R(3.5, 6.5),
+					R,
+					{ count = 2, color = rgb(104, 108, 114) }
+				)
 				take(x, z, 4)
 			else
-				Build.shrub(f, V3(x, surf(x, z) - 0.3, z), R, { size = R(2, 3.4), leaves = { P.pine, P.leafDeep, P.leaf } })
+				Build.shrub(
+					f,
+					V3(x, surf(x, z) - 0.3, z),
+					R,
+					{ size = R(2, 3.4), leaves = { P.pine, P.leafDeep, P.leaf } }
+				)
 				take(x, z, 2.5)
 			end
 		end
@@ -1918,7 +2310,14 @@ local function skyIsland(root: Instance)
 		padLo = min(padLo, islandTopAt(x, z) or (padTop - 6))
 	end
 	local depth = padTop - padLo + 3
-	local pad = block(land, "Dan", V3(18, depth, 13), face(padC + V3(0, padTop - depth / 2, 0), padC + inward + V3(0, padTop - depth / 2, 0)), C.marble, MAT.Marble)
+	local pad = block(
+		land,
+		"Dan",
+		V3(18, depth, 13),
+		face(padC + V3(0, padTop - depth / 2, 0), padC + inward + V3(0, padTop - depth / 2, 0)),
+		C.marble,
+		MAT.Marble
+	)
 	block(land, "Gapseok", V3(18.6, 0.5, 13.6), pad.CFrame * CF(0, depth / 2 - 0.2, 0), C.jade, MAT.Marble)
 	-- 단 앞 가장자리 난간 기둥 (운제 쪽은 연다)
 	for _, s in { -1, 1 } do
@@ -1965,9 +2364,20 @@ local function skyIsland(root: Instance)
 			break
 		end
 		y += 1
-		local lo = min(islandTopAt(q.X + side.X * 5, q.Z + side.Z * 5) or g, islandTopAt(q.X - side.X * 5, q.Z - side.Z * 5) or g, g)
-		local hgt = y - lo + 1.5
-		block(stair, "Dolgyedan", V3(11, hgt, 2.2), face(V3(q.X, y - hgt / 2, q.Z), V3(q.X, y - hgt / 2, q.Z) + inward), C.marble, MAT.Marble)
+		local lo = min(
+			islandTopAt(q.X + side.X * 5, q.Z + side.Z * 5) or g,
+			islandTopAt(q.X - side.X * 5, q.Z - side.Z * 5) or g,
+			g
+		)
+		local hgt = math.max(y - lo + 1.5, 1)
+		block(
+			stair,
+			"Dolgyedan",
+			V3(11, hgt, 2.2),
+			face(V3(q.X, y - hgt / 2, q.Z), V3(q.X, y - hgt / 2, q.Z) + inward),
+			C.marble,
+			MAT.Marble
+		)
 		stepsEnd = q
 		d += 1.9
 	end
@@ -1987,7 +2397,16 @@ local function skyIsland(root: Instance)
 		local q2 = q + dirP * 6.2
 		local ya, yb = islandTopAt(q.X, q.Z), islandTopAt(q2.X, q2.Z)
 		if ya and yb then
-			beam(path, "Dolgil", V3(q.X, ya - 0.2, q.Z), V3(q2.X, yb - 0.2, q2.Z), 5.2, 0.6, C.marble:Lerp(C.jade, R(0, 1)), MAT.Marble)
+			beam(
+				path,
+				"Dolgil",
+				V3(q.X, ya - 0.2, q.Z),
+				V3(q2.X, yb - 0.2, q2.Z),
+				5.2,
+				0.6,
+				C.marble:Lerp(C.jade, R(0, 1)),
+				MAT.Marble
+			)
 		end
 	end
 	table.insert(PATHS, Land.poly({ { stepsEnd.X, stepsEnd.Z }, { plaza.X - dirP.X * 12, plaza.Z - dirP.Z * 12 } }))
@@ -2032,7 +2451,14 @@ local function skyIsland(root: Instance)
 			end
 		end
 	end
-	local board = block(hall, "Hyeonpan", V3(5.6, 1.7, 0.25), hcf * CF(0, 2.6 + 9.5 - 0.6, -info.depth / 2 - 0.75), P.meok, MAT.Wood)
+	local board = block(
+		hall,
+		"Hyeonpan",
+		V3(5.6, 1.7, 0.25),
+		hcf * CF(0, 2.6 + 9.5 - 0.6, -info.depth / 2 - 0.75),
+		P.meok,
+		MAT.Wood
+	)
 	block(hall, "Te", V3(6.2, 2.2, 0.2), hcf * CF(0, 2.6 + 9.5 - 0.6, -info.depth / 2 - 0.62), C.gold, MAT.Metal)
 	Kit.engrave(board, "청허경", "Front")
 	take(hx, hz, 20)
@@ -2100,7 +2526,13 @@ local function skyIsland(root: Instance)
 		deco(spring)
 		for k = 0, 1 do
 			local q = prevQ + V3(-out.Z, 0, out.X) * (if k == 0 then 4.2 else -4.2)
-			Build.rocks(stream, V3(q.X, (islandTopAt(q.X, q.Z) or prevQ.Y) - 0.4, q.Z), R(1.8, 2.8), R, { count = 1, color = rgb(150, 156, 160) })
+			Build.rocks(
+				stream,
+				V3(q.X, (islandTopAt(q.X, q.Z) or prevQ.Y) - 0.4, q.Z),
+				R(1.8, 2.8),
+				R,
+				{ count = 1, color = rgb(150, 156, 160) }
+			)
 		end
 		take(S.x + cos(a) * (rr - 12), S.z + sin(a) * (rr - 12), 14)
 	end
@@ -2168,7 +2600,12 @@ local function skyIsland(root: Instance)
 		local x, z = S.x + cos(a) * r, S.z + sin(a) * r
 		if free(x, z, 2, { sky = true, path = 2 }) then
 			local g = islandTopAt(x, z) or 0
-			Build.shrub(trees, V3(x, g - 0.3, z), R, { size = R(2.4, 3.6), flowers = if R(0, 1) < 0.5 then P.blossomWhite else rgb(236, 206, 120) })
+			Build.shrub(
+				trees,
+				V3(x, g - 0.3, z),
+				R,
+				{ size = R(2.4, 3.6), flowers = if R(0, 1) < 0.5 then P.blossomWhite else rgb(236, 206, 120) }
+			)
 			take(x, z, 2.5)
 			shrubs += 1
 		end
