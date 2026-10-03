@@ -1,8 +1,12 @@
--- 영초숲과 등선향(HerbZone 태그) 바닥에 영초와 드물게 천년영지, 아주 드물게 홍령삼이 돋는다.
--- 땅은 지형(Terrain)이라 레이캐스트에 지형과 Ground 판을 함께 넣는다. 물 위에는 돋지 않는다.
+-- 숲과 늪, 하늘섬(HerbZone 태그) 바닥에 영초와 드물게 천년영지, 아주 드물게 홍령삼이 돋는다.
+-- 범위 상자(World.luau 의 placeHerbZone)는 땅 높낮이를 덮는다. 청허경 범위는 섬 윗면만 덮어서
+-- 상자 위에서 아래로 쏘면 섬 윗면에 맞는다 (빗나가면 바다까지 닿지 않고 다시 고른다).
+-- 처음 맞은 것이 지형이나 Ground 판일 때만 돋는다: 물, 지붕, 바위 위에는 돋지 않는다
+-- (잎은 CanQuery 가 꺼져 있어 지나간다).
 -- 캐면 주머니에 담긴다. 먹을지, 제물로 바칠지, 단약 재료로 쓸지는 플레이어가 고른다.
 
 local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 
@@ -33,32 +37,40 @@ local rng = Random.new()
 local folder: Folder
 local lastHongsam = -math.huge
 
--- 지형과 바닥 판만 맞는 레이캐스트
+-- 영초와 사람은 지나가는 레이캐스트
 local function groundParams(): RaycastParams
 	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Include
-	local targets: { Instance } = CollectionService:GetTagged("Ground")
-	table.insert(targets, Workspace.Terrain)
-	params.FilterDescendantsInstances = targets
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	local skip: { Instance } = { folder }
+	for _, player in Players:GetPlayers() do
+		if player.Character then
+			table.insert(skip, player.Character)
+		end
+	end
+	params.FilterDescendantsInstances = skip
 	return params
 end
 
--- 위에서 내리쏴 맞은 땅 (물이면 nil)
+-- 위에서 내리쏴 처음 맞은 땅 (지형이나 Ground 판). 물이나 다른 부품(지붕, 바위, 나무 둥치)이면 nil
 local function groundBelow(origin: Vector3, length: number, params: RaycastParams): Vector3?
 	local hit = Workspace:Raycast(origin, Vector3.new(0, -length, 0), params)
-	if hit and hit.Material ~= Enum.Material.Water then
+	if not hit or hit.Material == Enum.Material.Water then
+		return nil
+	end
+	if hit.Instance == Workspace.Terrain or CollectionService:HasTag(hit.Instance, "Ground") then
 		return hit.Position
 	end
 	return nil
 end
 
--- 영초가 돋을 자리와 그 범위의 귀한 영초 배율. 넓은 범위일수록 자주 고른다
+-- 영초가 돋을 자리와 그 범위의 귀한 영초 배율. 넓은 범위일수록 자주 고른다 (속성 Weight 를 곱한다)
 local function randomGroundPoint(): (Vector3?, number)
 	local zones = {}
 	local total = 0
 	for _, zone in CollectionService:GetTagged("HerbZone") do
 		if zone:IsA("BasePart") then
-			local area = zone.Size.X * zone.Size.Z
+			local weight = zone:GetAttribute("Weight")
+			local area = zone.Size.X * zone.Size.Z * (if type(weight) == "number" then weight else 1)
 			table.insert(zones, { part = zone, area = area })
 			total += area
 		end

@@ -6,7 +6,7 @@ local Places = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared
 
 local Waypoints = {}
 
--- 처음부터 열려 있는 진 (연국)
+-- 처음부터 열려 있는 진 (송계 마을)
 Waypoints.HOME = Places.HOME_WAYPOINT
 
 function Waypoints.pads(): { BasePart }

@@ -1,7 +1,7 @@
 -- 블록수선전 로직 테스트.   실행: lune run tests/run   (blocksuseon 폴더에서)
 --
 -- 1) 경지·공식·진행 로직(순수 Luau)을 검사하고
--- 2) @lune/roblox 로 연국 맵을 실제 인스턴스로 지어 속성 이름·태그를 검사한다.
+-- 2) @lune/roblox 로 옥반 맵(송계 마을과 땅마다의 World*.luau)을 실제 인스턴스로 지어 속성 이름·태그·자리를 검사한다.
 
 local roblox = require("@lune/roblox")
 local Harness = require("./harness")
@@ -220,8 +220,15 @@ check("요수", function()
 	for tier = 1, 5 do
 		assert(Mobs.pick("nowhere", tier, 0.5), "위험도 " .. tier .. " 요수")
 	end
-	eq(Mobs.pick("desert", 3, 0.1).id, "sandstinger", "사막은 황사갈")
-	eq(Mobs.pick("deungseon", 5, 0.9).id, "silverfox")
+	-- 그 위험도와 한 단계 아래를 섞고, 그 땅을 좋아하는 요수를 먼저 고른다
+	for _, roll in { 0, 0.1, 0.5, 0.9, 0.999 } do
+		local mob = Mobs.pick("desert", 3, roll)
+		assert(mob and table.find(mob.places, "desert"), "한해에는 한해 요수")
+		assert(mob.tier == 3 or mob.tier == 2, "위험도 3 은 3 과 2")
+		eq(Mobs.pick("sky", 5, roll).id, "silverfox", "청허경은 은미호")
+		local any = Mobs.pick("nowhere", 4, roll)
+		assert(any and (any.tier == 4 or any.tier == 3), "위험도 4 는 4 와 3")
+	end
 	-- 요수 피해는 그 위험도에 맞는 경지 체력으로 몇 번은 버틴다
 	local recommended = { 6, 16, 30, 48, 54 }
 	for _, mob in Mobs.list do
@@ -386,7 +393,7 @@ check("대장간에서 강화", function()
 	eq(data.stones, 0)
 end)
 check("전송진 삯과 로벅스 묶음", function()
-	eq(Currency.travelFee(5000, true), 0, "집(연국)으로 가는 길은 공짜")
+	eq(Currency.travelFee(5000, true), 0, "집(송계 마을)으로 가는 길은 공짜")
 	eq(Currency.travelFee(0, true), 0)
 	eq(Currency.travelFee(0, false), Currency.TRAVEL_MIN, "가까워도 최소 삯")
 	eq(Currency.travelFee(1e6, false), Currency.TRAVEL_MAX, "멀어도 최대 삯")
@@ -985,7 +992,8 @@ check("받침에 맞는 조사", function()
 	eq(Josa.eul("35"), "35를")
 	eq(Josa.eul("340"), "340을")
 	eq(Josa.ro("단수기"), "단수기로")
-	eq(Josa.ro("연국"), "연국으로")
+	eq(Josa.ro("홍로성"), "홍로성으로")
+	eq(Josa.ro("백금굴"), "백금굴로")
 	eq(Josa.ro("하늘"), "하늘로")
 	eq(Josa.i("공법 숙련"), "공법 숙련이")
 	eq(Josa.i("겁운 감지"), "겁운 감지가")
@@ -993,21 +1001,43 @@ check("받침에 맞는 조사", function()
 end)
 
 print("맵")
-local World
-check("연국 맵 짓기", function()
+-- 맵은 한 번 짓고, 살피는 것마다 따로 check 한다 (하나가 틀려도 나머지를 본다)
+local World, Sites, Land, Places, worldLoader, sharedFolder
+local map, descendants
+local V3 = roblox.Vector3.new
+local siteIds: { [string]: boolean } = {}
+local seats: { [string]: any } = {}
+local function mapCheck(name: string, fn: () -> ())
+	if map then
+		check(name, fn)
+	else
+		failed += 1
+		print(`  ✗ {name} (맵을 짓지 못해서 못 봤다)`)
+	end
+end
+check("옥반 맵 짓기", function()
 	local game = roblox.Instance.new("DataModel")
 	Harness.mount(game)
-	local env = Harness.robloxGlobals(game)
-	local worldLoader = Harness.new(env)
-	World = worldLoader.require(worldLoader.folder("src/server").World)
+	worldLoader = Harness.new(Harness.robloxGlobals(game))
+	local serverFolder = worldLoader.folder("src/server")
+	sharedFolder = worldLoader.folder("src/shared")
+	World = worldLoader.require(serverFolder.World)
+	Sites = worldLoader.require(serverFolder.WorldSites)
+	Land = worldLoader.require(sharedFolder.Land)
+	Places = worldLoader.require(sharedFolder.Places)
 
 	local workspace = game:GetService("Workspace")
-	local map = World.build(workspace, game:GetService("Lighting"))
+	local built = World.build(workspace, game:GetService("Lighting"))
+	map = built
 	eq(map.Parent, workspace)
+	eq(map.Name, "옥반")
+	-- 땅마다의 모듈(World.REGIONS)이 모두 오류 없이 지어졌다
+	eq(#World.REGION_ERRORS, 0, "땅 모듈 오류: " .. table.concat(World.REGION_ERRORS, " / "))
 
+	descendants = map:GetDescendants()
 	local tags: { [string]: number } = {}
 	local parts = 0
-	for _, inst in map:GetDescendants() do
+	for _, inst in descendants do
 		if inst:IsA("BasePart") then
 			parts += 1
 		end
@@ -1015,14 +1045,61 @@ check("연국 맵 짓기", function()
 			tags[tag] = (tags[tag] or 0) + 1
 		end
 	end
-	eq(tags.Ground, 5, "Ground 태그 (광장, 다리, 너럭바위, 서악 마당, 갯바위)")
-	eq(tags.Vein, 8, "Vein 태그")
-	eq(tags.HerbZone, 2, "HerbZone 태그 (영초숲, 등선향)")
-	eq(tags.ManualSpot, 27, "ManualSpot 태그")
-	eq(tags.Waypoint, 13, "Waypoint 태그")
-	-- 맵 위의 것은 땅(지형) 높이에 맞게 놓였다: 묻히지도 뜨지도 않는다, 물속도 아니다
-	local Land = worldLoader.require(worldLoader.folder("src/shared").Land)
-	for _, inst in map:GetDescendants() do
+	eq(tags.Ground, 3, "Ground 태그 (광장, 벽계 다리, 벽담 너럭바위)")
+	eq(tags.Waypoint, 16, "Waypoint 태그")
+	eq(#Sites.WAYPOINTS, 16, "WorldSites 전송진")
+	eq(tags.Vein, #Sites.VEINS, "Vein 태그 (WorldSites.VEINS)")
+	eq(tags.HerbZone, #Sites.HERB_ZONES, "HerbZone 태그 (WorldSites.HERB_ZONES)")
+	eq(tags.ManualSpot, #Sites.MANUALS, "ManualSpot 태그 (WorldSites.MANUALS)")
+	eq(tags.Site, #Sites.TASK + #World.LU_NAMES, "Site 태그 (과업 자리 + 율점 등롱 12)")
+	eq(tags.MarketSpot, 2, "MarketSpot 태그 (만물상, 대장간)")
+	for _, inst in descendants do
+		if inst:HasTag("Site") then
+			local id = inst:GetAttribute("Site")
+			assert(not siteIds[id], "자리 id 가 겹친다: " .. tostring(id))
+			siteIds[id] = true
+		elseif inst:IsA("Seat") and inst:GetAttribute("NpcSeat") then
+			seats[inst:GetAttribute("NpcSeat")] = inst
+		end
+	end
+	print(`  파트 {parts}개`)
+end)
+mapCheck("부품 크기, 천애 안", function()
+	-- 부품은 모두 크기가 바르고(음수·NaN 이면 엔진이 0.001 로 줄여 사라진다), 천애 안, -200 위에 있다.
+	-- 천애 운해(바다 끝 너머 구름, 부딪히지 않는다)만 바깥으로 나간다
+	local badSize, outside = {}, {}
+	for _, inst in descendants do
+		if inst:IsA("BasePart") then
+			local s, p = inst.Size, inst.CFrame.Position
+			if not (s.X > 0 and s.Y > 0 and s.Z > 0) or p.X ~= p.X or p.Y ~= p.Y or p.Z ~= p.Z then
+				local where = `{inst.Parent:GetFullName()}.{inst.Name}`
+				if not badSize[where] then
+					table.insert(badSize, where)
+				end
+				badSize[where] = (badSize[where] or 0) + 1
+			end
+			local cloud = inst.Parent and inst.Parent.Name == "운해"
+			if cloud then
+				assert(not inst.CanCollide, "운해 구름은 부딪히지 않는다: " .. inst:GetFullName())
+			elseif p.X * p.X + p.Z * p.Z > (Land.EDGE + 60) ^ 2 or p.Y < -200 then
+				table.insert(outside, `{inst:GetFullName()} {p}`)
+			end
+		end
+	end
+	for i, where in badSize do
+		badSize[i] = `{where} ×{badSize[where]}`
+	end
+	assert(#badSize == 0, "크기가 0 이하이거나 NaN 인 부품: " .. table.concat(badSize, ", "))
+	assert(
+		#outside == 0,
+		`천애 바깥(r > {Land.EDGE + 60})이나 -200 아래 부품 {#outside}개: `
+			.. table.concat(outside, ", ", 1, math.min(6, #outside))
+	)
+end)
+mapCheck("자리는 걸어 닿는 땅 위", function()
+	-- 자리·전송진·영맥·비급 자리는 걸어 닿는 땅 위: 묻히지도 뜨지도 않고, 물속도 아니고, 천애 안이다.
+	-- 땅은 지형 겉면(하늘섬은 섬 윗면, Land.surface). 너럭바위처럼 땅보다 조금 높은 판 위에 놓인 것도 있다
+	for _, inst in descendants do
 		local kind = if inst:HasTag("Site")
 			then "자리 " .. tostring(inst:GetAttribute("Site"))
 			elseif inst:HasTag("Waypoint") then "전송진 " .. tostring(inst:GetAttribute("Name"))
@@ -1031,91 +1108,156 @@ check("연국 맵 짓기", function()
 			else nil
 		if kind then
 			local p = inst.CFrame.Position
-			-- 섬 밑(폐허)에 놓인 것은 섬 윗면이 아니라 땅을 본다: 둘 가운데 가까운 쪽
 			local ground = Land.surface(p.X, p.Z)
-			local low = Land.height(p.X, p.Z)
-			if math.abs(p.Y - low) < math.abs(p.Y - ground) then
-				ground = low
-			end
-			local water = Land.water(p.X, p.Z, Land.height(p.X, p.Z))
-			-- 수 오행처 갯바위, 용소 너럭바위, 나룻배 노인처럼 땅보다 높은 판 위에 놓인 것은 판 높이를 본다
+			local _, islandTop = Land.island(p.X, p.Z)
+			local water = if islandTop then nil else Land.water(p.X, p.Z, Land.height(p.X, p.Z))
+			assert(p.X * p.X + p.Z * p.Z < Land.EDGE * Land.EDGE, `{kind} 이 천애 밖이다 ({p})`)
 			assert(p.Y > ground - 2.5, `{kind} 이 땅에 묻혔다 ({p}, 땅 {ground})`)
 			assert(p.Y < ground + 9, `{kind} 이 떠 있다 ({p}, 땅 {ground})`)
 			assert(water == nil or p.Y > water, `{kind} 이 물속이다 ({p}, 수면 {water})`)
 		end
 	end
-	-- 등선향 밑 폐허의 토 오행처와 전송진은 섬 위가 아니라 땅에 있다
-	for _, inst in map:GetDescendants() do
-		local underIsland = inst:GetAttribute("Site") == "el_earth" or inst:GetAttribute("WaypointId") == "wp_ruins"
-		if underIsland then
+end)
+mapCheck("자리 둘레가 비어 있다", function()
+	-- 전송진 둘레 9, 과업 자리·영맥 둘레 7 에는 걸음을 막는 부품이 없다 (발 높이 위 2~5 를 본다).
+	-- 그 자리 모형 안의 것(받침, 기둥, 영맥 못)과 바닥 판(Ground), 마을 안 자리(광장·연단로·노인·율점·너럭바위)는 뺀다
+	local solid = {}
+	for _, inst in descendants do
+		if inst:IsA("BasePart") and inst.CanCollide and not inst:HasTag("Ground") then
+			table.insert(solid, inst)
+		end
+	end
+	local HUB_SITES = { plaza = true, furnace = true, elder_1 = true, elder_2 = true, elder_3 = true, down = true }
+	local function owner(inst)
+		local cur = inst
+		while cur.Parent and not cur.Parent:IsA("Folder") do
+			cur = cur.Parent
+		end
+		return cur
+	end
+	local blocked = {}
+	for _, inst in descendants do
+		local id, r
+		if inst:HasTag("Waypoint") then
+			id, r = inst:GetAttribute("WaypointId"), 9
+		elseif inst:HasTag("Vein") then
+			id, r = inst.Parent.Name, 7
+		elseif inst:HasTag("Site") then
+			local site = inst:GetAttribute("Site")
+			if not HUB_SITES[site] and not string.match(site, "^lu_") then
+				id, r = site, 7
+			end
+		end
+		if id then
+			local own = owner(inst)
 			local p = inst.CFrame.Position
-			assert(
-				math.abs(p.Y - Land.height(p.X, p.Z)) < 4,
-				`{inst.Name} 이 땅이 아니라 섬 위에 있다 ({p})`
-			)
-		end
-	end
-	-- 전송진마다 그 이름의 땅에 있다
-	local PlacesForPads = worldLoader.require(worldLoader.folder("src/shared").Places)
-	local expectRegion = {
-		wp_yeonguk = "yeonguk",
-		wp_seoak = "seoak",
-		wp_summit = "summit",
-		wp_cheonsaek = "cheonsaek",
-		wp_dapcheon = "dapcheondae",
-		wp_ruins = "ruins",
-		wp_deungseon = "deungseon",
-		wp_star_south = "southisle",
-	}
-	for _, inst in map:GetDescendants() do
-		local id = inst:GetAttribute("WaypointId")
-		if id and expectRegion[id] then
-			local p = inst.CFrame.Position
-			eq(PlacesForPads.regionAt(p.X, p.Z, p.Y + 3).id, expectRegion[id], id .. " 의 땅")
-		end
-	end
-	-- 땅 이름: 자리마다 이름이 나온다
-	local Places = worldLoader.require(worldLoader.folder("src/shared").Places)
-	eq(Places.regionAt(0, 0, 1).id, "yeonguk", "광장은 연국")
-	eq(Places.regionAt(860, -40, 316).id, "deungseon", "섬 위는 등선향")
-	eq(Places.regionAt(860, -40, 19).id, "ruins", "섬 아래는 폐허")
-	eq(Places.regionAt(-860, -220, 440).id, "summit", "쇄천봉 꼭대기")
-	eq(Places.regionAt(900, 300, 30).id, "desert", "답천사막")
-	-- 과업이 가리키는 자리는 모두 맵에 있어야 한다
-	local siteIds: { [string]: boolean } = {}
-	for _, inst in map:GetDescendants() do
-		if inst:HasTag("Site") then
-			local id = inst:GetAttribute("Site")
-			assert(not siteIds[id], "자리 id 가 겹친다: " .. tostring(id))
-			siteIds[id] = true
-		end
-	end
-	eq(tags.Site, 37, "Site 태그")
-	for step = 1, Realms.maxStep do
-		for _, combo in { { "wood", "fire", "earth", "metal", "water" } } do
-			for _, element in combo do
-				local data = Progression.newData()
-				data.step = step
-				data.root = Roots.make({ element })
-				data.choice = { chilsu = "cheong", element = element }
-				for _, job in Tasks.list(data) do
-					for _, site in job.sites or {} do
-						assert(siteIds[site], `{Realms.label(step)} {job.label} 의 자리 {site} 가 맵에 없다`)
+			for _, part in solid do
+				if not part:IsDescendantOf(own) then
+					local cf, size = part.CFrame, part.Size
+					local half = V3(math.abs(size.X), math.abs(size.Y), math.abs(size.Z)) / 2
+					for _, dy in { 2, 3.5, 5 } do
+						local q = V3(p.X, p.Y + dy, p.Z)
+						local l = cf:PointToObjectSpace(q)
+						local near = cf:PointToWorldSpace(
+							V3(
+								math.clamp(l.X, -half.X, half.X),
+								math.clamp(l.Y, -half.Y, half.Y),
+								math.clamp(l.Z, -half.Z, half.Z)
+							)
+						)
+						local d = near - q
+						if math.abs(d.Y) < 0.8 and V3(d.X, 0, d.Z).Magnitude < r - 1 then
+							table.insert(blocked, `{id} ← {part:GetFullName()}`)
+							break
+						end
 					end
 				end
 			end
 		end
 	end
-	assert(siteIds.furnace, "연단로")
-
-	-- 마을 사람: 노인은 자리(Seat)와 과업 자리가 있고, 모두 생김새가 있다
-	local Npcs = worldLoader.require(worldLoader.folder("src/shared").Npcs)
-	local seats = {}
-	for _, inst in map:GetDescendants() do
-		if inst:IsA("Seat") and inst:GetAttribute("NpcSeat") then
-			seats[inst:GetAttribute("NpcSeat")] = inst
+	assert(
+		#blocked == 0,
+		`자리 둘레를 막은 부품 {#blocked}개: ` .. table.concat(blocked, ", ", 1, math.min(6, #blocked))
+	)
+end)
+mapCheck("전송진과 땅 이름", function()
+	-- 전송진마다 그 이름의 땅에 있다 (들어서면 뜨는 땅 이름과 진 이름이 같다)
+	for _, inst in descendants do
+		if inst:HasTag("Waypoint") then
+			local p = inst.CFrame.Position
+			eq(
+				Places.regionAt(p.X, p.Z, p.Y + 3).name,
+				inst:GetAttribute("Name"),
+				inst:GetAttribute("WaypointId") .. " 의 땅"
+			)
 		end
 	end
+	-- 하늘섬 진은 섬 윗면에 있다
+	local skyPad = assert(Sites.byId.wp_sky, "wp_sky")
+	local _, skyTop = Land.island(skyPad.x, skyPad.z)
+	assert(skyTop and skyTop > Land.SKY.top - 30, "wp_sky 밑에 섬이 없다")
+
+	-- 땅 이름 짚어 보기
+	eq(Places.regionAt(0, 0, 1).id, "home", "광장은 송계 마을")
+	eq(Places.tierAt(0, 0, 1), 0, "송계에는 요수가 없다")
+	eq(
+		Places.regionAt(Land.SKY.x, Land.SKY.z, Land.surface(Land.SKY.x, Land.SKY.z) + 3).id,
+		"sky",
+		"섬 위는 청허경"
+	)
+	eq(
+		Places.regionAt(Land.SKY.x, Land.SKY.z, Land.SEA + 2).id ~= "sky",
+		true,
+		"섬 밑 바다는 청허경이 아니다"
+	)
+	eq(
+		Places.regionAt(Land.PEAK.x, Land.PEAK.z, Land.surface(Land.PEAK.x, Land.PEAK.z) + 3).id,
+		"summit",
+		"관운봉 꼭대기"
+	)
+	eq(Places.regionAt(-980, 980, Land.surface(-980, 980) + 3).id, "desert", "한해")
+	eq(Places.regionAt(300, 540, Land.surface(300, 540) + 3).id, "city", "홍로성")
+	eq(Places.tierAt(300, 540, 15), 0, "홍로성에는 요수가 없다")
+	eq(Places.regionAt(Land.EDGE - 20, 0, Land.SEA).id, "rim", "바다 끝은 천애")
+	for _, region in Places.REGIONS do
+		assert(region.tier == nil or (region.tier >= 0 and region.tier <= 5), region.id .. " 위험도")
+		eq(Places.byId[region.id], region, region.id .. " 이 겹친다")
+	end
+	for _, mob in Mobs.list do
+		for _, id in mob.places do
+			assert(Places.byId[id], `{mob.id} 의 땅 {id} 가 Places 에 없다`)
+		end
+	end
+end)
+mapCheck("과업 자리", function()
+	-- 과업이 가리키는 자리는 모두 맵에 있어야 한다
+	for step = 1, Realms.maxStep do
+		for _, element in { "wood", "fire", "earth", "metal", "water" } do
+			local data = Progression.newData()
+			data.step = step
+			data.root = Roots.make({ element })
+			data.choice = { chilsu = "cheong", element = element }
+			for _, job in Tasks.list(data) do
+				for _, site in job.sites or {} do
+					assert(siteIds[site], `{Realms.label(step)} {job.label} 의 자리 {site} 가 맵에 없다`)
+				end
+			end
+		end
+	end
+	assert(siteIds.furnace, "연단로")
+	-- 오행처 이름(Roots.place)은 자리 이름과 같다 (과업 안내가 그 이름으로 부른다)
+	for _, element in Roots.ELEMENTS do
+		local def = Roots.ELEMENT[element]
+		local s = Sites.byId[def.site]
+		assert(
+			s and string.find(s.name, def.place, 1, true),
+			`{def.site} 이름 {s and s.name} 에 {def.place} 가 없다`
+		)
+	end
+end)
+mapCheck("마을 사람", function()
+	-- 마을 사람: 노인은 자리(Seat)와 과업 자리가 있고, 모두 생김새가 있다
+	local Npcs = worldLoader.require(sharedFolder.Npcs)
 	local SLOTS =
 		{ Hat = true, Hair = true, Face = true, Back = true, Waist = true, Neck = true, Front = true, Shoulders = true }
 	for _, npc in Npcs.list do
@@ -1146,60 +1288,107 @@ check("연국 맵 짓기", function()
 			end
 		else
 			assert(npc.route and #npc.route >= 2, npc.name .. " 동선")
+			-- 동선은 마을 둘레(청년은 다리 건너 청송림 들머리까지) 땅 위
+			for _, point in npc.route do
+				assert(point.Magnitude < 200, npc.name .. " 동선이 마을에서 멀다")
+				assert(Places.tierAt(point.X, point.Z, point.Y) <= 1, npc.name .. " 동선이 위험한 땅이다")
+				assert(
+					Land.water(point.X, point.Z, Land.height(point.X, point.Z)) == nil,
+					npc.name .. " 동선이 물속이다"
+				)
+			end
 		end
 	end
-	-- 천순 과업이 가리키는 노인은 모두 있다
 	for _, id in { "elder_1", "elder_2", "elder_3" } do
 		assert(Npcs.byId[id], id)
 	end
-	-- 공중에 뜨는 이름표는 없고, 현판 글자는 모두 붓글씨 글자판에 있다
+end)
+mapCheck("현판과 문", function()
+	-- 공중에 뜨는 이름표는 없다. 현판 글자는 붓글씨 글자판에 있어야 한다 (없으면 목록만 알린다:
+	-- 새 글자는 tools/fetch_fonts.py → build_glyphs.mjs → upload_art.py 로 글자판을 다시 구우면 들어간다)
 	local Art = worldLoader.require(worldLoader.folder("src/client").Art)
 	local plaques = 0
-	for _, inst in map:GetDescendants() do
+	local missingGlyphs: { [string]: string } = {}
+	for _, inst in descendants do
 		assert(not inst:IsA("BillboardGui"), "맵에 공중 이름표가 있다: " .. inst:GetFullName())
 		if inst:HasTag("Plaque") then
 			plaques += 1
 			local text = inst:GetAttribute("Text")
-			assert(type(text) == "string" and text ~= "", "현판에 글이 없다")
+			assert(type(text) == "string" and text ~= "", "현판에 글이 없다: " .. inst:GetFullName())
 			for _, code in utf8.codes(text) do
 				local ch = utf8.char(code)
-				assert(ch == " " or Art.fonts.title.glyphs[ch], `현판 글자 {ch} 가 글자판에 없다 ({text})`)
+				if ch ~= " " and not Art.fonts.title.glyphs[ch] then
+					missingGlyphs[ch] = text
+				end
 			end
 		end
 	end
-	assert(plaques >= 30, `현판 {plaques}개`)
+	assert(plaques >= 100, `현판 {plaques}개`)
+	if next(missingGlyphs) then
+		local list = {}
+		for ch in missingGlyphs do
+			table.insert(list, ch)
+		end
+		table.sort(list)
+		print(
+			`  ! 현판 글자 {#list}자가 붓글씨 글자판에 없다 (글자판을 다시 구울 것): {table.concat(
+				list
+			)}`
+		)
+	end
+
 	-- 판은 정해진 쪽을 본다 (Lune 의 CFrame.lookAt 은 Z 가 뒤집혀 나와서 World 는 face() 를 쓴다)
+	local village = assert(map:FindFirstChild("송계 마을"), "송계 마을")
 	local gates = 0
-	for _, gate in map:FindFirstChild("마을"):GetChildren() do
-		if gate.Name == "연국 문" then
+	for _, gate in village:FindFirstChild("어귀"):GetChildren() do
+		if gate.Name == "송계 문" then
 			gates += 1
-			local board = gate:FindFirstChild("Board")
+			local board
+			for _, d in gate:GetDescendants() do
+				if d:HasTag("Plaque") and d:GetAttribute("Text") == "송계" then
+					board = d
+				end
+			end
+			assert(board, "송계 문 현판")
 			local p = board.CFrame.Position
-			local inward = roblox.Vector3.new(-p.X, 0, -p.Z).Unit
-			assert(board.CFrame.LookVector:Dot(inward) > 0.99, "연국 문 현판은 마을 쪽을 본다")
+			local inward = V3(-p.X, 0, -p.Z).Unit
+			assert(board.CFrame.LookVector:Dot(inward) > 0.9, "송계 문 현판은 마을 쪽을 본다")
 		end
 	end
-	eq(gates, 3, "연국 패루")
-	for _, inst in map:GetDescendants() do
+	eq(gates, 3, "송계 어귀 문")
+	for _, inst in descendants do
 		if inst.Name == "Tag" and inst:HasTag("Plaque") then
 			local lantern = inst.Parent:FindFirstChild("Lamp", true)
 			local away = inst.CFrame.Position - lantern.CFrame.Position
 			assert(
-				inst.CFrame.LookVector:Dot(roblox.Vector3.new(away.X, 0, away.Z).Unit) > 0.9,
+				inst.CFrame.LookVector:Dot(V3(away.X, 0, away.Z).Unit) > 0.9,
 				"율점 패는 기둥 바깥(가운데)을 본다"
 			)
 		end
 	end
-	for _, inst in map:GetDescendants() do
+	for _, inst in descendants do
 		if inst:HasTag("Vein") then
 			assert(Balance.VEINS[inst:GetAttribute("VeinId")], "영맥 id")
 			assert(type(inst:GetAttribute("Radius")) == "number", "영맥 반경")
 		end
 	end
+	-- 영초 범위: 하늘섬 범위는 섬 윗면을, 나머지는 땅을 덮는다 (Herbs 가 상자 위에서 아래로 쏜다)
+	for _, inst in descendants do
+		if inst:HasTag("HerbZone") then
+			local c, size = inst.CFrame.Position, inst.Size
+			local ground = Land.surface(c.X, c.Z)
+			assert(
+				c.Y + size.Y / 2 > ground and c.Y - size.Y / 2 < ground,
+				inst:GetAttribute("Name") .. " 범위가 땅을 덮지 않는다"
+			)
+			assert(inst:GetAttribute("Weight") and inst:GetAttribute("RareMult"), "영초 범위 속성")
+		end
+	end
+end)
+mapCheck("상점 자리", function()
 	-- 상점 자리: 만물상 판대와 대장간 모루. F 버튼은 창만 열고, 서버가 곁(수평 16)에 섰는지 다시 본다
-	eq(tags.MarketSpot, 2, "MarketSpot 태그 (만물상, 대장간)")
 	local shops: { [string]: any } = {}
-	for _, inst in map:GetDescendants() do
+	for _, inst in descendants do
 		if inst:HasTag("MarketSpot") then
 			local kind = inst:GetAttribute("Shop")
 			assert(kind == "market" or kind == "smith", "상점 종류 " .. tostring(kind))
@@ -1217,17 +1406,17 @@ check("연국 맵 짓기", function()
 			eq(prompt.MaxActivationDistance, 10)
 			local p = inst.CFrame.Position
 			eq(Places.tierAt(p.X, p.Z, p.Y), 0, kind .. " 는 안전한 땅")
-			eq(Places.regionAt(p.X, p.Z, p.Y).id, "yeonguk", kind .. " 는 연국")
+			eq(Places.regionAt(p.X, p.Z, p.Y).id, "home", kind .. " 는 송계 마을")
 		end
 	end
 	-- 만물상 주인은 판대 바로 뒤, 대장간 자리는 늙은 대장장이 말 걸기 버튼과 떨어져 있다
 	local flat = function(a, b)
 		local d = a - b
-		return roblox.Vector3.new(d.X, 0, d.Z).Magnitude
+		return V3(d.X, 0, d.Z).Magnitude
 	end
 	assert(flat(shops.market.CFrame.Position, seats.merchant.CFrame.Position) < 6, "주인은 판대 곁")
 	local elderSite
-	for _, inst in map:GetDescendants() do
+	for _, inst in descendants do
 		if inst:GetAttribute("Site") == "elder_2" then
 			elderSite = inst
 		end
@@ -1236,20 +1425,6 @@ check("연국 맵 짓기", function()
 		flat(shops.smith.CFrame.Position, elderSite.CFrame.Position) > 12,
 		"모루 버튼과 노인 버튼이 겹친다"
 	)
-	-- 현판은 광장(만물상)과 서쪽 길(대장간)을 본다
-	for _, inst in map:GetDescendants() do
-		local text = inst:GetAttribute("Text")
-		if text == "만물상" then
-			local p = inst.CFrame.Position
-			assert(
-				inst.CFrame.LookVector:Dot(roblox.Vector3.new(-p.X, 0, -p.Z).Unit) > 0.99,
-				"만물상 현판은 광장 쪽"
-			)
-		elseif text == "대장간" then
-			assert(inst.CFrame.LookVector.X < -0.99, "대장간 현판은 서쪽(광장 쪽)")
-		end
-	end
-	print(`  파트 {parts}개`)
 end)
 
 print("\n진행 속도 (영맥 없이 / 상품 영맥, 천영근, 과업 시간 빼고 영력만)")

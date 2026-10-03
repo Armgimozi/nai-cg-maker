@@ -1018,7 +1018,7 @@ local function updateStatus(state)
 	tween(ui.qiFill, TweenInfo.new(0.45, Enum.EasingStyle.Linear), { Size = UDim2.fromOffset(286 * ratio, 12) })
 
 	if atMax and full then
-		ui.qiText:set("하계의 끝")
+		ui.qiText:set("경지의 끝")
 		ui.qiText:setColor(C.gold)
 		ui.rateText:set("")
 	elseif full then
@@ -1535,8 +1535,8 @@ function Hud.cinematic(payload: { [string]: any })
 		showCinematic(
 			"블록수선전",
 			if payload.returning
-				then "다시 연국으로 돌아왔다"
-				else "연국에서 수선의 길을 시작한다",
+				then "다시 송계 마을로 돌아왔다"
+				else "송계 마을에서 수선의 길을 시작한다",
 			true,
 			3
 		)

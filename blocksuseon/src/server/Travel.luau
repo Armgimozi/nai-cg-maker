@@ -1,7 +1,7 @@
 -- 전송진: 땅마다 하나씩 놓인 돌 진. 한 번 밟아 본 진끼리는 F 로 오갈 수 있다.
 --
--- 진 목록은 Waypoints.luau. 밟아 본 진은 data.waypoints 에 남는다. 연국 진은 처음부터 열려 있다.
--- 진을 쓰면 영석 삯을 낸다 (Currency.travelFee: 선 진과 갈 진 사이 거리. 연국 진으로 돌아가는 길은 공짜).
+-- 진 목록은 Waypoints.luau. 밟아 본 진은 data.waypoints 에 남는다. 송계 진(Places.HOME_WAYPOINT)은 처음부터 열려 있다.
+-- 진을 쓰면 영석 삯을 낸다 (Currency.travelFee: 선 진과 갈 진 사이 거리. 송계 진으로 돌아가는 길은 공짜).
 
 local RunService = game:GetService("RunService")
 

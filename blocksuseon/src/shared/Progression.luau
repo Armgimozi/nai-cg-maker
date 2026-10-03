@@ -45,6 +45,20 @@ local Progression = {}
 Progression.DATA_VERSION = 6
 Progression.LOG_SIZE = 40
 Progression.RECEIPT_KEEP = 50
+-- 옛 세계 전송진 id → 옥반 전송진 id
+Progression.OLD_WAYPOINTS = {
+	wp_yeonguk = "wp_home",
+	wp_yeonsan = "wp_grove",
+	wp_seoak = "wp_ungok",
+	wp_star_west = "wp_west",
+	wp_star_north = "wp_north",
+	wp_cheonsaek = "wp_city",
+	wp_dapcheon = "wp_mesa",
+	wp_star_east = "wp_east",
+	wp_coast = "wp_port",
+	wp_star_south = "wp_south",
+	wp_deungseon = "wp_sky",
+} :: { [string]: string }
 
 -- 술법 단축칸. 숫자 키는 장비·도구 칸으로 남겨 두고, 손이 쉽게 가는 글자 키를 쓴다.
 Progression.HOTBAR_SIZE = 4
@@ -214,11 +228,12 @@ function Progression.reconcile(saved: any): Data
 	if data.root then
 		data.choice.element = Roots.element(data.root)
 	end
-	-- 전송진 id 는 맵이 정하므로 여기서는 모양만 본다 (없는 진은 Travel 이 무시한다)
+	-- 전송진 id 는 맵이 정하므로 여기서는 모양만 본다 (없는 진은 Travel 이 무시한다).
+	-- 옛 세계에서 밟은 진은 새 세계(옥반)에서 그 자리를 맡은 진으로 옮겨 준다
 	if type(saved.waypoints) == "table" then
 		for id, open in saved.waypoints do
 			if type(id) == "string" and #id <= 40 and open == true then
-				data.waypoints[id] = true
+				data.waypoints[Progression.OLD_WAYPOINTS[id] or id] = true
 			end
 		end
 	end
@@ -568,7 +583,7 @@ end
 
 function Progression.canBreakthrough(data: Data): (boolean, string?)
 	if data.step >= Realms.maxStep then
-		return false, "하계에서 오를 수 있는 끝이다."
+		return false, "이 세계에서 오를 수 있는 끝이다."
 	end
 	if not Progression.needsBreakthrough(data.step) then
 		return false, "같은 경지 안에서는 영력과 과업을 채우면 저절로 오른다."

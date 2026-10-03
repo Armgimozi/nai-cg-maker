@@ -30,6 +30,7 @@ local CombatService = require(script.Parent.CombatService)
 local Weapons = require(script.Parent.Weapons)
 local Market = require(script.Parent.Market)
 local Ores = require(script.Parent.Ores)
+local Edge = require(script.Parent.Edge)
 
 local RESPAWN_DELAY = 4
 local REGEN_COOLDOWN = 600 -- 금단 재생: 10분에 한 번 쓰러진 자리에서 일어난다
@@ -63,6 +64,7 @@ CombatService.start()
 MobService.start()
 Market.start()
 Ores.start()
+Edge.start()
 PlayerData.startAutosave()
 
 local function onCharacterAdded(player: Player, character: Model)

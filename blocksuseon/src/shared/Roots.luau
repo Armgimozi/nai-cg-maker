@@ -14,11 +14,11 @@ local Roots = {}
 Roots.ELEMENTS = { "wood", "fire", "earth", "metal", "water" }
 
 Roots.ELEMENT = {
-	wood = { name = "목", color = { 110, 200, 120 }, site = "el_wood", place = "영초숲 고목" },
-	fire = { name = "화", color = { 240, 120, 80 }, site = "el_fire", place = "천색성 용암 화로" },
-	earth = { name = "토", color = { 210, 170, 100 }, site = "el_earth", place = "중령성국 폐허의 뱀 머리" },
-	metal = { name = "금", color = { 235, 235, 240 }, site = "el_metal", place = "쇄천봉 금맥굴" },
-	water = { name = "수", color = { 90, 140, 230 }, site = "el_water", place = "연하 하구 갯바위" },
+	wood = { name = "목", color = { 110, 200, 120 }, site = "el_wood", place = "만년목" },
+	fire = { name = "화", color = { 240, 120, 80 }, site = "el_fire", place = "홍로성 용광로" },
+	earth = { name = "토", color = { 210, 170, 100 }, site = "el_earth", place = "황구 토단" },
+	metal = { name = "금", color = { 235, 235, 240 }, site = "el_metal", place = "백금굴" },
+	water = { name = "수", color = { 90, 140, 230 }, site = "el_water", place = "명경호 물가 바위" },
 }
 
 -- 영근 종류별 효과. 숫자는 게임 밸런스 값이다.

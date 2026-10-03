@@ -471,8 +471,9 @@ local function trySpawn(player: Player)
 		local ground = groundAt(x, z, root.Position.Y + 80)
 		if ground and math.abs(ground.Y - root.Position.Y) < 80 then
 			local region = Places.regionAt(ground.X, ground.Z, ground.Y)
-			if region.tier > 0 then
-				local def = Mobs.pick(region.id, region.tier, rng:NextNumber())
+			local tier = Places.tierAt(ground.X, ground.Z, ground.Y)
+			if tier > 0 then
+				local def = Mobs.pick(region.id, tier, rng:NextNumber())
 				-- 모델을 불러오는 중이면 다음에
 				if def and not (hasMesh(def) and templates[def.id] == nil) then
 					local mob = build(def, CFrame.new(ground + Vector3.new(0, def.height + 0.5, 0)))

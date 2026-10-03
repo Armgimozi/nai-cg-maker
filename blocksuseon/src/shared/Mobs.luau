@@ -54,7 +54,7 @@ Mobs.list = {
 		id = "ashwolf",
 		name = "잿빛이리",
 		tier = 1,
-		places = { "forest", "fields", "steppe" },
+		places = { "fields", "grove", "steppe", "forest" },
 		hp = 60,
 		damage = 8,
 		speed = 15,
@@ -84,7 +84,7 @@ Mobs.list = {
 		id = "thornboar",
 		name = "가시멧돼지",
 		tier = 1,
-		places = { "forest", "fields" },
+		places = { "grove", "fields", "bamboo", "forest" },
 		hp = 85,
 		damage = 10,
 		speed = 13,
@@ -111,7 +111,7 @@ Mobs.list = {
 		id = "bluescale",
 		name = "청린사",
 		tier = 2,
-		places = { "gorge", "pool", "haeryong", "sea" },
+		places = { "gorge", "lake", "marsh", "sea", "bamboo" },
 		hp = 180,
 		damage = 16,
 		speed = 14,
@@ -142,7 +142,7 @@ Mobs.list = {
 		id = "rockbear",
 		name = "바위곰",
 		tier = 3,
-		places = { "swaecheon", "seoak", "summit" },
+		places = { "mountain", "pass", "table", "summit", "forest", "snowfield", "steppe" },
 		hp = 1200,
 		damage = 30,
 		speed = 12,
@@ -167,7 +167,7 @@ Mobs.list = {
 		id = "emberbird",
 		name = "적염조",
 		tier = 3,
-		places = { "volcano", "byeokra" },
+		places = { "volcano", "crater", "canyon", "loess", "desert" },
 		hp = 900,
 		damage = 26,
 		speed = 18,
@@ -191,7 +191,7 @@ Mobs.list = {
 		id = "sandstinger",
 		name = "황사갈",
 		tier = 3,
-		places = { "desert", "dapcheondae" },
+		places = { "desert", "mesa", "salt", "oasis", "canyon" },
 		hp = 1000,
 		damage = 28,
 		speed = 14,
@@ -219,7 +219,7 @@ Mobs.list = {
 		id = "stonegeneral",
 		name = "석장군",
 		tier = 4,
-		places = { "ruins", "dapcheondae", "summit", "snowfield" },
+		places = { "ruins", "swords", "summit", "glacier", "tarn", "tower", "temple", "stones", "mountain", "snowfield" },
 		hp = 5000,
 		damage = 55,
 		speed = 11,
@@ -274,7 +274,7 @@ Mobs.list = {
 		id = "silverfox",
 		name = "은미호",
 		tier = 5,
-		places = { "deungseon" },
+		places = { "sky", "cape", "isle_moon", "isle_mist", "isle_whale", "rim" },
 		hp = 15000,
 		damage = 90,
 		speed = 20,
@@ -311,18 +311,19 @@ for _, mob in Mobs.list do
 end
 
 -- 이 땅(Places 의 id, 위험도)에 나올 요수 하나 (roll: 0~1). 그 땅을 좋아하는 짐승을 먼저 고른다
+-- 이 땅에 나올 짐승. 그 위험도와 한 단계 아래 짐승 가운데 이 땅을 좋아하는 짐승을 먼저 고른다
 function Mobs.pick(placeId: string, tier: number, roll: number): Mob?
-	local pool = Mobs.byTier[tier]
-	if not pool then
-		-- 그 위험도 짐승이 없으면 한 단계 아래
-		for t = tier - 1, 1, -1 do
-			if Mobs.byTier[t] then
-				pool = Mobs.byTier[t]
-				break
-			end
+	local pool = {}
+	for t = tier, 1, -1 do
+		for _, mob in Mobs.byTier[t] or {} do
+			table.insert(pool, mob)
+		end
+		-- 그 위험도와 바로 아래까지만 (모자라면 더 내려간다)
+		if #pool > 0 and t <= tier - 1 then
+			break
 		end
 	end
-	if not pool then
+	if #pool == 0 then
 		return nil
 	end
 	local liked = {}

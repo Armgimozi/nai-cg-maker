@@ -81,7 +81,7 @@ Trials.MEMORIES = {
 	entry_gyeoldan = "금단이 맺힌 날",
 	cheonsang = "천상열차분야를 새긴 밤",
 }
-Trials.BIRTH = "연국에 처음 온 날"
+Trials.BIRTH = "송계 마을에 처음 온 날"
 
 -- 구궁의 아홉 별 (낙서 숫자 1~9 순)
 Trials.GUGUNG = { "태을", "섭제", "헌원", "초요", "천부", "청룡", "함지", "태음", "천을" }

@@ -74,8 +74,12 @@ function TerrainGen.build(center: Vector3?)
 	local chunks = {}
 	for x0 = Land.MIN_X, Land.MAX_X - CHUNK, CHUNK do
 		for z0 = Land.MIN_Z, Land.MAX_Z - CHUNK, CHUNK do
-			local dx, dz = x0 + CHUNK / 2 - origin.X, z0 + CHUNK / 2 - origin.Z
-			table.insert(chunks, { x0 = x0, z0 = z0, d = dx * dx + dz * dz })
+			-- 천애 바깥은 비어 있다
+			local nx, nz = math.clamp(0, x0, x0 + CHUNK), math.clamp(0, z0, z0 + CHUNK)
+			if nx * nx + nz * nz <= Land.EDGE * Land.EDGE then
+				local dx, dz = x0 + CHUNK / 2 - origin.X, z0 + CHUNK / 2 - origin.Z
+				table.insert(chunks, { x0 = x0, z0 = z0, d = dx * dx + dz * dz })
+			end
 		end
 	end
 	table.sort(chunks, function(a, b)

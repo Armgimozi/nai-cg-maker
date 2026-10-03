@@ -16,9 +16,17 @@ local new, image, setImage, text, row = Ui.new, Ui.image, Ui.setImage, Ui.text, 
 
 local TravelMenu = {}
 
-local MAX_ENTRIES = 15
-local COLUMNS = 3
-local ENTRY_W, ENTRY_H, GAP = 172, 52, 8
+-- 맵의 전송진은 16 곳 (WorldSites). 넉 줄 넷씩, 다섯째 줄은 늘어날 몫
+local MAX_ENTRIES = 20
+local COLUMNS = 4
+local ROWS = math.ceil(MAX_ENTRIES / COLUMNS)
+local ENTRY_W, ENTRY_H, GAP = 146, 52, 8
+local GRID_W = COLUMNS * ENTRY_W + (COLUMNS - 1) * GAP
+local GRID_H = ROWS * ENTRY_H + (ROWS - 1) * GAP
+local GRID_TOP = 136
+-- 창 크기: 1280×720 기준. 작은 화면에서는 Hud 의 UIScale 이 줄인다 (0.6 까지)
+local PANEL_W, PANEL_H = GRID_W + 88, GRID_TOP + GRID_H + 40
+TravelMenu.MAX_ENTRIES = MAX_ENTRIES
 
 local player = Players.LocalPlayer
 local ui: { [string]: any } = {}
@@ -86,7 +94,7 @@ function TravelMenu.build(gui: ScreenGui, go: (id: string) -> ())
 		Name = "TravelMenu",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(620, 480),
+		Size = UDim2.fromOffset(PANEL_W, PANEL_H),
 		SliceScale = 0.8,
 		Visible = false,
 		Active = true,
@@ -100,7 +108,7 @@ function TravelMenu.build(gui: ScreenGui, go: (id: string) -> ())
 	image("divider", {
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, 74),
-		Size = UDim2.fromOffset(520, 22),
+		Size = UDim2.fromOffset(PANEL_W - 100, 22),
 		Parent = panel,
 	})
 	local closeButton = image("iconClose", {
@@ -127,8 +135,8 @@ function TravelMenu.build(gui: ScreenGui, go: (id: string) -> ())
 
 	local grid = new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 136),
-		Size = UDim2.fromOffset(COLUMNS * ENTRY_W + (COLUMNS - 1) * GAP, 300),
+		Position = UDim2.new(0.5, 0, 0, GRID_TOP),
+		Size = UDim2.fromOffset(GRID_W, GRID_H),
 		BackgroundTransparency = 1,
 		Parent = panel,
 	}, {
