@@ -1,0 +1,113 @@
+{
+  "iron_longsword": {
+    "kind": "weapon",
+    "prompt": "A straight iron longsword: double-edged steel blade with a central fuller and slight wear, simple dark iron cross-guard, leather-wrapped grip, round iron pommel. No scabbard. semi-realistic fantasy RPG game asset, PBR materials, single isolated object, no stand, no base, no background props",
+    "preview_id": "01a1000b-a542-779e-a9cc-8f3d54bac3e8",
+    "refine_id": "01a1000c-90df-7082-8d5a-e65b9e0a9997",
+    "credits": 10
+  },
+  "spear": {
+    "kind": "weapon",
+    "prompt": "A long infantry spear: straight ash-wood shaft, leaf-shaped steel spearhead on an iron socket bound with leather cord, small iron butt spike. semi-realistic fantasy RPG game asset, PBR materials, single isolated object, no stand, no base, no background props",
+    "preview_id": "01a1000b-a561-72a0-8049-c79ae2c4e2ad",
+    "refine_id": "01a1000c-6e02-705a-987d-a5dd063d556a",
+    "credits": 10
+  },
+  "longbow": {
+    "kind": "weapon",
+    "prompt": "A recurve longbow of dark polished wood with a leather-wrapped grip in the middle, carved horn tips, a taut bowstring. No arrows, no quiver. semi-realistic fantasy RPG game asset, PBR materials, single isolated object, no stand, no base, no background props",
+    "preview_id": "01a1000b-a5a8-77a8-b938-e4084c232965",
+    "refine_id": "01a1000c-738a-7736-9edf-bf492b22cd29",
+    "credits": 10
+  },
+  "dagger": {
+    "kind": "weapon",
+    "prompt": "A steel dagger: short double-edged blade, small curved bronze cross-guard, dark leather grip, bronze pommel. No sheath. semi-realistic fantasy RPG game asset, PBR materials, single isolated object, no stand, no base, no background props",
+    "preview_id": "01a1000d-3c54-707d-8e0d-43c49a0ae9a1",
+    "refine_id": "01a1000e-47c8-7383-85cf-da6ec411986c",
+    "credits": 10
+  },
+  "guardian_amulet": {
+    "kind": "artifact",
+    "prompt": "A magical amulet: ornate silver medallion pendant with a large faceted blue sapphire in the center and engraved runes around the rim, with a small silver bail loop on top. Flat pendant, no long chain. semi-realistic fantasy RPG game asset, PBR materials, single isolated object, no stand, no base, no background props",
+    "preview_id": "01a1000d-567c-7398-8505-1c88351c0881",
+    "refine_id": "01a1000e-61dd-77cf-9c9e-a9856a499013",
+    "credits": 10
+  },
+  "flame_ring": {
+    "kind": "artifact",
+    "prompt": "A magical gold ring set with a large glowing red ruby cut in the shape of a flame, ornate engraved band. Chunky ring, clearly readable shape. semi-realistic fantasy RPG game asset, PBR materials, single isolated object, no stand, no base, no background props",
+    "preview_id": "01a1000d-5993-7446-98f4-6d273ead88ad",
+    "refine_id": "01a1000e-6627-7438-a607-76210d94b165",
+    "credits": 10
+  },
+  "arcane_orb": {
+    "kind": "artifact",
+    "prompt": "An arcane orb: swirling purple crystal sphere held by an ornate bronze claw cradle with a short bronze base. semi-realistic fantasy RPG game asset, PBR materials, single isolated object, no stand, no base, no background props",
+    "preview_id": "01a1000e-cf9f-75e0-993b-e867d2c99ffa",
+    "refine_id": "01a1000f-babd-72bf-b95b-7a310815cab3",
+    "credits": 10
+  },
+  "chalice_of_life": {
+    "kind": "artifact",
+    "prompt": "A holy golden chalice: ornate goblet engraved with leaves and vines, green emerald gems set around the cup, sturdy stem and round foot. semi-realistic fantasy RPG game asset, PBR materials, single isolated object, no stand, no base, no background props",
+    "preview_id": "01a1000f-0a91-73e4-b11e-4ebf45fba745",
+    "refine_id": "01a10010-1866-76c2-b841-f92ac9d216a1",
+    "credits": 10
+  },
+  "_rejected": [
+    {
+      "name": "battle_axe",
+      "kind": "weapon",
+      "prompt": "A one-handed battle axe: single crescent-shaped forged steel axe head with a worn cutting edge riveted to a sturdy oak haft, leather grip wrap near the bottom, iron butt cap. semi-realistic fantasy RPG game asset, PBR materials, single isolated object, no stand, no base, no background props",
+      "preview_id": "01a1000b-a543-7557-b118-bcd0aa55d5a6",
+      "refine_id": "01a1000c-6ddc-70a3-9538-d61c15d554f8",
+      "credits": 10
+    },
+    {
+      "name": "mage_staff",
+      "kind": "weapon",
+      "prompt": "A wizard staff: tall gnarled dark-wood staff whose twisted top branches cradle a glowing blue crystal, silver bands and leather wrap at the grip. semi-realistic fantasy RPG game asset, PBR materials, single isolated object, no stand, no base, no background props",
+      "preview_id": "01a1000d-14c9-71f5-89c3-ce08979287ae",
+      "refine_id": "01a1000d-e313-72ee-9fd4-d54ce1c1552e",
+      "credits": 10
+    },
+    {
+      "name": "ancient_runestone",
+      "kind": "artifact",
+      "prompt": "An ancient runestone: rough grey stone tablet carved with glowing cyan runes, chipped edges and patches of moss. Small handheld relic. semi-realistic fantasy RPG game asset, PBR materials, single isolated object, no stand, no base, no background props",
+      "preview_id": "01a1000e-6a77-7736-b359-0f5d296acc4a",
+      "refine_id": "01a1000f-3e8b-7603-904a-75c7d84dc470",
+      "credits": 10
+    },
+    {
+      "name": "ancient_runestone",
+      "kind": "artifact",
+      "prompt": "An ancient runestone tablet: a rough grey stone slab carved with glowing cyan runes, chipped edges and patches of moss. Only the stone itself, no hands, no arms, no characters. semi-realistic fantasy RPG game asset, PBR materials, single isolated object, no stand, no base, no background props",
+      "preview_id": "01a10012-7ebb-7660-9021-de1668f7394e",
+      "refine_id": "01a10013-67ed-7320-b671-504b260b2c3f",
+      "credits": 10
+    }
+  ],
+  "battle_axe": {
+    "kind": "weapon",
+    "prompt": "A battle axe made as ONE solid connected object: a broad single-bladed forged steel axe head with a curved cutting edge, firmly mounted on the top end of a straight long oak handle (the blade is attached to the handle, nothing floating), leather grip wrap near the bottom, iron butt cap. Full length, upright. semi-realistic fantasy RPG game asset, PBR materials, single isolated object, no stand, no base, no background props",
+    "preview_id": "01a10012-7eaf-73e0-b6ba-e02a0c3f7fef",
+    "refine_id": "01a10013-6a87-70bc-afc4-f5205c670a76",
+    "credits": 10
+  },
+  "mage_staff": {
+    "kind": "weapon",
+    "prompt": "A long slender wizard staff: a tall thin straight dark-wood pole, about twelve times longer than it is wide; at the top end twisted wooden branches cradle a glowing blue crystal; silver bands and a leather wrap at the middle grip. Full-length staff, upright. semi-realistic fantasy RPG game asset, PBR materials, single isolated object, no stand, no base, no background props",
+    "preview_id": "01a10012-7eb3-76d3-9c15-6b345c832a59",
+    "refine_id": "01a10013-49e6-73ab-b880-9849d4721f2c",
+    "credits": 10
+  },
+  "ancient_runestone": {
+    "kind": "artifact",
+    "prompt": "A small upright standing runestone monolith: rough grey granite stone whose front face is deeply carved with large glowing cyan runic symbols that emit light, chipped edges, a little moss at the base. Only the stone itself, no hands, no characters. semi-realistic fantasy RPG game asset, PBR materials, single isolated object, no stand, no base, no background props",
+    "preview_id": "01a1001f-ed74-71ad-9449-d419b46712b0",
+    "refine_id": "01a10020-d6d5-77cc-a1d7-09f9549ef7e9",
+    "credits": 10
+  }
+}
