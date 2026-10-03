@@ -192,7 +192,9 @@ local function runCommand(player: Player, text: any)
 		end
 		reply(player, message, if ok then "good" else "bad")
 	elseif command == "검수" then
-		reply(player, Commands.HELP)
+		for _, line in Commands.HELP do
+			reply(player, line)
+		end
 	end
 	Sync.state(player)
 end

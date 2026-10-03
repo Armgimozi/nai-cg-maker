@@ -208,7 +208,7 @@ local function buildStatus(gui: ScreenGui)
 		label.frame.LayoutOrder = 1
 		local progress = text("body", 13, { color = C.dim, parent = labelRow })
 		progress.frame.LayoutOrder = 2
-		-- 줄을 누르면 할 일을 채팅으로 다시 알려 준다
+		-- 줄을 누르면 할 일을 화면 알림으로 다시 알려 준다
 		local hintButton = new("TextButton", {
 			Size = UDim2.new(1, -130, 1, 0),
 			BackgroundTransparency = 1,
@@ -1075,7 +1075,7 @@ local function updateTasks(state)
 			end
 		end
 
-		-- 새로 열린 과업은 할 일을 채팅으로 알려 준다
+		-- 새로 열린 과업은 할 일을 화면 알림으로 알려 준다
 		local key = string.format("%d:%s", state.step, job.id)
 		if job.open and not job.done and not announcedTasks[key] then
 			announcedTasks[key] = true
@@ -1205,6 +1205,8 @@ RunService.Heartbeat:Connect(function(dt)
 	if clockElapsed >= 0.5 and ui.clockText then
 		clockElapsed = 0
 		ui.clockText:set(clockLine())
+		-- 창이 열려 있으면 알림이 창 제목을 가리지 않게 화면 맨 위로 올린다
+		Notice.setCompact((ui.panel and ui.panel.Visible) or Choice.isOpen() or Naegwan.isOpen())
 	end
 	local now = os.clock()
 	for slot, entry in hotbar do
@@ -1232,6 +1234,8 @@ local function showCinematic(title: string, subtitle: string, dark: boolean, hol
 	tween(ui.cineScale, TweenInfo.new(hold + 0.6, Enum.EasingStyle.Quad), { Scale = 1 })
 
 	local fadeOutTime = 0.9
+	-- 연출이 화면을 덮는 동안 알림은 잠시 멈췄다가 연출이 걷힌 뒤 띄운다
+	Notice.hold(hold + fadeOutTime)
 	task.delay(hold, function()
 		if token ~= cinematicToken then
 			return

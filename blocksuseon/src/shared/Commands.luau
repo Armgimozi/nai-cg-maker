@@ -28,10 +28,11 @@ Commands.ALIASES = {
 	{ "검수", "devhelp" },
 }
 
-Commands.HELP = table.concat({
+-- 화면 알림 한 줄씩 보낸다
+Commands.HELP = {
 	"/경지 연기기 7, /단계 23, /영력, /과업, /주머니 영초 10, /시간 밤, /초기화 확인, /복구 확인",
 	"경지 이름: 범인 단수기 연기기 축기기 결단기 원영기 천인기. 시간: 낮 해질녘 밤 새벽",
-}, "\n")
+}
 
 local PHASES = { ["낮"] = "day", ["해질녘"] = "dusk", ["밤"] = "night", ["새벽"] = "dawn" }
 for _, phase in { "day", "dusk", "night", "dawn" } do

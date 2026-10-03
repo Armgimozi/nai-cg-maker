@@ -164,6 +164,14 @@ local services = {
 		InputEnded = fakeSignal(heartbeatKey, "InputEnded"),
 	},
 	RunService = { Heartbeat = fakeSignal(heartbeatKey, "Heartbeat") },
+	-- 글자 크기 재기: Roblox 글꼴 폭을 대충 흉내 낸다
+	TextService = {
+		GetTextSize = function(_, text, size, _font, frame)
+			local width = utf8.len(text) * size * 0.6
+			local lines = math.max(1, math.ceil(width / frame.X))
+			return roblox.Vector2.new(math.min(width, frame.X), lines * size)
+		end,
+	},
 	Workspace = {
 		CurrentCamera = nil,
 		GetAttribute = function()
@@ -415,30 +423,70 @@ task.wait(4)
 
 local hud = playerGui:FindFirstChild("BlockSuseonHud")
 assert(hud, "HUD ScreenGui 가 없다")
--- 알림은 화면 위 가운데 띠로 뜬다. 한 번에 넷까지
+-- 알림은 화면 위 가운데 띠로 뜬다. 한 번에 넷까지, 넘치면 줄을 세운다 (버리지 않는다)
+local Art = loader.require(loader.folder("src/client").Art)
 local Notice = loader.require(loader.folder("src/client").Notice)
 local notices = hud:FindFirstChild("Notices")
 assert(notices, "화면 알림 틀이 없다")
 assert(#chatMessages == 0, "알림을 채팅으로 보내면 안 된다")
-assert(Notice.count() <= 4, `화면 알림 {Notice.count()}개 (넷까지)`)
-local before = Notice.count()
-Hud.toast("겹침 확인", "info")
-Hud.toast("겹침 확인", "info")
-assert(Notice.count() == math.min(4, before + 1), "같은 알림은 겹쳐 띄우지 않는다")
+-- 앞의 상태 검사에서 열린 고르기 창을 닫고 보통 자리로
+loader.require(loader.folder("src/client").Choice).close()
+Notice.setCompact(false)
+Notice.clear()
+task.wait(0.5)
+for i = 1, 6 do
+	Hud.toast("몰린 알림 " .. i, "good")
+end
+assert(Notice.count() == 4, `화면 알림 {Notice.count()}개 (넷)`)
+assert(Notice.pendingCount() == 2, "넘친 알림은 기다린다")
+Hud.toast("몰린 알림 6", "good")
+assert(Notice.pendingCount() == 2, "기다리는 알림과 같으면 겹쳐 쌓지 않는다")
+Hud.toast("몰린 알림 1", "good")
+assert(Notice.count() == 4 and Notice.pendingCount() == 2, "떠 있는 알림과 같으면 시간만 늘린다")
+Notice.clear()
+task.wait(0.5)
+
+-- 연출 중에는 멈췄다가 걷힌 뒤 띄운다
+Notice.hold(0.6)
+Hud.toast("연출 뒤 알림", "info")
+assert(Notice.count() == 0 and Notice.pendingCount() == 1, "연출 중에는 띄우지 않는다")
+task.wait(0.8)
+assert(Notice.count() == 1 and Notice.pendingCount() == 0, "연출이 끝나면 띄운다")
+Notice.clear()
+task.wait(0.5)
+
+-- 창이 열려 있으면 맨 위로 올리고 둘만
+Notice.setCompact(true)
+for i = 1, 3 do
+	Hud.toast("창 열림 알림 " .. i, "info")
+end
+assert(Notice.count() == 2, "창이 열려 있으면 둘만 띄운다")
+Notice.setCompact(false)
+assert(Notice.count() == 3, "창을 닫으면 기다리던 것을 띄운다")
+Notice.clear()
+task.wait(0.5)
+
+-- 글자판에 없는 글자가 있으면 그 알림만 Roblox 글꼴로
 Hud.toast("Ωmega님이 결단기에 올랐다.", "world")
-local fallback = false
+Hud.toast("영력이 가득 찼다. 남은 과업을 마치면 오른다.", "info")
+local fallbacks = 0
 for _, item in notices:GetDescendants() do
-	if item:IsA("TextLabel") and string.find(item.Text, "Ωmega", 1, true) then
-		fallback = true
+	if item:IsA("TextLabel") then
+		assert(
+			string.find(item.Text, "Ωmega", 1, true),
+			"글자판으로 찍을 수 있는 알림이 Roblox 글꼴로 갔다"
+		)
+		fallbacks += 1
 	end
 end
-assert(fallback, "글자판에 없는 글자가 있으면 Roblox 글꼴로 찍어야 한다")
-Hud.toast("영력이 가득 찼다. 남은 과업을 마치면 오른다.", "info")
-for _, item in notices:GetDescendants() do
-	assert(
-		not item:IsA("TextLabel") or string.find(item.Text, "Ωmega", 1, true),
-		"글자판으로 찍을 수 있는 알림이 Roblox 글꼴로 갔다"
-	)
+assert(fallbacks == 1, "글자판에 없는 글자가 있으면 Roblox 글꼴로 찍어야 한다")
+-- 도움말처럼 긴 알림도 글자판으로
+local Commands = loader.require(sharedFolder.Commands)
+for _, line in Commands.HELP do
+	for _, code in utf8.codes("[검수] " .. line) do
+		local ch = utf8.char(code)
+		assert(ch == " " or Art.fonts.body.glyphs[ch], "도움말 글자가 글자판에 없다: " .. ch)
+	end
 end
 local cinematicGui = playerGui:FindFirstChild("BlockSuseonCinematic")
 assert(cinematicGui, "연출 ScreenGui 가 없다")
@@ -454,7 +502,7 @@ for _, child in cinematicGui:GetChildren() do
 end
 
 task.wait(10)
-assert(Notice.count() == 0, "알림이 사라지지 않았다")
+assert(Notice.count() == 0 and Notice.pendingCount() == 0, "알림이 사라지지 않았다")
 
 local count = 0
 for _, _ in hud:GetDescendants() do
@@ -463,7 +511,6 @@ end
 print(`HUD 통과 · 인스턴스 {count}개 · 트윈 {tweensPlayed}회 · 상태 {#cases}가지`)
 
 -- 화면에 나올 수 있는 글자가 모두 글자판에 있는지 -----------------------------------------
-local Art = loader.require(loader.folder("src/client").Art)
 local Realms = loader.require(sharedFolder.Realms)
 local Skills = loader.require(sharedFolder.Skills)
 local missing = {}
