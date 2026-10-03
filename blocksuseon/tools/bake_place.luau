@@ -1,7 +1,7 @@
 -- 플레이스 파일 만들기.   실행: lune run tools/bake_place   (blocksuseon 폴더에서)
 --
 -- 1) Rojo 로 스크립트만 든 플레이스를 빌드하고
--- 2) 그 안에 수계 맵(World.build)을 지어 넣고
+-- 2) 그 안에 옥반 맵(World.build)을 지어 넣고
 -- 3) 땅 모양(Shared.Land)대로 지형을 구워(SmoothGrid) 넣어
 -- 4) BlockSuseon.rbxl 로 저장한다.
 -- 맵과 지형이 플레이스에 들어 있으므로 Studio 에서 바로 보고 고칠 수 있다.
@@ -47,8 +47,17 @@ local SLOT = SmoothGrid.SLOT
 local CHUNK = 128 -- SmoothGrid 덩어리 한 변 (32칸)
 local chunks: { SmoothGrid.Chunk } = {}
 local cellsSolid = 0
+-- 덩어리에서 원점에 가장 가까운 점까지 거리 (천애 바깥 덩어리는 비어 있어 건너뛴다)
+local function nearest(x0: number, z0: number): number
+	local nx = math.clamp(0, x0, x0 + CHUNK)
+	local nz = math.clamp(0, z0, z0 + CHUNK)
+	return math.sqrt((nx - 0) ^ 2 + (nz - 0) ^ 2)
+end
 for x0 = Land.MIN_X, Land.MAX_X - CHUNK, CHUNK do
 	for z0 = Land.MIN_Z, Land.MAX_Z - CHUNK, CHUNK do
+		if Land.EDGE and nearest(x0, z0) > Land.EDGE then
+			continue
+		end
 		local columns = table.create(32 * 32)
 		local top = Land.BOTTOM
 		for a = 0, 31 do

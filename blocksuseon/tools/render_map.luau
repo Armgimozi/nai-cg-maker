@@ -4,7 +4,8 @@ local process = require("@lune/process")
 local Harness = require("../tests/harness")
 local loader = Harness.new({})
 local Land = loader.require(loader.folder("src/shared").Land)
-local N = 640
+-- 4 스터드마다 한 점
+local N = (Land.MAX_X - Land.MIN_X) // 4
 local COLORS = {
 	Sand = { 214, 174, 112 },
 	Sandstone = { 190, 120, 78 },
@@ -27,7 +28,7 @@ local H = table.create(N * N)
 local cols = table.create(N * N)
 for i = 0, N - 1 do
 	for k = 0, N - 1 do
-		local c = Land.column(-1280 + i * 4 + 2, -1280 + k * 4 + 2)
+		local c = Land.column(Land.MIN_X + i * 4 + 2, Land.MIN_Z + k * 4 + 2)
 		cols[i * N + k + 1] = c
 		H[i * N + k + 1] = c.ground
 	end
@@ -56,6 +57,6 @@ for i = 0, N - 1 do
 	end
 end
 local out = "build/"
-fs.writeFile(out .. "map.ppm", "P6\n640 640\n255\n" .. buffer.tostring(img))
+fs.writeFile(out .. "map.ppm", string.format("P6\n%d %d\n255\n", N, N) .. buffer.tostring(img))
 process.exec("convert", { out .. "map.ppm", out .. "map.png" })
 print("ok")
