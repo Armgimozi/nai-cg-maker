@@ -98,11 +98,8 @@ local MAX_BEND = rad(50) -- 손목이 아래팔에서 꺾이는 데까지
 -- (주먹 속에서 자루가 비스듬히 놓이는 그대로). +X(날 쪽)는 손가락 끝 쪽을 본다.
 -- 기본 도구 자세(팔을 앞으로 듦)에서는 날이 위로 서되 앞으로 30도 기운다
 local TILT = rad(30)
-local HANDLE_IN_HAND = CFrame.fromMatrix(
-	Vector3.zero,
-	Vector3.new(0, -math.cos(TILT), math.sin(TILT)),
-	Vector3.new(-1, 0, 0)
-)
+local HANDLE_IN_HAND =
+	CFrame.fromMatrix(Vector3.zero, Vector3.new(0, -math.cos(TILT), math.sin(TILT)), Vector3.new(-1, 0, 0))
 WeaponPoses.GRIP = (HANDLE_IN_HAND:Inverse() * GA).Rotation :: CFrame
 -- 손가락 쪽(손 -Y)을 손잡이 틀로 보면 날 쪽(+X)으로 cos, 날 끝(+Z)으로 sin
 local FINGER_EDGE, FINGER_BLADE = math.cos(TILT), math.sin(TILT)
@@ -275,7 +272,8 @@ function WeaponPoses.solve(rig: Rig, pose: Pose): ({ [string]: CFrame }, { [stri
 		local free = CFrame.new(pose.left.Position * s) * pose.left.Rotation
 		ls, le, lw = solveArm(rig.left, free, pose.lpole)
 		if pose.holdW > 0.001 then
-			local hs, he, hw = grasp(rig.left, (handle * v(0, 0, pose.hold * s)), pose.blade, Vector3.zero, 0, pose.lpole)
+			local hs, he, hw =
+				grasp(rig.left, (handle * v(0, 0, pose.hold * s)), pose.blade, Vector3.zero, 0, pose.lpole)
 			ls, le, lw = ls:Lerp(hs, pose.holdW), le:Lerp(he, pose.holdW), lw:Lerp(hw, pose.holdW)
 		end
 	end
@@ -488,7 +486,13 @@ do
 		{ -85, -105 },
 		{ -105, -135 },
 	}, {
-		{ waist = v(6, -26, 6), neck = v(-4, 20, 0), pole = v(1, -0.5, 0.6), root = v(0, -0.2, 0.1), blade = dir(140, -18) },
+		{
+			waist = v(6, -26, 6),
+			neck = v(-4, 20, 0),
+			pole = v(1, -0.5, 0.6),
+			root = v(0, -0.2, 0.1),
+			blade = dir(140, -18),
+		},
 		{ waist = v(2, -16, 4), neck = v(-2, 12, 0), pole = v(1, -0.6, 0.4), root = v(0, -0.15, -0.1) },
 		{ waist = v(-2, 0, 0), neck = v(0, 0, 0), pole = v(1, -0.6, 0.2), root = v(0, -0.05, -0.3) },
 		{ waist = v(-6, 16, -4), neck = v(2, -12, 0), pole = v(0.6, -0.8, 0), root = v(0, 0, -0.35) },
@@ -497,7 +501,11 @@ do
 	})
 	DEFS.sword = {
 		idle = idle,
-		attacks = { attack(timing, keysOf(slash1)), attack(timing, keysOf(slash2)), attack({ 0.05, 0.07, 0.1, 0.08, 0.24 }, keysOf(slash3)) },
+		attacks = {
+			attack(timing, keysOf(slash1)),
+			attack(timing, keysOf(slash2)),
+			attack({ 0.05, 0.07, 0.1, 0.08, 0.24 }, keysOf(slash3)),
+		},
 	}
 end
 
@@ -521,12 +529,72 @@ do
 		{ -25, -15 },
 		{ -35, -22 },
 	}, {
-		{ holdW = 1, hold = -0.55, waist = v(12, -20, -6), neck = v(-8, 16, 0), root = v(0, 0.05, 0.3), pole = v(1, 0.6, 0.3), lpole = v(-1, 0.3, 0.3) },
-		{ holdW = 1, hold = -0.55, waist = v(4, -12, -3), neck = v(-4, 10, 0), root = v(0, 0, 0.1), pole = v(1, 0.3, 0.3), lpole = v(-1, 0, 0.3) },
-		{ holdW = 1, hold = -0.55, waist = v(-8, 0, 0), neck = v(4, 0, 0), root = v(0, -0.15, -0.25), pole = v(1, -0.2, 0.3), lpole = v(-1, -0.3, 0.3) },
-		{ holdW = 1, hold = -0.55, waist = v(-10, 10, 4), neck = v(12, -6, 0), root = v(0, -0.25, -0.5), pole = v(1, -0.5, 0.2), lpole = v(-1, -0.5, 0.2), hipL = v(25, 0, 0), hipR = v(-12, 0, 0), kneeL = -20, kneeR = -14 },
-		{ holdW = 1, hold = -0.55, waist = v(-14, 16, 6), neck = v(18, -10, 0), root = v(0, -0.26, -0.65), pole = v(1, -0.5, 0.1), lpole = v(-1, -0.6, 0.2), hipL = v(34, 0, 0), hipR = v(-16, 0, 0), kneeL = -32, kneeR = -20 },
-		{ holdW = 1, hold = -0.55, waist = v(-14, 18, 6), neck = v(20, -12, 0), root = v(0, -0.28, -0.7), pole = v(1, -0.4, 0), lpole = v(-1, -0.6, 0.2), hipL = v(36, 0, 0), hipR = v(-18, 0, 0), kneeL = -36, kneeR = -22 },
+		{
+			holdW = 1,
+			hold = -0.55,
+			waist = v(12, -20, -6),
+			neck = v(-8, 16, 0),
+			root = v(0, 0.05, 0.3),
+			pole = v(1, 0.6, 0.3),
+			lpole = v(-1, 0.3, 0.3),
+		},
+		{
+			holdW = 1,
+			hold = -0.55,
+			waist = v(4, -12, -3),
+			neck = v(-4, 10, 0),
+			root = v(0, 0, 0.1),
+			pole = v(1, 0.3, 0.3),
+			lpole = v(-1, 0, 0.3),
+		},
+		{
+			holdW = 1,
+			hold = -0.55,
+			waist = v(-8, 0, 0),
+			neck = v(4, 0, 0),
+			root = v(0, -0.15, -0.25),
+			pole = v(1, -0.2, 0.3),
+			lpole = v(-1, -0.3, 0.3),
+		},
+		{
+			holdW = 1,
+			hold = -0.55,
+			waist = v(-10, 10, 4),
+			neck = v(12, -6, 0),
+			root = v(0, -0.25, -0.5),
+			pole = v(1, -0.5, 0.2),
+			lpole = v(-1, -0.5, 0.2),
+			hipL = v(25, 0, 0),
+			hipR = v(-12, 0, 0),
+			kneeL = -20,
+			kneeR = -14,
+		},
+		{
+			holdW = 1,
+			hold = -0.55,
+			waist = v(-14, 16, 6),
+			neck = v(18, -10, 0),
+			root = v(0, -0.26, -0.65),
+			pole = v(1, -0.5, 0.1),
+			lpole = v(-1, -0.6, 0.2),
+			hipL = v(34, 0, 0),
+			hipR = v(-16, 0, 0),
+			kneeL = -32,
+			kneeR = -20,
+		},
+		{
+			holdW = 1,
+			hold = -0.55,
+			waist = v(-14, 18, 6),
+			neck = v(20, -12, 0),
+			root = v(0, -0.28, -0.7),
+			pole = v(1, -0.4, 0),
+			lpole = v(-1, -0.6, 0.2),
+			hipL = v(36, 0, 0),
+			hipR = v(-18, 0, 0),
+			kneeL = -36,
+			kneeR = -22,
+		},
 	})
 	local sweep = arc(idle, v(0.15, -0.55, -0.4), v(0, 0, -1), v(-1, 0.1, 0), 1.2, {
 		{ 80, 135 },

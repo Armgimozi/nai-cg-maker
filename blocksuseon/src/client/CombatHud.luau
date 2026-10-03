@@ -1,5 +1,9 @@
 -- 싸움 화면: 위 가운데의 대상 창(맞힌 요수 이름과 체력), 내 체력 막대, 맞았을 때의 붉은 번쩍임과 흔들림.
 -- 공중에 피해 숫자나 이름표를 띄우지 않는다.
+-- 무기 몸짓(WeaponAnim)과 효과(WeaponEffects)도 여기서 켜고, 서버가 모두에게 보내는 싸움 소식을 나눠 준다:
+--   "swing" 남이 휘둘렀다 → WeaponAnim.remoteSwing (내 것은 이미 그렸다)
+--   "impact" 요수가 맞은 자리 → WeaponEffects.impact
+--   "wave" 부채 바람칼 → WeaponEffects.wave (내 것은 이미 그렸으면 넘긴다)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -9,6 +13,8 @@ local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 
 local Mobs = require(Shared.Mobs)
 local Ui = require(script.Parent.Ui)
+local WeaponAnim = require(script.Parent.WeaponAnim)
+local WeaponEffects = require(script.Parent.WeaponEffects)
 
 local C = Ui.C
 local new, image, text, row = Ui.new, Ui.image, Ui.text, Ui.row
@@ -153,6 +159,9 @@ function CombatHud.build(gui: ScreenGui)
 			camera.CFrame = camera.CFrame * CFrame.new(math.random() * k - k / 2, math.random() * k - k / 2, 0)
 		end
 	end)
+
+	WeaponEffects.start()
+	WeaponAnim.start()
 	return frame
 end
 
@@ -180,6 +189,25 @@ function CombatHud.event(payload: { [string]: any }, toast: (string, string?) ->
 		Ui.tween(ui.hurtTint, TweenInfo.new(0.4), { TintColor = Color3.new(1, 1, 1) })
 	elseif payload.kind == "blocked" then
 		toast(string.format("호신강기가 %s의 이빨을 막았다.", payload.name), "good")
+	elseif payload.kind == "swing" then
+		WeaponAnim.remoteSwing(payload)
+	elseif payload.kind == "impact" then
+		if typeof(payload.position) == "Vector3" then
+			WeaponEffects.impact(
+				payload.position,
+				payload.weapon,
+				tonumber(payload.grade) or 1,
+				payload.player == player
+			)
+		end
+	elseif payload.kind == "wave" then
+		if typeof(payload.from) ~= "Vector3" or typeof(payload.to) ~= "Vector3" then
+			return
+		end
+		if payload.player == player and WeaponAnim.consumeWave() then
+			return -- 내가 휘두를 때 이미 날렸다
+		end
+		WeaponEffects.wave(payload.from, payload.to, tonumber(payload.grade) or 1, payload.hit == true)
 	end
 end
 
