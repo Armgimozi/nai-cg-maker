@@ -3,10 +3,14 @@
 -- 무기는 Roblox 도구다. 지닌 무기(data.weapons)마다 가방에 도구가 들어가 숫자 키 1~9 로 든다.
 -- 도구를 쓰면(클릭) 서버가 앞쪽 요수를 찾아 피해를 준다. 맞는 판정과 쿨타임은 서버가 정한다.
 -- 피해 숫자를 공중에 띄우지 않는다. 화면 위 대상 창(client/CombatHud.luau)으로 알린다.
+--
+-- 칼질은 모든 클라이언트에 알린다 (remotes.Combat:FireAllClients). 몸짓과 효과는 클라이언트가 그린다
+-- (client/WeaponAnim.luau, client/WeaponEffects.luau).
+--   { kind = "swing", player, weapon = 종류 id, grade, combo }   받아들인 칼질마다 (쿨타임을 넘긴 뒤)
+--   { kind = "impact", player, position, weapon, grade }         맞은 요수마다 (부채는 바람칼이 닿을 때)
+--   { kind = "wave", player, from, to, grade, hit }              부채 바람칼
+-- 휘두른 사람과 맞은 사람에게만 가는 "hit"·"hurt"·"blocked" 는 그대로다.
 
-local Debris = game:GetService("Debris")
-local TweenService = game:GetService("TweenService")
-local Workspace = game:GetService("Workspace")
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 
 local Combat = require(Shared.Combat)
@@ -28,9 +32,45 @@ local remotes = Net.get()
 local rng = Random.new()
 local lastSwing: { [Player]: number } = {}
 local MAX_HITS = 4 -- 한 번에 벨 수 있는 요수
+local CHEST = 0.7 -- 뿌리(HumanoidRootPart)에서 가슴까지 높이
+local WAVE_SPEED = 150 -- 바람칼 빠르기(스터드/초). client/WeaponEffects.luau 의 WAVE_SPEED 와 같은 값
+local WAVE_TIME_MIN, WAVE_TIME_MAX = 0.1, 0.28
+local COMBO_RESET = 1.2 -- 이만큼 쉬면 연속 공격이 첫 수로 돌아간다
+local COMBO_LENGTH = { sword = 3, saber = 2, spear = 2, fan = 1 } -- 종류마다 연속 공격 수
+
+type Combo = { kind: string, count: number, at: number }
+local combos: { [Player]: Combo } = {}
 
 local function event(player: Player, payload: { [string]: any })
 	remotes.Combat:FireClient(player, payload)
+end
+
+-- 모두에게 (칼질 몸짓과 효과)
+local function broadcast(payload: { [string]: any })
+	remotes.Combat:FireAllClients(payload)
+end
+
+-- 몇 번째 연속 공격인가 (종류를 바꾸거나 쉬면 처음부터)
+local function nextCombo(player: Player, kind: string, now: number): number
+	local state = combos[player]
+	if not state or state.kind ~= kind or now - state.at > COMBO_RESET then
+		state = { kind = kind, count = 0, at = now }
+		combos[player] = state
+	end
+	state.count = state.count % (COMBO_LENGTH[kind] or 1) + 1
+	state.at = now
+	return state.count
+end
+
+-- 맞은 자리: 요수 몸 겉에서 나를 향한 쪽, 내 가슴 높이 (요수 몸 높이 안으로)
+local function hitPoint(from: Vector3, mob: MobService.Live): Vector3
+	local p = mob.root.Position
+	local flat = Vector3.new(from.X - p.X, 0, from.Z - p.Z)
+	local y = math.clamp(from.Y + CHEST, p.Y - mob.def.height * 0.5, p.Y + mob.def.height * 0.5)
+	local toward = if flat.Magnitude > 0.1
+		then flat.Unit * math.min(mob.def.radius * 0.8, flat.Magnitude * 0.7)
+		else Vector3.zero
+	return Vector3.new(p.X, y, p.Z) + toward
 end
 
 -- 요수를 쓰러뜨렸다
@@ -85,24 +125,6 @@ local function hitMob(player: Player, mob: MobService.Live, damage: number)
 	end
 end
 
--- 날리는 기운 (부채): 눈에 보이는 옥빛 줄기
-local function wave(from: Vector3, to: Vector3)
-	local part = Instance.new("Part")
-	part.Anchored = true
-	part.CanCollide = false
-	part.CanQuery = false
-	part.CanTouch = false
-	part.Material = Enum.Material.Neon
-	part.Color = Color3.fromRGB(150, 230, 200)
-	part.Transparency = 0.3
-	part.Size = Vector3.new(3, 0.3, 2)
-	part.CFrame = CFrame.new(from, to)
-	part.Parent = Workspace
-	TweenService:Create(part, TweenInfo.new(0.25), { CFrame = CFrame.new(to, to + (to - from)), Transparency = 1 })
-		:Play()
-	Debris:AddItem(part, 0.3)
-end
-
 -- 도구를 썼다 (서버에서 Tool.Activated)
 function CombatService.swing(player: Player, index: number)
 	local data = PlayerData.get(player)
@@ -128,6 +150,13 @@ function CombatService.swing(player: Player, index: number)
 		return
 	end
 	flat = flat.Unit
+	broadcast({
+		kind = "swing",
+		player = player,
+		weapon = weapon.kind,
+		grade = weapon.grade,
+		combo = nextCombo(player, weapon.kind, now),
+	})
 	local damage = Combat.damage(data.step, weapon, data.race)
 	local hits = {}
 	for _, mob in MobService.all() do
@@ -144,16 +173,37 @@ function CombatService.swing(player: Player, index: number)
 		return a.d < b.d
 	end)
 	if kind.ranged then
+		-- 바람칼: 앞줄에서 처음 닿는 요수까지, 없으면 끝까지 날아간다
 		local first = hits[1]
-		local reach = if first then first.d else kind.range
-		wave(root.Position + flat * 2, root.Position + flat * reach)
+		local chest = root.Position + Vector3.new(0, CHEST, 0)
+		local to = if first then hitPoint(root.Position, first.mob) else chest + flat * kind.range
+		-- 부채 끝쯤에서 떠난다 (바로 붙은 요수면 가슴에서)
+		local from = chest + flat * math.clamp((to - chest):Dot(flat) - 1, 0, 2)
+		broadcast({ kind = "wave", player = player, from = from, to = to, grade = weapon.grade, hit = first ~= nil })
 		if first then
+			-- 피해는 바로 주고, 맞은 자리 효과는 바람칼이 닿을 때 보인다
+			local travel = math.clamp((to - from).Magnitude / WAVE_SPEED, WAVE_TIME_MIN, WAVE_TIME_MAX)
+			task.delay(travel, broadcast, {
+				kind = "impact",
+				player = player,
+				position = to,
+				weapon = weapon.kind,
+				grade = weapon.grade,
+			})
 			hitMob(player, first.mob, damage)
 		end
 		return
 	end
 	for i = 1, math.min(MAX_HITS, #hits) do
-		hitMob(player, hits[i].mob, damage)
+		local mob = hits[i].mob
+		broadcast({
+			kind = "impact",
+			player = player,
+			position = hitPoint(root.Position, mob),
+			weapon = weapon.kind,
+			grade = weapon.grade,
+		})
+		hitMob(player, mob, damage)
 	end
 end
 
@@ -184,6 +234,7 @@ end
 
 function CombatService.forget(player: Player)
 	lastSwing[player] = nil
+	combos[player] = nil
 end
 
 return CombatService

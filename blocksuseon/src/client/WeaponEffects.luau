@@ -43,11 +43,11 @@ local TEXTURE = {
 -- 등급마다 빛깔: core 가운데(밝은 빛), edge 가장자리
 type Palette = { core: Color3, edge: Color3 }
 local PALETTE: { Palette } = {
-	{ core = Color3.fromRGB(255, 222, 160), edge = Color3.fromRGB(214, 132, 58) }, -- 목: 따뜻한 갈색·호박빛
+	{ core = Color3.fromRGB(255, 200, 122), edge = Color3.fromRGB(184, 104, 42) }, -- 목: 따뜻한 갈색·호박빛
 	{ core = Color3.fromRGB(240, 245, 255), edge = Color3.fromRGB(150, 166, 192) }, -- 철: 옅은 강철빛
 	{ core = Color3.fromRGB(212, 252, 255), edge = Color3.fromRGB(56, 192, 236) }, -- 청강: 푸른 강철빛
 	{ core = Color3.fromRGB(222, 255, 236), edge = Color3.fromRGB(64, 220, 156) }, -- 영: 옥빛
-	{ core = Color3.fromRGB(255, 252, 232), edge = Color3.fromRGB(255, 200, 84) }, -- 천: 금빛 도는 흰빛
+	{ core = Color3.fromRGB(255, 253, 240), edge = Color3.fromRGB(255, 216, 112) }, -- 천: 금빛 도는 흰빛
 }
 
 -- 종류마다 손맛
@@ -575,7 +575,8 @@ end
 -- 바람칼 (부채)
 --
 -- 초승달 모양: 앞(-Z)으로 볼록하고 두 뿔이 뒤(+Z)로 휜다. 뾰족한 뿔, 두꺼운 가운데.
--- 세 겹의 빛나는 타원체를 호를 따라 늘어놓는다: 옅은 겉빛(halo), 몸(body), 앞날의 흰빛(edge).
+-- 빛나는 타원체를 호를 따라 늘어놓는다: 옅은 겉빛(halo), 몸(body), 앞날의 흰빛(edge),
+-- 그리고 뒤따르는 작은 잔상 하나 (겹친 바람결).
 
 local ARC = math.rad(68) -- 가운데에서 뿔까지 벌어진 각
 local RADIUS = 3.1
@@ -583,14 +584,43 @@ local WIDTH = 1.45 -- 가운데의 안팎 두께
 local TAPER = 0.9 -- 뿔로 갈수록 가늘어지는 정도
 local TILT = math.rad(30) -- 앞으로 숙인 각: 뒤·위에서 보는 카메라에 초승달 면이 보인다
 local ROLL_MIN, ROLL_MAX = 12, 26 -- 비스듬히 기운 각(도). 매번 좌우를 바꿔 가며 조금씩 다르게
-local LAYERS = {
+-- count 조각 수, width·length 두께·길이 배율, thick 높이, forward 앞으로 민 정도(두께 비), mix 가운데 빛 비율,
+-- alpha 투명도, radius·arc 호의 크기·벌어짐 배율, back 뒤로 물린 거리
+type Layer = {
+	name: string,
+	count: number,
+	width: number,
+	length: number,
+	thick: number,
+	forward: number,
+	mix: number,
+	alpha: number,
+	radius: number?,
+	arc: number?,
+	back: number?,
+}
+local LAYERS: { Layer } = {
 	{ name = "겉빛", count = 8, width = 1.3, length = 2.3, thick = 0.5, forward = 0, mix = 0, alpha = 0.76 },
 	{ name = "몸", count = 10, width = 1, length = 2, thick = 0.2, forward = 0, mix = 0.35, alpha = 0.18 },
 	{ name = "앞날", count = 10, width = 0.34, length = 1.9, thick = 0.12, forward = 0.33, mix = 1, alpha = 0 },
+	{
+		name = "잔상",
+		count = 8,
+		width = 0.55,
+		length = 2,
+		thick = 0.14,
+		forward = 0,
+		mix = 0.25,
+		alpha = 0.55,
+		radius = 0.78,
+		arc = 0.85,
+		back = 1.2,
+	},
 }
 
-local function arcPoint(theta: number): Vector3
-	return Vector3.new(RADIUS * math.sin(theta), 0, RADIUS * (1 - math.cos(theta)))
+local function arcPoint(theta: number, radius: number?): Vector3
+	local r = radius or RADIUS
+	return Vector3.new(r * math.sin(theta), 0, r * (1 - math.cos(theta)))
 end
 
 local function arcWidth(theta: number): number
@@ -613,17 +643,21 @@ function WeaponEffects.crescent(grade: number): { Piece }
 	local colors = palette(grade)
 	local pieces = {}
 	for _, layer in LAYERS do
-		local step = 2 * ARC / layer.count
-		local chord = 2 * RADIUS * math.sin(step / 2)
+		local radius = RADIUS * (layer.radius or 1)
+		local arc = ARC * (layer.arc or 1)
+		local step = 2 * arc / layer.count
+		local chord = 2 * radius * math.sin(step / 2)
 		for i = 1, layer.count do
-			local theta = -ARC + (i - 0.5) * step
+			local theta = -arc + (i - 0.5) * step
 			local normal = Vector3.new(math.sin(theta), 0, -math.cos(theta))
 			local tangent = Vector3.new(math.cos(theta), 0, math.sin(theta))
-			local width = math.max(arcWidth(theta) * layer.width, 0.08)
 			-- 뿔 쪽 조각은 가늘고 길게 (뾰족하게)
-			local edgeness = math.abs(theta) / ARC
+			local edgeness = math.abs(theta) / arc
+			local width = math.max(arcWidth(edgeness * ARC) * layer.width * (layer.radius or 1), 0.08)
 			local length = chord * layer.length * (1 + edgeness * 0.2)
-			local position = arcPoint(theta) + normal * (width * layer.forward)
+			local position = arcPoint(theta, radius)
+				+ normal * (width * layer.forward)
+				+ Vector3.new(0, 0, layer.back or 0)
 			table.insert(pieces, {
 				offset = CFrame.fromMatrix(position, tangent, Vector3.yAxis),
 				size = Vector3.new(length, layer.thick * (1 - edgeness * 0.4), width),
@@ -668,18 +702,22 @@ local function placeWave(wave: Wave): boolean
 	local position = wave.from:Lerp(wave.to, u)
 	local scale = 0.7 + 0.45 * (1 - (1 - u) ^ 2)
 	local flutter = math.sin(wave.age * 40) * math.rad(3) * (1 - e)
-	local spread, fade, thin = 0, 0, 1
+	local spread, fade, stretch, thin = 0, 0, 1, 1
 	if e > 0 then
 		local ease = 1 - (1 - e) ^ 2
 		if wave.hit then
+			-- 맞으면 조각이 사방으로 터진다
 			spread = ease * 2.2
 			scale *= 1 - ease * 0.45
+			fade = e ^ 1.3
 		else
+			-- 빗나가면 조금 더 나아가며 길게 늘어지고 가늘어져 흩어진다
 			position += direction * 3 * ease
-			scale *= 1 + ease * 0.45
-			thin = 1 - ease * 0.8
+			scale *= 1 + ease * 0.3
+			stretch = 1 + ease * 0.35
+			thin = 1 - ease * 0.75
+			fade = e ^ 0.9
 		end
-		fade = e ^ 1.3
 	end
 	local base = CFrame.lookAt(position, position + direction) * wave.turn * CFrame.Angles(0, 0, flutter)
 	wave.carrier.CFrame = base * CFrame.new(0, 0, CARRIER_Z * scale)
@@ -692,7 +730,7 @@ local function placeWave(wave: Wave): boolean
 		part.CFrame = base
 			* CFrame.new(offset.Position * scale + piece.normal * spread * (0.6 + (i % 3) * 0.3))
 			* offset.Rotation
-		wave.meshes[i].Scale = Vector3.new(scale, scale * thin, scale)
+		wave.meshes[i].Scale = Vector3.new(scale * stretch, scale * thin, scale * thin)
 		part.Transparency = piece.alpha + (1 - piece.alpha) * fade
 	end
 	return e >= 1
