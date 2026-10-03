@@ -71,6 +71,13 @@ local actions = {
 	travel = function(id: string)
 		request("Travel", id)
 	end,
+	-- 만물상에서 사기 (Currency.WARES 의 id), 대장간에서 그 칸 무기 강화. 서버가 상점 곁인지 다시 본다
+	buy = function(wareId: string)
+		request("Buy", wareId)
+	end,
+	upgrade = function(index: number)
+		request("Upgrade", index)
+	end,
 }
 
 Hud.build(actions)
@@ -150,13 +157,23 @@ Plaques.start()
 MobAnimator.start()
 
 -- 전송진: F 를 누르면 갈 곳 고르는 창을 연다. 진에서 멀어지면 닫는다
+-- 상점 자리(MarketSpot): F 를 누르면 만물상·대장간 창을 연다. 자리에서 멀어지면 닫는다
+local SHOP_REACH = 20
 local travelPad: BasePart? = nil
+local shopSpot: BasePart? = nil
 game:GetService("ProximityPromptService").PromptTriggered:Connect(function(prompt: ProximityPrompt)
 	local id = prompt:GetAttribute("Waypoint")
+	local shop = prompt:GetAttribute("Shop")
 	local pad = prompt.Parent
-	if type(id) == "string" and pad and pad:IsA("BasePart") then
+	if not pad or not pad:IsA("BasePart") then
+		return
+	end
+	if type(id) == "string" then
 		travelPad = pad
 		Hud.openTravel(id)
+	elseif shop == "market" or shop == "smith" then
+		shopSpot = pad
+		Hud.openShop(shop)
 	end
 end)
 RunService.Heartbeat:Connect(function()
@@ -176,6 +193,20 @@ RunService.Heartbeat:Connect(function()
 		Hud.closeTravel()
 	end
 end)
+RunService.Heartbeat:Connect(function()
+	local spot = shopSpot
+	if not spot or not Hud.shopOpen() then
+		shopSpot = nil
+		return
+	end
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	-- 서버는 수평 16 안에서만 받아 준다. 창은 조금 넉넉하게 20 넘게 멀어지면 닫는다
+	local offset = if root and root:IsA("BasePart") then root.Position - spot.Position else nil
+	if offset == nil or Vector3.new(offset.X, 0, offset.Z).Magnitude > SHOP_REACH or not spot.Parent then
+		shopSpot = nil
+		Hud.closeShop()
+	end
+end)
 remotes.Skill.OnClientEvent:Connect(function(payload)
 	Hud.skillUsed(payload)
 	if payload.id == "gyeongsin" then
@@ -186,6 +217,11 @@ remotes.Skill.OnClientEvent:Connect(function(payload)
 end)
 
 UserInputService.InputBegan:Connect(function(input: InputObject, processed: boolean)
+	-- Esc 는 Roblox 메뉴도 열어서 processed 와 상관없이 상점 창을 닫는다
+	if input.KeyCode == Enum.KeyCode.Escape and Hud.shopOpen() then
+		Hud.closeShop()
+		return
+	end
 	if processed or input.UserInputType ~= Enum.UserInputType.Keyboard then
 		return
 	end

@@ -155,8 +155,8 @@ local function buildTool(weapon: Combat.Weapon, index: number, player: Player): 
 	tool.GripUp = Vector3.new(0, 0, 1)
 
 	local handle = part(tool, "Handle", Vector3.new(0.3, 0.3, 1.4), HILT, Enum.Material.Wood)
-	local spec = Combat.MESH[weapon.kind]
-	local mesh = if spec and spec.asset > 0 then loadMesh(spec.asset) else nil
+	local spec = Combat.meshFor(weapon)
+	local mesh = if spec then loadMesh(spec.asset) else nil
 	local body: BasePart? = nil
 	local copy = mesh and mesh:Clone()
 	if copy then

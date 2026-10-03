@@ -22,6 +22,7 @@ local Clock = require(Shared.Clock)
 local Tasks = require(Shared.Tasks)
 local Places = require(Shared.Places)
 local Races = require(Shared.Races)
+local Currency = require(Shared.Currency)
 local Ui = require(script.Parent.Ui)
 local Notice = require(script.Parent.Notice)
 local PlaceBanner = require(script.Parent.PlaceBanner)
@@ -29,6 +30,7 @@ local TravelMenu = require(script.Parent.TravelMenu)
 local CombatHud = require(script.Parent.CombatHud)
 local Choice = require(script.Parent.Choice)
 local Naegwan = require(script.Parent.Naegwan)
+local ShopWindow = require(script.Parent.ShopWindow)
 
 export type Actions = {
 	meditate: () -> (),
@@ -43,6 +45,8 @@ export type Actions = {
 	trialResult: (payload: { [string]: any }) -> (),
 	trialCancel: () -> (),
 	travel: (id: string) -> (),
+	buy: (wareId: string) -> (),
+	upgrade: (index: number) -> (),
 }
 
 local IMG = Ui.IMG
@@ -74,6 +78,8 @@ local pouchRows: { [string]: { [string]: any } } = {}
 local announcedTasks: { [string]: boolean } = {}
 local autoOpened: { [string]: boolean } = {}
 local skipArmed: { [string]: number } = {}
+local lastStones: number? = nil
+local stonePulse = 0
 local MAX_TASK_LINES = 4
 
 -- 도우미 ---------------------------------------------------------------------------
@@ -186,6 +192,34 @@ local function buildStatus(gui: ScreenGui)
 		})
 		passiveSlots[index] = { slot = slot, icon = icon }
 	end
+
+	-- 영석: 늘 보이는 지닌 돈 (공법 칸 오른쪽). 누르면 어디서 얻고 어디에 쓰는지 알려 준다
+	local stoneButton = new("TextButton", {
+		Name = "Stones",
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.fromOffset(322, 150),
+		Size = UDim2.fromOffset(140, 28),
+		BackgroundTransparency = 1,
+		Text = "",
+		Parent = status,
+	})
+	local stoneRow = row({
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.fromScale(1, 0.5),
+		Size = UDim2.fromScale(1, 1),
+		Parent = stoneButton,
+	}, Enum.HorizontalAlignment.Right, 6)
+	stoneRow:FindFirstChildOfClass("UIListLayout").VerticalAlignment = Enum.VerticalAlignment.Center
+	ui.stoneScale = new("UIScale", { Parent = stoneRow })
+	image("gem", { LayoutOrder = 1, Size = UDim2.fromOffset(20, 20), Parent = stoneRow })
+	ui.stoneText = text("body", 18, { color = C.gold, name = "StoneText", parent = stoneRow })
+	ui.stoneText.frame.LayoutOrder = 2
+	stoneButton.Activated:Connect(function()
+		Hud.toast(
+			"영석은 위험한 땅의 영석 광맥에서 캔다. 만물상, 대장간, 전송진 삯에 쓴다.",
+			"info"
+		)
+	end)
 
 	-- 낮밤
 	ui.clockText = text("body", 15, { color = C.dim })
@@ -472,8 +506,8 @@ local function buildHotbar(gui: ScreenGui)
 end
 
 -- 가운데: 상태창 (C)
-local STAT_KEYS = { "체력", "영력", "흡수", "영근", "종족", "천겁", "영초", "비급" }
-local STAT_GAP = 34
+local STAT_KEYS = { "체력", "영력", "흡수", "영근", "종족", "영석", "천겁", "영초", "비급" }
+local STAT_GAP = 30
 
 local function buildStatusWindow(gui: ScreenGui)
 	local panel = scaled(image("panel", {
@@ -542,7 +576,7 @@ local function buildStatusWindow(gui: ScreenGui)
 		value.frame.Position = UDim2.new(1, 4, 0, y)
 		value.frame.Parent = left
 		new("Frame", {
-			Position = UDim2.fromOffset(0, y + 30),
+			Position = UDim2.fromOffset(0, y + STAT_GAP - 3),
 			Size = UDim2.new(1, 0, 0, 1),
 			BackgroundColor3 = C.gold,
 			BackgroundTransparency = 0.85,
@@ -872,6 +906,14 @@ function Hud.build(newActions: Actions)
 	TravelMenu.build(gui, function(id)
 		actions.travel(id)
 	end)
+	ShopWindow.build(gui, {
+		buy = function(wareId)
+			actions.buy(wareId)
+		end,
+		upgrade = function(index)
+			actions.upgrade(index)
+		end,
+	})
 	local banner = PlaceBanner.build(gui)
 	local combat = CombatHud.build(gui)
 	table.insert(scales, combat:FindFirstChildOfClass("UIScale"))
@@ -879,6 +921,7 @@ function Hud.build(newActions: Actions)
 	table.insert(scales, (gui:FindFirstChild("Choice") :: any):FindFirstChildOfClass("UIScale"))
 	table.insert(scales, (gui:FindFirstChild("Naegwan") :: any):FindFirstChildOfClass("UIScale"))
 	table.insert(scales, (gui:FindFirstChild("TravelMenu") :: any):FindFirstChildOfClass("UIScale"))
+	table.insert(scales, (gui:FindFirstChild("ShopWindow") :: any):FindFirstChildOfClass("UIScale"))
 	table.insert(scales, banner:FindFirstChildOfClass("UIScale"))
 	buildCinematic()
 
@@ -1063,6 +1106,7 @@ local function updateStatusWindow(state)
 		["흡수"] = string.format("%s / 초", Format.rate(state.gain)),
 		["영근"] = if state.root then (string.gsub(Roots.describe(state.root), "[(),]", "")) else "아직 모름",
 		["종족"] = if state.race then Races.get(state.race).name else "-",
+		["영석"] = string.format("%s개", Currency.format(state.stones or 0)),
 		["천겁"] = string.format("%d회 넘음", stats.tribulations or 0),
 		["영초"] = string.format("%d개", stats.herbs or 0),
 		["비급"] = string.format("%d권", stats.manuals or 0),
@@ -1195,6 +1239,7 @@ local function updateTasks(state)
 				main = "고르기"
 				entry.onMain = function()
 					TravelMenu.close()
+					ShopWindow.close()
 					Choice.open(job.key, lastState or state)
 				end
 			elseif job.kind == "eat" and ((state.items or {})[job.item or "herb"] or 0) > 0 then
@@ -1239,6 +1284,7 @@ local function updateTasks(state)
 			task.defer(function()
 				if not Choice.isOpen() then
 					TravelMenu.close()
+					ShopWindow.close()
 					Choice.open(job.key, lastState or state)
 				end
 			end)
@@ -1258,8 +1304,28 @@ local function updateTasks(state)
 	ui.eatButton.Visible = (items.herb or 0) > 0
 end
 
+-- 지닌 영석. 늘면 잠깐 커졌다 줄며 옥빛으로 빛난다
+local function updateStones(state)
+	local stones = state.stones or 0
+	ui.stoneText:set(Currency.format(stones))
+	if lastStones ~= nil and stones > lastStones then
+		stonePulse += 1
+		local token = stonePulse
+		ui.stoneScale.Scale = 1.35
+		tween(ui.stoneScale, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 })
+		ui.stoneText:setColor(C.jade)
+		task.delay(0.8, function()
+			if token == stonePulse then
+				ui.stoneText:setColor(C.gold)
+			end
+		end)
+	end
+	lastStones = stones
+end
+
 function Hud.update(state)
 	updateStatus(state)
+	updateStones(state)
 	updateTasks(state)
 	updateOrbs(state)
 	updateStatusWindow(state)
@@ -1267,12 +1333,14 @@ function Hud.update(state)
 	lastState = state
 	-- 전송진 창이 열려 있으면 방금 열린 진도 바로 보이게 다시 그린다
 	TravelMenu.refresh(state)
+	ShopWindow.refresh(state)
 end
 
 -- 전송진 위에서 F: 갈 곳 고르기
 function Hud.openTravel(fromId: string)
 	if lastState and not Naegwan.isOpen() then
 		Choice.close()
+		ShopWindow.close()
 		TravelMenu.open(fromId, lastState)
 	end
 end
@@ -1285,9 +1353,31 @@ function Hud.travelOpen(): boolean
 	return TravelMenu.isOpen()
 end
 
+-- 상점 자리에서 F: 만물상("market") 또는 대장간("smith") 창
+function Hud.openShop(kind: string)
+	if lastState and not Naegwan.isOpen() then
+		Choice.close()
+		TravelMenu.close()
+		Hud.toggleStatus(false)
+		ShopWindow.open(kind, lastState)
+	end
+end
+
+function Hud.closeShop()
+	ShopWindow.close()
+end
+
+function Hud.shopOpen(): boolean
+	return ShopWindow.isOpen()
+end
+
 function Hud.toggleStatus(open: boolean?)
 	local panel = ui.panel :: ImageLabel
 	panel.Visible = if open == nil then not panel.Visible else open
+	-- 상태창을 열면 상점 창은 닫는다 (겹치지 않게)
+	if panel.Visible then
+		ShopWindow.close()
+	end
 end
 
 -- 내관 창
@@ -1299,6 +1389,7 @@ function Hud.openTrial(payload: { [string]: any })
 	Hud.toggleStatus(false)
 	Choice.close()
 	TravelMenu.close()
+	ShopWindow.close()
 	Naegwan.open(payload :: any, lastState and lastState.root)
 end
 
@@ -1388,6 +1479,7 @@ RunService.Heartbeat:Connect(function(dt)
 				or Choice.isOpen()
 				or Naegwan.isOpen()
 				or TravelMenu.isOpen()
+				or ShopWindow.isOpen()
 				or PlaceBanner.isShowing()
 		)
 	end

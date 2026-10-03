@@ -111,6 +111,8 @@ local sharedFolder = Harness.new({}).folder("src/shared")
 
 local tweensPlayed = 0
 local heartbeatKey = {}
+local tagged: { [string]: { any } } = {} -- 가짜 CollectionService 태그 (태그 → 인스턴스 목록)
+local purchases: { number } = {} -- 로벅스 상품 창을 띄운 상품 id
 local chatMessages: { string } = {}
 local fakeChannel = {
 	Parent = true,
@@ -123,7 +125,9 @@ local fakeChannel = {
 }
 local services = {
 	MarketplaceService = {
-		PromptProductPurchase = function() end,
+		PromptProductPurchase = function(_, _player, productId)
+			table.insert(purchases, productId)
+		end,
 	},
 	PolicyService = {
 		GetPolicyInfoForPlayerAsync = function()
@@ -131,8 +135,8 @@ local services = {
 		end,
 	},
 	CollectionService = {
-		GetTagged = function()
-			return {}
+		GetTagged = function(_, tag)
+			return tagged[tag] or {}
 		end,
 		GetInstanceAddedSignal = function()
 			return fakeSignal(heartbeatKey, "TagAdded")
@@ -268,6 +272,8 @@ Hud.build({
 	trialResult = record("trialResult"),
 	trialCancel = record("trialCancel"),
 	travel = record("travel"),
+	buy = record("buy"),
+	upgrade = record("upgrade"),
 })
 
 local function state(overrides)
@@ -297,6 +303,8 @@ local function state(overrides)
 		maxHealth = 125,
 		tribulation = nil,
 		canSave = true,
+		stones = 30,
+		weapons = { { kind = "sword", grade = 1 } },
 	}
 	for k, v in overrides or {} do
 		s[k] = v
@@ -440,6 +448,238 @@ do
 	fire(buttons[2], "Activated")
 	assert(sent.travel and sent.travel[1] == "wp_two", "고른 진을 보내야 한다")
 	assert(not Hud.travelOpen(), "고르면 창이 닫힌다")
+end
+
+-- 영석 ------------------------------------------------------------------------------
+
+-- BitmapText 틀에 찍힌 글자를 다시 읽는다 (빈칸은 그림이 없어서 빠진다)
+local ArtGlyphs = loader.require(loader.folder("src/client").Art)
+local glyphChars: { [string]: string } = {}
+for _, font in ArtGlyphs.fonts do
+	for ch, glyph in font.glyphs do
+		glyphChars[`{font.pages[glyph[1]]}:{glyph[2]}:{glyph[3]}`] = ch
+	end
+end
+local function readText(frame): string
+	assert(frame, "글자 틀이 없다")
+	local labels = {}
+	for _, child in frame:GetChildren() do
+		if child:IsA("ImageLabel") then
+			table.insert(labels, child)
+		end
+	end
+	table.sort(labels, function(a, b)
+		return a.Position.X.Offset < b.Position.X.Offset
+	end)
+	local out = {}
+	for _, label in labels do
+		table.insert(out, glyphChars[`{label.Image}:{label.ImageRectOffset.X}:{label.ImageRectOffset.Y}`] or "?")
+	end
+	return table.concat(out)
+end
+-- 글자판에 있는 글자만 찍히므로, 기대하는 글에서도 빈칸과 글자판에 없는 글자는 빼고 견준다
+-- (새 글자가 들어가 글자판을 다시 굽기 전에도 통과하게)
+local function shows(frame, fontName: string, expected: string): boolean
+	local out = {}
+	for _, code in utf8.codes(expected) do
+		local ch = utf8.char(code)
+		local glyph = ArtGlyphs.fonts[fontName].glyphs[ch]
+		if glyph and glyph[4] > 0 then
+			table.insert(out, ch)
+		end
+	end
+	return readText(frame) == table.concat(out)
+end
+local function find(root, name: string)
+	for _, item in root:GetDescendants() do
+		if item.Name == name then
+			return item
+		end
+	end
+	return nil
+end
+local UiForTest = loader.require(loader.folder("src/client").Ui)
+
+do
+	local hudGui = playerGui:FindFirstChild("BlockSuseonHud")
+	-- 늘 보이는 영석 칸: 쉼표로 끊어 보이고, 늘면 잠깐 옥빛이 된다
+	Hud.update(state({ stones = 1250 }))
+	local counter = find(hudGui:FindFirstChild("Status"), "StoneText")
+	assert(shows(counter, "body", "1,250"), `영석 칸 {readText(counter)} (1,250)`)
+	-- 앞 상태(30)보다 늘어서 잠깐 빛났다가 금빛으로 돌아온다
+	task.wait(1)
+	local first = counter:FindFirstChildOfClass("ImageLabel")
+	assert(first.ImageColor3 == UiForTest.C.gold, "영석 칸은 금빛이다")
+	Hud.update(state({ stones = 1265 }))
+	assert(shows(counter, "body", "1,265"), "영석이 늘면 숫자를 바꾼다")
+	first = counter:FindFirstChildOfClass("ImageLabel")
+	assert(first.ImageColor3 == UiForTest.C.jade, "영석이 늘면 잠깐 빛난다")
+	-- 상태창 능력치에도 보인다
+	local statShown = false
+	for _, item in hudGui:FindFirstChild("StatusWindow"):GetDescendants() do
+		if item.Name == "Text" and shows(item, "body", "1,265개") then
+			statShown = true
+		end
+	end
+	assert(statShown, "상태창에 영석이 없다")
+
+	-- 만물상: 물건, 무기, 영석 사기
+	Hud.update(state({
+		stones = 100,
+		items = { herb = 3 },
+		weapons = { { kind = "sword", grade = 1 }, { kind = "saber", grade = 2 }, { kind = "fan", grade = 5 } },
+	}))
+	Hud.openShop("market")
+	assert(Hud.shopOpen(), "상점 창이 열리지 않았다")
+	local shop = hudGui:FindFirstChild("ShopWindow")
+	local function shown(): { [number]: any }
+		local out = {}
+		for _, item in shop:GetDescendants() do
+			if item.Name == "Row" and item.Visible then
+				out[item.LayoutOrder] = item
+			end
+		end
+		return out
+	end
+	local function count(list): number
+		local n = 0
+		for _ in list do
+			n += 1
+		end
+		return n
+	end
+	local function buttonOf(rowFrame)
+		return find(rowFrame, "Button")
+	end
+	local pillStone = ArtGlyphs.images.pillStone.id
+	local Combat = loader.require(sharedFolder.Combat)
+	local function weaponName(kind: string, grade: number): string
+		return Combat.weaponName({ kind = kind, grade = grade })
+	end
+	assert(shows(find(shop, "Stones"), "body", "100"), "상점 창 머리에 지닌 영석이 보여야 한다")
+	local rows = shown()
+	assert(count(rows) == 4, `물건 {count(rows)}줄 (4)`)
+	assert(shows(find(rows[1], "Name"), "title", "영초"), "첫 물건은 영초")
+	assert(shows(find(rows[1], "Sub"), "body", "1개, 주머니에 3개"), readText(find(rows[1], "Sub")))
+	assert(shows(find(rows[1], "Price"), "body", "15"), "영초 값")
+	fire(buttonOf(rows[1]), "Activated")
+	assert(sent.buy and sent.buy[1] == "herb1", "사기를 누르면 서버에 보낸다")
+	sent.buy = nil
+	-- 모자라면 버튼을 흐리게 하고 보내지 않는다
+	assert(buttonOf(rows[2]).Image == pillStone, "못 사는 물건은 흐려야 한다")
+	fire(buttonOf(rows[2]), "Activated")
+	assert(sent.buy == nil, "영석이 모자라면 보내지 않는다")
+
+	fire(find(shop, "Tab2"), "Activated")
+	rows = shown()
+	assert(count(rows) == 3, `무기 {count(rows)}줄 (3)`)
+	assert(shows(find(rows[1], "Name"), "title", weaponName("saber", 1)), readText(find(rows[1], "Name")))
+	assert(shows(find(rows[1], "Sub"), "body", Combat.KINDS.saber.summary), "무기 설명")
+	assert(shows(find(buttonOf(rows[1]), "Text"), "body", "지님"), "지닌 종류는 지님")
+	fire(buttonOf(rows[1]), "Activated")
+	assert(sent.buy == nil, "지닌 종류는 다시 사지 않는다")
+	fire(buttonOf(rows[2]), "Activated")
+	assert(sent.buy and sent.buy[1] == "spear", "창을 산다")
+	sent.buy = nil
+
+	fire(find(shop, "Tab3"), "Activated")
+	rows = shown()
+	assert(count(rows) == 3, `영석 묶음 {count(rows)}줄 (3)`)
+	assert(shows(find(rows[1], "Name"), "title", "영석 한 줌"), "묶음 이름")
+	assert(shows(find(rows[1], "Sub"), "body", "영석 120개"), "묶음 영석")
+	assert(shows(find(buttonOf(rows[1]), "Text"), "body", "25 로벅스"), "묶음 값")
+	fire(buttonOf(rows[2]), "Activated")
+	local Currency = loader.require(sharedFolder.Currency)
+	assert(purchases[1] == Currency.PACKS[2].productId, "로벅스 상품 창을 띄워야 한다")
+
+	-- 열려 있는 동안 상태가 오면 다시 그린다
+	fire(find(shop, "Tab2"), "Activated")
+	Hud.update(state({ stones = 10, weapons = { { kind = "sword", grade = 1 } } }))
+	assert(shows(find(shop, "Stones"), "body", "10"), "상태가 오면 머리 영석을 바꾼다")
+	rows = shown()
+	assert(shows(find(buttonOf(rows[1]), "Text"), "body", "사기"), "지니지 않은 종류는 사기")
+	assert(buttonOf(rows[1]).Image == pillStone, "모자라면 흐려진다")
+
+	-- 대장간: 지닌 무기마다 다음 등급과 값. 최고 등급은 버튼이 없다
+	Hud.update(state({
+		stones = 100,
+		weapons = { { kind = "sword", grade = 1 }, { kind = "saber", grade = 2 }, { kind = "fan", grade = 5 } },
+	}))
+	Hud.openShop("smith")
+	assert(Hud.shopOpen(), "대장간 창이 열리지 않았다")
+	assert(not find(shop, "Tab1").Parent.Visible, "대장간에는 갈래가 없다")
+	rows = shown()
+	assert(count(rows) == 3, `대장간 {count(rows)}줄 (3)`)
+	assert(shows(find(rows[1], "Name"), "title", weaponName("sword", 1)), "첫 무기")
+	assert(
+		shows(
+			find(rows[1], "Sub"),
+			"body",
+			string.format("%s 등급, 강화하면 %s", Combat.GRADES[1].prefix, weaponName("sword", 2))
+		),
+		readText(find(rows[1], "Sub"))
+	)
+	assert(shows(find(rows[1], "Price"), "body", "120"), "목→철 값")
+	assert(shows(find(rows[3], "Name"), "title", weaponName("fan", 5)), "부채 최고 등급")
+	assert(shows(find(rows[3], "Price"), "body", "최고 등급"), "최고 등급은 값 대신")
+	assert(not buttonOf(rows[3]).Visible, "최고 등급은 강화 버튼이 없다")
+	fire(buttonOf(rows[1]), "Activated")
+	assert(sent.upgrade == nil, "영석이 모자라면 강화를 보내지 않는다")
+	Hud.update(state({
+		stones = 500,
+		weapons = { { kind = "sword", grade = 1 }, { kind = "saber", grade = 2 }, { kind = "fan", grade = 5 } },
+	}))
+	fire(buttonOf(rows[2]), "Activated")
+	assert(sent.upgrade and sent.upgrade[1] == 2, "그 칸 무기를 강화한다")
+	-- 상태창을 열면 상점 창은 닫힌다
+	Hud.toggleStatus(true)
+	assert(not Hud.shopOpen(), "상태창을 열면 상점 창을 닫는다")
+	Hud.toggleStatus(false)
+
+	-- 전송진 삯: 선 진과 갈 진 바닥 사이 거리로 센다. 연국으로는 공짜
+	local function pad(id: string, x: number, z: number)
+		local part = roblox.Instance.new("Part")
+		part.Position = roblox.Vector3.new(x, 0, z)
+		part:SetAttribute("WaypointId", id)
+		return wrap(part)
+	end
+	tagged.Waypoint = { pad("wp_yeonguk", 0, 0), pad("wp_two", 600, 0), pad("wp_three", 0, 5000) }
+	local points = {
+		{ id = "wp_yeonguk", name = "연국", open = true },
+		{ id = "wp_two", name = "영산", open = true },
+		{ id = "wp_three", name = "천겁대", open = true },
+	}
+	Hud.update(state({ stones = 5, waypoints = points }))
+	Hud.openTravel("wp_two")
+	local menu = hudGui:FindFirstChild("TravelMenu")
+	local function entries()
+		local out = {}
+		for _, item in menu:GetDescendants() do
+			if item:IsA("ImageButton") and item.Visible and item.LayoutOrder > 0 then
+				out[item.LayoutOrder] = item
+			end
+		end
+		return out
+	end
+	local buttons = entries()
+	assert(shows(find(menu, "Stones"), "body", "5"), "전송진 창에 지닌 영석")
+	assert(shows(find(buttons[1], "Fee"), "body", "공짜"), "연국으로 가는 길은 공짜")
+	assert(not find(buttons[2], "Fee").Visible, "지금 선 진에는 삯이 없다")
+	local far = Currency.travelFee(math.sqrt(600 ^ 2 + 5000 ^ 2), false)
+	assert(shows(find(buttons[3], "Fee"), "body", "영석 " .. far), readText(find(buttons[3], "Fee")))
+	sent.travel = nil
+	fire(buttons[3], "Activated")
+	assert(sent.travel == nil, "삯이 모자라면 보내지 않는다")
+	assert(Hud.travelOpen(), "삯이 모자라면 창을 닫지 않는다")
+	fire(buttons[1], "Activated")
+	assert(sent.travel[1] == "wp_yeonguk", "공짜 길은 바로 간다")
+	Hud.openTravel("wp_yeonguk")
+	buttons = entries()
+	local near = Currency.travelFee(600, false)
+	assert(shows(find(buttons[2], "Fee"), "body", "영석 " .. near), "가까운 진 삯")
+	fire(buttons[2], "Activated")
+	assert(sent.travel[1] == "wp_two", "삯이 넉넉하면 간다")
+	tagged.Waypoint = nil
 end
 
 -- 싸움: 대상 창과 맞은 느낌
@@ -755,6 +995,37 @@ local fs = require("@lune/fs")
 for _, file in fs.readDir("src/server") do
 	local source = fs.readFile("src/server/" .. file)
 	source = string.gsub(source, "%-%-[^\n]*", "")
+	for literal in string.gmatch(source, '"([^"\n]*)"') do
+		if string.find(literal, "[\234-\237]") then
+			need("body", (string.gsub(literal, "%%[%a%.%d]+", "")))
+		end
+	end
+end
+-- 영석: 영석 칸, 상점·대장간 창, 전송진 삯
+local CurrencyForGlyphs = loader.require(sharedFolder.Currency)
+local CombatForGlyphs = loader.require(sharedFolder.Combat)
+local BalanceForGlyphs = loader.require(sharedFolder.Balance)
+need("body", "1,250 1,265개 영석 25 공짜")
+need("title", "만물상 대장간")
+for _, ware in CurrencyForGlyphs.WARES do
+	if ware.item then
+		need("title", BalanceForGlyphs.ITEMS[ware.item].name)
+	end
+end
+for _, pack in CurrencyForGlyphs.PACKS do
+	need("title", pack.name)
+	need("body", string.format("영석 %s개 %d 로벅스", CurrencyForGlyphs.format(pack.stones), pack.robux))
+end
+for _, kind in CombatForGlyphs.KIND_ORDER do
+	need("body", CombatForGlyphs.KINDS[kind].summary)
+	for grade = 1, #CombatForGlyphs.GRADES do
+		local weapon = { kind = kind, grade = grade }
+		need("title", CombatForGlyphs.weaponName(weapon))
+		need("body", CombatForGlyphs.weaponName(weapon) .. " " .. CombatForGlyphs.GRADES[grade].prefix .. " 등급")
+	end
+end
+for _, file in { "src/client/ShopWindow.luau", "src/client/TravelMenu.luau", "src/client/Hud.luau" } do
+	local source = string.gsub(fs.readFile(file), "%-%-[^\n]*", "")
 	for literal in string.gmatch(source, '"([^"\n]*)"') do
 		if string.find(literal, "[\234-\237]") then
 			need("body", (string.gsub(literal, "%%[%a%.%d]+", "")))

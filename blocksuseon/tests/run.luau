@@ -42,6 +42,7 @@ local Trials = loader.require(shared.Trials)
 local Races = loader.require(shared.Races)
 local Combat = loader.require(shared.Combat)
 local Mobs = loader.require(shared.Mobs)
+local Currency = loader.require(shared.Currency)
 
 -- 테스트는 모든 경지의 과업을 켠 상태로 검사한다
 Tasks.LIVE_UNTIL = Realms.maxStep
@@ -228,6 +229,184 @@ check("요수", function()
 		assert(hp / mob.damage >= 3, `{mob.name} 이 너무 세다 ({hp} / {mob.damage})`)
 		local hits = mob.hp / Combat.damage(recommended[mob.tier], { kind = "sword", grade = mob.tier })
 		assert(hits >= 2 and hits <= 20, `{mob.name} 잡는 데 {hits} 번`)
+	end
+end)
+
+print("영석")
+check("영석 데이터", function()
+	local ids = {}
+	for _, ware in Currency.WARES do
+		assert(not ids[ware.id], "상품 id 가 겹친다: " .. ware.id)
+		ids[ware.id] = true
+		eq(Currency.wareById[ware.id], ware, ware.id .. " 찾기")
+		assert(ware.price > 0 and ware.price % 1 == 0, ware.id .. " 값")
+		assert((ware.item ~= nil) ~= (ware.weapon ~= nil), ware.id .. " 은 물건이거나 무기 하나")
+		if ware.item then
+			assert(Balance.ITEMS[ware.item], ware.id .. " 물건")
+			assert((ware.count or 1) >= 1, ware.id .. " 개수")
+		else
+			assert(Combat.isWeapon(ware.weapon), ware.id .. " 무기")
+		end
+	end
+	eq(#Currency.UPGRADE, #Combat.GRADES - 1, "강화는 목~영 등급에서 한 등급씩")
+	for grade = 2, #Currency.UPGRADE do
+		assert(Currency.upgradeCost(grade) > Currency.upgradeCost(grade - 1), "높은 등급일수록 비싸다")
+	end
+	eq(Currency.upgradeCost(#Combat.GRADES), nil, "천 등급은 더 못 올린다")
+	eq(#Currency.ORE, 5, "광맥은 위험도 1~5")
+	for tier, ore in Currency.ORE do
+		assert(ore.min >= 1 and ore.min <= ore.max and ore.hold > 0, "광맥 " .. tier)
+	end
+	eq(Currency.format(0), "0")
+	eq(Currency.format(999), "999")
+	eq(Currency.format(1250), "1,250")
+	eq(Currency.format(1000000), "1,000,000")
+	eq(Currency.format(12.7), "12")
+end)
+check("영석 지니기와 저장", function()
+	local data = Progression.newData()
+	eq(data.stones, Currency.START, "처음 영석")
+	eq(Progression.reconcile({ step = 3, stones = 57.8 }).stones, 57, "정수로")
+	eq(Progression.reconcile({ stones = -20 }).stones, 0, "음수는 0")
+	eq(Progression.reconcile({ stones = 1e12 }).stones, Currency.MAX, "최대")
+	eq(Progression.reconcile({ step = 10 }).stones, Currency.START, "예전 기록에는 처음 영석")
+	eq(Progression.reconcile({ stones = "많이" }).stones, Currency.START)
+	eq(Progression.reconcile({ stones = 0 / 0 }).stones, Currency.START, "NaN")
+	eq(Progression.reconcile({ stones = math.huge }).stones, Currency.START, "무한")
+	eq(Progression.reconcile({ stones = 0 }).stones, 0, "0 은 그대로")
+	Progression.addStones(data, 15.9)
+	eq(data.stones, Currency.START + 15)
+	Progression.addStones(data, -1e9)
+	eq(data.stones, 0, "0 아래로 내려가지 않는다")
+	Progression.addStones(data, 1e12)
+	eq(data.stones, Currency.MAX, "최대를 넘지 않는다")
+	data.stones = 50
+	eq(Progression.spendStones(data, 20), true)
+	eq(data.stones, 30)
+	eq(Progression.spendStones(data, 31), false, "모자라면 못 쓴다")
+	eq(data.stones, 30, "못 쓰면 그대로")
+	eq(Progression.spendStones(data, -5), false, "음수는 안 된다")
+	eq(data.stones, 30)
+	eq(Progression.spendStones(data, 0), true, "공짜")
+	eq(Progression.spendStones(data, 30), true, "남김없이")
+	eq(data.stones, 0)
+end)
+check("만물상에서 사기", function()
+	local data = Progression.newData()
+	data.stones = 200
+	local herb = Currency.wareById.herb1
+	local ok, message = Progression.buy(data, "herb1")
+	eq(ok, true, message)
+	eq(data.stones, 200 - herb.price)
+	eq(data.items.herb, 1)
+	eq(message, "영초 1개를 샀다.")
+	ok, message = Progression.buy(data, "spear")
+	eq(ok, true, message)
+	eq(#data.weapons, 2, "무기를 지닌다")
+	eq(data.weapons[2].kind, "spear")
+	eq(data.weapons[2].grade, 1)
+	eq(message, "목창을 샀다.")
+	local left = data.stones
+	eq(left, 200 - herb.price - Currency.wareById.spear.price)
+	-- 이미 지닌 종류는 다시 팔지 않는다 (값도 받지 않는다)
+	ok, message = Progression.buy(data, "spear")
+	eq(ok, false)
+	assert(message:find("대장간"), message)
+	eq(data.stones, left, "이미 지닌 무기: 영석 그대로")
+	eq(#data.weapons, 2)
+	data.weapons[2].grade = 4
+	eq((Progression.buy(data, "spear")), false, "등급이 높아도 같은 종류")
+	-- 모자라면 사지 못한다
+	data.stones = 10
+	ok, message = Progression.buy(data, "lingzhi")
+	eq(ok, false)
+	assert(message:find("모자라"), message)
+	assert(message:find(Currency.format(Currency.wareById.lingzhi.price), 1, true), message)
+	eq(data.stones, 10, "모자라면 영석 그대로")
+	eq(data.items.lingzhi, nil, "물건도 없다")
+	eq((Progression.buy(data, "fan")), false, "무기도 모자라면")
+	eq(#data.weapons, 2)
+	eq(data.stones, 10)
+	-- 무기 칸이 다 차면 사지 못한다
+	data.stones = 1000
+	data.weapons = {}
+	for _ = 1, Combat.MAX_WEAPONS do
+		table.insert(data.weapons, { kind = "sword", grade = 1 })
+	end
+	eq((Progression.buy(data, "fan")), false, "칸이 다 찼다")
+	eq(data.stones, 1000)
+	-- 없는 물건
+	for _, bad in { "nope", "", 5, nil, {} } do
+		eq((Progression.buy(data, bad)), false, "없는 물건 " .. tostring(bad))
+	end
+	eq(data.stones, 1000, "없는 물건: 영석 그대로")
+	-- 묶음은 개수만큼
+	ok = Progression.buy(data, "herb10")
+	eq(ok, true)
+	eq(data.items.herb, 1 + Currency.wareById.herb10.count)
+end)
+check("대장간에서 강화", function()
+	local data = Progression.newData()
+	data.stones = 1000
+	local ok, message = Progression.upgradeWeapon(data, 1)
+	eq(ok, true, message)
+	eq(data.weapons[1].grade, 2)
+	eq(data.stones, 1000 - Currency.upgradeCost(1))
+	eq(message, "목검이 철검으로 거듭났다.")
+	-- 모자라면 오르지 않는다
+	data.stones = Currency.upgradeCost(2) - 1
+	ok, message = Progression.upgradeWeapon(data, 1)
+	eq(ok, false)
+	assert(message:find("모자라"), message)
+	eq(data.weapons[1].grade, 2, "모자라면 그대로")
+	eq(data.stones, Currency.upgradeCost(2) - 1, "모자라면 영석 그대로")
+	-- 가장 높은 등급
+	data.stones = Currency.MAX
+	data.weapons[1].grade = #Combat.GRADES
+	ok, message = Progression.upgradeWeapon(data, 1)
+	eq(ok, false, "천 등급은 끝")
+	eq(data.weapons[1].grade, #Combat.GRADES)
+	eq(data.stones, Currency.MAX, "못 올리면 영석 그대로")
+	-- 없는 칸
+	for _, bad in { 2, 0, -1, 1.5, "1", 0 / 0, nil } do
+		eq((Progression.upgradeWeapon(data, bad)), false, "없는 칸 " .. tostring(bad))
+	end
+	eq(data.stones, Currency.MAX)
+	-- 목검에서 천검까지 모두 올리는 값
+	local total = 0
+	for grade = 1, #Currency.UPGRADE do
+		total += Currency.upgradeCost(grade)
+	end
+	data.weapons[1].grade = 1
+	data.stones = total
+	for _ = 1, #Currency.UPGRADE do
+		eq((Progression.upgradeWeapon(data, 1)), true)
+	end
+	eq(data.weapons[1].grade, #Combat.GRADES)
+	eq(data.stones, 0)
+end)
+check("전송진 삯과 로벅스 묶음", function()
+	eq(Currency.travelFee(5000, true), 0, "집(연국)으로 가는 길은 공짜")
+	eq(Currency.travelFee(0, true), 0)
+	eq(Currency.travelFee(0, false), Currency.TRAVEL_MIN, "가까워도 최소 삯")
+	eq(Currency.travelFee(1e6, false), Currency.TRAVEL_MAX, "멀어도 최대 삯")
+	eq(Currency.travelFee(Currency.TRAVEL_PER * 10, false), 10)
+	eq(Currency.travelFee(Currency.TRAVEL_PER * 10.4, false), 10, "반올림")
+	eq(Currency.travelFee(Currency.TRAVEL_PER * 10.6, false), 11)
+	eq(Currency.packByProduct(0), nil, "id 0 은 준비 중")
+	eq(Currency.packByProduct(-1), nil)
+	local seen = {}
+	for _, pack in Currency.PACKS do
+		assert(pack.stones > 0 and pack.robux > 0, pack.key)
+		assert(not seen[pack.key], "묶음 key 가 겹친다")
+		seen[pack.key] = true
+		if pack.productId > 0 then
+			eq(Currency.packByProduct(pack.productId), pack, pack.key)
+			assert(pack.productId ~= Races.REROLL_PRODUCT_ID, "종족 다시 뽑기와 같은 상품 id")
+		end
+	end
+	if Races.REROLL_PRODUCT_ID ~= 0 then
+		eq(Currency.packByProduct(Races.REROLL_PRODUCT_ID), nil, "다시 뽑기는 영석 묶음이 아니다")
 	end
 end)
 
@@ -934,7 +1113,7 @@ check("연국 맵 짓기", function()
 	local seats = {}
 	for _, inst in map:GetDescendants() do
 		if inst:IsA("Seat") and inst:GetAttribute("NpcSeat") then
-			seats[inst:GetAttribute("NpcSeat")] = true
+			seats[inst:GetAttribute("NpcSeat")] = inst
 		end
 	end
 	local SLOTS =
@@ -953,9 +1132,18 @@ check("연국 맵 짓기", function()
 			assert(roblox.Enum.AccessoryType[item.type], `{npc.name}: 모르는 레이어드 종류 {item.type}`)
 		end
 		if npc.seated then
-			assert(seats[npc.id], npc.name .. " 앉을 자리")
-			assert(siteIds[npc.site], npc.name .. " 과업 자리")
-			assert(npc.request and npc.thanks, npc.name .. " 부탁과 인사")
+			local seat = seats[npc.id]
+			assert(seat, npc.name .. " 앉을 자리")
+			local offset = seat.CFrame.Position - npc.position
+			assert(
+				roblox.Vector3.new(offset.X, 0, offset.Z).Magnitude < 1.5,
+				`{npc.name} 의 자리(Npcs.position)가 맵의 걸상과 다르다`
+			)
+			-- 노인은 과업 자리(말 걸기 버튼)와 천순 부탁이 있다. 만물상 주인은 상점 버튼이 대신한다
+			if npc.site then
+				assert(siteIds[npc.site], npc.name .. " 과업 자리")
+				assert(npc.request and npc.thanks, npc.name .. " 부탁과 인사")
+			end
 		else
 			assert(npc.route and #npc.route >= 2, npc.name .. " 동선")
 		end
@@ -1006,6 +1194,59 @@ check("연국 맵 짓기", function()
 		if inst:HasTag("Vein") then
 			assert(Balance.VEINS[inst:GetAttribute("VeinId")], "영맥 id")
 			assert(type(inst:GetAttribute("Radius")) == "number", "영맥 반경")
+		end
+	end
+	-- 상점 자리: 만물상 판대와 대장간 모루. F 버튼은 창만 열고, 서버가 곁(수평 16)에 섰는지 다시 본다
+	eq(tags.MarketSpot, 2, "MarketSpot 태그 (만물상, 대장간)")
+	local shops: { [string]: any } = {}
+	for _, inst in map:GetDescendants() do
+		if inst:HasTag("MarketSpot") then
+			local kind = inst:GetAttribute("Shop")
+			assert(kind == "market" or kind == "smith", "상점 종류 " .. tostring(kind))
+			assert(not shops[kind], "상점 자리가 겹친다: " .. kind)
+			shops[kind] = inst
+			assert(inst:IsA("BasePart"), "상점 자리는 판")
+			eq(inst.CanCollide, false, "상점 자리는 부딪히지 않는다")
+			local prompt = inst:FindFirstChildOfClass("ProximityPrompt")
+			assert(prompt, kind .. " F 버튼")
+			eq(prompt:GetAttribute("Shop"), kind, "버튼 Shop 속성")
+			eq(prompt.ActionText, if kind == "market" then "상점" else "대장간")
+			eq(prompt.KeyboardKeyCode, roblox.Enum.KeyCode.F)
+			assert(math.abs(prompt.HoldDuration - 0.2) < 1e-3, "누르는 시간")
+			eq(prompt.RequiresLineOfSight, false)
+			eq(prompt.MaxActivationDistance, 10)
+			local p = inst.CFrame.Position
+			eq(Places.tierAt(p.X, p.Z, p.Y), 0, kind .. " 는 안전한 땅")
+			eq(Places.regionAt(p.X, p.Z, p.Y).id, "yeonguk", kind .. " 는 연국")
+		end
+	end
+	-- 만물상 주인은 판대 바로 뒤, 대장간 자리는 늙은 대장장이 말 걸기 버튼과 떨어져 있다
+	local flat = function(a, b)
+		local d = a - b
+		return roblox.Vector3.new(d.X, 0, d.Z).Magnitude
+	end
+	assert(flat(shops.market.CFrame.Position, seats.merchant.CFrame.Position) < 6, "주인은 판대 곁")
+	local elderSite
+	for _, inst in map:GetDescendants() do
+		if inst:GetAttribute("Site") == "elder_2" then
+			elderSite = inst
+		end
+	end
+	assert(
+		flat(shops.smith.CFrame.Position, elderSite.CFrame.Position) > 12,
+		"모루 버튼과 노인 버튼이 겹친다"
+	)
+	-- 현판은 광장(만물상)과 서쪽 길(대장간)을 본다
+	for _, inst in map:GetDescendants() do
+		local text = inst:GetAttribute("Text")
+		if text == "만물상" then
+			local p = inst.CFrame.Position
+			assert(
+				inst.CFrame.LookVector:Dot(roblox.Vector3.new(-p.X, 0, -p.Z).Unit) > 0.99,
+				"만물상 현판은 광장 쪽"
+			)
+		elseif text == "대장간" then
+			assert(inst.CFrame.LookVector.X < -0.99, "대장간 현판은 서쪽(광장 쪽)")
 		end
 	end
 	print(`  파트 {parts}개`)
