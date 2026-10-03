@@ -70,16 +70,32 @@ Combat.KIND_ORDER = { "sword", "saber", "spear", "fan" }
 export type MeshSpec = { asset: number, length: number, tip: number, grip: number }
 Combat.MESH = {
 	sword = {
-		[3] = { asset = 117737538022358, length = 4.5, tip = -1, grip = 0.281 },
+		[1] = { asset = 104142329142830, length = 4.5, tip = -1, grip = 0.351 }, -- 목검: 결이 보이는 연한 나무, 쇠붙이 없음
+		[2] = { asset = 73087619795995, length = 4.5, tip = -1, grip = 0.334 }, -- 철검: 검은 쇠날, 가죽 손잡이
+		[3] = { asset = 117737538022358, length = 4.5, tip = -1, grip = 0.281 }, -- 청강검: 은빛 날, 옥 등줄
+		[4] = { asset = 128296069136061, length = 4.5, tip = 1, grip = -0.246 }, -- 영검: 비취 수정 날, 흰 옥 코등이
+		[5] = { asset = 91449203543147, length = 4.5, tip = -1, grip = 0.334 }, -- 천검: 흰 금빛 날, 금 코등이
 	},
 	saber = {
-		[2] = { asset = 80885908489967, length = 4.2, tip = -1, grip = 0.281 },
+		[1] = { asset = 120663707114268, length = 4.2, tip = 1, grip = -0.281 }, -- 목도: 나무 휜 날, 둥근 나무 코등이
+		[2] = { asset = 80885908489967, length = 4.2, tip = -1, grip = 0.281 }, -- 철도: 쇠 날, 놋쇠 코등이
+		[3] = { asset = 73538137552824, length = 4.2, tip = -1, grip = 0.334 }, -- 청강도: 푸른 강철 날, 은 코등이
+		[4] = { asset = 73365262422346, length = 4.2, tip = 1, grip = -0.334 }, -- 영도: 넓은 비취 날, 흰 옥 코등이
+		[5] = { asset = 97821682414639, length = 4.2, tip = -1, grip = 0.385 }, -- 천도: 흰 금빛 날, 구름무늬 금 코등이
 	},
 	spear = {
-		[2] = { asset = 87579725321424, length = 8, tip = 1, grip = -0.12 },
+		[1] = { asset = 115297038342490, length = 8, tip = 1, grip = -0.12 }, -- 목창: 나무 자루, 나무 잎날
+		[2] = { asset = 87579725321424, length = 8, tip = 1, grip = -0.12 }, -- 철창: 붉은 옻 자루, 쇠 날, 붉은 술
+		[3] = { asset = 123876479650138, length = 8, tip = 1, grip = -0.12 }, -- 청강창: 남색 자루, 푸른 강철 날
+		[4] = { asset = 98483663850535, length = 8, tip = 1, grip = -0.12 }, -- 영창: 흰 옥 자루, 비취 수정 날
+		[5] = { asset = 108593917905308, length = 8, tip = 1, grip = -0.12 }, -- 천창: 흰 자루, 흰 연꽃 금 날
 	},
 	fan = {
-		[3] = { asset = 90072943116000, length = 3, tip = 1, grip = -0.27 },
+		[1] = { asset = 125930421375492, length = 3, tip = 1, grip = -0.235 }, -- 죽선: 대나무 살, 흰 종이
+		[2] = { asset = 73743642074002, length = 3, tip = 1, grip = -0.21 }, -- 철선: 쇠 살, 잿빛 천
+		[3] = { asset = 90072943116000, length = 3, tip = 1, grip = -0.27 }, -- 청강선: 쇠 살, 학 그린 비취 비단
+		[4] = { asset = 78530076214418, length = 3, tip = 1, grip = -0.15 }, -- 영선: 흰 옥 살, 비취빛 비단
+		[5] = { asset = 98897519397317, length = 3, tip = 1, grip = -0.1 }, -- 천선: 금 살, 금 구름무늬 흰 비단
 	},
 } :: { [string]: { [number]: MeshSpec } }
 

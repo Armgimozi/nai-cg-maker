@@ -231,33 +231,37 @@
   "kind": "weapon",
   "meshyPreview": "01a1021a-cab7-73db-a3bf-129ccee9ac07",
   "meshyRefine": "01a1021b-1105-7711-b50b-856b79dd4a82",
-  "tris": 2743,
+  "tris": 2285,
   "bbox": [
-   0.1679,
+   0.1163,
    1.0,
-   0.0303
+   0.0301
   ],
-  "guardY": -0.4625,
-  "tipDir": 1,
-  "assetId": "105251398530605",
+  "guardY": 0.2625,
+  "tipDir": -1,
+  "assetId": "73538137552824",
   "moderation": "Approved",
-  "seconds": 82
+  "seconds": 82,
+  "origAssetId": "105251398530605",
+  "postfix": "glbfix: dropped the stray tassel strand at the blade tip, rotated 7.0 deg so the blade is on Y"
  },
  "saber_4": {
   "kind": "weapon",
   "meshyPreview": "01a1021a-d1d6-771e-930a-369b6d2b39c1",
   "meshyRefine": "01a1021b-031a-72be-9c53-a45803defb56",
-  "tris": 2857,
+  "tris": 2445,
   "bbox": [
-   0.4177,
+   0.1654,
    1.0,
-   0.0627
+   0.0649
   ],
-  "guardY": -0.4375,
+  "guardY": -0.2625,
   "tipDir": 1,
-  "assetId": "107627005816375",
+  "assetId": "73365262422346",
   "moderation": "Approved",
-  "seconds": 91
+  "seconds": 91,
+  "origAssetId": "107627005816375",
+  "postfix": "glbfix: rotated -19.7 deg so the diagonal blade is on Y, dropped the side-swept tassel ribbons that pushed the box off the handle"
  },
  "saber_5": {
   "kind": "weapon",
@@ -386,5 +390,53 @@
   "assetId": "98897519397317",
   "moderation": "Approved",
   "seconds": 113
+ },
+ "sword_1": {
+  "kind": "weapon",
+  "meshyPreview": "01a10222-973c-70c7-a977-b26d31f8a08b",
+  "meshyRefine": "01a10223-b5da-73c3-b7fd-32c503e3e5f6",
+  "tris": 2627,
+  "bbox": [
+   0.1224,
+   1.0,
+   0.0331
+  ],
+  "guardY": 0.2875,
+  "tipDir": -1,
+  "assetId": "104142329142830",
+  "moderation": "Approved",
+  "seconds": 91
+ },
+ "sword_4": {
+  "kind": "weapon",
+  "meshyPreview": "01a10222-9718-743d-9117-c5b83519e1da",
+  "meshyRefine": "01a10223-b5d1-7606-a212-db1c0d68e094",
+  "tris": 3326,
+  "bbox": [
+   0.1697,
+   1.0,
+   0.047
+  ],
+  "guardY": -0.1375,
+  "tipDir": 1,
+  "assetId": "128296069136061",
+  "moderation": "Approved",
+  "seconds": 97
+ },
+ "fan_1": {
+  "kind": "weapon",
+  "meshyPreview": "01a10222-9749-7492-94fe-a95c7317f330",
+  "meshyRefine": "01a10223-b4f2-71cc-8916-7471acb44de6",
+  "tris": 3179,
+  "bbox": [
+   1.0,
+   0.7357,
+   0.0541
+  ],
+  "guardY": -0.0277,
+  "tipDir": 1,
+  "assetId": "125930421375492",
+  "moderation": "Approved",
+  "seconds": 92
  }
 }
