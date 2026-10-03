@@ -308,17 +308,9 @@ local function startSwing(state: State, kind: string, grade: number, combo: numb
 		mine = isMine,
 		waved = false,
 	}
-	if state.tool then
-		-- 휘두르기 시작에 부른다: 소리는 지금, 자취는 젖힘이 끝난 뒤 벰·따라감 동안 (WeaponEffects 가 나눈다)
-		WeaponEffects.swing(
-			state.character,
-			state.tool,
-			kind,
-			grade,
-			combo,
-			attack.windup + attack.strike + attack.follow
-		)
-	end
+	-- 휘두르기 시작에 부른다: 소리는 지금, 자취는 젖힘이 끝난 뒤 벰·따라감 동안 (WeaponEffects 가 나눈다).
+	-- 남의 도구가 아직 안 보이면 tool 은 nil (소리만 난다)
+	WeaponEffects.swing(state.character, state.tool, kind, grade, combo, attack.windup + attack.strike + attack.follow)
 end
 
 local function step(state: State, dt: number, now: number)
@@ -417,7 +409,9 @@ local function update(dt: number)
 			seen[character] = true
 			local state = states[character]
 			local root = character:FindFirstChild("HumanoidRootPart")
-			local near = eye == nil or (root and root:IsA("BasePart") and (root.Position - eye).Magnitude < RANGE)
+			local near = other == player
+				or eye == nil
+				or (root ~= nil and root:IsA("BasePart") and (root.Position - eye).Magnitude < RANGE)
 			if not near then
 				if state then
 					release(state)

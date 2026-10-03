@@ -191,7 +191,11 @@ local services = {
 	RunService = {
 		Heartbeat = fakeSignal(heartbeatKey, "Heartbeat"),
 		RenderStepped = fakeSignal(heartbeatKey, "Heartbeat"),
+		PreSimulation = fakeSignal(heartbeatKey, "PreSimulation"),
+		BindToRenderStep = function() end,
 	},
+	ContentProvider = { PreloadAsync = function() end },
+	Debris = { AddItem = function() end },
 	-- 글자 크기 재기: Roblox 글꼴 폭을 대충 흉내 낸다
 	TextService = {
 		GetTextSize = function(_, text, size, _font, frame)
@@ -214,6 +218,9 @@ local services = {
 		WaitForChild = function(_, name)
 			assert(name == "Shared", "Shared 만 찾는다")
 			return sharedFolder
+		end,
+		FindFirstChild = function()
+			return nil
 		end,
 	},
 }

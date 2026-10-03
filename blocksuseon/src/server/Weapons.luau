@@ -149,8 +149,12 @@ local function buildBlocks(tool: Tool, handle: BasePart, weapon: Combat.Weapon, 
 	end
 end
 
--- 모델 무기의 날 밑동·끝·손잡이 끝 (손잡이 가운데에서 +Z, 줄이기 전). Combat.MESH 의 length·tip·grip 으로 셈한다
-local function meshSpan(kind: string, spec: Combat.MeshSpec): { base: number, tip: number, butt: number }
+-- 날 밑동·끝·손잡이 끝 (손잡이 가운데에서 +Z, 줄이기 전). 모델은 Combat.MESH 의 length·tip·grip 으로 셈한다
+export type Span = { base: number, tip: number, butt: number }
+function Weapons.span(kind: string, spec: Combat.MeshSpec?): Span
+	if not spec then
+		return BLOCK_SPAN[kind] or BLOCK_SPAN.sword
+	end
 	local L = spec.length
 	local tip = L * (0.5 - spec.tip * spec.grip)
 	local butt = -L * (0.5 + spec.tip * spec.grip)
@@ -165,8 +169,8 @@ local function meshSpan(kind: string, spec: Combat.MeshSpec): { base: number, ti
 	return { base = base, tip = tip, butt = butt }
 end
 
--- 아바타 키 (머리 꼭대기에서 발바닥까지). 움직이는 자세와 상관없이 뿌리 기준으로 잰다
-local function bodyHeight(character: Model?): number
+-- 아바타 키 (머리 꼭대기에서 발바닥까지). 뿌리(HumanoidRootPart) 기준으로 머리 위와 HipHeight 로 잰다
+function Weapons.bodyHeight(character: Model?): number
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	local root = character and character:FindFirstChild("HumanoidRootPart")
 	local head = character and character:FindFirstChild("Head")
@@ -186,6 +190,7 @@ local function bodyHeight(character: Model?): number
 	return if height > 1 and height < 30 then height else HEIGHT
 end
 
+-- 무기 크기 비: 키 5.2 가 1, 작은 아바타는 0.6 까지 줄이고 큰 아바타는 1.1 까지
 function Weapons.scaleFor(height: number): number
 	return math.clamp(height / HEIGHT, 0.6, 1.1)
 end
@@ -202,7 +207,7 @@ local function buildTool(weapon: Combat.Weapon, index: number, player: Player): 
 	tool:SetAttribute("Grade", weapon.grade)
 	tool:AddTag("Weapon")
 	tool.Grip = WeaponPoses.GRIP
-	local k = Weapons.scaleFor(bodyHeight(player.Character))
+	local k = Weapons.scaleFor(Weapons.bodyHeight(player.Character))
 	tool:SetAttribute("Scale", k)
 
 	local handle = part(tool, "Handle", Vector3.new(0.3, 0.3, 1.4) * k, HILT, Enum.Material.Wood)
@@ -256,7 +261,7 @@ local function buildTool(weapon: Combat.Weapon, index: number, player: Player): 
 	end
 
 	-- 칼자취 붙이개와 길이
-	local span = if copy and body and spec then meshSpan(weapon.kind, spec) else BLOCK_SPAN[weapon.kind]
+	local span = Weapons.span(weapon.kind, if copy and body then spec else nil)
 	local function mark(name: string, z: number)
 		local attachment = Instance.new("Attachment")
 		attachment.Name = name

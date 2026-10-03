@@ -435,7 +435,7 @@ end
 -- 검: 한 손 중단세. 칼끝이 앞 위를 보고, 왼손은 검결(손가락 둘을 세운 손)을 가슴 앞에 둔다
 do
 	local idle = pose(nil, {
-		at = v(0.75, -0.95, -1.0),
+		at = v(0.72, -0.5, -0.95),
 		blade = dir(-10, 38),
 		edge = v(0, -1, -0.4),
 		pole = v(1, -0.7, 0.4),
@@ -512,7 +512,7 @@ end
 -- 도: 오른 허리에 비껴 들고 왼손은 칼등 곁. 1: 머리 위로 크게 들어 두 손으로 비스듬히 내리찍는다 2: 허리 높이 가로 베기
 do
 	local idle = pose(nil, {
-		at = v(0.8, -1.0, -0.8),
+		at = v(0.8, -0.7, -0.8),
 		blade = dir(20, 28),
 		edge = v(0, -0.6, -1),
 		pole = v(1, -0.6, 0.4),
@@ -615,36 +615,38 @@ do
 	DEFS.saber = { idle = idle, attacks = { attack(heavy, keysOf(chop)), attack(heavy, keysOf(sweep)) } }
 end
 
--- 창: 허리 높이에 수평으로 앞을 겨누고 두 손으로 쥔다 (오른손 뒤 허리께, 왼손 앞)
+-- 창: 허리 높이에 수평으로 앞을 겨누고 두 손으로 쥔다 (몸을 비껴 세우고 오른손은 오른 허리, 왼손은 앞 자루).
+-- 자리는 윗몸 기준이므로 허리를 돈 만큼(waist Y) 날 방위를 돌려 적는다: 윗몸 방위 = 뿌리 방위 + waist Y
 do
 	local idle = pose(nil, {
-		at = v(0.6, -1.05, -0.1),
-		blade = dir(-24, 2),
+		at = v(0.55, -0.8, 0.15),
+		blade = dir(-35, 2),
 		pole = v(1, -0.6, 0.6),
 		holdW = 1,
-		hold = 1.7,
+		hold = 1.15,
 		lpole = v(-1, -0.8, 0),
-		waist = v(0, -20, 0),
-		neck = v(0, 16, 0),
+		waist = v(0, -35, 0),
+		neck = v(0, 28, 0),
 	})
+	-- 1: 당겼다가 허리를 틀며 한 걸음 들어가 곧게 찌른다. 자루가 앞손 속으로 미끄러진다
 	local thrust = attack({ 0.05, 0.06, 0.1, 0.1, 0.25 }, {
 		windup = pose(idle, {
-			at = v(0.65, -0.95, 0.35),
-			blade = dir(-4, 3),
-			hold = 1.55,
-			waist = v(4, -28, 0),
-			neck = v(0, 22, 0),
+			at = v(0.65, -0.75, 0.75),
+			blade = dir(-36, 4),
+			hold = 1.3,
+			waist = v(4, -38, 0),
+			neck = v(0, 30, 0),
 			root = v(0, 0, 0.2),
 		}),
 		path = {
 			pose(idle, {
-				at = v(0.2, -0.9, -1.8),
-				blade = dir(-1, 1),
-				hold = 1.05,
+				at = v(0.2, -0.85, -1.8),
+				blade = dir(-4, 1),
+				hold = 0.6,
 				pole = v(1, -0.6, 0.2),
 				lpole = v(-1, -0.6, -0.2),
-				waist = v(-8, -2, 0),
-				neck = v(6, 2, 0),
+				waist = v(-8, -4, 0),
+				neck = v(6, 4, 0),
 				root = v(0, -0.3, -1.0),
 				hipL = v(35, 0, 0),
 				hipR = v(-20, 0, 0),
@@ -654,21 +656,21 @@ do
 		},
 		follow = pose(idle, {
 			at = v(0.1, -0.85, -2.1),
-			blade = dir(0, 1),
-			hold = 0.95,
+			blade = dir(-2, 0),
+			hold = 0.5,
 			pole = v(1, -0.6, 0.1),
 			lpole = v(-1, -0.6, -0.2),
-			waist = v(-10, 0, 0),
-			neck = v(8, 0, 0),
+			waist = v(-10, -2, 0),
+			neck = v(8, 2, 0),
 			root = v(0, -0.35, -1.2),
 			hipL = v(38, 0, 0),
 			hipR = v(-22, 0, 0),
 			kneeL = -34,
 			kneeR = -12,
 		}),
-	}, 1)
+	}, 0.95)
 	-- 2: 창끝으로 앞을 오른쪽에서 왼쪽으로 크게 쓸어 벤다
-	local sweep = arc(idle, v(0.3, -0.95, -0.2), v(0, 0, -1), v(1, 0, 0), 0.6, {
+	local sweep = arc(idle, v(0.3, -0.75, -0.2), v(0, 0, -1), v(1, 0, 0), 0.6, {
 		{ 50, 65 },
 		{ 25, 30 },
 		{ 0, 0 },
@@ -676,12 +678,12 @@ do
 		{ -50, -70 },
 		{ -60, -90 },
 	}, {
-		{ waist = v(0, -35, 0), neck = v(0, 28, 0), hold = 1.5 },
-		{ waist = v(-2, -18, 0), neck = v(0, 14, 0), hold = 1.5, root = v(0, -0.1, -0.2) },
-		{ waist = v(-4, 0, 0), neck = v(0, 0, 0), hold = 1.5, root = v(0, -0.2, -0.4) },
-		{ waist = v(-4, 18, 0), neck = v(0, -14, 0), hold = 1.5, root = v(0, -0.2, -0.5) },
-		{ waist = v(-4, 32, 0), neck = v(0, -26, 0), hold = 1.5, root = v(0, -0.2, -0.5) },
-		{ waist = v(-4, 38, 0), neck = v(0, -30, 0), hold = 1.5, root = v(0, -0.2, -0.45) },
+		{ waist = v(0, -35, 0), neck = v(0, 28, 0), hold = 1.1 },
+		{ waist = v(-2, -18, 0), neck = v(0, 14, 0), hold = 1.1, root = v(0, -0.1, -0.2) },
+		{ waist = v(-4, 0, 0), neck = v(0, 0, 0), hold = 1.1, root = v(0, -0.2, -0.4) },
+		{ waist = v(-4, 18, 0), neck = v(0, -14, 0), hold = 1.1, root = v(0, -0.2, -0.5) },
+		{ waist = v(-4, 32, 0), neck = v(0, -26, 0), hold = 1.1, root = v(0, -0.2, -0.5) },
+		{ waist = v(-4, 38, 0), neck = v(0, -30, 0), hold = 1.1, root = v(0, -0.2, -0.45) },
 	})
 	DEFS.spear = { idle = idle, attacks = { thrust, attack({ 0.05, 0.07, 0.1, 0.1, 0.25 }, keysOf(sweep)) } }
 end
@@ -713,7 +715,7 @@ do
 		{ waist = v(-4, -30, 0), neck = v(0, 24, 0), pole = v(1, -0.3, 0.6), edge = v(0, 1, 0), root = v(0, 0, -0.25) },
 		{ waist = v(-4, -34, 0), neck = v(0, 26, 0), pole = v(1, -0.2, 0.7), edge = v(0, 1, 0), root = v(0, 0, -0.2) },
 	})
-	DEFS.fan = { idle = idle, attacks = { attack({ 0.06, 0.07, 0.12, 0.12, 0.35 }, keysOf(flick)) } }
+	DEFS.fan = { idle = idle, attacks = { attack({ 0.06, 0.07, 0.12, 0.12, 0.38 }, keysOf(flick)) } }
 end
 
 WeaponPoses.DEFS = DEFS
