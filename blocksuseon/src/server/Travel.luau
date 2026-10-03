@@ -1,6 +1,7 @@
 -- 전송진: 땅마다 하나씩 놓인 돌 진. 한 번 밟아 본 진끼리는 F 로 오갈 수 있다.
 --
 -- 진 목록은 Waypoints.luau. 밟아 본 진은 data.waypoints 에 남는다. 연국 진은 처음부터 열려 있다.
+-- 진을 쓰면 영석 삯을 낸다 (Currency.travelFee: 선 진과 갈 진 사이 거리. 연국 진으로 돌아가는 길은 공짜).
 
 local RunService = game:GetService("RunService")
 
@@ -10,7 +11,10 @@ local Sync = require(script.Parent.Sync)
 local Characters = require(script.Parent.Characters)
 local Waypoints = require(script.Parent.Waypoints)
 local Cultivation = require(script.Parent.Cultivation)
-local Places = require(game:GetService("ReplicatedStorage"):WaitForChild("Shared").Places)
+local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
+local Places = require(Shared.Places)
+local Currency = require(Shared.Currency)
+local Progression = require(Shared.Progression)
 
 local Travel = {}
 
@@ -55,6 +59,12 @@ local function discover(player: Player, pad: BasePart)
 		"good"
 	)
 	Sync.markDirty(player)
+end
+
+-- 선 진에서 갈 진까지 삯 (화면의 전송진 창도 진 바닥 위치로 같은 값을 보여 준다)
+function Travel.fee(from: BasePart, to: BasePart): number
+	local id = to:GetAttribute("WaypointId")
+	return Currency.travelFee((to.Position - from.Position).Magnitude, id == Places.HOME_WAYPOINT)
 end
 
 -- 다른 일을 하는 중에는 떠나지 못한다
@@ -103,16 +113,32 @@ function Travel.go(player: Player, id: any)
 	if now - (lastTravel[player] or -math.huge) < COOLDOWN then
 		return
 	end
-	lastTravel[player] = now
 	local character = player.Character
-	if not character then
+	if not character or not character.Parent or not Characters.humanoid(player) then
 		return
 	end
+	-- 삯은 떠나기 바로 앞에서 낸다. 모자라면 떠나지 않는다
+	local fee = Travel.fee(here, target)
+	if not Progression.spendStones(data, fee) then
+		Sync.notify(
+			player,
+			string.format(
+				"전송진 삯이 모자라다. (영석 %s 필요) 걸어서 가면 삯이 들지 않는다.",
+				Currency.format(fee)
+			),
+			"bad"
+		)
+		return
+	end
+	lastTravel[player] = now
 	Cultivation.setMeditating(player, false)
 	-- 진 가운데에서 조금 비켜 선다 (여럿이 한꺼번에 와도 겹치지 않게)
 	local angle = math.random() * math.pi * 2
 	local offset = Vector3.new(math.cos(angle) * 4, 4, math.sin(angle) * 4)
 	character:PivotTo(CFrame.new(target.Position + offset) * CFrame.Angles(0, angle, 0))
+	if fee > 0 then
+		Sync.notify(player, string.format("전송진 삯으로 영석 %s개를 냈다.", Currency.format(fee)), "info")
+	end
 	Sync.markDirty(player)
 end
 

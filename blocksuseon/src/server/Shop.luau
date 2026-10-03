@@ -1,4 +1,4 @@
--- 로벅스 상품. 지금은 종족 다시 뽑기 하나 (Races.REROLL_PRODUCT_ID, 49 로벅스).
+-- 로벅스 상품: 종족 다시 뽑기 (Races.REROLL_PRODUCT_ID, 49 로벅스)와 영석 묶음 (Currency.PACKS).
 --
 -- ProcessReceipt 는 같은 구매를 여러 번 보낼 수 있다. 구매 id 를 기록(data.receipts)에 남겨 두 번 주지 않고,
 -- 기록을 저장소에 쓴 뒤에만 PurchaseGranted 를 돌려준다. 저장에 실패하거나 아직 기록을 못 불러왔으면
@@ -10,6 +10,7 @@ local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 
 local Progression = require(Shared.Progression)
 local Races = require(Shared.Races)
+local Currency = require(Shared.Currency)
 local Josa = require(Shared.Josa)
 local PlayerData = require(script.Parent.PlayerData)
 local Sync = require(script.Parent.Sync)
@@ -63,6 +64,21 @@ local function reroll(player: Player, data)
 	Sync.markDirty(player)
 end
 
+-- 영석 묶음 (상품 id 가 0 인 묶음은 아직 팔지 않는다)
+local function grantStones(player: Player, data, pack: Currency.Pack)
+	Progression.addStones(data, pack.stones)
+	Sync.notify(
+		player,
+		string.format(
+			"영석 %s개를 받았다. (지닌 영석 %s)",
+			Currency.format(pack.stones),
+			Currency.format(data.stones)
+		),
+		"good"
+	)
+	Sync.markDirty(player)
+end
+
 function Shop.processReceipt(receipt): Enum.ProductPurchaseDecision
 	local player = Players:GetPlayerByUserId(receipt.PlayerId)
 	if not player then
@@ -72,13 +88,19 @@ function Shop.processReceipt(receipt): Enum.ProductPurchaseDecision
 	if not data or not PlayerData.canSave(player) then
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
-	if receipt.ProductId ~= Races.REROLL_PRODUCT_ID or Races.REROLL_PRODUCT_ID == 0 then
+	local isReroll = Races.REROLL_PRODUCT_ID ~= 0 and receipt.ProductId == Races.REROLL_PRODUCT_ID
+	local pack = if isReroll then nil else Currency.packByProduct(receipt.ProductId)
+	if not isReroll and not pack then
 		warn("[블록수선전] 모르는 상품:", receipt.ProductId)
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 	-- 같은 구매가 다시 와도 한 번만 준다
 	if Progression.claimReceipt(data, tostring(receipt.PurchaseId)) then
-		reroll(player, data)
+		if pack then
+			grantStones(player, data, pack)
+		else
+			reroll(player, data)
+		end
 	end
 	if PlayerData.save(player) then
 		return Enum.ProductPurchaseDecision.PurchaseGranted
