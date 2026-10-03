@@ -688,6 +688,7 @@ print("맵")
 local World
 check("연국 맵 짓기", function()
 	local game = roblox.Instance.new("DataModel")
+	Harness.mount(game)
 	local env = Harness.robloxGlobals(game)
 	local worldLoader = Harness.new(env)
 	World = worldLoader.require(worldLoader.folder("src/server").World)
@@ -706,10 +707,72 @@ check("연국 맵 짓기", function()
 			tags[tag] = (tags[tag] or 0) + 1
 		end
 	end
-	eq(tags.Ground, 1, "Ground 태그")
-	eq(tags.Vein, 3, "Vein 태그")
-	eq(tags.HerbZone, 1, "HerbZone 태그")
-	eq(tags.ManualSpot, 18, "ManualSpot 태그")
+	eq(tags.Ground, 5, "Ground 태그 (광장, 다리, 너럭바위, 서악 마당, 갯바위)")
+	eq(tags.Vein, 8, "Vein 태그")
+	eq(tags.HerbZone, 2, "HerbZone 태그 (영초숲, 등선향)")
+	eq(tags.ManualSpot, 27, "ManualSpot 태그")
+	eq(tags.Waypoint, 13, "Waypoint 태그")
+	-- 맵 위의 것은 땅(지형) 높이에 맞게 놓였다: 묻히지도 뜨지도 않는다, 물속도 아니다
+	local Land = worldLoader.require(worldLoader.folder("src/shared").Land)
+	for _, inst in map:GetDescendants() do
+		local kind = if inst:HasTag("Site")
+			then "자리 " .. tostring(inst:GetAttribute("Site"))
+			elseif inst:HasTag("Waypoint") then "전송진 " .. tostring(inst:GetAttribute("Name"))
+			elseif inst:HasTag("ManualSpot") then "비급 자리"
+			elseif inst:HasTag("Vein") then "영맥 " .. tostring(inst:GetAttribute("VeinId"))
+			else nil
+		if kind then
+			local p = inst.CFrame.Position
+			-- 섬 밑(폐허)에 놓인 것은 섬 윗면이 아니라 땅을 본다: 둘 가운데 가까운 쪽
+			local ground = Land.surface(p.X, p.Z)
+			local low = Land.height(p.X, p.Z)
+			if math.abs(p.Y - low) < math.abs(p.Y - ground) then
+				ground = low
+			end
+			local water = Land.water(p.X, p.Z, Land.height(p.X, p.Z))
+			-- 수 오행처 갯바위, 용소 너럭바위, 나룻배 노인처럼 땅보다 높은 판 위에 놓인 것은 판 높이를 본다
+			assert(p.Y > ground - 2.5, `{kind} 이 땅에 묻혔다 ({p}, 땅 {ground})`)
+			assert(p.Y < ground + 9, `{kind} 이 떠 있다 ({p}, 땅 {ground})`)
+			assert(water == nil or p.Y > water, `{kind} 이 물속이다 ({p}, 수면 {water})`)
+		end
+	end
+	-- 등선향 밑 폐허의 토 오행처와 전송진은 섬 위가 아니라 땅에 있다
+	for _, inst in map:GetDescendants() do
+		local underIsland = inst:GetAttribute("Site") == "el_earth" or inst:GetAttribute("WaypointId") == "wp_ruins"
+		if underIsland then
+			local p = inst.CFrame.Position
+			assert(
+				math.abs(p.Y - Land.height(p.X, p.Z)) < 4,
+				`{inst.Name} 이 땅이 아니라 섬 위에 있다 ({p})`
+			)
+		end
+	end
+	-- 전송진마다 그 이름의 땅에 있다
+	local PlacesForPads = worldLoader.require(worldLoader.folder("src/shared").Places)
+	local expectRegion = {
+		wp_yeonguk = "yeonguk",
+		wp_seoak = "seoak",
+		wp_summit = "summit",
+		wp_cheonsaek = "cheonsaek",
+		wp_dapcheon = "dapcheondae",
+		wp_ruins = "ruins",
+		wp_deungseon = "deungseon",
+		wp_star_south = "southisle",
+	}
+	for _, inst in map:GetDescendants() do
+		local id = inst:GetAttribute("WaypointId")
+		if id and expectRegion[id] then
+			local p = inst.CFrame.Position
+			eq(PlacesForPads.regionAt(p.X, p.Z, p.Y + 3).id, expectRegion[id], id .. " 의 땅")
+		end
+	end
+	-- 땅 이름: 자리마다 이름이 나온다
+	local Places = worldLoader.require(worldLoader.folder("src/shared").Places)
+	eq(Places.regionAt(0, 0, 1).id, "yeonguk", "광장은 연국")
+	eq(Places.regionAt(860, -40, 316).id, "deungseon", "섬 위는 등선향")
+	eq(Places.regionAt(860, -40, 19).id, "ruins", "섬 아래는 폐허")
+	eq(Places.regionAt(-860, -220, 440).id, "summit", "쇄천봉 꼭대기")
+	eq(Places.regionAt(900, 300, 30).id, "desert", "답천사막")
 	-- 과업이 가리키는 자리는 모두 맵에 있어야 한다
 	local siteIds: { [string]: boolean } = {}
 	for _, inst in map:GetDescendants() do
@@ -789,8 +852,17 @@ check("연국 맵 짓기", function()
 	end
 	assert(plaques >= 30, `현판 {plaques}개`)
 	-- 판은 정해진 쪽을 본다 (Lune 의 CFrame.lookAt 은 Z 가 뒤집혀 나와서 World 는 face() 를 쓴다)
-	local gateBoard = map:FindFirstChild("마을", true):FindFirstChild("마을 문"):FindFirstChild("Board")
-	assert(gateBoard.CFrame.LookVector.Z > 0.99, "마을 문 현판은 마을(남쪽)을 본다")
+	local gates = 0
+	for _, gate in map:FindFirstChild("마을"):GetChildren() do
+		if gate.Name == "연국 문" then
+			gates += 1
+			local board = gate:FindFirstChild("Board")
+			local p = board.CFrame.Position
+			local inward = roblox.Vector3.new(-p.X, 0, -p.Z).Unit
+			assert(board.CFrame.LookVector:Dot(inward) > 0.99, "연국 문 현판은 마을 쪽을 본다")
+		end
+	end
+	eq(gates, 3, "연국 패루")
 	for _, inst in map:GetDescendants() do
 		if inst.Name == "Tag" and inst:HasTag("Plaque") then
 			local lantern = inst.Parent:FindFirstChild("Lamp", true)

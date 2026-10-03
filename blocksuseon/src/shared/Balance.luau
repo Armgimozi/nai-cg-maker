@@ -18,6 +18,7 @@ Balance.VEINS = {
 	low = { name = "하품 영맥", mult = 1.5 },
 	mid = { name = "중품 영맥", mult = 2.5 },
 	high = { name = "상품 영맥", mult = 4 },
+	top = { name = "극품 영맥", mult = 5 }, -- 등선향 (중령성국의 용맥으로 띄운 섬)
 }
 
 -- 과업 배율(Tasks)을 곱하기 전의 기본 필요 영력

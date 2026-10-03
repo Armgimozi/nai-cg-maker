@@ -63,14 +63,33 @@ local function highlight(model: Instance, duration: number)
 	Debris:AddItem(glow, duration)
 end
 
+-- Roblox 는 한 화면에 Highlight 를 31개까지만 그린다. 맵이 넓어 영초가 많으므로 가까운 것부터 25개만
+local MAX_HIGHLIGHTS = 25
+
 function Effects.sight(duration: number)
 	local connections = {}
+	local camera = Workspace.CurrentCamera
+	local eye = if camera then camera.CFrame.Position else Vector3.zero
+	local found = {}
 	for _, name in SIGHT_FOLDERS do
 		local folder = Workspace:FindFirstChild(name)
 		if folder then
 			for _, model in folder:GetChildren() do
-				highlight(model, duration)
+				if model:IsA("Model") then
+					table.insert(found, { model = model, d = (model:GetPivot().Position - eye).Magnitude })
+				end
 			end
+		end
+	end
+	table.sort(found, function(a, b)
+		return a.d < b.d
+	end)
+	for i = 1, math.min(MAX_HIGHLIGHTS, #found) do
+		highlight(found[i].model, duration)
+	end
+	for _, name in SIGHT_FOLDERS do
+		local folder = Workspace:FindFirstChild(name)
+		if folder then
 			-- 영안을 켠 동안 새로 돋는 것도 보이게
 			table.insert(
 				connections,

@@ -23,6 +23,7 @@ local StarRain = require(script.Parent.StarRain)
 local DevCommands = require(script.Parent.DevCommands)
 local Villagers = require(script.Parent.Villagers)
 local Travel = require(script.Parent.Travel)
+local TerrainGen = require(script.Parent.TerrainGen)
 
 local RESPAWN_DELAY = 4
 local REGEN_COOLDOWN = 600 -- 금단 재생: 10분에 한 번 쓰러진 자리에서 일어난다
@@ -33,6 +34,14 @@ Players.CharacterAutoLoads = false
 
 if not Workspace:FindFirstChild(World.MODEL_NAME) then
 	World.build(Workspace, Lighting)
+end
+-- 지형은 플레이스 파일에 구워 두었다. 엔진이 못 읽었으면(지형 칸 0) 같은 땅 모양으로 여기서 짓는다
+if TerrainGen.present() then
+	Workspace:SetAttribute("TerrainHubReady", true)
+	Workspace:SetAttribute("TerrainReady", true)
+else
+	warn("[블록수선전] 구운 지형이 없어 서버에서 짓는다")
+	task.spawn(TerrainGen.build, Vector3.zero)
 end
 
 DayNight.start()
@@ -104,6 +113,10 @@ local function onPlayerAdded(player: Player)
 	player.CharacterAdded:Connect(function(character)
 		onCharacterAdded(player, character)
 	end)
+	TerrainGen.waitForHub()
+	if not player.Parent then
+		return
+	end
 	player:LoadCharacter()
 
 	Sync.cinematic(player, {

@@ -54,7 +54,11 @@ local function groundPoint(): Vector3?
 		local distance = math.sqrt(rng:NextNumber()) * AREA_RADIUS
 		local origin = AREA_CENTER + Vector3.new(math.cos(angle) * distance, 120, math.sin(angle) * distance)
 		local hit = Workspace:Raycast(origin, Vector3.new(0, -200, 0), params)
-		if hit and hit.Instance.CanCollide and hit.Position.Y < 60 then
+		-- 지형(물 말고)이나 바닥 판에만 떨어진다 (지붕, 물 위는 다시 고른다)
+		local onGround = hit
+			and hit.Material ~= Enum.Material.Water
+			and (hit.Instance == Workspace.Terrain or hit.Instance:HasTag("Ground"))
+		if hit and onGround and hit.Position.Y < 60 then
 			return hit.Position
 		end
 	end

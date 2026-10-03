@@ -1,4 +1,5 @@
--- 영초숲(HerbZone 태그) 바닥에 영초와 드물게 천년영지, 아주 드물게 홍령삼이 돋는다.
+-- 영초숲과 등선향(HerbZone 태그) 바닥에 영초와 드물게 천년영지, 아주 드물게 홍령삼이 돋는다.
+-- 땅은 지형(Terrain)이라 레이캐스트에 지형과 Ground 판을 함께 넣는다. 물 위에는 돋지 않는다.
 -- 캐면 주머니에 담긴다. 먹을지, 제물로 바칠지, 단약 재료로 쓸지는 플레이어가 고른다.
 
 local CollectionService = game:GetService("CollectionService")
@@ -12,7 +13,7 @@ local PlayerData = require(script.Parent.PlayerData)
 local Sync = require(script.Parent.Sync)
 local TaskService = require(script.Parent.TaskService)
 
-local MAX_HERBS = 16
+local MAX_HERBS = 28
 local RARE_CHANCE = 0.1
 local HONGSAM_CHANCE = 0.02
 local HONGSAM_COOLDOWN = 15 * 60 -- 서버에 홍령삼은 15분에 많아야 한 뿌리
@@ -31,28 +32,62 @@ local rng = Random.new()
 local folder: Folder
 local lastHongsam = -math.huge
 
-local function randomGroundPoint(): Vector3?
-	local zones = CollectionService:GetTagged("HerbZone")
-	if #zones == 0 then
-		return nil
-	end
+-- 지형과 바닥 판만 맞는 레이캐스트
+local function groundParams(): RaycastParams
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Include
-	params.FilterDescendantsInstances = CollectionService:GetTagged("Ground")
+	local targets: { Instance } = CollectionService:GetTagged("Ground")
+	table.insert(targets, Workspace.Terrain)
+	params.FilterDescendantsInstances = targets
+	return params
+end
 
-	for _ = 1, 10 do
-		local zone = zones[rng:NextInteger(1, #zones)]
-		if zone:IsA("BasePart") then
-			local offset =
-				Vector3.new(rng:NextNumber(-0.5, 0.5) * zone.Size.X, 0, rng:NextNumber(-0.5, 0.5) * zone.Size.Z)
-			local origin = zone.CFrame:PointToWorldSpace(offset) + Vector3.new(0, 50, 0)
-			local hit = Workspace:Raycast(origin, Vector3.new(0, -150, 0), params)
-			if hit then
-				return hit.Position
-			end
-		end
+-- 위에서 내리쏴 맞은 땅 (물이면 nil)
+local function groundBelow(origin: Vector3, length: number, params: RaycastParams): Vector3?
+	local hit = Workspace:Raycast(origin, Vector3.new(0, -length, 0), params)
+	if hit and hit.Material ~= Enum.Material.Water then
+		return hit.Position
 	end
 	return nil
+end
+
+-- 영초가 돋을 자리와 그 범위의 귀한 영초 배율. 넓은 범위일수록 자주 고른다
+local function randomGroundPoint(): (Vector3?, number)
+	local zones = {}
+	local total = 0
+	for _, zone in CollectionService:GetTagged("HerbZone") do
+		if zone:IsA("BasePart") then
+			local area = zone.Size.X * zone.Size.Z
+			table.insert(zones, { part = zone, area = area })
+			total += area
+		end
+	end
+	if total <= 0 then
+		return nil, 1
+	end
+	local params = groundParams()
+	for _ = 1, 10 do
+		local pick = rng:NextNumber() * total
+		local zone = zones[#zones].part
+		for _, entry in zones do
+			pick -= entry.area
+			if pick <= 0 then
+				zone = entry.part
+				break
+			end
+		end
+		local offset = Vector3.new(
+			rng:NextNumber(-0.5, 0.5) * zone.Size.X,
+			zone.Size.Y / 2 + 10,
+			rng:NextNumber(-0.5, 0.5) * zone.Size.Z
+		)
+		local position = groundBelow(zone.CFrame:PointToWorldSpace(offset), zone.Size.Y + 30, params)
+		if position then
+			local rare = zone:GetAttribute("RareMult")
+			return position, if type(rare) == "number" then rare else 1
+		end
+	end
+	return nil, 1
 end
 
 local function herbPart(parent: Instance, size: Vector3, cframe: CFrame, color: Color3, material: Enum.Material): Part
@@ -104,8 +139,8 @@ function Herbs.collectFrom(player: Player, herb: Model)
 	end
 end
 
-local function pickKind(): string
-	local roll = rng:NextNumber()
+local function pickKind(rareMult: number?): string
+	local roll = rng:NextNumber() / (rareMult or 1)
 	if roll < HONGSAM_CHANCE and os.clock() - lastHongsam > HONGSAM_COOLDOWN then
 		lastHongsam = os.clock()
 		return "hongsam"
@@ -181,24 +216,25 @@ local function spawnAt(position: Vector3, kind: string)
 end
 
 spawnHerb = function()
-	local position = randomGroundPoint()
+	if #folder:GetChildren() >= MAX_HERBS then
+		return
+	end
+	local position, rareMult = randomGroundPoint()
 	if position then
-		spawnAt(position, pickKind())
+		spawnAt(position, pickKind(rareMult))
 	end
 end
 
 -- 천기유도: 둘레에 영초를 돋운다
 function Herbs.spawnNear(center: Vector3, count: number, kind: string?)
-	local params = RaycastParams.new()
-	params.FilterType = Enum.RaycastFilterType.Include
-	params.FilterDescendantsInstances = CollectionService:GetTagged("Ground")
+	local params = groundParams()
 	for _ = 1, count do
 		local angle = rng:NextNumber(0, math.pi * 2)
 		local distance = rng:NextNumber(4, 14)
 		local origin = center + Vector3.new(math.cos(angle) * distance, 40, math.sin(angle) * distance)
-		local hit = Workspace:Raycast(origin, Vector3.new(0, -120, 0), params)
-		if hit then
-			spawnAt(hit.Position, kind or "herb")
+		local position = groundBelow(origin, 120, params)
+		if position then
+			spawnAt(position, kind or "herb")
 		end
 	end
 end
@@ -211,6 +247,15 @@ function Herbs.start()
 	folder = Instance.new("Folder")
 	folder.Name = "영초"
 	folder.Parent = Workspace
+	-- 모자라면 채운다 (서버가 지형을 짓는 중이라 처음에 자리를 못 찾았을 때도)
+	task.spawn(function()
+		while true do
+			task.wait(15)
+			if #folder:GetChildren() < MAX_HERBS then
+				spawnHerb()
+			end
+		end
+	end)
 	for _ = 1, MAX_HERBS do
 		spawnHerb()
 	end

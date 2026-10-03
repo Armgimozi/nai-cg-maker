@@ -8,9 +8,9 @@ local new, image, setImage, text, row = Ui.new, Ui.image, Ui.setImage, Ui.text, 
 
 local TravelMenu = {}
 
-local MAX_ENTRIES = 12
-local COLUMNS = 2
-local ENTRY_W, ENTRY_H, GAP = 250, 50, 8
+local MAX_ENTRIES = 15
+local COLUMNS = 3
+local ENTRY_W, ENTRY_H, GAP = 172, 46, 8
 
 local ui: { [string]: any } = {}
 local entries: { { [string]: any } } = {}
@@ -79,7 +79,7 @@ function TravelMenu.build(gui: ScreenGui, go: (id: string) -> ())
 			Parent = grid,
 		}, "ImageButton")
 		local labelRow = row({ Size = UDim2.new(1, 0, 1, -2), Parent = button })
-		local name = text("title", 22, { color = C.cream, parent = labelRow })
+		local name = text("title", 19, { color = C.cream, parent = labelRow })
 		local entry = { button = button, name = name, id = nil, open = false }
 		button.Activated:Connect(function()
 			if entry.id and entry.open and entry.id ~= here then
@@ -118,7 +118,7 @@ function TravelMenu.open(fromId: string, state: { [string]: any })
 			if entry.open and not isHere then
 				openCount += 1
 			end
-			entry.name:set(if entry.open then point.name else "아직 가 보지 못한 곳")
+			entry.name:set(if entry.open then point.name else "가 보지 못한 곳")
 			entry.name:setColor(if isHere then C.gold elseif entry.open then C.cream else C.dim)
 			setImage(entry.button, if isHere then "pillJade" else "pillStone")
 		end

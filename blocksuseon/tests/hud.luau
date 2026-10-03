@@ -376,6 +376,30 @@ Hud.update(state({
 		{ id = "wp_three", name = "천겁대", open = false },
 	},
 }))
+-- 맵의 전송진이 모두 창에 들어간다
+do
+	local many = {}
+	for i = 1, 13 do
+		table.insert(many, { id = "wp_" .. i, name = "연국", open = true })
+	end
+	Hud.update(state({ waypoints = many }))
+	Hud.openTravel("wp_1")
+	local shown = 0
+	for _, item in playerGui:FindFirstChild("BlockSuseonHud"):FindFirstChild("TravelMenu"):GetDescendants() do
+		if item:IsA("ImageButton") and item.Visible and item.LayoutOrder > 0 then
+			shown += 1
+		end
+	end
+	assert(shown == 13, `전송진 {shown}개만 보인다 (13)`)
+	Hud.closeTravel()
+end
+Hud.update(state({
+	waypoints = {
+		{ id = "wp_yeonguk", name = "연국", open = true },
+		{ id = "wp_two", name = "영산", open = true },
+		{ id = "wp_three", name = "천겁대", open = false },
+	},
+}))
 Hud.openTravel("wp_yeonguk")
 assert(Hud.travelOpen(), "전송진 창이 열리지 않았다")
 do

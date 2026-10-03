@@ -31,7 +31,7 @@ TaskService.setMeditating = function(_player: Player, _on: boolean) end
 TaskService.onEntryTrial = function(_player: Player, _success: boolean) end
 
 -- 영맥 등급에 따른 농도 흔들림 (하품은 잔잔하고 상품일수록 거세다)
-local TURBULENCE = { low = 0.8, mid = 1.3, high = 1.7 }
+local TURBULENCE = { low = 0.8, mid = 1.3, high = 1.7, top = 2 }
 
 local rng = Random.new()
 

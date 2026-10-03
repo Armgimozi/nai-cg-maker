@@ -834,8 +834,12 @@ local function refreshPlaceLine(state)
 end
 
 -- 땅이 바뀌면 그 땅 이름을 화면에 띄운다 (맵에는 이름표를 띄우지 않는다).
+-- 경계를 따라 걸을 때 깜박이지 않게 새 땅에 1초 넘게 있어야 바뀐 것으로 치고, 같은 땅 이름은 1분 안에 다시 띄우지 않는다.
 -- 경지 연출이 화면을 덮는 동안에는 기다렸다가 걷힌 뒤에 띄운다
 local cinematicUntil = 0
+local candidate: Places.Region? = nil
+local candidateSince = 0
+local bannerShown: { [string]: number } = {}
 local function refreshPlace()
 	if os.clock() < cinematicUntil then
 		return
@@ -847,10 +851,23 @@ local function refreshPlace()
 	end
 	local region = Places.regionAt(root.Position.X, root.Position.Z, root.Position.Y)
 	if region == currentPlace then
+		candidate = nil
 		return
 	end
+	local now = os.clock()
+	if region ~= candidate then
+		candidate, candidateSince = region, now
+		-- 처음 들어올 때(아직 아무 땅도 아닐 때)는 바로 정한다
+		if currentPlace ~= nil then
+			return
+		end
+	elseif now - candidateSince < 1 then
+		return
+	end
+	candidate = nil
 	currentPlace = region
-	if region then
+	if now - (bannerShown[region.id] or -math.huge) > 60 then
+		bannerShown[region.id] = now
 		PlaceBanner.show(region.name, region.sub)
 	end
 	if lastState then
