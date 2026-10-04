@@ -243,7 +243,11 @@ python3 tools/upload_art.py       # 바뀐 그림만 Roblox 이미지 에셋으�
 ```
 
 `node` 스크립트는 Playwright 가 필요하다 (`NODE_PATH` 에 전역 playwright 경로, 필요하면 `CHROMIUM_PATH`).
-HUD 나 서버 알림(src/server)에 새 한글 문구를 넣었으면 위 네 단계를 다시 돌린다. `lune run tests/hud` 가 빠진 글자를 잡아 준다.
+HUD 나 서버 알림(src/server)에 새 한글 문구를 넣었으면 위 네 단계를 다시 돌린다.
+글자판은 이어 쓴다: 이미 있는 글자는 같은 자리에 두고 새 글자만 새 페이지에 그려서, 다시 올라가는 그림은 새 페이지뿐이다
+(처음부터 다시 채우려면 `node tools/build_glyphs.mjs --repack`). 새로 올린 그림은 Roblox 검수가 끝나야 게임에 보이므로
+`tools/publish.py` 는 Art.luau 의 그림이 모두 검수를 통과할 때까지 기다렸다가 게시한다. 그래도 글자판을 못 받아 오면
+그 글줄만 Roblox 글꼴로 찍는다(src/client/BitmapText.luau). `lune run tests/hud` 가 빠진 글자를 잡아 준다.
 알림은 화면 위 가운데에 칠기 띠(src/client/Notice.luau)로 띄운다. 한꺼번에 몰리면 줄을 세워 차례로 띄우고,
 경지 연출 중에는 멈췄다가 연출이 걷힌 뒤 띄운다. 글자판에 없는 글자(플레이어 이름 등)가 섞이면 그 알림만 Roblox 글꼴로 찍는다.
 
