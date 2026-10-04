@@ -136,6 +136,8 @@ function SkillService.use(player: Player, id: string)
 		return -- 아직 쿨타임 (클라이언트도 막지만 한 번 더 확인)
 	end
 	session.cooldowns[id] = now + (def.cooldown or 0)
+	-- 호신강기는 방어 법구(진령방울)가 더 오래 붙든다
+	local duration = (def.duration or 0) * (if id == "hosin" then Progression.shieldMult(data) else 1)
 
 	if id == "heogong" then
 		blink(player, root)
@@ -148,8 +150,8 @@ function SkillService.use(player: Player, id: string)
 	elseif id == "gyeongsin" then
 		Fx.trail(player.Character, DASH_COLOR, Skills.EFFECT.dashTime)
 	elseif id == "hosin" then
-		session.shieldUntil = now + (def.duration or 0)
-		Fx.shield(player.Character, def.duration or 0)
+		session.shieldUntil = now + duration
+		Fx.shield(player.Character, duration)
 	elseif id == "chwiryeong" then
 		session.formation = { position = root.Position, untilTime = now + (def.duration or 0) }
 		Fx.formation(root.Position, Skills.EFFECT.formationRadius, def.duration or 0)
@@ -158,10 +160,12 @@ function SkillService.use(player: Player, id: string)
 
 	-- 결단기부터 경신술은 비둔술: 빛줄기로 더 멀리, 조금 떠서 난다
 	local power = if id == "gyeongsin" and data.step >= Realms.firstStepById.gyeoldan then 1.6 else 1
-	Sync.remotes.Skill:FireClient(
-		player,
-		{ id = id, cooldown = math.max(0, session.cooldowns[id] - now), duration = def.duration, power = power }
-	)
+	Sync.remotes.Skill:FireClient(player, {
+		id = id,
+		cooldown = math.max(0, session.cooldowns[id] - now),
+		duration = if def.duration then duration else nil,
+		power = power,
+	})
 end
 
 function SkillService.setEquipped(player: Player, id: string, equip: boolean)
@@ -177,7 +181,7 @@ function SkillService.setEquipped(player: Player, id: string, equip: boolean)
 	end
 	Sync.notify(player, message, if ok then "info" else "bad")
 	if ok and id == "geumgang" then
-		Characters.applyStats(player, false)
+		Characters.applyStats(player, false, true)
 	end
 	Sync.state(player)
 end

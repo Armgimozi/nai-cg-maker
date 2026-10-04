@@ -1,7 +1,9 @@
--- 싸움: 무기(도구)로 요수를 베고, 요수에게 물리고, 쓰러뜨리면 요단과 무기를 얻는다.
+-- 싸움: 공격 법구(도구)로 요수를 베고, 요수에게 물리고, 쓰러뜨리면 요단과 법구를 얻는다.
 --
--- 무기는 Roblox 도구다. 지닌 무기(data.weapons)마다 가방에 도구가 들어가 숫자 키 1~9 로 든다.
+-- 공격 법구는 Roblox 도구다. 지닌 공격 법구(data.weapons)마다 가방에 도구가 들어가 숫자 키 1~9 로 든다.
 -- 도구를 쓰면(클릭) 서버가 앞쪽 요수를 찾아 피해를 준다. 맞는 판정과 쿨타임은 서버가 정한다.
+-- 지닌 방어 법구(Guards.luau)가 물린 피해를 줄이고(reduce), 일부를 문 요수에게 되돌리고(reflect),
+-- 한동안 다치지 않으면 체력을 채운다(regen). 요수는 공격 법구와 따로 방어 법구도 떨어뜨린다(Guards.DROP).
 -- 피해 숫자를 공중에 띄우지 않는다. 화면 위 대상 창(client/CombatHud.luau)으로 알린다.
 --
 -- 칼질은 모든 클라이언트에 알린다 (remotes.Combat:FireAllClients). 몸짓과 효과는 클라이언트가 그린다
@@ -15,6 +17,7 @@ local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 
 local Combat = require(Shared.Combat)
 local Mobs = require(Shared.Mobs)
+local Guards = require(Shared.Guards)
 local Progression = require(Shared.Progression)
 local Josa = require(Shared.Josa)
 local Net = require(Shared.Net)
@@ -40,6 +43,13 @@ local COMBO_LENGTH = { sword = 3, saber = 2, spear = 2, fan = 1 } -- 종류마�
 
 type Combo = { kind: string, count: number, at: number }
 local combos: { [Player]: Combo } = {}
+
+-- 회춘환: 이만큼 다치지 않으면 초마다 최대 체력의 regen 만큼 찬다 (천겁 중에는 차지 않는다)
+local REGEN_AFTER = 5
+local REGEN_TICK = 0.5
+local lastHurt: { [Player]: number } = {} -- 마지막으로 다친 os.clock()
+type Watch = { humanoid: Humanoid, health: number }
+local watched: { [Player]: Watch } = {} -- 지난번에 본 체력 (요수 말고 다른 데서 다친 것도 알아챈다)
 
 local function event(player: Player, payload: { [string]: any })
 	remotes.Combat:FireClient(player, payload)
@@ -80,24 +90,48 @@ local function reward(player: Player, mob: MobService.Live)
 		return
 	end
 	local loot = Mobs.LOOT[mob.def.tier] or Mobs.LOOT[1]
-	Progression.addItem(data, "yodan", loot.cores)
 	data.stats.kills = (data.stats.kills or 0) + 1
-	local parts = { string.format("요단 %d", loot.cores) }
+	local cores = loot.cores
+	local found = {}
+	-- 공격 법구
 	if rng:NextNumber() < loot.weapon then
 		local kind = Combat.KIND_ORDER[rng:NextInteger(1, #Combat.KIND_ORDER)]
 		local weapon = { kind = kind, grade = mob.def.tier }
 		if Progression.addWeapon(data, weapon) then
-			table.insert(parts, Combat.weaponName(weapon))
-			Weapons.give(player)
+			table.insert(found, Combat.weaponName(weapon))
+			-- 가방의 도구를 다시 채운다. 반탄경으로 쓰러뜨렸을 때 요수의 물기 처리를 붙잡지 않게 따로 돈다
+			task.spawn(Weapons.give, player)
 		else
 			-- 이미 더 좋은 것을 가졌으면 요단으로
-			Progression.addItem(data, "yodan", 1)
-			parts[1] = string.format("요단 %d", loot.cores + 1)
+			cores += 1
 		end
 	end
+	-- 방어 법구 (공격 법구와 따로 굴린다. 요수 위험도와 같은 등급)
+	if rng:NextNumber() < (Guards.DROP[mob.def.tier] or Guards.DROP[1]) then
+		local guard = {
+			kind = Guards.ORDER[rng:NextInteger(1, #Guards.ORDER)],
+			grade = math.clamp(mob.def.tier, 1, #Guards.GRADES),
+		}
+		if Progression.addGuard(data, guard) then
+			local text = Guards.name(guard)
+			if not data.guard then
+				-- 처음 얻은 방어 법구는 바로 지닌다
+				Progression.equipGuard(data, guard.kind)
+				text ..= " (지녔다)"
+			end
+			table.insert(found, text)
+			if data.guard == guard.kind then
+				Characters.applyStats(player, false, true)
+			end
+		else
+			cores += 1
+		end
+	end
+	Progression.addItem(data, "yodan", cores)
+	table.insert(found, 1, string.format("요단 %d", cores))
 	Sync.notify(
 		player,
-		string.format("%s 쓰러뜨렸다. %s", Josa.eul(mob.def.name), table.concat(parts, ", ")),
+		string.format("%s 쓰러뜨렸다. %s", Josa.eul(mob.def.name), table.concat(found, ", ")),
 		"good"
 	)
 	Sync.markDirty(player)
@@ -223,18 +257,62 @@ local function bitten(mob: MobService.Live, player: Player, damage: number)
 		Cultivation.setMeditating(player, false)
 		Sync.notify(player, "요수에게 물려 운기조식이 끊겼다.", "bad")
 	end
-	humanoid:TakeDamage(damage)
-	event(player, { kind = "hurt", amount = damage, name = mob.def.name, mob = mob.model })
+	local data = PlayerData.get(player)
+	-- 방어 법구가 받는 피해를 줄인다
+	local taken = if data then Progression.mobDamage(data, damage) else damage
+	humanoid:TakeDamage(taken)
+	lastHurt[player] = os.clock()
+	event(player, { kind = "hurt", amount = taken, name = mob.def.name, mob = mob.model })
+	-- 반탄경: 요수가 준 피해(줄이기 전)의 일부를 그 요수에게 되돌린다. 쓰러뜨리면 보상도 받는다
+	local reflect = if data then Progression.guardValue(data, "reflect") else 0
+	if reflect > 0 and not mob.dead then
+		hitMob(player, mob, damage * reflect)
+	end
+end
+
+-- 회춘환: 한동안 다치지 않은 사람의 체력을 채운다
+local function regen(dt: number)
+	local now = os.clock()
+	for player, session in Session.all() do
+		local humanoid = Characters.humanoid(player)
+		if not humanoid then
+			watched[player] = nil
+			continue
+		end
+		-- 요수 말고 다른 데서(떨어짐 등) 체력이 줄어도 다친 것으로 친다
+		local seen = watched[player]
+		if seen and seen.humanoid == humanoid and humanoid.Health < seen.health - 0.01 then
+			lastHurt[player] = now
+		end
+		local data = PlayerData.get(player)
+		local rate = if data then Progression.guardValue(data, "regen") else 0
+		if
+			rate > 0
+			and not session.tribulation
+			and now - (lastHurt[player] or -math.huge) >= REGEN_AFTER
+			and humanoid.Health < humanoid.MaxHealth
+		then
+			humanoid.Health = math.min(humanoid.MaxHealth, humanoid.Health + humanoid.MaxHealth * rate * dt)
+		end
+		watched[player] = { humanoid = humanoid, health = humanoid.Health }
+	end
 end
 
 function CombatService.start()
 	MobService.onBite = bitten
 	Weapons.onSwing = CombatService.swing
+	task.spawn(function()
+		while true do
+			regen(math.min(task.wait(REGEN_TICK), 1))
+		end
+	end)
 end
 
 function CombatService.forget(player: Player)
 	lastSwing[player] = nil
 	combos[player] = nil
+	lastHurt[player] = nil
+	watched[player] = nil
 end
 
 return CombatService

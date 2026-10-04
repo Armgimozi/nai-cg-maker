@@ -706,7 +706,7 @@ local function buildSmithy(village: Instance)
 	block(m, "AnvilHorn", V3(0.9, 0.35, 0.7), CF(anvil + V3(1.9, 2.2, 0)), iron, Mat.Metal)
 	block(m, "HammerHead", V3(0.45, 0.45, 0.9), CF(anvil + V3(-0.6, 2.62, 0.1)), C.stoneDark, Mat.Metal)
 	block(m, "HammerHandle", V3(1.5, 0.18, 0.18), CF(anvil + V3(0.3, 2.52, 0.1)), C.wood, Mat.Wood)
-	marketSpot(m, "smith", anvil + V3(0, 2.8, 0), "대장간", "무기 강화")
+	marketSpot(m, "smith", anvil + V3(0, 2.8, 0), "대장간", "법구 강화·제작")
 	-- 담금질 물통과 숯 더미
 	block(m, "Multong", V3(2.6, 1.2, 1.4), CF(b + V3(1.5, 0.6, -4.6)), P.woodDark, Mat.Wood)
 	block(m, "Mul", V3(2.2, 0.1, 1.0), CF(b + V3(1.5, 1.16, -4.6)), Color3.fromRGB(46, 70, 80), Mat.Glass)

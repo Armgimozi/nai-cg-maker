@@ -134,10 +134,11 @@ function Guards.effects(guard: Guard): string
 	for _, entry in LABELS do
 		local value = Guards.value(guard, entry[1])
 		if value ~= 0 then
-			local percent = value * 100 * entry[3]
-			local digits = if math.abs(percent) < 10 and percent % 1 ~= 0 then "%s %s%.1f%%" else "%s %s%d%%"
-			local shown = if digits == "%s %s%d%%" then math.floor(math.abs(percent) + 0.5) else math.abs(percent)
-			table.insert(parts, string.format(digits, entry[2], if percent > 0 then "+" else "-", shown))
+			-- 소수 한 자리에서 반올림 (0.07 * 100 이 7 이 아니게 나오는 것을 막는다)
+			local percent = math.round(value * 1000 * entry[3]) / 10
+			local shown = math.abs(percent)
+			local text = if shown % 1 == 0 then string.format("%d", shown) else string.format("%.1f", shown)
+			table.insert(parts, string.format("%s %s%s%%", entry[2], if percent > 0 then "+" else "-", text))
 		end
 	end
 	return table.concat(parts, ", ")

@@ -1,6 +1,6 @@
 -- 싸움 화면: 위 가운데의 대상 창(맞힌 요수 이름과 체력), 내 체력 막대, 맞았을 때의 붉은 번쩍임과 흔들림.
 -- 공중에 피해 숫자나 이름표를 띄우지 않는다.
--- 무기 몸짓(WeaponAnim)과 효과(WeaponEffects)도 여기서 켜고, 서버가 모두에게 보내는 싸움 소식을 나눠 준다:
+-- 공격 법구 몸짓(WeaponAnim)과 효과(WeaponEffects)도 여기서 켜고, 서버가 모두에게 보내는 싸움 소식을 나눠 준다:
 --   "swing" 남이 휘둘렀다 → WeaponAnim.remoteSwing (내 것은 이미 그렸다)
 --   "impact" 요수가 맞은 자리 → WeaponEffects.impact
 --   "wave" 부채 바람칼 → WeaponEffects.wave (내 것은 이미 그렸으면 넘긴다)

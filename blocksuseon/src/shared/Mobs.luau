@@ -38,7 +38,7 @@ local Mobs = {}
 
 Mobs.TIER_NAMES = { "약한 요수", "요수", "사나운 요수", "대요수", "요왕" }
 
--- 위험도마다 잡으면 나오는 요단 개수와 무기가 떨어질 확률
+-- 위험도마다 잡으면 나오는 요단 개수와 공격 법구(weapon)가 떨어질 확률. 방어 법구는 따로 Guards.DROP
 Mobs.LOOT = {
 	{ cores = 1, weapon = 0.06 },
 	{ cores = 1, weapon = 0.07 },

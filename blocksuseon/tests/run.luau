@@ -421,6 +421,354 @@ check("전송진 삯과 로벅스 묶음", function()
 	end
 end)
 
+print("방어 법구")
+local GUARD_KEYS = { reduce = true, hp = true, trib = true, shield = true, regen = true, reflect = true, speed = true }
+local function near(actual: number, expected: number, what: string?)
+	if math.abs(actual - expected) > 1e-9 then
+		error(`{what or "값"}: {expected} 기대, {actual} 받음`, 2)
+	end
+end
+-- 가진 영석과 재료를 그 값만큼 채운다
+local function fund(data: any, cost: any)
+	data.stones = cost.stones
+	data.items = {}
+	for item, count in cost.items do
+		Progression.addItem(data, item, count)
+	end
+end
+check("방어 법구 데이터", function()
+	eq(#Guards.KINDS, 8, "여덟 종류")
+	eq(#Guards.ORDER, #Guards.KINDS)
+	assert(Guards.MAX >= #Guards.ORDER, "종류마다 하나씩 지닐 수 있다")
+	eq(#Guards.GRADES, 5, "범품~극품")
+	eq(table.concat(Guards.GRADES, " "), "범품 하품 중품 상품 극품")
+	local names = {}
+	for i, kind in Guards.KINDS do
+		eq(Guards.ORDER[i], kind.id)
+		eq(Guards.byId[kind.id], kind, kind.id .. " 찾기")
+		assert(#kind.name > 0 and #kind.summary > 0, kind.id .. " 이름과 설명")
+		assert(not names[kind.name], kind.name .. " 이름이 겹친다")
+		names[kind.name] = true
+		assert(next(kind.values), kind.id .. " 효과가 없다")
+		for key, list in kind.values do
+			assert(GUARD_KEYS[key], kind.id .. " 모르는 효과 " .. key)
+			eq(#list, #Guards.GRADES, kind.id .. " " .. key .. " 등급 다섯")
+			for grade, value in list do
+				assert(type(value) == "number" and value ~= 0 and math.abs(value) < 1, `{kind.id} {key} {grade}`)
+				if grade > 1 and value > 0 then
+					assert(value >= list[grade - 1], `{kind.id} {key}: 높은 등급이 약하다`)
+				end
+			end
+		end
+		for grade = 1, #Guards.GRADES do
+			local guard = { kind = kind.id, grade = grade }
+			eq(Guards.isGuard(guard), true, kind.id .. " " .. grade)
+			eq(Guards.name(guard), Guards.GRADES[grade] .. " " .. kind.name)
+			assert(#Guards.effects(guard) > 0, Guards.name(guard) .. " 효과 줄")
+			for key in GUARD_KEYS do
+				local list = kind.values[key]
+				eq(Guards.value(guard, key), if list then list[grade] else 0, `{Guards.name(guard)} {key}`)
+			end
+		end
+	end
+	eq(Guards.name({ kind = "okpae", grade = 2 }), "하품 호신옥패")
+	eq(Guards.name({ kind = "gyeong", grade = 3 }), "중품 반탄경")
+	eq(Guards.effects({ kind = "okpae", grade = 2 }), "받는 피해 -10%")
+	eq(Guards.effects({ kind = "gabui", grade = 1 }), "받는 피해 -10%, 걸음 -6%")
+	eq(Guards.effects({ kind = "palchi", grade = 5 }), "체력 +35%")
+	eq(Guards.effects({ kind = "hwan", grade = 1 }), "초당 회복 +0.5%")
+	eq(Guards.effects({ kind = "bangul", grade = 3 }), "호신강기 지속 +50%")
+	for _, bad in { { kind = "x", grade = 1 }, { kind = "okpae", grade = 0 }, { kind = "okpae", grade = 6 } } do
+		eq(Guards.isGuard(bad), false, bad.kind .. " " .. bad.grade)
+	end
+	for _, bad in { { kind = "okpae", grade = 1.5 }, { kind = "okpae" }, "okpae", 3, nil } do
+		eq(Guards.isGuard(bad), false)
+	end
+	eq(Guards.value(nil, "reduce"), 0, "없으면 0")
+	eq(Guards.value({ kind = "x", grade = 1 } :: any, "reduce"), 0)
+	-- 제작 값과 떨어질 확률
+	eq(#Guards.CRAFT, #Guards.GRADES, "등급마다 제작 값")
+	for grade, cost in Guards.CRAFT do
+		assert(cost.stones > 0 and cost.stones % 1 == 0, grade .. " 등급 영석")
+		if grade > 1 then
+			assert(cost.stones > Guards.CRAFT[grade - 1].stones, "높은 등급일수록 비싸다")
+		end
+		for item, count in cost.items do
+			assert(Balance.ITEMS[item], grade .. " 등급 재료 " .. item)
+			assert(count >= 1 and count % 1 == 0, grade .. " 등급 재료 개수")
+		end
+	end
+	eq(#Guards.DROP, #Mobs.LOOT, "요수 위험도마다 떨어질 확률")
+	for tier, chance in Guards.DROP do
+		assert(chance > 0 and chance < 1, tier .. " 위험도 확률")
+	end
+	-- 만물상은 범품을 종류마다 판다
+	for _, id in Guards.ORDER do
+		local ware = Currency.wareById["guard_" .. id]
+		assert(ware and ware.guard, id .. " 만물상")
+		eq(ware.guard.kind, id)
+		eq(ware.guard.grade, 1, "범품만")
+		eq(ware.price, Guards.SHOP_PRICE)
+	end
+end)
+check("방어 법구 얻기", function()
+	local data = Progression.newData()
+	eq(#data.guards, 0, "처음엔 없다")
+	eq(data.guard, nil)
+	eq(Progression.equippedGuard(data), nil)
+	eq(Progression.guardValue(data, "reduce"), 0)
+	eq(Progression.addGuard(data, { kind = "okpae", grade = 2 }), true)
+	eq(#data.guards, 1)
+	eq(Progression.guardOf(data, "okpae").grade, 2)
+	eq(data.guard, nil, "얻기만 해서는 지니지 않는다")
+	eq(Progression.addGuard(data, { kind = "okpae", grade = 2 }), false, "같은 것")
+	eq(Progression.addGuard(data, { kind = "okpae", grade = 1 }), false, "더 낮은 것")
+	eq(Progression.guardOf(data, "okpae").grade, 2, "낮은 것으로 바뀌지 않는다")
+	eq(Progression.addGuard(data, { kind = "okpae", grade = 4 }), true, "더 좋은 것은 바꾼다")
+	eq(#data.guards, 1, "종류마다 하나")
+	eq(Progression.guardOf(data, "okpae").grade, 4)
+	eq(Progression.addGuard(data, { kind = "palchi", grade = 1 }), true)
+	eq(#data.guards, 2)
+	eq(Progression.guardOf(data, "hwan"), nil)
+	for _, bad in { { kind = "x", grade = 1 }, { kind = "hwan", grade = 6 }, { kind = "hwan", grade = 0.5 } } do
+		eq(Progression.addGuard(data, bad), false, "이상한 법구 " .. bad.kind)
+	end
+	eq(#data.guards, 2)
+	-- 넣은 표를 나중에 바꿔도 지닌 것은 그대로 (따로 복사해 둔다)
+	local given = { kind = "hwan", grade = 1 }
+	eq(Progression.addGuard(data, given), true)
+	given.grade = 5
+	eq(Progression.guardOf(data, "hwan").grade, 1)
+	for _, id in Guards.ORDER do
+		Progression.addGuard(data, { kind = id, grade = 3 })
+	end
+	eq(#data.guards, #Guards.ORDER, "여덟 종류 모두")
+	eq(Progression.guardOf(data, "okpae").grade, 4, "더 좋은 것은 그대로")
+end)
+check("방어 법구는 하나만 지닌다", function()
+	local data = Progression.newData()
+	local ok, message = Progression.equipGuard(data, "okpae")
+	eq(ok, false, "가지지 않은 것")
+	assert(message:find("가지지 않은"), message)
+	eq(data.guard, nil)
+	ok, message = Progression.equipGuard(data, "")
+	eq(ok, false, "지닌 게 없으면 내려놓을 것도 없다")
+	Progression.addGuard(data, { kind = "okpae", grade = 2 })
+	Progression.addGuard(data, { kind = "gyeong", grade = 1 })
+	ok, message = Progression.equipGuard(data, "okpae")
+	eq(ok, true, message)
+	eq(data.guard, "okpae")
+	eq(message, "하품 호신옥패를 지녔다. 받는 피해 -10%")
+	eq(Progression.equippedGuard(data), Progression.guardOf(data, "okpae"))
+	near(Progression.guardValue(data, "reduce"), 0.1)
+	eq(Progression.guardValue(data, "reflect"), 0)
+	eq((Progression.equipGuard(data, "okpae")), false, "이미 지닌 것")
+	ok = Progression.equipGuard(data, "gyeong")
+	eq(ok, true)
+	eq(data.guard, "gyeong", "바꿔 지니면 앞의 것은 내려놓는다")
+	eq(Progression.guardValue(data, "reduce"), 0, "효과는 지닌 것 하나만")
+	near(Progression.guardValue(data, "reflect"), 0.08)
+	for _, bad in { "x", 5, {}, true } do
+		eq((Progression.equipGuard(data, bad)), false, "이상한 종류 " .. tostring(bad))
+	end
+	eq(data.guard, "gyeong", "이상한 요청에는 그대로")
+	ok, message = Progression.equipGuard(data, "")
+	eq(ok, true, message)
+	eq(data.guard, nil, "내려놓았다")
+	eq(Progression.equippedGuard(data), nil)
+	eq(Progression.guardValue(data, "reflect"), 0)
+	eq(#data.guards, 2, "내려놓아도 가진 것은 그대로")
+	eq((Progression.equipGuard(data, nil)), false)
+end)
+check("대장간에서 방어 법구 만들기", function()
+	local data = Progression.newData()
+	local first = Guards.CRAFT[1]
+	fund(data, first)
+	local ok, message = Progression.craftGuard(data, "hwan", 1)
+	eq(ok, true, message)
+	eq(message, "범품 회춘환을 만들었다.")
+	eq(data.stones, 0, "영석을 꼭 그만큼 쓴다")
+	for item in first.items do
+		eq(Progression.itemCount(data, item), 0, item .. " 을 꼭 그만큼 쓴다")
+	end
+	eq(Progression.guardOf(data, "hwan").grade, 1)
+	eq(data.guard, "hwan", "처음 만든 것은 바로 지닌다")
+	-- 같거나 낮은 등급은 다시 만들지 않는다 (재료도 그대로)
+	fund(data, Guards.CRAFT[3])
+	ok, message = Progression.craftGuard(data, "hwan", 1)
+	eq(ok, false, "같은 등급")
+	assert(message:find("이미"), message)
+	eq(data.stones, Guards.CRAFT[3].stones, "못 만들면 영석 그대로")
+	ok = Progression.craftGuard(data, "hwan", 3)
+	eq(ok, true, "더 높은 등급은 만든다")
+	eq(Progression.guardOf(data, "hwan").grade, 3)
+	eq(#data.guards, 1, "종류마다 하나")
+	fund(data, Guards.CRAFT[2])
+	eq((Progression.craftGuard(data, "hwan", 2)), false, "더 낮은 등급")
+	eq(data.stones, Guards.CRAFT[2].stones)
+	-- 다른 종류를 만들어도 지닌 것은 그대로
+	ok = Progression.craftGuard(data, "okpae", 2)
+	eq(ok, true)
+	eq(data.guard, "hwan", "이미 지닌 게 있으면 바꾸지 않는다")
+	eq(Progression.guardOf(data, "okpae").grade, 2)
+	-- 영석이 모자라면 아무것도 쓰지 않는다
+	local cost = Guards.CRAFT[4]
+	fund(data, cost)
+	data.stones -= 1
+	ok, message = Progression.craftGuard(data, "jam", 4)
+	eq(ok, false)
+	assert(message:find("모자라"), message)
+	eq(data.stones, cost.stones - 1, "영석 그대로")
+	for item, count in cost.items do
+		eq(Progression.itemCount(data, item), count, item .. " 그대로")
+	end
+	eq(Progression.guardOf(data, "jam"), nil)
+	-- 재료가 하나라도 모자라면 아무것도 쓰지 않는다
+	for short in cost.items do
+		fund(data, cost)
+		Progression.takeItems(data, { [short] = 1 })
+		ok, message = Progression.craftGuard(data, "jam", 4)
+		eq(ok, false, short .. " 하나 모자람")
+		assert(message:find(Balance.ITEMS[short].name, 1, true) and message:find("모자라"), message)
+		eq(data.stones, cost.stones, short .. " 모자람: 영석 그대로")
+		for item, count in cost.items do
+			eq(Progression.itemCount(data, item), if item == short then count - 1 else count, item .. " 그대로")
+		end
+		eq(Progression.guardOf(data, "jam"), nil)
+	end
+	-- 이상한 요청
+	fund(data, Guards.CRAFT[5])
+	for _, bad in { { "x", 1 }, { "jam", 0 }, { "jam", 6 }, { "jam", 1.5 }, { "jam", "1" }, { 5, 1 }, { "jam", 0 / 0 } } do
+		eq((Progression.craftGuard(data, bad[1], bad[2])), false, `이상한 요청 {bad[1]} {bad[2]}`)
+	end
+	eq((Progression.craftGuard(data, nil, nil)), false)
+	eq(data.stones, Guards.CRAFT[5].stones, "이상한 요청: 영석 그대로")
+	-- 극품까지
+	ok = Progression.craftGuard(data, "jam", 5)
+	eq(ok, true)
+	eq(Guards.name(Progression.guardOf(data, "jam")), "극품 청운잠")
+	eq(data.stones, 0)
+	-- 처음 만든 것만 지닌다: 내려놓은 뒤 만들면 다시 지닌다
+	Progression.equipGuard(data, "")
+	fund(data, Guards.CRAFT[1])
+	eq((Progression.craftGuard(data, "tti", 1)), true)
+	eq(data.guard, "tti", "지닌 게 없으면 새로 만든 것을 지닌다")
+end)
+check("방어 법구 효과", function()
+	local data = Progression.newData()
+	local baseHp = Progression.maxHealth(data)
+	eq(Progression.mobDamage(data, 100), 100, "없으면 그대로")
+	eq(Progression.walkMult(data), 1)
+	eq(Progression.shieldMult(data), 1)
+	local baseTrib = Progression.tribulationDamage(data, 100)
+	for _, id in Guards.ORDER do
+		Progression.addGuard(data, { kind = id, grade = 5 })
+	end
+	eq(Progression.maxHealth(data), baseHp, "가지기만 하면 효과가 없다")
+	Progression.equipGuard(data, "okpae")
+	near(Progression.mobDamage(data, 100), 78, "호신옥패 극품 -22%")
+	eq(Progression.maxHealth(data), baseHp, "호신옥패는 체력과 상관없다")
+	Progression.equipGuard(data, "palchi")
+	eq(Progression.mobDamage(data, 100), 100, "바꿔 지니면 앞의 효과는 사라진다")
+	eq(Progression.maxHealth(data), math.floor(Balance.maxHealth(data.step) * 1.35), "금강팔찌 극품 +35%")
+	Progression.equipGuard(data, "jam")
+	near(Progression.tribulationDamage(data, 100), baseTrib * 0.75, "청운잠 극품 천겁 -25%")
+	Progression.equipGuard(data, "bangul")
+	near(Progression.shieldMult(data), 1.9, "진령방울 극품")
+	Progression.equipGuard(data, "gabui")
+	near(Progression.walkMult(data), 0.94, "현무갑의는 걸음이 무겁다")
+	near(Progression.mobDamage(data, 50), 33)
+	Progression.equipGuard(data, "tti")
+	near(Progression.walkMult(data), 1.14, "질풍띠")
+	near(Progression.mobDamage(data, 100), 92)
+	data.race = "feather"
+	near(Progression.walkMult(data), Races.mult("feather", "speed") * 1.14, "종족과 곱한다")
+	Progression.equipGuard(data, "gyeong")
+	near(Progression.guardValue(data, "reflect"), 0.3)
+	Progression.equipGuard(data, "hwan")
+	near(Progression.guardValue(data, "regen"), 0.02)
+	Progression.equipGuard(data, "")
+	eq(Progression.maxHealth(data), baseHp, "내려놓으면 처음대로")
+end)
+check("방어 법구 저장", function()
+	local saved = Progression.reconcile({
+		guards = {
+			{ kind = "okpae", grade = 1 },
+			{ kind = "okpae", grade = 3 },
+			{ kind = "okpae", grade = 2 },
+			{ kind = "x", grade = 1 },
+			{ kind = "hwan", grade = 9 },
+			"junk",
+			{ kind = "tti", grade = 2 },
+		},
+		guard = "tti",
+	})
+	eq(#saved.guards, 2, "종류마다 하나, 이상한 것은 버린다")
+	eq(Progression.guardOf(saved, "okpae").grade, 3, "가장 좋은 것")
+	eq(Progression.guardOf(saved, "tti").grade, 2)
+	eq(saved.guard, "tti")
+	eq(
+		Progression.reconcile({ guards = { { kind = "okpae", grade = 2 } }, guard = "hwan" }).guard,
+		nil,
+		"없는 것은 못 지닌다"
+	)
+	eq(Progression.reconcile({ guard = 5 }).guard, nil)
+	eq(Progression.reconcile({ guards = "x", guard = "okpae" }).guard, nil)
+	local empty = Progression.reconcile({ step = 10 })
+	eq(#empty.guards, 0, "예전 기록에는 없다")
+	eq(empty.guard, nil)
+	-- 저장했다 불러와도 그대로
+	local data = Progression.newData()
+	Progression.addGuard(data, { kind = "gyeong", grade = 4 })
+	Progression.addGuard(data, { kind = "jam", grade = 1 })
+	Progression.equipGuard(data, "jam")
+	local again = Progression.reconcile(data)
+	eq(#again.guards, 2)
+	eq(Progression.guardOf(again, "gyeong").grade, 4)
+	eq(again.guard, "jam")
+end)
+check("만물상에서 방어 법구 사기", function()
+	local data = Progression.newData()
+	data.stones = 1000
+	local ok, message = Progression.buy(data, "guard_okpae")
+	eq(ok, true, message)
+	eq(message, "범품 호신옥패를 샀다.")
+	eq(data.stones, 1000 - Guards.SHOP_PRICE)
+	eq(Progression.guardOf(data, "okpae").grade, 1)
+	eq(data.guard, "okpae", "처음 산 것은 바로 지닌다")
+	-- 이미 지닌 종류는 팔지 않는다
+	ok, message = Progression.buy(data, "guard_okpae")
+	eq(ok, false)
+	assert(message:find("대장간"), message)
+	eq(data.stones, 1000 - Guards.SHOP_PRICE, "영석 그대로")
+	ok = Progression.buy(data, "guard_hwan")
+	eq(ok, true)
+	eq(data.guard, "okpae", "이미 지닌 게 있으면 바꾸지 않는다")
+	eq(#data.guards, 2)
+	Progression.addGuard(data, { kind = "palchi", grade = 3 })
+	local left = data.stones
+	eq((Progression.buy(data, "guard_palchi")), false, "더 좋은 것을 가졌다")
+	eq(Progression.guardOf(data, "palchi").grade, 3)
+	-- 모자라면 사지 못한다
+	data.stones = Guards.SHOP_PRICE - 1
+	eq((Progression.buy(data, "guard_tti")), false)
+	eq(Progression.guardOf(data, "tti"), nil)
+	eq(data.stones, Guards.SHOP_PRICE - 1)
+	assert(left > 0)
+end)
+check("서버 알림은 '무기' 대신 '법구'", function()
+	local fs = require("@lune/fs")
+	for _, file in fs.readDir("src/server") do
+		-- World*.luau 는 맵을 짓는 글(부품 이름, 현판)이다
+		if not string.match(file, "^World") then
+			local source = string.gsub(fs.readFile("src/server/" .. file), "%-%-[^\n]*", "")
+			for literal in string.gmatch(source, '"([^"\n]*)"') do
+				assert(not string.find(literal, "무기", 1, true), `{file}: "{literal}"`)
+			end
+		end
+	end
+end)
+
 print("영근과 시계")
 check("영근 고르기", function()
 	-- 영근은 한 속성만

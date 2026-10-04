@@ -1,4 +1,5 @@
--- 무기 도구. 지닌 무기(data.weapons)마다 가방에 Roblox 도구를 넣는다 (숫자 키 1~9).
+-- 공격 법구(무기) 도구. 지닌 공격 법구(data.weapons)마다 가방에 Roblox 도구를 넣는다 (숫자 키 1~9).
+-- 방어 법구(Guards.luau)는 겉모습이 없어 도구를 만들지 않는다.
 -- 모양은 Meshy 로 만든 모델(Combat.meshFor)을 쓰고, 없으면 블록으로 짓는다. 날은 손잡이(Handle) +Z 로 뻗는다.
 -- 도구를 쓰면 onSwing(player, 칸) 을 부른다 (CombatService 가 채운다).
 --
@@ -280,7 +281,7 @@ local function buildTool(weapon: Combat.Weapon, index: number, player: Player): 
 	return tool
 end
 
--- 가방의 무기를 지닌 무기에 맞춘다 (캐릭터가 새로 나거나 무기가 바뀌면)
+-- 가방의 도구를 지닌 공격 법구에 맞춘다 (캐릭터가 새로 나거나 공격 법구가 바뀌면)
 function Weapons.give(player: Player)
 	local data = PlayerData.get(player)
 	local backpack = player:FindFirstChildOfClass("Backpack") or player:WaitForChild("Backpack", 5)

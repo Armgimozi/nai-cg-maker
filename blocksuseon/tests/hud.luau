@@ -281,6 +281,8 @@ Hud.build({
 	travel = record("travel"),
 	buy = record("buy"),
 	upgrade = record("upgrade"),
+	craft = record("craft"),
+	equipGuard = record("equipGuard"),
 })
 
 local function state(overrides)
@@ -312,6 +314,8 @@ local function state(overrides)
 		canSave = true,
 		stones = 30,
 		weapons = { { kind = "sword", grade = 1 } },
+		guards = {},
+		guard = nil,
 	}
 	for k, v in overrides or {} do
 		s[k] = v
@@ -394,6 +398,30 @@ local cases = {
 		}),
 	},
 	{ "최고 경지", state({ step = 56, qi = 1e12, req = 1e12 }) },
+	{
+		"법구 가득",
+		state({
+			weapons = {
+				{ kind = "sword", grade = 5 },
+				{ kind = "saber", grade = 4 },
+				{ kind = "spear", grade = 3 },
+				{ kind = "fan", grade = 1 },
+			},
+			guards = {
+				{ kind = "okpae", grade = 5 },
+				{ kind = "palchi", grade = 1 },
+				{ kind = "gabui", grade = 2 },
+				{ kind = "jam", grade = 3 },
+				{ kind = "bangul", grade = 4 },
+				{ kind = "hwan", grade = 5 },
+				{ kind = "gyeong", grade = 1 },
+				{ kind = "tti", grade = 2 },
+			},
+			guard = "gabui",
+		}),
+	},
+	-- 예전 서버처럼 법구 칸이 없는 상태도 견딘다
+	{ "법구 칸 없음", state({ weapons = nil, guards = nil }) },
 }
 for _, case in cases do
 	local ok, err = pcall(Hud.update, case[2])
@@ -603,17 +631,72 @@ do
 	fire(buttonOf(rows[2]), "Activated")
 	assert(sent.buy == nil, "영석이 모자라면 보내지 않는다")
 
+	-- 법구 갈래: 공격 법구(도·창·선) 다음에 방어 법구 범품 여덟
+	local Guards = loader.require(sharedFolder.Guards)
+	assert(
+		shows(find(shop, "Tab2"):FindFirstChild("Text", true), "body", "법구"),
+		"만물상 둘째 갈래는 법구"
+	)
+	Hud.update(state({
+		stones = 100,
+		items = { herb = 3 },
+		weapons = { { kind = "sword", grade = 1 }, { kind = "saber", grade = 2 }, { kind = "fan", grade = 5 } },
+		guards = { { kind = "jam", grade = 3 } },
+		guard = "jam",
+	}))
 	fire(find(shop, "Tab2"), "Activated")
 	rows = shown()
-	assert(count(rows) == 3, `무기 {count(rows)}줄 (3)`)
+	assert(count(rows) == 3 + #Guards.KINDS, `법구 {count(rows)}줄 ({3 + #Guards.KINDS})`)
 	assert(shows(find(rows[1], "Name"), "title", weaponName("saber", 1)), readText(find(rows[1], "Name")))
-	assert(shows(find(rows[1], "Sub"), "body", Combat.KINDS.saber.summary), "무기 설명")
+	assert(
+		shows(find(rows[1], "Sub"), "body", "공격 법구, " .. Combat.KINDS.saber.summary),
+		readText(find(rows[1], "Sub"))
+	)
 	assert(shows(find(buttonOf(rows[1]), "Text"), "body", "지님"), "지닌 종류는 지님")
 	fire(buttonOf(rows[1]), "Activated")
 	assert(sent.buy == nil, "지닌 종류는 다시 사지 않는다")
 	fire(buttonOf(rows[2]), "Activated")
 	assert(sent.buy and sent.buy[1] == "spear", "창을 산다")
 	sent.buy = nil
+	for index, id in Guards.ORDER do
+		local guardRow = rows[3 + index]
+		local ware = { kind = id, grade = 1 }
+		assert(shows(find(guardRow, "Name"), "title", Guards.name(ware)), readText(find(guardRow, "Name")))
+		assert(
+			shows(find(guardRow, "Sub"), "body", "방어 법구, " .. Guards.effects(ware)),
+			readText(find(guardRow, "Sub"))
+		)
+		assert(shows(find(guardRow, "Price"), "body", tostring(Guards.SHOP_PRICE)), "방어 법구 값")
+	end
+	-- 청운잠은 이미 지녔다 (더 높은 등급이어도): 흐린 "지님", 보내지 않는다
+	local jamRow = rows[3 + table.find(Guards.ORDER, "jam")]
+	assert(shows(find(buttonOf(jamRow), "Text"), "body", "지님"), "지닌 방어 법구는 지님")
+	assert(buttonOf(jamRow).Image == pillStone, "지닌 방어 법구는 흐리다")
+	fire(buttonOf(jamRow), "Activated")
+	assert(sent.buy == nil, "지닌 방어 법구는 다시 사지 않는다")
+	local okpaeRow = rows[3 + table.find(Guards.ORDER, "okpae")]
+	assert(shows(find(buttonOf(okpaeRow), "Text"), "body", "사기"), "지니지 않은 방어 법구는 사기")
+	fire(buttonOf(okpaeRow), "Activated")
+	assert(sent.buy and sent.buy[1] == "guard_okpae", "방어 법구를 산다")
+	sent.buy = nil
+	-- 안내 글이 창 안에 들고, 설명 줄이 값(오른쪽)과 겹치지 않는다
+	assert(
+		shows(
+			find(shop, "Hint"),
+			"body",
+			"법구는 종류마다 하나씩 지닌다. 방어 법구는 한 번에 하나만 지닌다."
+		),
+		"법구 안내"
+	)
+	assert(
+		find(shop, "Hint").Size.X.Offset < 600,
+		`법구 안내가 창보다 넓다 ({find(shop, "Hint").Size.X.Offset})`
+	)
+	local SUB_MAX = 560 - 96 - 70
+	for _, guardRow in rows do
+		local sub = find(guardRow, "Sub")
+		assert(sub.Size.X.Offset < SUB_MAX, `{readText(find(guardRow, "Name"))} 설명이 값과 겹친다`)
+	end
 
 	fire(find(shop, "Tab3"), "Activated")
 	rows = shown()
@@ -640,7 +723,14 @@ do
 	}))
 	Hud.openShop("smith")
 	assert(Hud.shopOpen(), "대장간 창이 열리지 않았다")
-	assert(not find(shop, "Tab1").Parent.Visible, "대장간에는 갈래가 없다")
+	-- 대장간 갈래는 강화와 제작 둘. 처음에는 강화
+	assert(find(shop, "Tab1").Visible and find(shop, "Tab2").Visible, "대장간 갈래 둘")
+	assert(not find(shop, "Tab3").Visible, "대장간에는 셋째 갈래가 없다")
+	assert(shows(find(shop, "Tab1"):FindFirstChild("Text", true), "body", "강화"), "대장간 첫 갈래는 강화")
+	assert(
+		shows(find(shop, "Tab2"):FindFirstChild("Text", true), "body", "제작"),
+		"대장간 둘째 갈래는 제작"
+	)
 	rows = shown()
 	assert(count(rows) == 3, `대장간 {count(rows)}줄 (3)`)
 	assert(shows(find(rows[1], "Name"), "title", weaponName("sword", 1)), "첫 무기")
@@ -663,10 +753,221 @@ do
 		weapons = { { kind = "sword", grade = 1 }, { kind = "saber", grade = 2 }, { kind = "fan", grade = 5 } },
 	}))
 	fire(buttonOf(rows[2]), "Activated")
-	assert(sent.upgrade and sent.upgrade[1] == 2, "그 칸 무기를 강화한다")
+	assert(sent.upgrade and sent.upgrade[1] == 2, "그 칸 공격 법구를 강화한다")
+	-- 공격 법구가 없으면 빈 글
+	Hud.update(state({ stones = 500, weapons = {} }))
+	assert(count(shown()) == 0 and find(shop, "Empty").Visible, "공격 법구가 없으면 빈 글")
+	assert(shows(find(shop, "Empty"), "body", "지닌 공격 법구가 없다."), readText(find(shop, "Empty")))
+
+	-- 제작: 종류마다 다음 등급 (없으면 범품), 극품이면 최고 등급. 영석과 재료(지닌 수/드는 수)
+	local Balance = loader.require(sharedFolder.Balance)
+	Hud.update(state({
+		stones = 600,
+		items = { yodan = 20, lingzhi = 0, herb = 2 },
+		guards = { { kind = "okpae", grade = 2 }, { kind = "palchi", grade = 1 }, { kind = "hwan", grade = 5 } },
+		guard = "okpae",
+	}))
+	fire(find(shop, "Tab2"), "Activated")
+	assert(not find(shop, "Empty").Visible, "제작 갈래에는 빈 글이 없다")
+	rows = shown()
+	assert(count(rows) == #Guards.KINDS, `제작 {count(rows)}줄 ({#Guards.KINDS})`)
+	local function craftRow(id: string)
+		return rows[table.find(Guards.ORDER, id)]
+	end
+	-- 호신옥패 하품 → 중품: 영석 500, 요단 16, 천년영지 1 (천년영지가 모자라다)
+	local okpaeCraft = craftRow("okpae")
+	assert(shows(find(okpaeCraft, "Name"), "title", Guards.name({ kind = "okpae", grade = 3 })), "다음 등급")
+	assert(
+		shows(
+			find(okpaeCraft, "Sub"),
+			"body",
+			Guards.effects({ kind = "okpae", grade = 3 }) .. " (지금 " .. Guards.GRADES[2] .. ")"
+		),
+		readText(find(okpaeCraft, "Sub"))
+	)
+	assert(shows(find(okpaeCraft, "Price"), "body", tostring(Guards.CRAFT[3].stones)), "제작 영석")
+	assert(find(okpaeCraft, "Cost").Visible, "재료 줄이 보여야 한다")
+	-- 재료는 주머니 순서(Balance.ITEM_ORDER)로, 지닌 수/드는 수
+	assert(
+		shows(
+			find(okpaeCraft, "Cost"),
+			"body",
+			string.format("재료 %s 0/1, %s 20/16", Balance.ITEMS.lingzhi.name, Balance.ITEMS.yodan.name)
+		),
+		readText(find(okpaeCraft, "Cost"))
+	)
+	assert(
+		find(okpaeCraft, "Cost"):FindFirstChildOfClass("ImageLabel").ImageColor3 == UiForTest.C.red,
+		"재료가 모자라면 붉다"
+	)
+	assert(buttonOf(okpaeCraft).Image == pillStone, "재료가 모자라면 흐리다")
+	fire(buttonOf(okpaeCraft), "Activated")
+	assert(sent.craft == nil, "재료가 모자라면 보내지 않는다")
+	-- 금강팔찌 범품 → 하품: 영석 160, 요단 8, 영초 4 (영초가 모자라다)
+	local palchiCraft = craftRow("palchi")
+	assert(
+		shows(find(palchiCraft, "Name"), "title", Guards.name({ kind = "palchi", grade = 2 })),
+		"팔찌 다음 등급"
+	)
+	fire(buttonOf(palchiCraft), "Activated")
+	assert(sent.craft == nil, "영초가 모자라면 보내지 않는다")
+	-- 현무갑의는 없으니 범품: 영석 40, 요단 3 → 만들 수 있다
+	local gabuiCraft = craftRow("gabui")
+	assert(shows(find(gabuiCraft, "Name"), "title", Guards.name({ kind = "gabui", grade = 1 })), "없으면 범품")
+	assert(
+		shows(find(gabuiCraft, "Sub"), "body", Guards.effects({ kind = "gabui", grade = 1 })),
+		readText(find(gabuiCraft, "Sub"))
+	)
+	assert(
+		shows(find(gabuiCraft, "Cost"), "body", string.format("재료 %s 20/3", Balance.ITEMS.yodan.name)),
+		readText(find(gabuiCraft, "Cost"))
+	)
+	assert(
+		find(gabuiCraft, "Cost"):FindFirstChildOfClass("ImageLabel").ImageColor3 == UiForTest.C.jade,
+		"넉넉하면 옥빛"
+	)
+	assert(shows(find(buttonOf(gabuiCraft), "Text"), "body", "만들기"), "만들기 버튼")
+	assert(buttonOf(gabuiCraft).Image ~= pillStone, "만들 수 있으면 밝다")
+	fire(buttonOf(gabuiCraft), "Activated")
+	assert(sent.craft and sent.craft[1] == "gabui" and sent.craft[2] == 1, "현무갑의 범품을 만든다")
+	sent.craft = nil
+	-- 회춘환은 극품: 최고 등급, 버튼 없음
+	local hwanCraft = craftRow("hwan")
+	assert(shows(find(hwanCraft, "Name"), "title", Guards.name({ kind = "hwan", grade = 5 })), "극품 이름")
+	assert(shows(find(hwanCraft, "Price"), "body", "최고 등급"), "극품은 최고 등급")
+	assert(
+		not buttonOf(hwanCraft).Visible and not find(hwanCraft, "Cost").Visible,
+		"극품은 만들기와 재료가 없다"
+	)
+	assert(
+		shows(
+			find(shop, "Hint"),
+			"body",
+			"방어 법구를 만든다. 같은 종류는 더 높은 등급으로 바뀐다."
+		),
+		"제작 안내"
+	)
+	-- 어느 등급이든 설명 줄은 값과 겹치지 않고, 재료 줄은 줄 안에 든다
+	for grade = 0, #Guards.GRADES - 1 do
+		local all = {}
+		for _, id in Guards.ORDER do
+			if grade > 0 then
+				table.insert(all, { kind = id, grade = grade })
+			end
+		end
+		Hud.update(state({ stones = 0, guards = all }))
+		for _, craft in shown() do
+			local label = readText(find(craft, "Name"))
+			assert(find(craft, "Sub").Size.X.Offset < SUB_MAX, `{label} 설명이 값과 겹친다`)
+			assert(find(craft, "Cost").Size.X.Offset < 560 - 96, `{label} 재료 줄이 넓다`)
+			assert(
+				craft.Size.Y.Offset >= 51 + find(craft, "Cost").Size.Y.Offset,
+				`{label} 재료 줄이 줄 밖으로 나간다`
+			)
+		end
+	end
+	-- 영석이 모자라면 보내지 않는다
+	Hud.update(state({ stones = 10, items = { yodan = 20 } }))
+	assert(shows(find(craftRow("gabui"), "Price"), "body", "40"), "범품 영석 40")
+	fire(buttonOf(craftRow("gabui")), "Activated")
+	assert(sent.craft == nil, "영석이 모자라면 만들지 않는다")
+	-- 다시 열면 강화부터
+	Hud.closeShop()
+	Hud.openShop("smith")
+	assert(shows(find(shown()[1], "Name"), "title", weaponName("sword", 1)), "다시 열면 강화 갈래")
+	-- 대장간 뒤에 만물상을 열면 물건 갈래와 셋째 갈래가 돌아온다
+	Hud.openShop("market")
+	assert(find(shop, "Tab3").Visible, "만물상 갈래 셋")
+	assert(shows(find(shown()[1], "Name"), "title", "영초"), "만물상은 물건부터")
+
 	-- 상태창을 열면 상점 창은 닫힌다
 	Hud.toggleStatus(true)
 	assert(not Hud.shopOpen(), "상태창을 열면 상점 창을 닫는다")
+
+	-- 상태창 법구: 공격 법구(이름, 등급, 숫자 키)와 방어 법구(가진 것만, 지닌 것 하나)
+	local window = hudGui:FindFirstChild("StatusWindow")
+	Hud.update(state({
+		weapons = { { kind = "sword", grade = 2 }, { kind = "fan", grade = 1 } },
+		guards = { { kind = "okpae", grade = 2 }, { kind = "jam", grade = 1 } },
+		guard = "okpae",
+	}))
+	local function windowText(expected: string): boolean
+		for _, item in window:GetDescendants() do
+			if item.Name == "Text" and shows(item, "title", expected) then
+				return true
+			end
+		end
+		return false
+	end
+	assert(windowText("공격 법구") and windowText("방어 법구"), "상태창에 법구 칸 제목이 없다")
+	local weapon1, weapon2, weapon3 = find(window, "Weapon1"), find(window, "Weapon2"), find(window, "Weapon3")
+	assert(weapon1.Visible and weapon2.Visible and not weapon3.Visible, "지닌 공격 법구만 보인다")
+	assert(shows(find(weapon1, "Name"), "title", weaponName("sword", 2)), readText(find(weapon1, "Name")))
+	assert(
+		shows(find(weapon1, "Sub"), "body", Combat.GRADES[2].prefix .. " 등급, " .. Combat.KINDS.sword.summary),
+		readText(find(weapon1, "Sub"))
+	)
+	assert(shows(find(find(weapon2, "Key"), "Text"), "body", "2"), "둘째 공격 법구는 숫자 키 2")
+	assert(shows(find(weapon2, "Name"), "title", weaponName("fan", 1)), "죽선")
+	assert(not find(window, "WeaponEmpty").Visible, "공격 법구가 있으면 빈 글이 없다")
+	assert(find(window, "GuardRule").Visible, "방어 법구는 하나만이라는 글")
+	local okpae, jam, gabui = find(window, "Guard_okpae"), find(window, "Guard_jam"), find(window, "Guard_gabui")
+	assert(okpae.Visible and jam.Visible and not gabui.Visible, "가진 방어 법구만 보인다")
+	assert(not find(window, "GuardEmpty").Visible, "방어 법구가 있으면 빈 글이 없다")
+	assert(
+		shows(find(okpae, "Name"), "title", Guards.name({ kind = "okpae", grade = 2 })),
+		readText(find(okpae, "Name"))
+	)
+	assert(
+		shows(find(okpae, "Sub"), "body", Guards.effects({ kind = "okpae", grade = 2 })),
+		readText(find(okpae, "Sub"))
+	)
+	assert(find(okpae, "Worn").Visible and not find(jam, "Worn").Visible, "지닌 것 하나에만 지님")
+	assert(shows(find(okpae, "Worn"), "body", "지님"), "지님 표시")
+	assert(
+		find(okpae, "Name"):FindFirstChildOfClass("ImageLabel").ImageColor3 == UiForTest.C.gold,
+		"지닌 것은 금빛"
+	)
+	assert(shows(find(buttonOf(okpae), "Text"), "body", "내려놓기"), "지닌 것은 내려놓기")
+	assert(shows(find(buttonOf(jam), "Text"), "body", "지니기"), "나머지는 지니기")
+	fire(buttonOf(jam), "Activated")
+	assert(sent.equipGuard and sent.equipGuard[1] == "jam", "지니기를 누르면 그 종류를 보낸다")
+	sent.equipGuard = nil
+	fire(buttonOf(okpae), "Activated")
+	assert(sent.equipGuard and sent.equipGuard[1] == "", "내려놓기는 빈 글을 보낸다")
+	sent.equipGuard = nil
+	-- 서버가 바꿔 지니면 표시가 옮겨 간다
+	Hud.update(state({
+		weapons = { { kind = "sword", grade = 2 } },
+		guards = { { kind = "okpae", grade = 2 }, { kind = "jam", grade = 1 } },
+		guard = "jam",
+	}))
+	assert(find(jam, "Worn").Visible and not find(okpae, "Worn").Visible, "지님이 옮겨 간다")
+	assert(shows(find(buttonOf(okpae), "Text"), "body", "지니기"), "내려놓은 것은 지니기")
+	assert(not find(window, "Weapon2").Visible, "공격 법구가 줄면 칸을 숨긴다")
+	-- 방어 법구가 없으면 얻는 곳을 알려 준다
+	Hud.update(state({ guards = {}, guard = nil }))
+	assert(find(window, "GuardEmpty").Visible, "방어 법구가 없으면 얻는 곳 안내")
+	assert(not okpae.Visible and not jam.Visible, "방어 법구가 없으면 줄이 없다")
+	Hud.update(state({ weapons = {} }))
+	assert(find(window, "WeaponEmpty").Visible, "공격 법구가 없으면 빈 글")
+	-- 상태창 법구 글이 목록 폭(322) 안에 든다
+	for _, name in { "GuardRule", "GuardEmpty", "WeaponEmpty" } do
+		for _, item in find(window, name):GetDescendants() do
+			if item.Name == "Text" then
+				assert(item.Size.X.Offset <= 322, `{name} 글이 넓다 ({item.Size.X.Offset})`)
+			end
+		end
+	end
+	for _, id in Guards.ORDER do
+		for grade = 1, #Guards.GRADES do
+			Hud.update(state({ guards = { { kind = id, grade = grade } }, guard = id }))
+			local guardRow = find(window, "Guard_" .. id)
+			local nameWidth = find(guardRow, "Name").Size.X.Offset + 8 + find(guardRow, "Worn").Size.X.Offset
+			assert(nameWidth < 322 - 86, `{id} {grade} 이름이 버튼과 겹친다 ({nameWidth})`)
+			assert(find(guardRow, "Sub").Size.X.Offset < 322, `{id} {grade} 효과 줄이 넓다`)
+		end
+	end
 	Hud.toggleStatus(false)
 
 	-- 전송진 삯: 선 진과 갈 진 바닥 사이 거리로 센다. 송계 마을(Places.HOME_WAYPOINT)로는 공짜
@@ -1067,7 +1368,27 @@ for _, kind in CombatForGlyphs.KIND_ORDER do
 		need("body", CombatForGlyphs.weaponName(weapon) .. " " .. CombatForGlyphs.GRADES[grade].prefix .. " 등급")
 	end
 end
-for _, file in { "src/client/ShopWindow.luau", "src/client/TravelMenu.luau", "src/client/Hud.luau" } do
+-- 법구: 방어 법구 이름(제목 글꼴)과 효과 줄, 제작 재료
+local GuardsForGlyphs = loader.require(sharedFolder.Guards)
+for _, kind in GuardsForGlyphs.KINDS do
+	for grade = 1, #GuardsForGlyphs.GRADES do
+		local guard = { kind = kind.id, grade = grade }
+		need("title", GuardsForGlyphs.name(guard))
+		need("body", GuardsForGlyphs.effects(guard) .. " 지금 " .. GuardsForGlyphs.GRADES[grade])
+	end
+end
+for _, id in BalanceForGlyphs.ITEM_ORDER do
+	need("body", "재료 " .. BalanceForGlyphs.ITEMS[id].name .. " 0/1234567890")
+end
+need("title", "공격 법구 방어 법구 지님 0 / 1")
+for _, file in
+	{
+		"src/client/ShopWindow.luau",
+		"src/client/TravelMenu.luau",
+		"src/client/Hud.luau",
+		"src/client/Main.client.luau",
+	}
+do
 	local source = string.gsub(fs.readFile(file), "%-%-[^\n]*", "")
 	for literal in string.gmatch(source, '"([^"\n]*)"') do
 		if string.find(literal, "[\234-\237]") then

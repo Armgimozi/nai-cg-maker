@@ -71,12 +71,20 @@ local actions = {
 	travel = function(id: string)
 		request("Travel", id)
 	end,
-	-- 만물상에서 사기 (Currency.WARES 의 id), 대장간에서 그 칸 무기 강화. 서버가 상점 곁인지 다시 본다
+	-- 만물상에서 사기 (Currency.WARES 의 id), 대장간에서 그 칸 공격 법구 강화와 방어 법구 제작.
+	-- 서버가 상점 곁인지 다시 본다
 	buy = function(wareId: string)
 		request("Buy", wareId)
 	end,
 	upgrade = function(index: number)
 		request("Upgrade", index)
+	end,
+	craft = function(kind: string, grade: number)
+		request("Craft", { kind = kind, grade = grade })
+	end,
+	-- 방어 법구 바꿔 지니기 (하나만, "" 은 내려놓기). 어디서나
+	equipGuard = function(kind: string)
+		request("EquipGuard", kind)
 	end,
 }
 

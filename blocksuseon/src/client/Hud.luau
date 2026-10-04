@@ -23,6 +23,8 @@ local Tasks = require(Shared.Tasks)
 local Places = require(Shared.Places)
 local Races = require(Shared.Races)
 local Currency = require(Shared.Currency)
+local Combat = require(Shared.Combat)
+local Guards = require(Shared.Guards)
 local Ui = require(script.Parent.Ui)
 local Notice = require(script.Parent.Notice)
 local PlaceBanner = require(script.Parent.PlaceBanner)
@@ -47,6 +49,8 @@ export type Actions = {
 	travel: (id: string) -> (),
 	buy: (wareId: string) -> (),
 	upgrade: (index: number) -> (),
+	craft: (kind: string, grade: number) -> (),
+	equipGuard: (kind: string) -> (), -- "" 은 내려놓기
 }
 
 local IMG = Ui.IMG
@@ -75,6 +79,8 @@ local cinematicToken = 0
 local lastState: { [string]: any }? = nil
 local taskLines: { { [string]: any } } = {}
 local pouchRows: { [string]: { [string]: any } } = {}
+local weaponRows: { { [string]: any } } = {}
+local guardRows: { [string]: { [string]: any } } = {}
 local announcedTasks: { [string]: boolean } = {}
 local autoOpened: { [string]: boolean } = {}
 local skipArmed: { [string]: number } = {}
@@ -418,7 +424,7 @@ local function buildTribulation(gui: ScreenGui)
 end
 
 -- 아래 가운데: 술법 단축칸 (기본 Q·E·Z·X, 상태창에서 바꾼다).
--- 맨 아래에는 Roblox 도구 칸(무기, 숫자 키 1~9)이 있으므로 그 위에 둔다
+-- 맨 아래에는 Roblox 도구 칸(공격 법구, 숫자 키 1~9)이 있으므로 그 위에 둔다
 local function buildHotbar(gui: ScreenGui)
 	local bar = scaled(new("Frame", {
 		Name = "Hotbar",
@@ -803,6 +809,95 @@ local function buildStatusWindow(gui: ScreenGui)
 		skillRow(def)
 	end
 
+	-- 법구: 공격 법구(숫자 키 도구 칸)와 방어 법구(하나만 지닌다, 겉모습 없이 효과만)
+	local function note(name: string, message: string, lines: number)
+		order += 1
+		local holder = new("Frame", {
+			Name = name,
+			LayoutOrder = order,
+			Size = UDim2.new(1, -8, 0, lines * 21 + 6),
+			BackgroundTransparency = 1,
+			Parent = list,
+		})
+		local paragraph, set = Ui.paragraph("body", 13, 314, lines, C.dim, holder)
+		paragraph.Position = UDim2.fromOffset(2, 2)
+		set(message)
+		return holder
+	end
+
+	-- 공격 법구는 Roblox 도구 칸에 들어간다 (키보드는 숫자 키, 터치는 아래 칸을 누른다)
+	header("공격 법구"):set(if keyboard then "숫자 키로 든다" else "아래 도구 칸에서 든다")
+	for index = 1, Combat.MAX_WEAPONS do
+		order += 1
+		local item = new("Frame", {
+			Name = "Weapon" .. index,
+			LayoutOrder = order,
+			Size = UDim2.new(1, -8, 0, 58),
+			BackgroundTransparency = 1,
+			Visible = false,
+			Parent = list,
+		})
+		local name = text("title", 21, { color = C.cream, name = "Name" })
+		name.frame.Position = UDim2.fromOffset(4, 2)
+		name.frame.Parent = item
+		local summary = text("body", 13, { color = C.dim, name = "Sub" })
+		summary.frame.Position = UDim2.fromOffset(6, 33)
+		summary.frame.Parent = item
+		-- 드는 키 (도구 칸 번호)
+		local badge = new("Frame", {
+			Name = "Key",
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, -4, 0, 8),
+			Size = UDim2.fromOffset(24, 24),
+			BackgroundColor3 = C.keyBack,
+			Parent = item,
+		}, { new("UICorner", { CornerRadius = UDim.new(0, 6) }) })
+		local badgeRow = row({ Size = UDim2.fromScale(1, 1), Parent = badge })
+		text("body", 14, { color = C.keyText, text = tostring(index), parent = badgeRow })
+		weaponRows[index] = { frame = item, name = name, summary = summary }
+	end
+	ui.weaponEmpty = note("WeaponEmpty", "지닌 공격 법구가 없다. 만물상에서 산다.", 1)
+
+	ui.guardCount = header("방어 법구")
+	note("GuardRule", "방어 법구는 부위와 상관없이 하나만 지닐 수 있다.", 1)
+	for _, id in Guards.ORDER do
+		order += 1
+		local item = new("Frame", {
+			Name = "Guard_" .. id,
+			LayoutOrder = order,
+			Size = UDim2.new(1, -8, 0, 62),
+			BackgroundTransparency = 1,
+			Visible = false,
+			Parent = list,
+		})
+		local nameRow = row({
+			Position = UDim2.fromOffset(4, 2),
+			Size = UDim2.new(1, -96, 0, 30),
+			Parent = item,
+		}, Enum.HorizontalAlignment.Left, 8)
+		local name = text("title", 21, { color = C.cream, name = "Name", parent = nameRow })
+		name.frame.LayoutOrder = 1
+		local worn = text("body", 14, { color = C.jade, text = "지님", name = "Worn", parent = nameRow })
+		worn.frame.LayoutOrder = 2
+		local effects = text("body", 13, { color = C.dim, name = "Sub" })
+		effects.frame.Position = UDim2.fromOffset(6, 34)
+		effects.frame.Parent = item
+		-- 지닌 것은 내려놓기, 나머지는 지니기 (서버가 하나만 남긴다)
+		local button, caption = Ui.pill("지니기", 80, 30, 14, item, function()
+			local wearing = lastState ~= nil and lastState.guard == id
+			actions.equipGuard(if wearing then "" else id)
+		end)
+		button.Name = "Button"
+		button.AnchorPoint = Vector2.new(1, 0)
+		button.Position = UDim2.new(1, 0, 0, 4)
+		guardRows[id] = { frame = item, name = name, worn = worn, effects = effects, button = button, text = caption }
+	end
+	ui.guardEmpty = note(
+		"GuardEmpty",
+		"아직 방어 법구가 없다. 요수를 쓰러뜨리거나, 대장간에서 만들거나, 만물상에서 산다.",
+		2
+	)
+
 	header("주머니")
 	for _, id in Balance.ITEM_ORDER do
 		order += 1
@@ -912,6 +1007,9 @@ function Hud.build(newActions: Actions)
 		end,
 		upgrade = function(index)
 			actions.upgrade(index)
+		end,
+		craft = function(kind, grade)
+			actions.craft(kind, grade)
 		end,
 	})
 	local banner = PlaceBanner.build(gui)
@@ -1175,6 +1273,47 @@ local function updateStatusWindow(state)
 	end
 end
 
+-- 상태창 법구: 공격 법구 칸마다 이름·등급·키, 방어 법구는 가진 것만 (지닌 것 하나에 "지님")
+local function updateGear(state)
+	local weapons = state.weapons or {}
+	for index, entry in weaponRows do
+		local weapon = weapons[index]
+		local grade = weapon and Combat.GRADES[weapon.grade]
+		entry.frame.Visible = grade ~= nil
+		if weapon and grade then
+			entry.name:set(Combat.weaponName(weapon))
+			entry.summary:set(string.format("%s 등급, %s", grade.prefix, Combat.KINDS[weapon.kind].summary))
+		end
+	end
+	ui.weaponEmpty.Visible = #weapons == 0
+
+	local owned = {}
+	for _, guard in state.guards or {} do
+		if Guards.isGuard(guard) then
+			owned[guard.kind] = guard
+		end
+	end
+	local any = false
+	for id, entry in guardRows do
+		local guard = owned[id]
+		entry.frame.Visible = guard ~= nil
+		if not guard then
+			continue
+		end
+		any = true
+		local wearing = state.guard == id
+		entry.name:set(Guards.name(guard))
+		entry.name:setColor(if wearing then C.gold else C.cream)
+		entry.worn.frame.Visible = wearing
+		entry.effects:set(Guards.effects(guard))
+		entry.effects:setColor(if wearing then C.jade else C.dim)
+		entry.text:set(if wearing then "내려놓기" else "지니기")
+		setImage(entry.button, if wearing then "pillStone" else "pillJade")
+	end
+	ui.guardEmpty.Visible = not any
+	ui.guardCount:set(if state.guard and owned[state.guard] then "지님 1 / 1" else "지님 0 / 1")
+end
+
 local function updateHotbar(state)
 	for slot, entry in hotbar do
 		local id = state.hotbar[slot]
@@ -1329,6 +1468,7 @@ function Hud.update(state)
 	updateTasks(state)
 	updateOrbs(state)
 	updateStatusWindow(state)
+	updateGear(state)
 	updateHotbar(state)
 	lastState = state
 	-- 전송진 창이 열려 있으면 방금 열린 진도 바로 보이게 다시 그린다

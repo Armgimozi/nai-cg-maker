@@ -204,6 +204,10 @@ Sync.remotes.Request.OnServerEvent:Connect(function(player: Player, action: any,
 		Market.buy(player, arg)
 	elseif action == "Upgrade" then
 		Market.upgrade(player, arg)
+	elseif action == "Craft" then
+		Market.craft(player, arg)
+	elseif action == "EquipGuard" then
+		Market.equipGuard(player, arg)
 	elseif action == "Eat" then
 		local qi = TaskService.eat(player, arg)
 		if qi then

@@ -27,14 +27,15 @@ function Characters.root(player: Player): BasePart?
 end
 
 -- heal 이면 체력을 가득 채우고, 아니면 늘어난 최대 체력만큼만 더한다.
-function Characters.applyStats(player: Player, heal: boolean)
+-- keepRatio 면 체력 비율을 그대로 둔다 (방어 법구·공법을 바꿔 끼울 때. 끼웠다 뺐다 하며 체력을 채우지 못하게)
+function Characters.applyStats(player: Player, heal: boolean, keepRatio: boolean?)
 	local data = PlayerData.get(player)
 	local humanoid = Characters.humanoid(player)
 	if not data or not humanoid then
 		return
 	end
-	-- 종족에 따라 걸음과 도약이 다르다
-	humanoid.WalkSpeed = BASE_WALK * Races.mult(data.race, "speed")
+	-- 걸음은 종족과 방어 법구, 도약은 종족에 따라 다르다
+	humanoid.WalkSpeed = BASE_WALK * Progression.walkMult(data)
 	if humanoid.UseJumpPower then
 		humanoid.JumpPower = BASE_JUMP_POWER * math.sqrt(Races.mult(data.race, "jump"))
 	else
@@ -42,9 +43,12 @@ function Characters.applyStats(player: Player, heal: boolean)
 	end
 	local maxHealth = Progression.maxHealth(data)
 	local gained = math.max(0, maxHealth - humanoid.MaxHealth)
+	local ratio = if humanoid.MaxHealth > 0 then math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1) else 1
 	humanoid.MaxHealth = maxHealth
 	if heal then
 		humanoid.Health = maxHealth
+	elseif keepRatio then
+		humanoid.Health = math.max(1, maxHealth * ratio)
 	else
 		humanoid.Health = math.min(maxHealth, humanoid.Health + gained)
 	end
