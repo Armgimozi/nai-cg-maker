@@ -43,6 +43,7 @@ local Races = loader.require(shared.Races)
 local Combat = loader.require(shared.Combat)
 local Mobs = loader.require(shared.Mobs)
 local Currency = loader.require(shared.Currency)
+local Guards = loader.require(shared.Guards)
 
 -- 테스트는 모든 경지의 과업을 켠 상태로 검사한다
 Tasks.LIVE_UNTIL = Realms.maxStep
@@ -247,12 +248,15 @@ check("영석 데이터", function()
 		ids[ware.id] = true
 		eq(Currency.wareById[ware.id], ware, ware.id .. " 찾기")
 		assert(ware.price > 0 and ware.price % 1 == 0, ware.id .. " 값")
-		assert((ware.item ~= nil) ~= (ware.weapon ~= nil), ware.id .. " 은 물건이거나 무기 하나")
+		local kinds = (if ware.item then 1 else 0) + (if ware.weapon then 1 else 0) + (if ware.guard then 1 else 0)
+		eq(kinds, 1, ware.id .. " 은 물건, 공격 법구, 방어 법구 가운데 하나")
 		if ware.item then
 			assert(Balance.ITEMS[ware.item], ware.id .. " 물건")
 			assert((ware.count or 1) >= 1, ware.id .. " 개수")
+		elseif ware.weapon then
+			assert(Combat.isWeapon(ware.weapon), ware.id .. " 공격 법구")
 		else
-			assert(Combat.isWeapon(ware.weapon), ware.id .. " 무기")
+			assert(Guards.isGuard(ware.guard), ware.id .. " 방어 법구")
 		end
 	end
 	eq(#Currency.UPGRADE, #Combat.GRADES - 1, "강화는 목~영 등급에서 한 등급씩")

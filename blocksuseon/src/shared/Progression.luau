@@ -9,6 +9,7 @@ local Roots = require(script.Parent.Roots)
 local Races = require(script.Parent.Races)
 local Combat = require(script.Parent.Combat)
 local Currency = require(script.Parent.Currency)
+local Guards = require(script.Parent.Guards)
 local Tasks = require(script.Parent.Tasks)
 
 export type Data = {
@@ -27,7 +28,9 @@ export type Data = {
 	stats: { [string]: number },
 	waypoints: { [string]: boolean }, -- 밟아 본 전송진
 	race: string?, -- 종족 (Races.luau). 처음 들어올 때 서버가 뽑는다
-	weapons: { Combat.Weapon }, -- 지닌 무기 (숫자 키 1~9 도구 칸)
+	weapons: { Combat.Weapon }, -- 지닌 공격 법구 (숫자 키 1~9 도구 칸)
+	guards: { Guards.Guard }, -- 지닌 방어 법구 (종류마다 하나)
+	guard: string?, -- 지금 지닌(장착한) 방어 법구 종류. 하나만
 	receipts: { string }, -- 처리한 로벅스 구매 (같은 구매를 두 번 주지 않으려고)
 	stones: number, -- 영석 (Currency.luau)
 }
@@ -42,7 +45,7 @@ local EFFECT = Skills.EFFECT
 
 local Progression = {}
 
-Progression.DATA_VERSION = 6
+Progression.DATA_VERSION = 7
 Progression.LOG_SIZE = 40
 Progression.RECEIPT_KEEP = 50
 -- 옛 세계 전송진 id → 옥반 전송진 id
@@ -109,6 +112,8 @@ function Progression.newData(): Data
 		receipts = {},
 		weapons = { { kind = "sword", grade = 1 } },
 		stones = Currency.START,
+		guards = {},
+		guard = nil,
 		stats = {
 			breakthroughs = 0,
 			trialFails = 0,
@@ -216,6 +221,17 @@ function Progression.reconcile(saved: any): Data
 	-- 영석 (예전 판 기록에는 없어서 처음 값을 준다)
 	if isNumber(saved.stones) then
 		data.stones = math.clamp(math.floor(saved.stones), 0, Currency.MAX)
+	end
+	-- 방어 법구: 종류마다 가장 좋은 것 하나, 장착은 가진 것만
+	if type(saved.guards) == "table" then
+		for _, guard in saved.guards do
+			if Guards.isGuard(guard) then
+				Progression.addGuard(data, { kind = guard.kind, grade = guard.grade })
+			end
+		end
+	end
+	if type(saved.guard) == "string" and Progression.guardOf(data, saved.guard) then
+		data.guard = saved.guard
 	end
 	if type(saved.receipts) == "table" then
 		for _, id in saved.receipts do
@@ -741,18 +757,30 @@ function Progression.buy(data: Data, wareId: any): (boolean, string)
 		return false, "그런 물건은 없다."
 	end
 	local weapon = ware.weapon
+	local guard = ware.guard
+	if guard and Progression.guardOf(data, guard.kind) then
+		return false, "이미 지닌 종류의 방어 법구다. 대장간에서 더 좋은 것을 만들 수 있다."
+	end
 	if weapon then
 		for _, owned in data.weapons do
 			if owned.kind == weapon.kind then
-				return false, "이미 지닌 종류의 무기다. 대장간에서 강화할 수 있다."
+				return false, "이미 지닌 종류의 공격 법구다. 대장간에서 강화할 수 있다."
 			end
 		end
 		if #data.weapons >= Combat.MAX_WEAPONS then
-			return false, "무기 칸이 다 찼다."
+			return false, "공격 법구 칸이 다 찼다."
 		end
 	end
 	if not Progression.spendStones(data, ware.price) then
 		return false, short(ware.price)
+	end
+	if guard then
+		local bought = { kind = guard.kind, grade = guard.grade }
+		Progression.addGuard(data, bought)
+		if not data.guard then
+			data.guard = bought.kind
+		end
+		return true, string.format("%s 샀다.", Josa.eul(Guards.name(bought)))
 	end
 	if weapon then
 		local bought = { kind = weapon.kind, grade = weapon.grade }
@@ -769,7 +797,7 @@ end
 function Progression.upgradeWeapon(data: Data, index: any): (boolean, string)
 	local weapon = if type(index) == "number" then data.weapons[index] else nil
 	if not weapon then
-		return false, "그 칸에 무기가 없다."
+		return false, "그 칸에 법구가 없다."
 	end
 	local cost = Currency.upgradeCost(weapon.grade)
 	if not cost then
@@ -782,6 +810,118 @@ function Progression.upgradeWeapon(data: Data, index: any): (boolean, string)
 	local after = { kind = weapon.kind, grade = weapon.grade + 1 }
 	data.weapons[index] = after
 	return true, string.format("%s %s 거듭났다.", Josa.i(before), Josa.ro(Combat.weaponName(after)))
+end
+
+-- 방어 법구 -------------------------------------------------------------------------
+
+-- 지닌 그 종류 방어 법구 (없으면 nil)
+function Progression.guardOf(data: Data, kind: string): Guards.Guard?
+	for _, owned in data.guards do
+		if owned.kind == kind then
+			return owned
+		end
+	end
+	return nil
+end
+
+-- 방어 법구를 얻는다. 같은 종류를 같거나 더 높은 등급으로 이미 가졌으면 false
+function Progression.addGuard(data: Data, guard: Guards.Guard): boolean
+	if not Guards.isGuard(guard) then
+		return false
+	end
+	for i, owned in data.guards do
+		if owned.kind == guard.kind then
+			if owned.grade >= guard.grade then
+				return false
+			end
+			data.guards[i] = { kind = guard.kind, grade = guard.grade }
+			return true
+		end
+	end
+	if #data.guards >= Guards.MAX then
+		return false
+	end
+	table.insert(data.guards, { kind = guard.kind, grade = guard.grade })
+	return true
+end
+
+-- 지금 지닌 방어 법구
+function Progression.equippedGuard(data: Data): Guards.Guard?
+	return if data.guard then Progression.guardOf(data, data.guard) else nil
+end
+
+-- 지닌 방어 법구의 효과 하나 (Guards.luau 의 칸, 없으면 0)
+function Progression.guardValue(data: Data, key: string): number
+	return Guards.value(Progression.equippedGuard(data), key)
+end
+
+-- 방어 법구를 바꿔 지닌다 (하나만). kind 가 "" 이면 내려놓는다. 반환: 바뀌었는가, 알림
+function Progression.equipGuard(data: Data, kind: any): (boolean, string)
+	if kind == "" or kind == nil then
+		if not data.guard then
+			return false, "지닌 방어 법구가 없다."
+		end
+		data.guard = nil
+		return true, "방어 법구를 내려놓았다."
+	end
+	local owned = if type(kind) == "string" then Progression.guardOf(data, kind) else nil
+	if not owned then
+		return false, "가지지 않은 방어 법구다."
+	end
+	if data.guard == owned.kind then
+		return false, "이미 지니고 있다."
+	end
+	data.guard = owned.kind
+	return true, string.format("%s 지녔다. %s", Josa.eul(Guards.name(owned)), Guards.effects(owned))
+end
+
+-- 대장간에서 방어 법구를 만든다. 반환: 만들었는가, 알림
+function Progression.craftGuard(data: Data, kind: any, grade: any): (boolean, string)
+	local def = if type(kind) == "string" then Guards.byId[kind] else nil
+	local cost = if type(grade) == "number" then Guards.CRAFT[grade] else nil
+	if not def or not cost then
+		return false, "만들 수 없는 법구다."
+	end
+	local owned = Progression.guardOf(data, def.id)
+	if owned and owned.grade >= grade then
+		return false, "이미 같거나 더 좋은 것을 지녔다."
+	end
+	if data.stones < cost.stones then
+		return false, short(cost.stones)
+	end
+	for item, count in cost.items do
+		if Progression.itemCount(data, item) < count then
+			return false,
+				string.format(
+					"%s %d개가 모자라다.",
+					Balance.ITEMS[item].name,
+					count - Progression.itemCount(data, item)
+				)
+		end
+	end
+	Progression.takeItems(data, cost.items)
+	data.stones -= cost.stones
+	local made = { kind = def.id, grade = grade }
+	Progression.addGuard(data, made)
+	if not data.guard then
+		data.guard = made.kind
+	end
+	return true, string.format("%s 만들었다.", Josa.eul(Guards.name(made)))
+end
+
+-- 요수에게 받는 피해 (방어 법구가 줄인다)
+function Progression.mobDamage(data: Data, damage: number): number
+	return damage * (1 - Progression.guardValue(data, "reduce"))
+end
+
+-- 걸음 배율 (종족과 방어 법구)
+function Progression.walkMult(data: Data): number
+	return Races.mult(data.race, "speed") * (1 + Progression.guardValue(data, "speed"))
+end
+
+-- 호신강기 지속 배율
+function Progression.shieldMult(data: Data): number
+	return 1 + Progression.guardValue(data, "shield")
 end
 
 -- 종족 ------------------------------------------------------------------------------
@@ -998,6 +1138,7 @@ function Progression.maxHealth(data: Data): number
 	local mult = if Progression.passive(data, "geumgang") then 1 + EFFECT.geumgang else 1
 	mult *= 1 + Balance.PURE_FORCE_HP * Progression.pureForce(data)
 	mult *= Races.mult(data.race, "hp")
+	mult *= 1 + Progression.guardValue(data, "hp")
 	return math.floor(Balance.maxHealth(data.step) * mult)
 end
 
@@ -1005,6 +1146,7 @@ function Progression.tribulationDamage(data: Data, damage: number): number
 	local mult = if Progression.passive(data, "piroe") then 1 - EFFECT.piroe else 1
 	mult *= 1 - Balance.PURE_FORCE_GUARD * Progression.pureForce(data)
 	mult *= Races.mult(data.race, "guard")
+	mult *= 1 - Progression.guardValue(data, "trib")
 	return damage * mult
 end
 

@@ -18,13 +18,16 @@ Currency.ORE = {
 	{ min = 18, max = 28, hold = 2.7 },
 } :: { Ore }
 
--- 마을 상점에서 파는 것. item 은 Balance.ITEMS 의 id, weapon 은 Combat 무기
+local Guards = require(script.Parent.Guards)
+
+-- 마을 상점에서 파는 것. item 은 Balance.ITEMS 의 id, weapon 은 공격 법구(Combat), guard 는 방어 법구(Guards)
 export type Ware = {
 	id: string,
 	price: number,
 	item: string?,
 	count: number?,
 	weapon: { kind: string, grade: number }?,
+	guard: { kind: string, grade: number }?,
 }
 Currency.WARES = {
 	{ id = "herb1", item = "herb", count = 1, price = 15 },
@@ -35,6 +38,10 @@ Currency.WARES = {
 	{ id = "spear", weapon = { kind = "spear", grade = 1 }, price = 40 },
 	{ id = "fan", weapon = { kind = "fan", grade = 1 }, price = 60 },
 } :: { Ware }
+-- 방어 법구는 범품을 종류마다 판다
+for _, id in Guards.ORDER do
+	table.insert(Currency.WARES, { id = "guard_" .. id, guard = { kind = id, grade = 1 }, price = Guards.SHOP_PRICE })
+end
 
 Currency.wareById = {} :: { [string]: Ware }
 for _, ware in Currency.WARES do

@@ -61,6 +61,8 @@ function Sync.state(player: Player)
 		race = data.race,
 		stones = data.stones,
 		weapons = data.weapons,
+		guards = data.guards,
+		guard = data.guard,
 		meditating = session.meditating,
 		veinId = session.veinId,
 		needsBreak = Progression.needsBreakthrough(data.step),
