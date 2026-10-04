@@ -13,6 +13,7 @@ local Combat = require(Shared.Combat)
 local Currency = require(Shared.Currency)
 local Guards = require(Shared.Guards)
 local Ui = require(script.Parent.Ui)
+local Kit = require(script.Parent.StatusKit)
 local Notice = require(script.Parent.Notice)
 
 local C = Ui.C
@@ -28,7 +29,9 @@ export type Handlers = {
 
 local PANEL_W, PANEL_H = 640, 540
 local LIST_W = 560
-local ROW_H, ROW_H_TALL = 56, 74 -- 재료 줄이 있으면 높인다
+local CARD_W = LIST_W - 12 -- 줄 카드 (오른쪽은 스크롤 막대 자리). 상태창 카드와 같은 모양
+local ROW_H, ROW_H_TALL = 60, 78 -- 재료 줄이 있으면 높인다
+local LIST_Y = 156
 local BUTTON_W, PACK_BUTTON_W = 80, 112
 local MAX_ROWS = math.max(#Currency.WARES, #Currency.PACKS, Combat.MAX_WEAPONS, #Guards.KINDS)
 
@@ -87,7 +90,7 @@ type Spec = {
 
 local function fill(entry: { [string]: any }, spec: Spec)
 	entry.frame.Visible = true
-	entry.frame.Size = UDim2.new(1, -8, 0, if spec.cost then ROW_H_TALL else ROW_H)
+	entry.frame.Size = UDim2.fromOffset(CARD_W, if spec.cost then ROW_H_TALL else ROW_H)
 	entry.name:set(spec.name)
 	entry.sub:set(spec.sub)
 	entry.cost.frame.Visible = spec.cost ~= nil
@@ -419,17 +422,19 @@ function ShopWindow.build(gui: ScreenGui, newHandlers: Handlers)
 	})
 	new("UIScale", { Parent = panel })
 	ui.panel = panel
-	local titleRow = row({ Position = UDim2.fromOffset(0, 22), Size = UDim2.new(1, 0, 0, 56), Parent = panel })
-	ui.title = text("title", 38, { gradient = Ui.GOLD_TEXT, parent = titleRow })
+	-- 판 그림은 살짝 비친다: 뒤의 HUD 가 비치지 않게 한 겹 더 (상태창과 같다)
+	image("panel", { Name = "Backing", Size = UDim2.fromScale(1, 1), SliceScale = 0.8, Parent = panel })
+	local titleRow = row({ Position = UDim2.fromOffset(0, 14), Size = UDim2.new(1, 0, 0, 48), Parent = panel })
+	ui.title = text("title", 36, { gradient = Ui.GOLD_TEXT, parent = titleRow })
 	image("divider", {
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 74),
-		Size = UDim2.fromOffset(540, 22),
+		Position = UDim2.new(0.5, 0, 0, 58),
+		Size = UDim2.fromOffset(420, 20),
 		Parent = panel,
 	})
 	local closeButton = image("iconClose", {
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -24, 0, 24),
+		Position = UDim2.new(1, -24, 0, 22),
 		Size = UDim2.fromOffset(32, 32),
 		Parent = panel,
 	}, "ImageButton")
@@ -449,10 +454,10 @@ function ShopWindow.build(gui: ScreenGui, newHandlers: Handlers)
 	ui.stones.frame.LayoutOrder = 2
 
 	-- 갈래 (만물상: 물건·법구·영석 사기, 대장간: 강화·제작)
-	local tabRow = row({ Position = UDim2.fromOffset(0, 98), Size = UDim2.new(1, 0, 0, 36), Parent = panel }, nil, 10)
+	local tabRow = row({ Position = UDim2.fromOffset(0, 84), Size = UDim2.new(1, 0, 0, 36), Parent = panel }, nil, 8)
 	for index = 1, MAX_TABS do
 		local entry: { [string]: any } = {}
-		local button, caption = Ui.pill(TABS.market[index].label, 112, 34, 16, tabRow, function()
+		local button, caption = Ui.pill(TABS.market[index].label, 116, 36, 17, tabRow, function()
 			if entry.key then
 				tab = entry.key
 				draw()
@@ -464,52 +469,46 @@ function ShopWindow.build(gui: ScreenGui, newHandlers: Handlers)
 		tabs[index] = entry
 	end
 
-	local hintRow = row({ Position = UDim2.fromOffset(0, 140), Size = UDim2.new(1, 0, 0, 22), Parent = panel })
+	local hintRow = row({ Position = UDim2.fromOffset(0, 128), Size = UDim2.new(1, 0, 0, 22), Parent = panel })
 	ui.hint = text("body", 14, { color = C.dim, name = "Hint", parent = hintRow })
 
 	local list = new("ScrollingFrame", {
-		Position = UDim2.fromOffset((PANEL_W - LIST_W) / 2, 170),
-		Size = UDim2.fromOffset(LIST_W, PANEL_H - 210),
+		Position = UDim2.fromOffset((PANEL_W - LIST_W) / 2, LIST_Y),
+		Size = UDim2.fromOffset(LIST_W, PANEL_H - LIST_Y - 40),
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		ScrollBarThickness = 4,
 		ScrollBarImageColor3 = C.gold,
+		ScrollingDirection = Enum.ScrollingDirection.Y,
 		CanvasSize = UDim2.new(),
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
 		Parent = panel,
-	}, { new("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder }) })
+	}, {
+		new("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 6) }),
+		new("UIPadding", { PaddingLeft = UDim.new(0, 2), PaddingTop = UDim.new(0, 2), PaddingBottom = UDim.new(0, 2) }),
+	})
 
 	for index = 1, MAX_ROWS do
-		local frame = new("Frame", {
+		local frame = Kit.card(list, {
 			Name = "Row",
 			LayoutOrder = index,
-			Size = UDim2.new(1, -8, 0, ROW_H),
-			BackgroundTransparency = 1,
+			Size = UDim2.fromOffset(CARD_W, ROW_H),
 			Visible = false,
-			Parent = list,
-		})
-		new("Frame", {
-			Position = UDim2.new(0, 0, 1, -1),
-			Size = UDim2.new(1, 0, 0, 1),
-			BackgroundColor3 = C.gold,
-			BackgroundTransparency = 0.85,
-			BorderSizePixel = 0,
-			Parent = frame,
 		})
 		local name = text("title", 21, { color = C.cream, name = "Name" })
-		name.frame.Position = UDim2.fromOffset(4, 2)
+		name.frame.Position = UDim2.fromOffset(10, 5)
 		name.frame.Parent = frame
-		local sub = text("body", 13, { color = C.dim, name = "Sub" })
-		sub.frame.Position = UDim2.fromOffset(6, 32)
+		local sub = text("body", 14, { color = C.dim, name = "Sub" })
+		sub.frame.Position = UDim2.fromOffset(12, 34)
 		sub.frame.Parent = frame
-		local cost = text("body", 13, { color = C.jade, name = "Cost" })
-		cost.frame.Position = UDim2.fromOffset(6, 51)
+		local cost = text("body", 14, { color = C.jade, name = "Cost" })
+		cost.frame.Position = UDim2.fromOffset(12, 54)
 		cost.frame.Visible = false
 		cost.frame.Parent = frame
 
 		local priceRow = row({
 			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, -(BUTTON_W + 16), 0, 0),
+			Position = UDim2.new(1, -(BUTTON_W + 18), 0, 0),
 			Size = UDim2.new(0, 160, 1, 0),
 			Parent = frame,
 		}, Enum.HorizontalAlignment.Right, 5)
@@ -526,7 +525,7 @@ function ShopWindow.build(gui: ScreenGui, newHandlers: Handlers)
 		end)
 		button.Name = "Button"
 		button.AnchorPoint = Vector2.new(1, 0.5)
-		button.Position = UDim2.new(1, -4, 0.5, 0)
+		button.Position = UDim2.new(1, -9, 0.5, 0)
 
 		entry.frame, entry.name, entry.sub, entry.cost = frame, name, sub, cost
 		entry.priceRow, entry.gem, entry.price = priceRow, gem, price
@@ -535,7 +534,7 @@ function ShopWindow.build(gui: ScreenGui, newHandlers: Handlers)
 	end
 
 	ui.empty = text("body", 16, { color = C.dim, name = "Empty", parent = panel })
-	ui.empty.frame.Position = UDim2.fromOffset((PANEL_W - LIST_W) / 2 + 8, 182)
+	ui.empty.frame.Position = UDim2.fromOffset((PANEL_W - LIST_W) / 2 + 8, LIST_Y + 12)
 	ui.empty.frame.Visible = false
 end
 

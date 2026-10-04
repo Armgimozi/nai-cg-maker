@@ -1,262 +1,22 @@
 -- 화면 UI 를 Lune 의 Roblox 인스턴스로 실제로 만들어 본다.   실행: lune run tests/hud
 --
 -- Lune 은 속성 이름·타입을 Roblox 반영 DB 로 검사하므로, 잘못된 속성이 있으면 여기서 터진다.
--- 이벤트·트윈·입력 서비스는 Lune 에 없어서 가짜로 넣는다.
+-- 이벤트·트윈·입력 서비스는 Lune 에 없어서 가짜로 넣는다 (tests/hud_env.luau, tools/gui_snapshot 과 함께 쓴다).
 
 local roblox = require("@lune/roblox") :: any
 local task = require("@lune/task")
-local Harness = require("./harness")
+local HudEnv = require("./hud_env")
 
--- 가짜 신호 ------------------------------------------------------------------------
-
--- 인스턴스별로 연결된 콜백을 기억해 두었다가 fire 로 부를 수 있다
-local listeners: { [any]: { [string]: { (...any) -> () } } } = setmetatable({}, { __mode = "k" }) :: any
-
-local function fakeSignal(inst: any, name: string)
-	return {
-		Connect = function(_, callback)
-			listeners[inst] = listeners[inst] or {}
-			listeners[inst][name] = listeners[inst][name] or {}
-			table.insert(listeners[inst][name], callback)
-			return { Disconnect = function() end }
-		end,
-	}
-end
-
-local function fire(inst: any, name: string, ...: any)
-	for _, callback in (listeners[inst] or {})[name] or {} do
-		callback(...)
-	end
-end
-
-local EVENTS = {
-	Activated = true,
-	MouseButton1Down = true,
-	MouseButton1Up = true,
-	MouseLeave = true,
-	MouseEnter = true,
-	Changed = true,
-}
-
--- Lune 인스턴스를 감싸 이벤트 접근만 가짜로 돌려준다
-local wrap, unwrap
-local proxies = setmetatable({}, { __mode = "k" })
-
-function unwrap(value)
-	if type(value) == "table" and rawget(value, "__inst") then
-		return rawget(value, "__inst")
-	end
-	return value
-end
-
-function wrap(inst)
-	if typeof(inst) ~= "Instance" then
-		return inst
-	end
-	local existing = proxies[inst]
-	if existing then
-		return existing
-	end
-	local proxy = setmetatable({ __inst = inst }, {
-		__index = function(_, key)
-			if EVENTS[key] then
-				return fakeSignal(inst, key)
-			end
-			if key == "GetPropertyChangedSignal" then
-				return function(_, property)
-					return fakeSignal(inst, "Changed:" .. property)
-				end
-			end
-			if key == "GetAttributeChangedSignal" then
-				return function(_, attribute)
-					return fakeSignal(inst, "Attribute:" .. attribute)
-				end
-			end
-			local value = inst[key]
-			if type(value) == "function" then
-				return function(_, ...)
-					local args = table.pack(...)
-					for i = 1, args.n do
-						args[i] = unwrap(args[i])
-					end
-					local results = table.pack(value(inst, table.unpack(args, 1, args.n)))
-					for i = 1, results.n do
-						if type(results[i]) == "table" then
-							for k, v in results[i] do
-								results[i][k] = wrap(v)
-							end
-						else
-							results[i] = wrap(results[i])
-						end
-					end
-					return table.unpack(results, 1, results.n)
-				end
-			end
-			return wrap(value)
-		end,
-		__newindex = function(_, key, value)
-			inst[key] = unwrap(value)
-		end,
-	})
-	proxies[inst] = proxy
-	return proxy
-end
-
--- 가짜 game ------------------------------------------------------------------------
-
-local real = roblox.Instance.new("DataModel")
-local playerGui = roblox.Instance.new("Folder")
-playerGui.Name = "PlayerGui"
-local sharedFolder = Harness.new({}).folder("src/shared")
-
-local tweensPlayed = 0
-local heartbeatKey = {}
-local tagged: { [string]: { any } } = {} -- 가짜 CollectionService 태그 (태그 → 인스턴스 목록)
-local purchases: { number } = {} -- 로벅스 상품 창을 띄운 상품 id
-local chatMessages: { string } = {}
-local fakeChannel = {
-	Parent = true,
-	IsA = function(_, className)
-		return className == "TextChannel"
-	end,
-	DisplaySystemMessage = function(_, message)
-		table.insert(chatMessages, message)
-	end,
-}
-local services = {
-	MarketplaceService = {
-		PromptProductPurchase = function(_, _player, productId)
-			table.insert(purchases, productId)
-		end,
-	},
-	PolicyService = {
-		GetPolicyInfoForPlayerAsync = function()
-			return { ArePaidRandomItemsRestricted = false }
-		end,
-	},
-	CollectionService = {
-		GetTagged = function(_, tag)
-			return tagged[tag] or {}
-		end,
-		GetInstanceAddedSignal = function()
-			return fakeSignal(heartbeatKey, "TagAdded")
-		end,
-	},
-	TextChatService = {
-		ChatVersion = roblox.Enum.ChatVersion.TextChatService,
-		WaitForChild = function()
-			return {
-				WaitForChild = function()
-					return fakeChannel
-				end,
-			}
-		end,
-	},
-	StarterGui = {
-		SetCore = function()
-			error("예전 채팅으로 가면 안 된다")
-		end,
-	},
-	Players = {
-		LocalPlayer = {
-			WaitForChild = function()
-				return wrap(playerGui)
-			end,
-		},
-	},
-	TweenService = {
-		Create = function(_, target, _info, goal)
-			-- 목표 속성이 진짜 있는지 확인하려고 바로 대입해 본다
-			local inst = unwrap(target)
-			for key, value in goal do
-				inst[key] = value
-			end
-			-- NumberValue 처럼 값이 바뀌면 Changed 를 쏜다 (트윈이 끝난 상태를 바로 흉내 낸다)
-			if goal.Value ~= nil then
-				fire(inst, "Changed", goal.Value)
-			end
-			return {
-				Play = function()
-					tweensPlayed += 1
-				end,
-				Cancel = function() end,
-			}
-		end,
-	},
-	UserInputService = {
-		KeyboardEnabled = true,
-		TouchEnabled = false,
-		InputEnded = fakeSignal(heartbeatKey, "InputEnded"),
-	},
-	RunService = {
-		Heartbeat = fakeSignal(heartbeatKey, "Heartbeat"),
-		RenderStepped = fakeSignal(heartbeatKey, "Heartbeat"),
-		PreSimulation = fakeSignal(heartbeatKey, "PreSimulation"),
-		BindToRenderStep = function() end,
-	},
-	ContentProvider = { PreloadAsync = function() end },
-	Debris = { AddItem = function() end },
-	-- 글자 크기 재기: Roblox 글꼴 폭을 대충 흉내 낸다
-	TextService = {
-		GetTextSize = function(_, text, size, _font, frame)
-			local width = utf8.len(text) * size * 0.6
-			local lines = math.max(1, math.ceil(width / frame.X))
-			return roblox.Vector2.new(math.min(width, frame.X), lines * size)
-		end,
-	},
-	Workspace = {
-		CurrentCamera = nil,
-		GetAttribute = function()
-			return 0
-		end,
-		GetServerTimeNow = function()
-			return 500 -- 밤
-		end,
-	},
-	Lighting = wrap(real:GetService("Lighting")),
-	ReplicatedStorage = {
-		WaitForChild = function(_, name)
-			assert(name == "Shared", "Shared 만 찾는다")
-			return sharedFolder
-		end,
-		FindFirstChild = function()
-			return nil
-		end,
-	},
-}
-
-local game = {
-	GetService = function(_, name)
-		return assert(services[name], "가짜 서비스 없음: " .. name)
-	end,
-}
-
-local env = Harness.robloxGlobals(real)
-env.game = game
-env.Instance = {
-	new = function(className)
-		return wrap(roblox.Instance.new(className))
-	end,
-}
-env.TweenInfo = {
-	new = function(...)
-		return { ... }
-	end,
-}
-env.typeof = function(value)
-	-- 감싼 인스턴스도 인스턴스로 본다
-	if type(value) == "table" and rawget(value, "__inst") then
-		return "Instance"
-	end
-	return typeof(value)
-end
-env.task = task
+local hudEnv = HudEnv.new()
+local fire, wrap = hudEnv.fire, hudEnv.wrap
+local real, playerGui = hudEnv.real, hudEnv.playerGui
+local tagged, purchases, chatMessages = hudEnv.tagged, hudEnv.purchases, hudEnv.chatMessages
+local heartbeatKey = hudEnv.heartbeatKey
+local sharedFolder = hudEnv.sharedFolder
 
 -- 실제로 만들고 갱신해 본다 ----------------------------------------------------------
 
-local loader = Harness.new(env)
--- Hud 가 require 하는 shared 모듈도 같은 로더로 불러야 하므로 shared 폴더를 로더 것으로 바꾼다
-sharedFolder = loader.folder("src/shared")
+local loader = hudEnv.loader
 local Hud = loader.require(loader.folder("src/client").Hud)
 
 local noop = function() end
@@ -270,8 +30,8 @@ Hud.build({
 	meditate = noop,
 	breakthrough = noop,
 	useSlot = noop,
-	equip = noop,
-	assign = noop,
+	equip = record("equip"),
+	assign = record("assign"),
 	startTask = record("startTask"),
 	skipTask = record("skipTask"),
 	choose = record("choose"),
@@ -578,7 +338,7 @@ do
 	-- 상태창 능력치에도 보인다
 	local statShown = false
 	for _, item in hudGui:FindFirstChild("StatusWindow"):GetDescendants() do
-		if item.Name == "Text" and shows(item, "body", "1,265개") then
+		if item.ClassName == "Frame" and shows(item, "body", "1,265개") then
 			statShown = true
 		end
 	end
@@ -883,91 +643,579 @@ do
 	-- 상태창을 열면 상점 창은 닫힌다
 	Hud.toggleStatus(true)
 	assert(not Hud.shopOpen(), "상태창을 열면 상점 창을 닫는다")
+	assert(Hud.statusOpen(), "상태창이 열려야 한다")
 
-	-- 상태창 법구: 공격 법구(이름, 등급, 숫자 키)와 방어 법구(가진 것만, 지닌 것 하나)
+	-- 상태창 ---------------------------------------------------------------------------
+	-- 왼쪽 인물 칸(늘 보인다)과 갈래 넷: 술법(단축칸), 공법, 법구, 주머니
 	local window = hudGui:FindFirstChild("StatusWindow")
-	Hud.update(state({
-		weapons = { { kind = "sword", grade = 2 }, { kind = "fan", grade = 1 } },
-		guards = { { kind = "okpae", grade = 2 }, { kind = "jam", grade = 1 } },
-		guard = "okpae",
-	}))
-	local function windowText(expected: string): boolean
-		for _, item in window:GetDescendants() do
-			if item.Name == "Text" and shows(item, "title", expected) then
+	local client = loader.folder("src/client")
+	local StatusWindow = loader.require(client.StatusWindow)
+	local SkillsTab = loader.require(client.SkillsTab)
+	local BeopguTab = loader.require(client.BeopguTab)
+	local PouchTab = loader.require(client.PouchTab)
+	local Kit = loader.require(client.StatusKit)
+	local SkillsShared = loader.require(sharedFolder.Skills)
+	local RealmsShared = loader.require(sharedFolder.Realms)
+	local Balance = loader.require(sharedFolder.Balance)
+	local C = UiForTest.C
+	local function page(key: string)
+		return window:FindFirstChild("Page_" .. key)
+	end
+	local function anyText(root, fontName: string, expected: string): boolean
+		for _, item in root:GetDescendants() do
+			if item.ClassName == "Frame" and shows(item, fontName, expected) then
 				return true
 			end
 		end
 		return false
 	end
-	assert(windowText("공격 법구") and windowText("방어 법구"), "상태창에 법구 칸 제목이 없다")
-	local weapon1, weapon2, weapon3 = find(window, "Weapon1"), find(window, "Weapon2"), find(window, "Weapon3")
-	assert(weapon1.Visible and weapon2.Visible and not weapon3.Visible, "지닌 공격 법구만 보인다")
-	assert(shows(find(weapon1, "Name"), "title", weaponName("sword", 2)), readText(find(weapon1, "Name")))
+	-- 글 조각이 들어 있는 글줄이 있는가 (여러 줄로 나뉜 설명의 앞부분 따위)
+	local function hasText(root, fontName: string, fragment: string): boolean
+		local out = {}
+		for _, code in utf8.codes(fragment) do
+			local ch = utf8.char(code)
+			local glyph = ArtGlyphs.fonts[fontName].glyphs[ch]
+			if glyph and glyph[4] > 0 then
+				table.insert(out, ch)
+			end
+		end
+		local wanted = table.concat(out)
+		for _, item in root:GetDescendants() do
+			if item.ClassName == "Frame" and item:FindFirstChild("g") then
+				if string.find(readText(item), wanted, 1, true) then
+					return true
+				end
+			end
+		end
+		return false
+	end
+	local function text(root, name: string): string
+		return readText(find(root, name))
+	end
+	local function color(frame)
+		local glyph = frame:FindFirstChildOfClass("ImageLabel")
+		return glyph and glyph.ImageColor3
+	end
+
+	-- 창 크기: Hud 배율(폰 가로 844×390 은 0.6)로 줄이면 위쪽 막대(58px) 아래에 든다
+	local scale = math.clamp(math.min(844 / 1280, 390 / 720), 0.6, 1)
+	assert(window.Size.X.Offset * scale <= 844 - 16, "상태창이 폰 화면보다 넓다")
 	assert(
-		shows(find(weapon1, "Sub"), "body", Combat.GRADES[2].prefix .. " 등급, " .. Combat.KINDS.sword.summary),
-		readText(find(weapon1, "Sub"))
+		window.Size.Y.Offset * scale <= 390 - 58,
+		`상태창이 폰 화면보다 높다 ({window.Size.Y.Offset * scale})`
 	)
+	assert(
+		window.Size.X.Offset <= 1280 - 80 and window.Size.Y.Offset <= 720 - 58 - 40,
+		"상태창이 1280×720 에 크다"
+	)
+	assert(window:FindFirstChildOfClass("UIScale"), "상태창은 Hud 배율을 따른다")
+	-- 더 작은 폰(667×375)에서는 위쪽 막대 아래에 들게 조금 더 줄이고, 큰 화면에서는 Hud 배율 그대로
+	StatusWindow.fit(roblox.Vector2.new(667, 375), 0.6)
+	local small = window:FindFirstChildOfClass("UIScale").Scale
+	assert(small < 0.6 and window.Size.Y.Offset * small <= 375 - 58 - 8 + 0.01, `작은 폰 배율 {small}`)
+	StatusWindow.fit(roblox.Vector2.new(844, 390), 0.6)
+	assert(
+		math.abs(window:FindFirstChildOfClass("UIScale").Scale - 0.6) < 1e-6,
+		"폰 가로는 Hud 배율 0.6 그대로"
+	)
+	StatusWindow.fit(roblox.Vector2.new(1920, 1080), 1)
+	assert(window:FindFirstChildOfClass("UIScale").Scale == 1, "큰 화면은 Hud 배율 그대로")
+
+	-- 갈래 단추: 누르면 그 갈래만 보이고, 닫았다 열어도 마지막 갈래를 기억한다
+	Hud.update(state({ stones = 1265, race = "human" }))
+	for index, def in StatusWindow.TABS do
+		local button = window:FindFirstChild("Tab_" .. def.key, true)
+		assert(button and shows(find(button, "Text"), "body", def.label), `갈래 단추 {def.label}`)
+		fire(button, "Activated")
+		assert(Hud.statusTab() == def.key, `갈래 {def.key} 로 바뀌어야 한다`)
+		for _, other in StatusWindow.TABS do
+			assert(
+				page(other.key).Visible == (other.key == def.key),
+				`{def.key} 갈래에서 {other.key} 쪽이 보인다`
+			)
+		end
+		assert(button.Image == ArtGlyphs.images.pillJade.id, "고른 갈래는 옥빛")
+		Hud.setStatusTab(index)
+		assert(Hud.statusTab() == def.key, "번호로도 갈래를 고른다")
+	end
+	Hud.setStatusTab("법구")
+	assert(Hud.statusTab() == "gear", "글자로도 갈래를 고른다")
+	Hud.toggleStatus(false)
+	Hud.toggleStatus(true)
+	assert(Hud.statusTab() == "gear" and page("gear").Visible, "다시 열면 마지막 갈래")
+	fire(find(window, "Close"), "Activated")
+	assert(not Hud.statusOpen(), "닫기 단추")
+	Hud.toggleStatus(true)
+
+	-- 인물 칸: 능력치, 종족 효과, 확률 창, 다시 뽑기 (확률 창은 갈래와 상관없이)
+	local character = find(window, "Character")
+	assert(anyText(character, "body", "1,265개"), "인물 칸에 영석이 없다")
+	assert(anyText(character, "body", "125"), "인물 칸에 체력이 없다")
+	assert(find(character, "PlayerName").Text == "", "이름 (가짜 환경은 빈 이름)")
+	local oddsPanel = find(window, "OddsPanel")
+	assert(not oddsPanel.Visible, "확률 창은 접혀 있다")
+	fire(find(character, "Odds"), "Activated")
+	assert(oddsPanel.Visible and oddsPanel.Active, "확률 보기를 누르면 확률 창 (뒤를 누르지 못하게)")
+	local shade = find(window, "OddsShade")
+	assert(shade.Visible, "확률 창 뒤 갈래 자리는 그늘로 덮는다")
+	assert(anyText(oddsPanel, "body", "지금 종족"), "지금 종족은 다시 뽑아도 나오지 않는다")
+	fire(shade, "Activated")
+	assert(not oddsPanel.Visible and not shade.Visible, "그늘을 누르면 확률 창을 닫는다")
+	fire(find(character, "Odds"), "Activated")
+	Hud.toggleStatus(false)
+	assert(not oddsPanel.Visible and not shade.Visible, "상태창을 닫으면 확률 창도 접는다")
+	Hud.toggleStatus(true)
+	local RacesShared = loader.require(sharedFolder.Races)
+	local before = #purchases
+	fire(find(character, "Reroll"), "Activated")
+	if RacesShared.REROLL_PRODUCT_ID ~= 0 then
+		assert(purchases[#purchases] == RacesShared.REROLL_PRODUCT_ID, "다시 뽑기는 로벅스 상품 창")
+	else
+		assert(#purchases == before, "상품이 없으면 사지 않는다")
+	end
+
+	-- 술법 갈래 ----------------------------------------------------------------------
+	Hud.setStatusTab("skills")
+	local skills = page("skills")
+	local learned = {
+		skills = { gyeongsin = true, yeongan = true, chwiryeong = true },
+		hotbar = { "gyeongsin", "", "", "" },
+		keys = { "Q", "E", "Z", "X" },
+	}
+	Hud.update(state(learned))
+	local slot1, slot2 = find(skills, "Hotbar1"), find(skills, "Hotbar2")
+	assert(
+		shows(find(slot1, "Name"), "title", "경신술") and shows(find(slot2, "Name"), "title", "빈 칸"),
+		"단축칸 이름"
+	)
+	assert(shows(find(find(slot1, "Key"), "Text"), "body", "Q"), "단축칸 키")
+	assert(shows(find(slot1, "Cool"), "body", "재사용 5초"), text(slot1, "Cool"))
+	assert(find(slot1, "Icon").Visible and not find(slot2, "Icon").Visible, "빈 칸은 그림이 없다")
+	-- 카드: 익힌 것 먼저, 못 익힌 것은 얻는 곳
+	local cardYeongan, cardHosin = find(skills, "Card_yeongan"), find(skills, "Card_hosin")
+	assert(cardYeongan.LayoutOrder < cardHosin.LayoutOrder, "익힌 술법이 앞에")
+	assert(hasText(cardYeongan, "body", "영초와 비급이"), "술법 카드 설명")
+	assert(shows(find(cardYeongan, "Corner"), "body", "30초"), "술법 카드 쿨타임")
+	local hosinDef = SkillsShared.byId.hosin
+	assert(
+		hasText(cardHosin, "body", string.format("%s부터", RealmsShared.byId[hosinDef.minRealm].name)),
+		"못 익힌 술법은 얻는 곳"
+	)
+	assert(find(find(skills, "Card_gyeongsin"), "Key").Visible, "단축칸에 든 술법 카드에 키 표")
+	assert(not find(cardYeongan, "Key").Visible, "단축칸에 없는 술법은 키 표가 없다")
+	-- 카드를 누르고 칸을 누르면 넣는다
+	sent.assign = nil
+	fire(cardYeongan, "Activated")
+	assert(sent.assign == nil, "카드만 누르면 아직 보내지 않는다")
+	assert(find(cardYeongan, "UIStroke").Thickness == 2, "고른 카드는 금테")
+	assert(anyText(find(skills, "Hint"), "body", "영안: 넣을 칸을 누른다"), "고르면 안내")
+	assert(find(slot2, "UIStroke").Color == C.jade, "넣을 수 있는 칸은 옥테")
+	fire(slot2, "Activated")
+	assert(sent.assign and sent.assign[1] == 2 and sent.assign[2] == "yeongan", "고른 술법을 누른 칸에")
+	assert(find(cardYeongan, "UIStroke").Thickness == 1, "넣으면 고르기를 푼다")
+	-- 칸을 먼저 누르고 카드를 눌러도 된다
+	sent.assign = nil
+	fire(find(skills, "Hotbar3"), "Activated")
+	assert(anyText(find(skills, "Hint"), "body", "Z 칸: 넣을 술법을 누른다"), "칸을 고르면 안내")
+	fire(find(skills, "Card_chwiryeong"), "Activated")
+	assert(sent.assign and sent.assign[1] == 3 and sent.assign[2] == "chwiryeong", "고른 칸에 누른 술법을")
+	-- 이미 그 칸에 있으면 보내지 않고 고르기만 푼다
+	sent.assign = nil
+	fire(find(skills, "Card_gyeongsin"), "Activated")
+	fire(slot1, "Activated")
+	assert(sent.assign == nil, "같은 칸이면 보내지 않는다")
+	-- 칸 비우기 / 칸에서 빼기 / 취소
+	fire(slot1, "Activated")
+	local clear, cancel = find(skills, "Clear"), find(skills, "Cancel")
+	assert(clear.Visible and cancel.Visible, "칸을 고르면 비우기·취소")
+	fire(clear, "Activated")
+	assert(sent.assign and sent.assign[1] == 1 and sent.assign[2] == "", "칸 비우기")
+	sent.assign = nil
+	fire(find(skills, "Card_gyeongsin"), "Activated")
+	assert(shows(find(clear, "Text"), "body", "칸에서 빼기"), "단축칸에 든 술법을 고르면 빼기")
+	fire(cancel, "Activated")
+	assert(not clear.Visible and not cancel.Visible and sent.assign == nil, "취소")
+	-- 못 익힌 술법은 고르지 못한다
+	fire(cardHosin, "Activated")
+	fire(slot2, "Activated")
+	assert(sent.assign == nil or sent.assign[2] ~= "hosin", "못 익힌 술법은 넣지 않는다")
+	fire(slot2, "Activated")
+	sent.assign = nil
+	-- 키 표를 누르면 키 바꾸기 (다음에 누르는 키, Main.client 가 BindKey 를 보낸다)
+	fire(find(slot2, "Key"), "Activated")
+	assert(Hud.bindingSlot() == 2, "키 표를 누르면 그 칸 키 바꾸기")
+	assert(shows(find(find(slot2, "Key"), "Text"), "body", "?"), "바꾸는 칸은 ?")
+	assert(anyText(find(skills, "Hint"), "body", "E 칸: 바꿀 키를 누른다"), "키 바꾸기 안내")
+	Hud.stopBinding()
+	assert(shows(find(find(slot2, "Key"), "Text"), "body", "E"), "키 바꾸기가 끝나면 키")
+	-- 쿨타임: 열려 있으면 단축칸에 남은 초
+	Hud.skillUsed({ id = "gyeongsin", cooldown = 5 })
+	fire(heartbeatKey, "Heartbeat", 0.016)
+	assert(shows(find(slot1, "Cool"), "body", "5초 남음"), text(slot1, "Cool"))
+	assert(color(find(slot1, "Cool")) == C.jade, "쿨타임 중은 옥빛")
+	-- 익힌 술법이 없으면 안내
+	Hud.update(state())
+	assert(hasText(find(skills, "Hint"), "body", "아직 익힌 술법이 없다"), "빈 술법 안내")
+	-- 화면 아래 빈 단축칸을 누르면 상태창 술법 갈래가 그 칸을 고른 채 열린다
+	Hud.update(state(learned))
+	Hud.setStatusTab("pouch")
+	Hud.toggleStatus(false)
+	local hotbarGui = hudGui:FindFirstChild("Hotbar")
+	local hotbarButtons = {}
+	for _, item in hotbarGui:GetDescendants() do
+		if item:IsA("ImageButton") then
+			hotbarButtons[item.Parent.LayoutOrder] = item
+		end
+	end
+	fire(hotbarButtons[4], "Activated")
+	assert(Hud.statusOpen() and Hud.statusTab() == "skills", "빈 단축칸을 누르면 술법 갈래")
+	assert(anyText(find(skills, "Hint"), "body", "X 칸: 넣을 술법을 누른다"), "그 칸이 골라져 있다")
+	fire(find(skills, "Card_yeongan"), "Activated")
+	assert(sent.assign and sent.assign[1] == 4 and sent.assign[2] == "yeongan", "카드를 누르면 바로 그 칸에")
+	sent.assign = nil
+
+	-- 공법 갈래 ----------------------------------------------------------------------
+	Hud.setStatusTab("passives")
+	local passives = page("passives")
+	Hud.update(state({
+		step = 20,
+		slots = 2,
+		skills = { tonap = true, baekcho = true, geumgang = true },
+		equipped = { "tonap" },
+	}))
+	assert(shows(find(find(passives, "PassiveSlot1"), "Name"), "title", "토납법"), "장착한 공법 칸")
+	assert(shows(find(find(passives, "PassiveSlot2"), "Name"), "title", "빈 칸"), "빈 공법 칸")
+	local lockedSlot = find(passives, "PassiveSlot3")
+	assert(shows(find(lockedSlot, "Name"), "title", "잠긴 칸"), "잠긴 공법 칸")
+	local lastRealm = RealmsShared.byId[SkillsShared.SLOT_REALMS[3]].name
+	assert(hasText(lockedSlot, "body", lastRealm .. "부터 열린다"), "왜 잠겼는지")
+	assert(anyText(find(passives, "Hint"), "body", "장착 1 / 2"), "장착 수")
+	local tonap, baekcho, piroe =
+		find(passives, "Card_tonap"), find(passives, "Card_baekcho"), find(passives, "Card_piroe")
+	assert(shows(find(buttonOf(tonap), "Text"), "body", "해제"), "장착한 공법은 해제")
+	assert(shows(find(buttonOf(baekcho), "Text"), "body", "장착"), "나머지는 장착")
+	assert(not buttonOf(piroe).Visible, "못 익힌 공법은 단추가 없다")
+	sent.equip = nil
+	fire(buttonOf(tonap), "Activated")
+	assert(sent.equip and sent.equip[1] == "tonap" and sent.equip[2] == false, "해제를 보낸다 (Unequip)")
+	fire(buttonOf(baekcho), "Activated")
+	assert(sent.equip and sent.equip[1] == "baekcho" and sent.equip[2] == true, "장착을 보낸다 (Equip)")
+	Hud.update(state({ slots = 1, skills = { tonap = true, baekcho = true }, equipped = { "tonap" } }))
+	assert(buttonOf(baekcho).Image == pillStone, "칸이 다 차면 장착 단추가 흐리다")
+	assert(hasText(find(passives, "Hint"), "body", "칸이 모두 찼다"), "칸이 다 찬 안내")
+
+	-- 법구 갈래 ----------------------------------------------------------------------
+	Hud.setStatusTab("gear")
+	local gear = page("gear")
+	Hud.update(state({
+		weapons = { { kind = "sword", grade = 2 }, { kind = "fan", grade = 1 } },
+		guards = { { kind = "okpae", grade = 2 }, { kind = "jam", grade = 1 } },
+		guard = "okpae",
+	}))
+	assert(anyText(gear, "title", "공격 법구") and anyText(gear, "title", "방어 법구"), "법구 갈래 제목")
+	local weapon1, weapon2, weapon3 = find(gear, "Weapon1"), find(gear, "Weapon2"), find(gear, "Weapon3")
+	assert(weapon1.Visible and weapon2.Visible and not weapon3.Visible, "지닌 공격 법구만 보인다")
+	assert(shows(find(weapon1, "Name"), "title", weaponName("sword", 2)), text(weapon1, "Name"))
+	assert(
+		shows(find(weapon1, "Stats"), "body", BeopguTab.weaponStats({ kind = "sword", grade = 2 })),
+		text(weapon1, "Stats")
+	)
+	assert(shows(find(weapon1, "Sub"), "body", Combat.KINDS.sword.summary), text(weapon1, "Sub"))
+	assert(shows(find(weapon1, "Tag"), "body", Combat.GRADES[2].prefix .. " 등급"), text(weapon1, "Tag"))
 	assert(shows(find(find(weapon2, "Key"), "Text"), "body", "2"), "둘째 공격 법구는 숫자 키 2")
 	assert(shows(find(weapon2, "Name"), "title", weaponName("fan", 1)), "죽선")
-	assert(not find(window, "WeaponEmpty").Visible, "공격 법구가 있으면 빈 글이 없다")
-	assert(find(window, "GuardRule").Visible, "방어 법구는 하나만이라는 글")
-	local okpae, jam, gabui = find(window, "Guard_okpae"), find(window, "Guard_jam"), find(window, "Guard_gabui")
-	assert(okpae.Visible and jam.Visible and not gabui.Visible, "가진 방어 법구만 보인다")
-	assert(not find(window, "GuardEmpty").Visible, "방어 법구가 있으면 빈 글이 없다")
+	assert(not find(gear, "WeaponEmpty").Visible, "공격 법구가 있으면 빈 글이 없다")
+	-- 손에 든 법구 (캐릭터의 도구 WeaponIndex) 는 금테와 "손에 들었다"
+	local body = roblox.Instance.new("Model")
+	local tool = roblox.Instance.new("Tool")
+	tool:SetAttribute("WeaponIndex", 2)
+	tool.Parent = body
+	hudEnv.services.Players.LocalPlayer.Character = wrap(body)
+	fire(heartbeatKey, "Heartbeat", 0.016)
+	assert(shows(find(weapon2, "Tag"), "body", "손에 들었다"), text(weapon2, "Tag"))
+	assert(color(find(weapon2, "Name")) == C.gold, "손에 든 법구는 금빛")
+	assert(shows(find(weapon1, "Tag"), "body", Combat.GRADES[2].prefix .. " 등급"), "든 것만")
+	hudEnv.services.Players.LocalPlayer.Character = nil
+	fire(heartbeatKey, "Heartbeat", 0.016)
+	assert(not anyText(gear, "body", "손에 들었다"), "내려놓으면 표시가 없다")
+	-- 방어 법구: 지닌 하나는 위 큰 칸, 나머지는 아래 (지니면 바뀌는 것과 함께)
+	local worn = find(gear, "Worn")
+	local okpaeGuard = { kind = "okpae", grade = 2 }
+	assert(shows(find(worn, "Name"), "title", Guards.name(okpaeGuard)), text(worn, "Name"))
+	assert(shows(find(worn, "Sub"), "body", Guards.effects(okpaeGuard)), text(worn, "Sub"))
+	assert(anyText(gear, "body", "지님 1 / 1"), "지님 수")
+	assert(find(gear, "GuardRule").Visible, "방어 법구는 하나만이라는 글")
+	local okpae, jam, gabui = find(gear, "Guard_okpae"), find(gear, "Guard_jam"), find(gear, "Guard_gabui")
 	assert(
-		shows(find(okpae, "Name"), "title", Guards.name({ kind = "okpae", grade = 2 })),
-		readText(find(okpae, "Name"))
+		not okpae.Visible and jam.Visible and not gabui.Visible,
+		"지닌 것은 위에, 가진 나머지만 아래에"
 	)
-	assert(
-		shows(find(okpae, "Sub"), "body", Guards.effects({ kind = "okpae", grade = 2 })),
-		readText(find(okpae, "Sub"))
-	)
-	assert(find(okpae, "Worn").Visible and not find(jam, "Worn").Visible, "지닌 것 하나에만 지님")
-	assert(shows(find(okpae, "Worn"), "body", "지님"), "지님 표시")
-	assert(
-		find(okpae, "Name"):FindFirstChildOfClass("ImageLabel").ImageColor3 == UiForTest.C.gold,
-		"지닌 것은 금빛"
-	)
-	assert(shows(find(buttonOf(okpae), "Text"), "body", "내려놓기"), "지닌 것은 내려놓기")
+	assert(not find(gear, "GuardEmpty").Visible, "방어 법구가 있으면 빈 글이 없다")
+	assert(shows(find(jam, "Name"), "title", Guards.name({ kind = "jam", grade = 1 })), text(jam, "Name"))
 	assert(shows(find(buttonOf(jam), "Text"), "body", "지니기"), "나머지는 지니기")
+	-- 청운잠으로 바꾸면 옥패의 피해 감소가 빠지고(붉게) 천겁 피해가 준다(옥빛)
+	local changes = BeopguTab.changes({ kind = "jam", grade = 1 }, okpaeGuard)
+	assert(#changes == 2, `바뀌는 효과 {#changes}개 (2)`)
+	local diff = find(jam, "Diff")
+	assert(diff.Visible, "바꾸면 달라지는 것")
+	assert(shows(find(diff, "Part1"), "body", changes[1].text .. ","), text(diff, "Part1"))
+	assert(
+		color(find(diff, "Part1")) == (if changes[1].good then C.jade else C.red),
+		"좋아지면 옥빛, 나빠지면 붉게"
+	)
+	assert(not changes[1].good and changes[2].good, "피해 감소를 잃고 천겁 피해가 준다")
+	assert(color(find(diff, "Part2")) == C.jade, "좋아지는 것은 옥빛")
+	sent.equipGuard = nil
 	fire(buttonOf(jam), "Activated")
 	assert(sent.equipGuard and sent.equipGuard[1] == "jam", "지니기를 누르면 그 종류를 보낸다")
-	sent.equipGuard = nil
-	fire(buttonOf(okpae), "Activated")
+	fire(buttonOf(worn), "Activated")
 	assert(sent.equipGuard and sent.equipGuard[1] == "", "내려놓기는 빈 글을 보낸다")
 	sent.equipGuard = nil
-	-- 서버가 바꿔 지니면 표시가 옮겨 간다
+	-- 서버가 바꿔 지니면 위아래가 바뀐다
 	Hud.update(state({
 		weapons = { { kind = "sword", grade = 2 } },
-		guards = { { kind = "okpae", grade = 2 }, { kind = "jam", grade = 1 } },
+		guards = { okpaeGuard, { kind = "jam", grade = 1 } },
 		guard = "jam",
 	}))
-	assert(find(jam, "Worn").Visible and not find(okpae, "Worn").Visible, "지님이 옮겨 간다")
-	assert(shows(find(buttonOf(okpae), "Text"), "body", "지니기"), "내려놓은 것은 지니기")
-	assert(not find(window, "Weapon2").Visible, "공격 법구가 줄면 칸을 숨긴다")
+	assert(okpae.Visible and not jam.Visible, "지님이 옮겨 간다")
+	assert(shows(find(worn, "Name"), "title", Guards.name({ kind = "jam", grade = 1 })), "위 칸은 새로 지닌 것")
+	assert(not weapon2.Visible, "공격 법구가 줄면 칸을 숨긴다")
+	-- 아무것도 지니지 않았으면 위 칸이 비고, 아래 카드에 바뀌는 것 줄이 없다
+	Hud.update(state({ guards = { okpaeGuard }, guard = nil }))
+	assert(shows(find(worn, "Name"), "title", "지닌 방어 법구가 없다"), "빈 큰 칸")
+	assert(not buttonOf(worn).Visible, "지닌 것이 없으면 내려놓기가 없다")
+	assert(okpae.Visible and not find(okpae, "Diff").Visible, "지닌 것이 없으면 바뀌는 것 줄이 없다")
 	-- 방어 법구가 없으면 얻는 곳을 알려 준다
 	Hud.update(state({ guards = {}, guard = nil }))
-	assert(find(window, "GuardEmpty").Visible, "방어 법구가 없으면 얻는 곳 안내")
-	assert(not okpae.Visible and not jam.Visible, "방어 법구가 없으면 줄이 없다")
+	assert(find(gear, "GuardEmpty").Visible, "방어 법구가 없으면 얻는 곳 안내")
+	assert(not okpae.Visible and not jam.Visible, "방어 법구가 없으면 카드가 없다")
 	Hud.update(state({ weapons = {} }))
-	assert(find(window, "WeaponEmpty").Visible, "공격 법구가 없으면 빈 글")
-	-- 상태창 법구 글이 목록 폭(322) 안에 든다
-	for _, name in { "GuardRule", "GuardEmpty", "WeaponEmpty" } do
-		for _, item in find(window, name):GetDescendants() do
-			if item.Name == "Text" then
-				assert(item.Size.X.Offset <= 322, `{name} 글이 넓다 ({item.Size.X.Offset})`)
+	assert(find(gear, "WeaponEmpty").Visible, "공격 법구가 없으면 빈 글")
+
+	-- 주머니 갈래 --------------------------------------------------------------------
+	Hud.setStatusTab("pouch")
+	local pouch = page("pouch")
+	Hud.update(state({ items = { herb = 3, pill = 1 } }))
+	local herb, pill, lingzhi = find(pouch, "Item_herb"), find(pouch, "Item_pill"), find(pouch, "Item_lingzhi")
+	assert(shows(find(herb, "Count"), "body", "3개") and shows(find(lingzhi, "Count"), "body", "0개"), "물건 수")
+	assert(buttonOf(herb).Visible and not buttonOf(lingzhi).Visible, "가진 것만 먹기")
+	assert(buttonOf(pill) == nil, "축기단은 먹기 단추가 없다")
+	assert(hasText(herb, "body", "대장간 재료로도"), "재료로 쓰는 물건")
+	sent.eat = nil
+	fire(buttonOf(herb), "Activated")
+	assert(sent.eat and sent.eat[1] == "herb", "먹기를 보낸다 (Eat)")
+
+	-- 글이 칸에 드는지 ------------------------------------------------------------------
+	-- Lune 은 배치를 하지 않으므로 카드의 바로 아래 자식 오프셋으로 센다: 카드 밖으로 나가지 않고, 글끼리 또는 글과
+	-- 단추·그림이 겹치지 않는다 (가로 목록은 자식 너비를 더한다, 여러 줄 글은 줄마다)
+	local function isTextFrame(item): boolean
+		if item.ClassName ~= "Frame" then
+			return false
+		end
+		for _, child in item:GetChildren() do
+			if child.ClassName == "ImageLabel" and child.Name == "g" then
+				return true
+			end
+		end
+		return false
+	end
+	local function boxOf(item, parentW: number, parentH: number): { [string]: any }?
+		if not item:IsA("GuiObject") or not item.Visible then
+			return nil
+		end
+		local w = item.Size.X.Scale * parentW + item.Size.X.Offset
+		local h = item.Size.Y.Scale * parentH + item.Size.Y.Offset
+		local kind = "image"
+		local inner = { x = 0, y = 0 }
+		if item:IsA("GuiButton") then
+			kind = "button"
+		elseif isTextFrame(item) then
+			kind = "text"
+		elseif item.ClassName == "Frame" then
+			local layout = item:FindFirstChildOfClass("UIListLayout")
+			local texts = {}
+			for _, child in item:GetChildren() do
+				if child:IsA("GuiObject") and child.Visible and isTextFrame(child) then
+					table.insert(texts, child)
+				end
+			end
+			if #texts == 0 then
+				return nil
+			end
+			kind = "text"
+			if layout and layout.FillDirection == roblox.Enum.FillDirection.Horizontal then
+				local total = 0
+				for index, child in texts do
+					total += child.Size.X.Offset + (if index > 1 then layout.Padding.Offset else 0)
+				end
+				assert(total <= w + 0.5, `{item:GetFullName()} 줄이 틀보다 넓다 ({total} > {w})`)
+				if layout.HorizontalAlignment ~= roblox.Enum.HorizontalAlignment.Left then
+					return nil
+				end
+				w = total
+			else
+				local right, bottom = 0, 0
+				for _, child in texts do
+					right = math.max(right, child.Position.X.Offset + child.Size.X.Offset)
+					bottom = math.max(bottom, child.Position.Y.Offset + child.Size.Y.Offset)
+				end
+				w, h = right, bottom
+			end
+		end
+		local x = item.Position.X.Scale * parentW + item.Position.X.Offset - item.AnchorPoint.X * w
+		local y = item.Position.Y.Scale * parentH + item.Position.Y.Offset - item.AnchorPoint.Y * h
+		return { item = item, kind = kind, x = x + inner.x, y = y + inner.y, w = w, h = h }
+	end
+	local checked = 0
+	local function fits(card)
+		local cardW, cardH = card.Size.X.Offset, card.Size.Y.Offset
+		local boxes = {}
+		for _, child in card:GetChildren() do
+			local box = boxOf(child, cardW, cardH)
+			if box then
+				table.insert(boxes, box)
+			end
+		end
+		local function labelOf(item): string
+			if isTextFrame(item) then
+				return readText(item)
+			end
+			for _, child in item:GetDescendants() do
+				if isTextFrame(child) then
+					return readText(child)
+				end
+			end
+			return item.Name
+		end
+		for _, box in boxes do
+			if box.kind == "text" then
+				local label = labelOf(box.item)
+				assert(
+					box.x >= -1 and box.x + box.w <= cardW + 1 and box.y >= -1 and box.y + box.h <= cardH + 1,
+					`{card:GetFullName()} 의 글 "{label}" 이 칸 밖으로 나간다 ({box.x},{box.y} {box.w}×{box.h} / {cardW}×{cardH})`
+				)
+			end
+		end
+		for i = 1, #boxes do
+			for j = i + 1, #boxes do
+				local a, b = boxes[i], boxes[j]
+				if a.kind ~= "text" and b.kind ~= "text" then
+					continue
+				end
+				local overlapW = math.min(a.x + a.w, b.x + b.w) - math.max(a.x, b.x)
+				local overlapH = math.min(a.y + a.h, b.y + b.h) - math.max(a.y, b.y)
+				assert(
+					overlapW <= 1 or overlapH <= 1,
+					`{card:GetFullName()}: {a.item.Name} 와 {b.item.Name} 이 겹친다 ({overlapW}×{overlapH})`
+				)
+			end
+		end
+		checked += 1
+	end
+	local CARD_NAMES = {
+		"^Card_",
+		"^Hotbar%d",
+		"^PassiveSlot%d",
+		"^Weapon%d",
+		"^Guard_",
+		"^Worn$",
+		"^Item_",
+		"^Hint$",
+		"^Header$",
+		"^Character$",
+	}
+	local function fitAll()
+		for _, item in window:GetDescendants() do
+			if item:IsA("GuiObject") and item.Visible then
+				for _, pattern in CARD_NAMES do
+					if string.match(item.Name, pattern) then
+						fits(item)
+						break
+					end
+				end
 			end
 		end
 	end
-	for _, id in Guards.ORDER do
-		for grade = 1, #Guards.GRADES do
-			Hud.update(state({ guards = { { kind = id, grade = grade } }, guard = id }))
-			local guardRow = find(window, "Guard_" .. id)
-			local nameWidth = find(guardRow, "Name").Size.X.Offset + 8 + find(guardRow, "Worn").Size.X.Offset
-			assert(nameWidth < 322 - 86, `{id} {grade} 이름이 버튼과 겹친다 ({nameWidth})`)
-			assert(find(guardRow, "Sub").Size.X.Offset < 322, `{id} {grade} 효과 줄이 넓다`)
+	-- 설명 줄은 두 줄 안에 든다 (Ui.paragraph 는 넘치는 줄을 버린다)
+	for _, def in SkillsShared.list do
+		local lines = UiForTest.wrap("body", 14, def.summary, SkillsTab.TEXT_W)
+		assert(#lines <= 2, `{def.name} 설명이 카드에서 {#lines}줄이다`)
+		local slotLines = UiForTest.wrap("body", 14, def.summary, SkillsTab.CELL_W - 80)
+		assert(def.kind ~= "passive" or #slotLines <= 2, `{def.name} 설명이 공법 칸에서 {#slotLines}줄이다`)
+	end
+	for _, id in Balance.ITEM_ORDER do
+		local lines = UiForTest.wrap("body", 14, PouchTab.describe(id), PouchTab.TEXT_W)
+		assert(#lines <= 2, `{id} 쓰임이 {#lines}줄이다`)
+	end
+	-- 여러 상태에서: 다 익힘·못 익힘, 고르는 중, 키 바꾸는 중, 법구 등급마다, 방어 법구 짝마다, 많은 물건
+	local everything = {}
+	for _, def in SkillsShared.list do
+		everything[def.id] = true
+	end
+	local allWeapons = {}
+	for _, kind in Combat.KIND_ORDER do
+		table.insert(allWeapons, { kind = kind, grade = 1 })
+	end
+	local scenarios = {
+		state({ skills = everything, hotbar = { "yeongchul", "heogong", "hosin", "yudo" }, step = 56 }),
+		state({ skills = {}, step = 1 }),
+		state({ stones = 9999999, maxHealth = 99999999, qi = 1e15, req = 1e15, race = "human", step = 56 }),
+	}
+	for grade = 1, #Combat.GRADES do
+		local list = {}
+		for _, weapon in allWeapons do
+			table.insert(list, { kind = weapon.kind, grade = grade })
+		end
+		table.insert(
+			scenarios,
+			state({
+				weapons = list,
+				items = { herb = 999, lingzhi = 999, yodan = 999, hongsam = 99, pill = 99, starSeed = 99 },
+			})
+		)
+	end
+	for _, wornKind in Guards.ORDER do
+		for _, grade in { 1, 5 } do
+			local list = {}
+			for _, kind in Guards.ORDER do
+				table.insert(list, { kind = kind, grade = if kind == wornKind then 6 - grade else grade })
+			end
+			table.insert(scenarios, state({ guards = list, guard = wornKind }))
 		end
 	end
+	for _, tabDef in StatusWindow.TABS do
+		Hud.setStatusTab(tabDef.key)
+		for _, scenario in scenarios do
+			Hud.update(scenario)
+			fitAll()
+		end
+	end
+	-- 경지 이름마다 인물 칸에 든다
+	for step = 1, RealmsShared.maxStep do
+		Hud.update(state({ step = step, qi = 5e14, req = 9e14 }))
+		fits(character)
+	end
+	-- 술법 고르는 중·키 바꾸는 중의 안내 줄 (가장 긴 이름)
+	Hud.setStatusTab("skills")
+	Hud.update(scenarios[1])
+	fire(find(skills, "Card_yeongchul"), "Activated")
+	fitAll()
+	fire(find(skills, "Hotbar1"), "Activated")
+	fire(find(skills, "Hotbar1"), "Activated")
+	fitAll()
+	Hud.startBinding(3)
+	fitAll()
+	Hud.stopBinding()
+	assert(checked > 500, `글 자리 검사가 너무 적다 ({checked})`)
+	-- 갈래 쪽 크기: 카드 줄이 갈래 너비 안에 든다
+	assert(
+		SkillsTab.SLOT_W * 4 + 30 <= Kit.W and SkillsTab.CELL_W * 3 + Kit.GAP_X * 2 <= Kit.W,
+		"술법 카드 줄이 넓다"
+	)
+	assert(BeopguTab.LEFT_W + BeopguTab.RIGHT_W + 14 <= Kit.W, "법구 두 쪽이 넓다")
+	assert(PouchTab.CELL_W * 2 + Kit.GAP_X <= Kit.W, "주머니 카드 줄이 넓다")
+	assert(page("skills").Size.X.Offset + 314 <= window.Size.X.Offset - 24, "갈래가 창 밖으로 나간다")
+	Hud.update(state())
 	Hud.toggleStatus(false)
 
 	-- 전송진 삯: 선 진과 갈 진 바닥 사이 거리로 센다. 송계 마을(Places.HOME_WAYPOINT)로는 공짜
@@ -1216,7 +1464,7 @@ local count = 0
 for _, _ in hud:GetDescendants() do
 	count += 1
 end
-print(`HUD 통과 · 인스턴스 {count}개 · 트윈 {tweensPlayed}회 · 상태 {#cases}가지`)
+print(`HUD 통과 · 인스턴스 {count}개 · 트윈 {hudEnv.counts.tweens}회 · 상태 {#cases}가지`)
 
 -- 화면에 나올 수 있는 글자가 모두 글자판에 있는지 -----------------------------------------
 local Realms = loader.require(sharedFolder.Realms)
@@ -1381,12 +1629,44 @@ for _, id in BalanceForGlyphs.ITEM_ORDER do
 	need("body", "재료 " .. BalanceForGlyphs.ITEMS[id].name .. " 0/1234567890")
 end
 need("title", "공격 법구 방어 법구 지님 0 / 1")
+-- 상태창: 제목 글꼴로 찍는 칸 이름, 글자 도장 (법구 종류 끝 글자, 방어 법구·물건 첫 글자)
+need("title", "빈 칸 잠긴 칸 지닌 방어 법구가 없다")
+for _, kind in CombatForGlyphs.KINDS do
+	need("title", kind.suffix)
+end
+for _, kind in GuardsForGlyphs.KINDS do
+	need("title", kind.name)
+end
+for _, id in BalanceForGlyphs.ITEM_ORDER do
+	need("title", BalanceForGlyphs.ITEMS[id].name)
+end
+local PouchForGlyphs = loader.require(loader.folder("src/client").PouchTab)
+for _, id in BalanceForGlyphs.ITEM_ORDER do
+	need("body", PouchForGlyphs.describe(id))
+end
+local BeopguForGlyphs = loader.require(loader.folder("src/client").BeopguTab)
+for _, kind in CombatForGlyphs.KIND_ORDER do
+	for grade = 1, #CombatForGlyphs.GRADES do
+		need("body", BeopguForGlyphs.weaponStats({ kind = kind, grade = grade }))
+	end
+end
+for _, entry in GuardsForGlyphs.LABELS do
+	need("body", entry[2] .. " +-%,")
+end
+for _, def in loader.require(sharedFolder.Skills).list do
+	need("body", string.format("%s: 넣을 칸을 누른다 재사용 %s", def.name, tostring(def.cooldown or 0)))
+end
 for _, file in
 	{
 		"src/client/ShopWindow.luau",
 		"src/client/TravelMenu.luau",
 		"src/client/Hud.luau",
 		"src/client/Main.client.luau",
+		"src/client/StatusWindow.luau",
+		"src/client/StatusKit.luau",
+		"src/client/SkillsTab.luau",
+		"src/client/BeopguTab.luau",
+		"src/client/PouchTab.luau",
 	}
 do
 	local source = string.gsub(fs.readFile(file), "%-%-[^\n]*", "")

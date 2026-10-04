@@ -129,6 +129,7 @@ local LABELS = {
 	{ "reflect", "피해 되돌림", 1 },
 	{ "speed", "걸음", 1 },
 }
+Guards.LABELS = LABELS -- 상태창이 바꿔 지닐 때 달라지는 효과를 같은 이름으로 쓴다
 function Guards.effects(guard: Guard): string
 	local parts = {}
 	for _, entry in LABELS do

@@ -9,14 +9,16 @@
 | --- | --- | --- |
 | 운기조식 | `R` | 제자리에 앉아 영기를 모은다. 움직이거나 뛰면 풀린다. |
 | 돌파 | `B` | 경지의 마지막 단계에서 영력과 과업을 다 채우면 다음 경지로 넘어간다. |
-| 상태창 | `C` | 경지·능력치와 익힌 술법·공법을 보고, 공법 장착·술법 단축칸·단축키를 정한다. |
+| 상태창 | `C` (닫기 `C`·`Esc`) | 왼쪽에 경지·능력치·종족, 오른쪽 갈래 술법·공법·법구·주머니에서 단축칸·단축키, 공법 장착, 방어 법구, 먹기를 한다. |
 | 술법 | `Q` `E` `Z` `X` (바꿀 수 있음) | 단축칸에 넣은 술법을 쓴다. 화면 아래 칸을 눌러도 된다. |
 | 채집 | `F` (길게) | 영초를 먹거나 비급을 주워 익힌다. |
 | 공격 법구 | `1`~`9` | 지닌 공격 법구를 든다 (Roblox 기본 도구 칸). |
 | 공격 | 클릭 (터치) | 든 공격 법구로 앞쪽 요수를 벤다. 부채는 기운을 날린다. |
 
-상태창의 "단축키" 줄에서 칸을 누르고 원하는 키를 누르면 바뀐다 (Q E T Y U G H J K L Z X V N P 중에서).
-술법 줄의 작은 키 버튼으로 어느 칸에 넣을지 고른다. 새로 익힌 술법은 빈 칸에 저절로 들어간다.
+상태창 술법 갈래 위에 단축칸 넷이 있다. 술법 카드를 누르고 넣을 칸을 누르면 들어간다 (칸을 먼저 눌러도 된다,
+화면 아래의 빈 단축칸을 누르면 그 칸이 골라진 채 열린다). 칸 왼쪽 위의 키 표를 누르고 원하는 키를 누르면 키가 바뀐다
+(Q E T Y U G H J K L Z X V N P 중에서, `Esc` 는 그만두기). 새로 익힌 술법은 빈 칸에 저절로 들어간다.
+상태창은 마지막으로 본 갈래를 기억한다.
 
 - 영력은 연료이고, 다음 단계로 가는 열쇠는 그 단계의 **과업**이다. 과업은 화면 왼쪽 영력 막대 아래에 보인다.
   과업 줄을 누르면 할 일을 화면 위 알림으로 다시 알려 준다. 영력과 과업을 다 채우면 같은 경지 안에서는 저절로 오른다.
@@ -93,7 +95,7 @@
 
 - 장비는 모두 **법구**다.
 - 공격 법구: 검(빠르고 넓게), 도(느리지만 무겁게), 창(멀리 찌르기), 선(기운을 날린다). 등급 목·철·청강·영·천. 대장간에서 강화한다.
-- 방어 법구: 부위 구분 없이 **하나만** 지닌다 (상태창 C 의 법구 칸에서 지니기). 겉모습은 없고 효과만 있다.
+- 방어 법구: 부위 구분 없이 **하나만** 지닌다 (상태창 C 의 법구 갈래에서 지니기, 바꾸면 달라지는 효과가 보인다). 겉모습은 없고 효과만 있다.
   호신옥패(받는 피해↓), 금강팔찌(체력↑), 현무갑의(피해 크게↓, 걸음↓), 청운잠(천겁 피해↓), 진령방울(호신강기 지속↑),
   회춘환(맞지 않으면 회복), 반탄경(피해 되돌림), 질풍띠(걸음↑). 등급 범품·하품·중품·상품·극품 ([`src/shared/Guards.luau`](src/shared/Guards.luau)).
   대장간에서 영석과 재료로 만들고, 요수가 떨어뜨리고, 만물상이 범품을 판다.
@@ -218,9 +220,12 @@ BlockSuseon.rbxl          완성된 플레이스 (Studio 로 열거나 그대로
 default.project.json      Rojo 프로젝트
 src/shared/               서버·클라 공용: 경지, 술법·공법, 수치 공식, 진행 로직, 조사
 src/server/               서버: 운기조식, 천겁, 영초, 비급, 술법, 저장, 맵 생성
-src/client/               UI
+src/client/               UI (상태창: StatusWindow 틀, SkillsTab 술법·공법, BeopguTab 법구, PouchTab 주머니, StatusKit 카드 조각)
 tests/run.luau            로직·맵 테스트 (Lune, 옥반 맵을 지어 자리·태그·땅 이름을 본다)
 tests/hud.luau            화면 UI 생성 테스트 (Lune)
+tests/hud_env.luau        HUD 를 Lune 에서 짓는 가짜 환경 (tests/hud, tools/gui_snapshot 이 함께 쓴다)
+tools/gui_snapshot.luau   HUD 를 짓고 창을 열어 Roblox 처럼 배치한 GUI 나무 → build/gui_*.json
+tools/gui_render.py       그 JSON 을 PNG 로 그린다 (9 조각 그림, 글자판 글자, 자르기, --report 겹침 검사)
 tools/bake_place.luau     Rojo 빌드 + 맵 짓기 + 지형 굽기 → BlockSuseon.rbxl
 tools/SmoothGrid.luau     지형 저장 형식(SmoothGrid, PhysicsGrid) 쓰고 읽기
 tools/render_map.luau     땅 모양을 위에서 본 지도 → build/map.png
@@ -250,6 +255,20 @@ HUD 나 서버 알림(src/server)에 새 한글 문구를 넣었으면 위 네 �
 그 글줄만 Roblox 글꼴로 찍는다(src/client/BitmapText.luau). `lune run tests/hud` 가 빠진 글자를 잡아 준다.
 알림은 화면 위 가운데에 칠기 띠(src/client/Notice.luau)로 띄운다. 한꺼번에 몰리면 줄을 세워 차례로 띄우고,
 경지 연출 중에는 멈췄다가 연출이 걷힌 뒤 띄운다. 글자판에 없는 글자(플레이어 이름 등)가 섞이면 그 알림만 Roblox 글꼴로 찍는다.
+
+Studio 없이 화면 배치를 보려면 GUI 스냅숏을 쓴다. 진짜 HUD 를 Lune 에서 짓고 중반 플레이어 상태를 넣은 뒤
+창을 열어 Roblox 처럼 배치(UDim2, AnchorPoint, UIScale, UIListLayout, UIGridLayout, UIPadding, AutomaticSize,
+ScrollingFrame)하고 그림으로 그린다. 게임 스크린숏(2560×1440 을 2000×1125 로 줄인 것)과 1px 안으로 맞는다.
+
+```sh
+lune run tools/gui_snapshot status 1920 1080 && python3 tools/gui_render.py build/gui_status.json build/gui_status.png --report
+lune run tools/gui_snapshot status 844 390 --touch --out build/gui_status_phone.json   # 폰 가로 (HUD 배율 0.6)
+lune run tools/gui_snapshot shop-market 1920 1080 법구    # 창: status, shop-market, shop-smith, travel, choice, hud
+lune run tools/gui_snapshot status 1920 1080 skills --click Card_hosin   # 상태창 갈래: skills, passives, gear, pouch
+```
+
+`--state 파일.json` 으로 상태를, `--scroll`, `--click "확률 보기"` 로 목록 위치와 누른 버튼을 바꾼다.
+`--report` 는 글끼리·글과 버튼이 겹친 곳, 화면 밖으로 나간 창을 찍는다. 자세한 인자는 두 파일 맨 위 주석에 있다.
 
 ## 개발
 

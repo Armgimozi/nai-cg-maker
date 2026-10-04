@@ -8,8 +8,6 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
-local MarketplaceService = game:GetService("MarketplaceService")
-local PolicyService = game:GetService("PolicyService")
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 
 local Realms = require(Shared.Realms)
@@ -21,10 +19,7 @@ local Roots = require(Shared.Roots)
 local Clock = require(Shared.Clock)
 local Tasks = require(Shared.Tasks)
 local Places = require(Shared.Places)
-local Races = require(Shared.Races)
 local Currency = require(Shared.Currency)
-local Combat = require(Shared.Combat)
-local Guards = require(Shared.Guards)
 local Ui = require(script.Parent.Ui)
 local Notice = require(script.Parent.Notice)
 local PlaceBanner = require(script.Parent.PlaceBanner)
@@ -33,6 +28,7 @@ local CombatHud = require(script.Parent.CombatHud)
 local Choice = require(script.Parent.Choice)
 local Naegwan = require(script.Parent.Naegwan)
 local ShopWindow = require(script.Parent.ShopWindow)
+local StatusWindow = require(script.Parent.StatusWindow)
 
 export type Actions = {
 	meditate: () -> (),
@@ -67,9 +63,7 @@ local actions: Actions
 local scales: { UIScale } = {}
 local ui: { [string]: any } = {}
 local orbs: { [string]: { [string]: any } } = {}
-local skillRows: { [string]: { [string]: any } } = {}
 local hotbar: { { [string]: any } } = {}
-local keyPills: { { [string]: any } } = {}
 local bindingSlot: number? = nil
 local passiveSlots: { { [string]: any } } = {}
 local cooldownEnd: { [string]: number } = {}
@@ -78,9 +72,6 @@ local pulses: { [Instance]: Tween } = {}
 local cinematicToken = 0
 local lastState: { [string]: any }? = nil
 local taskLines: { { [string]: any } } = {}
-local pouchRows: { [string]: { [string]: any } } = {}
-local weaponRows: { { [string]: any } } = {}
-local guardRows: { [string]: { [string]: any } } = {}
 local announcedTasks: { [string]: boolean } = {}
 local autoOpened: { [string]: boolean } = {}
 local skipArmed: { [string]: number } = {}
@@ -128,6 +119,8 @@ local function rescale()
 	for _, scale in scales do
 		scale.Scale = value
 	end
+	-- 상태창은 큰 창이라 폰 가로(844×390)보다 작은 화면에서는 위쪽 막대 아래에 다 들게 조금 더 줄인다
+	StatusWindow.fit(size, value)
 end
 
 -- 만들기 ---------------------------------------------------------------------------
@@ -503,426 +496,43 @@ local function buildHotbar(gui: ScreenGui)
 			if id and id ~= "" then
 				actions.useSlot(slot)
 			else
-				-- 빈 칸을 누르면 술법을 넣을 수 있는 상태창을 연다
+				-- 빈 칸을 누르면 상태창 술법 갈래를 그 칸이 골라진 채로 연다 (술법 카드를 누르면 바로 들어간다)
 				Hud.toggleStatus(true)
+				StatusWindow.pickSlot(slot)
 			end
 		end)
 		hotbar[slot] = { icon = icon, shade = shade, timeText = timeText, keyText = keyText, label = label }
 	end
 end
 
--- 가운데: 상태창 (C)
-local STAT_KEYS = { "체력", "영력", "흡수", "영근", "종족", "영석", "천겁", "영초", "비급" }
-local STAT_GAP = 30
-
+-- 가운데: 상태창 (C). 인물 칸과 갈래(술법·공법·법구·주머니)는 StatusWindow 와 갈래 모듈에 있다
 local function buildStatusWindow(gui: ScreenGui)
-	local panel = scaled(image("panel", {
-		Name = "StatusWindow",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(700, 560),
-		SliceScale = 0.8,
-		Visible = false,
-		Active = true,
-		Parent = gui,
-	}))
-	ui.panel = panel
-
-	local titleRow = row({ Position = UDim2.fromOffset(0, 22), Size = UDim2.new(1, 0, 0, 56), Parent = panel })
-	text("title", 40, { gradient = GOLD_TEXT, text = "상태창", parent = titleRow })
-	image("divider", {
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 80),
-		Size = UDim2.fromOffset(600, 25),
-		Parent = panel,
-	})
-	local close = image("iconClose", {
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -24, 0, 24),
-		Size = UDim2.fromOffset(34, 34),
-		Parent = panel,
-	}, "ImageButton")
-	close.Activated:Connect(function()
-		Hud.toggleStatus(false)
-	end)
-
-	-- 왼쪽: 이름, 경지, 능력치
-	local left = new("Frame", {
-		Position = UDim2.fromOffset(44, 118),
-		Size = UDim2.fromOffset(250, 410),
-		BackgroundTransparency = 1,
-		Parent = panel,
-	})
-	-- 이름은 아무 글자나 올 수 있어서 글자판 대신 Roblox 글꼴로 쓴다
-	new("TextLabel", {
-		Size = UDim2.new(1, 0, 0, 22),
-		BackgroundTransparency = 1,
-		Font = Enum.Font.GothamMedium,
-		TextSize = 16,
-		TextColor3 = C.dim,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		Text = player.DisplayName,
-		Parent = left,
-	})
-	ui.swRealm = text("title", 32, { gradient = GOLD_TEXT })
-	ui.swRealm.frame.Position = UDim2.fromOffset(-6, 24)
-	ui.swRealm.frame.Parent = left
-	ui.swTier = text("body", 15, { color = C.dim })
-	ui.swTier.frame.Position = UDim2.fromOffset(-4, 68)
-	ui.swTier.frame.Parent = left
-
-	ui.swStats = {}
-	for index, key in STAT_KEYS do
-		local y = 106 + (index - 1) * STAT_GAP
-		local name = text("body", 16, { color = C.dim, text = key })
-		name.frame.Position = UDim2.fromOffset(-4, y)
-		name.frame.Parent = left
-		local value = text("body", 16, { color = C.cream })
-		value.frame.AnchorPoint = Vector2.new(1, 0)
-		value.frame.Position = UDim2.new(1, 4, 0, y)
-		value.frame.Parent = left
-		new("Frame", {
-			Position = UDim2.fromOffset(0, y + STAT_GAP - 3),
-			Size = UDim2.new(1, 0, 0, 1),
-			BackgroundColor3 = C.gold,
-			BackgroundTransparency = 0.85,
-			BorderSizePixel = 0,
-			Parent = left,
-		})
-		ui.swStats[key] = value
-	end
-	-- 종족 효과와 다시 뽑기 (로벅스)
-	local effects, setEffects = Ui.paragraph("body", 13, 250, 2, C.jade, left)
-	effects.Position = UDim2.fromOffset(-2, 106 + #STAT_KEYS * STAT_GAP)
-	ui.setRaceEffects = setEffects
-	local reroll = Ui.pill(
-		string.format("다시 뽑기 %d 로벅스", Races.REROLL_PRICE),
-		132,
-		26,
-		13,
-		left,
-		function()
-			if Races.REROLL_PRODUCT_ID == 0 then
-				Hud.toast("종족 다시 뽑기는 아직 준비 중이다.", "info")
-				return
-			end
-			MarketplaceService:PromptProductPurchase(player, Races.REROLL_PRODUCT_ID)
-		end
-	)
-	reroll.AnchorPoint = Vector2.new(1, 0)
-	reroll.Position = UDim2.new(1, 4, 0, -2)
-	-- 유료 뽑기는 사기 전에 확률을 보여 준다 (Roblox 규칙)
-	local odds = Ui.pill("확률 보기", 78, 26, 13, left, function()
-		ui.oddsPanel.Visible = not ui.oddsPanel.Visible
-	end)
-	odds.AnchorPoint = Vector2.new(1, 0)
-	odds.Position = UDim2.new(1, -134, 0, -2)
-	-- 유료 랜덤 아이템을 못 사는 곳의 사람에게는 다시 뽑기를 숨긴다
-	task.spawn(function()
-		local ok, info = pcall(function()
-			return PolicyService:GetPolicyInfoForPlayerAsync(player)
-		end)
-		if ok and info and info.ArePaidRandomItemsRestricted then
-			reroll.Visible = false
-		end
-	end)
-
-	-- 확률 창
-	local oddsPanel = image("panel", {
-		Name = "Odds",
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(420, 460),
-		SliceScale = 0.7,
-		Visible = false,
-		ZIndex = 6,
-		Parent = panel,
-	})
-	local oddsTitle = row({ Position = UDim2.fromOffset(0, 18), Size = UDim2.new(1, 0, 0, 40), Parent = oddsPanel })
-	text("title", 28, { gradient = GOLD_TEXT, text = "종족 확률", parent = oddsTitle })
-	local oddsClose = image("iconClose", {
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -18, 0, 18),
-		Size = UDim2.fromOffset(28, 28),
-		Parent = oddsPanel,
-	}, "ImageButton")
-	oddsClose.Activated:Connect(function()
-		oddsPanel.Visible = false
-	end)
-	ui.oddsIntro = text("body", 13, { color = C.dim })
-	ui.oddsIntro.frame.Position = UDim2.fromOffset(34, 64)
-	ui.oddsIntro.frame.Parent = oddsPanel
-	ui.oddsRows = {}
-	for index, race in Races.list do
-		local y = 90 + (index - 1) * 44
-		local name = text("body", 16, { color = C.cream, text = race.name })
-		name.frame.Position = UDim2.fromOffset(34, y)
-		name.frame.Parent = oddsPanel
-		local percent = text("body", 16, { color = C.gold })
-		percent.frame.AnchorPoint = Vector2.new(1, 0)
-		percent.frame.Position = UDim2.new(1, -34, 0, y)
-		percent.frame.Parent = oddsPanel
-		local summary = text("body", 12, { color = C.dim, text = Races.effects(race.id) })
-		summary.frame.Position = UDim2.fromOffset(34, y + 21)
-		summary.frame.Parent = oddsPanel
-		ui.oddsRows[race.id] = { name = name, percent = percent }
-	end
-	ui.oddsPanel = oddsPanel
-
-	new("Frame", {
-		Position = UDim2.fromOffset(318, 116),
-		Size = UDim2.fromOffset(1, 410),
-		BackgroundColor3 = C.gold,
-		BackgroundTransparency = 0.75,
-		BorderSizePixel = 0,
-		Parent = panel,
-	})
-
-	-- 오른쪽: 술법·공법 목록
-	local list = new("ScrollingFrame", {
-		Position = UDim2.fromOffset(338, 112),
-		Size = UDim2.fromOffset(330, 420),
-		BackgroundTransparency = 1,
-		BorderSizePixel = 0,
-		ScrollBarThickness = 4,
-		ScrollBarImageColor3 = C.gold,
-		CanvasSize = UDim2.new(),
-		AutomaticCanvasSize = Enum.AutomaticSize.Y,
-		Parent = panel,
-	}, { new("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder }) })
-
-	local order = 0
-	local function header(title: string)
-		order += 1
-		local holder = new("Frame", {
-			LayoutOrder = order,
-			Size = UDim2.new(1, -8, 0, 42),
-			BackgroundTransparency = 1,
-			Parent = list,
-		})
-		local r = row({ Size = UDim2.fromScale(1, 1), Parent = holder }, Enum.HorizontalAlignment.Left, 10)
-		local t = text("title", 26, { gradient = GOLD_TEXT, text = title, parent = r })
-		t.frame.LayoutOrder = 1
-		local extra = text("body", 15, { color = C.dim, parent = r })
-		extra.frame.LayoutOrder = 2
-		return extra
-	end
-
-	local function skillRow(def)
-		order += 1
-		local item = new("Frame", {
-			LayoutOrder = order,
-			Size = UDim2.new(1, -8, 0, 66),
-			BackgroundTransparency = 1,
-			Parent = list,
-		})
-		local frame =
-			image("slot", { Position = UDim2.fromOffset(0, 6), Size = UDim2.fromOffset(50, 50), Parent = item })
-		local icon = image(def.icon, {
-			AnchorPoint = Vector2.new(0.5, 0.5),
-			Position = UDim2.fromScale(0.5, 0.5),
-			Size = UDim2.fromScale(0.72, 0.72),
-			Parent = frame,
-		})
-		local name = text("title", 21, { color = C.cream, text = def.name })
-		name.frame.Position = UDim2.fromOffset(58, 2)
-		name.frame.Parent = item
-		local summary = text("body", 13, { color = C.dim })
-		summary.frame.Position = UDim2.fromOffset(58, 34)
-		summary.frame.Parent = item
-
-		local entry = { icon = icon, name = name, summary = summary }
-		if def.kind == "passive" then
-			local button = image("pillJade", {
-				AnchorPoint = Vector2.new(1, 0),
-				Position = UDim2.new(1, 0, 0, 4),
-				Size = UDim2.fromOffset(64, 30),
-				SliceScale = 0.55,
-				Parent = item,
-			}, "ImageButton")
-			local buttonRow = row({ Size = UDim2.new(1, 0, 1, -2), Parent = button })
-			entry.button = button
-			entry.buttonText = text("body", 14, { color = C.cream, parent = buttonRow })
-			button.Activated:Connect(function()
-				local equipped = lastState ~= nil and table.find(lastState.equipped, def.id) ~= nil
-				actions.equip(def.id, not equipped)
-			end)
-		else
-			-- 단축칸마다 작은 버튼: 누르면 그 칸에 넣는다 (이미 그 칸이면 뺀다)
-			local slotRow = row({
-				AnchorPoint = Vector2.new(1, 0),
-				Position = UDim2.new(1, 0, 0, 6),
-				Size = UDim2.fromOffset(Progression.HOTBAR_SIZE * 31, 26),
-				Parent = item,
-			}, Enum.HorizontalAlignment.Right, 3)
-			entry.slotButtons = {}
-			for slot = 1, Progression.HOTBAR_SIZE do
-				local pill = image("pillStone", {
-					LayoutOrder = slot,
-					Size = UDim2.fromOffset(28, 24),
-					SliceScale = 0.4,
-					Parent = slotRow,
-				}, "ImageButton")
-				local pillRow = row({ Size = UDim2.new(1, 0, 1, -2), Parent = pill })
-				local pillText = text("body", 13, { color = C.cream, parent = pillRow })
-				pill.Activated:Connect(function()
-					local current = lastState and lastState.hotbar[slot]
-					actions.assign(slot, if current == def.id then "" else def.id)
-				end)
-				entry.slotButtons[slot] = { pill = pill, text = pillText }
-			end
-			entry.slotRow = slotRow
-		end
-		skillRows[def.id] = entry
-	end
-
-	ui.keyHint = header("단축키")
-	order += 1
-	local keyLine = new("Frame", {
-		LayoutOrder = order,
-		Size = UDim2.new(1, -8, 0, 44),
-		BackgroundTransparency = 1,
-		Parent = list,
-	})
-	local keyRow = row({ Size = UDim2.fromScale(1, 1), Parent = keyLine }, Enum.HorizontalAlignment.Left, 8)
-	for slot = 1, Progression.HOTBAR_SIZE do
-		local pill = image("pillJade", {
-			LayoutOrder = slot,
-			Size = UDim2.fromOffset(58, 36),
-			SliceScale = 0.55,
-			Parent = keyRow,
-		}, "ImageButton")
-		local pillRow = row({ Size = UDim2.new(1, 0, 1, -2), Parent = pill })
-		local pillText = text("body", 17, { color = C.cream, parent = pillRow })
-		pill.Activated:Connect(function()
+	local panel = StatusWindow.build(gui, {
+		actions = actions,
+		keyboard = keyboard,
+		touchOnly = touchOnly,
+		startBinding = function(slot: number)
 			Hud.startBinding(slot)
-		end)
-		keyPills[slot] = { pill = pill, text = pillText }
-	end
-
-	header("술법")
-	for _, def in Skills.actives do
-		skillRow(def)
-	end
-	ui.swSlots = header("공법")
-	for _, def in Skills.passives do
-		skillRow(def)
-	end
-
-	-- 법구: 공격 법구(숫자 키 도구 칸)와 방어 법구(하나만 지닌다, 겉모습 없이 효과만)
-	local function note(name: string, message: string, lines: number)
-		order += 1
-		local holder = new("Frame", {
-			Name = name,
-			LayoutOrder = order,
-			Size = UDim2.new(1, -8, 0, lines * 21 + 6),
-			BackgroundTransparency = 1,
-			Parent = list,
-		})
-		local paragraph, set = Ui.paragraph("body", 13, 314, lines, C.dim, holder)
-		paragraph.Position = UDim2.fromOffset(2, 2)
-		set(message)
-		return holder
-	end
-
-	-- 공격 법구는 Roblox 도구 칸에 들어간다 (키보드는 숫자 키, 터치는 아래 칸을 누른다)
-	header("공격 법구"):set(if keyboard then "숫자 키로 든다" else "아래 도구 칸에서 든다")
-	for index = 1, Combat.MAX_WEAPONS do
-		order += 1
-		local item = new("Frame", {
-			Name = "Weapon" .. index,
-			LayoutOrder = order,
-			Size = UDim2.new(1, -8, 0, 58),
-			BackgroundTransparency = 1,
-			Visible = false,
-			Parent = list,
-		})
-		local name = text("title", 21, { color = C.cream, name = "Name" })
-		name.frame.Position = UDim2.fromOffset(4, 2)
-		name.frame.Parent = item
-		local summary = text("body", 13, { color = C.dim, name = "Sub" })
-		summary.frame.Position = UDim2.fromOffset(6, 33)
-		summary.frame.Parent = item
-		-- 드는 키 (도구 칸 번호)
-		local badge = new("Frame", {
-			Name = "Key",
-			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, -4, 0, 8),
-			Size = UDim2.fromOffset(24, 24),
-			BackgroundColor3 = C.keyBack,
-			Parent = item,
-		}, { new("UICorner", { CornerRadius = UDim.new(0, 6) }) })
-		local badgeRow = row({ Size = UDim2.fromScale(1, 1), Parent = badge })
-		text("body", 14, { color = C.keyText, text = tostring(index), parent = badgeRow })
-		weaponRows[index] = { frame = item, name = name, summary = summary }
-	end
-	ui.weaponEmpty = note("WeaponEmpty", "지닌 공격 법구가 없다. 만물상에서 산다.", 1)
-
-	ui.guardCount = header("방어 법구")
-	note("GuardRule", "방어 법구는 부위와 상관없이 하나만 지닐 수 있다.", 1)
-	for _, id in Guards.ORDER do
-		order += 1
-		local item = new("Frame", {
-			Name = "Guard_" .. id,
-			LayoutOrder = order,
-			Size = UDim2.new(1, -8, 0, 62),
-			BackgroundTransparency = 1,
-			Visible = false,
-			Parent = list,
-		})
-		local nameRow = row({
-			Position = UDim2.fromOffset(4, 2),
-			Size = UDim2.new(1, -96, 0, 30),
-			Parent = item,
-		}, Enum.HorizontalAlignment.Left, 8)
-		local name = text("title", 21, { color = C.cream, name = "Name", parent = nameRow })
-		name.frame.LayoutOrder = 1
-		local worn = text("body", 14, { color = C.jade, text = "지님", name = "Worn", parent = nameRow })
-		worn.frame.LayoutOrder = 2
-		local effects = text("body", 13, { color = C.dim, name = "Sub" })
-		effects.frame.Position = UDim2.fromOffset(6, 34)
-		effects.frame.Parent = item
-		-- 지닌 것은 내려놓기, 나머지는 지니기 (서버가 하나만 남긴다)
-		local button, caption = Ui.pill("지니기", 80, 30, 14, item, function()
-			local wearing = lastState ~= nil and lastState.guard == id
-			actions.equipGuard(if wearing then "" else id)
-		end)
-		button.Name = "Button"
-		button.AnchorPoint = Vector2.new(1, 0)
-		button.Position = UDim2.new(1, 0, 0, 4)
-		guardRows[id] = { frame = item, name = name, worn = worn, effects = effects, button = button, text = caption }
-	end
-	ui.guardEmpty = note(
-		"GuardEmpty",
-		"아직 방어 법구가 없다. 요수를 쓰러뜨리거나, 대장간에서 만들거나, 만물상에서 산다.",
-		2
-	)
-
-	header("주머니")
-	for _, id in Balance.ITEM_ORDER do
-		order += 1
-		local item = new("Frame", {
-			LayoutOrder = order,
-			Size = UDim2.new(1, -8, 0, 40),
-			BackgroundTransparency = 1,
-			Parent = list,
-		})
-		local name = text("title", 20, { color = C.cream, text = Balance.ITEMS[id].name })
-		name.frame.Position = UDim2.fromOffset(4, 4)
-		name.frame.Parent = item
-		local count = text("body", 15, { color = C.dim })
-		count.frame.Position = UDim2.fromOffset(130, 10)
-		count.frame.Parent = item
-		local button = nil
-		if id ~= "pill" then
-			button = Ui.pill("먹기", 64, 30, 14, item, function()
-				actions.eat(id)
-			end)
-			button.AnchorPoint = Vector2.new(1, 0)
-			button.Position = UDim2.new(1, 0, 0, 4)
-		end
-		pouchRows[id] = { frame = item, count = count, button = button }
-	end
+		end,
+		bindingSlot = function(): number?
+			return bindingSlot
+		end,
+		cooldownLeft = function(id: string): number
+			return math.max(0, (cooldownEnd[id] or 0) - os.clock())
+		end,
+		-- 손에 든 공격 법구: 캐릭터에 붙은 도구의 칸 번호 (서버 Weapons 가 WeaponIndex 를 단다)
+		heldWeapon = function(): number?
+			local character = player.Character
+			local tool = character and character:FindFirstChildOfClass("Tool")
+			local index = tool and tool:GetAttribute("WeaponIndex")
+			return if type(index) == "number" then index else nil
+		end,
+		toast = function(message: string, kind: string?)
+			Hud.toast(message, kind)
+		end,
+		refresh = function() end,
+	})
+	table.insert(scales, panel:FindFirstChildOfClass("UIScale"))
 end
 
 local function buildCinematic()
@@ -1192,128 +802,6 @@ local function updateOrbs(state)
 	setOrb("status", "jade", "상태창", false)
 end
 
-local function updateStatusWindow(state)
-	local step = Realms.get(state.step)
-	ui.swRealm:set(Realms.label(state.step))
-	ui.swTier:set(step.realm.tier)
-
-	local stats = state.stats or {}
-	local values = {
-		["체력"] = tostring(state.maxHealth),
-		["영력"] = string.format("%s / %s", Format.qi(state.qi), Format.qi(state.req)),
-		["흡수"] = string.format("%s / 초", Format.rate(state.gain)),
-		["영근"] = if state.root then (string.gsub(Roots.describe(state.root), "[(),]", "")) else "아직 모름",
-		["종족"] = if state.race then Races.get(state.race).name else "-",
-		["영석"] = string.format("%s개", Currency.format(state.stones or 0)),
-		["천겁"] = string.format("%d회 넘음", stats.tribulations or 0),
-		["영초"] = string.format("%d개", stats.herbs or 0),
-		["비급"] = string.format("%d권", stats.manuals or 0),
-	}
-	for key, label in ui.swStats do
-		label:set(values[key] or "-")
-	end
-	ui.setRaceEffects(if state.race then Races.effects(state.race) else "")
-	-- 다시 뽑으면 지금 종족은 나오지 않는다: 그만큼 나눠 보인다
-	for id, entry in ui.oddsRows do
-		local isMine = id == state.race
-		entry.percent:set(if isMine then "지금 종족" else string.format("%.1f%%", Races.chance(id, state.race)))
-		entry.name:setColor(if isMine then C.gold else C.cream)
-	end
-	ui.oddsIntro:set("다시 뽑으면 지금 종족을 뺀 나머지에서 이 확률로 나온다.")
-	ui.swSlots:set(string.format("장착 %d / %d", #state.equipped, state.slots))
-	for id, entry in pouchRows do
-		local count = (state.items or {})[id] or 0
-		entry.count:set(string.format("%d개", count))
-		if entry.button then
-			entry.button.Visible = count > 0
-		end
-	end
-	ui.keyHint:set(if bindingSlot then "바꿀 키를 누른다" else "눌러서 키를 바꾼다")
-	for slot, pill in keyPills do
-		pill.text:set(if bindingSlot == slot then "?" else state.keys[slot])
-		setImage(pill.pill, if bindingSlot == slot then "pillStone" else "pillJade")
-	end
-
-	for id, entry in skillRows do
-		local def = Skills.byId[id]
-		local known = state.skills[id] == true
-		local equipped = table.find(state.equipped, id) ~= nil
-		entry.icon.ImageColor3 = if known then Color3.new(1, 1, 1) else Color3.fromRGB(70, 66, 60)
-		entry.name:setColor(if equipped then C.gold elseif known then C.cream else C.dim)
-		if known then
-			entry.summary:set(def.summary)
-			entry.summary:setColor(if equipped then C.jade else C.dim)
-		else
-			local realmIndex = state.step >= Realms.firstStepById[def.minRealm]
-			entry.summary:set(
-				if realmIndex
-					then "비급을 찾으면 익힐 수 있다"
-					else string.format("%s부터 익힐 수 있다", Realms.byId[def.minRealm].name)
-			)
-			entry.summary:setColor(C.dim)
-		end
-		if entry.slotRow then
-			entry.slotRow.Visible = known
-			for slot, button in entry.slotButtons do
-				local here = state.hotbar[slot] == id
-				setImage(button.pill, if here then "pillJade" else "pillStone")
-				button.text:set(state.keys[slot])
-				button.text:setColor(if here then C.cream else C.dim)
-			end
-		end
-		if entry.button then
-			entry.button.Visible = known
-			if known then
-				local free = #state.equipped < state.slots
-				setImage(entry.button, if equipped or not free then "pillStone" else "pillJade")
-				entry.buttonText:set(if equipped then "해제" else "장착")
-				entry.buttonText:setColor(if equipped or free then C.cream else C.dim)
-			end
-		end
-	end
-end
-
--- 상태창 법구: 공격 법구 칸마다 이름·등급·키, 방어 법구는 가진 것만 (지닌 것 하나에 "지님")
-local function updateGear(state)
-	local weapons = state.weapons or {}
-	for index, entry in weaponRows do
-		local weapon = weapons[index]
-		local grade = weapon and Combat.GRADES[weapon.grade]
-		entry.frame.Visible = grade ~= nil
-		if weapon and grade then
-			entry.name:set(Combat.weaponName(weapon))
-			entry.summary:set(string.format("%s 등급, %s", grade.prefix, Combat.KINDS[weapon.kind].summary))
-		end
-	end
-	ui.weaponEmpty.Visible = #weapons == 0
-
-	local owned = {}
-	for _, guard in state.guards or {} do
-		if Guards.isGuard(guard) then
-			owned[guard.kind] = guard
-		end
-	end
-	local any = false
-	for id, entry in guardRows do
-		local guard = owned[id]
-		entry.frame.Visible = guard ~= nil
-		if not guard then
-			continue
-		end
-		any = true
-		local wearing = state.guard == id
-		entry.name:set(Guards.name(guard))
-		entry.name:setColor(if wearing then C.gold else C.cream)
-		entry.worn.frame.Visible = wearing
-		entry.effects:set(Guards.effects(guard))
-		entry.effects:setColor(if wearing then C.jade else C.dim)
-		entry.text:set(if wearing then "내려놓기" else "지니기")
-		setImage(entry.button, if wearing then "pillStone" else "pillJade")
-	end
-	ui.guardEmpty.Visible = not any
-	ui.guardCount:set(if state.guard and owned[state.guard] then "지님 1 / 1" else "지님 0 / 1")
-end
-
 local function updateHotbar(state)
 	for slot, entry in hotbar do
 		local id = state.hotbar[slot]
@@ -1467,8 +955,7 @@ function Hud.update(state)
 	updateStones(state)
 	updateTasks(state)
 	updateOrbs(state)
-	updateStatusWindow(state)
-	updateGear(state)
+	StatusWindow.update(state)
 	updateHotbar(state)
 	lastState = state
 	-- 전송진 창이 열려 있으면 방금 열린 진도 바로 보이게 다시 그린다
@@ -1512,12 +999,23 @@ function Hud.shopOpen(): boolean
 end
 
 function Hud.toggleStatus(open: boolean?)
-	local panel = ui.panel :: ImageLabel
-	panel.Visible = if open == nil then not panel.Visible else open
 	-- 상태창을 열면 상점 창은 닫는다 (겹치지 않게)
-	if panel.Visible then
+	if StatusWindow.setOpen(open) then
 		ShopWindow.close()
 	end
+end
+
+function Hud.statusOpen(): boolean
+	return StatusWindow.isOpen()
+end
+
+-- 상태창 갈래: "skills" | "passives" | "gear" | "pouch", 글자("술법"…), 번호(1~4). 마지막 갈래를 기억한다
+function Hud.setStatusTab(tab: string | number)
+	StatusWindow.setTab(tab)
+end
+
+function Hud.statusTab(): string
+	return StatusWindow.currentTab()
 end
 
 -- 내관 창
@@ -1615,7 +1113,7 @@ RunService.Heartbeat:Connect(function(dt)
 		refreshPlace()
 		-- 창이 열려 있거나 땅 이름이 떠 있으면 알림이 가리지 않게 화면 맨 위로 올린다
 		Notice.setCompact(
-			(ui.panel and ui.panel.Visible)
+			StatusWindow.isOpen()
 				or Choice.isOpen()
 				or Naegwan.isOpen()
 				or TravelMenu.isOpen()
@@ -1632,6 +1130,8 @@ RunService.Heartbeat:Connect(function(dt)
 			UDim2.new(1, -10, remaining / ((id and cooldownTotal[id]) or 1), if remaining > 0 then -10 else 0)
 		entry.timeText:set(if remaining > 0 then tostring(math.ceil(remaining)) else "")
 	end
+	-- 상태창이 열려 있으면 단축칸 쿨타임과 손에 든 법구를 따라 바꾼다
+	StatusWindow.tick()
 end)
 
 -- 연출 ---------------------------------------------------------------------------

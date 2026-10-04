@@ -225,9 +225,15 @@ remotes.Skill.OnClientEvent:Connect(function(payload)
 end)
 
 UserInputService.InputBegan:Connect(function(input: InputObject, processed: boolean)
-	-- Esc 는 Roblox 메뉴도 열어서 processed 와 상관없이 상점 창을 닫는다
-	if input.KeyCode == Enum.KeyCode.Escape and Hud.shopOpen() then
-		Hud.closeShop()
+	-- Esc 는 Roblox 메뉴도 열어서 processed 와 상관없이 받는다: 키 바꾸기를 그만두거나, 상점 창·상태창을 닫는다
+	if input.KeyCode == Enum.KeyCode.Escape then
+		if Hud.shopOpen() then
+			Hud.closeShop()
+		elseif Hud.bindingSlot() then
+			Hud.stopBinding()
+		elseif Hud.statusOpen() then
+			Hud.toggleStatus(false)
+		end
 		return
 	end
 	if processed or input.UserInputType ~= Enum.UserInputType.Keyboard then
