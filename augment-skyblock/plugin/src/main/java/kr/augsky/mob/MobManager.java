@@ -588,8 +588,8 @@ public final class MobManager implements Listener {
         }
         rigs.shatter(dead.getUniqueId());
         if (def.boss()) {
-            lairs.onBossDeath(dead);
             bossLoot(def, a, dead);
+            lairs.onBossDeath(dead);
             e.getDrops().clear();
             return;
         }

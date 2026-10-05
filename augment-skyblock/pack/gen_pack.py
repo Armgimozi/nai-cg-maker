@@ -589,6 +589,44 @@ def load_art(name):
     return mod
 
 
+def load_weapon_designs():
+    """pack/weapons/<그룹>.py 의 WEAPONS 를 모두 모은다 (_ 로 시작하는 파일은 예시라 뺀다)."""
+    import importlib.util
+    designs = {}
+    wdir = os.path.join(HERE, "weapons")
+    for d in (HERE, wdir):
+        if d not in sys.path:
+            sys.path.insert(0, d)
+    for f in sorted(os.listdir(wdir)):
+        if not f.endswith(".py") or f.startswith("_"):
+            continue
+        try:
+            spec = importlib.util.spec_from_file_location("weapons_" + f[:-3], os.path.join(wdir, f))
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            designs.update(getattr(mod, "WEAPONS", {}))
+        except Exception as ex:  # 그룹 하나가 깨져도 나머지는 만든다
+            import traceback
+            traceback.print_exc()
+            print("무기 디자인 모듈 실패:", f, ex)
+    return designs
+
+
+def build_weapon_model(wid, w, a, designs):
+    """디자인된 복셀 무기가 있으면 그것으로, 없으면 예전 방식(그림을 두껍게)으로 만든다. 미리보기용 모델을 돌려준다."""
+    import weapons3d
+    import wkit
+    fn = designs.get(wid)
+    if fn is not None:
+        made = fn()
+        if isinstance(made, (list, tuple)):
+            return wkit.build_bow("item/" + wid, a, list(made))[0]
+        return made.build("item/" + wid, a)
+    print("디자인이 없는 무기 (예전 방식으로):", wid)
+    model, _, _ = weapons3d.build_weapon(wid, w, a, POOL_LOOK)
+    return model
+
+
 def build_bosses(a):
     """보스 모델 조각을 쓰고, 플러그인이 읽을 rigs.yml 을 만든다."""
     rigs = {}
@@ -641,6 +679,27 @@ def build_armor(a, armor):
                 print("갑옷 텍스처가 없음:", tex)
         if not os.path.exists(os.path.join(a, "items", "armor", f"{sid}_helmet.json")):
             print("투구 모델이 없음:", sid)
+            continue
+        armor_card(a, sid)
+
+
+def armor_card(a, sid):
+    """도감용 그림: 3D 투구 + 갑옷/각반/신발 아이콘."""
+    from mc3d import load_model, render
+    os.makedirs(os.path.join(CATALOG, "armor"), exist_ok=True)
+    try:
+        helm = render([(load_model(f"augsky:armor/{sid}_helmet", a), None)], size=160, yaw=-30, pitch=15, bg=(0, 0, 0, 0))
+    except Exception as ex:
+        print("투구 그림 실패:", sid, ex)
+        return
+    card = Image.new("RGBA", (192, 192), (0, 0, 0, 0))
+    card.alpha_composite(helm.resize((132, 132), Image.LANCZOS), (30, 0))
+    for i, slot in enumerate(("chestplate", "leggings", "boots")):
+        p = os.path.join(a, "textures", "item", "armor", f"{sid}_{slot}.png")
+        if os.path.exists(p):
+            ic = Image.open(p).convert("RGBA").resize((56, 56), Image.NEAREST)
+            card.alpha_composite(ic, (8 + i * 62, 134))
+    card.save(os.path.join(CATALOG, "armor", sid + ".png"))
 
 
 def write_atlas_sources(a):
@@ -653,7 +712,6 @@ def write_atlas_sources(a):
 
 
 def main():
-    import weapons3d
     from mc3d import render
     weapons = yaml.safe_load(open(os.path.join(RES, "weapons.yml"), encoding="utf-8"))
     items = yaml.safe_load(open(os.path.join(RES, "items.yml"), encoding="utf-8"))
@@ -674,9 +732,12 @@ def main():
     os.makedirs(os.path.join(CATALOG, "weapons"), exist_ok=True)
 
     rendered = []
+    designs = load_weapon_designs()
+    from mc3d import mat
     for wid, w in weapons.items():
-        model, flat, _ = weapons3d.build_weapon(wid, w, a, POOL_LOOK)
-        img = render([(model, None)], size=192, yaw=-28, pitch=14, bg=(0, 0, 0, 0))
+        model = build_weapon_model(wid, w, a, designs)
+        # 도감/미리보기 그림: 인벤토리처럼 대각선으로 눕힌 모습
+        img = render([(model, mat(roll=-45))], size=192, yaw=-18, pitch=10, bg=(0, 0, 0, 0))
         img.save(os.path.join(CATALOG, "weapons", wid + ".png"))
         rendered.append((wid, w, img))
 

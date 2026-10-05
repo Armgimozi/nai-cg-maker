@@ -471,3 +471,39 @@ def contact_sheet(images, labels=None, cols=4, cell=256, font=None, bg=(18, 16, 
         if labels:
             d.text((x + 6, y + cell + 3), labels[i], font=f, fill=(230, 230, 240))
     return sheet
+
+
+# ─────────────────────────────── 저장된 모델 다시 읽기 (미리보기용) ───────────────────────────────
+
+class _TexFrame:
+    def __init__(self, img):
+        self.img = img
+
+    def frame0(self):
+        return self.img
+
+
+def load_model(model_id, assets_root):
+    """
+    "augsky:armor/frost_helmet" 같은 모델 id 를 assets_root(…/assets/augsky) 에서 읽어 미리보기용 Model 로 만든다.
+    애니메이션 텍스처는 첫 프레임만 쓴다.
+    """
+    ns, path = model_id.split(":", 1) if ":" in model_id else ("augsky", model_id)
+    with open(os.path.join(assets_root, "models", path + ".json"), encoding="utf-8") as f:
+        j = json.load(f)
+    m = Model(path)
+    m.elements = j.get("elements", [])
+    for key, tex in j.get("textures", {}).items():
+        tns, tpath = tex.split(":", 1) if ":" in tex else ("minecraft", tex)
+        png = os.path.join(assets_root, "textures", tpath + ".png")
+        if not os.path.exists(png):
+            continue
+        img = Image.open(png).convert("RGBA")
+        meta = png + ".mcmeta"
+        fw, fh = img.width, img.width
+        if os.path.exists(meta):
+            with open(meta, encoding="utf-8") as f:
+                anim = json.load(f).get("animation", {})
+            fw, fh = anim.get("width", img.width), anim.get("height", img.width)
+        m.atlases[key] = _TexFrame(img.crop((0, 0, fw, min(fh, img.height))))
+    return m

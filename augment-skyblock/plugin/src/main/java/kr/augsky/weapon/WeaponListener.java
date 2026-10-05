@@ -134,8 +134,8 @@ public final class WeaponListener implements Listener {
         WeaponDef w = plugin.weapons().of(e.getBow());
         if (w == null || !w.isBow()) return;
         if (!(e.getProjectile() instanceof org.bukkit.entity.AbstractArrow arrow)) return;
-        // 바닐라 화살 피해 = 기본 피해 × 속도(끝까지 당기면 약 3)
-        arrow.setDamage(w.damage() / 3.0);
+        // 바닐라 화살 피해 = 기본 피해 × 속도(끝까지 당기면 약 3) + 치명타 덤(평균 절반쯤)
+        arrow.setDamage(w.damage() / 3.5);
         arrow.setPickupStatus(org.bukkit.entity.AbstractArrow.PickupStatus.CREATIVE_ONLY);
         arrow.getPersistentDataContainer().set(kr.augsky.Keys.WEAPON, org.bukkit.persistence.PersistentDataType.STRING, w.id());
         e.setConsumeItem(false);
