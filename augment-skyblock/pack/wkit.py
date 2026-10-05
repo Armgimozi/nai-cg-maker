@@ -670,10 +670,12 @@ class Weapon:
         fp_mul = {"dagger": 1.3, "wand": 1.15}.get(self.kind, 1.0)
         if self.aura and self.kind == "hammer":
             fp_mul *= 0.85   # 머리가 큰 망치는 아우라 판이 1인칭 화면을 너무 덮는다
+        if self.aura and self.kind == "bow":
+            fp_mul *= 0.8    # 당길 때 활이 화면 가운데로 오므로 아우라가 조준을 가리지 않게
         if self.kind == "bow":
             d = {
                 "thirdperson_righthand": hold([-80, 260, -40], [-1, -2, 2.5], 0.9, 0.9 * s_hand),
-                "firstperson_righthand": hold([0, -90, 25], [1.13, 3.2, 1.13], 0.68, 0.68 * s_hand * 0.85, 8, (-0.5, 0.5, 0)),
+                "firstperson_righthand": hold([0, -90, 25], [1.13, 3.2, 1.13], 0.68, 0.68 * s_hand * 0.85 * fp_mul, 8, (-0.5, 0.5, 0)),
             }
         else:
             d = {
