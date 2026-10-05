@@ -656,28 +656,33 @@ class Weapon:
         # 바닐라 그림에서 손이 쥐는 곳: 칼은 왼쪽 아래, 활은 왼쪽 위 모서리
         gv = np.array([3.0, 13.0, 8.0]) if self.kind == "bow" else np.array([3.0, 3.0, 8.0])
 
-        def hold(rot_v, trans_v, s0, rot_n, s1):
+        def hold(rot_v, trans_v, s0, s1, tilt=0.0, shift=(0.0, 0.0, 0.0)):
             # 세운 모델을 바닐라 대각선 그림과 같은 방향으로: R_new = R_vanilla · Rz(-45)
-            r_new = _rot(*rot_v) @ _rot(0, 0, -45)
-            t = np.array(trans_v) + _rot(*rot_v) @ (s0 * (gv - c)) - r_new @ (s1 * (grip - c))
+            # tilt: 손을 축으로 화면 안쪽으로 더 기울이기, shift: 손 위치를 조금 옮기기 (1인칭에서 잘 보이게)
+            rv = _rot(*rot_v)
+            r_new = _rot(0, 0, tilt) @ rv @ _rot(0, 0, -45)
+            t = np.array(trans_v) + rv @ (s0 * (gv - c)) + np.array(shift) - r_new @ (s1 * (grip - c))
             t = np.clip(t, -80, 80)
             return {"rotation": [round(v, 3) for v in _euler_xyz(r_new)], "translation": [round(float(v), 3) for v in t],
                     "scale": [round(s1, 3)] * 3}
 
+        # 1인칭: 바닐라 칼 자리에서 30도 화면 안쪽으로 세우고 조금 키워 날과 아우라가 잘 보이게 (게임 안에서 맞춘 값)
+        fp_mul = {"dagger": 1.3, "wand": 1.15}.get(self.kind, 1.0)
+        if self.aura and self.kind == "hammer":
+            fp_mul *= 0.85   # 머리가 큰 망치는 아우라 판이 1인칭 화면을 너무 덮는다
         if self.kind == "bow":
             d = {
-                "thirdperson_righthand": hold([-80, 260, -40], [-1, -2, 2.5], 0.9, None, 0.9 * s_hand),
-                "thirdperson_lefthand": hold([-80, -280, 40], [-1, -2, 2.5], 0.9, None, 0.9 * s_hand),
-                "firstperson_righthand": hold([0, -90, 25], [1.13, 3.2, 1.13], 0.68, None, 0.68 * s_hand * 0.85),
-                "firstperson_lefthand": hold([0, 90, -25], [1.13, 3.2, 1.13], 0.68, None, 0.68 * s_hand * 0.85),
+                "thirdperson_righthand": hold([-80, 260, -40], [-1, -2, 2.5], 0.9, 0.9 * s_hand),
+                "firstperson_righthand": hold([0, -90, 25], [1.13, 3.2, 1.13], 0.68, 0.68 * s_hand * 0.85, 8, (-0.5, 0.5, 0)),
             }
         else:
             d = {
-                "thirdperson_righthand": hold([0, -90, 55], [0, 4.0, 0.5], 0.85, None, 0.85 * s_hand),
-                "thirdperson_lefthand": hold([0, 90, -55], [0, 4.0, 0.5], 0.85, None, 0.85 * s_hand),
-                "firstperson_righthand": hold([0, -90, 25], [1.13, 3.2, 1.13], 0.68, None, 0.68 * s_hand * 0.75),
-                "firstperson_lefthand": hold([0, 90, -25], [1.13, 3.2, 1.13], 0.68, None, 0.68 * s_hand * 0.75),
+                "thirdperson_righthand": hold([0, -90, 55], [0, 4.0, 0.5], 0.85, 0.85 * s_hand),
+                "firstperson_righthand": hold([0, -90, 25], [1.13, 3.2, 1.13], 0.68, 0.68 * s_hand * 0.94 * fp_mul, 30, (-1.5, 1.0, -1.0)),
             }
+        # 왼손: 게임이 왼손일 때 x 위치와 y·z 회전을 뒤집어 그리므로 오른손 값을 그대로 쓰면 거울처럼 대칭이 된다
+        d["thirdperson_lefthand"] = dict(d["thirdperson_righthand"])
+        d["firstperson_lefthand"] = dict(d["firstperson_righthand"])
         # 인벤토리: 45도 눕혀 칸에 꽉 차게
         mid = np.array([8 + ((lo[0] + hi[0] + 1) / 2 - self.CX) * self.VOX, self.Y0 + (lo[1] + hi[1] + 1) / 2 * self.VOX, 8.0])
         diag = (length + width) * 0.7071

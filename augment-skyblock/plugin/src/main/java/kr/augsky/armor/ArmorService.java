@@ -317,7 +317,8 @@ public final class ArmorService implements Listener {
                     Fx.Spec fx = Fx.parse(spec);
                     if (fx == null) continue;
                     if (fx.particle() == Particle.LAVA && ThreadLocalRandom.current().nextInt(6) != 0) continue;
-                    fx.spawn(at.clone().add(0, 1.0, 0), 1, 0.35, 0.55, 0.35, 0.01);
+                    // 몸통 아래쪽에만: 눈높이까지 올라오면 1인칭 화면을 가린다
+                    fx.spawn(at.clone().add(0, 0.8, 0), 1, 0.4, 0.4, 0.4, 0.01);
                 }
             }
         }

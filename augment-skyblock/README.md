@@ -13,7 +13,9 @@
 
 ![섬과 제단](dist/screenshots/showcase-world.png)
 
-![무기와 증강 선택](dist/screenshots/showcase-weapons.png)
+![무기 (1인칭)](dist/screenshots/showcase-weapons.png)
+
+![갑옷 9세트](dist/screenshots/showcase-armor.png)
 
 ![맵](dist/preview-map.png)
 

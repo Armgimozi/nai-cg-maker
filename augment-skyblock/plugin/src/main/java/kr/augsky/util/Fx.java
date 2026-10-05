@@ -31,6 +31,20 @@ public final class Fx {
             spawn(at, count, spread, spread, spread, speed);
         }
 
+        /** except 플레이어 화면에는 보내지 않는다 (손에 든 무기 입자가 1인칭 카메라를 가리지 않게). */
+        public void spawnExcept(org.bukkit.entity.Player except, Location at, int count, double ox, double oy, double oz, double speed) {
+            World w = at.getWorld();
+            if (w == null) return;
+            for (org.bukkit.entity.Player v : w.getPlayers()) {
+                if (v.equals(except) || v.getLocation().distanceSquared(at) > 48 * 48) continue;
+                try {
+                    v.spawnParticle(particle, at, count, ox, oy, oz, speed, data);
+                } catch (Throwable t) {
+                    // 데이터 형식이 맞지 않는 파티클은 건너뛴다
+                }
+            }
+        }
+
         public void spawn(Location at, int count, double ox, double oy, double oz, double speed) {
             World w = at.getWorld();
             if (w == null) return;

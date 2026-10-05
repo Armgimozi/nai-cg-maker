@@ -74,14 +74,16 @@ public final class WeaponListener implements Listener {
             org.bukkit.Location at = p.getLocation().add(right.multiply(0.42)).add(dir.multiply(0.35)).add(0, up, 0);
             boolean strong = pool.equals("boss") || pool.equals("prism");
             String spec = fx[auraTick % 3 == 0 ? 1 : 0];
+            // 들고 있는 사람에게는 보내지 않는다: 1인칭에서는 카메라 바로 앞이라 큰 덩어리로 보이고, 모델 아우라가 이미 있다
             if (spec.equals("PRISM")) {
                 java.awt.Color c = java.awt.Color.getHSBColor((auraTick * 0.03f) % 1f, 0.55f, 1f);
-                p.getWorld().spawnParticle(org.bukkit.Particle.DUST, at, strong ? 2 : 1, 0.12, 0.3, 0.12, 0,
-                        new org.bukkit.Particle.DustOptions(org.bukkit.Color.fromRGB(c.getRed(), c.getGreen(), c.getBlue()), 0.8f));
+                new kr.augsky.util.Fx.Spec(org.bukkit.Particle.DUST,
+                        new org.bukkit.Particle.DustOptions(org.bukkit.Color.fromRGB(c.getRed(), c.getGreen(), c.getBlue()), 0.8f))
+                        .spawnExcept(p, at, strong ? 2 : 1, 0.12, 0.3, 0.12, 0);
                 continue;
             }
             kr.augsky.util.Fx.Spec sp = kr.augsky.util.Fx.parse(spec);
-            if (sp != null) sp.spawn(at, strong ? 2 : 1, 0.12, 0.3, 0.12, 0.005);
+            if (sp != null) sp.spawnExcept(p, at, strong ? 2 : 1, 0.12, 0.3, 0.12, 0.005);
         }
     }
 
