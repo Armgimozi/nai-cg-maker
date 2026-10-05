@@ -30,6 +30,36 @@ COLORS = {
 }
 
 
+_TEX = {}
+
+
+def color_of(name):
+    """COLORS 에 없으면 마인크래프트 클라이언트 jar(MC_CLIENT_JAR)의 블록 텍스처 평균색을 쓴다."""
+    if name in COLORS:
+        return COLORS[name]
+    if name in _TEX:
+        return _TEX[name]
+    c = (150, 150, 150)
+    jar = os.environ.get("MC_CLIENT_JAR")
+    if jar and os.path.exists(jar):
+        import zipfile
+        with zipfile.ZipFile(jar) as z:
+            for cand in (name + "_top", name, name.replace("_block", ""), name + "_side", name + "_stage3", name + "_stage7"):
+                try:
+                    im = Image.open(io.BytesIO(z.read(f"assets/minecraft/textures/block/{cand}.png"))).convert("RGBA")
+                except KeyError:
+                    continue
+                im = im.crop((0, 0, im.width, im.width))
+                px = [p for p in im.getdata() if p[3] > 0]
+                if px:
+                    c = tuple(sum(p[i] for p in px) // len(px) for i in range(3))
+                    if "leaves" in name or name in ("short_grass", "tall_grass", "fern", "vine"):
+                        c = (int(c[0] * 0.45), int(c[1] * 0.75), int(c[2] * 0.35))
+                    break
+    _TEX[name] = c
+    return c
+
+
 def chunks(path):
     with open(path, "rb") as f:
         data = f.read()
@@ -99,24 +129,52 @@ def main():
     xs = [k[0] for k in blocks]
     zs = [k[1] for k in blocks]
     minx, maxx, minz, maxz = min(xs) - 12, max(xs) + 12, min(zs) - 12, max(zs) + 12
-    S = 3
+    S = 2 if (maxx - minx) > 400 else 3
     W, H = (maxx - minx + 1) * S, (maxz - minz + 1) * S
     img = Image.new("RGB", (W, H), (14, 16, 32))
     d = ImageDraw.Draw(img)
     for (x, z), (y, name) in blocks.items():
-        c = COLORS.get(name, (150, 150, 150))
+        c = color_of(name)
         k = max(0.6, min(1.3, 1 + (y - 70) / 60))
         c = tuple(min(255, int(v * k)) for v in c)
         px, pz = (x - minx) * S, (z - minz) * S
         d.rectangle([px, pz, px + S - 1, pz + S - 1], fill=c)
-    labels = [("시작의 섬", 0, 0), ("모래섬", -38, 30), ("숲의 섬", 12, -48), ("실버 제단", 42, -6), ("골드 제단", -20, -96),
-              ("프리즘 제단", 132, 118), ("서리 균열", -124, 52), ("화염 균열", 104, -124), ("공허 균열", -164, -172), ("끝의 섬", 230, -30)]
-    f = ImageFont.truetype(font_path, 16) if font_path else ImageFont.load_default()
-    for name, x, z in labels:
-        px, pz = (x - minx) * S, (z - minz + 16) * S
-        tw = d.textlength(name, font=f)
-        d.text((px - tw / 2 + 1, pz + 1), name, font=f, fill=(0, 0, 0))
-        d.text((px - tw / 2, pz), name, font=f, fill=(255, 255, 255))
+    f = ImageFont.truetype(font_path, 15) if font_path else ImageFont.load_default()
+    fb = ImageFont.truetype(font_path, 22) if font_path else ImageFont.load_default()
+
+    def label(name, x, z, font, fill=(255, 255, 255), dy=10):
+        px, pz = (x - minx) * S, (z - minz + dy) * S
+        tw = d.textlength(name, font=font)
+        d.text((px - tw / 2 + 1, pz + 1), name, font=font, fill=(0, 0, 0))
+        d.text((px - tw / 2, pz), name, font=font, fill=fill)
+
+    # 제단 (월드 폴더의 기록): 실버 흰색, 골드 노란색, 프리즘 보라색 동그라미
+    tier_col = {"SILVER": (230, 236, 245), "GOLD": (255, 207, 64), "PRISM": (200, 107, 255)}
+    try:
+        import yaml
+        alt = yaml.safe_load(open(os.path.join(world, "augsky-altars.yml"))) or {}
+        for a in (alt.get("altars") or {}).values():
+            px, pz = (a["x"] - minx) * S, (a["z"] - minz) * S
+            r = 7
+            d.ellipse([px - r, pz - r, px + r, pz + r], outline=(0, 0, 0), width=4)
+            d.ellipse([px - r, pz - r, px + r, pz + r], outline=tier_col.get(a["tier"], (255, 255, 255)), width=2)
+        lairs = yaml.safe_load(open(os.path.join(world, "augsky-lairs.yml"))) or {}
+        names = {"frost_tyrant": "서리 군주의 둥지", "inferno_colossus": "화염 거신의 둥지", "void_sovereign": "공허 군주의 둥지"}
+        for l in (lairs.get("lairs") or {}).values():
+            label("☠ " + names.get(l["boss"], l["boss"]), l["x"], l["z"], f, (255, 140, 140), dy=22)
+    except FileNotFoundError:
+        pass
+    for name, x, z in [("시작의 섬", 0, 0), ("끝의 섬", 300, 196)]:
+        label(name, x, z, f)
+    for name, x, z, col in [("서리 지역", -170, 30, (154, 216, 255)), ("화염 지역", 140, -100, (255, 138, 61)),
+                            ("공허 지역", -130, -200, (200, 107, 255)), ("바다 지역", 20, 175, (110, 220, 200))]:
+        label(name, x, z, fb, col, dy=0)
+    # 범례
+    lx, ly = 10, H - 90
+    for i, (t, name) in enumerate([("SILVER", "실버 제단 16"), ("GOLD", "골드 제단 9"), ("PRISM", "프리즘 제단 5")]):
+        yy = ly + i * 26
+        d.ellipse([lx, yy, lx + 14, yy + 14], outline=tier_col[t], width=2)
+        d.text((lx + 22, yy - 3), name, font=f, fill=(230, 230, 240))
     d.text((8, 6), "북 ↑", font=f, fill=(200, 200, 220))
     img.save(out)
     print(f"{len(blocks)} columns, {W}x{H}")

@@ -45,6 +45,9 @@ public final class Commands implements TabExecutor {
             case "weapons" -> {
                 if (s instanceof Player p) plugin.menus().openWeapons(p, 0);
             }
+            case "armorcodex" -> {
+                if (s instanceof Player p) plugin.menus().openArmor(p);
+            }
             case "augadmin" -> admin(s, a);
             default -> {
                 return false;
@@ -76,21 +79,30 @@ public final class Commands implements TabExecutor {
         msg(p, "<white>/증강 <gray>내 증강 보기");
         msg(p, "<white>/증강 도감 <gray>모든 증강 보기");
         msg(p, "<white>/증강 선택 <gray>고르다 만 증강 선택지 다시 열기");
-        msg(p, "<white>/증강 제단 <gray>제단과 균열 위치");
+        msg(p, "<white>/증강 제단 <gray>남은 제단과 보스 둥지 위치");
         msg(p, "<white>/증강 책 <gray>안내서 다시 받기");
         msg(p, "<white>/무기도감 <gray>모든 무기 보기");
+        msg(p, "<white>/갑옷도감 <gray>모든 갑옷 세트 보기");
         msg(p, "<white>/스폰 <gray>시작의 섬으로 이동");
     }
 
     private void places(Player p) {
-        msg(p, "<#ffcc55>━━━━ 주요 장소 ━━━━");
-        Location l = p.getLocation();
-        for (MapBuilder.Place pl : MapBuilder.PLACES) {
-            int dx = pl.x() - l.getBlockX(), dz = pl.z() - l.getBlockZ();
-            int dist = (int) Math.round(Math.hypot(dx, dz));
-            msg(p, "<white>" + pl.name() + " <dark_gray>(" + pl.x() + ", " + pl.y() + ", " + pl.z() + ") <gray>"
-                    + MapBuilder.dir(dx, dz) + " " + dist + "m");
+        msg(p, "<#ffcc55>━━━━ 아직 쓸 수 있는 가까운 제단 ━━━━");
+        for (String line : plugin.altars().describeNearest(p)) msg(p, line);
+        List<String> lairs = plugin.mobs().lairs().describe(p);
+        if (!lairs.isEmpty()) {
+            msg(p, "<#ffcc55>━━━━ 보스 둥지 ━━━━");
+            for (String line : lairs) msg(p, line);
         }
+        Location l = p.getLocation();
+        StringBuilder sb = new StringBuilder("<gray>");
+        for (String n : List.of("서리 지역", "화염 지역", "공허 지역", "바다 지역", "끝의 섬")) {
+            MapBuilder.Place pl = MapBuilder.place(n);
+            int dx = pl.x() - l.getBlockX(), dz = pl.z() - l.getBlockZ();
+            sb.append("<white>").append(n).append(" <gray>").append(MapBuilder.dir(dx, dz)).append(" ")
+                    .append((int) Math.round(Math.hypot(dx, dz))).append("m  ");
+        }
+        msg(p, sb.toString());
     }
 
     private void spawn(CommandSender s) {
@@ -157,6 +169,21 @@ public final class Commands implements TabExecutor {
                 msg(s, "<gray>" + t.getName() + "에게 " + a[1] + " ×" + n + " 지급");
             }
             case "증강", "augment" -> adminAugment(s, a);
+            case "갑옷", "armor" -> {
+                if (a.length < 2 || plugin.armor().get(a[1]) == null) {
+                    msg(s, "/증강관리 갑옷 <" + String.join("|", plugin.armor().all().keySet()) + "> [부위|전부] [플레이어]");
+                    return;
+                }
+                Player t = target(s, a, 3);
+                if (t == null) {
+                    msg(s, "<#ff7070>플레이어를 찾을 수 없습니다.");
+                    return;
+                }
+                var sl = a.length > 2 ? kr.augsky.armor.ArmorService.Slot.parse(a[2]) : null;
+                if (sl != null) Items.give(t, plugin.armor().create(a[1], sl));
+                else for (var x : kr.augsky.armor.ArmorService.Slot.values()) Items.give(t, plugin.armor().create(a[1], x));
+                msg(s, "<gray>" + t.getName() + "에게 갑옷 " + a[1] + " 지급");
+            }
             case "선택지", "offer" -> {
                 if (a.length < 3) {
                     msg(s, "/증강관리 선택지 <플레이어> <실버|골드|프리즘>");
@@ -197,9 +224,8 @@ public final class Commands implements TabExecutor {
                     msg(s, "<#ff7070>월드를 찾을 수 없습니다.");
                     return;
                 }
-                msg(s, "<gray>맵을 짓는 중... (" + w.getName() + ")");
-                plugin.mapBuilder().buildAll(w);
-                msg(s, "<#7cff8c>맵 생성 완료.");
+                msg(s, "<gray>맵을 짓는 중... (" + w.getName() + ") 섬이 많아서 잠시 걸립니다.");
+                plugin.mapBuilder().buildAll(w, m -> msg(s, "<gray>" + m), () -> msg(s, "<#7cff8c>맵 생성 완료."));
             }
             case "제단", "altar" -> {
                 if (!(s instanceof Player p) || a.length < 2 || Tier.parse(a[1]) == null) {
@@ -217,7 +243,18 @@ public final class Commands implements TabExecutor {
                     return;
                 }
                 plugin.mapBuilder().riftMarker(p.getWorld(), p.getLocation().getBlock().getLocation().add(0.5, 0, 0.5), a[1]);
-                msg(s, "<gray>균열 표식을 세웠습니다. 동쪽 3칸에 보스 소환대가 있습니다.");
+                msg(s, "<gray>균열 표식을 세웠습니다. 주변에 균열의 몬스터가 나옵니다.");
+            }
+            case "둥지", "lair" -> {
+                var reg = plugin.mobs().registry();
+                if (!(s instanceof Player p) || a.length < 2 || reg.get(a[1]) == null || !reg.get(a[1]).boss()) {
+                    List<String> bosses = new ArrayList<>();
+                    for (var d : reg.all().values()) if (d.boss()) bosses.add(d.id());
+                    msg(s, "/증강관리 둥지 <" + String.join("|", bosses) + ">  (서 있는 자리를 보스 둥지로)");
+                    return;
+                }
+                plugin.mapBuilder().lairMarker(p.getWorld(), p.getLocation().getBlock().getLocation().add(0.5, 0, 0.5), a[1]);
+                msg(s, "<gray>둥지를 세웠습니다. 잠시 뒤 보스가 나타납니다.");
             }
             case "리로드", "reload" -> {
                 plugin.reloadContent();
@@ -282,10 +319,11 @@ public final class Commands implements TabExecutor {
         msg(s, "<#ffcc55>━━━━ 증강관리 ━━━━");
         msg(s, "<white>무기 <id> [플레이어]  <gray>무기 지급 (/무기도감 에서 클릭해도 됨)");
         msg(s, "<white>아이템 <id> [개수] [플레이어]  <gray>shard, prism_crystal, ticket_silver ...");
+        msg(s, "<white>갑옷 <세트> [부위|전부] [플레이어]  <gray>/갑옷도감 에서 클릭해도 됨");
         msg(s, "<white>증강 <추가|제거|초기화|목록> <플레이어> [id]");
-        msg(s, "<white>선택지 <플레이어> <등급>  <gray>제물 없이 선택창 열기");
+        msg(s, "<white>선택지 <플레이어> <등급>  <gray>제단 없이 선택창 열기");
         msg(s, "<white>소환 <몬스터id> [플레이어|x y z]");
-        msg(s, "<white>제단 <등급> / 균열 <id>  <gray>지금 위치에 세우기");
+        msg(s, "<white>제단 <등급> / 균열 <id> / 둥지 <보스id>  <gray>지금 위치에 세우기");
         msg(s, "<white>맵생성 [월드]  <gray>빈 공허 월드에 맵 전체 짓기");
         msg(s, "<white>리로드, 리소스팩, 정보");
     }
@@ -324,7 +362,7 @@ public final class Commands implements TabExecutor {
             case "augadmin" -> {
                 if (!s.hasPermission("augsky.admin")) return out;
                 if (a.length == 1) {
-                    out.addAll(List.of("무기", "아이템", "증강", "선택지", "소환", "제단", "균열", "맵생성", "리로드", "리소스팩", "정보"));
+                    out.addAll(List.of("무기", "아이템", "증강", "갑옷", "선택지", "소환", "제단", "균열", "둥지", "맵생성", "리로드", "리소스팩", "정보"));
                 } else {
                     switch (a[0]) {
                         case "무기", "weapon" -> {
@@ -349,7 +387,11 @@ public final class Commands implements TabExecutor {
                             if (a.length == 3) players(out);
                         }
                         case "제단", "altar" -> out.addAll(List.of("실버", "골드", "프리즘"));
+                        case "갑옷", "armor" -> out.addAll(plugin.armor().all().keySet());
                         case "균열", "rift" -> out.addAll(plugin.mobs().registry().rifts().keySet());
+                        case "둥지", "lair" -> {
+                            for (var d : plugin.mobs().registry().all().values()) if (d.boss()) out.add(d.id());
+                        }
                         default -> {
                         }
                     }

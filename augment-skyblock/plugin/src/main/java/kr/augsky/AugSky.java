@@ -54,6 +54,7 @@ public final class AugSky extends JavaPlugin {
     private WeaponListener weaponListener;
     private AugmentRegistry augmentRegistry;
     private MobRegistry mobRegistry;
+    private kr.augsky.armor.ArmorService armor;
 
     @Override
     public void onEnable() {
@@ -62,7 +63,7 @@ public final class AugSky extends JavaPlugin {
         HitEffects.setLogger(getLogger());
         Mechanics.setLogger(getLogger());
         saveDefaultConfig();
-        for (String f : List.of("augments.yml", "weapons.yml", "skills.yml", "mobs.yml", "items.yml")) {
+        for (String f : List.of("augments.yml", "weapons.yml", "skills.yml", "mobs.yml", "items.yml", "armor.yml")) {
             if (!new File(getDataFolder(), f).exists()) saveResource(f, false);
         }
 
@@ -74,6 +75,7 @@ public final class AugSky extends JavaPlugin {
         augmentRegistry = new AugmentRegistry(getLogger());
         augments = new AugmentService(this, augmentRegistry, new PlayerDataStore(getDataFolder(), getLogger()));
         mobRegistry = new MobRegistry(getLogger());
+        armor = new kr.augsky.armor.ArmorService(this);
         loadContent();
 
         allies = new Allies(this);
@@ -93,9 +95,10 @@ public final class AugSky extends JavaPlugin {
         pm.registerEvents(new AugmentListener(this), this);
         pm.registerEvents(new ItemGuard(this), this);
         pm.registerEvents(pack, this);
+        pm.registerEvents(armor, this);
 
         Commands cmds = new Commands(this);
-        for (String c : List.of("augment", "augspawn", "weapons", "augadmin")) {
+        for (String c : List.of("augment", "augspawn", "weapons", "armorcodex", "augadmin")) {
             PluginCommand pc = getCommand(c);
             if (pc != null) {
                 pc.setExecutor(cmds);
@@ -134,6 +137,7 @@ public final class AugSky extends JavaPlugin {
         skills.load(yml("skills.yml"));
         items.load(yml("items.yml"));
         weapons.load(yml("weapons.yml"));
+        armor.load(yml("armor.yml"));
         augmentRegistry.load(yml("augments.yml"));
         mobRegistry.load(yml("mobs.yml"));
         recipes.registerAll();
@@ -182,4 +186,5 @@ public final class AugSky extends JavaPlugin {
     public PackService pack() { return pack; }
     public MapBuilder mapBuilder() { return mapBuilder; }
     public WeaponListener weaponListener() { return weaponListener; }
+    public kr.augsky.armor.ArmorService armor() { return armor; }
 }

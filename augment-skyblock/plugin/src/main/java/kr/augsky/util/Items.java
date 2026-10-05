@@ -45,7 +45,7 @@ public final class Items {
     }
 
     public static boolean isCustom(ItemStack it) {
-        return tag(it, Keys.ITEM) != null || tag(it, Keys.WEAPON) != null;
+        return tag(it, Keys.ITEM) != null || tag(it, Keys.WEAPON) != null || tag(it, Keys.ARMOR) != null;
     }
 
     /** 인벤토리에 넣고, 넘치면 발밑에 떨어뜨린다. */

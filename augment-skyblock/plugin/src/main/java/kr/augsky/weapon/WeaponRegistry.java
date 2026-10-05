@@ -39,7 +39,8 @@ public final class WeaponRegistry {
             ConfigurationSection sec = yml.getConfigurationSection(id);
             if (sec == null) continue;
             P p = P.of(sec);
-            Material mat = Material.matchMaterial(p.s("material", "NETHERITE_SWORD"));
+            // 활은 바닐라 활을 껍데기로 써야 당겨 쏠 수 있다
+            Material mat = Material.matchMaterial(p.s("material", "bow".equals(p.s("type", "")) ? "BOW" : "NETHERITE_SWORD"));
             if (mat == null) mat = Material.NETHERITE_SWORD;
             P passive = p.sub("passive");
             WeaponDef def = new WeaponDef(
@@ -123,8 +124,14 @@ public final class WeaponRegistry {
             meta.setItemModel(new NamespacedKey(Keys.NS, w.id()));
         }
         meta.setUnbreakable(true);
+        if (w.isBow()) {
+            // 화살 하나만 있으면 줄지 않게 (무한). 반짝임은 모델을 가리므로 끈다
+            meta.addEnchant(org.bukkit.enchantments.Enchantment.INFINITY, 1, true);
+            meta.setEnchantmentGlintOverride(false);
+            meta.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+        }
         meta.addAttributeModifier(Attribute.ATTACK_DAMAGE, new AttributeModifier(
-                Keys.of("weapon_damage"), w.damage() - 1, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
+                Keys.of("weapon_damage"), w.isBow() ? 1 : w.damage() - 1, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
         meta.addAttributeModifier(Attribute.ATTACK_SPEED, new AttributeModifier(
                 Keys.of("weapon_speed"), w.speed() - 4, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
         if (w.reach() != 0) {
@@ -144,12 +151,16 @@ public final class WeaponRegistry {
     public List<String> lore(WeaponDef w) {
         List<String> l = new ArrayList<>();
         l.add("<gray>" + WeaponDef.typeName(w.type()) + " <dark_gray>· " + Element.wrap(w.element(), Element.korean(w.element())));
-        String stats = "<white>⚔ 공격력 <#ff6b6b>" + Text.num(w.damage()) + "</#ff6b6b>   <white>⚡ 공격 속도 <#ffd84d>" + Text.num(w.speed());
-        l.add(stats);
+        if (w.isBow()) {
+            l.add("<white>🏹 화살 피해 <#ff6b6b>" + Text.num(w.damage()) + " <dark_gray>(끝까지 당겼을 때)");
+            l.add("<dark_gray>화살 1개만 있으면 줄지 않는다");
+        } else {
+            l.add("<white>⚔ 공격력 <#ff6b6b>" + Text.num(w.damage()) + "</#ff6b6b>   <white>⚡ 공격 속도 <#ffd84d>" + Text.num(w.speed()));
+        }
         if (w.reach() != 0) l.add("<white>➶ 공격 거리 <#7cd4ff>+" + Text.num(w.reach()));
         if (w.skillPower() != 1.0) l.add("<white>✧ 스킬 위력 <#c9a0ff>×" + Text.num(w.skillPower()));
-        addSkill(l, "<#ffcc55>[우클릭]", w.skill());
-        addSkill(l, "<#ffcc55>[F키]", w.skill2());
+        addSkill(l, w.isBow() ? "<#ffcc55>[F키]" : "<#ffcc55>[우클릭]", w.skill());
+        addSkill(l, w.isBow() ? "<#ffcc55>[웅크리고 F키]" : "<#ffcc55>[F키]", w.skill2());
         if (w.passiveDesc() != null) {
             l.add("");
             l.add("<#7cffc4>[패시브] <gray>" + w.passiveDesc());

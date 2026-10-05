@@ -41,5 +41,5 @@ public record MobDef(
     public record Natural(Set<EntityType> replace, double chance, Set<String> worlds) {}
 
     public record Rift(String id, String name, List<String> mobs, int maxAlive, double interval, double radius,
-                       String boss, String summonItem) {}
+                       String boss) {}
 }

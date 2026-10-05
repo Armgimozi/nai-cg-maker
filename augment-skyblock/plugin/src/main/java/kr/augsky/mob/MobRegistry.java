@@ -43,7 +43,7 @@ public final class MobRegistry {
             for (String id : rs.getKeys(false)) {
                 P p = P.of(rs.getConfigurationSection(id));
                 rifts.put(id, new MobDef.Rift(id, p.s("name", id), p.strings("mobs"), p.i("max_alive", 6),
-                        p.d("interval", 6), p.d("radius", 9), p.s("boss", null), p.s("summon_item", null)));
+                        p.d("interval", 6), p.d("radius", 9), p.s("boss", null)));
             }
         }
         long bosses = mobs.values().stream().filter(MobDef::boss).count();

@@ -23,7 +23,7 @@
 #    skill_haste {amount}  skill_power {amount}
 #    ore_gen {chance, tier}  auto_smelt  harvest_bonus {chance}  sapling_luck {chance}
 #    growth_aura {radius, interval}  fishing_luck {chance}
-#    extra_choice {amount}  altar_discount {amount}  reroll_bonus {amount}
+#    extra_choice {amount}  reroll_bonus {amount}
 #    grant_random {tier, count}  grant_item {item, amount}   (얻는 순간 한 번)
 #    죽었을 때 지키기: keep_hotbar {slots}  keep_weapons  keep_armor  keep_materials  keep_levels  keep_all
 # ─────────────────────────────────────────────────────────────
@@ -475,10 +475,10 @@ g_altar:
   tier: GOLD
   name: 제단의 총애
   icon: AMETHYST_CLUSTER
-  description: ["제단 제물 -30%, 다시 뽑기 +1"]
+  description: ["증강을 고를 때 무료 다시 뽑기 +2", "증강 파편을 25% 더 얻는다"]
   effects:
-    - {type: altar_discount, amount: 0.3}
-    - {type: reroll_bonus, amount: 1}
+    - {type: reroll_bonus, amount: 2}
+    - {type: shard_luck, amount: 0.25}
 
 g_thrill:
   tier: GOLD
@@ -519,7 +519,7 @@ g_treasure_bond:
   tier: GOLD
   name: 보물 결속
   icon: AMETHYST_SHARD
-  description: ["죽어도 증강 파편, 정수, 프리즘 결정, 증강권, 소환석은 잃지 않는다."]
+  description: ["죽어도 증강 파편, 정수, 프리즘 결정, 증강권은 잃지 않는다."]
   effects:
     - {type: keep_materials}
 
@@ -610,10 +610,9 @@ p_resonance:
   tier: PRISM
   name: 증강 공명
   icon: BEACON
-  description: ["제단 선택지 +1개, 제단 제물 -25%, 다시 뽑기 +1"]
+  description: ["증강 선택지 +1개, 무료 다시 뽑기 +1"]
   effects:
     - {type: extra_choice, amount: 1}
-    - {type: altar_discount, amount: 0.25}
     - {type: reroll_bonus, amount: 1}
 
 p_dice:

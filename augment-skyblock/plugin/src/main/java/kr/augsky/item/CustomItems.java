@@ -72,7 +72,8 @@ public final class CustomItems {
     }
 
     /**
-     * 아이템 문자열: "shard", "item:shard", "weapon:flame_sword", "pool:frost"(그 pool 의 무작위 무기), "IRON_INGOT".
+     * 아이템 문자열: "shard", "item:shard", "weapon:flame_sword", "pool:frost"(그 pool 의 무작위 무기),
+     * "armor:frost"(서리 세트의 무작위 부위), "armor:frost:helmet", "IRON_INGOT".
      * 몬스터 드롭, 시작 보급, 조합법, 스킬 연출 아이템에서 같이 쓴다.
      */
     public ItemStack spec(String spec, int amount) {
@@ -86,6 +87,8 @@ public final class CustomItems {
                 return create(val, amount);
             case "weapon":
                 return plugin.weapons().create(val);
+            case "armor":
+                return plugin.armor().spec(val);
             case "pool": {
                 WeaponDef w = val.equals("any") ? plugin.weapons().randomCommon() : plugin.weapons().random(val);
                 return w == null ? null : plugin.weapons().create(w);

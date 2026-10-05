@@ -12,7 +12,6 @@ import kr.augsky.util.Fx;
 import kr.augsky.util.Items;
 import kr.augsky.util.Text;
 import net.kyori.adventure.bossbar.BossBar;
-import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.GameMode;
@@ -59,7 +58,6 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -70,14 +68,14 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
-/** 커스텀 몬스터: 소환, 능력 사용, 보스바, 드롭, 자연 스폰 교체, 균열 스폰, 보스 소환대. */
+/** 커스텀 몬스터: 소환, 능력 사용, 보스바, 드롭, 자연 스폰 교체, 균열 스폰. 보스 둥지는 Lairs, 보스 모델은 Rigs. */
 public final class MobManager implements Listener {
     private final AugSky plugin;
     private final MobRegistry registry;
     private final Map<UUID, Active> active = new HashMap<>();
     private final Map<UUID, String> riftMarkers = new HashMap<>();
-    private final Map<String, UUID> riftBoss = new HashMap<>();
-    private final Set<String> summoning = new HashSet<>();
+    private final Lairs lairs;
+    private final Rigs rigs;
     private int tick;
 
     static final class Active {
@@ -99,11 +97,35 @@ public final class MobManager implements Listener {
     public MobManager(AugSky plugin, MobRegistry registry) {
         this.plugin = plugin;
         this.registry = registry;
+        this.lairs = new Lairs(plugin, this);
+        this.rigs = new Rigs(plugin);
         Bukkit.getScheduler().runTaskTimer(plugin, this::tick, 20, 5);
     }
 
     public MobRegistry registry() {
         return registry;
+    }
+
+    public Lairs lairs() {
+        return lairs;
+    }
+
+    public Rigs rigs() {
+        return rigs;
+    }
+
+    /** 제단 보호처럼 보스 둥지의 블록을 지킨다. */
+    public boolean isLairGuarded(Location l) {
+        return lairs.isGuarded(l);
+    }
+
+    /** 싸움이 끝났을 때(둥지로 돌아가 다 회복했을 때) 기여도와 단계 기록을 지운다. */
+    void resetFight(LivingEntity boss) {
+        Active a = active.get(boss.getUniqueId());
+        if (a == null) return;
+        a.contributors.clear();
+        a.phases.clear();
+        a.readyAt.clear();
     }
 
     private static ThreadLocalRandom rnd() {
@@ -123,6 +145,10 @@ public final class MobManager implements Listener {
         if (!(e instanceof LivingEntity le)) return null;
         Active a = track(def, le);
         a.home = at.clone();
+        if (rigs.has(def.id())) {
+            if (le.getEquipment() != null) le.getEquipment().clear();
+            rigs.attach(le, def.id());
+        }
         if (def.boss()) le.getWorld().strikeLightningEffect(at);
         trigger(a, "on_spawn", null);
         return le;
@@ -325,6 +351,7 @@ public final class MobManager implements Listener {
         SkillDef s = plugin.skills().get(ab.skill());
         if (s == null) return;
         SkillContext ctx = new SkillContext(plugin, a.entity, target, a.def.skillPower());
+        rigs.swing(a.entity.getUniqueId());
         s.cast(ctx);
     }
 
@@ -440,9 +467,15 @@ public final class MobManager implements Listener {
     }
 
     private void onLoaded(Entity e) {
-        if (e instanceof Marker) {
+        if (e instanceof Marker mk) {
             String r = e.getPersistentDataContainer().get(Keys.RIFT, PersistentDataType.STRING);
             if (r != null) riftMarkers.put(e.getUniqueId(), r);
+            lairs.seen(mk);
+            return;
+        }
+        // 보스 모델 조각은 저장하지 않지만, 혹시 남아 있으면 지운다
+        if (e.getPersistentDataContainer().has(Keys.RIG)) {
+            e.remove();
             return;
         }
         if (e.getScoreboardTags().contains(Mechanics.FX_TAG)) {
@@ -458,6 +491,7 @@ public final class MobManager implements Listener {
             if (def != null) {
                 Active a = track(def, le);
                 if (a.home == null) a.home = le.getLocation();
+                if (rigs.has(def.id())) rigs.attach(le, def.id());
             }
         }
     }
@@ -473,6 +507,7 @@ public final class MobManager implements Listener {
             riftMarkers.remove(en.getUniqueId());
             Active a = active.remove(en.getUniqueId());
             if (a != null) hideBar(a);
+            rigs.detach(en.getUniqueId());
         }
     }
 
@@ -483,66 +518,6 @@ public final class MobManager implements Listener {
             if (m != null && (w == null || m.getWorld().equals(w))) return m.getLocation();
         }
         return null;
-    }
-
-    // ------------------------------------------------------------------ 보스 소환대
-
-    public void usePedestal(Player p, String riftId, Location pedestal) {
-        MobDef.Rift rift = registry.rifts().get(riftId);
-        if (rift == null || rift.boss() == null) return;
-        MobDef boss = registry.get(rift.boss());
-        if (boss == null) return;
-        ItemStack hand = p.getInventory().getItemInMainHand();
-        String held = plugin.items().idOf(hand);
-        UUID alive = riftBoss.get(riftId);
-        if (alive != null) {
-            Entity b = Bukkit.getEntity(alive);
-            if (b != null && b.isValid() && !b.isDead()) {
-                p.sendMessage(Text.mm("<#ff7070>" + Text.strip(boss.name()) + "이(가) 이미 깨어나 있습니다!"));
-                return;
-            }
-        }
-        if (rift.summonItem() == null || !rift.summonItem().equals(held)) {
-            var def = plugin.items().def(rift.summonItem());
-            p.sendMessage(Text.mm("<gray>" + rift.name() + "<gray>의 소환대입니다. <white>"
-                    + (def == null ? "소환석" : def.name()) + "<gray>을(를) 손에 들고 우클릭하면 "
-                    + boss.name() + "<gray>이(가) 깨어납니다."));
-            return;
-        }
-        if (!summoning.add(riftId)) return;
-        hand.setAmount(hand.getAmount() - 1);
-        Location c = riftCenter(riftId, pedestal.getWorld());
-        Location at = (c != null ? c : pedestal).clone().add(0, 0.5, 0);
-        for (Player near : at.getWorld().getPlayers()) {
-            if (near.getLocation().distanceSquared(at) < 64 * 64) {
-                near.showTitle(Title.title(Text.mm(boss.name()), Text.mm("<gray>깨어나는 중..."),
-                        Title.Times.times(Duration.ofMillis(300), Duration.ofMillis(2500), Duration.ofMillis(500))));
-            }
-        }
-        Fx.sound(at, "entity.wither.spawn", 1.5f, 0.8f);
-        new org.bukkit.scheduler.BukkitRunnable() {
-            int t = 0;
-
-            @Override
-            public void run() {
-                t++;
-                double r = 4 - t * 0.065;
-                for (int i = 0; i < 6; i++) {
-                    double a = t * 0.3 + i * Math.PI / 3;
-                    at.getWorld().spawnParticle(Particle.SOUL_FIRE_FLAME, at.clone().add(Math.cos(a) * r, t * 0.04, Math.sin(a) * r), 1, 0, 0, 0, 0);
-                }
-                if (t >= 60) {
-                    cancel();
-                    summoning.remove(riftId);
-                    LivingEntity le = spawn(boss.id(), at, false);
-                    if (le != null) {
-                        riftBoss.put(riftId, le.getUniqueId());
-                        le.getWorld().spawnParticle(Particle.EXPLOSION_EMITTER, at, 1);
-                        Bukkit.broadcast(Text.mm("<#ff7070>☠ <white>" + p.getName() + "<gray>님이 " + boss.name() + "<gray>을(를) 깨웠습니다!"));
-                    }
-                }
-            }
-        }.runTaskTimer(plugin, 0, 1);
     }
 
     // ------------------------------------------------------------------ 이벤트
@@ -573,6 +548,7 @@ public final class MobManager implements Listener {
         Entity d = e.getDamager();
         if (d instanceof Projectile pr && pr.getShooter() instanceof Entity s) d = s;
         Active atk = active.get(d.getUniqueId());
+        if (atk != null) rigs.swing(atk.entity.getUniqueId());
         if (atk != null && e.getEntity() instanceof LivingEntity victim && !Combat.inSkill()) {
             Bukkit.getScheduler().runTask(plugin, () -> {
                 if (atk.entity.isValid()) trigger(atk, "on_hit", victim);
@@ -581,6 +557,7 @@ public final class MobManager implements Listener {
         // 몬스터가 맞을 때
         Active vic = active.get(e.getEntity().getUniqueId());
         if (vic != null) {
+            rigs.hurt(vic.entity.getUniqueId());
             Player p = d instanceof Player pl ? pl : null;
             if (p != null) vic.contributors.merge(p.getUniqueId(), e.getFinalDamage(), Double::sum);
             LivingEntity src = d instanceof LivingEntity l ? l : null;
@@ -609,8 +586,9 @@ public final class MobManager implements Listener {
             e.setDroppedExp(def.xp() / 4);
             return;
         }
+        rigs.shatter(dead.getUniqueId());
         if (def.boss()) {
-            riftBoss.values().remove(dead.getUniqueId());
+            lairs.onBossDeath(dead);
             bossLoot(def, a, dead);
             e.getDrops().clear();
             return;
@@ -726,6 +704,7 @@ public final class MobManager implements Listener {
 
     public void removeBars() {
         for (Active a : active.values()) hideBar(a);
+        rigs.removeAll();
     }
 
     public int activeCount() {

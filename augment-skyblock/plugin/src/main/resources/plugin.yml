@@ -14,6 +14,9 @@ commands:
   weapons:
     description: 무기 도감
     aliases: [무기도감, 무기]
+  armorcodex:
+    description: 갑옷 도감
+    aliases: [갑옷도감, 갑옷]
   augadmin:
     description: 증강 스카이블럭 관리자 명령어
     aliases: [증강관리]

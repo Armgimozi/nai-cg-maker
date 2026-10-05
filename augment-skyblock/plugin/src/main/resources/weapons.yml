@@ -977,3 +977,139 @@ sun_blade:
   recipe:
     shape: ["CBC", "BWB", "CBC"]
     ingredients: {C: "item:prism_crystal", B: BLAZE_ROD, W: "weapon:holy_blade"}
+
+# ═══════════════════════ 활 ═══════════════════════
+#  활은 우클릭으로 당겨 쏘는 보통 활이다 (화살 1개만 있으면 줄지 않는다).
+#  damage 는 끝까지 당겨 쐈을 때 화살 피해, F키가 스킬, 웅크리고 F키가 두 번째 스킬.
+
+hunter_bow:
+  name: 사냥꾼의 활
+  pool: basic
+  type: bow
+  element: wood
+  damage: 6
+  speed: 1.0
+  skill: triple_shot
+  lore: ["처음 잡아 보는 활. 바람을 읽어라."]
+  recipe:
+    shape: [" TS", "TES", " TS"]
+    ingredients: {T: STICK, S: STRING, E: "item:shard"}
+
+wind_bow:
+  name: 바람의 활
+  pool: island
+  type: bow
+  element: wind
+  damage: 7.5
+  speed: 1.0
+  skill: gale_arrow
+  passive:
+    chance: 0.2
+    description: "화살이 맞으면 20% 확률로 크게 밀쳐낸다."
+    effects: [{knockback: 1.5}]
+  lore: ["시위를 놓으면 바람이 따라간다."]
+  recipe:
+    shape: ["FTS", "TES", "FTS"]
+    ingredients: {F: FEATHER, T: STICK, S: STRING, E: "item:shard"}
+
+venom_bow:
+  name: 독사의 활
+  pool: island
+  type: bow
+  element: venom
+  damage: 7
+  speed: 1.0
+  skill: venom_rain
+  passive:
+    chance: 0.3
+    description: "화살이 맞으면 30% 확률로 독."
+    effects: [{poison: 2}]
+  lore: ["활대에 독사의 비늘이 감겨 있다."]
+  recipe:
+    shape: ["MTS", "TES", "MTS"]
+    ingredients: {M: SPIDER_EYE, T: STICK, S: STRING, E: "item:shard"}
+
+frost_bow:
+  name: 서리 활
+  pool: frost
+  type: bow
+  element: frost
+  damage: 9
+  speed: 1.0
+  skill: glacier_arrow
+  passive:
+    chance: 0.3
+    description: "화살이 맞으면 30% 확률로 느리게 만든다."
+    effects: [{slow: 2}]
+  lore: ["시위가 얼음처럼 차갑게 울린다."]
+  recipe:
+    shape: ["ITS", "TES", "ITS"]
+    ingredients: {I: PACKED_ICE, T: STICK, S: STRING, E: "item:essence_frost"}
+
+flame_bow:
+  name: 화염 활
+  pool: flame
+  type: bow
+  element: flame
+  damage: 9.5
+  speed: 1.0
+  skill: firestorm_arrows
+  passive:
+    chance: 0.3
+    description: "화살이 맞으면 30% 확률로 불붙인다."
+    effects: [{ignite: 3}]
+  lore: ["화살촉이 공기에 닿기만 해도 불이 붙는다."]
+  recipe:
+    shape: ["MTS", "TES", "MTS"]
+    ingredients: {M: MAGMA_BLOCK, T: BLAZE_ROD, S: STRING, E: "item:essence_flame"}
+
+void_bow:
+  name: 공허의 활
+  pool: void
+  type: bow
+  element: abyss
+  damage: 10
+  speed: 1.0
+  skill: void_piercer
+  passive:
+    chance: 0.25
+    description: "화살이 맞으면 25% 확률로 시들게 한다."
+    effects: [{wither: 2}]
+  lore: ["쏜 화살은 날아가는 대신 사라졌다가 나타난다."]
+  recipe:
+    shape: ["OTS", "TES", "OTS"]
+    ingredients: {O: OBSIDIAN, T: STICK, S: STRING, E: "item:essence_void"}
+
+storm_longbow:
+  name: 뇌천궁
+  pool: boss
+  type: bow
+  element: storm
+  damage: 14
+  speed: 1.0
+  skill: thunder_volley
+  skill2: chain_arrow
+  passive:
+    chance: 0.25
+    description: "화살이 맞으면 25% 확률로 번개가 떨어진다."
+    effects: [{lightning: true}, {damage: 5, magic: true}]
+  lore: ["하늘을 향해 쏘면 하늘이 대답한다."]
+  source: 보스가 떨군다
+
+prism_bow:
+  name: 별무리 활
+  pool: prism
+  type: bow
+  element: prism
+  damage: 17
+  speed: 1.0
+  skill: starfall_volley
+  skill2: rainbow_piercer
+  passive:
+    chance: 0.3
+    description: "화살이 맞으면 30% 확률로 무지개 피해 8."
+    effects: [{damage: 8, magic: true}, {particle: "DUST:#ff6b9d:1.5", count: 20}]
+  lore: ["별을 화살 삼아 쏜다."]
+  recipe:
+    shape: ["CDC", "DWD", "CDC"]
+    ingredients: {C: "item:prism_crystal", D: DIAMOND_BLOCK, W: "weapon:storm_longbow"}

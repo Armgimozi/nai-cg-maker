@@ -13,6 +13,8 @@ public final class PlayerData {
     public double soul;
     public boolean starterGiven;
     public int picks;
+    /** '사람마다 한 번' 제단 모드에서 이미 쓴 제단 */
+    public final java.util.Set<String> usedAltars = new java.util.HashSet<>();
 
     // 진행 중인 선택지 (창을 닫아도 유지된다)
     public Tier offerTier;

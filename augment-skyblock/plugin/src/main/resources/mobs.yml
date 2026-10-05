@@ -5,7 +5,8 @@
 #      on_hit    이 몬스터가 때렸을 때      on_hurt  맞았을 때
 #      hp_below  체력이 threshold 아래로 처음 내려갔을 때 (보스 2페이즈)
 #      on_spawn / on_death
-#    drops 의 item: shard, item:<id>, weapon:<id>, pool:<얻는 곳>(그 무기들 중 하나), 바닐라 아이템 이름
+#    drops 의 item: shard, item:<id>, weapon:<id>, pool:<얻는 곳>(그 무기들 중 하나),
+#               armor:<세트>(그 세트의 무작위 부위), 바닐라 아이템 이름
 #    natural  자연 스폰된 replace 몬스터를 chance 확률로 이 몬스터로 바꾼다
 #    보스(boss: true)의 보상은 함께 싸운 플레이어 모두가 각자 받는다.
 # ─────────────────────────────────────────────────────────────
@@ -229,6 +230,8 @@ mobs:
       - {item: prism_crystal, min: 1, max: 1}
       - {item: shard, min: 8, max: 14}
       - {item: essence_frost, min: 3, max: 6}
+      - {item: "armor:frostlord", chance: 0.6}
+      - {item: ticket_silver, chance: 0.7}
       - {item: ticket_gold, chance: 0.5}
       - {item: ticket_prism, chance: 0.15}
       - {item: "weapon:frostlord_greatsword", chance: 0.35}
@@ -319,6 +322,8 @@ mobs:
       - {item: prism_crystal, min: 1, max: 1}
       - {item: shard, min: 10, max: 16}
       - {item: essence_flame, min: 3, max: 6}
+      - {item: "armor:inferno", chance: 0.6}
+      - {item: ticket_silver, chance: 0.7}
       - {item: ticket_gold, chance: 0.5}
       - {item: ticket_prism, chance: 0.15}
       - {item: "weapon:inferno_hammer", chance: 0.35}
@@ -415,6 +420,8 @@ mobs:
       - {item: prism_crystal, min: 1, max: 2}
       - {item: shard, min: 14, max: 20}
       - {item: essence_void, min: 4, max: 8}
+      - {item: "armor:sovereign", chance: 0.6}
+      - {item: ticket_silver, chance: 0.7}
       - {item: ticket_gold, chance: 0.6}
       - {item: ticket_prism, chance: 0.3}
       - {item: "weapon:void_reaper", chance: 0.35}
@@ -424,7 +431,7 @@ mobs:
       - {item: ENDER_PEARL, min: 2, max: 4}
     xp: 450
 
-# 균열: 맵의 균열 섬 마커 주변에 몬스터가 계속 나온다
+# 균열: 맵의 균열 섬 마커 주변에 몬스터가 계속 나온다. boss 는 그 균열 너머 둥지를 지키는 보스
 rifts:
   frost:
     name: "<#9ad8ff>서리 균열"
@@ -433,7 +440,6 @@ rifts:
     interval: 6
     radius: 9
     boss: frost_tyrant
-    summon_item: summon_frost
   flame:
     name: "<#ff8a3d>화염 균열"
     mobs: [ember_imp, lava_knight, magma_blob, cinder_zombie, cinder_zombie]
@@ -441,7 +447,6 @@ rifts:
     interval: 6
     radius: 9
     boss: inferno_colossus
-    summon_item: summon_flame
   void:
     name: "<#c86bff>공허 균열"
     mobs: [void_wraith, void_eye, void_knight, void_knight, void_mite]
@@ -449,4 +454,3 @@ rifts:
     interval: 5
     radius: 9
     boss: void_sovereign
-    summon_item: summon_void

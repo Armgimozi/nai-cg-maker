@@ -45,6 +45,18 @@ public final class ItemGuard implements Listener {
             }
             return;
         }
+        // 다른 갑옷을 강화하는 조합: 정해진 세트의 같은 부위 갑옷만 받는다
+        List<String> armorOk = plugin.recipes().armorInputs(key);
+        for (ItemStack it : matrix) {
+            if (it == null || !kr.augsky.util.Items.isCustom(it) && armorOk == null) continue;
+            String set = kr.augsky.armor.ArmorService.setOf(it);
+            var sl = kr.augsky.armor.ArmorService.slotOf(it);
+            boolean shell = it.getType().name().startsWith("NETHERITE_") && it.getType() != org.bukkit.Material.NETHERITE_INGOT;
+            if (armorOk != null && shell && (set == null || sl == null || !armorOk.contains(set + ":" + sl.id))) {
+                e.getInventory().setResult(null);
+                return;
+            }
+        }
         List<String> need = plugin.recipes().weaponInputs(key);
         if (need == null) return;
         List<String> have = new ArrayList<>();

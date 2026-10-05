@@ -27,7 +27,7 @@ import java.util.Map;
 
 /** 제단 화면, 증강 선택 화면, 내 증강/도감 화면, 무기 도감. 모두 클릭만 받고 아이템은 못 꺼낸다. */
 public final class Menus implements Listener {
-    public enum Kind { ALTAR, CHOICE, MINE, CODEX, WEAPONS }
+    public enum Kind { CHOICE, MINE, CODEX, WEAPONS, ARMOR }
 
     public static final class Holder implements InventoryHolder {
         final Kind kind;
@@ -75,69 +75,20 @@ public final class Menus implements Listener {
 
     // ------------------------------------------------------------------ 제단
 
-    public void openAltar(Player p, Tier tier) {
-        PlayerData d = aug().data(p);
-        if (d.hasOffer()) {
-            if (d.offerTier != tier) {
-                p.sendMessage(Text.mm("<gray>먼저 고르지 않은 " + d.offerTier.label() + " <gray>선택지를 마저 고르세요."));
-            }
-            openChoice(p);
-            return;
+    /**
+     * 제단(또는 증강권)에서 증강 선택지를 받는다. 제물은 없다.
+     * altarId 가 있으면 그 제단은 힘을 다한다(일회용 설정에 따라).
+     */
+    public boolean claim(Player p, Tier tier, java.util.UUID altarId) {
+        if (!aug().startOffer(p, tier)) {
+            p.sendMessage(Text.mm("<gray>더 얻을 수 있는 " + tier.korean + " 증강이 없습니다."));
+            return false;
         }
-        Holder h = new Holder(Kind.ALTAR, tier, 0);
-        Inventory inv = create(h, 27, tier.wrap("✦ " + tier.korean + " 제단 ✦"));
-        AugmentService.Cost cost = aug().cost(p, tier);
-        boolean can = aug().canPay(p, cost);
-        int owned = d.owned(tier, aug().registry());
-        int total = aug().registry().ofTier(tier).size();
-
-        inv.setItem(4, Items.icon(Material.NETHER_STAR, tier.wrap(tier.korean + " 제단"), List.of(
-                "<gray>제물을 바치면 " + tier.wrap(tier.korean) + " <gray>증강 " + aug().choiceCount(p) + "개 중 하나를 고릅니다.",
-                "<gray>보유한 " + tier.korean + " 증강: <white>" + owned + " <dark_gray>/ 전체 " + total + "종",
-                "",
-                "<dark_gray>증강을 많이 가질수록 제물이 늘어납니다.")));
-
-        List<String> costLore = new ArrayList<>();
-        costLore.add("<gray>필요한 제물:");
-        if (cost.shards() > 0) costLore.add(line(p, "shard", cost.shards(), "증강 파편"));
-        if (cost.crystals() > 0) costLore.add(line(p, "prism_crystal", cost.crystals(), "프리즘 결정"));
-        for (Map.Entry<Material, Integer> en : cost.items().entrySet()) {
-            int have = Items.count(p, it -> it.getType() == en.getKey() && !Items.isCustom(it));
-            costLore.add((have >= en.getValue() ? "<#7cff8c>✔ " : "<#ff7070>✘ ") + "<white>" + korean(en.getKey())
-                    + " <gray>×" + en.getValue() + " <dark_gray>(보유 " + have + ")");
-        }
-        if (cost.free()) costLore.add("<#7cff8c>무료");
-        costLore.add("");
-        costLore.add(can ? "<#ffcc55>▶ 클릭해서 바치기" : "<#ff7070>제물이 부족합니다");
-        inv.setItem(11, Items.icon(Material.AMETHYST_CLUSTER, "<white>제물 바치기", costLore));
-        h.slotIds.add("offer");
-
-        boolean ticket = aug().hasTicket(p, tier);
-        inv.setItem(15, Items.icon(ticket ? Material.PAPER : Material.GRAY_DYE,
-                ticket ? tier.wrap(tier.korean + " 증강권 사용") : "<gray>" + tier.korean + " 증강권 없음",
-                List.of("<gray>증강권 한 장으로 제물 없이 고릅니다.", "", ticket ? "<#ffcc55>▶ 클릭해서 사용" : "<dark_gray>보스나 시작 보급에서 얻습니다.")));
-        inv.setItem(22, Items.icon(Material.BOOK, "<white>내 증강 보기", List.of("<gray>지금까지 얻은 증강 목록")));
-        fill(inv, tier.pane);
-        p.openInventory(inv);
-    }
-
-    private String line(Player p, String itemId, int need, String name) {
-        int have = Items.count(p, it -> itemId.equals(Items.tag(it, kr.augsky.Keys.ITEM)));
-        return (have >= need ? "<#7cff8c>✔ " : "<#ff7070>✘ ") + "<white>" + name + " <gray>×" + need + " <dark_gray>(보유 " + have + ")";
-    }
-
-    private static String korean(Material m) {
-        return switch (m) {
-            case GOLD_INGOT -> "금 주괴";
-            case GOLD_BLOCK -> "금 블록";
-            case IRON_INGOT -> "철 주괴";
-            case DIAMOND -> "다이아몬드";
-            case EMERALD -> "에메랄드";
-            case LAPIS_LAZULI -> "청금석";
-            case REDSTONE -> "레드스톤";
-            case AMETHYST_SHARD -> "자수정 조각";
-            default -> m.name().toLowerCase();
-        };
+        if (altarId != null) plugin.altars().consume(altarId, p);
+        kr.augsky.util.Fx.sound(p.getLocation(), "block.beacon.activate", 1f, 1.4f);
+        p.getWorld().spawnParticle(org.bukkit.Particle.ENCHANT, p.getLocation().add(0, 1.5, 0), 80, 0.8, 0.8, 0.8, 1);
+        openChoice(p);
+        return true;
     }
 
     // ------------------------------------------------------------------ 선택
@@ -145,7 +96,7 @@ public final class Menus implements Listener {
     public void openChoice(Player p) {
         PlayerData d = aug().data(p);
         if (!d.hasOffer()) {
-            p.sendMessage(Text.mm("<gray>고를 증강이 없습니다. 제단에 제물을 바치세요."));
+            p.sendMessage(Text.mm("<gray>고를 증강이 없습니다. 아직 쓰지 않은 제단을 찾아 우클릭하세요. <white>/증강 제단"));
             return;
         }
         Tier tier = d.offerTier;
@@ -157,9 +108,20 @@ public final class Menus implements Listener {
             if (def == null) continue;
             inv.setItem(slots[i], card(def, d.stacks(def.id()), true));
         }
-        inv.setItem(22, Items.icon(d.rerolls > 0 ? Material.ENDER_EYE : Material.GRAY_DYE,
-                d.rerolls > 0 ? "<#9ad8ff>다시 뽑기" : "<gray>다시 뽑기 없음",
-                List.of("<gray>남은 횟수: <white>" + d.rerolls, "", d.rerolls > 0 ? "<#ffcc55>▶ 클릭" : "<dark_gray>이번에는 다시 뽑을 수 없습니다")));
+        int shardCost = aug().rerollShards();
+        int shards = Items.count(p, it -> "shard".equals(Items.tag(it, kr.augsky.Keys.ITEM)));
+        if (d.rerolls > 0) {
+            inv.setItem(22, Items.icon(Material.ENDER_EYE, "<#9ad8ff>다시 뽑기 <gray>(무료)",
+                    List.of("<gray>남은 무료 횟수: <white>" + d.rerolls, "", "<#ffcc55>▶ 클릭")));
+        } else if (shardCost > 0) {
+            boolean can = shards >= shardCost;
+            inv.setItem(22, Items.icon(can ? Material.ENDER_EYE : Material.GRAY_DYE,
+                    can ? "<#9ad8ff>다시 뽑기 <gray>(증강 파편 " + shardCost + "개)" : "<gray>다시 뽑기 <dark_gray>(증강 파편 " + shardCost + "개)",
+                    List.of("<gray>무료 횟수를 다 썼습니다.", "<gray>증강 파편 " + shardCost + "개로 한 번 더 뽑습니다. <dark_gray>(보유 " + shards + ")",
+                            "", can ? "<#ffcc55>▶ 클릭" : "<#ff7070>증강 파편이 부족합니다")));
+        } else {
+            inv.setItem(22, Items.icon(Material.GRAY_DYE, "<gray>다시 뽑기 없음", List.of("<dark_gray>이번에는 다시 뽑을 수 없습니다")));
+        }
         inv.setItem(4, Items.icon(Material.NETHER_STAR, tier.wrap("하나를 고르세요"),
                 List.of("<gray>창을 닫아도 선택지는 남아 있습니다.", "<gray>다시 열기: <white>/증강 선택")));
         fill(inv, tier.pane);
@@ -245,6 +207,28 @@ public final class Menus implements Listener {
         p.openInventory(inv);
     }
 
+    /** 갑옷 도감: 세트마다 한 줄(세로)로 투구, 갑옷, 각반, 신발, 세트 효과. */
+    public void openArmor(Player p) {
+        Holder h = new Holder(Kind.ARMOR, null, 0);
+        var sets = new ArrayList<>(plugin.armor().all().values());
+        Inventory inv = create(h, 54, "<#ffcc55>갑옷 도감 <dark_gray>(" + sets.size() + "세트)");
+        var slots = kr.augsky.armor.ArmorService.Slot.values();
+        for (int c = 0; c < 9 && c < sets.size(); c++) {
+            var s = sets.get(c);
+            for (int r = 0; r < 4; r++) {
+                inv.setItem(r * 9 + c, plugin.armor().create(s.id(), slots[r]));
+            }
+            List<String> info = new ArrayList<>(plugin.armor().describe(s.id()));
+            info.add("");
+            info.add("<#8a8a9a>▸ " + s.source());
+            if (p.hasPermission("augsky.admin")) info.add("<#ffcc55>관리자: 클릭하면 한 벌 받습니다");
+            inv.setItem(4 * 9 + c, Items.icon(Material.BOOK, s.colored(s.name() + " 세트"), info));
+            h.slotIds.add(s.id());
+        }
+        fill(inv, Material.BLACK_STAINED_GLASS_PANE);
+        p.openInventory(inv);
+    }
+
     // ------------------------------------------------------------------ 클릭
 
     @EventHandler
@@ -255,31 +239,6 @@ public final class Menus implements Listener {
         if (e.getClickedInventory() == null || e.getClickedInventory() != e.getView().getTopInventory()) return;
         int slot = e.getSlot();
         switch (h.kind) {
-            case ALTAR -> {
-                if (slot == 11) {
-                    if (aug().roll(p, h.tier, 1, List.of()).isEmpty()) {
-                        p.sendMessage(Text.mm("<gray>더 얻을 수 있는 " + h.tier.korean + " 증강이 없습니다."));
-                        return;
-                    }
-                    AugmentService.Cost cost = aug().cost(p, h.tier);
-                    if (!aug().pay(p, cost)) {
-                        p.sendMessage(Text.mm("<#ff7070>제물이 부족합니다."));
-                        kr.augsky.util.Fx.sound(p.getLocation(), "entity.villager.no", 1, 1);
-                        return;
-                    }
-                    begin(p, h.tier);
-                } else if (slot == 15) {
-                    if (!aug().hasTicket(p, h.tier)) return;
-                    if (aug().roll(p, h.tier, 1, List.of()).isEmpty()) {
-                        p.sendMessage(Text.mm("<gray>더 얻을 수 있는 " + h.tier.korean + " 증강이 없습니다."));
-                        return;
-                    }
-                    aug().useTicket(p, h.tier);
-                    begin(p, h.tier);
-                } else if (slot == 22) {
-                    openMine(p);
-                }
-            }
             case CHOICE -> {
                 PlayerData d = aug().data(p);
                 if (!d.hasOffer()) {
@@ -294,7 +253,10 @@ public final class Menus implements Listener {
                         return;
                     }
                 }
-                if (slot == 22 && aug().reroll(p)) openChoice(p);
+                if (slot == 22) {
+                    if (aug().reroll(p)) openChoice(p);
+                    else kr.augsky.util.Fx.sound(p.getLocation(), "entity.villager.no", 1, 1);
+                }
             }
             case MINE -> {
                 if (slot == 53) openCodex(p, Tier.SILVER);
@@ -304,6 +266,14 @@ public final class Menus implements Listener {
                 if (slot == 46) openCodex(p, Tier.GOLD);
                 if (slot == 47) openCodex(p, Tier.PRISM);
             }
+            case ARMOR -> {
+                if (!p.hasPermission("augsky.admin")) return;
+                int c = slot % 9, r = slot / 9;
+                if (c >= h.slotIds.size() || r > 4) return;
+                var slots = kr.augsky.armor.ArmorService.Slot.values();
+                if (r < 4) Items.give(p, plugin.armor().create(h.slotIds.get(c), slots[r]));
+                else for (var sl : slots) Items.give(p, plugin.armor().create(h.slotIds.get(c), sl));
+            }
             case WEAPONS -> {
                 if (slot == 45) openWeapons(p, h.page - 1);
                 else if (slot == 53) openWeapons(p, h.page + 1);
@@ -312,25 +282,6 @@ public final class Menus implements Listener {
                 }
             }
         }
-    }
-
-    private void begin(Player p, Tier tier) {
-        if (!aug().startOffer(p, tier)) {
-            p.sendMessage(Text.mm("<gray>더 얻을 수 있는 " + tier.korean + " 증강이 없습니다. 제물은 돌려드립니다."));
-            refund(p, tier);
-            p.closeInventory();
-            return;
-        }
-        kr.augsky.util.Fx.sound(p.getLocation(), "block.beacon.activate", 1f, 1.4f);
-        p.getWorld().spawnParticle(org.bukkit.Particle.ENCHANT, p.getLocation().add(0, 1.5, 0), 80, 0.8, 0.8, 0.8, 1);
-        openChoice(p);
-    }
-
-    private void refund(Player p, Tier tier) {
-        AugmentService.Cost c = aug().cost(p, tier);
-        if (c.shards() > 0) Items.give(p, plugin.items().create("shard", c.shards()));
-        if (c.crystals() > 0) Items.give(p, plugin.items().create("prism_crystal", c.crystals()));
-        for (Map.Entry<Material, Integer> en : c.items().entrySet()) Items.give(p, new ItemStack(en.getKey(), en.getValue()));
     }
 
     @EventHandler

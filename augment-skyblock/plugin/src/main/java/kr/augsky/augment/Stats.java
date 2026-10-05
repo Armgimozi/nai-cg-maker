@@ -47,7 +47,13 @@ public final class Stats {
     }
 
     public static Stats compute(Map<String, Integer> owned, AugmentRegistry reg) {
+        return compute(owned, reg, List.of());
+    }
+
+    /** extra: 갑옷 세트 효과처럼 증강이 아닌 곳에서 오는 효과 (한 번씩 더한다). */
+    public static Stats compute(Map<String, Integer> owned, AugmentRegistry reg, List<AugmentDef.Effect> extra) {
         Stats st = new Stats();
+        for (AugmentDef.Effect ef : extra) st.add(ef, 1);
         for (Map.Entry<String, Integer> en : owned.entrySet()) {
             AugmentDef def = reg.get(en.getKey());
             if (def == null) continue;

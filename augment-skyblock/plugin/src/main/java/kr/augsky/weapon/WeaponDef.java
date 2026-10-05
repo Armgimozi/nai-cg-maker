@@ -27,6 +27,10 @@ public record WeaponDef(
         P recipe,
         boolean droppable
 ) {
+    public boolean isBow() {
+        return "bow".equals(type);
+    }
+
     public static String typeName(String type) {
         return switch (type) {
             case "sword" -> "검";
@@ -39,6 +43,7 @@ public record WeaponDef(
             case "scythe" -> "낫";
             case "staff" -> "지팡이";
             case "wand" -> "마법봉";
+            case "bow" -> "활";
             default -> type;
         };
     }

@@ -41,6 +41,7 @@ public final class PlayerDataStore {
         d.soul = y.getDouble("soul", 0);
         d.starterGiven = y.getBoolean("starter-given", false);
         d.picks = y.getInt("picks", 0);
+        d.usedAltars.addAll(y.getStringList("used-altars"));
         Tier t = Tier.parse(y.getString("offer.tier"));
         if (t != null) {
             d.offerTier = t;
@@ -57,6 +58,7 @@ public final class PlayerDataStore {
         y.set("soul", d.soul);
         y.set("starter-given", d.starterGiven);
         y.set("picks", d.picks);
+        if (!d.usedAltars.isEmpty()) y.set("used-altars", new java.util.ArrayList<>(d.usedAltars));
         if (d.hasOffer()) {
             y.set("offer.tier", d.offerTier.name());
             y.set("offer.options", d.offer);

@@ -388,7 +388,8 @@ def paint(mat, l, s, p, element, lv, rnd):
     return (255, 0, 255, 255)
 
 
-def render_weapon(wtype, element, look, seed):
+def render_weapon(wtype, element, look, seed, halo=True, layers=None):
+    """무기 그림(32x32). layers 에 dict 를 주면 픽셀별 재료(mats)와 외곽선 픽셀(outline)을 담아 준다 (3D 용)."""
     lv = look
     p = PALETTES.get(element, PALETTES["iron"])
     shape = SHAPES.get(wtype, shape_sword)
@@ -404,6 +405,7 @@ def render_weapon(wtype, element, look, seed):
                 img.putpixel((x, y), paint(m, l, s, p, element, lv, rnd))
     # 외곽선 (4방향)
     ol = p["outline"]
+    outl = set()
     for y in range(S):
         for x in range(S):
             if (x, y) in mats:
@@ -411,14 +413,19 @@ def render_weapon(wtype, element, look, seed):
             for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
                 if (x + dx, y + dy) in mats:
                     img.putpixel((x, y), ol)
+                    outl.add((x, y))
                     break
+    if layers is not None:
+        layers.update(mats=mats, outline=outl, palette=p)
     # 등급 장식: 반짝임
     if lv >= 3:
         cands = [k for k, v in mats.items() if v[0] in ("blade", "edge", "ridge", "orb")]
         rnd.shuffle(cands)
         for (x, y) in cands[: 3 + lv]:
             img.putpixel((x, y), (255, 255, 255, 255))
-        # 날 주변 빛 번짐(반투명)
+        # 날 주변 빛 번짐(반투명). 3D 에서는 따로 아우라를 붙이므로 뺀다
+        if not halo:
+            return img
         glow = p["glow"]
         for y in range(S):
             for x in range(S):
@@ -529,24 +536,6 @@ def draw_essence(colors):
     return img
 
 
-def draw_summon(colors):
-    img = item_canvas()
-    dark, mid, light, hi = colors
-    d = ImageDraw.Draw(img)
-    stone = [hexc("#3a3a44"), hexc("#5a5a68"), hexc("#7c7c8c")]
-    d.ellipse([2, 2, 13, 13], fill=stone[1])
-    d.ellipse([2, 2, 11, 11], fill=stone[2])
-    d.ellipse([4, 4, 13, 13], fill=stone[1])
-    # 빛나는 룬
-    rune = [(8, 4), (8, 11), (5, 6), (11, 6), (6, 10), (10, 10)]
-    d.line([rune[0], rune[1]], fill=light)
-    d.line([rune[2], (8, 8), rune[3]], fill=mid)
-    d.line([rune[4], (8, 8), rune[5]], fill=mid)
-    img.putpixel((8, 8), hi)
-    outline(img, hexc("#14141a"))
-    return img
-
-
 ITEM_ART = {
     "shard": lambda: draw_shard([hexc("#3a1a5a"), hexc("#8a4ad8"), hexc("#c89aff"), hexc("#ffffff")]),
     "prism_crystal": draw_prism_crystal,
@@ -556,9 +545,6 @@ ITEM_ART = {
     "essence_frost": lambda: draw_essence([hexc("#1e4a7a"), hexc("#4aa0e0"), hexc("#a8e8ff"), hexc("#ffffff")]),
     "essence_flame": lambda: draw_essence([hexc("#6a1a06"), hexc("#e0450f"), hexc("#ffae3a"), hexc("#fff2a0")]),
     "essence_void": lambda: draw_essence([hexc("#1a0a3a"), hexc("#6a2ac8"), hexc("#c08aff"), hexc("#ffffff")]),
-    "summon_frost": lambda: draw_summon([hexc("#1e4a7a"), hexc("#4aa0e0"), hexc("#a8e8ff"), hexc("#ffffff")]),
-    "summon_flame": lambda: draw_summon([hexc("#6a1a06"), hexc("#e0450f"), hexc("#ffae3a"), hexc("#fff2a0")]),
-    "summon_void": lambda: draw_summon([hexc("#1a0a3a"), hexc("#6a2ac8"), hexc("#c08aff"), hexc("#ffffff")]),
 }
 
 
@@ -582,9 +568,96 @@ def write_json(path, data):
         json.dump(data, f, ensure_ascii=False, indent=2)
 
 
+ART = os.path.join(HERE, "art")
+BOSS_ART = {"boss_frost": "frost_tyrant", "boss_flame": "inferno_colossus", "boss_void": "void_sovereign"}
+ARMOR_ART = ["armor_a", "armor_b"]
+CATALOG = os.path.join(DIST, "catalog")
+
+
+def load_art(name):
+    """pack/art/<name>.py (보스·갑옷 그림 모듈)을 불러온다. 없으면 None."""
+    import importlib.util
+    path = os.path.join(ART, name + ".py")
+    if not os.path.exists(path):
+        return None
+    for d in (HERE, ART):
+        if d not in sys.path:
+            sys.path.insert(0, d)
+    spec = importlib.util.spec_from_file_location("art_" + name, path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def build_bosses(a):
+    """보스 모델 조각을 쓰고, 플러그인이 읽을 rigs.yml 을 만든다."""
+    rigs = {}
+    for mod_name, boss in BOSS_ART.items():
+        mod = load_art(mod_name)
+        if mod is None:
+            print("보스 그림 모듈이 없음:", mod_name)
+            continue
+        spec = mod.build(a)
+        rigs[spec.get("boss", boss)] = {"parts": spec["parts"]}
+        print(f"보스 {boss}: 조각 {len(spec['parts'])}개")
+    with open(os.path.join(RES, "rigs.yml"), "w", encoding="utf-8") as f:
+        f.write("# 보스 3D 모델 조각 (pack/gen_pack.py 가 pack/art/boss_*.py 로 만든다. 직접 고치지 말 것)\n")
+        class NoAlias(yaml.SafeDumper):
+            def ignore_aliases(self, data):
+                return True
+        yaml.dump(rigs, f, Dumper=NoAlias, allow_unicode=True, sort_keys=False, default_flow_style=None)
+    return rigs
+
+
+def build_armor(a, armor):
+    """갑옷: 그림 모듈이 투구 3D 모델과 장비 텍스처, 아이콘을 그리고, 여기서 장비/아이템 정의를 쓴다."""
+    for name in ARMOR_ART:
+        try:
+            mod = load_art(name)
+            if mod is None:
+                print("갑옷 그림 모듈이 없음:", name)
+                continue
+            mod.build(a)
+        except Exception as ex:  # 그림 모듈 하나가 깨져도 팩 전체는 만든다
+            import traceback
+            traceback.print_exc()
+            print("갑옷 그림 모듈 실패:", name, ex)
+    for sid in armor:
+        write_json(os.path.join(a, "equipment", sid + ".json"), {"layers": {
+            "humanoid": [{"texture": f"{NS}:{sid}"}],
+            "humanoid_leggings": [{"texture": f"{NS}:{sid}"}],
+        }})
+        for slot in ("chestplate", "leggings", "boots"):
+            tex = os.path.join(a, "textures", "item", "armor", f"{sid}_{slot}.png")
+            if not os.path.exists(tex):
+                print("갑옷 아이콘이 없음:", tex)
+            write_json(os.path.join(a, "models", "item", "armor", f"{sid}_{slot}.json"),
+                       {"parent": "minecraft:item/generated", "textures": {"layer0": f"{NS}:item/armor/{sid}_{slot}"}})
+            write_json(os.path.join(a, "items", "armor", f"{sid}_{slot}.json"),
+                       {"model": {"type": "minecraft:model", "model": f"{NS}:item/armor/{sid}_{slot}"}})
+        for kind in ("humanoid", "humanoid_leggings"):
+            tex = os.path.join(a, "textures", "entity", "equipment", kind, sid + ".png")
+            if not os.path.exists(tex):
+                print("갑옷 텍스처가 없음:", tex)
+        if not os.path.exists(os.path.join(a, "items", "armor", f"{sid}_helmet.json")):
+            print("투구 모델이 없음:", sid)
+
+
+def write_atlas_sources(a):
+    """textures/item, block 밖의 폴더(boss/ 등)도 블록 아틀라스에 넣어야 아이템 모델에서 쓸 수 있다."""
+    tex = os.path.join(a, "textures")
+    dirs = sorted(d for d in os.listdir(tex) if os.path.isdir(os.path.join(tex, d)) and d not in ("item", "block", "entity"))
+    if dirs:
+        write_json(os.path.join(OUT, "assets", "minecraft", "atlases", "blocks.json"),
+                   {"sources": [{"type": "directory", "source": d, "prefix": d + "/"} for d in dirs]})
+
+
 def main():
+    import weapons3d
+    from mc3d import render
     weapons = yaml.safe_load(open(os.path.join(RES, "weapons.yml"), encoding="utf-8"))
     items = yaml.safe_load(open(os.path.join(RES, "items.yml"), encoding="utf-8"))
+    armor = yaml.safe_load(open(os.path.join(RES, "armor.yml"), encoding="utf-8"))
     if os.path.exists(OUT):
         shutil.rmtree(OUT)
     a = os.path.join(OUT, "assets", NS)
@@ -594,22 +667,17 @@ def main():
             "supported_formats": {"min_inclusive": 46, "max_inclusive": 99},
             "min_format": 46,
             "max_format": 99,
-            "description": "증강 스카이블럭 무기와 아이템",
+            "description": "증강 스카이블럭 무기, 갑옷, 보스",
         }
     })
     pack_icon().save(os.path.join(OUT, "pack.png"))
+    os.makedirs(os.path.join(CATALOG, "weapons"), exist_ok=True)
 
     rendered = []
     for wid, w in weapons.items():
-        look = w.get("look", POOL_LOOK.get(w.get("pool", "basic"), 0))
-        img = render_weapon(w.get("type", "sword"), w.get("element", "iron"), look, wid)
-        tex = os.path.join(a, "textures", "item", wid + ".png")
-        os.makedirs(os.path.dirname(tex), exist_ok=True)
-        img.save(tex)
-        write_json(os.path.join(a, "models", "item", wid + ".json"),
-                   {"parent": "minecraft:item/handheld", "textures": {"layer0": f"{NS}:item/{wid}"}})
-        write_json(os.path.join(a, "items", wid + ".json"),
-                   {"model": {"type": "minecraft:model", "model": f"{NS}:item/{wid}"}})
+        model, flat, _ = weapons3d.build_weapon(wid, w, a, POOL_LOOK)
+        img = render([(model, None)], size=192, yaw=-28, pitch=14, bg=(0, 0, 0, 0))
+        img.save(os.path.join(CATALOG, "weapons", wid + ".png"))
         rendered.append((wid, w, img))
 
     for iid in items:
@@ -618,11 +686,23 @@ def main():
             print("그림이 없는 아이템:", iid, "(종이 모양으로 대체)")
             art = lambda: draw_ticket(hexc("#888888"), hexc("#ffffff"))
         img = art()
+        os.makedirs(os.path.join(a, "textures", "item"), exist_ok=True)
         img.save(os.path.join(a, "textures", "item", iid + ".png"))
         write_json(os.path.join(a, "models", "item", iid + ".json"),
                    {"parent": "minecraft:item/generated", "textures": {"layer0": f"{NS}:item/{iid}"}})
         write_json(os.path.join(a, "items", iid + ".json"),
                    {"model": {"type": "minecraft:model", "model": f"{NS}:item/{iid}"}})
+
+    if "--no-art" not in sys.argv:
+        build_bosses(a)
+        build_armor(a, armor)
+    write_atlas_sources(a)
+    # 스스로 빛나는 픽셀(알파 252/251/250)을 위한 셰이더
+    shd = os.path.join(OUT, "assets", "minecraft", "shaders", "core")
+    os.makedirs(shd, exist_ok=True)
+    for f in os.listdir(os.path.join(HERE, "shaders")):
+        if f.endswith((".vsh", ".fsh")):
+            shutil.copy(os.path.join(HERE, "shaders", f), os.path.join(shd, f))
 
     # zip
     os.makedirs(DIST, exist_ok=True)
@@ -638,7 +718,7 @@ def main():
                     with open(full, "rb") as fh:
                         z.writestr(zi, fh.read())
     preview(rendered, items)
-    print(f"무기 {len(rendered)}종, 아이템 {len(items)}종 → {zips[0]}")
+    print(f"무기 {len(rendered)}종, 아이템 {len(items)}종, 갑옷 {len(armor)}세트 → {zips[0]}")
 
 
 ELEMENT_COLOR = {
@@ -682,8 +762,8 @@ def preview(rendered, items):
             cy = y + (i // cols) * cell_h
             col = ELEMENT_COLOR.get(w.get("element"), "#d8d8d8")
             d.rounded_rectangle([cx + 4, cy + 4, cx + cell_w - 4, cy + cell_h - 4], radius=8, fill=hexc("#221f2c"), outline=hexc(col), width=2)
-            big = img.resize((96, 96), Image.NEAREST)
-            sheet.alpha_composite(big, (cx + (cell_w - 96) // 2, cy + 10))
+            big = img.resize((104, 104), Image.LANCZOS)
+            sheet.alpha_composite(big, (cx + (cell_w - 104) // 2, cy + 8))
             label = w.get("name", wid) if font_path else wid
             tw = d.textlength(label, font=f_name)
             d.text((cx + (cell_w - tw) / 2, cy + 116), label, font=f_name, fill=hexc(col))

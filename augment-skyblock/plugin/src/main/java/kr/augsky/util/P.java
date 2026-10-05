@@ -69,6 +69,17 @@ public final class P {
         return null;
     }
 
+    public List<Double> doubles(String k) {
+        Object o = m.get(k);
+        List<Double> out = new ArrayList<>();
+        if (o instanceof List<?> l) {
+            for (Object x : l) if (x instanceof Number n) out.add(n.doubleValue());
+        } else if (o instanceof Number n) {
+            out.add(n.doubleValue());
+        }
+        return out;
+    }
+
     public List<String> strings(String k) {
         Object o = m.get(k);
         List<String> out = new ArrayList<>();

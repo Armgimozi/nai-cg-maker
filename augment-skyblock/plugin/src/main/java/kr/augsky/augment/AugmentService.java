@@ -65,8 +65,13 @@ public final class AugmentService {
 
     public Stats stats(Player p) {
         PlayerData d = data(p);
-        if (d.stats == null) d.stats = Stats.compute(d.augments, registry);
+        if (d.stats == null) d.stats = Stats.compute(d.augments, registry, extra(p));
         return d.stats;
+    }
+
+    /** 증강 말고 수치에 더해지는 것: 갑옷 세트 효과. */
+    private List<AugmentDef.Effect> extra(Player p) {
+        return plugin.armor() == null ? List.of() : plugin.armor().bonusEffects(p);
     }
 
     // ------------------------------------------------------------------ 적용
@@ -74,7 +79,7 @@ public final class AugmentService {
     /** 증강이 바뀌었을 때: 수치 다시 계산, 속성/포션 다시 적용. */
     public void refresh(Player p) {
         PlayerData d = data(p);
-        d.stats = Stats.compute(d.augments, registry);
+        d.stats = Stats.compute(d.augments, registry, extra(p));
         applyAttributes(p, d);
         applyPotions(p, d.stats, true);
     }
@@ -264,9 +269,17 @@ public final class AugmentService {
         return true;
     }
 
+    /** 다시 뽑기에 드는 증강 파편 수 (무료 횟수를 다 쓴 뒤). */
+    public int rerollShards() {
+        return Math.max(0, plugin.getConfig().getInt("altar.reroll-shards", 3));
+    }
+
     public boolean reroll(Player p) {
         PlayerData d = data(p);
-        if (!d.hasOffer() || d.rerolls <= 0) return false;
+        if (!d.hasOffer()) return false;
+        boolean free = d.rerolls > 0;
+        int shards = rerollShards();
+        if (!free && (shards <= 0 || Items.count(p, it -> "shard".equals(Items.tag(it, Keys.ITEM))) < shards)) return false;
         // 지금 보이는 것들은 빼고 다시 뽑되, 남은 게 모자라면 다시 섞어서라도 채운다
         List<String> fresh = roll(p, d.offerTier, d.offer.size(), d.offer);
         if (fresh.size() < d.offer.size()) {
@@ -274,9 +287,10 @@ public final class AugmentService {
             fresh.addAll(more);
         }
         if (fresh.isEmpty()) return false;
+        if (free) d.rerolls--;
+        else Items.take(p, it -> "shard".equals(Items.tag(it, Keys.ITEM)), shards);
         d.offer.clear();
         d.offer.addAll(fresh);
-        d.rerolls--;
         store.save(d);
         Fx.sound(p.getLocation(), "block.enchantment_table.use", 1f, 1.3f);
         return true;
@@ -291,55 +305,7 @@ public final class AugmentService {
         return grant(p, id, true);
     }
 
-    // ------------------------------------------------------------------ 비용
-
-    public record Cost(int shards, int crystals, Map<Material, Integer> items) {
-        public boolean free() {
-            return shards <= 0 && crystals <= 0 && items.isEmpty();
-        }
-    }
-
-    public Cost cost(Player p, Tier tier) {
-        ConfigurationSection c = plugin.getConfig().getConfigurationSection("altar.cost." + tier.name());
-        if (c == null) return new Cost(0, 0, Map.of());
-        int owned = data(p).owned(tier, registry);
-        double discount = Math.min(0.6, stats(p).get("altar_discount.amount"));
-        int shards = (int) Math.ceil((c.getInt("shards", 0) + c.getInt("shards-per-owned", 0) * owned) * (1 - discount));
-        int crystals = c.getInt("crystals", 0) + c.getInt("crystals-per-owned", 0) * owned;
-        if (discount >= 0.3 && crystals > 1) crystals -= 1;
-        Map<Material, Integer> items = new LinkedHashMap<>();
-        ConfigurationSection it = c.getConfigurationSection("items");
-        if (it != null) {
-            for (String k : it.getKeys(false)) {
-                Material m = Material.matchMaterial(k);
-                if (m == null) continue;
-                int n = (int) Math.ceil(it.getInt(k) * (1 - discount));
-                if (n > 0) items.put(m, n);
-            }
-        }
-        return new Cost(shards, crystals, items);
-    }
-
-    public boolean canPay(Player p, Cost cost) {
-        if (Items.count(p, it -> "shard".equals(Items.tag(it, Keys.ITEM))) < cost.shards()) return false;
-        if (Items.count(p, it -> "prism_crystal".equals(Items.tag(it, Keys.ITEM))) < cost.crystals()) return false;
-        for (Map.Entry<Material, Integer> en : cost.items().entrySet()) {
-            Material m = en.getKey();
-            if (Items.count(p, it -> it.getType() == m && !Items.isCustom(it)) < en.getValue()) return false;
-        }
-        return true;
-    }
-
-    public boolean pay(Player p, Cost cost) {
-        if (!canPay(p, cost)) return false;
-        Items.take(p, it -> "shard".equals(Items.tag(it, Keys.ITEM)), cost.shards());
-        Items.take(p, it -> "prism_crystal".equals(Items.tag(it, Keys.ITEM)), cost.crystals());
-        for (Map.Entry<Material, Integer> en : cost.items().entrySet()) {
-            Material m = en.getKey();
-            Items.take(p, it -> it.getType() == m && !Items.isCustom(it), en.getValue());
-        }
-        return true;
-    }
+    // ------------------------------------------------------------------ 증강권
 
     public static String ticketId(Tier t) {
         return "ticket_" + t.name().toLowerCase();
