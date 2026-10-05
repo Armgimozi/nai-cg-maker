@@ -25,6 +25,11 @@
   mirror()                     오른쪽(X>0)을 왼쪽에 그대로 복사
 
 build(name, assets_root) 는 텍스처와 모델(item/<name>.json), 아이템 정의(items/<name>.json)를 쓰고 Model 을 돌려준다.
+
+보스 조각과 투구도 같은 방식으로 쌓는다 (맨 아래 '보스 조각, 투구' 참고)
+  part(mats, size, vox)   보스 조각: 설계 원점 = 회전 중심 = 모델 (8,8,8). build("boss/<보스>_<조각>", ...)
+  helmet(mats)            3D 투구: 1 복셀 = 스킨 1픽셀, 머리는 -4..4, 얼굴은 -Z. build("armor/<세트>_helmet", ...)
+  helmet_preview(model, png), rig_preview(spec, {id: model}, png, 제목)  미리보기
 """
 import colorsys
 import json
@@ -208,18 +213,8 @@ class AuraMat(Mat):
 
 # ─────────────────────────── 무기 ───────────────────────────
 
-def _coords():
-    xs = np.arange(W) + 0.5 - CX
-    ys = np.arange(H) + 0.5
-    zs = np.arange(D) + 0.5 - CZ
-    return np.meshgrid(xs, ys, zs, indexing="ij")
-
-
-_XX, _YY, _ZZ = _coords()
-
-
 class Weapon:
-    def __init__(self, mats, grip_y=6.0, kind="sword", seed=0, grip_x=0.0):
+    def __init__(self, mats, grip_y=6.0, kind="sword", seed=0, grip_x=0.0, grid=None, pivot=None, vox=None):
         """
         mats: {"이름": Mat}
         grip_y: 손에 쥐는 높이 (설계 Y, 손잡이 가운데)
@@ -227,7 +222,19 @@ class Weapon:
         """
         self.mats = dict(mats)
         self.names = list(self.mats)
-        self.grid = np.zeros((W, H, D), dtype=np.int16)
+        # 격자 크기와 원점. 무기는 기본값(가운데 선, 맨 아래가 Y=0). 부품은 pivot(회전 중심)이 설계 원점이 된다
+        self.W, self.H, self.D = grid or (W, H, D)
+        self.VOX = vox or VOX
+        if pivot is None:
+            self.CX, self.CY, self.CZ, self.Y0 = self.W // 2, 0, self.D // 2, Y0
+        else:
+            self.CX, self.CY, self.CZ = pivot
+            self.Y0 = 8.0   # 설계 원점(pivot)이 모델 (8, 8, 8)
+        xs = np.arange(self.W) + 0.5 - self.CX
+        ys = np.arange(self.H) + 0.5 - self.CY
+        zs = np.arange(self.D) + 0.5 - self.CZ
+        self._X, self._Y, self._Z = np.meshgrid(xs, ys, zs, indexing="ij")
+        self.grid = np.zeros((self.W, self.H, self.D), dtype=np.int16)
         self.grip_y = grip_y
         self.grip_x = grip_x
         self.kind = kind
@@ -244,12 +251,12 @@ class Weapon:
         return self.names.index(mat) + 1
 
     def fill(self, fn, mat):
-        m = fn(_XX, _YY, _ZZ)
+        m = fn(self._X, self._Y, self._Z)
         self.grid[np.asarray(m, dtype=bool)] = self._id(mat)
         return self
 
     def clear(self, fn):
-        self.grid[np.asarray(fn(_XX, _YY, _ZZ), dtype=bool)] = 0
+        self.grid[np.asarray(fn(self._X, self._Y, self._Z), dtype=bool)] = 0
         return self
 
     def box(self, x0, x1, y0, y1, z0, z1, mat):
@@ -326,7 +333,7 @@ class Weapon:
             t = i / n
             r = radius(t) if callable(radius) else radius
             rzz = (rz_(t) if callable(rz_) else rz_) if rz_ is not None else r
-            mask |= ((_XX - p[0]) / max(r, 0.3)) ** 2 + ((_YY - p[1]) / max(r, 0.3)) ** 2 + ((_ZZ - p[2]) / max(rzz, 0.3)) ** 2 <= 1
+            mask |= ((self._X - p[0]) / max(r, 0.3)) ** 2 + ((self._Y - p[1]) / max(r, 0.3)) ** 2 + ((self._Z - p[2]) / max(rzz, 0.3)) ** 2 <= 1
         self.grid[mask] = self._id(mat)
         return self
 
@@ -339,8 +346,8 @@ class Weapon:
 
     def mirror(self):
         """오른쪽(X>0)을 왼쪽으로 복사한다."""
-        right = self.grid[CX:, :, :]
-        self.grid[:CX, :, :] = right[::-1, :, :]
+        for i in range(min(self.CX, self.W - self.CX)):
+            self.grid[self.CX - 1 - i, :, :] = self.grid[self.CX + i, :, :]
         return self
 
     def set_aura(self, colors, style="flame", size=1.0, focus=None, shell=False):
@@ -411,22 +418,22 @@ class Weapon:
     def _mesh(self, model, cells, g, opaque):
         used = np.zeros_like(g, dtype=bool)
         filled = opaque
-        for z in range(D):
-            for y in range(H):
-                for x in range(W):
+        for z in range(self.D):
+            for y in range(self.H):
+                for x in range(self.W):
                     m = g[x, y, z]
                     if m == 0 or used[x, y, z]:
                         continue
                     # 16 경계를 넘지 않게 (텍스처 픽셀을 복셀에 딱 맞추려고)
                     xe, ye, ze = (x // 16 + 1) * 16, (y // 16 + 1) * 16, (z // 16 + 1) * 16
                     x1 = x
-                    while x1 + 1 < min(W, xe) and g[x1 + 1, y, z] == m and not used[x1 + 1, y, z]:
+                    while x1 + 1 < min(self.W, xe) and g[x1 + 1, y, z] == m and not used[x1 + 1, y, z]:
                         x1 += 1
                     y1 = y
-                    while y1 + 1 < min(H, ye) and np.all(g[x:x1 + 1, y1 + 1, z] == m) and not used[x:x1 + 1, y1 + 1, z].any():
+                    while y1 + 1 < min(self.H, ye) and np.all(g[x:x1 + 1, y1 + 1, z] == m) and not used[x:x1 + 1, y1 + 1, z].any():
                         y1 += 1
                     z1 = z
-                    while z1 + 1 < min(D, ze) and np.all(g[x:x1 + 1, y:y1 + 1, z1 + 1] == m) and not used[x:x1 + 1, y:y1 + 1, z1 + 1].any():
+                    while z1 + 1 < min(self.D, ze) and np.all(g[x:x1 + 1, y:y1 + 1, z1 + 1] == m) and not used[x:x1 + 1, y:y1 + 1, z1 + 1].any():
                         z1 += 1
                     used[x:x1 + 1, y:y1 + 1, z:z1 + 1] = True
                     self._emit(model, cells, m, x, y, z, x1, y1, z1, filled)
@@ -442,15 +449,15 @@ class Weapon:
 
         faces = {}
         bx, by, bz = slice(x0, x1 + 1), slice(y0, y1 + 1), slice(z0, z1 + 1)
-        if z1 + 1 >= D or exposed((bx, by, z1 + 1)):
+        if z1 + 1 >= self.D or exposed((bx, by, z1 + 1)):
             faces["south"] = (x0, x1 + 1, y0, y1 + 1, "xy", False)
         if z0 - 1 < 0 or exposed((bx, by, z0 - 1)):
             faces["north"] = (x0, x1 + 1, y0, y1 + 1, "xy", True)
-        if x1 + 1 >= W or exposed((x1 + 1, by, bz)):
+        if x1 + 1 >= self.W or exposed((x1 + 1, by, bz)):
             faces["east"] = (z0, z1 + 1, y0, y1 + 1, "zy", True)
         if x0 - 1 < 0 or exposed((x0 - 1, by, bz)):
             faces["west"] = (z0, z1 + 1, y0, y1 + 1, "zy", False)
-        if y1 + 1 >= H or exposed((bx, y1 + 1, bz)):
+        if y1 + 1 >= self.H or exposed((bx, y1 + 1, bz)):
             faces["up"] = (x0, x1 + 1, z0, z1 + 1, "xz", False)
         if y0 - 1 < 0 or exposed((bx, y0 - 1, bz)):
             faces["down"] = (x0, x1 + 1, z0, z1 + 1, "xz", False)
@@ -469,8 +476,8 @@ class Weapon:
                 u0, u1 = u1, u0
             uv = [round((reg.x + u0) * s, 4), round((reg.y + v0) * s, 4), round((reg.x + u1) * s, 4), round((reg.y + v1) * s, 4)]
             out[f] = (key, uv)
-        frm = (8 + (x0 - CX) * VOX, Y0 + y0 * VOX, 8 + (z0 - CZ) * VOX)
-        to = (8 + (x1 + 1 - CX) * VOX, Y0 + (y1 + 1) * VOX, 8 + (z1 + 1 - CZ) * VOX)
+        frm = (8 + (x0 - self.CX) * self.VOX, self.Y0 + (y0 - self.CY) * self.VOX, 8 + (z0 - self.CZ) * self.VOX)
+        to = (8 + (x1 + 1 - self.CX) * self.VOX, self.Y0 + (y1 + 1 - self.CY) * self.VOX, 8 + (z1 + 1 - self.CZ) * self.VOX)
         model.box(frm, to, out, light=15 if mat.glow else 0, shade=not mat.glow)
 
     # ---- 아우라 ----
@@ -524,8 +531,8 @@ class Weapon:
         if not fm.any():
             return
         # 앞에서 본 초점 모양을 2복셀 = 1픽셀로 줄인다
-        front = fm.any(axis=2)                               # (W, H)
-        fw, fh = W // 2, H // 2
+        front = fm.any(axis=2)                               # (self.W, self.H)
+        fw, fh = self.W // 2, self.H // 2
         small = front.reshape(fw, 2, fh, 2).any(axis=(1, 3))  # (fw, fh), 1칸 = 1 모델 단위
         pts = np.argwhere(small)
         reach_max = 5.0 * size
@@ -616,7 +623,7 @@ class Weapon:
         model.atlases["f"] = _Frame(frames[0])   # 미리보기용 (첫 프레임)
         # 판 좌표 (모델 단위): 가로 u0..u1+1, 세로 v0..v1+1 (설계 1칸 = 1 모델 단위)
         xa, xb = float(8 + (u0 - fw / 2)), float(8 + (u1 + 1 - fw / 2))
-        ya, yb = float(Y0 + v0), float(Y0 + v1 + 1)
+        ya, yb = float(self.Y0 + v0), float(self.Y0 + v1 + 1)
         uvA, uvA_r = [0, 0, 8, 16], [8, 0, 0, 16]
         uvB, uvB_r = [8, 0, 16, 16], [16, 0, 8, 16]
         # 1) 앞뒤 판 (z=8)  2) 옆 판 (x=8)  3) 4) 대각선 판 (y축으로 ±45도)
@@ -626,15 +633,25 @@ class Weapon:
             model.box((xa, ya, 8), (xb, yb, 8), {"south": ("f", uv), "north": ("f", uvr)}, light=15, shade=False,
                       rotation={"origin": [8, 8, 8], "axis": "y", "angle": ang})
 
+    def _helmet_display(self):
+        lo, hi = self.bounds()
+        lo_m = [8 + (lo[0] - self.CX) * self.VOX, self.Y0 + (lo[1] - self.CY) * self.VOX, 8 + (lo[2] - self.CZ) * self.VOX]
+        hi_m = [8 + (hi[0] + 1 - self.CX) * self.VOX, self.Y0 + (hi[1] + 1 - self.CY) * self.VOX, 8 + (hi[2] + 1 - self.CZ) * self.VOX]
+        return _helmet_display_for(lo_m, hi_m)
+
     # ---- 손에 든 자세 ----
     def _display(self):
+        if self.kind == "part":
+            return {}   # 보스 조각: ItemDisplay 의 NONE 자세 그대로 (모델 (8,8,8) = 조각 위치)
+        if self.kind == "helmet":
+            return self._helmet_display()
         lo, hi = self.bounds()
-        length = (hi[1] + 1 - lo[1]) * VOX                        # 모델 단위 길이
-        width = (hi[0] + 1 - lo[0]) * VOX
+        length = (hi[1] + 1 - lo[1]) * self.VOX                        # 모델 단위 길이
+        width = (hi[0] + 1 - lo[0]) * self.VOX
         want = {"greatsword": 26, "scythe": 26, "spear": 27, "staff": 24, "hammer": 22, "axe": 21, "katana": 22,
                 "sword": 19, "dagger": 14, "wand": 16, "bow": 23}.get(self.kind, 19)
         s_hand = want / max(length, 1)
-        grip = np.array([8.0 + self.grip_x * VOX, Y0 + self.grip_y * VOX, 8.0])
+        grip = np.array([8.0 + self.grip_x * self.VOX, self.Y0 + self.grip_y * self.VOX, 8.0])
         c = np.array([8.0, 8.0, 8.0])
         # 바닐라 그림에서 손이 쥐는 곳: 칼은 왼쪽 아래, 활은 왼쪽 위 모서리
         gv = np.array([3.0, 13.0, 8.0]) if self.kind == "bow" else np.array([3.0, 3.0, 8.0])
@@ -662,7 +679,7 @@ class Weapon:
                 "firstperson_lefthand": hold([0, 90, -25], [1.13, 3.2, 1.13], 0.68, None, 0.68 * s_hand * 0.75),
             }
         # 인벤토리: 45도 눕혀 칸에 꽉 차게
-        mid = np.array([8 + ((lo[0] + hi[0] + 1) / 2 - CX) * VOX, Y0 + (lo[1] + hi[1] + 1) / 2 * VOX, 8.0])
+        mid = np.array([8 + ((lo[0] + hi[0] + 1) / 2 - self.CX) * self.VOX, self.Y0 + (lo[1] + hi[1] + 1) / 2 * self.VOX, 8.0])
         diag = (length + width) * 0.7071
         s_gui = min(1.6, 15.5 / max(diag, 1))
         r = _rot(0, 0, -45)
@@ -675,6 +692,26 @@ class Weapon:
                        "scale": [round(sg, 3)] * 3}
         d["ground"]["translation"][1] += 2
         return d
+
+
+def _helmet_display_for(lo_m, hi_m):
+    """인벤토리/땅/액자/손에 들었을 때 투구가 칸에 맞게. 머리에 쓸 때(head)는 그대로(바닐라 호박과 같은 방식)."""
+    span = max(hi_m[i] - lo_m[i] for i in range(3))
+    mid = [(lo_m[i] + hi_m[i]) / 2 for i in range(3)]
+    s = float(round(min(1.0, 15.0 / max(span, 1) * 0.72), 3))
+    def tr(scale, rot):
+        r = _rot(*rot)
+        c = np.array([8.0, 8.0, 8.0])
+        t = -(r @ (scale * (np.array(mid) - c)))
+        return [round(float(v), 3) for v in t]
+    gui_rot = [25, 145, 0]
+    return {
+        "gui": {"rotation": gui_rot, "translation": tr(s, gui_rot), "scale": [float(s)] * 3},
+        "ground": {"rotation": [0, 0, 0], "translation": [0, 3, 0], "scale": [round(s * 0.55, 3)] * 3},
+        "fixed": {"rotation": [0, 180, 0], "translation": tr(s * 1.1, [0, 180, 0]), "scale": [round(s * 1.1, 3)] * 3},
+        "thirdperson_righthand": {"rotation": [75, 45, 0], "translation": [0, 2.5, 0], "scale": [round(s * 0.6, 3)] * 3},
+        "firstperson_righthand": {"rotation": [0, 45, 0], "translation": [0, 0, 0], "scale": [round(s * 0.65, 3)] * 3},
+    }
 
 
 def _euler_xyz(R):
@@ -796,3 +833,68 @@ def preview_sheet(weapons, out_png, names=None, scratch=None, font="/tmp/claude-
     os.makedirs(os.path.dirname(out_png), exist_ok=True)
     contact_sheet(imgs, labels, cols=3, cell=300, font=font if os.path.exists(font) else None).save(out_png)
     return out_png
+
+
+
+# ─────────────────────────── 보스 조각, 투구 ───────────────────────────
+
+def part(mats, size=48, vox=1.0, seed=0):
+    """
+    보스 조각 (ItemDisplay 하나에 실리는 모델). 설계 원점이 회전 중심(pivot) = 모델 (8, 8, 8).
+    size: 격자 한 변(복셀). 회전 중심이 격자 가운데. vox: 1 복셀의 모델 단위 (1.0 이면 rig scale 1 에서 1/16 블록).
+    모델 좌표 한도(-16..32) 때문에 회전 중심에서 각 방향으로 24/vox 복셀까지만 쓸 수 있다.
+    """
+    half = size // 2
+    return Weapon(mats, kind="part", seed=seed, grid=(size, size, size), pivot=(half, half, half), vox=vox)
+
+
+_FONT = "/tmp/claude-0/work/fonts/ng.ttf"
+HELMET_VOX = 1.6   # 투구 1 복셀 = 플레이어 스킨 1픽셀 (머리에 쓸 때 0.625 배로 그려지므로 1.6 모델 단위)
+
+
+def helmet(mats, seed=0):
+    """
+    3D 투구. 설계 원점 = 머리 가운데. 1 복셀 = 스킨 1픽셀, 머리는 X,Y,Z 모두 -4..4 (8x8x8).
+    얼굴(앞)은 -Z 쪽이다 (투구는 머리에 쓸 때 뒤집혀 그려진다). 머리를 덮는 껍데기는 보통 -5..5.
+    가운데에서 각 방향으로 15 복셀까지 쓸 수 있다 (왕관, 뿔, 후광 등).
+    """
+    return Weapon(mats, kind="helmet", seed=seed, grid=(30, 30, 30), pivot=(15, 15, 15), vox=HELMET_VOX)
+
+
+def helmet_preview(model, out_png=None, skin="#c8946a", size=300):
+    """마네킹 머리(8x8x8 픽셀)에 씌운 모습: 앞(얼굴 쪽), 옆, 뒤 세 장."""
+    from mc3d import render, contact_sheet
+    head = Model("preview/head")
+    at = Atlas("preview/head", size=16)
+    reg = at.alloc(16, 16)
+    img = Image.new("RGBA", (16, 16), hexc(skin))
+    face = Image.new("RGBA", (16, 16), hexc(skin))
+    for (x, y) in ((4, 7), (5, 7), (10, 7), (11, 7)):
+        face.putpixel((x, y), (40, 30, 60, 255))
+    reg.paste(img)
+    head.use("h", at)
+    r = 4 * HELMET_VOX
+    head.box((8 - r, 8 - r, 8 - r), (8 + r, 8 + r, 8 + r), ("h", reg))
+    views = [render([(head, None), (model, None)], size=size, yaw=y, pitch=12, bg=(28, 26, 36, 255)) for y in (180 - 25, 90 + 20, 25)]
+    if out_png:
+        contact_sheet(views, ["앞(얼굴)", "옆", "뒤"], cols=3, cell=size, font=_FONT if os.path.exists(_FONT) else None).save(out_png)
+    return views
+
+
+def rig_preview(spec, models, out_png=None, title="", size=360):
+    """
+    보스 조립 미리보기. spec = {"parts": [{"id", "offset", "scale", "rotation", ...}]}, models = {id: Model}.
+    앞 3/4, 옆, 뒤 3/4. 1 블록 = 16 모델 단위 × scale.
+    """
+    from mc3d import render, mat, contact_sheet
+    parts = []
+    for p in spec["parts"]:
+        m = models.get(p["id"])
+        if m is None:
+            continue
+        rx, ry, rz = p.get("rotation", [0, 0, 0])
+        parts.append((m, mat(translate=p.get("offset", [0, 0, 0]), scale=p.get("scale", 1.0), yaw=ry, pitch=rx, roll=rz)))
+    views = [render(parts, size=size, yaw=y, pitch=p, bg=(28, 26, 36, 255)) for (y, p) in ((-35, 12), (-90, 6), (150, 12))]
+    if out_png:
+        contact_sheet(views, [f"{title} 앞", f"{title} 옆", f"{title} 뒤"], cols=3, cell=size, font=_FONT if os.path.exists(_FONT) else None).save(out_png)
+    return views

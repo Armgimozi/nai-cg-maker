@@ -569,8 +569,11 @@ def write_json(path, data):
 
 
 ART = os.path.join(HERE, "art")
-BOSS_ART = {"boss_frost": "frost_tyrant", "boss_flame": "inferno_colossus", "boss_void": "void_sovereign"}
-ARMOR_ART = ["armor_a", "armor_b"]
+# 보스: 복셀 모듈(vboss_*)이 있으면 그것을, 없으면 예전 모듈(boss_*)을 쓴다
+BOSS_ART = {"frost_tyrant": ["vboss_frost", "boss_frost"], "inferno_colossus": ["vboss_flame", "boss_flame"],
+            "void_sovereign": ["vboss_void", "boss_void"]}
+ARMOR_ART = ["armor_a", "armor_b"]        # 몸 갑옷 텍스처와 아이콘 (예전 투구 모델도 만든다)
+HELMET_ART = ["helmets_a", "helmets_b"]   # 복셀 투구 (HELMETS = {세트: 함수}) — 있으면 투구를 덮어쓴다
 CATALOG = os.path.join(DIST, "catalog")
 
 
@@ -630,10 +633,20 @@ def build_weapon_model(wid, w, a, designs):
 def build_bosses(a):
     """보스 모델 조각을 쓰고, 플러그인이 읽을 rigs.yml 을 만든다."""
     rigs = {}
-    for mod_name, boss in BOSS_ART.items():
-        mod = load_art(mod_name)
+    for boss, names in BOSS_ART.items():
+        mod = None
+        for mod_name in names:
+            try:
+                mod = load_art(mod_name)
+            except Exception as ex:
+                import traceback
+                traceback.print_exc()
+                print("보스 그림 모듈 실패:", mod_name, ex)
+                mod = None
+            if mod is not None:
+                break
         if mod is None:
-            print("보스 그림 모듈이 없음:", mod_name)
+            print("보스 그림 모듈이 없음:", boss)
             continue
         spec = mod.build(a)
         rigs[spec.get("boss", boss)] = {"parts": spec["parts"]}
@@ -660,6 +673,18 @@ def build_armor(a, armor):
             import traceback
             traceback.print_exc()
             print("갑옷 그림 모듈 실패:", name, ex)
+    for name in HELMET_ART:
+        try:
+            mod = load_art(name)
+            if mod is None:
+                continue
+            for sid, fn in getattr(mod, "HELMETS", {}).items():
+                fn().build(f"armor/{sid}_helmet", a)
+                print("복셀 투구:", sid)
+        except Exception as ex:
+            import traceback
+            traceback.print_exc()
+            print("투구 모듈 실패:", name, ex)
     for sid in armor:
         write_json(os.path.join(a, "equipment", sid + ".json"), {"layers": {
             "humanoid": [{"texture": f"{NS}:{sid}"}],
