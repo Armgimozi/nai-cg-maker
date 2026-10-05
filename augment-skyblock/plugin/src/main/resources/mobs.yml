@@ -1,0 +1,452 @@
+# ─────────────────────────────────────────────────────────────
+#  새로운 몬스터. 바닐라 몬스터를 바탕(type)으로 능력치/장비/능력을 바꾼다.
+#    abilities 의 trigger:
+#      timer     대상이 range 안에 있으면 cooldown 초마다 chance 확률로
+#      on_hit    이 몬스터가 때렸을 때      on_hurt  맞았을 때
+#      hp_below  체력이 threshold 아래로 처음 내려갔을 때 (보스 2페이즈)
+#      on_spawn / on_death
+#    drops 의 item: shard, item:<id>, weapon:<id>, pool:<얻는 곳>(그 무기들 중 하나), 바닐라 아이템 이름
+#    natural  자연 스폰된 replace 몬스터를 chance 확률로 이 몬스터로 바꾼다
+#    보스(boss: true)의 보상은 함께 싸운 플레이어 모두가 각자 받는다.
+# ─────────────────────────────────────────────────────────────
+
+mobs:
+
+  # ═════════════ 섬에 나타나는 몬스터 (자연 스폰 교체) ═════════════
+
+  moss_zombie:
+    name: "<#7bc96f>이끼 좀비"
+    type: ZOMBIE
+    health: 30
+    damage: 5
+    speed: 0.24
+    scale: 1.05
+    equipment:
+      head: MOSS_BLOCK
+      chest: "LEATHER_CHESTPLATE:#4f7a3a"
+    abilities:
+      - {skill: m_moss_heal, cooldown: 10, range: 10}
+    drops:
+      - {item: shard, chance: 0.5}
+      - {item: OAK_SAPLING, chance: 0.3}
+      - {item: BONE_MEAL, min: 1, max: 3, chance: 0.5}
+      - {item: MOSS_BLOCK, min: 1, max: 2, chance: 0.3}
+    xp: 8
+    natural: {replace: [ZOMBIE], chance: 0.15}
+
+  bone_sniper:
+    name: "<#e8e3c8>뼈 저격수"
+    type: SKELETON
+    health: 26
+    speed: 0.25
+    equipment:
+      mainhand: BOW
+      head: "LEATHER_HELMET:#8a7a5a"
+    abilities:
+      - {skill: m_piercing_shot, cooldown: 7, range: 22}
+    drops:
+      - {item: shard, chance: 0.5}
+      - {item: BONE, min: 2, max: 4}
+      - {item: ARROW, min: 2, max: 6, chance: 0.7}
+    xp: 8
+    natural: {replace: [SKELETON], chance: 0.15}
+
+  shadow_stalker:
+    name: "<#6b6b8f>그림자 추적자"
+    type: ZOMBIE
+    health: 24
+    damage: 6
+    speed: 0.3
+    scale: 0.85
+    equipment:
+      head: "LEATHER_HELMET:#1a1a2e"
+      chest: "LEATHER_CHESTPLATE:#1a1a2e"
+      legs: "LEATHER_LEGGINGS:#1a1a2e"
+      feet: "LEATHER_BOOTS:#1a1a2e"
+    abilities:
+      - {skill: m_blink_strike, cooldown: 8, range: 12}
+    drops:
+      - {item: shard, min: 1, max: 2, chance: 0.6}
+      - {item: "pool:basic", chance: 0.03}
+    xp: 10
+    natural: {replace: [ZOMBIE], chance: 0.08}
+
+  venom_spider:
+    name: "<#6abf40>맹독 거미"
+    type: SPIDER
+    health: 28
+    damage: 4
+    scale: 1.3
+    abilities:
+      - {skill: m_poison_spit, cooldown: 5, range: 12}
+    drops:
+      - {item: shard, chance: 0.5}
+      - {item: STRING, min: 2, max: 4}
+      - {item: SPIDER_EYE, chance: 0.5}
+    xp: 8
+    natural: {replace: [SPIDER], chance: 0.2}
+
+  crystal_creeper:
+    name: "<#c58cff>수정 크리퍼"
+    type: CREEPER
+    health: 24
+    size: 2
+    abilities:
+      - {skill: m_crystal_shards, trigger: on_death, cooldown: 0}
+    drops:
+      - {item: shard, min: 1, max: 2}
+      - {item: AMETHYST_SHARD, min: 2, max: 4, chance: 0.7}
+      - {item: GUNPOWDER, min: 1, max: 2}
+    xp: 8
+    natural: {replace: [CREEPER], chance: 0.25}
+
+  bomb_mite:
+    name: "<#ff7a3d>폭탄 진드기"
+    type: SILVERFISH
+    health: 10
+    speed: 0.32
+    scale: 1.6
+    abilities:
+      - {skill: m_self_destruct, cooldown: 3, range: 2.2}
+    drops:
+      - {item: shard, chance: 0.4}
+      - {item: GUNPOWDER, min: 1, max: 2}
+    xp: 5
+    natural: {replace: [SPIDER], chance: 0.1}
+
+  iron_miner:
+    name: "<#b8b8b8>광부 해골"
+    type: SKELETON
+    health: 30
+    damage: 5
+    speed: 0.25
+    equipment:
+      mainhand: IRON_PICKAXE
+      head: IRON_HELMET
+    abilities:
+      - {skill: m_miner_throw, cooldown: 6, range: 10}
+    drops:
+      - {item: RAW_IRON, min: 1, max: 3, chance: 0.8}
+      - {item: COAL, min: 1, max: 3, chance: 0.6}
+      - {item: RAW_COPPER, min: 1, max: 3, chance: 0.5}
+      - {item: RAW_GOLD, chance: 0.15}
+      - {item: shard, chance: 0.4}
+    xp: 10
+    natural: {replace: [SKELETON], chance: 0.12}
+
+  nether_imp:
+    name: "<#ff8a3d>지옥 임프"
+    type: BLAZE
+    health: 22
+    scale: 0.7
+    drops:
+      - {item: BLAZE_ROD, chance: 0.5}
+      - {item: shard, chance: 0.5}
+    xp: 10
+    natural: {replace: [ZOMBIFIED_PIGLIN], chance: 0.04, worlds: [world_nether]}
+
+  # ═════════════ 서리 균열 ═════════════
+
+  frost_wraith:
+    name: "<#9ad8ff>서리 망자"
+    type: ZOMBIE
+    health: 40
+    damage: 6
+    speed: 0.25
+    equipment:
+      head: PACKED_ICE
+      chest: "LEATHER_CHESTPLATE:#9ad8ff"
+      legs: "LEATHER_LEGGINGS:#5a8fb0"
+    abilities:
+      - {skill: m_frost_touch, trigger: on_hit, chance: 0.5, cooldown: 2}
+    drops:
+      - {item: essence_frost, chance: 0.6}
+      - {item: shard, min: 1, max: 2, chance: 0.8}
+      - {item: ICE, chance: 0.3}
+      - {item: "pool:frost", chance: 0.03}
+    xp: 12
+
+  frost_archer:
+    name: "<#bdf3ff>서리 궁수"
+    type: STRAY
+    health: 32
+    equipment:
+      mainhand: BOW
+    abilities:
+      - {skill: m_ice_volley, cooldown: 6, range: 18}
+    drops:
+      - {item: essence_frost, chance: 0.6}
+      - {item: shard, chance: 0.8}
+      - {item: ARROW, min: 2, max: 5}
+      - {item: "pool:frost", chance: 0.03}
+    xp: 12
+
+  frost_golem:
+    name: "<#7cc8ff>서리 거인"
+    type: ZOMBIE
+    health: 80
+    damage: 9
+    speed: 0.2
+    scale: 1.7
+    knockback_resistance: 0.6
+    armor: 4
+    equipment:
+      head: BLUE_ICE
+      chest: "LEATHER_CHESTPLATE:#bdf3ff"
+      legs: "LEATHER_LEGGINGS:#bdf3ff"
+    abilities:
+      - {skill: m_frost_slam, cooldown: 7, range: 4.5}
+    drops:
+      - {item: essence_frost, min: 1, max: 2}
+      - {item: shard, min: 2, max: 3}
+      - {item: PACKED_ICE, min: 2, max: 4, chance: 0.5}
+      - {item: "pool:frost", chance: 0.02}
+    xp: 25
+
+  frost_tyrant:
+    name: "<#9ad8ff><b>서리 군주</b>"
+    type: STRAY
+    boss: true
+    boss_color: BLUE
+    health: 600
+    damage: 12
+    speed: 0.24
+    scale: 2.6
+    armor: 8
+    knockback_resistance: 0.9
+    follow_range: 40
+    equipment:
+      mainhand: "weapon:frostlord_greatsword"
+      head: "LEATHER_HELMET:#bdf3ff"
+      chest: "LEATHER_CHESTPLATE:#9ad8ff"
+    abilities:
+      - {skill: m_blizzard, cooldown: 9, range: 22}
+      - {skill: m_ice_nova, cooldown: 12, range: 8}
+      - {skill: m_frozen_beam, cooldown: 8, range: 22}
+      - {skill: m_summon_frost, cooldown: 18, range: 30}
+      - {skill: m_frost_roar, trigger: hp_below, threshold: 0.5}
+    drops:
+      - {item: prism_crystal, min: 1, max: 1}
+      - {item: shard, min: 8, max: 14}
+      - {item: essence_frost, min: 3, max: 6}
+      - {item: ticket_gold, chance: 0.5}
+      - {item: ticket_prism, chance: 0.15}
+      - {item: "weapon:frostlord_greatsword", chance: 0.35}
+      - {item: "pool:island", chance: 0.5}
+      - {item: "pool:boss", chance: 0.15}
+      - {item: DIAMOND, min: 1, max: 3, chance: 0.6}
+    xp: 300
+
+  # ═════════════ 화염 균열 ═════════════
+
+  ember_imp:
+    name: "<#ffb347>불씨 임프"
+    type: BLAZE
+    health: 24
+    scale: 0.7
+    drops:
+      - {item: essence_flame, chance: 0.5}
+      - {item: BLAZE_ROD, chance: 0.4}
+      - {item: shard, chance: 0.7}
+    xp: 10
+
+  lava_knight:
+    name: "<#ff6a3d>용암 기사"
+    type: WITHER_SKELETON
+    health: 50
+    damage: 9
+    speed: 0.26
+    equipment:
+      mainhand: STONE_SWORD
+      head: MAGMA_BLOCK
+    abilities:
+      - {skill: m_flame_slash_mob, cooldown: 6, range: 4}
+      - {skill: m_fire_touch, trigger: on_hit, chance: 0.4, cooldown: 2}
+    drops:
+      - {item: essence_flame, chance: 0.7}
+      - {item: shard, min: 1, max: 2}
+      - {item: COAL, min: 1, max: 3, chance: 0.5}
+      - {item: "pool:flame", chance: 0.04}
+    xp: 15
+
+  magma_blob:
+    name: "<#ff4d1a>마그마 덩어리"
+    type: MAGMA_CUBE
+    health: 36
+    size: 3
+    abilities:
+      - {skill: m_magma_nova, cooldown: 6, range: 4}
+    drops:
+      - {item: essence_flame, chance: 0.5}
+      - {item: MAGMA_CREAM, min: 1, max: 2}
+      - {item: shard, chance: 0.7}
+    xp: 12
+
+  cinder_zombie:
+    name: "<#d9773b>잿불 망자"
+    type: HUSK
+    health: 38
+    damage: 6
+    speed: 0.25
+    equipment:
+      head: MAGMA_BLOCK
+    abilities:
+      - {skill: m_fire_touch, trigger: on_hit, chance: 0.6, cooldown: 2}
+      - {skill: m_fireball_mob, cooldown: 8, range: 14}
+    drops:
+      - {item: essence_flame, chance: 0.5}
+      - {item: shard, chance: 0.8}
+      - {item: NETHERRACK, min: 1, max: 4, chance: 0.4}
+    xp: 12
+
+  inferno_colossus:
+    name: "<#ff8a3d><b>화염 거신</b>"
+    type: BLAZE
+    boss: true
+    boss_color: RED
+    health: 750
+    scale: 3.0
+    armor: 10
+    knockback_resistance: 1.0
+    follow_range: 40
+    abilities:
+      - {skill: m_meteor_rain, cooldown: 10, range: 26}
+      - {skill: m_fire_ring, cooldown: 12, range: 9}
+      - {skill: m_flame_beam, cooldown: 7, range: 22}
+      - {skill: m_summon_imps, cooldown: 20, range: 30}
+      - {skill: m_inferno_rage, trigger: hp_below, threshold: 0.4}
+    drops:
+      - {item: prism_crystal, min: 1, max: 1}
+      - {item: shard, min: 10, max: 16}
+      - {item: essence_flame, min: 3, max: 6}
+      - {item: ticket_gold, chance: 0.5}
+      - {item: ticket_prism, chance: 0.15}
+      - {item: "weapon:inferno_hammer", chance: 0.35}
+      - {item: "pool:island", chance: 0.5}
+      - {item: "pool:boss", chance: 0.15}
+      - {item: BLAZE_ROD, min: 4, max: 8}
+      - {item: NETHERITE_SCRAP, chance: 0.4}
+    xp: 350
+
+  # ═════════════ 공허 균열 ═════════════
+
+  void_wraith:
+    name: "<#c86bff>공허 망령"
+    type: ENDERMAN
+    health: 50
+    damage: 8
+    scale: 1.1
+    abilities:
+      - {skill: m_void_blink, cooldown: 7, range: 16}
+    drops:
+      - {item: essence_void, chance: 0.6}
+      - {item: ENDER_PEARL, chance: 0.5}
+      - {item: shard, min: 1, max: 2}
+    xp: 15
+
+  void_eye:
+    name: "<#a35cff>심연의 눈"
+    type: PHANTOM
+    health: 30
+    size: 3
+    abilities:
+      - {skill: m_void_bolt, cooldown: 4, range: 20}
+    drops:
+      - {item: essence_void, chance: 0.5}
+      - {item: PHANTOM_MEMBRANE, chance: 0.5}
+      - {item: shard, chance: 0.8}
+    xp: 12
+
+  void_knight:
+    name: "<#7a2cff>공허 기사"
+    type: WITHER_SKELETON
+    health: 60
+    damage: 10
+    speed: 0.27
+    equipment:
+      mainhand: NETHERITE_SWORD
+      chest: "LEATHER_CHESTPLATE:#2a0a4a"
+      head: CRYING_OBSIDIAN
+    abilities:
+      - {skill: m_void_dash, cooldown: 7, range: 9}
+    drops:
+      - {item: essence_void, chance: 0.7}
+      - {item: shard, min: 1, max: 2}
+      - {item: "pool:void", chance: 0.06}
+    xp: 18
+
+  void_mite:
+    name: "<#d18cff>공허 진드기"
+    type: ENDERMITE
+    health: 12
+    speed: 0.3
+    scale: 1.5
+    abilities:
+      - {skill: m_void_explode, cooldown: 3, range: 2.2}
+    drops:
+      - {item: essence_void, chance: 0.3}
+      - {item: shard, chance: 0.4}
+    xp: 6
+
+  void_sovereign:
+    name: "<#c86bff><b>공허의 군주</b>"
+    type: WITHER_SKELETON
+    boss: true
+    boss_color: PURPLE
+    health: 900
+    damage: 14
+    speed: 0.25
+    scale: 2.4
+    armor: 12
+    knockback_resistance: 1.0
+    follow_range: 40
+    equipment:
+      mainhand: "weapon:void_reaper"
+      head: CRYING_OBSIDIAN
+      chest: "LEATHER_CHESTPLATE:#1a0033"
+    abilities:
+      - {skill: m_void_beam, cooldown: 8, range: 24}
+      - {skill: m_void_hole, cooldown: 14, range: 22}
+      - {skill: m_void_meteors, cooldown: 12, range: 24}
+      - {skill: m_void_blink_boss, cooldown: 10, range: 26}
+      - {skill: m_summon_void, cooldown: 22, range: 30}
+      - {skill: m_void_awaken, trigger: hp_below, threshold: 0.5}
+    drops:
+      - {item: prism_crystal, min: 1, max: 2}
+      - {item: shard, min: 14, max: 20}
+      - {item: essence_void, min: 4, max: 8}
+      - {item: ticket_gold, chance: 0.6}
+      - {item: ticket_prism, chance: 0.3}
+      - {item: "weapon:void_reaper", chance: 0.35}
+      - {item: "pool:boss", chance: 0.3}
+      - {item: "pool:prism", chance: 0.05}
+      - {item: DIAMOND, min: 2, max: 4}
+      - {item: ENDER_PEARL, min: 2, max: 4}
+    xp: 450
+
+# 균열: 맵의 균열 섬 마커 주변에 몬스터가 계속 나온다
+rifts:
+  frost:
+    name: "<#9ad8ff>서리 균열"
+    mobs: [frost_wraith, frost_wraith, frost_archer, frost_golem]
+    max_alive: 6
+    interval: 6
+    radius: 9
+    boss: frost_tyrant
+    summon_item: summon_frost
+  flame:
+    name: "<#ff8a3d>화염 균열"
+    mobs: [ember_imp, lava_knight, magma_blob, cinder_zombie, cinder_zombie]
+    max_alive: 6
+    interval: 6
+    radius: 9
+    boss: inferno_colossus
+    summon_item: summon_flame
+  void:
+    name: "<#c86bff>공허 균열"
+    mobs: [void_wraith, void_eye, void_knight, void_knight, void_mite]
+    max_alive: 7
+    interval: 5
+    radius: 9
+    boss: void_sovereign
+    summon_item: summon_void

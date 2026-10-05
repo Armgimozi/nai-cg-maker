@@ -1,0 +1,12 @@
+{
+  "pack": {
+    "pack_format": 46,
+    "supported_formats": {
+      "min_inclusive": 46,
+      "max_inclusive": 99
+    },
+    "min_format": 46,
+    "max_format": 99,
+    "description": "증강 스카이블럭 무기와 아이템"
+  }
+}

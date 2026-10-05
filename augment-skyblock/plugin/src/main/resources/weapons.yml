@@ -1,0 +1,979 @@
+# ─────────────────────────────────────────────────────────────
+#  무기 목록. 무기 한 종 = 항목 하나.
+#    pool    얻는 곳: basic(섬 초반) island(섬 재료) frost/flame/void(균열) boss(보스) prism(프리즘)
+#            몬스터 드롭 "pool:frost" 는 그 pool 의 무기 중 하나를 준다
+#    source  설명에 보일 '얻는 곳' 문구 (안 적으면 pool 에 맞게 자동)
+#    type    sword greatsword dagger katana axe hammer spear scythe staff wand
+#    element 리소스팩 색상표 (iron stone wood bone copper flame frost storm venom ocean
+#            earth wind holy nature blood abyss shadow star crystal prism gold ender sun doom)
+#    damage  공격력(맨손 1 포함),  speed  초당 공격 횟수(바닐라 검 1.6)
+#    reach   공격 거리 추가,  skill_power  스킬 피해 배율
+#    skill   우클릭 스킬,  skill2  F키 스킬 (skills.yml 의 id)
+#    passive 근접 공격 시 확률 효과
+#    recipe  작업대 조합법 (item:아이템id, weapon:무기id, 바닐라 재료 이름)
+#    droppable false 면 '무작위 무기' 드롭에 나오지 않는다
+#  리소스팩 모델 이름은 augsky:<무기id> 이다.
+# ─────────────────────────────────────────────────────────────
+
+# ═══════════════════════ 섬 초반 — 조약돌, 나무, 뼈, 구리, 철로 만든다 ═══════════════════════
+
+apprentice_sword:
+  name: 견습생의 검
+  pool: basic
+  type: sword
+  element: iron
+  damage: 6
+  speed: 1.6
+  skill: dash_slash
+  lore: ["모든 모험은 이 검 한 자루에서 시작된다."]
+  recipe:
+    shape: ["  C", " S ", "T  "]
+    ingredients: {C: COBBLESTONE, S: "item:shard", T: STICK}
+
+hunter_dagger:
+  name: 사냥꾼의 단검
+  pool: basic
+  type: dagger
+  element: iron
+  damage: 4.5
+  speed: 2.2
+  skill: shadow_stab
+  lore: ["가볍고 빠르다. 등 뒤를 노려라."]
+  recipe:
+    shape: [" S", "T "]
+    ingredients: {S: "item:shard", T: STICK}
+
+woodcutter_axe:
+  name: 나무꾼의 도끼
+  pool: basic
+  type: axe
+  element: wood
+  damage: 7.5
+  speed: 1.0
+  skill: whirlwind
+  lore: ["나무도, 몬스터도 한 번에."]
+  recipe:
+    shape: ["LL ", "LS ", " T "]
+    ingredients: {L: OAK_LOG, S: "item:shard", T: STICK}
+
+novice_wand:
+  name: 수습 마법봉
+  pool: basic
+  type: wand
+  element: crystal
+  damage: 3.5
+  speed: 1.8
+  skill: magic_missile
+  lore: ["처음 마법을 배우는 이들의 지팡이."]
+  recipe:
+    shape: ["  S", " T ", "T  "]
+    ingredients: {S: "item:shard", T: STICK}
+
+stone_hammer:
+  name: 돌망치
+  pool: basic
+  type: hammer
+  element: stone
+  damage: 8.5
+  speed: 0.8
+  skill: ground_slam
+  lore: ["무겁다. 그래서 아프다."]
+  recipe:
+    shape: ["CCC", "CSC", " T "]
+    ingredients: {C: COBBLESTONE, S: "item:shard", T: STICK}
+
+bone_spear:
+  name: 뼈창
+  pool: basic
+  type: spear
+  element: bone
+  damage: 6.5
+  speed: 1.2
+  reach: 1
+  skill: spear_lunge
+  lore: ["해골에게서 빌린 뼈로 깎았다."]
+  recipe:
+    shape: ["  B", " S ", "T  "]
+    ingredients: {B: BONE, S: "item:shard", T: STICK}
+
+copper_sword:
+  name: 구리 검
+  pool: basic
+  type: sword
+  element: copper
+  damage: 6.5
+  speed: 1.6
+  skill: spark_slash
+  lore: ["전기가 잘 통한다. 가끔 찌릿하다."]
+  recipe:
+    shape: ["  C", " C ", "T  "]
+    ingredients: {C: COPPER_INGOT, T: STICK}
+
+thorn_club:
+  name: 가시 곤봉
+  pool: basic
+  type: hammer
+  element: nature
+  damage: 8
+  speed: 0.9
+  skill: thorn_burst
+  lore: ["선인장을 통째로 묶었다. 쥐는 쪽도 조금 아프다."]
+  recipe:
+    shape: [" CC", " SC", "T  "]
+    ingredients: {C: CACTUS, S: "item:shard", T: STICK}
+
+iron_greatsword:
+  name: 철 대검
+  pool: basic
+  type: greatsword
+  element: iron
+  damage: 9
+  speed: 1.0
+  skill: whirlwind
+  lore: ["튼튼하고 정직한 대검."]
+  recipe:
+    shape: [" II", " SI", "T  "]
+    ingredients: {I: IRON_INGOT, S: "item:shard", T: STICK}
+
+gold_wand:
+  name: 황금 마법봉
+  pool: basic
+  type: wand
+  element: gold
+  damage: 3.5
+  speed: 1.8
+  skill: minor_heal
+  lore: ["친구를 아끼는 마법사의 첫 지팡이."]
+  recipe:
+    shape: ["  G", " S ", "T  "]
+    ingredients: {G: GOLD_INGOT, S: "item:shard", T: STICK}
+
+wooden_katana:
+  name: 목도
+  pool: basic
+  type: katana
+  element: wood
+  damage: 5.5
+  speed: 1.8
+  skill: dash_slash
+  lore: ["수련용이지만 제대로 맞으면 아프다."]
+  recipe:
+    shape: ["  P", " P ", "T  "]
+    ingredients: {P: OAK_PLANKS, T: STICK}
+
+smith_hammer:
+  name: 대장장이 망치
+  pool: basic
+  type: hammer
+  element: iron
+  damage: 9
+  speed: 0.8
+  skill: shockwave
+  lore: ["모루를 두드리던 망치. 땅도 잘 두드린다."]
+  recipe:
+    shape: ["III", "ISI", " T "]
+    ingredients: {I: IRON_INGOT, S: "item:shard", T: STICK}
+
+amethyst_wand:
+  name: 자수정 마법봉
+  pool: basic
+  type: wand
+  element: crystal
+  damage: 4
+  speed: 1.8
+  skill: crystal_bolt
+  lore: ["수정 크리퍼의 조각을 깎아 만들었다."]
+  recipe:
+    shape: [" AA", " SA", "T  "]
+    ingredients: {A: AMETHYST_SHARD, S: "item:shard", T: STICK}
+
+# ═══════════════════════ 섬 재료 — 레드스톤, 청금석, 피뢰침, 금 블록 같은 섬 자원으로 만든다 ═══════════════════════
+
+storm_spear:
+  name: 번개 창
+  pool: island
+  type: spear
+  element: storm
+  damage: 8
+  speed: 1.2
+  reach: 1
+  skill: lightning_javelin
+  passive:
+    chance: 0.15
+    description: "공격 시 15% 확률로 번개가 떨어진다."
+    effects: [{lightning: true}, {damage: 4, magic: true}]
+  lore: ["폭풍이 지나간 자리에서 주웠다."]
+  recipe:
+    shape: ["  L", " C ", "T  "]
+    ingredients: {L: LIGHTNING_ROD, C: COPPER_BLOCK, T: STICK}
+
+venom_dagger:
+  name: 독사의 단검
+  pool: island
+  type: dagger
+  element: venom
+  damage: 5.5
+  speed: 2.2
+  skill: poison_cloud
+  passive:
+    chance: 0.35
+    description: "공격 시 35% 확률로 중독시킨다."
+    effects: [{poison: 3}]
+  lore: ["한 번 물리면 잊을 수 없다."]
+  recipe:
+    shape: ["SE", "T "]
+    ingredients: {S: "item:shard", E: FERMENTED_SPIDER_EYE, T: STICK}
+
+tide_spear:
+  name: 파도의 창
+  pool: island
+  type: spear
+  element: ocean
+  damage: 8
+  speed: 1.2
+  reach: 1
+  skill: tidal_wave
+  lore: ["바다 냄새가 난다. 섬에는 바다가 없는데."]
+  recipe:
+    shape: ["  L", " L ", "T  "]
+    ingredients: {L: LAPIS_BLOCK, T: STICK}
+
+earth_hammer:
+  name: 대지의 망치
+  pool: island
+  type: hammer
+  element: earth
+  damage: 11
+  speed: 0.8
+  skill: earthquake
+  lore: ["내려칠 때마다 섬이 흔들린다."]
+  recipe:
+    shape: ["MMM", "MSM", " T "]
+    ingredients: {M: MOSSY_COBBLESTONE, S: "item:shard", T: STICK}
+
+wind_sword:
+  name: 바람의 검
+  pool: island
+  type: sword
+  element: wind
+  damage: 7.5
+  speed: 1.7
+  skill: gale_dash
+  lore: ["휘두르면 바람 소리가 먼저 난다."]
+  recipe:
+    shape: [" FF", " SF", "T  "]
+    ingredients: {F: FEATHER, S: "item:shard", T: STICK}
+
+holy_staff:
+  name: 빛의 지팡이
+  pool: island
+  type: staff
+  element: holy
+  damage: 5
+  speed: 1.4
+  skill: healing_light
+  lore: ["친구가 있어야 빛난다."]
+  recipe:
+    shape: ["S G", " T ", "T  "]
+    ingredients: {G: GLOWSTONE, S: "item:shard", T: STICK}
+
+blood_scythe:
+  name: 피의 낫
+  pool: island
+  type: scythe
+  element: blood
+  damage: 9
+  speed: 1.1
+  reach: 0.5
+  skill: blood_reap
+  passive:
+    chance: 0.3
+    description: "공격 시 30% 확률로 체력 2 회복."
+    effects: [{heal_caster: 2}]
+  lore: ["베면 벨수록 목이 마르다."]
+  recipe:
+    shape: ["RR ", " SR", "T  "]
+    ingredients: {R: REDSTONE_BLOCK, S: "item:shard", T: STICK}
+
+nature_staff:
+  name: 숲의 지팡이
+  pool: island
+  type: staff
+  element: nature
+  damage: 5
+  speed: 1.4
+  skill: vine_bind
+  lore: ["가끔 지팡이에서 잎이 돋는다."]
+  recipe:
+    shape: ["S M", " T ", "T  "]
+    ingredients: {M: MOSS_BLOCK, S: "item:shard", T: STICK}
+
+cloud_staff:
+  name: 구름 지팡이
+  pool: island
+  type: staff
+  element: wind
+  damage: 4.5
+  speed: 1.5
+  skill: sky_leap
+  lore: ["섬과 섬 사이를 건너는 이들의 친구."]
+  recipe:
+    shape: ["S W", " T ", "T  "]
+    ingredients: {W: WHITE_WOOL, S: "item:shard", T: STICK}
+
+pirate_katana:
+  name: 해적의 카타나
+  pool: island
+  type: katana
+  element: ocean
+  damage: 7.5
+  speed: 1.8
+  skill: splash_slash
+  lore: ["하늘 해적이 쓰던 칼. 하늘 해적이 있었나?"]
+  recipe:
+    shape: ["  N", " N ", "T  "]
+    ingredients: {N: NAUTILUS_SHELL, T: STICK}
+
+crystal_sword:
+  name: 수정 검
+  pool: island
+  type: sword
+  element: crystal
+  damage: 10
+  speed: 1.6
+  skill: crystal_burst
+  skill2: crystal_bolt
+  lore: ["견습생의 검에 자수정을 입혔더니 이렇게 됐다."]
+  recipe:
+    shape: ["ASA", "AWA", "ASA"]
+    ingredients: {A: AMETHYST_SHARD, S: "item:shard", W: "weapon:apprentice_sword"}
+
+thunder_hammer:
+  name: 뇌신의 망치
+  pool: island
+  type: hammer
+  element: storm
+  damage: 13
+  speed: 0.8
+  skill: thunder_strike
+  skill2: thunder_field
+  passive:
+    chance: 0.2
+    description: "공격 시 20% 확률로 번개 추가 피해 6."
+    effects: [{lightning: true}, {damage: 6, magic: true}]
+  lore: ["들면 머리카락이 선다."]
+  recipe:
+    shape: ["LLL", "LWL", "LLL"]
+    ingredients: {L: LIGHTNING_ROD, W: "weapon:storm_spear"}
+
+storm_katana:
+  name: 폭풍의 카타나
+  pool: island
+  type: katana
+  element: storm
+  damage: 10
+  speed: 1.8
+  skill: iaido
+  skill2: storm_cut
+  passive:
+    chance: 0.2
+    description: "공격 시 20% 확률로 전격 추가 피해 4."
+    effects: [{damage: 4, magic: true}, {particle: ELECTRIC_SPARK, count: 12}]
+  lore: ["칼집에서 뽑는 순간이 가장 빠르다."]
+  recipe:
+    shape: ["LSL", "LWL", "LSL"]
+    ingredients: {L: LIGHTNING_ROD, S: "item:shard", W: "weapon:wooden_katana"}
+
+blood_sword:
+  name: 혈검
+  pool: island
+  type: sword
+  element: blood
+  damage: 10
+  speed: 1.6
+  skill: blood_spray
+  skill2: blood_pact
+  passive:
+    chance: 0.3
+    description: "공격 시 30% 확률로 체력 3 회복."
+    effects: [{heal_caster: 3}]
+  lore: ["붉은 날은 닦아도 붉다."]
+  recipe:
+    shape: ["RSR", "RWR", "RSR"]
+    ingredients: {R: REDSTONE_BLOCK, S: "item:shard", W: "weapon:copper_sword"}
+
+holy_hammer:
+  name: 성기사의 망치
+  pool: island
+  type: hammer
+  element: holy
+  damage: 12.5
+  speed: 0.8
+  skill: holy_smite
+  skill2: sanctuary
+  passive:
+    chance: 0.25
+    description: "공격 시 25% 확률로 신성 피해 3, 체력 2 회복."
+    effects: [{damage: 3, magic: true}, {heal_caster: 2}]
+  lore: ["친구를 지키는 자의 망치."]
+  recipe:
+    shape: ["GSG", "GWG", "GSG"]
+    ingredients: {G: GOLD_BLOCK, S: "item:shard", W: "weapon:smith_hammer"}
+
+earth_axe:
+  name: 대지의 도끼
+  pool: island
+  type: axe
+  element: earth
+  damage: 12
+  speed: 1.0
+  skill: boulder_toss
+  skill2: stone_skin
+  lore: ["바위를 쪼개 던지는 데 쓴다. 원래 용도는 모른다."]
+  recipe:
+    shape: ["MSM", "MWM", "MSM"]
+    ingredients: {M: MOSSY_COBBLESTONE, S: "item:shard", W: "weapon:woodcutter_axe"}
+
+venom_spear:
+  name: 독사의 창
+  pool: island
+  type: spear
+  element: venom
+  damage: 10
+  speed: 1.2
+  reach: 1
+  skill: venom_fang
+  skill2: venom_mire
+  passive:
+    chance: 0.35
+    description: "공격 시 35% 확률로 강한 독."
+    effects: [{poison: {seconds: 4, amplifier: 1}}]
+  lore: ["창끝에서 독이 끊이지 않고 떨어진다."]
+  recipe:
+    shape: ["ESE", "EWE", "ESE"]
+    ingredients: {E: FERMENTED_SPIDER_EYE, S: "item:shard", W: "weapon:bone_spear"}
+
+ocean_staff:
+  name: 바다의 지팡이
+  pool: island
+  type: staff
+  element: ocean
+  damage: 7
+  speed: 1.4
+  skill: water_prison
+  skill2: tidal_wave
+  lore: ["귀에 대면 파도 소리가 난다."]
+  recipe:
+    shape: ["LSL", "LWL", "LSL"]
+    ingredients: {L: LAPIS_BLOCK, S: "item:shard", W: "weapon:novice_wand"}
+
+star_staff:
+  name: 별의 지팡이
+  pool: island
+  type: staff
+  element: star
+  damage: 7
+  speed: 1.4
+  skill: meteor_small
+  skill2: star_shield
+  lore: ["밤하늘을 조금 떼어 왔다."]
+  recipe:
+    shape: ["GDG", "DWD", "GDG"]
+    ingredients: {G: GLOWSTONE, D: DIAMOND, W: "weapon:gold_wand"}
+
+spirit_scythe:
+  name: 영혼의 낫
+  pool: island
+  type: scythe
+  element: bone
+  damage: 11
+  speed: 1.1
+  reach: 0.5
+  skill: wolf_pack
+  skill2: soul_reap
+  lore: ["베어 낸 영혼들이 주인을 따른다."]
+  recipe:
+    shape: ["BSB", "BWB", "BSB"]
+    ingredients: {B: BONE_BLOCK, S: "item:shard", W: "weapon:blood_scythe"}
+
+wind_axe:
+  name: 폭풍의 도끼
+  pool: island
+  type: axe
+  element: wind
+  damage: 11.5
+  speed: 1.0
+  skill: tornado
+  skill2: gale_dash
+  lore: ["던지지 마라. 돌아오지 않는다."]
+  recipe:
+    shape: ["FSF", "PWP", "FSF"]
+    ingredients: {F: FEATHER, P: PHANTOM_MEMBRANE, S: "item:shard", W: "weapon:woodcutter_axe"}
+
+storm_dagger:
+  name: 번개 단검
+  pool: island
+  type: dagger
+  element: storm
+  damage: 8
+  speed: 2.2
+  skill: chain_lightning
+  skill2: blink
+  passive:
+    chance: 0.2
+    description: "공격 시 20% 확률로 전격 추가 피해 3."
+    effects: [{damage: 3, magic: true}]
+  lore: ["번개처럼 왔다가 번개처럼 사라진다."]
+  recipe:
+    shape: ["LSL", "CWC", "LSL"]
+    ingredients: {L: LIGHTNING_ROD, C: COPPER_BLOCK, S: "item:shard", W: "weapon:hunter_dagger"}
+
+# ═══════════════════════ 서리 균열 — 서리 정수로 만든다 ═══════════════════════
+
+frost_dagger:
+  name: 서리 단검
+  pool: frost
+  type: dagger
+  element: frost
+  damage: 6
+  speed: 2.2
+  skill: ice_shard_throw
+  passive:
+    chance: 0.3
+    description: "공격 시 30% 확률로 느리게 만든다."
+    effects: [{slow: 2}]
+  lore: ["손잡이까지 차갑다."]
+  recipe:
+    shape: ["SE", "T "]
+    ingredients: {E: "item:essence_frost", S: "item:shard", T: STICK}
+
+frost_staff:
+  name: 서리 지팡이
+  pool: frost
+  type: staff
+  element: frost
+  damage: 5
+  speed: 1.4
+  skill: frost_bolt
+  lore: ["입김이 하얗게 나온다."]
+  recipe:
+    shape: ["S E", " T ", "T  "]
+    ingredients: {E: "item:essence_frost", S: "item:shard", T: STICK}
+
+frost_spear:
+  name: 빙창
+  pool: frost
+  type: spear
+  element: frost
+  damage: 8
+  speed: 1.2
+  reach: 1
+  skill: ice_lance
+  lore: ["녹지 않는 얼음으로 벼렸다."]
+  recipe:
+    shape: ["  E", " E ", "T  "]
+    ingredients: {E: "item:essence_frost", T: STICK}
+
+frost_greatsword:
+  name: 서리 대검
+  pool: frost
+  type: greatsword
+  element: frost
+  damage: 12
+  speed: 1.0
+  skill: frost_nova
+  skill2: glacier_spike
+  passive:
+    chance: 0.25
+    description: "공격 시 25% 확률로 얼린다."
+    effects: [{freeze: 2}]
+  lore: ["칼집에 넣으면 칼집이 언다."]
+  recipe:
+    shape: ["EEE", "EWE", "EEE"]
+    ingredients: {E: "item:essence_frost", W: "weapon:frost_dagger"}
+
+# ═══════════════════════ 화염 균열 — 화염 정수로 만든다 ═══════════════════════
+
+flame_sword:
+  name: 화염 검
+  pool: flame
+  type: sword
+  element: flame
+  damage: 8
+  speed: 1.6
+  skill: flame_slash
+  passive:
+    chance: 0.25
+    description: "공격 시 25% 확률로 3초 동안 불태운다."
+    effects: [{ignite: 3}]
+  lore: ["칼날이 식지 않는다."]
+  recipe:
+    shape: [" E ", "SES", " T "]
+    ingredients: {E: "item:essence_flame", S: "item:shard", T: STICK}
+
+flame_staff:
+  name: 화염 지팡이
+  pool: flame
+  type: staff
+  element: flame
+  damage: 5
+  speed: 1.4
+  skill: fireball
+  lore: ["끝에서 항상 불씨가 튄다."]
+  recipe:
+    shape: ["S E", " T ", "T  "]
+    ingredients: {E: "item:essence_flame", S: "item:shard", T: STICK}
+
+ember_greatsword:
+  name: 화염 대검
+  pool: flame
+  type: greatsword
+  element: flame
+  damage: 12
+  speed: 1.0
+  skill: inferno_slam
+  skill2: fire_tornado
+  passive:
+    chance: 0.3
+    description: "공격 시 30% 확률로 불꽃 추가 피해 3과 화상."
+    effects: [{damage: 3, magic: true}, {ignite: 4}]
+  lore: ["화염 검을 화염 정수로 다시 벼려 낸 대검."]
+  recipe:
+    shape: ["EEE", "EWE", "EEE"]
+    ingredients: {E: "item:essence_flame", W: "weapon:flame_sword"}
+
+volcano_axe:
+  name: 화산 도끼
+  pool: flame
+  type: axe
+  element: flame
+  damage: 12
+  speed: 1.0
+  skill: lava_eruption
+  skill2: flame_slash
+  passive:
+    chance: 0.25
+    description: "공격 시 25% 확률로 불태운다."
+    effects: [{ignite: 4}]
+  lore: ["나무꾼의 도끼를 용암에 담갔다 꺼냈다."]
+  recipe:
+    shape: ["EME", "MWM", "EME"]
+    ingredients: {E: "item:essence_flame", M: MAGMA_BLOCK, W: "weapon:woodcutter_axe"}
+
+# ═══════════════════════ 공허 균열 — 공허 정수로 만든다 ═══════════════════════
+
+abyss_scythe:
+  name: 심연의 낫
+  pool: void
+  type: scythe
+  element: abyss
+  damage: 11.5
+  speed: 1.1
+  reach: 0.5
+  skill: void_slash
+  skill2: void_rift
+  passive:
+    chance: 0.25
+    description: "공격 시 25% 확률로 시들게 한다."
+    effects: [{wither: 3}]
+  lore: ["날 끝이 보이지 않는다. 공허로 이어져 있다."]
+  recipe:
+    shape: ["EEE", "EWE", "EEE"]
+    ingredients: {E: "item:essence_void", W: "weapon:blood_scythe"}
+
+shadow_dagger:
+  name: 그림자 단검
+  pool: void
+  type: dagger
+  element: shadow
+  damage: 8
+  speed: 2.2
+  skill: shadow_step
+  skill2: shadow_veil
+  passive:
+    chance: 0.2
+    description: "공격 시 20% 확률로 추가 피해 3과 실명."
+    effects: [{damage: 3}, {potion: {effect: blindness, seconds: 1}}]
+  lore: ["빛 아래에서는 보이지 않는다."]
+  recipe:
+    shape: ["EOE", "OWO", "EOE"]
+    ingredients: {E: "item:essence_void", O: OBSIDIAN, W: "weapon:venom_dagger"}
+
+ender_dagger:
+  name: 엔더 단검
+  pool: void
+  type: dagger
+  element: ender
+  damage: 8
+  speed: 2.2
+  skill: blink
+  skill2: shadow_step
+  lore: ["쥐고 있으면 자꾸 어딘가로 가고 싶어진다."]
+  recipe:
+    shape: ["EPE", "PWP", "EPE"]
+    ingredients: {E: "item:essence_void", P: ENDER_PEARL, W: "weapon:hunter_dagger"}
+
+# ═══════════════════════ 보스 — 보스가 떨어뜨리거나 프리즘 결정으로 만든다 ═══════════════════════
+
+frostlord_greatsword:
+  name: 서리 군주의 대검
+  pool: boss
+  type: greatsword
+  element: frost
+  damage: 15
+  speed: 1.0
+  skill: eternal_winter
+  skill2: glacier_prison
+  passive:
+    chance: 0.3
+    description: "공격 시 30% 확률로 얼리고 추가 피해 4."
+    effects: [{freeze: 2}, {damage: 4, magic: true}]
+  lore: ["서리 군주가 쓰러지며 남긴 대검. 아직 겨울을 품고 있다."]
+  source: 서리 군주를 쓰러뜨리면 얻는다
+
+inferno_hammer:
+  name: 화염 거신의 망치
+  pool: boss
+  type: hammer
+  element: flame
+  damage: 16
+  speed: 0.8
+  skill: meteor
+  skill2: volcano
+  passive:
+    chance: 0.3
+    description: "공격 시 30% 확률로 화염 폭발 피해 5."
+    effects: [{damage: 5, magic: true}, {ignite: 5}, {explosion: true}]
+  lore: ["화염 거신의 심장을 박아 넣은 망치."]
+  source: 화염 거신을 쓰러뜨리면 얻는다
+
+void_reaper:
+  name: 공허의 대낫
+  pool: boss
+  type: scythe
+  element: abyss
+  damage: 14.5
+  speed: 1.1
+  reach: 0.7
+  skill: black_hole
+  skill2: dimension_cut
+  passive:
+    chance: 0.3
+    description: "공격 시 30% 확률로 시들게 하고 체력 2 회복."
+    effects: [{wither: 3}, {heal_caster: 2}]
+  lore: ["공허의 군주가 쥐고 있던 낫. 아무것도 비추지 않는다."]
+  source: 공허의 군주를 쓰러뜨리면 얻는다
+
+heavens_spear:
+  name: 천둥의 창
+  pool: boss
+  type: spear
+  element: storm
+  damage: 13
+  speed: 1.2
+  reach: 1.2
+  skill: judgment_bolt
+  skill2: thunder_descent
+  passive:
+    chance: 0.25
+    description: "공격 시 25% 확률로 번개 추가 피해 7."
+    effects: [{lightning: true}, {damage: 7, magic: true}]
+  lore: ["하늘이 내린 창. 하늘로 돌려보낼 생각은 없다."]
+  recipe:
+    shape: ["LDL", "DWD", "LCL"]
+    ingredients: {L: LIGHTNING_ROD, D: DIAMOND, C: "item:prism_crystal", W: "weapon:storm_spear"}
+
+holy_blade:
+  name: 성검
+  pool: boss
+  type: sword
+  element: holy
+  damage: 13
+  speed: 1.6
+  skill: holy_judgment
+  skill2: guardian_light
+  passive:
+    chance: 0.25
+    description: "공격 시 25% 확률로 신성 피해 5, 체력 3 회복."
+    effects: [{damage: 5, magic: true}, {heal_caster: 3}]
+  lore: ["이 검을 든 자 곁에서는 아무도 쓰러지지 않는다."]
+  recipe:
+    shape: ["GDG", "DWD", "GCG"]
+    ingredients: {G: GOLD_BLOCK, D: DIAMOND, C: "item:prism_crystal", W: "weapon:crystal_sword"}
+
+bloodmoon_katana:
+  name: 혈월의 카타나
+  pool: boss
+  type: katana
+  element: blood
+  damage: 13
+  speed: 1.8
+  skill: crimson_moon
+  skill2: blood_rush
+  passive:
+    chance: 0.3
+    description: "공격 시 30% 확률로 체력 4 회복."
+    effects: [{heal_caster: 4}]
+  lore: ["붉은 달이 뜨는 밤에만 칼집에서 나온다고 한다."]
+  recipe:
+    shape: ["RDR", "DWD", "RCR"]
+    ingredients: {R: REDSTONE_BLOCK, D: DIAMOND, C: "item:prism_crystal", W: "weapon:blood_sword"}
+
+worldtree_staff:
+  name: 세계수의 지팡이
+  pool: boss
+  type: staff
+  element: nature
+  damage: 9
+  speed: 1.4
+  skill: life_garden
+  skill2: vine_storm
+  lore: ["세계수의 가지. 심으면 섬 하나가 생긴다는 소문이 있다."]
+  recipe:
+    shape: ["MDM", "DWD", "MCM"]
+    ingredients: {M: MOSS_BLOCK, D: DIAMOND, C: "item:prism_crystal", W: "weapon:nature_staff"}
+
+abyssal_trident:
+  name: 심해의 삼지창
+  pool: boss
+  type: spear
+  element: ocean
+  damage: 13
+  speed: 1.2
+  reach: 1
+  skill: tsunami
+  skill2: maelstrom
+  passive:
+    chance: 0.25
+    description: "공격 시 25% 확률로 크게 밀어낸다."
+    effects: [{knockback: 1.4}, {damage: 4}]
+  lore: ["하늘 아래 바다가 있다면, 그 바닥에 있던 것."]
+  recipe:
+    shape: ["LDL", "DWD", "LCL"]
+    ingredients: {L: LAPIS_BLOCK, D: DIAMOND, C: "item:prism_crystal", W: "weapon:tide_spear"}
+
+shadow_twinblade:
+  name: 암살자의 쌍검
+  pool: boss
+  type: dagger
+  element: shadow
+  damage: 10
+  speed: 2.3
+  skill: blade_dance
+  skill2: shadow_clone
+  passive:
+    chance: 0.3
+    description: "공격 시 30% 확률로 추가 피해 5."
+    effects: [{damage: 5}, {particle: CRIT, count: 10}]
+  lore: ["두 자루가 한 몸처럼 움직인다."]
+  recipe:
+    shape: ["EDE", "DWD", "ECE"]
+    ingredients: {E: "item:essence_void", D: DIAMOND, C: "item:prism_crystal", W: "weapon:shadow_dagger"}
+
+star_greatsword:
+  name: 별의 대검
+  pool: boss
+  type: greatsword
+  element: star
+  damage: 15
+  speed: 1.0
+  skill: starfall
+  skill2: galaxy_burst
+  passive:
+    chance: 0.25
+    description: "공격 시 25% 확률로 별빛 피해 6."
+    effects: [{damage: 6, magic: true}, {particle: END_ROD, count: 12}]
+  lore: ["떨어진 별을 통째로 벼렸다."]
+  recipe:
+    shape: ["GDG", "DWD", "GCG"]
+    ingredients: {G: GLOWSTONE, D: DIAMOND, C: "item:prism_crystal", W: "weapon:iron_greatsword"}
+
+# ═══════════════════════ 프리즘 — 프리즘 결정 4개와 보스 무기로 만든다 ═══════════════════════
+
+prism_greatsword:
+  name: 프리즘 대검
+  pool: prism
+  type: greatsword
+  element: prism
+  damage: 18
+  speed: 1.0
+  skill: prism_burst
+  skill2: rainbow_beam
+  passive:
+    chance: 0.3
+    description: "공격 시 30% 확률로 무지개 피해 8."
+    effects: [{damage: 8, magic: true}, {particle: "DUST:#ff6b9d:1.5", count: 20}]
+  lore: ["모든 증강의 빛이 이 칼날 하나에 모였다."]
+  recipe:
+    shape: ["CDC", "DWD", "CDC"]
+    ingredients: {C: "item:prism_crystal", D: DIAMOND_BLOCK, W: "weapon:star_greatsword"}
+
+apocalypse_scythe:
+  name: 종말의 낫
+  pool: prism
+  type: scythe
+  element: doom
+  damage: 17
+  speed: 1.1
+  reach: 0.8
+  skill: apocalypse
+  skill2: soul_storm
+  passive:
+    chance: 0.3
+    description: "공격 시 30% 확률로 시들게 하고 체력 4 회복."
+    effects: [{wither: 4}, {heal_caster: 4}]
+  lore: ["이 낫이 휘둘러진 뒤에는 아무것도 남지 않았다."]
+  recipe:
+    shape: ["CEC", "EWE", "CEC"]
+    ingredients: {C: "item:prism_crystal", E: "item:essence_void", W: "weapon:void_reaper"}
+
+genesis_staff:
+  name: 창세의 지팡이
+  pool: prism
+  type: staff
+  element: prism
+  damage: 12
+  speed: 1.4
+  skill_power: 1.1
+  skill: genesis
+  skill2: time_stop
+  lore: ["세상이 처음 만들어질 때 쓰인 지팡이."]
+  recipe:
+    shape: ["CMC", "MWM", "CMC"]
+    ingredients: {C: "item:prism_crystal", M: EMERALD_BLOCK, W: "weapon:worldtree_staff"}
+
+thundergod_hammer:
+  name: 천뢰의 망치
+  pool: prism
+  type: hammer
+  element: storm
+  damage: 19
+  speed: 0.8
+  skill: thunder_god
+  skill2: thunderstorm
+  passive:
+    chance: 0.3
+    description: "공격 시 30% 확률로 낙뢰 피해 10."
+    effects: [{lightning: true}, {damage: 10, magic: true}]
+  lore: ["이 망치가 땅에 닿으면 하늘이 대답한다."]
+  recipe:
+    shape: ["CLC", "LWL", "CLC"]
+    ingredients: {C: "item:prism_crystal", L: LIGHTNING_ROD, W: "weapon:thunder_hammer"}
+
+sun_blade:
+  name: 태양검
+  pool: prism
+  type: sword
+  element: sun
+  damage: 16
+  speed: 1.6
+  skill: solar_flare
+  skill2: sunfall
+  passive:
+    chance: 0.3
+    description: "공격 시 30% 확률로 태양열 피해 6과 화상."
+    effects: [{damage: 6, magic: true}, {ignite: 6}]
+  lore: ["한낮의 태양을 칼날에 가뒀다. 밤에도 따뜻하다."]
+  recipe:
+    shape: ["CBC", "BWB", "CBC"]
+    ingredients: {C: "item:prism_crystal", B: BLAZE_ROD, W: "weapon:holy_blade"}
