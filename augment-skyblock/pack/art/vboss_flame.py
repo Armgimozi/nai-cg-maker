@@ -1,15 +1,24 @@
 """
 vboss_flame: 화염 거신 (inferno_colossus) — 작은 정육면체(복셀)로 쌓은 보스.
 
-떠다니는 용암 바위 거인. 1 복셀 = 1/8 블록 (part vox=1.0, rig scale 2.0).
-  torso      가슴(현무암/흑요석 판 + 용암 균열) + 거대한 어깨 바위 + 가슴의 마그마 핵
-  head       뿔 달린 머리, 타오르는 눈, 불꽃 볏
-  tail       가슴 아래 매달린 바위 조각 꼬리 (윗마디)
-  tail_low   꼬리 끝마디 (늦게 따라 흔들림)
-  right_fist / left_fist   떠다니는 거대한 주먹 (손가락 사이 빛나는 균열)
-  rock_a / rock_b          주위를 도는 불타는 바위 (world 프레임 orbit)
+떠다니는 용암 바위 거인. 1 복셀 = 1/8 블록 (모든 조각 part vox=1.0, rig scale 2.0, 오프셋은 1/8 블록 격자 위).
+  torso            가슴(계단진 현무암 세 층 + 층 사이 빛나는 홈) + 다이아몬드 흑요석 테 속 마그마 핵 (가장 밝은 초점)
+  left/right_shoulder  어깨 바위 (위 밝음 / 가운데 / 아래 어두움, 층 사이 홈, 큰 흑요석 결정 둘)
+  head             목 틈(마그마) 위에 떠 있는 머리: 어두운 흑요석 눈썹 밑 비스듬한 실눈, 송곳니 으르렁 입, 상아 뿔, 불꽃 볏
+  tail / tail_low  배 밑에 매달린, 점점 작아지는 바위 덩어리 탑 (사이사이 빛나는 틈, 가운데 용암 심)
+  right/left_fist  가슴 높이 앞에 떠 있는 주먹. 마디 4개가 앞-아래 모서리로, 손가락은 바닥으로 감기고 엄지가 바닥을 가로지른다
+                   (휘두르면(-X 75도) 바닥 = 마디 면이 앞을 향한다)
+  rock_a / rock_b  둘레를 도는 불타는 바위 4개 (world 프레임 orbit 한 고리)
+
+모양 언어: cbox() 계단 상자 + 모서리 깎기, 곧은 홈(빛나는 층 경계), 면마다 금 하나까지.
+명암: 재료를 층별로 고정해 칠한 뒤 shade() 가 위가 열린 복셀은 한 단계 밝게(bas3 테두리 빛), 아래가 열린 복셀은 한 단계 어둡게.
+빛: core(흰-노랑, 가장 밝음) = eye > lava(깊은 주황-빨강 홈) > magma(맥동, 틈) > ember(주먹 금, 가장 어두운 빛). 뿔/결정 끝은 빛나지 않는다.
 
 python3 vboss_flame.py   -> _scratch/vboss_flame/assets/augsky 에 짓고 preview/inferno_colossus_voxel*.png
+  inferno_colossus_voxel.png        조립 (깊이 버퍼 렌더 — 대표 미리보기) 앞 3/4, 옆, 뒤 + 정면, 휘두르기, 게임 속 크기
+  inferno_colossus_voxel_hq.png     몸 확대 네 방향
+  inferno_colossus_voxel_parts.png  조각별 확대 (깊이 버퍼)
+  *_mc3d.png                        같은 것을 wkit.rig_preview / mc3d.render(면 평균 깊이 정렬)로 — 면이 비쳐 보이는 오류가 있다
 """
 import json
 import math
@@ -28,192 +37,188 @@ NAME_KO = "화염 거신"
 FONT = "/tmp/claude-0/work/fonts/ng.ttf"
 
 # ─────────────────────────── 재료 ───────────────────────────
-# 현무암 3단(어두움/중간/밝음)은 판마다 달리 칠해 큰 면도 조각조각 보이게 한다.
+# 현무암 사다리 bas0 < bas1 < bas2 < bas3. 한 재료 안의 복셀끼리 차이 ≈ 사다리 한 칸의 절반 → 큐브는 보이되 자갈 잡음은 아니다.
 PAL = {
-    "bas0": Mat(["#141218", "#1f1c24", "#2c2832", "#3b3540"], "stone", seed=1),
-    "bas1": Mat(["#25212a", "#332e38", "#453e4a", "#585060"], "stone", seed=2),
-    "bas2": Mat(["#3a3238", "#4f4549", "#675a5c", "#82716c"], "stone", seed=3),
-    "obs": Mat(["#0c0716", "#1a0f30", "#2d1a50", "#4a2f80"], "crystal", seed=4),
-    "char": Mat(["#2a120e", "#401d16", "#5a2a1e", "#783a26"], "stone", seed=5),
-    "hot": Mat(["#5c1a0a", "#8c2a0c", "#bb4410", "#e06a1a"], "stone", seed=6),
-    "ember": Mat(["#b83206", "#ec5a0e", "#ff9424", "#ffc850"], "stone", glow=True, seed=7),
-    "eye": Mat(["#ffc838", "#ffe27a", "#fff4be", "#ffffff"], "gem", glow=True, seed=8),
-    "horn": Mat(["#1a1614", "#302a24", "#4c4236", "#6e6250"], "metal", seed=9),
-    "hornT": Mat(["#8a2a0c", "#c24a14", "#f07a20", "#ffbc48"], "metal", glow=True, seed=10),
-    "tooth": Mat(["#7c6c5a", "#9c8a74", "#bca88e", "#d8c8ac"], "stone", seed=11),
-    # 움직이는 재료 (4개까지)
-    "lava": Mat(["#a82806", "#e44c0c", "#ff8a20", "#ffd050"], "flow", glow=True, seed=12),
-    "core": Mat(["#e04a08", "#ff9a1c", "#ffd858", "#fffbe0"], "fire", glow=True, seed=13),
-    "magma": Mat(["#8c1c04", "#d4460c", "#ff8420", "#ffbe5a"], "pulse", glow=True, seed=14),
-    "fire": Mat(["#c42c04", "#ff6a0a", "#ffb026", "#fff28a"], "fire", glow=True, seed=15),
+    "bas0": Mat(["#18121a", "#211a22", "#2a212a", "#332832"], "stone", seed=1),
+    "bas1": Mat(["#2c2329", "#362b32", "#41343b", "#4b3c44"], "stone", seed=2),
+    "bas2": Mat(["#4c3e42", "#58494c", "#655457", "#725f61"], "stone", seed=3),
+    "bas3": Mat(["#9a8274", "#ab9181", "#bca18f", "#cab09c"], "stone", seed=4),
+    "obs": Mat(["#150b26", "#1f1238", "#2a1a4c", "#35225e"], "stone", seed=5),
+    "cry": Mat(["#150b26", "#1f1238", "#2a1a4c", "#35225e"], "stone", seed=17),   # 결정 몸통 (obs 와 같은 색, 명암 규칙만 다름)
+    "cryM": Mat(["#34206a", "#3e287c", "#48308e", "#5238a0"], "stone", seed=18),  # 결정 앞면 (중간 보라)
+    "obsH": Mat(["#5a36aa", "#6a42c2", "#7a52d2", "#8a62e0"], "stone", seed=6),
+    "horn": Mat(["#c4b494", "#d2c3a2", "#e1d3b4", "#efe2c4"], "stone", seed=7),
+    "hornD": Mat(["#8e7e64", "#9c8c70", "#ab9b7e", "#b8a888"], "stone", seed=8),
+    "ember": Mat(["#8a2006", "#a82c0a", "#c43a0e", "#d84a12"], "stone", glow=True, seed=10),
+    "eye": Mat(["#ffe7a0", "#fff1c4", "#fff9e6", "#ffffff"], "gem", glow=True, seed=11),
+    "eyeR": Mat(["#e85a0c", "#f46c14", "#ff801e", "#ff9a30"], "stone", glow=True, seed=12),
+    # 움직이는 재료 (조각마다 4개까지)
+    "lava": Mat(["#c03008", "#d63e0e", "#ec5614", "#ff7a1a"], "flow", glow=True, seed=13),
+    "core": Mat(["#ffb434", "#ffd668", "#fff2b0", "#fffcec"], "fire", glow=True, seed=14),
+    "magma": Mat(["#7c1604", "#a02406", "#c8380c", "#e85414"], "pulse", glow=True, seed=15),
+    "fire": Mat(["#b42a04", "#e04a0a", "#ff7418", "#ffa63a"], "fire", glow=True, seed=16),
 }
+
+ROCK = ("bas0", "bas1", "bas2", "bas3")
+OBS = ("obs", "obsH")
+HORN = ("hornD", "horn")
 
 
 def mats(*names):
     return {n: PAL[n] for n in names}
 
 
-ROCK = ("bas0", "bas1", "bas2", "char")
-
-
 # ─────────────────────────── 도구 ───────────────────────────
-
-def hash3(X, Y, Z, seed=0, cell=1.0):
-    """격자 칸(cell 복셀)마다 0..1 의 고정 난수."""
-    xi = np.floor(np.asarray(X, float) / cell).astype(np.int64)
-    yi = np.floor(np.asarray(Y, float) / cell).astype(np.int64)
-    zi = np.floor(np.asarray(Z, float) / cell).astype(np.int64)
-    v = (xi * 73856093) ^ (yi * 19349663) ^ (zi * 83492791) ^ (seed * 2654435761 + 12345)
-    v = v & 0xFFFFFFFF
-    v = ((v ^ (v >> 13)) * 1274126177) & 0xFFFFFFFF
-    v = v ^ (v >> 16)
-    return (v & 0xFFFF) / 65536.0
-
-
-def erode(m):
-    """6방향으로 한 겹 깎은 마스크."""
-    e = m.copy()
-    e[1:] &= m[:-1]
-    e[:-1] &= m[1:]
-    e[:, 1:] &= m[:, :-1]
-    e[:, :-1] &= m[:, 1:]
-    e[:, :, 1:] &= m[:, :, :-1]
-    e[:, :, :-1] &= m[:, :, 1:]
-    e[0], e[-1] = False, False
-    e[:, 0], e[:, -1] = False, False
-    e[:, :, 0], e[:, :, -1] = False, False
-    return e
-
-
-def dilate(m):
-    d = m.copy()
-    d[1:] |= m[:-1]
-    d[:-1] |= m[1:]
-    d[:, 1:] |= m[:, :-1]
-    d[:, :-1] |= m[:, 1:]
-    d[:, :, 1:] |= m[:, :, :-1]
-    d[:, :, :-1] |= m[:, :, 1:]
-    return d
-
 
 def mid(w, name):
     return w.names.index(name) + 1
 
 
-def plates(w, region, n, seed, mats_=ROCK, weights=None, crack=0.0, crack_w=0.8, crack_mat="lava", hot=0.4,
-           keep=None):
+def nb(filled, axis, d):
+    """각 칸의 axis 방향 d(±1) 이웃이 차 있는가."""
+    n = np.zeros_like(filled)
+    src = [slice(None)] * 3
+    dst = [slice(None)] * 3
+    if d > 0:
+        dst[axis], src[axis] = slice(0, -1), slice(1, None)
+    else:
+        dst[axis], src[axis] = slice(1, None), slice(0, -1)
+    n[tuple(dst)] = filled[tuple(src)]
+    return n
+
+
+def erode_xz(m):
+    """가로(X, Z)로만 한 겹 깎기."""
+    e = m.copy()
+    for ax in (0, 2):
+        e &= nb(m, ax, 1) & nb(m, ax, -1)
+    return e
+
+
+def cbox(X, Y, Z, x0, x1, y0, y1, z0, z1, ch=0.0, cht=0.0, chb=0.0):
+    """경계 좌표로 준 상자 (복셀 가운데가 안에 들면). ch: 세로 모서리, cht: 윗 모서리, chb: 아랫 모서리 깎기."""
+    m = (X > x0) & (X < x1) & (Y > y0) & (Y < y1) & (Z > z0) & (Z < z1)
+    dx = np.minimum(X - x0, x1 - X)
+    dz = np.minimum(Z - z0, z1 - Z)
+    if ch:
+        m &= dx + dz > ch
+    if cht:
+        dy = y1 - Y
+        m &= (dx + dy > cht) & (dz + dy > cht)
+    if chb:
+        dy = Y - y0
+        m &= (dx + dy > chb) & (dz + dy > chb)
+    return m
+
+
+def groove(w, region, y0, mat="lava"):
+    """region 의 Y=y0-1..y0 한 층을 둘레 한 칸 파내고, 그 안쪽 한 칸에 빛나는 재료 → 오목한 곧은 홈."""
+    layer = region & (w._Y > y0 - 1) & (w._Y < y0)
+    inner = erode_xz(layer)
+    w.grid[layer & ~inner] = 0
+    w.grid[inner & ~erode_xz(inner)] = mid(w, mat)
+
+
+def crystal(w, x, y, z, sizes, lean=(0.0, 0.0), mat="cry"):
     """
-    region 안을 보로노이 판 n 개로 나누어 판마다 다른 돌 재료를 칠한다 (판은 3D 덩어리라 잘 합쳐진다).
-    crack (0..1): 판 경계 중 용암 균열을 낼 비율 (겉면에만). hot: 균열 둘레 겉돌이 달아오르는 비율.
-    keep: 칠하지 않을 마스크.
+    뭉툭한 네모 결정: 곧은 상자 마디를 쌓는다. sizes = [(폭, 높이), ...] 아래 → 위 (끝 마디도 폭 2 이상).
+    lean = 마디마다 옮기는 (X, Z) 칸 수 (기울기). 마디가 곧아서 계단 무늬가 생기지 않는다.
     """
-    rng = np.random.default_rng(seed)
-    idx = np.argwhere(region)
-    if len(idx) == 0:
-        return
-    pts = idx[rng.choice(len(idx), size=min(n, len(idx)), replace=False)].astype(float)
-    P = idx.astype(float)
-    d = np.stack([np.sum((P - p) ** 2, axis=1) for p in pts], axis=1)
-    order = np.argsort(d, axis=1)
-    i1, i2 = order[:, 0], order[:, 1]
-    d1 = np.sqrt(np.take_along_axis(d, order[:, :1], 1)[:, 0])
-    d2 = np.sqrt(np.take_along_axis(d, order[:, 1:2], 1)[:, 0])
-    wts = np.array(weights if weights else [1.0] * len(mats_), float)
-    wts /= wts.sum()
-    choice = rng.choice(len(mats_), size=len(pts), p=wts)
-    ids = np.array([mid(w, m) for m in mats_])
-    paint = np.ones(len(idx), bool) if keep is None else ~keep[tuple(idx.T)]
-    w.grid[tuple(idx[paint].T)] = ids[choice[i1[paint]]]
-    if crack <= 0:
-        return
-    a, b = np.minimum(i1, i2), np.maximum(i1, i2)
-    pair_on = hash3(a, b, 0, seed + 77) < crack
-    is_c = (d2 - d1 < crack_w) & pair_on & paint
-    cm = np.zeros(w.grid.shape, bool)
-    cm[tuple(idx[is_c].T)] = True
-    filled = w.grid > 0
-    s1 = filled & ~erode(filled)
-    w.grid[cm & s1] = mid(w, crack_mat)
-    if hot:
-        near = dilate(cm & s1) & ~cm & s1 & np.isin(w.grid, ids)
-        if keep is not None:
-            near &= ~keep
-        w.grid[near & (hash3(w._X, w._Y, w._Z, seed + 5) < hot)] = mid(w, "hot")
+    cx, cz, cy = x, z, y
+    for (s_, h) in sizes:
+        ax = round(cx - s_ / 2) + s_ / 2
+        az = round(cz - s_ / 2) + s_ / 2
+        w.fill(lambda X, Y, Z, ax=ax, az=az, s_=s_, y0=cy, y1=cy + h: (np.abs(X - ax) < s_ / 2) & (np.abs(Z - az) < s_ / 2)
+               & (Y > y0) & (Y < y1), mat)
+        cy += h
+        cx += lean[0]
+        cz += lean[1]
 
 
-def jag(w, mask, p, seed, cell=2.0):
-    """mask 의 겉 한 겹에서 cell 크기 덩어리 단위로 일부를 떼어 낸다 (울퉁불퉁 계단진 윤곽)."""
-    filled = w.grid > 0
-    s1 = filled & ~erode(filled) & mask
-    h = hash3(w._X + 0.5, w._Y + 0.5, w._Z + 0.5, seed, cell)
-    w.grid[s1 & (h < p)] = 0
-
-
-def zigzag(pts, seed, jitter=1.0):
-    """2D 점들을 잇는 계단진 번개 선 → 칸 좌표(복셀 가운데) 목록. 4방향으로만 움직여 끊기지 않는다."""
-    rng = np.random.default_rng(seed)
-    cells = []
-    x, y = math.floor(pts[0][0]) + 0.5, math.floor(pts[0][1]) + 0.5
-    cells.append((x, y))
-    for (tx, ty) in pts[1:]:
-        tx, ty = math.floor(tx) + 0.5, math.floor(ty) + 0.5
-        guard = 0
-        while (x, y) != (tx, ty) and guard < 400:
-            guard += 1
-            dx, dy = tx - x, ty - y
-            # 큰 쪽으로 가되 가끔 엇나가 번개처럼
-            if abs(dx) > 0 and (abs(dx) >= abs(dy) or rng.random() < 0.3 * jitter) and not (dy and rng.random() < 0.25 * jitter):
-                x += np.sign(dx)
-            elif dy:
-                y += np.sign(dy)
-            else:
-                x += np.sign(dx)
-            cells.append((x, y))
-    return cells
-
-
-def project(w, cells, axis, sign, mat, depth=1, only=None, start=0):
-    """
-    2D 칸들을 겉면에 칠한다 (데칼처럼). axis 'z' 면 (X, Y) 칸을 +Z(sign=1) 또는 -Z 쪽에서 본 첫 복셀부터 depth 겹.
-    'x' 면 (Z, Y) 칸, 'y' 면 (X, Z) 칸. only: 이 재료 번호들 위에만. start: 겉에서 몇 겹 안쪽부터.
-    """
+def surface_line(w, cells, axis, sign, mat, only=None, depth=1):
+    """2D 칸들을 겉면에 데칼처럼 칠한다 (axis 'z': (X, Y) 칸, 'x': (Z, Y) 칸, 'y': (X, Z) 칸)."""
     g = w.grid
-    ax = {"x": 0, "y": 1, "z": 2}[axis]
     m_id = mid(w, mat)
+    only_ids = None if only is None else [mid(w, n) for n in only if n in w.names]
     for (a, b) in cells:
         if axis == "z":
             i, j = int(round(a - 0.5 + w.CX)), int(round(b - 0.5 + w.CY))
-            if not (0 <= i < w.W and 0 <= j < w.H):
-                continue
-            col = g[i, j, :]
+            col = g[i, j, :] if (0 <= i < w.W and 0 <= j < w.H) else None
         elif axis == "x":
             k, j = int(round(a - 0.5 + w.CZ)), int(round(b - 0.5 + w.CY))
-            if not (0 <= k < w.D and 0 <= j < w.H):
-                continue
-            col = g[:, j, k]
+            col = g[:, j, k] if (0 <= k < w.D and 0 <= j < w.H) else None
         else:
             i, k = int(round(a - 0.5 + w.CX)), int(round(b - 0.5 + w.CZ))
-            if not (0 <= i < w.W and 0 <= k < w.D):
-                continue
-            col = g[i, :, k]
+            col = g[i, :, k] if (0 <= i < w.W and 0 <= k < w.D) else None
+        if col is None:
+            continue
         nz = np.nonzero(col)[0]
         if len(nz) == 0:
             continue
         first = nz[-1] if sign > 0 else nz[0]
-        for dd in range(start, start + depth):
+        for dd in range(depth):
             p = first - dd if sign > 0 else first + dd
-            if 0 <= p < len(col) and col[p] and (only is None or col[p] in only):
+            if 0 <= p < len(col) and col[p] and (only_ids is None or col[p] in only_ids):
                 col[p] = m_id
 
 
-def ring_hot(w, mat_from, prob, seed):
-    """mat_from(용암 등) 둘레 겉돌 일부를 달아오른 돌로."""
-    src = w.grid == mid(w, mat_from)
-    filled = w.grid > 0
-    s1 = filled & ~erode(filled)
-    rock = np.isin(w.grid, [mid(w, m) for m in ROCK if m in w.names])
-    near = dilate(src) & s1 & rock
-    w.grid[near & (hash3(w._X, w._Y, w._Z, seed) < prob)] = mid(w, "hot")
+def stair(p0, p1):
+    """두 점 사이의 계단진 곧은 선 (4방향 연결) → 칸 가운데 목록."""
+    (x0, y0), (x1, y1) = p0, p1
+    n = int(max(abs(x1 - x0), abs(y1 - y0)) * 2) + 1
+    out = []
+    for k in range(n + 1):
+        t = k / n
+        c = (math.floor(x0 + (x1 - x0) * t) + 0.5, math.floor(y0 + (y1 - y0) * t) + 0.5)
+        if out and c[0] != out[-1][0] and c[1] != out[-1][1]:
+            out.append((c[0], out[-1][1]))
+        if not out or out[-1] != c:
+            out.append(c)
+    return out
+
+
+def shade(w, ladder, up=1, down=1, vedge=0, rim=False, front_edges=False):
+    """
+    모양을 따라 명암: ladder (어두움 → 밝음) 재료 중
+      위(+Y)가 비어 있으면 up 칸 밝게 (윗면과 윗 모서리 = 테두리 빛)
+      아래가 비어 있고 위는 막혀 있으면 down 칸 어둡게 (밑면)
+      vedge: 세로 모서리(X 와 Z 둘 다 열림)를 몇 칸 밝게
+      rim: True 면 위가 열려도 옆도 열린 칸(윗 테두리)만 밝게
+      front_edges: True 면 세로 모서리 중 앞(+Z)이 열린 것만
+    """
+    ids = [mid(w, n) for n in ladder if n in w.names]
+    g = w.grid
+    filled = g > 0
+    up_e = ~nb(filled, 1, 1)
+    dn_e = ~nb(filled, 1, -1) & ~up_e
+    ex = ~nb(filled, 0, 1) | ~nb(filled, 0, -1)
+    ez = ~nb(filled, 2, 1) | ~nb(filled, 2, -1)
+    if front_edges:
+        ez = ~nb(filled, 2, 1)
+    edge = ex & ez & ~up_e
+    if rim:
+        up_e = up_e & (ex | ez)
+    new = g.copy()
+    top = len(ids) - 1
+    for i, idv in enumerate(ids):
+        m = g == idv
+        lev = np.full(g.shape, i, int)
+        lev = lev + up * up_e - down * dn_e + vedge * edge
+        lev = np.clip(lev, 0, top)
+        for j in range(len(ids)):
+            new[m & (lev == j)] = ids[j]
+    w.grid = new
+
+
+def facet(w, front_sign=1):
+    """결정 세 톤: 윗면 = obsH(밝음), 앞(+Z)이 열린 면 = cryM(중간), 나머지 = cry(어두움)."""
+    g = w.grid
+    filled = g > 0
+    m = g == mid(w, "cry")
+    up_e = ~nb(filled, 1, 1)
+    fz = ~nb(filled, 2, front_sign)
+    g[m & fz & ~up_e] = mid(w, "cryM")
+    g[m & up_e] = mid(w, "obsH")
 
 
 def count(model):
@@ -223,271 +228,253 @@ def count(model):
 # ─────────────────────────── 몸통 ───────────────────────────
 
 def build_torso(root):
-    w = part(mats("bas0", "bas1", "bas2", "obs", "char", "hot", "ember", "hornT",
-                  "lava", "core", "magma"), size=48)
+    w = part(mats("bas0", "bas1", "bas2", "bas3", "obs", "obsH", "lava", "core", "magma"), size=48)
     X, Y, Z = w._X, w._Y, w._Z
-    # 가슴: 위가 넓은 통, 모서리를 깎는다
-    hw = 7.0 + np.clip(Y + 8, 0, 17) * 0.27
-    hd_f, hd_b = 6.0, 5.5
-    chest = (Y >= -8) & (Y <= 9) & (np.abs(X) <= hw) & (Z <= hd_f) & (Z >= -hd_b) \
-        & (np.abs(X) - hw + np.maximum(Z - hd_f, -Z - hd_b) + 2.5 <= 0)
-    # 가슴 근육판 두 장 (가운데 홈)
-    pec = (np.abs(X) >= 1) & (np.abs(X) <= 10) & (Y >= 2) & (Y <= 8) & (Z <= 7.5) & (Z >= 0) \
-        & ((np.abs(X) - 10) + (Z - 7.5) + 1.5 <= 0) & ((Y - 8) + (Z - 7.5) + 1.5 <= 0)
-    # 복근판 세 장
-    abs_ = np.zeros_like(chest)
-    for (y0, y1) in ((-1.0, 1.5), (-4.5, -2.0), (-7.5, -5.5)):
-        abs_ |= (np.abs(X) >= 1) & (np.abs(X) <= 6.0) & (Y >= y0) & (Y <= y1) & (Z <= 7.0) & (Z >= 0)
-    # 배 아래 바위 마디 (사이에 용암)
-    belly = np.zeros_like(chest)
-    for (y0, y1, r, rz) in ((-11.0, -8.5, 6.2, 4.8), (-14.5, -12.5, 4.6, 3.8)):
-        belly |= (Y >= y0) & (Y <= y1) & ((X / r) ** 2 + (Z / rz) ** 2 <= 1.0)
-    body = chest | pec | abs_ | belly
-    w.fill(lambda X, Y, Z: body, "bas1")
-    plates(w, body & (Y > -8.5), 14, 21, weights=[3, 5, 3, 1.5], crack=0.25)
-    w.fill(lambda X, Y, Z: pec, "bas2")
-    plates(w, pec, 4, 24, mats_=("bas1", "bas2"), weights=[1, 2])
-    w.fill(lambda X, Y, Z: abs_, "bas1")
-    plates(w, belly, 4, 23, weights=[2, 3, 1, 2])
-    w.fill(lambda X, Y, Z: (Y >= -12.6) & (Y <= -7.6) & ((X / 4.0) ** 2 + (Z / 3.0) ** 2 <= 1) & ~body, "lava")
+    AX = np.abs(X)
+    # 계단진 네 층 (위가 넓다): 가슴 / 갈비 / 허리 / 배 밑 (꼬리 첫 덩어리 폭 12)
+    t3 = cbox(AX, Y, Z, -11, 11, 2, 9, -6.5, 6.5, ch=2.5, cht=2)
+    t2 = cbox(AX, Y, Z, -9, 9, -3, 2, -6, 6, ch=2.5)
+    t1 = cbox(AX, Y, Z, -7.5, 7.5, -7, -3, -5, 5, ch=2, chb=1)
+    w.fill(lambda *_: t1, "bas1")
+    w.fill(lambda *_: t2, "bas1")
+    w.fill(lambda *_: t3, "bas2")
+    # 가슴판 둘 (앞으로 툭)
+    pec = cbox(AX, Y, Z, 1, 10, 2, 8.5, 0, 8, ch=1.5, cht=1.5)
+    w.fill(lambda *_: pec, "bas2")
+    # 승모근: 어깨에서 목 쪽으로 솟은 바위 (가슴 윗면이 탁자처럼 평평하지 않게)
+    w.fill(lambda *_: cbox(AX, Y, Z, 4, 10.5, 7, 10, -5, 2, ch=1.5, cht=1.5), "bas2")
+    # 갈비 옆판: 갈비층 옆에 덧댄 판 (가로 홈 하나)
+    w.fill(lambda *_: cbox(AX, Y, Z, 6, 10, -2.5, 1.5, -4.5, 4.5, ch=1.5), "bas2")
+    # 층 사이 곧은 홈
+    groove(w, t2, 2, "lava")
+    groove(w, t1, -3, "lava")
+    # 등: 흑요석 등판 둘 (뭉툭한 계단 덩어리)
+    for (y0, y1) in ((3, 8), (-3, 1)):
+        w.fill(lambda *_, y0=y0, y1=y1: cbox(X, Y, Z, -2, 2, y0, y1, -8.5, -4, ch=1, cht=1), "obs")
+    # 등 대각선 금 하나씩
+    for s in (1,):
+        surface_line(w, stair((s * 3.5, 7.5), (s * 8.5, 1.5)), "z", -1, "lava", only=("bas1", "bas2"))
+    # 옆구리 대각선 금 하나 (옆면)
+    surface_line(w, stair((-3.5, 7.5), (3.5, 3.0)), "x", 1, "lava", only=("bas1", "bas2"))
 
-    # 어깨 바위
-    sh = np.zeros_like(body)
-    for s in (1, -1):
-        sh |= ((X - s * 15) / 8.5) ** 2 + ((Y - 6.5) / 7.0) ** 2 + (Z / 8.0) ** 2 <= 1
-        sh |= ((X - s * 18.5) / 5.0) ** 2 + ((Y - 1.0) / 5.0) ** 2 + ((Z - 0.5) / 6.5) ** 2 <= 1
-        sh |= ((X - s * 12.5) / 6.5) ** 2 + ((Y - 11.5) / 3.5) ** 2 + ((Z + 0.5) / 6.5) ** 2 <= 1
-    sh &= ~(np.abs(X) < 7)
-    w.fill(lambda X, Y, Z: sh, "bas1")
-    jag(w, sh, 0.18, 11, 2.0)
-    plates(w, sh & (w.grid > 0), 14, 22, weights=[3, 4, 3, 1.5], crack=0.3)
-    # 어깨 앞판: 큰 판 하나가 앞으로 (갑옷처럼 겹친 바위)
-    for s in (1, -1):
-        pad = (np.abs(X - s * 15) <= 6.5) & (Y >= 3) & (Y <= 10.5) & (Z >= 5) & (Z <= 8.5) \
-            & (((X - s * 15) / 8.0) ** 2 + ((Y - 6.5) / 6.5) ** 2 + (Z / 9.0) ** 2 <= 1)
-        w.fill(lambda X, Y, Z, pad=pad: pad, "bas2")
-    # 용암 줄기 (번개처럼 계단진 선): 핵에서 어깨로, 배로, 어깨 위로
-    cy = 1.5
-    for s in (1, -1):
-        for k, pts in enumerate(([(s * 6, cy + 5), (s * 9, cy + 7.5), (s * 13, cy + 7), (s * 18, cy + 9)],
-                                 [(s * 6, cy - 5), (s * 7, cy - 8), (s * 5, cy - 11)],
-                                 [(s * 11, cy - 1), (s * 15, cy + 1), (s * 19, cy - 1)])):
-            project(w, zigzag(pts, 300 + k + (s > 0) * 10), "z", 1, "lava")
-        # 어깨 위에서 본 선
-        project(w, zigzag([(s * 9, -4), (s * 13, 0), (s * 15, 3), (s * 20, 4)], 330 + (s > 0)), "y", 1, "lava")
-        # 바깥 옆면
-        project(w, zigzag([(-5, 10), (-1, 6), (2, 3), (5, -2)], 340 + (s > 0)), "x", s, "lava")
-    # 등: 척추를 따라 내려오는 선
-    project(w, zigzag([(0, 10), (1, 4), (-1, -2), (0, -8)], 350), "z", -1, "lava")
-    ring_hot(w, "lava", 0.35, 360)
-
-    # 가슴 마그마 핵: 다이아몬드 구멍 + 흑요석 테 + 빛나는 핵
-    diamond = np.abs(X) + np.abs(Y - cy)
-    w.clear(lambda X, Y, Z: (diamond <= 6.0) & (Z >= 1))
-    w.fill(lambda X, Y, Z: (diamond > 6.0) & (diamond <= 8.0) & (Z >= 3) & (Z <= 8.0), "obs")
-    w.fill(lambda X, Y, Z: (diamond > 5.0) & (diamond <= 6.0) & (Z >= 1) & (Z <= 5), "hot")
-    w.fill(lambda X, Y, Z: (diamond <= 5.0) & (Z <= 3.0) & (Z >= -1), "magma")
-    w.fill(lambda X, Y, Z: (X / 4.0) ** 2 + ((Y - cy) / 4.0) ** 2 + ((Z - 3.0) / 3.2) ** 2 <= 1, "core")
-    # 테의 네 꼭짓점에 흑요석 송곳
-    for (dx, dy) in ((0, 1), (0, -1), (1, 0), (-1, 0)):
-        w.tube([(dx * 7.5, cy + dy * 7.5, 6), (dx * 10, cy + dy * 10, 7.5)], lambda t: 1.5 * (1 - 0.6 * t), "obs")
-
-    # 어깨 위 흑요석 결정 (끝은 달아오름)
-    for s in (1, -1):
-        for (bx, by, bz, tx, ty, tz, r0) in ((13, 12, 0, 14, 20, -1, 2.6), (17.5, 10, -2, 22.5, 16, -3, 2.1),
-                                             (10, 13.5, -3, 9, 18.5, -5, 1.8), (20, 6, 2, 23.5, 9, 2.5, 1.6)):
-            w.tube([(s * bx, by, bz), (s * tx, ty, tz)], lambda t, r0=r0: r0 * (1 - 0.6 * t), "obs")
-            f = 0.78
-            w.tube([(s * (bx + (tx - bx) * f), by + (ty - by) * f, bz + (tz - bz) * f), (s * tx, ty, tz)], 0.8, "hornT")
-    # 등줄기 흑요석 가시
-    for i, y in enumerate((8, 3, -2)):
-        w.tube([(0, y, -5), (0, y + 3, -9.5 + i * 0.7)], lambda t: 2.0 * (1 - 0.6 * t), "obs")
-    # 목 자리
-    w.clear(lambda X, Y, Z: (np.abs(X) <= 4.5) & (Y >= 8.0) & (Z >= -3.5) & (Z <= 5))
-    w.fill(lambda X, Y, Z: (np.abs(X) <= 4.0) & (Y >= 7.0) & (Y <= 8.0) & (Z >= -3) & (Z <= 4), "magma")
+    # 가슴 마그마 핵: 다이아몬드 구멍 + 두꺼운 흑요석 테 + 빛나는 핵 (가장 밝은 초점)
+    diamond = AX + np.abs(Y)
+    w.clear(lambda *_: (diamond <= 6.0) & (Z >= 1))
+    w.fill(lambda *_: (diamond > 6.0) & (diamond <= 8.5) & (Z >= 3) & (Z <= 9), "obs")
+    w.fill(lambda *_: (diamond > 6.0) & (diamond <= 7.0) & (Z > 8) & (Z <= 9), "obsH")
+    w.fill(lambda *_: (diamond > 5.0) & (diamond <= 6.0) & (Z >= 1) & (Z <= 5), "lava")
+    w.fill(lambda *_: (diamond <= 5.0) & (Z <= 3.0) & (Z >= -1), "magma")
+    w.fill(lambda *_: (X / 4.0) ** 2 + (Y / 4.0) ** 2 + ((Z - 3.0) / 3.2) ** 2 <= 1, "core")
+    # 목 자리: 파인 소켓, 바닥은 마그마 (머리와 사이 틈이 빛난다)
+    w.clear(lambda *_: (AX <= 3.5) & (Y >= 7.0) & (Z >= 0) & (Z <= 8))
+    w.fill(lambda *_: (AX <= 3.5) & (Y >= 6.0) & (Y <= 7.0) & (Z >= 0) & (Z <= 8), "magma")
     w.mirror()
+    shade(w, ROCK, up=1, down=1)
+    shade(w, OBS, up=1, down=0, rim=True)
     return w.build(f"boss/{BOSS}_torso", root)
+
+
+SHOULDER_X, SHOULDER_Y = 10.0, 5.0   # 몸통 피벗에서 어깨 피벗까지 (복셀)
+
+
+def build_shoulder(root, side):
+    """어깨 바위. side=+1 왼쪽(+X), -1 오른쪽. 피벗 = 어깨 관절. 좌우는 같은 모양을 거울로 (같은 씨앗)."""
+    w = part(mats("bas0", "bas1", "bas2", "bas3", "obs", "cry", "cryM", "obsH", "lava", "magma"), size=40)
+    X, Y, Z = w._X, w._Y, w._Z
+    xs = X * side
+    # 겹겹이 쌓인 바위 갑옷: 위(밝음) → 가운데 → 아래(어두움). 층 사이마다 곧은 빛 홈
+    A = cbox(xs, Y, Z, -0.5, 9, 0, 7, -6.5, 4.5, ch=2.5, cht=2.5)
+    B = cbox(xs, Y, Z, 0.5, 9.25, -4, 0, -7, 4, ch=2.5)
+    C = cbox(xs, Y, Z, 2, 8, -8, -4, -6, 1, ch=2, chb=1.5)
+    w.fill(lambda *_: C, "bas0")
+    w.fill(lambda *_: B, "bas1")
+    w.fill(lambda *_: A, "bas2")
+    groove(w, B, 0, "lava")
+    groove(w, C, -4, "lava")
+    # 앞면 대각선 금 하나 (B 층)
+    surface_line(w, [(side * a, b) for (a, b) in stair((2.5, -0.5), (7.5, -3.5))], "z", 1, "lava", only=("bas1", "bas0"))
+    # 바깥 옆면 금 하나
+    surface_line(w, stair((3.5, 5.5), (-3.5, 1.5)), "x", side, "lava", only=("bas2", "bas1"))
+    # 위로 솟은 큰 흑요석 결정 둘 (바깥, 뒤로) — 끝도 2x2
+    crystal(w, side * 5.0, 5, -2.0, [(6, 3), (4, 3), (2, 2)], lean=(side * 1.0, -0.5))
+    crystal(w, side * 1.0, 5, -4.5, [(4, 3), (2, 2)], lean=(0.0, -0.5))
+    shade(w, ROCK, up=1, down=1)
+    shade(w, OBS, up=1, down=0, rim=True)
+    facet(w)
+    return w.build(f"boss/{BOSS}_{'left' if side > 0 else 'right'}_shoulder", root)
 
 
 # ─────────────────────────── 머리 ───────────────────────────
 
+# 얼굴 칸 (+X 쪽 반; 거울로 왼쪽). (|X| 칸 가운데, Y 칸 가운데)
+# 눈: 안쪽이 낮고 바깥으로 올라가는 화난 실눈 (1~2 높이). eye = 흰 불꽃 가운데, eyeR = 주황 테
+EYE = {(1.5, 7.5): "eyeR", (2.5, 7.5): "eye", (3.5, 7.5): "eye", (4.5, 7.5): "eyeR",
+       (2.5, 8.5): "eyeR", (3.5, 8.5): "eye", (4.5, 8.5): "eyeR", (5.5, 8.5): "eyeR", (6.5, 8.5): "eyeR"}
+# 눈썹(흑요석): 눈 바로 위로 두 칸 튀어나온 V — 가운데(미간)로 내려온다
+BROW = [(0.5, 8.5), (0.5, 9.5), (1.5, 8.5), (1.5, 9.5), (2.5, 9.5), (3.5, 9.5), (4.5, 9.5), (5.5, 9.5), (6.5, 9.5),
+        (1.5, 10.5), (2.5, 10.5), (3.5, 10.5), (4.5, 10.5), (5.5, 10.5), (6.5, 10.5), (7.5, 10.5),
+        (4.5, 11.5), (5.5, 11.5), (6.5, 11.5), (7.5, 11.5), (7.5, 9.5)]
+# 입: 가운데가 넓고 모서리가 올라가는 계단진 으르렁 (마그마), 위 송곳니 2폭 3높이
+MOUTH = [(0.5, 1.5), (0.5, 2.5), (0.5, 3.5), (1.5, 1.5), (1.5, 2.5), (1.5, 3.5), (2.5, 1.5), (2.5, 2.5), (2.5, 3.5),
+         (3.5, 1.5), (3.5, 2.5), (3.5, 3.5), (4.5, 2.5), (4.5, 3.5), (5.5, 3.5), (5.5, 4.5)]
+FANG = [(3.5, 3.5), (4.5, 3.5), (3.5, 2.5), (4.5, 2.5), (4.5, 1.5)]
+
+
 def build_head(root):
-    w = part(mats("bas0", "bas1", "bas2", "obs", "char", "hot", "ember", "eye", "horn", "hornT", "tooth",
+    w = part(mats("bas0", "bas1", "bas2", "bas3", "obs", "obsH", "eye", "eyeR", "horn", "hornD",
                   "lava", "fire", "magma"), size=48)
     X, Y, Z = w._X, w._Y, w._Z
-    w.fill(lambda X, Y, Z: (np.abs(X) <= 3.5) & (Y >= -1) & (Y <= 2) & (np.abs(Z) <= 3.5), "bas0")
-    hw = 7.0 - np.clip(Y - 9, 0, None) * 0.8
-    skull = (Y >= 1) & (Y <= 12) & (np.abs(X) <= hw) & (Z >= -6) & (Z <= 6) \
-        & (np.abs(X) - hw + np.abs(Z) - 6 + 2 <= 0) & ((Y - 12) + np.abs(Z) - 6 + 2 <= 0)
-    jaw = (Y >= 0) & (Y <= 4.5) & (np.abs(X) <= 6.2) & (Z >= -3) & (Z <= 7.5) & (np.abs(X) - 6.2 + (Z - 7.5) + 2 <= 0)
-    w.fill(lambda X, Y, Z: skull, "bas1")
-    plates(w, skull, 8, 31, weights=[2, 4, 3, 1], crack=0.3)
-    w.fill(lambda X, Y, Z: jaw, "bas0")
-    plates(w, jaw, 3, 32, mats_=("bas0", "bas1", "char"), weights=[3, 2, 1])
-    # 눈썹뼈: 화난 V 자 (가운데가 낮다), 앞으로 툭 튀어나옴
-    brow_top = 9.5 - np.clip(3.5 - np.abs(X), 0, None) * 0.6
-    brow = (Y >= brow_top - 2.2) & (Y <= brow_top) & (np.abs(X) <= 7.2) & (Z >= 3) & (Z <= 8.0) & (np.abs(X) - 7.2 + (Z - 8) + 1.5 <= 0)
-    w.fill(lambda X, Y, Z: brow, "bas2")
-    plates(w, brow, 3, 33, mats_=("bas2", "bas1"), weights=[3, 1])
-    # 눈: 눈썹 아래 굴에서 타오른다 (뒤로 한 칸 들어가고, 둘레는 달아오름)
-    eyes = (np.abs(X) >= 1.5) & (np.abs(X) <= 5.5) & (Y >= 5) & (Y <= 6.5 + (np.abs(X) - 1.5) * 0.25) & (Z >= 3.5)
-    w.clear(lambda X, Y, Z: eyes & (Z > 5))
-    w.fill(lambda X, Y, Z: eyes & (Z <= 5) & (Z > 3), "eye")
-    w.fill(lambda X, Y, Z: (np.abs(X) >= 1.0) & (np.abs(X) <= 6.0) & (np.abs(Y - 4.5) < 0.5) & (Z >= 5) & (Z <= 6)
-           & (w.grid > 0), "hot")
-    # 눈꼬리에서 뺨으로 흘러내리는 용암 눈물
-    for s in (1, -1):
-        project(w, zigzag([(s * 5.5, 4.5), (s * 6, 2.5), (s * 5, 0.5)], 400 + (s > 0), 0.6), "z", 1, "lava")
-        project(w, zigzag([(5.5, 5), (2, 3.5), (0, 1), (-2, 0)], 410 + (s > 0)), "x", s, "lava")
-    # 입: 용암 빛 틈 + 이빨
-    w.clear(lambda X, Y, Z: (np.abs(X) <= 4.0) & (Y >= 1.5) & (Y <= 3.0) & (Z >= 5.5))
-    w.fill(lambda X, Y, Z: (np.abs(X) <= 4.0) & (Y >= 1.5) & (Y <= 3.0) & (Z >= 4.5) & (Z <= 5.5), "magma")
-    for x in (0.5, 2.5):
-        w.box(x, x, 2.5, 3.0, 5.5, 6.5, "tooth")
-    w.box(3.5, 3.5, 1.5, 2.0, 5.5, 6.5, "tooth")
-    w.box(1.5, 1.5, 1.5, 2.0, 5.5, 6.5, "tooth")
-    # 뿔: 옆으로 나와 위로, 끝은 살짝 앞으로. 굵은 마디 고리
-    for s in (1, -1):
-        horn = [(s * 6, 9.5, 0), (s * 10.5, 10.5, -0.5), (s * 13.5, 13.5, -1.0), (s * 14, 18, -0.5), (s * 12.5, 22, 1.0)]
-        w.tube(horn, lambda t: 2.8 * (1 - 0.65 * t), "horn")
-        for p, r in ((horn[1], 2.9), (horn[2], 2.5)):
-            w.fill(lambda X, Y, Z, p=p, r=r: ((X - p[0]) ** 2 + (Y - p[1]) ** 2 + (Z - p[2]) ** 2 <= r ** 2)
-                   & (w.grid > 0) & (np.abs(Y - p[1]) <= 0.6), "obs")
-        w.tube(horn[3:], lambda t: 1.4 * (1 - 0.45 * t), "hornT")
-    # 불꽃 볏: 톱니 흑요석 볏 + 그 위로 타오르는 불꽃 혀
-    saw = 13 + (np.floor((Z + 7) / 2) % 2) * 1.0 - np.abs(Z + 1) * 0.15
-    w.fill(lambda X, Y, Z: (np.abs(X) <= 1.5) & (Y >= 10) & (Y <= saw) & (Z >= -7) & (Z <= 4), "obs")
-    for (z, h, lean) in ((3.0, 3.5, -0.5), (1.0, 5.5, -1.0), (-1.5, 7.0, -1.5), (-4.0, 6.0, -2.0), (-6.5, 4.0, -2.0)):
-        base = 13.5
+    AX = np.abs(X)
+
+    def at(a, y):
+        return (np.abs(AX - a) < 0.5) & (np.abs(Y - y) < 0.5)
+
+    # 목: 마그마 기둥 (몸통 소켓과 머리 사이의 빛나는 틈)
+    w.fill(lambda *_: (AX <= 2) & (Y >= -3) & (Y <= 1) & (np.abs(Z - 1) <= 2), "magma")
+    skull = cbox(AX, Y, Z, -8, 8, 1, 14, -6, 7, ch=2.5, cht=3)
+    jaw = cbox(AX, Y, Z, -7, 7, -1, 5, 0, 8, ch=2.5, chb=1)
+    w.fill(lambda *_: skull, "bas1")
+    w.fill(lambda *_: jaw, "bas1")
+    # 광대: 눈 밑에서 앞으로
+    w.fill(lambda *_: cbox(AX, Y, Z, 2, 7.5, 4, 7, 0, 8, ch=1), "bas2")
+    # 이마판 (밝은 층)
+    w.fill(lambda *_: cbox(AX, Y, Z, -7, 7, 11, 14, -4, 7.5, ch=2, cht=2), "bas2")
+    # 눈구멍: 어두운 굴 (얼굴면보다 한 칸 들어감)
+    w.clear(lambda *_: (AX < 7.5) & (Y > 7) & (Y < 10) & (Z > 6))
+    w.fill(lambda *_: (AX < 7.5) & (Y > 7) & (Y < 10) & (Z > 5) & (Z < 6), "bas0")
+    # 흑요석 눈썹: 눈보다 두 칸 앞으로 튀어나와 그늘을 드리운다
+    for (a, y) in BROW:
+        w.fill(lambda X, Y, Z, a=a, y=y: at(a, y) & (Z > 4) & (Z < 8), "obs")
+    for (a, y), m in EYE.items():
+        w.fill(lambda X, Y, Z, a=a, y=y: at(a, y) & (Z > 4) & (Z < 6), m)
+    # 입: 앞면을 파내고 안쪽은 마그마, 송곳니는 앞면에
+    for (a, y) in MOUTH:
+        w.clear(lambda X, Y, Z, a=a, y=y: at(a, y) & (Z > 6))
+        w.fill(lambda X, Y, Z, a=a, y=y: at(a, y) & (Z > 5) & (Z < 7), "magma")
+    for (a, y) in FANG:
+        w.fill(lambda X, Y, Z, a=a, y=y: at(a, y) & (Z > 6) & (Z < 8), "horn")
+    # 뿔: 상아색, 옆으로 나와 위로. 흑요석 고리 둘. 70% 까지 반지름 2 이상, 끝은 빛나지 않는다
+    horn = [(7.0, 10.5, -1.0), (11.5, 11.5, -1.5), (15.0, 13.5, -1.5), (16.5, 17.0, -0.5), (15.5, 20.5, 1.0)]
+    w.tube(horn, lambda t: 2.8 - 1.0 * t if t < 0.7 else 2.1 - (t - 0.7) / 0.3 * 1.1, "horn")
+    for p, r in ((horn[1], 3.1), (horn[2], 2.8)):
+        w.fill(lambda X, Y, Z, p=p, r=r: ((X - p[0]) ** 2 + (Y - p[1]) ** 2 + (Z - p[2]) ** 2 <= r ** 2)
+               & (w.grid > 0) & (np.abs((X - p[0]) * 0.4 + (Y - p[1]) * 0.9) <= 0.7), "obs")
+    # 불꽃 볏: 계단진 흑요석 지느러미 + 굵은 불꽃 혀 셋
+    saw = 15.0 + (np.floor((Z + 7) / 3) % 2) * 1.0
+    w.fill(lambda *_: (AX <= 1) & (Y >= 13) & (Y <= saw) & (Z >= -6.5) & (Z <= 4), "obs")
+    for (z, h, lean) in ((2.0, 2.5, -0.5), (-1.5, 4.0, -1.5), (-5.0, 3.0, -2.0)):
+        base = 15.5
         w.tube([(0, base, z), (0, base + h * 0.55, z + lean * 0.5), (0, base + h, z + lean)],
-               lambda t: 1.6 * (1 - 0.65 * t), "fire")
+               lambda t: 1.3 * (1 - 0.4 * t), "fire")
+    # 뒤통수: 가로 홈 하나
+    w.fill(lambda *_: (AX <= 6) & (Y > 6) & (Y < 7) & (Z < -5) & (Z > -6), "lava")
     w.mirror()
+    shade(w, ROCK, up=1, down=1)
+    shade(w, OBS, up=1, down=0, rim=True)
+    shade(w, HORN, up=0, down=1)
     return w.build(f"boss/{BOSS}_head", root)
 
 
 # ─────────────────────────── 주먹 ───────────────────────────
 
+FINGERS = [(-7, -4), (-3, 0), (1, 4), (5, 7)]   # Xs 범위: 검지(엄지 쪽 Xs<0) 3, 중지 3, 약지 3, 새끼 2. 사이 1칸 틈
+
+
 def build_fist(root, side):
-    """side=+1 왼주먹(+X 쪽), -1 오른주먹(-X 쪽). 엄지는 몸 쪽(-side). 피벗 = 손목 위."""
-    w = part(mats("bas0", "bas1", "bas2", "obs", "char", "hot", "ember", "hornT", "lava", "magma"), size=40)
+    """
+    side=+1 왼주먹(+X 쪽), -1 오른주먹(-X 쪽). 엄지는 몸 쪽(Xs<0). 피벗 = 손목(주먹 바로 위).
+    앞(+Z) = 손등 판(금 하나), 앞-아래 모서리 = 3x3 마디 넷(가운데 둘이 한 칸 더 나옴), 바닥(-Y) = 손가락 첫 마디(치는 면, 사이 빛 금),
+    뒤-아래 = 접힌 둘째 마디, 엄지는 바닥 뒤쪽에서 검지·중지를 가로지른다.
+    휘두르기(-X 75도)에서 바닥(마디·손가락·엄지 면)이 앞을 향한다.
+    """
+    w = part(mats("bas0", "bas1", "bas2", "bas3", "ember", "lava"), size=40)
     X, Y, Z = w._X, w._Y, w._Z
-    inner = -side
-    cy = -10.0
-    Xs = X * side          # 엄지 쪽이 Xs<0
-    # 손등/손바닥 덩어리 (손가락 뒤)
-    hand = (Xs >= -7) & (Xs <= 8) & (Y >= cy - 5) & (Y <= cy + 5) & (Z >= -5) & (Z <= 3) \
-        & (np.abs(Xs - 0.5) - 7.5 + np.abs(Z + 1) - 4 + 2 <= 0)
-    w.fill(lambda X, Y, Z: hand, "bas1")
-    plates(w, hand, 6, 41 + side, weights=[2, 4, 2, 1], crack=0.4)
-    # 손가락 4개: 3칸 폭, 사이 1칸 틈. 위 마디(밝음)와 아래 마디(중간), 접힌 금(어두움)
-    fingers = np.zeros(w.grid.shape, bool)
-    for i in range(4):
-        x0 = -7 + i * 4 + (1 if i == 0 else 0)
-        x1 = x0 + 3 - (1 if i == 0 else 0)
-        top = cy + 5 + (1 if i in (1, 2) else 0)
-        f = (Xs >= x0) & (Xs <= x1) & (Y >= cy - 5) & (Y <= top) & (Z > 3) & (Z <= 7.5)
-        f &= ~((Y > top - 1) & (Z > 6.5))          # 마디 모서리 둥글게
-        f &= ~((Y < cy - 4) & (Z > 6.5))
-        fingers |= f
-        w.fill(lambda X, Y, Z, f=f: f & (Y > cy + 0.5), "bas2")
-        w.fill(lambda X, Y, Z, f=f: f & (Y <= cy + 0.5), "bas1")
-        w.fill(lambda X, Y, Z, f=f: f & (np.abs(Y - (cy + 0.5)) < 0.5) & (Z > 6.5), "bas0")
-        # 마디 위 빛나는 금 (주먹마다 조금씩 다른 자리)
-        kx = x0 + 1 + (i % 2)
-        w.fill(lambda X, Y, Z, f=f, kx=kx: f & (np.abs(Xs - kx) < 0.6) & (Y > cy + 2) & (Z > 6.5), "ember")
-        w.fill(lambda X, Y, Z, f=f, kx=kx: f & (np.abs(Xs - kx) < 0.6) & (Y > top - 1) & (Z > 4), "ember")
-    # 손가락 사이 틈 깊은 곳 = 용암
-    w.fill(lambda X, Y, Z: (Xs >= -6) & (Xs <= 8) & (Y >= cy - 4) & (Y <= cy + 4) & (Z > 3) & (Z <= 4) & ~fingers, "lava")
-    # 엄지: 몸 쪽 옆에서 앞으로 감싼다
-    thumb = [(inner * 7.5, cy - 0.5, -1.5), (inner * 8.5, cy - 2.0, 3.0), (inner * 6.0, cy - 3.0, 7.0)]
-    w.tube(thumb, lambda t: 2.2 * (1 - 0.15 * t), "bas2")
-    w.fill(lambda X, Y, Z: (np.abs(X - inner * 8.6) < 1.2) & (np.abs(Y - (cy - 1.5)) < 0.6) & (np.abs(Z - 1.5) < 2.2)
-           & (w.grid > 0), "ember")
-    # 손목 띠 (흑요석) + 가시 4개
-    w.fill(lambda X, Y, Z: (Y >= cy + 5) & (Y <= cy + 8) & ((X / 7.4) ** 2 + ((Z + 1) / 5.8) ** 2 <= 1), "obs")
-    w.fill(lambda X, Y, Z: (Y >= cy + 6) & (Y <= cy + 7) & ((X / 8.2) ** 2 + ((Z + 1) / 6.6) ** 2 <= 1), "obs")
-    for a in (45, 135, 225, 315):
-        r = math.radians(a)
-        w.tube([(6.5 * math.cos(r), cy + 6.5, -1 + 5.0 * math.sin(r)),
-                (10.0 * math.cos(r), cy + 9.0, -1 + 8.0 * math.sin(r))], lambda t: 1.5 * (1 - 0.6 * t), "obs")
-        w.tube([(9.2 * math.cos(r), cy + 8.5, -1 + 7.4 * math.sin(r)),
-                (10.0 * math.cos(r), cy + 9.0, -1 + 8.0 * math.sin(r))], 0.75, "hornT")
-    # 부러진 손목 그루터기: 위가 녹아 끓는다
-    w.fill(lambda X, Y, Z: (Y > cy + 8) & (Y <= cy + 10) & ((X / 5.2) ** 2 + ((Z + 1) / 4.4) ** 2 <= 1), "char")
-    w.fill(lambda X, Y, Z: (Y > cy + 9) & (Y <= cy + 10) & ((X / 3.6) ** 2 + ((Z + 1) / 3.0) ** 2 <= 1), "magma")
-    jag(w, (Y > cy + 8) & (w.grid == mid(w, "char")), 0.35, 70 + side, 1.0)
-    # 손목 위에 떠 있는 팔뚝 조각 둘
-    w.fill(lambda X, Y, Z: (Y >= cy + 12) & (Y <= cy + 14) & ((X / 4.2) ** 2 + ((Z + 1) / 3.6) ** 2 <= 1), "bas1")
-    w.fill(lambda X, Y, Z: (Y >= cy + 12) & (Y < cy + 13) & ((X / 2.6) ** 2 + ((Z + 1) / 2.0) ** 2 <= 1), "lava")
-    w.fill(lambda X, Y, Z: (Y >= cy + 16) & (Y <= cy + 17) & ((X / 2.6) ** 2 + ((Z + 1) / 2.4) ** 2 <= 1), "char")
-    jag(w, (Y >= cy + 12), 0.3, 80 + side, 1.0)
-    ring_hot(w, "lava", 0.4, 90 + side)
+    Xs = X * side
+    # 손 덩어리 + 앞 손등 판 (한 칸 튀어나옴)
+    w.fill(lambda *_: cbox(Xs, Y, Z, -6, 6, -10, -1, -5, 4, ch=2.5, cht=3), "bas1")
+    w.fill(lambda *_: cbox(Xs, Y, Z, -5.5, 5.5, -7, -1.5, 0, 5, ch=2, cht=2.5), "bas1")
+    for i, (x0, x1) in enumerate(FINGERS):
+        lead = 1 if i in (1, 2) else 0
+        kn = cbox(Xs, Y, Z, x0, x1, -12, -6, 2, 7 + lead)                  # 손등 마디 3x3(+): 앞-아래 모서리, 판보다 2칸 앞
+        kn &= ~((Y < -11) & (Z > 6 + lead)) & ~((Y > -7) & (Z > 6 + lead))
+        prox = cbox(Xs, Y, Z, x0, x1, -12, -9, -5, 3)                      # 첫 마디: 바닥 (치는 면)
+        pip = cbox(Xs, Y, Z, x0, x1, -12, -6, -7, -4)                      # 둘째 마디: 뒤-아래로 접혀 올라감
+        pip &= ~((Y < -11) & (Z < -6))
+        w.fill(lambda *_, m=prox | pip: m, "bas1")
+        w.fill(lambda *_, m=kn: m, "bas2")
+    # 손가락 사이 틈: 겉 한 칸은 비우고 안쪽 한 줄만 빛나는 곧은 금
+    for (a, b) in ((-4, -3), (0, 1), (4, 5)):
+        col = (Xs > a) & (Xs < b)
+        w.grid[col & (Y < -6) & (Z > 3)] = 0
+        w.grid[col & (Y < -10)] = 0
+        w.grid[col & (Y < -6) & (Z < -5)] = 0
+        w.grid[col & (Y > -11) & (Y < -8) & (Z > -5) & (Z < 4)] = mid(w, "ember")
+    # 엄지: 몸 쪽 옆의 두툼한 뿌리 → 바닥 뒤쪽에서 검지·중지 밑을 가로지른다 (3x3 단면)
+    w.fill(lambda *_: cbox(Xs, Y, Z, -9, -6, -10, -2, -5, 2, ch=1, cht=1), "bas2")
+    w.fill(lambda *_: cbox(Xs, Y, Z, -9, -6, -12, -9, -6, -1, ch=1), "bas2")
+    w.fill(lambda *_: cbox(Xs, Y, Z, -9, 0.5, -13, -10, -5, -2, ch=1, chb=1), "bas2")
+    # 손등 대각선 금 하나 (앞 판)
+    surface_line(w, [(side * a, b) for (a, b) in stair((-3.0, -2.0), (2.0, -6.0))], "z", 1, "ember", only=("bas1",))
+    shade(w, ROCK, up=1, down=0)
     return w.build(f"boss/{BOSS}_{'left' if side > 0 else 'right'}_fist", root)
 
 
 # ─────────────────────────── 꼬리 ───────────────────────────
 
 def build_tail(root, low=False):
-    w = part(mats("bas0", "bas1", "bas2", "obs", "char", "hot", "ember", "hornT", "lava", "magma"), size=32)
+    """
+    허리(폭 15) 아래로 점점 작아지는 바위 덩어리 탑: 10 → 6 → 4 → 2. 덩어리 사이 1칸 틈으로 용암 심(2x2)이 빛난다.
+    tail: 폭 10 덩어리 (피벗 = 위 끝). tail_low: 폭 6, 4 덩어리 + 폭 2 흑요석 끝 (늦게 따라 흔들림).
+    """
+    w = part(mats("bas0", "bas1", "bas2", "bas3", "obs", "obsH", "lava"), size=32)
     X, Y, Z = w._X, w._Y, w._Z
     if not low:
-        segs = ((-0.5, -4.0, 5.2, 4.2, -0.3), (-5.5, -8.0, 4.0, 3.4, -1.0), (-9.5, -11.5, 2.9, 2.6, -1.8))
-        spine = [(0, 0.5, 0), (0, -6, -0.8), (0, -11.5, -1.8)]
+        w.fill(lambda *_: (np.abs(X) < 1) & (np.abs(Z) < 1) & (Y > -6) & (Y < 1), "lava")
+        w.fill(lambda *_: cbox(X, Y, Z, -5, 5, -5, -1, -4, 4, ch=2.5, cht=1, chb=1.5), "bas1")
     else:
-        segs = ((-1, -3.5, 2.6, 2.3, -0.3), (-5, -6.5, 1.9, 1.8, -0.9), (-8, -9, 1.2, 1.2, -1.5))
-        spine = [(0, 0.5, 0), (0, -8.5, -1.5)]
-    w.tube(spine, 1.3 if not low else 0.9, "lava")
-    for k, (y0, y1, r, rz, zc) in enumerate(segs):
-        t = np.clip((y0 - Y) / max(0.5, y0 - y1), 0, 1)
-        seg = (Y <= y0) & (Y >= y1) & ((X / (r * (1 - 0.25 * t))) ** 2 + ((Z - zc) / (rz * (1 - 0.25 * t))) ** 2 <= 1)
-        w.fill(lambda X, Y, Z, seg=seg: seg, "bas1")
-    jag(w, w.grid > 0, 0.22, 90 + low, 1.0)
-    plates(w, (w.grid > 0) & (w.grid != mid(w, "lava")), 5, 91 + low, weights=[3, 3, 2, 2], crack=0.3)
-    for (y0, y1, r, rz, zc) in segs:
-        w.fill(lambda X, Y, Z, y1=y1, zc=zc, r=r, rz=rz: (np.abs(Y - y1) < 0.6) & (w.grid > 0)
-               & (hash3(X, Y, Z, 99, 1) < 0.6) & ((X / r) ** 2 + ((Z - zc) / rz) ** 2 > 0.3), "hot")
-    if not low:
-        for s in (1, -1):
-            w.tube([(s * 4, -1.5, 0.5), (s * 7, -3.5, 1.0)], lambda t: 1.4 * (1 - 0.55 * t), "obs")
-            w.tube([(s * 6.4, -3.2, 0.9), (s * 7, -3.5, 1.0)], 0.7, "hornT")
-    else:
-        w.tube([(0, -9, -1.6), (0, -11.5, -2.3)], lambda t: 1.0 * (1 - 0.4 * t), "magma")
+        w.fill(lambda *_: (np.abs(X) < 1) & (np.abs(Z) < 1) & (Y > -8) & (Y < 0), "lava")
+        w.fill(lambda *_: cbox(X, Y, Z, -3, 3, -4, -1, -3, 3, ch=1.5, chb=1), "bas1")
+        w.fill(lambda *_: cbox(X, Y, Z, -2, 2, -7, -5, -2, 2, ch=1), "bas1")
+        w.fill(lambda *_: (np.abs(X) < 1) & (np.abs(Z) < 1) & (Y > -9) & (Y < -8), "obs")
+    shade(w, ROCK, up=1, down=1)
+    shade(w, OBS, up=1, down=0, rim=True)
     return w.build(f"boss/{BOSS}_{'tail_low' if low else 'tail'}", root)
 
 
 # ─────────────────────────── 도는 바위 ───────────────────────────
 
 def build_rock(root, kind):
-    w = part(mats("bas0", "bas1", "bas2", "obs", "char", "hot", "ember", "hornT", "lava", "fire", "magma"),
-             size=24)
+    w = part(mats("bas0", "bas1", "bas2", "bas3", "obs", "cry", "cryM", "obsH", "lava", "fire", "magma"), size=24)
     X, Y, Z = w._X, w._Y, w._Z
     if kind == "a":
-        # 불타는 현무암 덩어리: 위에서 불꽃
-        w.fill(lambda X, Y, Z: (X / 4.6) ** 2 + ((Y + 0.5) / 3.8) ** 2 + (Z / 4.2) ** 2 <= 1, "bas1")
-        jag(w, w.grid > 0, 0.3, 101, 1.0)
-        plates(w, w.grid > 0, 5, 102, weights=[2, 3, 2, 2], crack=0.6, hot=0.5)
-        w.fill(lambda X, Y, Z: ((X / 2.6) ** 2 + (Z / 2.4) ** 2 <= 1) & (Y >= 2.0) & (Y <= 3.0), "magma")
-        for (x, z, h) in ((0, 0, 5.0), (1.8, 1.0, 3.0), (-1.6, -1.0, 3.5)):
-            w.tube([(x, 3, z), (x * 0.8, 3 + h * 0.6, z * 0.8), (x * 0.5 + 0.5, 3 + h, z * 0.5)],
-                   lambda t: 1.3 * (1 - 0.6 * t), "fire")
+        # 불타는 현무암 덩어리: 어긋나게 겹친 계단 상자 셋 + 갈라진 틈에서 새는 불 (위에 불꽃 혀 없음)
+        r = cbox(X, Y, Z, -4, 3, -3.5, 2, -3, 4, ch=2, cht=1.5, chb=1.5)
+        r |= cbox(X, Y, Z, -2, 4.5, -2, 3.5, -4, 2, ch=2, cht=1.5)
+        r |= cbox(X, Y, Z, -3, 2, -4.5, -1, -2, 2.5, ch=1.5, chb=1)
+        w.fill(lambda *_: r, "bas1")
+        # 갈라진 틈: 대각선으로 바위를 가르는 판 (겉은 불, 속은 용암)
+        cut = np.abs(X * 0.7 + Y * 0.7 - Z * 0.15 - 0.3) < 0.55
+        w.grid[r & cut] = mid(w, "lava")
+        surf = r & cut & ~(nb(r, 1, 1) & nb(r, 0, 1) & nb(r, 0, -1) & nb(r, 2, 1) & nb(r, 2, -1))
+        w.grid[surf & (Y > 0)] = mid(w, "fire")
     else:
-        # 흑요석 결정 덩어리: 빛나는 금이 간 뾰족한 파편
-        w.tube([(0, -3.5, 0), (0, 5.0, 0)], lambda t: 2.7 * (1 - 0.75 * t), "obs")
-        w.tube([(0, -1, 0), (3.8, -3.8, 1.5)], lambda t: 1.8 * (1 - 0.6 * t), "obs")
-        w.tube([(0, -1, 0), (-3.4, -3.0, -2.0)], lambda t: 1.6 * (1 - 0.6 * t), "obs")
-        w.fill(lambda X, Y, Z: (X / 3.2) ** 2 + ((Y + 3.5) / 2.0) ** 2 + (Z / 3.0) ** 2 <= 1, "char")
-        project(w, zigzag([(0.5, -2), (1, 1), (0, 3.5)], 120), "z", 1, "lava")
-        project(w, zigzag([(-0.5, -2), (-1, 1), (0, 3)], 121), "z", -1, "lava")
-        w.tube([(0, 4.0, 0), (0, 5.5, 0)], 0.8, "hornT")
-        w.fill(lambda X, Y, Z: (Y <= -5.0) & (Y >= -6.0) & (X ** 2 + Z ** 2 <= 3.0), "magma")
+        # 낮고 넓은 흑요석 덩어리 + 뭉툭한 결정 둘 (끝도 2x2) + 밑 홈
+        base = cbox(X, Y, Z, -4.5, 4.5, -3, 0, -4, 3.5, ch=2.5, chb=1.5, cht=1)
+        w.fill(lambda *_: base, "obs")
+        crystal(w, 1.0, -1, -0.5, [(4, 3), (2, 2)], lean=(1.0, 0.0))
+        crystal(w, -2.5, -1, 1.0, [(2, 3)], lean=(-1.0, 0.0))
+        groove(w, base, -1.0, "lava")
+    shade(w, ROCK, up=1, down=1)
+    shade(w, OBS, up=1, down=0, rim=True)
+    facet(w)
     return w.build(f"boss/{BOSS}_rock_{kind}", root)
-
 
 # ─────────────────────────── 깊이 버퍼 미리보기 ───────────────────────────
 # mc3d.render 는 면을 평균 깊이로만 정렬해서 긴 면이 앞의 작은 면을 덮는 일이 있다.
 # 복셀 모양을 정확히 보려고 픽셀마다 깊이를 비교하는 렌더러를 하나 더 둔다 (같은 정사영, 같은 면 밝기).
 
-def zrender(parts, size=512, yaw=-35, pitch=25, bg=(28, 26, 36, 255), pad=0.08, ss=2):
+def zrender(parts, size=512, yaw=-35, pitch=25, bg=(28, 26, 36, 255), pad=0.08, ss=2, frame=None):
+    """frame: (cx, cy, span) 를 주면 그 화면 틀에 맞춘다 (여러 장의 크기를 같게)."""
     from mc3d import _face_corners, _rot_matrix, FACE_LIGHT
     from PIL import Image
     view = _rot_matrix("x", pitch) @ _rot_matrix("y", yaw)
@@ -513,13 +500,16 @@ def zrender(parts, size=512, yaw=-35, pitch=25, bg=(28, 26, 36, 255), pad=0.08, 
         return Image.new("RGBA", (size, size), bg)
     allp = np.concatenate([q[0] for q in quads])
     lo, hi = allp.min(0), allp.max(0)
-    span = max(hi[0] - lo[0], hi[1] - lo[1]) or 1
+    if frame is None:
+        span = max(hi[0] - lo[0], hi[1] - lo[1]) or 1
+        cx, cy = (lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2
+    else:
+        cx, cy, span = frame
     S = size * ss
     sc = S * (1 - 2 * pad) / span
-    cx, cy = (lo[0] + hi[0]) / 2, (lo[1] + hi[1]) / 2
     img = np.zeros((S, S, 3), float)
     img[:] = bg[:3]
-    zb = np.full((S, S), np.inf)
+    zb = np.full((S, S), -np.inf)   # 카메라는 +z 쪽: z 가 클수록 가깝다
     for P, tex, uv, light in quads:
         sx = (P[:, 0] - cx) * sc + S / 2
         sy = -(P[:, 1] - cy) * sc + S / 2
@@ -548,7 +538,7 @@ def zrender(parts, size=512, yaw=-35, pitch=25, bg=(28, 26, 36, 255), pad=0.08, 
         px = tex[vi, ui]
         a = px[..., 3]
         sub = zb[y0:y1, x0:x1]
-        ok = inside & (a > 0) & (z < sub)
+        ok = inside & (a > 0) & (z > sub)
         glow = (a >= 250) & (a <= 252)
         col = px[..., :3].astype(float) * np.where(glow, 1.0, light)[..., None]
         sub[ok] = z[ok]
@@ -557,30 +547,66 @@ def zrender(parts, size=512, yaw=-35, pitch=25, bg=(28, 26, 36, 255), pad=0.08, 
     return out.resize((size, size), Image.LANCZOS).convert("RGBA")
 
 
-def zrig(spec, models, out_png, title, size=420):
-    from mc3d import mat as mmat, contact_sheet
-    parts = []
+def placed(spec, models, swing=0.0, body_only=False):
+    """[(model, 4x4)] — swing 0..1: 공격 동작의 sin 진폭 (1 = 가장 크게)."""
+    from mc3d import mat as mmat
+    out = []
     for p in spec["parts"]:
         m = models.get(p["id"])
-        if m is None:
+        if m is None or (body_only and p.get("frame") == "world"):
             continue
         rx, ry, rz = p.get("rotation", [0, 0, 0])
-        parts.append((m, mmat(translate=p.get("offset", [0, 0, 0]), scale=p.get("scale", 1.0), yaw=ry, pitch=rx, roll=rz)))
-    views = [zrender(parts, size=size, yaw=y, pitch=pt) for (y, pt) in ((-35, 12), (0, 4), (-90, 6), (150, 12))]
-    contact_sheet(views, [f"{title} 앞 3/4", f"{title} 정면", f"{title} 옆", f"{title} 뒤"], cols=4, cell=size,
+        M = mmat(translate=p.get("offset", [0, 0, 0]), scale=p.get("scale", 1.0), yaw=ry, pitch=rx, roll=rz)
+        if swing:
+            for a in p.get("anims", []):
+                if a["type"] == "swing":
+                    from mc3d import _rot_matrix
+                    R = np.eye(4)
+                    R[:3, :3] = _rot_matrix(a["axis"], a["angle"] * swing)
+                    M = M.copy()
+                    M[:3, :3] = R[:3, :3] @ M[:3, :3]
+        out.append((m, M))
+    return out
+
+
+def zrig(spec, models, out_png, title, size=560):
+    """[바위까지 전체 앞 3/4 | 몸 확대 앞 3/4 / 몸 확대 정면 | 몸 확대 뒤]."""
+    from mc3d import contact_sheet
+    allp, body = placed(spec, models), placed(spec, models, body_only=True)
+    views = [zrender(allp, size=size, yaw=-35, pitch=12), zrender(body, size=size, yaw=-35, pitch=10, pad=0.04),
+             zrender(body, size=size, yaw=0, pitch=4, pad=0.04), zrender(body, size=size, yaw=155, pitch=10, pad=0.04)]
+    contact_sheet(views, [f"{title} (도는 바위 포함)", f"{title} 앞 3/4", f"{title} 정면", f"{title} 뒤"], cols=2, cell=size,
                   font=FONT if os.path.exists(FONT) else None).save(out_png)
+
+
+def zmain(spec, models, out_png, title, size=400):
+    """대표 미리보기: 앞 3/4, 옆, 뒤 3/4 (rig_preview 와 같은 각도) + 정면, 휘두르기 정점, 게임 속 크기(약 140px)."""
+    from mc3d import contact_sheet
+    from PIL import Image
+    allp = placed(spec, models)
+    views = [zrender(allp, size=size, yaw=y, pitch=p) for (y, p) in ((-35, 12), (-90, 6), (150, 12))]
+    views.append(zrender(allp, size=size, yaw=0, pitch=4))
+    views.append(zrender(placed(spec, models, swing=1.0), size=size, yaw=-25, pitch=6))
+    small = zrender(allp, size=150, yaw=-25, pitch=8, pad=0.03)
+    tile = Image.new("RGBA", (size, size), (28, 26, 36, 255))
+    tile.paste(small, ((size - 150) // 2, (size - 150) // 2))
+    views.append(tile)
+    labels = [f"{title} 앞", f"{title} 옆", f"{title} 뒤", f"{title} 정면", f"{title} 주먹 휘두르기 (정점)", "게임 속 크기 (150px)"]
+    contact_sheet(views, labels, cols=3, cell=size, font=FONT if os.path.exists(FONT) else None).save(out_png)
 
 
 # ─────────────────────────── 조립 ───────────────────────────
 
 S = 2.0           # 몸 조각 배율: 1 복셀 = 1/8 블록
-V = S / 16.0      # 1 복셀의 블록 크기
+V = S / 16.0      # 1 복셀의 블록 크기 (0.125)
 
-TORSO_Y = 3.05
-HEAD_Y = TORSO_Y + 7.5 * V
-TAIL_Y = TORSO_Y - 14.5 * V
-TAIL_LOW_Y = TAIL_Y - 11.5 * V
-FIST_X, FIST_Y, FIST_Z = 2.85, 3.0, 0.35
+# 모든 오프셋은 V 의 배수 (몸 전체 큐브 격자가 이어진다)
+TORSO_Y = 24 * V                     # 3.0 — 가슴 핵 가운데
+HEAD_Y = TORSO_Y + 11 * V            # 목 밑동: 몸통 위 끝(+9)보다 2칸 위, 틈은 마그마로 빛난다
+HEAD_Z = 3 * V
+TAIL_Y = TORSO_Y - 7 * V             # 허리 밑 (몸통 맨 아래)
+TAIL_LOW_Y = TAIL_Y - 6 * V
+FIST_X, FIST_Y, FIST_Z = 19 * V, 26 * V, 10 * V   # 손목 피벗 (주먹 몸통 y 1.63..3.13)
 
 
 def rig_spec():
@@ -588,52 +614,65 @@ def rig_spec():
     parts = [
         {"id": "torso", "model": f"augsky:boss/{BOSS}_torso", "offset": [0, TORSO_Y, 0], "scale": S,
          "rotation": [0, 0, 0], "frame": "body",
-         "anims": [bob, {"type": "sway", "axis": "z", "angle": 2.5, "period": 120, "phase": 0},
-                   {"type": "swing", "axis": "x", "angle": 8, "ticks": 12}]},
-        {"id": "head", "model": f"augsky:boss/{BOSS}_head", "offset": [0, HEAD_Y, 0.15], "scale": S,
+         "anims": [bob, {"type": "sway", "axis": "z", "angle": 2.0, "period": 120, "phase": 0},
+                   {"type": "swing", "axis": "x", "angle": 6, "ticks": 12}]},
+        {"id": "right_shoulder", "model": f"augsky:boss/{BOSS}_right_shoulder",
+         "offset": [-SHOULDER_X * V, TORSO_Y + SHOULDER_Y * V, 0], "scale": S, "rotation": [0, 0, 0], "frame": "body",
+         "anims": [bob, {"type": "sway", "axis": "z", "angle": 3, "period": 60, "phase": 0.5},
+                   {"type": "swing", "axis": "z", "angle": -8, "ticks": 12}]},
+        {"id": "left_shoulder", "model": f"augsky:boss/{BOSS}_left_shoulder",
+         "offset": [SHOULDER_X * V, TORSO_Y + SHOULDER_Y * V, 0], "scale": S, "rotation": [0, 0, 0], "frame": "body",
+         "anims": [bob, {"type": "sway", "axis": "z", "angle": 3, "period": 60, "phase": 0.0},
+                   {"type": "swing", "axis": "z", "angle": 8, "ticks": 12}]},
+        {"id": "head", "model": f"augsky:boss/{BOSS}_head", "offset": [0, HEAD_Y, HEAD_Z], "scale": S,
          "rotation": [0, 0, 0], "frame": "body",
-         "anims": [bob, {"type": "sway", "axis": "y", "angle": 10, "period": 140, "phase": 0},
-                   {"type": "sway", "axis": "x", "angle": 4, "period": 90, "phase": 0.3},
-                   {"type": "swing", "axis": "x", "angle": -16, "ticks": 12}]},
-        {"id": "tail", "model": f"augsky:boss/{BOSS}_tail", "offset": [0, TAIL_Y, -0.05], "scale": S,
+         "anims": [{"type": "bob", "amplitude": 0.12, "period": 60, "phase": 0.04},
+                   {"type": "sway", "axis": "y", "angle": 9, "period": 140, "phase": 0},
+                   {"type": "sway", "axis": "x", "angle": 3, "period": 90, "phase": 0.3},
+                   {"type": "swing", "axis": "x", "angle": -10, "ticks": 12}]},
+        {"id": "tail", "model": f"augsky:boss/{BOSS}_tail", "offset": [0, TAIL_Y, 0], "scale": S,
          "rotation": [0, 0, 0], "frame": "body",
-         "anims": [{"type": "bob", "amplitude": 0.1, "period": 60, "phase": 0.05},
-                   {"type": "sway", "axis": "z", "angle": 8, "period": 80, "phase": 0},
-                   {"type": "sway", "axis": "x", "angle": 6, "period": 110, "phase": 0.3}]},
-        {"id": "tail_low", "model": f"augsky:boss/{BOSS}_tail_low", "offset": [0, TAIL_LOW_Y, -0.25], "scale": S,
+         "anims": [{"type": "bob", "amplitude": 0.1, "period": 60, "phase": 0.04},
+                   {"type": "sway", "axis": "z", "angle": 6, "period": 80, "phase": 0},
+                   {"type": "sway", "axis": "x", "angle": 5, "period": 110, "phase": 0.3}]},
+        {"id": "tail_low", "model": f"augsky:boss/{BOSS}_tail_low", "offset": [0, TAIL_LOW_Y, 0], "scale": S,
          "rotation": [0, 0, 0], "frame": "body",
-         "anims": [{"type": "bob", "amplitude": 0.14, "period": 60, "phase": 0.15},
-                   {"type": "sway", "axis": "z", "angle": 14, "period": 80, "phase": 0.18},
-                   {"type": "sway", "axis": "x", "angle": 10, "period": 110, "phase": 0.5}]},
+         "anims": [{"type": "bob", "amplitude": 0.1, "period": 60, "phase": 0.1},
+                   {"type": "sway", "axis": "z", "angle": 8, "period": 80, "phase": 0.1},
+                   {"type": "sway", "axis": "x", "angle": 6, "period": 110, "phase": 0.4}]},
         {"id": "right_fist", "model": f"augsky:boss/{BOSS}_right_fist", "offset": [-FIST_X, FIST_Y, FIST_Z],
          "scale": S, "rotation": [0, 6, 0], "frame": "body",
-         "anims": [{"type": "bob", "amplitude": 0.22, "period": 50, "phase": 0.25},
-                   {"type": "sway", "axis": "x", "angle": 7, "period": 70, "phase": 0.1},
+         "anims": [{"type": "bob", "amplitude": 0.15, "period": 50, "phase": 0.25},
+                   {"type": "sway", "axis": "x", "angle": 6, "period": 70, "phase": 0.1},
                    {"type": "swing", "axis": "x", "angle": -75, "ticks": 12}]},
         {"id": "left_fist", "model": f"augsky:boss/{BOSS}_left_fist", "offset": [FIST_X, FIST_Y, FIST_Z],
          "scale": S, "rotation": [0, -6, 0], "frame": "body",
-         "anims": [{"type": "bob", "amplitude": 0.22, "period": 50, "phase": 0.75},
-                   {"type": "sway", "axis": "x", "angle": 7, "period": 70, "phase": 0.6},
-                   {"type": "swing", "axis": "x", "angle": -60, "ticks": 16}]},
+         "anims": [{"type": "bob", "amplitude": 0.15, "period": 50, "phase": 0.75},
+                   {"type": "sway", "axis": "x", "angle": 6, "period": 70, "phase": 0.6},
+                   {"type": "swing", "axis": "x", "angle": -60, "ticks": 10}]},
     ]
-    # 도는 바위 6개: 위 셋(어깨 위, 시계 방향) 아래 셋(꼬리 둘레, 반대 방향)
-    for i in range(6):
-        hi = i < 3
-        k = i % 3
+    # 도는 바위 4개: 어깨 높이 바깥 한 고리 (머리·볏 앞을 지나지 않는다)
+    for i in range(4):
         parts.append({
-            "id": f"rock{i + 1}", "model": f"augsky:boss/{BOSS}_rock_{'a' if (i % 2 == 0) else 'b'}",
+            "id": f"rock{i + 1}", "model": f"augsky:boss/{BOSS}_rock_{'a' if i % 2 == 0 else 'b'}",
             "offset": [0, 0, 0], "scale": S, "rotation": [0, 0, 0], "frame": "world",
-            "anims": [{"type": "orbit", "radius": 3.5 if hi else 2.9, "speed": 2.2 if hi else -2.8,
-                       "phase": k * 120 + (0 if hi else 60), "height": 5.0 if hi else 0.75},
-                      {"type": "spin", "axis": "y", "speed": 4.0 if hi else -5.0},
-                      {"type": "bob", "amplitude": 0.25, "period": 40, "phase": i / 6}],
+            "anims": [{"type": "orbit", "radius": ORBIT_R, "speed": 1.8, "phase": i * 90, "height": ORBIT_H},
+                      {"type": "spin", "axis": "y", "speed": 4.0 if i % 2 == 0 else -5.0},
+                      {"type": "bob", "amplitude": 0.2, "period": 40, "phase": i / 4}],
         })
     return parts
+
+
+ORBIT_R, ORBIT_H = 4.6, 4.2
+
+MODELS = {}   # build() 가 마지막으로 지은 조각 모델 (미리보기용)
 
 
 def build(assets_root):
     models = {
         "torso": build_torso(assets_root),
+        "right_shoulder": build_shoulder(assets_root, -1),
+        "left_shoulder": build_shoulder(assets_root, +1),
         "head": build_head(assets_root),
         "tail": build_tail(assets_root),
         "tail_low": build_tail(assets_root, low=True),
@@ -645,66 +684,85 @@ def build(assets_root):
     spec = {
         "boss": BOSS,
         "parts": rig_spec(),
-        "notes": ("화염 거신 (복셀): 1 복셀 = 1/8 블록 (vox 1.0, scale 2.0; 흑요석 바위만 1.6). 피벗 = 모델 (8,8,8). "
-                  "torso=가슴 중심, head=목 밑동(어깨 사이에 박힘), tail=가슴 밑 꼬리 윗끝(아래로 매달림), "
-                  "tail_low=꼬리 끝마디(같은 주기, 늦은 위상으로 따라 흔들림), fists=손목 위 약 1.25블록(주먹은 피벗 아래·앞) → "
-                  "swing 이 앞-위로 큰 호를 그린다 (오른손 -75도/12틱, 왼손 -60도/16틱). "
-                  "rocks=world 프레임 orbit (offset 0, height=발 기준 높이; 위 셋은 어깨 위, 아래 셋은 꼬리 둘레를 반대로). "
-                  "앞=+Z, 오른손=-X. 용암(flow)/핵(fire)/마그마(pulse)/불꽃(fire)은 16프레임 애니메이션, glow=셰이더 자체 발광."),
+        "notes": (
+            "화염 거신 (복셀): 1 복셀 = 1/8 블록 (모든 조각 vox 1.0, scale 2.0), 몸 조각 오프셋은 모두 1/8 블록의 배수라 큐브 격자가 "
+            "조각 사이에서 이어진다. 피벗 = 모델 (8,8,8). 앞=+Z, 오른손=-X. "
+            "torso=가슴 핵 가운데(y 3.0; 몸통 y 2.13..4.25, x ±1.38), shoulders=어깨 관절(몸통에서 옆 1.25·위 0.63블록, 바깥 끝 x ±2.38, 위 끝 y 4.5), "
+            "head=목 밑동(y 4.38 = 몸통 위 끝보다 2칸 위, 0.38 앞; 그 틈에 마그마 목이 빛난다. 눈 높이 y≈5.3..5.4, 정수리 6.1, 뿔 끝 6.9), "
+            "tail/tail_low=허리 밑 바위 덩어리 탑(폭 10 / 6·4·2, 맨 아래 y 0.25, bob 0.1 → 가장 낮을 때도 바닥 위 0.15), "
+            "fists=손목 피벗 (±2.38, 3.25, +1.25): 주먹 몸통 y 1.63..3.13, x ±1.25..3.25, z 0.6..2.1 — 가슴 높이, 어깨선 앞. "
+            "swing 은 -X(앞-위로 올려 치기): 오른손 -75도/12틱, 왼손 -60도/10틱 (Rigs.swing 재무장 12틱 이내) → 정점에서 주먹 바닥(마디·손가락·엄지 면)이 앞을 향한다. "
+            f"rocks=world 프레임 orbit 한 고리 (반지름 {ORBIT_R}, 발 기준 높이 {ORBIT_H}, 넷이 90도 간격). "
+            "빛 순서: core(흰-노랑 fire)=눈 > lava(깊은 주황-빨강 flow 홈) > magma(pulse, 틈/입) > ember(주먹 금, 고정). "
+            "미리보기: inferno_colossus_voxel*.png 는 깊이 버퍼 렌더(정확), *_mc3d.png 는 wkit.rig_preview/mc3d.render(면 정렬 오류 있음)."),
     }
-    spec["_models"] = models
+    MODELS.clear()
+    MODELS.update(models)
     return spec
-
-
-def _strip(spec):
-    return {k: v for k, v in spec.items() if not k.startswith("_")}
 
 
 def write_rig(spec):
     with open(os.path.join(HERE, MODULE + ".rig.json"), "w", encoding="utf-8") as f:
-        json.dump(_strip(spec), f, ensure_ascii=False, indent=1)
+        json.dump(spec, f, ensure_ascii=False, indent=1)
 
 
-def previews(spec, out_dir):
-    from mc3d import render, contact_sheet
-    models = spec["_models"]
-    by_id = {}
-    for p in spec["parts"]:
-        key = p["model"].split(f"{BOSS}_", 1)[1]
-        by_id[p["id"]] = models[key]
-    # 바위는 미리보기에서 궤도의 한 순간에 놓는다
+def shown_spec(spec, orbit_deg=25):
+    """미리보기용: 도는 바위를 궤도의 한 순간에 놓는다."""
     shown = {"boss": BOSS, "parts": []}
     for p in spec["parts"]:
         q = dict(p)
         orb = next((a for a in p["anims"] if a["type"] == "orbit"), None)
         if orb:
-            ang = math.radians(orb["phase"] + 25)
-            q["offset"] = [orb["radius"] * math.sin(ang), orb["height"], orb["radius"] * math.cos(ang)]
+            ang = math.radians(orb["phase"] + orbit_deg)
+            q["offset"] = [orb["radius"] * math.cos(ang), orb["height"], orb["radius"] * math.sin(ang)]
         shown["parts"].append(q)
-    rig_preview(shown, by_id, os.path.join(out_dir, f"{BOSS}_voxel.png"), NAME_KO)
-    zrig(shown, by_id, os.path.join(out_dir, f"{BOSS}_voxel_hq.png"), NAME_KO)
+    return shown
+
+
+def by_id(spec):
+    out = {}
+    for p in spec["parts"]:
+        key = p["model"].split(f"{BOSS}_", 1)[1]
+        out[p["id"]] = MODELS[key]
+    return out
+
+
+def previews(spec, out_dir):
+    from mc3d import render, contact_sheet
+    models = MODELS
+    shown = shown_spec(spec)
+    ids = by_id(spec)
+    zmain(shown, ids, os.path.join(out_dir, f"{BOSS}_voxel.png"), NAME_KO)
+    zrig(shown, ids, os.path.join(out_dir, f"{BOSS}_voxel_hq.png"), NAME_KO)
+    rig_preview(shown, ids, os.path.join(out_dir, f"{BOSS}_voxel_mc3d.png"), NAME_KO)
     bg = (28, 26, 36, 255)
-    for fn, tag in ((render, ""), (zrender, "_hq")):
+    for fn, tag in ((zrender, ""), (render, "_mc3d")):
         imgs, labels = [], []
-        for key, views in (("torso", ((-30, 12), (150, 15))), ("head", ((-30, 8), (35, 4))),
-                           ("left_fist", ((-40, 10), (60, 12))), ("right_fist", ((30, 10),)), ("tail", ((-30, 8),)),
-                           ("tail_low", ((-30, 8),)), ("rock_a", ((-30, 18),)), ("rock_b", ((-30, 12),))):
+        for key, views in (("torso", ((-30, 12), (150, 15))), ("head", ((-30, 8), (0, 2))),
+                           ("left_shoulder", ((-40, 12),)), ("right_shoulder", ((40, 12),)),
+                           ("left_fist", ((-40, 10), (0, 5), (-20, -60))), ("right_fist", ((30, 10),)),
+                           ("tail", ((-30, 8),)), ("tail_low", ((-30, 8),)), ("rock_a", ((-30, 18),)), ("rock_b", ((-30, 12),))):
             m = models[key]
             for (yaw, pitch) in views:
                 imgs.append(fn([(m, None)], size=360, yaw=yaw, pitch=pitch, bg=bg))
-                labels.append(f"{key} ({len(m.elements)})")
+                labels.append(f"{key} ({len(m.elements)})" + (" 밑면" if pitch < -30 else ""))
         contact_sheet(imgs, labels, cols=4, cell=360, font=FONT if os.path.exists(FONT) else None).save(
             os.path.join(out_dir, f"{BOSS}_voxel_parts{tag}.png"))
+    # 예전 이름으로 남은 파일은 지운다 (헷갈리지 않게)
+    old = os.path.join(out_dir, f"{BOSS}_voxel_parts_hq.png")
+    if os.path.exists(old):
+        os.remove(old)
+
 
 if __name__ == "__main__":
     root = os.path.join(HERE, "_scratch", MODULE, "assets", "augsky")
     spec = build(root)
     write_rig(spec)
     total = 0
-    for k, m in spec["_models"].items():
-        print(f"{k:12s} {len(m.elements):4d} elements")
+    for k, m in MODELS.items():
+        print(f"{k:14s} {len(m.elements):4d} elements")
     for p in spec["parts"]:
         key = p["model"].split(f"{BOSS}_", 1)[1]
-        total += len(spec["_models"][key].elements)
+        total += len(MODELS[key].elements)
     print("whole boss (all displays):", total)
     previews(spec, os.path.join(HERE, "preview"))
