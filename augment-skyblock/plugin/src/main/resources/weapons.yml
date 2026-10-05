@@ -8,7 +8,12 @@
 #            earth wind holy nature blood abyss shadow star crystal prism gold ender sun doom)
 #    damage  공격력(맨손 1 포함),  speed  초당 공격 횟수(바닐라 검 1.6)
 #    reach   공격 거리 추가,  skill_power  스킬 피해 배율
-#    skill   우클릭 스킬,  skill2  F키 스킬 (skills.yml 의 id)
+#    skill / skill2 / skill3   스킬 칸 1·2·3 (skills.yml 의 id). 필요한 무기에만 붙인다 — 안 적은 칸은 비어 있다.
+#            근접·마법 무기  skill  우클릭
+#                            skill2 웅크리기+우클릭 (skill2 가 없으면 웅크리기+우클릭도 skill 을 쓴다)
+#                            skill3 웅크리기+좌클릭 (허공·블록·적을 때릴 때 모두. 프리즘 무기의 궁극기)
+#            활              skill  웅크리기+당겨 쏘기,  skill2 웅크리기+좌클릭,  skill3 은 쓰지 않는다
+#            F키는 스킬과 상관없이 바닐라 그대로 손을 바꾼다.
 #    passive 근접 공격 시 확률 효과
 #    recipe  작업대 조합법 (item:아이템id, weapon:무기id, 바닐라 재료 이름)
 #    droppable false 면 '무작위 무기' 드롭에 나오지 않는다
@@ -22,9 +27,8 @@ apprentice_sword:
   pool: basic
   type: sword
   element: iron
-  damage: 6
+  damage: 6.5
   speed: 1.6
-  skill: dash_slash
   lore: ["모든 모험은 이 검 한 자루에서 시작된다."]
   recipe:
     shape: ["  C", " S ", "T  "]
@@ -35,9 +39,12 @@ hunter_dagger:
   pool: basic
   type: dagger
   element: iron
-  damage: 4.5
+  damage: 5
   speed: 2.2
-  skill: shadow_stab
+  passive:
+    chance: 0.15
+    description: "공격 시 15% 확률로 급소를 찔러 추가 피해 2."
+    effects: [{damage: 2}, {particle: CRIT, count: 8}]
   lore: ["가볍고 빠르다. 등 뒤를 노려라."]
   recipe:
     shape: [" S", "T "]
@@ -48,9 +55,8 @@ woodcutter_axe:
   pool: basic
   type: axe
   element: wood
-  damage: 7.5
+  damage: 8
   speed: 1.0
-  skill: whirlwind
   lore: ["나무도, 몬스터도 한 번에."]
   recipe:
     shape: ["LL ", "LS ", " T "]
@@ -74,9 +80,12 @@ stone_hammer:
   pool: basic
   type: hammer
   element: stone
-  damage: 8.5
+  damage: 9
   speed: 0.8
-  skill: ground_slam
+  passive:
+    chance: 0.12
+    description: "공격 시 12% 확률로 묵직하게 밀쳐낸다."
+    effects: [{knockback: 0.7}, {particle: "BLOCK:stone", count: 10}]
   lore: ["무겁다. 그래서 아프다."]
   recipe:
     shape: ["CCC", "CSC", " T "]
@@ -87,10 +96,13 @@ bone_spear:
   pool: basic
   type: spear
   element: bone
-  damage: 6.5
+  damage: 7
   speed: 1.2
   reach: 1
-  skill: spear_lunge
+  passive:
+    chance: 0.12
+    description: "공격 시 12% 확률로 잠깐 느리게 만든다."
+    effects: [{slow: 1}]
   lore: ["해골에게서 빌린 뼈로 깎았다."]
   recipe:
     shape: ["  B", " S ", "T  "]
@@ -101,9 +113,12 @@ copper_sword:
   pool: basic
   type: sword
   element: copper
-  damage: 6.5
+  damage: 7
   speed: 1.6
-  skill: spark_slash
+  passive:
+    chance: 0.15
+    description: "공격 시 15% 확률로 전격 추가 피해 2."
+    effects: [{damage: 2, magic: true}, {particle: ELECTRIC_SPARK, count: 8}]
   lore: ["전기가 잘 통한다. 가끔 찌릿하다."]
   recipe:
     shape: ["  C", " C ", "T  "]
@@ -114,9 +129,12 @@ thorn_club:
   pool: basic
   type: hammer
   element: nature
-  damage: 8
+  damage: 8.5
   speed: 0.9
-  skill: thorn_burst
+  passive:
+    chance: 0.15
+    description: "공격 시 15% 확률로 가시가 박혀 중독시킨다."
+    effects: [{poison: 2}]
   lore: ["선인장을 통째로 묶었다. 쥐는 쪽도 조금 아프다."]
   recipe:
     shape: [" CC", " SC", "T  "]
@@ -127,9 +145,8 @@ iron_greatsword:
   pool: basic
   type: greatsword
   element: iron
-  damage: 9
+  damage: 9.5
   speed: 1.0
-  skill: whirlwind
   lore: ["튼튼하고 정직한 대검."]
   recipe:
     shape: [" II", " SI", "T  "]
@@ -153,9 +170,8 @@ wooden_katana:
   pool: basic
   type: katana
   element: wood
-  damage: 5.5
+  damage: 6
   speed: 1.8
-  skill: dash_slash
   lore: ["수련용이지만 제대로 맞으면 아프다."]
   recipe:
     shape: ["  P", " P ", "T  "]
@@ -166,9 +182,8 @@ smith_hammer:
   pool: basic
   type: hammer
   element: iron
-  damage: 9
+  damage: 9.5
   speed: 0.8
-  skill: shockwave
   lore: ["모루를 두드리던 망치. 땅도 잘 두드린다."]
   recipe:
     shape: ["III", "ISI", " T "]
@@ -212,12 +227,11 @@ venom_dagger:
   pool: island
   type: dagger
   element: venom
-  damage: 5.5
+  damage: 6.5
   speed: 2.2
-  skill: poison_cloud
   passive:
-    chance: 0.35
-    description: "공격 시 35% 확률로 중독시킨다."
+    chance: 0.45
+    description: "공격 시 45% 확률로 중독시킨다."
     effects: [{poison: 3}]
   lore: ["한 번 물리면 잊을 수 없다."]
   recipe:
@@ -282,13 +296,12 @@ blood_scythe:
   pool: island
   type: scythe
   element: blood
-  damage: 9
+  damage: 10
   speed: 1.1
   reach: 0.5
-  skill: blood_reap
   passive:
-    chance: 0.3
-    description: "공격 시 30% 확률로 체력 2 회복."
+    chance: 0.4
+    description: "공격 시 40% 확률로 체력 2 회복."
     effects: [{heal_caster: 2}]
   lore: ["베면 벨수록 목이 마르다."]
   recipe:
@@ -342,7 +355,6 @@ crystal_sword:
   damage: 10
   speed: 1.6
   skill: crystal_burst
-  skill2: crystal_bolt
   lore: ["견습생의 검에 자수정을 입혔더니 이렇게 됐다."]
   recipe:
     shape: ["ASA", "AWA", "ASA"]
@@ -356,7 +368,6 @@ thunder_hammer:
   damage: 13
   speed: 0.8
   skill: thunder_strike
-  skill2: thunder_field
   passive:
     chance: 0.2
     description: "공격 시 20% 확률로 번개 추가 피해 6."
@@ -374,7 +385,6 @@ storm_katana:
   damage: 10
   speed: 1.8
   skill: iaido
-  skill2: storm_cut
   passive:
     chance: 0.2
     description: "공격 시 20% 확률로 전격 추가 피해 4."
@@ -389,13 +399,11 @@ blood_sword:
   pool: island
   type: sword
   element: blood
-  damage: 10
+  damage: 11
   speed: 1.6
-  skill: blood_spray
-  skill2: blood_pact
   passive:
-    chance: 0.3
-    description: "공격 시 30% 확률로 체력 3 회복."
+    chance: 0.4
+    description: "공격 시 40% 확률로 체력 3 회복."
     effects: [{heal_caster: 3}]
   lore: ["붉은 날은 닦아도 붉다."]
   recipe:
@@ -410,7 +418,6 @@ holy_hammer:
   damage: 12.5
   speed: 0.8
   skill: holy_smite
-  skill2: sanctuary
   passive:
     chance: 0.25
     description: "공격 시 25% 확률로 신성 피해 3, 체력 2 회복."
@@ -443,7 +450,6 @@ venom_spear:
   speed: 1.2
   reach: 1
   skill: venom_fang
-  skill2: venom_mire
   passive:
     chance: 0.35
     description: "공격 시 35% 확률로 강한 독."
@@ -490,7 +496,6 @@ spirit_scythe:
   speed: 1.1
   reach: 0.5
   skill: wolf_pack
-  skill2: soul_reap
   lore: ["베어 낸 영혼들이 주인을 따른다."]
   recipe:
     shape: ["BSB", "BWB", "BSB"]
@@ -504,7 +509,6 @@ wind_axe:
   damage: 11.5
   speed: 1.0
   skill: tornado
-  skill2: gale_dash
   lore: ["던지지 마라. 돌아오지 않는다."]
   recipe:
     shape: ["FSF", "PWP", "FSF"]
@@ -650,7 +654,6 @@ volcano_axe:
   damage: 12
   speed: 1.0
   skill: lava_eruption
-  skill2: flame_slash
   passive:
     chance: 0.25
     description: "공격 시 25% 확률로 불태운다."
@@ -707,7 +710,6 @@ ender_dagger:
   damage: 8
   speed: 2.2
   skill: blink
-  skill2: shadow_step
   lore: ["쥐고 있으면 자꾸 어딘가로 가고 싶어진다."]
   recipe:
     shape: ["EPE", "PWP", "EPE"]
@@ -899,6 +901,7 @@ prism_greatsword:
   speed: 1.0
   skill: prism_burst
   skill2: rainbow_beam
+  skill3: spectrum_break
   passive:
     chance: 0.3
     description: "공격 시 30% 확률로 무지개 피해 8."
@@ -918,6 +921,7 @@ apocalypse_scythe:
   reach: 0.8
   skill: apocalypse
   skill2: soul_storm
+  skill3: doomsday
   passive:
     chance: 0.3
     description: "공격 시 30% 확률로 시들게 하고 체력 4 회복."
@@ -937,6 +941,7 @@ genesis_staff:
   skill_power: 1.1
   skill: genesis
   skill2: time_stop
+  skill3: world_creation
   lore: ["세상이 처음 만들어질 때 쓰인 지팡이."]
   recipe:
     shape: ["CMC", "MWM", "CMC"]
@@ -951,6 +956,7 @@ thundergod_hammer:
   speed: 0.8
   skill: thunder_god
   skill2: thunderstorm
+  skill3: thunder_wrath
   passive:
     chance: 0.3
     description: "공격 시 30% 확률로 낙뢰 피해 10."
@@ -969,6 +975,7 @@ sun_blade:
   speed: 1.6
   skill: solar_flare
   skill2: sunfall
+  skill3: supernova
   passive:
     chance: 0.3
     description: "공격 시 30% 확률로 태양열 피해 6과 화상."
@@ -980,16 +987,17 @@ sun_blade:
 
 # ═══════════════════════ 활 ═══════════════════════
 #  활은 우클릭으로 당겨 쏘는 보통 활이다 (화살 1개만 있으면 줄지 않는다).
-#  damage 는 끝까지 당겨 쐈을 때 화살 피해, F키가 스킬, 웅크리고 F키가 두 번째 스킬.
+#  damage 는 끝까지 당겨 쐈을 때 화살 피해.
+#  웅크리기+당겨 쏘기는 화살 대신 skill 이 나간다 (재사용 대기 중이면 그냥 화살). 웅크리기+좌클릭은 skill2.
+#  활에는 skill3 이 없다.
 
 hunter_bow:
   name: 사냥꾼의 활
   pool: basic
   type: bow
   element: wood
-  damage: 6
+  damage: 6.5
   speed: 1.0
-  skill: triple_shot
   lore: ["처음 잡아 보는 활. 바람을 읽어라."]
   recipe:
     shape: [" TS", "TES", " TS"]

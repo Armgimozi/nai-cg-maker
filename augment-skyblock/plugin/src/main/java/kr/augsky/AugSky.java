@@ -28,17 +28,26 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.PluginCommand;
+import org.bukkit.configuration.Configuration;
+import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.List;
 
 public final class AugSky extends JavaPlugin {
+    /** 콘텐츠 YAML 의 판. 예전 파일을 그대로 두면 맞지 않을 만큼 바꿨을 때 올린다 (2: 무기 스킬 정리·클릭 조합). */
+    private static final int CONTENT_VERSION = 2;
+    private static final List<String> CONTENT_FILES = List.of("augments.yml", "weapons.yml", "skills.yml", "mobs.yml", "items.yml", "armor.yml");
+
     private SkillRegistry skills;
     private WeaponRegistry weapons;
     private CustomItems items;
@@ -63,9 +72,7 @@ public final class AugSky extends JavaPlugin {
         HitEffects.setLogger(getLogger());
         Mechanics.setLogger(getLogger());
         saveDefaultConfig();
-        for (String f : List.of("augments.yml", "weapons.yml", "skills.yml", "mobs.yml", "items.yml", "armor.yml")) {
-            if (!new File(getDataFolder(), f).exists()) saveResource(f, false);
-        }
+        extractContent();
 
         cooldowns = new Cooldowns();
         skills = new SkillRegistry(getLogger());
@@ -110,7 +117,10 @@ public final class AugSky extends JavaPlugin {
         Bukkit.getScheduler().runTask(this, () -> {
             altars.scanLoaded();
             mobs.scanLoaded();
-            for (Player p : Bukkit.getOnlinePlayers()) augments.refresh(p);
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                augments.refresh(p);
+                weaponListener.refreshItems(p);
+            }
         });
         getLogger().info("증강 스카이블럭 준비 완료");
     }
@@ -121,6 +131,102 @@ public final class AugSky extends JavaPlugin {
         if (allies != null) allies.removeAll();
         if (mobs != null) mobs.removeBars();
         if (pack != null) pack.stop();
+    }
+
+    /**
+     * 콘텐츠 YAML 을 꺼낸다. 파일이 없을 때만 꺼내므로 예전 서버에는 옛 파일이 남는다.
+     * 그래서 판이 올라가면 옛 파일을 old-content-v{옛 판}/ 으로 옮겨 두고(지우지 않는다) 새로 꺼낸다.
+     */
+    private void extractContent() {
+        File dir = getDataFolder();
+        File verFile = new File(dir, "content-version.txt");
+        int stored = 0;
+        if (verFile.exists()) {
+            try {
+                stored = Integer.parseInt(Files.readString(verFile.toPath(), StandardCharsets.UTF_8).trim());
+            } catch (IOException | NumberFormatException ex) {
+                stored = 0;
+            }
+        }
+        boolean upgraded = true;
+        if (stored < CONTENT_VERSION) {
+            List<String> old = new ArrayList<>();
+            for (String f : CONTENT_FILES) if (new File(dir, f).exists()) old.add(f);
+            if (!old.isEmpty()) upgraded = backupContent(dir, old, Math.max(1, stored));
+        }
+        for (String f : CONTENT_FILES) {
+            if (!new File(dir, f).exists()) saveResource(f, false);
+        }
+        // 옮기다 실패했으면 판을 올리지 않아 다음에 다시 시도한다
+        if (upgraded && stored < CONTENT_VERSION) {
+            try {
+                Files.writeString(verFile.toPath(), CONTENT_VERSION + "\n", StandardCharsets.UTF_8);
+            } catch (IOException ex) {
+                getLogger().warning("content-version.txt 를 쓰지 못했습니다: " + ex.getMessage());
+            }
+        }
+    }
+
+    private boolean backupContent(File dir, List<String> files, int fromVersion) {
+        File backup = new File(dir, "old-content-v" + fromVersion);
+        for (int n = 2; backup.exists(); n++) backup = new File(dir, "old-content-v" + fromVersion + "-" + n);
+        List<String> moved = new ArrayList<>();
+        try {
+            Files.createDirectories(backup.toPath());
+            for (String f : files) {
+                Files.move(new File(dir, f).toPath(), new File(backup, f).toPath());
+                moved.add(f);
+            }
+        } catch (IOException ex) {
+            // 옛 파일과 새 파일이 섞이면 스킬 이름이 어긋나므로, 옮긴 것을 되돌려 옛 판 그대로 쓴다
+            for (String f : moved) {
+                try {
+                    Files.move(new File(backup, f).toPath(), new File(dir, f).toPath());
+                } catch (IOException ignored) {
+                    // 되돌리지 못한 파일은 백업 폴더에 남아 있다
+                }
+            }
+            getLogger().warning("예전 콘텐츠 파일을 " + backup.getName() + "/ 로 옮기지 못해 그대로 씁니다: " + ex.getMessage());
+            return false;
+        }
+        String bookNote = replaceGuideBook(dir, backup) ? " (config.yml 은 그 폴더에 복사해 두고 guide-book 만 새 안내서로 바꿈)" : "";
+        getLogger().info("콘텐츠가 새 판(v" + CONTENT_VERSION + ")으로 바뀌어 예전 " + String.join(", ", files) + " 을 "
+                + backup.getName() + "/ 에 옮겨 두고 새로 꺼냈습니다" + bookNote + ". 고친 내용이 있으면 그 폴더에서 옮겨 오세요.");
+        return true;
+    }
+
+    /**
+     * 안내서 글도 콘텐츠 설명이라 같이 바꾼다. 나머지 설정은 그대로 둔다.
+     * 먼저 config.yml 을 백업 폴더에 복사하고, 읽히지 않는 config.yml 은 건드리지 않는다
+     * (getConfig() 는 깨진 파일을 빈 설정으로 읽으므로, 그대로 저장하면 다른 설정이 모두 날아간다).
+     */
+    private boolean replaceGuideBook(File dir, File backup) {
+        Configuration defs = getConfig().getDefaults();
+        List<String> book = defs == null ? List.of() : defs.getStringList("guide-book");
+        File cfgFile = new File(dir, "config.yml");
+        if (book.isEmpty() || !cfgFile.exists()) return false;
+        try {
+            Files.copy(cfgFile.toPath(), new File(backup, "config.yml").toPath());
+        } catch (IOException ex) {
+            getLogger().warning("config.yml 을 " + backup.getName() + "/ 에 복사하지 못해 안내서 글을 그대로 둡니다: " + ex.getMessage());
+            return false;
+        }
+        YamlConfiguration cfg = new YamlConfiguration();
+        try {
+            cfg.load(cfgFile);
+        } catch (IOException | InvalidConfigurationException ex) {
+            getLogger().warning("config.yml 을 읽지 못해 안내서 글을 바꾸지 않았습니다. 파일을 고친 뒤 guide-book 을 플러그인 jar 안의 config.yml 내용으로 바꿔 주세요: " + ex.getMessage());
+            return false;
+        }
+        cfg.set("guide-book", book);
+        try {
+            cfg.save(cfgFile);
+        } catch (IOException ex) {
+            getLogger().warning("config.yml 에 새 안내서 글을 쓰지 못했습니다: " + ex.getMessage());
+            return false;
+        }
+        reloadConfig();
+        return true;
     }
 
     private YamlConfiguration yml(String name) {
@@ -149,6 +255,8 @@ public final class AugSky extends JavaPlugin {
         for (Player p : Bukkit.getOnlinePlayers()) {
             augments.refresh(p);
             p.discoverRecipes(recipes.keys());
+            // 무기 설명·수치와 안내서 글은 아이템에 박혀 있으므로 바뀐 정의로 다시 쓴다
+            weaponListener.refreshItems(p);
         }
     }
 

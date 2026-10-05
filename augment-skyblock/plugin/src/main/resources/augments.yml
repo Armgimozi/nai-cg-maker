@@ -274,7 +274,7 @@ s_weapon_bond:
   tier: SILVER
   name: 무기 수호
   icon: STONE_SWORD
-  description: ["죽어도 스킬이 달린 무기는 떨어뜨리지 않는다."]
+  description: ["죽어도 새 무기(무기도감의 무기)는 스킬이 없어도 떨어뜨리지 않는다."]
   effects:
     - {type: keep_weapons}
 

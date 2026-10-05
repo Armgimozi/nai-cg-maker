@@ -1,14 +1,19 @@
 package kr.augsky.weapon;
 
+import io.papermc.paper.event.player.PrePlayerAttackEntityEvent;
 import kr.augsky.AugSky;
+import kr.augsky.Keys;
 import kr.augsky.augment.Stats;
 import kr.augsky.skill.Combat;
 import kr.augsky.skill.HitEffects;
 import kr.augsky.skill.SkillContext;
 import kr.augsky.skill.SkillDef;
 import kr.augsky.skill.Targets;
+import kr.augsky.util.Items;
 import kr.augsky.util.Text;
 import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
+import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -18,22 +23,37 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityPickupItemEvent;
+import org.bukkit.event.inventory.InventoryOpenEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerItemHeldEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
-/** 무기 우클릭(스킬1), F키(스킬2), 근접 공격 패시브. */
+/**
+ * 무기 스킬 조작과 근접 공격 패시브.
+ * 근접 무기: 우클릭(1번), 웅크리기+우클릭(2번, 없으면 1번), 웅크리기+좌클릭(3번).
+ * 활: 우클릭은 그냥 당겨 쏘기, 웅크리기+당겨 쏘기(1번), 웅크리기+좌클릭(2번).
+ */
 public final class WeaponListener implements Listener {
     private final AugSky plugin;
-    private final Map<UUID, Integer> lastCastTick = new HashMap<>();
+    /** [0] = 아무 슬롯이나 마지막으로 시도한 틱, [1~3] = 슬롯별. */
+    private final Map<UUID, int[]> lastCastTick = new HashMap<>();
     private final Map<UUID, Integer> suppressUntil = new HashMap<>();
+    private final Map<UUID, Integer> fakeSwingTick = new HashMap<>();
+    /** 안내서를 만들 때 쓴 guide-book 글의 지문. */
+    private static final NamespacedKey BOOK_SIG = Keys.of("book_sig");
 
     public WeaponListener(AugSky plugin) {
         this.plugin = plugin;
@@ -89,52 +109,99 @@ public final class WeaponListener implements Listener {
 
     /** 제단/소환대를 누를 때 같은 클릭으로 스킬이 나가지 않게 잠깐 막는다. */
     public void suppress(Player p, int ticks) {
-        suppressUntil.put(p.getUniqueId(), Bukkit.getCurrentTick() + ticks);
+        // 이미 더 길게 막혀 있으면 줄이지 않는다
+        suppressUntil.merge(p.getUniqueId(), Bukkit.getCurrentTick() + ticks, Math::max);
+    }
+
+    /**
+     * 클라이언트는 우클릭으로 물건을 쓸 때(특히 왼손 물건)나 Q 로 버릴 때도 팔을 휘두르고,
+     * 서버는 그 휘두르기를 좌클릭으로 알린다. 그런 가짜 좌클릭이 웅크리기+좌클릭 스킬로 나가지 않게 표시해 둔다.
+     */
+    private void markFakeSwing(Player p) {
+        fakeSwingTick.put(p.getUniqueId(), Bukkit.getCurrentTick());
+    }
+
+    private boolean isFakeSwing(Player p) {
+        Integer t = fakeSwingTick.get(p.getUniqueId());
+        return t != null && Bukkit.getCurrentTick() - t <= 1;
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onDrop(PlayerDropItemEvent e) {
+        markFakeSwing(e.getPlayer());
     }
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onInteract(PlayerInteractEvent e) {
-        if (e.getHand() != EquipmentSlot.HAND) return;
         Action a = e.getAction();
-        if (a != Action.RIGHT_CLICK_AIR && a != Action.RIGHT_CLICK_BLOCK) return;
         Player p = e.getPlayer();
-        ItemStack item = p.getInventory().getItemInMainHand();
-        WeaponDef w = plugin.weapons().of(item);
-        if (w == null || w.skill() == null) return;
-        if (w.isBow()) return; // 활은 우클릭으로 당겨 쏜다 (스킬은 F키)
+        boolean right = a == Action.RIGHT_CLICK_AIR || a == Action.RIGHT_CLICK_BLOCK;
+        if (right) markFakeSwing(p);
+        if (e.getHand() != EquipmentSlot.HAND) return;
+        // 허공 좌클릭은 늘 '취소된' 상태로 오므로 ignoreCancelled 를 쓰지 않는다
+        if (a == Action.LEFT_CLICK_AIR || a == Action.LEFT_CLICK_BLOCK) {
+            if (!isFakeSwing(p)) sneakLeftClick(p);
+            return;
+        }
+        if (!right) return;
+        if (p.getGameMode() == GameMode.SPECTATOR) return;
+        WeaponDef w = plugin.weapons().of(p.getInventory().getItemInMainHand());
+        if (w == null || w.isBow()) return; // 활은 우클릭으로 당겨 쏜다 (스킬은 웅크리고 쏘기)
+        // 웅크리기+우클릭은 2번 스킬. 2번이 없는 무기는 1번이 나간다
+        int slot = p.isSneaking() && w.skill2() != null ? 2 : 1;
+        if (w.skillOf(slot) == null) return; // 스킬 없는 무기는 바닐라 그대로
         if (a == Action.RIGHT_CLICK_BLOCK) {
             Block b = e.getClickedBlock();
             if (b != null && b.getType().isInteractable() && !p.isSneaking()) return;
         }
         e.setUseItemInHand(org.bukkit.event.Event.Result.DENY);
-        cast(p, item, w, 1);
+        cast(p, w, slot);
     }
 
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onSwap(PlayerSwapHandItemsEvent e) {
-        Player p = e.getPlayer();
-        ItemStack main = p.getInventory().getItemInMainHand();
-        WeaponDef w = plugin.weapons().of(main);
-        if (w == null) return;
-        if (w.isBow()) {
-            // 활: F키 = 첫 스킬, 웅크리고 F키 = 두 번째 스킬
-            int slot = p.isSneaking() && w.skill2() != null ? 2 : 1;
-            if ((slot == 1 ? w.skill() : w.skill2()) == null) return;
-            e.setCancelled(true);
-            cast(p, main, w, slot);
+    /** 웅크리고 엔티티를 때릴 때. 공격은 그대로 두고 스킬만 쓴다. */
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onAttack(PrePlayerAttackEntityEvent e) {
+        // 제단은 좌클릭해도 아무 일 없어야 한다 (AltarService 가 안내만 띄운다)
+        if (e.getAttacked() instanceof org.bukkit.entity.Interaction i && i.getPersistentDataContainer().has(kr.augsky.Keys.ALTAR)) {
+            suppress(e.getPlayer(), 2);
             return;
         }
-        if (w.skill2() == null) return;
-        e.setCancelled(true);
-        cast(p, main, w, 2);
+        // 같은 휘두르기로 허공 좌클릭이 함께 올 수 있지만 cast 의 같은 슬롯 3틱 막기가 하나로 친다
+        sneakLeftClick(e.getPlayer());
     }
 
-    /** 활: 쏜 화살에 무기 피해를 싣고, 맞으면 패시브가 터지게 표시한다. */
+    /** 웅크리기+좌클릭: 근접 무기는 3번, 활은 2번 스킬. 공격·블록 부수기는 막지 않는다. */
+    private void sneakLeftClick(Player p) {
+        if (!p.isSneaking() || p.getGameMode() == GameMode.SPECTATOR) return;
+        WeaponDef w = plugin.weapons().of(p.getInventory().getItemInMainHand());
+        if (w == null) return;
+        int slot = w.isBow() ? 2 : 3;
+        if (w.skillOf(slot) == null) return;
+        cast(p, w, slot);
+    }
+
+    /** 활: 웅크리고 당겨 쏘면 화살 대신 1번 스킬. 그냥 쏜 화살에는 무기 피해를 싣고, 맞으면 패시브가 터지게 표시한다. */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onShoot(org.bukkit.event.entity.EntityShootBowEvent e) {
         if (!(e.getEntity() instanceof Player p)) return;
         WeaponDef w = plugin.weapons().of(e.getBow());
         if (w == null || !w.isBow()) return;
+        // force 는 화살 속도(당긴 정도 × 3)다. 살짝 당겼다 놓은 건 스킬로 치지 않는다
+        if (p.isSneaking() && e.getHand() == EquipmentSlot.HAND && w.skill() != null && e.getForce() / 3f >= 0.35f) {
+            // 재사용 대기 중이면 cast 가 남은 시간만 띄우고, 화살은 그대로 나간다
+            if (cast(p, w, 1)) {
+                e.setCancelled(true);
+                // 무한은 보통 화살만 아끼므로 분광·물약 화살은 이 이벤트 전에 이미 빠져 있다. 쏘지 않았으니 돌려준다
+                ItemStack ammo = e.getConsumable();
+                if (ammo != null && !ammo.isEmpty() && !ammo.hasData(io.papermc.paper.datacomponent.DataComponentTypes.INTANGIBLE_PROJECTILE))
+                    kr.augsky.util.Items.give(p, ammo.clone());
+                // 클라이언트가 화살을 쏜 줄 알고 인벤토리를 미리 바꿨을 수 있다
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    if (p.isOnline()) p.updateInventory();
+                });
+                return;
+            }
+        }
         if (!(e.getProjectile() instanceof org.bukkit.entity.AbstractArrow arrow)) return;
         // 바닐라 화살 피해 = 기본 피해 × 속도(끝까지 당기면 약 3) + 치명타 덤(평균 절반쯤)
         arrow.setDamage(w.damage() / 3.5);
@@ -161,33 +228,38 @@ public final class WeaponListener implements Listener {
         }
     }
 
-    public void cast(Player p, ItemStack item, WeaponDef w, int slot) {
+    /** 슬롯 스킬을 쓴다. 실제로 나갔으면 true, 막혔거나 재사용 대기 중이면 false (대기 중이면 남은 시간을 띄운다). */
+    public boolean cast(Player p, WeaponDef w, int slot) {
         int now = Bukkit.getCurrentTick();
         Integer sup = suppressUntil.get(p.getUniqueId());
-        if (sup != null && now < sup) return;
-        String skillId = slot == 1 ? w.skill() : w.skill2();
-        SkillDef s = plugin.skills().get(skillId);
-        if (s == null) return;
-        Integer last = lastCastTick.get(p.getUniqueId());
-        if (last != null && now - last < 3) return;
-        lastCastTick.put(p.getUniqueId(), now);
+        if (sup != null && now < sup) return false;
+        SkillDef s = plugin.skills().get(w.skillOf(slot));
+        if (s == null) return false;
+        // 한 번 누른 것에 이벤트가 둘 올 수 있다 (엔티티 공격 + 허공 좌클릭, 블록 우클릭 + 허공 우클릭).
+        // 같은 슬롯은 3틱, 다른 슬롯은 같은 틱만 하나로 쳐서 빠른 연계(우클릭 → 웅크리기+좌클릭)는 막지 않는다.
+        // 스킬이 나갔거나 대기시간을 알렸을 때만 기록하므로, 아무 일 없던 클릭이 다음 입력을 삼키지 않는다
+        int[] last = lastCastTick.computeIfAbsent(p.getUniqueId(), k -> new int[]{-100, -100, -100, -100});
+        if (now - last[slot] < 3 || now == last[0]) return false;
+        last[slot] = now;
+        last[0] = now;
 
         String key = w.id() + "#" + slot;
         long rem = plugin.cooldowns().remainingMs(p.getUniqueId(), key);
         if (rem > 0) {
             p.sendActionBar(Text.mm("<#ff7070>⏳ " + s.name() + " <gray>" + String.format("%.1f", rem / 1000.0) + "초"));
-            return;
+            return false;
         }
         Stats st = plugin.augments().stats(p);
         double haste = Math.min(0.6, st.get("skill_haste.amount"));
         double cd = s.cooldown() * (1 - haste);
         plugin.cooldowns().set(p.getUniqueId(), key, cd);
-        // 활은 아이템 쿨타임을 걸면 당길 수 없게 되므로 걸지 않는다
-        if (slot == 1 && !w.isBow()) p.setCooldown(item, Math.max(1, (int) Math.round(cd * 20)));
+        // 무기에 바닐라 아이템 쿨타임은 걸지 않는다. 걸면 다음 우클릭이 서버에 오지 않아
+        // 1번이 도는 동안 웅크리기+우클릭(2번)까지 막힌다. 남은 시간은 액션바로 보여 준다
         double power = w.skillPower() * (1 + st.get("skill_power.amount"));
         SkillContext ctx = new SkillContext(plugin, p, null, power);
         s.cast(ctx);
         p.sendActionBar(Text.mm("<#ffcc55>✦ " + s.name()));
+        return true;
     }
 
     /** 근접 공격 패시브 (활은 화살이 맞았을 때). */
@@ -216,27 +288,97 @@ public final class WeaponListener implements Listener {
         });
     }
 
+    /**
+     * 예전에 만든 무기와 안내서를 지금 내용으로 바꾼다.
+     * 무기 설명·공격력과 안내서 글은 만들 때 아이템에 박히므로, 판이 바뀌거나 리로드하면 옛 조작법(F키 등)이 남는다.
+     * 들어올 때 인벤토리·엔더 상자, 손에 들 때, 주울 때, 상자를 열 때 고친다. 지문이 같으면 건드리지 않는다.
+     */
+    public void refreshItems(Player p) {
+        refreshItems(p.getInventory());
+        refreshItems(p.getEnderChest());
+    }
+
+    private void refreshItems(Inventory inv) {
+        ItemStack[] items = inv.getContents();
+        for (int i = 0; i < items.length; i++) {
+            ItemStack fresh = refreshed(items[i]);
+            if (fresh != null) inv.setItem(i, fresh);
+        }
+    }
+
+    /** 바꿔야 하면 새 아이템, 아니면 null. */
+    private ItemStack refreshed(ItemStack it) {
+        if (it == null || it.isEmpty()) return null;
+        if (plugin.weapons().refresh(it)) return it;
+        if (!"guide_book".equals(Items.tag(it, Keys.ITEM))) return null;
+        // 안내서는 config.yml 의 guide-book 글이 바뀌었을 때만 새로 만든다
+        int sig = plugin.getConfig().getStringList("guide-book").hashCode();
+        Integer had = it.getItemMeta().getPersistentDataContainer().get(BOOK_SIG, PersistentDataType.INTEGER);
+        if (had != null && had == sig) return null;
+        ItemStack book = plugin.items().guideBook();
+        book.setAmount(it.getAmount());
+        book.editMeta(m -> m.getPersistentDataContainer().set(BOOK_SIG, PersistentDataType.INTEGER, sig));
+        return book;
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onJoin(PlayerJoinEvent e) {
+        refreshItems(e.getPlayer());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onHeld(PlayerItemHeldEvent e) {
+        PlayerInventory inv = e.getPlayer().getInventory();
+        ItemStack fresh = refreshed(inv.getItem(e.getNewSlot()));
+        if (fresh != null) inv.setItem(e.getNewSlot(), fresh);
+    }
+
+    /** 땅에 떨어져 있던 옛 무기. 줍는 중에는 아이템을 바꿀 수 없으니 다음 틱에 인벤토리를 훑는다. */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPickup(EntityPickupItemEvent e) {
+        if (!(e.getEntity() instanceof Player p)) return;
+        ItemStack it = e.getItem().getItemStack();
+        if (Items.tag(it, Keys.WEAPON) == null && !"guide_book".equals(Items.tag(it, Keys.ITEM))) return;
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            if (p.isOnline()) refreshItems(p.getInventory());
+        });
+    }
+
+    /** 상자·통 등에 넣어 두었던 옛 무기. 플러그인 메뉴는 늘 새로 만들므로 건너뛴다. */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onOpen(InventoryOpenEvent e) {
+        if (e.getInventory().getHolder(false) instanceof kr.augsky.altar.Menus.Holder) return;
+        refreshItems(e.getInventory());
+    }
+
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
         lastCastTick.remove(e.getPlayer().getUniqueId());
         suppressUntil.remove(e.getPlayer().getUniqueId());
+        fakeSwingTick.remove(e.getPlayer().getUniqueId());
     }
 
-    /** 무기를 든 동안 액션바에 스킬 상태를 띄운다. */
+    /** 스킬 있는 무기를 든 동안 액션바에 슬롯마다 조작과 상태를 띄운다. */
     private void hud() {
         for (Player p : Bukkit.getOnlinePlayers()) {
+            if (p.getGameMode() == GameMode.SPECTATOR) continue;
             WeaponDef w = plugin.weapons().of(p.getInventory().getItemInMainHand());
-            if (w == null || w.skill() == null) continue;
+            if (w == null || !w.hasSkills()) continue;
             StringBuilder sb = new StringBuilder();
-            sb.append(part(p, w, 1, w.isBow() ? "F" : "우클릭"));
-            if (w.skill2() != null) sb.append("  <dark_gray>|  ").append(part(p, w, 2, w.isBow() ? "웅크리고 F" : "F"));
-            p.sendActionBar(Text.mm(sb.toString()));
+            for (int slot = 1; slot <= 3; slot++) {
+                String part = part(p, w, slot);
+                if (part == null) continue;
+                if (sb.length() > 0) sb.append("  <dark_gray>|  ");
+                sb.append(part);
+            }
+            if (sb.length() > 0) p.sendActionBar(Text.mm(sb.toString()));
         }
     }
 
-    private String part(Player p, WeaponDef w, int slot, String label) {
-        SkillDef s = plugin.skills().get(slot == 1 ? w.skill() : w.skill2());
-        if (s == null) return "";
+    private String part(Player p, WeaponDef w, int slot) {
+        String label = w.inputLabel(slot);
+        SkillDef s = plugin.skills().get(w.skillOf(slot));
+        if (label == null || s == null) return null;
         long rem = plugin.cooldowns().remainingMs(p.getUniqueId(), w.id() + "#" + slot);
         if (rem <= 0) return "<#ffcc55>[" + label + "] <white>" + s.name() + " <#7cff8c>✔";
         return "<gray>[" + label + "] " + s.name() + " <#ff7070>" + String.format("%.1f", rem / 1000.0) + "s";

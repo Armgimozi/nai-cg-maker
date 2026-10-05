@@ -32,6 +32,9 @@ POOLS = [("basic", "섬 초반", "섬 재료로 작업대에서 만든다"), ("i
 TYPES = {"sword": "검", "greatsword": "대검", "dagger": "단검", "katana": "카타나", "axe": "도끼", "hammer": "망치",
          "spear": "창", "scythe": "낫", "staff": "지팡이", "wand": "마법봉", "bow": "활"}
 TIERS = [("SILVER", "실버"), ("GOLD", "골드"), ("PRISM", "프리즘")]
+# 스킬 칸마다 쓰는 법. 플러그인 WeaponDef.inputLabel 과 같은 글을 쓴다
+SKILL_INPUTS = (("skill", "우클릭"), ("skill2", "웅크리기+우클릭"), ("skill3", "웅크리기+좌클릭"))
+BOW_SKILL_INPUTS = (("skill", "웅크리기+당겨 쏘기"), ("skill2", "웅크리기+좌클릭"))
 SLOTS = [("helmet", "투구"), ("chestplate", "갑옷"), ("leggings", "각반"), ("boots", "신발")]
 MATERIAL = {
     "STICK": "막대기", "STRING": "실", "FEATHER": "깃털", "SPIDER_EYE": "거미 눈", "PACKED_ICE": "단단한 얼음",
@@ -142,13 +145,16 @@ def build():
             stat = (f'<dl><div><dt>화살 피해</dt><dd>{w["damage"]:g}</dd></div></dl>' if is_bow else
                     f'<dl><div><dt>공격력</dt><dd>{w["damage"]:g}</dd></div><div><dt>공격 속도</dt><dd>{w.get("speed", 1.6):g}</dd></div></dl>')
             sk = []
-            for key, label in (("skill", "F키" if is_bow else "우클릭"), ("skill2", "웅크리고 F키" if is_bow else "F키")):
+            for key, label in (BOW_SKILL_INPUTS if is_bow else SKILL_INPUTS):
                 s = skills.get(w.get(key) or "")
                 if s:
                     sk.append(f'<li><b>{label}</b> {esc(s["name"])} <small>{s.get("cooldown", 0):g}초</small>'
                               f'<span>{esc(" ".join(s.get("description", [])))}</span></li>')
             passive = (w.get("passive") or {}).get("description")
             pas = f'<p class="passive">{esc(passive)}</p>' if passive else ""
+            # 초반 무기 대부분은 스킬이 없다. 빈 칸 대신 한 줄로 알려 준다
+            skills_html = (f'<ul class="skills">{"".join(sk)}</ul>' if sk else
+                           f'<p class="noskill">스킬 없음 · {"기본 공격과 패시브" if passive else "기본 공격"}</p>')
             src = w.get("source")
             rec = recipe_text(w.get("recipe"), items, weapons, armor)
             obtain = esc(src) if src else (f"조합: {esc(rec)}" if rec else esc(psrc))
@@ -157,7 +163,7 @@ def build():
                 f'<article class="card wep" data-q="{esc(w["name"])} {TYPES.get(w["type"], "")} {ELEMENT.get(w.get("element"), ("",))[0]}">'
                 f'<div class="pic">{pic}</div><div class="body"><header><h4>{esc(w["name"])}</h4>{aura}</header>'
                 f'<div class="meta">{TYPES.get(w["type"], w["type"])} · {element_chip(w.get("element"))}</div>{stat}'
-                f'<ul class="skills">{"".join(sk)}</ul>{pas}<p class="obtain">{obtain}</p></div></article>')
+                f'{skills_html}{pas}<p class="obtain">{obtain}</p></div></article>')
         if cards:
             wep_html.append(f'<section class="group" id="wep-{pool}"><h3 class="pool-h">{pname} <span>{len(cards)}</span>'
                             f'<small>{psrc}</small></h3><div class="grid wide">{"".join(cards)}</div></section>')
@@ -272,6 +278,7 @@ ul.skills b, ul.bonus b {{ color: var(--accent); font-size: 12px; margin-right: 
 ul.skills small {{ font: 500 12px var(--mono); color: var(--muted); }}
 ul.skills span {{ display: block; color: var(--muted); font-size: 13px; }}
 .passive {{ border-left: 2px solid var(--line); padding-left: 8px; }}
+.card p.noskill {{ margin-top: 8px; font-size: 13px; }}
 .obtain {{ font-size: 12.5px !important; margin-top: 8px !important; }}
 table {{ border-collapse: collapse; margin-top: 6px; font-size: 13.5px; }}
 th {{ text-align: left; color: var(--muted); font-weight: 400; padding: 1px 12px 1px 0; }}
@@ -296,7 +303,7 @@ html {{ scroll-behavior: smooth; scroll-padding-top: 64px; }}
   <p class="lede">맵 곳곳의 제단을 우클릭하면 같은 등급 증강 3개 중 하나를 고릅니다. 제단은 한 번 쓰면 힘을 잃습니다. 증강권은 손에 들고 우클릭하면 어디서든 씁니다.</p>
   {aug}
   <h2 id="weapons">무기</h2>
-  <p class="lede">무기에 등급은 없고 얻는 곳으로만 나뉩니다. 보스와 프리즘 무기에는 움직이는 아우라가 있습니다. 활은 우클릭으로 당겨 쏘고 F키로 스킬을 씁니다.</p>
+  <p class="lede">무기에 등급은 없고 얻는 곳으로만 나뉩니다. 섬 초반 무기는 대부분 스킬이 없습니다. 스킬은 우클릭과 웅크리기+우클릭으로 쓰고, 프리즘 무기는 웅크리기+좌클릭으로 궁극기까지 씁니다. 활은 그냥 당기면 화살이고, 웅크리기+당겨 쏘기와 웅크리기+좌클릭으로 스킬을 씁니다. 보스와 프리즘 무기에는 움직이는 아우라가 있습니다.</p>
   {wep}
   <h2 id="armor">갑옷</h2>
   <p class="lede">같은 세트를 2개, 4개 입으면 세트 효과가 붙습니다. 보스 세트는 보스가 떨구고, 프리즘 세트는 보스 갑옷과 프리즘 결정으로 만듭니다.</p>

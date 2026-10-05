@@ -1,5 +1,7 @@
 # ─────────────────────────────────────────────────────────────
 #  스킬 목록. 무기(weapons.yml)와 몬스터(mobs.yml)가 이 id 를 가져다 쓴다.
+#  지금 어느 무기에도 붙어 있지 않은 스킬도 지우지 않고 둔다. weapons.yml 의
+#  skill / skill2 / skill3 에 id 를 적으면 그 무기에 바로 붙는다.
 #
 #  mechanics 에 쓸 수 있는 부품(type):
 #    cone      전방 부채꼴 베기      range, angle, particle, effects
@@ -382,7 +384,7 @@ crystal_bolt:
       effects: [{damage: 6}]
     - {type: sound, sound: block.amethyst_block.resonate, pitch: 1.5}
 
-# ═══════════════════════ 강화 무기 (스킬 두 개) ═══════════════════════
+# ═══════════════════════ 강화 무기 ═══════════════════════
 
 inferno_slam:
   name: 화염 강타
@@ -1336,6 +1338,266 @@ sunfall:
       impact_radius: 7
       effects: [{damage: 34}, {ignite: 8}, {launch: 1.0}]
 
+# ── 프리즘 무기 궁극기 (skill3, 웅크리기+좌클릭) ──
+# 재사용이 길고 여러 단계로 이어지는 그 무기의 가장 강한 기술.
+# vortex 의 end 는 소용돌이 중심에서 실행되므로, 뒤 단계들이 같은 자리에 떨어진다.
+
+spectrum_break:
+  name: 칠색 분광
+  description: ["빛을 끌어모은 뒤 일곱 빛줄기로 나눠 내리꽂고,", "마지막에 하나로 모아 터뜨린다."]
+  cooldown: 50
+  mechanics:
+    - {type: sound, sound: block.beacon.activate, pitch: 0.7, volume: 1.5}
+    - type: vortex
+      at: self
+      radius: 8
+      duration: 1.5
+      strength: 0.3
+      interval: 10
+      particle: "DUST:#ffffff:1.4"
+      effects: [{damage: 3, magic: true}]
+      end:
+        # 빨주노초파남보 순서로 가까운 적에게 빛기둥을 내린다
+        - {type: strike, at: self, targets: true, count: 2, radius: 9, visual: pillar, particle: "DUST:#ff4d4d:2.0", impact_radius: 2.5, effects: [{damage: 7, magic: true}]}
+        - {type: sound, sound: block.note_block.chime, pitch: 0.7, volume: 1.5}
+        - type: delay
+          ticks: 4
+          mechanics:
+            - {type: strike, at: self, targets: true, count: 2, radius: 9, visual: pillar, particle: "DUST:#ff9f40:2.0", impact_radius: 2.5, effects: [{damage: 7, magic: true}]}
+            - {type: sound, sound: block.note_block.chime, pitch: 0.8, volume: 1.5}
+        - type: delay
+          ticks: 8
+          mechanics:
+            - {type: strike, at: self, targets: true, count: 2, radius: 9, visual: pillar, particle: "DUST:#ffe84d:2.0", impact_radius: 2.5, effects: [{damage: 7, magic: true}]}
+            - {type: sound, sound: block.note_block.chime, pitch: 0.9, volume: 1.5}
+        - type: delay
+          ticks: 12
+          mechanics:
+            - {type: strike, at: self, targets: true, count: 2, radius: 9, visual: pillar, particle: "DUST:#6bff8a:2.0", impact_radius: 2.5, effects: [{damage: 7, magic: true}]}
+            - {type: sound, sound: block.note_block.chime, pitch: 1.05, volume: 1.5}
+        - type: delay
+          ticks: 16
+          mechanics:
+            - {type: strike, at: self, targets: true, count: 2, radius: 9, visual: pillar, particle: "DUST:#4dc3ff:2.0", impact_radius: 2.5, effects: [{damage: 7, magic: true}]}
+            - {type: sound, sound: block.note_block.chime, pitch: 1.2, volume: 1.5}
+        - type: delay
+          ticks: 20
+          mechanics:
+            - {type: strike, at: self, targets: true, count: 2, radius: 9, visual: pillar, particle: "DUST:#5b6bff:2.0", impact_radius: 2.5, effects: [{damage: 7, magic: true}]}
+            - {type: sound, sound: block.note_block.chime, pitch: 1.35, volume: 1.5}
+        - type: delay
+          ticks: 24
+          mechanics:
+            - {type: strike, at: self, targets: true, count: 2, radius: 9, visual: pillar, particle: "DUST:#c06bff:2.0", impact_radius: 2.5, effects: [{damage: 7, magic: true}]}
+            - {type: sound, sound: block.note_block.chime, pitch: 1.6, volume: 1.5}
+        - type: delay
+          ticks: 34
+          mechanics:
+            - type: nova
+              radius: 8
+              expand_ticks: 8
+              particle: "DUST_COLOR_TRANSITION:#ff6b9d:#6bc8ff:2.2"
+              effects: [{damage: 20, magic: true}, {launch: 0.8}]
+            - {type: particle, particle: FLASH, count: 1, spread: 0, speed: 0}
+            - {type: particle, particle: FIREWORK, count: 80, spread: 2.5, speed: 0.15}
+            - {type: sound, sound: entity.firework_rocket.large_blast, pitch: 0.8, volume: 1.5}
+            - {type: sound, sound: block.beacon.power_select, pitch: 2}
+
+doomsday:
+  name: 최후의 날
+  description: ["영혼을 모조리 끌어당긴 뒤 사방을 두 번 크게 베어 거둔다.", "보스가 아닌 적은 체력이 적으면 단번에 쓰러진다."]
+  cooldown: 55
+  mechanics:
+    - {type: sound, sound: entity.warden.emerge, pitch: 0.8, volume: 1.2}
+    - {type: particle, particle: SCULK_SOUL, count: 60, spread: 2, speed: 0.05}
+    - type: vortex
+      at: self
+      radius: 9
+      duration: 2.5
+      strength: 0.35
+      interval: 10
+      particle: SOUL_FIRE_FLAME
+      effects: [{damage: 3, magic: true}, {wither: 2}]
+      end:
+        # 낫을 한 바퀴 크게 두 번 휘두른다. 두 번째 베기에 처형이 붙는다
+        - type: cone
+          range: 8
+          angle: 360
+          height: 3
+          particle: SOUL_FIRE_FLAME
+          effects: [{damage: 24}, {wither: 4}, {lifesteal: 0.3}]
+        - {type: sound, sound: entity.player.attack.sweep, pitch: 0.5, volume: 1.5}
+        - type: delay
+          ticks: 8
+          mechanics:
+            - type: cone
+              range: 8
+              angle: 360
+              height: 3
+              particle: "DUST:#3a0066:2.0"
+              effects: [{damage: 26}, {lifesteal: 0.3}, {execute: 0.2}]
+            - {type: particle, particle: SCULK_SOUL, count: 80, spread: 3, speed: 0.08}
+            - {type: sound, sound: entity.wither.death, pitch: 1.4, volume: 0.6}
+            - {type: sound, sound: particle.soul_escape, volume: 2}
+
+world_creation:
+  name: 천지창조
+  description: ["노린 곳에 빛을 모아 적의 시간을 멈추고 별을 쏟아붓는다.", "친구들은 축복을 받고, 그 자리에 생명의 땅이 남는다."]
+  cooldown: 60
+  mechanics:
+    - type: party
+      radius: 10
+      particle: TOTEM_OF_UNDYING
+      effects: [{heal: 8}, {absorption: {amount: 8, seconds: 15}}, {cleanse: true}]
+    - {type: sound, sound: block.end_portal.spawn, pitch: 1.4, volume: 0.6}
+    - type: vortex
+      at: aim
+      range: 24
+      radius: 8
+      duration: 2
+      strength: 0.3
+      interval: 10
+      particle: END_ROD
+      effects: [{damage: 3, magic: true}, {slow: 1}]
+      end:
+        # 빛 → 시간 정지 → 별 → 생명의 땅 순서로 같은 자리에 이어진다
+        - type: strike
+          at: self
+          visual: pillar
+          particle: "DUST:#fff6c8:2.2"
+          impact_radius: 3.5
+          effects: [{damage: 14, magic: true}]
+        - type: nova
+          radius: 8
+          expand_ticks: 10
+          particle: "DUST_COLOR_TRANSITION:#fff6c8:#7cff8c:1.8"
+          effects: [{damage: 14, magic: true}, {stun: 2.5}, {glow: 4}]
+        - {type: sound, sound: block.beacon.deactivate, pitch: 0.5, volume: 2}
+        - type: delay
+          ticks: 12
+          mechanics:
+            - type: rain
+              at: aim
+              count: 12
+              radius: 6
+              interval: 2
+              particle: END_ROD
+              impact_particle: FIREWORK
+              impact_radius: 2.5
+              effects: [{damage: 7, magic: true}]
+            - {type: sound, sound: entity.firework_rocket.twinkle_far, volume: 1.5}
+        - type: delay
+          ticks: 40
+          mechanics:
+            - type: zone
+              at: aim
+              radius: 7
+              duration: 6
+              interval: 20
+              particle: HAPPY_VILLAGER
+              ring: "DUST:#7cff8c:1.4"
+              effects: [{damage: 2, magic: true}, {slow: 1}]
+              ally_effects: [{heal: 3}]
+            - {type: sound, sound: block.azalea.place, volume: 1.5}
+
+thunder_wrath:
+  name: 뇌정벽력
+  description: ["번개 구름으로 적을 끌어모아 거대한 낙뢰를 내리꽂고,", "4초 동안 주변 적에게 번개를 쉴 새 없이 떨어뜨린다."]
+  cooldown: 55
+  mechanics:
+    - type: self
+      particle: ELECTRIC_SPARK
+      effects: [{potion: {effect: resistance, seconds: 6}}]
+    - {type: sound, sound: item.trident.thunder, pitch: 0.6, volume: 1.2}
+    - type: vortex
+      at: aim
+      range: 22
+      radius: 8
+      duration: 1.5
+      strength: 0.35
+      interval: 10
+      particle: ELECTRIC_SPARK
+      effects: [{damage: 4, magic: true}]
+      end:
+        - type: strike
+          at: self
+          visual: lightning
+          particle: "DUST:#9ad8ff:2.0"
+          impact_radius: 4.5
+          effects: [{damage: 28}, {stun: 2}]
+        - type: nova
+          radius: 8
+          expand_ticks: 8
+          particle: ELECTRIC_SPARK
+          effects: [{damage: 12}, {launch: 0.7}]
+        - {type: sound, sound: entity.lightning_bolt.thunder, pitch: 0.7, volume: 1.5}
+        - type: delay
+          ticks: 10
+          mechanics:
+            - type: repeat
+              times: 8
+              interval: 10
+              mechanics:
+                - type: strike
+                  at: self
+                  targets: true
+                  count: 3
+                  radius: 10
+                  interval: 2
+                  visual: lightning
+                  impact_radius: 2
+                  effects: [{damage: 8, magic: true}]
+
+supernova:
+  name: 초신성
+  description: ["4초 동안 작은 태양 셋을 두르고 타오르다가", "초신성처럼 터져 주변을 불태운다."]
+  cooldown: 50
+  mechanics:
+    - type: self
+      particle: FLAME
+      effects:
+        - {potion: {effect: fire_resistance, seconds: 8}}
+        - {potion: {effect: speed, seconds: 4, amplifier: 1}}
+    - {type: sound, sound: entity.blaze.ambient, pitch: 0.5, volume: 1.5}
+    - type: orbit
+      count: 3
+      radius: 3
+      duration: 4
+      speed: 16
+      display: SHROOMLIGHT
+      display_scale: 0.7
+      particle: FLAME
+      hit_cooldown: 10
+      effects: [{damage: 6}, {ignite: 4}]
+    - type: zone
+      at: self
+      follow: true
+      radius: 4.5
+      duration: 4
+      interval: 10
+      particle: SMALL_FLAME
+      ring: "DUST:#ffb347:1.4"
+      effects: [{damage: 3, magic: true}, {ignite: 3}]
+    # 터지기 1초 전에 예고한다
+    - type: delay
+      ticks: 60
+      mechanics:
+        - {type: particle, particle: FLAME, count: 80, spread: 1.2, speed: 0.02}
+        - {type: sound, sound: block.beacon.deactivate, pitch: 1.6, volume: 1.5}
+    - type: delay
+      ticks: 80
+      mechanics:
+        - type: nova
+          radius: 9
+          expand_ticks: 10
+          particle: "DUST_COLOR_TRANSITION:#fff3a0:#ff5a1f:2.2"
+          effects: [{damage: 32}, {ignite: 8}, {launch: 0.9}]
+        - {type: particle, particle: EXPLOSION_EMITTER, count: 3, spread: 1.5, speed: 0}
+        - {type: particle, particle: FLASH, count: 1, spread: 0, speed: 0}
+        - {type: particle, particle: LAVA, count: 40, spread: 3}
+        - {type: sound, sound: entity.generic.explode, pitch: 0.5, volume: 2}
+        - {type: sound, sound: entity.blaze.death, pitch: 0.6}
+
 # ═══════════════════════ 몬스터 스킬 ═══════════════════════
 # 몬스터가 쓰면 플레이어를 노린다.
 
@@ -1781,7 +2043,7 @@ m_void_awaken:
         - {potion: {effect: speed, seconds: 30}}
     - {type: summon, mob: void_mite, count: 4}
 
-# ═══════════════════════ 활 스킬 (F키) ═══════════════════════
+# ═══════════════════════ 활 스킬 ═══════════════════════
 
 triple_shot:
   name: 세 갈래 사격
@@ -1895,7 +2157,7 @@ thunder_volley:
 
 chain_arrow:
   name: 연쇄 번개 화살
-  description: ["적 사이를 튀어 다니는 번개 화살 (웅크리고 F키)."]
+  description: ["적 사이를 튀어 다니는 번개 화살."]
   cooldown: 9
   mechanics:
     - type: chain
@@ -1923,7 +2185,7 @@ starfall_volley:
 
 rainbow_piercer:
   name: 무지개 관통
-  description: ["모든 것을 꿰뚫는 무지개 화살 (웅크리고 F키)."]
+  description: ["모든 것을 꿰뚫는 무지개 화살."]
   cooldown: 10
   mechanics:
     - type: beam
