@@ -352,8 +352,12 @@ def flame_sword():
     w.cyl(4.5, 13.5, 1.6, "wrap")
     w.box(-3.1, 3.1, 13, 16.9, -2.1, 2.1, "obsid")
     # 불꽃 뿔: 오른쪽 길게, 왼쪽 짧게, 끝이 달아올랐다
-    w.tube([(2.5, 15, 0), (6, 15.5, 0), (8.2, 18.5, 0), (8, 22.5, 0), (9.6, 26, 0)], lambda t: 1.6 * (1 - t) + 0.5, "obsid")
-    w.tube([(-2.5, 15, 0), (-5.5, 15.5, 0), (-7.4, 18, 0), (-7, 21, 0), (-8.4, 23.5, 0)], lambda t: 1.5 * (1 - t) + 0.5, "obsid")
+    for pts, r in (([(2.5, 15), (6, 15.5), (8.2, 18.5), (8, 22.5), (9.6, 26)], 2.0),
+                   ([(-2.5, 15), (-5.5, 15.5), (-7.4, 18), (-7, 21), (-8.4, 23.5)], 1.9)):
+        n = len(pts) - 1
+        for i in range(n):
+            ra, rb = r * (1 - i / n) + 0.5, r * (1 - (i + 1) / n) + 0.5
+            w.prism(lambda X, Y, a=pts[i], b=pts[i + 1], ra=ra, rb=rb: capsule(X, Y, a, b, ra, rb), 1.5, "obsid")
     w.ball(9.4, 25.4, 0, 0.9, 1.4, 0.9, "hot")
     w.ball(-8.2, 23, 0, 0.9, 1.4, 0.9, "hot")
     # 플랑베르주 날
@@ -394,9 +398,11 @@ def holy_blade():
                  ((14.0, 35.0), (19.5, 31.0), 1.6, 0.8)]
     for i, (p0, p1, r0, r1) in enumerate(primaries):
         w.prism(lambda X, Y, p0=p0, p1=p1, r0=r0, r1=r1: capsule(X, Y, p0, p1, r0, r1) & (X > 0),
-                1.0, "feather" if i % 2 == 0 else "feather2")
+                1.0, "feather")
     w.prism(lambda X, Y: capsule(X, Y, (4, 19), (10, 25), 3.0, 2.2) & (X > 0), 1.5, "feather2")   # 어깨 깃
-    w.tube([(x, y, 0) for x, y in bone], lambda t: 1.4 - 0.6 * t, "gold")
+    for i in range(len(bone) - 1):                                       # 날개뼈 (납작한 금테)
+        r0, r1 = 1.5 - 0.2 * i, 1.3 - 0.2 * i
+        w.prism(lambda X, Y, i=i, r0=r0, r1=r1: capsule(X, Y, bone[i], bone[i + 1], r0, r1) & (X > 0), 1.6, "gold")
     w.box(0, 3.6, 15, 21.9, -2.1, 2.1, "gold")
     w.box(0, 0.6, 0, 5, -1.1, 1.1, "gold")                   # 십자 폼멜
     w.box(0, 2.6, 2, 3.9, -1.1, 1.1, "gold")
@@ -477,20 +483,20 @@ def sun_blade():
         ("core", lambda X, Y, Z, dl, dr, t: (np.abs(X) < 0.6 + 1.8 * (1 - t)) & (t < 0.9) & (np.abs(Z) <= 1.5)),
     ])
     # 태양 원반과 빛살 (위: 날, 아래: 손잡이 자리는 비운다)
-    for k in range(12):
-        if k in (3, 9):
+    for k in range(8):
+        if k in (2, 6):          # 위: 날, 아래: 손잡이
             continue
-        a = k * math.pi / 6
-        ln = 17.0 if k % 2 == 0 else 13.0
+        a = k * math.pi / 4
+        ln = 17.0 if k % 2 == 0 else 15.0
         ca, sa = math.cos(a), math.sin(a)
 
         def ray(X, Y, ca=ca, sa=sa, ln=ln):
             u = X * ca + (Y - cy) * sa
             v = -X * sa + (Y - cy) * ca
-            return (u > 6) & (u < ln) & (np.abs(v) <= 2.8 * (ln - u) / (ln - 6) + 0.3)
+            return (u > 6) & (u < ln) & (np.abs(v) <= 3.2 * (ln - u) / (ln - 6) + 0.3)
         w.prism(ray, 1.0, "ray")
     w.prism(lambda X, Y: np.hypot(X, Y - cy) <= 8.0, 2.0, "gold")
-    w.prism(lambda X, Y: np.abs(np.hypot(X, Y - cy) - 6.4) <= 0.7, 2.5, "prism")
+    w.prism(lambda X, Y: np.abs(np.hypot(X, Y - cy) - 6.4) <= 0.7, 2.0, "prism")
     w.prism(lambda X, Y: np.hypot(X, Y - cy) <= 5.0, 2.5, "disc")
     w.set_aura(["#b02a00", "#ff7a10", "#ffd040", "#fffde0"], "flame", size=1.2, focus=["core", "disc"])
     return w
