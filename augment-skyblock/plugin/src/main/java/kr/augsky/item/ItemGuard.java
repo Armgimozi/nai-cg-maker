@@ -32,44 +32,55 @@ public final class ItemGuard implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onCraft(PrepareItemCraftEvent e) {
-        Recipe r = e.getRecipe();
-        ItemStack[] matrix = e.getInventory().getMatrix();
+        if (e.getRecipe() != null && !allowed(e.getRecipe(), e.getInventory().getMatrix())) e.getInventory().setResult(null);
+    }
+
+    /** 크래프터 블록은 PrepareItemCraftEvent 를 거치지 않으므로 따로 막는다. */
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onCrafter(org.bukkit.event.block.CrafterCraftEvent e) {
+        if (!(e.getBlock().getState(false) instanceof org.bukkit.block.Crafter c)) return;
+        if (!allowed(e.getRecipe(), c.getInventory().getContents())) e.setCancelled(true);
+    }
+
+    /**
+     * 이 재료로 이 조합을 해도 되는지.
+     * - 바닐라 조합에는 커스텀 아이템을 넣을 수 없다.
+     * - 무기/갑옷을 강화하는 조합은 정해진 무기, 정해진 세트의 같은 부위 갑옷만 받는다
+     *   (조합법은 껍데기 재료로만 등록되어 있어서, 같은 껍데기의 다른 아이템이 들어갈 수 있다).
+     */
+    private boolean allowed(Recipe r, ItemStack[] matrix) {
         NamespacedKey key = r instanceof Keyed k ? k.getKey() : null;
         boolean ours = key != null && key.getNamespace().equals(Keys.NS);
         if (!ours) {
-            for (ItemStack it : matrix) {
-                if (Items.isCustom(it)) {
-                    e.getInventory().setResult(null);
-                    return;
-                }
-            }
-            return;
+            for (ItemStack it : matrix) if (Items.isCustom(it)) return false;
+            return true;
         }
-        // 다른 갑옷을 강화하는 조합: 정해진 세트의 같은 부위 갑옷만 받는다
         List<String> armorOk = plugin.recipes().armorInputs(key);
-        for (ItemStack it : matrix) {
-            if (it == null || !kr.augsky.util.Items.isCustom(it) && armorOk == null) continue;
-            String set = kr.augsky.armor.ArmorService.setOf(it);
-            var sl = kr.augsky.armor.ArmorService.slotOf(it);
-            boolean shell = it.getType().name().startsWith("NETHERITE_") && it.getType() != org.bukkit.Material.NETHERITE_INGOT;
-            if (armorOk != null && shell && (set == null || sl == null || !armorOk.contains(set + ":" + sl.id))) {
-                e.getInventory().setResult(null);
-                return;
+        if (armorOk != null) {
+            for (ItemStack it : matrix) {
+                if (it == null || !isArmorShell(it.getType())) continue;
+                String set = kr.augsky.armor.ArmorService.setOf(it);
+                var sl = kr.augsky.armor.ArmorService.slotOf(it);
+                if (set == null || sl == null || !armorOk.contains(set + ":" + sl.id)) return false;
             }
         }
         List<String> need = plugin.recipes().weaponInputs(key);
-        if (need == null) return;
-        List<String> have = new ArrayList<>();
-        for (ItemStack it : matrix) {
-            String w = Items.tag(it, Keys.WEAPON);
-            if (w != null) have.add(w);
-        }
-        for (String n : need) {
-            if (!have.remove(n)) {
-                e.getInventory().setResult(null);
-                return;
+        if (need != null) {
+            List<String> have = new ArrayList<>();
+            for (ItemStack it : matrix) {
+                String w = Items.tag(it, Keys.WEAPON);
+                if (w != null) have.add(w);
             }
+            for (String n : need) if (!have.remove(n)) return false;
         }
+        return true;
+    }
+
+    private static boolean isArmorShell(org.bukkit.Material m) {
+        return switch (m) {
+            case NETHERITE_HELMET, NETHERITE_CHESTPLATE, NETHERITE_LEGGINGS, NETHERITE_BOOTS -> true;
+            default -> false;
+        };
     }
 
     @EventHandler(ignoreCancelled = true)

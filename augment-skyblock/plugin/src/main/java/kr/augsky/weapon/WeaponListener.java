@@ -138,7 +138,8 @@ public final class WeaponListener implements Listener {
         arrow.setDamage(w.damage() / 3.5);
         arrow.setPickupStatus(org.bukkit.entity.AbstractArrow.PickupStatus.CREATIVE_ONLY);
         arrow.getPersistentDataContainer().set(kr.augsky.Keys.WEAPON, org.bukkit.persistence.PersistentDataType.STRING, w.id());
-        e.setConsumeItem(false);
+        // 무한은 보통 화살만. 물약 화살·분광 화살은 그대로 쓰인다
+        if (e.getConsumable() != null && e.getConsumable().getType() == org.bukkit.Material.ARROW) e.setConsumeItem(false);
         String[] fx = HELD.get(w.element());
         if (fx != null && (w.pool().equals("boss") || w.pool().equals("prism"))) {
             kr.augsky.util.Fx.Spec sp = kr.augsky.util.Fx.parse(fx[0].equals("PRISM") ? "END_ROD" : fx[0]);

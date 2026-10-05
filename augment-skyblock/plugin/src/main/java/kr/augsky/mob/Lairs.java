@@ -310,14 +310,13 @@ public final class Lairs {
         Location b = boss.getLocation();
         double dx = b.getX() - home.getX(), dz = b.getZ() - home.getZ();
         double far = Math.sqrt(dx * dx + dz * dz);
-        boolean fighting = false;
-        double r = arena() + 10;
+        // 싸우는 중: 보스가 노리는 거리(32) 안에 적이 있거나, 최근 8초 안에 플레이어에게 맞았으면
+        boolean fighting = mobs.sinceHurtByPlayer(boss) < 8000;
+        double r = Math.max(arena() + 10, 34);
         for (Player p : home.getWorld().getPlayers()) {
+            if (fighting) break;
             if (!Targets.isEnemy(boss, p)) continue;
-            if (p.getLocation().distanceSquared(home) <= r * r) {
-                fighting = true;
-                break;
-            }
+            if (p.getLocation().distanceSquared(b) <= r * r || p.getLocation().distanceSquared(home) <= r * r) fighting = true;
         }
         if (far > leash() || b.getY() < home.getY() - 12) {
             home.getWorld().spawnParticle(Particle.REVERSE_PORTAL, b.clone().add(0, 1, 0), 60, 0.6, 1.5, 0.6, 0.1);
@@ -378,6 +377,19 @@ public final class Lairs {
         if (c == null) return;
         Entity e = Bukkit.getEntity(c);
         if (e != null) e.remove();
+    }
+
+    boolean ownsClock(UUID entity) {
+        return clock.containsValue(entity);
+    }
+
+    /** 플러그인을 끌 때: 시계 글자를 지운다 (저장되지 않지만 /reload 때 남지 않게). */
+    public void removeClocks() {
+        for (UUID c : clock.values()) {
+            Entity e = Bukkit.getEntity(c);
+            if (e != null) e.remove();
+        }
+        clock.clear();
     }
 
     /** /증강 제단 처럼 둥지 상태를 알려 준다. */

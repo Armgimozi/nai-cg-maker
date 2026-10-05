@@ -148,7 +148,7 @@ def wooden_katana():
 def wind_sword():
     """바람의 검: 바람이 지나가는 긴 구멍이 뚫린 가는 민트빛 날, 위아래로 말린 소용돌이 가드, 옥빛 손잡이."""
     m = {
-        "steel": Mat(["#6a9a94", "#86b8b0", "#a4d4cc", "#e4fbf4"], "metal", seed=131),
+        "steel": Mat(["#4e847e", "#64a098", "#80bcb2", "#d4f6ee"], "metal", seed=131),
         "edge": Mat(["#c8eee6", "#dcf8f2", "#f0fffc", "#ffffff"], "metal", seed=132),
         "silver": Mat(["#5a6470", "#8e98a4", "#c2cad4", "#eef2f6"], "metal", seed=133),
         "jade": Mat(["#0e3a2a", "#1a6a4a", "#2e9a6a", "#5ac898"], "grip", seed=134),
@@ -162,13 +162,16 @@ def wind_sword():
     w.box(-2.6, 2.6, 15, 17.9, -1.6, 1.6, "silver")
     w.tube([(2, 16.5, 0), (5, 16, 0), (7.6, 17.6, 0), (8.2, 20.4, 0), (6.6, 22, 0), (5, 21, 0), (5.4, 19.6, 0)], 0.95, "silver")
     w.tube([(-2, 16.5, 0), (-5, 17, 0), (-7.6, 15.4, 0), (-8.2, 12.6, 0), (-6.6, 11, 0), (-5, 12, 0), (-5.4, 13.4, 0)], 0.95, "silver")
+    # 끝이 바람에 밀린 듯 살짝 +X 로 휜다
+    cw = lambda t: 3.0 * t ** 3
     hw = lambda t: (2.8 - 0.5 * t) * taper(t, 0.74, 1.1) + 0.2
-    sect(w, 18, 60, lambda t: -hw(t), hw, [
+    sect(w, 18, 60, lambda t: cw(t) - hw(t) + 0.6 * ramp_in(t, 0.74), lambda t: cw(t) + hw(t), [
         ("edge", lambda X, Y, Z, dl, dr, t: np.abs(Z) <= 0.5),
         ("steel", lambda X, Y, Z, dl, dr, t: (np.minimum(dl, dr) >= 1) & (np.abs(Z) <= 1.5)),
     ])
     # 바람 구멍: 가운데를 길게 뚫는다 (양 끝은 뾰족)
-    w.clear(lambda X, Y, Z: (np.abs(X) < 1.2 * np.sin(np.pi * np.clip((Y - 22) / 28, 0, 1))) & (Y > 22) & (Y < 50))
+    w.clear(lambda X, Y, Z: (np.abs(X - cw((Y - 18) / 42)) < 1.2 * np.sin(np.pi * np.clip((Y - 22) / 28, 0, 1))) &
+            (Y > 22) & (Y < 50))
     return w
 
 
@@ -391,23 +394,21 @@ def holy_blade():
     }
     w = Weapon(m, grip_y=9.5, kind="sword", seed=191)
     # 오른쪽 반만 만들고 mirror() 로 왼쪽을 복사한다
-    # 날개: 위로 휘어 오르는 금빛 날개뼈에서 깃털이 바깥 아래로 늘어진다 (안쪽 깃은 밝게, 앞으로 겹침)
-    bone = [(3, 19), (7, 22.5), (11, 27), (13.5, 32), (14.5, 36)]
-    primaries = [((5.5, 21.5), (8.5, 14.0), 2.2, 1.1), ((8.5, 24.5), (12.5, 16.5), 2.2, 1.1),
-                 ((11.0, 28.0), (16.0, 20.5), 2.0, 1.0), ((13.0, 31.5), (18.5, 25.5), 1.9, 0.9),
-                 ((14.0, 35.0), (19.5, 31.0), 1.6, 0.8)]
-    for i, (p0, p1, r0, r1) in enumerate(primaries):
-        w.prism(lambda X, Y, p0=p0, p1=p1, r0=r0, r1=r1: capsule(X, Y, p0, p1, r0, r1) & (X > 0),
-                1.0, "feather")
-    w.prism(lambda X, Y: capsule(X, Y, (4, 19), (10, 25), 3.0, 2.2) & (X > 0), 1.5, "feather2")   # 어깨 깃
-    for i in range(len(bone) - 1):                                       # 날개뼈 (납작한 금테)
-        r0, r1 = 1.5 - 0.2 * i, 1.3 - 0.2 * i
-        w.prism(lambda X, Y, i=i, r0=r0, r1=r1: capsule(X, Y, bone[i], bone[i + 1], r0, r1) & (X > 0), 1.6, "gold")
+    # 날개: 가로로 쌓은 깃털 막대. 위로 갈수록 바깥으로 밀려 올라가 날개가 위로 휘어 오른다.
+    # (y, 안쪽 x, 바깥 x) — 막대 끝 두 칸은 아래 줄만 남겨 깃털 끝이 뾰족하다
+    bars = [(15, 3, 9), (17.5, 3, 12.5), (20, 3, 15.5), (22.5, 4, 18), (25, 6, 19.5), (27.5, 9, 20.5),
+            (30, 12, 21), (32.5, 15, 21), (35, 17.5, 20.5)]
+    for i, (y, x0, x1) in enumerate(bars):
+        mat = "feather" if i % 2 == 0 else "feather2"
+        dz = 1.0 if i % 2 == 0 else 1.5
+        w.box(x0, x1 - 2, y, y + 2.4, -dz, dz, mat)
+        w.box(x1 - 2, x1, y, y + 0.9, -dz, dz, mat)
+    w.box(0, 6.5, 16, 24.9, -2.1, 2.1, "feather2")                     # 날개 뿌리 (어깨 깃)
+    w.box(3, 6.5, 22, 24.9, -2.6, 2.6, "gold")
     w.box(0, 3.6, 15, 21.9, -2.1, 2.1, "gold")
     w.box(0, 0.6, 0, 5, -1.1, 1.1, "gold")                   # 십자 폼멜
     w.box(0, 2.6, 2, 3.9, -1.1, 1.1, "gold")
     w.cyl(4.5, 15, 1.6, "wrap")
-    bands(w, [4.5, 14], 2.1, "gold")
     w.mirror()
     w.gem(0, 18.5, 1.6, "sapph", depth=2.6)
     # 넓은 날 + 빛나는 십자 홈
@@ -472,7 +473,6 @@ def sun_blade():
     w = Weapon(m, grip_y=9, kind="sword", seed=211)
     w.fill(lambda X, Y, Z: (np.abs(X) + np.abs(Y - 2.5) * 1.2 <= 2.8) & (np.abs(Z) <= 1.5), "gold")   # 별 폼멜
     w.cyl(4.5, 15, 1.6, "wrap")
-    bands(w, [9], 2.1, "gold")
     # 빛줄기 날 (원반 가운데에서 시작해 원반이 밑동을 덮는다)
     cy = 22.0
     y0, y1 = cy, 71
@@ -487,17 +487,16 @@ def sun_blade():
         if k in (2, 6):          # 위: 날, 아래: 손잡이
             continue
         a = k * math.pi / 4
-        ln = 17.0 if k % 2 == 0 else 15.0
+        ln = 17.5 if k % 2 == 0 else 14.0
         ca, sa = math.cos(a), math.sin(a)
 
         def ray(X, Y, ca=ca, sa=sa, ln=ln):
             u = X * ca + (Y - cy) * sa
             v = -X * sa + (Y - cy) * ca
-            return (u > 6) & (u < ln) & (np.abs(v) <= 3.2 * (ln - u) / (ln - 6) + 0.3)
+            return (u > 6.5) & (u < ln) & (np.abs(v) <= 3.2 * (ln - u) / (ln - 6) + 0.3)
         w.prism(ray, 1.0, "ray")
-    w.prism(lambda X, Y: np.hypot(X, Y - cy) <= 8.0, 2.0, "gold")
-    w.prism(lambda X, Y: np.abs(np.hypot(X, Y - cy) - 6.4) <= 0.7, 2.0, "prism")
-    w.prism(lambda X, Y: np.hypot(X, Y - cy) <= 5.0, 2.5, "disc")
+    w.prism(lambda X, Y: np.hypot(X, Y - cy) <= 7.6, 2.0, "prism")       # 무지개 햇무리 고리
+    w.prism(lambda X, Y: np.hypot(X, Y - cy) <= 5.6, 2.5, "disc")
     w.set_aura(["#b02a00", "#ff7a10", "#ffd040", "#fffde0"], "flame", size=1.2, focus=["core", "disc"])
     return w
 

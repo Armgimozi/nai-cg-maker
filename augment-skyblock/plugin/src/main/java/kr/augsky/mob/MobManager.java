@@ -87,6 +87,7 @@ public final class MobManager implements Listener {
         BossBar bar;
         final Set<UUID> viewers = new HashSet<>();
         Location home;
+        long lastHurtByPlayer;
 
         Active(MobDef def, LivingEntity entity) {
             this.def = def;
@@ -117,6 +118,12 @@ public final class MobManager implements Listener {
     /** 제단 보호처럼 보스 둥지의 블록을 지킨다. */
     public boolean isLairGuarded(Location l) {
         return lairs.isGuarded(l);
+    }
+
+    /** 플레이어에게 마지막으로 맞은 뒤 지난 시간(ms). 기록이 없으면 아주 큰 값. */
+    long sinceHurtByPlayer(LivingEntity boss) {
+        Active a = active.get(boss.getUniqueId());
+        return a == null || a.lastHurtByPlayer == 0 ? Long.MAX_VALUE : System.currentTimeMillis() - a.lastHurtByPlayer;
     }
 
     /** 싸움이 끝났을 때(둥지로 돌아가 다 회복했을 때) 기여도와 단계 기록을 지운다. */
@@ -473,8 +480,13 @@ public final class MobManager implements Listener {
             lairs.seen(mk);
             return;
         }
-        // 보스 모델 조각은 저장하지 않지만, 혹시 남아 있으면 지운다
-        if (e.getPersistentDataContainer().has(Keys.RIG)) {
+        // 보스 모델 조각과 둥지 시계는 저장하지 않는다. 주인 없이 남은 것(플러그인 다시 읽기 등)만 지운다
+        String rigOwner = e.getPersistentDataContainer().get(Keys.RIG, PersistentDataType.STRING);
+        if (rigOwner != null) {
+            if (!rigs.isLive(rigOwner)) e.remove();
+            return;
+        }
+        if (e.getPersistentDataContainer().has(Keys.LAIR_TEXT) && !lairs.ownsClock(e.getUniqueId())) {
             e.remove();
             return;
         }
@@ -559,7 +571,10 @@ public final class MobManager implements Listener {
         if (vic != null) {
             rigs.hurt(vic.entity.getUniqueId());
             Player p = d instanceof Player pl ? pl : null;
-            if (p != null) vic.contributors.merge(p.getUniqueId(), e.getFinalDamage(), Double::sum);
+            if (p != null) {
+                vic.contributors.merge(p.getUniqueId(), e.getFinalDamage(), Double::sum);
+                vic.lastHurtByPlayer = System.currentTimeMillis();
+            }
             LivingEntity src = d instanceof LivingEntity l ? l : null;
             if (src != null && !Combat.inSkill()) {
                 Bukkit.getScheduler().runTask(plugin, () -> {
@@ -705,6 +720,7 @@ public final class MobManager implements Listener {
     public void removeBars() {
         for (Active a : active.values()) hideBar(a);
         rigs.removeAll();
+        lairs.removeClocks();
     }
 
     public int activeCount() {

@@ -86,6 +86,8 @@ public final class ArmorService implements Listener {
     private final Logger log;
     private final Map<String, SetDef> sets = new LinkedHashMap<>();
     private final Set<UUID> pending = new HashSet<>();
+    /** 지난번에 입고 있던 세트별 부위 수 (세트 효과가 새로 켜졌는지 알리려고) */
+    private final Map<UUID, Map<String, Integer>> lastWorn = new HashMap<>();
     private int tick;
 
     public ArmorService(AugSky plugin) {
@@ -255,12 +257,14 @@ public final class ArmorService implements Listener {
     public void onArmorChange(PlayerArmorChangeEvent e) {
         Player p = e.getPlayer();
         if (!pending.add(p.getUniqueId())) return;
-        Map<String, Integer> before = worn(p);
         Bukkit.getScheduler().runTask(plugin, () -> {
             pending.remove(p.getUniqueId());
             if (!p.isOnline()) return;
             plugin.augments().refresh(p);
             Map<String, Integer> now = worn(p);
+            // 이벤트가 올 때는 이미 새 갑옷이 들어가 있으므로, 지난번 기록과 비교한다
+            Map<String, Integer> before = lastWorn.getOrDefault(p.getUniqueId(), Map.of());
+            lastWorn.put(p.getUniqueId(), now);
             for (Map.Entry<String, Integer> en : now.entrySet()) {
                 SetDef s = get(en.getKey());
                 if (s == null) continue;
@@ -273,6 +277,17 @@ public final class ArmorService implements Listener {
                 }
             }
         });
+    }
+
+    @EventHandler
+    public void onJoin(org.bukkit.event.player.PlayerJoinEvent e) {
+        lastWorn.put(e.getPlayer().getUniqueId(), worn(e.getPlayer()));
+    }
+
+    @EventHandler
+    public void onQuit(org.bukkit.event.player.PlayerQuitEvent e) {
+        lastWorn.remove(e.getPlayer().getUniqueId());
+        pending.remove(e.getPlayer().getUniqueId());
     }
 
     // ------------------------------------------------------------------ 입자

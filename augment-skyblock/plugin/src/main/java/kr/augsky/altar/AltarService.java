@@ -174,7 +174,7 @@ public final class AltarService implements Listener {
             case GLOBAL -> {
                 Entity en = Bukkit.getEntity(altarId);
                 if (en != null && en.getPersistentDataContainer().has(Keys.USED)) yield false;
-                Info i = reg(p.getWorld()).get(altarId);
+                Info i = reg(en != null ? en.getWorld() : p.getWorld()).get(altarId);
                 yield i == null || !i.used();
             }
             case PLAYER -> !d.usedAltars.contains(altarId.toString());
@@ -206,6 +206,13 @@ public final class AltarService implements Listener {
                 if (!pdc.has(Keys.USED)) loaded.put(e.getUniqueId(), t);
                 // 예전 맵처럼 기록이 없는 제단도 처음 보이면 기록해 둔다
                 Map<UUID, Info> m = reg(e.getWorld());
+                Info known = m.get(e.getUniqueId());
+                if (known != null && known.used() && !pdc.has(Keys.USED) && mode() == Mode.GLOBAL) {
+                    // 쓴 기록은 있는데 엔티티 표시가 저장되기 전에 서버가 꺼진 경우: 다시 힘을 다한 모습으로
+                    Bukkit.getScheduler().runTask(plugin, () -> {
+                        if (e.isValid()) markUsed(e, t);
+                    });
+                }
                 if (!m.containsKey(e.getUniqueId())) {
                     Location l = e.getLocation();
                     m.put(e.getUniqueId(), new Info(e.getUniqueId(), t, l.getWorld().getName(), l.getX(), l.getY(), l.getZ(), pdc.has(Keys.USED)));
@@ -249,11 +256,8 @@ public final class AltarService implements Listener {
             return;
         }
         Mode mode = mode();
-        boolean used = switch (mode) {
-            case GLOBAL -> pdc.has(Keys.USED);
-            case PLAYER -> d.usedAltars.contains(en.getUniqueId().toString());
-            case OFF -> false;
-        };
+        // 서버가 갑자기 꺼지면 엔티티의 표시(USED)는 저장되지 않았을 수 있으므로 월드 폴더의 기록도 본다
+        boolean used = !isUsable(en.getUniqueId(), p);
         if (used) {
             en.getWorld().spawnParticle(Particle.SMOKE, en.getLocation().add(0, 1.5, 0), 20, 0.4, 0.4, 0.4, 0.01);
             Fx.sound(en.getLocation(), "block.beacon.deactivate", 0.6f, 1.6f);
@@ -306,25 +310,9 @@ public final class AltarService implements Listener {
             save(w);
         }
         if (en != null) {
-            en.getPersistentDataContainer().set(Keys.USED, PersistentDataType.BYTE, (byte) 1);
             if (tier == null) tier = Tier.parse(en.getPersistentDataContainer().get(Keys.ALTAR, PersistentDataType.STRING));
-            loaded.remove(altarId);
+            markUsed(en, tier);
             Location c = en.getLocation();
-            for (Entity part : c.getWorld().getNearbyEntities(c, 6, 12, 6)) {
-                String of = part.getPersistentDataContainer().get(Keys.ALTAR_OF, PersistentDataType.STRING);
-                if (!altarId.toString().equals(of)) continue;
-                if (part instanceof BlockDisplay bd) {
-                    if (bd.getPersistentDataContainer().has(Keys.BEAM)) {
-                        beams.remove(bd.getUniqueId());
-                        bd.remove();
-                    } else {
-                        bd.setBlock(Material.TINTED_GLASS.createBlockData());
-                        bd.setBrightness(null);
-                    }
-                } else if (part instanceof TextDisplay td) {
-                    td.text(Text.mm("<dark_gray>힘을 다한 " + (tier == null ? "" : tier.korean + " ") + "제단"));
-                }
-            }
             c.getWorld().spawnParticle(Particle.FLASH, c.clone().add(0, 2, 0), 1);
             c.getWorld().spawnParticle(Particle.END_ROD, c.clone().add(0, 2, 0), 60, 0.6, 1.5, 0.6, 0.1);
             Fx.sound(c, "block.beacon.deactivate", 1f, 0.8f);
@@ -333,6 +321,29 @@ public final class AltarService implements Listener {
             int left = remaining(w, tier);
             Bukkit.broadcast(Text.mm("<gray>✦ " + p.getName() + "님이 " + tier.label() + " <gray>제단의 힘을 깨웠습니다. <dark_gray>(남은 "
                     + tier.korean + " 제단 " + left + "곳)"));
+        }
+    }
+
+    /** 힘을 다한 제단의 모습: 표시를 남기고, 빛기둥을 없애고, 보석을 어둡게, 이름표를 바꾼다. */
+    private void markUsed(Entity en, Tier tier) {
+        en.getPersistentDataContainer().set(Keys.USED, PersistentDataType.BYTE, (byte) 1);
+        loaded.remove(en.getUniqueId());
+        String id = en.getUniqueId().toString();
+        Location c = en.getLocation();
+        for (Entity part : c.getWorld().getNearbyEntities(c, 6, 12, 6)) {
+            String of = part.getPersistentDataContainer().get(Keys.ALTAR_OF, PersistentDataType.STRING);
+            if (!id.equals(of)) continue;
+            if (part instanceof BlockDisplay bd) {
+                if (bd.getPersistentDataContainer().has(Keys.BEAM)) {
+                    beams.remove(bd.getUniqueId());
+                    bd.remove();
+                } else {
+                    bd.setBlock(Material.TINTED_GLASS.createBlockData());
+                    bd.setBrightness(null);
+                }
+            } else if (part instanceof TextDisplay td) {
+                td.text(Text.mm("<dark_gray>힘을 다한 " + (tier == null ? "" : tier.korean + " ") + "제단"));
+            }
         }
     }
 
@@ -375,6 +386,12 @@ public final class AltarService implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPlace(org.bukkit.event.block.BlockPlaceEvent e) {
         if (bypass(e.getPlayer())) return;
+        // 보스 둥지 결투장: 부술 수 없으니 놓지도 못하게 (놓은 블록이 영영 남지 않게)
+        if (plugin.mobs() != null && plugin.mobs().isLairGuarded(e.getBlock().getLocation())) {
+            e.setCancelled(true);
+            e.getPlayer().sendActionBar(Text.mm("<#ff7070>보스 둥지에는 블록을 놓을 수 없습니다"));
+            return;
+        }
         // 제단 바닥 위쪽 공간은 비워 둔다 (기둥/빛기둥 가림 방지). 가장자리 다리 연결은 허용
         Location c = e.getBlock().getLocation();
         for (Location g : guarded.values()) {

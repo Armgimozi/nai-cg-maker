@@ -135,6 +135,15 @@ public final class Rigs {
         return v;
     }
 
+    /** 이 보스(UUID 문자열)의 모델이 지금 붙어 있는지. */
+    public boolean isLive(String bossUuid) {
+        try {
+            return live.containsKey(UUID.fromString(bossUuid));
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
     public boolean has(String mobId) {
         return defs.containsKey(mobId);
     }

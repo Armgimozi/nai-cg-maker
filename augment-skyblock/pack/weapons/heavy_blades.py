@@ -84,49 +84,50 @@ def rot180(w, y_mid):
 # ─────────────────────────── 기본 (basic) ───────────────────────────
 
 def hunter_dagger():
-    """클립 포인트 사냥칼: 한쪽 날에 불룩한 배, 두꺼운 등과 엄지 홈, 놋쇠 리벳 박힌 나무 손잡이, 날 쪽에만 손가락 가드."""
+    """클립 포인트 사냥칼: 불룩한 배의 외날, 두꺼운 등과 반짝이는 클립(가짜 날), 날 쪽으로 굽은 나무 손잡이와 놋쇠 리벳, 손가락 가드."""
     m = {
-        "steel": Mat(["#4a5058", "#767e88", "#a0a8b2", "#c8d0d8"], "metal", seed=1),
-        "edge": Mat(["#b0b8c0", "#d4dae0", "#eef2f6", "#ffffff"], "metal", seed=2),
-        "spine": Mat(["#2a2e34", "#40454c", "#565c64", "#70767e"], "metal", seed=3),
+        "steel": Mat(["#3e444c", "#646c76", "#8a929c", "#b0b8c2"], "metal", seed=1),
+        "edge": Mat(["#b8c0c8", "#d8dee4", "#f0f4f8", "#ffffff"], "metal", seed=2),
+        "spine": Mat(["#24282e", "#3a3f46", "#50565e", "#6a7078"], "metal", seed=3),
         "wood": Mat(["#3e2412", "#6a4020", "#8e5a30", "#b07a46"], "wood", seed=4),
         "brass": Mat(["#5a4012", "#a07a2a", "#d8b050", "#fff0a0"], "metal", seed=5),
     }
-    w = Weapon(m, grip_y=8, kind="dagger", seed=101)
-    # 손잡이: 가운데가 살짝 불룩한 타원 나무
-    w.fill(lambda X, Y, Z: (Y >= 3) & (Y <= 13.5) &
-           ((X / (1.9 + 0.4 * np.sin(np.clip((Y - 3) / 10.5, 0, 1) * math.pi))) ** 2 + (Z / 1.5) ** 2 <= 1), "wood")
+    w = Weapon(m, grip_y=8.5, kind="dagger", seed=101)
+    # 손잡이: 아래로 갈수록 날 쪽(+X)으로 굽는다 (새머리 손잡이)
+    cx = lambda Y: 1.6 * np.clip((9 - Y) / 7, 0, 1) ** 2
+    w.fill(lambda X, Y, Z: (Y >= 1.5) & (Y <= 13.5) & (((X - cx(Y)) / 1.9) ** 2 + (Z / 1.5) ** 2 <= 1), "wood")
+    w.ball(1.9, 1.6, 0, 2.6, 1.6, 1.7, "spine")                      # 굽은 끝 캡
     for y in (6, 10.5):
-        w.box(-0.6, 0.6, y - 0.6, y + 0.6, -2, 2, "brass")             # 리벳
-    w.fill(lambda X, Y, Z: (Y >= 0.5) & (Y <= 3.4) & ((X / 2.4) ** 2 + (Z / 1.8) ** 2 <= 1), "spine")  # 끝 캡
-    w.clear(lambda X, Y, Z: (np.hypot(X, Y - 1.9) <= 0.8))          # 끈 구멍
-    # 가드: 날 쪽(+X)으로만 길게, 끝이 아래로 굽은 손가락 걸이
+        w.box(-0.6 + cx(y), 0.6 + cx(y), y - 0.6, y + 0.6, -2, 2, "brass")   # 리벳
+    # 가드: 날 쪽(+X)으로 길고 끝이 아래로 굽은 손가락 걸이
     w.box(-3.0, 3.5, 13.5, 15.5, -1.6, 1.6, "spine")
     w.box(3.0, 5.0, 11.5, 15.5, -1.2, 1.2, "spine")
 
     y0, y1 = 15.5, 36.0
 
     def xs(t):          # 등 (왼쪽): 곧다가 끝에서 오목하게 깎인 클립
-        u = np.clip((t - 0.6) / 0.4, 0, 1)
-        return np.where(t < 0.6, -2.5, -2.5 + 3.6 * u ** 1.7)
+        u = np.clip((t - 0.58) / 0.42, 0, 1)
+        return np.where(t < 0.58, -2.5, -2.5 + 3.8 * u ** 1.6)
 
     def xe(t):          # 날 (오른쪽): 배가 불룩했다가 끝으로 휘어 올라감
-        u = np.clip((t - 0.5) / 0.5, 0, 1)
-        return np.where(t < 0.5, 3.0 + 1.2 * t / 0.5, 1.1 + 3.1 * np.sqrt(1 - u ** 2))
+        u = np.clip((t - 0.45) / 0.55, 0, 1)
+        return np.where(t < 0.45, 3.0 + 1.6 * t / 0.45, 1.3 + 3.3 * np.sqrt(1 - u ** 2))
 
     def blade(X, Y, Z, part):
         t = (Y - y0) / (y1 - y0)
-        ok = (t >= 0) & (t <= 1)
-        a, b = xs(np.clip(t, 0, 1)), xe(np.clip(t, 0, 1))
-        inb = ok & (X >= a) & (X <= b)
+        tc = np.clip(t, 0, 1)
+        a, b = xs(tc), xe(tc)
+        inb = (t >= 0) & (t <= 1) & (X >= a) & (X <= b)
         if part == "spine":
-            return inb & (X <= a + 1.2) & (np.abs(Z) <= 1.5)
+            return inb & (X <= a + 1.2) & (np.abs(Z) <= 1.5) & (t < 0.58)
+        if part == "clip":
+            return inb & (X <= a + 1.2) & (t >= 0.58)
         if part == "edge":
             return inb & (X >= b - 1.3) & (np.abs(Z) <= 0.5)
         return inb & (np.abs(Z) <= 1.0)
 
     w.fill(lambda X, Y, Z: blade(X, Y, Z, "body"), "steel")
-    w.fill(lambda X, Y, Z: blade(X, Y, Z, "edge"), "edge")
+    w.fill(lambda X, Y, Z: blade(X, Y, Z, "edge") | (blade(X, Y, Z, "clip") & (np.abs(Z) <= 0.5)), "edge")
     w.fill(lambda X, Y, Z: blade(X, Y, Z, "spine"), "spine")
     # 엄지 홈 (등에 파인 톱니)
     w.clear(lambda X, Y, Z: (X < -2) & (Y > 16) & (Y < 22) & ((Y.astype(int) % 2) == 0))
@@ -163,47 +164,52 @@ def iron_greatsword():
 # ─────────────────────────── 섬 (island) ───────────────────────────
 
 def venom_dagger():
-    """독니 단검: 세모난 살무사 머리가 가드, 그 주둥이에서 휘어진 상아 독니가 뻗고 끝은 독에 물들었다. 폼멜은 말린 꼬리."""
+    """독사의 단검: 옆모습 뱀 머리가 가드 한쪽(입을 벌리고 송곳니), 다른 쪽은 몸통이 감긴 고리. 목에서 휘어진 상아 독니 날이 솟고, 홈에 독이 빛난다."""
     m = {
-        "fang": Mat(["#8a7a5a", "#c8b890", "#e8dcb8", "#fff8e0"], "flat", seed=21),
-        "toxic": Mat(["#1a5a10", "#3a9a1a", "#70c830", "#b8f060"], "gem", seed=22),
+        "fang": Mat(["#9a8a68", "#cfc09a", "#ece2c4", "#fffaea"], "flat", seed=21),
+        "bone": Mat(["#6a5a40", "#8a7a5a", "#a89a78", "#c4b896"], "flat", seed=22),
         "venom": Mat(["#3aa010", "#7ae020", "#c0ff50", "#f0ffb0"], "pulse", glow=True, seed=23),
-        "scale": Mat(["#0e2a16", "#1a4624", "#2a6434", "#3e8048"], "scale", seed=24),
-        "mark": Mat(["#060e08", "#0c1a0e", "#142616", "#1c321e"], "scale", seed=28),
+        "scale": Mat(["#1e4a24", "#2e6a36", "#428a48", "#62aa62"], "scale", seed=24),
+        "mark": Mat(["#08140a", "#0e2010", "#162e18", "#1e3a20"], "scale", seed=28),
         "belly": Mat(["#7a7020", "#a8a040", "#ccc060", "#e8e090"], "scale", seed=25),
         "eye": Mat(["#a08000", "#f0d020", "#fff070", "#ffffff"], "flat", seed=27),
+        "mouth": Mat(["#4a0a14", "#7a1a24", "#a02a34", "#c04048"], "flat", seed=29),
     }
-    w = Weapon(m, grip_y=8, kind="dagger", seed=103)
-    # 손잡이: 뱀 몸통 (앞에 노란 배 줄무늬)
-    w.cyl(3, 14, 1.6, "scale")
-    w.fill(lambda X, Y, Z: (Y >= 3) & (Y <= 14) & (np.abs(X) <= 0.6) & (Z > 0.8) & (Z <= 1.6), "belly")
-    rings(w, (5, 8, 11), 1.75, "mark")
-    # 말린 꼬리 폼멜
-    w.tube([(0, 3.5, 0), (0, 1.5, 0), (2.0, 0.6, 0), (3.6, 1.6, 0), (3.6, 3.4, 0), (2.4, 4.0, 0)],
-           lambda t: 1.5 - 0.95 * t, "scale")
-    # 세모난 살무사 머리 (뒤가 넓고 주둥이가 좁다)
-    head = poly([(-4.6, 13.5), (4.6, 13.5), (6.2, 16), (4.0, 19.5), (2.2, 22), (-2.2, 22), (-4.0, 19.5), (-6.2, 16)])
-    w.prism(head, lambda X, Y: 1.2 + 0.5 * np.clip(3 - np.abs(X), 0, 2), "scale")
-    # 머리 위 다이아몬드 무늬 (도드라짐)
-    w.prism(lambda X, Y: head(X, Y) & (np.abs(X) * 0.9 + np.abs(Y - 17.5) * 0.8 <= 2.3), 2.5, "mark")
-    for s in (-1, 1):
-        w.box(s * 3.6 - 0.9, s * 3.6 + 0.9, 17.5, 19.0, -2.2, 2.2, "eye")
-        w.box(s * 3.6 - 0.2, s * 3.6 + 0.2, 17.5, 19.0, -2.4, 2.4, "mark")     # 세로 동공
-    # 독니: 상아에서 독색으로, +X 로 휨
-    y0, y1 = 21.0, 41.5
+    w = Weapon(m, grip_y=7.5, kind="dagger", seed=103)
+    # 손잡이: 뱀 몸통 (앞에 노란 배 줄무늬, 어두운 띠), 끝은 둥근 똬리
+    w.cyl(2.5, 13, 1.6, "scale")
+    w.fill(lambda X, Y, Z: (Y >= 2.5) & (Y <= 13) & (np.abs(X) <= 0.6) & (np.abs(Z) > 0.8) & (np.abs(Z) <= 1.6), "belly")
+    rings(w, (4.5, 7.5, 10.5), 1.75, "mark")
+    w.ball(0, 1.8, 0, 2.4, 1.8, 2.4, "scale")
+    w.cyl(1.5, 2.2, 2.5, "mark")
+    # 가드 왼쪽: 몸통이 한 번 감긴 고리
+    w.fill(lambda X, Y, Z: (np.abs(np.hypot(X + 4.0, (Y - 15.0) * 1.15) - 2.6) <= 1.1) & (np.abs(Z) <= 1.3), "scale")
+    # 가드 오른쪽: 옆모습 머리, 입을 벌림
+    upper = poly([(-1.5, 14.6), (-1.5, 18.2), (4.0, 19.0), (8.0, 18.4), (10.4, 17.0), (10.2, 16.2), (6.0, 16.0)])
+    lower = poly([(-1.5, 12.4), (-1.5, 14.6), (6.0, 15.0), (9.6, 13.6), (9.2, 12.6), (4.5, 11.8)])
+    w.prism(upper, lambda X, Y: 1.7 - 0.06 * np.clip(X, 0, 10), "scale")
+    w.prism(lower, lambda X, Y: 1.4 - 0.05 * np.clip(X, 0, 10), "scale")
+    w.prism(poly([(4.0, 15.0), (10.6, 16.8), (10.0, 13.4)]), 0.9, "mouth")              # 벌린 입 안
+    w.box(-1.5, 9.0, 11.5, 12.6, -1.0, 1.0, "belly")                                    # 턱 밑 배
+    w.box(3.6, 5.6, 16.6, 18.2, -1.9, 1.9, "eye")
+    w.box(4.4, 4.8, 16.6, 18.2, -2.1, 2.1, "mark")                                      # 세로 동공
+    w.prism(poly([(1.0, 18.4), (6.5, 18.9), (2.0, 19.2)]), 1.8, "mark")                 # 눈썹 비늘
+    tri(w, (8.4, 16.4), (9.8, 16.6), (9.2, 13.6), 0.6, "fang")                          # 위 송곳니
+    tri(w, (8.0, 14.2), (9.0, 13.9), (8.0, 15.6), 0.6, "fang")                          # 아래 송곳니
+    # 독니 날: 목에서 솟아 +X 로 휨
+    y0, y1 = 17.5, 41.5
 
-    def fang(X, Y, Z, lo, hi):
+    def fang(X, Y, Z):
         t = (Y - y0) / (y1 - y0)
         tc = np.clip(t, 0, 1)
-        off = 3.0 * tc ** 1.8
-        hw = 2.7 * (1 - tc) ** 0.8 + 0.3
-        hz = hw * 0.55 + 0.45
-        return (t >= lo) & (t <= hi) & (((X - off) / hw) ** 2 + (Z / hz) ** 2 <= 1)
-    w.fill(lambda X, Y, Z: fang(X, Y, Z, 0, 0.6), "fang")
-    w.fill(lambda X, Y, Z: fang(X, Y, Z, 0.6, 1.0), "toxic")
-    # 독 홈 (앞뒤 가는 빛 줄)
-    w.fill(lambda X, Y, Z: fang(X, Y, Z, 0.1, 0.6) &
-           (np.abs(X - 3.0 * tnorm(Y, y0, y1) ** 1.8) <= 0.5) & (np.abs(Z) > 0.8), "venom")
+        off = -0.6 + 3.0 * tc ** 2
+        hw = 2.4 * (1 - tc) ** 0.8 + 0.6
+        hz = 0.45 + 0.45 * np.clip(hw - np.abs(X - off), 0, 2)
+        return (t >= 0) & (t <= 1) & (np.abs(X - off) <= hw) & (np.abs(Z) <= hz), off, hw
+    w.fill(lambda X, Y, Z: fang(X, Y, Z)[0], "bone")
+    w.fill(lambda X, Y, Z: fang(X, Y, Z)[0] & (np.abs(X - fang(X, Y, Z)[1]) <= fang(X, Y, Z)[2] - 1.0), "fang")
+    # 독 홈 (짧은 빛 줄 하나)
+    w.fill(lambda X, Y, Z: fang(X, Y, Z)[0] & (Y >= 21) & (Y <= 31) & (np.abs(X - fang(X, Y, Z)[1]) <= 0.5), "venom")
     return w
 
 
@@ -228,7 +234,7 @@ def storm_dagger():
         w.box(min(s * 3.5, s * 5.5), max(s * 3.5, s * 5.5), 12, 15, -1.8, 1.8, "patina")
 
     # 번개 모양 날: 오른쪽으로 기운 세 마디, 마디마다 왼쪽으로 크게 꺾임
-    segs = [(14.5, 24.5, -1.5, 2.2, 2.6, 2.3), (23.5, 33.5, -2.2, 1.6, 2.4, 2.0), (32.5, 43.0, -1.6, 1.6, 2.2, 0.0)]
+    segs = [(14.5, 24.5, -1.5, 2.2, 2.6, 2.3), (23.5, 33.5, -2.2, 1.6, 2.4, 2.0), (32.5, 43.0, -1.6, 1.6, 2.2, 0.5)]
 
     def bolt(X, Y, shrink=0.0):
         m_ = np.zeros(np.shape(X), bool)
@@ -261,11 +267,11 @@ def frost_dagger():
         w.ball(x, y, z, 1.0, 1.0, 1.0, "rime")                       # 서리 덩어리
     # 아래로 뾰족한 얼음 폼멜
     w.fill(lambda X, Y, Z: (Y >= 0) & (Y <= 3.2) & (np.abs(X) + np.abs(Z) <= 0.4 + Y * 0.7), "ice")
-    # 가드: 크기가 다른 얼음 조각들
+    # 가드: 얼음 덩어리 + 크기가 다른 비스듬한 얼음 조각 (오른쪽이 길다), 아래로 늘어진 고드름
     w.ball(0, 14.5, 0, 2.8, 1.6, 2.2, "ice")
-    w.tube([(1, 14.5, 0), (5.0, 17.0, 0.3), (7.0, 21.5, 0.5)], lambda t: 1.5 * (1 - t) + 0.4, "ice_hi")
-    w.tube([(-1, 14.5, 0), (-3.8, 15.6, -0.3), (-5.0, 18.0, -0.5)], lambda t: 1.2 * (1 - t) + 0.4, "ice_hi")
-    w.tube([(-1, 14, 0), (-3.0, 12.5, 0.3), (-3.6, 10.5, 0.5)], lambda t: 0.9 * (1 - t) + 0.4, "ice")   # 아래로 늘어진 고드름
+    w.prism(poly([(1.0, 13.5), (2.0, 16.0), (7.5, 21.5), (5.0, 14.0)]), 1.2, "ice_hi")
+    w.prism(poly([(-1.0, 13.5), (-2.0, 15.6), (-5.5, 18.5), (-4.0, 13.5)]), 1.0, "ice_hi")
+    w.prism(poly([(-4.0, 13.5), (-2.2, 13.5), (-3.4, 10.0)]), 0.6, "ice")
     # 고드름 날 (마름모 단면)
     y0, y1 = 15, 44
 
@@ -282,7 +288,7 @@ def frost_dagger():
 
 
 def frost_greatsword():
-    """빙하 대검: 금속 없이 얼음으로 자란 날. 양쪽에서 위로 비스듬히 솟은 큰 얼음 가시, 비스듬히 잘린 결정 끝, 깊은 청색 심과 룬."""
+    """빙하 대검: 금속 없이 얼음으로 자란 날. 밑동에서 큰 얼음 가시가 비스듬히 터져 나오고, 끝은 비스듬히 잘린 결정, 깊은 청색 심과 룬."""
     m = {
         "ice": Mat(["#2a5a9a", "#4a88c8", "#86c0ec", "#d0f0ff"], "crystal", seed=51),
         "spike": Mat(["#6aa8de", "#9cd0f4", "#d0eeff", "#ffffff"], "crystal", seed=52),
@@ -291,28 +297,26 @@ def frost_greatsword():
         "fur": Mat(["#8090a0", "#b0c0cc", "#d8e2ea", "#f4f8fc"], "cloth", seed=55),
         "strap": Mat(["#1a2a40", "#2a4060", "#3a5880", "#5070a0"], "grip", seed=56),
     }
-    w = Weapon(m, grip_y=12, kind="greatsword", seed=106)
+    w = Weapon(m, grip_y=11.5, kind="greatsword", seed=106)
     # 네모 얼음 폼멜 (아래로 뾰족)
     w.fill(lambda X, Y, Z: (Y >= 0) & (Y <= 5) & (np.maximum(np.abs(X), np.abs(Z)) <= np.minimum(2.6, 0.5 + Y * 0.9)), "spike")
-    w.cyl(5, 20, 1.7, "fur")
-    rings(w, (8, 13, 18), 1.95, "strap")
+    w.cyl(5, 19.5, 1.7, "fur")
+    rings(w, (8, 12.5, 17), 1.95, "strap")
     # 빙하 덩어리 가드: 높이 다른 결정 기둥들
-    for (x, h, r) in ((-7.5, 24.5, 1.6), (-4.5, 27, 2.2), (0, 24, 2.8), (4.0, 26, 2.0), (7.0, 23.5, 1.6), (9.5, 22.5, 1.1)):
-        w.fill(lambda X, Y, Z, x=x, h=h, r=r: (Y >= 19.5) & (Y <= h) &
+    for (x, h, r) in ((-6.5, 23.5, 1.8), (-3.5, 25.5, 2.2), (0, 23.5, 2.8), (3.5, 25, 2.0), (6.5, 22.5, 1.6)):
+        w.fill(lambda X, Y, Z, x=x, h=h, r=r: (Y >= 19) & (Y <= h) &
                (np.abs(X - x) + np.abs(Z) * 0.8 <= r * np.minimum(1, (h - Y) / 1.8 + 0.35)), "spike")
     y0, y1 = 22, 71.5
-
-    def hw(Y):
-        return 4.4 - 1.0 * tnorm(Y, y0, y1)
-
+    hw = lambda Y: 4.4 - 1.0 * tnorm(Y, y0, y1)
     # 날 몸통 + 비스듬히 잘린 결정 끝
     body = lambda X, Y: (Y >= y0) & (np.abs(X) <= hw(Y)) & (Y <= 71.5 - 1.7 * (X + 3.4))
     w.prism(body, 1.0, "ice")
     w.prism(lambda X, Y: body(X, Y) & (np.abs(X) <= hw(Y) - 1.2), 1.5, "ice")
-    # 큰 얼음 가시: (쪽, 시작 Y, 길이)
-    for (s, yb, L) in ((-1, 27, 7.0), (1, 33, 6.0), (-1, 42, 5.0), (1, 49, 4.0), (-1, 56, 3.0)):
-        e = s * (hw(np.array(yb)) - 1.0)
-        tri(w, (float(e), yb), (float(e + s * L * 0.95), yb + L * 1.05), (float(e), yb + L * 0.75), 1.0, "spike")
+    # 밑동에서 터져 나온 큰 얼음 가시: (쪽, 시작 Y, 길이)
+    for (s, yb, L) in ((-1, 23, 11.0), (1, 25, 9.0), (-1, 33, 6.5), (1, 38, 5.0)):
+        e = s * (hw(np.array(yb)) - 1.5)
+        w.prism(poly([(float(e), yb), (float(e + s * L * 0.85), yb + L * 1.1), (float(e), yb + L * 0.8)]),
+                lambda X, Y: 1.5, "spike")
     w.prism(lambda X, Y: (Y >= y0) & (Y <= 60) & (np.abs(X) <= 1.0), 2.0, "deep")
     for yc in (29, 39, 49):
         w.fill(lambda X, Y, Z, yc=yc: (np.abs(X) + np.abs(Y - yc) <= 1.6) & (np.abs(Z) <= 2.5), "rune")
@@ -382,7 +386,7 @@ def shadow_dagger():
     w.tube([(1.0, 2.0, -0.5), (2.5, 0.6, -0.5), (5.0, 0.6, -0.5)], 0.7, "ribbon")
     w.box(-1.5, 1.5, 7.5, 8.5, -1.5, 1.5, "steel")
     w.cyl(8, 18, 1.25, "cloth")
-    helix(w, 8.2, 17.8, 1.35, 3.0, 0.55, "ribbon", phase=1.0)
+    rings(w, (10, 13, 16), 1.45, "ribbon")
     w.box(-1.5, 1.5, 18, 19.5, -1.5, 1.5, "steel")
     # 넓은 잎 날 (마름모 단면)
     y0, y1 = 19.5, 42
@@ -437,7 +441,7 @@ def ender_dagger():
 # ─────────────────────────── 보스 (boss) ───────────────────────────
 
 def frostlord_greatsword():
-    """서리 군주의 대검: 은빛 왕관 가드(관 끝마다 얼음 보석, 아래로 고드름), 위로 갈수록 넓어지는 한밤 강철 날과 흐르는 서리 심지."""
+    """서리 군주의 대검: 날보다 넓은 은빛 왕관 가드(관 끝마다 얼음 보석, 아래로 고드름), 위로 갈수록 넓어지는 한밤 강철 날과 흐르는 서리 심지."""
     m = {
         "night": Mat(["#0a1030", "#16204e", "#24346e", "#344a90"], "metal", seed=91),
         "silver": Mat(["#6a7a94", "#a0b0c8", "#d0dcec", "#ffffff"], "metal", seed=92),
@@ -452,39 +456,39 @@ def frostlord_greatsword():
     w.cyl(5.5, 7, 2.0, "silver")
     w.cyl(7, 20.5, 1.6, "grip")
     rings(w, (10, 13.5, 17), 1.85, "silver")
-    # 왕관 가드: 띠 + 네 개의 관 + 가운데 얼어붙은 심장 보석
-    w.box(-9, 9, 20.5, 24.5, -2, 2, "silver")
-    w.box(-10, 10, 20, 21, -2.4, 2.4, "silver")
-    for (x, h) in ((-8, 29), (-4, 32), (4, 32), (8, 29)):
-        w.fill(lambda X, Y, Z, x=x, h=h: (Y >= 24) & (Y <= h) & (np.abs(X - x) <= 1.7 * (h - Y) / (h - 24) + 0.3) & (np.abs(Z) <= 1.5), "silver")
-        w.ball(x, h, 0, 1.0, 1.0, 1.1, "icegem")
+    # 왕관 가드: 넓은 띠 + 바깥으로 네 개의 관 + 가운데 얼어붙은 심장 보석
+    w.box(-12, 12, 20.5, 25, -2, 2, "silver")
+    w.box(-13, 13, 20, 21, -2.4, 2.4, "silver")
+    for (x, h, b) in ((-11, 32, 1.8), (-7, 36, 2.0), (7, 36, 2.0), (11, 32, 1.8)):
+        w.fill(lambda X, Y, Z, x=x, h=h, b=b: (Y >= 24.5) & (Y <= h) & (np.abs(X - x) <= b * (h - Y) / (h - 24.5) + 0.3) & (np.abs(Z) <= 1.5), "silver")
+        w.ball(x, h, 0, 1.1, 1.1, 1.2, "icegem")
     # 띠 아래로 늘어진 고드름
-    for (x, L) in ((-8.5, 4), (-5.5, 6), (5.5, 5), (8.5, 3.5)):
-        tri(w, (x - 1.0, 20.5), (x + 1.0, 20.5), (x, 20.5 - L), 1.0, "ice")
-    w.gem(0, 22.5, 2.0, "icegem", frame="silver", depth=2.8)
-    # 날: 넓고 위로 갈수록 살짝 넓어졌다가 뾰족
-    y0, y1 = 24.5, 72
+    for (x, L) in ((-11, 4), (-7.5, 6.5), (7.5, 5.5), (11, 3.5)):
+        tri(w, (x - 1.2, 20.5), (x + 1.2, 20.5), (x, 20.5 - L), 1.0, "ice")
+    w.gem(0, 22.8, 2.2, "icegem", frame="silver", depth=2.8)
+    # 날: 넓고 위로 갈수록 넓어졌다가 뾰족
+    y0, y1 = 25, 72
 
     def hw(Y):
         t = tnorm(Y, y0, y1)
-        base = 4.4 + 1.6 * np.sin(t * math.pi * 0.8)
+        base = 4.2 + 2.0 * np.sin(t * math.pi * 0.8)
         return np.where(t > 0.8, base * ((1 - t) / 0.2) ** 0.8 + 0.3, base)
 
     inb = lambda X, Y: (Y >= y0) & (Y <= y1) & (np.abs(X) <= hw(Y))
     w.prism(inb, 0.5, "silver")
     w.prism(lambda X, Y: inb(X, Y) & (np.abs(X) <= hw(Y) - 1.2), 1.5, "night")
-    w.prism(lambda X, Y: (Y >= y0 + 3) & (Y <= y1 - 8) & (np.abs(X) <= 1.0), 2.0, "frost")
-    w.set_aura(["#1a2a8a", "#2a6ae0", "#5ad0ff", "#e8ffff"], "frost", size=1.2, focus=["frost", "icegem"])
+    w.prism(lambda X, Y: (Y >= y0 + 2) & (Y <= y1 - 8) & (np.abs(X) <= 1.0), 2.0, "frost")
+    w.set_aura(["#1a2a8a", "#2a6ae0", "#5ad0ff", "#e8ffff"], "frost", size=1.1, focus=["frost", "icegem"])
     return w
 
 
 def shadow_twinblade():
-    """암살자의 쌍검: 손잡이 하나 양끝에 서로 반대로 휜 초승달 날 (180도 대칭). 바깥 날은 보랏빛, 안쪽 등은 톱니."""
+    """암살자의 쌍검: 손잡이 하나 양끝에 서로 반대로 휜 넓은 초승달 날 (180도 대칭). 바깥 날은 보랏빛, 안쪽 등은 톱니, 가운데 보석 고리."""
     m = {
-        "blade": Mat(["#0e0a16", "#1c1428", "#2c203e", "#3e3056"], "metal", seed=121),
+        "blade": Mat(["#221830", "#362848", "#4e3c66", "#6a5488"], "metal", seed=121),
         "edge": Mat(["#8a3af0", "#b070ff", "#d8b0ff", "#ffffff"], "flow", glow=True, seed=122),
         "steel": Mat(["#3a3248", "#5a4e6e", "#7a6c92", "#a094b8"], "metal", seed=123),
-        "wrap": Mat(["#18121e", "#2a2036", "#3e3050", "#54426c"], "grip", seed=124),
+        "wrap": Mat(["#201828", "#342840", "#4a3a5c", "#62507a"], "grip", seed=124),
         "gem": Mat(["#5a0aa0", "#a030f0", "#e090ff", "#ffffff"], "pulse", glow=True, seed=125),
     }
     yc = 36
@@ -495,30 +499,28 @@ def shadow_twinblade():
     # 발톱 가드 (날 등 쪽으로 굽음)
     w.tube([(1.5, yc + 8.5, 0), (4.5, yc + 9, 0), (6, yc + 6.5, 0)], lambda t: 1.2 - 0.5 * t, "steel")
     y0, y1 = yc + 9.5, 71.5
-
-    def ctr(Y):
-        return 7.0 * tnorm(Y, y0, y1) ** 2
+    ctr = lambda Y: 7.0 * tnorm(Y, y0, y1) ** 2
 
     def hw(Y):
         t = tnorm(Y, y0, y1)
-        return 2.6 * (1 - t) ** 0.7 + 0.4 + 1.2 * np.sin(t * math.pi)
+        return 2.6 * (1 - t) ** 0.7 + 0.5 + 2.3 * np.sin(t * math.pi) ** 0.8 * (1 - t) ** 0.3
 
     inb = lambda X, Y: (Y >= y0) & (Y <= y1) & (np.abs(X - ctr(Y)) <= hw(Y))
     w.prism(inb, 1.0, "blade")
-    w.prism(lambda X, Y: inb(X, Y) & (X - ctr(Y) <= -hw(Y) + 1.1), 0.5, "edge")      # 바깥(볼록한 쪽) 날
+    w.prism(lambda X, Y: inb(X, Y) & (X - ctr(Y) <= -hw(Y) + 1.4), 0.5, "edge")      # 바깥(볼록한 쪽) 날
     # 안쪽 등 톱니
     w.prism(lambda X, Y: (Y >= y0 + 2) & (Y <= y0 + 15) & (X - ctr(Y) > hw(Y) - 0.2) &
             (X - ctr(Y) <= hw(Y) + 1.8 * (((Y - y0) % 4) / 4)), 1.0, "steel")
     rot180(w, yc)
     # 가운데 고리 + 보석
-    disc(w, 0, yc, 3.2, 1.5, "steel")
-    w.gem(0, yc, 1.7, "gem", depth=2.4)
+    disc(w, 0, yc, 3.6, 1.5, "steel")
+    w.gem(0, yc, 2.0, "gem", depth=2.4)
     w.set_aura(["#2a0a5a", "#6a1ad0", "#b060ff", "#f0d8ff"], "void", size=1.0, focus=["edge", "gem"])
     return w
 
 
 def star_greatsword():
-    """별의 대검: 별밤처럼 반짝이는 남색 날 + 금 테두리, 끝은 네 갈래 별빛, 가드는 커다란 금빛 오각 별, 폼멜은 운석."""
+    """별의 대검: 별밤처럼 반짝이는 남색 날 + 금 테두리, 끝은 네 갈래 별빛, 가드는 가운데가 솟은 커다란 금빛 오각 별, 폼멜은 운석."""
     m = {
         "night": Mat(["#0a0a2a", "#16164a", "#262a70", "#3a4098"], "sparkle", glow=True, seed=131),
         "gold": Mat(["#6a4a10", "#b08020", "#e8c050", "#fff4b0"], "metal", seed=132),
@@ -532,32 +534,32 @@ def star_greatsword():
     w.ball(0, 2.8, 0, 2.9, 2.8, 2.7, "rock")
     w.ball(0.9, 3.3, 1.3, 1.1, 1.0, 1.6, "white")
     w.cyl(5.5, 18.5, 1.6, "wrap")
-    rings(w, (8, 11.5, 15), 1.85, "gold")
-    # 오각 별 가드
-    sc, R, r = 23.0, 10.5, 4.8
+    rings(w, (11.5,), 1.85, "gold")
+    # 오각 별 가드 (가운데가 두껍게 솟음)
+    sc, R, r = 23.5, 12.5, 5.0
     pts = [((R if k % 2 == 0 else r) * math.cos(math.pi / 2 + k * math.pi / 5),
             sc + (R if k % 2 == 0 else r) * math.sin(math.pi / 2 + k * math.pi / 5)) for k in range(10)]
-    w.prism(poly(pts), 1.5, "gold")
-    w.gem(0, sc, 2.3, "white", frame="silver", depth=2.6)
+    w.prism(poly(pts), 1.2, "gold")
+    w.gem(0, sc, 2.5, "white", frame="silver", depth=2.8)
     # 날: 금 테두리, 별밤 몸통
-    y0, ys = 29, 62.5
-    hw = lambda Y: 4.6 - 1.2 * tnorm(Y, y0, ys)
+    y0, ys = 30, 62.5
+    hw = lambda Y: np.where(Y < 47, 4.5, 3.5)
     inb = lambda X, Y: (Y >= y0) & (Y <= ys) & (np.abs(X) <= hw(Y))
     w.prism(inb, 0.5, "gold")
     w.prism(lambda X, Y: inb(X, Y) & (np.abs(X) <= hw(Y) - 1.0), 1.5, "night")
     # 끝: 네 갈래 별빛 (세로가 길다)
-    star4 = lambda X, Y, a, b: (np.abs(X) / a) ** 0.7 + (np.abs(Y - ys) / b) ** 0.7 <= 1
-    w.prism(lambda X, Y: star4(X, Y, 8.0, 10.0), 1.0, "gold")
-    w.prism(lambda X, Y: star4(X, Y, 6.0, 8.0), 1.5, "white")
-    w.set_aura(["#2a1a7a", "#6a5ae0", "#ffd86a", "#fffbe0"], "holy", size=1.1, focus=["white", "night"])
+    star4 = lambda X, Y, a, b: (np.abs(X) / a) ** 0.6 + (np.abs(Y - ys) / b) ** 0.6 <= 1
+    w.prism(lambda X, Y: star4(X, Y, 8.5, 10.0), 1.0, "gold")
+    w.prism(lambda X, Y: star4(X, Y, 6.5, 8.0), 1.5, "white")
+    w.set_aura(["#2a1a7a", "#6a5ae0", "#ffd86a", "#fffbe0"], "holy", size=1.0, focus=["white", "night"])
     return w
 
 
 def prism_greatsword():
     """프리즘 대검: 아래를 향한 삼각 프리즘 가드에서 무지개 빛줄기가 솟아 분홍·하늘 두 장의 수정 판 사이를 지나간다."""
     m = {
-        "rose": Mat(["#b088c8", "#d4b0e8", "#f0dcff", "#ffffff"], "crystal", seed=141),
-        "sky": Mat(["#80a8d8", "#a8d0f0", "#d8f0ff", "#ffffff"], "crystal", seed=142),
+        "rose": Mat(["#9a5ab8", "#c084e0", "#e4b8f8", "#fff0ff"], "crystal", seed=141),
+        "sky": Mat(["#4a88c8", "#78b8ec", "#b8e4ff", "#f0ffff"], "crystal", seed=142),
         "facet": Mat(["#e0e8ff", "#f0f4ff", "#ffffff", "#ffffff"], "crystal", seed=149),
         "beam": Mat(["#ff0000", "#00ff00", "#0000ff", "#ffffff"], "rainbow", glow=True, seed=143),
         "gold": Mat(["#7a5a18", "#c09030", "#f0d060", "#fff8c0"], "metal", seed=144),
@@ -589,8 +591,11 @@ def prism_greatsword():
     slot = lambda X, Y: (Y >= y0) & (Y <= 63) & (np.abs(X) <= 2.0)
     w.clear(lambda X, Y, Z: slot(X, Y))
     w.prism(slot, 1.0, "beam")
+    # 가드 양 끝에서 비스듬히 자란 수정
+    for s_, mt in ((-1, "rose"), (1, "sky")):
+        w.prism(poly([(s_ * 7.5, 27.5), (s_ * 11.5, 26.5), (s_ * 12.5, 34.5)]), 1.5, mt)
     # 떠 있는 작은 수정 조각
-    for (x, y, mt) in ((-10, 36, "pink"), (10.5, 44, "cyan"), (-9.5, 53, "yellow")):
+    for (x, y, mt) in ((-10.5, 40, "pink"), (11, 47, "cyan"), (-9.5, 56, "yellow")):
         w.fill(lambda X, Y, Z, x=x, y=y: (np.abs(X - x) / 1.8 + np.abs(Y - y) / 3.0 + np.abs(Z) / 1.5) <= 1, mt)
     w.set_aura("prism", "holy", size=1.25, focus=["beam"])
     return w
