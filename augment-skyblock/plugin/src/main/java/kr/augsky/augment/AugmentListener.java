@@ -45,6 +45,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerToggleFlightEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
@@ -314,17 +315,66 @@ public final class AugmentListener implements Listener {
                 + Text.num(st.get("void_rescue.cooldown", 300)) + "초)"));
     }
 
+    /**
+     * 죽으면 기본적으로 아이템을 떨어뜨린다. 증강이 있으면 일부를 지킨다.
+     * 지킨 아이템은 Paper 의 getItemsToKeep 으로 원래 칸에 그대로 남는다.
+     */
     @EventHandler(priority = EventPriority.HIGH)
     public void onDeath(PlayerDeathEvent e) {
+        if (e.getKeepInventory()) return;
         Player p = e.getPlayer();
-        EntityDamageEvent last = p.getLastDamageCause();
-        if (last != null && last.getCause() == EntityDamageEvent.DamageCause.VOID
-                && plugin.getConfig().getBoolean("void.keep-inventory", true)) {
+        Stats st = aug.stats(p);
+        if (st.has("keep_all")) {
             e.setKeepInventory(true);
             e.getDrops().clear();
             e.setKeepLevel(true);
             e.setDroppedExp(0);
-            p.sendMessage(Text.mm("<gray>공허에 떨어져 죽었습니다. 아이템과 경험치는 지켜졌습니다."));
+            p.sendMessage(Text.mm("<gradient:#ff6b9d:#c86bff>영혼 결속</gradient><gray>: 아무것도 잃지 않았습니다."));
+            return;
+        }
+        boolean levels = st.has("keep_levels");
+        if (levels) {
+            e.setKeepLevel(true);
+            e.setDroppedExp(0);
+        }
+        PlayerInventory inv = p.getInventory();
+        Set<Integer> slots = new java.util.TreeSet<>();
+        int hotbar = (int) Math.min(9, st.get("keep_hotbar.slots"));
+        for (int i = 0; i < hotbar; i++) slots.add(i);
+        if (st.has("keep_armor")) {
+            for (int i = 36; i <= 40; i++) slots.add(i); // 갑옷 4칸 + 왼손
+        }
+        boolean weapons = st.has("keep_weapons"), materials = st.has("keep_materials");
+        if (weapons || materials) {
+            for (int i = 0; i < inv.getSize(); i++) {
+                ItemStack it = inv.getItem(i);
+                if (weapons && Items.tag(it, kr.augsky.Keys.WEAPON) != null) slots.add(i);
+                if (materials && Items.tag(it, kr.augsky.Keys.ITEM) != null) slots.add(i);
+            }
+        }
+        int kept = 0;
+        for (int slot : slots) {
+            if (slot >= inv.getSize()) continue;
+            ItemStack it = inv.getItem(slot);
+            if (it == null || it.getType().isAir()) continue;
+            // 저주받은 '소실' 마법은 존중한다 (원래 사라질 아이템)
+            if (it.containsEnchantment(org.bukkit.enchantments.Enchantment.VANISHING_CURSE)) continue;
+            e.getItemsToKeep().add(it);
+            removeOne(e.getDrops(), it);
+            kept += it.getAmount();
+        }
+        if (kept > 0 || levels) {
+            p.sendMessage(Text.mm("<#9ad8ff>✦ 증강 덕분에 " + (kept > 0 ? "아이템 " + kept + "개" : "") + (kept > 0 && levels ? "와 " : "")
+                    + (levels ? "경험치" : "") + "<#9ad8ff>를 지켰습니다."));
+        }
+    }
+
+    private static void removeOne(List<ItemStack> drops, ItemStack it) {
+        for (int i = 0; i < drops.size(); i++) {
+            if (it.equals(drops.get(i))) {
+                drops.remove(i);
+                return;
+            }
         }
     }
 

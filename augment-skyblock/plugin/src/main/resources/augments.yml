@@ -25,6 +25,7 @@
 #    growth_aura {radius, interval}  fishing_luck {chance}
 #    extra_choice {amount}  altar_discount {amount}  reroll_bonus {amount}
 #    grant_random {tier, count}  grant_item {item, amount}   (얻는 순간 한 번)
+#    죽었을 때 지키기: keep_hotbar {slots}  keep_weapons  keep_armor  keep_materials  keep_levels  keep_all
 # ─────────────────────────────────────────────────────────────
 
 # ═══════════════════════ 실버 ═══════════════════════
@@ -260,6 +261,23 @@ s_feast:
   effects:
     - {type: kill_heal, amount: 2}
 
+s_pocket:
+  tier: SILVER
+  name: 단단한 주머니
+  icon: BARREL
+  max_stacks: 3
+  description: ["죽어도 핫바 왼쪽 3칸의 아이템은 잃지 않는다.", "(겹칠 때마다 3칸씩 늘어 최대 9칸)"]
+  effects:
+    - {type: keep_hotbar, slots: 3}
+
+s_weapon_bond:
+  tier: SILVER
+  name: 무기 수호
+  icon: STONE_SWORD
+  description: ["죽어도 스킬이 달린 무기는 떨어뜨리지 않는다."]
+  effects:
+    - {type: keep_weapons}
+
 # ═══════════════════════ 골드 ═══════════════════════
 
 g_vampire:
@@ -489,6 +507,30 @@ g_wanderer:
     - {type: attribute, attribute: fall_damage_multiplier, amount: -1}
     - {type: glide}
 
+g_armor_bond:
+  tier: GOLD
+  name: 갑옷 결속
+  icon: CHAINMAIL_CHESTPLATE
+  description: ["죽어도 입고 있는 갑옷과 왼손 아이템은 잃지 않는다."]
+  effects:
+    - {type: keep_armor}
+
+g_treasure_bond:
+  tier: GOLD
+  name: 보물 결속
+  icon: AMETHYST_SHARD
+  description: ["죽어도 증강 파편, 정수, 프리즘 결정, 증강권, 소환석은 잃지 않는다."]
+  effects:
+    - {type: keep_materials}
+
+g_memory:
+  tier: GOLD
+  name: 경험 보존
+  icon: ENCHANTING_TABLE
+  description: ["죽어도 경험치 레벨을 잃지 않는다."]
+  effects:
+    - {type: keep_levels}
+
 # ═══════════════════════ 프리즘 ═══════════════════════
 
 p_midas:
@@ -651,3 +693,11 @@ p_judgment:
     - {type: execute, threshold: 0.25}
     - {type: crit, chance: 0.25, multiplier: 2.0}
     - {type: boss_damage, amount: 0.2}
+
+p_soul_bind:
+  tier: PRISM
+  name: 영혼 결속
+  icon: ENDER_CHEST
+  description: ["죽어도 아무것도 잃지 않는다.", "(인벤토리와 경험치 전부 유지)"]
+  effects:
+    - {type: keep_all}
