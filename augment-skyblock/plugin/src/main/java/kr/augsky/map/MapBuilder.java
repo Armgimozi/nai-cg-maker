@@ -518,7 +518,9 @@ public final class MapBuilder extends MapTools {
         }
         Location c0 = new Location(w, cx + 0.5, y + 2, cz + 0.5);
         for (Entity e : w.getNearbyEntities(c0, 4, 8, 4)) {
-            if (e.getPersistentDataContainer().has(Keys.MAP_PART)) e.remove();
+            if (!e.getPersistentDataContainer().has(Keys.MAP_PART)) continue;
+            if (e instanceof Interaction && e.getPersistentDataContainer().has(Keys.ALTAR)) plugin.altars().forget(e.getUniqueId(), w);
+            e.remove();
         }
         // 제단 바닥: 두 가지 블록으로 동심원 무늬
         for (int x = -4; x <= 4; x++) {

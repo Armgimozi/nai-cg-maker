@@ -164,6 +164,16 @@ final class IslandCheck {
                     plugin.getLogger().warning(line);
                 }
             }
+            // 제단 기록(남은 수를 세는 곳)이 배치와 같은 수인지: 다시 지을 때 옛 제단이 남으면 남은 수가 부푼다
+            int[] want = new int[3], have = new int[3];
+            for (Isle is : isles) if (is.tier() != null) want[is.tier().ordinal()]++;
+            for (AltarService.Info i : plugin.altars().all(w)) have[i.tier().ordinal()]++;
+            if (!java.util.Arrays.equals(want, have)) {
+                failed++;
+                String line = "FAIL 제단 기록 " + have[0] + "/" + have[1] + "/" + have[2] + " (배치 " + want[0] + "/" + want[1] + "/" + want[2] + ")";
+                if (player) to.sendMessage(Text.mm("<#ff7070>" + line));
+                plugin.getLogger().warning(line);
+            }
             String done = "섬 검사: " + isles.size() + "곳, 실패 " + failed;
             if (player) to.sendMessage(Text.mm((failed == 0 ? "<#7cff8c>" : "<#ff7070>") + done));
             plugin.getLogger().info(done);

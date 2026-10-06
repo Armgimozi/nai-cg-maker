@@ -173,8 +173,6 @@ public final class NetherMap {
     public void buildAll(World w, boolean clear, Consumer<String> progress, IntConsumer done) {
         long t0 = System.currentTimeMillis();
         List<Isle> isles = plan();
-        // 제단은 다시 세우면 새 엔티티(새 id)라서 기록을 비우고 새로 적는다. 쓴 제단도 처음처럼 빛난다
-        plugin.altars().clearRegistry(w);
         Set<Long> held = hold(w, isles);
         NetherKinds kinds = new NetherKinds(plugin, w);
         new BukkitRunnable() {
@@ -187,6 +185,9 @@ public final class NetherMap {
                     // 엔티티는 청크와 따로(비동기로) 불려 온다. 덜 불려 온 채 지우면 옛 피글린이 남아 겹친다
                     if (!entitiesLoaded(w, held) && waited++ < 200) return;
                     for (Isle is : isles) kinds.clearResidents(is);
+                    // 제단은 다시 세우면 새 엔티티(새 id)라서 기록을 비우고 새로 적는다. 쓴 제단도 처음처럼 빛난다.
+                    // 엔티티가 다 불려 온 뒤에 비운다 (먼저 비우면 불려 오는 옛 제단이 다시 기록된다)
+                    plugin.altars().clearRegistry(w);
                     cleared = true;
                     return;
                 }

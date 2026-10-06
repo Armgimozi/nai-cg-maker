@@ -137,6 +137,14 @@ public final class AltarService implements Listener {
         save(w);
     }
 
+    /** 허문 제단을 기록에서 뺀다 (같은 자리에 다시 세울 때. 안 빼면 옛 제단이 남은 수에 그대로 남는다). */
+    public void forget(UUID id, World w) {
+        loaded.remove(id);
+        guarded.remove(id);
+        crystals.remove(id);
+        if (reg(w).remove(id) != null) save(w);
+    }
+
     /** 이 월드 하나의 제단 기록 (맵생성 전 확인용). 플레이어에게 보여 줄 수는 realm 으로 센다. */
     public List<Info> all(World w) {
         return new ArrayList<>(reg(w).values());
