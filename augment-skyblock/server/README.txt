@@ -143,7 +143,8 @@
     정품 계정이 아닌 런처를 쓰면 server.properties 의 online-mode=true 를 false 로 바꾸고
     서버를 다시 켜야 들어올 수 있습니다. (이때는 아무나 남의 닉네임으로 들어올 수 있으니
     주소는 친구에게만 알려 주세요.)
-  · 메모리 오류 ("Could not reserve", "heap") → start.bat 을 메모장으로 열어 MEMORY=4G 를 2G 로
+  · 메모리는 PC 에 맞춰 자동으로 정합니다. 바꾸려면 start.ps1 을 메모장으로 열어 $Memory = '' 를
+    $Memory = '6G' 처럼 고치세요.
   · "Unsupported Java" → start.bat 이 받은 runtime 폴더를 지우고 다시 실행
   · 무기가 보라색 상자로 보임 → 멀티플레이 → 서버 편집 → 서버 리소스팩: 사용
   · 아우라가 빛나지 않음 → 셰이더 모드(Iris, OptiFine 셰이더)를 끄면 보입니다.
