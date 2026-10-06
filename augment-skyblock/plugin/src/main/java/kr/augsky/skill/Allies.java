@@ -57,7 +57,8 @@ public final class Allies implements Listener {
             ent.setPersistent(false);
             if (name != null) {
                 ent.customName(Text.mm(name));
-                ent.setCustomNameVisible(true);
+                // 늘 떠 있으면 거슬린다. 바라볼 때만 보인다
+                ent.setCustomNameVisible(false);
             }
             if (ent instanceof LivingEntity le) {
                 le.setRemoveWhenFarAway(true);

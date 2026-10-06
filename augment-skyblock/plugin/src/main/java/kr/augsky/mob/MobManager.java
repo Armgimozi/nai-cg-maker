@@ -165,8 +165,11 @@ public final class MobManager implements Listener {
 
     private void setup(MobDef def, LivingEntity le, boolean minion) {
         le.getPersistentDataContainer().set(Keys.MOB, PersistentDataType.STRING, def.id());
-        le.customName(Text.mm(def.name()));
-        le.setCustomNameVisible(def.boss());
+        // 이름표는 보스만. 잡몹은 바라볼 때마다 이름이 떠서 거슬리므로 이름을 붙이지 않는다 (종류는 PDC 로 구분)
+        if (def.boss()) {
+            le.customName(Text.mm(def.name()));
+            le.setCustomNameVisible(true);
+        }
         attr(le, Attribute.MAX_HEALTH, def.health());
         le.setHealth(def.health());
         if (def.damage() >= 0) attr(le, Attribute.ATTACK_DAMAGE, def.damage());
@@ -503,6 +506,8 @@ public final class MobManager implements Listener {
         if (e instanceof LivingEntity le) {
             MobDef def = registry.get(idOf(e));
             if (def != null) {
+                // 예전 판에서 이름표를 달고 저장된 잡몹은 이름을 뗀다
+                if (!def.boss() && le.customName() != null) le.customName(null);
                 Active a = track(def, le);
                 if (a.home == null) a.home = le.getLocation();
                 if (rigs.has(def.id())) rigs.attach(le, def.id());
