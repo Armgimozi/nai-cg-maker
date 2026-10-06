@@ -36,9 +36,10 @@ import java.util.logging.Level;
  * 맵 전체를 짓는다. 빈 공허 월드에서 /증강관리 맵생성 을 한 번 실행하면 된다.
  * 배포용 맵 파일은 이 코드로 지은 월드를 그대로 묶은 것이다.
  *
- * 반지름 약 620m, 섬 약 130개. 가운데 초원(반지름 175m)을 서리(서)·화염(동북)·공허(북서)·바다(남)·야생이 둘러싼다.
+ * 반지름 약 610m, 섬 약 130개. 가운데 초원(반지름 175m)을 서리(서)·화염(동북)·공허(북서)·바다(남)·야생이 둘러싼다.
  * 섬마다 모습과 재료가 다르고, 위치 안내판·빛기둥은 없다.
- * 제단(실버 16, 골드 9, 프리즘 5)은 한 번 쓰면 힘을 잃고, 각 지역 끝의 둥지에는 보스가 산다.
+ * 제단 18곳(실버 10, 골드 6, 프리즘 2)은 맵 전체에 고르게 흩어져 있고 등급은 거리와 상관없이 섞여 있다
+ * (하늘 네더에도 6곳, NetherMap). 한 번 쓰면 힘을 잃고, 각 지역 끝의 둥지에는 보스가 산다.
  * 같은 시드로 지으면 언제나 같은 맵이 나온다.
  */
 public final class MapBuilder extends MapTools {
@@ -69,6 +70,13 @@ public final class MapBuilder extends MapTools {
     private static final double PLAINS_R = 175;
     /** 이보다 긴 다리가 필요하면 가운데에 징검다리 바위를 놓는다 */
     private static final double MAX_BRIDGE = 80;
+    /**
+     * 제단 18곳의 등급, 시작 섬에서 가까운 순서. 등급을 거리로 나누지 않고 섞었다: 가장 가까운 제단은 실버,
+     * 250m 안·250~420m·그 밖마다 실버와 골드가 있고, 골드끼리는 400m 넘게, 프리즘 둘은 서로 다른 지역 맞은편에.
+     */
+    private static final String ALTAR_TIERS = "SGSSSSSGPSGGPGSSSG";
+    /** 제단을 흩는 거리 범위(m)와 첫 제단의 방위(북쪽에서 시계 방향, 도). 방위는 큰 장소를 피하고 지역마다 제단이 들도록 골랐다 */
+    private static final double ALTAR_NEAR = 100, ALTAR_FAR = 580, ALTAR_TURN = 74;
 
     /**
      * 자원 섬을 놓는 순서. 위에서부터 하나씩 빈자리에 놓으므로 순서를 바꾸면 맵 전체가 바뀐다.
@@ -187,30 +195,52 @@ public final class MapBuilder extends MapTools {
             out.add(new Isle(big[i][0], p.x(), p.y(), p.z(), r, region(p.x(), p.z()), null, 40 + i));
         }
 
-        // 제단: 실버는 초원 둘레, 골드는 중간, 프리즘은 맵 끝자락
-        altarRing(out, rnd, Tier.SILVER, 16, new double[]{100, 150, 200, 250}, 11, warn);
-        altarRing(out, rnd, Tier.GOLD, 9, new double[]{300, 360, 420}, 31, warn);
-        altarRing(out, rnd, Tier.PRISM, 5, new double[]{520, 585}, 47, warn);
+        altars(out, rnd, warn);
 
         for (Spot s : DECK) for (int k = 0; k < s.count(); k++) place(out, rnd, s, warn);
         stones(out, warn);
         return out;
     }
 
-    private static void altarRing(List<Isle> out, Random rnd, Tier tier, int count, double[] radii, double offsetDeg, List<String> warn) {
-        for (int i = 0; i < count; i++) {
+    /**
+     * 제단: 해바라기 씨처럼 황금각(약 137.5°)씩 돌면서 거리는 넓이에 맞춰 늘려 맵 전체에 고르게 흩는다.
+     * 등급은 ALTAR_TIERS 순서라 거리와 상관없이 섞인다. 자리가 막히면 같은 거리에서 2°씩 좌우로 돌려 본다.
+     */
+    private static void altars(List<Isle> out, Random rnd, List<String> warn) {
+        int n = ALTAR_TIERS.length();
+        double golden = 180 * (3 - Math.sqrt(5));
+        for (int i = 0; i < n; i++) {
+            Tier tier = switch (ALTAR_TIERS.charAt(i)) {
+                case 'G' -> Tier.GOLD;
+                case 'P' -> Tier.PRISM;
+                default -> Tier.SILVER;
+            };
+            double r = Math.sqrt(ALTAR_NEAR * ALTAR_NEAR + (double) i / (n - 1) * (ALTAR_FAR * ALTAR_FAR - ALTAR_NEAR * ALTAR_NEAR));
             boolean ok = false;
-            for (int tries = 0; tries < 60 && !ok; tries++) {
-                double a = Math.toRadians(offsetDeg + i * 360.0 / count + rnd.nextDouble(-7, 7) + tries * 3);
-                double r = radii[i % radii.length] + rnd.nextDouble(-8, 8);
+            for (int k = 0; k <= 20 && !ok; k++) {
+                int turn = (k + 1) / 2 * 2 * (k % 2 == 1 ? 1 : -1);
+                double a = Math.toRadians(ALTAR_TURN + i * golden + turn);
                 int x = (int) Math.round(Math.sin(a) * r), z = (int) Math.round(-Math.cos(a) * r);
-                if (!free(out, x, z, 7, 30)) continue;
+                if (!altarRoom(out, x, z)) continue;
                 Region g = region(x, z);
                 out.add(new Isle("altar", x, baseY(g, x, z, rnd), z, 7, g, tier, 100 + out.size()));
                 ok = true;
             }
             if (!ok) warn.add("맵 배치: " + tier.korean + " 제단 " + (i + 1) + "번째를 놓을 자리가 없습니다");
         }
+    }
+
+    /**
+     * 제단 자리: 다른 제단에서 180m, 시작 섬 둘레에서 40m, 큰 장소(균열, 둥지, 끝의 섬) 가장자리에서 90m.
+     * 균열 몬스터와 보스가 제단까지 오지 않고, 제단이 따로 찾아갈 곳이 되게 큰 장소에서는 넉넉히 뗀다.
+     */
+    private static boolean altarRoom(List<Isle> out, int x, int z) {
+        for (Isle i : out) {
+            boolean big = i.kind().startsWith("rift_") || i.kind().startsWith("lair_") || i.kind().equals("end");
+            double need = i.tier() != null ? 180 : i.r() + (big ? 90 : 40);
+            if (Math.hypot(i.x() - x, i.z() - z) < need) return false;
+        }
+        return true;
     }
 
     /** 자원 섬 하나: 거리 범위 안에서 그 지역이면서 다른 섬과 충분히 떨어진 첫 자리. */
@@ -296,23 +326,28 @@ public final class MapBuilder extends MapTools {
         return true;
     }
 
-    /** 맵 배치 한 줄 요약. 제단 수가 16/9/5 가 아니면 ok[0] 이 false. */
+    /** 맵 배치 한 줄 요약. 제단 수가 10/6/2 가 아니거나 가장 가까운 제단이 실버가 아니면 ok[0] 이 false. */
     static String summary(List<Isle> isles, boolean[] ok) {
         int res = 0, stones = 0;
         int[] tiers = new int[Tier.values().length];
-        double nearest = Double.MAX_VALUE;
+        Isle nearest = null;
+        double spacing = Double.MAX_VALUE;
         for (Isle is : isles) {
             if (is.tier() != null) {
                 tiers[is.tier().ordinal()]++;
-                if (is.tier() == Tier.SILVER) nearest = Math.min(nearest, Math.hypot(is.x(), is.z()));
+                if (nearest == null || Math.hypot(is.x(), is.z()) < Math.hypot(nearest.x(), nearest.z())) nearest = is;
+                for (Isle o : isles) {
+                    if (o != is && o.tier() != null) spacing = Math.min(spacing, Math.hypot(o.x() - is.x(), o.z() - is.z()));
+                }
             } else if (is.kind().equals("stone")) stones++;
             else if (IslandKinds.KINDS.contains(is.kind())) res++;
         }
         double longest = Arrays.stream(bridges(isles, new int[2])).max().orElse(0);
-        ok[0] = tiers[0] == 16 && tiers[1] == 9 && tiers[2] == 5;
+        ok[0] = tiers[0] == 10 && tiers[1] == 6 && tiers[2] == 2 && nearest != null && nearest.tier() == Tier.SILVER;
         return "맵 배치: 섬 " + isles.size() + "개 (자원 " + res + ", 징검다리 " + stones + "), 제단 "
-                + tiers[0] + "/" + tiers[1] + "/" + tiers[2] + ", 가장 긴 다리 " + Math.round(longest)
-                + "m, 가장 가까운 실버 제단 " + Math.round(nearest) + "m";
+                + tiers[0] + "/" + tiers[1] + "/" + tiers[2] + ", 가장 긴 다리 " + Math.round(longest) + "m, 가장 가까운 제단 "
+                + (nearest == null ? "없음" : Math.round(Math.hypot(nearest.x(), nearest.z())) + "m (" + nearest.tier().korean + ")")
+                + ", 제단 사이 최소 " + Math.round(spacing) + "m";
     }
 
     // ------------------------------------------------------------------ 짓기

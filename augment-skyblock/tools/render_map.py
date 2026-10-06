@@ -161,10 +161,12 @@ def main():
     tier_col = {"SILVER": (230, 236, 245), "GOLD": (255, 207, 64), "PRISM": (200, 107, 255)}
     if spoiler:
         # 제단 (월드 폴더의 기록)과 보스 둥지. 플레이어에게 보여 줄 그림에는 넣지 않는다
+        count = {"SILVER": 0, "GOLD": 0, "PRISM": 0}
         try:
             import yaml
             alt = yaml.safe_load(open(os.path.join(world, "augsky-altars.yml"))) or {}
             for a in (alt.get("altars") or {}).values():
+                count[a["tier"]] = count.get(a["tier"], 0) + 1
                 px, pz = (a["x"] - minx) * S, (a["z"] - minz) * S
                 r = 7
                 d.ellipse([px - r, pz - r, px + r, pz + r], outline=(0, 0, 0), width=4)
@@ -176,7 +178,8 @@ def main():
         except FileNotFoundError:
             pass
         lx, ly = 10, H - 90
-        for i, (t, name) in enumerate([("SILVER", "실버 제단 16"), ("GOLD", "골드 제단 9"), ("PRISM", "프리즘 제단 5")]):
+        for i, (t, name) in enumerate([("SILVER", "실버 제단"), ("GOLD", "골드 제단"), ("PRISM", "프리즘 제단")]):
+            name += f" {count[t]}"
             yy = ly + i * 26
             d.ellipse([lx, yy, lx + 14, yy + 14], outline=tier_col[t], width=2)
             d.text((lx + 22, yy - 3), name, font=f, fill=(230, 230, 240))

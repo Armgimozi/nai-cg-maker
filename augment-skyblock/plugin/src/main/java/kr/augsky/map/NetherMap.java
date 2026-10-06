@@ -1,6 +1,7 @@
 package kr.augsky.map;
 
 import kr.augsky.AugSky;
+import kr.augsky.augment.Tier;
 import kr.augsky.map.MapBuilder.Isle;
 import kr.augsky.map.MapBuilder.Region;
 import org.bukkit.Bukkit;
@@ -21,15 +22,15 @@ import java.util.function.IntConsumer;
 import java.util.logging.Level;
 
 /**
- * 하늘 네더: 플러그인이 만든 공허 네더 월드(NetherService)에 띄운 네더 섬 17곳의 배치와 짓기.
- * 하늘 좌표의 1/8 이 네더 좌표라서 하늘 맵(반지름 약 630)은 네더의 쉼터 둘레 약 80 안에 들어온다.
- * 쉼터를 가운데 두고 기본 섬 → 요새·보루 같은 다음 단계 → 먼 섬(고대 잔해) 순으로 둘러싼다.
- * 섬 사이는 24~37칸이라 다리로 건넌다. 이름표·위치 안내는 없다. 배치는 굳혀 두었다 (LAYOUT).
+ * 하늘 네더: 플러그인이 만든 공허 네더 월드(NetherService)에 띄운 네더 섬 17곳과 제단 섬 6곳의 배치와 짓기.
+ * 하늘 좌표의 1/8 이 네더 좌표라서 하늘 맵(반지름 약 610)은 네더의 쉼터 둘레 약 80 안에 들어온다.
+ * 쉼터를 가운데 두고 기본 섬 → 요새·보루 같은 다음 단계 → 먼 섬(고대 잔해) 순으로 둘러싸고, 그 사이 빈자리에 제단 섬이 있다.
+ * 섬 사이는 23~37칸이라 다리로 건넌다. 이름표·위치 안내는 없다. 배치는 굳혀 두었다 (LAYOUT).
  */
 public final class NetherMap {
     public static final long SEED = 20261006L;
-    /** 배치 판. 지은 월드에 기록한다. 바꾸면 지은 섬과 어긋나므로 새 판은 저절로 다시 짓지 않는다 */
-    public static final int LAYOUT = 1;
+    /** 배치 판. 지은 월드에 기록한다. 바꾸면 지은 섬과 어긋나므로 새 판은 저절로 다시 짓지 않는다 (2: 제단 섬 6곳) */
+    public static final int LAYOUT = 2;
     /** 쉼터 윗면 높이. 쉼터 문은 (0, 82~84, 0) */
     public static final int HUB_Y = 80;
     static final List<String> KINDS = List.of("n_hub", "n_quartz", "n_glow", "n_crimson", "n_warped", "n_soul", "n_delta",
@@ -41,7 +42,7 @@ public final class NetherMap {
     public static final List<Biome> BIOMES = List.of(Biome.NETHER_WASTES, Biome.CRIMSON_FOREST, Biome.WARPED_FOREST,
             Biome.SOUL_SAND_VALLEY, Biome.BASALT_DELTAS);
 
-    private static final List<Isle> ISLES = layout();
+    private static final List<Isle> ISLES = layout(LAYOUT);
 
     private final AugSky plugin;
 
@@ -49,7 +50,8 @@ public final class NetherMap {
         this.plugin = plugin;
     }
 
-    private static List<Isle> layout() {
+    /** 판 v 의 섬 목록. 판마다 줄을 뒤에 덧붙이기만 해서 예전 섬은 자리도 시드도 그대로다. */
+    private static List<Isle> layout(int v) {
         Object[][] t = {
                 // 쉼터 둘레(약 50m): 기본 네더 재료
                 {"n_hub", 0, 80, 0, 9.5}, {"n_crimson", 16, 82, -46, 11.5}, {"n_quartz", 47, 77, 6, 10.0},
@@ -60,10 +62,19 @@ public final class NetherMap {
                 // 먼 섬(100~128m): 기본 섬 한 벌 더와 고대 잔해
                 {"n_crimson", 28, 86, -96, 11.0}, {"n_warped", -86, 82, 66, 11.0}, {"n_quartz", 104, 80, -4, 9.0},
                 {"n_soul", 44, 72, 104, 11.0}, {"n_delta", -104, 70, -36, 10.0}, {"n_debris", 118, 68, 50, 13.0}};
+        // 판 2: 제단 섬 여섯. 섬 사이 빈자리(가장자리끼리 20칸 넘게)에 방향을 돌려 가며, 등급마다 둘씩 쉼터 맞은편끼리 둔다.
+        // 쉼터 가까이는 북쪽 한 곳뿐이라 그곳은 실버, 나머지는 바깥 둘레
+        Object[][] altars = {
+                {"n_altar", -11, 83, -80, 7.0, Tier.SILVER}, {"n_altar", 118, 78, -41, 7.0, Tier.GOLD},
+                {"n_altar", 85, 72, 91, 7.0, Tier.PRISM}, {"n_altar", 8, 76, 124, 7.0, Tier.SILVER},
+                {"n_altar", -119, 85, 38, 7.0, Tier.GOLD}, {"n_altar", -93, 73, -75, 7.0, Tier.PRISM}};
+        List<Object[]> rows = new ArrayList<>(Arrays.asList(t));
+        if (v >= 2) rows.addAll(Arrays.asList(altars));
         List<Isle> out = new ArrayList<>();
-        for (int i = 0; i < t.length; i++) {
-            out.add(new Isle((String) t[i][0], (Integer) t[i][1], (Integer) t[i][2], (Integer) t[i][3], (Double) t[i][4],
-                    Region.FLAME, null, 7000 + i));
+        for (int i = 0; i < rows.size(); i++) {
+            Object[] row = rows.get(i);
+            out.add(new Isle((String) row[0], (Integer) row[1], (Integer) row[2], (Integer) row[3], (Double) row[4],
+                    Region.FLAME, row.length > 5 ? (Tier) row[5] : null, 7000 + i));
         }
         for (int round = 0; round < 20; round++) {
             int[] worst = {-1, -1};
@@ -80,6 +91,11 @@ public final class NetherMap {
 
     public static List<Isle> plan() {
         return ISLES;
+    }
+
+    /** 예전 판으로 지은 월드를 검사할 때: 그 판의 섬만. */
+    static List<Isle> plan(int layout) {
+        return layout >= LAYOUT ? ISLES : layout(Math.max(1, layout));
     }
 
     static boolean isNether(String kind) {
@@ -137,9 +153,14 @@ public final class NetherMap {
     /** 배치 한 줄 요약 (관리자용). */
     public static String summary() {
         int stones = 0;
-        for (Isle is : ISLES) if (is.kind().equals("n_stone")) stones++;
+        int[] tiers = new int[Tier.values().length];
+        for (Isle is : ISLES) {
+            if (is.kind().equals("n_stone")) stones++;
+            if (is.tier() != null) tiers[is.tier().ordinal()]++;
+        }
         double longest = Arrays.stream(MapBuilder.bridges(ISLES, new int[2])).max().orElse(0);
-        return "섬 " + ISLES.size() + "곳 (징검다리 " + stones + "), 가장 긴 다리 " + Math.round(longest) + "m";
+        return "섬 " + ISLES.size() + "곳 (제단 " + tiers[0] + "/" + tiers[1] + "/" + tiers[2] + ", 징검다리 " + stones
+                + "), 가장 긴 다리 " + Math.round(longest) + "m";
     }
 
     // ------------------------------------------------------------------ 짓기
@@ -152,6 +173,8 @@ public final class NetherMap {
     public void buildAll(World w, boolean clear, Consumer<String> progress, IntConsumer done) {
         long t0 = System.currentTimeMillis();
         List<Isle> isles = plan();
+        // 제단은 다시 세우면 새 엔티티(새 id)라서 기록을 비우고 새로 적는다. 쓴 제단도 처음처럼 빛난다
+        plugin.altars().clearRegistry(w);
         Set<Long> held = hold(w, isles);
         NetherKinds kinds = new NetherKinds(plugin, w);
         new BukkitRunnable() {
@@ -181,6 +204,8 @@ public final class NetherMap {
                 }
                 if (i < isles.size()) return;
                 cancel();
+                // 새로 세운 제단은 청크가 다시 불릴 때까지 모르는 채로 남으니 지금 찾아 둔다 (보호, 반짝임)
+                plugin.altars().scanLoaded();
                 int f = failed;
                 plugin.getLogger().log(f == 0 ? Level.INFO : Level.SEVERE, "하늘 네더 완성: " + summary() + ", 실패 " + f
                         + " (" + (System.currentTimeMillis() - t0) + "ms)");
@@ -235,8 +260,8 @@ public final class NetherMap {
         return true;
     }
 
-    /** /증강관리 네더 검사: 섬마다 있어야 할 것이 있는지 센다. */
-    public void check(World w, CommandSender to) {
-        new IslandCheck(plugin, w).run(plan(), to);
+    /** /증강관리 네더 검사: 섬마다 있어야 할 것이 있는지 센다. layout 은 이 월드를 지은 판 (그 판의 섬만 본다). */
+    public void check(World w, CommandSender to, int layout) {
+        new IslandCheck(plugin, w).run(plan(layout), to);
     }
 }

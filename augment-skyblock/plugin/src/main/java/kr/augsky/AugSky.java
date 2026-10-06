@@ -53,9 +53,10 @@ public final class AugSky extends JavaPlugin {
      * (2: 무기 스킬 정리·클릭 조합, 3: 전투 효과를 확률 대신 N번째 공격마다로 바꾼 설명, 탱크엔진 증강,
      * 4: 조합법 재설계(섬 재료, 같은 종류만 강화), 안내서에서 위치 힌트 제거, 자연 스폰 교체에 허스크·스트레이,
      * 5: 안내서에 섬 도감. 4 판 jar 가 옛 안내서로 한 번 배포되어서, 그 서버에도 새 안내서가 가도록 다시 올린다,
-     * 6: 하늘 네더 (안내서에 네더 하늘 쪽과 화염 섬 이름 정리, 지옥 임프 설명)).
+     * 6: 하늘 네더 (안내서에 네더 하늘 쪽과 화염 섬 이름 정리, 지옥 임프 설명),
+     * 7: 제단 수와 배치 (하늘 18곳 + 하늘 네더 6곳, 안내서의 제단 수)).
      */
-    private static final int CONTENT_VERSION = 6;
+    private static final int CONTENT_VERSION = 7;
     private static final List<String> CONTENT_FILES = List.of("augments.yml", "weapons.yml", "skills.yml", "mobs.yml", "items.yml", "armor.yml");
 
     private SkillRegistry skills;

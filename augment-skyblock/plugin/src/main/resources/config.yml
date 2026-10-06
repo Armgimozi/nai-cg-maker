@@ -79,7 +79,7 @@ nether:
 guide-book:
   - "<b><dark_purple>증강 스카이블럭</dark_purple></b>\n\n하늘 위 작은 섬에서 시작합니다.\n\n맵 곳곳의 제단에서 <dark_purple>증강</dark_purple>을 모으고, 새 무기와 갑옷으로 둥지의 보스를 쓰러뜨리세요.\n\n<dark_gray>다음 장 ▶"
   - "<b>1. 섬에서 살아남기</b>\n\n상자에 용암, 얼음 2개, 묘목, 씨앗, 뼛가루, 횃불이 있어요. 얼음을 녹여 물을 만들고 용암 옆으로 흘려 <b>조약돌 생성기</b>를 만드세요.\n\n작업대는 나무를 베어 직접 만들어요.\n\n죽으면 아이템을 떨어뜨려요. 증강으로 지킬 수 있어요."
-  - "<b>2. 제단과 증강</b>\n\n제단은 맵 곳곳의 섬에 있어요. 네 기둥 가운데 보석이 떠 있으면 제단이에요.\n<gray>실버</gray> 16곳 <gold>골드</gold> 9곳 <dark_purple>프리즘</dark_purple> 5곳\n\n우클릭하면 증강 3개 중 하나를 고릅니다. 한 번 쓰면 보석이 빛을 잃어요."
+  - "<b>2. 제단과 증강</b>\n\n제단은 하늘과 네더 곳곳의 섬에 흩어져 있어요. 네 기둥 가운데 보석이 떠 있으면 제단이에요.\n<gray>실버</gray> 12곳 <gold>골드</gold> 8곳\n<dark_purple>프리즘</dark_purple> 4곳\n\n우클릭하면 증강 3개 중 하나를 고릅니다. 한 번 쓰면 보석이 빛을 잃어요."
   - "<b>3. 다시 뽑기와 증강권</b>\n\n선택지가 마음에 안 들면 한 번은 무료로, 그 뒤로는 <dark_purple>증강 파편</dark_purple> 3개로 다시 뽑아요.\n\n<b>증강권</b>은 손에 들고 우클릭하면 어디서든 증강을 고릅니다."
   - "<b>4. 맵</b>\n\n시작의 섬엔 꼭 필요한 것만 있어요. 다른 재료는 다리를 놓아 다른 섬에서 구하세요.\n\n하늘의 섬은 41가지이고 섬마다 나는 재료가 달라요. 이름표는 없어요. 땅과 나무, 동물을 보고 알아보세요. 어디 있는지는 직접 찾아보세요.\n\n네더에도 하늘섬이 있어요."
   - "<b>섬 도감 ①</b> 풀밭\n\n<dark_green>숲</dark_green> 참나무·자작나무\n<dark_green>광산</dark_green> 석탄·철·구리·금\n<dark_green>목장</dark_green> 소·양·돼지·닭\n<dark_green>밭</dark_green> 밀·당근·감자·비트\n<dark_green>호박밭</dark_green> 호박\n<dark_green>연못</dark_green> 점토·사탕수수·연잎\n<dark_green>꽃밭</dark_green> 꽃·벌집·꿀\n<dark_green>버섯</dark_green> 버섯·무시룸\n<dark_green>사막</dark_green> 모래·선인장·토끼\n<dark_green>거미굴</dark_green> 거미 생성기·거미줄"

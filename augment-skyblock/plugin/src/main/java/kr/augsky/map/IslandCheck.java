@@ -2,6 +2,7 @@ package kr.augsky.map;
 
 import kr.augsky.AugSky;
 import kr.augsky.Keys;
+import kr.augsky.altar.AltarService;
 import kr.augsky.map.MapBuilder.Isle;
 import kr.augsky.util.Text;
 import org.bukkit.Axis;
@@ -25,12 +26,14 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.loot.LootTable;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -107,6 +110,7 @@ final class IslandCheck {
             Map.entry("n_ruin_portal", "CRYING_OBSIDIAN>=12 OBSIDIAN>=6 GOLD_BLOCK>=2 CHEST=1 LAVA>=2"),
             Map.entry("n_lava", "LAVA>=60 MAGMA_BLOCK>=10 @STRIDER>=1"),
             Map.entry("n_debris", "ANCIENT_DEBRIS>=24 BLACKSTONE+BASALT>=1200 MAGMA_BLOCK>=20 CHEST=0"),
+            Map.entry("n_altar", "@INTERACTION=1 @BLOCK_DISPLAY=1 CHEST=0 SPAWNER=0 ANCIENT_DEBRIS=0"),
             Map.entry("n_stone", "CHEST=0 SPAWNER=0")
     );
 
@@ -305,6 +309,7 @@ final class IslandCheck {
                 }
                 if (held < 10) fails.add("바닥 위 발광석 " + held + " (>=10)");
             }
+            case "altar", "n_altar" -> altar(is, fails);
             case "n_hub" -> {
                 int portal = 0;
                 for (int dx = -1; dx <= 0; dx++)
@@ -371,6 +376,28 @@ final class IslandCheck {
             default -> {
             }
         }
+    }
+
+    /** 제단: 클릭 판정의 등급이 배치와 같고, 보석이 그 제단을 가리키고, 이 월드의 제단 기록에 같은 등급으로 있다. */
+    private void altar(Isle is, List<String> fails) {
+        Location c = new Location(w, is.x() + 0.5, is.y() + 2, is.z() + 0.5);
+        Interaction hit = null;
+        for (Entity en : w.getNearbyEntities(c, 2, 3, 2)) if (en instanceof Interaction i && i.getPersistentDataContainer().has(Keys.ALTAR)) hit = i;
+        if (hit == null) {
+            fails.add("제단 클릭 판정 없음");
+            return;
+        }
+        String tier = hit.getPersistentDataContainer().get(Keys.ALTAR, PersistentDataType.STRING);
+        if (!is.tier().name().equals(tier)) fails.add("제단 등급 " + tier + " (" + is.tier() + ")");
+        String id = hit.getUniqueId().toString();
+        boolean gem = false;
+        for (Entity en : w.getNearbyEntities(c, 2, 3, 2)) {
+            if (en instanceof BlockDisplay && id.equals(en.getPersistentDataContainer().get(Keys.ALTAR_OF, PersistentDataType.STRING))) gem = true;
+        }
+        if (!gem) fails.add("제단 보석이 이 제단을 가리키지 않음");
+        boolean listed = false;
+        for (AltarService.Info i : plugin.altars().all(w)) if (i.id().equals(hit.getUniqueId()) && i.tier() == is.tier()) listed = true;
+        if (!listed) fails.add("제단 기록(augsky-altars.yml)에 없음");
     }
 
     /**

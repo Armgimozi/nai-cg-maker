@@ -45,6 +45,7 @@ import java.util.UUID;
  * 제단: 맵 곳곳의 상호작용 엔티티. 누르면 제단 화면을 연다.
  * 제단은 일회용이다 (config altar.single-use: global = 한 명이 쓰면 사라짐, player = 사람마다 한 번, off = 무제한).
  * 어디에 어떤 제단이 있는지는 월드 폴더의 augsky-altars.yml 에 기록해 두고, 맵과 함께 배포된다.
+ * 하늘 네더의 제단은 그 월드 폴더에 따로 기록하고, 남은 수는 하늘과 합쳐 센다 (realm).
  */
 public final class AltarService implements Listener {
     public enum Mode { GLOBAL, PLAYER, OFF }
@@ -136,22 +137,44 @@ public final class AltarService implements Listener {
         save(w);
     }
 
+    /** 이 월드 하나의 제단 기록 (맵생성 전 확인용). 플레이어에게 보여 줄 수는 realm 으로 센다. */
     public List<Info> all(World w) {
         return new ArrayList<>(reg(w).values());
     }
 
-    /** 이 플레이어가 아직 쓸 수 있는 그 등급 제단 수 (/증강 제단, 위치는 알려 주지 않는다). */
+    /**
+     * w 와 함께 세는 월드들: 하늘(home)과, 하늘이 서버의 첫 월드면 그 하늘 네더.
+     * 제단은 두 월드에 흩어져 있어도 한 맵이라 남은 수는 합쳐서 보여 준다.
+     */
+    public List<World> realm(World w) {
+        World home = plugin.home(w);
+        List<World> out = new ArrayList<>(List.of(home));
+        World sky = plugin.nether() == null ? null : plugin.nether().world();
+        if (sky != null && !sky.equals(home) && home.equals(Bukkit.getWorlds().get(0))) out.add(sky);
+        return out;
+    }
+
+    /** 이 플레이어가 아직 쓸 수 있는 그 등급 제단 수, 하늘과 하늘 네더를 합쳐서 (/증강 제단, 위치는 알려 주지 않는다). */
     public int usableCount(Player p, Tier t) {
         PlayerData d = plugin.augments().data(p);
         int n = 0;
-        for (Info i : reg(plugin.home(p.getWorld())).values()) if (i.tier() == t && usable(i, d)) n++;
+        for (World w : realm(p.getWorld())) for (Info i : reg(w).values()) if (i.tier() == t && usable(i, d)) n++;
         return n;
     }
 
+    /** 아직 힘이 남은 그 등급 제단 수, w 가 속한 하늘과 하늘 네더를 합쳐서. */
     public int remaining(World w, Tier tier) {
         int n = 0;
-        for (Info i : reg(w).values()) if (i.tier() == tier && !i.used()) n++;
+        for (World rw : realm(w)) for (Info i : reg(rw).values()) if (i.tier() == tier && !i.used()) n++;
         return n;
+    }
+
+    /** 제단 기록이 있는 월드 (엔티티가 불려 있지 않아도 찾게 near 의 하늘과 하늘 네더를 다 본다). */
+    private World worldOf(UUID altarId, World near) {
+        Entity en = Bukkit.getEntity(altarId);
+        if (en != null) return en.getWorld();
+        for (World w : realm(near)) if (reg(w).containsKey(altarId)) return w;
+        return near;
     }
 
     /** 제물을 받기 직전에 다시 확인한다 (두 사람이 같은 제단 창을 동시에 연 경우). */
@@ -162,7 +185,7 @@ public final class AltarService implements Listener {
             case GLOBAL -> {
                 Entity en = Bukkit.getEntity(altarId);
                 if (en != null && en.getPersistentDataContainer().has(Keys.USED)) yield false;
-                Info i = reg(en != null ? en.getWorld() : p.getWorld()).get(altarId);
+                Info i = reg(worldOf(altarId, p.getWorld())).get(altarId);
                 yield i == null || !i.used();
             }
             case PLAYER -> !d.usedAltars.contains(altarId.toString());
@@ -306,7 +329,7 @@ public final class AltarService implements Listener {
             return;
         }
         Tier tier = null;
-        World w = en != null ? en.getWorld() : p.getWorld();
+        World w = worldOf(altarId, p.getWorld());
         Map<UUID, Info> m = reg(w);
         Info old = m.get(altarId);
         if (old != null) {

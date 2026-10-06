@@ -88,6 +88,8 @@ public final class NetherService implements Listener {
     private boolean ready, building;
     /** 마지막으로 지을 때 실패한 섬 수 (-1: 아직 모름) */
     private int failed = -1;
+    /** 지은 섬의 배치 판 (0: 아직 모름). 검사는 이 판의 섬만 본다 */
+    private int built;
     private String builtAt;
     private final Map<UUID, Integer> ghastHit = new HashMap<>();
     private boolean timer;
@@ -155,8 +157,9 @@ public final class NetherService implements Listener {
                 ready = true;
                 failed = mk.getInt("failed", 0);
                 builtAt = mk.getString("built", "?");
-                if (mk.getInt("layout", 0) < NetherMap.LAYOUT) {
-                    plugin.getLogger().info("하늘 네더 섬 배치가 새 판(" + NetherMap.LAYOUT + ")으로 바뀌었습니다. 지은 섬은 그대로 둡니다"
+                built = Math.max(1, mk.getInt("layout", 1));
+                if (built < NetherMap.LAYOUT) {
+                    plugin.getLogger().info("하늘 네더 섬 배치가 새 판(" + NetherMap.LAYOUT + ": 제단 섬 6곳)으로 바뀌었습니다. 지은 섬은 그대로 둡니다"
                             + " (새 배치로 다시 지으려면 모두 하늘로 돌아온 뒤 /증강관리 네더 짓기 강제).");
                 }
                 return;
@@ -242,6 +245,7 @@ public final class NetherService implements Listener {
         // 표시 파일이 없어도(처음, 또는 짓다가 서버가 죽음) 섬 자리를 먼저 비운다. 반쯤 남은 섬 위에 다시 지으면 상자가 겹쳐 생긴다
         map.buildAll(w, true, player ? m -> to.sendMessage(Text.mm("<gray>" + m)) : null, f -> {
             failed = f;
+            built = NetherMap.LAYOUT;
             builtAt = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
             w.setSpawnLocation(0, NetherMap.HUB_Y + 1, 3);
             // 표시 파일보다 섬 청크를 먼저 디스크에 다 쓴다. 표시만 남은 채 서버가 죽으면 다음에 켤 때 빈 네더를 지은 것으로 여긴다
@@ -330,6 +334,17 @@ public final class NetherService implements Listener {
      */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPortalCreate(PortalCreateEvent e) {
+        if (isSky(e.getWorld())) {
+            // 하늘 네더 쪽 짝 문이 제단 섬에 생기면 제단 기둥과 바닥을 뚫는다
+            if (e.getReason() != PortalCreateEvent.CreateReason.NETHER_PAIR) return;
+            for (BlockState s : e.getBlocks()) {
+                if (!plugin.altars().isGuarded(s.getLocation())) continue;
+                e.setCancelled(true);
+                if (e.getEntity() != null) bar(e.getEntity(), "<gray>문 건너편이 닫혀 있습니다");
+                return;
+            }
+            return;
+        }
         if (e.getWorld().getEnvironment() != World.Environment.NORMAL) return;
         if (e.getReason() == PortalCreateEvent.CreateReason.FIRE) {
             if (enabled()) return;
@@ -476,7 +491,8 @@ public final class NetherService implements Listener {
             case "짓기", "build" -> {
                 boolean force = a.length > 2 && (a[2].equals("강제") || a[2].equalsIgnoreCase("force"));
                 if (force) {
-                    s.sendMessage(Text.mm("<#ffcc55>섬을 처음 모습으로 다시 짓습니다. 섬 위에 지은 것과 고친 곳은 사라지고 상자는 다시 채워집니다."));
+                    s.sendMessage(Text.mm("<#ffcc55>섬을 처음 모습으로 다시 짓습니다. 섬 위에 지은 것과 고친 곳은 사라지고 상자는 다시 채워지며,"
+                            + " 네더의 제단도 새로 세워집니다 (쓴 제단도 다시 빛납니다)."));
                 }
                 build(s, force);
             }
@@ -486,7 +502,12 @@ public final class NetherService implements Listener {
                     s.sendMessage(Text.mm("<#ff7070>하늘 네더가 열려 있지 않습니다."));
                     return;
                 }
-                map.check(w, s);
+                int layout = built > 0 ? built : NetherMap.LAYOUT;
+                if (layout < NetherMap.LAYOUT) {
+                    s.sendMessage(Text.mm("<gray>지은 섬은 배치 판 " + layout + " 이라 그 판의 섬만 검사합니다. 새 판(" + NetherMap.LAYOUT
+                            + ")의 섬은 /증강관리 네더 짓기 강제 뒤에 생깁니다."));
+                }
+                map.check(w, s, layout);
             }
             default -> info(s);
         }
@@ -499,8 +520,15 @@ public final class NetherService implements Listener {
         s.sendMessage(Text.mm("<#ffcc55>━━━━ 하늘 네더 ━━━━"));
         s.sendMessage(Text.mm("<gray>월드 <white>" + name() + " <gray>· " + state));
         s.sendMessage(Text.mm("<gray>배치 판 " + NetherMap.LAYOUT + " · " + NetherMap.summary()));
-        if (builtAt != null) s.sendMessage(Text.mm("<gray>지은 때 " + builtAt + " · 실패한 섬 " + (failed > 0 ? "<#ff7070>" : "") + failed));
+        if (builtAt != null) s.sendMessage(Text.mm("<gray>지은 때 " + builtAt + " (판 " + built + ") · 실패한 섬 " + (failed > 0 ? "<#ff7070>" : "") + failed));
         if (w == null) return;
+        int[] left = new int[3], all = new int[3];
+        for (var a : plugin.altars().all(w)) {
+            all[a.tier().ordinal()]++;
+            if (!a.used()) left[a.tier().ordinal()]++;
+        }
+        s.sendMessage(Text.mm("<gray>네더 제단 (남은/전체) 실버 <white>" + left[0] + "/" + all[0] + " <gray>· 골드 <white>" + left[1] + "/" + all[1]
+                + " <gray>· 프리즘 <white>" + left[2] + "/" + all[2]));
         Map<String, Integer> count = new TreeMap<>();
         for (Entity en : w.getEntities()) {
             if (en instanceof LivingEntity && !(en instanceof Player)) count.merge(en.getType().name().toLowerCase(), 1, Integer::sum);

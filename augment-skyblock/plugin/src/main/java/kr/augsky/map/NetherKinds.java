@@ -31,7 +31,7 @@ import java.util.Random;
 import static org.bukkit.Material.*;
 
 /**
- * 하늘 네더의 섬 12종과 징검다리. 하늘에서는 못 구하거나 아주 조금만 나는 네더 재료(고대 잔해, 위더 해골, 금 블록,
+ * 하늘 네더의 섬 12종, 제단 섬과 징검다리. 하늘에서는 못 구하거나 아주 조금만 나는 네더 재료(고대 잔해, 위더 해골, 금 블록,
  * 우는 흑요석, 석영, 발광석, 네더 사마귀 …)가 섬마다 난다. 이름표 없이 블록과 생물군계(안개 색)만 보고 알아본다.
  */
 final class NetherKinds extends IsleTools {
@@ -58,6 +58,7 @@ final class NetherKinds extends IsleTools {
             case "n_ruin_portal" -> ruinPortal();
             case "n_lava" -> lava();
             case "n_debris" -> debris();
+            case "n_altar" -> altar();
             case "n_stone" -> stone();
             default -> throw new IllegalArgumentException("알 수 없는 네더 섬 종류: " + is.kind());
         }
@@ -711,6 +712,26 @@ final class NetherKinds extends IsleTools {
             for (int k = 0; k < len; k++) if (tile(p[0] + f[0] * k, p[1] + f[1] * k)) set(p[0] + f[0] * k, y, p[1] + f[1] * k, MAGMA_BLOCK);
         }
         hide(ANCIENT_DEBRIS, 24, 10, 18, 3);
+    }
+
+    // ------------------------------------------------------------------ 제단
+
+    /**
+     * 제단 섬: 하늘과 똑같은 제단(네 기둥, 보석, 쓰면 꺼지는 등불)을 등급마다 다른 네더 땅에 세운다. 재료 섬이 아니라 광석은 없다.
+     * 실버는 잿빛 현무암, 골드는 금박이 박힌 흑암, 프리즘은 진홍·뒤틀린 균사가 얼룩진 땅.
+     */
+    private void altar() {
+        long ps = is.seed();
+        blob(x, y, z, rad, d, is.seed(), (dx, dy, dz, rim, pr) -> switch (is.tier()) {
+            case SILVER -> dy == 0 ? (rim ? POLISHED_BASALT : SMOOTH_BASALT) : dy <= 2 ? BASALT : BLACKSTONE;
+            case GOLD -> dy == 0 ? (patch(x + dx, z + dz, ps, 2) < 0.25 ? GILDED_BLACKSTONE : POLISHED_BLACKSTONE)
+                    : dy <= 2 ? BLACKSTONE : pr.nextDouble() < 0.3 ? BASALT : BLACKSTONE;
+            case PRISM -> dy == 0 ? (patch(x + dx, z + dz, ps, 3) < 0.5 ? WARPED_NYLIUM : CRIMSON_NYLIUM)
+                    : dy <= 2 ? NETHERRACK : BLACKSTONE;
+        }, null, 0);
+        // 제단은 하늘의 것을 그대로 쓴다 (같은 엔티티와 기록이라야 똑같이 쓰이고 꺼진다).
+        // 하늘 맵을 짓는 중일 수 있어 MapBuilder 를 따로 만든다 (그쪽이 지금 짓는 월드를 들고 있다)
+        new MapBuilder(plugin).altarStructure(w, x, y, z, is.tier());
     }
 
     /** 징검다리 바위. */
