@@ -16,6 +16,7 @@ import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.event.inventory.PrepareSmithingEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerRecipeDiscoverEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.Recipe;
 
@@ -46,7 +47,7 @@ public final class ItemGuard implements Listener {
      * 이 재료로 이 조합을 해도 되는지.
      * - 바닐라 조합에는 커스텀 아이템을 넣을 수 없다.
      * - 무기/갑옷을 강화하는 조합은 정해진 무기, 정해진 세트의 같은 부위 갑옷만 받는다
-     *   (조합법은 껍데기 재료로만 등록되어 있어서, 같은 껍데기의 다른 아이템이 들어갈 수 있다).
+     *   (숨은 조합법은 껍데기 재료로 등록되어 있어서 같은 껍데기의 다른 아이템이 들어갈 수 있다).
      */
     private boolean allowed(Recipe r, ItemStack[] matrix) {
         NamespacedKey key = r instanceof Keyed k ? k.getKey() : null;
@@ -119,6 +120,12 @@ public final class ItemGuard implements Listener {
                 return;
             }
         }
+    }
+
+    /** 숨은 조합법은 레시피 책에 넣지 않는다 (바닐라는 방금 쓴 조합법을 책에 넣어서 네더라이트 검 모양이 보이게 된다). */
+    @EventHandler(ignoreCancelled = true)
+    public void onDiscover(PlayerRecipeDiscoverEvent e) {
+        if (plugin.recipes().isHidden(e.getRecipe())) e.setCancelled(true);
     }
 
     @EventHandler

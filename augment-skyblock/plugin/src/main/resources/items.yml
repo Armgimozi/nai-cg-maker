@@ -7,7 +7,7 @@ shard:
   name: "<#c86bff>증강 파편"
   material: ECHO_SHARD
   lore:
-    - "<gray>무기 재료. 증강을 다시 뽑을 때도 쓴다."
+    - "<gray>증강을 다시 뽑을 때 쓴다."
     - "<gray>몬스터를 잡거나 돌을 캘 때 얻는다."
 
 prism_crystal:

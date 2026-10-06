@@ -46,6 +46,17 @@ MATERIAL = {
     "CACTUS": "선인장", "GOLD_INGOT": "금 주괴", "OAK_PLANKS": "참나무 판자", "WHITE_WOOL": "흰색 양털",
     "NAUTILUS_SHELL": "앵무조개 껍데기", "BONE_BLOCK": "뼈 블록", "PHANTOM_MEMBRANE": "팬텀 막", "ENDER_PEARL": "엔더 진주",
     "EMERALD_BLOCK": "에메랄드 블록", "LEATHER": "가죽",
+    "ACACIA_LOG": "아카시아나무 원목", "AMETHYST_BLOCK": "자수정 블록", "BAMBOO": "대나무", "BIRCH_LOG": "자작나무 원목",
+    "BIRCH_PLANKS": "자작나무 판자", "BLUE_ICE": "푸른 얼음", "CALCITE": "방해석", "CHERRY_SAPLING": "벚나무 묘목", "COAL_BLOCK": "석탄 블록",
+    "CRIMSON_STEM": "진홍빛 자루", "CRYING_OBSIDIAN": "우는 흑요석", "DARK_OAK_SAPLING": "짙은 참나무 묘목",
+    "DARK_PRISMARINE": "짙은 프리즈머린", "DRIED_KELP_BLOCK": "말린 켈프 블록", "EMERALD": "에메랄드", "END_ROD": "엔드 막대기",
+    "FIRE_CHARGE": "화염구", "FLINT": "부싯돌", "FLOWERING_AZALEA": "꽃 핀 진달래", "HAY_BLOCK": "건초 더미", "HONEYCOMB": "벌집 조각",
+    "ICE": "얼음", "LANTERN": "랜턴", "LAVA_BUCKET": "용암 양동이", "MAGMA_CREAM": "마그마 크림", "NETHER_WART_BLOCK": "네더 사마귀 블록",
+    "OAK_SLAB": "참나무 반 블록", "PACKED_MUD": "굳은 진흙", "POINTED_DRIPSTONE": "뾰족한 점적석", "POLISHED_GRANITE": "윤나는 화강암",
+    "PRISMARINE": "프리즈머린", "PRISMARINE_CRYSTALS": "프리즈머린 수정", "PUFFERFISH": "복어", "PURPUR_PILLAR": "퍼퍼 기둥",
+    "QUARTZ": "네더 석영", "SEA_LANTERN": "바다 랜턴", "SEA_PICKLE": "불우렁쉥이", "SHROOMLIGHT": "버섯불", "SLIME_BALL": "슬라임볼",
+    "SNOW_BLOCK": "눈 블록", "SOUL_LANTERN": "영혼 랜턴", "SPRUCE_LOG": "가문비나무 원목", "STONE": "돌", "TINTED_GLASS": "착색 유리",
+    "VINE": "덩굴",
 }
 
 
@@ -80,7 +91,10 @@ def ingredient_name(spec, items, weapons, armor):
     if spec.startswith("armor:"):
         names = [strip_mm(armor[x]["name"]) for x in spec[6:].split(",") if x in armor]
         return "/".join(names) + " 갑옷(같은 부위)"
-    return MATERIAL.get(spec, spec.lower().replace("_", " "))
+    if spec not in MATERIAL:
+        # 영어 이름이 그대로 도감에 나가지 않게 멈춘다
+        sys.exit("재료 이름이 없음: " + spec)
+    return MATERIAL[spec]
 
 
 def recipe_text(recipe, items, weapons, armor):

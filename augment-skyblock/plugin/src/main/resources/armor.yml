@@ -16,7 +16,7 @@
 pioneer:
   name: 개척자
   color: "#d9a86a"
-  source: "섬 재료로 만든다 (가죽, 참나무 원목)"
+  source: "섬 재료로 만든다 (가죽, 건초 더미)"
   pieces: {helmet: [2, 0, 0], chestplate: [4, 0, 0], leggings: [3, 0, 0], boots: [1, 0, 0]}
   bonus:
     2: [{type: attribute, attribute: movement_speed, amount: 0.06, operation: percent}]
@@ -24,12 +24,12 @@ pioneer:
   bonus_desc:
     2: "이동 속도 +6%"
     4: "최대 체력 +4, 수확물 20% 더, 묘목 30% 더"
-  recipe: {M: LEATHER, S: OAK_LOG}
+  recipe: {M: LEATHER, S: HAY_BLOCK}
 
 miner:
   name: 광부
   color: "#e8916a"
-  source: "섬 재료로 만든다 (철 주괴, 구리 블록)"
+  source: "섬 재료로 만든다 (철 주괴, 랜턴)"
   pieces: {helmet: [2, 0, 0], chestplate: [6, 0, 0], leggings: [5, 0, 0], boots: [2, 0, 0]}
   bonus:
     2: [{type: attribute, attribute: block_break_speed, amount: 0.25, operation: percent}]
@@ -38,7 +38,7 @@ miner:
     2: "블록 캐는 속도 +25%"
     4: "조약돌 생성기에서 5% 확률로 광석, 야간 투시, 최대 체력 +2"
   aura: "DUST:#ffcf80:0.8"
-  recipe: {M: IRON_INGOT, S: COPPER_BLOCK}
+  recipe: {M: IRON_INGOT, S: LANTERN}
 
 frost:
   name: 서리
@@ -124,7 +124,7 @@ sovereign:
 prism:
   name: 프리즘
   color: "#ff9ad0"
-  source: "보스 갑옷 + 프리즘 결정으로 만든다"
+  source: "보스 갑옷 + 프리즘 결정 2개로 만든다"
   pieces: {helmet: [4, 4, 0.1], chestplate: [9, 4, 0.1], leggings: [7, 4, 0.1], boots: [4, 4, 0.1]}
   bonus:
     2: [{type: attribute, attribute: max_health, amount: 6}, {type: crit, chance: 0.1, multiplier: 1.5}]
@@ -134,7 +134,8 @@ prism:
     4: "주는 피해 +20%, 죽을 피해를 한 번 버팀(4분), 이단 점프"
   aura: "PRISM"
   recipe:
-    shape: ["CDC", "DAD", "CDC"]
+    shape: ["GCG", "DAD", "GCG"]
+    G: AMETHYST_BLOCK
     C: "item:prism_crystal"
     D: DIAMOND
     A: "armor:frostlord,inferno,sovereign"
