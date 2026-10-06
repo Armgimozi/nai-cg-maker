@@ -4,7 +4,6 @@ import kr.augsky.AugSky;
 import kr.augsky.Keys;
 import kr.augsky.augment.PlayerData;
 import kr.augsky.augment.Tier;
-import kr.augsky.map.MapBuilder;
 import kr.augsky.util.Fx;
 import kr.augsky.util.Text;
 import org.bukkit.Bukkit;
@@ -12,6 +11,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.BlockDisplay;
@@ -28,19 +28,17 @@ import org.bukkit.event.world.EntitiesLoadEvent;
 import org.bukkit.event.world.EntitiesUnloadEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.util.Transformation;
+import org.joml.Vector3f;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -59,15 +57,11 @@ public final class AltarService implements Listener {
     }
 
     private static final String FILE = "augsky-altars.yml";
-    private static final Material[] RAINBOW = {
-            Material.RED_STAINED_GLASS, Material.ORANGE_STAINED_GLASS, Material.YELLOW_STAINED_GLASS,
-            Material.LIME_STAINED_GLASS, Material.LIGHT_BLUE_STAINED_GLASS, Material.BLUE_STAINED_GLASS,
-            Material.PURPLE_STAINED_GLASS, Material.MAGENTA_STAINED_GLASS
-    };
 
     private final AugSky plugin;
-    private final Set<UUID> beams = new HashSet<>();
     private final Map<UUID, Tier> loaded = new HashMap<>();
+    /** 제단(상호작용 엔티티) → 그 제단의 보석 (사람마다 한 번 모드에서 쓴 사람에게만 감춘다) */
+    private final Map<UUID, UUID> crystals = new HashMap<>();
     /** 블록 보호 범위의 중심 (제단) */
     private final Map<UUID, Location> guarded = new HashMap<>();
     /** 월드 이름 → (제단 UUID → 정보) */
@@ -146,18 +140,12 @@ public final class AltarService implements Listener {
         return new ArrayList<>(reg(w).values());
     }
 
-    /** 이 플레이어가 아직 쓸 수 있는, 가까운 순서의 제단. */
-    public List<Info> nearestUsable(Player p, Tier tier, int n) {
-        Location l = p.getLocation();
+    /** 이 플레이어가 아직 쓸 수 있는 그 등급 제단 수 (/증강 제단, 위치는 알려 주지 않는다). */
+    public int usableCount(Player p, Tier t) {
         PlayerData d = plugin.augments().data(p);
-        List<Info> out = new ArrayList<>();
-        for (Info i : reg(p.getWorld()).values()) {
-            if (tier != null && i.tier() != tier) continue;
-            if (!usable(i, d)) continue;
-            out.add(i);
-        }
-        out.sort(Comparator.comparingDouble(i -> Math.hypot(i.x() - l.getX(), i.z() - l.getZ())));
-        return out.size() > n ? out.subList(0, n) : out;
+        int n = 0;
+        for (Info i : reg(p.getWorld()).values()) if (i.tier() == t && usable(i, d)) n++;
+        return n;
     }
 
     public int remaining(World w, Tier tier) {
@@ -198,7 +186,23 @@ public final class AltarService implements Listener {
 
     private void track(Entity e) {
         var pdc = e.getPersistentDataContainer();
-        if (e instanceof BlockDisplay && "prism".equals(pdc.get(Keys.BEAM, PersistentDataType.STRING))) beams.add(e.getUniqueId());
+        // 예전 맵의 빛기둥과 안내 글자는 보이는 대로 지운다
+        if (e instanceof BlockDisplay && pdc.has(Keys.BEAM)) {
+            e.remove();
+            return;
+        }
+        if (e instanceof TextDisplay && pdc.has(Keys.MAP_PART)) {
+            e.remove();
+            return;
+        }
+        if (e instanceof BlockDisplay bd && pdc.has(Keys.MAP_PART) && bd.getViewRange() > 1f) bd.setViewRange(1f);
+        String of = pdc.get(Keys.ALTAR_OF, PersistentDataType.STRING);
+        if (e instanceof BlockDisplay && of != null) {
+            try {
+                crystals.put(UUID.fromString(of), e.getUniqueId());
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
         if (e instanceof Interaction) {
             Tier t = Tier.parse(pdc.get(Keys.ALTAR, PersistentDataType.STRING));
             if (t != null) {
@@ -207,8 +211,8 @@ public final class AltarService implements Listener {
                 // 예전 맵처럼 기록이 없는 제단도 처음 보이면 기록해 둔다
                 Map<UUID, Info> m = reg(e.getWorld());
                 Info known = m.get(e.getUniqueId());
-                if (known != null && known.used() && !pdc.has(Keys.USED) && mode() == Mode.GLOBAL) {
-                    // 쓴 기록은 있는데 엔티티 표시가 저장되기 전에 서버가 꺼진 경우: 다시 힘을 다한 모습으로
+                if (mode() == Mode.GLOBAL && (pdc.has(Keys.USED) || known != null && known.used())) {
+                    // 쓴 기록은 있는데 엔티티 표시가 저장되기 전에 서버가 꺼진 경우나 예전 판에서 쓴 제단: 다시 힘을 다한 모습으로
                     Bukkit.getScheduler().runTask(plugin, () -> {
                         if (e.isValid()) markUsed(e, t);
                     });
@@ -230,8 +234,8 @@ public final class AltarService implements Listener {
     @EventHandler
     public void onUnload(EntitiesUnloadEvent e) {
         for (Entity en : e.getEntities()) {
-            beams.remove(en.getUniqueId());
             loaded.remove(en.getUniqueId());
+            crystals.remove(en.getUniqueId());
             guarded.remove(en.getUniqueId());
         }
     }
@@ -262,7 +266,7 @@ public final class AltarService implements Listener {
             en.getWorld().spawnParticle(Particle.SMOKE, en.getLocation().add(0, 1.5, 0), 20, 0.4, 0.4, 0.4, 0.01);
             Fx.sound(en.getLocation(), "block.beacon.deactivate", 0.6f, 1.6f);
             p.sendMessage(Text.mm(mode == Mode.GLOBAL
-                    ? "<gray>이 " + t.korean + " 제단은 이미 힘을 다했습니다. <white>/증강 제단<gray> 으로 남은 제단을 찾아보세요."
+                    ? "<gray>이 " + t.korean + " 제단은 이미 힘을 다했습니다. 다른 제단을 찾아보세요."
                     : "<gray>이 제단에서는 이미 증강을 받았습니다. 다른 " + t.korean + " 제단을 찾아보세요."));
             return;
         }
@@ -298,6 +302,7 @@ public final class AltarService implements Listener {
             PlayerData d = plugin.augments().data(p);
             d.usedAltars.add(altarId.toString());
             plugin.augments().store().save(d);
+            if (en != null) dimFor(p, en);
             return;
         }
         Tier tier = null;
@@ -324,7 +329,10 @@ public final class AltarService implements Listener {
         }
     }
 
-    /** 힘을 다한 제단의 모습: 표시를 남기고, 빛기둥을 없애고, 보석을 어둡게, 이름표를 바꾼다. */
+    /**
+     * 힘을 다한 제단의 모습 (서버 전체에서 한 번 모드): 표시를 남기고, 보석은 어두운 유리가 되어 받침대로 가라앉고,
+     * 등불(가운데 단과 네 기둥 꼭대기)은 착색 유리로, 기둥 위 랜턴·엔드 막대기는 없앤다. 글자는 띄우지 않는다.
+     */
     private void markUsed(Entity en, Tier tier) {
         en.getPersistentDataContainer().set(Keys.USED, PersistentDataType.BYTE, (byte) 1);
         loaded.remove(en.getUniqueId());
@@ -332,18 +340,47 @@ public final class AltarService implements Listener {
         Location c = en.getLocation();
         for (Entity part : c.getWorld().getNearbyEntities(c, 6, 12, 6)) {
             String of = part.getPersistentDataContainer().get(Keys.ALTAR_OF, PersistentDataType.STRING);
-            if (!id.equals(of)) continue;
-            if (part instanceof BlockDisplay bd) {
-                if (bd.getPersistentDataContainer().has(Keys.BEAM)) {
-                    beams.remove(bd.getUniqueId());
-                    bd.remove();
-                } else {
-                    bd.setBlock(Material.TINTED_GLASS.createBlockData());
-                    bd.setBrightness(null);
-                }
-            } else if (part instanceof TextDisplay td) {
-                td.text(Text.mm("<dark_gray>힘을 다한 " + (tier == null ? "" : tier.korean + " ") + "제단"));
-            }
+            if (!id.equals(of) || !(part instanceof BlockDisplay bd)) continue;
+            bd.setBlock(Material.TINTED_GLASS.createBlockData());
+            bd.setBrightness(null);
+            bd.setInterpolationDelay(0);
+            bd.setInterpolationDuration(20);
+            Transformation tr = bd.getTransformation();
+            bd.setTransformation(new Transformation(new Vector3f(0, -0.9f, 0), tr.getLeftRotation(), tr.getScale(), tr.getRightRotation()));
+        }
+        World w = c.getWorld();
+        for (Lamp l : lamps(c)) {
+            Block b = w.getBlockAt(l.x(), l.y(), l.z());
+            if (l.light() && (b.getType() == Material.SEA_LANTERN || b.getType() == Material.GLOWSTONE)) b.setType(Material.TINTED_GLASS, false);
+            if (!l.light() && (b.getType() == Material.END_ROD || b.getType() == Material.LANTERN)) b.setType(Material.AIR, false);
+        }
+    }
+
+    /** 제단의 등불 자리: 가운데 단과 네 기둥 꼭대기(light), 그 위 랜턴·엔드 막대기. */
+    private record Lamp(int x, int y, int z, boolean light) {}
+
+    private static List<Lamp> lamps(Location hit) {
+        int bx = hit.getBlockX(), by = hit.getBlockY() - 2, bz = hit.getBlockZ();
+        List<Lamp> out = new ArrayList<>();
+        out.add(new Lamp(bx, by + 1, bz, true));
+        for (int[] c : new int[][]{{3, 3}, {-3, 3}, {3, -3}, {-3, -3}}) {
+            out.add(new Lamp(bx + c[0], by + 4, bz + c[1], true));
+            out.add(new Lamp(bx + c[0], by + 5, bz + c[1], false));
+        }
+        return out;
+    }
+
+    /** 사람마다 한 번 모드: 이 제단을 쓴 사람에게만 보석을 감추고 등불을 꺼진 모습으로 보낸다. */
+    private void dimFor(Player p, Entity altar) {
+        UUID cid = crystals.get(altar.getUniqueId());
+        Entity crystal = cid == null ? null : Bukkit.getEntity(cid);
+        if (crystal != null && p.canSee(crystal)) p.hideEntity(plugin, crystal);
+        World w = altar.getWorld();
+        for (Lamp l : lamps(altar.getLocation())) {
+            Material m = w.getBlockAt(l.x(), l.y(), l.z()).getType();
+            Location at = new Location(w, l.x(), l.y(), l.z());
+            if (l.light() && (m == Material.SEA_LANTERN || m == Material.GLOWSTONE)) p.sendBlockChange(at, Material.TINTED_GLASS.createBlockData());
+            if (!l.light() && (m == Material.END_ROD || m == Material.LANTERN)) p.sendBlockChange(at, Material.AIR.createBlockData());
         }
     }
 
@@ -392,7 +429,7 @@ public final class AltarService implements Listener {
             e.getPlayer().sendActionBar(Text.mm("<#ff7070>보스 둥지에는 블록을 놓을 수 없습니다"));
             return;
         }
-        // 제단 바닥 위쪽 공간은 비워 둔다 (기둥/빛기둥 가림 방지). 가장자리 다리 연결은 허용
+        // 제단 바닥 위쪽 공간은 비워 둔다 (기둥 가림 방지). 가장자리 다리 연결은 허용
         Location c = e.getBlock().getLocation();
         for (Location g : guarded.values()) {
             if (!g.getWorld().equals(c.getWorld())) continue;
@@ -418,17 +455,10 @@ public final class AltarService implements Listener {
 
     private void tick() {
         tick++;
-        Iterator<UUID> it = beams.iterator();
-        Material glass = RAINBOW[tick % RAINBOW.length];
-        while (it.hasNext()) {
-            Entity e = Bukkit.getEntity(it.next());
-            if (!(e instanceof BlockDisplay bd) || !e.isValid()) {
-                it.remove();
-                continue;
-            }
-            bd.setBlock(glass.createBlockData());
-        }
         if (tick % 2 != 0) return;
+        boolean perPlayer = mode() == Mode.PLAYER;
+        // 사람마다 한 번 모드: 5초마다 쓴 사람에게 꺼진 모습을 다시 보낸다 (청크를 다시 받으면 원래대로 보이므로)
+        boolean refresh = perPlayer && tick % 10 == 0;
         for (Map.Entry<UUID, Tier> en : new HashMap<>(loaded).entrySet()) {
             Entity e = Bukkit.getEntity(en.getKey());
             if (e == null || !e.isValid()) {
@@ -436,39 +466,21 @@ public final class AltarService implements Listener {
                 continue;
             }
             Location c = e.getLocation().add(0, 1.2, 0);
-            boolean near = false;
-            for (Player p : e.getWorld().getPlayers()) {
-                if (p.getLocation().distanceSquared(c) < 48 * 48) {
-                    near = true;
-                    break;
-                }
-            }
-            if (!near) continue;
+            String id = en.getKey().toString();
             Particle part = switch (en.getValue()) {
                 case SILVER -> Particle.END_ROD;
                 case GOLD -> Particle.WAX_ON;
                 case PRISM -> Particle.GLOW;
             };
-            e.getWorld().spawnParticle(part, c, 6, 0.8, 0.8, 0.8, 0.01);
-            if (en.getValue() == Tier.PRISM) e.getWorld().spawnParticle(Particle.END_ROD, c, 3, 1.2, 1.2, 1.2, 0.02);
-        }
-    }
-
-    /** /증강 제단 에 쓸 안내 문구. */
-    public List<String> describeNearest(Player p) {
-        List<String> out = new ArrayList<>();
-        Location l = p.getLocation();
-        for (Tier t : Tier.values()) {
-            List<Info> list = nearestUsable(p, t, 3);
-            int left = mode() == Mode.GLOBAL ? remaining(p.getWorld(), t) : -1;
-            out.add(t.wrap(t.korean + " 제단") + (left >= 0 ? " <dark_gray>(남은 " + left + "곳)" : ""));
-            if (list.isEmpty()) out.add("  <gray>남은 제단이 없습니다");
-            for (Info i : list) {
-                int dx = (int) Math.round(i.x() - l.getX()), dz = (int) Math.round(i.z() - l.getZ());
-                out.add("  <white>" + MapBuilder.dir(dx, dz) + " " + (int) Math.round(Math.hypot(dx, dz)) + "m <dark_gray>("
-                        + (int) i.x() + ", " + (int) i.y() + ", " + (int) i.z() + ")");
+            for (Player p : e.getWorld().getPlayers()) {
+                if (p.getLocation().distanceSquared(c) >= 48 * 48) continue;
+                if (perPlayer && plugin.augments().data(p).usedAltars.contains(id)) {
+                    if (refresh) dimFor(p, e);
+                    continue;
+                }
+                p.spawnParticle(part, c, 6, 0.8, 0.8, 0.8, 0.01);
+                if (en.getValue() == Tier.PRISM) p.spawnParticle(Particle.END_ROD, c, 3, 1.2, 1.2, 1.2, 0.02);
             }
         }
-        return out;
     }
 }

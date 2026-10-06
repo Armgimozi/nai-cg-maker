@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""월드 폴더의 region 파일을 읽어 맵을 위에서 내려다본 그림을 만든다.  python3 render_map.py <world 폴더> <출력.png> [폰트.ttf]"""
+"""월드 폴더의 region 파일을 읽어 맵을 위에서 내려다본 그림을 만든다.
+
+    python3 render_map.py <world 폴더> <출력.png> [폰트.ttf] [--spoiler]
+
+배포용 그림(dist/preview-map.png)은 --spoiler 없이 그린다: 시작의 섬 말고는 아무 표시도 없다.
+--spoiler 를 붙이면 제단(실버 흰색, 골드 노란색, 프리즘 보라색 동그라미)과 보스 둥지를 표시한다 (관리자용).
+"""
 import io
 import math
 import os
@@ -26,7 +32,8 @@ COLORS = {
     "poppy": (200, 40, 40), "dandelion": (240, 220, 40), "coal_ore": (110, 110, 110), "iron_ore": (150, 135, 125),
     "diamond_ore": (120, 170, 170), "gold_ore": (170, 150, 90), "lapis_ore": (90, 100, 150), "emerald_ore": (100, 150, 110),
     "redstone_ore": (140, 100, 100), "nether_gold_ore": (130, 80, 50), "nether_quartz_ore": (140, 110, 100),
-    "oak_sapling": (80, 140, 50),
+    "oak_sapling": (80, 140, 50), "water": (63, 118, 228), "lava": (207, 92, 15), "nether_wart": (130, 20, 20),
+    "fire": (230, 140, 40), "soul_fire": (60, 200, 220), "pointed_dripstone": (130, 100, 85),
 }
 
 
@@ -115,8 +122,10 @@ def column_tops(nbt):
 
 
 def main():
-    world, out = sys.argv[1], sys.argv[2]
-    font_path = sys.argv[3] if len(sys.argv) > 3 else None
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    spoiler = "--spoiler" in sys.argv[1:]
+    world, out = args[0], args[1]
+    font_path = args[2] if len(args) > 2 else None
     blocks = {}
     rdir = os.path.join(world, "region")
     for fn in os.listdir(rdir):
@@ -140,7 +149,6 @@ def main():
         px, pz = (x - minx) * S, (z - minz) * S
         d.rectangle([px, pz, px + S - 1, pz + S - 1], fill=c)
     f = ImageFont.truetype(font_path, 15) if font_path else ImageFont.load_default()
-    fb = ImageFont.truetype(font_path, 22) if font_path else ImageFont.load_default()
 
     def label(name, x, z, font, fill=(255, 255, 255), dy=10):
         px, pz = (x - minx) * S, (z - minz + dy) * S
@@ -148,33 +156,29 @@ def main():
         d.text((px - tw / 2 + 1, pz + 1), name, font=font, fill=(0, 0, 0))
         d.text((px - tw / 2, pz), name, font=font, fill=fill)
 
-    # 제단 (월드 폴더의 기록): 실버 흰색, 골드 노란색, 프리즘 보라색 동그라미
     tier_col = {"SILVER": (230, 236, 245), "GOLD": (255, 207, 64), "PRISM": (200, 107, 255)}
-    try:
-        import yaml
-        alt = yaml.safe_load(open(os.path.join(world, "augsky-altars.yml"))) or {}
-        for a in (alt.get("altars") or {}).values():
-            px, pz = (a["x"] - minx) * S, (a["z"] - minz) * S
-            r = 7
-            d.ellipse([px - r, pz - r, px + r, pz + r], outline=(0, 0, 0), width=4)
-            d.ellipse([px - r, pz - r, px + r, pz + r], outline=tier_col.get(a["tier"], (255, 255, 255)), width=2)
-        lairs = yaml.safe_load(open(os.path.join(world, "augsky-lairs.yml"))) or {}
-        names = {"frost_tyrant": "서리 군주의 둥지", "inferno_colossus": "화염 거신의 둥지", "void_sovereign": "공허 군주의 둥지"}
-        for l in (lairs.get("lairs") or {}).values():
-            label("☠ " + names.get(l["boss"], l["boss"]), l["x"], l["z"], f, (255, 140, 140), dy=22)
-    except FileNotFoundError:
-        pass
-    for name, x, z in [("시작의 섬", 0, 0), ("끝의 섬", 300, 196)]:
-        label(name, x, z, f)
-    for name, x, z, col in [("서리 지역", -170, 30, (154, 216, 255)), ("화염 지역", 140, -100, (255, 138, 61)),
-                            ("공허 지역", -130, -200, (200, 107, 255)), ("바다 지역", 20, 175, (110, 220, 200))]:
-        label(name, x, z, fb, col, dy=0)
-    # 범례
-    lx, ly = 10, H - 90
-    for i, (t, name) in enumerate([("SILVER", "실버 제단 16"), ("GOLD", "골드 제단 9"), ("PRISM", "프리즘 제단 5")]):
-        yy = ly + i * 26
-        d.ellipse([lx, yy, lx + 14, yy + 14], outline=tier_col[t], width=2)
-        d.text((lx + 22, yy - 3), name, font=f, fill=(230, 230, 240))
+    if spoiler:
+        # 제단 (월드 폴더의 기록)과 보스 둥지. 플레이어에게 보여 줄 그림에는 넣지 않는다
+        try:
+            import yaml
+            alt = yaml.safe_load(open(os.path.join(world, "augsky-altars.yml"))) or {}
+            for a in (alt.get("altars") or {}).values():
+                px, pz = (a["x"] - minx) * S, (a["z"] - minz) * S
+                r = 7
+                d.ellipse([px - r, pz - r, px + r, pz + r], outline=(0, 0, 0), width=4)
+                d.ellipse([px - r, pz - r, px + r, pz + r], outline=tier_col.get(a["tier"], (255, 255, 255)), width=2)
+            lairs = yaml.safe_load(open(os.path.join(world, "augsky-lairs.yml"))) or {}
+            names = {"frost_tyrant": "서리 군주의 둥지", "inferno_colossus": "화염 거신의 둥지", "void_sovereign": "공허 군주의 둥지"}
+            for l in (lairs.get("lairs") or {}).values():
+                label("☠ " + names.get(l["boss"], l["boss"]), l["x"], l["z"], f, (255, 140, 140), dy=22)
+        except FileNotFoundError:
+            pass
+        lx, ly = 10, H - 90
+        for i, (t, name) in enumerate([("SILVER", "실버 제단 16"), ("GOLD", "골드 제단 9"), ("PRISM", "프리즘 제단 5")]):
+            yy = ly + i * 26
+            d.ellipse([lx, yy, lx + 14, yy + 14], outline=tier_col[t], width=2)
+            d.text((lx + 22, yy - 3), name, font=f, fill=(230, 230, 240))
+    label("시작의 섬", 0, 0, f)
     d.text((8, 6), "북 ↑", font=f, fill=(200, 200, 220))
     img.save(out)
     print(f"{len(blocks)} columns, {W}x{H}")

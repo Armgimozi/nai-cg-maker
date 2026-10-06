@@ -68,7 +68,7 @@ public final class Commands implements TabExecutor {
             case "", "목록", "list" -> plugin.menus().openMine(p);
             case "도감", "codex" -> plugin.menus().openCodex(p, a.length > 1 && Tier.parse(a[1]) != null ? Tier.parse(a[1]) : Tier.SILVER);
             case "선택", "choose" -> plugin.menus().openChoice(p);
-            case "제단", "위치", "where" -> places(p);
+            case "제단" -> places(p);
             case "책", "book" -> Items.give(p, plugin.items().guideBook());
             default -> help(p);
         }
@@ -79,30 +79,33 @@ public final class Commands implements TabExecutor {
         msg(p, "<white>/증강 <gray>내 증강 보기");
         msg(p, "<white>/증강 도감 <gray>모든 증강 보기");
         msg(p, "<white>/증강 선택 <gray>고르다 만 증강 선택지 다시 열기");
-        msg(p, "<white>/증강 제단 <gray>남은 제단과 보스 둥지 위치");
+        msg(p, "<white>/증강 제단 <gray>남은 제단 수와 보스 상태");
         msg(p, "<white>/증강 책 <gray>안내서 다시 받기");
         msg(p, "<white>/무기도감 <gray>모든 무기 보기");
         msg(p, "<white>/갑옷도감 <gray>모든 갑옷 세트 보기");
         msg(p, "<white>/스폰 <gray>시작의 섬으로 이동");
     }
 
+    /** 남은 제단 수와 보스 상태. 어디에 있는지는 알려 주지 않는다 (섬을 직접 찾아다니는 게 이 맵의 재미). */
     private void places(Player p) {
-        msg(p, "<#ffcc55>━━━━ 아직 쓸 수 있는 가까운 제단 ━━━━");
-        for (String line : plugin.altars().describeNearest(p)) msg(p, line);
+        var altars = plugin.altars();
+        msg(p, "<#ffcc55>━━━━ 남은 제단 ━━━━");
+        switch (altars.mode()) {
+            case GLOBAL -> {
+                World w = p.getWorld();
+                msg(p, "<gray>" + Tier.SILVER.wrap("실버") + " 제단 <white>" + altars.remaining(w, Tier.SILVER) + "곳 <dark_gray>· "
+                        + Tier.GOLD.wrap("골드") + " <gray>제단 <white>" + altars.remaining(w, Tier.GOLD) + "곳 <dark_gray>· "
+                        + Tier.PRISM.wrap("프리즘") + " <gray>제단 <white>" + altars.remaining(w, Tier.PRISM) + "곳");
+            }
+            case PLAYER -> msg(p, "<gray>아직 쓰지 않은 제단: 실버 " + altars.usableCount(p, Tier.SILVER) + "곳 · 골드 "
+                    + altars.usableCount(p, Tier.GOLD) + "곳 · 프리즘 " + altars.usableCount(p, Tier.PRISM) + "곳");
+            case OFF -> msg(p, "<gray>제단은 몇 번이고 쓸 수 있습니다.");
+        }
         List<String> lairs = plugin.mobs().lairs().describe(p);
         if (!lairs.isEmpty()) {
-            msg(p, "<#ffcc55>━━━━ 보스 둥지 ━━━━");
+            msg(p, "<#ffcc55>━━━━ 보스 ━━━━");
             for (String line : lairs) msg(p, line);
         }
-        Location l = p.getLocation();
-        StringBuilder sb = new StringBuilder("<gray>");
-        for (String n : List.of("서리 지역", "화염 지역", "공허 지역", "바다 지역", "끝의 섬")) {
-            MapBuilder.Place pl = MapBuilder.place(n);
-            int dx = pl.x() - l.getBlockX(), dz = pl.z() - l.getBlockZ();
-            sb.append("<white>").append(n).append(" <gray>").append(MapBuilder.dir(dx, dz)).append(" ")
-                    .append((int) Math.round(Math.hypot(dx, dz))).append("m  ");
-        }
-        msg(p, sb.toString());
     }
 
     private void spawn(CommandSender s) {
@@ -219,13 +222,48 @@ public final class Commands implements TabExecutor {
                 msg(s, le == null ? "<#ff7070>몬스터 id 를 확인하세요." : "<gray>" + a[1] + " 소환");
             }
             case "맵생성", "buildmap" -> {
+                boolean force = false;
+                String name = null;
+                for (int i = 1; i < a.length; i++) {
+                    if (a[i].equals("강제") || a[i].equalsIgnoreCase("force")) force = true;
+                    else name = a[i];
+                }
+                World w = name != null ? Bukkit.getWorld(name) : (s instanceof Player p ? p.getWorld() : Bukkit.getWorlds().get(0));
+                if (w == null) {
+                    msg(s, "<#ff7070>월드를 찾을 수 없습니다.");
+                    return;
+                }
+                // 이미 맵이 있는 월드에 다시 지으면 예전 섬과 새 섬이 뒤섞인다
+                if (!force && (!plugin.altars().all(w).isEmpty() || !plugin.mobs().lairs().all(w).isEmpty()
+                        || !w.getBlockAt(0, 64, 0).getType().isAir())) {
+                    msg(s, "<#ff7070>이 월드에는 이미 맵이 있습니다. 새 맵은 빈 공허 월드에 지으세요.");
+                    msg(s, "<gray>그래도 지으려면 /증강관리 맵생성 [월드] 강제 (예전 섬은 그대로 남습니다)");
+                    return;
+                }
+                msg(s, "<gray>맵을 짓는 중... (" + w.getName() + ") 섬이 많아서 잠시 걸립니다.");
+                plugin.mapBuilder().buildAll(w, m -> msg(s, "<gray>" + m), () -> msg(s, "<#7cff8c>맵 생성 완료."));
+            }
+            case "섬", "island" -> {
+                if (!(s instanceof Player p) || a.length < 2) {
+                    msg(s, "/증강관리 섬 <종류> [반지름]  (발밑에 섬 하나를 지어 봅니다)");
+                    return;
+                }
+                Location l = p.getLocation();
+                double rad = a.length > 2 ? parseD(a[2]) : 0;
+                if (!plugin.mapBuilder().buildKind(p.getWorld(), a[1], l.getBlockX(), l.getBlockY() - 1, l.getBlockZ(), rad)) {
+                    msg(s, "<#ff7070>없는 섬 종류입니다: " + String.join(", ", MapBuilder.kinds()));
+                    return;
+                }
+                p.teleport(l.clone().add(0, 12, 0));
+                msg(s, "<gray>" + a[1] + " 섬을 지었습니다.");
+            }
+            case "섬검사", "islandcheck" -> {
                 World w = a.length > 1 ? Bukkit.getWorld(a[1]) : (s instanceof Player p ? p.getWorld() : Bukkit.getWorlds().get(0));
                 if (w == null) {
                     msg(s, "<#ff7070>월드를 찾을 수 없습니다.");
                     return;
                 }
-                msg(s, "<gray>맵을 짓는 중... (" + w.getName() + ") 섬이 많아서 잠시 걸립니다.");
-                plugin.mapBuilder().buildAll(w, m -> msg(s, "<gray>" + m), () -> msg(s, "<#7cff8c>맵 생성 완료."));
+                plugin.mapBuilder().checkIslands(w, s);
             }
             case "제단", "altar" -> {
                 if (!(s instanceof Player p) || a.length < 2 || Tier.parse(a[1]) == null) {
@@ -324,7 +362,8 @@ public final class Commands implements TabExecutor {
         msg(s, "<white>선택지 <플레이어> <등급>  <gray>제단 없이 선택창 열기");
         msg(s, "<white>소환 <몬스터id> [플레이어|x y z]");
         msg(s, "<white>제단 <등급> / 균열 <id> / 둥지 <보스id>  <gray>지금 위치에 세우기");
-        msg(s, "<white>맵생성 [월드]  <gray>빈 공허 월드에 맵 전체 짓기");
+        msg(s, "<white>맵생성 [월드] [강제]  <gray>빈 공허 월드에 맵 전체 짓기");
+        msg(s, "<white>섬 <종류> [반지름] / 섬검사  <gray>섬 하나 지어 보기 / 지은 맵의 섬마다 재료 확인");
         msg(s, "<white>리로드, 리소스팩, 정보");
     }
 
@@ -362,7 +401,8 @@ public final class Commands implements TabExecutor {
             case "augadmin" -> {
                 if (!s.hasPermission("augsky.admin")) return out;
                 if (a.length == 1) {
-                    out.addAll(List.of("무기", "아이템", "증강", "갑옷", "선택지", "소환", "제단", "균열", "둥지", "맵생성", "리로드", "리소스팩", "정보"));
+                    out.addAll(List.of("무기", "아이템", "증강", "갑옷", "선택지", "소환", "제단", "균열", "둥지", "맵생성", "섬", "섬검사",
+                            "리로드", "리소스팩", "정보"));
                 } else {
                     switch (a[0]) {
                         case "무기", "weapon" -> {
@@ -387,6 +427,13 @@ public final class Commands implements TabExecutor {
                             if (a.length == 3) players(out);
                         }
                         case "제단", "altar" -> out.addAll(List.of("실버", "골드", "프리즘"));
+                        case "섬", "island" -> {
+                            if (a.length == 2) out.addAll(MapBuilder.kinds());
+                        }
+                        case "맵생성", "buildmap" -> {
+                            out.add("강제");
+                            for (World w : Bukkit.getWorlds()) out.add(w.getName());
+                        }
                         case "갑옷", "armor" -> out.addAll(plugin.armor().all().keySet());
                         case "균열", "rift" -> out.addAll(plugin.mobs().registry().rifts().keySet());
                         case "둥지", "lair" -> {

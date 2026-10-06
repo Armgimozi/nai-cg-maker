@@ -392,19 +392,15 @@ public final class Lairs {
         clock.clear();
     }
 
-    /** /증강 제단 처럼 둥지 상태를 알려 준다. */
+    /** /증강 제단 에 보여 줄 둥지 상태 (위치는 알려 주지 않는다). */
     public List<String> describe(Player p) {
         List<String> out = new ArrayList<>();
         long now = System.currentTimeMillis();
-        Location pl = p.getLocation();
         for (Lair l : reg(p.getWorld()).values()) {
             MobDef def = mobs.registry().get(l.boss);
             String name = def == null ? l.boss : def.name();
-            int dist = (int) Math.hypot(l.x - pl.getX(), l.z - pl.getZ());
             String state = now < l.respawnAt ? "<gray>잠듦 (" + ((l.respawnAt - now) / 60000 + 1) + "분 뒤)" : "<#ff7070>깨어 있음";
-            int dx = (int) Math.round(l.x - pl.getX()), dz = (int) Math.round(l.z - pl.getZ());
-            out.add(name + " <dark_gray>— " + state + " <dark_gray>· <white>" + kr.augsky.map.MapBuilder.dir(dx, dz) + " " + dist + "m <dark_gray>("
-                    + (int) l.x + ", " + (int) l.y + ", " + (int) l.z + ")");
+            out.add(name + " <dark_gray>— " + state);
         }
         return out;
     }

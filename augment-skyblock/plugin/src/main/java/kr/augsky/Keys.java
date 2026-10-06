@@ -16,7 +16,7 @@ public final class Keys {
     public static NamespacedKey PEDESTAL;  // 보스 소환대의 균열 id
     public static NamespacedKey ALLY;      // 플레이어가 소환한 아군 (주인 UUID)
     public static NamespacedKey MAP_PART;  // 맵 장식용 디스플레이 엔티티
-    public static NamespacedKey BEAM;      // 제단 빛기둥 (프리즘 무지개 색 순환용)
+    public static NamespacedKey BEAM;      // 예전 맵의 빛기둥. 보이면 지운다
     public static NamespacedKey USED;      // 힘을 다한(이미 쓴) 제단
     public static NamespacedKey ALTAR_OF;  // 제단 장식이 어느 제단(상호작용 엔티티 UUID)에 속하는지
     public static NamespacedKey LAIR;      // 보스 둥지 마커 / 둥지를 지키는 보스 (둥지 UUID)

@@ -96,7 +96,7 @@ public final class Menus implements Listener {
     public void openChoice(Player p) {
         PlayerData d = aug().data(p);
         if (!d.hasOffer()) {
-            p.sendMessage(Text.mm("<gray>고를 증강이 없습니다. 아직 쓰지 않은 제단을 찾아 우클릭하세요. <white>/증강 제단"));
+            p.sendMessage(Text.mm("<gray>고를 증강이 없습니다. 아직 쓰지 않은 제단을 찾아 우클릭하세요."));
             return;
         }
         Tier tier = d.offerTier;

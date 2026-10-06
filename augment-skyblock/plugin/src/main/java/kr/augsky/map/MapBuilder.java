@@ -3,9 +3,6 @@ package kr.augsky.map;
 import kr.augsky.AugSky;
 import kr.augsky.Keys;
 import kr.augsky.augment.Tier;
-import kr.augsky.util.Text;
-import org.bukkit.Bukkit;
-import org.bukkit.Color;
 import org.bukkit.GameRule;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -13,20 +10,13 @@ import org.bukkit.TreeType;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.block.Chest;
-import org.bukkit.block.CreatureSpawner;
-import org.bukkit.block.data.Ageable;
-import org.bukkit.block.data.BlockData;
-import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.type.EndPortalFrame;
-import org.bukkit.entity.Animals;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Marker;
-import org.bukkit.entity.TextDisplay;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
@@ -36,35 +26,34 @@ import org.joml.AxisAngle4f;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.function.Consumer;
+import java.util.logging.Level;
 
 /**
  * 맵 전체를 짓는다. 빈 공허 월드에서 /증강관리 맵생성 을 한 번 실행하면 된다.
  * 배포용 맵 파일은 이 코드로 지은 월드를 그대로 묶은 것이다.
  *
- * 반지름 약 380m. 가운데 시작의 섬 둘레는 초원, 서쪽은 서리, 동북쪽은 화염, 북서쪽은 공허, 남쪽은 바다 지역이다.
+ * 반지름 약 620m, 섬 약 130개. 가운데 초원(반지름 175m)을 서리(서)·화염(동북)·공허(북서)·바다(남)·야생이 둘러싼다.
+ * 섬마다 모습과 재료가 다르고, 위치 안내판·빛기둥은 없다.
  * 제단(실버 16, 골드 9, 프리즘 5)은 한 번 쓰면 힘을 잃고, 각 지역 끝의 둥지에는 보스가 산다.
  * 같은 시드로 지으면 언제나 같은 맵이 나온다.
  */
-public final class MapBuilder {
+public final class MapBuilder extends MapTools {
     public record Place(String name, int x, int y, int z) {}
 
-    /** 큰 장소. 안내판과 /증강 제단 에서 쓴다. 제단 위치는 AltarService 기록을 쓴다. */
+    /** 큰 장소. 맵을 지을 때만 쓴다. */
     public static final List<Place> PLACES = List.of(
             new Place("시작의 섬", 0, 64, 0),
-            new Place("서리 지역", -170, 62, 50),
-            new Place("화염 지역", 150, 58, -110),
-            new Place("공허 지역", -150, 92, -200),
-            new Place("바다 지역", 20, 60, 190),
-            new Place("서리 균열", -205, 62, 62),
-            new Place("화염 균열", 196, 58, -134),
-            new Place("공허 균열", -206, 98, -246),
-            new Place("서리 군주의 둥지", -262, 62, 80),
-            new Place("화염 거신의 둥지", 246, 56, -170),
-            new Place("공허 군주의 둥지", -246, 104, -302),
-            new Place("끝의 섬", 300, 72, 196)
+            new Place("서리 균열", -370, 62, 111),
+            new Place("서리 군주의 둥지", -449, 62, 137),
+            new Place("화염 균열", 332, 58, -228),
+            new Place("화염 거신의 둥지", 397, 56, -275),
+            new Place("공허 균열", -292, 98, -349),
+            new Place("공허 군주의 둥지", -338, 104, -415),
+            new Place("끝의 섬", 494, 72, 323)
     );
 
     public enum Region { PLAINS, FROST, FLAME, VOID, OCEAN, WILD }
@@ -72,13 +61,65 @@ public final class MapBuilder {
     /** 지을 섬 하나. */
     record Isle(String kind, int x, int y, int z, double r, Region region, Tier tier, long seed) {}
 
-    private static final long SEED = 20261005L;
+    /** 자원 섬 묶음: 종류, 지역, 시작 섬에서 떨어진 거리(m), 개수, 반지름. */
+    record Spot(String kind, Region region, double rMin, double rMax, int count, double sMin, double sMax) {}
 
-    private final AugSky plugin;
-    private World w;
+    private static final long SEED = 20261005L;
+    /** 초원(가운데 지역)의 반지름 */
+    private static final double PLAINS_R = 175;
+    /** 이보다 긴 다리가 필요하면 가운데에 징검다리 바위를 놓는다 */
+    private static final double MAX_BRIDGE = 80;
+
+    /**
+     * 자원 섬을 놓는 순서. 위에서부터 하나씩 빈자리에 놓으므로 순서를 바꾸면 맵 전체가 바뀐다.
+     * 가까운 초원에는 기본 재료, 바깥 지역에는 그 지역만의 재료가 나는 섬. 두 번째 묶음은 더 먼 곳에 하나 더.
+     */
+    static final List<Spot> DECK = List.of(
+            spot("woods", Region.PLAINS, 60, 170, 2, 6, 8.5), spot("mine", Region.PLAINS, 90, 170, 1, 7, 8.5),
+            spot("ranch", Region.PLAINS, 90, 170, 1, 7, 8.5), spot("farm", Region.PLAINS, 60, 130, 1, 6.5, 8),
+            spot("pond", Region.PLAINS, 60, 170, 2, 5.5, 7), spot("pumpkin", Region.PLAINS, 90, 170, 1, 5, 6.5),
+            spot("meadow", Region.PLAINS, 90, 170, 1, 6, 7.5), spot("mushroom", Region.PLAINS, 100, 170, 1, 5.5, 7),
+            spot("desert", Region.PLAINS, 110, 172, 2, 7, 9), spot("spider_den", Region.PLAINS, 120, 172, 1, 6.5, 8),
+
+            spot("taiga", Region.FROST, 180, 320, 1, 6.5, 8.5), spot("frozen_lake", Region.FROST, 180, 320, 1, 7, 9),
+            spot("frost_mine", Region.FROST, 250, 380, 1, 7.5, 9), spot("igloo", Region.FROST, 280, 420, 1, 6, 7.5),
+            spot("taiga", Region.FROST, 320, 620, 2, 6.5, 8.5), spot("frozen_lake", Region.FROST, 320, 560, 1, 7, 9),
+            spot("frost_mine", Region.FROST, 380, 620, 1, 7.5, 9), spot("icespike", Region.FROST, 300, 620, 2, 6.5, 8.5),
+
+            spot("basalt", Region.FLAME, 190, 320, 1, 6.5, 8.5), spot("crimson", Region.FLAME, 190, 320, 1, 6.5, 8),
+            spot("soul_valley", Region.FLAME, 190, 330, 1, 6.5, 8), spot("volcano", Region.FLAME, 220, 350, 1, 7, 9),
+            spot("fortress", Region.FLAME, 260, 380, 1, 7, 8.5), spot("nether_vein", Region.FLAME, 260, 400, 1, 7, 9),
+            spot("basalt", Region.FLAME, 320, 620, 1, 6.5, 8.5), spot("crimson", Region.FLAME, 320, 620, 1, 6.5, 8),
+            spot("soul_valley", Region.FLAME, 330, 620, 1, 6.5, 8), spot("volcano", Region.FLAME, 350, 620, 1, 7, 9),
+            spot("fortress", Region.FLAME, 380, 620, 1, 7, 8.5), spot("nether_vein", Region.FLAME, 400, 620, 1, 7, 9),
+            spot("warped", Region.FLAME, 350, 620, 1, 6, 7.5),
+
+            spot("chorus", Region.VOID, 190, 320, 1, 6.5, 8.5), spot("geode", Region.VOID, 250, 620, 2, 7, 8.5),
+            spot("obsidian_spire", Region.VOID, 260, 400, 1, 6, 7.5), spot("chorus", Region.VOID, 320, 620, 2, 6.5, 8.5),
+            spot("purpur_ruin", Region.VOID, 330, 620, 2, 6.5, 8), spot("obsidian_spire", Region.VOID, 400, 620, 1, 6, 7.5),
+
+            spot("beach", Region.OCEAN, 180, 300, 1, 6.5, 8.5), spot("lagoon", Region.OCEAN, 190, 330, 1, 8, 9.5),
+            spot("copper_cove", Region.OCEAN, 190, 320, 1, 7, 9), spot("prismarine_ruin", Region.OCEAN, 260, 420, 1, 7, 8.5),
+            spot("beach", Region.OCEAN, 300, 600, 2, 6.5, 8.5), spot("lagoon", Region.OCEAN, 330, 600, 1, 8, 9.5),
+            spot("copper_cove", Region.OCEAN, 320, 600, 1, 7, 9), spot("prismarine_ruin", Region.OCEAN, 420, 620, 1, 7, 8.5),
+            spot("shipwreck", Region.OCEAN, 350, 620, 1, 6.5, 8),
+
+            spot("geode", Region.WILD, 190, 320, 1, 7, 8.5), spot("jungle", Region.WILD, 180, 320, 1, 7, 8.5),
+            spot("swamp", Region.WILD, 180, 330, 1, 7, 8.5), spot("badlands", Region.WILD, 190, 350, 1, 7, 9),
+            spot("savanna", Region.WILD, 180, 400, 1, 6.5, 8), spot("lush_cave", Region.WILD, 200, 380, 1, 7, 8.5),
+            spot("mountain", Region.WILD, 220, 400, 1, 7.5, 9), spot("deep_mine", Region.WILD, 220, 330, 1, 7.5, 9),
+            spot("spider_den", Region.WILD, 200, 450, 1, 6.5, 8), spot("dark_forest", Region.WILD, 250, 500, 1, 6.5, 8),
+            spot("jungle", Region.WILD, 320, 620, 1, 7, 8.5), spot("badlands", Region.WILD, 350, 620, 1, 7, 9),
+            spot("mountain", Region.WILD, 400, 620, 1, 7.5, 9), spot("deep_mine", Region.WILD, 420, 620, 1, 7.5, 9),
+            spot("cherry", Region.WILD, 300, 620, 1, 6, 7.5), spot("ruin", Region.WILD, 300, 620, 1, 6, 7.5)
+    );
 
     public MapBuilder(AugSky plugin) {
-        this.plugin = plugin;
+        super(plugin);
+    }
+
+    private static Spot spot(String kind, Region g, double rMin, double rMax, int n, double sMin, double sMax) {
+        return new Spot(kind, g, rMin, rMax, n, sMin, sMax);
     }
 
     public static Place place(String name) {
@@ -86,10 +127,15 @@ public final class MapBuilder {
         return null;
     }
 
+    /** /증강관리 섬 탭 완성용 섬 종류. */
+    public static List<String> kinds() {
+        return IslandKinds.KINDS;
+    }
+
     /** 지역: 가운데는 초원, 바깥은 방향에 따라 나뉜다. */
     public static Region region(double x, double z) {
         double r = Math.hypot(x, z);
-        if (r < 105) return Region.PLAINS;
+        if (r < PLAINS_R) return Region.PLAINS;
         double b = Math.toDegrees(Math.atan2(x, -z));
         if (b < 0) b += 360;
         if (b >= 300) return Region.VOID;
@@ -105,7 +151,8 @@ public final class MapBuilder {
             case PLAINS -> 64 + rnd.nextInt(9) - 4;
             case FROST -> 62 + rnd.nextInt(9) - 4;
             case FLAME -> 57 + rnd.nextInt(9) - 4;
-            case VOID -> (int) (66 + Math.min(34, (r - 105) * 0.16)) + rnd.nextInt(7) - 3;
+            // 공허는 멀어질수록 높이 떠 있다
+            case VOID -> (int) (66 + Math.min(34, Math.max(0, r - PLAINS_R) * 0.1)) + rnd.nextInt(7) - 3;
             case OCEAN -> 60 + rnd.nextInt(5) - 2;
             case WILD -> 68 + rnd.nextInt(11) - 5;
         };
@@ -113,105 +160,177 @@ public final class MapBuilder {
 
     // ------------------------------------------------------------------ 배치
 
-    /** 섬 목록을 만든다. 제단과 둥지를 먼저 놓고, 남은 자리에 자원 섬을 흩뿌린다. */
     public static List<Isle> plan() {
+        return plan(new ArrayList<>());
+    }
+
+    /**
+     * 섬 목록을 만든다. 큰 장소와 제단을 먼저 놓고, DECK 순서대로 자원 섬을 놓은 뒤, 다리가 너무 길어지는 곳에 징검다리를 놓는다.
+     * 난수를 쓰는 순서까지 맵의 일부라서 순서를 바꾸면 안 된다. 놓지 못한 것은 warn 에 적는다.
+     */
+    static List<Isle> plan(List<String> warn) {
         Random rnd = new Random(SEED);
         List<Isle> out = new ArrayList<>();
         out.add(new Isle("start", 0, 64, 0, 6, Region.PLAINS, null, 1));
-        out.add(new Isle("sand", -36, 62, 30, 4.4, Region.PLAINS, null, 11));
-        out.add(new Isle("forest", 14, 67, -44, 5.6, Region.PLAINS, null, 12));
+        // 시작 섬 둘레 약 50m 의 세 섬: 나무, 돌과 쇠, 동물. 처음 놓는 다리는 이 셋 중 하나로 간다
+        out.add(new Isle("woods", 17, 66, -47, 7, Region.PLAINS, null, 11));
+        out.add(new Isle("mine", -44, 63, 24, 7.5, Region.PLAINS, null, 12));
+        out.add(new Isle("ranch", 40, 65, 30, 7.5, Region.PLAINS, null, 13));
 
-        for (String n : List.of("서리", "화염", "공허")) {
-            Place lair = place(switch (n) {
-                case "서리" -> "서리 군주의 둥지";
-                case "화염" -> "화염 거신의 둥지";
-                default -> "공허 군주의 둥지";
-            });
-            Place rift = place(n + " 균열");
-            String id = switch (n) {
-                case "서리" -> "frost";
-                case "화염" -> "flame";
-                default -> "void";
-            };
-            out.add(new Isle("lair_" + id, lair.x(), lair.y(), lair.z(), 18, region(lair.x(), lair.z()), null, 40 + out.size()));
-            out.add(new Isle("rift_" + id, rift.x(), rift.y(), rift.z(), 11, region(rift.x(), rift.z()), null, 50 + out.size()));
+        String[][] big = {{"rift_frost", "서리 균열"}, {"lair_frost", "서리 군주의 둥지"}, {"rift_flame", "화염 균열"},
+                {"lair_flame", "화염 거신의 둥지"}, {"rift_void", "공허 균열"}, {"lair_void", "공허 군주의 둥지"}, {"end", "끝의 섬"}};
+        for (int i = 0; i < big.length; i++) {
+            Place p = place(big[i][1]);
+            double r = big[i][0].startsWith("lair_") ? 18 : big[i][0].startsWith("rift_") ? 11 : 7.5;
+            out.add(new Isle(big[i][0], p.x(), p.y(), p.z(), r, region(p.x(), p.z()), null, 40 + i));
         }
-        Place end = place("끝의 섬");
-        out.add(new Isle("end", end.x(), end.y(), end.z(), 7.5, Region.OCEAN, null, 77));
 
-        // 제단: 실버는 가까운 곳 사방에, 골드는 중간, 프리즘은 맵 끝자락에
-        altarRing(out, rnd, Tier.SILVER, 16, new double[]{48, 82, 118, 150}, 11);
-        altarRing(out, rnd, Tier.GOLD, 9, new double[]{175, 215, 250}, 31);
-        altarRing(out, rnd, Tier.PRISM, 5, new double[]{300, 335}, 47);
+        // 제단: 실버는 초원 둘레, 골드는 중간, 프리즘은 맵 끝자락
+        altarRing(out, rnd, Tier.SILVER, 16, new double[]{100, 150, 200, 250}, 11, warn);
+        altarRing(out, rnd, Tier.GOLD, 9, new double[]{300, 360, 420}, 31, warn);
+        altarRing(out, rnd, Tier.PRISM, 5, new double[]{520, 585}, 47, warn);
 
-        // 자원 섬: 안쪽일수록 촘촘하게
-        scatter(out, rnd, 30, 110, 14, 30);
-        scatter(out, rnd, 110, 230, 18, 36);
-        scatter(out, rnd, 230, 365, 14, 40);
+        for (Spot s : DECK) for (int k = 0; k < s.count(); k++) place(out, rnd, s, warn);
+        stones(out, warn);
         return out;
     }
 
-    private static void altarRing(List<Isle> out, Random rnd, Tier tier, int count, double[] radii, double offsetDeg) {
+    private static void altarRing(List<Isle> out, Random rnd, Tier tier, int count, double[] radii, double offsetDeg, List<String> warn) {
         for (int i = 0; i < count; i++) {
-            for (int tries = 0; tries < 40; tries++) {
+            boolean ok = false;
+            for (int tries = 0; tries < 60 && !ok; tries++) {
                 double a = Math.toRadians(offsetDeg + i * 360.0 / count + rnd.nextDouble(-7, 7) + tries * 3);
                 double r = radii[i % radii.length] + rnd.nextDouble(-8, 8);
                 int x = (int) Math.round(Math.sin(a) * r), z = (int) Math.round(-Math.cos(a) * r);
-                if (!free(out, x, z, 7, 26)) continue;
+                if (!free(out, x, z, 7, 30)) continue;
                 Region g = region(x, z);
                 out.add(new Isle("altar", x, baseY(g, x, z, rnd), z, 7, g, tier, 100 + out.size()));
-                break;
+                ok = true;
             }
+            if (!ok) warn.add("맵 배치: " + tier.korean + " 제단 " + (i + 1) + "번째를 놓을 자리가 없습니다");
         }
     }
 
-    private static void scatter(List<Isle> out, Random rnd, double rMin, double rMax, int count, double gap) {
-        int placed = 0;
-        for (int tries = 0; tries < 4000 && placed < count; tries++) {
+    /** 자원 섬 하나: 거리 범위 안에서 그 지역이면서 다른 섬과 충분히 떨어진 첫 자리. */
+    private static void place(List<Isle> out, Random rnd, Spot s, List<String> warn) {
+        for (int t = 0; t < 3000; t++) {
             double a = rnd.nextDouble(Math.PI * 2);
-            double r = Math.sqrt(rnd.nextDouble(rMin * rMin, rMax * rMax));
+            double r = Math.sqrt(rnd.nextDouble(s.rMin() * s.rMin(), s.rMax() * s.rMax()));
             int x = (int) Math.round(Math.sin(a) * r), z = (int) Math.round(-Math.cos(a) * r);
-            double size = 4.5 + rnd.nextDouble() * 4.5;
+            if (region(x, z) != s.region()) continue;
+            double size = s.sMin() + rnd.nextDouble() * (s.sMax() - s.sMin());
+            // 초원은 조금 촘촘하게, 바깥 지역은 더 띄엄띄엄
+            double gap = s.region() == Region.PLAINS ? 30 : 42;
             if (!free(out, x, z, size, gap)) continue;
-            Region g = region(x, z);
-            String kind = pickKind(g, rnd);
-            out.add(new Isle(kind, x, baseY(g, x, z, rnd), z, size, g, null, 1000 + out.size()));
-            placed++;
+            out.add(new Isle(s.kind(), x, baseY(s.region(), x, z, rnd), z, size, s.region(), null, 1000 + out.size()));
+            return;
         }
+        warn.add("맵 배치: " + s.kind() + " 섬을 놓을 자리가 없습니다");
+    }
+
+    /** 모든 섬을 잇는 가장 짧은 다리들 중 MAX_BRIDGE 보다 긴 것이 없어질 때까지 가운데에 바위를 놓는다. */
+    private static void stones(List<Isle> out, List<String> warn) {
+        for (int round = 0; round < 60; round++) {
+            int[] worst = worstBridge(out);
+            if (worst == null) return;
+            Isle a = out.get(worst[0]), b = out.get(worst[1]);
+            double dx = b.x() - a.x(), dz = b.z() - a.z(), len = Math.hypot(dx, dz);
+            double t = (a.r() + (len - a.r() - b.r()) / 2) / len;
+            int x = (int) Math.round(a.x() + dx * t), z = (int) Math.round(a.z() + dz * t);
+            out.add(new Isle("stone", x, (a.y() + b.y()) / 2, z, 3.5, region(x, z), null, 5000 + out.size()));
+        }
+        warn.add("맵 배치: 징검다리를 60개 놓아도 " + (int) MAX_BRIDGE + "m 보다 긴 다리가 남았습니다");
+    }
+
+    /** 가장자리 사이 거리. */
+    private static double gap(Isle a, Isle b) {
+        return Math.max(0, Math.hypot(a.x() - b.x(), a.z() - b.z()) - a.r() - b.r());
+    }
+
+    /** 최소 신장 트리(프림)의 다리 길이들. worst 에는 가장 긴 다리의 두 섬 번호. */
+    private static double[] bridges(List<Isle> out, int[] worst) {
+        int n = out.size();
+        boolean[] in = new boolean[n];
+        double[] key = new double[n];
+        int[] par = new int[n];
+        Arrays.fill(key, 1e18);
+        key[0] = 0;
+        par[0] = -1;
+        double[] edges = new double[n - 1];
+        double max = 0;
+        for (int k = 0; k < n; k++) {
+            int u = -1;
+            for (int i = 0; i < n; i++) if (!in[i] && (u < 0 || key[i] < key[u])) u = i;
+            in[u] = true;
+            if (k > 0) edges[k - 1] = key[u];
+            if (par[u] >= 0 && key[u] > max) {
+                max = key[u];
+                worst[0] = par[u];
+                worst[1] = u;
+            }
+            for (int v = 0; v < n; v++) {
+                if (in[v]) continue;
+                double g = gap(out.get(u), out.get(v));
+                if (g < key[v]) {
+                    key[v] = g;
+                    par[v] = u;
+                }
+            }
+        }
+        return edges;
+    }
+
+    private static int[] worstBridge(List<Isle> out) {
+        int[] worst = {-1, -1};
+        double[] edges = bridges(out, worst);
+        double max = Arrays.stream(edges).max().orElse(0);
+        return max > MAX_BRIDGE ? worst : null;
     }
 
     private static boolean free(List<Isle> out, int x, int z, double r, double gap) {
         for (Isle i : out) {
-            double d = Math.hypot(i.x() - x, i.z() - z);
-            if (d < i.r() + r + gap * 0.5) return false;
+            if (Math.hypot(i.x() - x, i.z() - z) < i.r() + r + gap) return false;
         }
         return true;
     }
 
-    private static String pickKind(Region g, Random rnd) {
-        String[] kinds = switch (g) {
-            case PLAINS -> new String[]{"oak", "birch", "meadow", "farm", "pumpkin", "quarry", "pond", "pasture", "mushroom", "sandy"};
-            case FROST -> new String[]{"spruce", "icespike", "frozen_lake", "frost_quarry", "igloo"};
-            case FLAME -> new String[]{"basalt", "crimson", "warped", "soul_valley", "fortress", "obsidian"};
-            case VOID -> new String[]{"chorus", "geode", "obsidian_spire", "purpur_ruin", "end_rock"};
-            case OCEAN -> new String[]{"reef", "prismarine_ruin", "beach", "copper", "clay_bank"};
-            case WILD -> new String[]{"mountain", "dark_forest", "jungle", "cherry", "savanna", "ruin"};
-        };
-        return kinds[rnd.nextInt(kinds.length)];
+    /** 맵 배치 한 줄 요약. 제단 수가 16/9/5 가 아니면 ok[0] 이 false. */
+    static String summary(List<Isle> isles, boolean[] ok) {
+        int res = 0, stones = 0;
+        int[] tiers = new int[Tier.values().length];
+        double nearest = Double.MAX_VALUE;
+        for (Isle is : isles) {
+            if (is.tier() != null) {
+                tiers[is.tier().ordinal()]++;
+                if (is.tier() == Tier.SILVER) nearest = Math.min(nearest, Math.hypot(is.x(), is.z()));
+            } else if (is.kind().equals("stone")) stones++;
+            else if (IslandKinds.KINDS.contains(is.kind())) res++;
+        }
+        double longest = Arrays.stream(bridges(isles, new int[2])).max().orElse(0);
+        ok[0] = tiers[0] == 16 && tiers[1] == 9 && tiers[2] == 5;
+        return "맵 배치: 섬 " + isles.size() + "개 (자원 " + res + ", 징검다리 " + stones + "), 제단 "
+                + tiers[0] + "/" + tiers[1] + "/" + tiers[2] + ", 가장 긴 다리 " + Math.round(longest)
+                + "m, 가장 가까운 실버 제단 " + Math.round(nearest) + "m";
     }
 
     // ------------------------------------------------------------------ 짓기
 
-    /** 맵 전체를 짓는다. 서버가 멈추지 않도록 한 틱에 섬 하나씩 짓고, 다 지으면 done 을 부른다. */
+    /** 맵 전체를 짓는다. 서버가 멈추지 않도록 한 틱에 섬 몇 개씩 짓고, 다 지으면 done 을 부른다. */
     public void buildAll(World world, Consumer<String> progress, Runnable done) {
         this.w = world;
         long t0 = System.currentTimeMillis();
-        List<Isle> isles = plan();
+        List<String> warn = new ArrayList<>();
+        List<Isle> isles = plan(warn);
+        boolean[] ok = {true};
+        String sum = summary(isles, ok);
+        for (String s : warn) plugin.getLogger().warning(s);
+        plugin.getLogger().log(ok[0] && warn.isEmpty() ? Level.INFO : Level.WARNING, sum);
         clearParts(isles);
         plugin.altars().clearRegistry(world);
         plugin.mobs().lairs().clearRegistry(world);
+        IslandKinds kinds = new IslandKinds(plugin, world);
         new BukkitRunnable() {
-            int i = 0;
+            int i = 0, failed = 0;
 
             @Override
             public void run() {
@@ -219,22 +338,23 @@ public final class MapBuilder {
                 while (i < isles.size() && System.currentTimeMillis() < until) {
                     Isle is = isles.get(i++);
                     try {
-                        build(is);
+                        build(is, kinds);
                     } catch (RuntimeException ex) {
-                        plugin.getLogger().warning("섬 " + is.kind() + " (" + is.x() + ", " + is.z() + ") 짓기 실패: " + ex);
+                        failed++;
+                        plugin.getLogger().log(Level.WARNING, "섬 " + is.kind() + " (" + is.x() + ", " + is.z() + ") 짓기 실패", ex);
                     }
                     if (i % 10 == 0 && progress != null) progress.accept("섬 " + i + " / " + isles.size());
                 }
                 if (i < isles.size()) return;
                 cancel();
-                signs(isles);
                 w.setSpawnLocation(0, 65, 0);
                 w.setGameRule(GameRule.SPAWN_RADIUS, 0);
                 w.setGameRule(GameRule.SPAWN_CHUNK_RADIUS, 2);
                 w.setTime(1000);
                 plugin.altars().scanLoaded();
                 plugin.mobs().scanLoaded();
-                plugin.getLogger().info("맵 생성 완료: 섬 " + isles.size() + "개 (" + (System.currentTimeMillis() - t0) + "ms)");
+                plugin.getLogger().log(failed == 0 ? Level.INFO : Level.SEVERE, "맵 생성 완료: 섬 " + isles.size()
+                        + "개, 실패 " + failed + " (" + (System.currentTimeMillis() - t0) + "ms)");
                 if (done != null) done.run();
             }
         }.runTaskTimer(plugin, 1, 1);
@@ -251,220 +371,49 @@ public final class MapBuilder {
         }
     }
 
-    private void build(Isle is) {
+    private void build(Isle is, IslandKinds kinds) {
         Random r = new Random(SEED ^ is.seed() * 31);
         int x = is.x(), y = is.y(), z = is.z();
         switch (is.kind()) {
             case "start" -> startIsland(x, y, z);
-            case "sand" -> sandIsland(x, y, z);
-            case "forest" -> forestIsland(x, y, z);
-            case "altar" -> altarIsland(is, r);
+            case "altar" -> altarIsland(is);
             case "end" -> endIsland(x, y, z);
             default -> {
                 if (is.kind().startsWith("lair_")) lairIsland(is, r);
                 else if (is.kind().startsWith("rift_")) riftIsland(is, r);
-                else resourceIsland(is, r);
+                else kinds.build(is, r);
             }
         }
+        kinds.paintBiome(is);
+        kinds.settleGravity(is);
     }
 
-    // ------------------------------------------------------------------ 블록 도우미
-
-    private void set(int x, int y, int z, Material m) {
-        w.getBlockAt(x, y, z).setType(m, false);
-    }
-
-    private void set(int x, int y, int z, BlockData d) {
-        w.getBlockAt(x, y, z).setBlockData(d, false);
-    }
-
-    private boolean air(int x, int y, int z) {
-        return w.getBlockAt(x, y, z).getType().isAir();
-    }
-
-    /** 섬 윗면의 높이 (없으면 Integer.MIN_VALUE). */
-    private int top(int x, int z, int fromY) {
-        for (int y = fromY + 12; y > fromY - 20; y--) {
-            Material m = w.getBlockAt(x, y, z).getType();
-            if (!m.isAir() && m.isSolid()) return y;
-        }
-        return Integer.MIN_VALUE;
-    }
-
-    /** 위는 넓고 아래로 갈수록 좁아지는 떠 있는 섬. */
-    private void blob(int cx, int cy, int cz, double r, int depth, Material top, Material mid, Material bottom,
-                      long seed, Material[] ores, double oreChance) {
-        Random rnd = new Random(seed);
-        double[] ph = {rnd.nextDouble() * 6.28, rnd.nextDouble() * 6.28, rnd.nextDouble() * 6.28};
-        int R = (int) Math.ceil(r * 1.25) + 1;
-        for (int dy = 0; dy <= depth; dy++) {
-            double f = 1 - Math.pow((double) dy / (depth + 1), 1.4);
-            for (int x = -R; x <= R; x++) {
-                for (int z = -R; z <= R; z++) {
-                    double ang = Math.atan2(z, x);
-                    double wob = 1 + 0.12 * Math.sin(ang * 3 + ph[0]) + 0.08 * Math.sin(ang * 5 + ph[1])
-                            + 0.05 * Math.sin(ang * 7 + ph[2]);
-                    double rr = r * f * wob;
-                    if (dy > 0) rr -= rnd.nextDouble() * 0.6;
-                    if (x * x + z * z > rr * rr) continue;
-                    Material m = dy == 0 ? top : dy <= 2 ? mid : bottom;
-                    if (dy > 2 && ores != null && rnd.nextDouble() < oreChance) m = ores[rnd.nextInt(ores.length)];
-                    set(cx + x, cy - dy, cz + z, m);
+    /** /증강관리 섬: 섬 하나를 지금 자리에 지어 본다 (모양 확인용). 없는 종류면 false. */
+    public boolean buildKind(World world, String kind, int x, int y, int z, double rad) {
+        if (!IslandKinds.KINDS.contains(kind)) return false;
+        double r = rad > 0 ? rad : 3.5;
+        if (rad <= 0) {
+            for (Spot s : DECK) {
+                if (s.kind().equals(kind)) {
+                    r = (s.sMin() + s.sMax()) / 2;
+                    break;
                 }
             }
         }
+        Isle is = new Isle(kind, x, y, z, r, region(x, z), null, System.nanoTime());
+        IslandKinds kinds = new IslandKinds(plugin, world);
+        kinds.build(is, new Random(is.seed()));
+        kinds.paintBiome(is);
+        kinds.settleGravity(is);
+        return true;
     }
 
-    private void disc(int cx, int y, int cz, double r, Material m) {
-        int R = (int) Math.ceil(r);
-        for (int x = -R; x <= R; x++)
-            for (int z = -R; z <= R; z++)
-                if (x * x + z * z <= r * r + 0.5) set(cx + x, y, cz + z, m);
+    /** /증강관리 섬검사: 지은 맵의 섬마다 있어야 할 재료가 있는지 센다. */
+    public void checkIslands(World world, CommandSender to) {
+        new IslandCheck(plugin, world).run(plan(), to);
     }
 
-    private void column(int x, int y, int z, int h, Material m) {
-        for (int i = 0; i < h; i++) set(x, y + i, z, m);
-    }
-
-    /** 뾰족한 가시: 아래가 굵고 위로 갈수록 가늘다. */
-    private void spike(int x, int y, int z, int h, Material m, Material tip) {
-        for (int i = 0; i < h; i++) {
-            double rr = Math.max(0, 1.6 * (1 - (double) i / h));
-            int R = (int) Math.ceil(rr);
-            for (int dx = -R; dx <= R; dx++)
-                for (int dz = -R; dz <= R; dz++)
-                    if (dx * dx + dz * dz <= rr * rr + 0.3) set(x + dx, y + i, z + dz, m);
-        }
-        if (tip != null) set(x, y + h, z, tip);
-    }
-
-    private Inventory chest(int x, int y, int z, BlockFace facing) {
-        Block b = w.getBlockAt(x, y, z);
-        b.setType(Material.CHEST, false);
-        if (b.getBlockData() instanceof Directional d) {
-            d.setFacing(facing);
-            b.setBlockData(d, false);
-        }
-        Chest c = (Chest) b.getState();
-        return c.getBlockInventory();
-    }
-
-    private void spawner(int x, int y, int z, EntityType type) {
-        Block b = w.getBlockAt(x, y, z);
-        b.setType(Material.SPAWNER, false);
-        if (b.getState() instanceof CreatureSpawner cs) {
-            cs.setSpawnedType(type);
-            cs.update(true, false);
-        }
-    }
-
-    private void tree(int x, int y, int z, TreeType type, Material fallback) {
-        if (!w.generateTree(new Location(w, x, y, z), type) && fallback != null) {
-            // 공간이 모자라 실패하면 묘목이라도 심어 둔다
-            set(x, y, z, fallback);
-        }
-    }
-
-    private void crop(int x, int y, int z, Material m) {
-        set(x, y - 1, z, Material.FARMLAND);
-        BlockData d = m.createBlockData();
-        if (d instanceof Ageable ag) ag.setAge(ag.getMaximumAge());
-        set(x, y, z, d);
-    }
-
-    private void animals(int x, int y, int z, Class<? extends Animals> cls, int n) {
-        for (int i = 0; i < n; i++) {
-            w.spawn(new Location(w, x + 0.5 + (i % 2), y, z + 0.5 + (i / 2)), cls, a -> {
-                a.setPersistent(true);
-                a.setRemoveWhenFarAway(false);
-            });
-        }
-    }
-
-    private <T extends Entity> T tag(T e) {
-        e.getPersistentDataContainer().set(Keys.MAP_PART, PersistentDataType.BYTE, (byte) 1);
-        e.setPersistent(true);
-        return e;
-    }
-
-    private TextDisplay text(double x, double y, double z, String mm, float scale) {
-        return tag(w.spawn(new Location(w, x, y, z), TextDisplay.class, t -> {
-            t.text(Text.mm(mm));
-            t.setBillboard(Display.Billboard.CENTER);
-            t.setBackgroundColor(Color.fromARGB(110, 10, 10, 20));
-            t.setShadowed(true);
-            t.setAlignment(TextDisplay.TextAlignment.CENTER);
-            t.setViewRange(3f);
-            t.setBrightness(new Display.Brightness(15, 15));
-            t.setTransformation(new Transformation(new Vector3f(), new AxisAngle4f(), new Vector3f(scale, scale, scale), new AxisAngle4f()));
-        }));
-    }
-
-    private BlockDisplay beam(double x, double y, double z, Material glass, String beamTag) {
-        return tag(w.spawn(new Location(w, x, y, z), BlockDisplay.class, b -> {
-            b.setBlock(glass.createBlockData());
-            b.setTransformation(new Transformation(new Vector3f(-0.3f, 0, -0.3f), new AxisAngle4f(),
-                    new Vector3f(0.6f, 220f, 0.6f), new AxisAngle4f()));
-            b.setBrightness(new Display.Brightness(15, 15));
-            b.setViewRange(8f);
-            if (beamTag != null) b.getPersistentDataContainer().set(Keys.BEAM, PersistentDataType.STRING, beamTag);
-        }));
-    }
-
-    private BlockDisplay crystal(double x, double y, double z, Material m, float size) {
-        return tag(w.spawn(new Location(w, x, y, z), BlockDisplay.class, b -> {
-            b.setBlock(m.createBlockData());
-            // 정육면체를 꼭짓점이 위로 오게 세운 '보석' 모양
-            AxisAngle4f rot = new AxisAngle4f((float) Math.toRadians(54.7), 1, 0, 1);
-            b.setTransformation(new Transformation(new Vector3f(0, 0, 0), rot, new Vector3f(size, size, size), new AxisAngle4f()));
-            b.setBrightness(new Display.Brightness(15, 15));
-            b.setViewRange(4f);
-        }));
-    }
-
-    private Interaction interaction(double x, double y, double z, float width, float height, org.bukkit.NamespacedKey key, String value) {
-        return tag(w.spawn(new Location(w, x, y, z), Interaction.class, i -> {
-            i.setInteractionWidth(width);
-            i.setInteractionHeight(height);
-            i.setResponsive(true);
-            i.getPersistentDataContainer().set(key, PersistentDataType.STRING, value);
-        }));
-    }
-
-    // ------------------------------------------------------------------ 보물 상자
-
-    private void loot(Inventory inv, Random r, int rolls, Object... table) {
-        // table: (ItemStack 또는 "item:id*n" 문자열, 가중치) 쌍
-        int total = 0;
-        for (int i = 1; i < table.length; i += 2) total += (Integer) table[i];
-        for (int k = 0; k < rolls; k++) {
-            int pick = r.nextInt(total);
-            for (int i = 0; i < table.length; i += 2) {
-                pick -= (Integer) table[i + 1];
-                if (pick >= 0) continue;
-                ItemStack it = table[i] instanceof ItemStack s ? s.clone() : spec((String) table[i]);
-                if (it != null) inv.setItem(r.nextInt(inv.getSize()), it);
-                break;
-            }
-        }
-    }
-
-    private ItemStack spec(String s) {
-        String[] parts = s.split("\\*");
-        int n = parts.length > 1 ? Integer.parseInt(parts[1]) : 1;
-        return plugin.items().spec(parts[0], n);
-    }
-
-    private void treasure(int x, int y, int z, Random r, Region g) {
-        Inventory inv = chest(x, y, z, BlockFace.values()[r.nextInt(4)]);
-        loot(inv, r, 3 + r.nextInt(3),
-                "item:shard*2", 10, "item:shard*4", 4, "IRON_INGOT*4", 8, "GOLD_INGOT*3", 5, "DIAMOND*1", 3,
-                "BREAD*4", 6, "TORCH*8", 5, "ENDER_PEARL*2", 2, "item:ticket_silver", 1,
-                g == Region.FROST ? "item:essence_frost*2" : g == Region.FLAME ? "item:essence_flame*2" : g == Region.VOID ? "item:essence_void*2" : "BONE*6", 4,
-                g == Region.OCEAN ? "NAUTILUS_SHELL*1" : "FEATHER*4", 3);
-    }
-
-    // ------------------------------------------------------------------ 시작 근처
+    // ------------------------------------------------------------------ 시작의 섬
 
     private void startIsland(int cx, int y, int cz) {
         // 고전 스카이블럭처럼 L 자 모양 흙섬. 친구들과 쓰기 좋게 조금 넓혔다
@@ -480,399 +429,29 @@ public final class MapBuilder {
         }
         set(cx, y - 3, cz - 1, Material.BEDROCK);
         tree(cx + 3, y + 1, cz - 3, TreeType.TREE, Material.OAK_SAPLING);
+        // 꼭 필요한 것만: 조약돌 생성기(용암, 얼음), 나무 한 그루, 밀. 나머지는 다른 섬에서 구한다
         Inventory inv = chest(cx - 3, y + 1, cz - 3, BlockFace.SOUTH);
         inv.addItem(new ItemStack(Material.LAVA_BUCKET), new ItemStack(Material.ICE, 2),
-                new ItemStack(Material.OAK_SAPLING, 2), new ItemStack(Material.MELON_SLICE),
-                new ItemStack(Material.PUMPKIN_SEEDS), new ItemStack(Material.SUGAR_CANE),
-                new ItemStack(Material.CACTUS), new ItemStack(Material.RED_MUSHROOM),
-                new ItemStack(Material.BROWN_MUSHROOM), new ItemStack(Material.WHEAT_SEEDS, 4),
-                new ItemStack(Material.BONE_MEAL, 4), new ItemStack(Material.BREAD, 8),
-                new ItemStack(Material.TORCH, 4), plugin.items().guideBook());
-        set(cx - 2, y + 1, cz - 3, Material.CRAFTING_TABLE);
-    }
-
-    private void sandIsland(int x, int y, int z) {
-        blob(x, y, z, 4.2, 5, Material.SAND, Material.SAND, Material.SANDSTONE, 11, null, 0);
-        set(x + 1, y + 1, z + 1, Material.CACTUS);
-        set(x + 1, y + 2, z + 1, Material.CACTUS);
-        Inventory inv = chest(x - 1, y + 1, z - 1, BlockFace.EAST);
-        inv.addItem(new ItemStack(Material.OBSIDIAN, 10), new ItemStack(Material.SUGAR_CANE, 2),
-                new ItemStack(Material.CACTUS, 2), new ItemStack(Material.SAND, 16), new ItemStack(Material.SWEET_BERRIES, 3),
-                plugin.items().create("shard", 3));
-    }
-
-    private void forestIsland(int x, int y, int z) {
-        blob(x, y, z, 5.5, 6, Material.GRASS_BLOCK, Material.DIRT, Material.STONE, 12,
-                new Material[]{Material.COAL_ORE, Material.IRON_ORE}, 0.08);
-        tree(x - 2, y + 1, z + 1, TreeType.TREE, Material.OAK_SAPLING);
-        tree(x + 2, y + 1, z - 2, TreeType.BIRCH, Material.BIRCH_SAPLING);
-        set(x + 2, y + 1, z + 2, Material.SHORT_GRASS);
-        set(x, y + 1, z - 3, Material.POPPY);
-        set(x - 3, y + 1, z - 1, Material.DANDELION);
-    }
-
-    // ------------------------------------------------------------------ 자원 섬
-
-    private record Ground(Material top, Material mid, Material bottom, Material[] ores, double oreChance) {}
-
-    private static Ground ground(Region g) {
-        return switch (g) {
-            case PLAINS -> new Ground(Material.GRASS_BLOCK, Material.DIRT, Material.STONE,
-                    new Material[]{Material.COAL_ORE, Material.IRON_ORE, Material.COPPER_ORE}, 0.05);
-            case FROST -> new Ground(Material.SNOW_BLOCK, Material.PACKED_ICE, Material.STONE,
-                    new Material[]{Material.IRON_ORE, Material.LAPIS_ORE, Material.COAL_ORE, Material.DIAMOND_ORE}, 0.05);
-            case FLAME -> new Ground(Material.NETHERRACK, Material.NETHERRACK, Material.BLACKSTONE,
-                    new Material[]{Material.NETHER_GOLD_ORE, Material.NETHER_QUARTZ_ORE, Material.GILDED_BLACKSTONE}, 0.07);
-            case VOID -> new Ground(Material.END_STONE, Material.END_STONE, Material.OBSIDIAN,
-                    new Material[]{Material.DIAMOND_ORE, Material.EMERALD_ORE, Material.GOLD_ORE}, 0.03);
-            case OCEAN -> new Ground(Material.SAND, Material.SANDSTONE, Material.PRISMARINE,
-                    new Material[]{Material.COPPER_ORE, Material.CLAY, Material.LAPIS_ORE}, 0.06);
-            case WILD -> new Ground(Material.GRASS_BLOCK, Material.COARSE_DIRT, Material.ANDESITE,
-                    new Material[]{Material.IRON_ORE, Material.GOLD_ORE, Material.REDSTONE_ORE, Material.COAL_ORE}, 0.06);
-        };
-    }
-
-    private void resourceIsland(Isle is, Random r) {
-        int x = is.x(), y = is.y(), z = is.z();
-        double rad = is.r();
-        int depth = (int) Math.max(4, rad * 1.1);
-        Ground g = ground(is.region());
-        long seed = is.seed();
-        switch (is.kind()) {
-            // ---- 초원
-            case "oak" -> {
-                blob(x, y, z, rad, depth, Material.GRASS_BLOCK, Material.DIRT, Material.STONE, seed, g.ores(), g.oreChance());
-                trees(x, y, z, rad, r, TreeType.TREE, TreeType.BIG_TREE, Material.OAK_SAPLING);
-                flowers(x, y, z, rad, r, Material.POPPY, Material.DANDELION, Material.SHORT_GRASS);
-            }
-            case "birch" -> {
-                blob(x, y, z, rad, depth, Material.GRASS_BLOCK, Material.DIRT, Material.STONE, seed, g.ores(), g.oreChance());
-                trees(x, y, z, rad, r, TreeType.BIRCH, TreeType.TALL_BIRCH, Material.BIRCH_SAPLING);
-                flowers(x, y, z, rad, r, Material.LILY_OF_THE_VALLEY, Material.OXEYE_DAISY, Material.SHORT_GRASS);
-            }
-            case "meadow" -> {
-                blob(x, y, z, rad, depth, Material.GRASS_BLOCK, Material.DIRT, Material.STONE, seed, null, 0);
-                flowers(x, y, z, rad, r, Material.CORNFLOWER, Material.ALLIUM, Material.AZURE_BLUET, Material.RED_TULIP,
-                        Material.ORANGE_TULIP, Material.PINK_TULIP, Material.SHORT_GRASS, Material.SHORT_GRASS);
-                set(x, y + 1, z, Material.BEE_NEST);
-                animals(x + 2, y + 1, z, org.bukkit.entity.Sheep.class, 2);
-            }
-            case "farm" -> {
-                blob(x, y, z, rad, depth, Material.GRASS_BLOCK, Material.DIRT, Material.STONE, seed, null, 0);
-                Material[] crops = {Material.WHEAT, Material.CARROTS, Material.POTATOES, Material.BEETROOTS};
-                for (int dx = -3; dx <= 3; dx++) {
-                    for (int dz = -3; dz <= 3; dz++) {
-                        if (top(x + dx, z + dz, y) != y) continue;
-                        if (dx == 0 && dz == 0) set(x, y, z, Material.WATER);
-                        else crop(x + dx, y + 1, z + dz, crops[Math.floorMod(dx + 3, 4)]);
-                    }
-                }
-                set(x + 4, y + 1, z, Material.COMPOSTER);
-                animals(x - 4, y + 1, z - 1, org.bukkit.entity.Chicken.class, 3);
-            }
-            case "pumpkin" -> {
-                blob(x, y, z, rad, depth, Material.GRASS_BLOCK, Material.DIRT, Material.STONE, seed, null, 0);
-                for (int i = 0; i < 9; i++) {
-                    int dx = r.nextInt(7) - 3, dz = r.nextInt(7) - 3;
-                    if (top(x + dx, z + dz, y) == y) set(x + dx, y + 1, z + dz, r.nextBoolean() ? Material.PUMPKIN : Material.MELON);
-                }
-                set(x, y + 1, z, Material.HAY_BLOCK);
-                set(x, y + 2, z, Material.CARVED_PUMPKIN);
-            }
-            case "quarry" -> {
-                blob(x, y, z, rad, depth + 2, Material.STONE, Material.STONE, Material.STONE, seed,
-                        new Material[]{Material.COAL_ORE, Material.IRON_ORE, Material.COPPER_ORE, Material.GOLD_ORE, Material.REDSTONE_ORE}, 0.12);
-                for (int i = 0; i < 4; i++) column(x + r.nextInt(5) - 2, y + 1, z + r.nextInt(5) - 2, 1 + r.nextInt(3),
-                        r.nextBoolean() ? Material.COBBLESTONE : Material.MOSSY_COBBLESTONE);
-                set(x + 2, y + 1, z + 2, Material.TORCH);
-            }
-            case "pond" -> {
-                blob(x, y, z, rad, depth, Material.GRASS_BLOCK, Material.CLAY, Material.STONE, seed, null, 0);
-                disc(x, y, z, Math.max(1.5, rad * 0.45), Material.WATER);
-                disc(x, y - 1, z, Math.max(1.5, rad * 0.45), Material.CLAY);
-                int pr = (int) Math.ceil(Math.max(1.5, rad * 0.45)) + 1;
-                for (int i = 0; i < 4; i++) {
-                    int dx = i < 2 ? (i == 0 ? pr : -pr) : 0, dz = i >= 2 ? (i == 2 ? pr : -pr) : 0;
-                    if (top(x + dx, z + dz, y) == y) {
-                        set(x + dx, y, z + dz, Material.SAND);
-                        column(x + dx, y + 1, z + dz, 2, Material.SUGAR_CANE);
-                    }
-                }
-                set(x, y + 1, z, Material.LILY_PAD);
-            }
-            case "pasture" -> {
-                blob(x, y, z, rad, depth, Material.GRASS_BLOCK, Material.DIRT, Material.STONE, seed, null, 0);
-                flowers(x, y, z, rad, r, Material.SHORT_GRASS, Material.SHORT_GRASS, Material.DANDELION);
-                animals(x - 1, y + 1, z - 1, org.bukkit.entity.Cow.class, 2);
-                animals(x + 1, y + 1, z + 1, org.bukkit.entity.Sheep.class, 2);
-                animals(x - 2, y + 1, z + 2, org.bukkit.entity.Pig.class, 1);
-            }
-            case "mushroom" -> {
-                blob(x, y, z, rad, depth, Material.MYCELIUM, Material.DIRT, Material.STONE, seed, null, 0);
-                tree(x - 1, y + 1, z - 1, TreeType.RED_MUSHROOM, Material.RED_MUSHROOM);
-                tree(x + 2, y + 1, z + 2, TreeType.BROWN_MUSHROOM, Material.BROWN_MUSHROOM);
-                animals(x + 2, y + 1, z - 2, org.bukkit.entity.MushroomCow.class, 1);
-            }
-            case "sandy" -> {
-                blob(x, y, z, rad, depth, Material.SAND, Material.SANDSTONE, Material.SANDSTONE, seed, null, 0);
-                for (int i = 0; i < 3; i++) {
-                    int dx = r.nextInt(5) - 2, dz = r.nextInt(5) - 2;
-                    if (top(x + dx, z + dz, y) == y) column(x + dx, y + 1, z + dz, 1 + r.nextInt(3), Material.CACTUS);
-                }
-                set(x, y + 1, z, Material.DEAD_BUSH);
-            }
-            // ---- 서리
-            case "spruce" -> {
-                blob(x, y, z, rad, depth, Material.SNOW_BLOCK, Material.DIRT, Material.STONE, seed, g.ores(), g.oreChance());
-                for (int i = 0; i < 3; i++) {
-                    int dx = r.nextInt(5) - 2, dz = r.nextInt(5) - 2;
-                    set(x + dx * 2, y, z + dz * 2, Material.PODZOL);
-                    tree(x + dx * 2, y + 1, z + dz * 2, i == 0 ? TreeType.TALL_REDWOOD : TreeType.REDWOOD, Material.SPRUCE_SAPLING);
-                }
-                snowLayer(x, y, z, rad);
-            }
-            case "icespike" -> {
-                blob(x, y, z, rad, depth, Material.SNOW_BLOCK, Material.PACKED_ICE, Material.PACKED_ICE, seed, g.ores(), g.oreChance());
-                spike(x, y + 1, z, 8 + r.nextInt(6), Material.PACKED_ICE, Material.BLUE_ICE);
-                spike(x + 3, y + 1, z - 2, 4 + r.nextInt(3), Material.PACKED_ICE, null);
-                spike(x - 3, y + 1, z + 2, 3 + r.nextInt(3), Material.BLUE_ICE, null);
-            }
-            case "frozen_lake" -> {
-                blob(x, y, z, rad, depth, Material.SNOW_BLOCK, Material.STONE, Material.STONE, seed, g.ores(), g.oreChance());
-                disc(x, y, z, rad * 0.6, Material.ICE);
-                disc(x, y - 1, z, rad * 0.5, Material.WATER);
-                set(x + (int) (rad * 0.7), y + 1, z, Material.SPRUCE_SAPLING);
-            }
-            case "frost_quarry" -> {
-                blob(x, y, z, rad, depth + 2, Material.SNOW_BLOCK, Material.STONE, Material.STONE, seed,
-                        new Material[]{Material.IRON_ORE, Material.LAPIS_ORE, Material.DIAMOND_ORE, Material.COAL_ORE}, 0.13);
-                spike(x + 2, y + 1, z + 1, 3, Material.BLUE_ICE, null);
-                set(x - 2, y + 1, z, Material.LANTERN);
-            }
-            case "igloo" -> {
-                blob(x, y, z, rad, depth, Material.SNOW_BLOCK, Material.PACKED_ICE, Material.STONE, seed, g.ores(), g.oreChance());
-                for (int dx = -3; dx <= 3; dx++)
-                    for (int dy = 0; dy <= 3; dy++)
-                        for (int dz = -3; dz <= 3; dz++) {
-                            double d = Math.sqrt(dx * dx + dy * dy * 1.6 + dz * dz);
-                            if (d <= 3.2 && d > 2.2) set(x + dx, y + 1 + dy, z + dz, Material.SNOW_BLOCK);
-                        }
-                set(x, y + 1, z + 3, Material.AIR);
-                set(x, y + 2, z + 3, Material.AIR);
-                set(x - 1, y + 2, z, Material.LANTERN);
-                treasure(x + 1, y + 1, z - 1, r, Region.FROST);
-            }
-            // ---- 화염
-            case "basalt" -> {
-                blob(x, y, z, rad, depth, Material.BASALT, Material.BLACKSTONE, Material.BLACKSTONE, seed, g.ores(), g.oreChance());
-                for (int i = 0; i < 5; i++) column(x + r.nextInt(7) - 3, y + 1, z + r.nextInt(7) - 3, 2 + r.nextInt(5), Material.BASALT);
-                set(x, y, z, Material.MAGMA_BLOCK);
-                set(x + 1, y, z, Material.MAGMA_BLOCK);
-            }
-            case "crimson" -> {
-                blob(x, y, z, rad, depth, Material.CRIMSON_NYLIUM, Material.NETHERRACK, Material.NETHERRACK, seed, g.ores(), g.oreChance());
-                tree(x, y + 1, z, TreeType.CRIMSON_FUNGUS, Material.CRIMSON_FUNGUS);
-                set(x + 3, y + 1, z + 1, Material.CRIMSON_ROOTS);
-                set(x - 2, y + 1, z - 2, Material.CRIMSON_FUNGUS);
-                set(x + 1, y - 1, z - 3, Material.SHROOMLIGHT);
-            }
-            case "warped" -> {
-                blob(x, y, z, rad, depth, Material.WARPED_NYLIUM, Material.NETHERRACK, Material.NETHERRACK, seed, g.ores(), g.oreChance());
-                tree(x, y + 1, z, TreeType.WARPED_FUNGUS, Material.WARPED_FUNGUS);
-                set(x - 3, y + 1, z, Material.WARPED_ROOTS);
-                set(x + 2, y + 1, z + 2, Material.TWISTING_VINES);
-            }
-            case "soul_valley" -> {
-                blob(x, y, z, rad, depth, Material.SOUL_SOIL, Material.SOUL_SAND, Material.BLACKSTONE, seed, g.ores(), g.oreChance());
-                for (int i = 0; i < 3; i++) column(x + r.nextInt(7) - 3, y + 1, z + r.nextInt(7) - 3, 2 + r.nextInt(3), Material.BONE_BLOCK);
-                set(x, y, z, Material.SOUL_SAND);
-                set(x, y + 1, z, Material.NETHER_WART);
-                set(x + 1, y, z, Material.SOUL_SAND);
-                set(x + 1, y + 1, z, Material.NETHER_WART);
-                set(x - 2, y + 1, z + 2, Material.SOUL_LANTERN);
-            }
-            case "fortress" -> {
-                blob(x, y, z, rad, depth, Material.NETHER_BRICKS, Material.NETHERRACK, Material.BLACKSTONE, seed, g.ores(), g.oreChance());
-                for (int dx = -2; dx <= 2; dx++)
-                    for (int dz = -2; dz <= 2; dz++) {
-                        boolean edge = Math.abs(dx) == 2 || Math.abs(dz) == 2;
-                        if (edge && (dx + dz) % 2 == 0) column(x + dx, y + 1, z + dz, 3, Material.NETHER_BRICK_FENCE);
-                        set(x + dx, y + 4, z + dz, Material.NETHER_BRICKS);
-                    }
-                spawner(x, y + 1, z, EntityType.BLAZE);
-                treasure(x + 1, y + 1, z + 1, r, Region.FLAME);
-                text(x + 0.5, y + 6, z + 0.5, "<#ff8a3d>블레이즈 요새\n<gray>블레이즈 막대를 얻는 곳", 0.9f);
-            }
-            case "obsidian" -> {
-                blob(x, y, z, rad, depth, Material.BLACKSTONE, Material.OBSIDIAN, Material.OBSIDIAN, seed, g.ores(), g.oreChance());
-                spike(x, y + 1, z, 5 + r.nextInt(4), Material.OBSIDIAN, Material.CRYING_OBSIDIAN);
-                set(x + 2, y + 1, z, Material.MAGMA_BLOCK);
-            }
-            // ---- 공허
-            case "chorus" -> {
-                blob(x, y, z, rad, depth, Material.END_STONE, Material.END_STONE, Material.OBSIDIAN, seed, g.ores(), g.oreChance());
-                for (int i = 0; i < 3; i++) {
-                    int dx = r.nextInt(7) - 3, dz = r.nextInt(7) - 3;
-                    if (top(x + dx, z + dz, y) == y) tree(x + dx, y + 1, z + dz, TreeType.CHORUS_PLANT, Material.CHORUS_FLOWER);
-                }
-            }
-            case "geode" -> {
-                blob(x, y, z, rad, depth, Material.END_STONE, Material.CALCITE, Material.SMOOTH_BASALT, seed, null, 0);
-                for (int dx = -3; dx <= 3; dx++)
-                    for (int dy = -3; dy <= 3; dy++)
-                        for (int dz = -3; dz <= 3; dz++) {
-                            double d = Math.sqrt(dx * dx + dy * dy + dz * dz);
-                            if (d > 3.3) continue;
-                            int yy = y - 4 + dy;
-                            if (d > 2.4) set(x + dx, yy, z + dz, r.nextInt(6) == 0 ? Material.BUDDING_AMETHYST : Material.AMETHYST_BLOCK);
-                            else set(x + dx, yy, z + dz, Material.AIR);
-                        }
-                set(x, y - 7 + 1, z, Material.AMETHYST_CLUSTER);
-                for (int i = 0; i < 4; i++) set(x + r.nextInt(5) - 2, y + 1, z + r.nextInt(5) - 2, Material.AMETHYST_CLUSTER);
-                set(x, y, z, Material.AMETHYST_BLOCK);
-            }
-            case "obsidian_spire" -> {
-                blob(x, y, z, rad, depth, Material.END_STONE, Material.OBSIDIAN, Material.OBSIDIAN, seed, g.ores(), g.oreChance());
-                spike(x, y + 1, z, 10 + r.nextInt(6), Material.OBSIDIAN, Material.END_ROD);
-                set(x + 2, y + 1, z - 1, Material.CRYING_OBSIDIAN);
-            }
-            case "purpur_ruin" -> {
-                blob(x, y, z, rad, depth, Material.END_STONE_BRICKS, Material.END_STONE, Material.OBSIDIAN, seed, g.ores(), g.oreChance());
-                for (int[] c : new int[][]{{2, 2}, {-2, 2}, {2, -2}, {-2, -2}}) {
-                    column(x + c[0], y + 1, z + c[1], 1 + r.nextInt(4), Material.PURPUR_PILLAR);
-                }
-                set(x, y + 1, z + 3, Material.END_ROD);
-                treasure(x, y + 1, z, r, Region.VOID);
-            }
-            case "end_rock" -> {
-                blob(x, y, z, rad, depth, Material.END_STONE, Material.END_STONE, Material.END_STONE, seed, g.ores(), g.oreChance());
-                set(x, y + 1, z, Material.CHORUS_FLOWER);
-            }
-            // ---- 바다
-            case "reef" -> {
-                blob(x, y, z, rad, depth, Material.SAND, Material.SAND, Material.PRISMARINE, seed, g.ores(), g.oreChance());
-                double pr = Math.max(2, rad * 0.55);
-                for (int dx = (int) -pr; dx <= pr; dx++)
-                    for (int dz = (int) -pr; dz <= pr; dz++) {
-                        if (dx * dx + dz * dz > pr * pr) continue;
-                        set(x + dx, y, z + dz, Material.WATER);
-                        set(x + dx, y - 1, z + dz, Material.WATER);
-                        Material[] coral = {Material.TUBE_CORAL_BLOCK, Material.BRAIN_CORAL_BLOCK, Material.BUBBLE_CORAL_BLOCK,
-                                Material.FIRE_CORAL_BLOCK, Material.HORN_CORAL_BLOCK, Material.SAND, Material.SAND};
-                        set(x + dx, y - 2, z + dz, coral[r.nextInt(coral.length)]);
-                    }
-                set(x, y - 1, z, Material.KELP_PLANT);
-                set(x, y, z, Material.KELP);
-                set(x + 1, y - 1, z, Material.SEA_PICKLE);
-            }
-            case "prismarine_ruin" -> {
-                blob(x, y, z, rad, depth, Material.PRISMARINE_BRICKS, Material.PRISMARINE, Material.DARK_PRISMARINE, seed, g.ores(), g.oreChance());
-                for (int[] c : new int[][]{{3, 0}, {-3, 0}, {0, 3}, {0, -3}}) {
-                    column(x + c[0], y + 1, z + c[1], 2 + r.nextInt(3), Material.PRISMARINE_BRICKS);
-                }
-                set(x, y, z, Material.SEA_LANTERN);
-                set(x + 1, y, z + 1, Material.WET_SPONGE);
-                treasure(x - 1, y + 1, z - 1, r, Region.OCEAN);
-            }
-            case "beach" -> {
-                blob(x, y, z, rad, depth, Material.SAND, Material.SANDSTONE, Material.SANDSTONE, seed, g.ores(), g.oreChance());
-                disc(x + 1, y, z + 1, Math.max(1.5, rad * 0.35), Material.WATER);
-                for (int i = 0; i < 3; i++) column(x - 2, y + 1, z - 1 + i, 2 + i % 2, Material.SUGAR_CANE);
-                set(x + 3, y + 1, z - 2, Material.TURTLE_EGG);
-            }
-            case "copper" -> {
-                blob(x, y, z, rad, depth + 1, Material.SAND, Material.STONE, Material.STONE, seed,
-                        new Material[]{Material.COPPER_ORE, Material.COPPER_ORE, Material.IRON_ORE}, 0.18);
-                column(x, y + 1, z, 3, Material.CUT_COPPER);
-                set(x, y + 4, z, Material.LIGHTNING_ROD);
-            }
-            case "clay_bank" -> {
-                blob(x, y, z, rad, depth, Material.SAND, Material.CLAY, Material.CLAY, seed, g.ores(), g.oreChance());
-                disc(x, y, z, Math.max(1.5, rad * 0.4), Material.WATER);
-                set(x + (int) rad - 1, y + 1, z, Material.SUGAR_CANE);
-            }
-            // ---- 야생
-            case "mountain" -> {
-                blob(x, y, z, rad, depth + 3, Material.STONE, Material.ANDESITE, Material.STONE, seed, g.ores(), 0.1);
-                spike(x, y + 1, z, 6 + r.nextInt(5), Material.STONE, Material.SNOW_BLOCK);
-                spike(x + 3, y + 1, z + 2, 3 + r.nextInt(3), Material.GRANITE, null);
-            }
-            case "dark_forest" -> {
-                blob(x, y, z, rad, depth, Material.GRASS_BLOCK, Material.DIRT, Material.STONE, seed, g.ores(), g.oreChance());
-                tree(x, y + 1, z, TreeType.DARK_OAK, Material.DARK_OAK_SAPLING);
-                tree(x + 3, y + 1, z - 3, TreeType.TREE, Material.OAK_SAPLING);
-                set(x - 3, y + 1, z + 2, Material.RED_MUSHROOM);
-            }
-            case "jungle" -> {
-                blob(x, y, z, rad, depth, Material.GRASS_BLOCK, Material.DIRT, Material.STONE, seed, g.ores(), g.oreChance());
-                tree(x, y + 1, z, TreeType.COCOA_TREE, Material.JUNGLE_SAPLING);
-                tree(x - 3, y + 1, z + 2, TreeType.JUNGLE_BUSH, null);
-                column(x + 3, y + 1, z + 1, 4, Material.BAMBOO);
-                set(x + 2, y + 1, z - 3, Material.MELON);
-            }
-            case "cherry" -> {
-                blob(x, y, z, rad, depth, Material.GRASS_BLOCK, Material.DIRT, Material.STONE, seed, g.ores(), g.oreChance());
-                tree(x, y + 1, z, TreeType.CHERRY, Material.CHERRY_SAPLING);
-                flowers(x, y, z, rad, r, Material.PINK_PETALS, Material.PINK_TULIP, Material.SHORT_GRASS);
-            }
-            case "savanna" -> {
-                blob(x, y, z, rad, depth, Material.GRASS_BLOCK, Material.COARSE_DIRT, Material.STONE, seed, g.ores(), g.oreChance());
-                tree(x, y + 1, z, TreeType.ACACIA, Material.ACACIA_SAPLING);
-                animals(x + 2, y + 1, z + 2, org.bukkit.entity.Cow.class, 1);
-                flowers(x, y, z, rad, r, Material.SHORT_GRASS, Material.SHORT_GRASS, Material.DANDELION);
-            }
-            default -> { // ruin
-                blob(x, y, z, rad, depth, Material.MOSSY_STONE_BRICKS, Material.STONE_BRICKS, Material.STONE, seed, g.ores(), g.oreChance());
-                for (int[] c : new int[][]{{2, 2}, {-2, 2}, {2, -2}, {-2, -2}}) {
-                    column(x + c[0], y + 1, z + c[1], 1 + r.nextInt(3), r.nextBoolean() ? Material.CRACKED_STONE_BRICKS : Material.MOSSY_COBBLESTONE);
-                }
-                treasure(x, y + 1, z, r, Region.WILD);
-            }
-        }
-        // 섬 열 개 중 하나 꼴로 작은 보물 상자
-        if (!is.kind().equals("ruin") && !is.kind().equals("igloo") && !is.kind().equals("purpur_ruin")
-                && !is.kind().equals("prismarine_ruin") && !is.kind().equals("fortress") && r.nextInt(8) == 0) {
-            int dx = r.nextInt(5) - 2, dz = r.nextInt(5) - 2;
-            int ty = top(x + dx, z + dz, y);
-            if (ty != Integer.MIN_VALUE && air(x + dx, ty + 1, z + dz)) treasure(x + dx, ty + 1, z + dz, r, is.region());
-        }
-    }
-
-    private void trees(int x, int y, int z, double rad, Random r, TreeType a, TreeType b, Material sapling) {
-        int n = rad > 7 ? 3 : 2;
-        for (int i = 0; i < n; i++) {
-            double ang = r.nextDouble(Math.PI * 2), d = r.nextDouble(rad * 0.55);
-            int tx = x + (int) Math.round(Math.cos(ang) * d), tz = z + (int) Math.round(Math.sin(ang) * d);
-            if (top(tx, tz, y) != y) continue;
-            tree(tx, y + 1, tz, i == 0 && rad > 7 ? b : a, sapling);
-        }
-    }
-
-    private void flowers(int x, int y, int z, double rad, Random r, Material... kinds) {
-        int n = (int) (rad * 2.2);
-        for (int i = 0; i < n; i++) {
-            int dx = (int) Math.round(r.nextGaussian() * rad * 0.45), dz = (int) Math.round(r.nextGaussian() * rad * 0.45);
-            if (top(x + dx, z + dz, y) != y || !air(x + dx, y + 1, z + dz)) continue;
-            Material t = w.getBlockAt(x + dx, y, z + dz).getType();
-            if (t != Material.GRASS_BLOCK) continue;
-            set(x + dx, y + 1, z + dz, kinds[r.nextInt(kinds.length)]);
-        }
-    }
-
-    private void snowLayer(int x, int y, int z, double rad) {
-        int R = (int) Math.ceil(rad * 1.3);
-        for (int dx = -R; dx <= R; dx++)
-            for (int dz = -R; dz <= R; dz++) {
-                int ty = top(x + dx, z + dz, y);
-                if (ty == Integer.MIN_VALUE || !air(x + dx, ty + 1, z + dz)) continue;
-                Material t = w.getBlockAt(x + dx, ty, z + dz).getType();
-                if (t == Material.SNOW_BLOCK || t == Material.PODZOL) set(x + dx, ty + 1, z + dz, Material.SNOW);
-            }
+                new ItemStack(Material.OAK_SAPLING), new ItemStack(Material.WHEAT_SEEDS, 3),
+                new ItemStack(Material.BONE_MEAL, 3), new ItemStack(Material.TORCH, 4));
     }
 
     // ------------------------------------------------------------------ 제단
 
-    private void altarIsland(Isle is, Random r) {
+    private record Ground(Material top, Material mid, Material bottom) {}
+
+    private static Ground ground(Region g) {
+        return switch (g) {
+            case PLAINS -> new Ground(Material.GRASS_BLOCK, Material.DIRT, Material.STONE);
+            case FROST -> new Ground(Material.SNOW_BLOCK, Material.PACKED_ICE, Material.STONE);
+            case FLAME -> new Ground(Material.NETHERRACK, Material.NETHERRACK, Material.BLACKSTONE);
+            case VOID -> new Ground(Material.END_STONE, Material.END_STONE, Material.OBSIDIAN);
+            case OCEAN -> new Ground(Material.SAND, Material.SANDSTONE, Material.PRISMARINE);
+            case WILD -> new Ground(Material.GRASS_BLOCK, Material.COARSE_DIRT, Material.ANDESITE);
+        };
+    }
+
+    private void altarIsland(Isle is) {
         Ground g = ground(is.region());
         Material top = is.tier() == Tier.PRISM ? (is.region() == Region.VOID ? Material.END_STONE_BRICKS : Material.MOSS_BLOCK) : g.top();
         Material mid = is.region() == Region.PLAINS || is.region() == Region.WILD ? Material.DIRT : g.mid();
@@ -884,22 +463,19 @@ public final class MapBuilder {
     /** 제단 구조물만 짓는다. /증강관리 제단 으로 원하는 곳에 새 제단을 세울 때도 쓴다. */
     public void altarStructure(World world, int cx, int y, int cz, Tier tier) {
         this.w = world;
-        Material floorA, floorB, pillar, cap, glass, core;
+        Material floorA, floorB, pillar, cap, core;
         switch (tier) {
             case SILVER -> {
                 floorA = Material.POLISHED_DIORITE; floorB = Material.SMOOTH_QUARTZ;
-                pillar = Material.QUARTZ_PILLAR; cap = Material.SEA_LANTERN;
-                glass = Material.WHITE_STAINED_GLASS; core = Material.IRON_BLOCK;
+                pillar = Material.QUARTZ_PILLAR; cap = Material.SEA_LANTERN; core = Material.IRON_BLOCK;
             }
             case GOLD -> {
                 floorA = Material.SMOOTH_SANDSTONE; floorB = Material.CHISELED_SANDSTONE;
-                pillar = Material.CUT_SANDSTONE; cap = Material.GLOWSTONE;
-                glass = Material.YELLOW_STAINED_GLASS; core = Material.GOLD_BLOCK;
+                pillar = Material.CUT_SANDSTONE; cap = Material.GLOWSTONE; core = Material.GOLD_BLOCK;
             }
             default -> {
                 floorA = Material.PURPUR_BLOCK; floorB = Material.PRISMARINE_BRICKS;
-                pillar = Material.PURPUR_PILLAR; cap = Material.SEA_LANTERN;
-                glass = Material.MAGENTA_STAINED_GLASS; core = Material.AMETHYST_BLOCK;
+                pillar = Material.PURPUR_PILLAR; cap = Material.SEA_LANTERN; core = Material.AMETHYST_BLOCK;
             }
         }
         Location c0 = new Location(w, cx + 0.5, y + 2, cz + 0.5);
@@ -926,36 +502,53 @@ public final class MapBuilder {
             if (tier == Tier.PRISM) set(cx + c[0], y + 5, cz + c[1], Material.END_ROD);
             if (tier == Tier.GOLD) set(cx + c[0], y + 5, cz + c[1], Material.LANTERN);
         }
-        // 클릭 판정을 먼저 세우고, 나머지 장식에 이 제단의 id 를 붙인다 (제단을 쓰면 장식이 바뀐다)
+        // 클릭 판정을 먼저 세우고, 보석에 이 제단의 id 를 붙인다 (제단을 쓰면 보석이 어두워진다)
         Interaction hit = interaction(cx + 0.5, y + 2.0, cz + 0.5, 2.2f, 2.6f, Keys.ALTAR, tier.name());
-        String of = hit.getUniqueId().toString();
         BlockDisplay cr = crystal(cx + 0.5, y + 3.0, cz + 0.5, core, 0.9f);
-        BlockDisplay bm = beam(cx + 0.5, y + 5.2, cz + 0.5, glass, tier == Tier.PRISM ? "prism" : tier.name().toLowerCase());
-        String label = tier.wrap("✦ " + tier.korean + " 제단 ✦") + "\n<gray>우클릭해서 증강 고르기\n<dark_gray>한 번 쓰면 힘을 잃습니다";
-        TextDisplay tx = text(cx + 0.5, y + 5.0, cz + 0.5, label, 1.4f);
-        for (Entity e : List.of(cr, bm, tx)) e.getPersistentDataContainer().set(Keys.ALTAR_OF, PersistentDataType.STRING, of);
+        cr.getPersistentDataContainer().set(Keys.ALTAR_OF, PersistentDataType.STRING, hit.getUniqueId().toString());
         plugin.altars().register(hit.getUniqueId(), tier, hit.getLocation());
+    }
+
+    private BlockDisplay crystal(double x, double y, double z, Material m, float size) {
+        return tag(w.spawn(new Location(w, x, y, z), BlockDisplay.class, b -> {
+            b.setBlock(m.createBlockData());
+            // 정육면체를 꼭짓점이 위로 오게 세운 '보석' 모양
+            AxisAngle4f rot = new AxisAngle4f((float) Math.toRadians(54.7), 1, 0, 1);
+            b.setTransformation(new Transformation(new Vector3f(0, 0, 0), rot, new Vector3f(size, size, size), new AxisAngle4f()));
+            b.setBrightness(new Display.Brightness(15, 15));
+            // 약 64m 안에서만 보인다 (멀리서 보이면 위치 안내가 되어 버린다)
+            b.setViewRange(1f);
+        }));
+    }
+
+    private Interaction interaction(double x, double y, double z, float width, float height, org.bukkit.NamespacedKey key, String value) {
+        return tag(w.spawn(new Location(w, x, y, z), Interaction.class, i -> {
+            i.setInteractionWidth(width);
+            i.setInteractionHeight(height);
+            i.setResponsive(true);
+            i.getPersistentDataContainer().set(key, PersistentDataType.STRING, value);
+        }));
     }
 
     // ------------------------------------------------------------------ 균열과 둥지
 
     private record Theme(Material top, Material mid, Material bottom, Material deco, Material glow, Material floorA,
-                         Material floorB, Material pillar, Material[] ores, String title, String boss, Material core) {}
+                         Material floorB, Material pillar, Material[] ores, String boss, Material core) {}
 
     private static Theme theme(String id) {
         return switch (id) {
             case "frost" -> new Theme(Material.SNOW_BLOCK, Material.PACKED_ICE, Material.STONE, Material.BLUE_ICE,
                     Material.SEA_LANTERN, Material.PACKED_ICE, Material.POLISHED_DIORITE, Material.BLUE_ICE,
                     new Material[]{Material.IRON_ORE, Material.COAL_ORE, Material.LAPIS_ORE, Material.DIAMOND_ORE},
-                    "<#9ad8ff>❄ 서리 균열 ❄", "frost_tyrant", Material.BLUE_ICE);
+                    "frost_tyrant", Material.BLUE_ICE);
             case "flame" -> new Theme(Material.NETHERRACK, Material.MAGMA_BLOCK, Material.BLACKSTONE, Material.BASALT,
                     Material.SHROOMLIGHT, Material.POLISHED_BLACKSTONE_BRICKS, Material.GILDED_BLACKSTONE, Material.BASALT,
                     new Material[]{Material.NETHER_GOLD_ORE, Material.NETHER_QUARTZ_ORE, Material.GOLD_ORE, Material.REDSTONE_ORE},
-                    "<#ff8a3d>🔥 화염 균열 🔥", "inferno_colossus", Material.MAGMA_BLOCK);
+                    "inferno_colossus", Material.MAGMA_BLOCK);
             default -> new Theme(Material.END_STONE, Material.END_STONE, Material.OBSIDIAN, Material.CRYING_OBSIDIAN,
                     Material.END_ROD, Material.PURPUR_BLOCK, Material.END_STONE_BRICKS, Material.OBSIDIAN,
                     new Material[]{Material.DIAMOND_ORE, Material.EMERALD_ORE, Material.GOLD_ORE, Material.IRON_ORE},
-                    "<#c86bff>✧ 공허 균열 ✧", "void_sovereign", Material.CRYING_OBSIDIAN);
+                    "void_sovereign", Material.CRYING_OBSIDIAN);
         };
     }
 
@@ -974,9 +567,6 @@ public final class MapBuilder {
         }
         riftMarker(w, new Location(w, cx + 0.5, y + 1, cz + 0.5), id);
         crystal(cx + 0.5, y + 4.5, cz + 0.5, t.core(), 1.4f);
-        var bd = plugin.mobs().registry().get(t.boss());
-        text(cx + 0.5, y + 7.5, cz + 0.5, t.title() + "\n<gray>균열의 몬스터가 쏟아져 나온다\n<dark_gray>이 너머에 "
-                + (bd == null ? "보스" : Text.strip(bd.name())) + "의 둥지가 있다", 1.6f);
         Inventory inv = chest(cx - 6, y + 1, cz + 3, BlockFace.EAST);
         inv.addItem(plugin.items().create("shard", 4), new ItemStack(t.top(), 8), new ItemStack(Material.TORCH, 8));
     }
@@ -1036,12 +626,6 @@ public final class MapBuilder {
                 }
             }
         }
-        // 입구 표지
-        int ex = cx + (int) Math.round(Math.cos(toCenter) * (rad + 1)), ez = cz + (int) Math.round(Math.sin(toCenter) * (rad + 1));
-        var bd = plugin.mobs().registry().get(t.boss());
-        String bossName = bd == null ? "보스" : bd.name();
-        text(cx + 0.5, y + 16, cz + 0.5, bossName + "<gray>의 둥지", 2.4f);
-        text(ex + 0.5, y + 3, ez + 0.5, bossName + "\n<gray>이 둥지를 지키고 있다\n<dark_gray>쓰러뜨리면 프리즘 결정과 증강권", 1.0f);
         // 보스가 사는 곳 (보이지 않는 표식)
         lairMarker(w, new Location(w, cx + 0.5, y + 1, cz + 0.5), t.boss());
     }
@@ -1056,7 +640,6 @@ public final class MapBuilder {
             frame(cx + 2, y + 1, cz + i, BlockFace.WEST);
         }
         for (int x = -1; x <= 1; x++) for (int z = -1; z <= 1; z++) set(cx + x, y, cz + z, Material.AIR);
-        text(cx + 0.5, y + 4, cz + 0.5, "<#d9f99d>끝의 섬\n<gray>엔더의 눈 12개로 문을 열어라", 1.2f);
     }
 
     private void frame(int x, int y, int z, BlockFace facing) {
@@ -1067,37 +650,5 @@ public final class MapBuilder {
             f.setEye(false);
             b.setBlockData(f, false);
         }
-    }
-
-    private void signs(List<Isle> isles) {
-        Place s = place("시작의 섬");
-        text(s.x() + 0.5, s.y() + 8, s.z() + 0.5,
-                "<gradient:#ff6b9d:#ffd36b:#6bffb0:#6bc8ff:#c86bff><b>증강 스카이블럭</b></gradient>\n<gray>하늘로 솟은 빛기둥이 제단입니다", 2.0f);
-        // 가장 가까운 실버 제단
-        Isle near = null;
-        for (Isle is : isles) {
-            if (is.tier() != Tier.SILVER) continue;
-            if (near == null || Math.hypot(is.x(), is.z()) < Math.hypot(near.x(), near.z())) near = is;
-        }
-        List<String> lines = new ArrayList<>();
-        lines.add("<#cfdbe6>■ <white>흰 빛기둥 <gray>실버 제단 16곳");
-        lines.add("<#ffcf40>■ <white>노란 빛기둥 <gray>골드 제단 9곳");
-        lines.add("<#c86bff>■ <white>무지개 빛기둥 <gray>프리즘 제단 5곳");
-        if (near != null) lines.add("<gray>가장 가까운 실버 제단: " + dir(near.x() - s.x(), near.z() - s.z()) + " "
-                + (int) Math.round(Math.hypot(near.x() - s.x(), near.z() - s.z())) + "m");
-        lines.add("");
-        for (String n : List.of("서리 지역", "화염 지역", "공허 지역", "바다 지역")) {
-            Place p = place(n);
-            lines.add("<white>" + n + " <gray>" + dir(p.x() - s.x(), p.z() - s.z()));
-        }
-        lines.add("<dark_gray>/증강 제단 으로 남은 제단 찾기");
-        text(s.x() - 3.5, s.y() + 3.4, s.z() + 4.5, String.join("\n", lines), 0.85f);
-    }
-
-    public static String dir(int dx, int dz) {
-        double a = Math.toDegrees(Math.atan2(dx, -dz));
-        if (a < 0) a += 360;
-        String[] names = {"북쪽", "북동쪽", "동쪽", "남동쪽", "남쪽", "남서쪽", "서쪽", "북서쪽"};
-        return names[(int) Math.round(a / 45) % 8];
     }
 }

@@ -26,6 +26,7 @@ import org.bukkit.entity.AbstractSkeleton;
 import org.bukkit.entity.Ageable;
 import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Enemy;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Marker;
@@ -50,6 +51,7 @@ import org.bukkit.event.entity.EntityTransformEvent;
 import org.bukkit.event.entity.SlimeSplitEvent;
 import org.bukkit.event.world.EntitiesLoadEvent;
 import org.bukkit.event.world.EntitiesUnloadEvent;
+import org.bukkit.event.world.PortalCreateEvent;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
@@ -537,8 +539,33 @@ public final class MobManager implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onNaturalSpawn(CreatureSpawnEvent e) {
         if (e.getSpawnReason() != CreatureSpawnEvent.SpawnReason.NATURAL) return;
-        if (!plugin.getConfig().getBoolean("mobs.natural-replace", true)) return;
         LivingEntity le = e.getEntity();
+        if (le.getWorld().getEnvironment() == World.Environment.NORMAL) {
+            EntityType type = le.getType();
+            // 섬에 칠한 네더 생물군계에서 가스트(다리를 부숨)·피글린(좀비화)이 나오지 않게
+            if (type == EntityType.GHAST || type == EntityType.PIGLIN || type == EntityType.PIGLIN_BRUTE
+                    || type == EntityType.HOGLIN || type == EntityType.ZOGLIN) {
+                e.setCancelled(true);
+                return;
+            }
+            // 빛과 상관없이 낮에도 나와서 네더 섬이 몬스터로 가득 차지 않게
+            if ((type == EntityType.ZOMBIFIED_PIGLIN || type == EntityType.MAGMA_CUBE) && rnd().nextDouble() < 0.6) {
+                e.setCancelled(true);
+                return;
+            }
+            // 한 칸 다리 위에는 몬스터가 생기지 않게 (밀려서 공허로 떨어지는 일을 줄인다)
+            if (le instanceof Enemy && type != EntityType.PHANTOM) {
+                Block under = le.getLocation().getBlock().getRelative(0, -1, 0);
+                int solid = 0;
+                for (int dx = -1; dx <= 1; dx++)
+                    for (int dz = -1; dz <= 1; dz++) if (under.getRelative(dx, 0, dz).getType().isSolid()) solid++;
+                if (solid <= 3) {
+                    e.setCancelled(true);
+                    return;
+                }
+            }
+        }
+        if (!plugin.getConfig().getBoolean("mobs.natural-replace", true)) return;
         String world = le.getWorld().getName();
         List<MobDef> defs = new ArrayList<>(registry.all().values());
         Collections.shuffle(defs);
@@ -552,6 +579,15 @@ public final class MobManager implements Listener {
             Bukkit.getScheduler().runTask(plugin, () -> spawn(def.id(), at, false));
             return;
         }
+    }
+
+    /** 네더로 가면 섬 재료와 거리가 의미 없어져서 네더 문을 막는다 (allow-nether 를 안 바꾼 서버도). */
+    @EventHandler(ignoreCancelled = true)
+    public void onPortal(PortalCreateEvent e) {
+        if (e.getWorld().getEnvironment() != World.Environment.NORMAL) return;
+        if (e.getReason() != PortalCreateEvent.CreateReason.FIRE && e.getReason() != PortalCreateEvent.CreateReason.NETHER_PAIR) return;
+        e.setCancelled(true);
+        if (e.getEntity() instanceof Player p) p.sendActionBar(Text.mm("<gray>이 하늘에서는 네더 문이 열리지 않습니다"));
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)

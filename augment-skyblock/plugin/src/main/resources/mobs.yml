@@ -33,7 +33,7 @@ mobs:
       - {item: BONE_MEAL, min: 1, max: 3, chance: 0.5}
       - {item: MOSS_BLOCK, min: 1, max: 2, chance: 0.3}
     xp: 8
-    natural: {replace: [ZOMBIE], chance: 0.15}
+    natural: {replace: [ZOMBIE, HUSK], chance: 0.15}
 
   bone_sniper:
     name: "<#e8e3c8>뼈 저격수"
@@ -50,7 +50,7 @@ mobs:
       - {item: BONE, min: 2, max: 4}
       - {item: ARROW, min: 2, max: 6, chance: 0.7}
     xp: 8
-    natural: {replace: [SKELETON], chance: 0.15}
+    natural: {replace: [SKELETON, STRAY], chance: 0.15}
 
   shadow_stalker:
     name: "<#6b6b8f>그림자 추적자"
@@ -70,7 +70,7 @@ mobs:
       - {item: shard, min: 1, max: 2, chance: 0.6}
       - {item: "pool:basic", chance: 0.03}
     xp: 10
-    natural: {replace: [ZOMBIE], chance: 0.08}
+    natural: {replace: [ZOMBIE, HUSK], chance: 0.08}
 
   venom_spider:
     name: "<#6abf40>맹독 거미"
@@ -133,7 +133,7 @@ mobs:
       - {item: RAW_GOLD, chance: 0.15}
       - {item: shard, chance: 0.4}
     xp: 10
-    natural: {replace: [SKELETON], chance: 0.12}
+    natural: {replace: [SKELETON, STRAY], chance: 0.12}
 
   nether_imp:
     name: "<#ff8a3d>지옥 임프"
