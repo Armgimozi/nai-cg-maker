@@ -47,9 +47,10 @@ public final class AugSky extends JavaPlugin {
     /**
      * 콘텐츠 YAML 의 판. 예전 파일을 그대로 두면 맞지 않을 만큼 바꿨을 때 올린다
      * (2: 무기 스킬 정리·클릭 조합, 3: 전투 효과를 확률 대신 N번째 공격마다로 바꾼 설명, 탱크엔진 증강,
-     * 4: 조합법 재설계(섬 재료, 같은 종류만 강화), 안내서에서 위치 힌트 제거, 자연 스폰 교체에 허스크·스트레이).
+     * 4: 조합법 재설계(섬 재료, 같은 종류만 강화), 안내서에서 위치 힌트 제거, 자연 스폰 교체에 허스크·스트레이,
+     * 5: 안내서에 섬 도감. 4 판 jar 가 옛 안내서로 한 번 배포되어서, 그 서버에도 새 안내서가 가도록 다시 올린다).
      */
-    private static final int CONTENT_VERSION = 4;
+    private static final int CONTENT_VERSION = 5;
     private static final List<String> CONTENT_FILES = List.of("augments.yml", "weapons.yml", "skills.yml", "mobs.yml", "items.yml", "armor.yml");
 
     private SkillRegistry skills;
