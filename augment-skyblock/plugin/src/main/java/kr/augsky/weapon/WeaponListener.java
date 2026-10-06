@@ -58,6 +58,8 @@ public final class WeaponListener implements Listener {
         this.plugin = plugin;
         Bukkit.getScheduler().runTaskTimer(plugin, this::hud, 20, 10);
         Bukkit.getScheduler().runTaskTimer(plugin, this::heldAura, 25, 3);
+        // 곡괭이 패시브 (AugSky 를 건드리지 않으려고 여기서 등록한다)
+        Bukkit.getPluginManager().registerEvents(new Pickaxes(plugin), plugin);
     }
 
     // 손에 든 무기 주변에 도는 속성 입자 (아우라가 있는 보스/프리즘 무기만)
@@ -81,6 +83,8 @@ public final class WeaponListener implements Listener {
             if (w == null) continue;
             String pool = w.pool();
             if (!pool.equals("boss") && !pool.equals("prism")) continue;
+            // 곡괭이는 맨 위 등급(프리즘)만 입자를 두른다
+            if (w.isPickaxe() && !pool.equals("prism")) continue;
             String[] fx = HELD.get(w.element());
             if (fx == null) continue;
             // 오른손 앞쪽, 무기 날 부근
@@ -204,10 +208,9 @@ public final class WeaponListener implements Listener {
         if (!(e.getProjectile() instanceof org.bukkit.entity.AbstractArrow arrow)) return;
         // 바닐라 화살 피해 = 기본 피해 × 속도(끝까지 당기면 약 3) + 치명타 덤(평균 절반쯤)
         arrow.setDamage(w.damage() / 3.5);
-        arrow.setPickupStatus(org.bukkit.entity.AbstractArrow.PickupStatus.CREATIVE_ONLY);
+        // 돌려주는 화살은 주울 수 없게 (돌려준 화살과 합쳐 불어나지 않게). 돌려주지 않는 물약·분광 화살과 다른 활은 바닐라 그대로 줍는다
+        if (refunds(w, e.getConsumable())) arrow.setPickupStatus(org.bukkit.entity.AbstractArrow.PickupStatus.CREATIVE_ONLY);
         arrow.getPersistentDataContainer().set(kr.augsky.Keys.WEAPON, org.bukkit.persistence.PersistentDataType.STRING, w.id());
-        // 무한은 보통 화살만. 물약 화살·분광 화살은 그대로 쓰인다
-        if (e.getConsumable() != null && e.getConsumable().getType() == org.bukkit.Material.ARROW) e.setConsumeItem(false);
         String[] fx = HELD.get(w.element());
         if (fx != null && (w.pool().equals("boss") || w.pool().equals("prism"))) {
             kr.augsky.util.Fx.Spec sp = kr.augsky.util.Fx.parse(fx[0].equals("PRISM") ? "END_ROD" : fx[0]);
@@ -225,6 +228,24 @@ public final class WeaponListener implements Listener {
                 }
             }.runTaskTimer(plugin, 1, 1);
         }
+    }
+
+    /**
+     * 보스·프리즘 활은 보통 화살이 줄지 않는다. 바닐라는 이 이벤트 전에 화살을 이미 빼 가고 setConsumeItem 을 읽지 않으므로
+     * 쏘는 게 확정된 뒤(MONITOR) 한 개를 돌려준다. 무한 마법·창조 모드로 쏜 화살(실체 없는 화살)은 빠지지 않았으니 건너뛴다.
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onShootRefund(org.bukkit.event.entity.EntityShootBowEvent e) {
+        if (!(e.getEntity() instanceof Player p)) return;
+        WeaponDef w = plugin.weapons().of(e.getBow());
+        if (w == null || !refunds(w, e.getConsumable())) return;
+        Items.give(p, e.getConsumable().asOne());
+    }
+
+    /** 화살이 줄지 않는 활로 쏜 보통 화살인지 (돌려줄 화살). 물약·분광 화살과 실체 없는 화살은 아니다. */
+    private static boolean refunds(WeaponDef w, ItemStack ammo) {
+        return w.infiniteArrows() && ammo != null && ammo.getType() == org.bukkit.Material.ARROW
+                && !ammo.hasData(io.papermc.paper.datacomponent.DataComponentTypes.INTANGIBLE_PROJECTILE);
     }
 
     /** 슬롯 스킬을 쓴다. 실제로 나갔으면 true, 막혔거나 재사용 대기 중이면 false (대기 중이면 남은 시간을 띄운다). */
@@ -258,6 +279,9 @@ public final class WeaponListener implements Listener {
         SkillContext ctx = new SkillContext(plugin, p, null, power);
         s.cast(ctx);
         p.sendActionBar(Text.mm("<#ffcc55>✦ " + s.name()));
+        // 스킬도 무기를 닳게 한다: 실제 재사용 대기 2초에 1 (바닐라 처리라 내구성 마법이 적용되고 창조 모드는 닳지 않는다)
+        if (w.id().equals(Items.tag(p.getInventory().getItemInMainHand(), Keys.WEAPON)))
+            p.damageItemStack(EquipmentSlot.HAND, kr.augsky.item.Gear.skillCost(cd, w.durability()));
         return true;
     }
 
@@ -291,9 +315,9 @@ public final class WeaponListener implements Listener {
     }
 
     /**
-     * 예전에 만든 무기와 안내서를 지금 내용으로 바꾼다.
-     * 무기 설명·공격력과 안내서 글은 만들 때 아이템에 박히므로, 판이 바뀌거나 리로드하면 옛 조작법(F키 등)이 남는다.
-     * 들어올 때 인벤토리·엔더 상자, 손에 들 때, 주울 때, 상자를 열 때 고친다. 지문이 같으면 건드리지 않는다.
+     * 예전에 만든 무기·갑옷과 안내서를 지금 내용으로 바꾼다.
+     * 무기 설명·공격력·내구도와 안내서 글은 만들 때 아이템에 박히므로, 판이 바뀌거나 리로드하면 옛 조작법(F키 등)이 남는다.
+     * 들어올 때 인벤토리·엔더 상자, 손에 들 때, 주울 때, 상자를 열고 닫을 때 고친다. 지문이 같으면 건드리지 않는다.
      */
     public void refreshItems(Player p) {
         refreshItems(p.getInventory());
@@ -312,6 +336,7 @@ public final class WeaponListener implements Listener {
     private ItemStack refreshed(ItemStack it) {
         if (it == null || it.isEmpty()) return null;
         if (plugin.weapons().refresh(it)) return it;
+        if (plugin.armor().refresh(it)) return it;
         if (!"guide_book".equals(Items.tag(it, Keys.ITEM))) return null;
         // 안내서는 config.yml 의 guide-book 글이 바뀌었을 때만 새로 만든다
         int sig = plugin.getConfig().getStringList("guide-book").hashCode();
@@ -340,7 +365,7 @@ public final class WeaponListener implements Listener {
     public void onPickup(EntityPickupItemEvent e) {
         if (!(e.getEntity() instanceof Player p)) return;
         ItemStack it = e.getItem().getItemStack();
-        if (Items.tag(it, Keys.WEAPON) == null && !"guide_book".equals(Items.tag(it, Keys.ITEM))) return;
+        if (Items.tag(it, Keys.WEAPON) == null && Items.tag(it, Keys.ARMOR) == null && !"guide_book".equals(Items.tag(it, Keys.ITEM))) return;
         Bukkit.getScheduler().runTask(plugin, () -> {
             if (p.isOnline()) refreshItems(p.getInventory());
         });
@@ -351,6 +376,12 @@ public final class WeaponListener implements Listener {
     public void onOpen(InventoryOpenEvent e) {
         if (e.getInventory().getHolder(false) instanceof kr.augsky.altar.Menus.Holder) return;
         refreshItems(e.getInventory());
+    }
+
+    /** 셜커 상자 등에서 꺼낸 옛 장비. 닫을 때 자기 인벤토리를 훑는다 (지문이 같으면 아무것도 하지 않는다). */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onClose(org.bukkit.event.inventory.InventoryCloseEvent e) {
+        if (e.getPlayer() instanceof Player p) refreshItems(p.getInventory());
     }
 
     @EventHandler

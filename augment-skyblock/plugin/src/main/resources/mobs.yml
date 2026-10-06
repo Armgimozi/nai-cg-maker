@@ -233,6 +233,7 @@ mobs:
       - {item: shard, min: 8, max: 14}
       - {item: essence_frost, min: 3, max: 6}
       - {item: "armor:frostlord", chance: 0.6}
+      - {item: "book:mending", chance: 0.4}
       - {item: ticket_silver, chance: 0.7}
       - {item: ticket_gold, chance: 0.5}
       - {item: ticket_prism, chance: 0.15}
@@ -325,6 +326,7 @@ mobs:
       - {item: shard, min: 10, max: 16}
       - {item: essence_flame, min: 3, max: 6}
       - {item: "armor:inferno", chance: 0.6}
+      - {item: "book:mending", chance: 0.4}
       - {item: ticket_silver, chance: 0.7}
       - {item: ticket_gold, chance: 0.5}
       - {item: ticket_prism, chance: 0.15}
@@ -423,6 +425,7 @@ mobs:
       - {item: shard, min: 14, max: 20}
       - {item: essence_void, min: 4, max: 8}
       - {item: "armor:sovereign", chance: 0.6}
+      - {item: "book:mending", chance: 0.4}
       - {item: ticket_silver, chance: 0.7}
       - {item: ticket_gold, chance: 0.6}
       - {item: ticket_prism, chance: 0.3}

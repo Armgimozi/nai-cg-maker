@@ -3,7 +3,7 @@
 #    pool    얻는 곳: basic(섬 초반) island(섬 재료) frost/flame/void(균열) boss(보스) prism(프리즘)
 #            몬스터 드롭 "pool:frost" 는 그 pool 의 무기 중 하나를 준다
 #    source  설명에 보일 '얻는 곳' 문구 (안 적으면 pool 에 맞게 자동)
-#    type    sword greatsword dagger katana axe hammer spear scythe staff wand
+#    type    sword greatsword dagger katana axe hammer spear scythe staff wand bow pickaxe
 #    element 리소스팩 색상표 (iron stone wood bone copper flame frost storm venom ocean
 #            earth wind holy nature blood abyss shadow star crystal prism gold ender sun doom)
 #    damage  공격력(맨손 1 포함),  speed  초당 공격 횟수(바닐라 검 1.6)
@@ -21,6 +21,16 @@
 #    recipe  작업대 조합법 (item:아이템id, weapon:무기id, 바닐라 재료 이름)
 #            weapon: 은 같은 종류의 무기만 넣는다 (도끼엔 도끼). 레시피 책에는 그 무기 모양 그대로 보인다
 #    droppable false 면 '무작위 무기' 드롭에 나오지 않는다
+#    durability 최대 내구도. 안 적으면 얻는 곳에 맞춘다: 섬 초반 250, 섬 재료 750, 균열 1561, 보스 2031, 프리즘 3000
+#            (단검·카타나처럼 빠른 무기는 공격 속도만큼 최대 1.4배, 활은 384 이상). 바닐라처럼 휘두르고 쏘고 캐면 닳고,
+#            스킬은 한 번에 실제 재사용 대기 2초마다 1 (최소 1, 최대 내구도의 1%까지) 닳는다
+#    repair  모루 수리 재료: 바닐라 재료 이름(여러 개는 쉼표), PLANKS(아무 판자), item:아이템id.
+#            안 적으면 섬 무기는 element 의 재료, 균열 무기는 그 정수, 보스는 다이아몬드, 프리즘은 프리즘 결정.
+#            같은 무기 둘을 모루에 올려도 고쳐진다. 다른 무기·바닐라 아이템·네더라이트 주괴로는 고칠 수 없다
+#    mining  곡괭이만. {tier: stone|iron|diamond|netherite, speed: 채굴 속도}
+#            tier 는 그 등급 바닐라 곡괭이처럼 캐서 떨어지는 블록 (바닐라 속도: 돌 4, 철 6, 다이아몬드 8, 네더라이트 9)
+#    perks   곡괭이만. {auto_smelt: true (캐낸 광석이 곧바로 주괴), haste: N (들고 있는 동안 성급함 N단계)}
+#            같은 증강이 있으면 그 위에 더해진다 (제련 경험치 두 배, 증강 성급함 + N단계)
 #  리소스팩 모델 이름은 augsky:<무기id> 이다.
 # ─────────────────────────────────────────────────────────────
 
@@ -31,6 +41,7 @@ apprentice_sword:
   pool: basic
   type: sword
   element: iron
+  repair: COBBLESTONE
   damage: 6.5
   speed: 1.6
   lore: ["모든 모험은 이 검 한 자루에서 시작된다."]
@@ -59,6 +70,7 @@ woodcutter_axe:
   pool: basic
   type: axe
   element: wood
+  repair: COBBLESTONE
   damage: 8
   speed: 1.0
   lore: ["나무도, 몬스터도 한 번에."]
@@ -133,6 +145,7 @@ thorn_club:
   pool: basic
   type: hammer
   element: nature
+  repair: CACTUS
   damage: 8.5
   speed: 0.9
   passive:
@@ -496,6 +509,7 @@ spirit_scythe:
   pool: island
   type: scythe
   element: bone
+  repair: BONE_BLOCK
   damage: 11
   speed: 1.1
   reach: 0.5
@@ -991,7 +1005,8 @@ sun_blade:
     ingredients: {B: BLAZE_ROD, C: "item:prism_crystal", W: "weapon:holy_blade"}
 
 # ═══════════════════════ 활 ═══════════════════════
-#  활은 우클릭으로 당겨 쏘는 보통 활이다 (화살 1개만 있으면 줄지 않는다).
+#  활은 우클릭으로 당겨 쏘는 보통 활이다. 화살을 쓰고, 무한 마법(마법 부여대·책)을 붙이면 줄지 않는다.
+#  보스·프리즘 활(pool: boss, prism)만 무한 마법 없이도 화살 1개만 있으면 줄지 않는다 (그 화살은 주울 수 없다).
 #  damage 는 끝까지 당겨 쐈을 때 화살 피해.
 #  웅크리기+당겨 쏘기는 화살 대신 skill 이 나간다 (재사용 대기 중이면 그냥 화살). 웅크리기+좌클릭은 skill2.
 #  활에는 skill3 이 없다.
@@ -1001,6 +1016,7 @@ hunter_bow:
   pool: basic
   type: bow
   element: wood
+  repair: STRING
   damage: 6.5
   speed: 1.0
   lore: ["처음 잡아 보는 활. 바람을 읽어라."]
@@ -1129,3 +1145,124 @@ prism_bow:
   recipe:
     shape: ["CCS", "DWS", "CCS"]
     ingredients: {C: "item:prism_crystal", S: STRING, D: DIAMOND, W: "weapon:storm_longbow"}
+
+# ═══════════════════════ 곡괭이 — 바로 전 곡괭이를 재료로 한 단계씩 강화한다 ═══════════════════════
+#  스킬은 없고 우클릭·좌클릭은 바닐라 그대로다. 무작위 무기 드롭에는 나오지 않는다 (droppable: false).
+#  mining.tier 보다 단단한 광석은 캐도 아무것도 떨어지지 않는다 (개척자의 곡괭이로는 금·다이아몬드·레드스톤이 안 나온다,
+#  흑요석·우는 흑요석·고대 잔해는 심층 곡괭이부터).
+
+pioneer_pickaxe:
+  name: 개척자의 곡괭이
+  pool: basic
+  type: pickaxe
+  element: stone
+  damage: 3
+  speed: 1.2
+  mining: {tier: stone, speed: 4.5}
+  durability: 200
+  repair: COBBLESTONE
+  droppable: false
+  lore: ["부싯돌 날을 가죽끈으로 동여맨 첫 곡괭이."]
+  recipe:
+    shape: ["CFC", " S ", " S "]
+    ingredients: {C: COBBLESTONE, F: FLINT, S: STICK}
+
+miner_pickaxe:
+  name: 광부의 곡괭이
+  pool: basic
+  type: pickaxe
+  element: iron
+  damage: 4
+  speed: 1.2
+  mining: {tier: iron, speed: 6.5}
+  durability: 375
+  repair: IRON_INGOT
+  droppable: false
+  lore: ["광부들이 대대로 써 온 쌍날 곡괭이. 작은 랜턴이 길을 비춘다."]
+  recipe:
+    shape: ["ILI", " W ", " S "]
+    ingredients: {I: IRON_INGOT, L: LANTERN, W: "weapon:pioneer_pickaxe", S: STICK}
+
+amethyst_pickaxe:
+  name: 자수정 곡괭이
+  pool: island
+  type: pickaxe
+  element: crystal
+  damage: 4.5
+  speed: 1.2
+  mining: {tier: iron, speed: 8.5}
+  durability: 1100
+  repair: AMETHYST_SHARD
+  droppable: false
+  lore: ["자수정 결정이 돌을 결대로 쪼갠다.", "심층으로 내려가는 디딤돌."]
+  recipe:
+    shape: ["ABA", " W ", " C "]
+    ingredients: {A: AMETHYST_SHARD, B: AMETHYST_BLOCK, W: "weapon:miner_pickaxe", C: CALCITE}
+
+deep_pickaxe:
+  name: 심층 곡괭이
+  pool: island
+  type: pickaxe
+  element: earth
+  damage: 5
+  speed: 1.2
+  mining: {tier: diamond, speed: 9.5}
+  durability: 1800
+  repair: DIAMOND
+  droppable: false
+  lore: ["심층암을 통째로 깎아 다이아몬드 끝을 박았다. 흑요석도 캔다."]
+  recipe:
+    shape: ["DRD", " W ", " T "]
+    ingredients: {D: DIAMOND, R: REDSTONE_BLOCK, W: "weapon:amethyst_pickaxe", T: TUFF}
+
+magma_pickaxe:
+  name: 용암 곡괭이
+  pool: flame
+  type: pickaxe
+  element: flame
+  damage: 5.5
+  speed: 1.2
+  mining: {tier: diamond, speed: 10.5}
+  durability: 2000
+  repair: "item:essence_flame"
+  perks: {auto_smelt: true}
+  droppable: false
+  lore: ["날이 늘 달아올라 있어 캐낸 광석이 그대로 녹는다."]
+  recipe:
+    shape: ["EME", " W ", " B "]
+    ingredients: {E: "item:essence_flame", M: MAGMA_BLOCK, W: "weapon:deep_pickaxe", B: BLAZE_ROD}
+
+meteor_pickaxe:
+  name: 운석 곡괭이
+  pool: boss
+  type: pickaxe
+  element: star
+  damage: 6
+  speed: 1.2
+  mining: {tier: netherite, speed: 11.5}
+  durability: 2400
+  repair: DIAMOND
+  perks: {auto_smelt: true, haste: 1}
+  droppable: false
+  lore: ["하늘에서 떨어진 운석을 박았다. 쥐면 손이 빨라진다."]
+  recipe:
+    shape: ["YCO", " W ", " R "]
+    ingredients: {Y: CRYING_OBSIDIAN, C: "item:prism_crystal", O: OBSIDIAN, W: "weapon:magma_pickaxe", R: END_ROD}
+
+prism_pickaxe:
+  name: 프리즘 곡괭이
+  pool: prism
+  type: pickaxe
+  element: prism
+  damage: 7
+  speed: 1.2
+  mining: {tier: netherite, speed: 13}
+  durability: 3200
+  repair: "item:prism_crystal"
+  perks: {auto_smelt: true, haste: 2}
+  droppable: false
+  lore: ["빛을 가르는 두 날. 캐는 소리마저 무지갯빛이다."]
+  source: "프리즘 결정 3개로 만든다"
+  recipe:
+    shape: ["CDC", " W ", " C "]
+    ingredients: {C: "item:prism_crystal", D: DIAMOND, W: "weapon:meteor_pickaxe"}

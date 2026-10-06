@@ -218,7 +218,7 @@ class Weapon:
         """
         mats: {"이름": Mat}
         grip_y: 손에 쥐는 높이 (설계 Y, 손잡이 가운데)
-        kind: 손에 들었을 때의 크기 기준 (sword, greatsword, dagger, katana, axe, hammer, spear, scythe, staff, wand)
+        kind: 손에 들었을 때의 크기 기준 (sword, greatsword, dagger, katana, axe, hammer, spear, scythe, staff, wand, pickaxe)
         """
         self.mats = dict(mats)
         self.names = list(self.mats)
@@ -649,7 +649,7 @@ class Weapon:
         length = (hi[1] + 1 - lo[1]) * self.VOX                        # 모델 단위 길이
         width = (hi[0] + 1 - lo[0]) * self.VOX
         want = {"greatsword": 26, "scythe": 26, "spear": 27, "staff": 24, "hammer": 22, "axe": 21, "katana": 22,
-                "sword": 19, "dagger": 14, "wand": 16, "bow": 23}.get(self.kind, 19)
+                "sword": 19, "dagger": 14, "wand": 16, "bow": 23, "pickaxe": 20}.get(self.kind, 19)
         s_hand = want / max(length, 1)
         grip = np.array([8.0 + self.grip_x * self.VOX, self.Y0 + self.grip_y * self.VOX, 8.0])
         c = np.array([8.0, 8.0, 8.0])

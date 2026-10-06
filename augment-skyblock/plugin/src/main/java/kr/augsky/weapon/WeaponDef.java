@@ -26,10 +26,28 @@ public record WeaponDef(
         List<HitEffect> passive,
         List<String> lore,
         P recipe,
-        boolean droppable
+        boolean droppable,
+        /* 곡괭이: 채굴 등급(stone iron diamond netherite)과 채굴 속도 */
+        String miningTier,
+        double miningSpeed,
+        /* 최대 내구도와 수리 재료 (안 적으면 Gear 의 기본값을 채워 둔다) */
+        int durability,
+        String repair,
+        /* 곡괭이 패시브: 캐낸 광석 바로 제련, 들고 있는 동안 성급함 단계 */
+        boolean autoSmelt,
+        int haste
 ) {
     public boolean isBow() {
         return "bow".equals(type);
+    }
+
+    public boolean isPickaxe() {
+        return "pickaxe".equals(type);
+    }
+
+    /** 화살이 줄지 않는 활: 보스·프리즘 활만. 나머지는 바닐라처럼 화살을 쓰고 무한 마법을 붙일 수 있다. */
+    public boolean infiniteArrows() {
+        return isBow() && ("boss".equals(pool) || "prism".equals(pool));
     }
 
     /** 슬롯(1~3)에 붙은 스킬 id. 비어 있으면 null. */
@@ -76,6 +94,7 @@ public record WeaponDef(
             case "staff" -> "지팡이";
             case "wand" -> "마법봉";
             case "bow" -> "활";
+            case "pickaxe" -> "곡괭이";
             default -> type;
         };
     }

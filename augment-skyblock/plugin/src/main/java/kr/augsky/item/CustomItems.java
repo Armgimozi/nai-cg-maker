@@ -73,7 +73,7 @@ public final class CustomItems {
 
     /**
      * 아이템 문자열: "shard", "item:shard", "weapon:flame_sword", "pool:frost"(그 pool 의 무작위 무기),
-     * "armor:frost"(서리 세트의 무작위 부위), "armor:frost:helmet", "IRON_INGOT".
+     * "armor:frost"(서리 세트의 무작위 부위), "armor:frost:helmet", "book:mending"(마법이 부여된 책, "book:power:3" 처럼 단계), "IRON_INGOT".
      * 몬스터 드롭, 시작 보급, 조합법, 스킬 연출 아이템에서 같이 쓴다.
      */
     public ItemStack spec(String spec, int amount) {
@@ -85,6 +85,8 @@ public final class CustomItems {
         switch (kind) {
             case "item":
                 return create(val, amount);
+            case "book":
+                return book(val, true);
             case "weapon":
                 return plugin.weapons().create(val);
             case "armor":
@@ -107,6 +109,39 @@ public final class CustomItems {
                 plugin.getLogger().warning("알 수 없는 아이템: " + spec);
                 return null;
         }
+    }
+
+    /**
+     * 바닐라 마법이 부여된 책 ("mending", "power:3". 단계를 안 적으면 최고 단계).
+     * 커스텀 표시(PDC)를 붙이지 않아야 모루가 보통 책으로 받는다. named 면 보상 알림에 보이도록 마법 이름을 이름에 넣는다.
+     */
+    public ItemStack book(String spec, boolean named) {
+        String[] parts = spec.split(":");
+        org.bukkit.enchantments.Enchantment ench = io.papermc.paper.registry.RegistryAccess.registryAccess()
+                .getRegistry(io.papermc.paper.registry.RegistryKey.ENCHANTMENT).get(NamespacedKey.minecraft(parts[0].trim().toLowerCase(Locale.ROOT)));
+        if (ench == null) {
+            plugin.getLogger().warning("알 수 없는 마법: " + spec);
+            return null;
+        }
+        int level = ench.getMaxLevel();
+        if (parts.length > 1) {
+            try {
+                level = Math.max(1, Integer.parseInt(parts[1].trim()));
+            } catch (NumberFormatException ignored) {
+                // 단계를 못 읽으면 최고 단계
+            }
+        }
+        ItemStack it = new ItemStack(Material.ENCHANTED_BOOK);
+        int lv = level;
+        it.editMeta(org.bukkit.inventory.meta.EnchantmentStorageMeta.class, m -> {
+            m.addStoredEnchant(ench, lv, true);
+            if (named) {
+                var gray = net.kyori.adventure.text.format.NamedTextColor.GRAY;
+                m.displayName(Text.mm("<yellow>마법이 부여된 책 ").append(Component.text("(", gray))
+                        .append(ench.displayName(lv).color(gray)).append(Component.text(")", gray)));
+            }
+        });
+        return it;
     }
 
     public String idOf(ItemStack it) {

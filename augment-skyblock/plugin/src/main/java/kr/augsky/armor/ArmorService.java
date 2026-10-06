@@ -4,6 +4,7 @@ import com.destroystokyo.paper.event.player.PlayerArmorChangeEvent;
 import kr.augsky.AugSky;
 import kr.augsky.Keys;
 import kr.augsky.augment.AugmentDef;
+import kr.augsky.item.Gear;
 import kr.augsky.util.Fx;
 import kr.augsky.util.P;
 import kr.augsky.util.Text;
@@ -47,22 +48,25 @@ import java.util.logging.Logger;
  */
 public final class ArmorService implements Listener {
     public enum Slot {
-        HELMET("helmet", "투구", EquipmentSlot.HEAD, EquipmentSlotGroup.HEAD, Material.NETHERITE_HELMET),
-        CHESTPLATE("chestplate", "갑옷", EquipmentSlot.CHEST, EquipmentSlotGroup.CHEST, Material.NETHERITE_CHESTPLATE),
-        LEGGINGS("leggings", "각반", EquipmentSlot.LEGS, EquipmentSlotGroup.LEGS, Material.NETHERITE_LEGGINGS),
-        BOOTS("boots", "신발", EquipmentSlot.FEET, EquipmentSlotGroup.FEET, Material.NETHERITE_BOOTS);
+        HELMET("helmet", "투구", EquipmentSlot.HEAD, EquipmentSlotGroup.HEAD, Material.NETHERITE_HELMET, 11),
+        CHESTPLATE("chestplate", "갑옷", EquipmentSlot.CHEST, EquipmentSlotGroup.CHEST, Material.NETHERITE_CHESTPLATE, 16),
+        LEGGINGS("leggings", "각반", EquipmentSlot.LEGS, EquipmentSlotGroup.LEGS, Material.NETHERITE_LEGGINGS, 15),
+        BOOTS("boots", "신발", EquipmentSlot.FEET, EquipmentSlotGroup.FEET, Material.NETHERITE_BOOTS, 13);
 
         public final String id, korean;
         public final EquipmentSlot slot;
         public final EquipmentSlotGroup group;
         public final Material shell;
+        /** 바닐라 부위별 내구도 배수 (armor.yml 의 durability 에 곱한다) */
+        public final int factor;
 
-        Slot(String id, String korean, EquipmentSlot slot, EquipmentSlotGroup group, Material shell) {
+        Slot(String id, String korean, EquipmentSlot slot, EquipmentSlotGroup group, Material shell, int factor) {
             this.id = id;
             this.korean = korean;
             this.slot = slot;
             this.group = group;
             this.shell = shell;
+            this.factor = factor;
         }
 
         public static Slot parse(String s) {
@@ -76,15 +80,24 @@ public final class ArmorService implements Listener {
 
     public record SetDef(String id, String name, String color, String source, Map<Slot, Piece> pieces,
                          Map<Integer, List<AugmentDef.Effect>> bonus, Map<Integer, String> bonusDesc,
-                         String aura, P recipe) {
+                         String aura, P recipe, int durability, String repair) {
         public String colored(String text) {
             return "<" + color + ">" + text + "</" + color + ">";
         }
+
+        /** 부위의 최대 내구도 = 세트 배수 × 바닐라 부위 배수. */
+        public int maxDurability(Slot slot) {
+            return durability * slot.factor;
+        }
     }
+
+    /** 아이템을 만들 때 쓴 설명·내구도의 지문. 지금 정의와 다르면 refresh 가 다시 쓴다. */
+    private static final NamespacedKey SIG = Keys.of("armor_sig");
 
     private final AugSky plugin;
     private final Logger log;
     private final Map<String, SetDef> sets = new LinkedHashMap<>();
+    private final Map<String, Gear.Repair> repairs = new HashMap<>();
     private final Set<UUID> pending = new HashSet<>();
     /** 지난번에 입고 있던 세트별 부위 수 (세트 효과가 새로 켜졌는지 알리려고) */
     private final Map<UUID, Map<String, Integer>> lastWorn = new HashMap<>();
@@ -100,6 +113,7 @@ public final class ArmorService implements Listener {
 
     public void load(YamlConfiguration y) {
         sets.clear();
+        repairs.clear();
         for (String id : y.getKeys(false)) {
             ConfigurationSection s = y.getConfigurationSection(id);
             if (s == null) continue;
@@ -131,8 +145,13 @@ public final class ArmorService implements Listener {
                     desc.put(n, bd == null ? "" : bd.s(k, ""));
                 }
             }
-            sets.put(id, new SetDef(id, p.s("name", id), p.s("color", "#ffffff"), p.s("source", ""), pieces, bonus, desc,
-                    p.s("aura", null), p.sub("recipe")));
+            SetDef def = new SetDef(id, p.s("name", id), p.s("color", "#ffffff"), p.s("source", ""), pieces, bonus, desc,
+                    p.s("aura", null), p.sub("recipe"), Math.max(1, p.i("durability", 33)), p.s("repair", "DIAMOND"));
+            Gear.Repair rep = Gear.Repair.parse(def.repair());
+            if (rep == null || (rep.item() != null && plugin.items().def(rep.item()) == null))
+                log.warning("갑옷 " + id + " 의 수리 재료 " + def.repair() + " 를 알 수 없습니다 (모루에서 같은 갑옷으로만 고칠 수 있다)");
+            repairs.put(id, rep);
+            sets.put(id, def);
         }
         log.info("갑옷 " + sets.size() + "세트 불러옴");
     }
@@ -154,12 +173,16 @@ public final class ArmorService implements Listener {
         return id == null ? null : sets.get(id);
     }
 
+    /** 세트의 수리 재료 (모르면 null: 같은 갑옷끼리만 고친다). */
+    public Gear.Repair repair(String setId) {
+        return setId == null ? null : repairs.get(setId);
+    }
+
     // ------------------------------------------------------------------ 아이템
 
     public ItemStack create(String setId, Slot slot) {
         SetDef s = get(setId);
         if (s == null || slot == null) return null;
-        Piece pc = s.pieces().get(slot);
         ItemStack it = new ItemStack(slot.shell);
         ItemMeta meta = it.getItemMeta();
         meta.displayName(Text.mm("<!i>" + s.colored(s.name() + " " + slot.korean)));
@@ -173,22 +196,75 @@ public final class ArmorService implements Listener {
         else if (!models) eq.setModel(NamespacedKey.minecraft("netherite"));
         eq.setDispensable(true);
         eq.setSwappable(true);
-        eq.setDamageOnHurt(false);
         meta.setEquippable(eq);
-        meta.setUnbreakable(true);
+        gear(meta, s, slot);
+        stats(meta, s, slot);
+        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ADDITIONAL_TOOLTIP, ItemFlag.HIDE_ARMOR_TRIM);
+        var pdc = meta.getPersistentDataContainer();
+        pdc.set(Keys.ARMOR, PersistentDataType.STRING, s.id());
+        pdc.set(Keys.ARMOR_SLOT, PersistentDataType.STRING, slot.id);
+        pdc.set(SIG, PersistentDataType.INTEGER, sig(s, slot));
+        it.setItemMeta(meta);
+        Gear.applyRepairable(it, repairs.get(s.id()), plugin.items());
+        return it;
+    }
+
+    private static final List<Attribute> STAT_ATTRS = List.of(Attribute.ARMOR, Attribute.ARMOR_TOUGHNESS, Attribute.KNOCKBACK_RESISTANCE);
+
+    /** 방어·방어 강도·밀치기 저항. 우리 키의 수식어만 빼고 지금 정의로 다시 단다 (설명과 수치가 어긋나지 않게 refresh 도 쓴다). */
+    private static void stats(ItemMeta meta, SetDef s, Slot slot) {
         String base = "armor_" + slot.id;
+        for (Attribute a : STAT_ATTRS) {
+            var mods = meta.getAttributeModifiers(a);
+            if (mods == null) continue;
+            for (AttributeModifier m : List.copyOf(mods)) {
+                if (m.getKey().getNamespace().equals(Keys.NS) && m.getKey().getKey().startsWith(base + "_"))
+                    meta.removeAttributeModifier(a, m);
+            }
+        }
+        Piece pc = s.pieces().get(slot);
         meta.addAttributeModifier(Attribute.ARMOR, new AttributeModifier(Keys.of(base + "_armor"), pc.armor(),
                 AttributeModifier.Operation.ADD_NUMBER, slot.group));
         if (pc.toughness() > 0) meta.addAttributeModifier(Attribute.ARMOR_TOUGHNESS, new AttributeModifier(
                 Keys.of(base + "_toughness"), pc.toughness(), AttributeModifier.Operation.ADD_NUMBER, slot.group));
         if (pc.knockback() > 0) meta.addAttributeModifier(Attribute.KNOCKBACK_RESISTANCE, new AttributeModifier(
                 Keys.of(base + "_knockback"), pc.knockback(), AttributeModifier.Operation.ADD_NUMBER, slot.group));
-        meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_ADDITIONAL_TOOLTIP, ItemFlag.HIDE_ARMOR_TRIM);
+    }
+
+    /** 내구도: 맞으면 닳고(바닐라), 투구는 3D 모델을 반짝임이 가리므로 반짝이지 않게 한다. */
+    private void gear(ItemMeta meta, SetDef s, Slot slot) {
+        Gear.applyDurability(meta, s.maxDurability(slot));
+        EquippableComponent eq = meta.getEquippable();
+        eq.setDamageOnHurt(true);
+        meta.setEquippable(eq);
+        if (slot == Slot.HELMET) meta.setEnchantmentGlintOverride(false);
+    }
+
+    private int sig(SetDef s, Slot slot) {
+        return (String.join("\n", lore(s, slot)) + "|g" + Gear.FORMAT + "|" + s.maxDurability(slot) + "|" + s.repair()).hashCode();
+    }
+
+    /**
+     * 이미 만들어진 갑옷의 설명과 방어 수치·최대 내구도·수리 재료를 지금 정의로 다시 쓴다 (WeaponRegistry.refresh 와 같은 이유).
+     * 부서지지 않던 예전 갑옷은 내구도가 꽉 찬 채로 바뀐다. 이름·마법 부여·닳은 정도는 그대로 둔다. 다시 썼으면 true.
+     */
+    public boolean refresh(ItemStack it) {
+        if (it == null || it.isEmpty() || !it.hasItemMeta()) return false;
+        SetDef s = get(setOf(it));
+        Slot slot = slotOf(it);
+        if (s == null || slot == null) return false;
+        ItemMeta meta = it.getItemMeta();
         var pdc = meta.getPersistentDataContainer();
-        pdc.set(Keys.ARMOR, PersistentDataType.STRING, s.id());
-        pdc.set(Keys.ARMOR_SLOT, PersistentDataType.STRING, slot.id);
+        int sig = sig(s, slot);
+        Integer had = pdc.get(SIG, PersistentDataType.INTEGER);
+        if (had != null && had == sig) return false;
+        meta.lore(Text.mm(lore(s, slot)));
+        gear(meta, s, slot);
+        stats(meta, s, slot);
+        pdc.set(SIG, PersistentDataType.INTEGER, sig);
         it.setItemMeta(meta);
-        return it;
+        Gear.applyRepairable(it, repairs.get(s.id()), plugin.items());
+        return true;
     }
 
     /** "armor:세트" (무작위 부위) 또는 "armor:세트:부위". */
@@ -206,6 +282,7 @@ public final class ArmorService implements Listener {
         if (pc.toughness() > 0) stat += "   <white>방어 강도 <#9ad8ff>" + Text.num(pc.toughness());
         l.add(stat);
         if (pc.knockback() > 0) l.add("<white>밀치기 저항 <#9ad8ff>" + Text.pct(pc.knockback()));
+        l.add(Gear.loreLine(s.maxDurability(slot), repairs.get(s.id()), plugin.items()));
         for (Map.Entry<Integer, String> en : s.bonusDesc().entrySet()) {
             l.add("");
             l.add("<#ffcc55>[" + en.getKey() + "세트] <gray>" + en.getValue());
@@ -255,6 +332,8 @@ public final class ArmorService implements Listener {
 
     @EventHandler
     public void onArmorChange(PlayerArmorChangeEvent e) {
+        // 갑옷이 닳거나 수선으로 고쳐질 때도 이 이벤트가 온다. 세트 효과는 세트·부위만 보므로 같은 장비면 다시 계산하지 않는다
+        if (java.util.Objects.equals(Gear.id(e.getOldItem()), Gear.id(e.getNewItem()))) return;
         Player p = e.getPlayer();
         if (!pending.add(p.getUniqueId())) return;
         Bukkit.getScheduler().runTask(plugin, () -> {
