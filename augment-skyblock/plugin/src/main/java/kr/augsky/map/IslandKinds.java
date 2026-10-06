@@ -264,10 +264,15 @@ final class IslandKinds extends MapTools {
         return (h >>> 11) * 0x1.0p-53;
     }
 
+    /** 블록 자리 하나를 수 하나로 (집합에 넣으려고). */
+    private static long key(int x, int y, int z) {
+        return ((long) x & 0x3FFFFFF) | (((long) z & 0x3FFFFFF) << 26) | (((long) y & 0xFFF) << 52);
+    }
+
     /** 흐르게 둘 물·용암 (폭포). 물리를 켜고 놓는다. */
     private void flow(int px, int py, int pz, Material m) {
         w.getBlockAt(px, py, pz).setType(m, true);
-        flows.add(Block.getBlockKey(px, py, pz));
+        flows.add(key(px, py, pz));
     }
 
     /** 가장자리의 섬 윗면 한 칸을 파서 폭포를 놓는다 (u 쪽 끝). */
@@ -1204,12 +1209,12 @@ final class IslandKinds extends MapTools {
             }
         Bore b = tunnel(y - 5, 2, 2, 0, null);
         Set<Long> path = new HashSet<>();
-        for (int t = -3; t < b.mouth(); t++) for (int s = 0; s <= 1; s++) path.add(Block.getBlockKey(b.x(t, s), 0, b.z(t, s)));
+        for (int t = -3; t < b.mouth(); t++) for (int s = 0; s <= 1; s++) path.add(key(b.x(t, s), 0, b.z(t, s)));
         // 천장 발광석 덩어리 (굴이 지나는 줄은 비운다)
         List<int[]> ceil = new ArrayList<>();
         for (int dx = -2; dx <= 2; dx++)
             for (int dz = -2; dz <= 2; dz++)
-                if (!path.contains(Block.getBlockKey(x + dx, 0, z + dz))) ceil.add(new int[]{x + dx, z + dz});
+                if (!path.contains(key(x + dx, 0, z + dz))) ceil.add(new int[]{x + dx, z + dz});
         int glow = 12 + r.nextInt(3);
         while (glow > 0 && !ceil.isEmpty()) {
             int[] c = take(ceil);
@@ -1217,7 +1222,7 @@ final class IslandKinds extends MapTools {
             for (int i = 0; i < n; i++) {
                 int[] f = i == 0 ? new int[]{0, 0} : FOUR[r.nextInt(4)];
                 int gx = c[0] + f[0], gz = c[1] + f[1];
-                if (path.contains(Block.getBlockKey(gx, 0, gz)) || Math.abs(gx - x) > 2 || Math.abs(gz - z) > 2) continue;
+                if (path.contains(key(gx, 0, gz)) || Math.abs(gx - x) > 2 || Math.abs(gz - z) > 2) continue;
                 if (type(gx, y - 2, gz) == Material.GLOWSTONE) continue;
                 set(gx, y - 2, gz, Material.GLOWSTONE);
                 glow--;
@@ -2177,7 +2182,7 @@ final class IslandKinds extends MapTools {
                     }
                     BlockData bd = b.getBlockData();
                     if (bd instanceof Fence || bd instanceof GlassPane) connect(b, (MultipleFacing) bd);
-                    if (!wet(bd) || flows.contains(Block.getBlockKey(b.getX(), yy, b.getZ()))) continue;
+                    if (!wet(bd) || flows.contains(key(b.getX(), yy, b.getZ()))) continue;
                     for (BlockFace f : new BlockFace[]{BlockFace.DOWN, BlockFace.EAST, BlockFace.WEST, BlockFace.SOUTH, BlockFace.NORTH}) {
                         Block n = b.getRelative(f);
                         if (n.getType().isAir()) n.setType(seal(b), false);
