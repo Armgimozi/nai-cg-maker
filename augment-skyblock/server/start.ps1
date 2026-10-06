@@ -78,7 +78,14 @@ function Get-File($url, $file) {
             Move-Item -LiteralPath $part -Destination $file -Force
             return $true
         }
-        Say "  curl 로 받지 못했습니다 (코드 $LASTEXITCODE). 다른 방법으로 다시 받습니다..." 'Yellow'
+        # 일부 회선/보안 프로그램은 최신 보안 연결(TLS 1.3, HTTP/2)을 끊는다 (SEC_E_INVALID_TOKEN 등). 낮춰서 한 번 더
+        Say "  curl 로 받지 못했습니다 (코드 $LASTEXITCODE). 연결 방식을 바꿔 다시 받습니다..." 'Yellow'
+        & $curl.Source -fL --retry 2 --connect-timeout 30 --http1.1 --tls-max 1.2 -o $part $url
+        if ($LASTEXITCODE -eq 0 -and (Test-Path -LiteralPath $part)) {
+            Move-Item -LiteralPath $part -Destination $file -Force
+            return $true
+        }
+        Say "  다시 실패했습니다 (코드 $LASTEXITCODE). 다른 방법으로 받습니다..." 'Yellow'
     }
     try {
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -112,7 +119,7 @@ function Move-Retry($from, $to) {
 }
 
 try {
-    Say '[증강 스카이블럭 시작기 4판]' 'Cyan'
+    Say '[증강 스카이블럭 시작기 5판]' 'Cyan'
     Say "폴더: $Root"
 
     # ── 압축을 풀었는지 ──
@@ -138,7 +145,7 @@ try {
         $zip = Join-Path $Root 'java21.zip'
         if (-not (Get-File $JavaUrl $zip) -or -not (Test-Zip $zip)) {
             Stop-WithMessage @(
-                'Java 21 을 자동으로 받지 못했습니다. 인터넷 연결을 확인하고 다시 실행하거나,',
+                'Java 21 을 자동으로 받지 못했습니다. 인터넷 연결을 확인하거나 VPN 을 켜고 다시 실행하거나,',
                 'https://adoptium.net 에서 "Temurin 21" (Windows x64, .msi) 을 설치한 뒤 다시 실행하세요.')
         }
         Say '  압축 푸는 중...'
@@ -171,8 +178,9 @@ try {
         if (-not $ok -or (Get-Item -LiteralPath $paper).Length -ne $PaperSize -or -not (Test-Zip $paper)) {
             Remove-Item -LiteralPath $paper -Force -ErrorAction SilentlyContinue
             Stop-WithMessage @(
-                'Paper 서버 파일을 받지 못했습니다. 인터넷 연결을 확인하고 다시 실행하거나,',
-                'https://papermc.io/downloads/all 에서 1.21.4 를 받아 이 폴더에 paper.jar 라는 이름으로 넣어 주세요.')
+                'Paper 서버 파일을 받지 못했습니다. 회선이나 보안 프로그램이 papermc.io 연결을 막는 경우가 있습니다.',
+                ' - VPN 을 켜고 다시 실행해 보세요. 한 번 받은 뒤에는 VPN 을 꺼도 됩니다.',
+                ' - 또는 https://papermc.io/downloads/all 에서 1.21.4 를 받아 이 폴더에 paper.jar 라는 이름으로 넣어 주세요.')
         }
     }
     Say '  Paper: paper.jar'
