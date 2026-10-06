@@ -422,7 +422,7 @@ public final class AugmentListener implements Listener {
     }
 
     /**
-     * 탱크엔진: 다른 플레이어를 처치할 때마다 최대 체력이 영구히 오른다.
+     * 탱크엔진: 다른 플레이어를 처치할 때마다 최대 체력이 영구히 오른다. 상한 없이 계속 쌓인다 (그래서 프리즘).
      * 쌓인 값은 PlayerData.tank 에 저장되어 죽음·재접속·재시작 뒤에도 applyAttributes 가 다시 붙인다.
      * (기본 server.properties 는 pvp=false 라 PvP 를 켠 서버에서만 쌓인다.)
      */

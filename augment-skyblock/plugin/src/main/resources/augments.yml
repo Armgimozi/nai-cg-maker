@@ -542,14 +542,6 @@ g_memory:
   effects:
     - {type: keep_levels}
 
-g_tank_engine:
-  tier: GOLD
-  name: 탱크엔진
-  icon: FURNACE_MINECART
-  description: ["다른 플레이어를 처치할 때마다 최대 체력 +1 (영구)", "죽거나 증강을 잃어도 쌓인 체력은 남는다.", "(PvP 가 켜진 서버에서만 쌓인다)"]
-  effects:
-    - {type: tank_engine, amount: 1}
-
 # ═══════════════════════ 프리즘 ═══════════════════════
 
 p_midas:
@@ -719,3 +711,11 @@ p_soul_bind:
   description: ["죽어도 아무것도 잃지 않는다.", "(인벤토리와 경험치 전부 유지)"]
   effects:
     - {type: keep_all}
+
+p_tank_engine:
+  tier: PRISM
+  name: 탱크엔진
+  icon: FURNACE_MINECART
+  description: ["다른 플레이어를 처치할 때마다 최대 체력 +1 (영구, 상한 없음)", "죽거나 증강을 잃어도 쌓인 체력은 남는다.", "(PvP 가 켜진 서버에서만 쌓인다)"]
+  effects:
+    - {type: tank_engine, amount: 1}
