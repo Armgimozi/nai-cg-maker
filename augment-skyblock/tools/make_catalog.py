@@ -25,7 +25,8 @@ ELEMENT = {
     "shadow": ("그림자", "#8a8ab0"), "star": ("별", "#8898f8"), "crystal": ("수정", "#c088f0"), "prism": ("프리즘", "prism"),
     "gold": ("황금", "#e8c030"), "ender": ("엔더", "#38c8a0"), "sun": ("태양", "#f0b830"), "doom": ("종말", "#e82a5a"),
 }
-POOLS = [("basic", "섬 초반", "섬 재료로 작업대에서 만든다"), ("island", "섬 재료", "섬 재료로 작업대에서 만든다"),
+POOLS = [("basic", "섬 초반", "시작의 섬과 흔한 섬(숲, 광산, 목장…)의 재료로 만든다"),
+         ("island", "섬 재료", "드문 섬의 재료(피뢰침, 프리즈머린, 발광석…)로 만든다"),
          ("frost", "서리 균열", "서리 정수로 만든다"), ("flame", "화염 균열", "화염 정수로 만든다"),
          ("void", "공허 균열", "공허 정수로 만든다"), ("boss", "보스", "보스가 떨구거나 프리즘 결정으로 만든다"),
          ("prism", "프리즘", "프리즘 결정으로 만든다")]
@@ -98,6 +99,7 @@ def ingredient_name(spec, items, weapons, armor):
 
 
 def recipe_text(recipe, items, weapons, armor):
+    """조합 재료 한 줄. 다른 무기를 넣는 조합은 '강화:' 로 그 무기를 앞에 적어 무엇을 강화하는지 보이게 한다."""
     if not recipe:
         return ""
     counts = {}
@@ -105,13 +107,19 @@ def recipe_text(recipe, items, weapons, armor):
         for ch in row:
             if ch != " ":
                 counts[ch] = counts.get(ch, 0) + 1
-    parts = []
+    bases, parts = [], []
     for ch, n in counts.items():
         spec = recipe["ingredients"].get(ch)
         if spec is None:
             continue
-        parts.append(f"{ingredient_name(spec, items, weapons, armor)} ×{n}")
-    return ", ".join(parts)
+        name = ingredient_name(spec, items, weapons, armor)
+        if str(spec).startswith("weapon:"):
+            bases.append(name)
+        else:
+            parts.append(f"{name} ×{n}")
+    if bases:
+        return "강화: " + " + ".join(bases) + " + " + ", ".join(parts)
+    return "조합: " + ", ".join(parts)
 
 
 def element_chip(el):
@@ -171,7 +179,8 @@ def build():
                            f'<p class="noskill">스킬 없음 · {"기본 공격과 패시브" if passive else "기본 공격"}</p>')
             src = w.get("source")
             rec = recipe_text(w.get("recipe"), items, weapons, armor)
-            obtain = esc(src) if src else (f"조합: {esc(rec)}" if rec else esc(psrc))
+            # source 가 있어도 조합법이 있으면 함께 적는다 (보스가 떨구면서 만들 수도 있는 무기)
+            obtain = "<br>".join(esc(t) for t in (src, rec) if t) or esc(psrc)
             aura = '<span class="aura">아우라</span>' if pool in ("boss", "prism") else ""
             cards.append(
                 f'<article class="card wep" data-q="{esc(w["name"])} {TYPES.get(w["type"], "")} {ELEMENT.get(w.get("element"), ("",))[0]}">'
@@ -317,7 +326,7 @@ html {{ scroll-behavior: smooth; scroll-padding-top: 64px; }}
   <p class="lede">맵 곳곳의 제단을 우클릭하면 같은 등급 증강 3개 중 하나를 고릅니다. 제단은 한 번 쓰면 힘을 잃습니다. 증강권은 손에 들고 우클릭하면 어디서든 씁니다.</p>
   {aug}
   <h2 id="weapons">무기</h2>
-  <p class="lede">무기에 등급은 없고 얻는 곳으로만 나뉩니다. 섬 초반 무기는 대부분 스킬이 없습니다. 스킬은 우클릭과 웅크리기+우클릭으로 쓰고, 프리즘 무기는 웅크리기+좌클릭으로 궁극기까지 씁니다. 활은 그냥 당기면 화살이고, 웅크리기+당겨 쏘기와 웅크리기+좌클릭으로 스킬을 씁니다. 보스와 프리즘 무기에는 움직이는 아우라가 있습니다.</p>
+  <p class="lede">무기에 등급은 없고 얻는 곳으로만 나뉩니다. 조합 재료는 섬마다 나는 것이라 무기마다 찾아갈 섬이 다르고, 다른 무기를 넣는 강화 조합은 같은 종류의 무기만 받습니다. 섬 초반 무기는 대부분 스킬이 없습니다. 스킬은 우클릭과 웅크리기+우클릭으로 쓰고, 프리즘 무기는 웅크리기+좌클릭으로 궁극기까지 씁니다. 활은 그냥 당기면 화살이고, 웅크리기+당겨 쏘기와 웅크리기+좌클릭으로 스킬을 씁니다. 보스와 프리즘 무기에는 움직이는 아우라가 있습니다.</p>
   {wep}
   <h2 id="armor">갑옷</h2>
   <p class="lede">같은 세트를 2개, 4개 입으면 세트 효과가 붙습니다. 보스 세트는 보스가 떨구고, 프리즘 세트는 보스 갑옷과 프리즘 결정으로 만듭니다.</p>
