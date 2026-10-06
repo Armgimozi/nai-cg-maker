@@ -37,7 +37,7 @@
       리소스팩 zip 을 올린 인터넷 주소를 적어 주세요. (아래 '리소스팩' 참고)
 
   ※ server.properties 의 online-mode=true 라서 정품 계정만 들어올 수 있습니다.
-  ※ 기본으로 PvP 가 꺼져 있습니다(협동). 켜려면 server.properties 의 pvp=true.
+  ※ 기본으로 PvP 가 켜져 있습니다(탱크엔진 증강이 플레이어 처치로 쌓입니다). 끄려면 server.properties 의 pvp=false.
 
 
 ■ 게임 방법
