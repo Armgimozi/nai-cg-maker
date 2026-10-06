@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
-증강 · 무기 · 갑옷 도감 페이지(HTML 한 장)를 만든다.
+증강 · 무기(곡괭이 포함) · 갑옷 도감 페이지(HTML 한 장)를 만든다.
   python3 tools/make_catalog.py [출력.html]
 플러그인 YAML(augments, weapons, skills, armor, items)과 pack/gen_pack.py 가 만든 그림(dist/catalog/)을 읽는다.
 그림은 data: URI 로 페이지 안에 넣는다.
 """
 import base64
 import html
+import math
 import os
 import re
 import sys
@@ -30,8 +31,25 @@ POOLS = [("basic", "섬 초반", "시작의 섬과 흔한 섬(숲, 광산, 목�
          ("frost", "서리 균열", "서리 정수로 만든다"), ("flame", "화염 균열", "화염 정수로 만든다"),
          ("void", "공허 균열", "공허 정수로 만든다"), ("boss", "보스", "보스가 떨구거나 프리즘 결정으로 만든다"),
          ("prism", "프리즘", "프리즘 결정으로 만든다")]
+PICK_NOTE = "앞 곡괭이를 넣어 한 단계씩 강화한다 · 바닐라 채굴 속도는 돌 4, 철 6, 다이아몬드 8, 네더라이트 9"
 TYPES = {"sword": "검", "greatsword": "대검", "dagger": "단검", "katana": "카타나", "axe": "도끼", "hammer": "망치",
-         "spear": "창", "scythe": "낫", "staff": "지팡이", "wand": "마법봉", "bow": "활"}
+         "spear": "창", "scythe": "낫", "staff": "지팡이", "wand": "마법봉", "bow": "활", "pickaxe": "곡괭이"}
+# 무기 내구도·수리 재료를 안 적었을 때의 기본값. 플러그인 Gear.weaponDurability · weaponRepair 와 같은 표
+POOL_DURABILITY = {"basic": 250, "island": 750, "frost": 1561, "flame": 1561, "void": 1561, "boss": 2031, "prism": 3000}
+ELEMENT_REPAIR = {
+    "stone": "COBBLESTONE", "wood": "PLANKS", "bone": "BONE", "copper": "COPPER_INGOT", "gold": "GOLD_INGOT", "holy": "GOLD_INGOT",
+    "crystal": "AMETHYST_SHARD", "nature": "VINE", "storm": "LIGHTNING_ROD", "venom": "SPIDER_EYE", "ocean": "DRIED_KELP_BLOCK",
+    "earth": "MOSSY_COBBLESTONE", "wind": "PHANTOM_MEMBRANE", "blood": "REDSTONE", "star": "END_ROD",
+}
+# 갑옷 부위별 최대 내구도 = armor.yml 의 배수 × 이 값 (ArmorService 의 슬롯 배수, 바닐라와 같다)
+SLOT_DURABILITY = {"helmet": 11, "chestplate": 16, "leggings": 15, "boots": 13}
+# 곡괭이 채굴 등급: 이름과 그 등급으로 캐도 나오지 않는 블록 (바닐라 incorrect_for_*_tool 태그)
+MINING_TIERS = {
+    "stone": ("돌", "다이아몬드·금·레드스톤·에메랄드 광석과 흑요석은 캐도 나오지 않는다"),
+    "iron": ("철", "흑요석·우는 흑요석·고대 잔해는 캐도 나오지 않는다"),
+    "diamond": ("다이아몬드", "흑요석과 고대 잔해까지 다 캔다"),
+    "netherite": ("네더라이트", "흑요석과 고대 잔해까지 다 캔다"),
+}
 TIERS = [("SILVER", "실버"), ("GOLD", "골드"), ("PRISM", "프리즘")]
 # 스킬 칸마다 쓰는 법. 플러그인 WeaponDef.inputLabel 과 같은 글을 쓴다
 SKILL_INPUTS = (("skill", "우클릭"), ("skill2", "웅크리기+우클릭"), ("skill3", "웅크리기+좌클릭"))
@@ -58,6 +76,7 @@ MATERIAL = {
     "QUARTZ": "네더 석영", "SEA_LANTERN": "바다 랜턴", "SEA_PICKLE": "불우렁쉥이", "SHROOMLIGHT": "버섯불", "SLIME_BALL": "슬라임볼",
     "SNOW_BLOCK": "눈 블록", "SOUL_LANTERN": "영혼 랜턴", "SPRUCE_LOG": "가문비나무 원목", "STONE": "돌", "TINTED_GLASS": "착색 유리",
     "VINE": "덩굴", "TUFF": "응회암", "WEATHERED_COPPER": "풍화된 구리", "OXIDIZED_COPPER": "산화된 구리",
+    "REDSTONE": "레드스톤 가루",
 }
 
 
@@ -128,6 +147,101 @@ def element_chip(el):
     return f'<span class="el"><i style="{style}"></i>{esc(name)}</span>'
 
 
+def weapon_durability(w):
+    """최대 내구도. 안 적었으면 얻는 곳으로 정하고, 빠른 무기는 공격 속도만큼(최대 1.4배), 활은 384 이상."""
+    if w.get("durability", 0) > 0:
+        return int(w["durability"])
+    base = POOL_DURABILITY.get(w.get("pool", "basic"), 750)
+    if w.get("type") == "bow":
+        return max(base, 384)
+    if w.get("type") == "pickaxe":
+        return base
+    k = max(1.0, min(1.4, w.get("speed", 1.6) / 1.6))
+    return int(math.floor(base * k + 0.5))  # 자바 Math.round 와 같게 (파이썬 round 는 짝수 쪽으로 반올림)
+
+
+def weapon_repair(w):
+    if w.get("repair"):
+        return str(w["repair"])
+    pool = w.get("pool", "basic")
+    if pool in ("frost", "flame", "void"):
+        return "item:essence_" + pool
+    if pool == "boss":
+        return "DIAMOND"
+    if pool == "prism":
+        return "item:prism_crystal"
+    return ELEMENT_REPAIR.get(str(w.get("element", "iron")).lower(), "IRON_INGOT")
+
+
+def repair_name(spec, items, weapons, armor):
+    """수리 재료 이름. 여러 개는 쉼표로 적으므로 / 로 잇고, PLANKS 는 아무 판자 (Gear.Repair.label 과 같은 글)."""
+    spec = str(spec).strip()
+    if spec.startswith("item:"):
+        return ingredient_name(spec, items, weapons, armor)
+    names = []
+    for part in spec.split(","):
+        p = part.strip().upper()
+        names.append("판자" if p in ("PLANKS", "#PLANKS") else ingredient_name(p, items, weapons, armor))
+    return "/".join(names)
+
+
+def roman(n):
+    return {1: "I", 2: "II", 3: "III", 4: "IV"}.get(n, str(n))
+
+
+def weapon_card(wid, w, skills, items, weapons, armor):
+    uri = img_uri(os.path.join(CAT, "weapons", wid + ".png"))
+    pic = f'<img src="{uri}" alt="" loading="lazy">' if uri else '<div class="noimg"></div>'
+    pool = w.get("pool", "basic")
+    is_bow, is_pick = w.get("type") == "bow", w.get("type") == "pickaxe"
+    dur = f'<div><dt>내구도</dt><dd>{weapon_durability(w)}</dd></div>'
+    extra = ""
+    if is_pick:
+        # 곡괭이는 스킬 대신 채굴 등급·속도와 패시브를 보인다 (플러그인 무기 설명과 같은 글)
+        mining = w.get("mining") or {}
+        tier = str(mining.get("tier", "iron")).lower()
+        tname, tnote = MINING_TIERS.get(tier, (tier, ""))
+        stat = (f'<dl><div><dt>채굴 등급</dt><dd>{esc(tname)}</dd></div><div><dt>채굴 속도</dt><dd>{mining.get("speed", 6):g}</dd></div>'
+                f'<div><dt>공격력</dt><dd>{w.get("damage", 6):g}</dd></div>{dur}</dl>')
+        perks = w.get("perks") or {}
+        lines = []
+        if perks.get("auto_smelt"):
+            lines.append("캐낸 광석이 곧바로 제련된다")
+        if perks.get("haste", 0) > 0:
+            lines.append(f'들고 있는 동안 성급함 {roman(perks["haste"])}')
+        body = "".join(f'<li><b>패시브</b> {esc(t)}</li>' for t in lines)
+        body = (f'<ul class="skills">{body}</ul>' if body else "") + (f'<p class="mine">{esc(tnote)}</p>' if tnote else "")
+    else:
+        stat = (f'<dl><div><dt>화살 피해</dt><dd>{w["damage"]:g}</dd></div>{dur}</dl>' if is_bow else
+                f'<dl><div><dt>공격력</dt><dd>{w["damage"]:g}</dd></div><div><dt>공격 속도</dt><dd>{w.get("speed", 1.6):g}</dd></div>{dur}</dl>')
+        sk = []
+        for key, label in (BOW_SKILL_INPUTS if is_bow else SKILL_INPUTS):
+            s = skills.get(w.get(key) or "")
+            if s:
+                sk.append(f'<li><b>{label}</b> {esc(s["name"])} <small>{s.get("cooldown", 0):g}초</small>'
+                          f'<span>{esc(" ".join(s.get("description", [])))}</span></li>')
+        passive = (w.get("passive") or {}).get("description")
+        pas = f'<p class="passive">{esc(passive)}</p>' if passive else ""
+        # 초반 무기 대부분은 스킬이 없다. 빈 칸 대신 한 줄로 알려 준다
+        body = (f'<ul class="skills">{"".join(sk)}</ul>' if sk else
+                f'<p class="noskill">스킬 없음 · {"기본 공격과 패시브" if passive else "기본 공격"}</p>') + pas
+        if is_bow:
+            # 화살이 줄지 않는 활은 보스·프리즘 활만 (WeaponDef.infiniteArrows)
+            extra = ('<p class="gear">화살 1개만 있으면 줄지 않는다 · 무한은 붙지 않는다</p>' if pool in ("boss", "prism") else
+                     '<p class="gear">화살을 쓴다 · 무한을 붙일 수 있다</p>')
+    extra += f'<p class="gear">수리 재료 {esc(repair_name(weapon_repair(w), items, weapons, armor))}</p>'
+    src = w.get("source")
+    rec = recipe_text(w.get("recipe"), items, weapons, armor)
+    # source 가 있어도 조합법이 있으면 함께 적는다 (보스가 떨구면서 만들 수도 있는 무기)
+    obtain = "<br>".join(esc(t) for t in (src, rec) if t) or esc(dict((p, s) for p, _, s in POOLS).get(pool, ""))
+    # 곡괭이는 맨 위(프리즘)만 아우라가 있다
+    aura = '<span class="aura">아우라</span>' if pool in ("boss", "prism") and (not is_pick or pool == "prism") else ""
+    return (f'<article class="card wep" data-q="{esc(w["name"])} {TYPES.get(w["type"], "")} {ELEMENT.get(w.get("element"), ("",))[0]}">'
+            f'<div class="pic">{pic}</div><div class="body"><header><h4>{esc(w["name"])}</h4>{aura}</header>'
+            f'<div class="meta">{TYPES.get(w["type"], w["type"])} · {element_chip(w.get("element"))}</div>{stat}'
+            f'{body}{extra}<p class="obtain">{obtain}</p></div></article>')
+
+
 def build():
     augments = load("augments.yml")
     weapons = load("weapons.yml")
@@ -152,55 +266,34 @@ def build():
         aug_html.append(f'<section class="group" id="aug-{code.lower()}"><h3 class="tier-h t-{code.lower()}">{kname} <span>{len(cards)}</span></h3>'
                         f'<div class="grid">{"".join(cards)}</div></section>')
 
-    # ---- 무기
+    # ---- 무기 (곡괭이는 얻는 곳과 상관없이 한 묶음으로, 강화 차례인 weapons.yml 순서대로)
+    weps = {k: v for k, v in weapons.items() if isinstance(v, dict)}
+    groups = [(pool, pname, psrc, [(k, w) for k, w in weps.items() if w.get("pool") == pool and w.get("type") != "pickaxe"])
+              for pool, pname, psrc in POOLS]
+    groups.append(("pickaxe", "곡괭이", PICK_NOTE, [(k, w) for k, w in weps.items() if w.get("type") == "pickaxe"]))
+    n_wep = sum(len(g[3]) for g in groups if g[0] != "pickaxe")
+    n_pick = len(groups[-1][3])
     wep_html = []
-    total_w = 0
-    for pool, pname, psrc in POOLS:
-        cards = []
-        for wid, w in weapons.items():
-            if not isinstance(w, dict) or w.get("pool") != pool:
-                continue
-            total_w += 1
-            uri = img_uri(os.path.join(CAT, "weapons", wid + ".png"))
-            pic = f'<img src="{uri}" alt="" loading="lazy">' if uri else '<div class="noimg"></div>'
-            is_bow = w.get("type") == "bow"
-            stat = (f'<dl><div><dt>화살 피해</dt><dd>{w["damage"]:g}</dd></div></dl>' if is_bow else
-                    f'<dl><div><dt>공격력</dt><dd>{w["damage"]:g}</dd></div><div><dt>공격 속도</dt><dd>{w.get("speed", 1.6):g}</dd></div></dl>')
-            sk = []
-            for key, label in (BOW_SKILL_INPUTS if is_bow else SKILL_INPUTS):
-                s = skills.get(w.get(key) or "")
-                if s:
-                    sk.append(f'<li><b>{label}</b> {esc(s["name"])} <small>{s.get("cooldown", 0):g}초</small>'
-                              f'<span>{esc(" ".join(s.get("description", [])))}</span></li>')
-            passive = (w.get("passive") or {}).get("description")
-            pas = f'<p class="passive">{esc(passive)}</p>' if passive else ""
-            # 초반 무기 대부분은 스킬이 없다. 빈 칸 대신 한 줄로 알려 준다
-            skills_html = (f'<ul class="skills">{"".join(sk)}</ul>' if sk else
-                           f'<p class="noskill">스킬 없음 · {"기본 공격과 패시브" if passive else "기본 공격"}</p>')
-            src = w.get("source")
-            rec = recipe_text(w.get("recipe"), items, weapons, armor)
-            # source 가 있어도 조합법이 있으면 함께 적는다 (보스가 떨구면서 만들 수도 있는 무기)
-            obtain = "<br>".join(esc(t) for t in (src, rec) if t) or esc(psrc)
-            aura = '<span class="aura">아우라</span>' if pool in ("boss", "prism") else ""
-            cards.append(
-                f'<article class="card wep" data-q="{esc(w["name"])} {TYPES.get(w["type"], "")} {ELEMENT.get(w.get("element"), ("",))[0]}">'
-                f'<div class="pic">{pic}</div><div class="body"><header><h4>{esc(w["name"])}</h4>{aura}</header>'
-                f'<div class="meta">{TYPES.get(w["type"], w["type"])} · {element_chip(w.get("element"))}</div>{stat}'
-                f'{skills_html}{pas}<p class="obtain">{obtain}</p></div></article>')
+    for gid, gname, gsrc, members in groups:
+        cards = [weapon_card(wid, w, skills, items, weapons, armor) for wid, w in members]
         if cards:
-            wep_html.append(f'<section class="group" id="wep-{pool}"><h3 class="pool-h">{pname} <span>{len(cards)}</span>'
-                            f'<small>{psrc}</small></h3><div class="grid wide">{"".join(cards)}</div></section>')
+            wep_html.append(f'<section class="group" id="wep-{gid}"><h3 class="pool-h">{gname} <span>{len(cards)}</span>'
+                            f'<small>{gsrc}</small></h3><div class="grid wide">{"".join(cards)}</div></section>')
 
     # ---- 갑옷
     arm_html = []
     for sid, a in armor.items():
         uri = img_uri(os.path.join(CAT, "armor", sid + ".png"))
         pic = f'<img src="{uri}" alt="" loading="lazy">' if uri else '<div class="noimg"></div>'
-        rows = []
+        # 부위마다 방어 · 강도 · 내구도를 칸으로 (폰 폭에서도 한 줄에 들어가게 이름은 머리줄에만)
+        mult = max(1, int(a.get("durability", 33)))  # ArmorService 기본값과 같게
+        tough = any(len(a["pieces"][slot]) > 1 and a["pieces"][slot][1] for slot, _ in SLOTS)
+        rows = ['<tr><th></th><th>방어</th>' + ('<th>강도</th>' if tough else '') + '<th>내구도</th></tr>']
         for slot, sname in SLOTS:
             v = a["pieces"][slot]
-            extra = f' · 강도 {v[1]:g}' if len(v) > 1 and v[1] else ""
-            rows.append(f'<tr><th>{sname}</th><td>방어 {v[0]:g}{extra}</td></tr>')
+            t = f'<td>{v[1]:g}</td>' if tough else ""
+            rows.append(f'<tr><th>{sname}</th><td>{v[0]:g}</td>{t}<td>{mult * SLOT_DURABILITY[slot]}</td></tr>')
+        fix = f'<p class="gear">수리 재료 {esc(repair_name(a.get("repair", "DIAMOND"), items, weapons, armor))}</p>'
         bonus = "".join(f'<li><b>{k}세트</b> {esc(d)}</li>' for k, d in (a.get("bonus_desc") or {}).items())
         rec = a.get("recipe")
         how = esc(a.get("source", ""))
@@ -216,15 +309,15 @@ def build():
                 f'{esc(ingredient_name(rec[ch], items, weapons, armor))} ×{n}' for ch, n in counts.items()) + "</small>"
         arm_html.append(
             f'<article class="card arm" data-q="{esc(a["name"])}"><div class="pic">{pic}</div><div class="body">'
-            f'<header><h4>{esc(a["name"])} 세트</h4></header><table>{"".join(rows)}</table>'
+            f'<header><h4>{esc(a["name"])} 세트</h4></header><table>{"".join(rows)}</table>{fix}'
             f'<ul class="bonus">{bonus}</ul><p class="obtain">{how}</p></div></article>')
 
     n_aug = sum(tier_counts.values())
     return PAGE.format(
-        n_aug=n_aug, n_wep=total_w, n_arm=len(armor),
+        n_aug=n_aug, n_wep=n_wep, n_pick=n_pick, n_arm=len(armor),
         silver=tier_counts.get("SILVER", 0), gold=tier_counts.get("GOLD", 0), prism=tier_counts.get("PRISM", 0),
         aug="".join(aug_html), wep="".join(wep_html), arm="".join(arm_html),
-        pools="".join(f'<a href="#wep-{p}">{n}</a>' for p, n, _ in POOLS))
+        pools="".join(f'<a href="#wep-{g[0]}">{g[1]}</a>' for g in groups if g[3]))
 
 
 PAGE = """<title>증강 스카이블럭 도감</title>
@@ -264,7 +357,7 @@ nav.bar .sub a {{ color: var(--muted); font-weight: 400; }}
   border-radius: 6px; background: var(--surface); color: var(--ink); font: inherit; }}
 #q:focus-visible {{ outline: 2px solid var(--accent); outline-offset: 1px; }}
 h2 {{ font: 400 30px/1.2 var(--display); margin: 40px 0 6px; }}
-h2 + .lede {{ margin: 0 0 8px; color: var(--muted); max-width: 70ch; }}
+h2 + .lede, .lede + .lede {{ margin: 0 0 8px; color: var(--muted); max-width: 70ch; }}
 h3 {{ display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; font-size: 17px; margin: 26px 0 12px; }}
 h3 span {{ font-family: var(--mono); font-size: 13px; color: var(--muted); font-weight: 500; }}
 h3 small {{ color: var(--muted); font-weight: 400; font-size: 13px; }}
@@ -303,9 +396,12 @@ ul.skills span {{ display: block; color: var(--muted); font-size: 13px; }}
 .passive {{ border-left: 2px solid var(--line); padding-left: 8px; }}
 .card p.noskill {{ margin-top: 8px; font-size: 13px; }}
 .obtain {{ font-size: 12.5px !important; margin-top: 8px !important; }}
+.card p.gear, .card p.mine {{ margin-top: 6px; font-size: 13px; }}
+.card p.mine {{ border-left: 2px solid var(--line); padding-left: 8px; }}
+tr:first-child th {{ font-size: 12px; }}
 table {{ border-collapse: collapse; margin-top: 6px; font-size: 13.5px; }}
-th {{ text-align: left; color: var(--muted); font-weight: 400; padding: 1px 12px 1px 0; }}
-td {{ font-family: var(--mono); font-variant-numeric: tabular-nums; }}
+th {{ text-align: left; color: var(--muted); font-weight: 400; padding: 1px 12px 1px 0; white-space: nowrap; }}
+td {{ font-family: var(--mono); font-variant-numeric: tabular-nums; padding-right: 14px; }}
 .empty {{ color: var(--muted); }}
 @media (max-width: 480px) {{ .wep, .arm {{ grid-template-columns: 72px 1fr; }} .pic, .pic img {{ width: 72px; height: 72px; }} #q {{ margin-left: 0; width: 100%; }} }}
 @media (prefers-reduced-motion: reduce) {{ * {{ scroll-behavior: auto !important; }} }}
@@ -315,7 +411,7 @@ html {{ scroll-behavior: smooth; scroll-padding-top: 64px; }}
   <div class="hero">
     <h1>증강 스카이블럭 <em>도감</em></h1>
     <p>제단에서 고르는 증강, 섬과 균열과 보스에게서 얻는 무기, 세트 효과가 있는 갑옷을 한곳에 모았습니다. 수치는 서버 기본 설정 기준입니다.</p>
-    <div class="counts"><span>증강 <b>{n_aug}</b> (실버 {silver} · 골드 {gold} · 프리즘 {prism})</span><span>무기 <b>{n_wep}</b></span><span>갑옷 <b>{n_arm}</b>세트</span></div>
+    <div class="counts"><span>증강 <b>{n_aug}</b> (실버 {silver} · 골드 {gold} · 프리즘 {prism})</span><span>무기 <b>{n_wep}</b></span><span>곡괭이 <b>{n_pick}</b></span><span>갑옷 <b>{n_arm}</b>세트</span></div>
   </div>
   <nav class="bar" aria-label="목차">
     <a href="#augments">증강</a><a href="#weapons">무기</a><a href="#armor">갑옷</a>
@@ -326,7 +422,8 @@ html {{ scroll-behavior: smooth; scroll-padding-top: 64px; }}
   <p class="lede">맵 곳곳의 제단을 우클릭하면 같은 등급 증강 3개 중 하나를 고릅니다. 제단은 한 번 쓰면 힘을 잃습니다. 증강권은 손에 들고 우클릭하면 어디서든 씁니다.</p>
   {aug}
   <h2 id="weapons">무기</h2>
-  <p class="lede">무기에 등급은 없고 얻는 곳으로만 나뉩니다. 조합 재료는 섬마다 나는 것이라 무기마다 찾아갈 섬이 다르고, 다른 무기를 넣는 강화 조합은 같은 종류의 무기만 받습니다. 섬 초반 무기는 대부분 스킬이 없습니다. 스킬은 우클릭과 웅크리기+우클릭으로 쓰고, 프리즘 무기는 웅크리기+좌클릭으로 궁극기까지 씁니다. 활은 그냥 당기면 화살이고, 웅크리기+당겨 쏘기와 웅크리기+좌클릭으로 스킬을 씁니다. 보스와 프리즘 무기에는 움직이는 아우라가 있습니다.</p>
+  <p class="lede">무기에 등급은 없고 얻는 곳으로만 나뉩니다. 조합 재료는 섬마다 나는 것이라 무기마다 찾아갈 섬이 다르고, 다른 무기를 넣는 강화 조합은 같은 종류의 무기만 받습니다. 섬 초반 무기는 대부분 스킬이 없습니다. 스킬은 우클릭과 웅크리기+우클릭으로 쓰고, 프리즘 무기는 웅크리기+좌클릭으로 궁극기까지 씁니다. 활은 그냥 당기면 화살이고, 웅크리기+당겨 쏘기와 웅크리기+좌클릭으로 스킬을 씁니다. 보스·프리즘 활만 화살이 줄지 않고, 다른 활은 화살을 쓰며 무한을 붙일 수 있습니다. 보스와 프리즘 무기에는 움직이는 아우라가 있습니다.</p>
+  <p class="lede">곡괭이는 무기와 따로, 앞 곡괭이를 넣어 한 단계씩 강화합니다. 채굴 등급이 낮으면 캐도 블록이 나오지 않습니다. 무기·곡괭이·갑옷은 쓰면 닳고 스킬을 써도 조금 닳습니다. 모루에 그 장비의 수리 재료나 같은 장비를 올려 고치고, 숫돌은 같은 장비끼리만 합칩니다.</p>
   {wep}
   <h2 id="armor">갑옷</h2>
   <p class="lede">같은 세트를 2개, 4개 입으면 세트 효과가 붙습니다. 보스 세트는 보스가 떨구고, 프리즘 세트는 보스 갑옷과 프리즘 결정으로 만듭니다.</p>
