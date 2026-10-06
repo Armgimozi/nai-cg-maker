@@ -1,8 +1,15 @@
 @echo off
 chcp 949 >nul
+rem 더블클릭한 창은 스크립트가 끝나거나 오류로 멈추면 바로 닫혀 메시지를 볼 수 없다.
+rem 그래서 닫히지 않는 새 창(cmd /k)에서 다시 실행한다.
+if /i not "%~1"=="/inner" (
+  start "증강 스카이블럭 서버" cmd /k call "%~f0" /inner
+  exit /b
+)
 cd /d "%~dp0"
 setlocal EnableExtensions EnableDelayedExpansion
 title 증강 스카이블럭 서버
+echo [증강 스카이블럭 start.bat 3판]
 
 rem ─────────────────────────────────────────────
 rem  처음 실행하면 Java 21 과 Paper 1.21.4 를 자동으로 내려받습니다.
@@ -15,7 +22,7 @@ set "PAPER_SIZE=51437498"
 set "JAVA_URL=https://api.adoptium.net/v3/binary/latest/21/ga/windows/x64/jre/hotspot/normal/eclipse"
 set "LOG=start-log.txt"
 
-> "%LOG%" echo [%date% %time%] start.bat 시작
+> "%LOG%" echo [%date% %time%] start.bat 3판 시작
 >> "%LOG%" echo 폴더: %CD%
 
 rem zip 안에서 바로 실행하면 플러그인과 맵이 없는 임시 폴더에서 돌아간다
@@ -87,14 +94,27 @@ goto askeula
 >> "%LOG%" echo EULA 동의
 
 :run
+rem ── 메모리 확인: 켜기 전에 Java 가 이 메모리로 뜨는지 먼저 본다 ──
+set "XMS=1G"
+"%JAVA%" -Xms%XMS% -Xmx%MEMORY% -version >nul 2>"jvm-check.txt"
+if not errorlevel 1 goto memok
+>> "%LOG%" echo 메모리 %MEMORY% 로 Java 가 뜨지 않음, 2G 로 다시 시도
+set "MEMORY=2G"
+set "XMS=512M"
+"%JAVA%" -Xms%XMS% -Xmx%MEMORY% -version >nul 2>"jvm-check.txt"
+if errorlevel 1 goto jvmfail
+:memok
+del "jvm-check.txt" >nul 2>&1
+
 echo.
 echo 서버를 켭니다. 아래에 "Done" 이 나오면 마인크래프트 1.21.4 에서 localhost 로 접속하세요.
+echo 처음에는 마인크래프트 서버 파일을 한 번 더 받느라 1분쯤 걸립니다.
 echo 서버를 끌 때는 이 창에 stop 을 입력하세요.
 echo.
->> "%LOG%" echo 서버 실행: "%JAVA%" -Xms1G -Xmx%MEMORY% -jar paper.jar nogui
-"%JAVA%" -Xms1G -Xmx%MEMORY% -jar paper.jar nogui
+>> "%LOG%" echo [%time%] 서버 실행: "%JAVA%" -Xms%XMS% -Xmx%MEMORY% -jar paper.jar nogui
+"%JAVA%" -Xms%XMS% -Xmx%MEMORY% -jar paper.jar nogui
 set "CODE=!errorlevel!"
->> "%LOG%" echo 서버 종료 코드: !CODE!
+>> "%LOG%" echo [%time%] 서버 종료 코드: !CODE!
 echo.
 if "!CODE!"=="0" (
   echo 서버가 꺼졌습니다.
@@ -116,6 +136,18 @@ echo zip 파일을 연 상태에서 바로 start.bat 을 실행하면 플러그인과 맵이 없어 서버
 echo zip 파일을 마우스 오른쪽 버튼으로 눌러 "압축 풀기" 를 한 뒤,
 echo 풀린 AugmentSkyblock-Server 폴더 안의 start.bat 을 실행하세요.
 >> "%LOG%" echo 실패: 압축을 풀지 않음 ^(plugins 또는 world 없음^)
+echo.
+pause
+exit /b 1
+
+:jvmfail
+echo.
+echo Java 가 시작되지 않았습니다. Java 가 남긴 말:
+type "jvm-check.txt"
+>> "%LOG%" echo 실패: Java 시작 ^(아래는 Java 가 남긴 말^)
+type "jvm-check.txt" >> "%LOG%"
+echo.
+echo 이 창을 사진으로 찍어 보내 주거나, runtime 폴더를 지운 뒤 다시 실행해 보세요.
 echo.
 pause
 exit /b 1
