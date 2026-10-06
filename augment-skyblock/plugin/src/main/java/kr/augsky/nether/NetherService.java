@@ -215,8 +215,8 @@ public final class NetherService implements Listener {
     }
 
     /**
-     * 섬을 짓는다. force 가 아니면 아직 안 지었을 때만. 짓는 동안은 네더 문이 열리지 않는다.
-     * force 면 섬 자리를 비우고 처음 모습으로 다시 짓는다 (섬 위에 지은 것과 고친 곳은 사라지고 상자도 다시 채운다).
+     * 섬 자리를 비우고 처음 모습으로 짓는다. force 가 아니면 아직 안 지었을 때(표시 파일이 없을 때)만. 짓는 동안은 네더 문이 열리지 않는다.
+     * force 면 지은 섬도 다시 짓는다 (섬 위에 지은 것과 고친 곳은 사라지고 상자도 다시 채운다).
      */
     public void build(CommandSender to, boolean force) {
         World w = world();
@@ -243,6 +243,7 @@ public final class NetherService implements Listener {
             builtAt = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
             w.setSpawnLocation(0, NetherMap.HUB_Y + 1, 3);
             // 표시 파일보다 섬 청크를 먼저 디스크에 다 쓴다. 표시만 남은 채 서버가 죽으면 다음에 켤 때 빈 네더를 지은 것으로 여긴다
+            plugin.getLogger().info("하늘 네더 섬을 디스크에 저장합니다 (Paper 가 'manual save' 경고를 띄울 수 있는데 괜찮습니다).");
             w.save(true);
             YamlConfiguration y = new YamlConfiguration();
             y.set("layout", NetherMap.LAYOUT);
@@ -290,7 +291,16 @@ public final class NetherService implements Listener {
             bar(en, "<gray>네더 하늘을 짓는 중입니다. 잠시 뒤 문에 다시 들어오세요");
             return;
         }
+        dropRiders(en, up);
         e.setTargetWorld(to);
+    }
+
+    /** 탈것에 탄 것 중 문을 지나지 않을 것은 내려놓는다 (수레에 태우면 위 규칙을 건너뛰어 커스텀 몹도 넘어간다). */
+    private void dropRiders(Entity vehicle, boolean up) {
+        for (Entity pass : List.copyOf(vehicle.getPassengers())) {
+            if (stays(pass, up)) vehicle.removePassenger(pass);
+            else dropRiders(pass, up);
+        }
     }
 
     /**
