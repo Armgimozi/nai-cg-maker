@@ -248,7 +248,7 @@ public final class AugmentListener implements Listener {
         onHitProcs(e, attacker, target, st, melee, base);
 
         double ex = st.get("execute.threshold");
-        if (ex > 0 && !Targets.isBoss(target)) {
+        if (ex > 0 && !Targets.isBoss(target) && !(target instanceof Player)) {
             Bukkit.getScheduler().runTask(plugin, () -> {
                 if (!target.isValid() || target.isDead()) return;
                 if (target.getHealth() / Combat.maxHealth(target) <= ex) {

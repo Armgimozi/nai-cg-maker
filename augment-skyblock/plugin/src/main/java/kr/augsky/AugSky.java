@@ -268,6 +268,7 @@ public final class AugSky extends JavaPlugin {
     }
 
     private void loadContent() {
+        kr.augsky.skill.Combat.setPvpScale(getConfig().getDouble("pvp.skill-damage", 0.5));
         skills.load(yml("skills.yml"));
         items.load(yml("items.yml"));
         weapons.load(yml("weapons.yml"));

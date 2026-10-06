@@ -15,7 +15,7 @@ import org.bukkit.persistence.PersistentDataType;
 import java.util.ArrayList;
 import java.util.List;
 
-/** 누가 누구의 적인지 판단한다. 플레이어끼리는 서로 맞지 않는다(협동 모드). */
+/** 누가 누구의 적인지 판단한다. 플레이어끼리는 PvP 가 켜진 월드(server.properties 의 pvp)에서만 서로 맞는다. */
 public final class Targets {
     public static final String BOSS_TAG = "augsky_boss";
 
@@ -43,7 +43,8 @@ public final class Targets {
         if (e instanceof ArmorStand) return false;
         if (e.getPersistentDataContainer().has(Keys.MAP_PART)) return false;
         if (playerSide(caster)) {
-            if (e instanceof Player) return false;
+            // 소환수는 다른 플레이어를 노리지 않는다. 플레이어가 직접 쓴 스킬·무기·증강만 PvP 에 들어간다
+            if (e instanceof Player p) return caster instanceof Player && p.getWorld().getPVP() && vulnerable(p);
             if (isAlly(e)) return false;
             if (e instanceof Tameable t && t.isTamed()) return false;
             if (e instanceof Enemy) return true;
@@ -51,12 +52,14 @@ public final class Targets {
             // 화가 난 중립 몹(늑대, 좀비 피글린 등)
             return e instanceof Mob m && m.getTarget() instanceof Player;
         } else {
-            if (e instanceof Player p) {
-                GameMode gm = p.getGameMode();
-                return gm == GameMode.SURVIVAL || gm == GameMode.ADVENTURE;
-            }
+            if (e instanceof Player p) return vulnerable(p);
             return isAlly(e);
         }
+    }
+
+    private static boolean vulnerable(Player p) {
+        GameMode gm = p.getGameMode();
+        return gm == GameMode.SURVIVAL || gm == GameMode.ADVENTURE;
     }
 
     /** 같은 편(치유/버프 대상). 시전자 자신 포함. */

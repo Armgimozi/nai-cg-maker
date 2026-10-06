@@ -38,6 +38,9 @@
 
   ※ server.properties 의 online-mode=true 라서 정품 계정만 들어올 수 있습니다.
   ※ 기본으로 PvP 가 켜져 있습니다(탱크엔진 증강이 플레이어 처치로 쌓입니다). 끄려면 server.properties 의 pvp=false.
+    PvP 가 켜져 있으면 무기 스킬과 증강 효과도 다른 플레이어에게 들어갑니다. 스킬 피해는 절반으로 들어가며
+    plugins/AugmentSkyblock/config.yml 의 pvp: skill-damage: 로 바꿀 수 있습니다 (1 = 몬스터와 같게).
+  ※ 제단은 기본으로 사람마다 한 번씩 쓸 수 있습니다 (config.yml 의 altar: single-use: player).
 
 
 ■ 게임 방법
@@ -166,7 +169,7 @@
 
   plugins/AugmentSkyblock/ 폴더 (서버를 한 번 켜면 생깁니다)
     config.yml    제단(일회용 방식, 다시 뽑기), 보스 부활 시간, 파편 확률, 광석 생성기, 리소스팩
-                  altar: single-use: global(서버 전체 한 번) / player(사람마다 한 번) / off(무제한)
+                  altar: single-use: player(사람마다 한 번, 기본) / global(서버 전체 한 번) / off(무제한)
                   nether: enabled: true(하늘 네더) / false(예전처럼 네더 문이 열리지 않음)
     augments.yml  증강 목록         weapons.yml  무기·곡괭이 목록 (내구도, 수리 재료 포함)
     armor.yml     갑옷 세트         skills.yml   스킬 목록
