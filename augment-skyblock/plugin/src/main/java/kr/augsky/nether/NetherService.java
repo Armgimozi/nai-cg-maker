@@ -237,7 +237,8 @@ public final class NetherService implements Listener {
         plugin.getLogger().info("하늘 네더(" + w.getName() + ")에 섬을 짓습니다...");
         if (to instanceof Player) to.sendMessage(Text.mm("<gray>하늘 네더에 섬을 짓는 중... (몇 초 걸립니다)"));
         boolean player = to instanceof Player;
-        map.buildAll(w, force, player ? m -> to.sendMessage(Text.mm("<gray>" + m)) : null, f -> {
+        // 표시 파일이 없어도(처음, 또는 짓다가 서버가 죽음) 섬 자리를 먼저 비운다. 반쯤 남은 섬 위에 다시 지으면 상자가 겹쳐 생긴다
+        map.buildAll(w, true, player ? m -> to.sendMessage(Text.mm("<gray>" + m)) : null, f -> {
             failed = f;
             builtAt = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
             w.setSpawnLocation(0, NetherMap.HUB_Y + 1, 3);
