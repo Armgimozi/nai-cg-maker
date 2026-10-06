@@ -56,7 +56,7 @@ MATERIAL = {
     "PRISMARINE": "프리즈머린", "PRISMARINE_CRYSTALS": "프리즈머린 수정", "PUFFERFISH": "복어", "PURPUR_PILLAR": "퍼퍼 기둥",
     "QUARTZ": "네더 석영", "SEA_LANTERN": "바다 랜턴", "SEA_PICKLE": "불우렁쉥이", "SHROOMLIGHT": "버섯불", "SLIME_BALL": "슬라임볼",
     "SNOW_BLOCK": "눈 블록", "SOUL_LANTERN": "영혼 랜턴", "SPRUCE_LOG": "가문비나무 원목", "STONE": "돌", "TINTED_GLASS": "착색 유리",
-    "VINE": "덩굴",
+    "VINE": "덩굴", "TUFF": "응회암", "WEATHERED_COPPER": "풍화된 구리", "OXIDIZED_COPPER": "산화된 구리",
 }
 
 
