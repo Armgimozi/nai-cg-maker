@@ -14,6 +14,8 @@ import kr.augsky.item.Recipes;
 import kr.augsky.map.MapBuilder;
 import kr.augsky.mob.MobManager;
 import kr.augsky.mob.MobRegistry;
+import kr.augsky.nether.NetherService;
+import kr.augsky.nether.VoidNether;
 import kr.augsky.pack.PackService;
 import kr.augsky.skill.Allies;
 import kr.augsky.skill.Cooldowns;
@@ -29,9 +31,11 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.Configuration;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
+import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -48,9 +52,10 @@ public final class AugSky extends JavaPlugin {
      * 콘텐츠 YAML 의 판. 예전 파일을 그대로 두면 맞지 않을 만큼 바꿨을 때 올린다
      * (2: 무기 스킬 정리·클릭 조합, 3: 전투 효과를 확률 대신 N번째 공격마다로 바꾼 설명, 탱크엔진 증강,
      * 4: 조합법 재설계(섬 재료, 같은 종류만 강화), 안내서에서 위치 힌트 제거, 자연 스폰 교체에 허스크·스트레이,
-     * 5: 안내서에 섬 도감. 4 판 jar 가 옛 안내서로 한 번 배포되어서, 그 서버에도 새 안내서가 가도록 다시 올린다).
+     * 5: 안내서에 섬 도감. 4 판 jar 가 옛 안내서로 한 번 배포되어서, 그 서버에도 새 안내서가 가도록 다시 올린다,
+     * 6: 하늘 네더 (안내서에 네더 하늘 쪽과 화염 섬 이름 정리, 지옥 임프 설명)).
      */
-    private static final int CONTENT_VERSION = 5;
+    private static final int CONTENT_VERSION = 6;
     private static final List<String> CONTENT_FILES = List.of("augments.yml", "weapons.yml", "skills.yml", "mobs.yml", "items.yml", "armor.yml");
 
     private SkillRegistry skills;
@@ -69,6 +74,7 @@ public final class AugSky extends JavaPlugin {
     private AugmentRegistry augmentRegistry;
     private MobRegistry mobRegistry;
     private kr.augsky.armor.ArmorService armor;
+    private NetherService nether;
 
     @Override
     public void onEnable() {
@@ -97,6 +103,7 @@ public final class AugSky extends JavaPlugin {
         weaponListener = new WeaponListener(this);
         pack = new PackService(this);
         mapBuilder = new MapBuilder(this);
+        nether = new NetherService(this);
 
         var pm = getServer().getPluginManager();
         pm.registerEvents(allies, this);
@@ -108,6 +115,7 @@ public final class AugSky extends JavaPlugin {
         pm.registerEvents(new ItemGuard(this), this);
         pm.registerEvents(pack, this);
         pm.registerEvents(armor, this);
+        pm.registerEvents(nether, this);
 
         Commands cmds = new Commands(this);
         for (String c : List.of("augment", "augspawn", "weapons", "armorcodex", "augadmin")) {
@@ -119,6 +127,7 @@ public final class AugSky extends JavaPlugin {
         }
 
         pack.start();
+        nether.start();
         Bukkit.getScheduler().runTask(this, () -> {
             altars.scanLoaded();
             mobs.scanLoaded();
@@ -201,7 +210,7 @@ public final class AugSky extends JavaPlugin {
     }
 
     /**
-     * 안내서 글도 콘텐츠 설명이라 같이 바꾼다. 나머지 설정은 그대로 둔다.
+     * 안내서 글도 콘텐츠 설명이라 같이 바꾼다. 나머지 설정은 그대로 두고, 새로 생긴 설정 묶음만 기본값으로 더한다.
      * 먼저 config.yml 을 백업 폴더에 복사하고, 읽히지 않는 config.yml 은 건드리지 않는다
      * (getConfig() 는 깨진 파일을 빈 설정으로 읽으므로, 그대로 저장하면 다른 설정이 모두 날아간다).
      */
@@ -224,6 +233,17 @@ public final class AugSky extends JavaPlugin {
             return false;
         }
         cfg.set("guide-book", book);
+        // 새 판에서 생긴 설정 묶음(예: nether)은 기본값과 설명째 넣어 둔다 (없어도 기본값으로 돌지만, 고칠 수 있게 보이도록)
+        for (String key : defs.getKeys(false)) {
+            if (cfg.contains(key)) continue;
+            if (defs.get(key) instanceof ConfigurationSection sec) {
+                for (String sub : sec.getKeys(true)) if (!sec.isConfigurationSection(sub)) cfg.set(key + "." + sub, sec.get(sub));
+                for (String sub : sec.getKeys(true)) cfg.setComments(key + "." + sub, defs.getComments(key + "." + sub));
+            } else {
+                cfg.set(key, defs.get(key));
+            }
+            cfg.setComments(key, defs.getComments(key));
+        }
         try {
             cfg.save(cfgFile);
         } catch (IOException ex) {
@@ -283,6 +303,18 @@ public final class AugSky extends JavaPlugin {
         p.sendMessage(kr.augsky.util.Text.mm("<#ffcc55>✦ 증강 스카이블럭에 오신 걸 환영합니다! <gray>안내서와 시작 보급을 받았습니다."));
     }
 
+    /** bukkit.yml 의 generator: AugmentSkyblock:nether (또는 하늘 네더 폴더를 다른 플러그인이 열 때) 는 빈 네더 생성기. */
+    @Override
+    public ChunkGenerator getDefaultWorldGenerator(String worldName, String id) {
+        if ("nether".equals(id) || worldName.endsWith("_augsky_nether")) return new VoidNether();
+        return null;
+    }
+
+    /** 제단·둥지 기록을 볼 월드: 하늘 네더에 있으면 하늘. */
+    public World home(World w) {
+        return nether != null && nether.isSky(w) ? Bukkit.getWorlds().get(0) : w;
+    }
+
     public Location spawnLocation() {
         World w = Bukkit.getWorlds().get(0);
         return w.getSpawnLocation().add(0.5, 0, 0.5);
@@ -302,4 +334,5 @@ public final class AugSky extends JavaPlugin {
     public MapBuilder mapBuilder() { return mapBuilder; }
     public WeaponListener weaponListener() { return weaponListener; }
     public kr.augsky.armor.ArmorService armor() { return armor; }
+    public NetherService nether() { return nether; }
 }

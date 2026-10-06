@@ -356,6 +356,11 @@ public final class AugmentListener implements Listener {
     private void rescue(Player p, PlayerData d, Stats st) {
         d.voidReadyAt = System.currentTimeMillis() + (long) (st.get("void_rescue.cooldown", 300) * 1000);
         Location to = p.getRespawnLocation();
+        // 하늘 네더에서 떨어지면 쉼터로 (정박기로 네더에 정한 자리가 있으면 거기로). 하늘로 올리면 네더 문을 다시 찾아야 한다
+        var nether = plugin.nether();
+        if (nether != null && nether.isSky(p.getWorld()) && (to == null || !nether.isSky(to.getWorld())) && nether.hubSpawn() != null) {
+            to = nether.hubSpawn();
+        }
         if (to == null) to = plugin.spawnLocation();
         p.setFallDistance(0);
         p.setVelocity(new Vector());

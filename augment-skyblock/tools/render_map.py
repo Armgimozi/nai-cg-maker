@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """월드 폴더의 region 파일을 읽어 맵을 위에서 내려다본 그림을 만든다.
 
-    python3 render_map.py <world 폴더> <출력.png> [폰트.ttf] [--spoiler]
+    python3 render_map.py <world 폴더> <출력.png> [폰트.ttf] [--spoiler] [--nether]
 
 배포용 그림(dist/preview-map.png)은 --spoiler 없이 그린다: 시작의 섬 말고는 아무 표시도 없다.
 --spoiler 를 붙이면 제단(실버 흰색, 골드 노란색, 프리즘 보라색 동그라미)과 보스 둥지를 표시한다 (관리자용).
+--nether 는 하늘 네더 폴더(world_augsky_nether)의 DIM-1 을 그린다. 확인용이라 배포하지 않는다 (위치 힌트가 된다).
 """
 import io
 import math
@@ -124,10 +125,11 @@ def column_tops(nbt):
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
     spoiler = "--spoiler" in sys.argv[1:]
+    nether = "--nether" in sys.argv[1:]
     world, out = args[0], args[1]
     font_path = args[2] if len(args) > 2 else None
     blocks = {}
-    rdir = os.path.join(world, "region")
+    rdir = os.path.join(world, "DIM-1", "region") if nether else os.path.join(world, "region")
     for fn in os.listdir(rdir):
         if not fn.endswith(".mca"):
             continue
@@ -138,7 +140,7 @@ def main():
     xs = [k[0] for k in blocks]
     zs = [k[1] for k in blocks]
     minx, maxx, minz, maxz = min(xs) - 12, max(xs) + 12, min(zs) - 12, max(zs) + 12
-    S = 2 if (maxx - minx) > 400 else 3
+    S = 2 if (maxx - minx) > 400 else 3 if (maxx - minx) > 200 else 4
     W, H = (maxx - minx + 1) * S, (maxz - minz + 1) * S
     img = Image.new("RGB", (W, H), (14, 16, 32))
     d = ImageDraw.Draw(img)
@@ -178,7 +180,7 @@ def main():
             yy = ly + i * 26
             d.ellipse([lx, yy, lx + 14, yy + 14], outline=tier_col[t], width=2)
             d.text((lx + 22, yy - 3), name, font=f, fill=(230, 230, 240))
-    label("시작의 섬", 0, 0, f)
+    label("쉼터" if nether else "시작의 섬", 0, 0, f)
     d.text((8, 6), "북 ↑", font=f, fill=(200, 200, 220))
     img.save(out)
     print(f"{len(blocks)} columns, {W}x{H}")

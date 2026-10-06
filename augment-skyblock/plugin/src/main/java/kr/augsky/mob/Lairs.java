@@ -396,7 +396,7 @@ public final class Lairs {
     public List<String> describe(Player p) {
         List<String> out = new ArrayList<>();
         long now = System.currentTimeMillis();
-        for (Lair l : reg(p.getWorld()).values()) {
+        for (Lair l : reg(plugin.home(p.getWorld())).values()) {
             MobDef def = mobs.registry().get(l.boss);
             String name = def == null ? l.boss : def.name();
             String state = now < l.respawnAt ? "<gray>잠듦 (" + ((l.respawnAt - now) / 60000 + 1) + "분 뒤)" : "<#ff7070>깨어 있음";

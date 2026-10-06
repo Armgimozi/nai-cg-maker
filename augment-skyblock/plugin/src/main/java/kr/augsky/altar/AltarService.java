@@ -144,7 +144,7 @@ public final class AltarService implements Listener {
     public int usableCount(Player p, Tier t) {
         PlayerData d = plugin.augments().data(p);
         int n = 0;
-        for (Info i : reg(p.getWorld()).values()) if (i.tier() == t && usable(i, d)) n++;
+        for (Info i : reg(plugin.home(p.getWorld())).values()) if (i.tier() == t && usable(i, d)) n++;
         return n;
     }
 
@@ -438,6 +438,16 @@ public final class AltarService implements Listener {
                 e.setCancelled(true);
                 return;
             }
+        }
+    }
+
+    /** 엔드 수정은 블록이 아니라 엔티티라서 따로 막는다 (둥지 흑요석에 놓고 터뜨리면 보스를 공짜로 깎는다). */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onPlaceEntity(org.bukkit.event.entity.EntityPlaceEvent e) {
+        if (e.getEntityType() != org.bukkit.entity.EntityType.END_CRYSTAL || e.getPlayer() != null && bypass(e.getPlayer())) return;
+        if (plugin.mobs() != null && plugin.mobs().isLairGuarded(e.getEntity().getLocation())) {
+            e.setCancelled(true);
+            if (e.getPlayer() != null) e.getPlayer().sendActionBar(Text.mm("<#ff7070>보스 둥지에는 블록을 놓을 수 없습니다"));
         }
     }
 

@@ -144,7 +144,7 @@ mobs:
       - {item: BLAZE_ROD, chance: 0.5}
       - {item: shard, chance: 0.5}
     xp: 10
-    # 네더 문이 막혀 있어서 하늘의 네더 섬(요새, 현무암, 진홍 숲…)의 좀비 피글린을 바꾼다
+    # 하늘의 화염 섬(요새, 현무암, 진홍 숲…)과 하늘 네더의 좀비 피글린 일부를 바꾼다
     natural: {replace: [ZOMBIFIED_PIGLIN], chance: 0.04}
 
   # ═════════════ 서리 균열 ═════════════

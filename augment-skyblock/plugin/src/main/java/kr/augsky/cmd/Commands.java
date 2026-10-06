@@ -92,7 +92,7 @@ public final class Commands implements TabExecutor {
         msg(p, "<#ffcc55>━━━━ 남은 제단 ━━━━");
         switch (altars.mode()) {
             case GLOBAL -> {
-                World w = p.getWorld();
+                World w = plugin.home(p.getWorld());
                 msg(p, "<gray>" + Tier.SILVER.wrap("실버") + " 제단 <white>" + altars.remaining(w, Tier.SILVER) + "곳 <dark_gray>· "
                         + Tier.GOLD.wrap("골드") + " <gray>제단 <white>" + altars.remaining(w, Tier.GOLD) + "곳 <dark_gray>· "
                         + Tier.PRISM.wrap("프리즘") + " <gray>제단 <white>" + altars.remaining(w, Tier.PRISM) + "곳");
@@ -233,6 +233,10 @@ public final class Commands implements TabExecutor {
                     msg(s, "<#ff7070>월드를 찾을 수 없습니다.");
                     return;
                 }
+                if (plugin.nether().isSky(w)) {
+                    msg(s, "<#ff7070>하늘 네더는 /증강관리 네더 짓기 로 짓습니다.");
+                    return;
+                }
                 // 이미 맵이 있는 월드에 다시 지으면 예전 섬과 새 섬이 뒤섞인다
                 if (!force && (!plugin.altars().all(w).isEmpty() || !plugin.mobs().lairs().all(w).isEmpty()
                         || !w.getBlockAt(0, 64, 0).getType().isAir())) {
@@ -294,8 +298,11 @@ public final class Commands implements TabExecutor {
                 plugin.mapBuilder().lairMarker(p.getWorld(), p.getLocation().getBlock().getLocation().add(0.5, 0, 0.5), a[1]);
                 msg(s, "<gray>둥지를 세웠습니다. 잠시 뒤 보스가 나타납니다.");
             }
+            case "네더", "nether" -> plugin.nether().admin(s, a);
             case "리로드", "reload" -> {
                 plugin.reloadContent();
+                // nether.enabled 를 바꿨을 수도 있다 (켜면 이제 연다. 끄면 하늘에서 들어가는 문만 닫힌다)
+                plugin.nether().start();
                 msg(s, "<#7cff8c>설정과 증강/무기/스킬/몬스터를 다시 불러왔습니다.");
             }
             case "리소스팩", "pack" -> {
@@ -364,6 +371,7 @@ public final class Commands implements TabExecutor {
         msg(s, "<white>제단 <등급> / 균열 <id> / 둥지 <보스id>  <gray>지금 위치에 세우기");
         msg(s, "<white>맵생성 [월드] [강제]  <gray>빈 공허 월드에 맵 전체 짓기");
         msg(s, "<white>섬 <종류> [반지름] / 섬검사  <gray>섬 하나 지어 보기 / 지은 맵의 섬마다 재료 확인");
+        msg(s, "<white>네더 [정보|이동|짓기 [강제]|검사]  <gray>하늘 네더 관리");
         msg(s, "<white>리로드, 리소스팩, 정보");
     }
 
@@ -402,7 +410,7 @@ public final class Commands implements TabExecutor {
                 if (!s.hasPermission("augsky.admin")) return out;
                 if (a.length == 1) {
                     out.addAll(List.of("무기", "아이템", "증강", "갑옷", "선택지", "소환", "제단", "균열", "둥지", "맵생성", "섬", "섬검사",
-                            "리로드", "리소스팩", "정보"));
+                            "네더", "리로드", "리소스팩", "정보"));
                 } else {
                     switch (a[0]) {
                         case "무기", "weapon" -> {
@@ -435,6 +443,10 @@ public final class Commands implements TabExecutor {
                             for (World w : Bukkit.getWorlds()) out.add(w.getName());
                         }
                         case "갑옷", "armor" -> out.addAll(plugin.armor().all().keySet());
+                        case "네더", "nether" -> {
+                            if (a.length == 2) out.addAll(List.of("정보", "이동", "짓기", "검사"));
+                            if (a.length == 3 && (a[1].equals("짓기") || a[1].equals("build"))) out.add("강제");
+                        }
                         case "균열", "rift" -> out.addAll(plugin.mobs().registry().rifts().keySet());
                         case "둥지", "lair" -> {
                             for (var d : plugin.mobs().registry().all().values()) if (d.boss()) out.add(d.id());

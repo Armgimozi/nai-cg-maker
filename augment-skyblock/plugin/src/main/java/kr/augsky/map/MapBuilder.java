@@ -127,9 +127,11 @@ public final class MapBuilder extends MapTools {
         return null;
     }
 
-    /** /증강관리 섬 탭 완성용 섬 종류. */
+    /** /증강관리 섬 탭 완성용 섬 종류 (하늘 섬과 하늘 네더 섬 n_…). */
     public static List<String> kinds() {
-        return IslandKinds.KINDS;
+        List<String> all = new ArrayList<>(IslandKinds.KINDS);
+        all.addAll(NetherMap.KINDS);
+        return all;
     }
 
     /** 지역: 가운데는 초원, 바깥은 방향에 따라 나뉜다. */
@@ -248,7 +250,7 @@ public final class MapBuilder extends MapTools {
     }
 
     /** 최소 신장 트리(프림)의 다리 길이들. worst 에는 가장 긴 다리의 두 섬 번호. */
-    private static double[] bridges(List<Isle> out, int[] worst) {
+    static double[] bridges(List<Isle> out, int[] worst) {
         int n = out.size();
         boolean[] in = new boolean[n];
         double[] key = new double[n];
@@ -390,6 +392,7 @@ public final class MapBuilder extends MapTools {
 
     /** /증강관리 섬: 섬 하나를 지금 자리에 지어 본다 (모양 확인용). 없는 종류면 false. */
     public boolean buildKind(World world, String kind, int x, int y, int z, double rad) {
+        if (NetherMap.isNether(kind)) return new NetherMap(plugin).buildKind(world, kind, x, y, z, rad);
         if (!IslandKinds.KINDS.contains(kind)) return false;
         double r = rad > 0 ? rad : 3.5;
         if (rad <= 0) {

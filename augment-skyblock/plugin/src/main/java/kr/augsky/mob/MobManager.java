@@ -1,6 +1,5 @@
 package kr.augsky.mob;
 
-import io.papermc.paper.event.entity.EntityPortalReadyEvent;
 import kr.augsky.AugSky;
 import kr.augsky.Keys;
 import kr.augsky.skill.Combat;
@@ -19,7 +18,6 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
-import org.bukkit.PortalType;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
@@ -53,7 +51,6 @@ import org.bukkit.event.entity.EntityTransformEvent;
 import org.bukkit.event.entity.SlimeSplitEvent;
 import org.bukkit.event.world.EntitiesLoadEvent;
 import org.bukkit.event.world.EntitiesUnloadEvent;
-import org.bukkit.event.world.PortalCreateEvent;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
@@ -341,6 +338,11 @@ public final class MobManager implements Listener {
         LivingEntity e = a.entity;
         if (e instanceof Mob m) {
             LivingEntity t = m.getTarget();
+            // 문을 지나 다른 월드로 간 대상은 놓는다 (월드가 다르면 거리 계산이 예외를 던져 몹 처리가 통째로 멈춘다)
+            if (t != null && !t.getWorld().equals(e.getWorld())) {
+                m.setTarget(null);
+                t = null;
+            }
             if (t != null && t.isValid() && !t.isDead() && Targets.isEnemy(e, t)) return t;
             if (a.def.boss() || !a.def.abilities().isEmpty()) {
                 Player best = null;
@@ -561,16 +563,13 @@ public final class MobManager implements Listener {
                 return;
             }
             // 한 칸 다리 위에는 몬스터가 생기지 않게 (밀려서 공허로 떨어지는 일을 줄인다)
-            if (le instanceof Enemy && type != EntityType.PHANTOM) {
-                Block under = le.getLocation().getBlock().getRelative(0, -1, 0);
-                int solid = 0;
-                for (int dx = -1; dx <= 1; dx++)
-                    for (int dz = -1; dz <= 1; dz++) if (under.getRelative(dx, 0, dz).getType().isSolid()) solid++;
-                if (solid <= 3) {
-                    e.setCancelled(true);
-                    return;
-                }
+            if (le instanceof Enemy && type != EntityType.PHANTOM && onBridge(le.getLocation())) {
+                e.setCancelled(true);
+                return;
             }
+        } else if (plugin.nether() != null && plugin.nether().isSky(le.getWorld()) && !plugin.nether().allowNatural(le)) {
+            e.setCancelled(true);
+            return;
         }
         if (!plugin.getConfig().getBoolean("mobs.natural-replace", true)) return;
         String world = le.getWorld().getName();
@@ -588,23 +587,13 @@ public final class MobManager implements Listener {
         }
     }
 
-    /** 네더로 가면 섬 재료와 거리가 의미 없어져서 네더 문을 막는다 (allow-nether 를 안 바꾼 서버도). */
-    @EventHandler(ignoreCancelled = true)
-    public void onPortal(PortalCreateEvent e) {
-        if (e.getWorld().getEnvironment() != World.Environment.NORMAL) return;
-        // 네더에서 돌아오는 길에 생기는 짝 문(NETHER_PAIR)은 막지 않는다. 막으면 네더에 남은 사람이 못 돌아온다
-        if (e.getReason() != PortalCreateEvent.CreateReason.FIRE) return;
-        e.setCancelled(true);
-        if (e.getEntity() instanceof Player p) p.sendActionBar(Text.mm("<gray>이 하늘에서는 네더 문이 열리지 않습니다"));
-    }
-
-    /** 업데이트 전에 켜 둔 네더 문도 하늘에서 네더로는 보내지 않는다 (네더에서 돌아오는 건 막지 않는다). */
-    @EventHandler(ignoreCancelled = true)
-    public void onPortalReady(EntityPortalReadyEvent e) {
-        if (e.getPortalType() != PortalType.NETHER) return;
-        if (e.getEntity().getWorld().getEnvironment() != World.Environment.NORMAL) return;
-        e.setCancelled(true);
-        if (e.getEntity() instanceof Player p) p.sendActionBar(Text.mm("<gray>이 하늘에서는 네더 문이 열리지 않습니다"));
+    /** 한 칸 다리 위: 발밑 3×3 에 단단한 블록이 3개 이하. */
+    public static boolean onBridge(Location l) {
+        Block under = l.getBlock().getRelative(0, -1, 0);
+        int solid = 0;
+        for (int dx = -1; dx <= 1; dx++)
+            for (int dz = -1; dz <= 1; dz++) if (under.getRelative(dx, 0, dz).getType().isSolid()) solid++;
+        return solid <= 3;
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -680,7 +669,8 @@ public final class MobManager implements Listener {
         }
     }
 
-    private static boolean overVoid(Location l) {
+    /** 발밑 12칸 안에 단단한 블록이 없다 (떨어진 아이템이 공허로 사라진다). */
+    public static boolean overVoid(Location l) {
         World w = l.getWorld();
         for (int y = l.getBlockY(); y > l.getBlockY() - 12 && y > w.getMinHeight(); y--) {
             if (w.getBlockAt(l.getBlockX(), y, l.getBlockZ()).getType().isSolid()) return false;
