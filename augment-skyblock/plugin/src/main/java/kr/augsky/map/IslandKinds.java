@@ -565,14 +565,19 @@ final class IslandKinds extends MapTools {
                         oak ? Material.OAK_SAPLING : Material.BIRCH_SAPLING);
             }
         }
-        // 쓰러진 통나무와 그 위의 버섯
+        // 쓰러진 통나무와 그 옆의 버섯
         int off = (int) (rad * 0.55);
         for (int sideZ : new int[]{off, -off}) {
             boolean ok = true;
             for (int i = -1; i <= 2; i++) if (!tile(x + i, z + sideZ)) ok = false;
             if (!ok) continue;
             for (int i = -1; i <= 2; i++) set(x + i, y + 1, z + sideZ, "oak_log[axis=x]");
-            set(x, y + 2, z + sideZ, Material.BROWN_MUSHROOM);
+            // 햇빛 아래 통나무 위의 버섯은 옆 블록이 바뀌면 떨어져 나가서, 통나무 옆 회백토 위에 둔다
+            int mz = z + sideZ - Integer.signum(sideZ);
+            if (tile(x, mz) && air(x, y + 1, mz)) {
+                set(x, y, mz, Material.PODZOL);
+                set(x, y + 1, mz, Material.BROWN_MUSHROOM);
+            }
             break;
         }
         flowers((int) (rad * 2.2), null, Material.POPPY, Material.DANDELION, Material.LILY_OF_THE_VALLEY,
