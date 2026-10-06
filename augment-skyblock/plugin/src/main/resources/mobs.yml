@@ -6,7 +6,8 @@
 #      hp_below  체력이 threshold 아래로 처음 내려갔을 때 (보스 2페이즈)
 #      on_spawn / on_death
 #    drops 의 item: shard, item:<id>, weapon:<id>, pool:<얻는 곳>(그 무기들 중 하나),
-#               armor:<세트>(그 세트의 무작위 부위), 바닐라 아이템 이름
+#               armor:<세트>(그 세트의 무작위 부위), 바닐라 아이템 이름,
+#               book:<마법 id>[:단계](마법이 부여된 책. 예: book:mending, book:power:3. 단계를 안 적으면 최고 단계)
 #    natural  자연 스폰된 replace 몬스터를 chance 확률로 이 몬스터로 바꾼다
 #             (worlds: 이 월드에서만, nether: true 면 하늘 네더에서도. 없으면 하늘 네더는 바닐라 몹 그대로)
 #    보스(boss: true)의 보상은 함께 싸운 플레이어 모두가 각자 받는다.

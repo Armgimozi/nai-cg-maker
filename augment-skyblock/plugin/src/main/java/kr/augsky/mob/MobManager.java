@@ -709,7 +709,8 @@ public final class MobManager implements Listener {
                         + (it.getAmount() > 1 ? " <gray>×" + it.getAmount() : "")
                         : "<white>" + it.getType().name().toLowerCase() + " <gray>×" + it.getAmount());
             }
-            p.giveExp(def.xp());
+            // 보통 몹의 경험치 구슬처럼 수선 장비를 먼저 고친다
+            p.giveExp(def.xp(), true);
             p.sendMessage(Text.mm("<#ffcc55>✦ 보상: " + (got.isEmpty() ? "<gray>없음" : String.join("<gray>, ", got))));
         }
     }

@@ -117,8 +117,10 @@ public final class CustomItems {
      */
     public ItemStack book(String spec, boolean named) {
         String[] parts = spec.split(":");
-        org.bukkit.enchantments.Enchantment ench = io.papermc.paper.registry.RegistryAccess.registryAccess()
-                .getRegistry(io.papermc.paper.registry.RegistryKey.ENCHANTMENT).get(NamespacedKey.minecraft(parts[0].trim().toLowerCase(Locale.ROOT)));
+        // 손으로 고친 yml 의 잘못된 이름("silk touch", 한글)에 예외를 던지면 보스 보상이 통째로 끊긴다. 경고만 남기고 건너뛴다
+        NamespacedKey key = parts.length == 0 ? null : NamespacedKey.fromString(parts[0].trim().toLowerCase(Locale.ROOT));
+        org.bukkit.enchantments.Enchantment ench = key == null ? null : io.papermc.paper.registry.RegistryAccess.registryAccess()
+                .getRegistry(io.papermc.paper.registry.RegistryKey.ENCHANTMENT).get(key);
         if (ench == null) {
             plugin.getLogger().warning("알 수 없는 마법: " + spec);
             return null;

@@ -113,12 +113,29 @@ public final class ItemGuard implements Listener {
         return w != null && w.infiniteArrows();
     }
 
-    /** 마법 부여대: 화살이 줄지 않는 활에는 무한을 빼고 붙인다. 무한만 나왔으면 아무것도 붙지 않고 경험치·청금석도 들지 않는다 (바닐라 처리). */
+    /**
+     * 마법 부여대에서 화살이 줄지 않는 활에 무한 대신 붙이는 마법.
+     * 무한만 빼면 무한 하나만 나온 칸은 눌러도 아무것도 안 되고, 바닐라는 마법을 붙여야만 제안을 다시 굴려서 그 칸이 계속 막힌다.
+     */
+    private static final int INFINITY_SUBSTITUTE_LEVEL = 3;
+
+    /** 마법 부여대 제안: 화살이 줄지 않는 활에 무한이 보이면 실제로 붙을 내구성 III 으로 바꿔 보인다 (보이는 마법만 바뀐다). */
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onPrepareEnchant(org.bukkit.event.enchantment.PrepareItemEnchantEvent e) {
+        if (!arrowsFree(e.getItem())) return;
+        for (org.bukkit.enchantments.EnchantmentOffer o : e.getOffers()) {
+            if (o == null || !o.getEnchantment().equals(Enchantment.INFINITY)) continue;
+            o.setEnchantment(Enchantment.UNBREAKING);
+            o.setEnchantmentLevel(INFINITY_SUBSTITUTE_LEVEL);
+        }
+    }
+
+    /** 마법 부여대: 화살이 줄지 않는 활에는 무한 대신 내구성 III 을 붙인다 (경험치·청금석은 바닐라처럼 든다). */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onEnchant(org.bukkit.event.enchantment.EnchantItemEvent e) {
         if (!arrowsFree(e.getItem()) || e.getEnchantsToAdd().remove(Enchantment.INFINITY) == null) return;
-        if (e.getEnchantsToAdd().isEmpty())
-            e.getEnchanter().sendActionBar(Text.mm("<gray>이 활은 이미 화살이 줄지 않아 무한을 붙일 수 없다"));
+        e.getEnchantsToAdd().merge(Enchantment.UNBREAKING, INFINITY_SUBSTITUTE_LEVEL, Math::max);
+        e.getEnchanter().sendMessage(Text.mm("<gray>이 활은 이미 화살이 줄지 않아 무한 대신 <white>내구성 III</white>을 붙였다"));
     }
 
     /**

@@ -51,6 +51,12 @@ public final class WeaponListener implements Listener {
     private final Map<UUID, int[]> lastCastTick = new HashMap<>();
     private final Map<UUID, Integer> suppressUntil = new HashMap<>();
     private final Map<UUID, Integer> fakeSwingTick = new HashMap<>();
+    /** 바닐라가 쏠 화살을 고른 틱과 그 칸 (40 = 왼손). 그 칸 화살이 1개였으면 쏜 뒤 칸이 비어서 나중에는 알 수 없다. */
+    private final Map<UUID, ArrowFrom> arrowFrom = new HashMap<>();
+
+    private record ArrowFrom(int tick, int slot) {}
+
+    private static final int OFFHAND_SLOT = 40;
     /** 안내서를 만들 때 쓴 guide-book 글의 지문. */
     private static final NamespacedKey BOOK_SIG = Keys.of("book_sig");
 
@@ -197,7 +203,7 @@ public final class WeaponListener implements Listener {
                 // 무한은 보통 화살만 아끼므로 분광·물약 화살은 이 이벤트 전에 이미 빠져 있다. 쏘지 않았으니 돌려준다
                 ItemStack ammo = e.getConsumable();
                 if (ammo != null && !ammo.isEmpty() && !ammo.hasData(io.papermc.paper.datacomponent.DataComponentTypes.INTANGIBLE_PROJECTILE))
-                    kr.augsky.util.Items.give(p, ammo.clone());
+                    giveArrowBack(p, ammo.clone());
                 // 클라이언트가 화살을 쏜 줄 알고 인벤토리를 미리 바꿨을 수 있다
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     if (p.isOnline()) p.updateInventory();
@@ -239,7 +245,46 @@ public final class WeaponListener implements Listener {
         if (!(e.getEntity() instanceof Player p)) return;
         WeaponDef w = plugin.weapons().of(e.getBow());
         if (w == null || !refunds(w, e.getConsumable())) return;
-        Items.give(p, e.getConsumable().asOne());
+        giveArrowBack(p, e.getConsumable().asOne());
+    }
+
+    /**
+     * 바닐라는 왼손, 오른손, 인벤토리 앞 칸 순서로 처음 만난 화살을 쓴다. 쏠 때 고른 화살이 어느 칸 것인지 적어 둔다
+     * (쏘기 직전, 같은 틱에 한 번 더 불린다). 다른 플러그인이 막아 다음 화살로 넘어가면 그 이벤트가 다시 와서 고쳐 쓴다.
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onReadyArrow(com.destroystokyo.paper.event.player.PlayerReadyArrowEvent e) {
+        Player p = e.getPlayer();
+        PlayerInventory inv = p.getInventory();
+        ItemStack arrow = e.getArrow();
+        int slot = -1;
+        if (arrow.equals(inv.getItemInOffHand())) slot = OFFHAND_SLOT;
+        else if (arrow.equals(inv.getItemInMainHand())) slot = inv.getHeldItemSlot();
+        else for (int i = 0; i < 36 && slot < 0; i++) if (arrow.equals(inv.getItem(i))) slot = i;
+        if (slot >= 0) arrowFrom.put(p.getUniqueId(), new ArrowFrom(Bukkit.getCurrentTick(), slot));
+        else arrowFrom.remove(p.getUniqueId());
+    }
+
+    /**
+     * 빠진 화살을 바닐라가 빼 간 칸으로 돌려준다. 그냥 인벤토리에 넣으면 왼손 묶음은 쏠 때마다 줄고 다른 칸에 새 묶음이 자라거나,
+     * 1개뿐인 화살이 다른 칸으로 옮겨 가서 '줄지 않는다'는 말이 틀려 보인다. 칸을 모르거나 꽉 찼으면 인벤토리 아무 데나.
+     */
+    private void giveArrowBack(Player p, ItemStack arrow) {
+        ArrowFrom from = arrowFrom.remove(p.getUniqueId());
+        if (from != null && from.tick() == Bukkit.getCurrentTick()) {
+            PlayerInventory inv = p.getInventory();
+            ItemStack had = inv.getItem(from.slot());
+            if (had == null || had.isEmpty()) {
+                inv.setItem(from.slot(), arrow);
+                return;
+            }
+            if (had.isSimilar(arrow) && had.getAmount() + arrow.getAmount() <= had.getMaxStackSize()) {
+                had.setAmount(had.getAmount() + arrow.getAmount());
+                inv.setItem(from.slot(), had);
+                return;
+            }
+        }
+        Items.give(p, arrow);
     }
 
     /** 화살이 줄지 않는 활로 쏜 보통 화살인지 (돌려줄 화살). 물약·분광 화살과 실체 없는 화살은 아니다. */
@@ -389,6 +434,7 @@ public final class WeaponListener implements Listener {
         lastCastTick.remove(e.getPlayer().getUniqueId());
         suppressUntil.remove(e.getPlayer().getUniqueId());
         fakeSwingTick.remove(e.getPlayer().getUniqueId());
+        arrowFrom.remove(e.getPlayer().getUniqueId());
     }
 
     /** 스킬 있는 무기를 든 동안 액션바에 슬롯마다 조작과 상태를 띄운다. */

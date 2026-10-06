@@ -550,7 +550,8 @@ public final class AugmentListener implements Listener {
             }
             if (xp > 0) {
                 at.getWorld().spawnParticle(Particle.FLAME, at, 8, 0.25, 0.25, 0.25, 0.01);
-                p.giveExp(xp);
+                // 화로 경험치 구슬처럼 수선 장비를 먼저 고친다
+                p.giveExp(xp, true);
             }
         }
         if (state.getBlockData() instanceof Ageable ag && ag.getAge() >= ag.getMaximumAge() && isCrop(type)) {

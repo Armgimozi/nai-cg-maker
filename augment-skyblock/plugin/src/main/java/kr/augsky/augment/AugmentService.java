@@ -142,7 +142,11 @@ public final class AugmentService {
             for (PotionEffectType t : applied) {
                 if (want.contains(t)) continue;
                 PotionEffect cur = p.getPotionEffect(t);
-                if (cur != null && cur.getDuration() == PotionEffect.INFINITE_DURATION) p.removePotionEffect(t);
+                if (cur == null) continue;
+                p.removePotionEffect(t);
+                // 더 센 시간제 효과(신호기·물약)가 보이고 있으면 증강의 무한 효과는 바닐라가 그 밑에 숨겨 두었다가 끝나면 되살린다.
+                // 통째로 지운 뒤 보이던 시간제 효과만 다시 걸어서 숨은 무한 효과가 남지 않게 한다
+                if (cur.getDuration() != PotionEffect.INFINITE_DURATION) p.addPotionEffect(cur);
             }
         }
         applied.clear();

@@ -33,7 +33,10 @@ import java.util.concurrent.ThreadLocalRandom;
 public final class WeaponRegistry {
     /** 아이템을 만들 때 쓴 설명·수치의 지문. 지금 정의와 다르면 refresh 가 다시 쓴다. */
     private static final NamespacedKey SIG = Keys.of("weapon_sig");
-    private static final List<Attribute> STAT_ATTRS = List.of(Attribute.ATTACK_DAMAGE, Attribute.ATTACK_SPEED, Attribute.ENTITY_INTERACTION_RANGE);
+    private static final List<Attribute> STAT_ATTRS = List.of(Attribute.ATTACK_DAMAGE, Attribute.ATTACK_SPEED, Attribute.ENTITY_INTERACTION_RANGE,
+            Attribute.BLOCK_BREAK_SPEED);
+    /** 성급함 한 단계가 채굴 속도에 곱하는 몫 (바닐라 성급함: 단계마다 ×(1 + 0.2)). */
+    private static final double HASTE_STEP = 0.2;
 
     private final AugSky plugin;
     private final Map<String, WeaponDef> weapons = new LinkedHashMap<>();
@@ -272,7 +275,8 @@ public final class WeaponRegistry {
             if (mods == null) continue;
             for (AttributeModifier m : List.copyOf(mods)) {
                 String k = m.getKey().getKey();
-                if (m.getKey().getNamespace().equals(Keys.NS) && (k.equals("weapon_damage") || k.equals("weapon_speed") || k.equals("weapon_reach")))
+                if (m.getKey().getNamespace().equals(Keys.NS)
+                        && (k.equals("weapon_damage") || k.equals("weapon_speed") || k.equals("weapon_reach") || k.equals("weapon_haste")))
                     meta.removeAttributeModifier(a, m);
             }
         }
@@ -291,6 +295,12 @@ public final class WeaponRegistry {
         if (w.reach() != 0) {
             meta.addAttributeModifier(Attribute.ENTITY_INTERACTION_RANGE, new AttributeModifier(
                     Keys.of("weapon_reach"), w.reach(), AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
+        }
+        // 곡괭이 성급함: 바닐라 성급함 N 은 채굴 속도에 ×(1 + 0.2N) 을 따로 곱한다. 같은 몫을 따로 곱하는 수식어(MULTIPLY_SCALAR_1)로 달아서
+        // 효과 칸에 안 보이고, 손을 바꾸면 바로 풀리고, 증강의 성급함·채굴 속도와는 서로 곱해진다
+        if (w.haste() > 0) {
+            meta.addAttributeModifier(Attribute.BLOCK_BREAK_SPEED, new AttributeModifier(
+                    Keys.of("weapon_haste"), HASTE_STEP * w.haste(), AttributeModifier.Operation.MULTIPLY_SCALAR_1, EquipmentSlotGroup.MAINHAND));
         }
     }
 
@@ -324,7 +334,8 @@ public final class WeaponRegistry {
         if (w.autoSmelt())
             l.add("<#7cffc4>[패시브] <gray>캐낸 광석이 곧바로 제련된다 <dark_gray>(제련 증강이 있으면 경험치 두 배)");
         if (w.haste() > 0)
-            l.add("<#7cffc4>[패시브] <gray>들고 있는 동안 성급함 " + roman(w.haste()) + " <dark_gray>(성급함 증강이 있으면 " + w.haste() + "단계 더)");
+            l.add("<#7cffc4>[패시브] <gray>들고 있는 동안 채굴 속도 +" + Math.round(HASTE_STEP * 100 * w.haste()) + "% <dark_gray>(성급함 "
+                    + roman(w.haste()) + "만큼, 성급함 증강과 겹친다)");
         if (!w.lore().isEmpty()) {
             l.add("");
             for (String s : w.lore()) l.add("<dark_gray><i>" + s);

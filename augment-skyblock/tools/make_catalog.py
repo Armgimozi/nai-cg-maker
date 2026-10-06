@@ -208,7 +208,7 @@ def weapon_card(wid, w, skills, items, weapons, armor):
         if perks.get("auto_smelt"):
             lines.append("캐낸 광석이 곧바로 제련된다")
         if perks.get("haste", 0) > 0:
-            lines.append(f'들고 있는 동안 성급함 {roman(perks["haste"])}')
+            lines.append(f'들고 있는 동안 채굴 속도 +{perks["haste"] * 20}% (성급함 {roman(perks["haste"])}만큼)')
         body = "".join(f'<li><b>패시브</b> {esc(t)}</li>' for t in lines)
         body = (f'<ul class="skills">{body}</ul>' if body else "") + (f'<p class="mine">{esc(tnote)}</p>' if tnote else "")
     else:
