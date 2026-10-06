@@ -32,9 +32,9 @@ bosses:
 
 drops:
   # 일반 적대 몬스터를 플레이어가 잡았을 때 증강 파편이 나올 확률
-  shard-chance: 0.08
+  shard-chance: 0.06
   # 돌, 조약돌, 광석, 네더랙을 캘 때 증강 파편이 나올 확률
-  shard-mining-chance: 0.004
+  shard-mining-chance: 0.01
 
 generator:
   # 증강이 없어도 조약돌 생성기에서 광석이 나올 확률 (기본 0 = 고전 스카이블럭)

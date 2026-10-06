@@ -487,7 +487,7 @@ public final class AugmentListener implements Listener {
         if (!hostile) return;
         List<ItemStack> extra = new ArrayList<>();
         if (!Targets.isCustomMob(dead)) {
-            double sc = plugin.getConfig().getDouble("drops.shard-chance", 0.08) * (1 + st.get("shard_luck.amount"));
+            double sc = plugin.getConfig().getDouble("drops.shard-chance", 0.06) * (1 + st.get("shard_luck.amount"));
             if (rnd().nextDouble() < sc) extra.add(plugin.items().create("shard", 1));
         } else if (st.get("shard_luck.amount") > 0 && rnd().nextDouble() < st.get("shard_luck.amount") * 0.5) {
             extra.add(plugin.items().create("shard", 1));
@@ -562,7 +562,7 @@ public final class AugmentListener implements Listener {
                 || Tag.COPPER_ORES.isTagged(type) || Tag.GOLD_ORES.isTagged(type) || Tag.DIAMOND_ORES.isTagged(type)
                 || Tag.REDSTONE_ORES.isTagged(type) || Tag.LAPIS_ORES.isTagged(type) || Tag.EMERALD_ORES.isTagged(type)
                 || type == Material.NETHERRACK) {
-            double sc = plugin.getConfig().getDouble("drops.shard-mining-chance", 0.004) * (1 + st.get("shard_luck.amount"));
+            double sc = plugin.getConfig().getDouble("drops.shard-mining-chance", 0.01) * (1 + st.get("shard_luck.amount"));
             if (rnd().nextDouble() < sc) {
                 at.getWorld().dropItemNaturally(at, plugin.items().create("shard", 1));
                 p.sendActionBar(Text.mm("<#c86bff>✦ 증강 파편을 캐냈습니다!"));
