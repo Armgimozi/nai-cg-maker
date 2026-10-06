@@ -63,9 +63,10 @@ public final class NetherMap {
                 {"n_crimson", 28, 86, -96, 11.0}, {"n_warped", -86, 82, 66, 11.0}, {"n_quartz", 104, 80, -4, 9.0},
                 {"n_soul", 44, 72, 104, 11.0}, {"n_delta", -104, 70, -36, 10.0}, {"n_debris", 118, 68, 50, 13.0}};
         // 판 2: 제단 섬 여섯. 섬 사이 빈자리(가장자리끼리 20칸 넘게)에 방향을 돌려 가며, 등급마다 둘씩 쉼터 맞은편끼리 둔다.
-        // 쉼터 가까이는 북쪽 한 곳뿐이라 그곳은 실버, 나머지는 바깥 둘레
+        // 모두 쉼터에서 100 넘게 뗀다: 하늘 섬에서 연 문은 쉼터 둘레 약 92(하늘 맵 610/8 + 문을 여는 거리 16) 안에 열리는데,
+        // 제단 섬이 그 안이면 그 섬의 문이 제단 보호에 막히거나 제단 옆에 열린다
         Object[][] altars = {
-                {"n_altar", -11, 83, -80, 7.0, Tier.SILVER}, {"n_altar", 118, 78, -41, 7.0, Tier.GOLD},
+                {"n_altar", -14, 83, -105, 7.0, Tier.SILVER}, {"n_altar", 118, 78, -41, 7.0, Tier.GOLD},
                 {"n_altar", 85, 72, 91, 7.0, Tier.PRISM}, {"n_altar", 8, 76, 124, 7.0, Tier.SILVER},
                 {"n_altar", -119, 85, 38, 7.0, Tier.GOLD}, {"n_altar", -93, 73, -75, 7.0, Tier.PRISM}};
         List<Object[]> rows = new ArrayList<>(Arrays.asList(t));

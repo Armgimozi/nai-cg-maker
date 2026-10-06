@@ -5,6 +5,7 @@
 
 world 옆에 플러그인이 만든 하늘 네더 폴더(<world>_augsky_nether)도 world_augsky_nether/ 로 함께 넣는다.
 그 폴더가 없거나 다 지어지지 않았으면 멈춘다 (서버를 한 번 켜서 네더가 지어진 뒤 묶는다).
+네더가 예전 판이거나 두 월드의 제단 기록이 지금 코드의 배치와 다르거나 쓴 제단이 있어도 멈춘다 (예전 맵을 새 jar 와 묶지 않도록).
 
 dist/
   AugmentSkyblock-Server.zip   서버 폴더 통째로 (start.bat, 설정, 플러그인, 맵)  ← 이것만 받으면 됨
@@ -13,6 +14,7 @@ dist/
   AugmentSkyblock-pack.zip     리소스팩 (gen_pack.py 가 만든다)
 """
 import os
+import re
 import sys
 import zipfile
 
@@ -27,6 +29,43 @@ SKIP_DIRS = {"playerdata", "stats", "advancements"}
 NETHER = "world_augsky_nether"
 NETHER_MARKER = "augsky-nether.yml"
 FIXED = (2026, 1, 1, 0, 0, 0)
+MAP_SRC = os.path.join(ROOT, "plugin", "src", "main", "java", "kr", "augsky", "map")
+TIERS = ("SILVER", "GOLD", "PRISM")
+
+
+def read(path):
+    with open(path, encoding="utf-8") as f:
+        return f.read()
+
+
+def plan():
+    """지금 코드의 배치: 하늘 네더 판(NetherMap.LAYOUT), 하늘 제단 수(MapBuilder.ALTAR_TIERS), 네더 제단 수."""
+    nether = read(os.path.join(MAP_SRC, "NetherMap.java"))
+    layout = int(re.search(r"int LAYOUT = (\d+);", nether).group(1))
+    order = re.search(r'ALTAR_TIERS = "([SGP]+)"', read(os.path.join(MAP_SRC, "MapBuilder.java"))).group(1)
+    sky = [order.count(t[0]) for t in TIERS]
+    rows = re.findall(r'\{"n_altar",[^}]*Tier\.(\w+)\}', nether)
+    return layout, sky, [rows.count(t) for t in TIERS]
+
+
+def altars(world):
+    """월드의 제단 기록(augsky-altars.yml): 등급별 수와 쓴 제단 수."""
+    path = os.path.join(world, "augsky-altars.yml")
+    text = read(path) if os.path.isfile(path) else ""
+    return [len(re.findall(rf"^\s+tier: {t}$", text, re.M)) for t in TIERS], len(re.findall(r"^\s+used: true$", text, re.M))
+
+
+def check(world, nether):
+    layout, sky, sky_nether = plan()
+    built = re.search(r"^layout: (\d+)", read(os.path.join(nether, NETHER_MARKER)), re.M)
+    if (int(built.group(1)) if built else 1) != layout:
+        sys.exit(f"하늘 네더가 예전 판({built.group(1) if built else 1})으로 지어져 있습니다. 지금 판은 {layout} (네더 짓기 강제 로 다시 지은 뒤 묶기)")
+    for w, want in ((world, sky), (nether, sky_nether)):
+        have, used = altars(w)
+        if have != want:
+            sys.exit(f"{w} 의 제단 기록이 {'/'.join(map(str, have))} 로 지금 코드의 배치({'/'.join(map(str, want))})와 다릅니다 (새 jar 로 다시 지은 뒤 묶기)")
+        if used:
+            sys.exit(f"{w} 에 쓴 제단이 {used}곳 있습니다 (시험한 월드는 묶지 않기)")
 
 
 def add_file(z, src, arc):
@@ -59,6 +98,7 @@ def main():
     nether = world + "_augsky_nether"
     if not os.path.isfile(os.path.join(nether, NETHER_MARKER)):
         sys.exit(f"하늘 네더 폴더가 없거나 다 지어지지 않았습니다: {nether} ({NETHER_MARKER} 없음)")
+    check(world, nether)
     os.makedirs(DIST, exist_ok=True)
     with open(JAR, "rb") as f, open(os.path.join(DIST, "AugmentSkyblock.jar"), "wb") as o:
         o.write(f.read())

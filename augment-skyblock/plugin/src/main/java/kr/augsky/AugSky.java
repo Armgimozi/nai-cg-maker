@@ -131,6 +131,7 @@ public final class AugSky extends JavaPlugin {
         nether.start();
         Bukkit.getScheduler().runTask(this, () -> {
             altars.scanLoaded();
+            altars.checkMap();
             mobs.scanLoaded();
             for (Player p : Bukkit.getOnlinePlayers()) {
                 augments.refresh(p);

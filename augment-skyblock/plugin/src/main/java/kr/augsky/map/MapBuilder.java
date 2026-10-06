@@ -260,18 +260,30 @@ public final class MapBuilder extends MapTools {
         warn.add("맵 배치: " + s.kind() + " 섬을 놓을 자리가 없습니다");
     }
 
-    /** 모든 섬을 잇는 가장 짧은 다리들 중 MAX_BRIDGE 보다 긴 것이 없어질 때까지 가운데에 바위를 놓는다. */
+    /**
+     * 모든 섬을 잇는 가장 짧은 다리들 중 MAX_BRIDGE 보다 긴 것이 없어질 때까지 가운데에 바위를 놓는다.
+     * 둥지는 빼고 먼저 잇는다. 둥지를 징검다리 삼으면 그 너머 섬(제단도)은 보스를 지나야만 갈 수 있다. 둥지는 그다음에 잇는다.
+     */
     private static void stones(List<Isle> out, List<String> warn) {
         for (int round = 0; round < 60; round++) {
-            int[] worst = worstBridge(out);
+            List<Isle> ways = withoutLairs(out);
+            int[] worst = worstBridge(ways);
+            if (worst == null) worst = worstBridge(ways = out);
             if (worst == null) return;
-            Isle a = out.get(worst[0]), b = out.get(worst[1]);
+            Isle a = ways.get(worst[0]), b = ways.get(worst[1]);
             double dx = b.x() - a.x(), dz = b.z() - a.z(), len = Math.hypot(dx, dz);
             double t = (a.r() + (len - a.r() - b.r()) / 2) / len;
             int x = (int) Math.round(a.x() + dx * t), z = (int) Math.round(a.z() + dz * t);
             out.add(new Isle("stone", x, (a.y() + b.y()) / 2, z, 3.5, region(x, z), null, 5000 + out.size()));
         }
         warn.add("맵 배치: 징검다리를 60개 놓아도 " + (int) MAX_BRIDGE + "m 보다 긴 다리가 남았습니다");
+    }
+
+    /** 둥지를 뺀 섬들. 둥지 없이도 모든 섬에 MAX_BRIDGE 안의 다리로 닿아야 한다. */
+    static List<Isle> withoutLairs(List<Isle> isles) {
+        List<Isle> out = new ArrayList<>();
+        for (Isle i : isles) if (!i.kind().startsWith("lair_")) out.add(i);
+        return out;
     }
 
     /** 가장자리 사이 거리. */
@@ -326,7 +338,17 @@ public final class MapBuilder extends MapTools {
         return true;
     }
 
-    /** 맵 배치 한 줄 요약. 제단 수가 10/6/2 가 아니거나 가장 가까운 제단이 실버가 아니면 ok[0] 이 false. */
+    /** 하늘 맵의 등급별 제단 수 (실버, 골드, 프리즘). */
+    public static int[] altarCounts() {
+        int[] n = new int[Tier.values().length];
+        for (char c : ALTAR_TIERS.toCharArray()) n[c == 'G' ? 1 : c == 'P' ? 2 : 0]++;
+        return n;
+    }
+
+    /**
+     * 맵 배치 한 줄 요약. 제단 수가 10/6/2 가 아니거나, 가장 가까운 제단이 실버가 아니거나,
+     * 둥지를 지나지 않고는 MAX_BRIDGE 안의 다리로 닿지 않는 섬이 있으면 ok[0] 이 false.
+     */
     static String summary(List<Isle> isles, boolean[] ok) {
         int res = 0, stones = 0;
         int[] tiers = new int[Tier.values().length];
@@ -343,9 +365,12 @@ public final class MapBuilder extends MapTools {
             else if (IslandKinds.KINDS.contains(is.kind())) res++;
         }
         double longest = Arrays.stream(bridges(isles, new int[2])).max().orElse(0);
-        ok[0] = tiers[0] == 10 && tiers[1] == 6 && tiers[2] == 2 && nearest != null && nearest.tier() == Tier.SILVER;
+        double open = Arrays.stream(bridges(withoutLairs(isles), new int[2])).max().orElse(0);
+        ok[0] = tiers[0] == 10 && tiers[1] == 6 && tiers[2] == 2 && nearest != null && nearest.tier() == Tier.SILVER
+                && open <= MAX_BRIDGE;
         return "맵 배치: 섬 " + isles.size() + "개 (자원 " + res + ", 징검다리 " + stones + "), 제단 "
-                + tiers[0] + "/" + tiers[1] + "/" + tiers[2] + ", 가장 긴 다리 " + Math.round(longest) + "m, 가장 가까운 제단 "
+                + tiers[0] + "/" + tiers[1] + "/" + tiers[2] + ", 가장 긴 다리 " + Math.round(longest) + "m (둥지를 빼면 "
+                + Math.round(open) + "m), 가장 가까운 제단 "
                 + (nearest == null ? "없음" : Math.round(Math.hypot(nearest.x(), nearest.z())) + "m (" + nearest.tier().korean + ")")
                 + ", 제단 사이 최소 " + Math.round(spacing) + "m";
     }

@@ -4,6 +4,7 @@ import kr.augsky.AugSky;
 import kr.augsky.Keys;
 import kr.augsky.augment.PlayerData;
 import kr.augsky.augment.Tier;
+import kr.augsky.map.MapBuilder;
 import kr.augsky.util.Fx;
 import kr.augsky.util.Text;
 import org.bukkit.Bukkit;
@@ -34,6 +35,7 @@ import org.joml.Vector3f;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -143,6 +145,22 @@ public final class AltarService implements Listener {
         guarded.remove(id);
         crystals.remove(id);
         if (reg(w).remove(id) != null) save(w);
+    }
+
+    /**
+     * 켤 때 한 번: 하늘의 제단 기록이 이 판의 맵과 다르면 로그에 알린다. jar 만 바꾼 예전 맵(실버 16 · 골드 9 · 프리즘 5)은
+     * 하늘 제단이 예전 그대로인 채 하늘 네더 제단이 더해져서, 새 안내서의 제단 수와 /증강 제단 의 수가 어긋난다.
+     */
+    public void checkMap() {
+        World home = Bukkit.getWorlds().get(0);
+        int[] have = new int[Tier.values().length];
+        for (Info i : reg(home).values()) have[i.tier().ordinal()]++;
+        int[] plan = MapBuilder.altarCounts();
+        // 기록이 비었으면 아직 맵을 짓기 전이다
+        if (Arrays.stream(have).sum() == 0 || Arrays.equals(have, plan)) return;
+        plugin.getLogger().warning("하늘(" + home.getName() + ")의 제단이 실버 " + have[0] + " · 골드 " + have[1] + " · 프리즘 " + have[2]
+                + "곳으로 이 판의 맵(" + plan[0] + "/" + plan[1] + "/" + plan[2] + ")과 다릅니다. 예전 맵을 계속 쓰면 하늘 제단은 예전 그대로에"
+                + " 하늘 네더 제단이 더해져 안내서의 제단 수와 맞지 않습니다. 새 제단 배치는 서버 zip 의 새 world 폴더로만 받습니다 (README.txt 의 업데이트).");
     }
 
     /** 이 월드 하나의 제단 기록 (맵생성 전 확인용). 플레이어에게 보여 줄 수는 realm 으로 센다. */
