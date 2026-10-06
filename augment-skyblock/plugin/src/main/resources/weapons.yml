@@ -224,7 +224,7 @@ storm_spear:
   lore: ["폭풍이 지나간 자리에서 주웠다."]
   recipe:
     shape: [" CL", " TC", "T  "]
-    ingredients: {C: COPPER_INGOT, L: LIGHTNING_ROD, T: STICK}
+    ingredients: {C: WEATHERED_COPPER, L: LIGHTNING_ROD, T: STICK}
 
 venom_dagger:
   name: 독사의 단검
@@ -267,7 +267,7 @@ earth_hammer:
   lore: ["내려칠 때마다 섬이 흔들린다."]
   recipe:
     shape: ["MPM", "MTM", " T "]
-    ingredients: {M: MOSSY_COBBLESTONE, P: PACKED_MUD, T: STICK}
+    ingredients: {M: MOSSY_COBBLESTONE, P: TUFF, T: STICK}
 
 wind_sword:
   name: 바람의 검
@@ -534,7 +534,7 @@ storm_dagger:
   lore: ["번개처럼 왔다가 번개처럼 사라진다."]
   recipe:
     shape: ["CL", "PC"]
-    ingredients: {C: COPPER_BLOCK, L: LIGHTNING_ROD, P: PHANTOM_MEMBRANE}
+    ingredients: {C: OXIDIZED_COPPER, L: LIGHTNING_ROD, P: PHANTOM_MEMBRANE}
 
 # ═══════════════════════ 서리 균열 — 서리 정수로 만든다 ═══════════════════════
 

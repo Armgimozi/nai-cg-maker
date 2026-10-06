@@ -1,5 +1,6 @@
 package kr.augsky.mob;
 
+import io.papermc.paper.event.entity.EntityPortalReadyEvent;
 import kr.augsky.AugSky;
 import kr.augsky.Keys;
 import kr.augsky.skill.Combat;
@@ -18,6 +19,7 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
+import org.bukkit.PortalType;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
@@ -590,7 +592,17 @@ public final class MobManager implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onPortal(PortalCreateEvent e) {
         if (e.getWorld().getEnvironment() != World.Environment.NORMAL) return;
-        if (e.getReason() != PortalCreateEvent.CreateReason.FIRE && e.getReason() != PortalCreateEvent.CreateReason.NETHER_PAIR) return;
+        // 네더에서 돌아오는 길에 생기는 짝 문(NETHER_PAIR)은 막지 않는다. 막으면 네더에 남은 사람이 못 돌아온다
+        if (e.getReason() != PortalCreateEvent.CreateReason.FIRE) return;
+        e.setCancelled(true);
+        if (e.getEntity() instanceof Player p) p.sendActionBar(Text.mm("<gray>이 하늘에서는 네더 문이 열리지 않습니다"));
+    }
+
+    /** 업데이트 전에 켜 둔 네더 문도 하늘에서 네더로는 보내지 않는다 (네더에서 돌아오는 건 막지 않는다). */
+    @EventHandler(ignoreCancelled = true)
+    public void onPortalReady(EntityPortalReadyEvent e) {
+        if (e.getPortalType() != PortalType.NETHER) return;
+        if (e.getEntity().getWorld().getEnvironment() != World.Environment.NORMAL) return;
         e.setCancelled(true);
         if (e.getEntity() instanceof Player p) p.sendActionBar(Text.mm("<gray>이 하늘에서는 네더 문이 열리지 않습니다"));
     }
