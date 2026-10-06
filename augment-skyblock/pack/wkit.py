@@ -666,21 +666,22 @@ class Weapon:
             return {"rotation": [round(v, 3) for v in _euler_xyz(r_new)], "translation": [round(float(v), 3) for v in t],
                     "scale": [round(s1, 3)] * 3}
 
-        # 1인칭: 바닐라 칼 자리에서 30도 화면 안쪽으로 세우고 조금 키워 날과 아우라가 잘 보이게 (게임 안에서 맞춘 값)
-        fp_mul = {"dagger": 1.3, "wand": 1.15}.get(self.kind, 1.0)
+        # 손에 든 자세는 바닐라 칼·활과 같은 각도와 자리 (손잡이가 바닐라 칼의 손잡이 자리에 온다).
+        # 크기만 무기 종류별 길이(want)로 맞춘다. 아우라가 큰 망치·활은 1인칭에서 화면을 덮지 않게 조금 작게
+        fp_mul = 1.0
         if self.aura and self.kind == "hammer":
-            fp_mul *= 0.85   # 머리가 큰 망치는 아우라 판이 1인칭 화면을 너무 덮는다
+            fp_mul = 0.85
         if self.aura and self.kind == "bow":
-            fp_mul *= 0.8    # 당길 때 활이 화면 가운데로 오므로 아우라가 조준을 가리지 않게
+            fp_mul = 0.8     # 당길 때 활이 화면 가운데로 오므로 아우라가 조준을 가리지 않게
         if self.kind == "bow":
             d = {
                 "thirdperson_righthand": hold([-80, 260, -40], [-1, -2, 2.5], 0.9, 0.9 * s_hand),
-                "firstperson_righthand": hold([0, -90, 25], [1.13, 3.2, 1.13], 0.68, 0.68 * s_hand * 0.85 * fp_mul, 8, (-0.5, 0.5, 0)),
+                "firstperson_righthand": hold([0, -90, 25], [1.13, 3.2, 1.13], 0.68, 0.68 * s_hand * fp_mul),
             }
         else:
             d = {
                 "thirdperson_righthand": hold([0, -90, 55], [0, 4.0, 0.5], 0.85, 0.85 * s_hand),
-                "firstperson_righthand": hold([0, -90, 25], [1.13, 3.2, 1.13], 0.68, 0.68 * s_hand * 0.94 * fp_mul, 30, (-1.5, 1.0, -1.0)),
+                "firstperson_righthand": hold([0, -90, 25], [1.13, 3.2, 1.13], 0.68, 0.68 * s_hand * fp_mul),
             }
         # 왼손: 게임이 왼손일 때 x 위치와 y·z 회전을 뒤집어 그리므로 오른손 값을 그대로 쓰면 거울처럼 대칭이 된다
         d["thirdperson_lefthand"] = dict(d["thirdperson_righthand"])
