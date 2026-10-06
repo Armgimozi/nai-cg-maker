@@ -11,6 +11,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.RecipeChoice;
 import org.bukkit.inventory.ShapedRecipe;
+import org.bukkit.inventory.recipe.CraftingBookCategory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -161,8 +162,11 @@ public final class Recipes {
             }
         }
         NamespacedKey key = new NamespacedKey(Keys.NS, keyName);
+        // 레시피 책 탭: 무기·갑옷은 '장비', 재료 아이템은 '기타' (지정하지 않으면 전부 기타로 간다)
+        CraftingBookCategory cat = keyName.startsWith("w_") || keyName.startsWith("a_")
+                ? CraftingBookCategory.EQUIPMENT : CraftingBookCategory.MISC;
         // 보이는 판을 먼저 넣어서, 둘 다 맞으면 보이는 판이 쓰이게 한다
-        if (!Bukkit.addRecipe(shaped(key, result, shape, shown))) return;
+        if (!Bukkit.addRecipe(shaped(key, result, shape, shown, cat))) return;
         keys.add(key);
         if (!wIn.isEmpty()) weaponInputs.put(key, wIn);
         if (!aIn.isEmpty()) armorInputs.put(key, aIn);
@@ -170,7 +174,7 @@ public final class Recipes {
         // 레시피 책엔 진짜 무기 모양으로 보이게 하고, 이름 바꾼 무기는 숨은 판으로 받는다
         // (정확한 아이템 재료는 이름·마법 부여가 하나라도 다르면 맞지 않는다. 어떤 무기인지는 ItemGuard 가 태그로 본다)
         NamespacedKey any = new NamespacedKey(Keys.NS, keyName + "_any");
-        if (Bukkit.addRecipe(shaped(any, result, shape, loose))) {
+        if (Bukkit.addRecipe(shaped(any, result, shape, loose, cat))) {
             hidden.add(any);
             if (!wIn.isEmpty()) weaponInputs.put(any, wIn);
             if (!aIn.isEmpty()) armorInputs.put(any, aIn);
@@ -179,8 +183,10 @@ public final class Recipes {
         }
     }
 
-    private static ShapedRecipe shaped(NamespacedKey key, ItemStack result, List<String> shape, Map<Character, RecipeChoice> choices) {
+    private static ShapedRecipe shaped(NamespacedKey key, ItemStack result, List<String> shape, Map<Character, RecipeChoice> choices,
+                                       CraftingBookCategory cat) {
         ShapedRecipe recipe = new ShapedRecipe(key, result);
+        recipe.setCategory(cat);
         recipe.shape(shape.toArray(new String[0]));
         for (Map.Entry<Character, RecipeChoice> en : choices.entrySet()) recipe.setIngredient(en.getKey(), en.getValue());
         return recipe;
