@@ -177,6 +177,7 @@
     리소스팩이 마인크래프트 기본 셰이더를 조금 고쳐 빛나는 픽셀을 그립니다.
   · 맵을 처음부터 다시 → 서버를 끄고 world 폴더를 지운 뒤 켜서
     서버 창에 augadmin buildmap 입력 (빈 공허 월드에 맵을 다시 짓습니다)
+    하늘 네더는 world_augsky_nether 폴더에 따로 있어 그대로 남습니다. 함께 새로 하려면 그 폴더도 지우세요.
   · 하늘 네더만 처음부터 다시 → 먼저 모두 하늘로 돌아온 뒤 서버 창에 augadmin 네더 짓기 강제
     (섬을 처음 모습으로 다시 짓습니다. 섬 위에 지은 것과 고친 곳은 사라지고 상자는 다시 채워집니다.)
     또는 서버를 끄고 world_augsky_nether 폴더를 지운 뒤 켜면 새로 지어집니다. 이때 네더에 있던
@@ -190,6 +191,7 @@
   하늘 네더가 들어간 판은 plugins/AugmentSkyblock.jar 만 바꾸면 됩니다. world 는 그대로 쓰고
   server.properties 도 고칠 것이 없습니다 (allow-nether=false 그대로). 처음 켤 때 world_augsky_nether
   폴더에 하늘 네더가 몇 초 만에 지어집니다. 백업할 때는 이 폴더도 함께 하세요.
+  (새로 받은 서버 zip 에는 다 지은 world_augsky_nether 폴더가 들어 있어 바로 쓰입니다.)
   새 섬 배치는 새 world 폴더로만 받을 수 있습니다. 예전 world 를 계속 쓰면 예전 섬 그대로,
   안내 글자와 빛기둥만 사라집니다. 인벤토리를 옮기려면 예전 world/playerdata 폴더를
   새 world 에 복사하세요.
