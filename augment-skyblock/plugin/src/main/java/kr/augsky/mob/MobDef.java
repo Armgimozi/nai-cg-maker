@@ -38,7 +38,8 @@ public record MobDef(
 
     public record Drop(String item, int min, int max, double chance) {}
 
-    public record Natural(Set<EntityType> replace, double chance, Set<String> worlds) {}
+    /** nether: 하늘 네더에서도 바꾼다 (아니면 하늘에서만. 하늘 네더는 바닐라 네더 몹이 기본이다). */
+    public record Natural(Set<EntityType> replace, double chance, Set<String> worlds, boolean nether) {}
 
     public record Rift(String id, String name, List<String> mobs, int maxAlive, double interval, double radius,
                        String boss) {}

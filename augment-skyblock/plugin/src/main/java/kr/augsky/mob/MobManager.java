@@ -573,12 +573,15 @@ public final class MobManager implements Listener {
         }
         if (!plugin.getConfig().getBoolean("mobs.natural-replace", true)) return;
         String world = le.getWorld().getName();
+        boolean sky = plugin.nether() != null && plugin.nether().isSky(le.getWorld());
         List<MobDef> defs = new ArrayList<>(registry.all().values());
         Collections.shuffle(defs);
         for (MobDef def : defs) {
             MobDef.Natural n = def.natural();
             if (n == null || !n.replace().contains(le.getType())) continue;
             if (!n.worlds().isEmpty() && !n.worlds().contains(world)) continue;
+            // 하늘 네더의 이름은 level-name 에 따라 달라 worlds 로 고르기 어렵다. 그래서 표시한 몬스터만 바꾼다
+            if (sky && !n.nether()) continue;
             if (rnd().nextDouble() >= n.chance()) continue;
             e.setCancelled(true);
             Location at = le.getLocation();

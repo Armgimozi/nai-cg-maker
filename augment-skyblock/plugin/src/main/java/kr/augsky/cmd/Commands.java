@@ -262,10 +262,18 @@ public final class Commands implements TabExecutor {
                 msg(s, "<gray>" + a[1] + " 섬을 지었습니다.");
             }
             case "섬검사", "islandcheck" -> {
-                World w = a.length > 1 ? Bukkit.getWorld(a[1]) : (s instanceof Player p ? p.getWorld() : Bukkit.getWorlds().get(0));
+                // 하늘 네더에 서서 쳐도 하늘의 섬을 본다 (하늘의 섬 목록을 네더에 대 보면 전부 실패로 나온다)
+                World w = a.length > 1 ? Bukkit.getWorld(a[1]) : plugin.home(s instanceof Player p ? p.getWorld() : Bukkit.getWorlds().get(0));
                 if (w == null) {
                     msg(s, "<#ff7070>월드를 찾을 수 없습니다.");
                     return;
+                }
+                if (plugin.nether().isSky(w)) {
+                    msg(s, "<#ff7070>하늘 네더는 /증강관리 네더 검사 로 검사합니다.");
+                    return;
+                }
+                if (a.length == 1 && s instanceof Player p && plugin.nether().isSky(p.getWorld())) {
+                    msg(s, "<gray>하늘(" + w.getName() + ")의 섬을 검사합니다. 하늘 네더는 /증강관리 네더 검사");
                 }
                 plugin.mapBuilder().checkIslands(w, s);
             }

@@ -148,6 +148,8 @@ public final class NetherService implements Listener {
                 // 난이도는 바뀔 때 알려 주는 이벤트가 없어서 가끔 맞춘다
                 Bukkit.getScheduler().runTaskTimer(plugin, this::syncDifficulty, 200, 200);
             }
+            // 강제로 다시 짓는 중이면 옛 표시 파일이 아직 남아 있다. 그걸 믿고 문을 열면 비우는 중인 섬으로 보낸다
+            if (building) return;
             YamlConfiguration mk = marker(w);
             if (mk != null) {
                 ready = true;

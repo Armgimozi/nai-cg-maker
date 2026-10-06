@@ -465,49 +465,52 @@ final class NetherKinds extends IsleTools {
     // ------------------------------------------------------------------ 다음 단계
 
     /**
-     * 네더 요새 한 토막: 네더 벽돌 마당, 어두운 방의 위더 해골 생성기, 높은 단의 블레이즈 생성기(17칸 떨어뜨려
-     * 한쪽만 깨어나게), 영혼 모래의 네더 사마귀, 끊어진 다리 둘, 바닐라 요새 상자 둘.
+     * 네더 요새 한 토막: 네더 벽돌 마당, 어두운 방의 위더 해골 생성기, 높은 단의 블레이즈 생성기, 영혼 모래의
+     * 네더 사마귀, 끊어진 다리 둘, 바닐라 요새 상자 둘. 생성기 둘은 21칸 떨어뜨려 블레이즈 단 위나 방 안(문간 포함)에
+     * 서 있으면 한쪽만 깨어난다 (생성기는 16칸 안에 사람이 있으면 돈다). 마당 가운데에서는 둘 다 깬다.
      */
     private void fortress() {
         blob(x, y, z, rad, d, NETHERRACK, NETHERRACK, BLACKSTONE, is.seed(), new Material[]{NETHER_QUARTZ_ORE}, 0.04);
         int[] u = toSpawn(), v = side(u);
+        // 위더 해골 생성기 W 와 블레이즈 생성기 B (u 쪽 거리). 섬 가운데를 사이에 두고 양 끝에 둔다
+        final int W = -10, B = 11;
         // 마당 (공중에 걸쳐도 깐다). 생성기 둘레 4칸 안에 나온 몹이 설 수 있게 방 뒤까지 넓힌다
-        for (int a = -13; a <= 10; a++)
+        for (int a = W - 5; a <= B + 1; a++)
             for (int b = -6; b <= 6; b++) {
                 setAt(u, v, a, b, y, NETHER_BRICKS);
                 for (int k = 1; k <= 7; k++) setAt(u, v, a, b, y + k, AIR);
             }
-        // 방: 벽 a -11~-5, b -4~4, 안 높이 4. 마당 쪽 문, 양옆 울타리 창
-        for (int a = -11; a <= -5; a++)
+        // 방: 벽 a W-3~W+3, b -4~4, 안 높이 4. 마당 쪽 문, 양옆 울타리 창
+        for (int a = W - 3; a <= W + 3; a++)
             for (int b = -4; b <= 4; b++) {
-                boolean wall = a == -11 || a == -5 || Math.abs(b) == 4;
+                boolean wall = a == W - 3 || a == W + 3 || Math.abs(b) == 4;
                 for (int k = 1; k <= 4; k++) setAt(u, v, a, b, y + k, wall ? NETHER_BRICKS : AIR);
                 setAt(u, v, a, b, y + 5, NETHER_BRICKS);
             }
-        setAt(u, v, -5, 0, y + 1, AIR);
-        setAt(u, v, -5, 0, y + 2, AIR);
-        for (int b : new int[]{-4, 4}) setAt(u, v, -8, b, y + 3, NETHER_BRICK_FENCE);
-        freeSpawner(ax(u, v, -8, 0), y + 1, az(u, v, -8, 0), EntityType.WITHER_SKELETON);
-        lootChest(ax(u, v, -10, 3), y + 1, az(u, v, -10, 3), facing(u), LootTables.NETHER_BRIDGE);
-        // 블레이즈 단: a 5~10, b -4~4, 윗면 y+3. 네 귀퉁이와 가운데 기둥, 울타리 난간, 옆 계단
-        for (int a = 5; a <= 10; a++)
+        setAt(u, v, W + 3, 0, y + 1, AIR);
+        setAt(u, v, W + 3, 0, y + 2, AIR);
+        for (int b : new int[]{-4, 4}) setAt(u, v, W, b, y + 3, NETHER_BRICK_FENCE);
+        freeSpawner(ax(u, v, W, 0), y + 1, az(u, v, W, 0), EntityType.WITHER_SKELETON);
+        lootChest(ax(u, v, W - 2, 3), y + 1, az(u, v, W - 2, 3), facing(u), LootTables.NETHER_BRIDGE);
+        // 블레이즈 단: a B-4~B+1, b -4~4, 윗면 y+3. 네 귀퉁이와 가운데 기둥, 울타리 난간, 옆 계단
+        for (int a = B - 4; a <= B + 1; a++)
             for (int b = -4; b <= 4; b++) {
                 setAt(u, v, a, b, y + 3, NETHER_BRICKS);
-                boolean edge = a == 5 || a == 10 || Math.abs(b) == 4;
+                boolean edge = a == B - 4 || a == B + 1 || Math.abs(b) == 4;
                 if (edge) setAt(u, v, a, b, y + 4, NETHER_BRICK_FENCE);
-                if ((a == 5 || a == 10 || a == 7) && Math.abs(b) == 4) {
+                if ((a == B - 4 || a == B + 1 || a == B - 2) && Math.abs(b) == 4) {
                     setAt(u, v, a, b, y + 1, NETHER_BRICKS);
                     setAt(u, v, a, b, y + 2, NETHER_BRICKS);
                 }
             }
         String stair = "nether_brick_stairs[facing=" + face(u) + "]";
         for (int k = 0; k < 3; k++) {
-            for (int f = 1; f <= k; f++) setAt(u, v, 5 + k, 5, y + f, NETHER_BRICKS);
-            setAt(u, v, 5 + k, 5, y + 1 + k, stair);
+            for (int f = 1; f <= k; f++) setAt(u, v, B - 4 + k, 5, y + f, NETHER_BRICKS);
+            setAt(u, v, B - 4 + k, 5, y + 1 + k, stair);
         }
-        setAt(u, v, 7, 4, y + 4, AIR);
-        freeSpawner(ax(u, v, 9, 0), y + 4, az(u, v, 9, 0), EntityType.BLAZE);
-        lootChest(ax(u, v, 4, 5), y + 1, az(u, v, 4, 5), facing(new int[]{-v[0], -v[1]}), LootTables.NETHER_BRIDGE);
+        setAt(u, v, B - 2, 4, y + 4, AIR);
+        freeSpawner(ax(u, v, B, 0), y + 4, az(u, v, B, 0), EntityType.BLAZE);
+        lootChest(ax(u, v, B - 5, 5), y + 1, az(u, v, B - 5, 5), facing(new int[]{-v[0], -v[1]}), LootTables.NETHER_BRIDGE);
         // 네더 사마귀 밭 3×3
         for (int a = 1; a <= 3; a++)
             for (int b = -5; b <= -3; b++) {
@@ -532,7 +535,7 @@ final class NetherKinds extends IsleTools {
             }
         }
         // 마당 네 귀퉁이 기둥
-        for (int a : new int[]{-13, 10})
+        for (int a : new int[]{W - 5, B + 1})
             for (int b : new int[]{-6, 6}) {
                 int bx = ax(u, v, a, b), bz = az(u, v, a, b);
                 for (int k = 1; k <= 12; k++) if (air(bx, y - k, bz)) set(bx, y - k, bz, NETHER_BRICKS);

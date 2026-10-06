@@ -77,7 +77,7 @@ public final class MobRegistry {
         if (n != null) {
             Set<EntityType> rep = new HashSet<>();
             for (String s : n.strings("replace")) rep.add(EntityType.valueOf(s.toUpperCase(Locale.ROOT)));
-            nat = new MobDef.Natural(rep, n.d("chance", 0.05), new HashSet<>(n.strings("worlds")));
+            nat = new MobDef.Natural(rep, n.d("chance", 0.05), new HashSet<>(n.strings("worlds")), n.b("nether", false));
         }
         return new MobDef(id, p.s("name", id), type, p.d("health", 20), p.d("damage", -1), p.d("speed", -1),
                 p.d("armor", 0), p.d("scale", 1), p.d("knockback_resistance", 0), p.d("follow_range", 24),
