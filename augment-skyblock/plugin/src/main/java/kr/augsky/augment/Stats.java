@@ -20,11 +20,21 @@ import java.util.Set;
  * 플레이어가 가진 증강을 모두 합친 수치.
  * 효과 {type: lifesteal, amount: 0.05} 는 "lifesteal.amount" 에 (수치 × 중첩 수) 로 더해진다.
  * 이름이 cooldown/interval 인 값은 가장 작은 값을, threshold/radius/tier/multiplier/power/max 는 가장 큰 값을 쓴다.
+ *
+ * 전투 효과(공격 시 효과, 회피, 치명타)는 확률이 아니라 'N번째 공격마다' 터진다.
+ * {every: 5} 는 비율 1/5 로 바꿔 "종류.chance" 에 더하고(예전 chance 표기도 그대로 비율로 읽는다),
+ * 쓸 때 {@link #every(double)} 로 다시 N 으로 바꾼다. 비율로 더해 두어야 증강과 갑옷 세트처럼
+ * 여러 곳에서 같은 효과를 얻을 때 자연스럽게 합쳐진다. 예) 5번마다 + 4번마다 → 비율 0.45 → 2번마다.
  */
 public final class Stats {
     public record AttrMod(Attribute attribute, AttributeModifier.Operation op, double amount) {}
     public record Potion(PotionEffectType type, int amplifier) {}
-    public record HitPotion(PotionEffectType type, double chance, int ticks, int amplifier) {}
+    /** chance 는 확률이 아니라 비율(1/N). 실제로는 {@link #every()} 번째 공격마다 건다. */
+    public record HitPotion(PotionEffectType type, double chance, int ticks, int amplifier) {
+        public int every() {
+            return Stats.every(chance);
+        }
+    }
 
     private final Map<String, Double> values = new HashMap<>();
     private final Set<String> types = new HashSet<>();
@@ -44,6 +54,20 @@ public final class Stats {
 
     public boolean has(String type) {
         return types.contains(type);
+    }
+
+    /**
+     * 비율을 'N번째마다' 의 N 으로 바꾼다. 0.2 → 5, 0.15 → 7, 1 이상 → 1(매번), 0 이하 → 0(없음).
+     * 무기 패시브(weapons.yml 의 chance)도 같은 규칙을 쓴다.
+     */
+    public static int every(double rate) {
+        if (!(rate > 0)) return 0;
+        return (int) Math.max(1, Math.round(1 / rate));
+    }
+
+    /** 전투 효과 type 이 몇 번째 공격마다 터지는지. cap 은 비율 상한 (회피 0.5 → 적어도 2번에 한 번). */
+    public int every(String type, double cap) {
+        return every(Math.min(cap, get(type + ".chance")));
     }
 
     public static Stats compute(Map<String, Integer> owned, AugmentRegistry reg) {
@@ -81,7 +105,7 @@ public final class Stats {
             }
             case "hit_potion" -> {
                 PotionEffectType t = HitEffects.potion(p.s("effect", "slowness"));
-                if (t != null) hitPotions.add(new HitPotion(t, p.d("chance", 0.2) * stacks,
+                if (t != null) hitPotions.add(new HitPotion(t, rate(p, 0.2) * stacks,
                         (int) (p.d("seconds", 3) * 20), p.i("amplifier", 0)));
                 types.add(type);
             }
@@ -93,10 +117,22 @@ public final class Stats {
                 for (Map.Entry<String, Object> e : p.m.entrySet()) {
                     if (e.getKey().equals("type")) continue;
                     if (!(e.getValue() instanceof Number n)) continue;
+                    // every: N 은 비율 1/N 으로 chance 에 더한다 (위 설명). 둘 다 적혀 있으면 every 를 따른다
+                    if (e.getKey().equals("every")) {
+                        merge(type + ".chance", rate(p, 0), stacks);
+                        continue;
+                    }
+                    if (e.getKey().equals("chance") && p.has("every")) continue;
                     merge(type + "." + e.getKey(), n.doubleValue(), stacks);
                 }
             }
         }
+    }
+
+    /** {every: N} 이면 1/N, 아니면 chance 그대로. */
+    private static double rate(P p, double def) {
+        if (p.has("every")) return 1.0 / Math.max(1, p.d("every", 1));
+        return p.d("chance", def);
     }
 
     private void merge(String key, double val, int stacks) {

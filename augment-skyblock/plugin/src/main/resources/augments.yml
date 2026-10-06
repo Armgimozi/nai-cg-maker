@@ -11,13 +11,13 @@
 #        block_break_speed block_interaction_range entity_interaction_range fall_damage_multiplier
 #        safe_fall_distance jump_strength step_height scale luck oxygen_bonus knockback_resistance ...
 #    potion {effect, amplifier}               항상 걸려 있는 포션 효과
-#    hit_potion {effect, chance, seconds, amplifier}  공격 시 확률로 대상에게
-#    lifesteal {amount}  thorns {amount}  dodge {chance}  damage_reduction {amount}
-#    crit {chance, multiplier}  double_strike {chance, ratio}  execute {threshold}
+#    hit_potion {effect, every, seconds, amplifier}  공격 every 번마다 대상에게
+#    lifesteal {amount}  thorns {amount}  dodge {every}  damage_reduction {amount}
+#    crit {every, multiplier}  double_strike {every, ratio}  execute {threshold}
 #    first_strike {amount}  berserk {threshold, amount}  boss_damage {amount}  damage_bonus {amount}
-#    lightning {chance, damage}  chain_lightning {chance, targets, damage}  ignite {chance, seconds}
+#    lightning {every, damage}  chain_lightning {every, targets, damage}  ignite {every, seconds}
 #    regen {interval, amount}  kill_heal {amount}  kill_speed {seconds, amplifier}
-#    soul_harvest {per_kill, max}  undying {cooldown, heal}  void_rescue {cooldown}
+#    soul_harvest {per_kill, max}  tank_engine {amount}  undying {cooldown, heal}  void_rescue {cooldown}
 #    double_jump {power, cooldown}  glide  magnet {radius}
 #    xp_boost {amount}  shard_luck {amount}  loot_boost {chance}  weapon_luck {chance}
 #    skill_haste {amount}  skill_power {amount}
@@ -26,6 +26,17 @@
 #    extra_choice {amount}  reroll_bonus {amount}
 #    grant_random {tier, count}  grant_item {item, amount}   (얻는 순간 한 번)
 #    죽었을 때 지키기: keep_hotbar {slots}  keep_weapons  keep_armor  keep_materials  keep_levels  keep_all
+#
+#  전투 효과는 확률이 아니다 (hit_potion ignite lightning chain_lightning crit double_strike dodge)
+#    every: N  → 맞힌 공격 N번째마다 터진다 (회피는 받는 공격 N번째마다). 1 이면 매번.
+#    직접 휘두른 근접 공격과 화살 같은 투사체만 센다 (스킬·가시 피해는 세지 않는다). 효과마다 따로 세고, 접속을 끊으면 처음부터.
+#    휩쓸기에 함께 맞은 몹은 세지 않고, 그 휘두름에서 주 대상에게 터진 효과를 똑같이 받는다.
+#    chance: 0.2 처럼 적어도 되고, 그러면 1/chance 를 반올림한 N(0.2 → 5, 0.15 → 7)으로 바뀐다. 갑옷 세트 효과도 같다.
+#    같은 효과를 여러 곳에서 얻으면 비율(1/N)을 더한 뒤 다시 N 으로 바꾼다. 예) 5번마다 + 4번마다 → 2번마다
+#    (hit_potion 만은 항목마다 따로 센다: 증강 둔화와 갑옷 둔화는 각자 제 횟수에 터진다)
+#  그 밖의 chance (광석 생성, 수확, 묘목, 낚시, 전리품, 무기 발견 등)는 지금처럼 확률이다.
+#  tank_engine: 다른 플레이어를 처치할 때마다 최대 체력 +amount. 쌓인 값은 증강을 잃거나 죽어도 남고,
+#    관리자 증강 초기화(/증강관리 증강 초기화)에서만 지워진다.
 # ─────────────────────────────────────────────────────────────
 
 # ═══════════════════════ 실버 ═══════════════════════
@@ -166,17 +177,17 @@ s_fire_fist:
   tier: SILVER
   name: 불꽃 주먹
   icon: BLAZE_POWDER
-  description: ["공격 시 20% 확률로 3초 동안 불태운다."]
+  description: ["공격 5번마다 3초 동안 불태운다."]
   effects:
-    - {type: ignite, chance: 0.2, seconds: 3}
+    - {type: ignite, every: 5, seconds: 3}
 
 s_frost_touch:
   tier: SILVER
   name: 서리 손길
   icon: SNOWBALL
-  description: ["공격 시 20% 확률로 2초 동안 느리게 만든다."]
+  description: ["공격 5번마다 2초 동안 느리게 만든다."]
   effects:
-    - {type: hit_potion, effect: slowness, chance: 0.2, seconds: 2, amplifier: 1}
+    - {type: hit_potion, effect: slowness, every: 5, seconds: 2, amplifier: 1}
 
 s_regen:
   tier: SILVER
@@ -301,9 +312,9 @@ g_thunder:
   tier: GOLD
   name: 뇌전의 손길
   icon: LIGHTNING_ROD
-  description: ["공격 시 15% 확률로 번개가 떨어져 피해 6"]
+  description: ["공격 7번마다 번개가 떨어져 피해 6"]
   effects:
-    - {type: lightning, chance: 0.15, damage: 6}
+    - {type: lightning, every: 7, damage: 6}
 
 g_giant:
   tier: GOLD
@@ -369,9 +380,9 @@ g_crit:
   tier: GOLD
   name: 치명타 장인
   icon: DIAMOND_SWORD
-  description: ["공격 시 20% 확률로 1.6배 피해"]
+  description: ["공격 5번마다 1.6배 피해"]
   effects:
-    - {type: crit, chance: 0.2, multiplier: 1.6}
+    - {type: crit, every: 5, multiplier: 1.6}
 
 g_inferno:
   tier: GOLD
@@ -427,9 +438,9 @@ g_dodge:
   tier: GOLD
   name: 그림자 걸음
   icon: BLACK_DYE
-  description: ["12% 확률로 공격을 피한다."]
+  description: ["받는 공격 8번마다 한 번은 피한다."]
   effects:
-    - {type: dodge, chance: 0.12}
+    - {type: dodge, every: 8}
 
 g_executioner:
   tier: GOLD
@@ -493,9 +504,9 @@ g_chain:
   tier: GOLD
   name: 연쇄 번개
   icon: COPPER_BLOCK
-  description: ["공격 시 15% 확률로 적 3명에게 튀는 번개 (피해 5)"]
+  description: ["공격 7번마다 적 3명에게 튀는 번개 (피해 5)"]
   effects:
-    - {type: chain_lightning, chance: 0.15, targets: 3, damage: 5}
+    - {type: chain_lightning, every: 7, targets: 3, damage: 5}
 
 g_wanderer:
   tier: GOLD
@@ -530,6 +541,14 @@ g_memory:
   description: ["죽어도 경험치 레벨을 잃지 않는다."]
   effects:
     - {type: keep_levels}
+
+g_tank_engine:
+  tier: GOLD
+  name: 탱크엔진
+  icon: FURNACE_MINECART
+  description: ["다른 플레이어를 처치할 때마다 최대 체력 +1 (영구)", "죽거나 증강을 잃어도 쌓인 체력은 남는다.", "(PvP 가 켜진 서버에서만 쌓인다)"]
+  effects:
+    - {type: tank_engine, amount: 1}
 
 # ═══════════════════════ 프리즘 ═══════════════════════
 
@@ -577,9 +596,9 @@ p_storm:
   tier: PRISM
   name: 폭풍의 화신
   icon: TRIDENT
-  description: ["공격 시 35% 확률로 적 4명에게 튀는 번개 (피해 8), 항상 신속 I"]
+  description: ["공격 3번마다 적 4명에게 튀는 번개 (피해 8), 항상 신속 I"]
   effects:
-    - {type: chain_lightning, chance: 0.35, targets: 4, damage: 8}
+    - {type: chain_lightning, every: 3, targets: 4, damage: 8}
     - {type: potion, effect: speed}
 
 p_reaper:
@@ -594,17 +613,17 @@ p_phantom:
   tier: PRISM
   name: 환영
   icon: PHANTOM_MEMBRANE
-  description: ["30% 확률로 공격을 피한다."]
+  description: ["받는 공격 3번마다 한 번은 피한다."]
   effects:
-    - {type: dodge, chance: 0.3}
+    - {type: dodge, every: 3}
 
 p_twin:
   tier: PRISM
   name: 쌍검술
   icon: GOLDEN_SWORD
-  description: ["근접 공격 시 35% 확률로 같은 피해를 한 번 더"]
+  description: ["근접 공격 3번마다 같은 피해를 한 번 더"]
   effects:
-    - {type: double_strike, chance: 0.35, ratio: 1.0}
+    - {type: double_strike, every: 3, ratio: 1.0}
 
 p_resonance:
   tier: PRISM
@@ -687,10 +706,10 @@ p_judgment:
   tier: PRISM
   name: 심판
   icon: MACE
-  description: ["체력 25% 이하의 적 즉시 처치(보스 제외), 25% 확률로 2배 피해, 보스 피해 +20%"]
+  description: ["체력 25% 이하의 적 즉시 처치(보스 제외), 공격 4번마다 2배 피해, 보스 피해 +20%"]
   effects:
     - {type: execute, threshold: 0.25}
-    - {type: crit, chance: 0.25, multiplier: 2.0}
+    - {type: crit, every: 4, multiplier: 2.0}
     - {type: boss_damage, amount: 0.2}
 
 p_soul_bind:

@@ -11,6 +11,11 @@ public final class PlayerData {
     public String lastName = "";
     public final LinkedHashMap<String, Integer> augments = new LinkedHashMap<>();
     public double soul;
+    /**
+     * 탱크엔진으로 쌓은 최대 체력. 영혼 수확(soul)처럼 증강을 잃거나 죽어도 남고,
+     * 관리자 증강 초기화(/증강관리 증강 초기화)에서만 지운다.
+     */
+    public double tank;
     public boolean starterGiven;
     public int picks;
     /** '사람마다 한 번' 제단 모드에서 이미 쓴 제단 */

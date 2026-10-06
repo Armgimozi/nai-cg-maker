@@ -39,7 +39,6 @@ import org.bukkit.persistence.PersistentDataType;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * 무기 스킬 조작과 근접 공격 패시브.
@@ -262,7 +261,7 @@ public final class WeaponListener implements Listener {
         return true;
     }
 
-    /** 근접 공격 패시브 (활은 화살이 맞았을 때). */
+    /** 근접 공격 패시브 (활은 화살이 맞았을 때). 맞힌 공격 N번째마다 (Stats.every). */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onHit(EntityDamageByEntityEvent e) {
         if (Combat.inSkill()) return;
@@ -281,7 +280,10 @@ public final class WeaponListener implements Listener {
         }
         if (!Targets.isEnemy(p, victim)) return;
         if (w == null || w.passive().isEmpty()) return;
-        if (ThreadLocalRandom.current().nextDouble() >= w.passiveChance()) return;
+        // 패시브는 확률이 아니라 N번째 공격마다 터진다. weapons.yml 의 chance 를 그대로 읽어
+        // N = 1/chance 를 반올림한 값으로 쓰고(0.25 → 4번째, 0.3 → 3번째), 플레이어·무기마다 따로 센다
+        int every = Stats.every(w.passiveChance());
+        if (!plugin.augments().procs().hit(p.getUniqueId(), "passive:" + w.id(), every)) return;
         SkillContext ctx = new SkillContext(plugin, p, victim, w.skillPower());
         Bukkit.getScheduler().runTask(plugin, () -> {
             if (victim.isValid() && !victim.isDead()) HitEffects.apply(w.passive(), ctx, victim, p.getLocation());

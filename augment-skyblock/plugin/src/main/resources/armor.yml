@@ -4,6 +4,8 @@
 #    source    얻는 곳 (설명에 표시)
 #    pieces    부위별 [방어력, 방어 강도, 밀치기 저항]
 #    bonus     같은 세트를 2개, 4개 입었을 때 효과 (augments.yml 의 effects 와 같은 형식, 서로 더해진다)
+#              전투 효과(hit_potion ignite dodge crit)의 chance 는 확률이 아니라 1/chance 를 반올림한
+#              N 번째 공격마다 터진다 (0.15 → 7번마다, 0.25 → 4번마다). bonus_desc 에도 그 N 을 적는다.
 #    bonus_desc 세트 효과 설명
 #    aura      4부위를 다 입으면 몸 주변에 도는 입자 (없으면 생략)
 #    recipe    조합법. M 은 주재료, S 는 특수 재료로 바닐라 갑옷 모양에 S 가 한 칸 들어간다.
@@ -47,8 +49,8 @@ frost:
     2: [{type: hit_potion, effect: slowness, chance: 0.15, seconds: 2, amplifier: 0}]
     4: [{type: attribute, attribute: max_health, amount: 4}, {type: damage_reduction, amount: 0.08}, {type: hit_potion, effect: slowness, chance: 0.1, seconds: 3, amplifier: 1}]
   bonus_desc:
-    2: "공격 시 15% 확률로 대상 둔화"
-    4: "최대 체력 +4, 받는 피해 -8%, 둔화 확률 증가"
+    2: "공격 7번마다 대상 둔화"
+    4: "최대 체력 +4, 받는 피해 -8%, 공격 10번마다 강한 둔화"
   aura: "SNOWFLAKE"
   recipe: {M: PACKED_ICE, S: "item:essence_frost"}
 
@@ -61,7 +63,7 @@ flame:
     2: [{type: ignite, chance: 0.15, seconds: 3}]
     4: [{type: potion, effect: fire_resistance}, {type: attribute, attribute: attack_damage, amount: 2}]
   bonus_desc:
-    2: "공격 시 15% 확률로 불붙임"
+    2: "공격 7번마다 불붙임"
     4: "화염 저항, 공격력 +2"
   aura: "SMALL_FLAME"
   recipe: {M: MAGMA_BLOCK, S: "item:essence_flame"}
@@ -75,7 +77,7 @@ void:
     2: [{type: dodge, chance: 0.07}]
     4: [{type: skill_power, amount: 0.15}, {type: void_rescue, cooldown: 240}]
   bonus_desc:
-    2: "7% 확률로 공격을 피함"
+    2: "받는 공격 14번마다 한 번 피함"
     4: "스킬 위력 +15%, 공허로 떨어지면 부활 지점으로 (4분에 한 번)"
   aura: "REVERSE_PORTAL"
   recipe: {M: OBSIDIAN, S: "item:essence_void"}
@@ -89,7 +91,7 @@ frostlord:
     2: [{type: hit_potion, effect: slowness, chance: 0.25, seconds: 3, amplifier: 1}]
     4: [{type: attribute, attribute: max_health, amount: 8}, {type: damage_reduction, amount: 0.1}, {type: thorns, amount: 0.2}]
   bonus_desc:
-    2: "공격 시 25% 확률로 대상 강한 둔화"
+    2: "공격 4번마다 대상 강한 둔화"
     4: "최대 체력 +8, 받는 피해 -10%, 받은 피해 20% 반사"
   aura: "SNOWFLAKE|END_ROD"
 
@@ -102,7 +104,7 @@ inferno:
     2: [{type: ignite, chance: 0.25, seconds: 4}]
     4: [{type: attribute, attribute: attack_damage, amount: 3}, {type: berserk, threshold: 0.5, amount: 0.2}, {type: potion, effect: fire_resistance}]
   bonus_desc:
-    2: "공격 시 25% 확률로 불붙임"
+    2: "공격 4번마다 불붙임"
     4: "공격력 +3, 체력 50% 이하에서 피해 +20%, 화염 저항"
   aura: "FLAME|LAVA"
 
@@ -116,7 +118,7 @@ sovereign:
     4: [{type: skill_power, amount: 0.25}, {type: skill_haste, amount: 0.15}, {type: dodge, chance: 0.1}]
   bonus_desc:
     2: "준 피해의 5% 회복"
-    4: "스킬 위력 +25%, 스킬 재사용 -15%, 10% 확률로 공격을 피함"
+    4: "스킬 위력 +25%, 스킬 재사용 -15%, 받는 공격 10번마다 한 번 피함"
   aura: "PORTAL|DUST:#c86bff:1.0"
 
 prism:
@@ -128,7 +130,7 @@ prism:
     2: [{type: attribute, attribute: max_health, amount: 6}, {type: crit, chance: 0.1, multiplier: 1.5}]
     4: [{type: damage_bonus, amount: 0.2}, {type: undying, cooldown: 240, heal: 0.4}, {type: double_jump, power: 1.0, cooldown: 1.5}]
   bonus_desc:
-    2: "최대 체력 +6, 10% 확률로 치명타"
+    2: "최대 체력 +6, 공격 10번마다 치명타"
     4: "주는 피해 +20%, 죽을 피해를 한 번 버팀(4분), 이단 점프"
   aura: "PRISM"
   recipe:

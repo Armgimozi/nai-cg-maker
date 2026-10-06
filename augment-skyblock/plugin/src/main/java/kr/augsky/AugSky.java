@@ -44,8 +44,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class AugSky extends JavaPlugin {
-    /** 콘텐츠 YAML 의 판. 예전 파일을 그대로 두면 맞지 않을 만큼 바꿨을 때 올린다 (2: 무기 스킬 정리·클릭 조합). */
-    private static final int CONTENT_VERSION = 2;
+    /**
+     * 콘텐츠 YAML 의 판. 예전 파일을 그대로 두면 맞지 않을 만큼 바꿨을 때 올린다
+     * (2: 무기 스킬 정리·클릭 조합, 3: 전투 효과를 확률 대신 N번째 공격마다로 바꾼 설명, 탱크엔진 증강).
+     */
+    private static final int CONTENT_VERSION = 3;
     private static final List<String> CONTENT_FILES = List.of("augments.yml", "weapons.yml", "skills.yml", "mobs.yml", "items.yml", "armor.yml");
 
     private SkillRegistry skills;

@@ -161,6 +161,12 @@ public final class Menus implements Listener {
         if (d.soul > 0) {
             inv.setItem(49, Items.icon(Material.WITHER_ROSE, "<#c86bff>영혼 수확", List.of("<gray>모은 최대 체력: <white>+" + Text.num(d.soul))));
         }
+        // 탱크엔진으로 쌓은 최대 체력은 증강을 잃어도 남으므로 증강 카드가 아니라 따로 보여 준다
+        if (d.tank > 0) {
+            inv.setItem(48, Items.icon(Material.FURNACE_MINECART, "<#ffb347>탱크엔진", List.of(
+                    "<gray>쌓은 최대 체력: <white>+" + Text.num(d.tank),
+                    "<dark_gray>다른 플레이어를 처치할 때마다 오른다")));
+        }
         inv.setItem(53, Items.icon(Material.KNOWLEDGE_BOOK, "<white>증강 도감", List.of("<gray>모든 증강 보기")));
         h.slotIds.add("codex");
         p.openInventory(inv);

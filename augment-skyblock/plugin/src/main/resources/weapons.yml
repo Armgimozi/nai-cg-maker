@@ -14,7 +14,10 @@
 #                            skill3 웅크리기+좌클릭 (허공·블록·적을 때릴 때 모두. 프리즘 무기의 궁극기)
 #            활              skill  웅크리기+당겨 쏘기,  skill2 웅크리기+좌클릭,  skill3 은 쓰지 않는다
 #            F키는 스킬과 상관없이 바닐라 그대로 손을 바꾼다.
-#    passive 근접 공격 시 확률 효과
+#    passive 공격 시 효과 {chance, description, effects}. 확률이 아니라 정해진 횟수마다 터진다:
+#            1/chance 를 반올림한 N 번째로 맞힌 공격마다 (0.25 → 4번마다, 0.3 → 3번마다, 0.15 → 7번마다).
+#            근접 무기는 직접 휘두른 공격, 활은 맞은 화살만 세고, 플레이어·무기마다 따로 센다.
+#            description 의 N 은 chance 와 맞춰 적는다.
 #    recipe  작업대 조합법 (item:아이템id, weapon:무기id, 바닐라 재료 이름)
 #    droppable false 면 '무작위 무기' 드롭에 나오지 않는다
 #  리소스팩 모델 이름은 augsky:<무기id> 이다.
@@ -43,7 +46,7 @@ hunter_dagger:
   speed: 2.2
   passive:
     chance: 0.15
-    description: "공격 시 15% 확률로 급소를 찔러 추가 피해 2."
+    description: "공격 7번마다 급소를 찔러 추가 피해 2."
     effects: [{damage: 2}, {particle: CRIT, count: 8}]
   lore: ["가볍고 빠르다. 등 뒤를 노려라."]
   recipe:
@@ -84,7 +87,7 @@ stone_hammer:
   speed: 0.8
   passive:
     chance: 0.12
-    description: "공격 시 12% 확률로 묵직하게 밀쳐낸다."
+    description: "공격 8번마다 묵직하게 밀쳐낸다."
     effects: [{knockback: 0.7}, {particle: "BLOCK:stone", count: 10}]
   lore: ["무겁다. 그래서 아프다."]
   recipe:
@@ -101,7 +104,7 @@ bone_spear:
   reach: 1
   passive:
     chance: 0.12
-    description: "공격 시 12% 확률로 잠깐 느리게 만든다."
+    description: "공격 8번마다 잠깐 느리게 만든다."
     effects: [{slow: 1}]
   lore: ["해골에게서 빌린 뼈로 깎았다."]
   recipe:
@@ -117,7 +120,7 @@ copper_sword:
   speed: 1.6
   passive:
     chance: 0.15
-    description: "공격 시 15% 확률로 전격 추가 피해 2."
+    description: "공격 7번마다 전격 추가 피해 2."
     effects: [{damage: 2, magic: true}, {particle: ELECTRIC_SPARK, count: 8}]
   lore: ["전기가 잘 통한다. 가끔 찌릿하다."]
   recipe:
@@ -133,7 +136,7 @@ thorn_club:
   speed: 0.9
   passive:
     chance: 0.15
-    description: "공격 시 15% 확률로 가시가 박혀 중독시킨다."
+    description: "공격 7번마다 가시가 박혀 중독시킨다."
     effects: [{poison: 2}]
   lore: ["선인장을 통째로 묶었다. 쥐는 쪽도 조금 아프다."]
   recipe:
@@ -215,7 +218,7 @@ storm_spear:
   skill: lightning_javelin
   passive:
     chance: 0.15
-    description: "공격 시 15% 확률로 번개가 떨어진다."
+    description: "공격 7번마다 번개가 떨어진다."
     effects: [{lightning: true}, {damage: 4, magic: true}]
   lore: ["폭풍이 지나간 자리에서 주웠다."]
   recipe:
@@ -231,7 +234,7 @@ venom_dagger:
   speed: 2.2
   passive:
     chance: 0.45
-    description: "공격 시 45% 확률로 중독시킨다."
+    description: "공격 2번마다 중독시킨다."
     effects: [{poison: 3}]
   lore: ["한 번 물리면 잊을 수 없다."]
   recipe:
@@ -301,7 +304,7 @@ blood_scythe:
   reach: 0.5
   passive:
     chance: 0.4
-    description: "공격 시 40% 확률로 체력 2 회복."
+    description: "공격 3번마다 체력 2 회복."
     effects: [{heal_caster: 2}]
   lore: ["베면 벨수록 목이 마르다."]
   recipe:
@@ -370,7 +373,7 @@ thunder_hammer:
   skill: thunder_strike
   passive:
     chance: 0.2
-    description: "공격 시 20% 확률로 번개 추가 피해 6."
+    description: "공격 5번마다 번개 추가 피해 6."
     effects: [{lightning: true}, {damage: 6, magic: true}]
   lore: ["들면 머리카락이 선다."]
   recipe:
@@ -387,7 +390,7 @@ storm_katana:
   skill: iaido
   passive:
     chance: 0.2
-    description: "공격 시 20% 확률로 전격 추가 피해 4."
+    description: "공격 5번마다 전격 추가 피해 4."
     effects: [{damage: 4, magic: true}, {particle: ELECTRIC_SPARK, count: 12}]
   lore: ["칼집에서 뽑는 순간이 가장 빠르다."]
   recipe:
@@ -403,7 +406,7 @@ blood_sword:
   speed: 1.6
   passive:
     chance: 0.4
-    description: "공격 시 40% 확률로 체력 3 회복."
+    description: "공격 3번마다 체력 3 회복."
     effects: [{heal_caster: 3}]
   lore: ["붉은 날은 닦아도 붉다."]
   recipe:
@@ -420,7 +423,7 @@ holy_hammer:
   skill: holy_smite
   passive:
     chance: 0.25
-    description: "공격 시 25% 확률로 신성 피해 3, 체력 2 회복."
+    description: "공격 4번마다 신성 피해 3, 체력 2 회복."
     effects: [{damage: 3, magic: true}, {heal_caster: 2}]
   lore: ["친구를 지키는 자의 망치."]
   recipe:
@@ -452,7 +455,7 @@ venom_spear:
   skill: venom_fang
   passive:
     chance: 0.35
-    description: "공격 시 35% 확률로 강한 독."
+    description: "공격 3번마다 강한 독."
     effects: [{poison: {seconds: 4, amplifier: 1}}]
   lore: ["창끝에서 독이 끊이지 않고 떨어진다."]
   recipe:
@@ -525,7 +528,7 @@ storm_dagger:
   skill2: blink
   passive:
     chance: 0.2
-    description: "공격 시 20% 확률로 전격 추가 피해 3."
+    description: "공격 5번마다 전격 추가 피해 3."
     effects: [{damage: 3, magic: true}]
   lore: ["번개처럼 왔다가 번개처럼 사라진다."]
   recipe:
@@ -544,7 +547,7 @@ frost_dagger:
   skill: ice_shard_throw
   passive:
     chance: 0.3
-    description: "공격 시 30% 확률로 느리게 만든다."
+    description: "공격 3번마다 느리게 만든다."
     effects: [{slow: 2}]
   lore: ["손잡이까지 차갑다."]
   recipe:
@@ -589,7 +592,7 @@ frost_greatsword:
   skill2: glacier_spike
   passive:
     chance: 0.25
-    description: "공격 시 25% 확률로 얼린다."
+    description: "공격 4번마다 얼린다."
     effects: [{freeze: 2}]
   lore: ["칼집에 넣으면 칼집이 언다."]
   recipe:
@@ -608,7 +611,7 @@ flame_sword:
   skill: flame_slash
   passive:
     chance: 0.25
-    description: "공격 시 25% 확률로 3초 동안 불태운다."
+    description: "공격 4번마다 3초 동안 불태운다."
     effects: [{ignite: 3}]
   lore: ["칼날이 식지 않는다."]
   recipe:
@@ -639,7 +642,7 @@ ember_greatsword:
   skill2: fire_tornado
   passive:
     chance: 0.3
-    description: "공격 시 30% 확률로 불꽃 추가 피해 3과 화상."
+    description: "공격 3번마다 불꽃 추가 피해 3과 화상."
     effects: [{damage: 3, magic: true}, {ignite: 4}]
   lore: ["화염 검을 화염 정수로 다시 벼려 낸 대검."]
   recipe:
@@ -656,7 +659,7 @@ volcano_axe:
   skill: lava_eruption
   passive:
     chance: 0.25
-    description: "공격 시 25% 확률로 불태운다."
+    description: "공격 4번마다 불태운다."
     effects: [{ignite: 4}]
   lore: ["나무꾼의 도끼를 용암에 담갔다 꺼냈다."]
   recipe:
@@ -677,7 +680,7 @@ abyss_scythe:
   skill2: void_rift
   passive:
     chance: 0.25
-    description: "공격 시 25% 확률로 시들게 한다."
+    description: "공격 4번마다 시들게 한다."
     effects: [{wither: 3}]
   lore: ["날 끝이 보이지 않는다. 공허로 이어져 있다."]
   recipe:
@@ -695,7 +698,7 @@ shadow_dagger:
   skill2: shadow_veil
   passive:
     chance: 0.2
-    description: "공격 시 20% 확률로 추가 피해 3과 실명."
+    description: "공격 5번마다 추가 피해 3과 실명."
     effects: [{damage: 3}, {potion: {effect: blindness, seconds: 1}}]
   lore: ["빛 아래에서는 보이지 않는다."]
   recipe:
@@ -728,7 +731,7 @@ frostlord_greatsword:
   skill2: glacier_prison
   passive:
     chance: 0.3
-    description: "공격 시 30% 확률로 얼리고 추가 피해 4."
+    description: "공격 3번마다 얼리고 추가 피해 4."
     effects: [{freeze: 2}, {damage: 4, magic: true}]
   lore: ["서리 군주가 쓰러지며 남긴 대검. 아직 겨울을 품고 있다."]
   source: 서리 군주를 쓰러뜨리면 얻는다
@@ -744,7 +747,7 @@ inferno_hammer:
   skill2: volcano
   passive:
     chance: 0.3
-    description: "공격 시 30% 확률로 화염 폭발 피해 5."
+    description: "공격 3번마다 화염 폭발 피해 5."
     effects: [{damage: 5, magic: true}, {ignite: 5}, {explosion: true}]
   lore: ["화염 거신의 심장을 박아 넣은 망치."]
   source: 화염 거신을 쓰러뜨리면 얻는다
@@ -761,7 +764,7 @@ void_reaper:
   skill2: dimension_cut
   passive:
     chance: 0.3
-    description: "공격 시 30% 확률로 시들게 하고 체력 2 회복."
+    description: "공격 3번마다 시들게 하고 체력 2 회복."
     effects: [{wither: 3}, {heal_caster: 2}]
   lore: ["공허의 군주가 쥐고 있던 낫. 아무것도 비추지 않는다."]
   source: 공허의 군주를 쓰러뜨리면 얻는다
@@ -778,7 +781,7 @@ heavens_spear:
   skill2: thunder_descent
   passive:
     chance: 0.25
-    description: "공격 시 25% 확률로 번개 추가 피해 7."
+    description: "공격 4번마다 번개 추가 피해 7."
     effects: [{lightning: true}, {damage: 7, magic: true}]
   lore: ["하늘이 내린 창. 하늘로 돌려보낼 생각은 없다."]
   recipe:
@@ -796,7 +799,7 @@ holy_blade:
   skill2: guardian_light
   passive:
     chance: 0.25
-    description: "공격 시 25% 확률로 신성 피해 5, 체력 3 회복."
+    description: "공격 4번마다 신성 피해 5, 체력 3 회복."
     effects: [{damage: 5, magic: true}, {heal_caster: 3}]
   lore: ["이 검을 든 자 곁에서는 아무도 쓰러지지 않는다."]
   recipe:
@@ -814,7 +817,7 @@ bloodmoon_katana:
   skill2: blood_rush
   passive:
     chance: 0.3
-    description: "공격 시 30% 확률로 체력 4 회복."
+    description: "공격 3번마다 체력 4 회복."
     effects: [{heal_caster: 4}]
   lore: ["붉은 달이 뜨는 밤에만 칼집에서 나온다고 한다."]
   recipe:
@@ -847,7 +850,7 @@ abyssal_trident:
   skill2: maelstrom
   passive:
     chance: 0.25
-    description: "공격 시 25% 확률로 크게 밀어낸다."
+    description: "공격 4번마다 크게 밀어낸다."
     effects: [{knockback: 1.4}, {damage: 4}]
   lore: ["하늘 아래 바다가 있다면, 그 바닥에 있던 것."]
   recipe:
@@ -865,7 +868,7 @@ shadow_twinblade:
   skill2: shadow_clone
   passive:
     chance: 0.3
-    description: "공격 시 30% 확률로 추가 피해 5."
+    description: "공격 3번마다 추가 피해 5."
     effects: [{damage: 5}, {particle: CRIT, count: 10}]
   lore: ["두 자루가 한 몸처럼 움직인다."]
   recipe:
@@ -883,7 +886,7 @@ star_greatsword:
   skill2: galaxy_burst
   passive:
     chance: 0.25
-    description: "공격 시 25% 확률로 별빛 피해 6."
+    description: "공격 4번마다 별빛 피해 6."
     effects: [{damage: 6, magic: true}, {particle: END_ROD, count: 12}]
   lore: ["떨어진 별을 통째로 벼렸다."]
   recipe:
@@ -904,7 +907,7 @@ prism_greatsword:
   skill3: spectrum_break
   passive:
     chance: 0.3
-    description: "공격 시 30% 확률로 무지개 피해 8."
+    description: "공격 3번마다 무지개 피해 8."
     effects: [{damage: 8, magic: true}, {particle: "DUST:#ff6b9d:1.5", count: 20}]
   lore: ["모든 증강의 빛이 이 칼날 하나에 모였다."]
   recipe:
@@ -924,7 +927,7 @@ apocalypse_scythe:
   skill3: doomsday
   passive:
     chance: 0.3
-    description: "공격 시 30% 확률로 시들게 하고 체력 4 회복."
+    description: "공격 3번마다 시들게 하고 체력 4 회복."
     effects: [{wither: 4}, {heal_caster: 4}]
   lore: ["이 낫이 휘둘러진 뒤에는 아무것도 남지 않았다."]
   recipe:
@@ -959,7 +962,7 @@ thundergod_hammer:
   skill3: thunder_wrath
   passive:
     chance: 0.3
-    description: "공격 시 30% 확률로 낙뢰 피해 10."
+    description: "공격 3번마다 낙뢰 피해 10."
     effects: [{lightning: true}, {damage: 10, magic: true}]
   lore: ["이 망치가 땅에 닿으면 하늘이 대답한다."]
   recipe:
@@ -978,7 +981,7 @@ sun_blade:
   skill3: supernova
   passive:
     chance: 0.3
-    description: "공격 시 30% 확률로 태양열 피해 6과 화상."
+    description: "공격 3번마다 태양열 피해 6과 화상."
     effects: [{damage: 6, magic: true}, {ignite: 6}]
   lore: ["한낮의 태양을 칼날에 가뒀다. 밤에도 따뜻하다."]
   recipe:
@@ -1013,7 +1016,7 @@ wind_bow:
   skill: gale_arrow
   passive:
     chance: 0.2
-    description: "화살이 맞으면 20% 확률로 크게 밀쳐낸다."
+    description: "화살이 5번 맞을 때마다 크게 밀쳐낸다."
     effects: [{knockback: 1.5}]
   lore: ["시위를 놓으면 바람이 따라간다."]
   recipe:
@@ -1030,7 +1033,7 @@ venom_bow:
   skill: venom_rain
   passive:
     chance: 0.3
-    description: "화살이 맞으면 30% 확률로 독."
+    description: "화살이 3번 맞을 때마다 독."
     effects: [{poison: 2}]
   lore: ["활대에 독사의 비늘이 감겨 있다."]
   recipe:
@@ -1047,7 +1050,7 @@ frost_bow:
   skill: glacier_arrow
   passive:
     chance: 0.3
-    description: "화살이 맞으면 30% 확률로 느리게 만든다."
+    description: "화살이 3번 맞을 때마다 느리게 만든다."
     effects: [{slow: 2}]
   lore: ["시위가 얼음처럼 차갑게 울린다."]
   recipe:
@@ -1064,7 +1067,7 @@ flame_bow:
   skill: firestorm_arrows
   passive:
     chance: 0.3
-    description: "화살이 맞으면 30% 확률로 불붙인다."
+    description: "화살이 3번 맞을 때마다 불붙인다."
     effects: [{ignite: 3}]
   lore: ["화살촉이 공기에 닿기만 해도 불이 붙는다."]
   recipe:
@@ -1081,7 +1084,7 @@ void_bow:
   skill: void_piercer
   passive:
     chance: 0.25
-    description: "화살이 맞으면 25% 확률로 시들게 한다."
+    description: "화살이 4번 맞을 때마다 시들게 한다."
     effects: [{wither: 2}]
   lore: ["쏜 화살은 날아가는 대신 사라졌다가 나타난다."]
   recipe:
@@ -1099,7 +1102,7 @@ storm_longbow:
   skill2: chain_arrow
   passive:
     chance: 0.25
-    description: "화살이 맞으면 25% 확률로 번개가 떨어진다."
+    description: "화살이 4번 맞을 때마다 번개가 떨어진다."
     effects: [{lightning: true}, {damage: 5, magic: true}]
   lore: ["하늘을 향해 쏘면 하늘이 대답한다."]
   source: 보스가 떨군다
@@ -1115,7 +1118,7 @@ prism_bow:
   skill2: rainbow_piercer
   passive:
     chance: 0.3
-    description: "화살이 맞으면 30% 확률로 무지개 피해 8."
+    description: "화살이 3번 맞을 때마다 무지개 피해 8."
     effects: [{damage: 8, magic: true}, {particle: "DUST:#ff6b9d:1.5", count: 20}]
   lore: ["별을 화살 삼아 쏜다."]
   recipe:

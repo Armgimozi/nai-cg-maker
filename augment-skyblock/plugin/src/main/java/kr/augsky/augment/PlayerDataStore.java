@@ -39,6 +39,7 @@ public final class PlayerDataStore {
         ConfigurationSection aug = y.getConfigurationSection("augments");
         if (aug != null) for (String k : aug.getKeys(false)) d.augments.put(k, aug.getInt(k, 1));
         d.soul = y.getDouble("soul", 0);
+        d.tank = y.getDouble("tank-engine", 0);
         d.starterGiven = y.getBoolean("starter-given", false);
         d.picks = y.getInt("picks", 0);
         d.usedAltars.addAll(y.getStringList("used-altars"));
@@ -56,6 +57,7 @@ public final class PlayerDataStore {
         y.set("name", d.lastName);
         for (var en : d.augments.entrySet()) y.set("augments." + en.getKey(), en.getValue());
         y.set("soul", d.soul);
+        if (d.tank > 0) y.set("tank-engine", d.tank);
         y.set("starter-given", d.starterGiven);
         y.set("picks", d.picks);
         if (!d.usedAltars.isEmpty()) y.set("used-altars", new java.util.ArrayList<>(d.usedAltars));

@@ -42,6 +42,8 @@ public final class AugmentService {
     private final AugmentRegistry registry;
     private final PlayerDataStore store;
     private final Map<UUID, Set<PotionEffectType>> appliedPotions = new HashMap<>();
+    /** 'N번째 공격마다' 전투 효과와 무기 패시브가 함께 쓰는 횟수 */
+    private final ProcCounter procs = new ProcCounter();
 
     public AugmentService(AugSky plugin, AugmentRegistry registry, PlayerDataStore store) {
         this.plugin = plugin;
@@ -55,6 +57,10 @@ public final class AugmentService {
 
     public PlayerDataStore store() {
         return store;
+    }
+
+    public ProcCounter procs() {
+        return procs;
     }
 
     public PlayerData data(Player p) {
@@ -102,9 +108,11 @@ public final class AugmentService {
             sums.merge(k, m.amount(), Double::sum);
             sample.putIfAbsent(k, m);
         }
-        if (d.soul > 0) {
+        // 영혼 수확과 탱크엔진으로 쌓은 최대 체력은 증강이 없어도 남는 영구 수치다
+        double permanent = d.soul + d.tank;
+        if (permanent > 0) {
             String k = "max_health|" + AttributeModifier.Operation.ADD_NUMBER.name();
-            sums.merge(k, d.soul, Double::sum);
+            sums.merge(k, permanent, Double::sum);
             sample.putIfAbsent(k, new Stats.AttrMod(Attribute.MAX_HEALTH, AttributeModifier.Operation.ADD_NUMBER, 0));
         }
         for (Map.Entry<String, Double> en : sums.entrySet()) {
@@ -143,6 +151,7 @@ public final class AugmentService {
 
     public void forget(UUID id) {
         appliedPotions.remove(id);
+        procs.clear(id);
     }
 
     // ------------------------------------------------------------------ 획득/제거
@@ -197,11 +206,14 @@ public final class AugmentService {
         return true;
     }
 
+    /** 관리자 초기화: 증강과 함께 영구 수치(영혼 수확, 탱크엔진)와 'N번째 공격마다' 세던 횟수도 지운다. */
     public void reset(Player p) {
         PlayerData d = data(p);
         d.augments.clear();
         d.soul = 0;
+        d.tank = 0;
         d.clearOffer();
+        procs.clear(p.getUniqueId());
         refresh(p);
         store.save(d);
     }

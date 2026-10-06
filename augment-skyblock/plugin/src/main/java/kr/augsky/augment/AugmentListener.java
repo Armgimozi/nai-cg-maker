@@ -52,6 +52,7 @@ import org.bukkit.util.Vector;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -64,6 +65,8 @@ public final class AugmentListener implements Listener {
     private final AugSky plugin;
     private final AugmentService aug;
     private final Set<UUID> jumpGranted = new HashSet<>();
+    /** 플레이어마다 마지막으로 휘두른 근접 공격 (휩쓸기 대상에게 같은 효과를 주려고 기억한다) */
+    private final Map<UUID, Swing> swings = new HashMap<>();
     private int tick;
 
     public AugmentListener(AugSky plugin) {
@@ -101,6 +104,7 @@ public final class AugmentListener implements Listener {
     public void onQuit(PlayerQuitEvent e) {
         UUID id = e.getPlayer().getUniqueId();
         jumpGranted.remove(id);
+        swings.remove(id);
         aug.forget(id);
         aug.store().unload(id);
         plugin.cooldowns().clear(id);
@@ -135,6 +139,42 @@ public final class AugmentListener implements Listener {
         return null;
     }
 
+    /**
+     * 한 번 휘두른 근접 공격에서 주 대상에게 터진 전투 효과.
+     * 바닐라는 주 대상의 피해 이벤트를 먼저 부르고, 같은 틱 안에서 휩쓸기에 함께 맞은 몹들을 부른다.
+     */
+    private record Swing(int tick, Set<String> fired) {}
+
+    /**
+     * 이번 피해에서 전투 효과 key 가 터지는지 정한다.
+     *  - 직접 휘두른 근접 공격, 화살 같은 투사체: 효과마다 하나 세어 every 번째에 터진다.
+     *  - 휩쓸기에 함께 맞은 몹: 세지 않고, 같은 휘두름에서 주 대상에게 터진 효과면 똑같이 받는다.
+     *    예전에 휩쓸린 몹도 저마다 확률을 굴렸으니, 여러 마리를 칠 때의 평균을 지키려는 것이다.
+     *    세지는 않으므로 '몇 번 남았는지'는 주 대상 기준 그대로다.
+     *  - 그 밖의 피해(가시, 폭발, 스킬 등): 세지도 터지지도 않는다.
+     */
+    private boolean proc(Player p, EntityDamageEvent e, String key, int every) {
+        if (every <= 0) return false;
+        UUID id = p.getUniqueId();
+        switch (e.getCause()) {
+            case ENTITY_ATTACK, PROJECTILE -> {
+                boolean fire = aug.procs().hit(id, key, every);
+                if (fire && e.getCause() == EntityDamageEvent.DamageCause.ENTITY_ATTACK) {
+                    Swing s = swings.get(id);
+                    if (s != null && s.tick() == Bukkit.getCurrentTick()) s.fired().add(key);
+                }
+                return fire;
+            }
+            case ENTITY_SWEEP_ATTACK -> {
+                Swing s = swings.get(id);
+                return s != null && s.tick() == Bukkit.getCurrentTick() && s.fired().contains(key);
+            }
+            default -> {
+                return false;
+            }
+        }
+    }
+
     private static LivingEntity livingSource(Entity damager) {
         if (damager instanceof Projectile pr && pr.getShooter() instanceof LivingEntity le) return le;
         if (damager instanceof LivingEntity le) return le;
@@ -146,8 +186,8 @@ public final class AugmentListener implements Listener {
         // 받는 쪽: 회피, 피해 감소
         if (e.getEntity() instanceof Player victim && playing(victim)) {
             Stats vs = aug.stats(victim);
-            double dodge = Math.min(0.5, vs.get("dodge.chance"));
-            if (dodge > 0 && rnd().nextDouble() < dodge) {
+            // 회피는 확률이 아니라 받는 공격 N번째마다 (비율 상한 0.5 → 적어도 2번에 한 번은 맞는다)
+            if (aug.procs().hit(victim.getUniqueId(), "dodge", vs.every("dodge", 0.5))) {
                 e.setCancelled(true);
                 victim.getWorld().spawnParticle(Particle.LARGE_SMOKE, victim.getLocation().add(0, 1, 0), 15, 0.3, 0.5, 0.3, 0.02);
                 victim.sendActionBar(Text.mm("<#9ad8ff>✧ 회피!"));
@@ -160,6 +200,10 @@ public final class AugmentListener implements Listener {
         // 때리는 쪽: 배율
         Player attacker = attackerOf(e.getDamager());
         if (attacker == null || Combat.inSkill()) return;
+        // 직접 휘두른 근접 공격은 새 휘두름이다. 이 기록을 이어지는 휩쓸기 대상들이 본다 (proc)
+        if (e.getCause() == EntityDamageEvent.DamageCause.ENTITY_ATTACK && e.getDamager() == attacker) {
+            swings.put(attacker.getUniqueId(), new Swing(Bukkit.getCurrentTick(), new HashSet<>()));
+        }
         if (!(e.getEntity() instanceof LivingEntity target) || !Targets.isEnemy(attacker, target)) return;
         Stats st = aug.stats(attacker);
         double mult = 1 + st.get("damage_bonus.amount");
@@ -169,8 +213,8 @@ public final class AugmentListener implements Listener {
             mult += st.get("first_strike.amount");
         }
         if (Targets.isBoss(target)) mult += st.get("boss_damage.amount");
-        double cc = Math.min(0.75, st.get("crit.chance"));
-        if (cc > 0 && rnd().nextDouble() < cc) {
+        // 치명타: 맞힌 공격 N번째마다 (휩쓸린 몹은 주 대상이 치명타일 때 함께)
+        if (proc(attacker, e, "crit", st.every("crit", 0.75))) {
             mult *= Math.max(1.3, st.get("crit.multiplier", 1.5));
             target.getWorld().spawnParticle(Particle.ENCHANTED_HIT, target.getLocation().add(0, target.getHeight() / 2, 0), 20, 0.3, 0.3, 0.3, 0.2);
             Fx.sound(target.getLocation(), "entity.player.attack.crit", 1f, 0.8f);
@@ -200,38 +244,9 @@ public final class AugmentListener implements Listener {
         boolean melee = e.getDamager() instanceof Player;
         double base = e.getDamage();
 
-        double ig = st.get("ignite.chance");
-        if (ig > 0 && rnd().nextDouble() < ig) {
-            target.setFireTicks(Math.max(target.getFireTicks(), (int) (st.get("ignite.seconds", 3) * 20)));
-        }
-        for (Stats.HitPotion hp : st.hitPotions) {
-            if (rnd().nextDouble() < hp.chance()) target.addPotionEffect(new PotionEffect(hp.type(), hp.ticks(), hp.amplifier()));
-        }
-        double lc = st.get("lightning.chance");
-        if (lc > 0 && rnd().nextDouble() < lc) {
-            double dmg = st.get("lightning.damage", 5);
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                if (!target.isValid()) return;
-                target.getWorld().strikeLightningEffect(target.getLocation());
-                Combat.damage(attacker, target, dmg, true, null);
-            });
-        }
-        double cl = st.get("chain_lightning.chance");
-        if (cl > 0 && rnd().nextDouble() < cl) {
-            int n = (int) Math.max(2, st.get("chain_lightning.targets", 3));
-            double dmg = st.get("chain_lightning.damage", 4);
-            Bukkit.getScheduler().runTask(plugin, () -> chain(attacker, target, n, dmg));
-        }
-        double ds = st.get("double_strike.chance");
-        if (melee && ds > 0 && rnd().nextDouble() < ds) {
-            double amt = base * Math.max(0.3, st.get("double_strike.ratio", 0.6));
-            Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                if (!target.isValid() || target.isDead()) return;
-                target.getWorld().spawnParticle(Particle.SWEEP_ATTACK, target.getLocation().add(0, 1, 0), 2, 0.2, 0.2, 0.2, 0);
-                Fx.sound(target.getLocation(), "entity.player.attack.sweep", 1f, 1.4f);
-                Combat.damage(attacker, target, amt, false, null);
-            }, 5);
-        }
+        // 공격 시 효과는 확률 대신 효과마다 따로 세어 N번째 공격마다 터진다 (ProcCounter, proc)
+        onHitProcs(e, attacker, target, st, melee, base);
+
         double ex = st.get("execute.threshold");
         if (ex > 0 && !Targets.isBoss(target)) {
             Bukkit.getScheduler().runTask(plugin, () -> {
@@ -242,6 +257,43 @@ public final class AugmentListener implements Listener {
                     Combat.damage(attacker, target, target.getHealth() + target.getAbsorptionAmount() + 50, true, null);
                 }
             });
+        }
+    }
+
+    /** 맞힌 공격 하나를 세고, 차례가 된 '공격 시' 효과를 터뜨린다. */
+    private void onHitProcs(EntityDamageEvent e, Player attacker, LivingEntity target, Stats st, boolean melee, double base) {
+        if (proc(attacker, e, "ignite", st.every("ignite", 1))) {
+            target.setFireTicks(Math.max(target.getFireTicks(), (int) (st.get("ignite.seconds", 3) * 20)));
+        }
+        // 갑옷 세트와 증강이 같은 둔화를 따로 줄 수 있으니 항목마다 따로 센다
+        for (int i = 0; i < st.hitPotions.size(); i++) {
+            Stats.HitPotion hp = st.hitPotions.get(i);
+            if (proc(attacker, e, "hit_potion#" + i + ":" + hp.type().getKey().getKey(), hp.every())) {
+                target.addPotionEffect(new PotionEffect(hp.type(), hp.ticks(), hp.amplifier()));
+            }
+        }
+        if (proc(attacker, e, "lightning", st.every("lightning", 1))) {
+            double dmg = st.get("lightning.damage", 5);
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (!target.isValid()) return;
+                target.getWorld().strikeLightningEffect(target.getLocation());
+                Combat.damage(attacker, target, dmg, true, null);
+            });
+        }
+        if (proc(attacker, e, "chain_lightning", st.every("chain_lightning", 1))) {
+            int n = (int) Math.max(2, st.get("chain_lightning.targets", 3));
+            double dmg = st.get("chain_lightning.damage", 4);
+            Bukkit.getScheduler().runTask(plugin, () -> chain(attacker, target, n, dmg));
+        }
+        // 쌍검술은 근접 공격만 센다
+        if (melee && proc(attacker, e, "double_strike", st.every("double_strike", 1))) {
+            double amt = base * Math.max(0.3, st.get("double_strike.ratio", 0.6));
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (!target.isValid() || target.isDead()) return;
+                target.getWorld().spawnParticle(Particle.SWEEP_ATTACK, target.getLocation().add(0, 1, 0), 2, 0.2, 0.2, 0.2, 0);
+                Fx.sound(target.getLocation(), "entity.player.attack.sweep", 1f, 1.4f);
+                Combat.damage(attacker, target, amt, false, null);
+            }, 5);
         }
     }
 
@@ -367,6 +419,30 @@ public final class AugmentListener implements Listener {
             p.sendMessage(Text.mm("<#9ad8ff>✦ 증강 덕분에 " + (kept > 0 ? "아이템 " + kept + "개" : "") + (kept > 0 && levels ? "와 " : "")
                     + (levels ? "경험치" : "") + "<#9ad8ff>를 지켰습니다."));
         }
+    }
+
+    /**
+     * 탱크엔진: 다른 플레이어를 처치할 때마다 최대 체력이 영구히 오른다.
+     * 쌓인 값은 PlayerData.tank 에 저장되어 죽음·재접속·재시작 뒤에도 applyAttributes 가 다시 붙인다.
+     * (기본 server.properties 는 pvp=false 라 PvP 를 켠 서버에서만 쌓인다.)
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPlayerKill(PlayerDeathEvent e) {
+        Player victim = e.getPlayer();
+        Player killer = victim.getKiller();
+        // 스스로 죽은 것(자기 화살, 자기에게 쓴 피해)은 치지 않는다
+        if (killer == null || killer.getUniqueId().equals(victim.getUniqueId()) || !killer.isOnline()) return;
+        Stats st = aug.stats(killer);
+        if (!st.has("tank_engine")) return;
+        double per = st.get("tank_engine.amount", 1);
+        if (per <= 0) return;
+        PlayerData d = aug.data(killer);
+        d.tank += per;
+        aug.applyAttributes(killer, d);
+        // 바로 저장해 서버가 갑자기 꺼져도 잃지 않게 한다
+        aug.store().save(d);
+        killer.sendMessage(Text.mm("<#ffb347>⚙ 탱크엔진<gray>: 최대 체력 <white>+" + Text.num(per) + " <gray>(총 +" + Text.num(d.tank) + ")"));
+        Fx.sound(killer.getLocation(), "block.anvil.use", 0.7f, 1.4f);
     }
 
     private static void removeOne(List<ItemStack> drops, ItemStack it) {
