@@ -24,6 +24,7 @@ WorldCheck 실패면 거절)을 더한다. 그때까지 server/ 에 세계 폴�
   팩       형식 75, 셰이더 없음 (10.8), 8MB 아래, 정렬 zip (경로 순서·날짜 고정, 폴더 항목 없음), artlint 오류 0,
            글꼴·모형·그림 참조가 팩 안에 있다 (바닐라 minecraft: 그림은 건너뛴다), 사망 화면 언어 다섯 키 (10.9)
   글자표   glyphs.yml 의 모든 글자가 그 글꼴에 있고 빈칸 폭이 맞다, you_died 가 deathScreen.title 과 같다
+           (config.yml death.title: true 면 deathScreen.title 은 빈칸. YOU DIED 는 한 번만, 5.6)
   서버     인코딩 규칙 (12.9), server.properties 가 12.7 값 그대로, bukkit.yml allow-end: false,
            start.ps1 과 start.sh 의 Paper 고정값(주소·크기·sha256)이 같다
 """
@@ -350,9 +351,17 @@ def check_glyphs(jar, fonts, langs):
         g.check(text and not bad, f"glyphs.yml {name}: 글꼴 {e['font']} 에 없는 글자 {bad or '(빈 글자)'}")
         if len(text) == 1 and defined.get(text) is not None:
             g.check(defined[text] == e.get("width"), f"glyphs.yml {name}: 폭 {e.get('width')} ≠ 글꼴 {defined[text]}")
+    # YOU DIED 는 한 번만 (5.6): death.title 이 꺼져 있으면 (기본) 사망 화면 제목이 그림 글자,
+    # 켜져 있으면 플러그인이 화면 제목으로 띄우므로 사망 화면 제목은 비어 있어야 한다 (gen_pack --death-title plugin)
+    cfg = yaml.safe_load(jar["config.yml"].decode("utf-8")) or {}
+    by_plugin = (cfg.get("death") or {}).get("title") is True
     title = (table.get("you_died") or {}).get("char")
     for code, lang in langs.items():
-        g.check(lang.get("deathScreen.title") == title, f"{code} 의 deathScreen.title 이 glyphs.yml you_died 와 다르다")
+        got = lang.get("deathScreen.title")
+        if by_plugin:
+            g.check(got == "", f"{code} 의 deathScreen.title 이 비어 있지 않다 (death.title: true 와 겹친다)")
+        else:
+            g.check(got == title, f"{code} 의 deathScreen.title 이 glyphs.yml you_died 와 다르다")
     g.done("글자표")
 
 

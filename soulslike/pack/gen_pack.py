@@ -4,6 +4,9 @@
 
   python3 pack/gen_pack.py            그림 생성 → artlint → zip
   python3 pack/gen_pack.py --no-dist  dist/packs/ 에 쓰지 않는다 (시험용)
+  python3 pack/gen_pack.py --death-title plugin
+                                      사망 화면 제목을 비운다. 플러그인 config.yml 의 death.title: true 와 함께 쓴다
+                                      (YOU DIED 를 화면 한가운데에 더 크게, 5.6 과 16절 질문 4). 기본은 screen
 
 결과
   pack/resourcepack/                          팩 폴더 (zip 에 들어가는 그대로)
@@ -37,6 +40,7 @@ if HERE not in sys.path:
     sys.path.insert(0, HERE)
 
 import artlint  # noqa: E402
+import gui_skin  # noqa: E402
 import hud  # noqa: E402
 import previews  # noqa: E402
 
@@ -131,7 +135,24 @@ def write_glyphs(path, glyphs, title):
         f.write("\n".join(lines) + "\n")
 
 
+def death_title_mode(argv):
+    """--death-title screen|plugin (기본 screen). 모르는 값이면 None."""
+    mode = "screen"
+    for i, a in enumerate(argv):
+        if a == "--death-title" and i + 1 < len(argv):
+            mode = argv[i + 1]
+        elif a.startswith("--death-title="):
+            mode = a.split("=", 1)[1]
+    if mode not in ("screen", "plugin"):
+        print("--death-title 은 screen 또는 plugin 이다:", mode)
+        return None
+    return mode
+
+
 def main(argv):
+    mode = death_title_mode(argv)
+    if mode is None:
+        return 2
     if os.path.exists(OUT):
         shutil.rmtree(OUT)
     os.makedirs(OUT)
@@ -147,12 +168,14 @@ def main(argv):
     glyphs, fonts = hud.build(OUT)
     for (ns, name), data in fonts.items():
         write_json(os.path.join(OUT, "assets", ns, "font", name + ".json"), data)
+    gui_skin.build(OUT)   # 체력·단축 슬롯·창·단추·설명 칸 그림 (스태미나 막대는 hud 의 것을 덮어쓴다)
     title = hud.death_title(glyphs)
 
     # 3. 사망 화면 언어
+    # YOU DIED 는 한 번만 보인다 (5.6). 기본은 사망 화면 제목 자리 (플러그인 death.title: false).
+    # plugin 이면 이 제목을 비우고 플러그인이 화면 제목으로 띄운다 (둘을 함께 쓰면 겹쳐 보였다)
     lang = dict(DEATH_LANG)
-    # 사망 화면 자체 제목은 비운다. YOU DIED 는 플러그인이 화면 가운데에 크게 하나만 띄운다 (둘이 겹쳐 보였다)
-    lang["deathScreen.title"] = ""
+    lang["deathScreen.title"] = title if mode == "screen" else ""
     lang = dict(sorted(lang.items()))
     for code in LANGS:
         write_json(os.path.join(OUT, "assets", "minecraft", "lang", code + ".json"), lang)
@@ -181,11 +204,12 @@ def main(argv):
     # 6. 글자 표, 미리보기
     write_glyphs(os.path.join(RES, "glyphs.yml"), glyphs, title)
     sheet, cell_w, _ = hud.you_died_sheet()
-    bar_bg, bar_fill = hud.stamina_bar()
+    bar_bg, bar_fill = gui_skin.stamina_bar()
     previews.write_all(PREVIEW, {
         "sheet": sheet, "cell_w": cell_w, "glyphs": glyphs, "title": title, "height": hud.YOU_DIED_HEIGHT,
         "ascent": hud.YOU_DIED_ASCENT, "lang": lang, "bar_bg": bar_bg, "bar_fill": bar_fill, "icon": icon,
     })
+    gui_skin.write_previews(OUT, PREVIEW)
     print(f"팩 파일 {len(names)}개, {len(data):,} 바이트, sha1 {sha1}")
     print(f"  → {os.path.relpath(os.path.join(RES, 'pack.zip'), ROOT)}"
           + ("" if "--no-dist" in argv else f", dist/packs/{sha1}.zip"))

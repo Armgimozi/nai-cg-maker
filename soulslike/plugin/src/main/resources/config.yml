@@ -71,12 +71,14 @@ hud:
   actionbar-refresh: 20
 
 death:
-  # 죽으면 화면 가운데에 큰 제목을 띄운다 (바닐라 사망 화면 위)
-  title: true
+  # "YOU DIED" 는 한 번만 보인다 (5.6). 기본(false)은 리소스팩이 바꾼 사망 화면 제목 하나다 (늘 또렷한 생피색).
+  # true 면 화면 한가운데에 더 크게 화면 제목으로 띄운다. 이때 팩도 python3 pack/gen_pack.py --death-title plugin 으로
+  # 사망 화면 제목을 비워야 한다 (둘을 함께 쓰면 겹친다). 화면 제목은 사망 화면 덧칠 밑에 그려져 조금 어둡다
+  title: false
   # 제목에 쓸 그림 글자 이름 (glyphs.yml). 빈칸으로 여러 개를 이어 쓴다. 하나라도 없으면 lang 의 death.title 을 아래 색 글씨로
   title-glyphs: "you_died"
   fallback-color: "#b81a12"
-  # 사망 화면 제목은 리소스팩이 비우고 이것 하나만 쓴다. 일어설 때까지 남긴다 (일어서면 지운다)
+  # 화면 제목을 쓸 때 일어설 때까지 남긴다 (일어서면 지운다)
   fade-in: 20
   stay: 6000
   fade-out: 10

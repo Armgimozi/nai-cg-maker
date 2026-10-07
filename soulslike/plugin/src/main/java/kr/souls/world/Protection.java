@@ -32,6 +32,7 @@ import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerRecipeDiscoverEvent;
 
 /**
  * 모험 모드 보호 (12.7). 모험 모드에서도 혹시 몰라 블록 부수기·놓기·양동이·액자·갑옷 거치대·밭 밟기·잎 사라짐·물 흐름을 막는다.
@@ -163,5 +164,11 @@ public final class Protection implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onSpread(BlockSpreadEvent e) {
         guard(e, null, e.getBlock().getWorld());
+    }
+
+    /** 처음 집은 아이템마다 뜨는 "새로운 제작법" 알림을 막는다. 이 게임에는 제작이 없다 */
+    @EventHandler(ignoreCancelled = true)
+    public void onRecipe(PlayerRecipeDiscoverEvent e) {
+        if (ours(e.getPlayer().getWorld())) e.setCancelled(true);
     }
 }

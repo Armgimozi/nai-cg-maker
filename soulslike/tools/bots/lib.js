@@ -765,7 +765,22 @@ function rollConfig () {
   return out
 }
 
+/**
+ * 서버의 사망 제목 설정 (config.yml death.title, 5.6). false (기본) 면 리소스팩의 사망 화면 제목 하나,
+ * true 면 플러그인의 화면 제목 하나다. 못 읽으면 기본값.
+ */
+function deathConfig () {
+  const out = { title: false, source: '기본값' }
+  const f = ENV.serverDir && path.join(ENV.serverDir, 'plugins', 'Soulslike', 'config.yml')
+  if (!f || !fs.existsSync(f)) return out
+  const sec = fs.readFileSync(f, 'utf8').match(/\ndeath:\n([\s\S]*?)(?=\n[A-Za-z][\w-]*:)/)
+  if (!sec) return out
+  const t = sec[1].match(/^\s+title:\s*(true|false)/m)
+  if (t) { out.title = t[1] === 'true'; out.source = 'config.yml' }
+  return out
+}
+
 module.exports = {
   ENV, VERSION, sleep, run, connect, Scenario, Bot, kvOf, num, plain, flatten, simple,
-  loadGlyphs, readZip, decodePng, hsv, readProps, testRoom, rollConfig, fetchBuf
+  loadGlyphs, readZip, decodePng, hsv, readProps, testRoom, rollConfig, deathConfig, fetchBuf
 }

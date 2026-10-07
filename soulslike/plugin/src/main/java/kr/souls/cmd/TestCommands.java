@@ -12,16 +12,25 @@ import kr.souls.Souls;
 import kr.souls.combat.CombatState;
 import kr.souls.combat.Stamina;
 import kr.souls.combat.TestHits;
+import kr.souls.hud.Glyphs;
 import kr.souls.item.ItemFactory;
 import kr.souls.skill.SkillContext;
 import kr.souls.skill.SkillDef;
+import io.papermc.paper.dialog.Dialog;
+import io.papermc.paper.registry.data.dialog.ActionButton;
+import io.papermc.paper.registry.data.dialog.DialogBase;
+import io.papermc.paper.registry.data.dialog.action.DialogAction;
+import io.papermc.paper.registry.data.dialog.body.DialogBody;
+import io.papermc.paper.registry.data.dialog.type.DialogType;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickCallback;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.GameRules;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
 
@@ -36,6 +45,7 @@ import java.util.Locale;
  *   rollhit <틱> [피해]               다음 구르기 시작 뒤 그 틱에 generic 피해. [T] ROLLHIT off= dodged=
  *   roll                             서버에서 곧바로 구르기 (F 패킷 대신)
  *   kill | heal | info | pos | title | skill <id>
+ *   dialog                           휴식 창 꼴의 Dialog (13.4 의 4). 단추를 누르면 [T] DIALOG click=<id>, Esc 로 닫으면 [T] DIALOG exit
  */
 public final class TestCommands {
     private TestCommands() {}
@@ -50,8 +60,11 @@ public final class TestCommands {
                                 .executes(ctx -> withPlayer(ctx, p -> {
                                     CombatState st = CombatState.of(p);
                                     st.stamina.set(DoubleArgumentType.getDouble(ctx, "value"));
-                                    st.stamina.holdUntil(plugin.ticker().now() + plugin.cfg().stamina.regenDelay());
-                                    if (st.stamina.cur() <= 0) st.exhausted = true;
+                                    // 0 이면 진짜 탈진처럼 회복 지연도 탈진 값 (3.2: 24틱)
+                                    boolean zero = st.stamina.cur() <= 0;
+                                    var sc = plugin.cfg().stamina;
+                                    st.stamina.holdUntil(plugin.ticker().now() + (zero ? sc.exhaustedDelay() : sc.regenDelay()));
+                                    if (zero) st.exhausted = true;
                                     stamina(plugin, p);
                                 })))))
                 .then(Commands.literal("hit")
@@ -94,7 +107,8 @@ public final class TestCommands {
                     plugin.test(p, String.format(Locale.ROOT, "POS x=%.3f y=%.3f z=%.3f yaw=%.1f ground=%s t=%d",
                             l.getX(), l.getY(), l.getZ(), l.getYaw(), p.isOnGround(), plugin.ticker().now()));
                 })))
-                .then(Commands.literal("title").executes(ctx -> withPlayer(ctx, p -> plugin.death().showTitle(p))))
+                .then(Commands.literal("title").executes(ctx -> withPlayer(ctx, p -> plugin.death().showTitle(p, true))))
+                .then(Commands.literal("dialog").executes(ctx -> withPlayer(ctx, p -> dialog(plugin, p))))
                 .then(Commands.literal("skill")
                         .then(Commands.argument("id", StringArgumentType.word())
                                 .suggests((c, b) -> {
@@ -173,6 +187,29 @@ public final class TestCommands {
                 w.getGameRuleValue(GameRules.LOCATOR_BAR), w.getGameRuleValue(GameRules.NATURAL_HEALTH_REGENERATION),
                 w.getGameRuleValue(GameRules.PVP), plugin.cfg().testMode, plugin.pack().sha1(), plugin.ticker().now()));
         if (!Stamina.fighting(p)) plugin.test(p, "INFO note=not_fighting (창작·관전 모드는 스태미나가 닳지 않는다)");
+    }
+
+    /**
+     * Dialog 창 점검 (10.4, 13.4 의 4). 휴식 창과 같은 꼴: 제목은 화톳불 이름, 본문 한 줄, 단추 한 열, 나가기 동작.
+     * 단추와 나가기 동작은 서버 콜백으로 받는다. Esc 로 닫을 때 나가기 동작이 오는지를 실제 클라이언트로 본다.
+     */
+    private static void dialog(Souls plugin, Player p) {
+        ClickCallback.Options once = ClickCallback.Options.builder().uses(1).lifetime(Duration.ofMinutes(5)).build();
+        List<ActionButton> buttons = List.of(
+                ActionButton.builder(Component.text("쉰다")).width(160)
+                        .action(DialogAction.customClick((r, a) -> plugin.test(p, "DIALOG click=rest t=" + plugin.ticker().now()), once)).build(),
+                ActionButton.builder(Component.text("불을 건넌다")).width(160)
+                        .action(DialogAction.customClick((r, a) -> plugin.test(p, "DIALOG click=warp t=" + plugin.ticker().now()), once)).build());
+        ActionButton exit = ActionButton.builder(Component.text("일어선다")).width(160)
+                .action(DialogAction.customClick((r, a) -> plugin.test(p, "DIALOG exit t=" + plugin.ticker().now()), once)).build();
+        Dialog d = Dialog.create(b -> b.empty()
+                .base(DialogBase.builder(Component.text("탑옥 아래 화톳불", Glyphs.PARCH3))
+                        .canCloseWithEscape(true).pause(false).afterAction(DialogBase.DialogAfterAction.CLOSE)
+                        .body(List.of(DialogBody.plainMessage(Component.text("소울 0 · 레벨 1", Glyphs.PARCH2))))
+                        .build())
+                .type(DialogType.multiAction(buttons).exitAction(exit).columns(1).build()));
+        p.showDialog(d);
+        plugin.test(p, "DIALOG shown t=" + plugin.ticker().now());
     }
 
     private static void skill(Souls plugin, Player p, String id) {

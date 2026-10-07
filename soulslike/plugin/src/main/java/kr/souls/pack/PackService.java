@@ -16,6 +16,10 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerResourcePackStatusEvent;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
@@ -23,6 +27,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Duration;
 import java.util.HexFormat;
@@ -30,6 +35,8 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 /**
  * 리소스팩 배포 (10.10). jar 안 pack.zip 의 SHA-1 로 주소 틀의 {sha1} 을 채운다 (파일 이름이 내용으로 정해져
@@ -69,6 +76,24 @@ public final class PackService implements Listener {
     public String checkNote() { return checkNote; }
 
     public boolean ready() { return data != null && url != null && !url.isBlank(); }
+
+    /**
+     * jar 안 팩의 언어 문자열 하나 (assets/minecraft/lang/&lt;code&gt;.json). 팩이 없거나 키가 없으면 null.
+     * /souls check 가 사망 화면 제목과 death.title 이 겹치지 않는지 볼 때 쓴다 (5.6).
+     */
+    public String packLang(String code, String key) {
+        if (data == null) return null;
+        try (ZipInputStream z = new ZipInputStream(new ByteArrayInputStream(data), StandardCharsets.UTF_8)) {
+            for (ZipEntry e; (e = z.getNextEntry()) != null; ) {
+                if (!e.getName().equals("assets/minecraft/lang/" + code + ".json")) continue;
+                JsonObject o = JsonParser.parseString(new String(z.readAllBytes(), StandardCharsets.UTF_8)).getAsJsonObject();
+                return o.has(key) ? o.get(key).getAsString() : null;
+            }
+        } catch (Exception ex) {
+            plugin.getLogger().warning("팩 언어 파일을 읽지 못했습니다: " + ex.getMessage());
+        }
+        return null;
+    }
 
     /** 자체 확인에 실패하면 선택으로 보낸다. */
     public boolean required() {

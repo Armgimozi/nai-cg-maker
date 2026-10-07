@@ -1,5 +1,6 @@
 // 죽음 (5.5, 5.6, 사용자 결정 3: 새빨간 "YOU DIED"). 바닐라 사망 화면 (immediate_respawn=false) 이 열리고,
-// 그 위에 큰 제목이 glyphs.yml 의 그림 글자로 온다. 팩 쪽 deathScreen.title 도 같은 그림 글자이고 그 그림은 붉다.
+// "YOU DIED" 는 한 번만 보인다: 기본은 팩 쪽 deathScreen.title (glyphs.yml 의 그림 글자) 이고 플러그인은 제목을 보내지 않는다.
+// death.title: true 면 반대로 팩 제목이 비고 플러그인 화면 제목이 일어설 때까지 떠 있다. 그림 글자는 붉고 크다.
 // 사망 화면 밑 문구와 채팅 알림은 없다. 인벤토리는 그대로, 일어서면 souls_world 시험 방, 체력·스태미나가 찬다.
 'use strict'
 const fs = require('fs')
@@ -88,22 +89,23 @@ L.run('death', async (sc) => {
   const broadcast = b.sys.slice(from).find((m) => m.parts.some((p) => p.translate && p.translate.startsWith('death.')))
   sc.check('no death broadcast in chat', !broadcast, broadcast ? broadcast.plain : '')
 
-  // ── 제목 "YOU DIED" ──
+  // ── 제목 "YOU DIED": 한 번만 보인다 (5.6, 13.4 의 3). 기본은 팩의 사망 화면 제목, death.title: true 면 플러그인 화면 제목 ──
+  const dc = L.deathConfig()
+  sc.note(`death.title=${dc.title} (${dc.source}): ${dc.title ? '플러그인 화면 제목' : '사망 화면 제목'}`)
   const title = b.p.titles.slice(t0).find((x) => x.plain.trim())
-  sc.check('title packet sent on death', !!title, title ? JSON.stringify(title.plain) : '제목 없음')
-  if (title && yd) {
-    sc.check('title is the you_died glyph line (glyphs.yml)', title.plain === yd.char, `${[...title.plain].map((c) => c.codePointAt(0).toString(16)).join(' ')}`)
-    const fonts = [...new Set(title.parts.filter((p) => p.text).map((p) => p.font || 'minecraft:default'))]
-    sc.check('title uses the glyph font', fonts.length === 1 && fonts[0].replace(/^minecraft:/, '') === yd.font.replace(/^minecraft:/, ''), fonts.join(','))
-    const cols = [...new Set(title.parts.filter((p) => p.text).map((p) => String(p.color || 'white').toLowerCase()))]
-    sc.check('title text colour does not tint the glyph (white)', cols.every((c) => c === 'white' || c === '#ffffff'), cols.join(','))
-  }
-  const tt = b.p.titleTimes[b.p.titleTimes.length - 1]
-  sc.check('title stays >= 2 s', tt && tt.stay >= 40, tt ? `${tt.fadeIn}/${tt.stay}/${tt.fadeOut}` : '시간 패킷 없음')
   const tl = b.tLines('TITLE', from)[0]
-  sc.check('server TITLE line glyph=true', tl && tl.kv.glyph === 'true', tl ? tl.line : '')
+  const tt = dc.title ? b.p.titleTimes[b.p.titleTimes.length - 1] : null
+  if (!dc.title) {
+    sc.check('no plugin title over the death screen (YOU DIED shown once)', !title, title ? JSON.stringify(title.plain) : '')
+    sc.check('server TITLE line mode=screen', tl && tl.kv.mode === 'screen', tl ? tl.line : '')
+  } else {
+    sc.check('title packet sent on death', !!title, title ? JSON.stringify(title.plain) : '제목 없음')
+    if (title && yd) checkGlyphTitle(title)
+    sc.check('title held until respawn (stay >= 200)', tt && tt.stay >= 200, tt ? `${tt.fadeIn}/${tt.stay}/${tt.fadeOut}` : '시간 패킷 없음')
+    sc.check('server TITLE line mode=plugin glyph=true', tl && tl.kv.mode === 'plugin' && tl.kv.glyph === 'true', tl ? tl.line : '')
+  }
 
-  // ── 팩 쪽 (5.6, 10.9): deathScreen.title = 같은 그림 글자, 그림은 붉고 크다 ──
+  // ── 팩 쪽 (5.6, 10.9): 사망 화면 제목 키, 점수 줄, 그림 글자는 붉고 크다 ──
   const packFile = [E.runDir && path.join(E.runDir, 'received-pack.zip'), E.runDir && path.join(E.runDir, 'pack.zip')].find((f) => f && fs.existsSync(f))
   if (!packFile) sc.miss('pack death screen checks', '받은 팩이 없다')
   else {
@@ -111,7 +113,12 @@ L.run('death', async (sc) => {
     for (const lang of ['en_us', 'ko_kr']) {
       const j = zip.json(`assets/minecraft/lang/${lang}.json`)
       if (!j) { sc.check(`${lang}: lang file present`, false); continue }
-      sc.check(`${lang}: deathScreen.title = you_died glyphs`, yd && j['deathScreen.title'] === yd.char, j['deathScreen.title'] ? [...j['deathScreen.title']].map((c) => c.codePointAt(0).toString(16)).join(' ') : '없음')
+      // 사망 화면 제목: 기본은 그림 글자 YOU DIED, 플러그인 화면 제목을 쓰면 빈칸 (둘이 겹치지 않게).
+      // 바닐라 "You Died!" 가 남거나 다른 글이면 안 된다
+      const dt = j['deathScreen.title']
+      const want = dc.title ? '' : (yd && yd.char)
+      sc.check(`${lang}: deathScreen.title = ${dc.title ? 'empty (plugin title instead)' : 'you_died glyphs'}`, yd && dt === want,
+        dt === undefined ? '키 없음 (바닐라 글이 남는다)' : dt === '' ? '빈칸' : [...dt].map((c) => c.codePointAt(0).toString(16)).join(' '))
       sc.check(`${lang}: score line empty`, j['deathScreen.score.value'] === '', JSON.stringify(j['deathScreen.score.value']))
     }
     if (yd) {
@@ -159,5 +166,22 @@ L.run('death', async (sc) => {
   await L.sleep(300)
   const after = b.bot.heldItem ? b.bot.heldItem.name : null
   sc.check('inventory kept (keep_inventory)', before && after === before, `${before} → ${after}`)
+  // 화면 제목 경로 (death.title: true 일 때 쓰는 길). 기본 판에서도 그림 글자가 제대로 실리는지 /soulstest title 로 본다
+  if (!dc.title && yd) {
+    const t1 = b.p.titles.length
+    const r = await b.cmd('/soulstest title', 'TITLE', 1500)
+    await L.sleep(300)
+    const forced = b.p.titles.slice(t1).find((x) => x.plain.trim())
+    sc.check('/soulstest title shows the glyph title', !!forced, forced ? '' : (r && r.line) || '제목 없음')
+    if (forced) checkGlyphTitle(forced)
+  }
   sc.check('no kick during death scenario', !b.kick, b.kick || '')
+
+  function checkGlyphTitle (t) {
+    sc.check('title is the you_died glyph line (glyphs.yml)', t.plain === yd.char, `${[...t.plain].map((c) => c.codePointAt(0).toString(16)).join(' ')}`)
+    const fonts = [...new Set(t.parts.filter((p) => p.text).map((p) => p.font || 'minecraft:default'))]
+    sc.check('title uses the glyph font', fonts.length === 1 && fonts[0].replace(/^minecraft:/, '') === yd.font.replace(/^minecraft:/, ''), fonts.join(','))
+    const cols = [...new Set(t.parts.filter((p) => p.text).map((p) => String(p.color || 'white').toLowerCase()))]
+    sc.check('title text colour does not tint the glyph (white)', cols.every((c) => c === 'white' || c === '#ffffff'), cols.join(','))
+  }
 })

@@ -23,6 +23,7 @@ import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.persistence.PersistentDataType;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -38,6 +39,8 @@ public final class WorldService implements Listener {
     /** 시험 방 첫 자리. 비동기 접속 이벤트가 읽으므로 volatile */
     private volatile Location roomSpawn;
     private String lastBuild = "아직 짓지 않음";
+    /** 이번 켜기에서 souls_world 를 처음 만들었다 (level.dat 이 없었다) */
+    private boolean freshWorld;
 
     public WorldService(Souls plugin) {
         this.plugin = plugin;
@@ -96,6 +99,11 @@ public final class WorldService implements Listener {
             return;
         }
         roomSpawn = TestRoom.spawn(w, c.roomX(), c.roomY(), c.roomZ());
+        // 플러그인이 새로 만든 세계는 easy 로 생긴다. 처음 한 번은 조용히 맞춘다 (그 뒤에 어긋나면 checkDifficulty 가 크게 알린다)
+        if (freshWorld && w.getDifficulty() != Difficulty.NORMAL) {
+            plugin.getLogger().info(w.getName() + " 을 새로 만들어 난이도를 " + w.getDifficulty() + " 에서 normal 로 맞췄습니다.");
+            w.setDifficulty(Difficulty.NORMAL);
+        }
         for (World x : List.of(lobby(), w)) {
             applyRules(x);
             checkDifficulty(x);
@@ -132,6 +140,7 @@ public final class WorldService implements Listener {
         World w = world();
         if (w != null) return w;
         int[] rc = {c.roomX(), c.roomY(), c.roomZ()};
+        freshWorld = !new File(Bukkit.getWorldContainer(), c.name() + File.separator + "level.dat").exists();
         try {
             SoulsGenerator gen = new SoulsGenerator(plugin.getLogger(), () -> TestRoom.spawn(null, rc[0], rc[1], rc[2]));
             // keepSpawnLoaded 는 제거 예정이라 쓰지 않는다 (1.21.11 에는 스폰 청크가 없다)

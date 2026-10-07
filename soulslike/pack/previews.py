@@ -22,12 +22,20 @@ UNIFONT = ("/usr/share/fonts/opentype/unifont/unifont.otf", "/usr/share/fonts/op
 
 
 class Vanilla:
-    """클라이언트 jar 에서 바닐라 그림을 꺼낸다. jar 가 없으면 None 을 돌려준다."""
+    """
+    GUI 그림을 꺼낸다. 만든 팩 폴더(pack/resourcepack)에 있으면 그것을 (gui_skin 이 다시 그린 단추·단축 슬롯·하트),
+    없으면 클라이언트 jar 의 바닐라 그림을. 둘 다 없으면 None 을 돌려준다.
+    """
+
+    PACK = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resourcepack")
 
     def __init__(self, jar):
         self.z = zipfile.ZipFile(jar) if jar and os.path.exists(jar) else None
 
     def sprite(self, path):
+        own = os.path.join(self.PACK, "assets", "minecraft", "textures", "gui", "sprites", path + ".png")
+        if os.path.exists(own):
+            return Image.open(own).convert("RGBA")
         if not self.z:
             return None
         try:
@@ -184,7 +192,7 @@ def hud(out_dir, bg, fill, vanilla, gui=3, stamina=0.7):
         small.alpha_composite(fill.crop((0, 0, n, fill.height)), (ex, ey))
     heart_c, heart_f = vanilla.sprite("hud/heart/container"), vanilla.sprite("hud/heart/full")
     if heart_c is not None and heart_f is not None:
-        for i in range(10):
+        for i in range(9, -1, -1):     # 클라이언트처럼 오른쪽부터 (왼쪽 하트의 x=8 이 오른쪽 하트의 x=0 을 덮는다)
             small.alpha_composite(heart_c, (w // 2 - 91 + i * 8, h - 39))
             small.alpha_composite(heart_f, (w // 2 - 91 + i * 8, h - 39))
     canvas.alpha_composite(enlarge(small, gui))

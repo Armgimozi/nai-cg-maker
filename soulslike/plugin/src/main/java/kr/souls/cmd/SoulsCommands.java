@@ -125,6 +125,16 @@ public final class SoulsCommands {
         String names = plugin.cfg().death.titleGlyphs();
         boolean glyph = Glyphs.line(names) != null;
         line(to, fails, glyph, "glyphs " + Glyphs.size() + "개, 사망 제목 '" + names + "' " + (glyph ? "있음" : "없음 (붉은 일반 글씨로 대신)"));
+        // YOU DIED 는 한 번만 (5.6): 팩의 사망 화면 제목과 플러그인 화면 제목 가운데 하나만 쓴다
+        if (pk.ready()) {
+            String screen = pk.packLang("en_us", "deathScreen.title");
+            boolean onScreen = screen != null && !screen.isEmpty();
+            boolean byPlugin = plugin.cfg().death.title();
+            line(to, fails, onScreen != byPlugin, "death title " + (onScreen && byPlugin ? "둘 다 (겹친다)"
+                    : onScreen ? "사망 화면 제목 하나" : byPlugin ? "플러그인 화면 제목 하나" : "없음 (바닐라 글이 남거나 빈칸)")
+                    + " (pack deathScreen.title=" + (screen == null ? "없음" : screen.isEmpty() ? "빈칸" : screen.length() + "자")
+                    + ", death.title=" + byPlugin + ")");
+        }
         line(to, fails, !plugin.skills().all().isEmpty(), "skills " + plugin.skills().all().size() + "개");
         String sum = "[CHECK] 끝 FAIL " + fails.size();
         to.sendMessage(Component.text(sum, fails.isEmpty() ? NamedTextColor.GRAY : NamedTextColor.RED));

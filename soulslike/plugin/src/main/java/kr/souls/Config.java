@@ -101,7 +101,7 @@ public final class Config {
 
         hud = new HudCfg(c.getBoolean("hud.show-souls", true), Math.max(1, c.getInt("hud.actionbar-refresh", 20)));
 
-        death = new DeathCfg(c.getBoolean("death.title", true), c.getString("death.title-glyphs", "you_died"),
+        death = new DeathCfg(c.getBoolean("death.title", false), c.getString("death.title-glyphs", "you_died"),
                 c.getString("death.fallback-color", "#b81a12"), c.getInt("death.fade-in", 20),
                 c.getInt("death.stay", 6000), c.getInt("death.fade-out", 10));
 

@@ -22,6 +22,7 @@
   mouse:left|right|middle[:초]   누르기. 초가 있으면 누르고 있기 (에스트·물약 마시기, 막기)
   mdown:버튼 / mup:버튼  마우스 누르기만 / 떼기만 (mdown:right wait:0.8 shot:drinking mup:right)
   look:dx:dy             시점을 돌린다 (마우스 상대 이동, 화면 픽셀)
+  click:x:y[:버튼]        화면 좌표 (x, y) 로 옮겨 누른다. 창(사망 화면, Dialog)의 단추용. 버튼 기본 left
   slot:N                 단축 슬롯 N (1~9)
   cmd:글                 채팅 창(T)을 열어 글을 치고 Enter. / 로 시작하면 명령 (예: "cmd:/soulstest kill")
   type:글                지금 열린 칸에 글만 친다
@@ -565,6 +566,17 @@ class Session:
             for _ in range(steps):
                 self.xdo("mousemove_relative", "--", int(float(dx) / steps), int(float(dy or 0) / steps))
                 time.sleep(0.03)
+        elif name == "click":
+            parts = rest.split(":")
+            if len(parts) < 2:
+                fail("click:x:y[:버튼] 이어야 한다: " + action)
+            b = BUTTONS[(parts[2] if len(parts) > 2 else "left").lower() or "left"]
+            self.focus()
+            self.xdo("mousemove", "--window", self.window(), int(float(parts[0])), int(float(parts[1])))
+            time.sleep(0.15)
+            self.xdo("mousedown", b)
+            time.sleep(0.08)
+            self.xdo("mouseup", b)
         elif name == "slot":
             self.tap([rest.strip()])
         elif name == "cmd":

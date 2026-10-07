@@ -55,6 +55,7 @@ tools/client/devserver.sh --stop /tmp/srv
 | `mouse:left\|right\|middle[:초]` | 클릭, 초가 있으면 누르고 있기 (물약·에스트 마시기, 막기) |
 | `mdown:버튼` / `mup:버튼` | 마우스 누르기만 / 떼기만 |
 | `look:dx:dy` | 시점 돌리기 (화면 픽셀. 400 이면 대략 90도) |
+| `click:x:y[:버튼]` | 화면 좌표로 옮겨 누르기. 창 (Dialog, 사망 화면) 의 단추 |
 | `slot:N` | 단축 슬롯 |
 | `cmd:글` | T 로 채팅을 열어 치고 Enter |
 | `type:글` | 열린 칸에 치기만 |
