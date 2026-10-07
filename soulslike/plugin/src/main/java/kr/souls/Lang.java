@@ -37,7 +37,7 @@ import java.util.regex.Pattern;
  * 팩을 싣기 전에 보이는 글 (팩 안내, 팩 때문에 쫓아낼 때, 짓는 중 접속 거절) 만 서버가 그 사람의 언어로 채운다 (render).
  * 데이터 폴더에는 꺼내 두지 않는다: 글을 바꾸면 팩도 바뀌어야 하므로 팩과 jar 를 함께 다시 만든다.
  *
- * YAML 의 한 줄 "꼴태그글 자리" (예 "#b3a37f 꼴의 소울 souls 자리"): 맨 앞 태그들이 꼴, 그 뒤의 이름 태그는 자리다.
+ * YAML 의 한 줄 (예 "&lt;#b3a37f&gt;소울 &lt;souls&gt;"): 맨 앞 태그들이 꼴, 그 뒤의 이름 태그는 자리다.
  * 번역 인수의 차례는 한국어 원본에 자리가 나오는 차례다 (영어는 %2$s 처럼 차례를 바꿔도 된다).
  */
 public final class Lang {
@@ -54,7 +54,7 @@ public final class Lang {
      * 열쇠 하나. text 는 꼴 태그를 뗀 글 (자리 태그는 그대로), slots 는 한국어에 자리가 나오는 차례,
      * fallback 은 영어 글을 마인크래프트 번역 형식 (%1$s) 으로 바꾼 것 (팩이 없을 때 클라이언트가 이것을 쓴다).
      */
-    private record Entry(Style style, String styleTag, Map<String, String> text, List<String> slots, String fallback) {}
+    private record Entry(Style style, Map<String, String> text, List<String> slots, String fallback) {}
 
     private static Map<String, Entry> entries = Collections.emptyMap();
     /** 목록 열쇠 → 줄 수 (줄마다 열쇠.1, 열쇠.2 ...) */
@@ -135,7 +135,7 @@ public final class Lang {
             bad.add(key + ": 자리가 다르다 (ko " + slots + ", en " + slots(ep[1]) + ")"); // lang-ok
         }
         Map<String, String> text = Map.of(KO, kp[1], EN, ep[1]);
-        out.put(key, new Entry(style(kp[0]), kp[0], text, slots, mcFormat(ep[1], slots)));
+        out.put(key, new Entry(style(kp[0]), text, slots, mcFormat(ep[1], slots)));
     }
 
     /** "꼴태그들 + 글" → {꼴태그들, 글}. 맨 앞에서 꼴로 읽히는 태그만 떼고, 처음 만난 자리 태그에서 멈춘다. */

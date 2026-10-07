@@ -9,6 +9,7 @@
 | `setup_client.py` | piston-meta 에서 버전 문서 → 라이브러리·네이티브·에셋을 받는다 (처음 한 번, 약 110MB) |
 | `devserver.sh` | 점검용 Paper 서버 (오프라인 접속, 시험 모드, 팩을 로컬 포트에서, Tester 에게 op) |
 | `m0_shots.sh` | M0 점검 그림 묶음 (13.4 가운데 M0 에 있는 것 전부. 그림마다 몇 번을 보는지 머리말에 있다). 서버폴더를 주면 9 회전 구르기와 13 설정 단계 팩 보내기도 |
+| `i18n_shots.sh` | 영어판 점검 그림 (10.3, 10.9): 같은 장면 (들어온 HUD, 휴식 창, 아이템 설명 칸, 사망 화면, 그만두기 확인) 을 `ko_kr` 과 `en_us` 클라이언트로 찍는다 (`dist/screenshots/i18n/`) |
 | `log4j2-client.xml` | 클라이언트 기록을 보통 글줄로 (런처 설정은 XML 로 낸다) |
 
 ## 쓰는 법
@@ -56,6 +57,7 @@ tools/client/devserver.sh --stop /tmp/srv
 | `mdown:버튼` / `mup:버튼` | 마우스 누르기만 / 떼기만 |
 | `look:dx:dy` | 시점 돌리기 (화면 픽셀. 400 이면 대략 90도) |
 | `click:x:y[:버튼]` | 화면 좌표로 옮겨 누르기. 창 (Dialog, 사망 화면) 의 단추 |
+| `move:x:y` | 화면 좌표로 옮기기만 (누르지 않는다). 인벤토리 칸 위의 아이템 설명 칸 |
 | `slot:N` | 단축 슬롯 |
 | `cmd:글` | T 로 채팅을 열어 치고 Enter |
 | `type:글` | 열린 칸에 치기만 |
@@ -72,7 +74,7 @@ tools/client/devserver.sh --stop /tmp/srv
 | `MC_NAME` | `Tester` | 오프라인 이름 |
 | `MC_HOST` | `localhost` | 접속 주소 앞부분 |
 | `MC_SIZE` | `1280x720` | 창 = 화면 크기 |
-| `MC_LANG` | `ko_kr` | 클라이언트 언어 (setup 이 받은 것만. `setup_client.py --langs ko_kr,en_us`) |
+| `MC_LANG` | `ko_kr` | 클라이언트 언어 (setup 이 받은 것만. `setup_client.py --langs ko_kr,en_us`. en_us 는 jar 안에 있다). 영어판 점검은 `MC_LANG=en_us` (`i18n_shots.sh`) |
 | `MC_GUI_SCALE` | `0` (자동, 1280x720 이면 3) | GUI 배율 |
 | `MC_OPTIONS` | | options.txt 에 더할 줄 `"키:값;키:값"` (예 `"chatVisibility:2;renderDistance:12"`) |
 | `MC_XMX` | `2G` | 클라이언트 메모리 |

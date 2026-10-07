@@ -8,7 +8,10 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import java.util.ArrayList;
 import java.util.List;
 
-/** MiniMessage 문자열을 Component 로 바꾸는 도우미. 아이템 이름/설명은 기울임을 끈다. */
+/**
+ * MiniMessage 문자열을 Component 로 바꾸는 도우미. 아이템 이름/설명은 기울임을 끈다.
+ * 플레이어가 보는 글에는 쓰지 않는다: 게임 글은 언어 열쇠다 (kr.souls.Lang, 10.3). 시험 줄·기록 같은 기계 글에만.
+ */
 public final class Text {
     private static final MiniMessage MM = MiniMessage.miniMessage();
 

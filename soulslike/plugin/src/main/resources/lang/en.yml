@@ -38,7 +38,7 @@ bell:
   rung: "<#b3a37f>The bell's toll carries far"
 
 taster:
-  end: "<#b3a37f>THE WAY IS SHUT"
+  end: "<#b3a37f>THE WAY IS BARRED"
 
 spell:
   learned: "<#b3a37f>Rite learned"
