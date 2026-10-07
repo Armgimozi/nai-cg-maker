@@ -353,24 +353,19 @@ public final class Hud implements Listener {
         if (v != null && v.bar != null) e.getPlayer().hideBossBar(v.bar);
     }
 
-    /** 부활·세계 이동 뒤에는 보스 막대를 한 번 거뒀다 다시 띄워 클라이언트가 놓쳤어도 돌아오게 한다. */
+    /**
+     * 부활·세계 이동 뒤에는 막대와 소울 상자를 다시 보낸다. 보스 막대는 거뒀다 다시 띄우지 않는다: 클라이언트는 부활·세계 이동에도
+     * 보스 막대를 그대로 두고 [확인 (클라)], Paper 는 거둔 막대를 다시 띄울 때 새 보스 막대 (새 UUID) 를 만들어 그때 떠 있는
+     * 진짜 보스 막대 밑으로 내려 보낸다.
+     */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onRespawn(PlayerPostRespawnEvent e) {
-        reshow(e.getPlayer());
+        invalidate(e.getPlayer());
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onWorld(PlayerChangedWorldEvent e) {
-        reshow(e.getPlayer());
-    }
-
-    private void reshow(Player p) {
-        View v = view(p);
-        if (v.bar != null) {
-            p.hideBossBar(v.bar);
-            p.showBossBar(v.bar);
-        }
-        invalidate(p);
+        invalidate(e.getPlayer());
     }
 
     /** 진짜 경험치는 쌓이지 않는다 (레벨 숫자가 서지 않게. 경험치 막대 그림은 팩이 숨긴다). */

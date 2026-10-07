@@ -652,12 +652,12 @@ def slider_track(hi):
 
 
 def slider_handle(hi):
-    """밀대 손잡이 8×20: 바랜 양피지빛 막대, 가리키면 밝은 금빛."""
+    """밀대 손잡이 8×20: 바랜 양피지빛 막대, 가리키면 밝은 금빛. 길의 테 (가장자리에서 1) 안에 들어가게 위·아래 한 줄을 비운다."""
     cv = Cv(8, 20)
-    cv.rect(1, 0, 6, 19, ORN if hi else LINE)
-    cv.rect(2, 1, 5, 18, ("parch1", 255) if hi else ("parch0", 255))
-    cv.vline(0, 1, 18, (INK, 200))
-    cv.vline(7, 1, 18, (INK, 200))
+    cv.rect(1, 1, 6, 18, ORN if hi else LINE)
+    cv.rect(2, 2, 5, 17, ("parch1", 255) if hi else ("parch0", 255))
+    cv.vline(0, 2, 17, (INK, 200))
+    cv.vline(7, 2, 17, (INK, 200))
     return cv.image()
 
 

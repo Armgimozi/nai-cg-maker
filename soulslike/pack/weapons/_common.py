@@ -265,10 +265,13 @@ def hand_display(kind):
 # 1인칭은 바닐라가 방패가 아닌 막기 아이템에 거는 몸짓 (ItemInHandRenderer 의 BLOCK) 뒤에 이 값이 걸린다.
 # 값은 _views.py 의 흉내 그림으로 맞췄다 [미확인 (클라)]
 GUARD = {
-    # 한손 무기: 끝이 몸 안쪽 위, 날 면이 앞 (3인칭), 1인칭은 날이 화면 아래쪽을 가로지른다
-    "one_hand": {"tp": [-10, -90, 0], "fp": ([20, -90, 0], [1.13, -1.318, -0.515])},
-    "greatsword": {"tp": [-10, -90, 0], "fp": ([20, -90, 0], [1.13, -1.318, -0.515])},
-    "pole": {"tp": [-10, -90, 0], "fp": ([20, -90, 0], [1.13, -1.318, -0.515])},
+    # 한손 무기: 3인칭은 날이 몸 앞을 비스듬히 가로지르고 (끝이 몸 안쪽 위) 날 면이 앞. 1인칭은 날이 화면 아래쪽을
+    # 왼쪽 위로 가로지르고 날 면이 화면을 본다 (끝은 십자선 아래)
+    "one_hand": {"tp": [-150, 30, 130], "fp": ([-20, 80, 30], [2.52, 3.0, 1.97])},
+    # 대검: 날 면을 앞으로 세워 방패처럼 (3인칭은 끝이 위, 조금 안쪽. 1인칭은 끝이 왼쪽 위로 기울어 십자선 아래에 머문다)
+    "greatsword": {"tp": [-150, 30, 170], "fp": ([115, -70, 75], [2.2, 3.54, -1.08])},
+    # 창·미늘창: 자루를 몸 앞에 비스듬히 (머리가 안쪽 위)
+    "pole": {"tp": [30, -30, 40], "fp": ([-160, -80, -180], [3.4, 3.12, 1.67])},
 }
 
 
@@ -282,8 +285,10 @@ def guard_display(kind):
 
 
 # 방패 (설계: +Y 위, +Z 앞면, 손잡이는 뒤, 그 가운데가 쥐는 점). 3인칭 이동은 무기와 같다 [미확인 (클라): 회전]
-SHIELD_TP_ROT = [90, 90, 0]          # 평소: 앞면이 몸 바깥, 위가 위 (팔꿈치 쪽)
-SHIELD_BLOCK_TP_ROT = [-90, 0, 180]  # 막기: 앞면이 팔 앞
+SHIELD_TP_ROT = [90, 90, 0]          # 평소: 앞면이 몸 바깥, 위가 팔꿈치 쪽 (팔에 매인 방패라 팔을 따라 기운다)
+# 막기: 바닐라 BLOCK 팔 자세 (팔을 앞으로 54° 들고 안쪽으로 30°) 에서 방패가 곧게 서고 앞면이 앞을 본다.
+# SPEC 의 첫 값 [−90, 0, 180] 은 흉내 그림에서 앞면이 위를 보아 (_views) 바꿨다 [미확인 (클라)]
+SHIELD_BLOCK_TP_ROT = [-145, 40, -180]
 SHIELD_FP = ([0, 0, 0], [0, 0, 0])   # set_a 가 방패마다 덮어쓴다 (크기가 달라서)
 BOW_TP_ROT = [0, -90, 0]
 
@@ -302,10 +307,11 @@ def shield_block_display(fp_rot, fp_t, fp_s):
     }
 
 
-def bow_display(fp_rot=None, fp_t=None):
+def bow_display(tp_rot=None, fp_rot=None, fp_t=None, fp_s=None):
+    """활 (설계: 활대 ±Y, 시위 +X, 화살 −X). 3인칭 이동은 정한 값, 회전은 평소·당김이 다르다 (set_a 의 bow_a 가 준다)."""
     return {
-        "thirdperson_righthand": _t(BOW_TP_ROT, TP_T, 1.0),
-        "firstperson_righthand": _t(fp_rot or FP_ROT, fp_t or FP_T, FP_SCALE["bow"]),
+        "thirdperson_righthand": _t(tp_rot or BOW_TP_ROT, TP_T, 1.0),
+        "firstperson_righthand": _t(fp_rot or FP_ROT, fp_t or FP_T, fp_s or FP_SCALE["bow"]),
     }
 
 
@@ -413,7 +419,8 @@ def write_icon(assets, wid, img):
           {"parent": "minecraft:item/generated", "textures": {"layer0": f"{NS}:item/{wid}"}})
 
 
-def write_item(out, wid, w, display, icon, kind, use=None, use_display=None, swap=None, bow_states=None):
+def write_item(out, wid, w, display, icon, kind, use=None, use_display=None, swap=None, bow_states=None,
+               pull_display=None):
     """
     한 아이템을 쓴다. 돌려주는 값: {"3d": Model, "use": Model 또는 None, "pull": [Model ...]}.
       w            SoulsWeapon (평소 모양)
@@ -423,6 +430,7 @@ def write_item(out, wid, w, display, icon, kind, use=None, use_display=None, swa
       use          "guard" (무기 막기) | "block" (방패·쳐내기 단검) | "same" (촉매: 쓰는 중에도 _3d) | "bow"
       use_display  guard / block 모형의 손 자세
       bow_states   활 당김 셋 [SoulsWeapon ×3] (use="bow")
+      pull_display 당긴 활 모형의 손 자세 (없으면 display). 당기는 동안 팔 자세가 바뀌므로 따로 둔다
     """
     assets = os.path.join(out, "assets", NS)
     made = {"3d": w.build(f"item/{wid}_3d", assets, display=display), "use": None, "pull": []}
@@ -434,7 +442,7 @@ def write_item(out, wid, w, display, icon, kind, use=None, use_display=None, swa
         on_true = _ref(f"{wid}_{use}")
     elif use == "bow":
         for i, st in enumerate(bow_states):
-            made["pull"].append(st.build(f"item/{wid}_3d_pulling_{i}", assets, display=display))
+            made["pull"].append(st.build(f"item/{wid}_3d_pulling_{i}", assets, display=pull_display or display))
             _drop_def(assets, f"{wid}_3d_pulling_{i}")
         on_true = {"type": "minecraft:range_dispatch", "property": "minecraft:use_duration", "scale": 0.05,
                    "entries": [{"threshold": 0.65, "model": _ref(f"{wid}_3d_pulling_1")},

@@ -164,7 +164,7 @@ def grid(rows):
     return [list(r) for r in rows], w, h
 
 
-def masonry(rows, ramps, mortar, *, gap=".", mode="arris", modes=None, arris=None):
+def masonry(rows, ramps, mortar, *, gap=".", mode="arris", modes=None, arris=None, tail=None):
     """
     손으로 적은 배치도로 돌·판자를 칠한다.
       rows    16 줄 문자열. gap 글자 = 줄눈, ' ' = 투명, 그 밖의 글자 = 돌 하나 (같은 글자는 같은 돌.
@@ -178,9 +178,13 @@ def masonry(rows, ramps, mortar, *, gap=".", mode="arris", modes=None, arris=Non
                 "soft"   윗줄 빛, 아랫줄 그늘만 (기와, 판자)
                 "drop"   아랫줄 그늘만 (빛 없는 돌)
                 "flat"   바탕만
+                "lip"    판석·벽돌: 윗모서리 왼쪽 몇 칸 (arris) 과 왼쪽 열 바로 아래 한 칸만 빛, 아랫줄은 오른쪽 끝에서
+                         tail={글자: 칸 수} 만큼만 그늘 (없으면 3), 오른쪽 열 그늘, 오른쪽 아래 귀 깊은 그늘.
+                         3픽셀 켜의 벽돌도 얼굴이 납작하게 남는다 (아랫줄 전체를 그늘로 칠하면 2픽셀 띠처럼 보인다)
     빛은 왼쪽 위 하나다.
     """
     g, w, h = grid(rows)
+    tail = tail or {}
     # 소문자는 같은 돌의 한 칸을 한 단 밝게 (쪼갠 면의 턱, 결). 모양은 대문자로 본다
     lit = {(x, y) for y in range(h) for x in range(w) if g[y][x].islower()}
     g = [[c.upper() for c in r] for r in g]
@@ -236,6 +240,22 @@ def masonry(rows, ramps, mortar, *, gap=".", mode="arris", modes=None, arris=Non
                     k = 3
                 elif rt:
                     k = 1
+            elif m == "lip":
+                n_lit = arris.get(s, 2 + (ord(s) * 7) % 4)
+                # 오른쪽으로 같은 돌이 몇 칸 더 있나 (아랫줄 그늘은 오른쪽 끝에서 tail 칸)
+                to_right = 0
+                while to_right < w and at(x + to_right + 1, y) == s:
+                    to_right += 1
+                if dn and rt:
+                    k = 0
+                elif rt and not up:
+                    k = 1
+                elif dn and to_right < tail.get(s, 3):
+                    k = 1
+                elif up and run.get((x % w, y), 99) < n_lit:
+                    k = 3
+                elif lf and not up and at(x, y - 2) != s:
+                    k = 3
             else:  # arris
                 n_lit = arris.get(s, 2 + (ord(s) * 7) % 4)
                 if dn and rt:
@@ -293,147 +313,196 @@ def paint(rows, ink):
 # [깊은 그늘, 그늘, 바탕, 빛]. 밝기 (luma): ash0 .11 rust0 .15 ash1 .22 rust1 .26 ash2 .35 parch0 .38 ash3 .50 bone0 .51
 # parch1 .51 bone1 .65 parch2 .64 bone2 .79
 
-PALE = ["ash1", "ash2", "ash3", "bone1"]          # 바랜 회색 돌 (레딘 성벽)
-WARM = ["ash1", "ash2", "bone0", "bone1"]         # 따뜻한 회색
+PALE = ["ash1", "ash2", "ash3", "stone2"]         # 바랜 회색 돌 (레딘 성벽). 가장 밝은 뼈빛 (bone1) 은 깨진 입술 몇 곳에만
+WARM = ["ash1", "ash2", "bone0", "stone2"]        # 따뜻한 회색
 OCHRE = ["rust1", "parch0", "parch1", "parch2"]   # 황토 돌 (Undead Burg)
 SOOT = ["ash0", "ash1", "ash2", "ash3"]           # 그을린 돌
-# 심층암 (탑옥, 시험 방): 블록 전용 점판암 계열의 찬 회색. 1층 (blocks_grade) 이 옮긴 심층암 광석·계단의 바탕과 같은 계열이다
-SLATE = ["slate0", "slate1", "slate2", "slate3"]
+# 심층암 (탑옥, 시험 방): 블록 전용 점판암 계열 (채도 0.08~0.10 의 찬 회색). 1층 (blocks_grade) 이 옮긴 심층암 광석·계단의
+# 바탕과 같은 계열이다. 벽 (벽돌) 은 바탕 slate2 (밝기 .29), 바닥 (타일·윤낸 판석) 은 한 단 밝은 slate3 (.36):
+# 랜턴 빛 7 과 지역 안개 아래에서 턱 윗면과 바닥 모서리가 벽에서 갈린다. 아주 어두운 줄눈 (slate0) 은 세로 이음과 금에만
+SLATE = ["slate0", "slate1", "slate2", "slate3"]            # 벽돌
+SLATE_LT = ["slate1", "slate2", "slate3", "slate4"]         # 바닥, 볕을 더 받는 벽돌
+SLATE_DK = ["slate0", "slate1", "slate1", "slate2"]         # 그을음이 앉은 벽돌 (한 장에 하나)
 
 # ─────────────────────────── 심층암 (시험 방, 탑옥) ───────────────────────────
-# 찬 묘실 돌 (점판암 계열). 레딘의 바랜 마름돌 (돌 계열) 과 색온도로 갈린다. 시험 방이 이 돌로 지어져 있어 가장 자주 보인다.
-# 명암은 낮게 (바탕 slate2, 빛 slate3 을 윗모서리 몇 칸에만): 어두운 방에서 줄눈만 또렷하다.
+# 찬 묘실 돌. 레딘의 바랜 마름돌 (돌 계열) 과 색온도로 갈린다. 시험 방이 이 돌로 지어져 있어 가장 자주 보인다.
 
-SLATE_DK = ["slate0", "slate0", "slate1", "slate2"]   # 그을음이 더 앉은 돌
-
-DSB_ROWS = [  # 심층암 벽돌: 3픽셀 켜 넷, 이음줄은 켜마다 다른 자리. 소문자는 쪼갠 면의 턱
-    "AAA.BBBBBBB.AAAA",
-    "AAA.BBBbbBB.AAAA",
-    "AAAA.BBBBBB.AAAA",
+DSB_ROWS = [  # 심층암 벽돌: 3픽셀 켜 넷 + 1픽셀 줄눈, 벽돌 길이 5~9 (켜마다 다르다), 이음줄은 켜마다 다른 자리
+    "AAAAAA.BBBBBBBB.",
+    "AAAAAA.BBBBbBBB.",
+    "AAAAAA.BBBBBBBB.",
     "................",
-    "CCCCCCC.DDDDDDD.",
-    "CccCCCC.DDDDDDD.",
-    "CCCCCC.DDDDDDDD.",
+    "DDD.CCCCCCCC.DDD",
+    "DDD.CCCCCCCC.DDD",
+    "DDD.CCCCCCCC.DDD",
     "................",
-    "F.EEEEEEEE.FFFFF",
-    "F.EeEEEEEE.FFffF",
-    "F.EEEEEEEE.FFFFF",
+    ".EEEEEEEEE.FFFFF",
+    ".EEEEEEEEE.FfFFF",
+    ".EEEEEEEEE.FFFFF",
     "................",
     "HHHHH.GGGGGGG.HH",
-    "HHHHH.GGGggGG.HH",
-    "HHHHHH.GGGGGG.HH",
+    "HHHHH.GGgGGGG.HH",
+    "HHHhH.GGGGGGG.HH",
     "................",
 ]
-DSB_RAMP = {"*": SLATE, "D": SLATE_DK, "H": SLATE_DK}
-DSB_ARRIS = {"A": 3, "B": 5, "C": 2, "D": 4, "E": 6, "F": 3, "G": 2, "H": 4}
+DSB_RAMP = {"*": SLATE, "B": SLATE_LT, "D": SLATE_DK}
+DSB_ARRIS = {"A": 3, "B": 5, "C": 2, "D": 2, "E": 6, "F": 3, "G": 4, "H": 2}
+DSB_TAIL = {"A": 2, "B": 4, "C": 3, "D": 2, "E": 5, "F": 2, "G": 1, "H": 2}
 
 
 def deepslate_bricks():
-    return masonry(DSB_ROWS, DSB_RAMP, ["slate0", "slate0"], arris=DSB_ARRIS)
+    # 가로 줄눈은 slate1 (벽돌 그늘과 같은 밝기), 세로 이음만 slate0. 벽돌 하나는 윗모서리가 이 빠졌고 (c), 하나는 귀가 닳았다
+    t = masonry(DSB_ROWS, DSB_RAMP, ["slate1", "slate0"], mode="lip", arris=DSB_ARRIS, tail=DSB_TAIL)
+    return overlay(t, [
+        "                ",
+        "                ",
+        "                ",
+        "                ",
+        "        cc      ",
+        "         c      ",
+        "                ",
+        "                ",
+        "                ",
+        "                ",
+        "               c",
+        "                ",
+        "                ",
+        "                ",
+        "                ",
+        "                ",
+    ], {"c": "slate1"})
 
 
 def cracked_deepslate_bricks():
     t = deepslate_bricks()
-    # 금은 위에서 내려와 켜를 건너간다 (줄눈에서 끊기지 않는다). 벽돌 하나는 귀가 떨어져 속이 보인다
+    # 금은 위 켜에서 내려와 줄눈을 건너 세 켜를 지난다 (x 금, 금 아래 오른쪽 h 는 깨진 면이 받은 빛).
+    # 아래 켜의 벽돌 하나는 왼쪽 귀가 떨어져 속이 보인다 (k 속, l 떨어진 자리 아랫가장자리의 빛)
     return overlay(t, [
+        "          x     ",
+        "          xh    ",
         "         x      ",
+        "         x      ",
+        "        xh      ",
         "        x       ",
-        "        x       ",
-        "        x       ",
+        "       xh       ",
         "       x        ",
-        "       xx       ",
-        "         x      ",
-        "         x      ",
-        "  kk      x     ",
-        "  k        xx   ",
-        "             x  ",
+        "      x         ",
+        "     xh         ",
         "                ",
         "                ",
-        "    x           ",
-        "     xx         ",
+        "      kk        ",
+        "      kkk       ",
+        "       ll       ",
         "                ",
-    ], {"x": "slate0", "k": "slate0"})
+    ], {"x": "slate0", "h": "slate3", "k": "slate0", "l": "slate3"})
 
 
-DST_ROWS = [  # 심층암 타일: 바닥과 지붕. 켜 셋 (4·4·5 픽셀), 이음줄은 켜마다 다르다
-    "AA.BBBB.CCCC.AAA",
-    "Aa.BBBB.CCcC.AAA",
-    "AA.BbBB.CCCC.AAA",
-    "AA.BBBB.CCCC.AaA",
+DST_ROWS = [  # 심층암 타일 (바닥, 턱, 지붕): 세 켜 (4·4·5 픽셀), 켜마다 이음 자리가 다르고 가운데 켜의 D 는 두 칸 길이.
+    # 소문자는 타일마다 다른 자리의 닳은 턱 (한 단 밝게)
+    "AAA.BBBB.CCCC.AA",
+    "AAA.BBBB.CcCC.AA",
+    "AAA.BBBB.CCCC.AA",
+    "AAA.BBBB.CCCC.AA",
     "................",
-    ".DDDD.EEEE.FFFFF",
-    ".DdDD.EEEE.FFFfF",
-    ".DDDD.EEeE.FFFFF",
-    ".DDDD.EEEE.FFFFF",
+    "E.DDDDDDDDD.EEEE",
+    "E.DDDDDDDDD.EEEE",
+    "E.DDDDDDDDD.EEEE",
+    "E.DdDDDDDDD.EEEE",
     "................",
-    "III.GGGGG.HHH.II",
-    "IiI.GGGGG.HHH.II",
-    "III.GGgGG.HhH.II",
-    "III.GGGGG.HHH.II",
-    "III.GGGGG.HHH.iI",
+    "FFFFF.GGGG.HHHH.",
+    "FFFFF.GGGG.HHHH.",
+    "FFFFF.GGGG.HHHH.",
+    "FFFFF.GGGG.HHHH.",
+    "FFFFF.GGGG.HHHH.",
     "................",
 ]
-DST_RAMP = {"*": SLATE, "E": SLATE_DK, "I": SLATE_DK}  # 소문자: 타일마다 다른 자리의 닳은 턱
-DST_ARRIS = {"A": 4, "B": 2, "C": 3, "D": 3, "E": 4, "F": 2, "G": 3, "H": 2, "I": 4}
+DST_ARRIS = {"A": 4, "B": 2, "C": 3, "D": 6, "E": 5, "F": 3, "G": 2, "H": 1}
+DST_TAIL = {"A": 1, "B": 2, "C": 2, "D": 4, "E": 3, "F": 2, "G": 2, "H": 2}
+
+
+def _tiles_base():
+    return masonry(DST_ROWS, {"*": SLATE_LT}, ["slate1", "slate1"], mode="lip", arris=DST_ARRIS, tail=DST_TAIL)
 
 
 def deepslate_tiles():
-    return masonry(DST_ROWS, DST_RAMP, ["slate0", "slate0"], arris=DST_ARRIS)
+    # 타일마다 납작한 얼굴 (왼쪽 위 1픽셀 빛, 오른쪽 아래 그늘). 고르지 않게: B 는 내려앉아 윗모서리가 그늘 (s) 이고
+    # 아랫모서리가 빛 (u), G 는 겉이 떨어져 나가 속 (p) 과 그 아랫입술 (u) 이 보인다. 귀 두 곳이 깨졌다 (c 줄눈 빛깔, k 깊은 곳)
+    t = _tiles_base()
+    return overlay(t, [
+        "    ssss    c   ",
+        "    -       c   ",
+        "                ",
+        "    uuu         ",
+        "                ",
+        "                ",
+        "                ",
+        "                ",
+        "                ",
+        "                ",
+        "       pp       ",
+        "      ppp       ",
+        "       uu       ",
+        "c               ",
+        "ck              ",
+        "                ",
+    ], {"s": "slate2", "u": "slate4", "p": "slate2", "c": "slate1", "k": "slate0"})
 
 
 def cracked_deepslate_tiles():
-    t = deepslate_tiles()
-    # 타일 하나는 귀가 깨져 아래 받침이 보이고 (깊은 그늘), 하나는 금이 가로질렀다
+    t = _tiles_base()
+    # 금 둘이 타일 이음을 건너 이어진다 (x 얼굴 위의 금, 줄눈 위에서는 o 더 깊다). 금 아래 오른쪽은 h (깨진 면의 빛).
+    # 오른쪽 아래 타일은 한 귀가 떨어져 속이 보인다 (k)
     return overlay(t, [
         "                ",
-        "    x           ",
-        "     x          ",
-        "     xx         ",
+        "   x            ",
+        "   ox           ",
+        "    xh          ",
+        "     o          ",
+        "      xx        ",
+        "        xh      ",
+        "         x      ",
+        "         xh     ",
+        "          o     ",
+        "          o     ",
+        "           x    ",
+        "            xh  ",
+        "             k  ",
+        "            kk  ",
         "                ",
-        "             kk ",
-        "              k ",
-        "                ",
-        "                ",
-        "                ",
-        "      x         ",
-        "      x         ",
-        "       x        ",
-        "       x        ",
-        "        x       ",
-        "                ",
-    ], {"x": "slate0", "k": "slate0"})
+    ], {"x": "slate1", "o": "slate0", "h": "slate4", "k": "slate0"})
 
 
 def polished_deepslate():
-    # 한 장짜리 윤낸 판석. 윗모서리 왼쪽 반만 빛을 받고 (작은 타일 사이에서 네모 틀처럼 튀지 않게), 아래·오른쪽은 그늘.
-    # 돌결 하나가 비스듬히 지나간다 (한 단 밝게, 끊기며)
-    rows = ["PPPPPPPPPPPPPPP."] * 15 + ["................"]
-    t = masonry(rows, {"P": SLATE}, ["slate0", "slate0"], arris={"P": 8})
+    # 판석 두 장 (위 큰 장, 아래 장은 이음이 x=4 로 엇갈린다). 이음은 오른쪽과 아랫줄에만 있어 이어 놓으면 1픽셀 줄이다.
+    # 발에 닳은 자리 몇 군데가 한 단 밝다 (+, 크기와 자리가 다르게, 이어진 띠는 아니다), 긁힌 자국 둘 (-),
+    # 아래 장 왼쪽 위 귀가 깨졌다 (c, k)
+    rows = ["AAAAAAAAAAAAAAA."] * 9 + ["................"] + ["BBBB.BBBBBBBBBBB"] * 5 + ["................"]
+    t = masonry(rows, {"*": SLATE_LT}, ["slate1", "slate1"], mode="lip", arris={"A": 7, "B": 5}, tail={"A": 6, "B": 4})
     return overlay(t, [
         "                ",
         "                ",
         "                ",
-        "              + ",
-        "            ++  ",
-        "          +     ",
-        "        ++      ",
-        "                ",
-        "     ++         ",
-        "   ++           ",
-        "  +             ",
+        "         ++     ",
+        "  ++    +++     ",
+        "   +            ",
+        "            -   ",
+        "             -  ",
         "                ",
         "                ",
-        "      -         ",
-        "           +    ",
+        "     cc         ",
+        "     k          ",
+        "          ++    ",
+        "  -        +    ",
+        "   -            ",
         "                ",
-    ])
+    ], {"c": "slate1", "k": "slate0"})
 
 
 def chiseled_deepslate():
     # 구르기 길의 시작 칸: 판석에 새긴 고리와 그 안의 칼 한 자루 (화톳불의 말린 칼).
     # 홈은 왼쪽 위 벽이 그늘 (x), 오른쪽 아래 벽이 빛 (h). 고리 오른쪽 위는 닳아 끊겼다
     rows = ["PPPPPPPPPPPPPPP."] * 15 + ["................"]
-    t = masonry(rows, {"P": SLATE}, ["slate0", "slate0"], mode="full")
+    t = masonry(rows, {"P": SLATE_LT}, ["slate1", "slate1"], mode="lip", arris={"P": 9}, tail={"P": 7})
     return overlay(t, [
         "                ",
         "                ",
@@ -451,7 +520,7 @@ def chiseled_deepslate():
         "      hhhhh     ",
         "                ",
         "                ",
-    ], {"x": "slate0", "h": "slate3"})
+    ], {"x": "slate1", "h": "slate4"})
 
 
 CDS_ROWS = [  # 조각난 심층암: 판처럼 쪼개진 모난 조각 아홉. 소문자는 쪼갠 면의 턱
@@ -472,7 +541,7 @@ CDS_ROWS = [  # 조각난 심층암: 판처럼 쪼개진 모난 조각 아홉. �
     "HHHH.IIIIII...HH",
     ".HH.IIIiiIII...H",
 ]
-CDS_RAMP = {"*": SLATE, "D": SLATE_DK, "H": SLATE_DK}
+CDS_RAMP = {"*": SLATE, "D": SLATE_DK, "B": SLATE_LT, "G": SLATE_LT}
 CDS_ARRIS = {"A": 3, "B": 4, "C": 2, "D": 3, "E": 4, "F": 3, "G": 4, "H": 3, "I": 5}
 
 
@@ -507,26 +576,27 @@ SB_ARRIS = {"A": 4, "B": 3, "C": 6, "D": 2, "E": 3, "F": 5}
 
 
 def stone_bricks():
-    t = masonry(SB_ROWS, SB_RAMP, ["ash1", "rust0"], arris=SB_ARRIS)
-    # 이 빠진 귀 (c: 줄눈만큼 깊다), 물때 (-: 윗줄눈에서 두세 칸 흘러내리다 끊긴다), 황토 얼룩 (o: 돌 아래쪽에 고인 흙물)
+    t = masonry(SB_ROWS, SB_RAMP, ["ash1", "ash1"], arris=SB_ARRIS)
+    # 이 빠진 벽돌은 셋뿐 (자리·크기가 다르다): B 오른쪽 위 귀 (c 깊은 곳 한 칸, e 깨진 면, h 깨진 바닥이 받은 빛),
+    # E 왼쪽 아래 귀, C 윗모서리의 얕은 홈 (s). 물때 (-: 윗줄눈에서 두세 칸 흘러내리다 끊긴다), 황토 얼룩 (o: 돌 아래쪽에 고인 흙물)
     return overlay(t, [
-        "               c",
-        "        --      ",
+        "           ec   ",
+        "        --  e   ",
+        "         -  h   ",
         "         -      ",
-        "         -      ",
-        "c              c",
         "                ",
-        " c   o          ",
+        "                ",
+        "    ss          ",
         "            --  ",
         "             -  ",
-        "    oo   c      ",
+        "    oo          ",
         "                ",
         "  -       oo    ",
         "  --       o    ",
-        "   -            ",
-        "c             c ",
+        "h  -            ",
+        "cc              ",
         "                ",
-    ], {"c": "rust0", "o": "parch0"})
+    ], {"c": "ash1", "e": "ash2", "h": "bone1", "o": "parch0", "s": "ash2"})
 
 
 def cracked_stone_bricks():
@@ -693,26 +763,27 @@ TUFF_ROWS = [  # 응회암: 크기가 다른 둥근 덩어리 다섯 (맞닿은 
 
 
 def tuff():
-    t = masonry(TUFF_ROWS, {"*": ["ash1", "stone0", "ash2", "stone1"]}, "ash1", mode="drop")
-    # 숨구멍: 네 무리 (x 구멍, 바로 아래 l 은 구멍 아랫벽이 받은 빛), 바랜 자리 둘 (m)
+    # 응회암: 차분한 두 색 바탕 (재 ash2, 넓은 얼룩 둘 stone0). 숨구멍 다섯 (x 2~3 픽셀 구멍, 바로 아래 l 은 구멍
+    # 아랫입술이 받은 빛). 흩뿌린 점은 없다
+    t = Tex(fill="ash2")
     return overlay(t, [
-        "                ",
-        "  x x           ",
-        "  l l     mm    ",
-        "   x     mmm    ",
-        "   l            ",
-        "            x   ",
-        "           xlx  ",
-        "            l   ",
-        "                ",
-        " mm   x         ",
-        "  m   lx        ",
+        "oooo        o oo",
+        "ooooo   xx   ooo",
+        "oooooo  ll    oo",
+        "ooooo          o",
+        " ooo            ",
+        "  oo    x       ",
+        "        x       ",
+        "        l       ",
+        "   x            ",
+        "   xx           ",
+        "    ll     ooo  ",
+        "          ooooo ",
+        "         oooo   ",
+        "      xx   oo   ",
         "       l        ",
-        "              x ",
-        "              l ",
-        "       x        ",
-        "       l        ",
-    ], {"x": "ash1", "l": "ash3", "m": "parch0"})
+        "o              o",
+    ], {"o": "stone0", "x": "ash1", "l": "stone1"})
 
 
 CALC_ROWS = [  # 방해석: 큰 덩어리 넷, 그 사이를 가는 결 하나가 감아 돈다
@@ -737,26 +808,27 @@ CALC = ["parch0", "parch1", "bone0", "bone1"]     # 바랜 방해석: 회녹빛 
 
 
 def calcite():
-    t = masonry(CALC_ROWS, {"*": CALC}, "bone0", mode="drop")
-    # 회색 결 (v) 하나가 위에서 비스듬히 내려와 두 덩어리를 가로지른다
+    # 바랜 방해석 (교구): 차고 하얗게 바랜 뼈빛 (slate5 바탕, 평균 밝기 약 0.58, 채도 0.05 아래). 길고 고르지 않은 퇴적 결 둘
+    # (v, 계단처럼 오르내리고 군데군데 끊긴다), 비에 씻겨 더 바랜 자리 (s, 하나뿐) 와 위에서 흘러내린 빗물 자국 (w, 길이가 다르다)
+    t = Tex(fill="slate5")
     return overlay(t, [
-        "    v           ",
-        "    v           ",
-        "     v          ",
-        "     v          ",
-        "      v         ",
-        "       vv       ",
-        "                ",
-        "                ",
-        "                ",
-        "                ",
-        "           v    ",
-        "           v    ",
-        "            v   ",
-        "                ",
-        "                ",
-        "    v           ",
-    ], {"v": "ash3"})
+        " w      w       ",
+        " w      w    ss ",
+        " w      w   ssss",
+        "        w  sssss",
+        "vvv        sssss",
+        "   vv v     ssv ",
+        "       vvv   vv ",
+        "  w       v     ",
+        "  w             ",
+        "  w             ",
+        "         w      ",
+        "         w      ",
+        "      vvv       ",
+        "   w     vv v   ",
+        "   w         v  ",
+        " w w           v",
+    ], {"w": "slate6", "s": "slate6", "v": "slate4"})
 
 
 TB_ROWS = [  # 응회암 벽돌 (교구): 두 켜의 길쭉한 돌, 아래 켜는 짧은 돌이 끼었다
@@ -777,12 +849,12 @@ TB_ROWS = [  # 응회암 벽돌 (교구): 두 켜의 길쭉한 돌, 아래 켜�
     "DDD.CCCCCCCC.DDD",
     "................",
 ]
-TUFF = ["moss0", "ash1", "ash2", "ash3"]        # 축축한 회녹: 깊은 그늘만 이끼빛이다
+TUFF = ["ash0", "ash1", "ash2", "ash3"]        # 교구의 응회암 벽돌: 축축한 회색
 
 
 def tuff_bricks():
-    t = masonry(TB_ROWS, {"*": TUFF}, ["moss0", "ash1"], arris={"A": 5, "B": 2, "C": 4, "D": 2})
-    # 젖은 아래쪽: 돌마다 아래 두세 줄에 물이 차오른 자국 (m, 높이가 고르지 않다)
+    t = masonry(TB_ROWS, {"*": TUFF}, ["ash0", "ash1"], arris={"A": 5, "B": 2, "C": 4, "D": 2})
+    # 젖은 아래쪽: 돌마다 아래 두세 줄에 물이 차오른 자국 (-, 높이가 고르지 않다). 이끼 (m) 는 줄눈 몇 마디에만 끼었다
     return overlay(t, [
         "                ",
         "                ",
@@ -791,7 +863,7 @@ def tuff_bricks():
         "            -   ",
         " --  ---   --   ",
         "                ",
-        "                ",
+        "  mm        m   ",
         "                ",
         "                ",
         "                ",
@@ -799,57 +871,60 @@ def tuff_bricks():
         "      --     -  ",
         "    --  ---     ",
         "                ",
-        "                ",
-    ])
+        "        mmm     ",
+    ], {"m": "moss0"})
 
 
 
 def smooth_stone():
-    # 매끈하게 다듬은 판석 (교구): 테두리 베벨, 판 가운데는 조용하다. 정 자국 둘
+    # 매끄러운 판석 (교구): 옅은 베벨 (윗모서리 왼쪽만 빛, 아래·오른쪽 끝만 그늘). 윗모서리에서 흘러내린 넓은 물때 둘
+    # (두 단: 바깥 s 한 단 어둡게, 속 S 두 단, 아래 끝은 가는 줄로 끊긴다), 머리카락 같은 금 하나 (x), 긁힘 셋 (k)
     rows = ["PPPPPPPPPPPPPPP."] * 15 + ["................"]
-    t = masonry(rows, {"P": ["ash1", "ash2", "ash3", "bone0"]}, ["ash2", "ash2"], mode="full")
+    t = masonry(rows, {"P": ["ash2", "stone1", "ash3", "stone2"]}, ["stone1", "stone1"], mode="lip", arris={"P": 10},
+                tail={"P": 8})
     return overlay(t, [
+        "ssSSSs    sSSs  ",
+        " sSSSs    sSs   ",
+        " sSSs     sSs   ",
+        "  sSs      s    ",
+        "  sSs      s    ",
+        "  ss            ",
+        "   s        x   ",
+        "   s       x    ",
+        "           x    ",
+        "          x     ",
+        "  kk     x      ",
+        "          x     ",
         "                ",
+        "     k      kk  ",
+        "      k         ",
         "                ",
-        "                ",
-        "                ",
-        "    -           ",
-        "     -          ",
-        "                ",
-        "                ",
-        "                ",
-        "           -    ",
-        "            -   ",
-        "                ",
-        "                ",
-        "                ",
-        "                ",
-        "                ",
-    ])
+    ], {"x": "ash2", "k": "stone1", "s": "stone1", "S": "ash2"})
 
 
 def smooth_stone_slab_side():
-    # 반 블록 둘을 포갠 옆면: 위아래 판마다 베벨, 가운데 이음줄. 모서리 두 곳이 닳았다
+    # 반 블록 둘을 포갠 옆면: 판마다 옅은 베벨, 가운데 이음줄. 물때는 윗판에서 시작해 이음 아래 판까지 흘렀고, 귀 하나가 닳았다
     rows = ["PPPPPPPPPPPPPPP."] * 7 + ["................"] + ["QQQQQQQQQQQQQQQ."] * 7 + ["................"]
-    t = masonry(rows, {"*": ["ash1", "ash2", "ash3", "bone0"]}, ["ash2", "ash2"], mode="full")
+    t = masonry(rows, {"*": ["ash2", "stone1", "ash3", "stone2"]}, ["stone1", "stone1"], mode="lip",
+                arris={"P": 9, "Q": 6}, tail={"P": 7, "Q": 9})
     return overlay(t, [
+        "  sSSSs         ",
+        "   sSSs         ",
+        "   sSs       k  ",
+        "    ss      k   ",
+        "    s           ",
+        "    s           ",
         "                ",
         "                ",
-        "         -      ",
+        "    s    sSs    ",
+        "    s    sSs    ",
+        "          s     ",
+        "  kk      s     ",
         "                ",
         "                ",
-        "      -         ",
+        "c               ",
         "                ",
-        "                ",
-        "                ",
-        "   -            ",
-        "                ",
-        "                ",
-        "                ",
-        "           +    ",
-        "                ",
-        "                ",
-    ])
+    ], {"k": "stone1", "c": "stone1", "s": "stone1", "S": "ash2"})
 
 
 
@@ -859,47 +934,21 @@ def smooth_stone_slab_side():
 
 
 def spruce_planks():
-    # d 틈·못, a 그늘 결, b 바탕, c 밝은 결, g 은빛으로 바랜 결
-    return paint([
-        "bbcccbbbbbbadcbb",
-        "bbbbbbbaaabbdbbb",
-        "aaaabaaaaaaadaaa",
-        "dddddddddddddddd",
-        "bbbadcbbbccccbbb",
-        "bggbdbbbbbbbbaab",
-        "aaaadaaabaaaaaaa",
-        "dddddddddddddddd",
-        "bccbbbbbadbbbbbb",
-        "bbbbaaabbdbbgggb",
-        "aaaaaaaaadaabaaa",
-        "dddddddddddddddd",
-        "bbbbbbcccccbbbbb",
-        "bdabbbbbbbbbaabb",
-        "aaaaaaaaaaabaaaa",
-        "dddddddddddddddd",
-    ], {"d": "rust0", "a": "rust1", "b": "rust2", "c": "rust3", "g": "ash2"})
+    # 가문비 판자: 바탕 b, 결 a (어둡게) 와 c (밝게), 틈 g, 이음 d, 못 n
+    return planks([10, 3, 13, 6], [
+        (1, 1, 5, "a"), (12, 2, 4, "a"), (4, 2, 3, "c"), (8, 5, 6, "a"), (0, 6, 2, "a"), (14, 4, 3, "c"),
+        (2, 9, 4, "a"), (8, 10, 3, "a"), (5, 8, 2, "c"), (9, 13, 5, "a"), (0, 14, 4, "a"), (11, 12, 2, "c"),
+    ], {"b": "rust2", "a": "rust1", "c": "rust3", "g": "rust1", "d": "rust0", "n": "ash1"},
+        [((-2, 1), (2, 2)), ((-2, 2), (2, 1)), ((-2, 1), (3, 1)), ((-3, 2), (2, 0))])
 
 
 def dark_oak_planks():
-    # 넓은 판 셋 (가문비와 다른 폭). d 틈, a 그늘 결, b 바탕, c 밝은 결, n 못 머리
-    return paint([
-        "bbbcccbbbbbbbbbb",
-        "bbbbbbbbaaabbbbb",
-        "baaabbbbbbbbcccb",
-        "aaaaabaabaaaaaab",
-        "dddddddddddddddd",
-        "bbbbbbbbbndcbbbb",
-        "bccbbbbbbbdbbaab",
-        "bbbbaabcbbdbbbcb",
-        "bbbbbbbbccdbbbbb",
-        "aaaaaaaaandaaaaa",
-        "dddddddddddddddd",
-        "bbbdcbbbbbbbbbbb",
-        "bbndbbbbbaaabccb",
-        "bccdbbbbbbbbbbbb",
-        "aaadaaaaaaaaaaaa",
-        "dddddddddddddddd",
-    ], {"d": "ash0", "a": "rust0", "b": "bronze0", "c": "rust1", "n": "ash0"})
+    # 짙은 참나무 판자: 이음 자리와 결이 가문비와 다르다. 바탕 b, 결 a, 밝은 결 c, 틈 g, 이음 d, 녹슨 못 n
+    return planks([5, 12, 1, 9], [
+        (7, 1, 4, "a"), (0, 2, 3, "a"), (13, 1, 2, "c"), (2, 5, 5, "a"), (13, 6, 3, "a"), (6, 4, 2, "c"),
+        (3, 9, 3, "a"), (10, 10, 5, "a"), (11, 8, 2, "c"), (0, 13, 6, "a"), (11, 14, 3, "a"), (4, 12, 2, "c"),
+    ], {"b": "bronze0", "a": "rust0", "c": "rust1", "g": "rust0", "d": "ash0", "n": "rust2"},
+        [((-2, 2), (2, 1)), ((-3, 1), (2, 1)), ((-2, 0), (2, 2)), ((-2, 1), (3, 2))])
 
 
 def bark(furrows, breaks, ink, silver=(), pits=()):
@@ -958,47 +1007,20 @@ def dark_oak_log():
 
 
 def spruce_log_top():
-    # 잘린 면: 껍질 테 (b, k), 한쪽으로 쏠린 나이테 (r 어두운 테, l 밝은 테, 군데군데 겹친다), 가운데에서 위로 갈라진 틈 (x)
-    return paint([
-        "bbbbbbbbbbbbbbbb",
-        "bkkkkkkkkkkkkkkb",
-        "bklllllllllxlllb",
-        "bklrrrrrrrrxrrkb",
-        "bkrlllllllxllrkb",
-        "bkrlrrrrrrxrrlkb",
-        "bkrlrllllxllrlkb",
-        "bkrlrlrrrxrlrlkb",
-        "bkrlrlrlxlrlrlkb",
-        "bkrlrlrrrrrlrlkb",
-        "bkrlrllllllrrlkb",
-        "bkrlrrrrrrrrllkb",
-        "bkrllllllllllrkb",
-        "bklrrrrrrrrrrlkb",
-        "bkkllllllllllkkb",
-        "bbbbbbbbbbbbbbbb",
-    ], {"b": "rust0", "k": "rust1", "l": "rust3", "r": "rust2", "x": "rust0"})
+    # 가문비 잘린 면: 고갱이가 왼쪽 아래로 비켰고, 나이테가 고르지 않게 휜다. 마른 틈 둘 (긴 것 하나, 짧은 것 하나),
+    # 껍질 테는 아래·왼쪽이 두껍다
+    return log_top((6.6, 9.2), [(0.10, 0.6), (0.07, 2.1), (0.05, 4.0)], 1.45,
+                   [(-62, 1.2, 6.5), (160, 2.0, 4.6)],
+                   ("1112111111211111", "1121111211111211", "2222122222221222", "2212222122222122"),
+                   {"b": "rust0", "k": "rust1", "l": "rust3", "r": "rust2", "c": "rust1", "x": "rust0"})
 
 
 def dark_oak_log_top():
-    # 짙은 참나무 잘린 면: 껍질이 두껍고 (b, k 두 겹), 나이테가 가운데로 몰렸다. 틈은 왼쪽 아래로
-    return paint([
-        "bbbbbbbbbbbbbbbb",
-        "bkkkkkkkkkkkkkkb",
-        "bkkllllllllllkkb",
-        "bklrrrrrrrrrrlkb",
-        "bklrllllllllrlkb",
-        "bklrlrrrrrrlrlkb",
-        "bklrlrllllrlrlkb",
-        "bklrlrlrrlrlrlkb",
-        "bklrlrlrlrrlrlkb",
-        "bklrlrxlllrlrlkb",
-        "bklrlxrrrrrlrlkb",
-        "bklrxllllllrrlkb",
-        "bklxrrrrrrrrlkkb",
-        "bkxlllllllllkkkb",
-        "bkkkkkkkkkkkkkkb",
-        "bbbbbbbbbbbbbbbb",
-    ], {"b": "ash0", "k": "rust0", "l": "rust1", "r": "bronze0", "x": "ash0"})
+    # 짙은 참나무 잘린 면: 고갱이가 오른쪽 위로 비켰고 껍질이 두껍다 (두 겹이 많다). 틈 하나가 고갱이에서 왼쪽 아래로
+    return log_top((9.3, 6.4), [(0.12, 2.3), (0.06, 0.4), (0.04, 1.3)], 1.6,
+                   [(128, 1.0, 7.5), (20, 2.5, 4.5)],
+                   ("2222122222212222", "2212222221222222", "1222222122222221", "2222212222122222"),
+                   {"b": "ash0", "k": "rust0", "l": "rust1", "r": "bronze0", "c": "ash0", "x": "ash0"})
 
 
 def ladder():
@@ -1093,49 +1115,159 @@ def scaffolding_bottom():
     ], ink)
 
 
+def strokes(t, marks, ink, axis="v"):
+    """
+    손으로 놓은 짧은 결 (짚, 나뭇결). marks: (x, y, 길이, 글자) 목록, axis "v" 면 아래로, "h" 면 오른쪽으로 긋는다.
+    가장자리를 넘으면 반대쪽으로 이어진다 (Tex 가 감는다). 글자는 ink[글자] 색.
+    """
+    for x, y, n, ch in marks:
+        for i in range(n):
+            if axis == "v":
+                t[x, y + i] = ink[ch]
+            else:
+                t[x + i, y] = ink[ch]
+    return t
+
+
+def planks(joints, grain, ink, nails):
+    """
+    판자 넷 (4픽셀: 판 3줄 + 틈 1줄) 이 블록을 가로지른다. joints: 판마다 맞댄 이음의 x (판마다 다른 자리).
+    grain: (x, y, 길이, 글자) 가로 나뭇결 (2~6 픽셀). 판의 윗줄은 이음 바로 오른쪽 몇 칸만 빛 (c), 틈 (g) 은 너무 검지 않게.
+    nails: 판마다 맞댄 이음 양쪽의 못 둘 ((왼쪽 dx, 줄), (오른쪽 dx, 줄)). 이음에 붙이지 않고 한 칸 띄워, 판마다 줄을 달리 한다
+    """
+    t = Tex(fill=ink["b"])
+    for i, jx in enumerate(joints):
+        y0 = i * 4
+        for x in range(16):
+            t[x, y0 + 3] = ink["g"]
+        for dy in range(3):
+            t[jx, y0 + dy] = ink["d"]
+        for k in range(1, 3 + (i * 3) % 4):
+            t[jx + k, y0] = ink["c"]
+    for x, y, n, ch in grain:
+        for k in range(n):
+            if t[x + k, y] == ink["b"]:
+                t[x + k, y] = ink[ch]
+    for i, jx in enumerate(joints):
+        for dx, row in nails[i]:
+            t[jx + dx, i * 4 + row] = ink["n"]
+    return t
+
+
+def _line(t, x0, y0, x1, y1, v):
+    """1픽셀 곧은 금 (끝점 포함)."""
+    n = max(abs(x1 - x0), abs(y1 - y0))
+    for i in range(n + 1):
+        t[round(x0 + (x1 - x0) * i / max(1, n)), round(y0 + (y1 - y0) * i / max(1, n))] = v
+
+
+def log_top(pith, wobble, spacing, cracks, rim, ink):
+    """
+    잘린 통나무 면. pith: 고갱이 자리 (가운데에서 비켜 있다). 나이테는 고갱이에서의 거리에 각도마다 다른 들쭉날쭉
+    (wobble: (배율, 위상) 목록) 을 곱해 spacing 픽셀마다 밝은 테 (l) 와 어두운 테 (r) 가 번갈아 온다.
+    cracks: (각도°, 시작 거리, 끝 거리) 마른 틈 (x, 1픽셀). rim: 테두리 네 변 (위, 오른쪽, 아래, 왼쪽) 의 칸별 껍질 두께 문자열.
+    """
+    import math
+    t = Tex()
+    px, py = pith
+    for y in range(16):
+        for x in range(16):
+            dx, dy = x + 0.5 - px, y + 0.5 - py
+            a = math.atan2(dy, dx)
+            f = 1.0 + sum(k * math.sin(n * a + ph) for n, (k, ph) in enumerate(wobble, start=2))
+            r = math.hypot(dx, dy) * f
+            band = int(r / spacing)
+            t[x, y] = ink["c"] if r < 0.9 else (ink["r"] if band % 2 else ink["l"])
+    for ang, r0, r1 in cracks:
+        a = math.radians(ang)
+        _line(t, int(px + math.cos(a) * r0), int(py + math.sin(a) * r0),
+              int(px + math.cos(a) * r1), int(py + math.sin(a) * r1), ink["x"])
+    top, right, bottom, left = rim
+    for i in range(16):
+        for d in range(int(top[i])):
+            t[i, d] = ink["b"] if d == 0 else ink["k"]
+        for d in range(int(bottom[i])):
+            t[i, 15 - d] = ink["b"] if d == 0 else ink["k"]
+        for d in range(int(left[i])):
+            t[d, i] = ink["b"] if d == 0 else ink["k"]
+        for d in range(int(right[i])):
+            t[15 - d, i] = ink["b"] if d == 0 else ink["k"]
+    return t
+
+
 def hay_block_side():
-    # 탑옥의 썩은 건초: 젖어 검게 바랜 짚단. 굵기와 길이가 다른 짚 (밝은 짚 l, 바탕 a, 그늘 d, 꺾인 짚 끝 k),
-    # 묶은 끈 두 줄 (r 끈, s 끈 아래 그늘), 곰팡이 (m) 는 끈 위에 고여 아래로 번졌다
-    return paint([
-        "adlaldaadlaldada",
-        "dlaaldadlaaldaal",
-        "aadlakdaldaladla",
-        "rrrrrrrrrrrrrrrr",
-        "ssrsssrsssrssrss",
-        "dlaaldaldmmldadl",
-        "laaldaaladmaldal",
-        "aldadlaaldaalada",
-        "ldaaldlaadklaadl",
-        "daldaalddaalaldl",
-        "aldaldaaldlaadla",
-        "rrrrrrrrrrrrrrrr",
-        "srssrsssrsssrsss",
-        "mmlaldadlaldalda",
-        "amdaldalaadlaald",
-        "aldlaadlaldaldla",
-    ], {"a": "bronze1", "l": "bronze2", "d": "bronze0", "k": "parch0", "r": "rust0", "s": "rust1", "m": "moss1"})
+    # 탑옥의 썩은 건초: 젖어 검게 바랜 짚단. 짚은 2~4 픽셀 세로 결 (밝은 짚 l, 바탕 a, 그늘 d) 을 손으로 놓았고,
+    # 묶은 끈 두 줄 (t 끈의 윗면, r 끈, s 끈 아래 그늘). 밑의 세 줄은 젖어 한 단 어둡고 (썩음), 곰팡이 (m, n) 는 크기가 다른 두 자리
+    t = Tex(fill="bronze1")
+    ink = {"l": "bronze2", "d": "bronze0", "k": "parch0"}
+    strokes(t, [
+        (1, 0, 3, "l"), (5, 1, 2, "l"), (8, 0, 3, "l"), (12, 1, 2, "l"), (14, 13, 4, "l"), (2, 5, 4, "l"),
+        (6, 6, 3, "l"), (9, 5, 2, "l"), (13, 7, 3, "l"), (4, 9, 2, "l"), (11, 8, 3, "l"), (0, 13, 3, "l"),
+        (7, 13, 2, "l"), (15, 5, 3, "l"), (3, 0, 2, "d"), (10, 0, 3, "d"), (15, 1, 2, "d"), (0, 6, 3, "d"),
+        (4, 5, 3, "d"), (8, 7, 3, "d"), (12, 5, 3, "d"), (14, 9, 2, "d"), (2, 9, 2, "d"), (6, 13, 3, "d"),
+        (11, 13, 2, "d"), (7, 0, 2, "k"), (10, 6, 2, "k"),
+    ], ink)
+    # 젖은 아래쪽: 13~15 줄을 한 단 어둡게 (끝이 고르지 않다)
+    for x in range(16):
+        top = 13 if x % 5 not in (1, 2) else 14
+        for y in range(top, 16):
+            t[x, y] = step(t[x, y], -1) if t[x, y] != "bronze0" else "rust1"
+    for y, row in ((3, "tttrtttttrtttttt"), (4, "rrrrrrrrrrrrrrrr"), (5, "ssssssssssssssss"),
+                   (10, "ttttttrttttttttr"), (11, "rrrrrrrrrrrrrrrr"), (12, "ssssssssssssssss")):
+        for x, ch in enumerate(row):
+            if ch == "s":
+                t[x, y] = "rust1" if t[x, y] == "bronze2" else "bronze0"
+            else:
+                t[x, y] = {"t": "parch0", "r": "rust1"}[ch]
+    return overlay(t, [
+        "                ",
+        "                ",
+        "                ",
+        "                ",
+        "                ",
+        "                ",
+        "         mm     ",
+        "        mnnm    ",
+        "         nm     ",
+        "          m     ",
+        "                ",
+        "                ",
+        "                ",
+        "                ",
+        "  mn            ",
+        "   m            ",
+    ], {"m": "moss1", "n": "moss0"})
 
 
 def hay_block_top():
-    # 짚단 윗면: 잘린 짚 끝이 다발로 모였다 (다발마다 밝은 끝 l 과 그늘 d), 오른쪽 아래 다발은 썩어 내려앉았다 (m, k)
-    return paint([
-        "aldaaldaldaaldal",
-        "dlaldalaldladala",
-        "aaldaaldaaldaald",
-        "ldalldaldalldala",
-        "aaldaalaaldaaald",
-        "dlaaldaldlaaldla",
-        "aldaaldaaaldaaal",
-        "daldalaldaldalda",
-        "aaaldaaldaakkdda",
-        "ldaaaldaakmmkdla",
-        "aldldaaldkmmmkal",
-        "daaaldaaaakmkdla",
-        "alddaaldaaakdaal",
-        "daaldaaldlaaaald",
-        "aldaaldaaaldaala",
-        "ldaldaaldaalddal",
-    ], {"a": "bronze1", "l": "bronze2", "d": "bronze0", "m": "moss0", "k": "rust0"})
+    # 짚단 윗면: 눕힌 짚의 2~4 픽셀 가로 결 (l 밝은 짚, d 그늘). 오른쪽 아래가 젖어 내려앉았고 (w 젖은 짚, 가장자리가
+    # 고르지 않고 오른쪽 끝을 넘어 이어진다), 그 위쪽 가장자리에 곰팡이 (m, n) 가 길게 앉았다
+    t = Tex(fill="bronze1")
+    ink = {"l": "bronze2", "d": "bronze0", "k": "parch0"}
+    strokes(t, [
+        (0, 0, 3, "l"), (6, 0, 4, "d"), (12, 1, 3, "l"), (2, 2, 4, "d"), (9, 2, 2, "l"), (14, 3, 3, "d"),
+        (4, 4, 3, "l"), (10, 4, 4, "d"), (0, 5, 2, "d"), (7, 6, 3, "l"), (13, 6, 2, "l"), (1, 7, 4, "l"),
+        (9, 8, 2, "d"), (4, 9, 3, "d"), (14, 9, 3, "l"), (0, 11, 3, "d"), (6, 11, 2, "l"), (2, 13, 4, "l"),
+        (8, 14, 3, "d"), (13, 15, 3, "l"), (11, 0, 2, "k"), (3, 10, 2, "k"),
+    ], ink, axis="h")
+    return overlay(t, [
+        "                ",
+        "                ",
+        "                ",
+        "                ",
+        "                ",
+        "                ",
+        "                ",
+        "                ",
+        "            nmm ",
+        "w        mmnwwww",
+        "ww     wwwwwwwww",
+        "www   wwwww wwww",
+        "w       www  www",
+        "             ww ",
+        "                ",
+        "                ",
+    ], {"w": "rust1", "m": "moss1", "n": "moss0"})
 
 
 
@@ -1144,26 +1276,27 @@ def hay_block_top():
 
 
 def iron_bars():
-    # 벼린 네모 창살 셋 (바닐라와 같은 x=2..3, 7..8, 12..13: 기둥·옆 모형이 이 열을 쓴다) 을 가로 띠쇠 둘이 묶는다.
-    # 창살: 왼쪽 열 빛 (c), 오른쪽 열 그늘 (a). 띠쇠: 윗줄 빛, 아랫줄 그늘, 창살과 만나는 곳에 징 (o).
-    # 녹 (r, s) 은 띠쇠 아래와 창살 밑동에 고였다
+    # 벼린 네모 창살 셋. 바닐라와 같은 열 x=2..3, 7..8, 12..13 (기둥·옆 모형이 uv x 7..9 를 쓰고, 위아래 마구리가 그 열의
+    # y 0..8 을 쓴다. 그래서 알파는 바닐라의 창살 열 그대로다). 창살: 왼쪽 열 빛 (c), 오른쪽 열 바탕 (b), 군데군데 그늘 (a).
+    # 가로 띠쇠 하나 (2줄: 윗줄 빛, 아랫줄 그늘) 가 온 폭을 묶고, 창살과 만나는 곳에만 징 (o). 녹 (r, s) 은 띠쇠에서
+    # 창살을 따라 길이가 다르게 흘러내리고, 밑동에도 조금 고였다
     return paint([
-        "..ca....ca...ca.",
-        "..ca....ca...ca.",
-        "..ca....ca...ca.",
-        "cccccccccccccccc",
-        "bbobbbbbobbbbobb",
-        "aasaaaaaaaaaraaa",
-        "..cr....ca...ca.",
-        "..ca....cr...ca.",
-        "..ca....ca...cr.",
-        "..ca....ca...ca.",
-        "cccccccccccccccc",
-        "bobbbbbbobbbbbob",
-        "aaaraaaaasaaaaaa",
-        "..cr....ca...cr.",
-        "..ra....cr...ca.",
-        "..rs....rs...rs.",
+        "..cb...cb...cb..",
+        "..cb...ca...cb..",
+        "..cb...cb...cb..",
+        "..cb...cb...ca..",
+        "ccoccccoccccoccc",
+        "aasaaaaaraaaaaaa",
+        "..cr...cs...cb..",
+        "..cs...cr...cb..",
+        "..cb...cr...cb..",
+        "..ca...cs...cb..",
+        "..cb...cb...cb..",
+        "..cb...cb...ca..",
+        "..cb...cb...cb..",
+        "..cb...ca...cb..",
+        "..cb...cb...cr..",
+        "..rs...cs...rs..",
     ], {"a": "ash1", "b": "ash2", "c": "ash3", "o": "bone1", "r": "rust2", "s": "rust1"})
 
 
@@ -1256,26 +1389,28 @@ def lever():
 
 
 def oxidized_copper():
-    # 교구의 녹청 낀 구리판: 그을린 청동 바탕 (b), 판 이음 (a 그늘, c 빛), 이음의 징 (o). 녹청 (m, n) 은 윗 이음에서 생겨
-    # 아래로 흘렀고, 한 줄은 이음을 넘어 아래 판까지 내려갔다
+    # 교구의 녹청 낀 구리판: 블록마다 짙은 청동 판 한 장 (b 바탕), 윗줄과 왼쪽 열 위쪽에 1픽셀 빛 (c),
+    # 오른쪽 열과 아랫줄은 다음 판과의 이음 (a). 징 다섯 (o 머리, k 오른쪽 아래 그늘). 녹청은 구리와 다른 회녹 (w 짙은 녹청,
+    # v 녹청, V 가장 옅은 회색 몇 칸): 징 아래와 아래 이음 위에 고이고 아래로 흘러내렸다. 이끼빛은 쓰지 않는다
     return paint([
-        "ccoccccccocccccc",
-        "bmmnbbmbbbnmmbba",
-        "bmnbbbmbbbbnbbba",
-        "bnbbbbnbbbbmbbba",
-        "bmbbbbnbbbbnbbba",
-        "bnbbbbnbbbbbbbba",
-        "bbbbbbnbbbbbbbba",
-        "aaaaaanaaaaaaaaa",
-        "cccoccnccccocccc",
-        "bbbnmmbbbbbbmnbb",
-        "bbbbnmbbbbbbbmbb",
-        "bbbbbnbbbbbbbnbb",
-        "bbbbbmbbbbbbbbbb",
-        "bbbbbnbbbbbbbbbb",
-        "bbbbbbbbbbbbbbbb",
+        "ccccccccccccccca",
+        "cokbbbbbbbbbbbka",
+        "cwvbbbbbokbbbbva",
+        "bwvbbbbbwvbbbbwa",
+        "bbwbbbdbwvbbbbwa",
+        "bbwbbbbbbwbbbbba",
+        "bbbbbbbbbwbbdbba",
+        "bbbdbbbbbbbbbbba",
+        "bbbbbbbbbbbbbbba",
+        "bokbbbbbbbbbokba",
+        "bwVbbbbdbbbbwvba",
+        "bwvwbbbbbbbbwvba",
+        "bbwvbbbbbwbbbwba",
+        "wbwvwbbbwvwbbwvw",
+        "vwvVvwbwvVvwwvVv",
         "aaaaaaaaaaaaaaaa",
-    ], {"a": "bronze0", "b": "bronze1", "c": "bronze2", "m": "moss2", "n": "moss1", "o": "bronze3"})
+    ], {"a": "bronze0", "b": "bronze1", "c": "bronze2", "d": "bronze1", "o": "bronze3", "k": "bronze0",
+        "w": "verd2", "v": "verd3", "V": "slate5"})
 
 
 # ─────────────────────────── 빛 (랜턴, 초, 모닥불) ───────────────────────────
@@ -1309,7 +1444,8 @@ LANTERN_FLAME = [
 
 def lantern():
     ink = {"a": "ash1", "b": "rust1", "c": "rust2", "d": "rust0", "e": "ash0", "k": "ash0"}
-    flame = {"1": "ember1", "2": "ember2", "3": "ember3", "4": "bone3"}
+    # 불꽃: 끝은 어두운 녹빛 (1), 녹슨 주황 (2), 호박빛 (3), 속에만 옅은 금빛 두 칸 (4). 흰빛·살구빛은 쓰지 않는다
+    flame = {"1": "ember0", "2": "ember1", "3": "ember2", "4": "ember3"}
     out = Tex(16, 48)
     for f, fl in enumerate(LANTERN_FLAME):
         rows = []
@@ -1368,68 +1504,98 @@ def candle_lit():
     ], {"e": "ember0", "f": "bone3", "b": "bone2", "c": "bone1", "d": "bone0"})
 
 
-CAMPFIRE = [  # 위 4줄: 숯이 된 통나무 옆면, x0..3 y4..7: 잘린 끝, 아래 8줄: 재 바닥 (모형이 y8..15 를 쓴다)
-    "aadaawaadaaadwaa",
-    "dabddaddbaddaabd",
-    "aaddaaadaaabdaad",
-    "ddaddddaddaddadd",
-    "ewwe............",
-    "wrrw............",
-    "wrxw............",
-    "ewwe............",
-    "gggghhhggggggggg",
-    "gkkggggggggghhhg",
-    "gkdggggkkggggggg",
-    "ggggggggkdgggggg",
-    "ghhhggggggggkkgg",
-    "gggggkkgggggkdgg",
-    "ggggggkdgghhhggg",
+# 모닥불 그림 (모형 template_campfire 가 쓰는 자리)
+#   y0..3   통나무 옆면 (껍질). 켠 그림은 위 통나무들의 옆면
+#   y4..7   x0..3 통나무 잘린 끝 (꺼진 그림). 켠 그림은 온 폭이 위 통나무의 아랫면 (불이 비춘다)
+#   y8..13  화톳불 바닥 (윗면, 90° 돌려 깐다: 그림의 x 가 세상의 z). 위 통나무 둘 (z 1..5, 11..15) 사이 x 5..11 이 트여 보인다
+#   y15     바닥 판의 북·남쪽 옆 가장자리 (x 0..5, 10..15)
+CAMPFIRE_BARK = [   # 숯이 된 껍질: 위는 재가 앉아 밝고 (b), 거북등처럼 갈라진 틈 (x) 이 길이 방향으로 이어진다, 아랫줄 그늘 (d)
+    "bbabbbbxbbbabbab",
+    "aaaxaaaxaaaawxaa",
+    "axxxwaaaxxxaaxxa",
+    "dddddxdddddddxdd",
+]
+CAMPFIRE_END = ["ewwe", "wrxw", "wxrw", "ewwe"]   # 잘린 끝: 숯 테 (e), 덜 탄 나무 (w), 나이테 (r, x)
+CAMPFIRE_UNDER = [  # 켠 모닥불의 위 통나무 아랫면: 숯 (a, d) 사이로 갈라진 틈 (x)
+    "adaaxaaadaaxaada",
+    "aaxxxaadaxxxaaaa",
+    "daaaaxxaaaaaxxad",
+    "ddaddaddaddaddad",
+]
+CAMPFIRE_BED = [    # 재 바닥: 고운 재 (g), 쌓인 재의 턱 (h), 뼛조각 (n, m), 숯 덩이 (k)
+    "gghhgggggggghhgg",
+    "ghgggkkgggggggng",
+    "gggnggggggmggggg",
+    "hgggggggggggkghg",
+    "gggkgggngggggggg",
+    "gmgggghhgggggnhg",
     "gggggggggggggggg",
+    "kkgkkkgkkgkkgkkg",
 ]
-CAMPFIRE_INK = {"a": "ash1", "d": "ash0", "b": "rust1", "w": "rust2", "e": "rust0", "r": "rust3", "x": "rust1",
-                "g": "ash2", "h": "ash3", "k": "ash1"}
-# 켠 화톳불의 불씨 자리 (프레임마다): e 불씨 1 (어두운 불), f 불씨 2 (밝은 불). 숯 조각 가장자리와 통나무 틈을 따라 달아오른다
-CAMPFIRE_EMBERS = [
-    {"e": [(2, 1), (9, 2), (13, 2), (3, 4), (4, 4), (10, 4), (11, 5), (2, 9), (3, 10), (7, 10), (8, 10), (9, 11),
-           (12, 12), (13, 13), (6, 13)],
-     "f": [(4, 5), (11, 4), (8, 11), (7, 13)]},
-    {"e": [(2, 1), (10, 1), (13, 2), (4, 4), (5, 4), (10, 4), (12, 5), (1, 9), (2, 10), (7, 10), (9, 11), (12, 13),
-           (13, 12), (6, 13), (7, 14)],
-     "f": [(3, 5), (10, 5), (8, 10), (13, 13)]},
-    {"e": [(3, 1), (9, 2), (12, 1), (3, 4), (4, 5), (11, 4), (10, 5), (2, 9), (3, 10), (8, 10), (8, 11), (12, 12),
-           (6, 13), (7, 14)],
-     "f": [(4, 4), (11, 5), (9, 11), (12, 13), (2, 10)]},
-    {"e": [(2, 1), (9, 1), (14, 2), (4, 4), (3, 5), (10, 5), (11, 4), (1, 9), (2, 9), (7, 10), (9, 11), (13, 12),
-           (12, 13), (7, 13), (6, 14)],
-     "f": [(4, 5), (8, 10), (6, 13), (13, 13)]},
-]
+CAMPFIRE_INK = {"a": "ash1", "d": "ash0", "b": "ash2", "w": "rust1", "x": "ash0", "e": "ash0", "r": "rust2",
+                "g": "ash2", "h": "ash3", "n": "bone0", "m": "bone1", "k": "ash1"}
+
+
+def _campfire_rows(lit):
+    end = [r + "." * 12 for r in CAMPFIRE_END] if not lit else CAMPFIRE_UNDER
+    return CAMPFIRE_BARK + end + CAMPFIRE_BED
 
 
 def campfire_log():
-    # 꺼진 화톳불: 숯이 된 통나무 (껍질 a·d, 덜 탄 나무 w), 잘린 끝의 나이테, 재 바닥 (재 g, 쌓인 재의 턱 h, 숯 조각 k·d)
-    return paint(CAMPFIRE, CAMPFIRE_INK)
+    # 꺼진 화톳불: 숯이 된 통나무와 식은 재 바닥 (불빛이 없다)
+    return paint(_campfire_rows(False), CAMPFIRE_INK)
 
 
-# 켠 화톳불의 y4..7 은 엇갈린 통나무의 아랫면이다 (모형이 [0,4,16,8] 을 쓴다): 숯이 된 아랫면
-CAMPFIRE_UNDER = [
-    "dadaadaaddadaaad",
-    "adddaddadaadddaa",
-    "daadadddaddaaadd",
-    "ddaddaddaddaddad",
+# 켠 화톳불의 불씨 (바닐라와 같이 4 프레임, 섞어 넘긴다. 점이 옮겨 다니지 않고 같은 자리의 세기만 바뀐다).
+#   통나무: 불씨는 껍질 틈 (x) 을 따라서만. 틈 칸마다 프레임별 세기 (0 숯, 1 어두운 불씨, 2 불씨)
+#   바닥: 통나무 아래 한가운데의 달아오른 속 하나. 세 단 (바깥 ember0, 속 ember1, 한가운데 ember2), 가끔 옅은 금빛 한 칸
+CAMPFIRE_CRACK_GLOW = {   # (x, y) → 프레임 넷의 세기
+    (7, 0): "1210", (3, 1): "0121", (7, 1): "2121", (12, 1): "1011", (13, 1): "1121", (1, 2): "0110",
+    (2, 2): "1221", (3, 2): "1112", (8, 2): "1012", (9, 2): "2121", (10, 2): "1210", (13, 2): "1101",
+    (14, 2): "0121", (5, 3): "1011", (13, 3): "0110",
+    (4, 4): "1211", (2, 5): "1111", (3, 5): "2122", (4, 5): "2212", (9, 5): "1210", (10, 5): "2121",
+    (11, 5): "1221", (5, 6): "2112", (6, 6): "1221", (12, 6): "1112", (13, 6): "2121",
+}
+CAMPFIRE_CORE = [  # 바닥 y8..13 가운데. 프레임마다 (0 ember0, 1 ember1, 2 ember2, 3 ember3, ' ' 재 그대로)
+    ["                ",
+     "      000       ",
+     "     01110      ",
+     "     01210      ",
+     "      0110      ",
+     "       0        "],
+    ["       0        ",
+     "     00100      ",
+     "    0112100     ",
+     "    0123210     ",
+     "     01110      ",
+     "      000       "],
+    ["                ",
+     "       00       ",
+     "      0110      ",
+     "      0110      ",
+     "       00       ",
+     "                "],
+    ["                ",
+     "      000       ",
+     "     01110      ",
+     "     01221      ",
+     "      0110      ",
+     "      00        "],
 ]
 
 
 def campfire_log_lit():
-    # 켠 화톳불 (바닐라와 같이 4 프레임, 섞어 넘긴다): 같은 숯과 재에서 불씨 자리만 프레임마다 옮겨 간다
     out = Tex(16, 64)
-    lit_rows = CAMPFIRE[:4] + CAMPFIRE_UNDER + CAMPFIRE[8:]
-    for i, em in enumerate(CAMPFIRE_EMBERS):
-        t = paint(lit_rows, CAMPFIRE_INK)
-        for x, y in em["e"]:
-            t[x, y] = "ember1"
-        for x, y in em["f"]:
-            t[x, y] = "ember2"
-        out.paste(t, 0, i * 16)
+    glow = {"0": "ember0", "1": "ember1", "2": "ember2", "3": "ember3"}
+    for f in range(4):
+        t = paint(_campfire_rows(True), CAMPFIRE_INK)
+        for (x, y), seq in CAMPFIRE_CRACK_GLOW.items():
+            t[x, y] = {"0": "ash0", "1": "ember0", "2": "ember1"}[seq[f]]
+        for dy, row in enumerate(CAMPFIRE_CORE[f]):
+            for x, ch in enumerate(row):
+                if ch != " ":
+                    t[x, 8 + dy] = glow[ch]
+        out.paste(t, 0, f * 16)
     return out
 
 
@@ -1482,92 +1648,88 @@ def mud_bricks():
 
 
 def brown_terracotta():
-    # 갈색 테라코타 = 마른 피가 스며 굳은 흙 (레딘 성벽의 핏자국 자리). 말라 갈라진 껍질: 조각 (a 바탕, b 조각 윗가장자리의 빛)
-    # 사이로 틈 (k). 조각 몇은 피가 덜 말라 더 붉다 (r). 틈은 가장자리를 넘어 이어진다
+    # 갈색 테라코타 = 마른 피가 스며 굳은 흙 (레딘 성벽의 핏자국 자리). 밤빛 갈색 딱지 (a 바탕, l 마른 윗가장자리, b 짙은
+    # 밤빛), 더 검게 엉긴 덩이 셋 (k, 가장자리 몇 칸만 붉다 r), 위에서 흘러내린 자국 (위 가장자리의 k·b 세로 줄),
+    # 말라 터진 금은 짙은 갈색 (x, 몇 줄뿐)
     return paint([
-        "aaaakaaaaaaaakaa",
-        "baaakaaaarraakaa",
-        "baaakkaarrraakaa",
-        "aaaaakkaaaaakaaa",
-        "kkkaaakkkkkkkaaa",
-        "aakkaaaakbaaaakk",
-        "aaakaaaaakbaaaaa",
-        "araakaaaakaaaaaa",
-        "arraakaaakaarraa",
-        "aaaaakkkkkaarrra",
-        "kkaaakaaaaakkaaa",
-        "aakkkaaaaaaakkkk",
-        "aaaakaaaaaaaakba",
-        "aaaakaaaarraakaa",
-        "aaaaakaaaaaaakaa",
-        "aaaaakaaaaaakaaa",
-    ], {"a": "rust1", "b": "rust2", "k": "blood0", "r": "blood0"})
+        "aakaaaaaaabkaaaa",
+        "aakaaaaaaabkaaal",
+        "abkaaxaaaaakaaaa",
+        "aakaaaxaaaabaaaa",
+        "aabaaaaxxaaaaaaa",
+        "aaaaaaaaaxaakkaa",
+        "aallaaaaaaakkkra",
+        "aaaaaaaaaaakkkka",
+        "aaaaaxaaaaaabkaa",
+        "akkaaaxxaaaaaaaa",
+        "kkkraaaaxaaalaaa",
+        "kkkkaaaaaxaaaaab",
+        "bkkaaaaaaaxaaaab",
+        "aaaallaaaaaaaaab",
+        "aaaaaaaaaaxxaaaa",
+        "aaaaaaaaaaaaxaaa",
+    ], {"a": "clay1", "b": "rose0", "k": "blood0", "r": "blood1", "x": "rust0", "l": "clay2"})
 
 
 def light_gray_concrete_powder():
-    # 사당의 재: 고운 재가 바람에 쓸린 결. 길이가 다른 낮은 턱 (b 빛 받은 윗면, 바로 아래 d 그늘) 이 비스듬히 흩어졌고,
-    # 덜 탄 숯 조각 (k) 둘
-    return paint([
-        "aaaaaaaaaaaaaaaa",
-        "aaabbbbbaaaaaaaa",
-        "aaadddddddaaaaaa",
-        "aaaaaaaaaaaaaaaa",
-        "aaaaaaaaaabbbbaa",
-        "aaaaaaaaaaaadddd",
-        "aaaaaaaaaaaaaaaa",
-        "bbaaaaaaaaaaaabb",
-        "ddaaaaaaaaaaaaad",
-        "aaaaaabbbbbbbaaa",
-        "aaaaaabbbbbbbbaa",
-        "aaaaaaaddddddaaa",
-        "aaaaaaaaaaaaaaaa",
-        "aaabbbaaaaaakaaa",
-        "aaaaaddaaaaaaaaa",
-        "aaaaaaaaaaaaaaaa",
-    ], {"a": "ash3", "b": "bone0", "d": "ash2", "k": "ash1"})
+    # 사당의 재: 바람에 쌓인 고운 재. 굽은 둔덕 셋의 마루 (c, 1픽셀) 와 그 아래 바람그늘 (d, 한두 줄, 끝으로 갈수록 좁다),
+    # 바탕 (a). 덜 탄 숯 조각 (k) 둘과 뼛조각 (n) 하나
+    t = Tex(fill="ash3")
+    for pts, lee in ((((0, 3), (3, 2), (8, 2), (11, 4)), ((1, 4), (3, 3), (8, 3), (10, 5), (4, 4), (7, 4))),
+                     (((5, 8), (8, 7), (13, 7), (16, 9)), ((6, 9), (8, 8), (13, 8), (15, 9), (9, 9), (12, 9))),
+                     (((-3, 13), (2, 12), (6, 13)), ((-2, 14), (2, 13), (5, 14), (0, 14)))):
+        for a, b in zip(pts, pts[1:]):
+            _line(t, a[0], a[1], b[0], b[1], "stone2")
+        for a, b in zip(lee[:-2], lee[1:-2]):
+            _line(t, a[0], a[1], b[0], b[1], "stone1")
+        _line(t, lee[-2][0], lee[-2][1], lee[-1][0], lee[-1][1], "stone1")
+    for x, y, v in ((12, 13, "ash1"), (13, 13, "ash1"), (3, 7, "ash1"), (14, 3, "bone1"), (15, 3, "bone0")):
+        t[x, y] = v
+    return t
 
 
-NR_ROWS = [  # 불 받침 바위: 그을린 덩어리
-    "AAAAAABBBBBBBBAA",
-    "AAAAABBBBBBBBBAA",
-    "AAAAABBBBBBBBAAA",
-    "CCAAAABBBBBDDDAA",
-    "CCCCAAAABBDDDDDC",
-    "CCCCCCAAADDDDDCC",
-    "CCCCCCCEEDDDDCCC",
-    "CCCCCCEEEEEDDCCC",
-    "FFCCCEEEEEEEGGGF",
-    "FFFFEEEEEEEGGGGF",
-    "FFFFFEEEEEGGGGGF",
-    "FFFFFFHHHHGGGGGF",
-    "AFFFFHHHHHHGGGAA",
-    "AAFFHHHHHHHHGAAA",
-    "AAAAHHHHHHHHAAAA",
-    "AAAAAHHHHHHAAAAA",
+NR_ROWS = [  # 불 받침 바위: 고르지 않은 그을린 덩어리 (크기·모양이 다르다). 덩어리 윗면에 재가 앉았다
+    "AAAAABBBBBBBBCCA",
+    "AAAABBBBBBBBCCCA",
+    "DDAABBBBBBBCCCCA",
+    "DDDDDBBBBEECCCCD",
+    "DDDDDDDEEEEEECCD",
+    "FDDDDDEEEEEEEEGG",
+    "FFFDDEEEEEEEGGGG",
+    "FFFFFFFEEEEGGGGG",
+    "FFFFFFFFHHHGGGGF",
+    "IFFFFFHHHHHHHGFF",
+    "IIIFFHHHHHHHHHII",
+    "IIIIJJJHHHHHIIII",
+    "IIIJJJJJJHHIIIII",
+    "AIJJJJJJJJJIIIIA",
+    "AAAJJJJJJJAAAAAA",
+    "AAAAAJJJJAAAAAAA",
 ]
 
 
 def netherrack():
-    t = masonry(NR_ROWS, {"*": ["ash0", "rust0", "blood0", "blood1"]}, "ash0", mode="drop")
-    # 불에 터진 틈 (x)
+    # 꺼지지 않는 불의 받침: 그을린 덩어리 (바탕 ash1), 덩어리 윗면에 재 (ash2, + 는 더 쌓인 곳), 아랫면 그늘 (rust0),
+    # 덩어리 사이 깊은 틈은 마른 핏빛 (blood0). 붉은 빛은 틈 몇 칸 (r) 뿐
+    t = masonry(NR_ROWS, {"*": ["blood0", "rust0", "ash1", "ash2"]}, "ash0", mode="soft")
     return overlay(t, [
+        "      +++       ",
         "                ",
-        "   x            ",
-        "    x           ",
+        "  ++            ",
+        "          ++    ",
         "                ",
-        "                ",
-        "            x   ",
-        "           x    ",
-        "                ",
-        "                ",
-        "  x             ",
+        "              ++",
         "                ",
         "                ",
-        "         x      ",
-        "          x     ",
+        "         ++     ",
         "                ",
         "                ",
-    ], {"x": "ash0"})
+        "    r           ",
+        "                ",
+        "           r    ",
+        "                ",
+        "                ",
+    ], {"r": "blood1"})
 
 
 # ─────────────────────────── 색유리 (교구: 회색·갈색·검은색), 거미줄, 마른 덤불 ───────────────────────────
@@ -1595,19 +1757,23 @@ GLASS = [  # L 납 테, g 유리, d 먼지 앉은 유리 (아래쪽), x 금 간 
 
 
 def _glass(lead, glass, dust, crack):
+    # 교구의 창: 납 테 (불투명) 가 마름모 둘씩으로 유리를 나눈다 (8픽셀 간격, 이어 놓으면 두 블록 사이에 1픽셀 납 테:
+    # 테는 위와 왼쪽에만 있다). 유리는 반투명 (GLASS_A). 마름모 몇 개만 아래쪽에 먼지 (d), 한 칸은 금 (x). 납 테의 윗면
+    # 몇 곳만 빛을 받는다 (g)
     t = Tex()
-    g, _, _ = grid(GLASS)
+    dusty = {(4, 6), (5, 6), (3, 6), (12, 14), (11, 14), (13, 14), (12, 13), (4, 14), (5, 13)}
+    cracked = {(10, 3), (11, 4), (11, 5)}
+    shine = {(3, 5), (9, 0), (2, 0), (14, 6), (7, 9), (13, 3)}
     for y in range(16):
         for x in range(16):
-            ch = g[y][x]
-            if ch == "L":
-                t[x, y] = lead if (x in (0, 15) or y in (0, 15)) else step(lead, 1 if (x + y) % 5 == 0 else 0)
-            elif ch == "g":
-                t[x, y] = (glass, GLASS_A)
-            elif ch == "d":
+            if x == 0 or y == 0 or (x + y) % 8 == 0 or (x - y) % 8 == 0:
+                t[x, y] = step(lead, 1) if (x, y) in shine else lead
+            elif (x, y) in cracked:
+                t[x, y] = (crack, GLASS_A)
+            elif (x, y) in dusty:
                 t[x, y] = (dust, GLASS_A)
             else:
-                t[x, y] = (crack, GLASS_A)
+                t[x, y] = (glass, GLASS_A)
     return t
 
 
@@ -1645,25 +1811,22 @@ def black_stained_glass_pane_top():
 
 
 def cobweb():
-    # 먼지 앉은 거미줄: 위 세 곳에 걸린 날줄 (a) 사이로 씨줄 (b) 이 아래로 처졌다. 가운데 먼지 뭉치 (c), 한 줄은 끊겨 늘어졌다
-    return paint([
-        "a......a.......a",
-        ".a.....a......a.",
-        "..a....a.....a..",
-        "..bbb..a...bba..",
-        "...a.bbbbbb..a..",
-        "....a..a...ab...",
-        "....ab.a..b.a...",
-        ".....abbbbba....",
-        "......a.a.a.....",
-        "......acccb.....",
-        ".......bcb......",
-        "........a.......",
-        "........a.......",
-        ".........a......",
-        "................",
-        "................",
-    ], {"a": "ash3", "b": "bone0", "c": "bone1"})
+    # 먼지 앉은 거미줄: 왼쪽 위 귀에 걸려 위 가장자리와 왼쪽 가장자리에 매였다 (좌우 대칭이 아니다). 날줄 넷 (a) 이 귀에서
+    # 퍼지고, 씨줄 (b) 은 두 바퀴만 날줄 사이에 처졌는데 바깥 바퀴는 한 마디가 끊겼다. 끊긴 줄 하나가 아래로 늘어졌고,
+    # 귀 가까이에 먼지 뭉치 (c)
+    t = Tex()
+    hub = (1, 1)
+    for end in ((15, 0), (14, 7), (8, 13), (0, 15)):
+        _line(t, hub[0], hub[1], end[0], end[1], "ash3")
+    for pts in (((6, 1), (6, 3), (5, 5), (3, 6), (1, 6)),
+                ((11, 1), (11, 4), (11, 6)),
+                ((8, 10), (5, 11), (1, 11))):
+        for a, b in zip(pts, pts[1:]):
+            _line(t, a[0], a[1], b[0], b[1], "bone0")
+    _line(t, 11, 6, 12, 13, "ash3")      # 끊겨 늘어진 줄
+    for x, y in ((2, 2), (3, 2), (2, 3)):
+        t[x, y] = "bone1"
+    return t
 
 
 def dead_bush():

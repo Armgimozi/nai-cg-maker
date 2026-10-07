@@ -73,7 +73,8 @@ def build_one(out, wid, spec, icon):
     else:
         w, pulls = made, None
     res = C.write_item(out, wid, w, spec["display"], icon, spec["kind"], use=spec["use"],
-                       use_display=spec.get("use_display"), swap=spec.get("swap"), bow_states=pulls)
+                       use_display=spec.get("use_display"), swap=spec.get("swap"), bow_states=pulls,
+                       pull_display=spec.get("pull_display"))
     res["weapon"] = w
     return res
 
@@ -118,7 +119,8 @@ def previews(wid, spec, res, icon):
     if spec["use"] == "bow":
         shots.append(V.first_person([(model, disp["firstperson_righthand"], "r", None)]))
         labels.append("first person, idle")
-        shots.append(V.first_person([(res["pull"][2], disp["firstperson_righthand"], "r", "bow")]))
+        pdisp = spec.get("pull_display") or disp
+        shots.append(V.first_person([(res["pull"][2], pdisp["firstperson_righthand"], "r", "bow")]))
         labels.append("first person, full draw")
     elif spec["use"] == "block":
         shots.append(V.first_person([(model, disp["firstperson_righthand"], "l", None)]))
@@ -145,7 +147,8 @@ def previews(wid, spec, res, icon):
         tp += V.third_person([(use_model, udisp["thirdperson_righthand"], side)], poses=bp, views=((-35, 10),))
         labels.append("third person, " + ("blocking" if spec["use"] == "block" else "guard"))
     elif spec["use"] == "bow":
-        tp += V.third_person([(res["pull"][2], disp["thirdperson_righthand"], "r")], poses=("bow_hold", "bow_draw"),
+        pdisp = spec.get("pull_display") or disp
+        tp += V.third_person([(res["pull"][2], pdisp["thirdperson_righthand"], "r")], poses=("bow_hold", "bow_draw"),
                              views=((-60, 6),))
         labels.append("third person, drawing")
     p = os.path.join(SHOTS, f"{wid}_tp.png")
@@ -177,9 +180,46 @@ def main(argv):
             print("  ", os.path.relpath(f, ROOT))
         done[wid] = res
     if not ids:
-        from weapons import _views as V
-        V.lineup([(k, v["3d"]) for k, v in done.items()], os.path.join(PACK, "preview", "weapons_lineup_a.png"))
+        sheets(done, ic)
     return 0
+
+
+def sheets(done, ic):
+    """pack/preview/weapons_a.png (A 열 개: 16px 그림, 앞, 비스듬히, 3인칭 가까이) 와 weapons_lineup.png (스무 개, B 가 있으면)."""
+    from PIL import Image
+    from weapons import _views as V
+    rows = []
+    for wid, res in done.items():
+        spec = _spec(registry()[wid])
+        icon = ic.get(wid) or Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+        side = "l" if spec["use"] == "block" else "r"
+        poses = ("none", "item") if side == "l" else ("item", "none")
+        views = [V.gui(icon).crop((0, 0, 288, 288)).resize((240, 240), Image.NEAREST)]
+        views += [v.resize((180, 260)) for v in V.side(res["3d"], size=(360, 520))[:2]]
+        views += V.third_person([(res["3d"], spec["display"]["thirdperson_righthand"], side)], poses=poses,
+                                views=((-35, 10),), size=(260, 260), close=1.7)
+        rows.append(V.strip(views, [wid, "front", "3/4", "third person"]))
+    w = max(r.width for r in rows)
+    sheet = Image.new("RGBA", (w, sum(r.height for r in rows)), (20, 19, 18, 255))
+    y = 0
+    for r in rows:
+        sheet.alpha_composite(r, (0, y))
+        y += r.height
+    sheet.save(os.path.join(PACK, "preview", "weapons_a.png"))
+    # 줄 세운 그림: B 도 있으면 함께 (스무 개, SPEC 1.9)
+    entries = [(k, v["3d"]) for k, v in done.items()]
+    try:
+        from weapons import set_b
+        made_b = set_b.build(os.path.join(SCRATCH, "_b"), draft=True)
+        entries += [(k, v["3d"]) for k, v in made_b.items()]
+    except Exception as ex:      # B 가 아직 고치는 중이면 A 만
+        print("weapons_lineup: B 를 짓지 못해 A 만 세운다:", ex)
+    order = ["alley_dagger", "parrying_dagger", "redin_guard_sword", "volk_longsword", "gaoler_greatsword",
+             "levy_hatchet", "sellsword_axe", "gaoler_club", "penitent_mace", "mathes_bell_mace", "redin_spear",
+             "hrolf_halberd", "warden_halberd", "wall_shortbow", "pilgrim_buckler", "plank_shield",
+             "redin_guard_shield", "volk_greatshield", "kiln_pot", "pilgrim_handbell"]
+    entries.sort(key=lambda e: order.index(e[0]) if e[0] in order else 99)
+    V.lineup(entries, os.path.join(PACK, "preview", "weapons_lineup.png"), px_per_block=120)
 
 
 if __name__ == "__main__":

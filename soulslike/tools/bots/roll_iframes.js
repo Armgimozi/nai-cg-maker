@@ -1,6 +1,6 @@
 // 구르기와 무적 (3.3, 13.2 T3 roll_iframes). 지연 프록시로 다시 돌린다 (13.3, LAG_RTT).
 // F(block_dig 상태 6) → 구르기: 종류·방향·비용, 서버가 보낸 첫 틱 속도와 미는 틱 수(glide), 서버에서 잰 거리,
-// 보이는 모습 (tumble: 대역 표시 물체 둘이 타고 투명 깃발이 섰다가 걷힌다, 뒷걸음은 대역 없음 / crawl: 기어가기 방벽), 회복 지연 (구르기 끝 + 12틱), 회복 중 다시 F, 공중·웅크리기 F 막힘, 스태미나 1 이상이면 구름.
+// 보이는 모습 (tumble: 관절 대역의 부위 표시 물체 두 벌이 타고 (봇은 자기 벌 열하나 이상을 받는다) 투명 깃발이 섰다가 걷힌다, 뒷걸음은 대역 없음 / crawl: 기어가기 방벽), 회복 지연 (구르기 끝 + 12틱), 회복 중 다시 F, 공중·웅크리기 F 막힘, 스태미나 1 이상이면 구름.
 // 수치는 서버의 config.yml (combat.roll) 에서 읽는다. 3.3 표는 출발값이고 조정은 설정에서 한다 (사용자 결정 1).
 // 무적: 서버 시각 기준 (rollhit: 구르기 시작 뒤 n 틱에 generic 피해) 1~iframes 틱은 피하고 그 밖은 맞는다.
 //       F 뒤 같은 길로 /soulstest hit: 원인 있는 피해는 피하고, 원인 없는 피해(환경)는 맞는다.
@@ -77,13 +77,17 @@ L.run('roll_iframes', async (sc) => {
   }
   sc.check('roll moves the player (server measured)', f.end && L.num(f.end.kv.dist) > 1.0, f.end ? 'dist=' + f.end.kv.dist : 'ROLLEND 없음')
   if (RC.visual === 'tumble') {
-    // 대역 (3.3): 두 표시 물체가 이 봇에 타고, 봇의 공유 깃발에 투명 (0x20) 이 섰다가, 구르기 뒤 물체는 지워지고 깃발은 걷힌다.
-    // 미는 힘·무적 판정은 위와 같다 (대역은 보이는 것만 바꾼다)
+    // 대역 (3.3): 관절 대역의 부위 표시 물체 (머리·가슴·배·팔 넷·다리 넷 = 열하나, 투구·든 것이 있으면 더) 두 벌이 이 봇에 타고
+    // (그 사람에게만 보이는 벌과 남에게 보이는 벌. 봇은 자기 벌만 받는다), 봇의 공유 깃발에 투명 (0x20) 이 섰다가, 구르기 뒤 봇이 받은
+    // 물체는 모두 지워지고 깃발은 걷힌다. 미는 힘·무적 판정은 위와 같다 (대역은 보이는 것만 바꾼다).
+    // 탑승은 하나씩 붙어 탑승 목록 패킷이 여럿 온다: 가장 긴 것을 본다
     const rides = b.p.passengers.slice(tv0.pas)
-    const riders = (rides.find((x) => x.ids.length >= 2) || { ids: [] }).ids
-    sc.check('tumble: two stand-in displays ride this player during the roll', riders.length === 2, JSON.stringify(rides.map((x) => x.ids)))
+    const riders = rides.reduce((m, x) => (x.ids.length > m.length ? x.ids : m), [])
+    sc.check('tumble: articulated stand-in (>= 11 part displays) rides this player during the roll', riders.length >= 11, JSON.stringify(rides.map((x) => x.ids.length)))
+    const got = new Set(b.p.spawned.slice(tv0.spawned).map((x) => x.id))
+    const mine = riders.filter((id) => got.has(id))
     const gone = new Set([].concat(...b.p.destroyed.slice(tv0.destroyed).map((x) => x.ids)))
-    sc.check('tumble: stand-ins removed after the roll', riders.length === 2 && riders.every((id) => gone.has(id)), `지운 물체 ${[...gone].join(',')}`)
+    sc.check('tumble: stand-in parts this player received (>= 11) removed after the roll', mine.length >= 11 && mine.every((id) => gone.has(id)), `탄 물체 ${riders.length}, 받은 것 ${mine.length}, 지운 물체 ${gone.size}`)
     const fl = b.p.flags.slice(tv0.flags).map((x) => x.value)
     sc.check('tumble: invisible flag set during the roll and cleared after', fl.some((v) => v & 0x20) && fl.length > 0 && !(fl[fl.length - 1] & 0x20), fl.map((v) => '0x' + v.toString(16)).join(' '))
   }

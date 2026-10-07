@@ -158,14 +158,14 @@ def render(scene, V, size=(512, 512), ortho=None, fov=70.0, bg=BG, light=1.0, ce
         cam = (V @ np.c_[pts, np.ones(4)].T).T[:, :3]
         ncam = V[:3, :3] @ n
         if ortho:
-            if ncam[2] <= 1e-6:
+            if ncam[2] <= 2e-3:
                 continue
             scr = [((p[0] - cx) * ortho + W / 2, -(p[1] - cy) * ortho + H / 2) for p in cam]
             q = cam[:, 2]
         else:
             if np.any(cam[:, 2] > -0.02):
                 continue
-            if np.dot(ncam, -cam.mean(axis=0)) <= 1e-9:
+            if np.dot(ncam, -cam.mean(axis=0)) <= 1e-4:
                 continue
             scr = [(p[0] / -p[2] * f * H / 2 + W / 2, -p[1] / -p[2] * f * H / 2 + H / 2) for p in cam]
             q = 1.0 / -cam[:, 2]
@@ -177,6 +177,15 @@ def render(scene, V, size=(512, 512), ortho=None, fov=70.0, bg=BG, light=1.0, ce
             continue
         tw, th = tex.size
         u0, v0, u1, v1 = [c / 16.0 * (tw if i % 2 == 0 else th) for i, c in enumerate(uv)]
+        # uv 사각만 잘라 가장자리를 한 텍셀 늘린다: 다각형 가장자리 픽셀이 사각 밖을 집어도 이웃 칸·빈 곳을 집지 않게
+        ua, ub = sorted((u0, u1))
+        va, vb = sorted((v0, v1))
+        ia, ib = int(math.floor(ua + 1e-4)), int(math.ceil(ub - 1e-4))
+        ja, jb = int(math.floor(va + 1e-4)), int(math.ceil(vb - 1e-4))
+        sub_t = np.array(tex.crop((ia, ja, max(ib, ia + 1), max(jb, ja + 1))))
+        sub_t = np.pad(sub_t, ((1, 1), (1, 1), (0, 0)), mode="edge")
+        crop = Image.fromarray(sub_t, "RGBA")
+        u0, u1, v0, v1 = u0 - ia + 1, u1 - ia + 1, v0 - ja + 1, v1 - ja + 1
         src = [(u0, v0), (u1, v0), (u1, v1), (u0, v1)]
         for _ in range(int(frot) // 90):
             src = src[1:] + src[:1]
@@ -184,7 +193,7 @@ def render(scene, V, size=(512, 512), ortho=None, fov=70.0, bg=BG, light=1.0, ce
         coeffs = _homography(src, local)
         if coeffs is None:
             continue
-        patch = np.array(tex.transform((bx1 - bx0, by1 - by0), Image.PERSPECTIVE, coeffs, Image.NEAREST)).astype(float)
+        patch = np.array(crop.transform((bx1 - bx0, by1 - by0), Image.PERSPECTIVE, coeffs, Image.NEAREST)).astype(float)
         mask = Image.new("L", (bx1 - bx0, by1 - by0), 0)
         ImageDraw.Draw(mask).polygon(local, fill=255)
         m = (np.array(mask) > 0) & (patch[..., 3] > 0)
@@ -365,8 +374,8 @@ def side(model, size=(360, 520), bg=BG, views=(("front", 0, 0, 0), ("3/4", -35, 
     return out
 
 
-SLOT_BG = (58, 54, 50, 255)
-SLOT_EDGE = (28, 26, 24, 255)
+SLOT_BG = (30, 29, 28, 255)       # 이 팩의 칸: 반투명 ash0 판 (gui_skin) 위
+SLOT_EDGE = (92, 89, 85, 255)
 
 
 def gui(icon, bg=BG):
@@ -410,34 +419,31 @@ def strip(images, labels=None, pad=8, bg=(20, 19, 18, 255)):
 
 # ─────────────────────────── 줄 세우기 ───────────────────────────
 
-def lineup(entries, out_png, px_per_block=150, bg=BG):
+def lineup(entries, out_png, px_per_block=150, bg=BG, gap=0.62):
     """
     entries: [(id, Model)] 세운 모형 (앞면 +Z) 을 쥐는 점 높이를 맞춰 나란히, 맨 앞에 키 2 블록 (64 복셀) 사람 그림자.
-    쥐는 점은 사람의 주먹 높이 (땅에서 0.72 블록 = 바닐라 서 있는 팔 끝 근처) 에 둔다.
+    쥐는 점은 사람의 주먹 높이 (땅에서 0.72 블록 = 바닐라 서 있는 팔 끝 근처) 에 둔다. 이름표는 두 줄로 엇갈린다.
     """
     grip_h = 0.72
-    shapes = []
-    for wid, model in entries:
-        sc = Scene().add(model, T(0, grip_h, 0))
-        shapes.append((wid, sc))
-    width = int(px_per_block * (0.8 + 0.62 * len(entries))) + 40
-    H = int(px_per_block * 2.7)
+    s = px_per_block
+    width = int(s * (0.8 + gap * len(entries))) + 60
+    H = int(s * 2.9) + 40
     img = Image.new("RGBA", (width, H), bg)
-    ground = H - 40
+    ground = H - 60
     V = look_at((0, 0, 4), (0, 0, 0))
     d = ImageDraw.Draw(img)
-    # 사람 그림자 (키 2 블록, 어깨 폭 0.5)
     sx = 30
-    s = px_per_block
     d.rectangle((sx + 0.125 * s, ground - 2.0 * s, sx + 0.375 * s, ground - 1.5 * s), fill=(70, 66, 62, 255))
     d.rectangle((sx, ground - 1.5 * s, sx + 0.5 * s, ground - 0.75 * s), fill=(70, 66, 62, 255))
     d.rectangle((sx + 0.03 * s, ground - 0.75 * s, sx + 0.47 * s, ground), fill=(60, 57, 54, 255))
     d.line((0, ground, width, ground), fill=(90, 86, 80, 255), width=1)
-    f = _font(13)
-    for i, (wid, sc) in enumerate(shapes):
-        x0 = sx + int(s * (0.8 + 0.62 * i))
-        tile = render(sc, V, size=(int(0.6 * s), H), ortho=s, bg=(0, 0, 0, 0), center=(0, (H / 2 - 40) / s))
+    d.line((0, ground - grip_h * s, width, ground - grip_h * s), fill=(58, 55, 52, 255), width=1)
+    f = _font(12)
+    for i, (wid, model) in enumerate(entries):
+        sc = Scene().add(model, T(0, grip_h, 0))
+        x0 = sx + int(s * (0.8 + gap * i))
+        tile = render(sc, V, size=(int(gap * s), H), ortho=s, bg=(0, 0, 0, 0), center=(0, (H / 2 - (H - ground)) / s))
         img.alpha_composite(tile, (x0, 0))
-        d.text((x0 + 2, ground + 6), wid, font=f, fill=(200, 195, 185, 255))
+        d.text((x0 + 2, ground + 6 + (i % 2) * 18), wid, font=f, fill=(200, 195, 185, 255))
     img.save(out_png)
     return out_png

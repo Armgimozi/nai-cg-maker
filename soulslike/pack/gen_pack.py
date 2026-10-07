@@ -58,6 +58,14 @@ import icons  # noqa: E402
 import langpack  # noqa: E402
 import previews  # noqa: E402
 import roll_figure  # noqa: E402
+try:
+    from weapons import set_b as weapons_b  # 무기 B 묶음 (자루 무기·판자 방패·손종, weapons/SPEC.md 4절)
+except ImportError:
+    weapons_b = None
+try:
+    from weapons import set_a as weapons_a  # 무기 A 묶음 (칼·방패·활·쇠단지, weapons/SPEC.md 4절)
+except ImportError:
+    weapons_a = None
 
 ROOT = os.path.dirname(HERE)
 RES = os.path.join(ROOT, "plugin", "src", "main", "resources")
@@ -229,6 +237,10 @@ def main(argv):
         write_json(os.path.join(OUT, "assets", ns, "font", name + ".json"), data)
     gui_skin.build(OUT)   # 숨기는 HUD (하트·방어·경험치 막대)·보스 막대·단축 슬롯·창·단추·설명 칸·Dialog 경고 단추
     icons.build(OUT)      # 아이템 그림·모형·정의 (items 아틀라스), 입자
+    if weapons_b:
+        weapons_b.build(OUT)  # 무기 B: 3D 모형·16px 그림·아이템 정의 (roll_figure 의 손 감추기가 감싸기 전에)
+    if weapons_a:
+        weapons_a.build(OUT)  # 무기 A: 3D 모형·16px 그림·아이템 정의 (roll_figure 의 손 감추기가 감싸기 전에)
     roll_figure.build(OUT)   # 구르기 대역 (관절 부위·머리·투구 모형, 물들일 재료), 급류 회전 소용돌이 감추기 (3.3)
     # 대역의 열쇠 자세 표 (플러그인 Tumble 이 읽는다. 팩의 부위 모형과 같은 뼈대에서 셈한다)
     roll_figure.anim_table(os.path.join(RES, "roll_anim.yml"))

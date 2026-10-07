@@ -17,7 +17,7 @@
 #   --mem 2G        서버 메모리
 #   --timeout 300   시나리오 하나의 제한 시간 (초)
 #   --visual V      구르기 모습 combat.roll.visual (tumble 기본 · spin · crawl) 을 바꾼다. 주지 않으면 jar 설정 그대로 (tumble:
-#                   roll_iframes 가 대역 둘이 타고 투명 깃발이 섰다가 걷히는지도 본다)
+#                   roll_iframes 가 관절 대역의 부위 열하나 이상이 타고 투명 깃발이 섰다가 걷히는지도 본다)
 #   --crawl         구르기 기어가기 방벽(combat.roll.crawl)을 jar 설정 그대로 둔다 (방벽은 visual: crawl 일 때만 깔린다. 그래서
 #                   방벽 흉내까지 보려면 --visual crawl --crawl). 기본은 끈다 (봇은 기어가기 자세가 없다.
 #                   켜면 lib.js 가 머리 높이 방벽을 봇 세계에서 지워 기어가기를 흉내 내고, roll_iframes 가 방벽이 깔리고 걷히는지 본다)

@@ -420,3 +420,14 @@
 - 각자의 파일: A `pack/weapons/set_a.py` 와 `pack/art/weapon_icons_a.txt`, B `pack/weapons/set_b.py` 와 `pack/art/weapon_icons_b.txt`. 미리보기 `pack/preview/weapons_a.png`, `weapons_b.png`.
 - `gen_pack.py` 연결은 마지막에 A 가 한 번 (icons 다음, roll_figure 앞). `gen_pack.py`, `palette.py`, `wkit.py` 는 다른 작업도 고치므로 고치기 직전에 다시 읽고 가장 적게 고친다. 쇠단지의 빛 허용 (1.8) 은 A 가 `palette.GLOW` 에 한 줄.
 - 같이 맞출 것: 2절 끝의 표지 셋 (볼크 사슬, 교구의 종, 레딘의 붉은 천과 닫힌 성문), 강철 칸 (B 의 `_mats.py`), 줄 세운 그림에서 서로의 비례.
+
+## 5. B 가 모형을 만들며 정한 것 (2026-10-07, `set_b.py`)
+
+- 파일: `pack/weapons/set_b.py` (열 개, `build(out)` 을 `gen_pack.py` 가 icons 다음에 부른다. A 의 `set_a.build` 도 같은 자리에 한 줄로 더한다), `pack/art/weapon_icons_b.txt` (16px 그림), `pack/weapons/_mats.py` (재료 칸). 미리보기 `dist/screenshots/weapons/<id>_{gui,side,fp,tp}.png`, `pack/preview/weapons_b.png`, `weapons_lineup_b.png`, `weapons_mats.png`.
+- 쥐는 점·3인칭 자세는 1.2·1.3 그대로 (`_common.hand_display` / `guard_display` / `shield_display` / `catalyst_display`). 구르기 대역·몹·보스 인형은 B 의 열 개도 1.4 의 사슬 하나로 쥔다. 아이템마다 따로 맞출 값은 없다.
+- `_mats.VoxWeapon`: 1.2 의 격자와 같고, wkit 이 상자를 끊는 16 텍셀 경계 가운데 Z 경계만 설계 Z ±8 로 옮겼다 (가운데 Z = 0 에 놓인 자루·날이 앞뒤로 쪼개지지 않아 요소가 절반). A 의 `_common.weapon` 과 모형 좌표·쥐는 점은 같다.
+- 판자 방패 (3.14): 판 뒷면을 쥐는 점에서 Z +5 에 둔다 (A 의 방패와 같다. 3.14 의 "판에서 2 복셀 뒤" 면 팔이 판을 뚫는다). 손잡이 다리가 Z −1..+5 를 잇고, 아래팔 둘레에 밧줄 고리 하나를 더했다. 1인칭은 경비대 방패 (`shields_a.HEATER_FP`) 와 같은 회전·이동에 크기 0.6 [미확인 (클라)].
+- 손종 (3.20) 1인칭: 회전 [−45, −75, 8], 이동 [0.2, 1.3, −0.8], 크기 0.85 (무기 1인칭 값이면 입 안만 보였다) [미확인 (클라)].
+- 교구 수호병의 미늘창 (3.12): 종 모양 구멍을 4×5 에서 폭 5 × 높이 6 (꼭지, 몸 3 줄, 벌어진 입술 2 줄) 으로 키웠다. 4×5 로는 네모 구멍으로 읽혔다.
+- 마테스의 종 철퇴 (3.9): 입술 지름 11, 허리 7 (홀수 폭이라 가운데가 자루와 한 줄에 선다).
+- 요소 수 (220 이하): 손도끼 54, 고용병 도끼 60, 곤봉 91, 고행승 철퇴 101, 종 철퇴 104, 창 61, 흐롤프 미늘창 121, 수호병 미늘창 94, 판자 방패 116, 손종 76.

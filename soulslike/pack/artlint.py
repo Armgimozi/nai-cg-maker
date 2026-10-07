@@ -31,6 +31,12 @@
             (98% 이상 같으면) 그 한 장만 센다.
   - 블록 그림의 경고는 갈래마다 한 줄로 모아 보인다 (바닐라의 판자·흐름 무늬에서 온 반복이 수천 건이다). -v 면 모두.
   - alpha:  비치는 블록 (BLOCK_TRANSLUCENT: 색유리, 얼음, 물, 차원문, 슬라임, 꿀, 부서지는 금) 은 반투명이 그 블록의 성질이다.
+블록 그림에만 더 보는 경고 둘 (2026-10-08, AI 티: 흩뿌린 점과 1픽셀 바둑판). 움직이는 그림은 장면마다 보고 가장 나쁜 장면으로
+  speck      외톨이 점: 여덟 이웃 어디에도 같은 색이 없고 네 이웃이 모두 한 색이며 그 색과 밝기가 한 단 (0.05) 넘게 다른 점이
+             불투명 픽셀의 SPECK_MAX (6%) 를 넘음. 고른 바탕에 흩뿌린 잡음, 색 계단이 바닐라의 잔결을 점으로 뭉갠 것을 잡는다
+             (대각선 1픽셀 선은 여덟 이웃에 같은 색이 있어 세지 않는다)
+  dither     1픽셀 바둑판: 네 이웃과 모두 다르고 그 이웃이 두 색 이하인 점이 불투명 픽셀의 DITHER_MAX (30%) 를 넘음
+             (짚단을 a·l·d 를 번갈아 찍어 그린 것 같은 무늬. 바닐라 블록 가운데 이 값을 넘는 것은 1,100 장 중 8 장)
 """
 import os
 import sys
@@ -49,6 +55,9 @@ TILE_COLORS = 12
 REPEAT_MIN = 3          # 같은 4×4 조각이 이만큼 (겹치지 않게) 나오면 경고
 REPEAT_FLAT = 11        # 한 색이 16칸 중 이보다 많으면 민무늬로 보고 반복을 세지 않는다
 SLOT_PITCH = (18, 20)   # GUI 칸 격자 간격 (창 18, 단축 슬롯 20). 이 간격으로 이웃한 같은 조각은 칸 격자다
+
+SPECK_MAX = 0.06       # 블록 그림: 외톨이 점의 몫
+DITHER_MAX = 0.30      # 블록 그림: 바둑판 점의 몫
 
 ERRORS = ("palette", "saturated", "blue", "gradient", "glowalpha", "restricted")
 # 반투명이 성질인 블록 그림 (이름 조각). 바닐라도 이 그림들만 반투명 픽셀을 쓴다
@@ -117,6 +126,37 @@ def _straight(t):
     rows = all((t[i] == t[i, 0]).all() for i in range(4))
     cols = all((t[:, j] == t[0, j]).all() for j in range(4))
     return rows or cols
+
+
+def speck_dither(a):
+    """
+    블록 그림 한 장면 (정사각) 의 (외톨이 점 몫, 바둑판 점 몫). 가장자리는 감아서 본다 (블록은 이어 놓인다).
+    외톨이: 여덟 이웃에 같은 색이 없고, 네 이웃이 한 색이고, 그 색과 밝기 (luma) 가 0.05 넘게 다르다.
+    바둑판: 네 이웃과 모두 다르고, 네 이웃이 두 색 이하.
+    """
+    w = a.shape[1]
+    op = a[..., 3] > 0
+    key = a[..., 0].astype(np.int64) * 65536 + a[..., 1].astype(np.int64) * 256 + a[..., 2]
+    lu = (0.299 * a[..., 0] + 0.587 * a[..., 1] + 0.114 * a[..., 2]) / 255.0
+    sp = di = 0
+    tot = int(op.sum())
+    for y in range(w):
+        for x in range(w):
+            if not op[y, x]:
+                continue
+            n4 = [((y + dy) % w, (x + dx) % w) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))]
+            if not all(op[p] for p in n4):
+                continue
+            ks = [key[p] for p in n4]
+            if key[y, x] in ks:
+                continue
+            if len(set(ks)) <= 2:
+                di += 1
+            if len(set(ks)) == 1 and abs(lu[y, x] - lu[n4[0]]) >= 0.05:
+                d4 = [((y + dy) % w, (x + dx) % w) for dx, dy in ((1, 1), (1, -1), (-1, 1), (-1, -1))]
+                if all(not op[p] or key[p] != key[y, x] for p in d4):
+                    sp += 1
+    return sp / max(1, tot), di / max(1, tot)
 
 
 def check_image(path, report, rel=None):
@@ -194,6 +234,17 @@ def check_image(path, report, rel=None):
             n = len({tuple(p) for p in t[tv][:, :3].tolist()})
             if n > TILE_COLORS:
                 report.add("경고", path, "colors", f"칸 ({tx},{ty}) 에 색 {n}개")
+
+    # 블록 그림: 외톨이 점과 1픽셀 바둑판 (장면마다, 가장 나쁜 장면)
+    if block and "/textures/block/" in "/" + rel and w >= 8 and h % w == 0:
+        worst_s = worst_d = 0.0
+        for fi in range(h // w):
+            sv, dv = speck_dither(a[fi * w:(fi + 1) * w])
+            worst_s, worst_d = max(worst_s, sv), max(worst_d, dv)
+        if worst_s > SPECK_MAX:
+            report.add("경고", path, "speck", f"외톨이 점 {worst_s:.0%} (한도 {SPECK_MAX:.0%})")
+        if worst_d > DITHER_MAX:
+            report.add("경고", path, "dither", f"1픽셀 바둑판 점 {worst_d:.0%} (한도 {DITHER_MAX:.0%})")
 
     # 6. 아이콘의 완벽한 좌우 대칭
     icon = "/textures/item/" in "/" + rel or rel.endswith("pack.png")

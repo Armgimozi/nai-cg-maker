@@ -10,6 +10,7 @@ import kr.souls.skill.Mechanics;
 import net.kyori.adventure.key.Key;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
+import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -23,6 +24,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.MainHand;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
 import org.joml.Quaternionf;
@@ -59,11 +61,12 @@ import java.util.UUID;
  *       자리는 직선, 방향은 구면 보간한다 (마디가 짧아 관절이 벌어지지 않는다). 처음 자세는 띄울 때 함께 보내고 (생성 패킷),
  *       다음 자세는 2틱부터 (그 전에 바꾸면 생성 패킷과 한 번에 나가 보간 없이 바뀐다). 표는 오른손잡이로 만들었다: 왼손잡이
  *       (주손이 왼쪽) 는 X 를 뒤집고 좌우 부위를 바꾼다. 일어서는 rise-at 틱부터 rise-turn 틱 동안 구르는 쪽에서 몸 방향으로 돈다.</li>
- *   <li>1인칭: 바닐라는 1인칭에서 제 몸을 그리지 않지만 대역은 그린다. 그래서 (1) 표의 hide-pitch (35°) 보다 내려다보면 그 사람
- *       화면에서만 대역을 감추고 (Player#hideEntity, 틱마다 보고 바뀔 때만), (2) 덜 내려다보는 동안에도 화면에 들지 않게 자세마다
- *       대역 전체를 F5 카메라 자리 (눈 높이, 보는 쪽 뒤 4 블록) 를 가운데로 줄여 눈 뒤로 물린다 (표의 back: 보는 쪽마다 셈한 몫).
+ *   <li>1인칭: 바닐라는 1인칭에서 제 몸을 그리지 않지만 대역은 그린다. 그래서 대역을 두 벌 띄운다: 그 사람에게만 보이는 벌 (own)
+ *       과 그 사람만 빼고 모두에게 보이는 벌 (seen, 진짜 자리 그대로). own 은 (1) 표의 hide-pitch (35°) 보다 내려다보면 감추고
+ *       (Player#hideEntity/showEntity, 틱마다 보고 바뀔 때만), (2) 덜 내려다보는 동안에도 화면에 들지 않게 자세마다 F5 카메라 자리
+ *       (눈에서 보는 쪽 반대로 4 블록, 벽에 막히면 그만큼) 를 가운데로 줄여 눈 뒤로 물린다 (표의 back: 보는 쪽마다 셈한 몫).
  *       F5 카메라에서는 같은 빛줄기 위라 그림이 그대로이고 (그냥 물리면 대역이 카메라 쪽으로 다가와 커 보였다), 1인칭 카메라는
- *       움직이지 않는다.</li>
+ *       움직이지 않는다. 한 벌로 하면 옆에서 보는 사람에게 대역이 작아지고 뒤로 밀려 보였다 [확인 (클라, 둘째 클라이언트)].</li>
  *   <li>진짜 몸 감추기: 투명 깃발 (Bukkit setInvisible: 효과가 아니라 아이콘·입자·효과 이벤트가 없고, F 를 받은 그 틱의 추적 단계에서
  *       곧바로 나간다). 투명해도 바닐라는 든 것과 입은 것을 그리므로, 그 사람 화면과 보는 사람에게만 장비를 바꿔 보낸다
  *       (sendEquipmentChange, 서버의 진짜 아이템은 그대로). 손: souls 아이템이면 custom_model_data 깃발 {@link #HIDE_FLAG} 를 켠 사본
@@ -123,10 +126,26 @@ public final class Tumble {
     private final Anim anim;
     private final Map<UUID, Fig> live = new HashMap<>();
 
-    /** 한 사람의 대역. */
-    private static final class Fig {
+    /** 대역 한 벌의 표시 물체. */
+    private static final class Rig {
         final EnumMap<Part, ItemDisplay> body = new EnumMap<>(Part.class);
         ItemDisplay helm, mainItem, offItem;
+
+        List<ItemDisplay> all() {
+            List<ItemDisplay> out = new ArrayList<>(body.values());
+            if (helm != null) out.add(helm);
+            if (mainItem != null) out.add(mainItem);
+            if (offItem != null) out.add(offItem);
+            return out;
+        }
+    }
+
+    /**
+     * 한 사람의 대역: 두 벌. own 은 그 사람에게만 보이고 (1인칭에서 비키려고 F5 카메라 자리를 가운데로 줄인다), seen 은 그 사람만 빼고
+     * 모두에게 보인다 (진짜 자리 그대로). 한 벌을 줄이면 옆에서 보는 사람에게는 대역이 작아지고 뒤로 밀려 보였다 [확인 (클라)].
+     */
+    private static final class Fig {
+        final Rig own = new Rig(), seen = new Rig();
         /** 열쇠 자세와 reveal 을 세는 기준 틱 (구르기 시작 틱) */
         long base;
         /** 구르는 쪽 (라디안, 대역 공간 +Z 가 이쪽을 보게 Y 로 돌린다) 과 지금 보낸 자세의 Y */
@@ -147,14 +166,12 @@ public final class Tumble {
         boolean ownInvis;
         /** 바꿔 보낸 장비 칸 */
         final List<EquipmentSlot> faked = new ArrayList<>();
-        /** 그 사람 화면에서 감춘 표시 물체 */
-        final Set<UUID> hiddenSelf = new HashSet<>();
+        /** own 벌 가운데 지금 그 사람에게 보이는 것 (내려다보면 감춘다) */
+        final Set<UUID> shownOwn = new HashSet<>();
 
         List<ItemDisplay> parts() {
-            List<ItemDisplay> out = new ArrayList<>(body.values());
-            if (helm != null) out.add(helm);
-            if (mainItem != null) out.add(mainItem);
-            if (offItem != null) out.add(offItem);
+            List<ItemDisplay> out = own.all();
+            out.addAll(seen.all());
             return out;
         }
     }
@@ -388,14 +405,14 @@ public final class Tumble {
                 List<ItemDisplay> ds = new ArrayList<>();
         for (Part part : Part.values()) {
             if (part.model == null && part != Part.HEAD) continue;
-            ds.add(display(p, l, bodyItem(p, part, f), transform(fr, part, f, Shrink.NONE, 0), null, false));
+            ds.add(display(p, l, bodyItem(p, part, f), transform(fr, part, f, Shrink.NONE, 0), null, null));
         }
-        if (f.helmColor != null) ds.add(display(p, l, helm(f.helmColor), transform(fr, Part.HEAD, f, Shrink.NONE, 0), null, false));
+        if (f.helmColor != null) ds.add(display(p, l, helm(f.helmColor), transform(fr, Part.HEAD, f, Shrink.NONE, 0), null, null));
         EntityEquipment eq = p.getEquipment();
         for (boolean main : new boolean[]{true, false}) {
             ItemStack it = main ? eq.getItemInMainHand() : eq.getItemInOffHand();
             if (it.isEmpty()) continue;
-            ds.add(display(p, l, it.clone(), transform(fr, handPart(f, main), f, Shrink.NONE, 0), handContext(f, main), false));
+            ds.add(display(p, l, it.clone(), transform(fr, handPart(f, main), f, Shrink.NONE, 0), handContext(f, main), null));
         }
         Bukkit.getScheduler().runTaskLater(plugin, () -> ds.forEach(Entity::remove), ticks);
     }
@@ -409,45 +426,50 @@ public final class Tumble {
         at.setYaw(0f);
         at.setPitch(0f);
         Frame fr = anim.frames().get(0);
-        Shrink back = shrink(p, f, fr);
         float down = (float) -f.attach;
-        // 처음부터 내려다보고 있으면 그 사람에게는 보내지 않는다 (만들기 전에 감춘다)
-        boolean hidden = p.getLocation().getPitch() > anim.hidePitch();
+        fill(p, f, f.seen, at, fr, Shrink.NONE, down, false);
+        fill(p, f, f.own, at, fr, shrink(p, f, fr), down, true);
+        for (ItemDisplay d : f.parts()) p.addPassenger(d);
+        // own 벌은 아무에게도 보이지 않게 만들었다: 그 사람이 내려다보고 있지 않으면 그 사람에게 보인다
+        lookDown(p, f);
+    }
+
+    /** 한 벌을 띄운다. own 이면 아무에게도 보이지 않게 (그 사람에게는 lookDown 이 보인다), 아니면 그 사람에게만 감춘다. */
+    private void fill(Player p, Fig f, Rig r, Location at, Frame fr, Shrink sh, float down, boolean own) {
         for (Part part : Part.values()) {
             if (part.model == null && part != Part.HEAD) continue;
-            f.body.put(part, display(p, at, bodyItem(p, part, f), transform(fr, part, f, back, down), null, hidden));
+            r.body.put(part, display(p, at, bodyItem(p, part, f), transform(fr, part, f, sh, down), null, own));
         }
-        if (f.helmColor != null) f.helm = display(p, at, helm(f.helmColor), transform(fr, Part.HEAD, f, back, down), null, hidden);
+        if (f.helmColor != null) r.helm = display(p, at, helm(f.helmColor), transform(fr, Part.HEAD, f, sh, down), null, own);
         EntityEquipment eq = p.getEquipment();
         ItemStack main = eq.getItemInMainHand(), off = eq.getItemInOffHand();
         if (!main.isEmpty()) {
-            f.mainItem = display(p, at, main.clone(), transform(fr, handPart(f, true), f, back, down), handContext(f, true), hidden);
+            r.mainItem = display(p, at, main.clone(), transform(fr, handPart(f, true), f, sh, down), handContext(f, true), own);
         }
         if (!off.isEmpty()) {
-            f.offItem = display(p, at, off.clone(), transform(fr, handPart(f, false), f, back, down), handContext(f, false), hidden);
-        }
-        for (ItemDisplay d : f.parts()) {
-            if (hidden) f.hiddenSelf.add(d.getUniqueId());
-            p.addPassenger(d);
+            r.offItem = display(p, at, off.clone(), transform(fr, handPart(f, false), f, sh, down), handContext(f, false), own);
         }
     }
 
     /** 이어 구를 때: 색·투구를 다시 입힌다 (갑옷을 바꿨을 수 있다). 든 것은 그대로. */
     private void dress(Player p, Fig f) {
-        for (Map.Entry<Part, ItemDisplay> e : f.body.entrySet()) {
-            if (e.getKey().model != null && e.getValue().isValid()) e.getValue().setItemStack(bodyItem(p, e.getKey(), f));
+        for (Rig r : List.of(f.own, f.seen)) {
+            for (Map.Entry<Part, ItemDisplay> e : r.body.entrySet()) {
+                if (e.getKey().model != null && e.getValue().isValid()) e.getValue().setItemStack(bodyItem(p, e.getKey(), f));
+            }
+            if (r.helm != null && f.helmColor == null) {
+                // 이어 구르기 전에 투구를 벗었다
+                r.helm.leaveVehicle();
+                r.helm.remove();
+                r.helm = null;
+            }
+            if (r.helm != null && r.helm.isValid()) r.helm.setItemStack(helm(f.helmColor));
         }
-        if (f.helm != null && f.helmColor == null) {
-            // 이어 구르기 전에 투구를 벗었다
-            f.helm.leaveVehicle();
-            f.helm.remove();
-            f.helm = null;
-        }
-        if (f.helm != null && f.helm.isValid()) f.helm.setItemStack(helm(f.helmColor));
     }
 
+    /** own: 아무에게도 보이지 않게 만든다 (그 사람에게는 lookDown 이 보인다). 아니면 그 사람에게만 감춘다. pose 는 null (모두에게). */
     private ItemDisplay display(Player p, Location at, ItemStack item, Transformation tf, ItemDisplay.ItemDisplayTransform ctx,
-                                boolean hiddenFromSelf) {
+                                Boolean own) {
         return p.getWorld().spawn(at, ItemDisplay.class, d -> {
             d.setTransformation(tf);
             d.setItemStack(item);
@@ -458,8 +480,10 @@ public final class Tumble {
             d.setTeleportDuration(0);
             d.setInterpolationDuration(0);
             d.setShadowRadius(0f);
-            // 만들기 전에 감추면 그 사람에게는 생성 패킷이 가지 않는다
-            if (hiddenFromSelf) p.hideEntity(plugin, d);
+            // 만들기 전에 감추면 생성 패킷이 가지 않는다
+            if (own == null) return;
+            if (own) d.setVisibleByDefault(false);
+            else p.hideEntity(plugin, d);
         });
     }
 
@@ -520,12 +544,16 @@ public final class Tumble {
                 : Math.max(0f, Math.min(1f, (reach - c.riseAt()) / (float) c.riseTurn()));
         float body = (float) Math.toRadians(-p.getBodyYaw());
         f.yaw = f.rollYaw + turn * wrap(body - f.rollYaw);
-        Shrink back = shrink(p, f, fr);
         float down = (float) -f.attach;
-        for (Map.Entry<Part, ItemDisplay> e : f.body.entrySet()) send(e.getValue(), transform(fr, e.getKey(), f, back, down), duration);
-        if (f.helm != null) send(f.helm, transform(fr, Part.HEAD, f, back, down), duration);
-        if (f.mainItem != null) send(f.mainItem, transform(fr, handPart(f, true), f, back, down), duration);
-        if (f.offItem != null) send(f.offItem, transform(fr, handPart(f, false), f, back, down), duration);
+        sendRig(f, f.own, fr, shrink(p, f, fr), down, duration);
+        sendRig(f, f.seen, fr, Shrink.NONE, down, duration);
+    }
+
+    private void sendRig(Fig f, Rig r, Frame fr, Shrink sh, float down, int duration) {
+        for (Map.Entry<Part, ItemDisplay> e : r.body.entrySet()) send(e.getValue(), transform(fr, e.getKey(), f, sh, down), duration);
+        if (r.helm != null) send(r.helm, transform(fr, Part.HEAD, f, sh, down), duration);
+        if (r.mainItem != null) send(r.mainItem, transform(fr, handPart(f, true), f, sh, down), duration);
+        if (r.offItem != null) send(r.offItem, transform(fr, handPart(f, false), f, sh, down), duration);
     }
 
     private static void send(ItemDisplay d, Transformation tf, int duration) {
@@ -559,12 +587,14 @@ public final class Tumble {
     }
 
     /**
-     * 1인칭에서 비키는 닮음 변환 (세계 축, 그 사람 발밑 기준): 가운데는 F5 카메라 자리 (눈 높이, 보는 쪽 (수평) 뒤 f5-dist 블록),
-     * 배율 s = 1 - k / f5-dist 라 눈 높이의 점이 k 만큼 보는 쪽 반대로 물러난다. k 는 표의 back 에서 보는 쪽 (대역이 구르는 쪽에서 잰
-     * 각, 대역 공간 +X 쪽으로 +) 에 맞는 몫을 직선으로 읽는다. 왼손잡이는 각을 거울로. F5 카메라에서는 그림이 그대로다 (같은 빛줄기).
+     * 1인칭에서 비키는 닮음 변환 (세계 축, 그 사람 발밑 기준): 가운데는 F5 카메라 자리 (눈에서 보는 쪽 (내려다보는 각 포함) 의 반대로
+     * f5-dist 블록, 바닐라처럼 블록에 막히면 그만큼 가까이), 배율 s = 1 - k / 거리 라 눈 자리의 점이 k 만큼 보는 쪽 반대로 물러난다.
+     * k 는 표의 back 에서 보는 쪽 (수평으로, 대역이 구르는 쪽에서 잰 각, 대역 공간 +X 쪽으로 +) 에 맞는 몫을 직선으로 읽는다
+     * (왼손잡이는 각을 거울로). F5 카메라에서는 같은 빛줄기 위라 그림이 그대로다.
      */
     private Shrink shrink(Player p, Fig f, Frame fr) {
-        double yawMc = Math.toRadians(p.getLocation().getYaw());
+        Location eye = p.getEyeLocation();
+        double yawMc = Math.toRadians(eye.getYaw());
         double lx = -Math.sin(yawMc), lz = Math.cos(yawMc);
         // 세계 → 대역 공간 (Y(-yaw))
         double cy = Math.cos(f.yaw), sy = Math.sin(f.yaw);
@@ -576,27 +606,39 @@ public final class Tumble {
         int i0 = (int) Math.floor(idx) % back.length, i1 = (i0 + 1) % back.length;
         double w = idx - Math.floor(idx);
         double kb = (back[i0] * (1 - w) + back[i1] * w) * anim.scale() / 16.0;
-        double dist = anim.f5Dist();
-        Vector3f c = new Vector3f((float) (-lx * dist), (float) p.getEyeHeight(), (float) (-lz * dist));
-        return new Shrink(c, (float) Math.max(0.5, 1 - kb / dist));
+        Vector look = eye.getDirection();
+        double dist = f5Distance(p, eye, look);
+        Vector3f c = new Vector3f((float) (-look.getX() * dist), (float) (p.getEyeHeight() - look.getY() * dist), (float) (-look.getZ() * dist));
+        return new Shrink(c, (float) Math.max(0.05, 1 - kb / dist));
     }
 
     /**
-     * 1인칭: 표의 hide-pitch 보다 내려다보면 그 사람 화면에서 대역을 감추고, 아니면 다시 보인다 (바뀔 때만). 주손을 돌려준 뒤에는
-     * 대역 손의 주손 아이템을 그 사람 화면에서 감춘다 (진짜 손에 든 것과 둘로 보이지 않게).
+     * F5 카메라가 눈 뒤로 떨어진 거리: f5-dist, 눈 뒤로 블록이 있으면 그 앞까지 (바닐라 Camera.getMaxZoom 은 눈 둘레 0.1 의 여덟 줄로
+     * 막힘을 본다. 여기는 한 줄에서 0.1 을 뺀다).
+     */
+    private double f5Distance(Player p, Location eye, Vector look) {
+        double max = anim.f5Dist();
+        RayTraceResult hit = p.getWorld().rayTraceBlocks(eye, look.clone().multiply(-1), max, FluidCollisionMode.NEVER, true);
+        if (hit == null) return max;
+        return Math.max(0.3, Math.min(max, hit.getHitPosition().distance(eye.toVector()) - 0.1));
+    }
+
+    /**
+     * 그 사람에게 보이는 벌 (own): 표의 hide-pitch 보다 내려다보면 감추고, 아니면 보인다 (바뀔 때만). 주손을 돌려준 뒤에는 대역 손의
+     * 주손 아이템을 감춘다 (진짜 손에 든 것과 둘로 보이지 않게). 다른 사람에게 보이는 벌 (seen) 은 그 사람에게 늘 감춰져 있다.
      */
     private void lookDown(Player p, Fig f) {
         boolean down = p.getLocation().getPitch() > anim.hidePitch();
-        for (ItemDisplay d : f.parts()) {
-            boolean want = down || (d == f.mainItem && f.handBack);
-            boolean is = f.hiddenSelf.contains(d.getUniqueId());
+        for (ItemDisplay d : f.own.all()) {
+            boolean want = !down && !(d == f.own.mainItem && f.handBack);
+            boolean is = f.shownOwn.contains(d.getUniqueId());
             if (want == is || !d.isValid()) continue;
             if (want) {
-                p.hideEntity(plugin, d);
-                f.hiddenSelf.add(d.getUniqueId());
-            } else {
                 p.showEntity(plugin, d);
-                f.hiddenSelf.remove(d.getUniqueId());
+                f.shownOwn.add(d.getUniqueId());
+            } else {
+                p.hideEntity(plugin, d);
+                f.shownOwn.remove(d.getUniqueId());
             }
         }
     }
@@ -606,7 +648,7 @@ public final class Tumble {
     /** 자원 roll_anim.yml (pack/roll_figure.py anim_table). 없거나 틀리면 null (구르기는 대역 없이 진짜 몸으로). */
     private static Anim load(Souls plugin) {
         try (InputStream in = plugin.getResource("roll_anim.yml")) {
-            if (in == null) throw new IllegalStateException("자원이 없다");
+            if (in == null) throw new IllegalStateException("no resource");
             YamlConfiguration y = YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
             List<String> names = y.getStringList("parts");
             int[] slot = new int[names.size()];
@@ -616,7 +658,7 @@ public final class Tumble {
                 List<?> rows = (List<?>) m.get("p");
                 List<?> backs = (List<?>) m.get("back");
                 if (rows == null || rows.size() != slot.length || backs == null || backs.isEmpty()) {
-                    throw new IllegalStateException("자세 줄이 틀렸다");
+                    throw new IllegalStateException("bad frame rows");
                 }
                 float[][] parts = new float[Part.values().length][];
                 for (int i = 0; i < slot.length; i++) {
@@ -626,13 +668,13 @@ public final class Tumble {
                     parts[slot[i]] = v;
                 }
                 for (Part part : Part.values()) {
-                    if (parts[part.ordinal()] == null) throw new IllegalStateException("부위가 없다: " + part.key);
+                    if (parts[part.ordinal()] == null) throw new IllegalStateException("missing part " + part.key);
                 }
                 float[] back = new float[backs.size()];
                 for (int i = 0; i < back.length; i++) back[i] = ((Number) backs.get(i)).floatValue();
                 frames.add(new Frame(((Number) m.get("tick")).intValue(), ((Number) m.get("dur")).intValue(), back, parts));
             }
-            if (frames.isEmpty()) throw new IllegalStateException("자세가 없다");
+            if (frames.isEmpty()) throw new IllegalStateException("no frames");
             return new Anim((float) y.getDouble("scale", 0.9375), (float) y.getDouble("hide-pitch", 35),
                     (float) Math.max(1, y.getDouble("f5-dist", 4)), List.copyOf(frames));
         } catch (Exception e) {

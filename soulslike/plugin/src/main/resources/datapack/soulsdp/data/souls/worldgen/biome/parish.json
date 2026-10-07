@@ -1,8 +1,14 @@
 {
+  "attributes": {
+    "minecraft:visual/water_fog_color": "#22292a"
+  },
   "carvers": [],
   "downfall": 0.0,
   "effects": {
-    "water_color": "#3f76e4"
+    "dry_foliage_color": "#7c7464",
+    "foliage_color": "#7a8a78",
+    "grass_color": "#8a9886",
+    "water_color": "#c6c4bc"
   },
   "features": [],
   "has_precipitation": false,

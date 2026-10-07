@@ -14,12 +14,12 @@
   - 그래서 새 색은 팔레트 계단에만 있고 (부드러운 그라데이션·잡음이 생기지 않는다), 바닐라의 점 배치가 남는다.
   - 광석은 바탕 돌 (돌, 심층암, 네더랙) 과 다른 점만 광석 계단으로 옮긴다. 바탕은 바탕 돌 그림과 픽셀까지 같다.
   - 빛을 내는 블록 (palette.BLOCK_GLOW) 은 밝고 따뜻한 점만 불씨 계단으로 옮긴다 (횃불·랜턴·불·용암이 따뜻하게 읽힌다).
-  - 바이옴 색으로 물드는 그림 (풀, 잎, 덩굴, 물) 은 회색 계단으로 두고 색은 색 지도 (colormap/grass·foliage·dry_foliage)
-    가 낸다. 가문비·자작 잎은 바닐라가 정한 초록으로 물드므로 바랜 장미색으로 그려 마른 올리브가 되게 한다.
-    물은 데이터팩 바이옴의 물 색 (#3f76e4, 바닐라 기본값) 으로 물드므로 청동빛으로 그려 탁한 회청록이 되게 한다.
-    데이터팩에 물 색을 넣으면 (DESIGN 8.4: 교구 #22292a) WATER_TINT 와 물 계단을 다시 맞춘다.
-  - 지역 바이옴 9개 (데이터팩 souls:*) 는 모두 기온 0.5·강수 0 이라 색 지도의 (127, 255) 한 점을 쓴다. 풀빛과 잎빛을
-    따로 적지 않았으므로 그 자리가 마른 올리브다 (GRASS_AT, FOLIAGE_AT).
+  - 바이옴 색으로 물드는 그림 (풀, 잎, 덩굴, 물) 은 회색 세 칸으로 두고 (가장 어두운 칸을 올려 검은 구멍이 없다) 색은
+    바이옴이 낸다. 지역 바이옴 9개 (데이터팩 souls:*) 는 저마다 풀빛·잎빛·마른 잎빛을 effects 에 적었다 (사당 재 묻은
+    올리브, 성벽 마른 황토 올리브, 교구 축축한 회녹 …). 색 지도 (colormap/grass·foliage·dry_foliage) 는 그 밖의 바이옴과
+    아이템 그림만 쓴다. 가문비·자작 잎은 바닐라가 정한 초록으로 물드므로 바랜 장미색으로 그려 마른 올리브가 되게 한다.
+  - 물은 데이터팩의 물 색을 9 지역 모두 옅은 무채색 (#c6c4bc) 으로 두고 탁한 회녹을 그림이 낸다 (WATER_TINT).
+    교구의 어두운 물빛 (DESIGN 8.4 #22292a) 은 물속 안개 (water_fog_color) 다.
   - 애니메이션 띠와 .mcmeta (장면 순서, 밉맵 방식) 는 바닐라 그대로 옮긴다. 알파도 그대로다.
 
 blocks_core.py (2층) 가 이 뒤에 맵의 핵심 블록을 손 규칙으로 새로 그려 덮는다. 그 뒤 finish() 가 바닐라에서 바탕 그림을
@@ -71,9 +71,12 @@ LADDERS = {
     "iron":   ["ash0", "ash1", "stone0", "ash2", "stone1", "ash3", "stone2"],
     # 성벽 돌: 밝은 면은 바랜 뼈빛, 줄눈은 재 (blocks_core 의 돌벽돌과 같은 결)
     "castle": ["ash0", "ash1", "stone0", "ash2", "bone0", "bone1", "stone3", "bone2"],
-    # 녹청 낀 구리: 그을린 청동 바탕에 이끼빛 녹 (blocks_core 의 녹슨 구리와 같은 결)
-    "patina": ["ash0", "bronze0", "bronze1", "moss1", "moss2", "olive3"],
-    "oak":    ["rust0", "bronze0", "bronze1", "bronze2", "bronze3", "parch2", "parch3"],
+    # 녹청: 구리와 다른 회녹 (녹청 계열만. 이끼빛은 쓰지 않는다). 녹이 오를수록 이 계단의 몫이 커진다
+    "patina": ["slate0", "verd0", "verd1", "verd2", "verd3", "verd4"],
+    # 구리 (녹슬기 전): 탁한 녹빛 청동 (살구빛이 아니다)
+    "copper": ["ash0", "rust0", "rust1", "rust2", "rust3", "parch1", "parch2"],
+    # 참나무 계열 (작업대·책장·독서대·통·벌통의 바탕): 비바람에 바랜 회황토. 금빛 청동은 쓰지 않는다
+    "oak":    ["rust0", "rust1", "rust2", "parch0", "rust3", "parch1", "parch2"],
     "spruce": ["ash0", "rust0", "rust1", "rust2", "rust3", "parch1"],
     "darkwood": ["ash0", "rust0", "bronze0", "rust1", "bronze1", "rust2"],
     "earth":  ["ash0", "rust0", "rust1", "rust2", "rust3"],
@@ -85,6 +88,14 @@ LADDERS = {
     "moss":   ["ash0", "moss0", "moss1", "moss2", "olive3", "olive4"],
     "olive":  ["ash0", "olive0", "olive1", "olive2", "olive3", "olive4", "parch3"],
     "verd":   ["slate0", "verd0", "verd1", "verd2", "verd3", "verd4", "bone3"],
+    "diamond": ["verd2", "verd3", "verd4", "slate6", "bone3"],
+    "woadonly": ["woad0", "woad1", "woad2", "woad3"],
+    "mauvebone": ["mauve2", "mauve3", "mauve4", "mauve5", "bone1", "bone2"],
+    # 꽃잎 넷 (FLOWERS): 뼈, 마른 황토, 엷은 자주, 시든 붉음. 가장 밝은 칸을 막아 모두 흰빛으로 모이지 않게
+    "fl_bone": ["ash2", "stone1", "bone0", "bone1", "bone2"],
+    "fl_ochre": ["rust1", "bronze1", "parch0", "bronze2", "parch1"],
+    "fl_mauve": ["mauve1", "mauve2", "mauve3", "mauve4", "mauve5"],
+    "fl_red": ["rose0", "rose1", "rose2", "rose3"],
     "blue":   ["slate0", "woad0", "woad1", "woad2", "woad3", "slate4", "slate5", "slate6"],
     "frost":  ["slate2", "slate3", "slate4", "slate5", "slate6", "bone3"],
     "mauve":  ["mauve0", "mauve1", "mauve2", "mauve3", "mauve4", "mauve5", "bone2"],
@@ -96,7 +107,8 @@ LADDERS = {
     "redglow": ["blood0", "blood1", "blood2", "blood3", "ember1", "ember2"],
     "ghost":  ["slate0", "verd0", "verd1", "verd2", "verd3", "verd4", "bone2", "bone3"],
     # 물든 그림: 물 (바닐라 기본 물 색으로 물들면 탁한 회청록), 가문비·자작 잎 (바닐라가 정한 초록으로 물들면 마른 올리브)
-    "water":  ["bronze0", "bronze1", "bronze2", "bronze3", "parch2"],
+    # 물: 데이터팩 바이옴의 물 색을 옅은 무채색 (WATER_TINT) 으로 두고, 탁한 회녹은 그림이 낸다
+    "water":  ["verd1", "slate2", "verd2", "slate3", "verd3", "slate4"],
     "tintrose": ["rose0", "rose1", "rose2", "rose3", "rose4", "bone2"],
 }
 LADDER_LUMA = {}
@@ -166,11 +178,14 @@ class Recipe:
       gain  대비 (기준을 가운데로 밝기 차이를 몇 배로)
       to_of None 이 아니면 (a, b): mid 가 그림 평균일 때 목표 밝기 = a + b × 평균
       hot   빛 그림: (계단, 종류, to, gain) 빛나는 점만 따로 옮긴다
+      steps 한 장에 쓰는 팔레트 색의 수 한도 (잎·풀·이끼는 3, 콘크리트·양털·테라코타는 2). 밝기가 가까운 색끼리 합친다
+      floor 가장 어두운 칸의 밝기 하한 (잎의 검은 구멍을 막는다)
     """
-    __slots__ = ("lad", "to", "mid", "gain", "to_of", "hot", "label")
+    __slots__ = ("lad", "to", "mid", "gain", "to_of", "hot", "label", "steps", "floor")
 
-    def __init__(self, lad, to=None, mid=0.5, gain=1.0, to_of=None, hot=None, label=None):
+    def __init__(self, lad, to=None, mid=0.5, gain=1.0, to_of=None, hot=None, label=None, steps=None, floor=None):
         self.lad, self.to, self.mid, self.gain, self.to_of, self.hot, self.label = lad, to, mid, gain, to_of, hot, label
+        self.steps, self.floor = steps, floor   # 쓰는 계단 수의 한도, 가장 어두운 칸의 밝기 하한 (limit_steps)
         if to is None and to_of is None:
             self.to_of = (0.03, 0.88)
 
@@ -206,11 +221,11 @@ DYES = ("white", "light_gray", "gray", "black", "brown", "red", "orange", "yello
 # 물감 → (계단, 밝기 a, b). 밝기는 그림 평균에서 a + b × 평균
 DYE = {
     "white": ("pale", 0.06, 0.86), "light_gray": ("stone", 0.04, 0.86), "gray": ("stone", 0.03, 0.86),
-    "black": ("soot", 0.02, 0.9), "brown": ("rust", 0.04, 0.9), "red": ("blood", 0.0, 0.82),
-    "orange": ("clay", 0.04, 0.82), "yellow": ("gold", 0.03, 0.8), "lime": ("olive", 0.03, 0.82),
+    "black": ("soot", 0.02, 0.9), "brown": ("rust", 0.04, 0.9), "red": ("rose", 0.02, 0.7),
+    "orange": ("rust", 0.04, 0.82), "yellow": ("ochre", 0.03, 0.75), "lime": ("olive", 0.03, 0.82),
     "green": ("moss", 0.03, 0.9), "cyan": ("verd", 0.04, 0.88), "light_blue": ("frost", 0.04, 0.82),
-    "blue": ("blue", 0.02, 0.9), "purple": ("mauve", 0.03, 0.88), "magenta": ("mauve", 0.08, 0.86),
-    "pink": ("rose", 0.05, 0.84),
+    "blue": ("blue", 0.02, 0.9), "purple": ("mauve", 0.0, 0.8), "magenta": ("mauve", 0.06, 0.86),
+    "pink": ("mauvebone", 0.05, 0.84),
 }
 # 물들인 재료 → (대비, 밝기를 더 낮추는 양)
 DYED_MAT = {"wool": (1.15, 0.0), "concrete": (1.0, 0.02), "concrete_powder": (1.05, 0.02), "terracotta": (1.1, 0.03),
@@ -221,16 +236,16 @@ WOOD = ("oak", "spruce", "birch", "jungle", "acacia", "dark_oak", "mangrove", "c
         "crimson", "warped")
 # 나무는 그림마다 평균을 기준으로 (통나무 껍질은 판자보다 어둡다). 밝기 = a + b × 평균
 WOOD_RECIPE = {
-    "oak": per(mix(grey="iron", yellow="oak", orange="oak", red="oak"), 0.0, 0.82, gain=1.15),
+    "oak": per(mix(grey="iron", yellow="oak", orange="oak", red="oak"), 0.0, 0.66, gain=1.1),
     "spruce": per(mix(grey="iron", yellow="spruce", orange="spruce", red="spruce"), 0.04, 0.82, gain=1.15),
-    "birch": per(mix(grey="pale", yellow="pale", orange="pale", green="olive"), 0.04, 0.86, gain=1.05),
+    "birch": per(mix(grey="pale", yellow="pale", orange="pale", green="olive"), 0.04, 0.72, gain=1.0),
     "jungle": per(mix(grey="iron", yellow="clay", orange="clay", red="clay"), 0.0, 0.82, gain=1.1),
-    "acacia": per(mix(grey="stone", yellow="clay", orange="clay", red="clay"), 0.0, 0.85, gain=1.1),
+    "acacia": per(mix(grey="stone", yellow="rust", orange="rust", red="rust"), 0.02, 0.8, gain=1.1),
     "dark_oak": per(mix(grey="soot", yellow="darkwood", orange="darkwood", red="darkwood"), 0.05, 0.85, gain=1.15),
     "mangrove": per(mix(grey="stone", red="rose", orange="rose", yellow="rose", magenta="rose", pink="rose"),
                     0.02, 0.9, gain=1.1),
-    "cherry": per(mix(grey="pale", red="rose", orange="rose", pink="rose", yellow="rose", magenta="mauve",
-                      purple="mauve"), 0.03, 0.82, gain=1.05),
+    "cherry": per(mix(grey="pale", red="mauve", orange="mauve", pink="mauve", yellow="mauve", magenta="mauve",
+                      purple="mauve"), 0.03, 0.8, gain=1.05),
     "pale_oak": per(mix(grey="pale", yellow="pale", orange="pale", green="olive"), 0.05, 0.84, gain=1.05),
     "bamboo": per(mix(grey="stone", yellow="ochre", orange="ochre", green="olive"), 0.02, 0.82, gain=1.05),
     "crimson": per(mix(grey="soot", red="blood", orange="blood", pink="rose", magenta="mauve", purple="mauve",
@@ -239,15 +254,15 @@ WOOD_RECIPE = {
                       orange="clay", yellow="clay"), 0.02, 0.85, gain=1.1),
 }
 
-# 돌 갈래의 밝기는 blocks_core 가 새로 그린 성벽 돌 (돌벽돌 평균 밝기 0.37, 안산암 0.45, 심층암 0.2) 에 맞춘다
+# 돌 갈래의 밝기는 blocks_core 가 새로 그린 성벽 돌 (돌벽돌 평균 밝기 0.37, 안산암 0.45, 심층암 벽 0.29·바닥 0.36) 에 맞춘다
 STONE = R(mix(grey="stone", green="moss", yellow="oak"), to=0.41, mid=0.49, gain=1.3, label="stone")
 STONE_BRICKS = R(mix(grey="castle", green="moss", yellow="oak"), to=0.4, mid=0.48, gain=1.45, label="stone_bricks")
 COBBLE = R(mix(grey="castle", green="moss", yellow="oak"), to=0.37, mid=0.50, gain=1.0, label="cobble")
-DEEPSLATE = R(mix(grey="slate", yellow="rust", orange="rust"), to=0.22, mid=0.32, gain=1.0, label="deepslate")
+DEEPSLATE = R(mix(grey="slate", yellow="rust", orange="rust"), to=0.29, mid=0.32, gain=1.0, label="deepslate")
 NETHERRACK = R(mix(red="nether", orange="nether", pink="nether", magenta="nether", grey="soot", yellow="clay"),
                to=0.15, mid=0.22, gain=1.0, label="netherrack")
-TINT = R("stone", to=0.50, mid=0.58, gain=0.9, label="tint")
-TINT_LEAVES = R("stone", to=0.46, mid=0.55, gain=1.05, label="tint")
+TINT = R("stone", to=0.50, mid=0.58, gain=0.7, label="tint", steps=3, floor=0.36)
+TINT_LEAVES = R("stone", to=0.46, mid=0.55, gain=0.8, label="tint", steps=3, floor=0.34)
 GLOWHOT = ("ember", "warm", 0.55, 1.2)
 
 # 광석: 이름 → (바탕, 광석 점의 재료)
@@ -258,10 +273,12 @@ ORE = {
     "copper": R(mix(grey="stone", orange="clay", yellow="clay", red="clay", green="verd", cyan="verd"),
                 to=0.43, mid=0.5, gain=1.25),
     "gold": R(mix(grey="stone", yellow="gold", orange="gold", red="gold"), to=0.52, mid=0.62, gain=1.25),
-    "redstone": R(mix(grey="stone", red="blood", orange="blood", pink="blood"), to=0.27, mid=0.35, gain=1.35),
-    "lapis": R(mix(grey="stone", blue="blue", purple="blue", cyan="blue"), to=0.3, mid=0.38, gain=1.25),
-    "diamond": R(mix(grey="stone", cyan="verd", green="verd", blue="verd"), to=0.56, mid=0.6, gain=1.2),
-    "emerald": R(mix(grey="stone", green="moss", cyan="moss", yellow="moss"), to=0.42, mid=0.5, gain=1.3),
+    # 광석은 바탕 돌보다 밝기 0.12 넘게 다르거나 색이 또렷이 달라야 읽힌다 (청금석은 쪽빛만, 에메랄드는 이끼가 아닌 녹청,
+    # 다이아몬드는 옅은 녹청·흰빛)
+    "redstone": R(mix(grey="blood", red="blood", orange="blood", pink="blood"), to=0.3, mid=0.35, gain=1.5),
+    "lapis": R("woadonly", to=0.28, mid=0.38, gain=1.25),
+    "diamond": R(mix(grey="diamond", cyan="diamond", green="diamond", blue="diamond"), to=0.62, mid=0.6, gain=1.2),
+    "emerald": R(mix(grey="verd", green="verd", cyan="verd", yellow="verd"), to=0.4, mid=0.5, gain=1.3),
     "nether_gold": R(mix(yellow="gold", orange="gold", red="blood", grey="soot"), to=0.58, mid=0.62, gain=1.25),
     "nether_quartz": R(mix(grey="pale", yellow="pale", orange="pale", red="blood"), to=0.68, mid=0.78, gain=1.1),
 }
@@ -290,7 +307,7 @@ def _wood(name):
 # 이름 규칙 (위에서부터 처음 맞는 것). (정규식, 묶음, 재료). 묶음은 비교판을 나누는 재료 갈래
 RULES = [
     # 액체
-    (r"water_(still|flow|overlay)", "liquid", R("water", to=0.5, mid=0.69, gain=1.2, label="water")),
+    (r"water_(still|flow|overlay)", "liquid", R("water", to=0.4, mid=0.69, gain=1.1, label="water")),
     (r"lava_(still|flow)", "liquid", R("lava", to=0.55, mid=0.68, gain=1.35, label="lava")),
     # 빛
     (r"torch|copper_torch", "light", R(mix(grey="iron", yellow="oak", orange="oak", red="oak", green="verd"),
@@ -316,11 +333,10 @@ RULES = [
                                        hot=("ember", "warm", 0.55, 1.15))),
     (r"(furnace|smoker|blast_furnace)_front_on", "light", per(mix(grey="stone", yellow="oak", orange="clay"),
                                                               0.02, 0.86, hot=("ember", "warm", 0.55, 1.15))),
-    (r"ochre_froglight_(side|top)", "light", R("gold", to=0.56, mid=0.75, gain=1.25, hot=("ember", "warm", 0.6, 1.1))),
-    (r"verdant_froglight_(side|top)", "light", R("olive", to=0.52, mid=0.72, gain=1.25)),
-    (r"pearlescent_froglight_(side|top)", "light", R(mix(pink="rose", magenta="mauve", purple="mauve", red="rose",
-                                                         orange="rose", yellow="rose", grey="pale"),
-                                                     to=0.55, mid=0.75, gain=1.25)),
+    (r"ochre_froglight_(side|top)", "light", R("ochre", to=0.44, mid=0.75, gain=1.2)),
+    # 개구리불 셋은 색으로 갈린다: 황토 (ochre), 뼈 (verdant), 엷은 자주빛 뼈 (pearlescent)
+    (r"verdant_froglight_(side|top)", "light", R("pale", to=0.6, mid=0.72, gain=1.15)),
+    (r"pearlescent_froglight_(side|top)", "light", R("mauvebone", to=0.5, mid=0.75, gain=1.2)),
     (r"sea_lantern", "light", R(mix(grey="pale", cyan="verd", green="verd", blue="verd"), to=0.58, mid=0.7, gain=1.2)),
     (r"end_rod", "light", R(mix(grey="pale", yellow="pale", purple="mauve", magenta="mauve"), to=0.6, mid=0.7,
                             gain=1.15)),
@@ -407,20 +423,21 @@ RULES = [
                                                                   red="gold"), to=0.47, mid=0.7, gain=1.3)),
     (r"raw_iron_block", "metal", R(mix(grey="stone", yellow="rose", orange="rose", red="rose", pink="rose"),
                                    to=0.48, mid=0.6, gain=1.2)),
+    # 구리가 녹스는 차례 (DESIGN 10.6): 탁한 녹빛 청동 → 청동에 회녹 얼룩 → 거의 회녹 → 옅은 회녹. 이끼빛은 쓰지 않는다
     (r"(raw_copper_block|copper_block|cut_copper|chiseled_copper|copper_(bars|bulb|bulb_powered|chain|door_bottom|"
      r"door_top|grate|trapdoor)|lightning_rod)", "metal",
-     R(mix(grey="stone", orange="clay", yellow="clay", red="clay", pink="clay", green="verd", cyan="verd"),
-       to=0.4, mid=0.5, gain=1.25)),
-    (r"exposed_.*", "metal", R(mix(grey="stone", orange="clay", yellow="clay", red="clay", pink="clay",
-                                   green="patina", cyan="patina", purple="clay", magenta="clay"), to=0.38, mid=0.5,
-                               gain=1.25, hot=GLOWHOT)),
-    (r"weathered_.*", "metal", R(mix(grey="patina", orange="clay", yellow="clay", red="clay", green="patina",
-                                     cyan="patina", blue="patina", pink="clay"), to=0.33, mid=0.5, gain=1.25,
+     R(mix(grey="stone", orange="copper", yellow="copper", red="copper", pink="copper", green="patina", cyan="patina"),
+       to=0.36, mid=0.5, gain=1.2)),
+    (r"exposed_.*", "metal", R(mix(grey="copper", orange="copper", yellow="copper", red="copper", pink="copper",
+                                   green="patina", cyan="patina", purple="copper", magenta="copper"), to=0.36, mid=0.5,
+                               gain=1.2, hot=GLOWHOT)),
+    (r"weathered_.*", "metal", R(mix(grey="patina", orange="copper", yellow="copper", red="copper", green="patina",
+                                     cyan="patina", blue="patina", pink="copper"), to=0.37, mid=0.5, gain=1.2,
                                  hot=GLOWHOT)),
-    (r"oxidized_.*", "metal", R(mix(grey="patina", orange="clay", yellow="patina", red="clay", green="patina",
-                                    cyan="patina", blue="patina"), to=0.29, mid=0.52, gain=1.25, hot=GLOWHOT)),
-    (r"copper_.*", "metal", R(mix(grey="stone", orange="clay", yellow="clay", red="clay", pink="clay", green="verd",
-                                  cyan="verd"), to=0.4, mid=0.5, gain=1.25, hot=GLOWHOT)),
+    (r"oxidized_.*", "metal", R(mix(grey="patina", orange="patina", yellow="patina", red="patina", green="patina",
+                                    cyan="patina", blue="patina"), to=0.47, mid=0.52, gain=1.15, hot=GLOWHOT)),
+    (r"copper_.*", "metal", R(mix(grey="stone", orange="copper", yellow="copper", red="copper", pink="copper",
+                                  green="patina", cyan="patina"), to=0.36, mid=0.5, gain=1.2, hot=GLOWHOT)),
     (r"netherite_block", "metal", R(mix(grey="soot", purple="soot", magenta="soot", red="soot"), to=0.2, mid=0.25,
                                     gain=1.3)),
     (r"diamond_block", "metal", R(mix(grey="verd", cyan="verd", blue="verd", green="verd"), to=0.56, mid=0.75,
@@ -450,8 +467,8 @@ RULES = [
                        to=0.2, mid=0.23, gain=1.3)),
     (r"(suspicious_)?gravel(_[0-3])?", "soil", R(mix(grey="stone", red="rose", orange="rust", yellow="rust",
                                                      pink="rose"), to=0.4, mid=0.5, gain=1.05)),
-    (r"(suspicious_)?sand(_[0-3])?", "soil", R(mix(grey="pale", yellow="ochre", orange="ochre"), to=0.6, mid=0.81,
-                                               gain=0.8)),
+    (r"(suspicious_)?sand(_[0-3])?", "soil", R(mix(grey="pale", yellow="ochre", orange="ochre"), to=0.58, mid=0.81,
+                                               gain=0.45, steps=2)),
     (r"red_sand", "soil", R(mix(grey="stone", orange="clay", yellow="clay", red="clay"), to=0.42, mid=0.55,
                             gain=1.3)),
     (r"clay", "soil", R(mix(grey="slate", blue="slate", purple="slate"), to=0.5, mid=0.62, gain=1.3)),
@@ -488,19 +505,19 @@ RULES = [
      r"bush|sugar_cane", "plant", TINT),
     (r"(oak|jungle|acacia|dark_oak|mangrove)_leaves|vine|lily_pad", "plant", TINT_LEAVES),
     (r"leaf_litter", "plant", R("stone", to=0.55, mid=0.67, gain=1.3)),
-    (r"(spruce|birch)_leaves", "plant", R("tintrose", to=0.47, mid=0.5, gain=1.3)),
+    (r"(spruce|birch)_leaves", "plant", R("tintrose", to=0.47, mid=0.5, gain=1.1, steps=3, floor=0.3)),
     (r"(attached_)?(melon|pumpkin)_stem|pink_petals_stem|wildflowers_stem", "plant", R("stone", to=0.5, mid=0.6,
                                                                                        gain=1.2)),
     (r"redstone_dust_(dot|line0|line1|overlay)", "device", R("stone", to=0.6, mid=0.94, gain=1.0)),
     # 식물 (물들지 않는 것)
     (r"moss_(block|carpet)", "plant", R(mix(grey="moss", green="moss", yellow="olive", cyan="moss"), to=0.32,
-                                        mid=0.42, gain=1.25)),
+                                        mid=0.42, gain=0.9, steps=3, floor=0.26)),
     (r"pale_moss_(block|carpet|carpet_side_small|carpet_side_tall)|pale_hanging_moss(_tip)?", "plant",
      R(mix(grey="stone", green="olive", yellow="olive", cyan="stone"), to=0.48, mid=0.58, gain=1.2)),
     (r"pale_oak_leaves", "plant", R(mix(grey="stone", green="olive", yellow="olive", cyan="olive"), to=0.42,
-                                    mid=0.5, gain=1.25)),
-    (r"cherry_leaves", "plant", R(mix(pink="rose", magenta="rose", red="rose", orange="rose", yellow="rose",
-                                      purple="mauve", grey="pale"), to=0.52, mid=0.65, gain=1.2)),
+                                    mid=0.5, gain=1.1, steps=3, floor=0.3)),
+    (r"cherry_leaves", "plant", R(mix(pink="mauve", magenta="mauve", red="mauve", orange="mauve", yellow="mauve",
+                                      purple="mauve", grey="pale"), to=0.46, mid=0.65, gain=1.1, steps=3, floor=0.3)),
     (r"(flowering_)?azalea_(leaves|top|side|plant)|potted_(flowering_)?azalea_bush_(plant|side|top)", "plant",
      R(mix(green="moss", yellow="olive", cyan="moss", grey="stone", pink="rose", magenta="rose", purple="mauve",
            orange="earth", red="rose"), to=0.33, mid=0.42, gain=1.25)),
@@ -544,12 +561,34 @@ RULES = [
                                    mid=0.65, gain=1.2)),
     (r"destroy_stage_[0-9]", "device", R("stone", to=0.5, mid=0.5, gain=1.0)),
 ]
-CORAL = {"tube": "blue", "brain": "rose", "bubble": "mauve", "fire": "blood", "horn": "gold"}
+CORAL = {"tube": "slate", "brain": "rose", "bubble": "mauve", "fire": "rose", "horn": "ochre"}
 
 DEVICE = per(mix(grey="stone", yellow="oak", orange="clay"), 0.02, 0.86, gain=1.1)
 DEVICE_GLOW = per(mix(grey="stone", yellow="oak", orange="clay"), 0.02, 0.86, gain=1.1, hot=GLOWHOT)
 PLANT = per(mix(grey="pale", green="olive", yellow="gold", orange="clay", red="blood", cyan="verd", blue="blue",
                 purple="mauve", magenta="mauve", pink="rose"), 0.03, 0.86, gain=1.15)
+# 꽃잎: 넷의 바랜 갈래로 나눈다 (모두 뼈빛 흰색으로 모이지 않게). 줄기·잎은 마른 풀빛
+FLOWERS = {
+    "bone": ("oxeye_daisy", "lily_of_the_valley", "white_tulip", "azure_bluet"),
+    "ochre": ("dandelion", "sunflower", "wildflowers", "golden_dandelion"),
+    "mauve": ("allium", "lilac", "pink_tulip", "peony", "blue_orchid", "cornflower", "pink_petals", "closed_eyeblossom",
+              "open_eyeblossom"),
+    "withered": ("poppy", "red_tulip", "rose_bush", "orange_tulip", "torchflower"),
+}
+FLOWER_LADDER = {"bone": ("fl_bone", 0.5), "ochre": ("fl_ochre", 0.42), "mauve": ("fl_mauve", 0.38),
+                 "withered": ("fl_red", 0.33)}
+
+
+def flower_recipe(name):
+    for fam, keys in FLOWERS.items():
+        if any(name.startswith(k) or name.startswith("potted_" + k) for k in keys):
+            lad, to = FLOWER_LADDER[fam]
+            petals = {b: lad for b in ("grey", "red", "orange", "yellow", "cyan", "blue", "purple", "magenta", "pink")}
+            # 그림마다 평균 밝기 기준: 평균이 0.5 인 꽃이 목표 밝기 to 로 간다
+            return per(mix(green="olive", **petals), to - 0.25, 0.5, gain=1.1)
+    return None
+
+
 # 꽃·작물·묘목으로 보이는 이름 (규칙에 없으면 PLANT)
 PLANT_NAMES = re.compile(
     r".*(sapling|tulip|orchid|allium|azure_bluet|dandelion|poppy|cornflower|oxeye|lily_of_the_valley|lilac|peony|"
@@ -581,6 +620,9 @@ def classify(name):
     for rx, cls, rec in _COMPILED:
         if rx.fullmatch(name):
             return cls, rec
+    fr = flower_recipe(name)
+    if fr is not None:
+        return "plant", fr
     if PLANT_NAMES.fullmatch(name):
         return "plant", PLANT
     return ("light", DEVICE_GLOW) if glow else ("device", DEVICE)
@@ -622,7 +664,44 @@ def color_map(colors, weights, rec, mean=None, glow=False):
             out.append(_nearest(lad, t))
             continue
         out.append(_nearest(rec.ladder(bucket(c)), _target(lu, rec, mean)))
+    if rec.steps or rec.floor:
+        out = limit_steps(out, weights, rec.steps or 99, rec.floor)
     return out
+
+
+def limit_steps(names, weights, n, floor=None):
+    """
+    한 장에 쓰는 팔레트 색을 n 개 이하로: 밝기로 늘어놓고 이웃한 두 색 가운데 (밝기 차 × 작은 쪽 무게) 가 가장 작은 짝을
+    무거운 쪽으로 합친다 (바닐라 색 분포의 골짜기에서 갈린다). floor: 남은 가장 어두운 색이 이보다 어두우면 같은 계열에서
+    floor 에 가장 가까운 색으로 올린다 (잎의 검은 구멍).
+    """
+    w = {}
+    for nm, wt in zip(names, weights):
+        w[nm] = w.get(nm, 0) + float(wt)
+    lum = {nm: palette.luma(palette.c(nm)) for nm in w}
+    order = sorted(w, key=lambda k: lum[k])
+    to = {k: k for k in w}
+    while len(order) > n:
+        i = min(range(len(order) - 1),
+                key=lambda j: (lum[order[j + 1]] - lum[order[j]]) * min(w[order[j]], w[order[j + 1]]))
+        a, b = order[i], order[i + 1]
+        keep, drop = (a, b) if w[a] >= w[b] else (b, a)
+        w[keep] += w[drop]
+        for k, v in to.items():
+            if v == drop:
+                to[k] = keep
+        order.remove(drop)
+    if floor is not None and order and lum[order[0]] < floor:
+        dark = order[0]
+        fam = palette.family(dark)
+        cands = [f"{fam}{i}" for i in range(len(palette.FAMILIES[fam]))]
+        up = min((c for c in cands if palette.luma(palette.c(c)) >= floor),
+                 key=lambda c: palette.luma(palette.c(c)), default=None)
+        if up:
+            for k, v in to.items():
+                if v == dark:
+                    to[k] = up
+    return [to[nm] for nm in names]
 
 
 def grade_array(a, rec, mask=None, glow=False):
@@ -645,6 +724,43 @@ def grade_array(a, rec, mask=None, glow=False):
     return out.reshape(h, w, 4)
 
 
+# 불 (불 블록, 모닥불 불꽃): 바닐라 불은 400 가지 넘는 색의 매끈한 노랑·흰빛이라 밝기 계단으로 옮기면 뼈빛·살구빛이 불 몸통을
+# 덮는다. 바닐라 점의 밝기 차례 (전체 장면 띠에서 같은 색은 같은 칸) 로 다섯 칸에 나눈다: 끝은 어두운 핏빛, 녹빛, 녹슨 주황,
+# 몸통은 호박빛. 장면마다 가장 뜨거운 자리 가운데 세 칸만 옅은 금빛 속불 (FIRE_CORE)
+FIRE = ("fire_0", "fire_1", "campfire_fire")
+FIRE_STEPS = [(0.12, "blood2"), (0.28, "ember0"), (0.55, "ember1"), (1.01, "ember2")]
+FIRE_CORE = 3
+
+
+def grade_fire(a):
+    h, w = a.shape[:2]
+    vis = a[..., 3] > 0
+    lu = (0.299 * a[..., 0] + 0.587 * a[..., 1] + 0.114 * a[..., 2]) / 255.0
+    vals = np.sort(lu[vis])
+    n = len(vals)
+    out = a.copy()
+    rank = np.searchsorted(vals, lu, side="left") / max(1, n)      # 이 점보다 어두운 점의 몫
+    for y in range(h):
+        for x in range(w):
+            if not vis[y, x]:
+                continue
+            for f, name in FIRE_STEPS:
+                if rank[y, x] < f:
+                    out[y, x, :3] = palette.c(name)[:3]
+                    break
+    for fy in range(0, h, w):
+        fl, fv = lu[fy:fy + w], vis[fy:fy + w]
+        if not fv.any():
+            continue
+        cut = np.quantile(fl[fv], 0.93)
+        ys, xs = np.nonzero(fv & (fl >= cut))
+        cy, cx = ys.mean(), xs.mean()
+        order = sorted(zip(ys, xs), key=lambda p: ((p[0] - cy) ** 2 + (p[1] - cx) ** 2, -fl[p]))
+        for y, x in order[:FIRE_CORE]:
+            out[fy + y, x, :3] = palette.c("ember3")[:3]
+    return out
+
+
 def _ore_parts(name):
     m = re.fullmatch(r"(deepslate_)?(\w+?)_ore", name)
     if name.startswith("nether_"):
@@ -654,8 +770,96 @@ def _ore_parts(name):
     return base, brec, ORE[m.group(2)]
 
 
+# 옮긴 뒤의 손질 (DESPECKLE, CLAMP): 바닐라에서 매끈하던 곳이 계단 경계에 걸려 생긴 외톨이 점을 이웃 색으로 되돌리고,
+# 아직 바닐라 색이 비쳐 보이는 진한 색 (빨강·주황·청록·분홍) 을 묶음마다 정한 채도 아래로 누른다.
+# 빛 그림·레드스톤·용암은 누르지 않는다 (불씨와 신호는 붉어야 읽힌다)
+CLAMP = [  # (색상 시작°, 끝°, 채도 한도 (HSV S, 밝기 0.25 넘는 색만), 대신 쓸 계단)
+    (345, 360, 0.45, "rose"), (0, 15, 0.45, "rose"),        # 빨강 → 바랜 장미 (시든 붉음)
+    (15, 33, 0.45, "rust"),                                 # 주황 → 녹빛
+    (150, 200, 0.25, "verd"),                               # 청록 → 회녹
+    (290, 345, 0.30, "mauve"),                              # 분홍·자홍 → 엷은 자주
+]
+DESPECKLE_VAN = 0.10   # 바닐라에서 이만큼 안으로 이웃과 비슷했던 점만 (바닐라 콘크리트 가루·양털의 잔결은 0.1 아래)
+DESPECKLE_VAN2 = 0.16  # 바닐라의 잔결 (자갈·모래·균사체) 이 계단으로 뭉쳐 외톨이가 된 점
+CLAMP_EXEMPT = re.compile(r"redstone.*|lava_.*|magma|.*fire.*")
+
+
+def despeckle(out, van):
+    """
+    외톨이 점 지우기 (계단 경계가 만든 점만). 옮긴 그림의 한 점이
+      1) 불투명한 이웃 넷 가운데 셋 이상과 다르고, 그 이웃의 가장 흔한 색이 두 번 넘게 있고, 바닐라에서는 그 점과 그 이웃들의
+         밝기 차가 DESPECKLE_VAN 아래였거나,
+      2) 여덟 이웃 어디에도 같은 색이 없고 네 이웃이 모두 한 색인데, 바닐라에서는 네 이웃이 한 색이 아니었고 (바닐라의 고른 잔결이
+         계단으로 뭉친 것) 그 점과 이웃의 밝기 차가 DESPECKLE_VAN2 아래였으면
+    이웃 색으로 바꾼다. 바닐라가 일부러 찍은 점 (광석, 꽃술, 바닐라에서도 한 색 바탕 위의 점) 은 그대로 남는다.
+    움직이는 그림은 장면마다 감아서 본다.
+    """
+    h, w = out.shape[:2]
+    if h % w:
+        return out
+    lu = (0.299 * van[..., 0] + 0.587 * van[..., 1] + 0.114 * van[..., 2]) / 255.0
+    vkey = van[..., 0].astype(np.int64) * 65536 + van[..., 1].astype(np.int64) * 256 + van[..., 2]
+    res = out.copy()
+    n4 = ((1, 0), (-1, 0), (0, 1), (0, -1))
+    n8 = n4 + ((1, 1), (1, -1), (-1, 1), (-1, -1))
+    for fy in range(0, h, w):
+        for y in range(w):
+            for x in range(w):
+                Y = fy + y
+                if out[Y, x, 3] == 0:
+                    continue
+                p = tuple(out[Y, x])
+                nb = []
+                for dx, dy in n4:
+                    yy, xx = fy + (y + dy) % w, (x + dx) % w
+                    if out[yy, xx, 3] > 0:
+                        nb.append((tuple(out[yy, xx]), lu[yy, xx], vkey[yy, xx]))
+                diff = [c for c, _, _ in nb if c != p]
+                if len(nb) < 3 or len(diff) < 3:
+                    continue
+                best = max(set(diff), key=diff.count)
+                vl = [l for c, l, _ in nb if c == best]
+                vmean = sum(vl) / len(vl)
+                if diff.count(best) >= 2 and abs(lu[Y, x] - vmean) < DESPECKLE_VAN:
+                    res[Y, x] = best
+                    continue
+                if len(nb) == 4 and diff.count(best) == 4 and len({k for _, _, k in nb}) > 1 \
+                        and abs(lu[Y, x] - vmean) < DESPECKLE_VAN2 \
+                        and all(tuple(out[fy + (y + dy) % w, (x + dx) % w]) != p for dx, dy in n8):
+                    res[Y, x] = best
+    return res
+
+
+def clamp(out, name):
+    if CLAMP_EXEMPT.fullmatch(name) or palette.is_glow_path(JAR_BLOCK + name + ".png"):
+        return out
+    import colorsys
+    flat = out.reshape(-1, 4)
+    res = flat.copy()
+    for c in {tuple(int(v) for v in px[:3]) for px in flat[flat[:, 3] > 0]}:
+        h, sat, val = colorsys.rgb_to_hsv(*(v / 255.0 for v in c))
+        h *= 360
+        for h0, h1, lim, lad in CLAMP:
+            if h0 <= h < h1 and sat > lim and val > 0.25:
+                rgb = palette.c(_nearest(lad, palette.luma(c)))[:3]
+                m = (flat[:, :3] == c).all(-1)
+                res[m, :3] = rgb
+                break
+    return res.reshape(out.shape)
+
+
 def grade(name, im, vanilla):
-    """그림 하나를 옮긴다. vanilla(이름) 는 다른 바닐라 그림을 읽는 함수 (광석 바탕)."""
+    """그림 하나를 옮긴다 (색 옮기기 → 외톨이 점 지우기 → 진한 색 누르기). vanilla(이름) 는 다른 바닐라 그림을 읽는 함수."""
+    cls, out = _grade_raw(name, im, vanilla)
+    if name in FIRE:
+        return cls, out
+    van = _rgba(im)
+    if out.shape == van.shape and cls != "ore":
+        out = despeckle(out, van)
+    return cls, clamp(out, name)
+
+
+def _grade_raw(name, im, vanilla):
     cls, rec = classify(name)
     glow = palette.is_glow_path(JAR_BLOCK + name + ".png")
     a = _rgba(im)
@@ -663,6 +867,8 @@ def grade(name, im, vanilla):
     stray = (a[..., 3] > 0) & (a[..., 3] < 8)
     if stray.any() and not TRANSLUCENT.search(name):
         a[stray, 3] = 0
+    if name in FIRE:
+        return cls, grade_fire(a)
     if rec == "ORE":
         base_name, brec, orec = _ore_parts(name)
         b = _rgba(vanilla(base_name))
@@ -677,7 +883,7 @@ def grade(name, im, vanilla):
             rec = R("stone", to=0.45, mid=0.62, gain=1.25)
         else:
             lad = CORAL[m.group(2)]
-            rec = per({"*": lad, "grey": "pale"}, 0.03, 0.82, gain=1.15)
+            rec = per({"*": lad, "grey": "pale"}, 0.03, 0.82, gain=1.15, steps=3)
         return cls, grade_array(a, rec)
     if isinstance(rec, tuple) and rec[0] == "DYED":
         _, dye, mat = rec
@@ -686,7 +892,9 @@ def grade(name, im, vanilla):
         # 테라코타처럼 채도가 낮은 물들임도 그 물감의 계단으로 (회색 묶음까지). 유약 테라코타의 흰 무늬만 돌 회색으로
         grey = "stone" if mat == "glazed_terracotta" and dye not in ("white", "light_gray", "gray", "black") else lad
         hotspec = GLOWHOT if mat == "candle_lit" else None
-        r = per({"*": lad, "grey": grey}, ka - dark, kb, gain=gain, hot=hotspec)
+        # 양털·콘크리트·가루·테라코타는 한두 칸 (바닐라의 고른 결이 점으로 흩어지지 않게)
+        steps = 2 if mat in ("wool", "concrete", "concrete_powder", "terracotta") else None
+        r = per({"*": lad, "grey": grey}, ka - dark, kb, gain=gain, hot=hotspec, steps=steps)
         return cls, grade_array(a, r, glow=glow)
     if isinstance(rec, tuple) and rec[0] == "WOOD":
         return cls, grade_array(a, WOOD_RECIPE[rec[1]])
@@ -696,7 +904,22 @@ def grade(name, im, vanilla):
 # ─────────────────────────── 색 지도 ───────────────────────────
 # x = (1 − 기온) × 255 (왼쪽이 덥다), y = (1 − 강수 × 기온) × 255 (아래가 마르다). 지역 바이옴은 기온 0.5, 강수 0 → (127, 255)
 GRASS_AT = (127, 255)
-WATER_TINT = (0x3f, 0x76, 0xe4)   # 데이터팩 바이옴의 물 색 (바닐라 기본). 비교판에서 물을 물들여 본다
+VANILLA_WATER = (0x3f, 0x76, 0xe4)   # 바닐라 기본 물 색 (비교판의 바닐라 쪽)
+WATER_TINT = (0xc6, 0xc4, 0xbc)      # 데이터팩 지역 바이옴의 물 색 (9 지역 같다). 비교판에서 물을 물들여 본다
+BIOMES = os.path.join(ROOT, "plugin", "src", "main", "resources", "datapack", "soulsdp", "data", "souls", "worldgen",
+                      "biome")
+SHEET_REGION = "redin"                # 비교판에서 물들여 보는 지역 (시험 방이 있는 성벽)
+
+
+def region_tint(kind, region=SHEET_REGION):
+    """데이터팩 지역 바이옴의 effects 색 (grass, foliage, dry_foliage). 없으면 색 지도의 (127, 255)."""
+    import json
+    try:
+        with open(os.path.join(BIOMES, region + ".json"), encoding="utf-8") as f:
+            h = json.load(f)["effects"][kind + "_color"].lstrip("#")
+        return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+    except (OSError, KeyError, ValueError):
+        return None
 
 # 띠: (오른쪽 끝 x, 색) — 덥고 마른 곳에서 춥고 젖은 곳으로. 위쪽 (젖은 곳) 은 한 단씩 짙어진다
 COLORMAP_BANDS = {
@@ -871,7 +1094,7 @@ CLASS_KO = {"stone": "돌·벽돌·심층암", "ore": "광석", "wood": "나무�
 
 def tint_of(name, new, maps):
     if WATER.fullmatch(name):
-        return WATER_TINT
+        return WATER_TINT if new else VANILLA_WATER
     if name in FIXED_TINT:
         return FIXED_TINT[name]
     if name == "leaf_litter":
@@ -913,20 +1136,46 @@ def _cell(im, size):
 
 
 def tint_maps(van, new_maps):
-    """(바닐라 평원 색, 새 지역 바이옴 색) 묶음 이름마다."""
+    """(바닐라 평원 색, 새 지역 바이옴 색 (SHEET_REGION 의 effects, 없으면 색 지도)) 묶음 이름마다."""
     out = {}
     for kind in COLORMAP_BANDS:
         old = van.colormap(kind).getpixel((51, 173))[:3]    # 바닐라 평원 (기온 0.8, 강수 0.4)
-        new = tuple(int(v) for v in new_maps[kind][GRASS_AT[1], GRASS_AT[0], :3])
+        new = region_tint(kind) or tuple(int(v) for v in new_maps[kind][GRASS_AT[1], GRASS_AT[0], :3])
         out[kind] = (old, new)
     return out
 
 
+def final_pack(jar=None):
+    """
+    팩에 들어가는 최종 블록 그림 (1층 build → 2층 blocks_core.build → finish) 을 임시 폴더에 지어 읽는다.
+    이름 → RGBA 배열. 비교판은 이것으로 그린다 (2층이 덮은 그림과 바탕 맞춤까지 함께 본다).
+    """
+    import shutil
+    import tempfile
+    tmp = tempfile.mkdtemp(prefix="blocks_final_")
+    try:
+        build(tmp, jar)
+        import blocks_core
+        blocks_core.build(tmp)
+        finish(tmp, jar)
+        bdir = os.path.join(tmp, *OUT_BLOCK)
+        return {f[:-4]: _rgba(Image.open(os.path.join(bdir, f))) for f in os.listdir(bdir) if f.endswith(".png")}
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 def write_sheets(out_dir=SHEETS, jar=None, scale=4, cols=8, rows=9):
-    """묶음마다 바닐라 | 새 그림 쌍을 4배로 늘어놓은 비교판. 물드는 그림은 물들여 보인다."""
+    """
+    묶음마다 바닐라 | 최종 그림 (1층 → 2층 → 바탕 맞춤, final_pack) 쌍을 4배로 늘어놓은 비교판. 물드는 그림은 물들여 보인다.
+    2층 (blocks_core) 이 새로 그린 그림은 이름 뒤에 * 를 붙인다.
+    """
     jar = jar or client_jar()
     van = Vanilla(jar)
     graded = grade_all(van)
+    final = final_pack(jar)
+    import blocks_core
+    core = set(blocks_core.textures())
+    graded = {n: (cls, final.get(n, arr)) for n, (cls, arr) in graded.items()}
     new_maps = {k: colormap(k) for k in COLORMAP_BANDS}
     maps = tint_maps(van, new_maps)
     os.makedirs(out_dir, exist_ok=True)
@@ -947,44 +1196,30 @@ def write_sheets(out_dir=SHEETS, jar=None, scale=4, cols=8, rows=9):
             r = (len(chunk) + cols - 1) // cols
             sheet = Image.new("RGBA", (cols * cw + 8, r * ch + 30), (24, 23, 22, 255))
             d = ImageDraw.Draw(sheet)
-            d.text((8, 8), f"{cls}  ({len(names)})  vanilla | graded  — tinted textures shown tinted "
-                           f"(vanilla plains / souls region biome)", fill=(200, 192, 170, 255))
+            d.text((8, 8), f"{cls}  ({len(names)})  vanilla | final pack (* = redrawn in blocks_core)  — tinted "
+                           f"textures shown tinted (vanilla plains / souls:{SHEET_REGION} biome)",
+                   fill=(200, 192, 170, 255))
             for i, n in enumerate(chunk):
                 x, y = 8 + (i % cols) * cw, 26 + (i // cols) * ch
                 va = _rgba(van.block(n))
                 na = graded[n][1]
                 sheet.paste(_cell(_show(va, tint_of(n, False, maps)), size), (x, y))
                 sheet.paste(_cell(_show(na, tint_of(n, True, maps)), size), (x + size + 2, y))
-                d.text((x, y + size + 2), n[:24], fill=(170, 164, 150, 255))
+                d.text((x, y + size + 2), n[:23] + ("*" if n in core else ""), fill=(170, 164, 150, 255))
             p = os.path.join(out_dir, f"grade_{CLASS_ORDER.index(cls):02d}_{cls}_{page + 1}.png")
             sheet.convert("RGB").save(p, optimize=True)
             written.append(p)
     written.append(write_tiles(van, graded, maps, out_dir))
     written.append(write_colormaps(van, new_maps, out_dir))
-    written.append(write_in_place(van, maps, out_dir))
+    written.append(write_in_place(van, maps, out_dir, final))
     return written
 
 
-def write_in_place(van, maps, out_dir, scale=3, cols=6):
+def write_in_place(van, maps, out_dir, final, scale=3, cols=6):
     """
-    팩에 들어가는 최종 모습 (1층 → 2층 blocks_core → finish) 으로, 바탕을 깐 그림 (DERIVED) 을 그 바탕 3×3 의 가운데에
-    놓아 본다 (바닐라 | 최종). 광석이 둘레 돌에서 읽히는지, 이음매가 보이는지 본다.
+    팩에 들어가는 최종 모습 (final_pack: 1층 → 2층 blocks_core → finish) 으로, 바탕을 깐 그림 (DERIVED) 을 그 바탕 3×3 의
+    가운데에 놓아 본다 (바닐라 | 최종). 광석이 둘레 돌에서 읽히는지, 이음매가 보이는지 본다.
     """
-    import shutil
-    import tempfile
-    tmp = tempfile.mkdtemp(prefix="blocks_grade_")
-    try:
-        build(tmp)
-        try:
-            import blocks_core
-            blocks_core.build(tmp)
-        except Exception as ex:   # 2층이 아직 없거나 고치는 중이면 1층만으로 본다
-            print("blocks_core 없이 본다:", ex)
-        finish(tmp)
-        bdir = os.path.join(tmp, *OUT_BLOCK)
-        final = {n: _rgba(Image.open(os.path.join(bdir, n + ".png"))) for n in set(DERIVED) | set(DERIVED.values())}
-    finally:
-        shutil.rmtree(tmp, ignore_errors=True)
     names = sorted(DERIVED, key=lambda n: (DERIVED[n], n))
     t16 = 16 * scale
     size = t16 * 3
@@ -1029,7 +1264,7 @@ def write_tiles(van, graded, maps, out_dir, scale=3, cols=6):
     r = (len(names) + cols - 1) // cols
     sheet = Image.new("RGB", (cols * cw + 8, r * ch + 30), (24, 23, 22))
     d = ImageDraw.Draw(sheet)
-    d.text((8, 8), "3x3 tiling  vanilla | graded", fill=(200, 192, 170))
+    d.text((8, 8), "3x3 tiling  vanilla | final pack (grade -> blocks_core -> finish)", fill=(200, 192, 170))
     for i, n in enumerate(names):
         x, y = 8 + (i % cols) * cw, 26 + (i // cols) * ch
         for k, (arr, new) in enumerate(((_rgba(van.block(n)), False), (graded[n][1], True))):

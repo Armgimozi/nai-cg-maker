@@ -566,13 +566,23 @@ class Bot {
   get health () { return this._bot.health }
   get food () { return this._bot.food }
   lastXp () { return this.p.xp[this.p.xp.length - 1] || null }
-  /** HUD 보스 막대 (10.2): 처음 ADD (action 0) 된 white (6) 막대의 마지막 이름 {t, id, parts}. 없으면 null */
+  /**
+   * HUD 보스 막대 (10.2): 마지막으로 ADD (action 0) 된 white (6) 막대의 마지막 이름 {t, id, parts}. 거둬졌거나 없으면 null.
+   * 부활·세계 이동 때 서버는 HUD 막대를 거뒀다 다시 띄운다 (Paper 는 다시 띄울 때 새 UUID 의 보스 막대를 만든다)
+   */
   hudBar () {
-    const add = this.p.bossbars.find((e) => e.action === 0 && e.color === 6)
-    if (!add) return null
-    const named = this.p.bossbars.filter((e) => e.id === add.id && e.parts && (e.action === 0 || e.action === 3))
-    const gone = this.p.bossbars.some((e) => e.id === add.id && e.action === 1 && e.t > named[named.length - 1].t)
-    return gone ? null : named[named.length - 1]
+    const ev = this.p.bossbars
+    let a = -1
+    for (let i = ev.length - 1; i >= 0; i--) if (ev[i].action === 0 && ev[i].color === 6) { a = i; break }
+    if (a < 0) return null
+    const id = ev[a].id
+    let last = a
+    for (let i = a + 1; i < ev.length; i++) {
+      if (ev[i].id !== id) continue
+      if (ev[i].action === 1) return null
+      if (ev[i].action === 3 && ev[i].parts) last = i
+    }
+    return ev[last]
   }
 
   /** 소리 기록 하나의 이름 (minecraft-data 의 소리 표로 번호를 푼다). */

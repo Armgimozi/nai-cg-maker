@@ -139,11 +139,16 @@ L.run('death', async (sc) => {
       let height = 0
       const errs = []
       let letters = 0
+      // 제목 뒤의 검은 띠 (다크 소울 사망 화면, 5.6): 글자로 세지 않는다
+      const band = new Set(Object.entries(glyphs || {}).filter(([n]) => n.startsWith('death_band')).map(([, g]) => g.char))
+      let bandTiles = 0
       for (const ch of [...yd.char]) {
         const c = glyphCell(zip, yd.font, ch)
         if (c.err) errs.push(c.err)
+        else if (band.has(ch)) { if (!c.space) bandTiles++ }
         else if (!c.space) { px.push(...c.px); height = Math.max(height, c.height); letters++ }
       }
+      if (!dc.title) sc.check('dark band behind the title (death_band tiles)', bandTiles >= 2, bandTiles + '조각')
       sc.check('every title glyph exists in the pack font', !errs.length, errs.join(', ') || `${letters}글자`)
       sc.check('title spells 7 letters (Y O U D I E D)', letters === 7, letters + '글자')
       const red = redness(px)
@@ -176,10 +181,15 @@ L.run('death', async (sc) => {
   sc.check('health full after respawn', b.health >= 19.99, 'hp=' + b.health)
   const xp = b.p.xp.slice(x0)
   sc.check('xp level still 0 after respawn', xp.every((x) => x.level === 0), xp.map((x) => x.level).join(',') || '경험치 패킷 없음')
-  const aliveBar = b.hudBar()
-  const h = aliveBar ? L.decodeHud(aliveBar.parts, glyphs) : null
+  let h = null
+  for (let i = 0; i < 30; i++) {
+    const aliveBar = b.hudBar()
+    h = aliveBar ? L.decodeHud(aliveBar.parts, glyphs) : null
+    if (h && h.bars.hp) break
+    await L.sleep(100)
+  }
   sc.check('HUD bars back and full after respawn (hp, stamina)', h && ['hp', 'st'].every((k) => h.bars[k] && h.bars[k].fill > 0 && !h.bars[k].empty),
-    h ? JSON.stringify(h.bars) : 'HUD 보스 막대 없음')
+    h ? JSON.stringify(h.bars) : 'HUD 보스 막대 없음: ' + b.p.bossbars.slice(-5).map((e) => `${e.action}/${String(e.id).slice(0, 8)}/${e.color}`).join(' '))
   sc.check('title cleared after respawn', b.p.clearTitles.length > c0)
   const mode = rp ? rp.gamemode : null
   sc.check('still adventure after respawn', mode === 'adventure', String(mode))

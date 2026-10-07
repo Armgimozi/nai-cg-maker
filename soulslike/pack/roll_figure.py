@@ -321,16 +321,16 @@ KEYS = [
     dict(t=0, pitch=24, twist=-10, bank=0, spine=8, neck=-16, turn=0,
          arm_r=(34, 6, 58, 70), arm_l=(45, 12, 25, 0), leg_r=(48, 4, 58), leg_l=(36, 4, 40), z=-1.0),
     # 뛰어들기: 몸이 앞으로 눕고 비스듬히 기운다. 왼손이 땅을 짚으러 앞으로, 다리는 땅을 박찬다
-    dict(t=3, pitch=80, twist=-28, bank=6, spine=16, neck=30, turn=-15,
+    dict(t=3, pitch=80, twist=-36, bank=14, spine=16, neck=30, turn=-25,
          arm_r=(32, 6, 64, 88), arm_l=(150, 20, 22, 0), leg_r=(34, 6, 52), leg_l=(14, 4, 24), z=-4.0),
     # 어깨 닿기: 머리를 가슴에, 등을 말고 왼어깨로 땅에 닿는다. 다리가 땅을 떠난다
-    dict(t=4, pitch=132, twist=-34, bank=4, spine=28, neck=50, turn=-60,
+    dict(t=4, pitch=132, twist=-40, bank=12, spine=28, neck=50, turn=-75,
          arm_r=(30, 6, 66, 88), arm_l=(112, 38, 82, 0), leg_r=(62, 8, 82), leg_l=(42, 6, 55), z=-2.0),
     # 등으로 넘기: 등이 비스듬히 땅을 구르고 다리가 위로 (무릎을 반쯤 굽힌 채, 공처럼 말지 않는다)
-    dict(t=5, pitch=190, twist=-34, bank=0, spine=30, neck=50, turn=-75,
+    dict(t=5, pitch=190, twist=-40, bank=6, spine=30, neck=50, turn=-85,
          arm_r=(30, 6, 66, 88), arm_l=(85, 40, 95, 0), leg_r=(96, 8, 84), leg_l=(72, 12, 42), z=0.0),
     # 다리가 넘어온다
-    dict(t=6, pitch=248, twist=-30, bank=0, spine=30, neck=50, turn=-60,
+    dict(t=6, pitch=248, twist=-34, bank=0, spine=30, neck=50, turn=-70,
          arm_r=(30, 6, 66, 88), arm_l=(70, 40, 88, 0), leg_r=(116, 10, 104), leg_l=(98, 12, 64), z=0.0),
     # 발이 앞에 닿는다. 왼손으로 땅을 민다
     dict(t=7, pitch=305, twist=-22, bank=0, spine=24, neck=25, turn=-25,
@@ -494,7 +494,7 @@ def _slerp(q1, q2, a):
     return (math.sin((1 - a) * th) * q1 + math.sin(a * th) * q2) / math.sin(th)
 
 
-def _mat(q):
+def _qmat(q):
     x, y, z, w = q
     return np.array([[1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
                      [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
@@ -503,16 +503,16 @@ def _mat(q):
 
 def between(fa, fb, a):
     """클라이언트의 보간과 같게: 부위마다 자리는 직선, 방향은 구면 보간."""
-    return {p: (fa[p][0] + (fb[p][0] - fa[p][0]) * a, _mat(_slerp(quat(fa[p][1]), quat(fb[p][1]), a))) for p in fa}
+    return {p: (fa[p][0] + (fb[p][0] - fa[p][0]) * a, _qmat(_slerp(quat(fa[p][1]), quat(fb[p][1]), a))) for p in fa}
 
 
 # ─────────────────────────── 1인칭에서 비키기 ───────────────────────────
 # 대역은 진짜 몸 자리에 서므로 1인칭 눈 (발 위 1.62) 앞을 지나간다 (모으기·뛰어들기·일어서기에서 머리가 눈 바로 앞). 바닐라는 1인칭에서
 # 제 몸을 그리지 않는데 대역은 그린다. 그래서 (1) FP_PITCH 보다 내려다보면 플러그인이 대역을 그 사람 화면에서 감추고 (hideEntity),
 # (2) 그보다 덜 내려다보는 동안 보이지 않게 열쇠 자세마다 대역 전체를 그 사람이 보는 쪽의 반대로 (수평) 물린다. 그냥 물리면 F5 에서
-# 대역이 카메라 쪽으로 다가와 커 보였다 [확인 (클라)]. 그래서 F5 카메라 자리 (눈 높이, 보는 쪽 뒤 F5_DIST) 를 가운데로 줄인다 (닮음 변환:
-# 눈 높이에서 k 만큼 물리고 크기 s = 1 - k / F5_DIST). F5 카메라에서는 같은 빛줄기 위의 점이라 그림이 그대로이고, 1인칭 눈에서는 대역이
-# 눈 뒤로 간다. 물리는 몫 k 는 보는 쪽 (대역이 구르는 쪽에서 잰 각, 30° 마다) 마다 따로 셈한다: 바닐라 기본 시야 (FP_FOV, 16:9) 의
+# 대역이 카메라 쪽으로 다가와 커 보였다 [확인 (클라)]. 그래서 F5 카메라 자리 (눈에서 보는 쪽 반대로 F5_DIST, 벽에 막히면 그만큼 가까이)
+# 를 가운데로 줄인다 (닮음 변환: 눈 자리의 점이 보는 쪽 반대로 k 만큼 물러나고 크기 s = 1 - k / 거리). F5 카메라에서는 같은 빛줄기 위의
+# 점이라 그림이 그대로이고, 1인칭 눈에서는 대역이 눈 뒤로 간다. 물리는 몫 k 는 보는 쪽 (대역이 구르는 쪽에서 잰 각, 30° 마다) 마다 따로 셈한다: 바닐라 기본 시야 (FP_FOV, 16:9) 의
 # 화면에 대역의 꼭짓점이 하나도 들지 않는 가장 작은 몫 (0.5 픽셀 마디). 그 자세와 앞뒤 자세로 가는 보간 중간도 본다.
 FP_PITCH = 35.0                    # 이보다 내려다보면 감춘다 (플러그인 Tumble 이 roll_anim.yml 의 hide-pitch 로 읽는다)
 FP_FOV = 70.0                      # 바닐라 기본 시야 (세로)
@@ -537,19 +537,27 @@ def _fp_visible(pts, yaw, pitch):
     return bool(((np.abs(rel[m] @ up) < tv * f[m]) & (np.abs(rel[m] @ right) < tv * FP_ASPECT * f[m])).any())
 
 
-def f5_shrink(pts, look, k):
-    """F5 카메라 자리 (눈 높이, 보는 쪽 look 뒤 F5_DIST) 를 가운데로 1 - k / F5_DIST 배 줄인다 (눈 높이의 점은 k 만큼 물러난다)."""
-    cam = np.array([0.0, EYE_Y, 0.0]) - F5_DIST * look
-    return cam + (1.0 - k / F5_DIST) * (pts - cam)
+def _look(yaw, pitch):
+    y, p = math.radians(yaw), math.radians(pitch)
+    return np.array([math.sin(y) * math.cos(p), -math.sin(p), math.cos(y) * math.cos(p)])
+
+
+def f5_shrink(pts, look, k, dist=F5_DIST):
+    """F5 카메라 자리 (눈에서 보는 쪽 look 의 반대로 dist) 를 가운데로 1 - k / dist 배 줄인다 (눈 자리의 점은 k 만큼 물러난다)."""
+    cam = np.array([0.0, EYE_Y, 0.0]) - dist * look
+    return cam + (1.0 - k / dist) * (pts - cam)
 
 
 def _fp_need(pts, yaw):
-    """보는 쪽 yaw (대역 공간, 0 = 구르는 쪽) 로 FP_PITCH 까지 내려다보는 동안 대역이 화면에 들지 않게 물릴 가장 작은 몫 (픽셀)."""
-    look = np.array([math.sin(math.radians(yaw)), 0.0, math.cos(math.radians(yaw))])
+    """
+    보는 쪽 yaw (대역 공간, 0 = 구르는 쪽) 로 FP_PITCH 까지 내려다보는 동안 대역이 화면에 들지 않게 물릴 가장 작은 몫 (픽셀).
+    줄이는 가운데는 그 내려다보는 각의 F5 카메라 자리 (플러그인과 같다). F5 카메라가 벽에 막혀 가까우면 플러그인은 그 거리로 줄이는데,
+    그러면 같은 몫에서 대역이 더 작고 눈 뒤로 가므로 막히지 않은 거리 (F5_DIST) 로 셈하면 넉넉하다.
+    """
     pitches = np.arange(-5.0, FP_PITCH + 0.01, 2.5)
 
     def clear(k):
-        return not any(_fp_visible(f5_shrink(pts, look, k), yaw, p) for p in pitches)
+        return not any(_fp_visible(f5_shrink(pts, _look(yaw, p), k), yaw, p) for p in pitches)
     if clear(0.0):
         return 0.0
     lo, hi = 0.0, 32.0
@@ -581,8 +589,8 @@ def anim_table(path):
              "# 자리는 대역 공간 D 의 픽셀 (원점 발밑 땅, +Y 위, +Z 구르는 쪽, +X 그 사람의 왼쪽), 회전은 사원수 x y z w.",
              "# 플러그인 (combat/Tumble) 이 구르는 쪽 Y 회전을 걸고 탑승 자리만큼 내려 tick 틱에 dur 틱 보간으로 보낸다.",
              "# hand_r, hand_l 은 든 것의 자리 (THIRDPERSON_RIGHTHAND / LEFTHAND). 오른손잡이 기준 (왼손잡이는 플러그인이 뒤집는다)",
-             "# back: 1인칭에서 비키려고 F5 카메라 자리 (눈 높이, 보는 쪽 뒤 f5-dist 블록) 를 가운데로 줄여 눈 높이에서 물릴 몫 (픽셀,",
-             "# 크기는 1 - back / f5-dist). 보는 쪽이 대역이 구르는 쪽에서 0, 30, ... 330° (+X 쪽으로) 일 때의 값 (그 사이는 직선).",
+             "# back: 1인칭에서 비키려고 F5 카메라 자리 (눈에서 보는 쪽 반대로 f5-dist 블록, 벽에 막히면 그만큼) 를 가운데로 줄여 눈 자리를",
+             "# 물릴 몫 (픽셀, 크기는 1 - back / 거리). 보는 쪽이 대역이 구르는 쪽에서 0, 30, ... 330° (+X 쪽으로) 일 때의 값 (사이는 직선).",
              "# hide-pitch: 이보다 내려다보면 대역을 그 사람 화면에서 감춘다 (도)",
              f"scale: {SCALE}",
              f"hide-pitch: {_fmt(FP_PITCH)}",
