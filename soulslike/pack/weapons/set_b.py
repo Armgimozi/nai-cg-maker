@@ -232,6 +232,23 @@ def build(out, only=None):
 
 # ─────────────────────────── 미리보기 ───────────────────────────
 
+def tp_close(model, disp, hand="r", yaw=-40, pitch=12, zoom=420, size=(360, 420), pose=None):
+    """3인칭 가까이: 쥔 손 (쥐는 점) 을 화면 가운데에. yaw 0 = 사람 앞, 90 = 사람의 오른쪽."""
+    import _views as vw
+    root = vw.player_root(180.0)
+    sc = vw.Scene()
+    poses = (pose or "item", "none") if hand == "r" else ("none", pose or "item")
+    arms = vw.add_player(sc, root, right=poses[0], left=poses[1])
+    M = vw.hand_item_matrix(root, arms[hand], hand, disp)
+    sc.add(model, M)
+    grip = (M @ np.array([0, 0, 0, 1.0]))[:3]
+    a = math.radians(yaw)
+    d = 6.0
+    eye = grip + np.array([math.sin(a) * d, math.sin(math.radians(pitch)) * d, -math.cos(a) * d])
+    V = vw.look_at(eye, grip)
+    return vw.render(sc, V, size=size, ortho=zoom, center=(0.0, 0.0))
+
+
 def previews(ids=None, scratch=None):
     import _views as vw
     from PIL import Image
@@ -256,7 +273,10 @@ def previews(ids=None, scratch=None):
         tp = vw.third_person([(model, disp["thirdperson_righthand"], hand)],
                              poses=("item", "none") if hand == "r" else ("none", "item"),
                              views=((-35, 10), (90 if hand == "r" else -90, 5)), size=(380, 480), zoom=150)
-        vw.strip(tp, ["front 3/4", "side"]).save(os.path.join(SHOTS, f"{wid}_tp.png"))
+        sgn = 1 if hand == "r" else -1
+        tpz = [tp_close(model, disp["thirdperson_righthand"], hand, yaw, pitch)
+               for yaw, pitch in ((-40 * sgn, 12), (100 * sgn, 8), (160 * sgn, 25))]
+        vw.strip(tp + tpz, ["front 3/4", "side", "near front", "near side", "near behind"]).save(os.path.join(SHOTS, f"{wid}_tp.png"))
         print(f"{wid}: 요소 {n_el}, 재료 {n_mat}")
         rows.append((wid, sides[0], n_el))
     return made
