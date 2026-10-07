@@ -16,6 +16,11 @@
 생피
   사망 화면 제목 "YOU DIED" 를 새빨갛게 띄우려고 (사용자 결정 3) 10.1 표에 한 계열을 더했다 (한 곳 전용).
   그 제목 그림(VIVID)에만 쓴다. 다른 그림에 나오면 artlint 오류 (restricted).
+
+블록 전용 계열 (돌, 점판암, 대청, 마른 풀, 녹청, 엷은 자주, 바랜 장미, 구운 흙)
+  바닐라 블록 그림 전부를 다크소울 색으로 옮기려고 (사용자 결정 2026-10-08, blocks_grade.py) 더한 계단이다.
+  textures/block/ 과 textures/colormap/ (BLOCK_ART) 에서만 쓴다. HUD·창·아이템 그림에 나오면 artlint 오류 (restricted).
+  빛을 내는 블록 (BLOCK_GLOW: 횃불, 랜턴, 불, 용암, 발광석 …) 의 그림은 빛 허용 그림이다 (불씨 계열의 밝은 색).
 """
 import colorsys
 
@@ -147,7 +152,21 @@ def blue_glow(rgb):
 
 def is_glow_path(path):
     p = path.replace("\\", "/").lower()
-    return any(g in p for g in GLOW)
+    if any(g in p for g in GLOW):
+        return True
+    return is_block_path(p) and block_name(p) in BLOCK_GLOW
+
+
+def is_block_path(path):
+    """블록 그림인가 (블록 전용 계열을 쓸 수 있는 곳)."""
+    p = path.replace("\\", "/").lower()
+    return any(g in p for g in BLOCK_ART)
+
+
+def block_name(path):
+    """.../textures/block/stone.png → stone"""
+    n = path.replace("\\", "/").rsplit("/", 1)[-1]
+    return n[:-4] if n.endswith(".png") else n
 
 
 def is_vivid_path(path):
