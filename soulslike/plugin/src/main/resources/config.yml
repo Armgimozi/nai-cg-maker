@@ -35,17 +35,22 @@ combat:
   roll:
     # 장비 하중이 생기기 전(M1)까지 쓰는 구르기 무게: light / medium / heavy (방향키가 없으면 backstep)
     load: light
+    # 구르는 동안 머리 위에 자기 화면에만 보이는 막힘(방벽)을 두어 몸을 바닥에 붙인다 (기어가기 자세).
+    # 1인칭은 시야가 바닥 가까이 떨어지고, 3인칭은 몸이 눕는다. 끄면 그냥 미끄러진다
+    crawl: true
     # 몸이 도는 회전 자세 (자기 화면 카메라를 아직 확인하지 못해 끈다)
     spin-visual: false
-    # iframes: 무적 틱 (1틱째부터), next: 다음 구르기를 받는 틱, end: 구르기가 끝나는 틱 (회복 지연은 여기서부터 센다)
+    # iframes: 무적 틱 (1틱째부터), horizontal: glide 틱 동안 매 틱 미는 속도, glide: 미는 틱 수 (끝 두 틱은 줄여 멈춘다)
+    # next: 다음 구르기를 받는 틱, end: 구르기가 끝나는 틱 (회복 지연은 여기서부터 센다)
     kinds:
-      light:    {iframes: 8, horizontal: 0.62, vertical: 0.11, next: 10, end: 12, cost: 18}
-      medium:   {iframes: 7, horizontal: 0.56, vertical: 0.10, next: 12, end: 14, cost: 20}
-      heavy:    {iframes: 5, horizontal: 0.45, vertical: 0.08, next: 16, end: 18, cost: 24}
-      backstep: {iframes: 4, horizontal: 0.50, vertical: 0.10, next: 8, end: 10, cost: 12}
-    sound: "entity.player.attack.sweep"
-    sound-volume: 0.35
-    sound-pitch: 0.55
+      light:    {iframes: 8, horizontal: 0.42, vertical: 0.0,  glide: 7, next: 10, end: 12, cost: 18}
+      medium:   {iframes: 7, horizontal: 0.38, vertical: 0.0,  glide: 7, next: 12, end: 14, cost: 20}
+      heavy:    {iframes: 5, horizontal: 0.30, vertical: 0.0,  glide: 7, next: 16, end: 18, cost: 24}
+      backstep: {iframes: 4, horizontal: 0.40, vertical: 0.08, glide: 4, next: 8, end: 10, cost: 12}
+    # 구를 때 옷 스치는 소리 (땅을 구르는 소리와 일어설 때 쿵 소리는 밟은 블록 소리로 따로 난다)
+    sound: "item.armor.equip_leather"
+    sound-volume: 0.6
+    sound-pitch: 0.7
 
 world:
   # 게임 세계 폴더 이름. 로비는 server.properties 의 level-name (world)

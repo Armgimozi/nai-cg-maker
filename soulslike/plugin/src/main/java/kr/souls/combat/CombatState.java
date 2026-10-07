@@ -3,6 +3,7 @@ package kr.souls.combat;
 import kr.souls.Config.RollKind;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.bukkit.util.Vector;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -30,6 +31,8 @@ public final class CombatState {
     /** 마지막 구르기의 종류 (설정을 다시 읽어도 구르던 값은 그대로). null 이면 아직 구른 적 없음 */
     public RollKind roll;
     public Location rollFrom;
+    /** 구르는 쪽 (수평, 길이 1). glide 틱 동안 이쪽으로 민다 */
+    public Vector rollDir;
     public boolean rollReported = true;
     /** /soulstest rollhit: 다음 구르기 시작 뒤 이 틱에 시험 피해를 넣는다 (-1: 없음) */
     public int armedRollHit = -1;

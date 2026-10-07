@@ -117,6 +117,7 @@ public final class Souls extends JavaPlugin {
     public void onDisable() {
         if (ticker != null) ticker.stop();
         if (pack != null) pack.stop();
+        if (roll != null) roll.shutdown();
         Bukkit.getServer().allowPausing(this, true);
         CombatState.clear();
     }

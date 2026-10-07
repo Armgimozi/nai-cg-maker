@@ -14,13 +14,13 @@ import java.util.TreeMap;
  * 값이 없거나 틀리면 설계 문서의 기본값을 쓴다.
  */
 public final class Config {
-    /** 구르기 한 종류 (3.3 표). 틱은 구르기 시작 틱 0 기준. */
-    public record RollKind(String id, int iframes, double horizontal, double vertical, int next, int end, double cost) {}
+    /** 구르기 한 종류 (3.3 표). 틱은 구르기 시작 틱 0 기준. horizontal 은 glide 틱 동안 매 틱 미는 속도 (블록/틱). */
+    public record RollKind(String id, int iframes, double horizontal, double vertical, int glide, int next, int end, double cost) {}
 
     public record StaminaCfg(int endurance, TreeMap<Integer, Double> curve, double regenPerTick, int regenDelay,
                              int exhaustedDelay, double exhaustedSprintUntil, double guardRegenScale, double sprintPerTick) {}
 
-    public record RollCfg(String load, boolean spinVisual, Map<String, RollKind> kinds, String sound, float volume, float pitch) {
+    public record RollCfg(String load, boolean spinVisual, boolean crawl, Map<String, RollKind> kinds, String sound, float volume, float pitch) {
         public RollKind kind(String id) {
             RollKind k = kinds.get(id);
             return k != null ? k : kinds.get("light");
@@ -73,10 +73,10 @@ public final class Config {
                 c.getDouble("combat.stamina.sprint-per-tick", 0.6));
 
         Map<String, RollKind> kinds = new LinkedHashMap<>();
-        kinds.put("light", new RollKind("light", 8, 0.62, 0.11, 10, 12, 18));
-        kinds.put("medium", new RollKind("medium", 7, 0.56, 0.10, 12, 14, 20));
-        kinds.put("heavy", new RollKind("heavy", 5, 0.45, 0.08, 16, 18, 24));
-        kinds.put("backstep", new RollKind("backstep", 4, 0.50, 0.10, 8, 10, 12));
+        kinds.put("light", new RollKind("light", 8, 0.42, 0.0, 7, 10, 12, 18));
+        kinds.put("medium", new RollKind("medium", 7, 0.38, 0.0, 7, 12, 14, 20));
+        kinds.put("heavy", new RollKind("heavy", 5, 0.30, 0.0, 7, 16, 18, 24));
+        kinds.put("backstep", new RollKind("backstep", 4, 0.40, 0.08, 4, 8, 10, 12));
         ConfigurationSection ks = c.getConfigurationSection("combat.roll.kinds");
         if (ks != null) {
             for (String id : ks.getKeys(false)) {
@@ -84,14 +84,15 @@ public final class Config {
                 if (k == null) continue;
                 RollKind d = kinds.getOrDefault(id, kinds.get("light"));
                 kinds.put(id, new RollKind(id, k.getInt("iframes", d.iframes()), k.getDouble("horizontal", d.horizontal()),
-                        k.getDouble("vertical", d.vertical()), k.getInt("next", d.next()), k.getInt("end", d.end()),
+                        k.getDouble("vertical", d.vertical()), k.getInt("glide", d.glide()), k.getInt("next", d.next()), k.getInt("end", d.end()),
                         k.getDouble("cost", d.cost())));
             }
         }
         roll = new RollCfg(c.getString("combat.roll.load", "light").toLowerCase(Locale.ROOT),
-                c.getBoolean("combat.roll.spin-visual", false), Collections.unmodifiableMap(kinds),
-                c.getString("combat.roll.sound", "entity.player.attack.sweep"),
-                (float) c.getDouble("combat.roll.sound-volume", 0.35), (float) c.getDouble("combat.roll.sound-pitch", 0.55));
+                c.getBoolean("combat.roll.spin-visual", false), c.getBoolean("combat.roll.crawl", true),
+                Collections.unmodifiableMap(kinds),
+                c.getString("combat.roll.sound", "item.armor.equip_leather"),
+                (float) c.getDouble("combat.roll.sound-volume", 0.6), (float) c.getDouble("combat.roll.sound-pitch", 0.7));
 
         world = new WorldCfg(c.getString("world.name", "souls_world"), c.getLong("world.seed", 7707),
                 c.getInt("world.test-room.x", 200), c.getInt("world.test-room.y", 100), c.getInt("world.test-room.z", -200),

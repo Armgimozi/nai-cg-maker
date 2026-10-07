@@ -4,8 +4,9 @@
 #   tools/run_tests.sh [--port 25601] [--scratch DIR] [--paper paper.jar] [--jar Soulslike.jar | --no-build]
 #                      [--no-pack] [--only "join roll_iframes"] [--lag "60 120" | --lag none] [--keep-running]
 #
-#   --port N        서버 포트 (기본 25601). 팩 HTTP 는 N+1000, 지연 프록시는 N+10 부터
-#   --scratch DIR   서버 폴더·기록을 둘 곳 (기본: $SOULS_TEST_DIR, 없으면 임시 폴더). 매번 DIR/server 를 새로 만든다
+#   --port N        서버 포트 (기본 25601). 팩 HTTP 는 N+1000, 지연 프록시는 N+2010, N+2020 ...
+#   --scratch DIR   서버 폴더·기록을 둘 곳 (기본: $SOULS_TEST_DIR → 시험 도구 폴더 옆 bots-run-<포트> → /tmp).
+#                   매번 DIR/server 와 DIR/run 을 새로 만든다 (이 시험이 만든 폴더만 지운다)
 #   --paper JAR     Paper 1.21.11 빌드 132 jar (기본: $PAPER_JAR → DIR/paper.jar → 이 컨테이너의 시험 도구 폴더)
 #                   jar 옆에 libraries/ cache/ versions/ 가 있으면 링크로 빌려 써서 내려받지 않는다
 #   --jar JAR       빌드하지 않고 이 플러그인 jar 를 쓴다. --no-build 는 plugin/build/libs/Soulslike.jar 를 그대로 쓴다
@@ -14,6 +15,7 @@
 #   --lag "..."     roll_iframes 를 지연 프록시로 다시 돌릴 왕복 지연 ms 목록 (기본 "60 120", 13.3). none 이면 건너뛴다
 #   --keep-running  끝나도 서버를 끄지 않는다 (콘솔: echo '<명령>' > DIR/server/console.in)
 #   --mem 2G        서버 메모리
+#   --timeout 300   시나리오 하나의 제한 시간 (초)
 #
 # 봇은 mineflayer 4.39 를 쓴다: $BOT_NODE_MODULES → tools/bots/node_modules → 이 컨테이너의 시험 도구 폴더.
 # 결과: 시나리오마다 PASS/FAIL 한 줄과 실패한 판정. 자세한 기록은 DIR/run/logs/*.log, 판정 JSON 은 DIR/run/results/.
@@ -55,7 +57,7 @@ while [ $# -gt 0 ]; do
     --mem) MEM="$2"; shift 2 ;;
     --timeout) SC_TIMEOUT="$2"; shift 2 ;;
     --list) echo "$ALL_SCENARIOS (+ roll_iframes@lag<ms>)"; exit 0 ;;
-    -h|--help) sed -n '2,22p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,/^set -u/p' "$0" | sed '$d'; exit 0 ;;
     *) echo "모르는 인수: $1 (--help)"; exit 2 ;;
   esac
 done
@@ -69,16 +71,17 @@ port_busy() { (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null; }
 # ── 도구 찾기 ──
 first_file() { for f in "$@"; do [ -n "$f" ] && [ -f "$f" ] && { echo "$f"; return 0; }; done; return 1; }
 first_dir() { for d in "$@"; do [ -n "$d" ] && [ -d "$d" ] && { echo "$d"; return 0; }; done; return 1; }
-# 이 컨테이너에서 미리 갖춘 시험 도구 (세션마다 경로가 달라 glob 으로 찾는다)
-TOOLS_GLOB=$(ls -d /tmp/claude-*/*/*/scratchpad 2>/dev/null | head -n 1)
+# 이 컨테이너에서 미리 갖춘 시험 도구 (작업 폴더 경로가 세션마다 달라 glob 으로 찾는다)
+TOOLS_PAPER=$(ls /tmp/claude-*/*/*/scratchpad/testsrv/paper.jar 2>/dev/null | head -n 1)
+TOOLS_NM=$(ls -d /tmp/claude-*/*/*/scratchpad/bot/node_modules 2>/dev/null | head -n 1)
 
 if [ -z "$SCRATCH" ]; then
-  if [ -n "$TOOLS_GLOB" ]; then SCRATCH="$TOOLS_GLOB/bots-run-$PORT"; else SCRATCH="${TMPDIR:-/tmp}/souls-tests-$PORT"; fi
+  if [ -n "$TOOLS_PAPER" ]; then SCRATCH="$(dirname "$(dirname "$TOOLS_PAPER")")/bots-run-$PORT"; else SCRATCH="${TMPDIR:-/tmp}/souls-tests-$PORT"; fi
 fi
 mkdir -p "$SCRATCH" || die "폴더를 만들지 못했다: $SCRATCH"
 SCRATCH="$(cd "$SCRATCH" && pwd)"
-PAPER=$(first_file "$PAPER" "$SCRATCH/paper.jar" "${TOOLS_GLOB:+$TOOLS_GLOB/testsrv/paper.jar}") || die "Paper jar 가 없다 (--paper)"
-NODE_MODULES=$(first_dir "${BOT_NODE_MODULES:-}" "$BOTS/node_modules" "${TOOLS_GLOB:+$TOOLS_GLOB/bot/node_modules}") || die "mineflayer node_modules 가 없다 (BOT_NODE_MODULES)"
+PAPER=$(first_file "$PAPER" "$SCRATCH/paper.jar" "$TOOLS_PAPER") || die "Paper jar 가 없다 (--paper)"
+NODE_MODULES=$(first_dir "${BOT_NODE_MODULES:-}" "$BOTS/node_modules" "$TOOLS_NM") || die "mineflayer node_modules 가 없다 (BOT_NODE_MODULES)"
 [ -d "$NODE_MODULES/mineflayer" ] || die "$NODE_MODULES 에 mineflayer 가 없다"
 command -v java >/dev/null || die "java 가 없다"
 command -v node >/dev/null || die "node 가 없다"
@@ -103,12 +106,23 @@ done
 mkdir -p "$RUN/logs" "$RUN/results"
 
 # ── 빌드 (10.6 순서: gen_pack → gradle) ──
+# gen_pack 은 시험용 --no-dist 로 돌려 dist/packs/ 를 건드리지 않는다. 두 번 돌려 SHA-1 이 같은지도 본다 (13.2 T8)
+REPRO=""
 if [ "$BUILD" = 1 ]; then
   if [ "$PACK" = 1 ] && [ -f "$ROOT/pack/gen_pack.py" ]; then
     say "-- pack/gen_pack.py"
-    if ! (cd "$ROOT/pack" && python3 gen_pack.py) > "$RUN/logs/build-pack.log" 2>&1; then
-      tail -n 20 "$RUN/logs/build-pack.log"; say "FAIL  build:pack  ($RUN/logs/build-pack.log)"; exit 2
-    fi
+    GEN_ARGS=""
+    grep -q -- '--no-dist' "$ROOT/pack/gen_pack.py" && GEN_ARGS="--no-dist"
+    PZ="$ROOT/plugin/src/main/resources/pack.zip"
+    for n in 1 2; do
+      if ! (cd "$ROOT/pack" && python3 gen_pack.py $GEN_ARGS) > "$RUN/logs/build-pack-$n.log" 2>&1; then
+        tail -n 20 "$RUN/logs/build-pack-$n.log"; say "FAIL  build:pack  ($RUN/logs/build-pack-$n.log)"; exit 2
+      fi
+      [ -f "$PZ" ] || { say "FAIL  build:pack  pack.zip 이 생기지 않았다 ($PZ)"; exit 2; }
+      h=$(sha1sum "$PZ" | cut -d' ' -f1)
+      if [ "$n" = 1 ]; then SHA_1=$h; else SHA_2=$h; fi
+    done
+    if [ "$SHA_1" = "$SHA_2" ]; then REPRO="PASS pack_repro sha1=$SHA_1"; else REPRO="FAIL pack_repro $SHA_1 != $SHA_2"; fi
   fi
   say "-- gradle build"
   if ! (cd "$ROOT/plugin" && ./gradlew build -q) > "$RUN/logs/build-gradle.log" 2>&1; then
@@ -162,9 +176,12 @@ for l in open(cfg_src, encoding="utf-8").read().split("\n"):
         l = re.sub(r"url:.*", f'url: "http://127.0.0.1:{pack_port}/{{sha1}}.zip"', l); done.add("url")
     if sec == "pack" and re.match(r"^\s+serve-port:", l):
         l = re.sub(r"serve-port:.*", f"serve-port: {pack_port}", l); done.add("serve-port")
+    # 봇(mineflayer)은 기어가기 자세가 없어 구르기의 머리 위 방벽에 걸린다. 기어가기 모습은 실제 클라이언트 점검으로 본다
+    if sec == "combat" and re.match(r"^\s+crawl:", l):
+        l = re.sub(r"crawl:.*", "crawl: false", l); done.add("crawl")
     out.append(l)
 open(cfg_dst, "w", encoding="utf-8").write("\n".join(out))
-missing = {"test-mode", "url", "serve-port"} - done
+missing = {"test-mode", "url", "serve-port", "crawl"} - done
 if missing: print("  경고: config.yml 에서 못 찾은 열쇠:", ", ".join(sorted(missing)))
 
 # ops.json: 봇 이름의 오프라인 UUID (UUID.nameUUIDFromBytes("OfflinePlayer:" + 이름))
@@ -244,6 +261,12 @@ run_one() {
 }
 
 say "-- 시나리오"
+if [ -n "$REPRO" ]; then
+  r_status=${REPRO%% *}; r_rest=${REPRO#* }
+  printf '%-10s %-24s %s\n' "$r_status" pack_repro "${r_rest#pack_repro }"
+  [ "$r_status" = PASS ] || FAILED=$((FAILED + 1))
+  SUMMARY+=("$r_status pack_repro")
+fi
 for s in $ALL_SCENARIOS; do
   want "$s" || continue
   run_one "$s" "$s" "${BOT[$s]}" "$PORT"
@@ -254,7 +277,7 @@ if [ -n "$LAG" ] && want roll_iframes; then
   i=0
   for rtt in $LAG; do
     i=$((i + 1))
-    pp=$((PORT + 10 + i))
+    pp=$((PORT + 2000 + 10 * i))
     port_busy "$pp" && { say "FAIL       roll_iframes@lag$rtt     프록시 포트 $pp 를 누가 쓰고 있다"; FAILED=$((FAILED + 1)); continue; }
     node "$BOTS/lagproxy.js" --listen "$pp" --target "127.0.0.1:$PORT" --rtt "$rtt" --quiet > "$RUN/logs/lagproxy-$rtt.log" 2>&1 &
     ppid=$!
@@ -268,14 +291,16 @@ if [ -n "$LAG" ] && want roll_iframes; then
   done
 fi
 
-# 시험하는 동안 서버 기록에 남은 오류 (기동 뒤의 예외는 t1_boot 가 못 본다)
-ERRS=$(grep -a -n -E '(ERROR|SEVERE)\]|Exception|Caused by:' "$SRV/console.log" | head -n 6)
+# 시험하는 동안 서버 기록에 남은 오류. 켜지는 동안의 줄은 t1_boot 가 보니, 여기서는 Done 뒤만 본다
+ERR_RE='(ERROR|SEVERE)\]|Exception|Caused by:'
+awk 'f; /Done \(/{f=1}' "$SRV/console.log" > "$RUN/logs/server-after-boot.log"
+ERRS=$(grep -a -n -E "$ERR_RE" "$RUN/logs/server-after-boot.log" | head -n 6)
 if [ -n "$ERRS" ]; then
-  printf '%-10s %-24s %s\n' FAIL server_log "오류 $(grep -a -c -E '(ERROR|SEVERE)\]|Exception|Caused by:' "$SRV/console.log")줄"
+  printf '%-10s %-24s %s\n' FAIL server_log "켠 뒤 오류 $(grep -a -c -E "$ERR_RE" "$RUN/logs/server-after-boot.log")줄"
   echo "$ERRS" | cut -c1-240 | sed 's/^/           /'
   FAILED=$((FAILED + 1))
 else
-  printf '%-10s %-24s %s\n' PASS server_log "오류 없음"
+  printf '%-10s %-24s %s\n' PASS server_log "켠 뒤 오류 없음"
 fi
 
 say "-- 끝: 실패 $FAILED  (기록 $RUN/logs, 서버 기록 $SRV/console.log)"

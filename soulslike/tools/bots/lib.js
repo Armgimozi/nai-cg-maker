@@ -28,6 +28,7 @@ const https = require('https')
 
 const mineflayer = require('mineflayer')
 const nbt = require('prismarine-nbt')
+const { Vec3 } = require('vec3')
 
 const ENV = {
   host: process.env.MC_HOST || '127.0.0.1',
@@ -227,8 +228,12 @@ class Bot {
       border: [],
       positions: [],
       gameState: [],
-      sounds: []
+      sounds: [],
+      crawl: [],
+      crawlRestored: []
     }
+    this.crawlLive = new Set()
+    this.isBarrier = () => false
     this.kick = null
     this.ended = false
     this.inputs = { forward: false, backward: false, left: false, right: false, jump: false, shift: false, sprint: false }
@@ -274,6 +279,16 @@ class Bot {
         if (d.entityId !== this.id || !bot.entity || !bot.entity.velocity) return
         bot.entity.velocity.set(d.velocity.x, d.velocity.y, d.velocity.z)
       })
+      const barrier = bot.registry.blocksByName.barrier
+      this.isBarrier = (st) => !!barrier && st >= barrier.minStateId && st <= barrier.maxStateId
+      c.on('block_change', (d) => this.onBlock(d.location.x, d.location.y, d.location.z, d.type))
+      c.on('multi_block_change', (d) => {
+        const cc = d.chunkCoordinates
+        for (const r of d.records || []) {
+          if (typeof r !== 'number') continue
+          this.onBlock(cc.x * 16 + ((r >> 8) & 15), cc.y * 16 + (r & 15), cc.z * 16 + ((r >> 4) & 15), Math.floor(r / 4096))
+        }
+      })
     })
     c.on('update_health', (d) => this.p.health.push({ t: now(), health: d.health, food: d.food }))
     c.on('death_combat_event', (d) => this.p.deaths.push({ t: now(), playerId: d.playerId, message: plain(d.message), raw: simple(d.message) }))
@@ -289,6 +304,25 @@ class Bot {
     bot.on('kicked', (r) => { this.kick = plain(typeof r === 'string' ? safeJson(r) : r) || String(r) })
     bot.on('end', () => { this.ended = true })
     bot.on('error', (e) => { this.lastError = e })
+  }
+
+  // 기어가기 흉내 (Roll 의 crawl): 구르는 동안 서버가 이 사람 화면에만 머리 높이(발 + 1)에 방벽을 깐다.
+  // 실제 클라이언트는 그 방벽 때문에 기어가는 자세(키 0.6)로 바뀌어 그대로 미끄러지지만, mineflayer 는 자세를 몰라
+  // 1.8 칸 몸이 방벽에 끼어 움직이지 못한다. 그래서 머리 높이의 방벽은 기록만 하고 봇의 세계에서는 공기로 둔다.
+  // 돌려놓는 패킷(진짜 블록)은 그대로 받는다. opts.crawlShim === false 면 흉내 내지 않는다
+  onBlock (x, y, z, state) {
+    const bot = this._bot
+    const key = x + ',' + y + ',' + z
+    if (this.isBarrier(state)) {
+      if (this.opts.crawlShim === false || !bot.entity) return
+      const fy = Math.floor(bot.entity.position.y)
+      if (y !== fy + 1 || Math.abs(x - Math.floor(bot.entity.position.x)) > 2 || Math.abs(z - Math.floor(bot.entity.position.z)) > 2) return
+      this.p.crawl.push({ t: Date.now(), x, y, z })
+      this.crawlLive.add(key)
+      try { bot.world.setBlockStateId(new Vec3(x, y, z), 0) } catch (e) {}
+    } else if (this.crawlLive.delete(key)) {
+      this.p.crawlRestored.push({ t: Date.now(), x, y, z, state })
+    }
   }
 
   // 팩 (10.10): 주소에서 실제로 받아 SHA-1 을 재고, 실제 클라이언트처럼 답한다
@@ -433,7 +467,7 @@ function i64 (v) {
 
 /**
  * 봇 하나를 접속시킨다. 서버가 아직 짓는 중이라 막거나 포트가 닫혀 있으면 잠시 뒤 다시 한다.
- * opts: name, respawn(기본 true), retries(기본 8), host, port, allowDead(체력 0 으로 들어와도 접속으로 친다)
+ * opts: name, respawn(기본 true), retries(기본 8), host, port, allowDead(기본 true: 체력 0 으로 들어와도 접속으로 친다)
  */
 async function connect (sc, opts = {}) {
   const name = opts.name || ENV.name || 'SoulsBot'
@@ -444,6 +478,13 @@ async function connect (sc, opts = {}) {
     try {
       await connectOnce(b, opts)
       sc.bots.push(b)
+      // 지난 시험에서 죽은 채로 끝난 봇: respawn 을 끄지 않았으면 일으켜 세운 뒤 돌려준다
+      if (opts.respawn !== false && b.health !== undefined && b.health <= 0) {
+        sc.note('죽은 채로 들어와 먼저 일어선다')
+        b._bot.respawn()
+        const end = Date.now() + 6000
+        while (!(b.health > 0) && Date.now() < end) await sleep(100)
+      }
       return b
     } catch (e) {
       last = e
@@ -479,7 +520,7 @@ function connectOnce (b, opts) {
     }
     bot.once('spawn', ok)
     // 죽은 채로 나갔던 사람은 체력 0 으로 들어와 mineflayer 의 spawn 이 오지 않는다 (사망 화면부터 본다)
-    if (opts.allowDead) bot._client.once('update_health', (d) => { if (d.health <= 0) setTimeout(ok, 200) })
+    if (opts.allowDead !== false) bot._client.once('update_health', (d) => { if (d.health <= 0) setTimeout(ok, 200) })
     bot.once('kicked', (r) => { clearTimeout(timer); fail('쫓겨남: ' + (b.kick || r)) })
     bot.once('end', (r) => { clearTimeout(timer); fail('연결 끊김: ' + r) })
     bot.once('error', (e) => { clearTimeout(timer); fail('오류: ' + e.message) })
@@ -671,7 +712,45 @@ function testRoom () {
   return m ? { x: +m[1], y: +m[2], z: +m[3] } : d
 }
 
+/**
+ * 서버의 구르기 설정 (config.yml combat.roll). 설계 문서 3.3 의 수치가 출발값이고, 조정은 설정에서 한다 (사용자 결정 1).
+ * 못 읽으면 3.3 표를 돌려준다. 돌려주는 값: {load, crawl, kinds: {light: {iframes, horizontal, vertical, glide, next, end, cost}, ...}}
+ */
+function rollConfig () {
+  const out = {
+    load: 'light',
+    crawl: false,
+    source: '3.3 표',
+    kinds: {
+      light: { iframes: 8, horizontal: 0.62, vertical: 0.11, next: 10, end: 12, cost: 18 },
+      medium: { iframes: 7, horizontal: 0.56, vertical: 0.10, next: 12, end: 14, cost: 20 },
+      heavy: { iframes: 5, horizontal: 0.45, vertical: 0.08, next: 16, end: 18, cost: 24 },
+      backstep: { iframes: 4, horizontal: 0.50, vertical: 0.10, next: 8, end: 10, cost: 12 }
+    }
+  }
+  const f = ENV.serverDir && path.join(ENV.serverDir, 'plugins', 'Soulslike', 'config.yml')
+  if (!f || !fs.existsSync(f)) return out
+  const text = fs.readFileSync(f, 'utf8')
+  const sec = text.match(/\n  roll:\n([\s\S]*?)(?=\n  [A-Za-z][\w-]*:\s*\n|\n[A-Za-z][\w-]*:)/)
+  if (!sec) return out
+  const body = sec[1]
+  const load = body.match(/^\s+load:\s*([a-z]+)/m)
+  if (load) out.load = load[1]
+  const crawl = body.match(/^\s+crawl:\s*(true|false)/m)
+  if (crawl) out.crawl = crawl[1] === 'true'
+  for (const m of body.matchAll(/^\s+(light|medium|heavy|backstep):\s*\{([^}]*)\}/gm)) {
+    const k = {}
+    for (const kv of m[2].split(',')) {
+      const [a, b] = kv.split(':').map((x) => x && x.trim())
+      if (a && b !== undefined && !isNaN(parseFloat(b))) k[a] = parseFloat(b)
+    }
+    out.kinds[m[1]] = Object.assign({}, out.kinds[m[1]], k)
+  }
+  out.source = 'config.yml'
+  return out
+}
+
 module.exports = {
   ENV, VERSION, sleep, run, connect, Scenario, Bot, kvOf, num, plain, flatten, simple,
-  loadGlyphs, readZip, decodePng, hsv, readProps, testRoom, fetchBuf
+  loadGlyphs, readZip, decodePng, hsv, readProps, testRoom, rollConfig, fetchBuf
 }
