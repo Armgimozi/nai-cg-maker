@@ -3,8 +3,7 @@
 
   you_died.png      제목을 6배로 (그림자 없이 / 바닐라 그림자까지)
   death_screen.png  사망 화면 흉내 (GUI 배율 3, 바닐라의 붉은 덧칠과 글자 그림자까지)
-  stamina_bar.png   막대 두 장을 6배로, 그리고 0~100% 채움
-  hud.png           화면 아래쪽 흉내 (단축 슬롯, 하트, 스태미나 70%, 숨긴 허기)
+  hud.png           다크 소울 HUD 네 장면 (hud.preview_hud: 왼쪽 위 막대 셋과 오른쪽 아래 소울 상자)
   pack_icon.png     팩 그림을 4배로
   gui_*.png         gui_skin 이 다시 그린 HUD·창·단추 (gui_skin.write_previews)
   align_*.png       우리 창·단축 슬롯 그림을 바닐라 그림과 겹쳐 칸 자리가 같음을 보인다 (gui_skin.align_proof)
@@ -137,7 +136,8 @@ def draw_glyph_string(canvas, sheet, cell_w, glyphs, chars, x, y, unit, height_u
     그림자는 바닐라처럼 1 글꼴 픽셀 아래·오른쪽에 색 × 0.25.
     """
     by_char = {g.char: g for g in glyphs}
-    order = {ch: i for i, ch in enumerate(sorted(g.char for g in glyphs if g.kind == "bitmap" and g.font == "minecraft:default"))}
+    order = {ch: i for i, ch in enumerate(sorted(g.char for g in glyphs if g.kind == "bitmap" and g.font == "minecraft:default"
+                                                     and g.name.startswith("you_died_")))}
     cell_h = sheet.height
     tex_scale = unit * height_units / cell_h      # 그림 1칸 = 화면 몇 픽셀
     passes = ((1, 0.25), (0, 1.0)) if shadow else ((0, 1.0),)
@@ -145,7 +145,7 @@ def draw_glyph_string(canvas, sheet, cell_w, glyphs, chars, x, y, unit, height_u
         cx = x
         for ch in chars:
             g = by_char[ch]
-            if g.kind == "bitmap":
+            if g.kind == "bitmap" and ch in order:     # 글자만 그린다 (사망 화면 띠는 미리보기에서 건너뛴다)
                 i = order[ch]
                 cell = sheet.crop((i * cell_w, 0, (i + 1) * cell_w, cell_h))
                 if mul != 1.0:
@@ -249,12 +249,13 @@ def pack_icon(out_dir, icon, k=4):
 
 
 def write_all(out_dir, built, vanilla_jar=None):
-    """built: gen_pack 이 넘기는 dict (sheet, cell_w, glyphs, title, height, ascent, lang, bar_bg, bar_fill, icon)."""
+    """built: gen_pack 이 넘기는 dict (sheet, cell_w, glyphs, title, height, ascent, lang, icon)."""
     os.makedirs(out_dir, exist_ok=True)
     vanilla = Vanilla(vanilla_jar or os.environ.get("SOULS_CLIENT_JAR"))
     you_died(out_dir, built["sheet"], built["cell_w"], built["glyphs"], built["title"], built["height"])
     death_screen(out_dir, built["sheet"], built["cell_w"], built["glyphs"], built["title"], built["height"],
                  built["ascent"], built["lang"], vanilla)
-    bar_sheet(out_dir, built["bar_bg"], built["bar_fill"])
-    hud(out_dir, built["bar_bg"], built["bar_fill"], vanilla)
+    if "bar_bg" in built:      # 옛 경험치 막대 스태미나 (지금 HUD 미리보기는 hud.preview_hud 의 hud.png)
+        bar_sheet(out_dir, built["bar_bg"], built["bar_fill"])
+        hud(out_dir, built["bar_bg"], built["bar_fill"], vanilla)
     pack_icon(out_dir, built["icon"])

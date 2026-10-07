@@ -3,9 +3,7 @@ package kr.souls;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -42,18 +40,13 @@ public final class Config {
         }
     }
 
-    /** 대역이 도는 한 마디: 구르기 tick 틱째에 앞으로 angle 도 (구르기 시작 자세에서 잰 각) 까지 duration 틱 동안 돈다. */
-    public record TumbleStep(int tick, float angle, int duration) {}
-
     /**
-     * 대역 (combat/Tumble). pivot: 회전 중심의 발 위 높이 (블록), scale: 대역 크기, startAngle: 뛰어들기 자세가 걸린 각 (처음 변환),
-     * steps: 도는 마디 (틱 차례, 첫 마디에서 웅크린 공으로 바뀐다), riseAt: 일어서기 자세로 바꾸는 틱, riseTurn: 그때 구르는 쪽에서
-     * 몸 방향으로 도는 틱, tilt: 회전축을 어깨 쪽으로 기울이는 각 (구를 때마다 좌우를 바꾼다, 0 이면 곧은 앞구르기),
+     * 대역 (combat/Tumble). 움직임 (열쇠 자세) 은 팩 생성기가 쓰는 자원 roll_anim.yml 에 있고, 여기는 때만 정한다.
+     * riseAt·riseTurn: riseAt 틱 뒤에 닿는 자세부터 riseTurn 틱에 걸쳐 구르는 쪽에서 몸 방향으로 돈다,
      * reveal: 이 틱에 대역을 거두고 진짜 몸을 보인다, handBack: 이 틱에 그 사람 화면에만 주손을 돌려준다 (0 이면 reveal 과 같이),
      * hideDelay: 대역을 띄우고 몇 틱 뒤에 진짜 몸을 감추는가 (0: 같은 틱. 1: 클라이언트가 대역을 처음 그린 뒤).
      */
-    public record TumbleCfg(double pivot, float scale, float startAngle, List<TumbleStep> steps, int riseAt, int riseTurn,
-                            float tilt, int reveal, int handBack, int hideDelay) {}
+    public record TumbleCfg(int riseAt, int riseTurn, int reveal, int handBack, int hideDelay) {}
 
     public record RollCfg(String load, RollVisual visual, boolean crawl, TumbleCfg tumble, int spinTicks,
                           Map<String, RollKind> kinds, String sound, float volume, float pitch) {
@@ -75,7 +68,12 @@ public final class Config {
     public record WorldCfg(String name, long seed, int roomX, int roomY, int roomZ, long time,
                            double borderX, double borderZ, double borderSize, boolean forceAdventure) {}
 
-    public record HudCfg(boolean showSouls, int actionbarRefresh) {}
+    /**
+     * HUD (10.2). 막대 셋 (체력·온기·스태미나) 의 길이는 최대치 × px 배율 (GUI 픽셀, minPx..maxPx). warmthPlaceholder 는 술이 없을
+     * 때 (M5 전) 온기 막대를 이 최대치로 가득 찬 채 보인다 (0 이면 숨긴다). barRefresh: 막대가 바뀌지 않아도 이 틱마다 다시 보낸다.
+     */
+    public record HudCfg(boolean showSouls, int actionbarRefresh, double healthPx, double warmthPx, double staminaPx,
+                         int minPx, int maxPx, double warmthPlaceholder, int barRefresh) {}
 
     public record DeathCfg(boolean title, String titleGlyphs, String fallbackColor, int fadeIn, int stay, int fadeOut) {}
 
@@ -145,7 +143,11 @@ public final class Config {
                 c.getLong("world.time", 13000), c.getDouble("world.border.x", 0), c.getDouble("world.border.z", 20),
                 c.getDouble("world.border.size", 640), c.getBoolean("world.force-adventure", true));
 
-        hud = new HudCfg(c.getBoolean("hud.show-souls", true), Math.max(1, c.getInt("hud.actionbar-refresh", 20)));
+        int minPx = Math.max(4, c.getInt("hud.bars.min-px", 24));
+        hud = new HudCfg(c.getBoolean("hud.show-souls", true), Math.max(1, c.getInt("hud.actionbar-refresh", 20)),
+                c.getDouble("hud.bars.health-px", 5.0), c.getDouble("hud.bars.warmth-px", 1.0), c.getDouble("hud.bars.stamina-px", 0.9),
+                minPx, Math.max(minPx, Math.min(255, c.getInt("hud.bars.max-px", 190))),
+                c.getDouble("hud.bars.warmth-placeholder", 60), Math.max(1, c.getInt("hud.bars.refresh", 100)));
 
         death = new DeathCfg(c.getBoolean("death.title", false), c.getString("death.title-glyphs", "you_died_title"),
                 c.getString("death.fallback-color", "#cc2418"), c.getInt("death.fade-in", 20),
@@ -163,30 +165,10 @@ public final class Config {
         estusStart = c.getInt("difficulty.estus-start", 4);
     }
 
-    /** combat.roll.tumble. steps 는 [[틱, 각, 걸리는 틱], ...]. 틀린 줄은 건너뛰고, 하나도 없으면 3.3 의 기본 여섯 마디. */
+    /** combat.roll.tumble (때만. 자세는 자원 roll_anim.yml). */
     private static TumbleCfg tumble(FileConfiguration c) {
-        List<TumbleStep> steps = new ArrayList<>();
-        for (Object o : c.getList("combat.roll.tumble.steps", List.of())) {
-            if (!(o instanceof List<?> l) || l.size() < 3) continue;
-            try {
-                int tick = Integer.parseInt(String.valueOf(l.get(0)).trim());
-                float angle = Float.parseFloat(String.valueOf(l.get(1)).trim());
-                int dur = Integer.parseInt(String.valueOf(l.get(2)).trim());
-                if (tick >= 0 && dur >= 0) steps.add(new TumbleStep(tick, angle, dur));
-            } catch (NumberFormatException ignored) {
-                // 숫자가 아닌 줄은 건너뛴다
-            }
-        }
-        if (steps.isEmpty()) {
-            int[][] def = {{2, 124}, {3, 198}, {4, 272}, {5, 319}, {6, 345}, {7, 360}};
-            for (int[] d : def) steps.add(new TumbleStep(d[0], d[1], 1));
-        }
-        steps.sort(Comparator.comparingInt(TumbleStep::tick));
         int reveal = Math.max(1, c.getInt("combat.roll.tumble.reveal", 11));
-        return new TumbleCfg(c.getDouble("combat.roll.tumble.pivot", 0.40), (float) c.getDouble("combat.roll.tumble.scale", 0.9375),
-                (float) c.getDouble("combat.roll.tumble.start-angle", 45), List.copyOf(steps),
-                c.getInt("combat.roll.tumble.rise-at", 8), Math.max(0, c.getInt("combat.roll.tumble.rise-turn", 3)),
-                (float) c.getDouble("combat.roll.tumble.tilt", 20), reveal,
+        return new TumbleCfg(c.getInt("combat.roll.tumble.rise-at", 8), Math.max(0, c.getInt("combat.roll.tumble.rise-turn", 3)), reveal,
                 Math.min(reveal, Math.max(0, c.getInt("combat.roll.tumble.hand-back", 8))),
                 Math.max(0, Math.min(2, c.getInt("combat.roll.tumble.hide-delay", 1))));
     }

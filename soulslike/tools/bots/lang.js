@@ -1,7 +1,8 @@
 // 언어 (10.3, 10.9, 12.5): 게임 글은 번역 열쇠이고 클라이언트가 팩의 언어 파일에서 고른다. 한국어가 원본, 영어는 따로 썼다.
 // 봇은 영어 클라이언트 (en_us) 로 들어와 본다:
 //   팩 안내 (팩을 싣기 전이라 서버가 채운 글) 가 영어, 받은 팩의 souls 언어 파일 ko_kr·en_us 의 열쇠와 자리가 같다,
-//   행동 막대·시험 도구 이름과 설명·Dialog 창·관리자 답이 번역 열쇠이고 대체 글이 영어다,
+//   팩을 싣기 전의 행동 막대 (팩을 실은 뒤는 그림 글자 소울 상자)·시험 도구 이름과 설명·Dialog 창·관리자 답이 번역 열쇠이고
+//   대체 글이 영어다,
 //   같은 열쇠가 en_us·fr_fr (en_us 로 떨어진다)·ko_kr 표로 제 언어가 된다, 꼴(색)과 기울임 끔이 번역 글에 붙는다.
 // 끝으로 팩을 거절하는 영어·한국어 클라이언트가 각자 자기 언어의 서버 글로 쫓겨나는지 본다 (번역 열쇠가 아니다).
 'use strict'
@@ -44,13 +45,16 @@ L.run('lang', async (sc) => {
     sc.check('lang JSON holds plain text (no MiniMessage tags)', !tags.length, tags.slice(0, 5).join(', '))
   }
 
-  // ── 행동 막대 (번역 열쇠 + 꼴) ──
-  const a0 = b.p.actionBars.length
+  // ── 행동 막대 (번역 열쇠 + 꼴) ── 팩을 싣기 전의 소울 줄 (대체 글). 팩을 실은 뒤는 언어가 없는 그림 글자 상자 (10.2)
   const end = Date.now() + 3000
-  while (b.p.actionBars.length === a0 && Date.now() < end) await L.sleep(100)
-  const ab = b.p.actionBars[b.p.actionBars.length - 1]
+  let ab = null
+  while (!(ab = b.p.actionBars.find((x) => findTranslate(x.raw, 'souls.hud.souls'))) && Date.now() < end) await L.sleep(100)
   const tr = ab && findTranslate(ab.raw, 'souls.hud.souls')
-  sc.check('action bar = translatable souls.hud.souls', !!tr, ab ? JSON.stringify(ab.raw).slice(0, 200) : '행동 막대 없음')
+  sc.check('pre-pack action bar = translatable souls.hud.souls', !!tr, b.p.actionBars.slice(0, 3).map((x) => JSON.stringify(x.raw).slice(0, 120)).join(' | ') || '행동 막대 없음')
+  const last = b.p.actionBars[b.p.actionBars.length - 1]
+  const box = last && L.decodeHud(last.parts, L.loadGlyphs())
+  sc.check('after the pack: action bar is the language-free souls glyph box', box && box.soulBox && /^\d+$/.test(box.digits) && !box.unknown,
+    box ? JSON.stringify(box) : '행동 막대 없음')
   if (tr) {
     // 한 사람에게 가는 글의 대체 글은 그 사람의 언어 (Lang.c(viewer, ...)). 이 봇은 en_us 라 영어 (join 은 ko_kr 로 한국어를 본다)
     sc.check('translatable carries the viewer-language (English) fallback', typeof tr.fallback === 'string' && /^Souls %1\$s$/.test(tr.fallback), JSON.stringify(tr.fallback))

@@ -14,7 +14,8 @@ names:
   식은 가마: Cold Kiln
   볼크 탑옥: Volk Gaol Tower
   탑옥: Gaol Tower
-  레딘 성벽: Walls of Redin
+  # 이름 앞에 붙는 꼴 (레딘 성벽 단궁 → Redin Wall Shortbow) 은 Redin Wall
+  레딘 성벽: [Walls of Redin, Redin Wall]
   레딘: Redin
   오다의 사당: Shrine of Oda
   오스윈 교구: Parish of Oswin
@@ -28,6 +29,8 @@ names:
   마르타: Marta
   볼크 가: House Volk
   볼크: Volk
+  # 레딘의 성 경비 (무기·방패·갑옷 이름). 영어의 guard 는 막기라 쓰지 않는다
+  레딘 경비대: Redin Watch
   그롬: Grom
   흐롤프: Hrolf
   안셀: Ansel

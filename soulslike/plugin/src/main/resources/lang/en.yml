@@ -51,6 +51,145 @@ item:
   unfit-mark: "<#a8301f>×"
   unfit: "<#8f8164>Cannot be wielded properly"
 
+weapon:
+  # Weapons, shields, catalysts (9.1, 9.2, 3.12.4, 9.7). Ids and models: pack/weapons/SPEC.md.
+  # Lore lines stay under the 250 px tooltip width (tools/langcheck.py).
+  class:
+    straight_sword: "<#858079>Straight Sword · Slash/Thrust"
+    dagger: "<#858079>Dagger · Slash/Thrust"
+    greatsword: "<#858079>Greatsword · Slash"
+    axe: "<#858079>Axe · Slash"
+    hammer: "<#858079>Hammer · Strike"
+    spear: "<#858079>Spear · Thrust"
+    halberd: "<#858079>Halberd · Slash/Thrust"
+    bow: "<#858079>Bow"
+    small_shield: "<#858079>Small Shield"
+    shield: "<#858079>Shield"
+    greatshield: "<#858079>Greatshield"
+    parrying_dagger: "<#858079>Parrying Dagger"
+    catalyst_kiln: "<#858079>Catalyst · Kiln Rites"
+    catalyst_bell: "<#858079>Catalyst · Bell Rites"
+  redin_guard_sword:
+    name: "<#d1c3a0>Redin Watch Straight Sword"
+    lore:
+      - "<#8f8164>Straight sword of the Redin Watch."
+      - "<#8f8164>Every man on the wall stood facing inward."
+      - "<#8f8164>None recorded where their blades pointed."
+  volk_longsword:
+    name: "<#d1c3a0>House Volk Longsword"
+    lore:
+      - "<#8f8164>Longsword of a House Volk knight."
+      - "<#8f8164>The Gaol Tower's keepers hollowed first."
+      - "<#8f8164>The crest on its pommel was scraped away."
+  alley_dagger:
+    name: "<#d1c3a0>Redin Alley Knife"
+    lore:
+      - "<#8f8164>Short knife of the alleys of Redin."
+      - "<#8f8164>When the walls closed, the alleys narrowed."
+      - "<#8f8164>It cut best from behind."
+  gaoler_greatsword:
+    name: "<#d1c3a0>Gaol Tower Jailer's Greatsword"
+    lore:
+      - "<#8f8164>Heavy greatsword of the Gaol Tower jailers."
+      - "<#8f8164>Used more to beat men down than to cut."
+      - "<#8f8164>Hence its point was ground blunt."
+  levy_hatchet:
+    name: "<#d1c3a0>Redin Conscript's Hand Axe"
+    lore:
+      - "<#8f8164>Hand axe Redin gave its conscripts."
+      - "<#8f8164>A wood axe, given a little more iron."
+      - "<#8f8164>Those who bore it never saw past the walls."
+  sellsword_axe:
+    name: "<#d1c3a0>House Volk Hireling's Axe"
+    lore:
+      - "<#8f8164>Axe of the men House Volk paid to serve."
+      - "<#8f8164>Paid out of the Gaol Tower's coffers."
+      - "<#8f8164>Some stayed when the coffers ran dry."
+  gaoler_club:
+    name: "<#d1c3a0>Volk Jailer's Club"
+    lore:
+      - "<#8f8164>Belt club of a House Volk jailer."
+      - "<#8f8164>Oak, bound in iron."
+      - "<#8f8164>Meant to fell a man, not to kill him."
+  penitent_mace:
+    name: "<#d1c3a0>Oswin Penitent's Mace"
+    lore:
+      - "<#8f8164>Mace of a penitent, Parish of Oswin."
+      - "<#8f8164>They struck their own backs first."
+      - "<#8f8164>After the flood, they forgot their sin."
+  mathes_bell_mace:
+    name: "<#d1c3a0>Mathes' Bell Mace"
+    lore:
+      - "<#8f8164>Mace Ansel forged from the soul of Mathes."
+      - "<#8f8164>Its head is a small bell, filled with lead."
+      - "<#8f8164>Mathes never let go of the bell."
+  redin_spear:
+    name: "<#d1c3a0>Redin Spearman's Spear"
+    lore:
+      - "<#8f8164>Thrust from the shield wall of Redin."
+      - "<#8f8164>Its point ever faced the city."
+      - "<#8f8164>The rag on its haft was once Redin red."
+  hrolf_halberd:
+    name: "<#d1c3a0>Hrolf's Halberd"
+    lore:
+      - "<#8f8164>Halberd of the last Gatewarden of Redin."
+      - "<#8f8164>The gate was shut against those within."
+      - "<#8f8164>Hrolf never asked why."
+  warden_halberd:
+    name: "<#d1c3a0>Parish Guardian's Halberd"
+    lore:
+      - "<#8f8164>Halberd of the parish's hulking guardians."
+      - "<#8f8164>Said to be the guard Oswin's bell called."
+      - "<#8f8164>They hold that the summons has not ended."
+  wall_shortbow:
+    name: "<#d1c3a0>Redin Wall Shortbow"
+    lore:
+      - "<#8f8164>Bow of the archers on the Redin Wall."
+      - "<#8f8164>It need only reach the foot of the wall."
+      - "<#8f8164>Most of its arrows flew inward."
+  plank_shield:
+    name: "<#d1c3a0>Gaol Tower Plank Shield"
+    lore:
+      - "<#8f8164>Shield torn from a Gaol Tower cell door."
+      - "<#8f8164>Nail marks still score the inner face."
+      - "<#8f8164>None ask whose."
+  pilgrim_buckler:
+    name: "<#d1c3a0>Oswin Pilgrim's Buckler"
+    lore:
+      - "<#8f8164>Small shield of a pilgrim bound for Oswin."
+      - "<#8f8164>A bell is stamped into its boss."
+      - "<#8f8164>The road drowned, and none went home."
+  parrying_dagger:
+    name: "<#d1c3a0>Redin Parrying Dagger"
+    lore:
+      - "<#8f8164>Left-hand dagger of the duelists of Redin."
+      - "<#8f8164>Made to turn a blade, not to kill."
+      - "<#8f8164>In the shut city, duels outnumbered meals."
+  redin_guard_shield:
+    name: "<#d1c3a0>Redin Watch Shield"
+    lore:
+      - "<#8f8164>Iron-rimmed shield of the Redin Watch."
+      - "<#8f8164>Its gate sigil is all but worn away."
+      - "<#8f8164>In the sigil, the gate is shut."
+  volk_greatshield:
+    name: "<#d1c3a0>House Volk Greatshield"
+    lore:
+      - "<#8f8164>Sent by House Volk to the gate of Redin."
+      - "<#8f8164>Hrolf stood before the gate behind it."
+      - "<#8f8164>What it was sent to hold back, none know."
+  kiln_pot:
+    name: "<#d1c3a0>Kilnkeeper's Iron Pot"
+    lore:
+      - "<#8f8164>Kilnkeepers bore the last warmth in it."
+      - "<#8f8164>A few embers still cling to its bottom."
+      - "<#8f8164>The kiln went cold. The pot was slower."
+  pilgrim_handbell:
+    name: "<#d1c3a0>Oswin Pilgrim's Handbell"
+    lore:
+      - "<#8f8164>Rung by pilgrims of Oswin on the road."
+      - "<#8f8164>It mimics the great bell of the parish."
+      - "<#8f8164>So small a bell called no one home."
+
 origin:
   title: "Who were you?"
 

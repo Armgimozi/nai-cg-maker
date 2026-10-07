@@ -1,5 +1,5 @@
 // 다시 접속 (8.1 "그 뒤로는 저장된 위치에서 들어온다", 10.10, 10.2, 3.2).
-// 나갔다 들어오면 souls_world 의 나간 자리에 모험 모드로 서고, 팩을 다시 받고, HUD 가 다시 오고, 스태미나가 찬다.
+// 나갔다 들어오면 souls_world 의 나간 자리에 모험 모드로 서고, 팩을 다시 받고, HUD (막대 셋·소울 상자) 가 다시 오고, 스태미나가 찬다.
 // 죽은 채로 나갔다 들어와도 일어서면 시험 방이다.
 'use strict'
 const L = require('./lib')
@@ -18,7 +18,10 @@ async function ready (b, sc, label) {
   }
   await L.sleep(1500)
   const xp = b.lastXp()
-  sc.check(`${label}: stamina bar sent (level 0)`, xp && xp.level === 0, xp ? `bar=${xp.bar} level=${xp.level}` : '경험치 패킷 없음')
+  sc.check(`${label}: xp level 0`, !xp || xp.level === 0, xp ? `level=${xp.level}` : '')
+  const hb = b.hudBar()
+  const st = hb && L.decodeHud(hb.parts, L.loadGlyphs()).bars.st
+  sc.check(`${label}: HUD bars sent again (stamina full)`, st && st.fill > 0 && !st.empty, st ? JSON.stringify(st) : 'HUD 보스 막대 없음')
   sc.check(`${label}: action bar sent`, b.p.actionBars.length > 0, b.p.actionBars.length ? JSON.stringify(b.p.actionBars[b.p.actionBars.length - 1].plain) : '')
 }
 

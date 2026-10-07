@@ -8,9 +8,10 @@
 # 처음에 Tester 의 인벤토리를 비운다 (지난 점검에서 받은 아이템이 남아 있으면 그림을 가린다).
 #
 # 그림마다 무엇을 보는지 (괄호는 13.4 번호):
-#   01_join_test_room_hud            (1·2·10·11) 팩이 실렸다, 마른 핏방울 하트, 스태미나 막대 꽉 참·레벨 숫자 없음,
-#                                    허기 칸 없음, 시험 방 바이옴(souls:redin)의 안개·하늘·재 입자
-#   02_sprint_stamina_drain          (2) 달리는 중 막대가 준다
+#   01_join_test_room_hud            (1·2·10·11) 팩이 실렸다, 다크 소울 HUD (왼쪽 위 체력·온기·스태미나 막대 꽉 참,
+#                                    오른쪽 아래 소울 상자), 하트·허기·경험치 막대·레벨 숫자 없음,
+#                                    시험 방 바이옴(souls:redin)의 안개·하늘·재 입자
+#   02_sprint_stamina_drain          (2) 달리는 중 왼쪽 위 스태미나 막대가 준다
 #   03_roll_third_person             구르기 (온 블록 바닥, 3인칭 뒤, 기본 모습 tumble): 진짜 몸 대신 웅크린 대역이 앞으로 돈다.
 #                                    0.2초 뒤라 첫 마디 (120°) 를 도는 중
 #   03b_roll_slab_third_person       판석(아래 반 블록) 위 구르기: 대역이 판석 바닥을 스치며 돈다 (회전 중심은 발 위 0.56)
@@ -24,7 +25,7 @@
 #   09c_guard_custom_model_idle      (6) 막지 않을 때 (3인칭 앞)
 #   10_swing_mid                     (8) swing_animation 12틱: 팔이 아직 휘두르는 중
 #   10b_attack_indicator             (8) attack_speed 1.0: 조준점 밑 회복 표시기
-#   12_hud_damaged                   (10) 맞은 직후 하트 (잃은 몫이 바랜 빛으로 깜빡인다)
+#   12_hud_damaged                   (10) 맞은 직후 체력 막대 (잃은 몫이 바랜 양피지빛으로 잠깐 남는다)
 #   13_spin_third_person             (9) 서버폴더가 있을 때: visual: spin (급류 회전). 구르기로 보이지 않아 대비책으로만 둔다
 #   14_configure_join, 14_configure_join.txt
 #                                    (13) 서버폴더가 있을 때: send-at: configure 로 다시 들어온 화면과

@@ -20,7 +20,7 @@ import java.util.TreeMap;
  * 0 이 되면 탈진: 회복 지연이 길어지고, 일정량이 찰 때까지 달리지 못한다.
  * 달리기 금지는 허기를 6 으로 내려서 한다. 클라이언트는 허기가 6 이하이면 달리기를 시작하지도 이어가지도 않는다 [확인 (클라)].
  * 허기는 이 체계만 바꾼다 (FoodLevelChangeEvent 는 늘 취소, 평소 20).
- * 화면은 Hud 가 경험치 막대로 그린다. 여기서는 값만 바꾼다.
+ * 화면은 Hud 가 왼쪽 위 스태미나 막대 (HUD 보스 막대의 그림 글자) 로 그린다. 여기서는 값만 바꾼다.
  */
 public final class Stamina implements Listener {
     public static final int FOOD_NORMAL = 20, FOOD_EXHAUSTED = 6;

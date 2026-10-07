@@ -147,9 +147,9 @@ LINE = ("parch1", 255)             # 가는 금빛 줄 (탁한 금·청동빛 �
 LINE_DIM = ("parch0", 255)         # 줄의 그늘 쪽 끝, 꺾쇠 끝
 ORN = ("parch2", 255)              # 장식 (귀 꺾쇠, 위 가운데 마름모) 의 밝은 금빛
 ORN_HI = ("parch3", 255)           # 가리킨 칸의 테, 마름모 꼭짓점 한 점
-CELL_EDGE = ("ash2", 255)          # 칸 테: 가는 회색 줄
+CELL_EDGE = ("ash2", 215)          # 칸 테: 가는 회색 줄 (판 위에 조금 비친다)
 CELL_FLOOR = (INK, 235)            # 칸 바닥: 판보다 진한 검정
-ALCOVE_FLOOR = (INK, 250)          # 인물 자리 바닥: 창에서 가장 진하다
+ALCOVE_FLOOR = (INK, 245)          # 인물 자리 바닥: 창에서 가장 진하다 (250~252 는 발광 알파라 쓰지 않는다)
 RESULT_EDGE = ("bronze3", 255)     # 결과 칸 테: 금빛
 ICON = ("parch0", 170)             # 빈 갑옷·방패 칸에 비치는 흐린 그림
 
@@ -468,6 +468,7 @@ SLOT_ICONS = {
         "................",
         "................",
         "................",
+        "................",
         ".....oooooo.....",
         "....o......o....",
         "....o......o....",
@@ -476,7 +477,6 @@ SLOT_ICONS = {
         "....o.o..o.o....",
         "....o.o..o.o....",
         "....oo....oo....",
-        "................",
         "................",
         "................",
         "................",
@@ -586,7 +586,7 @@ def button(state):
     W, H = 200, 20
     fill, edge, gem = BUTTON_TONES[state]
     cv = Cv(W, H)
-    panel(cv, W, H, inset=1, line=edge, fill=fill, fade=((INK, fill[1] // 3)[1],))
+    panel(cv, W, H, inset=1, line=edge, fill=fill, fade=(fill[1] // 3,))
     if gem:
         for gx in (3, W - 4):
             cv.put(gx, 9, gem)
@@ -618,7 +618,7 @@ RECIPE_BOOK = [
 def recipe_button(hi):
     cv = Cv(20, 18)
     fill, edge, _ = BUTTON_TONES["highlighted" if hi else "normal"]
-    panel(cv, 20, 18, inset=1, line=edge, fill=fill, fade=((INK, fill[1] // 3)[1],))
+    panel(cv, 20, 18, inset=1, line=edge, fill=fill, fade=(fill[1] // 3,))
     cv.stamp(0, 4, [r.replace(".", " ") for r in RECIPE_BOOK], {"L": ORN if hi else LINE, "H": LINE_DIM})
     return cv.image()
 
@@ -647,7 +647,7 @@ WIDGET_SCALING = {
 def slider_track(hi):
     """밀대 길 200×20 (9조각 테 2): 진한 반투명 홈 + 1픽셀 테 (가리키면 금빛)."""
     cv = Cv(200, 20)
-    panel(cv, 200, 20, inset=1, line=LINE if hi else ("parch0", 170), fill=(INK, 185), fade=((INK, 70)[1],))
+    panel(cv, 200, 20, inset=1, line=LINE if hi else ("parch0", 170), fill=(INK, 185), fade=(70,))
     return cv.image()
 
 
@@ -682,7 +682,7 @@ CHECK = [
 
 def checkbox(selected, hi):
     cv = Cv(20, 20)
-    panel(cv, 20, 20, inset=1, line=ORN if hi else ("parch0", 200), fill=(INK, 185), fade=((INK, 70)[1],))
+    panel(cv, 20, 20, inset=1, line=ORN if hi else ("parch0", 200), fill=(INK, 185), fade=(70,))
     if selected:
         cv.stamp(0, 0, [r.replace(".", " ") for r in CHECK], {"C": ORN_HI if hi else ORN})
     return cv.image()
@@ -778,7 +778,7 @@ WARNING_MARK = [
 def warning_button(state):
     fill, edge, _ = BUTTON_TONES[state]
     cv = Cv(20, 20)
-    panel(cv, 20, 20, inset=1, line=edge, fill=fill, fade=((INK, fill[1] // 3)[1],))
+    panel(cv, 20, 20, inset=1, line=edge, fill=fill, fade=(fill[1] // 3,))
     mark = {"normal": LINE, "highlighted": ORN_HI, "disabled": ("ash2", 255)}[state]
     cv.stamp(0, 0, [r.replace(".", " ") for r in WARNING_MARK], {"P": mark})
     return cv.image()
@@ -795,17 +795,18 @@ TOOLTIP_SCALING = {
 def tooltip():
     """
     바닐라는 글 둘레 (x-12, y-12, 폭+24, 높이+24) 에 바탕과 테를 그린다. 글은 12픽셀 안쪽.
-    바탕: 6..93 의 반투명 검정 (가장자리 두 단 계단). 가운데 (9..90) 는 이어 붙여지므로 한 색.
-    테: 가장자리에서 8 에 1픽셀 금빛 줄, 네 귀에 밝은 금빛 꺾쇠 (세 칸). 가장자리 가운데 (10..89) 는 늘여지므로 고른 줄.
+    바탕: 4..95 의 반투명 검정 (가장자리 두 단 계단). 가운데 (9..90) 는 이어 붙여지므로 한 색.
+    테: 가장자리에서 6 에 1픽셀 금빛 줄 (글과 5픽셀 띈다), 네 귀에 밝은 금빛 꺾쇠 (세 칸). 가장자리 가운데 (10..89) 는
+    늘여지므로 고른 줄.
     """
     N = 100
     bg = Cv(N, N)
-    panel(bg, N - 12, N - 12, x0=6, y0=6, inset=99, line=None, fill=(INK, 228), fade=(95, 165))
+    panel(bg, N - 8, N - 8, x0=4, y0=4, inset=99, line=None, fill=(INK, 228), fade=(95, 165))
     fr = Cv(N, N)
-    fr.box(8, 8, N - 9, N - 9, LINE)
+    fr.box(6, 6, N - 7, N - 7, LINE)
     for sx, sy in ((1, 1), (-1, 1), (1, -1), (-1, -1)):
-        cx = 8 if sx > 0 else N - 9
-        cy = 8 if sy > 0 else N - 9
+        cx = 6 if sx > 0 else N - 7
+        cy = 6 if sy > 0 else N - 7
         for i in range(3):
             fr.put(cx + sx * i, cy, ORN)
             fr.put(cx, cy + sy * i, ORN)

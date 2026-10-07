@@ -156,6 +156,11 @@ L.run('death', async (sc) => {
   await L.sleep(500)
   const r0 = b.p.respawns.length
   const x0 = b.p.xp.length
+  // 죽어 있는 동안 HUD 는 비어 있다 (다크 소울처럼 YOU DIED 만): HUD 보스 막대의 이름이 빈 글
+  const deadBar = b.hudBar()
+  const deadHud = deadBar ? L.decodeHud(deadBar.parts, glyphs) : null
+  sc.check('HUD blank while dead (HUD boss bar name empty)', deadHud && !Object.keys(deadHud.bars).length && !deadHud.unknown,
+    deadHud ? JSON.stringify(deadHud.bars) : 'HUD 보스 막대 없음')
   const c0 = b.p.clearTitles.length
   const from2 = b.sys.length
   b.respawn()
@@ -170,8 +175,11 @@ L.run('death', async (sc) => {
     `(${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}, ${pos.z.toFixed(1)})`)
   sc.check('health full after respawn', b.health >= 19.99, 'hp=' + b.health)
   const xp = b.p.xp.slice(x0)
-  sc.check('stamina bar resent full after respawn', xp.length && xp[xp.length - 1].bar >= 0.99 && xp[xp.length - 1].level === 0,
-    xp.length ? `bar=${xp[xp.length - 1].bar} level=${xp[xp.length - 1].level}` : '경험치 패킷 없음')
+  sc.check('xp level still 0 after respawn', xp.every((x) => x.level === 0), xp.map((x) => x.level).join(',') || '경험치 패킷 없음')
+  const aliveBar = b.hudBar()
+  const h = aliveBar ? L.decodeHud(aliveBar.parts, glyphs) : null
+  sc.check('HUD bars back and full after respawn (hp, stamina)', h && ['hp', 'st'].every((k) => h.bars[k] && h.bars[k].fill > 0 && !h.bars[k].empty),
+    h ? JSON.stringify(h.bars) : 'HUD 보스 막대 없음')
   sc.check('title cleared after respawn', b.p.clearTitles.length > c0)
   const mode = rp ? rp.gamemode : null
   sc.check('still adventure after respawn', mode === 'adventure', String(mode))

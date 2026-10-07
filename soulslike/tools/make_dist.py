@@ -23,12 +23,13 @@ WorldCheck 실패면 거절)을 더한다. 그때까지 server/ 에 세계 폴�
   jar      resources/ 의 파일이 jar 안과 바이트까지 같다 (낡은 jar 거르기), paper-plugin.yml (12.2),
            데이터팩 soulsdp (형식 94.1, 지역 바이옴 9개, souls:hit)
   설정     jar 안 config.yml: pack.url 이 https 이고 {sha1} 이 있다, required, serve-port 0, test-mode 꺼짐
-  팩       형식 75, 셰이더 없음 (10.8), 8MB 아래, 정렬 zip (경로 순서·날짜 고정, 폴더 항목 없음), artlint 오류 0,
+  팩       형식 75, 셰이더는 HUD 글꼴 셰이더 하나뿐 (10.8), 8MB 아래, 정렬 zip (경로 순서·날짜 고정, 폴더 항목 없음), artlint 오류 0,
            글꼴·모형·그림 참조가 팩 안에 있다 (바닐라 minecraft: 그림은 건너뛴다),
            사망 화면 언어 다섯 키가 바닐라의 모든 언어에 (gen_pack.LANGS, 10.9)
   글자표   glyphs.yml 의 모든 글자가 그 글꼴에 있고 빈칸 폭이 맞다, you_died 가 deathScreen.title 과 같다
            (config.yml death.title: true 면 deathScreen.title 은 빈칸. YOU DIED 는 한 번만, 5.6. gen_pack 이 같은
-           config.yml 을 읽어 팩을 만들므로 설정 한 곳만 바꾸면 맞는다), death.title-glyphs 의 이름이 glyphs.yml 에 있다
+           config.yml 을 읽어 팩을 만들므로 설정 한 곳만 바꾸면 맞는다), death.title-glyphs 의 이름이 glyphs.yml 에 있다,
+           glyphs.yml 의 HUD 자리 값 (layout) 이 글꼴 셰이더의 값과 같다 (10.2)
   제목     게임 제목 스퀘어 소울 / Square Soul (0.4 의 7): lang 의 pack.description, pack.mcmeta 대체 글,
            start.bat·start.ps1 창 제목, README.txt 첫머리
   서버     인코딩 규칙 (12.9), server.properties 가 12.7 값 그대로 (motd 는 lang 의 pack.description 두 언어),
@@ -260,8 +261,11 @@ def check_pack(jar):
                 f"pack.mcmeta description {mc.get('description')!r} (souls.pack.description, 대체 글 {TITLE['en']!r}, 0.4 의 7)")
     except (KeyError, ValueError) as ex:
         g.check(False, f"pack.mcmeta 를 읽지 못했다: {ex}")
+    # 셰이더는 실제 클라이언트로 점검한 HUD 글꼴 셰이더 하나뿐이다 (10.8). 다른 것은 점검 전에 넣지 않는다
     shaders = [n for n in names if re.match(r"assets/[^/]+/shaders/", n)]
-    g.check(not shaders, f"셰이더가 들어 있다 (실제 클라이언트 점검 전에는 넣지 않는다, 10.8): {shaders[:3]}")
+    extra = [n for n in shaders if n != "assets/minecraft/shaders/core/rendertype_text.vsh"]
+    g.check(not extra, f"점검하지 않은 셰이더가 들어 있다 (10.8): {extra[:3]}")
+    g.check(shaders, "HUD 글꼴 셰이더 (assets/minecraft/shaders/core/rendertype_text.vsh) 가 없다 (10.2)")
 
     # 참조: 글꼴 → 그림, 아이템 정의 → 모형, 모형 → 부모·그림. minecraft: 의 바닐라 파일은 팩에 없어도 된다
     def need(ns, path, what):
@@ -351,11 +355,27 @@ def check_bitmap(g, font_file, png, provider):
                 f"{font_file}: {provider['file']} {w}×{h} 가 chars 격자 {len(rows[0])}×{len(rows)} 로 나누어떨어지지 않는다")
 
 
+def jar_pack_text(jar, name):
+    """jar 안 pack.zip 의 글 파일 하나 (없으면 None)."""
+    try:
+        with zipfile.ZipFile(io.BytesIO(jar["pack.zip"])) as z:
+            return z.read(name).decode("utf-8")
+    except (KeyError, zipfile.BadZipFile):
+        return None
+
+
 def check_glyphs(jar, fonts, langs):
     g = Gate()
     table = yaml.safe_load(jar["glyphs.yml"].decode("utf-8")) or {}
     g.check("you_died" in table, "glyphs.yml 에 you_died 가 없다")
     g.check("you_died_title" in table, "glyphs.yml 에 you_died_title (플러그인 화면 제목) 이 없다")
+    # HUD 자리 값 (hud.layout): 그림 글자가 아니다. 팩의 글꼴 셰이더가 같은 값으로 HUD 를 화면 가장자리로 옮긴다 (10.2, 10.8)
+    lay = table.pop("layout", None) or {}
+    shader = jar_pack_text(jar, "assets/minecraft/shaders/core/rendertype_text.vsh")
+    g.check(all(k in lay for k in ("margin", "left", "right", "mark_left", "mark_right")), f"glyphs.yml layout 이 모자라다: {lay}")
+    if shader is not None and lay:
+        want = [f"centre - {lay.get('left')}.0", f"centre + {lay.get('right')}.0", f"{lay.get('margin')}.0"]
+        g.check(all(w in shader for w in want), f"글꼴 셰이더의 자리 값이 glyphs.yml layout 과 다르다 ({want})")
     for name, e in table.items():
         font = fonts.get(e.get("font"))
         if not g.check(font is not None, f"glyphs.yml {name}: 글꼴 {e.get('font')} 이 팩에 없다"):

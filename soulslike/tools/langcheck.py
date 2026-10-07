@@ -75,7 +75,7 @@ SLOTS = [
     ("bonfire.test-name", "dialog_title"), ("origin.title", "dialog_title"),
     ("bonfire.status", "dialog_body"), ("bonfire.no-warp", "dialog_body"), ("spell.no-slot", "dialog_body"),
     ("hud.*", "actionbar"),
-    ("item.*", "tooltip"), ("test.*", "tooltip"), ("skill.*", "tooltip"),
+    ("item.*", "tooltip"), ("weapon.*", "tooltip"), ("test.*", "tooltip"), ("skill.*", "tooltip"),
     ("vanilla.deathScreen.respawn", "button200"), ("vanilla.deathScreen.titleScreen", "button200"),
     ("vanilla.deathScreen.quit.confirm", "screen"), ("vanilla.deathScreen.score.value", "screen"),
     ("vanilla.container.*", "container_title"),

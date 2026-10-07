@@ -1,12 +1,21 @@
 // 스태미나 (3.2, 10.2): 달리면 줄고 (틱당 0.6, 그동안 회복 없음), 멈추면 12틱 뒤부터 틱당 2.2 씩 찬다.
-// 0 이 되면 탈진: 허기 6 (달리기 막힘), 회복 지연 24틱, 25 까지 차면 허기 20. 경험치 막대가 스태미나를 따른다 (레벨 0).
+// 0 이 되면 탈진: 허기 6 (달리기 막힘), 회복 지연 24틱, 25 까지 차면 허기 20. 왼쪽 위 스태미나 막대 (HUD 보스 막대의
+// 그림 글자, 10.2) 가 스태미나를 따른다. 경험치 레벨은 늘 0.
 'use strict'
 const L = require('./lib')
 
 // 두 시험 줄 사이의 틱당 변화량
 const rate = (a, b) => (L.num(b.kv.cur) - L.num(a.kv.cur)) / Math.max(1, L.num(b.kv.t) - L.num(a.kv.t))
 
+// HUD 보스 막대의 스태미나 막대: 채움 / 길이 (막대가 없으면 null)
+function hudStamina (b, glyphs) {
+  const hb = b.hudBar()
+  const st = hb && L.decodeHud(hb.parts, glyphs).bars.st
+  return st ? { fill: st.fill, len: st.fill + st.trail + st.empty, ratio: st.fill / Math.max(1, st.fill + st.trail + st.empty) } : null
+}
+
 L.run('stamina', async (sc) => {
+  const glyphs = L.loadGlyphs()
   const b = await L.connect(sc)
   await L.sleep(1500)
   await b.cmd('/souls tp room', null, 1500)
@@ -25,14 +34,14 @@ L.run('stamina', async (sc) => {
   const s1 = await b.cmd('/soulstest stamina', 'STAMINA')
   await L.sleep(700)
   const s2 = await b.cmd('/soulstest stamina', 'STAMINA')
-  const xpRun = b.lastXp()
+  const barRun = hudStamina(b, glyphs)
   b.sprint(false)
   sc.check('server sees sprinting', s1.kv && s1.kv.sprinting === 'true', s1.line)
   sc.check('sprint drains stamina', s2.kv && L.num(s2.kv.cur) < L.num(s0.kv.cur) - 5, s2.line)
   const drain = s1.kv && s2.kv ? -rate(s1, s2) : NaN
   sc.check('drain ~0.6 per tick, no regen while sprinting', Math.abs(drain - 0.6) <= 0.2, 'drain=' + drain.toFixed(3) + '/틱')
-  sc.check('xp bar follows stamina while sprinting', xpRun && Math.abs(xpRun.bar - L.num(s2.kv.ratio)) < 0.06 && xpRun.bar < 0.97,
-    xpRun ? `bar=${xpRun.bar.toFixed(3)} ratio=${s2.kv.ratio}` : '경험치 패킷 없음')
+  sc.check('HUD stamina bar follows stamina while sprinting', barRun && Math.abs(barRun.ratio - L.num(s2.kv.ratio)) < 0.06 && barRun.ratio < 0.97,
+    barRun ? `막대 ${barRun.fill}/${barRun.len} = ${barRun.ratio.toFixed(3)}, ratio=${s2.kv.ratio}` : 'HUD 보스 막대 없음')
   sc.check('xp level stays 0 while sprinting', b.p.xp.every((x) => x.level === 0))
 
   // 멈춘 뒤 첫 시험 줄: 회복은 멈춘 틱 + 12 부터 (regenFrom)
@@ -73,8 +82,8 @@ L.run('stamina', async (sc) => {
   sc.checkCmd('sprinting to 0 exhausts', z, (r) => L.num(r.kv.cur) === 0 && r.kv.exhausted === 'true', z.line)
   await L.sleep(300)
   sc.check('exhausted -> food 6 (client stops sprinting)', b.food === 6, 'food=' + b.food)
-  const xp0 = b.lastXp()
-  sc.check('xp bar empty at 0', xp0 && xp0.bar <= 0.01, xp0 ? 'bar=' + xp0.bar : '')
+  const bar0 = hudStamina(b, glyphs)
+  sc.check('HUD stamina bar empty at 0', bar0 && bar0.fill === 0, bar0 ? `막대 ${bar0.fill}/${bar0.len}` : 'HUD 보스 막대 없음')
   b.sprint(false)
   await L.sleep(150)
   const ez = await b.cmd('/soulstest stamina', 'STAMINA')

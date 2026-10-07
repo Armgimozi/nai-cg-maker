@@ -19,7 +19,7 @@
 // 봇이 알린 언어로 채운다.
 //
 // 봇 요령 (13.2, 12.8): 웅크리기는 player_input 의 shift 깃발, F 는 block_dig 상태 6, 막기는 use_item 과 상태 5,
-// 행동 막대는 날 action_bar / system_chat(overlay) 패킷, 위치·속도는 서버에서 잰다 (mineflayer 는 1.21.9+ 속도
+// 행동 막대는 날 action_bar / system_chat(overlay) 패킷, HUD 막대는 boss_bar 패킷의 이름 (decodeHud), 위치·속도는 서버에서 잰다 (mineflayer 는 1.21.9+ 속도
 // 패킷 배율을 잘못 읽는다). 달리기는 entity_action 의 start_sprinting 을 직접 보낸다.
 // 플러그인 시험 줄은 "[T] 이름 열쇠=값 ..." 꼴의 시스템 채팅이다 (TestCommands).
 //
@@ -283,6 +283,8 @@ class Bot {
       dialogs: [],
       slots: [],
       xp: [],
+      // 보스 막대 패킷 (HUD 전용 보스 막대 = 처음 ADD 된 white 막대, 10.2): {t, id, action, raw, parts, color, health}
+      bossbars: [],
       vel: [],
       health: [],
       deaths: [],
@@ -347,6 +349,11 @@ class Bot {
       }
     })
     c.on('experience', (d) => this.p.xp.push({ t: now(), bar: d.experienceBar, level: d.level, total: d.totalExperience }))
+    c.on('boss_bar', (d) => {
+      const e = { t: now(), id: d.entityUUID, action: d.action, color: d.color, health: d.health }
+      if (d.title !== undefined && d.title !== null) { e.raw = simple(d.title); e.parts = flatten(e.raw) }
+      this.p.bossbars.push(e)
+    })
     c.on('entity_velocity', (d) => {
       if (d.entityId !== this.id) return
       const v = d.velocity
@@ -559,6 +566,14 @@ class Bot {
   get health () { return this._bot.health }
   get food () { return this._bot.food }
   lastXp () { return this.p.xp[this.p.xp.length - 1] || null }
+  /** HUD 보스 막대 (10.2): 처음 ADD (action 0) 된 white (6) 막대의 마지막 이름 {t, id, parts}. 없으면 null */
+  hudBar () {
+    const add = this.p.bossbars.find((e) => e.action === 0 && e.color === 6)
+    if (!add) return null
+    const named = this.p.bossbars.filter((e) => e.id === add.id && e.parts && (e.action === 0 || e.action === 3))
+    const gone = this.p.bossbars.some((e) => e.id === add.id && e.action === 1 && e.t > named[named.length - 1].t)
+    return gone ? null : named[named.length - 1]
+  }
 
   /** 소리 기록 하나의 이름 (minecraft-data 의 소리 표로 번호를 푼다). */
   soundName (s) {
@@ -903,7 +918,39 @@ function deathConfig () {
   return out
 }
 
+/**
+ * HUD 그림 글자 줄 (hud/Hud, pack/hud.py 의 bar_line·souls_line) 을 glyphs.yml 로 읽는다: 막대마다 채움·잃은 몫·빈 몫 픽셀
+ * {bars: {hp: {fill, trail, empty}}}, 소울 숫자 digits, 소울 상자 soulBox, 진행 폭 합 advance (0 이어야 화면 가운데에서
+ * 시작한다), 모르는 글자 수 unknown, 글자색·글꼴 목록.
+ */
+function decodeHud (parts, glyphs) {
+  const byChar = {}
+  for (const [name, g] of Object.entries(glyphs || {})) if (g.font === 'souls:hud') byChar[g.char] = Object.assign({ name }, g)
+  const out = { bars: {}, digits: '', soulBox: false, advance: 0, unknown: 0, colors: [], fonts: [] }
+  for (const p of parts || []) {
+    if (!p.text) continue
+    const col = String(p.color || '').toLowerCase()
+    if (!out.colors.includes(col)) out.colors.push(col)
+    if (!out.fonts.includes(p.font)) out.fonts.push(p.font)
+    for (const ch of p.text) {
+      const g = byChar[ch]
+      if (!g) { out.unknown++; continue }
+      out.advance += g.width
+      let m = g.name.match(/^hud_(hp|fp|st)_(fill|trail|empty)_(\d+)$/)
+      if (m) {
+        const b = out.bars[m[1]] || (out.bars[m[1]] = { fill: 0, trail: 0, empty: 0 })
+        b[m[2]] += +m[3]
+        continue
+      }
+      m = g.name.match(/^hud_digit_(\d)$/)
+      if (m) out.digits += m[1]
+      else if (g.name === 'hud_soulbox') out.soulBox = true
+    }
+  }
+  return out
+}
+
 module.exports = {
   ENV, VERSION, sleep, run, connect, Scenario, Bot, kvOf, num, plain, flatten, simple, langTable, render, formatTr, translateKeys,
-  loadGlyphs, readZip, decodePng, hsv, readProps, testRoom, rollConfig, deathConfig, fetchBuf
+  loadGlyphs, readZip, decodePng, hsv, readProps, testRoom, rollConfig, deathConfig, fetchBuf, decodeHud
 }

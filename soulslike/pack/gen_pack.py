@@ -19,16 +19,19 @@
 
 순서
   1. 팩 폴더를 비우고 pack.mcmeta (형식 75), pack.png
-  2. hud.build: 투명한 허기, 사망 화면 글자, 글꼴. gui_skin.build: 하트·스태미나 막대·단축 슬롯·창·단추·설명 칸·
-     Dialog 경고 단추. icons.build: 아이템 그림과 모형 (M0 은 시험 도구 souls:test_guard 하나), 입자 (poof)
+  2. hud.build: 투명한 허기, 사망 화면 글자, 글꼴 (다크 소울 HUD 막대·소울 상자 그림 글자), HUD 글꼴 셰이더.
+     gui_skin.build: 숨기는 HUD (하트·방어·경험치 막대)·보스 막대·단축 슬롯·창·단추·설명 칸·Dialog 경고 단추.
+     icons.build: 아이템 그림과 모형 (M0 은 시험 도구 souls:test_guard 하나), 입자 (poof)
   3. 언어 파일 (langpack.py): 게임 문구 assets/souls/lang/ko_kr.json·en_us.json (lang/ko.yml·en.yml 에서),
      바닐라 덮어쓰기 assets/minecraft/lang/<언어>.json (사망 화면 다섯 키. 제목은 그림 글자로 모든 언어가 같고, 단추 글은
      ko_kr 이 한국어, 나머지 모든 언어가 영어). ko.yml 과 en.yml 의 짝이 틀리면 (열쇠·자리·꼴) 여기서 멈춘다
+  3b. 블록: blocks_grade.build (1층, 바닐라 블록 그림 전부의 색을 옮긴다. 클라이언트 jar 가 있어야 한다) 뒤에
+     blocks_core.build (2층, 맵의 핵심 블록을 새로 그려 덮는다)
   4. artlint: 오류가 하나라도 있으면 여기서 멈추고 zip 을 만들지 않는다
   5. 정렬 zip: 경로 순서, 날짜, 권한을 고정해 같은 입력이면 SHA-1 이 같다
   6. glyphs.yml, 미리보기
 
-M0 에는 셰이더가 없다 (10.8). 무기·보스·갑옷 그림(wkit, mc3d, art/vboss_*)은 M1 부터 이 파일에 다시 붙인다
+셰이더는 HUD 글꼴 셰이더 하나뿐이다 (rendertype_text.vsh, 10.8). 무기·보스·갑옷 그림(wkit, mc3d, art/vboss_*)은 M1 부터 이 파일에 다시 붙인다
 (M0 에는 wkit 을 쓰는 그림이 없다. 구르기 대역 roll_figure.py 는 플레이어 비례의 상자 모형을 직접 쓴다).
 아이템 그림은 모두 textures/item/ 아래에 둔다. 1.21.11 은 items 아틀라스가 textures/item 폴더를
 이름공간과 상관없이 모두 읽으므로 skyblock 의 write_atlas_sources 는 필요 없다 (icons.py 의 souls:item/test_guard 로 확인).
@@ -47,6 +50,8 @@ if HERE not in sys.path:
     sys.path.insert(0, HERE)
 
 import artlint  # noqa: E402
+import blocks_core  # noqa: E402
+import blocks_grade  # noqa: E402
 import gui_skin  # noqa: E402
 import hud  # noqa: E402
 import icons  # noqa: E402
@@ -153,6 +158,9 @@ def write_glyphs(path, glyphs, title, plugin_title):
     rows += [(g.name, g.char, g.width, g.font) for g in glyphs]
     for name, ch, width, font in rows:
         lines.append(f"{name}: {{char: {yaml_str(ch)}, width: {width}, font: {yaml_str(font)}}}")
+    # HUD 자리 값 (hud.layout, 글꼴 셰이더와 같은 값). 플러그인 Glyphs 가 그림 글자와 따로 읽는다
+    lines.append("layout: {" + ", ".join(f"{k}: {yaml_str(str(v)) if isinstance(v, str) else v}"
+                                         for k, v in hud.layout().items()) + "}")
     with open(path, "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join(lines) + "\n")
 
@@ -219,9 +227,11 @@ def main(argv):
     glyphs, fonts = hud.build(OUT)
     for (ns, name), data in fonts.items():
         write_json(os.path.join(OUT, "assets", ns, "font", name + ".json"), data)
-    gui_skin.build(OUT)   # 하트·스태미나 막대·단축 슬롯·창·단추·설명 칸·Dialog 경고 단추
+    gui_skin.build(OUT)   # 숨기는 HUD (하트·방어·경험치 막대)·보스 막대·단축 슬롯·창·단추·설명 칸·Dialog 경고 단추
     icons.build(OUT)      # 아이템 그림·모형·정의 (items 아틀라스), 입자
-    roll_figure.build(OUT)   # 구르기 대역 (세 자세의 몸·머리·투구 모형, 물들일 재료), 급류 회전 소용돌이 감추기 (3.3)
+    roll_figure.build(OUT)   # 구르기 대역 (관절 부위·머리·투구 모형, 물들일 재료), 급류 회전 소용돌이 감추기 (3.3)
+    # 대역의 열쇠 자세 표 (플러그인 Tumble 이 읽는다. 팩의 부위 모형과 같은 뼈대에서 셈한다)
+    roll_figure.anim_table(os.path.join(RES, "roll_anim.yml"))
     # 대역 색: 바닐라 기본 스킨 18 개의 표 (클라이언트 jar 가 있을 때만 다시 뽑는다. 없으면 커밋된 표를 그대로 쓴다)
     roll_figure.skin_table(roll_figure.client_jar(), os.path.join(RES, "roll_skins.yml"))
     title = hud.death_title(glyphs)
@@ -239,6 +249,16 @@ def main(argv):
 
     # 구르는 동안 손에 든 souls 아이템을 3인칭에서 비우는 깃발 (아이템 정의를 모두 쓴 뒤에 감싼다, 3.3)
     roll_figure.wrap_item_definitions(OUT)
+
+    # 블록 1층: 바닐라 블록 그림 전부 (+ .mcmeta, 풀빛·잎빛 색 지도) 의 색을 다크소울 쪽으로 옮긴다 (blocks_grade.py,
+    # 클라이언트 jar 에서 읽는다)
+    print("블록 그림 (1층):", blocks_grade.build(OUT))
+
+    # 블록 2층: 맵·시험 방의 핵심 블록을 손 규칙으로 다시 그린다 (blocks_core.py). 1층 (blocks_grade) 이 옮긴
+    # 같은 이름의 그림을 덮어야 하므로 블록 그림을 쓰는 단계 가운데 마지막이다
+    blocks_core.build(OUT)
+    # 바닐라가 바탕 돌·흙·판자를 그대로 깐 그림 (광석, 풀 블록 옆면, 작업대 …) 을 최종 바탕 그림 위에 다시 맞춘다
+    print("블록 그림 바탕 맞춤:", blocks_grade.finish(OUT))
 
     # 4. artlint (오류가 있으면 zip 을 만들지 않는다)
     report = artlint.lint([OUT], OUT)
@@ -271,12 +291,12 @@ def main(argv):
     # 6. 글자 표, 미리보기
     write_glyphs(os.path.join(RES, "glyphs.yml"), glyphs, title, hud.plugin_title(glyphs))
     sheet, cell_w, _ = hud.you_died_sheet()
-    bar_bg, bar_fill = gui_skin.stamina_bar()
     previews.write_all(PREVIEW, {
         "sheet": sheet, "cell_w": cell_w, "glyphs": glyphs, "title": title, "height": hud.YOU_DIED_HEIGHT,
-        "ascent": hud.YOU_DIED_ASCENT, "lang": lang, "bar_bg": bar_bg, "bar_fill": bar_fill, "icon": icon,
+        "ascent": hud.YOU_DIED_ASCENT, "lang": lang, "icon": icon,
     })
     gui_skin.write_previews(OUT, PREVIEW)
+    hud.preview_hud(OUT, os.path.join(PREVIEW, "hud.png"), glyphs)
     roll_figure.preview_default(os.path.join(PREVIEW, "roll_figure.png"))
     print(f"팩 파일 {len(names)}개, {len(data):,} 바이트, sha1 {sha1}")
     print(f"  → {os.path.relpath(os.path.join(RES, 'pack.zip'), ROOT)}"

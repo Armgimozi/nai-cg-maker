@@ -19,7 +19,7 @@ HUD 그림과 글꼴 (DESIGN.md 10.2, 10.3, 10.9). gen_pack.py 가 부른다.
   너비(width)는 클라이언트가 재는 것과 같은 식으로 계산한 진행 폭(글꼴 픽셀)이다.
 
 문자 번호
-  U+E000~E01F  minecraft:default (사망 화면 제목 글자와 그 사이 빈칸)
+  U+E000~E01F  minecraft:default (사망 화면 제목 글자와 그 사이 빈칸, E007~E009 사망 화면 띠 조각, E010~E012 띠의 빈칸)
   U+E020~E03F  souls:hud 빈칸 (E020~E02F 자리 맞춤, E030·E031 플러그인 제목의 글자 사이)
   U+E040~E0EF  souls:hud 그림 글자 (HUD 막대 조각·마구리, 소울 상자·표식·숫자. 지금 74개, E040~E089)
   U+E0F0~E0F6  souls:hud 플러그인 화면 제목 YOU DIED 글자
@@ -124,6 +124,13 @@ YOU_DIED_HEIGHT = 12
 # 단추는 화면 높이/4 + 72 (GUI 높이가 가장 작은 240 일 때 132) 부터라, 그 위로 가능한 한 가운데에 둔다:
 # ascent -5 면 GUI y 84~108 (높이 240 에서 가운데가 40%), 단추와 24 픽셀 띈다. 바닐라 글씨 자리(9)보다 24 픽셀 아래.
 YOU_DIED_ASCENT = -5
+# 다크 소울의 사망 화면처럼 YOU DIED 뒤에 화면을 가로지르는 반투명 검은 띠 (2026-10-07, 다크 소울 UI). 기본 글꼴의 64 폭
+# 조각 여덟 (왼쪽 끝, 가운데 여섯, 오른쪽 끝: 글꼴 그림은 256×256 판에 들어가야 하므로 한 장으로는 그릴 수 없다) 이 이어져
+# 2배로 GUI 1024×44 픽셀 (GUI 폭 960 까지 덮는다). 글자 가운데에 맞춰 위·아래로 11 씩 (ascent 0), 위·아래 가장자리와
+# 양 끝은 알파 계단으로 옅어진다. 띠 앞뒤의 빈칸 두 글자가 띠의 진행 폭을 지워 제목이 바닐라처럼 글자 폭으로 가운데에 놓인다.
+DEATH_BAND = (("death_band_l", "\ue007"), ("death_band_m", "\ue008"), ("death_band_r", "\ue009"))
+DEATH_BAND_SPACES = ("death_band_pre", "\ue010"), ("death_band_post", "\ue011"), ("death_band_back", "\ue012")
+DEATH_BAND_TILE, DEATH_BAND_TILES, DEATH_BAND_H, DEATH_BAND_ASCENT = 64, 8, 22, 0
 
 # 플러그인 화면 제목용 (death.title: true). 사망 화면 판과 같은 그림을 souls:hud 글꼴에 따로 넣어, 사망 화면 판의
 # 자리(ascent)를 바꿔도 이 판은 그대로 둔다. 화면 제목은 4배로 그려지므로 높이 12 면 그림 한 칸이 GUI 2픽셀:
@@ -151,12 +158,36 @@ def you_died_sheet():
 
 
 def death_title(glyphs, prefix="you_died_"):
-    """deathScreen.title 에 넣을 문자열: Y O U / D I E D 를 빈칸 문자로 띄운다."""
+    """deathScreen.title 에 넣을 문자열: Y O U / D I E D 를 빈칸 문자로 띄운다. 사망 화면 판은 그 앞에 검은 띠."""
     by = {g.name: g.char for g in glyphs}
     gap, word = by[prefix + "gap"], by[prefix + "word"]
     you = gap.join(by[prefix + n] for n in ("y", "o", "u"))
     died = gap.join(by[prefix + n] for n in ("d1", "i", "e", "d2"))
-    return you + word + died
+    band = ""
+    if prefix == "you_died_" and DEATH_BAND[0][0] in by:
+        back = by[DEATH_BAND_SPACES[2][0]]
+        tiles = [DEATH_BAND[0][0]] + [DEATH_BAND[1][0]] * (DEATH_BAND_TILES - 2) + [DEATH_BAND[2][0]]
+        band = by[DEATH_BAND_SPACES[0][0]] + "".join(by[t] + back for t in tiles) + by[DEATH_BAND_SPACES[1][0]]
+    return band + you + word + died
+
+
+def death_band():
+    """
+    사망 화면 띠 조각 셋 (왼쪽 끝, 가운데, 오른쪽 끝) 을 한 그림에 (칸 폭 64). 재 한 색에 알파만 계단: 가운데 줄은 175,
+    위·아래 네 줄과 띠 양 끝 열여섯 열은 옅어진다.
+    """
+    t, h = DEATH_BAND_TILE, DEATH_BAND_H
+    img = Image.new("RGBA", (t * 3, h), (0, 0, 0, 0))
+    px = img.load()
+    rows = (35, 70, 110, 145)
+    for y in range(h):
+        ra = rows[min(y, h - 1 - y)] if min(y, h - 1 - y) < len(rows) else 175
+        for i in range(3):
+            for x in range(t):
+                d = x if i == 0 else (t - 1 - x if i == 2 else t)
+                a = ra if d >= 16 else ra * (d // 4 + 1) // 5
+                px[i * t + x, y] = c("ash0", a)
+    return img
 
 
 def plugin_title(glyphs):
@@ -252,20 +283,24 @@ def _caps(h):
 
 def _soul_box():
     """
-    소울 수 상자: 반투명 검정 판. 가장자리는 계단으로 옅어진다 (부드러운 그라데이션이 아니라 두 단). 위에 가는 금빛 줄 하나
-    (다크 소울 3 의 소울 상자처럼 판 위 가장자리만 빛을 받는다), 줄도 양 끝에서 계단으로 옅어진다.
+    소울 수 상자: 다크 소울 3 의 소울 수처럼 오른쪽이 진하고 왼쪽으로 계단 네 단에 걸쳐 옅어지는 반투명 검은 띠.
+    위·아래 가장자리에 1픽셀 금빛 줄 (같은 계단으로 왼쪽에서 사라진다). 오른쪽 끝 두 열과 위·아래 줄은 한 단 옅다.
     """
     w, h = SOUL_BOX_W, SOUL_BOX_H
     img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     px = img.load()
-    for y in range(h):
-        for x in range(w):
-            d = min(x, w - 1 - x, y, h - 1 - y)
-            a = (70, 120, 165)[min(d, 2)]
-            px[x, y] = c("ash0", a)
-    for x in range(3, w - 3):
-        d = min(x - 3, w - 4 - x)
-        px[x, 0] = c("parch0", (90, 150, 200, 230)[min(d, 3)])
+    steps = (60, 105, 150, 195)             # 왼쪽 → 오른쪽 (열 8 개마다 한 단)
+    for x in range(w):
+        a = steps[min(x // 8, len(steps) - 1)]
+        if x >= w - 2:
+            a = (120, 70)[x - (w - 2)]
+        for y in range(h):
+            if y in (0, h - 1):
+                px[x, y] = c("parch0", min(255, a + 40))
+            elif y in (1, h - 2):
+                px[x, y] = c("ash0", a * 3 // 4)
+            else:
+                px[x, y] = c("ash0", a)
     return img
 
 
@@ -379,9 +414,109 @@ def hud_glyphs(out, code):
     add("hud_soulbox", _soul_box(), _ascent_action(box_top), ["hud_soulbox"])
     grids = load_grids(os.path.join(ART, "hud_glyphs.txt"))
     inner = box_top - SOUL_INSET
-    add("soul_mark", grid_image(grids["soul"], SOUL_INK), _ascent_action(inner), ["soul_mark"])
+    add("soul_mark", grid_image(grids["soul"], SOUL_INK), _ascent_action(inner + 1), ["soul_mark"])
     add("hud_digits", _digits(grids), _ascent_action(inner), [f"hud_digit_{d}" for d in range(10)])
     return providers, glyphs, code
+
+
+# ─────────────────────────── HUD 짜기 (플러그인 hud/Hud 와 같은 차례) 와 미리보기 ───────────────────────────
+
+def bar_line(lengths):
+    """
+    막대 셋의 글자 차례: [(이름 | ("move", 픽셀))]. lengths = {막대: (길이, 채움, 잃은 몫)}. 플러그인 Hud.bars 와 같다:
+    가운데에서 HUD_KL 왼쪽으로 가서 막대마다 [왼쪽 마구리][채움][잃은 몫][빈 몫][오른쪽 마구리] 를 그리고 처음 자리로
+    돌아와 다음 줄 (ascent 가 다른 그림이라 아래 줄에 그려진다), 끝에 가운데로 돌아와 글 전체의 진행 폭이 0 이다.
+    그림 글자는 폭 + 1 만큼 나아가므로 조각마다 1 을 되돌린다.
+    """
+    seq = [("move", -HUD_KL)]
+    for bar in HUD_BARS:
+        if bar not in lengths:
+            continue
+        length, fill, trail = lengths[bar]
+        seq += [f"hud_{bar}_cap_l", ("move", -1)]
+        for kind, n in (("fill", fill), ("trail", trail), ("empty", length - fill - trail)):
+            for step in reversed(RUN_STEPS):
+                while n >= step:
+                    seq += [f"hud_{bar}_{kind}_{step}", ("move", -1)]
+                    n -= step
+        seq += [f"hud_{bar}_cap_r", ("move", -1)]
+        seq.append(("move", -(length + 4)))
+    seq.append(("move", HUD_KL))
+    return seq
+
+
+def souls_line(n, by_name):
+    """소울 상자의 글자 차례: 상자 오른쪽 끝이 가운데 + HUD_KR, 표식은 상자 왼쪽 안, 숫자는 오른쪽 안에 붙인다."""
+    digits = str(max(0, int(n)))
+    dw = by_name["hud_digit_0"].width - 1
+    seq = [("move", HUD_KR - SOUL_BOX_W), "hud_soulbox", ("move", -(SOUL_BOX_W + 1)),
+           ("move", 3), "soul_mark", ("move", -(by_name["soul_mark"].width + 3))]
+    x = SOUL_BOX_W - 4 - dw * len(digits)
+    seq.append(("move", x))
+    for d in digits:
+        seq += [f"hud_digit_{d}", ("move", -1)]
+    seq.append(("move", -(x + dw * len(digits)) - (HUD_KR - SOUL_BOX_W)))
+    return seq
+
+
+def _advance(seq, by_name):
+    return sum(s[1] if isinstance(s, tuple) else by_name[s].width for s in seq)
+
+
+def preview_hud(out, path, glyphs, gui=3, size=(427, 240)):
+    """
+    HUD 미리보기 (pack/preview/hud.png): 저녁 화면 위에 바닐라처럼 그린 막대 셋과 소울 상자 네 장면 (가득, 맞은 뒤 잃은 몫,
+    달려 스태미나가 준 것, 스태미나가 바닥). 셰이더가 옮긴 자리 (가장자리 HUD_MARGIN) 로 그린다.
+    """
+    import json
+    import previews as pv
+    by_name = {g.name: g for g in glyphs}
+    font = json.load(open(os.path.join(out, "assets", NS, "font", "hud.json"), encoding="utf-8")) \
+        if os.path.exists(os.path.join(out, "assets", NS, "font", "hud.json")) else None
+    sheets = {}
+
+    def glyph_image(name):
+        ch = by_name[name].char
+        for p in hud_font_providers:
+            if p["type"] == "bitmap" and ch in "".join(p["chars"]):
+                f = p["file"].split(":", 1)[1]
+                if f not in sheets:
+                    sheets[f] = Image.open(os.path.join(out, "assets", NS, "textures", f)).convert("RGBA")
+                sh = sheets[f]
+                row = p["chars"][0]
+                cw = sh.width // len(row)
+                i = row.index(ch)
+                return sh.crop((i * cw, 0, (i + 1) * cw, sh.height)), p["ascent"]
+        raise KeyError(name)
+
+    hud_font_providers = font["providers"] if font else []
+    W, H = size
+    scenes = [("full", {"hp": (100, 100, 0), "fp": (60, 60, 0), "st": (90, 90, 0)}, 1240),
+              ("damaged", {"hp": (100, 58, 22), "fp": (60, 60, 0), "st": (90, 71, 0)}, 1240),
+              ("sprint", {"hp": (100, 100, 0), "fp": (60, 41, 0), "st": (90, 37, 0)}, 87650),
+              ("low", {"hp": (100, 21, 0), "fp": (60, 9, 0), "st": (90, 3, 0)}, 0)]
+    rows = []
+    for _, lengths, souls in scenes:
+        canvas = pv.dusk_scene(W * gui, H * gui)
+        small = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        for seq, line_top, anchor in ((bar_line(lengths), BOSS_LINE_TOP, HUD_MARGIN + HUD_KL),
+                                      (souls_line(souls, by_name), H - ACTION_LINE_UP, W - HUD_MARGIN - HUD_KR)):
+            assert _advance(seq, by_name) == 0, "HUD 글의 진행 폭이 0 이 아니다"
+            pen = anchor
+            for s in seq:
+                if isinstance(s, tuple):
+                    pen += s[1]
+                    continue
+                img, asc = glyph_image(s)
+                small.alpha_composite(img, (pen, line_top + 7 - asc))
+                pen += by_name[s].width
+        canvas.alpha_composite(small.resize((W * gui, H * gui), Image.NEAREST))
+        rows.append(canvas)
+    sheet = Image.new("RGBA", (W * gui * 2 + 8, H * gui * 2 + 8), (12, 12, 12, 255))
+    for i, r in enumerate(rows):
+        sheet.alpha_composite(r, ((i % 2) * (W * gui + 8), (i // 2) * (H * gui + 8)))
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    sheet.save(path)
 
 
 # ─────────────────────────── 빌드 ───────────────────────────
@@ -409,10 +544,27 @@ def build(out):
                             DEFAULT_FONT, "bitmap"))
     for name, ch, adv in (YOU_DIED_GAP, YOU_DIED_WORD):
         glyphs.append(Glyph(name, ch, adv, DEFAULT_FONT, "space"))
+    # 띠: 글자 폭 (사이 빈칸까지) 의 가운데에 띠 가운데가 오게 앞으로 당기고, 띠를 그린 뒤 글 처음 자리로 돌아온다
+    adv = {g.name: g.width for g in glyphs}
+    letters_w = (sum(adv["you_died_" + n] for n, _ in YOU_DIED_LETTERS) + 5 * YOU_DIED_GAP[2] + YOU_DIED_WORD[2])
+    band = death_band()
+    save(band, sprite_path(out, NS, "font", "death_band.png"))
+    band_w = DEATH_BAND_TILE * DEATH_BAND_TILES
+    pre = (letters_w - band_w) // 2
+    post = -(pre + band_w)
+    for i, (name, ch) in enumerate(DEATH_BAND):
+        glyphs.append(Glyph(name, ch, glyph_advance(band, i * DEATH_BAND_TILE, DEATH_BAND_TILE, band.height, 1.0),
+                            DEFAULT_FONT, "bitmap"))
+    for (name, ch), a in zip(DEATH_BAND_SPACES, (pre, post, -1)):
+        glyphs.append(Glyph(name, ch, a, DEFAULT_FONT, "space"))
     default_font = {"providers": [
+        {"type": "bitmap", "file": f"{NS}:font/death_band.png", "height": DEATH_BAND_H, "ascent": DEATH_BAND_ASCENT,
+         "chars": ["".join(ch for _, ch in DEATH_BAND)]},
         {"type": "bitmap", "file": f"{NS}:font/you_died.png", "height": YOU_DIED_HEIGHT, "ascent": YOU_DIED_ASCENT,
          "chars": ["".join(ch for _, ch in YOU_DIED_LETTERS)]},
-        {"type": "space", "advances": {YOU_DIED_GAP[1]: YOU_DIED_GAP[2], YOU_DIED_WORD[1]: YOU_DIED_WORD[2]}},
+        {"type": "space", "advances": {YOU_DIED_GAP[1]: YOU_DIED_GAP[2], YOU_DIED_WORD[1]: YOU_DIED_WORD[2],
+                                       DEATH_BAND_SPACES[0][1]: pre, DEATH_BAND_SPACES[1][1]: post,
+                                       DEATH_BAND_SPACES[2][1]: -1}},
     ]}
 
     # souls:hud: 빈칸 + 플러그인 화면 제목 + HUD 막대·소울 상자

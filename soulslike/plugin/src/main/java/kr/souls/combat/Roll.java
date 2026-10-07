@@ -43,7 +43,7 @@ import java.util.UUID;
  * 웅크리기 + F 는 무기 기술 자리라 (M3) 지금은 아무것도 하지 않는다.
  *
  * 돌진처럼 보이지 않게: 한 번 튕기는 대신 glide 틱 동안 같은 빠르기로 밀다가 끝 두 틱에 줄여 멈춘다.
- * 보이는 모습은 combat.roll.visual (3.3 "보이는 모습"): tumble 은 진짜 몸을 감추고 웅크린 대역이 앞으로 한 바퀴 돈다 (Tumble),
+ * 보이는 모습은 combat.roll.visual (3.3 "보이는 모습"): tumble 은 진짜 몸을 감추고 관절이 있는 대역이 어깨로 구른다 (Tumble),
  * spin 은 바닐라 급류 회전, crawl 은 머리 위 칸에 그 사람 화면에만 보이는 방벽을 깔아 클라이언트가 스스로 기어가기 자세로
  * 바꾸게 한다 (1인칭은 시야가 바닥까지 내려갔다 올라오고, 3인칭은 몸이 눕는다). 방벽은 진짜 블록이 아니라 다른 사람과 서버는 모른다.
  * 모습은 보이는 것만 바꾼다. 미는 힘·무적·비용은 셋 다 같다.
@@ -53,8 +53,8 @@ import java.util.UUID;
  * 그래서 F 에서는 방향과 시작 틱만 적고, 미는 것은 모두 Ticker 가 1..glide 틱째에 한다 (밀기 번호 0..glide-1).
  */
 public final class Roll implements Listener {
-    /** tumble 대역의 등이 땅에 닿는 틱 (기본 마디에서 3틱째에 198°) */
-    private static final int TUMBLE_CONTACT = 3;
+    /** tumble 대역의 왼어깨가 땅에 닿는 틱 (열쇠 자세 표 roll_anim.yml 의 "어깨 닿기" 가 4틱에 닿는다) */
+    private static final int TUMBLE_CONTACT = 4;
     private final Souls plugin;
     /** 사람마다 화면에만 깔아 둔 방벽 자리 */
     private final Map<UUID, Set<Pos>> fakes = new HashMap<>();
@@ -177,7 +177,7 @@ public final class Roll implements Listener {
 
     /**
      * 발밑 먼지와 땅을 구르는 소리. start 가 아니면 일어서며 땅을 짚는 소리. dust 가 거짓이면 소리만 (tumble 의 시작: 대역이
-     * 뛰어드는 때라 땅에 닿은 것이 없고, 먼지가 대역 뒤에 걸린 어두운 네모로 보였다 [확인 (클라)]. 먼지는 등이 닿는 틱에 {@link #puff}).
+     * 뛰어드는 때라 땅에 닿은 것이 없고, 먼지가 대역 뒤에 걸린 어두운 네모로 보였다 [확인 (클라)]. 먼지는 어깨가 닿는 틱에 {@link #puff}).
      */
     private void visual(Player p, boolean start, boolean dust) {
         Location feet = p.getLocation();
@@ -325,7 +325,7 @@ public final class Roll implements Listener {
                 else uncrawl(p);
             }
             if (t == st.roll.glide() + 1 && st.rollDir != null) visual(p, false, true);
-            // tumble: 등이 땅에 닿는 틱 (공이 반 바퀴 남짓 돈 때) 의 먼지. 발이 닿는 끝 먼지는 위 (glide + 1)
+            // tumble: 어깨가 땅에 닿는 틱의 먼지. 발이 닿는 끝 먼지는 위 (glide + 1)
             if (t == TUMBLE_CONTACT && tumble.active(p) && st.rollDir != null && !"backstep".equals(st.roll.id())) puff(p, 5);
             if (st.armedRollHit > 0 && st.armedRollStart != Long.MIN_VALUE && st.armedRollStart != st.rollStart) {
                 // 묶인 구르기가 그 틱에 닿기 전에 다음 구르기가 시작됐다

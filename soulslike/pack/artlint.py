@@ -20,7 +20,17 @@
                  같은 조각이라 9조각 단추의 테만으로도 수십 번 걸렸다. 찍어 늘어놓은 무늬가 아니다.
                - 칸 격자: 같은 조각이 바로 옆 칸 (바닐라 칸 간격 18, 단축 슬롯 20) 에도 있는 것. 칸의 자리와 수는
                  바닐라가 정한다. 칸 격자 밖에서 세 번 이상 나오는 무늬, 아이템·몹 그림의 반복은 그대로 경고다.
-  alpha      반투명 픽셀 (1~249). 손으로 찍은 그림은 보통 0 아니면 255
+  alpha      반투명 픽셀 (1~249). 손으로 찍은 그림은 보통 0 아니면 255. 창·HUD 그림 (textures/gui/, textures/font/) 은
+             세지 않는다: 다크 소울 3 의 반투명 검은 판이 사용자 결정이다 (2026-10-07, gui_skin.py 머리말).
+             HUD 그림 글자 (textures/font/hud_*) 는 반복 검사에서 GUI 그림처럼 곧은 줄을 세지 않는다 (막대 조각은 곧은 줄이다)
+
+블록 그림 (textures/block/, textures/colormap/, palette.BLOCK_ART) 은 바닐라 그림의 꼴을 그대로 두고 색만 옮긴 것이라
+(blocks_grade.py) 두 가지를 다르게 센다 (2026-10-08). 색·채도·파랑·그라데이션·색 수 검사는 그대로다.
+  - repeat: 세로로 긴 움직이는 그림 (물, 용암, 불 …) 은 한 장면 (가로 폭 × 가로 폭) 안에서만 센다. 장면끼리는 같은 그림이
+            조금씩 움직이는 것이라 겹치는 조각이 당연하다. 흐르는 물·용암의 32×32 장면은 16×16 한 장을 2×2 로 깐 것이라
+            (98% 이상 같으면) 그 한 장만 센다.
+  - 블록 그림의 경고는 갈래마다 한 줄로 모아 보인다 (바닐라의 판자·흐름 무늬에서 온 반복이 수천 건이다). -v 면 모두.
+  - alpha:  비치는 블록 (BLOCK_TRANSLUCENT: 색유리, 얼음, 물, 차원문, 슬라임, 꿀, 부서지는 금) 은 반투명이 그 블록의 성질이다.
 """
 import os
 import sys
@@ -41,6 +51,9 @@ REPEAT_FLAT = 11        # 한 색이 16칸 중 이보다 많으면 민무늬로 
 SLOT_PITCH = (18, 20)   # GUI 칸 격자 간격 (창 18, 단축 슬롯 20). 이 간격으로 이웃한 같은 조각은 칸 격자다
 
 ERRORS = ("palette", "saturated", "blue", "gradient", "glowalpha", "restricted")
+# 반투명이 성질인 블록 그림 (이름 조각). 바닐라도 이 그림들만 반투명 픽셀을 쓴다
+BLOCK_TRANSLUCENT = ("glass", "ice", "water_", "nether_portal", "respawn_anchor_top", "slime_block", "honey_block",
+                     "tripwire", "frogspawn", "destroy_stage_")
 
 
 class Report:
@@ -58,10 +71,18 @@ class Report:
     def warnings(self):
         return [i for i in self.items if i[0] == "경고"]
 
-    def print(self, root=None):
+    def print(self, root=None, full=False):
+        blocks = {}
         for level, path, rule, msg in self.items:
             rel = os.path.relpath(path, root) if root else path
+            if level == "경고" and not full and palette.is_block_path(rel):
+                blocks.setdefault(rule, []).append(palette.block_name(rel))
+                continue
             print(f"  [{level}] {rel}: {rule} — {msg}")
+        for rule, names in sorted(blocks.items()):
+            uniq = sorted(set(names), key=lambda n: (-names.count(n), n))
+            print(f"  [경고] 블록 그림 {rule} {len(names)}건, {len(uniq)}장 (많은 차례): {', '.join(uniq[:6])}"
+                  + (" …" if len(uniq) > 6 else "") + " — 모두 보려면 artlint.py -v")
 
 
 def _fmt(xy):
@@ -147,8 +168,10 @@ def check_image(path, report, rel=None):
     if ga.any() and not glow:
         gy, gx = np.nonzero(ga)
         report.add("오류", path, "glowalpha", f"발광 알파 픽셀 {len(gx)}개, 처음 {_fmt(list(zip(gx, gy)))}")
+    block = palette.is_block_path(rel)
     semi = (alpha > 0) & (alpha < 250)
-    if semi.any():
+    ui = "/textures/gui/" in "/" + rel or "/textures/font/" in "/" + rel
+    if semi.any() and not ui and not (block and any(t in palette.block_name(rel) for t in BLOCK_TRANSLUCENT)):
         report.add("경고", path, "alpha", f"반투명 픽셀 {int(semi.sum())}개")
 
     # 5. 매끈한 그라데이션 (가로줄, 세로줄)
@@ -180,11 +203,26 @@ def check_image(path, report, rel=None):
             report.add("경고", path, "symmetric", "좌우가 완벽히 같다. 마모로 대칭을 깬다")
 
     # 7. 같은 4×4 조각의 반복 (GUI 는 곧은 줄과 칸 격자를 빼고 센다)
-    gui = "/textures/gui/" in "/" + rel
+    gui = "/textures/gui/" in "/" + rel or "/textures/font/hud_" in "/" + rel
+    # 움직이는 블록 그림 (세로 띠) 은 장면마다 따로 센다. 반 폭으로 2×2 를 깐 장면은 그 한 장만
+    frame = w if block and h > w and h % w == 0 else 0
+    halves = set()
+    for fi in range(h // frame if frame else 0):
+        f, p = a[fi * frame:(fi + 1) * frame], frame // 2
+        if frame % 2 == 0 and frame >= 16 and (f[:, :p] == f[:, p:]).all(-1).mean() >= 0.98 \
+                and (f[:p] == f[p:]).all(-1).mean() >= 0.98:
+            halves.add(fi)
     if w >= 8 or h >= 8:
         groups = {}
         for y in range(h - 3):
+            if frame and y // frame != (y + 3) // frame:
+                continue
+            half = frame // 2 if frame and y // frame in halves else 0
+            if half and y % frame + 3 >= half:
+                continue
             for x in range(w - 3):
+                if half and x + 3 >= half:
+                    break
                 t = a[y:y + 4, x:x + 4]
                 if not (t[..., 3] > 0).all():
                     continue
@@ -195,7 +233,7 @@ def check_image(path, report, rel=None):
                     continue
                 if gui and _straight(t):
                     continue
-                groups.setdefault(t.tobytes(), []).append((x, y))
+                groups.setdefault((y // frame if frame else 0, t.tobytes()), []).append((x, y))
         for key, pos in groups.items():
             if gui:
                 at = set(pos)
@@ -210,7 +248,7 @@ def check_image(path, report, rel=None):
                 report.add("경고", path, "repeat", f"같은 4×4 조각 {len(taken)}번: {_fmt(taken)}")
 
 
-def lint(paths, root=None, quiet=False):
+def lint(paths, root=None, quiet=False, full=False):
     """paths 의 PNG 를 모두 검사해 Report 를 돌려준다. root 는 경로 표시와 빛 허용 판단의 기준."""
     report = Report()
     files = []
@@ -224,15 +262,16 @@ def lint(paths, root=None, quiet=False):
         rel = os.path.relpath(f, root) if root else f
         check_image(f, report, rel)
     if not quiet:
-        report.print(root)
+        report.print(root, full)
         print(f"artlint: PNG {len(files)}개, 오류 {len(report.errors)}, 경고 {len(report.warnings)}")
     return report
 
 
 def main(argv):
-    paths = argv or [os.path.join(HERE, "resourcepack")]
+    full = "-v" in argv
+    paths = [p for p in argv if p != "-v"] or [os.path.join(HERE, "resourcepack")]
     root = paths[0] if len(paths) == 1 and os.path.isdir(paths[0]) else None
-    report = lint(paths, root)
+    report = lint(paths, root, full=full)
     return 1 if report.errors else 0
 
 

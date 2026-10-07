@@ -118,6 +118,7 @@ public final class Souls extends JavaPlugin {
         if (ticker != null) ticker.stop();
         if (pack != null) pack.stop();
         if (roll != null) roll.shutdown();
+        if (hud != null) hud.shutdown();
         Bukkit.getServer().allowPausing(this, true);
         CombatState.clear();
     }

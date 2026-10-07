@@ -1,21 +1,30 @@
 """
 구르기 대역 (DESIGN.md 3.3 "보이는 모습"). gen_pack.py 가 icons 다음에 부른다.
 
-구르는 동안 플러그인(combat/Tumble)은 진짜 몸을 감추고(투명) 그 자리에 대역을 띄운다. 대역은 플레이어 모형과 같은 비례
-(머리 8, 몸통 8×12×4, 팔·다리 4×12×4 를 무릎·팔꿈치·허리에서 둘로 나눈 상자) 를 22.5° 마디로 굽힌 아이템 모형이고,
-자세가 셋이다. 플러그인이 틱에 맞춰 아이템 모형을 바꾸고 (같은 틱에 변환도) 웅크린 자세를 옆 축으로 돌린다.
+구르는 동안 플러그인(combat/Tumble)은 진짜 몸을 감추고(투명) 그 자리에 관절이 있는 사람 꼴의 대역을 띄운다. 대역은 부위마다
+따로 된 표시 물체 (ItemDisplay) 열하나 (머리, 가슴, 배, 윗팔·아랫팔 둘씩, 허벅지·정강이 둘씩) 와 든 것 (주손, 왼손) 이고,
+부위의 아이템 모형은 그 관절을 원점에 두고 그렸다. 플러그인은 열쇠 자세마다 부위의 자리와 방향 (변환의 이동과 왼쪽 회전) 을
+보내고 클라이언트가 틱 사이를 보간한다. 열쇠 자세는 여기서 뼈대 (부위 길이와 관절 자리) 를 따라 정방향으로 셈해
+플러그인 자원 roll_anim.yml 로 쓴다 (anim_table). 모양 (팩) 과 움직임 (플러그인) 이 같은 뼈대에서 나온다.
 
-  souls:roll_dive   뛰어드는 자세 (0~1틱, 변환 각 START_ANGLE): 무릎을 굽혀 몸을 앞으로 눕히고 두 팔을 앞아래로 뻗어 머리를
-                    그 사이로 넣는다
-  souls:roll_tuck   웅크린 공 (2~7틱): 등을 말고 무릎을 가슴에, 정수리를 아래로 박아 얼굴은 무릎 쪽 (안쪽), 두 팔꿈치가 머리 옆
-                    앞에서 정강이를 감싼다. 옆모습이 가장 둥근 각을 골랐다 (TUCK)
-  souls:roll_rise   일어서는 자세 (8~10틱): 깊이 쪼그린 채 몸통을 숙이고 머리를 들어 앞을 본다 (키 1.32 블록)
+  움직임 (사용자가 고른 본보기, dist/screenshots/reference/: 등 뒤에서 본 빠른 어깨 구르기, 약 0.6초)
+    모으기 (0~2틱): 무릎을 굽히고 몸을 숙인다. 무기 든 팔을 옆으로 벌리고 다른 팔은 앞으로 뻗는다
+    뛰어들기 (3틱): 몸이 앞으로 눕고 왼어깨 쪽으로 비스듬히 기운다 (몸통이 등뼈를 축으로 오른쪽으로 비튼 채 숙는다)
+    어깨 닿기 (4틱): 머리를 가슴에 붙이고 등을 말아 왼어깨가 땅에 닿는다. 다리가 땅을 떠난다
+    등으로 넘기 (5~6틱): 등이 비스듬히 땅을 구르고 다리가 위로 넘어온다 (무릎을 반쯤 굽힌 채, 공처럼 말지 않는다)
+    딛기 (7~8틱): 발이 앞에 닿고 깊이 쪼그린다
+    일어서기 (9~11틱): 몸을 펴고 무기 든 팔을 거둔다. 11틱에 진짜 몸이 돌아온다
+    무기 든 팔 (오른팔) 은 처음부터 끝까지 옆으로 벌린 채 무기를 쥔다. 왼손잡이는 플러그인이 좌우를 뒤집는다.
 
-  souls:roll_head_<자세>  그 사람의 머리 (바닐라 player_head 특수 모형 + 이 팩의 바탕 모형 souls:item/roll_head_<자세>).
-                    fixed 자세 (ItemDisplay 의 FIXED) 의 회전·이동으로 머리를 그 자세의 목에 둔다. 자세가 아이템 공간 안에서
-                    먼저 걸리므로 대역 전체가 돌 때 머리도 같은 중심으로 돈다 (변환의 이동은 직선 보간이라, 이동으로 옮기면
-                    회전 마디 사이에서 머리가 중심 쪽으로 꺾인다)
-  souls:roll_helm_<자세>  투구를 썼을 때 머리에 씌우는 껍데기 (머리와 같은 fixed 자세, 색 하나로 물든다)
+  souls:roll_belly, roll_chest   몸통 아래·위 (8×6×4, 배 관절 = 엉덩이 가운데, 가슴 관절 = 허리). 등을 말 수 있게 둘로 나눴다
+  souls:roll_uarm, roll_farm     윗팔 (어깨 관절은 팔 위 끝에서 2 아래, 바닐라와 같다), 아랫팔 (팔꿈치)
+  souls:roll_thigh, roll_shin    허벅지 (엉덩이 관절), 정강이와 신 (무릎)
+  souls:roll_head                그 사람의 머리 (바닐라 player_head 특수 모형 + 이 팩의 바탕 모형 souls:item/roll_head). fixed 자세가
+                                 해골의 목을 원점에 두고 얼굴을 앞으로 돌린다
+  souls:roll_helm                투구를 썼을 때 머리에 씌우는 껍데기 (머리와 같은 fixed 자세, 색 하나로 물든다)
+  든 것                          진짜 아이템을 그대로 THIRDPERSON_RIGHTHAND / LEFTHAND 자세로 그 아랫팔 끝에 둔다. 바닐라가 손에 든 것을
+                                 그리는 자리 (ItemInHandLayer: 팔 끝 앞 모서리, 팔 축에서 X 로 -90° 돌리고 Y 로 180°) 를 그대로 옮겼다
+                                 (손 부위 hand_r·hand_l 의 방향 = 아랫팔 방향 · Rx(90°): ItemDisplay 의 Y 180° 와 합쳐 바닐라와 같다)
 
 색 (물들이기)
   몸의 재료는 뼈 계열 네 단 (팔레트) 으로만 찍은 밝은 그림이고, 면마다 tintindex 가 있다:
@@ -24,18 +33,21 @@
   스킨이 없는 오프라인 접속은 바닐라 기본 스킨 18 개 가운데 UUID 로 고른 것을 쓰므로, 그 18 개의 색 표를 클라이언트
   jar 에서 미리 뽑아 플러그인 자원 roll_skins.yml 로 둔다 (skin_table; jar 가 없으면 있던 표를 그대로 둔다).
 
-아이템 공간의 앞은 -Z (북쪽) 다. ItemDisplay 는 아이템을 그리기 전에 Y 축으로 180° 돌려 그리므로, 플러그인 변환 공간에서는
-+Z 가 앞이 된다 [확인 (클라): dist/screenshots/roll/].
-바닐라 해골 모형 (player_head 특수 모형) 은 아이템 공간 (4..12, 0..8, 4..12) 에 그려지고 얼굴이 +Z (남쪽) 를 본다
-(SkullSpecialRenderer: (0.5, 0, 0.5) 로 옮기고 (-1,-1,1) 로 뒤집은 뒤 머리를 Y 로 180° 돌린다. 모형 공간의 얼굴은 -Z.
-합치면 X 축 180° 회전이라 얼굴은 +Z, 거울상 아님) [확인 (클라): /soulstest tumble]. 그래서 머리 자세는 먼저 Y 로 180° 돌려
-얼굴을 앞 (-Z) 으로 보내고 숙인다.
+공간
+  대역 공간 D (픽셀): 원점은 발밑 땅, +Y 위, +Z 앞 (구르는 쪽), +X 그 사람의 왼쪽. 부위마다 관절이 원점인 자기 공간에서 그리고
+  (서 있을 때 축이 D 와 같다), 열쇠 자세는 부위의 관절 자리와 방향을 D 로 준다. 플러그인은 그 위에 구르는 쪽 Y 회전을 걸고
+  탑승 자리 (몸 상자 꼭대기) 만큼 내리며, 픽셀에 0.9375/16 을 곱해 블록으로 (바닐라가 플레이어를 0.9375 배로 그린다).
+  ItemDisplay 는 아이템을 그리기 전에 Y 축으로 180° 돌리므로 아이템 모형 공간 (x, y, z) = (8 - dx, 8 + dy, 8 - dz):
+  아이템 공간의 앞은 -Z (북쪽) 다 [확인 (클라): dist/screenshots/roll/].
+  바닐라 해골 모형 (player_head 특수 모형) 은 아이템 공간 (4..12, 0..8, 4..12) 에 그려지고 얼굴이 +Z (남쪽) 를 본다
+  (SkullSpecialRenderer: (0.5, 0, 0.5) 로 옮기고 (-1,-1,1) 로 뒤집은 뒤 머리를 Y 로 180° 돌린다. 합치면 X 축 180° 회전이라 얼굴은
+  +Z, 거울상 아님) [확인 (클라): /soulstest tumble]. 그래서 머리 자세는 Y 로 180° 돌려 얼굴을 앞 (-Z) 으로 보내고 목을 원점으로 올린다.
 
 손에 든 것 감추기 (wrap_item_definitions)
-  구르는 동안 플러그인은 손에 든 아이템의 사본에 custom_model_data 깃발 0 을 켜서 그 사람 화면과 보는 사람에게만 보낸다
-  (sendEquipmentChange). 이 팩의 souls 아이템 정의는 모두 그 깃발이 켜지면 손·머리 자세 (3인칭, 1인칭) 에서 아무것도 그리지
-  않는다. 단축 슬롯(gui)·땅·액자는 그대로라 슬롯 그림이 사라지지 않고, 아이템 종류와 이름이 같아 바닐라가 이름을 다시
-  띄우지도 않는다 (공기를 보내면 둘 다 일어난다 [확인 (클라)]). 갑옷 칸은 공기를 보낸다 (그 칸은 이름을 띄우지 않는다).
+  구르는 동안 플러그인은 진짜 몸 (투명) 이 든 아이템의 사본에 custom_model_data 깃발 0 을 켜서 그 사람 화면과 보는 사람에게만
+  보낸다 (sendEquipmentChange). 이 팩의 souls 아이템 정의는 모두 그 깃발이 켜지면 손·머리 자세 (3인칭, 1인칭) 에서 아무것도 그리지
+  않는다 (든 것은 대역의 손에 따로 그린다). 단축 슬롯(gui)·땅·액자는 그대로라 슬롯 그림이 사라지지 않고, 아이템 종류와 이름이 같아
+  바닐라가 이름을 다시 띄우지도 않는다 (공기를 보내면 둘 다 일어난다 [확인 (클라)]). 갑옷 칸은 공기를 보낸다.
   이 깃발 0 은 구르기 전용이다 (아이템이 다른 일로 custom_model_data 를 쓰면 깃발 1 부터 쓴다).
 
 회전 자세 감추기 (riptide)
@@ -55,28 +67,17 @@ from PIL import Image, ImageDraw
 from palette import c
 
 NS = "souls"
-POSES = ("dive", "tuck", "rise")
 HIDE_FLAG = 0                      # custom_model_data 깃발 번호 (플러그인 Tumble.HIDE_FLAG 와 같다)
 # 3인칭 손·머리 (투명한 몸에 떠 보인다) 와 1인칭 손 (구르는 동안 무기를 거두었다가 끝나면 다시 든다: 바닐라의 바꿔 들기
 # 몸짓이 구르기 시작에 내리고 끝에 올린다. 1인칭을 그대로 두면 사본이 바뀔 때마다 두 번 내렸다 올렸다)
 HIDDEN_CONTEXTS = ["thirdperson_righthand", "thirdperson_lefthand", "firstperson_righthand", "firstperson_lefthand", "head"]
 
-# 대역 크기: 플레이어 모형과 같은 픽셀 크기 (바닐라는 플레이어를 0.9375 배로 그린다). 플러그인 tumble.scale 과 같다
+# 대역 크기: 플레이어 모형과 같은 픽셀 크기 (바닐라는 플레이어를 0.9375 배로 그린다). 플러그인은 이 값을 roll_anim.yml 에서 읽는다
 SCALE = 0.9375
-# 공 반지름 (픽셀, 회전 중심에서 웅크린 몸 바깥까지). 플러그인 tumble.pivot = PIVOT_PX × SCALE / 16 블록
-PIVOT_PX = 6.8
-# 뛰어드는 자세가 걸리는 각 (플러그인 tumble.start-angle). 그 자세는 이 각만큼 앞으로 돌린 변환에서 바로 서 보이게 만든다
-START_ANGLE = 45.0
-
-# 일어서기 자세의 머리 가운데가 회전 중심에서 앞으로 몇 픽셀인가
-RISE_HEAD_F = 0.0
-# 뛰어들기 자세의 엉덩이가 회전 중심에서 몇 픽셀 뒤인가 (발은 그 아래, 머리와 팔은 앞으로 뻗는다)
-DIVE_HIP_F = -4.0
 
 # 물들이는 칸: (이름, tintindex, 기본색 (팔레트, 스킨 색이 없을 때))
 TINTS = [("torso", 0, "rust2"), ("sleeve", 1, "rust2"), ("hand", 2, "bone0"), ("legs", 3, "rust1"), ("boots", 4, "rust0")]
 HELM_DEFAULT = "ash3"
-
 
 # ─────────────────────────── 재료: 손으로 찍은 16×16 칸 (뼈 계열만, 물들일 바탕) ───────────────────────────
 # 물들이기는 곱하기라 바탕은 밝아야 스킨 색이 산다. 뼈 네 단 (0.54 / 0.69 / 0.84 / 0.91) 으로 주름과 닳은 곳을 찍는다.
@@ -241,286 +242,419 @@ TEXTURES = {"cloth": CLOTH, "sleeve": SLEEVE, "hand": HAND, "trousers": TROUSERS
 TEX_ID = {k: f"{NS}:item/roll_{k}" for k in TEXTURES}
 
 
-# ─────────────────────────── 상자와 자세 ───────────────────────────
-# 설계 좌표 (픽셀): 원점 = 회전 중심 (공 가운데), y 위, f 앞 (아이템 공간 -Z), x 옆. 상자의 길이 축은 pitch 각 (위(+y)에서
-# 앞(+f)으로 잰 각, 22.5° 마디) 을 따라 joint 에서 뻗는다. 아이템 모형 요소는 한 축으로 -45~45° 만 돌 수 있어
-# 90° 를 넘는 몫은 상자의 y·f 길이를 바꿔 (눕혀) 채운다.
+# ─────────────────────────── 부위 모형 ───────────────────────────
+# 상자는 부위 공간 D (관절이 원점, 픽셀) 의 (x0, x1, y0, y1, z0, z1). 이웃 부위와 맞닿는 곳은 조금 겹치고 굵기를 0.05~0.1 달리해
+# 굽혔을 때 틈이 덜 보이고 겹친 면이 깜빡이지 않게 했다. sole: 그 면 (D 방향 이름) 을 밑창 그림으로.
 
-class Box:
-    def __init__(self, name, tex, tint, w, length, t, joint, pitch, x=0.0, sole=None):
-        if abs(pitch / 22.5 - round(pitch / 22.5)) > 1e-6:
-            raise ValueError(f"{name}: 각은 22.5° 마디여야 한다 ({pitch})")
-        self.name, self.tex, self.tint = name, tex, tint
-        self.w, self.length, self.t = w, length, t
-        self.pitch = pitch
-        self.x = x
-        self.sole = sole     # 이 면 (설계 방향 "end": 길이 축의 끝) 을 밑창 그림으로
-        a = math.radians(pitch)
-        self.dir = np.array([math.cos(a), math.sin(a)])      # (y, f)
-        self.joint = np.array(joint, float)
-        self.center = self.joint + self.dir * (length / 2)
+class Shape:
+    def __init__(self, x0, x1, y0, y1, z0, z1, tex, tint, sole=None):
+        self.lo = np.array([x0, y0, z0], float)
+        self.hi = np.array([x1, y1, z1], float)
+        self.tex, self.tint, self.sole = tex, tint, sole
 
-    @property
-    def end(self):
-        return self.joint + self.dir * self.length
 
-    def element(self):
-        """아이템 모형 요소 하나 (JSON). 아이템 공간: x = 8 + x, y = 8 + y, z = 8 - f."""
-        p = ((self.pitch + 90) % 180) - 90               # 상자는 앞뒤가 같다: -90..90
-        if p == -90:
-            p = 90
-        if abs(p) <= 45:
-            ext_y, ext_f, rest = self.length, self.t, p
+T_TORSO, T_SLEEVE, T_HAND, T_LEGS, T_BOOTS = 0, 1, 2, 3, 4
+
+SHAPES = {
+    # 배: 엉덩이 가운데에서 허리까지
+    "belly": [Shape(-4.0, 4.0, 0.0, 6.0, -2.0, 2.0, "cloth", T_TORSO)],
+    # 가슴: 허리에서 목까지 (배 속으로 0.6 내려 등을 말 때 틈을 가린다)
+    "chest": [Shape(-4.1, 4.1, -0.6, 6.0, -2.1, 2.1, "cloth", T_TORSO)],
+    # 윗팔: 어깨 관절은 팔 위 끝에서 2 아래 (바닐라 팔과 같다)
+    "uarm": [Shape(-2.0, 2.0, -4.0, 2.0, -2.0, 2.0, "sleeve", T_SLEEVE)],
+    # 아랫팔 (손): 팔꿈치에서 6
+    "farm": [Shape(-1.95, 1.95, -6.0, 0.6, -1.95, 1.95, "hand", T_HAND)],
+    # 허벅지: 엉덩이 관절에서 6
+    "thigh": [Shape(-2.0, 2.0, -6.0, 0.0, -2.0, 2.0, "trousers", T_LEGS)],
+    # 정강이 2 (바지) + 신 4 (스킨의 다리 아래 4줄이 신)
+    "shin": [Shape(-1.95, 1.95, -2.0, 0.6, -1.95, 1.95, "trousers", T_LEGS),
+             Shape(-2.05, 2.05, -6.0, -2.0, -2.05, 2.05, "boot", T_BOOTS, sole="down")],
+}
+BODY_MODELS = tuple(SHAPES)
+
+# ─────────────────────────── 뼈대 ───────────────────────────
+HIP_Y = 12.0          # 서 있을 때 엉덩이 높이 (바닐라 다리 12)
+BELLY_H = 6.0         # 엉덩이 → 허리
+CHEST_H = 6.0         # 허리 → 목
+SHOULDER = (6.0, 4.0)  # 허리에서 어깨 관절: 옆 6 (팔 한가운데), 위 4
+UARM = 4.0            # 어깨 → 팔꿈치
+FARM = 6.0            # 팔꿈치 → 팔 끝
+HAND_FWD = 2.0        # 든 것의 자리: 팔 끝의 앞 모서리 (바닐라 ItemInHandLayer: 팔 관절에서 (∓1, 10, -2) 모형 픽셀)
+HIP_X = 2.0           # 엉덩이 관절의 옆 자리
+THIGH = 6.0           # 엉덩이 → 무릎
+SHIN = 6.0            # 무릎 → 발바닥
+
+# 플러그인에 보내는 부위 차례 (roll_anim.yml 의 parts). hand_* 는 든 것의 자리
+PARTS = ("belly", "chest", "head", "uarm_r", "farm_r", "uarm_l", "farm_l",
+         "thigh_r", "shin_r", "thigh_l", "shin_l", "hand_r", "hand_l")
+MODEL_OF = {"belly": "belly", "chest": "chest", "head": "head", "uarm_r": "uarm", "uarm_l": "uarm", "farm_r": "farm",
+            "farm_l": "farm", "thigh_r": "thigh", "thigh_l": "thigh", "shin_r": "shin", "shin_l": "shin"}
+
+
+def _rx(deg):
+    t = math.radians(deg)
+    return np.array([[1, 0, 0], [0, math.cos(t), -math.sin(t)], [0, math.sin(t), math.cos(t)]])
+
+
+def _ry(deg):
+    t = math.radians(deg)
+    return np.array([[math.cos(t), 0, math.sin(t)], [0, 1, 0], [-math.sin(t), 0, math.cos(t)]])
+
+
+def _rz(deg):
+    t = math.radians(deg)
+    return np.array([[math.cos(t), -math.sin(t), 0], [math.sin(t), math.cos(t), 0], [0, 0, 1]])
+
+
+# ─────────────────────────── 열쇠 자세 ───────────────────────────
+# 각 (도) 의 뜻. 몸통 방향 = Rx(pitch) · Ry(twist) · Rz(bank): pitch 는 앞으로 구른 각 (0·360 이면 곧게 선다), twist 는 등뼈를 축으로
+# 몸통을 비튼 각 (- 면 오른쪽으로 돌아 왼어깨가 앞으로 나온다: 숙이면 왼어깨가 먼저 땅에 닿는 비스듬한 어깨 구르기), bank 는 옆으로
+# 기운 각. spine: 가슴을 배에 대해 앞으로 만 각 (등이 둥글어진다). neck: 머리를 숙인 각 (- 면 든다), turn: 머리를 돌린 각.
+# 팔 (flex 앞으로 든 각, abd 옆으로 벌린 각, elbow 팔꿈치를 굽힌 각, roll 아랫팔을 제 축으로 돌린 각 (+ 면 오른손의 날이 왼쪽으로)):
+# 어깨 회전 = Rz(벌림) · Rx(-flex), 팔꿈치 Rx(-elbow) · Ry(∓roll).
+# 다리 (flex 허벅지를 앞으로 든 각, abd 벌린 각, knee 무릎을 굽힌 각): 엉덩이 회전 = Rz(벌림) · Rx(-flex), 무릎 Rx(knee).
+# t: 그 자세에 닿는 구르기 틱 (0 은 처음 띄울 때). z: 엉덩이의 앞뒤 자리 (픽셀, 진짜 몸의 발밑 기준), x: 옆 자리.
+# 높이는 정하지 않는다: 가장 낮은 점이 땅 (y = lift) 에 닿게 내린다 (_ground).
+# 오른팔이 무기를 든 팔이다 (오른손잡이). 왼손잡이는 플러그인이 X 를 뒤집고 좌우 부위를 바꾼다.
+KEYS = [
+    # 모으기: 무릎을 굽히고 숙여 뛰어들 채비. 오른팔은 무기를 몸 앞으로 끌어와 날을 왼쪽 옆으로 눕히고, 왼팔은 앞으로
+    dict(t=0, pitch=24, twist=-10, bank=0, spine=8, neck=-16, turn=0,
+         arm_r=(34, 6, 58, 70), arm_l=(45, 12, 25, 0), leg_r=(48, 4, 58), leg_l=(36, 4, 40), z=-1.0),
+    # 뛰어들기: 몸이 앞으로 눕고 비스듬히 기운다. 왼손이 땅을 짚으러 앞으로, 다리는 땅을 박찬다
+    dict(t=3, pitch=80, twist=-28, bank=6, spine=16, neck=30, turn=-15,
+         arm_r=(32, 6, 64, 88), arm_l=(150, 20, 22, 0), leg_r=(34, 6, 52), leg_l=(14, 4, 24), z=-4.0),
+    # 어깨 닿기: 머리를 가슴에, 등을 말고 왼어깨로 땅에 닿는다. 다리가 땅을 떠난다
+    dict(t=4, pitch=132, twist=-34, bank=4, spine=28, neck=50, turn=-60,
+         arm_r=(30, 6, 66, 88), arm_l=(112, 38, 82, 0), leg_r=(62, 8, 82), leg_l=(42, 6, 55), z=-2.0),
+    # 등으로 넘기: 등이 비스듬히 땅을 구르고 다리가 위로 (무릎을 반쯤 굽힌 채, 공처럼 말지 않는다)
+    dict(t=5, pitch=190, twist=-34, bank=0, spine=30, neck=50, turn=-75,
+         arm_r=(30, 6, 66, 88), arm_l=(85, 40, 95, 0), leg_r=(96, 8, 84), leg_l=(72, 12, 42), z=0.0),
+    # 다리가 넘어온다
+    dict(t=6, pitch=248, twist=-30, bank=0, spine=30, neck=50, turn=-60,
+         arm_r=(30, 6, 66, 88), arm_l=(70, 40, 88, 0), leg_r=(116, 10, 104), leg_l=(98, 12, 64), z=0.0),
+    # 발이 앞에 닿는다. 왼손으로 땅을 민다
+    dict(t=7, pitch=305, twist=-22, bank=0, spine=24, neck=25, turn=-25,
+         arm_r=(30, 8, 62, 84), arm_l=(60, 25, 40, 0), leg_r=(118, 8, 132), leg_l=(108, 8, 122), z=-1.0),
+    # 깊이 쪼그린다 (몸이 한 바퀴를 마치고 앞으로 숙인다)
+    dict(t=8, pitch=380, twist=-14, bank=0, spine=14, neck=-16, turn=0,
+         arm_r=(30, 10, 55, 70), arm_l=(45, 15, 35, 0), leg_r=(112, 6, 130), leg_l=(98, 6, 118), z=-3.0),
+    # 일어선다. 무기를 바닐라의 든 자세로 돌린다
+    dict(t=9, pitch=380, twist=-8, bank=0, spine=10, neck=-14, turn=0,
+         arm_r=(26, 10, 40, 45), arm_l=(30, 10, 30, 0), leg_r=(84, 4, 100), leg_l=(74, 4, 90), z=-2.0),
+    dict(t=10, pitch=374, twist=-3, bank=0, spine=6, neck=-8, turn=0,
+         arm_r=(18, 8, 25, 18), arm_l=(15, 6, 20, 0), leg_r=(48, 2, 58), leg_l=(42, 2, 50), z=-1.0),
+    # 진짜 몸이 돌아오기 직전: 거의 선다 (무기 든 팔은 바닐라의 든 자세처럼 조금 앞으로)
+    dict(t=11, pitch=366, twist=0, bank=0, spine=3, neck=-4, turn=0,
+         arm_r=(10, 6, 12, 0), arm_l=(4, 3, 6, 0), leg_r=(16, 1, 20), leg_l=(12, 1, 16), z=0.0),
+]
+FIRST_SEND = 2   # 처음 보간을 보내는 틱 (anim_table)
+LIFT = 0.2   # 가장 낮은 점을 땅에서 띄우는 몫 (보간 중 마디 사이에서 땅에 묻히지 않게)
+
+
+def _arm(side, flex, abd, elbow, roll=0.0):
+    s = 1 if side == "l" else -1
+    return _rz(s * abd) @ _rx(-flex), _rx(-elbow) @ _ry(-s * roll)
+
+
+def _leg(side, flex, abd, knee):
+    s = 1 if side == "l" else -1
+    return _rz(s * abd) @ _rx(-flex), _rx(knee)
+
+
+def fk(k, root=None):
+    """열쇠 자세 → {부위: (관절 자리 (D 픽셀), 회전 행렬)}. root 는 엉덩이 자리 (없으면 (x, HIP_Y, z))."""
+    R0 = _rx(k["pitch"]) @ _ry(k["twist"]) @ _rz(k["bank"])
+    P0 = np.array(root if root is not None else (k.get("x", 0.0), HIP_Y, k["z"]), float)
+    out = {"belly": (P0, R0)}
+    Rc = R0 @ _rx(k["spine"])
+    Pc = P0 + R0 @ np.array([0.0, BELLY_H, 0.0])
+    out["chest"] = (Pc, Rc)
+    out["head"] = (Pc + Rc @ np.array([0.0, CHEST_H, 0.0]), Rc @ _ry(k["turn"]) @ _rx(k["neck"]))
+    for side, sx in (("r", -1.0), ("l", 1.0)):
+        sh, el = _arm(side, *k["arm_" + side])
+        Pu = Pc + Rc @ np.array([sx * SHOULDER[0], SHOULDER[1], 0.0])
+        Ru = Rc @ sh
+        Pf = Pu + Ru @ np.array([0.0, -UARM, 0.0])
+        Rf = Ru @ el
+        out["uarm_" + side] = (Pu, Ru)
+        out["farm_" + side] = (Pf, Rf)
+        out["hand_" + side] = (Pf + Rf @ np.array([0.0, -FARM, HAND_FWD]), Rf @ _rx(90))
+        hp, kn = _leg(side, *k["leg_" + side])
+        Pt = P0 + R0 @ np.array([sx * HIP_X, 0.0, 0.0])
+        Rt = R0 @ hp
+        out["thigh_" + side] = (Pt, Rt)
+        out["shin_" + side] = (Pt + Rt @ np.array([0.0, -THIGH, 0.0]), Rt @ kn)
+    return out
+
+
+def _corners(sh):
+    return np.array([[x, y, z] for x in (sh.lo[0], sh.hi[0]) for y in (sh.lo[1], sh.hi[1]) for z in (sh.lo[2], sh.hi[2])])
+
+
+def _points(frame):
+    """자세의 몸 꼭짓점 (D): 부위 상자와 머리 (8×8×8, 목에서 위로)."""
+    pts = []
+    for part, (P, R) in frame.items():
+        if part == "head":
+            pts += [P + R @ np.array([x, y, z]) for x in (-4, 4) for y in (0, 8) for z in (-4, 4)]
+        elif part in MODEL_OF:
+            for sh in SHAPES[MODEL_OF[part]]:
+                pts += [P + R @ p for p in _corners(sh)]
+    return np.array(pts)
+
+
+def _face_samples(lo, hi, step):
+    """상자 (lo..hi) 겉면 위의 점들 (step 픽셀 격자, 모서리 포함)."""
+    axes = [np.linspace(lo[i], hi[i], max(2, int(math.ceil((hi[i] - lo[i]) / step)) + 1)) for i in range(3)]
+    out = []
+    for i in range(3):
+        j, k = [a for a in range(3) if a != i]
+        gj, gk = np.meshgrid(axes[j], axes[k], indexing="ij")
+        for v in (lo[i], hi[i]):
+            pts = np.zeros((gj.size, 3))
+            pts[:, i] = v
+            pts[:, j] = gj.ravel()
+            pts[:, k] = gk.ravel()
+            out.append(pts)
+    return np.concatenate(out)
+
+
+def _samples(frame, step=1.0):
+    """자세의 몸 겉면 점들 (D): 꼭짓점만 보면 화면을 가로지르는 큰 면이나 카메라를 품은 상자를 놓친다 [확인 (클라)]."""
+    pts = []
+    for part, (P, R) in frame.items():
+        if part == "head":
+            boxes = [(np.array([-4.5, -0.5, -4.5]), np.array([4.5, 8.5, 4.5]))]   # 모자 겹 (0.5) 까지
+        elif part in MODEL_OF:
+            boxes = [(sh.lo, sh.hi) for sh in SHAPES[MODEL_OF[part]]]
         else:
-            ext_y, ext_f = self.t, self.length
-            rest = p - 90 if p > 0 else p + 90
-        cy, cf = self.center
-        cx, cyi, cz = 8 + self.x, 8 + cy, 8 - cf
-        fr = [cx - self.w / 2, cyi - ext_y / 2, cz - ext_f / 2]
-        to = [cx + self.w / 2, cyi + ext_y / 2, cz + ext_f / 2]
-        faces = {}
-        sizes = {"north": (self.w, ext_y), "south": (self.w, ext_y), "east": (ext_f, ext_y), "west": (ext_f, ext_y),
-                 "up": (self.w, ext_f), "down": (self.w, ext_f)}
-        # 같은 그림이 여러 상자에 같은 자리로 찍히지 않게 상자 이름으로 uv 를 비낀다
-        seed = sum(ord(ch) * (i + 1) for i, ch in enumerate(self.name))
-        for k, (fname, (du, dv)) in enumerate(sizes.items()):
-            u0 = (seed * 5 + k * 7) % max(1, int(16 - du) + 1)
-            v0 = (seed * 3 + k * 11) % max(1, int(16 - dv) + 1)
-            tex = self.tex
-            if self.sole is not None and fname == self._end_face(rest):
-                tex = self.sole
-            faces[fname] = {"uv": [_r(u0), _r(v0), _r(u0 + du), _r(v0 + dv)], "texture": "#" + tex, "tintindex": self.tint}
-        el = {"from": [_r(v) for v in fr], "to": [_r(v) for v in to], "faces": faces}
-        if rest:
-            # 마인크래프트 요소 회전 (X 축 +각: +Y → +Z). 설계의 +각은 +y → +f (= -Z) 라 부호가 반대다
-            el["rotation"] = {"origin": [_r(cx), _r(cyi), _r(cz)], "axis": "x", "angle": -rest}
-        return el
+            continue
+        for lo, hi in boxes:
+            pts.append(P + _face_samples(lo, hi, step) @ R.T)
+    return np.concatenate(pts)
 
-    def _end_face(self, rest):
-        """길이 축의 끝 (joint 반대쪽) 이 닿는 면 이름."""
-        p = ((self.pitch % 360) + 360) % 360
-        # 길이 축 방향이 위/아래/앞/뒤 가운데 어디에 가장 가까운가 (돌리기 전 상자 기준)
-        dirs = {"up": 0, "north": 90, "down": 180, "south": 270}
-        return min(dirs, key=lambda k: min(abs(p - dirs[k] - rest), 360 - abs(p - dirs[k] - rest)))
 
+def _ground(k):
+    """가장 낮은 점이 y = LIFT 에 닿게 엉덩이 높이를 고친 자세."""
+    f = fk(k)
+    dy = LIFT - _points(f)[:, 1].min()
+    P0 = f["belly"][0] + np.array([0.0, dy, 0.0])
+    return fk(k, root=P0)
+
+
+def frames():
+    """[(닿는 틱, {부위: (자리, 회전)})] 열쇠 자세 차례로."""
+    return [(k["t"], _ground(k)) for k in KEYS]
+
+
+def quat(R):
+    """회전 행렬 → 사원수 (x, y, z, w)."""
+    t = R[0, 0] + R[1, 1] + R[2, 2]
+    if t > 0:
+        s = math.sqrt(t + 1.0) * 2
+        w, x, y, z = 0.25 * s, (R[2, 1] - R[1, 2]) / s, (R[0, 2] - R[2, 0]) / s, (R[1, 0] - R[0, 1]) / s
+    elif R[0, 0] > R[1, 1] and R[0, 0] > R[2, 2]:
+        s = math.sqrt(1.0 + R[0, 0] - R[1, 1] - R[2, 2]) * 2
+        w, x, y, z = (R[2, 1] - R[1, 2]) / s, 0.25 * s, (R[0, 1] + R[1, 0]) / s, (R[0, 2] + R[2, 0]) / s
+    elif R[1, 1] > R[2, 2]:
+        s = math.sqrt(1.0 + R[1, 1] - R[0, 0] - R[2, 2]) * 2
+        w, x, y, z = (R[0, 2] - R[2, 0]) / s, (R[0, 1] + R[1, 0]) / s, 0.25 * s, (R[1, 2] + R[2, 1]) / s
+    else:
+        s = math.sqrt(1.0 + R[2, 2] - R[0, 0] - R[1, 1]) * 2
+        w, x, y, z = (R[1, 0] - R[0, 1]) / s, (R[0, 2] + R[2, 0]) / s, (R[1, 2] + R[2, 1]) / s, 0.25 * s
+    q = np.array([x, y, z, w])
+    return q / np.linalg.norm(q)
+
+
+def _angle(q1, q2):
+    return math.degrees(2 * math.acos(min(1.0, abs(float(q1 @ q2)))))
+
+
+def check_steps(fs=None, limit=150.0):
+    """마디 사이에 부위가 limit 도 넘게 돌면 멈춘다 (클라이언트는 가까운 쪽으로 구면 보간하므로 180° 에 가까우면 거꾸로 돈다)."""
+    fs = fs or frames()
+    worst = 0.0
+    for (_, a), (t, b) in zip(fs, fs[1:]):
+        for part in PARTS:
+            d = _angle(quat(a[part][1]), quat(b[part][1]))
+            worst = max(worst, d)
+            if d > limit:
+                raise ValueError(f"구르기 대역 {part}: {t}틱 마디에 {d:.0f}° 돈다 (≤ {limit:.0f}°)")
+    return worst
+
+
+def _slerp(q1, q2, a):
+    d = float(q1 @ q2)
+    if d < 0:
+        q2, d = -q2, -d
+    if d > 0.9995:
+        q = q1 + (q2 - q1) * a
+        return q / np.linalg.norm(q)
+    th = math.acos(d)
+    return (math.sin((1 - a) * th) * q1 + math.sin(a * th) * q2) / math.sin(th)
+
+
+def _mat(q):
+    x, y, z, w = q
+    return np.array([[1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
+                     [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
+                     [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)]])
+
+
+def between(fa, fb, a):
+    """클라이언트의 보간과 같게: 부위마다 자리는 직선, 방향은 구면 보간."""
+    return {p: (fa[p][0] + (fb[p][0] - fa[p][0]) * a, _mat(_slerp(quat(fa[p][1]), quat(fb[p][1]), a))) for p in fa}
+
+
+# ─────────────────────────── 1인칭에서 비키기 ───────────────────────────
+# 대역은 진짜 몸 자리에 서므로 1인칭 눈 (발 위 1.62) 앞을 지나간다 (모으기·뛰어들기·일어서기에서 머리가 눈 바로 앞). 바닐라는 1인칭에서
+# 제 몸을 그리지 않는데 대역은 그린다. 그래서 (1) FP_PITCH 보다 내려다보면 플러그인이 대역을 그 사람 화면에서 감추고 (hideEntity),
+# (2) 그보다 덜 내려다보는 동안 보이지 않게 열쇠 자세마다 대역 전체를 그 사람이 보는 쪽의 반대로 (수평) 물린다. 그냥 물리면 F5 에서
+# 대역이 카메라 쪽으로 다가와 커 보였다 [확인 (클라)]. 그래서 F5 카메라 자리 (눈 높이, 보는 쪽 뒤 F5_DIST) 를 가운데로 줄인다 (닮음 변환:
+# 눈 높이에서 k 만큼 물리고 크기 s = 1 - k / F5_DIST). F5 카메라에서는 같은 빛줄기 위의 점이라 그림이 그대로이고, 1인칭 눈에서는 대역이
+# 눈 뒤로 간다. 물리는 몫 k 는 보는 쪽 (대역이 구르는 쪽에서 잰 각, 30° 마다) 마다 따로 셈한다: 바닐라 기본 시야 (FP_FOV, 16:9) 의
+# 화면에 대역의 꼭짓점이 하나도 들지 않는 가장 작은 몫 (0.5 픽셀 마디). 그 자세와 앞뒤 자세로 가는 보간 중간도 본다.
+FP_PITCH = 35.0                    # 이보다 내려다보면 감춘다 (플러그인 Tumble 이 roll_anim.yml 의 hide-pitch 로 읽는다)
+FP_FOV = 70.0                      # 바닐라 기본 시야 (세로)
+FP_ASPECT = 16 / 9
+EYE_Y = 1.62 * 16 / SCALE          # 1인칭 눈 높이 (D 픽셀)
+NEAR = 0.05 * 16 / SCALE           # 카메라 앞 자르는 면
+F5_DIST = 4.0 * 16 / SCALE         # F5 카메라가 눈 뒤로 떨어진 거리 (바닐라 4 블록, D 픽셀)
+BACK_YAWS = tuple(range(0, 360, 30))
+
+
+def _fp_visible(pts, yaw, pitch):
+    y, p = math.radians(yaw), math.radians(pitch)
+    fwd = np.array([math.sin(y) * math.cos(p), -math.sin(p), math.cos(y) * math.cos(p)])
+    up = np.array([math.sin(y) * math.sin(p), math.cos(p), math.cos(y) * math.sin(p)])
+    right = np.cross(fwd, up)
+    rel = pts - np.array([0.0, EYE_Y, 0.0])
+    f = rel @ fwd
+    m = f > NEAR
+    if not m.any():
+        return False
+    tv = math.tan(math.radians(FP_FOV / 2))
+    return bool(((np.abs(rel[m] @ up) < tv * f[m]) & (np.abs(rel[m] @ right) < tv * FP_ASPECT * f[m])).any())
+
+
+def f5_shrink(pts, look, k):
+    """F5 카메라 자리 (눈 높이, 보는 쪽 look 뒤 F5_DIST) 를 가운데로 1 - k / F5_DIST 배 줄인다 (눈 높이의 점은 k 만큼 물러난다)."""
+    cam = np.array([0.0, EYE_Y, 0.0]) - F5_DIST * look
+    return cam + (1.0 - k / F5_DIST) * (pts - cam)
+
+
+def _fp_need(pts, yaw):
+    """보는 쪽 yaw (대역 공간, 0 = 구르는 쪽) 로 FP_PITCH 까지 내려다보는 동안 대역이 화면에 들지 않게 물릴 가장 작은 몫 (픽셀)."""
+    look = np.array([math.sin(math.radians(yaw)), 0.0, math.cos(math.radians(yaw))])
+    pitches = np.arange(-5.0, FP_PITCH + 0.01, 2.5)
+
+    def clear(k):
+        return not any(_fp_visible(f5_shrink(pts, look, k), yaw, p) for p in pitches)
+    if clear(0.0):
+        return 0.0
+    lo, hi = 0.0, 32.0
+    while hi - lo > 0.5:
+        mid = (lo + hi) / 2
+        lo, hi = (lo, mid) if clear(mid) else (mid, hi)
+    return hi
+
+
+def look_back(fs=None):
+    """열쇠 자세마다 보는 쪽 BACK_YAWS 별로 물릴 몫 (픽셀). 앞뒤 자세로 가는 보간 중간 (1/4, 1/2) 까지 덮는다."""
+    fs = fs or frames()
+    out = []
+    for i, (_, f) in enumerate(fs):
+        subs = [f]
+        for j in (i - 1, i + 1):
+            if 0 <= j < len(fs):
+                subs += [between(f, fs[j][1], a) for a in (0.25, 0.5)]
+        pts = [_samples(s) for s in subs]
+        out.append([max(_fp_need(p, y) for p in pts) for y in BACK_YAWS])
+    return out
+
+
+def anim_table(path):
+    """플러그인 자원 roll_anim.yml: 열쇠 자세마다 보낼 틱 (닿는 틱 - 보간 틱), 보간 틱, 부위마다 [x, y, z, qx, qy, qz, qw]."""
+    fs = frames()
+    check_steps(fs)
+    lines = ["# 구르기 대역의 열쇠 자세 (pack/roll_figure.py anim_table 이 뼈대에서 셈해 쓴다. 손대지 않는다).",
+             "# 자리는 대역 공간 D 의 픽셀 (원점 발밑 땅, +Y 위, +Z 구르는 쪽, +X 그 사람의 왼쪽), 회전은 사원수 x y z w.",
+             "# 플러그인 (combat/Tumble) 이 구르는 쪽 Y 회전을 걸고 탑승 자리만큼 내려 tick 틱에 dur 틱 보간으로 보낸다.",
+             "# hand_r, hand_l 은 든 것의 자리 (THIRDPERSON_RIGHTHAND / LEFTHAND). 오른손잡이 기준 (왼손잡이는 플러그인이 뒤집는다)",
+             "# back: 1인칭에서 비키려고 F5 카메라 자리 (눈 높이, 보는 쪽 뒤 f5-dist 블록) 를 가운데로 줄여 눈 높이에서 물릴 몫 (픽셀,",
+             "# 크기는 1 - back / f5-dist). 보는 쪽이 대역이 구르는 쪽에서 0, 30, ... 330° (+X 쪽으로) 일 때의 값 (그 사이는 직선).",
+             "# hide-pitch: 이보다 내려다보면 대역을 그 사람 화면에서 감춘다 (도)",
+             f"scale: {SCALE}",
+             f"hide-pitch: {_fmt(FP_PITCH)}",
+             f"f5-dist: {_fmt(F5_DIST * SCALE / 16)}",
+             "parts: [" + ", ".join(PARTS) + "]",
+             "frames:"]
+    backs = look_back(fs)
+    prev = None
+    for (t, f), back in zip(fs, backs):
+        # 처음 자세는 띄울 때 (0틱) 그대로. 다음부터는 앞 자세에 닿은 틱에 보내 이 자세에 닿을 때까지 보간한다. 다만 FIRST_SEND 틱
+        # 전에는 보내지 않는다: 띄운 다음 틱 (1틱) 에 바꾸면 생성 패킷과 한 번에 나가 보간 없이 처음 자세가 바뀐다
+        send = 0 if prev is None else max(prev, FIRST_SEND)
+        dur = 0 if prev is None else t - send
+        if prev is not None and dur < 1:
+            raise ValueError(f"구르기 대역: {t}틱 자세는 {FIRST_SEND}틱 뒤에 닿아야 한다")
+        rows = []
+        for part in PARTS:
+            P, R = f[part]
+            q = quat(R)
+            rows.append("[" + ", ".join(_fmt(v) for v in (*P, *q)) + "]")
+        lines.append(f"  - tick: {send}")
+        lines.append(f"    dur: {dur}")
+        lines.append("    back: [" + ", ".join(_fmt(v) for v in back) + "]")
+        lines.append("    p:")
+        lines += [f"      - {r}   # {part}" for r, part in zip(rows, PARTS)]
+        prev = t
+    with open(path, "w", encoding="utf-8", newline="\n") as fh:
+        fh.write("\n".join(lines) + "\n")
+    return path
+
+
+def _fmt(v):
+    s = f"{float(v):.4f}".rstrip("0").rstrip(".")
+    return "0" if s in ("-0", "") else s
+
+
+# ─────────────────────────── 모형 쓰기 ───────────────────────────
 
 def _r(v):
     return round(float(v), 3)
 
 
-class Pose:
-    """한 자세: 상자들과 머리 (가운데, 숙인 각). head_pitch 는 정수리 방향 (위에서 앞으로 잰 각)."""
-
-    def __init__(self, name, boxes, head_center, head_pitch, head_scale=1.0, frame=0.0):
-        self.name, self.boxes = name, boxes
-        self.head_center = np.array(head_center, float)
-        self.head_pitch = head_pitch
-        self.head_scale = head_scale
-        self.frame = frame     # 이 자세를 그리는 변환 각 (뛰어들기는 START_ANGLE). 설계는 바로 선 모습으로 하고 여기서 되돌린다
+# D 방향 → 아이템 공간 면 이름 (아이템 = (8 - dx, 8 + dy, 8 - dz): 앞 (+Z) 은 북, 그 사람의 왼쪽 (+X) 은 서)
+_D_FACE = {"front": "north", "back": "south", "left": "west", "right": "east", "up": "up", "down": "down"}
 
 
-def _rot2(v, deg):
-    """(y, f) 를 앞으로 deg 돌린다 (위 → 앞)."""
-    a = math.radians(deg)
-    y, f = v
-    return np.array([y * math.cos(a) - f * math.sin(a), y * math.sin(a) + f * math.cos(a)])
+def part_model(name):
+    """부위의 아이템 모형: 상자를 아이템 공간으로 (관절 = 아이템 가운데 (8, 8, 8))."""
+    els = []
+    for i, sh in enumerate(SHAPES[name]):
+        fr = [8 - sh.hi[0], 8 + sh.lo[1], 8 - sh.hi[2]]
+        to = [8 - sh.lo[0], 8 + sh.hi[1], 8 - sh.lo[2]]
+        w, h, d = (to[k] - fr[k] for k in range(3))
+        sizes = {"north": (w, h), "south": (w, h), "east": (d, h), "west": (d, h), "up": (w, d), "down": (w, d)}
+        seed = sum(ord(ch) * (j + 1) for j, ch in enumerate(name)) + i * 13
+        faces = {}
+        for k, (fname, (du, dv)) in enumerate(sizes.items()):
+            # 같은 그림이 여러 부위에 같은 자리로 찍히지 않게 부위 이름으로 uv 를 비낀다
+            u0 = (seed * 5 + k * 7) % max(1, int(16 - du) + 1)
+            v0 = (seed * 3 + k * 11) % max(1, int(16 - dv) + 1)
+            tex = "sole" if sh.sole is not None and fname == _D_FACE[sh.sole] else sh.tex
+            faces[fname] = {"uv": [_r(u0), _r(v0), _r(u0 + du), _r(v0 + dv)], "texture": "#" + tex, "tintindex": sh.tint}
+        els.append({"from": [_r(v) for v in fr], "to": [_r(v) for v in to], "faces": faces})
+    return {"textures": {**{k: TEX_ID[k] for k in TEXTURES if k != "helm"}, "particle": TEX_ID["cloth"]}, "elements": els}
 
 
-def _limbs(spec):
-    """[(이름, 그림, tint, w, 길이, t, 각, x, 이어 붙을 상자 이름 또는 (y, f), 밑창)] → Box 목록 (앞 상자의 끝에 잇는다)."""
-    out = {}
-    for name, tex, tint, w, length, t, pitch, x, at, sole in spec:
-        joint = out[at].end if isinstance(at, str) else at
-        out[name] = Box(name, tex, tint, w, length, t, joint, pitch, x, sole)
-    return list(out.values())
+# 머리: 해골 (아이템 공간 (4..12, 0..8, 4..12), 얼굴 +Z) 을 Y 로 180° 돌려 얼굴을 앞 (-Z) 으로, 목 (해골 밑 가운데, 가운데에서 8 아래)
+# 을 아이템 가운데로 올린다. 자세 회전은 아이템 가운데를 축으로, 이동은 회전 뒤에 더한다
+HEAD_FIXED = {"rotation": [0.0, 180.0, 0.0], "translation": [0.0, 8.0, 0.0], "scale": [1.0, 1.0, 1.0]}
 
 
-T_TORSO, T_SLEEVE, T_HAND, T_LEGS, T_BOOTS = 0, 1, 2, 3, 4
-
-
-def _body(hip, belly, chest, thigh, shin, foot, uarm, farm, shoulder_back=1.0, shoulder_down=1.0):
-    """
-    플레이어 비례의 몸. hip = 엉덩이 관절 (y, f). 각은 모두 위(+y)에서 앞(+f)으로.
-    belly·chest: 몸통 아래·위 (8×6×4). thigh·shin: 다리 (4×6×4, 4×3×4) 다음 신 (4×4×4, 밑창). 왼·오른 다리 각을 따로
-    주려면 (왼, 오른) 짝. uarm·farm: 윗팔 (소매) 과 아랫팔 (손). 어깨는 가슴 끝에서 shoulder_down 만큼 아래 (가슴 축을 따라),
-    shoulder_back 만큼 등 쪽.
-    """
-    def pair(v):
-        return v if isinstance(v, tuple) else (v, v)
-
-    spec = [
-        ("belly", "cloth", T_TORSO, 8.0, 6.0, 4.0, belly, 0.0, hip, None),
-        ("chest", "cloth", T_TORSO, 8.1, 6.0, 4.1, chest, 0.0, "belly", None),
-    ]
-    th, sh, ft = pair(thigh), pair(shin), pair(foot)
-    for i, sx in enumerate((-1, 1)):
-        side = "lr"[i]
-        spec += [
-            (f"thigh_{side}", "trousers", T_LEGS, 3.9, 6.0, 3.9, th[i], sx * 2.0, hip, None),
-            (f"shin_{side}", "trousers", T_LEGS, 3.8, 3.0, 3.8, sh[i], sx * 2.0, f"thigh_{side}", None),
-            (f"foot_{side}", "boot", T_BOOTS, 4.1, 4.0, 4.1, ft[i], sx * 2.0, f"shin_{side}", "sole"),
-        ]
-    boxes = _limbs(spec)
-    chest_box = next(b for b in boxes if b.name == "chest")
-    back = np.array([math.sin(math.radians(chest)), -math.cos(math.radians(chest))])
-    sj = chest_box.end - chest_box.dir * shoulder_down + back * shoulder_back
-    ua, fa = pair(uarm), pair(farm)
-    arm = []
-    for i, sx in enumerate((-1, 1)):
-        side = "lr"[i]
-        arm += [
-            (f"uarm_{side}", "sleeve", T_SLEEVE, 4.0, 6.0, 4.0, ua[i], sx * 6.0, tuple(sj), None),
-            (f"farm_{side}", "hand", T_HAND, 3.9, 6.0, 3.9, fa[i], sx * 6.0, f"uarm_{side}", None),
-        ]
-    boxes += _limbs(arm)
-    return boxes, chest_box
-
-
-def _head_on(chest_box, head_pitch, lift=0.5, scale=1.0):
-    """목 (가슴 끝) 에 머리를 단다: 머리 가운데 = 목 + 정수리 방향 × (4 + lift) (머리 크기에 맞춘다)."""
-    a = math.radians(head_pitch)
-    crown = np.array([math.cos(a), math.sin(a)])
-    return chest_box.end + crown * (4.0 * scale + lift)
-
-
-def _outline(pose):
-    """자세의 옆모습 꼭짓점들 (y, f): 상자 넷씩과 머리 넷."""
-    pts = [p for b in pose.boxes for p in _box_corners_2d(b)]
-    a = math.radians(pose.head_pitch)
-    up, fw = np.array([math.cos(a), math.sin(a)]), np.array([-math.sin(a), math.cos(a)])
-    h = 4.0 * pose.head_scale
-    pts += [pose.head_center + up * su * h + fw * sf * h for su in (-1, 1) for sf in (-1, 1)]
-    return np.array(pts)
-
-
-def _shift(pose, d):
-    d = np.array(d, float)
-    boxes = [Box(b.name, b.tex, b.tint, b.w, b.length, b.t, b.joint + d, b.pitch, b.x, b.sole) for b in pose.boxes]
-    return Pose(pose.name, boxes, pose.head_center + d, pose.head_pitch, pose.head_scale, pose.frame)
-
-
-def ball_center(pose):
-    """옆모습을 감싸는 가장 작은 원의 가운데와 반지름 (0.25 픽셀 격자로 찾는다)."""
-    pts = _outline(pose)
-    lo, hi = pts.min(axis=0), pts.max(axis=0)
-    best = None
-    for y in np.arange(lo[0], hi[0], 0.25):
-        for f in np.arange(lo[1], hi[1], 0.25):
-            r = np.sqrt(((pts - (y, f)) ** 2).sum(axis=1)).max()
-            if best is None or r < best[0]:
-                best = (r, np.array([y, f]))
-    return best[1], best[0]
-
-
-# 웅크린 공의 각 (배, 가슴, 허벅지, 정강이, 신, 머리 정수리, 윗팔, 아랫팔). 옆모습이 가장 둥근 것 (도는 동안 땅에서 회전 중심까지
-# 거리가 가장 덜 바뀌는 것) 을 22.5° 마디 가운데서 골랐다: 등을 말고 (배 -22.5, 가슴 67.5), 무릎을 가슴에, 정수리를 아래로
-# 박고 (얼굴은 무릎 쪽), 두 팔꿈치를 머리 옆 앞으로 내밀어 정강이를 감싼다 (옆에서 보면 앞 테가 머리가 아니라 팔)
-TUCK = (-22.5, 67.5, 45.0, 202.5, 225.0, 157.5, 135.0, 202.5)
-
-
-def pose_tuck():
-    """
-    웅크린 공 (구르기 2~7틱, 변환 각이 그대로 돈 각). 쪼그려 앉아 등을 말고 턱을 가슴에 붙인 모습: 옆에서 보면 바깥 테가
-    정수리·뒤통수 (앞) → 등 (위) → 엉덩이 (뒤) → 신 (아래). 얼굴은 무릎을 내려다보고 (안쪽), 두 팔이 정강이를 감싼다.
-    앞으로 돌면 뒤통수·목덜미 → 등 → 엉덩이 → 발 차례로 땅에 닿는다. 회전 중심은 옆모습을 감싸는 원의 가운데.
-    """
-    boxes, chest = _body(hip=(0.0, 0.0), belly=TUCK[0], chest=TUCK[1],
-                         thigh=TUCK[2], shin=TUCK[3], foot=TUCK[4],
-                         uarm=TUCK[6], farm=TUCK[7], shoulder_back=0.5, shoulder_down=1.5)
-    hp = TUCK[5]
-    pose = Pose("tuck", boxes, _head_on(chest, hp, lift=-0.5), hp)
-    ctr, _ = ball_center(pose)
-    return _shift(pose, -ctr)
-
-
-def pose_dive():
-    """
-    뛰어들기 (0틱~첫 마디). 무릎을 굽혀 몸통을 앞으로 눕히고 (배 67.5°, 가슴 90°) 두 팔을 앞아래로 뻗고, 머리는 그 사이로 숙인다
-    (정수리가 앞아래). 설계는 땅에 선 모습 (발이 -PIVOT_PX) 이고, START_ANGLE 로 돈 변환에서 이렇게 보이게 되돌린다 (_settle).
-    """
-    boxes, chest = _body(hip=(0.0, DIVE_HIP_F), belly=67.5, chest=90.0,
-                         thigh=157.5, shin=202.5, foot=180.0,
-                         uarm=157.5, farm=157.5, shoulder_back=0.5, shoulder_down=1.5)
-    hp = 135.0
-    return Pose("dive", boxes, _head_on(chest, hp, lift=-0.5), hp, frame=START_ANGLE)
-
-
-def pose_rise():
-    """
-    일어서기 (rise-at~reveal). 깊이 쪼그린 채 (허벅지 수평) 오른발을 조금 앞에 딛고, 몸통을 숙인 채 (배 45°, 가슴 67.5°) 머리를 들어
-    앞을 본다. 두 손은 무릎 앞. 키 약 1.32 블록 (웅크린 공 0.9 블록과 선 몸 1.8 블록 사이). 머리 가운데가 회전 중심 (곧 진짜 몸이 설
-    자리) 위 RISE_HEAD_F 에 오게 옮긴다: 진짜 몸이 돌아올 때 머리가 앞뒤로 튀지 않고, 1인칭 눈 (1.62) 아래 5 픽셀 남짓, 바로 밑이라
-    앞을 볼 때 화면에 들지 않는다 (더 크게 세웠더니 1인칭 화면 아래에 머리 꼭대기가 걸렸다 [확인 (클라)]).
-    """
-    boxes, chest = _body(hip=(0.0, 0.0), belly=45.0, chest=67.5,
-                         thigh=(90.0, 90.0), shin=(180.0, 202.5), foot=(180.0, 180.0),
-                         uarm=(180.0, 157.5), farm=(135.0, 135.0), shoulder_back=0.3, shoulder_down=1.0)
-    hp = 22.5
-    pose = Pose("rise", boxes, _head_on(chest, hp, lift=0.0), hp)
-    return _shift(pose, (0.0, RISE_HEAD_F - pose.head_center[1]))
-
-
-def poses():
-    return {"dive": pose_dive(), "tuck": pose_tuck(), "rise": pose_rise()}
-
-
-def _ground(pose):
-    """자세의 가장 낮은 점 (설계 y, 머리 포함) 을 -PIVOT_PX 에 맞추도록 내릴 몫. 웅크린 공은 돌므로 맞추지 않는다."""
-    lo = min(min(_box_corners_2d(b)[:, 0]) for b in pose.boxes)
-    return -PIVOT_PX - lo
-
-
-def _box_corners_2d(b):
-    d = b.dir
-    n = np.array([-d[1], d[0]])
-    pts = []
-    for s in (0, 1):
-        for k in (-1, 1):
-            pts.append(b.joint + d * b.length * s + n * (b.t / 2) * k)
-    return np.array(pts)
-
-
-def _settle(pose):
-    """선 자세 (dive, rise): 발을 땅 (-PIVOT_PX) 에 내리고, 그 자세의 변환 각 (frame) 만큼 되돌린다."""
-    if pose.name == "tuck":
-        return pose
-    dy = _ground(pose)
-    moved = []
-    for b in pose.boxes:
-        nb = Box(b.name, b.tex, b.tint, b.w, b.length, b.t, _rot2(b.joint + np.array([dy, 0.0]), -pose.frame),
-                 b.pitch - pose.frame, b.x, b.sole)
-        moved.append(nb)
-    hc = _rot2(pose.head_center + np.array([dy, 0.0]), -pose.frame)
-    return Pose(pose.name, moved, hc, pose.head_pitch - pose.frame, pose.head_scale, pose.frame)
-
-
-# ─────────────────────────── 모형 쓰기 ───────────────────────────
-
-def body_model(pose):
-    pose = _settle(pose)
-    return {
-        "textures": {**{k: TEX_ID[k] for k in TEXTURES if k != "helm"}, "particle": TEX_ID["cloth"]},
-        "elements": [b.element() for b in pose.boxes],
-    }
-
-
-def head_display(pose):
-    """souls:item/roll_head_<자세> 의 fixed 자세: 해골 (가운데가 아이템 가운데보다 4 아래, 얼굴 +Z) 을 그 자세의 목에."""
-    pose = _settle(pose)
-    # 아이템 자세 회전 (XYZ 오일러, 벡터에는 Z → Y → X 차례로): Y 180° 로 얼굴을 앞 (-Z) 으로, 그다음 X 로 숙인다.
-    # 설계의 숙임 (위 → 앞 = +Y → -Z) 은 마인크래프트 X 축의 음의 각이다
-    pitch = -pose.head_pitch
-    a = math.radians(pitch)
-    s = pose.head_scale
-    # 자세의 회전은 아이템 가운데를 축으로, 이동은 회전 뒤에 더한다: 가운데 c = (0,-4,0) → t + R·c
-    cy, cz = -4.0 * s * math.cos(a), -4.0 * s * math.sin(a)
-    yc, fc = pose.head_center
-    tx, ty, tz = 0.0, yc - cy, -fc - cz
-    return {"rotation": [round(pitch, 3), 180.0, 0.0], "translation": [round(tx, 3), round(ty, 3), round(tz, 3)],
-            "scale": [s, s, s]}
-
-
-def helm_model(pose):
+def helm_model():
     """투구 껍데기: 해골 상자 (4..12, 0..8, 4..12) 를 0.6 두껍게 감싸고 얼굴 (+Z) 은 이마 띠만. 머리와 같은 fixed 자세."""
     lo, hi, th = 3.4, 12.6, 0.6
     els = []
@@ -542,7 +676,7 @@ def helm_model(pose):
     add([hi - th, 1.5, lo + th], [hi, 8.0, hi])       # 옆
     add([lo + th, 5.6, hi - th], [hi - th, 8.0, hi])  # 이마 띠
     return {"textures": {"helm": TEX_ID["helm"], "particle": TEX_ID["helm"]}, "elements": els,
-            "display": {"fixed": head_display(pose)}}
+            "display": {"fixed": HEAD_FIXED}}
 
 
 def _json(path, data):
@@ -558,21 +692,21 @@ def build(out):
         p = os.path.join(assets, "textures", "item", f"roll_{k}.png")
         os.makedirs(os.path.dirname(p), exist_ok=True)
         img.save(p)
+    check_steps()
     tints = [{"type": "minecraft:custom_model_data", "index": i, "default": _int(c(col))} for _, i, col in TINTS]
-    for name, pose in poses().items():
-        _json(os.path.join(assets, "models", "item", f"roll_{name}.json"), body_model(pose))
+    for name in BODY_MODELS:
+        _json(os.path.join(assets, "models", "item", f"roll_{name}.json"), part_model(name))
         _json(os.path.join(assets, "items", f"roll_{name}.json"),
               {"model": {"type": "minecraft:model", "model": f"{NS}:item/roll_{name}", "tints": tints}})
-        # 머리: 바닐라 player_head 특수 모형 (아이템의 profile 성분으로 스킨을 고른다) + 자세만 바꾼 바탕 모형
-        _json(os.path.join(assets, "models", "item", f"roll_head_{name}.json"),
-              {"parent": "minecraft:item/template_skull", "display": {"fixed": head_display(pose)}})
-        _json(os.path.join(assets, "items", f"roll_head_{name}.json"),
-              {"model": {"type": "minecraft:special", "base": f"{NS}:item/roll_head_{name}",
-                         "model": {"type": "minecraft:player_head"}}})
-        _json(os.path.join(assets, "models", "item", f"roll_helm_{name}.json"), helm_model(pose))
-        _json(os.path.join(assets, "items", f"roll_helm_{name}.json"),
-              {"model": {"type": "minecraft:model", "model": f"{NS}:item/roll_helm_{name}",
-                         "tints": [{"type": "minecraft:custom_model_data", "index": 0, "default": _int(c(HELM_DEFAULT))}]}})
+    # 머리: 바닐라 player_head 특수 모형 (아이템의 profile 성분으로 스킨을 고른다) + 자세만 바꾼 바탕 모형
+    _json(os.path.join(assets, "models", "item", "roll_head.json"),
+          {"parent": "minecraft:item/template_skull", "display": {"fixed": HEAD_FIXED}})
+    _json(os.path.join(assets, "items", "roll_head.json"),
+          {"model": {"type": "minecraft:special", "base": f"{NS}:item/roll_head", "model": {"type": "minecraft:player_head"}}})
+    _json(os.path.join(assets, "models", "item", "roll_helm.json"), helm_model())
+    _json(os.path.join(assets, "items", "roll_helm.json"),
+          {"model": {"type": "minecraft:model", "model": f"{NS}:item/roll_helm",
+                     "tints": [{"type": "minecraft:custom_model_data", "index": 0, "default": _int(c(HELM_DEFAULT))}]}})
     # 급류 회전의 흰 소용돌이를 투명하게 (combat.roll.visual: spin)
     tex = os.path.join(out, "assets", "minecraft", "textures", "entity", "trident_riptide.png")
     os.makedirs(os.path.dirname(tex), exist_ok=True)
@@ -583,7 +717,7 @@ def _int(rgba):
     return (rgba[0] << 16) | (rgba[1] << 8) | rgba[2]
 
 
-OWN = tuple(f"roll_{k}{p}.json" for k in ("", "head_", "helm_") for p in POSES)
+OWN = tuple(f"roll_{k}.json" for k in (*BODY_MODELS, "head", "helm"))
 
 
 def wrap_item_definitions(out):
@@ -705,26 +839,9 @@ def skin_table(jar, path):
     return True
 
 
-# ─────────────────────────── 미리보기 ───────────────────────────
-# 요소의 면을 텍셀마다 작은 사각형으로 나눠 먼 것부터 그리는 정사영. 머리는 8×8×8 상자에 스킨 (없으면 팔레트 색 얼굴).
-# 아이템 공간 → (자세) → ItemDisplay 의 Y 180° → 플러그인 변환 (구르는 쪽 Y, 옆 축 X 로 θ). 바닥은 회전 중심 PIVOT_PX 아래.
-
+# ─────────────────────────── 미리보기 그리기 도구 ───────────────────────────
 _FACE_N = {"north": (0, 0, -1), "south": (0, 0, 1), "east": (1, 0, 0), "west": (-1, 0, 0), "up": (0, 1, 0), "down": (0, -1, 0)}
 
-
-def _rx(deg):
-    t = math.radians(deg)
-    return np.array([[1, 0, 0], [0, math.cos(t), -math.sin(t)], [0, math.sin(t), math.cos(t)]])
-
-
-def _ry(deg):
-    t = math.radians(deg)
-    return np.array([[math.cos(t), 0, math.sin(t)], [0, 1, 0], [-math.sin(t), 0, math.cos(t)]])
-
-
-def _rz(deg):
-    t = math.radians(deg)
-    return np.array([[math.cos(t), -math.sin(t), 0], [math.sin(t), math.cos(t), 0], [0, 0, 1]])
 
 
 def _face_grid(fr, to, fname):
@@ -835,86 +952,119 @@ def head_faces(display, skin):
     return out
 
 
-# 보는 쪽: 화면 오른쪽, 위, 깊이 (멀수록 큼) 를 플러그인 공간 축으로
-_VIEWS = {
-    "back": (np.array([-1, 0, 0]), np.array([0, 1, 0]), np.array([0, 0, 1]), 18),    # 3인칭 등 뒤 (F5 한 번)
-    "side": (np.array([0, 0, 1]), np.array([0, 1, 0]), np.array([1, 0, 0]), 0),      # 왼쪽에서 (구르는 쪽이 화면 오른쪽)
-    "front": (np.array([1, 0, 0]), np.array([0, 1, 0]), np.array([0, 0, -1]), 12),   # 앞에서 (F5 두 번)
-}
+
+# ─────────────────────────── 미리보기 ───────────────────────────
+# 부위 모형 (아이템 JSON) 을 다시 읽어 아이템 공간 → ItemDisplay 의 Y 180° → 열쇠 자세 (부위 회전, 관절 자리) 로 D 에 놓고,
+# 면을 텍셀마다 작은 사각형으로 나눠 먼 것부터 그리는 정사영. 머리는 8×8×8 상자에 스킨 (없으면 팔레트 색 얼굴).
+# 오른손의 든 것은 바닐라 handheld 의 thirdperson_righthand 자세로 잡은 칼 (미리보기만, 막대 하나).
+
+def _stick(a, b, col, w=0.6):
+    """a → b 막대 (네 옆면)."""
+    d = b - a
+    n = np.cross(d, [0.0, 1.0, 0.0])
+    if np.linalg.norm(n) < 1e-6:
+        n = np.cross(d, [1.0, 0.0, 0.0])
+    n = n / np.linalg.norm(n) * w
+    m = np.cross(d / np.linalg.norm(d), n)
+    out = []
+    for e1, e2 in ((n, m), (m, -n), (-n, -m), (-m, n)):
+        q = [a + e1, b + e1, b + e2, a + e2]
+        nn = (e1 + e2) / np.linalg.norm(e1 + e2)
+        out.append((q, nn, np.array(col, float)))
+    return out
 
 
-def render_view(faces, angle, view, size=200, k=6.0, tilt_axis=0.0):
-    """faces 는 아이템 공간 (가운데 원점, 픽셀). angle: 구르기 변환 각. 바닥은 회전 중심에서 PIVOT_PX 아래."""
-    right, up, depth, tilt = _VIEWS[view]
-    # 플러그인 변환: Rz(t)·Rx(θ)·Rz(-t) (어깨 쪽으로 기운 축) 다음 ItemDisplay 의 Y 180°
-    spin = _rz(tilt_axis) @ _rx(angle) @ _rz(-tilt_axis) @ _ry(180)
-    t = math.radians(tilt)
-    up2 = up * math.cos(t) - depth * math.sin(t)
-    depth2 = depth * math.cos(t) + up * math.sin(t)
+# 바닐라 item/handheld 의 thirdperson_righthand: 회전 (0, -90, 55), 이동 (0, 4, 0.5), 크기 0.85. 칼 그림은 왼쪽 아래 손잡이 → 오른쪽 위 끝
+_HANDHELD = (_rx(0) @ _ry(-90) @ _rz(55), np.array([0.0, 4.0, 0.5]), 0.85)
+
+
+def figure_faces(frame, skin=None, colors=None, helm=None, sword=True):
+    cols = colors or [c(col)[:3] for _, _, col in TINTS]
+    cols = [((v >> 16) & 255, (v >> 8) & 255, v & 255) if isinstance(v, int) else tuple(v[:3]) for v in cols]
+    y180 = _ry(180)
+    cache = {}
+    out = []
+
+    def place(faces, P, R):
+        for q, n, col in faces:
+            out.append(([P + R @ (y180 @ p) for p in q], R @ (y180 @ n), col))
+
+    for part, (P, R) in frame.items():
+        if part in MODEL_OF and part != "head":
+            name = MODEL_OF[part]
+            if name not in cache:
+                cache[name] = model_faces(part_model(name), cols)
+            place(cache[name], P, R)
+        elif part == "head":
+            place(head_faces(HEAD_FIXED, skin), P, R)
+            if helm is not None:
+                hcol = [((helm >> 16) & 255, (helm >> 8) & 255, helm & 255)]
+                Rf = _rx(HEAD_FIXED["rotation"][0]) @ _ry(HEAD_FIXED["rotation"][1])
+                tt = np.array(HEAD_FIXED["translation"], float)
+                place([([Rf @ p + tt for p in q], Rf @ n, col) for q, n, col in model_faces(helm_model(), hcol)], P, R)
+        elif part == "hand_r" and sword:
+            Rh, th, sh = _HANDHELD
+            grip, tip = (th + Rh @ (sh * np.array(v)) for v in ((-5.0, -5.0, 0.0), (7.0, 7.0, 0.0)))
+            for q, n, col in _stick(grip, tip, (150, 156, 170, 255), w=0.9):
+                out.append(([P + R @ (y180 @ p) for p in q], R @ (y180 @ n), col))
+    return out
+
+
+# 보는 쪽: (보는 방향 (카메라 → 대역), 내려다보는 각). back = F5 등 뒤, side = 그 사람의 오른쪽에서 (구르는 쪽이 화면 오른쪽),
+# front = 앞에서 (F5 두 번)
+_VIEWS = {"back": ((0.0, 0.0, 1.0), 16.0), "side": ((1.0, 0.0, 0.0), 6.0), "front": ((0.0, 0.0, -1.0), 16.0)}
+
+
+def render(faces, view, size=180, k=4.2, center=(0.0, 11.0, 0.0)):
+    d0, elev = _VIEWS[view]
+    e = math.radians(elev)
+    d0, u0 = np.array(d0), np.array([0.0, 1.0, 0.0])
+    d = d0 * math.cos(e) - u0 * math.sin(e)
+    u = u0 * math.cos(e) + d0 * math.sin(e)
+    r = np.cross(d, u)
+    ctr = np.array(center)
+    img = Image.new("RGBA", (size, size), (44, 41, 46, 255))
+    dr = ImageDraw.Draw(img)
+
+    def pr(p):
+        v = p - ctr
+        return size / 2 + (v @ r) * k, size * 0.55 - (v @ u) * k
+
+    g = [np.array([x, 0.0, z]) for x, z in ((-40, -40), (40, -40), (40, 40), (-40, 40))]
+    dr.polygon([pr(p) for p in g], fill=(34, 31, 36, 255))
+    for zz in range(-40, 41, 8):
+        dr.line([pr(np.array([-40.0, 0.0, zz])), pr(np.array([40.0, 0.0, zz]))], fill=(40, 37, 42, 255))
     light = np.array([0.3, 1.0, -0.4])
     light = light / np.linalg.norm(light)
-    img = Image.new("RGBA", (size, size), (44, 41, 46, 255))
-    d = ImageDraw.Draw(img)
-    cy = size * 0.55
-    gy = cy + (PIVOT_PX * (up2 @ np.array([0, 1, 0]))) * k
-    d.rectangle((0, gy, size, size), fill=(34, 31, 36, 255))
     items = []
     for quad, n, col in faces:
-        if col[3] < 128:
+        if col[3] < 128 or n @ d >= 0:
             continue
-        nw = spin @ n
-        if nw @ depth2 >= 0:
-            continue
-        pts = [spin @ q for q in quad]
-        sc = [(size / 2 + (p @ right) * k, cy - (p @ up2) * k) for p in pts]
-        z = sum(p @ depth2 for p in pts) / 4
-        b = 0.55 + 0.45 * max(0.0, float(nw @ light))
-        items.append((z, sc, tuple(int(v * b) for v in col[:3]) + (255,)))
+        b = 0.55 + 0.45 * max(0.0, float(n @ light))
+        items.append((sum(p @ d for p in quad) / 4, [pr(p) for p in quad], tuple(int(v * b) for v in col[:3]) + (255,)))
     items.sort(key=lambda x: -x[0])
     for _, sc, col in items:
-        d.polygon(sc, fill=col)
+        dr.polygon(sc, fill=col)
     return img
 
 
-def figure_faces(pose, skin=None, colors=None, helm=None):
-    cols = colors or [c(col)[:3] for _, _, col in TINTS]
-    cols = [((v >> 16) & 255, (v >> 8) & 255, v & 255) if isinstance(v, int) else tuple(v[:3]) for v in cols]
-    faces = model_faces(body_model(pose), cols)
-    disp = head_display(pose)
-    faces += head_faces(disp, skin)
-    if helm is not None:
-        hm = helm_model(pose)
-        hcol = [((helm >> 16) & 255, (helm >> 8) & 255, helm & 255)]
-        R = _rx(disp["rotation"][0]) @ _ry(disp["rotation"][1])
-        tt = np.array(disp["translation"], float)
-        for q, n, col in model_faces(hm, hcol):
-            faces.append(([R @ (p * disp["scale"][0]) + tt for p in q], R @ n, col))
-    return faces
-
-
-def preview(path, skin=None, colors=None, tilt_axis=0.0):
-    """
-    웅크린 공을 뒤 (F5), 옆, 앞에서 45° 마다, 그리고 뛰어들기·일어서기를 옆과 뒤에서. 바닥은 회전 중심에서 PIVOT_PX 아래.
-    skin 이 없으면 팔레트 기본색과 그림 얼굴.
-    """
+def preview(path, skin=None, colors=None, mids=False, views=("back", "side", "front")):
+    """열쇠 자세마다 (mids 면 사이 보간 자세도) 등 뒤·옆·앞에서. skin 이 없으면 팔레트 기본색과 그림 얼굴."""
     from mc3d import contact_sheet
-    ps = poses()
-    tuck = figure_faces(ps["tuck"], skin, colors)
+    fs = frames()
+    seq = []
+    for i, (t, f) in enumerate(fs):
+        if mids and i:
+            seq.append((f"{(fs[i - 1][0] + t) / 2:g}", between(fs[i - 1][1], f, 0.5)))
+        seq.append((f"{t}", f))
     imgs, labels = [], []
-    for view in ("back", "side", "front"):
-        for deg in range(0, 360, 45):
-            imgs.append(render_view(tuck, deg, view, tilt_axis=tilt_axis))
-            labels.append(f"tuck {view} {deg}")
-    for name, ang in (("dive", START_ANGLE), ("rise", 0.0)):
-        f = figure_faces(ps[name], skin, colors)
-        for view in ("side", "back", "front"):
-            imgs.append(render_view(f, ang, view))
-            labels.append(f"{name} {view}")
-    imgs.append(render_view(figure_faces(ps["tuck"], skin, colors, helm=0x858079), 0, "side"))
-    labels.append("tuck side helm")
-    imgs.append(render_view(figure_faces(ps["tuck"], skin, colors, helm=0x858079), 0, "front"))
-    labels.append("tuck front helm")
-    sheet = contact_sheet(imgs, labels, cols=8, cell=200)
+    for view in views:
+        for lab, f in seq:
+            imgs.append(render(figure_faces(f, skin, colors), view))
+            labels.append(f"t{lab} {view}")
+    imgs.append(render(figure_faces(fs[0][1], skin, colors, helm=0x858079), "front"))
+    labels.append("helm front")
+    sheet = contact_sheet(imgs, labels, cols=len(seq), cell=180)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     sheet.save(path)
     return path
@@ -943,10 +1093,12 @@ def _skin_from_jar(jar, name="wide/steve"):
 if __name__ == "__main__":
     import sys
     skin, cols = None, None
-    jar = os.environ.get("SOULS_CLIENT_JAR")
+    jar = client_jar()
     who = os.environ.get("SKIN", "wide/noor")
-    if jar and os.path.exists(jar):
+    if jar:
         skin = _skin_from_jar(jar, who)
         cols = skin_colors(skin, slim=who.startswith("slim/"))
     out = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(os.path.abspath(__file__)), "preview", "roll_figure.png")
-    print(preview(out, skin, cols, tilt_axis=float(os.environ.get("TILT", "0"))))
+    views = tuple(os.environ.get("VIEWS", "back side front").split())
+    print(preview(out, skin, cols, mids=os.environ.get("MIDS") == "1", views=views))
+    print("가장 큰 마디 회전 %.0f°" % check_steps())

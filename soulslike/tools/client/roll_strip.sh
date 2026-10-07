@@ -21,15 +21,17 @@
 #   HUD=1       HUD 를 숨기지 않는다 (기본은 F1 로 숨긴다: 행동 막대 글자가 대역 위에 겹친다)
 #   ITEMS=1     구르기 전에 손·몸에 장비를 준다: 주손 시험 막기 도구 (souls 아이템), 왼손 바닐라 방패, 쇠 투구·흉갑.
 #               tumble 이 3인칭에서 든 것·입은 것을 감추고 끝나면 되돌리는지, 단축 슬롯 그림이 그대로인지 본다 (HUD=1, 넓은 CROP 과 함께)
+#   GEAR        ITEMS 대신 줄 장비: 명령을 | 로 잇는다 (앞의 / 포함. 예 "/item replace entity @s weapon.mainhand with minecraft:iron_sword")
 #   SUFFIX      그림 이름 꼬리 (예 _rt: TICK_RATE=20 으로 제 속도로 찍은 판을 tumble_back_rt.png 로 따로 남긴다)
 #   KEY         구르는 쪽 방향키 (기본 w = 앞). d·a 는 옆으로 구른다 (등 뒤 카메라에서 구르기의 옆모습이 보인다), s 는 카메라 쪽으로.
 #               w 가 아니면 그림 이름에 _<키> 가 붙는다 (tumble_back_d.png)
 #   LOC         구를 자리 (/souls tp 의 자리, 기본 lane). 옆으로 구를 때는 room (탁 트인 바닥. lane 은 오른쪽이 벽이다)
+#   PITCH       자리에 선 뒤 내려다보는 각 (도, /tp 로 정확히. 예 VIEWS=first PITCH=50 = 1인칭으로 내려다보며 구르기)
 #   LOOK        자리에 선 뒤 시선을 돌린다 (mcclient look:dx:dy, 예 0:60 = 조금 내려다본다. room 의 F5 에서는 몸이 화면 아래에 걸린다)
 set -u
 HERE=$(cd "$(dirname "$0")" && pwd)
 ROOT=$(cd "$HERE/../.." && pwd)
-[ $# -ge 2 ] || { sed -n '2,24p' "$0"; exit 2; }
+[ $# -ge 2 ] || { sed -n '2,30p' "$0"; exit 2; }
 PORT=$1
 SRVDIR=$2
 shift 2
@@ -89,13 +91,14 @@ for v in $VISUALS; do
     hud="key:F1"; [ "${HUD:-0}" = 1 ] && hud="wait:0"
     gear="wait:0"
     [ "${ITEMS:-0}" = 1 ] && gear="cmd:/soulstest guard empty|cmd:/item replace entity @s weapon.offhand with minecraft:shield|cmd:/item replace entity @s armor.head with minecraft:iron_helmet|cmd:/item replace entity @s armor.chest with minecraft:iron_chestplate"
+    [ -n "${GEAR:-}" ] && gear=$(echo "$GEAR" | sed 's/^/cmd:/; s/|/|cmd:/g')
     key=${KEY:-w}
     kname=""; [ "$key" != w ] && kname="_$key"
     name="${v}_${view}${kname}${SUFFIX:-}"
     rm -f "$RAW/${name}"_*.png "$RAW/${name}_times.json" "$SHOTDIR/${name}"_*.png "$SHOTDIR/${name}_times.json"
     # shellcheck disable=SC2086
     IFS='|' read -r -a gearv <<< "$gear"
-    "$RC" --do "$PORT" "cmd:/clear" "${gearv[@]}" "cmd:/soulstest heal" "cmd:/souls tp ${LOC:-lane}" wait:1.2 ${LOOK:+look:$LOOK} wait:0.2 "cmd:/tick rate $TICK_RATE" wait:0.6 \
+    "$RC" --do "$PORT" "cmd:/clear" "${gearv[@]}" "cmd:/soulstest heal" "cmd:/souls tp ${LOC:-lane}" wait:1.2 ${PITCH:+"cmd:/tp @s ~ ~ ~ ~ $PITCH"} ${PITCH:+wait:0.6} ${LOOK:+look:$LOOK} wait:0.2 "cmd:/tick rate $TICK_RATE" wait:0.6 \
       $f5 $hud wait:0.8 down:$key wait:$(python3 -c "print(0.25 * $slow)") \
       "burst:$name:$count:f:2:$gap" up:$key wait:$(python3 -c "print(0.6 * $slow)") \
       "cmd:/tick rate 20" $hud $(case "$view" in back) echo key:F5 key:F5 ;; front) echo key:F5 ;; *) echo wait:0 ;; esac) wait:0.5 \

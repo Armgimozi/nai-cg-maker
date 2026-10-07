@@ -52,8 +52,16 @@ public final class Glyphs {
     public static final TextColor GORE0 = TextColor.color(0x3b0605), GORE1 = TextColor.color(0x6e0b08),
             GORE2 = TextColor.color(0xa3110c), GORE3 = TextColor.color(0xcc2418);
 
+    /**
+     * HUD 자리 값 (glyphs.yml 의 layout, pack/hud.py 의 layout()). 글꼴 셰이더와 같은 값이다.
+     * margin: 화면 가장자리 여백, left: 막대 왼쪽 끝을 가운데에서 왼쪽으로 민 거리, right: 소울 상자 오른쪽 끝을 가운데에서
+     * 오른쪽으로 민 거리, markLeft/markRight: 셰이더가 가장자리로 옮기는 글자색, soulBox: 소울 상자 폭.
+     */
+    public record Layout(int margin, int left, int right, TextColor markLeft, TextColor markRight, int soulBox) {}
+
     private static final Key DEFAULT_FONT = Key.key("souls", "hud");
     private static Map<String, Glyph> glyphs = Collections.emptyMap();
+    private static Layout layout;
 
     private Glyphs() {}
 
@@ -61,6 +69,7 @@ public final class Glyphs {
     public static void load(JavaPlugin plugin) {
         Map<String, Glyph> out = new LinkedHashMap<>();
         try (InputStream in = plugin.getResource("glyphs.yml")) {
+            layout = null;
             if (in == null) {
                 plugin.getLogger().warning("jar 안에 glyphs.yml 이 없습니다 (pack/gen_pack.py 를 gradle 보다 먼저 돌리세요). 그림 글자 대신 일반 글씨를 씁니다.");
                 glyphs = out;
@@ -68,7 +77,11 @@ public final class Glyphs {
             }
             YamlConfiguration y = YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
             ConfigurationSection root = y.isConfigurationSection("glyphs") ? y.getConfigurationSection("glyphs") : y;
+            ConfigurationSection lay = root.getConfigurationSection("layout");
+            layout = lay == null ? null : new Layout(lay.getInt("margin", 8), lay.getInt("left", 205), lay.getInt("right", 206),
+                    color(lay.getString("mark_left"), 0xfefd01), color(lay.getString("mark_right"), 0xfefd02), lay.getInt("soul_box", 60));
             for (String name : root.getKeys(false)) {
+                if (name.equals("layout")) continue;
                 ConfigurationSection g = root.getConfigurationSection(name);
                 if (g == null) continue;
                 String ch = decode(g.getString("char", ""));
@@ -91,6 +104,16 @@ public final class Glyphs {
         }
         glyphs = Collections.unmodifiableMap(out);
         plugin.getLogger().info("그림 글자 " + glyphs.size() + "개 (glyphs.yml)");
+    }
+
+    private static TextColor color(String hex, int fallback) {
+        TextColor c = hex == null ? null : TextColor.fromHexString(hex.trim());
+        return c == null ? TextColor.color(fallback) : c;
+    }
+
+    /** HUD 자리 값. glyphs.yml 에 layout 이 없으면 (옛 팩) null: HUD 는 그림 글자 막대 없이 글로 대신한다. */
+    public static Layout layout() {
+        return layout;
     }
 
     /** YAML 이 "" 을 풀지 않은 채(작은따옴표) 적었거나 "U+E001" 로 적었어도 받아 준다. */

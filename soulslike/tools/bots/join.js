@@ -1,7 +1,9 @@
 // 접속 (14 M0 "접속하면 팩을 받고 시험 방에 선다", 8.1, 10.2, 10.9, 10.10, 12.7).
 // 첫 접속이 로비를 거치지 않고 souls_world 시험 방의 모험 모드로 서는지, 팩을 실제로 받아 SHA-1 이 맞는지,
-// HUD (경험치 막대 = 스태미나, 레벨 0, 행동 막대 한 줄) 가 오는지, 모험 모드 보호로 블록이 안 캐지는지 본다.
-// 봇은 한국어 클라이언트 (ko_kr) 로 들어온다: 팩 안내는 서버가 한국어로 채우고, 행동 막대는 번역 열쇠라 팩의 ko_kr 로 읽는다.
+// 다크 소울 HUD (왼쪽 위 막대 셋 = HUD 보스 막대의 그림 글자, 오른쪽 아래 소울 상자 = 행동 막대, 레벨 0) 가 오는지,
+// 모험 모드 보호로 블록이 안 캐지는지 본다.
+// 봇은 한국어 클라이언트 (ko_kr) 로 들어온다: 팩 안내는 서버가 한국어로 채우고, 팩을 싣기 전의 행동 막대 (대체 글 "소울 N")
+// 는 번역 열쇠라 팩의 ko_kr 로 읽는다.
 // 영어 쪽은 lang.js.
 'use strict'
 const L = require('./lib')
@@ -50,44 +52,65 @@ L.run('join', async (sc) => {
   await L.sleep(1000)
   sc.check('not kicked after pack answer', !b.ended && !b.kick, b.kick || '')
 
-  // 받은 팩의 M0 기본 (10.9, 10.8, 10.2): 형식 75, 셰이더 없음, 스태미나 막대 그림, 투명 허기
+  // 받은 팩의 기본 (10.9, 10.8, 10.2): 형식 75, 셰이더는 HUD 글꼴 셰이더 하나, 숨긴 바닐라 HUD 그림 (투명)
   if (got.ok) {
     const zip = L.readZip(got.buf)
     const meta = zip.json('pack.mcmeta')
     const mp = meta && meta.pack
     sc.check('pack.mcmeta min/max_format 75', mp && JSON.stringify(mp.min_format) === '75' && JSON.stringify(mp.max_format) === '75',
       mp ? `min=${JSON.stringify(mp.min_format)} max=${JSON.stringify(mp.max_format)}` : 'pack.mcmeta 없음')
-    sc.check('no core shaders in M0 pack', !zip.names.some((n) => /^assets\/[^/]+\/shaders\//.test(n)))
-    const xpBar = ['experience_bar_background', 'experience_bar_progress'].map((n) => `assets/minecraft/textures/gui/sprites/hud/${n}.png`)
-    sc.check('stamina bar sprites (experience_bar_*)', xpBar.every((n) => zip.has(n)), xpBar.filter((n) => !zip.has(n)).join(', '))
-    const food = zip.names.filter((n) => /textures\/gui\/sprites\/hud\/food_[a-z_]+\.png$/.test(n))
-    const opaque = food.filter((n) => { const im = L.decodePng(zip.get(n)); for (let i = 3; i < im.rgba.length; i += 4) if (im.rgba[i]) return true; return false })
-    sc.check('hunger sprites transparent', food.length >= 6 && !opaque.length, `${food.length}개${opaque.length ? ', 보이는 것: ' + opaque.join(', ') : ''}`)
+    const shaders = zip.names.filter((n) => /^assets\/[^/]+\/shaders\//.test(n))
+    sc.check('only the HUD text shader (10.8)', shaders.length === 1 && shaders[0] === 'assets/minecraft/shaders/core/rendertype_text.vsh', shaders.join(', ') || '없음')
+    const seen = (n) => { const im = L.decodePng(zip.get(n)); for (let i = 3; i < im.rgba.length; i += 4) if (im.rgba[i]) return true; return false }
+    const hidden = zip.names.filter((n) => /textures\/gui\/sprites\/(hud\/(food_|armor_|experience_bar_|heart\/)|boss_bar\/white_)[a-z_]*\.png$/.test(n))
+    const kinds = ['food_', 'armor_', 'experience_bar_', 'heart/', 'boss_bar/white_'].filter((k) => !hidden.some((n) => n.includes(k)))
+    const opaque = hidden.filter(seen)
+    sc.check('hidden vanilla HUD sprites transparent (hearts, food, armor, xp bar, HUD boss bar)', !kinds.length && !opaque.length,
+      `${hidden.length}개${kinds.length ? ', 빠진 것: ' + kinds.join(', ') : ''}${opaque.length ? ', 보이는 것: ' + opaque.join(', ') : ''}`)
+    const boss = ['red', 'yellow'].map((k) => `assets/minecraft/textures/gui/sprites/boss_bar/${k}_progress.png`)
+    sc.check('boss bar art for real bosses (red health, yellow posture)', boss.every((n) => zip.has(n) && seen(n)), boss.filter((n) => !zip.has(n)).join(', '))
     const sorted = zip.names.slice().sort()
     sc.check('pack zip entries sorted (deterministic)', zip.names.every((n, i) => n === sorted[i]))
   }
 
-  // ── HUD (10.2) ──
+  // ── HUD (10.2): 왼쪽 위 막대 셋 (HUD 보스 막대), 오른쪽 아래 소울 상자 (행동 막대), 경험치 레벨 0 ──
   const xp = b.p.xp
-  sc.check('experience packet sent (stamina bar)', xp.length > 0, xp.length ? `bar=${xp[xp.length - 1].bar} level=${xp[xp.length - 1].level}` : '없음')
-  sc.check('experience level always 0 (no green number)', xp.length > 0 && xp.every((x) => x.level === 0), [...new Set(xp.map((x) => x.level))].join(','))
-  sc.check('stamina bar full at rest', xp.length > 0 && xp[xp.length - 1].bar >= 0.99, xp.length ? String(xp[xp.length - 1].bar) : '')
+  sc.check('experience level always 0 (no green number)', xp.every((x) => x.level === 0), [...new Set(xp.map((x) => x.level))].join(',') || '경험치 패킷 없음')
+  const glyphs = L.loadGlyphs()
+  const lay = (() => { try { return require('fs').readFileSync(E.glyphs, 'utf8').match(/^layout:\s*\{(.*)\}/m)[1] } catch (e) { return '' } })()
+  const mark = (k) => ((lay.match(new RegExp(k + ':\\s*"(#[0-9a-f]{6})"')) || [])[1] || '').toLowerCase()
+  let hb = null
+  for (let i = 0; i < 30 && !hb; i++) { hb = b.hudBar(); if (!hb) await L.sleep(100) }
+  if (sc.check('HUD boss bar added after the pack loaded (white, its sprites are transparent)', !!hb, `보스 막대 패킷 ${b.p.bossbars.length}개`)) {
+    const h = L.decodeHud(hb.parts, glyphs)
+    sc.check('HUD bar text: souls:hud glyphs, left marker colour, net advance 0 (starts at the screen centre)',
+      h.fonts.join() === 'souls:hud' && h.colors.join() === mark('mark_left') && h.advance === 0 && !h.unknown,
+      `font=${h.fonts} color=${h.colors} (layout ${mark('mark_left')}) advance=${h.advance} unknown=${h.unknown}`)
+    const full = ['hp', 'fp', 'st'].every((k) => h.bars[k] && h.bars[k].fill > 0 && !h.bars[k].empty && !h.bars[k].trail)
+    sc.check('HUD bars hp, warmth, stamina full at rest', full, JSON.stringify(h.bars))
+    const hud = await b.cmd('/soulstest hud', 'HUD')
+    sc.checkCmd('HUD readout (glyph mode) matches the bar packet', hud, (r) => r.kv.mode === 'glyph' && h.bars.hp &&
+      r.kv.hp === `${h.bars.hp.fill}/${h.bars.hp.fill + h.bars.hp.empty + h.bars.hp.trail}` &&
+      r.kv.st === `${h.bars.st.fill}/${h.bars.st.fill + h.bars.st.empty + h.bars.st.trail}`, hud.line)
+  }
   const abFrom = b.p.actionBars.length
   await L.sleep(2600)
   const bars = b.p.actionBars.slice(abFrom)
   sc.check('action bar refreshed (>= 2 in 2.6 s)', bars.length >= 2, bars.length + '번')
   const ab = b.p.actionBars[b.p.actionBars.length - 1]
-  // 행동 막대는 번역 열쇠 souls.hud.souls (10.3). 받은 팩의 ko_kr 표로 읽으면 "소울 0"
-  const keys = ab ? L.translateKeys(ab.raw) : []
-  sc.check('action bar is the translatable souls.hud.souls', keys[0] === 'souls.hud.souls', keys.join(',') || (ab ? JSON.stringify(ab.plain) : '행동 막대 없음'))
-  if (got.ok && ab) {
-    const shown = L.render(ab.raw, L.langTable(L.readZip(got.buf), 'ko_kr'))
-    sc.check('action bar reads "소울 N" with the pack ko_kr', /^소울 [\d,]+$/.test(shown.trim()), JSON.stringify(shown))
+  const sb = ab ? L.decodeHud(ab.parts, glyphs) : null
+  sc.check('souls box: box glyph + digits "0", right marker colour, net advance 0', sb && sb.soulBox && sb.digits === '0' &&
+    sb.colors.join() === mark('mark_right') && sb.advance === 0 && !sb.unknown, sb ? JSON.stringify(sb) : '행동 막대 없음')
+  // 팩을 싣기 전 (그림 글자를 쓸 수 없을 때) 의 행동 막대는 번역 열쇠 souls.hud.souls 이고, 대체 글이 그 사람의 언어다 (10.9)
+  const pre = b.p.actionBars.find((x) => L.translateKeys(x.raw)[0] === 'souls.hud.souls')
+  sc.check('before the pack: action bar is the translatable souls.hud.souls', !!pre, b.p.actionBars.slice(0, 3).map((x) => JSON.stringify(x.plain)).join(' | ') || '행동 막대 없음')
+  if (got.ok && pre) {
+    const shown = L.render(pre.raw, L.langTable(L.readZip(got.buf), 'ko_kr'))
+    sc.check('pre-pack action bar reads "소울 N" with the pack ko_kr', /^소울 [\d,]+$/.test(shown.trim()), JSON.stringify(shown))
   }
-  // 팩이 아직 없거나 못 실었을 때 보이는 대체 글도 그 사람의 언어 (Lang.c(viewer, ...), 10.9)
-  if (ab) {
-    const fb = L.render(ab.raw, {})
-    sc.check('action bar fallback (no pack) is Korean for a ko_kr client', /^소울 [\d,]+$/.test(fb.trim()), JSON.stringify(fb))
+  if (pre) {
+    const fb = L.render(pre.raw, {})
+    sc.check('pre-pack action bar fallback (no pack) is Korean for a ko_kr client', /^소울 [\d,]+$/.test(fb.trim()), JSON.stringify(fb))
   }
   sc.check('food 20 (sprint allowed) at rest', b.food === 20, 'food=' + b.food)
 
