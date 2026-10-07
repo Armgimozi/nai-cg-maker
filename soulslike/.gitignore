@@ -1,0 +1,5 @@
+plugin/build/
+plugin/.gradle/
+__pycache__/
+# 루트 .gitignore 의 config.yml 무시 규칙에서 플러그인 기본 설정은 뺀다
+!plugin/src/main/resources/config.yml
