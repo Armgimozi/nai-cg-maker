@@ -237,7 +237,7 @@
 - 막으면: 피해 × (1 − 흡수율)만 들어오고 스태미나를 깎인다. 강인도 피해는 절반이다. 그리고 12틱 동안 막기 반격 기회가 열린다.
 - 스태미나가 모자라면 **막기가 깨진다**: 스태미나 0, 방패가 30틱 동안 내려가고 24틱 경직. 막기 깨짐을 노리는 적은 그 틈에 큰 공격을 한다.
 - 구현: 막기 계산은 모두 플러그인이 한다. 바닐라 `BLOCKS_ATTACKS` 성분은 막는 자세, `using_item` 모델, 클라이언트의 느려짐만을 위해 쓴다.
-  - 막기 성분의 `damage_reductions` 는 **늘 비워 둔다** (Paper 빌더 기본값). 비어 있지 않으면 바닐라가 플러그인 피해를 한 번 더 깎고, 방패 내구도를 깎고, 공격자를 밀고, 공격자 무기의 막기 해제 시간을 적용한다. 덧붙여 `bypassedBy` 를 `#minecraft:bypasses_shield` 로, `disableCooldownScale` 을 0으로 둔다 [확인 (API): `BlocksAttacks.Builder`].
+  - 막기 성분의 `damage_reductions` 는 **늘 비워 둔다** (Paper 빌더 기본값). 비어 있지 않으면 바닐라가 플러그인 피해를 한 번 더 깎고, 방패 내구도를 깎고, 막은 사람을 밀고 (1.21.11 의 `blockedByItem` [확인 (실행): `guard.js` 대조군]), 공격자 무기의 막기 해제 시간을 적용한다. 덧붙여 `bypassedBy` 를 `#minecraft:bypasses_shield` 로, `disableCooldownScale` 을 0으로 둔다 [확인 (API): `BlocksAttacks.Builder`].
   - 적 피해는 `minecraft:generic` 이고, generic 은 `#bypasses_armor` 에, `#bypasses_shield` 는 `#bypasses_armor` 를 품는다 [확인 (데이터): 1.21.11 서버 jar 의 태그]. 바닐라 `LivingEntity.applyItemBlocking` 은 `bypassedBy` 에 걸리면 곧바로 0을 돌려준다 [확인 (서버 코드)]. 그래서 막는 소리·밀림·내구도 감소가 바닐라 쪽에서 일어나지 않는다. M0 서버 시험은 확인만 한다.
   - 적이 든 아이템에서는 `WEAPON` 성분의 막기 해제 시간(`disable_blocking_for_seconds`)을 뗀다. 바닐라 도끼는 막기를 5초 동안 푼다.
   - 막기 깨짐은 `clearActiveItem()` + `setCooldown(방패, 30)` [확인 (API)].
@@ -2209,6 +2209,7 @@ universal_anger=false
 
 - `/souls` (관리자): `build region|room`, `check`, `tp <anchor>`, `boss <id> start|reset|kill`, `profile dump|set`, `state set <flag>`, `give` (아이템·술), `spawn`, `perf`, `telemetry summary`, `reload`.
 - `/soulstest` (`debug.test-mode: true` 일 때만): 적·보스를 자리에 만들기, 동작 강제, `[T] WINDUP hrolf.overhead c=1234` 같은 시각 줄을 채팅으로 (봇이 반응 시각을 맞춘다), Dialog 단추 처리기를 직접 부르기 (봇은 창 단추를 못 누른다), 핑 보정 값 강제, 가짜 시계, 무적, 온기 채우기·비우기 (`warmth <n>`). 술은 봇도 진짜 우클릭으로 시전한다.
+- M0 의 `/soulstest`: `stamina [set]`, `hit`, `guard <empty|control|bypass|strip>`, `swing [틱] [공격 속도]`, `rollhit <1~40>` (걸어 둔 뒤 처음 구르는 구르기에 묶인다), `warn <틱>` (예고 줄 뒤 때리기, 13.3), `roll`, `kill`, `heal`, `info`, `pos`, `title`, `dialog`, `skill`. 자세한 것은 `cmd/TestCommands` 머리말. `/souls tp` 자리: `room`, `lane`, `slab` (판석 길), `ledge`, `lobby`.
 
 ---
 
@@ -2271,7 +2272,7 @@ M1 (전투 느낌), M4 (보이는 것 전체), M5 (술 몸짓과 온기 막대),
 
 | 무엇 | 어디서 확인 | 대안 |
 |---|---|---|
-| 비운 `BLOCKS_ATTACKS` + `bypassedBy` 일 때 generic 피해가 깎이지 않고 막는 소리·밀림·내구도 감소가 없다 — **[확인 (실행)]**: `tools/bots/guard.js`. 피해가 그대로 들어오고, 내구도가 그대로이고, 공격자(원인 좀비)가 밀리지 않는다. 다 막는 감소표의 대조군에서는 공격자가 밀리고 내구도가 깎여 이 판정이 실패할 수 있음을 보인다. 맞은 쪽 밀림은 generic 이 `#no_knockback` 이라 어느 쪽이든 없다 | M0 서버 시험 | 데이터팩 피해 종류 `souls:hit` 와 그것만 담은 태그를 만들어 `bypassedBy` 에 건다 |
+| 비운 `BLOCKS_ATTACKS` + `bypassedBy` 일 때 generic 피해가 깎이지 않고 막는 소리·밀림·내구도 감소가 없다 — **[확인 (실행)]**: `tools/bots/guard.js`. 피해가 그대로 들어오고, 내구도가 그대로이고, 막은 사람이 밀리지 않는다. 다 막는 감소표의 대조군에서는 바닐라 막기가 막은 사람을 밀고 (1.21.11 의 `blockedByItem`, generic 의 `#no_knockback` 과 상관없다) 내구도가 깎여 이 판정이 실패할 수 있음을 보인다. 공격자(원인 좀비)는 어느 쪽이든 밀리지 않는다 | M0 서버 시험 | 데이터팩 피해 종류 `souls:hit` 와 그것만 담은 태그를 만들어 `bypassedBy` 에 건다 |
 | Dialog 를 Esc 로 닫을 때 나가기 동작이 오는지 — **[확인 (클라)]**: `multi_action` 의 `exit_action` 이 Esc 에도 서버로 온다 (`/soulstest dialog`, `dist/screenshots/m0`) | M0 실제 클라이언트 | 앉은 채 방향키로 일어서기 (4.1) |
 | 막는 중 `USE_EFFECTS` 걸음 배율이 방패·무기에도 먹는지 — **[확인 (클라)]**: 0.55 를 단 시험 막기 도구로 0.8초 걸음이 3.67 → 1.90칸 (바닐라 0.2 였다면 약 0.7칸) | M0 실제 클라이언트 | 막는 중 `MOVEMENT_SPEED` 임시 수정자로 보정 |
 | Dialog 단추 클릭 — **[확인 (클라)]**: 마우스로 누른 단추의 사용자 지정 클릭이 서버 콜백으로 온다 | M0 실제 클라이언트 | 27칸 상자 GUI |

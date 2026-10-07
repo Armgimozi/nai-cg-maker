@@ -25,9 +25,10 @@
 
 ```
 plugin/   Gradle 플러그인 (kr.souls). 리소스: paper-plugin.yml, config.yml, lang/ko.yml, content/, datapack/soulsdp/
-pack/     리소스팩 생성기 (gen_pack.py, hud.py, palette.py, artlint.py)
+pack/     리소스팩 생성기 (gen_pack.py, hud.py 글꼴·사망 제목, gui_skin.py 하트·스태미나 막대·단축 슬롯·창·단추,
+          icons.py 아이템 그림·모형·입자, palette.py, artlint.py, art/ 손으로 찍은 그림)
 server/   배포할 서버 폴더 (start.bat → start.ps1, start.sh, server.properties, bukkit.yml, config/paper-global.yml, README.txt)
-tools/    make_dist.py (배포 묶기), textlint.py (글 검사), bots/ (봇 시험)
+tools/    make_dist.py (배포 묶기), textlint.py (글 검사), run_tests.sh + bots/ (봇 시험), client/ (실제 클라이언트로 찍기)
 dist/     묶은 결과: Soulslike.jar, Soulslike-Server.zip, packs/<sha1>.zip
 ```
 
@@ -58,5 +59,7 @@ python3 tools/make_dist.py --no-build # 관문만 보고 묶는다
 ## 시험
 
 - 게임 안: `/souls check` (데이터팩, 바이옴, 난이도, 게임 규칙, 시험 방, 팩, 그림 글자). `/soulstest` 는 `debug.test-mode: true` 일 때만 (봇 시험용).
-- 봇: `tools/bots/` (mineflayer 4.39), 지연 프록시 `tools/bots/lagproxy.js`.
+- 봇: `tools/run_tests.sh` (`tools/bots/`, mineflayer 4.39), 지연 프록시 `tools/bots/lagproxy.js`.
+- 실제 클라이언트: `tools/client/m0_shots.sh` (13.4 점검 그림, `dist/screenshots/m0/`).
+- 사망 화면 제목의 두 판 (16절 질문 4) 은 `plugin/src/main/resources/config.yml` 의 `death.title` 하나로 고른다. `gen_pack.py` 와 `make_dist.py` 가 같은 값을 읽어 팩을 만든다.
 - 글·그림: `python3 tools/textlint.py`, `python3 pack/artlint.py`.

@@ -4,9 +4,9 @@
 //   control 바닐라 방패처럼 다 막는 감소표 (대조군): 시험이 바닐라 막기를 알아보는지. 피해 0
 //   bypass  다 막는 감소표 + #bypasses_shield: 우회가 먹어 피해가 그대로, 밀림·내구도 감소 없음
 // 놓기(block_dig 상태 5) 뒤에는 막지 않는다. generic 은 방어구를 지나친다, 데이터팩 피해 종류 souls:hit.
-// 밀림은 둘을 본다. knockback 은 맞은 봇 (generic 은 #no_knockback 이라 늘 false, 그것도 확인한다),
-// attackerKnockback 은 원인 좀비: 바닐라 막기는 막은 사람이 공격자를 민다 (blockUsingItem, 3.4 가 막으려는 부작용).
-// 대조군은 이것이 true 라 이 판정이 실제로 실패할 수 있음을 보인다.
+// 밀림은 둘을 본다. knockback 은 맞은 봇: generic 은 #no_knockback 이라 피해 밀림은 없지만, 바닐라 막기가 일어나면
+// 1.21.11 은 막은 사람을 민다 (blockUsingItem → blockedByItem, 3.4 가 막으려는 부작용). 대조군에서 true 로 나와
+// 이 판정이 실제로 실패할 수 있음을 보인다 [확인 (실행)]. attackerKnockback 은 원인 좀비 (1.21.11 은 공격자를 밀지 않는다).
 'use strict'
 const L = require('./lib')
 
@@ -37,12 +37,12 @@ L.run('guard', async (sc) => {
     b.release()
     if (!sc.checkCmd(`guard ${kind}: server sees blocking`, h, (r) => r.kv.blocking === 'true', h.line)) { await L.sleep(400); continue }
     sc.check(`guard ${kind}: generic damage ${want.full ? 'goes through in full' : 'fully blocked (control)'}`, h.kv.full === String(want.full), `dealt=${h.kv.dealt}`)
-    sc.check(`guard ${kind}: defender not knocked back (generic is #no_knockback)`, h.kv.knockback === 'false', 'knockback=' + h.kv.knockback)
+    sc.check(`guard ${kind}: attacker not pushed`, h.kv.attackerKnockback === 'false', 'attackerKnockback=' + h.kv.attackerKnockback)
     if (want.clean) {
-      sc.check(`guard ${kind}: attacker not pushed back (no vanilla blockUsingItem)`, h.kv.attackerKnockback === 'false', 'attackerKnockback=' + h.kv.attackerKnockback)
+      sc.check(`guard ${kind}: no vanilla block knockback on the defender`, h.kv.knockback === 'false', 'knockback=' + h.kv.knockback)
       sc.check(`guard ${kind}: no durability loss`, /^(0->0|-->-)$/.test(h.kv.dur), 'dur=' + h.kv.dur)
     } else {
-      sc.check(`guard ${kind}: vanilla pushes the attacker back (control works)`, h.kv.attackerKnockback === 'true', 'attackerKnockback=' + h.kv.attackerKnockback)
+      sc.check(`guard ${kind}: vanilla block knocks the defender back (control works)`, h.kv.knockback === 'true', 'knockback=' + h.kv.knockback)
       sc.check(`guard ${kind}: vanilla durability loss (control works)`, !/^(0->0|-->-)$/.test(h.kv.dur), 'dur=' + h.kv.dur)
     }
     sc.check(`guard ${kind}: client health ${want.full ? 'drops by 2' : 'unchanged'}`, want.full ? Math.abs(hp0 - 2 - b.health) < 0.6 : Math.abs(hp0 - b.health) < 0.01, `hp ${hp0} → ${b.health}`)

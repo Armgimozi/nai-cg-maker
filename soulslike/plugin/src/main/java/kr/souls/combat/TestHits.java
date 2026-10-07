@@ -28,8 +28,9 @@ import java.util.Locale;
  * M0 서버 시험 (13.4 표 첫 줄, 3.4): 막기 성분 + minecraft:generic 피해.
  * 플레이어 앞 2칸에 잠깐 세운 좀비를 원인 물체로 삼아 피해를 넣고, 실제로 깎인 체력, 막는 중이었는지,
  * 바닐라 밀림이 일어났는지, 든 아이템 내구도가 바뀌었는지를 잰다. /soulstest hit 와 rollhit 이 쓴다.
- * 밀림은 둘을 따로 본다: knockback 은 맞은 사람 (generic 은 #no_knockback 이라 막든 안 막든 늘 false),
- * attackerKnockback 은 원인 좀비. 3.4 가 막으려는 바닐라 막기 부작용은 막은 사람이 공격자를 미는 쪽 (blockUsingItem) 이다.
+ * 밀림은 둘을 따로 본다: knockback 은 맞은 사람, attackerKnockback 은 원인 좀비. generic 은 #no_knockback 이라 피해 밀림은
+ * 없지만, 바닐라 막기가 일어나면 1.21.11 은 막은 사람을 민다 (blockUsingItem → blockedByItem, 3.4 가 막으려는 부작용).
+ * 대조군(다 막는 감소표)에서 knockback=true 로 확인했다. 공격자는 밀리지 않는다 (attackerKnockback=false).
  * 원인 물체가 살아 있는 비플레이어라 난이도 배율 규칙이 걸린다 (normal 이면 배율 없음).
  */
 public final class TestHits implements Listener {

@@ -195,13 +195,14 @@ public final class TestCommands {
      * 지금은 피격 대기열(3.9, M1)이 없어 서버 틱 그대로 판정한다. 지연별 피한 비율은 대기열이 생긴 뒤의 견줄 기준선이다.
      */
     private static void warn(Souls plugin, Player p, int ticks, double amount) {
-        long at = plugin.ticker().now() + ticks;
-        plugin.test(p, "WARN hit_in=" + ticks + " at=" + at + " t=" + plugin.ticker().now());
+        long warned = plugin.ticker().now();
+        plugin.test(p, "WARN hit_in=" + ticks + " at=" + (warned + ticks) + " t=" + warned);
         org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (!p.isOnline() || p.isDead()) return;
             CombatState st = CombatState.of(p);
             long now = plugin.ticker().now();
-            long since = st.roll == null ? -1 : now - st.rollStart;
+            // 예고 뒤에 시작한 구르기만 센다 (F 가 피해보다 늦게 닿았으면 -1)
+            long since = st.roll == null || st.rollStart < warned ? -1 : now - st.rollStart;
             TestHits.Result r = plugin.testHits().hit(p, amount, "generic", false);
             plugin.test(p, String.format(Locale.ROOT, "WARNHIT roll_t=%d iframes=%d dodged=%s %s t=%d", since,
                     st.roll == null ? 0 : st.roll.iframes(), r.dealt() <= 1e-6, r.line(), now));
