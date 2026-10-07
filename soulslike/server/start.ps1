@@ -1,12 +1,15 @@
 ﻿# 식은 가마 서버 시작기. start.bat 이 이 파일을 실행합니다.
-# 처음 실행하면 Java 21 과 Paper 1.21.11 을 자동으로 내려받습니다.
+# 처음 실행하면 Java 21 과 Paper 1.21.11 (빌드 132) 을 자동으로 내려받습니다.
 # 무슨 일이 있었는지는 이 폴더의 start-log.txt 에 그대로 남습니다.
 # (윈도우 PowerShell 5.1 에서도 돌아가도록 새 문법은 쓰지 않습니다)
+# 이 파일은 UTF-8 (BOM) + CRLF 로 둡니다. BOM 이 없으면 PowerShell 5.1 이 한글을 깨뜨려 읽습니다.
 
-$PaperUrl  = 'https://fill-data.papermc.io/v1/objects/5ffef465eeeb5f2a3c23a24419d97c51afd7dbb4923ff42df9a3f58bba1ccfba/paper-1.21.11-132.jar'
-$PaperSize = 54846016
-$PaperSha  = '5ffef465eeeb5f2a3c23a24419d97c51afd7dbb4923ff42df9a3f58bba1ccfba'
-$JavaUrl   = 'https://api.adoptium.net/v3/binary/latest/21/ga/windows/x64/jre/hotspot/normal/eclipse'
+# Paper 는 1.21.11 빌드 132 로 고정한다 (DESIGN.md 0.1). 데이터 성분 API 가 실험 기능이라 빌드가 바뀌면 플러그인이 깨질 수 있다.
+# 값은 https://fill.papermc.io/v3/projects/paper/versions/1.21.11/builds/132 의 server:default 그대로. start.sh 와 같아야 한다
+$PaperUrl    = 'https://fill-data.papermc.io/v1/objects/5ffef465eeeb5f2a3c23a24419d97c51afd7dbb4923ff42df9a3f58bba1ccfba/paper-1.21.11-132.jar'
+$PaperSize   = 54846016
+$PaperSha256 = '5ffef465eeeb5f2a3c23a24419d97c51afd7dbb4923ff42df9a3f58bba1ccfba'
+$JavaUrl     = 'https://api.adoptium.net/v3/binary/latest/21/ga/windows/x64/jre/hotspot/normal/eclipse'
 # 서버 메모리. 비워 두면 PC 메모리를 보고 2G~4G 사이에서 고릅니다. 직접 정하려면 예) $Memory = '6G'
 $Memory = ''
 
@@ -110,11 +113,12 @@ function Test-Zip($file) {
     } catch { return $false }
 }
 
-# paper.jar 가 이 시작기가 고른 판(1.21.11 빌드 132)인지. 크기와 sha256 이 다르면 다시 받는다
+# paper.jar 가 이 시작기가 고른 판(1.21.11 빌드 132)인지. 크기가 먼저 맞아야 sha256 을 잰다 (55MB 를 매번 읽지 않게)
 function Test-PaperJar($file) {
     try {
+        if (-not (Test-Path -LiteralPath $file)) { return $false }
         if ((Get-Item -LiteralPath $file).Length -ne $PaperSize) { return $false }
-        return ((Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLower() -eq $PaperSha)
+        return ((Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLower() -eq $PaperSha256)
     } catch { return $false }
 }
 
@@ -131,7 +135,7 @@ try {
     Say '[식은 가마 시작기 1판]' 'Cyan'
     Say "폴더: $Root"
 
-    # ── 압축을 풀었는지 ──
+    # ── 압축을 풀었는지 (M0 에는 미리 지은 세계가 없다. 처음 켤 때 플러그인이 짓는다) ──
     if (-not (Test-Path -LiteralPath 'plugins\Soulslike.jar')) {
         Stop-WithMessage @(
             '압축을 먼저 모두 풀어 주세요.',
@@ -179,22 +183,28 @@ try {
     }
     Say "  Java: $java"
 
-    # ── Paper 서버 파일 ──
+    # ── Paper 서버 파일 (크기와 sha256 이 다르면 지우고 다시 받는다) ──
     $paper = Join-Path $Root 'paper.jar'
-    if (-not ((Test-Path -LiteralPath $paper) -and (Test-PaperJar $paper))) {
+    if (-not (Test-PaperJar $paper)) {
+        if (Test-Path -LiteralPath $paper) {
+            Say '  paper.jar 가 1.21.11 빌드 132 가 아니어서 다시 받습니다.' 'Yellow'
+            Remove-Item -LiteralPath $paper -Force
+        }
         Say '[2/2] Paper 1.21.11 서버 파일을 내려받는 중입니다... (55MB 정도)' 'Cyan'
         $ok = Get-File $PaperUrl $paper
         if (-not $ok -or -not (Test-PaperJar $paper)) {
             Remove-Item -LiteralPath $paper -Force -ErrorAction SilentlyContinue
             Stop-WithMessage @(
-                'Paper 서버 파일을 받지 못했습니다. 회선이나 보안 프로그램이 papermc.io 연결을 막는 경우가 있습니다.',
+                'Paper 서버 파일을 받지 못했거나, 받은 파일이 맞지 않습니다 (크기·sha256 확인 실패).',
+                '회선이나 보안 프로그램이 papermc.io 연결을 막는 경우가 있습니다.',
                 ' - VPN 을 켜고 다시 실행해 보세요. 한 번 받은 뒤에는 VPN 을 꺼도 됩니다.',
-                ' - 또는 https://papermc.io/downloads/all 에서 1.21.11 빌드 132 를 받아 이 폴더에 paper.jar 라는 이름으로 넣어 주세요.')
+                ' - 또는 https://papermc.io/downloads/all 에서 1.21.11 의 빌드 132 를 받아',
+                '   이 폴더에 paper.jar 라는 이름으로 넣어 주세요. 다른 빌드는 받지 않습니다.')
         }
     }
-    Say '  Paper: paper.jar'
+    Say '  Paper: paper.jar (1.21.11 빌드 132, sha256 확인)'
 
-    # ── 메모리 ──
+    # ── 메모리 (DESIGN.md 12.10: 3~4GB) ──
     if (-not $Memory) {
         $gb = 8
         try { $gb = [math]::Floor((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory / 1GB) } catch {}
@@ -231,13 +241,15 @@ try {
     }
 
     # ── 서버 켜기 ──
+    # stdout.encoding 은 정하지 않는다. 윈도우 콘솔의 코드 페이지(한국어 949)를 Java 가 스스로 따라야 한글이 깨지지 않는다
     Say ''
     Say '서버를 켭니다. 아래에 "Done" 이 나오면 마인크래프트 1.21.11 에서 localhost 로 접속하세요.' 'Green'
-    Say '처음에는 마인크래프트 서버 파일을 한 번 더 받고 세계를 짓느라 몇 분 걸립니다.'
+    Say '처음 켤 때는 마인크래프트 서버 파일을 한 번 더 받고 세계를 짓느라 몇 분 걸립니다.'
+    Say '세계를 짓는 동안 들어가면 "세계를 짓는 중이다" 로 거절됩니다. 잠시 뒤 다시 들어가세요.'
     Say '서버를 끌 때는 이 창에 stop 을 입력하세요.'
     Say ''
     Say "실행: `"$java`" -Xms$xms -Xmx$Memory -jar paper.jar nogui"
-    & $java "-Xms$xms" "-Xmx$Memory" "-Dstdout.encoding=UTF-8" -jar paper.jar nogui
+    & $java "-Xms$xms" "-Xmx$Memory" -jar paper.jar nogui
     $code = $LASTEXITCODE
     Say ''
     if ($code -eq 0) {

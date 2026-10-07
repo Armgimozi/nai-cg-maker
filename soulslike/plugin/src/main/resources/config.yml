@@ -80,10 +80,12 @@ pack:
   # 팩 주소 틀. {sha1} 은 jar 안 pack.zip 의 SHA-1 로 채운다 (dist/packs/<sha1>.zip 을 올려 두면 된다)
   url: "https://raw.githubusercontent.com/Armgimozi/nai-cg-maker/main/soulslike/dist/packs/{sha1}.zip"
   required: true
-  # join: 접속하고 join-delay 틱 뒤에 보낸다 / configure: 세계가 보이기 전 설정 단계에서 보내고 답을 기다린다 (아직 확인 전)
+  # join: 접속하고 join-delay 틱 뒤에 보낸다 (검증됨)
+  # configure: 세계가 보이기 전 설정 단계에서 보내고 답을 configure-timeout 초까지 기다린다 (실제 클라이언트로 아직 확인 전.
+  #            봇 시험에서는 답이 오지 않아 기다리는 시간을 다 썼다)
   send-at: join
   join-delay: 20
-  configure-timeout: 30
+  configure-timeout: 10
   # 켤 때 주소에서 팩을 받아 SHA-1 을 견준다. 다르거나 못 받으면 크게 알리고 팩을 선택으로 보낸다
   self-check: true
   # 0 보다 크면 jar 안 pack.zip 을 이 포트에서 직접 내보낸다 (로컬 시험용).

@@ -52,6 +52,8 @@ public final class Hud implements Listener {
         long forceUntil;
         Component bar;
         long barAt;
+        /** 행동 막대를 만든 값 (바뀔 때만 글을 다시 만든다: MiniMessage 해석은 틱마다 하기엔 비싸다) */
+        String barKey;
     }
 
     private final Souls plugin;
@@ -76,6 +78,7 @@ public final class Hud implements Listener {
         View v = view(p);
         v.xp = -1;
         v.bar = null;
+        v.barKey = null;
         v.forceUntil = plugin.ticker() == null ? 0 : plugin.ticker().now() + XP_FORCE;
     }
 
@@ -92,14 +95,26 @@ public final class Hud implements Listener {
                 v.xp = prog;
                 v.xpAt = now;
             }
-            Component bar = actionBar(p, st);
-            if (bar == null) continue;
-            if (v.bar == null || !bar.equals(v.bar) || now - v.barAt >= refresh) {
-                p.sendActionBar(bar);
-                v.bar = bar;
+            String key = barKey(p, st);
+            if (key.isEmpty()) continue;
+            boolean changed = !key.equals(v.barKey) || v.bar == null;
+            if (changed) {
+                v.bar = actionBar(p, st);
+                v.barKey = key;
+            }
+            if (v.bar != null && (changed || now - v.barAt >= refresh)) {
+                p.sendActionBar(v.bar);
                 v.barAt = now;
             }
         }
+    }
+
+    /** 행동 막대에 들어가는 값들을 이은 열쇠. 비어 있으면 보일 것이 없다. */
+    private String barKey(Player p, CombatState st) {
+        StringBuilder k = new StringBuilder();
+        if (st.mana != null) k.append('m').append(Math.round(st.mana.cur())).append('/').append(Math.round(st.mana.max()));
+        if (plugin.cfg().hud.showSouls()) k.append('s').append(souls.applyAsLong(p));
+        return k.toString();
     }
 
     /** 행동 막대 한 줄. 보일 것이 없으면 null. */

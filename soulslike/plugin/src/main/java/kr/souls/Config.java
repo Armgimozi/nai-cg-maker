@@ -106,7 +106,7 @@ public final class Config {
 
         pack = new PackCfg(c.getBoolean("pack.enabled", true), c.getString("pack.url", ""),
                 c.getBoolean("pack.required", true), c.getString("pack.send-at", "join").toLowerCase(Locale.ROOT),
-                Math.max(0, c.getInt("pack.join-delay", 20)), Math.max(1, c.getInt("pack.configure-timeout", 30)),
+                Math.max(0, c.getInt("pack.join-delay", 20)), Math.max(1, c.getInt("pack.configure-timeout", 10)),
                 c.getBoolean("pack.self-check", true), c.getInt("pack.serve-port", 0));
 
         testMode = c.getBoolean("debug.test-mode", false);

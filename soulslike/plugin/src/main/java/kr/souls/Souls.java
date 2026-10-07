@@ -26,7 +26,6 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import java.util.List;
 import java.util.Set;
 
 /**
@@ -147,8 +146,11 @@ public final class Souls extends JavaPlugin {
         Lang.load(this);
         Glyphs.load(this);
         skills.load(content.yml("skills.yml"));
-        // 시험 모드를 켜고 끄면 /soulstest 가 보이고 숨는다
-        for (Player p : Bukkit.getOnlinePlayers()) p.updateCommands();
+        // 시험 모드를 켜고 끄면 /soulstest 가 보이고 숨는다. 바뀐 문구로 HUD 를 다시 그린다
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            p.updateCommands();
+            hud.invalidate(p);
+        }
     }
 
     /**
@@ -159,10 +161,6 @@ public final class Souls extends JavaPlugin {
         if (!cfg.testMode) return;
         if (p != null) p.sendMessage(Component.text("[T] " + line, kr.souls.hud.Glyphs.ASH3));
         if (cfg.logTestLines) getLogger().info("[T] " + (p == null ? "" : p.getName() + " ") + line);
-    }
-
-    public void testAll(List<String> lines, Player p) {
-        for (String l : lines) test(p, l);
     }
 
     public Config cfg() { return cfg; }
