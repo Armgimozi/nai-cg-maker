@@ -767,7 +767,7 @@ ember_toss:
   - 점수 줄(`deathScreen.score.value`, 원문 "Score: %s") → 빈칸.
   - 둘째 단추(`deathScreen.titleScreen`, 원문 "Title Screen") → "그만둔다", 그 확인 문구(`deathScreen.quit.confirm`) → "여기서 그만두겠나". 키 이름은 1.21.11 클라이언트 `en_us.json` 에서 확인했다 [확인 (클라)].
   - 밑의 사망 문구는 비운다 (`deathScreenMessageOverride` 에 빈 글). 이 기능은 `show_death_messages=true` 일 때만 듣고, 채팅 알림은 `deathMessage(null)` 로 막는다 [확인 (실행)].
-- **제목은 한 번만 보인다.** 플러그인이 죽은 틱에 화면 제목 (title) 으로 같은 그림 글자를 띄우는 길도 있다 (`death.title`). 사망 화면 제목과 함께 띄우면 "YOU DIED" 가 두 번 겹쳐 보인다 [확인 (클라): `pack/preview/client_death_plus_title.png`]. 그래서 둘 가운데 하나만 쓴다. 기본은 사망 화면 제목 (`death.title: false`). 화면 한가운데에 더 크게 띄우려면 팩에서 `deathScreen.title` 을 비우고 `death.title: true` 로 한다 (16절 질문 4).
+- **제목은 한 번만 보인다.** 플러그인이 죽은 틱에 화면 제목 (title) 으로 같은 그림 글자를 띄우는 길도 있다 (`death.title`). 사망 화면 제목과 함께 띄우면 "YOU DIED" 가 두 번 겹쳐 보인다 [확인 (클라): `pack/preview/client_death_plus_title.png`]. 그래서 둘 가운데 하나만 쓴다. 기본은 사망 화면 제목 (`death.title: false`). 화면 한가운데에 더 크게 띄우려면 팩에서 `deathScreen.title` 을 비우고 (`python3 pack/gen_pack.py --death-title plugin`) `death.title: true` 로 한다 (16절 질문 4). 화면 제목은 사망 화면의 붉은 덧칠 밑에 그려져 조금 어둡다 [확인 (클라): M0 점검 그림 `dist/screenshots/m0/`].
 - 바닐라가 그리는 어두운 붉은 덧칠은 이 분위기에 맞으므로 그대로 둔다.
 - 곧바로 화톳불에서 일어나는 방식 (1.1판의 대안) 은 쓰지 않는다.
 
@@ -1928,7 +1928,7 @@ y 10                [두르크: 모루 옥좌 B6]  <---- h 용암 굴 ---->  [�
 - 주소 틀: `https://raw.githubusercontent.com/<owner>/<repo>/<branch>/soulslike/dist/packs/{sha1}.zip`. 플러그인이 jar 안 팩의 SHA-1로 `{sha1}` 을 채운다. 파일 이름이 내용으로 정해지므로 raw의 캐시와 커밋 고정 문제가 사라진다. 올리기(커밋·푸시)는 사용자가 한다.
 - 시작할 때 플러그인이 그 주소를 비동기로 받아 SHA-1을 비교한다. 다르면 크게 경고하고 팩을 선택(optional)으로 보낸다.
 - `required: true`, 고정 팩 UUID, 한국어 안내문 (10.3).
-- 보내는 때: `AsyncPlayerConnectionConfigureEvent` (세계가 보이기 전) [미확인] → 대안: 접속 + 20틱 (skyblock에서 검증).
+- 보내는 때: `AsyncPlayerConnectionConfigureEvent` (세계가 보이기 전) [확인 (클라): M0 점검, 실제 클라이언트는 이 단계에서 받고 답한다. 봇은 답하지 않는다] 또는 접속 + 20틱 (skyblock에서 검증, 지금 기본값 `pack.send-at: join`).
 - playit은 25565만 통하므로 플러그인 자체 HTTP 서버는 쓰지 않는다. 팩 크기는 8MB 아래.
 
 ---
@@ -2265,17 +2265,17 @@ M1 (전투 느낌), M4 (보이는 것 전체), M5 (술 몸짓과 온기 막대),
 | 무엇 | 어디서 확인 | 대안 |
 |---|---|---|
 | 비운 `BLOCKS_ATTACKS` + `bypassedBy` 일 때 generic 피해가 깎이지 않고 막는 소리·밀림·내구도 감소가 없다 — 서버 코드와 태그로는 확인했다 (3.4), 실행 확인만 남았다 | M0 서버 시험 | 데이터팩 피해 종류 `souls:hit` 와 그것만 담은 태그를 만들어 `bypassedBy` 에 건다 |
-| Dialog 를 Esc 로 닫을 때 나가기 동작이 오는지 | M0 실제 클라이언트 | 앉은 채 방향키로 일어서기 (4.1) |
-| 막는 중 `USE_EFFECTS` 걸음 배율이 방패·무기에도 먹는지 | M0 실제 클라이언트 | 막는 중 `MOVEMENT_SPEED` 임시 수정자로 보정 |
-| Dialog 단추 클릭 | M0 실제 클라이언트 | 27칸 상자 GUI |
-| 사망 화면 그림 글자 "YOU DIED" 가 플러그인 제목과 겹치지 않는지 (`death.title` 기본 false, 5.6). 글자가 그려지는 것은 확인했다 [확인 (클라)] | M0 실제 클라이언트 | 붉은 일반 글씨 "YOU DIED" |
-| 왼손 방패로 넘어가기 (주손 막기 성분을 뗀 뒤) | M0 실제 클라이언트 | 주손 무기에 방패 수치를 싣는다 |
-| 검이 아닌 껍데기 아이템의 막는 자세·`SWING_ANIMATION`·회복 표시기 | M0 실제 클라이언트 | 껍데기 아이템을 바꿔 다시 본다 |
-| 회전 구르기의 카메라 | M0 실제 클라이언트 | 꺼 둔다 (기본값) |
+| Dialog 를 Esc 로 닫을 때 나가기 동작이 오는지 — **[확인 (클라)]**: `multi_action` 의 `exit_action` 이 Esc 에도 서버로 온다 (`/soulstest dialog`, `dist/screenshots/m0`) | M0 실제 클라이언트 | 앉은 채 방향키로 일어서기 (4.1) |
+| 막는 중 `USE_EFFECTS` 걸음 배율이 방패·무기에도 먹는지 — **[확인 (클라)]**: 0.55 를 단 시험 막기 도구로 0.8초 걸음이 3.67 → 1.90칸 (바닐라 0.2 였다면 약 0.7칸) | M0 실제 클라이언트 | 막는 중 `MOVEMENT_SPEED` 임시 수정자로 보정 |
+| Dialog 단추 클릭 — **[확인 (클라)]**: 마우스로 누른 단추의 사용자 지정 클릭이 서버 콜백으로 온다 | M0 실제 클라이언트 | 27칸 상자 GUI |
+| 사망 화면 그림 글자 "YOU DIED" 가 플러그인 제목과 겹치지 않는지 (`death.title` 기본 false, 5.6) — **[확인 (클라)]**: 기본 판에서 한 번만 보이고 글자 평균색 #bd1e14 (생피). 플러그인 화면 제목 판 (`gen_pack.py --death-title plugin` + `death.title: true`) 은 더 크지만 사망 화면 덧칠 밑에 그려져 #921913 으로 어둡다. `/souls check` 가 둘이 겹치면 FAIL | M0 실제 클라이언트 | 붉은 일반 글씨 "YOU DIED" |
+| 왼손 방패로 넘어가기 (주손 막기 성분을 뗀 뒤) — **[확인 (클라)]**: 주손에 막기 성분이 있으면 주손이 막고, 떼면 같은 우클릭으로 왼손 방패를 든다 | M0 실제 클라이언트 | 주손 무기에 방패 수치를 싣는다 |
+| 검이 아닌 껍데기 아이템의 막는 자세·`SWING_ANIMATION`·회복 표시기 — **[확인 (클라)]**: 부싯돌 껍데기로 막는 자세가 나오고, `swing_animation` 길이가 휘두름을 늘이고 (20fps 녹화에서 팔이 든 채 약 5프레임, 바닐라 약 3프레임), `attack_speed` 를 낮추면 조준점 밑 회복 표시기가 그려진다. 맞춤 모형 위의 모습은 M1 | M0 실제 클라이언트 | 껍데기 아이템을 바꿔 다시 본다 |
+| 회전 구르기의 카메라 — **[확인 (클라)]**: 켜면 3인칭에서 삼지창 회오리 띠가 감기고 1인칭이 흔들린다. 구르기로 보이지 않아 끈 채로 둔다 | M0 실제 클라이언트 | 꺼 둔다 (기본값) |
 | `MOVEMENT_SPEED` 임시 수정자로 제자리 고정·이동 감속 | M1 실행 | 구속 효과 |
 | `Mannequin` NPC 실제 동작 | M3 실행 | AI를 끈 바닐라 주민 |
 | `tooltip_style` 설명 칸, HUD 그림 글자 자리 맞추기, 바이옴 안개 | M4 실제 클라이언트 | 바닐라 설명 칸, 하트, 입자·어둠 |
-| `AsyncPlayerConnectionConfigureEvent` 에서 팩 보내기 | M0 실행 | 접속 + 20틱 |
+| `AsyncPlayerConnectionConfigureEvent` 에서 팩 보내기 — **[확인 (클라)]**: 실제 클라이언트는 설정 단계에서 팩을 받아 (캐시 없이 새로 받기 포함) 다시 싣고 답한 뒤 세계에 들어온다 (약 5초). mineflayer 봇은 이 단계에서 답하지 않으므로 기본값은 아직 `join` | M0 실행 | 접속 + 20틱 |
 | 데이터팩 피해 종류 `souls:hit` | 쓰기로 할 때 | generic + normal (기본) |
 | 모험 모드에서 블록을 못 캐는지 | M0 봇 | 부수기 이벤트를 모두 취소 (이미 한다) |
 | 촉매의 사용 몸짓 (`trident`, `toot_horn`, `crossbow`, `bow`, `brush`) 이 맞춤 모형에서 술처럼 보이는지 | M5 실제 클라이언트 | 모두 `bow` 하나 |

@@ -5,29 +5,35 @@ gen_pack.py 가 hud.build 다음에 부른다. 스태미나 막대(경험치 막
 그리는 것 (크기·경로·9조각 값은 1.21.11 클라이언트 jar 와 같다)
   체력      gui/sprites/hud/heart/*  9×9. 바닐라는 하트를 8픽셀마다 그리고 오른쪽 것부터 그려서,
             왼쪽 하트의 9번째 열(x=8)이 오른쪽 하트의 첫 열(x=0)을 덮는다. 그래서
-              x=0      왼쪽 끝 (첫 하트에서만 보인다)
+              x=0      왼쪽 끝 테두리 (첫 하트에서만 보인다)
               x=1..7   한 칸의 속 (마른 피)
               x=8      칸 사이의 이음매 + 위 테의 못. 마지막 하트에서는 오른쪽 끝이 된다
-            열 칸이 끊기지 않는 쇠 홈 하나로 이어진다. 테·이음매는 container 만 그리고 채움은 속(1..7)만 칠한다.
-            깜빡임(맞은 순간 잃은 몫)은 바랜 뼈빛, 독은 이끼, 시듦은 재, 얼음은 뼈·재, 흡수는 그을린 청동.
+            열 칸이 쇠 홈 하나로 이어진 막대가 된다 (y 1..8, 아래 한 줄을 비워 스태미나 막대와 한 줄 띈다).
+            다 찬 칸은 이음매 자리(x=8)까지 가장 어두운 피로 덮어 칸 사이가 핏줄로 이어지고, 반 칸은 그 자리를 비운다.
+            깜빡임(맞은 순간 잃은 몫)은 바랜 양피지빛, 독은 이끼, 시듦은 재, 얼음은 뼈·재, 흡수는 그을린 청동.
+            체력이 4 이하일 때 바닐라는 칸마다 1픽셀씩 따로 흔든다 (팩으로는 못 막는다): 쇠 판이 덜컥거리는 것처럼 보인다.
   갑옷      armor_* 투명 (방어 수치를 쓰지 않는다). 허기는 hud.py 가 이미 투명하게 한다.
-  스태미나  experience_bar_background / _progress 182×5. 녹슨 쇠 테 + 이끼와 청동이 섞인 채움.
-            체력 막대 바로 아래 (한 줄 띄고) 같은 테 말씨로.
-  단축 슬롯 hotbar 182×22, hotbar_selection 24×23 (그을린 청동 테), hotbar_offhand_left/right 29×24,
-            hotbar_attack_indicator_background/progress 18×18.
+  스태미나  experience_bar_background / _progress 182×5. 체력 막대와 같은 녹슨 쇠 테 + 이끼와 청동이 섞인 채움.
+  단축 슬롯 hotbar 182×22 (그을린 쇠틀, 그을음 칸), hotbar_selection 24×23 (그을린 청동 테),
+            hotbar_offhand_left/right 29×24, hotbar_attack_indicator_background/progress 18×18 (단검).
   창        container/inventory.png, generic_54.png, crafting_table.png (256×256).
             칸과 테의 자리는 바닐라와 한 픽셀도 다르지 않다 (CONTAINER_LAYOUTS, 바닐라 jar 와 대조했다).
+            칸은 깊은 쇠 구멍, 판은 그을린 쇠판 (이음매, 네 귀 꺾쇠, 못, 녹 꽃, 긁힘).
             바닐라는 창 제목을 어두운 회색(0x404040)으로 쓰므로, 제목 자리에 바랜 양피지 쪽지를 붙여 읽히게 한다.
+            container/slot_highlight_back/front (마우스가 올라간 칸, 청동 꺾쇠), container/slot/{갑옷·방패} 빈 칸 그림.
   단추      widget/button, button_highlighted, button_disabled 200×20 (+ 바닐라와 같은 .mcmeta 9조각).
             사망 화면의 "일어선다 / 그만둔다" 도 이 그림이다. recipe_book/button(_highlighted) 20×18.
   설명 칸   tooltip/background, tooltip/frame 100×100 (+ .mcmeta). 그을음 바탕 + 녹슨 테, 모서리 하나는 닳았다.
 
 손으로 찍은 것처럼
-  모든 색은 palette.c(이름). 그림마다 씨앗(random.Random("gui_skin/<이름>"))이 달라 늘 같은 결과가 나오고,
-  마모·못·녹 자리는 그림마다 따로 고른다. 같은 칸 모양을 되풀이해야 하는 곳(단축 슬롯 아홉 칸, 창의 칸)도
-  못과 긁힘, 이 빠진 테를 칸마다 다르게 둔다. 부드러운 그라데이션, 흐림, 반투명은 없다.
+  모든 색은 palette.c(이름). 그림마다 씨앗(random.Random("gui_skin/<이름>"))이 달라 늘 같은 결과가 나온다.
+  마모·못·녹은 손이 닿고 물이 고이는 자리(귀, 못 둘레, 아래 가장자리)에 몰아 두고, 같은 모양의 자국은 두 번까지만 쓴다.
+  되풀이해야 하는 구조(칸 쉰여 개, 단축 슬롯 아홉 칸, 체력 열 칸)는 한 4×4 안에 색이 둘을 넘지 않게 단순하게 두고
+  (artlint 의 반복 검사), 개성은 칸마다 다른 흠·띠마다 다른 줄로 낸다. 부드러운 그라데이션, 흐림, 반투명은 없다.
+  남는 artlint 반복 경고는 칸 묶음의 바깥 가장자리처럼 바닐라 배치가 정한 구조에서만 나온다.
 
-  python3 pack/gui_skin.py [팩폴더]   그림만 다시 그리고 pack/preview/gui_*.png 미리보기를 쓴다 (팩은 묶지 않는다)
+  python3 pack/gui_skin.py [팩폴더] [미리보기폴더]
+      그림만 다시 그리고 미리보기(gui_hud, gui_hearts, gui_containers, gui_widgets)를 쓴다 (팩은 묶지 않는다)
 """
 import json
 import os
@@ -186,7 +192,6 @@ def heart_fill(tones, half=False):
 
 def hearts(out):
     d = ("sprites", "hud", "heart")
-    written = []
     c0, cb = heart_container(), heart_container(True)
     for suffix in ("", "_hardcore"):
         save(c0, out, *d, f"container{suffix}.png")
@@ -1020,7 +1025,6 @@ def tooltip():
         가장자리 가운데(10..89)는 늘여지거나 이어 붙여지므로 고른 줄로 둔다.
     """
     N = 100
-    r = rng("tooltip")
     bg = Cv(N, N)
     bg.rect(7, 7, N - 8, N - 8, "rust0")
     for x, y in ((7, 7), (N - 8, 7), (7, N - 8), (N - 8, N - 8)):
@@ -1058,9 +1062,6 @@ def tooltip():
     bracket(b + 1, b + 1, -1, -1)
     fr.put(b + 1, b - 3, "bronze0")          # 오른쪽 아래 귀싸개의 녹물
     fr.put(b + 1, b - 4, "rust0")
-    # 닳은 테: 귀 가까이 몇 칸 (가운데 늘어나는 곳은 피한다)
-    fr.put(a + 1, 8 - 0 + 4, "rust1")
-    fr.put(N - 12, a + 1, "rust1")
     return bg.image(), fr.image()
 
 
