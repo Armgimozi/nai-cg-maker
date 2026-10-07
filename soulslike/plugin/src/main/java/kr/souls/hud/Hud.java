@@ -40,10 +40,16 @@ public final class Hud implements Listener {
     private static final float XP_STEP = 0.5f / 182f;
     /** 혹시 놓친 재전송을 메우려고 이 틱마다 한 번은 다시 보낸다 */
     private static final int XP_SAFETY = 100;
+    /**
+     * 서버는 접속·부활·세계 이동 뒤 첫 플레이어 틱에 진짜 경험치(0)를 보낸다 (lastSentExp 를 -1 로 되돌린 뒤).
+     * 그 틱은 예약 작업보다 늦게 돌아서 우리 값을 덮는다. 그래서 그런 일이 있은 뒤 이 틱 수 동안은 틱마다 보낸다.
+     */
+    private static final int XP_FORCE = 10;
 
     private static final class View {
         float xp = -1;
         long xpAt;
+        long forceUntil;
         Component bar;
         long barAt;
     }
@@ -65,11 +71,12 @@ public final class Hud implements Listener {
         return views.computeIfAbsent(p.getUniqueId(), k -> new View());
     }
 
-    /** 다음 틱에 경험치 막대와 행동 막대를 다시 보낸다. */
+    /** 경험치 막대와 행동 막대를 다시 보낸다 (경험치 막대는 XP_FORCE 틱 동안 틱마다). */
     public void invalidate(Player p) {
         View v = view(p);
         v.xp = -1;
         v.bar = null;
+        v.forceUntil = plugin.ticker() == null ? 0 : plugin.ticker().now() + XP_FORCE;
     }
 
     public void tick(long now) {
@@ -79,7 +86,7 @@ public final class Hud implements Listener {
             View v = view(p);
             CombatState st = CombatState.of(p);
             float prog = (float) Math.max(0, Math.min(1, st.stamina.ratio()));
-            if (v.xp < 0 || Math.abs(prog - v.xp) >= XP_STEP || (prog == 1f && v.xp != 1f) || (prog == 0f && v.xp != 0f)
+            if (v.xp < 0 || now <= v.forceUntil || Math.abs(prog - v.xp) >= XP_STEP || (prog == 1f && v.xp != 1f) || (prog == 0f && v.xp != 0f)
                     || now - v.xpAt >= XP_SAFETY) {
                 p.sendExperienceChange(prog, 0);
                 v.xp = prog;

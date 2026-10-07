@@ -27,9 +27,9 @@ public final class TestRoom {
         return new Location(w, cx + 0.5, cy + 1, cz + 10.5, 180f, 0f);
     }
 
-    /** 턱 위 (낙하 시험 자리). */
+    /** 턱 위 (낙하 시험 자리). 방 가운데(남동쪽)를 본다: 앞으로 걸으면 6칸 아래 바닥으로 떨어진다. */
     public static Location ledge(World w, int cx, int cy, int cz) {
-        return new Location(w, cx - 9.5, cy + 7, cz - 9.5, 135f, 0f);
+        return new Location(w, cx - 9.5, cy + 7, cz - 9.5, -45f, 0f);
     }
 
     /** 구르기 길의 시작 칸 (동쪽 +x 로 구른다). */
