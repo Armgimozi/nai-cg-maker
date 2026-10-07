@@ -189,7 +189,7 @@ def draw(w, rows, legend, x_left, y_top):
     return w
 
 
-def blade(w, rows, legend, x_left, y_top, edges="Ee", dull="e", keep="", base=True):
+def blade(w, rows, legend, x_left, y_top, edges="Ee", dull="e", keep="", base=True, slab=(-0.5, 0.5), thin=(-0.5, -0.5)):
     """
     날 (판정 A3·A4 의 말: 이어진 날 몸 판 두께 2 + 바깥 한 줄 날 끝 두께 1, 이 빠짐은 날 끝 줄에서 한 칸).
       rows   앞 (+Z) 에서 본 날의 꼴. ' ' 비움, 'n' 이 빠짐 (꼴로는 날이지만 비운다), 그 밖의 글자는 legend 의 재료
@@ -199,7 +199,8 @@ def blade(w, rows, legend, x_left, y_top, edges="Ee", dull="e", keep="", base=Tr
              비탈이 계단을 따라 끊기지 않는다)
       keep   가장자리여도 얇게 하지 않는 글자 (외날의 등, 리카소, 쇠붙이)
       base   맨 아랫줄 밑은 가드가 있으니 막힌 것으로 본다
-    얇은 칸은 Z −0.5 한 칸, 날 몸은 Z −0.5, +0.5 두 칸.
+      slab / thin  날 몸과 날 끝의 Z (복셀 가운데 범위). 기본은 칼 (몸 Z −0.5, +0.5 두 칸, 끝 Z −0.5 한 칸). 가운데가 −0.5 인
+             B 의 자루 무기는 몸 (−1.5, 0.5) 세 칸, 끝 (−0.5, −0.5) 한 칸으로 앞뒤가 고르다
     """
     H = len(rows)
     Wd = max(len(r) for r in rows)
@@ -212,8 +213,8 @@ def blade(w, rows, legend, x_left, y_top, edges="Ee", dull="e", keep="", base=Tr
             return False
         return grid[j][i] != " "
 
-    thin_z = _zs(w, -0.5, -0.5)
-    slab_z = _zs(w, -0.5, 0.5)
+    thin_z = _zs(w, *thin)
+    slab_z = _zs(w, *slab)
     for j in range(H):
         yi = _yi(w, y_top - j)
         for i in range(Wd):
@@ -397,6 +398,22 @@ def fp_pose(anchor_y, aim_y, scale, a, b, phi, block=False):
     Rd = RA.T @ Rc
     t16 = RA.T @ (Pa - A[:3, 3]) - Rd @ (scale * np.array([0.0, anchor_y / 32.0, 0.0]))
     return _deg(Rd), [round(float(v) * 16, 3) + 0.0 for v in t16]
+
+
+def fp_frame(x_cam, y_cam, grip):
+    """
+    1인칭 자세를 아이템 축의 카메라 방향으로 정한다 (촉매처럼 칼날이 없는 것). x_cam / y_cam: 아이템 +X / +Y 축이 카메라
+    (x 오른쪽, y 위, +z 카메라 쪽) 에서 향할 방향 (y_cam 은 x_cam 에 직각이 되게 고친다), grip: 쥐는 점의 (가로, 세로, 깊이).
+    돌려주는 값 (rotation, translation).
+    """
+    X = np.array(x_cam, float)
+    X /= np.linalg.norm(X)
+    Y = np.array(y_cam, float)
+    Y -= (Y @ X) * X
+    Y /= np.linalg.norm(Y)
+    Rc = np.c_[X, Y, np.cross(X, Y)]
+    t16 = _unproject(*grip) - _FP_HAND[:3, 3]
+    return _deg(Rc), [round(float(v) * 16, 3) + 0.0 for v in t16]
 
 
 def _fp_points(disp, pts, block=False):

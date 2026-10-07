@@ -276,7 +276,7 @@ public final class Hud implements Listener {
         if (key.equals(b.key) && now - b.at < plugin.cfg().hud.barRefresh()) return;
         b.key = key;
         b.at = now;
-        Component name = Lang.c(p, b.nameKey);
+        Component name = Lang.c(p, b.nameKey); // lang-dyn: boss.*.name
         if (!glyph) {
             // 팩이 없으면 바닐라 보스 막대 (이름과 진행)
             b.bar.name(name);

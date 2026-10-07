@@ -65,6 +65,7 @@ SLOT_PX = {
     "tooltip": 250,                  # 아이템 이름·설명 한 줄
     "screen": 400,                   # 바닐라 확인 창 제목
     "container_title": 72,           # 창 제목 (인벤토리의 "제작" 은 x 97 에서 판 안쪽 끝 168 까지, 10.4)
+    "boss_name": 200,                # 보스 막대 이름 (막대 왼쪽 끝 위, 늘이기 전 막대 폭 200 안, 10.2)
     "wrap": None,                    # 채팅·접속 거절·팩 창 (클라이언트가 줄을 바꾼다)
 }
 SLOTS = [
@@ -78,7 +79,7 @@ SLOTS = [
     ("item.*", "tooltip"), ("weapon.*", "tooltip"), ("test.*", "tooltip"), ("skill.*", "tooltip"),
     ("vanilla.deathScreen.respawn", "button200"), ("vanilla.deathScreen.titleScreen", "button200"),
     ("vanilla.deathScreen.quit.confirm", "screen"), ("vanilla.deathScreen.score.value", "screen"),
-    ("vanilla.container.*", "container_title"),
+    ("vanilla.container.*", "container_title"), ("boss.*.name", "boss_name"),
     ("pack.*", "wrap"), ("build.*", "wrap"), ("admin.*", "wrap"),
 ]
 # 폭을 잴 때 자리에 넣는 값 (가장 길게 나올 만한 것)
@@ -126,6 +127,7 @@ CONTENT_KEYS = {
     "skills.yml": (("skill.{id}.name", "line"), ("skill.{id}.desc", "list")),
     "items.yml": (("item.{id}.name", "line"), ("item.{id}.lore", "list")),
     "bosses.yml": (("boss.{id}.name", "line"),),
+    "weapons.yml": (("weapon.{id}.name", "line"), ("weapon.{id}.lore", "list")),
 }
 # 콘텐츠에 있으면 안 되는 글 칸 (글은 lang 열쇠로). display 는 투사체 모습 (재료 id) 이라 id 꼴이면 된다
 CONTENT_TEXT_FIELDS = {"name", "display_name", "title", "subtitle", "description", "desc", "lore", "text", "flavor",

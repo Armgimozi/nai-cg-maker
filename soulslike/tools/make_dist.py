@@ -375,6 +375,8 @@ def check_glyphs(jar, fonts, langs):
     g.check(all(k in lay for k in ("margin", "left", "right", "mark_left", "mark_right")), f"glyphs.yml layout 이 모자라다: {lay}")
     if shader is not None and lay:
         want = [f"centre - {lay.get('left')}.0", f"centre + {lay.get('right')}.0", f"{lay.get('margin')}.0"]
+        if "boss_width" in lay:      # 보스 막대 (10.2): 셰이더가 늘이는 바탕 폭
+            want.append(f"/ {lay.get('boss_width')}.0")
         g.check(all(w in shader for w in want), f"글꼴 셰이더의 자리 값이 glyphs.yml layout 과 다르다 ({want})")
     for name, e in table.items():
         font = fonts.get(e.get("font"))

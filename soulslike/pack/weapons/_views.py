@@ -422,14 +422,20 @@ def strip(images, labels=None, pad=8, bg=(20, 19, 18, 255)):
 def lineup(entries, out_png, px_per_block=150, bg=BG, gap=0.62):
     """
     entries: [(id, Model)] 세운 모형 (앞면 +Z) 을 쥐는 점 높이를 맞춰 나란히, 맨 앞에 키 2 블록 (64 복셀) 사람 그림자.
-    쥐는 점은 사람의 주먹 높이 (땅에서 0.72 블록 = 바닐라 서 있는 팔 끝 근처) 에 둔다. 이름표는 두 줄로 엇갈린다.
+    쥐는 점은 사람의 주먹 높이 (땅에서 0.72 블록 = 바닐라 서 있는 팔 끝 근처) 에 둔다.
+    칸 폭은 모형마다 앞에서 본 폭 + 여백 (넓은 방패가 옆 것을 가리지 않게), 이름표는 세 줄로 엇갈리고 칸 폭에 맞춰 줄인다.
+    gap 은 가장 좁은 칸의 폭 (블록).
     """
     grip_h = 0.72
     s = px_per_block
-    width = int(s * (0.8 + gap * len(entries))) + 60
-    H = int(s * 2.9) + 40
+    widths = []
+    for wid, model in entries:
+        xs = [v for el in model.elements for v in (el["from"][0], el["to"][0])] or [8.0, 8.0]
+        widths.append(max(gap, (max(xs) - min(xs)) / 16.0 + 0.22))
+    width = int(s * (0.8 + sum(widths))) + 60
+    H = int(s * 2.9) + 70
     img = Image.new("RGBA", (width, H), bg)
-    ground = H - 60
+    ground = H - 80
     V = look_at((0, 0, 4), (0, 0, 0))
     d = ImageDraw.Draw(img)
     sx = 30
@@ -439,11 +445,18 @@ def lineup(entries, out_png, px_per_block=150, bg=BG, gap=0.62):
     d.line((0, ground, width, ground), fill=(90, 86, 80, 255), width=1)
     d.line((0, ground - grip_h * s, width, ground - grip_h * s), fill=(58, 55, 52, 255), width=1)
     f = _font(12)
-    for i, (wid, model) in enumerate(entries):
-        sc = Scene().add(model, T(0, grip_h, 0))
-        x0 = sx + int(s * (0.8 + gap * i))
-        tile = render(sc, V, size=(int(gap * s), H), ortho=s, bg=(0, 0, 0, 0), center=(0, (H / 2 - (H - ground)) / s))
-        img.alpha_composite(tile, (x0, 0))
-        d.text((x0 + 2, ground + 6 + (i % 2) * 18), wid, font=f, fill=(200, 195, 185, 255))
+    x = sx + int(s * 0.8)
+    for i, ((wid, model), wd) in enumerate(zip(entries, widths)):
+        xs = [v for el in model.elements for v in (el["from"][0], el["to"][0])] or [8.0, 8.0]
+        cx = ((max(xs) + min(xs)) / 2 - 8.0) / 16.0           # 모형 가운데 (블록) 를 칸 가운데로
+        sc = Scene().add(model, T(-cx, grip_h, 0))
+        tile = render(sc, V, size=(int(wd * s), H), ortho=s, bg=(0, 0, 0, 0), center=(0, (H / 2 - (H - ground)) / s))
+        img.alpha_composite(tile, (x, 0))
+        label = wid
+        while f.getlength(label) > wd * s * 2.6 and len(label) > 4:
+            label = label[:-1]
+        d.text((x + 2, ground + 6 + (i % 3) * 18), label, font=f, fill=(200, 195, 185, 255))
+        d.line((x + 1, ground + 2, x + 1, ground + 6 + (i % 3) * 18), fill=(90, 86, 80, 255), width=1)
+        x += int(wd * s)
     img.save(out_png)
     return out_png

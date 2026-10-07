@@ -71,6 +71,15 @@ weapon:
     parrying_dagger: "<#858079>Parrying Dagger"
     catalyst_kiln: "<#858079>Catalyst · Kiln Rites"
     catalyst_bell: "<#858079>Catalyst · Bell Rites"
+  stat:
+    attack: "<#858079>Attack <value>"
+    str: "<#858079>Str <value>"
+    dex: "<#858079>Dex <value>"
+    att: "<#858079>Att <value>"
+    need: "<#858079>Requires"
+    weight: "<#858079>Weight <value>"
+    absorb: "<#858079>Phys. Absorption <value>%"
+    stability: "<#858079>Stability <value>"
   redin_guard_sword:
     name: "<#d1c3a0>Redin Watch Straight Sword"
     lore:

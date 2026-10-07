@@ -93,14 +93,26 @@ public final class SkinTint {
         if (legs != null) c[3] = legs;
         if (feet != null) c[4] = feet;
         List<Color> out = new ArrayList<>(c.length);
-        for (int v : c) out.add(Color.fromRGB(v & 0xffffff));
+        for (int v : c) out.add(Color.fromRGB(neutral(v & 0xffffff)));
         return out;
     }
 
     /** 투구 색 (투구가 없으면 null). */
     public Color helm(Player p) {
         Integer h = armor(p.getEquipment().getHelmet());
-        return h == null ? null : Color.fromRGB(h);
+        return h == null ? null : Color.fromRGB(neutral(h));
+    }
+
+    /**
+     * 물들이는 바탕 (뼈 계열, 평균 bone2 = #d6cbb0) 의 누른빛을 덜어 낸다: 물들이기는 곱하기라 회색 쇠도 누른 갈색으로, 붉은 겉옷도
+     * 밤색으로 보였다 (2026-10-08 비평). 채널마다 바탕의 밝기 / 그 채널 (빨강 0.95, 초록 1.00, 파랑 1.155) 을 곱해 바탕을 곱한 결과가
+     * 그 색과 같은 색상이 되게 한다 (밝기는 그대로).
+     */
+    static int neutral(int rgb) {
+        int r = (rgb >> 16) & 255, g = (rgb >> 8) & 255, b = rgb & 255;
+        r = Math.min(255, Math.round(r * 0.950f));
+        b = Math.min(255, Math.round(b * 1.155f));
+        return (r << 16) | (g << 8) | b;
     }
 
     /** 갑옷 한 점의 색. 없거나 갑옷이 아니면 null. */

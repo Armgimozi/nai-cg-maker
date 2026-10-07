@@ -93,6 +93,17 @@ weapon:
     parrying_dagger: "<#858079>쳐내기 단검"
     catalyst_kiln: "<#858079>촉매 · 가마 술"
     catalyst_bell: "<#858079>촉매 · 종 술"
+  stat:
+    # 설명 칸 셋째·넷째 줄의 수치 (9.7). 플러그인 (item/ItemFactory.weapon) 이 content/weapons.yml 의 값으로 채워
+    # 사이를 빈칸으로 잇는다: "공격력 62   근력 C   기량 D", "필요 근력 10 · 기량 10   무게 3.0"
+    attack: "<#858079>공격력 <value>"
+    str: "<#858079>근력 <value>"
+    dex: "<#858079>기량 <value>"
+    att: "<#858079>기억 <value>"
+    need: "<#858079>필요"
+    weight: "<#858079>무게 <value>"
+    absorb: "<#858079>물리 흡수 <value>%"
+    stability: "<#858079>안정성 <value>"
   redin_guard_sword:
     name: "<#d1c3a0>레딘 경비대 직검"
     lore:

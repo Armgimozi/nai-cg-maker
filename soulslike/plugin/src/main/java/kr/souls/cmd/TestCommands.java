@@ -51,6 +51,8 @@ import java.util.Locale;
  *   kill | heal | info | pos | title | skill <id>
  *   hud                              [T] HUD mode=glyph|text bossbar= hp=채움/길이 trail= fp= st= souls= blank= (보낸 HUD 막대 값, 픽셀, 10.2)
  *   dialog                           휴식 창 꼴의 Dialog (13.4 의 4). 단추를 누르면 [T] DIALOG click=<id>, Esc 로 닫으면 [T] DIALOG exit
+ *   give <id|all> [inv|main|off]     무기·방패·촉매 (content/weapons.yml) 를 아이템으로. inv 는 인벤토리 (기본), main 은 든 칸,
+ *                                    off 는 왼손. all 은 스물을 단축 슬롯부터 차례로 (든 칸은 그대로 둔다). [T] GIVE id= n= to=
  */
 public final class TestCommands {
     private TestCommands() {}
@@ -149,6 +151,21 @@ public final class TestCommands {
                 })))
                 .then(Commands.literal("title").executes(ctx -> withPlayer(ctx, p -> plugin.death().showTitle(p, true))))
                 .then(Commands.literal("dialog").executes(ctx -> withPlayer(ctx, p -> dialog(plugin, p))))
+                .then(Commands.literal("give")
+                        .then(Commands.argument("id", StringArgumentType.word())
+                                .suggests((c, b) -> {
+                                    b.suggest("all");
+                                    for (String id : plugin.weapons().all().keySet()) b.suggest(id);
+                                    return b.buildFuture();
+                                })
+                                .executes(ctx -> withPlayer(ctx, p -> give(plugin, p, StringArgumentType.getString(ctx, "id"), "inv")))
+                                .then(Commands.argument("to", StringArgumentType.word())
+                                        .suggests((c, b) -> {
+                                            for (String x : List.of("inv", "main", "off")) b.suggest(x);
+                                            return b.buildFuture();
+                                        })
+                                        .executes(ctx -> withPlayer(ctx, p -> give(plugin, p, StringArgumentType.getString(ctx, "id"),
+                                                StringArgumentType.getString(ctx, "to")))))))
                 .then(Commands.literal("skill")
                         .then(Commands.argument("id", StringArgumentType.word())
                                 .suggests((c, b) -> {
@@ -237,6 +254,33 @@ public final class TestCommands {
         int slot = p.getInventory().getHeldItemSlot();
         p.getInventory().setItem(slot, ItemFactory.testGuard(g));
         plugin.test(p, "GUARD kind=" + g.name().toLowerCase(Locale.ROOT) + " slot=" + slot + " item=" + ItemFactory.SHELL.getKey().getKey());
+    }
+
+    /**
+     * 무기·방패·촉매 주기 (content/weapons.yml, ItemFactory.weapon). all 은 스물을 등록 차례로 인벤토리에 (단축 슬롯부터 빈 칸에).
+     * main 은 든 칸을 바꾸고, off 는 왼손을 바꾼다. 주손 무기의 막기 성분은 WeaponGuard 가 왼손을 보고 다시 맞춘다 (2.3 의 3).
+     */
+    private static void give(Souls plugin, Player p, String id, String to) {
+        List<String> ids = "all".equals(id) ? List.copyOf(plugin.weapons().all().keySet()) : List.of(id);
+        int n = 0;
+        for (String w : ids) {
+            kr.souls.item.Weapons.Def d = plugin.weapons().get(w);
+            if (d == null) {
+                plugin.test(p, "GIVE error=unknown id=" + w);
+                continue;
+            }
+            org.bukkit.inventory.ItemStack it = ItemFactory.weapon(d);
+            switch (to) {
+                case "main" -> p.getInventory().setItemInMainHand(it);
+                case "off" -> p.getInventory().setItemInOffHand(it);
+                default -> kr.souls.util.Items.give(p, it);
+            }
+            n++;
+        }
+        org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> {
+            if (p.isOnline()) new kr.souls.item.WeaponGuard(plugin).refresh(p);
+        });
+        plugin.test(p, "GIVE id=" + id + " n=" + n + " to=" + to);
     }
 
     /** 휘두름 시험 도구 (13.4 의 8). 시험 막기 도구와 같은 껍데기·모형에 휘두름 길이와 공격 속도만 단다. */

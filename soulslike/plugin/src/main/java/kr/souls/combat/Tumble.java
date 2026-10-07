@@ -73,9 +73,16 @@ import java.util.UUID;
  *       (팩이 손·머리 자세 (1·3인칭) 에서 비운다. 단축 슬롯 그림과 이름은 그대로라 바닐라가 아이템 이름을 다시 띄우지 않는다), 아니면
  *       공기. 갑옷 칸: 공기 (대역이 그 색을 입는다). 든 것은 대역의 손에 따로 그린다. hand-back 틱에 그 사람 화면에만 주손을 진짜로
  *       돌려주고 (1인칭 무기가 구르기 공격 창 전에 올라오게) 대역 손의 주손 아이템은 그 사람 화면에서 감춘다 (F5 에서 둘로 보이지 않게).</li>
- *   <li>때: 대역은 F 를 받자마자 띄우고, 투명 깃발은 hide-delay (1) 틱 뒤에 건다. 클라이언트는 새 표시 물체를 받은 뒤 첫 틱에야
- *       그리지만 깃발은 받자마자 반영해서, 같은 틱에 보내면 몸이 먼저 사라지고 0~1틱 빈 화면이 깜빡였다 [확인 (클라): 느린 화면].
+ *   <li>때 (2026-10-08 비평: 늦게 시작하고, 다른 사람에게는 진짜 몸과 대역이 나란히 둘로 보였다): 대역은 F 를 받자마자 띄우고
+ *       (생성 패킷은 곧바로 나간다), 투명 깃발은 hide-delay (0) 틱 뒤 = 곧바로 건다 (그다음 틱 끝, 첫 자세 보간과 같은 추적 단계에
+ *       나간다). 클라이언트는 새 표시 물체를 받은 뒤 첫 틱에야 그리므로 그 사람 화면에서는 0~1틱 빈 바닥이나 겹침이 있을 수 있다.
+ *       다른 사람에게 보이는 벌 (seen) 은 크기 0 으로 띄웠다가 {@link #SEEN_REVEAL} (1) 틱에 그때 자세로 곧바로 (보간 없이) 키운다:
+ *       진짜 몸을 감추는 깃발과 같은 추적 단계에 나가서 다른 사람 화면에서 몸과 대역이 바뀐다. 예전에는 대역을 띄우자마자 보이고 깃발이
+ *       한 틱 뒤에 나가, 그 한 틱 동안 대역이 (생성 자리 = 서버의 진짜 자리라 남의 화면에서 보간되는 몸보다 앞에서 몸 자리로 미끄러지며)
+ *       진짜 몸 옆에 둘로 보였다 [확인 (클라, 둘째 클라이언트): 겹침도 빈틈도 없다].
  *       장비 바꾸기는 깃발을 건 틱 끝 (ServerTickEndEvent). 거둘 때는 reveal 틱 처음에 투명을 걷고 대역을 곧바로 지운다.</li>
+ *   <li>밝기: 표시 물체는 제 자리 (탑승 자리) 의 빛으로 그려진다. 진짜 몸처럼 그 사람 눈 자리의 블록 빛·하늘 빛을 틱마다 밝기로 준다
+ *       (바뀔 때만).</li>
  *   <li>거두기: reveal 틱, 다음 구르기가 뒷걸음일 때, 죽음, 나가기, 순간이동, 세계 이동, 플러그인 끄기. 투명은 구르기가 건 것만
  *       걷고 (원래 투명했으면 건드리지 않는다), 장비는 진짜를 다시 보내고 인벤토리를 다시 맞춘다. 대역은 저장하지 않고
  *       (persistent false) souls_fx 표가 있어 켤 때 쓸어 낸다. 투명 깃발도 저장되지 않는다 (다시 들어오면 풀린다).</li>
@@ -88,6 +95,8 @@ public final class Tumble {
     public static final int HIDE_FLAG = 0;
     private static final EquipmentSlot[] SLOTS = {EquipmentSlot.HAND, EquipmentSlot.OFF_HAND, EquipmentSlot.HEAD,
             EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET};
+    /** 다른 사람에게 보이는 벌 (seen) 을 크기 0 에서 키우는 구르기 틱: 진짜 몸을 감추는 깃발과 같은 틱 (클래스 머리말 "때") */
+    private static final int SEEN_REVEAL = 1;
 
     /** 대역 부위 (표 roll_anim.yml 의 parts 이름, 팩 모형 souls:roll_&lt;model&gt;). HAND_* 는 든 것의 자리 (모형 없음). */
     enum Part {
@@ -119,6 +128,8 @@ public final class Tumble {
     /** 1인칭에서 비키는 닮음 변환: center (그 사람 발밑 기준, 블록) 를 가운데로 s 배. */
     private record Shrink(Vector3f center, float s) {
         static final Shrink NONE = new Shrink(new Vector3f(), 1f);
+        /** 크기 0 (보이지 않는다): seen 벌을 띄울 때 */
+        static final Shrink HIDDEN = new Shrink(new Vector3f(), 0f);
     }
 
     private final Souls plugin;
@@ -168,6 +179,10 @@ public final class Tumble {
         final List<EquipmentSlot> faked = new ArrayList<>();
         /** own 벌 가운데 지금 그 사람에게 보이는 것 (내려다보면 감춘다) */
         final Set<UUID> shownOwn = new HashSet<>();
+        /** seen 벌을 키웠다 (그 전에는 크기 0) */
+        boolean seenShown;
+        /** 지금 준 밝기 (블록 빛 << 4 | 하늘 빛, -1 은 아직) */
+        int light = -1;
 
         List<ItemDisplay> parts() {
             List<ItemDisplay> out = own.all();
@@ -293,8 +308,24 @@ public final class Tumble {
                 moved = true;
             }
             if (!moved && resized) apply(p, f, f.shown, 1);
+            if (!f.seenShown && t >= SEEN_REVEAL) {
+                f.seenShown = true;
+                sendRig(f, f.seen, fs.get(f.shown), Shrink.NONE, (float) -f.attach, 0);
+            }
+            light(p, f);
             lookDown(p, f);
         }
+    }
+
+    /** 대역의 밝기를 진짜 몸처럼 그 사람 눈 자리의 블록 빛·하늘 빛으로 (바뀔 때만). */
+    private static void light(Player p, Fig f) {
+        org.bukkit.block.Block b = p.getEyeLocation().getBlock();
+        int block = b.getLightFromBlocks(), sky = b.getLightFromSky();
+        int key = block << 4 | sky;
+        if (key == f.light) return;
+        f.light = key;
+        Display.Brightness br = new Display.Brightness(block, sky);
+        for (ItemDisplay d : f.parts()) if (d.isValid()) d.setBrightness(br);
     }
 
     /** ServerTickEndEvent (Roll 이 부른다, 엔티티 추적 단계 뒤): 이 틱에 몸을 감춘 구르기의 장비를 바꾼다. */
@@ -427,9 +458,11 @@ public final class Tumble {
         at.setPitch(0f);
         Frame fr = anim.frames().get(0);
         float down = (float) -f.attach;
-        fill(p, f, f.seen, at, fr, Shrink.NONE, down, false);
+        // seen 은 크기 0 으로 (SEEN_REVEAL 틱에 키운다: 클래스 머리말 "때")
+        fill(p, f, f.seen, at, fr, Shrink.HIDDEN, down, false);
         fill(p, f, f.own, at, fr, shrink(p, f, fr), down, true);
         for (ItemDisplay d : f.parts()) p.addPassenger(d);
+        light(p, f);
         // own 벌은 아무에게도 보이지 않게 만들었다: 그 사람이 내려다보고 있지 않으면 그 사람에게 보인다
         lookDown(p, f);
     }
@@ -546,7 +579,7 @@ public final class Tumble {
         f.yaw = f.rollYaw + turn * wrap(body - f.rollYaw);
         float down = (float) -f.attach;
         sendRig(f, f.own, fr, shrink(p, f, fr), down, duration);
-        sendRig(f, f.seen, fr, Shrink.NONE, down, duration);
+        if (f.seenShown) sendRig(f, f.seen, fr, Shrink.NONE, down, duration);
     }
 
     private void sendRig(Fig f, Rig r, Frame fr, Shrink sh, float down, int duration) {

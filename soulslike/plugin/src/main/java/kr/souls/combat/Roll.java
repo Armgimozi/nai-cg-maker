@@ -53,8 +53,8 @@ import java.util.UUID;
  * 그래서 F 에서는 방향과 시작 틱만 적고, 미는 것은 모두 Ticker 가 1..glide 틱째에 한다 (밀기 번호 0..glide-1).
  */
 public final class Roll implements Listener {
-    /** tumble 대역의 왼어깨가 땅에 닿는 틱 (열쇠 자세 표 roll_anim.yml 의 "어깨 닿기" 가 4틱에 닿는다) */
-    private static final int TUMBLE_CONTACT = 4;
+    /** tumble 대역의 왼어깨가 땅에 닿는 틱 (열쇠 자세 표 roll_anim.yml 의 "어깨 닿기" 가 3틱에 닿는다) */
+    private static final int TUMBLE_CONTACT = 3;
     private final Souls plugin;
     /** 사람마다 화면에만 깔아 둔 방벽 자리 */
     private final Map<UUID, Set<Pos>> fakes = new HashMap<>();
@@ -182,7 +182,7 @@ public final class Roll implements Listener {
     private void visual(Player p, boolean start, boolean dust) {
         Location feet = p.getLocation();
         BlockData bd = floor(feet);
-        if (dust) puff(p, start ? 10 : 6);
+        if (dust) puff(p, start ? 5 : 4);
         SoundGroup g = bd.getSoundGroup();
         if (start) {
             Fx.sound(feet, cfg().sound(), cfg().volume(), cfg().pitch());
@@ -199,10 +199,13 @@ public final class Roll implements Listener {
         return m.createBlockData();
     }
 
-    /** 발밑에 밟은 블록의 먼지 n 알. */
+    /** 구르기 먼지: 옅은 잿빛 작은 티끌 (2026-10-08 비평: 밟은 블록 조각은 심층암 바닥에서 짙은 회색 네모라 바닥에 난 구멍처럼 보였다). */
+    private static final Particle.DustOptions DUST = new Particle.DustOptions(org.bukkit.Color.fromRGB(0xb0a68e), 0.55f);
+
+    /** 발밑에 옅은 잿빛 먼지 n 알 (작고, 금방 사라진다). */
     private static void puff(Player p, int n) {
         Location feet = p.getLocation();
-        p.getWorld().spawnParticle(Particle.BLOCK, feet.clone().add(0, 0.1, 0), n, 0.25, 0.02, 0.25, 0, floor(feet));
+        p.getWorld().spawnParticle(Particle.DUST, feet.clone().add(0, 0.15, 0), n, 0.22, 0.03, 0.22, 0, DUST);
     }
 
     /**
@@ -326,7 +329,7 @@ public final class Roll implements Listener {
             }
             if (t == st.roll.glide() + 1 && st.rollDir != null) visual(p, false, true);
             // tumble: 어깨가 땅에 닿는 틱의 먼지. 발이 닿는 끝 먼지는 위 (glide + 1)
-            if (t == TUMBLE_CONTACT && tumble.active(p) && st.rollDir != null && !"backstep".equals(st.roll.id())) puff(p, 5);
+            if (t == TUMBLE_CONTACT && tumble.active(p) && st.rollDir != null && !"backstep".equals(st.roll.id())) puff(p, 4);
             if (st.armedRollHit > 0 && st.armedRollStart != Long.MIN_VALUE && st.armedRollStart != st.rollStart) {
                 // 묶인 구르기가 그 틱에 닿기 전에 다음 구르기가 시작됐다
                 plugin.test(p, "ROLLHIT dropped off=" + st.armedRollHit + " t=" + now);

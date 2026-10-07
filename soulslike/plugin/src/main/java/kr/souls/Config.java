@@ -170,6 +170,6 @@ public final class Config {
         int reveal = Math.max(1, c.getInt("combat.roll.tumble.reveal", 11));
         return new TumbleCfg(c.getInt("combat.roll.tumble.rise-at", 8), Math.max(0, c.getInt("combat.roll.tumble.rise-turn", 3)), reveal,
                 Math.min(reveal, Math.max(0, c.getInt("combat.roll.tumble.hand-back", 8))),
-                Math.max(0, Math.min(2, c.getInt("combat.roll.tumble.hide-delay", 1))));
+                Math.max(0, Math.min(2, c.getInt("combat.roll.tumble.hide-delay", 0))));
     }
 }

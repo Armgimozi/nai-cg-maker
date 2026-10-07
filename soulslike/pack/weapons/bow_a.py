@@ -33,18 +33,18 @@ def _make(pull):
     bend = 5.0 + 3.5 * (pull / 18.0)
     shrink = 1.0 - 0.06 * (pull / 18.0)          # 당기면 끝이 조금 안쪽으로
     tip = HALF * shrink
-    # 활대: 줄마다 X 두께 (손잡이 4 → 끝 2), Z 폭 2 (손잡이 4). 손잡이는 가죽, 위아래로 갈라진 결
+    # 활대: 줄마다 X 두께 (손잡이 3 → 끝 2), Z 폭 2. 손잡이 (가죽) 는 활대 폭의 1.5 배쯤 (판정 B 활 3)
     for j in range(-21, 21):
         Y = j + 0.5
         if abs(Y) > tip:
             continue
         x0 = _stave_x(Y / shrink, bend)
         t = abs(Y) / tip
-        thick = 4 if abs(Y) <= 3 else (3 if t < 0.55 else 2)
-        zz = (-1.5, -0.5, 0.5, 1.5) if abs(Y) <= 3 else (-0.5, 0.5)
+        thick = 3 if abs(Y) <= 3 else (3 if t < 0.55 else 2)
+        zz = (-0.5, 0.5)
         xs = [round(x0 - 0.5) + 0.5 - k for k in range(thick)]   # 배 (시위 쪽) 에서 등 (−X) 으로
         if abs(Y) <= 3:
-            xs = [1.5, 0.5, -0.5, -1.5]
+            xs = [1.5, 0.5, -0.5]
         mat = "leather" if abs(Y) <= 3 else "wood"
         for X in xs:
             for Z in zz:
@@ -57,7 +57,7 @@ def _make(pull):
             for X in xs:
                 put(w, [(X, Y, Z) for Z in zz], "wood_worn")
     # 손잡이 가죽 닳은 자리 (아래 끝 앞면)
-    put(w, [(-1.5, -2.5, 1.5), (-0.5, -2.5, 1.5)], "leather_dark")
+    put(w, [(-0.5, -2.5, 0.5), (0.5, -2.5, 0.5)], "leather_dark")
     # 뿔 고자 (끝 2 복셀)
     for sgn in (1, -1):
         Yt = sgn * (tip - 0.5)
@@ -66,15 +66,15 @@ def _make(pull):
         for k in range(2):
             Y = Yt - sgn * k
             put(w, [(Xc, Y, -0.5), (Xc, Y, 0.5), (Xc - 1, Y, -0.5), (Xc - 1, Y, 0.5)], "bone")
-    # 부목: 아래 활대 등 (−X) 에 덧댄 짧은 막대 (Y −13..−7) 를 끈으로 세 번 감았다
+    # 부목: 아래 활대 등 (−X) 에 덧댄 짧은 막대 (Y −13..−7) 를 끈으로 세 번 감았다. 감은 끈은 부목·활대와 같은 높이
+    # (끈 칠만, 튀어나오지 않는다. 판정 B 활 1)
     for j in range(-13, -7):
         Y = j + 0.5
         x0 = _stave_x(Y / shrink, bend)
         Xb = round(x0 - 0.5) + 0.5 - 2
         put(w, [(Xb, Y, -0.5), (Xb, Y, 0.5)], "wood_dark")
         if Y in (-12.5, -10.5, -8.5):
-            put(w, [(Xb + dx, Y, Z) for dx in (0, 1, 2) for Z in (-1.5, 1.5)], "cord")
-            put(w, [(Xb - 1, Y, -0.5), (Xb - 1, Y, 0.5)], "cord")
+            put(w, [(Xb + dx, Y, Z) for dx in (0, 1, 2) for Z in (-0.5, 0.5)], "cord")
     # 시위: 고자에서 고자로, 당기면 가운데 (쥐는 점 높이) 가 +X 로
     tipx = _stave_x(tip / shrink, bend) + 0.5
     nock = max(tipx, pull + 1.0) if pull else tipx

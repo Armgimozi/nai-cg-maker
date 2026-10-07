@@ -654,8 +654,9 @@ def recipe_button(hi):
 # ─────────────────────────── 설정 창의 위젯 (밀대, 고름 칸, 글 칸, 탭, 두루마리) ───────────────────────────
 
 WIDGET_SCALING = {
-    "slider": {"type": "nine_slice", "width": 200, "height": 20, "border": 2},
-    "slider_highlighted": {"type": "nine_slice", "width": 200, "height": 20, "border": 2},
+    "slider": {"type": "nine_slice", "width": 200, "height": 20, "border": {"left": 6, "top": 3, "right": 6, "bottom": 3}},
+    "slider_highlighted": {"type": "nine_slice", "width": 200, "height": 20,
+                           "border": {"left": 6, "top": 3, "right": 6, "bottom": 3}},
     "slider_handle": {"type": "nine_slice", "width": 8, "height": 20, "border": 2},
     "slider_handle_highlighted": {"type": "nine_slice", "width": 8, "height": 20, "border": 2},
     "text_field": {"type": "nine_slice", "width": 200, "height": 20, "border": 1},
@@ -673,9 +674,19 @@ WIDGET_SCALING = {
 
 
 def slider_track(hi):
-    """밀대 길 200×20 (9조각 테 2): 진한 반투명 홈 + 1픽셀 테 (가리키면 금빛)."""
-    cv = Cv(200, 20)
-    panel(cv, 200, 20, inset=1, line=LINE if hi else ("parch0", 170), fill=(INK, 185), fade=(70,))
+    """
+    밀대 길 200×20 (9조각 양옆 6, 위·아래 3): 단추와 같은 띠 (위·아래 가는 줄이 양 끝으로 옅어진다) 에 조금 진한 바탕.
+    가리키면 줄이 밝아진다 (마름모는 없다: 손잡이가 자리를 보인다).
+    """
+    W, H = 200, 20
+    lc, la = ("parch2", 200) if hi else ("parch1", 110)
+    cv = Cv(W, H)
+    for x in range(W):
+        d = min(x, W - 1 - x)
+        k = BUTTON_ENDS[d] if d < len(BUTTON_ENDS) else 1.0
+        cv.vline(x, 2, H - 3, (INK, int(95 * k)))
+        cv.put(x, 1, (lc, int(la * k)))
+        cv.put(x, H - 2, (lc, int(la * k)))
     return cv.image()
 
 
@@ -1292,7 +1303,7 @@ def write_previews(out, preview_dir):
     for i, (hi, val) in enumerate(((False, 0.35), (True, 0.7))):
         sfx = "_highlighted" if hi else ""
         sx, sy = 214 + i * 104, 116
-        small.alpha_composite(nine_slice(_sprite(out, *wd, "slider" + sfx + ".png"), 98, 20, 2), (sx, sy))
+        small.alpha_composite(nine_slice(_sprite(out, *wd, "slider" + sfx + ".png"), 98, 20, WIDGET_SCALING["slider"]["border"]), (sx, sy))
         small.alpha_composite(_sprite(out, *wd, "slider_handle" + sfx + ".png"), (sx + int(val * 90), sy))
         sliders.append((sx + 49, sy + 6, "시야: 70" if i == 0 else "밝기: 50%"))
     for i, n in enumerate(("checkbox", "checkbox_highlighted", "checkbox_selected", "checkbox_selected_highlighted")):

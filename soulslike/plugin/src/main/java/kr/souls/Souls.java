@@ -10,6 +10,8 @@ import kr.souls.combat.TestHits;
 import kr.souls.hud.Glyphs;
 import kr.souls.hud.Hud;
 import kr.souls.hud.Titles;
+import kr.souls.item.WeaponGuard;
+import kr.souls.item.Weapons;
 import kr.souls.pack.PackService;
 import kr.souls.progression.DeathFlow;
 import kr.souls.skill.Cooldowns;
@@ -39,6 +41,7 @@ public final class Souls extends JavaPlugin {
     private Config cfg;
     private Content content;
     private SkillRegistry skills;
+    private Weapons weapons;
     private Cooldowns cooldowns;
     private WorldService worlds;
     private Ticker ticker;
@@ -64,10 +67,12 @@ public final class Souls extends JavaPlugin {
         // 3. 콘텐츠 꺼내기
         content = new Content(this);
         content.extract();
-        // 4. 등록부 (M0: 스킬만. 그 뒤로 items → weapons → shields → armor → rings → enemies → bosses → encounters)
+        // 4. 등록부 (스킬, 무기·방패·촉매. 그 뒤로 items → armor → rings → enemies → bosses → encounters)
         cooldowns = new Cooldowns();
         skills = new SkillRegistry(getLogger());
         skills.load(content.yml("skills.yml"));
+        weapons = new Weapons(getLogger());
+        weapons.load(content.yml("weapons.yml"));
         // 5. 세계: 로비와 souls_world, 게임 규칙, 난이도, 필요하면 접속을 막고 짓기
         worlds = new WorldService(this);
         worlds.start();
@@ -97,6 +102,7 @@ public final class Souls extends JavaPlugin {
         pm.registerEvents(death, this);
         pm.registerEvents(testHits, this);
         pm.registerEvents(pack, this);
+        pm.registerEvents(new WeaponGuard(this), this);
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, e -> {
             SoulsCommands.register(this, e.registrar());
             TestCommands.register(this, e.registrar());
@@ -150,6 +156,7 @@ public final class Souls extends JavaPlugin {
         cfg = new Config(getConfig());
         Glyphs.load(this);
         skills.load(content.yml("skills.yml"));
+        weapons.load(content.yml("weapons.yml"));
         // 시험 모드를 켜고 끄면 /soulstest 가 보이고 숨는다. 바뀐 설정 (hud.show-souls 같은 것) 으로 HUD 를 다시 그린다
         for (Player p : Bukkit.getOnlinePlayers()) {
             p.updateCommands();
@@ -170,6 +177,7 @@ public final class Souls extends JavaPlugin {
     public Config cfg() { return cfg; }
     public Content content() { return content; }
     public SkillRegistry skills() { return skills; }
+    public Weapons weapons() { return weapons; }
     public Cooldowns cooldowns() { return cooldowns; }
     public WorldService worlds() { return worlds; }
     public Ticker ticker() { return ticker; }
