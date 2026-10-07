@@ -433,7 +433,7 @@ function i64 (v) {
 
 /**
  * 봇 하나를 접속시킨다. 서버가 아직 짓는 중이라 막거나 포트가 닫혀 있으면 잠시 뒤 다시 한다.
- * opts: name, respawn(기본 true), retries(기본 8), host, port
+ * opts: name, respawn(기본 true), retries(기본 8), host, port, allowDead(체력 0 으로 들어와도 접속으로 친다)
  */
 async function connect (sc, opts = {}) {
   const name = opts.name || ENV.name || 'SoulsBot'
@@ -471,12 +471,15 @@ function connectOnce (b, opts) {
     let done = false
     const fail = (why) => { if (!done) { done = true; reject(new Error(why)) } }
     const timer = setTimeout(() => fail('spawn 시간 초과'), opts.spawnTimeout || 45000)
-    bot.once('spawn', () => {
+    const ok = () => {
       if (done) return
       done = true
       clearTimeout(timer)
       resolve(b)
-    })
+    }
+    bot.once('spawn', ok)
+    // 죽은 채로 나갔던 사람은 체력 0 으로 들어와 mineflayer 의 spawn 이 오지 않는다 (사망 화면부터 본다)
+    if (opts.allowDead) bot._client.once('update_health', (d) => { if (d.health <= 0) setTimeout(ok, 200) })
     bot.once('kicked', (r) => { clearTimeout(timer); fail('쫓겨남: ' + (b.kick || r)) })
     bot.once('end', (r) => { clearTimeout(timer); fail('연결 끊김: ' + r) })
     bot.once('error', (e) => { clearTimeout(timer); fail('오류: ' + e.message) })

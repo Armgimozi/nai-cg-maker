@@ -58,7 +58,7 @@ L.run('reconnect', async (sc) => {
   await L.sleep(1200)
   await b.quit()
   await L.sleep(1500)
-  b = await L.connect(sc, { respawn: false })
+  b = await L.connect(sc, { respawn: false, allowDead: true })
   await L.sleep(2000)
   const dead = b.p.health.some((h) => h.health <= 0)
   if (dead) {
