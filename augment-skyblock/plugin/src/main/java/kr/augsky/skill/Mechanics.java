@@ -4,6 +4,9 @@ import kr.augsky.AugSky;
 import kr.augsky.util.Fx;
 import kr.augsky.util.P;
 import kr.augsky.util.Text;
+import kr.augsky.vfx.Footprint;
+import kr.augsky.vfx.Telegraphable;
+import kr.augsky.vfx.Track;
 import org.bukkit.Bukkit;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
@@ -136,7 +139,7 @@ public final class Mechanics {
         if (stack == null) return null;
         World w = at.getWorld();
         if (w == null) return null;
-        return w.spawn(at, ItemDisplay.class, d -> {
+        ItemDisplay disp = w.spawn(at, ItemDisplay.class, d -> {
             d.setItemStack(stack);
             d.setPersistent(false);
             d.addScoreboardTag(FX_TAG);
@@ -145,6 +148,9 @@ public final class Mechanics {
             d.setTransformation(new Transformation(new Vector3f(), new AxisAngle4f(),
                     new Vector3f(scale, scale, scale), new AxisAngle4f()));
         });
+        // 플러그인이 꺼질 때 같이 지우도록 연출 서비스에 맡긴다
+        if (plugin.vfx() != null) plugin.vfx().adopt(disp);
+        return disp;
     }
 
     static void hitAround(SkillContext ctx, Location c, double r, List<HitEffect> effects, Set<UUID> already) {
@@ -156,7 +162,7 @@ public final class Mechanics {
 
     // ------------------------------------------------------------------ 부채꼴 베기
 
-    static final class Cone implements Mechanic {
+    static final class Cone implements Mechanic, Telegraphable {
         final double range, angle, height;
         final Fx.Spec particle;
         final List<HitEffect> effects;
@@ -178,10 +184,11 @@ public final class Mechanics {
                 double step = Math.toRadians(Math.max(6, 60 / Math.max(1, range)));
                 for (double r = range * 0.45; r <= range + 1e-6; r += range * 0.275) {
                     for (double a = -half; a <= half + 1e-6; a += step) {
-                        particle.spawn(base.clone().add(dir.clone().rotateAroundY(a).multiply(r)), 1, 0.04, 0);
+                        ctx.fx().yaml(particle, base.clone().add(dir.clone().rotateAroundY(a).multiply(r)), 1, 0.04, 0);
                     }
                 }
             }
+            ctx.fx().cone(base, dir, half, range, particle);
             for (LivingEntity e : Targets.enemiesNear(ctx.caster, base, range + 1.5)) {
                 double dy = e.getLocation().getY() - ctx.caster.getLocation().getY();
                 if (Math.abs(dy) > height) continue;
@@ -191,11 +198,17 @@ public final class Mechanics {
                 HitEffects.apply(effects, ctx, e, ctx.caster.getLocation());
             }
         }
+
+        @Override
+        public Footprint footprint(SkillContext ctx) {
+            Location base = ctx.caster.getLocation().add(0, Math.min(1.2, ctx.caster.getHeight() * 0.6), 0);
+            return Footprint.cone(base, ctx.flatDir(), Math.toRadians(angle / 2), range);
+        }
     }
 
     // ------------------------------------------------------------------ 원형 폭발 / 퍼지는 충격파
 
-    static final class Nova implements Mechanic {
+    static final class Nova implements Mechanic, Telegraphable {
         final double radius, height, range;
         final int expand;
         final String at;
@@ -215,10 +228,11 @@ public final class Mechanics {
         @Override
         public void run(SkillContext ctx) {
             Location c = ctx.center(at, range).add(0, 0.2, 0);
+            ctx.fx().nova(c, radius, expand, particle);
             if (expand <= 0) {
                 if (particle != null) {
                     for (double r = radius / 3; r <= radius + 1e-6; r += radius / 3) {
-                        Fx.ring(particle, c, r, (int) Math.max(10, r * 9));
+                        ctx.fx().yamlRing(particle, c, r, (int) Math.max(10, r * 9));
                     }
                 }
                 for (LivingEntity e : Targets.enemiesNear(ctx.caster, c, radius)) {
@@ -235,7 +249,7 @@ public final class Mechanics {
                 public void run() {
                     t++;
                     double r = radius * t / expand;
-                    if (particle != null) Fx.ring(particle, c, r, (int) Math.max(8, r * 8));
+                    if (particle != null) ctx.fx().yamlRing(particle, c, r, (int) Math.max(8, r * 8));
                     for (LivingEntity e : Targets.enemiesNear(ctx.caster, c, r)) {
                         if (Math.abs(e.getLocation().getY() - c.getY()) > height) continue;
                         if (hit.add(e.getUniqueId())) HitEffects.apply(effects, ctx, e, c);
@@ -244,11 +258,16 @@ public final class Mechanics {
                 }
             }.runTaskTimer(ctx.plugin, 0, 1);
         }
+
+        @Override
+        public Footprint footprint(SkillContext ctx) {
+            return Footprint.circle(ctx.center(at, range), radius);
+        }
     }
 
     // ------------------------------------------------------------------ 투사체
 
-    static final class Projectile implements Mechanic {
+    static final class Projectile implements Mechanic, Telegraphable {
         final double speed, range, hitRadius, gravity, homing, spread, pSpread, displayScale;
         final int count, pCount;
         final boolean pierce, ground, throughWalls, spin, explodeAtEnd;
@@ -310,6 +329,7 @@ public final class Mechanics {
                     : ctx.eye().add(dir.clone().multiply(0.8)).add(0, -0.15, 0);
             ItemDisplay disp = display(ctx.plugin, start, display, (float) displayScale);
             Set<UUID> hit = new HashSet<>();
+            Track tr = ctx.fx().projectile(start, dir.clone().multiply(speed), disp != null, ground, hitRadius, count, particle, explodeRadius);
             new BukkitRunnable() {
                 final Location pos = start.clone();
                 final Vector vel = dir.clone().multiply(speed);
@@ -318,6 +338,7 @@ public final class Mechanics {
                 float spinAngle = 0;
 
                 void finish(Location at, boolean impact) {
+                    tr.end(at, impact);
                     if (impact || explodeAtEnd) explode(ctx, at);
                     if (impact && !onImpact.isEmpty()) runAll(onImpact, ctx.at(at));
                     if (disp != null) disp.remove();
@@ -357,6 +378,7 @@ public final class Mechanics {
                             HitEffects.apply(effects, ctx, le, pos);
                             if (hitSound != null) Fx.sound(pos, hitSound, 1, 1);
                             if (!pierce) {
+                                tr.end(pos, true);
                                 if (!onImpact.isEmpty()) runAll(onImpact, ctx.at(pos));
                                 if (disp != null) disp.remove();
                                 cancel();
@@ -368,7 +390,8 @@ public final class Mechanics {
                             return;
                         }
                     }
-                    if (particle != null) particle.spawn(pos, pCount, pSpread, 0.01);
+                    if (particle != null) ctx.fx().yaml(particle, pos, pCount, pSpread, 0.01);
+                    tr.tick(pos, vel);
                     if (gravity != 0) vel.setY(vel.getY() - gravity);
                     if (disp != null && disp.isValid()) {
                         Location dl = pos.clone();
@@ -424,17 +447,27 @@ public final class Mechanics {
         void explode(SkillContext ctx, Location at) {
             if (explodeRadius <= 0) return;
             if (explodeParticle != null) {
-                explodeParticle.spawn(at, (int) Math.max(1, explodeRadius * 2), explodeRadius * 0.3, 0.02);
-                Fx.ring(explodeParticle, at, explodeRadius, (int) (explodeRadius * 8));
+                ctx.fx().yaml(explodeParticle, at, (int) Math.max(1, explodeRadius * 2), explodeRadius * 0.3, 0.02);
+                ctx.fx().yamlRing(explodeParticle, at, explodeRadius, (int) (explodeRadius * 8));
             }
+            ctx.fx().explode(at, explodeRadius, explodeParticle);
             Fx.sound(at, "entity.generic.explode", 0.7f, 1.3f);
             hitAround(ctx, at, explodeRadius, explodeEffects, null);
+        }
+
+        /** 꿰뚫거나 빠른 투사체만 선으로 예고한다 (느린 것은 보고 피할 수 있다) */
+        @Override
+        public Footprint footprint(SkillContext ctx) {
+            if (!pierce && speed < 1.5) return null;
+            Vector d = ground ? ctx.flatDir() : ctx.dir();
+            Location s0 = ground ? ctx.caster.getLocation().add(0, 0.15, 0) : ctx.eye().add(0, -0.15, 0);
+            return Footprint.line(s0, d, Math.min(range, 24), hitRadius * 2);
         }
     }
 
     // ------------------------------------------------------------------ 광선
 
-    static final class Beam implements Mechanic {
+    static final class Beam implements Mechanic, Telegraphable {
         final double length, width;
         final boolean pierce, throughWalls;
         final Fx.Spec particle, core;
@@ -463,21 +496,34 @@ public final class Mechanics {
             for (double t = 0; t <= length; t += step) {
                 end = pos.clone().add(d.clone().multiply(t));
                 if (!throughWalls && solid(end)) break;
-                if (particle != null) particle.spawn(end, 1, width * 0.15, 0);
-                if (core != null && ((int) (t / step)) % 2 == 0) core.spawn(end, 1, 0, 0);
+                if (particle != null) ctx.fx().yaml(particle, end, 1, width * 0.15, 0);
+                if (core != null && ((int) (t / step)) % 2 == 0) ctx.fx().yaml(core, end, 1, 0, 0);
                 for (LivingEntity e : Targets.enemiesNear(ctx.caster, end, width)) {
                     if (!hit.add(e.getUniqueId())) continue;
                     HitEffects.apply(effects, ctx, e, ctx.caster.getLocation());
                     if (!pierce) break outer;
                 }
             }
+            ctx.fx().beam(pos, d, end, width, throughWalls, particle, core);
             if (!onEnd.isEmpty()) runAll(onEnd, ctx.at(end));
+        }
+
+        @Override
+        public Footprint footprint(SkillContext ctx) {
+            Location pos = ctx.eye().add(0, -0.2, 0);
+            Vector d = ctx.dir();
+            double len = length;
+            if (!throughWalls) {
+                RayTraceResult r = pos.getWorld().rayTraceBlocks(pos, d, length, FluidCollisionMode.NEVER, true);
+                if (r != null) len = r.getHitPosition().distance(pos.toVector());
+            }
+            return Footprint.line(pos, d, len, width * 2);
         }
     }
 
     // ------------------------------------------------------------------ 돌진
 
-    static final class Dash implements Mechanic {
+    static final class Dash implements Mechanic, Telegraphable {
         final double distance, width, upward;
         final int ticks;
         final Fx.Spec particle;
@@ -500,12 +546,14 @@ public final class Mechanics {
             double per = distance / ticks * 1.15;
             Set<UUID> hit = new HashSet<>();
             LivingEntity c = ctx.caster;
+            Track tr = ctx.fx().dash(c.getLocation(), d, distance, ticks, particle);
             new BukkitRunnable() {
                 int t = 0;
 
                 @Override
                 public void run() {
                     if (!c.isValid() || c.isDead()) {
+                        tr.end(c.getLocation(), false);
                         cancel();
                         return;
                     }
@@ -515,6 +563,7 @@ public final class Mechanics {
                     Location ahead = c.getLocation().add(d.clone().multiply(Math.max(1.2, per * 1.5)));
                     if (!grounded(ahead, 5)) {
                         c.setVelocity(new Vector(0, Math.min(c.getVelocity().getY(), 0), 0));
+                        tr.end(c.getLocation(), false);
                         if (!onEnd.isEmpty()) runAll(onEnd, ctx.at(c.getLocation()));
                         cancel();
                         return;
@@ -523,17 +572,24 @@ public final class Mechanics {
                     c.setVelocity(v);
                     c.setFallDistance(0);
                     Location at = c.getLocation().add(0, c.getHeight() / 2, 0);
-                    if (particle != null) particle.spawn(at, 4, 0.25, 0.01);
+                    if (particle != null) ctx.fx().yaml(particle, at, 4, 0.25, 0.01);
+                    tr.tick(at, v);
                     for (LivingEntity e : Targets.enemiesNear(c, at, width)) {
                         if (hit.add(e.getUniqueId())) HitEffects.apply(effects, ctx, e, c.getLocation());
                     }
                     if (t >= ticks) {
                         c.setVelocity(d.clone().multiply(0.25).setY(Math.min(c.getVelocity().getY(), 0)));
+                        tr.end(c.getLocation(), false);
                         if (!onEnd.isEmpty()) runAll(onEnd, ctx.at(c.getLocation()));
                         cancel();
                     }
                 }
             }.runTaskTimer(ctx.plugin, 0, 1);
+        }
+
+        @Override
+        public Footprint footprint(SkillContext ctx) {
+            return Footprint.line(ctx.caster.getLocation().add(0, 0.5, 0), ctx.flatDir(), distance, width * 2);
         }
     }
 
@@ -561,7 +617,8 @@ public final class Mechanics {
             Vector v = ctx.flatDir().multiply(fwd);
             v.setY(upward);
             c.setVelocity(v);
-            if (particle != null) particle.spawn(c.getLocation(), 12, 0.4, 0.02);
+            if (particle != null) ctx.fx().yaml(particle, c.getLocation(), 12, 0.4, 0.02);
+            Track tr = ctx.fx().leap(c.getLocation(), v, particle);
             new BukkitRunnable() {
                 int t = 0;
 
@@ -573,9 +630,11 @@ public final class Mechanics {
                         return;
                     }
                     c.setFallDistance(0);
-                    if (particle != null && t % 2 == 0) particle.spawn(c.getLocation(), 2, 0.1, 0);
+                    if (particle != null && t % 2 == 0) ctx.fx().yaml(particle, c.getLocation(), 2, 0.1, 0);
+                    tr.tick(c.getLocation(), c.getVelocity());
                     if ((t > 4 && c.isOnGround()) || t > 60) {
                         cancel();
+                        tr.end(c.getLocation(), true);
                         runAll(land, ctx.at(c.getLocation()));
                     }
                 }
@@ -633,9 +692,10 @@ public final class Mechanics {
             }
             if (safe == null) return;
             if (particle != null) {
-                particle.spawn(from.clone().add(0, 1, 0), 30, 0.3, 0.6, 0.3, 0.1);
-                particle.spawn(safe.clone().add(0, 1, 0), 30, 0.3, 0.6, 0.3, 0.1);
+                ctx.fx().yaml(particle, from.clone().add(0, 1, 0), 30, 0.3, 0.6, 0.3, 0.1);
+                ctx.fx().yaml(particle, safe.clone().add(0, 1, 0), 30, 0.3, 0.6, 0.3, 0.1);
             }
+            ctx.fx().blink(from, safe, particle);
             c.teleport(safe);
             c.setFallDistance(0);
             Fx.sound(safe, "entity.enderman.teleport", 0.8f, 1.2f);
@@ -652,7 +712,7 @@ public final class Mechanics {
 
     // ------------------------------------------------------------------ 하늘에서 떨어지는 공격
 
-    static final class Rain implements Mechanic {
+    static final class Rain implements Mechanic, Telegraphable {
         final int count, interval;
         final double radius, height, fall, impactRadius, range, displayScale;
         final String at, display, impactSound;
@@ -679,10 +739,16 @@ public final class Mechanics {
         @Override
         public void run(SkillContext ctx) {
             Location center = ctx.center(at, range);
+            ctx.fx().rain(center, radius, count, interval, impactRadius, height, fall);
             for (int i = 0; i < count; i++) {
                 int delay = i * interval;
                 Bukkit.getScheduler().runTaskLater(ctx.plugin, () -> drop(ctx, center), delay);
             }
+        }
+
+        @Override
+        public Footprint footprint(SkillContext ctx) {
+            return Footprint.circle(ctx.center(at, range), radius + impactRadius);
         }
 
         void drop(SkillContext ctx, Location center) {
@@ -694,6 +760,7 @@ public final class Mechanics {
             Location pos = ground.clone().add(r.nextDouble(-2, 2), height, r.nextDouble(-2, 2));
             Vector v = ground.toVector().subtract(pos.toVector()).normalize().multiply(fall);
             ItemDisplay disp = display(ctx.plugin, pos, display, (float) displayScale);
+            Track tr = ctx.fx().drop(pos, ground, v, impactRadius, disp != null, particle, impactParticle, count);
             new BukkitRunnable() {
                 int t = 0;
 
@@ -701,12 +768,14 @@ public final class Mechanics {
                 public void run() {
                     t++;
                     pos.add(v);
-                    if (particle != null) particle.spawn(pos, 3, 0.15, 0.01);
+                    if (particle != null) ctx.fx().yaml(particle, pos, 3, 0.15, 0.01);
+                    tr.tick(pos, v);
                     if (disp != null && disp.isValid()) disp.teleport(pos);
                     if (pos.getY() <= ground.getY() || solid(pos) || t > 80) {
                         if (disp != null) disp.remove();
                         Location hitAt = pos.getY() <= ground.getY() ? ground : pos;
-                        if (impactParticle != null) impactParticle.spawn(hitAt, 3, impactRadius * 0.3, 0.02);
+                        tr.end(hitAt, true);
+                        if (impactParticle != null) ctx.fx().yaml(impactParticle, hitAt, 3, impactRadius * 0.3, 0.02);
                         Fx.sound(hitAt, impactSound, 0.6f, 1.0f + (float) r.nextDouble(0.3));
                         hitAround(ctx, hitAt, impactRadius, effects, null);
                         cancel();
@@ -718,7 +787,7 @@ public final class Mechanics {
 
     // ------------------------------------------------------------------ 낙뢰/기둥
 
-    static final class Strike implements Mechanic {
+    static final class Strike implements Mechanic, Telegraphable {
         final int count, interval;
         final double radius, impactRadius, range;
         final boolean targets;
@@ -768,16 +837,22 @@ public final class Mechanics {
             switch (visual) {
                 case "lightning" -> {
                     pt.getWorld().strikeLightningEffect(pt);
-                    Fx.bolt(pt, particle);
+                    ctx.fx().yamlBolt(pt, particle);
                 }
                 case "pillar" -> {
-                    if (particle != null) for (double y = 0; y < 6; y += 0.3) particle.spawn(pt.clone().add(0, y, 0), 2, 0.2, 0.01);
+                    if (particle != null) for (double y = 0; y < 6; y += 0.3) ctx.fx().yaml(particle, pt.clone().add(0, y, 0), 2, 0.2, 0.01);
                 }
                 default -> {
-                    if (particle != null) particle.spawn(pt.clone().add(0, 0.5, 0), 20, 0.5, 0.05);
+                    if (particle != null) ctx.fx().yaml(particle, pt.clone().add(0, 0.5, 0), 20, 0.5, 0.05);
                 }
             }
+            ctx.fx().strike(pt, visual, impactRadius, particle);
             hitAround(ctx, pt, impactRadius, effects, null);
+        }
+
+        @Override
+        public Footprint footprint(SkillContext ctx) {
+            return Footprint.circle(ctx.center(at, range), Math.max(radius, 0) + impactRadius);
         }
     }
 
@@ -825,7 +900,8 @@ public final class Mechanics {
         void jump(SkillContext ctx, Location from, LivingEntity to, Set<UUID> hit, int n) {
             hit.add(to.getUniqueId());
             Location toLoc = to.getLocation().add(0, to.getHeight() / 2, 0);
-            Fx.line(particle, from, toLoc, 0.3);
+            ctx.fx().yamlLine(particle, from, toLoc, 0.3);
+            ctx.fx().chain(from, toLoc, n, particle);
             HitEffects.apply(effects, ctx, to, from);
             if (n + 1 >= jumps) return;
             LivingEntity next = null;
@@ -848,7 +924,7 @@ public final class Mechanics {
 
     // ------------------------------------------------------------------ 장판
 
-    static final class Zone implements Mechanic {
+    static final class Zone implements Mechanic, Telegraphable {
         final double radius, height, range;
         final int duration, interval;
         final boolean follow;
@@ -873,21 +949,26 @@ public final class Mechanics {
         @Override
         public void run(SkillContext ctx) {
             Location fixed = ctx.center(at, range);
+            Track tr = ctx.fx().zone(fixed, radius, duration, follow, particle, ringParticle, !allyEffects.isEmpty(), !effects.isEmpty());
             new BukkitRunnable() {
                 int t = 0;
 
                 @Override
                 public void run() {
                     if (follow && (!ctx.caster.isValid() || ctx.caster.isDead())) {
+                        tr.end(ctx.caster.getLocation(), false);
                         cancel();
                         return;
                     }
                     Location c = follow ? ctx.caster.getLocation() : fixed;
                     if (t % 4 == 0) {
-                        if (ringParticle != null) Fx.ring(ringParticle, c.clone().add(0, 0.15, 0), radius, (int) (radius * 7));
-                        if (particle != null) particle.spawn(c.clone().add(0, 0.6, 0), (int) (radius * 3), radius * 0.45, 0.3, radius * 0.45, 0.01);
+                        if (ringParticle != null) ctx.fx().yamlRing(ringParticle, c.clone().add(0, 0.15, 0), radius, (int) (radius * 7));
+                        if (particle != null) ctx.fx().yaml(particle, c.clone().add(0, 0.6, 0), (int) (radius * 3), radius * 0.45, 0.3, radius * 0.45, 0.01);
                     }
+                    tr.tick(c, null);
                     if (t % interval == 0) {
+                        // 주기 판정: 맞힘 연출은 작은 불꽃만 (별이 계속 터지지 않게)
+                        ctx.fx().ticking = true;
                         for (LivingEntity e : Targets.enemiesNear(ctx.caster, c, radius)) {
                             if (Math.abs(e.getLocation().getY() - c.getY()) > height) continue;
                             HitEffects.apply(effects, ctx, e, c);
@@ -897,11 +978,20 @@ public final class Mechanics {
                                 HitEffects.apply(allyEffects, ctx, e, c);
                             }
                         }
+                        ctx.fx().ticking = false;
                     }
                     t++;
-                    if (t > duration) cancel();
+                    if (t > duration) {
+                        tr.end(c, false);
+                        cancel();
+                    }
                 }
             }.runTaskTimer(ctx.plugin, 0, 1);
+        }
+
+        @Override
+        public Footprint footprint(SkillContext ctx) {
+            return Footprint.circle(ctx.center(at, range), radius);
         }
     }
 
@@ -935,6 +1025,7 @@ public final class Mechanics {
                 if (d != null) discs.add(d);
             }
             Map<UUID, Integer> last = new HashMap<>();
+            Track tr = ctx.fx().orbit(count, radius, yOff, duration, !discs.isEmpty(), particle);
             new BukkitRunnable() {
                 int t = 0;
 
@@ -942,6 +1033,7 @@ public final class Mechanics {
                 public void run() {
                     t++;
                     if (t > duration || !ctx.caster.isValid() || ctx.caster.isDead()) {
+                        tr.end(ctx.caster.getLocation(), false);
                         discs.forEach(Entity::remove);
                         cancel();
                         return;
@@ -950,18 +1042,21 @@ public final class Mechanics {
                     for (int i = 0; i < count; i++) {
                         double a = t * speed + Math.PI * 2 * i / count;
                         Location pt = c.clone().add(Math.cos(a) * radius, 0, Math.sin(a) * radius);
-                        if (particle != null) particle.spawn(pt, 1, 0.05, 0);
+                        if (particle != null) ctx.fx().yaml(particle, pt, 1, 0.05, 0);
+                        tr.point(i, pt);
                         if (i < discs.size()) {
                             Location dl = pt.clone();
                             dl.setYaw((float) Math.toDegrees(a));
                             discs.get(i).teleport(dl);
                         }
+                        ctx.fx().ticking = true;
                         for (LivingEntity e : Targets.enemiesNear(ctx.caster, pt, 1.1)) {
                             Integer prev = last.get(e.getUniqueId());
                             if (prev != null && t - prev < hitCooldown) continue;
                             last.put(e.getUniqueId(), t);
                             HitEffects.apply(effects, ctx, e, c);
                         }
+                        ctx.fx().ticking = false;
                     }
                 }
             }.runTaskTimer(ctx.plugin, 0, 1);
@@ -970,7 +1065,7 @@ public final class Mechanics {
 
     // ------------------------------------------------------------------ 소용돌이(끌어당김)
 
-    static final class Vortex implements Mechanic {
+    static final class Vortex implements Mechanic, Telegraphable {
         final double radius, strength, range;
         final int duration, interval;
         final String at;
@@ -993,6 +1088,7 @@ public final class Mechanics {
         @Override
         public void run(SkillContext ctx) {
             Location c = ctx.center(at, range).add(0, 0.8, 0);
+            Track tr = ctx.fx().vortex(c, radius, duration, particle, end, ctx);
             new BukkitRunnable() {
                 int t = 0;
 
@@ -1003,9 +1099,10 @@ public final class Mechanics {
                         for (int i = 0; i < 3; i++) {
                             double a = t * 0.5 + i * 2.1;
                             double r = radius * (1 - (t % 20) / 20.0);
-                            particle.spawn(c.clone().add(Math.cos(a) * r, 0, Math.sin(a) * r), 2, 0.05, 0);
+                            ctx.fx().yaml(particle, c.clone().add(Math.cos(a) * r, 0, Math.sin(a) * r), 2, 0.05, 0);
                         }
                     }
+                    tr.tick(c, null);
                     for (LivingEntity e : Targets.enemiesNear(ctx.caster, c, radius)) {
                         Vector pull = c.toVector().subtract(e.getLocation().toVector());
                         if (pull.lengthSquared() > 1) {
@@ -1014,14 +1111,24 @@ public final class Mechanics {
                             pull.setY(Math.max(-0.1, Math.min(0.2, pull.getY())));
                             e.setVelocity(pull);
                         }
-                        if (t % interval == 0) HitEffects.apply(effects, ctx, e, c);
+                        if (t % interval == 0) {
+                            ctx.fx().ticking = true;
+                            HitEffects.apply(effects, ctx, e, c);
+                            ctx.fx().ticking = false;
+                        }
                     }
                     if (t >= duration) {
                         cancel();
+                        tr.end(c, true);
                         runAll(end, ctx.at(c));
                     }
                 }
             }.runTaskTimer(ctx.plugin, 0, 1);
+        }
+
+        @Override
+        public Footprint footprint(SkillContext ctx) {
+            return Footprint.circle(ctx.center(at, range), radius);
         }
     }
 
@@ -1038,7 +1145,8 @@ public final class Mechanics {
 
         @Override
         public void run(SkillContext ctx) {
-            if (particle != null) particle.spawn(ctx.caster.getLocation().add(0, 1, 0), 20, 0.4, 0.05);
+            if (particle != null) ctx.fx().yaml(particle, ctx.caster.getLocation().add(0, 1, 0), 20, 0.4, 0.05);
+            ctx.fx().buff(ctx.caster, particle);
             for (HitEffect e : effects) e.apply(ctx, ctx.caster, ctx.caster.getLocation());
         }
     }
@@ -1056,7 +1164,8 @@ public final class Mechanics {
         @Override
         public void run(SkillContext ctx) {
             if (!ctx.hasTarget() || !Targets.isEnemy(ctx.caster, ctx.target)) return;
-            if (particle != null) particle.spawn(ctx.target.getLocation().add(0, 1, 0), 15, 0.3, 0.05);
+            if (particle != null) ctx.fx().yaml(particle, ctx.target.getLocation().add(0, 1, 0), 15, 0.3, 0.05);
+            ctx.fx().mark(ctx.target, particle);
             HitEffects.apply(effects, ctx, ctx.target, ctx.caster.getLocation());
         }
     }
@@ -1075,8 +1184,10 @@ public final class Mechanics {
         @Override
         public void run(SkillContext ctx) {
             Location c = ctx.point != null ? ctx.point : ctx.caster.getLocation();
+            ctx.fx().party(c, radius);
             for (LivingEntity e : Targets.friendsNear(ctx.caster, c, radius)) {
-                if (particle != null) particle.spawn(e.getLocation().add(0, 1, 0), 10, 0.4, 0.02);
+                if (particle != null) ctx.fx().yaml(particle, e.getLocation().add(0, 1, 0), 10, 0.4, 0.02);
+                ctx.fx().ally(e, particle);
                 for (HitEffect h : effects) h.apply(ctx, e, c);
             }
         }
@@ -1106,7 +1217,8 @@ public final class Mechanics {
             for (int i = 0; i < count; i++) {
                 Location at = base.clone().add(r.nextDouble(-1.5, 1.5), 0.2, r.nextDouble(-1.5, 1.5));
                 if (solid(at)) at = base.clone().add(0, 0.2, 0);
-                new Fx.Spec(Particle.LARGE_SMOKE, null).spawn(at.clone().add(0, 0.5, 0), 10, 0.3, 0.02);
+                ctx.fx().yaml(new Fx.Spec(Particle.LARGE_SMOKE, null), at.clone().add(0, 0.5, 0), 10, 0.3, 0.02);
+                ctx.fx().summon(at);
                 if (ctx.byPlayer) {
                     ctx.plugin.allies().summon(ctx, at, entity, name, duration, health, damage);
                 } else if (mob != null) {
@@ -1158,6 +1270,8 @@ public final class Mechanics {
 
         @Override
         public void run(SkillContext ctx) {
+            // 몬스터는 맞을 자리 예고, 플레이어 높은 등급은 기 모으기 (판정 타이밍은 그대로)
+            ctx.fx().windup(ticks, body, ctx);
             Bukkit.getScheduler().runTaskLater(ctx.plugin, () -> {
                 if (ctx.caster.isValid() && !ctx.caster.isDead()) runAll(body, ctx);
             }, ticks);
@@ -1199,7 +1313,7 @@ public final class Mechanics {
 
         @Override
         public void run(SkillContext ctx) {
-            if (spec != null) spec.spawn(ctx.center(at, range).add(0, yOff, 0), count, spread, speed);
+            if (spec != null) ctx.fx().yaml(spec, ctx.center(at, range).add(0, yOff, 0), count, spread, speed);
         }
     }
 

@@ -30,13 +30,12 @@
 - 콘텐츠 갱신: `AugSky.CONTENT_VERSION`(지금 8) 올리면 기존 서버의 yml 을 old-content-vN 으로 옮기고 새 안내서로 바꾼다. skills.yml 등 콘텐츠 yml 을 바꾸면 반드시 올린다.
 - 배포: `python3 tools/make_dist.py <지은 world 폴더>` (네더 배치 판·제단 수·미사용 검사, server/ 폴더를 그대로 묶음). 도감: `tools/make_catalog.py` → 아티팩트 https://claude.ai/artifact/QDHmnDGaASTnGwQxibWhtP (판 4).
 
-## 진행 중: 스킬 이펙트 화려하게 (사용자 요청: "적어도 고등급 무기는 화려해야")
-- 등급별(기본<섬<균열<보스<프리즘)로 화려하게: 새 패키지 `kr/augsky/vfx`(표시 엔티티 스프라이트, 원소 팔레트, 프리즘/보스 전용 연출, 보스 몹 예고), `pack/vfx_assets.py`(마법진·베기 궤적·충격파 텍스처), 셰이더 수정. skills.yml 은 안 바꿈(엔진 기본값 + 자바 시그니처).
-- 소스 변경은 **`wip/vfx-src-wip.patch`** 에 보관(14a1d4e 기준, 현재 브랜치에 깨끗이 적용됨 확인). 적용: `git apply augment-skyblock/wip/vfx-src-wip.patch` → `python3 pack/gen_pack.py` → gradle build. 빌드는 됐었다.
-- 1차 다듬기 심사 7/10(등급 순서는 OK). 남은 지적(2차 다듬기 도중 끊김, 일부는 이미 손댔을 수 있음):
-  기본 마법탄이 전과 같음 / void_slash·서리 군주 m_frozen_beam 이 가는 선 / m_blizzard 의 하늘 고리가 흰 줄로 보임 / heavens_spear 잔광이 너무 빨리 사라짐 / 바닥 그림의 검은 테두리(알파 번짐) / 반투명 흰 사각형 잔상 / world_creation 1인칭 가림 / 프리즘 스킬 마법진이 다 비슷 / 프리즘 별이 납작 / 큰 바닥 그림 해상도 / 섬 등급이 아직 밋밋 / 팩 없는 클라이언트·밤·4인 성능 재확인.
-- 아직 안 한 것: 2차 다듬기, 코드 검토(엔티티 누수·틱 비용), 합치기(콘텐츠 판은 skills.yml 안 바꿨으면 안 올려도 됨, 팩이 바뀌므로 리소스팩 url 갱신 필요), 배포.
-- 사용자에게 "1) 1차본을 직접 간단히 확인하고 바로 받기 / 2) 한도 풀린 뒤 다 끝내고 받기" 를 물었고 **답 없음**.
+## 스킬 이펙트 (적용됨, 입자 방식)
+- 사용자가 마법진 같은 리소스팩 그림 말고 "마크에이지 스킬처럼" 입자로 그리는 방식을 원했다. 그래서 `kr/augsky/vfx` 연출 층을 넣되 팩 그림 조각(sprite)은 끄고(`vfx.sprites` 기본 false, 팩에 이펙트 모델도 없음) 입자만 쓴다. 리소스팩은 그대로라 playit 용 팩 주소도 그대로다.
+- 입자 판 손본 곳: 두께 있는 초승달 참격(Kit.slashDust), 마법진 대신 바닥 입자 회오리(swirlDust), 나선 빛기둥·광선, 날아가는 검기(slashWave), 입자 예산 1.8배(CastFx.particleBoost), 반쯤 묻혀 솟는 블록이 새까맣던 문제(한 칸 위 빛 사용).
+- 설정: config `vfx.enabled`, `vfx.density`(0.3~1.5). skills.yml 은 안 바꿔서 콘텐츠 판은 8 그대로.
+- 확인: 실제 클라이언트 화면으로 등급별 스킬을 찍어 봄(공허 베기·지진·프리즘 궁극기·서리 군주·화염 대검 등), 시전 뒤 남는 연출 엔티티 0, 오류 0, PvP 스킬 피해 시험 통과.
+- 예전 팩 그림판(마법진) 소스는 커밋 8622a88 의 wip/vfx-src-wip.patch 에만 남아 있다.
 
 ## 주의
 - 이전 세션의 테스트 도구(Paper 서버 파일, mineflayer 봇, 실제 클라이언트, 맵을 지은 d7 월드)는 그 컨테이너의 /tmp 에만 있었다. 새 세션에서 서버 시험이나 맵 재생성이 필요하면 다시 갖춰야 한다(Paper 1.21.4 jar 는 api.papermc.io, mineflayer 는 npm). dist/ 의 zip 안에 지은 맵(world, world_augsky_nether)이 들어 있으니 시험 월드는 거기서 꺼내 쓰면 된다.

@@ -77,6 +77,7 @@ public final class AugSky extends JavaPlugin {
     private MobRegistry mobRegistry;
     private kr.augsky.armor.ArmorService armor;
     private NetherService nether;
+    private kr.augsky.vfx.Vfx vfx;
 
     @Override
     public void onEnable() {
@@ -106,6 +107,7 @@ public final class AugSky extends JavaPlugin {
         pack = new PackService(this);
         mapBuilder = new MapBuilder(this);
         nether = new NetherService(this);
+        vfx = new kr.augsky.vfx.Vfx(this);
 
         var pm = getServer().getPluginManager();
         pm.registerEvents(allies, this);
@@ -130,6 +132,7 @@ public final class AugSky extends JavaPlugin {
 
         pack.start();
         nether.start();
+        vfx.start();
         Bukkit.getScheduler().runTask(this, () -> {
             altars.scanLoaded();
             altars.checkMap();
@@ -148,6 +151,8 @@ public final class AugSky extends JavaPlugin {
         if (allies != null) allies.removeAll();
         if (mobs != null) mobs.removeBars();
         if (pack != null) pack.stop();
+        // 연출 조각은 마지막에 지운다 (이미 꺼진 상태라 지우기만 한다)
+        if (vfx != null) vfx.shutdown();
     }
 
     /**
@@ -281,6 +286,7 @@ public final class AugSky extends JavaPlugin {
     public void reloadContent() {
         reloadConfig();
         loadContent();
+        if (vfx != null) vfx.reloadSettings();
         // 바뀐 조합법과 레시피 책을 접속 중인 플레이어에게 다시 보낸다
         Bukkit.updateRecipes();
         for (Player p : Bukkit.getOnlinePlayers()) {
@@ -339,4 +345,5 @@ public final class AugSky extends JavaPlugin {
     public WeaponListener weaponListener() { return weaponListener; }
     public kr.augsky.armor.ArmorService armor() { return armor; }
     public NetherService nether() { return nether; }
+    public kr.augsky.vfx.Vfx vfx() { return vfx; }
 }

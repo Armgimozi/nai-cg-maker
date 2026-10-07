@@ -20,6 +20,8 @@ public final class SkillContext {
     public double lastDamage;
     /** 투사체 착탄 지점 같은 '여기서 이어서 실행' 위치. 있으면 aim 이 이 위치를 돌려준다. */
     public Location point;
+    /** 이 시전의 연출 (무기 등급·속성). 이어지는 단계(ctx.at)도 같은 연출을 쓴다 */
+    public kr.augsky.vfx.CastFx fx;
 
     public SkillContext(AugSky plugin, LivingEntity caster, LivingEntity target, double power) {
         this.plugin = plugin;
@@ -33,7 +35,14 @@ public final class SkillContext {
         SkillContext c = new SkillContext(plugin, caster, target, power);
         c.point = loc == null ? null : loc.clone();
         c.lastDamage = lastDamage;
+        c.fx = fx;
         return c;
+    }
+
+    /** 시전(SkillDef.cast)을 거치지 않은 효과(무기 패시브 등)는 원래 입자만 내는 빈 연출 */
+    public kr.augsky.vfx.CastFx fx() {
+        if (fx == null) fx = kr.augsky.vfx.CastFx.off(plugin.vfx(), caster);
+        return fx;
     }
 
     public World world() { return caster.getWorld(); }

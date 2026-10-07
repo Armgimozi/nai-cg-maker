@@ -79,6 +79,7 @@ public final class HitEffects {
 
     public static void apply(List<HitEffect> list, SkillContext ctx, LivingEntity target, Location origin) {
         if (list == null) return;
+        if (!list.isEmpty() && target.isValid() && !target.isDead()) ctx.fx().hit(target, origin);
         for (HitEffect e : list) {
             if (target.isDead() || !target.isValid()) {
                 // 죽은 뒤에도 회복/사운드 같은 효과는 의미가 없으니 멈춘다
@@ -166,7 +167,8 @@ public final class HitEffects {
                 double amt = p.d("amount", Double.isNaN(value) ? 4 : value);
                 return (ctx, t, o) -> {
                     Combat.heal(t, amt * ctx.power);
-                    new Fx.Spec(Particle.HEART, null).spawn(t.getLocation().add(0, t.getHeight() + 0.3, 0), 2, 0.3, 0);
+                    // 연출 층을 거쳐 보낸다: 시전자 자신의 머리 위 하트가 1인칭 화면 위를 크게 덮지 않게
+                    ctx.fx().yaml(new Fx.Spec(Particle.HEART, null), t.getLocation().add(0, t.getHeight() + 0.3, 0), 2, 0.3, 0);
                 };
             }
             case "heal_caster": {
