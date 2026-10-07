@@ -52,7 +52,7 @@ public final class SoulsCommands {
                 .then(Commands.literal("tp")
                         .then(Commands.argument("anchor", StringArgumentType.word())
                                 .suggests((c, b) -> {
-                                    for (String s : List.of("room", "lane", "ledge", "lobby")) b.suggest(s);
+                                    for (String s : List.of("room", "lane", "slab", "ledge", "lobby")) b.suggest(s);
                                     return b.buildFuture();
                                 })
                                 .executes(ctx -> tp(plugin, ctx, StringArgumentType.getString(ctx, "anchor")))))
@@ -77,7 +77,7 @@ public final class SoulsCommands {
     }
 
     private static int help(CommandSender to) {
-        to.sendMessage(Component.text("/souls check | perf | reload | tp <room|lane|ledge|lobby> | build room | pack [resend]", NamedTextColor.GRAY));
+        to.sendMessage(Component.text("/souls check | perf | reload | tp <room|lane|slab|ledge|lobby> | build room | pack [resend]", NamedTextColor.GRAY));
         return Command.SINGLE_SUCCESS;
     }
 
@@ -156,6 +156,7 @@ public final class SoulsCommands {
         Location to = switch (anchor) {
             case "room" -> ws.roomSpawn();
             case "lane" -> w == null ? null : TestRoom.lane(w, c[0], c[1], c[2]);
+            case "slab" -> w == null ? null : TestRoom.slab(w, c[0], c[1], c[2]);
             case "ledge" -> w == null ? null : TestRoom.ledge(w, c[0], c[1], c[2]);
             case "lobby" -> ws.lobby().getSpawnLocation();
             default -> null;

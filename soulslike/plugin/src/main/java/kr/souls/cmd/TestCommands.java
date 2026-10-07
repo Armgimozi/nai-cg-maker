@@ -8,11 +8,11 @@ import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
+import kr.souls.Lang;
 import kr.souls.Souls;
 import kr.souls.combat.CombatState;
 import kr.souls.combat.Stamina;
 import kr.souls.combat.TestHits;
-import kr.souls.hud.Glyphs;
 import kr.souls.item.ItemFactory;
 import kr.souls.skill.SkillContext;
 import kr.souls.skill.SkillDef;
@@ -41,8 +41,10 @@ import java.util.Locale;
  *   stamina                          [T] STAMINA cur= max= ratio= exhausted= food= sprinting= regenFrom= t=
  *   stamina set <값>                  스태미나를 바꾼다 (탈진 시험)
  *   hit <피해> [type=generic|hit|none] [armor]   막기 성분 + generic 피해 시험. [T] HIT ...
- *   guard <empty|control|bypass>     시험 막기 도구를 손에 쥐어 준다 (우클릭을 누르고 hit)
- *   rollhit <틱> [피해]               다음 구르기 시작 뒤 그 틱에 generic 피해. [T] ROLLHIT off= dodged=
+ *   guard <empty|control|bypass|strip>  시험 막기 도구를 손에 쥐어 준다 (우클릭을 누르고 hit). 맞춤 모형 souls:test_guard. strip 은 막기 성분 없음
+ *   swing [틱] [공격 속도]            휘두름 시험 도구 (13.4 의 8): swing_animation 길이와 attack_speed (회복 표시기)
+ *   rollhit <틱 1~40> [피해]          걸어 둔 뒤 처음 구르는 구르기의 그 틱에 generic 피해. [T] ROLLHIT off= dodged=
+ *   warn <틱> [피해]                  "[T] WARN hit_in=<틱>" 을 보내고 그 틱 뒤에 generic 피해 (봇이 자기 화면 기준으로 피하는 시험, 13.3)
  *   roll                             서버에서 곧바로 구르기 (F 패킷 대신)
  *   kill | heal | info | pos | title | skill <id>
  *   dialog                           휴식 창 꼴의 Dialog (13.4 의 4). 단추를 누르면 [T] DIALOG click=<id>, Esc 로 닫으면 [T] DIALOG exit
@@ -85,8 +87,21 @@ public final class TestCommands {
                                     return b.buildFuture();
                                 })
                                 .executes(ctx -> withPlayer(ctx, p -> guard(plugin, p, StringArgumentType.getString(ctx, "kind"))))))
+                .then(Commands.literal("swing")
+                        .executes(ctx -> withPlayer(ctx, p -> swing(plugin, p, 12, 1.0)))
+                        .then(Commands.argument("ticks", IntegerArgumentType.integer(1, 100))
+                                .executes(ctx -> withPlayer(ctx, p -> swing(plugin, p, IntegerArgumentType.getInteger(ctx, "ticks"), 1.0)))
+                                .then(Commands.argument("speed", DoubleArgumentType.doubleArg(0.1, 4))
+                                        .executes(ctx -> withPlayer(ctx, p -> swing(plugin, p, IntegerArgumentType.getInteger(ctx, "ticks"),
+                                                DoubleArgumentType.getDouble(ctx, "speed")))))))
+                .then(Commands.literal("warn")
+                        .then(Commands.argument("ticks", IntegerArgumentType.integer(1, 100))
+                                .executes(ctx -> withPlayer(ctx, p -> warn(plugin, p, IntegerArgumentType.getInteger(ctx, "ticks"), 2)))
+                                .then(Commands.argument("amount", DoubleArgumentType.doubleArg(0, 10000))
+                                        .executes(ctx -> withPlayer(ctx, p -> warn(plugin, p, IntegerArgumentType.getInteger(ctx, "ticks"),
+                                                DoubleArgumentType.getDouble(ctx, "amount")))))))
                 .then(Commands.literal("rollhit")
-                        .then(Commands.argument("offset", IntegerArgumentType.integer(0, 40))
+                        .then(Commands.argument("offset", IntegerArgumentType.integer(1, 40))
                                 .executes(ctx -> withPlayer(ctx, p -> armRoll(plugin, p, IntegerArgumentType.getInteger(ctx, "offset"), 4)))
                                 .then(Commands.argument("amount", DoubleArgumentType.doubleArg(0, 10000))
                                         .executes(ctx -> withPlayer(ctx, p -> armRoll(plugin, p, IntegerArgumentType.getInteger(ctx, "offset"),
@@ -167,10 +182,37 @@ public final class TestCommands {
         plugin.test(p, "GUARD kind=" + g.name().toLowerCase(Locale.ROOT) + " slot=" + slot + " item=" + ItemFactory.SHELL.getKey().getKey());
     }
 
+    /** 휘두름 시험 도구 (13.4 의 8). 시험 막기 도구와 같은 껍데기·모형에 휘두름 길이와 공격 속도만 단다. */
+    private static void swing(Souls plugin, Player p, int ticks, double speed) {
+        int slot = p.getInventory().getHeldItemSlot();
+        p.getInventory().setItem(slot, ItemFactory.testSwing(ticks, speed));
+        plugin.test(p, String.format(Locale.ROOT, "SWING ticks=%d speed=%.2f slot=%d", ticks, speed, slot));
+    }
+
+    /**
+     * 예고한 뒤 때리기 (13.3). 지금 틱에 "[T] WARN" 줄을 보내고 ticks 틱 뒤에 원인 있는 generic 피해를 넣는다.
+     * 봇은 이 줄을 받은 때(자기 화면 기준)에 F 를 누르므로, 왕복 지연이 길수록 무적 창 안에 들기 어렵다.
+     * 지금은 피격 대기열(3.9, M1)이 없어 서버 틱 그대로 판정한다. 지연별 피한 비율은 대기열이 생긴 뒤의 견줄 기준선이다.
+     */
+    private static void warn(Souls plugin, Player p, int ticks, double amount) {
+        long at = plugin.ticker().now() + ticks;
+        plugin.test(p, "WARN hit_in=" + ticks + " at=" + at + " t=" + plugin.ticker().now());
+        org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (!p.isOnline() || p.isDead()) return;
+            CombatState st = CombatState.of(p);
+            long now = plugin.ticker().now();
+            long since = st.roll == null ? -1 : now - st.rollStart;
+            TestHits.Result r = plugin.testHits().hit(p, amount, "generic", false);
+            plugin.test(p, String.format(Locale.ROOT, "WARNHIT roll_t=%d iframes=%d dodged=%s %s t=%d", since,
+                    st.roll == null ? 0 : st.roll.iframes(), r.dealt() <= 1e-6, r.line(), now));
+        }, ticks);
+    }
+
     private static void armRoll(Souls plugin, Player p, int offset, double amount) {
         CombatState st = CombatState.of(p);
         st.armedRollHit = offset;
         st.armedRollHitAmount = amount;
+        st.armedRollStart = Long.MIN_VALUE;
         plugin.test(p, String.format(Locale.ROOT, "ROLLHIT armed off=%d amount=%.2f", offset, amount));
     }
 
@@ -195,17 +237,18 @@ public final class TestCommands {
      */
     private static void dialog(Souls plugin, Player p) {
         ClickCallback.Options once = ClickCallback.Options.builder().uses(1).lifetime(Duration.ofMinutes(5)).build();
+        // 글은 모두 lang/ko.yml (단추는 양피지색. 바닐라 흰 글씨는 화면에서 가장 밝아 제목보다 튄다)
         List<ActionButton> buttons = List.of(
-                ActionButton.builder(Component.text("쉰다")).width(160)
+                ActionButton.builder(Lang.c("bonfire.rest")).width(160)
                         .action(DialogAction.customClick((r, a) -> plugin.test(p, "DIALOG click=rest t=" + plugin.ticker().now()), once)).build(),
-                ActionButton.builder(Component.text("불을 건넌다")).width(160)
+                ActionButton.builder(Lang.c("bonfire.warp")).width(160)
                         .action(DialogAction.customClick((r, a) -> plugin.test(p, "DIALOG click=warp t=" + plugin.ticker().now()), once)).build());
-        ActionButton exit = ActionButton.builder(Component.text("일어선다")).width(160)
+        ActionButton exit = ActionButton.builder(Lang.c("bonfire.leave")).width(160)
                 .action(DialogAction.customClick((r, a) -> plugin.test(p, "DIALOG exit t=" + plugin.ticker().now()), once)).build();
         Dialog d = Dialog.create(b -> b.empty()
-                .base(DialogBase.builder(Component.text("탑옥 아래 화톳불", Glyphs.PARCH3))
+                .base(DialogBase.builder(Lang.c("bonfire.test-name"))
                         .canCloseWithEscape(true).pause(false).afterAction(DialogBase.DialogAfterAction.CLOSE)
-                        .body(List.of(DialogBody.plainMessage(Component.text("소울 0 · 레벨 1", Glyphs.PARCH2))))
+                        .body(List.of(DialogBody.plainMessage(Lang.c("bonfire.status", "souls", "0", "level", "1"))))
                         .build())
                 .type(DialogType.multiAction(buttons).exitAction(exit).columns(1).build()));
         p.showDialog(d);

@@ -48,6 +48,9 @@ public final class Glyphs {
             BONE2 = TextColor.color(0xd6cbb0), BONE3 = TextColor.color(0xe8dcc0);
     public static final TextColor EMBER0 = TextColor.color(0x7a2e10), EMBER1 = TextColor.color(0xb04a17),
             EMBER2 = TextColor.color(0xd9772a), EMBER3 = TextColor.color(0xf0b060);
+    /** 생피: 사망 화면 "YOU DIED" 하나에만 쓴다 (사용자 결정 3, 10.1) */
+    public static final TextColor GORE0 = TextColor.color(0x3b0605), GORE1 = TextColor.color(0x6e0b08),
+            GORE2 = TextColor.color(0xa3110c), GORE3 = TextColor.color(0xcc2418);
 
     private static final Key DEFAULT_FONT = Key.key("souls", "hud");
     private static Map<String, Glyph> glyphs = Collections.emptyMap();

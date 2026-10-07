@@ -71,13 +71,17 @@ hud:
   actionbar-refresh: 20
 
 death:
-  # "YOU DIED" 는 한 번만 보인다 (5.6). 기본(false)은 리소스팩이 바꾼 사망 화면 제목 하나다 (늘 또렷한 생피색).
-  # true 면 화면 한가운데에 더 크게 화면 제목으로 띄운다. 이때 팩도 python3 pack/gen_pack.py --death-title plugin 으로
-  # 사망 화면 제목을 비워야 한다 (둘을 함께 쓰면 겹친다). 화면 제목은 사망 화면 덧칠 밑에 그려져 조금 어둡다
+  # "YOU DIED" 는 한 번만 보인다 (5.6). 기본(false)은 리소스팩이 바꾼 사망 화면 제목 하나다 (가로 가운데, 늘 또렷한 생피색).
+  # true 면 플러그인이 화면 제목으로 두 배 크게 띄운다 (단추 위, 일어설 때까지). 화면 제목은 사망 화면 덧칠 밑에 그려져
+  # 조금 어둡고, 그림 한 칸이 GUI 2픽셀이라 단추·HUD 와 픽셀 크기가 섞인다 (16절 질문 4).
+  # 팩은 이 값을 따라 만든다: python3 pack/gen_pack.py (또는 tools/make_dist.py) 가 이 파일의 death.title 을 읽어
+  # true 면 팩의 사망 화면 제목을 비운다 (둘을 함께 쓰면 겹친다). 바꾼 뒤에는 팩과 jar 를 다시 만든다
   title: false
-  # 제목에 쓸 그림 글자 이름 (glyphs.yml). 빈칸으로 여러 개를 이어 쓴다. 하나라도 없으면 lang 의 death.title 을 아래 색 글씨로
-  title-glyphs: "you_died"
-  fallback-color: "#b81a12"
+  # 화면 제목에 쓸 그림 글자 이름 (glyphs.yml). you_died_title 은 souls:hud 글꼴의 한 줄로, 사망 화면 판의 두 배 크기다
+  # (그림 한 칸 = GUI 2픽셀). 빈칸으로 여러 개를 이어 쓴다. 하나라도 없으면 lang 의 death.title 을 아래 색 글씨로
+  title-glyphs: "you_died_title"
+  # 그림 글자가 없을 때의 글자색 (생피 가장 밝은 색, 10.1)
+  fallback-color: "#cc2418"
   # 화면 제목을 쓸 때 일어설 때까지 남긴다 (일어서면 지운다)
   fade-in: 20
   stay: 6000
@@ -89,8 +93,8 @@ pack:
   url: "https://raw.githubusercontent.com/Armgimozi/nai-cg-maker/claude/gallant-noether-j4j8t5/soulslike/dist/packs/{sha1}.zip"
   required: true
   # join: 접속하고 join-delay 틱 뒤에 보낸다 (검증됨)
-  # configure: 세계가 보이기 전 설정 단계에서 보내고 답을 configure-timeout 초까지 기다린다 (실제 클라이언트로 아직 확인 전.
-  #            봇 시험에서는 답이 오지 않아 기다리는 시간을 다 썼다)
+  # configure: 세계가 보이기 전 설정 단계에서 보내고 답을 configure-timeout 초까지 기다린다 (실제 클라이언트로 확인했다.
+  #            봇(mineflayer)은 이 단계에서 답하지 않아 기다리는 시간을 다 쓰므로 기본은 join)
   send-at: join
   join-delay: 20
   configure-timeout: 10

@@ -3,7 +3,12 @@
 // 기어가기 방벽(켜져 있으면), 회복 지연 (구르기 끝 + 12틱), 회복 중 다시 F, 공중·웅크리기 F 막힘, 스태미나 1 이상이면 구름.
 // 수치는 서버의 config.yml (combat.roll) 에서 읽는다. 3.3 표는 출발값이고 조정은 설정에서 한다 (사용자 결정 1).
 // 무적: 서버 시각 기준 (rollhit: 구르기 시작 뒤 n 틱에 generic 피해) 1~iframes 틱은 피하고 그 밖은 맞는다.
-//       봇 시각 기준 (F 100ms 뒤 /soulstest hit) 원인 있는 피해는 피하고, 원인 없는 피해(환경)는 맞는다.
+//       F 뒤 같은 길로 /soulstest hit: 원인 있는 피해는 피하고, 원인 없는 피해(환경)는 맞는다.
+//       위 둘은 서버가 처리하는 차례가 지연과 상관없어 지연으로는 실패할 수 없다 (지연 판에서는 연기 시험일 뿐이다).
+//       자기 화면 기준 (warn, 13.3): 서버가 "[T] WARN hit_in=k" 를 보내고 k 틱 뒤에 때린다. 봇은 그 줄을 받은 순간 F 를
+//       누른다. 이것만 왕복 지연에 따라 달라진다: F 가 서버에 닿는 늦음(틱)이 지연만큼 커지는지 보고, 피한 비율을 남긴다.
+//       M0 에는 피격 대기열(3.9)이 없어 지연이 길면 피한 비율이 준다. M1 의 대기열이 세 지연에서 같게 만들어야 한다.
+// 순간이동하면 남은 밀기를 멈춘다 (도착한 곳에서 미끄러지지 않는다).
 // 낙하 피해는 들어온다. 체력은 서버가 보낸 update_health 로도 따로 확인한다.
 'use strict'
 const L = require('./lib')
@@ -65,8 +70,9 @@ L.run('roll_iframes', async (sc) => {
     sc.check('rolls toward facing (+x on lane)', v.x > 0.25 && Math.abs(v.z) < 0.1, `x=${v.x.toFixed(3)} z=${v.z.toFixed(3)}`)
   }
   if (kd.glide) {
+    // 밀기는 1..glide 틱째에 한 번씩. F 를 받은 자리에서 밀면 다음 틱의 밀기가 덮어 하나가 사라졌다 (그래서 정확히 센다)
     const pushes = f.vel.filter((x) => Math.hypot(x.x, x.z) > 0.05).length
-    sc.check(`push lasts ~${kd.glide} ticks`, pushes >= kd.glide - 1 && pushes <= kd.glide + 1, pushes + '번')
+    sc.check(`push lasts exactly ${kd.glide} ticks`, pushes === kd.glide, pushes + '번')
   }
   sc.check('roll moves the player (server measured)', f.end && L.num(f.end.kv.dist) > 1.0, f.end ? 'dist=' + f.end.kv.dist : 'ROLLEND 없음')
   if (RC.crawl) {
@@ -111,6 +117,11 @@ L.run('roll_iframes', async (sc) => {
   sc.check(`backstep costs ${kb.cost}`, bs.r && Math.abs(L.num(bs.r.kv.st) - (max - kb.cost)) < 0.5, bs.r ? 'st=' + bs.r.kv.st : '')
   const bv = bs.vel[0]
   sc.check(`backstep velocity points backward (${kb.horizontal})`, bv && bv.x < -0.2 && Math.abs(Math.hypot(bv.x, bv.z) - kb.horizontal) < VEL_TOL, bv ? `(${bv.x.toFixed(3)}, ${bv.y.toFixed(3)}, ${bv.z.toFixed(3)})` : '속도 없음')
+  sc.check(`backstep first push hops (vertical ${kb.vertical})`, bv && Math.abs(bv.y - kb.vertical) < 0.02, bv ? 'y=' + bv.y.toFixed(3) : '속도 없음')
+  if (kb.glide) {
+    const bp = bs.vel.filter((x) => Math.hypot(x.x, x.z) > 0.05).length
+    sc.check(`backstep push lasts exactly ${kb.glide} ticks`, bp === kb.glide, bp + '번')
+  }
   if (RC.crawl) sc.check('backstep does not crawl', b.p.crawl.length === cb, (b.p.crawl.length - cb) + '칸')
 
   // ── 옆 구르기 ── 오른쪽 (lane 이 동쪽을 보니 오른쪽은 남쪽 +z)
@@ -189,6 +200,55 @@ L.run('roll_iframes', async (sc) => {
     sc.check(`hit during roll window: ${label} ${dodge ? 'logs DODGE' : 'no DODGE'}`, !!dodgeLine === dodge, dodgeLine ? dodgeLine.line : '')
     await L.sleep(200)
     sc.check(`hit during roll window: ${label} client health`, dodge ? b.health >= hp0 - 0.01 : b.health <= hp0 - 1.5, `hp ${hp0} → ${b.health}`)
+  }
+
+  // ── 무적: 자기 화면 기준 (13.3) ── 예고 줄을 받은 순간 F. k 틱 뒤의 피해가 무적 창 (1..iframes) 에 드는가
+  const ws = []
+  for (const k of [3, 5, 7]) {
+    for (let rep = 0; rep < 2; rep++) {
+      await fresh(b)
+      b.input({ forward: true })
+      await L.sleep(150)
+      const from = b.sys.length
+      b.onSysOnce((m) => m.plain.startsWith('[T] WARN '), () => b.swap())
+      const w = await b.cmd(`/soulstest warn ${k} 2`, 'WARN ', 3000)
+      const hit = await b.waitT('WARNHIT ', 3000, from)
+      b.input({})
+      const rl = b.tLines('ROLL ', from)[0]
+      if (!w.kv || !hit || !rl) { sc.check(`warn ${k}: warned, rolled and hit`, false, (w.line || '예고 없음') + ' | ' + (rl ? rl.line : '구르지 않음') + ' | ' + (hit ? hit.line : '맞지 않음')); continue }
+      ws.push({ k, d: L.num(rl.kv.t) - L.num(w.kv.t), rt: L.num(hit.kv.roll_t), dodged: hit.kv.dodged === 'true' })
+      await L.sleep(250)
+    }
+  }
+  if (ws.length) {
+    const ds = ws.map((x) => x.d).sort((a, c) => a - c)
+    const med = ds[ds.length >> 1]
+    const lo = Math.floor(E.lagRtt / 50)
+    sc.check(`screen-time F reaches the server ~RTT later (median ${lo}..${lo + 3} ticks after the warning)`, med >= lo && med <= lo + 3,
+      `늦음 ${ds.join(',')} 틱 (왕복 ${E.lagRtt}ms)`)
+    const n = ws.filter((x) => x.dodged).length
+    // run_tests.sh 가 지연별로 모아 보인다 (판정은 하지 않는다: 대기열이 없는 M0 의 기준선)
+    console.log(`SCREENDODGE rtt=${E.lagRtt} dodged=${n}/${ws.length} delay=${ds.join(',')} roll_t=${ws.map((x) => x.rt).join(',')}`)
+    sc.note(`자기 화면 기준 피한 비율 ${n}/${ws.length} (k=3,5,7 두 번씩, 지연 ${E.lagRtt}ms). 대기열이 없는 M0 의 기준선`)
+  }
+
+  // ── 순간이동하면 남은 밀기를 멈춘다 ── 구르기 2틱 뒤 방으로 옮기고, 도착한 자리에서 미끄러지지 않는지
+  await fresh(b)
+  {
+    const room = L.testRoom()
+    b.input({ forward: true })
+    await L.sleep(150)
+    const from = b.sys.length
+    b.swap()
+    await b.waitT('ROLL ', 2000, from)
+    await L.sleep(100)
+    await b.cmd('/souls tp room', null, 1500)
+    b.input({})
+    await L.sleep(1000)
+    const p = b.bot.entity.position
+    const sx = room.x + 0.5; const sz = room.z + 10.5
+    const off = Math.hypot(p.x - sx, p.z - sz)
+    sc.check('teleport mid-roll stops the glide (no slide after arriving)', off < 0.4, `도착 자리에서 ${off.toFixed(2)}칸`)
   }
 
   // ── 낙하 피해는 들어온다 (6칸 턱에서 걸어 내려간다) ──

@@ -22,6 +22,7 @@ import java.util.logging.Logger;
  * souls_world 의 생성기. M0~M2 는 덩어리 없는 공허다: 블록은 하나도 만들지 않는다 (should* 가 모두 기본 false).
  * 바이옴만 지역 상자(8.4)마다 정해 준다. 바이옴 이름은 청크가 처음 만들어질 때 청크에 저장되므로,
  * 첫 세계부터 지역 이름(souls:redin 등)을 쓴다. 꾸밈(안개·하늘·입자)은 M4 에 데이터팩만 바꾼다.
+ * 예외: 시험 방이 든 souls:redin 은 M0 부터 8.4 의 안개·하늘·재 입자를 단다 (클라이언트가 그리는지 보는 점검, 13.4 의 11).
  * 청크는 여러 스레드에서 만들어지므로 바이옴은 굳힌 표만 읽는 순수 함수로 정한다 (skyblock VoidNether 방식).
  */
 public final class SoulsGenerator extends ChunkGenerator {

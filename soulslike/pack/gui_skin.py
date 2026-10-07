@@ -3,17 +3,13 @@
 gen_pack.py 가 hud.build 다음에 부른다. 스태미나 막대(경험치 막대)는 여기서 다시 그려 hud 의 것을 덮어쓴다.
 
 그리는 것 (크기·경로·9조각 값은 1.21.11 클라이언트 jar 와 같다)
-  체력      gui/sprites/hud/heart/*  9×9. 바닐라는 하트를 8픽셀마다 그리고 오른쪽 것부터 그려서,
-            왼쪽 하트의 9번째 열(x=8)이 오른쪽 하트의 첫 열(x=0)을 덮는다. 그래서
-              x=0      왼쪽 끝 테두리 (첫 하트에서만 보인다)
-              x=1..7   한 칸의 속 (마른 피)
-              x=8      칸 사이의 이음매 + 위 테의 못. 마지막 하트에서는 오른쪽 끝이 된다
-            열 칸이 쇠 홈 하나로 이어진 막대가 된다 (y 1..8, 아래 한 줄을 비워 스태미나 막대와 한 줄 띈다).
-            다 찬 칸은 이음매 자리(x=8)까지 가장 어두운 피로 덮어 칸 사이가 핏줄로 이어지고, 반 칸은 그 자리를 비운다.
+  체력      gui/sprites/hud/heart/*  9×9. 하트 열 개를 마른 핏방울 열 개로 (10.2, M1~M3). 방울은 x 1..7 이고
+            바닐라가 8픽셀마다 그리므로 방울 사이에 한 줄이 빈다. 체력이 4 이하일 때 바닐라는 칸마다 1픽셀씩 따로 흔들고
+            재생 때는 하나씩 튀어 오르는데, 방울이 떨어져 있어 그대로 자연스럽다. 이어진 핏빛 막대는 M4 의 souls:hud 그림 글자.
             깜빡임(맞은 순간 잃은 몫)은 바랜 양피지빛, 독은 이끼, 시듦은 재, 얼음은 뼈·재, 흡수는 그을린 청동.
-            체력이 4 이하일 때 바닐라는 칸마다 1픽셀씩 따로 흔든다 (팩으로는 못 막는다): 쇠 판이 덜컥거리는 것처럼 보인다.
   갑옷      armor_* 투명 (방어 수치를 쓰지 않는다). 허기는 hud.py 가 이미 투명하게 한다.
-  스태미나  experience_bar_background / _progress 182×5. 체력 막대와 같은 녹슨 쇠 테 + 이끼와 청동이 섞인 채움.
+  스태미나  experience_bar_background / _progress 182×5. 녹슨 쇠 테 + 이끼와 청동이 섞인 채움.
+            스태미나 막대 그림은 여기 하나뿐이다 (hud.py 는 그리지 않는다).
   단축 슬롯 hotbar 182×22 (그을린 쇠틀, 그을음 칸), hotbar_selection 24×23 (그을린 청동 테),
             hotbar_offhand_left/right 29×24, hotbar_attack_indicator_background/progress 18×18 (단검).
   창        container/inventory.png, generic_54.png, crafting_table.png (256×256).
@@ -24,11 +20,13 @@ gen_pack.py 가 hud.build 다음에 부른다. 스태미나 막대(경험치 막
   단추      widget/button, button_highlighted, button_disabled 200×20 (+ 바닐라와 같은 .mcmeta 9조각).
             사망 화면의 "일어선다 / 그만둔다" 도 이 그림이다. recipe_book/button(_highlighted) 20×18.
   설명 칸   tooltip/background, tooltip/frame 100×100 (+ .mcmeta). 그을음 바탕 + 녹슨 테, 모서리 하나는 닳았다.
+  Dialog    dialog/warning_button(_highlighted, _disabled) 20×20. 모든 서버 창 제목 옆의 바닐라 노란 세모를
+            녹슨 쇠판에 박힌 못 "!" 로 (가리킴은 청동, 사용 못 함은 재).
 
 손으로 찍은 것처럼
   모든 색은 palette.c(이름). 그림마다 씨앗(random.Random("gui_skin/<이름>"))이 달라 늘 같은 결과가 나온다.
   마모·못·녹은 손이 닿고 물이 고이는 자리(귀, 못 둘레, 아래 가장자리)에 몰아 두고, 같은 모양의 자국은 두 번까지만 쓴다.
-  되풀이해야 하는 구조(칸 쉰여 개, 단축 슬롯 아홉 칸, 체력 열 칸)는 한 4×4 안에 색이 둘을 넘지 않게 단순하게 두고
+  되풀이해야 하는 구조(칸 쉰여 개, 단축 슬롯 아홉 칸)는 한 4×4 안에 색이 둘을 넘지 않게 단순하게 두고
   (artlint 의 반복 검사), 개성은 칸마다 다른 흠·띠마다 다른 줄로 낸다. 부드러운 그라데이션, 흐림, 반투명은 없다.
   남는 artlint 반복 경고는 칸 묶음의 바깥 가장자리처럼 바닐라 배치가 정한 구조에서만 나온다.
 
@@ -118,49 +116,57 @@ def save_mcmeta(out, scaling, *parts):
         f.write("\n")
 
 
-# ─────────────────────────── 체력: 한 줄로 이어지는 쇠 홈 ───────────────────────────
+# ─────────────────────────── 체력: 마른 핏방울 열 개 ───────────────────────────
 
-# K 재 테두리, R 빛 받은 위 테, r 닳은 위 테, h 아래 테, s 아래 테 그늘, o 못 머리, x 이음매·홈 그늘, g 빈 홈
-# 막대는 y 1..8 (8줄): 테두리, 위 테, 속 넉 줄 (y 3..6), 아래 테, 테두리. 아래 테두리(y 8)와 스태미나 막대 사이는 한 줄 빈다.
-HEART_INK = {"K": "ash0", "R": "rust2", "r": "rust1", "h": "rust1", "s": "rust0", "o": "rust3",
-             "x": "ash0", "g": "rust0", "L": "rust3", "B": "parch0"}
+# 10.2: M1~M3 은 하트 10개를 마른 핏방울로 바꾼다 (이어진 막대는 M4 의 souls:hud 그림 글자 막대).
+# 9×9 칸에 7×9 방울 (x 1..7). 바닐라는 하트를 8픽셀마다 그리므로 방울 사이에 한 줄(x=8, 다음 칸의 x=0)이 빈다.
+# 그래서 바닐라가 칸마다 따로 흔들고(체력 4 이하) 재생 때 하나씩 튀어 올라도 방울이 떨리는 것처럼 자연스럽다.
+# 그릇: 재 테두리(K), 빛을 받는 왼쪽 위 테 두 점(r), 속은 녹슨 그늘(g)에 긁힌 점 하나(a).
+#       오른쪽 테 한 점이 이 빠졌다(.) — 방울 열 개가 같은 그림이라 흠은 하나만 둔다.
+HEART_INK = {"K": "ash0", "r": "rust1", "g": "rust0", "a": "ash1", "L": "rust3", "B": "parch0"}
 HEART_CONTAINER = [
-    ".........",
-    ".KKKKKKKK",
-    "KRRRRrRRo",
-    "Kxxxxxxxx",
-    "Kgggggggx",
-    "Kgggggggx",
-    "Kgggggggx",
-    "Khhhhshhs",
-    ".KKKKKKKK",
+    "....K....",
+    "...KgK...",
+    "..rgggK..",
+    "..rgggK..",
+    ".KggaggK.",
+    ".Kgggg...",
+    ".KgggggK.",
+    "..KgggK..",
+    "...KKK...",
 ]
-# 맞은 순간 (바닐라의 흰 테 대신) 테가 잠깐 밝아진다
+# 맞은 순간 (바닐라의 흰 테 대신) 왼쪽 위 테가 바랜 양피지빛으로 잠깐 밝아진다
 HEART_CONTAINER_BLINK = [
-    ".........",
-    ".KKKKKKKK",
-    "KLLLLRLLB",
-    "Kxxxxxxxx",
-    "Kgggggggx",
-    "Kgggggggx",
-    "Kgggggggx",
-    "KRRRRhRRh",
-    ".KKKKKKKK",
+    "....B....",
+    "...BgK...",
+    "..LgggK..",
+    "..LgggK..",
+    ".BggaggK.",
+    ".Bgggg...",
+    ".KgggggK.",
+    "..KgggK..",
+    "...KKK...",
 ]
-# 속 (x=1..8, y=3..6). 숫자는 밝기 단계 0(가장 어두움)..3. 칸마다 같은 무늬가 되풀이되므로 튀는 밝은 점은 두지 않는다.
-# x=8 은 이음매 자리: 다 찬 칸은 그 줄을 가장 어두운 피로 덮어, 칸 사이가 끊기지 않고 핏줄 하나로 이어진다.
-# 반 칸은 x=8 을 비워 두어 그릇의 재빛 이음매가 끝을 막는다.
+# 속 (그릇 안쪽만). 숫자는 밝기 단계 0(가장 어두움)..3. 빛은 왼쪽 위에서 온다:
+# 몸은 2, 왼쪽 위에 3 두 점 (가운데에서 비켜 난 빛), 오른쪽 아래 가장자리는 1·0 으로 한 단씩 어둡다.
+# 반 칸은 아래쪽만 찬다 (병에 반쯤 남은 피처럼). 위 표면은 한 단 밝다.
 HEART_FULL = [
-    "11211110",
-    "22222120",
-    "21222210",
-    "11101110",
+    "....2....",
+    "...322...",
+    "...321...",
+    "..23221..",
+    "..22220..",
+    "..22210..",
+    "...110...",
 ]
 HEART_HALF = [
-    "1120",
-    "2220",
-    "211.",
-    "110.",
+    ".........",
+    ".........",
+    ".........",
+    ".........",
+    "..32221..",
+    "..22210..",
+    "...110...",
 ]
 HEART_TONES = {
     "":          ("blood0", "blood1", "blood2", "blood3"),
@@ -186,7 +192,7 @@ def heart_fill(tones, half=False):
     for dy, row in enumerate(rows):
         for dx, ch in enumerate(row):
             if ch != ".":
-                cv.put(1 + dx, 3 + dy, tones[int(ch)])
+                cv.put(dx, 1 + dy, tones[int(ch)])
     return cv.image()
 
 
@@ -223,7 +229,7 @@ def _spans(cv, y, spans, col):
 
 def stamina_bar():
     """
-    배경: 체력 막대와 같은 말씨. 위 테 rust2 (닳은 곳 rust1), 빈 홈 ash0 (그을음 몇 점 rust0), 아래 테 rust1 (그늘 rust0).
+    배경: 위 테 rust2 (닳은 곳 rust1), 빈 홈 ash0 (그을음 몇 점 rust0), 아래 테 rust1 (그늘 rust0).
           양 끝은 재 테두리. 못은 고르지 않은 간격에 다섯, 하나는 빠져 구멍만 남았다.
     채움: 이끼에 그을린 청동이 섞인 세 줄. 위 줄은 청동 빛이 군데군데, 가운데는 이끼, 아래는 짙은 이끼.
     """
@@ -1008,6 +1014,50 @@ def recipe_button(hi):
     return cv.image()
 
 
+# ─────────────────────────── Dialog 경고 단추 ───────────────────────────
+
+# 서버 창(Dialog)마다 제목 옆에 바닐라가 그리는 20×20 단추 (gui/sprites/dialog/warning_button*). 바닐라는 회색 돌 단추에
+# 채도 높은 노란 세모라 창에서 가장 튀었다. 녹슨 쇠판에 박힌 못 하나로 "!" 를 그린다 (빛은 왼쪽 위).
+# K 재 테두리, R 빛 받은 테, r 닳은 테, f 판, s 그늘 테, S 가장 깊은 그늘, w 녹 꽃, x 긁힘,
+# P 못(밝은 쪽), p 못(그늘 쪽), d 못 둘레의 패인 자리
+WARNING_BUTTON = [
+    "..KKKKKKKKKKKKKKKKK.",
+    ".KRRRRrRRRRRRRRRRRsK",
+    "KRffffffffffffffffsK",
+    "KRfffffffxfffffffssK",
+    "KRffffffdPPdfffffssK",
+    "KRfffffffPpdffffffsK",
+    "KRfffffffPpffffffxsK",
+    "KRfffffffPpffffffssK",
+    "KrffffffdPpfffffffsK",
+    "KRfffffffPpfffffffsK",
+    "KRfffffffPpffffffssK",
+    "KRffffffffPdfffffssK",
+    "KRffffffffpfffffffsK",
+    "KRfffffffffffffffssK",
+    "KRfffffffdPPdffffssK",
+    "KRwfffffffPpdffffssK",
+    "KRwwffffffdfffffffsK",
+    "KRSwwsssssssssssssSK",
+    ".KSSSSSSSSSSSSSSSSSK",
+    "..KKKKKKKKKKKKKKKKKK",
+]
+WARNING_TONES = {
+    "normal":      {"K": "ash0", "R": "rust2", "r": "rust1", "f": "ash1", "s": "rust0", "S": "ash0", "w": "rust1",
+                    "x": "rust1", "P": "parch2", "p": "parch0", "d": "ash0"},
+    "highlighted": {"K": "ash0", "R": "bronze2", "r": "bronze3", "f": "ash1", "s": "bronze1", "S": "bronze0",
+                    "w": "rust1", "x": "rust1", "P": "bronze3", "p": "bronze1", "d": "ash0"},
+    "disabled":    {"K": "ash0", "R": "ash1", "r": "ash1", "f": "ash0", "s": "ash1", "S": "ash0", "w": "rust0",
+                    "x": "ash1", "P": "ash2", "p": "ash1", "d": "ash0"},
+}
+
+
+def warning_button(state):
+    cv = Cv(20, 20)
+    cv.stamp(0, 0, WARNING_BUTTON, WARNING_TONES[state])
+    return cv.image()
+
+
 # ─────────────────────────── 설명 칸 ───────────────────────────
 
 TOOLTIP_SCALING = {
@@ -1100,6 +1150,9 @@ def build(out):
         written.append(save(slot_icon(n), out, "sprites", "container", "slot", n + ".png"))
     written.append(save(recipe_button(False), out, "sprites", "recipe_book", "button.png"))
     written.append(save(recipe_button(True), out, "sprites", "recipe_book", "button_highlighted.png"))
+    for state, fname in (("normal", "warning_button"), ("highlighted", "warning_button_highlighted"),
+                         ("disabled", "warning_button_disabled")):
+        written.append(save(warning_button(state), out, "sprites", "dialog", fname + ".png"))
     tbg, tfr = tooltip()
     written.append(save(tbg, out, "sprites", "tooltip", "background.png"))
     written.append(save(tfr, out, "sprites", "tooltip", "frame.png"))

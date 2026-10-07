@@ -32,7 +32,7 @@ import java.util.function.ToLongFunction;
  * 다른 체계는 값만 넘긴다.
  *  - 스태미나: 경험치 막대 (sendExperienceChange(진행, 0)). 레벨 인수가 0 이면 클라이언트가 형광 초록 숫자를 그리지 않는다.
  *    바뀐 틱에만 보내고, 서버가 진짜 경험치를 다시 보내는 때(접속, 부활, 세계 이동, 모드 변경)에는 곧바로 다시 보낸다.
- *  - 행동 막대 한 줄: [축적 막대 (M5)] [마나 막대 (마법)] 소울 N. refresh 틱마다, 그리고 바뀔 때 보낸다.
+ *  - 행동 막대 한 줄: [독·출혈 축적 막대 (전체판)] [온기 (술, M5)] 소울 N. refresh 틱마다, 그리고 바뀔 때 보낸다.
  * 진짜 경험치는 늘 0 이다 (경험치 구슬도 0).
  */
 public final class Hud implements Listener {
@@ -120,11 +120,11 @@ public final class Hud implements Listener {
     /** 행동 막대 한 줄. 보일 것이 없으면 null. */
     private Component actionBar(Player p, CombatState st) {
         List<Component> parts = new ArrayList<>();
-        // 축적 막대(독·출혈, 0 보다 클 때만)는 M5 에 여기 더한다
+        // 축적 막대(독·출혈, 0 보다 클 때만)는 전체판에서 여기 더한다
         Pool mana = st.mana;
         if (mana != null) {
-            // 마법이 들어오면 손으로 찍은 마나 막대 그림 글자로 바꾼다. 그 전까지는 숫자 자리만
-            parts.add(Component.text(Math.round(mana.cur()) + "/" + Math.round(mana.max()), Glyphs.ASH3));
+            // 온기 (술의 자원, 3.12.2). M5 의 첫 꼴인 행동 막대 글 "온기 34/60" (10.2). 그림 글자 막대는 같은 M5 안에서 바꾼다
+            parts.add(Lang.c("hud.warmth", "n", String.valueOf(Math.round(mana.cur())), "m", String.valueOf(Math.round(mana.max()))));
         }
         if (plugin.cfg().hud.showSouls()) {
             String n = NumberFormat.getIntegerInstance(Locale.US).format(souls.applyAsLong(p));

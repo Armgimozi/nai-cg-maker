@@ -1,8 +1,11 @@
 # HUD·사망 화면 그림 글자 표 (pack/gen_pack.py 가 만든다. 직접 고치지 말 것)
 # 이름: {char: 문자, width: 진행 폭 (글꼴 픽셀, 음수는 왼쪽으로 민다), font: 글꼴}
 # 플러그인은 이 표로 Component.text(char).font(font) 를 만든다. 문자 번호를 코드에 적지 않는다.
-# you_died 는 사망 화면 제목 한 줄 전체 (deathScreen.title 과 같은 문자열). 나머지는 한 글자씩.
+# you_died 는 사망 화면 제목 한 줄 전체 (deathScreen.title 과 같은 문자열). 언어 문자열은 글꼴을 고를 수 없어
+#   minecraft:default 에 있다 (10.9). you_died_title 은 플러그인 화면 제목용 (death.title: true) 한 줄 전체로
+#   souls:hud 에 있다. 글꼴은 줄마다 font 를 따른다. 나머지는 한 글자씩.
 you_died: {char: "\ue000\ue00e\ue001\ue00e\ue002\ue00f\ue003\ue00e\ue004\ue00e\ue005\ue00e\ue006", width: 93, font: "minecraft:default"}
+you_died_title: {char: "\ue0f0\ue030\ue0f1\ue030\ue0f2\ue031\ue0f3\ue030\ue0f4\ue030\ue0f5\ue030\ue0f6", width: 93, font: "souls:hud"}
 you_died_y: {char: "\ue000", width: 10, font: "minecraft:default"}
 you_died_o: {char: "\ue001", width: 11, font: "minecraft:default"}
 you_died_u: {char: "\ue002", width: 10, font: "minecraft:default"}
@@ -28,3 +31,12 @@ space_pos16: {char: "\ue02c", width: 16, font: "souls:hud"}
 space_pos32: {char: "\ue02d", width: 32, font: "souls:hud"}
 space_pos64: {char: "\ue02e", width: 64, font: "souls:hud"}
 space_pos128: {char: "\ue02f", width: 128, font: "souls:hud"}
+you_died_title_y: {char: "\ue0f0", width: 10, font: "souls:hud"}
+you_died_title_o: {char: "\ue0f1", width: 11, font: "souls:hud"}
+you_died_title_u: {char: "\ue0f2", width: 10, font: "souls:hud"}
+you_died_title_d1: {char: "\ue0f3", width: 11, font: "souls:hud"}
+you_died_title_i: {char: "\ue0f4", width: 6, font: "souls:hud"}
+you_died_title_e: {char: "\ue0f5", width: 9, font: "souls:hud"}
+you_died_title_d2: {char: "\ue0f6", width: 11, font: "souls:hud"}
+you_died_title_gap: {char: "\ue030", width: 3, font: "souls:hud"}
+you_died_title_word: {char: "\ue031", width: 10, font: "souls:hud"}

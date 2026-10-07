@@ -21,6 +21,10 @@
 #
 # 봇은 mineflayer 4.39 를 쓴다: $BOT_NODE_MODULES → tools/bots/node_modules → 이 컨테이너의 시험 도구 폴더.
 # 결과: 시나리오마다 PASS/FAIL 한 줄과 실패한 판정. 자세한 기록은 DIR/run/logs/*.log, 판정 JSON 은 DIR/run/results/.
+# 시나리오 뒤: 서버를 끄고 켠 뒤부터 꺼질 때까지의 기록 전체(플러그인 끄기·세계 저장 포함)에서 오류를 본다 (server_log).
+# 그다음 같은 폴더로 한 번 더 켜서 두 번째 기동을 본다 (second_boot): 세계를 새로 만들지 않고, 난이도 경고가 없고,
+# 시험 방을 다시 짓지 않고, 오류가 없다 (12.7, 13.2 T2).
+# 지연 판의 roll_iframes 가 남긴 "자기 화면 기준" 피한 비율을 지연별로 모아 보인다 (판정 아님, 13.3).
 # 끝 코드: 0 모두 통과, 1 실패한 시나리오가 있음, 2 준비 단계(빌드·서버 켜기)에서 멈춤.
 set -u
 
@@ -223,22 +227,29 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 130' INT TERM
 
+# start_server <기록 파일 이름>: 켜고 "Done" 까지 기다린다. 실패하면 0 이 아닌 값
+start_server() {
+  local logname="$1"
+  rm -f "$SRV/console.in"
+  mkfifo "$SRV/console.in"
+  sleep 2147483647 > "$SRV/console.in" 2>/dev/null < /dev/null &
+  KEEPER_PID=$!
+  echo "$KEEPER_PID" > "$SRV/keeper.pid"
+  (cd "$SRV" && exec java -Xms512M -Xmx"$MEM" -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -Dstderr.encoding=UTF-8 \
+     -jar paper.jar --nogui < console.in > "$logname" 2>&1) > /dev/null 2>&1 &
+  SERVER_PID=$!
+  echo "$SERVER_PID" > "$SRV/server.pid"
+  T0=$(date +%s)
+  until grep -q 'Done (' "$SRV/$logname" 2>/dev/null; do
+    kill -0 "$SERVER_PID" 2>/dev/null || { tail -n 40 "$SRV/$logname"; SERVER_PID=""; return 1; }
+    [ $(( $(date +%s) - T0 )) -gt 300 ] && { tail -n 20 "$SRV/$logname"; return 2; }
+    sleep 1
+  done
+  say "   켜짐 ($(( $(date +%s) - T0 ))초)"
+}
+
 say "-- 서버 켜는 중"
-mkfifo "$SRV/console.in"
-sleep 2147483647 > "$SRV/console.in" 2>/dev/null < /dev/null &
-KEEPER_PID=$!
-echo "$KEEPER_PID" > "$SRV/keeper.pid"
-(cd "$SRV" && exec java -Xms512M -Xmx"$MEM" -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -Dstderr.encoding=UTF-8 \
-   -jar paper.jar --nogui < console.in > console.log 2>&1) > /dev/null 2>&1 &
-SERVER_PID=$!
-echo "$SERVER_PID" > "$SRV/server.pid"
-T0=$(date +%s)
-until grep -q 'Done (' "$SRV/console.log" 2>/dev/null; do
-  kill -0 "$SERVER_PID" 2>/dev/null || { tail -n 40 "$SRV/console.log"; SERVER_PID=""; die "서버가 켜지다 멈췄다 ($SRV/console.log)"; }
-  [ $(( $(date +%s) - T0 )) -gt 300 ] && { tail -n 20 "$SRV/console.log"; die "서버가 300초 안에 켜지지 않았다"; }
-  sleep 1
-done
-say "   켜짐 ($(( $(date +%s) - T0 ))초)"
+start_server console.log || die "서버가 켜지지 않았다 ($SRV/console.log)"
 # 켜진 직후 몇 초는 청크 만들기·시험 방 짓기로 틱이 밀린다. 그동안 굴린 첫 구르기가 밀리지 않은 적이 있어 조금 기다린다
 sleep 5
 
@@ -309,18 +320,61 @@ if [ -n "$LAG" ] && want roll_iframes; then
   done
 fi
 
-# 시험하는 동안 서버 기록에 남은 오류. 켜지는 동안의 줄은 t1_boot 가 보니, 여기서는 Done 뒤만 본다
+# 자기 화면 기준 피한 비율 (roll_iframes 의 SCREENDODGE 줄, 지연별). 대기열(3.9)이 없는 M0 의 기준선이라 판정하지 않는다
+SD=$(grep -a -h '^SCREENDODGE ' "$RUN"/logs/roll_iframes*.log 2>/dev/null | sed 's/^SCREENDODGE //' | sort -t= -k2 -n | tr '\n' ';')
+[ -n "$SD" ] && printf '%-10s %-24s %s\n' NOTE screen_dodge "${SD%;}"
+
+# 시험하는 동안 서버 기록에 남은 오류. 켜지는 동안의 줄은 t1_boot 가 보니, 여기서는 Done 뒤를 본다.
+# 플러그인 끄기(onDisable)와 세계 저장의 오류도 잡도록 서버를 먼저 끄고 꺼질 때까지 기다린 뒤 본다
 ERR_RE='(ERROR|SEVERE)\]|Exception|Caused by:'
+if [ "$KEEP" = 1 ]; then
+  say "   (--keep-running: 서버를 끄지 않아 끄는 동안의 기록은 보지 않는다)"
+else
+  stop_server
+fi
 awk 'f; /Done \(/{f=1}' "$SRV/console.log" > "$RUN/logs/server-after-boot.log"
 ERRS=$(grep -a -n -E "$ERR_RE" "$RUN/logs/server-after-boot.log" | head -n 6)
+STOPPED=$(grep -a -c 'Disabling Soulslike' "$RUN/logs/server-after-boot.log")
 if [ -n "$ERRS" ]; then
-  printf '%-10s %-24s %s\n' FAIL server_log "켠 뒤 오류 $(grep -a -c -E "$ERR_RE" "$RUN/logs/server-after-boot.log")줄"
+  printf '%-10s %-24s %s\n' FAIL server_log "켠 뒤·끌 때 오류 $(grep -a -c -E "$ERR_RE" "$RUN/logs/server-after-boot.log")줄"
   echo "$ERRS" | cut -c1-240 | sed 's/^/           /'
   FAILED=$((FAILED + 1))
   SUMMARY+=("FAIL server_log")
+elif [ "$KEEP" != 1 ] && [ "$STOPPED" = 0 ]; then
+  printf '%-10s %-24s %s\n' FAIL server_log "끄는 기록(Disabling Soulslike)이 없다 (강제로 꺼졌다)"
+  FAILED=$((FAILED + 1))
+  SUMMARY+=("FAIL server_log")
 else
-  printf '%-10s %-24s %s\n' PASS server_log "켠 뒤 오류 없음"
+  printf '%-10s %-24s %s\n' PASS server_log "켠 뒤·끌 때 오류 없음"
   SUMMARY+=("PASS server_log")
+fi
+
+# 두 번째 기동: 같은 세계로 다시 켠다. 새로 만들지 않고 (level.dat 이 있다), 난이도는 이미 normal, 시험 방은 그대로
+if [ "$KEEP" != 1 ] && { [ -z "$ONLY" ] || want second_boot; }; then
+  if start_server console-2.log; then
+    sleep 3
+    stop_server
+    L2="$SRV/console-2.log"
+    bad=""
+    grep -a -q '을 새로 만들어 난이도를' "$L2" && bad="$bad 세계를 새로 만들었다고 한다;"
+    grep -a -q -E '\[Soulslike\].*난이도가 .* 입니다' "$L2" && bad="$bad 난이도 띠가 나왔다;"
+    grep -a -q '시험 방은 이미 지었습니다' "$L2" || bad="$bad 시험 방을 다시 지었다 (이미 지었다는 줄이 없다);"
+    n2=$(grep -a -c -E "$ERR_RE" "$L2")
+    [ "$n2" = 0 ] || bad="$bad 오류 ${n2}줄;"
+    grep -a -q 'Disabling Soulslike' "$L2" || bad="$bad 끄는 기록이 없다;"
+    if [ -z "$bad" ]; then
+      printf '%-10s %-24s %s\n' PASS second_boot "새로 만들지 않음, 난이도 경고 없음, 시험 방 그대로, 오류 없음"
+      SUMMARY+=("PASS second_boot")
+    else
+      printf '%-10s %-24s %s\n' FAIL second_boot "$bad"
+      FAILED=$((FAILED + 1))
+      SUMMARY+=("FAIL second_boot")
+    fi
+  else
+    printf '%-10s %-24s %s\n' FAIL second_boot "다시 켜지지 않았다 ($SRV/console-2.log)"
+    FAILED=$((FAILED + 1))
+    SUMMARY+=("FAIL second_boot")
+  fi
 fi
 
 printf '%s\n' "${SUMMARY[@]}" > "$RUN/summary.txt"

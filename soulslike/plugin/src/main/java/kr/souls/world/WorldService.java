@@ -99,9 +99,11 @@ public final class WorldService implements Listener {
             return;
         }
         roomSpawn = TestRoom.spawn(w, c.roomX(), c.roomY(), c.roomZ());
-        // 플러그인이 새로 만든 세계는 easy 로 생긴다. 처음 한 번은 조용히 맞춘다 (그 뒤에 어긋나면 checkDifficulty 가 크게 알린다)
+        // Bukkit 이 새로 만든 세계는 server.properties 와 상관없이 easy 로 생긴다 (CraftServer.createWorld).
+        // 처음 만든 때(level.dat 이 없던 때)만은 예상한 일이라 SEVERE 띠 대신 경고 한 줄로 남긴다 (12.7 "크게 기록한다" 의 예외).
+        // 그 뒤로 어긋나면 checkDifficulty 가 SEVERE 띠로 크게 알린다
         if (freshWorld && w.getDifficulty() != Difficulty.NORMAL) {
-            plugin.getLogger().info(w.getName() + " 을 새로 만들어 난이도를 " + w.getDifficulty() + " 에서 normal 로 맞췄습니다.");
+            plugin.getLogger().warning(w.getName() + " 을 새로 만들어 난이도를 " + w.getDifficulty() + " 에서 normal 로 맞췄습니다 (새 세계는 늘 easy 로 생깁니다).");
             w.setDifficulty(Difficulty.NORMAL);
         }
         for (World x : List.of(lobby(), w)) {

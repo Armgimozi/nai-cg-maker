@@ -7,16 +7,17 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.type.Lantern;
+import org.bukkit.block.data.type.Slab;
 
 /**
  * M0 시험 방. 코드로 짓는다 (지도 빌더가 생기기 전의 작은 판). 접속하면 여기 선다.
- * 25×25 바닥 (구르기 길이를 재는 3칸 길 포함), 낮은 벽, 벽 기둥 위 랜턴, 북서쪽 모서리의 6칸 높이 턱
- * (낙하 피해는 구르기로 피하지 못하는지 보는 곳, 사다리로 오른다).
+ * 25×25 바닥 (구르기 길이를 재는 3칸 길 포함), 그 북쪽의 반 블록 판석 길 (온 블록이 아닌 바닥에서 구르기의 방벽 높이를 보는 곳),
+ * 낮은 벽, 벽 기둥 위 랜턴, 북서쪽 모서리의 6칸 높이 턱 (낙하 피해는 구르기로 피하지 못하는지 보는 곳, 사다리로 오른다).
  * 같은 무늬를 늘어놓지 않게 블록은 위치 해시로 섞는다 (8.4). 빛은 랜턴만 쓴다.
  */
 public final class TestRoom {
     /** 방 모양을 바꾸면 올린다. 시작할 때 세계에 적힌 판보다 크면 지우고 다시 짓는다. */
-    public static final int VERSION = 1;
+    public static final int VERSION = 2;
     /** 바닥 반지름 (가운데에서 벽 안쪽까지) */
     static final int HALF = 12;
 
@@ -35,6 +36,11 @@ public final class TestRoom {
     /** 구르기 길의 시작 칸 (동쪽 +x 로 구른다). */
     public static Location lane(World w, int cx, int cy, int cz) {
         return new Location(w, cx - 9.5, cy + 1, cz + 7.5, -90f, 0f);
+    }
+
+    /** 판석 길의 시작 칸 (바닥 위 아래 반 블록, 동쪽 +x 로 구른다). */
+    public static Location slab(World w, int cx, int cy, int cz) {
+        return new Location(w, cx - 9.5, cy + 1.5, cz + 3.5, -90f, 0f);
     }
 
     /** 지운 뒤 짓는다. 돌려주는 값은 놓은 블록 수. */
@@ -58,6 +64,15 @@ public final class TestRoom {
                 if (z != 7 && (x + 10) % 2 == 0) m = Material.DEEPSLATE_BRICKS;
                 if (x == -10 && z == 7) m = Material.CHISELED_DEEPSLATE;
                 b.set(x, 0, z, m);
+            }
+        }
+
+        // 판석 길: z = 2..4, x = -10..10, 바닥 위에 아래 반 블록 (발 높이의 소수 자리 0.5). 깨진 판석과 섞는다
+        for (int x = -10; x <= 10; x++) {
+            for (int z = 2; z <= 4; z++) {
+                BlockData slab = b.pick(x, 1, z, Material.DEEPSLATE_TILE_SLAB, 65, Material.POLISHED_DEEPSLATE_SLAB, 35).createBlockData();
+                ((Slab) slab).setType(Slab.Type.BOTTOM);
+                b.set(x, 1, z, slab);
             }
         }
 

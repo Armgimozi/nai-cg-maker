@@ -22,9 +22,11 @@ WorldCheck 실패면 거절)을 더한다. 그때까지 server/ 에 세계 폴�
            데이터팩 soulsdp (형식 94.1, 지역 바이옴 9개, souls:hit)
   설정     jar 안 config.yml: pack.url 이 https 이고 {sha1} 이 있다, required, serve-port 0, test-mode 꺼짐
   팩       형식 75, 셰이더 없음 (10.8), 8MB 아래, 정렬 zip (경로 순서·날짜 고정, 폴더 항목 없음), artlint 오류 0,
-           글꼴·모형·그림 참조가 팩 안에 있다 (바닐라 minecraft: 그림은 건너뛴다), 사망 화면 언어 다섯 키 (10.9)
+           글꼴·모형·그림 참조가 팩 안에 있다 (바닐라 minecraft: 그림은 건너뛴다),
+           사망 화면 언어 다섯 키가 바닐라의 모든 언어에 (gen_pack.LANGS, 10.9)
   글자표   glyphs.yml 의 모든 글자가 그 글꼴에 있고 빈칸 폭이 맞다, you_died 가 deathScreen.title 과 같다
-           (config.yml death.title: true 면 deathScreen.title 은 빈칸. YOU DIED 는 한 번만, 5.6)
+           (config.yml death.title: true 면 deathScreen.title 은 빈칸. YOU DIED 는 한 번만, 5.6. gen_pack 이 같은
+           config.yml 을 읽어 팩을 만들므로 설정 한 곳만 바꾸면 맞는다), death.title-glyphs 의 이름이 glyphs.yml 에 있다
   서버     인코딩 규칙 (12.9), server.properties 가 12.7 값 그대로, bukkit.yml allow-end: false,
            start.ps1 과 start.sh 의 Paper 고정값(주소·크기·sha256)이 같다
 """
@@ -58,6 +60,7 @@ for p in (HERE, PACK_SRC):
     if p not in sys.path:
         sys.path.insert(0, p)
 import artlint  # noqa: E402
+import gen_pack  # noqa: E402
 import textlint  # noqa: E402
 
 # 서버 zip 에 넣는 것 (이 밖의 파일은 server/ 에서 서버를 켜 봤을 때 생긴 것으로 보고 넣지 않는다)
@@ -279,9 +282,9 @@ def check_pack(jar):
                 if isinstance(ref, str) and not ref.startswith("#"):
                     need(*ref_path(ref, "textures", ".png"), n)
 
-    # 사망 화면 언어 (5.6, 10.9). 클라이언트 언어가 무엇이든 같게 보이도록 둘 다 덮어쓴다
+    # 사망 화면 언어 (5.6, 10.9). 클라이언트는 en_us 다음에 고른 언어를 읽으므로 바닐라의 모든 언어를 덮어쓴다
     langs = {}
-    for code in ("en_us", "ko_kr"):
+    for code in gen_pack.LANGS:
         path = f"assets/minecraft/lang/{code}.json"
         if g.check(path in files, f"{path} 가 없다"):
             langs[code] = json.loads(files[path])
@@ -339,6 +342,7 @@ def check_glyphs(jar, fonts, langs):
     g = Gate()
     table = yaml.safe_load(jar["glyphs.yml"].decode("utf-8")) or {}
     g.check("you_died" in table, "glyphs.yml 에 you_died 가 없다")
+    g.check("you_died_title" in table, "glyphs.yml 에 you_died_title (플러그인 화면 제목) 이 없다")
     for name, e in table.items():
         font = fonts.get(e.get("font"))
         if not g.check(font is not None, f"glyphs.yml {name}: 글꼴 {e.get('font')} 이 팩에 없다"):
@@ -355,11 +359,15 @@ def check_glyphs(jar, fonts, langs):
     # 켜져 있으면 플러그인이 화면 제목으로 띄우므로 사망 화면 제목은 비어 있어야 한다 (gen_pack --death-title plugin)
     cfg = yaml.safe_load(jar["config.yml"].decode("utf-8")) or {}
     by_plugin = (cfg.get("death") or {}).get("title") is True
+    names = str((cfg.get("death") or {}).get("title-glyphs") or "").split()
+    missing = [n for n in names if n not in table]
+    g.check(names and not missing, f"config.yml death.title-glyphs 의 이름이 glyphs.yml 에 없다: {missing or '(빈칸)'}")
     title = (table.get("you_died") or {}).get("char")
     for code, lang in langs.items():
         got = lang.get("deathScreen.title")
         if by_plugin:
-            g.check(got == "", f"{code} 의 deathScreen.title 이 비어 있지 않다 (death.title: true 와 겹친다)")
+            g.check(got == "", f"{code} 의 deathScreen.title 이 비어 있지 않다 (death.title: true 와 겹친다. "
+                               f"팩을 다시 만든다: python3 pack/gen_pack.py)")
         else:
             g.check(got == title, f"{code} 의 deathScreen.title 이 glyphs.yml you_died 와 다르다")
     g.done("글자표")

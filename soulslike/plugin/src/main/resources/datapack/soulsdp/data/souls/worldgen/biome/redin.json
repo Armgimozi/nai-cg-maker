@@ -1,4 +1,16 @@
 {
+  "attributes": {
+    "minecraft:visual/ambient_particles": [
+      {
+        "particle": {
+          "type": "minecraft:ash"
+        },
+        "probability": 0.01
+      }
+    ],
+    "minecraft:visual/fog_color": "#4a4540",
+    "minecraft:visual/sky_color": "#2e2b28"
+  },
   "carvers": [],
   "downfall": 0.0,
   "effects": {

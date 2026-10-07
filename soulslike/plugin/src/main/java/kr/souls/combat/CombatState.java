@@ -34,9 +34,11 @@ public final class CombatState {
     /** 구르는 쪽 (수평, 길이 1). glide 틱 동안 이쪽으로 민다 */
     public Vector rollDir;
     public boolean rollReported = true;
-    /** /soulstest rollhit: 다음 구르기 시작 뒤 이 틱에 시험 피해를 넣는다 (-1: 없음) */
+    /** /soulstest rollhit: 다음 구르기 시작 뒤 이 틱(1 이상)에 시험 피해를 넣는다 (-1: 없음) */
     public int armedRollHit = -1;
     public double armedRollHitAmount;
+    /** 걸어 둔 시험 피해가 묶인 구르기의 시작 틱 (걸어 둔 뒤 처음 구른 것. 그 전이면 Long.MIN_VALUE) */
+    public long armedRollStart = Long.MIN_VALUE;
 
     private CombatState(UUID id, double maxStamina) {
         this.id = id;

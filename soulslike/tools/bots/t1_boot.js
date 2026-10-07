@@ -37,10 +37,15 @@ L.run('t1_boot', async (sc) => {
   if (E.serverLog && fs.existsSync(E.serverLog)) {
     const log = fs.readFileSync(E.serverLog, 'utf8').split(/\r?\n/)
     sc.check('plugin enabled', log.some((l) => /Enabling Soulslike/.test(l)), 'Enabling Soulslike 줄')
-    // 난이도 바로잡기 (12.7 "다르면 바꾸고 크게 기록한다") 는 따로 본다: 새 서버에서 이 줄이 나오면
-    // 플러그인이 만든 세계가 normal 로 태어나지 않았다는 뜻이다 (server.properties 는 normal 이다)
+    // 난이도 (12.7 "다르면 바꾸고 크게 기록한다"). Bukkit 이 새로 만든 세계는 늘 easy 로 생긴다.
+    // run_tests.sh 는 매번 빈 서버 폴더에서 켜므로 souls_world 는 새로 만들어지고 (level.dat 이 없었다),
+    // 그때만 경고 한 줄 "을 새로 만들어 난이도를 ..." 이 나와야 한다. SEVERE 띠 ("난이도가 ... 입니다") 는
+    // 이미 있던 세계가 어긋났을 때의 것이라 깨끗한 기동에서는 나오면 안 된다.
+    const fresh = log.filter((l) => /\[Soulslike\].*을 새로 만들어 난이도를/.test(l))
+    sc.check('fresh souls_world: one WARN line fixing its difficulty to normal', fresh.length === 1 && /WARN\]/.test(fresh[0]),
+      fresh.map((l) => l.replace(/^.*?\[Soulslike\] /, '')).join(' / ').slice(0, 300) || '줄 없음')
     const fix = log.filter((l) => /\[Soulslike\].*난이도가 .* 입니다/.test(l))
-    sc.check('fresh worlds start at normal (no difficulty fix-up on a clean boot)', fix.length === 0, fix.map((l) => l.replace(/^.*\[Soulslike\] /, '')).join(' / ').slice(0, 300))
+    sc.check('no difficulty drift banner on a clean boot', fix.length === 0, fix.map((l) => l.replace(/^.*\[Soulslike\] /, '')).join(' / ').slice(0, 300))
     const banner = (l) => /\[Soulslike\] =+\s*$/.test(l)
     const errs = log.filter((l) => /\b(ERROR|SEVERE)\]|Exception|Caused by:/.test(l) && !fix.includes(l) && !banner(l))
     sc.check('server log has no other ERROR/exception', errs.length === 0, errs.length ? errs.length + '줄: ' + errs.slice(0, 4).join(' / ').slice(0, 600) : '')

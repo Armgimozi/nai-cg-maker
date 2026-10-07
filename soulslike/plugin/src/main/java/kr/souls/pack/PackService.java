@@ -33,6 +33,7 @@ import java.time.Duration;
 import java.util.HexFormat;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.ZipEntry;
@@ -42,7 +43,8 @@ import java.util.zip.ZipInputStream;
  * 리소스팩 배포 (10.10). jar 안 pack.zip 의 SHA-1 로 주소 틀의 {sha1} 을 채운다 (파일 이름이 내용으로 정해져
  * raw.githubusercontent.com 의 캐시·커밋 고정 문제가 없다). 올리기(커밋·푸시)는 사용자가 한다.
  * 켤 때 그 주소에서 팩을 받아 SHA-1 을 견주고, 다르거나 못 받으면 크게 알린 뒤 팩을 선택(optional)으로 보낸다.
- * 보내는 때: 접속 + join-delay 틱 (skyblock 에서 검증), 또는 설정 단계(AsyncPlayerConnectionConfigureEvent, 아직 확인 전).
+ * 보내는 때: 접속 + join-delay 틱 (skyblock 에서 검증, 기본), 또는 설정 단계 (AsyncPlayerConnectionConfigureEvent.
+ * 실제 클라이언트는 이 단계에서 받아 싣고 답한다 [확인 (클라), 13.4 의 13]. mineflayer 봇은 답하지 않아 기본값은 join).
  * playit 은 25565 만 통하므로 실제 서버에서는 자체 HTTP 서버를 쓰지 않는다. serve-port 는 로컬 시험용이다.
  */
 public final class PackService implements Listener {
@@ -53,6 +55,7 @@ public final class PackService implements Listener {
 
     private final Souls plugin;
     private HttpServer http;
+    private ExecutorService httpPool;
     private byte[] data;
     private String sha1;
     private String url;
@@ -137,7 +140,13 @@ public final class PackService implements Listener {
                     }
                 }
             });
-            http.setExecutor(Executors.newFixedThreadPool(2));
+            // 데몬 스레드: 플러그인을 끄고 stop() 을 거치지 못해도 서버가 꺼지는 것을 붙잡지 않는다
+            httpPool = Executors.newFixedThreadPool(2, r -> {
+                Thread t = new Thread(r, "Soulslike-pack-http");
+                t.setDaemon(true);
+                return t;
+            });
+            http.setExecutor(httpPool);
             http.start();
             plugin.getLogger().info("리소스팩을 포트 " + port + " 에서 내보냅니다 (로컬 시험용).");
         } catch (Exception e) {
@@ -148,6 +157,8 @@ public final class PackService implements Listener {
     public void stop() {
         if (http != null) http.stop(0);
         http = null;
+        if (httpPool != null) httpPool.shutdownNow();
+        httpPool = null;
     }
 
     /** 주소에서 받아 SHA-1 을 견준다 (비동기). */
@@ -227,7 +238,8 @@ public final class PackService implements Listener {
 
     /**
      * 설정 단계에서 보내고 끝 상태(받음·거절·실패)가 올 때까지 기다린다. 이 이벤트는 비동기라 기다려도 서버가 멈추지 않는다.
-     * 실제 클라이언트에서 아직 확인하지 못했다 (13.4 의 13). 안 되면 send-at: join 으로.
+     * 실제 클라이언트로 확인했다 (13.4 의 13, 10.10): 받아 다시 싣고 답한 뒤 세계에 들어온다 (약 5초).
+     * mineflayer 봇은 이 단계에서 답하지 않아 configure-timeout 을 다 기다린다. 그래서 기본은 send-at: join.
      */
     @EventHandler
     public void onConfigure(AsyncPlayerConnectionConfigureEvent e) {

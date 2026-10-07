@@ -28,6 +28,8 @@ import java.util.Locale;
  * M0 서버 시험 (13.4 표 첫 줄, 3.4): 막기 성분 + minecraft:generic 피해.
  * 플레이어 앞 2칸에 잠깐 세운 좀비를 원인 물체로 삼아 피해를 넣고, 실제로 깎인 체력, 막는 중이었는지,
  * 바닐라 밀림이 일어났는지, 든 아이템 내구도가 바뀌었는지를 잰다. /soulstest hit 와 rollhit 이 쓴다.
+ * 밀림은 둘을 따로 본다: knockback 은 맞은 사람 (generic 은 #no_knockback 이라 막든 안 막든 늘 false),
+ * attackerKnockback 은 원인 좀비. 3.4 가 막으려는 바닐라 막기 부작용은 막은 사람이 공격자를 미는 쪽 (blockUsingItem) 이다.
  * 원인 물체가 살아 있는 비플레이어라 난이도 배율 규칙이 걸린다 (normal 이면 배율 없음).
  */
 public final class TestHits implements Listener {
@@ -36,16 +38,17 @@ public final class TestHits implements Listener {
     private static final Key ARMOR_KEY = Key.key(Keys.NS, "test_armor");
 
     public record Result(String type, double amount, double dealt, boolean blocking, boolean knockback,
-                         boolean cancelled, String durability, double armor, String difficulty) {
+                         boolean attackerKnockback, boolean cancelled, String durability, double armor, String difficulty) {
         /** 시험 줄 꼬리 ([T] 다음에 붙인다) */
         public String line() {
-            return String.format(Locale.ROOT, "type=%s amount=%.2f dealt=%.2f full=%s blocking=%s knockback=%s cancelled=%s dur=%s armor=%.0f diff=%s",
-                    type, amount, dealt, Math.abs(dealt - amount) < 1e-3, blocking, knockback, cancelled, durability, armor, difficulty);
+            return String.format(Locale.ROOT, "type=%s amount=%.2f dealt=%.2f full=%s blocking=%s knockback=%s attackerKnockback=%s cancelled=%s dur=%s armor=%.0f diff=%s",
+                    type, amount, dealt, Math.abs(dealt - amount) < 1e-3, blocking, knockback, attackerKnockback, cancelled, durability, armor, difficulty);
         }
     }
 
     private Player active;
-    private boolean sawKnockback, sawCancel;
+    private Zombie activeCause;
+    private boolean sawKnockback, sawAttackerKnockback, sawCancel;
 
     /**
      * 시험 피해 하나.
@@ -56,7 +59,7 @@ public final class TestHits implements Listener {
         DamageType dt = DamageType.GENERIC;
         if ("hit".equals(type)) {
             dt = RegistryAccess.registryAccess().getRegistry(RegistryKey.DAMAGE_TYPE).get(Key.key(Keys.NS, "hit"));
-            if (dt == null) return new Result("hit(없음)", amount, 0, p.isBlocking(), false, true, "-", 0, p.getWorld().getDifficulty().name());
+            if (dt == null) return new Result("hit(없음)", amount, 0, p.isBlocking(), false, false, true, "-", 0, p.getWorld().getDifficulty().name());
         }
         Zombie cause = null;
         if (!"none".equals(type)) {
@@ -85,12 +88,15 @@ public final class TestHits implements Listener {
         double before = p.getHealth() + p.getAbsorptionAmount();
         p.setNoDamageTicks(0);
         active = p;
+        activeCause = cause;
         sawKnockback = false;
+        sawAttackerKnockback = false;
         sawCancel = false;
         try {
             p.damage(amount, Combat.source(dt, cause));
         } finally {
             active = null;
+            activeCause = null;
             if (armor && armorAttr != null) armorAttr.removeModifier(mod);
             if (cause != null) cause.remove();
         }
@@ -99,7 +105,7 @@ public final class TestHits implements Listener {
         Integer durAfter = heldAfter.getData(DataComponentTypes.DAMAGE);
         String dur = (durBefore == null ? "-" : durBefore) + "->" + (durAfter == null ? "-" : durAfter);
         String name = "none".equals(type) ? "generic(원인 없음)" : "hit".equals(type) ? "souls:hit" : "minecraft:generic";
-        return new Result(name, amount, Math.max(0, before - after), blocking, sawKnockback, sawCancel, dur, armorValue,
+        return new Result(name, amount, Math.max(0, before - after), blocking, sawKnockback, sawAttackerKnockback, sawCancel, dur, armorValue,
                 p.getWorld().getDifficulty().name());
     }
 
@@ -110,6 +116,8 @@ public final class TestHits implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onKnockback(EntityKnockbackEvent e) {
-        if (active != null && e.getEntity() == active && !e.isCancelled()) sawKnockback = true;
+        if (active == null || e.isCancelled()) return;
+        if (e.getEntity() == active) sawKnockback = true;
+        if (activeCause != null && e.getEntity() == activeCause) sawAttackerKnockback = true;
     }
 }

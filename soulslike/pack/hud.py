@@ -2,12 +2,13 @@
 HUD 그림과 글꼴 (DESIGN.md 10.2, 10.3, 10.9). gen_pack.py 가 부른다.
 
 M0 에서 만드는 것
-  스태미나 막대   경험치 막대 그림 둘 (gui/sprites/hud/experience_bar_background, _progress).
-                  녹슨 쇠 테 + 이끼색 채움. 레벨 숫자는 플러그인이 레벨 0 을 보내 숨긴다.
   허기            food_* 여섯 장을 투명하게 (허기 6 은 달리기를 막는 데만 쓴다, 3.2).
   사망 화면 제목  "YOU DIED" (사용자 결정 3). 손으로 찍은 글자 art/you_died.txt 를
                   minecraft:default 글꼴의 개인 영역 문자로 넣는다 (언어 문자열은 글꼴을 고를 수 없다, 10.9).
-  souls:hud 글꼴  행동 막대·제목에 쓸 자리 맞춤 빈칸 (음수·양수). 그림 글자(숫자, 소울 표식, 막대)는 M4.
+  souls:hud 글꼴  행동 막대·제목에 쓸 자리 맞춤 빈칸 (음수·양수), 플러그인 화면 제목용 YOU DIED (death.title: true).
+                  그림 글자(숫자, 소울 표식, 막대)는 M4.
+  하트·스태미나 막대·단축 슬롯 같은 바닐라 HUD 그림은 gui_skin.py 가 그린다 (스태미나 막대 그림은 거기 하나뿐).
+  레벨 숫자는 플러그인이 레벨 0 을 보내 숨긴다.
 
 글자 표 (glyphs.yml)
   build() 가 돌려주는 Glyph 목록을 gen_pack 이 plugin/src/main/resources/glyphs.yml 로 쓴다.
@@ -17,8 +18,9 @@ M0 에서 만드는 것
 
 문자 번호
   U+E000~E01F  minecraft:default (사망 화면 제목 글자와 그 사이 빈칸)
-  U+E020~E03F  souls:hud 빈칸
-  U+E040~E0FF  souls:hud 그림 글자 (M4 의 숫자·소울 표식, 마법을 넣을 때의 마나 막대 자리)
+  U+E020~E03F  souls:hud 빈칸 (E020~E02F 자리 맞춤, E030·E031 플러그인 제목의 글자 사이)
+  U+E040~E0EF  souls:hud 그림 글자 (M4 의 숫자·소울 표식, 술을 넣을 때의 온기 막대 자리)
+  U+E0F0~E0F6  souls:hud 플러그인 화면 제목 YOU DIED 글자
 
 마나 막대 자리 (사용자 결정 2)
   체력 = 하트 줄, 스태미나 = 경험치 막대. 허기 줄은 투명하게 비워 두었으므로 단축 슬롯 오른쪽 위가 빈다.
@@ -110,15 +112,28 @@ def glyph_advance(img, x0, cell_w, cell_h, scale):
 
 # ─────────────────────────── 사망 화면 제목 ───────────────────────────
 
-# 그림 이름, 문자. 두 D 는 따로 그린 다른 그림이다.
+# 그림 이름, 문자. 두 D 는 따로 그린 다른 그림이다 (윤곽부터 다르다).
 YOU_DIED_LETTERS = [("y", "\ue000"), ("o", "\ue001"), ("u", "\ue002"), ("d1", "\ue003"),
                     ("i", "\ue004"), ("e", "\ue005"), ("d2", "\ue006")]
 YOU_DIED_GAP = ("you_died_gap", "\ue00e", 3)     # 글자 사이 (글꼴 픽셀). 소울 시리즈처럼 넓게 띄운다
 YOU_DIED_WORD = ("you_died_word", "\ue00f", 10)  # YOU 와 DIED 사이
 # 글자 그림 24줄을 글꼴 높이 12 로 넣는다 (배율 0.5). 사망 화면 제목은 2배로 그려지므로 그림 한 칸 = GUI 1픽셀.
 YOU_DIED_HEIGHT = 12
-# 줄 위쪽에서 7 - ascent 만큼 내려 그린다. 9 면 바닐라 제목 글씨와 가운데가 거의 같다 (y 28~40, 바닐라 30~37).
-YOU_DIED_ASCENT = 9
+# 사망 화면은 제목 줄을 GUI y 60 (2배 좌표 30) 에 그리고, 글자 위쪽은 줄 위쪽에서 7 - ascent 만큼 아래다 (2배).
+# 단추는 화면 높이/4 + 72 (GUI 높이가 가장 작은 240 일 때 132) 부터라, 그 위로 가능한 한 가운데에 둔다:
+# ascent -5 면 GUI y 84~108 (높이 240 에서 가운데가 40%), 단추와 24 픽셀 띈다. 바닐라 글씨 자리(9)보다 24 픽셀 아래.
+YOU_DIED_ASCENT = -5
+
+# 플러그인 화면 제목용 (death.title: true). 사망 화면 판과 같은 그림을 souls:hud 글꼴에 따로 넣어, 사망 화면 판의
+# 자리(ascent)를 바꿔도 이 판은 그대로 둔다. 화면 제목은 4배로 그려지므로 높이 12 면 그림 한 칸이 GUI 2픽셀:
+# 사망 화면 판의 두 배 크기다 (이 판을 고르는 까닭). 대신 단추·HUD 와 픽셀 크기가 섞인다 (16절 질문 4 에 적었다).
+# 제목 줄은 화면 가운데에서 -10 (4배 좌표) 에 놓이고 글자 아래끝은 -10 + 7 - ascent + 12 이라, ascent 9 면 가운데보다
+# GUI 24픽셀 위에서 끝난다. 세로 한가운데에 두면 바닐라 단추(화면 높이/4 + 72)와 겹친다.
+TITLE_LETTERS = [(name, chr(0xE0F0 + i)) for i, (name, _) in enumerate(YOU_DIED_LETTERS)]
+TITLE_HEIGHT = 12
+TITLE_ASCENT = 9
+TITLE_GAP = ("you_died_title_gap", "\ue030", 3)
+TITLE_WORD = ("you_died_title_word", "\ue031", 10)
 
 
 def you_died_sheet():
@@ -134,84 +149,18 @@ def you_died_sheet():
     return sheet, cell_w, cell_h
 
 
-def death_title(glyphs):
+def death_title(glyphs, prefix="you_died_"):
     """deathScreen.title 에 넣을 문자열: Y O U / D I E D 를 빈칸 문자로 띄운다."""
     by = {g.name: g.char for g in glyphs}
-    gap, word = by[YOU_DIED_GAP[0]], by[YOU_DIED_WORD[0]]
-    you = gap.join(by["you_died_" + n] for n in ("y", "o", "u"))
-    died = gap.join(by["you_died_" + n] for n in ("d1", "i", "e", "d2"))
+    gap, word = by[prefix + "gap"], by[prefix + "word"]
+    you = gap.join(by[prefix + n] for n in ("y", "o", "u"))
+    died = gap.join(by[prefix + n] for n in ("d1", "i", "e", "d2"))
     return you + word + died
 
 
-# ─────────────────────────── 스태미나 막대 ───────────────────────────
-
-BAR_W, BAR_H = 182, 5
-
-
-def _row(length, base, marks):
-    """바탕색 한 줄에 손으로 고른 자리 [(색, [(x, 길이), ...]), ...] 를 칠한다. x 는 막대 왼쪽 끝 기준."""
-    row = [base] * length
-    for col, spots in marks:
-        for x, n in spots:
-            for i in range(n):
-                if 0 <= x + i < length:
-                    row[x + i] = col
-    return row
-
-
-def stamina_bar():
-    """
-    배경: 녹슨 쇠 테와 빈 홈. 위 테는 빛을 받아 rust2, 아래 테는 그늘이라 rust0.
-          닳은 곳·이 빠진 곳·리벳 다섯 개는 손으로 자리를 골랐고, 리벳은 하나하나 모양이 다르다.
-    채움: 이끼 세 단 (위 moss2, 가운데 moss2 와 moss1 이 섞임, 아래 moss1 과 moss0).
-          테 줄과 양 끝 열은 비워 배경의 테가 그대로 보이게 한다 (바닐라는 채움을 배경 위에 폭만큼 잘라 그린다).
-    """
-    W = BAR_W
-    bg = Image.new("RGBA", (W, BAR_H), (0, 0, 0, 0))
-    px = bg.load()
-    rows = [
-        _row(W, "rust2", [("rust1", [(6, 4), (27, 2), (33, 7), (61, 3), (79, 5), (102, 2), (113, 6), (139, 3),
-                                     (151, 4), (170, 5)]),
-                          ("rust0", [(15, 1), (48, 1), (96, 1), (124, 1), (157, 1)]),
-                          ("ash0", [(44, 2), (117, 1)])]),
-        _row(W, "ash0", [("rust0", [(19, 1), (131, 1), (45, 1)])]),
-        _row(W, "ash0", [("ash1", [(110, 2)]), ("rust0", [(19, 1)])]),
-        _row(W, "ash0", [("ash1", [(30, 4), (87, 3), (137, 5)])]),
-        _row(W, "rust0", [("rust1", [(3, 6), (22, 3), (40, 9), (67, 4), (85, 2), (99, 8), (120, 3), (141, 6),
-                                     (166, 4)]),
-                          ("ash0", [(150, 1)])]),
-    ]
-    for y, row in enumerate(rows):
-        for x in range(1, W - 1):
-            px[x, y] = c(row[x])
-    # 리벳: 같은 모양을 두 번 쓰지 않는다
-    for (x, y), col in {(19, 0): "rust3", (20, 0): "rust0",                       # 녹물이 아래로 흘렀다
-                        (57, 0): "rust1", (58, 0): "rust3",
-                        (90, 0): "rust3", (90, 4): "rust2",                       # 위아래로 꿰뚫은 못
-                        (131, 0): "rust3", (132, 0): "rust3", (133, 0): "rust0",  # 머리가 큰 것
-                        (163, 0): "rust1", (164, 0): "rust3"}.items():
-        px[x, y] = c(col)
-    # 양 끝 마개: 왼쪽은 두껍게 녹슬고, 오른쪽은 위 귀퉁이가 떨어져 나갔다
-    for y, col in enumerate(("rust1", "rust3", "rust2", "rust2", "rust0")):
-        px[0, y] = c(col)
-    for y, col in enumerate((None, "rust2", "rust1", "rust2", "rust1")):
-        if col:
-            px[W - 1, y] = c(col)
-
-    fill = Image.new("RGBA", (W, BAR_H), (0, 0, 0, 0))
-    fp = fill.load()
-    frows = [
-        _row(W, "moss2", [("moss1", [(12, 3), (40, 2), (66, 5), (95, 2), (121, 4), (150, 3), (173, 2)])]),
-        _row(W, "moss2", [("moss1", [(1, 3), (9, 4), (22, 7), (44, 3), (53, 9), (77, 4), (98, 6), (115, 3),
-                                     (128, 8), (146, 2), (159, 6), (176, 4)]),
-                          ("moss0", [(76, 1), (133, 2)])]),
-        _row(W, "moss1", [("moss0", [(1, 4), (14, 6), (31, 3), (47, 5), (70, 8), (89, 2), (104, 7), (125, 3),
-                                     (138, 9), (162, 5), (174, 6)])]),
-    ]
-    for y, row in enumerate(frows):
-        for x in range(1, W - 1):
-            fp[x, y + 1] = c(row[x])
-    return bg, fill
+def plugin_title(glyphs):
+    """플러그인 화면 제목 한 줄 (souls:hud 글꼴)."""
+    return death_title(glyphs, "you_died_title_")
 
 
 # ─────────────────────────── 빌드 ───────────────────────────
@@ -226,10 +175,7 @@ def build(out):
     """out (팩 뿌리) 에 HUD 그림과 글꼴을 쓰고 Glyph 목록을 돌려준다."""
     glyphs = []
 
-    # 스태미나 막대와 투명한 허기
-    bg, fill = stamina_bar()
-    save(bg, sprite_path(out, "minecraft", "gui", "sprites", "hud", "experience_bar_background.png"))
-    save(fill, sprite_path(out, "minecraft", "gui", "sprites", "hud", "experience_bar_progress.png"))
+    # 투명한 허기 (스태미나 막대는 gui_skin)
     for name in FOOD_SPRITES:
         save(Image.new("RGBA", (9, 9), (0, 0, 0, 0)), sprite_path(out, "minecraft", "gui", "sprites", "hud", name + ".png"))
 
@@ -248,7 +194,7 @@ def build(out):
         {"type": "space", "advances": {YOU_DIED_GAP[1]: YOU_DIED_GAP[2], YOU_DIED_WORD[1]: YOU_DIED_WORD[2]}},
     ]}
 
-    # souls:hud: 빈칸만 (그림 글자는 M4)
+    # souls:hud: 빈칸 (그림 글자는 M4) + 플러그인 화면 제목
     advances = {}
     code = 0xE020
     for sign, label in ((-1, "neg"), (1, "pos")):
@@ -257,7 +203,18 @@ def build(out):
             code += 1
             advances[ch] = sign * step
             glyphs.append(Glyph(f"space_{label}{step}", ch, sign * step, HUD_FONT, "space"))
-    hud_font = {"providers": [{"type": "space", "advances": advances}]}
+    tscale = TITLE_HEIGHT / cell_h
+    for i, (name, ch) in enumerate(TITLE_LETTERS):
+        glyphs.append(Glyph("you_died_title_" + name, ch, glyph_advance(sheet, i * cell_w, cell_w, cell_h, tscale),
+                            HUD_FONT, "bitmap"))
+    for name, ch, adv in (TITLE_GAP, TITLE_WORD):
+        advances[ch] = adv
+        glyphs.append(Glyph(name, ch, adv, HUD_FONT, "space"))
+    hud_font = {"providers": [
+        {"type": "space", "advances": advances},
+        {"type": "bitmap", "file": f"{NS}:font/you_died.png", "height": TITLE_HEIGHT, "ascent": TITLE_ASCENT,
+         "chars": ["".join(ch for _, ch in TITLE_LETTERS)]},
+    ]}
 
     fonts = {
         ("minecraft", "default"): default_font,

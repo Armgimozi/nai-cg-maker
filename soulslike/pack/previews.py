@@ -6,7 +6,8 @@
   stamina_bar.png   막대 두 장을 6배로, 그리고 0~100% 채움
   hud.png           화면 아래쪽 흉내 (단축 슬롯, 하트, 스태미나 70%, 숨긴 허기)
   pack_icon.png     팩 그림을 4배로
-  client_*.png      실제 1.21.11 클라이언트(가상 화면)에서 찍은 것. gen_pack 이 만들지 않고 덮어쓰지도 않는다
+  gui_*.png         gui_skin 이 다시 그린 HUD·창·단추 (gui_skin.write_previews)
+실제 1.21.11 클라이언트(가상 화면)에서 찍은 그림은 여기 두지 않는다: dist/screenshots/m0/ (tools/client/m0_shots.sh)
 
 바닐라 단추·단축 슬롯·하트 그림은 클라이언트 jar 에서 읽는다 (환경 변수 SOULS_CLIENT_JAR, 없으면 단순한 상자로 대신한다).
 한글 단추 글은 unifont 가 있으면 그것으로 쓴다 (마인크래프트도 한글을 unifont 로 그린다).
@@ -60,6 +61,18 @@ def unifont_text(text, scale):
     d.fontmode = "1"
     d.text((0, 0), text, font=f, fill=255)
     return im.resize((max(1, w * scale // 2), 8 * scale), Image.NEAREST)
+
+
+# 바닐라 옛 색 부호 (§0..§f) 가운데 미리보기에 쓰는 것
+LEGACY_COLORS = {"7": (170, 170, 170), "8": (85, 85, 85), "f": (255, 255, 255)}
+
+
+def legacy(text, color=(224, 224, 224)):
+    """글 앞의 § 색 부호를 떼고 그 색을 돌려준다 (사망 화면 단추 글, gen_pack.DEATH_LANG)."""
+    while len(text) >= 2 and text[0] == "\u00a7":
+        color = LEGACY_COLORS.get(text[1].lower(), color)
+        text = text[2:]
+    return text, color
 
 
 def paste_text(canvas, text, cx, y, scale, color=(224, 224, 224), shadow=True):
@@ -167,7 +180,8 @@ def death_screen(out_dir, sheet, cell_w, glyphs, title, height_units, ascent, la
         else:
             ImageDraw.Draw(canvas).rectangle([bx, by, bx + 200 * gui, by + 20 * gui], fill=(80, 80, 80, 255),
                                              outline=(20, 20, 20, 255), width=gui)
-        paste_text(canvas, lang[key], bx + 100 * gui, by + 6 * gui, gui)
+        text, color = legacy(lang[key])
+        paste_text(canvas, text, bx + 100 * gui, by + 6 * gui, gui, color)
     canvas.save(os.path.join(out_dir, "death_screen.png"))
 
 

@@ -43,6 +43,10 @@ import java.util.UUID;
  * 돌진처럼 보이지 않게: 한 번 튕기는 대신 glide 틱 동안 같은 빠르기로 밀다가 끝 두 틱에 줄여 멈추고,
  * 구르는 동안 머리 위 칸에 그 사람 화면에만 보이는 방벽을 깔아 클라이언트가 스스로 기어가기 자세로 바꾸게 한다
  * (1인칭은 시야가 바닥까지 내려갔다 올라오고, 3인칭은 몸이 눕는다). 방벽은 진짜 블록이 아니라 다른 사람과 서버는 모른다.
+ *
+ * 미는 때: F 는 틱 사이에 오고, 속도 패킷은 틱마다 한 번 (엔티티 추적기가 hurtMarked 를 볼 때) 나간다.
+ * F 를 받은 자리에서 setVelocity 를 하면 다음 틱의 첫 밀기가 그 값을 덮어 클라이언트에 닿지 않는다.
+ * 그래서 F 에서는 방향과 시작 틱만 적고, 미는 것은 모두 Ticker 가 1..glide 틱째에 한다 (밀기 번호 0..glide-1).
  */
 public final class Roll implements Listener {
     private final Souls plugin;
@@ -105,7 +109,8 @@ public final class Roll implements Listener {
         st.rollFrom = p.getLocation();
         st.rollReported = false;
         st.rollDir = dir.normalize();
-        push(p, st, kind, 0);
+        // 걸어 둔 시험 피해 (/soulstest rollhit) 는 걸어 둔 뒤 처음 구른 이 구르기에 묶는다
+        if (st.armedRollHit > 0 && st.armedRollStart == Long.MIN_VALUE) st.armedRollStart = now;
         if (cfg().spinVisual() && !back) p.startRiptideAttack(7, 0f, null);
         if (cfg().crawl() && !back) crawl(p);
         visual(p, true);
@@ -137,13 +142,22 @@ public final class Roll implements Listener {
         return sb.toString();
     }
 
-    /** t 틱째에 미는 힘. 끝 두 틱은 줄여서 미끄러지지 않고 멈춰 선다. 위아래는 첫 틱만 (뒷걸음의 작은 뜀). */
-    private void push(Player p, CombatState st, Config.RollKind kind, long t) {
+    /**
+     * i 번째 밀기 (0..glide-1, 구르기 i+1 틱째). 끝 두 번은 줄여서 미끄러지지 않고 멈춰 선다.
+     * 위아래는 첫 밀기만 (뒷걸음의 작은 뜀).
+     */
+    private void push(Player p, CombatState st, Config.RollKind kind, long i) {
         double speed = kind.horizontal();
-        if (t >= kind.glide() - 2) speed *= t == kind.glide() - 1 ? 0.35 : 0.65;
+        if (i >= kind.glide() - 2) speed *= i == kind.glide() - 1 ? 0.35 : 0.65;
         Vector v = st.rollDir.clone().multiply(speed);
-        v.setY(t == 0 ? kind.vertical() : Math.min(p.getVelocity().getY(), 0));
+        v.setY(i == 0 ? kind.vertical() : Math.min(p.getVelocity().getY(), 0));
         p.setVelocity(v);
+    }
+
+    /** 미는 것을 그만둔다 (순간이동, 죽음, 세계 이동: 도착한 곳에서 미끄러지지 않게). 무적과 회복 틱은 그대로. */
+    private static void stopGlide(Player p) {
+        CombatState st = CombatState.peek(p.getUniqueId());
+        if (st != null) st.rollDir = null;
     }
 
     /** 발밑 먼지와 땅을 구르는 소리. start 가 아니면 일어서며 땅을 짚는 소리. */
@@ -162,11 +176,17 @@ public final class Roll implements Listener {
         }
     }
 
-    /** 머리 위 칸(발 블록 + 1)과 그 둘레 8칸 중 빈 칸에 이 사람 화면에만 방벽을 깐다. 구르며 움직이므로 틱마다 다시 깐다. */
+    /**
+     * 기어가기 상자(높이 0.6) 바로 위 층과 그 둘레 8칸 중 빈 칸에 이 사람 화면에만 방벽을 깐다. 구르며 움직이므로 틱마다 다시 깐다.
+     * 층은 ceil(발 높이 + 0.6): 온 블록 바닥이면 발 블록 + 1, 길·농지·영혼 모래처럼 덜 찬 바닥이면 + 2.
+     * 그 층이 서는 상자(1.8)와 웅크린 상자(1.5)를 막아야 클라이언트가 기어가기를 고른다.
+     * 바닥 높이의 소수 자리가 0.4~0.5 (아래 반 블록, 계단 아랫단) 이면 두 조건을 함께 채우는 층이 없다.
+     * 그때는 + 2 층이라 웅크린 자세로 구른다 (기어가기 상자가 방벽에 걸려 튕기는 것보다 낫다).
+     */
     private void crawl(Player p) {
         Set<Pos> want = new HashSet<>();
         Location l = p.getLocation();
-        int bx = l.getBlockX(), by = l.getBlockY() + 1, bz = l.getBlockZ();
+        int bx = l.getBlockX(), by = crawlLayer(l.getY()), bz = l.getBlockZ();
         for (int dx = -1; dx <= 1; dx++) {
             for (int dz = -1; dz <= 1; dz++) {
                 Block b = p.getWorld().getBlockAt(bx + dx, by, bz + dz);
@@ -185,6 +205,11 @@ public final class Roll implements Listener {
         for (Pos k : want) {
             if (have.add(k)) p.sendBlockChange(k.in(p.getWorld()).getLocation(), barrier);
         }
+    }
+
+    /** 방벽을 깔 층 (블록 y). 기어가기 상자 꼭대기(발 + 0.6) 이상인 가장 낮은 정수. */
+    static int crawlLayer(double feetY) {
+        return (int) Math.ceil(feetY + 0.6 - 1e-6);
     }
 
     /** 깔아 둔 방벽을 거둔다 (진짜 블록 모양으로 다시 보낸다). */
@@ -210,34 +235,47 @@ public final class Roll implements Listener {
 
     @EventHandler
     public void onDeath(PlayerDeathEvent e) {
+        stopGlide(e.getPlayer());
         uncrawl(e.getPlayer());
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onTeleport(PlayerTeleportEvent e) {
+        stopGlide(e.getPlayer());
         uncrawl(e.getPlayer());
     }
 
     @EventHandler
     public void onWorld(PlayerChangedWorldEvent e) {
+        stopGlide(e.getPlayer());
         fakes.remove(e.getPlayer().getUniqueId());
     }
 
-    /** Ticker: 구르기가 끝난 틱에 시험 줄 (서버에서 잰 거리), 걸어 둔 시험 피해. */
+    /**
+     * Ticker: 1..glide 틱째에 민다 (밀기 번호 t-1), 방벽을 따라 옮기고 glide+2 틱째에 거둔다 (마지막 밀기가 클라이언트에서
+     * 끝날 틈), glide+1 틱째에 일어서는 소리, 구르기가 끝난 틱에 시험 줄 (서버에서 잰 거리), 걸어 둔 시험 피해.
+     */
     public void tick(long now) {
         for (Player p : Bukkit.getOnlinePlayers()) {
             CombatState st = CombatState.peek(p.getUniqueId());
             if (st == null || st.roll == null) continue;
             long t = now - st.rollStart;
-            if (t > 0 && t < st.roll.glide() && st.rollDir != null) push(p, st, st.roll, t);
+            if (t >= 1 && t <= st.roll.glide() && st.rollDir != null && !p.isDead()) push(p, st, st.roll, t - 1);
             if (fakes.containsKey(p.getUniqueId())) {
-                if (t < st.roll.glide() + 1) crawl(p);
+                if (t <= st.roll.glide() + 1) crawl(p);
                 else uncrawl(p);
             }
-            if (t == st.roll.glide()) visual(p, false);
-            if (st.armedRollHit >= 0 && t == st.armedRollHit) {
+            if (t == st.roll.glide() + 1 && st.rollDir != null) visual(p, false);
+            if (st.armedRollHit > 0 && st.armedRollStart != Long.MIN_VALUE && st.armedRollStart != st.rollStart) {
+                // 묶인 구르기가 그 틱에 닿기 전에 다음 구르기가 시작됐다
+                plugin.test(p, "ROLLHIT dropped off=" + st.armedRollHit + " t=" + now);
+                st.armedRollHit = -1;
+                st.armedRollStart = Long.MIN_VALUE;
+            }
+            if (st.armedRollHit > 0 && st.armedRollStart == st.rollStart && t == st.armedRollHit) {
                 int off = st.armedRollHit;
                 st.armedRollHit = -1;
+                st.armedRollStart = Long.MIN_VALUE;
                 TestHits.Result res = plugin.testHits().hit(p, st.armedRollHitAmount, "generic", false);
                 plugin.test(p, "ROLLHIT off=" + off + " iframes=" + st.roll.iframes() + " dodged=" + (res.dealt() <= 1e-6) + " " + res.line());
             }

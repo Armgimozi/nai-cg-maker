@@ -233,6 +233,7 @@ class Bot {
       crawlRestored: []
     }
     this.crawlLive = new Set()
+    this.sysHooks = [] // 받은 그 자리에서 부를 것 (onSysOnce)
     this.isBarrier = () => false
     this.kick = null
     this.ended = false
@@ -264,7 +265,14 @@ class Bot {
       const s = simple(d.content)
       const m = { t: now(), plain: flatten(s).map((x) => x.text).join(''), parts: flatten(s), raw: s }
       if (d.isActionBar) this.p.actionBars.push(m)
-      else this.sys.push(m)
+      else {
+        this.sys.push(m)
+        // 자기 화면 기준 반응 (13.3): 받은 패킷 처리 안에서 곧바로 부른다 (waitSys 의 25ms 주기를 기다리지 않는다)
+        for (const h of this.sysHooks.splice(0)) {
+          if (h.pred(m)) h.fn(m)
+          else this.sysHooks.push(h)
+        }
+      }
     })
     c.on('experience', (d) => this.p.xp.push({ t: now(), bar: d.experienceBar, level: d.level, total: d.totalExperience }))
     c.on('entity_velocity', (d) => {
@@ -306,7 +314,8 @@ class Bot {
     bot.on('error', (e) => { this.lastError = e })
   }
 
-  // 기어가기 흉내 (Roll 의 crawl): 구르는 동안 서버가 이 사람 화면에만 머리 높이(발 + 1)에 방벽을 깐다.
+  // 기어가기 흉내 (Roll 의 crawl): 구르는 동안 서버가 이 사람 화면에만 기어가기 상자 바로 위 층
+  // (ceil(발 높이 + 0.6): 온 블록 바닥이면 발 + 1, 판석 위면 발 블록 + 2) 에 방벽을 깐다.
   // 실제 클라이언트는 그 방벽 때문에 기어가는 자세(키 0.6)로 바뀌어 그대로 미끄러지지만, mineflayer 는 자세를 몰라
   // 1.8 칸 몸이 방벽에 끼어 움직이지 못한다. 그래서 머리 높이의 방벽은 기록만 하고 봇의 세계에서는 공기로 둔다.
   // 돌려놓는 패킷(진짜 블록)은 그대로 받는다. opts.crawlShim === false 면 흉내 내지 않는다
@@ -315,8 +324,8 @@ class Bot {
     const key = x + ',' + y + ',' + z
     if (this.isBarrier(state)) {
       if (this.opts.crawlShim === false || !bot.entity) return
-      const fy = Math.floor(bot.entity.position.y)
-      if (y !== fy + 1 || Math.abs(x - Math.floor(bot.entity.position.x)) > 2 || Math.abs(z - Math.floor(bot.entity.position.z)) > 2) return
+      const layer = Math.ceil(bot.entity.position.y + 0.6 - 1e-6)
+      if (y !== layer || Math.abs(x - Math.floor(bot.entity.position.x)) > 2 || Math.abs(z - Math.floor(bot.entity.position.z)) > 2) return
       this.p.crawl.push({ t: Date.now(), x, y, z })
       this.crawlLive.add(key)
       try { bot.world.setBlockStateId(new Vec3(x, y, z), 0) } catch (e) {}
@@ -357,6 +366,11 @@ class Bot {
       if (Date.now() > end || this.ended) return null
       await sleep(25)
     }
+  }
+
+  /** pred 에 맞는 시스템 줄이 오면 받은 그 자리에서 fn 을 한 번 부른다 (봇의 화면 시각에 반응하기). */
+  onSysOnce (pred, fn) {
+    this.sysHooks.push({ pred, fn })
   }
 
   /** "[T] PREFIX ..." 줄을 기다린다. */
@@ -770,13 +784,15 @@ function rollConfig () {
  * true 면 플러그인의 화면 제목 하나다. 못 읽으면 기본값.
  */
 function deathConfig () {
-  const out = { title: false, source: '기본값' }
+  const out = { title: false, titleGlyphs: 'you_died_title', source: '기본값' }
   const f = ENV.serverDir && path.join(ENV.serverDir, 'plugins', 'Soulslike', 'config.yml')
   if (!f || !fs.existsSync(f)) return out
   const sec = fs.readFileSync(f, 'utf8').match(/\ndeath:\n([\s\S]*?)(?=\n[A-Za-z][\w-]*:)/)
   if (!sec) return out
   const t = sec[1].match(/^\s+title:\s*(true|false)/m)
   if (t) { out.title = t[1] === 'true'; out.source = 'config.yml' }
+  const g = sec[1].match(/^\s+title-glyphs:\s*"?([^"\n]*)"?/m)
+  if (g) out.titleGlyphs = g[1].trim()
   return out
 }
 

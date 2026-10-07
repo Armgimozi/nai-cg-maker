@@ -22,7 +22,8 @@ import org.bukkit.event.player.PlayerRespawnEvent;
  * 죽음 (5.5, 5.6). M0 판: 인벤토리는 그대로, 떨굼·경험치 없음, 채팅 사망 알림 없음, 사망 화면 밑 문구 비움.
  * 바닐라 사망 화면을 그대로 쓰고 (immediate_respawn=false), 피처럼 붉은 "YOU DIED" 는 한 번만 보인다 (사용자 결정 3).
  * 기본은 리소스팩이 바꾼 사망 화면 제목(deathScreen.title, 손으로 찍은 그림 글자)이고 플러그인은 아무것도 띄우지 않는다.
- * death.title: true 면 화면 한가운데에 화면 제목으로 크게 띄운다 (팩은 --death-title plugin 으로 사망 화면 제목을 비운다).
+ * death.title: true 면 화면 한가운데에 화면 제목으로 크게 띄우고 일어설 때까지 남긴다 (gen_pack 이 같은 config.yml 을 읽어
+ * 사망 화면 제목을 비운다). 이 판은 사망 화면의 붉은 덧칠 밑에 그려져 조금 어둡다.
  * 화면 제목도 glyphs.yml 의 그림 글자이고, 없으면 붉은 일반 글씨로 대신한다. 단추 글(deathScreen.*)은 리소스팩이 바꾼다.
  * 혈흔, 소울 잃기, 적 되살리기, 화톳불 부활은 M2.
  */
@@ -76,7 +77,7 @@ public final class DeathFlow implements Listener {
             try {
                 col = TextColor.color(Fx.color(c.fallbackColor()).asRGB());
             } catch (RuntimeException ex) {
-                col = Glyphs.BLOOD3;
+                col = Glyphs.GORE3;
             }
             title = Component.text(Lang.plain("death.title"), col).decoration(TextDecoration.BOLD, false);
         }

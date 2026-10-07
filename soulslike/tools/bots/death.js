@@ -62,6 +62,11 @@ L.run('death', async (sc) => {
   const glyphs = L.loadGlyphs()
   const yd = glyphs && glyphs.you_died
   if (!yd) sc.miss('glyphs.yml has you_died', E.glyphs || '(glyphs.yml 없음)')
+  // 플러그인 화면 제목에 쓰는 줄 (config.yml death.title-glyphs, 기본 you_died_title: souls:hud 글꼴)
+  const dc = L.deathConfig()
+  const names = dc.titleGlyphs.split(/\s+/).filter(Boolean)
+  const tg = glyphs && names.every((n) => glyphs[n]) ? { char: names.map((n) => glyphs[n].char).join(''), font: glyphs[names[0]].font, name: names.join(' ') } : null
+  if (!tg) sc.miss('glyphs.yml has the plugin title glyphs', dc.titleGlyphs)
 
   const b = await L.connect(sc, { respawn: false })
   await L.sleep(1500)
@@ -90,8 +95,7 @@ L.run('death', async (sc) => {
   sc.check('no death broadcast in chat', !broadcast, broadcast ? broadcast.plain : '')
 
   // ── 제목 "YOU DIED": 한 번만 보인다 (5.6, 13.4 의 3). 기본은 팩의 사망 화면 제목, death.title: true 면 플러그인 화면 제목 ──
-  const dc = L.deathConfig()
-  sc.note(`death.title=${dc.title} (${dc.source}): ${dc.title ? '플러그인 화면 제목' : '사망 화면 제목'}`)
+  sc.note(`death.title=${dc.title} (${dc.source}): ${dc.title ? '플러그인 화면 제목' : '사망 화면 제목'}, title-glyphs=${dc.titleGlyphs}`)
   const title = b.p.titles.slice(t0).find((x) => x.plain.trim())
   const tl = b.tLines('TITLE', from)[0]
   const tt = dc.title ? b.p.titleTimes[b.p.titleTimes.length - 1] : null
@@ -100,7 +104,7 @@ L.run('death', async (sc) => {
     sc.check('server TITLE line mode=screen', tl && tl.kv.mode === 'screen', tl ? tl.line : '')
   } else {
     sc.check('title packet sent on death', !!title, title ? JSON.stringify(title.plain) : '제목 없음')
-    if (title && yd) checkGlyphTitle(title)
+    if (title && tg) checkGlyphTitle(title)
     sc.check('title held until respawn (stay >= 200)', tt && tt.stay >= 200, tt ? `${tt.fadeIn}/${tt.stay}/${tt.fadeOut}` : '시간 패킷 없음')
     sc.check('server TITLE line mode=plugin glyph=true', tl && tl.kv.mode === 'plugin' && tl.kv.glyph === 'true', tl ? tl.line : '')
   }
@@ -110,7 +114,11 @@ L.run('death', async (sc) => {
   if (!packFile) sc.miss('pack death screen checks', '받은 팩이 없다')
   else {
     const zip = L.readZip(fs.readFileSync(packFile))
-    for (const lang of ['en_us', 'ko_kr']) {
+    // 클라이언트는 en_us 다음에 고른 언어를 읽으므로 바닐라의 모든 언어 (1.21.11: 143개) 에 같은 키가 있어야 한다.
+    // 여기서는 몇 언어를 자세히 보고, 개수는 따로 센다
+    const langFiles = zip.names.filter((n) => /^assets\/minecraft\/lang\/[a-z_]+\.json$/.test(n))
+    sc.check('death screen keys written for every vanilla language (>= 143 files)', langFiles.length >= 143, langFiles.length + '개')
+    for (const lang of ['en_us', 'ko_kr', 'en_gb', 'ja_jp', 'zh_cn']) {
       const j = zip.json(`assets/minecraft/lang/${lang}.json`)
       if (!j) { sc.check(`${lang}: lang file present`, false); continue }
       // 사망 화면 제목: 기본은 그림 글자 YOU DIED, 플러그인 화면 제목을 쓰면 빈칸 (둘이 겹치지 않게).
@@ -120,6 +128,7 @@ L.run('death', async (sc) => {
       sc.check(`${lang}: deathScreen.title = ${dc.title ? 'empty (plugin title instead)' : 'you_died glyphs'}`, yd && dt === want,
         dt === undefined ? '키 없음 (바닐라 글이 남는다)' : dt === '' ? '빈칸' : [...dt].map((c) => c.codePointAt(0).toString(16)).join(' '))
       sc.check(`${lang}: score line empty`, j['deathScreen.score.value'] === '', JSON.stringify(j['deathScreen.score.value']))
+      sc.check(`${lang}: respawn button is 일어선다`, /일어선다$/.test(j['deathScreen.respawn'] || ''), JSON.stringify(j['deathScreen.respawn']))
     }
     if (yd) {
       const px = []
@@ -167,7 +176,7 @@ L.run('death', async (sc) => {
   const after = b.bot.heldItem ? b.bot.heldItem.name : null
   sc.check('inventory kept (keep_inventory)', before && after === before, `${before} → ${after}`)
   // 화면 제목 경로 (death.title: true 일 때 쓰는 길). 기본 판에서도 그림 글자가 제대로 실리는지 /soulstest title 로 본다
-  if (!dc.title && yd) {
+  if (!dc.title && tg) {
     const t1 = b.p.titles.length
     const r = await b.cmd('/soulstest title', 'TITLE', 1500)
     await L.sleep(300)
@@ -178,9 +187,9 @@ L.run('death', async (sc) => {
   sc.check('no kick during death scenario', !b.kick, b.kick || '')
 
   function checkGlyphTitle (t) {
-    sc.check('title is the you_died glyph line (glyphs.yml)', t.plain === yd.char, `${[...t.plain].map((c) => c.codePointAt(0).toString(16)).join(' ')}`)
+    sc.check(`title is the ${tg.name} glyph line (glyphs.yml)`, t.plain === tg.char, `${[...t.plain].map((c) => c.codePointAt(0).toString(16)).join(' ')}`)
     const fonts = [...new Set(t.parts.filter((p) => p.text).map((p) => p.font || 'minecraft:default'))]
-    sc.check('title uses the glyph font', fonts.length === 1 && fonts[0].replace(/^minecraft:/, '') === yd.font.replace(/^minecraft:/, ''), fonts.join(','))
+    sc.check('title uses the glyph font', fonts.length === 1 && fonts[0].replace(/^minecraft:/, '') === tg.font.replace(/^minecraft:/, ''), fonts.join(','))
     const cols = [...new Set(t.parts.filter((p) => p.text).map((p) => String(p.color || 'white').toLowerCase()))]
     sc.check('title text colour does not tint the glyph (white)', cols.every((c) => c === 'white' || c === '#ffffff'), cols.join(','))
   }
