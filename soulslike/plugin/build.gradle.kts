@@ -25,7 +25,8 @@ tasks.withType<JavaCompile> {
 
 tasks.processResources {
     filteringCharset = "UTF-8"
-    filesMatching("plugin.yml") {
+    // paper-plugin.yml (부트스트래퍼가 jar 안 데이터팩을 싣는다, 12.2). 버전만 채운다
+    filesMatching("paper-plugin.yml") {
         expand("version" to project.version)
     }
 }

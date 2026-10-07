@@ -1,9 +1,10 @@
 package kr.souls.skill;
 
-import kr.souls.AugSky;
 import kr.souls.util.Fx;
 import kr.souls.util.P;
 import kr.souls.util.Text;
+import io.papermc.paper.datacomponent.DataComponentTypes;
+import net.kyori.adventure.key.Key;
 import org.bukkit.Bukkit;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
@@ -34,6 +35,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.BiFunction;
 import java.util.logging.Logger;
 
 /**
@@ -41,12 +43,22 @@ import java.util.logging.Logger;
  * 무기 스킬과 몬스터 스킬이 같은 부품을 쓰고, 누가 맞는지는 Targets 가 시전자 편에 따라 정한다.
  */
 public final class Mechanics {
-    private static Logger log = Logger.getLogger("AugmentSkyblock");
-    public static final String FX_TAG = "augsky_fx";
+    private static Logger log = Logger.getLogger("Soulslike");
+    public static final String FX_TAG = "souls_fx";
+
+    /**
+     * 적 스킬의 summon 부품이 부르는 적 만들기 (적 id, 자리 → 만든 몸, 못 만들면 null).
+     * 적 등록부가 생기면 (M1) 거기서 바꿔 끼운다. 그 전에는 아무것도 만들지 않는다.
+     */
+    private static BiFunction<String, Location, LivingEntity> enemySpawner = (id, at) -> null;
 
     private Mechanics() {}
 
     public static void setLogger(Logger l) { log = l; }
+
+    public static void setEnemySpawner(BiFunction<String, Location, LivingEntity> f) {
+        enemySpawner = f == null ? (id, at) -> null : f;
+    }
 
     public static List<Mechanic> parseList(List<Map<?, ?>> raw) {
         List<Mechanic> out = new ArrayList<>();
@@ -130,9 +142,28 @@ public final class Mechanics {
         return false;
     }
 
-    static ItemDisplay display(AugSky plugin, Location at, String itemSpec, float scale) {
+    /**
+     * 디스플레이에 띄울 아이템 글 (skyblock CustomItems 대신 쓰는 작은 해석기).
+     * "souls:fx/blade" 처럼 souls 이름공간이면 그 item_model 을 씌운 종이, 아니면 바닐라 재료 이름 ("IRON_SWORD", "minecraft:bone").
+     */
+    static ItemStack item(String spec) {
+        String s = spec.trim();
+        if (s.startsWith(kr.souls.Keys.NS + ":")) {
+            ItemStack it = ItemStack.of(Material.PAPER);
+            it.setData(DataComponentTypes.ITEM_MODEL, Key.key(s));
+            return it;
+        }
+        Material m = Material.matchMaterial(s);
+        if (m == null || !m.isItem() || m.isAir()) {
+            log.warning("디스플레이 아이템을 알 수 없습니다: " + spec);
+            return null;
+        }
+        return ItemStack.of(m);
+    }
+
+    static ItemDisplay display(Location at, String itemSpec, float scale) {
         if (itemSpec == null || itemSpec.isBlank()) return null;
-        ItemStack stack = plugin.items().spec(itemSpec, 1);
+        ItemStack stack = item(itemSpec);
         if (stack == null) return null;
         World w = at.getWorld();
         if (w == null) return null;
@@ -308,7 +339,7 @@ public final class Mechanics {
             Location start = ground
                     ? ctx.caster.getLocation().add(dir.clone().multiply(1.0)).add(0, 0.15, 0)
                     : ctx.eye().add(dir.clone().multiply(0.8)).add(0, -0.15, 0);
-            ItemDisplay disp = display(ctx.plugin, start, display, (float) displayScale);
+            ItemDisplay disp = display(start, display, (float) displayScale);
             Set<UUID> hit = new HashSet<>();
             new BukkitRunnable() {
                 final Location pos = start.clone();
@@ -693,7 +724,7 @@ public final class Mechanics {
             Location ground = SkillContext.ground(target.clone().add(0, 4, 0), 20);
             Location pos = ground.clone().add(r.nextDouble(-2, 2), height, r.nextDouble(-2, 2));
             Vector v = ground.toVector().subtract(pos.toVector()).normalize().multiply(fall);
-            ItemDisplay disp = display(ctx.plugin, pos, display, (float) displayScale);
+            ItemDisplay disp = display(pos, display, (float) displayScale);
             new BukkitRunnable() {
                 int t = 0;
 
@@ -931,7 +962,7 @@ public final class Mechanics {
         public void run(SkillContext ctx) {
             List<ItemDisplay> discs = new ArrayList<>();
             for (int i = 0; i < count; i++) {
-                ItemDisplay d = display(ctx.plugin, ctx.caster.getLocation(), display, (float) displayScale);
+                ItemDisplay d = display(ctx.caster.getLocation(), display, (float) displayScale);
                 if (d != null) discs.add(d);
             }
             Map<UUID, Integer> last = new HashMap<>();
@@ -1085,34 +1116,26 @@ public final class Mechanics {
     // ------------------------------------------------------------------ 소환
 
     static final class Summon implements Mechanic {
-        final String entity, mob, name;
+        final String mob;
         final int count;
-        final double duration, health, damage;
 
         Summon(P p) {
-            entity = p.s("entity", "WOLF");
             mob = p.s("mob", null);
-            name = p.s("name", null);
             count = Math.max(1, p.i("count", 1));
-            duration = p.d("duration", 20);
-            health = p.d("health", 0);
-            damage = p.d("damage", 0);
         }
 
         @Override
         public void run(SkillContext ctx) {
+            // 플레이어 편 소환수는 없다. 적이 부르는 졸개만 적 등록부로 만든다
+            if (ctx.byPlayer || mob == null) return;
             Location base = ctx.point != null ? ctx.point : ctx.caster.getLocation();
             ThreadLocalRandom r = ThreadLocalRandom.current();
             for (int i = 0; i < count; i++) {
                 Location at = base.clone().add(r.nextDouble(-1.5, 1.5), 0.2, r.nextDouble(-1.5, 1.5));
                 if (solid(at)) at = base.clone().add(0, 0.2, 0);
                 new Fx.Spec(Particle.LARGE_SMOKE, null).spawn(at.clone().add(0, 0.5, 0), 10, 0.3, 0.02);
-                if (ctx.byPlayer) {
-                    ctx.plugin.allies().summon(ctx, at, entity, name, duration, health, damage);
-                } else if (mob != null) {
-                    LivingEntity spawned = ctx.plugin.mobs().spawn(mob, at, true);
-                    if (spawned instanceof org.bukkit.entity.Mob m && ctx.hasTarget()) m.setTarget(ctx.target);
-                }
+                LivingEntity spawned = enemySpawner.apply(mob, at);
+                if (spawned instanceof org.bukkit.entity.Mob m && ctx.hasTarget()) m.setTarget(ctx.target);
             }
         }
     }

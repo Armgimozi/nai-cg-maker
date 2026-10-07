@@ -11,7 +11,11 @@
 채도
   여기서 채도는 (가장 큰 채널 − 가장 작은 채널) / 255, 즉 HSV 의 S×V 다.
   아주 어두운 핏빛은 S 만 보면 높지만 눈에는 탁한 색이라, 밝기까지 곱한 값으로 잰다.
-  이렇게 재면 표의 색 가운데 SAT_MAX 를 넘는 것은 불씨의 밝은 세 색뿐이다.
+  이렇게 재면 표의 색 가운데 SAT_MAX 를 넘는 것은 불씨의 밝은 세 색과 생피의 밝은 두 색뿐이다.
+
+생피
+  사망 화면 제목 "YOU DIED" 를 새빨갛게 띄우려고 (사용자 결정 3) 10.1 표에 한 계열을 더했다.
+  그 제목 그림(VIVID)에만 쓴다. 다른 그림에 나오면 artlint 오류 (restricted).
 """
 import colorsys
 
@@ -24,9 +28,12 @@ FAMILIES = {
     "moss":   ["#2e3322", "#48502f", "#646d3e"],              # 이끼: 스태미나 채움, 독
     "bone":   ["#8a8270", "#b0a68e", "#d6cbb0", "#e8dcc0"],   # 뼈: 해골, 마지막 4틱 섬광
     "ember":  ["#7a2e10", "#b04a17", "#d9772a", "#f0b060"],   # 불씨 (빛 허용): 화톳불, 소울, 쳐낼 수 있는 예고
+    # 생피: 사망 화면 제목 "YOU DIED" 전용 (사용자 결정 3, 10.1 표 밖의 유일한 계열). 마른 핏빛보다 붉고 진하다.
+    # 다른 그림에는 쓰지 않는다. artlint 가 경로로 막는다 (RESTRICTED).
+    "gore":   ["#3b0605", "#6e0b08", "#a3110c", "#cc2418"],
 }
 KO = {"rust": "녹슨 철", "bronze": "그을린 청동", "parch": "바랜 양피지", "blood": "마른 핏빛",
-      "ash": "재", "moss": "이끼", "bone": "뼈", "ember": "불씨"}
+      "ash": "재", "moss": "이끼", "bone": "뼈", "ember": "불씨", "gore": "생피 (사망 제목 전용)"}
 
 SAT_MAX = 0.55            # 이보다 채도가 높으면 빛 허용 그림에만
 BLUE_HUE = (200, 300)     # 파랑~보라 (도)
@@ -36,6 +43,10 @@ GLOW_ALPHA = (250, 251, 252)   # 발광 픽셀 표시 (셰이더용, M0 에는 �
 # 빛을 허용하는 그림 (경로의 조각 이름). 10.7: 화톳불 불꽃과 검의 잔불, 혈흔의 소울, 소울 표식,
 # 적·보스 기술 예고 (장판, 반짝임, 두르크의 달아오른 핵), 쳐내기 섬광
 GLOW = ("bonfire", "bloodstain", "soul_mark", "telegraph", "warn", "glint", "durk_core", "parry_flash")
+
+# 쓰는 곳이 정해진 계열: 계열 → 그 색을 쓸 수 있는 그림 (경로 조각). 여기 든 그림은 채도 제한도 받지 않는다.
+VIVID = ("you_died",)
+RESTRICTED = {"gore": VIVID}
 
 
 def hexc(h, a=255):
@@ -100,6 +111,20 @@ def blue_glow(rgb):
 def is_glow_path(path):
     p = path.replace("\\", "/").lower()
     return any(g in p for g in GLOW)
+
+
+def is_vivid_path(path):
+    p = path.replace("\\", "/").lower()
+    return any(g in p for g in VIVID)
+
+
+def family_allowed(name, path):
+    """RESTRICTED 계열의 색이면 정해진 그림에서만 참."""
+    allow = RESTRICTED.get(family(name))
+    if allow is None:
+        return True
+    p = path.replace("\\", "/").lower()
+    return any(g in p for g in allow)
 
 
 def nearest(rgb, families=None):

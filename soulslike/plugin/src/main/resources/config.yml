@@ -1,0 +1,97 @@
+# ─────────────────────────────────────────────────────────────
+#  식은 가마 (가제) 설정
+#  고친 뒤 게임 안에서 /souls reload (서버를 다시 켜도 됨)
+#
+#  같은 폴더의 다른 파일
+#    lang/ko.yml     게임 안 시스템 문구
+#    content/        콘텐츠 (M0: skills.yml)
+# ─────────────────────────────────────────────────────────────
+
+difficulty:
+  # 난이도는 아직 정하지 않았다. 수치는 설계 문서 값 그대로 두고 여기서 바꾼다 (M1 도장부터 쓴다).
+  # 적이 주는 피해 배율
+  enemy-damage: 1.0
+  # 쳐내기 창에 더하는 틱 (너그럽게: 2)
+  parry-window-bonus: 0
+  # 처음 에스트 횟수
+  estus-start: 4
+
+combat:
+  stamina:
+    # 지구력. 출신과 레벨이 생기기 전(M2)까지는 모두 이 값으로 최대 스태미나를 정한다
+    endurance: 10
+    # 지구력 → 최대 스태미나 (사이는 직선으로 잇는다)
+    curve: {10: 100, 20: 130, 30: 150, 40: 165, 50: 175, 99: 200}
+    # 스태미나를 쓴 행동이 끝나고 regen-delay 틱 뒤부터 틱마다 regen-per-tick 씩 찬다
+    regen-per-tick: 2.2
+    regen-delay: 12
+    # 0 이 되면(탈진) 회복이 늦게 시작되고, exhausted-sprint-until 까지 찰 때까지 달리지 못한다
+    exhausted-delay: 24
+    exhausted-sprint-until: 25
+    # 막는 동안 회복 배율
+    guard-regen-scale: 0.35
+    # 달리는 동안 틱마다 쓰는 양 (달리는 동안은 회복 없음)
+    sprint-per-tick: 0.6
+  roll:
+    # 장비 하중이 생기기 전(M1)까지 쓰는 구르기 무게: light / medium / heavy (방향키가 없으면 backstep)
+    load: light
+    # 몸이 도는 회전 자세 (자기 화면 카메라를 아직 확인하지 못해 끈다)
+    spin-visual: false
+    # iframes: 무적 틱 (1틱째부터), next: 다음 구르기를 받는 틱, end: 구르기가 끝나는 틱 (회복 지연은 여기서부터 센다)
+    kinds:
+      light:    {iframes: 8, horizontal: 0.62, vertical: 0.11, next: 10, end: 12, cost: 18}
+      medium:   {iframes: 7, horizontal: 0.56, vertical: 0.10, next: 12, end: 14, cost: 20}
+      heavy:    {iframes: 5, horizontal: 0.45, vertical: 0.08, next: 16, end: 18, cost: 24}
+      backstep: {iframes: 4, horizontal: 0.50, vertical: 0.10, next: 8, end: 10, cost: 12}
+    sound: "entity.player.attack.sweep"
+    sound-volume: 0.35
+    sound-pitch: 0.55
+
+world:
+  # 게임 세계 폴더 이름. 로비는 server.properties 의 level-name (world)
+  name: souls_world
+  seed: 7707
+  # 시험 방 가운데 (지역 상자 밖, 세계 경계 안)
+  test-room: {x: 200, y: 100, z: -200}
+  # 멈춰 둔 시각 (해가 막 진 잿빛 저녁)
+  time: 13000
+  border: {x: 0, z: 20, size: 640}
+  # 접속하면 생존 모드를 모험 모드로 바꾼다 (창작·관전 모드는 그대로)
+  force-adventure: true
+
+hud:
+  # 행동 막대의 "소울 N" 줄 (소울은 M2 부터 쌓인다. 그 전에는 0)
+  show-souls: true
+  # 행동 막대를 다시 보내는 주기 (틱). 바뀌면 곧바로 보낸다
+  actionbar-refresh: 20
+
+death:
+  # 죽으면 화면 가운데에 큰 제목을 띄운다 (바닐라 사망 화면 위)
+  title: true
+  # 제목에 쓸 그림 글자 이름 (glyphs.yml). 빈칸으로 여러 개를 이어 쓴다. 하나라도 없으면 lang 의 death.title 을 아래 색 글씨로
+  title-glyphs: "you_died"
+  fallback-color: "#b81a12"
+  fade-in: 20
+  stay: 70
+  fade-out: 30
+
+pack:
+  enabled: true
+  # 팩 주소 틀. {sha1} 은 jar 안 pack.zip 의 SHA-1 로 채운다 (dist/packs/<sha1>.zip 을 올려 두면 된다)
+  url: "https://raw.githubusercontent.com/Armgimozi/nai-cg-maker/main/soulslike/dist/packs/{sha1}.zip"
+  required: true
+  # join: 접속하고 join-delay 틱 뒤에 보낸다 / configure: 세계가 보이기 전 설정 단계에서 보내고 답을 기다린다 (아직 확인 전)
+  send-at: join
+  join-delay: 20
+  configure-timeout: 30
+  # 켤 때 주소에서 팩을 받아 SHA-1 을 견준다. 다르거나 못 받으면 크게 알리고 팩을 선택으로 보낸다
+  self-check: true
+  # 0 보다 크면 jar 안 pack.zip 을 이 포트에서 직접 내보낸다 (로컬 시험용).
+  # 이때 url 도 "http://127.0.0.1:<포트>/{sha1}.zip" 처럼 바꾼다. 터널(playit)은 25565 만 통하므로 실제 서버에서는 0
+  serve-port: 0
+
+debug:
+  # 시험 명령어 /soulstest 와 시험 줄([T] ...)을 켠다. 봇 시험 서버에서만 켠다
+  test-mode: false
+  # 시험 줄을 서버 기록에도 남긴다
+  log-test-lines: true

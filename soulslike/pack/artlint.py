@@ -10,10 +10,11 @@
   blue       색상 200~300°(파랑~보라)이면서 밝기 0.5 를 넘는 색
   gradient   아주 작은 차이로 5칸 넘게 이어지는 매끈한 그라데이션 (가로·세로)
   glowalpha  빛 허용 그림이 아닌데 발광 알파(250~252)
+  restricted 쓰는 곳이 정해진 계열(palette.RESTRICTED, 생피)을 다른 그림에 씀
 경고
   colors     16×16 칸 하나에 색이 12개 넘음
   symmetric  아이콘(textures/item, pack.png)의 완벽한 좌우 대칭
-  repeat     똑같은 4×4 조각이 세 번 넘게 반복 (색 3개 이상인 조각만 본다)
+  repeat     똑같은 4×4 조각이 세 번 이상 반복 (색 3개 이상이고 한 색이 11칸 이하인 무늬 조각만 본다)
   alpha      반투명 픽셀 (1~249). 손으로 찍은 그림은 보통 0 아니면 255
 """
 import os
@@ -31,8 +32,9 @@ GRADIENT_STEP = 10      # 채널마다 이 이하로만 바뀌면 '아주 작은
 GRADIENT_RUN = 5        # 이 칸 수를 넘게 (= 6픽셀 이상) 이어지면 오류
 TILE_COLORS = 12
 REPEAT_MIN = 3          # 같은 4×4 조각이 이만큼 (겹치지 않게) 나오면 경고
+REPEAT_FLAT = 11        # 한 색이 16칸 중 이보다 많으면 민무늬로 보고 반복을 세지 않는다
 
-ERRORS = ("palette", "saturated", "blue", "gradient", "glowalpha")
+ERRORS = ("palette", "saturated", "blue", "gradient", "glowalpha", "restricted")
 
 
 class Report:
@@ -86,6 +88,7 @@ def _gradient_runs(px, mask):
 def check_image(path, report, rel=None):
     rel = (rel or path).replace("\\", "/")
     glow = palette.is_glow_path(rel)
+    vivid = palette.is_vivid_path(rel)
     img = Image.open(path).convert("RGBA")
     a = np.array(img)
     h, w = a.shape[:2]
@@ -95,18 +98,22 @@ def check_image(path, report, rel=None):
         return
 
     # 1~3. 색 하나하나
-    bad_pal, bad_sat, bad_blue = [], [], []
+    bad_pal, bad_sat, bad_blue, bad_fam = [], [], [], []
     seen = {}
     ys, xs = np.nonzero(vis)
     for y, x in zip(ys, xs):
         rgb = tuple(int(v) for v in a[y, x, :3])
         if rgb not in seen:
-            seen[rgb] = (palette.name_of(rgb), palette.too_saturated(rgb), palette.blue_glow(rgb))
-        name, sat, blue = seen[rgb]
+            nm = palette.name_of(rgb)
+            seen[rgb] = (nm, palette.too_saturated(rgb), palette.blue_glow(rgb),
+                         nm is not None and not palette.family_allowed(nm, rel))
+        name, sat, blue, fam = seen[rgb]
         if name is None:
             bad_pal.append((x, y, rgb))
-        if sat and not glow:
+        if sat and not (glow or vivid):
             bad_sat.append((x, y, rgb))
+        if fam:
+            bad_fam.append((x, y, rgb))
         if blue:
             bad_blue.append((x, y, rgb))
     if bad_pal:
@@ -116,6 +123,9 @@ def check_image(path, report, rel=None):
     if bad_sat:
         cols = sorted({palette.name_of(p[2]) or "#%02x%02x%02x" % p[2] for p in bad_sat})
         report.add("오류", path, "saturated", f"빛 허용 그림이 아닌데 채도 높은 색 {', '.join(cols)} 픽셀 {len(bad_sat)}개")
+    if bad_fam:
+        cols = sorted({palette.name_of(p[2]) for p in bad_fam})
+        report.add("오류", path, "restricted", f"이 그림에서 쓸 수 없는 계열의 색 {', '.join(cols)} 픽셀 {len(bad_fam)}개")
     if bad_blue:
         report.add("오류", path, "blue", f"밝은 파랑·보라 픽셀 {len(bad_blue)}개, 처음 {_fmt([(p[0], p[1]) for p in bad_blue])}")
 
@@ -164,8 +174,10 @@ def check_image(path, report, rel=None):
                 t = a[y:y + 4, x:x + 4]
                 if not (t[..., 3] > 0).all():
                     continue
-                cols = {tuple(p) for p in t.reshape(-1, 4).tolist()}
-                if len(cols) < 3:
+                flat = [tuple(p) for p in t.reshape(-1, 4).tolist()]
+                cols = set(flat)
+                # 색이 셋 미만이거나 한 색이 거의 다 덮는 조각(민무늬 테, 바탕)은 무늬가 아니다
+                if len(cols) < 3 or max(flat.count(k) for k in cols) > REPEAT_FLAT:
                     continue
                 groups.setdefault(t.tobytes(), []).append((x, y))
         for key, pos in groups.items():

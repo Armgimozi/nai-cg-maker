@@ -20,7 +20,7 @@ import java.util.logging.Logger;
  * "BLOCK:ice", "ITEM:diamond", "ENTITY_EFFECT:#55ffff" 형태의 문자열로 적는다.
  */
 public final class Fx {
-    private static Logger log = Logger.getLogger("AugmentSkyblock");
+    private static Logger log = Logger.getLogger("Soulslike");
 
     private Fx() {}
 

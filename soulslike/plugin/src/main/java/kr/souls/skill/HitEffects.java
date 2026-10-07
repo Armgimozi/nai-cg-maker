@@ -23,8 +23,8 @@ import java.util.Set;
 import java.util.logging.Logger;
 
 public final class HitEffects {
-    private static Logger log = Logger.getLogger("AugmentSkyblock");
-    public static final String STUN_TAG = "augsky_stunned";
+    private static Logger log = Logger.getLogger("Soulslike");
+    public static final String STUN_TAG = "souls_stunned";
 
     private static final Set<String> NEGATIVE = Set.of("slowness", "mining_fatigue", "instant_damage", "nausea",
             "blindness", "hunger", "weakness", "poison", "wither", "levitation", "unluck", "darkness",
@@ -72,7 +72,7 @@ public final class HitEffects {
     public static PotionEffectType potion(String name) {
         if (name == null) return null;
         String k = name.toLowerCase(Locale.ROOT).replace("minecraft:", "");
-        PotionEffectType t = Registry.EFFECT.get(NamespacedKey.minecraft(k));
+        PotionEffectType t = Registry.MOB_EFFECT.get(NamespacedKey.minecraft(k));
         if (t == null) log.warning("알 수 없는 포션 효과: " + name);
         return t;
     }

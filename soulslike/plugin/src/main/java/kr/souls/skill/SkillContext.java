@@ -1,6 +1,6 @@
 package kr.souls.skill;
 
-import kr.souls.AugSky;
+import kr.souls.Souls;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -12,7 +12,7 @@ import org.bukkit.util.Vector;
 
 /** 스킬 한 번 시전에 대한 정보. 무기 스킬과 몬스터 스킬이 같이 쓴다. */
 public final class SkillContext {
-    public final AugSky plugin;
+    public final Souls plugin;
     public final LivingEntity caster;
     public final boolean byPlayer;
     public LivingEntity target;
@@ -21,10 +21,10 @@ public final class SkillContext {
     /** 투사체 착탄 지점 같은 '여기서 이어서 실행' 위치. 있으면 aim 이 이 위치를 돌려준다. */
     public Location point;
 
-    public SkillContext(AugSky plugin, LivingEntity caster, LivingEntity target, double power) {
+    public SkillContext(Souls plugin, LivingEntity caster, LivingEntity target, double power) {
         this.plugin = plugin;
         this.caster = caster;
-        this.byPlayer = caster instanceof Player || Targets.isAlly(caster);
+        this.byPlayer = caster instanceof Player;
         this.target = target;
         this.power = power;
     }

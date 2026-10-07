@@ -1,6 +1,0 @@
-name: Soulslike
-version: '${version}'
-main: kr.souls.Souls
-api-version: '1.21.11'
-description: 소울류 서버 (가제)
-authors: [souls]

@@ -15,15 +15,14 @@ import org.bukkit.persistence.PersistentDataType;
 import java.util.ArrayList;
 import java.util.List;
 
-/** 누가 누구의 적인지 판단한다. 플레이어끼리는 PvP 가 켜진 월드(server.properties 의 pvp)에서만 서로 맞는다. */
+/**
+ * 누가 누구의 적인지 판단한다. 혼자 하는 게임이라 플레이어끼리는 늘 적이 아니다 (GameRules.PVP=false 와 같은 뜻).
+ * 플레이어 편에는 소환수가 없다 (skyblock 의 동료 분기는 뺐다).
+ */
 public final class Targets {
-    public static final String BOSS_TAG = "augsky_boss";
+    public static final String BOSS_TAG = "souls_boss";
 
     private Targets() {}
-
-    public static boolean isAlly(Entity e) {
-        return e != null && e.getPersistentDataContainer().has(Keys.ALLY, PersistentDataType.STRING);
-    }
 
     public static boolean isCustomMob(Entity e) {
         return e != null && e.getPersistentDataContainer().has(Keys.MOB, PersistentDataType.STRING);
@@ -34,7 +33,7 @@ public final class Targets {
     }
 
     public static boolean playerSide(Entity e) {
-        return e instanceof Player || isAlly(e);
+        return e instanceof Player;
     }
 
     public static boolean isEnemy(LivingEntity caster, Entity e) {
@@ -43,17 +42,15 @@ public final class Targets {
         if (e instanceof ArmorStand) return false;
         if (e.getPersistentDataContainer().has(Keys.MAP_PART)) return false;
         if (playerSide(caster)) {
-            // 소환수는 다른 플레이어를 노리지 않는다. 플레이어가 직접 쓴 스킬·무기·증강만 PvP 에 들어간다
-            if (e instanceof Player p) return caster instanceof Player && p.getWorld().getPVP() && vulnerable(p);
-            if (isAlly(e)) return false;
+            // 플레이어끼리는 맞지 않는다 (skyblock 의 getPVP 줄 대신)
+            if (e instanceof Player) return false;
             if (e instanceof Tameable t && t.isTamed()) return false;
             if (e instanceof Enemy) return true;
             if (isCustomMob(e)) return true;
             // 화가 난 중립 몹(늑대, 좀비 피글린 등)
             return e instanceof Mob m && m.getTarget() instanceof Player;
         } else {
-            if (e instanceof Player p) return vulnerable(p);
-            return isAlly(e);
+            return e instanceof Player p && vulnerable(p);
         }
     }
 
@@ -66,7 +63,7 @@ public final class Targets {
     public static boolean isFriend(LivingEntity caster, Entity e) {
         if (!(e instanceof LivingEntity le) || le.isDead()) return false;
         if (e == caster) return true;
-        if (playerSide(caster)) return e instanceof Player || isAlly(e);
+        if (playerSide(caster)) return e instanceof Player;
         return isCustomMob(e);
     }
 

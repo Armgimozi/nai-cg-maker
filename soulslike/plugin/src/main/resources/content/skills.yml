@@ -1,0 +1,39 @@
+# ─────────────────────────────────────────────────────────────
+#  스킬 목록 (skyblock 스킬 엔진 형식). 무기 기술, 적·보스 공격의 몸체가 이 id 를 가져다 쓴다 (M1 부터).
+#  M0 에는 엔진이 1.21.11 에서 도는지 보는 시험용 둘만 있다: /soulstest skill <id>
+#
+#  mechanics 에 쓸 수 있는 부품(type):
+#    cone, nova, projectile, beam, dash, leap, blink, rain, strike, chain, zone, orbit, vortex,
+#    self, target, party, summon(적만), repeat, delay, sound, particle, say, skill, velocity
+#  effects(맞은 대상에게): damage, percent, ignite, potion, slow, poison, wither, knockback, pull,
+#    launch, freeze, stun, heal, heal_caster, lifesteal, absorption, cleanse, lightning, explosion,
+#    particle, sound, execute, glow
+#  피해는 모두 minecraft:generic 으로 들어간다.
+# ─────────────────────────────────────────────────────────────
+
+test_sweep:
+  name: 시험 휩쓸기
+  description: ["엔진 점검용."]
+  cooldown: 0
+  mechanics:
+    - type: cone
+      range: 3.0
+      angle: 100
+      particle: "DUST:#8c7259:1.0"
+      effects: [{damage: 4}]
+    - {type: sound, sound: entity.player.attack.sweep, pitch: 0.8, volume: 0.6}
+
+test_slam:
+  name: 시험 내려찍기
+  description: ["엔진 점검용."]
+  cooldown: 0
+  mechanics:
+    - type: delay
+      ticks: 10
+      mechanics:
+        - type: nova
+          radius: 3
+          at: self
+          particle: "BLOCK:deepslate_tiles"
+          effects: [{damage: 6}, {knockback: 0.4}]
+        - {type: sound, sound: entity.generic.explode, pitch: 0.6, volume: 0.5}
