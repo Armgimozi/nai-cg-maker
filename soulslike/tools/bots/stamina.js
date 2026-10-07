@@ -66,7 +66,7 @@ L.run('stamina', async (sc) => {
   await b.cmd('/soulstest heal', 'HEAL')
   await L.sleep(600)
   await b.bot.look(0, 0, true)
-  await b.cmd('/soulstest stamina set 10', 'STAMINA')
+  const s10 = await b.cmd('/soulstest stamina set 10', 'STAMINA')
   b.sprint(true)
   await L.sleep(1300) // 0.6/틱이면 17틱에 바닥
   const z = await b.cmd('/soulstest stamina', 'STAMINA')
@@ -78,9 +78,11 @@ L.run('stamina', async (sc) => {
   b.sprint(false)
   await L.sleep(150)
   const ez = await b.cmd('/soulstest stamina', 'STAMINA')
-  if (ez.kv) {
-    const left = L.num(ez.kv.regenFrom) - L.num(ez.kv.t)
-    sc.check('exhausted regen delay ~24 ticks', left >= 19 && left <= 25, `regenFrom-t=${left} (${ez.line})`)
+  if (ez.kv && s10.kv) {
+    // 서버는 0 이 된 틱에 달리기를 내린다 (그 틱이 행동이 끝난 틱). 10 / 0.6 = 17 틱째에 바닥
+    const zeroTick = L.num(s10.kv.t) + Math.ceil(10 / 0.6)
+    const delay = L.num(ez.kv.regenFrom) - zeroTick
+    sc.check('exhausted regen delay ~24 ticks', delay >= 22 && delay <= 28, `regenFrom-바닥=${delay} (${ez.line})`)
   }
   await L.sleep(700)
   const e1 = await b.cmd('/soulstest stamina', 'STAMINA')

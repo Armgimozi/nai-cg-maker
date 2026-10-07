@@ -226,7 +226,8 @@ class Bot {
       time: [],
       border: [],
       positions: [],
-      gameState: []
+      gameState: [],
+      sounds: []
     }
     this.kick = null
     this.ended = false
@@ -265,8 +266,14 @@ class Bot {
       if (d.entityId !== this.id) return
       const v = d.velocity
       this.p.vel.push({ t: now(), x: v.x, y: v.y, z: v.z })
-      // mineflayer 가 옛 배율로 읽은 값을 날 값으로 덮는다 (12.8)
-      if (bot.entity && bot.entity.velocity) bot.entity.velocity.set(v.x, v.y, v.z)
+    })
+    // mineflayer 가 옛 배율로 읽은 속도를 날 값으로 덮는다 (12.8). mineflayer 의 처리기보다 뒤에 돌아야 하므로
+    // 플러그인이 다 실린 뒤(spawn)에 단다
+    bot.once('spawn', () => {
+      c.on('entity_velocity', (d) => {
+        if (d.entityId !== this.id || !bot.entity || !bot.entity.velocity) return
+        bot.entity.velocity.set(d.velocity.x, d.velocity.y, d.velocity.z)
+      })
     })
     c.on('update_health', (d) => this.p.health.push({ t: now(), health: d.health, food: d.food }))
     c.on('death_combat_event', (d) => this.p.deaths.push({ t: now(), playerId: d.playerId, message: plain(d.message), raw: simple(d.message) }))
@@ -275,6 +282,10 @@ class Bot {
     c.on('initialize_world_border', (d) => this.p.border.push({ t: now(), x: d.x, z: d.z, size: d.newDiameter }))
     c.on('position', (d) => this.p.positions.push({ t: now(), x: d.x, y: d.y, z: d.z }))
     c.on('game_state_change', (d) => this.p.gameState.push({ t: now(), reason: d.reason, value: d.gameMode }))
+    // 소리: 등록부 번호(soundId) 또는 이름. 이름은 soundName() 으로 푼다
+    const snd = (d) => this.p.sounds.push({ t: now(), id: d.sound && d.sound.soundId, name: d.sound && d.sound.data && d.sound.data.soundName, entityId: d.entityId })
+    c.on('sound_effect', snd)
+    c.on('entity_sound_effect', snd)
     bot.on('kicked', (r) => { this.kick = plain(typeof r === 'string' ? safeJson(r) : r) || String(r) })
     bot.on('end', () => { this.ended = true })
     bot.on('error', (e) => { this.lastError = e })
@@ -387,6 +398,15 @@ class Bot {
   get health () { return this._bot.health }
   get food () { return this._bot.food }
   lastXp () { return this.p.xp[this.p.xp.length - 1] || null }
+
+  /** 소리 기록 하나의 이름 (minecraft-data 의 소리 표로 번호를 푼다). */
+  soundName (s) {
+    if (s.name) return String(s.name).replace(/^minecraft:/, '')
+    const reg = this._bot.registry
+    const byId = reg && reg.sounds
+    const e = byId && (byId[s.id] || null)
+    return e ? e.name : '#' + s.id
+  }
   lastHealth () { return this.p.health[this.p.health.length - 1] || null }
 
   async quit () {

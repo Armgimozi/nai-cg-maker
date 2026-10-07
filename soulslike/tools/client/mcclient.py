@@ -29,6 +29,7 @@
   log:정규식[:초]        mark 뒤 클라이언트 기록에 맞는 줄이 나올 때까지 (기본 30초). 채팅은 "[CHAT] ..." 줄이다
   respawn[:초]           사망 화면의 첫 단추(되살아나기)를 누른다. 단추가 켜질 때(죽고 1초)까지 기다린 뒤 Tab, Enter
   close                  열린 화면을 닫는다 (Escape)
+  clearchat              채팅 창을 비운다 (F3+D). 시험 줄([T] ...)이 화면을 가릴 때
 
 환경 변수 (start/run 에서 읽는다)
   SOULS_CLIENT_HOME  받은 클라이언트와 실행 폴더 (기본 ~/.cache/souls-client). 실행 폴더는 run/<포트>/
@@ -56,6 +57,7 @@ import uuid
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+sys.dont_write_bytecode = True  # tools/client/ 에 __pycache__ 를 남기지 않는다
 import setup_client  # noqa: E402
 
 VERSION = "1.21.11"
@@ -74,6 +76,9 @@ RE_PACK_NOISE = re.compile(r"Created: |Found unifont|Sound engine started|OpenAL
 RE_PACK_DONE = re.compile(r"PACK status=SUCCESSFULLY_LOADED")
 RE_PACK_FAIL = re.compile(r"PACK status=(FAILED|DECLINED|INVALID|DISCARDED)|Failed to (download|load) .*pack", re.I)
 RE_REFUSED = re.compile(r"Couldn't connect to server")
+RE_KICKED = re.compile(r"Client disconnected with reason: (.*)")
+# 오프라인 접속이라 늘 나는 오류 (계정·Realms). 팩 경고를 셀 때 뺀다
+RE_AUTH_NOISE = re.compile(r"user properties|profile key pair|Realms|SignedJWT|Existing file .* not found or had mismatched hash")
 PACK_GRACE = 10     # 들어간 뒤 이만큼 기다려도 서버 팩이 오지 않으면 팩 없는 서버로 본다 (Soulslike 는 1초 뒤에 보낸다)
 
 # options.txt 기본값. 처음 화면(접근성 안내, 다중 플레이 경고, 길잡이)을 모두 건너뛰고,
@@ -462,12 +467,15 @@ class Session:
             text = self.log_since(0)
             now = time.time()
             if joined_at is None:
-                if RE_REFUSED.search(text):
+                if RE_REFUSED.search(text) or RE_KICKED.search(text):
                     fail("접속하지 못했다", self)
                 if RE_JOINED.search(text):
                     joined_at = now
                     say("세계에 들어감")
             else:
+                kicked = RE_KICKED.search(text)
+                if kicked:
+                    fail("들어간 뒤 끊겼다: " + kicked.group(1).strip(), self)
                 m = RE_PACK_RELOAD.search(text)
                 if m:
                     after = text[m.end():]
@@ -478,6 +486,7 @@ class Session:
                         noise, noise_at = count, now
                     if RE_PACK_DONE.search(after) or (count > 0 and now - noise_at >= 2.0):
                         say("서버 팩 실음")
+                        self.pack_warnings(after)
                         break
                 elif now - joined_at > PACK_GRACE:
                     say("서버 팩 없음 (%d초 동안 오지 않음)" % PACK_GRACE)
@@ -487,12 +496,32 @@ class Session:
             fail("%d초 안에 들어가지 못했다" % timeout, self)
         time.sleep(2)
 
+    def pack_warnings(self, text):
+        """팩을 다시 실은 뒤의 WARN/ERROR 줄 (빠진 그림·모형·글꼴 같은 팩 문제가 여기 나온다)."""
+        bad = [ln for ln in text.splitlines()
+               if re.search(r"/(WARN|ERROR)\]", ln) and not RE_AUTH_NOISE.search(ln)]
+        if bad:
+            say("팩 경고·오류 %d 줄 (처음 10줄):" % len(bad))
+            for ln in bad[:10]:
+                print("  | " + ln[:300], flush=True)
+        else:
+            say("팩 경고·오류 없음")
+
     # ── 동작 ──
 
     def act(self, action):
         name, _, rest = action.partition(":")
         name = name.strip().lower()
         say(">", action)
+        before = self.log_size()
+        self._act(name, rest, action)
+        self.check_alive()
+        # 서버에서 끊기면 클라이언트는 살아 있지만 끊김 화면에 있다. 멈추지는 않고 알린다 (일부러 끊는 시험도 있다)
+        kicked = RE_KICKED.search(self.log_since(before))
+        if kicked:
+            say("주의: 서버에서 끊겼다 (%s)" % kicked.group(1).strip())
+
+    def _act(self, name, rest, action):
         if name == "join":
             self.join(float(rest or JOIN_TIMEOUT))
         elif name == "wait":
@@ -563,9 +592,10 @@ class Session:
             time.sleep(1.0)
         elif name == "close":
             self.tap(["Escape"])
+        elif name == "clearchat":
+            self.tap(["F3", "d"])
         else:
             fail("모르는 동작: " + action)
-        self.check_alive()
 
 
 def main(argv):

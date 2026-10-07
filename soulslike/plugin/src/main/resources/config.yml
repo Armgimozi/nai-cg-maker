@@ -78,7 +78,7 @@ death:
 pack:
   enabled: true
   # 팩 주소 틀. {sha1} 은 jar 안 pack.zip 의 SHA-1 로 채운다 (dist/packs/<sha1>.zip 을 올려 두면 된다)
-  url: "https://raw.githubusercontent.com/Armgimozi/nai-cg-maker/main/soulslike/dist/packs/{sha1}.zip"
+  url: "https://raw.githubusercontent.com/Armgimozi/nai-cg-maker/claude/gallant-noether-j4j8t5/soulslike/dist/packs/{sha1}.zip"
   required: true
   # join: 접속하고 join-delay 틱 뒤에 보낸다 (검증됨)
   # configure: 세계가 보이기 전 설정 단계에서 보내고 답을 configure-timeout 초까지 기다린다 (실제 클라이언트로 아직 확인 전.
