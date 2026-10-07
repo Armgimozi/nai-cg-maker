@@ -103,7 +103,7 @@ public final class Config {
 
         death = new DeathCfg(c.getBoolean("death.title", true), c.getString("death.title-glyphs", "you_died"),
                 c.getString("death.fallback-color", "#b81a12"), c.getInt("death.fade-in", 20),
-                c.getInt("death.stay", 70), c.getInt("death.fade-out", 30));
+                c.getInt("death.stay", 6000), c.getInt("death.fade-out", 10));
 
         pack = new PackCfg(c.getBoolean("pack.enabled", true), c.getString("pack.url", ""),
                 c.getBoolean("pack.required", true), c.getString("pack.send-at", "join").toLowerCase(Locale.ROOT),

@@ -16,6 +16,8 @@
 #   --keep-running  끝나도 서버를 끄지 않는다 (콘솔: echo '<명령>' > DIR/server/console.in)
 #   --mem 2G        서버 메모리
 #   --timeout 300   시나리오 하나의 제한 시간 (초)
+#   --crawl         구르기 기어가기 방벽(combat.roll.crawl)을 jar 설정 그대로 둔다. 기본은 끈다 (봇은 기어가기 자세가 없다.
+#                   켜면 lib.js 가 머리 높이 방벽을 봇 세계에서 지워 기어가기를 흉내 내고, roll_iframes 가 방벽이 깔리고 걷히는지 본다)
 #
 # 봇은 mineflayer 4.39 를 쓴다: $BOT_NODE_MODULES → tools/bots/node_modules → 이 컨테이너의 시험 도구 폴더.
 # 결과: 시나리오마다 PASS/FAIL 한 줄과 실패한 판정. 자세한 기록은 DIR/run/logs/*.log, 판정 JSON 은 DIR/run/results/.
@@ -40,6 +42,7 @@ PACK=1
 ONLY=""
 LAG="60 120"
 KEEP=0
+CRAWL=0
 MEM=2G
 SC_TIMEOUT=300
 
@@ -54,6 +57,7 @@ while [ $# -gt 0 ]; do
     --only) ONLY="$2"; shift 2 ;;
     --lag) LAG="$2"; shift 2 ;;
     --keep-running) KEEP=1; shift ;;
+    --crawl) CRAWL=1; shift ;;
     --mem) MEM="$2"; shift 2 ;;
     --timeout) SC_TIMEOUT="$2"; shift 2 ;;
     --list) echo "$ALL_SCENARIOS (+ roll_iframes@lag<ms>)"; exit 0 ;;
@@ -149,9 +153,9 @@ unzip -p "$JAR" config.yml > "$RUN/config.default.yml" 2>/dev/null || die "jar �
 
 python3 - "$ROOT/server/server.properties" "$SRV/server.properties" "$PORT" \
           "$RUN/config.default.yml" "$SRV/plugins/Soulslike/config.yml" "$PACK_PORT" \
-          "$SRV/ops.json" "${BOT[@]}" <<'PY' || die "서버 설정을 쓰지 못했다"
+          "$SRV/ops.json" "$CRAWL" "${BOT[@]}" <<'PY' || die "서버 설정을 쓰지 못했다"
 import hashlib, json, os, re, sys, uuid
-props_src, props_dst, port, cfg_src, cfg_dst, pack_port, ops_dst, *names = sys.argv[1:]
+props_src, props_dst, port, cfg_src, cfg_dst, pack_port, ops_dst, keep_crawl, *names = sys.argv[1:]
 
 # server.properties: 저장소 판(12.7) 그대로 + 시험용으로 포트와 online-mode 만 바꾼다
 lines = open(props_src, encoding="utf-8").read().splitlines() if os.path.exists(props_src) else []
@@ -177,8 +181,10 @@ for l in open(cfg_src, encoding="utf-8").read().split("\n"):
     if sec == "pack" and re.match(r"^\s+serve-port:", l):
         l = re.sub(r"serve-port:.*", f"serve-port: {pack_port}", l); done.add("serve-port")
     # 봇(mineflayer)은 기어가기 자세가 없어 구르기의 머리 위 방벽에 걸린다. 기어가기 모습은 실제 클라이언트 점검으로 본다
+    # (--crawl 이면 그대로 두고 lib.js 의 흉내로 시험한다)
     if sec == "combat" and re.match(r"^\s+crawl:", l):
-        l = re.sub(r"crawl:.*", "crawl: false", l); done.add("crawl")
+        if keep_crawl != "1": l = re.sub(r"crawl:.*", "crawl: false", l)
+        done.add("crawl")
     out.append(l)
 open(cfg_dst, "w", encoding="utf-8").write("\n".join(out))
 missing = {"test-mode", "url", "serve-port", "crawl"} - done
@@ -206,7 +212,14 @@ stop_server() {
   [ -n "$KEEPER_PID" ] && kill "$KEEPER_PID" 2>/dev/null
   SERVER_PID=""; KEEPER_PID=""
 }
-cleanup() { [ "$KEEP" = 1 ] && [ -n "$SERVER_PID" ] && { say "-- 서버를 켜 둔다 (pid $SERVER_PID, 콘솔 $SRV/console.in)"; return; }; stop_server; }
+cleanup() {
+  if [ "$KEEP" = 1 ] && [ -n "$SERVER_PID" ]; then
+    [ -n "$PROXY_PIDS" ] && kill $PROXY_PIDS 2>/dev/null
+    say "-- 서버를 켜 둔다 (pid $SERVER_PID). 끄기: echo stop > $SRV/console.in; kill \$(cat $SRV/keeper.pid)"
+    return
+  fi
+  stop_server
+}
 trap cleanup EXIT
 trap 'exit 130' INT TERM
 
@@ -214,6 +227,7 @@ say "-- 서버 켜는 중"
 mkfifo "$SRV/console.in"
 sleep 2147483647 > "$SRV/console.in" 2>/dev/null < /dev/null &
 KEEPER_PID=$!
+echo "$KEEPER_PID" > "$SRV/keeper.pid"
 (cd "$SRV" && exec java -Xms512M -Xmx"$MEM" -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -Dstderr.encoding=UTF-8 \
    -jar paper.jar --nogui < console.in > console.log 2>&1) > /dev/null 2>&1 &
 SERVER_PID=$!
@@ -225,6 +239,8 @@ until grep -q 'Done (' "$SRV/console.log" 2>/dev/null; do
   sleep 1
 done
 say "   켜짐 ($(( $(date +%s) - T0 ))초)"
+# 켜진 직후 몇 초는 청크 만들기·시험 방 짓기로 틱이 밀린다. 그동안 굴린 첫 구르기가 밀리지 않은 적이 있어 조금 기다린다
+sleep 5
 
 # ── 시나리오 ──
 export NODE_PATH="$NODE_MODULES"
@@ -248,6 +264,8 @@ run_one() {
   local counts; counts=$(echo "$res" | sed -n 's/^RESULT [^ ]* [A-Z]* //p')
   local status=FAIL
   [ "$code" = 0 ] && status=PASS
+  # 실패가 모두 MISS(기능이 아직 없다)뿐이면 따로 표시한다
+  [ "$code" = 1 ] && echo "$counts" | grep -q 'fail=0 miss=[1-9]' && status="MISS"
   [ "$code" = 3 ] && status="FAIL(중단)"
   [ "$code" = 124 ] || [ "$code" = 137 ] && status="FAIL(시간 초과)"
   [ -z "$res" ] && [ "$code" != 0 ] && status="FAIL(시험 틀 오류 $code)"
@@ -278,13 +296,13 @@ if [ -n "$LAG" ] && want roll_iframes; then
   for rtt in $LAG; do
     i=$((i + 1))
     pp=$((PORT + 2000 + 10 * i))
-    port_busy "$pp" && { say "FAIL       roll_iframes@lag$rtt     프록시 포트 $pp 를 누가 쓰고 있다"; FAILED=$((FAILED + 1)); continue; }
+    port_busy "$pp" && { say "FAIL       roll_iframes@lag$rtt     프록시 포트 $pp 를 누가 쓰고 있다"; FAILED=$((FAILED + 1)); SUMMARY+=("FAIL roll_iframes@lag$rtt"); continue; }
     node "$BOTS/lagproxy.js" --listen "$pp" --target "127.0.0.1:$PORT" --rtt "$rtt" --quiet > "$RUN/logs/lagproxy-$rtt.log" 2>&1 &
     ppid=$!
     PROXY_PIDS="$PROXY_PIDS $ppid"
     for _ in $(seq 1 50); do grep -q 'LAGPROXY ready' "$RUN/logs/lagproxy-$rtt.log" 2>/dev/null && break; sleep 0.1; done
     if ! grep -q 'LAGPROXY ready' "$RUN/logs/lagproxy-$rtt.log"; then
-      say "FAIL       roll_iframes@lag$rtt     지연 프록시가 켜지지 않았다"; FAILED=$((FAILED + 1)); continue
+      say "FAIL       roll_iframes@lag$rtt     지연 프록시가 켜지지 않았다"; FAILED=$((FAILED + 1)); SUMMARY+=("FAIL roll_iframes@lag$rtt"); continue
     fi
     run_one "roll_iframes@lag$rtt" roll_iframes "${BOT[lag]}" "$pp" "$rtt"
     kill "$ppid" 2>/dev/null
@@ -299,9 +317,12 @@ if [ -n "$ERRS" ]; then
   printf '%-10s %-24s %s\n' FAIL server_log "켠 뒤 오류 $(grep -a -c -E "$ERR_RE" "$RUN/logs/server-after-boot.log")줄"
   echo "$ERRS" | cut -c1-240 | sed 's/^/           /'
   FAILED=$((FAILED + 1))
+  SUMMARY+=("FAIL server_log")
 else
   printf '%-10s %-24s %s\n' PASS server_log "켠 뒤 오류 없음"
+  SUMMARY+=("PASS server_log")
 fi
 
-say "-- 끝: 실패 $FAILED  (기록 $RUN/logs, 서버 기록 $SRV/console.log)"
+printf '%s\n' "${SUMMARY[@]}" > "$RUN/summary.txt"
+say "-- 끝: 실패 $FAILED  (기록 $RUN/logs, 판정 $RUN/results, 요약 $RUN/summary.txt, 서버 기록 $SRV/console.log)"
 [ "$FAILED" = 0 ]

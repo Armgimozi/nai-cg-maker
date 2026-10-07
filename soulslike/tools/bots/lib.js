@@ -429,6 +429,19 @@ class Bot {
 
   respawn () { this._bot._client.write('client_command', { actionId: 0 }) }
 
+  /** 발밑 블록과 둘레 청크가 봇 세계에 올 때까지 기다린다 (순간이동 뒤에도 쓴다). */
+  async ground (ms = 5000) {
+    const bot = this._bot
+    const end = Date.now() + ms
+    try { await Promise.race([bot.waitForChunksToLoad(), sleep(ms)]) } catch (e) {}
+    while (Date.now() < end) {
+      const pos = bot.entity && bot.entity.position
+      if (pos && bot.blockAt(pos) && bot.blockAt(pos.offset(0, -1, 0))) return true
+      await sleep(50)
+    }
+    return false
+  }
+
   get health () { return this._bot.health }
   get food () { return this._bot.food }
   lastXp () { return this.p.xp[this.p.xp.length - 1] || null }
@@ -478,6 +491,8 @@ async function connect (sc, opts = {}) {
     try {
       await connectOnce(b, opts)
       sc.bots.push(b)
+      // 둘레 청크가 다 와야 mineflayer 의 물리가 돈다 (안 오면 서버가 민 속도가 봇 쪽에서 먹지 않는다)
+      if (b.health > 0) await b.ground(10000)
       // 지난 시험에서 죽은 채로 끝난 봇: respawn 을 끄지 않았으면 일으켜 세운 뒤 돌려준다
       if (opts.respawn !== false && b.health !== undefined && b.health <= 0) {
         sc.note('죽은 채로 들어와 먼저 일어선다')

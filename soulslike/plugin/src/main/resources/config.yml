@@ -76,9 +76,10 @@ death:
   # 제목에 쓸 그림 글자 이름 (glyphs.yml). 빈칸으로 여러 개를 이어 쓴다. 하나라도 없으면 lang 의 death.title 을 아래 색 글씨로
   title-glyphs: "you_died"
   fallback-color: "#b81a12"
+  # 사망 화면 제목은 리소스팩이 비우고 이것 하나만 쓴다. 일어설 때까지 남긴다 (일어서면 지운다)
   fade-in: 20
-  stay: 70
-  fade-out: 30
+  stay: 6000
+  fade-out: 10
 
 pack:
   enabled: true

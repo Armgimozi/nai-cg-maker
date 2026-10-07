@@ -151,7 +151,8 @@ def main(argv):
 
     # 3. 사망 화면 언어
     lang = dict(DEATH_LANG)
-    lang["deathScreen.title"] = title
+    # 사망 화면 자체 제목은 비운다. YOU DIED 는 플러그인이 화면 가운데에 크게 하나만 띄운다 (둘이 겹쳐 보였다)
+    lang["deathScreen.title"] = ""
     lang = dict(sorted(lang.items()))
     for code in LANGS:
         write_json(os.path.join(OUT, "assets", "minecraft", "lang", code + ".json"), lang)

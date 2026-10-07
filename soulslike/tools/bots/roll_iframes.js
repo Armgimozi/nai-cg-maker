@@ -1,7 +1,8 @@
 // 구르기와 무적 (3.3, 13.2 T3 roll_iframes). 지연 프록시로 다시 돌린다 (13.3, LAG_RTT).
-// F(block_dig 상태 6) → 구르기: 종류·방향·비용 (가벼움 18, 뒷걸음 12), 서버가 보낸 첫 틱 속도 (0.42 / 0, 그 뒤 glide 틱 동안 같은 빠르기로 민다), 서버에서 잰 거리,
-// 회복 지연 (구르기 끝 12틱 + 12틱 = 24틱째부터), 회복 중 다시 F, 공중·웅크리기 F 막힘, 스태미나 1 이상이면 구름.
-// 무적: 서버 시각 기준 (rollhit: 구르기 시작 뒤 n 틱에 generic 피해) 1~8틱은 피하고 그 밖은 맞는다.
+// F(block_dig 상태 6) → 구르기: 종류·방향·비용, 서버가 보낸 첫 틱 속도와 미는 틱 수(glide), 서버에서 잰 거리,
+// 기어가기 방벽(켜져 있으면), 회복 지연 (구르기 끝 + 12틱), 회복 중 다시 F, 공중·웅크리기 F 막힘, 스태미나 1 이상이면 구름.
+// 수치는 서버의 config.yml (combat.roll) 에서 읽는다. 3.3 표는 출발값이고 조정은 설정에서 한다 (사용자 결정 1).
+// 무적: 서버 시각 기준 (rollhit: 구르기 시작 뒤 n 틱에 generic 피해) 1~iframes 틱은 피하고 그 밖은 맞는다.
 //       봇 시각 기준 (F 100ms 뒤 /soulstest hit) 원인 있는 피해는 피하고, 원인 없는 피해(환경)는 맞는다.
 // 낙하 피해는 들어온다. 체력은 서버가 보낸 update_health 로도 따로 확인한다.
 'use strict'
@@ -29,7 +30,9 @@ async function roll (b, keys, wait = 1300) {
 async function fresh (b, where = 'lane') {
   await b.cmd('/soulstest heal', 'HEAL')
   await b.cmd('/souls tp ' + where, null, 1200)
-  await L.sleep(700)
+  await L.sleep(500)
+  await b.ground(3000)
+  await L.sleep(200)
 }
 
 L.run('roll_iframes', async (sc) => {
