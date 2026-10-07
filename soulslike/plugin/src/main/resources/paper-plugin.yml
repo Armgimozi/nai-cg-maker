@@ -3,7 +3,7 @@ version: '${version}'
 main: kr.souls.Souls
 bootstrapper: kr.souls.SoulsBootstrap
 api-version: '1.21.11'
-description: 소울류 서버 (가제 식은 가마)
+description: 스퀘어 소울 (Square Soul) - 혼자 하는 소울류 서버
 authors: [souls]
 # 명령어는 paper-plugin.yml 에 적지 않는다. Brigadier(LifecycleEvents.COMMANDS)로 등록한다
 permissions:

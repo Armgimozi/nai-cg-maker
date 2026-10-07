@@ -29,6 +29,8 @@ WorldCheck 실패면 거절)을 더한다. 그때까지 server/ 에 세계 폴�
   글자표   glyphs.yml 의 모든 글자가 그 글꼴에 있고 빈칸 폭이 맞다, you_died 가 deathScreen.title 과 같다
            (config.yml death.title: true 면 deathScreen.title 은 빈칸. YOU DIED 는 한 번만, 5.6. gen_pack 이 같은
            config.yml 을 읽어 팩을 만들므로 설정 한 곳만 바꾸면 맞는다), death.title-glyphs 의 이름이 glyphs.yml 에 있다
+  제목     게임 제목 스퀘어 소울 / Square Soul (0.4 의 7): lang 의 pack.description, pack.mcmeta 대체 글,
+           start.bat·start.ps1 창 제목, README.txt 첫머리
   서버     인코딩 규칙 (12.9), server.properties 가 12.7 값 그대로 (motd 는 lang 의 pack.description 두 언어),
            bukkit.yml allow-end: false,
            start.ps1 과 start.sh 의 Paper 고정값(주소·크기·sha256)이 같다
@@ -81,6 +83,9 @@ PROPERTIES = {
     # 12.7 밖: 로비 이름은 플러그인 설정의 주석대로 world
     "level-name": "world",
 }
+# 게임 제목 (DESIGN.md 0.4 의 7). lang 의 pack.description (팩 설명, 서버 목록 이름 motd 의 두 언어),
+# pack.mcmeta 의 대체 글, 시작기 창 제목, 서버 README 첫머리가 이 글이다. 식은 가마 는 마지막 지역 (R7) 의 이름일 뿐이다
+TITLE = {"ko": "스퀘어 소울", "en": "Square Soul"}
 PACK_FORMAT = 75
 DATAPACK_FORMAT = [94, 1]
 BIOMES = ("hub", "prison", "redin", "parish", "mire", "spire", "ossuary", "forge", "kiln")
@@ -249,6 +254,10 @@ def check_pack(jar):
         mc = json.loads(files["pack.mcmeta"])["pack"]
         g.check(mc.get("min_format") == PACK_FORMAT and mc.get("max_format") == PACK_FORMAT,
                 f"팩 형식 {mc.get('min_format')}..{mc.get('max_format')} (75 여야 한다, 10.9)")
+        desc = mc.get("description")
+        desc = desc if isinstance(desc, dict) else {}
+        g.check(desc.get("translate") == "souls.pack.description" and desc.get("fallback") == TITLE["en"],
+                f"pack.mcmeta description {mc.get('description')!r} (souls.pack.description, 대체 글 {TITLE['en']!r}, 0.4 의 7)")
     except (KeyError, ValueError) as ex:
         g.check(False, f"pack.mcmeta 를 읽지 못했다: {ex}")
     shaders = [n for n in names if re.match(r"assets/[^/]+/shaders/", n)]
@@ -392,11 +401,17 @@ def read_properties(raw):
     return out
 
 
+def pack_titles():
+    """lang/ko.yml·en.yml 의 pack.description (꼴 태그를 뗀 글). 게임 제목 TITLE 과 같아야 한다 (0.4 의 7)."""
+    tables = langcheck.langpack.load_all()
+    return {lang: langcheck.langpack.split_style(langcheck.langpack.lines(tables[lang])["pack.description"])[1]
+            for lang in ("ko", "en")}
+
+
 def motd():
     """서버 목록 이름 = §7 + 한국어 · 영어 (lang/ko.yml·en.yml 의 pack.description, 꼴 태그를 뗀 글)."""
-    tables = langcheck.langpack.load_all()
-    text = [langcheck.langpack.split_style(langcheck.langpack.lines(tables[lang])["pack.description"])[1] for lang in ("ko", "en")]
-    return "\u00a77" + " \u00b7 ".join(text)
+    text = pack_titles()
+    return "\u00a77" + " \u00b7 ".join(text[lang] for lang in ("ko", "en"))
 
 
 def check_server():
@@ -432,6 +447,15 @@ def check_server():
         # 서버 목록의 이름은 팩을 받기 전에 보여 두 언어를 함께 (10.9): lang 의 pack.description 한국어 · 영어
         want = motd()
         g.check(props.get("motd") == want, f"server.properties motd={props.get('motd')!r} (lang pack.description: {want!r})")
+        # 게임 제목 (0.4 의 7): pack.description 이 제목 그대로, 시작기 창 제목과 서버 README 첫머리도 같은 제목
+        got = pack_titles()
+        g.check(got == TITLE, f"lang pack.description {got} 이 게임 제목 {TITLE} 이 아니다 (DESIGN.md 0.4 의 7)")
+        bat_title = f"title {TITLE['en']} Server"   # start.bat 은 ASCII 만 (cmd.exe)
+        g.check(bat_title in raw["start.bat"].decode("ascii", "replace").splitlines(), f"start.bat 에 '{bat_title}' 줄이 없다")
+        ps1_title = f"WindowTitle = '{TITLE['ko']} 서버'"
+        g.check(ps1_title in raw["start.ps1"].decode("utf-8-sig", "replace"), f"start.ps1 창 제목이 {ps1_title!r} 가 아니다")
+        head = "\n".join(raw["README.txt"].decode("utf-8-sig", "replace").splitlines()[:4])
+        g.check(TITLE["ko"] in head and TITLE["en"] in head, f"README.txt 첫머리에 게임 제목 {TITLE['ko']} ({TITLE['en']}) 이 없다")
         bukkit = yaml.safe_load(raw["bukkit.yml"].decode("utf-8")) or {}
         g.check((bukkit.get("settings") or {}).get("allow-end") is False, "bukkit.yml settings.allow-end 가 false 가 아니다 (12.7)")
         paper = yaml.safe_load(raw["config/paper-global.yml"].decode("utf-8")) or {}

@@ -65,7 +65,7 @@ pack:
   prompt: "<#b3a37f>None may enter without the resource pack."
   declined: "<#b3a37f>Resource pack refused. None may enter."
   failed: "<#b3a37f>The resource pack did not arrive. Try again."
-  description: "The Cold Kiln"
+  description: "Square Soul"
 
 test:
   # <kind> is the /soulstest guard argument (empty|control|bypass|strip), shown as typed, not translated

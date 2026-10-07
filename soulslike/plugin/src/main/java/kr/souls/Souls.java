@@ -29,7 +29,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.util.Set;
 
 /**
- * 식은 가마 (가제). 혼자 하는 소울류 서버 플러그인. 지금 판은 M0 (기반과 점검, 14절).
+ * 스퀘어 소울 (Square Soul). 혼자 하는 소울류 서버 플러그인. 지금 판은 M0 (기반과 점검, 14절).
  * 데이터팩은 부트스트래퍼(SoulsBootstrap)가 세계를 읽기 전에 싣는다. 켜는 순서는 12.3 을 따른다.
  */
 public final class Souls extends JavaPlugin {
@@ -110,7 +110,7 @@ public final class Souls extends JavaPlugin {
                 hud.invalidate(p);
             }
         });
-        getLogger().info("식은 가마 (M0) 준비 완료" + (cfg.testMode ? " — 시험 모드" : ""));
+        getLogger().info("스퀘어 소울 (M0) 준비 완료" + (cfg.testMode ? " — 시험 모드" : ""));
     }
 
     @Override

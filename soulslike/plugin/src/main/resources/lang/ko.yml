@@ -87,8 +87,8 @@ pack:
   prompt: "<#b3a37f>이 서버는 전용 리소스팩이 있어야 들어올 수 있다."
   declined: "<#b3a37f>리소스팩을 받지 않으면 들어올 수 없다."
   failed: "<#b3a37f>리소스팩을 받지 못했다. 다시 들어와 보라."
-  # 팩 목록에 보이는 팩 설명 (pack.mcmeta)
-  description: "식은 가마"
+  # 팩 목록에 보이는 팩 설명 (pack.mcmeta). 게임 제목이다. 서버 목록 이름 (server.properties 의 motd) 도 이 글이다
+  description: "스퀘어 소울"
 
 test:
   # 시험 도구 이름과 설명 (debug.test-mode 의 /soulstest guard, swing). <ticks> 휘두름 틱.

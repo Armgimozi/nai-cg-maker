@@ -1,4 +1,4 @@
-﻿# 식은 가마 서버 시작기. start.bat 이 이 파일을 실행합니다.
+﻿# 스퀘어 소울 서버 시작기. start.bat 이 이 파일을 실행합니다.
 # 처음 실행하면 Java 21 과 Paper 1.21.11 (빌드 132) 을 자동으로 내려받습니다.
 # 무슨 일이 있었는지는 이 폴더의 start-log.txt 에 그대로 남습니다.
 # (윈도우 PowerShell 5.1 에서도 돌아가도록 새 문법은 쓰지 않습니다)
@@ -17,7 +17,7 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'   # 5.1 의 다운로드 진행 표시는 매우 느리다
 $Root = $PSScriptRoot
 Set-Location -LiteralPath $Root
-try { $Host.UI.RawUI.WindowTitle = '식은 가마 서버' } catch {}
+try { $Host.UI.RawUI.WindowTitle = '스퀘어 소울 서버' } catch {}
 try { Start-Transcript -LiteralPath (Join-Path $Root 'start-log.txt') -Force | Out-Null } catch {}
 
 function Say($msg, $color) {
@@ -132,7 +132,7 @@ function Move-Retry($from, $to) {
 }
 
 try {
-    Say '[식은 가마 시작기 1판]' 'Cyan'
+    Say '[스퀘어 소울 시작기 1판]' 'Cyan'
     Say "폴더: $Root"
 
     # ── 압축을 풀었는지 (M0 에는 미리 지은 세계가 없다. 처음 켤 때 플러그인이 짓는다) ──
