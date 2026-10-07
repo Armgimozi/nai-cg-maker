@@ -31,9 +31,22 @@ FAMILIES = {
     # 생피: 사망 화면 제목 "YOU DIED" 전용 (사용자 결정 3, 10.1 표의 "한 곳 전용" 줄). 마른 핏빛보다 붉고 진하다.
     # 다른 그림에는 쓰지 않는다. artlint 가 경로로 막는다 (RESTRICTED).
     "gore":   ["#3b0605", "#6e0b08", "#a3110c", "#cc2418"],
+    # ── 블록 전용 (textures/block, textures/colormap 만. BLOCK_ART). 바닐라 블록 1,100여 장을 옮기려면 위 계열만으로는
+    #    돌의 잔 계단, 심층암의 찬 회색, 청금석·다이아몬드·자수정 같은 광석과 물들인 블록 16색이 서로 구별되지 않는다.
+    #    같은 규칙 (채도 SAT_MAX 아래, 밝은 파랑·보라 없음) 을 지키고, 재·뼈 사이를 메우는 계단으로만 더한다 (blocks_grade.py)
+    "stone":  ["#4b4843", "#716d66", "#9a9488", "#bdb6a6"],   # 돌: 재와 뼈 사이의 바랜 석회 회색 (성벽, 돌, 조약돌)
+    "slate":  ["#1d2024", "#2b3037", "#3c434c", "#525a64", "#6a727b", "#8a8e91", "#a9adaf"],   # 점판암: 찬 회색 (심층암, 쇠, 얼음)
+    "woad":   ["#1e2232", "#2a3250", "#39446a", "#4a5779"],   # 대청: 바랜 쪽빛 (청금석, 파랑 물들임). 밝기 0.5 아래
+    "olive":  ["#3b3a25", "#555336", "#716d48", "#8d885b", "#aaa476"],   # 마른 풀: 죽은 잎과 풀 (풀빛 색 지도, 식물)
+    "verd":   ["#1f2b29", "#2f433e", "#46625a", "#658a7f", "#8fb0a4"],   # 녹청: 구리 녹, 다이아몬드, 뒤틀린 숲, 프리즈머린
+    "mauve":  ["#221c26", "#352b3b", "#4b3e52", "#625268", "#7a687e", "#9a919a"],   # 엷은 자주: 자수정, 퍼퍼, 엔드. 밝은 것은 회색에 가깝게
+    "rose":   ["#3e2a28", "#5c3f3b", "#7d5a52", "#9c766b", "#b99689"],   # 바랜 장미: 벚나무, 분홍, 화강암
+    "clay":   ["#34201a", "#4f3024", "#6e4330", "#8d5a3f", "#a9744f"],   # 구운 흙: 벽돌, 테라코타, 아카시아, 맹그로브
 }
 KO = {"rust": "녹슨 철", "bronze": "그을린 청동", "parch": "바랜 양피지", "blood": "마른 핏빛",
-      "ash": "재", "moss": "이끼", "bone": "뼈", "ember": "불씨", "gore": "생피 (사망 제목 전용)"}
+      "ash": "재", "moss": "이끼", "bone": "뼈", "ember": "불씨", "gore": "생피 (사망 제목 전용)",
+      "stone": "돌 (블록 전용)", "slate": "점판암 (블록 전용)", "woad": "대청 (블록 전용)", "olive": "마른 풀 (블록 전용)",
+      "verd": "녹청 (블록 전용)", "mauve": "엷은 자주 (블록 전용)", "rose": "바랜 장미 (블록 전용)", "clay": "구운 흙 (블록 전용)"}
 
 SAT_MAX = 0.55            # 이보다 채도가 높으면 빛 허용 그림에만
 BLUE_HUE = (200, 300)     # 파랑~보라 (도)
@@ -46,7 +59,31 @@ GLOW = ("bonfire", "bloodstain", "soul_mark", "telegraph", "warn", "glint", "dur
 
 # 쓰는 곳이 정해진 계열: 계열 → 그 색을 쓸 수 있는 그림 (경로 조각). 여기 든 그림은 채도 제한도 받지 않는다.
 VIVID = ("you_died",)
-RESTRICTED = {"gore": VIVID}
+
+# 블록 그림 (블록 전용 계열을 쓸 수 있는 곳, 경로 조각). 바닐라 블록을 옮긴 그림과 풀빛·잎빛 색 지도
+BLOCK_ART = ("textures/block/", "textures/colormap/")
+BLOCK_FAMILIES = ("stone", "slate", "woad", "olive", "verd", "mauve", "rose", "clay")
+# 빛을 내는 블록 (textures/block/<이름>.png 의 이름). 바닐라에서 빛을 내는 블록의 그림에만 불씨 계열의 밝은 색과 채도를 허락한다
+# (횃불·랜턴·불·용암이 따뜻하게 읽혀야 한다). 파랑·보라 빛 번짐 규칙은 그대로 받는다
+_BULBS = tuple(f"{w}copper_bulb_lit{p}" for w in ("", "exposed_", "weathered_", "oxidized_") for p in ("", "_powered"))
+_LANTERNS = tuple(f"{w}copper_lantern" for w in ("", "exposed_", "weathered_", "oxidized_"))
+_CANDLES = ("candle_lit",) + tuple(f"{c}_candle_lit" for c in (
+    "white", "light_gray", "gray", "black", "brown", "red", "orange", "yellow", "lime", "green", "cyan", "light_blue",
+    "blue", "purple", "magenta", "pink"))
+BLOCK_GLOW = (
+    "torch", "redstone_torch", "copper_torch", "soul_torch", "lantern", "soul_lantern",
+    "fire_0", "fire_1", "soul_fire_0", "soul_fire_1", "campfire_fire", "soul_campfire_fire",
+    "campfire_log_lit", "soul_campfire_log_lit", "lava_still", "lava_flow", "magma", "glowstone", "shroomlight",
+    "jack_o_lantern", "redstone_lamp_on", "furnace_front_on", "smoker_front_on", "blast_furnace_front_on",
+    "ochre_froglight_side", "ochre_froglight_top", "verdant_froglight_side", "verdant_froglight_top",
+    "pearlescent_froglight_side", "pearlescent_froglight_top", "sea_lantern", "end_rod", "beacon", "conduit",
+    "respawn_anchor_top", "respawn_anchor_side1", "respawn_anchor_side2", "respawn_anchor_side3", "respawn_anchor_side4",
+    "glow_lichen", "cave_vines_lit", "cave_vines_plant_lit", "firefly_bush_emissive", "open_eyeblossom_emissive",
+    "crying_obsidian", "nether_portal", "creaking_heart_awake", "creaking_heart_top_awake", "lightning_rod_on",
+    "trial_spawner_side_active", "trial_spawner_top_active", "trial_spawner_top_ejecting_reward",
+    "vault_front_on", "vault_front_ejecting", "vault_side_on", "vault_top_ejecting",
+) + _BULBS + _LANTERNS + _CANDLES
+RESTRICTED = {"gore": VIVID, **{f: BLOCK_ART for f in BLOCK_FAMILIES}}
 
 
 def hexc(h, a=255):
