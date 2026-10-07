@@ -90,6 +90,8 @@ public final class Roll implements Listener {
         return true;
     }
 
+    /** 땅 위인지는 클라이언트가 알려 준 값을 믿는다 (혼자 하는 서버라 속일 사람이 없다). */
+    @SuppressWarnings("deprecation")
     private String blocked(Player p, CombatState st, long now) {
         if (!p.isOnGround()) return "air";
         if (p.isInWater() || p.isSwimming()) return "water";

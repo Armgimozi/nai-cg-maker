@@ -40,6 +40,7 @@ import java.util.Locale;
 public final class TestCommands {
     private TestCommands() {}
 
+    @SuppressWarnings("deprecation") // isOnGround: 클라이언트가 알려 준 값을 그대로 보인다
     public static void register(Souls plugin, Commands reg) {
         LiteralCommandNode<CommandSourceStack> root = Commands.literal("soulstest")
                 .requires(s -> plugin.cfg().testMode && s.getSender().hasPermission("souls.test"))

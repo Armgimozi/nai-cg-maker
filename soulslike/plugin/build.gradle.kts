@@ -21,6 +21,8 @@ java {
 tasks.withType<JavaCompile> {
     options.encoding = "UTF-8"
     options.release.set(21)
+    // 1.21.4 → 1.21.11 에서 이름이 바뀌거나 없어질 API 를 빌드 때 보이게 한다
+    options.compilerArgs.addAll(listOf("-Xlint:deprecation", "-Xlint:removal"))
 }
 
 tasks.processResources {

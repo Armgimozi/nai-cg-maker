@@ -113,8 +113,8 @@ public final class Protection implements Listener {
             e.setCancelled(true);
             return;
         }
-        if (e.getAction() == Action.RIGHT_CLICK_BLOCK && b.getType().isInteractable()) {
-            // 블록만 막는다. 손에 든 아이템 쓰기는 그대로 (막는 방패를 벽 쪽으로 들어도 된다)
+        if (e.getAction() == Action.RIGHT_CLICK_BLOCK) {
+            // 블록만 막는다 (허용 목록 밖은 모두). 손에 든 아이템 쓰기는 그대로 (막는 방패를 벽 쪽으로 들어도 된다)
             e.setUseInteractedBlock(Event.Result.DENY);
         }
     }
