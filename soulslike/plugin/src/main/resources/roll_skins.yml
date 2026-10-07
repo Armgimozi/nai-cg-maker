@@ -1,0 +1,21 @@
+# 바닐라 기본 스킨 18 개의 구르기 대역 색 (pack/roll_figure.py skin_table 이 클라이언트 jar 에서 뽑는다. 손대지 않는다).
+# 차례는 클라이언트 DefaultPlayerSkin 표 (UUID.hashCode() 를 18 로 나눈 나머지, floorMod). 색은 몸통, 윗팔, 손, 바지, 신
+skins:
+  - ['96be94', '96be94', 'efdec9', '656565', '4f4f4f']   # slim/alex
+  - ['f2a268', 'fbb978', 'f1a688', '255b66', '4a4c4d']   # slim/ari
+  - ['b6cfcc', 'afc9c8', '9a6c4e', '4d3445', '37414d']   # slim/efe
+  - ['49294d', '49294d', 'ce9668', '2e244d', 'dfa573']   # slim/kai
+  - ['be8c30', 'a27c34', '4d3f34', '864e4c', '4d4643']   # slim/makena
+  - ['96392b', '782a1d', 'a76b57', '2a5a44', 'a76b57']   # slim/noor
+  - ['219595', '23afaf', 'aa7d69', '53499b', '4d4d4d']   # slim/steve
+  - ['5981bb', '627a30', 'f2b07c', '4972af', 'd89567']   # slim/sunny
+  - ['bb4256', '6d4f3c', '7e5c45', 'cfb494', 'd8bea2']   # slim/zuri
+  - ['96be94', '96be94', 'efdec9', '656565', '4f4f4f']   # wide/alex
+  - ['f2a268', 'fbb978', 'f9b79d', '255b66', '4a4c4d']   # wide/ari
+  - ['b6cfcc', 'afc9c8', '9a6c4e', '4d3445', '37414d']   # wide/efe
+  - ['49294d', '49294d', 'ce9668', '2e244d', 'dfa573']   # wide/kai
+  - ['be8c30', 'be8c30', '4d3f34', '864e4c', '4d4643']   # wide/makena
+  - ['96392b', '782a1d', 'a76b57', '2a5a44', 'a76b57']   # wide/noor
+  - ['219595', '23afaf', 'aa7d69', '53499b', '4d4d4d']   # wide/steve
+  - ['5981bb', '627a30', 'f2b07c', '4972af', 'd89567']   # wide/sunny
+  - ['bb4256', '6d4f3c', '7e5c45', 'cfb494', 'd8bea2']   # wide/zuri

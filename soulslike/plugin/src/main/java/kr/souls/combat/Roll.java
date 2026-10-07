@@ -21,6 +21,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
@@ -52,6 +53,8 @@ import java.util.UUID;
  * 그래서 F 에서는 방향과 시작 틱만 적고, 미는 것은 모두 Ticker 가 1..glide 틱째에 한다 (밀기 번호 0..glide-1).
  */
 public final class Roll implements Listener {
+    /** tumble 대역의 등이 땅에 닿는 틱 (기본 마디에서 3틱째에 198°) */
+    private static final int TUMBLE_CONTACT = 3;
     private final Souls plugin;
     /** 사람마다 화면에만 깔아 둔 방벽 자리 */
     private final Map<UUID, Set<Pos>> fakes = new HashMap<>();
@@ -67,6 +70,8 @@ public final class Roll implements Listener {
     public Roll(Souls plugin) {
         this.plugin = plugin;
         this.tumble = new Tumble(plugin);
+        // 플러그인을 다시 켰으면 (/reload) 접속 중인 사람의 스킨 색을 다시 받는다
+        for (Player p : Bukkit.getOnlinePlayers()) tumble.tint().fetch(p);
     }
 
     private Config.RollCfg cfg() {
@@ -123,7 +128,7 @@ public final class Roll implements Listener {
         else if (vis == Config.RollVisual.TUMBLE) tumble.start(p, st.rollDir, now);
         else if (vis == Config.RollVisual.SPIN) p.startRiptideAttack(cfg().spinTicks(), 0f, null);
         if (cfg().barrier() && !back) crawl(p);
-        visual(p, true);
+        visual(p, true, back || vis != Config.RollVisual.TUMBLE);
         plugin.test(p, String.format(Locale.ROOT, "ROLL kind=%s dir=%s cost=%.0f st=%.1f vis=%s t=%d",
                 kind.id(), dirName(f, r), kind.cost(), st.stamina.cur(), back ? "body" : vis.name().toLowerCase(Locale.ROOT), now));
         return true;
@@ -170,13 +175,14 @@ public final class Roll implements Listener {
         if (st != null) st.rollDir = null;
     }
 
-    /** 발밑 먼지와 땅을 구르는 소리. start 가 아니면 일어서며 땅을 짚는 소리. */
-    private void visual(Player p, boolean start) {
+    /**
+     * 발밑 먼지와 땅을 구르는 소리. start 가 아니면 일어서며 땅을 짚는 소리. dust 가 거짓이면 소리만 (tumble 의 시작: 대역이
+     * 뛰어드는 때라 땅에 닿은 것이 없고, 먼지가 대역 뒤에 걸린 어두운 네모로 보였다 [확인 (클라)]. 먼지는 등이 닿는 틱에 {@link #puff}).
+     */
+    private void visual(Player p, boolean start, boolean dust) {
         Location feet = p.getLocation();
-        Block below = feet.clone().subtract(0, 0.2, 0).getBlock();
-        Material m = below.getType().isSolid() ? below.getType() : Material.DEEPSLATE;
-        BlockData bd = m.createBlockData();
-        p.getWorld().spawnParticle(Particle.BLOCK, feet.clone().add(0, 0.1, 0), start ? 10 : 6, 0.25, 0.02, 0.25, 0, bd);
+        BlockData bd = floor(feet);
+        if (dust) puff(p, start ? 10 : 6);
         SoundGroup g = bd.getSoundGroup();
         if (start) {
             Fx.sound(feet, cfg().sound(), cfg().volume(), cfg().pitch());
@@ -184,6 +190,19 @@ public final class Roll implements Listener {
         } else {
             p.getWorld().playSound(feet, g.getFallSound(), g.getVolume() * 0.7f, g.getPitch() * 0.8f);
         }
+    }
+
+    /** 밟은 블록 (고체가 아니면 심층암) 의 모양. */
+    private static BlockData floor(Location feet) {
+        Block below = feet.clone().subtract(0, 0.2, 0).getBlock();
+        Material m = below.getType().isSolid() ? below.getType() : Material.DEEPSLATE;
+        return m.createBlockData();
+    }
+
+    /** 발밑에 밟은 블록의 먼지 n 알. */
+    private static void puff(Player p, int n) {
+        Location feet = p.getLocation();
+        p.getWorld().spawnParticle(Particle.BLOCK, feet.clone().add(0, 0.1, 0), n, 0.25, 0.02, 0.25, 0, floor(feet));
     }
 
     /**
@@ -259,8 +278,13 @@ public final class Roll implements Listener {
     }
 
     @EventHandler
+    public void onJoin(PlayerJoinEvent e) {
+        tumble.tint().fetch(e.getPlayer());
+    }
+
+    @EventHandler
     public void onQuit(PlayerQuitEvent e) {
-        tumble.stop(e.getPlayer());
+        tumble.forget(e.getPlayer());
         fakes.remove(e.getPlayer().getUniqueId());
     }
 
@@ -300,7 +324,9 @@ public final class Roll implements Listener {
                 if (t <= st.roll.glide() + 1) crawl(p);
                 else uncrawl(p);
             }
-            if (t == st.roll.glide() + 1 && st.rollDir != null) visual(p, false);
+            if (t == st.roll.glide() + 1 && st.rollDir != null) visual(p, false, true);
+            // tumble: 등이 땅에 닿는 틱 (공이 반 바퀴 남짓 돈 때) 의 먼지. 발이 닿는 끝 먼지는 위 (glide + 1)
+            if (t == TUMBLE_CONTACT && tumble.active(p) && st.rollDir != null && !"backstep".equals(st.roll.id())) puff(p, 5);
             if (st.armedRollHit > 0 && st.armedRollStart != Long.MIN_VALUE && st.armedRollStart != st.rollStart) {
                 // 묶인 구르기가 그 틱에 닿기 전에 다음 구르기가 시작됐다
                 plugin.test(p, "ROLLHIT dropped off=" + st.armedRollHit + " t=" + now);

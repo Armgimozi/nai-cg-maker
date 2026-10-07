@@ -13,6 +13,7 @@ import kr.souls.Souls;
 import kr.souls.combat.CombatState;
 import kr.souls.combat.Stamina;
 import kr.souls.combat.TestHits;
+import kr.souls.combat.Tumble;
 import kr.souls.item.ItemFactory;
 import kr.souls.skill.SkillContext;
 import kr.souls.skill.SkillDef;
@@ -44,7 +45,9 @@ import java.util.Locale;
  *   rollhit <틱 1~40> [피해]          걸어 둔 뒤 처음 구르는 구르기의 그 틱에 generic 피해. [T] ROLLHIT off= dodged=
  *   warn <틱> [피해]                  "[T] WARN hit_in=<틱>" 을 보내고 그 틱 뒤에 generic 피해 (봇이 자기 화면 기준으로 피하는 시험, 13.3)
  *   roll                             서버에서 곧바로 구르기 (F 패킷 대신)
- *   tumble [각]                       구르기 대역을 서 있는 채로 세운다 (10초, 3칸 앞, 옆에서 보이게). 각이 없으면 0·90·180·270 넷
+ *   tumble [각] [dive|tuck|rise] [side|front|back]
+ *                                    구르기 대역을 서 있는 채로 세운다 (10초, 3칸 앞). 각이 없으면 웅크린 공을 0·90·180·270 넷.
+ *                                    side: 구르는 쪽이 보는 사람의 오른쪽 (옆모습), front: 보는 사람 쪽으로 (앞모습), back: 멀어지는 쪽 (등)
  *   kill | heal | info | pos | title | skill <id>
  *   dialog                           휴식 창 꼴의 Dialog (13.4 의 4). 단추를 누르면 [T] DIALOG click=<id>, Esc 로 닫으면 [T] DIALOG exit
  */
@@ -107,9 +110,23 @@ public final class TestCommands {
                                                 DoubleArgumentType.getDouble(ctx, "amount")))))))
                 .then(Commands.literal("roll").executes(ctx -> withPlayer(ctx, p -> plugin.roll().tryRoll(p))))
                 .then(Commands.literal("tumble")
-                        .executes(ctx -> withPlayer(ctx, p -> tumble(plugin, p, Float.NaN)))
+                        .executes(ctx -> withPlayer(ctx, p -> tumble(plugin, p, Float.NaN, "tuck", "side")))
                         .then(Commands.argument("angle", DoubleArgumentType.doubleArg(-720, 720))
-                                .executes(ctx -> withPlayer(ctx, p -> tumble(plugin, p, (float) DoubleArgumentType.getDouble(ctx, "angle"))))))
+                                .executes(ctx -> withPlayer(ctx, p -> tumble(plugin, p, (float) DoubleArgumentType.getDouble(ctx, "angle"), "tuck", "side")))
+                                .then(Commands.argument("pose", StringArgumentType.word())
+                                        .suggests((c, b) -> {
+                                            for (Tumble.Pose x : Tumble.Pose.values()) b.suggest(x.name().toLowerCase(Locale.ROOT));
+                                            return b.buildFuture();
+                                        })
+                                        .executes(ctx -> withPlayer(ctx, p -> tumble(plugin, p, (float) DoubleArgumentType.getDouble(ctx, "angle"),
+                                                StringArgumentType.getString(ctx, "pose"), "side")))
+                                        .then(Commands.argument("facing", StringArgumentType.word())
+                                                .suggests((c, b) -> {
+                                                    for (String x : List.of("side", "front", "back")) b.suggest(x);
+                                                    return b.buildFuture();
+                                                })
+                                                .executes(ctx -> withPlayer(ctx, p -> tumble(plugin, p, (float) DoubleArgumentType.getDouble(ctx, "angle"),
+                                                        StringArgumentType.getString(ctx, "pose"), StringArgumentType.getString(ctx, "facing"))))))))
                 .then(Commands.literal("kill").executes(ctx -> withPlayer(ctx, p -> {
                     plugin.test(p, "KILL t=" + plugin.ticker().now());
                     p.setHealth(0);
@@ -139,24 +156,31 @@ public final class TestCommands {
     }
 
     /**
-     * 구르기 대역을 서 있는 채로 세운다 (10초). 보는 쪽 3칸 앞, 구르는 쪽은 보는 사람의 오른쪽 (옆에서 본다).
-     * 각을 주지 않으면 0, 90, 180, 270 넷을 오른쪽으로 1.3칸 간격으로.
+     * 구르기 대역을 서 있는 채로 세운다 (10초). 보는 쪽 3칸 앞. facing: side 는 구르는 쪽이 보는 사람의 오른쪽 (옆에서 본다),
+     * front 는 보는 사람 쪽 (앞모습), back 은 멀어지는 쪽 (등). 각을 주지 않으면 웅크린 공을 0, 90, 180, 270 넷, 오른쪽으로 1.3칸 간격.
      */
-    private static void tumble(Souls plugin, Player p, float angle) {
+    private static void tumble(Souls plugin, Player p, float angle, String poseName, String facing) {
+        Tumble.Pose pose = Tumble.Pose.parse(poseName);
+        if (pose == null) pose = Tumble.Pose.TUCK;
         Location eye = p.getLocation();
         double yaw = Math.toRadians(eye.getYaw());
         org.bukkit.util.Vector fwd = new org.bukkit.util.Vector(-Math.sin(yaw), 0, Math.cos(yaw));
         org.bukkit.util.Vector right = new org.bukkit.util.Vector(-Math.cos(yaw), 0, -Math.sin(yaw));
+        org.bukkit.util.Vector dir = switch (facing) {
+            case "front" -> fwd.clone().multiply(-1);
+            case "back" -> fwd.clone();
+            default -> right.clone();
+        };
         Location base = eye.clone().add(fwd.clone().multiply(3));
         if (!Float.isNaN(angle)) {
-            plugin.roll().tumble().pose(p, base, right, angle, 200);
+            plugin.roll().tumble().pose(p, base, dir, pose, angle, 200);
         } else {
             for (int i = 0; i < 4; i++) {
-                plugin.roll().tumble().pose(p, base.clone().add(right.clone().multiply((i - 1.5) * 1.3)), right, i * 90f, 200);
+                plugin.roll().tumble().pose(p, base.clone().add(right.clone().multiply((i - 1.5) * 1.3)), dir, pose, i * 90f, 200);
             }
         }
-        plugin.test(p, String.format(Locale.ROOT, "TUMBLE pose angle=%s t=%d", Float.isNaN(angle) ? "row" : String.valueOf(angle),
-                plugin.ticker().now()));
+        plugin.test(p, String.format(Locale.ROOT, "TUMBLE pose=%s facing=%s angle=%s t=%d", pose.name().toLowerCase(Locale.ROOT), facing,
+                Float.isNaN(angle) ? "row" : String.valueOf(angle), plugin.ticker().now()));
     }
 
     private interface PlayerAction {

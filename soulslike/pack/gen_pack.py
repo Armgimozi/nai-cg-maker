@@ -29,7 +29,7 @@
   6. glyphs.yml, 미리보기
 
 M0 에는 셰이더가 없다 (10.8). 무기·보스·갑옷 그림(wkit, mc3d, art/vboss_*)은 M1 부터 이 파일에 다시 붙인다
-(M0 에서 wkit 을 쓰는 것은 구르기 대역 roll_figure.py 하나: 웅크린 몸 복셀 모형 souls:roll_body).
+(M0 에는 wkit 을 쓰는 그림이 없다. 구르기 대역 roll_figure.py 는 플레이어 비례의 상자 모형을 직접 쓴다).
 아이템 그림은 모두 textures/item/ 아래에 둔다. 1.21.11 은 items 아틀라스가 textures/item 폴더를
 이름공간과 상관없이 모두 읽으므로 skyblock 의 write_atlas_sources 는 필요 없다 (icons.py 의 souls:item/test_guard 로 확인).
 """
@@ -221,7 +221,9 @@ def main(argv):
         write_json(os.path.join(OUT, "assets", ns, "font", name + ".json"), data)
     gui_skin.build(OUT)   # 하트·스태미나 막대·단축 슬롯·창·단추·설명 칸·Dialog 경고 단추
     icons.build(OUT)      # 아이템 그림·모형·정의 (items 아틀라스), 입자
-    roll_figure.build(OUT)   # 구르기 대역 (몸 복셀 모형, 머리 자세), 급류 회전 소용돌이 감추기 (3.3)
+    roll_figure.build(OUT)   # 구르기 대역 (세 자세의 몸·머리·투구 모형, 물들일 재료), 급류 회전 소용돌이 감추기 (3.3)
+    # 대역 색: 바닐라 기본 스킨 18 개의 표 (클라이언트 jar 가 있을 때만 다시 뽑는다. 없으면 커밋된 표를 그대로 쓴다)
+    roll_figure.skin_table(roll_figure.client_jar(), os.path.join(RES, "roll_skins.yml"))
     title = hud.death_title(glyphs)
 
     # 3. 언어 파일: 게임 문구 (assets/souls/lang) 와 바닐라 덮어쓰기 (assets/minecraft/lang, 사망 화면)
@@ -275,7 +277,7 @@ def main(argv):
         "ascent": hud.YOU_DIED_ASCENT, "lang": lang, "bar_bg": bar_bg, "bar_fill": bar_fill, "icon": icon,
     })
     gui_skin.write_previews(OUT, PREVIEW)
-    roll_figure.preview(os.path.join(PREVIEW, "roll_figure.png"))
+    roll_figure.preview_default(os.path.join(PREVIEW, "roll_figure.png"))
     print(f"팩 파일 {len(names)}개, {len(data):,} 바이트, sha1 {sha1}")
     print(f"  → {os.path.relpath(os.path.join(RES, 'pack.zip'), ROOT)}"
           + ("" if "--no-dist" in argv else f", dist/packs/{sha1}.zip"))

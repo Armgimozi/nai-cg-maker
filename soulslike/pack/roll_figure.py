@@ -33,10 +33,9 @@
 손에 든 것 감추기 (wrap_item_definitions)
   구르는 동안 플러그인은 손에 든 아이템의 사본에 custom_model_data 깃발 0 을 켜서 그 사람 화면과 보는 사람에게만 보낸다
   (sendEquipmentChange). 이 팩의 souls 아이템 정의는 모두 그 깃발이 켜지면 손·머리 자세 (3인칭, 1인칭) 에서 아무것도 그리지
-  않는다. 깃발 1 은 3인칭만 비운다 (그 사람 화면에 구르기 끝 무렵 무기를 먼저 돌려줄 때). 단축 슬롯(gui)·땅·액자는 그대로라
-  슬롯 그림이 사라지지 않고, 아이템 종류와 이름이 같아 바닐라가 이름을 다시 띄우지도 않는다 (공기를 보내면 둘 다
-  일어난다 [확인 (클라)]). 갑옷 칸은 공기를 보낸다 (그 칸은 이름을 띄우지 않는다).
-  깃발 0·1 은 구르기 전용이다 (아이템이 다른 일로 custom_model_data 를 쓰면 깃발 2 부터 쓴다).
+  않는다. 단축 슬롯(gui)·땅·액자는 그대로라 슬롯 그림이 사라지지 않고, 아이템 종류와 이름이 같아 바닐라가 이름을 다시
+  띄우지도 않는다 (공기를 보내면 둘 다 일어난다 [확인 (클라)]). 갑옷 칸은 공기를 보낸다 (그 칸은 이름을 띄우지 않는다).
+  이 깃발 0 은 구르기 전용이다 (아이템이 다른 일로 custom_model_data 를 쓰면 깃발 1 부터 쓴다).
 
 회전 자세 감추기 (riptide)
   combat.roll.visual: spin 은 바닐라 급류 회전 (startRiptideAttack) 이다. 몸에 감기는 흰 소용돌이
@@ -56,19 +55,22 @@ from palette import c
 
 NS = "souls"
 POSES = ("dive", "tuck", "rise")
-HIDE_FLAG = 0                      # custom_model_data 깃발: 손·머리 자세를 모두 비운다 (Tumble.HIDE_FLAG)
-HIDE_THIRD_FLAG = 1                # 깃발: 3인칭 손·머리만 비운다 (Tumble.HIDE_THIRD_FLAG)
+HIDE_FLAG = 0                      # custom_model_data 깃발 번호 (플러그인 Tumble.HIDE_FLAG 와 같다)
 # 3인칭 손·머리 (투명한 몸에 떠 보인다) 와 1인칭 손 (구르는 동안 무기를 거두었다가 끝나면 다시 든다: 바닐라의 바꿔 들기
 # 몸짓이 구르기 시작에 내리고 끝에 올린다. 1인칭을 그대로 두면 사본이 바뀔 때마다 두 번 내렸다 올렸다)
-THIRD_CONTEXTS = ["thirdperson_righthand", "thirdperson_lefthand", "head"]
-HIDDEN_CONTEXTS = THIRD_CONTEXTS + ["firstperson_righthand", "firstperson_lefthand"]
+HIDDEN_CONTEXTS = ["thirdperson_righthand", "thirdperson_lefthand", "firstperson_righthand", "firstperson_lefthand", "head"]
 
 # 대역 크기: 플레이어 모형과 같은 픽셀 크기 (바닐라는 플레이어를 0.9375 배로 그린다). 플러그인 tumble.scale 과 같다
 SCALE = 0.9375
 # 공 반지름 (픽셀, 회전 중심에서 웅크린 몸 바깥까지). 플러그인 tumble.pivot = PIVOT_PX × SCALE / 16 블록
-PIVOT_PX = 9.0
+PIVOT_PX = 6.8
 # 뛰어드는 자세가 걸리는 각 (플러그인 tumble.start-angle). 그 자세는 이 각만큼 앞으로 돌린 변환에서 바로 서 보이게 만든다
 START_ANGLE = 45.0
+
+# 일어서기 자세의 머리 가운데가 회전 중심에서 앞으로 몇 픽셀인가
+RISE_HEAD_F = 0.0
+# 뛰어들기 자세의 엉덩이가 회전 중심에서 몇 픽셀 뒤인가 (발은 그 아래, 머리와 팔은 앞으로 뻗는다)
+DIVE_HIP_F = -4.0
 
 # 물들이는 칸: (이름, tintindex, 기본색 (팔레트, 스킨 색이 없을 때))
 TINTS = [("torso", 0, "rust2"), ("sleeve", 1, "rust2"), ("hand", 2, "bone0"), ("legs", 3, "rust1"), ("boots", 4, "rust0")]
@@ -335,12 +337,12 @@ def _limbs(spec):
 T_TORSO, T_SLEEVE, T_HAND, T_LEGS, T_BOOTS = 0, 1, 2, 3, 4
 
 
-def _body(hip, belly, chest, thigh, shin, foot, uarm, farm, shoulder_back=1.0, step=0.0, arm_lift=(0.0, 0.0),
-          leg_spread=(0.0, 0.0)):
+def _body(hip, belly, chest, thigh, shin, foot, uarm, farm, shoulder_back=1.0, shoulder_down=1.0):
     """
     플레이어 비례의 몸. hip = 엉덩이 관절 (y, f). 각은 모두 위(+y)에서 앞(+f)으로.
     belly·chest: 몸통 아래·위 (8×6×4). thigh·shin: 다리 (4×6×4, 4×3×4) 다음 신 (4×4×4, 밑창). 왼·오른 다리 각을 따로
-    주려면 (왼, 오른) 짝. uarm·farm: 윗팔 (소매) 과 아랫팔 (손). 어깨는 가슴 끝에서 shoulder_back 만큼 등 쪽.
+    주려면 (왼, 오른) 짝. uarm·farm: 윗팔 (소매) 과 아랫팔 (손). 어깨는 가슴 끝에서 shoulder_down 만큼 아래 (가슴 축을 따라),
+    shoulder_back 만큼 등 쪽.
     """
     def pair(v):
         return v if isinstance(v, tuple) else (v, v)
@@ -353,21 +355,20 @@ def _body(hip, belly, chest, thigh, shin, foot, uarm, farm, shoulder_back=1.0, s
     for i, sx in enumerate((-1, 1)):
         side = "lr"[i]
         spec += [
-            (f"thigh_{side}", "trousers", T_LEGS, 3.9, 6.0, 3.9, th[i], sx * 2.0 + leg_spread[i], hip, None),
-            (f"shin_{side}", "trousers", T_LEGS, 3.8, 3.0, 3.8, sh[i], sx * 2.0 + leg_spread[i], f"thigh_{side}", None),
-            (f"foot_{side}", "boot", T_BOOTS, 4.1, 4.0, 4.1, ft[i], sx * 2.0 + leg_spread[i], f"shin_{side}", "sole"),
+            (f"thigh_{side}", "trousers", T_LEGS, 3.9, 6.0, 3.9, th[i], sx * 2.0, hip, None),
+            (f"shin_{side}", "trousers", T_LEGS, 3.8, 3.0, 3.8, sh[i], sx * 2.0, f"thigh_{side}", None),
+            (f"foot_{side}", "boot", T_BOOTS, 4.1, 4.0, 4.1, ft[i], sx * 2.0, f"shin_{side}", "sole"),
         ]
     boxes = _limbs(spec)
     chest_box = next(b for b in boxes if b.name == "chest")
-    # 어깨 관절: 가슴 끝에서 등 쪽 (가슴 길이 축에 수직, 등 방향) 으로 shoulder_back, 아래로 1
     back = np.array([math.sin(math.radians(chest)), -math.cos(math.radians(chest))])
-    sj = chest_box.end - chest_box.dir * 1.0 + back * shoulder_back
+    sj = chest_box.end - chest_box.dir * shoulder_down + back * shoulder_back
     ua, fa = pair(uarm), pair(farm)
     arm = []
     for i, sx in enumerate((-1, 1)):
         side = "lr"[i]
         arm += [
-            (f"uarm_{side}", "sleeve", T_SLEEVE, 4.0, 6.0, 4.0, ua[i], sx * 6.0, tuple(sj + np.array([arm_lift[i], 0])), None),
+            (f"uarm_{side}", "sleeve", T_SLEEVE, 4.0, 6.0, 4.0, ua[i], sx * 6.0, tuple(sj), None),
             (f"farm_{side}", "hand", T_HAND, 3.9, 6.0, 3.9, fa[i], sx * 6.0, f"uarm_{side}", None),
         ]
     boxes += _limbs(arm)
@@ -381,35 +382,81 @@ def _head_on(chest_box, head_pitch, lift=0.5, scale=1.0):
     return chest_box.end + crown * (4.0 * scale + lift)
 
 
+def _outline(pose):
+    """자세의 옆모습 꼭짓점들 (y, f): 상자 넷씩과 머리 넷."""
+    pts = [p for b in pose.boxes for p in _box_corners_2d(b)]
+    a = math.radians(pose.head_pitch)
+    up, fw = np.array([math.cos(a), math.sin(a)]), np.array([-math.sin(a), math.cos(a)])
+    h = 4.0 * pose.head_scale
+    pts += [pose.head_center + up * su * h + fw * sf * h for su in (-1, 1) for sf in (-1, 1)]
+    return np.array(pts)
+
+
+def _shift(pose, d):
+    d = np.array(d, float)
+    boxes = [Box(b.name, b.tex, b.tint, b.w, b.length, b.t, b.joint + d, b.pitch, b.x, b.sole) for b in pose.boxes]
+    return Pose(pose.name, boxes, pose.head_center + d, pose.head_pitch, pose.head_scale, pose.frame)
+
+
+def ball_center(pose):
+    """옆모습을 감싸는 가장 작은 원의 가운데와 반지름 (0.25 픽셀 격자로 찾는다)."""
+    pts = _outline(pose)
+    lo, hi = pts.min(axis=0), pts.max(axis=0)
+    best = None
+    for y in np.arange(lo[0], hi[0], 0.25):
+        for f in np.arange(lo[1], hi[1], 0.25):
+            r = np.sqrt(((pts - (y, f)) ** 2).sum(axis=1)).max()
+            if best is None or r < best[0]:
+                best = (r, np.array([y, f]))
+    return best[1], best[0]
+
+
+# 웅크린 공의 각 (배, 가슴, 허벅지, 정강이, 신, 머리 정수리, 윗팔, 아랫팔). 옆모습이 가장 둥근 것 (도는 동안 땅에서 회전 중심까지
+# 거리가 가장 덜 바뀌는 것) 을 22.5° 마디 가운데서 골랐다: 등을 말고 (배 -22.5, 가슴 67.5), 무릎을 가슴에, 정수리를 아래로
+# 박고 (얼굴은 무릎 쪽), 두 팔꿈치를 머리 옆 앞으로 내밀어 정강이를 감싼다 (옆에서 보면 앞 테가 머리가 아니라 팔)
+TUCK = (-22.5, 67.5, 45.0, 202.5, 225.0, 157.5, 135.0, 202.5)
+
+
 def pose_tuck():
     """
-    웅크린 공 (구르기 2~7틱, 변환 각이 그대로 돈 각). 옆에서 보면 바깥 테가 목덜미 (앞위) → 등 (위·뒤) → 엉덩이 (뒤아래)
-    → 신 (아래) 로 이어지는 C 이고, 그 안에 얼굴·무릎·정강이·손이 든다. 앞으로 90° 돌면 목덜미·어깨가, 180° 에 등이,
-    270° 에 엉덩이가 땅에 닿는다.
+    웅크린 공 (구르기 2~7틱, 변환 각이 그대로 돈 각). 쪼그려 앉아 등을 말고 턱을 가슴에 붙인 모습: 옆에서 보면 바깥 테가
+    정수리·뒤통수 (앞) → 등 (위) → 엉덩이 (뒤) → 신 (아래). 얼굴은 무릎을 내려다보고 (안쪽), 두 팔이 정강이를 감싼다.
+    앞으로 돌면 뒤통수·목덜미 → 등 → 엉덩이 → 발 차례로 땅에 닿는다. 회전 중심은 옆모습을 감싸는 원의 가운데.
     """
-    boxes, chest = _body(hip=(-3.0, -3.0), belly=-22.5, chest=45.0,
-                         thigh=67.5, shin=(180.0, 157.5), foot=(180.0, 180.0),
-                         uarm=(135.0, 135.0), farm=(202.5, 225.0), shoulder_back=1.0, arm_lift=(0.6, 0.0))
-    hp = 135.0
-    return Pose("tuck", boxes, _head_on(chest, hp, lift=-0.5), hp)
+    boxes, chest = _body(hip=(0.0, 0.0), belly=TUCK[0], chest=TUCK[1],
+                         thigh=TUCK[2], shin=TUCK[3], foot=TUCK[4],
+                         uarm=TUCK[6], farm=TUCK[7], shoulder_back=0.5, shoulder_down=1.5)
+    hp = TUCK[5]
+    pose = Pose("tuck", boxes, _head_on(chest, hp, lift=-0.5), hp)
+    ctr, _ = ball_center(pose)
+    return _shift(pose, -ctr)
 
 
 def pose_dive():
-    """뛰어드는 자세 (0~1틱). 설계는 땅에 선 모습 (발이 -PIVOT_PX) 이고, START_ANGLE 로 돈 변환에서 이렇게 보이게 되돌린다."""
-    boxes, chest = _body(hip=(-0.5, -1.5), belly=45.0, chest=67.5,
-                         thigh=(157.5, 135.0), shin=(202.5, 180.0), foot=(180.0, 180.0),
-                         uarm=(135.0, 135.0), farm=(135.0, 157.5), shoulder_back=0.5)
-    hp = 112.5
+    """
+    뛰어들기 (0틱~첫 마디). 무릎을 굽혀 몸통을 앞으로 눕히고 (배 67.5°, 가슴 90°) 두 팔을 앞아래로 뻗고, 머리는 그 사이로 숙인다
+    (정수리가 앞아래). 설계는 땅에 선 모습 (발이 -PIVOT_PX) 이고, START_ANGLE 로 돈 변환에서 이렇게 보이게 되돌린다 (_settle).
+    """
+    boxes, chest = _body(hip=(0.0, DIVE_HIP_F), belly=67.5, chest=90.0,
+                         thigh=157.5, shin=202.5, foot=180.0,
+                         uarm=157.5, farm=157.5, shoulder_back=0.5, shoulder_down=1.5)
+    hp = 135.0
     return Pose("dive", boxes, _head_on(chest, hp, lift=-0.5), hp, frame=START_ANGLE)
 
 
 def pose_rise():
-    """일어서는 자세 (8~10틱). 오른발을 앞에 딛고, 몸통을 앞으로 숙이고, 머리를 든다. 키 약 1.35 블록."""
-    boxes, chest = _body(hip=(0.5, -0.5), belly=22.5, chest=22.5,
-                         thigh=(157.5, 202.5), shin=(202.5, 180.0), foot=(180.0, 180.0),
-                         uarm=(180.0, 157.5), farm=(157.5, 135.0), shoulder_back=0.3)
-    hp = 0.0
-    return Pose("rise", boxes, _head_on(chest, hp, lift=0.0), hp)
+    """
+    일어서기 (rise-at~reveal). 깊이 쪼그린 채 (허벅지 수평) 오른발을 조금 앞에 딛고, 몸통을 숙인 채 (배 45°, 가슴 67.5°) 머리를 들어
+    앞을 본다. 두 손은 무릎 앞. 키 약 1.32 블록 (웅크린 공 0.9 블록과 선 몸 1.8 블록 사이). 머리 가운데가 회전 중심 (곧 진짜 몸이 설
+    자리) 위 RISE_HEAD_F 에 오게 옮긴다: 진짜 몸이 돌아올 때 머리가 앞뒤로 튀지 않고, 1인칭 눈 (1.62) 아래 5 픽셀 남짓, 바로 밑이라
+    앞을 볼 때 화면에 들지 않는다 (더 크게 세웠더니 1인칭 화면 아래에 머리 꼭대기가 걸렸다 [확인 (클라)]).
+    """
+    boxes, chest = _body(hip=(0.0, 0.0), belly=45.0, chest=67.5,
+                         thigh=(90.0, 90.0), shin=(180.0, 202.5), foot=(180.0, 180.0),
+                         uarm=(180.0, 157.5), farm=(135.0, 135.0), shoulder_back=0.3, shoulder_down=1.0)
+    hp = 22.5
+    pose = Pose("rise", boxes, _head_on(chest, hp, lift=0.0), hp)
+    return _shift(pose, (0.0, RISE_HEAD_F - pose.head_center[1]))
 
 
 def poses():
@@ -540,9 +587,8 @@ OWN = tuple(f"roll_{k}{p}.json" for k in ("", "head_", "helm_") for p in POSES)
 
 def wrap_item_definitions(out):
     """
-    assets/souls/items/*.json 을 모두 감싼다: custom_model_data 깃발 HIDE_FLAG 가 켜지면 손·머리 자세 (HIDDEN_CONTEXTS),
-    HIDE_THIRD_FLAG 가 켜지면 3인칭 손·머리 (THIRD_CONTEXTS) 에서 비운다. 대역 모형은 감싸지 않는다.
-    gen_pack 이 다른 아이템 정의를 다 쓴 뒤에 부른다.
+    assets/souls/items/*.json 을 모두 감싼다: custom_model_data 깃발 HIDE_FLAG 가 켜지면 손·머리 자세 (HIDDEN_CONTEXTS) 에서 비운다.
+    대역 모형 (OWN) 은 감싸지 않는다. gen_pack 이 다른 아이템 정의를 다 쓴 뒤에 부른다.
     """
     folder = os.path.join(out, "assets", NS, "items")
     n = 0
@@ -553,16 +599,12 @@ def wrap_item_definitions(out):
         with open(path, encoding="utf-8") as f:
             data = json.load(f)
         inner = data["model"]
-
-        def hide(contexts, rest):
-            return {"type": "minecraft:select", "property": "minecraft:display_context",
-                    "cases": [{"when": contexts, "model": {"type": "minecraft:empty"}}], "fallback": rest}
-
         data["model"] = {
             "type": "minecraft:condition", "property": "minecraft:custom_model_data", "index": HIDE_FLAG,
-            "on_true": hide(HIDDEN_CONTEXTS, inner),
-            "on_false": {"type": "minecraft:condition", "property": "minecraft:custom_model_data", "index": HIDE_THIRD_FLAG,
-                         "on_true": hide(THIRD_CONTEXTS, inner), "on_false": inner},
+            "on_false": inner,
+            "on_true": {"type": "minecraft:select", "property": "minecraft:display_context",
+                        "cases": [{"when": HIDDEN_CONTEXTS, "model": {"type": "minecraft:empty"}}],
+                        "fallback": inner},
         }
         _json(path, data)
         n += 1
@@ -570,38 +612,36 @@ def wrap_item_definitions(out):
 
 
 # ─────────────────────────── 스킨 색 표 (기본 스킨 18 개) ───────────────────────────
-# 플러그인 combat/SkinTint 와 같은 셈: 칸마다 (덧옷 층이 있으면 그 픽셀이 위) 불투명 픽셀을 채널마다 8 단위로 묶어 가장
+# 플러그인 combat/SkinTint 와 같은 셈: 칸마다 (덧옷 층 픽셀이 불투명하면 그것이 위) 불투명 픽셀을 채널마다 8 단위로 묶어 가장
 # 많은 묶음의 평균, 채도 × 0.8, 너무 어두우면 밝기를 MIN_VALUE 까지 (심층암 바닥과 갈리게).
-# 칸: 몸통 (20,20)-(28,32) (덧옷 (20,36)), 윗팔 (44,20)-(48,26) (덧옷 (44,36)), 손 (44,26)-(48,32), 바지 (4,20)-(8,28)
-# (덧옷 (4,36)), 신 (4,28)-(8,32). slim 스킨은 팔 너비 3.
+# 칸은 그 부위를 네 옆면으로 두른 띠 (앞만 보면 노어처럼 앞섶이 열린 겉옷은 속옷 색이 나온다. 3인칭에서 보이는 것은 대개 등과
+# 옆이다): 몸통 (16,20)-(40,32), 오른팔 (40,20)-(56,32) (slim 은 (40,20)-(54,32)) 의 위 6줄 = 소매, 아래 6줄 = 손,
+# 오른다리 (0,20)-(16,32) 의 위 8줄 = 바지, 아래 4줄 = 신. 덧옷 층은 같은 자리에서 16 아래 (y + 16). 64×32 옛 스킨은 덧옷 없음.
 
-REGIONS = [((20, 20, 28, 32), (20, 36)), ((44, 20, 48, 26), (44, 36)), ((44, 26, 48, 32), (44, 42)),
-           ((4, 20, 8, 28), (4, 36)), ((4, 28, 8, 32), (4, 44))]
+REGIONS = [(16, 20, 40, 32), (40, 20, 56, 26), (40, 26, 56, 32), (0, 20, 16, 28), (0, 28, 16, 32)]
 SAT_SCALE = 0.8
-MIN_VALUE = 0.30
+MIN_VALUE = 77                     # 밝기 (0~255) 바닥
 DEFAULT_SKINS = [f"{m}/{n}" for m in ("slim", "wide") for n in ("alex", "ari", "efe", "kai", "makena", "noor", "steve", "sunny", "zuri")]
 
 
 def skin_colors(img, slim=False):
-    """64×64 (또는 64×32) 스킨 → 다섯 칸의 색 [0xRRGGBB, ...] (플러그인 SkinTint.colors 와 같은 셈)."""
+    """64×64 (또는 64×32) 스킨 → 다섯 칸의 색 [0xRRGGBB 또는 None, ...] (플러그인 SkinTint.colors 와 같은 셈)."""
     a = np.array(img.convert("RGBA")).astype(int)
     h = a.shape[0]
     out = []
-    for (x0, y0, x1, y1), (ox, oy) in REGIONS:
-        if slim and x0 == 44:
-            x1 = 47
+    for x0, y0, x1, y1 in REGIONS:
+        if slim and x0 == 40:
+            x1 = 54
         px = []
         for y in range(y0, y1):
             for x in range(x0, x1):
                 p = a[y, x]
-                if h >= 64:
-                    o = a[oy + (y - y0), ox + (x - x0)]
-                    if o[3] >= 128:
-                        p = o
+                if h >= 64 and a[y + 16, x][3] >= 128:
+                    p = a[y + 16, x]
                 if p[3] >= 128:
                     px.append(tuple(int(v) for v in p[:3]))
         out.append(_mode_color(px))
-    return out
+    return _fill(out)
 
 
 def _mode_color(px):
@@ -612,35 +652,53 @@ def _mode_color(px):
         groups.setdefault((p[0] >> 3, p[1] >> 3, p[2] >> 3), []).append(p)
     best = max(groups.values(), key=len)        # 같은 수면 먼저 나온 묶음 (dict 는 넣은 차례) — 플러그인도 같다
     r, g, b = (sum(p[i] for p in best) // len(best) for i in range(3))
-    return _grade(r, g, b)
+    return _grade((r << 16) | (g << 8) | b)
 
 
-def _grade(r, g, b):
-    """채도 × SAT_SCALE, 밝기 (HSV V) 를 MIN_VALUE 아래면 끌어올린다. 정수 셈 (플러그인과 같은 값)."""
-    mx, mn = max(r, g, b), min(r, g, b)
-    # 채도를 줄인다: 각 채널을 가장 밝은 채널 쪽으로 (1 - SAT_SCALE) 만큼 당긴다 (V 그대로, S × SAT_SCALE)
-    r, g, b = (v + int(round((mx - v) * (1 - SAT_SCALE))) for v in (r, g, b))
-    lo = int(round(MIN_VALUE * 255))
-    if mx < lo:
+def _grade(rgb):
+    """채도 × 0.8 (채널마다 가장 밝은 채널 쪽으로 2/10 당긴다, 반올림), 밝기가 MIN_VALUE 보다 낮으면 끌어올린다 (정수 셈,
+    플러그인 SkinTint.grade 와 같은 값)."""
+    r, g, b = (rgb >> 16) & 255, (rgb >> 8) & 255, rgb & 255
+    mx = max(r, g, b)
+    r, g, b = (v + ((mx - v) * 2 + 5) // 10 for v in (r, g, b))
+    if mx < MIN_VALUE:
         if mx == 0:
-            r = g = b = lo
+            r = g = b = MIN_VALUE
         else:
-            r, g, b = (int(round(v * lo / mx)) for v in (r, g, b))
+            r, g, b = ((v * MIN_VALUE + mx // 2) // mx for v in (r, g, b))
     return (r << 16) | (g << 8) | b
+
+
+def _fill(cols):
+    """빈 칸 (투명) 은 가장 가까운 칸 색 (앞 칸 먼저). 모두 비면 None."""
+    if all(v is None for v in cols):
+        return None
+    out = list(cols)
+    for k, v in enumerate(cols):
+        if v is not None:
+            continue
+        for d in range(1, len(cols)):
+            if k - d >= 0 and cols[k - d] is not None:
+                out[k] = cols[k - d]
+                break
+            if k + d < len(cols) and cols[k + d] is not None:
+                out[k] = cols[k + d]
+                break
+    return out
 
 
 def skin_table(jar, path):
     """클라이언트 jar 의 기본 스킨 18 개 → 플러그인 자원 (YAML). jar 가 없으면 아무것도 하지 않는다 (있던 표를 쓴다)."""
     if not jar or not os.path.exists(jar):
         return False
-    lines = ["# 바닐라 기본 스킨 18 개의 대역 색 (pack/roll_figure.py skin_table 이 클라이언트 jar 에서 뽑는다. 손대지 않는다).",
-             "# 차례는 클라이언트 DefaultPlayerSkin 표: UUID.hashCode() 를 18 로 나눈 나머지 (floorMod). 색은 몸통, 윗팔, 손, 바지, 신",
+    lines = ["# 바닐라 기본 스킨 18 개의 구르기 대역 색 (pack/roll_figure.py skin_table 이 클라이언트 jar 에서 뽑는다. 손대지 않는다).",
+             "# 차례는 클라이언트 DefaultPlayerSkin 표 (UUID.hashCode() 를 18 로 나눈 나머지, floorMod). 색은 몸통, 윗팔, 손, 바지, 신",
              "skins:"]
     with zipfile.ZipFile(jar) as z:
         for name in DEFAULT_SKINS:
             img = Image.open(io.BytesIO(z.read(f"assets/minecraft/textures/entity/player/{name}.png")))
             cols = skin_colors(img, slim=name.startswith("slim/"))
-            lines.append(f"  - [{', '.join('0x%06x' % (v if v is not None else 0) for v in cols)}]   # {name}")
+            lines.append(f"  - [{', '.join(repr('%06x' % v) for v in cols)}]   # {name}")
     with open(path, "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join(lines) + "\n")
     return True
@@ -859,6 +917,21 @@ def preview(path, skin=None, colors=None, tilt_axis=0.0):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     sheet.save(path)
     return path
+
+
+def client_jar():
+    """바닐라 클라이언트 jar (기본 스킨). SOULS_CLIENT_JAR, 없으면 점검 틀이 받아 둔 곳 (tools/client). 없으면 None."""
+    for p in (os.environ.get("SOULS_CLIENT_JAR"), os.path.expanduser("~/.cache/souls-client/versions/1.21.11.jar")):
+        if p and os.path.exists(p):
+            return p
+    return None
+
+
+def preview_default(path, who="wide/noor"):
+    """gen_pack 의 미리보기: 클라이언트 jar 가 있으면 그 기본 스킨 (점검 틀의 Tester 는 노어) 으로, 없으면 팔레트 기본색으로."""
+    jar = client_jar()
+    skin = _skin_from_jar(jar, who) if jar else None
+    return preview(path, skin, skin_colors(skin, slim=who.startswith("slim/")) if skin else None)
 
 
 def _skin_from_jar(jar, name="wide/steve"):

@@ -46,10 +46,14 @@ public final class Config {
     public record TumbleStep(int tick, float angle, int duration) {}
 
     /**
-     * 대역 (combat/Tumble). pivot: 회전 중심의 발 위 높이 (블록), scale: 대역 크기, steps: 도는 마디 (틱 차례),
-     * reveal: 이 틱에 대역을 거두고 진짜 몸을 보인다.
+     * 대역 (combat/Tumble). pivot: 회전 중심의 발 위 높이 (블록), scale: 대역 크기, startAngle: 뛰어들기 자세가 걸린 각 (처음 변환),
+     * steps: 도는 마디 (틱 차례, 첫 마디에서 웅크린 공으로 바뀐다), riseAt: 일어서기 자세로 바꾸는 틱, riseTurn: 그때 구르는 쪽에서
+     * 몸 방향으로 도는 틱, tilt: 회전축을 어깨 쪽으로 기울이는 각 (구를 때마다 좌우를 바꾼다, 0 이면 곧은 앞구르기),
+     * reveal: 이 틱에 대역을 거두고 진짜 몸을 보인다, handBack: 이 틱에 그 사람 화면에만 주손을 돌려준다 (0 이면 reveal 과 같이),
+     * hideDelay: 대역을 띄우고 몇 틱 뒤에 진짜 몸을 감추는가 (0: 같은 틱. 1: 클라이언트가 대역을 처음 그린 뒤).
      */
-    public record TumbleCfg(double pivot, float scale, List<TumbleStep> steps, int reveal) {}
+    public record TumbleCfg(double pivot, float scale, float startAngle, List<TumbleStep> steps, int riseAt, int riseTurn,
+                            float tilt, int reveal, int handBack, int hideDelay) {}
 
     public record RollCfg(String load, RollVisual visual, boolean crawl, TumbleCfg tumble, int spinTicks,
                           Map<String, RollKind> kinds, String sound, float volume, float pitch) {
@@ -159,7 +163,7 @@ public final class Config {
         estusStart = c.getInt("difficulty.estus-start", 4);
     }
 
-    /** combat.roll.tumble. steps 는 [[틱, 각, 걸리는 틱], ...]. 틀린 줄은 건너뛰고, 하나도 없으면 3.3 의 기본 세 마디. */
+    /** combat.roll.tumble. steps 는 [[틱, 각, 걸리는 틱], ...]. 틀린 줄은 건너뛰고, 하나도 없으면 3.3 의 기본 여섯 마디. */
     private static TumbleCfg tumble(FileConfiguration c) {
         List<TumbleStep> steps = new ArrayList<>();
         for (Object o : c.getList("combat.roll.tumble.steps", List.of())) {
@@ -174,12 +178,16 @@ public final class Config {
             }
         }
         if (steps.isEmpty()) {
-            steps.add(new TumbleStep(2, 120, 2));
-            steps.add(new TumbleStep(4, 240, 2));
-            steps.add(new TumbleStep(6, 360, 3));
+            int[][] def = {{2, 124}, {3, 198}, {4, 272}, {5, 319}, {6, 345}, {7, 360}};
+            for (int[] d : def) steps.add(new TumbleStep(d[0], d[1], 1));
         }
         steps.sort(Comparator.comparingInt(TumbleStep::tick));
-        return new TumbleCfg(c.getDouble("combat.roll.tumble.pivot", 0.56), (float) c.getDouble("combat.roll.tumble.scale", 1.12),
-                List.copyOf(steps), Math.max(1, c.getInt("combat.roll.tumble.reveal", 10)));
+        int reveal = Math.max(1, c.getInt("combat.roll.tumble.reveal", 11));
+        return new TumbleCfg(c.getDouble("combat.roll.tumble.pivot", 0.40), (float) c.getDouble("combat.roll.tumble.scale", 0.9375),
+                (float) c.getDouble("combat.roll.tumble.start-angle", 45), List.copyOf(steps),
+                c.getInt("combat.roll.tumble.rise-at", 8), Math.max(0, c.getInt("combat.roll.tumble.rise-turn", 3)),
+                (float) c.getDouble("combat.roll.tumble.tilt", 20), reveal,
+                Math.min(reveal, Math.max(0, c.getInt("combat.roll.tumble.hand-back", 8))),
+                Math.max(0, Math.min(2, c.getInt("combat.roll.tumble.hide-delay", 1))));
     }
 }
