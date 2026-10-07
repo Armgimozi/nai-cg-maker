@@ -20,15 +20,18 @@
 | 화톳불 이동 | 처음부터 (넷째 보스 뒤가 아니다) |
 | 에스트 | 바닐라 물약처럼: 단축 슬롯에 두고 우클릭을 누르고 있으면 마신다. 슬롯을 저절로 바꾸지 않는다 |
 | 규모 | 짧은 맛보기판부터. 7지역 전체가 아니다 |
+| 영어판 | 영어 번역을 고려하면서 개발한다. 한국어가 원본이고 영어는 소울류 영어판 문체로 따로 쓴다. 클라이언트 언어가 한국어면 한국어, 그 밖에는 영어 |
 
 ## 폴더
 
 ```
-plugin/   Gradle 플러그인 (kr.souls). 리소스: paper-plugin.yml, config.yml, lang/ko.yml, content/, datapack/soulsdp/
-pack/     리소스팩 생성기 (gen_pack.py, hud.py 글꼴·사망 제목, gui_skin.py 하트·스태미나 막대·단축 슬롯·창·단추,
-          icons.py 아이템 그림·모형·입자, palette.py, artlint.py, art/ 손으로 찍은 그림)
+plugin/   Gradle 플러그인 (kr.souls). 리소스: paper-plugin.yml, config.yml, content/, datapack/soulsdp/,
+          lang/ko.yml (게임 문구, 한국어 원본), lang/en.yml (영어), lang/names.yml (고유 이름의 영어 표기)
+pack/     리소스팩 생성기 (gen_pack.py, langpack.py 문구 → 팩 언어 파일, hud.py 글꼴·사망 제목, gui_skin.py 하트·스태미나
+          막대·단축 슬롯·창·단추, icons.py 아이템 그림·모형·입자, palette.py, artlint.py, art/ 손으로 찍은 그림)
 server/   배포할 서버 폴더 (start.bat → start.ps1, start.sh, server.properties, bukkit.yml, config/paper-global.yml, README.txt)
-tools/    make_dist.py (배포 묶기), textlint.py (글 검사), run_tests.sh + bots/ (봇 시험), client/ (실제 클라이언트로 찍기)
+tools/    make_dist.py (배포 묶기), textlint.py (글 검사, 한국어·영어), langcheck.py (문구 관문), run_tests.sh + bots/ (봇 시험),
+          client/ (실제 클라이언트로 찍기)
 dist/     묶은 결과: Soulslike.jar, Soulslike-Server.zip, packs/<sha1>.zip
 ```
 
@@ -48,7 +51,16 @@ cd plugin && ./gradlew build          # → plugin/build/libs/Soulslike.jar (pac
 python3 tools/make_dist.py --no-build # 관문만 보고 묶는다
 ```
 
-`make_dist.py` 는 글 검사(textlint), 그림 검사(artlint), 낡은 jar, 시험용 설정(`debug.test-mode`, `pack.serve-port`), 팩 형식 75·셰이더 없음·참조, 그림 글자 표, 서버 폴더 인코딩 규칙과 `server.properties` 값 가운데 하나라도 어긋나면 아무것도 쓰지 않고 멈춘다.
+`make_dist.py` 는 글 검사(textlint), 문구 관문(langcheck), 그림 검사(artlint), 낡은 jar, 시험용 설정(`debug.test-mode`, `pack.serve-port`), 팩 형식 75·셰이더 없음·참조, 그림 글자 표, 서버 폴더 인코딩 규칙과 `server.properties` 값 가운데 하나라도 어긋나면 아무것도 쓰지 않고 멈춘다.
+
+## 문구와 영어판
+
+플레이어가 보는 글은 모두 언어 열쇠다 (`DESIGN.md` 10.3, 10.9, 12.5). 플러그인은 `Component.translatable("souls.<열쇠>")` 을 보내고, 클라이언트가 리소스팩의 `assets/souls/lang/ko_kr.json`·`en_us.json` 에서 자기 언어의 글을 고른다. 아이템 이름·설명도 같다. 팩을 받기 전에 보이는 글 (팩 안내, 팩 때문에 쫓아낼 때) 만 서버가 그 사람의 언어로 채운다.
+
+- 글을 고칠 때: `plugin/src/main/resources/lang/ko.yml` 과 `en.yml` 을 함께 고친다 (열쇠, 맨 앞 꼴 태그, `<자리>`, 목록 줄 수가 같아야 한다). 영어는 직역하지 않고 짧고 건조한 옛 말투로. 고유 이름은 `lang/names.yml` 대로.
+- 그다음 `python3 tools/make_dist.py` (팩과 jar 를 함께 다시 만든다). 서버 폴더에는 문구 파일이 없다.
+- 관문: `python3 tools/langcheck.py` (두 언어의 짝, Java 의 한글 문자열, 없는 열쇠, 낡은 팩 언어 파일, 자리 폭), `python3 tools/textlint.py` (문체). 하나라도 오류면 `make_dist` 가 묶지 않는다.
+- 실제 클라이언트로 두 언어 보기: `MC_LANG=en_us tools/client/run_client.sh …` (`dist/screenshots/i18n/`).
 
 ## 배포
 
@@ -62,4 +74,4 @@ python3 tools/make_dist.py --no-build # 관문만 보고 묶는다
 - 봇: `tools/run_tests.sh` (`tools/bots/`, mineflayer 4.39), 지연 프록시 `tools/bots/lagproxy.js`.
 - 실제 클라이언트: `tools/client/m0_shots.sh` (13.4 점검 그림, `dist/screenshots/m0/`).
 - 사망 화면 제목의 두 판 (16절 질문 4) 은 `plugin/src/main/resources/config.yml` 의 `death.title` 하나로 고른다. `gen_pack.py` 와 `make_dist.py` 가 같은 값을 읽어 팩을 만든다.
-- 글·그림: `python3 tools/textlint.py`, `python3 pack/artlint.py`.
+- 글·그림: `python3 tools/textlint.py`, `python3 tools/langcheck.py`, `python3 pack/artlint.py`. 봇 시험의 `lang_check` 가 둘을 돌리고, `lang` 시나리오가 영어 클라이언트로 들어와 번역 열쇠와 서버가 채운 글을 본다.
