@@ -51,8 +51,16 @@ L.run('lang', async (sc) => {
   while (!(ab = b.p.actionBars.find((x) => findTranslate(x.raw, 'souls.hud.souls'))) && Date.now() < end) await L.sleep(100)
   const tr = ab && findTranslate(ab.raw, 'souls.hud.souls')
   sc.check('pre-pack action bar = translatable souls.hud.souls', !!tr, b.p.actionBars.slice(0, 3).map((x) => JSON.stringify(x.raw).slice(0, 120)).join(' | ') || '행동 막대 없음')
-  const last = b.p.actionBars[b.p.actionBars.length - 1]
-  const box = last && L.decodeHud(last.parts, L.loadGlyphs())
+  // 팩을 실은 뒤 첫 그림 글자 상자가 올 때까지 기다린다 (바로 앞의 마지막 줄은 아직 팩 전 대체 글일 수 있다)
+  const glyphs = L.loadGlyphs()
+  const boxEnd = Date.now() + 3000
+  let box = null
+  for (;;) {
+    const last = b.p.actionBars[b.p.actionBars.length - 1]
+    box = last && L.decodeHud(last.parts, glyphs)
+    if ((box && box.soulBox) || Date.now() >= boxEnd) break
+    await L.sleep(100)
+  }
   sc.check('after the pack: action bar is the language-free souls glyph box', box && box.soulBox && /^\d+$/.test(box.digits) && !box.unknown,
     box ? JSON.stringify(box) : '행동 막대 없음')
   if (tr) {
