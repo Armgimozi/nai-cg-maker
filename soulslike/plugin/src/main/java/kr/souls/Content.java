@@ -18,8 +18,8 @@ import java.util.List;
  * 판이 오르면 옛 파일을 old-content-v{옛 판}/ 으로 옮겨 두고(지우지 않는다) 새로 꺼낸다.
  */
 public final class Content {
-    /** 콘텐츠 YAML 의 판 (1: M0, 시험용 스킬 둘). */
-    public static final int CONTENT_VERSION = 1;
+    /** 콘텐츠 YAML 의 판 (1: M0, 시험용 스킬 둘. 2: 스킬 이름·설명을 lang 열쇠로 옮김). 콘텐츠에는 보이는 글을 쓰지 않는다 (12.5). */
+    public static final int CONTENT_VERSION = 2;
     public static final List<String> FILES = List.of("skills.yml");
     private static final String DIR = "content";
 

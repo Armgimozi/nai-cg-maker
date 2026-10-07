@@ -78,7 +78,7 @@ L.run('t1_boot', async (sc) => {
   // ── /souls check ──
   const from = b.sys.length
   b.bot.chat('/souls check')
-  const end = await b.waitSys((m) => m.plain.startsWith('[CHECK] 끝') || m.parts.some((p) => p.translate === 'command.unknown.command'), 6000, from)
+  const end = await b.waitSys((m) => m.plain.startsWith('[CHECK] done') || m.parts.some((p) => p.translate === 'command.unknown.command'), 6000, from)
   if (!end) sc.check('/souls check answered', false, '답 없음')
   else if (!end.plain.startsWith('[CHECK]')) sc.miss('/souls check answered', '명령어 없음')
   else {
@@ -125,7 +125,7 @@ L.run('t1_boot', async (sc) => {
     bd ? `(${bd.x}, ${bd.z}) ${bd.size}` : '경계 패킷 없음')
 
   // ── 틱 시간 ──
-  const pf = await b.cmd('/souls perf', (m) => /평균 틱/.test(m.plain), 3000)
+  const pf = await b.cmd('/souls perf', (m) => /server avg tick/.test(m.plain), 3000)
   if (pf.missing) sc.miss('MSPT under 20', '/souls perf 없음')
   else {
     const ms = pf.line ? parseFloat((pf.line.match(/([\d.]+)\s*ms/) || [])[1]) : NaN

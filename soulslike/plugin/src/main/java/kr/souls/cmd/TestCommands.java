@@ -22,9 +22,7 @@ import io.papermc.paper.registry.data.dialog.DialogBase;
 import io.papermc.paper.registry.data.dialog.action.DialogAction;
 import io.papermc.paper.registry.data.dialog.body.DialogBody;
 import io.papermc.paper.registry.data.dialog.type.DialogType;
-import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickCallback;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.GameRules;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
@@ -132,7 +130,7 @@ public final class TestCommands {
                                 })
                                 .executes(ctx -> withPlayer(ctx, p -> skill(plugin, p, StringArgumentType.getString(ctx, "id"))))))
                 .build();
-        reg.register(root, "식은 가마 시험 명령어 (debug.test-mode)", List.of());
+        reg.register(root, "Soulslike test hooks (debug.test-mode)", List.of());
     }
 
     private interface PlayerAction {
@@ -142,7 +140,7 @@ public final class TestCommands {
     private static int withPlayer(CommandContext<CommandSourceStack> ctx, PlayerAction a) {
         Entity e = SoulsCommands.target(ctx);
         if (!(e instanceof Player p)) {
-            ctx.getSource().getSender().sendMessage(Component.text("플레이어가 쳐야 한다 (또는 /execute as).", NamedTextColor.GRAY));
+            Lang.tell(ctx.getSource().getSender(), "admin.players-only");
             return 0;
         }
         a.run(p);
@@ -229,7 +227,8 @@ public final class TestCommands {
                 w.getGameRuleValue(GameRules.KEEP_INVENTORY), w.getGameRuleValue(GameRules.IMMEDIATE_RESPAWN),
                 w.getGameRuleValue(GameRules.LOCATOR_BAR), w.getGameRuleValue(GameRules.NATURAL_HEALTH_REGENERATION),
                 w.getGameRuleValue(GameRules.PVP), plugin.cfg().testMode, plugin.pack().sha1(), plugin.ticker().now()));
-        if (!Stamina.fighting(p)) plugin.test(p, "INFO note=not_fighting (창작·관전 모드는 스태미나가 닳지 않는다)");
+        // 창작·관전 모드는 스태미나가 닳지 않는다
+        if (!Stamina.fighting(p)) plugin.test(p, "INFO note=not_fighting mode=" + p.getGameMode());
     }
 
     /**
@@ -238,7 +237,7 @@ public final class TestCommands {
      */
     private static void dialog(Souls plugin, Player p) {
         ClickCallback.Options once = ClickCallback.Options.builder().uses(1).lifetime(Duration.ofMinutes(5)).build();
-        // 글은 모두 lang/ko.yml (단추는 양피지색. 바닐라 흰 글씨는 화면에서 가장 밝아 제목보다 튄다)
+        // 글은 모두 번역 열쇠 (lang/ko.yml, en.yml). 단추는 양피지색 (바닐라 흰 글씨는 화면에서 가장 밝아 제목보다 튄다)
         List<ActionButton> buttons = List.of(
                 ActionButton.builder(Lang.c("bonfire.rest")).width(160)
                         .action(DialogAction.customClick((r, a) -> plugin.test(p, "DIALOG click=rest t=" + plugin.ticker().now()), once)).build(),

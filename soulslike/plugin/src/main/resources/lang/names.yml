@@ -1,0 +1,59 @@
+# 고유 이름과 용어의 영어 표기 (부록 B, ART_DIRECTION.md "영어판"). 한 번 정하면 바꾸지 않는다.
+# 사람·장소의 소리 이름은 소리대로 옮기되 영어로 읽기 쉬운 철자로 (흐롤프 → Hrolf). 뜻으로 지은 이름은 뜻으로 옮긴다
+# (식은 가마 → the Cold Kiln, 탑옥 → Gaol Tower).
+# tools/textlint.py 가 본다: ko.yml 의 한 열쇠에 왼쪽 이름이 있으면 en.yml 의 같은 열쇠에 오른쪽 이름이 있어야 한다
+# (대소문자는 가리지 않는다). 긴 이름이 먼저 맞는다 (오스윈의 저녁 종 → Oswin's Evening Bell, 그다음 오스윈).
+# 플러그인은 이 파일을 읽지 않는다.
+
+names:
+  # 나라·지역·장소
+  오스트마르: Ostmar
+  식은 가마: Cold Kiln
+  볼크 탑옥: Volk Gaol Tower
+  탑옥: Gaol Tower
+  레딘 성벽: Walls of Redin
+  레딘: Redin
+  오다의 사당: Shrine of Oda
+  오스윈 교구: Parish of Oswin
+  멜다 늪: Melda's Mire
+  아르벤 첨탑: Arven's Spire
+  하멜 납골당: Ossuary of Hamel
+  두르크 대장간: Durk's Forge
+  # 사람
+  아르벤: Arven
+  오다: Oda
+  마르타: Marta
+  볼크 가: House Volk
+  볼크: Volk
+  그롬: Grom
+  흐롤프: Hrolf
+  안셀: Ansel
+  오스윈: Oswin
+  마테스: Mathes
+  코르드: Kord
+  멜다: Melda
+  세브린: Sevrin
+  하멜: Hamel
+  엘름: Elm
+  두르크: Durk
+  보리크: Borik
+  가마지기: Kilnkeeper
+  # 보스 칭호
+  수문장: Gatewarden
+  종지기: Bellringer
+  늪어미: Mire Mother
+  근위대장: Captain of the Guard
+  화로 거인: Hearth Giant
+  # 물건과 용어
+  아르벤의 그릇: Arven's Vessel
+  오다의 병 조각: Shard of Oda's Flask
+  오스윈의 저녁 종: Oswin's Evening Bell
+  엘름의 언약 반지: Elm's Ring of Vows
+  잿빛 에스트: Ashen Estus
+  에스트: Estus
+  화톳불: Bonfire
+  소울: Souls
+  온기: Warmth
+  혈흔: Bloodstain
+  안개문: Fog Gate
+  촉매: Catalyst

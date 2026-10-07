@@ -10,6 +10,7 @@ import io.papermc.paper.datapack.Datapack;
 import io.papermc.paper.registry.RegistryAccess;
 import io.papermc.paper.registry.RegistryKey;
 import kr.souls.Keys;
+import kr.souls.Lang;
 import kr.souls.Souls;
 import kr.souls.SoulsBootstrap;
 import kr.souls.hud.Glyphs;
@@ -30,10 +31,15 @@ import org.bukkit.persistence.PersistentDataType;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * /souls (관리자, 12.11). M0 에 있는 것만: check, perf, reload, tp, build room, pack.
  * 나머지(build region, boss, profile, state, give, spawn, telemetry)는 그 체계가 생기는 마일스톤에 더한다.
+ * 사람에게 하는 답은 번역 열쇠 (lang 의 admin.*). check·pack·perf 의 줄은 봇과 사람이 함께 읽는 점검 기록이라
+ * 언어와 상관없이 같은 ASCII 꼴로 낸다 ("[CHECK] OK datapack soulsdp enabled", 서버 기록에도 같은 줄).
  */
 public final class SoulsCommands {
     private SoulsCommands() {}
@@ -46,7 +52,7 @@ public final class SoulsCommands {
                 .then(Commands.literal("perf").executes(ctx -> perf(plugin, ctx.getSource().getSender())))
                 .then(Commands.literal("reload").executes(ctx -> {
                     plugin.reloadAll();
-                    ctx.getSource().getSender().sendMessage(Component.text("설정, 문구, 그림 글자, 콘텐츠를 다시 읽었다.", NamedTextColor.GRAY));
+                    Lang.tell(ctx.getSource().getSender(), "admin.reloaded");
                     return Command.SINGLE_SUCCESS;
                 }))
                 .then(Commands.literal("tp")
@@ -68,7 +74,7 @@ public final class SoulsCommands {
                             return Command.SINGLE_SUCCESS;
                         })))
                 .build();
-        reg.register(root, "식은 가마 관리자 명령어", List.of());
+        reg.register(root, "Soulslike admin commands", List.of());
     }
 
     static Entity target(CommandContext<CommandSourceStack> ctx) {
@@ -95,26 +101,26 @@ public final class SoulsCommands {
         for (Datapack d : Bukkit.getDatapackManager().getEnabledPacks()) {
             if (d.getName().contains(SoulsBootstrap.DATAPACK_ID)) dp = true;
         }
-        line(to, fails, dp, "datapack " + SoulsBootstrap.DATAPACK_ID + (dp ? " 켜짐" : " 없음"));
+        line(to, fails, dp, "datapack " + SoulsBootstrap.DATAPACK_ID + (dp ? " enabled" : " missing"));
         var biomes = RegistryAccess.registryAccess().getRegistry(RegistryKey.BIOME);
         List<String> missing = new ArrayList<>();
         for (String n : List.of("hub", "prison", "redin", "parish", "mire", "spire", "ossuary", "forge", "kiln")) {
             if (biomes.get(Key.key(Keys.NS, n)) == null) missing.add(n);
         }
-        line(to, fails, missing.isEmpty(), "biomes " + (9 - missing.size()) + "/9" + (missing.isEmpty() ? "" : " 없음: " + missing));
+        line(to, fails, missing.isEmpty(), "biomes " + (9 - missing.size()) + "/9" + (missing.isEmpty() ? "" : " missing: " + missing));
         boolean hit = RegistryAccess.registryAccess().getRegistry(RegistryKey.DAMAGE_TYPE).get(Key.key(Keys.NS, "hit")) != null;
-        line(to, fails, hit, "damage_type souls:hit" + (hit ? " 있음" : " 없음"));
+        line(to, fails, hit, "damage_type souls:hit" + (hit ? " present" : " missing"));
         WorldService ws = plugin.worlds();
         World game = ws.world();
-        line(to, fails, game != null, "world " + plugin.cfg().world.name() + (game != null ? " 열림" : " 없음"));
+        line(to, fails, game != null, "world " + plugin.cfg().world.name() + (game != null ? " loaded" : " missing"));
         for (World w : game == null ? List.of(ws.lobby()) : List.of(ws.lobby(), game)) {
             line(to, fails, w.getDifficulty() == Difficulty.NORMAL, "difficulty " + w.getName() + "=" + w.getDifficulty());
             List<String> bad = ws.ruleMismatches(w);
-            line(to, fails, bad.isEmpty(), "gamerules " + w.getName() + " " + (bad.isEmpty() ? WorldService.rules().size() + "개 맞음" : bad));
+            line(to, fails, bad.isEmpty(), "gamerules " + w.getName() + " " + (bad.isEmpty() ? WorldService.rules().size() + " ok" : bad));
         }
         if (game != null) {
             Integer room = game.getPersistentDataContainer().get(Keys.ROOM, PersistentDataType.INTEGER);
-            line(to, fails, room != null && room >= TestRoom.VERSION, "test room 판 " + room + " (" + ws.lastBuild() + ")");
+            line(to, fails, room != null && room >= TestRoom.VERSION, "test room v" + room + " (" + ws.lastBuild() + ")");
             Location s = ws.roomSpawn();
             line(to, fails, true, "biome at room = " + game.getBiome(s.getBlockX(), s.getBlockY(), s.getBlockZ()).getKey());
         }
@@ -124,19 +130,30 @@ public final class SoulsCommands {
                 + " url=" + pk.url() + (pk.checkNote().isEmpty() ? "" : " (" + pk.checkNote() + ")"));
         String names = plugin.cfg().death.titleGlyphs();
         boolean glyph = Glyphs.line(names) != null;
-        line(to, fails, glyph, "glyphs " + Glyphs.size() + "개, 사망 제목 '" + names + "' " + (glyph ? "있음" : "없음 (붉은 일반 글씨로 대신)"));
+        line(to, fails, glyph, "glyphs " + Glyphs.size() + ", death title '" + names + "' " + (glyph ? "present" : "missing (red plain text instead)"));
         // YOU DIED 는 한 번만 (5.6): 팩의 사망 화면 제목과 플러그인 화면 제목 가운데 하나만 쓴다
         if (pk.ready()) {
             String screen = pk.packLang("en_us", "deathScreen.title");
             boolean onScreen = screen != null && !screen.isEmpty();
             boolean byPlugin = plugin.cfg().death.title();
-            line(to, fails, onScreen != byPlugin, "death title " + (onScreen && byPlugin ? "둘 다 (겹친다)"
-                    : onScreen ? "사망 화면 제목 하나" : byPlugin ? "플러그인 화면 제목 하나" : "없음 (바닐라 글이 남거나 빈칸)")
-                    + " (pack deathScreen.title=" + (screen == null ? "없음" : screen.isEmpty() ? "빈칸" : screen.length() + "자")
+            line(to, fails, onScreen != byPlugin, "death title " + (onScreen && byPlugin ? "both (overlap)"
+                    : onScreen ? "death screen only" : byPlugin ? "plugin title only" : "none (vanilla text or blank)")
+                    + " (pack deathScreen.title=" + (screen == null ? "missing" : screen.isEmpty() ? "blank" : screen.length() + " chars")
                     + ", death.title=" + byPlugin + ")");
         }
-        line(to, fails, !plugin.skills().all().isEmpty(), "skills " + plugin.skills().all().size() + "개");
-        String sum = "[CHECK] 끝 FAIL " + fails.size();
+        line(to, fails, !plugin.skills().all().isEmpty(), "skills " + plugin.skills().all().size());
+        // 문구 (10.3, 10.9): jar 안 lang/*.yml 의 열쇠와 jar 안 팩의 souls 언어 파일 열쇠가 같다 (낡은 팩 거르기)
+        if (pk.ready()) {
+            Set<String> want = new TreeSet<>();
+            for (String k : Lang.keys()) want.add(Lang.PREFIX + k);
+            Set<String> ko = pk.packLangKeys("souls", "ko_kr");
+            Set<String> en = pk.packLangKeys("souls", "en_us");
+            line(to, fails, !want.isEmpty() && want.equals(ko) && want.equals(en), "lang keys " + want.size() + ", pack souls ko_kr "
+                    + (ko == null ? "missing" : ko.size()) + " en_us " + (en == null ? "missing" : en.size()));
+        } else {
+            line(to, fails, Lang.size() > 0, "lang keys " + Lang.size() + " (no pack to compare)");
+        }
+        String sum = "[CHECK] done FAIL " + fails.size();
         to.sendMessage(Component.text(sum, fails.isEmpty() ? NamedTextColor.GRAY : NamedTextColor.RED));
         if (to instanceof Player) Bukkit.getLogger().info(sum);
         return Command.SINGLE_SUCCESS;
@@ -144,7 +161,7 @@ public final class SoulsCommands {
 
     private static int perf(Souls plugin, CommandSender to) {
         for (String l : plugin.ticker().report()) to.sendMessage(Component.text(l, NamedTextColor.GRAY));
-        to.sendMessage(Component.text(String.format("서버 평균 틱 %.2f ms", Bukkit.getAverageTickTime()), NamedTextColor.GRAY));
+        to.sendMessage(Component.text(String.format(Locale.ROOT, "server avg tick %.2f ms", Bukkit.getAverageTickTime()), NamedTextColor.GRAY));
         return Command.SINGLE_SUCCESS;
     }
 
@@ -162,7 +179,7 @@ public final class SoulsCommands {
             default -> null;
         };
         if (to == null) {
-            p.sendMessage(Component.text("그런 자리는 없다: " + anchor, NamedTextColor.GRAY));
+            Lang.tell(p, "admin.no-anchor", "anchor", anchor);
             return 0;
         }
         p.teleport(to);
@@ -171,7 +188,7 @@ public final class SoulsCommands {
 
     private static int packStatus(Souls plugin, CommandSender to) {
         PackService pk = plugin.pack();
-        to.sendMessage(Component.text("팩 sha1=" + pk.sha1() + " check=" + pk.check() + " required=" + pk.required()
+        to.sendMessage(Component.text("pack sha1=" + pk.sha1() + " check=" + pk.check() + " required=" + pk.required()
                 + " send-at=" + plugin.cfg().pack.sendAt() + "\n" + pk.url() + "\n" + pk.checkNote(), NamedTextColor.GRAY));
         return Command.SINGLE_SUCCESS;
     }

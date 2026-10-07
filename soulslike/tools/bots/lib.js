@@ -11,6 +11,12 @@
 //   PACK_LENIENT=1        팩을 못 받아도 받았다고 답한다 (실제 클라이언트는 실패를 답하고 쫓겨난다)
 //   SCENARIO_TAG          결과 이름 꼬리표 (lag60 → roll_iframes@lag60)
 //   SCENARIO_TIMEOUT      시나리오 하나의 제한 시간 (초)
+//   BOT_LOCALE            봇이 서버에 알리는 클라이언트 언어 (기본 en_us. connect 의 opts.locale 이 앞선다)
+//
+// 글 (10.3): 플러그인은 게임 글을 번역 열쇠 (translate "souls.…") 로 보내고 클라이언트가 팩의 언어 파일에서 고른다.
+// 봇은 받은 팩으로 같은 일을 한다: langTable(zip, 언어) 는 en_us 위에 그 언어를 얹은 표 (클라이언트와 같은 차례),
+// render(글 요소, 표) 는 번역 열쇠를 %s·%1$s 인수까지 채운 평문. 팩을 싣기 전에 보이는 글 (팩 안내) 만 서버가
+// 봇이 알린 언어로 채운다.
 //
 // 봇 요령 (13.2, 12.8): 웅크리기는 player_input 의 shift 깃발, F 는 block_dig 상태 6, 막기는 use_item 과 상태 5,
 // 행동 막대는 날 action_bar / system_chat(overlay) 패킷, 위치·속도는 서버에서 잰다 (mineflayer 는 1.21.9+ 속도
@@ -41,7 +47,8 @@ const ENV = {
   glyphs: process.env.GLYPHS_YML || '',
   packSha1: (process.env.PACK_SHA1 || '').toLowerCase(),
   lagRtt: +(process.env.LAG_RTT || 0),
-  lenient: process.env.PACK_LENIENT === '1'
+  lenient: process.env.PACK_LENIENT === '1',
+  locale: process.env.BOT_LOCALE || 'en_us'
 }
 const VERSION = '1.21.11'
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -164,6 +171,59 @@ function flatten (c, inh = {}, out = []) {
 
 const plain = (c) => flatten(simple(c)).map((p) => p.text).join('')
 
+/**
+ * 팩의 언어 표 (클라이언트처럼 en_us 를 먼저, 그 위에 고른 언어). 모든 이름공간 (assets/<ns>/lang/<언어>.json) 을 합친다.
+ * 바닐라 글 (commands.* 같은 것) 은 팩에 없으므로 그런 열쇠는 대체 글이나 열쇠 그대로 나온다.
+ */
+function langTable (zip, locale) {
+  const t = {}
+  for (const code of locale === 'en_us' ? ['en_us'] : ['en_us', locale]) {
+    for (const n of zip.names) {
+      const m = n.match(/^assets\/[^/]+\/lang\/([a-z_]+)\.json$/)
+      if (m && m[1] === code) Object.assign(t, zip.json(n))
+    }
+  }
+  return t
+}
+
+/** 마인크래프트 번역 형식 (%s, %1$s, %%) 을 인수로 채운다. */
+function formatTr (fmt, args) {
+  let i = 0
+  return fmt.replace(/%(?:(\d+)\$)?([s%])/g, (m, n, t) => {
+    if (t === '%') return '%'
+    const a = n ? args[+n - 1] : args[i++]
+    return a === undefined ? '' : a
+  })
+}
+
+/** 글 요소 → 표로 번역한 평문 (클라이언트가 그리는 글). 표에 없으면 대체 글 (fallback), 그것도 없으면 열쇠. */
+function render (c, table) {
+  c = simple(c)
+  if (c == null) return ''
+  if (typeof c !== 'object') return String(c)
+  if (Array.isArray(c)) return c.map((x) => render(x, table)).join('')
+  let out = ''
+  if (c.translate !== undefined) {
+    const fmt = table[c.translate] !== undefined ? table[c.translate] : c.fallback !== undefined ? c.fallback : c.translate
+    out = formatTr(String(fmt), (c.with || []).map((w) => render(w, table)))
+  } else {
+    out = String(c.text !== undefined ? c.text : c[''] !== undefined ? c[''] : '')
+  }
+  if (c.extra) out += render(c.extra, table)
+  return out
+}
+
+/** 글 요소 안의 번역 열쇠 (겉에서 안으로, 처음 나오는 차례). */
+function translateKeys (c, out = []) {
+  c = simple(c)
+  if (c == null || typeof c !== 'object') return out
+  if (Array.isArray(c)) { for (const x of c) translateKeys(x, out); return out }
+  if (c.translate !== undefined) out.push(c.translate)
+  for (const w of c.with || []) translateKeys(w, out)
+  if (c.extra) translateKeys(c.extra, out)
+  return out
+}
+
 /** "[T] NAME a=1 b=x" → {a:'1', b:'x'} */
 function kvOf (line) {
   const o = {}
@@ -209,6 +269,7 @@ class Bot {
     this.name = name
     this.opts = opts
     this.sys = [] // 시스템 채팅 {t, plain, parts, raw}
+    this.locale = opts.locale || ENV.locale
     this.p = {
       login: null,
       respawns: [],
@@ -219,6 +280,8 @@ class Bot {
       titleTimes: [],
       clearTitles: [],
       actionBars: [],
+      dialogs: [],
+      slots: [],
       xp: [],
       vel: [],
       health: [],
@@ -260,7 +323,11 @@ class Bot {
     c.on('set_title_subtitle', (d) => this.p.subtitles.push({ t: now(), plain: plain(d.text) }))
     c.on('set_title_time', (d) => this.p.titleTimes.push({ t: now(), fadeIn: d.fadeIn, stay: d.stay, fadeOut: d.fadeOut }))
     c.on('clear_titles', (d) => this.p.clearTitles.push({ t: now(), reset: d.reset }))
-    c.on('action_bar', (d) => this.p.actionBars.push({ t: now(), plain: plain(d.text), parts: flatten(simple(d.text)) }))
+    c.on('action_bar', (d) => this.p.actionBars.push({ t: now(), plain: plain(d.text), parts: flatten(simple(d.text)), raw: simple(d.text) }))
+    // Dialog 창 (NBT 그대로) 과 칸에 들어온 아이템의 글 성분 (item_name, lore) 을 남긴다
+    c.on('show_dialog', (d) => this.p.dialogs.push({ t: now(), raw: simple(d.dialog && (d.dialog.data !== undefined ? d.dialog.data : d.dialog)) }))
+    c.on('set_slot', (d) => this.onSlot(d.slot, d.item))
+    c.on('set_player_inventory', (d) => this.onSlot(d.slotId, d.contents))
     c.on('system_chat', (d) => {
       const s = simple(d.content)
       const m = { t: now(), plain: flatten(s).map((x) => x.text).join(''), parts: flatten(s), raw: s }
@@ -309,7 +376,10 @@ class Bot {
     const snd = (d) => this.p.sounds.push({ t: now(), id: d.sound && d.sound.soundId, name: d.sound && d.sound.data && d.sound.data.soundName, entityId: d.entityId })
     c.on('sound_effect', snd)
     c.on('entity_sound_effect', snd)
-    bot.on('kicked', (r) => { this.kick = plain(typeof r === 'string' ? safeJson(r) : r) || String(r) })
+    bot.on('kicked', (r) => {
+      this.kickRaw = simple(typeof r === 'string' ? safeJson(r) : r)
+      this.kick = plain(this.kickRaw) || String(r)
+    })
     bot.on('end', () => { this.ended = true })
     bot.on('error', (e) => { this.lastError = e })
   }
@@ -334,13 +404,29 @@ class Bot {
     }
   }
 
+  /** 칸에 들어온 아이템의 글 성분 (번역 열쇠인지 보려고 NBT 를 그대로 둔다). */
+  onSlot (slot, item) {
+    if (!item || !item.components) return
+    const comp = {}
+    for (const x of item.components) if (x && (x.type === 'item_name' || x.type === 'lore' || x.type === 'custom_name')) comp[x.type] = x.data
+    if (Object.keys(comp).length) {
+      this.p.slots.push({ t: Date.now(), slot, itemId: item.itemId, name: simple(comp.item_name), customName: simple(comp.custom_name), lore: (comp.lore || []).map(simple) })
+    }
+  }
+
   // 팩 (10.10): 주소에서 실제로 받아 SHA-1 을 재고, 실제 클라이언트처럼 답한다
   onPack (d, state) {
-    const info = { t: Date.now(), state, uuid: d.uuid, url: d.url, hash: String(d.hash || '').toLowerCase(), forced: d.forced, prompt: d.promptMessage ? plain(d.promptMessage) : null }
+    const info = { t: Date.now(), state, uuid: d.uuid, url: d.url, hash: String(d.hash || '').toLowerCase(), forced: d.forced, prompt: d.promptMessage ? plain(d.promptMessage) : null, promptRaw: d.promptMessage ? simple(d.promptMessage) : null }
     this.p.packs.push(info)
     const reply = (result) => {
       if (state !== 'play' || this.ended) return // 설정 단계는 mineflayer 가 이미 답한다
       try { this._bot._client.write('resource_pack_receive', { uuid: d.uuid, result }) } catch (e) {}
+    }
+    // opts.declinePack: 실제 사람이 팩 창에서 "아니오" 를 누른 것처럼 (필수 팩이면 서버가 쫓아낸다)
+    if (this.opts.declinePack) {
+      reply(PACK_RESULT.DECLINED)
+      this.p.packChecks.push(Promise.resolve({ ok: false, declined: true, url: d.url }))
+      return
     }
     reply(PACK_RESULT.ACCEPTED)
     const job = fetchBuf(d.url).then((buf) => {
@@ -535,8 +621,12 @@ function connectOnce (b, opts) {
       auth: 'offline',
       respawn: opts.respawn !== false,
       hideErrors: true,
-      checkTimeoutInterval: 90 * 1000
+      checkTimeoutInterval: 90 * 1000,
+      // 설정 단계에서 알리는 클라이언트 언어 (minecraft-protocol). 놀이 단계의 설정 패킷은 아래 bot.settings 가 보낸다
+      clientSettings: { locale: b.locale }
     })
+    // 놀이 단계에 들어설 때 mineflayer 가 보내는 설정 패킷의 언어 (설정 플러그인이 실린 뒤에 bot.settings 가 생긴다)
+    bot.once('inject_allowed', () => { bot.settings.locale = b.locale })
     b.attach(bot)
     let done = false
     const fail = (why) => { if (!done) { done = true; reject(new Error(why)) } }
@@ -797,6 +887,6 @@ function deathConfig () {
 }
 
 module.exports = {
-  ENV, VERSION, sleep, run, connect, Scenario, Bot, kvOf, num, plain, flatten, simple,
+  ENV, VERSION, sleep, run, connect, Scenario, Bot, kvOf, num, plain, flatten, simple, langTable, render, formatTr, translateKeys,
   loadGlyphs, readZip, decodePng, hsv, readProps, testRoom, rollConfig, deathConfig, fetchBuf
 }

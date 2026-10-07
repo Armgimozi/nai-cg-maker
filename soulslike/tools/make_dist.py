@@ -17,7 +17,9 @@ M0 에는 미리 지은 세계가 없다. 플러그인이 처음 켜질 때 soul
 WorldCheck 실패면 거절)을 더한다. 그때까지 server/ 에 세계 폴더가 있으면 거절한다.
 
 관문 (하나라도 어긋나면 아무것도 쓰지 않고 멈춘다)
-  글       textlint 오류 0 (13.7)
+  글       textlint 오류 0 (13.7, 한국어와 영어, 고유 이름 표기)
+  문구     langcheck 오류 0 (10.3, 12.5): lang/ko.yml 과 en.yml 의 열쇠·자리·꼴이 같다, Java 에 한글 문자열이 없다
+           (서버 기록 줄만), Java·콘텐츠가 부르는 열쇠가 있다, jar 안 팩의 언어 파일이 YAML 과 같다, 글이 자리 폭에 든다
   jar      resources/ 의 파일이 jar 안과 바이트까지 같다 (낡은 jar 거르기), paper-plugin.yml (12.2),
            데이터팩 soulsdp (형식 94.1, 지역 바이옴 9개, souls:hit)
   설정     jar 안 config.yml: pack.url 이 https 이고 {sha1} 이 있다, required, serve-port 0, test-mode 꺼짐
@@ -61,6 +63,7 @@ for p in (HERE, PACK_SRC):
         sys.path.insert(0, p)
 import artlint  # noqa: E402
 import gen_pack  # noqa: E402
+import langcheck  # noqa: E402
 import textlint  # noqa: E402
 
 # 서버 zip 에 넣는 것 (이 밖의 파일은 server/ 에서 서버를 켜 봤을 때 생긴 것으로 보고 넣지 않는다)
@@ -179,7 +182,7 @@ def check_jar(built):
         g.check(f"{dp}data/souls/worldgen/biome/{b}.json" in names, f"데이터팩에 바이옴 souls:{b} 가 없다")
     g.check(f"{dp}data/souls/damage_type/hit.json" in names, "데이터팩에 피해 종류 souls:hit 가 없다")
 
-    missing = [n for n in ("pack.zip", "glyphs.yml", "config.yml", "lang/ko.yml") if n not in jar]
+    missing = [n for n in ("pack.zip", "glyphs.yml", "config.yml", "lang/ko.yml", "lang/en.yml") if n not in jar]
     g.check(not missing, f"jar 안에 {missing} 이 없다")
     g.done("jar")
     if missing:
@@ -504,6 +507,13 @@ def main(argv):
         print(f"  textlint 경고 {len(report.warnings)}개 (묶기는 한다): python3 tools/textlint.py")
 
     jar = check_jar(built)
+    g = Gate()
+    report = langcheck.lint(pack=jar["pack.zip"], quiet=True)
+    for level, rule, where, msg in report.errors:
+        g.check(False, f"langcheck {rule}: {where}: {msg}")
+    g.done("문구")
+    if report.warnings:
+        print(f"  langcheck 경고 {len(report.warnings)}개 (묶기는 한다): python3 tools/langcheck.py")
     url = check_config(jar)
     sha1, fonts, langs = check_pack(jar)
     check_glyphs(jar, fonts, langs)

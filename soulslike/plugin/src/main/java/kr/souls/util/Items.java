@@ -1,6 +1,7 @@
 package kr.souls.util;
 
 import kr.souls.Keys;
+import kr.souls.Lang;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -18,11 +19,12 @@ import java.util.List;
 public final class Items {
     private Items() {}
 
-    public static ItemStack icon(Material m, String name, List<String> lore) {
+    /** 창의 그림 칸 같은 아이템. 이름과 설명은 lang 열쇠 (loreKey 는 목록 열쇠, 없으면 null). */
+    public static ItemStack icon(Material m, String nameKey, String loreKey) {
         ItemStack it = new ItemStack(m);
         ItemMeta meta = it.getItemMeta();
-        meta.displayName(Text.mm(name));
-        if (lore != null && !lore.isEmpty()) meta.lore(Text.mm(lore));
+        meta.displayName(Lang.c(nameKey));
+        if (loreKey != null) meta.lore(Lang.lines(loreKey));
         meta.addItemFlags(ItemFlag.values());
         it.setItemMeta(meta);
         return it;

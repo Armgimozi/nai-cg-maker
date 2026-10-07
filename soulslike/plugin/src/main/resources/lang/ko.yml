@@ -1,9 +1,24 @@
-# 게임 안 시스템 문구 (10.3). 모든 문구는 이 파일 한 곳에 있고 글 검사기(tools/textlint.py)를 지난다.
-# 짧고 건조하게. 느낌표, 설명문체("~할 수 있습니다"), 과장된 수식어를 쓰지 않는다.
-# 글자색은 10.1 팔레트에서만 고른다 (MiniMessage <#rrggbb>). <n> 같은 자리는 플러그인이 채운다.
+# 게임 안 문구, 한국어 원본 (10.3, 10.9, 12.5). 영어는 lang/en.yml 에 따로 쓴다. 두 파일의 열쇠는 똑같아야 한다.
+# 짧고 건조하게. 느낌표, 설명문체("~할 수 있습니다"), 과장된 수식어를 쓰지 않는다 (tools/textlint.py 가 거른다).
+#
+# 꼴
+#   열쇠: "<꼴>글 <자리>"
+#   - 맨 앞의 MiniMessage 태그 하나 (또는 이어 붙인 몇 개) 가 그 열쇠의 꼴이다: <#rrggbb> (10.1 팔레트에서만), <gray> 같은
+#     이름 색, <bold>, <!italic>. 꼴은 열쇠마다 하나뿐이다. 글 가운데에서 색을 바꾸지 않는다 (섞어야 하면 열쇠를 나눈다).
+#     en.yml 의 같은 열쇠도 같은 꼴이어야 한다.
+#   - <souls> 같은 자리는 플러그인이 채운다. 두 언어의 자리 이름이 같아야 한다 (차례는 달라도 된다).
+#   - 목록은 아이템 설명처럼 여러 줄이고, 줄마다 열쇠 <열쇠>.1, .2 ... 가 된다. 두 언어의 줄 수가 같아야 한다.
+#   - % 는 그대로 쓴다 (팩으로 옮길 때 %% 로 바뀐다).
+# 가는 곳
+#   pack/gen_pack.py 가 이 파일과 en.yml 을 리소스팩 언어 파일로 옮긴다: assets/souls/lang/ko_kr.json, en_us.json
+#   (열쇠 앞에 souls. 를 붙이고, 꼴 태그를 떼고, 자리는 %1$s 꼴로). 다른 언어로 들어온 사람은 en_us 를 본다.
+#   플러그인은 Component.translatable("souls.<열쇠>") 에 꼴을 입혀 보내고, 글은 클라이언트가 팩에서 고른다.
+#   pack.prompt·pack.declined·pack.failed·build.refuse 는 팩을 싣기 전에 보이는 글이라 서버가 접속한 사람의 언어로 채운다.
+#   vanilla 밑의 열쇠는 바닐라 열쇠를 덮어쓴다 (assets/minecraft/lang). 이름 색만 쓸 수 있다 (§ 코드로 바뀐다).
+# 고친 뒤에는 팩과 jar 를 다시 만든다 (python3 tools/make_dist.py). 서버 폴더에는 꺼내 두지 않는다.
 
 death:
-  # 사망 화면 위 큰 제목. 그림 글자(glyphs.yml)가 없을 때만 이 글이 붉은 글씨로 나온다
+  # 사망 화면 위 큰 제목. 그림 글자(glyphs.yml)가 없을 때만 이 글이 붉은 글씨로 나온다 (두 언어 모두 YOU DIED, 사용자 결정 3)
   title: "YOU DIED"
 
 bonfire:
@@ -12,7 +27,7 @@ bonfire:
   refuse: "<#858079>적이 가까이 있다"
   # 이동은 처음부터 된다 (사용자 결정 4). 밝힌 화톳불이 여기뿐일 때 이동 창에 쓰는 글
   no-warp: "<#8f8164>아직 건널 불이 없다"
-  # 휴식 창 (10.4). 단추는 양피지색 (바닐라 흰 글씨는 창에서 가장 밝아 제목보다 튄다)
+  # 휴식 창 (10.4). 단추는 양피지색 (바닐라 흰 글씨는 창에서 가장 밝아 제목보다 튄다). 단추 폭 160
   rest: "<#d1c3a0>쉰다"
   warp: "<#d1c3a0>불을 건넌다"
   leave: "<#d1c3a0>일어선다"
@@ -21,6 +36,7 @@ bonfire:
   test-name: "<#d1c3a0>탑옥 아래 화톳불"
 
 boss:
+  # 큰 글씨. 아랫줄에 보스 이름
   felled: "<#9e7c44>쓰러뜨렸다"
 
 souls:
@@ -48,8 +64,10 @@ spell:
   none: "<#858079>기억한 술이 없다"
 
 item:
-  # 설명 칸 바탕이 어두워 핏빛 글씨는 읽히지 않는다. 앞의 짧은 표시만 핏빛으로
-  unfit: "<#a8301f>× <#8f8164>제대로 다룰 수 없다"
+  # 요구 능력치 미달 (아이템 설명). 설명 칸 바탕이 어두워 핏빛 글씨는 읽히지 않으므로 앞의 짧은 표시만 핏빛으로 한다.
+  # 꼴이 둘이라 열쇠를 나눴다: 플러그인이 unfit-mark, 빈칸, unfit 을 이어 붙인다
+  unfit-mark: "<#a8301f>×"
+  unfit: "<#8f8164>제대로 다룰 수 없다"
 
 origin:
   title: "너는 누구였나"
@@ -59,22 +77,58 @@ ending:
   leave-cold: "식은 채로 둔다"
 
 build:
-  # 세계를 짓는 동안 접속을 거절할 때
+  # 세계를 짓는 동안 접속을 거절할 때. 접속 전이라 언어를 몰라 두 언어를 두 줄로 함께 보인다
   refuse: "세계를 짓는 중이다. 잠시 뒤에 다시 오라."
 
 pack:
-  # 리소스팩 창에 뜨는 글
+  # 리소스팩 창에 뜨는 글과 쫓아낼 때의 글. 팩을 싣기 전이라 서버가 그 사람의 언어로 채운다
   prompt: "<#b3a37f>이 서버는 전용 리소스팩이 있어야 들어올 수 있다."
   declined: "<#b3a37f>리소스팩을 받지 않으면 들어올 수 없다."
   failed: "<#b3a37f>리소스팩을 받지 못했다. 다시 들어와 보라."
+  # 팩 목록에 보이는 팩 설명 (pack.mcmeta)
+  description: "식은 가마"
 
 test:
-  # 시험 도구 이름 (debug.test-mode 의 /soulstest guard, swing). <kind> 막기 판, <ticks> 휘두름 틱
-  guard: "<#8f8164>시험 막기 · <kind>"
-  swing: "<#8f8164>시험 휘두름 · <ticks>"
+  # 시험 도구 이름과 설명 (debug.test-mode 의 /soulstest guard, swing). <kind> 막기 판, <ticks> 휘두름 틱
+  guard: "<#d1c3a0>시험 막기 · <kind>"
+  guard-lore:
+    - "<#8f8164>막기 성분을 시험하는 도구."
+    - "<#6b5f4a>들고 있으면 몸 앞을 가린다."
+  swing: "<#d1c3a0>시험 휘두름 · <ticks>"
+
+skill:
+  # 스킬 이름과 설명은 content/skills.yml 이 아니라 여기 둔다 (열쇠는 skill.<id>.name, skill.<id>.desc)
+  test_sweep:
+    name: "<#d1c3a0>시험 휩쓸기"
+    desc:
+      - "<#8f8164>엔진 점검용."
+  test_slam:
+    name: "<#d1c3a0>시험 내려찍기"
+    desc:
+      - "<#8f8164>엔진 점검용."
 
 hud:
   # 행동 막대 한 줄
   souls: "<#b3a37f>소울 <n>"
   # 술의 자원 (M5 의 첫 꼴, 10.2). <n> 지금, <m> 최대
   warmth: "<#b3a37f>온기 <n>/<m>"
+
+admin:
+  # 관리자 명령어 (/souls, /soulstest) 의 답. 점검 줄 ([CHECK], [T]) 은 봇이 읽는 기계 글이라 여기 두지 않는다
+  players-only: "<#858079>플레이어가 쳐야 한다 (또는 /execute as)."
+  reloaded: "<#858079>설정, 그림 글자, 콘텐츠를 다시 읽었다."
+  no-anchor: "<#858079>그런 자리는 없다: <anchor>"
+  no-world: "<#858079>게임 세계가 없다."
+  room-built: "<#858079>시험 방을 지었다: <detail>"
+  room-failed: "<#858079>시험 방을 짓지 못했다: <error>"
+
+vanilla:
+  # 바닐라 사망 화면 (5.6). deathScreen.title (YOU DIED 그림 글자) 은 gen_pack 이 넣는다.
+  # <gray> 는 바닐라 흰 단추 글씨를 회색으로 낮춘다 (§7, 사망 화면 단추는 색을 고를 길이 이것뿐이다)
+  deathScreen:
+    respawn: "<gray>일어선다"
+    titleScreen: "<gray>그만둔다"
+    quit:
+      confirm: "여기서 그만두겠나"
+    score:
+      value: ""

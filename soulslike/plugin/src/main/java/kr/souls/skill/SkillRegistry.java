@@ -25,7 +25,7 @@ public final class SkillRegistry {
             P p = P.of(sec);
             List<Mechanic> mech = Mechanics.parseList(p.maps("mechanics"));
             if (mech.isEmpty()) log.warning("스킬 " + id + " 에 mechanics 가 없습니다");
-            skills.put(id, new SkillDef(id, p.s("name", id), p.strings("description"), p.d("cooldown", 5), mech));
+            skills.put(id, new SkillDef(id, p.d("cooldown", 5), mech));
         }
         log.info("스킬 " + skills.size() + "개 불러옴");
     }

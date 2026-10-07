@@ -6,6 +6,7 @@ import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -91,9 +92,9 @@ public final class Ticker {
             for (long n : s.nanos) sum += n;
             double avg = sum / (double) WINDOW / 1e6;
             total += avg;
-            out.add(String.format("%-10s 평균 %.3f ms  최대 %.3f ms  오류 %d", s.name, avg, s.max / 1e6, s.errors));
+            out.add(String.format(Locale.ROOT, "%-10s avg %.3f ms  max %.3f ms  errors %d", s.name, avg, s.max / 1e6, s.errors));
         }
-        out.add(String.format("합계 평균 %.3f ms (예산 3.5 ms), 틱 %d", total, now));
+        out.add(String.format(Locale.ROOT, "total avg %.3f ms (budget 3.5 ms), tick %d", total, now));
         return out;
     }
 }

@@ -3,6 +3,7 @@ package kr.souls.item;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import io.papermc.paper.datacomponent.item.BlocksAttacks;
 import io.papermc.paper.datacomponent.item.ItemAttributeModifiers;
+import io.papermc.paper.datacomponent.item.ItemLore;
 import io.papermc.paper.datacomponent.item.SwingAnimation;
 import io.papermc.paper.datacomponent.item.UseEffects;
 import io.papermc.paper.datacomponent.item.blocksattacks.DamageReduction;
@@ -26,6 +27,7 @@ import java.util.Locale;
  * Paper 빌드를 132 로 고정하고, 바뀌면 이 파일만 고친다.
  * M0 에는 막기 성분 서버 시험용 도구와 휘두름 시험 도구만 있다. 둘 다 맞춤 모형 souls:test_guard (팩의 items/test_guard.json:
  * 평소 모형과 막는 모형을 using_item 으로 가른다, 10.6) 를 쓴다. 이것이 M0 의 items 아틀라스 점검이다 (13.4 의 6).
+ * 이름과 설명은 번역 열쇠다 (Lang.c, Lang.lines). 아이템에 글이 아니라 열쇠가 적히므로 누가 들어도 그 사람의 언어로 보인다.
  */
 @SuppressWarnings("UnstableApiUsage")
 public final class ItemFactory {
@@ -99,6 +101,7 @@ public final class ItemFactory {
         it.setData(DataComponentTypes.DAMAGE, 0);
         it.setData(DataComponentTypes.ITEM_MODEL, TEST_MODEL);
         it.setData(DataComponentTypes.ITEM_NAME, Lang.c("test.guard", "kind", kind.name().toLowerCase(Locale.ROOT)));
+        it.setData(DataComponentTypes.LORE, ItemLore.lore(Lang.lines("test.guard-lore")));
         it.editPersistentDataContainer(pdc -> pdc.set(Keys.ITEM, PersistentDataType.STRING, "test_guard_" + kind.name().toLowerCase(Locale.ROOT)));
         return it;
     }

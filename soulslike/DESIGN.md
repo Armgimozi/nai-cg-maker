@@ -1817,7 +1817,7 @@ y 10                [두르크: 모루 옥좌 B6]  <---- h 용암 굴 ---->  [�
 | 소울 | 행동 막대 한 줄 "소울 12,340" (양피지색). M4부터 손으로 찍은 숫자 글꼴 + 작은 소울 표식 | 패킷 [확인], 글꼴 렌더 [미확인] |
 | 레벨 숫자 | 레벨 인수를 0으로 보내 형광 초록 숫자를 숨긴다 | [확인 (클라): 레벨 > 0 일 때만 그린다] |
 | 체력 | M0~M3: 하트 10개 (`setHealthScale(20)`), 하트 그림을 떨어진 마른 핏방울 열 개로 바꾼다 (`pack/gui_skin.py`). 바닐라는 하트를 8픽셀마다 따로 그리고, 체력 4 이하에서 칸마다 흔들고 재생 때 하나씩 튀게 하므로, 이어진 막대로 그리면 그때 막대가 깨져 보인다 (M0 에 한때 그렇게 그렸다가 되돌렸다). M4: 이어진 핏빛 막대는 `souls:hud` 그림 글자로 (자리 맞추기 [미확인]) → 안 되면 핏방울을 그대로 둔다 | [확인 (API)], 핏방울 [확인 (클라): `dist/screenshots/m0/12_hud_damaged.png`] |
-| 온기 | 술이 들어오는 M5에 넣는다. 먼저 행동 막대 글 "온기 34/60" (양피지색, `lang/ko.yml` 의 `hud.warmth`. M0 의 `Hud` 가 이미 이 글로 자리를 잡아 두었다), 같은 M5 안에서 `souls:hud` 그림 글자 막대 (81×9, 그을린 청동 테 + 탁한 불씨 채움) 로 바꾼다. 음수 ascent 로 내려 허기 줄 자리 (단축 슬롯 오른쪽 위) 에 맞춘다. 촉매가 단축 슬롯에 있거나 온기가 덜 찼을 때만 보인다. 자리와 문자 번호는 M0부터 비워 둔다 (10.9) | 그림 [미확인 (클라)] → 행동 막대 글 그대로 |
+| 온기 | 술이 들어오는 M5에 넣는다. 먼저 행동 막대 글 "온기 34/60" (양피지색, 언어 열쇠 `hud.warmth`, 영어 "Warmth 34/60". M0 의 `Hud` 가 이미 이 글로 자리를 잡아 두었다), 같은 M5 안에서 `souls:hud` 그림 글자 막대 (81×9, 그을린 청동 테 + 탁한 불씨 채움) 로 바꾼다. 음수 ascent 로 내려 허기 줄 자리 (단축 슬롯 오른쪽 위) 에 맞춘다. 촉매가 단축 슬롯에 있거나 온기가 덜 찼을 때만 보인다. 자리와 문자 번호는 M0부터 비워 둔다 (10.9) | 그림 [미확인 (클라)] → 행동 막대 글 그대로 |
 | 들고 있는 술 | 촉매 이름 = 술 이름. 술을 바꾸면 바닐라가 단축 슬롯 위에 이름을 띄운다. 회복 동안 촉매 칸에 바닐라 대기 덮개 | [미확인 (클라)] → 부제목 |
 | 에스트·잿빛 에스트 | 병 묶음 개수 + 차오름 5단계 모형 | [확인 (실행·클라)] |
 | 독·출혈 | 행동 막대의 짧은 막대, 0보다 클 때만 | |
@@ -1832,35 +1832,44 @@ y 10                [두르크: 모루 옥좌 B6]  <---- h 용암 굴 ---->  [�
 
 ### 10.3 시스템 문구 (짧게)
 
-| 때 | 문구 | 모양 |
-|---|---|---|
-| 죽음 | YOU DIED | 사망 화면 제목. 생피 그림 글자, 영어 그대로 (5.6) |
-| 사망 화면 단추 | 일어선다 | |
-| 화톳불을 처음 켬 | 화톳불을 밝혔다 | 큰 글씨, 바랜 금 |
-| 보스 처치 | 쓰러뜨렸다 (아랫줄에 보스 이름) | 큰 글씨, 바랜 금 |
-| 혈흔을 주움 | 소울을 되찾았다 | 부제목, 양피지 |
-| 쉬고 일어남 | 적들이 되살아났다 | 부제목, 회색 |
-| 쉬기 거부 | 적이 가까이 있다 | 부제목, 회색 |
-| 한쪽 문 | 이쪽에서는 열 수 없다 | 부제목, 회색 |
-| 잠긴 문 / 열쇠로 염 | 잠겨 있다 / 문이 열렸다 | 부제목, 회색 |
-| 봉인 | 봉인되어 있다 | 부제목, 회색 |
-| 종을 울림 | 종소리가 멀리 퍼졌다 | 부제목, 양피지 |
-| 맛보기판 끝 (종을 울린 뒤) | 길은 아직 닫혀 있다 | 큰 글씨, 양피지 |
-| 이동할 곳이 없을 때 | 아직 건널 불이 없다 | 창 안 글 |
-| 휴식 창 단추 | 쉰다 / 불을 건넌다 / 일어선다 | 창 단추, 양피지 (바닐라 흰 글씨 대신) |
-| 휴식 창 본문 | 소울 12,340 · 레벨 23 | 창 안 글, 양피지 |
-| 요구 능력치 미달 | 제대로 다룰 수 없다 | 아이템 설명 |
-| 짓는 중 접속 | 세계를 짓는 중이다. 잠시 뒤에 다시 오라. | 접속 거절 |
-| 리소스팩 안내 | 이 서버는 전용 리소스팩이 있어야 들어올 수 있다. | 팩 창 |
-| 출신 창 제목 | 너는 누구였나 | 창 |
-| 결말 단추 (전체판) | 불을 잇는다 / 식은 채로 둔다 | 창 |
-| 술을 익힘 | 술을 익혔다 (아랫줄에 술 이름) | 부제목, 양피지 |
-| 기억 칸이 모자람 | 기억할 자리가 없다 | 창 안 글 |
-| 든 촉매로 쓸 술이 없음 | 기억한 술이 없다 | 부제목, 회색 |
-| 온기가 모자람 | (글 없음. 쉭 소리와 연기 한 줄기) | |
+한국어가 원본이고 영어는 따로 쓴다 (사용자 요청 "영어 번역을 고려하면서 개발", `ART_DIRECTION.md` 의 "영어판"). 열쇠는 `lang/ko.yml`·`lang/en.yml` 의 것이다.
 
-- 모든 문구는 `lang/ko.yml` 한 곳에 있고 글 검사기(13.7)를 지난다.
-- "YOU DIED" 는 영어 그대로 두는 유일한 문구다 (사용자 결정 3).
+| 때 | 열쇠 | 문구 | 영어 | 모양 |
+|---|---|---|---|---|
+| 죽음 | (그림 글자) | YOU DIED | YOU DIED | 사망 화면 제목. 생피 그림 글자, 두 언어 모두 영어 그대로 (5.6) |
+| 사망 화면 단추 | `vanilla.deathScreen.respawn` / `.titleScreen` | 일어선다 / 그만둔다 | Rise / Depart | 바닐라 단추, 회색 |
+| 사망 화면 그만두기 확인 | `vanilla.deathScreen.quit.confirm` | 여기서 그만두겠나 | Depart from this place? | 바닐라 확인 창 |
+| 화톳불을 처음 켬 | `bonfire.lit` | 화톳불을 밝혔다 | BONFIRE LIT | 큰 글씨, 바랜 금 |
+| 보스 처치 | `boss.felled` | 쓰러뜨렸다 (아랫줄에 보스 이름) | FELLED | 큰 글씨, 바랜 금 |
+| 혈흔을 주움 | `souls.recovered` | 소울을 되찾았다 | Souls reclaimed | 부제목, 양피지 |
+| 쉬고 일어남 | `bonfire.enemies-back` | 적들이 되살아났다 | The fallen walk again | 부제목, 회색 |
+| 쉬기 거부 | `bonfire.refuse` | 적이 가까이 있다 | Foes are near | 부제목, 회색 |
+| 한쪽 문 | `door.one-way` | 이쪽에서는 열 수 없다 | It will not open from this side | 부제목, 회색 |
+| 잠긴 문 / 열쇠로 염 | `door.locked` / `door.opened` | 잠겨 있다 / 문이 열렸다 | Locked / The door gives way | 부제목, 회색 |
+| 봉인 | `door.sealed` | 봉인되어 있다 | Sealed | 부제목, 회색 |
+| 종을 울림 | `bell.rung` | 종소리가 멀리 퍼졌다 | The bell's toll carries far | 부제목, 양피지 |
+| 맛보기판 끝 (종을 울린 뒤) | `taster.end` | 길은 아직 닫혀 있다 | THE WAY IS SHUT | 큰 글씨, 양피지 |
+| 이동할 곳이 없을 때 | `bonfire.no-warp` | 아직 건널 불이 없다 | No other fire burns yet | 창 안 글 |
+| 휴식 창 단추 | `bonfire.rest` / `.warp` / `.leave` | 쉰다 / 불을 건넌다 / 일어선다 | Rest / Cross the Fire / Rise | 창 단추, 양피지 (바닐라 흰 글씨 대신) |
+| 휴식 창 본문 | `bonfire.status` | 소울 12,340 · 레벨 23 | Souls 12,340 · Level 23 | 창 안 글, 양피지 |
+| 행동 막대 | `hud.souls`, `hud.warmth` | 소울 12,340, 온기 34/60 | Souls 12,340, Warmth 34/60 | 양피지 |
+| 요구 능력치 미달 | `item.unfit-mark` + `item.unfit` | × 제대로 다룰 수 없다 | × Cannot be wielded properly | 아이템 설명 (표시만 핏빛, 열쇠 둘) |
+| 짓는 중 접속 | `build.refuse` | 세계를 짓는 중이다. 잠시 뒤에 다시 오라. | The world is still being raised. Return later. | 접속 거절 (언어를 몰라 두 줄 함께) |
+| 리소스팩 안내 | `pack.prompt` | 이 서버는 전용 리소스팩이 있어야 들어올 수 있다. | None may enter without the resource pack. | 팩 창 (서버가 그 사람의 언어로) |
+| 출신 창 제목 | `origin.title` | 너는 누구였나 | Who were you? | 창 |
+| 결말 단추 (전체판) | `ending.rekindle` / `.leave-cold` | 불을 잇는다 / 식은 채로 둔다 | Rekindle the Fire / Let It Lie Cold | 창 |
+| 술을 익힘 | `spell.learned` | 술을 익혔다 (아랫줄에 술 이름) | Rite learned | 부제목, 양피지 |
+| 기억 칸이 모자람 | `spell.no-slot` | 기억할 자리가 없다 | No memory left to hold it | 창 안 글 |
+| 든 촉매로 쓸 술이 없음 | `spell.none` | 기억한 술이 없다 | No rite held in memory | 부제목, 회색 |
+| 온기가 모자람 | | (글 없음. 쉭 소리와 연기 한 줄기) | | |
+
+- **플레이어가 보는 글은 모두 언어 열쇠다.** 채팅, 행동 막대, 제목·부제목, 보스 막대, Dialog 창, 아이템 이름·설명, 메뉴, 쫓아낼 때의 글, 플레이어에게 하는 명령어 답, 바닐라 덮어쓰기 (사망 화면) 까지. 원본은 `plugin/src/main/resources/lang/ko.yml` 이고 영어는 `lang/en.yml` 에 같은 열쇠로 따로 쓴다. 코드와 그림에 한국어 문장을 박지 않는다 (그림 글자 "YOU DIED" 는 두 언어 공통). 어떻게 클라이언트에 닿는지는 10.9.
+- 열쇠 하나에 꼴 (색·꾸밈) 은 하나다. YAML 글 맨 앞의 MiniMessage 태그 (`<#b3a37f>`, `<gray>`, `<!italic>`) 가 꼴이고, 두 언어가 같아야 한다. 한 줄 안에서 색을 바꿔야 하면 열쇠를 나눈다 (`item.unfit-mark` + `item.unfit`). 자리는 `<souls>` 처럼 이름으로 쓰고 두 언어의 자리 이름이 같아야 한다 (차례는 달라도 된다). 아이템 설명처럼 여러 줄은 YAML 목록이고 두 언어의 줄 수가 같다.
+- 영어 문체: 짧고 건조한 옛 말투. 직역하지 않는다. 느낌표, 과장어 (legendary, ultimate, epic, mighty …), 현대 구어 (okay, cool, gonna …), 설명문체 (you can, allows you, please …) 가 없다. 큰 글씨는 "YOU DIED" 처럼 대문자, 창 단추는 낱말 첫 글자를 대문자로. 용어는 하나로 정한다: 화톳불 bonfire, 에스트 Estus, 소울 souls, 온기 warmth, 술 rite, 기억 칸 memory, 촉매 catalyst, 혈흔 bloodstain, 안개문 fog gate, 쳐내기 parry, 구르기 roll. 고유 이름은 `lang/names.yml` (부록 B 의 영어 열) 에서 한 번 정하고 바꾸지 않는다.
+- 영어가 한국어보다 길다. 글마다 자리 폭이 있고 `tools/langcheck.py` 가 바닐라 글꼴 폭으로 잰다 (1280×720 GUI 배율 3 기준): 큰 글씨 104 픽셀 (4배로 그려진다), 부제목 200, Dialog 단추 150 (단추 폭 160), 사망 화면 단추 190, Dialog 본문 200 (넘으면 줄이 바뀐다). 큰 글씨 "THE WAY IS SHUT" 은 82 픽셀이다 ("THE WAY REMAINS SHUT" 은 112 라 넘친다).
+- 모든 문구는 글 검사기 (13.7) 를 지난다.
+- "YOU DIED" 는 두 언어 모두 영어 그대로 두는 그림 글자다 (사용자 결정 3).
+- 관리자 점검 줄 (`/souls check` 의 `[CHECK] …`, `/souls pack`, `/souls perf`, 시험 줄 `[T] …`) 은 봇과 사람이 함께 읽는 기계 글이라 언어와 상관없이 같은 ASCII 꼴이다. 관리자에게 하는 말 (다시 읽었다, 그런 자리는 없다, 시험 방을 지었다) 은 열쇠 `admin.*` 이다. 서버 기록 (콘솔) 은 한국어 그대로다.
 
 ### 10.4 창 (휴식, 레벨업, 이동, 기억, 병 나누기, 출신, 대장장이)
 
@@ -1923,7 +1932,13 @@ y 10                [두르크: 모루 옥좌 B6]  <---- h 용암 굴 ---->  [�
 ### 10.9 pack.mcmeta, 언어, 글꼴
 
 - `{"pack": {"description": "…", "min_format": 75, "max_format": 75}}` [확인 (서버): 1.21.11 파서는 이 키를 요구한다]. 실제 클라이언트 확인은 M0.
-- 언어: 바닐라의 모든 언어 (1.21.11: 143개, `gen_pack.LANGS`) 의 `assets/minecraft/lang/<언어>.json` 에서 사망 화면 다섯 키(`deathScreen.title`, `.respawn`, `.score.value`, `.titleScreen`, `.quit.confirm`, 5.6)만 덮어쓴다. 클라이언트는 en_us 를 읽고 고른 언어를 그 위에 읽어, en_us·ko_kr 만 덮으면 다른 언어에서는 바닐라 "You Died!" 가 나온다.
+- 언어 (게임 문구, 10.3): 원본 YAML `lang/ko.yml`·`lang/en.yml` 을 `pack/langpack.py` (gen_pack 이 부른다) 가 `assets/souls/lang/ko_kr.json`·`en_us.json` 으로 옮긴다. 열쇠는 `souls.<열쇠>` (목록은 `souls.<열쇠>.1`, `.2` …), 글은 꼴 태그를 뗀 평문, 자리는 마인크래프트 번역 형식 `%1$s` (차례는 한국어 원본에 자리가 나오는 차례, 영어는 바꿔도 된다), `%` 는 `%%`.
+  - 플러그인 (`kr.souls.Lang`) 은 글을 고르지 않는다. `Component.translatable("souls.<열쇠>", 대체 글, 자리 값…)` 에 그 열쇠의 꼴을 입히고 기울임을 꺼서 보내고, 클라이언트가 팩에서 자기 언어의 글을 고른다. 클라이언트는 en_us 를 먼저 읽고 고른 언어를 그 위에 읽으므로, 한국어 클라이언트는 ko_kr, 그 밖의 모든 언어는 en_us 를 본다 (`souls.*` 열쇠는 바닐라 언어 파일에 없어 덮이지 않는다). 대체 글 (`fallback`) 은 영어다: 팩이 없을 때만 쓰이고, 그때 다른 언어 사람이 보는 것과 같다.
+  - 아이템 이름·설명 (`ITEM_NAME`, `LORE`) 도 번역 열쇠다. 아이템에 글이 아니라 열쇠가 적히므로 누가 들어도, 언어를 바꿔도 그 사람의 언어로 보인다.
+  - 팩을 싣기 전에 보이는 글만 서버가 채운다 (`Lang.render`): 팩 창 안내 (`pack.prompt`), 팩을 거절하거나 못 받아 쫓아낼 때 (`pack.declined`, `pack.failed`). 클라이언트가 알려 준 언어 (`Player#locale`, 설정 단계는 `ClientOption.LOCALE`) 가 ko 로 시작하면 한국어, 아니면 영어. 짓는 중 접속 거절 (`build.refuse`) 은 접속 전이라 언어를 몰라 한국어 줄과 영어 줄을 함께 보인다. 콘솔에 하는 답은 한국어다.
+  - 플러그인은 lang 을 데이터 폴더에 꺼내 두지 않는다 (글을 바꾸면 팩도 바뀌어야 한다. 팩과 jar 를 함께 다시 만든다). 켤 때 두 YAML 의 짝을 보고 어긋나면 SEVERE 로 남긴다. `/souls check` 는 jar 안 YAML 의 열쇠와 jar 안 팩의 souls 언어 파일 열쇠가 같은지 본다.
+- 언어 (바닐라 덮어쓰기): 바닐라의 모든 언어 (1.21.11: 143개, `gen_pack.LANGS`) 의 `assets/minecraft/lang/<언어>.json` 에서 사망 화면 다섯 키(`deathScreen.title`, `.respawn`, `.score.value`, `.titleScreen`, `.quit.confirm`, 5.6)만 덮어쓴다. 제목은 그림 글자라 모든 언어가 같고, 나머지 넷은 YAML 의 `vanilla.deathScreen.*` 에서 온다: ko_kr 은 한국어, 그 밖의 모든 언어 (en_us 포함 142개) 는 영어. 처음 생각처럼 ko_kr·en_us 만 덮으면 다른 언어는 바닐라 자기 번역이 팩의 en_us 를 덮어 fr_fr 에서 "Réapparaître" 와 "Score: 0" 이 나온다. 바닐라 글은 Component 가 아니라 글이라 꼴은 이름 색만 되고 § 코드로 바뀐다 (`<gray>` → `§7`).
+- 팩 설명 (`pack.mcmeta` 의 `description`) 도 번역 열쇠 `souls.pack.description` ("식은 가마" / "The Cold Kiln") 이고 대체 글은 영어다.
 - 글꼴: `assets/souls/font/hud.json` (bitmap + space). 사망 화면의 그림 글자 "YOU DIED" 는 언어 문자열이 글꼴을 고를 수 없으므로 `assets/minecraft/font/default.json` 에 개인 영역 문자를 더해 넣는다. 문자 번호: U+E000~E01F 기본 글꼴 (YOU DIED 글자 일곱과 그 사이 빈칸), U+E020~E03F `souls:hud` 빈칸, U+E040~E0EF `souls:hud` 그림 글자 (숫자, 소울 표식, 온기 막대 자리), U+E0F0~E0F6 `souls:hud` 플러그인 화면 제목용 YOU DIED (5.6). `glyphs.yml` 의 줄마다 `font` 가 있어 플러그인은 그 글꼴을 쓴다 (사망 화면 제목 `you_died` 는 `minecraft:default`, 나머지는 `souls:hud`). 번호는 `gen_pack.py` 가 쓰는 `glyphs.yml` 에만 있고, 플러그인 (`hud/Glyphs`) 은 그 표를 읽는다.
 - 한국어 본문은 기본 글꼴이다 (한글 그림 글꼴은 너무 크다). 손으로 찍은 그림 글자는 큰 문구 몇 개와 숫자에만 쓴다.
 
@@ -1976,11 +1991,11 @@ soulslike/
   ART_DIRECTION.md, DESIGN.md
   plugin/                 (이미 있음) build.gradle.kts, settings.gradle.kts, gradlew
     src/main/java/kr/souls/…
-    src/main/resources/   paper-plugin.yml (12.2), config.yml, content/*.yml, lang/ko.yml,
+    src/main/resources/   paper-plugin.yml (12.2), config.yml, content/*.yml, lang/{ko,en,names}.yml,
                           datapack/soulsdp/, rigs.yml*, pack.zip*
-  pack/                   gen_pack.py, mc3d.py, wkit.py, palette.py, artlint.py, hud.py, gui_skin.py, icons.py, vfx_assets.py,
+  pack/                   gen_pack.py, langpack.py, mc3d.py, wkit.py, palette.py, artlint.py, hud.py, gui_skin.py, icons.py, vfx_assets.py,
                           weapons/*.py, art/{_humanoid, vboss_*, armor_*, helmets_*, mobskins}.py
-  tools/                  make_dist.py, render_map.py, textlint.py, bots/*.js, bots/lagproxy.js
+  tools/                  make_dist.py, render_map.py, textlint.py, langcheck.py, bots/*.js, bots/lagproxy.js
   server/                 start.bat, start.ps1, start.sh, server.properties, README.txt
   dist/                   Soulslike.jar, packs/<sha1>.zip, Soulslike-Server.zip
 ```
@@ -2039,7 +2054,12 @@ soulslike/
 
 - `config.yml`: 쳐내기 창·비용·구르기 수치, 회전 연출 스위치, 에스트 마시는 틱 (`estus.drink-ticks`), 술 수치 (`magic.*`, 3.12.9), 사망 제목 (`death.*`, 5.6), 팩 주소 틀, 시험 모드, 난이도 보정 (`difficulty.*`, 아직 정하지 않았다, 16절 질문 1).
 - `content/`: `classes`, `weapons` (방패·활·촉매 포함), `armor`, `rings`, `items` (소모품·재료·열쇠), `skills` (무기 기술, 적·보스 공격 몸체, 술 몸체, skyblock 형식), `spells` (술, 3.12.9), `enemies`, `bosses`, `encounters` (배치 지점 id → 적·전리품·순찰), `npcs` (대사), `stats` (곡선·비용).
-- `lang/ko.yml`: 시스템 문구 전부 (10.3).
+- 플레이어가 보는 글은 콘텐츠 YAML 에 쓰지 않는다. 콘텐츠는 id 와 수치만 갖고, 글은 그 id 로 정한 언어 열쇠에 둔다: 스킬 `skill.<id>.name`·`skill.<id>.desc` (M0), 앞으로 `item.<id>.name`·`.lore`, `weapon.<id>.*`, `spell.<id>.*`, `boss.<id>.name`, `npc.<id>.<대사>`, `region.<id>.name`, `bonfire.<id>.name`. 대사를 내는 스킬 부품도 글 대신 열쇠를 쓴다 (`{type: say, key: …}`). `tools/langcheck.py` 가 콘텐츠의 한글 글과 없는 열쇠를 거른다.
+- 언어 (jar 안에만 있다. 데이터 폴더에 꺼내지 않는다, 10.9):
+  - `lang/ko.yml`: 게임 문구 전부, 한국어 원본 (10.3). 열쇠마다 맨 앞 태그 하나가 꼴, `<이름>` 이 자리, 목록은 여러 줄. `vanilla.*` 는 바닐라 열쇠 덮어쓰기.
+  - `lang/en.yml`: 같은 열쇠의 영어. 따로 쓴 글이고 꼴·자리·줄 수가 ko.yml 과 같다.
+  - `lang/names.yml`: 고유 이름과 용어의 영어 표기 (부록 B). 플러그인은 읽지 않고 textlint 가 두 언어를 견준다.
+  - 글을 고치면 `python3 tools/make_dist.py` (팩과 jar 를 함께 다시 만든다). 관문: `gen_pack` 은 짝이 틀리면 팩을 만들지 않고, `make_dist` 와 `run_tests` (`lang_check`) 는 `langcheck`·`textlint` 오류가 있으면 멈춘다.
 - `rigs.yml`: 파이썬이 만든다.
 - 지도 배치는 코드(WorldPlan)에, 적 수치는 YAML에 둔다. 들어 있는 YAML을 바꾸면 `CONTENT_VERSION` 을 올린다.
 
@@ -2209,6 +2229,7 @@ universal_anger=false
 
 - `/souls` (관리자): `build region|room`, `check`, `tp <anchor>`, `boss <id> start|reset|kill`, `profile dump|set`, `state set <flag>`, `give` (아이템·술), `spawn`, `perf`, `telemetry summary`, `reload`.
 - `/soulstest` (`debug.test-mode: true` 일 때만): 적·보스를 자리에 만들기, 동작 강제, `[T] WINDUP hrolf.overhead c=1234` 같은 시각 줄을 채팅으로 (봇이 반응 시각을 맞춘다), Dialog 단추 처리기를 직접 부르기 (봇은 창 단추를 못 누른다), 핑 보정 값 강제, 가짜 시계, 무적, 온기 채우기·비우기 (`warmth <n>`). 술은 봇도 진짜 우클릭으로 시전한다.
+- 답의 언어 (10.3): 사람에게 하는 말은 언어 열쇠 `admin.*`, 점검 줄 (`[CHECK] OK datapack soulsdp enabled`, `[CHECK] done FAIL 0`, `/souls pack`, `/souls perf`) 과 시험 줄 `[T] …` 은 봇이 읽는 ASCII 기계 글이다. `/souls check` 는 문구 줄 (`lang keys N, pack souls ko_kr N en_us N`) 도 낸다.
 - M0 의 `/soulstest`: `stamina [set]`, `hit`, `guard <empty|control|bypass|strip>`, `swing [틱] [공격 속도]`, `rollhit <1~40>` (걸어 둔 뒤 처음 구르는 구르기에 묶인다), `warn <틱>` (예고 줄 뒤 때리기, 13.3), `roll`, `kill`, `heal`, `info`, `pos`, `title`, `dialog`, `skill`. 자세한 것은 `cmd/TestCommands` 머리말. `/souls tp` 자리: `room`, `lane`, `slab` (판석 길), `ledge`, `lobby`.
 
 ---
@@ -2304,10 +2325,16 @@ M1 (전투 느낌), M4 (보이는 것 전체), M5 (술 몸짓과 온기 막대),
 
 ### 13.7 글 검사기
 
-`tools/textlint.py` 가 `content/*.yml` 과 `lang/ko.yml` 의 한국어를 검사한다.
-- 오류: 느낌표, 이모지, 금지어 ("전설", "궁극", "압도", "최강", "강력한"), 설명문체 어미 ("습니다", "할 수 있", "입니다").
-- 경고: 아이템 설명이 4줄 넘음, 한 줄이 32자 넘음, 이름이 "어둠의", "그림자", "빛의" 로 시작, 같은 이름 중복.
-- `make_dist` 는 오류가 있으면 묶지 않는다.
+`tools/textlint.py` 가 `lang/ko.yml`, `lang/en.yml`, `content/*.yml` 을 검사한다.
+- 한국어 오류: 느낌표, 이모지, 금지어 ("전설", "궁극", "압도", "최강", "강력한"), 설명문체 어미 ("습니다", "할 수 있", "입니다").
+- 한국어 경고: 아이템 설명이 4줄 넘음, 한 줄이 32자 넘음, 이름이 "어둠의", "그림자", "빛의" 로 시작, 같은 이름 중복.
+- 영어 오류: 느낌표, 이모지, 과장어 (legendary, ultimate, epic, mighty, powerful, awesome …), 현대 구어 (okay, cool, gonna, yeah …), 설명문체 (you can, allows you, lets you, please, click here …), 영어 글의 한글. 영어 경고: 한 줄이 48자 넘음.
+- 이름 오류: ko.yml 의 한 열쇠에 `lang/names.yml` 의 고유 이름이 있으면 en.yml 의 같은 열쇠에 정한 영어 이름이 있어야 한다 (흐롤프 → Hrolf).
+
+`tools/langcheck.py` 는 글이 열쇠로 제대로 이어졌는지 본다 (10.3, 10.9, 12.5).
+- 오류: ko.yml 과 en.yml 의 열쇠·줄 수·꼴·자리가 다름, 글 가운데의 꼴 태그, 바닐라 열쇠의 16진 색, Java 의 한글 문자열 (서버 기록 줄만 된다. 한 문장 안에 `getLogger()`/`log` 의 info·warning·severe 가 있으면 기록 줄. 일부러 남길 줄은 `// lang-ok`), Java·콘텐츠가 부르는 없는 열쇠, 콘텐츠의 한글 글, 팩 언어 파일이 YAML 에서 만든 것과 다름 (낡은 팩), 자리 폭을 넘는 글 (10.3).
+- 경고: 자리 폭을 정하지 않은 열쇠.
+- `make_dist` 는 둘 중 하나라도 오류가 있으면 묶지 않고, `run_tests.sh` 는 `lang_check` 로 둘을 돌린다. `gen_pack` 은 짝이 틀리면 팩을 만들지 않는다.
 
 ### 13.8 봇이 못 보는 것
 
@@ -2432,30 +2459,32 @@ playit의 실제 지연, 실제 구르기 거리, 클라이언트 달리기 차�
 
 ## 부록 B. 이름과 내력
 
-| 이름 | 무엇 | 내력 (한 줄) |
-|---|---|---|
-| 오스트마르 | 왕국 | 가마의 불로 겨울을 나던 나라. 불이 식은 지 백 년, 재가 그치지 않는다. |
-| 아르벤 | 마지막 왕, B7 | 사그라드는 불을 혼자 지키려 가마 아래로 내려가 문을 봉했다. |
-| 식은 가마 | 마지막 지역 | 아르벤이 내려간 곳. 이 게임의 가제. |
-| 오다 | 첫 불씨지기 | 사당은 그가 쓰러진 자리에 세웠다. 에스트 병을 처음 빚었다고 한다. |
-| 마르타 | 지금의 불씨지기 | 오다의 이름으로 사당의 불을 돌본다. 말이 적다. |
-| 볼크 가 | 탑옥을 맡던 가문 | 죄수보다 먼저 망자가 되었다. |
-| 그롬 | 탑옥 짐승, B0 | 볼크 가가 마당에 사슬로 묶어 키웠다. 사슬은 끊겼고 마당은 그대로다. |
-| 레딘 | 성벽 도시 | 사당 북쪽의 도시. 성벽은 바깥이 아니라 안을 향해 지어졌다. |
-| 흐롤프 | 레딘의 수문장, B1 | 마지막까지 성문을 지켰다. 문이 왜 안으로 닫히는지는 묻지 않았다. |
-| 안셀 | 대장장이 | 망자에게 쇠를 대 주지 않겠다고 해서 병영 감옥에 갇혔다. |
-| 오스윈 | 교구의 성인 | 종을 울려 왕의 근위대를 불렀다고 전한다. 교구는 그 뒤 물에 잠겼다. |
-| 마테스 | 종지기, B2 | 물이 차오를 때도 종을 놓지 않았다. |
-| 코르드 | 파문된 기사 | 교구에서 쫓겨나고도 교구 밑을 떠나지 않았다. |
-| 멜다 | 늪의 약초꾼, B3 | 역병을 고치려다 늪을 독으로 채웠다. |
-| 세브린 | 근위대장, B4 | 왕이 내려간 뒤에도 첨탑에서 그릇을 지킨다. |
-| 하멜 | 옛 왕, B5 | 아르벤 이전의 왕. 납골당에 묻혔으나 눕지 않았다. 불씨 하나를 관에 넣고 갔다. |
-| 엘름 | 떠돌이 기사 | 먼 나라에서 가마를 찾아왔다가 길을 잃었다. |
-| 두르크 | 대장장이 길드장, B6 | 불씨를 지키려고 자기 화로 속으로 걸어 들어갔다. |
-| 보리크 | 행상 | 무엇이든 판다. 어디서 왔는지는 말하지 않는다. |
-| 아르벤의 그릇 | 증표 (전체판) | 불을 옮겨 담던 그릇. 사당의 두 봉인이 이것을 알아본다. |
-| 오다의 병 조각 | 수집품 | 깨진 에스트 병. 마르타에게 주면 병이 한 번 더 찬다. |
-| 가마지기 | 가마를 돌보던 사람들 | 불이 식은 뒤 남은 온기를 떼어 쓰는 법을 남겼다. 가마 술이 그것이다. |
-| 온기 | 술의 자원 | 불은 식고 온기만 남았다. 가마지기들은 그것을 아껴 썼다. |
-| 잿빛 에스트 | 둘째 병 | 오다의 병에 재를 섞으면 상처 대신 온기가 찬다고 한다. |
-| 오스윈의 저녁 종 | 종 술 | 해 질 녘 들에 나간 사람을 불러들이던 종. 교구가 잠긴 뒤로는 아무도 오지 않았다. |
+영어 표기는 `plugin/src/main/resources/lang/names.yml` 이 원본이다 (10.3). 소리 이름은 소리대로, 뜻으로 지은 이름은 뜻으로 옮기고 한 번 정하면 바꾸지 않는다. textlint 가 두 언어의 글을 견준다.
+
+| 이름 | 영어 | 무엇 | 내력 (한 줄) |
+|---|---|---|---|
+| 오스트마르 | Ostmar | 왕국 | 가마의 불로 겨울을 나던 나라. 불이 식은 지 백 년, 재가 그치지 않는다. |
+| 아르벤 | Arven | 마지막 왕, B7 | 사그라드는 불을 혼자 지키려 가마 아래로 내려가 문을 봉했다. |
+| 식은 가마 | Cold Kiln | 마지막 지역 | 아르벤이 내려간 곳. 이 게임의 가제. |
+| 오다 | Oda | 첫 불씨지기 | 사당은 그가 쓰러진 자리에 세웠다. 에스트 병을 처음 빚었다고 한다. |
+| 마르타 | Marta | 지금의 불씨지기 | 오다의 이름으로 사당의 불을 돌본다. 말이 적다. |
+| 볼크 가 | House Volk | 탑옥을 맡던 가문 | 죄수보다 먼저 망자가 되었다. |
+| 그롬 | Grom | 탑옥 짐승, B0 | 볼크 가가 마당에 사슬로 묶어 키웠다. 사슬은 끊겼고 마당은 그대로다. |
+| 레딘 | Redin | 성벽 도시 | 사당 북쪽의 도시. 성벽은 바깥이 아니라 안을 향해 지어졌다. |
+| 흐롤프 | Hrolf | 레딘의 수문장, B1 | 마지막까지 성문을 지켰다. 문이 왜 안으로 닫히는지는 묻지 않았다. |
+| 안셀 | Ansel | 대장장이 | 망자에게 쇠를 대 주지 않겠다고 해서 병영 감옥에 갇혔다. |
+| 오스윈 | Oswin | 교구의 성인 | 종을 울려 왕의 근위대를 불렀다고 전한다. 교구는 그 뒤 물에 잠겼다. |
+| 마테스 | Mathes | 종지기, B2 | 물이 차오를 때도 종을 놓지 않았다. |
+| 코르드 | Kord | 파문된 기사 | 교구에서 쫓겨나고도 교구 밑을 떠나지 않았다. |
+| 멜다 | Melda | 늪의 약초꾼, B3 | 역병을 고치려다 늪을 독으로 채웠다. |
+| 세브린 | Sevrin | 근위대장, B4 | 왕이 내려간 뒤에도 첨탑에서 그릇을 지킨다. |
+| 하멜 | Hamel | 옛 왕, B5 | 아르벤 이전의 왕. 납골당에 묻혔으나 눕지 않았다. 불씨 하나를 관에 넣고 갔다. |
+| 엘름 | Elm | 떠돌이 기사 | 먼 나라에서 가마를 찾아왔다가 길을 잃었다. |
+| 두르크 | Durk | 대장장이 길드장, B6 | 불씨를 지키려고 자기 화로 속으로 걸어 들어갔다. |
+| 보리크 | Borik | 행상 | 무엇이든 판다. 어디서 왔는지는 말하지 않는다. |
+| 아르벤의 그릇 | Arven's Vessel | 증표 (전체판) | 불을 옮겨 담던 그릇. 사당의 두 봉인이 이것을 알아본다. |
+| 오다의 병 조각 | Shard of Oda's Flask | 수집품 | 깨진 에스트 병. 마르타에게 주면 병이 한 번 더 찬다. |
+| 가마지기 | Kilnkeeper | 가마를 돌보던 사람들 | 불이 식은 뒤 남은 온기를 떼어 쓰는 법을 남겼다. 가마 술이 그것이다. |
+| 온기 | Warmth | 술의 자원 | 불은 식고 온기만 남았다. 가마지기들은 그것을 아껴 썼다. |
+| 잿빛 에스트 | Ashen Estus | 둘째 병 | 오다의 병에 재를 섞으면 상처 대신 온기가 찬다고 한다. |
+| 오스윈의 저녁 종 | Oswin's Evening Bell | 종 술 | 해 질 녘 들에 나간 사람을 불러들이던 종. 교구가 잠긴 뒤로는 아무도 오지 않았다. |

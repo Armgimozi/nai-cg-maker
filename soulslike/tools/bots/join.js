@@ -1,12 +1,14 @@
 // 접속 (14 M0 "접속하면 팩을 받고 시험 방에 선다", 8.1, 10.2, 10.9, 10.10, 12.7).
 // 첫 접속이 로비를 거치지 않고 souls_world 시험 방의 모험 모드로 서는지, 팩을 실제로 받아 SHA-1 이 맞는지,
 // HUD (경험치 막대 = 스태미나, 레벨 0, 행동 막대 한 줄) 가 오는지, 모험 모드 보호로 블록이 안 캐지는지 본다.
+// 봇은 한국어 클라이언트 (ko_kr) 로 들어온다: 팩 안내는 서버가 한국어로 채우고, 행동 막대는 번역 열쇠라 팩의 ko_kr 로 읽는다.
+// 영어 쪽은 lang.js.
 'use strict'
 const L = require('./lib')
 
 L.run('join', async (sc) => {
   const E = L.ENV
-  const b = await L.connect(sc)
+  const b = await L.connect(sc, { locale: 'ko_kr' })
   const room = L.testRoom()
 
   // ── 첫 화면 ──
@@ -36,6 +38,10 @@ L.run('join', async (sc) => {
   if (E.packSha1) sc.check('pack hash = built pack.zip sha1', pk.hash === E.packSha1, `패킷 ${pk.hash} / 빌드 ${E.packSha1}`)
   sc.check('pack required (forced)', pk.forced === true, 'forced=' + pk.forced)
   sc.check('pack prompt text set', !!(pk.prompt && pk.prompt.trim()), pk.prompt || '')
+  // 팩 안내는 팩을 싣기 전에 보이므로 번역 열쇠가 아니라 서버가 봇의 언어 (ko_kr) 로 채운 글이다
+  sc.check('pack prompt is Korean for a ko_kr client (server-rendered)', /[가-힣]/.test(pk.prompt || '') && !L.translateKeys(pk.promptRaw).length, pk.prompt || '')
+  const sent = b.tLines('PACK sent')[0]
+  sc.check('server picked lang=ko for the pack prompt', sent && sent.kv.lang === 'ko', sent ? sent.line : '시험 줄 없음')
   const got = await b.p.packChecks[0]
   sc.check('pack downloaded from url', got.ok, got.ok ? `${got.size}B` : got.error)
   if (got.ok) sc.check('downloaded pack sha1 = packet hash', got.hashMatch, got.sha1)
@@ -71,7 +77,13 @@ L.run('join', async (sc) => {
   const bars = b.p.actionBars.slice(abFrom)
   sc.check('action bar refreshed (>= 2 in 2.6 s)', bars.length >= 2, bars.length + '번')
   const ab = b.p.actionBars[b.p.actionBars.length - 1]
-  sc.check('action bar shows souls line', ab && /소울/.test(ab.plain), ab ? JSON.stringify(ab.plain) : '행동 막대 없음')
+  // 행동 막대는 번역 열쇠 souls.hud.souls (10.3). 받은 팩의 ko_kr 표로 읽으면 "소울 0"
+  const keys = ab ? L.translateKeys(ab.raw) : []
+  sc.check('action bar is the translatable souls.hud.souls', keys[0] === 'souls.hud.souls', keys.join(',') || (ab ? JSON.stringify(ab.plain) : '행동 막대 없음'))
+  if (got.ok && ab) {
+    const shown = L.render(ab.raw, L.langTable(L.readZip(got.buf), 'ko_kr'))
+    sc.check('action bar reads "소울 N" with the pack ko_kr', /^소울 [\d,]+$/.test(shown.trim()), JSON.stringify(shown))
+  }
   sc.check('food 20 (sprint allowed) at rest', b.food === 20, 'food=' + b.food)
 
   // ── 모험 모드 보호 (12.7, 13.4 표: 모험 모드에서 블록을 못 캐는지) ──

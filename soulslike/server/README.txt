@@ -70,14 +70,15 @@
   /souls pack               리소스팩 상태 (SHA-1, 주소, 자체 확인 결과)
   /souls pack resend        리소스팩을 다시 보낸다
   /souls perf               체계별 틱 시간
-  /souls reload             설정·문구·그림 글자를 다시 읽는다
+  /souls reload             설정·그림 글자·콘텐츠를 다시 읽는다
 
 
 ■ 설정
 
   plugins/Soulslike/config.yml   난이도 수치, 스태미나·구르기 수치, 리소스팩 주소
-  plugins/Soulslike/lang/ko.yml  게임 안 문구
   (서버를 한 번 켜야 생긴다. 고친 뒤 /souls reload 또는 서버를 다시 켠다)
+  게임 안 문구는 한국어와 영어가 있고, 접속한 사람의 게임 언어로 보인다 (한국어가 아니면 영어).
+  문구는 플러그인과 리소스팩 안에 있어 서버 폴더에서 고치지 않는다.
 
   server.properties, bukkit.yml, config/paper-global.yml 은 이 서버에 맞춰 둔 것이다.
     - 난이도는 normal 이어야 한다. 플러그인이 켤 때 확인하고 다르면 바꾼다.

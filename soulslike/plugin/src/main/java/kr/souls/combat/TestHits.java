@@ -60,7 +60,7 @@ public final class TestHits implements Listener {
         DamageType dt = DamageType.GENERIC;
         if ("hit".equals(type)) {
             dt = RegistryAccess.registryAccess().getRegistry(RegistryKey.DAMAGE_TYPE).get(Key.key(Keys.NS, "hit"));
-            if (dt == null) return new Result("hit(없음)", amount, 0, p.isBlocking(), false, false, true, "-", 0, p.getWorld().getDifficulty().name());
+            if (dt == null) return new Result("hit(missing)", amount, 0, p.isBlocking(), false, false, true, "-", 0, p.getWorld().getDifficulty().name());
         }
         Zombie cause = null;
         if (!"none".equals(type)) {
@@ -105,7 +105,7 @@ public final class TestHits implements Listener {
         ItemStack heldAfter = p.getActiveItem().isEmpty() ? p.getInventory().getItemInMainHand() : p.getActiveItem();
         Integer durAfter = heldAfter.getData(DataComponentTypes.DAMAGE);
         String dur = (durBefore == null ? "-" : durBefore) + "->" + (durAfter == null ? "-" : durAfter);
-        String name = "none".equals(type) ? "generic(원인 없음)" : "hit".equals(type) ? "souls:hit" : "minecraft:generic";
+        String name = "none".equals(type) ? "generic(no_cause)" : "hit".equals(type) ? "souls:hit" : "minecraft:generic";
         return new Result(name, amount, Math.max(0, before - after), blocking, sawKnockback, sawAttackerKnockback, sawCancel, dur, armorValue,
                 p.getWorld().getDifficulty().name());
     }

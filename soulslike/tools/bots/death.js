@@ -118,6 +118,8 @@ L.run('death', async (sc) => {
     // 여기서는 몇 언어를 자세히 보고, 개수는 따로 센다
     const langFiles = zip.names.filter((n) => /^assets\/minecraft\/lang\/[a-z_]+\.json$/.test(n))
     sc.check('death screen keys written for every vanilla language (>= 143 files)', langFiles.length >= 143, langFiles.length + '개')
+    // 단추 글 (lang 의 vanilla.deathScreen.*): ko_kr 은 한국어, 그 밖의 모든 언어는 en_us 와 같은 영어 (10.9)
+    const enRespawn = (zip.json('assets/minecraft/lang/en_us.json') || {})['deathScreen.respawn']
     for (const lang of ['en_us', 'ko_kr', 'en_gb', 'ja_jp', 'zh_cn']) {
       const j = zip.json(`assets/minecraft/lang/${lang}.json`)
       if (!j) { sc.check(`${lang}: lang file present`, false); continue }
@@ -128,7 +130,9 @@ L.run('death', async (sc) => {
       sc.check(`${lang}: deathScreen.title = ${dc.title ? 'empty (plugin title instead)' : 'you_died glyphs'}`, yd && dt === want,
         dt === undefined ? '키 없음 (바닐라 글이 남는다)' : dt === '' ? '빈칸' : [...dt].map((c) => c.codePointAt(0).toString(16)).join(' '))
       sc.check(`${lang}: score line empty`, j['deathScreen.score.value'] === '', JSON.stringify(j['deathScreen.score.value']))
-      sc.check(`${lang}: respawn button is 일어선다`, /일어선다$/.test(j['deathScreen.respawn'] || ''), JSON.stringify(j['deathScreen.respawn']))
+      const rb = j['deathScreen.respawn'] || ''
+      if (lang === 'ko_kr') sc.check('ko_kr: respawn button is Korean (일어선다)', /^\u00a77[가-힣 ]+$/.test(rb), JSON.stringify(rb))
+      else sc.check(`${lang}: respawn button is the souls English text (same as en_us, not vanilla Respawn)`, rb === enRespawn && /^\u00a77[A-Za-z ]+$/.test(rb) && !/Respawn/.test(rb), JSON.stringify(rb))
     }
     if (yd) {
       const px = []

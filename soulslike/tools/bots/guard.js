@@ -68,7 +68,7 @@ L.run('guard', async (sc) => {
   // 데이터팩 피해 종류 souls:hit (12.2)
   await b.cmd('/soulstest heal', 'HEAL')
   const sh = await b.cmd('/soulstest hit 3 type=hit', 'HIT ')
-  if (sh.kv && /없음/.test(sh.kv.type || '')) sc.miss('souls:hit damage type registered', sh.line)
+  if (sh.kv && /missing/.test(sh.kv.type || '')) sc.miss('souls:hit damage type registered', sh.line)
   else sc.checkCmd('souls:hit damage type deals full damage', sh, (r) => r.kv.type === 'souls:hit' && r.kv.full === 'true', sh.line)
   await b.cmd('/soulstest heal', 'HEAL')
   sc.check('no kick during guard scenario', !b.kick, b.kick || '')

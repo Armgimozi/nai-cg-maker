@@ -1,8 +1,8 @@
 package kr.souls.skill;
 
+import kr.souls.Lang;
 import kr.souls.util.Fx;
 import kr.souls.util.P;
-import kr.souls.util.Text;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import net.kyori.adventure.key.Key;
 import org.bukkit.Bukkit;
@@ -1226,18 +1226,21 @@ public final class Mechanics {
         }
     }
 
+    /** 둘레 사람에게 채팅 한 줄 (보스 대사 같은 것). 글은 콘텐츠에 쓰지 않고 lang 열쇠로 가리킨다: {type: say, key: boss.hrolf.taunt} */
     static final class Say implements Mechanic {
-        final String text;
+        final String key;
         final double radius;
 
         Say(P p) {
-            text = p.s("text", "");
+            key = p.s("key", "");
             radius = p.d("radius", 40);
+            if (key.isEmpty() || !p.s("text", "").isEmpty()) log.warning("say 부품은 글(text) 대신 lang 열쇠(key)를 쓴다: " + p.s("text", ""));
         }
 
         @Override
         public void run(SkillContext ctx) {
-            var comp = Text.mm(text);
+            if (key.isEmpty()) return;
+            var comp = Lang.c(key);
             for (Player pl : ctx.caster.getWorld().getPlayers()) {
                 if (pl.getLocation().distance(ctx.caster.getLocation()) <= radius) pl.sendMessage(comp);
             }

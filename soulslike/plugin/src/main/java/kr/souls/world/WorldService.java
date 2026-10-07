@@ -26,6 +26,7 @@ import org.bukkit.persistence.PersistentDataType;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.logging.Level;
 
 /**
@@ -38,7 +39,7 @@ public final class WorldService implements Listener {
     private volatile boolean building;
     /** 시험 방 첫 자리. 비동기 접속 이벤트가 읽으므로 volatile */
     private volatile Location roomSpawn;
-    private String lastBuild = "아직 짓지 않음";
+    private String lastBuild = "not built yet";
     /** 이번 켜기에서 souls_world 를 처음 만들었다 (level.dat 이 없었다) */
     private boolean freshWorld;
 
@@ -128,7 +129,7 @@ public final class WorldService implements Listener {
         Integer built = w.getPersistentDataContainer().get(Keys.ROOM, PersistentDataType.INTEGER);
         if (built != null && built >= TestRoom.VERSION) {
             building = false;
-            lastBuild = "시험 방 판 " + built + " (이미 지음)";
+            lastBuild = "room v" + built + " (already built)";
             plugin.getLogger().info("시험 방은 이미 지었습니다 (판 " + built + "). 짓지 않습니다.");
             return;
         }
@@ -241,7 +242,7 @@ public final class WorldService implements Listener {
     public List<String> ruleMismatches(World w) {
         List<String> out = new ArrayList<>();
         for (RuleValue<?> rv : rules()) {
-            if (!rv.matches(w)) out.add(rv.rule().getKey().getKey() + "=" + w.getGameRuleValue(rv.rule()) + " (" + rv.value() + " 이어야 함)");
+            if (!rv.matches(w)) out.add(rv.rule().getKey().getKey() + "=" + w.getGameRuleValue(rv.rule()) + " (want " + rv.value() + ")");
         }
         return out;
     }
@@ -265,7 +266,7 @@ public final class WorldService implements Listener {
     public void buildRoom(CommandSender to) {
         World w = world();
         if (w == null) {
-            to.sendMessage("게임 세계가 없다.");
+            Lang.tell(to, "admin.no-world");
             return;
         }
         building = true;
@@ -280,12 +281,12 @@ public final class WorldService implements Listener {
             w.setSpawnLocation(roomSpawn);
             // 표시를 남기기 전에 청크를 디스크에 쓴다. 표시만 남은 채 서버가 죽으면 다음에 빈 방을 지은 것으로 여긴다
             w.save(true);
-            lastBuild = String.format("시험 방 판 %d, 블록 %d개, %.0f ms", TestRoom.VERSION, n, ms);
+            lastBuild = String.format(Locale.ROOT, "room v%d, %d blocks, %.0f ms", TestRoom.VERSION, n, ms);
             plugin.getLogger().info("시험 방을 지었습니다: " + lastBuild);
-            if (to instanceof Player) to.sendMessage("시험 방을 지었다: " + lastBuild);
+            if (to instanceof Player) Lang.tell(to, "admin.room-built", "detail", lastBuild);
         } catch (RuntimeException ex) {
             plugin.getLogger().log(Level.SEVERE, "시험 방을 짓다가 오류가 났습니다", ex);
-            to.sendMessage("시험 방을 짓지 못했다: " + ex.getMessage());
+            Lang.tell(to, "admin.room-failed", "error", String.valueOf(ex.getMessage()));
         } finally {
             building = false;
             Bukkit.getServer().allowPausing(plugin, true);
@@ -296,7 +297,8 @@ public final class WorldService implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onPreLogin(AsyncPlayerPreLoginEvent e) {
-        if (building) e.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, Lang.c("build.refuse"));
+        // 접속하기 전이라 그 사람의 언어를 모르고 팩도 없다: 두 언어를 함께 보인다
+        if (building) e.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, Lang.renderBoth("build.refuse"));
     }
 
     /** 처음 들어오면 곧바로 시험 방 (로비에 먼저 떨어지지 않는다). 그 뒤로는 저장된 자리에서 들어오되, 로비에 있었다면 옮긴다. */

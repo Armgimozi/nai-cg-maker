@@ -1,5 +1,6 @@
 package kr.souls.pack;
 
+import com.destroystokyo.paper.ClientOption;
 import com.sun.net.httpserver.HttpServer;
 import io.papermc.paper.connection.PlayerConfigurationConnection;
 import io.papermc.paper.event.connection.configuration.AsyncPlayerConnectionConfigureEvent;
@@ -31,6 +32,8 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Duration;
 import java.util.HexFormat;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -46,6 +49,8 @@ import java.util.zip.ZipInputStream;
  * 보내는 때: 접속 + join-delay 틱 (skyblock 에서 검증, 기본), 또는 설정 단계 (AsyncPlayerConnectionConfigureEvent.
  * 실제 클라이언트는 이 단계에서 받아 싣고 답한다 [확인 (클라), 13.4 의 13]. mineflayer 봇은 답하지 않아 기본값은 join).
  * playit 은 25565 만 통하므로 실제 서버에서는 자체 HTTP 서버를 쓰지 않는다. serve-port 는 로컬 시험용이다.
+ * 팩 안내와 팩 때문에 쫓아낼 때의 글은 팩을 싣기 전에 보이므로 번역 열쇠가 아니라 서버가 그 사람의 언어로 채운다
+ * (클라이언트가 알려 준 언어가 ko 로 시작하면 한국어, 아니면 영어. Lang.render).
  */
 public final class PackService implements Listener {
     /** 고정 팩 UUID (바뀌면 클라이언트가 같은 팩을 두 번 쌓는다) */
@@ -81,16 +86,26 @@ public final class PackService implements Listener {
     public boolean ready() { return data != null && url != null && !url.isBlank(); }
 
     /**
-     * jar 안 팩의 언어 문자열 하나 (assets/minecraft/lang/&lt;code&gt;.json). 팩이 없거나 키가 없으면 null.
+     * jar 안 팩의 바닐라 언어 문자열 하나 (assets/minecraft/lang/&lt;code&gt;.json). 팩이 없거나 키가 없으면 null.
      * /souls check 가 사망 화면 제목과 death.title 이 겹치지 않는지 볼 때 쓴다 (5.6).
      */
     public String packLang(String code, String key) {
+        JsonObject o = langFile("minecraft", code);
+        return o != null && o.has(key) ? o.get(key).getAsString() : null;
+    }
+
+    /** jar 안 팩의 언어 파일 (assets/&lt;ns&gt;/lang/&lt;code&gt;.json) 의 열쇠들. 없으면 null. /souls check 가 lang 과 견준다. */
+    public Set<String> packLangKeys(String ns, String code) {
+        JsonObject o = langFile(ns, code);
+        return o == null ? null : new TreeSet<>(o.keySet());
+    }
+
+    private JsonObject langFile(String ns, String code) {
         if (data == null) return null;
+        String name = "assets/" + ns + "/lang/" + code + ".json";
         try (ZipInputStream z = new ZipInputStream(new ByteArrayInputStream(data), StandardCharsets.UTF_8)) {
             for (ZipEntry e; (e = z.getNextEntry()) != null; ) {
-                if (!e.getName().equals("assets/minecraft/lang/" + code + ".json")) continue;
-                JsonObject o = JsonParser.parseString(new String(z.readAllBytes(), StandardCharsets.UTF_8)).getAsJsonObject();
-                return o.has(key) ? o.get(key).getAsString() : null;
+                if (e.getName().equals(name)) return JsonParser.parseString(new String(z.readAllBytes(), StandardCharsets.UTF_8)).getAsJsonObject();
             }
         } catch (Exception ex) {
             plugin.getLogger().warning("팩 언어 파일을 읽지 못했습니다: " + ex.getMessage());
@@ -171,12 +186,12 @@ public final class PackService implements Listener {
         try {
             req = HttpRequest.newBuilder(URI.create(u)).timeout(Duration.ofSeconds(30)).GET().build();
         } catch (IllegalArgumentException ex) {
-            fail(Check.FAILED, "주소가 틀렸습니다: " + ex.getMessage());
+            fail(Check.FAILED, "bad url: " + ex.getMessage());
             return;
         }
         client.sendAsync(req, HttpResponse.BodyHandlers.ofByteArray()).whenComplete((res, err) -> {
             if (err != null) {
-                fail(Check.FAILED, "받지 못했습니다: " + err);
+                fail(Check.FAILED, "download failed: " + err);
                 return;
             }
             if (res.statusCode() != 200) {
@@ -187,10 +202,10 @@ public final class PackService implements Listener {
                 String got = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-1").digest(res.body()));
                 if (got.equals(sha1)) {
                     check = Check.OK;
-                    checkNote = "주소의 팩이 jar 안 팩과 같다";
+                    checkNote = "url pack = jar pack";
                     plugin.getLogger().info("리소스팩 자체 확인 통과 (" + u + ")");
                 } else {
-                    fail(Check.MISMATCH, "주소의 팩 SHA-1 " + got + " 이 jar 안 팩 " + sha1 + " 과 다릅니다");
+                    fail(Check.MISMATCH, "url pack sha1 " + got + " != jar pack " + sha1);
                 }
             } catch (Exception ex) {
                 fail(Check.FAILED, ex.toString());
@@ -211,12 +226,12 @@ public final class PackService implements Listener {
         });
     }
 
-    private ResourcePackRequest request(net.kyori.adventure.resource.ResourcePackCallback cb) {
+    private ResourcePackRequest request(net.kyori.adventure.resource.ResourcePackCallback cb, String lang) {
         return ResourcePackRequest.resourcePackRequest()
                 .packs(ResourcePackInfo.resourcePackInfo(PACK_ID, URI.create(url), sha1))
                 .required(required())
                 .replace(true)
-                .prompt(Lang.c("pack.prompt"))
+                .prompt(Lang.render(lang, "pack.prompt"))
                 .callback(cb)
                 .build();
     }
@@ -232,8 +247,9 @@ public final class PackService implements Listener {
 
     public void send(Player p) {
         if (!ready() || !p.isOnline()) return;
-        p.sendResourcePacks(request(net.kyori.adventure.resource.ResourcePackCallback.noOp()));
-        plugin.test(p, "PACK sent sha1=" + sha1 + " required=" + required());
+        String lang = Lang.langOf(p);
+        p.sendResourcePacks(request(net.kyori.adventure.resource.ResourcePackCallback.noOp(), lang));
+        plugin.test(p, "PACK sent sha1=" + sha1 + " required=" + required() + " lang=" + lang + " locale=" + p.locale());
     }
 
     /**
@@ -248,16 +264,25 @@ public final class PackService implements Listener {
         CompletableFuture<ResourcePackStatus> done = new CompletableFuture<>();
         conn.getAudience().sendResourcePacks(request((id, status, audience) -> {
             if (!status.intermediate()) done.complete(status);
-        }));
+        }, lang(conn)));
         try {
             ResourcePackStatus s = done.get(cfg().configureTimeout(), TimeUnit.SECONDS);
             if (required() && s == ResourcePackStatus.DECLINED) {
-                conn.disconnect(Lang.c("pack.declined"));
+                conn.disconnect(Lang.render(lang(conn), "pack.declined"));
             } else if (required() && s != ResourcePackStatus.SUCCESSFULLY_LOADED && s != ResourcePackStatus.DISCARDED) {
-                conn.disconnect(Lang.c("pack.failed"));
+                conn.disconnect(Lang.render(lang(conn), "pack.failed"));
             }
         } catch (Exception ex) {
             plugin.getLogger().warning(conn.getProfile().getName() + " 의 리소스팩 답을 기다리다 그만뒀습니다: " + ex);
+        }
+    }
+
+    /** 설정 단계의 클라이언트 언어 (클라이언트 정보가 아직 오지 않았으면 영어). */
+    private static String lang(PlayerConfigurationConnection conn) {
+        try {
+            return Lang.langOf(conn.getClientOption(ClientOption.LOCALE));
+        } catch (RuntimeException ex) {
+            return Lang.EN;
         }
     }
 
@@ -268,8 +293,8 @@ public final class PackService implements Listener {
         plugin.test(p, "PACK status=" + e.getStatus());
         if (!PACK_ID.equals(e.getID()) || !required()) return;
         switch (e.getStatus()) {
-            case DECLINED -> p.kick(Lang.c("pack.declined"));
-            case FAILED_DOWNLOAD, INVALID_URL, FAILED_RELOAD -> p.kick(Lang.c("pack.failed"));
+            case DECLINED -> p.kick(Lang.render(Lang.langOf(p), "pack.declined"));
+            case FAILED_DOWNLOAD, INVALID_URL, FAILED_RELOAD -> p.kick(Lang.render(Lang.langOf(p), "pack.failed"));
             default -> {
             }
         }

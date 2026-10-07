@@ -21,7 +21,9 @@
   1. 팩 폴더를 비우고 pack.mcmeta (형식 75), pack.png
   2. hud.build: 투명한 허기, 사망 화면 글자, 글꼴. gui_skin.build: 하트·스태미나 막대·단축 슬롯·창·단추·설명 칸·
      Dialog 경고 단추. icons.build: 아이템 그림과 모형 (M0 은 시험 도구 souls:test_guard 하나), 입자 (poof)
-  3. 사망 화면 언어 다섯 키 (바닐라의 모든 언어. 클라이언트 언어와 상관없이 같게)
+  3. 언어 파일 (langpack.py): 게임 문구 assets/souls/lang/ko_kr.json·en_us.json (lang/ko.yml·en.yml 에서),
+     바닐라 덮어쓰기 assets/minecraft/lang/<언어>.json (사망 화면 다섯 키. 제목은 그림 글자로 모든 언어가 같고, 단추 글은
+     ko_kr 이 한국어, 나머지 모든 언어가 영어). ko.yml 과 en.yml 의 짝이 틀리면 (열쇠·자리·꼴) 여기서 멈춘다
   4. artlint: 오류가 하나라도 있으면 여기서 멈추고 zip 을 만들지 않는다
   5. 정렬 zip: 경로 순서, 날짜, 권한을 고정해 같은 입력이면 SHA-1 이 같다
   6. glyphs.yml, 미리보기
@@ -47,6 +49,7 @@ import artlint  # noqa: E402
 import gui_skin  # noqa: E402
 import hud  # noqa: E402
 import icons  # noqa: E402
+import langpack  # noqa: E402
 import previews  # noqa: E402
 
 ROOT = os.path.dirname(HERE)
@@ -57,19 +60,15 @@ PREVIEW = os.path.join(HERE, "preview")
 NS = hud.NS
 
 PACK_FORMAT = 75                     # 1.21.11 클라이언트 version.json 의 resource_major
-PACK_DESCRIPTION = "식은 가마"
+# 팩 설명 (팩 목록에 보인다). 언어 열쇠라 클라이언트 언어로 보이고, 팩 언어를 싣기 전에는 영어 대체 글
+PACK_DESCRIPTION_KEY = "pack.description"
 ZIP_DATE = (2026, 1, 1, 0, 0, 0)
 
-# 사망 화면 언어 (5.6). 제목은 hud 가 만든 그림 글자 문자열로 채운다.
+# 사망 화면 언어 (5.6). 제목은 hud 가 만든 그림 글자 문자열로 채우고 (모든 언어가 같다), 나머지 넷 (단추 글·점수 줄·
+# 확인 문구) 은 lang/ko.yml·en.yml 의 vanilla.deathScreen.* 에서 온다 (langpack.build).
 # 클라이언트는 en_us 를 읽고 고른 언어를 그 위에 읽는다. 고른 언어의 바닐라 파일이 팩의 en_us 를 덮으므로
-# (en_gb 면 "You Died!") 바닐라의 모든 언어에 같은 다섯 키를 쓴다. 그래야 어떤 언어로 들어와도 같다 (11절 손님 포함).
-# 단추 글 앞의 §7 은 바닐라 흰 글씨를 회색으로 낮춘다 (사망 화면 단추는 색을 고를 길이 이것뿐이다). 붉은 제목보다 튀지 않게
-DEATH_LANG = {
-    "deathScreen.respawn": "\u00a77일어선다",
-    "deathScreen.score.value": "",
-    "deathScreen.titleScreen": "\u00a77그만둔다",
-    "deathScreen.quit.confirm": "여기서 그만두겠나",
-}
+# (en_gb 면 "You Died!") 바닐라의 모든 언어에 다섯 키를 쓴다: ko_kr 은 한국어, 나머지는 영어 (11절 손님 포함).
+# 단추 글 앞의 §7 (YAML 의 <gray>) 은 바닐라 흰 글씨를 회색으로 낮춘다 (사망 화면 단추는 색을 고를 길이 이것뿐이다)
 # 1.21.11 클라이언트의 언어 전부: jar 안 en_us + 에셋 목록(assets/indexes/29.json)의 minecraft/lang/*.json 142개
 LANGS = tuple(sorted("""
 en_us af_za ar_sa ast_es az_az ba_ru bar be_by be_latn bg_bg br_fr brb bs_ba ca_es cs_cz cv_cu cy_gb da_dk de_at de_ch
@@ -186,13 +185,23 @@ def main(argv):
     mode = death_title_mode(argv)
     if mode is None:
         return 2
+    # 문구 원본 (lang/ko.yml, en.yml). 짝이 틀리면 팩을 만들지 않는다 (tools/langcheck.py 가 더 많이 본다)
+    tables = langpack.load_all()
+    bad = langpack.problems(tables)
+    if bad:
+        for key, why in bad:
+            print(f"  lang {key}: {why}")
+        print(f"lang/ko.yml 과 en.yml 이 {len(bad)}곳 어긋나 팩을 묶지 않는다.")
+        return 1
+    en = langpack.lines(tables["en"])
     if os.path.exists(OUT):
         shutil.rmtree(OUT)
     os.makedirs(OUT)
 
     # 1. pack.mcmeta, pack.png
     write_json(os.path.join(OUT, "pack.mcmeta"), {
-        "pack": {"description": PACK_DESCRIPTION, "min_format": PACK_FORMAT, "max_format": PACK_FORMAT},
+        "pack": {"description": {"translate": langpack.PREFIX + PACK_DESCRIPTION_KEY, "fallback": en[PACK_DESCRIPTION_KEY]},
+                 "min_format": PACK_FORMAT, "max_format": PACK_FORMAT},
     })
     icon = pack_icon()
     icon.save(os.path.join(OUT, "pack.png"))
@@ -205,14 +214,16 @@ def main(argv):
     icons.build(OUT)      # 아이템 그림·모형·정의 (items 아틀라스), 입자
     title = hud.death_title(glyphs)
 
-    # 3. 사망 화면 언어
+    # 3. 언어 파일: 게임 문구 (assets/souls/lang) 와 바닐라 덮어쓰기 (assets/minecraft/lang, 사망 화면)
     # YOU DIED 는 한 번만 보인다 (5.6). 기본은 사망 화면 제목 자리 (플러그인 death.title: false).
     # plugin 이면 이 제목을 비우고 플러그인이 화면 제목으로 띄운다 (둘을 함께 쓰면 겹쳐 보였다)
-    lang = dict(DEATH_LANG)
-    lang["deathScreen.title"] = title if mode == "screen" else ""
-    lang = dict(sorted(lang.items()))
-    for code in LANGS:
-        write_json(os.path.join(OUT, "assets", "minecraft", "lang", code + ".json"), lang)
+    lang_files = langpack.build(tables, LANGS)
+    for rel, data in lang_files.items():
+        if rel.startswith("assets/minecraft/lang/"):
+            data["deathScreen.title"] = title if mode == "screen" else ""
+            data = dict(sorted(data.items()))
+        write_json(os.path.join(OUT, *rel.split("/")), data)
+    lang = dict(sorted(lang_files["assets/minecraft/lang/ko_kr.json"].items()))
 
     # 4. artlint (오류가 있으면 zip 을 만들지 않는다)
     report = artlint.lint([OUT], OUT)

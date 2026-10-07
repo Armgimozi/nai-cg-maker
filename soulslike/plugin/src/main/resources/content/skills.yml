@@ -9,11 +9,11 @@
 #    launch, freeze, stun, heal, heal_caster, lifesteal, absorption, cleanse, lightning, explosion,
 #    particle, sound, execute, glow
 #  피해는 모두 minecraft:generic 으로 들어간다.
+#  이름과 설명은 여기 쓰지 않는다. lang/ko.yml·en.yml 의 skill.<id>.name, skill.<id>.desc (12.5).
+#  say 부품도 글 대신 lang 열쇠를 쓴다: {type: say, key: boss.hrolf.taunt}
 # ─────────────────────────────────────────────────────────────
 
 test_sweep:
-  name: 시험 휩쓸기
-  description: ["엔진 점검용."]
   cooldown: 0
   mechanics:
     - type: cone
@@ -24,8 +24,6 @@ test_sweep:
     - {type: sound, sound: entity.player.attack.sweep, pitch: 0.8, volume: 0.6}
 
 test_slam:
-  name: 시험 내려찍기
-  description: ["엔진 점검용."]
   cooldown: 0
   mechanics:
     - type: delay

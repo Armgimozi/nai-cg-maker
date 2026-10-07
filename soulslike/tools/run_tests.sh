@@ -32,9 +32,9 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(dirname "$HERE")"
 BOTS="$HERE/bots"
 
-ALL_SCENARIOS="t1_boot join stamina roll_iframes guard death reconnect"
+ALL_SCENARIOS="t1_boot join lang stamina roll_iframes guard death reconnect"
 # 시나리오별 봇 이름 (ops.json 에 미리 올린다. 오프라인 UUID)
-declare -A BOT=( [t1_boot]=SoulsBoot [join]=SoulsJoin [stamina]=SoulsStam [roll_iframes]=SoulsRoll
+declare -A BOT=( [t1_boot]=SoulsBoot [join]=SoulsJoin [lang]=SoulsLang [stamina]=SoulsStam [roll_iframes]=SoulsRoll
                  [guard]=SoulsGuard [death]=SoulsDeath [reconnect]=SoulsRecon [lag]=SoulsLag )
 
 PORT=25601
@@ -64,7 +64,7 @@ while [ $# -gt 0 ]; do
     --crawl) CRAWL=1; shift ;;
     --mem) MEM="$2"; shift 2 ;;
     --timeout) SC_TIMEOUT="$2"; shift 2 ;;
-    --list) echo "$ALL_SCENARIOS (+ roll_iframes@lag<ms>)"; exit 0 ;;
+    --list) echo "lang_check $ALL_SCENARIOS (+ roll_iframes@lag<ms>)"; exit 0 ;;
     -h|--help) sed -n '2,/^set -u/p' "$0" | sed '$d'; exit 0 ;;
     *) echo "모르는 인수: $1 (--help)"; exit 2 ;;
   esac
@@ -295,6 +295,20 @@ if [ -n "$REPRO" ]; then
   printf '%-10s %-24s %s\n' "$r_status" pack_repro "${r_rest#pack_repro }"
   [ "$r_status" = PASS ] || FAILED=$((FAILED + 1))
   SUMMARY+=("$r_status pack_repro")
+fi
+# 문구 관문 (10.3, 12.5, 13.7): ko/en 열쇠·자리·꼴, Java 의 한글 문자열, 열쇠 부르기, jar 안 팩의 언어 파일, 폭, 글 검사
+if [ -z "$ONLY" ] || want lang_check; then
+  LC_ARGS=""
+  [ -s "$RUN/pack.zip" ] && LC_ARGS="--pack $RUN/pack.zip"
+  if python3 "$HERE/langcheck.py" $LC_ARGS > "$RUN/logs/lang_check.log" 2>&1 && python3 "$HERE/textlint.py" >> "$RUN/logs/lang_check.log" 2>&1; then
+    printf '%-10s %-24s %s\n' PASS lang_check "$(grep -a -h -E '^(langcheck|textlint):' "$RUN/logs/lang_check.log" | tr '\n' ' ')"
+    SUMMARY+=("PASS lang_check")
+  else
+    printf '%-10s %-24s %s\n' FAIL lang_check "($RUN/logs/lang_check.log)"
+    grep -a -E '\[오류\]' "$RUN/logs/lang_check.log" | head -n 8 | cut -c1-240 | sed 's/^/           /'
+    FAILED=$((FAILED + 1))
+    SUMMARY+=("FAIL lang_check")
+  fi
 fi
 for s in $ALL_SCENARIOS; do
   want "$s" || continue
