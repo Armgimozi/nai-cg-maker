@@ -42,6 +42,7 @@
   MC_GUI_SCALE       GUI 배율 (기본 0 = 자동. 1280x720 이면 3)
   MC_OPTIONS         options.txt 에 더 넣을 줄. "키:값;키:값" (예: "renderDistance:8;fov:0.0")
   MC_XMX             클라이언트 최대 메모리 (기본 2G)
+  MC_PACK            서버 팩: accept (기본, 묻지 않고 받는다), prompt (묻는 창을 띄운다), decline (받지 않는다)
   MC_CLIENT_JAR      처음 받을 때 이미 있는 client.jar 를 쓴다 (sha1 이 맞을 때만)
 
 결과: 찍은 그림 경로를 한 줄씩 "SHOT <경로>" 로 표준 출력에 낸다. run 은 끝날 때 클라이언트 기록을 <찍을폴더>/client.log 로 복사한다.
@@ -166,12 +167,18 @@ def _nbt_str(s):
     return len(b).to_bytes(2, "big") + b
 
 
-def servers_dat(address, name="souls"):
-    """서버 목록 한 줄. acceptTextures=1 이면 서버 팩을 묻지 않고 받는다.
+def servers_dat(address, name="souls", pack="accept"):
+    """서버 목록 한 줄. acceptTextures=1 이면 서버 팩을 묻지 않고 받는다 (accept), 0 이면 받지 않는다 (decline),
+    없으면 묻는 창을 띄운다 (prompt: 서버가 보낸 안내 글이 보인다).
     빠른 접속(--quickPlayMultiplayer)은 이 목록에서 주소 글자가 똑같은 줄을 찾아 그 설정을 쓴다."""
+    accept = {"accept": b"\x01" + _nbt_str("acceptTextures") + b"\x01",
+              "decline": b"\x01" + _nbt_str("acceptTextures") + b"\x00",
+              "prompt": b""}
+    if pack not in accept:
+        fail("MC_PACK 은 accept, prompt, decline 가운데 하나다: %s" % pack)
     entry = (b"\x08" + _nbt_str("ip") + _nbt_str(address)
              + b"\x08" + _nbt_str("name") + _nbt_str(name)
-             + b"\x01" + _nbt_str("acceptTextures") + b"\x01"
+             + accept[pack]
              + b"\x01" + _nbt_str("hidden") + b"\x00"
              + b"\x00")
     return (b"\x0a" + _nbt_str("")
@@ -269,7 +276,7 @@ class Session:
         with open(os.path.join(self.game, "options.txt"), "w", encoding="utf-8") as f:
             f.writelines("%s:%s\n" % kv for kv in opts.items())
         with open(os.path.join(self.game, "servers.dat"), "wb") as f:
-            f.write(servers_dat(address))
+            f.write(servers_dat(address, pack=os.environ.get("MC_PACK", "accept")))
         # 지난번 팩·스크린샷은 남겨 두되, 지난번 기록은 지운다
         open(self.log_path, "w").close()
 

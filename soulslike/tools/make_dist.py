@@ -29,7 +29,8 @@ WorldCheck 실패면 거절)을 더한다. 그때까지 server/ 에 세계 폴�
   글자표   glyphs.yml 의 모든 글자가 그 글꼴에 있고 빈칸 폭이 맞다, you_died 가 deathScreen.title 과 같다
            (config.yml death.title: true 면 deathScreen.title 은 빈칸. YOU DIED 는 한 번만, 5.6. gen_pack 이 같은
            config.yml 을 읽어 팩을 만들므로 설정 한 곳만 바꾸면 맞는다), death.title-glyphs 의 이름이 glyphs.yml 에 있다
-  서버     인코딩 규칙 (12.9), server.properties 가 12.7 값 그대로, bukkit.yml allow-end: false,
+  서버     인코딩 규칙 (12.9), server.properties 가 12.7 값 그대로 (motd 는 lang 의 pack.description 두 언어),
+           bukkit.yml allow-end: false,
            start.ps1 과 start.sh 의 Paper 고정값(주소·크기·sha256)이 같다
 """
 import hashlib
@@ -391,6 +392,13 @@ def read_properties(raw):
     return out
 
 
+def motd():
+    """서버 목록 이름 = §7 + 한국어 · 영어 (lang/ko.yml·en.yml 의 pack.description, 꼴 태그를 뗀 글)."""
+    tables = langcheck.langpack.load_all()
+    text = [langcheck.langpack.split_style(langcheck.langpack.lines(tables[lang])["pack.description"])[1] for lang in ("ko", "en")]
+    return "\u00a77" + " \u00b7 ".join(text)
+
+
 def check_server():
     g = Gate()
     raw = {}
@@ -421,6 +429,9 @@ def check_server():
         props = read_properties(raw["server.properties"])
         for k, want in PROPERTIES.items():
             g.check(props.get(k) == want, f"server.properties {k}={props.get(k)} (12.7: {want})")
+        # 서버 목록의 이름은 팩을 받기 전에 보여 두 언어를 함께 (10.9): lang 의 pack.description 한국어 · 영어
+        want = motd()
+        g.check(props.get("motd") == want, f"server.properties motd={props.get('motd')!r} (lang pack.description: {want!r})")
         bukkit = yaml.safe_load(raw["bukkit.yml"].decode("utf-8")) or {}
         g.check((bukkit.get("settings") or {}).get("allow-end") is False, "bukkit.yml settings.allow-end 가 false 가 아니다 (12.7)")
         paper = yaml.safe_load(raw["config/paper-global.yml"].decode("utf-8")) or {}
@@ -466,10 +477,17 @@ def add(z, arc, data):
 def write_dist(jar_bytes, pack, sha1, server):
     os.makedirs(os.path.join(DIST, "packs"), exist_ok=True)
     packs = os.path.join(DIST, "packs")
+    # 한 번 커밋한 팩은 지우지 않는다: 그 판의 jar 를 받은 서버가 아직 그 주소로 팩을 보낸다 (지우면 "다운로드 실패").
+    # 커밋하지 않은 중간 팩만 지운다.
+    try:
+        kept = set(os.path.basename(x) for x in subprocess.run(
+            ["git", "ls-files", "--", packs], cwd=ROOT, capture_output=True, text=True, check=True).stdout.split())
+    except (OSError, subprocess.CalledProcessError):
+        kept = None   # git 이 없으면 아무것도 지우지 않는다
     for old in sorted(os.listdir(packs)):
-        if old.endswith(".zip") and old != sha1 + ".zip":
+        if old.endswith(".zip") and old != sha1 + ".zip" and kept is not None and old not in kept:
             os.remove(os.path.join(packs, old))
-            print("지난 팩을 지웠다:", old)
+            print("커밋하지 않은 지난 팩을 지웠다:", old)
     with open(os.path.join(packs, sha1 + ".zip"), "wb") as f:
         f.write(pack)
     with open(os.path.join(DIST, "Soulslike.jar"), "wb") as f:

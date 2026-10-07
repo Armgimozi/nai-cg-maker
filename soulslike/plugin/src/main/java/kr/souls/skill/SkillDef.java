@@ -15,10 +15,10 @@ public record SkillDef(String id, double cooldown, List<Mechanic> mechanics) {
     }
 
     public Component name() {
-        return Lang.c("skill." + id + ".name");
+        return Lang.c("skill." + id + ".name"); // lang-dyn: skill.*.name
     }
 
     public List<Component> description() {
-        return Lang.lines("skill." + id + ".desc");
+        return Lang.lines("skill." + id + ".desc"); // lang-dyn: skill.*.desc
     }
 }

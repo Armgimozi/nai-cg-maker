@@ -6,17 +6,27 @@
 
 오류 (하나라도 있으면 끝 상태 1. make_dist 는 묶지 않고, run_tests 의 lang_check 가 실패한다)
   pair     lang/ko.yml 과 en.yml 의 열쇠·목록 줄 수·꼴(맨 앞 태그)·자리(<이름>) 가 같다. 꼴 태그는 맨 앞에만,
-           바닐라 열쇠(vanilla.*) 는 이름 색만 (pack/langpack.py 의 problems)
-  java     플러그인 Java 에 한글 글자 문자열이 없다. 서버 기록 줄 (getLogger()/log 의 info·warning·severe…) 만 된다.
-           한 문장 (; 까지) 안에 기록 부르기가 있으면 기록 줄로 본다. 주석은 보지 않는다. 일부러 남길 줄에는 // lang-ok
-  keys     Java 가 부르는 Lang.c / lines / render / renderBoth / tell 의 열쇠와 콘텐츠 say 부품의 key 가 lang 에 있다
-  content  content/*.yml 에 한글 글이 없다 (보이는 글은 lang 열쇠로. 주석은 된다)
+           바닐라 열쇠(vanilla.*) 는 이름 색만, 자리 이름에 MiniMessage 태그 이름(<i>, <br>, <reset> …) 을 쓰지 않는다,
+           값은 모두 글 (따옴표 없는 Yes·No·12 는 YAML 이 참거짓·수로 읽는다) (pack/langpack.py 의 problems)
+  java     플러그인 Java 에 한글 문자열이 없다 (\\uXXXX 로 적은 것도 푼다). 서버 기록 부르기 (getLogger()/log 의
+           info·warning·severe…) 의 괄호 안만 된다. 주석은 보지 않는다. 일부러 남길 줄에는 // lang-ok
+  text     번역되지 않는 글: Component.text / Text.mm 에 글자 (로마자·한글) 가 든 문자열, sendMessage·kick·disconnect·
+           disallow 같은 곳에 바로 넣은 문자열. 기계 글 (시험 줄 [T], /souls 의 쓰는 법·pack·perf) 은 그 줄에 // lang-machine
+  keys     열쇠를 받는 부르기 (KEY_CALLS: Lang.c / lines / render / renderBoth / tell, Items.icon) 를 괄호를 세어 읽는다.
+           열쇠가 글자 그대로면 lang 에 있어야 하고, 넘기는 자리 이름 ("n", n 짝) 이 그 열쇠의 자리와 같아야 한다.
+           열쇠를 만들어 부르면 ("skill." + id + ".name") 그 줄에 // lang-dyn: <glob>, … 가 있어야 한다: glob 은 lang
+           열쇠에 맞거나 콘텐츠 표 (CONTENT_KEYS) 의 꼴. say 는 콘텐츠 say 부품의 key, param 은 열쇠를 넘기는 도우미.
+           콘텐츠: say 부품의 key 가 lang 에 있고 자리가 없다, 콘텐츠 id 마다 CONTENT_KEYS 의 열쇠가 있다 (12.5 의 표:
+           skills.yml → skill.<id>.name 한 줄, skill.<id>.desc 목록)
+  content  content/*.yml 에 한글 글이 없고 글 칸 (name, description, lore, text …) 이 없다 (글자와 상관없이)
   pack     팩 언어 파일이 YAML 에서 만든 것과 같다 (낡은 팩): assets/souls/lang/ko_kr.json·en_us.json,
            assets/minecraft/lang/<언어>.json 의 vanilla.* 열쇠 (ko_kr 은 한국어, 나머지는 영어)
   width    글이 그 자리 폭에 들어간다 (바닐라 기본 글꼴 폭, 1280×720 GUI 배율 3 = 화면 426 픽셀 기준. SLOTS 표).
            큰 글씨는 4배로 그려져 104 픽셀, 부제목은 2배라 200 픽셀, Dialog 단추(폭 160) 150, 사망 화면 단추(폭 200) 190
 경고
   slot     폭을 정하지 않은 열쇠 (SLOTS 에 더한다)
+  content  CONTENT_KEYS 에 없는 콘텐츠 파일, 콘텐츠에 없는 id 의 열쇠가 lang 에 남음
+끝 줄에 Java 열쇠 부르기를 글자 그대로 본 곳과 lang-dyn 으로 본 곳으로 나눠 센다.
 """
 import fnmatch
 import io
@@ -72,9 +82,53 @@ SLOTS = [
 # 폭을 잴 때 자리에 넣는 값 (가장 길게 나올 만한 것)
 SAMPLE = {"souls": "9,999,999", "n": "9,999,999", "level": "713", "m": "999", "kind": "control", "ticks": "100"}
 
-# 서버 기록 부르기 (이 문장 안의 한글은 기록 줄이다)
-LOG_CALL = re.compile(r"(\bgetLogger\(\)|\blog|\blogger|\bLOG)\s*\.\s*(info|warning|warn|severe|error|fine|config|log)\s*\(")
-LANG_CALL = re.compile(r'\bLang\.(c|lines|render|renderBoth|tell)\(\s*(?:[^,()"]+,\s*)?"([^"]+)"\s*[,)]')
+# ── Java 를 읽는 표 ──
+# 열쇠를 받는 부르기: (임자, 이름) → 인수 목록 → 열쇠 자리들. 열쇠 자리 뒤 인수는 (자리 이름, 값) 짝이다 (Lang.args)
+#   Lang.c / lines (열쇠, 짝...) 또는 (보는 사람, 열쇠, 짝...): 첫 인수가 문자열 (또는 문자열을 이은 것) 이면 열쇠,
+#     아니면 인수 개수로 가른다 (짝수면 앞에 보는 사람이 있다)
+#   Lang.render (언어, 열쇠, 짝...), Lang.tell (받는 이, 열쇠, 짝...), Lang.renderBoth (열쇠, 짝...)
+#   Items.icon (재료, 이름 열쇠, 설명 열쇠 또는 null): 열쇠를 그대로 넘기는 도우미 (안의 Lang 부르기는 // lang-dyn: param)
+
+
+def viewer_form(args):
+    if not args or any(t[0] == "str" for t in top_level(args[0])):
+        return [0]
+    return [1] if len(args) % 2 == 0 else [0]
+
+
+KEY_CALLS = {
+    ("Lang", "c"): viewer_form,
+    ("Lang", "lines"): viewer_form,
+    ("Lang", "render"): lambda args: [1],
+    ("Lang", "tell"): lambda args: [1],
+    ("Lang", "renderBoth"): lambda args: [0],
+    ("Items", "icon"): lambda args: [1, 2] if len(args) == 3 else [],
+}
+# 열쇠를 넘기기만 하는 도우미 (그 안의 Lang 부르기에 // lang-dyn: param 을 단다). 짝이 없으니 자리가 없어야 한다
+HELPERS = {("Items", "icon")}
+# 서버 기록 부르기 (그 괄호 안의 한글은 기록 줄이다). getLogger() 뒤, 또는 log·logger·LOG 이름 뒤
+LOG_OWNERS = {"getLogger", "log", "logger", "LOG"}
+LOG_METHODS = {"info", "warning", "warn", "severe", "error", "fine", "config", "log"}
+# 플레이어에게 가는 글을 만들거나 받는 곳. 여기에 글자 (로마자·한글) 가 든 문자열을 바로 넣으면 번역되지 않는다.
+# 기계 글 (시험 줄 [T], 점검 줄 [CHECK], /souls 의 쓰는 법·pack·perf) 은 그 줄에 // lang-machine
+TEXT_MAKERS = {("Component", "text"), ("Text", "mm"), ("MM", "deserialize")}
+RAW_SINKS = {"sendMessage", "sendRichMessage", "sendPlainMessage", "sendActionBar", "sendTitle", "kickPlayer",
+             "setDisplayName", "setCustomName", "setPlayerListName", "disallow", "kick", "disconnect"}
+LETTER = re.compile("[A-Za-z가-힣]")
+DYN = re.compile(r"//\s*lang-dyn:\s*(.+?)\s*$")
+
+# ── 콘텐츠 → 열쇠 (12.5 의 표와 같다) ──
+# 콘텐츠 파일의 맨 위 id 마다 있어야 하는 lang 열쇠. line 은 한 줄, list 는 여러 줄 (목록). 콘텐츠 파일이 생기는 마일스톤에서
+# 여기에 한 줄을 더한다 (표에 없는 콘텐츠 파일은 경고)
+CONTENT_KEYS = {
+    "skills.yml": (("skill.{id}.name", "line"), ("skill.{id}.desc", "list")),
+    "items.yml": (("item.{id}.name", "line"), ("item.{id}.lore", "list")),
+    "bosses.yml": (("boss.{id}.name", "line"),),
+}
+# 콘텐츠에 있으면 안 되는 글 칸 (글은 lang 열쇠로). display 는 투사체 모습 (재료 id) 이라 id 꼴이면 된다
+CONTENT_TEXT_FIELDS = {"name", "display_name", "title", "subtitle", "description", "desc", "lore", "text", "flavor",
+                       "message"}
+ID_LIKE = re.compile(r"^[a-z0-9_:./#-]+$")
 
 
 def advance(ch):
@@ -121,55 +175,139 @@ class Report:
 
 # ── Java ──
 
-def java_strings(src):
-    """주석을 뺀 소스에서 (문장 글, [(줄 번호, 문자열 글)]) 들을 낸다. 문장은 ; { } 로 끊는다."""
-    stmts = []
-    cur, lits = [], []
+ESCAPE = re.compile(r"\\(u+[0-9a-fA-F]{4}|[0-3][0-7]{0,2}|[4-7][0-7]?|.)", re.S)
+ESCAPES = {"n": "\n", "t": "\t", "r": "\r", "b": "\b", "f": "\f", "s": " "}
+WORD = re.compile(r"[A-Za-z_$0-9][A-Za-z0-9_$]*")
+
+
+def unescape(s):
+    """Java 문자열의 \\uXXXX, \\n, 8진 escape 를 푼다 ("\\uc18c\\uc6b8" 도 한글로 본다)."""
+    def one(m):
+        e = m.group(1)
+        if e[0] == "u":
+            return chr(int(e.lstrip("u"), 16))
+        if e[0] in "01234567":
+            return chr(int(e, 8))
+        return ESCAPES.get(e, e)
+    return ESCAPE.sub(one, s)
+
+
+def java_tokens(src):
+    """주석을 뺀 낱말들 [(종류, 값, 줄)]. 종류: id (이름·숫자), str (문자열, escape 를 푼 값. 글 블록도), chr, op (한 글자)."""
+    toks = []
     i, line, n = 0, 1, len(src)
     while i < n:
         c = src[i]
-        if src.startswith("//", i):
+        if c == "\n":
+            line += 1
+            i += 1
+        elif c.isspace():
+            i += 1
+        elif src.startswith("//", i):
             j = src.find("\n", i)
-            j = n if j < 0 else j
-            i = j
-            continue
-        if src.startswith("/*", i):
+            i = n if j < 0 else j
+        elif src.startswith("/*", i):
             j = src.find("*/", i + 2)
             j = n if j < 0 else j + 2
             line += src.count("\n", i, j)
             i = j
-            continue
-        if src.startswith('"""', i):
+        elif src.startswith('"""', i):
             j = src.find('"""', i + 3)
-            j = n if j < 0 else j + 3
-            lits.append((line, src[i + 3:j - 3]))
-            line += src.count("\n", i, j)
-            cur.append('""')
-            i = j
-            continue
-        if c == '"' or c == "'":
+            j = n if j < 0 else j
+            toks.append(("str", unescape(src[i + 3:j]), line))
+            line += src.count("\n", i, j + 3)
+            i = j + 3
+        elif c in "\"'":
             j = i + 1
-            while j < n and src[j] != c:
+            while j < n and src[j] != c and src[j] != "\n":
                 j += 2 if src[j] == "\\" else 1
-            if c == '"':
-                lits.append((line, src[i + 1:j]))
-            cur.append(c + c)
+            toks.append(("str" if c == '"' else "chr", unescape(src[i + 1:j]), line))
             i = j + 1
-            continue
-        if c == "\n":
-            line += 1
-        if c in ";{}":
-            stmts.append(("".join(cur), lits))
-            cur, lits = [], []
         else:
-            cur.append(c)
+            m = WORD.match(src, i)
+            if m:
+                toks.append(("id", m.group(), line))
+                i = m.end()
+            else:
+                toks.append(("op", c, line))
+                i += 1
+    return toks
+
+
+def call_args(toks, at):
+    """toks[at] 이 '(' 일 때 → (인수들 [[낱말...]], 닫는 ')' 의 자리). 괄호 깊이 0 의 쉼표로 나눈다."""
+    args, cur, depth, i = [], [], 0, at + 1
+    while i < len(toks):
+        kind, val, _ = toks[i]
+        if kind == "op" and val in "([{":
+            depth += 1
+        elif kind == "op" and val in ")]}":
+            if depth == 0:
+                if cur or args:
+                    args.append(cur)
+                return args, i
+            depth -= 1
+        elif kind == "op" and val == "," and depth == 0:
+            args.append(cur)
+            cur = []
+            i += 1
+            continue
+        cur.append(toks[i])
         i += 1
-    stmts.append(("".join(cur), lits))
-    return stmts
+    return args, len(toks) - 1
+
+
+def calls(toks, names):
+    """임자.이름( 부르기들 → [(임자, 이름, 인수들, 첫 줄, 끝 줄, 시작 자리, 끝 자리)]. names = {(임자, 이름)} 또는 이름만."""
+    out = []
+    for i in range(len(toks) - 3):
+        a, dot, b, par = toks[i:i + 4]
+        if a[0] != "id" or dot[1] != "." or b[0] != "id" or par[1] != "(":
+            continue
+        if (a[1], b[1]) not in names:
+            continue
+        args, end = call_args(toks, i + 3)
+        out.append((a[1], b[1], args, a[2], toks[end][2], i, end))
+    return out
+
+
+def literal(arg):
+    """인수가 문자열 하나뿐이면 그 값, 아니면 None."""
+    return arg[0][1] if len(arg) == 1 and arg[0][0] == "str" else None
+
+
+def log_spans(toks):
+    """서버 기록 부르기의 괄호 안 (낱말 자리 범위들)."""
+    spans = []
+    for i in range(len(toks) - 3):
+        a, dot, b, par = toks[i:i + 4]
+        owner = a[1]
+        if a[0] == "op" and a[1] == ")" and i >= 2 and toks[i - 1][1] == "(" and toks[i - 2][1] == "getLogger":
+            owner = "getLogger"
+        if owner not in LOG_OWNERS or dot[1] != "." or b[1] not in LOG_METHODS or par[1] != "(":
+            continue
+        _, end = call_args(toks, i + 3)
+        spans.append((i + 3, end))
+    return spans
+
+
+def marker_lines(src, word):
+    return {i for i, l in enumerate(src.split("\n"), 1) if word in l}
+
+
+def dyn_markers(src):
+    """줄 번호 → // lang-dyn: 뒤의 항목들."""
+    out = {}
+    for i, l in enumerate(src.split("\n"), 1):
+        m = DYN.search(l)
+        if m:
+            out[i] = [x.strip() for x in m.group(1).split(",") if x.strip()]
+    return out
 
 
 def check_java(report, root=JAVA):
-    calls = []
+    """Java 를 읽어 한글 문자열·번역 안 되는 글을 거르고, 열쇠 부르기 [(파일, 줄, 임자.이름, 열쇠 인수, 짝 인수, 표시)] 를 낸다."""
+    found = []
     for base, dirs, files in os.walk(root):
         dirs.sort()
         for f in sorted(files):
@@ -179,26 +317,153 @@ def check_java(report, root=JAVA):
             rel = os.path.relpath(path, ROOT)
             with open(path, encoding="utf-8") as fh:
                 src = fh.read()
-            for m in LANG_CALL.finditer(src):
-                calls.append((rel, src.count("\n", 0, m.start()) + 1, m.group(2)))
-            ok_lines = {i for i, l in enumerate(src.split("\n"), 1) if "lang-ok" in l}
-            for text, lits in java_strings(src):
-                korean = [(ln, s) for ln, s in lits if HANGUL.search(s) and ln not in ok_lines]
-                if not korean or LOG_CALL.search(text):
+            toks = java_tokens(src)
+            ok_lines = marker_lines(src, "lang-ok")
+            machine = marker_lines(src, "lang-machine")
+            dyn = dyn_markers(src)
+
+            # 한글: 서버 기록 부르기의 괄호 안이거나 // lang-ok 줄만 된다
+            logged = set()
+            for a, b in log_spans(toks):
+                logged.update(range(a, b + 1))
+            for i, (kind, val, ln) in enumerate(toks):
+                if kind == "str" and HANGUL.search(val) and i not in logged and ln not in ok_lines:
+                    report.add("오류", "java", f"{rel}:{ln}", f"한글 문자열 (언어 열쇠로, 또는 서버 기록 줄로): {val[:60]!r}")
+
+            # 번역되지 않는 글: Component.text("글자") 같은 것, sendMessage("글자") 같은 문자열 받는 곳
+            for owner, name, args, ln, last, *_ in calls(toks, TEXT_MAKERS):
+                lits = [t[1] for t in (args[0] if args else []) if t[0] == "str" and LETTER.search(t[1])]
+                if lits and not machine & set(range(ln, last + 1)):
+                    report.add("오류", "text", f"{rel}:{ln}", f"{owner}.{name}({lits[0][:40]!r}...) 는 번역되지 않는다 "
+                               "(Lang.c 열쇠로. 기계 글이면 그 줄에 // lang-machine)")
+            for i in range(len(toks) - 2):
+                dot, b, par = toks[i:i + 3]
+                if dot[1] != "." or b[0] != "id" or b[1] not in RAW_SINKS or par[1] != "(":
                     continue
-                for ln, s in korean:
-                    report.add("오류", "java", f"{rel}:{ln}", f"한글 문자열 (언어 열쇠로, 또는 서버 기록 줄로): {s[:60]!r}")
-    return calls
+                args, end = call_args(toks, i + 2)
+                bare = [t[1] for a in args for t in top_level(a) if t[0] == "str" and LETTER.search(t[1])]
+                if bare and not machine & set(range(b[2], toks[end][2] + 1)):
+                    report.add("오류", "text", f"{rel}:{b[2]}", f"{b[1]}({bare[0][:40]!r}...) 에 글을 바로 넣었다 "
+                               "(Lang.c 열쇠로. 기계 글이면 그 줄에 // lang-machine)")
+
+            # 열쇠 부르기
+            for owner, name, args, ln, last, *_ in calls(toks, set(KEY_CALLS)):
+                marks = [m for x in range(ln, last + 1) for m in dyn.get(x, [])]
+                for k in KEY_CALLS[(owner, name)](args):
+                    if k >= len(args):
+                        report.add("오류", "keys", f"{rel}:{ln}", f"{owner}.{name} 에 열쇠 인수가 없다")
+                        continue
+                    pairs = [] if (owner, name) in HELPERS else args[k + 1:]
+                    found.append((rel, ln, f"{owner}.{name}", args[k], pairs, marks))
+    return found
 
 
-def check_keys(report, calls, ko):
+def top_level(arg):
+    """인수 안에서 괄호 깊이 0 의 낱말들 (sendMessage("글" + x) 의 "글". Component.text("글") 안은 따로 본다)."""
+    out, depth = [], 0
+    for t in arg:
+        if t[0] == "op" and t[1] in "([{":
+            depth += 1
+        elif t[0] == "op" and t[1] in ")]}":
+            depth -= 1
+        elif depth == 0:
+            out.append(t)
+    return out
+
+
+def key_slots(key, table):
+    """열쇠의 자리 이름들 (목록 열쇠는 모든 줄의 자리). 없는 열쇠면 None."""
+    flat = langpack.lines(table)
+    if key in table and isinstance(table[key], list):
+        names = set()
+        for i in range(1, len(table[key]) + 1):
+            names.update(langpack.slots(langpack.split_style(flat[f"{key}.{i}"])[1]))
+        return names
+    if key in flat:
+        return set(langpack.slots(langpack.split_style(flat[key])[1]))
+    return None
+
+
+def content_patterns():
+    """CONTENT_KEYS 의 열쇠 꼴을 glob 으로 ("skill.{id}.name" → "skill.*.name")."""
+    return {pat.replace("{id}", "*") for rules in CONTENT_KEYS.values() for pat, _ in rules}
+
+
+def check_keys(report, found, ko):
+    """
+    부르는 열쇠가 있는지, 넘기는 자리 이름이 그 열쇠의 자리와 같은지. 열쇠가 글자 그대로가 아니면 (만든 열쇠)
+    그 줄에 // lang-dyn: <glob>, … 가 있어야 한다: glob 은 lang 열쇠에 맞거나 콘텐츠 표 (CONTENT_KEYS) 의 꼴이다.
+    say 는 콘텐츠 say 부품의 key (check_content 가 본다), param 은 열쇠를 넘기는 도우미 (HELPERS, 부르는 곳을 본다).
+    돌려주는 값: (글자 그대로 본 곳, lang-dyn 으로 본 곳).
+    """
     keys = set(langpack.lines(ko)) | set(ko)
-    for rel, ln, key in calls:
-        if key not in keys:
-            report.add("오류", "keys", f"{rel}:{ln}", f"lang 에 없는 열쇠 {key!r}")
+    patterns = content_patterns()
+    checked = dynamic = 0
+    for rel, ln, what, karg, pairs, marks in found:
+        where = f"{rel}:{ln}"
+        key = literal(karg)
+        if what in {f"{o}.{n}" for o, n in HELPERS} and len(karg) == 1 and karg[0][1] == "null":
+            continue      # Items.icon(재료, 이름, null): 설명 없음
+        if key is not None:
+            checked += 1
+            want = key_slots(key, ko)
+            if want is None:
+                report.add("오류", "keys", where, f"{what}: lang 에 없는 열쇠 {key!r}")
+                continue
+            check_pairs(report, where, what, key, want, pairs)
+            continue
+        dynamic += 1
+        if not marks:
+            hint = literal(pairs[0]) if pairs else None
+            if what in ("Lang.c", "Lang.lines") and hint in keys:
+                report.add("오류", "keys", where, f"{what}(보는 사람, {hint!r}, ...): 자리 인수는 (이름, 값) 짝이다 (남는 인수 하나)")
+            else:
+                report.add("오류", "keys", where, f"{what}: 열쇠가 글자 그대로가 아니다 ({src_text(karg)}). "
+                           "그 줄에 // lang-dyn: <열쇠 glob> 을 단다 (12.5, 13.7)")
+            continue
+        for m in marks:
+            if m in ("say", "param"):
+                if m == "param" and not any(rel.endswith(os.sep + h[0] + ".java") for h in HELPERS):
+                    report.add("오류", "keys", where, f"lang-dyn: param 은 열쇠를 넘기는 도우미 (HELPERS) 안에서만")
+                continue
+            hits = sorted(k for k in keys if fnmatch.fnmatchcase(k, m))
+            if m not in patterns and not hits:
+                report.add("오류", "keys", where, f"lang-dyn: {m!r} 에 맞는 lang 열쇠가 없다 (콘텐츠 표에도 없다)")
+            for k in hits:
+                if k in ko or not isinstance(ko.get(k.rsplit(".", 1)[0]), list):
+                    want = key_slots(k, ko)
+                    if want is not None:
+                        check_pairs(report, where, what, k, want, pairs)
+    return checked, dynamic
+
+
+def check_pairs(report, where, what, key, want, pairs):
+    if len(pairs) % 2:
+        report.add("오류", "keys", where, f"{what} {key!r}: 자리 인수는 (이름, 값) 짝이다 (남는 인수 하나)")
+        return
+    names = []
+    for j in range(0, len(pairs), 2):
+        n = literal(pairs[j])
+        if n is None:
+            report.add("오류", "keys", where, f"{what} {key!r}: 자리 이름은 글자 그대로 쓴다 ({src_text(pairs[j])})")
+            return
+        names.append(n)
+    got = set(names)
+    if got != want:
+        miss, extra = sorted(want - got), sorted(got - want)
+        report.add("오류", "keys", where, f"{what} {key!r}: 자리가 lang 과 다르다"
+                   + (f" (빠짐 {miss})" if miss else "") + (f" (lang 에 없음 {extra})" if extra else ""))
+
+
+def src_text(arg):
+    return " ".join(t[1] if t[0] != "str" else repr(t[1]) for t in arg)[:60]
 
 
 def check_content(report, ko, root=CONTENT):
+    """
+    콘텐츠 YAML: 한글 글이 없고, 글 칸 (name, description, lore, text …) 이 없고 (글자와 상관없이), id 마다
+    CONTENT_KEYS 의 열쇠가 lang 에 있고, say 부품의 key 가 lang 에 있다 (자리 없이).
+    """
     import yaml
     keys = set(langpack.lines(ko)) | set(ko)
 
@@ -208,7 +473,11 @@ def check_content(report, ko, root=CONTENT):
                 k = node.get("key")
                 if not k or k not in keys:
                     report.add("오류", "keys", where, f"say 부품의 key {k!r} 가 lang 에 없다")
+                elif key_slots(k, ko):
+                    report.add("오류", "keys", where, f"say 부품의 key {k!r} 에 자리가 있다 (say 는 자리 값을 넘기지 않는다)")
             for k, v in node.items():
+                if k in CONTENT_TEXT_FIELDS or (k == "display" and isinstance(v, str) and not ID_LIKE.match(v)):
+                    report.add("오류", "content", f"{where}.{k}", f"콘텐츠에 글 칸 '{k}' (글은 lang 열쇠로, 12.5): {str(v)[:40]!r}")
                 walk(v, f"{where}.{k}")
         elif isinstance(node, list):
             for i, v in enumerate(node):
@@ -219,9 +488,33 @@ def check_content(report, ko, root=CONTENT):
     if not os.path.isdir(root):
         return
     for f in sorted(os.listdir(root)):
-        if f.endswith((".yml", ".yaml")):
-            with open(os.path.join(root, f), encoding="utf-8") as fh:
-                walk(yaml.safe_load(fh) or {}, os.path.relpath(os.path.join(root, f), ROOT))
+        if not f.endswith((".yml", ".yaml")):
+            continue
+        rel = os.path.relpath(os.path.join(root, f), ROOT)
+        with open(os.path.join(root, f), encoding="utf-8") as fh:
+            data = yaml.safe_load(fh) or {}
+        walk(data, rel)
+        rules = CONTENT_KEYS.get(f)
+        if rules is None:
+            report.add("경고", "content", rel, "CONTENT_KEYS 에 없는 콘텐츠 파일 (id 마다 있어야 할 lang 열쇠를 표에 더한다, 12.5)")
+            continue
+        ids = [str(k) for k in data] if isinstance(data, dict) else []
+        for pat, kind in rules:
+            for i in ids:
+                k = pat.format(id=i)
+                if k not in ko:
+                    report.add("오류", "keys", f"{rel}:{i}", f"lang 에 {k} 가 없다 (콘텐츠 id 의 열쇠, 12.5)")
+                elif kind == "list" and not isinstance(ko[k], list):
+                    report.add("오류", "keys", f"{rel}:{i}", f"{k} 는 목록 (여러 줄) 이어야 한다")
+                elif kind == "line" and isinstance(ko[k], list):
+                    report.add("오류", "keys", f"{rel}:{i}", f"{k} 는 한 줄이어야 한다 (목록이 아니다)")
+            # 콘텐츠에 없는 id 의 열쇠 (지운 스킬의 글이 남았다)
+            head, tail = pat.split("{id}")
+            for k in sorted(ko):
+                if k.startswith(head) and k.endswith(tail) and len(k) > len(head) + len(tail):
+                    i = k[len(head):len(k) - len(tail)]
+                    if "." not in i and i not in ids:
+                        report.add("경고", "content", k, f"{rel} 에 id {i!r} 가 없는데 lang 에 열쇠가 남았다")
 
 
 def pack_reader(pack):
@@ -286,16 +579,18 @@ def lint(pack=PACK_DIR, quiet=False):
     tables = langpack.load_all()
     for key, why in langpack.problems(tables):
         report.add("오류", "pair", key, why)
-    calls = check_java(report)
-    check_keys(report, calls, tables["ko"])
+    found = check_java(report)
+    checked, dynamic = check_keys(report, found, tables["ko"])
     check_content(report, tables["ko"])
     check_pack(report, tables, pack)
     check_width(report, tables)
+    report.calls = (checked, dynamic)
     if not quiet:
         report.print()
         keys = langpack.lines(tables["ko"])
         van = sum(1 for k in keys if k.startswith(langpack.VANILLA))
-        print(f"langcheck: 열쇠 {len(keys) - van}개 + 바닐라 {van}개 (ko, en), Java 열쇠 부르기 {len(calls)}곳, "
+        print(f"langcheck: 열쇠 {len(keys) - van}개 + 바닐라 {van}개 (ko, en), Java 열쇠 부르기 {checked + dynamic}곳 "
+              f"(글자 그대로 {checked}곳: 열쇠·자리 확인, 만든 열쇠 {dynamic}곳: lang-dyn 표시로 확인), "
               f"오류 {len(report.errors)}, 경고 {len(report.warnings)}")
     return report
 

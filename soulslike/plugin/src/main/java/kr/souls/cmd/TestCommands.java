@@ -237,18 +237,18 @@ public final class TestCommands {
      */
     private static void dialog(Souls plugin, Player p) {
         ClickCallback.Options once = ClickCallback.Options.builder().uses(1).lifetime(Duration.ofMinutes(5)).build();
-        // 글은 모두 번역 열쇠 (lang/ko.yml, en.yml). 단추는 양피지색 (바닐라 흰 글씨는 화면에서 가장 밝아 제목보다 튄다)
+        // 글은 모두 번역 열쇠 (lang/ko.yml, en.yml, 대체 글은 p 의 언어). 단추는 양피지색 (바닐라 흰 글씨는 화면에서 가장 밝아 제목보다 튄다)
         List<ActionButton> buttons = List.of(
-                ActionButton.builder(Lang.c("bonfire.rest")).width(160)
+                ActionButton.builder(Lang.c(p, "bonfire.rest")).width(160)
                         .action(DialogAction.customClick((r, a) -> plugin.test(p, "DIALOG click=rest t=" + plugin.ticker().now()), once)).build(),
-                ActionButton.builder(Lang.c("bonfire.warp")).width(160)
+                ActionButton.builder(Lang.c(p, "bonfire.warp")).width(160)
                         .action(DialogAction.customClick((r, a) -> plugin.test(p, "DIALOG click=warp t=" + plugin.ticker().now()), once)).build());
-        ActionButton exit = ActionButton.builder(Lang.c("bonfire.leave")).width(160)
+        ActionButton exit = ActionButton.builder(Lang.c(p, "bonfire.leave")).width(160)
                 .action(DialogAction.customClick((r, a) -> plugin.test(p, "DIALOG exit t=" + plugin.ticker().now()), once)).build();
         Dialog d = Dialog.create(b -> b.empty()
-                .base(DialogBase.builder(Lang.c("bonfire.test-name"))
+                .base(DialogBase.builder(Lang.c(p, "bonfire.test-name"))
                         .canCloseWithEscape(true).pause(false).afterAction(DialogBase.DialogAfterAction.CLOSE)
-                        .body(List.of(DialogBody.plainMessage(Lang.c("bonfire.status", "souls", "0", "level", "1"))))
+                        .body(List.of(DialogBody.plainMessage(Lang.c(p, "bonfire.status", "souls", "0", "level", "1"))))
                         .build())
                 .type(DialogType.multiAction(buttons).exitAction(exit).columns(1).build()));
         p.showDialog(d);

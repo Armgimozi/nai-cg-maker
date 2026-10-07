@@ -32,8 +32,10 @@ bonfire:
   warp: "<#d1c3a0>불을 건넌다"
   leave: "<#d1c3a0>일어선다"
   status: "<#b3a37f>소울 <souls> · 레벨 <level>"
-  # M0 의 시험 창(/soulstest dialog)에만 쓰는 이름. M2 에서 화톳불마다의 이름으로 바꾼다
-  test-name: "<#d1c3a0>탑옥 아래 화톳불"
+  # M0 의 시험 창(/soulstest dialog)에만 쓰는 이름. M2 에서 화톳불마다의 이름 (bonfire.<id>.name) 으로 바꾼다.
+  # 화톳불 이름은 두 언어 모두 장소 이름만 쓴다 ("탑옥 아래", "Beneath the Gaol Tower". 창이 화톳불 창이라 "화톳불" 을 붙이지
+  # 않는다. 창 제목 폭 300 에 "볼크 탑옥 ..." 같은 긴 이름이 들어가야 한다)
+  test-name: "<#d1c3a0>탑옥 아래"
 
 boss:
   # 큰 글씨. 아랫줄에 보스 이름
@@ -89,8 +91,9 @@ pack:
   description: "식은 가마"
 
 test:
-  # 시험 도구 이름과 설명 (debug.test-mode 의 /soulstest guard, swing). <kind> 막기 판, <ticks> 휘두름 틱
-  guard: "<#d1c3a0>시험 막기 · <kind>"
+  # 시험 도구 이름과 설명 (debug.test-mode 의 /soulstest guard, swing). <ticks> 휘두름 틱.
+  # <kind> 는 /soulstest guard 에 친 인수 그대로 (empty|control|bypass|strip) 다. 옮기지 않는 기계 글이라 [ ] 로 묶는다
+  guard: "<#d1c3a0>시험 막기 [<kind>]"
   guard-lore:
     - "<#8f8164>막기 성분을 시험하는 도구."
     - "<#6b5f4a>들고 있으면 몸 앞을 가린다."

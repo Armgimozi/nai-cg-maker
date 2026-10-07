@@ -52,7 +52,8 @@ L.run('lang', async (sc) => {
   const tr = ab && findTranslate(ab.raw, 'souls.hud.souls')
   sc.check('action bar = translatable souls.hud.souls', !!tr, ab ? JSON.stringify(ab.raw).slice(0, 200) : '행동 막대 없음')
   if (tr) {
-    sc.check('translatable carries an English fallback', typeof tr.fallback === 'string' && /^Souls %1\$s$/.test(tr.fallback), JSON.stringify(tr.fallback))
+    // 한 사람에게 가는 글의 대체 글은 그 사람의 언어 (Lang.c(viewer, ...)). 이 봇은 en_us 라 영어 (join 은 ko_kr 로 한국어를 본다)
+    sc.check('translatable carries the viewer-language (English) fallback', typeof tr.fallback === 'string' && /^Souls %1\$s$/.test(tr.fallback), JSON.stringify(tr.fallback))
     sc.check('translatable carries the key style (#b3a37f)', String(tr.color || '').toLowerCase() === '#b3a37f', JSON.stringify(tr.color))
     const shownEn = L.render(ab.raw, T.en).trim(); const shownFr = L.render(ab.raw, T.fr).trim(); const shownKo = L.render(ab.raw, T.ko).trim()
     sc.check('en_us reads "Souls N"', /^Souls [\d,]+$/.test(shownEn), JSON.stringify(shownEn))
@@ -72,8 +73,10 @@ L.run('lang', async (sc) => {
   }
   sc.check('item_name = translatable souls.test.guard', !!item, b.p.slots.slice(s0).map((x) => JSON.stringify(x.name)).join(' | ').slice(0, 300) || '칸 패킷 없음')
   if (item) {
-    sc.check('item name reads in English / Korean', L.render(item.name, T.en) === 'Test Guard · empty' && /^시험 막기 · empty$/.test(L.render(item.name, T.ko)),
+    sc.check('item name reads in English / Korean (<kind> is the typed argument)', L.render(item.name, T.en) === 'Test Guard [empty]' && /^시험 막기 \[empty\]$/.test(L.render(item.name, T.ko)),
       `${L.render(item.name, T.en)} / ${L.render(item.name, T.ko)}`)
+    // 아이템은 여러 사람이 볼 수 있어 대체 글 (팩이 없을 때) 이 영어다 (10.9)
+    sc.check('item fallback (no pack) is English', L.render(item.name, {}) === 'Test Guard [empty]', JSON.stringify(L.render(item.name, {})))
     const lk = item.lore.map((l) => L.translateKeys(l)[0])
     sc.check('lore lines = translatable souls.test.guard-lore.1, .2', lk.join() === 'souls.test.guard-lore.1,souls.test.guard-lore.2', lk.join())
     sc.check('lore is not italic (vanilla lore is italic by default)', item.lore.length && item.lore.every((l) => l.italic === false || l.italic === 0), item.lore.map((l) => l.italic).join())
@@ -100,7 +103,7 @@ L.run('lang', async (sc) => {
   // ── 관리자 답 (번역 열쇠 + 인수) ──
   const tp = await b.cmd('/souls tp nowhere', (m) => L.translateKeys(m.raw).includes('souls.admin.no-anchor'), 3000)
   sc.checkCmd('admin reply = translatable souls.admin.no-anchor', tp, (r) => !!r.msg)
-  if (tp.msg) sc.check('admin reply reads "No such place: nowhere"', L.render(tp.msg.raw, T.en) === 'No such place: nowhere', L.render(tp.msg.raw, T.en))
+  if (tp.msg) sc.check('admin reply reads "No such anchor: nowhere"', L.render(tp.msg.raw, T.en) === 'No such anchor: nowhere', L.render(tp.msg.raw, T.en))
   sc.check('no kick during lang scenario', !b.kick, b.kick || '')
   await b.quit()
 

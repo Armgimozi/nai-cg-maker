@@ -84,6 +84,11 @@ L.run('join', async (sc) => {
     const shown = L.render(ab.raw, L.langTable(L.readZip(got.buf), 'ko_kr'))
     sc.check('action bar reads "소울 N" with the pack ko_kr', /^소울 [\d,]+$/.test(shown.trim()), JSON.stringify(shown))
   }
+  // 팩이 아직 없거나 못 실었을 때 보이는 대체 글도 그 사람의 언어 (Lang.c(viewer, ...), 10.9)
+  if (ab) {
+    const fb = L.render(ab.raw, {})
+    sc.check('action bar fallback (no pack) is Korean for a ko_kr client', /^소울 [\d,]+$/.test(fb.trim()), JSON.stringify(fb))
+  }
   sc.check('food 20 (sprint allowed) at rest', b.food === 20, 'food=' + b.food)
 
   // ── 모험 모드 보호 (12.7, 13.4 표: 모험 모드에서 블록을 못 캐는지) ──

@@ -31,14 +31,19 @@ import java.util.regex.Pattern;
 
 /**
  * 게임 안 문구 (10.3, 10.9, 12.5). 원본은 jar 안 lang/ko.yml (한국어) 이고 lang/en.yml (영어) 은 따로 썼다. 열쇠가 같다.
- * 플러그인은 글을 고르지 않는다: Component.translatable("souls.열쇠", 영어 대체 글, 자리 값...) 에 그 열쇠의 꼴(색·꾸밈)을
+ * 플러그인은 글을 고르지 않는다: Component.translatable("souls.열쇠", 대체 글, 자리 값...) 에 그 열쇠의 꼴(색·꾸밈)을
  * 입혀 보내고, 클라이언트가 리소스팩의 assets/souls/lang/(ko_kr|en_us).json 에서 자기 언어의 글을 고른다
  * (pack/gen_pack.py 가 같은 YAML 로 만든다. 다른 언어로 들어온 사람은 en_us 를 본다). 아이템 이름·설명도 같다.
+ * 대체 글은 팩이 없을 때 (막 들어와 아직 싣기 전, 팩을 못 받았을 때) 만 보인다. 한 사람에게 보내는 글 (채팅·행동 막대·
+ * 제목·창·명령어 답) 은 c(보는 사람, 열쇠, ...) 로 그 사람의 언어를, 여러 사람이 볼 수 있는 아이템 이름·설명은
+ * c(열쇠, ...) 로 영어를 대체 글로 단다.
  * 팩을 싣기 전에 보이는 글 (팩 안내, 팩 때문에 쫓아낼 때, 짓는 중 접속 거절) 만 서버가 그 사람의 언어로 채운다 (render).
  * 데이터 폴더에는 꺼내 두지 않는다: 글을 바꾸면 팩도 바뀌어야 하므로 팩과 jar 를 함께 다시 만든다.
  *
  * YAML 의 한 줄 (예 "&lt;#b3a37f&gt;소울 &lt;souls&gt;"): 맨 앞 태그들이 꼴, 그 뒤의 이름 태그는 자리다.
  * 번역 인수의 차례는 한국어 원본에 자리가 나오는 차례다 (영어는 %2$s 처럼 차례를 바꿔도 된다).
+ * 자리 값은 ("자리 이름", 값) 짝으로 넘기고 열쇠와 자리 이름은 글자 그대로 쓴다: tools/langcheck.py 가 부르는 곳마다
+ * 열쇠가 있는지, 자리 이름이 lang 과 같은지 본다 (열쇠를 만들어 부르면 그 줄에 // lang-dyn: glob).
  */
 public final class Lang {
     /** 팩 언어 파일의 열쇠 앞머리 (바닐라 열쇠와 겹치지 않게) */
@@ -51,10 +56,10 @@ public final class Lang {
     private static final Pattern HEX = Pattern.compile("#[0-9a-fA-F]{6}");
 
     /**
-     * 열쇠 하나. text 는 꼴 태그를 뗀 글 (자리 태그는 그대로), slots 는 한국어에 자리가 나오는 차례,
-     * fallback 은 영어 글을 마인크래프트 번역 형식 (%1$s) 으로 바꾼 것 (팩이 없을 때 클라이언트가 이것을 쓴다).
+     * 열쇠 하나. text 는 언어마다 꼴 태그를 뗀 글 (자리 태그는 그대로), slots 는 한국어에 자리가 나오는 차례,
+     * fallback 은 언어마다 그 글을 마인크래프트 번역 형식 (%1$s) 으로 바꾼 것 (팩이 없을 때 클라이언트가 이것을 쓴다).
      */
-    private record Entry(Style style, Map<String, String> text, List<String> slots, String fallback) {}
+    private record Entry(Style style, Map<String, String> text, List<String> slots, Map<String, String> fallback) {}
 
     private static Map<String, Entry> entries = Collections.emptyMap();
     /** 목록 열쇠 → 줄 수 (줄마다 열쇠.1, 열쇠.2 ...) */
@@ -117,6 +122,10 @@ public final class Lang {
             YamlConfiguration y = YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
             for (String path : y.getKeys(true)) {
                 if (y.isConfigurationSection(path)) continue;
+                Object v = y.get(path);
+                // 따옴표 없는 Yes·No·off·12 는 YAML 이 참거짓·수로 읽는다 (gen_pack 은 이런 YAML 로 팩을 만들지 않는다)
+                boolean text = v instanceof List<?> l ? l.stream().allMatch(x -> x instanceof String) : v instanceof String;
+                if (!text) plugin.getLogger().severe(file + " 의 " + path + " 가 글이 아니다 (" + v + "). 따옴표로 묶는다.");
                 if (y.isList(path)) out.put(path, y.getStringList(path));
                 else out.put(path, y.getString(path, ""));
             }
@@ -135,7 +144,7 @@ public final class Lang {
             bad.add(key + ": 자리가 다르다 (ko " + slots + ", en " + slots(ep[1]) + ")"); // lang-ok
         }
         Map<String, String> text = Map.of(KO, kp[1], EN, ep[1]);
-        out.put(key, new Entry(style(kp[0]), text, slots, mcFormat(ep[1], slots)));
+        out.put(key, new Entry(style(kp[0]), text, slots, Map.of(KO, mcFormat(kp[1], slots), EN, mcFormat(ep[1], slots))));
     }
 
     /** "꼴태그들 + 글" → {꼴태그들, 글}. 맨 앞에서 꼴로 읽히는 태그만 떼고, 처음 만난 자리 태그에서 멈춘다. */
@@ -201,20 +210,39 @@ public final class Lang {
     /**
      * 번역 열쇠로 된 글 (클라이언트가 자기 언어로 고른다). args 는 "자리 이름", 값 짝. 값은 글이나 Component
      * (Component 면 그것도 번역 열쇠일 수 있다: 보스 이름 같은 것). 아이템 이름·설명에 그대로 써도 되게 기울임을 끈다.
+     * 대체 글은 영어다: 여러 사람이 볼 수 있는 것 (아이템 이름·설명) 에 쓴다. 한 사람에게 보내면 c(보는 사람, ...).
      */
     public static Component c(String key, Object... args) {
+        return make(key, EN, args);
+    }
+
+    /** 한 사람에게 보내는 글 (채팅, 행동 막대, 제목, 창, 명령어 답). 대체 글이 그 사람의 언어다 (팩이 없을 때 보인다). */
+    public static Component c(Player viewer, String key, Object... args) {
+        return make(key, langOf(viewer), args);
+    }
+
+    private static Component make(String key, String fallbackLang, Object[] args) {
         Entry e = entries.get(key);
         if (e == null) return missing(key);
-        return Component.translatable(PREFIX + key, e.fallback(), e.style(), args(key, e, args))
+        return Component.translatable(PREFIX + key, e.fallback().get(fallbackLang), e.style(), args(key, e, args))
                 .decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE);
     }
 
-    /** 목록 열쇠 (아이템 설명 같은 여러 줄). 줄마다 c(열쇠.n). 목록이 아니면 한 줄. */
+    /** 목록 열쇠 (아이템 설명 같은 여러 줄). 줄마다 c(열쇠.n). 목록이 아니면 한 줄. 대체 글은 영어. */
     public static List<Component> lines(String key, Object... args) {
+        return makeLines(key, EN, args);
+    }
+
+    /** 한 사람에게 보내는 여러 줄 (창 본문 같은 것). 대체 글이 그 사람의 언어. */
+    public static List<Component> lines(Player viewer, String key, Object... args) {
+        return makeLines(key, langOf(viewer), args);
+    }
+
+    private static List<Component> makeLines(String key, String fallbackLang, Object[] args) {
         Integer n = lists.get(key);
-        if (n == null) return List.of(c(key, args));
+        if (n == null) return List.of(make(key, fallbackLang, args));
         List<Component> out = new ArrayList<>(n);
-        for (int i = 1; i <= n; i++) out.add(c(key + "." + i, args));
+        for (int i = 1; i <= n; i++) out.add(make(key + "." + i, fallbackLang, args));
         return out;
     }
 
@@ -242,9 +270,9 @@ public final class Lang {
         return Component.text().append(render(KO, key, args)).append(Component.newline()).append(render(EN, key, args)).build();
     }
 
-    /** 명령어의 답. 플레이어에게는 번역 열쇠로, 콘솔에는 한국어로 (서버 기록은 한국어다). */
+    /** 명령어의 답. 플레이어에게는 번역 열쇠로 (대체 글은 그 사람의 언어), 콘솔에는 한국어로 (서버 기록은 한국어다). */
     public static void tell(CommandSender to, String key, Object... args) {
-        to.sendMessage(to instanceof Player ? c(key, args) : render(KO, key, args));
+        to.sendMessage(to instanceof Player p ? c(p, key, args) : render(KO, key, args));
     }
 
     /** 클라이언트 언어 (ko_kr, en_us ...) → KO 또는 EN. 한국어가 아니면 모두 영어 (팩의 en_us 와 같다). */

@@ -4,7 +4,9 @@
 # Voice: terse, dry, a little archaic. No exclamation marks, no hype words (legendary, ultimate, epic, mighty ...),
 # no modern slang, no "you can ..." explanations. tools/textlint.py checks this.
 # Names are fixed in lang/names.yml (Hrolf, Redin, Oswin ...). Terms: bonfire, Estus, souls, warmth (the resource of
-# rites), rite (술), memory (기억 칸), catalyst, bloodstain, fog gate, parry, roll.
+# rites), rite (술), memory (기억 칸), catalyst, bloodstain, fog gate, parry, roll, foe (적), guard (막기).
+# One word, one thing: "fires" (plural, lower case) are the bonfires as a network (Pass Between Fires); "the Fire"
+# (capital) is the kiln's great fire and is used only in ending.*.
 # Big titles are in capitals, as YOU DIED is. Menu buttons are in title case. Mind the width of each slot
 # (tools/langcheck.py measures every line against its slot, e.g. a title must stay under 104 pixels).
 
@@ -17,13 +19,13 @@ bonfire:
   refuse: "<#858079>Foes are near"
   no-warp: "<#8f8164>No other fire burns yet"
   rest: "<#d1c3a0>Rest"
-  warp: "<#d1c3a0>Cross the Fire"
+  warp: "<#d1c3a0>Pass Between Fires"
   leave: "<#d1c3a0>Rise"
   status: "<#b3a37f>Souls <souls> · Level <level>"
-  test-name: "<#d1c3a0>Bonfire Beneath the Gaol Tower"
+  test-name: "<#d1c3a0>Beneath the Gaol Tower"
 
 boss:
-  felled: "<#9e7c44>FELLED"
+  felled: "<#9e7c44>FOE FELLED"
 
 souls:
   recovered: "<#b3a37f>Souls reclaimed"
@@ -31,18 +33,18 @@ souls:
 door:
   one-way: "<#858079>It will not open from this side"
   locked: "<#858079>Locked"
-  opened: "<#858079>The door gives way"
+  opened: "<#858079>Unlocked"
   sealed: "<#858079>Sealed"
 
 bell:
-  rung: "<#b3a37f>The bell's toll carries far"
+  rung: "<#b3a37f>The toll of the bell carries far"
 
 taster:
   end: "<#b3a37f>THE WAY IS BARRED"
 
 spell:
   learned: "<#b3a37f>Rite learned"
-  no-slot: "<#8f8164>No memory left to hold it"
+  no-slot: "<#8f8164>Memory can hold no more"
   none: "<#858079>No rite held in memory"
 
 item:
@@ -54,33 +56,34 @@ origin:
 
 ending:
   rekindle: "Rekindle the Fire"
-  leave-cold: "Let It Lie Cold"
+  leave-cold: "Leave It Cold"
 
 build:
   refuse: "The world is still being raised. Return later."
 
 pack:
   prompt: "<#b3a37f>None may enter without the resource pack."
-  declined: "<#b3a37f>Without the resource pack, none may enter."
-  failed: "<#b3a37f>The resource pack did not arrive. Come again."
+  declined: "<#b3a37f>Resource pack refused. None may enter."
+  failed: "<#b3a37f>The resource pack did not arrive. Try again."
   description: "The Cold Kiln"
 
 test:
-  guard: "<#d1c3a0>Test Guard · <kind>"
+  # <kind> is the /soulstest guard argument (empty|control|bypass|strip), shown as typed, not translated
+  guard: "<#d1c3a0>Test Guard [<kind>]"
   guard-lore:
-    - "<#8f8164>A tool for trying the guard."
-    - "<#6b5f4a>Held up, it covers the body."
+    - "<#8f8164>For testing the guard."
+    - "<#6b5f4a>Raised, it covers the front."
   swing: "<#d1c3a0>Test Swing · <ticks>"
 
 skill:
   test_sweep:
     name: "<#d1c3a0>Test Sweep"
     desc:
-      - "<#8f8164>For trying the engine."
+      - "<#8f8164>For testing the engine."
   test_slam:
     name: "<#d1c3a0>Test Slam"
     desc:
-      - "<#8f8164>For trying the engine."
+      - "<#8f8164>For testing the engine."
 
 hud:
   souls: "<#b3a37f>Souls <n>"
@@ -88,8 +91,8 @@ hud:
 
 admin:
   players-only: "<#858079>A player must run this (or use /execute as)."
-  reloaded: "<#858079>Settings, glyphs and content read anew."
-  no-anchor: "<#858079>No such place: <anchor>"
+  reloaded: "<#858079>Settings, glyphs and content reloaded."
+  no-anchor: "<#858079>No such anchor: <anchor>"
   no-world: "<#858079>There is no game world."
   room-built: "<#858079>Test room raised: <detail>"
   room-failed: "<#858079>Test room could not be raised: <error>"
@@ -99,6 +102,6 @@ vanilla:
     respawn: "<gray>Rise"
     titleScreen: "<gray>Depart"
     quit:
-      confirm: "Depart from this place?"
+      confirm: "Depart this place?"
     score:
       value: ""

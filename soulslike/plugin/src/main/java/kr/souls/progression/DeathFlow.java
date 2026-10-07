@@ -79,7 +79,7 @@ public final class DeathFlow implements Listener {
             } catch (RuntimeException ex) {
                 col = Glyphs.GORE3;
             }
-            title = Lang.c("death.title").color(col).decoration(TextDecoration.BOLD, false);
+            title = Lang.c(p, "death.title").color(col).decoration(TextDecoration.BOLD, false);
         }
         plugin.titles().big(p, plugin.ticker().now(), title, Component.empty(), c.fadeIn(), c.stay(), c.fadeOut());
         plugin.test(p, "TITLE mode=plugin glyph=" + glyph + " names=" + c.titleGlyphs().replace(' ', ','));

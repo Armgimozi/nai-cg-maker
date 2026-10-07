@@ -83,7 +83,7 @@ public final class SoulsCommands {
     }
 
     private static int help(CommandSender to) {
-        to.sendMessage(Component.text("/souls check | perf | reload | tp <room|lane|slab|ledge|lobby> | build room | pack [resend]", NamedTextColor.GRAY));
+        to.sendMessage(Component.text("/souls check | perf | reload | tp <room|lane|slab|ledge|lobby> | build room | pack [resend]", NamedTextColor.GRAY)); // lang-machine: 쓰는 법
         return Command.SINGLE_SUCCESS;
     }
 
@@ -161,7 +161,7 @@ public final class SoulsCommands {
 
     private static int perf(Souls plugin, CommandSender to) {
         for (String l : plugin.ticker().report()) to.sendMessage(Component.text(l, NamedTextColor.GRAY));
-        to.sendMessage(Component.text(String.format(Locale.ROOT, "server avg tick %.2f ms", Bukkit.getAverageTickTime()), NamedTextColor.GRAY));
+        to.sendMessage(Component.text(String.format(Locale.ROOT, "server avg tick %.2f ms", Bukkit.getAverageTickTime()), NamedTextColor.GRAY)); // lang-machine
         return Command.SINGLE_SUCCESS;
     }
 
@@ -188,7 +188,7 @@ public final class SoulsCommands {
 
     private static int packStatus(Souls plugin, CommandSender to) {
         PackService pk = plugin.pack();
-        to.sendMessage(Component.text("pack sha1=" + pk.sha1() + " check=" + pk.check() + " required=" + pk.required()
+        to.sendMessage(Component.text("pack sha1=" + pk.sha1() + " check=" + pk.check() + " required=" + pk.required() // lang-machine
                 + " send-at=" + plugin.cfg().pack.sendAt() + "\n" + pk.url() + "\n" + pk.checkNote(), NamedTextColor.GRAY));
         return Command.SINGLE_SUCCESS;
     }

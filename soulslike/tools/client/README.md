@@ -9,7 +9,7 @@
 | `setup_client.py` | piston-meta 에서 버전 문서 → 라이브러리·네이티브·에셋을 받는다 (처음 한 번, 약 110MB) |
 | `devserver.sh` | 점검용 Paper 서버 (오프라인 접속, 시험 모드, 팩을 로컬 포트에서, Tester 에게 op) |
 | `m0_shots.sh` | M0 점검 그림 묶음 (13.4 가운데 M0 에 있는 것 전부. 그림마다 몇 번을 보는지 머리말에 있다). 서버폴더를 주면 9 회전 구르기와 13 설정 단계 팩 보내기도 |
-| `i18n_shots.sh` | 영어판 점검 그림 (10.3, 10.9): 같은 장면 (들어온 HUD, 휴식 창, 아이템 설명 칸, 사망 화면, 그만두기 확인) 을 `ko_kr` 과 `en_us` 클라이언트로 찍는다 (`dist/screenshots/i18n/`) |
+| `i18n_shots.sh` | 영어판 점검 그림 (10.3, 10.9): 같은 장면 (들어온 HUD, 휴식 창, 아이템 설명 칸, 사망 화면, 그만두기 확인) 을 `ko_kr` 과 `en_us` 클라이언트로 찍는다 (`dist/screenshots/i18n/`). `SRVDIR=<서버폴더>` 를 주면 설정 단계 (`send-at: configure`) 의 팩 안내·쫓아냄 글도 두 언어로 찍는다 |
 | `log4j2-client.xml` | 클라이언트 기록을 보통 글줄로 (런처 설정은 XML 로 낸다) |
 
 ## 쓰는 법
@@ -79,6 +79,9 @@ tools/client/devserver.sh --stop /tmp/srv
 | `MC_OPTIONS` | | options.txt 에 더할 줄 `"키:값;키:값"` (예 `"chatVisibility:2;renderDistance:12"`) |
 | `MC_XMX` | `2G` | 클라이언트 메모리 |
 | `MC_CLIENT_JAR` | | 이미 받아 둔 client.jar (sha1 이 맞을 때만 복사) |
+| `MC_PACK` | `accept` | 서버 팩: `accept` 묻지 않고 받는다, `prompt` 묻는 창을 띄운다 (서버 안내 글이 보인다), `decline` 받지 않는다 |
+
+`devserver.sh` 는 `SET="pack.send-at=configure pack.self-check=false"` 처럼 플러그인 설정 몇 개를 더 바꿔 켤 수 있다 (최상위 묶음 바로 밑의 키, 빈칸으로 나눈다).
 
 ## 알아 둘 것
 

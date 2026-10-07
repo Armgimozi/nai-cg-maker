@@ -1240,9 +1240,9 @@ public final class Mechanics {
         @Override
         public void run(SkillContext ctx) {
             if (key.isEmpty()) return;
-            var comp = Lang.c(key);
             for (Player pl : ctx.caster.getWorld().getPlayers()) {
-                if (pl.getLocation().distance(ctx.caster.getLocation()) <= radius) pl.sendMessage(comp);
+                // 듣는 사람마다 그 사람의 언어를 대체 글로 (10.9)
+                if (pl.getLocation().distance(ctx.caster.getLocation()) <= radius) pl.sendMessage(Lang.c(pl, key)); // lang-dyn: say
             }
         }
     }

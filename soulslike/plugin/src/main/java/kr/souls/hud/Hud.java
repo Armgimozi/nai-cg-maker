@@ -114,7 +114,8 @@ public final class Hud implements Listener {
         StringBuilder k = new StringBuilder();
         if (st.mana != null) k.append('m').append(Math.round(st.mana.cur())).append('/').append(Math.round(st.mana.max()));
         if (plugin.cfg().hud.showSouls()) k.append('s').append(souls.applyAsLong(p));
-        return k.toString();
+        // 언어도 넣는다: 대체 글이 그 사람의 언어라 (10.9) 클라이언트 언어를 바꾸면 다시 만든다
+        return k.isEmpty() ? "" : k.append('@').append(Lang.langOf(p)).toString();
     }
 
     /** 행동 막대 한 줄. 보일 것이 없으면 null. */
@@ -124,11 +125,11 @@ public final class Hud implements Listener {
         Pool mana = st.mana;
         if (mana != null) {
             // 온기 (술의 자원, 3.12.2). M5 의 첫 꼴인 행동 막대 글 "온기 34/60" (10.2). 그림 글자 막대는 같은 M5 안에서 바꾼다
-            parts.add(Lang.c("hud.warmth", "n", String.valueOf(Math.round(mana.cur())), "m", String.valueOf(Math.round(mana.max()))));
+            parts.add(Lang.c(p, "hud.warmth", "n", String.valueOf(Math.round(mana.cur())), "m", String.valueOf(Math.round(mana.max()))));
         }
         if (plugin.cfg().hud.showSouls()) {
             String n = NumberFormat.getIntegerInstance(Locale.US).format(souls.applyAsLong(p));
-            parts.add(Lang.c("hud.souls", "n", n));
+            parts.add(Lang.c(p, "hud.souls", "n", n));
         }
         if (parts.isEmpty()) return null;
         Component out = Component.empty();

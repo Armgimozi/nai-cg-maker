@@ -8,7 +8,10 @@
 #   PACK_PORT   jar 안 pack.zip 을 내보낼 포트 (기본 <포트> - 17000, 25602 → 8602)
 #   NO_PLUGIN=1 플러그인 없이 바닐라 Paper 로 (하네스만 볼 때)
 #   OPS         켠 뒤 op 를 줄 이름들 (기본 "Tester" = 하네스 기본 이름. /soulstest 는 souls.test 권한, 곧 op 가 필요하다)
-# 플러그인 설정(config.yml)은 켤 때마다 jar 안의 것을 새로 풀어 debug.test-mode: true, pack.serve-port, pack.url 만 바꾼다.
+#   SET         플러그인 설정을 더 바꾼다. "묶음.키=값" 을 빈칸으로 (예 "pack.send-at=configure pack.self-check=false").
+#               최상위 묶음 바로 밑의 키만 된다. 값은 그대로 쓴다 (글이면 따옴표까지 준다)
+# 플러그인 설정(config.yml)은 켤 때마다 jar 안의 것을 새로 풀어 debug.test-mode: true, pack.serve-port, pack.url 만 바꾼다
+# (그리고 SET).
 # 기록: <폴더>/console.log
 set -u
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -83,11 +86,13 @@ else
   mkdir -p "$D/plugins/Soulslike"
   unzip -p "$JAR" config.yml > "$D/plugins/Soulslike/config.yml" || die "jar 안에 config.yml 이 없다"
   # 최상위 블록(pack:, debug:) 안의 키만 바꾼다
-  awk -v pp="$PACK_PORT" '
-    /^[^ #]/ { sec = $1 }
-    sec == "pack:"  && /^  url:/        { print "  url: \"http://127.0.0.1:" pp "/{sha1}.zip\""; next }
-    sec == "pack:"  && /^  serve-port:/ { print "  serve-port: " pp; next }
-    sec == "debug:" && /^  test-mode:/  { print "  test-mode: true"; next }
+  awk -v pp="$PACK_PORT" -v set="${SET:-}" '
+    BEGIN { n = split(set, kv, " "); for (i = 1; i <= n; i++) { eq = index(kv[i], "="); want[substr(kv[i], 1, eq - 1)] = substr(kv[i], eq + 1) } }
+    /^[^ #]/ { sec = $1; sub(":$", "", sec) }
+    /^  [a-z-]+:/ { k = $1; sub(":$", "", k); if ((sec "." k) in want) { print "  " k ": " want[sec "." k]; next } }
+    sec == "pack"  && /^  url:/        { print "  url: \"http://127.0.0.1:" pp "/{sha1}.zip\""; next }
+    sec == "pack"  && /^  serve-port:/ { print "  serve-port: " pp; next }
+    sec == "debug" && /^  test-mode:/  { print "  test-mode: true"; next }
     { print }
   ' "$D/plugins/Soulslike/config.yml" > "$D/plugins/Soulslike/config.yml.tmp" \
     && mv "$D/plugins/Soulslike/config.yml.tmp" "$D/plugins/Soulslike/config.yml"

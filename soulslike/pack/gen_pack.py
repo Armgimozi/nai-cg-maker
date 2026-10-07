@@ -37,6 +37,7 @@ import hashlib
 import io
 import json
 import os
+import subprocess
 import shutil
 import sys
 import zipfile
@@ -155,6 +156,12 @@ def write_glyphs(path, glyphs, title, plugin_title):
         f.write("\n".join(lines) + "\n")
 
 
+def pack_fallback(ko, en):
+    """팩 설명의 대체 글 (팩 언어를 싣기 전): 영어 글을 언어 파일과 같은 꼴로 (꼴 태그를 떼고, %% 와 %1$s)."""
+    order = langpack.slots(langpack.split_style(ko[PACK_DESCRIPTION_KEY])[1])
+    return langpack.mc_format(langpack.split_style(en[PACK_DESCRIPTION_KEY])[1], order)
+
+
 def config_death_title():
     """플러그인 config.yml 의 death.title (true 면 플러그인이 화면 제목으로 띄운다). 못 읽으면 False."""
     try:
@@ -194,13 +201,14 @@ def main(argv):
         print(f"lang/ko.yml 과 en.yml 이 {len(bad)}곳 어긋나 팩을 묶지 않는다.")
         return 1
     en = langpack.lines(tables["en"])
+    ko = langpack.lines(tables["ko"])
     if os.path.exists(OUT):
         shutil.rmtree(OUT)
     os.makedirs(OUT)
 
     # 1. pack.mcmeta, pack.png
     write_json(os.path.join(OUT, "pack.mcmeta"), {
-        "pack": {"description": {"translate": langpack.PREFIX + PACK_DESCRIPTION_KEY, "fallback": en[PACK_DESCRIPTION_KEY]},
+        "pack": {"description": {"translate": langpack.PREFIX + PACK_DESCRIPTION_KEY, "fallback": pack_fallback(ko, en)},
                  "min_format": PACK_FORMAT, "max_format": PACK_FORMAT},
     })
     icon = pack_icon()
@@ -239,10 +247,17 @@ def main(argv):
     if "--no-dist" not in argv:
         packs = os.path.join(DIST, "packs")
         os.makedirs(packs, exist_ok=True)
+        # 한 번 커밋한 팩은 지우지 않는다: 그 판의 jar 를 받은 서버가 아직 그 주소로 팩을 보낸다 (지우면 "다운로드 실패").
+        # 커밋하지 않은 중간 팩만 지운다.
+        try:
+            kept = set(os.path.basename(x) for x in subprocess.run(
+                ["git", "ls-files", "--", packs], cwd=ROOT, capture_output=True, text=True, check=True).stdout.split())
+        except (OSError, subprocess.CalledProcessError):
+            kept = None   # git 이 없으면 아무것도 지우지 않는다
         for old in sorted(os.listdir(packs)):
-            if old.endswith(".zip") and old != sha1 + ".zip":
+            if old.endswith(".zip") and old != sha1 + ".zip" and kept is not None and old not in kept:
                 os.remove(os.path.join(packs, old))
-                print("지난 팩을 지웠다:", old)
+                print("커밋하지 않은 지난 팩을 지웠다:", old)
         with open(os.path.join(packs, sha1 + ".zip"), "wb") as f:
             f.write(data)
 

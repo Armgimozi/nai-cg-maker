@@ -261,28 +261,39 @@ public final class PackService implements Listener {
     public void onConfigure(AsyncPlayerConnectionConfigureEvent e) {
         if (!ready() || !"configure".equals(cfg().sendAt())) return;
         PlayerConfigurationConnection conn = e.getConnection();
+        String lang = lang(conn);
+        plugin.test(null, "PACK configure name=" + conn.getProfile().getName() + " lang=" + lang + " locale=" + locale(conn));
         CompletableFuture<ResourcePackStatus> done = new CompletableFuture<>();
         conn.getAudience().sendResourcePacks(request((id, status, audience) -> {
             if (!status.intermediate()) done.complete(status);
-        }, lang(conn)));
+        }, lang));
         try {
             ResourcePackStatus s = done.get(cfg().configureTimeout(), TimeUnit.SECONDS);
             if (required() && s == ResourcePackStatus.DECLINED) {
-                conn.disconnect(Lang.render(lang(conn), "pack.declined"));
+                conn.disconnect(Lang.render(lang, "pack.declined"));
             } else if (required() && s != ResourcePackStatus.SUCCESSFULLY_LOADED && s != ResourcePackStatus.DISCARDED) {
-                conn.disconnect(Lang.render(lang(conn), "pack.failed"));
+                conn.disconnect(Lang.render(lang, "pack.failed"));
             }
         } catch (Exception ex) {
             plugin.getLogger().warning(conn.getProfile().getName() + " 의 리소스팩 답을 기다리다 그만뒀습니다: " + ex);
         }
     }
 
-    /** 설정 단계의 클라이언트 언어 (클라이언트 정보가 아직 오지 않았으면 영어). */
+    /**
+     * 설정 단계의 클라이언트 언어 (KO 또는 EN). 이 이벤트는 Paper 의 설정 작업 줄에서 registry 맞추기 (클라이언트의 known
+     * packs 답을 기다린다) 뒤에 돈다. 바닐라 클라이언트는 설정 단계에 들어서자마자 ClientInformation 을 보내고 known packs
+     * 답은 서버가 물은 뒤에 보내므로, 같은 연결의 차례대로 여기서는 언어가 이미 와 있다 [확인 (클라): send-at: configure 로
+     * ko_kr 클라이언트가 한국어 안내와 쫓아냄 글을 받는다, 13.4 의 13]. 못 읽으면 영어.
+     */
     private static String lang(PlayerConfigurationConnection conn) {
+        return Lang.langOf(locale(conn));
+    }
+
+    private static String locale(PlayerConfigurationConnection conn) {
         try {
-            return Lang.langOf(conn.getClientOption(ClientOption.LOCALE));
+            return conn.getClientOption(ClientOption.LOCALE);
         } catch (RuntimeException ex) {
-            return Lang.EN;
+            return null;
         }
     }
 

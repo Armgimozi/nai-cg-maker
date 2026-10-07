@@ -140,14 +140,16 @@ public final class Souls extends JavaPlugin {
         return n;
     }
 
-    /** config.yml, 문구, 그림 글자, 콘텐츠를 다시 읽는다 (세계와 팩은 그대로). */
+    /**
+     * config.yml, 그림 글자, 콘텐츠를 다시 읽는다 (세계와 팩은 그대로). 문구는 다시 읽지 않는다: jar 와 팩 안에만 있어
+     * 글을 바꾸면 팩과 jar 를 함께 다시 만든다 (10.9).
+     */
     public void reloadAll() {
         reloadConfig();
         cfg = new Config(getConfig());
-        Lang.load(this);
         Glyphs.load(this);
         skills.load(content.yml("skills.yml"));
-        // 시험 모드를 켜고 끄면 /soulstest 가 보이고 숨는다. 바뀐 문구로 HUD 를 다시 그린다
+        // 시험 모드를 켜고 끄면 /soulstest 가 보이고 숨는다. 바뀐 설정 (hud.show-souls 같은 것) 으로 HUD 를 다시 그린다
         for (Player p : Bukkit.getOnlinePlayers()) {
             p.updateCommands();
             hud.invalidate(p);
@@ -160,7 +162,7 @@ public final class Souls extends JavaPlugin {
      */
     public void test(Player p, String line) {
         if (!cfg.testMode) return;
-        if (p != null) p.sendMessage(Component.text("[T] " + line, kr.souls.hud.Glyphs.ASH3));
+        if (p != null) p.sendMessage(Component.text("[T] " + line, kr.souls.hud.Glyphs.ASH3)); // lang-machine: 봇이 읽는 시험 줄
         if (cfg.logTestLines) getLogger().info("[T] " + (p == null ? "" : p.getName() + " ") + line);
     }
 

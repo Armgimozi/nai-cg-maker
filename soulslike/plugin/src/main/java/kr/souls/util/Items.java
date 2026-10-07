@@ -19,12 +19,15 @@ import java.util.List;
 public final class Items {
     private Items() {}
 
-    /** 창의 그림 칸 같은 아이템. 이름과 설명은 lang 열쇠 (loreKey 는 목록 열쇠, 없으면 null). */
+    /**
+     * 창의 그림 칸 같은 아이템. 이름과 설명은 lang 열쇠 (loreKey 는 목록 열쇠, 없으면 null). 아이템이라 대체 글은 영어다 (10.9).
+     * 열쇠를 넘기기만 하므로 tools/langcheck.py 는 이것을 부르는 곳의 열쇠를 본다 (HELPERS).
+     */
     public static ItemStack icon(Material m, String nameKey, String loreKey) {
         ItemStack it = new ItemStack(m);
         ItemMeta meta = it.getItemMeta();
-        meta.displayName(Lang.c(nameKey));
-        if (loreKey != null) meta.lore(Lang.lines(loreKey));
+        meta.displayName(Lang.c(nameKey)); // lang-dyn: param
+        if (loreKey != null) meta.lore(Lang.lines(loreKey)); // lang-dyn: param
         meta.addItemFlags(ItemFlag.values());
         it.setItemMeta(meta);
         return it;

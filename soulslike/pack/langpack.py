@@ -40,22 +40,43 @@ LEGACY = {
     "aqua": "b", "red": "c", "light_purple": "d", "yellow": "e", "white": "f",
 }
 DECORATIONS = {"obfuscated": "k", "bold": "l", "strikethrough": "m", "underlined": "n", "italic": "o"}
+# MiniMessage 의 태그 이름 (줄임말과 다른 철자 포함). 꼴로 읽지 않는 것 (<i>, <br>, <reset>, <grey> …) 이 맨 앞이나 글 가운데에
+# 있으면 자리로 읽혀 클라이언트에 빈칸이 나오므로 자리 이름으로 쓰지 못한다
+RESERVED = {
+    "color", "colour", "c", "grey", "dark_grey", "b", "i", "em", "u", "underline", "st", "obf", "reset", "pre",
+    "newline", "br", "click", "hover", "key", "lang", "tr", "translate", "lang_or", "tr_or", "translate_or",
+    "insert", "insertion", "font", "gradient", "rainbow", "transition", "selector", "sel", "score", "nbt", "data",
+    "pride", "shadow", "sprite", "head", "keybind",
+} | set(LEGACY) | set(DECORATIONS)
 
 
 def path_of(lang):
     return os.path.join(LANG_DIR, lang + ".yml")
 
 
+class Table(dict):
+    """{점으로 이은 열쇠: 글 또는 [글...]}. bad 는 글이 아닌 값 [(열쇠, 무엇이 틀렸나)] (problems 가 오류로 낸다)."""
+    def __init__(self, *a):
+        super().__init__(*a)
+        self.bad = []
+
+
 def flatten(node, key="", out=None):
-    """YAML 트리 → {점으로 이은 열쇠: 글 또는 [글...]}."""
-    out = {} if out is None else out
+    """YAML 트리 → Table. 따옴표 없는 Yes·No·off·12 는 YAML 이 참거짓·수로 읽으므로 (Java 는 "true") 글이 아니면 bad 에 둔다."""
+    out = Table() if out is None else out
+
+    def text(v, where):
+        if not isinstance(v, str):
+            out.bad.append((where, f"글이 아니다 ({type(v).__name__} {v!r}). 따옴표로 묶는다"))
+            return "" if v is None else str(v)
+        return v
     if isinstance(node, dict):
         for k, v in node.items():
             flatten(v, f"{key}.{k}" if key else str(k), out)
     elif isinstance(node, list):
-        out[key] = ["" if v is None else str(v) for v in node]
+        out[key] = [text(v, f"{key}[{i}]") for i, v in enumerate(node)]
     else:
-        out[key] = "" if node is None else str(node)
+        out[key] = text(node, key)
     return out
 
 
@@ -134,10 +155,14 @@ def legacy_prefix(tags):
 def problems(tables):
     """
     두 언어의 짝이 맞는지. tables = {"ko": load("ko"), "en": load("en")}. 돌려주는 값: [(열쇠, 무엇이 틀렸나)].
-    열쇠·줄 수·꼴·자리가 같아야 하고, 꼴 태그는 맨 앞에만, 자리 이름은 소문자 이름, 바닐라 열쇠는 이름 색만.
+    열쇠·줄 수·꼴·자리가 같아야 하고, 꼴 태그는 맨 앞에만, 자리 이름은 소문자 이름 (MiniMessage 태그 이름은 안 된다),
+    바닐라 열쇠는 이름 색만, 값은 모두 글.
     """
     out = []
     ko, en = tables["ko"], tables["en"]
+    for lang in LANGS:
+        for k, why in getattr(tables[lang], "bad", []):
+            out.append((k, f"{lang}.yml: {why}"))
     for k in sorted(set(ko) - set(en)):
         out.append((k, "en.yml 에 없다"))
     for k in sorted(set(en) - set(ko)):
@@ -162,6 +187,9 @@ def problems(tables):
             for name in slots(x):
                 if is_style_tag(name):
                     out.append((k, f"{lang}: 글 가운데의 꼴 태그 <{name}> (꼴은 맨 앞에 하나. 섞어야 하면 열쇠를 나눈다)"))
+                elif name.lstrip("!") in RESERVED:
+                    out.append((k, f"{lang}: <{name}> 은 MiniMessage 태그 이름이라 자리로 쓸 수 없다 (꼴은 맨 앞의 색·"
+                                   f"<bold> 같은 것만, 줄바꿈은 목록으로)"))
                 elif not SLOT.match(name):
                     out.append((k, f"{lang}: 자리 이름 <{name}> 은 소문자·숫자·_·- 만"))
         if k.startswith(VANILLA):

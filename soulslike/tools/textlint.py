@@ -20,7 +20,9 @@
         slang 현대 구어 (okay, cool, gonna, awesome …), explain 설명문체 (you can, allows you, lets you, please …)
   경고  long 한 줄이 48자 넘음 (폭은 tools/langcheck.py 가 픽셀로 잰다), lines
 이름 (lang/names.yml)
-  오류  name: ko.yml 의 열쇠에 고유 이름이 있으면 en.yml 의 같은 열쇠에 정한 영어 이름이 있어야 한다
+  오류  name: ko.yml 의 열쇠에 고유 이름이 있으면 en.yml 의 같은 열쇠에 정한 영어 표기가 있어야 한다 (대소문자 없이 글 안에
+        들어 있으면 된다. 목록이면 하나). 이름 앞이 한글이면 이름이 아니다 (돌아오다). 낱말과 소리가 같은 이름 (오다) 은
+        names.yml 의 after 에 적은 토씨가 뒤에 붙을 때만 (오다의, 오다가)
 
   MiniMessage 태그(<red>, <!italic>)와 자리(<souls>), § 색 코드는 지우고 잰다. YAML 주석은 보지 않는다.
 """
@@ -223,16 +225,31 @@ def collect(paths):
 
 
 def load_names(path=NAMES):
-    """lang/names.yml 의 {한국어 이름: 영어 이름}. 긴 이름부터."""
+    """lang/names.yml → [(한국어 이름, [영어 표기...], 뒤에 와야 할 토씨 또는 None)]. 긴 이름부터."""
     if not os.path.exists(path):
         return []
     with open(path, encoding="utf-8") as f:
-        table = (yaml.safe_load(f) or {}).get("names") or {}
-    return sorted(((str(k), str(v)) for k, v in table.items()), key=lambda kv: -len(kv[0]))
+        data = yaml.safe_load(f) or {}
+    table = data.get("names") or {}
+    after = data.get("after") or {}
+    out = []
+    for k, v in table.items():
+        forms = [str(x) for x in v] if isinstance(v, list) else [str(v)]
+        tail = after.get(k)
+        out.append((str(k), forms, [str(x) for x in tail] if tail else None))
+    return sorted(out, key=lambda row: -len(row[0]))
+
+
+def name_pattern(kname, tail):
+    """이름 앞이 한글이면 (돌아오다의 '오다') 이름이 아니다. tail 이 있으면 그 토씨가 뒤에 붙을 때만 (오다의, 오다가)."""
+    pat = r"(?<![\uac00-\ud7a3])" + re.escape(kname)
+    if tail:
+        pat += "(?=" + "|".join(re.escape(t) for t in sorted(tail, key=len, reverse=True)) + ")"
+    return re.compile(pat)
 
 
 def check_names(report, ko_path, en_path, names):
-    """ko.yml 열쇠의 고유 이름 → en.yml 같은 열쇠에 정한 영어 이름. 이름 앞이 한글이면 (돌아오다의 '오다') 이름이 아니다."""
+    """ko.yml 열쇠의 고유 이름 → en.yml 같은 열쇠에 정한 영어 표기 (목록이면 그 가운데 하나)."""
     try:
         ko = flat_strings(load(ko_path))
         en = flat_strings(load(en_path))
@@ -242,13 +259,14 @@ def check_names(report, ko_path, en_path, names):
     for key, text in ko.items():
         vis = plain(text)
         target = plain(en.get(key, "")).lower()
-        for kname, ename in names:
-            pat = re.compile(r"(?<![\uac00-\ud7a3])" + re.escape(kname))
+        for kname, forms, tail in names:
+            pat = name_pattern(kname, tail)
             if not pat.search(vis):
                 continue
             vis = pat.sub(" ", vis)     # 긴 이름이 먹은 자리 (볼크 탑옥 → 탑옥은 다시 세지 않는다)
-            if ename.lower() not in target:
-                report.add("오류", en_path, key, "name", f"'{kname}' 은 영어로 '{ename}' (names.yml): {plain(en.get(key, ''))!r}")
+            if not any(f.lower() in target for f in forms):
+                report.add("오류", en_path, key, "name", f"'{kname}' 은 영어로 '{' / '.join(forms)}' (names.yml): "
+                           f"{plain(en.get(key, ''))!r}")
 
 
 def flat_strings(data):

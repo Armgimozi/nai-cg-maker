@@ -55,11 +55,11 @@ python3 tools/make_dist.py --no-build # 관문만 보고 묶는다
 
 ## 문구와 영어판
 
-플레이어가 보는 글은 모두 언어 열쇠다 (`DESIGN.md` 10.3, 10.9, 12.5). 플러그인은 `Component.translatable("souls.<열쇠>")` 을 보내고, 클라이언트가 리소스팩의 `assets/souls/lang/ko_kr.json`·`en_us.json` 에서 자기 언어의 글을 고른다. 아이템 이름·설명도 같다. 팩을 받기 전에 보이는 글 (팩 안내, 팩 때문에 쫓아낼 때) 만 서버가 그 사람의 언어로 채운다.
+플레이어가 보는 글은 모두 언어 열쇠다 (`DESIGN.md` 10.3, 10.9, 12.5). 플러그인은 `Component.translatable("souls.<열쇠>")` 을 보내고, 클라이언트가 리소스팩의 `assets/souls/lang/ko_kr.json`·`en_us.json` 에서 자기 언어의 글을 고른다. 아이템 이름·설명도 같다. 팩을 받기 전에 보이는 글 (팩 안내, 팩 때문에 쫓아낼 때) 만 서버가 그 사람의 언어로 채운다. 팩이 아직 없을 때 보이는 대체 글도 한 사람에게 가는 글은 그 사람의 언어다 (아이템만 영어). 서버 목록 이름은 "식은 가마 · The Cold Kiln".
 
 - 글을 고칠 때: `plugin/src/main/resources/lang/ko.yml` 과 `en.yml` 을 함께 고친다 (열쇠, 맨 앞 꼴 태그, `<자리>`, 목록 줄 수가 같아야 한다). 영어는 직역하지 않고 짧고 건조한 옛 말투로. 고유 이름은 `lang/names.yml` 대로.
 - 그다음 `python3 tools/make_dist.py` (팩과 jar 를 함께 다시 만든다). 서버 폴더에는 문구 파일이 없다.
-- 관문: `python3 tools/langcheck.py` (두 언어의 짝, Java 의 한글 문자열, 없는 열쇠, 낡은 팩 언어 파일, 자리 폭), `python3 tools/textlint.py` (문체). 하나라도 오류면 `make_dist` 가 묶지 않는다.
+- 관문: `python3 tools/langcheck.py` (두 언어의 짝, Java 의 한글 문자열과 번역 안 되는 글, 부르는 열쇠와 자리 이름, 콘텐츠 id 의 열쇠, 낡은 팩 언어 파일, 자리 폭), `python3 tools/textlint.py` (문체, 고유 이름 표기). 하나라도 오류면 `make_dist` 가 묶지 않는다. Java 에서 열쇠를 만들어 부르면 그 줄에 `// lang-dyn: <glob>`, 봇이 읽는 기계 글에는 `// lang-machine` (`DESIGN.md` 13.7).
 - 실제 클라이언트로 두 언어 보기: `MC_LANG=en_us tools/client/run_client.sh …` (`dist/screenshots/i18n/`).
 
 ## 배포
