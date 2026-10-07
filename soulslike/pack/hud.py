@@ -29,7 +29,6 @@ import os
 
 from PIL import Image
 
-import palette
 from palette import c
 
 HERE = os.path.dirname(os.path.abspath(__file__))

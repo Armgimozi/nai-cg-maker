@@ -180,5 +180,10 @@ if __name__ == "__main__":
         row = []
         for i, h in enumerate(hs):
             rgb = hexc(h)
-            row.append(f"{fam}{i} {h} 채도 {chroma(rgb):.2f}" + (" (빛 허용)" if too_saturated(rgb) else ""))
+            tag = ""
+            if fam in RESTRICTED:
+                tag = " (" + ", ".join(RESTRICTED[fam]) + " 전용)"
+            elif too_saturated(rgb):
+                tag = " (빛 허용)"
+            row.append(f"{fam}{i} {h} 채도 {chroma(rgb):.2f}{tag}")
         print(f"{KO[fam]}: " + ", ".join(row))

@@ -9,6 +9,8 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.FoodLevelChangeEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 
 import java.util.Map;
 import java.util.TreeMap;
@@ -119,5 +121,16 @@ public final class Stamina implements Listener {
     @EventHandler(priority = EventPriority.LOW)
     public void onFood(FoodLevelChangeEvent e) {
         if (e.getEntity() instanceof Player) e.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.LOW)
+    public void onJoin(PlayerJoinEvent e) {
+        refill(e.getPlayer());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onQuit(PlayerQuitEvent e) {
+        CombatState.drop(e.getPlayer().getUniqueId());
+        plugin.titles().forget(e.getPlayer().getUniqueId());
     }
 }

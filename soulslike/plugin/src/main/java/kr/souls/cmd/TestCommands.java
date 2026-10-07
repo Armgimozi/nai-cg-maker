@@ -1,0 +1,186 @@
+package kr.souls.cmd;
+
+import com.mojang.brigadier.Command;
+import com.mojang.brigadier.arguments.DoubleArgumentType;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.tree.LiteralCommandNode;
+import io.papermc.paper.command.brigadier.CommandSourceStack;
+import io.papermc.paper.command.brigadier.Commands;
+import kr.souls.Souls;
+import kr.souls.combat.CombatState;
+import kr.souls.combat.Stamina;
+import kr.souls.combat.TestHits;
+import kr.souls.item.ItemFactory;
+import kr.souls.skill.SkillContext;
+import kr.souls.skill.SkillDef;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.GameRules;
+import org.bukkit.Location;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
+
+import java.util.List;
+import java.util.Locale;
+
+/**
+ * /soulstest (config 의 debug.test-mode 가 켜졌을 때만, 권한 souls.test). 봇이 쓰는 시험 훅 (12.11, 13.2).
+ * 결과는 "[T] 이름 열쇠=값 ..." 한 줄로 채팅과 서버 기록에 남는다. 봇은 채팅에서 이 줄을 읽는다.
+ *
+ *   stamina                          [T] STAMINA cur= max= ratio= exhausted= food= sprinting= regenFrom= t=
+ *   stamina set <값>                  스태미나를 바꾼다 (탈진 시험)
+ *   hit <피해> [type=generic|hit|none] [armor]   막기 성분 + generic 피해 시험. [T] HIT ...
+ *   guard <empty|control|bypass>     시험 막기 도구를 손에 쥐어 준다 (우클릭을 누르고 hit)
+ *   rollhit <틱> [피해]               다음 구르기 시작 뒤 그 틱에 generic 피해. [T] ROLLHIT off= dodged=
+ *   roll                             서버에서 곧바로 구르기 (F 패킷 대신)
+ *   kill | heal | info | pos | title | skill <id>
+ */
+public final class TestCommands {
+    private TestCommands() {}
+
+    public static void register(Souls plugin, Commands reg) {
+        LiteralCommandNode<CommandSourceStack> root = Commands.literal("soulstest")
+                .requires(s -> plugin.cfg().testMode && s.getSender().hasPermission("souls.test"))
+                .then(Commands.literal("stamina")
+                        .executes(ctx -> withPlayer(ctx, p -> stamina(plugin, p)))
+                        .then(Commands.literal("set").then(Commands.argument("value", DoubleArgumentType.doubleArg(0))
+                                .executes(ctx -> withPlayer(ctx, p -> {
+                                    CombatState st = CombatState.of(p);
+                                    st.stamina.set(DoubleArgumentType.getDouble(ctx, "value"));
+                                    st.stamina.holdUntil(plugin.ticker().now() + plugin.cfg().stamina.regenDelay());
+                                    if (st.stamina.cur() <= 0) st.exhausted = true;
+                                    stamina(plugin, p);
+                                })))))
+                .then(Commands.literal("hit")
+                        .then(Commands.argument("amount", DoubleArgumentType.doubleArg(0, 10000))
+                                .executes(ctx -> withPlayer(ctx, p -> hit(plugin, p, DoubleArgumentType.getDouble(ctx, "amount"), "")))
+                                .then(Commands.argument("flags", StringArgumentType.greedyString())
+                                        .suggests((c, b) -> {
+                                            for (String s : List.of("type=generic", "type=hit", "type=none", "armor", "type=generic armor"))
+                                                b.suggest(s);
+                                            return b.buildFuture();
+                                        })
+                                        .executes(ctx -> withPlayer(ctx, p -> hit(plugin, p, DoubleArgumentType.getDouble(ctx, "amount"),
+                                                StringArgumentType.getString(ctx, "flags")))))))
+                .then(Commands.literal("guard")
+                        .then(Commands.argument("kind", StringArgumentType.word())
+                                .suggests((c, b) -> {
+                                    for (ItemFactory.GuardTest g : ItemFactory.GuardTest.values()) b.suggest(g.name().toLowerCase(Locale.ROOT));
+                                    return b.buildFuture();
+                                })
+                                .executes(ctx -> withPlayer(ctx, p -> guard(plugin, p, StringArgumentType.getString(ctx, "kind"))))))
+                .then(Commands.literal("rollhit")
+                        .then(Commands.argument("offset", IntegerArgumentType.integer(0, 40))
+                                .executes(ctx -> withPlayer(ctx, p -> armRoll(plugin, p, IntegerArgumentType.getInteger(ctx, "offset"), 4)))
+                                .then(Commands.argument("amount", DoubleArgumentType.doubleArg(0, 10000))
+                                        .executes(ctx -> withPlayer(ctx, p -> armRoll(plugin, p, IntegerArgumentType.getInteger(ctx, "offset"),
+                                                DoubleArgumentType.getDouble(ctx, "amount")))))))
+                .then(Commands.literal("roll").executes(ctx -> withPlayer(ctx, p -> plugin.roll().tryRoll(p))))
+                .then(Commands.literal("kill").executes(ctx -> withPlayer(ctx, p -> {
+                    plugin.test(p, "KILL t=" + plugin.ticker().now());
+                    p.setHealth(0);
+                })))
+                .then(Commands.literal("heal").executes(ctx -> withPlayer(ctx, p -> {
+                    p.setHealth(kr.souls.skill.Combat.maxHealth(p));
+                    plugin.stamina().refill(p);
+                    plugin.test(p, String.format(Locale.ROOT, "HEAL hp=%.1f", p.getHealth()));
+                })))
+                .then(Commands.literal("info").executes(ctx -> withPlayer(ctx, p -> info(plugin, p))))
+                .then(Commands.literal("pos").executes(ctx -> withPlayer(ctx, p -> {
+                    Location l = p.getLocation();
+                    plugin.test(p, String.format(Locale.ROOT, "POS x=%.3f y=%.3f z=%.3f yaw=%.1f ground=%s t=%d",
+                            l.getX(), l.getY(), l.getZ(), l.getYaw(), p.isOnGround(), plugin.ticker().now()));
+                })))
+                .then(Commands.literal("title").executes(ctx -> withPlayer(ctx, p -> plugin.death().showTitle(p))))
+                .then(Commands.literal("skill")
+                        .then(Commands.argument("id", StringArgumentType.word())
+                                .suggests((c, b) -> {
+                                    for (String id : plugin.skills().all().keySet()) b.suggest(id);
+                                    return b.buildFuture();
+                                })
+                                .executes(ctx -> withPlayer(ctx, p -> skill(plugin, p, StringArgumentType.getString(ctx, "id"))))))
+                .build();
+        reg.register(root, "식은 가마 시험 명령어 (debug.test-mode)", List.of());
+    }
+
+    private interface PlayerAction {
+        void run(Player p);
+    }
+
+    private static int withPlayer(CommandContext<CommandSourceStack> ctx, PlayerAction a) {
+        Entity e = SoulsCommands.target(ctx);
+        if (!(e instanceof Player p)) {
+            ctx.getSource().getSender().sendMessage(Component.text("플레이어가 쳐야 한다 (또는 /execute as).", NamedTextColor.GRAY));
+            return 0;
+        }
+        a.run(p);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static void stamina(Souls plugin, Player p) {
+        CombatState st = CombatState.of(p);
+        plugin.test(p, String.format(Locale.ROOT, "STAMINA cur=%.2f max=%.1f ratio=%.4f exhausted=%s food=%d sprinting=%s regenFrom=%d t=%d",
+                st.stamina.cur(), st.stamina.max(), st.stamina.ratio(), st.exhausted, p.getFoodLevel(), p.isSprinting(),
+                st.stamina.regenFrom(), plugin.ticker().now()));
+    }
+
+    private static void hit(Souls plugin, Player p, double amount, String flags) {
+        String type = "generic";
+        boolean armor = false;
+        for (String f : flags.trim().split("\\s+")) {
+            if (f.startsWith("type=")) type = f.substring(5).toLowerCase(Locale.ROOT);
+            else if (f.equals("armor")) armor = true;
+        }
+        if (!List.of("generic", "hit", "none").contains(type)) {
+            plugin.test(p, "HIT error=unknown_type type=" + type);
+            return;
+        }
+        TestHits.Result r = plugin.testHits().hit(p, amount, type, armor);
+        plugin.test(p, "HIT " + r.line() + " t=" + plugin.ticker().now());
+    }
+
+    private static void guard(Souls plugin, Player p, String kind) {
+        ItemFactory.GuardTest g = ItemFactory.GuardTest.parse(kind);
+        if (g == null) {
+            plugin.test(p, "GUARD error=unknown_kind kind=" + kind);
+            return;
+        }
+        int slot = p.getInventory().getHeldItemSlot();
+        p.getInventory().setItem(slot, ItemFactory.testGuard(g));
+        plugin.test(p, "GUARD kind=" + g.name().toLowerCase(Locale.ROOT) + " slot=" + slot + " item=" + ItemFactory.SHELL.getKey().getKey());
+    }
+
+    private static void armRoll(Souls plugin, Player p, int offset, double amount) {
+        CombatState st = CombatState.of(p);
+        st.armedRollHit = offset;
+        st.armedRollHitAmount = amount;
+        plugin.test(p, String.format(Locale.ROOT, "ROLLHIT armed off=%d amount=%.2f", offset, amount));
+    }
+
+    private static void info(Souls plugin, Player p) {
+        Location l = p.getLocation();
+        var w = p.getWorld();
+        CombatState st = CombatState.of(p);
+        plugin.test(p, String.format(Locale.ROOT,
+                "INFO world=%s mode=%s difficulty=%s biome=%s x=%.2f y=%.2f z=%.2f hp=%.1f food=%d xpLevel=%d stamina=%.1f/%.0f "
+                        + "keep_inventory=%s immediate_respawn=%s locator_bar=%s natural_regen=%s pvp=%s test_mode=%s pack=%s t=%d",
+                w.getName(), p.getGameMode(), w.getDifficulty(), w.getBiome(l.getBlockX(), l.getBlockY(), l.getBlockZ()).getKey(),
+                l.getX(), l.getY(), l.getZ(), p.getHealth(), p.getFoodLevel(), p.getLevel(), st.stamina.cur(), st.stamina.max(),
+                w.getGameRuleValue(GameRules.KEEP_INVENTORY), w.getGameRuleValue(GameRules.IMMEDIATE_RESPAWN),
+                w.getGameRuleValue(GameRules.LOCATOR_BAR), w.getGameRuleValue(GameRules.NATURAL_HEALTH_REGENERATION),
+                w.getGameRuleValue(GameRules.PVP), plugin.cfg().testMode, plugin.pack().sha1(), plugin.ticker().now()));
+        if (!Stamina.fighting(p)) plugin.test(p, "INFO note=not_fighting (창작·관전 모드는 스태미나가 닳지 않는다)");
+    }
+
+    private static void skill(Souls plugin, Player p, String id) {
+        SkillDef def = plugin.skills().get(id);
+        if (def == null) {
+            plugin.test(p, "SKILL error=unknown id=" + id);
+            return;
+        }
+        def.cast(new SkillContext(plugin, p, null, 1.0));
+        plugin.test(p, "SKILL cast id=" + id + " mechanics=" + def.mechanics().size());
+    }
+}
