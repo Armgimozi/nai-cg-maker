@@ -146,9 +146,7 @@ public final class Tumble {
 
     /**
      * 구르기 시작 (F 를 받은 때). dir 은 구르는 쪽 (수평, 길이 1).
-     * 처음이면 몸을 투명하게 하고 대역을 뛰어들기 자세로 곧바로 띄운다. 대역의 생성 패킷은 곧바로 나가지만 클라이언트는 표시 물체를
-     * 첫 틱에야 그리고 (0~1틱 뒤), 투명 깃발은 다음 엔티티 추적 단계에서 나간다 (0~1틱 뒤). 그래서 둘이 엇갈리는 틈은 평균 1/3 틱
-     * 남짓이다. 장비 바꾸기는 그 틱 끝 (깃발이 나간 바로 뒤) 에 한다. 진짜 몸이 보이는 동안 든 것만 먼저 사라지지 않게.
+     * 처음이면 대역을 뛰어들기 자세로 곧바로 띄우고, 진짜 몸은 hide-delay 틱 뒤에 감춘다 (클래스 머리말 "때").
      * 이어 구르면 (앞 대역이 아직 있으면) 대역을 그대로 쓰고 뛰어들기 자세부터 다시.
      */
     public void start(Player p, Vector dir, long now) {
@@ -388,6 +386,12 @@ public final class Tumble {
     private void dress(Player p, Fig f) {
         if (f.body != null && f.body.isValid()) f.body.setItemStack(body(f.pose, f.colors));
         if (f.head != null && f.head.isValid()) f.head.setItemStack(head(p, f.pose));
+        if (f.helm != null && f.helmColor == null) {
+            // 이어 구르기 전에 투구를 벗었다
+            f.helm.leaveVehicle();
+            f.helm.remove();
+            f.helm = null;
+        }
         if (f.helm != null && f.helm.isValid()) f.helm.setItemStack(helm(f.pose, f.helmColor));
     }
 

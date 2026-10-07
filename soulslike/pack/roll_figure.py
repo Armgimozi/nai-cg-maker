@@ -5,10 +5,11 @@
 (머리 8, 몸통 8×12×4, 팔·다리 4×12×4 를 무릎·팔꿈치·허리에서 둘로 나눈 상자) 를 22.5° 마디로 굽힌 아이템 모형이고,
 자세가 셋이다. 플러그인이 틱에 맞춰 아이템 모형을 바꾸고 (같은 틱에 변환도) 웅크린 자세를 옆 축으로 돌린다.
 
-  souls:roll_dive   뛰어드는 자세 (0~1틱): 무릎을 굽혀 앞으로 숙이고 두 팔을 앞아래로 뻗어 머리를 그 사이로 넣는다
-  souls:roll_tuck   웅크린 공 (2~7틱): 등이 바깥 (목덜미 앞위 → 등 위 → 엉덩이 뒤아래), 발이 아래. 얼굴·무릎·정강이·손은
-                    안쪽. 앞으로 돌면 목덜미 → 등 → 엉덩이 → 발 차례로 땅에 닿는다
-  souls:roll_rise   일어서는 자세 (8~10틱): 한 발을 앞에 딛고 몸통을 앞으로 숙인 채 머리를 든다
+  souls:roll_dive   뛰어드는 자세 (0~1틱, 변환 각 START_ANGLE): 무릎을 굽혀 몸을 앞으로 눕히고 두 팔을 앞아래로 뻗어 머리를
+                    그 사이로 넣는다
+  souls:roll_tuck   웅크린 공 (2~7틱): 등을 말고 무릎을 가슴에, 정수리를 아래로 박아 얼굴은 무릎 쪽 (안쪽), 두 팔꿈치가 머리 옆
+                    앞에서 정강이를 감싼다. 옆모습이 가장 둥근 각을 골랐다 (TUCK)
+  souls:roll_rise   일어서는 자세 (8~10틱): 깊이 쪼그린 채 몸통을 숙이고 머리를 들어 앞을 본다 (키 1.32 블록)
 
   souls:roll_head_<자세>  그 사람의 머리 (바닐라 player_head 특수 모형 + 이 팩의 바탕 모형 souls:item/roll_head_<자세>).
                     fixed 자세 (ItemDisplay 의 FIXED) 의 회전·이동으로 머리를 그 자세의 목에 둔다. 자세가 아이템 공간 안에서
@@ -286,7 +287,7 @@ class Box:
             u0 = (seed * 5 + k * 7) % max(1, int(16 - du) + 1)
             v0 = (seed * 3 + k * 11) % max(1, int(16 - dv) + 1)
             tex = self.tex
-            if self.sole is not None and fname == self._end_face(ext_y, rest):
+            if self.sole is not None and fname == self._end_face(rest):
                 tex = self.sole
             faces[fname] = {"uv": [_r(u0), _r(v0), _r(u0 + du), _r(v0 + dv)], "texture": "#" + tex, "tintindex": self.tint}
         el = {"from": [_r(v) for v in fr], "to": [_r(v) for v in to], "faces": faces}
@@ -295,7 +296,7 @@ class Box:
             el["rotation"] = {"origin": [_r(cx), _r(cyi), _r(cz)], "axis": "x", "angle": -rest}
         return el
 
-    def _end_face(self, ext_y, rest):
+    def _end_face(self, rest):
         """길이 축의 끝 (joint 반대쪽) 이 닿는 면 이름."""
         p = ((self.pitch % 360) + 360) % 360
         # 길이 축 방향이 위/아래/앞/뒤 가운데 어디에 가장 가까운가 (돌리기 전 상자 기준)
