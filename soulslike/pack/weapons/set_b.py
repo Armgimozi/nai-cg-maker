@@ -722,7 +722,7 @@ def use_display_for(wid, kind, use, w=None):
     return None
 
 
-# 1인칭 회전·이동 (크기) [미확인 (클라)]. 3인칭은 _common 의 정한 값 (이동은 모두 같고 회전만 분류마다)
+# 1인칭 회전·이동 (크기) [확인 (클라)]. 3인칭은 _common 의 정한 값 (이동은 모두 같고 회전만 분류마다)
 # 판자 방패는 A 의 경비대 방패 (shields_a.HEATER_FP, 높이 26) 와 같은 자세, 크기만 높이 28 에 맞춰 0.6
 # 손종: 종 입 (+Y) 이 앞 위로 45° 기울어 화면 오른쪽 아래에 종과 손잡이가 함께 보인다 (_common.fp_frame)
 CATALYST_FP = {"pilgrim_handbell": cm.fp_frame((1, 0, 0), (-0.5, math.sin(math.radians(45)), -math.cos(math.radians(45))),

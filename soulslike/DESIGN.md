@@ -2143,10 +2143,11 @@ soulslike/
   | 콘텐츠 파일 | id 마다 있어야 하는 열쇠 | 언제 |
   |---|---|---|
   | `skills.yml` | `skill.<id>.name` (한 줄), `skill.<id>.desc` (목록) | M0 |
+  | `weapons.yml` | `weapon.<id>.name` (한 줄), `weapon.<id>.lore` (목록). 분류 줄 `weapon.class.<class>` 과 수치 줄 `weapon.stat.*` 은 플러그인이 채운다 (`pack/weapons/SPEC.md` 6.3) | M0 (무기 20개) |
   | `items.yml` | `item.<id>.name` (한 줄), `item.<id>.lore` (목록) | 그 파일이 생길 때 |
   | `bosses.yml` | `boss.<id>.name` (한 줄) | 그 파일이 생길 때 |
 
-  `weapons`, `spells`, `npcs` 같은 나머지 파일은 글의 짜임 (9.7) 을 정하는 마일스톤에서 이 표와 `CONTENT_KEYS` 에 함께 한 줄을 더한다 (표에 없는 콘텐츠 파일은 langcheck 경고). 코드가 id 를 갖는 것 (`region.<id>.name`, `bonfire.<id>.name`) 은 열쇠를 만들어 부르는 줄에 `// lang-dyn: bonfire.*.name` 을 단다 (13.7). 콘텐츠에서 지운 id 의 열쇠가 lang 에 남으면 경고.
+  `spells`, `npcs` 같은 나머지 파일은 글의 짜임 (9.7) 을 정하는 마일스톤에서 이 표와 `CONTENT_KEYS` 에 함께 한 줄을 더한다 (표에 없는 콘텐츠 파일은 langcheck 경고). 코드가 id 를 갖는 것 (`region.<id>.name`, `bonfire.<id>.name`) 은 열쇠를 만들어 부르는 줄에 `// lang-dyn: bonfire.*.name` 을 단다 (13.7). 콘텐츠에서 지운 id 의 열쇠가 lang 에 남으면 경고.
 - 언어 (jar 안에만 있다. 데이터 폴더에 꺼내지 않는다, 10.9):
   - `lang/ko.yml`: 게임 문구 전부, 한국어 원본 (10.3). 열쇠마다 맨 앞 태그 하나가 꼴, `<이름>` 이 자리, 목록은 여러 줄. `vanilla.*` 는 바닐라 열쇠 덮어쓰기.
   - `lang/en.yml`: 같은 열쇠의 영어. 따로 쓴 글이고 꼴·자리·줄 수가 ko.yml 과 같다.
