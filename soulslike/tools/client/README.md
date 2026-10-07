@@ -8,7 +8,7 @@
 | `mcclient.py` | 클라이언트 켜기·동작·찍기·끄기 |
 | `setup_client.py` | piston-meta 에서 버전 문서 → 라이브러리·네이티브·에셋을 받는다 (처음 한 번, 약 110MB) |
 | `devserver.sh` | 점검용 Paper 서버 (오프라인 접속, 시험 모드, 팩을 로컬 포트에서, Tester 에게 op) |
-| `m0_shots.sh` | M0 점검 그림 묶음 (13.4 의 1·2·3·5·6) |
+| `m0_shots.sh` | M0 점검 그림 묶음 (13.4 가운데 M0 에 있는 것 전부. 그림마다 몇 번을 보는지 머리말에 있다). 서버폴더를 주면 9 회전 구르기와 13 설정 단계 팩 보내기도 |
 | `log4j2-client.xml` | 클라이언트 기록을 보통 글줄로 (런처 설정은 XML 로 낸다) |
 
 ## 쓰는 법
@@ -28,8 +28,8 @@ tools/client/run_client.sh --do 25602 join clearchat shot:a
 tools/client/run_client.sh --do 25602 down:ctrl+w wait:1 shot:running up:ctrl+w
 tools/client/run_client.sh --stop 25602
 
-# M0 묶음
-tools/client/m0_shots.sh 25602 /tmp/shots
+# M0 묶음 (채팅을 숨기고 찍는다. 서버폴더를 주면 서버 설정을 잠깐 바꾸는 점검까지)
+tools/client/m0_shots.sh 25602 /tmp/shots /tmp/srv
 
 # 서버 끄기 / 콘솔 명령
 tools/client/devserver.sh --cmd /tmp/srv give Tester minecraft:potion
@@ -85,7 +85,7 @@ tools/client/devserver.sh --stop /tmp/srv
 - **팩 주소는 클라이언트가 직접 받는다** (프록시를 쓰지 않는다). 로컬 시험은 `pack.serve-port` 로 내보내고 `pack.url` 을 `http://127.0.0.1:<포트>/{sha1}.zip` 로 (`devserver.sh` 가 한다). 서버 목록(`servers.dat`)에 `acceptTextures=1` 을 넣어 묻는 창 없이 받는다. 빠른 접속은 주소 글자(`localhost:25602`)가 똑같은 줄만 쓴다.
 - **1.21.11 의 `graphicsPreset`**: fancy 면 켤 때 시야·구름·그림자 값을 덮어쓴다. 그래서 `custom` 으로 두고 fancy 값 그대로에 시야만 8 로 줄였다. llvmpipe 4코어에서 약 17 FPS.
 - **오른쪽 위 알림**: 들어가면 "대화 메시지를 검증할 수 없습니다" (서버가 `enforce-secure-profile=false` 라 실제 사람도 본다)와 "리소스 팩 다운로드 중" 이 몇 초 남는다. 깨끗한 화면이 필요하면 `join wait:8`. 아이템을 처음 받으면 "새로운 제작법 잠금 해제!" 도 뜬다.
-- **채팅의 시험 줄**: 시험 모드는 `[T] ...` 줄을 채팅에 낸다. 찍기 전에 `clearchat`. 아예 숨기려면 `MC_OPTIONS="chatVisibility:2"` (그러면 명령 결과도 안 보인다. `log:` 는 그대로 된다).
+- **채팅의 시험 줄**: 시험 모드는 `[T] ...` 줄을 채팅에 낸다. 찍기 전에 `clearchat`. 아예 숨기려면 `MC_OPTIONS="chatScale:0.0"` (채팅 글 크기 "끔". 채팅 창은 그대로 열려 `cmd:` 가 되고, 받은 줄은 기록에 남아 `log:` 도 된다. `m0_shots.sh` 의 기본). `chatVisibility:2` 는 쓰지 않는다 (숨김이면 서버가 시스템 줄을 보내지 않아 기록에도 시험 줄이 남지 않는다).
 - **사망 화면 단추**는 죽고 1초 동안 꺼져 있다. `respawn` 이 기다린다.
 - **달리기**: Ctrl 을 먼저 누르고 W (`sprint:` / `down:ctrl+w`). 키 입력은 xdotool XTEST 라 창 관리자 없이 초점을 직접 준다. `rawMouseInput:false` 로 두어 `look` 이 먹는다.
 - **소리**: 소리 에셋은 받지 않고 (`setup_client.py --sounds` 로 받을 수 있다) OpenAL 은 빈 장치로 돈다. 소리는 이 틀로 확인할 수 없다.

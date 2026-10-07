@@ -9,9 +9,8 @@ import io.papermc.paper.datacomponent.item.blocksattacks.DamageReduction;
 import io.papermc.paper.datacomponent.item.blocksattacks.ItemDamageFunction;
 import io.papermc.paper.registry.keys.tags.DamageTypeTagKeys;
 import kr.souls.Keys;
+import kr.souls.Lang;
 import net.kyori.adventure.key.Key;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
@@ -99,7 +98,7 @@ public final class ItemFactory {
         it.setData(DataComponentTypes.MAX_DAMAGE, 100);
         it.setData(DataComponentTypes.DAMAGE, 0);
         it.setData(DataComponentTypes.ITEM_MODEL, TEST_MODEL);
-        it.setData(DataComponentTypes.ITEM_NAME, Component.text("시험 막기 · " + kind.name().toLowerCase(Locale.ROOT), TextColor.color(0x8f8164)));
+        it.setData(DataComponentTypes.ITEM_NAME, Lang.c("test.guard", "kind", kind.name().toLowerCase(Locale.ROOT)));
         it.editPersistentDataContainer(pdc -> pdc.set(Keys.ITEM, PersistentDataType.STRING, "test_guard_" + kind.name().toLowerCase(Locale.ROOT)));
         return it;
     }
@@ -117,7 +116,7 @@ public final class ItemFactory {
                 .build());
         it.setData(DataComponentTypes.MAX_STACK_SIZE, 1);
         it.setData(DataComponentTypes.ITEM_MODEL, TEST_MODEL);
-        it.setData(DataComponentTypes.ITEM_NAME, Component.text("시험 휘두름 · " + ticks, TextColor.color(0x8f8164)));
+        it.setData(DataComponentTypes.ITEM_NAME, Lang.c("test.swing", "ticks", String.valueOf(ticks)));
         it.editPersistentDataContainer(pdc -> pdc.set(Keys.ITEM, PersistentDataType.STRING, "test_swing"));
         return it;
     }

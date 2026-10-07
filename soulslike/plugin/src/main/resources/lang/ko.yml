@@ -68,6 +68,11 @@ pack:
   declined: "<#b3a37f>리소스팩을 받지 않으면 들어올 수 없다."
   failed: "<#b3a37f>리소스팩을 받지 못했다. 다시 들어와 보라."
 
+test:
+  # 시험 도구 이름 (debug.test-mode 의 /soulstest guard, swing). <kind> 막기 판, <ticks> 휘두름 틱
+  guard: "<#8f8164>시험 막기 · <kind>"
+  swing: "<#8f8164>시험 휘두름 · <ticks>"
+
 hud:
   # 행동 막대 한 줄
   souls: "<#b3a37f>소울 <n>"

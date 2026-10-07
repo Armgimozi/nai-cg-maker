@@ -10,7 +10,8 @@
 #   01_join_test_room_hud            (1·2·10·11) 팩이 실렸다, 마른 핏방울 하트, 스태미나 막대 꽉 참·레벨 숫자 없음,
 #                                    허기 칸 없음, 시험 방 바이옴(souls:redin)의 안개·하늘·재 입자
 #   02_sprint_stamina_drain          (2) 달리는 중 막대가 준다
-#   03_roll_third_person             구르기 (온 블록 바닥, 3인칭 뒤): 기어가는 자세
+#   03_roll_third_person             구르기 (온 블록 바닥, 3인칭 뒤): 기어가는 자세. 0.1초 안쪽은 자세가 바뀌기 전이라
+#                                    눈높이의 시선이 머리 위 방벽에 걸려 3인칭 카메라가 몸 가까이 당겨진다 (한두 틱)
 #   03b_roll_slab_third_person       판석(아래 반 블록) 위 구르기: 웅크린 자세 (방벽이 기어가기 상자에 걸려 튕기지 않는다)
 #   04_exhausted_vs_sprint           (5) 스태미나 0 → 허기 6 으로 달리기가 막힌다 (앞으로 걷기만, 시야가 넓어지지 않는다)
 #   05_dialog                        (4) 휴식 창 꼴: 단추 글 양피지색, 제목 옆 경고 단추는 녹슨 쇠판
@@ -52,7 +53,7 @@ trap '"$RC" --stop "$PORT" >/dev/null 2>&1' EXIT
   join "cmd:/clear" "cmd:/soulstest heal" "cmd:/souls tp room" wait:8 shot:01_join_test_room_hud \
   down:ctrl+w wait:1.5 shot:02_sprint_stamina_drain up:ctrl+w wait:1 \
   "cmd:/soulstest heal" "cmd:/souls tp lane" wait:1.5 key:F5 wait:0.5 \
-  down:w key:f wait:0.15 shot:03_roll_third_person up:w wait:1 \
+  down:w key:f wait:0.2 shot:03_roll_third_person up:w wait:1 \
   "cmd:/soulstest heal" "cmd:/souls tp slab" wait:1.5 \
   down:w key:f wait:0.3 shot:03b_roll_slab_third_person up:w wait:1 key:F5 key:F5 wait:0.3 \
   "cmd:/souls tp room" wait:1 "cmd:/soulstest stamina set 0" wait:0.3 \

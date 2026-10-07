@@ -213,6 +213,8 @@ L.run('roll_iframes', async (sc) => {
       b.onSysOnce((m) => m.plain.startsWith('[T] WARN '), () => b.swap())
       const w = await b.cmd(`/soulstest warn ${k} 2`, 'WARN ', 3000)
       const hit = await b.waitT('WARNHIT ', 3000, from)
+      // 지연이 길면 F 가 피해보다 늦게 닿는다 (roll_t=-1). 그래도 구르기는 시작되므로 그 줄을 조금 더 기다린다
+      await b.waitT('ROLL ', 600, from)
       b.input({})
       const rl = b.tLines('ROLL ', from)[0]
       if (!w.kv || !hit || !rl) { sc.check(`warn ${k}: warned, rolled and hit`, false, (w.line || '예고 없음') + ' | ' + (rl ? rl.line : '구르지 않음') + ' | ' + (hit ? hit.line : '맞지 않음')); continue }
