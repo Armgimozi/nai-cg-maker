@@ -110,7 +110,10 @@ def wall_shortbow():
 # 손 자세 (_views 흉내 그림으로 맞춘 값) [미확인 (클라)]
 # 평소: 3인칭은 활대가 서고 화살 쪽 (−X) 이 앞 (팔을 내린 채 옆에 든다), 1인칭은 화면 오른쪽 아래에 비스듬히.
 # 당김 (팔을 앞으로 든 BOW_AND_ARROW 자세 + 바닐라 1인칭 활 몸짓): 활대가 거의 서고 화살이 십자선 쪽을 본다.
-IDLE = C.bow_display(tp_rot=C.BOW_TP_ROT, fp_rot=[145, -35, 145], fp_t=[-0.96, 1.12, -0.48])
+# 평소 1인칭: 활을 옆모습으로 세워 (시위가 오른쪽, 활대가 위로 조금 왼쪽) 화면 오른쪽에 거의 다 보이게. 바닐라 활처럼
+# 비스듬히 눕히면 위 활대 한 줄만 보여 막대로 읽혔다 (실제 클라이언트, 2026-10-07)
+_IDLE_FP = C.fp_frame((1, 0.2, 0.6), (-0.5, 1, -0.2), (0.80, 0.64, -0.85))
+IDLE = C.bow_display(tp_rot=C.BOW_TP_ROT, fp_rot=_IDLE_FP[0], fp_t=_IDLE_FP[1])
 PULL = C.bow_display(tp_rot=C.BOW_PULL_TP_ROT, fp_rot=[0, -75, -20], fp_t=[-3.13, 5.02, -3.93], fp_s=0.6)
 
 ITEMS = {
