@@ -2,32 +2,39 @@
 바닐라 HUD·GUI 그림을 식은 가마의 톤으로 다시 그린다 (DESIGN.md 10.2, 10.4, 10.5, ART_DIRECTION.md).
 gen_pack.py 가 hud.build 다음에 부른다. 스태미나 막대(경험치 막대)는 여기서 다시 그려 hud 의 것을 덮어쓴다.
 
-말씨 (2026-10-07 사용자: "아직 AI 티, 다 엇비슷한 느낌, 장비칸이 어긋났다" → 처음부터 다시 그렸다)
+말씨 (2026-10-07 사용자: "아직 AI 티, 다 엇비슷한 느낌, 좀 세련됐으면, 장비칸이 어긋났다" → 처음부터 다시 그렸고,
+      검토 뒤 한 번 더 덜어냈다)
   흩뿌린 녹 점·긁힘·고른 마모로 낡음을 내던 방식을 버렸다. 그런 무작위 자국은 어느 판이든 같은 결이라
   AI 가 만든 것처럼 보이고, 칸 옆의 자국이 칸을 비뚤어 보이게 했다. 이제 낡음과 무게는 구조로 낸다:
     - 빛은 늘 왼쪽 위 하나. 튀어나온 것은 위·왼쪽이 밝고, 패인 것은 위·왼쪽이 그늘이다. 베벨은 1픽셀.
     - 층마다 제 얼굴이 있다 (테 > 판 > 칸):
-        테      바깥 윤곽(재) → 쇠 테 → 가는 청동 줄 → 홈. 비스듬히 깎은 귀마다 청동 마름모 하나
-        판      거의 검은 녹슨 쇠(rust0) 한 색. 넓고 조용하게 둔다. 자국이 없다
-        칸      판보다 한 단 깊은 바닥(ash0). 위·왼쪽 그늘 줄, 아래·오른쪽 입술(rust1) 한 줄만 빛을 받는다
-        결과 칸 청동 테를 두른 칸 (만들어져 나오는 자리). 제작대의 큰 결과 칸은 안쪽에 청동 고리를 하나 더
-        이름판  청동 테를 두른 바랜 양피지 판 + 오른쪽으로 뻗는 가는 청동 머리줄 (바닐라 제목 글이 0x404040 이라
-                어두운 판 위에서는 읽히지 않는다)
-        나눔줄  판에 새긴 홈 (위 줄 그늘, 아래 줄 빛). 가운데에 작은 청동 마름모
-        단추    쇠판 + 베벨. 가리키면 안쪽에 청동 줄이 드러난다
-    - 장식은 몇 개뿐이고 다 뜻이 있는 자리에 둔다 (귀, 이름판, 나눔줄 가운데, 선택 테).
+        테      네 변 모두 4픽셀: 윤곽(재) → 쇠 테 → 가는 청동 줄 → 판이 앉는 안쪽 베벨 (위·왼쪽 그늘, 아래·오른쪽 빛).
+                네 귀에 두 줄 청동 꺾쇠와 네모난 청동 징 하나 (빛에서 먼 귀일수록 한 단 어둡다)
+        판      거의 검은 녹슨 쇠(rust0) 한 색. 넓고 조용하게 둔다. 자국이 없다. 칸 둘레 여백은 네 변 모두 3픽셀
+        칸      바닥은 판과 같은 색이고 베벨로만 패인다: 위·왼쪽 그늘(ash0), 아래·오른쪽 입술(rust1). 그래서 바닥이 꼭
+                아이템 자리 16×16 이고, 석탄·부싯돌·네더라이트처럼 어두운 아이템도 바닥에 묻히지 않는다
+        인물 자리 창에서 하나뿐인 가장 깊은 곳 (바닥 ash0). 갑옷 칸 줄과 또렷이 갈린다
+        결과 칸 청동 베벨 칸 (만들어져 나오는 자리). 제작대의 큰 결과 칸은 안쪽에 청동 고리를 하나 더
+        제목    그림에 이름판을 두지 않는다. 바닐라 제목 글 (0x404040) 은 언어 파일이 §7 회색으로 바꾼다
+                (lang 의 vanilla.container.*). 글 길이가 달라도 (한국어 "상자", 영어 "Large Chest") 판이 남거나 모자라지 않는다
+        나눔줄  판에 새긴 민 홈 (위 줄 그늘, 아래 줄 빛). 장식이 없다
+        단추    쇠판 + 베벨. 가리키면 안쪽에 청동 줄이 드러난다. 설정 화면의 밀대·고름 칸·글 칸은 판 홈 (칸과 같은 얼굴),
+                밀대 손잡이는 솟은 쇠 (가리키면 청동)
+    - 장식은 몇 개뿐이고 다 뜻이 있는 자리에 둔다 (창의 귀 징, 결과 칸의 청동, 선택 테, 설명 칸 귀의 빛 한 점).
+      같은 무늬를 여러 곳에 찍지 않는다 (예전의 청동 마름모는 귀·나눔줄·머리줄 끝·설명 칸에 다 있어 한 도장처럼 보였다).
     - 부드러운 그라데이션, 흐림, 반투명은 없다. 모든 색은 palette.c(이름) 하나에서.
-    - artlint 의 반복 검사는 GUI 의 곧은 줄과 칸 격자를 세지 않는다 (artlint.py 머리말). 남는 반복 경고 몇은 칸 묶음의
-      귀퉁이와 나눔줄 끝처럼 바닐라 배치가 정한 이음매에서만 나온다 (같은 칸 그림이 묶음마다 같은 모양으로 끝난다).
+    - artlint 의 반복 검사는 GUI 의 곧은 줄과 칸 격자를 세지 않는다 (artlint.py 머리말).
 
 칸 자리 (사용자: "장비칸이 어긋났다")
-  칸은 바닐라 jar 와 한 픽셀도 다르지 않다 (CONTAINER_LAYOUTS, write_previews 가 align_*.png 로 겹쳐 증명한다).
-  18×18 칸의 (x, y) 에서: 위 줄 x..x+16 과 왼쪽 줄 y..y+16 이 그늘, 아래 줄 x+1..x+17 과 오른쪽 줄이 입술,
-  가운데 16×16 (x+1..x+16) 이 아이템 자리. 예전 그림은 그늘을 3픽셀로 두껍게 그려 보이는 바닥이 아이템보다
-  오른쪽 아래로 1.5픽셀 밀려 있었다 (아이템이 칸 왼쪽 위에 붙어 보였다). 지금은 어두운 17×17 의 가운데가
-  아이템 가운데와 반 픽셀 안에서 맞는다. 빈 칸 그림(갑옷·방패)도 16×16 의 가운데에 둔다.
+  칸은 바닐라 jar 와 한 픽셀도 다르지 않다 (CONTAINER_LAYOUTS). 18×18 칸의 (x, y) 에서: 위 줄 x..x+16 과 왼쪽 줄
+  y..y+16 이 그늘, 아래 줄 x+1..x+17 과 오른쪽 줄이 입술, 가운데 16×16 (x+1..x+16) 이 아이템 자리이고 한 색이다.
+  예전 그림은 그늘을 3픽셀로 두껍게 그렸고 (보이는 바닥이 1.5픽셀 밀렸다), 그다음 그림은 그늘과 바닥이 같은 색이라
+  보이는 어두운 네모가 17×17 로 아이템이 그 오른쪽 아래에 붙었다. 지금은 바닥 = 아이템 자리.
+  write_previews 가 well_pixels 로 칸마다 그늘 줄·입술 줄·아이템 자리·바깥 한 줄을 바닐라 그림과 픽셀로 견주고,
+  align_*.png 다섯째 칸에 견준 픽셀을 초록 (맞음) / 빨강 (어긋남) 으로 칠한다. 빈 칸 그림(갑옷·방패)은 테두리 상자의
+  가운데가 16×16 의 가운데 (7.5, 7.5) 다.
 
-그리는 것 (크기·경로·9조각 값은 1.21.11 클라이언트 jar 와 같다)
+그리는 것 (크기·경로는 1.21.11 클라이언트 jar 와 같다. 9조각 값은 바닐라와 같거나, 우리 그림에 맞춰 .mcmeta 를 같이 쓴다)
   체력      gui/sprites/hud/heart/*  9×9. 하트 열 개를 마른 핏방울 열 개로 (10.2, M1~M3). 방울은 x 1..7 이고
             바닐라가 8픽셀마다 그리므로 방울 사이에 한 줄이 빈다. 체력이 4 이하일 때 바닐라는 칸마다 1픽셀씩 따로 흔들고
             재생 때는 하나씩 튀어 오르는데, 방울이 떨어져 있어 그대로 자연스럽다. 이어진 핏빛 막대는 M4 의 souls:hud 그림 글자.
@@ -35,14 +42,18 @@ gen_pack.py 가 hud.build 다음에 부른다. 스태미나 막대(경험치 막
   갑옷      armor_* 투명 (방어 수치를 쓰지 않는다). 허기는 hud.py 가 이미 투명하게 한다.
   스태미나  experience_bar_background / _progress 182×5. 녹슨 쇠 테의 가는 홈 + 이끼 세 줄 채움.
             스태미나 막대 그림은 여기 하나뿐이다 (hud.py 는 그리지 않는다).
-  단축 슬롯 hotbar 182×22 (윤곽 + 청동 줄 + 깊은 칸 아홉), hotbar_selection 24×23 (청동 테),
+  단축 슬롯 hotbar 182×22 (윤곽 + 청동 줄 + 칸과 같은 베벨 칸 아홉), hotbar_selection 24×23 (청동 테),
             hotbar_offhand_left/right 29×24, hotbar_attack_indicator_background/progress 18×18 (단검).
   창        container/inventory.png, generic_54.png, crafting_table.png (256×256).
-            container/slot_highlight_back/front (마우스가 올라간 칸: 바닥이 한 단 밝아지고 네 귀에 청동 꺾쇠),
+            container/slot_highlight_back/front (마우스가 올라간 칸: 바닥이 그을린 청동으로 데워지고 네 귀에 청동 꺾쇠),
             container/slot/{갑옷·방패} 빈 칸 그림.
   단추      widget/button, button_highlighted, button_disabled 200×20 (+ 바닐라와 같은 .mcmeta 9조각).
             사망 화면의 "일어선다 / 그만둔다" 도 이 그림이다. recipe_book/button(_highlighted) 20×18.
-  설명 칸   tooltip/background, tooltip/frame 100×100 (+ .mcmeta). 거의 검은 바탕 + 판과 같은 테 (청동 줄, 귀 마름모).
+  설정 화면 widget/slider(_highlighted) 200×20, slider_handle(_highlighted) 8×20, checkbox(_selected)(_highlighted) 20×20,
+            text_field(_highlighted) 200×20, tab(_selected)(_highlighted) 130×24, scroller(_background) 6×32,
+            textures/gui/(inworld_)header_separator·footer_separator 32×2 (새긴 홈).
+  설명 칸   tooltip/background, tooltip/frame 100×100 (+ .mcmeta). 거의 검은 바탕 + 윤곽·가는 청동 줄·안쪽 재.
+            귀 장식은 없고 빛이 닿는 왼쪽 위 귀에 청동 반짝임 한 점뿐.
   Dialog    dialog/warning_button(_highlighted, _disabled) 20×20. 모든 서버 창 제목 옆의 바닐라 노란 세모를
             단추와 같은 쇠판에 새긴 "!" 로 (가리킴은 청동, 사용 못 함은 재).
 
@@ -199,18 +210,23 @@ def corner_brackets(cv, w, h, arm=12, chamfer=2):
 
 
 # 귀 징: 창의 네 귀 꺾쇠 안쪽에 박는 네모난 청동 징 하나 (꺾쇠를 붙드는 못). 다른 곳에는 이 무늬를 쓰지 않는다.
-# 빛은 늘 왼쪽 위라 어느 귀든 같은 그림이다 (뒤집지 않는다): 왼쪽 위 두 변 빛, 가운데 반짝임, 오른쪽 아래 두 변 그늘.
+# 징마다 왼쪽 위 두 변이 빛, 오른쪽 아래 두 변이 그늘이다 (뒤집지 않는다). 빛은 창의 왼쪽 위에서 오므로 멀어질수록
+# 징이 한 단씩 어둡다: 왼쪽 위 귀만 반짝임이 있고, 오른쪽 위·왼쪽 아래는 한 단, 오른쪽 아래는 두 단 어둡다.
 STUD = [
     "hhm",
     "hGs",
     "mss",
 ]
-STUD_INK = {"h": BR_LIT, "G": BR_GLINT, "m": BR, "s": BR_DEEP}
+STUD_INK = (
+    {"h": BR_LIT, "G": BR_GLINT, "m": BR, "s": BR_DEEP},      # 왼쪽 위 (빛을 바로 받는다)
+    {"h": BR_LIT, "G": BR_LIT, "m": BR, "s": BR_DEEP},        # 오른쪽 위, 왼쪽 아래
+    {"h": BR, "G": BR, "m": BR_DEEP, "s": BR_DEEP},           # 오른쪽 아래 (가장 먼 그늘)
+)
 
 
-def stud(cv, cx, cy):
-    """(cx, cy) 가운데에 징. 둘레 한 칸을 빙 둘러 재 윤곽 (꺾쇠의 청동 줄도 끊는다: 징이 박힌 자리)."""
-    cv.stamp(cx - 1, cy - 1, STUD, STUD_INK)
+def stud(cv, cx, cy, far=0):
+    """(cx, cy) 가운데에 징 (far: 빛에서 먼 정도 0..2). 둘레 한 칸을 빙 둘러 재 윤곽 (꺾쇠의 청동 줄도 끊는다: 징이 박힌 자리)."""
+    cv.stamp(cx - 1, cy - 1, STUD, STUD_INK[far])
     for x in range(cx - 2, cx + 3):
         for y in (cy - 2, cy + 2):
             cv.put(x, y, OUTLINE)
@@ -402,8 +418,8 @@ def stamina_bar():
 
 def hotbar():
     """
-    182×22. 윤곽 + 가는 청동 줄 하나를 두른 띠에 깊은 칸 아홉 (칸 x 2+20k..19+20k, 아이템 3+20k..18+20k).
-    칸 사이 두 줄은 판(rust0). 장식은 없다: 화면 아래에 늘 떠 있는 것이라 가장 조용해야 한다.
+    182×22. 윤곽 + 가는 청동 줄 하나를 두른 띠에 창과 같은 베벨 칸 아홉 (칸 x 2+20k..19+20k, 바닥 = 아이템 자리
+    3+20k..18+20k). 칸 사이 두 줄은 판(rust0). 장식은 없다: 화면 아래에 늘 떠 있는 것이라 가장 조용해야 한다.
     """
     W, H = 182, 22
     cv = Cv(W, H)
@@ -588,7 +604,7 @@ def container(name):
     for x0, x1, y in L["dividers"]:
         divider(cv, x0, x1, y)
     for cx, cy in L["studs"]:
-        stud(cv, cx, cy)
+        stud(cv, cx, cy, far=(cx > w // 2) + (cy > h // 2))
     return cv.image()
 
 
@@ -617,22 +633,22 @@ def slot_highlight():
 # 빈 갑옷·방패 칸에 비치는 흐린 그림 (16×16). 녹슨 쇠빛 윤곽 한 색(rust1) 으로 손으로 그렸고,
 # 모두 16×16 의 가운데에 둔다 (테두리 상자의 가운데가 x 7.5, y 7.5~8.0 — 바닐라 그림과 같다).
 SLOT_ICONS = {
-    # 큰 투구: 평평한 정수리, 곧은 옆판, 가로 눈구멍과 콧대
+    # 큰 투구: 둥근 정수리 (계단 귀), 눈구멍 줄, 2픽셀 콧대, 아래가 트인 볼가리개. 12줄이라 세로 가운데가 7.5
     "helmet": [
         "................",
         "................",
-        "................",
-        "....oooooooo....",
+        ".....oooooo.....",
+        "....o......o....",
+        "...o........o...",
         "...o........o...",
         "...o........o...",
         "...oooo..oooo...",
         "...o...oo...o...",
         "...o...oo...o...",
-        "...o........o...",
-        "...o........o...",
-        "...o........o...",
-        "....oooooooo....",
-        "................",
+        "...o.o....o.o...",
+        "...o.o....o.o...",
+        "...o.o....o.o...",
+        "....oo....oo....",
         "................",
         "................",
     ],
@@ -751,6 +767,7 @@ def button(state):
 
 
 # 제작법 책 단추 20×18: 단추와 같은 쇠판 위에 걸쇠 채운 작은 책. 책 둘레는 단추 판보다 한 단 깊다.
+# 단추 얼굴은 x 1..18, y 1..15 (가운데 9.5, 8) 이고 책은 x 5..14, y 4..12 (가운데 9.5, 8) 로 한가운데에 앉는다.
 # O 윤곽, i 쇠 베벨(빛), f 판, s 그늘 베벨, k 책 그늘, b 표지 (bronze1), B 표지 윗면 빛 (bronze2),
 # d 등 (bronze0), p 책장 (parch1), c 걸쇠 (bronze3)
 RECIPE_BUTTON = [
@@ -758,16 +775,16 @@ RECIPE_BUTTON = [
     "OiiiiiiiiiiiiiiiiiiO",
     "OifffffffffffffffffO",
     "OiffffffffffffffffsO",
-    "OifffffkkkkkkkkfffsO",
-    "OifffffdBBBBBBpkffsO",
-    "OifffffdbbbbbbpkffsO",
-    "OifffffdbbbbbbpkffsO",
-    "OifffffdbbbbbccdffsO",
-    "OifffffdbbbbbbpkffsO",
-    "OifffffdbbbbbbpkffsO",
-    "OifffffdbbbbbbpkffsO",
-    "OifffffdbbbbbbpkffsO",
-    "OiffffffkkkkkkkkffsO",
+    "OifffkkkkkkkkkffffsO",
+    "OifffdBBBBBBBpkfffsO",
+    "OifffdbbbbbbbpkfffsO",
+    "OifffdbbbbbbbpkfffsO",
+    "OifffdbbbbbbccdfffsO",
+    "OifffdbbbbbbbpkfffsO",
+    "OifffdbbbbbbbpkfffsO",
+    "OifffdbbbbbbbpkfffsO",
+    "OiffffkkkkkkkkkfffsO",
+    "OiffffffffffffffffsO",
     "OiffffffffffffffffsO",
     "OissssssssssssssssOO",
     "OOOOOOOOOOOOOOOOOOOO",
@@ -781,6 +798,187 @@ def recipe_button(hi):
     cv = Cv(20, 18)
     cv.stamp(0, 0, [r.replace(".", " ") for r in RECIPE_BUTTON], ink)
     return cv.image()
+
+
+# ─────────────────────────── 설정 창의 위젯 (밀대, 고름 칸, 글 칸, 탭, 두루마리) ───────────────────────────
+
+# 일시정지 → 설정 화면은 단추 사이에 바닐라 회색 밀대가 섞여 있었다. 같은 말씨로: 단추·손잡이는 솟은 쇠판 (위·왼쪽 빛),
+# 밀대 길·고름 칸·글 칸은 판에 판 홈 (위·왼쪽 그늘, 아래·오른쪽 입술). 가리키거나 고르면 청동이 드러난다.
+# 9조각 값은 우리 그림에 맞춰 우리가 정한다 (바닐라는 그림과 같은 팩의 .mcmeta 를 읽는다).
+WIDGET_SCALING = {
+    "slider": {"type": "nine_slice", "width": 200, "height": 20, "border": 2},
+    "slider_highlighted": {"type": "nine_slice", "width": 200, "height": 20, "border": 2},
+    "slider_handle": {"type": "nine_slice", "width": 8, "height": 20,
+                      "border": {"left": 2, "top": 2, "right": 2, "bottom": 3}},
+    "slider_handle_highlighted": {"type": "nine_slice", "width": 8, "height": 20,
+                                  "border": {"left": 2, "top": 2, "right": 2, "bottom": 3}},
+    "text_field": {"type": "nine_slice", "width": 200, "height": 20, "border": 1},
+    "text_field_highlighted": {"type": "nine_slice", "width": 200, "height": 20, "border": 1},
+    "tab": {"type": "nine_slice", "width": 130, "height": 24, "border": {"left": 2, "top": 2, "right": 2, "bottom": 0}},
+    "tab_highlighted": {"type": "nine_slice", "width": 130, "height": 24,
+                        "border": {"left": 2, "top": 2, "right": 2, "bottom": 0}},
+    "tab_selected": {"type": "nine_slice", "width": 130, "height": 24,
+                     "border": {"left": 2, "top": 2, "right": 2, "bottom": 0}},
+    "tab_selected_highlighted": {"type": "nine_slice", "width": 130, "height": 24,
+                                 "border": {"left": 2, "top": 2, "right": 2, "bottom": 0}},
+    "scroller": {"type": "nine_slice", "width": 6, "height": 32, "border": 1},
+    "scroller_background": {"type": "nine_slice", "width": 6, "height": 32, "border": 1},
+}
+# 판 홈 (밀대 길, 고름 칸): 윤곽 → (위·왼쪽 그늘 / 아래·오른쪽 입술) → 판 색 바닥. 칸과 같은 얼굴이다
+GROOVE_RINGS = {
+    False: ((OUTLINE,) * 3, (SHADOW, SHADOW, LIP)),
+    True: ((OUTLINE,) * 3, (BR_DEEP, BR_DEEP, BR_LIT)),       # 가리킴: 홈의 테가 청동으로
+}
+
+
+def slider_track(hi):
+    """밀대 길 200×20 (9조각 테 2): 판에 판 홈. 그 위에 바닐라가 흰 글 (예: "시야: 70") 을 쓴다."""
+    cv = Cv(200, 20)
+    frame(cv, 0, 0, 200, 20, GROOVE_RINGS[hi], FLOOR, chamfer=1)
+    return cv.image()
+
+
+# 밀대 손잡이 8×20: 솟은 쇠 손잡이, 가운데에 손가락이 걸리는 홈 두 줄 (그늘 한 줄 + 빛 한 줄).
+# O 윤곽, i 빛 베벨, f 얼굴, s 그늘 베벨, g 홈 그늘, l 홈 아래 빛
+HANDLE = [
+    ".OOOOOO.",
+    "OiiiiiiO",
+    "OiffffsO",
+    "OiffffsO",
+    "OiffffsO",
+    "OiffffsO",
+    "OiffffsO",
+    "OiggggsO",
+    "OillllsO",
+    "OiffffsO",
+    "OiggggsO",
+    "OillllsO",
+    "OiffffsO",
+    "OiffffsO",
+    "OiffffsO",
+    "OiffffsO",
+    "OiffffsO",
+    "OissssOO",
+    "OOOOOOOO",
+    ".OOOOOO.",
+]
+HANDLE_TONES = {
+    False: {"O": OUTLINE, "i": "rust2", "f": "rust1", "s": PANEL, "g": OUTLINE, "l": "rust2"},
+    True: {"O": OUTLINE, "i": BR_GLINT, "f": BR, "s": BR_DEEP, "g": OUTLINE, "l": BR_LIT},
+}
+
+
+def slider_handle(hi):
+    cv = Cv(8, 20)
+    cv.stamp(0, 0, [r.replace(".", " ") for r in HANDLE], HANDLE_TONES[hi])
+    return cv.image()
+
+
+# 고름 칸 20×20 (늘여 그린다: 바닐라는 글 높이에 맞춰 17×17 안팎으로 줄인다). 판 홈 + 고르면 바랜 양피지 표시.
+# 표시는 2픽셀 굵기의 꺾인 획 (x 4..15, y 5..14), 아래·오른쪽에 그림자 한 줄 (k).
+CHECK = [
+    "....................",
+    "....................",
+    "....................",
+    "....................",
+    "....................",
+    "..............CC....",
+    ".............CCk....",
+    "............CCk.....",
+    "....CC.....CCk......",
+    ".....CC...CCk.......",
+    "......CC.CCk........",
+    ".......CCCk.........",
+    "........Ck..........",
+    ".........k..........",
+    "....................",
+    "....................",
+    "....................",
+    "....................",
+    "....................",
+    "....................",
+]
+
+
+def checkbox(selected, hi):
+    cv = Cv(20, 20)
+    frame(cv, 0, 0, 20, 20, GROOVE_RINGS[hi], FLOOR, chamfer=1)
+    if selected:
+        cv.stamp(0, 0, [r.replace(".", " ") for r in CHECK], {"C": BR_GLINT if hi else "parch2", "k": OUTLINE})
+    return cv.image()
+
+
+def text_field(hi):
+    """글 칸 200×20 (9조각 테 1): 가장 어두운 재 바탕에 쇠 테 한 줄, 고르면 청동 테. 글 (흰색) 이 가장 잘 읽히는 바탕."""
+    cv = Cv(200, 20)
+    cv.rect(0, 0, 199, 19, BR_LIT if hi else "rust1")
+    cv.rect(1, 1, 198, 18, "ash0")
+    return cv.image()
+
+
+def tab(selected, hi):
+    """
+    탭 130×24 (세계 만들기 화면). 바닐라처럼 고르지 않은 탭은 4줄 낮고 아래가 닫혔고, 고른 탭은 위로 솟고 아래가 트였다
+    (속은 비워 아래 판이 비친다). 솟은 쇠판의 말씨: 위·왼쪽 빛, 오른쪽 그늘. 가리키면 빛 줄이 청동이 된다.
+    """
+    W, H = 130, 24
+    cv = Cv(W, H)
+    lit, dark = (BR_LIT, BR) if hi else ("rust1", PANEL)
+    top = 0 if selected else 4
+    cv.hline(0, W - 1, top, OUTLINE)
+    cv.hline(1, W - 2, top + 1, lit)
+    cv.vline(0, top, H - 1, OUTLINE)
+    cv.vline(W - 1, top, H - 1, OUTLINE)
+    cv.vline(1, top + 1, H - 1 if selected else H - 2, lit)
+    cv.vline(W - 2, top + 1, H - 1 if selected else H - 2, dark)
+    if not selected:
+        cv.rect(2, top + 2, W - 3, H - 3, PANEL)
+        cv.hline(0, W - 1, H - 2, lit)
+        cv.hline(0, W - 1, H - 1, OUTLINE)
+    return cv.image()
+
+
+def scroller(background):
+    """두루마리 6×32 (9조각 테 1). 막대: 솟은 쇠 (왼쪽·위 빛, 오른쪽·아래 그늘). 길: 가장 어두운 재 한 색."""
+    cv = Cv(6, 32)
+    if background:
+        cv.rect(0, 0, 5, 31, "ash0")
+    else:
+        cv.rect(0, 0, 5, 31, "rust1")
+        cv.hline(0, 4, 0, "rust2")
+        cv.vline(0, 0, 30, "rust2")
+        cv.vline(5, 0, 31, PANEL)
+        cv.hline(0, 5, 31, PANEL)
+    return cv.image()
+
+
+# 설정 화면의 머리·발 나눔줄 (textures/gui/*_separator.png 32×2, 가로로 이어 붙인다). 바닐라는 반투명 흰 줄 + 검은 줄이라
+# 쇠 단추 사이에서 회색 띠로 떴다. 창의 나눔줄과 같은 새긴 홈: 위 줄 그늘, 아래 줄 빛 받는 홈 벽.
+SEPARATORS = ("header_separator", "footer_separator", "inworld_header_separator", "inworld_footer_separator")
+
+
+def separator():
+    cv = Cv(32, 2)
+    cv.hline(0, 31, 0, GROOVE)
+    cv.hline(0, 31, 1, LIP)
+    return cv.image()
+
+
+def widgets():
+    """{파일 이름: 그림} (gui/sprites/widget/)."""
+    out = {}
+    for hi in (False, True):
+        sfx = "_highlighted" if hi else ""
+        out["slider" + sfx] = slider_track(hi)
+        out["slider_handle" + sfx] = slider_handle(hi)
+        out["text_field" + sfx] = text_field(hi)
+        out["checkbox" + sfx] = checkbox(False, hi)
+        out["checkbox_selected" + sfx] = checkbox(True, hi)
+        out["tab" + sfx] = tab(False, hi)
+        out["tab_selected" + sfx] = tab(True, hi)
+    out["scroller"] = scroller(False)
+    out["scroller_background"] = scroller(True)
+    return out
 
 
 # ─────────────────────────── Dialog 경고 단추 ───────────────────────────
@@ -889,6 +1087,12 @@ def build(out):
     for state, fname in (("normal", "warning_button"), ("highlighted", "warning_button_highlighted"),
                          ("disabled", "warning_button_disabled")):
         written.append(save(warning_button(state), out, "sprites", "dialog", fname + ".png"))
+    for fname, img in widgets().items():
+        written.append(save(img, out, "sprites", "widget", fname + ".png"))
+        if fname in WIDGET_SCALING:
+            save_mcmeta(out, WIDGET_SCALING[fname], "sprites", "widget", fname + ".png")
+    for n in SEPARATORS:
+        written.append(save(separator(), out, n + ".png"))
     tbg, tfr = tooltip()
     written.append(save(tbg, out, "sprites", "tooltip", "background.png"))
     written.append(save(tfr, out, "sprites", "tooltip", "frame.png"))
@@ -1022,36 +1226,46 @@ def vanilla_wells(img):
     return found
 
 
-def check_wells(ours, wells, van=None):
+def well_pixels(ours, wells, van=None):
     """
-    우리 그림이 바닐라 칸과 같은 자리인지 본다. 칸마다:
-      그늘 줄 (위 x..x+w-2, 왼쪽 y..y+h-2) 이 한 색이고, 그 바로 바깥 (위 줄 위, 왼쪽 줄 왼쪽) 은 그 색이 아니며,
-      입술 줄 (아래, 오른쪽) 은 바닥과 다른 한 색. 18×18 칸은 가운데 16×16 이 한 색 (아이템 자리).
-    van (바닐라 그림) 을 주면 바닐라가 그 자리를 그늘·입술로 칠한 픽셀만 견주고 (인물 자리의 오른쪽 아래는
-    바닐라에서도 왼손 칸이 덮는다), 바깥 줄은 바닐라에서 그늘·바닥·인물 자리 색인 픽셀 (이웃 칸의 꺾임 점) 을 뺀다.
-    어긋난 칸의 목록을 돌려준다 (비면 모두 맞다).
+    칸마다 자리를 픽셀로 견준다. [(x, y, 맞음)] 과 어긋난 칸 목록을 돌려준다. 칸 (x, y, 폭, 높이) 에서 우리 그림의
+    그늘색 S = (x, y), 입술색 L = (x+폭-1, y+높이-1), 바닥색 F = (x+1, y+1) 일 때:
+      그늘 줄 (위 x..x+폭-2, 왼쪽 y..y+높이-2)        = S
+      입술 줄 (아래 x+1..x+폭-1, 오른쪽 y+1..y+높이-1) = L  (L ≠ F, 불투명)
+      아이템 자리 (가운데 16×16)                       = F 한 색 (S·L 이 아니다). 인물 자리 (16×16 이 아닌 큰 상자) 는 빼고
+      그늘 줄 바로 바깥 (위 줄 위, 왼쪽 줄 왼쪽)        ≠ S  (어두운 줄이 꼭 1픽셀: 두껍게 번지지 않는다)
+    van (바닐라 그림) 을 주면 바닐라가 그늘·입술로 칠한 픽셀만 그 줄로 보고 (인물 자리의 오른쪽 아래는 바닐라에서도
+    왼손 칸이 덮는다), 바깥 줄은 바닐라에서 그늘·바닥·인물 자리 색인 픽셀 (이웃 칸의 꺾임 점) 을 뺀다.
     """
     px = ours.load()
     vx = van.load() if van is not None else None
-    bad = []
+    checks, bad = [], []
     for x, y, w, h in wells:
-        dark = px[x, y]
-        lip = px[x + w - 1, y + h - 1]
+        S, L, F = px[x, y], px[x + w - 1, y + h - 1], px[x + 1, y + 1]
         edge = [(x + i, y) for i in range(w - 1)] + [(x, y + j) for j in range(h - 1)]
         lips = [(x + i, y + h - 1) for i in range(1, w)] + [(x + w - 1, y + j) for j in range(1, h)]
         outside = [(x + i, y - 1) for i in range(1, w - 1)] + [(x - 1, y + j) for j in range(1, h - 1)]
         if vx is not None:
-            edge = [p for p in edge if vx[p][:3] == VANILLA_SHADOW]
-            lips = [p for p in lips if vx[p][:3] == VANILLA_LIP]
-            outside = [p for p in outside if vx[p][:3] not in (VANILLA_SHADOW, VANILLA_FLOOR, (0, 0, 0))]
-        floor = px[x + 1, y + 1]
-        ok = (all(px[p] == dark for p in edge) and all(px[p] == lip for p in lips) and lip != floor
-              and lip[3] == 255 and all(px[p] != dark for p in outside))
-        if w == 18 and h == 18:
-            ok = ok and all(px[x + 1 + i, y + 1 + j] == floor for i in range(16) for j in range(16))
-        if not ok:
+            edge = [q for q in edge if vx[q][:3] == VANILLA_SHADOW]
+            lips = [q for q in lips if vx[q][:3] == VANILLA_LIP]
+            outside = [q for q in outside if vx[q][:3] not in (VANILLA_SHADOW, VANILLA_FLOOR, (0, 0, 0))]
+        mine = [(q, px[q] == S) for q in edge]
+        mine += [(q, px[q] == L and L != F and L[3] == 255) for q in lips]
+        mine += [(q, px[q] != S) for q in outside]
+        if w <= 26 and h <= 26:     # 칸 (18×18) 과 큰 결과 칸 (26×26): 가운데 16×16 이 아이템 자리
+            ix, iy = x + (w - 16) // 2, y + (h - 16) // 2
+            item = [(ix + i, iy + j) for j in range(16) for i in range(16)]
+            F = px[item[0]]
+            mine += [(q, px[q] == F and F not in (S, L)) for q in item]
+        checks += [(q[0], q[1], ok) for q, ok in mine]
+        if not all(ok for _, ok in mine):
             bad.append((x, y, w, h))
-    return bad
+    return checks, bad
+
+
+def check_wells(ours, wells, van=None):
+    """어긋난 칸의 목록 (비면 모두 맞다). 무엇을 보는지는 well_pixels."""
+    return well_pixels(ours, wells, van)[1]
 
 
 def _outline(draw, x, y, w, h, k, col):
@@ -1060,9 +1274,9 @@ def _outline(draw, x, y, w, h, k, col):
 
 def align_proof(out, preview_dir, jar):
     """
-    align_<창>.png: 왼쪽 바닐라, 가운데 우리 그림, 오른쪽 우리 그림 위에 바닐라 칸의 경계를 겹친 것
-    (청록 = 바닐라 아이템 자리 16×16 의 바깥 경계, 자홍 = 바닐라 칸 18×18 의 바깥 경계), 맨 오른쪽은 두 그림을 반씩 섞은 것.
-    그리고 칸마다 자리 검사 (check_wells). 어긋난 칸이 있으면 그 칸을 빨갛게 칠하고 목록을 돌려준다.
+    align_<창>.png 다섯 칸: 바닐라, 우리 그림, 우리 그림 위에 바닐라 칸의 경계를 겹친 것 (청록 = 바닐라 아이템 자리 16×16
+    의 바깥 경계, 자홍 = 바닐라 칸 18×18 의 바깥 경계), 두 그림을 반씩 섞은 것, 픽셀 견주기 (well_pixels 가 본 픽셀마다
+    맞으면 초록 점, 어긋나면 빨간 칸). 어긋난 칸이 있으면 셋째 칸에서 그 칸을 빨갛게 칠하고 목록을 돌려준다.
     """
     from PIL import ImageDraw
     k = 4
@@ -1075,8 +1289,8 @@ def align_proof(out, preview_dir, jar):
             ours = _sprite(out, "container", name + ".png")
             w, h = L["size"]
             wells = vanilla_wells(van)
-            bad = check_wells(ours, wells, van)
-            report[name] = (len(wells), bad)
+            checks, bad = well_pixels(ours, wells, van)
+            report[name] = (len(wells), bad, len(checks), sum(1 for c in checks if not c[2]))
             crop = (0, 0, w, h)
             a, b = _big(van.crop(crop), k), _big(ours.crop(crop), k)
             over = b.copy()
@@ -1087,9 +1301,18 @@ def align_proof(out, preview_dir, jar):
             for x, y, ww, hh in bad:
                 d.rectangle([x * k, y * k, (x + ww) * k - 1, (y + hh) * k - 1], fill=(255, 0, 0, 160))
             mix = Image.blend(a, b, 0.5)
+            # 픽셀 견주기: 바닐라와 우리를 반씩 섞은 위에, 검사한 픽셀마다 맞으면 초록 점, 어긋나면 빨간 칸
+            diff = Image.blend(a, b, 0.5).point(lambda v: v // 3)
+            dd = ImageDraw.Draw(diff)
+            for x, y, ok in checks:
+                if ok:
+                    dd.rectangle([x * k + 1, y * k + 1, x * k + k - 2, y * k + k - 2], fill=(40, 200, 90, 255))
+                else:
+                    dd.rectangle([x * k, y * k, x * k + k - 1, y * k + k - 1], fill=(255, 30, 30, 255))
             gap = 12
-            sheet = Image.new("RGBA", (4 * w * k + 3 * gap, h * k), (12, 12, 12, 255))
-            for i, im in enumerate((a, b, over, mix)):
+            panels = (a, b, over, mix, diff)
+            sheet = Image.new("RGBA", (len(panels) * w * k + (len(panels) - 1) * gap, h * k), (12, 12, 12, 255))
+            for i, im in enumerate(panels):
                 sheet.alpha_composite(im, (i * (w * k + gap), 0))
             sheet.save(os.path.join(preview_dir, f"align_{name}.png"))
         # 빈 칸 그림: 16×16 안에서 테두리 상자의 가운데 (바닐라와 우리)
@@ -1279,7 +1502,7 @@ def write_previews(out, preview_dir):
         z.close()
 
     # 단추 (사망 화면 크기 200, 일시정지 화면 크기 98·204), 설명 칸, Dialog 경고 단추
-    W2, H2 = 427, 150
+    W2, H2 = 427, 176
     canvas = pv.dusk_scene(W2 * gui, H2 * gui)
     canvas.alpha_composite(pv.death_overlay(W2 * gui, H2 * gui))
     small = Image.new("RGBA", (W2, H2), (0, 0, 0, 0))
@@ -1290,6 +1513,21 @@ def write_previews(out, preview_dir):
         small.alpha_composite(nine_slice(_sprite(out, "sprites", "widget", spr + ".png"), bw, bh, b), (bx, by))
     for i, st in enumerate(("warning_button", "warning_button_highlighted", "warning_button_disabled")):
         small.alpha_composite(_sprite(out, "sprites", "dialog", st + ".png"), (10 + 24 * i, 120))
+    # 설정 화면: 밀대 둘 (보통, 가리킴), 고름 칸 넷, 글 칸 둘, 두루마리
+    wd = ("sprites", "widget")
+    sliders = []
+    for i, (hi, val) in enumerate(((False, 0.35), (True, 0.7))):
+        sfx = "_highlighted" if hi else ""
+        sx, sy = 214 + i * 104, 116
+        small.alpha_composite(nine_slice(_sprite(out, *wd, "slider" + sfx + ".png"), 98, 20, 2), (sx, sy))
+        small.alpha_composite(_sprite(out, *wd, "slider_handle" + sfx + ".png"), (sx + int(val * 90), sy))
+        sliders.append((sx + 49, sy + 6, "시야: 70" if i == 0 else "밝기: 50%"))
+    for i, n in enumerate(("checkbox", "checkbox_highlighted", "checkbox_selected", "checkbox_selected_highlighted")):
+        small.alpha_composite(_sprite(out, *wd, n + ".png").resize((17, 17), Image.NEAREST), (90 + 20 * i, 121))
+    small.alpha_composite(nine_slice(_sprite(out, *wd, "text_field.png"), 90, 20, 1), (10, 148))
+    small.alpha_composite(nine_slice(_sprite(out, *wd, "text_field_highlighted.png"), 90, 20, 1), (110, 148))
+    small.alpha_composite(_sprite(out, *wd, "scroller_background.png"), (412, 140))
+    small.alpha_composite(nine_slice(_sprite(out, *wd, "scroller.png"), 6, 20, 1), (412, 146))
     tb = _sprite(out, "sprites", "tooltip", "background.png")
     tf = _sprite(out, "sprites", "tooltip", "frame.png")
     for tx, ty, tw, th in ((330, 14, 80, 30), (24, 14, 70, 60)):
@@ -1299,6 +1537,8 @@ def write_previews(out, preview_dir):
     for spr, bw, bh, b, bx, by, text in btns:
         col = (160, 160, 160) if spr == "button_disabled" else (224, 224, 224)
         pv.paste_text(canvas, text, (bx + bw // 2) * gui, (by + 6) * gui, gui, color=col)
+    for cx, cy, text in sliders:
+        pv.paste_text(canvas, text, cx * gui, cy * gui, gui, color=(224, 224, 224))
     pv.paste_text(canvas, "흐롤프의 미늘창", (330 + 32) * gui, 14 * gui, gui, color=(209, 195, 160))
     pv.paste_text(canvas, "녹슨 날", (330 + 20) * gui, 26 * gui, gui, color=(133, 128, 121))
     canvas.save(os.path.join(preview_dir, "gui_widgets.png"))
@@ -1307,8 +1547,9 @@ def write_previews(out, preview_dir):
     if jar:
         report = align_proof(out, preview_dir, jar)
         for name in CONTAINER_LAYOUTS:
-            n, bad = report[name]
-            print(f"  칸 자리 {name}: 바닐라 칸 {n}개, 어긋남 {len(bad)}" + (f" {bad}" if bad else ""))
+            n, bad, npx, badpx = report[name]
+            print(f"  칸 자리 {name}: 바닐라 칸 {n}개 (인벤토리는 인물 자리 하나 포함), 어긋난 칸 {len(bad)}, "
+                  f"견준 픽셀 {npx}개 중 어긋남 {badpx}" + (f" {bad}" if bad else ""))
         n, bad = report["hotbar"]
         print(f"  칸 자리 hotbar: 칸 {n}개, 어긋남 {len(bad)}, 선택 테 구멍 {report['selection_hole']}")
         for name, (v, o) in report["icons"].items():

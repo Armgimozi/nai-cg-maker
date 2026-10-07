@@ -64,6 +64,7 @@ SLOT_PX = {
     "dialog_body": 200,              # Dialog 본문 (plain_message 기본 폭 200, 넘으면 줄이 바뀐다)
     "tooltip": 250,                  # 아이템 이름·설명 한 줄
     "screen": 400,                   # 바닐라 확인 창 제목
+    "container_title": 72,           # 창 제목 (인벤토리의 "제작" 은 x 97 에서 판 안쪽 끝 168 까지, 10.4)
     "wrap": None,                    # 채팅·접속 거절·팩 창 (클라이언트가 줄을 바꾼다)
 }
 SLOTS = [
@@ -77,6 +78,7 @@ SLOTS = [
     ("item.*", "tooltip"), ("test.*", "tooltip"), ("skill.*", "tooltip"),
     ("vanilla.deathScreen.respawn", "button200"), ("vanilla.deathScreen.titleScreen", "button200"),
     ("vanilla.deathScreen.quit.confirm", "screen"), ("vanilla.deathScreen.score.value", "screen"),
+    ("vanilla.container.*", "container_title"),
     ("pack.*", "wrap"), ("build.*", "wrap"), ("admin.*", "wrap"),
 ]
 # 폭을 잴 때 자리에 넣는 값 (가장 길게 나올 만한 것)

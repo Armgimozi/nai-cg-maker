@@ -105,3 +105,10 @@ vanilla:
       confirm: "Depart this place?"
     score:
       value: ""
+  container:
+    crafting: "<gray>Crafting"
+    chest: "<gray>Chest"
+    chestDouble: "<gray>Large Chest"
+    enderchest: "<gray>Ender Chest"
+    barrel: "<gray>Barrel"
+    inventory: "<gray>Inventory"

@@ -135,3 +135,13 @@ vanilla:
       confirm: "여기서 그만두겠나"
     score:
       value: ""
+  # 창 제목 (10.4). 바닐라는 제목을 어두운 회색 (0x404040) 으로 쓰는데, 다시 그린 어두운 창 (인벤토리·제작대·상자) 에서는
+  # 읽히지 않는다. <gray> (§7) 로 밝힌다. 글은 바닐라 한국어와 같다. 다시 그리지 않은 바닐라 창 (화로, 모루 …) 의
+  # "보관함" 도 회색이 되지만, 그 창은 짓는 사람 (창작 모드) 만 연다 (Protection)
+  container:
+    crafting: "<gray>제작"
+    chest: "<gray>상자"
+    chestDouble: "<gray>큰 상자"
+    enderchest: "<gray>엔더 상자"
+    barrel: "<gray>통"
+    inventory: "<gray>보관함"
