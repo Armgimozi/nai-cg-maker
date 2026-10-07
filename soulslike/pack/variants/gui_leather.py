@@ -4,26 +4,31 @@ gui_skin.py 와 같은 build(out) 를 쓴다. 칸 자리 (CONTAINER_LAYOUTS, wel
 
 말씨 (2026-10-07 사용자: "세련된다는게 그런 뜻이 아니었는데, 뭔가 거무칙칙한 느낌을 원했던 것 같기도")
   v1 은 흩뿌린 녹 점, v2 는 깨끗한 회갈색 쇠판에 가는 청동 줄이었다. 이 시안은 오래 써서 검게 죽은 소피 가방이다.
-  바탕은 거의 검은 검붉은 가죽 (blood0) 한 장이고, 그 위의 모든 자국은 까닭이 있는 자리에만 앉는다:
-    - 먼지 (rust0): 손이 닿지 않는 곳의 둥근 테는 탁한 먼지 막을 쓰고 붉은 기가 죽었다. 위로 향한 턱 (아래 테의 윗면,
-      이음매 아래 턱) 에 먼지가 앉는다.
-    - 때 (ash0): 테가 판에 꺾여 들어가는 주름, 이음매 아래, 놋쇠 둘레, 아래 두 귀에 낀다. 흩뿌리지 않고 줄과 귀에 모인다.
-    - 손때와 윤: 손이 잡는 자리 (양옆 테의 가운데쯤, 아래 테 가운데, 위 테 조금) 만 먼지가 벗겨져 기름 먹은 윤 (blood1)
-      이 돌고, 가장 많이 잡힌 가운데는 물감이 닳아 밑의 갈색 가죽 (bronze0, bronze1) 이 드러나고 둥근 테가 가로로 갈라졌다.
-      그 자리의 실은 닳아 끊겨 바늘 구멍만 남았다.
-    - 녹청 (moss): 놋쇠 귀 장식의 패인 곳 (가죽과 맞닿은 안쪽 가장자리, 징 둘레) 에만 슬고, 손에 닳는 바깥 테는 놋쇠빛이
-      남았다. 빛에서 먼 귀, 아래 귀일수록 녹청이 많다. 위 두 귀에서는 녹물이 아래로 흘러 가죽 테에 얼룩졌다.
+  판은 검붉은 가죽 (blood0) 과 때 (ash0) 를 한 칸씩 엇갈린 결이다. 두 색은 밝기가 같아 (luma 0.11) 밝기 무늬가 없고,
+  멀리서는 붉은 기가 죽은 검은 소피 한 색, 가까이서는 오돌토돌한 가죽 결로 읽힌다. 그 위의 자국은 까닭이 있는 자리에만:
+    - 먼지 (rust0): 손이 닿지 않는 둥근 말림의 윗면이 탁한 먼지 막을 써서 붉은 기가 죽었다.
+    - 때 (ash0): 말림이 판으로 꺾여 드는 주름, 솔기 아래, 놋쇠 둘레, 그리고 귀 (dirt_level: 귀에 가까울수록 결이 때로
+      메워진다 — 짙기 3 은 네 칸에 한 칸만 가죽, 4 는 때 한 색. 아래 두 귀가 더 넓다) 와 아래 변. 흩뿌리지 않는다.
+    - 손때와 윤: 손이 잡는 자리 (WEAR: 양옆 가운데쯤, 아래 가운데, 위 조금) 만 먼지가 벗겨져 말림에 기름 윤 (blood1)
+      이 돌고, 그 안쪽 판은 결이 눌려 매끈한 검붉은 가죽이다. 가장 많이 잡힌 가운데는 물감이 닳아 갈색 가죽
+      (bronze0, bronze1) 이 드러나고 둥근 말림이 가로로 갈라졌고 (CRACK_GAPS), 실이 하나 걸러 끊겨 구멍만 남았다.
+    - 녹청 (moss): 놋쇠 귀싸개의 패인 곳 (징 둘레, 가죽과 맞닿은 아래쪽 가장자리) 에만 슬고, 손에 닳는 바깥 테와
+      징 머리만 놋쇠빛이다. 빛에서 먼 귀, 아래 귀일수록 녹청이 많다. 위 두 귀에서는 녹물이 아래로 흘러 가죽 테에 얼룩졌다.
   층
-    테    윤곽 → 2픽셀 둥근 말림 (위·왼쪽은 윗면, 아래·오른쪽은 안쪽 반이 빛) → 때 낀 주름 → 가죽 → 박음질 → 가죽.
-          박음질은 3픽셀 마디 (실 2 + 구멍 1). 상자 그림은 바닐라가 위아래를 잘라 붙이므로 양옆 박음질의 마디를 잘린 자리에서
-          맞췄다 (stitch_phase).
-    귀    네 귀에만 놋쇠 귀싸개 (두 팔 + 안쪽 모깎기, 징 둘). 귀마다 녹청·징 빠짐이 다르다 (CORNERS).
-    판    검붉은 가죽 한 장. 넓은 빈 곳에 기름 얼룩 하나 (마른 테두리가 진하고 아래로 한 줄 흘렀다).
-    칸    눌러 찍은 주머니: 바닥은 가죽, 위·왼쪽 벽 그늘 (ash0), 아래·오른쪽 입술. 늘 쓰는 단축 줄 주머니의 입술은
-          손에 문질러 윤이 돌고 (blood1), 덜 쓰는 보관함 주머니의 입술은 먼지에 죽은 갈색 (bronze0) 이다.
-    이음매 칸 묶음 사이는 새긴 홈 대신 두 가죽을 박아 이은 솔기 (박음질 + 아래 그늘).
-    화살표 가죽에 눌러 찍었다 (위·왼쪽 그늘, 아래·오른쪽 빛).
-  단축 슬롯은 주머니 아홉 개를 박음질로 나눈 가죽 탄띠, 고른 칸은 네 귀에 놋쇠를 댄 가죽 테. 체력 (마른 핏방울) 은 그대로.
+    테    윤곽 → 2픽셀 둥근 말림 (위·왼쪽 변은 바깥 줄, 아래·오른쪽 변은 안쪽 줄이 빛 받는 윗면) → 때 낀 주름 → 가죽 →
+          박음질 (실 2 + 구멍 1) → 가죽 결. 상자 그림은 바닐라가 위아래를 잘라 붙이므로 양옆 박음질의 마디와 결의
+          엇갈림을 잘린 자리에서 맞췄다 (stitch_phase, grain_parity).
+    귀    네 귀에만 손으로 그린 놋쇠 귀싸개 (CAP_ART: 두 팔 + 징 셋). 같은 그림을 뒤집어 쓰지 않았다: 왼쪽 위는 닦여
+          반짝이고, 오른쪽 위는 징 하나가 빠져 구멍만 남았고, 아래 귀일수록 녹청이 두껍다.
+    판    가죽 결. 넓고 어둡다. 따로 얹은 무늬가 없다.
+    칸    눌러 찍은 주머니: 눌려 매끈해진 바닥에 때가 앉아 가장 검다 (ash0). 위·왼쪽 벽은 그늘이지만 가죽 물감이 남아
+          검붉고 (blood0), 아래·오른쪽 입술은 먼지에 죽은 갈색 (bronze0). 주머니 둘레 한 줄은 눌러 찍을 때 솟은 턱 (rust0).
+          늘 쓰는 단축 줄 주머니는 손이 드나들며 바닥의 때가 닳아 마른 가죽 (rust0) 이 드러났고 입술이 한 단 밝다
+          (bronze1). 그래서 석탄·부싯돌 같은 검은 아이템이 늘 보는 단축 줄에서 가장 잘 읽힌다.
+    이음매 칸 묶음 사이는 새긴 홈 대신 두 가죽을 박아 이은 솔기 (박음질 + 위 가죽 끝이 드리운 그늘).
+    화살표 가죽에 눌러 찍었다 (위·왼쪽 그늘, 아래·오른쪽 윤, 바닥은 먼지).
+  단축 슬롯은 주머니 아홉 개를 세로 박음질로 나눈 가죽 탄띠 (네 귀에 작은 놋쇠), 고른 칸은 네 귀에 놋쇠를 댄 솟은 가죽 테,
+  가리킨 칸은 손가락에 문질린 갈색 바닥과 네 귀의 놋쇠 꺾쇠. 체력 (마른 핏방울) 과 스태미나 채움 (이끼) 은 그대로.
   부드러운 그라데이션, 흐림, 반투명은 없다. 모든 색은 palette.c(이름) 하나에서.
 
   python3 pack/variants/gui_leather.py [팩폴더] [미리보기폴더]
@@ -114,38 +119,61 @@ def save_mcmeta(out, scaling, *parts):
 # ─────────────────────────── 말씨: 색의 자리 ───────────────────────────
 
 OUTLINE = "ash0"      # 바깥 윤곽
-BODY = "blood0"       # 가죽: 거의 검은 검붉은 소피
+BODY = "blood0"       # 가죽 물감: 거의 검은 검붉은 소피 (손에 문질러 결이 눌린 곳은 이 한 색)
 GRIME = "ash0"        # 주름·이음매·놋쇠 둘레에 낀 때
-DUST = "rust0"        # 손이 닿지 않는 둥근 면과 턱에 앉은 먼지 막 (붉은 기가 죽는다)
+DUST = "rust0"        # 손이 닿지 않는 둥근 말림의 윗면과 턱에 앉은 먼지 막 (붉은 기가 죽는다)
 SHEEN = "blood1"      # 손에 문질러 기름 윤이 도는 면
-GLOSS = "blood2"      # 윤의 가장 밝은 점 (가장 많이 잡힌 곳 몇 점)
 WORN = "bronze0"      # 물감이 닳아 드러난 갈색 가죽
-BARE = "bronze1"      # 가장 많이 닳은 모서리
+BARE = "bronze1"      # 가장 많이 닳은 모서리 (금 사이)
 THREAD = "bronze1"    # 밀랍 먹인 실 (때가 타 누렇게 죽었다)
-THREAD_DIRTY = "bronze0"   # 때가 많이 낀 귀의 실
+THREAD_DIRTY = "bronze0"   # 때가 많이 낀 귀 가까이의 실
 HOLE = "ash0"         # 바늘 구멍
 
 # 칸: 눌러 찍은 주머니. 눌려 매끈해진 바닥에 때가 앉아 가장 검다 (바닥 = 아이템 자리 16×16, 한 색).
 # 위·왼쪽 벽은 그늘이지만 가죽 물감이 그대로 남아 검붉다 (바닥과 밝기가 같아 선이 아니라 색으로만 갈린다),
-# 아래·오른쪽 입술은 빛을 받는 닳은 갈색.
+# 아래·오른쪽 입술은 빛을 받는 닳은 갈색. 주머니 둘레 한 줄은 눌러 찍을 때 솟은 턱 (먼지, _guard_rings).
 FLOOR = "ash0"
 SHADOW = "blood0"
 LIP = "bronze0"       # 덜 쓰는 주머니의 입술 (먼지에 죽은 갈색)
 LIP_USED = "bronze1"  # 늘 쓰는 주머니 (단축 줄) 의 입술: 손에 닳아 한 단 밝은 갈색
+FLOOR_USED = "rust0"  # 늘 쓰는 주머니의 바닥: 손이 드나들며 검은 때가 닳아 마른 가죽이 드러났다 (석탄도 잘 읽힌다)
 DEEP = "ash0"         # 창에서 가장 깊은 곳: 인물 자리 하나뿐 (그늘 줄도 때라 바닥에 묻힌다)
 GROOVE = "ash0"
-PANEL = BODY          # (옛 이름: 미리보기·위젯이 쓴다)
-# 가죽 결: 판의 눌리지 않은 가죽은 검붉은 가죽과 때를 한 칸씩 엇갈려 찍는다. 두 색은 밝기가 같아 (luma 0.11)
-# 멀리서는 붉은 기가 죽은 검은 소피 한 색으로 보이고, 가까이 보면 오돌토돌한 결이다. 눌러 찍은 주머니·이음매·말림은
-# 결이 눌려 매끈하다 (한 색). GRAIN 이 비면 결 없이 BODY 한 색.
+PANEL = BODY          # (옛 이름: 위젯이 쓴다)
+# 놋쇠 (귀에만, 그리고 고른 칸·가리킨 칸·설명 칸의 귀). 녹이 슬어 얼굴이 가장 어두운 놋쇠 (bronze0) 까지 죽었고,
+# 손에 닳는 바깥 테와 징 머리만 놋쇠빛이 남았다.
+BR_DEEP, BR, BR_LIT, BR_GLINT = "bronze0", "bronze1", "bronze2", "bronze3"
+VERD0, VERD1, VERD2 = "moss0", "moss1", "moss2"   # 녹청: 놋쇠의 패인 곳에만
+
+# 가죽 결과 때의 짙기 (눌리지 않은 판 가죽에만). 검붉은 가죽 (blood0) 과 때 (ash0) 는 밝기가 같아 (luma 0.11)
+# 섞어 찍어도 밝기 무늬가 생기지 않고, 멀리서는 붉은 기가 죽은 검은 소피 한 색, 가까이는 오돌토돌한 결로 보인다.
+#   0 손에 문질러 결이 눌리고 때가 닦였다: 검붉은 가죽 한 색
+#   2 보통: 가죽과 때를 한 칸씩 엇갈려 (결)
+#   3 때가 앉았다: 네 칸에 한 칸만 가죽
+#   4 때가 엉겨 붙었다: 때 한 색
+# 짙기는 자리의 까닭으로만 정한다 (dirt_level): 귀 (아래 귀가 더 넓다), 아래 변, 손이 닿는 곳.
 GRAIN = ("blood0", "ash0")
 
 
-def body(x, y):
-    return GRAIN[(x + y) % 2] if GRAIN else BODY
-# 놋쇠 (귀에만, 그리고 고른 칸의 귀)
-BR_DEEP, BR, BR_LIT, BR_GLINT = "bronze0", "bronze1", "bronze2", "bronze3"
-VERD0, VERD1, VERD2 = "moss0", "moss1", "moss2"   # 녹청: 놋쇠의 패인 곳에만
+def grain_parity(name, x, y):
+    """
+    결의 엇갈림. 상자 그림 (generic_54) 은 바닐라가 위 조각의 마지막 줄 (늘 짝수 16+18n) 바로 다음에 아래 조각의
+    첫 줄 126 (짝수) 을 붙이므로, 아래 조각은 한 칸 밀어 잘린 자리에서도 결이 이어지게 한다.
+    """
+    return (x + y + (1 if name == "generic_54" and y >= 126 else 0)) % 2
+
+
+def grain_col(name, x, y, level):
+    p = grain_parity(name, x, y)
+    if level <= 1:
+        return GRAIN[0]
+    if level == 2:
+        return GRAIN[p]
+    if level == 3:
+        yy = y + (1 if name == "generic_54" and y >= 126 else 0)
+        return GRAIN[0] if (x % 2 == 0 and yy % 2 == 0) else GRAIN[1]
+    return GRAIN[1]
+
 
 LIT, MID, DARK = 0, 1, 2      # 테의 쪽: 위·왼쪽, 비스듬한 귀, 아래·오른쪽
 
@@ -188,23 +216,27 @@ STITCH_RING = 5       # 박음질이 지나는 고리 (테 0..3 + 가죽 4 다�
 
 def stitch_phase(name, edge, t):
     """
-    박음질 마디의 자리 (0, 1 = 실, 2 = 구멍). 상자 그림 (generic_54) 은 바닐라가 위 (0 .. 줄×18+16) 와 아래 (126..) 를
-    잘라 붙인다. 위 조각의 마지막 줄은 늘 16+18n (마디 1) 이므로 아래 조각의 첫 줄 126 이 마디 2 가 되게 한 칸 민다.
+    박음질 마디의 자리 (0, 1 = 실, 2 = 구멍). 상자 그림 (generic_54) 은 위 조각의 마지막 줄 (16+18n, 마디 1) 다음에
+    아래 조각의 첫 줄 126 이 붙으므로 126 이 마디 2 가 되게 두 칸 민다.
     """
     if name == "generic_54" and edge in ("left", "right") and t >= 126:
         t += 2
     return t % 3
 
 
-# 손이 닿는 자리 (창마다): (변, 가운데, 닳은 반폭, 윤 반폭). 닳은 곳 (2) 은 물감이 벗겨지고 테가 갈라지며 실이 끊겼고,
-# 윤 (1) 은 먼지가 벗겨져 기름 윤이 돈다. 상자 그림의 양옆은 126 줄 아래 (늘 보이는 보관함 쪽) 에만 둔다.
+# 손이 닿는 자리 (창마다): (변, 가운데, 닳은 반폭, 윤 반폭). 닳은 곳 (2) 은 물감이 벗겨지고 둥근 말림이 가로로 갈라졌고
+# 실이 하나 걸러 끊겼다. 윤 (1) 은 먼지가 닦여 기름 윤이 돈다. 상자 그림의 양옆은 126 줄 아래 (늘 보이는 보관함 쪽)
+# 에만 둔다 (그 위는 줄 수에 따라 잘려 나가므로 양옆이 위아래로 고르다).
 WEAR = {
     "inventory": (("left", 104, 7, 19), ("right", 97, 5, 15), ("bottom", 86, 9, 25), ("top", 118, 0, 9)),
     "crafting_table": (("left", 104, 7, 19), ("right", 97, 5, 15), ("bottom", 86, 9, 25), ("top", 118, 0, 9)),
     "generic_54": (("left", 178, 7, 18), ("right", 170, 5, 14), ("bottom", 86, 9, 25), ("top", 118, 0, 9)),
 }
-# 닳은 둥근 테의 가로 금 (닳은 곳 안에서 이 간격으로, 손으로 고른 고르지 않은 간격)
+# 닳은 둥근 말림의 가로 금 (닳은 곳 안에서 이 간격으로, 손으로 고른 고르지 않은 간격)
 CRACK_GAPS = (4, 6, 3, 5, 7, 4, 5)
+# 귀에 모인 때: 귀에서 (가로 + 세로 거리) 가 이 안이면 짙기 4 / 3. 아래 두 귀는 물기·흙이 고여 더 넓다
+CORNER_DIRT = {"top": (11, 15), "bottom": (15, 22)}
+BOTTOM_DIRT_RINGS = 9     # 아래 변에서 이 고리까지는 때가 앉았다 (짙기 3): 먼지는 아래로 내려앉는다
 
 
 def wear_level(name, edge, t):
@@ -234,16 +266,39 @@ def cracks(name, edge):
     return out
 
 
+def corner_reach(x, y, w, h):
+    """가장 가까운 귀까지의 (가로 + 세로) 거리와 그 귀가 위 ('top') 인지 아래 ('bottom') 인지."""
+    W, H = w - 1, h - 1
+    return min(((x + y, "top"), (W - x + y, "top"), (x + H - y, "bottom"), (W - x + H - y, "bottom")))
+
+
+def dirt_level(name, w, h, x, y, k, edge, t):
+    """눌리지 않은 판 가죽의 때 짙기 (grain_col). 귀 > 손 닿는 곳 > 아래 변 > 보통 차례로 정한다."""
+    s, which = corner_reach(x, y, w, h)
+    inner, outer = CORNER_DIRT[which]
+    if s <= inner:
+        return 4
+    if s <= outer:
+        return 3
+    if k <= 8:
+        lv = wear_level(name, edge, t)
+        if lv:
+            return 0
+        if edge == "bottom" and k <= BOTTOM_DIRT_RINGS:
+            return 3
+    return 2
+
+
 def leather_panel(cv, name, w, h):
     """
     판과 테. 고리마다 (바깥 → 안):
       0 윤곽
       1, 2 둥근 말림. 위·왼쪽 변은 바깥 줄 (1) 이 윗면, 아래·오른쪽 변은 안쪽 줄 (2) 이 윗면이다. 윗면은 먼지 (DUST),
-           손이 닿는 곳은 윤 (SHEEN), 가장 많이 잡힌 곳은 닳은 갈색 (WORN/BARE) 과 가로 금. 다른 줄은 가죽 / 그늘.
+           손이 닿는 곳은 윤 (SHEEN), 가장 많이 잡힌 곳은 닳은 갈색 (WORN) 과 가로 금 (금 옆은 BARE). 아랫면은 그늘.
       3 말림이 판으로 꺾여 드는 주름: 때 (GRIME)
-      4 가죽 (닳은 곳은 윤 한 줄)
-      5 박음질 (실 2 + 구멍 1). 닳은 곳은 실이 하나 걸러 끊겨 구멍만, 아래 두 귀 가까이는 때 탄 실
-      6.. 가죽
+      4 판 가죽 (닳은 곳은 윤 한 줄)
+      5 박음질 (실 2 + 구멍 1). 닳은 곳은 실이 하나 걸러 끊겨 구멍만, 귀 가까이는 때 탄 실
+      6.. 판 가죽 (결, dirt_level)
     """
     crack_sets = {e: cracks(name, e) for e in ("top", "left", "bottom", "right")}
     for y in range(h):
@@ -260,21 +315,19 @@ def leather_panel(cv, name, w, h):
             elif k in (1, 2):
                 top_face = (k == 1) == lit          # 둥근 말림의 빛 받는 윗면
                 if side == MID:
-                    col = DUST if k == 1 else BODY
+                    col = DUST if k == 1 else GRIME
                 elif top_face:
                     col = (DUST, SHEEN, WORN)[lv]
-                    if lv == 2 and k == 1:
-                        col = BARE
                 else:
                     col = GRIME if not lit else (BODY, BODY, WORN)[lv]
                 if lv == 2 and t in crack_sets[edge]:
                     col = GRIME
-                elif lv == 2 and t - 1 in crack_sets[edge] and top_face:
-                    col = GLOSS                      # 금 바로 옆 (빛 쪽) 의 날 선 윤
+                elif lv == 2 and top_face and (t - 1 in crack_sets[edge] or t + 1 in crack_sets[edge]):
+                    col = BARE                       # 금 양옆은 가장 많이 닳아 맨살
             elif k == 3:
                 col = GRIME
-            elif k == 4:
-                col = SHEEN if lv == 2 else None
+            elif k == 4 and lv == 2:
+                col = SHEEN
             elif k == STITCH_RING:
                 ph = stitch_phase(name, edge, t)
                 if ph == 2:
@@ -282,140 +335,123 @@ def leather_panel(cv, name, w, h):
                 elif lv == 2 and (t // 3) % 2:
                     col = None                        # 닳아 끊긴 실: 구멍만 남았다
                 else:
-                    col = THREAD
+                    col = THREAD_DIRTY if corner_reach(x, y, w, h)[0] <= CORNER_DIRT["bottom"][1] else THREAD
             if col is None:
-                col = body(x, y)
+                col = grain_col(name, x, y, dirt_level(name, w, h, x, y, k, edge, t))
                 cv.field.add((x, y))
             cv.put(x, y, col)
 
 
-def corner_grime(cv, w, h, reach_top=9, reach_bottom=15):
-    """
-    귀에 모인 때: 놋쇠 귀싸개 안쪽으로 계단진 먼지 막. 아래 두 귀 (물기·흙이 고인다) 가 위 두 귀보다 넓다.
-    가죽 (BODY) 만 먼지로, 실은 때 탄 실로 바꾼다. 칸·윤곽·주름은 건드리지 않는다.
-    """
-    for (cx, cy, fx, fy, reach) in ((0, 0, 1, 1, reach_top), (w - 1, 0, -1, 1, reach_top),
-                                     (0, h - 1, 1, -1, reach_bottom), (w - 1, h - 1, -1, -1, reach_bottom)):
-        for ly in range(reach + 1):
-            for lx in range(reach + 1):
-                if lx + ly > reach + 3:
-                    continue
-                x, y = cx + fx * lx, cy + fy * ly
-                cur = cv.get(x, y)
-                if (x, y) in cv.field:
-                    cv.put(x, y, DUST)
-                    cv.field.discard((x, y))
-                elif cur == THREAD:
-                    cv.put(x, y, THREAD_DIRTY)
-
-
 # ─────────────────────────── 놋쇠 귀싸개 ───────────────────────────
 
-# 왼쪽 위 귀를 기준으로 한 모양 (다른 귀는 뒤집어 쓰고, 빛은 늘 왼쪽 위에서 다시 계산한다).
-# 두 팔은 고리 0..4 (5픽셀), 길이는 줄마다 CAP_END, 안쪽 모깎기는 x + y <= CAP_FILLET.
-CAP_END = (11, 12, 12, 12, 11)
-CAP_FILLET = 12
-CAP_RIVETS = ((2, 8), (8, 2))          # 2×2 징 (왼쪽 위 칸), 귀 기준 자리
-# 귀마다: 녹청 정도 (0 닦인 놋쇠 .. 2 가장 많이), 빠진 징 (번호), 녹물이 흘러내린 길이 (위 귀만)
-CORNERS = {
-    "tl": dict(tarnish=0, missing=None, drip=3),
-    "tr": dict(tarnish=1, missing=1, drip=5),
-    "bl": dict(tarnish=1, missing=None, drip=0),
-    "br": dict(tarnish=2, missing=None, drip=0),
+# 귀마다 손으로 그린 놋쇠 귀싸개 (14×14, 왼쪽 위가 판의 귀). 귀마다 녹청·닳음·징이 다르다 (같은 그림을 뒤집어 쓰지 않는다:
+# 빛은 늘 왼쪽 위에서 오므로 귀마다 밝은 가장자리가 다르다). 두 팔은 판의 고리 0..4 위에 얹히고 안쪽은 모깎기.
+#   O 윤곽·가죽 쪽 때   H bronze3 (손에 닦인 반짝임)   L bronze2 (빛 받는 가장자리, 징 머리)   M bronze1 (얼굴, 닦인 귀)
+#   m bronze0 (녹슬어 죽은 얼굴)   D 그늘 가장자리 (ash0 가까운 rust0)   v moss0 (어두운 녹청)   V moss1   g moss2 (녹청 꽃)
+#   . 그리지 않는다 (아래 테·가죽이 그대로)
+# 징은 2×2 (빛 받는 왼쪽 위가 밝고 아래·오른쪽에 그늘). 오른쪽 위 귀는 징 하나가 빠져 구멍만 남았다.
+CAP_ART = {
+    "tl": [                     # 빛에 가장 가깝다: 바깥 테가 손에 닦여 반짝이고 얼굴도 덜 죽었다. 녹청 없음
+        "..OOOOOOOOOOOO",
+        ".OHHHHLLLLLLLO",
+        "OHHMMMMMMHLMDO",
+        "OHMMHLMMMLMmDO",
+        "OHMMLMmMMmmMDO",
+        "OHMMMmDDDDDDDO",
+        "OLMMMDOOOOOOOO",
+        "OLMMMDO.......",
+        "OLMmMDO.......",
+        "OLHLmDO.......",
+        "OLLMmDO.......",
+        "OLmmMDO.......",
+        "OLDDDDO.......",
+        "OOOOOOO.......",
+    ],
+    "tr": [                     # 징 하나가 빠져 구멍 (아래·오른쪽 벽만 빛) 만 남았고 그 둘레에 녹청
+        "OOOOOOOOOOOO..",
+        "OLLLLLLLLLLLO.",
+        "OLmOOmmmmmmmDO",
+        "OLmOLvmmmLMmDO",
+        "OLmvvmmmmMmvDO",
+        "OLDDDDDDmmvvDO",
+        "OOOOOOOOLmmmDO",
+        ".......OLmmmDO",
+        ".......OLmmmDO",
+        ".......OLmLMDO",
+        ".......OLmMvDO",
+        ".......OLvvmDO",
+        ".......OLDDDDO",
+        ".......OOOOOOO",
+    ],
+    "bl": [                     # 아래 귀: 물기가 고이는 아래 안쪽에 녹청
+        "OOOOOOO.......",
+        "OLLLLDO.......",
+        "OLmmmDO.......",
+        "OLLMmDO.......",
+        "OLMmvDO.......",
+        "OLmvmDO.......",
+        "OLmmmDO.......",
+        "OLmmmDOOOOOOOO",
+        "OLmmmmLLLLLLDO",
+        "OLmLMmmmmLMmDO",
+        "OLmMmvmmvMmvDO",
+        "OLmmvvvmmvvvDO",
+        ".ODDDDDDDDDDDO",
+        "..OOOOOOOOOOOO",
+    ],
+    "br": [                     # 빛에서 가장 멀고 낮다: 녹청이 가장 두껍고 맨 아래 패인 곳에 밝은 녹청 꽃
+        ".......OOOOOOO",
+        ".......OLLLLDO",
+        ".......OLmmmDO",
+        ".......OLmLMDO",
+        ".......OLvMmDO",
+        ".......OVvVvDO",
+        ".......OLmvmDO",
+        "OOOOOOOOLmmmDO",
+        "OLLLLLLLmmmmDO",
+        "OLVvLMmmmLMmDO",
+        "OLgvMmvmmMmvDO",
+        "OLvVgvvvvvvVDO",
+        "ODDDDDDDDDDDO.",
+        ".OOOOOOOOOOO..",
+    ],
 }
-
-
-def cap_local():
-    m = set()
-    for y in range(13):
-        for x in range(13):
-            if (y <= 4 and x <= CAP_END[y]) or (x <= 4 and y <= CAP_END[x]) or x + y <= CAP_FILLET:
-                m.add((x, y))
-    return m
+for _k, _rows in CAP_ART.items():
+    assert len(_rows) == 14 and all(len(r) == 14 for r in _rows), _k
+CAP_INK = {"O": OUTLINE, "H": BR_GLINT, "L": BR_LIT, "M": BR, "m": BR_DEEP, "D": "rust0",
+           "v": VERD0, "V": VERD1, "g": VERD2}
+# 위 두 귀에서 흘러내린 녹물: 세로 팔 끝 바로 아래부터 가죽 테를 따라 아래로. 귀싸개에 가까운 쪽이 짙고 (moss1)
+# 끝으로 갈수록 옅다 (moss0). 가죽 결을 따라 한 번 옆으로 비켜 흐른다. (판 기준 x (음수는 오른쪽 끝에서), [(dx, dy, 색)])
+CAP_DRIPS = {
+    "tl": (2, [(0, 0, VERD1), (0, 1, VERD0), (0, 2, VERD0), (1, 3, VERD0)]),
+    "tr": (-3, [(0, 0, VERD1), (0, 1, VERD1), (0, 2, VERD0), (-1, 3, VERD0), (-1, 4, VERD0), (-1, 5, VERD0),
+                (-1, 6, DUST)]),
+}
 
 
 def brass_caps(cv, w, h):
     """
-    네 귀의 놋쇠. 빛은 왼쪽 위 하나: 위·왼쪽을 보는 가장자리는 밝고 아래·오른쪽을 보는 가장자리는 어둡다.
-    판 바깥 테 (고리 1) 는 손에 닳아 늘 놋쇠빛이다 (빛 쪽 bronze2, 그늘 쪽 bronze0). 녹청은 가죽과 맞닿은 안쪽
-    가장자리의 아래쪽 반과 징 아래·오른쪽에만 슨다 (물기가 고이는 패인 곳). 가죽 쪽 둘레 한 줄은 때 (ash0).
+    네 귀의 놋쇠 (CAP_ART). 가죽 쪽 가장자리를 따라 때 한 줄 (O) 이 끼었고, 녹청은 놋쇠의 패인 곳 (징 둘레, 가죽과 맞닿은
+    아래쪽 가장자리) 에만 슬었다. 빛에서 먼 귀, 아래 귀일수록 녹청이 많다 (물기는 아래에 고인다).
+    위 두 귀에서는 녹물이 아래로 흘러 가죽 테에 얼룩졌다.
     """
-    local = cap_local()
-    for key, (cx, cy, fx, fy) in {"tl": (0, 0, 1, 1), "tr": (w - 1, 0, -1, 1),
-                                  "bl": (0, h - 1, 1, -1), "br": (w - 1, h - 1, -1, -1)}.items():
-        opt = CORNERS[key]
-        g = {(cx + fx * x, cy + fy * y) for x, y in local}
-        g = {(x, y) for x, y in g if ring_at(x, y, w, h, CHAMFER)[0] >= 0}
-        lowest = max(y for _, y in g) if fy > 0 else None
-        for (x, y) in g:
-            k, side = ring_at(x, y, w, h, CHAMFER)
-            if k == 0:
-                col = OUTLINE
-            elif k == 1:
-                col = BR_LIT if side == LIT else (BR if side == MID else BR_DEEP)
-            elif (x, y - 1) not in g or (x - 1, y) not in g:
-                col = BR_LIT
-            elif (x, y + 1) not in g or (x + 1, y) not in g:
-                col = BR_DEEP
-                # 녹청: 가죽과 맞닿은 안쪽 가장자리 (아래·오른쪽을 본다) 에 물기가 고인다
-                if opt["tarnish"] >= 1:
-                    col = VERD0
-            else:
-                col = BR
-            cv.put(x, y, col)
-        # 빛에 가장 가까운 귀: 바깥 테가 손에 닦여 반짝인다 (두 점)
-        if key == "tl":
-            for p in ((3, 1), (1, 3)):
-                cv.put(*p, BR_GLINT)
-        # 가장 녹슨 귀: 안쪽 가장자리 바로 안 (얼굴) 까지 녹청이 번졌고, 가장 낮은 패인 곳에 밝은 녹청 꽃
-        if opt["tarnish"] >= 2:
-            inner = [(x, y) for (x, y) in g if ring_at(x, y, w, h, CHAMFER)[0] >= 2
-                     and cv.get(x, y) == VERD0]
-            for (x, y) in inner:
-                for nx, ny in ((x - 1, y), (x, y - 1)):
-                    if (nx, ny) in g and cv.get(nx, ny) == BR and ring_at(nx, ny, w, h, CHAMFER)[0] >= 2:
-                        cv.put(nx, ny, VERD1)
-            low = sorted(inner, key=lambda p: (p[0] + p[1]))[:2]
-            for p in low:
-                cv.put(*p, VERD2)
-        # 징
-        for i, (rx, ry) in enumerate(CAP_RIVETS):
-            gx, gy = cx + fx * rx, cy + fy * ry
-            gx, gy = min(gx, gx + fx), min(gy, gy + fy)        # 2×2 의 왼쪽 위 (전역)
-            if opt["missing"] == i:
-                cv.put(gx, gy, GRIME)
-                cv.put(gx + 1, gy, GRIME)
-                cv.put(gx, gy + 1, GRIME)
-                cv.put(gx + 1, gy + 1, BR_LIT)               # 빈 구멍의 아래·오른쪽 벽은 빛을 받는다
-                if opt["tarnish"] >= 1:
-                    cv.put(gx + 2, gy + 1, VERD0)
-                continue
-            cv.put(gx, gy, BR_GLINT if key == "tl" else BR_LIT)
-            cv.put(gx + 1, gy, BR)
-            cv.put(gx, gy + 1, BR)
-            cv.put(gx + 1, gy + 1, BR_DEEP)
-            # 징 아래·오른쪽 둘레 (패인 곳) 의 녹청
-            crust = {0: [], 1: [(gx + 2, gy + 1)], 2: [(gx + 2, gy + 1), (gx + 1, gy + 2), (gx + 2, gy + 2)]}
-            for j, (px_, py_) in enumerate(crust[opt["tarnish"]]):
-                if (px_, py_) in g and ring_at(px_, py_, w, h, CHAMFER)[0] >= 2:
-                    cv.put(px_, py_, VERD1 if j == 0 else VERD0)
-            if opt["tarnish"] == 0 and (gx + 2, gy + 1) in g:
-                cv.put(gx + 2, gy + 1, BR_DEEP)
-        # 가죽 쪽 둘레: 놋쇠와 가죽 사이에 낀 때 한 줄 (고리 1..3 의 테 위에서는 테를 따라 이미 어둡다)
-        for (x, y) in g:
-            for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
-                if (nx, ny) in g:
+    places = {"tl": (0, 0), "tr": (w - 14, 0), "bl": (0, h - 14), "br": (w - 14, h - 14)}
+    for key, (x0, y0) in places.items():
+        rows = CAP_ART[key]
+        for dy, row in enumerate(rows):
+            for dx, ch in enumerate(row):
+                if ch == ".":
                     continue
-                kk = ring_at(nx, ny, w, h, CHAMFER)[0]
-                if kk >= 1 and cv.get(nx, ny) not in (None,):
-                    cv.put(nx, ny, GRIME)
-        # 녹물: 위 귀에서만, 세로 팔 끝에서 아래로 가죽 테 (고리 2) 를 따라 흘렀다
-        if fy > 0 and opt["drip"]:
-            dx = cx + fx * 2
-            for i in range(opt["drip"]):
-                y = lowest + 2 + i
-                cv.put(dx, y, VERD0 if i < opt["drip"] - 1 else DUST)
-            cv.put(cx + fx * 3, lowest + 2, VERD0)
+                x, y = x0 + dx, y0 + dy
+                if ring_at(x, y, w, h, CHAMFER)[0] < 0:
+                    continue
+                cv.put(x, y, CAP_INK[ch])
+                cv.field.discard((x, y))
+    for key, (dx, steps) in CAP_DRIPS.items():
+        x = dx if dx >= 0 else w + dx
+        for ox, oy, col in steps:
+            cv.put(x + ox, 14 + oy, col)
+            cv.field.discard((x + ox, 14 + oy))
 
 
 # ─────────────────────────── 칸, 이음매, 화살표 ───────────────────────────
@@ -436,14 +472,16 @@ def well(cv, x, y, w=18, h=18, floor=None, shadow=None, lip=None, corner=None):
     cv.vline(x + w - 1, y + 1, y + h - 1, lip)
     cv.put(x + w - 1, y, corner)
     cv.put(x, y + h - 1, corner)
+    for i in range(x, x + w):
+        for j in range(y, y + h):
+            cv.field.discard((i, j))
 
 
 def seam(cv, name, w, y, x0, x1):
     """
     칸 묶음 사이의 솔기: 위 가죽의 끝이 아래 가죽 위에 얹혀 박혔다.
-      y   박음질 (실 2 + 구멍 1). 판 양옆의 주름 (고리 3) 에서 주름까지 가로지른다
+      y   박음질 (실 2 + 구멍 1). 판 양옆의 주름 (고리 3) 에서 주름까지 가로지른다. 양 끝 아홉 칸은 때 탄 실
       y+1 위 가죽 끝이 드리운 그늘 (때)
-    양 끝 몇 마디는 때 탄 실, 손이 닿는 아래쪽 솔기 가운데는 실이 하나 걸러 끊겼다 (판 아래 변의 닳은 자리와 같은 x).
     """
     for x in range(x0, x1 + 1):
         ph = x % 3
@@ -455,6 +493,8 @@ def seam(cv, name, w, y, x0, x1):
             col = THREAD
         cv.put(x, y, col)
         cv.put(x, y + 1, GRIME)
+        cv.field.discard((x, y))
+        cv.field.discard((x, y + 1))
 
 
 def arrow(cv, x0, x1, ym, half):
@@ -474,59 +514,7 @@ def arrow(cv, x0, x1, ym, half):
         else:
             col = DUST
         cv.put(x, y, col)
-
-
-# 판의 넓은 빈 곳에 하나: 마른 기름 얼룩. 가장자리는 마르며 진해졌고 (k), 속은 탁하다 (d), 아래로 한 줄 흘러
-# 끝에 방울이 맺혔다. 창마다 모양을 따로 그렸다 (같은 무늬를 두 번 찍지 않는다).
-STAINS = {
-    "inventory": (134, 55, [
-        "...kkkk.......",
-        ".kkddddkk.....",
-        "kddddddddk....",
-        "kdddddddddkk..",
-        ".kddddddddddk.",
-        "..kkddddddkk..",
-        "....kkdddk....",
-        "......kdk.....",
-        "......kdk.....",
-        "......kd......",
-        ".......k......",
-        ".......k......",
-        "......kdk.....",
-        "......kkk.....",
-    ]),
-    "crafting_table": (150, 62, [
-        "..kkkk....",
-        "kkddddkk..",
-        "kddddddk..",
-        ".kkdddk...",
-        "...kdk....",
-        "...kk.....",
-        "....k.....",
-        "...kdk....",
-        "...kk.....",
-    ]),
-    "generic_54": (128, 128, [
-        "....kkkkk...",
-        "..kkdddddkk.",
-        ".kddddddddk.",
-        "..kkkddkkk..",
-        ".....kk.....",
-    ]),
-}
-
-
-def stain(cv, name):
-    if name not in STAINS:
-        return
-    x0, y0, rows = STAINS[name]
-    for dy, row in enumerate(rows):
-        for dx, ch in enumerate(row):
-            if ch == ".":
-                continue
-            if (x0 + dx, y0 + dy) not in cv.field:
-                continue
-            cv.put(x0 + dx, y0 + dy, GRIME if ch == "k" else DUST)
+        cv.field.discard((x, y))
 
 
 # ─────────────────────────── 체력: 마른 핏방울 열 개 ───────────────────────────
@@ -699,14 +687,15 @@ def strap(cv, x0, y0, w, h, used=True, stitches=()):
 def hotbar():
     """
     182×22. 가죽 탄띠에 눌러 찍은 주머니 아홉 (칸 x 2+20k..19+20k, 바닥 = 아이템 자리 3+20k..18+20k).
-    주머니 사이 두 줄 가운데 왼쪽 줄 (20+20k) 은 세로 박음질 (주머니를 나눈 솔기), 오른쪽 줄은 가죽.
+    주머니 사이 두 줄 가운데 왼쪽 줄 (20+20k) 은 가죽, 오른쪽 줄 (21+20k) 은 세로 박음질 (주머니를 나눈 솔기).
+    박음질은 다음 주머니의 검붉은 그늘 벽 바로 왼쪽이라 그늘 벽이 꼭 1픽셀로 읽힌다 (가죽 색이면 벽이 두꺼워진다).
     늘 쓰는 주머니라 입술에 윤이 돈다 (LIP_USED).
     """
     W, H = 182, 22
     cv = Cv(W, H)
-    strap(cv, 0, 0, W, H, stitches=[20 + 20 * k for k in range(8)])
+    strap(cv, 0, 0, W, H, stitches=[21 + 20 * k for k in range(8)])
     for k in range(9):
-        well(cv, 2 + 20 * k, 2, lip=LIP_USED)
+        well(cv, 2 + 20 * k, 2, lip=LIP_USED, floor=FLOOR_USED)
     return cv.image()
 
 
@@ -743,9 +732,6 @@ def hotbar_selection():
             else:
                 col = BODY
             cv.put(x, y, col)
-    # 가장 많이 문질린 윗면 두 점
-    cv.put(9, 1, GLOSS)
-    cv.put(1, 9, GLOSS)
     # 네 귀의 놋쇠
     caps = {}
     for key, (cx, cy, fx, fy) in {"tl": (1, 1, 1, 1), "tr": (W - 2, 1, -1, 1),
@@ -785,7 +771,7 @@ def offhand(right):
     cv = Cv(W, H)
     x0 = 7 if right else 0
     strap(cv, x0, 1, 22, 22)
-    well(cv, x0 + 2, 3, lip=LIP_USED)
+    well(cv, x0 + 2, 3, lip=LIP_USED, floor=FLOOR_USED)
     return cv.image()
 
 
@@ -922,10 +908,10 @@ def _result(cv, x, y, w, h):
 
 
 def _well_rows(L):
-    """(x, y, 입술) 목록. 단축 줄 (창의 맨 아래 줄) 은 늘 쓰는 주머니라 입술에 윤이 돈다."""
+    """(x, y, 입술, 바닥) 목록. 단축 줄 (창의 맨 아래 줄) 은 늘 쓰는 주머니라 바닥의 때가 닳았고 입술이 한 단 밝다."""
     wells = L["wells"]
     hot_y = max(y for _, y in wells)
-    return [(x, y, LIP_USED if y == hot_y else LIP) for x, y in wells]
+    return [(x, y, LIP_USED, FLOOR_USED) if y == hot_y else (x, y, LIP, FLOOR) for x, y in wells]
 
 
 def _guard_rings(cv, L):
@@ -950,14 +936,12 @@ def container(name):
     w, h = L["size"]
     cv = Cv(256, 256)
     leather_panel(cv, name, w, h)
-    corner_grime(cv, w, h)          # 칸보다 먼저 (칸 바닥은 가죽과 같은 색이라 뒤에 칠하면 바닥까지 먼지가 앉는다)
-    stain(cv, name)
     for x0, x1, y in L["dividers"]:
         seam(cv, name, w, y, 3, w - 4)
     if L["alcove"]:          # 칸보다 먼저: 바닐라처럼 왼손 칸이 인물 자리의 오른쪽 아래 귀를 덮는다
         _alcove(cv, *L["alcove"])
-    for x, y, lip in _well_rows(L):
-        well(cv, x, y, lip=lip)
+    for x, y, lip, floor in _well_rows(L):
+        well(cv, x, y, lip=lip, floor=floor)
     for box in L["result"]:
         _result(cv, *box)
     if L["arrow"]:
@@ -1121,8 +1105,10 @@ BUTTON_RINGS = {
 
 def button(state):
     """
-    200×20 가죽 딱지 단추. 윤곽, 둥근 말림 한 줄, 박음질 한 바퀴, 검붉은 가죽 바탕 (흰 글이 잘 읽힌다).
-    가리키면 말림에 윤이 돌고 실이 밝아진다. 사용 못 함은 먼지에 덮이고 실이 삭아 구멍만 남았다.
+    200×20 가죽 딱지 단추. 윤곽, 둥근 말림 한 줄, 박음질 한 바퀴, 창의 판과 같은 가죽 결 (흰 글이 잘 읽힌다:
+    결의 두 색은 밝기가 같다). 가리키면 손가락에 눌린 듯 결이 눌려 매끈한 검붉은 가죽이 되고, 말림에 윤이 돌고
+    실이 밝아진다. 사용 못 함은 먼지에 덮이고 실이 삭아 구멍만 남았다.
+    9조각 가운데 (194×14) 와 가장자리는 짝수 폭이라 이어 붙여도 결과 박음질의 엇갈림이 맞는다.
     """
     W, H = 200, 20
     rings, fill, (thread, hole) = BUTTON_RINGS[state]
@@ -1130,6 +1116,8 @@ def button(state):
     frame(cv, 0, 0, W, H, rings, fill, chamfer=1)
     for y in range(H):
         for x in range(W):
+            if state == "normal" and ring_at(x, y, W, H, 1)[0] >= 3:
+                cv.put(x, y, GRAIN[(x + y) % 2])
             if ring_at(x, y, W, H, 1)[0] == 2:
                 t = x if y in (2, H - 3) else y
                 cv.put(x, y, thread if t % 2 == 0 else hole)
