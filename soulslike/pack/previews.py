@@ -7,6 +7,7 @@
   hud.png           화면 아래쪽 흉내 (단축 슬롯, 하트, 스태미나 70%, 숨긴 허기)
   pack_icon.png     팩 그림을 4배로
   gui_*.png         gui_skin 이 다시 그린 HUD·창·단추 (gui_skin.write_previews)
+  align_*.png       우리 창·단축 슬롯 그림을 바닐라 그림과 겹쳐 칸 자리가 같음을 보인다 (gui_skin.align_proof)
 실제 1.21.11 클라이언트(가상 화면)에서 찍은 그림은 여기 두지 않는다: dist/screenshots/m0/ (tools/client/m0_shots.sh)
 
 바닐라 단추·단축 슬롯·하트 그림은 클라이언트 jar 에서 읽는다 (환경 변수 SOULS_CLIENT_JAR, 없으면 단순한 상자로 대신한다).

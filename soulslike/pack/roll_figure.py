@@ -16,9 +16,9 @@
 
 손에 든 것 감추기 (wrap_item_definitions)
   구르는 동안 플러그인은 손에 든 아이템의 사본에 custom_model_data 깃발 0 을 켜서 그 사람 화면과 보는 사람에게만 보낸다
-  (sendEquipmentChange). 이 팩의 souls 아이템 정의는 모두 그 깃발이 켜지면 3인칭 손·머리 자세에서 아무것도 그리지 않는다.
-  단축 슬롯(gui)·1인칭·땅·액자는 그대로라 슬롯 그림이 사라지지 않고, 아이템 종류와 이름이 같아 바닐라가 이름을 다시
-  띄우지도 않는다 (공기를 보내면 둘 다 일어난다). 갑옷 칸은 공기를 보낸다 (그 칸은 이름을 띄우지 않는다).
+  (sendEquipmentChange). 이 팩의 souls 아이템 정의는 모두 그 깃발이 켜지면 손·머리 자세 (3인칭, 1인칭) 에서 아무것도 그리지
+  않는다. 단축 슬롯(gui)·땅·액자는 그대로라 슬롯 그림이 사라지지 않고, 아이템 종류와 이름이 같아 바닐라가 이름을 다시
+  띄우지도 않는다 (공기를 보내면 둘 다 일어난다 [확인 (클라)]). 갑옷 칸은 공기를 보낸다 (그 칸은 이름을 띄우지 않는다).
   이 깃발 0 은 구르기 전용이다 (아이템이 다른 일로 custom_model_data 를 쓰면 깃발 1 부터 쓴다).
 
 회전 자세 감추기 (riptide)
@@ -40,12 +40,14 @@ NS = "souls"
 BODY = "item/roll_body"
 HEAD = "item/roll_head"
 HIDE_FLAG = 0                      # custom_model_data 깃발 번호 (플러그인 Tumble.HIDE_FLAG 와 같다)
-HIDDEN_CONTEXTS = ["thirdperson_righthand", "thirdperson_lefthand", "head"]
+# 3인칭 손·머리 (투명한 몸에 떠 보인다) 와 1인칭 손 (구르는 동안 무기를 거두었다가 끝나면 다시 든다: 바닐라의 바꿔 들기
+# 몸짓이 구르기 시작에 내리고 끝에 올린다. 1인칭을 그대로 두면 사본이 바뀔 때마다 두 번 내렸다 올렸다)
+HIDDEN_CONTEXTS = ["thirdperson_righthand", "thirdperson_lefthand", "firstperson_righthand", "firstperson_lefthand", "head"]
 
 # 머리 놓기 (아이템 공간, 픽셀). 머리 가운데를 공의 앞 위 (위 HEAD_Y, 앞 HEAD_F) 에, 얼굴을 HEAD_PITCH 도 숙인다.
 # 바닐라 해골 모형은 아이템 공간 (4..12, 0..8, 4..12) 에 그려진다: 가운데가 아이템 가운데 (8,8,8) 보다 4 아래
 HEAD_Y, HEAD_F, HEAD_PITCH = 2.4, 2.8, 48.0
-HEAD_SCALE = 0.94
+HEAD_SCALE = 0.88
 # 해골 모형의 얼굴이 아이템 공간에서 어느 쪽을 보는가 (+1: +Z 남쪽, -1: -Z 북쪽). 앞(-Z)을 보게 Y 로 돌린다
 SKULL_FACE = -1
 
@@ -171,6 +173,27 @@ GLOVE = PaintMat([
     "gggggggggggggggg",
 ], {"g": "bronze2", "j": "bronze1", "h": "bronze3"})
 
+# 발싸개: 정강이부터 발까지 감은 바랜 아마포 (순례자의 발). 공에서 가장 밝은 곳이라, 등 뒤에서 보면 발이 아래에서 나와
+# 위로 넘어가는 것으로 앞구르기가 읽힌다. 감은 결 (비스듬한 어두운 줄) 과 흙때
+WRAP = PaintMat([
+    "wwwwvwwwwwwwwvww",
+    "wwwvwwwwwxwwvwww",
+    "wwvwwwwwwwwvwwww",
+    "wvwwwwwwwwvwwwww",
+    "vwwwwxwwwvwwwwwv",
+    "wwwwwwwwvwwwwwvw",
+    "wwwwwwwvwwwwwvww",
+    "wwwwwwvwwwwwvwww",
+    "wwxwwvwwwwwvwwww",
+    "wwwwvwwwwwvwwwxw",
+    "wwwvwwwwwvwwwwww",
+    "wwvwwwwwvwwwwwww",
+    "wvwwwwwvwwwwxwww",
+    "vwwwwwvwwwwwwwwv",
+    "wwwxwvwwwwwwwwvw",
+    "wwwwvwwwwwwwwvww",
+], {"w": "bone1", "v": "bone0", "x": "parch1"})
+
 # 장화 밑창: 거의 검은 재에 박힌 돌가루
 SOLE = PaintMat([
     "ssssssssssssssss",
@@ -189,7 +212,7 @@ SOLE = PaintMat([
     "ssssssssssssssss",
     "ssssstssssssssts",
     "ssssssssssssssss",
-], {"s": "ash0", "t": "ash1"})
+], {"s": "rust0", "t": "ash0"})
 
 # 등에 묶은 담요 말이: 바랜 양피지빛 모포. 둘둘 만 결 (가로 어두운 줄) 이 고르지 않다
 ROLL = PaintMat([
@@ -209,7 +232,7 @@ ROLL = PaintMat([
     "pppppppppppppppp",
     "oooooooooooooooo",
     "ppppppppqppppppp",
-], {"p": "parch1", "q": "parch2", "o": "parch0", "0": "ash2"})
+], {"p": "parch0", "q": "parch1", "o": "rust2", "0": "ash2"})
 
 # 청동 고리: 그을려 어둡고 테만 조금 밝다
 BRONZE = PaintMat([
@@ -232,7 +255,7 @@ BRONZE = PaintMat([
 ], {"n": "bronze2", "N": "bronze3", "o": "bronze1"})
 
 MATS = {"cloak": CLOAK, "hem": HEM, "cloth": CLOTH, "leather": LEATHER, "glove": GLOVE, "sole": SOLE,
-        "roll": ROLL, "bronze": BRONZE}
+        "roll": ROLL, "bronze": BRONZE, "wrap": WRAP}
 
 
 # ─────────────────────────── 모양 ───────────────────────────
@@ -298,11 +321,15 @@ def body():
     # 허벅지 (엉덩이 → 무릎, 가슴 앞으로 접었다) 와 정강이 (무릎 → 발목, 아래로)
     for sx, lift in ((-1, 0.0), (1, 0.5)):
         _limb(fig, [(sx * 2.1, -3.8, -2.2), (sx * 2.2, -1.2 + lift, 2.6), (sx * 2.2, -0.2 + lift, 4.8)], rx=2.0, r=2.05, mat="cloth")
-        _limb(fig, [(sx * 2.2, -0.4 + lift, 5.0), (sx * 2.0, -3.0, 4.7), (sx * 2.0, -4.3, 3.7)], rx=1.9, r=1.85, mat="cloth")
-        # 장화: 발목에서 발끝 (앞 아래)
-        _limb(fig, [(sx * 2.0, -4.2, 3.0), (sx * 2.1, -5.4, 4.9)], rx=2.15, r=1.75, mat="leather")
-    # 밑창: 장화의 가장 아래 두 줄
-    _fill(fig, lambda X, Y, F: (fig.grid == cid("leather")) & (Y - 0.35 * (F - 4.0) < -6.0), "sole")
+        # 정강이: 무릎 아래부터 발싸개
+        _limb(fig, [(sx * 2.2, -0.4 + lift, 5.0), (sx * 2.0, -3.0, 4.7), (sx * 2.0, -4.3, 3.7)], rx=1.9, r=1.85, mat="wrap")
+        # 발: 발목에서 발끝 (앞 아래), 조금 크게
+        _limb(fig, [(sx * 2.05, -4.3, 2.8), (sx * 2.2, -5.5, 5.0)], rx=2.25, r=1.85, mat="wrap")
+        # 무릎 바로 밑 감은 끝을 묶은 가죽끈
+        _fill(fig, lambda X, Y, F, sx=sx, lift=lift: (fig.grid == cid("wrap")) & (np.abs(X - sx * 2.1) < 2.6)
+              & (np.abs(Y - (-1.6 + lift * 0.5)) < 0.55) & (F > 3.5), "leather")
+    # 밑창: 발의 가장 아래 두 줄
+    _fill(fig, lambda X, Y, F: (fig.grid == cid("wrap")) & (Y - 0.35 * (F - 4.0) < -6.4) & (F > 1.5), "sole")
 
     # 팔: 어깨 → 팔꿈치 (옆) → 손목. 소매는 망토. 장갑은 정강이 앞을 감싼다. 왼팔이 조금 높다
     for sx, hy in ((-1, 0.7), (1, -0.3)):
@@ -375,7 +402,7 @@ def build(out):
 
 def wrap_item_definitions(out):
     """
-    assets/souls/items/*.json 을 모두 감싼다: custom_model_data 깃발 HIDE_FLAG 가 켜지면 3인칭 손·머리 자세에서 비운다.
+    assets/souls/items/*.json 을 모두 감싼다: custom_model_data 깃발 HIDE_FLAG 가 켜지면 손·머리 자세 (HIDDEN_CONTEXTS) 에서 비운다.
     대역 모형(roll_body, roll_head) 은 감싸지 않는다. gen_pack 이 다른 아이템 정의를 다 쓴 뒤에 부른다.
     """
     folder = os.path.join(out, "assets", NS, "items")

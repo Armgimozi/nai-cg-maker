@@ -1,6 +1,7 @@
 package kr.souls.combat;
 
 import com.destroystokyo.paper.event.entity.EntityKnockbackByEntityEvent;
+import com.destroystokyo.paper.event.server.ServerTickEndEvent;
 import kr.souls.Config;
 import kr.souls.Souls;
 import kr.souls.util.Fx;
@@ -249,6 +250,12 @@ public final class Roll implements Listener {
     public void release(Player p) {
         tumble.stop(p);
         uncrawl(p);
+    }
+
+    /** 틱 끝 (엔티티 추적이 투명 깃발을 보낸 뒤): 대역을 띄우고 거둔다. */
+    @EventHandler
+    public void onTickEnd(ServerTickEndEvent e) {
+        tumble.tickEnd();
     }
 
     @EventHandler

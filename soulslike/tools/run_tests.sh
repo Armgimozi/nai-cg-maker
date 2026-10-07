@@ -16,7 +16,10 @@
 #   --keep-running  끝나도 서버를 끄지 않는다 (콘솔: echo '<명령>' > DIR/server/console.in)
 #   --mem 2G        서버 메모리
 #   --timeout 300   시나리오 하나의 제한 시간 (초)
-#   --crawl         구르기 기어가기 방벽(combat.roll.crawl)을 jar 설정 그대로 둔다. 기본은 끈다 (봇은 기어가기 자세가 없다.
+#   --visual V      구르기 모습 combat.roll.visual (tumble 기본 · spin · crawl) 을 바꾼다. 주지 않으면 jar 설정 그대로 (tumble:
+#                   roll_iframes 가 대역 둘이 타고 투명 깃발이 섰다가 걷히는지도 본다)
+#   --crawl         구르기 기어가기 방벽(combat.roll.crawl)을 jar 설정 그대로 둔다 (방벽은 visual: crawl 일 때만 깔린다. 그래서
+#                   방벽 흉내까지 보려면 --visual crawl --crawl). 기본은 끈다 (봇은 기어가기 자세가 없다.
 #                   켜면 lib.js 가 머리 높이 방벽을 봇 세계에서 지워 기어가기를 흉내 내고, roll_iframes 가 방벽이 깔리고 걷히는지 본다)
 #
 # 봇은 mineflayer 4.39 를 쓴다: $BOT_NODE_MODULES → tools/bots/node_modules → 이 컨테이너의 시험 도구 폴더.
@@ -47,6 +50,7 @@ ONLY=""
 LAG="60 120"
 KEEP=0
 CRAWL=0
+VISUAL=""
 MEM=2G
 SC_TIMEOUT=300
 
@@ -62,6 +66,7 @@ while [ $# -gt 0 ]; do
     --lag) LAG="$2"; shift 2 ;;
     --keep-running) KEEP=1; shift ;;
     --crawl) CRAWL=1; shift ;;
+    --visual) VISUAL="$2"; shift 2 ;;
     --mem) MEM="$2"; shift 2 ;;
     --timeout) SC_TIMEOUT="$2"; shift 2 ;;
     --list) echo "lang_check $ALL_SCENARIOS (+ roll_iframes@lag<ms>)"; exit 0 ;;
@@ -157,9 +162,9 @@ unzip -p "$JAR" config.yml > "$RUN/config.default.yml" 2>/dev/null || die "jar �
 
 python3 - "$ROOT/server/server.properties" "$SRV/server.properties" "$PORT" \
           "$RUN/config.default.yml" "$SRV/plugins/Soulslike/config.yml" "$PACK_PORT" \
-          "$SRV/ops.json" "$CRAWL" "${BOT[@]}" <<'PY' || die "서버 설정을 쓰지 못했다"
+          "$SRV/ops.json" "$CRAWL" "$VISUAL" "${BOT[@]}" <<'PY' || die "서버 설정을 쓰지 못했다"
 import hashlib, json, os, re, sys, uuid
-props_src, props_dst, port, cfg_src, cfg_dst, pack_port, ops_dst, keep_crawl, *names = sys.argv[1:]
+props_src, props_dst, port, cfg_src, cfg_dst, pack_port, ops_dst, keep_crawl, visual, *names = sys.argv[1:]
 
 # server.properties: 저장소 판(12.7) 그대로 + 시험용으로 포트와 online-mode 만 바꾼다
 lines = open(props_src, encoding="utf-8").read().splitlines() if os.path.exists(props_src) else []
@@ -186,6 +191,8 @@ for l in open(cfg_src, encoding="utf-8").read().split("\n"):
         l = re.sub(r"serve-port:.*", f"serve-port: {pack_port}", l); done.add("serve-port")
     # 봇(mineflayer)은 기어가기 자세가 없어 구르기의 머리 위 방벽에 걸린다. 기어가기 모습은 실제 클라이언트 점검으로 본다
     # (--crawl 이면 그대로 두고 lib.js 의 흉내로 시험한다)
+    if sec == "combat" and visual and re.match(r"^\s+visual:", l):
+        l = re.sub(r"visual:.*", "visual: " + visual, l)
     if sec == "combat" and re.match(r"^\s+crawl:", l):
         if keep_crawl != "1": l = re.sub(r"crawl:.*", "crawl: false", l)
         done.add("crawl")

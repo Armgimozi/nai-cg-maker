@@ -47,9 +47,9 @@ public final class Config {
 
     /**
      * 대역 (combat/Tumble). pivot: 회전 중심의 발 위 높이 (블록), scale: 대역 크기, steps: 도는 마디 (틱 차례),
-     * reveal: 이 틱에 대역을 거두고 진짜 몸을 보인다, crawlCamera: 방벽도 깐다 (1인칭 시야를 바닥으로).
+     * reveal: 이 틱에 대역을 거두고 진짜 몸을 보인다.
      */
-    public record TumbleCfg(double pivot, float scale, List<TumbleStep> steps, int reveal, boolean crawlCamera) {}
+    public record TumbleCfg(double pivot, float scale, List<TumbleStep> steps, int reveal) {}
 
     public record RollCfg(String load, RollVisual visual, boolean crawl, TumbleCfg tumble, int spinTicks,
                           Map<String, RollKind> kinds, String sound, float volume, float pitch) {
@@ -58,9 +58,13 @@ public final class Config {
             return k != null ? k : kinds.get("light");
         }
 
-        /** 이 구르기에 방벽을 까는가 (뒷걸음은 늘 아니다). */
+        /**
+         * 이 구르기에 방벽을 까는가 (뒷걸음은 늘 아니다). crawl 모습일 때만: tumble 에 방벽을 더하면 1인칭은 시야가 바닥으로
+         * 내려가 좋았지만 3인칭 카메라가 방벽 밑으로 짓눌려 몸에 붙고 대역 (탑승 자리가 기어가기 상자 꼭대기로 바뀐다) 을
+         * 놓쳤다 [확인 (실제 클라이언트)].
+         */
         public boolean barrier() {
-            return crawl && (visual == RollVisual.CRAWL || (visual == RollVisual.TUMBLE && tumble.crawlCamera()));
+            return crawl && visual == RollVisual.CRAWL;
         }
     }
 
@@ -155,7 +159,7 @@ public final class Config {
         estusStart = c.getInt("difficulty.estus-start", 4);
     }
 
-    /** combat.roll.tumble. steps 는 [[틱, 각, 걸리는 틱], ...]. 틀린 줄은 건너뛰고, 하나도 없으면 3.3 의 기본 네 마디. */
+    /** combat.roll.tumble. steps 는 [[틱, 각, 걸리는 틱], ...]. 틀린 줄은 건너뛰고, 하나도 없으면 3.3 의 기본 세 마디. */
     private static TumbleCfg tumble(FileConfiguration c) {
         List<TumbleStep> steps = new ArrayList<>();
         for (Object o : c.getList("combat.roll.tumble.steps", List.of())) {
@@ -170,14 +174,12 @@ public final class Config {
             }
         }
         if (steps.isEmpty()) {
-            steps.add(new TumbleStep(1, 90, 2));
-            steps.add(new TumbleStep(3, 180, 2));
-            steps.add(new TumbleStep(5, 270, 2));
-            steps.add(new TumbleStep(7, 360, 2));
+            steps.add(new TumbleStep(2, 120, 2));
+            steps.add(new TumbleStep(4, 240, 2));
+            steps.add(new TumbleStep(6, 360, 3));
         }
         steps.sort(Comparator.comparingInt(TumbleStep::tick));
-        return new TumbleCfg(c.getDouble("combat.roll.tumble.pivot", 0.5), (float) c.getDouble("combat.roll.tumble.scale", 1.0),
-                List.copyOf(steps), Math.max(1, c.getInt("combat.roll.tumble.reveal", 10)),
-                c.getBoolean("combat.roll.tumble.crawl-camera", false));
+        return new TumbleCfg(c.getDouble("combat.roll.tumble.pivot", 0.56), (float) c.getDouble("combat.roll.tumble.scale", 1.12),
+                List.copyOf(steps), Math.max(1, c.getInt("combat.roll.tumble.reveal", 10)));
     }
 }

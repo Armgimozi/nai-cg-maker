@@ -2,7 +2,8 @@
 # M0 실제 클라이언트 점검 그림 묶음 (DESIGN.md 13.4 가운데 M0 에 있는 것). 서버는 debug.test-mode 여야 한다.
 #   m0_shots.sh <포트> <찍을폴더> [서버폴더]
 # 시험 서버가 없으면: devserver.sh <포트> <서버폴더> 로 먼저 켠다 (Tester 에게 op 를 준다).
-# 서버폴더를 주면 서버 설정을 잠깐 바꿔야 하는 점검(9 회전 구르기, 13 설정 단계 팩 보내기)도 하고 설정을 되돌린다.
+# 서버폴더를 주면 서버 설정을 잠깐 바꿔야 하는 점검(9 급류 회전 구르기, 13 설정 단계 팩 보내기)도 하고 설정을 되돌린다.
+# 구르기 모습 셋을 장면 여러 장으로 견주는 것은 roll_strip.sh (dist/screenshots/roll/).
 # 채팅은 숨긴다 (chatScale:0). 시험 줄([T] ...)과 바닐라 명령 결과가 그림에 남지 않는다 (클라이언트 기록에는 남는다).
 # 처음에 Tester 의 인벤토리를 비운다 (지난 점검에서 받은 아이템이 남아 있으면 그림을 가린다).
 #
@@ -10,9 +11,9 @@
 #   01_join_test_room_hud            (1·2·10·11) 팩이 실렸다, 마른 핏방울 하트, 스태미나 막대 꽉 참·레벨 숫자 없음,
 #                                    허기 칸 없음, 시험 방 바이옴(souls:redin)의 안개·하늘·재 입자
 #   02_sprint_stamina_drain          (2) 달리는 중 막대가 준다
-#   03_roll_third_person             구르기 (온 블록 바닥, 3인칭 뒤): 기어가는 자세. 0.1초 안쪽은 자세가 바뀌기 전이라
-#                                    눈높이의 시선이 머리 위 방벽에 걸려 3인칭 카메라가 몸 가까이 당겨진다 (한두 틱)
-#   03b_roll_slab_third_person       판석(아래 반 블록) 위 구르기: 웅크린 자세 (방벽이 기어가기 상자에 걸려 튕기지 않는다)
+#   03_roll_third_person             구르기 (온 블록 바닥, 3인칭 뒤, 기본 모습 tumble): 진짜 몸 대신 웅크린 대역이 앞으로 돈다.
+#                                    0.2초 뒤라 첫 마디 (120°) 를 도는 중
+#   03b_roll_slab_third_person       판석(아래 반 블록) 위 구르기: 대역이 판석 바닥을 스치며 돈다 (회전 중심은 발 위 0.56)
 #   04_exhausted_vs_sprint           (5) 스태미나 0 → 허기 6 으로 달리기가 막힌다 (앞으로 걷기만, 시야가 넓어지지 않는다)
 #   05_dialog                        (4) 휴식 창 꼴: 단추 글 양피지색, 제목 옆 경고 단추는 녹슨 쇠판
 #   06_offhand_shield_after_strip    (7) 막기 성분을 뗀 도구 + 왼손 방패 → 같은 우클릭으로 왼손 방패를 든다
@@ -24,7 +25,7 @@
 #   10_swing_mid                     (8) swing_animation 12틱: 팔이 아직 휘두르는 중
 #   10b_attack_indicator             (8) attack_speed 1.0: 조준점 밑 회복 표시기
 #   12_hud_damaged                   (10) 맞은 직후 하트 (잃은 몫이 바랜 빛으로 깜빡인다)
-#   13_spin_third_person             (9) 서버폴더가 있을 때: spin-visual 켬. 구르기로 보이지 않아 끈 채로 둔다
+#   13_spin_third_person             (9) 서버폴더가 있을 때: visual: spin (급류 회전). 구르기로 보이지 않아 대비책으로만 둔다
 #   14_configure_join, 14_configure_join.txt
 #                                    (13) 서버폴더가 있을 때: send-at: configure 로 다시 들어온 화면과
 #                                    "팩을 다시 실은 줄이 세계에 들어간 줄보다 먼저" 인 기록
@@ -71,11 +72,12 @@ trap '"$RC" --stop "$PORT" >/dev/null 2>&1' EXIT
   respawn wait:2 "cmd:/soulstest heal" || exit 1
 
 if [ -n "$SRVDIR" ]; then
-  # 9: 회전 구르기 (3인칭)
-  set_cfg "spin-visual" "spin-visual: true"
+  # 9: 급류 회전 구르기 (3인칭)
+  orig_visual=$(grep -E '^ +visual:' "$SRVDIR/plugins/Soulslike/config.yml" | head -n 1 | sed 's/^ *visual: *//')
+  set_cfg "visual" "visual: spin"
   "$RC" --do "$PORT" "cmd:/souls tp lane" wait:1.5 key:F5 wait:0.4 \
     down:w key:f wait:0.2 shot:13_spin_third_person up:w wait:1 key:F5 key:F5 || exit 1
-  set_cfg "spin-visual" "spin-visual: false"
+  set_cfg "visual" "visual: ${orig_visual:-tumble}"
 
   # 13: 설정 단계에서 팩 보내기. 클라이언트를 끄고 새로 켜서 들어온다
   set_cfg "send-at" "send-at: configure"

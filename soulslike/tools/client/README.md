@@ -9,6 +9,7 @@
 | `setup_client.py` | piston-meta 에서 버전 문서 → 라이브러리·네이티브·에셋을 받는다 (처음 한 번, 약 110MB) |
 | `devserver.sh` | 점검용 Paper 서버 (오프라인 접속, 시험 모드, 팩을 로컬 포트에서, Tester 에게 op) |
 | `m0_shots.sh` | M0 점검 그림 묶음 (13.4 가운데 M0 에 있는 것 전부. 그림마다 몇 번을 보는지 머리말에 있다). 서버폴더를 주면 9 회전 구르기와 13 설정 단계 팩 보내기도 |
+| `roll_strip.sh` | 구르기 모습 한 줄 그림 (3.3 "보이는 모습"): `roll_strip.sh <포트> <서버폴더> [tumble spin crawl]`. 모습마다 서버 설정 `combat.roll.visual` 을 바꾸고, 구르기 길에서 W 를 누른 채 앞으로 구르는 것을 F5 등 뒤·앞에서 `burst` 로 찍어 F 뒤 게임 시간으로 고른 8장을 가로로 잇는다 (`dist/screenshots/roll/<모습>_<보는 쪽>.png`). 기본은 `/tick rate 5` (4배 느리게) 로 찍는다: 이 클라이언트는 초당 10장 안팎이라 제 속도로는 구르기 0.6초에 다른 장면이 5~6장뿐이다. `TICK_RATE=20 SUFFIX=_rt` 은 제 속도, `ITEMS=1 HUD=1` 은 장비를 들고 HUD 와 함께, `VIEWS=first` 는 1인칭. 찍은 원본은 `RAW` (기본 `$TMPDIR/roll_strip_raw`, 저장소 밖) |
 | `i18n_shots.sh` | 영어판 점검 그림 (10.3, 10.9): 같은 장면 (들어온 HUD, 휴식 창, 아이템 설명 칸, 사망 화면, 그만두기 확인) 을 `ko_kr` 과 `en_us` 클라이언트로 찍는다 (`dist/screenshots/i18n/`). `SRVDIR=<서버폴더>` 를 주면 설정 단계 (`send-at: configure`) 의 팩 안내·쫓아냄 글도 두 언어로 찍는다 |
 | `log4j2-client.xml` | 클라이언트 기록을 보통 글줄로 (런처 설정은 XML 로 낸다) |
 
@@ -49,6 +50,7 @@ tools/client/devserver.sh --stop /tmp/srv
 | `wait:초` | 기다린다 |
 | `shot:이름` | X 화면을 그대로 찍는다 (`import -window root`) |
 | `f2:이름` | 게임 F2 스크린샷을 가져온다. 채팅에 저장 줄이 남는다 |
+| `burst:이름:장수[:키[:몇째[:간격]]]` | 화면을 잇달아 찍는다 (`이름_00.png` ...). BMP 로 찍고 끝나고 PNG 로 바꿔 한 장에 약 0.04초 (`shot:` 은 PNG 인코딩으로 한 장에 0.5초). 키를 주면 몇째 (기본 1) 장 직전에 누르고 다음 장 뒤에 뗀다. 간격(초)을 주면 장마다 그만큼 쉰다. 찍은 때는 `이름_times.json` (`key_at`, `shots`: 첫 장에서 잰 초, `t0`: 유닉스 초) 과 표준 출력의 "찍은 간격" 줄 |
 | `key:키[+키]` | 눌렀다 뗀다. xdotool 이름: `f`, `w`, `space`, `Escape`, `Return`, `Tab`, `F1`, `F3`, `F5`, `1`~`9`, `ctrl` |
 | `hold:키[+키]:초` | 누르고 있다 뗀다 |
 | `sprint:초` / `walk:초` | Ctrl 을 먼저 누른 채 W / W 만 |

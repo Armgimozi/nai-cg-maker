@@ -293,7 +293,12 @@ class Bot {
       gameState: [],
       sounds: [],
       crawl: [],
-      crawlRestored: []
+      crawlRestored: [],
+      // 구르기 대역 (3.3 tumble): 이 봇에 탄 물체, 이 봇의 공유 깃발 (0x20 = 투명), 생긴·지운 물체
+      passengers: [],
+      flags: [],
+      spawned: [],
+      destroyed: []
     }
     this.crawlLive = new Set()
     this.sysHooks = [] // 받은 그 자리에서 부를 것 (onSysOnce)
@@ -365,6 +370,15 @@ class Bot {
         }
       })
     })
+    c.on('set_passengers', (d) => {
+      if (d.entityId === this.id) this.p.passengers.push({ t: now(), ids: (d.passengers || []).slice() })
+    })
+    c.on('entity_metadata', (d) => {
+      if (d.entityId !== this.id) return
+      for (const m of d.metadata || []) if (m.key === 0) this.p.flags.push({ t: now(), value: Number(m.value) })
+    })
+    c.on('spawn_entity', (d) => this.p.spawned.push({ t: now(), id: d.entityId, type: d.type }))
+    c.on('entity_destroy', (d) => this.p.destroyed.push({ t: now(), ids: (d.entityIds || []).slice() }))
     c.on('update_health', (d) => this.p.health.push({ t: now(), health: d.health, food: d.food }))
     c.on('death_combat_event', (d) => this.p.deaths.push({ t: now(), playerId: d.playerId, message: plain(d.message), raw: simple(d.message) }))
     c.on('difficulty', (d) => this.p.difficulty.push({ t: now(), difficulty: d.difficulty, locked: d.difficultyLocked }))
@@ -833,11 +847,12 @@ function testRoom () {
 
 /**
  * 서버의 구르기 설정 (config.yml combat.roll). 설계 문서 3.3 의 수치가 출발값이고, 조정은 설정에서 한다 (사용자 결정 1).
- * 못 읽으면 3.3 표를 돌려준다. 돌려주는 값: {load, crawl, kinds: {light: {iframes, horizontal, vertical, glide, next, end, cost}, ...}}
+ * 못 읽으면 3.3 표를 돌려준다. 돌려주는 값: {load, visual, crawl, kinds: {light: {iframes, horizontal, vertical, glide, next, end, cost}, ...}}
  */
 function rollConfig () {
   const out = {
     load: 'light',
+    visual: 'tumble',
     crawl: false,
     source: '3.3 표',
     kinds: {
@@ -857,6 +872,8 @@ function rollConfig () {
   if (load) out.load = load[1]
   const crawl = body.match(/^\s+crawl:\s*(true|false)/m)
   if (crawl) out.crawl = crawl[1] === 'true'
+  const visual = body.match(/^\s+visual:\s*([a-z]+)/m)
+  if (visual) out.visual = visual[1]
   for (const m of body.matchAll(/^\s+(light|medium|heavy|backstep):\s*\{([^}]*)\}/gm)) {
     const k = {}
     for (const kv of m[2].split(',')) {
