@@ -17,6 +17,10 @@
   사망 화면 제목 "YOU DIED" 를 새빨갛게 띄우려고 (사용자 결정 3) 10.1 표에 한 계열을 더했다 (한 곳 전용).
   그 제목 그림(VIVID)에만 쓴다. 다른 그림에 나오면 artlint 오류 (restricted).
 
+UI 전용 계열 (진홍, 잉걸, 누른 풀, 먹, 옅은 금빛 흰색)
+  다크 소울 HUD·창을 "보자마자 다크 소울" 로 맞추려고 (사용자 결정 2026-10-07, 비평 2026-10-08) 더한 색이다.
+  textures/gui/ 와 textures/font/ (UI_ART) 에서만 쓴다. 다른 그림에 나오면 artlint 오류 (restricted).
+
 블록 전용 계열 (돌, 점판암, 대청, 마른 풀, 녹청, 엷은 자주, 바랜 장미, 구운 흙)
   바닐라 블록 그림 전부를 다크소울 색으로 옮기려고 (사용자 결정 2026-10-08, blocks_grade.py) 더한 계단이다.
   textures/block/ 과 textures/colormap/ (BLOCK_ART) 에서만 쓴다. HUD·창·아이템 그림에 나오면 artlint 오류 (restricted).
@@ -50,11 +54,21 @@ FAMILIES = {
     "rose":   ["#3e2a28", "#5c3f3b", "#7d5a52", "#9c766b", "#b99689"],   # 바랜 장미: 벚나무, 분홍, 화강암
     # 구운 흙: 벽돌, 테라코타, 아카시아, 맹그로브. 채도 (HSV) 0.42 로 눌러 살구빛으로 뜨지 않게
     "clay":   ["#34241e", "#4f362e", "#6e4e40", "#8d6752", "#a97e62"],
+    # ── UI 전용 (textures/gui, textures/font 만. UI_ART). 다크 소울 HUD·창 (2026-10-08 비평 반영): 체력은 주황빛 마른 핏빛이 아니라
+    #    짙은 진홍, 온기는 더 뜨거운 불씨빛 (빛 허용이 아니게 채도 0.55 아래), 스태미나는 다크 소울의 누른 풀빛. 칸 우물은 재보다
+    #    진한 검정, 칸 테는 따뜻하고 어두운 갈색, 잃은 체력 몫은 옅은 금빛 흰색 (창의 금빛 줄과 갈리게)
+    "crimson": ["#4a0d12", "#6a1218", "#a0222a", "#b8343a"],   # 진홍: HUD 체력 막대, 보스 체력 막대
+    "cinder":  ["#6e3814", "#8a4718", "#b8702c", "#cf9450"],   # 잉걸: HUD 온기 막대
+    "sap":     ["#3a5019", "#4e6a22", "#7a9636", "#95ad52"],   # 누른 풀: HUD 스태미나 막대
+    "ink":     ["#0c0b0a", "#3e3930"],                         # 먹: 칸 우물 바닥, 칸 테
+    "glim":    ["#e6d39a"],                                    # 옅은 금빛 흰색: 잃은 체력 몫, 보스 자세 줄
 }
 KO = {"rust": "녹슨 철", "bronze": "그을린 청동", "parch": "바랜 양피지", "blood": "마른 핏빛",
       "ash": "재", "moss": "이끼", "bone": "뼈", "ember": "불씨", "gore": "생피 (사망 제목 전용)",
       "stone": "돌 (블록 전용)", "slate": "점판암 (블록 전용)", "woad": "대청 (블록 전용)", "olive": "마른 풀 (블록 전용)",
-      "verd": "녹청 (블록 전용)", "mauve": "엷은 자주 (블록 전용)", "rose": "바랜 장미 (블록 전용)", "clay": "구운 흙 (블록 전용)"}
+      "verd": "녹청 (블록 전용)", "mauve": "엷은 자주 (블록 전용)", "rose": "바랜 장미 (블록 전용)", "clay": "구운 흙 (블록 전용)",
+      "crimson": "진홍 (UI 전용)", "cinder": "잉걸 (UI 전용)", "sap": "누른 풀 (UI 전용)", "ink": "먹 (UI 전용)",
+      "glim": "옅은 금빛 흰색 (UI 전용)"}
 
 SAT_MAX = 0.55            # 이보다 채도가 높으면 빛 허용 그림에만
 BLUE_HUE = (200, 300)     # 파랑~보라 (도)
@@ -91,7 +105,10 @@ BLOCK_GLOW = (
     "trial_spawner_side_active", "trial_spawner_top_active", "trial_spawner_top_ejecting_reward",
     "vault_front_on", "vault_front_ejecting", "vault_side_on", "vault_top_ejecting",
 ) + _BULBS + _LANTERNS + _CANDLES
-RESTRICTED = {"gore": VIVID, **{f: BLOCK_ART for f in BLOCK_FAMILIES}}
+# UI 그림 (UI 전용 계열을 쓸 수 있는 곳, 경로 조각): 창·HUD 그림과 HUD 그림 글자
+UI_ART = ("textures/gui/", "textures/font/")
+UI_FAMILIES = ("crimson", "cinder", "sap", "ink", "glim")
+RESTRICTED = {"gore": VIVID, **{f: BLOCK_ART for f in BLOCK_FAMILIES}, **{f: UI_ART for f in UI_FAMILIES}}
 
 
 def hexc(h, a=255):

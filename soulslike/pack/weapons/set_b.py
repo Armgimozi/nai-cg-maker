@@ -670,17 +670,18 @@ WEAPONS = {
 }
 
 
-def display_for(wid, kind, use):
+def display_for(wid, kind, use, w=None):
+    """w: 지은 무기 (1인칭을 그 길이로 셈한다, _common.hand_display)."""
     if use == "same":
         return cm.catalyst_display(*CATALYST_FP[wid])
     if use == "block":
         return cm.shield_display(*SHIELD_FP[wid])
-    return cm.hand_display(kind)
+    return cm.hand_display(kind, w)
 
 
-def use_display_for(wid, kind, use):
+def use_display_for(wid, kind, use, w=None):
     if use == "guard":
-        return cm.guard_display(kind)
+        return cm.guard_display(kind, w)
     if use == "block":
         return cm.shield_block_display(*SHIELD_BLOCK_FP[wid])
     return None
@@ -714,9 +715,10 @@ def build(out, only=None, draft=False):
             icon = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
         if icon is None:
             raise ValueError(f"{wid}: {ICONS} 에 16px 그림이 없다")
-        made[wid] = cm.write_item(out, wid, w, display_for(wid, kind, use), icon, kind, use=use,
-                                  use_display=use_display_for(wid, kind, use))
+        disp, udisp = display_for(wid, kind, use, w), use_display_for(wid, kind, use, w)
+        made[wid] = cm.write_item(out, wid, w, disp, icon, kind, use=use, use_display=udisp)
         made[wid]["w"] = w
+        made[wid]["display"], made[wid]["use_display"] = disp, udisp
     return made
 
 
@@ -783,8 +785,8 @@ def previews(ids=None, scratch=None):
     for wid, res in made.items():
         fn, kind, use = WEAPONS[wid]
         model = res["3d"]
-        disp = display_for(wid, kind, use)
-        udisp = use_display_for(wid, kind, use) or {}
+        disp = res["display"]
+        udisp = res["use_display"] or {}
         icon = ic.get(wid) or Image.new("RGBA", (16, 16), (0, 0, 0, 0))
         vw.gui(icon).save(os.path.join(SHOTS, f"{wid}_gui.png"))
         sides = vw.side(model, size=(300, 560))

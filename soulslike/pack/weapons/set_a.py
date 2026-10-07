@@ -53,11 +53,10 @@ def registry():
 
 
 def _spec(entry):
-    """옛 꼴 (make, kind) 도 받는다 → 무기 기본값."""
+    """옛 꼴 (make, kind) 도 받는다 → 무기 기본값. display / use_display 가 None 이면 지은 무기의 길이로 셈한다 (build_one)."""
     if isinstance(entry, tuple):
         make, kind = entry
-        return {"make": make, "kind": kind, "use": "guard",
-                "display": C.hand_display(kind), "use_display": C.guard_display(kind)}
+        return {"make": make, "kind": kind, "use": "guard", "display": None, "use_display": None}
     return entry
 
 
@@ -72,10 +71,16 @@ def build_one(out, wid, spec, icon):
         w, pulls = made[0], made[1:]
     else:
         w, pulls = made, None
+    spec = dict(spec)
+    if spec.get("display") is None:
+        spec["display"] = C.hand_display(spec["kind"], w)
+    if spec.get("use_display") is None and spec["use"] == "guard":
+        spec["use_display"] = C.guard_display(spec["kind"], w)
     res = C.write_item(out, wid, w, spec["display"], icon, spec["kind"], use=spec["use"],
                        use_display=spec.get("use_display"), swap=spec.get("swap"), bow_states=pulls,
                        pull_display=spec.get("pull_display"))
     res["weapon"] = w
+    res["spec"] = spec
     return res
 
 
@@ -173,6 +178,7 @@ def main(argv):
         from PIL import Image
         icon = ic.get(wid) or Image.new("RGBA", (16, 16), (0, 0, 0, 0))
         res = build_one(out, wid, spec, icon)
+        spec = res["spec"]
         files = previews(wid, spec, res, icon)
         n = len(res["3d"].elements)
         print(f"{wid}: 요소 {n}, 재료 {C.mat_count(res['weapon'])}" + ("" if wid in ic else "  (16px 그림 없음)"))
@@ -190,7 +196,7 @@ def sheets(done, ic):
     from weapons import _views as V
     rows = []
     for wid, res in done.items():
-        spec = _spec(registry()[wid])
+        spec = res["spec"]
         icon = ic.get(wid) or Image.new("RGBA", (16, 16), (0, 0, 0, 0))
         side = "l" if spec["use"] == "block" else "r"
         poses = ("none", "item") if side == "l" else ("item", "none")

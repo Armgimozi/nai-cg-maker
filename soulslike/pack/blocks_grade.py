@@ -268,17 +268,17 @@ GLOWHOT = ("ember", "warm", 0.55, 1.2)
 # 광석: 이름 → (바탕, 광석 점의 재료)
 ORE_BASE = {"": ("stone", STONE), "deepslate_": ("deepslate", DEEPSLATE)}
 ORE = {
-    "coal": R(mix(grey="soot", yellow="soot", orange="soot"), to=0.13, mid=0.2, gain=1.0),
-    "iron": R(mix(grey="stone", orange="rose", yellow="rose", red="rose", pink="rose"), to=0.55, mid=0.62, gain=1.2),
+    "coal": R(mix(grey="soot", yellow="soot", orange="soot"), to=0.07, mid=0.2, gain=1.0),
+    "iron": R(mix(grey="stone", orange="rose", yellow="rose", red="rose", pink="rose"), to=0.64, mid=0.62, gain=1.2),
     "copper": R(mix(grey="stone", orange="clay", yellow="clay", red="clay", green="verd", cyan="verd"),
-                to=0.43, mid=0.5, gain=1.25),
-    "gold": R(mix(grey="stone", yellow="gold", orange="gold", red="gold"), to=0.52, mid=0.62, gain=1.25),
+                to=0.55, mid=0.5, gain=1.25),
+    "gold": R(mix(grey="stone", yellow="gold", orange="gold", red="gold"), to=0.62, mid=0.62, gain=1.25),
     # 광석은 바탕 돌보다 밝기 0.12 넘게 다르거나 색이 또렷이 달라야 읽힌다 (청금석은 쪽빛만, 에메랄드는 이끼가 아닌 녹청,
     # 다이아몬드는 옅은 녹청·흰빛)
     "redstone": R(mix(grey="blood", red="blood", orange="blood", pink="blood"), to=0.3, mid=0.35, gain=1.5),
     "lapis": R("woadonly", to=0.28, mid=0.38, gain=1.25),
     "diamond": R(mix(grey="diamond", cyan="diamond", green="diamond", blue="diamond"), to=0.62, mid=0.6, gain=1.2),
-    "emerald": R(mix(grey="verd", green="verd", cyan="verd", yellow="verd"), to=0.4, mid=0.5, gain=1.3),
+    "emerald": R(mix(grey="verd", green="verd", cyan="verd", yellow="verd"), to=0.56, mid=0.5, gain=1.2),
     "nether_gold": R(mix(yellow="gold", orange="gold", red="blood", grey="soot"), to=0.58, mid=0.62, gain=1.25),
     "nether_quartz": R(mix(grey="pale", yellow="pale", orange="pale", red="blood"), to=0.68, mid=0.78, gain=1.1),
 }
@@ -1196,7 +1196,7 @@ def write_sheets(out_dir=SHEETS, jar=None, scale=4, cols=8, rows=9):
             r = (len(chunk) + cols - 1) // cols
             sheet = Image.new("RGBA", (cols * cw + 8, r * ch + 30), (24, 23, 22, 255))
             d = ImageDraw.Draw(sheet)
-            d.text((8, 8), f"{cls}  ({len(names)})  vanilla | final pack (* = redrawn in blocks_core)  — tinted "
+            d.text((8, 8), f"{cls}  ({len(names)})  vanilla | final pack (* = redrawn in blocks_core) - tinted "
                            f"textures shown tinted (vanilla plains / souls:{SHEET_REGION} biome)",
                    fill=(200, 192, 170, 255))
             for i, n in enumerate(chunk):

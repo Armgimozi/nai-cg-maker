@@ -144,6 +144,12 @@ TITLE_GAP = ("you_died_title_gap", "\ue030", 3)
 TITLE_WORD = ("you_died_title_word", "\ue031", 10)
 
 
+# 칠하기 (2026-10-08 비평: 글자 속의 어두운 점과 오른쪽·아래의 어두운 가장자리가 지저분하고 "만든 티" 가 났다): 손으로 찍은 꼴
+# (art/you_died.txt) 은 그대로 두고 색은 평평한 생피 하나 (YOU_DIED_FLAT), 획의 윗가장자리 (바로 위 칸이 비었다) 만 한 단 밝게
+# (YOU_DIED_TOP). 바닐라가 사망 화면 제목에 그리는 그림자 (글자 × 0.25, 2 GUI 픽셀 오른쪽 아래) 는 거의 검은 띠 위라 묻힌다.
+YOU_DIED_FLAT, YOU_DIED_TOP = "gore2", "gore3"
+
+
 def you_died_sheet():
     grids = load_grids(os.path.join(ART, "you_died.txt"))
     cell_h = len(grids["y"])
@@ -153,7 +159,14 @@ def you_died_sheet():
         rows = grids[name]
         if len(rows) != cell_h:
             raise ValueError(f"you_died [{name}]: 높이 {len(rows)} (다른 글자는 {cell_h})")
-        sheet.alpha_composite(grid_image(rows, YOU_DIED_INK), (i * cell_w, 0))
+        img = grid_image(rows, YOU_DIED_INK)
+        px = img.load()
+        for y in range(img.height):
+            for x in range(img.width):
+                if px[x, y][3]:
+                    top = y == 0 or px[x, y - 1][3] == 0
+                    px[x, y] = c(YOU_DIED_TOP if top else YOU_DIED_FLAT)
+        sheet.alpha_composite(img, (i * cell_w, 0))
     return sheet, cell_w, cell_h
 
 
@@ -173,20 +186,20 @@ def death_title(glyphs, prefix="you_died_"):
 
 def death_band():
     """
-    사망 화면 띠 조각 셋 (왼쪽 끝, 가운데, 오른쪽 끝) 을 한 그림에 (칸 폭 64). 재 한 색에 알파만 계단: 가운데 줄은 175,
-    위·아래 네 줄과 띠 양 끝 열여섯 열은 옅어진다.
+    사망 화면 띠 조각 셋 (왼쪽 끝, 가운데, 오른쪽 끝) 을 한 그림에 (칸 폭 64). 먹 (중성 검정) 한 색에 알파만 계단: 가운데 줄은
+    190 (75%), 위·아래 네 줄과 띠 양 끝 열여섯 열은 옅어진다 (재빛 띠는 붉은 사망 화면 위에서 푸르스름한 회색으로 읽혔다).
     """
     t, h = DEATH_BAND_TILE, DEATH_BAND_H
     img = Image.new("RGBA", (t * 3, h), (0, 0, 0, 0))
     px = img.load()
-    rows = (35, 70, 110, 145)
+    rows = (40, 85, 130, 165)
     for y in range(h):
-        ra = rows[min(y, h - 1 - y)] if min(y, h - 1 - y) < len(rows) else 175
+        ra = rows[min(y, h - 1 - y)] if min(y, h - 1 - y) < len(rows) else 190
         for i in range(3):
             for x in range(t):
                 d = x if i == 0 else (t - 1 - x if i == 2 else t)
                 a = ra if d >= 16 else ra * (d // 4 + 1) // 5
-                px[i * t + x, y] = c("ash0", a)
+                px[i * t + x, y] = c("ink0", a)
     return img
 
 
@@ -195,46 +208,76 @@ def plugin_title(glyphs):
     return death_title(glyphs, "you_died_title_")
 
 
-# ─────────────────────────── 다크 소울 HUD (10.2, 2026-10-07 사용자 결정) ───────────────────────────
+# ─────────────────────────── 다크 소울 HUD (10.2, 2026-10-07 사용자 결정, 2026-10-08 비평 반영) ───────────────────────────
 #
-# 왼쪽 위에 가는 가로 막대 셋 (체력 · 온기 · 스태미나), 오른쪽 아래에 소울 수 상자. 바닐라 하트·허기·방어·경험치 막대는
-# 그림을 투명하게 해서 숨기고 (gui_skin), 막대는 플러그인이 그림 글자로 그린다:
+# 왼쪽 위에 가는 가로 막대 셋 (체력 · 온기 · 스태미나), 오른쪽 아래에 소울 수 상자, 보스는 화면 아래 가운데에 이름 (왼쪽 맞춤) 과
+# 넓은 체력 막대 + 그 밑 1픽셀 자세 줄. 바닐라 하트·허기·방어·경험치 막대와 조준점은 그림을 투명하게 해서 숨기고 (gui_skin),
+# 막대는 플러그인이 그림 글자로 그린다:
 #   막대 셋   HUD 전용 보스 막대 (WHITE, 막대 그림 투명) 의 이름 줄. 첫 보스 막대의 이름 줄은 y 3 (12 - 9) 에 놓이고,
-#             줄마다 ascent 로 내려 막대 셋을 쌓는다. 진짜 보스는 RED (체력)·YELLOW (자세) 를 쓴다 (gui_skin 의 보스 막대 그림)
+#             줄마다 ascent 로 내려 막대 셋을 쌓는다
 #   소울 수   행동 막대 (줄 위 = 화면 아래 - 72). 음수 ascent 로 화면 아래 가장자리 가까이 내린다
+#   보스      보스마다 보스 막대 하나 (RED, 막대 그림 투명. HUD 막대 다음에 띄우므로 둘째 줄부터). 이름 줄 하나에
+#             [이름 사본 (안 보임)][막대 그림 글자][이름][빈칸] 을 쓴다 (boss_line). 바닐라는 이름 줄을 글 폭의 반만큼 왼쪽에서
+#             시작하는데 이름 폭은 언어·글꼴마다 달라 서버가 모른다. 같은 이름을 두 번 쓰면 둘째 이름은 폭과 상관없이 늘 가운데
+#             - BOSS_W/2 에서 시작하고 (폭 2w 의 반 = w 를 첫 사본이 먹는다), 막대 그림은 첫 사본 뒤 (= 늘 가운데) 에서 그린다.
+#             첫 사본은 셰이더가 지운다 (MARK_HIDDEN)
 # 가로 자리: 보스 막대 이름과 행동 막대는 화면 가운데에 놓인다. 플러그인은 글 전체의 진행 폭이 0 이 되게 (빈칸 글자로
 # 되돌아온다) 만들어 글이 늘 가운데 (GUI 폭 / 2, 버림) 에서 시작하게 하고, 그 자리에서 HUD_KL 만큼 왼쪽 (막대) 또는
-# HUD_KR 만큼 오른쪽 (소울 상자 오른쪽 끝) 에 그린다. 이것만으로는 화면 폭 (GUI 배율·창 크기) 에 따라 가장자리와의 거리가
-# 바뀌므로, 글꼴 셰이더 (rendertype_text.vsh) 가 표식 색의 글자만 화면 가장자리로 옮긴다 (MARK_*). 셰이더가 없어도
-# 1280×720 GUI 배율 3 (폭 427) 에서는 HUD_MARGIN 자리에 맞는다.
+# HUD_KR 만큼 오른쪽 (소울 상자 오른쪽 끝) 에 그린다. 글꼴 셰이더 (rendertype_text.vsh) 가 표식 색의 글자만 옮긴다 (MARK_*):
+# 막대 셋은 왼쪽 위에서 화면 폭의 4.5% · 높이의 5% 안쪽 (다크 소울처럼 가장자리에서 떨어져), 소울 상자는 오른쪽 아래에서 4%
+# 안쪽, 보스는 화면 아래 - BOSS_UP 줄로 내리고 막대를 화면 폭의 약 45% 로 늘인다 (1 ~ 2.5 배, 0.25 마디). 자리는 GUI 픽셀로
+# 버림해 그림이 픽셀 격자에 맞는다. 셰이더가 없으면 1280×720 GUI 배율 3 (폭 427) 에서 가장자리 HUD_MARGIN 자리에 맞는다.
 
-HUD_MARGIN = 8              # 화면 가장자리와 HUD 사이 (GUI 픽셀)
+HUD_MARGIN = 8              # 셰이더 없이: 화면 가장자리와 HUD 사이 (GUI 픽셀, 폭 427 에서)
 HUD_KL = 205                # 셰이더 없이: 막대 왼쪽 끝 = 화면 가운데 - 205 (폭 427 에서 8)
 HUD_KR = 206                # 셰이더 없이: 소울 상자 오른쪽 끝 = 화면 가운데 + 206 (폭 427 에서 419)
-MARK_LEFT = (254, 253, 1)   # 이 색의 글은 셰이더가 왼쪽 가장자리로 (막대 셋)
-MARK_RIGHT = (254, 253, 2)  # 이 색의 글은 오른쪽 가장자리로 (소울 상자)
-BOSS_LINE_TOP = 3           # 첫 보스 막대 이름 줄의 위 (GUI y)
+HUD_INSET = (0.045, 0.05)   # 셰이더: 막대 셋의 왼쪽 위 = (GUI 폭 × 0.045, GUI 높이 × 0.05) (반올림한 GUI 픽셀)
+SOUL_INSET_FR = (0.04, 0.04)  # 셰이더: 소울 상자의 오른쪽 아래 = (GUI 폭 - 폭 × 0.04, GUI 높이 - 높이 × 0.04)
+MARK_LEFT = (254, 253, 1)   # 이 색의 글은 셰이더가 왼쪽 위로 (막대 셋)
+MARK_RIGHT = (254, 253, 2)  # 이 색의 글은 오른쪽 아래로 (소울 상자)
+MARK_BOSS = (254, 253, 3)   # 보스 막대 그림 글자: 아래 가운데로 내리고 가운데를 축으로 가로로 늘인다
+MARK_BOSS_NAME = (254, 253, 4)    # 보스 이름: 아래로 내리고 늘인 막대의 왼쪽 끝에 맞춘다. 셰이더가 글자색을 BOSS_NAME_INK 로
+MARK_BOSS_SHADOW = (254, 253, 5)  # 보스 이름의 그림자 (ShadowColor 로 준다): 이름과 같이 옮기고 BOSS_SHADOW_INK 로
+MARK_HIDDEN = (254, 253, 6)       # 보스 이름의 앞 사본: 셰이더가 지운다 (알파 0)
+BOSS_NAME_INK = "parch3"          # 보스 이름 글자색 (밝은 베이지)
+BOSS_SHADOW_INK = ("ink0", 200)   # 보스 이름 그림자
+BOSS_LINE_TOP = 3           # 첫 보스 막대 이름 줄의 위 (GUI y). 보스 막대마다 19 아래
+BOSS_PITCH = 19             # 보스 막대 줄 사이 (바닐라 BossHealthOverlay: 10 + 9)
+BOSS_UP = 64                # 셰이더: 보스 이름 줄의 위 = GUI 높이 - 64 (단축 슬롯과 소울 상자 위)
+BOSS_STACK = 24             # 보스가 둘 이상이면 위로 이만큼씩 쌓는다
+BOSS_W = 200                # 보스 체력 막대의 바탕 길이 (마구리 안, 셰이더가 늘인다)
+BOSS_FILL = 0.45            # 셰이더: 늘인 보스 막대 ≈ 화면 폭 × 0.45
 ACTION_LINE_UP = 72         # 행동 막대 줄의 위 = 화면 아래 - 72 (68 위로 옮기고 -4 에 쓴다)
+HUD_TOP = 8                 # 셰이더 없이: 막대 셋의 맨 위 (GUI y)
 
-# 막대: 이름 → (위 y, 채움 줄 색 (위 → 아래)). 테는 위·아래 한 줄씩 어두운 재. 막대 사이는 한 줄 띄운다.
-# 다크 소울 3 처럼 가늘게: 체력 채움 3줄, 온기·스태미나 2줄 (GUI 배율 3 에서 9·6 화면 픽셀).
-# 아래 끝 (스태미나 21) 이 둘째 보스 막대의 이름 줄 (22) 위에서 끝나 진짜 보스 막대와 겹치지 않는다.
+# 막대: 이름 → (맨 위 줄 (막대 셋의 맨 위에서), 채움 줄 색 (위 → 아래)). 막대 한 칸 세로 줄은 [테두리 윗날][테][채움…][테],
+# 마구리는 그보다 한 줄 길다 (테 위 한 줄 = 윗날 줄, 테 아래 한 줄). 막대 사이는 두 줄 띄워 마구리끼리 닿지 않는다
+# (닿으면 막대 셋이 큰 [ ] 꺾쇠로 읽혔다). 다크 소울 3 처럼 가늘게: 체력 채움 3줄, 온기·스태미나 2줄.
 HUD_BARS = {
-    "hp": (7, ("blood3", "blood2", "blood1")),      # 짙은 핏빛
-    "fp": (13, ("bronze3", "bronze2")),             # 온기: 탁한 호박빛 (파랑은 팔레트가 막는다)
-    "st": (18, ("moss2", "moss1")),                 # 이끼빛 올리브
+    "hp": (0, ("crimson2", "crimson2", "crimson1")),   # 짙은 진홍 (위 #a0222a, 아래 #6a1218)
+    "fp": (8, ("cinder2", "cinder1")),                 # 온기: 뜨거운 잉걸빛 (파랑은 팔레트가 막는다)
+    "st": (15, ("sap2", "sap1")),                      # 다크 소울의 누른 풀빛
 }
-HUD_TRAIL = ("parch2", "parch1", "parch0")          # 맞은 뒤 잠깐 남는 잃은 몫 (체력만): 바랜 양피지빛
-FRAME, FRAME_A = "ash0", 235                        # 막대 테 (위·아래 줄, 끝)
-TROUGH_A = 150                                      # 빈 몫: 반투명 재 (뒤 세상이 비친다)
-CAP = "parch1"                                      # 끝 마구리: 가는 탁한 금빛 세로줄
+HUD_TRAIL = "glim0"                                 # 맞은 뒤 잠깐 남는 잃은 몫: 옅은 금빛 흰색 (창의 금빛 줄과 갈린다)
+RIM = ("bronze2", 100)                              # 막대 윗날: 흐린 청동 1줄 (밝은 하늘에서도 막대가 선다)
+FRAME = ("ink0", 230)                               # 막대 테 (위·아래 줄, 끝)
+TROUGH = ("ink0", 217)                              # 빈 몫: 85% 검정 (구름이 비치지 않게)
+CAP = "parch0"                                      # 끝 마구리: 가는 탁한 금빛 세로줄 (HUD 에서 가장 밝지 않게)
 RUN_STEPS = (1, 2, 4, 8, 16, 32, 64, 128)           # 막대 조각 폭 (조합해 아무 길이나 만든다)
 
-# 소울 상자 (행동 막대): 가로 60, 세로 12. 화면 아래에서 8 위에 끝난다. 표식과 숫자는 상자 안 위 2 에서
-SOUL_BOX_W, SOUL_BOX_H, SOUL_BOX_BOTTOM = 60, 12, 8
+# 보스 막대 (보스 이름 줄 안, 줄 위에서): 이름 0..7, 체력 [윗날 9][테 10][채움 11..13][테 14], 자세 15 (1줄), 마구리 9..15.
+# 셰이더가 줄 번호를 글자 꼭짓점의 y 로 셈하므로 (줄 위 -1 .. +17) 그림은 줄 위 + 16 아래에서 끝난다
+BOSS_ROWS = {"hp": 9, "post": 15}
+BOSS_HP = ("crimson2", "crimson2", "crimson1")
+BOSS_POST = ("bone3", ("ink0", 150))                # 자세: 옅은 상아빛 줄 / 빈 몫
+
+# 소울 상자 (행동 막대): 가로 64, 세로 13. 화면 아래에서 8 위에 끝난다 (셰이더 없이). 표식과 숫자는 상자 안 위 2·3 에서
+SOUL_BOX_W, SOUL_BOX_H, SOUL_BOX_BOTTOM = 64, 13, 8
 SOUL_INSET = 2
+SOUL_FILL = ("ink0", 166)                           # 65% 검정
 DIGIT_INK = "bone2"
-SOUL_INK = {"o": "ember0", "+": "ember1", "*": "ember2", "@": "ember3"}
+# 소울 표식: 옅은 뼈빛 넋 (불덩이처럼 보이지 않게), 속에 희미한 불씨 한 점 (빛 허용 그림 soul_mark)
+SOUL_INK = {"o": "bone0", "+": "bone1", "*": "bone3", "@": "ember3"}
 
 
 def _ascent_boss(top):
@@ -242,17 +285,26 @@ def _ascent_boss(top):
     return BOSS_LINE_TOP + 7 - top
 
 
+def _ascent_line(r):
+    """이름 줄 위에서 r 아래에 그림 위쪽이 오는 ascent (보스 막대: 줄이 어디든 같은 자리)."""
+    return 7 - r
+
+
 def _ascent_action(from_bottom):
     """행동 막대 줄에서 화면 아래 - from_bottom 에 그림 위쪽이 오는 ascent."""
     return 7 - (ACTION_LINE_UP - from_bottom)
 
 
-def _bar_rows(kind, rows):
-    """막대 한 칸 세로 줄 (위 → 아래): [(색, 알파)]."""
+def _px(col):
+    return c(col) if isinstance(col, str) else c(col[0], col[1])
+
+
+def _bar_rows(kind, rows, trail=HUD_TRAIL, rim=True):
+    """막대 한 칸 세로 줄 (위 → 아래): [(색 이름, 알파)]."""
     body = {"fill": [(r, 255) for r in rows],
-            "trail": [(HUD_TRAIL[min(i, len(HUD_TRAIL) - 1)], 255) for i in range(len(rows))],
-            "empty": [(FRAME, TROUGH_A)] * len(rows)}[kind]
-    return [(FRAME, FRAME_A)] + body + [(FRAME, FRAME_A)]
+            "trail": [(trail, 255)] * len(rows),
+            "empty": [TROUGH] * len(rows)}[kind]
+    return ([RIM] if rim else []) + [FRAME] + body + [FRAME]
 
 
 def _run_sheet(column):
@@ -262,50 +314,64 @@ def _run_sheet(column):
     px = img.load()
     for i, n in enumerate(RUN_STEPS):
         for x in range(n):
-            for y, (col, a) in enumerate(column):
-                px[i * cell + x, y] = c(col, a)
+            for y, col in enumerate(column):
+                if col is not None:
+                    px[i * cell + x, y] = _px(col)
     return img
 
 
-def _caps(h):
-    """막대 양 끝 마구리 (2칸 폭 두 장을 한 그림에): 왼쪽은 [금빛 줄][테], 오른쪽은 [테][금빛 줄]. 위·아래 끝은 한 단 어둡다."""
+def _caps(n, rim=True):
+    """
+    막대 양 끝 마구리 (2칸 폭 두 장을 한 그림에, 높이 n + 1: 막대 칸 줄 n 과 그 아래 한 줄). 왼쪽은 [마구리 줄][막대 끝],
+    오른쪽은 [막대 끝][마구리 줄]. 마구리 줄은 막대보다 한 줄씩 위·아래로 나온다 (윗날 줄과 그 아래 줄), 나온 끝은 반쯤 옅다.
+    막대 끝 열: 윗날 줄은 윗날 색, 그 아래는 테 (막대의 세로 끝).
+    """
+    h = n + 1
     img = Image.new("RGBA", (4, h), (0, 0, 0, 0))
     px = img.load()
+    top = 0 if rim else 1
     for y in range(h):
-        edge = y in (0, h - 1)
-        line = c("parch0" if edge else CAP)
+        if y < top:
+            continue
+        edge = y in (top, h - 1)
+        line = c(CAP, 150 if edge else 255)
         px[0, y] = line
-        px[1, y] = c(FRAME, FRAME_A)
-        px[2, y] = c(FRAME, FRAME_A)
         px[3, y] = line
+        if y == 0 and rim:
+            end = _px(RIM)
+        elif y < n:
+            end = _px(FRAME)
+        else:
+            continue
+        px[1, y] = end
+        px[2, y] = end
     return img
 
 
 def _soul_box():
     """
-    소울 수 상자: 다크 소울 3 의 소울 수처럼 오른쪽이 진하고 왼쪽으로 계단 네 단에 걸쳐 옅어지는 반투명 검은 띠.
-    위·아래 가장자리에 1픽셀 금빛 줄 (같은 계단으로 왼쪽에서 사라진다). 오른쪽 끝 두 열과 위·아래 줄은 한 단 옅다.
+    소울 수 상자: 다크 소울 3 처럼 65% 검은 띠. 양 끝 여섯 열은 세 단으로 옅어지고 (2열씩), 위·아래 가장자리 한 줄도 한 단 옅다.
+    그 안쪽 (위 1, 아래 h-2) 에 1픽셀 탁한 금빛 줄 (같은 계단으로 양 끝에서 사라진다): 줄이 채움 안에 든다.
     """
     w, h = SOUL_BOX_W, SOUL_BOX_H
     img = Image.new("RGBA", (w, h), (0, 0, 0, 0))
     px = img.load()
-    steps = (60, 105, 150, 195)             # 왼쪽 → 오른쪽 (열 8 개마다 한 단)
+    base = SOUL_FILL[1]
+    steps = (0.25, 0.5, 0.75)
     for x in range(w):
-        a = steps[min(x // 8, len(steps) - 1)]
-        if x >= w - 2:
-            a = (120, 70)[x - (w - 2)]
+        d = min(x, w - 1 - x)
+        k = steps[d // 2] if d < 6 else 1.0
         for y in range(h):
-            if y in (0, h - 1):
-                px[x, y] = c("parch0", min(255, a + 40))
-            elif y in (1, h - 2):
-                px[x, y] = c("ash0", a * 3 // 4)
+            if y in (1, h - 2):
+                px[x, y] = c("parch0", int(170 * k))
             else:
-                px[x, y] = c("ash0", a)
+                a = base * k * (0.6 if y in (0, h - 1) else 1.0)
+                px[x, y] = c(SOUL_FILL[0], int(a))
     return img
 
 
 def _digits(grids):
-    """숫자 열 장 (칸 폭 6, 높이 8): 뼈빛 숫자 + 오른쪽 아래 한 칸 그림자 (재). 6째 열의 맨 아래 칸에 거의 투명한 점
+    """숫자 열 장 (칸 폭 6, 높이 8): 뼈빛 숫자 + 오른쪽 아래 한 칸 옅은 그늘 (먹). 6째 열의 맨 아래 칸에 거의 투명한 점
     (알파 1, 글꼴 셰이더가 0.1 아래는 버린다) 을 두어 모든 숫자의 진행 폭이 같다 (고정폭, 셀 때 숫자가 흔들리지 않는다)."""
     img = Image.new("RGBA", (6 * 10, 8), (0, 0, 0, 0))
     px = img.load()
@@ -315,13 +381,13 @@ def _digits(grids):
             for x, ch in enumerate(row):
                 if ch == "#":
                     if px[d * 6 + x + 1, y + 1][3] == 0:
-                        px[d * 6 + x + 1, y + 1] = c("ash0", 200)
+                        px[d * 6 + x + 1, y + 1] = c("ink0", 140)
         for y, row in enumerate(rows):
             for x, ch in enumerate(row):
                 if ch == "#":
                     px[d * 6 + x, y] = c(DIGIT_INK)
         if px[d * 6 + 5, 7][3] == 0:
-            px[d * 6 + 5, 7] = c("ash0", 1)
+            px[d * 6 + 5, 7] = c("ink0", 1)
     return img
 
 
@@ -344,10 +410,17 @@ out vec4 vertexColor;
 out vec2 texCoord0;
 
 // Square Soul HUD (pack/hud.py). Vanilla 1.21.11 rendertype_text.vsh plus one block:
-// GUI text (orthographic projection) whose colour is a HUD marker is moved to a screen edge.
-//   marker {r} {g} {b1}: HUD bars (boss bar name, drawn from the screen centre minus {kl}) -> left edge + {margin}
-//   marker {r} {g} {b2}: souls box (action bar, right end at the screen centre plus {kr}) -> right edge - {margin}
-// The marker colour is replaced by white so the glyph keeps its own colours.
+// GUI text (orthographic projection) whose colour is a HUD marker {r} {g} b is moved (whole GUI pixels):
+//   b {b1}: HUD bars (boss bar name, drawn from the screen centre minus {kl}, top at y {top0})
+//          -> left edge + {ix} x width, top edge + {iy} x height
+//   b {b2}: souls box (action bar, right end at the screen centre plus {kr}, bottom {bot0} above the screen bottom)
+//          -> right edge - {sx} x width, bottom edge - {sy} x height
+//   b {b3} / {b4} / {b5}: boss bar glyphs / boss name / boss name shadow on boss bar line k (top 3 + 19 k)
+//          -> line top at the screen bottom - {up} (stacked {stack} up per extra boss); the bar glyphs are
+//             stretched around the screen centre to about {fill} x width ({bw} wide, 1 to 2.5 in quarter steps),
+//             the name moves with the bar's left end. Name -> beige, shadow -> dark
+//   b {b6}: hidden (alpha 0): the boss name copy that only cancels the name width
+// Other marker glyphs keep their own colours (vertex colour replaced by white).
 void main() {{
     gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
 
@@ -357,33 +430,74 @@ void main() {{
     texCoord0 = UV0;
 
     ivec3 mark = ivec3(Color.rgb * 255.0 + 0.5);
-    if (mark.r == {r} && mark.g == {g} && (mark.b == {b1} || mark.b == {b2}) && ProjMat[3][3] == 1.0) {{
+    if (mark.r == {r} && mark.g == {g} && mark.b >= {b1} && mark.b <= {b6} && ProjMat[3][3] == 1.0) {{
         float guiWidth = ceil(2.0 / ProjMat[0][0] - 0.01);
+        float guiHeight = ceil(-2.0 / ProjMat[1][1] - 0.01);
         float centre = floor(guiWidth * 0.5);
-        float shift = mark.b == {b1} ? ({margin}.0 - (centre - {kl}.0)) : ((guiWidth - {margin}.0) - (centre + {kr}.0));
-        gl_Position.x += shift * ProjMat[0][0];
-        vertexColor = vec4(1.0, 1.0, 1.0, Color.a) * texelFetch(Sampler2, UV2 / 16, 0);
+        vec2 at = (ModelViewMat * vec4(Position, 1.0)).xy;
+        vec2 shift = vec2(0.0);
+        vec4 ink = vec4(1.0, 1.0, 1.0, Color.a);
+        if (mark.b == {b1}) {{
+            shift.x = floor(guiWidth * {ix} + 0.5) - (centre - {kl}.0);
+            shift.y = floor(guiHeight * {iy} + 0.5) - {top0}.0;
+        }} else if (mark.b == {b2}) {{
+            shift.x = (guiWidth - floor(guiWidth * {sx} + 0.5)) - (centre + {kr}.0);
+            shift.y = {bot0}.0 - floor(guiHeight * {sy} + 0.5);
+        }} else if (mark.b == {b6}) {{
+            ink.a = 0.0;
+        }} else {{
+            float line = floor((at.y - 2.0) / 19.0);
+            float slot = max(line, 1.0) - 1.0;
+            shift.y = (guiHeight - {up}.0 - slot * {stack}.0) - (3.0 + 19.0 * line);
+            float s = clamp(floor(guiWidth * {fill} / {bw}.0 * 4.0 + 0.5) / 4.0, 1.0, 2.5);
+            if (mark.b == {b3}) {{
+                shift.x = (at.x - centre) * (s - 1.0);
+            }} else {{
+                shift.x = -floor((s - 1.0) * {bw}.0 * 0.5 + 0.5);
+                ink = mark.b == {b4} ? vec4({nr}, {ng}, {nb}, Color.a) : vec4({hr}, {hg}, {hb}, Color.a * {ha});
+            }}
+        }}
+        gl_Position.x += shift.x * ProjMat[0][0];
+        gl_Position.y += shift.y * ProjMat[1][1];
+        vertexColor = ink * texelFetch(Sampler2, UV2 / 16, 0);
     }}
 }}
 """
 
 
+def _f(v):
+    return f"{v:.4f}"
+
+
 def hud_shader():
-    return HUD_SHADER.format(r=MARK_LEFT[0], g=MARK_LEFT[1], b1=MARK_LEFT[2], b2=MARK_RIGHT[2],
-                             kl=HUD_KL, kr=HUD_KR, margin=HUD_MARGIN)
+    n, h = c(BOSS_NAME_INK), c(BOSS_SHADOW_INK[0])
+    return HUD_SHADER.format(r=MARK_LEFT[0], g=MARK_LEFT[1], b1=MARK_LEFT[2], b2=MARK_RIGHT[2], b3=MARK_BOSS[2],
+                             b4=MARK_BOSS_NAME[2], b5=MARK_BOSS_SHADOW[2], b6=MARK_HIDDEN[2],
+                             kl=HUD_KL, kr=HUD_KR, top0=HUD_TOP, bot0=SOUL_BOX_BOTTOM,
+                             ix=_f(HUD_INSET[0]), iy=_f(HUD_INSET[1]), sx=_f(SOUL_INSET_FR[0]), sy=_f(SOUL_INSET_FR[1]),
+                             up=BOSS_UP, stack=BOSS_STACK, fill=_f(BOSS_FILL), bw=BOSS_W,
+                             nr=_f(n[0] / 255), ng=_f(n[1] / 255), nb=_f(n[2] / 255),
+                             hr=_f(h[0] / 255), hg=_f(h[1] / 255), hb=_f(h[2] / 255), ha=_f(BOSS_SHADOW_INK[1] / 255))
+
+
+def _hex(rgb):
+    return "#%02x%02x%02x" % rgb
 
 
 def layout():
     """플러그인이 읽는 자리 값 (glyphs.yml 의 layout). 셰이더와 같은 값이어야 한다."""
     return {"margin": HUD_MARGIN, "left": HUD_KL, "right": HUD_KR,
-            "mark_left": "#%02x%02x%02x" % MARK_LEFT, "mark_right": "#%02x%02x%02x" % MARK_RIGHT,
-            "soul_box": SOUL_BOX_W, "soul_inset": SOUL_INSET}
+            "mark_left": _hex(MARK_LEFT), "mark_right": _hex(MARK_RIGHT),
+            "mark_boss": _hex(MARK_BOSS), "mark_boss_name": _hex(MARK_BOSS_NAME),
+            "mark_boss_shadow": _hex(MARK_BOSS_SHADOW), "mark_hidden": _hex(MARK_HIDDEN),
+            "boss_width": BOSS_W, "soul_box": SOUL_BOX_W, "soul_inset": SOUL_INSET}
 
 
 def hud_glyphs(out, code):
     """
     다크 소울 HUD 그림 글자 (souls:hud). (공급자 목록, Glyph 목록, 다음 문자 번호). 그림은 assets/souls/textures/font/.
-    이름: hud_<막대>_<fill|empty|trail>_<폭>, hud_<막대>_cap_l / _cap_r, hud_soulbox, soul_mark, hud_digit_<0..9>.
+    이름: hud_<막대>_<fill|empty|trail>_<폭>, hud_<막대>_cap_l / _cap_r, hud_soulbox, soul_mark, hud_digit_<0..9>,
+    boss_hp_<fill|trail|empty>_<폭>, boss_post_<fill|empty>_<폭>, boss_cap_l / _cap_r.
     """
     providers, glyphs = [], []
 
@@ -401,25 +515,41 @@ def hud_glyphs(out, code):
         providers.append({"type": "bitmap", "file": f"{NS}:font/{fname}.png", "height": img.height,
                           "ascent": ascent, "chars": [chars]})
 
-    for bar, (top, rows) in HUD_BARS.items():
-        h = len(rows) + 2
-        asc = _ascent_boss(top)
+    for bar, (off, rows) in HUD_BARS.items():
+        n = len(rows) + 3
+        asc = _ascent_boss(HUD_TOP + off)
         kinds = ("fill", "trail", "empty") if bar == "hp" else ("fill", "empty")
         for kind in kinds:
             add(f"hud_{bar}_{kind}", _run_sheet(_bar_rows(kind, rows)), asc,
-                [f"hud_{bar}_{kind}_{n}" for n in RUN_STEPS])
-        add(f"hud_{bar}_cap", _caps(h), asc, [f"hud_{bar}_cap_l", f"hud_{bar}_cap_r"])
+                [f"hud_{bar}_{kind}_{n_}" for n_ in RUN_STEPS])
+        add(f"hud_{bar}_cap", _caps(n), asc, [f"hud_{bar}_cap_l", f"hud_{bar}_cap_r"])
 
     box_top = SOUL_BOX_BOTTOM + SOUL_BOX_H          # 화면 아래에서 상자 위쪽까지
     add("hud_soulbox", _soul_box(), _ascent_action(box_top), ["hud_soulbox"])
     grids = load_grids(os.path.join(ART, "hud_glyphs.txt"))
-    inner = box_top - SOUL_INSET
-    add("soul_mark", grid_image(grids["soul"], SOUL_INK), _ascent_action(inner + 1), ["soul_mark"])
-    add("hud_digits", _digits(grids), _ascent_action(inner), [f"hud_digit_{d}" for d in range(10)])
+    add("soul_mark", grid_image(grids["soul"], SOUL_INK), _ascent_action(box_top - 2), ["soul_mark"])
+    add("hud_digits", _digits(grids), _ascent_action(box_top - 3), [f"hud_digit_{d}" for d in range(10)])
+
+    # 보스 막대 (보스 이름 줄 안): 체력 (윗날·테·채움 셋·테), 자세 (1줄), 마구리
+    asc = _ascent_line(BOSS_ROWS["hp"])
+    for kind in ("fill", "trail", "empty"):
+        add(f"boss_hp_{kind}", _run_sheet(_bar_rows(kind, BOSS_HP)), asc, [f"boss_hp_{kind}_{n_}" for n_ in RUN_STEPS])
+    for kind, col in (("fill", BOSS_POST[0]), ("empty", BOSS_POST[1])):
+        add(f"boss_post_{kind}", _run_sheet([col]), _ascent_line(BOSS_ROWS["post"]),
+            [f"boss_post_{kind}_{n_}" for n_ in RUN_STEPS])
+    # 마구리는 체력 막대의 윗날 줄부터 자세 줄까지 (테보다 위·아래로 한 줄씩 나온다): 막대와 자세 줄을 한 묶음으로 닫는다
+    add("boss_cap", _caps(len(BOSS_HP) + 3), asc, ["boss_cap_l", "boss_cap_r"])
     return providers, glyphs, code
 
 
 # ─────────────────────────── HUD 짜기 (플러그인 hud/Hud 와 같은 차례) 와 미리보기 ───────────────────────────
+
+def _runs(seq, prefix, n):
+    for step in reversed(RUN_STEPS):
+        while n >= step:
+            seq += [f"{prefix}{step}", ("move", -1)]
+            n -= step
+
 
 def bar_line(lengths):
     """
@@ -435,13 +565,26 @@ def bar_line(lengths):
         length, fill, trail = lengths[bar]
         seq += [f"hud_{bar}_cap_l", ("move", -1)]
         for kind, n in (("fill", fill), ("trail", trail), ("empty", length - fill - trail)):
-            for step in reversed(RUN_STEPS):
-                while n >= step:
-                    seq += [f"hud_{bar}_{kind}_{step}", ("move", -1)]
-                    n -= step
+            _runs(seq, f"hud_{bar}_{kind}_", n)
         seq += [f"hud_{bar}_cap_r", ("move", -1)]
         seq.append(("move", -(length + 4)))
     seq.append(("move", HUD_KL))
+    return seq
+
+
+def boss_bars(hp, trail, post):
+    """
+    보스 막대 그림 글자의 차례 (가운데에서 시작해 가운데 - BOSS_W/2 에서 끝난다, 진행 폭 -BOSS_W/2): 마구리, 체력
+    (채움·잃은 몫·빈 몫, 합 BOSS_W), 마구리, 자세 줄 (채움·빈 몫, 합 BOSS_W). hp, trail, post 는 픽셀. 플러그인 Hud.bossLine 과 같다.
+    """
+    half = BOSS_W // 2
+    seq = [("move", -half - 2), "boss_cap_l", ("move", -1)]
+    for kind, n in (("fill", hp), ("trail", trail), ("empty", BOSS_W - hp - trail)):
+        _runs(seq, f"boss_hp_{kind}_", n)
+    seq += ["boss_cap_r", ("move", -1), ("move", -(BOSS_W + 2))]
+    for kind, n in (("fill", post), ("empty", BOSS_W - post)):
+        _runs(seq, f"boss_post_{kind}_", n)
+    seq.append(("move", -BOSS_W))
     return seq
 
 
@@ -450,8 +593,8 @@ def souls_line(n, by_name):
     digits = str(max(0, int(n)))
     dw = by_name["hud_digit_0"].width - 1
     seq = [("move", HUD_KR - SOUL_BOX_W), "hud_soulbox", ("move", -(SOUL_BOX_W + 1)),
-           ("move", 3), "soul_mark", ("move", -(by_name["soul_mark"].width + 3))]
-    x = SOUL_BOX_W - 4 - dw * len(digits)
+           ("move", 5), "soul_mark", ("move", -(by_name["soul_mark"].width + 5))]
+    x = SOUL_BOX_W - 6 - dw * len(digits)
     seq.append(("move", x))
     for d in digits:
         seq += [f"hud_digit_{d}", ("move", -1)]
@@ -463,10 +606,23 @@ def _advance(seq, by_name):
     return sum(s[1] if isinstance(s, tuple) else by_name[s].width for s in seq)
 
 
+def shader_shift(kind, W, H, line=0):
+    """셰이더가 옮기는 몫 (미리보기용, HUD_SHADER 와 같은 셈): (dx, dy, 늘림)."""
+    import math
+    centre = W // 2
+    if kind == "left":
+        return math.floor(W * HUD_INSET[0] + 0.5) - (centre - HUD_KL), math.floor(H * HUD_INSET[1] + 0.5) - HUD_TOP, 1.0
+    if kind == "right":
+        return (W - math.floor(W * SOUL_INSET_FR[0] + 0.5)) - (centre + HUD_KR), SOUL_BOX_BOTTOM - math.floor(H * SOUL_INSET_FR[1] + 0.5), 1.0
+    s = min(2.5, max(1.0, math.floor(W * BOSS_FILL / BOSS_W * 4 + 0.5) / 4))
+    slot = max(line, 1) - 1
+    return 0, (H - BOSS_UP - slot * BOSS_STACK) - (BOSS_LINE_TOP + BOSS_PITCH * line), s
+
+
 def preview_hud(out, path, glyphs, gui=3, size=(427, 240)):
     """
-    HUD 미리보기 (pack/preview/hud.png): 저녁 화면 위에 바닐라처럼 그린 막대 셋과 소울 상자 네 장면 (가득, 맞은 뒤 잃은 몫,
-    달려 스태미나가 준 것, 스태미나가 바닥). 셰이더가 옮긴 자리 (가장자리 HUD_MARGIN) 로 그린다.
+    HUD 미리보기 (pack/preview/hud.png): 저녁 화면 위에 바닐라처럼 그린 막대 셋과 소울 상자 네 장면 (가득, 맞은 뒤 잃은 몫과
+    보스 막대, 달려 스태미나가 준 것, 스태미나가 바닥). 셰이더가 옮긴 자리로 그린다 (보스 이름 글은 그리지 않는다).
     """
     import json
     import previews as pv
@@ -491,25 +647,38 @@ def preview_hud(out, path, glyphs, gui=3, size=(427, 240)):
 
     hud_font_providers = font["providers"] if font else []
     W, H = size
-    scenes = [("full", {"hp": (100, 100, 0), "fp": (60, 60, 0), "st": (90, 90, 0)}, 1240),
-              ("damaged", {"hp": (100, 58, 22), "fp": (60, 60, 0), "st": (90, 71, 0)}, 1240),
-              ("sprint", {"hp": (100, 100, 0), "fp": (60, 41, 0), "st": (90, 37, 0)}, 87650),
-              ("low", {"hp": (100, 21, 0), "fp": (60, 9, 0), "st": (90, 3, 0)}, 0)]
+    scenes = [("full", {"hp": (100, 100, 0), "fp": (60, 60, 0), "st": (90, 90, 0)}, 1240, None),
+              ("damaged", {"hp": (100, 58, 22), "fp": (60, 60, 0), "st": (90, 71, 0)}, 1240, (128, 30, 140)),
+              ("sprint", {"hp": (100, 100, 0), "fp": (60, 41, 0), "st": (90, 37, 0)}, 87650, None),
+              ("low", {"hp": (100, 21, 0), "fp": (60, 9, 0), "st": (90, 3, 0)}, 0, None)]
     rows = []
-    for _, lengths, souls in scenes:
+    for _, lengths, souls, boss in scenes:
         canvas = pv.dusk_scene(W * gui, H * gui)
         small = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-        for seq, line_top, anchor in ((bar_line(lengths), BOSS_LINE_TOP, HUD_MARGIN + HUD_KL),
-                                      (souls_line(souls, by_name), H - ACTION_LINE_UP, W - HUD_MARGIN - HUD_KR)):
-            assert _advance(seq, by_name) == 0, "HUD 글의 진행 폭이 0 이 아니다"
+        lines = [(bar_line(lengths), BOSS_LINE_TOP, W // 2, shader_shift("left", W, H)),
+                 (souls_line(souls, by_name), H - ACTION_LINE_UP, W // 2, shader_shift("right", W, H))]
+        if boss:
+            seq = boss_bars(*boss)
+            assert _advance(seq, by_name) == -(BOSS_W // 2), "보스 막대 글의 진행 폭이 -BOSS_W/2 가 아니다"
+            lines.append((seq, BOSS_LINE_TOP + BOSS_PITCH, W // 2, shader_shift("boss", W, H, 1)))
+        for seq, line_top, anchor, (dx, dy, st) in lines:
+            if st == 1.0:
+                assert _advance(seq, by_name) == 0, "HUD 글의 진행 폭이 0 이 아니다"
+            layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
             pen = anchor
-            for s in seq:
-                if isinstance(s, tuple):
-                    pen += s[1]
+            for s_ in seq:
+                if isinstance(s_, tuple):
+                    pen += s_[1]
                     continue
-                img, asc = glyph_image(s)
-                small.alpha_composite(img, (pen, line_top + 7 - asc))
-                pen += by_name[s].width
+                img, asc = glyph_image(s_)
+                layer.alpha_composite(img, (pen, line_top + 7 - asc))
+                pen += by_name[s_].width
+            if st != 1.0:
+                cx = W // 2
+                stretched = layer.resize((round(W * st), H), Image.NEAREST)
+                layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+                layer.alpha_composite(stretched.crop((round(cx * st) - cx, 0, round(cx * st) - cx + W, H)))
+            small.alpha_composite(layer, (int(dx), int(dy)))
         canvas.alpha_composite(small.resize((W * gui, H * gui), Image.NEAREST))
         rows.append(canvas)
     sheet = Image.new("RGBA", (W * gui * 2 + 8, H * gui * 2 + 8), (12, 12, 12, 255))
