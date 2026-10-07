@@ -324,10 +324,10 @@ PARRY = [
 # 곁가지 앞면: 받아 넘긴 칼의 긁힘 (밝은 줄 몇 개, 비스듬히)
 QUILLON_FRONT = [
     #  -5.5 .. 5.5
-    "           x",   # 7.5
-    " x         ",   # 6.5
+    "            ",   # 7.5
+    " x          ",   # 6.5
     "         x  ",   # 5.5
-    "  x.x  x.  ",   # 4.5
+    "  x.....x.  ",   # 4.5
 ]
 GRIP_WIRE = [
     "w   ",
@@ -341,15 +341,15 @@ GRIP_WIRE = [
 
 
 def parrying_dagger():
-    m = blade_mats("steel", "edge_dull", "rust", "iron", "iron_hi", "leather_dark", "tin", "bone")
+    m = blade_mats("steel", "edge_dull", "rust", "iron", "iron_hi", "leather_dark", "tin")
     w = weapon(m, kind="parrying_dagger", seed=304)
     legend = {
         "E": ("edge_dull", 1.5), "e": ("steel", 1.5), "R": ("rust", 1.5),
-        "Q": ("iron", 1), "q": ("iron_hi", 1), "C": ("iron", 1.5),
+        "Q": ("iron_hi", 1), "q": ("iron_hi", 1), "C": ("iron", 1.5),
         "L": ("leather_dark", 2), "l": ("leather_dark", 1), "P": ("iron", 1.5),
     }
     draw(w, PARRY, legend, -5.5, 14.5)
-    skin(w, QUILLON_FRONT, {"x": "bone"}, -5.5, 7.5, side=+1)
+    skin(w, QUILLON_FRONT, {"x": "tin"}, -5.5, 7.5, side=+1)
     skin(w, GRIP_WIRE, {"w": "tin"}, -1.5, 3.5, side=+1)
     # 손가락 고리: 가드 가운데에서 −Z 로. YZ 면의 고리 (바깥 4×4, 안 2×2), X 두 칸
     ring = []
