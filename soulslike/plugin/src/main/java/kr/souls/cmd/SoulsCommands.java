@@ -182,6 +182,8 @@ public final class SoulsCommands {
             Lang.tell(p, "admin.no-anchor", "anchor", anchor);
             return 0;
         }
+        // 구르는 중이면 대역(탑승물)을 먼저 내린다: Paper 는 탑승물이 있으면 다른 세계로 옮기지 않는다
+        plugin.roll().release(p);
         p.teleport(to);
         return Command.SINGLE_SUCCESS;
     }

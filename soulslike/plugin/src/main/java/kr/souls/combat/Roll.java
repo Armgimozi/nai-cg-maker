@@ -40,9 +40,11 @@ import java.util.UUID;
  * M1 에서 적 공격은 IncomingHitQueue 가 무적 구간과 판정 틱을 맞대어 본다 (핑 보정). 지금은 서버 틱 그대로다.
  * 웅크리기 + F 는 무기 기술 자리라 (M3) 지금은 아무것도 하지 않는다.
  *
- * 돌진처럼 보이지 않게: 한 번 튕기는 대신 glide 틱 동안 같은 빠르기로 밀다가 끝 두 틱에 줄여 멈추고,
- * 구르는 동안 머리 위 칸에 그 사람 화면에만 보이는 방벽을 깔아 클라이언트가 스스로 기어가기 자세로 바꾸게 한다
- * (1인칭은 시야가 바닥까지 내려갔다 올라오고, 3인칭은 몸이 눕는다). 방벽은 진짜 블록이 아니라 다른 사람과 서버는 모른다.
+ * 돌진처럼 보이지 않게: 한 번 튕기는 대신 glide 틱 동안 같은 빠르기로 밀다가 끝 두 틱에 줄여 멈춘다.
+ * 보이는 모습은 combat.roll.visual (3.3 "보이는 모습"): tumble 은 진짜 몸을 감추고 웅크린 대역이 앞으로 한 바퀴 돈다 (Tumble),
+ * spin 은 바닐라 급류 회전, crawl 은 머리 위 칸에 그 사람 화면에만 보이는 방벽을 깔아 클라이언트가 스스로 기어가기 자세로
+ * 바꾸게 한다 (1인칭은 시야가 바닥까지 내려갔다 올라오고, 3인칭은 몸이 눕는다). 방벽은 진짜 블록이 아니라 다른 사람과 서버는 모른다.
+ * 모습은 보이는 것만 바꾼다. 미는 힘·무적·비용은 셋 다 같다.
  *
  * 미는 때: F 는 틱 사이에 오고, 속도 패킷은 틱마다 한 번 (엔티티 추적기가 hurtMarked 를 볼 때) 나간다.
  * F 를 받은 자리에서 setVelocity 를 하면 다음 틱의 첫 밀기가 그 값을 덮어 클라이언트에 닿지 않는다.
@@ -52,6 +54,8 @@ public final class Roll implements Listener {
     private final Souls plugin;
     /** 사람마다 화면에만 깔아 둔 방벽 자리 */
     private final Map<UUID, Set<Pos>> fakes = new HashMap<>();
+    /** visual: tumble 의 대역 */
+    private final Tumble tumble;
 
     private record Pos(int x, int y, int z) {
         Block in(org.bukkit.World w) {
@@ -61,6 +65,7 @@ public final class Roll implements Listener {
 
     public Roll(Souls plugin) {
         this.plugin = plugin;
+        this.tumble = new Tumble(plugin);
     }
 
     private Config.RollCfg cfg() {
@@ -111,11 +116,15 @@ public final class Roll implements Listener {
         st.rollDir = dir.normalize();
         // 걸어 둔 시험 피해 (/soulstest rollhit) 는 걸어 둔 뒤 처음 구른 이 구르기에 묶는다
         if (st.armedRollHit > 0 && st.armedRollStart == Long.MIN_VALUE) st.armedRollStart = now;
-        if (cfg().spinVisual() && !back) p.startRiptideAttack(7, 0f, null);
-        if (cfg().crawl() && !back) crawl(p);
+        Config.RollVisual vis = cfg().visual();
+        // 뒷걸음은 진짜 몸 그대로 뒤로 뛴다 (이어 구른 대역이 남아 있으면 거둔다)
+        if (back) tumble.stop(p);
+        else if (vis == Config.RollVisual.TUMBLE) tumble.start(p, st.rollDir, now);
+        else if (vis == Config.RollVisual.SPIN) p.startRiptideAttack(cfg().spinTicks(), 0f, null);
+        if (cfg().barrier() && !back) crawl(p);
         visual(p, true);
-        plugin.test(p, String.format(Locale.ROOT, "ROLL kind=%s dir=%s cost=%.0f st=%.1f t=%d",
-                kind.id(), dirName(f, r), kind.cost(), st.stamina.cur(), now));
+        plugin.test(p, String.format(Locale.ROOT, "ROLL kind=%s dir=%s cost=%.0f st=%.1f vis=%s t=%d",
+                kind.id(), dirName(f, r), kind.cost(), st.stamina.cur(), back ? "body" : vis.name().toLowerCase(Locale.ROOT), now));
         return true;
     }
 
@@ -222,32 +231,50 @@ public final class Roll implements Listener {
         }
     }
 
-    /** 플러그인을 끌 때: 깔린 방벽을 모두 거둔다. */
+    public Tumble tumble() {
+        return tumble;
+    }
+
+    /** 플러그인을 끌 때: 깔린 방벽과 대역을 모두 거둔다. */
     public void shutdown() {
         for (Player p : Bukkit.getOnlinePlayers()) uncrawl(p);
         fakes.clear();
+        tumble.shutdown();
+    }
+
+    /**
+     * 보이는 것을 지금 거둔다 (대역, 방벽). 플러그인이 다른 세계로 옮기기 전에 부른다: Paper 는 탑승물이 있는 플레이어를
+     * 다른 세계로 옮기지 않는다 (teleport 가 이벤트 없이 false). 같은 세계 안이면 순간이동 이벤트에서 거둔다.
+     */
+    public void release(Player p) {
+        tumble.stop(p);
+        uncrawl(p);
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
+        tumble.stop(e.getPlayer());
         fakes.remove(e.getPlayer().getUniqueId());
     }
 
     @EventHandler
     public void onDeath(PlayerDeathEvent e) {
         stopGlide(e.getPlayer());
+        tumble.stop(e.getPlayer());
         uncrawl(e.getPlayer());
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onTeleport(PlayerTeleportEvent e) {
         stopGlide(e.getPlayer());
+        tumble.stop(e.getPlayer());
         uncrawl(e.getPlayer());
     }
 
     @EventHandler
     public void onWorld(PlayerChangedWorldEvent e) {
         stopGlide(e.getPlayer());
+        tumble.stop(e.getPlayer());
         fakes.remove(e.getPlayer().getUniqueId());
     }
 
@@ -256,6 +283,7 @@ public final class Roll implements Listener {
      * 끝날 틈), glide+1 틱째에 일어서는 소리, 구르기가 끝난 틱에 시험 줄 (서버에서 잰 거리), 걸어 둔 시험 피해.
      */
     public void tick(long now) {
+        tumble.tick(now);
         for (Player p : Bukkit.getOnlinePlayers()) {
             CombatState st = CombatState.peek(p.getUniqueId());
             if (st == null || st.roll == null) continue;

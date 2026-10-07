@@ -14,6 +14,9 @@
   wait:초                기다린다 (소수 가능)
   shot:이름              화면을 <찍을폴더>/이름.png 로 (X 화면 그대로, import -window root)
   f2:이름                게임의 F2 스크린샷을 <찍을폴더>/이름.png 로 (채팅에 저장 줄이 남는다)
+  burst:이름:장수[:키[:몇째]]  화면을 쉬지 않고 장수만큼 찍는다 (이름_00.png ...). 한 장에 약 0.05초 (BMP 로 찍고 끝나고
+                         PNG 로 바꾼다. PNG 로 바로 찍으면 한 장에 0.5초). 키를 주면 몇째(기본 1) 장을 찍기 직전에 누르고 다음 장
+                         뒤에 뗀다. 찍은 때는 이름_times.json ({"key_at": 누른 때, "shots": [찍은 때...]}, 첫 장 시작 t0 (유닉스 초) 에서 잰 초)
   key:키[+키]            눌렀다 뗀다. xdotool 이름 (f, w, space, Escape, Return, Tab, F1, F3, 1~9, ctrl+w)
   hold:키[+키]:초        누르고 있다가 뗀다 (앞 키부터 누르고 거꾸로 뗀다)
   sprint:초              hold:Control_L+w:초 (왼쪽 Ctrl 을 먼저 누른 채 W)
@@ -433,6 +436,48 @@ class Session:
         print("SHOT " + out, flush=True)
         return out
 
+    def burst(self, base, count, key=None, at=1):
+        """화면을 쉬지 않고 찍는다. 찍는 동안은 BMP (인코딩이 없어 빠르다), 끝나고 PNG 로 바꾼다."""
+        from PIL import Image
+        keys = self.keys(key) if key else []
+        if keys:
+            self.focus()
+        shots, raw = [], []
+        key_at = None
+        t0 = time.time()
+        for i in range(count):
+            if keys and i == at:
+                for k in keys:
+                    self.xdo("keydown", k)
+                key_at = time.time() - t0
+            if keys and i == at + 1:
+                for k in reversed(keys):
+                    self.xdo("keyup", k)
+            path = os.path.join(self.outdir, "%s_%02d.bmp" % (base, i))
+            a = time.time()
+            r = subprocess.run(["import", "-window", "root", path], env=self.env(), capture_output=True, text=True)
+            b = time.time()
+            if r.returncode != 0 or not os.path.isfile(path):
+                fail("import: " + r.stderr.strip(), self)
+            shots.append(round((a + b) / 2 - t0, 4))
+            raw.append(path)
+        if keys and count <= at + 1:
+            for k in reversed(keys):
+                self.xdo("keyup", k)
+        out = []
+        for path in raw:
+            png = path[:-4] + ".png"
+            Image.open(path).save(png)
+            os.remove(path)
+            out.append(png)
+            print("SHOT " + png, flush=True)
+        with open(os.path.join(self.outdir, base + "_times.json"), "w", encoding="utf-8") as f:
+            json.dump({"key": key, "key_at": None if key_at is None else round(key_at, 4), "shots": shots,
+                       "t0": round(t0, 4)}, f)
+        gaps = [round(b - a, 3) for a, b in zip(shots, shots[1:])]
+        say("  찍은 간격(초): %s" % gaps)
+        return out
+
     def f2(self, name):
         sdir = os.path.join(self.game, "screenshots")
         before = set(os.listdir(sdir)) if os.path.isdir(sdir) else set()
@@ -541,6 +586,13 @@ class Session:
         elif name == "f2":
             self.check_alive()
             self.f2(rest or "f2-%d" % int(time.time()))
+        elif name == "burst":
+            self.check_alive()
+            parts = rest.split(":")
+            if len(parts) < 2:
+                fail("burst:이름:장수[:키[:몇째]] 이어야 한다: " + action)
+            self.burst(parts[0], int(parts[1]), parts[2] if len(parts) > 2 and parts[2] else None,
+                       int(parts[3]) if len(parts) > 3 and parts[3] else 1)
         elif name == "key":
             self.tap(self.keys(rest))
         elif name == "hold":

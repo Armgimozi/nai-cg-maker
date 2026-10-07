@@ -3,8 +3,11 @@ package kr.souls;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
@@ -20,10 +23,44 @@ public final class Config {
     public record StaminaCfg(int endurance, TreeMap<Integer, Double> curve, double regenPerTick, int regenDelay,
                              int exhaustedDelay, double exhaustedSprintUntil, double guardRegenScale, double sprintPerTick) {}
 
-    public record RollCfg(String load, boolean spinVisual, boolean crawl, Map<String, RollKind> kinds, String sound, float volume, float pitch) {
+    /** 구르기가 3인칭과 남에게 어떻게 보이는가 (3.3 "보이는 모습"). */
+    public enum RollVisual {
+        /** 진짜 몸을 감추고 웅크린 대역이 앞으로 한 바퀴 돈다 (combat/Tumble) */
+        TUMBLE,
+        /** 바닐라 급류 회전 (흰 소용돌이는 팩이 감춘다) */
+        SPIN,
+        /** 머리 위 방벽으로 기어가기 자세 (몸이 눕고 미끄러진다) */
+        CRAWL;
+
+        public static RollVisual parse(String s, RollVisual def) {
+            if (s == null) return def;
+            try {
+                return valueOf(s.trim().toUpperCase(Locale.ROOT));
+            } catch (IllegalArgumentException e) {
+                return def;
+            }
+        }
+    }
+
+    /** 대역이 도는 한 마디: 구르기 tick 틱째에 앞으로 angle 도 (구르기 시작 자세에서 잰 각) 까지 duration 틱 동안 돈다. */
+    public record TumbleStep(int tick, float angle, int duration) {}
+
+    /**
+     * 대역 (combat/Tumble). pivot: 회전 중심의 발 위 높이 (블록), scale: 대역 크기, steps: 도는 마디 (틱 차례),
+     * reveal: 이 틱에 대역을 거두고 진짜 몸을 보인다, crawlCamera: 방벽도 깐다 (1인칭 시야를 바닥으로).
+     */
+    public record TumbleCfg(double pivot, float scale, List<TumbleStep> steps, int reveal, boolean crawlCamera) {}
+
+    public record RollCfg(String load, RollVisual visual, boolean crawl, TumbleCfg tumble, int spinTicks,
+                          Map<String, RollKind> kinds, String sound, float volume, float pitch) {
         public RollKind kind(String id) {
             RollKind k = kinds.get(id);
             return k != null ? k : kinds.get("light");
+        }
+
+        /** 이 구르기에 방벽을 까는가 (뒷걸음은 늘 아니다). */
+        public boolean barrier() {
+            return crawl && (visual == RollVisual.CRAWL || (visual == RollVisual.TUMBLE && tumble.crawlCamera()));
         }
     }
 
@@ -89,7 +126,8 @@ public final class Config {
             }
         }
         roll = new RollCfg(c.getString("combat.roll.load", "light").toLowerCase(Locale.ROOT),
-                c.getBoolean("combat.roll.spin-visual", false), c.getBoolean("combat.roll.crawl", true),
+                RollVisual.parse(c.getString("combat.roll.visual"), RollVisual.TUMBLE), c.getBoolean("combat.roll.crawl", true),
+                tumble(c), Math.max(1, c.getInt("combat.roll.spin-ticks", 8)),
                 Collections.unmodifiableMap(kinds),
                 c.getString("combat.roll.sound", "item.armor.equip_leather"),
                 (float) c.getDouble("combat.roll.sound-volume", 0.6), (float) c.getDouble("combat.roll.sound-pitch", 0.7));
@@ -115,5 +153,31 @@ public final class Config {
         enemyDamage = c.getDouble("difficulty.enemy-damage", 1.0);
         parryWindowBonus = c.getInt("difficulty.parry-window-bonus", 0);
         estusStart = c.getInt("difficulty.estus-start", 4);
+    }
+
+    /** combat.roll.tumble. steps 는 [[틱, 각, 걸리는 틱], ...]. 틀린 줄은 건너뛰고, 하나도 없으면 3.3 의 기본 네 마디. */
+    private static TumbleCfg tumble(FileConfiguration c) {
+        List<TumbleStep> steps = new ArrayList<>();
+        for (Object o : c.getList("combat.roll.tumble.steps", List.of())) {
+            if (!(o instanceof List<?> l) || l.size() < 3) continue;
+            try {
+                int tick = Integer.parseInt(String.valueOf(l.get(0)).trim());
+                float angle = Float.parseFloat(String.valueOf(l.get(1)).trim());
+                int dur = Integer.parseInt(String.valueOf(l.get(2)).trim());
+                if (tick >= 0 && dur >= 0) steps.add(new TumbleStep(tick, angle, dur));
+            } catch (NumberFormatException ignored) {
+                // 숫자가 아닌 줄은 건너뛴다
+            }
+        }
+        if (steps.isEmpty()) {
+            steps.add(new TumbleStep(1, 90, 2));
+            steps.add(new TumbleStep(3, 180, 2));
+            steps.add(new TumbleStep(5, 270, 2));
+            steps.add(new TumbleStep(7, 360, 2));
+        }
+        steps.sort(Comparator.comparingInt(TumbleStep::tick));
+        return new TumbleCfg(c.getDouble("combat.roll.tumble.pivot", 0.5), (float) c.getDouble("combat.roll.tumble.scale", 1.0),
+                List.copyOf(steps), Math.max(1, c.getInt("combat.roll.tumble.reveal", 10)),
+                c.getBoolean("combat.roll.tumble.crawl-camera", false));
     }
 }

@@ -29,7 +29,7 @@
   6. glyphs.yml, 미리보기
 
 M0 에는 셰이더가 없다 (10.8). 무기·보스·갑옷 그림(wkit, mc3d, art/vboss_*)은 M1 부터 이 파일에 다시 붙인다
-(wkit.py, mc3d.py 는 옮겨 두었지만 M0 에서는 부르지 않는다).
+(M0 에서 wkit 을 쓰는 것은 구르기 대역 roll_figure.py 하나: 웅크린 몸 복셀 모형 souls:roll_body).
 아이템 그림은 모두 textures/item/ 아래에 둔다. 1.21.11 은 items 아틀라스가 textures/item 폴더를
 이름공간과 상관없이 모두 읽으므로 skyblock 의 write_atlas_sources 는 필요 없다 (icons.py 의 souls:item/test_guard 로 확인).
 """
@@ -52,6 +52,7 @@ import hud  # noqa: E402
 import icons  # noqa: E402
 import langpack  # noqa: E402
 import previews  # noqa: E402
+import roll_figure  # noqa: E402
 
 ROOT = os.path.dirname(HERE)
 RES = os.path.join(ROOT, "plugin", "src", "main", "resources")
@@ -220,6 +221,7 @@ def main(argv):
         write_json(os.path.join(OUT, "assets", ns, "font", name + ".json"), data)
     gui_skin.build(OUT)   # 하트·스태미나 막대·단축 슬롯·창·단추·설명 칸·Dialog 경고 단추
     icons.build(OUT)      # 아이템 그림·모형·정의 (items 아틀라스), 입자
+    roll_figure.build(OUT)   # 구르기 대역 (몸 복셀 모형, 머리 자세), 급류 회전 소용돌이 감추기 (3.3)
     title = hud.death_title(glyphs)
 
     # 3. 언어 파일: 게임 문구 (assets/souls/lang) 와 바닐라 덮어쓰기 (assets/minecraft/lang, 사망 화면)
@@ -232,6 +234,9 @@ def main(argv):
             data = dict(sorted(data.items()))
         write_json(os.path.join(OUT, *rel.split("/")), data)
     lang = dict(sorted(lang_files["assets/minecraft/lang/ko_kr.json"].items()))
+
+    # 구르는 동안 손에 든 souls 아이템을 3인칭에서 비우는 깃발 (아이템 정의를 모두 쓴 뒤에 감싼다, 3.3)
+    roll_figure.wrap_item_definitions(OUT)
 
     # 4. artlint (오류가 있으면 zip 을 만들지 않는다)
     report = artlint.lint([OUT], OUT)
@@ -270,6 +275,7 @@ def main(argv):
         "ascent": hud.YOU_DIED_ASCENT, "lang": lang, "bar_bg": bar_bg, "bar_fill": bar_fill, "icon": icon,
     })
     gui_skin.write_previews(OUT, PREVIEW)
+    roll_figure.preview(os.path.join(PREVIEW, "roll_figure.png"))
     print(f"팩 파일 {len(names)}개, {len(data):,} 바이트, sha1 {sha1}")
     print(f"  → {os.path.relpath(os.path.join(RES, 'pack.zip'), ROOT)}"
           + ("" if "--no-dist" in argv else f", dist/packs/{sha1}.zip"))

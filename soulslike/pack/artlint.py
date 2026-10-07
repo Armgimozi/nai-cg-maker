@@ -14,7 +14,12 @@
 경고
   colors     16×16 칸 하나에 색이 12개 넘음
   symmetric  아이콘(textures/item, pack.png)의 완벽한 좌우 대칭
-  repeat     똑같은 4×4 조각이 세 번 이상 반복 (색 3개 이상이고 한 색이 11칸 이하인 무늬 조각만 본다)
+  repeat     똑같은 4×4 조각이 세 번 이상 반복 (색 3개 이상이고 한 색이 11칸 이하인 무늬 조각만 본다).
+             GUI 그림(textures/gui/)에서는 두 가지를 무늬로 세지 않는다 (2026-10-07, 창을 구조로 다시 그리며):
+               - 곧은 줄: 조각의 줄마다 한 색이거나 열마다 한 색 (테·베벨·홈처럼 곧게 뻗은 선). 고른 선은 어디를 잘라도
+                 같은 조각이라 9조각 단추의 테만으로도 수십 번 걸렸다. 찍어 늘어놓은 무늬가 아니다.
+               - 칸 격자: 같은 조각이 바로 옆 칸 (바닐라 칸 간격 18, 단축 슬롯 20) 에도 있는 것. 칸의 자리와 수는
+                 바닐라가 정한다. 칸 격자 밖에서 세 번 이상 나오는 무늬, 아이템·몹 그림의 반복은 그대로 경고다.
   alpha      반투명 픽셀 (1~249). 손으로 찍은 그림은 보통 0 아니면 255
 """
 import os
@@ -33,6 +38,7 @@ GRADIENT_RUN = 5        # 이 칸 수를 넘게 (= 6픽셀 이상) 이어지면 
 TILE_COLORS = 12
 REPEAT_MIN = 3          # 같은 4×4 조각이 이만큼 (겹치지 않게) 나오면 경고
 REPEAT_FLAT = 11        # 한 색이 16칸 중 이보다 많으면 민무늬로 보고 반복을 세지 않는다
+SLOT_PITCH = (18, 20)   # GUI 칸 격자 간격 (창 18, 단축 슬롯 20). 이 간격으로 이웃한 같은 조각은 칸 격자다
 
 ERRORS = ("palette", "saturated", "blue", "gradient", "glowalpha", "restricted")
 
@@ -83,6 +89,13 @@ def _gradient_runs(px, mask):
             runs.append((i, j - i + 1))
         i = max(j, i + 1)
     return runs
+
+
+def _straight(t):
+    """4×4 조각이 곧은 줄인가: 줄마다 한 색이거나 열마다 한 색."""
+    rows = all((t[i] == t[i, 0]).all() for i in range(4))
+    cols = all((t[:, j] == t[0, j]).all() for j in range(4))
+    return rows or cols
 
 
 def check_image(path, report, rel=None):
@@ -166,7 +179,8 @@ def check_image(path, report, rel=None):
         if np.array_equal(flat, flat[:, ::-1]):
             report.add("경고", path, "symmetric", "좌우가 완벽히 같다. 마모로 대칭을 깬다")
 
-    # 7. 같은 4×4 조각의 반복
+    # 7. 같은 4×4 조각의 반복 (GUI 는 곧은 줄과 칸 격자를 빼고 센다)
+    gui = "/textures/gui/" in "/" + rel
     if w >= 8 or h >= 8:
         groups = {}
         for y in range(h - 3):
@@ -179,8 +193,15 @@ def check_image(path, report, rel=None):
                 # 색이 셋 미만이거나 한 색이 거의 다 덮는 조각(민무늬 테, 바탕)은 무늬가 아니다
                 if len(cols) < 3 or max(flat.count(k) for k in cols) > REPEAT_FLAT:
                     continue
+                if gui and _straight(t):
+                    continue
                 groups.setdefault(t.tobytes(), []).append((x, y))
         for key, pos in groups.items():
+            if gui:
+                at = set(pos)
+                pos = [(x, y) for x, y in pos
+                       if not any((x + d, y) in at or (x - d, y) in at or (x, y + d) in at or (x, y - d) in at
+                                  for d in SLOT_PITCH)]
             taken = []
             for x, y in pos:
                 if all(abs(x - tx) >= 4 or abs(y - ty) >= 4 for tx, ty in taken):
