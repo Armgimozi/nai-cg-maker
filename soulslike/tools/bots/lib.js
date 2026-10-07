@@ -76,7 +76,7 @@ class Scenario {
   /** 명령어 응답을 보고 판정한다: 명령어가 없으면 MISS, 답이 없으면 FAIL, 있으면 pred. */
   checkCmd (id, r, pred, info) {
     if (!r || r.timeout) return this.check(id, false, '답 없음' + (r && r.cmd ? ' (' + r.cmd + ')' : ''))
-    if (r.missing) return this.miss(id, '명령어 없음: ' + r.cmd)
+    if (r.missing) return this.miss(id, '명령어 없음: ' + r.cmd + ' (아직 없는 명령, debug.test-mode 꺼짐, 또는 op 아님)')
     let ok = false
     try { ok = pred(r) } catch (e) { ok = false }
     return this.check(id, ok, info !== undefined ? info : r.line)
