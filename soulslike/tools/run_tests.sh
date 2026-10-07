@@ -195,10 +195,10 @@ trap 'exit 130' INT TERM
 
 say "-- 서버 켜는 중"
 mkfifo "$SRV/console.in"
-sleep 2147483647 > "$SRV/console.in" &
+sleep 2147483647 > "$SRV/console.in" 2>/dev/null < /dev/null &
 KEEPER_PID=$!
 (cd "$SRV" && exec java -Xms512M -Xmx"$MEM" -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -Dstderr.encoding=UTF-8 \
-   -Dpaper.disableChannelLimit=true -jar paper.jar --nogui < console.in > console.log 2>&1) &
+   -jar paper.jar --nogui < console.in > console.log 2>&1) > /dev/null 2>&1 &
 SERVER_PID=$!
 echo "$SERVER_PID" > "$SRV/server.pid"
 T0=$(date +%s)

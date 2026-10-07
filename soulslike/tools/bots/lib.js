@@ -123,10 +123,14 @@ async function run (name, fn, { timeout = 240 } = {}) {
 
 // ─── 글 (NBT 글 요소 → 평문) ───────────────────────────────
 
+// NBT 꼴({type, value})일 때만 펴고, 이미 편 값은 그대로 둔다
 function simple (n) {
   if (n == null) return null
-  if (typeof n === 'string') return n
-  try { return nbt.simplify(n) } catch (e) { return n }
+  if (typeof n !== 'object') return n
+  if (typeof n.type === 'string' && 'value' in n) {
+    try { return nbt.simplify(n) } catch (e) { return n }
+  }
+  return n
 }
 
 /** 글 요소를 [{text, color, font, translate, with}] 조각으로 편다. 부모의 색·글꼴을 물려받는다. */

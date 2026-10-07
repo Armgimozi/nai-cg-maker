@@ -7,6 +7,7 @@
 #   PAPER_JAR   paper.jar 위치 (폴더에 paper.jar 가 없을 때 복사해 온다)
 #   PACK_PORT   jar 안 pack.zip 을 내보낼 포트 (기본 <포트> - 17000, 25602 → 8602)
 #   NO_PLUGIN=1 플러그인 없이 바닐라 Paper 로 (하네스만 볼 때)
+#   OPS         켠 뒤 op 를 줄 이름들 (기본 "Tester" = 하네스 기본 이름. /soulstest 는 souls.test 권한, 곧 op 가 필요하다)
 # 플러그인 설정(config.yml)은 켤 때마다 jar 안의 것을 새로 풀어 debug.test-mode: true, pack.serve-port, pack.url 만 바꾼다.
 # 기록: <폴더>/console.log
 set -u
@@ -104,6 +105,7 @@ echo $! > server.pid
 
 for _ in $(seq 600); do
   if grep -q "Done (" console.log 2>/dev/null; then
+    for n in ${OPS-Tester}; do echo "op $n" > console.in; done
     echo "devserver: 켜짐 port=$PORT pack=$PACK_PORT pid=$(cat server.pid) 기록=$D/console.log"
     exit 0
   fi
