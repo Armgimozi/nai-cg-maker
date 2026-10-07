@@ -26,6 +26,8 @@ bonfire:
 
 boss:
   felled: "<#9e7c44>FOE FELLED"
+  hrolf:
+    name: "<#d1c3a0>Hrolf, the Gatewarden"
 
 souls:
   recovered: "<#b3a37f>Souls reclaimed"

@@ -54,10 +54,13 @@ public final class Glyphs {
 
     /**
      * HUD 자리 값 (glyphs.yml 의 layout, pack/hud.py 의 layout()). 글꼴 셰이더와 같은 값이다.
-     * margin: 화면 가장자리 여백, left: 막대 왼쪽 끝을 가운데에서 왼쪽으로 민 거리, right: 소울 상자 오른쪽 끝을 가운데에서
-     * 오른쪽으로 민 거리, markLeft/markRight: 셰이더가 가장자리로 옮기는 글자색, soulBox: 소울 상자 폭.
+     * margin: 셰이더 없이 화면 가장자리 여백, left: 막대 왼쪽 끝을 가운데에서 왼쪽으로 민 거리, right: 소울 상자 오른쪽 끝을
+     * 가운데에서 오른쪽으로 민 거리, markLeft/markRight: 셰이더가 왼쪽 위·오른쪽 아래로 옮기는 글자색, soulBox: 소울 상자 폭.
+     * 보스 막대: markBoss (막대 그림 글자, 셰이더가 화면 아래로 내리고 가로로 늘인다), markBossName / markBossShadow (이름과
+     * 그 그림자, 막대 왼쪽 끝 위로), markHidden (셰이더가 지우는 이름 사본), bossWidth (체력 막대의 바탕 길이).
      */
-    public record Layout(int margin, int left, int right, TextColor markLeft, TextColor markRight, int soulBox) {}
+    public record Layout(int margin, int left, int right, TextColor markLeft, TextColor markRight, int soulBox,
+                         TextColor markBoss, TextColor markBossName, TextColor markBossShadow, TextColor markHidden, int bossWidth) {}
 
     private static final Key DEFAULT_FONT = Key.key("souls", "hud");
     private static Map<String, Glyph> glyphs = Collections.emptyMap();
@@ -79,7 +82,10 @@ public final class Glyphs {
             ConfigurationSection root = y.isConfigurationSection("glyphs") ? y.getConfigurationSection("glyphs") : y;
             ConfigurationSection lay = root.getConfigurationSection("layout");
             layout = lay == null ? null : new Layout(lay.getInt("margin", 8), lay.getInt("left", 205), lay.getInt("right", 206),
-                    color(lay.getString("mark_left"), 0xfefd01), color(lay.getString("mark_right"), 0xfefd02), lay.getInt("soul_box", 60));
+                    color(lay.getString("mark_left"), 0xfefd01), color(lay.getString("mark_right"), 0xfefd02), lay.getInt("soul_box", 64),
+                    color(lay.getString("mark_boss"), 0xfefd03), color(lay.getString("mark_boss_name"), 0xfefd04),
+                    color(lay.getString("mark_boss_shadow"), 0xfefd05), color(lay.getString("mark_hidden"), 0xfefd06),
+                    lay.getInt("boss_width", 200));
             for (String name : root.getKeys(false)) {
                 if (name.equals("layout")) continue;
                 ConfigurationSection g = root.getConfigurationSection(name);

@@ -62,13 +62,16 @@ L.run('join', async (sc) => {
     const shaders = zip.names.filter((n) => /^assets\/[^/]+\/shaders\//.test(n))
     sc.check('only the HUD text shader (10.8)', shaders.length === 1 && shaders[0] === 'assets/minecraft/shaders/core/rendertype_text.vsh', shaders.join(', ') || '없음')
     const seen = (n) => { const im = L.decodePng(zip.get(n)); for (let i = 3; i < im.rgba.length; i += 4) if (im.rgba[i]) return true; return false }
-    const hidden = zip.names.filter((n) => /textures\/gui\/sprites\/(hud\/(food_|armor_|experience_bar_|heart\/)|boss_bar\/white_)[a-z_]*\.png$/.test(n))
-    const kinds = ['food_', 'armor_', 'experience_bar_', 'heart/', 'boss_bar/white_'].filter((k) => !hidden.some((n) => n.includes(k)))
+    const hidden = zip.names.filter((n) => /textures\/gui\/sprites\/(hud\/(food_|armor_|experience_bar_|heart\/|crosshair_attack_indicator_)|boss_bar\/(white|red)_)[a-z_]*\.png$/.test(n))
+    const kinds = ['food_', 'armor_', 'experience_bar_', 'heart/', 'crosshair_attack_indicator_', 'boss_bar/white_', 'boss_bar/red_'].filter((k) => !hidden.some((n) => n.includes(k)))
     const opaque = hidden.filter(seen)
-    sc.check('hidden vanilla HUD sprites transparent (hearts, food, armor, xp bar, HUD boss bar)', !kinds.length && !opaque.length,
+    sc.check('hidden vanilla HUD sprites transparent (hearts, food, armor, xp bar, attack indicator, HUD and boss bar sprites)', !kinds.length && !opaque.length,
       `${hidden.length}개${kinds.length ? ', 빠진 것: ' + kinds.join(', ') : ''}${opaque.length ? ', 보이는 것: ' + opaque.join(', ') : ''}`)
-    const boss = ['red', 'yellow'].map((k) => `assets/minecraft/textures/gui/sprites/boss_bar/${k}_progress.png`)
-    sc.check('boss bar art for real bosses (red health, yellow posture)', boss.every((n) => zip.has(n) && seen(n)), boss.filter((n) => !zip.has(n)).join(', '))
+    // 보스 막대 (red) 는 그림 글자로 화면 아래 가운데에 그린다 (pack/hud.py boss_bars). 그 그림 글자가 팩에 있다
+    const g0 = L.loadGlyphs()
+    const bossGlyphs = ['boss_hp_fill_1', 'boss_hp_trail_1', 'boss_hp_empty_128', 'boss_post_fill_1', 'boss_cap_l', 'boss_cap_r']
+    sc.check('boss bar glyphs for real bosses (health, lost health, posture, caps)', bossGlyphs.every((n) => g0 && g0[n]),
+      bossGlyphs.filter((n) => !(g0 && g0[n])).join(', '))
     const sorted = zip.names.slice().sort()
     sc.check('pack zip entries sorted (deterministic)', zip.names.every((n, i) => n === sorted[i]))
   }

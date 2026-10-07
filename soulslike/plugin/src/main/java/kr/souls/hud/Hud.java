@@ -25,6 +25,7 @@ import org.bukkit.event.player.PlayerResourcePackStatusEvent;
 import java.text.NumberFormat;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -38,6 +39,11 @@ import java.util.function.ToLongFunction;
  *    의 이름에 그림 글자 (souls:hud) 로 그린다. 길이는 최대치에 비례하고 (설정 hud.bars), 맞으면 잃은 몫이 잠깐 바랜 양피지빛으로
  *    남았다가 줄어든다. 바뀐 틱에 보낸다. 진짜 보스는 RED (체력)·YELLOW (자세) 막대를 쓴다.
  *  - 오른쪽 아래 소울 수 상자: 행동 막대. 바뀔 때와 actionbar-refresh 틱마다 보낸다 (바닐라는 3초 뒤 흐려진다).
+ *  - 보스 막대 (화면 아래 가운데, 다크 소울처럼 이름은 막대 왼쪽 끝 위): 보스마다 보스 막대 하나 (RED, 팩이 막대 그림을 투명하게
+ *    했다). 이름 줄에 [이름 사본][체력·자세 막대 그림 글자][이름][빈칸] 을 쓴다 ({@link #boss}). 바닐라는 이름 줄을 글 폭의 반만큼
+ *    가운데에서 왼쪽으로 당겨 그리는데 이름 폭은 그 사람의 언어·글꼴이 정해 서버가 모른다. 같은 이름을 두 번 쓰면 첫 사본이 그
+ *    반을 먹어 막대는 늘 가운데에서, 둘째 이름은 늘 가운데 - 막대 반폭에서 시작한다. 첫 사본은 글꼴 셰이더가 지우고 (표식 색
+ *    markHidden), 막대·이름은 셰이더가 화면 아래로 내린다 (pack/hud.py boss_bars). 맞으면 잃은 몫이 잠깐 남았다가 줄어든다.
  *  - 자리: 글 전체의 진행 폭을 0 으로 맞춰 (빈칸 글자로 되돌아온다) 화면 가운데에서 시작하게 하고, 거기서 layout.left 왼쪽
  *    (막대) / layout.right 오른쪽 (상자 끝) 에 그린다. 글자색이 표식 색 (layout.markLeft/markRight) 이라 팩의 글꼴 셰이더가
  *    화면 가장자리로 옮긴다 (pack/hud.py). 짜는 차례는 pack/hud.py 의 bar_line·souls_line 과 같다.
@@ -66,6 +72,18 @@ public final class Hud implements Listener {
         boolean blank;
         /** 시험 줄 (/soulstest hud) 에 보일 마지막 값: hp 채움·길이·잃은 몫, fp 채움·길이, st 채움·길이 */
         final int[] last = new int[7];
+        /** 띄운 보스 막대 (보스 id → 막대). 띄운 차례대로 화면 아래에서 위로 쌓인다 */
+        final Map<String, Boss> bosses = new LinkedHashMap<>();
+    }
+
+    /** 보스 막대 하나: 이름 열쇠, 체력·자세 (지금, 최대), 잃은 몫 (체력 막대처럼), 마지막에 보낸 값. */
+    private static final class Boss {
+        BossBar bar;
+        String nameKey;
+        double hp, hpMax, post, postMax;
+        int fill = -1, trailTop;
+        long trailHold, at;
+        String key;
     }
 
     private final Souls plugin;
@@ -100,15 +118,46 @@ public final class Hud implements Listener {
         v.barKey = null;
         v.soulsKey = null;
         v.souls = null;
+        for (Boss b : v.bosses.values()) b.key = null;
     }
 
     /** 플러그인을 끌 때: 보스 막대를 거둔다 (/reload 뒤 둘이 되지 않게). */
     public void shutdown() {
         for (Map.Entry<UUID, View> e : views.entrySet()) {
             Player p = Bukkit.getPlayer(e.getKey());
-            if (p != null && e.getValue().bar != null) p.hideBossBar(e.getValue().bar);
+            if (p == null) continue;
+            if (e.getValue().bar != null) p.hideBossBar(e.getValue().bar);
+            for (Boss b : e.getValue().bosses.values()) p.hideBossBar(b.bar);
         }
         views.clear();
+    }
+
+    /**
+     * 보스 막대를 띄우거나 값을 바꾼다 (M2 의 boss/BossBars 가 부른다. 지금은 시험 명령 /soulstest boss). id 마다 하나.
+     * nameKey 는 lang 열쇠 (보스 이름). hp·posture 는 지금 값, 최대는 0 보다 크게. 다음 틱에 그린다.
+     */
+    public void boss(Player p, String id, String nameKey, double hp, double hpMax, double posture, double postureMax) {
+        View v = view(p);
+        Boss b = v.bosses.get(id);
+        if (b == null) {
+            b = new Boss();
+            b.bar = BossBar.bossBar(Component.empty(), 0f, BossBar.Color.RED, BossBar.Overlay.PROGRESS);
+            v.bosses.put(id, b);
+            p.showBossBar(b.bar);
+        }
+        if (!nameKey.equals(b.nameKey)) b.key = null;
+        b.nameKey = nameKey;
+        b.hpMax = Math.max(1e-6, hpMax);
+        b.hp = Math.max(0, Math.min(hp, b.hpMax));
+        b.postMax = Math.max(1e-6, postureMax);
+        b.post = Math.max(0, Math.min(posture, b.postMax));
+    }
+
+    /** 보스 막대를 거둔다 (쓰러뜨렸거나 싸움에서 벗어났을 때). id 가 없으면 아무것도 하지 않는다. */
+    public void bossOff(Player p, String id) {
+        View v = views.get(p.getUniqueId());
+        Boss b = v == null ? null : v.bosses.remove(id);
+        if (b != null) p.hideBossBar(b.bar);
     }
 
     public void tick(long now) {
@@ -128,6 +177,7 @@ public final class Hud implements Listener {
             v.blank = false;
             bars(p, v, now);
             souls(p, v, now);
+            for (Boss b : v.bosses.values()) boss(p, b, now);
         }
     }
 
@@ -205,6 +255,67 @@ public final class Hud implements Listener {
         return (int) Math.max(1, Math.min(len - 1, Math.round(len * cur / max)));
     }
 
+    // ------------------------------------------------------------------ 보스 막대
+
+    private void boss(Player p, Boss b, long now) {
+        Glyphs.Layout lay = Glyphs.layout();
+        boolean glyph = glyphs(p) && Glyphs.get("boss_hp_fill_1") != null && Glyphs.get("boss_cap_l") != null;
+        int w = lay == null ? 200 : lay.bossWidth();
+        int fill = fill(b.hp, b.hpMax, w);
+        if (b.fill >= 0 && fill < b.fill) {
+            b.trailTop = Math.max(b.trailTop, b.fill);
+            b.trailHold = now + TRAIL_HOLD;
+        }
+        if (b.trailTop <= fill) b.trailTop = fill;
+        else if (now >= b.trailHold) b.trailTop = Math.max(fill, b.trailTop - Math.max(1, (b.trailTop - fill + 3) / 4));
+        b.trailTop = Math.min(b.trailTop, w);
+        b.fill = fill;
+        int trail = b.trailTop - fill;
+        int post = fill(b.post, b.postMax, w);
+        String key = (glyph ? "g" : "t") + fill + "/" + trail + "/" + post + "@" + Lang.langOf(p);
+        if (key.equals(b.key) && now - b.at < plugin.cfg().hud.barRefresh()) return;
+        b.key = key;
+        b.at = now;
+        Component name = Lang.c(p, b.nameKey);
+        if (!glyph) {
+            // 팩이 없으면 바닐라 보스 막대 (이름과 진행)
+            b.bar.name(name);
+            b.bar.progress((float) Math.max(0, Math.min(1, b.hp / b.hpMax)));
+            return;
+        }
+        b.bar.progress(0f);
+        b.bar.name(bossLine(lay, name, w, fill, trail, post));
+    }
+
+    /**
+     * 보스 막대 이름 줄: [이름 사본 (지운다)][막대][이름][빈칸]. 진행 폭 = 이름 폭 × 2 라 바닐라는 가운데 - 이름 폭 에서 시작하고,
+     * 사본 뒤 = 가운데에서 막대를 그린다: 왼쪽 마구리, 체력 (채움·잃은 몫·빈 몫), 오른쪽 마구리, 그 밑 줄 자세 (채움·빈 몫), 그리고
+     * 가운데 - w/2 에서 이름, 마지막에 w/2 오른쪽으로. 짜는 차례는 pack/hud.py boss_bars 와 같다.
+     */
+    private static Component bossLine(Glyphs.Layout lay, Component name, int w, int fill, int trail, int post) {
+        int half = w / 2;
+        Line l = new Line();
+        l.move(-half - 2);
+        l.glyph("boss_cap_l");
+        l.runs("boss_hp_fill_", fill);
+        l.runs("boss_hp_trail_", trail);
+        l.runs("boss_hp_empty_", w - fill - trail);
+        l.glyph("boss_cap_r");
+        l.move(-half - l.pen);
+        l.runs("boss_post_fill_", post);
+        l.runs("boss_post_empty_", w - post);
+        l.move(-half - l.pen);
+        Line tail = new Line();
+        tail.move(half);
+        ShadowColor shadow = ShadowColor.shadowColor(0xFF000000 | lay.markBossShadow().value());
+        return Component.text()
+                .append(name.color(lay.markHidden()).shadowColor(ShadowColor.none()))
+                .append(l.component(lay.markBoss()))
+                .append(name.color(lay.markBossName()).shadowColor(shadow))
+                .append(tail.component(lay.markBoss()))
+                .build();
+    }
+
     // ------------------------------------------------------------------ 소울 상자
 
     private void souls(Player p, View v, long now) {
@@ -228,7 +339,7 @@ public final class Hud implements Listener {
         }
     }
 
-    /** 상자 오른쪽 끝이 가운데 + layout.right. 소울 표식은 상자 왼쪽 안 (3), 숫자 (고정폭) 는 오른쪽 안 (4) 에 붙인다. */
+    /** 상자 오른쪽 끝이 가운데 + layout.right. 소울 표식은 상자 왼쪽 안 (5), 숫자 (고정폭) 는 오른쪽 안 (6) 에 붙인다. */
     private static Component soulBox(Glyphs.Layout lay, long n) {
         String digits = Long.toString(n);
         int dw = Glyphs.get("hud_digit_0").width() - 1;
@@ -237,9 +348,9 @@ public final class Hud implements Listener {
         l.move(lay.right() - box);
         int x0 = l.pen;
         l.glyph("hud_soulbox");
-        l.move(x0 + 3 - l.pen);
+        l.move(x0 + 5 - l.pen);
         l.glyph("soul_mark");
-        l.move(x0 + box - 4 - dw * digits.length() - l.pen);
+        l.move(x0 + box - 6 - dw * digits.length() - l.pen);
         for (int i = 0; i < digits.length(); i++) l.glyph("hud_digit_" + digits.charAt(i));
         l.move(-l.pen);
         return l.component(lay.markRight());
@@ -321,9 +432,15 @@ public final class Hud implements Listener {
     public String testLine(Player p) {
         View v = view(p);
         int[] a = v.last;
-        return String.format(Locale.ROOT, "HUD mode=%s bossbar=%s hp=%d/%d trail=%d fp=%d/%d st=%d/%d souls=%d blank=%s",
+        StringBuilder bosses = new StringBuilder();
+        for (Map.Entry<String, Boss> e : v.bosses.entrySet()) {
+            Boss b = e.getValue();
+            if (!bosses.isEmpty()) bosses.append(',');
+            bosses.append(e.getKey()).append(':').append(Math.max(0, b.fill)).append('+').append(b.trailTop - Math.max(0, b.fill));
+        }
+        return String.format(Locale.ROOT, "HUD mode=%s bossbar=%s hp=%d/%d trail=%d fp=%d/%d st=%d/%d souls=%d blank=%s bosses=%s",
                 glyphs(p) ? "glyph" : "text", v.bar != null, a[0], a[1], a[2], a[3], a[4], a[5], a[6],
-                Math.max(0, souls.applyAsLong(p)), v.blank);
+                Math.max(0, souls.applyAsLong(p)), v.blank, bosses.isEmpty() ? "-" : bosses);
     }
 
     // ------------------------------------------------------------------ 사건
@@ -351,6 +468,7 @@ public final class Hud implements Listener {
         View v = views.remove(e.getPlayer().getUniqueId());
         packed.remove(e.getPlayer().getUniqueId());
         if (v != null && v.bar != null) e.getPlayer().hideBossBar(v.bar);
+        if (v != null) for (Boss b : v.bosses.values()) e.getPlayer().hideBossBar(b.bar);
     }
 
     /**

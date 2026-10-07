@@ -19,7 +19,7 @@ A 의 칼 다섯 자루 (SPEC.md 3.1~3.4, 3.16): 레딘 경비대 직검, 볼크
   G 가드·폼멜 쇠   g 쇠의 빛 받는 모서리   L 가죽 손잡이   w 쇠줄   P 폼멜
 """
 from weapons import _common as C
-from weapons._common import draw, pmat, put, skin, weapon
+from weapons._common import blade, draw, pmat, put, skin, weapon
 from weapons._mats import mats
 
 # 무딘 날 끝: 갈지 않은 모서리. 바탕 ash3, 이 빠진 자국 ash2 (세로 두 칸, 몇 곳)
@@ -60,13 +60,13 @@ def blade_mats(*names):
 # 이 빠짐 셋: 윗날 Y 16, 아랫날 Y 20, 끝 가까이 윗날 Y 28. 날 끝 밝은 줄은 두 곳에서 무뎌 끊긴다 (e).
 # 하나뿐인 것: 가드의 −X 끝이 두 칸 아래로 휘었다 (3인칭에서도 보이게).
 
-REDIN_SWORD = [
-    # x: -7.5 ... +6.5 (15 칸, 가운데 X −0.5 는 8번째 칸), 맨 윗줄 Y = 31.5
+REDIN_BLADE = [
+    # x: -7.5 ... +6.5 (15 칸, 가운데 X −0.5 는 8번째 칸), 맨 윗줄 Y = 31.5. n 이 빠짐, 날 끝 줄은 blade() 가 꼴에서 셈한다
     #  -7 -6 -5 -4 -3 -2 -1  0  1  2  3  4  5  6
     "       e       ",   # 31.5  뭉툭한 끝 (한 칸)
     "      eSe      ",   # 30.5
     "      ESe      ",   # 29.5
-    "      ES       ",   # 28.5  끝 가까이 윗날 이 빠짐
+    "      ESn      ",   # 28.5  끝 가까이 윗날 이 빠짐
     "      ESE      ",   # 27.5
     "     eSSSE     ",   # 26.5  폭 5
     "     eSSSE     ",   # 25.5
@@ -75,10 +75,10 @@ REDIN_SWORD = [
     "     ESSSe     ",   # 22.5
     "     ESSSE     ",   # 21.5
     "     ESSSE     ",   # 20.5
-    "      SSSE     ",   # 19.5  아랫날 이 빠짐
+    "     nSSSE     ",   # 19.5  아랫날 이 빠짐
     "     ESSSE     ",   # 18.5
     "     ESSSE     ",   # 17.5
-    "     ESSS      ",   # 16.5  윗날 이 빠짐
+    "     ESSSn     ",   # 16.5  윗날 이 빠짐
     "     ESSSE     ",   # 15.5
     "     eSSSE     ",   # 14.5
     "     eSSSE     ",   # 13.5
@@ -88,15 +88,13 @@ REDIN_SWORD = [
     "     ESSSe     ",   # 9.5
     "     ESRSe     ",   # 8.5   가드 밑 녹 (세 칸 덩이)
     "     eRRSe     ",   # 7.5
+]
+REDIN_HILT = [
+    #  -7 -6 -5 -4 -3 -2 -1  0  1  2  3  4  5  6
     "  gggggggggggg ",   # 6.5   가드 윗줄 (빛 받는 모서리). −X 끝 한 칸은 아래로 휘어 비었다
     " GGGGGGGGGGGGG ",   # 5.5   가드 (13, 두께 3)
-    " G             ",   # 4.5   휜 끝
-    " G             ",   # 3.5
-]
-REDIN_GRIP = [
-    #  -7 -6 -5 -4 -3 -2 -1  0  1  2  3  4  5  6
-    "      LLL      ",   # 4.5   손잡이 (10, 굵기 3)
-    "      LLL      ",
+    " G    LLL      ",   # 4.5   휜 끝 (두 칸 처진다), 손잡이 (10, 굵기 3)
+    " G    LLL      ",   # 3.5
     "      LLL      ",
     "      LLL      ",
     "      LLL      ",
@@ -105,7 +103,7 @@ REDIN_GRIP = [
     "      LLL      ",
     "      LLL      ",
     "      LLL      ",   # -4.5
-    "      LGGG     ",   # -5.5  풀린 띠 끝이 한 칸 처진다, 폼멜 목
+    "      LGG      ",   # -5.5  풀린 띠 끝이 한 칸 처진다, 폼멜 목
     "     gGGGG     ",   # -6.5  폼멜 (원반)
     "     GGGGG     ",   # -7.5
     "      GGG      ",   # -8.5
@@ -115,12 +113,9 @@ REDIN_GRIP = [
 def redin_guard_sword():
     m = blade_mats("steel", "edge", "edge_dull", "iron", "iron_hi", "leather", "rust")
     w = weapon(m, kind="straight_sword", seed=301)
-    legend = {
-        "E": ("edge", *THIN), "e": ("edge_dull", *THIN), "S": ("steel", *SLAB), "R": ("rust", *SLAB),
-        "G": ("iron", -1.5, 0.5), "g": ("iron_hi", -1.5, 0.5), "L": ("leather", -1.5, 0.5),
-    }
-    draw(w, REDIN_SWORD, legend, -7.5, 31.5)
-    draw(w, REDIN_GRIP, legend, -7.5, 4.5)
+    blade(w, REDIN_BLADE, {"E": "edge", "e": "edge_dull", "S": "steel", "R": "rust"}, -7.5, 31.5)
+    legend = {"G": ("iron", -1.5, 0.5), "g": ("iron_hi", -1.5, 0.5), "L": ("leather", -1.5, 0.5)}
+    draw(w, REDIN_HILT, legend, -7.5, 6.5)
     return w
 
 
@@ -132,26 +127,26 @@ def redin_guard_sword():
 # 하나뿐인 것: 폼멜 앞면의 볼크 가 문장 (사슬 고리 셋) 을 칼로 긁어 지운 자국 (밝은 긁힘 두 줄, ash3).
 
 VOLK_SWORD = [
-    # x: -7.5 ... +7.5 (16 칸, 가운데 X 0), 맨 윗줄 Y = 35.5
+    # x: -7.5 ... +7.5 (16 칸, 가운데 X 0), 맨 윗줄 Y = 35.5. F 홈 (앞이 한 칸 파였다, 뒤는 판과 같은 면), n 이 빠짐
     #   -7 -6 -5 -4 -3 -2 -1  0  1  2  3  4  5  6  7
     "       EE       ",   # 35.5  뾰족한 끝 (얇다)
     "       EE       ",   # 34.5
-    "       EE       ",   # 33.5
+    "       eE       ",   # 33.5
     "      eSSE      ",   # 32.5  폭 4
     "      eSSE      ",   # 31.5
     "      ESSE      ",   # 30.5
     "      ESSe      ",   # 29.5
     "      ESSe      ",   # 28.5
     "     ESSSSE     ",   # 27.5  폭 6
-    "     ESFFSE     ",   # 26.5  홈 끝
+    "     ESFFSE     ",   # 26.5  홈 끝 (끝에서 1/3)
     "     ESFFSE     ",   # 25.5
     "     ESFFSe     ",   # 24.5
-    "      SFFSe     ",   # 23.5  아랫날 이 빠짐
+    "     nSFFSe     ",   # 23.5  아랫날 이 빠짐
     "     ESFFSe     ",   # 22.5
     "     ESFFSE     ",   # 21.5
     "     eSFFSE     ",   # 20.5
     "     eSFFSE     ",   # 19.5
-    "     ESFFS      ",   # 18.5  윗날 이 빠짐
+    "     ESFFSn     ",   # 18.5  윗날 이 빠짐
     "     ESFFSE     ",   # 17.5
     "     ESFFSE     ",   # 16.5
     "     ESFRSE     ",   # 15.5  홈 안의 녹
@@ -159,18 +154,18 @@ VOLK_SWORD = [
     "     ESFFSE     ",   # 13.5
     "     ESFFSe     ",   # 12.5
     "     ESFFSe     ",   # 11.5
-    "     ERFFSE     ",   # 10.5
-    "     ERRFSE     ",   # 9.5   밑동 녹
-    "     eSRRSe     ",   # 8.5
-    "     eSSSSe     ",   # 7.5
+    "     ESFFSE     ",   # 10.5
+    "     ESRRSE     ",   # 9.5   홈 밑동의 녹
+    "     eSSSSe     ",   # 8.5
+    "     eTSSSe     ",   # 7.5   밑동 녹 (판)
 ]
 VOLK_LOWER = [
     #   -7 -6 -5 -4 -3 -2 -1  0  1  2  3  4  5  6  7
     " g            gg",   # 7.5   끝이 날 쪽으로 들린다 (오른쪽이 한 칸 더 길게)
-    " ggggggggggggg  ",   # 6.5   가드 윗줄 (빛 받는 모서리)
+    " gggggggggggggg ",   # 6.5   가드 윗줄 (빛 받는 모서리)
     "  GGGGGGGGGGGG  ",   # 5.5
     "      lLLl      ",   # 4.5   손잡이 (12)
-    "      wwww      ",   # 3.5   쇠줄 (손잡이 위끝)
+    "      wwww      ",   # 3.5   쇠줄 (손잡이 위끝, 가죽과 같은 높이)
     "      lLLl      ",
     "      lLLl      ",
     "      lLLl      ",
@@ -186,32 +181,31 @@ VOLK_LOWER = [
     "     PPPPPP     ",   # -9.5
     "      PPPP      ",   # -10.5
 ]
-# 폼멜 앞면: 지운 문장. 밝은 긁힘 두 줄 (x, ash3) 이 반쯤 남은 고리 (o, 어두운 쇠) 를 비스듬히 가로지른다
+# 폼멜 앞면: 지운 문장. 밝은 긁힘 두 줄 (ash3, 비스듬히 세 칸씩) 이 고리 자리를 가로질렀다
 POMMEL_FRONT = [
     #  -2.5 .. 2.5
-    "    x ",   # -7.5
-    " o x  ",   # -8.5
-    "  xo x",   # -9.5
+    "   x  ",   # -7.5  (첫 줄)
+    "  x  x",   # -8.5  (둘째 줄은 두 칸 떨어져 나란히)
+    " x  x ",   # -9.5
     "   x  ",   # -10.5
 ]
 
 
 def volk_longsword():
-    m = blade_mats("steel_b", "steel_dark", "edge_dull", "dark", "iron", "iron_hi", "iron_edge", "leather_dark", "rust")
+    m = blade_mats("steel_b", "steel_dark", "edge_dull", "iron", "iron_hi", "iron_edge", "leather_dark", "rust")
     m["edge"] = mats("edge")["edge"]
     w = weapon(m, kind="longsword", seed=302)
+    blade(w, VOLK_SWORD, {"E": "edge", "e": "edge_dull", "S": "steel_b", "F": "steel_dark", "R": "rust", "T": "rust"},
+          -7.5, 35.5, edges="EeFR")
     legend = {
-        "E": ("edge", *THIN), "e": ("edge_dull", *THIN), "S": ("steel_b", *SLAB), "F": ("steel_dark", *THIN),
-        "R": ("rust", *THIN), "G": ("iron", -1.5, 0.5), "g": ("iron_hi", -1.5, 0.5),
-        "L": ("leather_dark", -1.5, 1.5), "l": ("leather_dark", *SLAB), "w": ("iron", -1.5, 1.5),
+        "G": ("iron", -1.5, 0.5), "g": ("iron_hi", -1.5, 0.5),
+        "L": ("leather_dark", -1.5, 1.5), "l": ("leather_dark", -0.5, 0.5), "w": ("iron", -1.5, 1.5),
         "P": ("iron", -1.5, 1.5),
     }
-    # 홈 (F, R) 은 판의 뒤 칸 (Z −0.5) 만 남겨 앞이 한 칸 파였다. 녹 R 도 홈 안이라 같은 깊이
-    draw(w, VOLK_SWORD, legend, -7.5, 35.5)
     draw(w, VOLK_LOWER, legend, -7.5, 7.5)
-    # 쇠줄 두 줄의 가장자리 칸은 손잡이 꼴을 따라 얇게
+    # 쇠줄 두 줄의 가장자리 칸은 손잡이 꼴을 따라 얇게 (가죽 위로 튀어나오지 않는다)
     put(w, [(X, Y, Z) for X in (-1.5, 1.5) for Y in (3.5, -5.5) for Z in (-1.5, 1.5)], None)
-    skin(w, POMMEL_FRONT, {"o": "dark", "x": "iron_edge"}, -2.5, -7.5, side=+1)
+    skin(w, POMMEL_FRONT, {"x": "iron_edge"}, -2.5, -7.5, side=+1)
     return w
 
 
@@ -222,20 +216,23 @@ def volk_longsword():
 # 하나뿐인 것: 넝마를 감고 쇠줄로 두 곳 묶은 손잡이 (쇠줄은 넝마와 같은 높이) 와 늘어진 천 끝.
 
 ALLEY_KNIFE = [
-    # x: -3.5 ... +2.5 (7 칸, 가운데 X −0.5), 맨 윗줄 Y = 16.5.  B 등 (빛 받는 쪽, 판과 같은 두께)
+    # x: -3.5 ... +2.5 (7 칸, 가운데 X −0.5), 맨 윗줄 Y = 16.5.  B 등 (빛 받는 쪽, 판 두께), F 옛 칼의 홈, n 이 빠짐
     #  -3 -2 -1  0  1  2
     "     E ",   # 16.5  날카로운 끝 (등 쪽)
     "    EB ",   # 15.5
-    "   ESB ",   # 14.5
-    "   ESB ",   # 13.5
-    "  ESSB ",   # 12.5
-    "   SSB ",   # 11.5  이 빠짐
-    "  ESSB ",   # 10.5
-    " eSSSB ",   # 9.5   불룩한 배
-    "  SSSB ",   # 8.5   이 빠짐
+    "   eSB ",   # 14.5
+    "   eSB ",   # 13.5
+    "  eSSB ",   # 12.5
+    "  nSSB ",   # 11.5  이 빠짐
+    "  eSSB ",   # 10.5
+    " ESSSB ",   # 9.5   불룩한 배 (거칠게 간 줄은 배에만)
+    " nSSSB ",   # 8.5   이 빠짐
     " ESSSB ",   # 7.5
     "  ESFB ",   # 6.5   밑동 (옛 칼의 홈 끝 1×2)
     "  eSFB ",   # 5.5
+]
+ALLEY_HILT = [
+    #  -3 -2 -1  0  1  2
     " GGGGG ",   # 4.5   쇠 고리 가드 (손잡이보다 한 칸씩 넓다)
     "  rrr  ",   # 3.5   넝마 손잡이 (7)
     "  www  ",   # 2.5   쇠줄 (넝마와 같은 높이)
@@ -271,12 +268,10 @@ def alley_dagger():
     m = blade_mats("steel", "steel_dark", "edge", "edge_dull", "iron", "iron_hi")
     m["rag"] = rag
     w = weapon(m, kind="dagger", seed=303)
-    legend = {
-        "E": ("edge", *THIN), "e": ("edge_dull", *THIN), "S": ("steel", *SLAB), "B": ("iron_hi", *SLAB),
-        "F": ("steel_dark", *THIN), "G": ("iron", -1.5, 0.5), "r": ("rag", -1.5, 0.5), "w": ("iron_hi", -1.5, 0.5),
-        "T": ("iron", *THIN),
-    }
-    draw(w, ALLEY_KNIFE, legend, -3.5, 16.5)
+    blade(w, ALLEY_KNIFE, {"E": "edge", "e": "edge_dull", "S": "steel", "B": "iron_hi", "F": "steel_dark"},
+          -3.5, 16.5, edges="EeF", keep="B")
+    legend = {"G": ("iron", -1.5, 0.5), "r": ("rag", -1.5, 0.5), "w": ("iron_hi", -1.5, 0.5), "T": ("iron", *THIN)}
+    draw(w, ALLEY_HILT, legend, -3.5, 4.5)
     # 늘어진 천 끝은 얇다 (한 칸)
     put(w, [(-1.5, -4.5, -1.5), (-1.5, -4.5, 0.5), (-2.5, -4.5, -1.5), (-2.5, -4.5, 0.5)], None)
     return w
@@ -289,23 +284,30 @@ def alley_dagger():
 # 칼에 밀려 바깥으로 꺾였다. 곁가지 앞면에 bone0 긁힘 몇 줄 (날보다 가드에 상처가 많다).
 # 하나뿐인 것: 가드 가운데에서 몸 바깥 (−Z) 으로 나온 손가락 고리 (바깥 4×4, 구멍 2×2).
 
-PARRY = [
-    # x: -6.5 ... +5.5 (13 칸, 가운데 X −0.5), 맨 윗줄 Y = 17.5
+PARRY_BLADE = [
+    # x: -6.5 ... +5.5 (13 칸, 가운데 X −0.5), 맨 윗줄 Y = 17.5. 가운데 등줄 (S, 판 두께), 양쪽 날 끝은 얇다
     #  -6 -5 -4 -3 -2 -1  0  1  2  3  4  5
     "      E      ",   # 17.5  날카로운 끝
-    "      S      ",   # 16.5
+    "      E      ",   # 16.5
     "     ESE     ",   # 15.5
     "     ESE     ",   # 14.5
     "     ESE     ",   # 13.5
     "     ESe     ",   # 12.5
     "     ESe     ",   # 11.5
     "     ESE     ",   # 10.5
-    "    QESE  QQ ",   # 9.5   곁가지 끝: 왼쪽은 안으로 굽고, 오른쪽은 바깥으로 꺾였다
-    "   QQeSE  Q  ",   # 8.5
-    "   Q eSE  Q  ",   # 7.5
-    "   Q eRE  Q  ",   # 6.5   가드 밑 녹
-    "   QQQCQQQQ  ",   # 5.5   가로대
-    "    qqCqqq   ",   # 4.5
+    "     ESE     ",   # 9.5
+    "     eSE     ",   # 8.5
+    "     eSE     ",   # 7.5
+    "     eRE     ",   # 6.5   가드 밑 녹
+]
+PARRY = [
+    #  -6 -5 -4 -3 -2 -1  0  1  2  3  4  5
+    "   Q      QQ ",   # 9.5   곁가지 끝: 왼쪽은 안으로 굽어 오르고, 오른쪽은 바깥으로 꺾였다
+    "  QQ      Q  ",   # 8.5
+    "  Q       Q  ",   # 7.5
+    "  Q       Q  ",   # 6.5
+    "  QQQQCQQQQ  ",   # 5.5   가로대 (9)
+    "   qqqCqqq   ",   # 4.5
     "     LLL     ",   # 3.5   손잡이 (7)
     "     LLL     ",
     "     LLL     ",
@@ -319,9 +321,9 @@ PARRY = [
 QUILLON_FRONT = [
     #  -6.5 .. 5.5
     "             ",   # 9.5
-    "   x         ",   # 8.5
-    "   x       x ",   # 7.5
-    "           x ",   # 6.5
+    "  x          ",   # 8.5
+    "  x       x  ",   # 7.5
+    "          x  ",   # 6.5
     "    x    x   ",   # 5.5
 ]
 
@@ -330,12 +332,10 @@ def parrying_dagger():
     m = blade_mats("steel", "edge_dull", "rust", "iron", "iron_hi", "leather_dark", "bone")
     m["edge"] = mats("edge")["edge"]
     w = weapon(m, kind="parrying_dagger", seed=304)
-    legend = {
-        "E": ("edge", *THIN), "e": ("edge_dull", *THIN), "S": ("steel", *SLAB), "R": ("rust", *SLAB),
-        "Q": ("iron_hi", *SLAB), "q": ("iron", *SLAB), "C": ("iron", -1.5, 0.5),
-        "L": ("leather_dark", -1.5, 0.5), "P": ("iron", -1.5, 0.5),
-    }
-    draw(w, PARRY, legend, -6.5, 17.5)
+    blade(w, PARRY_BLADE, {"E": "edge", "e": "edge_dull", "S": "steel", "R": "rust"}, -6.5, 17.5, keep="SR")
+    legend = {"Q": ("iron_hi", *SLAB), "q": ("iron", *SLAB), "C": ("iron", -1.5, 0.5),
+              "L": ("leather_dark", -1.5, 0.5), "P": ("iron", -1.5, 0.5)}
+    draw(w, PARRY, legend, -6.5, 9.5)
     skin(w, QUILLON_FRONT, {"x": "bone"}, -6.5, 9.5, side=+1)
     # 손가락 고리: 가드 가운데 (X −0.5, 한 칸 두께) 에서 −Z 로. YZ 면의 고리 (바깥 4×4, 구멍 2×2), 가드 뒷면에 붙는다
     ring = []
@@ -358,27 +358,27 @@ def parrying_dagger():
 # 하나뿐인 것: 네모나게 갈아 뭉툭하게 만든 칼끝 (왼쪽 모서리만 조금 닳았다).
 
 GAOL = [
-    # x: -9.5 ... +9.5 (20 칸, 가운데 X 0), 맨 윗줄 Y = 39.5
+    # x: -9.5 ... +9.5 (20 칸, 가운데 X 0), 맨 윗줄 Y = 39.5. K 가운데 어두운 결, s 리카소 (날을 세우지 않음), n 찌그러짐
     #  -9 -8 -7 -6 -5 -4 -3 -2 -1  0  1  2  3  4  5  6  7  8  9
-    "        SKKS        ",   # 39.5  네모난 끝 (왼쪽 모서리 닳음, 갈아 내 날 끝 줄이 없다)
-    "       eSKKS        ",   # 38.5
+    "        SKKe        ",   # 39.5  네모난 끝 (왼쪽 모서리 닳음)
+    "       eSKKe        ",   # 38.5
     "       eSKKe        ",   # 37.5
     "       eSKKe        ",   # 36.5
-    "       eSKK         ",   # 35.5  찌그러짐 (오른쪽)
+    "       eSKKn        ",   # 35.5  찌그러짐 (오른쪽)
     "       eSKKe        ",   # 34.5
     "       eSKKe        ",   # 33.5
     "       ESKKe        ",   # 32.5
     "       eSKRe        ",   # 31.5  녹 얼룩 (넷)
     "       eSRRe        ",   # 30.5
     "       eSKRe        ",   # 29.5
-    "       eSKKSe       ",   # 28.5  여기서 아래는 폭 6
+    "       eSKKSe       ",   # 28.5  여기서 아래는 폭 6 (위 1/3 은 오른쪽 날을 갈아 냈다)
     "       eSKKSe       ",   # 27.5
-    "        SKKSe       ",   # 26.5  찌그러짐 (왼쪽)
+    "       nSKKSe       ",   # 26.5  찌그러짐 (왼쪽)
     "       eSKKSe       ",   # 25.5
     "       eSKKSe       ",   # 24.5
     "       eSKKSE       ",   # 23.5
     "       eSKKSe       ",   # 22.5
-    "       eSKKS        ",   # 21.5  찌그러짐 (오른쪽)
+    "       eSKKSn       ",   # 21.5  찌그러짐 (오른쪽)
     "       eSKKSe       ",   # 20.5
     "       eSKKSe       ",   # 19.5
     "       ESKKSe       ",   # 18.5
@@ -389,10 +389,16 @@ GAOL = [
     "       eSKKSe       ",   # 13.5
     "       eSKKSe       ",   # 12.5
     "       eSKKSe       ",   # 11.5
-    "       sSKKSs       ",   # 10.5  리카소 (날을 세우지 않음: 날 끝 줄도 판 두께)
-    "       wWWWWw       ",   # 9.5   리카소에 감은 가죽 한 줄
+    "       sSKKSs       ",   # 10.5  리카소
+    "       sSKKSs       ",   # 9.5   (가죽 한 줄을 감았다: 아래 GAOL_GUARD)
     "       sSKKSs       ",   # 8.5
     "       sSKKSs       ",   # 7.5
+]
+GAOL_GUARD = [
+    #  -9 -8 -7 -6 -5 -4 -3 -2 -1  0  1  2  3  4  5  6  7  8  9
+    "       wWWWWw       ",   # 9.5   리카소에 감은 가죽 한 줄
+    "                    ",   # 8.5
+    "                    ",   # 7.5
     " GGGggggggggggggGGG ",   # 6.5   가드 (18 × 3), 빛 받는 모서리는 가운데만
     " GGGGGGGGGGGGGGGGGG ",   # 5.5
     " GGGGGGGGGGGGGGGGGG ",   # 4.5
@@ -424,13 +430,14 @@ def gaoler_greatsword():
     m = blade_mats("steel_b", "steel_dark", "edge_dull", "iron", "iron_hi", "leather", "rust")
     m["edge"] = mats("edge")["edge"]
     w = weapon(m, kind="greatsword", seed=305)
+    blade(w, GAOL, {"e": "edge_dull", "E": "edge", "s": "steel_dark", "S": "steel_b", "K": "steel_dark", "R": "rust"},
+          -9.5, 39.5, keep="s")
     legend = {
-        "e": ("edge_dull", *THIN), "E": ("edge", *THIN), "s": ("steel_dark", *SLAB), "S": ("steel_b", *SLAB),
-        "K": ("steel_dark", *SLAB), "R": ("rust", *SLAB), "W": ("leather", -1.5, 1.5), "w": ("leather", *SLAB),
+        "W": ("leather", -1.5, 1.5), "w": ("leather", *SLAB),
         "G": ("iron", -1.5, 1.5), "g": ("iron_hi", -1.5, 1.5), "L": ("leather", -1.5, 1.5), "l": ("leather", *SLAB),
         "P": ("iron", -1.5, 1.5), "p": ("iron_hi", -1.5, 1.5),
     }
-    draw(w, GAOL, legend, -9.5, 39.5)
+    draw(w, GAOL_GUARD, legend, -9.5, 9.5)
     draw(w, GAOL_LOWER, legend, -9.5, 3.5)
     # 폼멜 모서리 깎기: 앞뒤 위 귀퉁이 한 칸씩
     put(w, [(X, -9.5, Z) for X in (-1.5, -0.5, 0.5, 1.5) for Z in (-1.5, 1.5)], None)

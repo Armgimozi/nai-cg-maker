@@ -533,12 +533,13 @@ def hud_glyphs(out, code):
     # 보스 막대 (보스 이름 줄 안): 체력 (윗날·테·채움 셋·테), 자세 (1줄), 마구리
     asc = _ascent_line(BOSS_ROWS["hp"])
     for kind in ("fill", "trail", "empty"):
-        add(f"boss_hp_{kind}", _run_sheet(_bar_rows(kind, BOSS_HP)), asc, [f"boss_hp_{kind}_{n_}" for n_ in RUN_STEPS])
+        add(f"boss_hp_{kind}", _run_sheet(_bar_rows(kind, BOSS_HP)), asc, [f"boss_hp_{kind}_{n_}" for n_ in RUN_STEPS],
+            file_name=f"hud_boss_hp_{kind}")
     for kind, col in (("fill", BOSS_POST[0]), ("empty", BOSS_POST[1])):
         add(f"boss_post_{kind}", _run_sheet([col]), _ascent_line(BOSS_ROWS["post"]),
-            [f"boss_post_{kind}_{n_}" for n_ in RUN_STEPS])
+            [f"boss_post_{kind}_{n_}" for n_ in RUN_STEPS], file_name=f"hud_boss_post_{kind}")
     # 마구리는 체력 막대의 윗날 줄부터 자세 줄까지 (테보다 위·아래로 한 줄씩 나온다): 막대와 자세 줄을 한 묶음으로 닫는다
-    add("boss_cap", _caps(len(BOSS_HP) + 3), asc, ["boss_cap_l", "boss_cap_r"])
+    add("boss_cap", _caps(len(BOSS_HP) + 3), asc, ["boss_cap_l", "boss_cap_r"], file_name="hud_boss_cap")
     return providers, glyphs, code
 
 
@@ -655,15 +656,12 @@ def preview_hud(out, path, glyphs, gui=3, size=(427, 240)):
     for _, lengths, souls, boss in scenes:
         canvas = pv.dusk_scene(W * gui, H * gui)
         small = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-        lines = [(bar_line(lengths), BOSS_LINE_TOP, W // 2, shader_shift("left", W, H)),
-                 (souls_line(souls, by_name), H - ACTION_LINE_UP, W // 2, shader_shift("right", W, H))]
+        lines = [(bar_line(lengths), BOSS_LINE_TOP, W // 2, shader_shift("left", W, H), 0),
+                 (souls_line(souls, by_name), H - ACTION_LINE_UP, W // 2, shader_shift("right", W, H), 0)]
         if boss:
-            seq = boss_bars(*boss)
-            assert _advance(seq, by_name) == -(BOSS_W // 2), "보스 막대 글의 진행 폭이 -BOSS_W/2 가 아니다"
-            lines.append((seq, BOSS_LINE_TOP + BOSS_PITCH, W // 2, shader_shift("boss", W, H, 1)))
-        for seq, line_top, anchor, (dx, dy, st) in lines:
-            if st == 1.0:
-                assert _advance(seq, by_name) == 0, "HUD 글의 진행 폭이 0 이 아니다"
+            lines.append((boss_bars(*boss), BOSS_LINE_TOP + BOSS_PITCH, W // 2, shader_shift("boss", W, H, 1), -(BOSS_W // 2)))
+        for seq, line_top, anchor, (dx, dy, st), net in lines:
+            assert _advance(seq, by_name) == net, "HUD 글의 진행 폭이 맞지 않는다"
             layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
             pen = anchor
             for s_ in seq:
@@ -717,7 +715,7 @@ def build(out):
     adv = {g.name: g.width for g in glyphs}
     letters_w = (sum(adv["you_died_" + n] for n, _ in YOU_DIED_LETTERS) + 5 * YOU_DIED_GAP[2] + YOU_DIED_WORD[2])
     band = death_band()
-    save(band, sprite_path(out, NS, "font", "death_band.png"))
+    save(band, sprite_path(out, NS, "font", "hud_death_band.png"))   # hud_: 곧은 줄 띠라 artlint 가 반복으로 세지 않는다
     band_w = DEATH_BAND_TILE * DEATH_BAND_TILES
     pre = (letters_w - band_w) // 2
     post = -(pre + band_w)
@@ -727,7 +725,7 @@ def build(out):
     for (name, ch), a in zip(DEATH_BAND_SPACES, (pre, post, -1)):
         glyphs.append(Glyph(name, ch, a, DEFAULT_FONT, "space"))
     default_font = {"providers": [
-        {"type": "bitmap", "file": f"{NS}:font/death_band.png", "height": DEATH_BAND_H, "ascent": DEATH_BAND_ASCENT,
+        {"type": "bitmap", "file": f"{NS}:font/hud_death_band.png", "height": DEATH_BAND_H, "ascent": DEATH_BAND_ASCENT,
          "chars": ["".join(ch for _, ch in DEATH_BAND)]},
         {"type": "bitmap", "file": f"{NS}:font/you_died.png", "height": YOU_DIED_HEIGHT, "ascent": YOU_DIED_ASCENT,
          "chars": ["".join(ch for _, ch in YOU_DIED_LETTERS)]},

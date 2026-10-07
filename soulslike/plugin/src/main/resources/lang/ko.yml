@@ -40,6 +40,9 @@ bonfire:
 boss:
   # 큰 글씨. 아랫줄에 보스 이름
   felled: "<#9e7c44>쓰러뜨렸다"
+  hrolf:
+    # 보스 막대의 이름 (화면 아래 가운데, 막대 왼쪽 끝 위). 색은 HUD 글꼴 셰이더가 정한다
+    name: "<#d1c3a0>수문장 흐롤프"
 
 souls:
   recovered: "<#b3a37f>소울을 되찾았다"

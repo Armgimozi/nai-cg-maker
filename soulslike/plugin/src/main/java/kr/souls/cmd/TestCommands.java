@@ -132,6 +132,16 @@ public final class TestCommands {
                 })))
                 .then(Commands.literal("info").executes(ctx -> withPlayer(ctx, p -> info(plugin, p))))
                 .then(Commands.literal("hud").executes(ctx -> withPlayer(ctx, p -> plugin.test(p, plugin.hud().testLine(p)))))
+                .then(Commands.literal("boss")
+                        .then(Commands.literal("off").executes(ctx -> withPlayer(ctx, p -> {
+                            plugin.hud().bossOff(p, "test");
+                            plugin.test(p, "BOSS off t=" + plugin.ticker().now());
+                        })))
+                        .then(Commands.argument("hp", DoubleArgumentType.doubleArg(0, 100))
+                                .executes(ctx -> withPlayer(ctx, p -> boss(plugin, p, DoubleArgumentType.getDouble(ctx, "hp"), 100)))
+                                .then(Commands.argument("posture", DoubleArgumentType.doubleArg(0, 100))
+                                        .executes(ctx -> withPlayer(ctx, p -> boss(plugin, p, DoubleArgumentType.getDouble(ctx, "hp"),
+                                                DoubleArgumentType.getDouble(ctx, "posture")))))))
                 .then(Commands.literal("pos").executes(ctx -> withPlayer(ctx, p -> {
                     Location l = p.getLocation();
                     plugin.test(p, String.format(Locale.ROOT, "POS x=%.3f y=%.3f z=%.3f yaw=%.1f ground=%s t=%d",
@@ -148,6 +158,12 @@ public final class TestCommands {
                                 .executes(ctx -> withPlayer(ctx, p -> skill(plugin, p, StringArgumentType.getString(ctx, "id"))))))
                 .build();
         reg.register(root, "Soulslike test hooks (debug.test-mode)", List.of());
+    }
+
+    /** 시험 보스 막대 (화면 아래 가운데, 10.2): 수문장 흐롤프의 이름으로 체력·자세 % (M2 의 보스가 쓰는 Hud.boss 그대로). */
+    private static void boss(Souls plugin, Player p, double hp, double posture) {
+        plugin.hud().boss(p, "test", "boss.hrolf.name", hp, 100, posture, 100);
+        plugin.test(p, String.format(Locale.ROOT, "BOSS hp=%.0f posture=%.0f t=%d", hp, posture, plugin.ticker().now()));
     }
 
     /**

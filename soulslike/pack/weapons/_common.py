@@ -189,6 +189,48 @@ def draw(w, rows, legend, x_left, y_top):
     return w
 
 
+def blade(w, rows, legend, x_left, y_top, edges="Ee", dull="e", keep="", base=True):
+    """
+    날 (판정 A3·A4 의 말: 이어진 날 몸 판 두께 2 + 바깥 한 줄 날 끝 두께 1, 이 빠짐은 날 끝 줄에서 한 칸).
+      rows   앞 (+Z) 에서 본 날의 꼴. ' ' 비움, 'n' 이 빠짐 (꼴로는 날이지만 비운다), 그 밖의 글자는 legend 의 재료
+      legend 글자 → 재료 이름
+      edges  늘 얇은 날 끝 글자 (재료는 legend)
+      dull   꼴의 가장자리 (여덟 이웃에 빈칸) 에 온 날 몸 글자를 얇게 할 때 쓰는 날 끝 글자 (계단의 안쪽 귀도 날 끝이 되어
+             비탈이 계단을 따라 끊기지 않는다)
+      keep   가장자리여도 얇게 하지 않는 글자 (외날의 등, 리카소, 쇠붙이)
+      base   맨 아랫줄 밑은 가드가 있으니 막힌 것으로 본다
+    얇은 칸은 Z −0.5 한 칸, 날 몸은 Z −0.5, +0.5 두 칸.
+    """
+    H = len(rows)
+    Wd = max(len(r) for r in rows)
+    grid = [list(r.ljust(Wd)) for r in rows]
+
+    def filled(i, j):
+        if j >= H:
+            return base and 0 <= i < Wd and grid[H - 1][i] != " "
+        if j < 0 or i < 0 or i >= Wd:
+            return False
+        return grid[j][i] != " "
+
+    thin_z = _zs(w, -0.5, -0.5)
+    slab_z = _zs(w, -0.5, 0.5)
+    for j in range(H):
+        yi = _yi(w, y_top - j)
+        for i in range(Wd):
+            ch = grid[j][i]
+            if ch in " n":
+                continue
+            xi = _xi(w, x_left + i)
+            border = any(not filled(i + di, j + dj) for di in (-1, 0, 1) for dj in (-1, 0, 1) if di or dj)
+            if ch in edges:
+                w.grid[xi, yi, thin_z] = w._id(legend[ch])
+            elif border and ch not in keep:
+                w.grid[xi, yi, thin_z] = w._id(legend[dull])
+            else:
+                w.grid[xi, yi, slab_z] = w._id(legend[ch])
+    return w
+
+
 def skin(w, rows, legend, x_left, y_top, side=+1, depth=1):
     """
     겉 칠: 이미 있는 복셀 가운데 앞 (side=+1, +Z 쪽) 또는 뒤 (−1) 의 가장 바깥 depth 칸만 재료를 바꾼다
@@ -279,7 +321,7 @@ _FP_BLOCK = _FP_HAND @ _m4(t=(-0.14142136, 0.08, 0.14142136)) @ _m4(_rot(-102.25
     @ _m4(_rot(0, 0, 78.05))
 
 # 가드 가운데 (칼, 설계 Y 복셀). 자루 무기는 쥐는 점 (0) 에서 잰다
-ANCHOR = {"dagger": 4.5, "parrying_dagger": 5.0, "straight_sword": 6.0, "longsword": 6.0, "greatsword": 6.0}
+ANCHOR = {"dagger": 4.5, "parrying_dagger": 5.0, "straight_sword": 6.0, "longsword": 6.0, "greatsword": 5.5}
 # 자루 무기의 겨눔점: 맨 끝에서 이만큼 아래 (머리 가운데)
 HEAD = {"hand_axe": 4.0, "axe": 6.0, "hammer": 4.0, "bell_mace": 5.0, "spear": 6.0, "halberd": 9.0}
 
@@ -289,11 +331,11 @@ HEAD = {"hand_axe": 4.0, "axe": 6.0, "hammer": 4.0, "bell_mace": 5.0, "spear": 6
 #   칼: 가드는 오른쪽 아래 (78 %, 88 %) 에 보이고 끝은 가운데 오른쪽 위 (60 %, 35 %) 쪽. 자루 무기는 머리가 오른쪽 가운데,
 #   창·미늘창은 머리가 오른쪽 위 (76 %, 22 %) 에 다 보인다 (화면 밖으로 나가지 않는다)
 FP_AIM = {
-    "dagger":          ((0.78, 0.88, -0.72), (0.705, 0.64, -0.88), 9.5, 25),
-    "parrying_dagger": ((0.78, 0.88, -0.72), (0.705, 0.64, -0.88), 10.0, 25),
+    "dagger":          ((0.78, 0.88, -0.72), (0.705, 0.60, -0.90), 12.5, 25),
+    "parrying_dagger": ((0.78, 0.88, -0.72), (0.705, 0.60, -0.90), 13.0, 25),
     "straight_sword":  ((0.78, 0.88, -0.75), (0.60, 0.35, -1.05), 26.0, 25),
     "longsword":       ((0.78, 0.88, -0.75), (0.585, 0.30, -1.10), 30.0, 25),
-    "greatsword":      ((0.79, 0.90, -0.80), (0.565, 0.26, -1.20), 34.0, 25),
+    "greatsword":      ((0.79, 0.90, -0.80), (0.565, 0.26, -1.20), 34.5, 25),
     "hand_axe":        ((0.83, 0.97, -0.74), (0.73, 0.62, -0.92), 11.0, 20),
     "axe":             ((0.84, 0.98, -0.76), (0.695, 0.47, -1.00), 18.0, 20),
     "hammer":          ((0.84, 0.98, -0.76), (0.695, 0.47, -1.00), 17.0, 20),

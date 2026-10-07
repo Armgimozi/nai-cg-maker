@@ -3,15 +3,16 @@
 gen_pack.py 가 hud.build 다음에 부른다.
 
 말씨 (2026-10-07 사용자 결정: 거무칙칙한 시안 넷이 다 마음에 들지 않았다. "보자마자 다크 소울" 인 UI)
-  창·단추·설명 칸은 다크 소울 3 의 메뉴처럼: 흐리게 한 세상 위에 반투명한 검은 판 (알파), 판 가장자리는 계단 몇 단으로
-  옅어지고 (부드러운 그라데이션이 아니라 같은 색의 알파 세 단), 그 안쪽에 1픽셀 탁한 금빛 (바랜 양피지·청동 베이지) 줄,
-  장식은 절제해서 네 귀의 꺾쇠와 위 가운데의 작은 마름모 하나뿐. 칸은 가는 테를 두른 반투명 검은 네모,
+  창·단추·설명 칸은 다크 소울 3 의 메뉴처럼: 흐리게 한 세상 위에 반투명한 검은 판 (알파 72%), 판 가장자리 두 줄은
+  알파 두 단 (35% · 60%) 으로 옅어지고, 그 안쪽 (가장자리에서 2) 에 1픽셀 탁한 금빛 (바랜 양피지·청동 베이지) 줄 (긴 줄은 탁하게,
+  밝은 금빛은 귀와 장식에만), 장식은 절제해서 네 귀의 꺾쇠와 위 가운데의 작은 마름모 하나뿐. 칸은 따뜻하고 어두운 가는 테를
+  두른 먹빛 우물 (판보다 진해 꺼져 보인다),
   가리키면 칸 둘레에 밝은 금빛 테가 또렷이 선다. 글은 바닐라 글 (흰색·회색) 그대로. 깔끔하고 단정하게, 거칠거나
   시끄럽지 않게: 녹 점·긁힘·마모·베벨은 모두 뺐다.
   모든 색은 palette.c(이름, 알파) 하나에서 (RGB 는 팔레트, 알파만 자유. 발광 알파 250~252 는 쓰지 않는다).
 
   층과 색 (모두 이름 하나에 한 자리)
-    판     재 (ash0) 알파 PANEL_A. 가장자리 FADE 세 단. 그 안쪽 (가장자리에서 3) 에 금빛 줄 (LINE)
+    판     재 (ash0) 알파 PANEL_A. 가장자리 FADE 두 단. 그 안쪽 (가장자리에서 2) 에 금빛 줄 (LINE)
     칸     아이템 자리 16×16 이 곧 보이는 네모다: 가장자리 한 줄이 칸 테 (CELL_EDGE), 속 14×14 가 칸 바닥 (CELL_FLOOR,
            판보다 진하다). 바닐라 칸의 그늘·입술 줄 (아이템 자리 바깥 한 줄) 은 판 그대로라, 이웃 칸 사이에 판이 2픽셀
            비친다 (다크 소울 3 의 칸처럼 떨어진 네모). 아이템은 네모 한가운데에 꼭 맞는다
@@ -27,15 +28,17 @@ gen_pack.py 가 hud.build 다음에 부른다.
   write_previews 가 cell_pixels 로 칸마다 견주고 align_*.png 다섯째 칸에 초록 (맞음) / 빨강 (어긋남) 으로 보인다.
 
 그리는 것 (크기·경로는 1.21.11 클라이언트 jar 와 같다. 9조각 값은 우리 그림에 맞춰 .mcmeta 를 같이 쓴다)
-  숨기는 HUD  하트 (gui/sprites/hud/heart/* 모두), 방어 (armor_*), 경험치 막대 (experience_bar_*) 를 투명하게.
-              허기는 hud.py 가 투명하게 한다. 체력·온기·스태미나는 왼쪽 위의 막대 셋 (hud.py 의 그림 글자, 플러그인 Hud)
-  보스 막대   boss_bar/white_* 투명 (HUD 전용 보스 막대의 색), red_* 진짜 보스의 체력 (가는 짙은 핏빛, 검은 테, 금빛 마구리),
-              yellow_* 보스의 자세 (가는 호박빛)
-  단축 슬롯   hotbar 182×22 (따로 떨어진 반투명 칸 아홉), hotbar_selection 24×23 (밝은 금빛 테),
+  숨기는 HUD  하트 (gui/sprites/hud/heart/* 모두), 방어 (armor_*), 경험치 막대 (experience_bar_*), 조준점 밑 공격 대기 표시를
+              투명하게. 조준점 (crosshair) 은 가운데 어두운 한 점만. 허기는 hud.py 가 투명하게 한다.
+              체력·온기·스태미나는 왼쪽 위의 막대 셋 (hud.py 의 그림 글자, 플러그인 Hud)
+  보스 막대   boss_bar/white_* (HUD 막대 셋) 와 red_* (보스: 화면 아래 가운데의 그림 글자 막대, hud.py) 는 투명.
+              나머지 색은 같은 말씨의 가는 진홍 막대 (이 게임은 쓰지 않는다)
+  단축 슬롯   hotbar 182×22 (테 없는 반투명 먹 우물 아홉), hotbar_selection 24×23 (밝은 금빛 테: 고른 칸만 테),
               hotbar_offhand_left/right 29×24, hotbar_attack_indicator_background/progress 18×18 (단검)
   창          container/inventory.png, generic_54.png, crafting_table.png (256×256)
               container/slot_highlight_back/front (가리킨 칸: 바닥이 데워지고 둘레에 금빛 테), container/slot/* 빈 칸 그림
-  단추        widget/button, button_highlighted, button_disabled 200×20. 사망 화면 "일어선다 / 그만둔다" 도 이 그림
+  단추        widget/button, button_highlighted, button_disabled 200×20: 상자가 아니라 위·아래 가는 줄의 띠 (가리키면 따뜻한
+              회색 띠와 양 끝 마름모). 사망 화면 "일어선다 / 그만둔다" 도 이 그림
               recipe_book/button(_highlighted) 20×18
   설정 화면   widget/slider(_highlighted), slider_handle(_highlighted), checkbox(_selected)(_highlighted), text_field(_highlighted),
               tab(_selected)(_highlighted), scroller(_background), textures/gui/(inworld_)header·footer_separator,
@@ -139,22 +142,23 @@ def clear(w, h):
 
 # ─────────────────────────── 말씨: 색의 자리 ───────────────────────────
 
-INK = "ash0"                       # 검정: 팔레트에서 가장 어두운 색. 판·칸·단추의 바탕은 모두 이 색에 알파만 다르다
-PANEL_A = 200                      # 판 몸
-FADE = (55, 105, 155)              # 판 가장자리 세 단 (바깥 → 안)
+INK = "ash0"                       # 검정 (재): 판·단추의 바탕은 이 색에 알파만 다르다
+WELL = "ink0"                      # 더 진한 검정 (먹, UI 전용): 칸 우물 바닥, 인물 자리
+PANEL_A = 185                      # 판 몸 (72%: 흐린 세상이 비친다. 2026-10-08 비평: 78% 는 어두운 세상과 같은 색이라 딱딱한 상자로 읽혔다)
+FADE = (89, 153)                   # 판 가장자리 두 단 (바깥 → 안, 35% · 60%). 그 안쪽 (가장자리에서 2) 이 금빛 줄
 PANEL = (INK, PANEL_A)
-LINE = ("parch1", 255)             # 가는 금빛 줄 (탁한 금·청동빛 베이지)
-LINE_DIM = ("parch0", 255)         # 줄의 그늘 쪽 끝, 꺾쇠 끝
-ORN = ("parch2", 255)              # 장식 (귀 꺾쇠, 위 가운데 마름모) 의 밝은 금빛
+LINE = ("parch0", 255)             # 가는 금빛 줄의 긴 몫: 탁하게 (긴 줄이 밝으면 GUI 배율 3 에서 3픽셀 굵기로 무겁다)
+LINE_DIM = ("parch0", 200)         # 나눔줄, 꺾쇠 끝
+ORN = ("parch2", 255)              # 장식 (귀 꺾쇠, 위 가운데 마름모) 의 밝은 금빛: 밝은 값은 귀와 장식에만
 ORN_HI = ("parch3", 255)           # 가리킨 칸의 테, 마름모 꼭짓점 한 점
-CELL_EDGE = ("ash2", 215)          # 칸 테: 가는 회색 줄 (판 위에 조금 비친다)
-CELL_FLOOR = (INK, 235)            # 칸 바닥: 판보다 진한 검정
-ALCOVE_FLOOR = (INK, 245)          # 인물 자리 바닥: 창에서 가장 진하다 (250~252 는 발광 알파라 쓰지 않는다)
+CELL_EDGE = ("ink1", 255)          # 칸 테: 따뜻하고 어두운 갈색 (회색 테 쉰 개가 화면에서 가장 시끄러웠다)
+CELL_FLOOR = (WELL, 204)           # 칸 바닥: 판보다 진한 먹 (80%) 이라 칸이 우물처럼 꺼져 보인다
+ALCOVE_FLOOR = (WELL, 225)         # 인물 자리 바닥: 창에서 가장 진하다 (250~252 는 발광 알파라 쓰지 않는다)
 RESULT_EDGE = ("bronze3", 255)     # 결과 칸 테: 금빛
 ICON = ("parch0", 170)             # 빈 갑옷·방패 칸에 비치는 흐린 그림
 
 
-def panel(cv, w, h, x0=0, y0=0, inset=3, line=LINE, fill=PANEL, fade=FADE):
+def panel(cv, w, h, x0=0, y0=0, inset=2, line=LINE, fill=PANEL, fade=FADE):
     """
     반투명 검은 판 (w×h, (x0, y0) 에서). 가장자리 len(fade) 줄은 알파 계단, 그 안쪽 inset 자리에 1픽셀 줄, 안은 fill.
     네 귀는 한 칸 깎아 (가장 바깥 귀 점을 비운다) 딱딱한 모서리를 누그러뜨린다.
@@ -174,7 +178,7 @@ def panel(cv, w, h, x0=0, y0=0, inset=3, line=LINE, fill=PANEL, fade=FADE):
                 cv.put(x0 + x, y0 + y, fill)
 
 
-def corner_ornaments(cv, w, h, inset=3, arm=4):
+def corner_ornaments(cv, w, h, inset=2, arm=4):
     """
     네 귀의 꺾쇠: 금빛 줄의 귀에서 양쪽으로 arm 칸이 밝은 금빛 (ORN), 그 끝 한 칸은 다시 보통 줄. 안쪽 대각선 두 칸 자리에
     점 하나 (LINE_DIM). 네 귀가 서로 거울상이다 (다크 소울 3 의 창 귀처럼 단정하게).
@@ -199,7 +203,7 @@ FLOURISH = [
 ]
 
 
-def flourish(cv, w, y_line=3):
+def flourish(cv, w, y_line=2):
     cx = w // 2 - 3
     cv.stamp(cx, y_line - 2, FLOURISH, {"A": ORN, "H": ORN_HI, "k": CELL_FLOOR, "L": LINE})
     # 마름모 양옆 세 칸은 줄이 한 단 밝다 (마름모에서 번지는 빛이 아니라 장식의 일부인 짧은 날개)
@@ -261,7 +265,21 @@ HIDDEN_HUD = {
     # 이름: 크기 (바닐라와 같게)
     "armor_empty": (9, 9), "armor_half": (9, 9), "armor_full": (9, 9),
     "experience_bar_background": (182, 5), "experience_bar_progress": (182, 5),
+    # 조준점 밑 공격 대기 표시 (설정 "조준점" 이 기본). 다크 소울에는 없다
+    "crosshair_attack_indicator_full": (16, 16), "crosshair_attack_indicator_background": (16, 4),
+    "crosshair_attack_indicator_progress": (16, 4),
 }
+
+
+def crosshair():
+    """
+    조준점 15×15 (2026-10-08 비평: 다크 소울에는 조준점이 없다. 굵은 + 가 YOU DIED 밑과 반투명 창 뒤에도 비쳤다).
+    가운데 한 점만 어두운 재로 남긴다 (바닐라는 조준점을 뒤 색을 뒤집어 섞어 그린다: 어두운 바탕에서는 조금 밝은 점,
+    밝은 하늘에서는 조금 어두운 점이 되어 겨눌 자리만 겨우 보인다).
+    """
+    cv = Cv(15, 15)
+    cv.put(7, 7, ("ash1", 255))
+    return cv.image()
 
 
 # ─────────────────────────── 보스 막대 ───────────────────────────
@@ -269,46 +287,47 @@ HIDDEN_HUD = {
 BOSS_W, BOSS_H = 182, 5
 
 
+BOSS_COLORS = ("white", "red", "pink", "blue", "green", "yellow", "purple")
+GLYPH_BOSS_BARS = ("white", "red")   # 막대를 그림 글자로 그리는 색 (white = HUD 막대 셋, red = 보스): 막대 그림은 투명
+
+
 def boss_bar(kind):
     """
-    (배경, 채움) 182×5. white 는 HUD 전용이라 둘 다 투명. red 는 보스 체력: 위·아래 검은 테, 반투명 홈 세 줄,
-    양 끝 금빛 마구리 한 줄. 채움은 짙은 핏빛 세 줄 (위가 한 단 밝다). yellow 는 보스 자세: 같은 테에 가는 호박빛 두 줄.
+    (배경, 채움) 182×5. white (HUD 막대 셋) 와 red (보스: 화면 아래 가운데에 그림 글자로 그린다, hud.py) 는 둘 다 투명.
+    나머지 색 (이 게임은 쓰지 않는다) 은 같은 말씨의 가는 막대: 위·아래 검은 테, 85% 홈, 양 끝 탁한 금빛 마구리, 진홍 세 줄.
     """
-    if kind == "white":
+    if kind in GLYPH_BOSS_BARS:
         return clear(BOSS_W, BOSS_H), clear(BOSS_W, BOSS_H)
     bg = Cv(BOSS_W, BOSS_H)
-    bg.hline(1, BOSS_W - 2, 0, (INK, 235))
-    bg.hline(1, BOSS_W - 2, BOSS_H - 1, (INK, 235))
-    bg.rect(1, 1, BOSS_W - 2, BOSS_H - 2, (INK, 150))
+    bg.hline(1, BOSS_W - 2, 0, (WELL, 230))
+    bg.hline(1, BOSS_W - 2, BOSS_H - 1, (WELL, 230))
+    bg.rect(1, 1, BOSS_W - 2, BOSS_H - 2, (WELL, 217))
     for x in (0, BOSS_W - 1):
-        bg.vline(x, 1, BOSS_H - 2, LINE)
-        bg.put(x, 0, LINE_DIM)
-        bg.put(x, BOSS_H - 1, LINE_DIM)
+        bg.vline(x, 0, BOSS_H - 1, LINE)
     fill = Cv(BOSS_W, BOSS_H)
-    rows = ("blood3", "blood2", "blood1") if kind == "red" else (None, "bronze3", "bronze2")
-    for i, col in enumerate(rows):
-        if col:
-            fill.hline(1, BOSS_W - 2, 1 + i, col)
+    for i, col in enumerate(("crimson2", "crimson2", "crimson1")):
+        fill.hline(1, BOSS_W - 2, 1 + i, col)
     return bg.image(), fill.image()
 
 
 # ─────────────────────────── 단축 슬롯 ───────────────────────────
 
+HOTBAR_WELL = (WELL, 100)           # 고르지 않은 칸: 테 없이 40% 먹 우물 (다크 소울에는 단축 슬롯이 없다. 고른 칸만 테를 두른다)
+HOTBAR_RIM = (WELL, 130)            # 우물 가장자리 한 줄은 조금 더 진하다 (테가 아니라 우물의 그늘)
+
+
 def hotbar():
     """
-    182×22. 다크 소울의 물건 칸처럼 따로 떨어진 반투명 칸 아홉: 칸 상자 (2+20k .. 19+20k, 2..19) 의 가장자리 한 줄이 테,
-    속 16×16 이 꼭 아이템 자리 (3+20k, 3). 칸 사이 두 줄과 둘레는 아주 옅은 검정 띠 (양 끝은 계단으로 사라진다).
+    182×22. 따로 떨어진 반투명 먹 우물 아홉 (2026-10-08 비평: 테 두른 칸 아홉이 시끄러웠다): 칸 상자 (2+20k .. 19+20k, 2..19)
+    의 가장자리 한 줄이 조금 진한 그늘, 속 16×16 이 꼭 아이템 자리 (3+20k, 3). 칸 사이와 둘레는 비운다. 고른 칸의 금빛 테는
+    hotbar_selection 이 그린다.
     """
     W, H = 182, 22
     cv = Cv(W, H)
-    for y in range(1, H - 1):
-        for x in range(W):
-            d = min(x, W - 1 - x)
-            cv.put(x, y, (INK, (25, 45, 65)[min(d, 2)]))
     for k in range(9):
         x = 2 + 20 * k
-        cv.rect(x + 1, 3, x + 16, 18, (INK, 170))
-        cv.box(x, 2, x + 17, 19, CELL_EDGE)
+        cv.rect(x + 1, 3, x + 16, 18, HOTBAR_WELL)
+        cv.box(x, 2, x + 17, 19, HOTBAR_RIM)
     return cv.image()
 
 
@@ -333,12 +352,8 @@ def offhand(right):
     """왼손 칸 29×24. 칸 상자는 (x0+2, 3) 18×18 (왼쪽 x0 = 0, 오른쪽 7), 아이템은 (x0+3, 4). 단축 슬롯 칸과 같은 얼굴."""
     cv = Cv(29, 24)
     x0 = 7 if right else 0
-    for y in range(2, 22):
-        for x in range(x0 + 1, x0 + 21):
-            d = min(x - x0 - 1, x0 + 20 - x, y - 2, 21 - y)
-            cv.put(x, y, (INK, (25, 45, 65)[min(d, 2)]))
-    cv.rect(x0 + 3, 4, x0 + 18, 19, (INK, 170))
-    cv.box(x0 + 2, 3, x0 + 19, 20, CELL_EDGE)
+    cv.rect(x0 + 3, 4, x0 + 18, 19, HOTBAR_WELL)
+    cv.box(x0 + 2, 3, x0 + 19, 20, HOTBAR_RIM)
     return cv.image()
 
 
@@ -570,23 +585,36 @@ def slot_icon(name):
 BUTTON_BORDER = {"left": 6, "top": 3, "right": 6, "bottom": 3}
 BUTTON_SCALING = {n: {"type": "nine_slice", "width": 200, "height": 20, "border": BUTTON_BORDER}
                   for n in ("button", "button_highlighted", "button_disabled")}
+# 단추 (2026-10-08 비평: 테를 두른 상자 단추와 갈색 "널빤지" 가리킴은 마인크래프트로 보였다). 다크 소울 3 의 메뉴 줄처럼
+# 띠 위의 글: 테의 세로 변이 없고, 위·아래 가는 줄 (단추 안쪽 1줄) 만 양 끝으로 옅어진다. 가리키면 따뜻한 회색 띠가 양 끝으로
+# 옅어지며 깔리고, 줄이 밝아지고, 양 끝에 작은 마름모가 선다. 끝의 옅어짐은 9조각의 양옆 조각 (6) 안에 있어 늘어나지 않는다.
 BUTTON_TONES = {
-    #               바탕            테                       양 끝 마름모
+    #               바탕 띠 (색, 알파)     위·아래 줄             양 끝 마름모
+    "normal":      ((INK, 55),          ("parch1", 90),       None),
+    "highlighted": (("ash3", 72),       ("parch2", 200),      ORN_HI),
+    "disabled":    ((INK, 30),          ("ash2", 70),         None),
+}
+BUTTON_ENDS = (0.15, 0.3, 0.5, 0.7, 0.85, 1.0)   # 양 끝 여섯 열의 알파 몫 (바깥 → 안)
+# 제작법 책·Dialog 경고처럼 그림이 든 작은 네모 단추: 상자 꼴 그대로 (띠 위의 그림은 읽히지 않는다)
+SQUARE_TONES = {
     "normal":      ((INK, 165), ("parch0", 200), None),
-    "highlighted": (("bronze0", 210), ORN, ORN_HI),
+    "highlighted": (("ash3", 90), ORN, ORN_HI),
     "disabled":    ((INK, 110), ("ash1", 220), None),
 }
 
 
 def button(state):
-    """
-    200×20 반투명 검은 판에 1픽셀 테. 바깥 한 줄은 판보다 옅은 알파 (가장자리가 부드럽게 가라앉는다).
-    가리키면 바탕이 따뜻해지고 테가 밝은 금빛, 양 끝 가운데에 작은 마름모가 선다 (다크 소울 3 의 고른 메뉴 줄).
-    """
+    """200×20 띠 단추 (위 말씨). 위·아래 줄은 1·18 줄, 띠는 2..17 줄, 양 끝 여섯 열은 BUTTON_ENDS 로 옅어진다."""
     W, H = 200, 20
-    fill, edge, gem = BUTTON_TONES[state]
+    (fc, fa), (lc, la), gem = BUTTON_TONES[state]
     cv = Cv(W, H)
-    panel(cv, W, H, inset=1, line=edge, fill=fill, fade=(fill[1] // 3,))
+    for x in range(W):
+        d = min(x, W - 1 - x)
+        k = BUTTON_ENDS[d] if d < len(BUTTON_ENDS) else 1.0
+        if int(fa * k):
+            cv.vline(x, 2, H - 3, (fc, int(fa * k)))
+        cv.put(x, 1, (lc, int(la * k)))
+        cv.put(x, H - 2, (lc, int(la * k)))
     if gem:
         for gx in (3, W - 4):
             cv.put(gx, 9, gem)
@@ -617,7 +645,7 @@ RECIPE_BOOK = [
 
 def recipe_button(hi):
     cv = Cv(20, 18)
-    fill, edge, _ = BUTTON_TONES["highlighted" if hi else "normal"]
+    fill, edge, _ = SQUARE_TONES["highlighted" if hi else "normal"]
     panel(cv, 20, 18, inset=1, line=edge, fill=fill, fade=(fill[1] // 3,))
     cv.stamp(0, 4, [r.replace(".", " ") for r in RECIPE_BOOK], {"L": ORN if hi else LINE, "H": LINE_DIM})
     return cv.image()
@@ -652,12 +680,17 @@ def slider_track(hi):
 
 
 def slider_handle(hi):
-    """밀대 손잡이 8×20: 바랜 양피지빛 막대, 가리키면 밝은 금빛. 길의 테 (가장자리에서 1) 안에 들어가게 위·아래 한 줄을 비운다."""
+    """
+    밀대 손잡이 8×20: 진한 먹 손잡이에 1픽셀 베이지 테 (2026-10-08 비평: 꽉 찬 베이지 막대가 가운데 글 ("시야 범위") 밑에서
+    글을 지웠다). 가리키면 테가 밝은 금빛. 위·아래 끝 가운데에 작은 눈금 (테에서 안으로 한 칸).
+    """
     cv = Cv(8, 20)
-    cv.rect(1, 1, 6, 18, ORN if hi else LINE)
-    cv.rect(2, 2, 5, 17, ("parch1", 255) if hi else ("parch0", 255))
-    cv.vline(0, 2, 17, (INK, 200))
-    cv.vline(7, 2, 17, (INK, 200))
+    edge = ORN_HI if hi else ("parch1", 255)
+    cv.rect(1, 1, 6, 18, (WELL, 210))
+    cv.box(1, 1, 6, 18, edge)
+    for y in (2, 17):
+        cv.put(3, y, edge)
+        cv.put(4, y, edge)
     return cv.image()
 
 
@@ -776,7 +809,7 @@ WARNING_MARK = [
 
 
 def warning_button(state):
-    fill, edge, _ = BUTTON_TONES[state]
+    fill, edge, _ = SQUARE_TONES[state]
     cv = Cv(20, 20)
     panel(cv, 20, 20, inset=1, line=edge, fill=fill, fade=(fill[1] // 3,))
     mark = {"normal": LINE, "highlighted": ORN_HI, "disabled": ("ash2", 255)}[state]
@@ -795,18 +828,19 @@ TOOLTIP_SCALING = {
 def tooltip():
     """
     바닐라는 글 둘레 (x-12, y-12, 폭+24, 높이+24) 에 바탕과 테를 그린다. 글은 12픽셀 안쪽.
-    바탕: 4..95 의 반투명 검정 (가장자리 두 단 계단). 가운데 (9..90) 는 이어 붙여지므로 한 색.
-    테: 가장자리에서 6 에 1픽셀 금빛 줄 (글과 5픽셀 띈다), 네 귀에 밝은 금빛 꺾쇠 (세 칸). 가장자리 가운데 (10..89) 는
+    바탕: 3..96 의 92% 검정 (가장자리 두 단 계단). 가운데 (9..90) 는 이어 붙여지므로 한 색.
+    테: 가장자리에서 5 에 1픽셀 금빛 줄 (글과 6픽셀 띈다), 네 귀에 밝은 금빛 꺾쇠 (세 칸). 가장자리 가운데 (10..89) 는
     늘여지므로 고른 줄.
     """
     N = 100
     bg = Cv(N, N)
-    panel(bg, N - 8, N - 8, x0=4, y0=4, inset=99, line=None, fill=(INK, 228), fade=(95, 165))
+    # 92% (2026-10-08 비평: 89% 에서는 뒤의 아이템 그림과 개수가 글 밑에 비쳤다). 테는 가장자리에서 5 (글과 6 띈다)
+    panel(bg, N - 6, N - 6, x0=3, y0=3, inset=99, line=None, fill=(INK, 235), fade=(110, 190))
     fr = Cv(N, N)
-    fr.box(6, 6, N - 7, N - 7, LINE)
+    fr.box(5, 5, N - 6, N - 6, ("parch1", 255))
     for sx, sy in ((1, 1), (-1, 1), (1, -1), (-1, -1)):
-        cx = 6 if sx > 0 else N - 7
-        cy = 6 if sy > 0 else N - 7
+        cx = 5 if sx > 0 else N - 6
+        cy = 5 if sy > 0 else N - 6
         for i in range(3):
             fr.put(cx + sx * i, cy, ORN)
             fr.put(cx, cy + sy * i, ORN)
@@ -823,7 +857,8 @@ def build(out):
         written.append(save(clear(9, 9), out, *hud, "heart", n + ".png"))
     for n, (w, h) in HIDDEN_HUD.items():
         written.append(save(clear(w, h), out, *hud, n + ".png"))
-    for kind in ("white", "red", "yellow"):
+    written.append(save(crosshair(), out, *hud, "crosshair.png"))
+    for kind in BOSS_COLORS:
         bg, fill = boss_bar(kind)
         written.append(save(bg, out, "sprites", "boss_bar", kind + "_background.png"))
         written.append(save(fill, out, "sprites", "boss_bar", kind + "_progress.png"))
@@ -1271,7 +1306,7 @@ def write_previews(out, preview_dir):
     for tx, ty, tw, th in ((330, 14, 80, 30), (24, 14, 70, 60)):
         small.alpha_composite(nine_slice(tb, tw + 24, th + 24, 9), (tx - 12, ty - 12))
         small.alpha_composite(nine_slice(tf, tw + 24, th + 24, 10, True), (tx - 12, ty - 12))
-    for i, kind in enumerate(("red", "yellow")):
+    for i, kind in enumerate(("yellow",)):     # 보스 체력 (red) 은 그림 글자 막대라 hud.png 에 있다. 이것은 쓰지 않는 색의 막대
         bx, by = 122, 176 + 8 * i
         small.alpha_composite(_sprite(out, "sprites", "boss_bar", kind + "_background.png"), (bx, by))
         small.alpha_composite(_sprite(out, "sprites", "boss_bar", kind + "_progress.png").crop((0, 0, 120, 5)), (bx, by))
@@ -1283,7 +1318,6 @@ def write_previews(out, preview_dir):
         pv.paste_text(canvas, text, cx * gui, cy * gui, gui, color=(224, 224, 224))
     pv.paste_text(canvas, "흐롤프의 미늘창", (330 + 32) * gui, 14 * gui, gui, color=(209, 195, 160))
     pv.paste_text(canvas, "녹슨 날", (330 + 20) * gui, 26 * gui, gui, color=(133, 128, 121))
-    pv.paste_text(canvas, "수문장 흐롤프", (122 + 91) * gui, 166 * gui, gui, color=(224, 224, 224))
     canvas.save(os.path.join(preview_dir, "gui_widgets.png"))
 
     # 칸 자리 증명 (바닐라 jar 가 있을 때만)
