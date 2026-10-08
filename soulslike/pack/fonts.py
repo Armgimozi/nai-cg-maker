@@ -353,27 +353,35 @@ def title_divider():
 
 # ─────────────────────────── 무기 설명 칸 실선 (그림 글자) ───────────────────────────
 
-RULE_ROW = 4                # 실선 줄 (칸 위에서 텍셀, 2 텍셀/GUI): 글 줄 위에서 GUI 4.0..4.5 (RULE_ASCENT 로)
+RULE_ROW = 7                # 실선 줄 (칸 위에서 텍셀, 2 텍셀/GUI): 글 줄 위에서 GUI 5.5..6 (RULE_ASCENT 로, 고딕 촛불 초안 자리)
 RULE_H = 10                 # 칸 높이 (텍셀) = GUI 5 (ascent 는 높이를 넘지 못한다)
 RULE_ASCENT = 5             # 칸 위 = 글 줄 위 + 7 - 5 = GUI 2
 RULE_CELL = 64              # 칸 폭 (텍셀) = 가장 긴 조각 (32 GUI)
+RULE_LINE = ("bronze2", 0.85)   # 실선 줄 색·덮임 (초안의 설명 실선: 1 텍셀 청동, 끝까지 한 알파)
+
+
+def rule_gem_small(w, h, cy):
+    """초안 설명 실선의 왼쪽 끝 작은 금빛 마름모 (폭 6, 높이 5.6 텍셀, 칸 왼쪽 0.5 .. 6.5, 가운데 줄 cy)."""
+    m = Mask(w, h).poly([(0.5, cy), (3.5, cy - 2.8), (6.5, cy), (3.5, cy + 2.8)])
+    return uidraw.lit(m.cov(), GOLD)
 
 
 def rule_sheet():
     """
-    무기 설명 칸의 수치와 설명 사이 실선 (typeset.RULE_*): 설명 칸 바탕 그림의 이름 밑 금실과 같은 그림 (gui_skin.tooltip_bg):
-    바랜 양피지 한 줄 (RULE_ALPHA) 과 왼쪽 끝 위에서 비친 금빛 마름모 (gui_skin.rule_gem). 2 텍셀/GUI 의 색 그림 글자라 글자색을
-    곱하므로 YAML weapon.rule 의 글자색은 흰색에 가까운 #fefefe (셰이더가 바꾸지 않는 색, shaders.TEXT_VSH_BLOCK) 이다. 이름 밑
-    금실의 먹 그늘 줄은 바닐라 글 그림자 (셰이더가 반 픽셀 오른쪽 아래 먹빛으로) 가 대신한다. 조각은 칸 왼쪽 끝부터 n GUI 를 꼭
-    채워 진행 폭이 n + 1 (typeset.rule_text 가 빈칸 -1 로 잇는다). 칸: [마름모][1][2][4][8][16][32].
+    무기 설명 칸의 수치와 설명 사이 실선 (typeset.RULE_*): 고딕 촛불 초안의 설명 실선 (art_gui.lore_rule) 그대로: 글 열 왼쪽 끝에
+    붙은 작은 금빛 마름모 (rule_gem_small) 와 1 텍셀 청동 줄 (RULE_LINE). 초안은 줄이 오른쪽으로 옅어졌는데, 여기서는 끝까지 한
+    알파다 (2026-10-08 비평: 실선이 짧고 끝이 옅어 끊겨 보였다. 줄은 글 열 끝까지 끊김 없이). 이름 밑 금실 (설명 칸 바탕,
+    gui_skin.tooltip_bg) 과는 다른 그림이다 (초안처럼 둘째 실선이 더 가늘고 작다). 2 텍셀/GUI 의 색 그림 글자라 글자색을 곱하므로
+    YAML weapon.rule 의 글자색은 흰색에 가까운 #fefefe (셰이더가 바꾸지 않는 색, shaders.TEXT_VSH_BLOCK) 이다. 조각은 칸 왼쪽
+    끝부터 n GUI 를 꼭 채워 진행 폭이 n + 1 (typeset.rule_text 가 빈칸 -1 로 잇는다). 칸: [마름모][1][2][4][8][16][32].
     """
-    import gui_skin
     n = 1 + len(typeset.RULE_STEPS)
     img = Img(RULE_CELL * n, RULE_H)
-    img.over(gui_skin.rule_gem(8, RULE_H, 4.0, float(RULE_ROW)), 0, 0)
+    img.over(rule_gem_small(8, RULE_H, float(RULE_ROW)), 0, 0)
+    col, a = RULE_LINE
     for i, w in enumerate(typeset.RULE_STEPS):
         for x in range(w * ORN_S):
-            img.put(RULE_CELL * (i + 1) + x, RULE_ROW, "parch1", gui_skin.RULE_ALPHA)
+            img.put(RULE_CELL * (i + 1) + x, RULE_ROW, col, a)
     return img
 
 

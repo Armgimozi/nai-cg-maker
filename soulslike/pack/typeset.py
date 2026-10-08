@@ -5,7 +5,8 @@ gen_pack.py 가 막 만든 팩 폴더로, tools/langcheck.py 가 검사하는 �
 잡는다).
 
 짜는 곳 (모두 lang/ko.yml·en.yml 에서 온 글을 바꿀 뿐 글은 YAML 에만 있다)
-  창 제목     바닐라 열쇠 TITLE_KEYS (vanilla.menu.game, vanilla.container.*) 의 글자를 기본 글꼴의 제목 글자 (개인 영역) 로
+  창 제목     바닐라 열쇠 TITLE_KEYS (vanilla.menu.game, vanilla.container.*, 영어는 설정 화면 제목 vanilla.options.*,
+              vanilla.controls.* 도: title_keys) 의 글자를 기본 글꼴의 제목 글자 (개인 영역) 로
               바꾼다: 로마자는 로마 비문 대문자 (Cinzel), 한글은 무거운 명조 (Nanum Myeongjo ExtraBold). 언어 문자열은 글꼴을
               고를 수 없어서다. 로마자는 ASCII 순서 (U+F120 + 글자 - 0x20), 한글은 TITLE_KEYS 의 한국어 글에 나오는 음절의 차례
               (U+F200 부터). § 꼴 기호는 그대로 둔다.
@@ -16,10 +17,10 @@ gen_pack.py 가 막 만든 팩 폴더로, tools/langcheck.py 가 검사하는 �
               LABEL_GAP) 까지. 플러그인 (item/StatTable) 이 그 뒤에 값을 값 열 (VALUE_COL) 끝에 오른쪽 맞춤으로 붙인다.
   실선        weapon.rule.<무기 id> (무기 설명 칸의 수치와 설명 사이 실선, 팩의 언어 파일에만 있는 열쇠. 플러그인은
               Lang.variant("weapon.rule", id) 로 부르고 팩이 없으면 YAML weapon.rule 의 대체 글): 기본 글꼴의 실선 그림 글자
-              (fonts.py rule_sheet: 왼쪽 끝 금빛 마름모와 폭 1·2·4…32 의 줄 조각, 설명 칸 바탕의 이름 밑 금실과 같은 색·굵기) 를
-              그 무기의 설명 칸 글 열 폭 (이름·분류 줄·수치 표·설명 줄 가운데 가장 넓은 것, weapon_width) 만큼 잇는다. 그래서 칸은
-              무기마다 제 글에 맞는 폭이고 (고딕 촛불 초안처럼) 둘째 실선은 이름 밑 금실과 같은 길이의 끊김 없는 한 줄이다 (2026-10-08
-              비평: 둘째 실선이 짧고 끝이 옅어졌다). weapon.rule 자체는 가장 넓은 무기의 폭.
+              (fonts.py rule_sheet: 고딕 촛불 초안의 설명 실선, 글 열 왼쪽 끝 작은 금빛 마름모와 폭 1·2·4…32 의 1 텍셀 청동 줄
+              조각) 을 그 무기의 설명 칸 글 열 폭 (이름·분류 줄·수치 표·설명 줄 가운데 가장 넓은 것, weapon_width) 끝까지 잇는다.
+              그래서 칸은 무기마다 제 글에 맞는 폭이고 (고딕 촛불 초안처럼) 둘째 실선은 글 열 끝까지 끊김 없는 한 알파의 줄이다
+              (2026-10-08 비평: 둘째 실선이 짧고 끝이 옅어졌다). weapon.rule 자체는 가장 넓은 무기의 폭.
   가운뎃점    ko_kr 의 souls 언어 파일에서 "·" 를 한글 가운데 높이의 가운뎃점 (KO_MIDDOT) 으로 바꾼다 (가라몽의 "·" 는 로마자
               x 높이 가운데라 한글 사이에서는 바탕선에 붙은 마침표처럼 보였다). 영어는 그대로.
 
@@ -44,9 +45,10 @@ TITLE_FONT = "souls:title"
 TITLE_LA_PUA = 0xF120           # 제목 로마자 (기본 글꼴): ASCII 0x20..0x7E 차례
 TITLE_KR_PUA = 0xF200           # 제목 한글 (기본 글꼴): TITLE_KEYS 의 한국어 글에 나오는 음절 차례
 DIVIDER = ""              # 제목 밑 금실 (기본 글꼴, souls:title)
-RULE_GEM = "\ue3a0"             # 무기 설명 칸 실선의 왼쪽 끝 마름모 (기본 글꼴 그림 글자, 4 GUI 폭: 진행 폭 RULE_GEM_ADV)
+RULE_GEM = "\ue3a0"             # 무기 설명 칸 실선의 왼쪽 끝 작은 마름모 (기본 글꼴 그림 글자, 3.5 GUI 폭: 진행 폭 RULE_GEM_ADV)
 RULE_GEM_ADV = 5
-RULE_GEM_LEFT = 3               # 마름모 칸 왼쪽 = 펜 - 3 (마름모 가운데가 글 열 왼쪽 끝 - 1, 설명 칸 바탕의 마름모와 같은 자리)
+RULE_GEM_LEFT = 0               # 마름모 칸 왼쪽 = 펜 (고딕 촛불 초안처럼 마름모가 글 열 왼쪽 끝에 붙는다)
+RULE_LINE_START = 4             # 줄은 펜 + 4 GUI 에서 (초안의 설명 실선은 텍셀 8 에서 시작했다) 글 열 끝까지
 RULE_RUN_BASE = 0xE3A1          # 실선 조각: E3A1+i = 폭 2^i (1 … 32), 그림 글자라 진행 폭이 조각 폭 + 1 (뒤에 빈칸 -1)
 RULE_STEPS = (1, 2, 4, 8, 16, 32)
 KO_MIDDOT = "\ue3a8"            # 한글 가운데 높이의 가운뎃점 (기본 글꼴, ko_kr 만)
@@ -55,9 +57,11 @@ DIVIDER_W = 120                 # 금실의 보이는 폭 (GUI 픽셀): 가운�
 SPACE_BASE = 0xE380             # 빈칸 글자: E380+i = -(2^i), E388+i = +(2^i)
 SPACE_STEPS = (1, 2, 4, 8, 16, 32, 64, 128)
 
-# 창 제목 (바닐라 열쇠, lang 의 vanilla.*): 제목 글꼴 글자로. 설정 화면 제목 (vanilla.options.*, vanilla.controls.*) 도 게임 메뉴와
-# 같은 제목 글꼴 (영어는 로마 비문 대문자)
-TITLE_KEYS = ("vanilla.menu.game", "vanilla.container.*", "vanilla.options.*", "vanilla.controls.*")
+# 창 제목 (바닐라 열쇠, lang 의 vanilla.*): 제목 글꼴 글자로. 게임 메뉴와 창 이름은 두 언어 모두 (고딕 촛불 초안). 설정 화면
+# 제목 (vanilla.options.*, vanilla.controls.*) 은 영어만 (로마 비문 대문자, TITLE_KEYS_EN): 한국어 설정 제목은 초안처럼 본문 글꼴
+# (2026-10-08 비평: 무거운 명조로 바꾼 "설정" 이 초안보다 굵었다)
+TITLE_KEYS = ("vanilla.menu.game", "vanilla.container.*")
+TITLE_KEYS_EN = ("vanilla.options.*", "vanilla.controls.*")
 # 제목 밑 금실: 열쇠 → 그 글을 그리는 글꼴. 게임 메뉴와 화톳불 이름만 (고딕 촛불 초안 그대로: 설정 화면 제목에 붙인 금실은
 # 2026-10-08 사용자 결정 "초안 모양이 더 낫다" 로 뺐다. 720p 에서 첫 밀대 줄에 붙었다)
 DIVIDED = (("vanilla.menu.game", DEFAULT_FONT), ("bonfire.test-name", TITLE_FONT), ("bonfire.*.name", TITLE_FONT))
@@ -100,11 +104,11 @@ def spaces(adv):
 
 def rule_text(width):
     """
-    무기 설명 칸 실선: 펜 -3 에 마름모 (글 열 왼쪽 밖), 펜 0 에서 width 까지 줄 조각 (큰 것부터, 조각마다 진행 폭 n + 1 을 빈칸
-    -1 로 되돌려 이음매 없이). 글 전체의 진행 폭은 width.
+    무기 설명 칸 실선: 펜 - RULE_GEM_LEFT 에 마름모 (초안 그대로 글 열 왼쪽 끝), 펜 + RULE_LINE_START 에서 width 까지 줄 조각 (큰
+    것부터, 조각마다 진행 폭 n + 1 을 빈칸 -1 로 되돌려 이음매 없이). 글 전체의 진행 폭은 width.
     """
-    out = [spaces(-RULE_GEM_LEFT), RULE_GEM, spaces(-(RULE_GEM_ADV - RULE_GEM_LEFT))]
-    left = int(width)
+    out = [spaces(-RULE_GEM_LEFT), RULE_GEM, spaces(-(RULE_GEM_ADV - RULE_GEM_LEFT - RULE_LINE_START))]
+    left = int(width) - RULE_LINE_START
     for i in reversed(range(len(RULE_STEPS))):
         while left >= RULE_STEPS[i]:
             out.append(chr(RULE_RUN_BASE + i) + spaces(-1))
@@ -145,6 +149,11 @@ def stat_cells(d):
 
 def matches(key, patterns):
     return any(fnmatch.fnmatchcase(key, p) for p in patterns)
+
+
+def title_keys(lang):
+    """그 언어 (langpack 의 "ko"/"en" 또는 팩 코드 "ko_kr"/"en_us"/…) 에서 제목 글자로 바꾸는 바닐라 열쇠의 꼴."""
+    return TITLE_KEYS if lang in ("ko", "ko_kr") else TITLE_KEYS + TITLE_KEYS_EN
 
 
 def title_syllables(ko):
@@ -297,9 +306,10 @@ class Typeset:
         div_adv = {f: self.fonts.advance(f, DIVIDER) for f in (DEFAULT_FONT, TITLE_FONT)}
         for rel, data in files.items():
             if rel.startswith("assets/minecraft/lang/"):
+                keys = title_keys(rel.rsplit("/", 1)[-1][:-len(".json")])
                 for k in list(data):
                     vk = "vanilla." + k
-                    if not matches(vk, TITLE_KEYS):
+                    if not matches(vk, keys):
                         continue
                     v = to_title(data[k], mapping)
                     font = next((f for p, f in DIVIDED if fnmatch.fnmatchcase(vk, p)), None)

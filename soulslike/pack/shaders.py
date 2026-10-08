@@ -12,7 +12,8 @@
   rendertype_text_see_through.fsh  벽 너머 이름표: 우리 글자 텍셀을 흰 글자로 (없으면 벽 너머 이름이 사라진다).
   gui.vsh / gui.fsh     GUI 채우기. 바닐라 색 몇 가지만 알아보고 바꾼다: 창 뒤 반투명 검정 → 가장자리가 짙게 닫히는 비네트와
                         위에서 내려오는 촛불 기운, 사망 화면의 붉은 막 → 검게 닫히는 비네트 (아래에만 마른 핏빛),
-                        채팅 줄 바탕 → 오른쪽으로 녹아 사라지는 먹, 시스템 알림 막대 → 청동.
+                        채팅 줄 바탕 → 오른쪽으로 녹아 사라지는 먹, 시스템 알림 막대 → 청동, 불투명 순백 줄 (발전 과제
+                        잇는 줄, 고른 탭 밑줄, 초점 테) → 바랜 양피지 (GUI_WHITE, 2026-10-08 비평: UI 에서 순백은 이것뿐).
   position_tex_color.*  GUI 그림 (창, 단추, 단축 슬롯 …): 텍셀 넓이 평균으로 읽는다 (2 배 그림이 GUI 배율 3 에서도 고르게,
                         uidraw.py). 게임 화면 비네트 (화면 전체 네모) 는 늘 VIGNETTE_MIN 이상 짙게.
   post_effect/blur.json 게임 중 메뉴 뒤의 흐림 (바닐라 여섯 번) 뒤에 souls:post/menu_dim (색을 빼고 어둡게, 무거운 비네트,
@@ -36,6 +37,7 @@ TEXT_DARK = "parch0"            # §8 (#555555)
 TEXT_TITLE = "parch2"           # 바닐라 창 제목 (#404040)
 TEXT_YELLOW = "parch3"          # §e (들어옴/나감 알림), 발전 과제 알림의 노랑 (#FFFF00)·도전 과제의 분홍 (#FF88FF)
 TEXT_HOVER = "glim0"            # 가리킨 단추 글 (#FFFFA0)
+GUI_WHITE = "parch2"            # 바닐라 코드가 순백 (#FFFFFF, 불투명) 으로 긋는 GUI 줄
 
 CORE = "assets/minecraft/shaders/core/"
 # 팩에 들어가는 셰이더 전부 (make_dist·봇 join 이 같은 목록을 본다, 10.8). 구르기 대역의 둘은 roll_figure.py 가 쓴다
@@ -230,7 +232,8 @@ out float soulsX;
 
 // Square Soul (pack/shaders.py): vanilla gui.vsh plus flags for a few vanilla fills:
 // container screen dim (0xC0101010..0xD0101010) -> 1, death screen red wash (0x60500000 / 0xA0803030) -> 2,
-// chat line backdrop (black, translucent) -> 3; the chat "system message" bar (0xD0D0D0) becomes bronze.
+// chat line backdrop (black, translucent) -> 3; the chat "system message" bar (0xD0D0D0) becomes bronze;
+// opaque pure white lines (advancement connectors, the selected tab underline, focus outlines) become pale parchment.
 void main() {
     gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
 
@@ -240,6 +243,7 @@ void main() {
     if (c.rgb == ivec3(16, 16, 16) && (c.a == 192 || c.a == 208)) mode = 1.0;
     else if (c == ivec4(80, 0, 0, 96) || c == ivec4(128, 48, 48, 160)) mode = 2.0;
     else if (c.rgb == ivec3(208, 208, 208)) vertexColor = vec4(BRONZE, Color.a * 0.85);
+    else if (c == ivec4(255, 255, 255, 255)) vertexColor = vec4(PARCH, 1.0);
     else if (c.rgb == ivec3(0, 0, 0) && c.a > 0 && c.a < 200) mode = 3.0;
     soulsFill = vec3(gl_Position.xy / gl_Position.w, mode);
     soulsX = (gl_Position.x / gl_Position.w + 1.0) / ProjMat[0][0];
@@ -483,7 +487,7 @@ def build(out):
     write(os.path.join(core, "rendertype_text.vsh"), text_vsh())
     write(os.path.join(core, "rendertype_text.fsh"), TEXT_FSH.replace("GAMMA", f"{TEXT_GAMMA:.3f}"))
     write(os.path.join(core, "rendertype_text_see_through.fsh"), SEE_THROUGH_FSH)
-    write(os.path.join(core, "gui.vsh"), GUI_VSH.replace("BRONZE", vec3("bronze2")))
+    write(os.path.join(core, "gui.vsh"), GUI_VSH.replace("BRONZE", vec3("bronze2")).replace("PARCH", vec3(GUI_WHITE)))
     write(os.path.join(core, "gui.fsh"), GUI_FSH.replace("BRONZE1", vec3("bronze1")).replace("BLOOD", vec3("blood0"))
           .replace("INK", vec3("ink0")))
     write(os.path.join(core, "position_tex_color.vsh"), PTC_VSH.replace("VIGNETTE_MIN", f"{VIGNETTE_MIN:.3f}"))

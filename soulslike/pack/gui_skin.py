@@ -878,23 +878,28 @@ def slider_track(hi):
     return img
 
 
-# 밀대 손잡이에서 비우는 텍셀 줄 (밀대 글이 지나는 자리)
-HANDLE_CLEAR = (12, 29)
+# 밀대 손잡이에서 비우는 텍셀 줄 (밀대 글이 지나는 자리, 위 꼭지 끝과 글 머리 사이에 반 GUI 틈)
+HANDLE_CLEAR = (11, 29)
 
 
 def slider_handle(hi):
     """
-    8×20 GUI 손잡이 (16×40 텍셀, 고딕 촛불 초안의 단조 쇠 기둥): 위·아래 둥근 꼭지 (반지름 3.6, 가리키면 금빛) 와 짧은 기둥 토막만.
-    글이 지나는 텍셀 12..28 은 한 텍셀도 칠하지 않는다 (2026-10-08: 초안의 기둥과 가운데 고리가 "범위", "밝기:" 를 가렸다).
+    8×20 GUI 손잡이 (16×40 텍셀): 고딕 촛불 초안의 단조 쇠 기둥 (위·아래 둥근 꼭지, 가운데 고리와 구멍, 가리키면 금빛) 을 초안
+    그대로 빛을 입힌 뒤 글이 지나는 텍셀 HANDLE_CLEAR 만 비운다. 그래서 남은 위·아래 꼭지는 초안 그림과 한 텍셀도 다르지 않고
+    (한 쇠 기둥의 두 끝으로 읽힌다) 글은 한 텍셀도 가려지지 않는다 (2026-10-08: 초안의 기둥과 가운데 고리가 "범위", "밝기:" 를
+    가렸다. 비평: 비운 뒤 빛을 입히면 꼭지에 초안에 없던 밝은 윗날·검은 아랫날이 생긴다).
     """
     W, H = 16, 40
     m = Mask(W, H)
     m.rect(5, 5, 11, 35)
     m.disc(8, 5, 3.6)
     m.disc(8, 35, 3.6)
-    cov = m.cov()
-    cov[HANDLE_CLEAR[0]:HANDLE_CLEAR[1]] = 0.0
-    return uidraw.lit(cov, GOLD if hi else IRON)
+    m.ellipse(8, 20, 4.4, 5.5)
+    hole = Mask(W, H).ellipse(8, 20, 1.6, 2.6)
+    img = uidraw.lit(np.clip(m.cov() - hole.cov(), 0, 1), GOLD if hi else IRON)
+    img.alpha[HANDLE_CLEAR[0]:HANDLE_CLEAR[1]] = 0.0
+    img.name[HANDLE_CLEAR[0]:HANDLE_CLEAR[1]] = ""
+    return img
 
 
 def checkbox(selected, hi):
@@ -951,11 +956,11 @@ def warning_button(state):
 # ─────────────────────────── 설명 칸 ───────────────────────────
 
 TT = 100            # GUI (텍셀 200)
-RULE_ALPHA = 0.9    # 무기 설명 칸의 실선 둘 (바탕 그림의 이름 밑 금실, fonts.py 의 수치 밑 실선) 의 덮임
+RULE_ALPHA = 0.9    # 무기 설명 칸 바탕 그림의 이름 밑 금실의 덮임 (수치 밑 실선은 초안의 청동 줄, fonts.RULE_LINE)
 
 
 def rule_gem(w, h, cx, cy):
-    """실선 왼쪽 끝의 금빛 마름모 (반폭 4, 반높이 3.4 텍셀, 위에서 비친 금). 무기 설명 칸 바탕과 fonts.rule_sheet 가 같이 쓴다."""
+    """이름 밑 금실 왼쪽 끝의 금빛 마름모 (반폭 4, 반높이 3.4 텍셀, 위에서 비친 금). 무기 설명 칸 바탕 (tooltip_bg) 이 쓴다."""
     m = Mask(w, h).poly([(cx - 4.0, cy), (cx, cy - 3.4), (cx + 4.0, cy), (cx, cy + 3.4)])
     return uidraw.lit(m.cov(), GOLD)
 
@@ -966,7 +971,8 @@ def tooltip_bg(divider_at=None, top_border=12):
     네 귀 단조 꺾쇠. 9 조각 (가장자리 14) 이라 가운데·변은 이어 붙여진다: 장식은 귀 조각 안에만, 촛불 기운과 테 색은 가로로 고르다.
     divider_at (GUI y) 면 그 줄에 이름 밑 금실 (무기 설명 칸): 글 열 (GUI 12 .. 폭 - 12) 을 한 알파로 끝까지 (2026-10-08 비평:
     초안은 끝 20 텍셀이 옅어졌는데 그 끝이 이어 깔리는 가운데 조각 안이라 조각마다 되풀이되어 줄이 끊겨 보였다), 왼쪽 끝 금빛
-    마름모는 왼쪽 조각 안 (글 열 밖). 둘째 실선 (수치와 설명 사이) 은 같은 꼴의 그림 글자다 (fonts.rule_sheet).
+    마름모는 왼쪽 조각 안 (글 열 밖). 둘째 실선 (수치와 설명 사이) 은 이것과 다른 초안의 설명 실선이다: 글 열 왼쪽 끝 작은
+    금빛 마름모와 1 텍셀 청동 줄의 그림 글자 (fonts.rule_sheet), 글 열 끝까지 한 알파.
     """
     W = H = TT * S
     img = Img(W, H)
@@ -1221,30 +1227,147 @@ def remap(img, ramp):
     return out
 
 
-ADV_DARK = ["ink0", "ash0", "ash0", "ash1"]                 # 탭 바탕 (돌·네더 …): 거의 검은 돌
-ADV_GOLD = ["ink0", "rust1", "bronze2", "bronze3", "parch2"]   # 얻은 것
+ADV_GOLD = ["ink0", "rust1", "bronze2", "bronze3", "parch2"]   # 얻은 것 (이름 상자·탭)
 ADV_IRON = ["ink0", "ash1", "rust1", "ash2", "ash3"]            # 얻지 못한 것
+ADV_BG = ("ash0", "ink0")                                        # 탭 바탕 돌: (돌 낯, 줄눈)
+ADV_FRAMES = ("task", "goal", "challenge")
+
+
+def advancement_bg():
+    """
+    발전 과제 탭 바탕 (16×16 GUI 를 이어 깐다, 텍셀 32): 손으로 놓은 성벽 돌 쌓기. 돌 낯 한 색 (재) 과 반 GUI 줄눈 (먹) 두 색뿐이고,
+    돌은 16×8 GUI 로 줄마다 반 장 엇갈린다. 깔면 이음매 없이 이어진다 (바닐라 돌·네더 … 의 잔 점 무늬는 쓰지 않는다:
+    2026-10-08 비평, 사용자가 싫어한 흩뿌린 점).
+    """
+    face, joint = ADV_BG
+    img = Img(32, 32)
+    img.fill(1.0, face, 1.0)
+    for x in range(32):
+        img.put(x, 15, joint, 1.0)
+        img.put(x, 31, joint, 1.0)
+    for y in range(0, 15):
+        img.put(0, y, joint, 1.0)
+    for y in range(16, 31):
+        img.put(16, y, joint, 1.0)
+    return img
+
+
+def _shaped_well(img, inside, rim, floor=0.9):
+    """
+    덮임 inside (bool 텍셀 배열) 꼴의 우물 (recipe_well 과 같은 말씨): 먹 바닥, 위·왼쪽 안벽 그늘, 아래 녹빛 입술, 바로 바깥 한
+    텍셀 테 rim = (위, 아래, 옆).
+    """
+    h, w = inside.shape
+
+    def at(y, x):
+        return 0 <= y < h and 0 <= x < w and inside[y, x]
+    top, bot, side = rim
+    for y in range(h):
+        for x in range(w):
+            if inside[y, x]:
+                if not at(y - 1, x) or not at(y, x - 1):
+                    img.put(x, y, "ink0", 1.0)
+                elif not at(y - 2, x) or not at(y, x + 1):
+                    img.put(x, y, "ink0", 0.97)
+                elif not at(y + 1, x):
+                    img.put(x, y, "rust0", 0.95)
+                else:
+                    img.put(x, y, "ink0", floor)
+                if not at(y + 1, x):
+                    img.put(x, y, "rust0", 0.95)
+            elif at(y + 1, x) or at(y + 1, x - 1) or at(y + 1, x + 1):
+                img.put(x, y, top, 0.95)
+            elif at(y - 1, x) or at(y - 1, x - 1) or at(y - 1, x + 1):
+                img.put(x, y, bot, 0.9)
+            elif at(y, x - 1) or at(y, x + 1):
+                img.put(x, y, side, 0.85)
+
+
+def advancement_frame(kind, obtained, van=None):
+    """
+    발전 과제 칸 26×26 GUI (텍셀 52): 창의 칸과 같은 먹 우물과 한 텍셀 테 (얻은 것은 금빛 테 RIM_GOLD, 못 얻은 것은 쇠 테
+    RIM_IRON). 바닐라의 밝은 노랑·회색 판 대신 (2026-10-08 비평: 얻은 칸이 갈색 판에 갈색 곡괭이로 가장 시끄럽고 흐렸다).
+    꼴은 바닐라를 따른다: 할 일 (task) 은 네모, 목표 (goal) 는 귀를 둥글게 깎은 네모, 도전 (challenge) 은 바닐라 알파의
+    뾰족한 테두리를 단조 쇠 (얻으면 금) 로 두르고 안에 우물. 아이템 (GUI 5..21) 둘레에 우물 바닥이 4 텍셀 이상 남는다.
+    """
+    W = 52
+    img = Img(W, W)
+    rim = RIM_GOLD if obtained else RIM_IRON
+    ys, xs = np.mgrid[0:W, 0:W] + 0.5
+    if kind == "challenge":
+        lo, hi = 7, 45
+        if van is not None:
+            a = np.asarray(van.convert("RGBA"))[..., 3] > 0
+            sil = np.repeat(np.repeat(a, 2, 0), 2, 1).astype(np.float32)
+            sil[lo - 1:hi + 1, lo - 1:hi + 1] = 0.0
+            img.over(uidraw.lit(sil, GOLD if obtained else IRON))
+        inside = (xs >= lo) & (xs < hi) & (ys >= lo) & (ys < hi)
+    else:
+        lo, hi = 4, 48
+        inside = (xs >= lo) & (xs < hi) & (ys >= lo) & (ys < hi)
+        if kind == "goal":
+            r = 11.0
+            cx = np.clip(xs, lo + r, hi - r)
+            cy = np.clip(ys, lo + r, hi - r)
+            inside &= (xs - cx) ** 2 + (ys - cy) ** 2 <= r * r
+    _shaped_well(img, inside, rim)
+    return img
 
 
 def advancement_sprites(z, out):
-    """발전 과제 창 안의 그림: 탭 바탕 다섯, 칸 테 여섯, 이름 상자 셋, 탭 스물넷을 팔레트로 옮긴다 (꼴은 바닐라)."""
+    """
+    발전 과제 창 안의 그림: 탭 바탕 다섯은 손으로 놓은 돌 쌓기 (advancement_bg), 칸 여섯은 창의 칸 우물 (advancement_frame),
+    이름 상자 셋과 탭 스물넷은 바닐라 꼴에 색만 팔레트로 (remap).
+    """
     written = []
     base = "assets/minecraft/textures/gui/"
+    bg = advancement_bg()
     for n in ("adventure", "end", "husbandry", "nether", "stone"):
-        v = _jar_png(z, base + f"advancements/backgrounds/{n}.png")
-        if v is not None:
-            written.append(gsave(remap(v, ADV_DARK), out, "advancements", "backgrounds", n + ".png"))
+        written.append(gsave(bg, out, "advancements", "backgrounds", n + ".png"))
     names = [n[len(base + "sprites/advancements/"):-4] for n in z.namelist()
              if n.startswith(base + "sprites/advancements/") and n.endswith(".png")]
     for n in sorted(names):
         v = _jar_png(z, base + f"sprites/advancements/{n}.png")
-        ramp = ADV_GOLD if ("obtained" in n and "unobtained" not in n) or n.endswith("_selected") else ADV_IRON
-        written.append(gsave(remap(v, ramp), out, "sprites", "advancements", n + ".png"))
+        obtained = ("obtained" in n and "unobtained" not in n) or n.endswith("_selected")
+        kind = n.split("_frame_")[0] if "_frame_" in n else None
+        if kind in ADV_FRAMES:
+            written.append(gsave(advancement_frame(kind, obtained, v), out, "sprites", "advancements", n + ".png"))
+        else:
+            written.append(gsave(remap(v, ADV_GOLD if obtained else ADV_IRON), out, "sprites", "advancements", n + ".png"))
         meta = base + f"sprites/advancements/{n}.png.mcmeta"
         if meta in z.namelist():
             path = os.path.join(out, *GUI, "sprites", "advancements", n + ".png.mcmeta")
             with open(path, "wb") as f:
                 f.write(z.read(meta))
+    return written
+
+
+# 효과 그림 (textures/mob_effect, 바닐라 18×18): 꼴은 바닐라, 색은 이로운 것은 그을린 청동, 해로운 것은 녹슨 쇠 (remap).
+# 바닐라의 파란 방패 (저항)·푸른 구슬 (구속) 은 마나만 쓰는 파랑이라 효과 판 안에서 튀었다 (2026-10-08 비평).
+# UI 전용 계열 (먹 …) 은 textures/gui·font 밖이라 쓰지 않는다
+EFFECT_GOOD = ["rust0", "bronze1", "bronze2", "bronze3", "parch2"]
+EFFECT_BAD = ["ash0", "rust0", "rust1", "rust2", "rust3"]
+EFFECT_HARMFUL = ("bad_omen", "blindness", "darkness", "hunger", "infested", "instant_damage", "levitation", "mining_fatigue",
+                  "nausea", "oozing", "poison", "raid_omen", "slowness", "trial_omen", "unluck", "weakness", "weaving",
+                  "wind_charged", "wither")
+
+
+def effect_sprites(z, out):
+    """바닐라 효과 그림 40 장을 팔레트로 (꼴은 그대로). 쓴 경로 목록."""
+    written = []
+    pre = "assets/minecraft/textures/mob_effect/"
+    for n in sorted(z.namelist()):
+        if not (n.startswith(pre) and n.endswith(".png")):
+            continue
+        name = n[len(pre):-4]
+        v = _jar_png(z, n)
+        if v is None:
+            continue
+        img = remap(v, EFFECT_BAD if name in EFFECT_HARMFUL else EFFECT_GOOD)
+        path = os.path.join(out, "assets", "minecraft", "textures", "mob_effect", name + ".png")
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        img.image().save(path)
+        written.append(path)
     return written
 
 
@@ -1276,6 +1399,7 @@ def extra_sprites(out):
         with zipfile.ZipFile(jar) as z:
             van["window"] = _jar_png(z, "assets/minecraft/textures/gui/advancements/window.png")
             written += advancement_sprites(z, out)
+            written += effect_sprites(z, out)
     written.append(gsave(recipe_book_panel(), out, "recipe_book.png"))
     written.append(gsave(advancement_window(van.get("window")), out, "advancements", "window.png"))
     rb = ("sprites", "recipe_book")

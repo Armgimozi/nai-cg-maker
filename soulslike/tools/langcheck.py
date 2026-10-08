@@ -576,10 +576,10 @@ def measurer(pack):
     pf = typeset.PackFonts.open(pack) if pack is not None else None
     ko_map = {}
 
-    def measure(key, tags, line, ko):
+    def measure(key, tags, line, ko, lang="ko"):
         if pf is not None:
             try:
-                if typeset.matches(key, typeset.TITLE_KEYS):
+                if typeset.matches(key, typeset.title_keys(lang)):
                     if "map" not in ko_map:
                         ko_map["map"] = typeset.title_map(typeset.title_syllables(ko))
                     return pf.width(typeset.DEFAULT_FONT, typeset.to_title(line, ko_map["map"]))
@@ -607,7 +607,7 @@ def check_width(report, tables, pack=None):
             for name in langpack.slots(langpack.split_style(ko.get(key, raw))[1]):
                 text = text.replace(f"<{name}>", SAMPLE.get(name, "0"))
             for line in text.split("\n"):
-                w = measure(key, tags, line, ko)
+                w = measure(key, tags, line, ko, lang)
                 if w > px:
                     report.add("오류", "width", f"{lang}.yml {key}", f"{w}px > {slot} {px}px: {line!r}")
 
