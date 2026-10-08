@@ -24,7 +24,6 @@ PORT=$1; SRV=$2; P=$3; shift 3
 SCENES=${*:-"hud damage low boss inv invplain recipe chest chests craft effects water toasts pause stats adv options widgets dialog death"}
 W=${W:-1920}; H=${H:-1080}; G=${G:-4}
 X=${SUFFIX:-}     # 그림 이름 끝 (영어 클라이언트면 _en)
-VY=${VY:-85}      # 비디오 설정에서 가리킬 밀대 줄 (GUI y, 왼쪽 열: 최대 프레임률)
 CX=$((W/2)); CY=$((H/2)); GH=$((H/G))
 cd "$R"
 do_() { tools/client/run_client.sh --do "$PORT" "$@" 2>&1 | grep -E "SHOT|오류|rror" ; }
@@ -64,13 +63,18 @@ if has low; then
   con execute as Tester run soulstest stamina set 6
   con execute as Tester run soulstest hit 15 type=none
   do_ wait:0.4 shot:${P}hud_low_stamina${X} wait:0.5
+  # 잃은 몫이 다 빠진 뒤 (Hud.TRAIL_HOLD 0.8 초 + 줄어듦): 체력 채움 → 빈 몫의 끝
+  do_ wait:1.6 shot:${P}hud_low_drained${X}
   con execute as Tester run soulstest heal
   do_ wait:0.5
 fi
 if has boss; then
+  # 한 번 맞혀 잃은 몫이 다 빠지게 기다린 뒤 (빈 길) 다시 맞힌다 (짧은 잃은 몫): 채움·잃은 몫·빈 길·자세 줄이 다 보인다
   con execute as Tester run soulstest boss 100 100
+  con execute as Tester run soulstest boss 75 20
+  do_ wait:2.5
   con execute as Tester run soulstest boss 61 34
-  do_ wait:0.8 shot:${P}hud_boss${X}
+  do_ wait:0.5 shot:${P}hud_boss${X}
   con execute as Tester run soulstest boss off
   do_ wait:0.5
 fi
@@ -172,12 +176,14 @@ if has adv; then
       key:Escape wait:1 key:Escape wait:0.8
 fi
 if has options; then
-  # 일시 정지 → 설정 (시야 범위 밀대를 가리킨다) → 비디오 설정 (밀대 여럿, 두루마리, 나눔줄)
+  # 일시 정지 → 설정 → 비디오 설정 (밀대 여럿, 두루마리, 나눔줄). 찍을 때 마우스는 위젯 밖 (오른쪽 위 귀: 제목 줄 옆) 에
+  # 둔다: 가리킨 손잡이·밀대는 금빛이라 초안 그림 (가리키지 않은 쇠빛) 과 견줄 수 없다
   # 설정 화면의 줄은 화면 높이와 상관없이 위에서 GUI 39 (시야 범위), 121 (비디오 설정) 에 놓인다
+  PX=$((W - 8)); PY=8
   do_ key:Escape wait:2.5 move:$((CX - 53*G)):$(( (GH/4 + 90) * G )) wait:0.5 click:$((CX - 53*G)):$(( (GH/4 + 90) * G )) wait:2.5 \
-      move:$((CX - 40*G)):$((60*G)) wait:0.5 move:$((CX - 80*G)):$((37*G)) wait:0.5 move:$((CX - 78*G)):$((39*G)) wait:1 shot:${P}options${X}
-  do_ click:$((CX - 80*G)):$((121*G)) wait:2.5 move:$((CX - 40*G)):$((VY*G - 12*G)) wait:0.5 move:$((CX - 82*G)):$((VY*G - 2*G)) wait:0.5 \
-      move:$((CX - 80*G)):$((VY*G)) wait:1 shot:${P}video${X} key:Escape wait:1 key:Escape wait:1 key:Escape wait:0.8
+      move:$((CX - 40*G)):$((60*G)) wait:0.5 move:$PX:$PY wait:1 shot:${P}options${X}
+  do_ click:$((CX - 80*G)):$((121*G)) wait:2.5 move:$PX:$PY wait:1 shot:${P}video${X} \
+      key:Escape wait:1 key:Escape wait:1 key:Escape wait:0.8
 fi
 if has widgets; then
   # 고름 칸 (checkbox) 과 글 칸 (text_field): 게임 안에서 바닐라가 그리는 곳이 없어 (설정의 원격 측정 창은 꺼져 있다) 바닐라

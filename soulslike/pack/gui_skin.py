@@ -1231,6 +1231,7 @@ ADV_GOLD = ["ink0", "rust1", "bronze2", "bronze3", "parch2"]   # 얻은 것 (이
 ADV_IRON = ["ink0", "ash1", "rust1", "ash2", "ash3"]            # 얻지 못한 것
 ADV_BG = ("ash0", "ink0")                                        # 탭 바탕 돌: (돌 낯, 줄눈)
 ADV_FRAMES = ("task", "goal", "challenge")
+ADV_POINTS_GOLD = ["rust1", "bronze2", "bronze3", "parch2"]    # 얻은 도전 칸의 뾰족한 테 (GOLD 보다 한 단 눌러: 몸이 청동)
 
 
 def advancement_bg():
@@ -1300,7 +1301,7 @@ def advancement_frame(kind, obtained, van=None):
             a = np.asarray(van.convert("RGBA"))[..., 3] > 0
             sil = np.repeat(np.repeat(a, 2, 0), 2, 1).astype(np.float32)
             sil[lo - 1:hi + 1, lo - 1:hi + 1] = 0.0
-            img.over(uidraw.lit(sil, GOLD if obtained else IRON))
+            img.over(uidraw.lit(sil, ADV_POINTS_GOLD if obtained else IRON))
         inside = (xs >= lo) & (xs < hi) & (ys >= lo) & (ys < hi)
     else:
         lo, hi = 4, 48
