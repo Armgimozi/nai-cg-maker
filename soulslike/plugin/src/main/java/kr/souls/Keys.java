@@ -27,8 +27,9 @@ public final class Keys {
     public static NamespacedKey PICKUP;    // 줍는 것
     public static NamespacedKey SHORTCUT;  // 지름길 장치
     public static NamespacedKey SPAWN;     // 적 배치 지점
-    public static NamespacedKey PROFILE;   // 플레이어 프로필 JSON (M2)
+    public static NamespacedKey PROFILE;   // 플레이어 프로필 JSON (5.10, 12.6)
     public static NamespacedKey WORLD;     // 세계 상태 JSON (M2)
+    public static NamespacedKey SETTINGS;  // 세계 설정 JSON: 난이도·PvP (5.7, souls_world PDC)
     public static NamespacedKey ROOM;      // 시험 방을 지은 판 번호 (souls_world PDC)
     public static NamespacedKey BIOMES;    // souls_world 를 만들 때의 바이옴 경계 판 번호
 
@@ -54,6 +55,7 @@ public final class Keys {
         SPAWN = of("spawn");
         PROFILE = of("profile");
         WORLD = of("world");
+        SETTINGS = of("settings");
         ROOM = of("test_room");
         BIOMES = of("biome_layout");
     }

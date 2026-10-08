@@ -20,10 +20,11 @@ import java.util.List;
 public final class Content {
     /**
      * 콘텐츠 YAML 의 판 (1: M0, 시험용 스킬 둘. 2: 스킬 이름·설명을 lang 열쇠로 옮김. 3: weapons.yml, 맛보기판 무기·방패·촉매
-     * 스물). 콘텐츠에는 보이는 글을 쓰지 않는다 (12.5).
+     * 스물. 4: 1.3판 능력치 열쇠 (att → int, 모든 근접 무기에 근력·민첩 보정, 곤봉 필요 근력 10) 와 출신 여섯 origins.yml).
+     * 콘텐츠에는 보이는 글을 쓰지 않는다 (12.5).
      */
-    public static final int CONTENT_VERSION = 3;
-    public static final List<String> FILES = List.of("skills.yml", "weapons.yml");
+    public static final int CONTENT_VERSION = 4;
+    public static final List<String> FILES = List.of("skills.yml", "weapons.yml", "origins.yml");
     private static final String DIR = "content";
 
     private final JavaPlugin plugin;

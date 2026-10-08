@@ -10,8 +10,9 @@
 #            | none (촉매: 술은 M5 에 붙인다)
 #  walk      막는 동안 (또는 당기는 동안) 걸음 배율 (2.3.9)
 #  attack    기본 물리 공격력 (+0, 3.7: 분류 값, 보스 무기는 ×1.25). 방패·촉매에는 없다
-#  scaling   보정 등급 (str 근력, dex 기량, att 기억)
-#  requires  필요 능력치
+#  scaling   보정 등급 (1.3판, 9.1): str 근력 (공격력, 3.7), dex 민첩 (그 무기의 공격 속도 몫, 3.6), int 지능 (촉매의 술 세기, 3.12.4).
+#            피해를 올리는 능력치는 근력 하나다. 등급 E D C B A S
+#  requires  필요 능력치 (근력·지능이 모자라면 공격력·술 세기 −40%, 민첩이 모자라면 공격 속도 ×0.85)
 #  weight    무게
 #  absorb    물리 흡수 % (방패), stability 안정성, parry 쳐내기 창 (틱, 0 이면 쳐내기 없음), fire 불 흡수 %
 # ─────────────────────────────────────────────────────────────
@@ -42,7 +43,7 @@ alley_dagger:
   use: guard
   walk: 0.55
   attack: 48
-  scaling: {dex: B}
+  scaling: {str: D, dex: A}
   requires: {str: 5, dex: 9}
   weight: 1.5
 
@@ -52,7 +53,7 @@ gaoler_greatsword:
   use: guard
   walk: 0.55
   attack: 92
-  scaling: {str: C, dex: C}
+  scaling: {str: C, dex: E}
   requires: {str: 16, dex: 10}
   weight: 9.0
 
@@ -72,7 +73,7 @@ sellsword_axe:
   use: guard
   walk: 0.55
   attack: 70
-  scaling: {str: C}
+  scaling: {str: C, dex: E}
   requires: {str: 12, dex: 8}
   weight: 4.0
 
@@ -82,8 +83,8 @@ gaoler_club:
   use: guard
   walk: 0.55
   attack: 74
-  scaling: {str: C}
-  requires: {str: 14}
+  scaling: {str: C, dex: E}
+  requires: {str: 10}
   weight: 5.0
 
 penitent_mace:
@@ -92,7 +93,7 @@ penitent_mace:
   use: guard
   walk: 0.55
   attack: 74
-  scaling: {str: B}
+  scaling: {str: B, dex: E}
   requires: {str: 14}
   weight: 4.5
 
@@ -102,7 +103,7 @@ mathes_bell_mace:
   use: guard
   walk: 0.55
   attack: 93
-  scaling: {str: B}
+  scaling: {str: B, dex: E}
   requires: {str: 14}
   weight: 5.5
 
@@ -112,7 +113,7 @@ redin_spear:
   use: guard
   walk: 0.55
   attack: 64
-  scaling: {dex: C}
+  scaling: {str: D, dex: C}
   requires: {str: 11, dex: 12}
   weight: 4.5
 
@@ -132,7 +133,7 @@ warden_halberd:
   use: guard
   walk: 0.55
   attack: 88
-  scaling: {str: B}
+  scaling: {str: B, dex: E}
   requires: {str: 16, dex: 10}
   weight: 7.0
 
@@ -142,7 +143,7 @@ wall_shortbow:
   use: bow
   walk: 0.5
   attack: 45
-  scaling: {dex: C}
+  scaling: {str: D, dex: C}
   requires: {str: 9, dex: 12}
   weight: 2.0
 
@@ -206,8 +207,8 @@ kiln_pot:
   hand: main
   use: none
   walk: 0.45
-  scaling: {att: C}
-  requires: {att: 12}
+  scaling: {int: C, dex: D}
+  requires: {int: 12}
   weight: 1.5
 
 pilgrim_handbell:
@@ -215,6 +216,6 @@ pilgrim_handbell:
   hand: main
   use: none
   walk: 0.5
-  scaling: {att: D, str: D}
-  requires: {att: 10, str: 8}
+  scaling: {int: D, str: D, dex: D}
+  requires: {int: 10, str: 8}
   weight: 2.0

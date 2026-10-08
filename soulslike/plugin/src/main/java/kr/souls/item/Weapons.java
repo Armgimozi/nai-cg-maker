@@ -27,8 +27,11 @@ public final class Weapons {
     public static final String BLOCK = "block";
     public static final String BOW = "bow";
     public static final String NONE = "none";
-    /** 보정·필요 능력치를 보이는 차례 (근력, 기량, 기억) */
-    public static final List<String> STATS = List.of("str", "dex", "att");
+    /**
+     * 보정·필요 능력치를 보이는 차례 (근력, 민첩, 지능, 1.3판 5.2). 근력 보정은 공격력 (3.7), 민첩 보정은 그 무기의 공격 속도 몫 (3.6),
+     * 지능 보정은 촉매의 술 세기 (3.12.4). 1.2판의 att (기억) 는 int 로 바뀌었다.
+     */
+    public static final List<String> STATS = List.of("str", "dex", "int");
 
     /**
      * 한 아이템.
@@ -37,7 +40,7 @@ public final class Weapons {
      * @param use GUARD, BLOCK, BOW, NONE
      * @param walk 막거나 당기는 동안 걸음 배율 (2.3.9)
      * @param attack 기본 물리 공격력 (+0, 3.7). 방패·촉매는 0
-     * @param scaling 보정 등급 (str, dex, att → E..S)
+     * @param scaling 보정 등급 (str 근력 → 공격력, dex 민첩 → 공격 속도, int 지능 → 술 세기: E..S)
      * @param requires 필요 능력치
      * @param absorb 물리 흡수 % (방패), stability 안정성, parry 쳐내기 창 틱, fire 불 흡수 %
      */
