@@ -1153,7 +1153,7 @@ kilnkeeper:
 | `data/WorldState.java` (새, 지금은 설정만) | 5.7 의 `souls:settings`, `souls-state.yml` 사본, `settings.log` | 봇 `start.js` (재시작 뒤에도 남는다) |
 | `progression/Origins.java` (새) + `content/origins.yml` (새) | 출신 여덟 읽기 (합·범위 검사), 장부로 주기, 지우기 | JUnit `OriginsTest` (레벨 = 합 − 59, 요구 능력치 충족, 무기 id 가 `weapons.yml` 에 있다), 봇 `origin.js` |
 | `start/StartFlow.java` (새) | 접속 → (세계 설정) → (출신) 차례, 잠정 기본값, 다시 묻기, 알림, 출신 없는 사람의 입력 버리기 | 봇 `start.js`, `origin.js` |
-| `ui/SettingsDialog.java`, `ui/OriginDialog.java`, `ui/LevelUpDialog.java`, `ui/StatsDialog.java` (새), `bonfire/RestMenu.java` (새, 지금은 시험 방 화톳불의 휴식 창) | 5.7·5.9·5.10 의 창. 표 열 맞추기는 `item/StatTable` 의 셈을 `ui/Columns` 로 꺼내 함께 쓴다 | 실제 클라이언트 13.4 의 14~18 |
+| `ui/SettingsDialog.java`, `ui/OriginDialog.java`, `ui/LevelUpDialog.java`, `ui/StatsDialog.java` (새), `bonfire/RestMenu.java` (새, 지금은 시험 방 화톳불의 휴식 창) | 5.7·5.9·5.10 의 창. 표 열 맞추기는 `item/StatTable` 의 셈을 `ui/Columns` 로 꺼내 함께 쓴다 | 실제 클라이언트 13.4 의 14~20 |
 | `combat/PvpGuard.java` (새), `combat/Pvp.java` (새) | 5.7 의 PvP 끔·켬, 일어선 직후 보호 | 봇 `pvp.js` |
 | `world/WorldService.java` | 규칙 `pvp` 는 세계 설정을 따른다 (`rules()` 가 설정을 읽는다, `/souls check` 의 견줌도). 바닐라 난이도 normal 확인은 그대로 | `t1_boot` (`pvp` 규칙 값), `/souls check` |
 | `world/TestRoom.java` | `VERSION = 3`: 시험 방 화톳불 (캠프파이어) 블록. `Interaction` 은 `bonfire/TestBonfire` 가 켤 때 만든다 (4.1) | 봇 `levelup.js` (`Interaction` 우클릭으로 휴식 창 줄) |
@@ -1169,7 +1169,7 @@ kilnkeeper:
 | `tools/bots/roll_tap.js` (새), `start.js`, `origin.js`, `levelup.js`, `stats.js`, `pvp.js` (새) | 13.2 의 새 줄 | `run_tests.sh` |
 | `tools/run_tests.sh` | 새 시나리오, `--roll-key f/both` (그 판을 다시 돈다), 시험 서버 `config.yml` 에 `start.auto: normal,off` (봇 묶음이 세계 설정 창에 막히지 않게. `start.js` 만 끈다) | |
 | `tools/client/roll_strip.sh`, `tools/client/m0_shots.sh`, `tools/client/mcclient.py`, `tools/client/README.md` | `key:f` 로 구르던 곳을 `hold:Shift_L:<0.1 × 느림>` 으로, `burst` 에 누르는 길이와 뗀 때 (`key_up_at`), `ROLLKEY` | 13.4 |
-| `tools/client/ui_shots.sh` | 새 장면 (13.4 의 14~18) | |
+| `tools/client/ui_shots.sh` | 새 장면 (13.4 의 14~20) | |
 
 - 시험 서버에서 봇이 세계 설정 창에 막히지 않게 `start.auto: <난이도>,<pvp>` (시험 모드에서만 듣는다: 세계 설정이 없으면 그 값으로 확정하고 `via=auto`) 와, 봇이 쓸 출신을 정하는 `start.auto-origin: deprived` (시험 모드, 봇 이름이 `Souls` 로 시작할 때만) 를 둔다. 실제 서버에서는 둘 다 비어 있다.
 
