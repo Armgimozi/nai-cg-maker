@@ -212,7 +212,11 @@ public final class Roll implements Listener {
         Vector v = st.rollDir.clone().multiply(speed);
         // 기어가기 막힘 아래의 클라이언트는 방향키 입력을 웅크리기 속도 (0.3) 로 줄인다: 줄어든 몫을 더해 숙이지 않을 때와 같은 거리로
         CrawlRun cr = crawling.get(p.getUniqueId());
-        if (cr != null && cr.ducking && !unceilAtEnd.contains(p.getUniqueId())) v.add(lostInput(p));
+        if (cr != null && cr.ducking && !unceilAtEnd.contains(p.getUniqueId())) {
+            Vector lost = lostInput(p);
+            v.add(lost);
+            if (i == 0) plugin.test(p, String.format(Locale.ROOT, "ROLL_INPUT lost=%.3f along=%.3f", lost.length(), lost.dot(st.rollDir)));
+        }
         v.setY(i == 0 ? kind.vertical() : Math.min(p.getVelocity().getY(), 0));
         p.setVelocity(v);
     }

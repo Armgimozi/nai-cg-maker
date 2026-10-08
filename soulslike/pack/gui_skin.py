@@ -475,15 +475,29 @@ def tab(selected, hi):
 
 
 def scroller(background):
-    """두루마리 6×32 (9조각 테 1). 막대: 바랜 양피지빛 (테는 금빛). 길: 반투명 검정."""
-    cv = Cv(6, 32)
+    """
+    두루마리 6×32 GUI (12×64 텍셀, 9 조각 위·아래 3). 막대: 가는 단조 쇠 막대 (GUI 2 픽셀) 에 둥근 꼭지, 왼쪽 날과 윗꼭지가 촛불을
+    받는다. 길: 가운데 1 픽셀의 옅은 청동 실 (2026-10-08 비평: 납작한 카키빛 네모였다). 가운데 조각은 위아래로 고르다.
+    """
+    W, H = 12, 64
+    img = Img(W, H)
     if background:
-        cv.rect(0, 0, 5, 31, (INK, 150))
-    else:
-        cv.rect(0, 0, 5, 31, LINE)
-        cv.rect(1, 1, 4, 30, ("parch0", 255))
-    return cv.image()
-
+        for y in range(H):
+            d = min(y, H - 1 - y)
+            k = 1.0 if d >= 4 else (d + 1) / 5.0
+            img.put(5, y, "bronze0", 0.75 * k)
+            img.put(6, y, "bronze1", 0.45 * k)
+        return img
+    m = Mask(W, H)
+    m.rect(4, 2.6, 8, H - 2.6)
+    m.disc(6, 2.8, 2.0)
+    m.disc(6, H - 2.8, 2.0)
+    rod = uidraw.lit(m.cov(), IRON)
+    for y in range(4, H - 4):           # 왼쪽 날 (촛불이 왼쪽 위에서), 오른쪽 날은 그늘
+        rod.put(4, y, "bronze2", 1.0)
+        rod.put(7, y, "ink0", 0.9)
+    img.over(rod)
+    return img
 
 
 # 탭·두루마리 (세계 만들기·목록 화면, 1 배 그림) 의 9 조각
@@ -495,21 +509,20 @@ WIDGET_SCALING = {
                      "border": {"left": 2, "top": 2, "right": 2, "bottom": 0}},
     "tab_selected_highlighted": {"type": "nine_slice", "width": 130, "height": 24,
                                  "border": {"left": 2, "top": 2, "right": 2, "bottom": 0}},
-    "scroller": {"type": "nine_slice", "width": 6, "height": 32, "border": 1},
-    "scroller_background": {"type": "nine_slice", "width": 6, "height": 32, "border": 1},
+    "scroller": {"type": "nine_slice", "width": 6, "height": 32, "border": {"left": 0, "top": 3, "right": 0, "bottom": 3}},
+    "scroller_background": {"type": "nine_slice", "width": 6, "height": 32,
+                            "border": {"left": 0, "top": 3, "right": 0, "bottom": 3}},
 }
 SEPARATORS = ("header_separator", "footer_separator", "inworld_header_separator", "inworld_footer_separator")
 
 
 def small_widgets():
-    """{파일 이름: 그림} (gui/sprites/widget/ 의 1 배 그림: 탭, 두루마리)."""
+    """{파일 이름: 그림} (gui/sprites/widget/ 의 1 배 그림: 탭)."""
     out = {}
     for hi in (False, True):
         sfx = "_highlighted" if hi else ""
         out["tab" + sfx] = tab(False, hi)
         out["tab_selected" + sfx] = tab(True, hi)
-    out["scroller"] = scroller(False)
-    out["scroller_background"] = scroller(True)
     return out
 
 
