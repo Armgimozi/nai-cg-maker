@@ -66,14 +66,26 @@ public final class Roll implements Listener {
     /** 막힘을 깔 칸: 몸 상자를 구르는 쪽으로 AHEAD 블록 쓸고 둘레로 SIDE 넓힌 곳 (클라이언트는 서버가 아는 자리보다 한두 틱 앞선다) */
     private static final double AHEAD = 1.2, SIDE = 0.35;
     private final Souls plugin;
-    /** 사람마다 화면에만 깔아 둔 막힘 자리 */
+    /** 사람마다 화면에만 깔아 둔 머리 위 막힘 자리 (기어가기 상자 바로 위 층) */
     private final Map<UUID, Set<Pos>> fakes = new HashMap<>();
-    /** 사람마다 막힘을 거둘 틱과 tumble 의 막힘인가 (대역이 먼저 거둬지면 함께 거둔다) */
+    /** 사람마다 화면에만 깔아 둔 틈 어귀의 막힘 자리 (1칸 높이 틈 아래 기어가기 상자 자리: {@link #crawl}) */
+    private final Map<UUID, Set<Pos>> walls = new HashMap<>();
+    /** 사람마다 기어가기 (막힘을 거둘 틱, 어귀 막힘을 거둘 틱, tumble 의 막힘인가, 아직 머리 위 막힘을 까는가) */
     private final Map<UUID, CrawlRun> crawling = new HashMap<>();
-    /** 이 틱 끝 (추적 단계 뒤) 에 막힘을 거둘 사람 (tumble 의 기어가기를 끝낼 때: Tumble.unduck) */
-    private final Set<UUID> uncrawlAtEnd = new HashSet<>();
+    /** 이 틱 끝 (추적 단계 뒤) 에 머리 위 막힘을 거둘 사람 (tumble 의 기어가기를 끝낼 때: Tumble.unduck) */
+    private final Set<UUID> unceilAtEnd = new HashSet<>();
 
-    private record CrawlRun(long until, boolean tumble) {}
+    private static final class CrawlRun {
+        final long until, wallUntil;
+        final boolean tumble;
+        boolean ducking = true;
+
+        CrawlRun(long until, long wallUntil, boolean tumble) {
+            this.until = until;
+            this.wallUntil = wallUntil;
+            this.tumble = tumble;
+        }
+    }
     /** visual: tumble 의 대역 */
     private final Tumble tumble;
 
@@ -144,9 +156,10 @@ public final class Roll implements Listener {
         boolean tum = vis == Config.RollVisual.TUMBLE;
         int duck = tum ? cfg().tumble().duck() : kind.glide() + 2;
         boolean crawl = !back && cfg().barrier() && duck > 0 && crawlable(p.getLocation().getY());
-        uncrawlAtEnd.remove(p.getUniqueId());
+        unceilAtEnd.remove(p.getUniqueId());
         if (crawl) {
-            crawling.put(p.getUniqueId(), new CrawlRun(now + duck, tum));
+            // 어귀 막힘은 미는 힘이 끝날 때까지 둔다 (머리 위 막힘을 걷은 뒤에 남은 밀기가 기어가는 몸을 틈 밑으로 밀어 넣지 않게)
+            crawling.put(p.getUniqueId(), new CrawlRun(now + duck, now + Math.max(duck, kind.glide() + 2), tum));
             crawl(p, st.rollDir);
         } else {
             uncrawl(p);
@@ -243,11 +256,13 @@ public final class Roll implements Listener {
      * 층은 ceil(발 높이 + 0.6): 온 블록 바닥이면 발 블록 + 1, 길·농지·영혼 모래처럼 덜 찬 바닥이면 + 2.
      * 발 높이의 턱 (발보다 높고 0.6 이하: 반 블록, 계단) 이 있는 칸에는 깔지 않는다 (막힘에 걸려 턱에 오르지 못한다).
      * 그 층에 진짜 블록이 있는 칸 (1칸 높이 틈의 천장) 은 서버가 아는 서는 몸이 들어갈 수 없는 칸이다 (서버는 막힘을 모른다:
-     * 기어가는 클라이언트가 들어가면 서버가 되돌려 제자리에서 떤다). 그래서 그 칸의 기어가기 상자 자리 (층 바로 아래) 에도 막힘을 깔아
-     * 클라이언트도 벽처럼 멈추게 한다 (지금 몸이 선 칸은 빼고, 서버의 자세가 서기·웅크리기일 때만).
+     * 기어가는 클라이언트가 들어가면 서버가 되돌려 제자리에서 떤다). 그래서 그 칸의 기어가기 상자 자리 (층 바로 아래) 에도 막힘 (어귀
+     * 막힘, {@link #walls}) 을 깔아 클라이언트도 벽처럼 멈추게 한다 (지금 몸이 선 칸은 빼고, 서버의 자세가 서기·웅크리기일 때만).
+     * 어귀 막힘은 머리 위 막힘을 걷은 뒤에도 미는 힘이 끝날 때까지 남긴다 (CrawlRun.wallUntil): 머리 위 막힘과 함께 걷었더니 어귀에서
+     * 기어가던 클라이언트가 남은 밀기로 틈 밑에 들어가 기어가기 자세로 남았다 (자세는 움직인 뒤에 고른다) [확인 (클라): 1칸 틈 구르기].
      */
     private void crawl(Player p, Vector dir) {
-        Set<Pos> want = new HashSet<>();
+        Set<Pos> want = new HashSet<>(), wantWall = new HashSet<>();
         Location l = p.getLocation();
         org.bukkit.World w = p.getWorld();
         double x = l.getX(), y = l.getY(), z = l.getZ();
@@ -262,11 +277,17 @@ public final class Roll implements Listener {
                 if (top.getType().isAir()) {
                     if (!stepUp(w, bx, bz, y)) want.add(new Pos(bx, by, bz));
                 } else if (standing && !top.isPassable() && !occupied(x, z, bx, bz) && w.getBlockAt(bx, by - 1, bz).getType().isAir()) {
-                    want.add(new Pos(bx, by - 1, bz));
+                    wantWall.add(new Pos(bx, by - 1, bz));
                 }
             }
         }
-        Set<Pos> have = fakes.computeIfAbsent(p.getUniqueId(), k -> new HashSet<>());
+        sync(p, fakes.computeIfAbsent(p.getUniqueId(), k -> new HashSet<>()), want);
+        sync(p, walls.computeIfAbsent(p.getUniqueId(), k -> new HashSet<>()), wantWall);
+    }
+
+    /** 깔아 둔 칸 have 를 want 로 맞춘다 (빠진 칸은 진짜 블록으로 되돌리고 새 칸에 막힘을 보낸다). */
+    private static void sync(Player p, Set<Pos> have, Set<Pos> want) {
+        org.bukkit.World w = p.getWorld();
         for (Iterator<Pos> it = have.iterator(); it.hasNext(); ) {
             Pos k = it.next();
             if (want.contains(k)) continue;
@@ -275,12 +296,18 @@ public final class Roll implements Listener {
             it.remove();
         }
         BlockData ceiling = CEILING.createBlockData();
-        StringBuilder dbg = new StringBuilder();
         for (Pos k : want) {
             if (have.add(k)) p.sendBlockChange(k.in(w).getLocation(), ceiling);
-            if (k.y() < by) dbg.append(' ').append(k.x()).append(',').append(k.z());
         }
-        plugin.test(p, String.format(Locale.ROOT, "DBGCRAWL t=%d x=%.2f z=%.2f pose=%s wall=%s", plugin.ticker().now(), x, z, p.getPose(), dbg));
+    }
+
+    /** 깔아 둔 칸을 진짜 블록 모양으로 되돌린다. */
+    private static void restore(Player p, Set<Pos> have) {
+        if (have == null || !p.isOnline()) return;
+        for (Pos k : have) {
+            Block b = k.in(p.getWorld());
+            p.sendBlockChange(b.getLocation(), b.getBlockData());
+        }
     }
 
     /** 몸 상자 (가운데 x, z, ±0.3, 조금 넉넉히) 가 그 칸에 걸치는가. */
@@ -316,16 +343,28 @@ public final class Roll implements Listener {
         return crawlLayer(feetY) - feetY < 1.5 - 1e-3;
     }
 
-    /** 깔아 둔 막힘을 거둔다 (진짜 블록 모양으로 다시 보낸다). */
+    /** 깔아 둔 막힘을 모두 거둔다 (진짜 블록 모양으로 다시 보낸다). */
     private void uncrawl(Player p) {
         crawling.remove(p.getUniqueId());
-        uncrawlAtEnd.remove(p.getUniqueId());
-        Set<Pos> have = fakes.remove(p.getUniqueId());
-        if (have == null || !p.isOnline()) return;
-        for (Pos k : have) {
-            Block b = k.in(p.getWorld());
-            p.sendBlockChange(b.getLocation(), b.getBlockData());
-        }
+        unceilAtEnd.remove(p.getUniqueId());
+        restore(p, fakes.remove(p.getUniqueId()));
+        restore(p, walls.remove(p.getUniqueId()));
+    }
+
+    /** 머리 위 막힘만 거둔다 (기어가기 끝: 클라이언트가 일어선다). 어귀 막힘은 CrawlRun.wallUntil 까지 그대로. */
+    private void unceil(Player p) {
+        unceilAtEnd.remove(p.getUniqueId());
+        CrawlRun cr = crawling.get(p.getUniqueId());
+        if (cr != null) cr.ducking = false;
+        restore(p, fakes.remove(p.getUniqueId()));
+    }
+
+    /** 잊는다 (나가기, 세계 이동: 블록을 되돌려 보낼 곳이 없다). */
+    private void forgetCrawl(UUID id) {
+        fakes.remove(id);
+        walls.remove(id);
+        crawling.remove(id);
+        unceilAtEnd.remove(id);
     }
 
     public Tumble tumble() {
@@ -336,8 +375,9 @@ public final class Roll implements Listener {
     public void shutdown() {
         for (Player p : Bukkit.getOnlinePlayers()) uncrawl(p);
         fakes.clear();
+        walls.clear();
         crawling.clear();
-        uncrawlAtEnd.clear();
+        unceilAtEnd.clear();
         tumble.shutdown();
     }
 
@@ -350,16 +390,16 @@ public final class Roll implements Listener {
         uncrawl(p);
     }
 
-    /** 틱 끝 (엔티티 추적이 투명 깃발·대역 변환을 보낸 뒤): 장비를 바꿔 보내고, 기어가기를 끝낸 사람의 막힘을 거둔다. */
+    /** 틱 끝 (엔티티 추적이 투명 깃발·대역 변환을 보낸 뒤): 장비를 바꿔 보내고, 기어가기를 끝낸 사람의 머리 위 막힘을 거둔다. */
     @EventHandler
     public void onTickEnd(ServerTickEndEvent e) {
         tumble.tickEnd();
-        if (uncrawlAtEnd.isEmpty()) return;
-        for (UUID id : List.copyOf(uncrawlAtEnd)) {
+        if (unceilAtEnd.isEmpty()) return;
+        for (UUID id : List.copyOf(unceilAtEnd)) {
             Player p = Bukkit.getPlayer(id);
-            if (p != null) uncrawl(p);
+            if (p != null) unceil(p);
         }
-        uncrawlAtEnd.clear();
+        unceilAtEnd.clear();
     }
 
     @EventHandler
@@ -370,9 +410,7 @@ public final class Roll implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
         tumble.forget(e.getPlayer());
-        fakes.remove(e.getPlayer().getUniqueId());
-        crawling.remove(e.getPlayer().getUniqueId());
-        uncrawlAtEnd.remove(e.getPlayer().getUniqueId());
+        forgetCrawl(e.getPlayer().getUniqueId());
     }
 
     @EventHandler
@@ -393,16 +431,14 @@ public final class Roll implements Listener {
     public void onWorld(PlayerChangedWorldEvent e) {
         stopGlide(e.getPlayer());
         tumble.stop(e.getPlayer());
-        fakes.remove(e.getPlayer().getUniqueId());
-        crawling.remove(e.getPlayer().getUniqueId());
-        uncrawlAtEnd.remove(e.getPlayer().getUniqueId());
+        forgetCrawl(e.getPlayer().getUniqueId());
     }
 
     /**
-     * Ticker: 1..glide 틱째에 민다 (밀기 번호 t-1), 막힘을 따라 옮기고 거둘 틱에 거둔다 (tumble: duck 틱째, 대역의 own 벌을 서는 몸
-     * 높이로 옮기고 (Tumble.unduck) 이 틱 끝에 거둔다. 대역이 먼저 거둬지면 곧바로. 바닥이 기어가기 자세가 안 나오는 높이가 되면 일찍.
-     * crawl: glide+2 틱째, 마지막 밀기가 클라이언트에서 끝날 틈), glide+1 틱째에 일어서는 소리, 구르기가 끝난 틱에 시험 줄
-     * (서버에서 잰 거리), 걸어 둔 시험 피해.
+     * Ticker: 1..glide 틱째에 민다 (밀기 번호 t-1), 막힘을 따라 옮기고 거둘 틱에 머리 위 막힘을 거둔다 (tumble: duck 틱째, 대역의
+     * own 벌을 서는 몸 높이로 옮기고 (Tumble.unduck) 이 틱 끝에 거둔다. 대역이 먼저 거둬지면 곧바로. 바닥이 기어가기 자세가 안 나오는
+     * 높이가 되면 일찍. crawl: glide+2 틱째, 마지막 밀기가 클라이언트에서 끝날 틈). 틈 어귀 막힘은 max(duck, glide+2) 틱째에 거둔다.
+     * glide+1 틱째에 일어서는 소리, 구르기가 끝난 틱에 시험 줄 (서버에서 잰 거리), 걸어 둔 시험 피해.
      */
     public void tick(long now) {
         tumble.tick(now);
@@ -412,18 +448,20 @@ public final class Roll implements Listener {
             long t = now - st.rollStart;
             if (t >= 1 && t <= st.roll.glide() && st.rollDir != null && !p.isDead()) push(p, st, st.roll, t - 1);
             CrawlRun cr = crawling.get(p.getUniqueId());
-            if (cr != null && !uncrawlAtEnd.contains(p.getUniqueId())) {
-                if (p.isDead() || (cr.tumble() && !tumble.active(p))) {
+            if (cr != null && !unceilAtEnd.contains(p.getUniqueId())) {
+                if (p.isDead() || (cr.tumble && !tumble.active(p))) {
                     uncrawl(p);
-                } else if (now >= cr.until() || !crawlable(p.getLocation().getY())) {
-                    if (cr.tumble()) {
+                } else if (cr.ducking && (now >= cr.until || !crawlable(p.getLocation().getY()))) {
+                    if (cr.tumble) {
                         tumble.unduck(p);
-                        uncrawlAtEnd.add(p.getUniqueId());
+                        unceilAtEnd.add(p.getUniqueId());
                     } else {
-                        uncrawl(p);
+                        unceil(p);
                     }
-                } else {
+                } else if (cr.ducking) {
                     crawl(p, st.rollDir);
+                } else if (now >= cr.wallUntil) {
+                    uncrawl(p);
                 }
             }
             if (t == st.roll.glide() + 1 && st.rollDir != null) visual(p, false, true);
