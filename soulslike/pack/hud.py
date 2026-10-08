@@ -281,7 +281,9 @@ FILL = {
     "st": ("sap3", "sap2", "sap2", "sap2", "sap1", "sap0"),
 }
 TOP = {"hp": 0, "fp": 11, "st": 21}
-TRAIL = (("glim0", 0.92),) * 6 + (("parch3", 0.92), ("parch2", 0.92))
+# 잃은 몫 (2026-10-08 비평: 옅은 금빛 흰색이 HUD 에서 가장 밝아 둘째 막대처럼 읽혔다): 진홍보다 어두운 탁한 황토 (잉걸 계열,
+# UI 전용), 윗줄만 한 단 밝다
+TRAIL = (("cinder2", 0.9),) + (("cinder1", 0.92),) * 5 + (("cinder0", 0.92),) * 2
 RIM = ("bronze2", 0.85)                     # 윗날: 촛불이 비친 청동 한 줄 (반 픽셀)
 FRAME = ("ink0", 0.95)
 DROP = ("ink0", 0.40)                       # 막대 밑 그늘 반 픽셀
@@ -311,7 +313,7 @@ def column(bar, kind):
     fill = FILL[bar]
     n = len(fill)
     body = {"fill": [(x, 1.0) for x in fill],
-            "trail": list(TRAIL[-n:]) if bar == "hp" else [("glim0", 0.9)] * n,
+            "trail": list(TRAIL[:1] + TRAIL[-(n - 1):]),
             "empty": trough(n)}[kind]
     return [RIM, FRAME] + body + [FRAME, DROP]
 
@@ -365,27 +367,11 @@ def cap_right(hb):
 
 def boss_cap_left(hb, ext=4):
     """
-    보스 막대 왼쪽 마구리 (텍셀 30 × (hb + 2 ext)): 둥근 꼭지의 기둥, 기둥에 붙은 단조 고리, 고리에서 왼쪽으로 뻗은 마름모 창끝,
-    기둥 꼭지에서 고리로 말려 내려오는 덩굴 둘. 획은 2 텍셀 (1 GUI 픽셀) 이상이라 윗날 (촛불 빛) 과 아랫날 (그늘) 이 갈린다.
+    보스 막대 왼쪽 마구리 (16 × (hb + 2 ext)): 오른쪽 마구리를 뒤집은 것 (둥근 꼭지의 기둥과 작은 마름모 창끝). 2026-10-08 비평:
+    고리와 덩굴이 달린 30 텍셀 장식은 HUD 막대 셋에서 뺀 무거운 장식과 같았다.
     """
-    w, h = 30, hb + 2 * ext
-    cy = h / 2.0
-    m = Mask(w, h)
-    px = w - 3.0
-    m.rect(w - 5, 2, w - 1, h - 2)
-    m.disc(px, 2.4, 2.4)
-    m.disc(px, h - 2.4, 2.4)
-    rc, ro = w - 13.0, 5.8
-    m.ring(rc, cy, ro - 2.2, ro)
-    m.rect(rc + ro - 1, cy - 1.2, w - 4, cy + 1.2)
-    tip = 0.6
-    m.poly([(tip, cy), (rc - ro - 3.6, cy - 3.4), (rc - ro + 1.0, cy), (rc - ro - 3.6, cy + 3.4)])
-    m.rect(rc - ro - 1.5, cy - 1.0, rc - ro + 1.0, cy + 1.0)
-    rr = (h / 2.0 - ro) / 2.0 + 1.6
-    m.ring(px - rr - 0.6, 2.4 + rr, rr - 2.0, rr, 180, 360)
-    m.ring(px - rr - 0.6, h - 2.4 - rr, rr - 2.0, rr, 0, 180)
-    hole = Mask(w, h).poly([(tip + 4.2, cy), (rc - ro - 3.6, cy - 1.4), (rc - ro - 1.2, cy), (rc - ro - 3.6, cy + 1.4)])
-    return uidraw.lit(np.clip(m.cov() - hole.cov(), 0, 1), IRON)
+    right = boss_cap_right(hb, ext)
+    return uidraw.lit(right.alpha[:, ::-1].copy(), IRON)
 
 
 def boss_cap_right(hb, ext=4):
@@ -501,25 +487,6 @@ def digits(role, k=4, ink=DIGIT_INK):
     return Image.fromarray(arr, "RGBA"), asc
 
 
-def lore_rule():
-    """
-    무기 설명 칸의 수치와 설명 사이 실선 (GUI LORE_RULE_W × 4, 플러그인 item/StatTable 이 souls:hud 그림 글자 lore_rule 로 쓴다):
-    왼쪽 끝 작은 마름모와 1 텍셀 청동 줄 (오른쪽으로 옅어진다).
-    """
-    W, H = LORE_RULE_W * S, 4 * S
-    img = Img(W, H)
-    for x in range(8, W):
-        d = (x - 8) / max(1.0, W - 8.0)
-        img.put(x, 3, "bronze2", 0.85 * max(0.0, 1 - d) ** 0.7)
-    m = Mask(W, H).poly([(0.5, 3.0), (3.5, 0.2), (6.5, 3.0), (3.5, 5.8)])
-    img.over(uidraw.lit(m.cov(), GOLD))
-    return img.image()
-
-
-LORE_RULE_W = 120           # GUI: 글자 그림 한 장은 256 텍셀을 넘을 수 없다 (클라이언트 글꼴 아틀라스 한 장)
-LORE_RULE_ASCENT = 3
-
-
 HUD_SHADER = """#version 330
 
 #moj_import <minecraft:fog.glsl>
@@ -631,7 +598,7 @@ def hud_glyphs(out, code, digit_role):
     """
     다크 소울 HUD 그림 글자 (souls:hud). (공급자 목록, Glyph 목록, 다음 문자 번호). 그림은 assets/souls/textures/font/.
     이름: hud_<막대>_<fill|empty|trail>_<폭>, hud_<막대>_cap_l / _cap_r, hud_soulbox, soul_mark, hud_digit_<0..9>,
-    boss_hp_<fill|trail|empty>_<폭>, boss_post_<fill|empty>_<폭>, boss_cap_l / _cap_r, lore_rule.
+    boss_hp_<fill|trail|empty>_<폭>, boss_post_<fill|empty>_<폭>, boss_cap_l / _cap_r.
     """
     providers, glyphs = [], []
 
@@ -676,15 +643,14 @@ def hud_glyphs(out, code, digit_role):
         c_ = col if kind == "fill" else ([RIM, FRAME] + (list(TRAIL) if kind == "trail" else trough(8)) + [FRAME, DROP])
         add(f"hud_boss_hp_{kind}", run_sheet(c_), 7 - BOSS_BAR_ROW, [f"boss_hp_{kind}_{n}" for n in RUN_STEPS])
     # 자세 줄: 막대 밑 그늘 줄 (텍셀 11) 다음, 텍셀 13 (GUI 15.5) 에 1 텍셀. 그림은 막대와 같은 위에서
-    post_fill = [(None, 0)] * 13 + [("bone3", 0.95)] + [(None, 0)] * 2
-    post_empty = [(None, 0)] * 13 + [("ink0", 0.55)] + [(None, 0)] * 2
+    # 2026-10-08 비평: 잃은 몫과 같은 상아빛 줄이 빈 길 없이 떠 있었다. 채움은 흐린 금 (청동 밝은 색), 빈 몫은 옅은 청동 길
+    post_fill = [(None, 0)] * 13 + [("bronze3", 0.95)] + [(None, 0)] * 2
+    post_empty = [(None, 0)] * 13 + [("bronze1", 0.6)] + [(None, 0)] * 2
     for kind, cl in (("fill", post_fill), ("empty", post_empty)):
         add(f"hud_boss_post_{kind}", run_sheet(cl), 7 - BOSS_BAR_ROW, [f"boss_post_{kind}_{n}" for n in RUN_STEPS])
     # 보스 마구리는 위·아래 2 GUI 픽셀만 (이름 줄 위 -1 .. +17 안: 셰이더가 꼭짓점 y 로 보스 줄을 고른다)
     add("hud_boss_cap", pair_sheet(boss_cap_left(len(col)), boss_cap_right(len(col))), 7 - (BOSS_BAR_ROW - 2),
         ["boss_cap_l", "boss_cap_r"])
-    # 무기 설명 칸의 실선 (HUD 가 아니지만 같은 souls:hud 글꼴의 그림 글자)
-    add("lore_rule", lore_rule(), LORE_RULE_ASCENT, ["lore_rule"])
     return providers, glyphs, code
 
 

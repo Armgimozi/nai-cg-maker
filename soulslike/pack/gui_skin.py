@@ -769,7 +769,8 @@ def lozenge(img, cx, cy, r, ramp=GOLD):
 def hotbar():
     """
     182×22 GUI (364×44 텍셀). 칸 상자 (2+20k, 2) 18×18, 아이템 (3+20k, 3) 16×16 = 텍셀 [2(3+20k), 2(19+20k)) × [6, 38).
-    칸마다 slot_well, 칸 사이·뒤에는 아무것도 없다. 위 (텍셀 1) 는 흐린 금실, 아래 (42) 는 녹슨 줄, 양 끝에 작은 마름모.
+    칸마다 slot_well, 칸 사이·뒤에는 아무것도 없다. 위 (텍셀 1) 는 흐린 금실, 아래 (42) 는 녹슨 줄 (양 끝은 알파 계단).
+    양 끝 마름모는 뺐다 (2026-10-08 비평: 오른쪽 마름모가 마지막 칸의 개수 글자에 붙었다).
     """
     W, H = 364, 44
     img = Img(W, H)
@@ -778,15 +779,14 @@ def hotbar():
         slot_well(img, X0, 6, X0 + 32, 38)
     gilt_line(img, 6, W - 6, 1, "parch1", 0.75)
     gilt_line(img, 6, W - 6, 42, "rust1", 0.70)
-    for ex in (3.5, W - 3.5):
-        lozenge(img, ex, 22.0, 2.6)
     return img
 
 
 def selection():
     """
     24×23 GUI (바닐라는 고른 칸보다 한 칸 왼쪽 위에서 그린다, 아이템 자리 4..19 = 텍셀 [8, 40)): 아이템 자리 바로 바깥 텍셀
-    (7, 40) 에 밝은 금빛 네모, 그 바깥 3 텍셀에 흐린 청동 둘째 네모, 금빛 네모의 네 귀에 작은 마름모. 속은 비운다.
+    (7, 40) 에 밝은 금빛 네모 하나 (시안 A 처럼 한 겹. 2026-10-08 비평: 흐린 바깥 둘째 네모가 겹테로 보였다) 와 네 귀의 작은
+    마름모. 속은 비운다.
     """
     W, H = 48, 46
     img = Img(W, H)
@@ -794,9 +794,6 @@ def selection():
     for i in range(a, b + 1):
         for (x, y) in ((i, a), (i, b), (a, i), (b, i)):
             img.put(x, y, "parch2", 1.0)
-    for i in range(a - 3, b + 4):
-        for (x, y) in ((i, a - 3), (i, b + 3), (a - 3, i), (b + 3, i)):
-            img.put(x, y, "bronze2", 0.55)
     for x, y in ((a, a), (b, a), (a, b), (b, b)):
         lozenge(img, x + 0.5, y + 0.5, 2.4)
     return img
@@ -887,37 +884,46 @@ HANDLE_SCALING = {"type": "nine_slice", "width": 8, "height": 20, "border": {"le
 
 def slider_track(hi):
     """
-    밀대 길 200×20 GUI: 단추와 같은 띠 (위 금실·아래 녹슨 줄이 양 끝으로 옅어진다) 에 조금 진한 바탕. 가운데 줄은 없다
-    (2026-10-08: 가운데 홈 줄이 밀대 글 "시야 범위: 보통" 을 가로질렀다. 글은 텍셀 12..28 에 놓인다).
+    밀대 길 200×20 GUI: 단추 띠보다 조금 진한 바탕, 위는 아주 흐린 금실, 아래는 손잡이가 올라타는 홈 (먹 그늘 + 청동 입술) 과
+    GUI 8 픽셀마다 작은 눈금 (단추와 갈리게: 2026-10-08 비평 "밀대가 단추와 똑같아 보인다"). 가운데 줄은 없다 (2026-10-08: 가운데 홈
+    줄이 밀대 글 "시야 범위: 보통" 을 가로질렀다. 글은 텍셀 12..28 에 놓인다). 9 조각의 가운데 (텍셀 28..372) 는 이어 깔리므로
+    눈금 간격 (16 텍셀) 이 가운데 조각 폭 (344) 과 상관없이 고르게 보이도록 조각 시작 (28) 에 맞춘다.
     """
     img = Img(400, 40)
     for x in range(400):
         d = min(x, 399 - x)
         k = 1.0 if d >= 20 else (d + 1) / 21.0
-        for y in range(4, 36):
-            img.put(x, y, "ink0", 0.62 * k)
-        img.put(x, 3, ("parch2" if hi else "parch0"), 0.85 * k)
-        img.put(x, 36, "rust1", 0.8 * k)
+        for y in range(4, 34):
+            img.put(x, y, "ink0", 0.66 * k)
+        img.put(x, 3, ("parch1" if hi else "parch0"), 0.45 * k)
+        img.put(x, 34, "ink0", 0.95 * k)
+        img.put(x, 35, ("bronze3" if hi else "bronze2"), 0.9 * k)
+        img.put(x, 36, "rust1", 0.7 * k)
+        if 28 <= x < 372 and (x - 28) % 16 == 0:
+            img.put(x, 33, "bronze1", 0.7)
+            img.put(x, 32, "bronze1", 0.4)
     return img
 
 
 def slider_handle(hi):
     """
-    8×20 GUI 손잡이 (16×40 텍셀): 위·아래 두 토막의 단조 쇠 (둥근 꼭지) 와 그 사이 가는 옆 기둥 둘. 가운데 (글이 지나는 텍셀
-    13..27) 는 비어 있어 손잡이가 밀대 글을 가리지 않는다. 가리키면 금빛.
+    8×20 GUI 손잡이 (16×40 텍셀): 위·아래 두 토막뿐 (2026-10-08 비평: 옆 기둥 둘이 밀대 글 "범위", "밝기:" 를 가로질렀다). 위 토막은
+    둥근 꼭지에서 아래로 뾰족한 단조 쇠, 아래 토막은 홈 (텍셀 34..36) 에 올라탄 받침과 위로 뾰족한 끝. 글이 지나는 텍셀 12..28 은
+    한 텍셀도 칠하지 않는다. 가리키면 금빛.
     """
     W, H = 16, 40
     m = Mask(W, H)
-    m.rect(4, 4, 12, 12)
-    m.rect(4, 28, 12, 36)
-    m.disc(8, 4.5, 3.4)
-    m.disc(8, 35.5, 3.4)
-    m.rect(4, 12, 5.4, 28)
-    m.rect(10.6, 12, 12, 28)
+    m.rect(4.5, 1.5, 11.5, 6.5)
+    m.disc(8, 2.6, 2.4)
+    m.poly([(4.5, 6.4), (11.5, 6.4), (8.0, 11.4)])
+    m.rect(3.5, 33.0, 12.5, 38.0)
+    m.poly([(4.5, 33.2), (11.5, 33.2), (8.0, 29.2)])
     hole = Mask(W, H)
-    hole.rect(6.2, 6.5, 9.8, 10.5)
-    hole.rect(6.2, 29.5, 9.8, 33.5)
-    return uidraw.lit(np.clip(m.cov() - hole.cov(), 0, 1), GOLD if hi else IRON)
+    hole.disc(8, 3.6, 1.0)
+    hole.rect(6.5, 34.6, 9.5, 36.4)
+    cov = np.clip(m.cov() - hole.cov(), 0, 1)
+    cov[12:29] = 0.0
+    return uidraw.lit(cov, GOLD if hi else IRON)
 
 
 def checkbox(selected, hi):
@@ -953,20 +959,19 @@ def text_field(hi):
 
 
 def warning_button(state):
-    """Dialog 경고 단추 20×20 GUI: 작은 옻칠 판과 단조 테, 가운데 금빛 "!" (창끝 모양)."""
+    """
+    Dialog 경고 단추 20×20 GUI (바닐라는 창 제목 오른쪽에 둔다. 서버가 보낸 창이라는 알림): 판·테 없이 가는 "!" 하나만 흐리게
+    (2026-10-08 비평: 화면에서 가장 시끄러운 것이었고 제목을 옆으로 밀었다). 가리키면 금빛으로 또렷해진다.
+    """
     img = Img(40, 40)
-    panel(img, 1, 1, 38, 38, alpha={"normal": 0.75, "highlighted": 0.85, "disabled": 0.45}[state],
-          glow=10 if state == "highlighted" else 0, fade=(0.5,))
-    m = Mask(40, 40)
-    m.rect(3, 3, 37, 5)
-    m.rect(3, 35, 37, 37)
-    m.rect(3, 3, 5, 37)
-    m.rect(35, 3, 37, 37)
-    img.over(uidraw.lit(m.cov(), GOLD if state == "highlighted" else IRON))
     ex = Mask(40, 40)
-    ex.poly([(17.4, 9), (22.6, 9), (21.0, 24), (19.0, 24)])
-    ex.disc(20, 29.5, 2.4)
-    img.over(uidraw.lit(ex.cov(), GOLD if state != "disabled" else ["ink0", "ash1", "ash2", "ash3"]))
+    ex.poly([(18.6, 12), (21.4, 12), (20.6, 23), (19.4, 23)])
+    ex.disc(20, 27.0, 1.5)
+    alpha = {"normal": 0.38, "highlighted": 0.95, "disabled": 0.2}[state]
+    ramp = GOLD if state == "highlighted" else ["ink0", "rust1", "rust2", "bronze2"]
+    mark = uidraw.lit(ex.cov(), ramp)
+    mark.alpha *= alpha
+    img.over(mark)
     return img
 
 
@@ -975,28 +980,51 @@ def warning_button(state):
 TT = 100            # GUI (텍셀 200)
 
 
-def tooltip_bg(divider_at=None, top_border=12):
+def corner_ticks(img, x0, y0, w, h, inset, arm=7):
+    """네 귀의 작은 L 자 (2 텍셀 굵기, 팔 arm 텍셀): 테의 귀 바로 위에 겹쳐, 작은 설명 칸에서 장식이 글보다 크지 않게."""
+    m = Mask(img.w, img.h)
+    L, T, R, B = x0 + inset, y0 + inset, x0 + w - inset, y0 + h - inset
+    for (cx, sx), (cy, sy) in ((a, b) for a in ((L, 1), (R, -1)) for b in ((T, 1), (B, -1))):
+        xa, xb = sorted((cx, cx + sx * arm))
+        ya, yb = sorted((cy, cy + sy * 2))
+        m.rect(xa, ya, xb, yb)
+        xa, xb = sorted((cx, cx + sx * 2))
+        ya, yb = sorted((cy, cy + sy * arm))
+        m.rect(xa, ya, xb, yb)
+    img.over(uidraw.lit(m.cov(), GOLD))
+
+
+def tooltip_bg(divider_at=None, top_border=12, heavy=False):
     """
-    설명 칸 바탕 (바닐라는 글 둘레 12 GUI 밖까지 그린다). 판 3..96 GUI, 두 줄 테 (가장자리에서 5), 네 귀 단조 꺾쇠. 9 조각
-    (가장자리 14) 이라 가운데·변은 이어 붙여진다: 장식은 귀 조각 안에만, 촛불 기운과 테 색은 가로로 고르다.
-    divider_at (GUI y) 면 그 줄에 이름 밑 금실 (왼쪽 끝 마름모는 왼쪽 조각 안).
+    설명 칸 바탕 (바닐라는 글 둘레 12 GUI 밖까지 그린다). 판 3..96 GUI, 테 (가장자리에서 5). 9 조각 (가장자리 14) 이라 가운데·변은
+    이어 붙여진다: 장식은 귀 조각 안에만, 촛불 기운과 테 색은 가로로 고르다.
+      보통 (heavy=False, 모든 아이템): 촛불 띠 없는 판, 가는 테, 네 귀에 작은 L 자 (2026-10-08 비평: "뼈다귀" 같은 한 낱말 칸에서
+                 굵은 꺾쇠 넷과 갈색 머리 띠가 글보다 컸다).
+      무기 (heavy=True): 윗날 밑 촛불 기운, 네 귀 단조 꺾쇠. divider_at (GUI y) 면 그 줄에 이름 밑 금실: 글 열 (GUI 12 .. 폭 - 12)
+                 을 한 줄로 끝까지 (이어 깔리는 가운데 조각 안에서는 고르게, 2026-10-08 비평: 옅어지는 끝이 조각마다 되풀이되어
+                 줄이 끊겨 보였다), 왼쪽 끝 마름모는 왼쪽 조각 안 (글 열 밖). 둘째 실선 (수치와 설명 사이) 은 같은 꼴의 글자다
+                 (fonts.py rule_role).
     """
     W = H = TT * S
     img = Img(W, H)
-    panel(img, 6, 6, W - 12, H - 12, alpha=0.97, glow=min(2 * top_border - 10, 22), uniform=True)
+    panel(img, 6, 6, W - 12, H - 12, alpha=0.97, glow=min(2 * top_border - 10, 22) if heavy else 0, uniform=True)
     frame(img, 6, 6, W - 12, H - 12, inset=4, inner=False, uniform=True)
-    corners(img, 6, 6, W - 12, H - 12, inset=1, size=14)
+    if heavy:
+        corners(img, 6, 6, W - 12, H - 12, inset=1, size=14)
+    else:
+        corner_ticks(img, 6, 6, W - 12, H - 12, inset=2)
     if divider_at is not None:
         y = 2 * divider_at
         for x in range(24, W - 24):
-            d = W - 25 - x
-            k = 1.0 if d >= 20 else (d + 1) / 21.0
-            img.put(x, y, "parch1", 0.9 * k)
-            img.put(x, y + 1, "ink0", 0.6 * k)
+            img.put(x, y, "parch1", RULE_ALPHA)
+            img.put(x, y + 1, "ink0", 0.6)
         m = Mask(W, 8)
         m.poly([(18.0, 4.0), (22.0, 0.6), (26.0, 4.0), (22.0, 7.4)])
-        img.over(uidraw.lit(m.cov(), GOLD), 0, y - 4)
+        img.fill(np.pad(m.cov(), ((y - 4, H - y - 4), (0, 0))), "parch1", RULE_ALPHA)
     return img
+
+
+RULE_ALPHA = 0.9        # 무기 설명 칸의 실선 둘 (바탕 그림의 이름 밑 금실, fonts.py 의 수치 밑 실선) 의 덮임
 
 
 TOOLTIP_SCALING = {"type": "nine_slice", "width": TT, "height": TT, "border": 14}
@@ -1013,12 +1041,246 @@ def menu_background():
     return img
 
 
-def separator():
-    """설정 화면의 머리·발 나눔줄 (32×2 GUI, 이어 깐다): 흐린 금실과 그 밑 옅은 그늘."""
+def separator(footer=False):
+    """
+    설정 화면의 머리·발 나눔줄 (32×2 GUI, 이어 깐다): 아주 흐린 금실과 옅은 그늘 (2026-10-08 비평: 화면 끝까지 닿는 또렷한 줄이
+    딱딱했다. 제목은 제목 밑 금실이 받친다). 발 줄은 그늘이 위.
+    """
     img = Img(64, 4)
-    img.hline(0, 64, 0, "parch0", 0.85)
-    img.hline(0, 64, 1, "ink0", 0.5)
+    img.hline(0, 64, 1 if footer else 0, "parch0", 0.28)
+    img.hline(0, 64, 0 if footer else 1, "ink0", 0.18)
     return img
+
+
+# ─────────────────────────── 그 밖의 바닐라 그림 (2026-10-08 비평: 팩이 덮지 않아 바닐라 그대로 보이던 것) ───────────────────────────
+#   숨 거품 hud/air·air_empty·air_bursting (물속에서 단축 슬롯 위), 효과 표시 hud/effect_background(_ambient) 와 인벤토리 옆
+#   container/inventory/effect_background(_ambient), 알림 toast/* (발전 과제·제작법·안내·시스템·음악), 제작법 책
+#   (gui/recipe_book.png 와 sprites/recipe_book/*), 발전 과제 창 (gui/advancements/window.png). 크기와 9 조각 값은 1.21.11 jar 와 같다.
+
+def small_panel(img, x0, y0, w, h, alpha=0.9, line=0.95, glow=0, ticks=True):
+    """작은 옻칠 판 (텍셀): 판, 한 줄 테 (위 금빛·옆 청동·아래 녹), 네 귀 작은 L 자."""
+    panel(img, x0, y0, w, h, alpha=alpha, glow=glow, fade=(0.45,), uniform=True)
+    for x in range(x0 + 2, x0 + w - 2):
+        img.put(x, y0 + 2, "parch1", line)
+        img.put(x, y0 + h - 3, "rust1", line)
+    for y in range(y0 + 3, y0 + h - 3):
+        img.put(x0 + 2, y, "bronze1", line)
+        img.put(x0 + w - 3, y, "bronze1", line)
+    if ticks:
+        corner_ticks(img, x0, y0, w, h, inset=1, arm=5)
+
+
+def air(kind):
+    """숨 거품 9×9 GUI (18 텍셀): 가는 뼈빛 고리와 윗왼쪽 작은 빛. 빈 것은 흐린 녹 고리, 터지는 것은 끊긴 고리."""
+    img = Img(18, 18)
+    if kind == "air":
+        img.fill(Mask(18, 18).disc(9, 9, 5.6).cov(), "ink0", 0.35)
+        img.fill(Mask(18, 18).ring(9, 9, 5.2, 7.0).cov(), "bone1", 0.9)
+        img.fill(Mask(18, 18).disc(6.6, 6.4, 1.3).cov(), "bone3", 0.95)
+    elif kind == "air_empty":
+        img.fill(Mask(18, 18).ring(9, 9, 5.4, 6.8).cov(), "rust1", 0.55)
+    else:
+        m = Mask(18, 18)
+        for a0 in (20, 110, 200, 290):
+            m.ring(9, 9, 5.6, 7.4, a0, a0 + 50)
+        img.fill(m.cov(), "bone0", 0.8)
+    return img
+
+
+def effect_bg(w, h, ambient):
+    """효과 표시 판 (GUI w×h, 텍셀 2배). 주변 효과 (봉화 …) 는 흐리게."""
+    img = Img(2 * w, 2 * h)
+    small_panel(img, 0, 0, 2 * w, 2 * h, alpha=0.62 if ambient else 0.86, line=0.55 if ambient else 0.95)
+    return img
+
+
+def toast(w, h, light=False, mark=False):
+    """
+    알림 (GUI w×h, 텍셀 2배). 바닐라 글자색이 밝은 알림 (발전 과제·시스템·음악) 은 옻칠 판, 어두운 글자 (제작법 0x500050·검정,
+    안내) 를 쓰는 알림은 바랜 양피지 쪽지 (어두운 판에서는 글이 읽히지 않는다). mark 면 왼쪽 위에 작은 금빛 마름모 (시스템 알림).
+    """
+    W, H = 2 * w, 2 * h
+    img = Img(W, H)
+    if light:
+        for y in range(H):
+            for x in range(W):
+                d = min(x, y, W - 1 - x, H - 1 - y)
+                if min(x, W - 1 - x) + min(y, H - 1 - y) == 0:
+                    continue
+                img.put(x, y, "bone1" if d >= 3 else ("rust2" if d >= 1 else "rust1"), 0.97 if d >= 1 else 0.6)
+        for x in range(4, W - 4):
+            img.put(x, 3, "bone2", 0.9)
+            img.put(x, H - 4, "parch1", 0.9)
+    else:
+        small_panel(img, 0, 0, W, H, alpha=0.93, glow=10, ticks=True)
+    if mark:
+        lozenge(img, 16.0, 16.0, 4.0)
+    return img
+
+
+def recipe_book_panel(van):
+    """제작법 책 판 (gui/recipe_book.png 256×256 → 512): 바닐라 판 자리 (1,1)~(148,167) 에 창과 같은 판·테·귀 꺾쇠, 돋보기."""
+    img = Img(512, 512)
+    x0, y0, w, h = 2, 2, 2 * 147, 2 * 166
+    panel(img, x0, y0, w, h, glow=18)
+    frame(img, x0, y0, w, h)
+    corners(img, x0, y0, w, h)
+    m = Mask(512, 512)
+    m.ring(2 * 15.5, 2 * 19.0, 4.2, 6.6)
+    m.line(2 * 13.0, 2 * 21.6, 2 * 10.2, 2 * 24.4, 3.0)
+    img.over(uidraw.lit(m.cov(), IRON))
+    return img
+
+
+def recipe_slot(craftable, many):
+    """제작법 칸 25×25 (텍셀 50): 먹빛 우물, 만들 수 있으면 청동 테, 없으면 마른 핏빛 테. 여럿이면 뒤에 겹친 둘째 테."""
+    img = Img(50, 50)
+    rim = ("bronze2", "parch1") if craftable else ("blood1", "blood2")
+    if many:
+        for i in range(6, 48):
+            for (x, y) in ((i, 47), (47, i)):
+                img.put(x, y, rim[0], 0.6)
+    for y in range(3, 45):
+        for x in range(3, 45):
+            img.put(x, y, "ink0", 0.88 if craftable else 0.8)
+    for i in range(2, 46):
+        img.put(i, 2, rim[1], 0.95)
+        img.put(i, 45, rim[0], 0.9)
+        img.put(2, i, rim[0], 0.9)
+        img.put(45, i, rim[0], 0.9)
+    return img
+
+
+def recipe_tab(selected):
+    """제작법 책 탭 35×27 (텍셀 70×54): 판 왼쪽에 붙는 탭. 고른 탭은 금빛 테에 오른쪽이 트였다 (판과 이어진다)."""
+    img = Img(70, 54)
+    x0 = 0 if selected else 8
+    panel(img, x0, 2, 70 - x0, 50, alpha=0.92 if selected else 0.8, glow=0, fade=(0.5,), uniform=True)
+    top, side = ("parch2", "bronze2") if selected else ("parch0", "bronze1")
+    for x in range(x0 + 2, 70 if selected else 68):
+        img.put(x, 3, top, 1.0)
+        img.put(x, 50, "rust1", 0.9)
+    for y in range(4, 50):
+        img.put(x0 + 2, y, side, 1.0)
+        if not selected:
+            img.put(67, y, "rust1", 0.8)
+    return img
+
+
+def recipe_filter(enabled, hi):
+    """'만들 수 있는 것만' 단추 26×16 (텍셀 52×32): 작은 판에 쇠 격자 (작업대) 와 켜짐은 금빛 마름모, 꺼짐은 흐린 빈 마름모."""
+    img = Img(52, 32)
+    small_panel(img, 0, 0, 52, 32, alpha=0.85, line=1.0 if hi else 0.8, ticks=False)
+    g = Mask(52, 32)
+    for i in range(4):
+        g.rect(30 + 5 * i, 8, 31.4 + 5 * i, 24)
+        g.rect(30, 8 + 5 * i, 46.4, 9.4 + 5 * i)
+    img.over(uidraw.lit(g.cov(), IRON))
+    if enabled:
+        lozenge(img, 15.0, 16.0, 6.0)
+    else:
+        m = Mask(52, 32)
+        m.poly([(9, 16), (15, 10), (21, 16), (15, 22)])
+        h_ = Mask(52, 32).poly([(11.5, 16), (15, 12.5), (18.5, 16), (15, 19.5)])
+        img.fill(np.clip(m.cov() - h_.cov(), 0, 1), "rust2", 0.85)
+    if hi:
+        for x in range(4, 48):
+            img.put(x, 2, "parch2", 1.0)
+    return img
+
+
+def page_arrow(forward, hi):
+    """제작법 책 쪽 넘김 12×17 (텍셀 24×34): 단조 쇠 화살촉, 가리키면 금빛."""
+    m = Mask(24, 34)
+    pts = [(6, 6), (19, 17), (6, 28), (6, 22), (12, 17), (6, 12)]
+    if not forward:
+        pts = [(24 - x, y) for x, y in pts]
+    m.poly(pts)
+    img = Img(24, 34)
+    img.over(uidraw.lit(m.cov(), GOLD if hi else IRON))
+    return img
+
+
+def recipe_overlay_button(enabled, hi):
+    """다른 제작법 고르기 칸 24×24 (텍셀 48): 먹빛 우물, 테는 청동 (가리키면 금빛), 만들 수 없으면 마른 핏빛."""
+    img = Img(48, 48)
+    rim = ("parch2" if hi else "bronze2") if enabled else ("blood2" if hi else "blood1")
+    for y in range(3, 45):
+        for x in range(3, 45):
+            img.put(x, y, "ink0", 0.85)
+    for i in range(2, 46):
+        for (x, y) in ((i, 2), (i, 45), (2, i), (45, i)):
+            img.put(x, y, rim, 0.95)
+    return img
+
+
+def advancement_window(van):
+    """발전 과제 창 (252×140 GUI, 256×256 → 512): 창 판·테·귀 꺾쇠, 바닐라가 비운 가운데 (탭 그림 자리) 는 그대로 비운다."""
+    img = Img(512, 512)
+    w, h = 2 * 252, 2 * 140
+    panel(img, 0, 0, w, h, glow=16)
+    frame(img, 0, 0, w, h)
+    corners(img, 0, 0, w, h)
+    if van is not None:
+        a = np.asarray(van.convert("RGBA"))[..., 3]
+        hole = np.repeat(np.repeat(a == 0, 2, 0), 2, 1)
+        img.alpha[hole] = 0.0
+        img.name[hole] = ""
+    return img
+
+
+def extra_sprites(out):
+    """그 밖의 바닐라 그림을 쓴다. 쓴 경로 목록."""
+    written = []
+    hud = ("sprites", "hud")
+    for k in ("air", "air_empty", "air_bursting"):
+        written.append(gsave(air(k), out, *hud, k + ".png"))
+    written.append(gsave(effect_bg(24, 24, False), out, *hud, "effect_background.png"))
+    written.append(gsave(effect_bg(24, 24, True), out, *hud, "effect_background_ambient.png"))
+    inv = ("sprites", "container", "inventory")
+    for n, amb in (("effect_background", False), ("effect_background_ambient", True)):
+        written.append(gsave(effect_bg(32, 32, amb), out, *inv, n + ".png"))
+        save_mcmeta(out, {"type": "nine_slice", "width": 32, "height": 32, "border": 4}, *inv, n + ".png")
+    t = ("sprites", "toast")
+    written.append(gsave(toast(160, 32), out, *t, "advancement.png"))
+    written.append(gsave(toast(160, 32, light=True), out, *t, "recipe.png"))
+    written.append(gsave(toast(160, 32, light=True), out, *t, "tutorial.png"))
+    save_mcmeta(out, {"type": "nine_slice", "width": 160, "height": 32, "border": 3}, *t, "tutorial.png")
+    written.append(gsave(toast(160, 32), out, *t, "now_playing.png"))
+    save_mcmeta(out, {"type": "nine_slice", "width": 160, "height": 32, "border": 4}, *t, "now_playing.png")
+    written.append(gsave(toast(160, 64, mark=True), out, *t, "system.png"))
+    save_mcmeta(out, {"type": "nine_slice", "width": 160, "height": 64,
+                      "border": {"left": 17, "top": 30, "right": 4, "bottom": 4}}, *t, "system.png")
+    jar = vanilla_jar()
+    van = {}
+    if jar:
+        with zipfile.ZipFile(jar) as z:
+            van["window"] = _jar_png(z, "assets/minecraft/textures/gui/advancements/window.png")
+    written.append(gsave(recipe_book_panel(None), out, "recipe_book.png"))
+    written.append(gsave(advancement_window(van.get("window")), out, "advancements", "window.png"))
+    rb = ("sprites", "recipe_book")
+    for craft in (True, False):
+        for many in (False, True):
+            n = "slot_" + ("many_" if many else "") + ("craftable" if craft else "uncraftable")
+            written.append(gsave(recipe_slot(craft, many), out, *rb, n + ".png"))
+    written.append(gsave(recipe_tab(False), out, *rb, "tab.png"))
+    written.append(gsave(recipe_tab(True), out, *rb, "tab_selected.png"))
+    for pre in ("", "furnace_"):
+        for en in (True, False):
+            for hi in (False, True):
+                n = f"{pre}filter_{'enabled' if en else 'disabled'}{'_highlighted' if hi else ''}"
+                written.append(gsave(recipe_filter(en, hi), out, *rb, n + ".png"))
+                n = f"{pre or 'crafting_'}overlay{'' if en else '_disabled'}{'_highlighted' if hi else ''}"
+                written.append(gsave(recipe_overlay_button(en, hi), out, *rb, n + ".png"))
+    for fw in (True, False):
+        for hi in (False, True):
+            n = f"page_{'forward' if fw else 'backward'}{'_highlighted' if hi else ''}"
+            written.append(gsave(page_arrow(fw, hi), out, *rb, n + ".png"))
+    ov = Img(64, 64)
+    small_panel(ov, 0, 0, 64, 64, alpha=0.94)
+    written.append(gsave(ov, out, *rb, "overlay_recipe.png"))
+    save_mcmeta(out, {"type": "nine_slice", "width": 32, "height": 32, "border": 4}, *rb, "overlay_recipe.png")
+    return written
 
 
 # ─────────────────────────── 빌드 ───────────────────────────
@@ -1074,15 +1336,16 @@ def build(out):
         written.append(save(img, out, *wd, fname + ".png"))
         save_mcmeta(out, WIDGET_SCALING[fname], *wd, fname + ".png")
     for n in SEPARATORS:
-        written.append(gsave(separator(), out, n + ".png"))
+        written.append(gsave(separator(footer="footer" in n), out, n + ".png"))
     written.append(gsave(menu_background(), out, "inworld_menu_background.png"))
+    written += extra_sprites(out)
     empty = Img(TT * S, TT * S)
     written.append(gsave(tooltip_bg(), out, "sprites", "tooltip", "background.png"))
     written.append(gsave(empty, out, "sprites", "tooltip", "frame.png"))
     for n in ("background", "frame"):
         save_mcmeta(out, TOOLTIP_SCALING, "sprites", "tooltip", n + ".png")
     souls_gui = os.path.join(out, "assets", "souls", "textures", "gui", "sprites", "tooltip")
-    for n, img in (("background", tooltip_bg(divider_at=22, top_border=26)), ("frame", empty)):
+    for n, img in (("background", tooltip_bg(divider_at=22, top_border=26, heavy=True)), ("frame", empty)):
         p = os.path.join(souls_gui, f"{WEAPON_TOOLTIP}_{n}.png")
         uidraw.save(img.image(), p)
         with open(p + ".mcmeta", "w", encoding="utf-8", newline="\n") as f:
