@@ -82,7 +82,8 @@ public final class TestCommands {
                                 .executes(ctx -> withPlayer(ctx, p -> hit(plugin, p, DoubleArgumentType.getDouble(ctx, "amount"), "")))
                                 .then(Commands.argument("flags", StringArgumentType.greedyString())
                                         .suggests((c, b) -> {
-                                            for (String s : List.of("type=generic", "type=hit", "type=none", "armor", "type=generic armor"))
+                                            for (String s : List.of("type=generic", "type=hit", "type=magic", "type=none", "armor", "def",
+                                                    "type=magic def", "type=generic armor"))
                                                 b.suggest(s);
                                             return b.buildFuture();
                                         })
@@ -249,16 +250,17 @@ public final class TestCommands {
 
     private static void hit(Souls plugin, Player p, double amount, String flags) {
         String type = "generic";
-        boolean armor = false;
+        boolean armor = false, def = false;
         for (String f : flags.trim().split("\\s+")) {
             if (f.startsWith("type=")) type = f.substring(5).toLowerCase(Locale.ROOT);
             else if (f.equals("armor")) armor = true;
+            else if (f.equals("def")) def = true;
         }
-        if (!List.of("generic", "hit", "none").contains(type)) {
+        if (!List.of("generic", "hit", "magic", "none").contains(type)) {
             plugin.test(p, "HIT error=unknown_type type=" + type);
             return;
         }
-        TestHits.Result r = plugin.testHits().hit(p, amount, type, armor);
+        TestHits.Result r = plugin.testHits().hit(p, amount, type, armor, def);
         plugin.test(p, "HIT " + r.line() + " t=" + plugin.ticker().now());
     }
 

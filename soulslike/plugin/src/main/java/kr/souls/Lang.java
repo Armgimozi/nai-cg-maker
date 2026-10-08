@@ -244,6 +244,28 @@ public final class Lang {
                 .decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE);
     }
 
+    /**
+     * 표의 칸 (Dialog 창의 열 맞추기, 5.9·5.10): 팩이 그 언어에서 같은 무리 (pack/typeset.py 의 CELLS) 의 가장 긴 글 폭까지 뒤를
+     * 빈칸 글자로 채운 열쇠 souls.열쇠.cell (팩의 언어 파일에만 있다). 그래서 같은 무리의 칸은 모두 폭이 같다. 자리가 없는 열쇠만.
+     * 팩이 없으면 대체 글 (그 사람의 언어) 뒤에 빈칸 하나.
+     */
+    public static Component cell(Player viewer, String key) {
+        return padded(viewer, key, "cell", false);
+    }
+
+    /** 오른쪽 맞춤 칸 (souls.열쇠.rcell: 팩이 앞을 빈칸으로 채워 무리의 열 폭에 오른쪽을 맞춘다. 능력치 줄임 이름 같은 머리줄). */
+    public static Component rcell(Player viewer, String key) {
+        return padded(viewer, key, "rcell", true);
+    }
+
+    private static Component padded(Player viewer, String key, String branch, boolean right) {
+        Entry e = entries.get(key);
+        if (e == null) return missing(key);
+        String fb = e.fallback().get(langOf(viewer));
+        return Component.translatable(PREFIX + key + "." + branch, right ? " " + fb : fb + " ", e.style())
+                .decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE);
+    }
+
     /** 목록 열쇠 (아이템 설명 같은 여러 줄). 줄마다 c(열쇠.n). 목록이 아니면 한 줄. 대체 글은 영어. */
     public static List<Component> lines(String key, Object... args) {
         return makeLines(key, EN, args);

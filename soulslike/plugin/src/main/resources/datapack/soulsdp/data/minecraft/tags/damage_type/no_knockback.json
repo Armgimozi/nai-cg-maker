@@ -1,4 +1,4 @@
 {
   "replace": false,
-  "values": ["souls:hit"]
+  "values": ["souls:hit", "souls:magic"]
 }

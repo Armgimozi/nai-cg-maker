@@ -50,17 +50,29 @@ public final class TestHits implements Listener {
     private Player active;
     private Zombie activeCause;
     private boolean sawKnockback, sawAttackerKnockback, sawCancel;
+    /** 날 피해를 넣는 중 (DamageHook 의 방어·환경 배율을 건너뛴다) */
+    private static int rawDepth;
+
+    /** 지금 날 시험 피해를 넣는 중인가 (DamageHook 이 본다). */
+    public static boolean raw() {
+        return rawDepth > 0;
+    }
+
+    public Result hit(Player p, double amount, String type, boolean armor) {
+        return hit(p, amount, type, armor, false);
+    }
 
     /**
      * 시험 피해 하나.
-     * @param type generic | hit (데이터팩 souls:hit) | none (원인 없는 generic)
+     * @param type generic | hit (데이터팩 souls:hit) | magic (souls:magic, 마법 저항으로 줄인다) | none (원인 없는 generic)
      * @param armor 잠깐 방어력 +20 을 걸고 맞는다 (generic 이 방어구를 지나치는지)
+     * @param def   플레이어의 방어 (DamageHook: 방어력·마법 저항, 난이도 배율) 를 지난다. 거짓이면 날 피해 (M0 의 시험 그대로)
      */
-    public Result hit(Player p, double amount, String type, boolean armor) {
+    public Result hit(Player p, double amount, String type, boolean armor, boolean def) {
         DamageType dt = DamageType.GENERIC;
-        if ("hit".equals(type)) {
-            dt = RegistryAccess.registryAccess().getRegistry(RegistryKey.DAMAGE_TYPE).get(Key.key(Keys.NS, "hit"));
-            if (dt == null) return new Result("hit(missing)", amount, 0, p.isBlocking(), false, false, true, "-", 0, p.getWorld().getDifficulty().name());
+        if ("hit".equals(type) || "magic".equals(type)) {
+            dt = RegistryAccess.registryAccess().getRegistry(RegistryKey.DAMAGE_TYPE).get(Key.key(Keys.NS, type));
+            if (dt == null) return new Result(type + "(missing)", amount, 0, p.isBlocking(), false, false, true, "-", 0, p.getWorld().getDifficulty().name());
         }
         Zombie cause = null;
         if (!"none".equals(type)) {
@@ -93,9 +105,11 @@ public final class TestHits implements Listener {
         sawKnockback = false;
         sawAttackerKnockback = false;
         sawCancel = false;
+        if (!def) rawDepth++;
         try {
             p.damage(amount, Combat.source(dt, cause));
         } finally {
+            if (!def) rawDepth--;
             active = null;
             activeCause = null;
             if (armor && armorAttr != null) armorAttr.removeModifier(mod);
@@ -105,7 +119,8 @@ public final class TestHits implements Listener {
         ItemStack heldAfter = p.getActiveItem().isEmpty() ? p.getInventory().getItemInMainHand() : p.getActiveItem();
         Integer durAfter = heldAfter.getData(DataComponentTypes.DAMAGE);
         String dur = (durBefore == null ? "-" : durBefore) + "->" + (durAfter == null ? "-" : durAfter);
-        String name = "none".equals(type) ? "generic(no_cause)" : "hit".equals(type) ? "souls:hit" : "minecraft:generic";
+        String name = "none".equals(type) ? "generic(no_cause)" : "hit".equals(type) ? "souls:hit" : "magic".equals(type) ? "souls:magic"
+                : "minecraft:generic";
         return new Result(name, amount, Math.max(0, before - after), blocking, sawKnockback, sawAttackerKnockback, sawCancel, dur, armorValue,
                 p.getWorld().getDifficulty().name());
     }
