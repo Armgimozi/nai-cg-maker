@@ -92,5 +92,5 @@ python3 tools/make_dist.py --no-build # 관문만 보고 묶는다
 - 게임 안: `/souls check` (데이터팩, 바이옴, 난이도, 게임 규칙, 시험 방, 팩, 그림 글자). `/soulstest` 는 `debug.test-mode: true` 일 때만 (봇 시험용).
 - 봇: `tools/run_tests.sh` (`tools/bots/`, mineflayer 4.39), 지연 프록시 `tools/bots/lagproxy.js`.
 - 실제 클라이언트: `tools/client/m0_shots.sh` (13.4 점검 그림, `dist/screenshots/m0/`).
-- 사망 화면 제목의 두 판 (16절 질문 4) 은 `plugin/src/main/resources/config.yml` 의 `death.title` 하나로 고른다. `gen_pack.py` 와 `make_dist.py` 가 같은 값을 읽어 팩을 만든다.
+- 사망 화면 YOU DIED 의 세 판 (DESIGN 5.6, 16절 질문 4) 은 `plugin/src/main/resources/config.yml` 의 `death.title`·`death.screen-fade` 로 고른다 (기본: 서서히 나타나는 사망 화면 문구 줄). `gen_pack.py` 와 `make_dist.py` 가 같은 값을 읽어 팩을 만든다.
 - 글·그림: `python3 tools/textlint.py`, `python3 tools/langcheck.py`, `python3 pack/artlint.py`. 봇 시험의 `lang_check` 가 둘을 돌리고, `lang` 시나리오가 영어 클라이언트로 들어와 번역 열쇠와 서버가 채운 글을 본다.

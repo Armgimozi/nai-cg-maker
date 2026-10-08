@@ -1,6 +1,6 @@
 // 다시 접속 (8.1 "그 뒤로는 저장된 위치에서 들어온다", 10.10, 10.2, 3.2).
 // 나갔다 들어오면 souls_world 의 나간 자리에 모험 모드로 서고, 팩을 다시 받고, HUD (막대 셋·소울 상자) 가 다시 오고, 스태미나가 찬다.
-// 죽은 채로 나갔다 들어와도 일어서면 시험 방이다.
+// 죽은 채로 나갔다 들어와도 일어서면 시험 방이다 (서서히 나타나는 YOU DIED 판은 서버가 들어오자마자 일으킨다, 5.6).
 'use strict'
 const L = require('./lib')
 
@@ -64,7 +64,20 @@ L.run('reconnect', async (sc) => {
   b = await L.connect(sc, { respawn: false, allowDead: true })
   await L.sleep(2000)
   const dead = b.p.health.some((h) => h.health <= 0)
-  if (dead) {
+  const dc = L.deathConfig()
+  if (dead && dc.mode === 'fade') {
+    // 서서히 나타나는 YOU DIED (5.6) 는 죽는 순간의 사망 화면 문구 줄에만 있어, 다시 열린 사망 화면에는 없다.
+    // 그래서 서버가 들어오자마자 일으켜 세운다 (DeathFlow.onJoin, 시험 줄 DEATH_REJOIN 뒤 RESPAWN)
+    sc.note('죽은 채로 들어왔다 → 서버가 일으킨다 (death.screen-fade)')
+    let rj = null; let rl = null
+    for (let i = 0; i < 40 && !(rj && rl); i++) {
+      rj = b.tLines('DEATH_REJOIN', 0)[0]
+      rl = b.tLines('RESPAWN', 0)[0]
+      if (!(rj && rl)) await L.sleep(100)
+    }
+    sc.check('dead rejoin (fade): server respawns on join (DEATH_REJOIN, RESPAWN)', rj && rl && rl.kv.world === 'souls_world',
+      `${rj ? rj.line : 'DEATH_REJOIN 없음'} / ${rl ? rl.line : '부활 줄 없음'}`)
+  } else if (dead) {
     sc.note('죽은 채로 들어왔다 → 일어선다')
     const from = b.sys.length
     b.respawn()

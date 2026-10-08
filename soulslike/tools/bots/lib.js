@@ -913,19 +913,23 @@ function rollConfig () {
 }
 
 /**
- * 서버의 사망 제목 설정 (config.yml death.title, 5.6). false (기본) 면 리소스팩의 사망 화면 제목 하나,
- * true 면 플러그인의 화면 제목 하나다. 못 읽으면 기본값.
+ * 서버의 사망 제목 설정 (config.yml death.title, death.screen-fade, 5.6). mode: title 이 true 면 'plugin' (플러그인 화면 제목),
+ * 아니고 screen-fade 가 true (기본) 면 'fade' (사망 화면 문구 줄이 서서히), 둘 다 false 면 'screen' (리소스팩의 사망 화면 제목).
+ * 못 읽으면 기본값.
  */
 function deathConfig () {
-  const out = { title: false, titleGlyphs: 'you_died_title', source: '기본값' }
+  const out = { title: false, screenFade: true, mode: 'fade', titleGlyphs: 'you_died_title', source: '기본값' }
   const f = ENV.serverDir && path.join(ENV.serverDir, 'plugins', 'Soulslike', 'config.yml')
   if (!f || !fs.existsSync(f)) return out
   const sec = fs.readFileSync(f, 'utf8').match(/\ndeath:\n([\s\S]*?)(?=\n[A-Za-z][\w-]*:)/)
   if (!sec) return out
   const t = sec[1].match(/^\s+title:\s*(true|false)/m)
   if (t) { out.title = t[1] === 'true'; out.source = 'config.yml' }
+  const sf = sec[1].match(/^\s+screen-fade:\s*(true|false)/m)
+  if (sf) out.screenFade = sf[1] === 'true'
   const g = sec[1].match(/^\s+title-glyphs:\s*"?([^"\n]*)"?/m)
   if (g) out.titleGlyphs = g[1].trim()
+  out.mode = out.title ? 'plugin' : out.screenFade ? 'fade' : 'screen'
   return out
 }
 

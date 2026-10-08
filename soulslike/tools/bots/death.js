@@ -1,7 +1,11 @@
 // 죽음 (5.5, 5.6, 사용자 결정 3: 새빨간 "YOU DIED"). 바닐라 사망 화면 (immediate_respawn=false) 이 열리고,
-// "YOU DIED" 는 한 번만 보인다: 기본은 팩 쪽 deathScreen.title (glyphs.yml 의 그림 글자) 이고 플러그인은 제목을 보내지 않는다.
-// death.title: true 면 반대로 팩 제목이 비고 플러그인 화면 제목이 일어설 때까지 떠 있다. 그림 글자는 붉고 크다.
-// 사망 화면 밑 문구와 채팅 알림은 없다. 인벤토리는 그대로, 일어서면 souls_world 시험 방, 체력·스태미나가 찬다.
+// "YOU DIED" 는 한 번만 보인다. 자리는 config.yml 의 death.* 를 따른다 (lib.deathConfig):
+//   fade (기본, death.screen-fade): 팩의 deathScreen.title 이 비고, 플러그인이 사망 화면 문구 줄에 souls:death 그림 글자 한 줄
+//         (glyphs.yml you_died_fade, 띠 + 글자) 을 보낸다. 글자색·그림자색이 죽은 게임 시각을 싣는 표식 (glyphs.yml death_fade).
+//         죽은 채 나갔다 들어오면 바로 일어선다 (문구 줄이 다시 오지 않으므로)
+//   screen: 팩 쪽 deathScreen.title (glyphs.yml 의 그림 글자) 이고 플러그인은 아무것도 보내지 않는다
+//   plugin (death.title): 팩 제목이 비고 플러그인 화면 제목이 일어설 때까지 떠 있다
+// 그림 글자는 붉고 크다. 채팅 알림은 없다. 인벤토리는 그대로, 일어서면 souls_world 시험 방, 체력·스태미나가 찬다.
 'use strict'
 const fs = require('fs')
 const path = require('path')
@@ -87,21 +91,30 @@ L.run('death', async (sc) => {
   await L.sleep(2000)
   const dth = b.p.deaths.slice(d0).find((d) => d.playerId === b.id)
   sc.check('vanilla death screen opens (death_combat_event)', !!dth, dth ? '' : '패킷 없음')
-  sc.check('death screen message is empty', dth && dth.message === '', dth ? JSON.stringify(dth.message) : '')
+  const fade = dc.mode === 'fade'
+  const yf = glyphs && glyphs.you_died_fade
+  if (!fade) sc.check('death screen message is empty', dth && dth.message === '', dth ? JSON.stringify(dth.message) : '')
+  else checkFadeLine(dth)
   sc.check('respawn screen enabled (immediate_respawn=false)', b.p.login && b.p.login.enableRespawnScreen === true, 'enableRespawnScreen=' + (b.p.login && b.p.login.enableRespawnScreen))
   const dl = b.tLines('DEATH', from)[0]
   sc.check('server DEATH line', !!dl, dl ? dl.line : '')
   const broadcast = b.sys.slice(from).find((m) => m.parts.some((p) => p.translate && p.translate.startsWith('death.')))
   sc.check('no death broadcast in chat', !broadcast, broadcast ? broadcast.plain : '')
 
-  // ── 제목 "YOU DIED": 한 번만 보인다 (5.6, 13.4 의 3). 기본은 팩의 사망 화면 제목, death.title: true 면 플러그인 화면 제목 ──
-  sc.note(`death.title=${dc.title} (${dc.source}): ${dc.title ? '플러그인 화면 제목' : '사망 화면 제목'}, title-glyphs=${dc.titleGlyphs}`)
+  // ── 제목 "YOU DIED": 한 번만 보인다 (5.6, 13.4 의 3). 서서히 (문구 줄), 사망 화면 제목, 플러그인 화면 제목 가운데 하나 ──
+  sc.note(`death.title=${dc.title}, death.screen-fade=${dc.screenFade} (${dc.source}): ` +
+    `${{ fade: '사망 화면 문구 줄 (서서히)', screen: '사망 화면 제목', plugin: '플러그인 화면 제목' }[dc.mode]}, title-glyphs=${dc.titleGlyphs}`)
   const title = b.p.titles.slice(t0).find((x) => x.plain.trim())
   const tl = b.tLines('TITLE', from)[0]
   const tt = dc.title ? b.p.titleTimes[b.p.titleTimes.length - 1] : null
   if (!dc.title) {
     sc.check('no plugin title over the death screen (YOU DIED shown once)', !title, title ? JSON.stringify(title.plain) : '')
-    sc.check('server TITLE line mode=screen', tl && tl.kv.mode === 'screen', tl ? tl.line : '')
+    sc.check(`server TITLE line mode=${dc.mode}`, tl && tl.kv.mode === dc.mode && (!fade || tl.kv.glyph === 'true'), tl ? tl.line : '')
+    if (fade && tl && dth) {
+      // 문구 줄의 표식 색이 서버가 적은 죽은 게임 시각 (gt) 을 싣는다 (셰이더가 이 값으로 서서히 나타나게 한다)
+      const m = fadeMark(dth)
+      sc.check('fade line colour carries the death game time (TITLE gt)', m && String(m.t) === tl.kv.gt, m ? `t=${m.t} gt=${tl.kv.gt}` : '표식 없음')
+    }
   } else {
     sc.check('title packet sent on death', !!title, title ? JSON.stringify(title.plain) : '제목 없음')
     if (title && tg) checkGlyphTitle(title)
@@ -123,37 +136,40 @@ L.run('death', async (sc) => {
     for (const lang of ['en_us', 'ko_kr', 'en_gb', 'ja_jp', 'zh_cn']) {
       const j = zip.json(`assets/minecraft/lang/${lang}.json`)
       if (!j) { sc.check(`${lang}: lang file present`, false); continue }
-      // 사망 화면 제목: 기본은 그림 글자 YOU DIED, 플러그인 화면 제목을 쓰면 빈칸 (둘이 겹치지 않게).
+      // 사망 화면 제목: screen 판은 그림 글자 YOU DIED, 서서히 판·플러그인 화면 제목 판은 빈칸 (둘이 겹치지 않게).
       // 바닐라 "You Died!" 가 남거나 다른 글이면 안 된다
       const dt = j['deathScreen.title']
-      const want = dc.title ? '' : (yd && yd.char)
-      sc.check(`${lang}: deathScreen.title = ${dc.title ? 'empty (plugin title instead)' : 'you_died glyphs'}`, yd && dt === want,
+      const want = dc.mode === 'screen' ? (yd && yd.char) : ''
+      sc.check(`${lang}: deathScreen.title = ${dc.mode === 'screen' ? 'you_died glyphs' : `empty (${dc.mode} instead)`}`, yd && dt === want,
         dt === undefined ? '키 없음 (바닐라 글이 남는다)' : dt === '' ? '빈칸' : [...dt].map((c) => c.codePointAt(0).toString(16)).join(' '))
       sc.check(`${lang}: score line empty`, j['deathScreen.score.value'] === '', JSON.stringify(j['deathScreen.score.value']))
       const rb = j['deathScreen.respawn'] || ''
       if (lang === 'ko_kr') sc.check('ko_kr: respawn button is Korean (일어선다)', /^\u00a77[가-힣 ]+$/.test(rb), JSON.stringify(rb))
       else sc.check(`${lang}: respawn button is the souls English text (same as en_us, not vanilla Respawn)`, rb === enRespawn && /^\u00a77[A-Za-z ]+$/.test(rb) && !/Respawn/.test(rb), JSON.stringify(rb))
     }
-    if (yd) {
+    // 그림 글자 줄: screen 판은 사망 화면 제목 (기본 글꼴), 서서히 판은 문구 줄 (souls:death, 1배라 글꼴 높이가 두 배)
+    for (const [label, line, minH] of [['title', yd, 10], ['fade line', fade ? yf : null, 20]]) {
+      if (!line) continue
       const px = []
       let height = 0
       const errs = []
       let letters = 0
       // 제목 뒤의 검은 띠 (다크 소울 사망 화면, 5.6): 글자로 세지 않는다
-      const band = new Set(Object.entries(glyphs || {}).filter(([n]) => n.startsWith('death_band')).map(([, g]) => g.char))
+      const band = new Set(Object.entries(glyphs || {}).filter(([n, g]) => /^(fade_)?death_band/.test(n) && g.font === line.font)
+        .map(([, g]) => g.char))
       let bandTiles = 0
-      for (const ch of [...yd.char]) {
-        const c = glyphCell(zip, yd.font, ch)
+      for (const ch of [...line.char]) {
+        const c = glyphCell(zip, line.font, ch)
         if (c.err) errs.push(c.err)
         else if (band.has(ch)) { if (!c.space) bandTiles++ }
         else if (!c.space) { px.push(...c.px); height = Math.max(height, c.height); letters++ }
       }
-      if (!dc.title) sc.check('dark band behind the title (death_band tiles)', bandTiles >= 2, bandTiles + '조각')
-      sc.check('every title glyph exists in the pack font', !errs.length, errs.join(', ') || `${letters}글자`)
-      sc.check('title spells 7 letters (Y O U D I E D)', letters === 7, letters + '글자')
+      if (!dc.title) sc.check(`${label}: dark band behind the letters (death_band tiles)`, bandTiles >= 2, bandTiles + '조각')
+      sc.check(`${label}: every glyph exists in the pack font ${line.font}`, !errs.length, errs.join(', ') || `${letters}글자`)
+      sc.check(`${label}: spells 7 letters (Y O U D I E D)`, letters === 7, letters + '글자')
       const red = redness(px)
-      sc.check('YOU DIED glyph pixels are vivid red', red && red.red, red ? `평균 ${red.avg}, 밝은 면 ${red.top}` : '불투명 픽셀 없음')
-      sc.check('YOU DIED glyphs are large (font height >= 10)', height >= 10, 'height=' + height)
+      sc.check(`${label}: YOU DIED glyph pixels are vivid red`, red && red.red, red ? `평균 ${red.avg}, 밝은 면 ${red.top}` : '불투명 픽셀 없음')
+      sc.check(`${label}: YOU DIED glyphs are large (font height >= ${minH})`, height >= minH, 'height=' + height)
     }
   }
 
@@ -207,6 +223,64 @@ L.run('death', async (sc) => {
     if (forced) checkGlyphTitle(forced)
   }
   sc.check('no kick during death scenario', !b.kick, b.kick || '')
+
+  // ── 서서히 판: 죽은 채 나갔다 들어오면 (사망 화면이 문구 줄 없이 다시 열린다) 바로 일어선다 ──
+  if (fade) {
+    const k2 = await b.cmd('/soulstest kill', 'KILL')
+    sc.check('second death for the rejoin check', k2 && !!k2.line, k2 && k2.line)
+    await L.sleep(1000)
+    await b.quit()
+    await L.sleep(1500)
+    const b2 = await L.connect(sc, { respawn: false })
+    let rj = null
+    for (let i = 0; i < 60 && !rj; i++) {
+      rj = b2.tLines('DEATH_REJOIN', 0)[0]
+      if (!rj) await L.sleep(100)
+    }
+    sc.check('rejoining dead (fade mode): server respawns (DEATH_REJOIN)', !!rj, rj ? rj.line : '시험 줄 없음')
+    let alive = false
+    for (let i = 0; i < 40 && !alive; i++) {
+      alive = b2.health > 0 && b2.p.respawns.length > 0
+      if (!alive) await L.sleep(100)
+    }
+    sc.check('rejoining dead (fade mode): alive again after rejoin', alive, `hp=${b2.health}, respawn 패킷 ${b2.p.respawns.length}`)
+    sc.check('no kick during rejoin', !b2.kick, b2.kick || '')
+  }
+
+  /** glyphs.yml 의 death_fade (표식: 글자색 R, 그림자 R, G 의 시작). 없으면 null. */
+  function deathMarks () {
+    const f = E.glyphs || path.join(E.root, 'plugin', 'src', 'main', 'resources', 'glyphs.yml')
+    const m = fs.existsSync(f) && fs.readFileSync(f, 'utf8').match(/^death_fade:\s*\{mark_r:\s*(\d+),\s*shadow_r:\s*(\d+),\s*g0:\s*(\d+)\}/m)
+    return m ? { r: +m[1], shadowR: +m[2], g0: +m[3] } : null
+  }
+
+  /** 문구 줄의 표식: 글자색 #RRGGBB → (R, t), 그림자색 (ARGB 정수) → R. glyphs.yml death_fade 의 값과 견준다. */
+  function fadeMark (d) {
+    const parts = L.flatten(d.raw).filter((p) => p.text)
+    const p = parts[0]
+    if (!p || typeof p.color !== 'string' || !/^#[0-9a-f]{6}$/i.test(p.color)) return null
+    const v = parseInt(p.color.slice(1), 16)
+    const r = v >> 16; const g = (v >> 8) & 255; const bb = v & 255
+    const sh = p.shadow == null ? null : (Number(p.shadow) >>> 0)
+    const dm = deathMarks() || { g0: 144 }
+    return { r, g, b: bb, t: (g - dm.g0) * 256 + bb, shadow: sh, colors: [...new Set(parts.map((x) => String(x.color)))], fonts: [...new Set(parts.map((x) => x.font))] }
+  }
+
+  function checkFadeLine (d) {
+    sc.check('fade: death screen message is the you_died_fade glyph line (glyphs.yml)', d && yf && d.message === yf.char,
+      d ? [...d.message].slice(0, 8).map((c) => c.codePointAt(0).toString(16)).join(' ') + '…' : '')
+    const m = d && fadeMark(d)
+    sc.check('fade: one font souls:death, one marker colour', m && m.fonts.length === 1 && m.fonts[0] === (yf && yf.font) && m.colors.length === 1,
+      m ? `${m.fonts.join(',')} ${m.colors.join(',')}` : '표식 없음')
+    const dm = deathMarks()
+    sc.check('fade: glyphs.yml has the death_fade markers', !!dm, dm ? JSON.stringify(dm) : '없음')
+    if (!dm) return
+    sc.check(`fade: marker colour (${dm.r}, ${dm.g0} + t/256, t%256), t < 24000`, m && m.r === dm.r && m.t >= 0 && m.t < 24000,
+      m ? `r=${m.r} g=${m.g} b=${m.b} t=${m.t}` : '')
+    sc.check(`fade: shadow colour is the shadow marker (opaque, ${dm.shadowR}, same t)`, m && m.shadow !== null &&
+      (m.shadow >>> 24) === 255 && ((m.shadow >> 16) & 255) === dm.shadowR && ((m.shadow >> 8) & 255) === m.g && (m.shadow & 255) === m.b,
+    m && m.shadow !== null ? '#' + (m.shadow >>> 0).toString(16) : '그림자색 없음')
+  }
 
   function checkGlyphTitle (t) {
     sc.check(`title is the ${tg.name} glyph line (glyphs.yml)`, t.plain === tg.char, `${[...t.plain].map((c) => c.codePointAt(0).toString(16)).join(' ')}`)
