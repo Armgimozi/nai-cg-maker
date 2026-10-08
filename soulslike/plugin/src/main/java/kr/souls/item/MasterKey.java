@@ -46,14 +46,18 @@ public final class MasterKey {
         return ID.equals(Items.tag(it, Keys.ITEM));
     }
 
+    /** 만능 열쇠가 이 문을 여나 (가진 것과 상관없이): 열쇠 문이면 참, 이야기로 막힌 문과 모르는 문은 거짓. */
+    public static boolean opensLock(String lockId) {
+        return lockId != null && !STORY_DOORS.contains(lockId) && KEY_DOORS.containsKey(lockId);
+    }
+
     /**
      * 이 사람이 이 잠긴 문을 열 수 있나 (문 코드가 부른다, M2·M3). 열쇠 문 (KEY_DOORS) 이면 그 문의 열쇠나 만능 열쇠를 가졌을 때 참.
      * 이야기로 막힌 문과 모르는 문은 늘 거짓 (열쇠로 열리는 문이 아니다).
      */
     public static boolean opens(Player p, String lockId) {
-        if (p == null || lockId == null || STORY_DOORS.contains(lockId)) return false;
+        if (p == null || !opensLock(lockId)) return false;
         String own = KEY_DOORS.get(lockId);
-        if (own == null) return false;
         for (ItemStack it : p.getInventory().getContents()) {
             String id = Items.tag(it, Keys.ITEM);
             if (ID.equals(id) || own.equals(id)) return true;
