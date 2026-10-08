@@ -275,9 +275,12 @@ public final class Roll implements Listener {
             it.remove();
         }
         BlockData ceiling = CEILING.createBlockData();
+        StringBuilder dbg = new StringBuilder();
         for (Pos k : want) {
             if (have.add(k)) p.sendBlockChange(k.in(w).getLocation(), ceiling);
+            if (k.y() < by) dbg.append(' ').append(k.x()).append(',').append(k.z());
         }
+        plugin.test(p, String.format(Locale.ROOT, "DBGCRAWL t=%d x=%.2f z=%.2f pose=%s wall=%s", plugin.ticker().now(), x, z, p.getPose(), dbg));
     }
 
     /** 몸 상자 (가운데 x, z, ±0.3, 조금 넉넉히) 가 그 칸에 걸치는가. */
