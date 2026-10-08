@@ -103,10 +103,10 @@ def main(argv):
     H, Wd = L.shape
     x1 = min(Wd, 330 * G)
     # 채팅 글 덩이 (줄들이 붙어 한 띠가 된다): 화면 아래 단축 슬롯·입력 줄 위에서 가장 큰 띠. 그 맨 아래 9 GUI 픽셀이 되풀이 줄
-    bs = [b for b in bands(L, 0, x1) if b[1] - b[0] >= 3 * G and b[1] < H - 16 * G]
-    blk = max(bs, key=lambda b: b[1] - b[0])
+    bs = [b for b in bands(L, 0, x1) if b[1] - b[0] >= 3 * G and b[1] < H - 16 * G and b[0] > H * 0.35]
+    blk = bs[-1]                      # 가장 아래 띠 (줄이 붙으면 덩이 전체) 의 맨 아래 9 GUI 픽셀
     y1 = blk[1]
-    y0 = y1 - 8 * G - 1
+    y0 = max(blk[0] - 1, y1 - 8 * G - 1)
     bs = [(blk[0], y0), (y0, y1)]
     ws = words(L, y0, y1, 5, x_min=4 * G)   # 채팅 왼쪽 표시 막대 (x < 4 GUI) 는 뺀다
     names = [("H", 10), ("n", 10), ("기", 6), ("다", 6), ("8", 10)]

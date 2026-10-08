@@ -93,9 +93,10 @@ def make_roles(st, title_chars_kr, title_chars_la=None):
     body_kr = Role("body_kr", [Face(st.BODY_KR[0], st.BODY_KR[1], st.BODY_KR[2])], space=st.BODY_SPACE)
     body_kr.add([ch for ch in fonts.hangul_set() if ch not in body_la.glyphs])
     title_la = MappedRole("title_la", [Face(st.TITLE_LA[0], st.TITLE_LA[1], st.TITLE_LA[2])], track=st.TITLE_TRACK,
-                          space=st.TITLE_SPACE)
+                          space=st.TITLE_SPACE, max_asc=8)
     title_la.add(title_chars_la or [chr(c) for c in range(0x21, 0x7F)] + list("·’‘“”—–…"))
-    title_kr = MappedRole("title_kr", [Face(st.TITLE_KR[0], st.TITLE_KR[1], st.TITLE_KR[2])], space=st.TITLE_SPACE)
+    title_kr = MappedRole("title_kr", [Face(st.TITLE_KR[0], st.TITLE_KR[1], st.TITLE_KR[2])], space=st.TITLE_SPACE,
+                          max_asc=8)
     title_kr.add([ch for ch in title_chars_kr if ch not in title_la.glyphs])
     return {"body_la": body_la, "body_kr": body_kr, "title_la": title_la, "title_kr": title_kr}
 

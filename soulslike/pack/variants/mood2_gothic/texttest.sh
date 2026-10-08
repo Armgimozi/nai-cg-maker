@@ -16,5 +16,5 @@ c "tellraw Tester {\"text\":\"레딘 경비대 직검 · 수문장 흐롤프 · 
 c "tellraw Tester {\"text\":\"REDIN GUARD SWORD · HROLF THE WARDEN\",\"font\":\"$TF\"}"
 c 'tellraw Tester {"text":"0123456789 0123456789 공격력 62 무게 3.0"}'
 c 'tellraw Tester {"text":"HHHHHHHHHH nnnnnnnnnn 기기기기기기 다다다다다다 8888888888"}'
-tools/client/run_client.sh --do "$PORT" wait:1 key:t wait:1 "shot:$NAME" key:Escape wait:0.3 clearchat 2>&1 | grep SHOT
+tools/client/run_client.sh --do "$PORT" slot:9 wait:1 key:t wait:1 "shot:$NAME" key:Escape wait:0.3 clearchat slot:1 2>&1 | grep SHOT
 c effect clear Tester minecraft:blindness

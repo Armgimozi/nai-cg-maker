@@ -43,7 +43,7 @@ TEXT_VSH_BLOCK = """
     gothicShadow = 0.0;
     if (ProjMat[3][3] == 1.0) {
         ivec3 rgbi = ivec3(Color.rgb * 255.0 + 0.5);
-        bool hudMark = rgbi.r == 254 && rgbi.g == 253 && rgbi.b >= 1 && rgbi.b <= 6;
+        bool hudMark = rgbi.r == 254 && rgbi.g == 253 && rgbi.b >= 1 && rgbi.b <= 7;
         int hiC = max(rgbi.r, max(rgbi.g, rgbi.b));
         vec4 light = texelFetch(Sampler2, UV2 / 16, 0);
         if ((!hudMark && hiC <= 63 && hiC > 0) || (hudMark && rgbi.b == 5)) {
@@ -184,8 +184,21 @@ void main() {
 """
 
 
+HUD_CAP_OLD = """            if (mark.b == 3) {
+                shift.x = (at.x - centre) * (s - 1.0);
+            } else {"""
+HUD_CAP_NEW = """            if (mark.b == 3) {
+                shift.x = (at.x - centre) * (s - 1.0);
+            } else if (mark.b == 7) {
+                // mood2_gothic: boss bar end caps move rigidly with the stretched bar ends (not stretched themselves)
+                shift.x = sign(at.x - centre) * floor((s - 1.0) * 100.0 + 0.5);
+            } else {"""
+
+
 def text_vsh(base_vsh, st):
     s = base_vsh
+    assert HUD_CAP_OLD in s and "mark.b >= 1 && mark.b <= 6" in s, "기본 팩 HUD 셰이더가 바뀌었다"
+    s = s.replace(HUD_CAP_OLD, HUD_CAP_NEW, 1).replace("mark.b >= 1 && mark.b <= 6", "mark.b >= 1 && mark.b <= 7", 1)
     assert "out vec2 texCoord0;\n" in s and "    texCoord0 = UV0;\n" in s, "기본 팩 rendertype_text.vsh 가 바뀌었다"
     s = s.replace("out vec2 texCoord0;\n", "out vec2 texCoord0;\nout float gothicShadow;\nout float gothicGui;\n", 1)
     block = TEXT_VSH_BLOCK
@@ -206,3 +219,260 @@ def build_text(pack, st):
     write(os.path.join(core, "rendertype_text.vsh"), text_vsh(base, st))
     write(os.path.join(core, "rendertype_text.fsh"), TEXT_FSH.replace("GAMMA", f"{st.TEXT_GAMMA:.3f}"))
     write(os.path.join(core, "rendertype_text_see_through.fsh"), SEE_THROUGH_FSH)
+
+
+GUI_VSH = """#version 330
+
+// Can't moj_import in things used during startup, when resource packs don't exist.
+// This is a copy of dynamicimports.glsl and projection.glsl
+layout(std140) uniform DynamicTransforms {
+    mat4 ModelViewMat;
+    vec4 ColorModulator;
+    vec3 ModelOffset;
+    mat4 TextureMat;
+};
+layout(std140) uniform Projection {
+    mat4 ProjMat;
+};
+
+in vec3 Position;
+in vec4 Color;
+
+out vec4 vertexColor;
+out vec3 gothicFill;
+out float gothicX;
+
+// Square Soul mood2_gothic (pack/variants/mood2_gothic/shaders.py): vanilla gui.vsh plus flags for a few vanilla fills:
+// container screen dim (0xC0101010..0xD0101010) -> 1, death screen red wash (0x60500000 / 0xA0803030) -> 2,
+// chat line backdrop (black, translucent) -> 3; the chat "system message" bar (0xD0D0D0) becomes bronze.
+void main() {
+    gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
+
+    vertexColor = Color;
+    ivec4 c = ivec4(Color * 255.0 + 0.5);
+    float mode = 0.0;
+    if (c.rgb == ivec3(16, 16, 16) && (c.a == 192 || c.a == 208)) mode = 1.0;
+    else if (c == ivec4(80, 0, 0, 96) || c == ivec4(128, 48, 48, 160)) mode = 2.0;
+    else if (c.rgb == ivec3(208, 208, 208)) vertexColor = vec4(BRONZE, Color.a * 0.85);
+    else if (c.rgb == ivec3(0, 0, 0) && c.a > 0 && c.a < 200) mode = 3.0;
+    gothicFill = vec3(gl_Position.xy / gl_Position.w, mode);
+    gothicX = (gl_Position.x / gl_Position.w + 1.0) / ProjMat[0][0];
+}
+"""
+
+GUI_FSH = """#version 330
+
+// Can't moj_import in things used during startup, when resource packs don't exist.
+// This is a copy of dynamicimports.glsl
+layout(std140) uniform DynamicTransforms {
+    mat4 ModelViewMat;
+    vec4 ColorModulator;
+    vec3 ModelOffset;
+    mat4 TextureMat;
+};
+
+in vec4 vertexColor;
+in vec3 gothicFill;
+in float gothicX;
+
+out vec4 fragColor;
+
+// Square Soul mood2_gothic: the flagged fills become deep vignettes with a little candle light from above (see gui.vsh).
+void main() {
+    vec4 color = vertexColor;
+    if (gothicFill.z > 2.5) {
+        // chat: warm ink that dissolves to the right instead of a hard black box
+        color = vec4(INK, min(0.82, color.a * 1.5) * (1.0 - smoothstep(140.0, 330.0, gothicX)));
+    } else if (gothicFill.z > 0.5) {
+        vec2 p = gothicFill.xy;
+        float r = length(p * vec2(0.86, 1.0));
+        if (gothicFill.z < 1.5) {
+            float a = mix(0.70, 0.98, smoothstep(0.25, 1.30, r));
+            float candle = 1.0 - smoothstep(0.0, 1.0, length((p - vec2(0.0, 1.15)) * vec2(0.70, 1.40)));
+            color = vec4(mix(INK, BRONZE1, 0.30 * candle), a - 0.12 * candle);
+        } else {
+            float a = mix(0.50, 0.97, smoothstep(0.20, 1.30, r));
+            float low = smoothstep(0.1, -1.0, p.y);
+            color = vec4(mix(INK, BLOOD, 0.55 * low), a);
+        }
+    }
+    if (color.a == 0.0) {
+        discard;
+    }
+    fragColor = color * ColorModulator;
+}
+"""
+
+PTC_VSH = """#version 330
+
+// Can't moj_import in things used during startup, when resource packs don't exist.
+// This is a copy of dynamicimports.glsl and projection.glsl
+layout(std140) uniform DynamicTransforms {
+    mat4 ModelViewMat;
+    vec4 ColorModulator;
+    vec3 ModelOffset;
+    mat4 TextureMat;
+};
+layout(std140) uniform Projection {
+    mat4 ProjMat;
+};
+
+in vec3 Position;
+in vec2 UV0;
+in vec4 Color;
+
+out vec2 texCoord0;
+out vec4 vertexColor;
+out float gothicGui;
+
+// Square Soul mood2_gothic: vanilla position_tex_color.vsh plus
+//  * a flag for GUI quads (orthographic): the fragment shader reads their texture with an area filter;
+//  * the in-game vignette (the only full-screen GUI quad with texture 0..1 on the screen corners, drawn in a grey below
+//    white) is kept at least VIGNETTE_MIN strong, so the corners always close in (misc/vignette.png gives the shape).
+void main() {
+    gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
+
+    texCoord0 = UV0;
+    vertexColor = Color;
+    gothicGui = ProjMat[3][3] == 1.0 ? 1.0 : 0.0;
+    if (ProjMat[3][3] == 1.0 && Color.a > 0.999 && Color.r < 0.999 && Color.r == Color.g && Color.g == Color.b) {
+        vec2 screen = vec2(2.0 / ProjMat[0][0], -2.0 / ProjMat[1][1]);
+        vec2 at = (ModelViewMat * vec4(Position, 1.0)).xy;
+        bool cornerX = (abs(at.x) < 0.01 && UV0.x == 0.0) || (abs(at.x - screen.x) < 0.51 && UV0.x == 1.0);
+        bool cornerY = (abs(at.y) < 0.01 && UV0.y == 0.0) || (abs(at.y - screen.y) < 0.51 && UV0.y == 1.0);
+        if (cornerX && cornerY) {
+            vertexColor.rgb = vec3(mix(VIGNETTE_MIN, 1.0, Color.r));
+        }
+    }
+}
+"""
+
+PTC_FSH = """#version 330
+
+// Can't moj_import in things used during startup, when resource packs don't exist.
+// This is a copy of dynamicimports.glsl
+layout(std140) uniform DynamicTransforms {
+    mat4 ModelViewMat;
+    vec4 ColorModulator;
+    vec3 ModelOffset;
+    mat4 TextureMat;
+};
+
+uniform sampler2D Sampler0;
+
+in vec2 texCoord0;
+in vec4 vertexColor;
+in float gothicGui;
+
+out vec4 fragColor;
+
+// Square Soul mood2_gothic: vanilla position_tex_color.fsh, but GUI sprites are read with an area (box) filter over the
+// texels the screen pixel covers. Our UI art is drawn at 2 texels per GUI pixel; at GUI scale 3 a texel is 1.5 screen
+// pixels and nearest sampling made lines 1 or 2 pixels thick by position. 1:1 art is unchanged.
+void main() {
+    vec4 color;
+    if (gothicGui > 0.5) {
+        vec2 size = vec2(textureSize(Sampler0, 0));
+        vec2 t = texCoord0 * size;
+        vec2 fp = clamp(vec2(abs(dFdx(t).x) + abs(dFdy(t).x), abs(dFdx(t).y) + abs(dFdy(t).y)), vec2(0.001), vec2(4.0));
+        vec2 lo = t - 0.5 * fp;
+        vec2 hi = t + 0.5 * fp;
+        ivec2 i0 = ivec2(floor(lo));
+        ivec2 i1 = ivec2(ceil(hi)) - 1;
+        ivec2 hiT = ivec2(size) - 1;
+        vec4 prem = vec4(0.0);
+        for (int y = i0.y; y <= i1.y; y++) {
+            float wy = min(hi.y, float(y + 1)) - max(lo.y, float(y));
+            if (wy <= 0.0) continue;
+            for (int x = i0.x; x <= i1.x; x++) {
+                float wx = min(hi.x, float(x + 1)) - max(lo.x, float(x));
+                if (wx <= 0.0) continue;
+                vec4 s = texelFetch(Sampler0, clamp(ivec2(x, y), ivec2(0), hiT), 0);
+                prem += wx * wy * vec4(s.rgb * s.a, s.a);
+            }
+        }
+        prem /= fp.x * fp.y;
+        color = prem.a > 0.0 ? vec4(prem.rgb / prem.a, prem.a) : vec4(0.0);
+        color *= vertexColor;
+    } else {
+        color = texture(Sampler0, texCoord0) * vertexColor;
+    }
+    if (color.a == 0.0) {
+        discard;
+    }
+    fragColor = color * ColorModulator;
+}
+"""
+
+
+def menu_fsh():
+    return f"""#version 330
+
+uniform sampler2D InSampler;
+
+layout(std140) uniform SamplerInfo {{
+    vec2 OutSize;
+    vec2 InSize;
+}};
+
+in vec2 texCoord;
+
+out vec4 fragColor;
+
+// Square Soul mood2_gothic: after the vanilla menu blur, drain the colour, darken, close in with a heavy vignette and
+// let a little warm candle light fall from above.
+void main() {{
+    vec3 c = texture(InSampler, texCoord).rgb;
+    vec2 p = texCoord * 2.0 - 1.0;
+    float aspect = OutSize.x / max(OutSize.y, 1.0);
+    float r = length(vec2(p.x * min(aspect, 1.9) / 1.6, p.y));
+    float lum = dot(c, vec3(0.299, 0.587, 0.114));
+    vec3 col = mix(c, vec3(lum) * {vec3("bone1")} * 1.5, 0.5);
+    col *= mix(0.55, 0.08, smoothstep(0.15, 1.25, r));
+    float candle = 1.0 - smoothstep(0.0, 1.0, length((p - vec2(0.0, 1.15)) * vec2(0.65, 1.35)));
+    col += {vec3("bronze1")} * 0.18 * candle;
+    fragColor = vec4(col, 1.0);
+}}
+"""
+
+
+def blur_json(vanilla_blur):
+    """바닐라 blur.json 의 마지막 흐림을 swap 으로 내고, gothic_menu 한 번으로 main 에 쓴다."""
+    data = json.loads(vanilla_blur)
+    passes = data["passes"]
+    assert passes[-1]["output"] == "minecraft:main"
+    passes[-1]["output"] = "swap"
+    passes.append({
+        "vertex_shader": "minecraft:core/screenquad",
+        "fragment_shader": "souls:post/gothic_menu",
+        "inputs": [{"sampler_name": "In", "target": "swap", "bilinear": False}],
+        "output": "minecraft:main",
+    })
+    return json.dumps(data, indent=2) + "\n"
+
+
+def vignette_png(path):
+    """게임 화면 비네트 (256×256 회색, 흰 = 어둡게): 바닐라보다 넓고 무겁게, 가운데는 비운다."""
+    import numpy as np
+    from PIL import Image
+    n = 256
+    yy, xx = np.mgrid[0:n, 0:n]
+    p = (np.stack([xx, yy], -1) + 0.5) / n * 2 - 1
+    r = np.sqrt((p[..., 0] * 0.92) ** 2 + p[..., 1] ** 2)
+    v = np.clip((r - 0.32) / (1.20 - 0.32), 0, 1)
+    v = v * v * (3 - 2 * v)
+    Image.fromarray(np.clip(np.rint(v * 255), 0, 255).astype(np.uint8), "L").convert("RGB").save(path)
+
+
+def build_gui(pack, vanilla_blur):
+    core = os.path.join(pack, "assets", "minecraft", "shaders", "core")
+    write(os.path.join(core, "gui.vsh"), GUI_VSH.replace("BRONZE", vec3("bronze2")))
+    write(os.path.join(core, "gui.fsh"), GUI_FSH.replace("BRONZE1", vec3("bronze1")).replace("BLOOD", vec3("blood0"))
+          .replace("INK", vec3("ink0")))
+    write(os.path.join(core, "position_tex_color.vsh"), PTC_VSH.replace("VIGNETTE_MIN", f"{VIGNETTE_MIN:.3f}"))
+    write(os.path.join(core, "position_tex_color.fsh"), PTC_FSH)
+    write(os.path.join(pack, "assets", "souls", "shaders", "post", "gothic_menu.fsh"), menu_fsh())
+    write(os.path.join(pack, "assets", "minecraft", "post_effect", "blur.json"), blur_json(vanilla_blur))
+    vp = os.path.join(pack, "assets", "minecraft", "textures", "misc", "vignette.png")
+    os.makedirs(os.path.dirname(vp), exist_ok=True)
+    vignette_png(vp)

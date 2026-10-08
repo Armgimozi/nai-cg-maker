@@ -55,6 +55,8 @@ class Canvas:
         alpha = int(max(0, min(255, round(alpha))))
         if alpha <= 0:
             return
+        if alpha in palette.GLOW_ALPHA:          # 250~252 는 발광 표시 알파 (artlint glowalpha): 한 단 아래로
+            alpha = min(palette.GLOW_ALPHA) - 1
         if under and self.a[y, x] > 0:
             return
         self.ci[y, x] = _IDX[name]

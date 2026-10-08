@@ -292,6 +292,11 @@ def remap_block():
         f"        float a = shadow ? Color.a * {sh_a:.4f} : Color.a;",
         "        vertexColor = vec4(ink, a) * texelFetch(Sampler2, UV2 / 16, 0);",
         "    }",
+        "    // the boss name's shadow (HUD marker b 5) also hugs its glyphs: half a GUI pixel instead of one",
+        "    if (mark.r == 254 && mark.g == 253 && mark.b == 5 && ProjMat[3][3] == 1.0) {",
+        "        gl_Position.x -= 0.5 * ProjMat[0][0];",
+        "        gl_Position.y -= 0.5 * ProjMat[1][1];",
+        "    }",
     ]
     return "\n".join(lines) + "\n"
 

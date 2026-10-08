@@ -111,7 +111,7 @@ def main(argv):
         import lang  # noqa: E402
         extra_default, glyphs_yml = hudart.build(pack, base_glyphs)
         guiart.build(pack)
-        lang.build(pack, info)
+        extra_default = extra_default + lang.build(pack, info)
     text.write_font_defs(pack, info, extra_default)
     text.write_shaders(pack)
     if "--text-only" not in argv:

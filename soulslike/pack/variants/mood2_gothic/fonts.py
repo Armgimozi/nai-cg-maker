@@ -147,13 +147,14 @@ class Role:
     rasterise() 가 글자마다 (알파, 그림자, 칸 안 자리) 와 진행 폭 (정수 GUI 픽셀) 을 만든다.
     """
 
-    def __init__(self, name, faces, track=0.0, space=3, gain=1.0, shift=None):
+    def __init__(self, name, faces, track=0.0, space=3, gain=1.0, shift=None, max_asc=None):
         self.name = name
         self.faces = faces
         self.track = track
         self.space = space
         self.gain = gain
         self.shift = shift or {}        # 글꼴 열쇠 → 바탕선에서 내리는 텍셀 (한글과 로마자 바탕선 맞춤)
+        self.max_asc = max_asc          # ascent 상한 (보스 막대 줄: 글자 네모 위가 줄 위 - 1 보다 위로 가면 안 된다)
         self.glyphs = {}                # 글자 → dict(a, x0, y0 (바탕선 기준 위쪽 줄 = -top), adv)
 
     def face_for(self, ch):
@@ -195,6 +196,8 @@ class Role:
         up = max((g["top"] for g in self.glyphs.values() if g["a"].size), default=K * 7)
         down = max((g["a"].shape[0] - g["top"] for g in self.glyphs.values() if g["a"].size), default=K)
         asc = int(math.ceil((up + HALO) / K))
+        if self.max_asc is not None:
+            asc = min(asc, self.max_asc)
         desc = int(math.ceil((down + HALO) / K))
         right = max(max(g["x0"] + g["a"].shape[1] + HALO for g in self.glyphs.values() if g["a"].size),
                     max((g["adv"] - 1) * K for g in self.glyphs.values()))
@@ -233,6 +236,9 @@ def atlas(role, chars_per_row=64):
         a = g["a"]
         if a.size:
             y0 = asc * K - g["top"]
+            if y0 < 0:
+                a = a[-y0:]
+                y0 = 0
             cell[y0:y0 + a.shape[0], g["x0"]:g["x0"] + a.shape[1]] = a
         # 진행 폭: 클라이언트는 알파가 0 이 아닌 가장 오른쪽 열로 잰다. 글자는 알파 0 (덮임은 R) 이라 (A-1)K - 1 열의 알파 1
         # 점 하나가 진행 폭을 A 로 정한다

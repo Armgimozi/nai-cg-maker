@@ -8,6 +8,7 @@ BODY_LA = ("eb_garamond", 38, 600)
 BODY_KR = ("noto_serif_kr", 34, 600)
 TITLE_LA = ("cinzel", 39, 700)
 TITLE_KR = ("nanum_myeongjo_eb", 36, None)
+DIGITS = ("eb_garamond", 44, 600)  # 소울 수 숫자 (HUD, 4 텍셀/GUI)
 TITLE_TRACK = 0.5               # 제목 로마자 자간 (GUI 픽셀): 비문 대문자는 넉넉하게
 BODY_SPACE = 3                  # 빈칸 진행 폭 (GUI 픽셀)
 TITLE_SPACE = 4

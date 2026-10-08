@@ -21,7 +21,6 @@ TITLE_KEYS = {
     "container.chestDouble": {"ko_kr": "§7큰 상자", "en_us": "§7Large Chest"},
     "container.barrel": {"ko_kr": "§7통", "en_us": "§7Barrel"},
     "container.enderchest": {"ko_kr": "§7엔더 상자", "en_us": "§7Ender Chest"},
-    "menu.options": {"ko_kr": "설정", "en_us": "Options"},
 }
 DIVIDED = ("menu.game",)
 
@@ -74,11 +73,45 @@ def read_json(path):
         return json.load(f)
 
 
+def _adv(img, scale):
+    import numpy as np
+    a = np.asarray(img)[..., 3]
+    cols = np.nonzero(a.max(0) > 0)[0]
+    w = int(cols[-1]) + 1 if len(cols) else 0
+    return int(0.5 + w * scale) + 1
+
+
+def with_divider(title, width, orn_char, orn_vis, orn_adv, spaces):
+    """
+    제목 글 뒤에 금실을 붙인다. 진행 폭은 제목 폭 그대로라 바닐라가 제목을 가운데에 맞추고, 금실은 제목 가운데 밑에 온다.
+    펜: 제목 끝 W → W/2 - D/2 (금실 시작) → 금실 진행 A → 다시 W.
+    """
+    s1 = spaces.get(-(width + orn_vis) / 2.0)
+    back = -(width + orn_vis) / 2.0
+    s2 = spaces.get(-(back + orn_adv))
+    return title + s1 + orn_char + s2
+
+
 def build(pack, st, meas):
-    """언어 파일 덧입힘. 돌려주는 값: 플러그인 사본에 넘길 layout (값 글자 폭, 빈칸 글자)."""
+    """
+    언어 파일 덧입힘과 장식 글자 (제목 밑 금실, 설명 칸 실선). 돌려주는 값: (layout (플러그인 사본의 수치 열),
+    기본 글꼴에 더할 공급자, 제목 글꼴에 더할 공급자).
+    """
+    import art_gui
     la_map = {v: k for k, v in meas["la_map"].items()}
     kr_map = {v: k for k, v in meas["kr_map"].items()}
     spaces = meas["spaces"]
+    fdir = os.path.join(pack, "assets", "souls", "textures", "font")
+    os.makedirs(fdir, exist_ok=True)
+
+    # 제목 밑 금실 (기본 글꼴·제목 글꼴 모두): GUI 120×5, 글자 위가 줄 위 + 11
+    div = art_gui.title_divider(120).image()
+    div.save(os.path.join(fdir, "gothic_divider.png"))
+    orn = chr(st.PUA_ORN)
+    orn_vis = div.width / art_gui.ORN_S
+    orn_adv = _adv(div, 1.0 / art_gui.ORN_S)
+    div_prov = {"type": "bitmap", "file": "souls:font/gothic_divider.png", "height": div.height // art_gui.ORN_S,
+                "ascent": -4, "chars": [orn]}
 
     def to_pua(s):
         out, i = [], 0
@@ -95,11 +128,15 @@ def build(pack, st, meas):
     mc_lang = os.path.join(pack, "assets", "minecraft", "lang")
     souls_lang = os.path.join(pack, "assets", "souls", "lang")
     report = {}
+    rules = []
     for lang in ("ko_kr", "en_us"):
         path = os.path.join(mc_lang, lang + ".json")
         data = read_json(path) if os.path.exists(path) else {}
         for key, langs in TITLE_KEYS.items():
-            data[key] = to_pua(langs[lang])
+            v = to_pua(langs[lang])
+            if key in DIVIDED:
+                v = with_divider(v, meas["pua"].width(v), orn, orn_vis, orn_adv, spaces)
+            data[key] = v
         typeset.write_json(path, dict(sorted(data.items())))
 
         spath = os.path.join(souls_lang, lang + ".json")
@@ -109,12 +146,24 @@ def build(pack, st, meas):
         col = max(widths.values()) + st.LABEL_GAP
         for k, v in STAT_LABELS.items():
             sdata["souls.gothic.stat." + k] = v[i] + spaces.get(col - widths[k])
+        name = sdata["souls.bonfire.test-name"]
+        sdata["souls.bonfire.test-name"] = with_divider(name, meas["title"].width(name), orn, orn_vis, orn_adv, spaces)
+        # 수치와 설명 사이 실선: 이 언어의 수치 칸 폭 (두 칸 + 열 간격) 만큼
+        block = 2 * (col + st.VALUE_COL) + st.COL_GAP
+        rule_ch = chr(st.PUA_ORN + 1 + i)
+        # 글자 그림 하나는 텍셀 256 을 넘을 수 없다 (클라이언트 글꼴 아틀라스 한 장이 256×256: 넘으면 빈 네모로 보인다)
+        rimg = art_gui.lore_rule(min(block, 124)).image()
+        rimg.save(os.path.join(fdir, f"gothic_rule_{lang}.png"))
+        rules.append({"type": "bitmap", "file": f"souls:font/gothic_rule_{lang}.png", "height": rimg.height // art_gui.ORN_S,
+                      "ascent": 3, "chars": [rule_ch]})
+        sdata["souls.gothic.lore-rule"] = rule_ch
         typeset.write_json(spath, dict(sorted(sdata.items())))
-        report[lang] = {"label_col": col}
+        report[lang] = {"label_col": col, "rule": block}
     pads = {}
     for adv in (1, 2, 4, 8, 16, 32, 64):
         pads[spaces.get(adv)] = adv
     gap = spaces.get(st.COL_GAP)
     values = {ch: meas["body"].width(ch) for ch in VALUE_CHARS}
     print("  언어:", report)
-    return {"values": values, "pads": pads, "gap": gap, "value_col": st.VALUE_COL}
+    layout = {"values": values, "pads": pads, "gap": gap, "value_col": st.VALUE_COL}
+    return layout, [div_prov] + rules, [div_prov]

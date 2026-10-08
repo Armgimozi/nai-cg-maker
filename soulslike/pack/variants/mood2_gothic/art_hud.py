@@ -65,7 +65,7 @@ def run_sheet(col):
     return img.image()
 
 
-IRON = ["ink0", "rust2", "bronze3", "parch3"]    # 단조 쇠: 아랫날 → 몸 → 윗날 밑 → 윗날 (촛불이 위에서)
+IRON = ["ink0", "rust1", "bronze2", "parch3"]    # 단조 쇠: 아랫날 → 몸 → 윗날 밑 → 윗날 (촛불이 위에서)
 GOLD = ["rust1", "bronze3", "parch2", "glim0"]
 EXT = 6                                          # 마구리가 막대 위·아래로 나오는 텍셀 (3 GUI 픽셀)
 
@@ -172,21 +172,25 @@ def soul_box():
 
 
 def soul_mark():
-    """넋 표식 (빛 허용 그림 soul_mark): 위로 꼬리가 선 불꽃 모양, 옅은 뼈빛, 속에 희미한 불씨. 22×22 텍셀 (11 GUI)."""
+    """
+    넋 표식 (빛 허용 그림 soul_mark): 둥근 몸에서 꼬리가 왼쪽 위로 휘며 가늘어지는 넋불, 옅은 뼈빛 테 (위에서 빛), 속은 밝은
+    뼈빛, 한가운데 희미한 불씨. 22×22 텍셀 (11 GUI).
+    """
     W = H = 22
     outer = Mask(W, H)
-    outer.ellipse(11.0, 15.0, 5.4, 5.6)
-    outer.poly([(6.2, 13.0), (9.0, 6.0), (12.5, 1.2), (12.6, 6.5), (15.8, 12.0)])
-    outer.line(12.5, 1.5, 14.8, 4.2, 1.4)
+    outer.ellipse(11.5, 15.4, 5.2, 5.0)
+    for cx, cy, r in ((10.2, 11.2, 3.9), (9.2, 7.6, 2.9), (9.4, 4.6, 2.0), (10.8, 2.4, 1.3), (12.6, 1.4, 0.8)):
+        outer.disc(cx, cy, r)
     inner = Mask(W, H)
-    inner.ellipse(11.0, 15.6, 3.4, 3.6)
-    inner.poly([(8.6, 14.0), (11.0, 8.0), (13.2, 14.0)])
-    core = Mask(W, H).ellipse(11.0, 16.4, 1.6, 1.8)
+    inner.ellipse(11.6, 15.8, 3.2, 3.0)
+    inner.disc(10.6, 12.0, 2.0)
+    inner.disc(10.0, 9.0, 1.2)
+    core = Mask(W, H).ellipse(11.7, 16.4, 1.5, 1.6)
     img = Img(W, H)
     img.over(draw.lit(outer.cov(), ["bone0", "bone0", "bone1", "bone2"]))
     img.fill(inner.cov(), "bone2", 0.95)
     img.fill(core.cov(), "bone3", 1.0)
-    img.fill(Mask(W, H).disc(11.0, 16.8, 0.8).cov(), "ember3", 0.9)
+    img.fill(Mask(W, H).disc(11.7, 16.8, 0.8).cov(), "ember3", 0.9)
     return img.image()
 
 

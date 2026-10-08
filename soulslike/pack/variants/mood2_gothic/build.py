@@ -150,6 +150,58 @@ def build_fonts(pack, title_kr_text, window_title_syllables):
     return roles, meas, sum(sizes.values()), finish
 
 
+def check_fonts(pack):
+    """글꼴 정의의 bitmap 공급자: ascent <= height (클라이언트가 글꼴 전체를 버린다), 그림이 있고 칸이 나누어 떨어진다."""
+    import json
+    from PIL import Image
+    for ns in ("minecraft", "souls"):
+        d = os.path.join(pack, "assets", ns, "font")
+        if not os.path.isdir(d):
+            continue
+        for n in sorted(os.listdir(d)):
+            if not n.endswith(".json"):
+                continue
+            with open(os.path.join(d, n), encoding="utf-8") as f:
+                provs = json.load(f).get("providers", [])
+            for p in provs:
+                if p.get("type") != "bitmap":
+                    continue
+                assert p["ascent"] <= p["height"], f"{ns}:{n} {p['file']}: ascent {p['ascent']} > height {p['height']}"
+                fns, fp = p["file"].split(":", 1)
+                img = Image.open(os.path.join(pack, "assets", fns, "textures", fp))
+                rows = p["chars"]
+                assert img.height % len(rows) == 0 and all(len(r) == len(rows[0]) for r in rows), f"{p['file']}: 칸"
+                assert img.width % len(rows[0]) == 0, f"{p['file']}: 칸 폭"
+                cw, ch = img.width // len(rows[0]), img.height // len(rows)
+                assert cw <= 256 and ch <= 256, f"{p['file']}: 칸 {cw}×{ch} 텍셀 (글꼴 아틀라스 256×256 을 넘는다)"
+
+
+def lint(pack):
+    """시안 팩의 그림을 artlint 로 본다 (글자 그림 gothic_* 는 덮임 자료라 뺀다: 색이 아니라 R 에 덮임, B 에 표식)."""
+    import artlint
+    files = []
+    for base, _, names in os.walk(pack):
+        for n in names:
+            if not n.endswith(".png"):
+                continue
+            rel = os.path.relpath(os.path.join(base, n), pack).replace(os.sep, "/")
+            if "/textures/font/gothic_" in "/" + rel and not rel.endswith(("gothic_divider.png",)) and "_rule_" not in rel:
+                continue
+            if rel.endswith("misc/vignette.png"):
+                continue   # 셰이더가 읽는 세기 지도 (회색, 바닐라도 그렇다)
+            if "/textures/block/" in "/" + rel or "/textures/item/" in "/" + rel or "/textures/colormap/" in "/" + rel:
+                continue   # 기본 팩 그대로 (gen_pack 이 이미 본다)
+            files.append(os.path.join(base, n))
+    rep = artlint.Report()
+    for f in sorted(files):
+        artlint.check_image(f, rep, os.path.relpath(f, pack))
+    errs = rep.errors
+    print(f"  artlint (시안 UI 그림 {len(files)}장): 오류 {len(errs)}, 경고 {len(rep.warnings)}")
+    for level, path, rule, msg in errs[:20]:
+        print(f"    [{level}] {os.path.relpath(path, pack)}: {rule} — {msg}")
+    return rep
+
+
 def main(argv):
     if not argv or argv[0].startswith("--"):
         print(__doc__)
@@ -167,14 +219,33 @@ def main(argv):
     base_size = os.path.getsize(base_zip)
     print(f"기본 팩 {base_size:,} 바이트 (git {rev})")
 
+    import art_gui
+    import art_hud
     import lang
     title_kr_text = lang.title_text(src)
     roles, meas, font_bytes, finish = build_fonts(pack, title_kr_text, lang.window_title_syllables())
     write_licences(pack, sorted({st.BODY_LA[0], st.BODY_KR[0], st.TITLE_LA[0], st.TITLE_KR[0]}))
     shaders.build_text(pack, st)
-    layout = lang.build(pack, st, meas)
-    finish()
+    with zipfile.ZipFile(client_jar()) as z:
+        vanilla_blur = z.read("assets/minecraft/post_effect/blur.json").decode("utf-8")
+    shaders.build_gui(pack, vanilla_blur)
+    layout, extra_default, extra_title = lang.build(pack, st, meas)
+    finish(extra_default, extra_title)
+    glyphs_yml = None
+    if "--no-art" not in argv:
+        t = time.time()
+        gui_files = art_gui.write_all(pack)
+        art_gui.death_band().image().save(os.path.join(pack, "assets", "souls", "textures", "font", "hud_death_band.png"))
+        digit_role = fonts.Role("digits", [fonts.Face(*st.DIGITS)])
+        digit_role.add("0123456789")
+        providers, hud_glyphs = art_hud.build(pack, digit_role)
+        art_hud.write_font(pack, providers)
+        with open(os.path.join(src, "src", "main", "resources", "glyphs.yml"), encoding="utf-8") as f:
+            glyphs_yml = art_hud.glyphs_yml(f.read(), hud_glyphs)
+        print(f"  그림: 창·단추 {len(gui_files)}장, HUD 그림 글자 {len(hud_glyphs)}자 ({time.time() - t:.1f}초)")
+        lint(pack)
 
+    check_fonts(pack)
     data = zip_bytes(pack)
     sha1 = hashlib.sha1(data).hexdigest()
     with open(os.path.join(work, "pack.zip"), "wb") as f:
@@ -184,7 +255,7 @@ def main(argv):
         plugin_jar = os.path.join(ROOT, "plugin", "build", "libs", "Soulslike.jar")
     else:
         import java_hook
-        plugin_jar = java_hook.build(work, src, st, layout)
+        plugin_jar = java_hook.build(work, src, st, layout, glyphs_yml)
     replace_in_jar(plugin_jar, out_jar, {"pack.zip": data})
     print(f"시안 팩 {len(data):,} 바이트 (기본보다 {len(data) - base_size:+,}; 글자 그림 {font_bytes:,}), sha1 {sha1}")
     print(f"  → {os.path.join(work, 'pack.zip')}, {out_jar}")

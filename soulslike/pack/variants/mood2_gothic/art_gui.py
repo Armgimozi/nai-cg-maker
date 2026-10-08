@@ -29,9 +29,9 @@ if PACK_DIR not in sys.path:
 import gui_skin  # noqa: E402  (칸 배치 CONTAINER_LAYOUTS, 읽기만)
 
 GUI = ("assets", "minecraft", "textures", "gui")
-IRON = ["ink0", "rust2", "bronze3", "parch3"]
+IRON = ["ink0", "rust1", "bronze2", "parch3"]
 GOLD = ["rust1", "bronze3", "parch2", "glim0"]
-PANEL_A = 0.86
+PANEL_A = 0.88
 
 
 def gpath(pack, *parts):
@@ -58,8 +58,11 @@ def candle(dx, dy, depth):
     return None
 
 
-def panel(img, x0, y0, w, h, alpha=PANEL_A, glow=12, fade=(0.35, 0.65)):
-    """판 (텍셀 네모). 가장자리 len(fade) 줄은 알파 계단, 귀는 한 텍셀 깎는다. 윗날 밑 glow 텍셀에 촛불 기운."""
+def panel(img, x0, y0, w, h, alpha=PANEL_A, glow=12, fade=(0.35, 0.65), uniform=False):
+    """
+    판 (텍셀 네모). 가장자리 len(fade) 줄은 알파 계단, 귀는 한 텍셀 깎는다. 윗날 밑 glow 텍셀에 촛불 기운.
+    uniform: 9 조각 그림 (가운데가 이어 붙여진다) 이면 촛불 기운을 가로로 고르게 (위에서 아래로만 옅어진다).
+    """
     for y in range(h):
         for x in range(w):
             d = min(x, y, w - 1 - x, h - 1 - y)
@@ -67,19 +70,19 @@ def panel(img, x0, y0, w, h, alpha=PANEL_A, glow=12, fade=(0.35, 0.65)):
             if corner == 0:
                 continue
             a = alpha * (fade[d] if d < len(fade) else 1.0)
-            name = "ink0"
+            name = "ash0"
             if glow and y >= len(fade):
-                cn = candle(abs(x + 0.5 - w / 2.0) / (w / 2.0), y - len(fade), glow)
+                cn = candle(0.0 if uniform else abs(x + 0.5 - w / 2.0) / (w / 2.0), y - len(fade), glow)
                 if cn:
                     name = cn
             img.put(x0 + x, y0 + y, name, a)
 
 
-def frame(img, x0, y0, w, h, inset=5, inner=True):
+def frame(img, x0, y0, w, h, inset=5, inner=True, uniform=False):
     """두 줄 테: 바깥 줄 (inset, 2 텍셀 굵기) 은 위 금빛·옆 청동·아래 녹, 안쪽 줄 (inset+4, 1 텍셀) 은 흐린 청동."""
     L, T, R, B = x0 + inset, y0 + inset, x0 + w - 1 - inset, y0 + h - 1 - inset
     for x in range(L, R + 1):
-        dx = abs(x + 0.5 - (x0 + w / 2.0)) / (w / 2.0)
+        dx = 0.4 if uniform else abs(x + 0.5 - (x0 + w / 2.0)) / (w / 2.0)
         img.put(x, T, "parch3" if dx < 0.25 else ("parch2" if dx < 0.6 else "parch1"), 1.0)
         img.put(x, T + 1, "bronze2", 1.0)
         img.put(x, B - 1, "rust1", 1.0)
@@ -158,25 +161,29 @@ def corners(img, x0, y0, w, h, inset=3, size=16, top=True, bottom=True):
         img.over(flip(relit, True, False), x0 + w - inset - size, y0 + h - inset - size)
 
 
-def well(img, x, y, w=18, h=18, rim=None):
-    """바닐라 칸 상자 (GUI x, y, w×h) 안의 우물: 아이템 자리 (x+1..x+w-2) 가 텍셀 [2(x+1), 2(x+w-1))."""
+def well(img, x, y, w=18, h=18, rim=None, floor=0.93):
+    """
+    바닐라 칸 상자 (GUI x, y, w×h) 안의 우물: 아이템 자리 (x+1..x+w-2) 가 텍셀 [2(x+1), 2(x+w-1)). 바깥 한 텍셀 (바닐라 그늘·입술
+    자리의 안쪽 반) 에 쇠 테 (위는 촛불을 받은 청동, 옆·아래는 녹), 안쪽 위·왼쪽 벽은 그늘, 아래 벽은 녹빛 입술.
+    """
     X0, Y0, X1, Y1 = 2 * (x + 1), 2 * (y + 1), 2 * (x + w - 1), 2 * (y + h - 1)
     for yy in range(Y0, Y1):
         for xx in range(X0, X1):
-            img.put(xx, yy, "ink0", 0.88)
+            img.put(xx, yy, "ink0", floor)
     for xx in range(X0, X1):
         img.put(xx, Y0, "ink0", 1.0)                 # 위 안벽: 그늘
-        img.put(xx, Y1 - 1, "rust1", 0.85)           # 아래 입술: 촛불을 받은 녹
+        img.put(xx, Y0 + 1, "ink0", 0.97)
+        img.put(xx, Y1 - 1, "rust0", 0.95)           # 아래 입술: 촛불을 받은 녹
     for yy in range(Y0 + 1, Y1 - 1):
-        img.put(X0, yy, "ink0", 0.97)
-        img.put(X1 - 1, yy, "rust0", 0.85)
-    if rim:
-        for xx in range(X0 - 1, X1 + 1):
-            img.put(xx, Y0 - 1, rim[0], 1.0)
-            img.put(xx, Y1, rim[1], 1.0)
-        for yy in range(Y0, Y1):
-            img.put(X0 - 1, yy, rim[2], 1.0)
-            img.put(X1, yy, rim[2], 1.0)
+        img.put(X0, yy, "ink0", 1.0)
+        img.put(X1 - 1, yy, "ink0", 0.97)
+    top, bot, side = rim or ("bronze1", "rust1", "rust1")
+    for xx in range(X0 - 1, X1 + 1):
+        img.put(xx, Y0 - 1, top, 0.95)
+        img.put(xx, Y1, bot, 0.9)
+    for yy in range(Y0, Y1):
+        img.put(X0 - 1, yy, side, 0.85)
+        img.put(X1, yy, side, 0.85)
 
 
 def divider(img, x0, x1, y, gem=True):
@@ -224,11 +231,11 @@ def container(name):
     img.over(c, w - c.w // 2, 0)
     if L["alcove"]:
         x, y, aw, ah = L["alcove"]
-        well(img, x, y, aw, ah)
+        well(img, x, y, aw, ah, floor=0.97)
     for x, y in L["wells"]:
         well(img, x, y)
     for x, y, rw, rh in L["result"]:
-        well(img, x, y, rw, rh, rim=("parch2", "bronze2", "bronze3"))
+        well(img, x, y, rw, rh, rim=("parch3", "bronze2", "bronze3"))
     if L["arrow"]:
         arrow(img, *L["arrow"])
     for x0, x1, y in L["dividers"]:
@@ -239,24 +246,33 @@ def container(name):
 # ─────────────────────────── 단축 슬롯 ───────────────────────────
 
 def hotbar():
-    """182×22 GUI. 칸 상자 (2+20k, 2) 18×18, 아이템 (3+20k, 3). 칸마다 우물, 칸 사이 아래에 쇠 고리 이음, 양 끝에 꼭지."""
+    """
+    182×22 GUI. 칸 상자 (2+20k, 2) 18×18, 아이템 (3+20k, 3). 칸마다 쇠 테 우물, 칸 뒤로 지나가는 단조 쇠 띠 (윗날 청동),
+    칸 사이 띠 위에 작은 마름모 못, 양 끝에 둥근 꼭지의 기둥.
+    """
     img = Img(364, 44)
-    # 칸들을 잇는 쇠 띠 (칸 뒤, 가운데 아래쪽): 위 금빛 한 줄
-    for x in range(4, 360):
-        img.put(x, 37, "bronze2", 0.85)
-        img.put(x, 38, "rust1", 0.9)
-        img.put(x, 39, "ink0", 0.8)
+    for x in range(2, 362):
+        img.put(x, 19, "bronze2", 0.9)
+        img.put(x, 20, "rust1", 0.95)
+        img.put(x, 21, "rust1", 0.95)
+        img.put(x, 22, "ink0", 0.9)
+        img.put(x, 23, "ink0", 0.5)
     for k in range(9):
         x = 2 + 20 * k
-        X0, Y0 = 2 * x, 4
-        for yy in range(Y0, Y0 + 36):
+        X0 = 2 * x
+        for yy in range(4, 40):
             for xx in range(X0, X0 + 36):
-                img.put(xx, yy, "ink0", 0.55)
-        well(img, x, 2)
+                img.put(xx, yy, "ink0", 0.62)
+        well(img, x, 2, floor=0.80)
+    for k in range(8):
+        cx = 2 * (2 + 20 * k + 19) + 0.0
+        m = Mask(364, 44).poly([(cx - 3.2, 21), (cx, 16.6), (cx + 3.2, 21), (cx, 25.4)])
+        img.over(draw.lit(m.cov(), GOLD))
     for ex in (0, 360):
         m = Mask(4, 44)
-        m.rect(0.5, 30, 3.5, 44)
-        m.disc(2, 30, 1.8)
+        m.rect(0.5, 8, 3.5, 36)
+        m.disc(2, 8, 1.8)
+        m.disc(2, 36, 1.8)
         img.over(draw.lit(m.cov(), IRON), ex, 0)
     return img
 
@@ -266,10 +282,10 @@ def selection():
     W, H = 48, 46
     m = Mask(W, H)
     m.rect(4, 4, 44, 7)
-    m.rect(4, 39, 44, 42)
-    m.rect(4, 4, 7, 42)
-    m.rect(41, 4, 44, 42)
-    for cx, cy in ((5.5, 5.5), (42.5, 5.5), (5.5, 40.5), (42.5, 40.5)):
+    m.rect(4, 40, 44, 43)
+    m.rect(4, 4, 7, 43)
+    m.rect(41, 4, 44, 43)
+    for cx, cy in ((5.5, 5.5), (42.5, 5.5), (5.5, 41.5), (42.5, 41.5)):
         m.disc(cx, cy, 2.8)
     m.poly([(24 - 5, 5.5), (24, 0.3), (24 + 5, 5.5), (24, 10.5)])
     hole = Mask(W, H).poly([(24 - 2, 5.5), (24, 3.2), (24 + 2, 5.5), (24, 7.8)])
@@ -284,8 +300,8 @@ def offhand(right):
     x0 = 7 if right else 0
     for yy in range(6, 42):
         for xx in range(2 * (x0 + 2), 2 * (x0 + 20)):
-            img.put(xx, yy, "ink0", 0.55)
-    well(img, x0 + 2, 3)
+            img.put(xx, yy, "ink0", 0.62)
+    well(img, x0 + 2, 3, floor=0.80)
     return img
 
 
@@ -323,7 +339,7 @@ def button(state, W=400, H=40):
     for x in range(W):
         d = min(x, W - 1 - x)
         k = 1.0 if d >= ends else (d + 1) / (ends + 1.0)
-        dx = abs(x + 0.5 - W / 2.0) / (W / 2.0)
+        dx = 0.4                       # 9 조각: 가운데는 이어 붙여지므로 가로로 고르게
         for y in range(4, H - 4):
             if state == "highlighted":
                 dy = y - 4
@@ -446,22 +462,25 @@ TT = 100            # GUI (텍셀 200)
 
 def tooltip_bg(divider_at=None, top_border=12):
     """
-    설명 칸 바탕 (바닐라는 글 둘레 12 GUI 밖까지 그린다). 판 3..96 GUI, 두 줄 테 (가장자리에서 5), 네 귀 단조 꺾쇠, 위 가운데
-    꽃 장식. divider_at (GUI y) 면 그 줄에 이름 밑 금실 (무기 칸: 이름 줄 밑).
+    설명 칸 바탕 (바닐라는 글 둘레 12 GUI 밖까지 그린다). 판 3..96 GUI, 두 줄 테 (가장자리에서 5), 네 귀 단조 꺾쇠. 9 조각
+    (가장자리 14) 이라 가운데·변은 이어 붙여진다: 장식은 귀 조각 안에만, 촛불 기운과 테 색은 가로로 고르다.
+    divider_at (GUI y) 면 그 줄에 이름 밑 금실 (왼쪽 끝 마름모는 왼쪽 조각 안).
     """
     W = H = TT * S
     img = Img(W, H)
-    panel(img, 6, 6, W - 12, H - 12, alpha=0.92, glow=min(2 * top_border - 10, 22))
-    frame(img, 6, 6, W - 12, H - 12, inset=4, inner=False)
+    panel(img, 6, 6, W - 12, H - 12, alpha=0.92, glow=min(2 * top_border - 10, 22), uniform=True)
+    frame(img, 6, 6, W - 12, H - 12, inset=4, inner=False, uniform=True)
     corners(img, 6, 6, W - 12, H - 12, inset=1, size=14)
-    c = crest(30, 14)
-    img.over(c, W // 2 - c.w // 2, 2)
     if divider_at is not None:
-        divider(img, 2 * 14, W - 2 * 14, 2 * divider_at, gem=False)
-        # 가운데 작은 마름모 대신 왼쪽 끝 장식 (이름이 왼쪽 맞춤이라)
+        y = 2 * divider_at
+        for x in range(24, W - 24):
+            d = W - 25 - x
+            k = 1.0 if d >= 20 else (d + 1) / 21.0
+            img.put(x, y, "parch1", 0.9 * k)
+            img.put(x, y + 1, "ink0", 0.6 * k)
         m = Mask(W, 8)
-        m.poly([(2 * 14 - 1, 4.0), (2 * 14 + 3, 0.6), (2 * 14 + 7, 4.0), (2 * 14 + 3, 7.4)])
-        img.over(draw.lit(m.cov(), GOLD), 0, 2 * divider_at - 4)
+        m.poly([(18.0, 4.0), (22.0, 0.6), (26.0, 4.0), (22.0, 7.4)])
+        img.over(draw.lit(m.cov(), GOLD), 0, y - 4)
     return img
 
 
@@ -526,3 +545,61 @@ def write_all(pack):
         sep.hline(0, 64, 1, "ink0", 0.5)
         save(sep, n + ".png")
     return out
+
+
+# ─────────────────────────── 사망 화면 띠, 제목 금실, 설명 칸 실선 (글꼴 그림) ───────────────────────────
+
+def death_band():
+    """
+    YOU DIED 뒤의 띠 (기본 팩 hud_death_band.png 를 2 배로, 공급자 높이 22 그대로라 진행 폭은 같다): 조각 셋 (왼쪽 끝, 가운데,
+    오른쪽 끝) 칸 폭 128 텍셀. 먹 한 색에 알파 계단 (가운데 82%), 위·아래 안쪽에 반 픽셀 청동 실 (단추·창의 금실과 같은
+    말), 양 끝 32 텍셀에서 옅어진다.
+    """
+    t, h = 128, 44
+    img = Img(t * 3, h)
+    rows = (0.10, 0.22, 0.36, 0.50, 0.62, 0.72)
+    for y in range(h):
+        d = min(y, h - 1 - y)
+        ra = rows[d] if d < len(rows) else 0.82
+        for i in range(3):
+            for x in range(t):
+                e = x if i == 0 else (t - 1 - x if i == 2 else t)
+                k = 1.0 if e >= 32 else (e + 1) / 33.0
+                img.put(i * t + x, y, "ink0", ra * k)
+                if y in (5, h - 6):
+                    img.put(i * t + x, y, "bronze2" if y == 5 else "rust1", 0.85 * k)
+    return img
+
+
+ORN_S = 2
+
+
+def title_divider(width_gui=120):
+    """창 제목 밑 금실 (GUI width×5): 가운데 단조 마름모, 양쪽으로 금실 (위 줄 길고, 아래 짧은 청동), 끝은 알파 계단."""
+    W, H = width_gui * ORN_S, 5 * ORN_S
+    img = Img(W, H)
+    cx = W / 2.0
+    for x in range(W):
+        d = abs(x + 0.5 - cx) / cx
+        if abs(x + 0.5 - cx) > 8:
+            img.put(x, 4, "parch2" if d < 0.3 else "parch1", 0.95 * max(0.0, 1 - d ** 1.6))
+            img.put(x, 5, "ink0", 0.5 * max(0.0, 1 - d ** 1.6))
+        if 8 < abs(x + 0.5 - cx) < 60:
+            img.put(x, 7, "bronze2", 0.8 * max(0.0, 1 - (abs(x + 0.5 - cx) - 8) / 52.0))
+    m = Mask(W, H).poly([(cx - 7, 4.5), (cx, 0.0), (cx + 7, 4.5), (cx, 9.5)])
+    hole = Mask(W, H).poly([(cx - 3, 4.5), (cx, 2.4), (cx + 3, 4.5), (cx, 6.6)])
+    img.over(draw.lit(np.clip(m.cov() - hole.cov(), 0, 1), GOLD))
+    img.fill(Mask(W, H).disc(cx, 4.5, 1.0).cov(), "glim0", 1.0)
+    return img
+
+
+def lore_rule(width_gui):
+    """설명 칸의 수치와 설명 사이 실선 (GUI width×3): 왼쪽 끝 작은 마름모와 1 텍셀 청동 줄 (오른쪽으로 옅어진다)."""
+    W, H = int(round(width_gui * ORN_S)), 4 * ORN_S
+    img = Img(W, H)
+    for x in range(8, W):
+        d = (x - 8) / max(1.0, W - 8.0)
+        img.put(x, 3, "bronze2", 0.85 * max(0.0, 1 - d) ** 0.7)
+    m = Mask(W, H).poly([(0.5, 3.0), (3.5, 0.2), (6.5, 3.0), (3.5, 5.8)])
+    img.over(draw.lit(m.cov(), GOLD))
+    return img

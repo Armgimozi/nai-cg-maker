@@ -6,6 +6,8 @@ mood2_gothic 의 플러그인 쪽. 작업 폴더의 사본 (git 판의 plugin/ �
   GothicStats     (새 파일) 무기 설명 칸의 수치를 다크 소울 3 처럼 두 열로: 칸마다 "이름 (그 언어의 이름 열 폭까지 빈칸으로 채운
                   번역) + 빈칸 + 값 (값 열 끝에 오른쪽 맞춤)", 두 칸 사이는 열 간격 빈칸. 값 글자의 진행 폭과 빈칸 글자는 팩을
                   만들 때 잰 gothic_layout.txt (jar 안) 에서 읽는다. 우리 그림 글자는 진행 폭이 정수라 열이 픽셀까지 맞는다.
+  Hud.java        보스 막대 줄: 넓은 마구리만큼 막대를 당겨 늘 가운데에서 시작하게, 마구리는 표식 색 7 (셰이더가 늘이지 않고
+                  막대 끝을 따라 옮긴다).
   ItemFactory     무기 설명 칸: 수치 줄을 GothicStats 로, 수치와 설명 사이에 실선 글자, tooltip_style souls:gothic_weapon
                   (이름 밑 금실이 있는 칸).
   lang/*.yml      무기 이름·보스 이름·휴식 창 제목 → 제목 글꼴 (souls:gothic_title), 무기 설명 → 조용한 양피지빛,
@@ -62,6 +64,76 @@ def patch_item_factory(path):
              "        it.setData(DataComponentTypes.TOOLTIP_STYLE, Key.key(Keys.NS, \"gothic_weapon\"));\n"
              "        it.setData(DataComponentTypes.MAX_STACK_SIZE, 1);\n"
              "        it.setData(DataComponentTypes.DAMAGE_RESISTANT", "ItemFactory.weapon 칸")
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(s)
+
+
+BOSS_LINE_OLD = """        int half = w / 2;
+        Line l = new Line();
+        l.move(-half - 2);
+        l.glyph("boss_cap_l");
+        l.runs("boss_hp_fill_", fill);
+        l.runs("boss_hp_trail_", trail);
+        l.runs("boss_hp_empty_", w - fill - trail);
+        l.glyph("boss_cap_r");
+        l.move(-half - l.pen);
+        l.runs("boss_post_fill_", post);
+        l.runs("boss_post_empty_", w - post);
+        l.move(-half - l.pen);
+        Line tail = new Line();
+        tail.move(half);
+        ShadowColor shadow = ShadowColor.shadowColor(0xFF000000 | lay.markBossShadow().value());
+        return Component.text()
+                .append(name.color(lay.markHidden()).shadowColor(ShadowColor.none()))
+                .append(l.component(lay.markBoss()))
+                .append(name.color(lay.markBossName()).shadowColor(shadow))
+                .append(tail.component(lay.markBoss()))
+                .build();
+"""
+
+BOSS_LINE_NEW = """        // UI 분위기 시안 mood2_gothic: 마구리가 넓은 단조 장식이라 (1) 막대가 늘 가운데 - half 에서 시작하게 왼쪽 마구리 폭만큼
+        // 앞으로 당기고, (2) 마구리는 표식 색 7 로 따로 보내 셰이더가 늘이지 않고 막대 끝을 따라 통째로 옮기게 한다.
+        int half = w / 2;
+        Glyphs.Glyph capL = Glyphs.get("boss_cap_l");
+        int capW = capL == null ? 2 : capL.width() - 1;
+        net.kyori.adventure.text.format.TextColor capMark = net.kyori.adventure.text.format.TextColor.color(
+                lay.markBoss().red(), lay.markBoss().green(), 7);
+        Line c1 = new Line();
+        c1.move(-half - capW);
+        c1.glyph("boss_cap_l");
+        int pen = c1.pen;
+        Line b1 = new Line();
+        b1.runs("boss_hp_fill_", fill);
+        b1.runs("boss_hp_trail_", trail);
+        b1.runs("boss_hp_empty_", w - fill - trail);
+        pen += b1.pen;
+        Line c2 = new Line();
+        c2.glyph("boss_cap_r");
+        pen += c2.pen;
+        Line b2 = new Line();
+        b2.move(-half - pen);
+        b2.runs("boss_post_fill_", post);
+        b2.runs("boss_post_empty_", w - post);
+        b2.move(-half - (pen + b2.pen));
+        Line tail = new Line();
+        tail.move(half);
+        ShadowColor shadow = ShadowColor.shadowColor(0xFF000000 | lay.markBossShadow().value());
+        return Component.text()
+                .append(name.color(lay.markHidden()).shadowColor(ShadowColor.none()))
+                .append(c1.component(capMark))
+                .append(b1.component(lay.markBoss()))
+                .append(c2.component(capMark))
+                .append(b2.component(lay.markBoss()))
+                .append(name.color(lay.markBossName()).shadowColor(shadow))
+                .append(tail.component(lay.markBoss()))
+                .build();
+"""
+
+
+def patch_hud(path):
+    with open(path, encoding="utf-8") as f:
+        s = f.read()
+    s = _sub(s, BOSS_LINE_OLD, BOSS_LINE_NEW, "Hud.bossLine")
     with open(path, "w", encoding="utf-8") as f:
         f.write(s)
 
@@ -257,6 +329,7 @@ def build(work, src, st, layout, glyphs_yml=None):
     java = os.path.join(dst, "src", "main", "java", "kr", "souls")
     patch_lang_java(os.path.join(java, "Lang.java"))
     patch_item_factory(os.path.join(java, "item", "ItemFactory.java"))
+    patch_hud(os.path.join(java, "hud", "Hud.java"))
     r, g, b, _ = c(st.VALUE)
     with open(os.path.join(java, "item", "GothicStats.java"), "w", encoding="utf-8") as f:
         f.write(gothic_stats_java(f"0x{r:02x}{g:02x}{b:02x}"))
