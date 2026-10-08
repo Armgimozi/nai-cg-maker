@@ -768,7 +768,7 @@ ember_toss:
 | 5 | 마법사 (`sorcerer`) | 8 | 9 | **13** | 9 | 9 | 11 | **16** | 레딘 뒷골목 단도 (주손), 가마지기의 쇠단지 (단축 2, 촉매) | 죄수의 넝마, 술 하나 (M5), 에스트 | 촉매로 술을 다루는 법을 배웠다 |
 | 6 | 빈털터리 (`deprived`) | 1 | 10 | 10 | 10 | 10 | 10 | 10 | 볼크 간수의 곤봉 (주손), 탑옥 판자 방패 (왼손) | 죄수의 넝마, 에스트 | 가진 것도 기댈 것도 없다 |
 
-- 확인 창 (5.10) 은 한 줄 설명 밑에 **됨됨이 한 줄** (`origin.<id>.style`) 을 단다: 기사 "방패로 받고 버틴다. HP 가 높다", 전사 "두 손으로 크게 벤다. 방패가 없다", 도적 "빠르다. 쳐내기가 쉽다. 만능 열쇠를 지녔다", 궁수 "멀리서 쏘고 손도끼로 마무리한다", 마법사 "술 세기가 가장 높다. HP 가 낮다", 빈털터리 "무엇이든 된다. 처음 몇 레벨이 싸다" (검토 text-plain).
+- 확인 창 (5.10) 은 한 줄 설명 밑에 **됨됨이 한 줄** (`origin.<id>.style`) 을 단다: 기사 "방패로 받고 버틴다. HP 가 높다", 전사 "두 손으로 크게 벤다. 방패가 없다", 도적 "빠르다. 쳐내기가 쉽다" (만능 열쇠는 한 줄 설명에 있어 되풀이하지 않는다), 궁수 "멀리서 쏘고 손도끼로 마무리한다", 마법사 "술 세기가 가장 높다. HP 가 낮다", 빈털터리 "무엇이든 된다. 처음 몇 레벨이 싸다" (검토 text-plain).
 - 한 줄 설명은 그 출신이 **무엇을 하는지** 만 적는다. 지역·사람 이름을 담은 내력 글은 쓰지 않는다: 이야기는 사용자가 직접 정한다 (DECISIONS 2026-10-08). 무기 이름 (레딘·볼크·탑옥) 은 9.1 의 이름 그대로다.
 - 시작 무기는 모두 요구 능력치를 채운다 (기사 직검 근력 10·민첩 10 ↔ 13·11, 전사 대검 16·10 ↔ 16·10, 도적 단도 5·9 ↔ 9·16, 궁수 손도끼 12·8 ↔ 12·15 · 단궁 9·12 ↔ 12·15, 마법사 쇠단지 지능 12 ↔ 16, 빈털터리 곤봉 근력 10 ↔ 10). 주무기의 분류는 모두 M1 에 동작이 있는 분류다 (직검·대검·단도·도끼·망치, 14절. 검토 kits-not-in-m1). `OriginsTest` 가 둘을 본다.
 - **술과 활이 아직 없는 동안** (검토 caster-trap): 마법사는 단도로 싸운다 (쇠단지는 들 수 있지만 술은 M5). 출신 창의 아이템 칸이 "쇠단지 · 단도 · 술은 나중" 이고 확인 창에 "술은 아직 익히지 못했다" (`origin.no-rites`). 궁수는 손도끼로 싸우고 (활 쏘기는 M1, 화살은 화살이 아이템이 될 때 장부로), 확인 창에 "활은 아직 쏠 수 없다" (`origin.no-bow`). 레벨을 하나도 사지 않았으면 휴식 창의 "출신 다시 고르기" 로 한 번 바꿀 수 있다 (5.10). M5 에 술이 들어오면 장부가 마법사에게 술 하나를 한 번 주고, 그때 모두에게 능력치 다시 나누기 한 번을 장부로 준다 (계획).
@@ -979,7 +979,7 @@ ember_toss:
 
 1. 세계 설정이 아직 없을 때 (`souls_world` 의 PDC `souls:settings` 가 없다: 새 세계, 또는 이 판으로 처음 켠 예전 세계) 처음 들어온 사람이 고른다 (`start.setup-by: first`). `start.setup-by: op` 면 관리자만 고르고, 관리자가 아닌 사람이 먼저 오면 "세계는 관리자가 정한다" 를 보인다.
 2. **창을 띄우기 전에 잠정 기본값을 먼저 적는다** (`confirmed: false`, `via: default`, 기본 `difficulty.default` 보통·`pvp.default` 끔). 창의 답이 끝내 오지 않아도 설정 없는 세계가 남지 않는다 (검토 T5).
-3. 리소스팩이 실리면 (접속할 때 이미 실렸거나 `pack.send-at: configure`, 아니면 놀이 단계의 `SUCCESSFULLY_LOADED`) `start.pack-wait` (20틱) 뒤에 "세계를 정한다" 창을 띄운다. 팩을 싣지 않은 사람은 접속하고 `start.no-pack-wait` (200틱) 뒤에 바닐라 그림으로 (검토 T14).
+3. 리소스팩이 실리면 (접속할 때 이미 실렸거나 `pack.send-at: configure`, 아니면 놀이 단계의 `SUCCESSFULLY_LOADED`) `start.pack-wait` (20틱) 뒤에 "세계를 정한다" 창을 띄운다. 팩을 싣지 않은 사람은 접속하고 `start.no-pack-wait` (200틱) 뒤에 바닐라 그림으로 (검토 T14). 차례는 접속마다 한 번이고, 늦게 도는 차례는 그 접속이 살아 있을 때만 돈다 (`Player.isConnected`: 나갔다 곧 다시 들어오면 지난 접속의 Player 도 `isOnline` 이 참이라, 지난 접속의 200틱 차례가 새 접속의 차례를 가로채 창이 닫힌 연결로 가던 것을 막는다).
 4. **한 사람만 고른다** (검토 T16): 서버가 고르는 사람 (chooser) 을 하나 잡아 두고, 그 사람이 고르거나 창을 닫거나 나가면 놓는다. 그동안 들어온 사람은 **기다리지 않는다** (검토 join-blocking): 잠정 설정으로 곧바로 출신 단계로 가고 "세계 설정은 아직 잠정이다" (부제목) 와 "정할 사람이 다시 오거나 화톳불에서 쉴 때 묻는다" (채팅) 를 본다. 정해지면 모두에게 알린다.
 5. 고르면 곧바로 듣는다: 세계 설정을 확정하고 (`confirmed: true`, `rev` +1), 바닐라 `pvp` 규칙, 배율, 접속한 모두에게 "세계 설정이 바뀌었다: 어려움 · PvP 켬" (부제목 + 채팅). 그다음 고른 사람이 출신이 없으면 출신 창 (5.10).
 6. **창을 닫으면** (Esc 나 "나중에 정한다" = 나가기 동작, 클라이언트가 Esc 에도 나가기 동작을 보낸다 [확인 (클라이언트 코드)]): 잠정 그대로 (`via: esc`) 출신 단계로 넘어간다. 게임은 그대로 할 수 있다. 잠정인 동안은 정할 사람 (처음 연 사람 또는 관리자) 이 다음에 들어올 때와 화톳불에서 쉴 때 (휴식 창 맨 위 "세계를 정한다", 4.1) 다시 묻는다. 한 번 확정하면 다시 뜨지 않는다.
@@ -1011,7 +1011,7 @@ ember_toss:
 - 단추마다 `DialogAction.customClick(Key souls:ui, {d:"<창>", n:"<보일 때마다 새 표식>", b:"<단추>"})`. 한 `PlayerCustomClickEvent` 리스너가 받아, 그 사람에게 지금 열린 창 (세션) 의 창 이름·표식과 맞을 때만 단추의 일을 한다. 맞지 않으면 (닫힌 창의 단추를 다시 보냈다, 다른 창의 것이다) `UI_STALE` 을 내고 버린다. 콜백 (`paper:dialog_click_callback`) 과 달리 시간이 지나도 사라지지 않고, 서버에 쌓이지 않고, 봇이 실제 패킷으로 누를 수 있다.
 - 체크 칸 값은 같은 패킷의 입력 값 (`getDialogResponseView().getBoolean("pvp")`).
 - 봇은 실제 클라이언트처럼 `custom_click_action` 을 보낸다. 1.21.11 의 꼴은 id 다음에 길이 (VarInt) 를 앞에 붙인 "있을 수도 있는" 이름 없는 NBT 다 (`ServerboundCustomClickActionPacket.UNTRUSTED_TAG_CODEC = optionalTagCodec(…).apply(lengthPrefixed(65536))`). minecraft-data 의 표 (option + anonymousNbt) 와 달라 봇은 날 바이트로 보낸다 [확인 (서버 jar 의 바이트코드, 실행)] (`tools/bots/lib.js` 의 `clickDialog`).
-- 서버가 창을 닫으면 (`closeDialog`) 나가기 동작이 오지 않으므로 서버 쪽 세션도 함께 닫는다. 나가기·죽음 때도 지운다.
+- 서버가 창을 닫으면 (`closeDialog`) 나가기 동작이 오지 않으므로 서버 쪽 세션도 함께 닫는다. 나가기·죽음 때도 지운다. 단추를 눌러 세션이 이미 지워진 뒤에도 (`afterAction NONE` 이라 클라이언트에는 창이 그대로 떠 있다) 닫을 때는 늘 닫기 패킷을 보낸다 (`Ui.close`. 실제 클라이언트에서 "이 출신으로" 뒤에 확인 창이 남던 것을 고쳤다. 클라이언트는 창 화면일 때만 닫는다).
 
 ### 5.8 장비 무게
 
@@ -2386,7 +2386,7 @@ y 10                [두르크: 모루 옥좌 B6]  <---- h 용암 굴 ---->  [�
 |---|---|---|
 | `knight` | 직검과 방패로 맞서는 군인. / 방패로 받고 버틴다. HP 가 높다. / 직검 · 방패 | A soldier of sword and shield. / Holds firm behind the shield. Hardy. / Sword · Shield |
 | `warrior` | 대검을 두 손으로 휘두르는 장사. / 두 손으로 크게 벤다. 방패가 없다. / 대검 | Swings a greatsword with both hands. / Cleaves with both hands. No shield. / Greatsword |
-| `thief` | 손이 날래고 만능 열쇠를 가졌다. / 빠르다. 쳐내기가 쉽다. 만능 열쇠를 지녔다. / 단도 · 결투 단검 · 열쇠 | Quick of hand, with a master key. / Swift, quick to parry. Carries a master key. / Dagger · Parry · Key |
+| `thief` | 손이 날래고 만능 열쇠를 가졌다. / 빠르다. 쳐내기가 쉽다. / 단도 · 결투 단검 · 열쇠 | Quick of hand, with a master key. / Swift, and quick to parry. / Dagger · Parry · Key |
 | `archer` | 활로 멀리서 먼저 친다. / 멀리서 쏘고 손도끼로 마무리한다. / 단궁 · 손도끼 | Strikes first, from afar, with a bow. / Looses from afar, ends it with the hatchet. / Bow · Hatchet |
 | `sorcerer` | 촉매로 술을 다루는 법을 배웠다. / 술 세기가 가장 높다. HP 가 낮다. / 쇠단지 · 단도 · 술은 나중 | Learned to work rites through a catalyst. / Rites strike hardest. Frail. / Pot · Dagger · Rites later |
 | `deprived` | 가진 것도 기댈 것도 없다. / 무엇이든 된다. 처음 몇 레벨이 싸다. / 곤봉 · 판자 방패 | Nothing owned, nothing to lean on. / May become anything. Early levels come cheap. / Club · Plank Shield |

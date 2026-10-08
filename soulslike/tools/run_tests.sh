@@ -36,13 +36,18 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(dirname "$HERE")"
 BOTS="$HERE/bots"
 
-# start 는 세계 설정을 지웠다가 되돌리므로 다른 시나리오 사이에 둔다 (끝에 보통·PvP 끔으로 되돌린다). pvp 는 봇 둘 (A 가 B 를 때린다)
-ALL_SCENARIOS="t1_boot join lang stamina roll_iframes guard death reconnect start origin levelup pvp"
+# start 는 세계 설정을 지웠다가 되돌리므로 다른 시나리오 사이에 둔다 (끝에 보통·PvP 끔으로 되돌린다). pvp 는 봇 둘 (A 가 B 를 때린다).
+# difficulty 는 난이도 넷을 돌고 보통으로, rollkey 는 controls.roll-key 를 f·both 로 바꿨다가 (/souls reload) 서버 설정 그대로 되돌린다.
+# persist 는 지연 판 뒤 맨 끝에 돌고 (세계 설정을 어려움·PvP 켬으로 남긴다), 두 번째 기동에서 persist_check 가 다시 켠 서버로 본다
+ALL_SCENARIOS="t1_boot join lang stamina roll_iframes guard death reconnect start origin levelup pvp difficulty stats_fx origins_all rollkey"
 # 시나리오별 봇 이름 (ops.json 에 미리 올린다. 오프라인 UUID). 이름이 Souls 로 시작하면 시험 서버에서 빈털터리로 태어난다
 # (start.auto-origin). pvp_b 는 시나리오가 아니라 pvp 의 둘째 봇
+# late 는 persist_check 의 나중에 들어온 사람: 이름이 Souls 로 시작하지 않아 출신 없이 들어와 알림과 출신 창을 받는다
 declare -A BOT=( [t1_boot]=SoulsBoot [join]=SoulsJoin [lang]=SoulsLang [stamina]=SoulsStam [roll_iframes]=SoulsRoll
                  [guard]=SoulsGuard [death]=SoulsDeath [reconnect]=SoulsRecon [lag]=SoulsLag
-                 [start]=SoulsStart [origin]=SoulsOrigin [levelup]=SoulsLevel [pvp]=SoulsPvpA [pvp_b]=SoulsPvpB )
+                 [start]=SoulsStart [origin]=SoulsOrigin [levelup]=SoulsLevel [pvp]=SoulsPvpA [pvp_b]=SoulsPvpB
+                 [difficulty]=SoulsDiff [stats_fx]=SoulsStatFx [origins_all]=SoulsOrigins [rollkey]=SoulsKeys
+                 [persist]=SoulsPersist [late]=LateJoiner )
 
 PORT=25601
 SCRATCH="${SOULS_TEST_DIR:-}"
@@ -300,7 +305,7 @@ run_one() {
   local label="$1" file="$2" name="$3" port="$4" lag="${5:-0}" tag=""
   [ "$lag" != 0 ] && tag="lag$lag"
   local log="$RUN/logs/$label.log"
-  MC_PORT="$port" BOT_NAME="$name" BOT_NAME_B="${BOT[pvp_b]}" LAG_RTT="$lag" SCENARIO_TAG="$tag" \
+  MC_PORT="$port" BOT_NAME="$name" BOT_NAME_B="${BOT[pvp_b]}" BOT_NAME_LATE="${BOT[late]}" LAG_RTT="$lag" SCENARIO_TAG="$tag" \
     timeout --kill-after=15 $((SC_TIMEOUT + 30)) node "$BOTS/$file.js" > "$log" 2>&1
   local code=$?
   local res; res=$(grep -a '^RESULT ' "$log" | tail -n 1)

@@ -241,7 +241,7 @@ origin:
   thief:
     name: "<#d1c3a0>Thief"
     desc: "<#8f8164>Quick of hand, with a master key."
-    style: "<#b3a37f>Swift, quick to parry. Carries a master key."
+    style: "<#b3a37f>Swift, and quick to parry."
     kit: "<#b3a37f>Dagger · Parry · Key"
   archer:
     name: "<#d1c3a0>Archer"

@@ -107,7 +107,7 @@ public final class Glyphs {
             ConfigurationSection st = root.getConfigurationSection("stats");
             stats = null;
             if (st != null) {
-                String chars = decode(st.getString("chars", ""));
+                String chars = decode(st.getString("chars", ""), false);
                 java.util.List<Integer> ws = st.getIntegerList("widths");
                 Map<Character, Integer> w = new LinkedHashMap<>();
                 for (int i = 0; i < chars.length() && i < ws.size(); i++) w.put(chars.charAt(i), ws.get(i));
@@ -156,8 +156,13 @@ public final class Glyphs {
 
     /** YAML 이 "" 을 풀지 않은 채(작은따옴표) 적었거나 "U+E001" 로 적었어도 받아 준다. */
     static String decode(String s) {
+        return decode(s, true);
+    }
+
+    /** trim=false: 끝의 빈칸도 글자다 (stats.chars 의 마지막 글자가 빈칸, 폭 3. 잘라 내면 "a → b" 가 기본 폭 5 로 재어져 열이 어긋난다). */
+    static String decode(String s, boolean trim) {
         if (s == null) return "";
-        String t = s.trim();
+        String t = trim ? s.trim() : s;
         StringBuilder sb = new StringBuilder();
         int i = 0;
         while (i < t.length()) {

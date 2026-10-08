@@ -92,7 +92,7 @@ public final class DeathFlow implements Listener {
         boolean title = plugin.cfg().death.title();
         if (!title && !fadeMode()) return;
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (!p.isOnline() || !p.isDead()) return;
+            if (!p.isConnected() || !p.isDead()) return; // 지난 접속의 Player 는 건너뛴다 (StartFlow.begin)
             if (title) {
                 showTitle(p, false);
             } else {

@@ -260,7 +260,7 @@ public final class PackService implements Listener {
     }
 
     public void send(Player p) {
-        if (!ready() || !p.isOnline()) return;
+        if (!ready() || !p.isConnected()) return; // 지난 접속의 Player 면 보내지 않는다 (StartFlow.begin)
         String lang = Lang.langOf(p);
         p.sendResourcePacks(request(net.kyori.adventure.resource.ResourcePackCallback.noOp(), lang));
         plugin.test(p, "PACK sent sha1=" + sha1 + " required=" + required() + " lang=" + lang + " locale=" + p.locale());

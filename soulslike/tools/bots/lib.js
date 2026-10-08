@@ -345,7 +345,7 @@ class Bot {
     })
     c.on('add_resource_pack', (d) => this.onPack(d, c.state))
     c.on('set_title_text', (d) => this.p.titles.push({ t: now(), raw: simple(d.text), parts: flatten(simple(d.text)), plain: plain(d.text) }))
-    c.on('set_title_subtitle', (d) => this.p.subtitles.push({ t: now(), plain: plain(d.text) }))
+    c.on('set_title_subtitle', (d) => this.p.subtitles.push({ t: now(), plain: plain(d.text), raw: simple(d.text) }))
     c.on('set_title_time', (d) => this.p.titleTimes.push({ t: now(), fadeIn: d.fadeIn, stay: d.stay, fadeOut: d.fadeOut }))
     c.on('clear_titles', (d) => this.p.clearTitles.push({ t: now(), reset: d.reset }))
     c.on('action_bar', (d) => this.p.actionBars.push({ t: now(), plain: plain(d.text), parts: flatten(simple(d.text)), raw: simple(d.text) }))

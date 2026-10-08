@@ -90,9 +90,13 @@ public final class Ui implements Listener {
         plugin.test(p, "UI show d=" + s.dialog + " buttons=" + String.join(",", s.handlers.keySet()) + " t=" + plugin.ticker().now());
     }
 
-    /** 창을 닫는다 (서버가 닫으면 나가기 동작이 오지 않으므로 세션도 여기서 닫는다). */
+    /**
+     * 창을 닫는다 (서버가 닫으면 나가기 동작이 오지 않으므로 세션도 여기서 닫는다). 단추를 누른 뒤에는 onClick 이 세션을 이미 지웠어도
+     * 클라이언트에는 창이 그대로 떠 있다 (afterAction NONE) 그래서 세션과 상관없이 늘 닫기 패킷을 보낸다 (클라이언트는 창 화면일 때만 닫는다).
+     */
     public void close(Player p) {
-        if (open.remove(p.getUniqueId()) != null) p.closeDialog();
+        open.remove(p.getUniqueId());
+        p.closeDialog();
     }
 
     /** 우리 창이 열려 있나. */

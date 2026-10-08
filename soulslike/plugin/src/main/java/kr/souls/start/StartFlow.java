@@ -150,7 +150,9 @@ public final class StartFlow implements Listener {
 
     /** 차례를 시작한다 (접속마다 한 번). */
     public void begin(Player p, String why) {
-        if (!p.isOnline() || !begun.add(p.getUniqueId())) return;
+        // isConnected: 나갔다 다시 들어온 사람의 옛 Player 도 isOnline 은 참이다 (같은 UUID). 지난 접속에서 걸어 둔 차례가
+        // 새 접속의 차례를 가로채 창이 닫힌 연결로 가지 않게 그 접속 그대로인지 본다
+        if (!p.isConnected() || !begun.add(p.getUniqueId())) return;
         WorldState.Settings s = plugin.worldState().get();
         if (s == null) {
             // 창을 띄우기 전에 잠정 기본값을 먼저 적는다 (창의 답이 오지 않아도 설정 없는 세계가 남지 않게)
