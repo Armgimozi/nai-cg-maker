@@ -146,6 +146,8 @@ public final class SoulsCommands {
         if (pk.ready()) {
             Set<String> want = new TreeSet<>();
             for (String k : Lang.keys()) want.add(Lang.PREFIX + k);
+            // 팩이 갈래마다 짠 열쇠 (Lang.variant): 무기 설명 칸 실선 weapon.rule.<무기 id> (item/StatTable.rule, pack/typeset.py)
+            for (String id : plugin.weapons().all().keySet()) want.add(Lang.PREFIX + "weapon.rule." + id);
             Set<String> ko = pk.packLangKeys("souls", "ko_kr");
             Set<String> en = pk.packLangKeys("souls", "en_us");
             line(to, fails, !want.isEmpty() && want.equals(ko) && want.equals(en), "lang keys " + want.size() + ", pack souls ko_kr "
