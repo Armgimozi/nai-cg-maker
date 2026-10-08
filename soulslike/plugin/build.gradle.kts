@@ -12,6 +12,20 @@ repositories {
 
 dependencies {
     compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+    // 순수 Java 시험 (13.1): 곡선·비용·피해 계산·짧은 누름 판정·프로필 JSON 은 Bukkit 없이 돈다.
+    // 설정 기본값 시험만 YamlConfiguration (paper-api) 을 쓴다
+    testImplementation(platform("org.junit:junit-bom:5.10.3"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testImplementation("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+}
+
+tasks.test {
+    useJUnitPlatform()
+    testLogging {
+        events("failed")
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.SHORT
+    }
 }
 
 java {
