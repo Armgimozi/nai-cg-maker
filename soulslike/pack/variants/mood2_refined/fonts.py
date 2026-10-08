@@ -137,6 +137,19 @@ def make(key, wght, chars, out_path, family, style="", pua_mirror=None):
     key 글꼴을 wght 로 고정해 chars 만 남겨 out_path 에 쓴다. pua_mirror = {개인 영역 시작: 글자 목록} 이면 그 글자의 그림을
     개인 영역 (시작 + 순번) 에도 이어 둔다. 돌려주는 값: (out_path, 바이트, 남은 글자 수, 개인 영역 표 {글자: 개인 영역 글자}).
     """
+    import hashlib
+    tag = hashlib.sha1(repr((key, wght, list(chars), family, style, sorted((k, list(v)) for k, v in (pua_mirror or {}).items()),
+                             2)).encode("utf-8")).hexdigest()[:16]
+    cached = os.path.join(cache_dir(), "built", tag + ".ttf")
+    if os.path.exists(cached) and os.path.exists(cached + ".json"):
+        with open(cached, "rb") as f:
+            data = f.read()
+        with open(cached + ".json", encoding="utf-8") as f:
+            meta = json.load(f)
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
+        with open(out_path, "wb") as f:
+            f.write(data)
+        return out_path, len(data), meta["n"], meta["pua"]
     src, _ = fetch(key)
     font = _instance(src, wght)
     cmap = font.getBestCmap()
@@ -171,6 +184,11 @@ def make(key, wght, chars, out_path, family, style="", pua_mirror=None):
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     with open(out_path, "wb") as f:
         f.write(data)
+    os.makedirs(os.path.dirname(cached), exist_ok=True)
+    with open(cached, "wb") as f:
+        f.write(data)
+    with open(cached + ".json", "w", encoding="utf-8") as f:
+        json.dump({"n": len(have), "pua": pua}, f)
     return out_path, len(data), len(have), pua
 
 

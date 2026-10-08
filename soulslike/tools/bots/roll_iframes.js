@@ -1,6 +1,6 @@
 // 구르기와 무적 (3.3, 13.2 T3 roll_iframes). 지연 프록시로 다시 돌린다 (13.3, LAG_RTT).
 // F(block_dig 상태 6) → 구르기: 종류·방향·비용, 서버가 보낸 첫 틱 속도와 미는 틱 수(glide), 서버에서 잰 거리,
-// 보이는 모습 (tumble: 관절 대역의 부위 표시 물체 두 벌이 타고 (봇은 자기 벌 열하나 이상을 받는다) 투명 깃발이 섰다가 걷힌다, 뒷걸음은 대역 없음 / crawl: 기어가기 방벽), 회복 지연 (구르기 끝 + 12틱), 회복 중 다시 F, 공중·웅크리기 F 막힘, 스태미나 1 이상이면 구름.
+// 보이는 모습 (tumble: 관절 대역의 부위 표시 물체 두 벌이 타고 (봇은 자기 벌 열하나 이상을 받는다) 투명 깃발이 섰다가 걷힌다, 뒷걸음은 대역 없음 / crawl·tumble 에 combat.roll.crawl 이면: 기어가기 막힘이 깔리고 걷힘), 회복 지연 (구르기 끝 + 12틱), 회복 중 다시 F, 공중·웅크리기 F 막힘, 스태미나 1 이상이면 구름.
 // 수치는 서버의 config.yml (combat.roll) 에서 읽는다. 3.3 표는 출발값이고 조정은 설정에서 한다 (사용자 결정 1).
 // 무적: 서버 시각 기준 (rollhit: 구르기 시작 뒤 n 틱에 generic 피해) 1~iframes 틱은 피하고 그 밖은 맞는다.
 //       F 뒤 같은 길로 /soulstest hit: 원인 있는 피해는 피하고, 원인 없는 피해(환경)는 맞는다.
@@ -91,7 +91,8 @@ L.run('roll_iframes', async (sc) => {
     const fl = b.p.flags.slice(tv0.flags).map((x) => x.value)
     sc.check('tumble: invisible flag set during the roll and cleared after', fl.some((v) => v & 0x20) && fl.length > 0 && !(fl[fl.length - 1] & 0x20), fl.map((v) => '0x' + v.toString(16)).join(' '))
   }
-  if (RC.crawl && RC.visual === 'crawl') {
+  // 기어가기 막힘 (combat.roll.crawl): crawl 과 tumble 모습이 깐다 (tumble 은 duck 틱 동안. 봇 시험은 기본으로 끈다: run_tests --crawl)
+  if (RC.crawl && (RC.visual === 'crawl' || RC.visual === 'tumble')) {
     const laid = b.p.crawl.slice(c0)
     sc.check('crawl: head-height barriers sent to this player', laid.length > 0, laid.length + '칸')
     await L.sleep(300)

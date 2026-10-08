@@ -7,7 +7,7 @@
 오류 (하나라도 있으면 gen_pack 이 zip 을 만들지 않는다)
   palette    팔레트(palette.py) 밖의 색
   saturated  채도가 SAT_MAX 를 넘는 색, 빛 허용 그림(palette.GLOW)이 아니면
-  blue       색상 200~300°(파랑~보라)이면서 밝기 0.5 를 넘는 색
+  blue       색상 200~300°(파랑~보라)이면서 밝기 0.5 를 넘는 색 (예외: 마나 막대 그림의 마나 계열, palette.blue_exempt)
   gradient   아주 작은 차이로 5칸 넘게 이어지는 매끈한 그라데이션 (가로·세로)
   glowalpha  빛 허용 그림이 아닌데 발광 알파(250~252)
   restricted 쓰는 곳이 정해진 계열(palette.RESTRICTED, 생피)을 다른 그림에 씀
@@ -192,7 +192,7 @@ def check_image(path, report, rel=None):
             bad_sat.append((x, y, rgb))
         if fam:
             bad_fam.append((x, y, rgb))
-        if blue:
+        if blue and not palette.blue_exempt(rgb, rel):   # 마나 막대만 예외 (palette.MANA_ART)
             bad_blue.append((x, y, rgb))
     if bad_pal:
         cols = sorted({"#%02x%02x%02x" % p[2] for p in bad_pal})

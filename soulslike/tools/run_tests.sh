@@ -18,9 +18,9 @@
 #   --timeout 300   시나리오 하나의 제한 시간 (초)
 #   --visual V      구르기 모습 combat.roll.visual (tumble 기본 · spin · crawl) 을 바꾼다. 주지 않으면 jar 설정 그대로 (tumble:
 #                   roll_iframes 가 관절 대역의 부위 열하나 이상이 타고 투명 깃발이 섰다가 걷히는지도 본다)
-#   --crawl         구르기 기어가기 방벽(combat.roll.crawl)을 jar 설정 그대로 둔다 (방벽은 visual: crawl 일 때만 깔린다. 그래서
-#                   방벽 흉내까지 보려면 --visual crawl --crawl). 기본은 끈다 (봇은 기어가기 자세가 없다.
-#                   켜면 lib.js 가 머리 높이 방벽을 봇 세계에서 지워 기어가기를 흉내 내고, roll_iframes 가 방벽이 깔리고 걷히는지 본다)
+#   --crawl         구르기 기어가기 막힘(combat.roll.crawl)을 jar 설정 그대로 둔다 (막힘은 visual: tumble 과 crawl 이 깐다).
+#                   기본은 끈다 (봇은 기어가기 자세가 없다. 켜면 lib.js 가 머리 높이 막힘 (Roll.CEILING 라임 색유리) 을 봇 세계에서
+#                   지워 기어가기를 흉내 내고, roll_iframes 가 막힘이 깔리고 걷히는지 본다)
 #
 # 봇은 mineflayer 4.39 를 쓴다: $BOT_NODE_MODULES → tools/bots/node_modules → 이 컨테이너의 시험 도구 폴더.
 # 결과: 시나리오마다 PASS/FAIL 한 줄과 실패한 판정. 자세한 기록은 DIR/run/logs/*.log, 판정 JSON 은 DIR/run/results/.
@@ -189,7 +189,7 @@ for l in open(cfg_src, encoding="utf-8").read().split("\n"):
         l = re.sub(r"url:.*", f'url: "http://127.0.0.1:{pack_port}/{{sha1}}.zip"', l); done.add("url")
     if sec == "pack" and re.match(r"^\s+serve-port:", l):
         l = re.sub(r"serve-port:.*", f"serve-port: {pack_port}", l); done.add("serve-port")
-    # 봇(mineflayer)은 기어가기 자세가 없어 구르기의 머리 위 방벽에 걸린다. 기어가기 모습은 실제 클라이언트 점검으로 본다
+    # 봇(mineflayer)은 기어가기 자세가 없어 구르기의 머리 위 막힘에 걸린다. 기어가기 모습은 실제 클라이언트 점검으로 본다
     # (--crawl 이면 그대로 두고 lib.js 의 흉내로 시험한다)
     if sec == "combat" and visual and re.match(r"^\s+visual:", l):
         l = re.sub(r"visual:.*", "visual: " + visual, l)

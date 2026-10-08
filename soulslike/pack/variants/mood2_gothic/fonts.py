@@ -13,10 +13,12 @@ mood2_gothic 의 글꼴: TTF 를 팩에 넣지 않고 우리가 FreeType 으로 
     → 같은 글자는 어느 자리에서나 텍셀 격자가 화면 픽셀에 똑같이 겹친다 (배율 2·3·4 모두). 바탕선은 하나다.
   * 글꼴 셰이더 (shaders.py rendertype_text.fsh) 가 이 텍셀을 화면 픽셀이 덮는 넓이만큼 섞어 (area filter) 읽는다:
     배율 4 는 1:1, 2 는 2×2 평균, 3 은 4/3 텍셀 상자. NEAREST 처럼 줄이 빠지거나 겹치지 않는다.
-  * 텍셀 색: R=254, B=1 이 "우리 글자" 표식 (셰이더가 알아본다), A = 글자 덮임, G = 그림자 (글자를 1 텍셀 불리고
-    흐린 먹 테두리. 바닐라 그림자 사본을 셰이더가 반 픽셀 오른쪽 아래의 이 테두리로 그린다).
-  * 진행 폭: 클라이언트는 bitmap 글자의 폭을 "알파가 0 이 아닌 가장 오른쪽 열 + 1" 로 잰다
-    ((int)(0.5 + 폭 × 배율) + 1). 그래서 (A-1)×K - 1 열에 알파 1 점 (보이지 않는다) 을 찍어 진행 폭을 A 로 맞춘다.
+  * 텍셀: R = 글자 덮임 (32 단), B = 1 과 알파 0 이 "우리 글자" 표식 (셰이더가 알아본다). 바닐라 그림자 사본은 셰이더가
+    반 픽셀 오른쪽 아래에 덮임을 흐려 (상자 거르개를 2.5 텍셀 넓혀) 먹빛 테두리로 그린다.
+  * 진행 폭: 클라이언트는 bitmap 글자의 폭을 "알파가 0 이 아닌 가장 오른쪽 열 + 1" 로 재 (int)(0.5 + 폭 × 배율) + 1 을
+    진행 폭으로 쓴다. 덮임을 알파에 두면 글자 끝 뒤에 늘 0.75 픽셀 넘는 틈이 생겨 (바닐라 픽셀 글꼴의 "+1") 가라몽
+    소문자가 글자마다 1 픽셀씩 벌어졌다. 그래서 글자는 알파 0 으로 두고 (A-1)×K - 1 열에 알파 1 점 하나만 찍어 진행
+    폭을 정확히 A (글꼴의 진행 폭을 반올림한 정수 GUI 픽셀) 로 정한다. 글자는 칸 안에서 다음 글자 자리로 넘어가도 된다.
 
 글꼴 (모두 SIL OFL 1.1, 받는 곳 google/fonts. 팩에는 TTF 가 아니라 그린 그림만 들어간다. 사용 허락 글은 팩의
 assets/souls/font/gothic/licenses/ 와 FONTS-OFL.txt)
@@ -35,7 +37,8 @@ from PIL import Image
 
 K = 4                       # 텍셀 / GUI 픽셀
 MARGIN_L = 1                # 글자 왼쪽 여백 (텍셀): 셰이더의 상자 거르개가 칸 밖 (아틀라스 이웃) 을 읽지 않게
-HALO = 3                    # 그림자 테두리가 글자 밖으로 번지는 텍셀
+HALO = 3                    # 그림자 (셰이더가 덮임을 흐려 그린다) 가 글자 밖으로 번지는 텍셀: 칸에 이만큼 여백
+LEVELS = 32                 # 덮임 단 수
 RAW = "https://raw.githubusercontent.com/google/fonts/main/ofl/"
 SOURCES = {
     # 열쇠: (저장소 폴더, 파일, 원 이름)
@@ -44,7 +47,7 @@ SOURCES = {
     "cinzel": ("cinzel", "Cinzel%5Bwght%5D.ttf", "Cinzel"),
     "nanum_myeongjo_eb": ("nanummyeongjo", "NanumMyeongjo-ExtraBold.ttf", "Nanum Myeongjo"),
 }
-MARK_R, MARK_B = 254, 1
+MARK_B = 1                  # B = 1, 알파 0 (진행 폭 점만 1): 셰이더가 우리 글자 텍셀로 알아본다
 
 
 def cache_dir():
@@ -180,12 +183,10 @@ class Role:
                     a = a[rows[0]:rows[-1] + 1, cols[0]:cols[-1] + 1]
                     left += int(cols[0])
                     top -= int(rows[0])
-            wi = a.shape[1] if a.size else 0
-            # 진행 폭 A (정수 GUI 픽셀): 글꼴의 진행 폭을 반올림한 것, 그러나 클라이언트 셈 ((int)(0.5 + 폭/K) + 1) 이
-            # A 가 되려면 글자 끝이 A×K - 3 텍셀 안이어야 하고 왼쪽 여백이 MARGIN_L 이다
-            A = max(1, int(round(adv / K)), int(math.ceil((wi + 3 + MARGIN_L) / K)))
-            x0 = left + int(round((A * K - adv) / 2.0))      # 반올림 오차를 양쪽에 나눈다
-            x0 = max(MARGIN_L, min(x0, A * K - 3 - wi))
+            # 진행 폭 A: 글꼴의 진행 폭을 정수 GUI 픽셀로 반올림하고, 글자를 그 폭 가운데에 놓아 반올림 오차를 양쪽에 나눈다.
+            # 글자 덮임은 알파가 아니라 R 에 있으므로 (아래 atlas) 글자가 다음 칸으로 넘어가도 진행 폭은 A 그대로다
+            A = max(1, int(round(adv / K)))
+            x0 = max(MARGIN_L, left + int(round((A * K - adv) / 2.0)))
             top -= self.shift.get(f.key, 0)
             self.glyphs[ch] = {"a": a, "x0": x0, "top": top, "adv": A, "face": f.key}
 
@@ -207,23 +208,9 @@ class Role:
         return None if g is None else g["final_adv"]
 
 
-def halo(alpha):
-    """그림자 테두리: 1 텍셀 불리고 (3×3 최댓값) 가우스 (시그마 1.1) 로 흐리게, 조금 짙게."""
-    a = alpha
-    h, w = a.shape
-    p = np.pad(a, 1)
-    d = np.max(np.stack([p[y:y + h, x:x + w] for y in range(3) for x in range(3)]), axis=0)
-    k = np.array([math.exp(-(i * i) / (2 * 1.1 * 1.1)) for i in range(-3, 4)], np.float32)
-    k /= k.sum()
-    p = np.pad(d, 3)
-    t = sum(k[i] * p[:, i:i + w] for i in range(7))
-    t = sum(k[i] * t[i:i + h, :] for i in range(7))
-    return np.clip(t * 1.35, 0, 1)
-
-
 def atlas(role, chars_per_row=64):
     """
-    글자 그림 한 장 (RGBA: R=254, B=1 표식, G=그림자, A=글자) 과 공급자 값. 글자 차례는 role.glyphs 의 차례.
+    글자 그림 한 장 (RGBA: R=덮임, B=1 표식, 알파 0 (진행 폭 점만 1)) 과 공급자 값. 글자 차례는 role.glyphs 의 차례.
     돌려주는 값: (Image, provider dict (file 은 비워 둔다), 진행 폭 표 {글자: 정수 GUI 픽셀}, 넘친 글자 목록).
     """
     m = role.metrics()
@@ -232,9 +219,9 @@ def atlas(role, chars_per_row=64):
     rows = int(math.ceil(len(chars) / chars_per_row))
     W, H = cw * min(len(chars), chars_per_row), ch_ * rows
     A = np.zeros((H, W), np.float32)
-    G = np.zeros((H, W), np.float32)
     grid = []
     over = []
+    sentinels = []
     advs = {}
     for i, chr_ in enumerate(chars):
         g = role.glyphs[chr_]
@@ -247,30 +234,28 @@ def atlas(role, chars_per_row=64):
         if a.size:
             y0 = asc * K - g["top"]
             cell[y0:y0 + a.shape[0], g["x0"]:g["x0"] + a.shape[1]] = a
-        gh = halo(cell)
-        # 진행 폭: (A-1)K - 1 열에 알파 1/255 점. 글자가 (A-0.5)K 를 넘어 그려져 있으면 클라이언트 셈이 그대로 이긴다
+        # 진행 폭: 클라이언트는 알파가 0 이 아닌 가장 오른쪽 열로 잰다. 글자는 알파 0 (덮임은 R) 이라 (A-1)K - 1 열의 알파 1
+        # 점 하나가 진행 폭을 A 로 정한다
         want = g["adv"]
-        ink_w = (g["x0"] + a.shape[1]) if a.size else 0
         sent = (want - 1) * K - 1
-        if sent >= 0 and cell[:, sent].max() == 0:
-            cell[ch_ - 1, sent] = 1.0 / 255.0
-        w_eff = max(ink_w, sent + 1 if sent >= 0 else 0)
+        w_eff = sent + 1 if sent >= 0 else 0
         final = int(0.5 + w_eff / K) + 1
         if final != want:
             over.append((chr_, want, final))
+        if sent >= 0:
+            sentinels.append((cx + sent, cy + ch_ - 1))
         g["final_adv"] = final
         advs[chr_] = final
         A[cy:cy + ch_, cx:cx + cw] = cell
-        G[cy:cy + ch_, cx:cx + cw] = gh
     for row_i in range(len(grid)):
         grid[row_i] = grid[row_i] + "\u0000" * (chars_per_row - len(grid[row_i])) if rows > 1 else grid[row_i]
     img = np.zeros((H, W, 4), np.uint8)
-    img[..., 0] = MARK_R
+    # 덮임 32 단 (5 비트): 눈으로 갈리지 않고 그림이 절반 가까이 작아진다
+    q = 255.0 / (LEVELS - 1)
+    img[..., 0] = np.clip(np.rint(np.rint(A * 255 / q) * q), 0, 255).astype(np.uint8)
     img[..., 2] = MARK_B
-    img[..., 1] = np.clip(np.rint(G * 255), 0, 255).astype(np.uint8)
-    alpha = np.rint(A * 255)
-    alpha[(A > 0) & (alpha == 0)] = 1
-    img[..., 3] = np.clip(alpha, 0, 255).astype(np.uint8)
+    for x, y in sentinels:
+        img[y, x, 3] = 1
     provider = {"type": "bitmap", "file": None, "height": ch_ // K, "ascent": asc, "chars": grid}
     return Image.fromarray(img, "RGBA"), provider, advs, over
 

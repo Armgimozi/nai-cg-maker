@@ -17,6 +17,10 @@
   사망 화면 제목 "YOU DIED" 를 새빨갛게 띄우려고 (사용자 결정 3) 10.1 표에 한 계열을 더했다 (한 곳 전용).
   그 제목 그림(VIVID)에만 쓴다. 다른 그림에 나오면 artlint 오류 (restricted).
 
+마나 (2026-10-08 사용자 결정)
+  술 자원 마나의 막대는 다크 소울의 FP 처럼 푸르다. "밝은 파랑 금지" 규칙의 사용자 예외로 마나 계열 (mana) 을 두고,
+  마나 막대 그림 (MANA_ART, HUD 그림 글자 hud_fp_*) 에서만 쓴다 (restricted). 그 그림에서는 blue 검사도 받지 않는다 (blue_exempt).
+
 UI 전용 계열 (진홍, 잉걸, 누른 풀, 먹, 옅은 금빛 흰색)
   다크 소울 HUD·창을 "보자마자 다크 소울" 로 맞추려고 (사용자 결정 2026-10-07, 비평 2026-10-08) 더한 색이다.
   textures/gui/ 와 textures/font/ (UI_ART) 에서만 쓴다. 다른 그림에 나오면 artlint 오류 (restricted).
@@ -62,13 +66,16 @@ FAMILIES = {
     "sap":     ["#3a5019", "#4e6a22", "#7a9636", "#95ad52"],   # 누른 풀: HUD 스태미나 막대
     "ink":     ["#0c0b0a", "#3e3930"],                         # 먹: 칸 우물 바닥, 칸 테
     "glim":    ["#e6d39a"],                                    # 옅은 금빛 흰색: 잃은 체력 몫, 보스 자세 줄
+    # ── 마나 전용 (2026-10-08 사용자 결정: 술 자원 "마나" 의 막대는 푸른색). 다크 소울의 FP 막대처럼 깊고 조금 바랜 쪽빛.
+    #    "밝은 파랑 금지" (blue) 규칙의 사용자 예외: 마나 막대 그림 (MANA_ART) 에서만 쓰고, 거기서만 blue 검사를 받지 않는다
+    "mana":    ["#141b2e", "#22325a", "#304a86", "#4a66a6"],
 }
 KO = {"rust": "녹슨 철", "bronze": "그을린 청동", "parch": "바랜 양피지", "blood": "마른 핏빛",
       "ash": "재", "moss": "이끼", "bone": "뼈", "ember": "불씨", "gore": "생피 (사망 제목 전용)",
       "stone": "돌 (블록 전용)", "slate": "점판암 (블록 전용)", "woad": "대청 (블록 전용)", "olive": "마른 풀 (블록 전용)",
       "verd": "녹청 (블록 전용)", "mauve": "엷은 자주 (블록 전용)", "rose": "바랜 장미 (블록 전용)", "clay": "구운 흙 (블록 전용)",
       "crimson": "진홍 (UI 전용)", "cinder": "잉걸 (UI 전용)", "sap": "누른 풀 (UI 전용)", "ink": "먹 (UI 전용)",
-      "glim": "옅은 금빛 흰색 (UI 전용)"}
+      "glim": "옅은 금빛 흰색 (UI 전용)", "mana": "마나 쪽빛 (마나 막대 전용, 파랑 금지의 예외)"}
 
 SAT_MAX = 0.55            # 이보다 채도가 높으면 빛 허용 그림에만
 BLUE_HUE = (200, 300)     # 파랑~보라 (도)
@@ -108,7 +115,10 @@ BLOCK_GLOW = (
 # UI 그림 (UI 전용 계열을 쓸 수 있는 곳, 경로 조각): 창·HUD 그림과 HUD 그림 글자
 UI_ART = ("textures/gui/", "textures/font/")
 UI_FAMILIES = ("crimson", "cinder", "sap", "ink", "glim")
-RESTRICTED = {"gore": VIVID, **{f: BLOCK_ART for f in BLOCK_FAMILIES}, **{f: UI_ART for f in UI_FAMILIES}}
+# 마나 막대 그림 (마나 계열을 쓸 수 있는 곳, 경로 조각): HUD 그림 글자 hud_fp_* (막대 이름 fp 는 옛 온기 자리 그대로)
+MANA_ART = ("textures/font/hud_fp_",)
+RESTRICTED = {"gore": VIVID, **{f: BLOCK_ART for f in BLOCK_FAMILIES}, **{f: UI_ART for f in UI_FAMILIES},
+              "mana": MANA_ART}
 
 
 def hexc(h, a=255):
@@ -168,6 +178,15 @@ def too_saturated(rgb):
 def blue_glow(rgb):
     """파랑~보라 색상이면서 밝은 색 (빛 번짐처럼 보인다)."""
     return chroma(rgb) > 0.04 and BLUE_HUE[0] <= hue(rgb) <= BLUE_HUE[1] and value(rgb) > BLUE_VALUE_MAX
+
+
+def blue_exempt(rgb, path):
+    """파랑 금지 (blue_glow) 의 예외: 마나 계열의 색을 마나 막대 그림 (MANA_ART) 에 쓴 것 (2026-10-08 사용자 결정)."""
+    name = name_of(rgb)
+    if name is None or family(name) != "mana":
+        return False
+    p = path.replace("\\", "/").lower()
+    return any(g in p for g in MANA_ART)
 
 
 def is_glow_path(path):
