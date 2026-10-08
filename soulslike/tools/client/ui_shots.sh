@@ -226,7 +226,8 @@ if has levelup; then
   do_ wait:2 move:$((CX)):$((H - 20)) wait:0.8 shot:${P}levelup${X}
   tst press levelup exit
   tst press rest stats
-  do_ wait:2 move:$((CX)):$((H - 20)) wait:0.8 shot:${P}stats_dialog${X} key:Escape wait:0.8
+  # 능력치 창의 나가기는 휴식 창으로 돌아가고, 휴식 창의 나가기 (일어선다) 가 닫는다
+  do_ wait:2 move:$((CX)):$((H - 20)) wait:0.8 shot:${P}stats_dialog${X} key:Escape wait:1 key:Escape wait:0.8
   tst souls 0
 fi
 if has chat; then

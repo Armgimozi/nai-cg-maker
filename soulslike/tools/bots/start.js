@@ -47,7 +47,7 @@ async function body (sc, b, swap) {
   await b.cmd('/soulstest settings clear', 'SETTINGS cleared')
   b = await rejoin(sc, b)
   swap(b)
-  const d0 = b.p.dialogs.length
+  const d0 = 0 // 새 봇: 창이 접속하는 동안 (땅을 기다리는 사이) 이미 왔을 수 있다
   const st = await b.waitT('START_DIALOG ', 15000)
   sc.check('fresh world: settings dialog opens for the first player (START_DIALOG reason=fresh)', st && st.kv.reason === 'fresh', st ? st.line : '줄 없음')
   const raw = await b.waitDialog(d0, 4000)
@@ -89,11 +89,12 @@ async function body (sc, b, swap) {
   await b.cmd('/soulstest settings clear', 'SETTINGS cleared')
   b = await rejoin(sc, b)
   swap(b)
-  const d1 = b.p.dialogs.length
+  const d1 = 0
   await b.waitT('START_DIALOG ', 15000)
   const raw2 = await b.waitDialog(d1, 4000)
   from = b.sys.length
-  sc.check('Esc = exit action of the settings dialog', raw2 && b.clickDialog('exit', { pvp: true }, raw2))
+  sc.check('Esc = exit action of the settings dialog', raw2 && b.clickDialog('exit', { pvp: true }, raw2),
+    raw2 ? '' : `창 ${b.p.dialogs.length}개, 시험 줄 ${b.tLines('').map((x) => x.line.split(' ').slice(0, 3).join(' ')).join(' | ').slice(0, 300)}, 오류 ${b.lastError ? b.lastError.message : '-'}, 패킷 ${b.pkts.filter((n) => !/map_chunk|entity|light|sound|time|keep_alive|level_particles|block|bundle/.test(n)).slice(-40).join(',')}`)
   await b.waitT('UI click', 3000, from)
   await L.sleep(600)
   const s2 = await settings(b)

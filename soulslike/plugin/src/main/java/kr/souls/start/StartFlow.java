@@ -264,7 +264,9 @@ public final class StartFlow implements Listener {
             plugin.test(p, "SETTINGS " + s.line());
         }
         if (p.getUniqueId().equals(chooser)) chooser = null;
-        plugin.titles().notice(p, plugin.ticker().now(), Lang.c(p, "start.provisional"));
+        // 이미 확정된 세계에서 관리자가 창을 열었다 닫았으면 잠정이 아니다
+        WorldState.Settings now = plugin.worldState().get();
+        if (now == null || !now.confirmed()) plugin.titles().notice(p, plugin.ticker().now(), Lang.c(p, "start.provisional"));
         if (unborn(p)) originStep(p);
         else plugin.ui().close(p);
     }

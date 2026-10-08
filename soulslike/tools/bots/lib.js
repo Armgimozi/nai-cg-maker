@@ -317,6 +317,7 @@ class Bot {
     }
     this.crawlLive = new Set()
     this.sysHooks = [] // 받은 그 자리에서 부를 것 (onSysOnce)
+    this.pkts = [] // 받은 패킷 이름 (마지막 300개, 실패 설명용)
     this.isBarrier = () => false
     this.kick = null
     this.ended = false
@@ -330,6 +331,10 @@ class Bot {
     this._bot = bot
     const c = bot._client
     const now = () => Date.now()
+    c.on('packet', (d, meta) => {
+      this.pkts.push(meta.state + ':' + meta.name)
+      if (this.pkts.length > 300) this.pkts.shift()
+    })
     c.on('login', (d) => {
       const ws = d.worldState || {}
       this.p.login = { t: now(), entityId: d.entityId, world: ws.name, dimension: ws.dimension, gamemode: modeName(ws.gamemode), enableRespawnScreen: d.enableRespawnScreen }
