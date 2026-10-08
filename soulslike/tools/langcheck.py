@@ -21,7 +21,8 @@
   content  content/*.yml 에 한글 글이 없고 글 칸 (name, description, lore, text …) 이 없다 (글자와 상관없이)
   pack     팩 언어 파일이 YAML 에서 만든 것과 같다 (낡은 팩): assets/souls/lang/ko_kr.json·en_us.json,
            assets/minecraft/lang/<언어>.json 의 vanilla.* 열쇠 (ko_kr 은 한국어, 나머지는 영어). 창 제목의 제목 글자, 제목 밑
-           금실, 무기 수치 이름의 열 맞춤 빈칸은 검사하는 팩의 글꼴로 gen_pack 과 같은 셈을 해 견준다 (pack/typeset.py)
+           금실, 무기 수치 이름의 열 맞춤 빈칸, 무기 설명 칸 실선 (weapon.rule), ko_kr 의 한글 가운뎃점은 검사하는 팩의 글꼴로
+           gen_pack 과 같은 셈을 해 견준다 (pack/typeset.py)
   width    글이 그 자리 폭에 들어간다 (1280×720 GUI 배율 3 = 화면 426 픽셀 기준. SLOTS 표). 폭은 팩의 글꼴 (본문 가라몽·명조,
            꼴 태그 <font:souls:title> 이나 창 제목은 제목 글꼴) 로 잰다. 팩이 없거나 팩 글꼴에 없는 글자면 바닐라 기본 글꼴 폭.
            큰 글씨는 4배로 그려져 104 픽셀, 부제목은 2배라 200 픽셀, Dialog 단추(폭 160) 150, 사망 화면 단추(폭 200) 190
@@ -84,7 +85,8 @@ SLOTS = [
     ("vanilla.deathScreen.respawn", "button200"), ("vanilla.deathScreen.titleScreen", "button200"),
     ("vanilla.deathScreen.quit.confirm", "screen"), ("vanilla.deathScreen.score.value", "screen"),
     ("vanilla.container.crafting", "container_title"), ("vanilla.container.*", "container_title_wide"),
-    ("boss.*.name", "boss_name"), ("vanilla.menu.game", "screen"),
+    ("boss.*.name", "boss_name"), ("vanilla.menu.game", "screen"), ("vanilla.options.*", "screen"),
+    ("vanilla.controls.*", "screen"),
     ("pack.*", "wrap"), ("build.*", "wrap"), ("admin.*", "wrap"),
 ]
 # 폭을 잴 때 자리에 넣는 값 (가장 길게 나올 만한 것)

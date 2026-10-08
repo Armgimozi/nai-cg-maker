@@ -4,24 +4,24 @@
 # you_died 는 사망 화면 제목 한 줄 전체 (deathScreen.title 과 같은 문자열). 언어 문자열은 글꼴을 고를 수 없어
 #   minecraft:default 에 있다 (10.9). you_died_title 은 플러그인 화면 제목용 (death.title: true) 한 줄 전체로
 #   souls:hud 에 있다. 글꼴은 줄마다 font 를 따른다. 나머지는 한 글자씩.
-# text_space_* 는 기본 글꼴의 빈칸 (pack/typeset.py), lore_rule 은 무기 설명 칸의 실선 (item/StatTable).
+# text_space_* 는 기본 글꼴의 빈칸 (pack/typeset.py, 수치 표의 열 맞춤과 Dialog 제목 앞 빈칸).
 # stats 는 무기 설명 칸 수치 표의 열 (GUI 픽셀) 과 값 글자의 진행 폭 (기본 글꼴, pack/typeset.py 가 팩에서 잰 것).
-you_died: {char: "\ue010\ue007\ue012\ue008\ue012\ue008\ue012\ue008\ue012\ue008\ue012\ue008\ue012\ue008\ue012\ue009\ue012\ue011\ue000\ue00e\ue001\ue00e\ue002\ue00f\ue003\ue00e\ue004\ue00e\ue005\ue00e\ue006", width: 93, font: "minecraft:default"}
-you_died_title: {char: "\ue0f0\ue030\ue0f1\ue030\ue0f2\ue031\ue0f3\ue030\ue0f4\ue030\ue0f5\ue030\ue0f6", width: 93, font: "souls:hud"}
-you_died_y: {char: "\ue000", width: 10, font: "minecraft:default"}
-you_died_o: {char: "\ue001", width: 11, font: "minecraft:default"}
-you_died_u: {char: "\ue002", width: 10, font: "minecraft:default"}
-you_died_d1: {char: "\ue003", width: 11, font: "minecraft:default"}
-you_died_i: {char: "\ue004", width: 6, font: "minecraft:default"}
-you_died_e: {char: "\ue005", width: 9, font: "minecraft:default"}
-you_died_d2: {char: "\ue006", width: 11, font: "minecraft:default"}
+you_died: {char: "\ue010\ue007\ue012\ue008\ue012\ue008\ue012\ue008\ue012\ue008\ue012\ue008\ue012\ue008\ue012\ue009\ue012\ue011\ue000\ue00e\ue001\ue00e\ue002\ue00f\ue003\ue00e\ue004\ue00e\ue005\ue00e\ue006", width: 114, font: "minecraft:default"}
+you_died_title: {char: "\ue0f0\ue030\ue0f1\ue030\ue0f2\ue031\ue0f3\ue030\ue0f4\ue030\ue0f5\ue030\ue0f6", width: 114, font: "souls:hud"}
+you_died_y: {char: "\ue000", width: 14, font: "minecraft:default"}
+you_died_o: {char: "\ue001", width: 15, font: "minecraft:default"}
+you_died_u: {char: "\ue002", width: 14, font: "minecraft:default"}
+you_died_d1: {char: "\ue003", width: 14, font: "minecraft:default"}
+you_died_i: {char: "\ue004", width: 7, font: "minecraft:default"}
+you_died_e: {char: "\ue005", width: 11, font: "minecraft:default"}
+you_died_d2: {char: "\ue006", width: 14, font: "minecraft:default"}
 you_died_gap: {char: "\ue00e", width: 3, font: "minecraft:default"}
 you_died_word: {char: "\ue00f", width: 10, font: "minecraft:default"}
 death_band_l: {char: "\ue007", width: 65, font: "minecraft:default"}
 death_band_m: {char: "\ue008", width: 65, font: "minecraft:default"}
 death_band_r: {char: "\ue009", width: 65, font: "minecraft:default"}
-death_band_pre: {char: "\ue010", width: -210, font: "minecraft:default"}
-death_band_post: {char: "\ue011", width: -302, font: "minecraft:default"}
+death_band_pre: {char: "\ue010", width: -199, font: "minecraft:default"}
+death_band_post: {char: "\ue011", width: -313, font: "minecraft:default"}
 death_band_back: {char: "\ue012", width: -1, font: "minecraft:default"}
 space_neg1: {char: "\ue020", width: -1, font: "souls:hud"}
 space_neg2: {char: "\ue021", width: -2, font: "souls:hud"}
@@ -39,13 +39,13 @@ space_pos16: {char: "\ue02c", width: 16, font: "souls:hud"}
 space_pos32: {char: "\ue02d", width: 32, font: "souls:hud"}
 space_pos64: {char: "\ue02e", width: 64, font: "souls:hud"}
 space_pos128: {char: "\ue02f", width: 128, font: "souls:hud"}
-you_died_title_y: {char: "\ue0f0", width: 10, font: "souls:hud"}
-you_died_title_o: {char: "\ue0f1", width: 11, font: "souls:hud"}
-you_died_title_u: {char: "\ue0f2", width: 10, font: "souls:hud"}
-you_died_title_d1: {char: "\ue0f3", width: 11, font: "souls:hud"}
-you_died_title_i: {char: "\ue0f4", width: 6, font: "souls:hud"}
-you_died_title_e: {char: "\ue0f5", width: 9, font: "souls:hud"}
-you_died_title_d2: {char: "\ue0f6", width: 11, font: "souls:hud"}
+you_died_title_y: {char: "\ue0f0", width: 14, font: "souls:hud"}
+you_died_title_o: {char: "\ue0f1", width: 15, font: "souls:hud"}
+you_died_title_u: {char: "\ue0f2", width: 14, font: "souls:hud"}
+you_died_title_d1: {char: "\ue0f3", width: 14, font: "souls:hud"}
+you_died_title_i: {char: "\ue0f4", width: 7, font: "souls:hud"}
+you_died_title_e: {char: "\ue0f5", width: 11, font: "souls:hud"}
+you_died_title_d2: {char: "\ue0f6", width: 14, font: "souls:hud"}
 you_died_title_gap: {char: "\ue030", width: 3, font: "souls:hud"}
 you_died_title_word: {char: "\ue031", width: 10, font: "souls:hud"}
 hud_hp_fill_1: {char: "\ue040", width: 2, font: "souls:hud"}
@@ -162,9 +162,8 @@ boss_post_empty_16: {char: "\ue0ae", width: 17, font: "souls:hud"}
 boss_post_empty_32: {char: "\ue0af", width: 33, font: "souls:hud"}
 boss_post_empty_64: {char: "\ue0b0", width: 65, font: "souls:hud"}
 boss_post_empty_128: {char: "\ue0b1", width: 129, font: "souls:hud"}
-boss_cap_l: {char: "\ue0b2", width: 16, font: "souls:hud"}
+boss_cap_l: {char: "\ue0b2", width: 9, font: "souls:hud"}
 boss_cap_r: {char: "\ue0b3", width: 9, font: "souls:hud"}
-lore_rule: {char: "\ue0b4", width: 121, font: "souls:hud"}
 text_space_neg1: {char: "\ue380", width: -1, font: "minecraft:default"}
 text_space_neg2: {char: "\ue381", width: -2, font: "minecraft:default"}
 text_space_neg4: {char: "\ue382", width: -4, font: "minecraft:default"}

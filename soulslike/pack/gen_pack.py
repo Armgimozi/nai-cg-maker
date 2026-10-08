@@ -165,7 +165,7 @@ def write_glyphs(path, glyphs, title, plugin_title, value_widths):
         "# you_died 는 사망 화면 제목 한 줄 전체 (deathScreen.title 과 같은 문자열). 언어 문자열은 글꼴을 고를 수 없어",
         "#   minecraft:default 에 있다 (10.9). you_died_title 은 플러그인 화면 제목용 (death.title: true) 한 줄 전체로",
         "#   souls:hud 에 있다. 글꼴은 줄마다 font 를 따른다. 나머지는 한 글자씩.",
-        "# text_space_* 는 기본 글꼴의 빈칸 (pack/typeset.py), lore_rule 은 무기 설명 칸의 실선 (item/StatTable).",
+        "# text_space_* 는 기본 글꼴의 빈칸 (pack/typeset.py, 수치 표의 열 맞춤과 Dialog 제목 앞 빈칸).",
         "# stats 는 무기 설명 칸 수치 표의 열 (GUI 픽셀) 과 값 글자의 진행 폭 (기본 글꼴, pack/typeset.py 가 팩에서 잰 것).",
     ]
     adv = {(g.font, g.char): g.width for g in glyphs}

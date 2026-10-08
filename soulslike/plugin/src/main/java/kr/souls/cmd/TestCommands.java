@@ -14,6 +14,7 @@ import kr.souls.combat.CombatState;
 import kr.souls.combat.Stamina;
 import kr.souls.combat.TestHits;
 import kr.souls.combat.Tumble;
+import kr.souls.hud.Glyphs;
 import kr.souls.item.ItemFactory;
 import kr.souls.skill.SkillContext;
 import kr.souls.skill.SkillDef;
@@ -365,7 +366,7 @@ public final class TestCommands {
         ActionButton exit = ActionButton.builder(Lang.c(p, "bonfire.leave")).width(160)
                 .action(DialogAction.customClick((r, a) -> plugin.test(p, "DIALOG exit t=" + plugin.ticker().now()), once)).build();
         Dialog d = Dialog.create(b -> b.empty()
-                .base(DialogBase.builder(Lang.c(p, "bonfire.test-name"))
+                .base(DialogBase.builder(Glyphs.dialogTitle(Lang.c(p, "bonfire.test-name")))
                         .canCloseWithEscape(true).pause(false).afterAction(DialogBase.DialogAfterAction.CLOSE)
                         .body(List.of(DialogBody.plainMessage(Lang.c(p, "bonfire.status", "souls", "0", "level", "1"))))
                         .build())

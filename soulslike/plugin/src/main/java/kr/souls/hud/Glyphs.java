@@ -177,6 +177,38 @@ public final class Glyphs {
         return glyphs;
     }
 
+    private static final int[] SPACE_STEPS = {128, 64, 32, 16, 8, 4, 2, 1};
+    /**
+     * 바닐라 Dialog 창은 제목 줄을 [제목][10][경고 단추 20] 으로 짜서 통째로 가운데에 놓는다 (1.21.11 DialogScreen). 그래서 제목이
+     * 가운데에서 (10 + 20) / 2 만큼 왼쪽으로 밀려 본문·단추와 어긋났다 (2026-10-08 비평). 제목 앞에 같은 폭의 빈칸을 두면 보이는
+     * 제목이 가운데 줄에 선다.
+     */
+    public static final int DIALOG_TITLE_PAD = 10 + 20;
+
+    /**
+     * 폭 px (0 이상, GUI 픽셀) 의 빈칸 글: 기본 글꼴의 빈칸 글자 (glyphs.yml 의 text_space_pos*, pack/typeset.py) 를 128, 64 … 1 로.
+     * 빈칸 글자가 없으면 (옛 팩) 보통 빈칸 하나.
+     */
+    public static String textSpaces(int px) {
+        StringBuilder b = new StringBuilder();
+        int left = Math.max(0, px);
+        for (int step : SPACE_STEPS) {
+            Glyph g = glyphs.get("text_space_pos" + step);
+            if (g == null) return " ";
+            while (left >= step) {
+                b.append(g.ch());
+                left -= step;
+            }
+        }
+        return b.toString();
+    }
+
+    /** Dialog 창 제목: 경고 단추 몫의 빈칸 (DIALOG_TITLE_PAD) 을 앞에 두어 보이는 제목이 가운데에 서게. 빈칸 글자가 없으면 그대로. */
+    public static Component dialogTitle(Component title) {
+        if (glyphs.get("text_space_pos1") == null) return title;
+        return Component.text(textSpaces(DIALOG_TITLE_PAD)).append(title);
+    }
+
     /** 빈칸으로 가른 이름들을 이어 붙인 글. 하나라도 없으면 null (부른 쪽이 일반 글씨로 대신한다). */
     public static Component line(String names) {
         if (names == null || names.isBlank()) return null;

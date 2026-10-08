@@ -3,13 +3,13 @@ HUD 그림과 글꼴 (DESIGN.md 10.2, 10.3, 10.9). gen_pack.py 가 부른다.
 
 만드는 것
   허기            food_* 여섯 장을 투명하게 (허기 6 은 달리기를 막는 데만 쓴다, 3.2).
-  사망 화면 제목  "YOU DIED" (사용자 결정 3). 손으로 찍은 글자 art/you_died.txt 를
+  사망 화면 제목  "YOU DIED" (사용자 결정 3). 제목 글꼴 Cinzel (OFL, fonts.py) 을 FreeType 으로 크게 그린 생피 글자를
                   minecraft:default 글꼴의 개인 영역 문자로 넣는다 (언어 문자열은 글꼴을 고를 수 없다, 10.9). 뒤에 화면을
                   가로지르는 검은 띠 (2 배 그림, 청동 실).
   souls:hud 글꼴  자리 맞춤 빈칸 (음수·양수), 플러그인 화면 제목용 YOU DIED (death.title: true),
                   다크 소울 HUD (2026-10-07 사용자 결정, 2026-10-08 고딕 촛불 시안 B): 왼쪽 위 막대 셋 (체력·마나·스태미나) 의
                   조각과 마구리, 오른쪽 아래 소울 상자·넋 표식·숫자, 화면 아래 가운데 보스 막대 (체력·잃은 몫·자세 조각과
-                  마구리), 무기 설명 칸의 실선 (lore_rule). 자리는 아래 "다크 소울 HUD" 의 머리말. 그림은 GUI 한 픽셀에 2 텍셀
+                  마구리). 자리는 아래 "다크 소울 HUD" 의 머리말. 그림은 GUI 한 픽셀에 2 텍셀
                   (uidraw.py, 숫자는 4 텍셀) 이고 글꼴 셰이더가 넓이 평균으로 읽는다 (shaders.py).
   HUD 셰이더 덩이 hud_shader(): 바닐라 1.21.11 rendertype_text.vsh 에 한 덩이를 더해 표식 색의 HUD 글만 옮긴다 (막대 셋 왼쪽 위,
                   소울 상자 오른쪽 아래, 보스 막대 화면 아래 가운데). shaders.py 가 GUI 글자 덩이를 더해 쓴다 (10.8).
@@ -67,10 +67,6 @@ def sprite_path(out, ns, *parts):
 
 # ─────────────────────────── 손으로 찍은 글자 읽기 ───────────────────────────
 
-# art/*.txt 의 기호 → 팔레트 이름
-YOU_DIED_INK = {"o": "gore0", "-": "gore1", "#": "gore2", "+": "gore3"}
-
-
 def load_grids(path):
     """
     [이름] 다음 줄부터 빈 줄까지가 그림 한 장. '# ' (샵 + 빈칸) 으로 시작하는 줄은 설명.
@@ -121,17 +117,23 @@ def glyph_advance(img, x0, cell_w, cell_h, scale):
 
 # ─────────────────────────── 사망 화면 제목 ───────────────────────────
 
-# 그림 이름, 문자. 두 D 는 따로 그린 다른 그림이다 (윤곽부터 다르다).
+# 그림 이름, 문자. 두 D 는 같은 글자 그림이지만 문자는 따로 둔다 (glyphs.yml 의 이름이 그대로).
 YOU_DIED_LETTERS = [("y", "\ue000"), ("o", "\ue001"), ("u", "\ue002"), ("d1", "\ue003"),
                     ("i", "\ue004"), ("e", "\ue005"), ("d2", "\ue006")]
+YOU_DIED_CHARS = {"y": "Y", "o": "O", "u": "U", "d1": "D", "i": "I", "e": "E", "d2": "D"}
 YOU_DIED_GAP = ("you_died_gap", "\ue00e", 3)     # 글자 사이 (글꼴 픽셀). 소울 시리즈처럼 넓게 띄운다
 YOU_DIED_WORD = ("you_died_word", "\ue00f", 10)  # YOU 와 DIED 사이
-# 글자 그림 24줄을 글꼴 높이 12 로 넣는다 (배율 0.5). 사망 화면 제목은 2배로 그려지므로 그림 한 칸 = GUI 1픽셀.
-YOU_DIED_HEIGHT = 12
-# 사망 화면은 제목 줄을 GUI y 60 (2배 좌표 30) 에 그리고, 글자 위쪽은 줄 위쪽에서 7 - ascent 만큼 아래다 (2배).
+# 글자 (2026-10-08 비평: 손으로 찍은 픽셀 글자는 계단진 가장자리와 O·U·D 의 홈이 다른 글 (매끈한 명조·가라몽) 과 따로 놀았다):
+# 제목 글꼴 Cinzel Bold (fonts.TITLE_LA 와 같은 OFL 글꼴) 를 FreeType 으로 글꼴 한 픽셀에 YOU_DIED_K 텍셀로 그려, 생피 색에 덮임을
+# 알파로 넣는다. 대문자 높이 YOU_DIED_CAP 글꼴 픽셀 (사망 화면 제목은 2배로 그려져 GUI 24 픽셀), 칸은 위·아래 한 글꼴 픽셀씩 여유.
+# 글꼴 셰이더 (shaders.py) 가 그림 글자를 화면 픽셀이 덮는 넓이만큼 섞어 읽으므로 GUI 배율 2·3·4 에서 가장자리가 고르다.
+YOU_DIED_K = 8
+YOU_DIED_CAP = 12
+YOU_DIED_HEIGHT = 14
+# 사망 화면은 제목 줄을 GUI y 60 (2배 좌표 30) 에 그리고, 글자 칸 위쪽은 줄 위쪽에서 7 - ascent 만큼 아래다 (2배).
 # 단추는 화면 높이/4 + 72 (GUI 높이가 가장 작은 240 일 때 132) 부터라, 그 위로 가능한 한 가운데에 둔다:
-# ascent -5 면 GUI y 84~108 (높이 240 에서 가운데가 40%), 단추와 24 픽셀 띈다. 바닐라 글씨 자리(9)보다 24 픽셀 아래.
-YOU_DIED_ASCENT = -5
+# ascent -4 면 대문자가 GUI y 84~108 (높이 240 에서 가운데가 40%), 단추와 24 픽셀 띈다.
+YOU_DIED_ASCENT = -4
 # 다크 소울의 사망 화면처럼 YOU DIED 뒤에 화면을 가로지르는 반투명 검은 띠 (2026-10-07, 다크 소울 UI). 기본 글꼴의 64 폭
 # 조각 여덟 (왼쪽 끝, 가운데 여섯, 오른쪽 끝: 글꼴 그림은 256×256 판에 들어가야 하므로 한 장으로는 그릴 수 없다) 이 이어져
 # 2배로 GUI 1024×44 픽셀 (GUI 폭 960 까지 덮는다). 글자 가운데에 맞춰 위·아래로 11 씩 (ascent 0), 위·아래 가장자리와
@@ -141,41 +143,56 @@ DEATH_BAND_SPACES = ("death_band_pre", "\ue010"), ("death_band_post", "\ue011"),
 DEATH_BAND_TILE, DEATH_BAND_TILES, DEATH_BAND_H, DEATH_BAND_ASCENT = 64, 8, 22, 0
 
 # 플러그인 화면 제목용 (death.title: true). 사망 화면 판과 같은 그림을 souls:hud 글꼴에 따로 넣어, 사망 화면 판의
-# 자리(ascent)를 바꿔도 이 판은 그대로 둔다. 화면 제목은 4배로 그려지므로 높이 12 면 그림 한 칸이 GUI 2픽셀:
-# 사망 화면 판의 두 배 크기다 (이 판을 고르는 까닭). 대신 단추·HUD 와 픽셀 크기가 섞인다 (16절 질문 4 에 적었다).
-# 제목 줄은 화면 가운데에서 -10 (4배 좌표) 에 놓이고 글자 아래끝은 -10 + 7 - ascent + 12 이라, ascent 9 면 가운데보다
+# 자리(ascent)를 바꿔도 이 판은 그대로 둔다. 화면 제목은 4배로 그려지므로 대문자가 GUI 48 픽셀: 사망 화면 판의 두 배 크기다.
+# 제목 줄은 화면 가운데에서 -10 (4배 좌표) 에 놓이고 대문자 아래끝은 -10 + 7 - ascent + 13 이라, ascent 10 면 가운데보다
 # GUI 24픽셀 위에서 끝난다. 세로 한가운데에 두면 바닐라 단추(화면 높이/4 + 72)와 겹친다.
 TITLE_LETTERS = [(name, chr(0xE0F0 + i)) for i, (name, _) in enumerate(YOU_DIED_LETTERS)]
-TITLE_HEIGHT = 12
-TITLE_ASCENT = 9
+TITLE_HEIGHT = 14
+TITLE_ASCENT = 10
 TITLE_GAP = ("you_died_title_gap", "\ue030", 3)
 TITLE_WORD = ("you_died_title_word", "\ue031", 10)
 
 
-# 칠하기 (2026-10-08 비평: 글자 속의 어두운 점과 오른쪽·아래의 어두운 가장자리가 지저분하고 "만든 티" 가 났다): 손으로 찍은 꼴
-# (art/you_died.txt) 은 그대로 두고 색은 평평한 생피 하나 (YOU_DIED_FLAT), 획의 윗가장자리 (바로 위 칸이 비었다) 만 한 단 밝게
-# (YOU_DIED_TOP). 바닐라가 사망 화면 제목에 그리는 그림자 (글자 × 0.25, 2 GUI 픽셀 오른쪽 아래) 는 거의 검은 띠 위라 묻힌다.
+# 칠하기: 평평한 생피 하나 (YOU_DIED_FLAT), 획의 윗가장자리 (반 글꼴 픽셀 위가 비었다) 만 한 단 밝게 (YOU_DIED_TOP). 바닐라가 사망
+# 화면 제목에 그리는 그림자 (글자 × 0.25) 는 글꼴 셰이더가 반 픽셀 먹 그림자로 바꾸고, 거의 검은 띠 위라 묻힌다.
 YOU_DIED_FLAT, YOU_DIED_TOP = "gore2", "gore3"
+_SHEET = None
 
 
 def you_died_sheet():
-    grids = load_grids(os.path.join(ART, "you_died.txt"))
-    cell_h = len(grids["y"])
-    cell_w = max(len(grids[n][0]) for n, _ in YOU_DIED_LETTERS)
-    sheet = Image.new("RGBA", (cell_w * len(YOU_DIED_LETTERS), cell_h), (0, 0, 0, 0))
+    """(글자 그림 한 장, 칸 폭 텍셀, 칸 높이 텍셀). 칸 일곱 (Y O U D I E D), 대문자 바탕선은 칸 위에서 (CAP + 1) × K 텍셀."""
+    global _SHEET
+    if _SHEET is not None:
+        return _SHEET
+    import fonts
+    k, cap = YOU_DIED_K, YOU_DIED_CAP * YOU_DIED_K
+    probe = fonts.Face(fonts.TITLE_LA[0], 200, fonts.TITLE_LA[2], hint="none")
+    a, _, top, _ = probe.render("H")
+    face = fonts.Face(fonts.TITLE_LA[0], int(round(200 * cap / a.shape[0])), fonts.TITLE_LA[2], hint="none")
+    base = (YOU_DIED_CAP + 1) * k
+    cell_h = YOU_DIED_HEIGHT * k
+    glyphs = {}
+    for name, _ in YOU_DIED_LETTERS:
+        a, left, top, _ = face.render(YOU_DIED_CHARS[name])
+        cols = np.nonzero(a.max(0) > 0)[0]
+        glyphs[name] = (a[:, cols[0]:cols[-1] + 1], top)
+    cell_w = max(g.shape[1] for g, _ in glyphs.values()) + 2
+    assert cell_w <= 256 and cell_h <= 256, "글꼴 그림 한 칸은 256 텍셀 안"
+    img = Img(cell_w * len(YOU_DIED_LETTERS), cell_h)
     for i, (name, _) in enumerate(YOU_DIED_LETTERS):
-        rows = grids[name]
-        if len(rows) != cell_h:
-            raise ValueError(f"you_died [{name}]: 높이 {len(rows)} (다른 글자는 {cell_h})")
-        img = grid_image(rows, YOU_DIED_INK)
-        px = img.load()
-        for y in range(img.height):
-            for x in range(img.width):
-                if px[x, y][3]:
-                    top = y == 0 or px[x, y - 1][3] == 0
-                    px[x, y] = c(YOU_DIED_TOP if top else YOU_DIED_FLAT)
-        sheet.alpha_composite(img, (i * cell_w, 0))
-    return sheet, cell_w, cell_h
+        g, top = glyphs[name]
+        y0 = base - top
+        cov = np.zeros((cell_h, cell_w), np.float32)
+        cov[y0:y0 + g.shape[0], 1:1 + g.shape[1]] = g
+        on = cov > 0.5
+        above = np.zeros_like(on)
+        above[k // 2:] = on[:-(k // 2)]
+        names = np.where(on & ~above, YOU_DIED_TOP, YOU_DIED_FLAT)
+        sub = Img(cell_w, cell_h)
+        sub.over_layer(names.astype(object), cov)
+        img.over(sub, i * cell_w, 0)
+    _SHEET = (img.image(), cell_w, cell_h)
+    return _SHEET
 
 
 def death_title(glyphs, prefix="you_died_"):
@@ -241,13 +258,14 @@ def plugin_title(glyphs):
 # 그림 (2026-10-08 사용자: 고딕 촛불 시안 B): GUI 한 픽셀에 2 텍셀 (S, 숫자는 4 텍셀) 이고 글꼴 셰이더가 넓이 평균으로 읽는다.
 #   막대     위에서 비친 단조 쇠 테 (윗날에 청동빛 반 픽셀), 안쪽 홈은 위가 가장 어둡고 아래에 녹슨 입술, 채움은 윗줄이 한 단
 #            밝고 아래로 어두워진다. 체력은 짙은 진홍, 마나는 다크 소울 FP 처럼 깊고 바랜 쪽빛 (palette 의 mana, 마나 막대 전용
-#            예외), 스태미나는 누른 풀빛. 잃은 체력은 옅은 금빛 흰색.
+#            예외), 스태미나는 누른 풀빛. 잃은 체력은 진홍보다 어두운 탁한 황토 (잉걸).
 #   마구리   (2026-10-08 고친 것: 막대마다 붙인 세 잎 단조 장식이 셋 쌓여 무거웠다) 막대 양 끝에 반 픽셀 위·아래로만 나오는 가는
 #            쇠 기둥. 왼쪽 장식은 체력 막대 하나에만 작은 마름모 창끝 하나. 오른쪽은 기둥과 작은 마름모. 마구리끼리 세로로 닿지
 #            않는다 (막대 사이 3 픽셀).
 #   소울 수  검은 옻칠 상자, 윗날에 촛불 기운 (가운데가 따뜻하다), 금실 윗줄과 양 끝 마름모, 위 가운데 작은 꽃 장식. 넋 표식은
 #            위로 꼬리가 선 옅은 뼈빛 불꽃, 숫자는 가라몽 라이닝 숫자 (고정 폭, fonts.digit_role).
-#   보스     체력 막대와 같은 말씨에 더 큰 마구리 (고리와 창끝), 그 밑 반 픽셀 상아빛 자세 줄. 이름은 제목 글꼴 (YAML 의 꼴 태그).
+#   보스     체력 막대와 같은 말씨, 양 끝은 같은 작은 마름모 창끝 마구리 (왼쪽은 오른쪽을 뒤집은 것), 그 밑 반 픽셀 자세 줄
+#            (흐린 금 채움 + 옅은 청동 빈 길). 이름은 제목 글꼴 (YAML 의 꼴 태그).
 
 S = 2                       # 텍셀 / GUI 픽셀 (막대·마구리·상자·띠)
 HUD_MARGIN = 8              # 셰이더 없이: 화면 가장자리와 HUD 사이 (GUI 픽셀, 폭 427 에서)

@@ -32,7 +32,7 @@ OFL 원문은 팩의 assets/souls/font/licenses/, 알림은 팩 뿌리 FONTS-OFL
   (typeset.py). 원본 TTF 는 빌드 때 ~/.cache/souls-fonts/ofl (SOULS_FONT_CACHE) 에 받아 sha256 으로 확인한다.
 
 기본 글꼴 개인 영역 (typeset.py 의 상수): U+F120~F17E 제목 로마자, U+F200~ 제목 한글, U+E300 제목 밑 금실, U+E380~E38F 빈칸
-(±1 … 128). U+E000~E01F 는 사망 화면 (hud.py).
+(±1 … 128), U+E3A0~E3A6 무기 설명 칸 실선 (마름모, 폭 1…32 조각), U+E3A8 한글 가운뎃점. U+E000~E01F 는 사망 화면 (hud.py).
 """
 import hashlib
 import json
@@ -238,7 +238,7 @@ class Role:
         asc = int(math.ceil((up + HALO) / K))
         if self.max_asc is not None:
             asc = min(asc, self.max_asc)
-        desc = int(math.ceil((down + HALO) / K))
+        desc = max(1, int(math.ceil((down + HALO) / K)))
         right = max(max(g["x0"] + g["a"].shape[1] + HALO for g in self.glyphs.values() if g["a"].size),
                     max((g["adv"] - 1) * K for g in self.glyphs.values()))
         cw = int(math.ceil(right / K)) * K
@@ -351,6 +351,43 @@ def title_divider():
     return img
 
 
+# ─────────────────────────── 실선·가운뎃점 (본문 글자와 같은 덮임 글자) ───────────────────────────
+
+RULE_TOP = 11               # 실선 윗줄: 바탕선 위 11 텍셀 (글 줄 위에서 GUI 4.25, 줄 가운데)
+RULE_ROWS = 2               # 실선 굵기 (텍셀) = GUI 반 픽셀 (설명 칸 바탕 그림의 이름 밑 금실과 같다)
+RULE_COVER = 0.9            # gui_skin.RULE_ALPHA 와 같다
+
+
+def marks_role(body_kr):
+    """
+    본문 글자처럼 덮임 R 로 그리는 표시 글자 (색은 글의 색, 그림자는 글꼴 셰이더의 먹 테두리): 무기 설명 칸의 실선 (typeset.RULE_*,
+    왼쪽 끝 마름모와 폭 1·2·4…32 조각. 조각은 칸 왼쪽 끝에서 진행 폭 끝까지 꼭 맞게 칠해 이어 놓으면 이음매가 없다) 과 한글
+    가운뎃점 (typeset.KO_MIDDOT: 명조의 "·" 를 한글 음절 가운데 높이로 올린 것).
+    """
+    r = Role("marks", [])
+    cy = RULE_TOP - RULE_ROWS / 2.0                      # 줄 가운데 (바탕선 위 텍셀)
+    hw, hh = typeset.RULE_GEM_ADV * K / 2.0, 6.8         # 마름모 반폭·반높이 (텍셀): 설명 칸 바탕의 마름모와 같은 크기
+    gw, gh = int(2 * hw), int(math.ceil(2 * hh))
+    m = Mask(gw, gh).poly([(0.0, gh / 2.0), (hw, gh / 2.0 - hh), (gw, gh / 2.0), (hw, gh / 2.0 + hh)])
+    r.glyphs[typeset.RULE_GEM] = {"a": m.cov().astype(np.float32) * RULE_COVER, "x0": 0,
+                                  "top": int(round(cy + gh / 2.0)), "adv": typeset.RULE_GEM_ADV}
+    for i, n in enumerate(typeset.RULE_STEPS):
+        a = np.full((RULE_ROWS, n * K), RULE_COVER, np.float32)
+        r.glyphs[chr(typeset.RULE_RUN_BASE + i)] = {"a": a, "x0": 0, "top": RULE_TOP, "adv": n}
+    # 가운뎃점: 한글 음절 (가·한·글·말) 네모의 세로 가운데에 점의 가운데를 맞춘다
+    probe = [body_kr.glyphs[ch] for ch in "가한글말" if ch in body_kr.glyphs]
+    mid = sum(g["top"] - g["a"].shape[0] / 2.0 for g in probe) / len(probe)
+    f = Face(*BODY_KR)
+    a, left, top, adv = f.render("\u00b7")
+    rows = np.nonzero(a.max(1) > 0)[0]
+    cols = np.nonzero(a.max(0) > 0)[0]
+    a = a[rows[0]:rows[-1] + 1, cols[0]:cols[-1] + 1]
+    A = max(1, int(round(adv / K)))
+    r.glyphs[typeset.KO_MIDDOT] = {"a": a, "x0": max(MARGIN_L, (A * K - a.shape[1]) // 2),
+                                   "top": int(round(mid + a.shape[0] / 2.0)), "adv": A}
+    return r
+
+
 # ─────────────────────────── 엮기 ───────────────────────────
 
 class FontSet:
@@ -414,8 +451,9 @@ def build(out, ko_lines):
     pua_la.add_mapped(la_map)
     pua_kr = MappedRole("title_pua_kr", [Face(*TITLE_KR)], space=TITLE_SPACE)
     pua_kr.add_mapped(kr_map)
+    marks = marks_role(body_kr)
     provs, size = {}, 0
-    for role in (body_la, body_kr, title_la, title_kr, pua_la, pua_kr):
+    for role in (body_la, body_kr, title_la, title_kr, pua_la, pua_kr, marks):
         provs[role.name], n = write_atlas(out, role, "text_" + role.name)
         size += n
     print(f"  글자 그림: " + ", ".join(f"{r.name} {len(r.glyphs)}자" for r in (body_la, body_kr, title_la, title_kr, pua_la, pua_kr))
@@ -428,12 +466,13 @@ def build(out, ko_lines):
     spaces = {"type": "space", "advances": typeset.space_advances()}
     title_space = chr(typeset.TITLE_LA_PUA)          # 제목 글자의 빈칸 (ASCII 0x20)
     default = [{"type": "space", "advances": {" ": BODY_SPACE, " ": BODY_SPACE, "　": 8, title_space: TITLE_SPACE}},
-               provs["body_la"], provs["body_kr"], provs["title_pua_la"], provs["title_pua_kr"], div_prov, spaces]
+               provs["body_la"], provs["body_kr"], provs["title_pua_la"], provs["title_pua_kr"], div_prov, provs["marks"],
+               spaces]
     title = [{"type": "space", "advances": {" ": TITLE_SPACE, " ": TITLE_SPACE}}, provs["title_la"], provs["title_kr"],
              div_prov, spaces, {"type": "reference", "id": typeset.DEFAULT_FONT}]
     # 유니코드 글꼴 강제 설정을 켠 사람: 본문은 바닐라 유니코드 글꼴이지만 창 제목 글자·금실·빈칸은 그려져야 한다
     uniform = [{"type": "space", "advances": {title_space: TITLE_SPACE}}, provs["title_pua_la"], provs["title_pua_kr"],
-               div_prov, spaces]
+               div_prov, provs["marks"], spaces]
     write_licences(out)
     return FontSet(default, title, uniform, size)
 

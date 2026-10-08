@@ -151,7 +151,8 @@ def draw_glyph_string(canvas, sheet, cell_w, glyphs, chars, x, y, unit, height_u
                 if mul != 1.0:
                     r, gg, b, a = cell.split()
                     cell = Image.merge("RGBA", [c.point(lambda v: int(v * mul)) for c in (r, gg, b)] + [a])
-                big = cell.resize((int(cell_w * tex_scale), int(cell_h * tex_scale)), Image.NEAREST)
+                big = cell.resize((int(cell_w * tex_scale), int(cell_h * tex_scale)),
+                                  Image.NEAREST if tex_scale >= 1 else Image.BOX)   # 큰 글자 그림 (YOU DIED) 은 넓이 평균
                 canvas.alpha_composite(big, (int(cx + off * unit), int(y + off * unit)))
             cx += g.width * unit
     return cx
@@ -234,13 +235,14 @@ def bar_sheet(out_dir, bg, fill, k=6):
 
 
 def you_died(out_dir, sheet, cell_w, glyphs, title, height_units, k=6):
-    """제목을 실제 글자 폭대로 늘어놓아 k 배로 (위: 그림자 없이, 아래: 바닐라 그림자까지)."""
-    unit = k * sheet.height // height_units          # 글꼴 1픽셀 = 그림 2칸
+    """제목을 실제 글자 폭대로 늘어놓아 글꼴 1픽셀 = 화면 k 픽셀로 (위: 그림자 없이, 아래: 바닐라 그림자까지)."""
+    unit = k
     tw = string_width(glyphs, title) * unit
     pad = 4 * k
-    im = Image.new("RGBA", (tw + pad * 2, (sheet.height * k + pad) * 2 + pad), (30, 12, 11, 255))
+    line = height_units * unit
+    im = Image.new("RGBA", (tw + pad * 2, (line + pad) * 2 + pad), (30, 12, 11, 255))
     draw_glyph_string(im, sheet, cell_w, glyphs, title, pad, pad, unit, height_units, shadow=False)
-    draw_glyph_string(im, sheet, cell_w, glyphs, title, pad, pad * 2 + sheet.height * k, unit, height_units)
+    draw_glyph_string(im, sheet, cell_w, glyphs, title, pad, pad * 2 + line, unit, height_units)
     im.save(os.path.join(out_dir, "you_died.png"))
 
 

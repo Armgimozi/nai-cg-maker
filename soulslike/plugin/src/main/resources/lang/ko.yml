@@ -108,6 +108,9 @@ weapon:
     need_att: "<#858079>필요 기억"
     absorb: "<#858079>물리 흡수"
     stability: "<#858079>안정성"
+  # 수치 표와 설명 사이의 실선 (9.7). 글이 아니라 팩이 이 열쇠의 값을 실선 글자로 바꾼다 (pack/typeset.py: 그 언어의 무기 설명 칸
+  # 글 열 폭만큼, 이름 밑 금실과 같은 색·굵기). 여기 글은 팩이 없을 때만 보이는 대체 글
+  rule: "<#8f8164>—"
   redin_guard_sword:
     name: "<#d1c3a0><font:souls:title>레딘 경비대 직검"
     lore:
@@ -290,6 +293,31 @@ vanilla:
     game: "게임 메뉴"
   # 바닐라 사망 화면 (5.6). deathScreen.title (YOU DIED 그림 글자) 은 gen_pack 이 넣는다.
   # <gray> 는 바닐라 흰 단추 글씨를 회색으로 낮춘다 (§7, 사망 화면 단추는 색을 고를 길이 이것뿐이다)
+  # 설정 화면 제목 (10.4, 2026-10-08 비평: 제목 꼴이 셋이었다). 게임 메뉴처럼 팩이 제목 글꼴 글자로 바꾸고 밑에 금실을 단다.
+  # 글은 바닐라 한국어와 같다. 단추 글 (options.video 같은 것) 이 아니라 화면 제목 열쇠만
+  options:
+    title: "설정"
+    videoTitle: "비디오 설정"
+    sounds:
+      title: "음악 및 소리 설정"
+    language:
+      title: "언어"
+    chat:
+      title: "대화 설정"
+    accessibility:
+      title: "접근성 설정"
+    skinCustomisation:
+      title: "스킨 사용자 지정"
+    online:
+      title: "온라인 설정"
+    mouse_settings:
+      title: "마우스 설정"
+    font:
+      title: "글꼴 설정"
+  controls:
+    title: "조작"
+    keybinds:
+      title: "키 지정"
   deathScreen:
     respawn: "<gray>일어선다"
     titleScreen: "<gray>그만둔다"

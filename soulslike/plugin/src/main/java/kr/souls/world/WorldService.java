@@ -5,6 +5,7 @@ import kr.souls.Config;
 import kr.souls.Keys;
 import kr.souls.Lang;
 import kr.souls.Souls;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Difficulty;
 import org.bukkit.GameMode;
@@ -311,9 +312,19 @@ public final class WorldService implements Listener {
         if (e.isNewPlayer() || at == null || !at.getName().equals(cfg().world.name())) e.setSpawnLocation(spawn);
     }
 
+    /**
+     * 혼자 하는 게임이라 들어온 사람 자신의 채팅에는 "…이(가) 게임에 참여했습니다" 를 띄우지 않는다 (다크 소울에는 그런 줄이 없고, 2026-10-08
+     * 비평: 채팅 그림에 남았다). 같이 들어와 있는 다른 사람 (11절) 에게는 바닐라 글 그대로 보낸다. 나갈 때의 글은 나간 사람에게 보이지 않으니
+     * 그대로 둔다.
+     */
     @EventHandler(priority = EventPriority.LOW)
     public void onJoin(PlayerJoinEvent e) {
         Player p = e.getPlayer();
         if (cfg().world.forceAdventure() && p.getGameMode() == GameMode.SURVIVAL) p.setGameMode(GameMode.ADVENTURE);
+        Component joined = e.joinMessage();
+        e.joinMessage(null);
+        if (joined != null) {
+            for (Player o : Bukkit.getOnlinePlayers()) if (!o.equals(p)) o.sendMessage(joined);
+        }
     }
 }

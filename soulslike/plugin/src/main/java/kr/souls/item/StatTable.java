@@ -21,7 +21,6 @@ import java.util.Locale;
 final class StatTable {
     /** 값 글자색 (팔레트 뼈빛 bone2) */
     private static final TextColor VALUE = TextColor.color(0xd6cbb0);
-    private static final int[] STEPS = {128, 64, 32, 16, 8, 4, 2, 1};
 
     private StatTable() {}
 
@@ -49,7 +48,7 @@ final class StatTable {
             TextComponent.Builder row = Component.text();
             row.append(cell(cells.get(i), st));
             if (i + 1 < cells.size() && cells.get(i + 1) != null) {
-                row.append(Component.text(st == null ? "   " : spaces(st.colGap())));
+                row.append(Component.text(st == null ? "   " : Glyphs.textSpaces(st.colGap())));
                 row.append(cell(cells.get(i + 1), st));
             }
             out.add(row.build().decoration(TextDecoration.ITALIC, TextDecoration.State.FALSE));
@@ -57,17 +56,19 @@ final class StatTable {
         return out;
     }
 
-    /** 수치와 설명 사이 실선 (souls:hud 그림 글자 lore_rule). 그림 글자가 없으면 (옛 팩) 빈 줄. */
+    /**
+     * 수치와 설명 사이 실선: 번역 열쇠 weapon.rule. 리소스팩이 그 값을 기본 글꼴의 실선 글자로 바꿔 두었다 (pack/typeset.py: 그 언어의
+     * 무기 설명 칸 글 열 폭만큼, 이름 밑 금실과 같은 색·굵기의 끊김 없는 한 줄). 팩이 없으면 대체 글 (줄표).
+     */
     static Component rule() {
-        Glyphs.Glyph g = Glyphs.get("lore_rule");
-        return g == null ? Component.empty() : g.component().decoration(TextDecoration.ITALIC, TextDecoration.State.FALSE);
+        return Lang.c("weapon.rule");
     }
 
     private static Component cell(String[] c, Glyphs.Stats st) {
         if (c == null) return Component.empty();
         return Component.text()
                 .append(Lang.c("weapon.stat." + c[0])) // lang-dyn: weapon.stat.*
-                .append(Component.text(st == null ? " " : spaces(st.valueCol() - width(c[1], st))))
+                .append(Component.text(st == null ? " " : Glyphs.textSpaces(st.valueCol() - width(c[1], st))))
                 .append(Component.text(c[1]).color(VALUE))
                 .build();
     }
@@ -76,20 +77,5 @@ final class StatTable {
         int w = 0;
         for (char ch : value.toCharArray()) w += st.widths().getOrDefault(ch, 5);
         return w;
-    }
-
-    /** 폭 px (0 이상) 를 기본 글꼴의 빈칸 글자로 (128, 64 … 1). 글자가 없으면 (옛 팩) 보통 빈칸 하나. */
-    private static String spaces(int px) {
-        StringBuilder b = new StringBuilder();
-        int left = Math.max(0, px);
-        for (int step : STEPS) {
-            Glyphs.Glyph g = Glyphs.get("text_space_pos" + step);
-            if (g == null) return " ";
-            while (left >= step) {
-                b.append(g.ch());
-                left -= step;
-            }
-        }
-        return b.toString();
     }
 }

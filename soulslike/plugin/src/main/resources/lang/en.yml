@@ -82,6 +82,7 @@ weapon:
     need_att: "<#858079>Req. Att"
     absorb: "<#858079>Absorption"
     stability: "<#858079>Stability"
+  rule: "<#8f8164>—"
   redin_guard_sword:
     name: "<#d1c3a0><font:souls:title>Redin Watch Straight Sword"
     lore:
@@ -252,6 +253,29 @@ admin:
 vanilla:
   menu:
     game: "Game Menu"
+  options:
+    title: "Options"
+    videoTitle: "Video Settings"
+    sounds:
+      title: "Music & Sound Options"
+    language:
+      title: "Language"
+    chat:
+      title: "Chat Settings"
+    accessibility:
+      title: "Accessibility Settings"
+    skinCustomisation:
+      title: "Skin Customization"
+    online:
+      title: "Online Options"
+    mouse_settings:
+      title: "Mouse Settings"
+    font:
+      title: "Font Settings"
+  controls:
+    title: "Controls"
+    keybinds:
+      title: "Key Binds"
   deathScreen:
     respawn: "<gray>Rise"
     titleScreen: "<gray>Depart"

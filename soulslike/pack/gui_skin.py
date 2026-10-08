@@ -1335,6 +1335,9 @@ def build(out):
     for fname, img in small_widgets().items():
         written.append(save(img, out, *wd, fname + ".png"))
         save_mcmeta(out, WIDGET_SCALING[fname], *wd, fname + ".png")
+    for fname, bg in (("scroller", False), ("scroller_background", True)):
+        written.append(gsave(scroller(bg), out, *wd, fname + ".png"))
+        save_mcmeta(out, WIDGET_SCALING[fname], *wd, fname + ".png")
     for n in SEPARATORS:
         written.append(gsave(separator(footer="footer" in n), out, n + ".png"))
     written.append(gsave(menu_background(), out, "inworld_menu_background.png"))
@@ -1791,8 +1794,10 @@ def write_previews(out, preview_dir):
         small.alpha_composite(_gui(out, *wd, n + ".png", gui_w=20).resize((17, 17), Image.NEAREST), (90 + 20 * i, 121))
     small.alpha_composite(nine_slice(_gui(out, *wd, "text_field.png", gui_w=200), 90, 20, 1), (10, 148))
     small.alpha_composite(nine_slice(_gui(out, *wd, "text_field_highlighted.png", gui_w=200), 90, 20, 1), (110, 148))
-    small.alpha_composite(_sprite(out, *wd, "scroller_background.png"), (412, 140))
-    small.alpha_composite(nine_slice(_sprite(out, *wd, "scroller.png"), 6, 20, 1), (412, 146))
+    small.alpha_composite(nine_slice(_gui(out, *wd, "scroller_background.png", gui_w=6), 6, 50,
+                                     WIDGET_SCALING["scroller_background"]["border"]), (412, 130))
+    small.alpha_composite(nine_slice(_gui(out, *wd, "scroller.png", gui_w=6), 6, 20, WIDGET_SCALING["scroller"]["border"]),
+                          (412, 146))
     tb = _gui(out, "sprites", "tooltip", "background.png", gui_w=TT)
     for tx, ty, tw, th in ((330, 14, 80, 30), (24, 14, 70, 60)):
         small.alpha_composite(nine_slice(tb, tw + 24, th + 24, 14), (tx - 12, ty - 12))
