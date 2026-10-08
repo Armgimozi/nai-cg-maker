@@ -63,6 +63,46 @@ NAI V5 그림체를 찾아내는 탭입니다.
 
 오프라인에서도 앱 셸이 캐시(`web/sw.js`)되어 열리며, 실행 시 사전 탭으로 시작합니다.
 
+## 🎮 UniPlay — 유니티 게임 플레이어 (`/unity/`)
+
+JoiPlay 처럼 **유니티 게임을 폰에 넣어 두고 실행**하는 설치형 웹앱(PWA)입니다.
+같은 서버의 `/unity/` 주소로 열리며(예: `https://<이름>.onrender.com/unity/`), 게임 파일은
+서버로 올라가지 않고 **폰 안(브라우저 저장소)에만** 설치되어 오프라인으로도 실행됩니다.
+순수 정적 파일(`web/unity/`)이라 GitHub Pages 같은 아무 HTTPS 정적 호스팅에 올려도 동작합니다.
+
+> ⚠️ 실행할 수 있는 것은 **유니티 WebGL(브라우저) 빌드**입니다. PC용(`.exe` + `UnityPlayer.dll`)
+> 빌드는 x86 Windows 프로그램이라 폰 브라우저로는 실행할 수 없습니다(JoiPlay 도 미지원).
+> 넣으면 이유와 대안(개발자의 WebGL 버전 / Winlator 같은 Windows 에뮬레이터)을 안내합니다.
+
+**게임 넣기** — WebGL 빌드 폴더(`index.html` + `Build/`)를 zip 으로 압축 → ＋ 게임 추가.
+- Unity 5.6~2019(`UnityLoader.js`) / 2020~Unity 6(`*.loader.js`) 자동 판별
+- `.gz`/`.br` 압축 빌드는 설치할 때 미리 풀어 둠(서버 `Content-Encoding` 설정 불필요)
+- `index.html` 없이 `Build/` 만 있어도 실행 페이지를 만들어 줌
+- 폴더째/여러 파일 선택, ZIP64, 한글(CP949)·일본어 파일명 zip 지원
+- 덤으로 RPG Maker MV/MZ·일반 HTML5 게임도 실행을 시도
+
+**플레이 중** (왼쪽 위 ≡ 또는 뒤로 가기 → 메뉴)
+- **가상 패드**: 프리셋(RPG · 액션 · 방향키 · 게임패드 · 비주얼노벨 · 마우스 보조) 또는 직접 편집
+  (끌어서 배치, 버튼마다 키보드 키 / 키 조합 / 게임패드 버튼 / 아날로그 스틱 / 마우스 클릭·휠 지정)
+- **터치 방식**: 터치 그대로 · 터치→마우스(길게=우클릭, 두 손가락=스크롤) · 터치패드(커서)
+- 해상도 배율(0.5배~기기 최대), 화면 맞춤(비율 유지/꽉 채우기), 가로·세로 고정, 전체화면,
+  화면 꺼짐 방지, FPS 표시, 글자 입력창, 스크린샷/표지, 오류 로그
+- 블루투스 키보드·게임패드는 그대로 동작
+
+**세이브** — 유니티 세이브(`/idbfs`)와 게임별로 분리된 localStorage 를 파일로 **백업/복원**.
+
+**구조** (`web/unity/`)
+```
+index.html / play.html     라이브러리 / 플레이 화면
+sw.js                      서비스워커: games/<id>/… 를 기기 캐시에서 응답 + inject.js 주입
+inject.js                  게임 iframe 안에서 먼저 실행(해상도·입력 주입·가상 패드·세이브 경로·유니티 캐시 끄기)
+js/zip.js                  스트리밍 zip 리더(DecompressionStream)
+js/importer.js             빌드 판별·설치 · js/db.js 저장소 · js/saves.js 세이브 백업
+js/player.js · controls.js · keys.js   플레이 화면 · 가상 패드 · 키/프리셋
+vendor/brotli-decode.js    Google Brotli 디코더(MIT) — .br 빌드용
+```
+아이콘은 `python tools/make_unity_icons.py` 로 다시 만들 수 있습니다.
+
 ## 설치 & 실행
 
 ```bash

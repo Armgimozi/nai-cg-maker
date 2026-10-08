@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#000000">
+  <title>UniPlay</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body class="play">
+  <iframe id="game" title="게임" allow="autoplay; fullscreen; gamepad; screen-wake-lock; clipboard-write; accelerometer; gyroscope"></iframe>
+  <div id="touch-layer" hidden></div>
+  <div id="pad-layer" class="pad-layer"></div>
+  <div id="cursor" hidden></div>
+  <button id="menu-btn" aria-label="메뉴">≡</button>
+  <div id="fps" hidden></div>
+  <div id="loading">
+    <div class="spinner"></div>
+    <div class="msg">게임 여는 중…</div>
+  </div>
+  <script type="module" src="js/player.js"></script>
+</body>
+</html>

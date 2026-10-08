@@ -7,14 +7,16 @@
  *   - /api/* 와 비-GET·외부 도메인은 건드리지 않는다.
  * 새 워커는 즉시 활성(skipWaiting+claim)되고, 페이지가 controllerchange 로 새로고침한다.
  */
-const CACHE = "danbooru-dict-v3";
+const CACHE = "danbooru-dict-v4";
+const PREFIX = "danbooru-dict-";
 
 self.addEventListener("install", () => self.skipWaiting());
 
 self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches.keys()
-      .then((ks) => Promise.all(ks.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
+      // 내 캐시만 정리한다 — 같은 출처의 /unity/ 앱(게임 파일 캐시)은 건드리지 않음
+      .then((ks) => Promise.all(ks.filter((k) => k.startsWith(PREFIX) && k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -25,6 +27,7 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(req.url);
   if (url.origin !== location.origin) return;          // 외부(폰트 등)는 브라우저에 맡김
   if (url.pathname.startsWith("/api/")) return;        // 동적 API 는 캐시/가로채기 안 함
+  if (url.pathname.startsWith("/unity/")) return;      // 유니티 플레이어는 자기 서비스워커가 담당
 
   e.respondWith(
     fetch(req).then((res) => {

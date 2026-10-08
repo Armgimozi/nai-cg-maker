@@ -4,6 +4,7 @@ API 키는 요청 헤더(X-Anthropic-Key / X-NAI-Token)로 받는다. 헤더가 
 서버 기본값(config)으로 폴백 → 로컬은 그대로, 공개 배포 시엔 각자 키 입력.
 
   GET  /              -> web/index.html
+  GET  /unity/        -> web/unity/index.html (UniPlay: 유니티 WebGL 게임 플레이어, 정적 PWA)
   GET  /<file>        -> web/ 정적 파일
   POST /api/suggest   -> 장면 → 태그(검증)
   POST /api/compose   -> 기존 프롬프트(+참고글/URL/이미지) → 재구성
@@ -24,7 +25,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, redirect, request, send_from_directory
 
 from .client import SuggestClient
 from .nai import NovelAIClient, image_media_type
@@ -32,6 +33,9 @@ from .tagdb import TagDB
 
 # PWA: .webmanifest 가 octet-stream 으로 나가지 않도록 MIME 등록(특히 Windows).
 mimetypes.add_type("application/manifest+json", ".webmanifest")
+# Windows 레지스트리가 .js 를 text/plain 으로 잡으면 ES 모듈·서비스워커가 거부되므로 고정.
+mimetypes.add_type("text/javascript", ".js")
+mimetypes.add_type("application/wasm", ".wasm")
 
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 _UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -225,6 +229,14 @@ def create_app(cfg: dict, db: TagDB, default_api_key: str | None = None,
     @app.get("/")
     def index():
         return send_from_directory(WEB_DIR, "index.html")
+
+    @app.get("/unity")
+    def unity_redirect():
+        return redirect("/unity/", code=301)
+
+    @app.get("/unity/")
+    def unity_index():
+        return send_from_directory(WEB_DIR / "unity", "index.html")
 
     @app.get("/<path:fname>")
     def static_files(fname: str):
