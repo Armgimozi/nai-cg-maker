@@ -32,7 +32,7 @@ OFL 원문은 팩의 assets/souls/font/licenses/, 알림은 팩 뿌리 FONTS-OFL
   (typeset.py). 원본 TTF 는 빌드 때 ~/.cache/souls-fonts/ofl (SOULS_FONT_CACHE) 에 받아 sha256 으로 확인한다.
 
 기본 글꼴 개인 영역 (typeset.py 의 상수): U+F120~F17E 제목 로마자, U+F200~ 제목 한글, U+E300 제목 밑 금실, U+E380~E38F 빈칸
-(±1 … 128), U+E3A0~E3A6 무기 설명 칸 실선 (마름모, 폭 1…32 조각), U+E3A8 한글 가운뎃점. U+E000~E01F 는 사망 화면 (hud.py).
+(±1 … 128), U+E3A0~E3A6 무기 설명 칸 실선 (마름모, 폭 1…32 조각, 색 그림 글자 tooltip_rule.png), U+E3A8 한글 가운뎃점. U+E000~E01F 는 사망 화면 (hud.py).
 """
 import hashlib
 import json
@@ -351,29 +351,48 @@ def title_divider():
     return img
 
 
-# ─────────────────────────── 실선·가운뎃점 (본문 글자와 같은 덮임 글자) ───────────────────────────
+# ─────────────────────────── 무기 설명 칸 실선 (그림 글자) ───────────────────────────
 
-RULE_TOP = 11               # 실선 윗줄: 바탕선 위 11 텍셀 (글 줄 위에서 GUI 4.25, 줄 가운데)
-RULE_ROWS = 2               # 실선 굵기 (텍셀) = GUI 반 픽셀 (설명 칸 바탕 그림의 이름 밑 금실과 같다)
-RULE_COVER = 0.9            # gui_skin.RULE_ALPHA 와 같다
+RULE_ROW = 4                # 실선 줄 (칸 위에서 텍셀, 2 텍셀/GUI): 글 줄 위에서 GUI 4.0..4.5 (RULE_ASCENT 로)
+RULE_H = 10                 # 칸 높이 (텍셀) = GUI 5 (ascent 는 높이를 넘지 못한다)
+RULE_ASCENT = 5             # 칸 위 = 글 줄 위 + 7 - 5 = GUI 2
+RULE_CELL = 64              # 칸 폭 (텍셀) = 가장 긴 조각 (32 GUI)
 
+
+def rule_sheet():
+    """
+    무기 설명 칸의 수치와 설명 사이 실선 (typeset.RULE_*): 설명 칸 바탕 그림의 이름 밑 금실과 같은 그림 (gui_skin.tooltip_bg):
+    바랜 양피지 한 줄 (RULE_ALPHA) 과 왼쪽 끝 위에서 비친 금빛 마름모 (gui_skin.rule_gem). 2 텍셀/GUI 의 색 그림 글자라 글자색을
+    곱하므로 YAML weapon.rule 의 글자색은 흰색에 가까운 #fefefe (셰이더가 바꾸지 않는 색, shaders.TEXT_VSH_BLOCK) 이다. 이름 밑
+    금실의 먹 그늘 줄은 바닐라 글 그림자 (셰이더가 반 픽셀 오른쪽 아래 먹빛으로) 가 대신한다. 조각은 칸 왼쪽 끝부터 n GUI 를 꼭
+    채워 진행 폭이 n + 1 (typeset.rule_text 가 빈칸 -1 로 잇는다). 칸: [마름모][1][2][4][8][16][32].
+    """
+    import gui_skin
+    n = 1 + len(typeset.RULE_STEPS)
+    img = Img(RULE_CELL * n, RULE_H)
+    img.over(gui_skin.rule_gem(8, RULE_H, 4.0, float(RULE_ROW)), 0, 0)
+    for i, w in enumerate(typeset.RULE_STEPS):
+        for x in range(w * ORN_S):
+            img.put(RULE_CELL * (i + 1) + x, RULE_ROW, "parch1", gui_skin.RULE_ALPHA)
+    return img
+
+
+def rule_provider(out):
+    img = rule_sheet().image()
+    uidraw.save(img, os.path.join(out, "assets", "souls", "textures", "font", "tooltip_rule.png"))
+    chars = typeset.RULE_GEM + "".join(chr(typeset.RULE_RUN_BASE + i) for i in range(len(typeset.RULE_STEPS)))
+    return {"type": "bitmap", "file": TEX + "tooltip_rule.png", "height": RULE_H // ORN_S, "ascent": RULE_ASCENT,
+            "chars": [chars]}
+
+
+# ─────────────────────────── 가운뎃점 (본문 글자와 같은 덮임 글자) ───────────────────────────
 
 def marks_role(body_kr):
     """
-    본문 글자처럼 덮임 R 로 그리는 표시 글자 (색은 글의 색, 그림자는 글꼴 셰이더의 먹 테두리): 무기 설명 칸의 실선 (typeset.RULE_*,
-    왼쪽 끝 마름모와 폭 1·2·4…32 조각. 조각은 칸 왼쪽 끝에서 진행 폭 끝까지 꼭 맞게 칠해 이어 놓으면 이음매가 없다) 과 한글
-    가운뎃점 (typeset.KO_MIDDOT: 명조의 "·" 를 한글 음절 가운데 높이로 올린 것).
+    본문 글자처럼 덮임 R 로 그리는 표시 글자 (색은 글의 색, 그림자는 글꼴 셰이더의 먹 테두리): 한글 가운뎃점 (typeset.KO_MIDDOT:
+    명조의 "·" 를 한글 음절 가운데 높이로 올린 것).
     """
     r = Role("marks", [])
-    cy = RULE_TOP - RULE_ROWS / 2.0                      # 줄 가운데 (바탕선 위 텍셀)
-    hw, hh = typeset.RULE_GEM_ADV * K / 2.0, 6.8         # 마름모 반폭·반높이 (텍셀): 설명 칸 바탕의 마름모와 같은 크기
-    gw, gh = int(2 * hw), int(math.ceil(2 * hh))
-    m = Mask(gw, gh).poly([(0.0, gh / 2.0), (hw, gh / 2.0 - hh), (gw, gh / 2.0), (hw, gh / 2.0 + hh)])
-    r.glyphs[typeset.RULE_GEM] = {"a": m.cov().astype(np.float32) * RULE_COVER, "x0": 0,
-                                  "top": int(round(cy + gh / 2.0)), "adv": typeset.RULE_GEM_ADV}
-    for i, n in enumerate(typeset.RULE_STEPS):
-        a = np.full((RULE_ROWS, n * K), RULE_COVER, np.float32)
-        r.glyphs[chr(typeset.RULE_RUN_BASE + i)] = {"a": a, "x0": 0, "top": RULE_TOP, "adv": n}
     # 가운뎃점: 한글 음절 (가·한·글·말) 네모의 세로 가운데에 점의 가운데를 맞춘다
     probe = [body_kr.glyphs[ch] for ch in "가한글말" if ch in body_kr.glyphs]
     mid = sum(g["top"] - g["a"].shape[0] / 2.0 for g in probe) / len(probe)
@@ -464,15 +483,16 @@ def build(out, ko_lines):
     div_prov = {"type": "bitmap", "file": TEX + "title_rule.png", "height": div.height // ORN_S, "ascent": -4,
                 "chars": [typeset.DIVIDER]}
     spaces = {"type": "space", "advances": typeset.space_advances()}
+    rule = rule_provider(out)
     title_space = chr(typeset.TITLE_LA_PUA)          # 제목 글자의 빈칸 (ASCII 0x20)
     default = [{"type": "space", "advances": {" ": BODY_SPACE, " ": BODY_SPACE, "　": 8, title_space: TITLE_SPACE}},
                provs["body_la"], provs["body_kr"], provs["title_pua_la"], provs["title_pua_kr"], div_prov, provs["marks"],
-               spaces]
+               rule, spaces]
     title = [{"type": "space", "advances": {" ": TITLE_SPACE, " ": TITLE_SPACE}}, provs["title_la"], provs["title_kr"],
              div_prov, spaces, {"type": "reference", "id": typeset.DEFAULT_FONT}]
     # 유니코드 글꼴 강제 설정을 켠 사람: 본문은 바닐라 유니코드 글꼴이지만 창 제목 글자·금실·빈칸은 그려져야 한다
     uniform = [{"type": "space", "advances": {title_space: TITLE_SPACE}}, provs["title_pua_la"], provs["title_pua_kr"],
-               div_prov, provs["marks"], spaces]
+               div_prov, provs["marks"], rule, spaces]
     write_licences(out)
     return FontSet(default, title, uniform, size)
 

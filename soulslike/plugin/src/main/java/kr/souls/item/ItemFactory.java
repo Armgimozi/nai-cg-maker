@@ -148,7 +148,7 @@ public final class ItemFactory {
         List<Component> lore = new ArrayList<>();
         lore.add(Lang.c("weapon.class." + d.cls())); // lang-dyn: weapon.class.*
         lore.addAll(StatTable.lines(d));
-        lore.add(StatTable.rule());
+        lore.add(StatTable.rule(d));
         lore.addAll(Lang.lines("weapon." + d.id() + ".lore")); // lang-dyn: weapon.*.lore
         it.setData(DataComponentTypes.LORE, ItemLore.lore(lore));
         it.setData(DataComponentTypes.TOOLTIP_STYLE, WEAPON_TOOLTIP);

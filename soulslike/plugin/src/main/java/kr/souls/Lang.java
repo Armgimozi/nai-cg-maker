@@ -233,6 +233,17 @@ public final class Lang {
                 .decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE);
     }
 
+    /**
+     * 팩이 열쇠를 갈래마다 따로 짠 글 (번역 열쇠 souls.열쇠.갈래, 팩의 언어 파일에만 있다): 꼴과 대체 글은 열쇠 그대로 (자리 없음).
+     * 무기 설명 칸 실선 weapon.rule.&lt;무기 id&gt; 처럼 팩이 글꼴로 잰 폭이 갈래마다 다른 글 (pack/typeset.py).
+     */
+    public static Component variant(String key, String branch) {
+        Entry e = entries.get(key);
+        if (e == null) return missing(key);
+        return Component.translatable(PREFIX + key + "." + branch, e.fallback().get(EN), e.style())
+                .decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE);
+    }
+
     /** 목록 열쇠 (아이템 설명 같은 여러 줄). 줄마다 c(열쇠.n). 목록이 아니면 한 줄. 대체 글은 영어. */
     public static List<Component> lines(String key, Object... args) {
         return makeLines(key, EN, args);

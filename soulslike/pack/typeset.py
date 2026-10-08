@@ -11,12 +11,15 @@ gen_pack.py 가 막 만든 팩 폴더로, tools/langcheck.py 가 검사하는 �
               (U+F200 부터). § 꼴 기호는 그대로 둔다.
   제목 밑 금실 DIVIDED 의 열쇠 (게임 메뉴 제목, 화톳불 이름) 뒤에 금실 그림 글자를 붙인다: 제목 폭 W 를 재서 펜을 제목 가운데 -
               금실 폭/2 로 되돌려 금실을 그리고 다시 W 로 (글 전체의 진행 폭은 W 그대로라 바닐라가 제목을 가운데에 놓는다).
+              설정 화면 제목에는 붙이지 않는다 (고딕 촛불 초안 그대로, 2026-10-08 사용자 결정).
   수치 이름   weapon.stat.* (무기 설명 칸의 수치 이름): 이름 뒤를 빈칸 글자로 채워 그 언어의 이름 열 폭 (가장 긴 이름 +
               LABEL_GAP) 까지. 플러그인 (item/StatTable) 이 그 뒤에 값을 값 열 (VALUE_COL) 끝에 오른쪽 맞춤으로 붙인다.
-  실선        weapon.rule (무기 설명 칸의 수치와 설명 사이 실선): YAML 의 글 (팩이 없을 때의 대체 글) 대신 기본 글꼴의 실선 글자
-              (fonts.py rule_role: 왼쪽 끝 마름모 하나와 폭 1·2·4…32 의 줄 조각) 를 그 언어의 무기 설명 칸 글 열 폭 (모든 무기의
-              이름·분류 줄·수치 표·설명 줄 가운데 가장 넓은 것) 만큼 잇는다. 칸 바탕 그림의 이름 밑 금실 (글 열 전체) 과 같은 길이,
-              같은 꼴의 끊김 없는 한 줄이 된다 (2026-10-08 비평: 둘째 실선이 짧고 끝이 옅어졌다). 무기 설명 칸은 모두 이 폭이 된다.
+  실선        weapon.rule.<무기 id> (무기 설명 칸의 수치와 설명 사이 실선, 팩의 언어 파일에만 있는 열쇠. 플러그인은
+              Lang.variant("weapon.rule", id) 로 부르고 팩이 없으면 YAML weapon.rule 의 대체 글): 기본 글꼴의 실선 그림 글자
+              (fonts.py rule_sheet: 왼쪽 끝 금빛 마름모와 폭 1·2·4…32 의 줄 조각, 설명 칸 바탕의 이름 밑 금실과 같은 색·굵기) 를
+              그 무기의 설명 칸 글 열 폭 (이름·분류 줄·수치 표·설명 줄 가운데 가장 넓은 것, weapon_width) 만큼 잇는다. 그래서 칸은
+              무기마다 제 글에 맞는 폭이고 (고딕 촛불 초안처럼) 둘째 실선은 이름 밑 금실과 같은 길이의 끊김 없는 한 줄이다 (2026-10-08
+              비평: 둘째 실선이 짧고 끝이 옅어졌다). weapon.rule 자체는 가장 넓은 무기의 폭.
   가운뎃점    ko_kr 의 souls 언어 파일에서 "·" 를 한글 가운데 높이의 가운뎃점 (KO_MIDDOT) 으로 바꾼다 (가라몽의 "·" 는 로마자
               x 높이 가운데라 한글 사이에서는 바탕선에 붙은 마침표처럼 보였다). 영어는 그대로.
 
@@ -41,9 +44,10 @@ TITLE_FONT = "souls:title"
 TITLE_LA_PUA = 0xF120           # 제목 로마자 (기본 글꼴): ASCII 0x20..0x7E 차례
 TITLE_KR_PUA = 0xF200           # 제목 한글 (기본 글꼴): TITLE_KEYS 의 한국어 글에 나오는 음절 차례
 DIVIDER = ""              # 제목 밑 금실 (기본 글꼴, souls:title)
-RULE_GEM = "\ue3a0"             # 무기 설명 칸 실선의 왼쪽 끝 마름모 (기본 글꼴, 진행 폭 RULE_GEM_ADV)
-RULE_GEM_ADV = 4
-RULE_RUN_BASE = 0xE3A1          # 실선 조각: E3A1+i = 폭 2^i (1 … 32)
+RULE_GEM = "\ue3a0"             # 무기 설명 칸 실선의 왼쪽 끝 마름모 (기본 글꼴 그림 글자, 4 GUI 폭: 진행 폭 RULE_GEM_ADV)
+RULE_GEM_ADV = 5
+RULE_GEM_LEFT = 3               # 마름모 칸 왼쪽 = 펜 - 3 (마름모 가운데가 글 열 왼쪽 끝 - 1, 설명 칸 바탕의 마름모와 같은 자리)
+RULE_RUN_BASE = 0xE3A1          # 실선 조각: E3A1+i = 폭 2^i (1 … 32), 그림 글자라 진행 폭이 조각 폭 + 1 (뒤에 빈칸 -1)
 RULE_STEPS = (1, 2, 4, 8, 16, 32)
 KO_MIDDOT = "\ue3a8"            # 한글 가운데 높이의 가운뎃점 (기본 글꼴, ko_kr 만)
 RULE_KEY = "weapon.rule"
@@ -52,11 +56,11 @@ SPACE_BASE = 0xE380             # 빈칸 글자: E380+i = -(2^i), E388+i = +(2^i
 SPACE_STEPS = (1, 2, 4, 8, 16, 32, 64, 128)
 
 # 창 제목 (바닐라 열쇠, lang 의 vanilla.*): 제목 글꼴 글자로. 설정 화면 제목 (vanilla.options.*, vanilla.controls.*) 도 게임 메뉴와
-# 같은 제목 글꼴과 금실 (2026-10-08 비평: "게임 메뉴" 만 금실이 있고 "설정" 은 아무것도 없어 제목 꼴이 셋이었다)
+# 같은 제목 글꼴 (영어는 로마 비문 대문자)
 TITLE_KEYS = ("vanilla.menu.game", "vanilla.container.*", "vanilla.options.*", "vanilla.controls.*")
-# 제목 밑 금실: 열쇠 → 그 글을 그리는 글꼴
-DIVIDED = (("vanilla.menu.game", DEFAULT_FONT), ("vanilla.options.*", DEFAULT_FONT), ("vanilla.controls.*", DEFAULT_FONT),
-           ("bonfire.test-name", TITLE_FONT), ("bonfire.*.name", TITLE_FONT))
+# 제목 밑 금실: 열쇠 → 그 글을 그리는 글꼴. 게임 메뉴와 화톳불 이름만 (고딕 촛불 초안 그대로: 설정 화면 제목에 붙인 금실은
+# 2026-10-08 사용자 결정 "초안 모양이 더 낫다" 로 뺐다. 720p 에서 첫 밀대 줄에 붙었다)
+DIVIDED = (("vanilla.menu.game", DEFAULT_FONT), ("bonfire.test-name", TITLE_FONT), ("bonfire.*.name", TITLE_FONT))
 # 무기 설명 칸의 수치 표 (GUI 픽셀): 이름 열 = 가장 긴 이름 + LABEL_GAP, 값 열 VALUE_COL (값은 오른쪽 맞춤), 두 칸 사이 COL_GAP
 LABEL_KEYS = "weapon.stat.*"
 LABEL_GAP = 6
@@ -95,14 +99,48 @@ def spaces(adv):
 
 
 def rule_text(width):
-    """무기 설명 칸 실선: 펜 -3 에 마름모 (글 열 왼쪽 밖), 펜 0 에서 width 까지 줄 조각. 글 전체의 진행 폭은 width."""
-    out = [spaces(-(RULE_GEM_ADV - 1)), RULE_GEM, spaces(-1)]
+    """
+    무기 설명 칸 실선: 펜 -3 에 마름모 (글 열 왼쪽 밖), 펜 0 에서 width 까지 줄 조각 (큰 것부터, 조각마다 진행 폭 n + 1 을 빈칸
+    -1 로 되돌려 이음매 없이). 글 전체의 진행 폭은 width.
+    """
+    out = [spaces(-RULE_GEM_LEFT), RULE_GEM, spaces(-(RULE_GEM_ADV - RULE_GEM_LEFT))]
     left = int(width)
     for i in reversed(range(len(RULE_STEPS))):
         while left >= RULE_STEPS[i]:
-            out.append(chr(RULE_RUN_BASE + i))
+            out.append(chr(RULE_RUN_BASE + i) + spaces(-1))
             left -= RULE_STEPS[i]
     return "".join(out)
+
+
+WEAPONS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                       "plugin", "src", "main", "resources", "content", "weapons.yml")
+STATS = ("str", "dex", "att")           # 플러그인 item/Weapons.STATS 와 같은 차례
+
+
+def load_weapons(path=WEAPONS):
+    """content/weapons.yml → {id: 정의 (dict)}. 무기마다 실선 폭을 재는 데 쓴다 (분류, 수치 표의 칸)."""
+    import yaml
+    with open(path, encoding="utf-8") as f:
+        data = yaml.safe_load(f) or {}
+    return {k: v for k, v in data.items() if isinstance(v, dict)}
+
+
+def stat_cells(d):
+    """
+    수치 표의 칸 (플러그인 item/StatTable.lines 와 같은 차례): [이름 또는 None]. 두 칸씩 한 줄이고 홀수면 보정 줄 뒤를 비운다.
+    """
+    cells = []
+    if int(d.get("absorb", 0) or 0) > 0:
+        cells += ["absorb", "stability"]
+    elif int(d.get("attack", 0) or 0) > 0:
+        cells.append("attack")
+    cells.append("weight")
+    sc, rq = d.get("scaling") or {}, d.get("requires") or {}
+    cells += ["bonus_" + s for s in STATS if isinstance(sc.get(s), str)]
+    if len(cells) % 2:
+        cells.append(None)
+    cells += ["need_" + s for s in STATS if isinstance(rq.get(s), int)]
+    return cells
 
 
 def matches(key, patterns):
@@ -244,10 +282,14 @@ def with_divider(title, width, divider_adv):
 
 
 class Typeset:
-    """langpack.build 가 만든 언어 파일 {팩 안 경로: {열쇠: 글}} 을 팩 글꼴로 짠다 (apply)."""
+    """
+    langpack.build 가 만든 언어 파일 {팩 안 경로: {열쇠: 글}} 을 팩 글꼴로 짠다 (apply). weapons = {id: 정의} (기본은
+    content/weapons.yml): 무기마다 실선 폭을 잴 때 분류와 수치 표의 칸을 본다.
+    """
 
-    def __init__(self, fonts):
+    def __init__(self, fonts, weapons=None):
         self.fonts = fonts
+        self.weapons = load_weapons() if weapons is None else weapons
 
     def apply(self, files, ko_lines):
         """ko_lines = langpack.lines(ko 표) (점 열쇠 → 한국어 원문, 꼴 태그 포함). files 를 고쳐 돌려준다."""
@@ -276,7 +318,11 @@ class Typeset:
                     for k, v in labels.items():
                         data[k] = v + spaces(col - widths[k])
                 if "souls." + RULE_KEY in data:
-                    data["souls." + RULE_KEY] = rule_text(self.weapon_column(data, col))
+                    widths = {wid: self.weapon_width(data, col, wid, d) for wid, d in self.weapons.items()
+                              if "souls.weapon." + wid + ".name" in data}
+                    data["souls." + RULE_KEY] = rule_text(max(widths.values(), default=0))
+                    for wid, w in widths.items():
+                        data[f"souls.{RULE_KEY}.{wid}"] = rule_text(w)
                 for k in list(data):
                     if not k.startswith("souls."):
                         continue
@@ -285,13 +331,21 @@ class Typeset:
                         data[k] = with_divider(data[k], self.fonts.width(font, data[k]), self._div(div_adv, font))
         return files
 
-    def weapon_column(self, data, label_col):
-        """무기 설명 칸의 글 열 폭 (한 언어): 이름 (제목 글꼴)·분류 줄·설명 줄·수치 표 두 칸 가운데 가장 넓은 것 (GUI 픽셀)."""
-        w = 2 * (label_col + VALUE_COL) + COL_GAP if label_col else 0
+    def weapon_width(self, data, label_col, wid, d):
+        """
+        무기 wid 의 설명 칸 글 열 폭 (한 언어, GUI 픽셀): 이름 (제목 글꼴)·분류 줄·수치 표·설명 줄 가운데 가장 넓은 것.
+        수치 표 한 줄은 칸 하나가 이름 열 + 값 열 (label_col + VALUE_COL), 두 칸이면 사이 COL_GAP.
+        """
+        cells = stat_cells(d)
+        pair = any(cells[i] and i + 1 < len(cells) and cells[i + 1] for i in range(0, len(cells), 2))
+        w = (2 * (label_col + VALUE_COL) + COL_GAP if pair else label_col + VALUE_COL) if label_col else 0
+        w = max(w, self.fonts.width(TITLE_FONT, data["souls.weapon." + wid + ".name"]))
+        cls = data.get("souls.weapon.class." + str(d.get("class", "")))
+        if cls is not None:
+            w = max(w, self.fonts.width(DEFAULT_FONT, cls.replace("%%", "%")))
+        pre = "souls.weapon." + wid + ".lore"
         for k, v in data.items():
-            if fnmatch.fnmatchcase(k, "souls.weapon.*.name"):
-                w = max(w, self.fonts.width(TITLE_FONT, v))
-            elif fnmatch.fnmatchcase(k, "souls.weapon.class.*") or fnmatch.fnmatchcase(k, "souls.weapon.*.lore.*"):
+            if k == pre or fnmatch.fnmatchcase(k, pre + ".*"):
                 w = max(w, self.fonts.width(DEFAULT_FONT, v.replace("%%", "%")))
         return w
 

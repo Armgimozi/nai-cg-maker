@@ -57,11 +57,12 @@ final class StatTable {
     }
 
     /**
-     * 수치와 설명 사이 실선: 번역 열쇠 weapon.rule. 리소스팩이 그 값을 기본 글꼴의 실선 글자로 바꿔 두었다 (pack/typeset.py: 그 언어의
-     * 무기 설명 칸 글 열 폭만큼, 이름 밑 금실과 같은 색·굵기의 끊김 없는 한 줄). 팩이 없으면 대체 글 (줄표).
+     * 수치와 설명 사이 실선: 번역 열쇠 weapon.rule.&lt;무기 id&gt; (팩의 언어 파일에만 있다). 리소스팩이 무기마다 기본 글꼴의 실선 그림
+     * 글자로 짜 두었다 (pack/typeset.py: 그 언어에서 그 무기 설명 칸의 글 열 폭만큼, 이름 밑 금실과 같은 색·굵기·금빛 마름모의
+     * 끊김 없는 한 줄. 그래서 칸이 무기마다 제 글에 맞는 폭이다). 팩이 없으면 weapon.rule 의 대체 글 (줄표).
      */
-    static Component rule() {
-        return Lang.c("weapon.rule");
+    static Component rule(Weapons.Def d) {
+        return Lang.variant("weapon.rule", d.id());
     }
 
     private static Component cell(String[] c, Glyphs.Stats st) {

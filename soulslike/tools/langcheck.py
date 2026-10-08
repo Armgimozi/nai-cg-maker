@@ -12,7 +12,7 @@
            info·warning·severe…) 의 괄호 안만 된다. 주석은 보지 않는다. 일부러 남길 줄에는 // lang-ok
   text     번역되지 않는 글: Component.text / Text.mm 에 글자 (로마자·한글) 가 든 문자열, sendMessage·kick·disconnect·
            disallow 같은 곳에 바로 넣은 문자열. 기계 글 (시험 줄 [T], /souls 의 쓰는 법·pack·perf) 은 그 줄에 // lang-machine
-  keys     열쇠를 받는 부르기 (KEY_CALLS: Lang.c / lines / render / renderBoth / tell, Items.icon) 를 괄호를 세어 읽는다.
+  keys     열쇠를 받는 부르기 (KEY_CALLS: Lang.c / lines / render / renderBoth / tell / variant, Items.icon) 를 괄호를 세어 읽는다.
            열쇠가 글자 그대로면 lang 에 있어야 하고, 넘기는 자리 이름 ("n", n 짝) 이 그 열쇠의 자리와 같아야 한다.
            열쇠를 만들어 부르면 ("skill." + id + ".name") 그 줄에 // lang-dyn: <glob>, … 가 있어야 한다: glob 은 lang
            열쇠에 맞거나 콘텐츠 표 (CONTENT_KEYS) 의 꼴. say 는 콘텐츠 say 부품의 key, param 은 열쇠를 넘기는 도우미.
@@ -112,8 +112,11 @@ KEY_CALLS = {
     ("Lang", "render"): lambda args: [1],
     ("Lang", "tell"): lambda args: [1],
     ("Lang", "renderBoth"): lambda args: [0],
+    ("Lang", "variant"): lambda args: [0],
     ("Items", "icon"): lambda args: [1, 2] if len(args) == 3 else [],
 }
+# 둘째 인수가 자리 짝이 아닌 부르기 (Lang.variant(열쇠, 갈래): 갈래는 팩이 짠 번역 열쇠의 끝 조각)
+NO_PAIRS = {("Lang", "variant")}
 # 열쇠를 넘기기만 하는 도우미 (그 안의 Lang 부르기에 // lang-dyn: param 을 단다). 짝이 없으니 자리가 없어야 한다
 HELPERS = {("Items", "icon")}
 # 서버 기록 부르기 (그 괄호 안의 한글은 기록 줄이다). getLogger() 뒤, 또는 log·logger·LOG 이름 뒤
@@ -364,7 +367,7 @@ def check_java(report, root=JAVA):
                     if k >= len(args):
                         report.add("오류", "keys", f"{rel}:{ln}", f"{owner}.{name} 에 열쇠 인수가 없다")
                         continue
-                    pairs = [] if (owner, name) in HELPERS else args[k + 1:]
+                    pairs = [] if (owner, name) in HELPERS | NO_PAIRS else args[k + 1:]
                     found.append((rel, ln, f"{owner}.{name}", args[k], pairs, marks))
     return found
 

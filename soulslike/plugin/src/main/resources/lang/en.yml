@@ -82,7 +82,7 @@ weapon:
     need_att: "<#858079>Req. Att"
     absorb: "<#858079>Absorption"
     stability: "<#858079>Stability"
-  rule: "<#8f8164>—"
+  rule: "<#fefefe>—"
   redin_guard_sword:
     name: "<#d1c3a0><font:souls:title>Redin Watch Straight Sword"
     lore:

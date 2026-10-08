@@ -8,7 +8,7 @@
 
 ## 지금 판: M0 기반과 점검
 
-접속하면 리소스팩을 받고 시험 방에 선다. 화면은 고딕 촛불 말씨 (깊은 검은 옻칠 판, 촛불 기운, 단조 장식, 명조·가라몽 글꼴) 다. 왼쪽 위에 다크 소울처럼 체력·마나·스태미나 막대가 있고 달리면 스태미나 막대가 준다 (소울 수는 오른쪽 아래). F 로 구른다 (시제품). 죽으면 핏빛 "YOU DIED". 지도·적·보스·에스트는 아직 없다. 관문은 `DESIGN.md` 13.4 의 실제 클라이언트 점검이다.
+접속하면 리소스팩을 받고 시험 방에 선다. 화면은 고딕 촛불 말씨 (깊은 검은 옻칠 판, 촛불 기운, 단조 장식, 명조·가라몽 글꼴) 다. 왼쪽 위에 다크 소울처럼 체력·마나·스태미나 막대 (세 잎 단조 장식, 검은 심에 흐린 빛 줄의 거무칙칙한 여러 색) 가 있고 달리면 스태미나 막대가 준다 (소울 수는 오른쪽 아래). F 로 구른다 (시제품). 죽으면 핏빛 "YOU DIED". 지도·적·보스·에스트는 아직 없다. 관문은 `DESIGN.md` 13.4 의 실제 클라이언트 점검이다.
 
 설계 문서를 쓴 뒤 정한 것 (문서와 다르면 이쪽이 앞선다):
 
@@ -17,7 +17,7 @@
 | 제목 | 스퀘어 소울 (영어 Square Soul). 팩 설명과 서버 목록 이름이 이것이다. 예전 가제 "식은 가마" (Cold Kiln) 는 마지막 지역 (R7) 의 이름으로만 남는다 |
 | 난이도 | 아직 정하지 않았다. 문서의 수치를 `config.yml` 값으로 둔다 |
 | 마법 | 넣는다 (촉매, 마나 같은 자원, 기억 칸). 설계는 나중이고 M0 에는 없다. HUD·데이터에 마나 막대 자리를 남긴다 |
-| 사망 화면 | 한국어 "사망했다" 대신 크고 새빨간 "YOU DIED". 제목 글꼴 (Cinzel) 로 크게 그린 그림 글자 |
+| 사망 화면 | 한국어 "사망했다" 대신 크고 새빨간 "YOU DIED". 손으로 한 점씩 찍은 픽셀 그림 글자 (`pack/art/you_died.txt`) |
 | 화톳불 이동 | 처음부터 (넷째 보스 뒤가 아니다) |
 | 에스트 | 바닐라 물약처럼: 단축 슬롯에 두고 우클릭을 누르고 있으면 마신다. 슬롯을 저절로 바꾸지 않는다 |
 | 규모 | 짧은 맛보기판부터. 7지역 전체가 아니다 |
@@ -29,7 +29,8 @@
 plugin/   Gradle 플러그인 (kr.souls). 리소스: paper-plugin.yml, config.yml, content/, datapack/soulsdp/,
           lang/ko.yml (게임 문구, 한국어 원본), lang/en.yml (영어), lang/names.yml (고유 이름의 영어 표기)
 pack/     리소스팩 생성기 (gen_pack.py, langpack.py 문구 → 팩 언어 파일, fonts.py 게임 글꼴 (미리 그린 명조·가라몽),
-          typeset.py 팩 글꼴로 창 제목·열 맞춤 짜기, hud.py HUD 그림 글자·사망 제목, gui_skin.py 단축 슬롯·창·단추·설명 칸,
+          typeset.py 팩 글꼴로 창 제목·열 맞춤 짜기, hud.py HUD 그림 글자·사망 제목, bar_styles.py HUD 막대 색 짜임,
+          gui_skin.py 단축 슬롯·창·단추·설명 칸,
           uidraw.py 2 배 UI 그림판, shaders.py 글꼴·GUI 셰이더, icons.py 아이템 그림·모형·입자, palette.py, artlint.py,
           art/ 손으로 찍은 그림)
 server/   배포할 서버 폴더 (start.bat → start.ps1, start.sh, server.properties, bukkit.yml, config/paper-global.yml, README.txt)
@@ -64,7 +65,7 @@ python3 tools/make_dist.py --no-build # 관문만 보고 묶는다
 |---|---|---|
 | EB Garamond | 본문 로마자, 소울 숫자 | SIL Open Font License 1.1 |
 | Noto Serif KR | 본문 한글 | SIL Open Font License 1.1 |
-| Cinzel | 제목 로마자 (창·설정 화면 제목, 무기·보스 이름, 사망 화면 YOU DIED) | SIL Open Font License 1.1 |
+| Cinzel | 제목 로마자 (창·설정 화면 제목, 무기·보스 이름) | SIL Open Font License 1.1 |
 | Nanum Myeongjo ExtraBold | 제목 한글 | SIL Open Font License 1.1 |
 
 - 원본은 github.com/google/fonts (`ofl/`) 에서 빌드 때 `~/.cache/souls-fonts/ofl` 에 받고 (`SOULS_FONT_CACHE` 로 바꾼다) sha256 으로 확인한다. 다르면 팩을 만들지 않는다 (`pack/fonts.py` 의 `SOURCES`).
