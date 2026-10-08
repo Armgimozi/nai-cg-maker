@@ -6,6 +6,7 @@ import {
 import { entriesFromZip, entriesFromFiles, analyze, install, ImportError } from "./importer.js";
 import { saveSummary, exportSave, importSave, deleteSave, idbfsGroups } from "./saves.js";
 import { PRESETS, autoPreset } from "./keys.js";
+import { showPortingReport } from "./porting.js";
 import { h, toast, dialog, confirmBox, promptBox, sheet, downloadBlob, timeAgo, formatDuration } from "./ui.js";
 
 const $ = (s) => document.querySelector(s);
@@ -101,7 +102,7 @@ function openAdd() {
       h("b", {}, "여러 파일"), h("span", {}, "index.html 과 Build 안의 파일들을 한꺼번에 선택 (폴더 구조 없어도 됨)")),
     h("p", { class: "hint" },
       "유니티 WebGL 빌드 = index.html + Build 폴더(*.loader.js, *.data, *.wasm …). ",
-      ".gz/.br 로 압축된 빌드도 자동으로 풀어서 넣습니다. Windows 용 빌드(.exe)는 실행할 수 없어요.")));
+      ".gz/.br 로 압축된 빌드도 자동으로 풀어서 넣습니다. Windows 용 빌드(.exe)는 실행할 수 없지만, 넣으면 모바일 변환 가능성을 진단해 드려요.")));
 }
 
 async function importEntries(getEntries, sourceName) {
@@ -165,6 +166,7 @@ function row(label, control) {
 
 function showImportError(e) {
   console.error(e);
+  if (e instanceof ImportError && e.report) { showPortingReport(e.report); return; }
   const title = e instanceof ImportError ? {
     WINDOWS: "PC(Windows)용 게임이에요", MAC: "맥용 게임이에요", LINUX: "리눅스용 게임이에요", ANDROID: "안드로이드 앱이에요",
     PROJECT: "유니티 프로젝트 원본이에요", RGSS: "지원하지 않는 형식", RENPY: "지원하지 않는 형식", QUOTA: "저장 공간 부족",
@@ -486,10 +488,14 @@ function openHelp() {
     h("ul", {},
       h("li", {}, h("b", {}, "유니티 WebGL 빌드"), " — Unity 5.6 ~ Unity 6 (index.html + Build 폴더). 압축(.gz/.br) 빌드도 OK."),
       h("li", {}, "덤으로 RPG Maker MV/MZ, 일반 HTML5 게임(index.html)도 실행을 시도합니다.")),
-    h("h4", {}, "PC용 유니티 게임(.exe)은 왜 안 되나요?"),
-    h("p", {}, "PC 빌드는 x86 Windows 프로그램(UnityPlayer.dll)이라 폰 브라우저가 실행할 수 없습니다. ",
-      "JoiPlay 도 유니티 PC 게임은 지원하지 않아요. 방법은 ① 개발자가 주는 브라우저(WebGL) 버전을 쓰거나 ",
-      "② Winlator 같은 Windows 에뮬레이터 앱을 쓰는 것입니다."),
+    h("h4", {}, "PC용 유니티 게임(.exe)을 모바일로 바꿀 수 있나요?"),
+    h("p", {}, "PC 빌드는 x86 Windows 프로그램(UnityPlayer.dll)이라 그대로는 폰 브라우저에서 실행할 수 없습니다(JoiPlay 도 유니티는 미지원). ",
+      "대신 PC 게임 zip 을 넣으면 UniPlay 가 파일을 살펴 ", h("b", {}, "변환 가능성 진단"), "을 보여 줍니다(유니티 버전, Mono/IL2CPP, 걸림돌)."),
+    h("ul", {},
+      h("li", {}, h("b", {}, "원본 프로젝트가 있으면"), " — 유니티에서 WebGL/Android 로 다시 빌드. 가장 확실합니다(개발자에게 요청)."),
+      h("li", {}, h("b", {}, "그대로 돌리기"), " — 안드로이드의 Winlator(Windows 에뮬레이터). 변환 없이 되지만 폰마다 차이가 큽니다."),
+      h("li", {}, h("b", {}, "Mono 빌드"), " — AssetRipper 로 프로젝트를 복원해 다시 빌드할 수 있지만 유니티 경험이 필요한 수작업입니다."),
+      h("li", {}, h("b", {}, "IL2CPP 빌드"), " — 코드가 기계어라 복원이 안 됩니다. 에뮬레이터나 개발자 요청뿐이에요.")),
     h("h4", {}, "게임 넣는 법"),
     h("ol", {},
       h("li", {}, "WebGL 빌드 폴더(index.html 이 들어 있는 폴더)를 zip 으로 압축합니다."),
@@ -508,7 +514,8 @@ function openHelp() {
       h("li", {}, "메뉴 → 로그에서 오류를 확인할 수 있습니다.")),
     h("h4", {}, "세이브"),
     h("p", {}, "세이브는 이 기기 브라우저에 저장됩니다. 브라우저 데이터를 지우면 함께 사라지니, ",
-      "게임 ⋯ → 세이브 백업으로 가끔 파일로 내보내 두세요."),
+      "게임 ⋯ → 세이브 백업으로 가끔 파일로 내보내 두세요. 아이폰은 사파리가 7일 동안 안 쓴 사이트의 데이터를 지울 수 있으니 ",
+      "꼭 '홈 화면에 추가'한 앱으로 쓰세요."),
   ));
 }
 

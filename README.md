@@ -72,7 +72,26 @@ JoiPlay 처럼 **유니티 게임을 폰에 넣어 두고 실행**하는 설치�
 
 > ⚠️ 실행할 수 있는 것은 **유니티 WebGL(브라우저) 빌드**입니다. PC용(`.exe` + `UnityPlayer.dll`)
 > 빌드는 x86 Windows 프로그램이라 폰 브라우저로는 실행할 수 없습니다(JoiPlay 도 미지원).
-> 넣으면 이유와 대안(개발자의 WebGL 버전 / Winlator 같은 Windows 에뮬레이터)을 안내합니다.
+> 대신 PC 빌드 zip 을 넣으면 **모바일 변환 가능성 진단**을 보여 줍니다(아래).
+
+**PC 게임 → 모바일 변환 진단** (`js/pcbuild.js`, `js/porting.js`) — 파일 앞부분만 읽어
+유니티 버전(`globalgamemanagers` 등 SerializedFile 헤더 / `data.unity3d` UnityFS 헤더), 빌드 대상,
+스크립트 백엔드(Mono: `Managed/Assembly-CSharp.dll` / IL2CPP: `GameAssembly.dll`+`il2cpp_data`),
+실행 파일 CPU(x86/x64/ARM64), 그래픽 API(`BuildSettings.m_GraphicsAPIs` — 모바일에서 쓸 셰이더가 있는지),
+HDRP·URP·2D·Steamworks·FMOD·Wwise 등 걸림돌(`ScriptingAssemblies.json`), 네이티브 플러그인을 찾아 경로별 가능성을 매깁니다.
+진단 화면에서 **개발자에게 보낼 요청문**(한/영)을 복사할 수 있고, 지금 폰의 GPU(Adreno/Mali/Xclipse)에 맞는
+Winlator 드라이버(Turnip/Vortek)를 알려 줍니다. 실제 빌드(Unity 2017.3 Win/Mac/Linux, 2022.3 Mono·IL2CPP)와
+Unity 공식 테스트 파일(SerializedFile 형식 9~26)로 검증했습니다.
+
+| 경로 | 언제 되나 | 비고 |
+|---|---|---|
+| 원본 프로젝트로 다시 빌드 | 개발자(원본 보유) | 가장 확실. WebGL → UniPlay, 또는 Android(IL2CPP·ARM64) |
+| Winlator 로 PC판 그대로 | Windows 빌드, 안드로이드 | 변환 아님. 스냅드래곤(Adreno+Turnip)이 유리, 실행 인수 `-force-gfx-direct` |
+| AssetRipper 디컴파일 → 재빌드 | **Mono** 빌드만 | 컴파일 오류·더미 셰이더를 손으로 고치는 수작업. 작은 2D·기본 파이프라인일수록 유리 |
+| 데이터만 안드로이드 플레이어에 이식 | 사실상 불가 | D3D 전용 셰이더(분홍 화면), 안드로이드 Mono 는 32비트 전용, 정확한 버전 일치 필요 |
+
+IL2CPP 빌드는 코드가 PC용 기계어(네이티브 코드)라 디컴파일로 복원되지 않습니다. 남의 게임을 변환해 배포하는 것은
+저작권 침해이므로 개인적으로만 다루고, 가능하면 개발자에게 공식 WebGL/모바일 빌드를 요청하세요.
 
 **게임 넣기** — WebGL 빌드 폴더(`index.html` + `Build/`)를 zip 으로 압축 → ＋ 게임 추가.
 - Unity 5.6~2019(`UnityLoader.js`) / 2020~Unity 6(`*.loader.js`) 자동 판별
@@ -98,6 +117,7 @@ sw.js                      서비스워커: games/<id>/… 를 기기 캐시에�
 inject.js                  게임 iframe 안에서 먼저 실행(해상도·입력 주입·가상 패드·세이브 경로·유니티 캐시 끄기)
 js/zip.js                  스트리밍 zip 리더(DecompressionStream)
 js/importer.js             빌드 판별·설치 · js/db.js 저장소 · js/saves.js 세이브 백업
+js/pcbuild.js · porting.js PC 빌드 진단(유니티 버전·Mono/IL2CPP·걸림돌) · 진단 화면
 js/player.js · controls.js · keys.js   플레이 화면 · 가상 패드 · 키/프리셋
 vendor/brotli-decode.js    Google Brotli 디코더(MIT) — .br 빌드용
 ```

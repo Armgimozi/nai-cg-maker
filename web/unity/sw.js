@@ -17,7 +17,7 @@ const SHELL_FILES = [
   "./", "index.html", "play.html", "manifest.webmanifest", "inject.js",
   "css/app.css",
   "js/db.js", "js/zip.js", "js/importer.js", "js/library.js", "js/player.js",
-  "js/controls.js", "js/keys.js", "js/saves.js", "js/ui.js",
+  "js/controls.js", "js/keys.js", "js/saves.js", "js/ui.js", "js/pcbuild.js", "js/porting.js",
   "vendor/brotli-decode.js",
   "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png", "icons/apple-touch-icon.png",
 ];

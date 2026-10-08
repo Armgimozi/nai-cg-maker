@@ -6,6 +6,7 @@
  *   3) html 없이 Build 폴더만 있으면 실행용 index.html 을 만들어 준다
  *   4) RPG Maker MV/MZ, 그 밖의 HTML5 게임(index.html) 도 실행은 시도한다
  *   5) 위가 전부 아니면 Windows/맥/안드로이드 빌드인지 알려 준다
+ *      (PC 유니티 빌드면 pcbuild.js 로 모바일 변환 가능성을 진단해 err.report 로 붙인다)
  *
  * Build 폴더의 .gz/.br 파일은 여기서 미리 풀어 둔다. 원래는 웹서버가
  * "Content-Encoding" 헤더를 붙여 줘야 하는데, 서비스워커가 만든 응답에는
@@ -13,6 +14,7 @@
  */
 
 import { readZip } from "./zip.js";
+import { inspectPcBuild } from "./pcbuild.js";
 import { gameCacheName, gameFileURL, newId, games, files as fileStore } from "./db.js";
 
 export class ImportError extends Error {
@@ -103,6 +105,10 @@ function platformError(paths) {
     "브라우저에서 돌릴 수 없어요.\n\n" +
     "• 개발자가 브라우저(WebGL/HTML5) 버전을 주면 그 파일을 넣어 주세요.\n" +
     "• PC 빌드를 꼭 폰에서 돌리려면 Winlator 같은 Windows 에뮬레이터 앱이 필요합니다.";
+  // 원본 프로젝트가 들어 있으면(빌드 결과물이 같이 있어도) 그것부터 안내한다
+  if (has(/(^|\/)Assets\/.+\.(unity|cs)$/i) && has(/(^|\/)ProjectSettings\//i)) {
+    return new ImportError("PROJECT", "유니티 프로젝트 원본입니다. Unity 에디터에서 이 프로젝트를 열고 File → Build Settings(Unity 6 은 Build Profiles) → WebGL 로 빌드한 결과물(zip)을 넣어 주세요. 원본이 있으니 가장 확실한 방법입니다.");
+  }
   if (has(/(^|\/)UnityPlayer\.dll$/i) || has(/_Data\/(globalgamemanagers|data\.unity3d|resources\.assets)$/i) && has(/\.exe$/i)) {
     return new ImportError("WINDOWS", "Windows용 유니티 게임입니다 (UnityPlayer.dll · _Data 폴더).\n\n" + winHint);
   }
@@ -114,9 +120,6 @@ function platformError(paths) {
   }
   if (has(/\.(apk|xapk|apks|aab)$/i) || has(/(^|\/)assets\/bin\/Data\//i)) {
     return new ImportError("ANDROID", "안드로이드용 빌드(APK)입니다. 이 앱이 아니라 폰에 바로 설치해서 실행하면 됩니다.");
-  }
-  if (has(/(^|\/)Assets\/.+\.(unity|cs)$/i) && has(/(^|\/)ProjectSettings\//i)) {
-    return new ImportError("PROJECT", "유니티 프로젝트 원본입니다. Unity 에디터에서 File → Build Settings → WebGL 로 빌드한 결과물을 넣어 주세요.");
   }
   if (has(/(^|\/)(Game\.rgss\w*|Game\.ini)$/i)) {
     return new ImportError("RGSS", "RPG Maker XP/VX/VX Ace 게임입니다. 이 형식은 JoiPlay 같은 전용 앱으로 실행해 주세요.");
@@ -311,7 +314,11 @@ export async function analyze(allEntries, sourceName = "") {
     }
   }
   if (!plan) {
-    const h = htmls.find((e) => /index\.html?$/i.test(e.path));
+    // PC 유니티 빌드(UnityPlayer.dll 이나 _Data/.app 의 globalgamemanagers 등)면 안의 html(크레딧·매뉴얼·내장 브라우저 화면)은
+    // 게임이 아니다 → 아래 5) 에서 변환 진단을 보여 준다. nw.js 같은 HTML5 게임의 .exe 는 이 표시가 없어 영향 없음.
+    const pcUnity = entries.some((e) => /(^|\/)UnityPlayer\.(dll|so)$/i.test(e.path) ||
+      /(_Data|\.app\/Contents\/Resources\/Data)\/(globalgamemanagers|mainData|data\.unity3d)$/i.test(e.path));
+    const h = pcUnity ? null : htmls.find((e) => /index\.html?$/i.test(e.path));
     if (h) {
       const text = await readText(h);
       plan = { kind: "html5", kindLabel: "HTML5", root: dirname(h.path), entry: basename(h.path), title: htmlTitle(text) };
@@ -320,7 +327,12 @@ export async function analyze(allEntries, sourceName = "") {
   }
 
   // 5) 실행할 게 없음 → 어떤 플랫폼인지 알려 주기
-  if (!plan) throw platformError(entries.map((e) => e.path));
+  if (!plan) {
+    const err = platformError(entries.map((e) => e.path));
+    // PC 빌드면 "모바일로 바꿀 수 있는지" 진단을 붙여 보낸다
+    if (["WINDOWS", "MAC", "LINUX"].includes(err.code)) err.report = await inspectPcBuild(entries).catch(() => null);
+    throw err;
+  }
 
   const root = plan.root;
   const inRoot = entries.filter((e) => under(root, e.path));
