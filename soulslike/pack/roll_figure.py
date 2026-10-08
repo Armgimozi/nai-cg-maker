@@ -1319,13 +1319,12 @@ def wrap_item_definitions(out):
 
 # ─────────────────────────── 스킨 색 표 (기본 스킨 18 개) ───────────────────────────
 # 플러그인 combat/SkinTint 와 같은 셈: 칸마다 (덧옷 층 픽셀이 불투명하면 그것이 위) 불투명 픽셀을 채널마다 8 단위로 묶어 가장
-# 많은 묶음의 평균, 채도 × 0.8, 너무 어두우면 밝기를 MIN_VALUE 까지 (심층암 바닥과 갈리게).
+# 많은 묶음의 평균, 너무 어두우면 밝기를 MIN_VALUE 까지 (심층암 바닥과 갈리게), 물들이는 바탕이 어둡게 하는 몫을 되돌린다 (_lift).
 # 칸은 그 부위를 네 옆면으로 두른 띠 (앞만 보면 노어처럼 앞섶이 열린 겉옷은 속옷 색이 나온다. 3인칭에서 보이는 것은 대개 등과
 # 옆이다): 몸통 (16,20)-(40,32), 오른팔 (40,20)-(56,32) (slim 은 (40,20)-(54,32)) 의 위 6줄 = 소매, 아래 6줄 = 손,
 # 오른다리 (0,20)-(16,32) 의 위 8줄 = 바지, 아래 4줄 = 신. 덧옷 층은 같은 자리에서 16 아래 (y + 16). 64×32 옛 스킨은 덧옷 없음.
 
 REGIONS = [(16, 20, 40, 32), (40, 20, 56, 26), (40, 26, 56, 32), (0, 20, 16, 28), (0, 28, 16, 32)]
-SAT_SCALE = 0.8
 MIN_VALUE = 77                     # 밝기 (0~255) 바닥
 DEFAULT_SKINS = [f"{m}/{n}" for m in ("slim", "wide") for n in ("alex", "ari", "efe", "kai", "makena", "noor", "steve", "sunny", "zuri")]
 
@@ -1358,15 +1357,20 @@ def _mode_color(px):
         groups.setdefault((p[0] >> 3, p[1] >> 3, p[2] >> 3), []).append(p)
     best = max(groups.values(), key=len)        # 같은 수면 먼저 나온 묶음 (dict 는 넣은 차례) — 플러그인도 같다
     r, g, b = (sum(p[i] for p in best) // len(best) for i in range(3))
-    return _grade((r << 16) | (g << 8) | b)
+    return _lift(_floor((r << 16) | (g << 8) | b))
 
 
-def _grade(rgb):
-    """채도 × 0.8 (채널마다 가장 밝은 채널 쪽으로 2/10 당긴다, 반올림), 밝기가 MIN_VALUE 보다 낮으면 끌어올린다 (정수 셈,
-    플러그인 SkinTint.grade 와 같은 값)."""
+def _lift(rgb):
+    """물들이는 바탕 (뼈 계열, 밝은 칸 bone2 = 0.84) 이 곱해 어두워지는 몫을 되돌린다: 채널마다 × 100/84 (255 에서 멈춘다). 스킨에서
+    고른 색은 채도를 그대로 둔다 (2026-10-08 비평: 대역의 옷이 진짜 몸보다 절반쯤 어둡고 칙칙해 바뀌는 때에 튀었다). 플러그인
+    SkinTint.lift 와 같은 정수 셈."""
+    return sum(min(255, (((rgb >> sh) & 255) * 100 + 42) // 84) << sh for sh in (16, 8, 0))
+
+
+def _floor(rgb):
+    """밝기가 MIN_VALUE 보다 낮으면 끌어올린다 (정수 셈, 플러그인 SkinTint.floor 와 같은 값)."""
     r, g, b = (rgb >> 16) & 255, (rgb >> 8) & 255, rgb & 255
     mx = max(r, g, b)
-    r, g, b = (v + ((mx - v) * 2 + 5) // 10 for v in (r, g, b))
     if mx < MIN_VALUE:
         if mx == 0:
             r = g = b = MIN_VALUE

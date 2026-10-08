@@ -47,7 +47,8 @@ import java.util.UUID;
  * 보이는 모습은 combat.roll.visual (3.3 "보이는 모습"): tumble 은 진짜 몸을 감추고 관절이 있는 대역이 어깨로 구른다 (Tumble),
  * spin 은 바닐라 급류 회전, crawl 은 대역 없이 기어가기 자세로 미끄러진다. tumble·crawl 은 combat.roll.crawl 이면 머리 위 칸에 그
  * 사람 화면에만 있는 막힘 ({@link #CEILING}) 을 깔아 클라이언트가 스스로 기어가기 자세로 바꾸게 한다 (1인칭은 시야가 바닥까지
- * 내려갔다 올라온다). 막힘은 진짜 블록이 아니라 다른 사람과 서버는 모른다. 모습은 보이는 것만 바꾼다. 미는 힘·무적·비용은 셋 다 같다.
+ * 내려갔다 올라온다). tumble 은 숙인 눈에서 F5 카메라가 막히지 않을 때만 깐다 ({@link #cameraClear}: 올려다보거나 등 뒤에 턱이
+ * 있으면 서서 구른다). 막힘은 진짜 블록이 아니라 다른 사람과 서버는 모른다. 모습은 보이는 것만 바꾼다. 미는 힘·무적·비용은 셋 다 같다.
  *
  * 미는 때: F 는 틱 사이에 오고, 속도 패킷은 틱마다 한 번 (엔티티 추적기가 hurtMarked 를 볼 때) 나간다.
  * F 를 받은 자리에서 setVelocity 를 하면 다음 틱의 첫 밀기가 그 값을 덮어 클라이언트에 닿지 않는다.
@@ -171,8 +172,8 @@ public final class Roll implements Listener {
         else if (vis == Config.RollVisual.TUMBLE) tumble.start(p, st.rollDir, now, crawl);
         else if (vis == Config.RollVisual.SPIN) p.startRiptideAttack(cfg().spinTicks(), 0f, null);
         visual(p, true, back || vis != Config.RollVisual.TUMBLE);
-        plugin.test(p, String.format(Locale.ROOT, "ROLL kind=%s dir=%s cost=%.0f st=%.1f vis=%s t=%d",
-                kind.id(), dirName(f, r), kind.cost(), st.stamina.cur(), back ? "body" : vis.name().toLowerCase(Locale.ROOT), now));
+        plugin.test(p, String.format(Locale.ROOT, "ROLL kind=%s dir=%s cost=%.0f st=%.1f vis=%s duck=%s t=%d",
+                kind.id(), dirName(f, r), kind.cost(), st.stamina.cur(), back ? "body" : vis.name().toLowerCase(Locale.ROOT), crawl, now));
         return true;
     }
 
@@ -486,6 +487,7 @@ public final class Roll implements Listener {
                 if (p.isDead() || (cr.tumble && !tumble.active(p))) {
                     uncrawl(p);
                 } else if (cr.ducking && (now >= cr.until || !crawlable(p.getLocation().getY()) || (cr.tumble && !cameraClear(p)))) {
+                    if (now < cr.until) plugin.test(p, "ROLL_UNDUCK early=" + (cr.until - now) + " t=" + now);
                     if (cr.tumble) {
                         tumble.unduck(p);
                         unceilAtEnd.add(p.getUniqueId());

@@ -40,8 +40,8 @@ import java.util.concurrent.ConcurrentHashMap;
  *       클라이언트 jar 에서 뽑아 둔 자원 roll_skins.yml (pack/roll_figure.py skin_table). 받기 전이나 실패하면 그 표, 표도 없으면
  *       팩 정의의 기본색 (팔레트).</li>
  *   <li>고르는 셈 (pack/roll_figure.py skin_colors 와 같다): 그 부위를 네 옆면으로 두른 띠의 불투명 픽셀 (덧옷 층이 불투명하면
- *       그것) 을 채널마다 8 단위로 묶어 가장 많은 묶음의 평균. 채도 × 0.8, 밝기가 77/255 보다 어두우면 끌어올린다 (심층암 바닥과
- *       갈리게). 정수 셈이라 파이썬 표와 같은 값이 나온다.</li>
+ *       그것) 을 채널마다 8 단위로 묶어 가장 많은 묶음의 평균. 밝기가 77/255 보다 어두우면 끌어올리고 (심층암 바닥과 갈리게), 물들이는
+ *       바탕이 곱해 어두워지는 몫을 되돌린다 ({@link #lift}). 정수 셈이라 파이썬 표와 같은 값이 나온다.</li>
  *   <li>갑옷: 가슴 → 몸통·소매, 다리 → 바지, 신 → 신, 머리 → 투구 껍데기 (대역 souls:roll_helm). 물들인 가죽은 그 색, 나머지는
  *       재료마다 팔레트에 가까운 색 (쇠는 화면에서 재 3 의 회색이 되게).</li>
  *   <li>머리 픽셀 ({@link #head}): 그 사람 화면의 대역 (own) 은 바닐라 머리 대신 스킨 머리의 픽셀 384 개 (여섯 면 × 8×8, 덧옷 층을 그
@@ -251,7 +251,7 @@ public final class SkinTint {
                 continue;
             }
             any = true;
-            out[k] = grade(((best[1] / best[0]) << 16) | ((best[2] / best[0]) << 8) | (best[3] / best[0]));
+            out[k] = lift(floor(((best[1] / best[0]) << 16) | ((best[2] / best[0]) << 8) | (best[3] / best[0])));
         }
         if (!any) return null;
         for (int k = 0; k < out.length; k++) {
@@ -266,13 +266,31 @@ public final class SkinTint {
         return out;
     }
 
-    /** 채도 × 0.8 (채널마다 가장 밝은 채널 쪽으로 2/10 당긴다, 반올림), 밝기가 MIN_VALUE 보다 낮으면 끌어올린다. */
+    /** 채도 × 0.8 (채널마다 가장 밝은 채널 쪽으로 2/10 당긴다, 반올림), 밝기가 MIN_VALUE 보다 낮으면 끌어올린다 (물들인 가죽). */
     static int grade(int rgb) {
         int r = (rgb >> 16) & 255, g = (rgb >> 8) & 255, b = rgb & 255;
         int mx = Math.max(r, Math.max(g, b));
         r += ((mx - r) * 2 + 5) / 10;
         g += ((mx - g) * 2 + 5) / 10;
         b += ((mx - b) * 2 + 5) / 10;
+        return floor((r << 16) | (g << 8) | b);
+    }
+
+    /**
+     * 물들이는 바탕 (뼈 계열, 밝은 칸 bone2 = 0.84) 이 곱해 어두워지는 몫을 되돌린다: 채널마다 × 100/84 (255 에서 멈춘다). 스킨 색만
+     * (갑옷 색은 화면에서 맞춘 값이다). 2026-10-08 비평: 대역의 옷이 진짜 몸보다 절반쯤 어두워 바뀌는 때에 튀었다 (스킨에서 고른 색에
+     * 채도 × 0.8 까지 걸어 더 칙칙했다. 이제 스킨 색은 채도를 그대로 둔다). 파이썬 roll_figure._lift 와 같은 정수 셈.
+     */
+    static int lift(int rgb) {
+        int out = 0;
+        for (int sh = 16; sh >= 0; sh -= 8) out |= Math.min(255, (((rgb >> sh) & 255) * 100 + 42) / 84) << sh;
+        return out;
+    }
+
+    /** 밝기 (가장 밝은 채널) 가 MIN_VALUE 보다 낮으면 끌어올린다 (심층암 바닥과 갈리게). */
+    static int floor(int rgb) {
+        int r = (rgb >> 16) & 255, g = (rgb >> 8) & 255, b = rgb & 255;
+        int mx = Math.max(r, Math.max(g, b));
         if (mx < MIN_VALUE) {
             if (mx == 0) {
                 r = g = b = MIN_VALUE;

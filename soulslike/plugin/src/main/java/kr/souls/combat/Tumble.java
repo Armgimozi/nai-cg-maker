@@ -464,13 +464,12 @@ public final class Tumble {
     }
 
     /** 대역의 밝기를 진짜 몸처럼 그 사람 눈 자리의 블록 빛·하늘 빛으로 (바뀔 때만). */
-    private void light(Player p, Fig f) {
+    private static void light(Player p, Fig f) {
         org.bukkit.block.Block b = p.getEyeLocation().getBlock();
         int block = b.getLightFromBlocks(), sky = b.getLightFromSky();
         int key = block << 4 | sky;
         if (key == f.light) return;
         f.light = key;
-        plugin.test(p, "TUMBLE_LIGHT block=" + block + " sky=" + sky + " at=" + b.getX() + "," + b.getY() + "," + b.getZ());
         Display.Brightness br = new Display.Brightness(block, sky);
         for (ItemDisplay d : f.parts()) if (d.isValid()) d.setBrightness(br);
     }
