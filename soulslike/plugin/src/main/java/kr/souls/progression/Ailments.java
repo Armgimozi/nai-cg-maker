@@ -65,7 +65,7 @@ public final class Ailments implements Listener {
         if (SKIP.contains(e.getCause())) return;
         PotionEffect eff = e.getNewEffect();
         PotionEffectType type = e.getModifiedType();
-        if (eff == null || type.getCategory() != PotionEffectType.Category.HARMFUL || type.isInstant() || eff.isInfinite()) return;
+        if (eff == null || type.getCategory() != org.bukkit.potion.PotionEffectTypeCategory.HARMFUL || type.isInstant() || eff.isInfinite()) return;
         double r = resist(p);
         if (r <= 1e-9) return;
         int from = eff.getDuration();

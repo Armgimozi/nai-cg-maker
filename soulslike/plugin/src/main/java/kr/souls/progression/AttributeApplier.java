@@ -60,7 +60,7 @@ public final class AttributeApplier {
             speed.removeModifier(DEX);
             double move = c.moveSpeed.at(s.dex());
             if (move > 1e-9) {
-                speed.addTransientModifier(new AttributeModifier(DEX, move, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL, EquipmentSlotGroup.ANY));
+                speed.addTransientModifier(new AttributeModifier(DEX, move, AttributeModifier.Operation.MULTIPLY_SCALAR_1, EquipmentSlotGroup.ANY));
             }
         }
         p.setHealthScale(HEALTH_SCALE);

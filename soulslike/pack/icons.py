@@ -2,6 +2,8 @@
 아이템 그림·모형·정의와 입자 그림 (DESIGN.md 10.6, 10.7). gen_pack.py 가 gui_skin 다음에 부른다.
 
 M0 에서 만드는 것
+  souls:master_key   만능 열쇠 (9.5, 도적의 시작 아이템). 손으로 찍은 16px 쇠 열쇠: 왼쪽 아래 청동 고리, 비스듬한 자루, 오른쪽 위
+                     이빨. 평면 아이템 (item/generated).
   souls:test_guard   시험 막기·휘두름 도구의 맞춤 모형 (13.4 의 6, 8). 손으로 찍은 16px 쇠 버클러 하나.
                      items/test_guard.json 이 using_item 으로 평소 모형과 막는 모형을 가른다 (바닐라 방패와 같은 꼴, 10.6).
                      그림은 assets/souls/textures/item/ 에 둔다. 1.21.11 은 items 아틀라스가 이름공간마다 textures/item
@@ -52,6 +54,29 @@ def _png(img, path):
 # 쇠 버클러: 둥근 판에 청동 돋을새김 하나. 빛은 왼쪽 위 (S), 오른쪽 아래는 그늘 (r, q).
 # 못 둘 (왼쪽 위, 왼쪽 아래) 은 모양이 다르고, 가운데 왼쪽으로 긁힌 금 (x), 오른쪽 아래 테가 녹슬어 떨어져 나갔다.
 ITEM_ART = {
+    # 만능 열쇠: 녹슨 쇠 자루가 왼쪽 아래 청동 고리에서 오른쪽 위로 비스듬히 오르고, 끝 오른쪽 아래로 이빨 둘. 빛은 왼쪽 위 (S).
+    # 고리는 둥글지 않고 오른쪽 아래가 눌렸다 (오래 쥔 손), 이빨은 크기가 다르다
+    "master_key": (
+        [
+            "................",
+            "...........K....",
+            "..........KSK...",
+            ".........KSRKK..",
+            "........KSRKRrK.",
+            ".......KSRK.KrK.",
+            "......KSRK...K..",
+            ".....KSRK.......",
+            "..KKKSRK........",
+            ".KbBnKK.........",
+            "KbK..KnK........",
+            "KBK...bK........",
+            "KnK..KoK........",
+            ".KboooK.........",
+            "..KKKK..........",
+            "................",
+        ],
+        {"K": "ash0", "S": "rust3", "R": "rust2", "r": "rust1", "b": "bronze1", "B": "bronze3", "n": "bronze2", "o": "bronze0"},
+    ),
     "test_guard": (
         [
             "................",
@@ -89,8 +114,16 @@ GUARD_BLOCKING_DISPLAY = {
 def build_items(out):
     for name, (rows, ink) in ITEM_ART.items():
         _png(_img(rows, ink), os.path.join(out, "assets", NS, "textures", "item", name + ".png"))
-    # 시험 도구: 평소 / 막는 중 (using_item)
     models = os.path.join(out, "assets", NS, "models", "item")
+    # 만능 열쇠: 평면 아이템 하나
+    _json(os.path.join(models, "master_key.json"), {
+        "parent": "minecraft:item/generated",
+        "textures": {"layer0": f"{NS}:item/master_key"},
+    })
+    _json(os.path.join(out, "assets", NS, "items", "master_key.json"), {
+        "model": {"type": "minecraft:model", "model": f"{NS}:item/master_key"},
+    })
+    # 시험 도구: 평소 / 막는 중 (using_item)
     _json(os.path.join(models, "test_guard.json"), {
         "parent": "minecraft:item/generated",
         "textures": {"layer0": f"{NS}:item/test_guard"},

@@ -62,11 +62,11 @@ public final class OriginDialog {
     /** 머리줄: 출신 · 레벨 · 체력 정신 기력 근력 민첩 지능 · 시작 아이템 (출신 줄과 같은 열). */
     static Component header(Player p) {
         TextComponent.Builder b = Component.text();
-        b.append(Lang.cell(p, "origin.head.name"));
-        b.append(Lang.rcell(p, "origin.head.level"));
+        b.append(Lang.cell(p, "origin.head-name"));
+        b.append(Lang.rcell(p, "origin.head-level"));
         for (String id : StatBlock.IDS) b.append(Lang.rcell(p, "stat." + id + ".short")); // lang-dyn: stat.*.short
         b.append(Columns.pad(Columns.KIT_GAP));
-        b.append(Lang.cell(p, "origin.head.kit"));
+        b.append(Lang.cell(p, "origin.head-kit"));
         return b.build().decoration(TextDecoration.ITALIC, TextDecoration.State.FALSE);
     }
 

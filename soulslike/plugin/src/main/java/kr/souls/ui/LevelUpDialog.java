@@ -119,8 +119,9 @@ public final class LevelUpDialog implements Listener {
         Derived b = plugin.stats().derived(p, target.plus(id, 1));
         int row = StatRows.rowOf(id);
         String[] k = StatRows.keys(row, b), va = StatRows.values(row, a), vb = StatRows.values(row, b);
-        Component t = Lang.c(p, "levelup.tip", "a", Lang.c(p, k[0]), "av", va[0] + " → " + vb[0], // lang-dyn: derived.*
-                "b", Lang.c(p, k[1]), "bv", va[1] + " → " + vb[1]); // lang-dyn: derived.*
+        Component first = Lang.c(p, k[0]); // lang-dyn: derived.*
+        Component second = Lang.c(p, k[1]); // lang-dyn: derived.*
+        Component t = Lang.c(p, "levelup.tip", "first", first, "firstv", va[0] + " → " + vb[0], "second", second, "secondv", va[1] + " → " + vb[1]);
         Component more = Lang.c(p, "levelup.next", "cost", souls(nextPoint));
         if ("int".equals(id)) {
             more = Component.text().append(Lang.c(p, "levelup.burn", "from", burn(a.ailment()), "to", burn(b.ailment())))

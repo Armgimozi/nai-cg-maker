@@ -258,6 +258,44 @@ public final class Lang {
         return padded(viewer, key, "rcell", true);
     }
 
+    /**
+     * 팩이 칸 열쇠를 짜는 무리 (pack/typeset.py 의 CELLS 와 같게 둔다): {갈래, 열쇠 꼴...}. 꼴의 * 는 점도 넘는다 (fnmatch).
+     * /souls check 가 팩의 언어 파일과 견줄 때 쓴다.
+     */
+    private static final String[][] CELL_GROUPS = {
+            {"cell", "derived.*"},
+            {"cell", "origin.*.name", "origin.head-name"},
+            {"cell", "origin.*.kit", "origin.head-kit"},
+            {"rcell", "stat.*.short", "origin.head-level"},
+    };
+
+    /** 팩이 더하는 칸 열쇠 (souls. 없이): 자리가 없는 열쇠 가운데 CELL_GROUPS 의 꼴에 맞는 것의 열쇠.cell / 열쇠.rcell. */
+    public static Set<String> cellKeys() {
+        Set<String> out = new java.util.TreeSet<>();
+        for (Map.Entry<String, Entry> en : entries.entrySet()) {
+            if (!en.getValue().slots().isEmpty()) continue;
+            for (String[] g : CELL_GROUPS) {
+                for (int i = 1; i < g.length; i++) {
+                    if (glob(g[i], en.getKey())) {
+                        out.add(en.getKey() + "." + g[0]);
+                        break;
+                    }
+                }
+            }
+        }
+        return out;
+    }
+
+    static boolean glob(String pattern, String key) {
+        StringBuilder re = new StringBuilder();
+        String[] parts = pattern.split("\\*", -1);
+        for (int i = 0; i < parts.length; i++) {
+            if (i > 0) re.append(".*");
+            if (!parts[i].isEmpty()) re.append(Pattern.quote(parts[i]));
+        }
+        return key.matches(re.toString());
+    }
+
     private static Component padded(Player viewer, String key, String branch, boolean right) {
         Entry e = entries.get(key);
         if (e == null) return missing(key);

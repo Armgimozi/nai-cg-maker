@@ -16,11 +16,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 누가 누구의 적인지 판단한다. 혼자 하는 게임이라 플레이어끼리는 늘 적이 아니다 (GameRules.PVP=false 와 같은 뜻).
+ * 누가 누구의 적인지 판단한다. 플레이어끼리는 세계 설정의 PvP 가 켜졌고 맞는 사람이 보호받지 않을 때만 적이다 (5.7, combat/Pvp.allowed).
  * 플레이어 편에는 소환수가 없다 (skyblock 의 동료 분기는 뺐다).
  */
 public final class Targets {
     public static final String BOSS_TAG = "souls_boss";
+
+    /** 플레이어 → 플레이어를 해칠 수 있나 (Souls 가 combat/Pvp 를 끼운다. 끼우기 전에는 늘 거짓) */
+    public static java.util.function.BiPredicate<Player, Player> pvp = (a, b) -> false;
 
     private Targets() {}
 
@@ -42,8 +45,8 @@ public final class Targets {
         if (e instanceof ArmorStand) return false;
         if (e.getPersistentDataContainer().has(Keys.MAP_PART)) return false;
         if (playerSide(caster)) {
-            // 플레이어끼리는 맞지 않는다 (skyblock 의 getPVP 줄 대신)
-            if (e instanceof Player) return false;
+            // 플레이어끼리는 PvP 를 켰을 때만 (skyblock 의 getPVP 줄 대신)
+            if (e instanceof Player other) return caster instanceof Player me && pvp.test(me, other);
             if (e instanceof Tameable t && t.isTamed()) return false;
             if (e instanceof Enemy) return true;
             if (isCustomMob(e)) return true;

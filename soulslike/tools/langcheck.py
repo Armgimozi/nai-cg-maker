@@ -71,6 +71,11 @@ SLOT_PX = {
     "container_title": 72,           # 창 제목 (인벤토리의 "제작" 은 x 97 에서 판 안쪽 끝 168 까지, 10.4)
     "container_title_wide": 150,     # 판 왼쪽 (x 8) 에서 시작하는 창 제목 (상자·통·보관함, 판 안쪽 끝 168 까지)
     "boss_name": 200,                # 보스 막대 이름 (막대 왼쪽 끝 위, 늘이기 전 막대 폭 200 안, 10.2)
+    "button150": 140,                # Dialog 단추 폭 150 (레벨 올리기 능력치 단추, 출신 확인 창, 5.9)
+    "button250": 240,                # Dialog 단추 폭 250 (세계를 정한다 창의 난이도 단추, 5.7)
+    "dialog_body300": 300,           # 폭 300 Dialog 본문 (세계를 정한다·레벨 올리기·능력치 창의 표, 5.9)
+    "dialog_body320": 320,           # 폭 320 Dialog 본문 (출신 창 머리줄과 출신 줄, 5.10)
+    "button_tip": 170,               # Dialog 단추 설명 칸 (클라이언트가 170 에서 줄을 바꾼다: 넘지 않게 쓴다)
     "wrap": None,                    # 채팅·접속 거절·팩 창 (클라이언트가 줄을 바꾼다)
 }
 SLOTS = [
@@ -79,6 +84,22 @@ SLOTS = [
     ("door.*", "subtitle"), ("bell.rung", "subtitle"), ("spell.learned", "subtitle"), ("spell.none", "subtitle"),
     ("bonfire.rest", "button160"), ("bonfire.warp", "button160"), ("bonfire.leave", "button160"), ("ending.*", "button160"),
     ("bonfire.test-name", "dialog_title"), ("origin.title", "dialog_title"),
+    # 시작 설정·출신·능력치·레벨 올리기 (5.7~5.10)
+    ("bonfire.repick-tip", "button_tip"), ("bonfire.levelup", "button160"), ("bonfire.settings", "button160"),
+    ("bonfire.stats", "button160"), ("bonfire.repick", "button160"),
+    ("burden.*", "subtitle"), ("controls.hint.*", "dialog_body300"), ("derived.*", "dialog_body300"), ("load.*", "dialog_body300"),
+    ("difficulty.summary", "button_tip"), ("difficulty.*", "button250"),
+    ("levelup.title", "dialog_title"), ("levelup.head", "dialog_body300"), ("levelup.cancel", "button200"),
+    ("levelup.tip", "button_tip"), ("levelup.next", "button_tip"), ("levelup.burn", "button_tip"), ("levelup.*", "button150"),
+    ("origin.later", "button200"), ("origin.choose", "button150"), ("origin.back", "button150"), ("origin.none", "subtitle"),
+    ("origin.head-*", "dialog_body320"), ("origin.*.name", "dialog_title"), ("origin.*.desc", "button_tip"),
+    ("origin.*.kit", "dialog_body320"), ("origin.*", "dialog_body300"),
+    ("pvp.*", "subtitle"),
+    ("start.title", "dialog_title"), ("start.body", "dialog_body300"), ("start.pvp-hit", "dialog_body300"),
+    ("start.pvp-sweep", "dialog_body300"), ("start.pvp", "button250"), ("start.choice*", "button250"), ("start.later", "button250"),
+    ("start.changed", "wrap"), ("start.provisional-chat", "wrap"), ("start.*", "subtitle"),
+    ("stat.*.name", "button150"), ("stat.*.short", "dialog_body300"),
+    ("stats.title", "dialog_title"), ("stats.close", "button200"), ("stats.*", "dialog_body300"),
     ("bonfire.status", "dialog_body"), ("bonfire.no-warp", "dialog_body"), ("spell.no-slot", "dialog_body"),
     ("hud.*", "actionbar"),
     ("item.*", "tooltip"), ("weapon.*", "tooltip"), ("test.*", "tooltip"), ("skill.*", "tooltip"),
@@ -90,7 +111,11 @@ SLOTS = [
     ("pack.*", "wrap"), ("build.*", "wrap"), ("admin.*", "wrap"),
 ]
 # 폭을 잴 때 자리에 넣는 값 (가장 길게 나올 만한 것)
-SAMPLE = {"souls": "9,999,999", "n": "9,999,999", "level": "713", "m": "999", "kind": "control", "ticks": "100"}
+SAMPLE = {"souls": "9,999,999", "n": "9,999,999", "level": "713", "m": "999", "kind": "control", "ticks": "100",
+          # 레벨 올리기·능력치 창 (5.9): 레벨은 세 자리, 소울은 아홉 자리까지 (지갑 상한 999,999,999)
+          "from": "713", "to": "713", "held": "999,999,999", "cost": "9,999,999", "value": "15 → 99",
+          "first": "Max Stamina", "second": "Ailment Resist", "firstv": "1,000 → 1,000", "secondv": "+12% → +12%", "hp": "1,000", "mana": "200", "stamina": "200",
+          "attack": "999", "weight": "99.9", "cap": "99.9", "damage": "1.25", "health": "1.4", "parry": "-1", "estus": "5"}
 
 # ── Java 를 읽는 표 ──
 # 열쇠를 받는 부르기: (임자, 이름) → 인수 목록 → 열쇠 자리들. 열쇠 자리 뒤 인수는 (자리 이름, 값) 짝이다 (Lang.args)
@@ -113,10 +138,12 @@ KEY_CALLS = {
     ("Lang", "tell"): lambda args: [1],
     ("Lang", "renderBoth"): lambda args: [0],
     ("Lang", "variant"): lambda args: [0],
+    ("Lang", "cell"): lambda args: [1],
+    ("Lang", "rcell"): lambda args: [1],
     ("Items", "icon"): lambda args: [1, 2] if len(args) == 3 else [],
 }
 # 둘째 인수가 자리 짝이 아닌 부르기 (Lang.variant(열쇠, 갈래): 갈래는 팩이 짠 번역 열쇠의 끝 조각)
-NO_PAIRS = {("Lang", "variant")}
+NO_PAIRS = {("Lang", "variant"), ("Lang", "cell"), ("Lang", "rcell")}
 # 열쇠를 넘기기만 하는 도우미 (그 안의 Lang 부르기에 // lang-dyn: param 을 단다). 짝이 없으니 자리가 없어야 한다
 HELPERS = {("Items", "icon")}
 # 서버 기록 부르기 (그 괄호 안의 한글은 기록 줄이다). getLogger() 뒤, 또는 log·logger·LOG 이름 뒤
@@ -138,6 +165,8 @@ CONTENT_KEYS = {
     "items.yml": (("item.{id}.name", "line"), ("item.{id}.lore", "list")),
     "bosses.yml": (("boss.{id}.name", "line"),),
     "weapons.yml": (("weapon.{id}.name", "line"), ("weapon.{id}.lore", "list")),
+    "origins.yml": (("origin.{id}.name", "line"), ("origin.{id}.desc", "line"), ("origin.{id}.style", "line"),
+                    ("origin.{id}.kit", "line")),
 }
 # 콘텐츠에 있으면 안 되는 글 칸 (글은 lang 열쇠로). display 는 투사체 모습 (재료 id) 이라 id 꼴이면 된다
 CONTENT_TEXT_FIELDS = {"name", "display_name", "title", "subtitle", "description", "desc", "lore", "text", "flavor",

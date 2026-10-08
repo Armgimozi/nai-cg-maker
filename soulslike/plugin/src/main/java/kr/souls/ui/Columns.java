@@ -21,7 +21,7 @@ public final class Columns {
     /** 두 칸 사이 */
     public static final int GAP = 12;
     /** 출신 줄의 레벨·능력치 칸 (오른쪽 맞춤, typeset 의 stat.*.short rcell 폭과 같다) */
-    public static final int STAT_COL = 20;
+    public static final int STAT_COL = 22;
     /** 출신 줄의 능력치와 시작 아이템 사이 */
     public static final int KIT_GAP = 8;
     /** 값 글자색 (팔레트 뼈빛 bone2, 무기 설명 칸과 같다) */

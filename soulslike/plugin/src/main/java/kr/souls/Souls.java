@@ -1,23 +1,40 @@
 package kr.souls;
 
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
+import kr.souls.bonfire.TestBonfire;
 import kr.souls.cmd.SoulsCommands;
 import kr.souls.cmd.TestCommands;
 import kr.souls.combat.CombatState;
+import kr.souls.combat.DamageHook;
+import kr.souls.combat.Pvp;
+import kr.souls.combat.PvpGuard;
 import kr.souls.combat.Roll;
 import kr.souls.combat.Stamina;
 import kr.souls.combat.TestHits;
+import kr.souls.data.Profiles;
+import kr.souls.data.WorldState;
+import kr.souls.input.SneakTap;
 import kr.souls.hud.Glyphs;
 import kr.souls.hud.Hud;
 import kr.souls.hud.Titles;
 import kr.souls.item.WeaponGuard;
 import kr.souls.item.Weapons;
 import kr.souls.pack.PackService;
+import kr.souls.progression.Ailments;
+import kr.souls.progression.AttributeApplier;
 import kr.souls.progression.DeathFlow;
+import kr.souls.progression.Load;
+import kr.souls.progression.Origins;
+import kr.souls.progression.SoulPurse;
+import kr.souls.progression.Stats;
 import kr.souls.skill.Cooldowns;
 import kr.souls.skill.HitEffects;
 import kr.souls.skill.Mechanics;
 import kr.souls.skill.SkillRegistry;
+import kr.souls.skill.Targets;
+import kr.souls.start.StartFlow;
+import kr.souls.ui.LevelUpDialog;
+import kr.souls.ui.Ui;
 import kr.souls.util.Fx;
 import kr.souls.world.Protection;
 import kr.souls.world.WorldService;
@@ -52,6 +69,20 @@ public final class Souls extends JavaPlugin {
     private DeathFlow death;
     private PackService pack;
     private TestHits testHits;
+    // 1.3판 (5.7~5.10): 프로필, 세계 설정, 능력치, 장비 무게, 출신, 창, 시작 흐름, PvP, 피해 고리, 웅크리기 짧게 = 구르기
+    private Profiles profiles;
+    private WorldState worldState;
+    private Origins origins;
+    private Stats stats;
+    private AttributeApplier attributes;
+    private Load load;
+    private SoulPurse purse;
+    private Pvp pvp;
+    private Ui ui;
+    private StartFlow start;
+    private LevelUpDialog levelUp;
+    private TestBonfire testBonfire;
+    private SneakTap sneakTap;
 
     @Override
     public void onEnable() {
@@ -73,9 +104,18 @@ public final class Souls extends JavaPlugin {
         skills.load(content.yml("skills.yml"));
         weapons = new Weapons(getLogger());
         weapons.load(content.yml("weapons.yml"));
+        origins = new Origins(getLogger());
+        origins.load(content.yml("origins.yml"), weapons);
+        // 프로필과 세계 설정 (게임 규칙 pvp 가 세계 설정을 따르므로 세계보다 먼저 만든다)
+        profiles = new Profiles(this);
+        worldState = new WorldState(this);
+        pvp = new Pvp(this);
         // 5. 세계: 로비와 souls_world, 게임 규칙, 난이도, 필요하면 접속을 막고 짓기
         worlds = new WorldService(this);
         worlds.start();
+        worldState.load(worlds.world());
+        worlds.applyPvp();
+        checkMaxHealthCap();
         // 6. 서비스
         ticker = new Ticker(this);
         Glyphs.load(this);
@@ -87,8 +127,22 @@ public final class Souls extends JavaPlugin {
         testHits = new TestHits();
         pack = new PackService(this);
         pack.start();
+        stats = new Stats(this);
+        attributes = new AttributeApplier(this);
+        load = new Load(this);
+        purse = new SoulPurse(this);
+        ui = new Ui(this);
+        start = new StartFlow(this);
+        levelUp = new LevelUpDialog(this);
+        testBonfire = new TestBonfire(this);
+        sneakTap = new SneakTap(this);
+        hud.setSoulSource(purse::get);
+        Targets.pvp = pvp::allowed;
+        start.enable();
+        ticker.add("load", load::tick);
         ticker.add("stamina", stamina::tick);
         ticker.add("roll", roll::tick);
+        ticker.add("tap", sneakTap::tick);
         ticker.add("hud", hud::tick);
         ticker.add("titles", titles::tick);
         ticker.start();
@@ -103,6 +157,17 @@ public final class Souls extends JavaPlugin {
         pm.registerEvents(testHits, this);
         pm.registerEvents(pack, this);
         pm.registerEvents(new WeaponGuard(this), this);
+        pm.registerEvents(profiles, this);
+        pm.registerEvents(pvp, this);
+        pm.registerEvents(new PvpGuard(this), this);
+        pm.registerEvents(new DamageHook(this), this);
+        pm.registerEvents(new Ailments(this), this);
+        pm.registerEvents(load, this);
+        pm.registerEvents(ui, this);
+        pm.registerEvents(start, this);
+        pm.registerEvents(levelUp, this);
+        pm.registerEvents(testBonfire, this);
+        pm.registerEvents(sneakTap, this);
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, e -> {
             SoulsCommands.register(this, e.registrar());
             TestCommands.register(this, e.registrar());
@@ -112,15 +177,42 @@ public final class Souls extends JavaPlugin {
             int swept = sweep();
             if (swept > 0) getLogger().info("남은 물체 " + swept + "개를 쓸어 냈습니다.");
             for (Player p : Bukkit.getOnlinePlayers()) {
+                attributes.apply(p);
+                load.refresh(p);
                 stamina.refill(p);
                 hud.invalidate(p);
             }
         });
-        getLogger().info("스퀘어 소울 (M0) 준비 완료" + (cfg.testMode ? " — 시험 모드" : ""));
+        getLogger().info("스퀘어 소울 (M0, 1.3판 시작 설정·출신·능력치) 준비 완료" + (cfg.testMode ? " — 시험 모드" : ""));
+    }
+
+    /**
+     * 최대 HP 상한 (검토 T1): Spigot 의 기본 settings.attribute.maxHealth.max 는 1024 라 체력 37 언저리부터 최대 HP (5.2, 99 → 1500) 가
+     * 말없이 잘린다. server/spigot.yml 이 2048 로 올린다. 낮으면 크게 알리고 /souls check 가 FAIL.
+     */
+    private void checkMaxHealthCap() {
+        double cap = maxHealthCap();
+        double want = cfg.stats.maxHealth.at(cfg.stats.max);
+        if (cap + 1e-6 < want) {
+            getLogger().severe("=================================================================");
+            getLogger().severe("spigot.yml 의 settings.attribute.maxHealth.max 가 " + cap + " 입니다. 최대 HP " + want + " 보다 낮아 큰 체력이 잘립니다.");
+            getLogger().severe("서버 폴더의 spigot.yml 에서 2048.0 으로 올리고 다시 켜 주세요 (배포 묶음의 server/spigot.yml).");
+            getLogger().severe("=================================================================");
+        }
+    }
+
+    @SuppressWarnings("removal") // Paper 에 spigot.yml 값을 읽는 다른 길이 없다
+    public double maxHealthCap() {
+        try {
+            return Bukkit.spigot().getSpigotConfig().getDouble("settings.attribute.maxHealth.max", 2048.0);
+        } catch (RuntimeException ex) {
+            return 2048.0;
+        }
     }
 
     @Override
     public void onDisable() {
+        if (profiles != null) profiles.saveAll();
         if (ticker != null) ticker.stop();
         if (pack != null) pack.stop();
         if (roll != null) roll.shutdown();
@@ -157,6 +249,7 @@ public final class Souls extends JavaPlugin {
         Glyphs.load(this);
         skills.load(content.yml("skills.yml"));
         weapons.load(content.yml("weapons.yml"));
+        origins.load(content.yml("origins.yml"), weapons);
         // 시험 모드를 켜고 끄면 /soulstest 가 보이고 숨는다. 바뀐 설정 (hud.show-souls 같은 것) 으로 HUD 를 다시 그린다
         for (Player p : Bukkit.getOnlinePlayers()) {
             p.updateCommands();
@@ -188,4 +281,23 @@ public final class Souls extends JavaPlugin {
     public DeathFlow death() { return death; }
     public PackService pack() { return pack; }
     public TestHits testHits() { return testHits; }
+    public Profiles profiles() { return profiles; }
+    public WorldState worldState() { return worldState; }
+    public Origins origins() { return origins; }
+    public Stats stats() { return stats; }
+    public AttributeApplier attributes() { return attributes; }
+    public Load load() { return load; }
+    public SoulPurse purse() { return purse; }
+    public Pvp pvp() { return pvp; }
+    public Ui ui() { return ui; }
+    public StartFlow start() { return start; }
+    public LevelUpDialog levelUp() { return levelUp; }
+    public TestBonfire testBonfire() { return testBonfire; }
+    public SneakTap sneakTap() { return sneakTap; }
+
+    /** 지금 세계 설정의 난이도 (5.7, 설정이 없으면 difficulty.default). */
+    public Config.Difficulty difficulty() {
+        var s = worldState == null ? null : worldState.get();
+        return cfg.difficulty(s == null ? null : s.difficulty());
+    }
 }

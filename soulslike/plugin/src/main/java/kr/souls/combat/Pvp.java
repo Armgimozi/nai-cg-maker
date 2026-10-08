@@ -34,7 +34,7 @@ public final class Pvp implements Listener {
 
     /** 세계 설정의 PvP 가 켜졌나 (설정이 없으면 pvp.default). */
     public boolean enabled() {
-        var s = plugin.worldState().get();
+        var s = plugin.worldState() == null ? null : plugin.worldState().get();
         return s != null ? s.pvp() : plugin.cfg().pvp.def();
     }
 

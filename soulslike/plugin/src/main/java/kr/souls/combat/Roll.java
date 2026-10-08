@@ -39,11 +39,12 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * 구르기 시제품 (3.3). F(손 바꾸기)를 누르면 누르고 있는 WASD 쪽으로 구른다. 방향키가 없으면 뒷걸음.
- * 공중·물속·사다리·탈것 위에서는 안 된다. 막다가 F 를 누르면 막기를 풀고 구른다 (2.3.7).
+ * 구르기 시제품 (3.3). 구르기 입력 (1.3판: 웅크리기 키를 짧게 눌렀다 뗀 입력, input/SneakTap. controls.roll-key: f 면 F) 을 받은 틱에
+ * 누르고 있는 WASD 쪽으로 구른다. 방향키가 없으면 뒷걸음. 장비가 너무 무거우면 (5.8) 방향과 상관없이 뒷걸음.
+ * 공중·물속·사다리·탈것 위에서는 안 된다. 막다가 구르기 입력이 오면 막기를 풀고 구른다 (2.3.7).
  * 무적이 막는 것: 원인 물체가 있는 피해(적이 일으킨 피해), 바닐라 밀림. 막지 않는 것: 낙하, 용암, 공허, 불붙음.
  * M1 에서 적 공격은 IncomingHitQueue 가 무적 구간과 판정 틱을 맞대어 본다 (핑 보정). 지금은 서버 틱 그대로다.
- * 웅크리기 + F 는 무기 기술 자리라 (M3) 지금은 아무것도 하지 않는다.
+ * F 는 무기 기술 자리다 (M3, 촉매면 다음 술 M5): 지금은 시험 줄 ART 만 낸다 (roll-key: f·both 면 웅크리기 키를 누른 채 F 가 무기 기술).
  *
  * 돌진처럼 보이지 않게: 한 번 튕기는 대신 glide 틱 동안 같은 빠르기로 밀다가 끝 두 틱에 줄여 멈춘다.
  * 보이는 모습은 combat.roll.visual (3.3 "보이는 모습"): tumble 은 진짜 몸을 감추고 관절이 있는 대역이 어깨로 구른다 (Tumble),
@@ -52,9 +53,9 @@ import java.util.UUID;
  * 내려갔다 올라온다). tumble 은 숙인 눈에서 F5 카메라가 막히지 않을 때만 깐다 ({@link #cameraClear}: 올려다보거나 등 뒤에 턱이
  * 있으면 서서 구른다). 막힘은 진짜 블록이 아니라 다른 사람과 서버는 모른다. 모습은 보이는 것만 바꾼다. 미는 힘·무적·비용은 셋 다 같다.
  *
- * 미는 때: F 는 틱 사이에 오고, 속도 패킷은 틱마다 한 번 (엔티티 추적기가 hurtMarked 를 볼 때) 나간다.
- * F 를 받은 자리에서 setVelocity 를 하면 다음 틱의 첫 밀기가 그 값을 덮어 클라이언트에 닿지 않는다.
- * 그래서 F 에서는 방향과 시작 틱만 적고, 미는 것은 모두 Ticker 가 1..glide 틱째에 한다 (밀기 번호 0..glide-1).
+ * 미는 때: 구르기 입력 (웅크리기 키를 뗀 입력 패킷, roll-key: f 면 F) 은 틱 사이에 오고, 속도 패킷은 틱마다 한 번 (엔티티 추적기가
+ * hurtMarked 를 볼 때) 나간다. 구르기 입력을 받은 자리에서 setVelocity 를 하면 다음 틱의 첫 밀기가 그 값을 덮어 클라이언트에 닿지 않는다.
+ * 그래서 구르기 입력에서는 방향과 시작 틱만 적고, 미는 것은 모두 Ticker 가 1..glide 틱째에 한다 (밀기 번호 0..glide-1).
  */
 public final class Roll implements Listener {
     /** tumble 대역의 왼어깨가 땅에 닿는 틱 (열쇠 자세 표 roll_anim.yml 의 "어깨 닿기" 가 3틱에 닿는다) */
@@ -111,14 +112,22 @@ public final class Roll implements Listener {
         return plugin.cfg().roll;
     }
 
+    /**
+     * F (손 바꾸기). 손 바꾸기는 늘 취소한다 (왼손 방패는 인벤토리에서 든다). roll-key 가 f·both 이고 웅크리기 키를 누르지 않았으면 구르고,
+     * 아니면 무기 기술 (M3) 자리라 시험 줄 ART 만 (2.3 의 12).
+     */
     @EventHandler(priority = EventPriority.LOW)
     public void onSwap(PlayerSwapHandItemsEvent e) {
         Player p = e.getPlayer();
         if (!plugin.worlds().ours(p.getWorld())) return;
-        // F 는 손 바꾸기가 아니다 (왼손 방패는 인벤토리에서 든다)
         e.setCancelled(true);
-        if (!Stamina.fighting(p) || p.isSneaking()) return;
-        tryRoll(p);
+        if (!Stamina.fighting(p) || plugin.start().unborn(p)) return;
+        if (plugin.cfg().controls.fRolls() && !p.isSneaking()) {
+            tryRoll(p);
+            return;
+        }
+        var held = plugin.weapons().of(p.getInventory().getItemInMainHand());
+        plugin.test(p, "ART key=f item=" + (held == null ? "-" : held.id()) + " sneak=" + p.isSneaking() + " t=" + plugin.ticker().now());
     }
 
     /** 구른다. 구르지 못하면 false (이유는 시험 줄로). */
@@ -137,8 +146,15 @@ public final class Roll implements Listener {
         Vector fwd = new Vector(-Math.sin(yaw), 0, Math.cos(yaw));
         Vector right = new Vector(-Math.cos(yaw), 0, -Math.sin(yaw));
         Vector dir = fwd.clone().multiply(f).add(right.multiply(r));
-        boolean back = dir.lengthSquared() < 1e-4;
-        Config.RollKind kind = back ? cfg().kind("backstep") : cfg().kind(cfg().load());
+        // 구르기 종류: 장비 무게 단계 (5.8, combat.roll.load: auto) 를 읽기만 한다. 너무 무거우면 방향키가 있어도 뒷걸음
+        String load = "auto".equals(cfg().load()) ? plugin.load().rollKind(p) : cfg().load();
+        boolean over = "backstep".equals(load);
+        boolean back = over || dir.lengthSquared() < 1e-4;
+        if (over) {
+            f = 0;
+            r = 0;
+        }
+        Config.RollKind kind = back ? cfg().kind("backstep") : cfg().kind(load);
         if (back) dir = fwd.clone().multiply(-1);
 
         if (!plugin.stamina().spend(p, kind.cost(), now + kind.end())) {

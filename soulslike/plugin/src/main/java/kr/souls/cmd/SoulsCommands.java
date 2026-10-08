@@ -13,6 +13,8 @@ import kr.souls.Keys;
 import kr.souls.Lang;
 import kr.souls.Souls;
 import kr.souls.SoulsBootstrap;
+import kr.souls.data.Profile;
+import kr.souls.data.WorldState;
 import kr.souls.hud.Glyphs;
 import kr.souls.pack.PackService;
 import kr.souls.world.TestRoom;
@@ -36,8 +38,9 @@ import java.util.Set;
 import java.util.TreeSet;
 
 /**
- * /souls (관리자, 12.11). M0 에 있는 것만: check, perf, reload, tp, build room, pack.
- * 나머지(build region, boss, profile, state, give, spawn, telemetry)는 그 체계가 생기는 마일스톤에 더한다.
+ * /souls (관리자, 12.11): check, perf, reload, tp, build room, pack, 그리고 1.3판의 settings (세계 설정 창 / difficulty / pvp, 5.7),
+ * origin reset (출신 지우기, 5.10), souls (소울 정하기·더하기, 5.4), profile dump. 바꾸는 명령은 모두 서버 기록에 남는다.
+ * 나머지(build region, boss, state, give, spawn, telemetry)는 그 체계가 생기는 마일스톤에 더한다. 플레이어 명령 /stats 도 여기서 등록한다.
  * 사람에게 하는 답은 번역 열쇠 (lang 의 admin.*). check·pack·perf 의 줄은 봇과 사람이 함께 읽는 점검 기록이라
  * 언어와 상관없이 같은 ASCII 꼴로 낸다 ("[CHECK] OK datapack soulsdp enabled", 서버 기록에도 같은 줄).
  */
@@ -73,8 +76,152 @@ public final class SoulsCommands {
                             if (target(ctx) instanceof Player p) plugin.pack().send(p);
                             return Command.SINGLE_SUCCESS;
                         })))
+                .then(Commands.literal("settings")
+                        .executes(ctx -> {
+                            if (!(target(ctx) instanceof Player p)) return info(plugin, ctx.getSource().getSender());
+                            if (!plugin.start().openSettings(p, "op")) Lang.tell(p, "admin.settings-busy");
+                            return Command.SINGLE_SUCCESS;
+                        })
+                        .then(Commands.literal("difficulty").then(Commands.argument("id", StringArgumentType.word())
+                                .suggests((c, b) -> {
+                                    for (String id : plugin.cfg().difficulties.keySet()) b.suggest(id);
+                                    return b.buildFuture();
+                                })
+                                .executes(ctx -> settings(plugin, ctx.getSource().getSender(), StringArgumentType.getString(ctx, "id"), null))))
+                        .then(Commands.literal("pvp").then(Commands.argument("on", StringArgumentType.word())
+                                .suggests((c, b) -> {
+                                    b.suggest("on");
+                                    b.suggest("off");
+                                    return b.buildFuture();
+                                })
+                                .executes(ctx -> settings(plugin, ctx.getSource().getSender(), null, StringArgumentType.getString(ctx, "on"))))))
+                .then(Commands.literal("origin").then(Commands.literal("reset").then(Commands.argument("player", StringArgumentType.word())
+                        .suggests((c, b) -> {
+                            for (Player o : Bukkit.getOnlinePlayers()) b.suggest(o.getName());
+                            return b.buildFuture();
+                        })
+                        .executes(ctx -> originReset(plugin, ctx.getSource().getSender(), StringArgumentType.getString(ctx, "player"), false))
+                        .then(Commands.literal("keep-items").executes(ctx -> originReset(plugin, ctx.getSource().getSender(),
+                                StringArgumentType.getString(ctx, "player"), true))))))
+                .then(Commands.literal("souls").then(Commands.argument("player", StringArgumentType.word())
+                        .suggests((c, b) -> {
+                            for (Player o : Bukkit.getOnlinePlayers()) b.suggest(o.getName());
+                            return b.buildFuture();
+                        })
+                        .then(Commands.argument("op", StringArgumentType.word())
+                                .suggests((c, b) -> {
+                                    b.suggest("set");
+                                    b.suggest("add");
+                                    return b.buildFuture();
+                                })
+                                .then(Commands.argument("n", com.mojang.brigadier.arguments.LongArgumentType.longArg(0, Profile.SOULS_MAX))
+                                        .executes(ctx -> souls(plugin, ctx.getSource().getSender(), StringArgumentType.getString(ctx, "player"),
+                                                StringArgumentType.getString(ctx, "op"), com.mojang.brigadier.arguments.LongArgumentType.getLong(ctx, "n")))))))
+                .then(Commands.literal("profile").then(Commands.literal("dump").then(Commands.argument("player", StringArgumentType.word())
+                        .suggests((c, b) -> {
+                            for (Player o : Bukkit.getOnlinePlayers()) b.suggest(o.getName());
+                            return b.buildFuture();
+                        })
+                        .executes(ctx -> profileDump(plugin, ctx.getSource().getSender(), StringArgumentType.getString(ctx, "player"))))))
                 .build();
         reg.register(root, "Soulslike admin commands", List.of());
+
+        // /stats [이름]: 능력치 창 (5.9). 모든 플레이어 (souls.stats, 기본 참), 남의 것은 관리자만
+        LiteralCommandNode<CommandSourceStack> stats = Commands.literal("stats")
+                .requires(s -> s.getSender().hasPermission("souls.stats"))
+                .executes(ctx -> {
+                    if (!(target(ctx) instanceof Player p)) {
+                        Lang.tell(ctx.getSource().getSender(), "admin.players-only");
+                        return 0;
+                    }
+                    kr.souls.ui.StatsDialog.show(plugin, p, p, false);
+                    return Command.SINGLE_SUCCESS;
+                })
+                .then(Commands.argument("player", StringArgumentType.word())
+                        .requires(s -> s.getSender().hasPermission("souls.admin"))
+                        .suggests((c, b) -> {
+                            for (Player o : Bukkit.getOnlinePlayers()) b.suggest(o.getName());
+                            return b.buildFuture();
+                        })
+                        .executes(ctx -> {
+                            Player of = Bukkit.getPlayerExact(StringArgumentType.getString(ctx, "player"));
+                            if (of == null) {
+                                Lang.tell(ctx.getSource().getSender(), "admin.no-player", "player", StringArgumentType.getString(ctx, "player"));
+                                return 0;
+                            }
+                            if (target(ctx) instanceof Player p) kr.souls.ui.StatsDialog.show(plugin, p, of, false);
+                            else ctx.getSource().getSender().sendMessage(Component.text(plugin.stats().line(of), NamedTextColor.GRAY)); // lang-machine: 점검 줄
+                            return Command.SINGLE_SUCCESS;
+                        }))
+                .build();
+        reg.register(stats, "Soulslike status window", List.of());
+    }
+
+    /** 세계 설정 바꾸기 (관리자 명령, 5.7). 하나만 바꾸고 나머지는 그대로. 확정되고 rev 가 오른다. */
+    private static int settings(Souls plugin, CommandSender to, String difficulty, String pvp) {
+        WorldState.Settings cur = plugin.worldState().get();
+        String d = difficulty != null ? WorldState.normalize(difficulty) : cur != null ? cur.difficulty() : plugin.cfg().difficultyDefault;
+        boolean on = pvp != null ? List.of("on", "true", "1").contains(pvp.toLowerCase(Locale.ROOT))
+                : cur != null ? cur.pvp() : plugin.cfg().pvp.def();
+        if (!plugin.cfg().difficulties.containsKey(d) || (pvp != null && !List.of("on", "off", "true", "false", "1", "0").contains(pvp.toLowerCase(Locale.ROOT)))) {
+            Lang.tell(to, "admin.settings-unknown", "value", difficulty != null ? difficulty : pvp);
+            return 0;
+        }
+        Player viewer = to instanceof Player pl ? pl : null;
+        plugin.start().chooseSettings(viewer, d, on, "command");
+        Component name = Lang.c(viewer, "difficulty." + d + ".name"); // lang-dyn: difficulty.*.name
+        Component pv = on ? Lang.c(viewer, "pvp.on") : Lang.c(viewer, "pvp.off");
+        Lang.tell(to, "admin.settings-set", "difficulty", name, "pvp", pv);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int info(Souls plugin, CommandSender to) {
+        WorldState.Settings s = plugin.worldState().get();
+        to.sendMessage(Component.text("settings " + (s == null ? "none" : s.line()), NamedTextColor.GRAY)); // lang-machine: 점검 줄
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int originReset(Souls plugin, CommandSender to, String name, boolean keepItems) {
+        Player t = Bukkit.getPlayerExact(name);
+        if (t == null) {
+            // 접속하지 않은 사람의 PDC 는 쓸 수 없다 (읽기만, 검토 T24)
+            Lang.tell(to, "admin.no-player", "player", name);
+            return 0;
+        }
+        int items = plugin.start().resetOrigin(t, to.getName(), keepItems);
+        Lang.tell(to, "admin.origin-reset", "player", t.getName(), "items", String.valueOf(items));
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int souls(Souls plugin, CommandSender to, String name, String op, long n) {
+        Player t = Bukkit.getPlayerExact(name);
+        if (t == null) {
+            Lang.tell(to, "admin.no-player", "player", name);
+            return 0;
+        }
+        if ("add".equals(op)) plugin.purse().add(t, n);
+        else if ("set".equals(op)) plugin.purse().set(t, n);
+        else {
+            Lang.tell(to, "admin.settings-unknown", "value", op);
+            return 0;
+        }
+        plugin.profiles().save(t, true);
+        plugin.getLogger().info("소울: " + t.getName() + " " + op + " " + n + " → " + plugin.purse().get(t) + " (by " + to.getName() + ")");
+        plugin.test(t, "SOULS n=" + plugin.purse().get(t) + " via=command");
+        Lang.tell(to, "admin.souls-set", "player", t.getName(), "souls", String.valueOf(plugin.purse().get(t)));
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int profileDump(Souls plugin, CommandSender to, String name) {
+        Player t = Bukkit.getPlayerExact(name);
+        if (t == null) {
+            Lang.tell(to, "admin.no-player", "player", name);
+            return 0;
+        }
+        String json = plugin.profiles().of(t).toJson();
+        plugin.getLogger().info("프로필 " + t.getName() + ": " + json);
+        to.sendMessage(Component.text("profile " + t.getName() + " " + json, NamedTextColor.GRAY)); // lang-machine: 점검 줄
+        return Command.SINGLE_SUCCESS;
     }
 
     static Entity target(CommandContext<CommandSourceStack> ctx) {
@@ -83,7 +230,9 @@ public final class SoulsCommands {
     }
 
     private static int help(CommandSender to) {
-        to.sendMessage(Component.text("/souls check | perf | reload | tp <room|lane|slab|ledge|lobby> | build room | pack [resend]", NamedTextColor.GRAY)); // lang-machine: 쓰는 법
+        String usage = "/souls check | perf | reload | tp <room|lane|slab|ledge|lobby> | build room | pack [resend] | " // lang-machine: 쓰는 법
+                + "settings [difficulty <id> | pvp <on|off>] | origin reset <player> [keep-items] | souls <player> set|add <n> | profile dump <player>"; // lang-machine
+        to.sendMessage(Component.text(usage, NamedTextColor.GRAY));
         return Command.SINGLE_SUCCESS;
     }
 
@@ -110,13 +259,23 @@ public final class SoulsCommands {
         line(to, fails, missing.isEmpty(), "biomes " + (9 - missing.size()) + "/9" + (missing.isEmpty() ? "" : " missing: " + missing));
         boolean hit = RegistryAccess.registryAccess().getRegistry(RegistryKey.DAMAGE_TYPE).get(Key.key(Keys.NS, "hit")) != null;
         line(to, fails, hit, "damage_type souls:hit" + (hit ? " present" : " missing"));
+        boolean magic = RegistryAccess.registryAccess().getRegistry(RegistryKey.DAMAGE_TYPE).get(Key.key(Keys.NS, "magic")) != null;
+        line(to, fails, magic, "damage_type souls:magic" + (magic ? " present" : " missing"));
+        // 최대 HP 상한 (spigot.yml settings.attribute.maxHealth.max): 체력 99 의 최대 HP 가 들어가야 한다 (5.2)
+        double cap = plugin.maxHealthCap(), need = plugin.cfg().stats.maxHealth.at(plugin.cfg().stats.max);
+        line(to, fails, cap >= need, String.format(Locale.ROOT, "max health cap %.0f (need %.0f for vigor %d)", cap, need, plugin.cfg().stats.max));
+        WorldState.Settings st = plugin.worldState().get();
+        line(to, fails, true, "world settings " + (st == null ? "none (asked on first join)" : st.line()));
+        line(to, fails, !plugin.origins().all().isEmpty(), "origins " + plugin.origins().all().size() + " "
+                + plugin.origins().all().stream().map(o -> o.id()).toList());
         WorldService ws = plugin.worlds();
         World game = ws.world();
         line(to, fails, game != null, "world " + plugin.cfg().world.name() + (game != null ? " loaded" : " missing"));
         for (World w : game == null ? List.of(ws.lobby()) : List.of(ws.lobby(), game)) {
             line(to, fails, w.getDifficulty() == Difficulty.NORMAL, "difficulty " + w.getName() + "=" + w.getDifficulty());
             List<String> bad = ws.ruleMismatches(w);
-            line(to, fails, bad.isEmpty(), "gamerules " + w.getName() + " " + (bad.isEmpty() ? WorldService.rules().size() + " ok" : bad));
+            line(to, fails, bad.isEmpty(), "gamerules " + w.getName() + " " + (bad.isEmpty() ? ws.rules().size() + " ok" : bad)
+                    + " (pvp=" + w.getGameRuleValue(org.bukkit.GameRules.PVP) + ", settings " + plugin.pvp().enabled() + ")");
         }
         if (game != null) {
             Integer room = game.getPersistentDataContainer().get(Keys.ROOM, PersistentDataType.INTEGER);
@@ -156,6 +315,8 @@ public final class SoulsCommands {
             for (String k : Lang.keys()) want.add(Lang.PREFIX + k);
             // 팩이 갈래마다 짠 열쇠 (Lang.variant): 무기 설명 칸 실선 weapon.rule.<무기 id> (item/StatTable.rule, pack/typeset.py)
             for (String id : plugin.weapons().all().keySet()) want.add(Lang.PREFIX + "weapon.rule." + id);
+            // 표의 칸 (Lang.cell / rcell): 능력치·출신 창의 열 맞추기 (pack/typeset.py 의 CELLS)
+            for (String k : Lang.cellKeys()) want.add(Lang.PREFIX + k);
             Set<String> ko = pk.packLangKeys("souls", "ko_kr");
             Set<String> en = pk.packLangKeys("souls", "en_us");
             line(to, fails, !want.isEmpty() && want.equals(ko) && want.equals(en), "lang keys " + want.size() + ", pack souls ko_kr "

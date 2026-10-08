@@ -1,0 +1,7 @@
+# 스퀘어 소울: 최대 HP 상한을 올린다 (DESIGN.md 5.2, 12.7).
+# Spigot 의 기본 상한 1024 는 체력 99 의 최대 HP 1500 보다 낮아 큰 체력이 말없이 잘린다.
+# 나머지 값은 서버를 처음 켤 때 Paper 가 기본값으로 채워 넣는다.
+settings:
+  attribute:
+    maxHealth:
+      max: 2048.0

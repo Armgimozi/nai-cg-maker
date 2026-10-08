@@ -32,6 +32,13 @@ bonfire:
   warp: "<#d1c3a0>불을 건넌다"
   leave: "<#d1c3a0>일어선다"
   status: "<#b3a37f>소울 <souls> · 레벨 <level>"
+  # 휴식 창의 새 단추 (4.1, 5.7, 5.9). 단추 폭 160
+  levelup: "<#d1c3a0>레벨 올리기"
+  stats: "<#d1c3a0>능력치"
+  settings: "<#d1c3a0>세계를 정한다"
+  repick: "<#d1c3a0>출신을 다시 고른다"
+  # 단추 설명 칸
+  repick-tip: "<#8f8164>레벨을 올리기 전에 한 번만.\n시작 아이템은 거둔다."
   # M0 의 시험 창(/soulstest dialog)에만 쓰는 이름. M2 에서 화톳불마다의 이름 (bonfire.<id>.name) 으로 바꾼다.
   # 화톳불 이름은 두 언어 모두 장소 이름만 쓴다 ("탑옥 아래", "Beneath the Gaol Tower". 창이 화톳불 창이라 "화톳불" 을 붙이지
   # 않는다. 창 제목 폭 300 에 "볼크 탑옥 ..." 같은 긴 이름이 들어가야 한다)
@@ -73,6 +80,12 @@ item:
   # 꼴이 둘이라 열쇠를 나눴다: 플러그인이 unfit-mark, 빈칸, unfit 을 이어 붙인다
   unfit-mark: "<#a8301f>×"
   unfit: "<#8f8164>제대로 다룰 수 없다"
+  # 만능 열쇠 (9.5): 도적의 시작 아이템. 열쇠로 잠긴 문을 연다 (문은 M2·M3)
+  master_key:
+    name: "<#d1c3a0><font:souls:title>만능 열쇠"
+    lore:
+      - "<#8f8164>자물쇠로 잠긴 문이라면 대개 연다."
+      - "<#8f8164>봉인된 문은 열리지 않는다."
 
 weapon:
   # 무기·방패·촉매 (9.1, 9.2, 3.12.4, 9.7). 열쇠는 weapon.<id>.name (한 줄), weapon.<id>.lore (목록). id 와 모형 명세는
@@ -100,12 +113,13 @@ weapon:
     # 맞춘다. 그래서 이름 사이 폭이 언어마다 달라도 값이 한 줄에 선다
     attack: "<#858079>공격력"
     weight: "<#858079>무게"
+    # 1.3판 (5.2, 9.1): 근력 보정 = 공격력, 민첩 보정 = 그 무기의 공격 속도 몫, 지능 보정 = 촉매의 술 세기
     bonus_str: "<#858079>근력 보정"
-    bonus_dex: "<#858079>기량 보정"
-    bonus_att: "<#858079>기억 보정"
+    bonus_dex: "<#858079>민첩 보정"
+    bonus_int: "<#858079>지능 보정"
     need_str: "<#858079>필요 근력"
-    need_dex: "<#858079>필요 기량"
-    need_att: "<#858079>필요 기억"
+    need_dex: "<#858079>필요 민첩"
+    need_int: "<#858079>필요 지능"
     absorb: "<#858079>물리 흡수"
     stability: "<#858079>안정성"
   # 수치 표와 설명 사이의 실선 (9.7). 글이 아니라 팩이 무기마다 weapon.rule.<id> 열쇠를 실선 그림 글자로 짠다 (pack/typeset.py:
@@ -234,7 +248,178 @@ weapon:
       - "<#8f8164>작은 종으로는 아무도 불러들이지 못했다."
 
 origin:
-  title: "너는 누구였나"
+  # 출신 창 (5.10). 제목은 제목 글꼴, 밑에 금실 (팩)
+  title: "<#d1c3a0><font:souls:title>너는 누구였나"
+  # 출신 창 머리줄의 칸 (팩이 출신 줄과 같은 열 폭으로 채운다: head-name 은 출신 이름 칸, head-level 은 오른쪽 맞춤 칸,
+  # head-kit 은 시작 아이템 칸)
+  head-name: "<#858079>출신"
+  head-level: "<#858079>레벨"
+  head-kit: "<#858079>시작 아이템"
+  # 나가기 동작 (Esc 와 같다)
+  later: "<#d1c3a0>나중에 고른다"
+  # 확인 창
+  choose: "<#d1c3a0>이 출신으로"
+  back: "<#d1c3a0>돌아간다"
+  stats: "<#b3a37f>레벨 <level> · 최대 HP <hp> · 마나 <mana> · 스태미나 <stamina>"
+  attack: "<#b3a37f><weapon> 공격력 <attack>"
+  attack-2h: "<#b3a37f><weapon> 공격력 <attack> (양손)"
+  no-rites: "<#8f8164>술은 아직 익히지 못했다"
+  no-bow: "<#8f8164>활은 아직 쏠 수 없다"
+  # 출신을 고르지 않고 창을 닫았을 때 (부제목)
+  none: "<#858079>아직 누구였는지 정하지 않았다"
+  # 출신 여섯 (5.1, content/origins.yml). name 은 출신 창의 칸, desc 는 한 줄, style 은 확인 창의 됨됨이 한 줄,
+  # kit 은 출신 창의 짧은 시작 아이템 글
+  knight:
+    name: "<#d1c3a0>기사"
+    desc: "<#8f8164>직검과 방패로 맞서는 군인."
+    style: "<#b3a37f>방패로 받고 버틴다. HP 가 높다."
+    kit: "<#b3a37f>직검 · 방패"
+  warrior:
+    name: "<#d1c3a0>전사"
+    desc: "<#8f8164>대검을 두 손으로 휘두르는 장사."
+    style: "<#b3a37f>두 손으로 크게 벤다. 방패가 없다."
+    kit: "<#b3a37f>대검"
+  thief:
+    name: "<#d1c3a0>도적"
+    desc: "<#8f8164>손이 날래고 만능 열쇠를 가졌다."
+    style: "<#b3a37f>빠르다. 쳐내기가 쉽다. 만능 열쇠를 지녔다."
+    kit: "<#b3a37f>단도 · 결투 단검 · 열쇠"
+  archer:
+    name: "<#d1c3a0>궁수"
+    desc: "<#8f8164>활로 멀리서 먼저 친다."
+    style: "<#b3a37f>멀리서 쏘고 손도끼로 마무리한다."
+    kit: "<#b3a37f>단궁 · 손도끼"
+  sorcerer:
+    name: "<#d1c3a0>마법사"
+    desc: "<#8f8164>촉매로 술을 다루는 법을 배웠다."
+    style: "<#b3a37f>술 세기가 가장 높다. HP 가 낮다."
+    kit: "<#b3a37f>쇠단지 · 단도 · 술은 나중"
+  deprived:
+    name: "<#d1c3a0>빈털터리"
+    desc: "<#8f8164>가진 것도 기댈 것도 없다."
+    style: "<#b3a37f>무엇이든 된다. 처음 몇 레벨이 싸다."
+    kit: "<#b3a37f>곤봉 · 판자 방패"
+
+start:
+  # 세계를 정한다 창 (5.7). 처음 들어온 사람 (또는 관리자) 이 한 번
+  title: "<#d1c3a0><font:souls:title>세계를 정한다"
+  body: "<#b3a37f>이 세계에 한 번 정한다. 관리자는 나중에 바꿀 수 있다."
+  pvp: "<#d1c3a0>PvP"
+  pvp-hit: "<#8f8164>켜면 다른 사람을 벨 수 있다."
+  pvp-sweep: "<#8f8164>함께 싸울 때 휘두른 칼도 맞는다."
+  # 난이도 단추 (폭 250). <name> 난이도 이름, <desc> 그 한 줄. 기본 난이도에는 choice-default
+  choice: "<#d1c3a0><name> — <desc>"
+  choice-default: "<#d1c3a0><name> — <desc> (처음이라면)"
+  later: "<#d1c3a0>나중에 정한다"
+  # 알림 (부제목과 채팅, 출신 창 앞)
+  notice: "<#b3a37f>이 세계: <difficulty> · <pvp>"
+  changed: "<#b3a37f>세계 설정이 바뀌었다: <difficulty> · <pvp>"
+  provisional: "<#858079>세계 설정은 아직 잠정이다"
+  provisional-chat: "<#858079>정할 사람이 다시 오거나 화톳불에서 쉴 때 묻는다."
+  waiting: "<#858079>세계를 정하는 중이다"
+  op-only: "<#858079>세계는 관리자가 정한다"
+
+difficulty:
+  # 난이도 넷 (5.7). 이름은 보이는 그대로 짧게, 한 줄은 흐리게
+  easy:
+    name: "<#d1c3a0>쉬움"
+    desc: "<#8f8164>적이 약하고 에스트가 넉넉하다"
+  normal:
+    name: "<#d1c3a0>보통"
+    desc: "<#8f8164>처음 맞춘 세기"
+  hard:
+    name: "<#d1c3a0>어려움"
+    desc: "<#8f8164>적이 세고 쳐내기가 빠듯하다"
+  very_hard:
+    name: "<#d1c3a0>아주 어려움"
+    desc: "<#8f8164>적이 아주 세고 에스트가 적다"
+  # 난이도 단추의 설명 칸: 배율
+  summary: "<#b3a37f>적 피해 ×<damage> · 적 HP ×<health>\n쳐내기 <parry>틱 · 에스트 <estus>"
+
+pvp:
+  "on": "<#b3a37f>PvP 켬"
+  "off": "<#b3a37f>PvP 끔"
+
+stat:
+  # 능력치 여섯 (5.2). name 은 레벨 올리기 단추와 표, short 는 출신 창의 머리줄과 능력치 한 줄
+  vig:
+    name: "<#d1c3a0>체력"
+    short: "<#858079>체력"
+  mnd:
+    name: "<#d1c3a0>정신"
+    short: "<#858079>정신"
+  end:
+    name: "<#d1c3a0>기력"
+    short: "<#858079>기력"
+  str:
+    name: "<#d1c3a0>근력"
+    short: "<#858079>근력"
+  dex:
+    name: "<#d1c3a0>민첩"
+    short: "<#858079>민첩"
+  int:
+    name: "<#d1c3a0>지능"
+    short: "<#858079>지능"
+
+derived:
+  # 능력치 창·레벨 올리기 창의 값 표 (5.9). 팩이 그 언어의 가장 긴 이름 폭까지 채워 칸을 맞춘다 (derived.*.cell)
+  max-hp: "<#858079>최대 HP"
+  defense: "<#858079>방어력"
+  max-mana: "<#858079>최대 마나"
+  magic-res: "<#858079>마법 저항"
+  max-stamina: "<#858079>최대 스태미나"
+  regen: "<#858079>스태미나 회복"
+  attack: "<#858079>공격력"
+  attack-2h: "<#858079>공격력 (양손)"
+  load-cap: "<#858079>무게 한도"
+  move: "<#858079>이동 속도"
+  attack-speed: "<#858079>공격 속도"
+  spell: "<#858079>술 세기"
+  ailment: "<#858079>상태 이상 저항"
+
+load:
+  # 장비 무게 단계 (5.8)
+  light: "<#b3a37f>가벼움"
+  medium: "<#b3a37f>보통"
+  heavy: "<#b3a37f>무거움"
+  over: "<#b3a37f>너무 무거움"
+
+burden:
+  # 무게 단계가 바뀔 때 (부제목, 한 번, 5.8). <tier> 는 load.* 의 단계 이름
+  heavier: "<#858079>짐이 무거워졌다 · <tier>"
+  lighter: "<#858079>짐이 가벼워졌다 · <tier>"
+
+levelup:
+  # 레벨 올리기 창 (5.9)
+  title: "<#d1c3a0><font:souls:title>레벨 올리기"
+  head: "<#b3a37f>레벨 <from> → <to> · 가진 소울 <held> · 필요한 소울 <cost>"
+  # 능력치 단추 (폭 150). <value> 는 "15" 또는 "15 → 17"
+  plus: "<#d1c3a0><stat> <value> +"
+  undo: "<#d1c3a0>되돌린다"
+  confirm: "<#d1c3a0>올린다"
+  cancel: "<#d1c3a0>그만둔다"
+  # 능력치 단추의 설명 칸: 그 능력치의 두 효과를 한 점 더했을 때, 다음 한 점의 비용
+  tip: "<#b3a37f><first> <firstv>\n<second> <secondv>"
+  next: "<#8f8164>다음 한 점 <cost> 소울"
+  burn: "<#8f8164>불붙음 <from>초 → <to>초"
+
+stats:
+  # 능력치 창 (5.9, /stats)
+  title: "<#d1c3a0><font:souls:title>능력치"
+  head: "<#b3a37f>레벨 <level> · 소울 <souls> · <origin>"
+  no-origin: "<#858079>출신 없음"
+  pair: "<#b3a37f><stat> <value>"
+  sep: "<#6b5f4a> · "
+  load: "<#b3a37f>장비 무게 <weight> / <cap> · <tier>"
+  burn: "<#8f8164>불붙음 <from>초 → <to>초"
+  close: "<#d1c3a0>닫는다"
+
+controls:
+  # 조작 알림 (2.1): <bind> 는 그 사람이 정한 키 이름 (키 묶음 글). 키 이름 뒤에 토씨를 붙이지 않는다
+  hint:
+    roll: "<#8f8164>구르기 · <bind> 짧게"
+    roll-f: "<#8f8164>구르기 · <bind>"
+    art: "<#8f8164>무기 기술 · <bind>"
 
 ending:
   rekindle: "불을 잇는다"
@@ -286,6 +471,13 @@ admin:
   no-world: "<#858079>게임 세계가 없다."
   room-built: "<#858079>시험 방을 지었다: <detail>"
   room-failed: "<#858079>시험 방을 짓지 못했다: <error>"
+  # 1.3판 (5.4, 5.7, 5.10)
+  settings-busy: "<#858079>다른 사람이 세계 설정 창을 보고 있다."
+  settings-unknown: "<#858079>모르는 값: <value>"
+  settings-set: "<#858079>세계 설정을 바꿨다: <difficulty> · <pvp>"
+  origin-reset: "<#858079><player> 의 출신을 지웠다 (거둔 아이템 <items>)"
+  souls-set: "<#858079><player> 의 소울: <souls>"
+  no-player: "<#858079>그런 사람은 없다: <player>"
 
 vanilla:
   # 일시 정지 화면 제목 (10.4). 창 제목 (menu.game, container.*) 은 팩 (pack/typeset.py) 이 제목 글꼴 글자로 바꾸고

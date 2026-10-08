@@ -3,6 +3,7 @@ package kr.souls.cmd;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.LongArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.LiteralCommandNode;
@@ -14,6 +15,8 @@ import kr.souls.combat.CombatState;
 import kr.souls.combat.Stamina;
 import kr.souls.combat.TestHits;
 import kr.souls.combat.Tumble;
+import kr.souls.data.Profile;
+import kr.souls.progression.StatBlock;
 import kr.souls.hud.Glyphs;
 import kr.souls.item.ItemFactory;
 import kr.souls.skill.SkillContext;
@@ -56,6 +59,24 @@ import java.util.Locale;
  *   dialog                           휴식 창 꼴의 Dialog (13.4 의 4). 단추를 누르면 [T] DIALOG click=<id>, Esc 로 닫으면 [T] DIALOG exit
  *   give <id|all> [inv|main|off]     무기·방패·촉매 (content/weapons.yml) 를 아이템으로. inv 는 인벤토리 (기본), main 은 든 칸,
  *                                    off 는 왼손. all 은 스물을 단축 슬롯부터 차례로 (든 칸은 그대로 둔다). [T] GIVE id= n= to=
+ *
+ * 1.3판 (5.7~5.10, 13.2). 봇은 창 단추를 진짜 패킷 (custom_click_action, lib.clickDialog) 으로도 누르고, 여기 명령은 같은 처리기를 부른다:
+ *   souls <n>                        자기 소울을 n 으로. [T] SOULS n=
+ *   settings <난이도> <on|off>        세계 설정 창의 난이도 단추를 그 PvP 값으로 누른 것과 같다 (via=dialog). [T] SETTINGS ...
+ *   settings esc | clear | show      창을 닫은 것과 같다 (via=esc) / 세계 설정을 지운다 (새 세계처럼, 다음 접속에 창) / 지금 값
+ *   origin <id> | esc | show         출신 확인 창의 "이 출신으로" / 출신 창을 닫은 것 / 출신 창을 띄운다. [T] ORIGIN ...
+ *   levelup open | <vig|mnd|end|str|dex|int> [n] | undo | confirm | cancel   레벨 올리기 창의 단추. [T] LEVELUP ...
+ *   stats                            [T] STATS ... (5.9)
+ *   stat <id> <값>                    능력치 하나를 바로 정한다 (시험용, 레벨이 따라 바뀐다)
+ *   rest                             시험 방 화톳불에서 쉰 것과 같다 (HP·스태미나를 채우고 휴식 창). [T] REST shown
+ *   load                             [T] LOAD ... (5.8)
+ *   pvphit <이름> [피해]              그 사람을 원인이 나인 generic 피해로 때린다 (PvP 길). [T] PVPHIT dealt= ...
+ *   pvpshoot <이름> <arrow|snowball|potion|cloud>   그 사람에게 쏜 사람이 나인 투사체·구름. [T] PVPSHOOT kind=
+ *   effect <효과> <틱>                 나에게 해로운 효과 (지능의 상태 이상 저항 시험). [T] AILMENT ... 와 EFFECT have=
+ *   burn <틱>                         나에게 불붙음 (불붙이는 이벤트를 지나 저항으로 줄인다). [T] BURN fire=
+ *   tap                              마지막 짧은 누름 판정 ([T] ROLL_TAP ... / ROLL_TAP_SKIP ...)
+ *   press <창> <단추>                 열린 우리 창의 단추를 누른 것과 같다 (창 이름: settings, origin, origin_confirm, levelup, stats, rest)
+ *   ui                               [T] UI open=<창>
  */
 public final class TestCommands {
     private TestCommands() {}
@@ -184,6 +205,107 @@ public final class TestCommands {
                                     return b.buildFuture();
                                 })
                                 .executes(ctx -> withPlayer(ctx, p -> skill(plugin, p, StringArgumentType.getString(ctx, "id"))))))
+                .then(Commands.literal("souls").then(Commands.argument("n", LongArgumentType.longArg(0, Profile.SOULS_MAX))
+                        .executes(ctx -> withPlayer(ctx, p -> {
+                            plugin.purse().set(p, LongArgumentType.getLong(ctx, "n"));
+                            plugin.profiles().save(p, false);
+                            plugin.test(p, "SOULS n=" + plugin.purse().get(p) + " t=" + plugin.ticker().now());
+                        }))))
+                .then(Commands.literal("settings")
+                        .then(Commands.literal("esc").executes(ctx -> withPlayer(ctx, p -> plugin.start().settingsLater(p))))
+                        .then(Commands.literal("show").executes(ctx -> withPlayer(ctx, p -> {
+                            var st = plugin.worldState().get();
+                            plugin.test(p, "SETTINGS " + (st == null ? "none" : st.line()) + " gamerule_pvp=" + p.getWorld().getGameRuleValue(GameRules.PVP));
+                        })))
+                        .then(Commands.literal("clear").executes(ctx -> withPlayer(ctx, p -> {
+                            plugin.worldState().clear(plugin.worlds().world());
+                            plugin.worlds().applyPvp();
+                            plugin.test(p, "SETTINGS cleared");
+                        })))
+                        .then(Commands.argument("difficulty", StringArgumentType.word())
+                                .suggests((c, b) -> {
+                                    for (String id : plugin.cfg().difficulties.keySet()) b.suggest(id);
+                                    return b.buildFuture();
+                                })
+                                .then(Commands.argument("pvp", StringArgumentType.word())
+                                        .suggests((c, b) -> {
+                                            b.suggest("on");
+                                            b.suggest("off");
+                                            return b.buildFuture();
+                                        })
+                                        .executes(ctx -> withPlayer(ctx, p -> plugin.start().chooseSettings(p, StringArgumentType.getString(ctx, "difficulty"),
+                                                "on".equalsIgnoreCase(StringArgumentType.getString(ctx, "pvp")), "dialog"))))))
+                .then(Commands.literal("origin")
+                        .then(Commands.literal("esc").executes(ctx -> withPlayer(ctx, p -> plugin.start().originLater(p))))
+                        .then(Commands.literal("show").executes(ctx -> withPlayer(ctx, p -> kr.souls.ui.OriginDialog.show(plugin, p))))
+                        .then(Commands.argument("id", StringArgumentType.word())
+                                .suggests((c, b) -> {
+                                    for (var o : plugin.origins().all()) b.suggest(o.id());
+                                    return b.buildFuture();
+                                })
+                                .executes(ctx -> withPlayer(ctx, p -> plugin.start().chooseOrigin(p, StringArgumentType.getString(ctx, "id"), "dialog")))))
+                .then(Commands.literal("levelup")
+                        .then(Commands.literal("open").executes(ctx -> withPlayer(ctx, p -> plugin.levelUp().open(p))))
+                        .then(Commands.literal("undo").executes(ctx -> withPlayer(ctx, p -> plugin.levelUp().add(p, "vig", -1))))
+                        .then(Commands.literal("confirm").executes(ctx -> withPlayer(ctx, p -> plugin.levelUp().confirm(p))))
+                        .then(Commands.literal("cancel").executes(ctx -> withPlayer(ctx, p -> plugin.levelUp().cancel(p))))
+                        .then(Commands.argument("stat", StringArgumentType.word())
+                                .suggests((c, b) -> {
+                                    for (String id : StatBlock.IDS) b.suggest(id);
+                                    return b.buildFuture();
+                                })
+                                .executes(ctx -> withPlayer(ctx, p -> levelAdd(plugin, p, StringArgumentType.getString(ctx, "stat"), 1)))
+                                .then(Commands.argument("n", IntegerArgumentType.integer(-98, 98))
+                                        .executes(ctx -> withPlayer(ctx, p -> levelAdd(plugin, p, StringArgumentType.getString(ctx, "stat"),
+                                                IntegerArgumentType.getInteger(ctx, "n")))))))
+                .then(Commands.literal("stats").executes(ctx -> withPlayer(ctx, p -> plugin.test(p, plugin.stats().line(p)))))
+                .then(Commands.literal("stat")
+                        .then(Commands.argument("id", StringArgumentType.word())
+                                .suggests((c, b) -> {
+                                    for (String id : StatBlock.IDS) b.suggest(id);
+                                    return b.buildFuture();
+                                })
+                                .then(Commands.argument("value", IntegerArgumentType.integer(1, 99))
+                                        .executes(ctx -> withPlayer(ctx, p -> setStat(plugin, p, StringArgumentType.getString(ctx, "id"),
+                                                IntegerArgumentType.getInteger(ctx, "value")))))))
+                .then(Commands.literal("rest").executes(ctx -> withPlayer(ctx, p -> plugin.testBonfire().rest(p))))
+                .then(Commands.literal("load").executes(ctx -> withPlayer(ctx, p -> {
+                    var t = plugin.load().refresh(p);
+                    plugin.test(p, String.format(Locale.ROOT, "LOAD weight=%.1f cap=%.1f tier=%s roll=%s t=%d", plugin.load().weight(p),
+                            plugin.cfg().stats.equipLoad.at(plugin.stats().of(p).str()), t.id(), t.roll(), plugin.ticker().now()));
+                })))
+                .then(Commands.literal("pvphit")
+                        .then(Commands.argument("name", StringArgumentType.word())
+                                .executes(ctx -> withPlayer(ctx, p -> pvpHit(plugin, p, StringArgumentType.getString(ctx, "name"), 40)))
+                                .then(Commands.argument("amount", DoubleArgumentType.doubleArg(0, 10000))
+                                        .executes(ctx -> withPlayer(ctx, p -> pvpHit(plugin, p, StringArgumentType.getString(ctx, "name"),
+                                                DoubleArgumentType.getDouble(ctx, "amount")))))))
+                .then(Commands.literal("pvpshoot")
+                        .then(Commands.argument("name", StringArgumentType.word())
+                                .then(Commands.argument("kind", StringArgumentType.word())
+                                        .suggests((c, b) -> {
+                                            for (String x : List.of("arrow", "snowball", "potion", "cloud")) b.suggest(x);
+                                            return b.buildFuture();
+                                        })
+                                        .executes(ctx -> withPlayer(ctx, p -> pvpShoot(plugin, p, StringArgumentType.getString(ctx, "name"),
+                                                StringArgumentType.getString(ctx, "kind")))))))
+                .then(Commands.literal("effect")
+                        .then(Commands.argument("type", StringArgumentType.word())
+                                .then(Commands.argument("ticks", IntegerArgumentType.integer(1, 20000))
+                                        .executes(ctx -> withPlayer(ctx, p -> effect(plugin, p, StringArgumentType.getString(ctx, "type"),
+                                                IntegerArgumentType.getInteger(ctx, "ticks")))))))
+                .then(Commands.literal("burn")
+                        .then(Commands.argument("ticks", IntegerArgumentType.integer(1, 2000))
+                                .executes(ctx -> withPlayer(ctx, p -> burn(plugin, p, IntegerArgumentType.getInteger(ctx, "ticks"))))))
+                .then(Commands.literal("tap").executes(ctx -> withPlayer(ctx, p -> plugin.test(p, plugin.sneakTap().lastLine(p)))))
+                .then(Commands.literal("press")
+                        .then(Commands.argument("dialog", StringArgumentType.word())
+                                .then(Commands.argument("button", StringArgumentType.word())
+                                        .executes(ctx -> withPlayer(ctx, p -> {
+                                            boolean ok = plugin.ui().press(p, StringArgumentType.getString(ctx, "dialog"), StringArgumentType.getString(ctx, "button"));
+                                            if (!ok) plugin.test(p, "PRESS error=not_open open=" + plugin.ui().openDialog(p));
+                                        })))))
+                .then(Commands.literal("ui").executes(ctx -> withPlayer(ctx, p -> plugin.test(p, "UI open=" + plugin.ui().openDialog(p)))))
                 .build();
         reg.register(root, "Soulslike test hooks (debug.test-mode)", List.of());
     }
@@ -343,10 +465,11 @@ public final class TestCommands {
         var w = p.getWorld();
         CombatState st = CombatState.of(p);
         plugin.test(p, String.format(Locale.ROOT,
-                "INFO world=%s mode=%s difficulty=%s biome=%s x=%.2f y=%.2f z=%.2f hp=%.1f food=%d xpLevel=%d stamina=%.1f/%.0f "
+                "INFO world=%s mode=%s difficulty=%s biome=%s x=%.2f y=%.2f z=%.2f hp=%.1f maxhp=%.0f scale=%.0f food=%d xpLevel=%d stamina=%.1f/%.0f "
                         + "keep_inventory=%s immediate_respawn=%s locator_bar=%s natural_regen=%s pvp=%s test_mode=%s pack=%s t=%d",
                 w.getName(), p.getGameMode(), w.getDifficulty(), w.getBiome(l.getBlockX(), l.getBlockY(), l.getBlockZ()).getKey(),
-                l.getX(), l.getY(), l.getZ(), p.getHealth(), p.getFoodLevel(), p.getLevel(), st.stamina.cur(), st.stamina.max(),
+                l.getX(), l.getY(), l.getZ(), p.getHealth(), kr.souls.skill.Combat.maxHealth(p), p.isHealthScaled() ? p.getHealthScale() : 0,
+                p.getFoodLevel(), p.getLevel(), st.stamina.cur(), st.stamina.max(),
                 w.getGameRuleValue(GameRules.KEEP_INVENTORY), w.getGameRuleValue(GameRules.IMMEDIATE_RESPAWN),
                 w.getGameRuleValue(GameRules.LOCATOR_BAR), w.getGameRuleValue(GameRules.NATURAL_HEALTH_REGENERATION),
                 w.getGameRuleValue(GameRules.PVP), plugin.cfg().testMode, plugin.pack().sha1(), plugin.ticker().now()));
@@ -376,6 +499,99 @@ public final class TestCommands {
                 .type(DialogType.multiAction(buttons).exitAction(exit).columns(1).build()));
         p.showDialog(d);
         plugin.test(p, "DIALOG shown t=" + plugin.ticker().now());
+    }
+
+    private static void levelAdd(Souls plugin, Player p, String stat, int n) {
+        if (!StatBlock.known(stat)) {
+            plugin.test(p, "LEVELUP error=unknown stat=" + stat);
+            return;
+        }
+        if (!plugin.levelUp().active(p)) plugin.levelUp().open(p);
+        plugin.levelUp().add(p, stat.toLowerCase(Locale.ROOT), n);
+    }
+
+    private static void setStat(Souls plugin, Player p, String id, int v) {
+        if (!StatBlock.known(id)) {
+            plugin.test(p, "STAT error=unknown id=" + id);
+            return;
+        }
+        double before = plugin.stamina().max(p);
+        var pr = plugin.profiles().of(p);
+        pr.setStats(pr.stats().with(id, v));
+        plugin.attributes().apply(p);
+        plugin.load().refresh(p);
+        plugin.stamina().grow(p, before);
+        plugin.profiles().save(p, false);
+        plugin.test(p, "STAT " + id + "=" + v + " level=" + pr.stats().level());
+    }
+
+    private static Player other(Souls plugin, Player p, String name) {
+        Player t = org.bukkit.Bukkit.getPlayerExact(name);
+        if (t == null) plugin.test(p, "PVP error=no_player name=" + name);
+        return t;
+    }
+
+    /** 원인이 나인 generic 피해 (PvP 끔이면 바닐라가 이벤트 없이 버린다, 켬이면 방어로 줄어 들어간다). */
+    private static void pvpHit(Souls plugin, Player p, String name, double amount) {
+        Player t = other(plugin, p, name);
+        if (t == null) return;
+        double before = t.getHealth();
+        t.setNoDamageTicks(0);
+        t.damage(amount, kr.souls.skill.Combat.source(org.bukkit.damage.DamageType.GENERIC, p));
+        double dealt = Math.max(0, before - (t.isDead() ? 0 : t.getHealth()));
+        plugin.test(p, String.format(Locale.ROOT, "PVPHIT to=%s amount=%.1f dealt=%.2f pvp=%s why=%s t=%d", t.getName(), amount, dealt,
+                plugin.pvp().enabled(), plugin.pvp().protectedWhy(t), plugin.ticker().now()));
+    }
+
+    /** 그 사람에게 쏜 사람이 나인 투사체·구름 (PvP 막기의 길마다). */
+    private static void pvpShoot(Souls plugin, Player p, String name, String kind) {
+        Player t = other(plugin, p, name);
+        if (t == null) return;
+        org.bukkit.Location from = p.getEyeLocation();
+        org.bukkit.util.Vector dir = t.getLocation().add(0, 1.0, 0).toVector().subtract(from.toVector()).normalize();
+        switch (kind) {
+            case "arrow" -> p.launchProjectile(org.bukkit.entity.Arrow.class, dir.multiply(2.0));
+            case "snowball" -> p.launchProjectile(org.bukkit.entity.Snowball.class, dir.multiply(1.5));
+            case "potion" -> {
+                org.bukkit.entity.ThrownPotion tp = p.launchProjectile(org.bukkit.entity.ThrownPotion.class, dir.multiply(0.8));
+                org.bukkit.inventory.ItemStack it = org.bukkit.inventory.ItemStack.of(org.bukkit.Material.SPLASH_POTION);
+                it.editMeta(org.bukkit.inventory.meta.PotionMeta.class, m -> m.setBasePotionType(org.bukkit.potion.PotionType.POISON));
+                tp.setItem(it);
+            }
+            case "cloud" -> t.getWorld().spawn(t.getLocation(), org.bukkit.entity.AreaEffectCloud.class, c -> {
+                c.setSource(p);
+                c.setRadius(2.0f);
+                c.setDuration(60);
+                c.setWaitTime(0);
+                c.setReapplicationDelay(5);
+                c.addCustomEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.POISON, 100, 0), true);
+            });
+            default -> {
+                plugin.test(p, "PVPSHOOT error=unknown kind=" + kind);
+                return;
+            }
+        }
+        plugin.test(p, "PVPSHOOT kind=" + kind + " to=" + t.getName() + " t=" + plugin.ticker().now());
+    }
+
+    private static void effect(Souls plugin, Player p, String type, int ticks) {
+        org.bukkit.potion.PotionEffectType t = org.bukkit.Registry.EFFECT.get(org.bukkit.NamespacedKey.minecraft(type.toLowerCase(Locale.ROOT)));
+        if (t == null) {
+            plugin.test(p, "EFFECT error=unknown type=" + type);
+            return;
+        }
+        p.removePotionEffect(t);
+        p.addPotionEffect(new org.bukkit.potion.PotionEffect(t, ticks, 0));
+        org.bukkit.potion.PotionEffect have = p.getPotionEffect(t);
+        plugin.test(p, "EFFECT type=" + type + " asked=" + ticks + " have=" + (have == null ? 0 : have.getDuration()));
+    }
+
+    private static void burn(Souls plugin, Player p, int ticks) {
+        org.bukkit.event.entity.EntityCombustEvent ev = new org.bukkit.event.entity.EntityCombustEvent(p, ticks / 20f);
+        org.bukkit.Bukkit.getPluginManager().callEvent(ev);
+        int fire = ev.isCancelled() ? 0 : Math.round(ev.getDuration() * 20);
+        if (fire > 0) p.setFireTicks(fire);
+        plugin.test(p, "BURN asked=" + ticks + " fire=" + fire);
     }
 
     private static void skill(Souls plugin, Player p, String id) {

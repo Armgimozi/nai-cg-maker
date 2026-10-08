@@ -3,7 +3,7 @@
 #  고친 뒤 게임 안에서 /souls reload (서버를 다시 켜도 됨)
 #
 #  같은 폴더의 다른 파일
-#    content/        콘텐츠 (M0: skills.yml). id 와 수치만 있고 보이는 글은 없다
+#    content/        콘텐츠 (skills.yml, items.yml, weapons.yml, origins.yml …). id 와 수치만 있고 보이는 글은 없다
 #  게임 안 문구 (한국어 원본과 영어) 는 jar 와 리소스팩 안에 있어 여기 꺼내지 않는다.
 #  고치려면 소스의 plugin/src/main/resources/lang/ko.yml, en.yml 을 고치고 python3 tools/make_dist.py
 # ─────────────────────────────────────────────────────────────

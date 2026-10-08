@@ -150,7 +150,7 @@ public final class PvpGuard implements Listener {
     }
 
     private static boolean harmful(java.util.Collection<PotionEffect> effects) {
-        for (PotionEffect pe : effects) if (pe.getType().getCategory() == PotionEffectType.Category.HARMFUL) return true;
+        for (PotionEffect pe : effects) if (pe.getType().getCategory() == org.bukkit.potion.PotionEffectTypeCategory.HARMFUL) return true;
         return false;
     }
 

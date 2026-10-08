@@ -90,7 +90,7 @@ public final class Hud implements Listener {
     private final Map<UUID, View> views = new HashMap<>();
     /** 팩을 실은 사람 (SUCCESSFULLY_LOADED, 설정 단계에서 보낸 판은 들어올 때 이미 실었다) */
     private final Set<UUID> packed = new HashSet<>();
-    /** 소울 수 (M2 의 SoulPurse 가 바꿔 끼운다). 그 전에는 0 */
+    /** 소울 수 (Souls 가 SoulPurse 를 끼운다, 5.4). 끼우기 전에는 0 */
     private ToLongFunction<Player> souls = p -> 0;
 
     public Hud(Souls plugin) {
@@ -220,7 +220,8 @@ public final class Hud implements Listener {
             fpLen = length(mana.max() * c.warmthPx(), c);
             fpFill = fill(mana.cur(), mana.max(), fpLen);
         } else if (c.warmthPlaceholder() > 0) {
-            fpLen = length(c.warmthPlaceholder() * c.warmthPx(), c);
+            // 술이 없는 지금 (M5 전) 은 가득 찬 막대. 길이는 정신의 최대 마나 (5.2, 출신을 고르기 전에는 정신 10 = 60)
+            fpLen = length(plugin.cfg().stats.maxMana.at(plugin.stats().of(p).mnd()) * c.warmthPx(), c);
             fpFill = fpLen;
         }
         int stLen = length(st.stamina.max() * c.staminaPx(), c);

@@ -148,6 +148,23 @@ public final class WorldState {
         }
     }
 
+    /** 세계 설정을 지운다 (시험: 새 세계처럼 다음 접속에 다시 묻는다). */
+    public void clear(World w) {
+        current = null;
+        if (w != null) {
+            w.getPersistentDataContainer().remove(Keys.SETTINGS);
+            w.save();
+        }
+        YamlConfiguration y = YamlConfiguration.loadConfiguration(stateFile());
+        y.set("settings", null);
+        try {
+            y.save(stateFile());
+        } catch (IOException ex) {
+            plugin.getLogger().warning("souls-state.yml 을 쓰지 못했습니다: " + ex.getMessage());
+        }
+        plugin.getLogger().info("세계 설정을 지웠습니다 (시험 명령).");
+    }
+
     private static String onOff(boolean b) {
         return b ? "on" : "off";
     }

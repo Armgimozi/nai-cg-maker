@@ -14,6 +14,7 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
 import java.security.SecureRandom;
@@ -147,5 +148,11 @@ public final class Ui implements Listener {
     public void onQuit(PlayerQuitEvent e) {
         open.remove(e.getPlayer().getUniqueId());
         shownAt.remove(e.getPlayer().getUniqueId());
+    }
+
+    /** 죽으면 사망 화면이 창을 덮는다 (나가기 동작이 오지 않는다): 세션을 닫는다. */
+    @EventHandler
+    public void onDeath(PlayerDeathEvent e) {
+        open.remove(e.getEntity().getUniqueId());
     }
 }

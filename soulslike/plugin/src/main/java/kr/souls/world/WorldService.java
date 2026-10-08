@@ -126,6 +126,7 @@ public final class WorldService implements Listener {
             checkDifficulty(lobby());
             World g = world();
             if (g != null) checkDifficulty(g);
+            applyPvp();
         }, 200, 200);
         Integer built = w.getPersistentDataContainer().get(Keys.ROOM, PersistentDataType.INTEGER);
         if (built != null && built >= TestRoom.VERSION) {
@@ -176,8 +177,13 @@ public final class WorldService implements Listener {
 
     // ------------------------------------------------------------------ 규칙
 
-    /** 12.7 의 게임 규칙. GameRules 의 snake_case 상수만 쓴다 (옛 camelCase 문자열은 예외를 던진다). */
-    public static List<RuleValue<?>> rules() {
+    /** 12.7 의 게임 규칙 (pvp 는 세계 설정, 5.7). */
+    public List<RuleValue<?>> rules() {
+        return rules(plugin.pvp() != null && plugin.pvp().enabled());
+    }
+
+    /** 12.7 의 게임 규칙. GameRules 의 snake_case 상수만 쓴다 (옛 camelCase 문자열은 예외를 던진다). pvp 만 세계 설정을 따른다. */
+    public static List<RuleValue<?>> rules(boolean pvp) {
         List<RuleValue<?>> r = new ArrayList<>();
         r.add(new RuleValue<>(GameRules.KEEP_INVENTORY, true));
         r.add(new RuleValue<>(GameRules.IMMEDIATE_RESPAWN, false));
@@ -197,7 +203,7 @@ public final class WorldService implements Listener {
         r.add(new RuleValue<>(GameRules.ADVANCE_WEATHER, false));
         r.add(new RuleValue<>(GameRules.FIRE_SPREAD_RADIUS_AROUND_PLAYER, 0));
         r.add(new RuleValue<>(GameRules.RANDOM_TICK_SPEED, 0));
-        r.add(new RuleValue<>(GameRules.PVP, false));
+        r.add(new RuleValue<>(GameRules.PVP, pvp));
         r.add(new RuleValue<>(GameRules.MOB_DROPS, false));
         r.add(new RuleValue<>(GameRules.BLOCK_DROPS, false));
         r.add(new RuleValue<>(GameRules.TNT_EXPLODES, false));
@@ -237,6 +243,17 @@ public final class WorldService implements Listener {
             }
         }
         if (changed > 0) plugin.getLogger().info(w.getName() + " 게임 규칙 " + changed + "개를 맞췄습니다.");
+    }
+
+    /** 세계 설정의 PvP 를 바닐라 규칙에 건다 (설정이 바뀔 때, 200틱마다의 점검: 누가 /gamerule pvp 로 바꿔도 되돌린다). */
+    public void applyPvp() {
+        boolean pvp = plugin.pvp().enabled();
+        for (World w : List.of(lobby(), world() == null ? lobby() : world())) {
+            if (!Boolean.valueOf(pvp).equals(w.getGameRuleValue(GameRules.PVP))) {
+                w.setGameRule(GameRules.PVP, pvp);
+                plugin.getLogger().info(w.getName() + " 게임 규칙 pvp 를 세계 설정대로 " + pvp + " 로 맞췄습니다.");
+            }
+        }
     }
 
     /** 바뀐 규칙 목록 (/souls check). */

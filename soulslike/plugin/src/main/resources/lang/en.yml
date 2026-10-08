@@ -22,6 +22,11 @@ bonfire:
   warp: "<#d1c3a0>Pass Between Fires"
   leave: "<#d1c3a0>Rise"
   status: "<#b3a37f>Souls <souls> · Level <level>"
+  levelup: "<#d1c3a0>Level Up"
+  stats: "<#d1c3a0>Status"
+  settings: "<#d1c3a0>Set the Terms"
+  repick: "<#d1c3a0>Choose Another Past"
+  repick-tip: "<#8f8164>Once, before any level is bought.\nStarting gear is taken back."
   test-name: "<#d1c3a0><font:souls:title>Beneath the Gaol Tower"
 
 boss:
@@ -52,6 +57,11 @@ spell:
 item:
   unfit-mark: "<#a8301f>×"
   unfit: "<#8f8164>Cannot be wielded properly"
+  master_key:
+    name: "<#d1c3a0><font:souls:title>Master Key"
+    lore:
+      - "<#8f8164>Opens most doors held shut by a lock."
+      - "<#8f8164>Sealed doors stay sealed."
 
 weapon:
   # Weapons, shields, catalysts (9.1, 9.2, 3.12.4, 9.7). Ids and models: pack/weapons/SPEC.md.
@@ -76,10 +86,10 @@ weapon:
     weight: "<#858079>Weight"
     bonus_str: "<#858079>Str Bonus"
     bonus_dex: "<#858079>Dex Bonus"
-    bonus_att: "<#858079>Att Bonus"
+    bonus_int: "<#858079>Int Bonus"
     need_str: "<#858079>Req. Str"
     need_dex: "<#858079>Req. Dex"
-    need_att: "<#858079>Req. Att"
+    need_int: "<#858079>Req. Int"
     absorb: "<#858079>Absorption"
     stability: "<#858079>Stability"
   rule: "<#fefefe>—"
@@ -205,7 +215,156 @@ weapon:
       - "<#8f8164>So small a bell called no one home."
 
 origin:
-  title: "Who were you?"
+  title: "<#d1c3a0><font:souls:title>Who were you?"
+  head-name: "<#858079>Origin"
+  head-level: "<#858079>Lv"
+  head-kit: "<#858079>Equipment"
+  later: "<#d1c3a0>Decide Later"
+  choose: "<#d1c3a0>Take This Path"
+  back: "<#d1c3a0>Back"
+  stats: "<#b3a37f>Level <level> · Max HP <hp> · Mana <mana> · Stamina <stamina>"
+  attack: "<#b3a37f><weapon>: Attack <attack>"
+  attack-2h: "<#b3a37f><weapon>: Attack <attack> (two hands)"
+  no-rites: "<#8f8164>No rite learned yet"
+  no-bow: "<#8f8164>The bow cannot be loosed yet"
+  none: "<#858079>No past chosen yet"
+  knight:
+    name: "<#d1c3a0>Knight"
+    desc: "<#8f8164>A soldier of sword and shield."
+    style: "<#b3a37f>Holds firm behind the shield. Hardy."
+    kit: "<#b3a37f>Sword · Shield"
+  warrior:
+    name: "<#d1c3a0>Warrior"
+    desc: "<#8f8164>Swings a greatsword with both hands."
+    style: "<#b3a37f>Cleaves with both hands. No shield."
+    kit: "<#b3a37f>Greatsword"
+  thief:
+    name: "<#d1c3a0>Thief"
+    desc: "<#8f8164>Quick of hand, with a master key."
+    style: "<#b3a37f>Swift, quick to parry. Carries a master key."
+    kit: "<#b3a37f>Dagger · Parry · Key"
+  archer:
+    name: "<#d1c3a0>Archer"
+    desc: "<#8f8164>Strikes first, from afar, with a bow."
+    style: "<#b3a37f>Looses from afar, ends it with the hatchet."
+    kit: "<#b3a37f>Bow · Hatchet"
+  sorcerer:
+    name: "<#d1c3a0>Sorcerer"
+    desc: "<#8f8164>Learned to work rites through a catalyst."
+    style: "<#b3a37f>Rites strike hardest. Frail."
+    kit: "<#b3a37f>Pot · Dagger · Rites later"
+  deprived:
+    name: "<#d1c3a0>Deprived"
+    desc: "<#8f8164>Nothing owned, nothing to lean on."
+    style: "<#b3a37f>May become anything. Early levels come cheap."
+    kit: "<#b3a37f>Club · Plank Shield"
+
+start:
+  title: "<#d1c3a0><font:souls:title>Terms of This World"
+  body: "<#b3a37f>Set once for this world. An admin may alter it."
+  pvp: "<#d1c3a0>PvP"
+  pvp-hit: "<#8f8164>If set, the living may strike one another."
+  pvp-sweep: "<#8f8164>Sweeps and rites strike allies too."
+  choice: "<#d1c3a0><name> — <desc>"
+  choice-default: "<#d1c3a0><name> — <desc> (first time)"
+  later: "<#d1c3a0>Decide Later"
+  notice: "<#b3a37f>This world: <difficulty> · <pvp>"
+  changed: "<#b3a37f>The terms have changed: <difficulty> · <pvp>"
+  provisional: "<#858079>The terms are not yet fixed"
+  provisional-chat: "<#858079>Asked again on return, or at a bonfire."
+  waiting: "<#858079>The terms are being set"
+  op-only: "<#858079>Only an admin may set the terms"
+
+difficulty:
+  easy:
+    name: "<#d1c3a0>Easy"
+    desc: "<#8f8164>Weaker foes, more Estus"
+  normal:
+    name: "<#d1c3a0>Normal"
+    desc: "<#8f8164>As the game was tuned"
+  hard:
+    name: "<#d1c3a0>Hard"
+    desc: "<#8f8164>Stronger foes, tighter parries"
+  very_hard:
+    name: "<#d1c3a0>Very Hard"
+    desc: "<#8f8164>Far stronger foes, less Estus"
+  summary: "<#b3a37f>Foe harm ×<damage> · Foe HP ×<health>\nParry <parry> ticks · Estus <estus>"
+
+pvp:
+  "on": "<#b3a37f>PvP on"
+  "off": "<#b3a37f>PvP off"
+
+stat:
+  vig:
+    name: "<#d1c3a0>Vigor"
+    short: "<#858079>Vig"
+  mnd:
+    name: "<#d1c3a0>Mind"
+    short: "<#858079>Mnd"
+  end:
+    name: "<#d1c3a0>Endurance"
+    short: "<#858079>End"
+  str:
+    name: "<#d1c3a0>Strength"
+    short: "<#858079>Str"
+  dex:
+    name: "<#d1c3a0>Dexterity"
+    short: "<#858079>Dex"
+  int:
+    name: "<#d1c3a0>Intelligence"
+    short: "<#858079>Int"
+
+derived:
+  max-hp: "<#858079>Max HP"
+  defense: "<#858079>Defense"
+  max-mana: "<#858079>Max Mana"
+  magic-res: "<#858079>Magic Res."
+  max-stamina: "<#858079>Max Stamina"
+  regen: "<#858079>Recovery"
+  attack: "<#858079>Attack"
+  attack-2h: "<#858079>Attack (2H)"
+  load-cap: "<#858079>Load Cap"
+  move: "<#858079>Movement"
+  attack-speed: "<#858079>Attack Speed"
+  spell: "<#858079>Rite Power"
+  ailment: "<#858079>Ailment Res."
+
+load:
+  light: "<#b3a37f>Light"
+  medium: "<#b3a37f>Medium"
+  heavy: "<#b3a37f>Heavy"
+  over: "<#b3a37f>Overburdened"
+
+burden:
+  heavier: "<#858079>Burden grows · <tier>"
+  lighter: "<#858079>Burden eases · <tier>"
+
+levelup:
+  title: "<#d1c3a0><font:souls:title>Level Up"
+  head: "<#b3a37f>Level <from> → <to> · Souls <held> · Required <cost>"
+  plus: "<#d1c3a0><stat> <value> +"
+  undo: "<#d1c3a0>Undo"
+  confirm: "<#d1c3a0>Confirm"
+  cancel: "<#d1c3a0>Cancel"
+  tip: "<#b3a37f><first> <firstv>\n<second> <secondv>"
+  next: "<#8f8164>Next point: <cost> souls"
+  burn: "<#8f8164>Burning <from>s → <to>s"
+
+stats:
+  title: "<#d1c3a0><font:souls:title>Status"
+  head: "<#b3a37f>Level <level> · Souls <souls> · <origin>"
+  no-origin: "<#858079>No origin"
+  pair: "<#b3a37f><stat> <value>"
+  sep: "<#6b5f4a> · "
+  load: "<#b3a37f>Equip Load <weight> / <cap> · <tier>"
+  burn: "<#8f8164>Burning <from>s → <to>s"
+  close: "<#d1c3a0>Close"
+
+controls:
+  hint:
+    roll: "<#8f8164>Roll · tap <bind>"
+    roll-f: "<#8f8164>Roll · <bind>"
+    art: "<#8f8164>Weapon Skill · <bind>"
 
 ending:
   rekindle: "Rekindle the Fire"
@@ -249,6 +408,12 @@ admin:
   no-world: "<#858079>There is no game world."
   room-built: "<#858079>Test room raised: <detail>"
   room-failed: "<#858079>Test room could not be raised: <error>"
+  settings-busy: "<#858079>Another is setting the terms."
+  settings-unknown: "<#858079>Unknown value: <value>"
+  settings-set: "<#858079>Terms set: <difficulty> · <pvp>"
+  origin-reset: "<#858079>Origin cleared for <player> (items taken: <items>)"
+  souls-set: "<#858079>Souls of <player>: <souls>"
+  no-player: "<#858079>No such player: <player>"
 
 vanilla:
   menu:

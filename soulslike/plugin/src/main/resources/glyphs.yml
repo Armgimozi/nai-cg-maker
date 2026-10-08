@@ -235,4 +235,4 @@ text_space_pos64: {char: "\ue38e", width: 64, font: "minecraft:default"}
 text_space_pos128: {char: "\ue38f", width: 128, font: "minecraft:default"}
 layout: {margin: 8, left: 205, right: 206, mark_left: "#fefd01", mark_right: "#fefd02", mark_boss: "#fefd03", mark_boss_name: "#fefd04", mark_boss_shadow: "#fefd05", mark_hidden: "#fefd06", mark_boss_cap: "#fefd07", boss_width: 200, soul_box: 72, soul_inset: 2}
 death_fade: {mark_r: 254, shadow_r: 253, g0: 144}
-stats: {value_col: 18, col_gap: 14, chars: "0123456789.-%SABCDE", widths: [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 2, 3, 6, 4, 7, 6, 7, 7, 6]}
+stats: {value_col: 18, col_gap: 14, chars: "0123456789.-%SABCDE+/\u2192\u00d7\u2013, ", widths: [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 2, 3, 6, 4, 7, 6, 7, 7, 6, 6, 4, 10, 5, 6, 2, 3]}

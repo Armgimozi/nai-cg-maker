@@ -73,7 +73,7 @@ import langcheck  # noqa: E402
 import textlint  # noqa: E402
 
 # 서버 zip 에 넣는 것 (이 밖의 파일은 server/ 에서 서버를 켜 봤을 때 생긴 것으로 보고 넣지 않는다)
-SERVER_FILES = ("README.txt", "bukkit.yml", "config/paper-global.yml", "server.properties",
+SERVER_FILES = ("README.txt", "bukkit.yml", "spigot.yml", "config/paper-global.yml", "server.properties",
                 "start.bat", "start.ps1", "start.sh")
 # 12.7 그대로. 마인크래프트가 처음 켤 때 파일을 다시 쓰므로 주석이 아니라 값만 본다
 PROPERTIES = {
@@ -472,7 +472,7 @@ def check_server():
         g.check(b"\r" not in raw["start.sh"], "start.sh 에 CR 이 있다 (LF 만)")
         g.check(raw["start.sh"].startswith(b"#!/bin/sh"), "start.sh 첫 줄이 #!/bin/sh 가 아니다")
         g.check(not raw["server.properties"].startswith(bom), "server.properties 에 BOM 이 있다 (첫 키가 깨진다)")
-        for f in ("start.ps1", "README.txt", "server.properties", "bukkit.yml", "config/paper-global.yml", "start.sh"):
+        for f in ("start.ps1", "README.txt", "server.properties", "bukkit.yml", "spigot.yml", "config/paper-global.yml", "start.sh"):
             try:
                 raw[f].decode("utf-8")
             except UnicodeDecodeError:
@@ -495,6 +495,9 @@ def check_server():
         g.check(TITLE["ko"] in head and TITLE["en"] in head, f"README.txt 첫머리에 게임 제목 {TITLE['ko']} ({TITLE['en']}) 이 없다")
         bukkit = yaml.safe_load(raw["bukkit.yml"].decode("utf-8")) or {}
         g.check((bukkit.get("settings") or {}).get("allow-end") is False, "bukkit.yml settings.allow-end 가 false 가 아니다 (12.7)")
+        spigot = yaml.safe_load(raw["spigot.yml"].decode("utf-8")) or {}
+        cap = (((spigot.get("settings") or {}).get("attribute") or {}).get("maxHealth") or {}).get("max")
+        g.check(isinstance(cap, (int, float)) and cap >= 1500, f"spigot.yml settings.attribute.maxHealth.max={cap} (체력 99 의 최대 HP 1500 이상, 5.2)")
         paper = yaml.safe_load(raw["config/paper-global.yml"].decode("utf-8")) or {}
         g.check((paper.get("misc") or {}).get("enable-nether") is False, "config/paper-global.yml misc.enable-nether 가 false 가 아니다")
 

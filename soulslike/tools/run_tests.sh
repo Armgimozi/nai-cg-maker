@@ -153,6 +153,7 @@ PDIR="$(dirname "$PAPER")"
 for d in libraries cache versions; do [ -d "$PDIR/$d" ] && ln -s "$PDIR/$d" "$SRV/$d"; done
 echo "eula=true" > "$SRV/eula.txt"
 [ -f "$ROOT/server/bukkit.yml" ] && cp "$ROOT/server/bukkit.yml" "$SRV/bukkit.yml"
+[ -f "$ROOT/server/spigot.yml" ] && cp "$ROOT/server/spigot.yml" "$SRV/spigot.yml"
 [ -f "$ROOT/server/config/paper-global.yml" ] && cp "$ROOT/server/config/paper-global.yml" "$SRV/config/paper-global.yml"
 unzip -p "$JAR" glyphs.yml > "$RUN/glyphs.yml" 2>/dev/null || rm -f "$RUN/glyphs.yml"
 unzip -p "$JAR" pack.zip > "$RUN/pack.zip" 2>/dev/null || rm -f "$RUN/pack.zip"

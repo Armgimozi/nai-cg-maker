@@ -152,8 +152,8 @@ public final class StartFlow implements Listener {
             return;
         }
         if (!s.confirmed() && !eligible(p)) {
-            Component why = "op".equals(cfg().setupBy()) ? Lang.c(p, "start.op-only") : Lang.c(p, "start.waiting");
-            plugin.titles().notice(p, plugin.ticker().now(), why);
+            Component waitWhy = "op".equals(cfg().setupBy()) ? Lang.c(p, "start.op-only") : Lang.c(p, "start.waiting");
+            plugin.titles().notice(p, plugin.ticker().now(), waitWhy);
         }
         originStep(p);
     }

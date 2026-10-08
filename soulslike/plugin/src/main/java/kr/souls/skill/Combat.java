@@ -23,14 +23,24 @@ public final class Combat {
         return damage(ctx.caster, target, amount, magic, ctx);
     }
 
-    /** magic 은 예전 스킬 글과 맞추려고 남겨 둔 표시다. 피해 종류는 늘 generic 이다. */
+    /**
+     * magic 이면 술 피해 (데이터팩 souls:magic: 플레이어는 마법 저항으로 줄인다, 3.7), 아니면 generic. 플레이어 → 플레이어는 PvP 를 켰을 때만
+     * (Targets.pvp).
+     */
     public static double damage(LivingEntity source, LivingEntity target, double amount, boolean magic, SkillContext ctx) {
         if (amount <= 0 || target == null || target.isDead() || !target.isValid()) return 0;
+        if (source instanceof org.bukkit.entity.Player a && target instanceof org.bukkit.entity.Player b && a != b && !Targets.pvp.test(a, b)) return 0;
         double before = target.getHealth() + target.getAbsorptionAmount();
         target.setNoDamageTicks(0);
+        DamageType type = DamageType.GENERIC;
+        if (magic) {
+            DamageType m = io.papermc.paper.registry.RegistryAccess.registryAccess().getRegistry(io.papermc.paper.registry.RegistryKey.DAMAGE_TYPE)
+                    .get(net.kyori.adventure.key.Key.key("souls", "magic"));
+            if (m != null) type = m;
+        }
         depth++;
         try {
-            target.damage(amount, source(DamageType.GENERIC, source));
+            target.damage(amount, source(type, source));
         } finally {
             depth--;
         }

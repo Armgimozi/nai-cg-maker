@@ -19,7 +19,9 @@ import java.util.TreeMap;
  * 스태미나 (3.2). 달리기는 틱마다 쓰고, 구르기·공격 같은 행동은 끝난 틱에서 regen-delay 틱 뒤부터 다시 찬다.
  * 0 이 되면 탈진: 회복 지연이 길어지고, 일정량이 찰 때까지 달리지 못한다.
  * 달리기 금지는 허기를 6 으로 내려서 한다. 클라이언트는 허기가 6 이하이면 달리기를 시작하지도 이어가지도 않는다 [확인 (클라)].
- * 허기는 이 체계만 바꾼다 (FoodLevelChangeEvent 는 늘 취소, 평소 20).
+ * 허기는 이 체계만 바꾼다 (FoodLevelChangeEvent 는 늘 취소, 평소 20). 장비가 너무 무거울 때 (5.8) 도 여기서 허기 6 으로 둔다
+ * (허기를 쓰는 곳은 여기 한 곳, 검토 T13).
+ * 최대치는 기력 (5.2, combat.stamina.curve), 회복은 regen-per-tick × 기력 배율 (stats.endurance.regen-scale) × 장비 무게 배율 (load.*.regen).
  * 화면은 Hud 가 왼쪽 위 스태미나 막대 (HUD 보스 막대의 그림 글자) 로 그린다. 여기서는 값만 바꾼다.
  */
 public final class Stamina implements Listener {
@@ -35,7 +37,7 @@ public final class Stamina implements Listener {
         return plugin.cfg().stamina;
     }
 
-    /** 지구력 → 최대 스태미나. 표 사이는 직선으로 잇고, 표 밖은 끝값. */
+    /** 기력 → 최대 스태미나. 표 사이는 직선으로 잇고, 표 밖은 끝값. */
     public static double maxFor(TreeMap<Integer, Double> curve, int endurance) {
         if (curve.isEmpty()) return 100;
         Map.Entry<Integer, Double> lo = curve.floorEntry(endurance), hi = curve.ceilingEntry(endurance);
@@ -46,9 +48,22 @@ public final class Stamina implements Listener {
         return lo.getValue() + (hi.getValue() - lo.getValue()) * t;
     }
 
-    /** 이 플레이어의 지구력. 능력치가 생기기 전(M2)까지는 설정값 하나. */
+    /** 이 플레이어의 기력 (프로필, 5.2. 출신을 고르기 전에는 10). */
     public int endurance(Player p) {
-        return cfg().endurance();
+        return plugin.stats().of(p).end();
+    }
+
+    /** 이 플레이어의 최대 스태미나. */
+    public double max(Player p) {
+        return maxFor(cfg().curve(), endurance(p));
+    }
+
+    /** 최대치가 늘었으면 (레벨업) 늘어난 몫만큼 채운다. before 는 바꾸기 전의 최대치. */
+    public void grow(Player p, double before) {
+        CombatState st = CombatState.of(p);
+        double after = max(p);
+        st.stamina.setMax(after);
+        if (after > before) st.stamina.set(Math.min(after, st.stamina.cur() + (after - before)));
     }
 
     /** 전투 규칙이 도는 사람인가 (창작·관전 모드는 쓰지도 닳지도 않는다). */
@@ -102,17 +117,19 @@ public final class Stamina implements Listener {
                 // 달리는 동안은 회복 없음. 멈춘 틱이 행동이 끝난 틱이다
                 pool.holdUntil(now + 1 + (zero ? c.exhaustedDelay() : c.regenDelay()));
             } else {
-                double rate = c.regenPerTick();
+                double rate = c.regenPerTick() * plugin.cfg().stats.regenScale.at(endurance(p)) * plugin.load().regen(p);
                 if (p.isBlocking()) rate *= c.guardRegenScale();
                 pool.regen(now, rate);
             }
             st.wasSprinting = sprint;
             if (st.exhausted && pool.cur() >= c.exhaustedSprintUntil()) st.exhausted = false;
 
-            int food = st.exhausted ? FOOD_EXHAUSTED : FOOD_NORMAL;
+            // 탈진했거나 장비가 너무 무거우면 (5.8) 달리지 못한다
+            boolean noSprint = st.exhausted || plugin.load().noSprint(p);
+            int food = noSprint ? FOOD_EXHAUSTED : FOOD_NORMAL;
             if (p.getFoodLevel() != food) p.setFoodLevel(food);
             // 허기 6 은 클라이언트가 달리기를 멈추게 한다. 서버 쪽 상태도 함께 내린다
-            if (st.exhausted && sprint) p.setSprinting(false);
+            if (noSprint && sprint) p.setSprinting(false);
             if (p.getSaturation() != 0) p.setSaturation(0);
         }
     }

@@ -64,13 +64,24 @@ TITLE_KEYS = ("vanilla.menu.game", "vanilla.container.*")
 TITLE_KEYS_EN = ("vanilla.options.*", "vanilla.controls.*")
 # 제목 밑 금실: 열쇠 → 그 글을 그리는 글꼴. 게임 메뉴와 화톳불 이름만 (고딕 촛불 초안 그대로: 설정 화면 제목에 붙인 금실은
 # 2026-10-08 사용자 결정 "초안 모양이 더 낫다" 로 뺐다. 720p 에서 첫 밀대 줄에 붙었다)
-DIVIDED = (("vanilla.menu.game", DEFAULT_FONT), ("bonfire.test-name", TITLE_FONT), ("bonfire.*.name", TITLE_FONT))
+DIVIDED = (("vanilla.menu.game", DEFAULT_FONT), ("bonfire.test-name", TITLE_FONT), ("bonfire.*.name", TITLE_FONT),
+           ("start.title", TITLE_FONT), ("origin.title", TITLE_FONT), ("levelup.title", TITLE_FONT), ("stats.title", TITLE_FONT))
 # 무기 설명 칸의 수치 표 (GUI 픽셀): 이름 열 = 가장 긴 이름 + LABEL_GAP, 값 열 VALUE_COL (값은 오른쪽 맞춤), 두 칸 사이 COL_GAP
 LABEL_KEYS = "weapon.stat.*"
 LABEL_GAP = 6
 VALUE_COL = 18
 COL_GAP = 14
-VALUE_CHARS = "0123456789.-%SABCDE"
+VALUE_CHARS = "0123456789.-%SABCDE+/→×–, "   # 무기 수치 표와 Dialog 표의 값 글자 (플러그인 ui/Columns 가 오른쪽 맞춤에 쓴다)
+# Dialog 창의 표 칸 (5.9, 5.10, 플러그인 Lang.cell·rcell, ui/Columns): 무리마다 그 언어에서 가장 긴 글의 폭 (+ gap) 또는 고정 폭까지
+# 빈칸 글자로 채운 갈래 열쇠 souls.<열쇠>.<갈래> 를 만든다. 바닐라는 창 본문과 단추 글을 줄마다 가운데에 놓으므로, 한 무리의 칸
+# 폭이 같고 값 (숫자) 을 플러그인이 고정 열에 오른쪽 맞춤하면 모든 줄의 폭이 같아 열이 위아래로 선다.
+#   (열쇠 꼴들, 갈래, 맞춤 left|right, 폭: ("gap", n) = 가장 긴 것 + n, ("fixed", n) = n 고정 (넘으면 오류))
+CELLS = (
+    (("derived.*",), "cell", "left", ("gap", 6)),            # 값 표의 이름 (능력치 창·레벨 올리기 창)
+    (("origin.*.name", "origin.head-name"), "cell", "left", ("gap", 6)),   # 출신 창의 이름 칸 (머리줄 origin.head-name 도 같은 무리)
+    (("origin.*.kit", "origin.head-kit"), "cell", "left", ("gap", 0)),     # 출신 창의 시작 아이템 칸 (머리줄 origin.head-kit 도)
+    (("stat.*.short", "origin.head-level"), "rcell", "right", ("fixed", 22)),   # 출신 창 머리줄의 능력치·레벨 (ui/Columns.STAT_COL)
+)
 
 LEGACY = re.compile("§.")
 HANGUL = re.compile("[가-힣]")
@@ -118,7 +129,7 @@ def rule_text(width):
 
 WEAPONS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                        "plugin", "src", "main", "resources", "content", "weapons.yml")
-STATS = ("str", "dex", "att")           # 플러그인 item/Weapons.STATS 와 같은 차례
+STATS = ("str", "dex", "int")           # 플러그인 item/Weapons.STATS 와 같은 차례 (1.3판: att → int)
 
 
 def load_weapons(path=WEAPONS):
@@ -339,7 +350,36 @@ class Typeset:
                     font = next((f for p, f in DIVIDED if fnmatch.fnmatchcase(k[len("souls."):], p)), None)
                     if font:
                         data[k] = with_divider(data[k], self.fonts.width(font, data[k]), self._div(div_adv, font))
+                self.cells(data, rel)
         return files
+
+    def cells(self, data, rel=""):
+        """
+        CELLS 의 칸 열쇠를 더한다 (souls.<열쇠>.cell / .rcell). 같은 무리의 칸은 모두 같은 폭이다. 고정 폭을 넘는 글은 ValueError
+        (그 언어의 글을 줄이거나 ui/Columns 의 폭을 늘린다). 칸 열쇠는 자리 (%s) 가 없는 글만.
+        """
+        for patterns, branch, align, (kind, n) in CELLS:
+            group = {k: v for k, v in data.items() if k.startswith("souls.") and not k.endswith(".cell") and not k.endswith(".rcell")
+                     and any(fnmatch.fnmatchcase(k[len("souls."):], p) for p in patterns) and "%" not in v.replace("%%", "")}
+            if not group:
+                continue
+            widths = {k: self.fonts.width(DEFAULT_FONT, v.replace("%%", "%")) for k, v in group.items()}
+            col = max(widths.values()) + n if kind == "gap" else n
+            for k, v in group.items():
+                if widths[k] > col:
+                    raise ValueError(f"{rel}: {k} 의 글 폭 {widths[k]} 이 칸 폭 {col} 을 넘는다 ({v!r}, pack/typeset.py CELLS)")
+                pad = spaces(col - widths[k])
+                data[f"{k}.{branch}"] = v + pad if align == "left" else pad + v
+
+    @staticmethod
+    def cell_keys(keys):
+        """lang 열쇠 (souls. 없이) 에서 팩이 더하는 칸 열쇠 (souls. 없이). 플러그인의 /souls check 와 langcheck 가 같은 셈을 한다."""
+        out = []
+        for patterns, branch, _, _ in CELLS:
+            for k in keys:
+                if any(fnmatch.fnmatchcase(k, p) for p in patterns):
+                    out.append(f"{k}.{branch}")
+        return out
 
     def weapon_width(self, data, label_col, wid, d):
         """

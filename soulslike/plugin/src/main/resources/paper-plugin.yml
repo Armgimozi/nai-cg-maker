@@ -10,6 +10,9 @@ permissions:
   souls.admin:
     description: /souls 관리자 명령어
     default: op
+  souls.stats:
+    description: /stats 능력치 창 (남의 능력치는 souls.admin)
+    default: true
   souls.test:
     description: /soulstest 시험 명령어 (config 의 debug.test-mode 가 켜졌을 때만)
     default: op

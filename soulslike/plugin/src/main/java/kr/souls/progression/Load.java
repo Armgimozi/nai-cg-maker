@@ -102,7 +102,7 @@ public final class Load implements Listener {
             if (speed != null) {
                 speed.removeModifier(MOD);
                 if (Math.abs(t.walk() - 1) > 1e-9) {
-                    speed.addTransientModifier(new AttributeModifier(MOD, t.walk() - 1, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL,
+                    speed.addTransientModifier(new AttributeModifier(MOD, t.walk() - 1, AttributeModifier.Operation.MULTIPLY_SCALAR_1,
                             EquipmentSlotGroup.ANY));
                 }
             }
@@ -110,7 +110,7 @@ public final class Load implements Listener {
             if (old != null && plugin.profiles().of(p).born()) {
                 boolean heavier = plugin.cfg().load.all().indexOf(t) > plugin.cfg().load.all().indexOf(old.tier());
                 Component name = Lang.c(p, "load." + t.id()); // lang-dyn: load.*
-                Component msg = heavier ? Lang.c(p, "load.heavier", "tier", name) : Lang.c(p, "load.lighter", "tier", name);
+                Component msg = heavier ? Lang.c(p, "burden.heavier", "tier", name) : Lang.c(p, "burden.lighter", "tier", name);
                 plugin.titles().notice(p, plugin.ticker().now(), msg);
             }
         }

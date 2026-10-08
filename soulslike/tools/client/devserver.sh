@@ -66,6 +66,7 @@ fi
 # 서버 설정: 배포 server/ 의 값(12.7) 위에 시험에 필요한 것만 덮는다
 cp "$ROOT/server/server.properties" "$D/server.properties"
 cp "$ROOT/server/bukkit.yml" "$D/bukkit.yml"
+cp "$ROOT/server/spigot.yml" "$D/spigot.yml"
 [ -f "$D/config/paper-global.yml" ] || cp "$ROOT/server/config/paper-global.yml" "$D/config/paper-global.yml"
 setprop() {
   if grep -q "^$1=" "$D/server.properties"; then sed -i "s|^$1=.*|$1=$2|" "$D/server.properties"

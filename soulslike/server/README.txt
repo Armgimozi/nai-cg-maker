@@ -80,9 +80,11 @@
   게임 안 문구는 한국어와 영어가 있고, 접속한 사람의 게임 언어로 보인다 (한국어가 아니면 영어).
   문구는 플러그인과 리소스팩 안에 있어 서버 폴더에서 고치지 않는다.
 
-  server.properties, bukkit.yml, config/paper-global.yml 은 이 서버에 맞춰 둔 것이다.
+  server.properties, bukkit.yml, spigot.yml, config/paper-global.yml 은 이 서버에 맞춰 둔 것이다.
     - 난이도는 normal 이어야 한다. 플러그인이 켤 때 확인하고 다르면 바꾼다.
     - 쓰지 않는 네더와 디 엔드는 띄우지 않는다.
+    - 최대 HP 상한을 2048 로 올린다 (spigot.yml). 낮으면 큰 체력이 잘린다.
+    - 게임 난이도와 PvP 는 처음 들어온 사람이 창에서 고른다. 관리자는 /souls settings 로 바꾼다.
 
 
 ■ 리소스팩
@@ -126,5 +128,6 @@
   start.sh                 맥/리눅스 시작기
   server.properties        서버 설정
   bukkit.yml               디 엔드 끄기
+  spigot.yml               최대 HP 상한 올리기
   config/paper-global.yml  네더 끄기
   plugins/Soulslike.jar    플러그인 (리소스팩과 데이터팩이 안에 들어 있다)
