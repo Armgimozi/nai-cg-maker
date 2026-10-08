@@ -131,15 +131,23 @@ public final class SoulsCommands {
         String names = plugin.cfg().death.titleGlyphs();
         boolean glyph = Glyphs.line(names) != null;
         line(to, fails, glyph, "glyphs " + Glyphs.size() + ", death title '" + names + "' " + (glyph ? "present" : "missing (red plain text instead)"));
-        // YOU DIED 는 한 번만 (5.6): 팩의 사망 화면 제목과 플러그인 화면 제목 가운데 하나만 쓴다
+        // YOU DIED 는 한 번만 (5.6): 팩의 사망 화면 제목, 서서히 나타나는 문구 줄 (팩의 제목이 비었고 death.title 이 꺼짐),
+        // 플러그인 화면 제목 가운데 하나만 쓴다. 문구 줄은 팩을 따르므로 설정 death.screen-fade 와 팩이 어긋나면 알린다
         if (pk.ready()) {
             String screen = pk.packLang("en_us", "deathScreen.title");
             boolean onScreen = screen != null && !screen.isEmpty();
             boolean byPlugin = plugin.cfg().death.title();
-            line(to, fails, onScreen != byPlugin, "death title " + (onScreen && byPlugin ? "both (overlap)"
-                    : onScreen ? "death screen only" : byPlugin ? "plugin title only" : "none (vanilla text or blank)")
+            boolean fade = !byPlugin && pk.deathTitleBlank();
+            boolean fadeGlyph = Glyphs.deathFadeLine(0) != null;
+            boolean cfgFade = plugin.cfg().death.screenFade();
+            line(to, fails, (onScreen != byPlugin || fade) && !(onScreen && fade) && (!fade || fadeGlyph)
+                            && (byPlugin || cfgFade == fade),
+                    "death title " + (onScreen && byPlugin ? "both (overlap)" : onScreen ? "death screen only"
+                            : byPlugin ? "plugin title only" : fade ? "fading death screen line" + (fadeGlyph ? "" : " (glyphs missing)")
+                            : "none (vanilla text or blank)")
                     + " (pack deathScreen.title=" + (screen == null ? "missing" : screen.isEmpty() ? "blank" : screen.length() + " chars")
-                    + ", death.title=" + byPlugin + ")");
+                    + ", death.title=" + byPlugin + ", death.screen-fade=" + cfgFade
+                    + (!byPlugin && cfgFade != fade ? ": config and pack disagree, rebuild the pack" : "") + ")");
         }
         line(to, fails, !plugin.skills().all().isEmpty(), "skills " + plugin.skills().all().size());
         // 문구 (10.3, 10.9): jar 안 lang/*.yml 의 열쇠와 jar 안 팩의 souls 언어 파일 열쇠가 같다 (낡은 팩 거르기)

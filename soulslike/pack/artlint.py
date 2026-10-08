@@ -12,7 +12,8 @@
   glowalpha  빛 허용 그림이 아닌데 발광 알파(250~252)
   restricted 쓰는 곳이 정해진 계열(palette.RESTRICTED, 생피)을 다른 그림에 씀
   data       셰이더가 읽는 자료 그림 (palette.data_kind) 의 꼴: 글꼴 덮임 (textures/font/text_*) 은 G = 0, B = 1, 알파 0 또는 1,
-             비네트 세기 지도는 회색·불투명. 이 그림들은 색이 아니라 자료라 다른 검사를 받지 않는다
+             비네트 세기 지도는 회색·불투명, YOU DIED 띠 (textures/font/hud_death_band.png) 는 RGB 가 모두 표식 (0, 0, 2) 인
+             알파 지도 (셰이더가 먹으로 칠한다). 이 그림들은 색이 아니라 자료라 다른 검사를 받지 않는다
   markalpha  구르기 대역의 1인칭 표시 알파 (palette.MARK_ALPHA, 240~249): 표시 그림 (palette.is_mark_path) 은 보이는 픽셀이 모두
              한 표시 알파여야 하고, 아이템·블록 그림 가운데 다른 그림은 그 알파를 쓰면 안 된다 (아이템 셰이더가 카메라 곁에서 버린다)
 경고
@@ -180,6 +181,10 @@ def check_image(path, report, rel=None):
     if data == "shade":
         if not ((a[..., 0] == a[..., 1]).all() and (a[..., 1] == a[..., 2]).all() and (a[..., 3] == 255).all()):
             report.add("오류", path, "data", "세기 지도가 회색·불투명이 아니다")
+        return
+    if data == "band":
+        if not (a[..., :3] == np.array(palette.BAND_TAG, np.uint8)).all():
+            report.add("오류", path, "data", f"띠 알파 지도의 RGB 가 모두 표식 {palette.BAND_TAG} 이 아니다")
         return
     h, w = a.shape[:2]
     alpha = a[..., 3]

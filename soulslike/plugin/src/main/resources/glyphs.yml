@@ -3,11 +3,14 @@
 # 플러그인은 이 표로 Component.text(char).font(font) 를 만든다. 문자 번호를 코드에 적지 않는다.
 # you_died 는 사망 화면 제목 한 줄 전체 (deathScreen.title 과 같은 문자열). 언어 문자열은 글꼴을 고를 수 없어
 #   minecraft:default 에 있다 (10.9). you_died_title 은 플러그인 화면 제목용 (death.title: true) 한 줄 전체로
-#   souls:hud 에 있다. 글꼴은 줄마다 font 를 따른다. 나머지는 한 글자씩.
+#   souls:hud 에 있다. you_died_fade 는 서서히 나타나는 판 (death.screen-fade: true) 의 사망 화면 문구 한 줄 전체로
+#   souls:death 에 있다 (플러그인이 죽은 게임 시각을 실은 표식 색을 입힌다, 5.6). 글꼴은 줄마다 font 를 따른다.
+#   나머지는 한 글자씩 (fade_* 는 souls:death 의 글자).
 # text_space_* 는 기본 글꼴의 빈칸 (pack/typeset.py, 수치 표의 열 맞춤과 Dialog 제목 앞 빈칸).
 # stats 는 무기 설명 칸 수치 표의 열 (GUI 픽셀) 과 값 글자의 진행 폭 (기본 글꼴, pack/typeset.py 가 팩에서 잰 것).
-you_died: {char: "\ue010\ue007\ue012\ue008\ue012\ue008\ue012\ue008\ue012\ue008\ue012\ue008\ue012\ue008\ue012\ue009\ue012\ue011\ue000\ue00e\ue001\ue00e\ue002\ue00f\ue003\ue00e\ue004\ue00e\ue005\ue00e\ue006", width: 93, font: "minecraft:default"}
+you_died: {char: "\ue211\ue200\ue213\ue201\ue213\ue202\ue213\ue203\ue213\ue204\ue213\ue205\ue213\ue206\ue213\ue207\ue213\ue208\ue213\ue208\ue213\ue208\ue213\ue208\ue213\ue208\ue213\ue208\ue213\ue208\ue213\ue208\ue213\ue209\ue213\ue20a\ue213\ue20b\ue213\ue20c\ue213\ue20d\ue213\ue20e\ue213\ue20f\ue213\ue210\ue213\ue212\ue000\ue00e\ue001\ue00e\ue002\ue00f\ue003\ue00e\ue004\ue00e\ue005\ue00e\ue006", width: 93, font: "minecraft:default"}
 you_died_title: {char: "\ue0f0\ue030\ue0f1\ue030\ue0f2\ue031\ue0f3\ue030\ue0f4\ue030\ue0f5\ue030\ue0f6", width: 93, font: "souls:hud"}
+you_died_fade: {char: "\ue211\ue200\ue213\ue201\ue213\ue202\ue213\ue203\ue213\ue204\ue213\ue205\ue213\ue206\ue213\ue207\ue213\ue208\ue213\ue208\ue213\ue208\ue213\ue208\ue213\ue208\ue213\ue208\ue213\ue208\ue213\ue208\ue213\ue209\ue213\ue20a\ue213\ue20b\ue213\ue20c\ue213\ue20d\ue213\ue20e\ue213\ue20f\ue213\ue210\ue213\ue212\ue000\ue214\ue001\ue215\ue002\ue216\ue003\ue217\ue004\ue218\ue005\ue219\ue006\ue21a", width: 186, font: "souls:death"}
 you_died_y: {char: "\ue000", width: 10, font: "minecraft:default"}
 you_died_o: {char: "\ue001", width: 11, font: "minecraft:default"}
 you_died_u: {char: "\ue002", width: 10, font: "minecraft:default"}
@@ -17,12 +20,60 @@ you_died_e: {char: "\ue005", width: 9, font: "minecraft:default"}
 you_died_d2: {char: "\ue006", width: 11, font: "minecraft:default"}
 you_died_gap: {char: "\ue00e", width: 3, font: "minecraft:default"}
 you_died_word: {char: "\ue00f", width: 10, font: "minecraft:default"}
-death_band_l: {char: "\ue007", width: 65, font: "minecraft:default"}
-death_band_m: {char: "\ue008", width: 65, font: "minecraft:default"}
-death_band_r: {char: "\ue009", width: 65, font: "minecraft:default"}
-death_band_pre: {char: "\ue010", width: -210, font: "minecraft:default"}
-death_band_post: {char: "\ue011", width: -302, font: "minecraft:default"}
-death_band_back: {char: "\ue012", width: -1, font: "minecraft:default"}
+death_band_l0: {char: "\ue200", width: 33, font: "minecraft:default"}
+death_band_l1: {char: "\ue201", width: 33, font: "minecraft:default"}
+death_band_l2: {char: "\ue202", width: 33, font: "minecraft:default"}
+death_band_l3: {char: "\ue203", width: 33, font: "minecraft:default"}
+death_band_l4: {char: "\ue204", width: 33, font: "minecraft:default"}
+death_band_l5: {char: "\ue205", width: 33, font: "minecraft:default"}
+death_band_l6: {char: "\ue206", width: 33, font: "minecraft:default"}
+death_band_l7: {char: "\ue207", width: 33, font: "minecraft:default"}
+death_band_m: {char: "\ue208", width: 33, font: "minecraft:default"}
+death_band_r7: {char: "\ue209", width: 33, font: "minecraft:default"}
+death_band_r6: {char: "\ue20a", width: 33, font: "minecraft:default"}
+death_band_r5: {char: "\ue20b", width: 33, font: "minecraft:default"}
+death_band_r4: {char: "\ue20c", width: 33, font: "minecraft:default"}
+death_band_r3: {char: "\ue20d", width: 33, font: "minecraft:default"}
+death_band_r2: {char: "\ue20e", width: 33, font: "minecraft:default"}
+death_band_r1: {char: "\ue20f", width: 33, font: "minecraft:default"}
+death_band_r0: {char: "\ue210", width: 26, font: "minecraft:default"}
+death_band_pre: {char: "\ue211", width: -338, font: "minecraft:default"}
+death_band_post: {char: "\ue212", width: -423, font: "minecraft:default"}
+death_band_back: {char: "\ue213", width: -1, font: "minecraft:default"}
+fade_you_died_y: {char: "\ue000", width: 19, font: "souls:death"}
+fade_you_died_o: {char: "\ue001", width: 21, font: "souls:death"}
+fade_you_died_u: {char: "\ue002", width: 18, font: "souls:death"}
+fade_you_died_d1: {char: "\ue003", width: 20, font: "souls:death"}
+fade_you_died_i: {char: "\ue004", width: 10, font: "souls:death"}
+fade_you_died_e: {char: "\ue005", width: 16, font: "souls:death"}
+fade_you_died_d2: {char: "\ue006", width: 20, font: "souls:death"}
+fade_after_y: {char: "\ue214", width: 7, font: "souls:death"}
+fade_after_o: {char: "\ue215", width: 7, font: "souls:death"}
+fade_after_u: {char: "\ue216", width: 22, font: "souls:death"}
+fade_after_d1: {char: "\ue217", width: 8, font: "souls:death"}
+fade_after_i: {char: "\ue218", width: 8, font: "souls:death"}
+fade_after_e: {char: "\ue219", width: 8, font: "souls:death"}
+fade_after_d2: {char: "\ue21a", width: 2, font: "souls:death"}
+fade_death_band_l0: {char: "\ue200", width: 65, font: "souls:death"}
+fade_death_band_l1: {char: "\ue201", width: 65, font: "souls:death"}
+fade_death_band_l2: {char: "\ue202", width: 65, font: "souls:death"}
+fade_death_band_l3: {char: "\ue203", width: 65, font: "souls:death"}
+fade_death_band_l4: {char: "\ue204", width: 65, font: "souls:death"}
+fade_death_band_l5: {char: "\ue205", width: 65, font: "souls:death"}
+fade_death_band_l6: {char: "\ue206", width: 65, font: "souls:death"}
+fade_death_band_l7: {char: "\ue207", width: 65, font: "souls:death"}
+fade_death_band_m: {char: "\ue208", width: 65, font: "souls:death"}
+fade_death_band_r7: {char: "\ue209", width: 65, font: "souls:death"}
+fade_death_band_r6: {char: "\ue20a", width: 65, font: "souls:death"}
+fade_death_band_r5: {char: "\ue20b", width: 65, font: "souls:death"}
+fade_death_band_r4: {char: "\ue20c", width: 65, font: "souls:death"}
+fade_death_band_r3: {char: "\ue20d", width: 65, font: "souls:death"}
+fade_death_band_r2: {char: "\ue20e", width: 65, font: "souls:death"}
+fade_death_band_r1: {char: "\ue20f", width: 65, font: "souls:death"}
+fade_death_band_r0: {char: "\ue210", width: 51, font: "souls:death"}
+fade_death_band_pre: {char: "\ue211", width: -676, font: "souls:death"}
+fade_death_band_post: {char: "\ue212", width: -846, font: "souls:death"}
+fade_death_band_back: {char: "\ue213", width: -1, font: "souls:death"}
 space_neg1: {char: "\ue020", width: -1, font: "souls:hud"}
 space_neg2: {char: "\ue021", width: -2, font: "souls:hud"}
 space_neg4: {char: "\ue022", width: -4, font: "souls:hud"}
@@ -181,4 +232,5 @@ text_space_pos32: {char: "\ue38d", width: 32, font: "minecraft:default"}
 text_space_pos64: {char: "\ue38e", width: 64, font: "minecraft:default"}
 text_space_pos128: {char: "\ue38f", width: 128, font: "minecraft:default"}
 layout: {margin: 8, left: 205, right: 206, mark_left: "#fefd01", mark_right: "#fefd02", mark_boss: "#fefd03", mark_boss_name: "#fefd04", mark_boss_shadow: "#fefd05", mark_hidden: "#fefd06", mark_boss_cap: "#fefd07", boss_width: 200, soul_box: 72, soul_inset: 2}
+death_fade: {mark_r: 254, shadow_r: 253, g0: 144}
 stats: {value_col: 18, col_gap: 14, chars: "0123456789.-%SABCDE", widths: [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 2, 3, 6, 4, 7, 6, 7, 7, 6]}

@@ -64,12 +64,32 @@ def write(path, text):
 TEXT_VSH_BLOCK = """
     // Square Soul (pack/shaders.py): GUI text colours and shadows.
     soulsShadow = 0.0;
+    soulsDeathT = 1.0e6;
     if (ProjMat[3][3] == 1.0) {
         ivec3 rgbi = ivec3(Color.rgb * 255.0 + 0.5);
         bool hudMark = rgbi.r == 254 && rgbi.g == 253 && rgbi.b >= 1 && rgbi.b <= 7;
         int hiC = max(rgbi.r, max(rgbi.g, rgbi.b));
         vec4 light = texelFetch(Sampler2, UV2 / 16, 0);
-        if ((!hudMark && hiC <= 63 && hiC > 0) || (hudMark && rgbi.b == 5)) {
+        bool deathMain = rgbi.r == DEATH_R && rgbi.g >= DEATH_G0 && rgbi.g <= DEATH_G0 + 93;
+        bool deathShadow = rgbi.r == DEATH_SHADOW_R && rgbi.g >= DEATH_G0 && rgbi.g <= DEATH_G0 + 93;
+        if (deathMain || deathShadow) {
+            // fading YOU DIED (death screen message line, pack/hud.py): the colour carries the game time of death
+            // t = (g - G0) * 256 + b (game time % 24000); ticks since death -> the fragment shader fades band and letters in
+            float t0 = float((rgbi.g - DEATH_G0) * 256 + rgbi.b);
+            float dt = GameTime * 24000.0 - t0;
+            if (dt < -12000.0) dt += 24000.0;
+            else if (dt > 12000.0) dt -= 24000.0;
+            soulsDeathT = (dt < -DEATH_WAIT || dt > DEATH_WAIT) ? 1.0e6 : dt;
+            if (deathShadow) {
+                // like the death screen title's shadow (2x: 2 GUI px, see below -0.5): 1.5 GUI px right and down, ink
+                soulsShadow = 1.0;
+                vertexColor = vec4(INK, Color.a * SHADOW_A) * light;
+                gl_Position.x += 0.5 * ProjMat[0][0];
+                gl_Position.y += 0.5 * ProjMat[1][1];
+            } else {
+                vertexColor = vec4(TEXT_WHITE, Color.a) * light;
+            }
+        } else if ((!hudMark && hiC <= 63 && hiC > 0) || (hudMark && rgbi.b == 5)) {
             // shadow copy (text colour x 0.25, drawn 1 GUI px right and down): half a pixel instead, warm ink halo
             soulsShadow = 1.0;
             if (!hudMark) vertexColor = vec4(INK, Color.a * SHADOW_A) * light;
@@ -104,6 +124,7 @@ in vec4 vertexColor;
 in vec2 texCoord0;
 in float soulsShadow;
 in float soulsGui;
+in float soulsDeathT;
 
 out vec4 fragColor;
 
@@ -115,14 +136,24 @@ bool mine(vec4 t) {
     return abs(t.b * 255.0 - 1.0) < 0.5 && t.a * 255.0 < 1.5;
 }
 
+// the YOU DIED band (pack/hud.py death_band): an alpha map whose texels are all RGB (0, 0, 2), painted ink here.
+// Its soft tails are kept (no 0.1 cut) and the vanilla shadow copy is not drawn (the band would double up).
+bool band(vec4 t) {
+    return t.r * 255.0 < 0.5 && t.g * 255.0 < 0.5 && abs(t.b * 255.0 - 2.0) < 0.5;
+}
+
 void main() {
     vec2 size = vec2(textureSize(Sampler0, 0));
     vec2 t = texCoord0 * size;
     ivec2 hiT = ivec2(size) - 1;
     vec4 centre = texelFetch(Sampler0, clamp(ivec2(floor(t)), ivec2(0), hiT), 0);
     bool ours = mine(centre);
+    bool isBand = band(centre);
     vec4 color;
     if (soulsGui > 0.5) {
+        if (isBand && soulsShadow > 0.5) {
+            discard;
+        }
         vec2 fp = clamp(vec2(abs(dFdx(t).x) + abs(dFdy(t).x), abs(dFdx(t).y) + abs(dFdy(t).y)), vec2(0.001), vec2(6.0));
         // shadow of our glyphs: the same coverage box-blurred over 2.5 more texels (a soft ink halo)
         vec2 fq = (ours && soulsShadow > 0.5) ? fp + vec2(2.5) : fp;
@@ -151,12 +182,19 @@ void main() {
             cov = clamp(cov / (fq.x * fq.y), 0.0, 1.0);
             cov = soulsShadow > 0.5 ? min(1.0, cov * 2.2) : pow(cov, GAMMA);
             color = vec4(1.0, 1.0, 1.0, cov);
+        } else if (isBand) {
+            color = vec4(BAND_INK, prem.a / (fp.x * fp.y));
         } else {
             prem /= fp.x * fp.y;
             color = prem.a > 0.0 ? vec4(prem.rgb / prem.a, prem.a) : vec4(0.0);
             if (color.a < 0.1) color.a = 0.0;
         }
         color *= vertexColor * ColorModulator;
+        if (soulsDeathT < 1.0e5) {
+            // fading YOU DIED: the band first, the letters out of it (ticks since death, see rendertype_text.vsh)
+            color.a *= isBand ? smoothstep(DEATH_BAND_T0, DEATH_BAND_T1, soulsDeathT)
+                              : smoothstep(DEATH_LETTERS_T0, DEATH_LETTERS_T1, soulsDeathT);
+        }
         if (color.a < 0.004) {
             discard;
         }
@@ -436,15 +474,31 @@ def text_vsh():
     """hud.py 의 HUD 셰이더 (바닐라 rendertype_text.vsh + HUD 덩이) 에 GUI 글자 덩이를 더한다."""
     s = hud.hud_shader()
     assert "out vec2 texCoord0;\n" in s and "    texCoord0 = UV0;\n" in s, "hud.py 의 HUD 셰이더 꼴이 바뀌었다"
-    s = s.replace("out vec2 texCoord0;\n", "out vec2 texCoord0;\nout float soulsShadow;\nout float soulsGui;\n", 1)
+    s = s.replace("out vec2 texCoord0;\n",
+                  "out vec2 texCoord0;\nout float soulsShadow;\nout float soulsGui;\nout float soulsDeathT;\n", 1)
+    # 서서히 나타나는 YOU DIED (5.6) 가 GameTime (globals.glsl) 을 읽는다
+    imp = "#moj_import <minecraft:projection.glsl>\n"
+    assert imp in s, "hud.py 의 HUD 셰이더 꼴이 바뀌었다 (projection import)"
+    s = s.replace(imp, imp + "#moj_import <minecraft:globals.glsl>\n", 1)
     block = TEXT_VSH_BLOCK
-    for k, v in (("TEXT_WHITE", vec3(TEXT)), ("TEXT_GREY", vec3(TEXT_GREY)), ("TEXT_OFF", vec3(TEXT_OFF)),
+    for k, v in (("DEATH_SHADOW_R", str(hud.DEATH_MARK_SHADOW_R)), ("DEATH_R", str(hud.DEATH_MARK_R)),
+                 ("DEATH_G0", str(hud.DEATH_MARK_G0)), ("DEATH_WAIT", f"{hud.DEATH_FADE_WAIT:.1f}"),
+                 ("TEXT_WHITE", vec3(TEXT)), ("TEXT_GREY", vec3(TEXT_GREY)), ("TEXT_OFF", vec3(TEXT_OFF)),
                  ("TEXT_DARK", vec3(TEXT_DARK)), ("TEXT_TITLE", vec3(TEXT_TITLE)),
                  ("TEXT_YELLOW", vec3(TEXT_YELLOW)), ("TEXT_HOVER", vec3(TEXT_HOVER)),
                  ("INK", vec3("ink0")), ("SHADOW_A", f"{SHADOW_ALPHA:.3f}")):
         block = block.replace(k, v)
     block = "    soulsGui = ProjMat[3][3] == 1.0 ? 1.0 : 0.0;\n" + block
     return s.replace("    texCoord0 = UV0;\n", "    texCoord0 = UV0;\n" + block, 1)
+
+
+def text_fsh():
+    """글자 넓이 평균 + YOU DIED 띠 (알파 지도를 먹으로) + 서서히 나타나는 YOU DIED (hud.DEATH_FADE_*)."""
+    s = TEXT_FSH.replace("GAMMA", f"{TEXT_GAMMA:.3f}").replace("BAND_INK", vec3("ink0"))
+    for k, v in (("DEATH_BAND_T0", hud.DEATH_FADE_BAND[0]), ("DEATH_BAND_T1", hud.DEATH_FADE_BAND[1]),
+                 ("DEATH_LETTERS_T0", hud.DEATH_FADE_LETTERS[0]), ("DEATH_LETTERS_T1", hud.DEATH_FADE_LETTERS[1])):
+        s = s.replace(k, f"{v:.1f}")
+    return s
 
 
 def blur_json():
@@ -485,7 +539,7 @@ def build(out):
     """셰이더·흐림 효과·비네트 그림을 쓴다. 쓴 셰이더 경로 목록 (팩 안) 을 돌려준다."""
     core = os.path.join(out, "assets", "minecraft", "shaders", "core")
     write(os.path.join(core, "rendertype_text.vsh"), text_vsh())
-    write(os.path.join(core, "rendertype_text.fsh"), TEXT_FSH.replace("GAMMA", f"{TEXT_GAMMA:.3f}"))
+    write(os.path.join(core, "rendertype_text.fsh"), text_fsh())
     write(os.path.join(core, "rendertype_text_see_through.fsh"), SEE_THROUGH_FSH)
     write(os.path.join(core, "gui.vsh"), GUI_VSH.replace("BRONZE", vec3("bronze2")).replace("PARCH", vec3(GUI_WHITE)))
     write(os.path.join(core, "gui.fsh"), GUI_FSH.replace("BRONZE1", vec3("bronze1")).replace("BLOOD", vec3("blood0"))

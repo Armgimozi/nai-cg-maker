@@ -78,7 +78,12 @@ public final class Config {
     public record HudCfg(boolean showSouls, int actionbarRefresh, double healthPx, double warmthPx, double staminaPx,
                          int minPx, int maxPx, double warmthPlaceholder, int barRefresh) {}
 
-    public record DeathCfg(boolean title, String titleGlyphs, String fallbackColor, int fadeIn, int stay, int fadeOut) {}
+    /**
+     * 사망 화면 YOU DIED (5.6). title: 플러그인 화면 제목 판. screenFade: 서서히 나타나는 판 (사망 화면 문구 줄). 팩은 이 둘을
+     * 읽어 만들고 (gen_pack), 플러그인은 jar 안 팩의 사망 화면 제목이 비었는지를 따른다 (DeathFlow: 둘이 어긋나도 겹치지 않게).
+     */
+    public record DeathCfg(boolean title, boolean screenFade, String titleGlyphs, String fallbackColor, int fadeIn, int stay,
+                           int fadeOut) {}
 
     public record PackCfg(boolean enabled, String url, boolean required, String sendAt, int joinDelay,
                           int configureTimeout, boolean selfCheck, int servePort) {}
@@ -152,7 +157,8 @@ public final class Config {
                 minPx, Math.max(minPx, Math.min(255, c.getInt("hud.bars.max-px", 190))),
                 c.getDouble("hud.bars.warmth-placeholder", 60), Math.max(1, c.getInt("hud.bars.refresh", 100)));
 
-        death = new DeathCfg(c.getBoolean("death.title", false), c.getString("death.title-glyphs", "you_died_title"),
+        death = new DeathCfg(c.getBoolean("death.title", false), c.getBoolean("death.screen-fade", true),
+                c.getString("death.title-glyphs", "you_died_title"),
                 c.getString("death.fallback-color", "#cc2418"), c.getInt("death.fade-in", 20),
                 c.getInt("death.stay", 6000), c.getInt("death.fade-out", 10));
 

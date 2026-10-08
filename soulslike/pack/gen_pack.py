@@ -4,11 +4,13 @@
 
   python3 pack/gen_pack.py            그림 생성 → artlint → zip
   python3 pack/gen_pack.py --no-dist  dist/packs/ 에 쓰지 않는다 (시험용)
-  python3 pack/gen_pack.py --death-title screen|plugin
-                                      사망 화면 제목을 정한다. 주지 않으면 플러그인 설정
-                                      (plugin/src/main/resources/config.yml 의 death.title) 을 따른다: false 면 screen
-                                      (사망 화면 제목이 YOU DIED), true 면 plugin (사망 화면 제목을 비우고 플러그인이 화면
-                                      제목으로 띄운다, 5.6 과 16절 질문 4). 설정 한 곳만 바꾸면 팩과 jar 가 함께 맞는다
+  python3 pack/gen_pack.py --death-title screen|fade|plugin
+                                      YOU DIED 를 어디에 둘지 정한다 (5.6). 주지 않으면 플러그인 설정
+                                      (plugin/src/main/resources/config.yml 의 death.title, death.screen-fade) 을 따른다:
+                                      death.title 이 true 면 plugin (사망 화면 제목을 비우고 플러그인이 화면 제목으로 띄운다,
+                                      16절 질문 4), 아니고 death.screen-fade 가 true 면 fade (사망 화면 제목을 비우고 플러그인이
+                                      사망 화면 문구 줄로 보내 서서히 나타난다), 둘 다 false 면 screen (사망 화면 제목이
+                                      YOU DIED, 늘 한꺼번에). 설정 한 곳만 바꾸면 팩과 jar 가 함께 맞는다
 
 결과
   pack/resourcepack/                          팩 폴더 (zip 에 들어가는 그대로)
@@ -157,20 +159,23 @@ def yaml_str(s):
     return '"' + "".join(out) + '"'
 
 
-def write_glyphs(path, glyphs, title, plugin_title, value_widths):
+def write_glyphs(path, glyphs, title, plugin_title, fade_line, value_widths):
     lines = [
         "# HUD·사망 화면 그림 글자 표 (pack/gen_pack.py 가 만든다. 직접 고치지 말 것)",
         "# 이름: {char: 문자, width: 진행 폭 (글꼴 픽셀, 음수는 왼쪽으로 민다), font: 글꼴}",
         "# 플러그인은 이 표로 Component.text(char).font(font) 를 만든다. 문자 번호를 코드에 적지 않는다.",
         "# you_died 는 사망 화면 제목 한 줄 전체 (deathScreen.title 과 같은 문자열). 언어 문자열은 글꼴을 고를 수 없어",
         "#   minecraft:default 에 있다 (10.9). you_died_title 은 플러그인 화면 제목용 (death.title: true) 한 줄 전체로",
-        "#   souls:hud 에 있다. 글꼴은 줄마다 font 를 따른다. 나머지는 한 글자씩.",
+        "#   souls:hud 에 있다. you_died_fade 는 서서히 나타나는 판 (death.screen-fade: true) 의 사망 화면 문구 한 줄 전체로",
+        "#   souls:death 에 있다 (플러그인이 죽은 게임 시각을 실은 표식 색을 입힌다, 5.6). 글꼴은 줄마다 font 를 따른다.",
+        "#   나머지는 한 글자씩 (fade_* 는 souls:death 의 글자).",
         "# text_space_* 는 기본 글꼴의 빈칸 (pack/typeset.py, 수치 표의 열 맞춤과 Dialog 제목 앞 빈칸).",
         "# stats 는 무기 설명 칸 수치 표의 열 (GUI 픽셀) 과 값 글자의 진행 폭 (기본 글꼴, pack/typeset.py 가 팩에서 잰 것).",
     ]
     adv = {(g.font, g.char): g.width for g in glyphs}
     rows = [("you_died", title, sum(adv[(hud.DEFAULT_FONT, ch)] for ch in title), hud.DEFAULT_FONT),
-            ("you_died_title", plugin_title, sum(adv[(hud.HUD_FONT, ch)] for ch in plugin_title), hud.HUD_FONT)]
+            ("you_died_title", plugin_title, sum(adv[(hud.HUD_FONT, ch)] for ch in plugin_title), hud.HUD_FONT),
+            ("you_died_fade", fade_line, sum(adv[(hud.DEATH_FONT, ch)] for ch in fade_line), hud.DEATH_FONT)]
     rows += [(g.name, g.char, g.width, g.font) for g in glyphs]
     rows += [(n, ch, w, typeset.DEFAULT_FONT) for n, ch, w in typeset.space_chars()]
     for name, ch, width, font in rows:
@@ -178,6 +183,8 @@ def write_glyphs(path, glyphs, title, plugin_title, value_widths):
     # HUD 자리 값 (hud.layout, 글꼴 셰이더와 같은 값). 플러그인 Glyphs 가 그림 글자와 따로 읽는다
     lines.append("layout: {" + ", ".join(f"{k}: {yaml_str(str(v)) if isinstance(v, str) else v}"
                                          for k, v in hud.layout().items()) + "}")
+    # 서서히 나타나는 YOU DIED 의 표식 (hud.death_mark, 글꼴 셰이더와 같은 값). 플러그인 Glyphs 가 그림 글자와 따로 읽는다
+    lines.append(f"death_fade: {{mark_r: {hud.DEATH_MARK_R}, shadow_r: {hud.DEATH_MARK_SHADOW_R}, g0: {hud.DEATH_MARK_G0}}}")
     chars = "".join(value_widths)
     lines.append(f"stats: {{value_col: {typeset.VALUE_COL}, col_gap: {typeset.COL_GAP}, chars: {yaml_str(chars)}, "
                  f"widths: [{', '.join(str(value_widths[ch]) for ch in chars)}]}}")
@@ -191,28 +198,36 @@ def pack_fallback(ko, en):
     return langpack.mc_format(langpack.split_style(en[PACK_DESCRIPTION_KEY])[1], order)
 
 
-def config_death_title():
-    """플러그인 config.yml 의 death.title (true 면 플러그인이 화면 제목으로 띄운다). 못 읽으면 False."""
+def death_mode_of(death):
+    """config.yml 의 death 묶음 → "plugin" (death.title), "fade" (death.screen-fade), "screen". make_dist 도 쓴다."""
+    death = death or {}
+    if death.get("title") is True:
+        return "plugin"
+    return "fade" if death.get("screen-fade") is True else "screen"
+
+
+def config_death_mode():
+    """플러그인 config.yml 의 YOU DIED 자리 (death_mode_of). 못 읽으면 screen."""
     try:
         import yaml
         with open(PLUGIN_CONFIG, encoding="utf-8") as f:
             cfg = yaml.safe_load(f) or {}
-        return (cfg.get("death") or {}).get("title") is True
+        return death_mode_of(cfg.get("death"))
     except (OSError, ImportError, ValueError) as ex:
-        print("config.yml 의 death.title 을 읽지 못해 screen 으로 만든다:", ex)
-        return False
+        print("config.yml 의 death 를 읽지 못해 screen 으로 만든다:", ex)
+        return "screen"
 
 
 def death_title_mode(argv):
-    """--death-title screen|plugin. 없으면 config.yml 의 death.title 을 따른다. 모르는 값이면 None."""
-    mode = "plugin" if config_death_title() else "screen"
+    """--death-title screen|fade|plugin. 없으면 config.yml 을 따른다 (config_death_mode). 모르는 값이면 None."""
+    mode = config_death_mode()
     for i, a in enumerate(argv):
         if a == "--death-title" and i + 1 < len(argv):
             mode = argv[i + 1]
         elif a.startswith("--death-title="):
             mode = a.split("=", 1)[1]
-    if mode not in ("screen", "plugin"):
-        print("--death-title 은 screen 또는 plugin 이다:", mode)
+    if mode not in ("screen", "fade", "plugin"):
+        print("--death-title 은 screen, fade, plugin 가운데 하나다:", mode)
         return None
     return mode
 
@@ -270,7 +285,8 @@ def main(argv):
     title = hud.death_title(glyphs)
 
     # 3. 언어 파일: 게임 문구 (assets/souls/lang) 와 바닐라 덮어쓰기 (assets/minecraft/lang, 사망 화면)
-    # YOU DIED 는 한 번만 보인다 (5.6). 기본은 사망 화면 제목 자리 (플러그인 death.title: false).
+    # YOU DIED 는 한 번만 보인다 (5.6). screen 이면 사망 화면 제목 자리 (늘 한꺼번에).
+    # fade 면 이 제목을 비우고 플러그인이 사망 화면 문구 줄 (souls:death) 로 보내 서서히 나타난다,
     # plugin 이면 이 제목을 비우고 플러그인이 화면 제목으로 띄운다 (둘을 함께 쓰면 겹쳐 보였다)
     packfonts = typeset.PackFonts.open(OUT)
     lang_files = langpack.build(tables, LANGS, typeset=typeset.Typeset(packfonts))
@@ -323,8 +339,10 @@ def main(argv):
             f.write(data)
 
     # 6. 글자 표, 미리보기
-    write_glyphs(os.path.join(RES, "glyphs.yml"), glyphs, title, hud.plugin_title(glyphs),
+    write_glyphs(os.path.join(RES, "glyphs.yml"), glyphs, title, hud.plugin_title(glyphs), hud.death_fade_line(glyphs),
                  typeset.Typeset(packfonts).value_widths())
+    print("YOU DIED:", {"screen": "사망 화면 제목 (한꺼번에)", "fade": "사망 화면 문구 줄 (서서히, death.screen-fade)",
+                        "plugin": "플러그인 화면 제목 (death.title)"}[mode])
     sheet, cell_w, _ = hud.you_died_sheet()
     previews.write_all(PREVIEW, {
         "sheet": sheet, "cell_w": cell_w, "glyphs": glyphs, "title": title, "height": hud.YOU_DIED_HEIGHT,

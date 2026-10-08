@@ -40,6 +40,7 @@ from PIL import Image
 
 import bar_styles
 import uidraw
+import palette
 from palette import c
 from uidraw import Img, Mask
 
@@ -132,13 +133,58 @@ YOU_DIED_HEIGHT = 12
 # 단추는 화면 높이/4 + 72 (GUI 높이가 가장 작은 240 일 때 132) 부터라, 그 위로 가능한 한 가운데에 둔다:
 # ascent -5 면 GUI y 84~108 (높이 240 에서 가운데가 40%), 단추와 24 픽셀 띈다. 바닐라 글씨 자리(9)보다 24 픽셀 아래.
 YOU_DIED_ASCENT = -5
-# 다크 소울의 사망 화면처럼 YOU DIED 뒤에 화면을 가로지르는 반투명 검은 띠 (2026-10-07, 다크 소울 UI). 기본 글꼴의 64 폭
-# 조각 여덟 (왼쪽 끝, 가운데 여섯, 오른쪽 끝: 글꼴 그림은 256×256 판에 들어가야 하므로 한 장으로는 그릴 수 없다) 이 이어져
-# 2배로 GUI 1024×44 픽셀 (GUI 폭 960 까지 덮는다). 글자 가운데에 맞춰 위·아래로 11 씩 (ascent 0), 위·아래 가장자리와
-# 양 끝은 알파 계단으로 옅어진다. 띠 앞뒤의 빈칸 두 글자가 띠의 진행 폭을 지워 제목이 바닐라처럼 글자 폭으로 가운데에 놓인다.
-DEATH_BAND = (("death_band_l", "\ue007"), ("death_band_m", "\ue008"), ("death_band_r", "\ue009"))
-DEATH_BAND_SPACES = ("death_band_pre", "\ue010"), ("death_band_post", "\ue011"), ("death_band_back", "\ue012")
-DEATH_BAND_TILE, DEATH_BAND_TILES, DEATH_BAND_H, DEATH_BAND_ASCENT = 64, 8, 22, 0
+# 다크 소울의 사망 화면처럼 YOU DIED 뒤에 화면을 가로지르는 검은 띠 (2026-10-07 다크 소울 UI, 2026-10-08 사용자 결정: 테두리 없이,
+# 위아래 끝이 흐려지며 사라지는 다크 소울 3 의 띠). 선·테·단단한 가장자리는 없다. 띠는 셰이더가 읽는 알파 지도다
+# (RGB 는 표식 DEATH_BAND_TAG, 알파가 짙기): 글꼴 셰이더 (shaders.py) 가 먹 (ink0) 으로 칠하고, 바닐라 그림자 사본은 그리지 않고
+# (띠가 두 겹으로 짙어지지 않게), 다른 그림 글자의 "알파 0.1 아래는 버림" 을 띠에는 하지 않는다 (꼬리가 끊기지 않게).
+#   세로   높이 DEATH_BAND_H_GUI (72) GUI 픽셀 = 글자 높이 (24) 의 세 배, 글자 가운데 (GUI y 96) 에 맞춘다 (GUI y 60~132).
+#          가운데에서 DEATH_BAND_CORE (13) 까지 DEATH_BAND_ALPHA, 그 밖은 끝 (36) 까지 smoothstep 으로 0 (23 GUI 픽셀에 걸쳐).
+#          GUI 한 픽셀에 2 텍셀 (DEATH_BAND_TEX) 이라 계단이 GUI 배율 4 에서도 2 화면 픽셀이다. 아래 끝 GUI y 132 는 단추가 가장
+#          높이 오는 자리 (GUI 높이 240: 240/4 + 72) 라 단추와 겹치지 않는다.
+#   가로   폭 DEATH_BAND_W_GUI (1536). 가운데에서 DEATH_BAND_FLAT (256) 까지 고르고, 끝 (768) 까지 smoothstep 으로 0. GUI 폭이
+#          512 이하 (1280×720 GUI 3, 1920×1080 GUI 4) 면 화면 끝까지 고르게 덮고, GUI 배율 2·1 처럼 넓은 화면에서는 양 끝이
+#          연기처럼 옅어진다 (네모 상자가 아니다).
+#   조각   64 GUI 픽셀 (128 텍셀) 폭 24 조각: 가운데 8 조각은 같은 그림 (m), 양쪽 8 조각씩은 저마다 다르다 (l0..l7, r0..r7).
+#          글꼴 그림 한 장은 클라이언트의 256×256 글꼴 판에 들어가야 한다. 띠 앞뒤의 빈칸 글자가 띠의 진행 폭을 지워 제목이
+#          바닐라처럼 글자 폭으로 가운데에 놓인다.
+# 같은 그림을 두 글꼴이 쓴다: 사망 화면 제목 (minecraft:default, 2배로 그려지므로 높이 36 글꼴 픽셀) 과 서서히 나타나는
+# 사망 화면 문구 줄 (souls:death, 1배라 높이 72).
+DEATH_BAND_TAG = palette.BAND_TAG   # 띠 그림의 RGB (0, 0, 2): 셰이더가 띠로 알아보는 표식. 팔레트 그림에는 없는 색 (artlint data)
+DEATH_BAND_H_GUI = 72
+DEATH_BAND_CORE = 13
+DEATH_BAND_ALPHA = 0.86
+DEATH_BAND_TEX = 2
+DEATH_BAND_TILE_GUI = 64
+DEATH_BAND_W_GUI = 1536
+DEATH_BAND_FLAT = 256
+DEATH_BAND_RAMP = 8                 # 한쪽 끝의 서로 다른 조각 수 ((768 - 256) / 64)
+DEATH_BAND_TILES = DEATH_BAND_W_GUI // DEATH_BAND_TILE_GUI
+# 조각 이름과 문자 (두 글꼴이 같은 번호를 쓴다): 시트 순서는 l0 (맨 왼쪽) .. l7, m, r7 .. r0 (맨 오른쪽)
+DEATH_BAND = tuple([(f"death_band_l{i}", chr(0xE200 + i)) for i in range(DEATH_BAND_RAMP)]
+                   + [("death_band_m", chr(0xE200 + DEATH_BAND_RAMP))]
+                   + [(f"death_band_r{i}", chr(0xE200 + 2 * DEATH_BAND_RAMP - i)) for i in range(DEATH_BAND_RAMP - 1, -1, -1)])
+DEATH_BAND_SPACES = ("death_band_pre", "\ue211"), ("death_band_post", "\ue212"), ("death_band_back", "\ue213")
+# 사망 화면 제목 (2배): 띠 높이 36 글꼴 픽셀, 띠 위 = 줄 y 30 + 7 - 7 = 30 (GUI 60)
+DEATH_BAND_ASCENT = 7
+
+# 서서히 나타나는 YOU DIED (config.yml death.screen-fade, 5.6). 바닐라 사망 화면은 제목을 늘 한꺼번에 그리고 화면마다 시계가 없다.
+# 그래서 이 판은 제목을 비우고 (gen_pack), 플러그인이 죽은 순간 사망 화면 문구 (deathScreenMessageOverride, 1배, GUI y 85,
+# 제목처럼 사망 화면의 붉은 덧칠 위) 에 같은 띠와 같은 글자를 souls:death 글꼴로 보낸다. 글자색이 표식이고 죽은 게임 시각을 싣는다:
+#   (DEATH_MARK_R, DEATH_MARK_G0 + t // 256, t % 256), 그림자는 ShadowColor (DEATH_MARK_SHADOW_R, ...) 로 같은 t.
+#   t = 죽은 틱의 world.getGameTime() % 24000. 글꼴 셰이더가 GameTime (클라이언트 세계의 게임 시각 % 24000, 틱 사이까지 매끈)
+#   과 견주어 띠는 DEATH_FADE_BAND, 글자는 DEATH_FADE_LETTERS 틱 사이에서 smoothstep 으로 나타나게 한다 (다크 소울처럼 어둠이 먼저,
+#   글자가 그 속에서). 글자색은 사망 화면 제목과 같게 TEXT (뼈빛) 을 곱하고, 그림자는 제목 (2배) 의 그림자와 같은 자리 (1.5 GUI 픽셀
+#   오른쪽 아래) 에 같은 먹빛. 글자는 souls:death 의 1배 글자 (높이 24, 그림 한 칸 = GUI 1 픽셀) 와 글자마다 빈칸을 더해 제목 판과
+#   같은 크기·같은 사이로 놓는다 (가로 자리는 화면 폭의 홀짝에 따라 1 GUI 픽셀까지 다를 수 있다).
+DEATH_FONT = NS + ":death"
+DEATH_MARK_R, DEATH_MARK_SHADOW_R, DEATH_MARK_G0 = 254, 253, 144   # G = 144 + t // 256 (144..237): HUD 표식 (G 253) 과 겹치지 않는다
+DEATH_FADE_BAND = (2.0, 18.0)       # 띠: 죽은 뒤 0.1 초에서 0.9 초 사이에 나타난다 (틱)
+DEATH_FADE_LETTERS = (6.0, 26.0)    # 글자: 0.3 초에서 1.3 초 사이
+DEATH_FADE_WAIT = 100.0             # 클라이언트 시계가 죽은 시각보다 이만큼 (틱) 넘게 앞이거나 뒤면 (시계가 튐, 아주 오래 죽어 있음)
+                                    # 기다리지 않고 바로 보인다: YOU DIED 가 오래 가려지는 일이 없게
+DEATH_FADE_LETTER_ASCENT = 8        # 1배 글자: 위 = 문구 줄 y 85 + 7 - 8 = 84 (제목 판과 같은 GUI y 84~108)
+DEATH_FADE_BAND_ASCENT = 32         # 1배 띠: 위 = 85 + 7 - 32 = 60 (제목 판과 같은 GUI y 60~132)
+DEATH_FADE_SPACES = tuple((f"fade_after_{n}", chr(0xE214 + i)) for i, (n, _) in enumerate(YOU_DIED_LETTERS))
 
 # 플러그인 화면 제목용 (death.title: true). 사망 화면 판과 같은 그림을 souls:hud 글꼴에 따로 넣어, 사망 화면 판의
 # 자리(ascent)를 바꿔도 이 판은 그대로 둔다. 화면 제목은 4배로 그려지므로 높이 12 면 그림 한 칸이 GUI 2픽셀:
@@ -188,32 +234,79 @@ def death_title(glyphs, prefix="you_died_"):
     died = gap.join(by[prefix + n] for n in ("d1", "i", "e", "d2"))
     band = ""
     if prefix == "you_died_" and DEATH_BAND[0][0] in by:
-        back = by[DEATH_BAND_SPACES[2][0]]
-        tiles = [DEATH_BAND[0][0]] + [DEATH_BAND[1][0]] * (DEATH_BAND_TILES - 2) + [DEATH_BAND[2][0]]
-        band = by[DEATH_BAND_SPACES[0][0]] + "".join(by[t] + back for t in tiles) + by[DEATH_BAND_SPACES[1][0]]
+        band = band_string(by)
     return band + you + word + died
+
+
+def band_tiles():
+    """띠 조각 이름을 왼쪽부터 (DEATH_BAND_TILES 개): l0..l7, m × 8, r7..r0."""
+    names = [n for n, _ in DEATH_BAND]
+    ramp = DEATH_BAND_RAMP
+    return names[:ramp] + [names[ramp]] * (DEATH_BAND_TILES - 2 * ramp) + names[ramp + 1:]
+
+
+def band_string(by, prefix=""):
+    """[앞 빈칸][조각 + 되돌림] × 24 [뒤 빈칸]: 진행 폭의 합이 0 (by: 이름 → 문자, prefix: souls:death 는 "fade_")."""
+    back = by[prefix + DEATH_BAND_SPACES[2][0]]
+    return (by[prefix + DEATH_BAND_SPACES[0][0]] + "".join(by[prefix + t] + back for t in band_tiles())
+            + by[prefix + DEATH_BAND_SPACES[1][0]])
+
+
+def death_fade_line(glyphs):
+    """
+    서서히 나타나는 판의 사망 화면 문구 한 줄 (souls:death 글꼴, 1배): 띠 + 글자마다 [글자][그 뒤 빈칸]. 빈칸은 제목 판 (2배) 과
+    같은 자리가 되게 gen 때 셈했다 (build).
+    """
+    by = {g.name: g.char for g in glyphs if g.font == DEATH_FONT}
+    out = band_string(by, "fade_")
+    for (n, _), (sp, _) in zip(YOU_DIED_LETTERS, DEATH_FADE_SPACES):
+        out += by["fade_you_died_" + n]
+        if sp in by:
+            out += by[sp]
+    return out
+
+
+def death_mark(t, shadow=False):
+    """죽은 게임 시각 t (0..23999) 를 실은 표식 글자색 (r, g, b). 플러그인 DeathFlow 와 셰이더가 같은 식을 쓴다."""
+    t = int(t) % 24000
+    return (DEATH_MARK_SHADOW_R if shadow else DEATH_MARK_R, DEATH_MARK_G0 + t // 256, t % 256)
+
+
+def band_alpha():
+    """띠의 알파 (세로 텍셀 × 가로 GUI 반 픽셀 단위 전체 폭) 를 0..1 로. 가로·세로 프로필의 곱."""
+    h = DEATH_BAND_H_GUI * DEATH_BAND_TEX
+    w = DEATH_BAND_W_GUI * DEATH_BAND_TEX
+
+    def smooth(e0, e1, x):
+        t = np.clip((x - e0) / (e1 - e0), 0.0, 1.0)
+        return t * t * (3.0 - 2.0 * t)
+
+    yc = (np.arange(h) + 0.5) / DEATH_BAND_TEX - DEATH_BAND_H_GUI / 2
+    v = 1.0 - smooth(DEATH_BAND_CORE, DEATH_BAND_H_GUI / 2, np.abs(yc))
+    xc = (np.arange(w) + 0.5) / DEATH_BAND_TEX - DEATH_BAND_W_GUI / 2
+    hz = 1.0 - smooth(DEATH_BAND_FLAT, DEATH_BAND_W_GUI / 2, np.abs(xc))
+    return DEATH_BAND_ALPHA * v[:, None] * hz[None, :]
 
 
 def death_band():
     """
-    YOU DIED 뒤의 띠 조각 셋 (왼쪽 끝, 가운데, 오른쪽 끝) 을 한 그림에, GUI 한 픽셀에 2 텍셀 (칸 128 텍셀 = GUI 64, 높이 44 텍셀 =
-    공급자 높이 22). 먹 한 색에 알파 계단 (가운데 82%), 위·아래 안쪽에 반 픽셀 청동 실 (단추·창의 금실과 같은 말), 양 끝 32 텍셀에서
-    옅어진다.
+    YOU DIED 뒤의 띠 조각 (DEATH_BAND 순서: l0..l7, m, r7..r0) 을 한 그림에. GUI 한 픽셀에 2 텍셀 (조각 128×144 텍셀 =
+    GUI 64×72). RGB 는 모두 표식 DEATH_BAND_TAG (알파 0 인 곳까지), 알파는 band_alpha 를 8 비트로 반올림.
     """
-    t, h = DEATH_BAND_TILE * S, DEATH_BAND_H * S
-    img = Img(t * 3, h)
-    rows = (0.10, 0.22, 0.36, 0.50, 0.62, 0.72)
-    for y in range(h):
-        d = min(y, h - 1 - y)
-        ra = rows[d] if d < len(rows) else 0.82
-        for i in range(3):
-            for x in range(t):
-                e = x if i == 0 else (t - 1 - x if i == 2 else t)
-                k = 1.0 if e >= 32 else (e + 1) / 33.0
-                img.put(i * t + x, y, "ink0", ra * k)
-                if y in (5, h - 6):
-                    img.put(i * t + x, y, "bronze2" if y == 5 else "rust1", 0.85 * k)
-    return img.image()
+    a = band_alpha()
+    tw = DEATH_BAND_TILE_GUI * DEATH_BAND_TEX
+    ramp = DEATH_BAND_RAMP
+    cols = [a[:, i * tw:(i + 1) * tw] for i in range(ramp)]                        # l0..l7
+    cols.append(a[:, ramp * tw:(ramp + 1) * tw])                                   # m (평평한 가운데 첫 조각)
+    n = DEATH_BAND_TILES
+    cols += [a[:, i * tw:(i + 1) * tw] for i in range(n - ramp, n)]                # r7..r0 (왼쪽부터)
+    mid = a[:, (n // 2) * tw:(n // 2 + 1) * tw]
+    assert np.allclose(cols[ramp], mid), "띠 가운데 조각이 고르지 않다 (DEATH_BAND_FLAT 이 조각 경계에 맞지 않는다)"
+    al = np.clip(np.rint(np.concatenate(cols, axis=1) * 255), 0, 255).astype(np.uint8)
+    rgba = np.zeros(al.shape + (4,), np.uint8)
+    rgba[..., :3] = DEATH_BAND_TAG
+    rgba[..., 3] = al
+    return Image.fromarray(rgba, "RGBA")
 
 
 def plugin_title(glyphs):
@@ -821,17 +914,21 @@ def build(out, digit_role):
     adv = {g.name: g.width for g in glyphs}
     letters_w = (sum(adv["you_died_" + n] for n, _ in YOU_DIED_LETTERS) + 5 * YOU_DIED_GAP[2] + YOU_DIED_WORD[2])
     band = death_band()
-    save(band, sprite_path(out, NS, "font", "hud_death_band.png"))   # hud_: 곧은 줄 띠라 artlint 가 반복으로 세지 않는다
-    band_w = DEATH_BAND_TILE * DEATH_BAND_TILES
-    pre = (letters_w - band_w) // 2
-    post = -(pre + band_w)
-    tile = DEATH_BAND_TILE * S
+    save(band, sprite_path(out, NS, "font", "hud_death_band.png"))   # 알파 지도 (artlint data band, palette.BAND_MAP)
+    tile = DEATH_BAND_TILE_GUI * DEATH_BAND_TEX
+    band_font_h = DEATH_BAND_H_GUI // 2                # 사망 화면 제목은 2배: 글꼴 픽셀 = GUI 2 픽셀
+    band_scale = band_font_h / band.height
+    tile_adv = {}
     for i, (name, ch) in enumerate(DEATH_BAND):
-        glyphs.append(Glyph(name, ch, glyph_advance(band, i * tile, tile, band.height, 1.0 / S), DEFAULT_FONT, "bitmap"))
+        tile_adv[name] = glyph_advance(band, i * tile, tile, band.height, band_scale)
+        glyphs.append(Glyph(name, ch, tile_adv[name], DEFAULT_FONT, "bitmap"))
+    band_w = DEATH_BAND_W_GUI // 2
+    pre = (letters_w - band_w) // 2
+    post = -(pre + sum(tile_adv[t] - 1 for t in band_tiles()))
     for (name, ch), a in zip(DEATH_BAND_SPACES, (pre, post, -1)):
         glyphs.append(Glyph(name, ch, a, DEFAULT_FONT, "space"))
     death_providers = [
-        {"type": "bitmap", "file": f"{NS}:font/hud_death_band.png", "height": DEATH_BAND_H, "ascent": DEATH_BAND_ASCENT,
+        {"type": "bitmap", "file": f"{NS}:font/hud_death_band.png", "height": band_font_h, "ascent": DEATH_BAND_ASCENT,
          "chars": ["".join(ch for _, ch in DEATH_BAND)]},
         {"type": "bitmap", "file": f"{NS}:font/you_died.png", "height": YOU_DIED_HEIGHT, "ascent": YOU_DIED_ASCENT,
          "chars": ["".join(ch for _, ch in YOU_DIED_LETTERS)]},
@@ -839,6 +936,39 @@ def build(out, digit_role):
                                        DEATH_BAND_SPACES[0][1]: pre, DEATH_BAND_SPACES[1][1]: post,
                                        DEATH_BAND_SPACES[2][1]: -1}},
     ]
+
+    # souls:death: 서서히 나타나는 판의 사망 화면 문구 (1배, GUI 픽셀 = 글꼴 픽셀). 같은 띠 그림과 같은 글자 그림을 1배 높이로,
+    # 글자마다 뒤에 빈칸을 두어 제목 판 (2배) 과 같은 자리에 놓는다: 제목 판의 글자 i 는 진행 폭 adv_i (글꼴 픽셀) × 2 와
+    # 사이 빈칸 × 2 만큼 가고, 1배 글자는 그림 폭 + 1 만큼 가므로 그 차를 빈칸으로 채운다
+    fscale = YOU_DIED_HEIGHT * 2 / cell_h
+    fade_adv = {}
+    for i, (name, ch) in enumerate(YOU_DIED_LETTERS):
+        fade_adv[name] = glyph_advance(sheet, i * cell_w, cell_w, cell_h, fscale)
+        glyphs.append(Glyph("fade_you_died_" + name, ch, fade_adv[name], DEATH_FONT, "bitmap"))
+    gaps = [YOU_DIED_GAP[2]] * 2 + [YOU_DIED_WORD[2]] + [YOU_DIED_GAP[2]] * 3 + [0]
+    fade_space = {}
+    for (name, _), (sp, ch), gp in zip(YOU_DIED_LETTERS, DEATH_FADE_SPACES, gaps):
+        w = 2 * (adv["you_died_" + name] + gp) - fade_adv[name]
+        assert w >= 0, f"souls:death {name}: 빈칸이 음수 ({w})"
+        if w:
+            fade_space[ch] = w
+            glyphs.append(Glyph(sp, ch, w, DEATH_FONT, "space"))
+    fade_tile = {}
+    for i, (name, ch) in enumerate(DEATH_BAND):
+        fade_tile[name] = glyph_advance(band, i * tile, tile, band.height, DEATH_BAND_H_GUI / band.height)
+        glyphs.append(Glyph("fade_" + name, ch, fade_tile[name], DEATH_FONT, "bitmap"))
+    fpre = 2 * pre
+    fpost = -(fpre + sum(fade_tile[t] - 1 for t in band_tiles()))
+    for (name, ch), a in zip(DEATH_BAND_SPACES, (fpre, fpost, -1)):
+        glyphs.append(Glyph("fade_" + name, ch, a, DEATH_FONT, "space"))
+    death_fade_font = {"providers": [
+        {"type": "bitmap", "file": f"{NS}:font/hud_death_band.png", "height": DEATH_BAND_H_GUI,
+         "ascent": DEATH_FADE_BAND_ASCENT, "chars": ["".join(ch for _, ch in DEATH_BAND)]},
+        {"type": "bitmap", "file": f"{NS}:font/you_died.png", "height": YOU_DIED_HEIGHT * 2,
+         "ascent": DEATH_FADE_LETTER_ASCENT, "chars": ["".join(ch for _, ch in YOU_DIED_LETTERS)]},
+        {"type": "space", "advances": {**fade_space, DEATH_BAND_SPACES[0][1]: fpre, DEATH_BAND_SPACES[1][1]: fpost,
+                                       DEATH_BAND_SPACES[2][1]: -1}},
+    ]}
 
     # souls:hud: 빈칸 + 플러그인 화면 제목 + HUD 막대·소울 상자·보스 막대
     advances = {}
@@ -870,5 +1000,6 @@ def build(out, digit_role):
         # 유니코드 글꼴 강제 설정을 켠 사람도 같은 제목을 보게 같은 공급자를 넣는다
         ("minecraft", "uniform"): {"providers": list(death_providers)},
         (NS, "hud"): hud_font,
+        (NS, "death"): death_fade_font,
     }
     return glyphs, fonts, providers

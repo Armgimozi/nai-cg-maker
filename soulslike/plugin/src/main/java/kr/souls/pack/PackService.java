@@ -94,6 +94,20 @@ public final class PackService implements Listener {
         return o != null && o.has(key) ? o.get(key).getAsString() : null;
     }
 
+    private Boolean deathTitleBlank;
+
+    /**
+     * jar 안 팩의 사망 화면 제목 (en_us 의 deathScreen.title) 이 빈 글인가 (5.6): 팩이 YOU DIED 를 사망 화면 제목에 두지 않았다
+     * (gen_pack 의 fade 또는 plugin 판). 팩이 없으면 false. 한 번 읽고 기억한다 (jar 안 팩은 바뀌지 않는다).
+     */
+    public boolean deathTitleBlank() {
+        if (deathTitleBlank == null) {
+            if (data == null) return false;
+            deathTitleBlank = "".equals(packLang("en_us", "deathScreen.title"));
+        }
+        return deathTitleBlank;
+    }
+
     /** jar 안 팩의 언어 파일 (assets/&lt;ns&gt;/lang/&lt;code&gt;.json) 의 열쇠들. 없으면 null. /souls check 가 lang 과 견준다. */
     public Set<String> packLangKeys(String ns, String code) {
         JsonObject o = langFile(ns, code);

@@ -213,17 +213,23 @@ def is_mark_path(path):
 # 셰이더가 읽는 자료 그림 (색이 아니다, artlint 는 꼴만 본다):
 #   글꼴 덮임 (fonts.py 의 textures/font/text_*.png): R = 글자 덮임, G = 0, B = 1 (우리 글자 표식), 알파 0 (진행 폭 점만 1)
 #   게임 화면 비네트의 세기 지도 (shaders.py, textures/misc/vignette.png): 회색 (바닐라도 그렇다)
+#   YOU DIED 뒤의 띠 (hud.py death_band, textures/font/hud_death_band.png): 알파 지도. RGB 는 모두 표식 (0, 0, 2) 이고
+#   글꼴 셰이더가 먹 (ink0) 으로 칠한다 (보이는 색은 팔레트 그대로). 매끈한 알파 그라데이션이 이 그림의 뜻이다 (5.6)
 TEXT_DATA = ("textures/font/text_",)
 SHADE_MAP = ("textures/misc/vignette.png",)
+BAND_MAP = ("textures/font/hud_death_band.png",)
+BAND_TAG = (0, 0, 2)
 
 
 def data_kind(path):
-    """자료 그림이면 "text" 또는 "shade", 아니면 None."""
+    """자료 그림이면 "text", "shade", "band", 아니면 None."""
     p = path.replace("\\", "/").lower()
     if any(g in p for g in TEXT_DATA):
         return "text"
     if any(p.endswith(g) for g in SHADE_MAP):
         return "shade"
+    if any(p.endswith(g) for g in BAND_MAP):
+        return "band"
     return None
 
 

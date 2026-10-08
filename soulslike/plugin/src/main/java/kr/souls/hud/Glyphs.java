@@ -70,10 +70,17 @@ public final class Glyphs {
      */
     public record Stats(int valueCol, int colGap, Map<Character, Integer> widths) {}
 
+    /**
+     * 서서히 나타나는 YOU DIED 의 표식 (glyphs.yml 의 death_fade, pack/hud.py death_mark): 글자색 (r, g0 + t / 256, t % 256),
+     * 그림자 (shadowR, 같은 g·b). t = 죽은 틱의 게임 시각 % 24000. 글꼴 셰이더가 같은 식으로 읽는다 (10.8).
+     */
+    public record DeathMark(int r, int shadowR, int g0) {}
+
     private static final Key DEFAULT_FONT = Key.key("souls", "hud");
     private static Map<String, Glyph> glyphs = Collections.emptyMap();
     private static Layout layout;
     private static Stats stats;
+    private static DeathMark deathMark;
 
     private Glyphs() {}
 
@@ -95,6 +102,8 @@ public final class Glyphs {
                     color(lay.getString("mark_boss"), 0xfefd03), color(lay.getString("mark_boss_name"), 0xfefd04),
                     color(lay.getString("mark_boss_shadow"), 0xfefd05), color(lay.getString("mark_hidden"), 0xfefd06),
                     color(lay.getString("mark_boss_cap"), 0xfefd07), lay.getInt("boss_width", 200));
+            ConfigurationSection df = root.getConfigurationSection("death_fade");
+            deathMark = df == null ? null : new DeathMark(df.getInt("mark_r", 254), df.getInt("shadow_r", 253), df.getInt("g0", 144));
             ConfigurationSection st = root.getConfigurationSection("stats");
             stats = null;
             if (st != null) {
@@ -105,7 +114,7 @@ public final class Glyphs {
                 stats = new Stats(st.getInt("value_col", 18), st.getInt("col_gap", 14), Collections.unmodifiableMap(w));
             }
             for (String name : root.getKeys(false)) {
-                if (name.equals("layout") || name.equals("stats")) continue;
+                if (name.equals("layout") || name.equals("stats") || name.equals("death_fade")) continue;
                 ConfigurationSection g = root.getConfigurationSection(name);
                 if (g == null) continue;
                 String ch = decode(g.getString("char", ""));
@@ -207,6 +216,20 @@ public final class Glyphs {
     public static Component dialogTitle(Component title) {
         if (glyphs.get("text_space_pos1") == null) return title;
         return Component.text(textSpaces(DIALOG_TITLE_PAD)).append(title);
+    }
+
+    /**
+     * 서서히 나타나는 YOU DIED 한 줄 (사망 화면 문구, 5.6): glyphs.yml 의 you_died_fade (souls:death) 에 죽은 게임 시각을 실은
+     * 표식 색과 그림자 색을 입힌다. 글자나 표식이 없으면 (옛 팩) null.
+     */
+    public static Component deathFadeLine(long gameTime) {
+        Glyph g = glyphs.get("you_died_fade");
+        DeathMark m = deathMark;
+        if (g == null || m == null) return null;
+        int t = (int) Math.floorMod(gameTime, 24000L);
+        int gb = ((m.g0() + t / 256) << 8) | (t % 256);
+        return Component.text(g.ch()).font(g.font()).color(TextColor.color((m.r() << 16) | gb))
+                .shadowColor(ShadowColor.shadowColor(0xFF000000 | (m.shadowR() << 16) | gb));
     }
 
     /** 빈칸으로 가른 이름들을 이어 붙인 글. 하나라도 없으면 null (부른 쪽이 일반 글씨로 대신한다). */
