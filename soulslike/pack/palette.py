@@ -215,14 +215,18 @@ def is_mark_path(path):
 #   게임 화면 비네트의 세기 지도 (shaders.py, textures/misc/vignette.png): 회색 (바닐라도 그렇다)
 #   YOU DIED 뒤의 띠 (hud.py death_band, textures/font/hud_death_band.png): 알파 지도. RGB 는 모두 표식 (0, 0, 2) 이고
 #   글꼴 셰이더가 먹 (ink0) 으로 칠한다 (보이는 색은 팔레트 그대로). 매끈한 알파 그라데이션이 이 그림의 뜻이다 (5.6)
+#   사망 화면 단추 가림막 (hud.py death_veil, textures/font/hud_death_veil.png): RGB 표식 (0, 0, 3) 의 불투명 판. 모양과 짙기는
+#   글꼴 셰이더가 GUI 자리에서 셈하고 먹 (ink0) 으로 칠한다 (5.6)
 TEXT_DATA = ("textures/font/text_",)
 SHADE_MAP = ("textures/misc/vignette.png",)
 BAND_MAP = ("textures/font/hud_death_band.png",)
 BAND_TAG = (0, 0, 2)
+VEIL_MAP = ("textures/font/hud_death_veil.png",)
+VEIL_TAG = (0, 0, 3)
 
 
 def data_kind(path):
-    """자료 그림이면 "text", "shade", "band", 아니면 None."""
+    """자료 그림이면 "text", "shade", "band", "veil", 아니면 None."""
     p = path.replace("\\", "/").lower()
     if any(g in p for g in TEXT_DATA):
         return "text"
@@ -230,6 +234,8 @@ def data_kind(path):
         return "shade"
     if any(p.endswith(g) for g in BAND_MAP):
         return "band"
+    if any(p.endswith(g) for g in VEIL_MAP):
+        return "veil"
     return None
 
 

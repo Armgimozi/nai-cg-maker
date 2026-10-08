@@ -203,7 +203,8 @@ def death_mode_of(death):
     death = death or {}
     if death.get("title") is True:
         return "plugin"
-    return "fade" if death.get("screen-fade") is True else "screen"
+    # 플러그인 Config.java, 봇 lib.deathConfig 와 같은 기본값: death.screen-fade 가 없으면 fade
+    return "fade" if death.get("screen-fade", True) is True else "screen"
 
 
 def config_death_mode():

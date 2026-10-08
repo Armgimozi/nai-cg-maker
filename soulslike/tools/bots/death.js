@@ -2,7 +2,8 @@
 // "YOU DIED" 는 한 번만 보인다. 자리는 config.yml 의 death.* 를 따른다 (lib.deathConfig):
 //   fade (기본, death.screen-fade): 팩의 deathScreen.title 이 비고, 플러그인이 사망 화면 문구 줄에 souls:death 그림 글자 한 줄
 //         (glyphs.yml you_died_fade, 띠 + 글자) 을 보낸다. 글자색·그림자색이 죽은 게임 시각을 싣는 표식 (glyphs.yml death_fade).
-//         죽은 채 나갔다 들어오면 바로 일어선다 (문구 줄이 다시 오지 않으므로)
+//         죽은 채 나갔다 들어오면 바로 일어선다 (문구 줄이 다시 오지 않으므로). 줄에는 단추 가림막 (fade_death_veil) 도 있다.
+//         팩을 다 싣지 않은 사람 (holdPack) 에게는 문구 줄을 비운다 (그 클라이언트에는 souls:death 글꼴이 없다)
 //   screen: 팩 쪽 deathScreen.title (glyphs.yml 의 그림 글자) 이고 플러그인은 아무것도 보내지 않는다
 //   plugin (death.title): 팩 제목이 비고 플러그인 화면 제목이 일어설 때까지 떠 있다
 // 그림 글자는 붉고 크다. 채팅 알림은 없다. 인벤토리는 그대로, 일어서면 souls_world 시험 방, 체력·스태미나가 찬다.
@@ -109,7 +110,7 @@ L.run('death', async (sc) => {
   const tt = dc.title ? b.p.titleTimes[b.p.titleTimes.length - 1] : null
   if (!dc.title) {
     sc.check('no plugin title over the death screen (YOU DIED shown once)', !title, title ? JSON.stringify(title.plain) : '')
-    sc.check(`server TITLE line mode=${dc.mode}`, tl && tl.kv.mode === dc.mode && (!fade || tl.kv.glyph === 'true'), tl ? tl.line : '')
+    sc.check(`server TITLE line mode=${dc.mode}`, tl && tl.kv.mode === dc.mode && (!fade || (tl.kv.glyph === 'true' && tl.kv.pack === 'true')), tl ? tl.line : '')
     if (fade && tl && dth) {
       // 문구 줄의 표식 색이 서버가 적은 죽은 게임 시각 (gt) 을 싣는다 (셰이더가 이 값으로 서서히 나타나게 한다)
       const m = fadeMark(dth)
@@ -154,17 +155,23 @@ L.run('death', async (sc) => {
       let height = 0
       const errs = []
       let letters = 0
-      // 제목 뒤의 검은 띠 (다크 소울 사망 화면, 5.6): 글자로 세지 않는다
+      // 제목 뒤의 검은 띠 (다크 소울 사망 화면, 5.6) 와 문구 줄의 단추 가림막: 글자로 세지 않는다
       const band = new Set(Object.entries(glyphs || {}).filter(([n, g]) => /^(fade_)?death_band/.test(n) && g.font === line.font)
         .map(([, g]) => g.char))
+      const veil = new Set(Object.entries(glyphs || {}).filter(([n, g]) => /^fade_death_veil/.test(n) && g.font === line.font)
+        .map(([, g]) => g.char))
       let bandTiles = 0
+      let veils = 0
       for (const ch of [...line.char]) {
         const c = glyphCell(zip, line.font, ch)
         if (c.err) errs.push(c.err)
         else if (band.has(ch)) { if (!c.space) bandTiles++ }
+        else if (veil.has(ch)) { if (!c.space) veils++ }
         else if (!c.space) { px.push(...c.px); height = Math.max(height, c.height); letters++ }
       }
       if (!dc.title) sc.check(`${label}: dark band behind the letters (death_band tiles)`, bandTiles >= 2, bandTiles + '조각')
+      if (label === 'fade line') sc.check('fade line: one button veil (fade_death_veil)', veils === 1, veils + '장')
+      else sc.check(`${label}: no button veil in the title`, veils === 0, veils + '장')
       sc.check(`${label}: every glyph exists in the pack font ${line.font}`, !errs.length, errs.join(', ') || `${letters}글자`)
       sc.check(`${label}: spells 7 letters (Y O U D I E D)`, letters === 7, letters + '글자')
       const red = redness(px)
@@ -245,6 +252,29 @@ L.run('death', async (sc) => {
     }
     sc.check('rejoining dead (fade mode): alive again after rejoin', alive, `hp=${b2.health}, respawn 패킷 ${b2.p.respawns.length}`)
     sc.check('no kick during rejoin', !b2.kick, b2.kick || '')
+
+    // 팩을 다 싣기 전에 죽으면 (팩이 선택이 된 서버에서 받지 않은 사람도 같다): 문구 줄을 비워 클라이언트의 바닐라 사망 화면
+    // 제목 하나만 남는다 (souls:death 글꼴이 없는 클라이언트에 보내면 빈 네모 줄이 된다)
+    await b2.quit()
+    await L.sleep(1500)
+    const b3 = await L.connect(sc, { respawn: false, holdPack: true })
+    await L.sleep(1500)
+    const held = b3.tLines('PACK', 0).filter((x) => x.kv.status).map((x) => x.kv.status)
+    sc.check('holdPack: the pack is accepted but never loaded', held.includes('ACCEPTED') && !held.includes('SUCCESSFULLY_LOADED'), held.join(',') || '상태 줄 없음')
+    const from3 = b3.sys.length
+    const d3 = b3.p.deaths.length
+    const k3 = await b3.cmd('/soulstest kill', 'KILL')
+    sc.check('death before the pack is loaded', k3 && !!k3.line, k3 && k3.line)
+    await L.sleep(1500)
+    const dth3 = b3.p.deaths.slice(d3).find((d) => d.playerId === b3.id)
+    sc.check('no pack: death screen opens with an empty message (vanilla title is the only YOU DIED)', dth3 && dth3.message === '',
+      dth3 ? JSON.stringify(dth3.message).slice(0, 80) : '패킷 없음')
+    const tl3 = b3.tLines('TITLE', from3)[0]
+    sc.check('no pack: server TITLE line mode=fade pack=false', tl3 && tl3.kv.mode === 'fade' && tl3.kv.pack === 'false', tl3 ? tl3.line : '')
+    b3.respawn()
+    await L.sleep(1500)
+    sc.check('no pack: alive again after respawn', b3.health > 0, 'hp=' + b3.health)
+    sc.check('no kick without the pack', !b3.kick, b3.kick || '')
   }
 
   /** glyphs.yml 의 death_fade (표식: 글자색 R, 그림자 R, G 의 시작). 없으면 null. */

@@ -65,6 +65,7 @@ TEXT_VSH_BLOCK = """
     // Square Soul (pack/shaders.py): GUI text colours and shadows.
     soulsShadow = 0.0;
     soulsDeathT = 1.0e6;
+    soulsVeil = vec2(0.0);
     if (ProjMat[3][3] == 1.0) {
         ivec3 rgbi = ivec3(Color.rgb * 255.0 + 0.5);
         bool hudMark = rgbi.r == 254 && rgbi.g == 253 && rgbi.b >= 1 && rgbi.b <= 7;
@@ -79,7 +80,14 @@ TEXT_VSH_BLOCK = """
             float dt = GameTime * 24000.0 - t0;
             if (dt < -12000.0) dt += 24000.0;
             else if (dt > 12000.0) dt -= 24000.0;
-            soulsDeathT = (dt < -DEATH_WAIT || dt > DEATH_WAIT) ? 1.0e6 : dt;
+            // only a few ticks of latency can make dt negative; beyond that (or long after death) show at once
+            soulsDeathT = (dt < -DEATH_EARLY || dt > DEATH_WAIT) ? 1.0e6 : dt;
+            // the button veil's shape is set from the GUI position: x from the screen centre, y from the top of the
+            // death screen's two buttons (vanilla: GUI height / 4 + VEIL_BTN)
+            float guiW = ceil(2.0 / ProjMat[0][0] - 0.01);
+            float guiH = ceil(-2.0 / ProjMat[1][1] - 0.01);
+            vec2 at = (ModelViewMat * vec4(Position, 1.0)).xy;
+            soulsVeil = vec2(at.x - guiW * 0.5, at.y - (floor(guiH * 0.25) + VEIL_BTN));
             if (deathShadow) {
                 // like the death screen title's shadow (2x: 2 GUI px, see below -0.5): 1.5 GUI px right and down, ink
                 soulsShadow = 1.0;
@@ -125,6 +133,7 @@ in vec2 texCoord0;
 in float soulsShadow;
 in float soulsGui;
 in float soulsDeathT;
+in vec2 soulsVeil;
 
 out vec4 fragColor;
 
@@ -142,6 +151,11 @@ bool band(vec4 t) {
     return t.r * 255.0 < 0.5 && t.g * 255.0 < 0.5 && abs(t.b * 255.0 - 2.0) < 0.5;
 }
 
+// the death screen button veil (pack/hud.py death_veil): an opaque plate of RGB (0, 0, 3); its shape is computed here
+bool veil(vec4 t) {
+    return t.r * 255.0 < 0.5 && t.g * 255.0 < 0.5 && abs(t.b * 255.0 - 3.0) < 0.5;
+}
+
 void main() {
     vec2 size = vec2(textureSize(Sampler0, 0));
     vec2 t = texCoord0 * size;
@@ -149,9 +163,14 @@ void main() {
     vec4 centre = texelFetch(Sampler0, clamp(ivec2(floor(t)), ivec2(0), hiT), 0);
     bool ours = mine(centre);
     bool isBand = band(centre);
+    bool isVeil = veil(centre);
     vec4 color;
     if (soulsGui > 0.5) {
-        if (isBand && soulsShadow > 0.5) {
+        if ((isBand || isVeil) && soulsShadow > 0.5) {
+            discard;
+        }
+        if (isVeil && soulsDeathT > 1.0e5) {
+            // no death clock (not the fading line, or too long after death): the buttons stay clear
             discard;
         }
         vec2 fp = clamp(vec2(abs(dFdx(t).x) + abs(dFdy(t).x), abs(dFdx(t).y) + abs(dFdy(t).y)), vec2(0.001), vec2(6.0));
@@ -182,6 +201,13 @@ void main() {
             cov = clamp(cov / (fq.x * fq.y), 0.0, 1.0);
             cov = soulsShadow > 0.5 ? min(1.0, cov * 2.2) : pow(cov, GAMMA);
             color = vec4(1.0, 1.0, 1.0, cov);
+        } else if (isVeil) {
+            // flat over the buttons (x within VEIL_FLAT of the centre, y over the button block and VEIL_PAD more),
+            // smoothstep to nothing out to VEIL_HALF across and over VEIL_SOFT above and below
+            float vx = 1.0 - smoothstep(VEIL_FLAT, VEIL_HALF, abs(soulsVeil.x));
+            float d = max(-VEIL_PAD - soulsVeil.y, soulsVeil.y - (VEIL_BLOCK + VEIL_PAD));
+            float vy = 1.0 - smoothstep(0.0, VEIL_SOFT, d);
+            color = vec4(BAND_INK, VEIL_A * vx * vy);
         } else if (isBand) {
             color = vec4(BAND_INK, prem.a / (fp.x * fp.y));
         } else {
@@ -191,8 +217,10 @@ void main() {
         }
         color *= vertexColor * ColorModulator;
         if (soulsDeathT < 1.0e5) {
-            // fading YOU DIED: the band first, the letters out of it (ticks since death, see rendertype_text.vsh)
-            color.a *= isBand ? smoothstep(DEATH_BAND_T0, DEATH_BAND_T1, soulsDeathT)
+            // fading YOU DIED: the band first, the letters out of it, then the veil lifts off the buttons
+            // (ticks since death, see rendertype_text.vsh)
+            color.a *= isVeil ? 1.0 - smoothstep(VEIL_T0, VEIL_T1, soulsDeathT)
+                     : isBand ? smoothstep(DEATH_BAND_T0, DEATH_BAND_T1, soulsDeathT)
                               : smoothstep(DEATH_LETTERS_T0, DEATH_LETTERS_T1, soulsDeathT);
         }
         if (color.a < 0.004) {
@@ -475,7 +503,8 @@ def text_vsh():
     s = hud.hud_shader()
     assert "out vec2 texCoord0;\n" in s and "    texCoord0 = UV0;\n" in s, "hud.py 의 HUD 셰이더 꼴이 바뀌었다"
     s = s.replace("out vec2 texCoord0;\n",
-                  "out vec2 texCoord0;\nout float soulsShadow;\nout float soulsGui;\nout float soulsDeathT;\n", 1)
+                  "out vec2 texCoord0;\nout float soulsShadow;\nout float soulsGui;\nout float soulsDeathT;\n"
+                  "out vec2 soulsVeil;\n", 1)
     # 서서히 나타나는 YOU DIED (5.6) 가 GameTime (globals.glsl) 을 읽는다
     imp = "#moj_import <minecraft:projection.glsl>\n"
     assert imp in s, "hud.py 의 HUD 셰이더 꼴이 바뀌었다 (projection import)"
@@ -483,6 +512,7 @@ def text_vsh():
     block = TEXT_VSH_BLOCK
     for k, v in (("DEATH_SHADOW_R", str(hud.DEATH_MARK_SHADOW_R)), ("DEATH_R", str(hud.DEATH_MARK_R)),
                  ("DEATH_G0", str(hud.DEATH_MARK_G0)), ("DEATH_WAIT", f"{hud.DEATH_FADE_WAIT:.1f}"),
+                 ("DEATH_EARLY", f"{hud.DEATH_FADE_EARLY:.1f}"), ("VEIL_BTN", f"{hud.DEATH_VEIL_BUTTONS[0]:.1f}"),
                  ("TEXT_WHITE", vec3(TEXT)), ("TEXT_GREY", vec3(TEXT_GREY)), ("TEXT_OFF", vec3(TEXT_OFF)),
                  ("TEXT_DARK", vec3(TEXT_DARK)), ("TEXT_TITLE", vec3(TEXT_TITLE)),
                  ("TEXT_YELLOW", vec3(TEXT_YELLOW)), ("TEXT_HOVER", vec3(TEXT_HOVER)),
@@ -493,11 +523,16 @@ def text_vsh():
 
 
 def text_fsh():
-    """글자 넓이 평균 + YOU DIED 띠 (알파 지도를 먹으로) + 서서히 나타나는 YOU DIED (hud.DEATH_FADE_*)."""
+    """글자 넓이 평균 + YOU DIED 띠 (알파 지도를 먹으로) + 서서히 나타나는 YOU DIED (hud.DEATH_FADE_*) + 단추 가림막 (hud.DEATH_VEIL_*)."""
     s = TEXT_FSH.replace("GAMMA", f"{TEXT_GAMMA:.3f}").replace("BAND_INK", vec3("ink0"))
     for k, v in (("DEATH_BAND_T0", hud.DEATH_FADE_BAND[0]), ("DEATH_BAND_T1", hud.DEATH_FADE_BAND[1]),
-                 ("DEATH_LETTERS_T0", hud.DEATH_FADE_LETTERS[0]), ("DEATH_LETTERS_T1", hud.DEATH_FADE_LETTERS[1])):
+                 ("DEATH_LETTERS_T0", hud.DEATH_FADE_LETTERS[0]), ("DEATH_LETTERS_T1", hud.DEATH_FADE_LETTERS[1]),
+                 ("VEIL_T0", hud.DEATH_VEIL_LIFT[0]), ("VEIL_T1", hud.DEATH_VEIL_LIFT[1]),
+                 ("VEIL_FLAT", hud.DEATH_VEIL_FLAT), ("VEIL_HALF", hud.DEATH_VEIL_HALF),
+                 ("VEIL_PAD", hud.DEATH_VEIL_PAD), ("VEIL_SOFT", hud.DEATH_VEIL_SOFT),
+                 ("VEIL_BLOCK", hud.DEATH_VEIL_BUTTONS[1])):
         s = s.replace(k, f"{v:.1f}")
+    s = s.replace("VEIL_A", f"{hud.DEATH_VEIL_ALPHA:.3f}")
     return s
 
 

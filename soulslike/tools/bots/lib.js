@@ -450,6 +450,12 @@ class Bot {
       this.p.packChecks.push(Promise.resolve({ ok: false, declined: true, url: d.url }))
       return
     }
+    // opts.holdPack: 받겠다고만 답하고 다 싣지 않는다 (아직 받는 중인 클라이언트처럼: 팩을 다 싣기 전에 죽는 길, 5.6)
+    if (this.opts.holdPack) {
+      reply(PACK_RESULT.ACCEPTED)
+      this.p.packChecks.push(Promise.resolve({ ok: false, held: true, url: d.url }))
+      return
+    }
     reply(PACK_RESULT.ACCEPTED)
     const job = fetchBuf(d.url).then((buf) => {
       const sha1 = crypto.createHash('sha1').update(buf).digest('hex')
@@ -620,7 +626,8 @@ function i64 (v) {
 
 /**
  * 봇 하나를 접속시킨다. 서버가 아직 짓는 중이라 막거나 포트가 닫혀 있으면 잠시 뒤 다시 한다.
- * opts: name, respawn(기본 true), retries(기본 8), host, port, allowDead(기본 true: 체력 0 으로 들어와도 접속으로 친다)
+ * opts: name, respawn(기본 true), retries(기본 8), host, port, allowDead(기본 true: 체력 0 으로 들어와도 접속으로 친다),
+ *   locale, declinePack (팩을 거절), holdPack (받겠다고만 하고 다 싣지 않는다)
  */
 async function connect (sc, opts = {}) {
   const name = opts.name || ENV.name || 'SoulsBot'

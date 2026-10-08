@@ -109,7 +109,15 @@ public final class Hud implements Listener {
 
     /** 이 사람에게 그림 글자 HUD 를 쓰는가: 팩을 실었고 glyphs.yml 에 HUD 자리 값이 있다. */
     private boolean glyphs(Player p) {
-        return packed.contains(p.getUniqueId()) && Glyphs.layout() != null && Glyphs.get("hud_hp_fill_1") != null;
+        return hasPack(p) && Glyphs.layout() != null && Glyphs.get("hud_hp_fill_1") != null;
+    }
+
+    /**
+     * 이 사람이 서버 팩을 실었는가 (SUCCESSFULLY_LOADED, 설정 단계에서 보낸 판은 들어올 때). 팩 글꼴이 없는 사람에게 그림 글자를 보내면
+     * 빈 네모 줄이 된다 (HUD, 서서히 나타나는 YOU DIED: DeathFlow).
+     */
+    public boolean hasPack(Player p) {
+        return packed.contains(p.getUniqueId());
     }
 
     /** 막대와 소울 상자를 다음 틱에 다시 만들어 보낸다. */

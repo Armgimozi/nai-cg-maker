@@ -6,7 +6,8 @@ HUD 그림과 글꼴 (DESIGN.md 10.2, 10.3, 10.9). gen_pack.py 가 부른다.
   사망 화면 제목  "YOU DIED" (사용자 결정 3). 손으로 찍은 픽셀 글자 art/you_died.txt (평평한 생피, 윗가장자리만 밝게) 를
                   minecraft:default 글꼴의 개인 영역 문자로 넣는다 (언어 문자열은 글꼴을 고를 수 없다, 10.9). 뒤에 화면을
                   가로지르는 검은 띠 (테두리 없이 위아래·양 끝이 흐려지며 사라지는 알파 지도, 셰이더가 먹으로 칠한다).
-  souls:death     서서히 나타나는 판 (config.yml death.screen-fade, 5.6): 같은 띠와 글자를 1배로 넣은 사망 화면 문구 줄.
+  souls:death     서서히 나타나는 판 (config.yml death.screen-fade, 5.6): 같은 띠와 글자를 1배로 넣은 사망 화면 문구 줄과
+                  그 줄에만 있는 단추 가림막 (글자가 다 나타날 때까지 단추를 어둠 속에 둔다).
   souls:hud 글꼴  자리 맞춤 빈칸 (음수·양수), 플러그인 화면 제목용 YOU DIED (death.title: true),
                   다크 소울 HUD (2026-10-07 사용자 결정, 2026-10-08 고딕 촛불 시안 B): 왼쪽 위 막대 셋 (체력·마나·스태미나) 의
                   조각과 마구리, 오른쪽 아래 소울 상자·넋 표식·숫자, 화면 아래 가운데 보스 막대 (체력·잃은 몫·자세 조각과
@@ -25,7 +26,8 @@ HUD 그림과 글꼴 (DESIGN.md 10.2, 10.3, 10.9). gen_pack.py 가 부른다.
 문자 번호
   U+E000~E00F  minecraft:default (사망 화면 제목 글자 E000~E006 과 그 사이 빈칸 E00E·E00F)
   U+E200~E213  minecraft:default 사망 화면 띠 (E200~E210 조각 열일곱, E211~E213 띠의 빈칸)
-  souls:death  YOU DIED 글자 E000~E006, 띠 조각 E200~E210, 띠의 빈칸 E211~E213, 글자 뒤 빈칸 E214~E21A (서서히 나타나는 판)
+  souls:death  YOU DIED 글자 E000~E006, 띠 조각 E200~E210, 띠의 빈칸 E211~E213, 글자 뒤 빈칸 E214~E21A,
+               단추 가림막 E21B 와 그 빈칸 E21C·E21D (서서히 나타나는 판)
   U+E020~E03F  souls:hud 빈칸 (E020~E02F 자리 맞춤, E030·E031 플러그인 제목의 글자 사이)
   U+E040~E0EF  souls:hud 그림 글자 (HUD 막대 조각·마구리, 소울 상자·표식·숫자, 보스 막대 조각·마구리. 지금 116개)
   U+E0F0~E0F6  souls:hud 플러그인 화면 제목 YOU DIED 글자
@@ -176,15 +178,36 @@ DEATH_BAND_ASCENT = 7
 #   (DEATH_MARK_R, DEATH_MARK_G0 + t // 256, t % 256), 그림자는 ShadowColor (DEATH_MARK_SHADOW_R, ...) 로 같은 t.
 #   t = 죽은 틱의 world.getGameTime() % 24000. 글꼴 셰이더가 GameTime (클라이언트 세계의 게임 시각 % 24000, 틱 사이까지 매끈)
 #   과 견주어 띠는 DEATH_FADE_BAND, 글자는 DEATH_FADE_LETTERS 틱 사이에서 smoothstep 으로 나타나게 한다 (다크 소울처럼 어둠이 먼저,
-#   글자가 그 속에서). 글자색은 사망 화면 제목과 같게 TEXT (뼈빛) 을 곱하고, 그림자는 제목 (2배) 의 그림자와 같은 자리 (1.5 GUI 픽셀
-#   오른쪽 아래) 에 같은 먹빛. 글자는 souls:death 의 1배 글자 (높이 24, 그림 한 칸 = GUI 1 픽셀) 와 글자마다 빈칸을 더해 제목 판과
-#   같은 크기·같은 사이로 놓는다 (가로 자리는 화면 폭의 홀짝에 따라 1 GUI 픽셀까지 다를 수 있다).
+#   글자가 그 속에서 붉게 부풀어 오른다: 글자는 띠가 약 85% 일 때까지 10% 밑이다). 글자색은 사망 화면 제목과 같게 TEXT (뼈빛) 을
+#   곱하고, 그림자는 제목 (2배) 의 그림자와 같은 자리 (1.5 GUI 픽셀 오른쪽 아래) 에 같은 먹빛. 글자는 souls:death 의 1배 글자
+#   (높이 24, 그림 한 칸 = GUI 1 픽셀) 와 글자마다 빈칸을 더해 제목 판과 같은 크기·같은 사이로 놓는다. 줄의 진행 폭은 글자 잉크 폭
+#   (184) 그대로라 (마지막 D 뒤의 빈 2 픽셀을 빈칸 -1 로 지운다) 사망 화면이 잉크를 가운데에 놓는다.
+# 단추 가림막 (DEATH_VEIL_*): 같은 줄에 단추 둘 (화면 높이/4 + 72 부터 44 GUI 픽셀) 을 덮는 먹 한 장을 더 싣는다. 바닐라는 단추를
+#   먼저 그리고 문구 줄을 그 위에 그리므로 (사망 화면 render: super.render 뒤 문구 줄), 화면이 열리는 순간부터 단추가 어둠 속에 있다가
+#   글자가 다 나타난 뒤 DEATH_VEIL_LIFT 틱 사이에 걷힌다 (다크 소울처럼 제목이 먼저, 메뉴가 나중). 모양은 띠의 말씨:
+#   가로 가운데 ±DEATH_VEIL_FLAT 고르고 ±DEATH_VEIL_HALF 까지 smoothstep 으로 0, 세로 단추 덩이 ±DEATH_VEIL_PAD 고르고
+#   DEATH_VEIL_SOFT 에 걸쳐 0, 짙기 DEATH_VEIL_ALPHA. 화면 높이마다 단추 자리가 달라 그림이 아니라 글꼴 셰이더가 GUI 자리에서 셈한다:
+#   그림 (hud_death_veil.png) 은 RGB 표식 (0, 0, 3) 의 불투명 판 하나이고, 어느 화면 높이에서나 단추를 덮게 크다 (글 경계가 단추와
+#   겹쳐야 바닐라 GUI 가 이 줄을 단추 글보다 위 층에 둔다). 시계가 맞지 않으면 (soulsDeathT 없음) 가림막은 그리지 않는다.
 DEATH_FONT = NS + ":death"
 DEATH_MARK_R, DEATH_MARK_SHADOW_R, DEATH_MARK_G0 = 254, 253, 144   # G = 144 + t // 256 (144..237): HUD 표식 (G 253) 과 겹치지 않는다
-DEATH_FADE_BAND = (2.0, 18.0)       # 띠: 죽은 뒤 0.1 초에서 0.9 초 사이에 나타난다 (틱)
-DEATH_FADE_LETTERS = (6.0, 26.0)    # 글자: 0.3 초에서 1.3 초 사이
-DEATH_FADE_WAIT = 100.0             # 클라이언트 시계가 죽은 시각보다 이만큼 (틱) 넘게 앞이거나 뒤면 (시계가 튐, 아주 오래 죽어 있음)
-                                    # 기다리지 않고 바로 보인다: YOU DIED 가 오래 가려지는 일이 없게
+DEATH_FADE_BAND = (0.0, 10.0)       # 띠: 죽은 뒤 0 초에서 0.5 초 사이에 나타난다 (틱. 사망 화면은 죽고 약 2 틱 뒤에 열린다)
+DEATH_FADE_LETTERS = (8.0, 34.0)    # 글자: 0.4 초에서 1.7 초 사이 (띠가 약 85% 가 될 때까지 10% 밑)
+DEATH_FADE_WAIT = 100.0             # 클라이언트 시계가 죽은 시각보다 이만큼 (틱) 넘게 앞이거나 (아주 오래 죽어 있음)
+DEATH_FADE_EARLY = 20.0             # 이만큼 넘게 뒤면 (시계가 튐, 지연은 몇 틱뿐) 기다리지 않고 바로 보인다: YOU DIED 가 오래
+                                    # 가려지는 일이 없게. 앞쪽이 좁아 20 분 (24000 틱) 죽어 있어도 1 초 밑만 가려진다
+DEATH_VEIL_TAG = palette.VEIL_TAG   # 가림막 그림의 RGB (0, 0, 3): 셰이더가 가림막으로 알아보는 표식 (artlint data)
+DEATH_VEIL_ALPHA = 0.80
+DEATH_VEIL_FLAT, DEATH_VEIL_HALF = 100.0, 170.0     # 가로: 단추 폭 (200) 의 반까지 고르고 170 에서 0
+DEATH_VEIL_PAD, DEATH_VEIL_SOFT = 2.0, 16.0         # 세로: 단추 덩이 위아래 2 픽셀 더 고르고 16 픽셀에 걸쳐 0 (위끝이 띠의
+                                                    # 흐린 아래끝과 겹쳐 밝은 하늘 위에서도 두 판이 아니라 한 어둠으로 읽힌다)
+DEATH_VEIL_BUTTONS = (72.0, 44.0)   # 바닐라 사망 화면 단추 덩이: 화면 높이/4 + 72 부터 높이 44 (단추 20 + 4 + 20)
+DEATH_VEIL_LIFT = (28.0, 40.0)      # 가림막이 걷히는 틱 (글자가 다 나타난 뒤, 단추는 바닐라대로 화면이 열리고 20 틱부터 눌린다)
+DEATH_VEIL_TOP = 112                # 그림의 위 (GUI y): 화면 높이 240 (단추가 가장 높다, 132) 에서 가림막의 흐린 위끝 (132 - 18) 위
+DEATH_VEIL_H, DEATH_VEIL_HALF_W = 400, 176          # 그림 크기 (GUI): 화면 높이 1500 (GUI 1 의 1440p 까지) 의 단추를 덮는다
+DEATH_VEIL_TEX = (22, 25)           # 그림 텍셀 (한 텍셀 = GUI 16 픽셀. 모양은 셰이더가 셈하므로 텍셀 크기는 뜻이 없다)
+DEATH_VEIL = ("death_veil", "\ue21b")
+DEATH_VEIL_SPACES = ("death_veil_pre", "\ue21c"), ("death_veil_post", "\ue21d")
 DEATH_FADE_LETTER_ASCENT = 8        # 1배 글자: 위 = 문구 줄 y 85 + 7 - 8 = 84 (제목 판과 같은 GUI y 84~108)
 DEATH_FADE_BAND_ASCENT = 32         # 1배 띠: 위 = 85 + 7 - 32 = 60 (제목 판과 같은 GUI y 60~132)
 DEATH_FADE_SPACES = tuple((f"fade_after_{n}", chr(0xE214 + i)) for i, (n, _) in enumerate(YOU_DIED_LETTERS))
@@ -257,11 +280,12 @@ def band_string(by, prefix=""):
 
 def death_fade_line(glyphs):
     """
-    서서히 나타나는 판의 사망 화면 문구 한 줄 (souls:death 글꼴, 1배): 띠 + 글자마다 [글자][그 뒤 빈칸]. 빈칸은 제목 판 (2배) 과
-    같은 자리가 되게 gen 때 셈했다 (build).
+    서서히 나타나는 판의 사망 화면 문구 한 줄 (souls:death 글꼴, 1배): 띠 + 단추 가림막 + 글자마다 [글자][그 뒤 빈칸]. 빈칸은 제목 판
+    (2배) 과 같은 자리가 되게 gen 때 셈했다 (build). 띠와 가림막은 진행 폭의 합이 0 이라 줄의 폭은 글자뿐이다.
     """
     by = {g.name: g.char for g in glyphs if g.font == DEATH_FONT}
     out = band_string(by, "fade_")
+    out += by["fade_" + DEATH_VEIL_SPACES[0][0]] + by["fade_" + DEATH_VEIL[0]] + by["fade_" + DEATH_VEIL_SPACES[1][0]]
     for (n, _), (sp, _) in zip(YOU_DIED_LETTERS, DEATH_FADE_SPACES):
         out += by["fade_you_died_" + n]
         if sp in by:
@@ -310,6 +334,12 @@ def death_band():
     rgba[..., :3] = DEATH_BAND_TAG
     rgba[..., 3] = al
     return Image.fromarray(rgba, "RGBA")
+
+
+def death_veil():
+    """단추 가림막 그림: RGB 표식 DEATH_VEIL_TAG 의 불투명 판 (모양과 짙기는 글꼴 셰이더가 GUI 자리에서 셈한다, shaders.py)."""
+    w, h = DEATH_VEIL_TEX
+    return Image.new("RGBA", (w, h), tuple(DEATH_VEIL_TAG) + (255,))
 
 
 def plugin_title(glyphs):
@@ -948,7 +978,9 @@ def build(out, digit_role):
     for i, (name, ch) in enumerate(YOU_DIED_LETTERS):
         fade_adv[name] = glyph_advance(sheet, i * cell_w, cell_w, cell_h, fscale)
         glyphs.append(Glyph("fade_you_died_" + name, ch, fade_adv[name], DEATH_FONT, "bitmap"))
-    gaps = [YOU_DIED_GAP[2]] * 2 + [YOU_DIED_WORD[2]] + [YOU_DIED_GAP[2]] * 3 + [0]
+    # 마지막 D 뒤: 2배 판은 그림의 빈 열까지 진행 폭에 들어가 잉크보다 2 GUI 픽셀 넓다. 문구 줄은 -1 (2 GUI 픽셀) 로 그 빈 열을
+    # 지워 줄의 폭이 잉크 폭 (184) 이 되게 한다: 사망 화면은 줄을 (가운데 - 폭/2) 에 놓으므로 잉크가 가운데에 선다
+    gaps = [YOU_DIED_GAP[2]] * 2 + [YOU_DIED_WORD[2]] + [YOU_DIED_GAP[2]] * 3 + [-1]
     fade_space = {}
     for (name, _), (sp, ch), gp in zip(YOU_DIED_LETTERS, DEATH_FADE_SPACES, gaps):
         w = 2 * (adv["you_died_" + name] + gp) - fade_adv[name]
@@ -964,11 +996,27 @@ def build(out, digit_role):
     fpost = -(fpre + sum(fade_tile[t] - 1 for t in band_tiles()))
     for (name, ch), a in zip(DEATH_BAND_SPACES, (fpre, fpost, -1)):
         glyphs.append(Glyph("fade_" + name, ch, a, DEATH_FONT, "space"))
+    # 단추 가림막: 줄의 가운데 (잉크 가운데, 줄 처음에서 폭/2) 에 가운데를 맞춘 큰 판. 모양은 셰이더가 화면 가운데에서 셈하므로
+    # 그림은 어느 자리에서나 가림막 전체를 덮기만 하면 된다 (±DEATH_VEIL_HALF_W > ±DEATH_VEIL_HALF)
+    veil = death_veil()
+    save(veil, sprite_path(out, NS, "font", "hud_death_veil.png"))   # 표식 판 (artlint data veil, palette.VEIL_MAP)
+    line_w = sum(fade_adv[n] for n, _ in YOU_DIED_LETTERS) + sum(fade_space.values())
+    veil_adv = glyph_advance(veil, 0, veil.width, veil.height, DEATH_VEIL_H / veil.height)
+    assert veil_adv - 1 == 2 * DEATH_VEIL_HALF_W, f"가림막 폭 {veil_adv - 1} (2 × {DEATH_VEIL_HALF_W} 이어야)"
+    vpre = line_w // 2 - DEATH_VEIL_HALF_W
+    glyphs.append(Glyph("fade_" + DEATH_VEIL[0], DEATH_VEIL[1], veil_adv, DEATH_FONT, "bitmap"))
+    for (name, ch), a in zip(DEATH_VEIL_SPACES, (vpre, -(vpre + veil_adv))):
+        glyphs.append(Glyph("fade_" + name, ch, a, DEATH_FONT, "space"))
+    fade_space[DEATH_VEIL_SPACES[0][1]] = vpre
+    fade_space[DEATH_VEIL_SPACES[1][1]] = -(vpre + veil_adv)
     death_fade_font = {"providers": [
         {"type": "bitmap", "file": f"{NS}:font/hud_death_band.png", "height": DEATH_BAND_H_GUI,
          "ascent": DEATH_FADE_BAND_ASCENT, "chars": ["".join(ch for _, ch in DEATH_BAND)]},
         {"type": "bitmap", "file": f"{NS}:font/you_died.png", "height": YOU_DIED_HEIGHT * 2,
          "ascent": DEATH_FADE_LETTER_ASCENT, "chars": ["".join(ch for _, ch in YOU_DIED_LETTERS)]},
+        # 가림막: 위 = 문구 줄 y 85 + 7 - ascent = DEATH_VEIL_TOP
+        {"type": "bitmap", "file": f"{NS}:font/hud_death_veil.png", "height": DEATH_VEIL_H,
+         "ascent": 85 + 7 - DEATH_VEIL_TOP, "chars": [DEATH_VEIL[1]]},
         {"type": "space", "advances": {**fade_space, DEATH_BAND_SPACES[0][1]: fpre, DEATH_BAND_SPACES[1][1]: fpost,
                                        DEATH_BAND_SPACES[2][1]: -1}},
     ]}

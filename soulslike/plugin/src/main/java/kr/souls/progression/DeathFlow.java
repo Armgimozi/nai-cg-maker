@@ -27,6 +27,8 @@ import org.bukkit.event.player.PlayerRespawnEvent;
  * 보내지 않는다. death.title: true 면 화면 한가운데에 화면 제목으로 크게 띄우고 일어설 때까지 남긴다 (사망 화면의 붉은 덧칠 밑에
  * 그려져 조금 어둡다). 팩은 같은 config.yml 을 읽어 만들고 (gen_pack), 플러그인은 문구 줄을 보낼지를 설정이 아니라 jar 안 팩의
  * 사망 화면 제목이 비었는지로 정한다: 설정과 팩이 어긋나도 YOU DIED 가 둘이 되지 않는다 (/souls check 가 어긋남을 알린다).
+ * 문구 줄은 팩을 실은 사람에게만 보낸다 (Hud.hasPack): 팩이 없는 사람 (팩이 선택이 된 서버에서 받지 않았거나, 다 싣기 전에 죽음) 의
+ * 클라이언트에는 souls:death 글꼴이 없어 빈 네모 줄이 되고, 그 사람의 사망 화면 제목은 바닐라 "You Died!" 하나다.
  * 그림 글자가 없으면 붉은 일반 글씨로 대신한다. 단추 글(deathScreen.*)은 리소스팩이 바꾼다.
  * 혈흔, 소울 잃기, 적 되살리기, 화톳불 부활은 M2.
  */
@@ -51,10 +53,14 @@ public final class DeathFlow implements Listener {
         long gameTime = p.getWorld().getGameTime();
         plugin.test(p, "DEATH cause=" + e.getDamageSource().getDamageType().getKey().getKey() + " t=" + plugin.ticker().now());
         if (fadeMode()) {
-            Component line = Glyphs.deathFadeLine(gameTime);
+            boolean pack = plugin.hud().hasPack(p);
+            Component line = pack ? Glyphs.deathFadeLine(gameTime) : null;
             boolean glyph = line != null;
-            e.deathScreenMessageOverride(glyph ? line : fallbackTitle(p));
-            plugin.test(p, "TITLE mode=fade glyph=" + glyph + " gt=" + Math.floorMod(gameTime, 24000L));
+            // 문구 줄은 show_death_messages 가 꺼진 세계에서도 보낸다 (그것이 YOU DIED 다). 채팅 알림은 위에서 null 이라 퍼지지 않는다
+            e.setShowDeathMessages(true);
+            // 팩이 없으면 클라이언트의 바닐라 사망 화면 제목이 YOU DIED 를 대신한다: 문구 줄은 비운다
+            e.deathScreenMessageOverride(glyph ? line : pack ? fallbackTitle(p) : Component.empty());
+            plugin.test(p, "TITLE mode=fade glyph=" + glyph + " pack=" + pack + " gt=" + Math.floorMod(gameTime, 24000L));
             return;
         }
         e.deathScreenMessageOverride(Component.empty());

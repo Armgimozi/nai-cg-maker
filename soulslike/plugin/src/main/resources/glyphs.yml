@@ -10,7 +10,7 @@
 # stats 는 무기 설명 칸 수치 표의 열 (GUI 픽셀) 과 값 글자의 진행 폭 (기본 글꼴, pack/typeset.py 가 팩에서 잰 것).
 you_died: {char: "\ue211\ue200\ue213\ue201\ue213\ue202\ue213\ue203\ue213\ue204\ue213\ue205\ue213\ue206\ue213\ue207\ue213\ue208\ue213\ue208\ue213\ue208\ue213\ue208\ue213\ue208\ue213\ue208\ue213\ue208\ue213\ue208\ue213\ue209\ue213\ue20a\ue213\ue20b\ue213\ue20c\ue213\ue20d\ue213\ue20e\ue213\ue20f\ue213\ue210\ue213\ue212\ue000\ue00e\ue001\ue00e\ue002\ue00f\ue003\ue00e\ue004\ue00e\ue005\ue00e\ue006", width: 93, font: "minecraft:default"}
 you_died_title: {char: "\ue0f0\ue030\ue0f1\ue030\ue0f2\ue031\ue0f3\ue030\ue0f4\ue030\ue0f5\ue030\ue0f6", width: 93, font: "souls:hud"}
-you_died_fade: {char: "\ue211\ue200\ue213\ue201\ue213\ue202\ue213\ue203\ue213\ue204\ue213\ue205\ue213\ue206\ue213\ue207\ue213\ue208\ue213\ue208\ue213\ue208\ue213\ue208\ue213\ue208\ue213\ue208\ue213\ue208\ue213\ue208\ue213\ue209\ue213\ue20a\ue213\ue20b\ue213\ue20c\ue213\ue20d\ue213\ue20e\ue213\ue20f\ue213\ue210\ue213\ue212\ue000\ue214\ue001\ue215\ue002\ue216\ue003\ue217\ue004\ue218\ue005\ue219\ue006\ue21a", width: 186, font: "souls:death"}
+you_died_fade: {char: "\ue211\ue200\ue213\ue201\ue213\ue202\ue213\ue203\ue213\ue204\ue213\ue205\ue213\ue206\ue213\ue207\ue213\ue208\ue213\ue208\ue213\ue208\ue213\ue208\ue213\ue208\ue213\ue208\ue213\ue208\ue213\ue208\ue213\ue209\ue213\ue20a\ue213\ue20b\ue213\ue20c\ue213\ue20d\ue213\ue20e\ue213\ue20f\ue213\ue210\ue213\ue212\ue21c\ue21b\ue21d\ue000\ue214\ue001\ue215\ue002\ue216\ue003\ue217\ue004\ue218\ue005\ue219\ue006", width: 184, font: "souls:death"}
 you_died_y: {char: "\ue000", width: 10, font: "minecraft:default"}
 you_died_o: {char: "\ue001", width: 11, font: "minecraft:default"}
 you_died_u: {char: "\ue002", width: 10, font: "minecraft:default"}
@@ -53,7 +53,6 @@ fade_after_u: {char: "\ue216", width: 22, font: "souls:death"}
 fade_after_d1: {char: "\ue217", width: 8, font: "souls:death"}
 fade_after_i: {char: "\ue218", width: 8, font: "souls:death"}
 fade_after_e: {char: "\ue219", width: 8, font: "souls:death"}
-fade_after_d2: {char: "\ue21a", width: 2, font: "souls:death"}
 fade_death_band_l0: {char: "\ue200", width: 65, font: "souls:death"}
 fade_death_band_l1: {char: "\ue201", width: 65, font: "souls:death"}
 fade_death_band_l2: {char: "\ue202", width: 65, font: "souls:death"}
@@ -74,6 +73,9 @@ fade_death_band_r0: {char: "\ue210", width: 51, font: "souls:death"}
 fade_death_band_pre: {char: "\ue211", width: -676, font: "souls:death"}
 fade_death_band_post: {char: "\ue212", width: -846, font: "souls:death"}
 fade_death_band_back: {char: "\ue213", width: -1, font: "souls:death"}
+fade_death_veil: {char: "\ue21b", width: 353, font: "souls:death"}
+fade_death_veil_pre: {char: "\ue21c", width: -84, font: "souls:death"}
+fade_death_veil_post: {char: "\ue21d", width: -269, font: "souls:death"}
 space_neg1: {char: "\ue020", width: -1, font: "souls:hud"}
 space_neg2: {char: "\ue021", width: -2, font: "souls:hud"}
 space_neg4: {char: "\ue022", width: -4, font: "souls:hud"}
