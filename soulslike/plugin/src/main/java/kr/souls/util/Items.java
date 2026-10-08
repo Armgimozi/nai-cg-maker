@@ -10,6 +10,7 @@ import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
@@ -53,9 +54,16 @@ public final class Items {
         return tag(it, Keys.ITEM) != null || tag(it, Keys.WEAPON) != null || tag(it, Keys.ARMOR) != null;
     }
 
-    /** 인벤토리에 넣고, 넘치면 발밑에 떨어뜨린다. */
+    /**
+     * 인벤토리에 넣고, 넘치면 발밑에 떨어뜨린다. souls 무기·방어구는 가방 (안쪽 27칸) 부터 넣는다: 단축 슬롯 아홉 칸은 장비 칸이라
+     * 무게에 들므로 (5.8), 주운 대방패가 몰래 무게 단계를 올리지 않게.
+     */
     public static void give(Player p, ItemStack item) {
         if (item == null || item.getType() == Material.AIR) return;
+        if ((tag(item, Keys.WEAPON) != null || tag(item, Keys.ARMOR) != null) && item.getMaxStackSize() == 1
+                && putBackpackFirst(p.getInventory(), item)) {
+            return;
+        }
         HashMap<Integer, ItemStack> left = p.getInventory().addItem(item);
         for (ItemStack rest : left.values()) {
             Location l = p.getLocation();
@@ -63,6 +71,25 @@ public final class Items {
             drop.setPickupDelay(0);
             drop.setOwner(p.getUniqueId());
         }
+    }
+
+    /** 가방 (9..35) 의 첫 빈 칸, 없으면 단축 슬롯 (0..8) 의 첫 빈 칸에 놓는다. 자리가 없으면 false (놓지 않는다). */
+    public static boolean putBackpackFirst(PlayerInventory inv, ItemStack it) {
+        for (int i = 9; i < 36; i++) {
+            ItemStack cur = inv.getItem(i);
+            if (cur == null || cur.isEmpty()) {
+                inv.setItem(i, it);
+                return true;
+            }
+        }
+        for (int i = 0; i < 9; i++) {
+            ItemStack cur = inv.getItem(i);
+            if (cur == null || cur.isEmpty()) {
+                inv.setItem(i, it);
+                return true;
+            }
+        }
+        return false;
     }
 
     /** 인벤토리에서 조건에 맞는 아이템 개수를 센다. */

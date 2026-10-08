@@ -1,6 +1,7 @@
 package kr.souls;
 
 import org.bukkit.NamespacedKey;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 /**
@@ -62,5 +63,14 @@ public final class Keys {
 
     public static NamespacedKey of(String path) {
         return new NamespacedKey(NS, path);
+    }
+
+    /**
+     * 잠긴 문 열쇠 고리 (9.5): 이 사람이 문 lockId 를 열 수 있나. 문 코드 (M2·M3) 가 부른다. 열쇠로 잠긴 문 (탑옥 위층 독방
+     * gaol.upper_cell, 병영 지하 감옥 barracks.cells) 은 그 문의 열쇠나 만능 열쇠 (도적의 시작 아이템) 로 열린다. 이야기로 막힌 문
+     * (서쪽 탑 redin.west_tower 같은 것) 은 늘 거짓. 자세한 것은 item/MasterKey.
+     */
+    public static boolean opens(Player p, String lockId) {
+        return kr.souls.item.MasterKey.opens(p, lockId);
     }
 }

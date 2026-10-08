@@ -290,7 +290,8 @@ public final class TestCommands {
             switch (to) {
                 case "main" -> p.getInventory().setItemInMainHand(it);
                 case "off" -> p.getInventory().setItemInOffHand(it);
-                default -> kr.souls.util.Items.give(p, it);
+                // 시험 도구라 바닐라처럼 단축 슬롯부터 (Items.give 는 souls 무기를 가방부터 넣는다, 5.8)
+                default -> p.getInventory().addItem(it);
             }
             n++;
         }
