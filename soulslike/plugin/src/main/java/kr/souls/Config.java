@@ -44,9 +44,10 @@ public final class Config {
      * 대역 (combat/Tumble). 움직임 (열쇠 자세) 은 팩 생성기가 쓰는 자원 roll_anim.yml 에 있고, 여기는 때만 정한다.
      * riseAt·riseTurn: riseAt 틱 뒤에 닿는 자세부터 riseTurn 틱에 걸쳐 구르는 쪽에서 몸 방향으로 돈다,
      * reveal: 이 틱에 대역을 거두고 진짜 몸을 보인다, handBack: 이 틱에 그 사람 화면에만 주손을 돌려준다 (0 이면 reveal 과 같이),
-     * hideDelay: 대역을 띄우고 몇 틱 뒤에 진짜 몸을 감추는가 (0: 같은 틱. 1: 클라이언트가 대역을 처음 그린 뒤).
+     * hideDelay: 대역을 띄우고 몇 틱 뒤에 진짜 몸을 감추는가 (0: 같은 틱. 1: 클라이언트가 대역을 처음 그린 뒤),
+     * duck: combat.roll.crawl 일 때 기어가기 막힘을 두는 틱 수 (1인칭 시야가 바닥으로 내려갔다 대역의 머리와 함께 올라온다. 0 이면 깔지 않는다).
      */
-    public record TumbleCfg(int riseAt, int riseTurn, int reveal, int handBack, int hideDelay) {}
+    public record TumbleCfg(int riseAt, int riseTurn, int reveal, int handBack, int hideDelay, int duck) {}
 
     public record RollCfg(String load, RollVisual visual, boolean crawl, TumbleCfg tumble, int spinTicks,
                           Map<String, RollKind> kinds, String sound, float volume, float pitch) {
@@ -56,12 +57,12 @@ public final class Config {
         }
 
         /**
-         * 이 구르기에 방벽을 까는가 (뒷걸음은 늘 아니다). crawl 모습일 때만: tumble 에 방벽을 더하면 1인칭은 시야가 바닥으로
-         * 내려가 좋았지만 3인칭 카메라가 방벽 밑으로 짓눌려 몸에 붙고 대역 (탑승 자리가 기어가기 상자 꼭대기로 바뀐다) 을
-         * 놓쳤다 [확인 (실제 클라이언트)].
+         * 이 구르기에 기어가기 막힘을 까는가 (뒷걸음은 늘 아니다). tumble 과 crawl 모습: 그 사람 화면에만 머리 위 막힘을 깔아
+         * 클라이언트가 기어가기 자세 (눈 0.4) 로 구른다 (1인칭 시야가 바닥까지 내려갔다 올라온다). 막힘은 3인칭 카메라가 지나가는
+         * 블록이라 (Roll.CEILING) 예전 방벽처럼 카메라를 머리 속으로 당기지 않는다. spin 은 급류 회전 자세가 따로 있다.
          */
         public boolean barrier() {
-            return crawl && visual == RollVisual.CRAWL;
+            return crawl && (visual == RollVisual.CRAWL || visual == RollVisual.TUMBLE);
         }
     }
 
@@ -170,6 +171,7 @@ public final class Config {
         int reveal = Math.max(1, c.getInt("combat.roll.tumble.reveal", 11));
         return new TumbleCfg(c.getInt("combat.roll.tumble.rise-at", 8), Math.max(0, c.getInt("combat.roll.tumble.rise-turn", 3)), reveal,
                 Math.min(reveal, Math.max(0, c.getInt("combat.roll.tumble.hand-back", 8))),
-                Math.max(0, Math.min(2, c.getInt("combat.roll.tumble.hide-delay", 0))));
+                Math.max(0, Math.min(2, c.getInt("combat.roll.tumble.hide-delay", 0))),
+                Math.max(0, Math.min(reveal, c.getInt("combat.roll.tumble.duck", 5))));
     }
 }

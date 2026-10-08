@@ -1,5 +1,5 @@
 #!/bin/bash
-# mood_serif 시안을 실제 클라이언트로 찍는다 (같은 장면을 모든 분위기 시안이 찍는다).
+# mood_gothic 시안을 실제 클라이언트로 찍는다 (같은 장면을 모든 분위기 시안이 찍는다).
 #   shots.sh <포트> <서버폴더> <찍을폴더> <앞머리> [장면...]
 # 클라이언트는 켜서 들어와 있어야 한다 (run_client.sh --start, --do join). W, H, G = 화면 크기, GUI 배율.
 # 장면: hud inv pause death chat dialog boss (기본 boss 밖 전부). 영어 설명 칸은 MC_LANG=en_us 로 켠 클라이언트에서 inv 만

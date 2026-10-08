@@ -244,7 +244,7 @@ HELM = _mat([
 
 TEXTURES = {"cloth": CLOTH, "sleeve": SLEEVE, "hand": HAND, "trousers": TROUSERS, "boot": BOOT, "sole": SOLE,
             "helm": HELM}
-TEX_ID = {k: f"{NS}:item/roll_{k}" for k in TEXTURES}
+TEX_ID = {k: f"{NS}:item/roll_{k}" for k in (*TEXTURES, "px")}
 
 
 # ─────────────────────────── 부위 모형 ───────────────────────────
@@ -523,80 +523,438 @@ def between(fa, fb, a):
     return {p: (fa[p][0] + (fb[p][0] - fa[p][0]) * a, _qmat(_slerp(quat(fa[p][1]), quat(fb[p][1]), a))) for p in fa}
 
 
-# ─────────────────────────── 1인칭에서 비키기 ───────────────────────────
-# 대역은 진짜 몸 자리에 서므로 1인칭 눈 (발 위 1.62) 앞을 지나간다 (모으기·뛰어들기·일어서기에서 머리가 눈 바로 앞). 바닐라는 1인칭에서
-# 제 몸을 그리지 않는데 대역은 그린다. 그래서 (1) FP_PITCH 보다 내려다보면 플러그인이 대역을 그 사람 화면에서 감추고 (hideEntity),
-# (2) 그보다 덜 내려다보는 동안 보이지 않게 열쇠 자세마다 대역 전체를 그 사람이 보는 쪽의 반대로 (수평) 물린다. 그냥 물리면 F5 에서
-# 대역이 카메라 쪽으로 다가와 커 보였다 [확인 (클라)]. 그래서 F5 카메라 자리 (눈에서 보는 쪽 반대로 F5_DIST, 벽에 막히면 그만큼 가까이)
-# 를 가운데로 줄인다 (닮음 변환: 눈 자리의 점이 보는 쪽 반대로 k 만큼 물러나고 크기 s = 1 - k / 거리). F5 카메라에서는 같은 빛줄기 위의
-# 점이라 그림이 그대로이고, 1인칭 눈에서는 대역이 눈 뒤로 간다. 물리는 몫 k 는 보는 쪽 (대역이 구르는 쪽에서 잰 각, 30° 마다) 마다 따로 셈한다: 시야 (FP_FOV, 16:9) 의
-# 화면에 대역의 꼭짓점이 하나도 들지 않는 가장 작은 몫 (0.5 픽셀 마디). 그 자세와 앞뒤 자세로 가는 보간 중간도 본다. 시야는 바닐라
-# 설정의 가장 넓은 값 110° (예전에는 기본 70° 로 셈해 시야를 넓힌 사람에게 25~35° 를 내려다볼 때 대역 끝이 잠깐 보였다).
-FP_PITCH = 35.0                    # 이보다 내려다보면 감춘다 (플러그인 Tumble 이 roll_anim.yml 의 hide-pitch 로 읽는다)
-FP_FOV = 110.0                     # 시야 (세로): 바닐라 설정에서 가장 넓은 값 (기본은 70). 넓은 시야로 셈해야 시야를 넓힌 사람도 대역을 못 본다
-FP_ASPECT = 16 / 9
-EYE_Y = 1.62 * 16 / SCALE          # 1인칭 눈 높이 (D 픽셀)
-NEAR = 0.05 * 16 / SCALE           # 카메라 앞 자르는 면
-F5_DIST = 4.0 * 16 / SCALE         # F5 카메라가 눈 뒤로 떨어진 거리 (바닐라 4 블록, D 픽셀)
-BACK_YAWS = tuple(range(0, 360, 30))
+# ─────────────────────────── 1인칭에서 감추기 (표시 알파와 아이템 셰이더) ───────────────────────────
+# 서버는 그 사람이 1인칭인지 F5 인지 모른다. 그래서 내려다보는 각으로 대역을 감추면 (예전 판: 35° 넘게 내려다보면 감추고 덜 내려다보면
+# F5 카메라 쪽으로 줄여 물렸다) F5 로 내려다볼 때 아무것도 보이지 않았다 (사용자: "3인칭에서 아래를 보면 아예 안 보임").
+# 1인칭과 F5 를 가르는 것은 카메라 자리뿐이고, 그것을 아는 것은 클라이언트다. 그래서 클라이언트의 아이템 셰이더가 가른다:
+#   - 그 사람 화면에만 보이는 벌 (own) 의 모든 그림 (몸 부위, 머리, 투구, 손에 든 souls 아이템) 은 표시 알파 (MARK_HI - k,
+#     k = 0..MARK_CLASSES-1) 로 칠한 그림을 쓴다. 다른 그림에는 없는 알파다 (바닐라·이 팩의 아이템·블록 그림 240~249 는 비었다
+#     [확인 (클라이언트 jar, 팩)]. 250~252 는 발광 알파라 피했다).
+#   - 셰이더 (assets/minecraft/shaders/core/rendertype_item_entity_translucent_cull: 아이템 아틀라스의 아이템 모형은 모두 이것으로
+#     그린다 [확인 (클라이언트 코드: BlockModelWrapper)]) 는 표시 알파의 조각이 카메라에서 반지름 r_k = MARK_R0 + k·MARK_STEP 블록
+#     안에 있으면 버리고, 아니면 불투명하게 그린다.
+#   - k 는 그 그림이 그리는 점이 1인칭 카메라 (발 위 EYES 의 어느 높이) 에서 가장 멀어지는 거리 + MARK_MARGIN 으로 고른다 (모든 열쇠
+#     자세와 그 사이 보간, 왼손잡이 거울). 1인칭 카메라는 대역 바로 곁이므로 모든 조각이 r 안에 있어 하나도 그려지지 않는다. F5
+#     카메라는 눈에서 4 블록 떨어져 있어 (벽에 막히지 않으면) 어느 조각도 r 안에 들지 않는다: 그림이 그대로다.
+#   - 바닐라 머리 (player_head 특수 모형) 는 엔티티 셰이더로 스킨을 그려 표시할 수 없다. 그래서 own 벌의 머리는 스킨 픽셀 384 개
+#     (여섯 면 × 8×8, 덧옷 층을 겹친 색) 를 면마다 물들인 픽셀 머리 (souls:roll_headpx) 다. 다른 사람에게 보이는 벌 (seen) 은
+#     예전처럼 바닐라 머리 (그 사람 프로필) 와 진짜 아이템 그대로다 (표시하지 않는다).
+# 셰이더를 못 쓰는 클라이언트 (셰이더 팩을 켠 Iris 등) 는 1인칭에서 대역이 보인다 (예전 판에서 35° 를 넘게 내려다보지 않을 때와 같다).
+MARK_FLAG = 1          # custom_model_data 깃발: own 벌이 손에 든 souls 아이템 (플러그인 Tumble.MARK_FLAG 와 같다)
+CEILING = "lime_stained_glass"   # 기어가기 막힘 블록 (플러그인 Roll.CEILING 과 같다): 팩이 모형을 비운다
+MARK_HI = 249          # 표시 알파: MARK_HI - k
+MARK_CLASSES = 10      # k = 0..9 (알파 249..240)
+MARK_R0 = 0.4          # k 번째 반지름 (블록) = MARK_R0 + k · MARK_STEP
+MARK_STEP = 0.35
+MARK_MARGIN = 0.12     # 반지름에 더하는 여유 (블록): 표면 표본 (1 픽셀 격자) 사이, 보간 표본 (1/4 틱) 사이
+# 1인칭 카메라 높이 (발 위, 블록): 서기 1.62, 웅크리기 1.27, 기어가기 0.4. 카메라 높이는 자세가 바뀌면 틱마다 남은 몫의 반씩 옮겨 가므로
+# 그 사이 값도 본다. 카메라는 그 사람 몸 상자 한가운데 위 (대역 공간 x = z = 0) 다
+EYES = (0.4, 0.5, 0.62, 0.75, 0.9, 1.05, 1.2, 1.27, 1.4, 1.52, 1.62)
+PX = 16 / SCALE        # 대역 공간 D 의 1 블록 (픽셀)
+# 반지름을 함께 고르는 부위 묶음 (같은 그림을 쓰는 부위끼리)
+GROUPS = {"head": ("head",), "torso": ("belly", "chest"), "arm": ("uarm_r", "farm_r", "uarm_l", "farm_l"),
+          "leg": ("thigh_r", "shin_r", "thigh_l", "shin_l")}
+TEX_GROUP = {"cloth": "torso", "sleeve": "arm", "hand": "arm", "trousers": "leg", "boot": "leg", "sole": "leg", "helm": "head",
+             "px": "head"}
+HEAD_BOX = (np.array([-4.7, -0.7, -4.7]), np.array([4.7, 8.7, 4.7]))   # 머리 (목에서 위로 8) + 모자 겹 0.5 + 투구 껍데기 0.6
 
 
-def _fp_visible(pts, yaw, pitch):
-    y, p = math.radians(yaw), math.radians(pitch)
-    fwd = np.array([math.sin(y) * math.cos(p), -math.sin(p), math.cos(y) * math.cos(p)])
-    up = np.array([math.sin(y) * math.sin(p), math.cos(p), math.cos(y) * math.sin(p)])
-    right = np.cross(fwd, up)
-    rel = pts - np.array([0.0, EYE_Y, 0.0])
-    f = rel @ fwd
-    m = f > NEAR
-    if not m.any():
-        return False
-    tv = math.tan(math.radians(FP_FOV / 2))
-    return bool(((np.abs(rel[m] @ up) < tv * f[m]) & (np.abs(rel[m] @ right) < tv * FP_ASPECT * f[m])).any())
-
-
-def _look(yaw, pitch):
-    y, p = math.radians(yaw), math.radians(pitch)
-    return np.array([math.sin(y) * math.cos(p), -math.sin(p), math.cos(y) * math.cos(p)])
-
-
-def f5_shrink(pts, look, k, dist=F5_DIST):
-    """F5 카메라 자리 (눈에서 보는 쪽 look 의 반대로 dist) 를 가운데로 1 - k / dist 배 줄인다 (눈 자리의 점은 k 만큼 물러난다)."""
-    cam = np.array([0.0, EYE_Y, 0.0]) - dist * look
-    return cam + (1.0 - k / dist) * (pts - cam)
-
-
-def _fp_need(pts, yaw):
-    """
-    보는 쪽 yaw (대역 공간, 0 = 구르는 쪽) 로 FP_PITCH 까지 내려다보는 동안 대역이 화면에 들지 않게 물릴 가장 작은 몫 (픽셀).
-    줄이는 가운데는 그 내려다보는 각의 F5 카메라 자리 (플러그인과 같다). F5 카메라가 벽에 막혀 가까우면 플러그인은 그 거리로 줄이는데,
-    그러면 같은 몫에서 대역이 더 작고 눈 뒤로 가므로 막히지 않은 거리 (F5_DIST) 로 셈하면 넉넉하다.
-    """
-    pitches = np.arange(-5.0, FP_PITCH + 0.01, 2.5)
-
-    def clear(k):
-        return not any(_fp_visible(f5_shrink(pts, _look(yaw, p), k), yaw, p) for p in pitches)
-    if clear(0.0):
-        return 0.0
-    lo, hi = 0.0, 32.0
-    while hi - lo > 0.5:
-        mid = (lo + hi) / 2
-        lo, hi = (lo, mid) if clear(mid) else (mid, hi)
-    return hi
-
-
-def look_back(fs=None):
-    """열쇠 자세마다 보는 쪽 BACK_YAWS 별로 물릴 몫 (픽셀). 앞뒤 자세로 가는 보간 중간 (1/4, 1/2) 까지 덮는다."""
+def anim_samples(fs=None, steps=4):
+    """열쇠 자세와 그 사이 보간 (1/steps 틱 마디): 클라이언트가 그리는 모든 자세를 덮는다."""
     fs = fs or frames()
     out = []
-    for i, (_, f) in enumerate(fs):
-        subs = [f]
-        for j in (i - 1, i + 1):
-            if 0 <= j < len(fs):
-                subs += [between(f, fs[j][1], a) for a in (0.25, 0.5)]
-        pts = [_samples(s) for s in subs]
-        out.append([max(_fp_need(p, y) for p in pts) for y in BACK_YAWS])
+    for (_, fa), (_, fb) in zip(fs, fs[1:]):
+        out += [between(fa, fb, a) for a in np.arange(steps) / steps]
+    out.append(fs[-1][1])
     return out
+
+
+def part_surface(frame, part, step=1.0):
+    """부위의 겉면 점 (D 픽셀)."""
+    P, R = frame[part]
+    if part == "head":
+        boxes = [HEAD_BOX]
+    else:
+        boxes = [(sh.lo, sh.hi) for sh in SHAPES[MODEL_OF[part]]]
+    return np.concatenate([P + _face_samples(lo, hi, step) @ R.T for lo, hi in boxes])
+
+
+def eye_reach(pts):
+    """점들 (D 픽셀) 이 1인칭 카메라 (EYES 의 어느 높이) 에서 가장 멀어지는 거리 (블록)."""
+    best = 0.0
+    for e in EYES:
+        d = np.linalg.norm(pts - np.array([0.0, e * PX, 0.0]), axis=1).max() / PX
+        best = max(best, float(d))
+    return best
+
+
+def group_reach(seq=None):
+    """부위 묶음마다 가장 먼 거리 (블록)."""
+    seq = seq or anim_samples()
+    out = {}
+    for g, parts in GROUPS.items():
+        out[g] = max(eye_reach(np.concatenate([part_surface(f, p) for p in parts])) for f in seq)
+    return out
+
+
+def mark_class(reach):
+    """가장 먼 거리 (블록) → 반지름 마디 k. 마디를 넘으면 ValueError (셰이더 표를 늘린다)."""
+    k = int(math.ceil((reach + MARK_MARGIN - MARK_R0) / MARK_STEP - 1e-9))
+    k = max(0, k)
+    if k >= MARK_CLASSES:
+        raise ValueError(f"구르기 대역 표시: 거리 {reach:.2f} 블록이 셰이더 반지름 표 ({MARK_R0 + (MARK_CLASSES - 1) * MARK_STEP:.2f}) 를 넘는다")
+    return k
+
+
+def mark_radius(k):
+    return MARK_R0 + k * MARK_STEP
+
+
+def marked_image(img, k):
+    """그림의 보이는 픽셀 (알파 > 0) 의 알파를 표시 알파 MARK_HI - k 로 (색은 그대로)."""
+    a = np.array(img.convert("RGBA"))
+    a[..., 3] = np.where(a[..., 3] > 0, MARK_HI - k, 0)
+    return Image.fromarray(a, "RGBA")
+
+
+# 셰이더: 바닐라 1.21.11 rendertype_item_entity_translucent_cull 에 표시 알파 한 덩이를 더했다 (ASCII 만: 드라이버마다 주석의 글자를 다르게 본다)
+ITEM_VSH = """#version 330
+
+// Square Soul (pack/roll_figure.py). Vanilla 1.21.11 rendertype_item_entity_translucent_cull.vsh
+// plus soulsRel: the camera-relative position, for the roll stand-in marker test in the fragment shader.
+
+#moj_import <minecraft:light.glsl>
+#moj_import <minecraft:fog.glsl>
+#moj_import <minecraft:dynamictransforms.glsl>
+#moj_import <minecraft:projection.glsl>
+
+in vec3 Position;
+in vec4 Color;
+in vec2 UV0;
+in vec2 UV1;
+in ivec2 UV2;
+in vec3 Normal;
+
+uniform sampler2D Sampler2;
+
+
+out float sphericalVertexDistance;
+out float cylindricalVertexDistance;
+out vec4 vertexColor;
+out vec2 texCoord0;
+out vec2 texCoord1;
+out vec2 texCoord2;
+out vec3 soulsRel;
+
+void main() {
+    gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
+
+    sphericalVertexDistance = fog_spherical_distance(Position);
+    cylindricalVertexDistance = fog_cylindrical_distance(Position);
+    vertexColor = minecraft_mix_light(Light0_Direction, Light1_Direction, Normal, Color) * texelFetch(Sampler2, UV2 / 16, 0);
+    texCoord0 = UV0;
+    texCoord1 = UV1;
+    texCoord2 = UV2;
+    soulsRel = Position;
+}
+"""
+
+ITEM_FSH = """#version 330
+
+// Square Soul (pack/roll_figure.py). Vanilla 1.21.11 rendertype_item_entity_translucent_cull.fsh plus one block:
+// texels whose alpha is a roll stand-in marker (%(lo)d..%(hi)d) belong to the copy of the roll stand-in that only the
+// rolling player sees. Marker k = %(hi)d - alpha gives a radius r = %(r0).2f + k * %(step).2f blocks: the farthest any
+// point drawn with that texture gets from that player's first-person camera. A fragment closer to the camera than r
+// is dropped (first person: the camera sits inside the stand-in, so all of it is dropped); otherwise it is drawn
+// opaque (third person: the camera is 4 blocks away, nothing is dropped). No other texture uses these alphas.
+
+#moj_import <minecraft:fog.glsl>
+#moj_import <minecraft:dynamictransforms.glsl>
+
+uniform sampler2D Sampler0;
+
+in float sphericalVertexDistance;
+in float cylindricalVertexDistance;
+in vec4 vertexColor;
+in vec2 texCoord0;
+in vec2 texCoord1;
+in vec3 soulsRel;
+
+out vec4 fragColor;
+
+void main() {
+    vec4 tex = texture(Sampler0, texCoord0);
+    float mark = floor(tex.a * 255.0 + 0.5);
+    if (mark >= %(lo)d.0 && mark <= %(hi)d.0) {
+        if (length(soulsRel) < %(r0).4f + (%(hi)d.0 - mark) * %(step).4f) {
+            discard;
+        }
+        tex.a = 1.0;
+    }
+    vec4 color = tex * vertexColor * ColorModulator;
+    if (color.a < 0.1) {
+        discard;
+    }
+    fragColor = apply_fog(color, sphericalVertexDistance, cylindricalVertexDistance, FogEnvironmentalStart, FogEnvironmentalEnd, FogRenderDistanceStart, FogRenderDistanceEnd, FogColor);
+}
+""" % {"lo": MARK_HI - MARK_CLASSES + 1, "hi": MARK_HI, "r0": MARK_R0, "step": MARK_STEP}
+
+
+def write_shader(out):
+    folder = os.path.join(out, "assets", "minecraft", "shaders", "core")
+    os.makedirs(folder, exist_ok=True)
+    for ext, text in (("vsh", ITEM_VSH), ("fsh", ITEM_FSH)):
+        with open(os.path.join(folder, f"rendertype_item_entity_translucent_cull.{ext}"), "w", encoding="ascii", newline="\n") as f:
+            f.write(text)
+
+
+# ── own 벌의 머리: 스킨 픽셀 머리 ──
+# 해골 상자 (아이템 공간 (4..12, 0..8, 4..12), 얼굴 +Z) 의 여섯 면을 8×8 픽셀 사각형 384 개로 나누고 사각형마다 tintindex
+# (면 차례 HEAD_FACES × 64 + 줄 × 8 + 칸) 를 준다. 아이템 정의의 tints 가 custom_model_data colors[0..383] 을 흰 바탕에 곱한다.
+# 면의 픽셀 차례는 _face_grid (밖에서 볼 때 u 오른쪽, v 아래) 와 스킨의 머리 칸 (덧옷 층은 u + 32) 이다: 미리보기 head_faces 와 같고,
+# 바닐라 해골과 견주어 맞췄다 [확인 (클라): /soulstest tumble ... own].
+HEAD_FACES = ("south", "north", "east", "west", "up", "down")      # 플러그인 SkinTint.HEAD_FACES 와 같은 차례
+HEAD_REGION = {"south": (8, 8), "north": (24, 8), "east": (16, 8), "west": (0, 8), "up": (8, 0), "down": (16, 0)}
+HEAD_PIXELS = len(HEAD_FACES) * 64
+
+
+def headpx_model():
+    fr, to = np.array([4.0, 0.0, 4.0]), np.array([12.0, 8.0, 12.0])
+    els = []
+    for f, fname in enumerate(HEAD_FACES):
+        origin, uax, vax, _, _ = _face_grid(fr, to, fname)
+        for j in range(8):
+            for i in range(8):
+                a = origin + uax * i + vax * j
+                b = origin + uax * (i + 1) + vax * (j + 1)
+                els.append({"from": [_r(v) for v in np.minimum(a, b)], "to": [_r(v) for v in np.maximum(a, b)],
+                            "faces": {fname: {"uv": [0, 0, 1, 1], "texture": "#px", "tintindex": f * 64 + j * 8 + i}}})
+    return {"textures": {"px": TEX_ID["px"] + "_m", "particle": TEX_ID["px"] + "_m"}, "elements": els,
+            "display": {"fixed": HEAD_FIXED}}
+
+
+def head_pixels(skin):
+    """스킨 (64×64 또는 64×32) → 머리 픽셀 384 색 (0xRRGGBB, HEAD_FACES 차례). 덧옷 층은 알파만큼 겹친다 (플러그인 SkinTint.head 와 같은 셈).
+    skin 이 None 이면 팔레트 얼굴 (미리보기의 기본 머리)."""
+    if skin is None:
+        faces = _skin_faces(None)
+        names = {"south": "north", "north": "south", "east": "east", "west": "west", "up": "up", "down": "down"}
+        return [_int(faces[names[f]].getpixel((i, j))) for f in HEAD_FACES for j in range(8) for i in range(8)]
+    a = np.array(skin.convert("RGBA")).astype(int)
+    out = []
+    for fname in HEAD_FACES:
+        u0, v0 = HEAD_REGION[fname]
+        for j in range(8):
+            for i in range(8):
+                b, h = a[v0 + j, u0 + i], a[v0 + j, u0 + 32 + i]
+                al = h[3]
+                rgb = [(int(h[c]) * al + int(b[c]) * (255 - al) + 127) // 255 for c in range(3)]
+                out.append((rgb[0] << 16) | (rgb[1] << 8) | rgb[2])
+    return out
+
+
+# ── own 벌이 손에 든 souls 아이템: 표시한 모형 ──
+# 아이템 정의 (assets/souls/items) 를 감쌀 때 (wrap_item_definitions) custom_model_data 깃발 MARK_FLAG 가 켜지면 같은 모형의 표시판
+# (souls:item/<이름>_m) 으로 그린다. 표시판은 면마다 그 면의 점이 1인칭 카메라에서 가장 멀어지는 거리로 마디 k 를 골라 그 마디의 그림
+# (<그림>_m<k>) 을 쓴다: 긴 무기의 날 끝은 큰 반지름, 손잡이는 작은 반지름이라 F5 카메라가 가까워도 (벽) 덜 사라진다.
+# 점의 자리: 대역의 손 부위 (hand_r, hand_l) 자세 · ItemDisplay 의 Y 180° · 모형의 thirdperson_righthand (왼손은 바닐라처럼 거울) 변환.
+# 두 손, 두 자세 (오른손·왼손 변환) 를 모두 본다 (왼손잡이는 거울이라 거리가 같다).
+_VANILLA_DISPLAY = {   # 바닐라 부모 모형의 thirdperson_righthand (클라이언트 jar 를 못 읽을 때)
+    "minecraft:item/generated": {"rotation": [0, 0, 0], "translation": [0, 3, 1], "scale": [0.55, 0.55, 0.55]},
+    "minecraft:item/handheld": {"rotation": [0, -90, 55], "translation": [0, 4.0, 0.5], "scale": [0.85, 0.85, 0.85]},
+}
+
+
+def _ref(ref):
+    ns, _, path = ref.partition(":") if ":" in ref else ("minecraft", "", ref)
+    return ns, path
+
+
+class _Models:
+    """팩 폴더의 souls 모형과 클라이언트 jar 의 바닐라 모형을 읽는다 (부모 사슬)."""
+
+    def __init__(self, out):
+        self.out = out
+        jar = client_jar()
+        self.zip = zipfile.ZipFile(jar) if jar else None
+
+    def raw(self, ref):
+        ns, path = _ref(ref)
+        p = os.path.join(self.out, "assets", ns, "models", *path.split("/")) + ".json"
+        if os.path.exists(p):
+            with open(p, encoding="utf-8") as f:
+                return json.load(f)
+        if ns == "minecraft" and self.zip is not None:
+            try:
+                return json.loads(self.zip.read(f"assets/minecraft/models/{path}.json"))
+            except KeyError:
+                return None
+        return None
+
+    def resolved(self, ref):
+        """(textures, elements, display thirdperson_righthand, thirdperson_lefthand, generated 인가)."""
+        tex, els, disp_r, disp_l, gen = {}, None, None, None, False
+        seen = 0
+        while ref and seen < 16:
+            seen += 1
+            if ref in ("builtin/generated", "minecraft:builtin/generated"):
+                gen = True
+                break
+            m = self.raw(ref)
+            if m is None:
+                if ref in _VANILLA_DISPLAY and disp_r is None:
+                    disp_r = _VANILLA_DISPLAY[ref]
+                if ref in ("minecraft:item/generated", "item/generated", "minecraft:item/handheld", "item/handheld"):
+                    gen = True
+                break
+            for k, v in m.get("textures", {}).items():
+                tex.setdefault(k, v)
+            if els is None and "elements" in m:
+                els = m["elements"]
+            d = m.get("display", {})
+            if disp_r is None and "thirdperson_righthand" in d:
+                disp_r = d["thirdperson_righthand"]
+            if disp_l is None and "thirdperson_lefthand" in d:
+                disp_l = d["thirdperson_lefthand"]
+            ref = m.get("parent")
+        return tex, els, disp_r, disp_l, gen
+
+    def texture(self, ref):
+        ns, path = _ref(ref)
+        p = os.path.join(self.out, "assets", ns, "textures", *path.split("/")) + ".png"
+        if os.path.exists(p):
+            return Image.open(p).convert("RGBA")
+        if ns == "minecraft" and self.zip is not None:
+            try:
+                return Image.open(io.BytesIO(self.zip.read(f"assets/minecraft/textures/{path}.png"))).convert("RGBA")
+            except KeyError:
+                return None
+        return None
+
+
+def _display_matrix(d, left):
+    """모형의 thirdperson 변환 → (회전 행렬, 이동 (픽셀), 크기). left 면 바닐라 ItemTransform.apply 처럼 거울."""
+    d = d or {"rotation": [0, 0, 0], "translation": [0, 0, 0], "scale": [1, 1, 1]}
+    rx, ry, rz = (float(v) for v in d.get("rotation", [0, 0, 0]))
+    tx, ty, tz = (float(v) for v in d.get("translation", [0, 0, 0]))
+    s = np.array([float(v) for v in d.get("scale", [1, 1, 1])])
+    if left:
+        ry, rz, tx = -ry, -rz, -tx
+    return _rx(rx) @ _ry(ry) @ _rz(rz), np.array([tx, ty, tz]), s
+
+
+def _element_faces(els):
+    """모형 요소 → [(요소 번호, 면 이름, 꼭짓점 (모형 픽셀 0..16))] (요소 회전 반영)."""
+    out = []
+    for n, el in enumerate(els):
+        fr, to = np.array(el["from"], float), np.array(el["to"], float)
+        rot = el.get("rotation")
+        R, org = np.eye(3), np.zeros(3)
+        if rot:
+            R = {"x": _rx, "y": _ry, "z": _rz}[rot["axis"]](float(rot["angle"]))
+            org = np.array(rot["origin"], float)
+        for fname in el.get("faces", {}):
+            o, ua, va, w, h = _face_grid(fr, to, fname)
+            corners = [o, o + ua * w, o + va * h, o + ua * w + va * h, o + ua * w / 2 + va * h / 2]
+            out.append((n, fname, np.array([R @ (p - org) + org for p in corners])))
+    return out
+
+
+def _hand_points(pts, frames_, disp_r, disp_l):
+    """모형 픽셀 점 (N×3) → 모든 자세·두 손·두 변환의 D 점들 (M×3)."""
+    y180 = _ry(180)
+    v = pts - 8.0
+    out = []
+    for left in (False, True):
+        d = disp_l if (left and disp_l is not None) else disp_r
+        Rd, td, sd = _display_matrix(d, left and disp_l is None)
+        local = (v * sd) @ Rd.T + td          # 아이템 공간 (가운데 원점, 픽셀)
+        local = local @ y180.T
+        for f in frames_:
+            for hand in ("hand_r", "hand_l"):
+                P, R = f[hand]
+                out.append(P + local @ R.T)
+    return np.concatenate(out)
+
+
+def mark_item_model(models, ref, made, seq):
+    """souls 모형 ref 의 표시판 souls:item/<이름>_m 을 쓰고 그 ref 를 돌려준다. 못 만들면 None (own 벌에서 그 아이템은 비운다)."""
+    if ref in made:
+        return made[ref]
+    made[ref] = None
+    ns, path = _ref(ref)
+    m = models.raw(ref) if ns == NS else None
+    if m is None:
+        return None
+    tex, els, disp_r, disp_l, gen = models.resolved(ref)
+
+    def tex_ref(key):
+        r = tex.get(key)
+        while isinstance(r, str) and r.startswith("#"):
+            r = tex.get(r[1:])
+        return r
+    new = json.loads(json.dumps(m))
+    new_tex = dict(m.get("textures", {}))
+    want = {}                                  # 표시 그림 열쇠 → (바탕 그림 ref, 마디)
+    if els:
+        new_els = json.loads(json.dumps(els))
+        for n, fname, corners in _element_faces(els):
+            k = mark_class(eye_reach(_hand_points(corners, seq, disp_r, disp_l)))
+            face = new_els[n]["faces"][fname]
+            key = face["texture"].lstrip("#")
+            base = tex_ref(key)
+            if base is None:
+                return None
+            want[f"{key}_m{k}"] = (base, k)
+            face["texture"] = f"#{key}_m{k}"
+        new["elements"] = new_els
+    elif gen:
+        # 그려 낸 납작한 모형 (layer0, layer1 ..): 16×16 판 전체로 한 마디
+        sq = np.array([[x, y, z] for x in (0.0, 16.0) for y in (0.0, 16.0) for z in (7.5, 8.5)])
+        k = mark_class(eye_reach(_hand_points(sq, seq, disp_r, disp_l)))
+        for key in sorted(kk for kk in tex if kk.startswith("layer")):
+            base = tex_ref(key)
+            if base is None:
+                return None
+            want[f"{key}_m{k}"] = (base, k)
+            new_tex[key] = f"#{key}_m{k}"
+    else:
+        return None
+    for mk, (base, k) in want.items():
+        img = models.texture(base)
+        if img is None:
+            return None
+        bns, bpath = _ref(base)
+        name = ("" if bns == NS else bns + "_") + bpath.split("/")[-1] + f"_m{k}"
+        dst = os.path.join(models.out, "assets", NS, "textures", "item", name + ".png")
+        if not os.path.exists(dst):
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            marked_image(img, k).save(dst)
+        new_tex[mk] = f"{NS}:item/{name}"
+    new["textures"] = new_tex
+    leaf = path.split("/")[-1] + "_m"
+    _json(os.path.join(models.out, "assets", NS, "models", "item", leaf + ".json"), new)
+    made[ref] = f"{NS}:item/{leaf}"
+    return made[ref]
+
+
+def _mark_tree(node, models, made, seq):
+    """아이템 정의의 모형 나무 → 표시판 나무 (모형 잎은 표시 모형으로, 못 만드는 잎과 특수 모형은 비운다)."""
+    if isinstance(node, list):
+        return [_mark_tree(x, models, made, seq) for x in node]
+    if not isinstance(node, dict):
+        return node
+    t = node.get("type", "").replace("minecraft:", "")
+    if t == "model":
+        ref = mark_item_model(models, node["model"], made, seq)
+        if ref is None:
+            return {"type": "minecraft:empty"}
+        out = dict(node)
+        out["model"] = ref
+        return out
+    if t == "special":
+        return {"type": "minecraft:empty"}
+    return {k: (_mark_tree(v, models, made, seq) if isinstance(v, (dict, list)) else v) for k, v in node.items()}
 
 
 def anim_table(path):
@@ -606,18 +964,13 @@ def anim_table(path):
     lines = ["# 구르기 대역의 열쇠 자세 (pack/roll_figure.py anim_table 이 뼈대에서 셈해 쓴다. 손대지 않는다).",
              "# 자리는 대역 공간 D 의 픽셀 (원점 발밑 땅, +Y 위, +Z 구르는 쪽, +X 그 사람의 왼쪽), 회전은 사원수 x y z w.",
              "# 플러그인 (combat/Tumble) 이 구르는 쪽 Y 회전을 걸고 탑승 자리만큼 내려 tick 틱에 dur 틱 보간으로 보낸다.",
-             "# hand_r, hand_l 은 든 것의 자리 (THIRDPERSON_RIGHTHAND / LEFTHAND). 오른손잡이 기준 (왼손잡이는 플러그인이 뒤집는다)",
-             "# back: 1인칭에서 비키려고 F5 카메라 자리 (눈에서 보는 쪽 반대로 f5-dist 블록, 벽에 막히면 그만큼) 를 가운데로 줄여 눈 자리를",
-             "# 물릴 몫 (픽셀, 크기는 1 - back / 거리). 보는 쪽이 대역이 구르는 쪽에서 0, 30, ... 330° (+X 쪽으로) 일 때의 값 (사이는 직선).",
-             "# hide-pitch: 이보다 내려다보면 대역을 그 사람 화면에서 감춘다 (도)",
+             "# hand_r, hand_l 은 든 것의 자리 (THIRDPERSON_RIGHTHAND / LEFTHAND). 오른손잡이 기준 (왼손잡이는 플러그인이 뒤집는다).",
+             "# 1인칭에서 감추는 것은 팩의 표시 알파와 아이템 셰이더가 한다 (자세와 상관없이 모두에게 같은 대역).",
              f"scale: {SCALE}",
-             f"hide-pitch: {_fmt(FP_PITCH)}",
-             f"f5-dist: {_fmt(F5_DIST * SCALE / 16)}",
              "parts: [" + ", ".join(PARTS) + "]",
              "frames:"]
-    backs = look_back(fs)
     prev = None
-    for (t, f), back in zip(fs, backs):
+    for t, f in fs:
         # 처음 자세는 띄울 때 (0틱) 그대로. 다음부터는 앞 자세에 닿은 틱에 보내 이 자세에 닿을 때까지 보간한다. 다만 FIRST_SEND 틱
         # 전에는 보내지 않는다: 띄운 다음 틱 (1틱) 에 바꾸면 생성 패킷과 한 번에 나가 보간 없이 처음 자세가 바뀐다
         send = 0 if prev is None else max(prev, FIRST_SEND)
@@ -631,7 +984,6 @@ def anim_table(path):
             rows.append("[" + ", ".join(_fmt(v) for v in (*P, *q)) + "]")
         lines.append(f"  - tick: {send}")
         lines.append(f"    dur: {dur}")
-        lines.append("    back: [" + ", ".join(_fmt(v) for v in back) + "]")
         lines.append("    p:")
         lines += [f"      - {r}   # {part}" for r, part in zip(rows, PARTS)]
         prev = t
@@ -714,44 +1066,81 @@ def _json(path, data):
 
 def build(out):
     assets = os.path.join(out, "assets", NS)
+    check_steps()
+    # 1인칭에서 감추는 반지름 (부위 묶음마다, 위 "1인칭에서 감추기")
+    reach = group_reach()
+    klass = {g: mark_class(r) for g, r in reach.items()}
     for k, img in TEXTURES.items():
         p = os.path.join(assets, "textures", "item", f"roll_{k}.png")
         os.makedirs(os.path.dirname(p), exist_ok=True)
         img.save(p)
-    check_steps()
+        marked_image(img, klass[TEX_GROUP[k]]).save(os.path.join(assets, "textures", "item", f"roll_{k}_m.png"))
+    # 픽셀 머리의 바탕: 흰 칸 (물들이는 색이 그대로 나오게. artlint 의 팔레트 검사에서 뺀다: palette.TINT_BASE)
+    marked_image(Image.new("RGBA", (16, 16), (255, 255, 255, 255)), klass["head"]).save(
+        os.path.join(assets, "textures", "item", "roll_px_m.png"))
     tints = [{"type": "minecraft:custom_model_data", "index": i, "default": _int(c(col))} for _, i, col in TINTS]
     for name in BODY_MODELS:
-        _json(os.path.join(assets, "models", "item", f"roll_{name}.json"), part_model(name))
+        model = part_model(name)
+        _json(os.path.join(assets, "models", "item", f"roll_{name}.json"), model)
         _json(os.path.join(assets, "items", f"roll_{name}.json"),
               {"model": {"type": "minecraft:model", "model": f"{NS}:item/roll_{name}", "tints": tints}})
-    # 머리: 바닐라 player_head 특수 모형 (아이템의 profile 성분으로 스킨을 고른다) + 자세만 바꾼 바탕 모형
+        # own 벌 (그 사람 화면) 의 표시판: 같은 모형, 표시 알파 그림
+        marked = dict(model, textures={k: v + "_m" for k, v in model["textures"].items()})
+        _json(os.path.join(assets, "models", "item", f"roll_{name}_m.json"), marked)
+        _json(os.path.join(assets, "items", f"roll_{name}_m.json"),
+              {"model": {"type": "minecraft:model", "model": f"{NS}:item/roll_{name}_m", "tints": tints}})
+    # 머리 (seen 벌): 바닐라 player_head 특수 모형 (아이템의 profile 성분으로 스킨을 고른다) + 자세만 바꾼 바탕 모형
     _json(os.path.join(assets, "models", "item", "roll_head.json"),
           {"parent": "minecraft:item/template_skull", "display": {"fixed": HEAD_FIXED}})
     _json(os.path.join(assets, "items", "roll_head.json"),
           {"model": {"type": "minecraft:special", "base": f"{NS}:item/roll_head", "model": {"type": "minecraft:player_head"}}})
-    _json(os.path.join(assets, "models", "item", "roll_helm.json"), helm_model())
+    # 머리 (own 벌): 스킨 픽셀 머리 (색 384 개)
+    _json(os.path.join(assets, "models", "item", "roll_headpx.json"), headpx_model())
+    _json(os.path.join(assets, "items", "roll_headpx.json"),
+          {"model": {"type": "minecraft:model", "model": f"{NS}:item/roll_headpx",
+                     "tints": [{"type": "minecraft:custom_model_data", "index": i, "default": v}
+                               for i, v in enumerate(head_pixels(None))]}})
+    helm = helm_model()
+    helm_tint = [{"type": "minecraft:custom_model_data", "index": 0, "default": _int(c(HELM_DEFAULT))}]
+    _json(os.path.join(assets, "models", "item", "roll_helm.json"), helm)
     _json(os.path.join(assets, "items", "roll_helm.json"),
-          {"model": {"type": "minecraft:model", "model": f"{NS}:item/roll_helm",
-                     "tints": [{"type": "minecraft:custom_model_data", "index": 0, "default": _int(c(HELM_DEFAULT))}]}})
+          {"model": {"type": "minecraft:model", "model": f"{NS}:item/roll_helm", "tints": helm_tint}})
+    _json(os.path.join(assets, "models", "item", "roll_helm_m.json"),
+          dict(helm, textures={k: v + "_m" for k, v in helm["textures"].items()}))
+    _json(os.path.join(assets, "items", "roll_helm_m.json"),
+          {"model": {"type": "minecraft:model", "model": f"{NS}:item/roll_helm_m", "tints": helm_tint}})
+    write_shader(out)
+    # 기어가기 막힘 (플러그인 Roll.CEILING): 구르는 동안 그 사람 화면에만 머리 위에 까는 라임 색유리. 블록 모형을 비워 보이지 않게 한다.
+    # 바닐라 TransparentBlock 이라 3인칭 카메라가 지나간다 (방벽은 카메라를 막았다). 이 게임의 세계는 라임 색유리를 쓰지 않는다
+    _json(os.path.join(out, "assets", "minecraft", "blockstates", f"{CEILING}.json"),
+          {"variants": {"": {"model": f"{NS}:block/roll_ceiling"}}})
+    _json(os.path.join(assets, "models", "block", "roll_ceiling.json"),
+          {"textures": {"particle": f"minecraft:block/{CEILING}"}, "elements": []})
     # 급류 회전의 흰 소용돌이를 투명하게 (combat.roll.visual: spin)
     tex = os.path.join(out, "assets", "minecraft", "textures", "entity", "trident_riptide.png")
     os.makedirs(os.path.dirname(tex), exist_ok=True)
     Image.new("RGBA", (64, 64), (0, 0, 0, 0)).save(tex)
+    return {g: (round(r, 2), klass[g], round(mark_radius(klass[g]), 2)) for g, r in reach.items()}
 
 
 def _int(rgba):
     return (rgba[0] << 16) | (rgba[1] << 8) | rgba[2]
 
 
-OWN = tuple(f"roll_{k}.json" for k in (*BODY_MODELS, "head", "helm"))
+OWN = tuple(f"roll_{k}.json" for k in (*BODY_MODELS, *(m + "_m" for m in BODY_MODELS), "head", "headpx", "helm", "helm_m"))
 
 
 def wrap_item_definitions(out):
     """
-    assets/souls/items/*.json 을 모두 감싼다: custom_model_data 깃발 HIDE_FLAG 가 켜지면 손·머리 자세 (HIDDEN_CONTEXTS) 에서 비운다.
-    대역 모형 (OWN) 은 감싸지 않는다. gen_pack 이 다른 아이템 정의를 다 쓴 뒤에 부른다.
+    assets/souls/items/*.json 을 모두 감싼다 (대역 모형 OWN 은 빼고). gen_pack 이 다른 아이템 정의를 다 쓴 뒤에 부른다.
+      - custom_model_data 깃발 MARK_FLAG 가 켜지면 표시판 (own 벌이 손에 든 것: 위 "1인칭에서 감추기") 으로 그린다.
+      - 아니고 깃발 HIDE_FLAG 가 켜지면 손·머리 자세 (HIDDEN_CONTEXTS) 에서 비운다 (진짜 몸이 든 것).
+    돌려주는 값: (감싼 정의 수, 표시판을 만든 모형 수).
     """
     folder = os.path.join(out, "assets", NS, "items")
+    models = _Models(out)
+    made = {}
+    seq = anim_samples()
     n = 0
     for name in sorted(os.listdir(folder)) if os.path.isdir(folder) else []:
         if not name.endswith(".json") or name in OWN:
@@ -760,16 +1149,21 @@ def wrap_item_definitions(out):
         with open(path, encoding="utf-8") as f:
             data = json.load(f)
         inner = data["model"]
-        data["model"] = {
+        hide = {
             "type": "minecraft:condition", "property": "minecraft:custom_model_data", "index": HIDE_FLAG,
             "on_false": inner,
             "on_true": {"type": "minecraft:select", "property": "minecraft:display_context",
                         "cases": [{"when": HIDDEN_CONTEXTS, "model": {"type": "minecraft:empty"}}],
                         "fallback": inner},
         }
+        data["model"] = {
+            "type": "minecraft:condition", "property": "minecraft:custom_model_data", "index": MARK_FLAG,
+            "on_false": hide,
+            "on_true": _mark_tree(inner, models, made, seq),
+        }
         _json(path, data)
         n += 1
-    return n
+    return n, sum(1 for v in made.values() if v)
 
 
 # ─────────────────────────── 스킨 색 표 (기본 스킨 18 개) ───────────────────────────
@@ -854,12 +1248,16 @@ def skin_table(jar, path):
         return False
     lines = ["# 바닐라 기본 스킨 18 개의 구르기 대역 색 (pack/roll_figure.py skin_table 이 클라이언트 jar 에서 뽑는다. 손대지 않는다).",
              "# 차례는 클라이언트 DefaultPlayerSkin 표 (UUID.hashCode() 를 18 로 나눈 나머지, floorMod). 색은 몸통, 윗팔, 손, 바지, 신",
+             "# heads: 그 사람 화면의 대역 (own) 이 쓰는 픽셀 머리의 색 384 개 (여섯 면 × 8×8, 덧옷 층을 겹친 색) 를 6 자리 16진수로 이은 줄",
              "skins:"]
+    heads = []
     with zipfile.ZipFile(jar) as z:
         for name in DEFAULT_SKINS:
             img = Image.open(io.BytesIO(z.read(f"assets/minecraft/textures/entity/player/{name}.png")))
             cols = skin_colors(img, slim=name.startswith("slim/"))
             lines.append(f"  - [{', '.join(repr('%06x' % v) for v in cols)}]   # {name}")
+            heads.append(f"  - '{''.join('%06x' % v for v in head_pixels(img))}'   # {name}")
+    lines += ["heads:"] + heads
     with open(path, "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join(lines) + "\n")
     return True

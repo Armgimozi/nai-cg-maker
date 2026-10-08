@@ -30,6 +30,7 @@ import org.bukkit.util.Vector;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -44,9 +45,9 @@ import java.util.UUID;
  *
  * 돌진처럼 보이지 않게: 한 번 튕기는 대신 glide 틱 동안 같은 빠르기로 밀다가 끝 두 틱에 줄여 멈춘다.
  * 보이는 모습은 combat.roll.visual (3.3 "보이는 모습"): tumble 은 진짜 몸을 감추고 관절이 있는 대역이 어깨로 구른다 (Tumble),
- * spin 은 바닐라 급류 회전, crawl 은 머리 위 칸에 그 사람 화면에만 보이는 방벽을 깔아 클라이언트가 스스로 기어가기 자세로
- * 바꾸게 한다 (1인칭은 시야가 바닥까지 내려갔다 올라오고, 3인칭은 몸이 눕는다). 방벽은 진짜 블록이 아니라 다른 사람과 서버는 모른다.
- * 모습은 보이는 것만 바꾼다. 미는 힘·무적·비용은 셋 다 같다.
+ * spin 은 바닐라 급류 회전, crawl 은 대역 없이 기어가기 자세로 미끄러진다. tumble·crawl 은 combat.roll.crawl 이면 머리 위 칸에 그
+ * 사람 화면에만 있는 막힘 ({@link #CEILING}) 을 깔아 클라이언트가 스스로 기어가기 자세로 바꾸게 한다 (1인칭은 시야가 바닥까지
+ * 내려갔다 올라온다). 막힘은 진짜 블록이 아니라 다른 사람과 서버는 모른다. 모습은 보이는 것만 바꾼다. 미는 힘·무적·비용은 셋 다 같다.
  *
  * 미는 때: F 는 틱 사이에 오고, 속도 패킷은 틱마다 한 번 (엔티티 추적기가 hurtMarked 를 볼 때) 나간다.
  * F 를 받은 자리에서 setVelocity 를 하면 다음 틱의 첫 밀기가 그 값을 덮어 클라이언트에 닿지 않는다.
@@ -55,9 +56,24 @@ import java.util.UUID;
 public final class Roll implements Listener {
     /** tumble 대역의 왼어깨가 땅에 닿는 틱 (열쇠 자세 표 roll_anim.yml 의 "어깨 닿기" 가 3틱에 닿는다) */
     private static final int TUMBLE_CONTACT = 3;
+    /**
+     * 그 사람 화면에만 까는 머리 위 막힘 블록: 라임 색유리. 팩이 이 블록의 모형을 비워 보이지 않는다 (pack/roll_figure.py). 바닐라
+     * TransparentBlock 이라 보이는 모양 (getVisualShape) 이 비어 3인칭 카메라 (Camera.getMaxZoom 은 VISUAL 모양으로 막힘을 본다)
+     * 가 지나간다: 예전 방벽은 카메라를 막아 F5 카메라를 머리 속으로 당겼다 [확인 (클라이언트 코드)]. 부딪힘은 온 블록이라 서는
+     * 상자·웅크린 상자를 막는다. 이 게임의 세계와 아이템은 라임 색유리를 쓰지 않는다 (3.3).
+     */
+    public static final Material CEILING = Material.LIME_STAINED_GLASS;
+    /** 막힘을 깔 칸: 몸 상자를 구르는 쪽으로 AHEAD 블록 쓸고 둘레로 SIDE 넓힌 곳 (클라이언트는 서버가 아는 자리보다 한두 틱 앞선다) */
+    private static final double AHEAD = 1.2, SIDE = 0.35;
     private final Souls plugin;
-    /** 사람마다 화면에만 깔아 둔 방벽 자리 */
+    /** 사람마다 화면에만 깔아 둔 막힘 자리 */
     private final Map<UUID, Set<Pos>> fakes = new HashMap<>();
+    /** 사람마다 막힘을 거둘 틱과 tumble 의 막힘인가 (대역이 먼저 거둬지면 함께 거둔다) */
+    private final Map<UUID, CrawlRun> crawling = new HashMap<>();
+    /** 이 틱 끝 (추적 단계 뒤) 에 막힘을 거둘 사람 (tumble 의 기어가기를 끝낼 때: Tumble.unduck) */
+    private final Set<UUID> uncrawlAtEnd = new HashSet<>();
+
+    private record CrawlRun(long until, boolean tumble) {}
     /** visual: tumble 의 대역 */
     private final Tumble tumble;
 
@@ -123,11 +139,22 @@ public final class Roll implements Listener {
         // 걸어 둔 시험 피해 (/soulstest rollhit) 는 걸어 둔 뒤 처음 구른 이 구르기에 묶는다
         if (st.armedRollHit > 0 && st.armedRollStart == Long.MIN_VALUE) st.armedRollStart = now;
         Config.RollVisual vis = cfg().visual();
+        // 기어가기 막힘: 대역 (tumble) 이 그 사람 화면의 탑승 자리를 기어가기 상자에 맞추므로 막힘을 먼저 깐다 (블록 패킷은 곧바로,
+        // 대역의 생성 패킷은 이 틱의 추적 단계에 나간다). 바닥 높이 때문에 기어가기 자세가 안 나오면 (crawlable) 깔지 않는다
+        boolean tum = vis == Config.RollVisual.TUMBLE;
+        int duck = tum ? cfg().tumble().duck() : kind.glide() + 2;
+        boolean crawl = !back && cfg().barrier() && duck > 0 && crawlable(p.getLocation().getY());
+        uncrawlAtEnd.remove(p.getUniqueId());
+        if (crawl) {
+            crawling.put(p.getUniqueId(), new CrawlRun(now + duck, tum));
+            crawl(p, st.rollDir);
+        } else {
+            uncrawl(p);
+        }
         // 뒷걸음은 진짜 몸 그대로 뒤로 뛴다 (이어 구른 대역이 남아 있으면 거둔다)
         if (back) tumble.stop(p);
-        else if (vis == Config.RollVisual.TUMBLE) tumble.start(p, st.rollDir, now);
+        else if (vis == Config.RollVisual.TUMBLE) tumble.start(p, st.rollDir, now, crawl);
         else if (vis == Config.RollVisual.SPIN) p.startRiptideAttack(cfg().spinTicks(), 0f, null);
-        if (cfg().barrier() && !back) crawl(p);
         visual(p, true, back || vis != Config.RollVisual.TUMBLE);
         plugin.test(p, String.format(Locale.ROOT, "ROLL kind=%s dir=%s cost=%.0f st=%.1f vis=%s t=%d",
                 kind.id(), dirName(f, r), kind.cost(), st.stamina.cur(), back ? "body" : vis.name().toLowerCase(Locale.ROOT), now));
@@ -209,34 +236,67 @@ public final class Roll implements Listener {
     }
 
     /**
-     * 기어가기 상자(높이 0.6) 바로 위 층과 그 둘레 8칸 중 빈 칸에 이 사람 화면에만 방벽을 깐다. 구르며 움직이므로 틱마다 다시 깐다.
+     * 기어가기 상자 (높이 0.6) 바로 위 층에 이 사람 화면에만 막힘 ({@link #CEILING}) 을 깐다. 구르며 움직이므로 틱마다 다시 깐다.
+     * 칸: 몸 상자 (±0.3) 를 구르는 쪽 (dir, 없으면 제자리) 으로 {@link #AHEAD} 블록 쓸고 {@link #SIDE} 넓힌 곳 가운데 그 층이 빈 칸.
+     * 클라이언트는 서버가 아는 자리보다 한두 틱 앞서 움직이므로 앞을 미리 깔아 둔다 (클라이언트의 서는 상자가 막힘 하나와만 겹쳐도
+     * 기어가기 자세가 이어진다). 막힘이 카메라를 막지 않아 (CEILING) 넓게 깔아도 3인칭 카메라가 당겨지지 않는다.
      * 층은 ceil(발 높이 + 0.6): 온 블록 바닥이면 발 블록 + 1, 길·농지·영혼 모래처럼 덜 찬 바닥이면 + 2.
-     * 그 층이 서는 상자(1.8)와 웅크린 상자(1.5)를 막아야 클라이언트가 기어가기를 고른다.
-     * 바닥 높이의 소수 자리가 0.4~0.5 (아래 반 블록, 계단 아랫단) 이면 두 조건을 함께 채우는 층이 없다.
-     * 그때는 + 2 층이라 웅크린 자세로 구른다 (기어가기 상자가 방벽에 걸려 튕기는 것보다 낫다).
+     * 발 높이의 턱 (발보다 높고 0.6 이하: 반 블록, 계단) 이 있는 칸에는 깔지 않는다 (막힘에 걸려 턱에 오르지 못한다).
+     * 그 층에 진짜 블록이 있는 칸 (1칸 높이 틈의 천장) 은 서버가 아는 서는 몸이 들어갈 수 없는 칸이다 (서버는 막힘을 모른다:
+     * 기어가는 클라이언트가 들어가면 서버가 되돌려 제자리에서 떤다). 그래서 그 칸의 기어가기 상자 자리 (층 바로 아래) 에도 막힘을 깔아
+     * 클라이언트도 벽처럼 멈추게 한다 (지금 몸이 선 칸은 빼고, 서버의 자세가 서기·웅크리기일 때만).
      */
-    private void crawl(Player p) {
+    private void crawl(Player p, Vector dir) {
         Set<Pos> want = new HashSet<>();
         Location l = p.getLocation();
-        int bx = l.getBlockX(), by = crawlLayer(l.getY()), bz = l.getBlockZ();
-        for (int dx = -1; dx <= 1; dx++) {
-            for (int dz = -1; dz <= 1; dz++) {
-                Block b = p.getWorld().getBlockAt(bx + dx, by, bz + dz);
-                if (b.getType().isAir()) want.add(new Pos(b.getX(), b.getY(), b.getZ()));
+        org.bukkit.World w = p.getWorld();
+        double x = l.getX(), y = l.getY(), z = l.getZ();
+        int by = crawlLayer(y);
+        double ax = dir == null ? 0 : dir.getX() * AHEAD, az = dir == null ? 0 : dir.getZ() * AHEAD;
+        int x0 = (int) Math.floor(Math.min(x, x + ax) - 0.3 - SIDE), x1 = (int) Math.floor(Math.max(x, x + ax) + 0.3 + SIDE);
+        int z0 = (int) Math.floor(Math.min(z, z + az) - 0.3 - SIDE), z1 = (int) Math.floor(Math.max(z, z + az) + 0.3 + SIDE);
+        boolean standing = p.getPose() == org.bukkit.entity.Pose.STANDING || p.getPose() == org.bukkit.entity.Pose.SNEAKING;
+        for (int bx = x0; bx <= x1; bx++) {
+            for (int bz = z0; bz <= z1; bz++) {
+                Block top = w.getBlockAt(bx, by, bz);
+                if (top.getType().isAir()) {
+                    if (!stepUp(w, bx, bz, y)) want.add(new Pos(bx, by, bz));
+                } else if (standing && !top.isPassable() && !occupied(x, z, bx, bz) && w.getBlockAt(bx, by - 1, bz).getType().isAir()) {
+                    want.add(new Pos(bx, by - 1, bz));
+                }
             }
         }
         Set<Pos> have = fakes.computeIfAbsent(p.getUniqueId(), k -> new HashSet<>());
         for (Iterator<Pos> it = have.iterator(); it.hasNext(); ) {
             Pos k = it.next();
             if (want.contains(k)) continue;
-            Block b = k.in(p.getWorld());
+            Block b = k.in(w);
             p.sendBlockChange(b.getLocation(), b.getBlockData());
             it.remove();
         }
-        BlockData barrier = Material.BARRIER.createBlockData();
+        BlockData ceiling = CEILING.createBlockData();
         for (Pos k : want) {
-            if (have.add(k)) p.sendBlockChange(k.in(p.getWorld()).getLocation(), barrier);
+            if (have.add(k)) p.sendBlockChange(k.in(w).getLocation(), ceiling);
         }
+    }
+
+    /** 몸 상자 (가운데 x, z, ±0.3, 조금 넉넉히) 가 그 칸에 걸치는가. */
+    private static boolean occupied(double x, double z, int bx, int bz) {
+        return x + 0.35 > bx && x - 0.35 < bx + 1 && z + 0.35 > bz && z - 0.35 < bz + 1;
+    }
+
+    /** 그 칸의 발 높이에 올라설 턱 (발보다 높고 0.6 이하) 이 있는가. */
+    private static boolean stepUp(org.bukkit.World w, int bx, int bz, double feetY) {
+        int fy = (int) Math.floor(feetY);
+        for (int yy = fy; yy <= fy + 1; yy++) {
+            Block b = w.getBlockAt(bx, yy, bz);
+            if (b.isPassable()) continue;
+            for (org.bukkit.util.BoundingBox bb : b.getCollisionShape().getBoundingBoxes()) {
+                double top = yy + bb.getMaxY();
+                if (top > feetY + 0.01 && top <= feetY + 0.6 + 1e-6) return true;
+            }
+        }
+        return false;
     }
 
     /** 방벽을 깔 층 (블록 y). 기어가기 상자 꼭대기(발 + 0.6) 이상인 가장 낮은 정수. */
@@ -244,8 +304,19 @@ public final class Roll implements Listener {
         return (int) Math.ceil(feetY + 0.6 - 1e-6);
     }
 
-    /** 깔아 둔 방벽을 거둔다 (진짜 블록 모양으로 다시 보낸다). */
+    /**
+     * 이 발 높이에서 막힘 층이 기어가기 자세를 만드는가: 층이 웅크린 상자 (발 + 1.5) 보다 낮아야 클라이언트가 웅크리기가 아니라
+     * 기어가기를 고른다. 발 높이의 소수 자리가 0.4~0.5 (아래 반 블록, 계단 아랫단) 이면 서는 상자·웅크린 상자를 막으면서 기어가기
+     * 상자는 비우는 층이 없다 (+2 층이면 웅크린 자세가 된다: 대역의 탑승 자리가 0.9 어긋난다). 그때는 깔지 않는다 (시야가 서 있다).
+     */
+    static boolean crawlable(double feetY) {
+        return crawlLayer(feetY) - feetY < 1.5 - 1e-3;
+    }
+
+    /** 깔아 둔 막힘을 거둔다 (진짜 블록 모양으로 다시 보낸다). */
     private void uncrawl(Player p) {
+        crawling.remove(p.getUniqueId());
+        uncrawlAtEnd.remove(p.getUniqueId());
         Set<Pos> have = fakes.remove(p.getUniqueId());
         if (have == null || !p.isOnline()) return;
         for (Pos k : have) {
@@ -262,6 +333,8 @@ public final class Roll implements Listener {
     public void shutdown() {
         for (Player p : Bukkit.getOnlinePlayers()) uncrawl(p);
         fakes.clear();
+        crawling.clear();
+        uncrawlAtEnd.clear();
         tumble.shutdown();
     }
 
@@ -274,10 +347,16 @@ public final class Roll implements Listener {
         uncrawl(p);
     }
 
-    /** 틱 끝 (엔티티 추적이 투명 깃발을 보낸 뒤): 대역을 띄우고 거둔다. */
+    /** 틱 끝 (엔티티 추적이 투명 깃발·대역 변환을 보낸 뒤): 장비를 바꿔 보내고, 기어가기를 끝낸 사람의 막힘을 거둔다. */
     @EventHandler
     public void onTickEnd(ServerTickEndEvent e) {
         tumble.tickEnd();
+        if (uncrawlAtEnd.isEmpty()) return;
+        for (UUID id : List.copyOf(uncrawlAtEnd)) {
+            Player p = Bukkit.getPlayer(id);
+            if (p != null) uncrawl(p);
+        }
+        uncrawlAtEnd.clear();
     }
 
     @EventHandler
@@ -289,6 +368,8 @@ public final class Roll implements Listener {
     public void onQuit(PlayerQuitEvent e) {
         tumble.forget(e.getPlayer());
         fakes.remove(e.getPlayer().getUniqueId());
+        crawling.remove(e.getPlayer().getUniqueId());
+        uncrawlAtEnd.remove(e.getPlayer().getUniqueId());
     }
 
     @EventHandler
@@ -310,11 +391,15 @@ public final class Roll implements Listener {
         stopGlide(e.getPlayer());
         tumble.stop(e.getPlayer());
         fakes.remove(e.getPlayer().getUniqueId());
+        crawling.remove(e.getPlayer().getUniqueId());
+        uncrawlAtEnd.remove(e.getPlayer().getUniqueId());
     }
 
     /**
-     * Ticker: 1..glide 틱째에 민다 (밀기 번호 t-1), 방벽을 따라 옮기고 glide+2 틱째에 거둔다 (마지막 밀기가 클라이언트에서
-     * 끝날 틈), glide+1 틱째에 일어서는 소리, 구르기가 끝난 틱에 시험 줄 (서버에서 잰 거리), 걸어 둔 시험 피해.
+     * Ticker: 1..glide 틱째에 민다 (밀기 번호 t-1), 막힘을 따라 옮기고 거둘 틱에 거둔다 (tumble: duck 틱째, 대역의 own 벌을 서는 몸
+     * 높이로 옮기고 (Tumble.unduck) 이 틱 끝에 거둔다. 대역이 먼저 거둬지면 곧바로. 바닥이 기어가기 자세가 안 나오는 높이가 되면 일찍.
+     * crawl: glide+2 틱째, 마지막 밀기가 클라이언트에서 끝날 틈), glide+1 틱째에 일어서는 소리, 구르기가 끝난 틱에 시험 줄
+     * (서버에서 잰 거리), 걸어 둔 시험 피해.
      */
     public void tick(long now) {
         tumble.tick(now);
@@ -323,9 +408,20 @@ public final class Roll implements Listener {
             if (st == null || st.roll == null) continue;
             long t = now - st.rollStart;
             if (t >= 1 && t <= st.roll.glide() && st.rollDir != null && !p.isDead()) push(p, st, st.roll, t - 1);
-            if (fakes.containsKey(p.getUniqueId())) {
-                if (t <= st.roll.glide() + 1) crawl(p);
-                else uncrawl(p);
+            CrawlRun cr = crawling.get(p.getUniqueId());
+            if (cr != null && !uncrawlAtEnd.contains(p.getUniqueId())) {
+                if (p.isDead() || (cr.tumble() && !tumble.active(p))) {
+                    uncrawl(p);
+                } else if (now >= cr.until() || !crawlable(p.getLocation().getY())) {
+                    if (cr.tumble()) {
+                        tumble.unduck(p);
+                        uncrawlAtEnd.add(p.getUniqueId());
+                    } else {
+                        uncrawl(p);
+                    }
+                } else {
+                    crawl(p, st.rollDir);
+                }
             }
             if (t == st.roll.glide() + 1 && st.rollDir != null) visual(p, false, true);
             // tumble: 어깨가 땅에 닿는 틱의 먼지. 발이 닿는 끝 먼지는 위 (glide + 1)

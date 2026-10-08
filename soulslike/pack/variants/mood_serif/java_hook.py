@@ -4,7 +4,8 @@ mood_serif 의 플러그인 쪽 (작업 폴더의 사본에서만. 저장소의 
 제목 글꼴 souls:title (Cinzel + 굵은 명조) 은 플러그인이 보내는 글 (아이템 이름, 보스 이름, 휴식 창 제목, 큰 글씨) 에만 입힌다.
 lang/*.yml 의 꼴 태그에 <font:이름공간:이름> 하나를 더 받게 하는 작은 고리를 Lang.java 에 단다 (YAML 에 이 태그가 없으면 하는 일이
 없다 = 기본 꺼짐). 이 시안의 사본 YAML 에만 태그를 넣는다:
-  weapon.*.name, boss.*.name, 시험 기술 이름 (모든 "name:" 줄), bonfire.test-name, boss.felled, taster.end
+  weapon.*.name, 시험 기술 이름 (boss 밖의 모든 "name:" 줄), bonfire.test-name, boss.felled, taster.end.
+  보스 막대 이름 (boss.*.name) 은 본문 명조 그대로 둔다
 
   build(작업폴더) → 사본에서 gradle --offline jar 로 만든 jar 경로
 """
@@ -39,12 +40,23 @@ def _patch_lang_java(path):
 NAME_LINE = re.compile(r'^(\s+(?:name|' + "|".join(EXTRA_KEYS) + r'): ")((?:<#[0-9a-fA-F]{6}>)?)', re.M)
 
 
+SKIP_SECTIONS = ("boss",)   # 보스 막대 이름은 본문 명조 그대로 (HUD 셰이더가 옮기는 글. 다크 소울의 보스 이름도 본문 글꼴이다)
+
+
 def _patch_yaml(path):
     with open(path, encoding="utf-8") as f:
-        s = f.read()
-    s, n = NAME_LINE.subn(lambda m: m.group(1) + m.group(2) + f"<font:{TITLE_FONT}>", s)
+        lines = f.read().split("\n")
+    n, section = 0, ""
+    for i, line in enumerate(lines):
+        if line and not line.startswith((" ", "#")):
+            section = line.split(":", 1)[0]
+        if section in SKIP_SECTIONS and not line.strip().startswith("felled:"):
+            continue
+        new, k = NAME_LINE.subn(lambda m: m.group(1) + m.group(2) + f"<font:{TITLE_FONT}>", line)
+        lines[i] = new
+        n += k
     with open(path, "w", encoding="utf-8") as f:
-        f.write(s)
+        f.write("\n".join(lines))
     return n
 
 

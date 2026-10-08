@@ -44,6 +44,9 @@ import java.util.concurrent.ConcurrentHashMap;
  *       갈리게). 정수 셈이라 파이썬 표와 같은 값이 나온다.</li>
  *   <li>갑옷: 가슴 → 몸통·소매, 다리 → 바지, 신 → 신, 머리 → 투구 껍데기 (대역 souls:roll_helm). 물들인 가죽은 그 색, 나머지는
  *       재료마다 팔레트에 가까운 색 (쇠는 화면에서 재 3 의 회색이 되게).</li>
+ *   <li>머리 픽셀 ({@link #head}): 그 사람 화면의 대역 (own) 은 바닐라 머리 대신 스킨 머리의 픽셀 384 개 (여섯 면 × 8×8, 덧옷 층을 그
+ *       알파만큼 겹친 색) 를 물들인 픽셀 머리 souls:roll_headpx 를 쓴다 (1인칭에서 감추는 표시 알파를 바닐라 머리에는 칠할 수 없다,
+ *       3.3). 같은 스킨 PNG 에서 고르고, 기본 스킨은 roll_skins.yml 의 heads 표 (pack/roll_figure.py head_pixels 와 같은 셈).</li>
  * </ul>
  */
 public final class SkinTint {
@@ -52,10 +55,16 @@ public final class SkinTint {
     /** 칸: x0, y0, x1, y1 (64×64 스킨). 덧옷 층은 y + 16 */
     private static final int[][] REGIONS = {{16, 20, 40, 32}, {40, 20, 56, 26}, {40, 26, 56, 32}, {0, 20, 16, 28}, {0, 28, 16, 32}};
     private static final int MIN_VALUE = 77;
+    /** 머리 픽셀의 면 차례 (팩 souls:roll_headpx 의 tintindex = 면 × 64 + 줄 × 8 + 칸) 와 스킨에서 그 면의 칸 (u, v). 덧옷 층은 u + 32 */
+    static final String[] HEAD_FACES = {"south", "north", "east", "west", "up", "down"};
+    private static final int[][] HEAD_REGION = {{8, 8}, {24, 8}, {16, 8}, {0, 8}, {8, 0}, {16, 0}};
+    static final int HEAD_PIXELS = 6 * 64;
 
     private final Souls plugin;
     private final Map<UUID, int[]> fetched = new ConcurrentHashMap<>();
+    private final Map<UUID, int[]> fetchedHead = new ConcurrentHashMap<>();
     private final List<int[]> defaults = new ArrayList<>();
+    private final List<int[]> defaultHeads = new ArrayList<>();
     private final HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5))
             .followRedirects(HttpClient.Redirect.NORMAL).build();
 
@@ -70,6 +79,13 @@ public final class SkinTint {
                     for (int i = 0; i < c.length; i++) c[i] = Integer.parseInt(String.valueOf(l.get(i)).trim(), 16);
                     defaults.add(c);
                 }
+                for (Object row : y.getList("heads", List.of())) {
+                    String hex = String.valueOf(row).trim();
+                    if (hex.length() != HEAD_PIXELS * 6) break;
+                    int[] c = new int[HEAD_PIXELS];
+                    for (int i = 0; i < c.length; i++) c[i] = Integer.parseInt(hex.substring(i * 6, i * 6 + 6), 16);
+                    defaultHeads.add(c);
+                }
             }
         } catch (Exception e) {
             plugin.getLogger().warning("roll_skins.yml 을 읽지 못했습니다: " + e);
@@ -78,6 +94,41 @@ public final class SkinTint {
             plugin.getLogger().warning("기본 스킨 색 표가 " + defaults.size() + "줄이라 쓰지 않습니다 (구르기 대역은 팩 기본색).");
             defaults.clear();
         }
+        if (defaultHeads.size() != DEFAULT_SKINS) {
+            plugin.getLogger().warning("기본 스킨 머리 표가 " + defaultHeads.size() + "줄이라 쓰지 않습니다 (그 사람 화면의 대역 머리는 팩 기본 얼굴).");
+            defaultHeads.clear();
+        }
+    }
+
+    /** 그 사람 화면의 대역 (own) 이 쓰는 픽셀 머리의 384 색 ({@link #HEAD_FACES} 차례). 모르면 null (팩 정의의 기본 얼굴). */
+    public List<Color> head(Player p) {
+        int[] c = fetchedHead.get(p.getUniqueId());
+        if (c == null && !defaultHeads.isEmpty()) c = defaultHeads.get(Math.floorMod(p.getUniqueId().hashCode(), DEFAULT_SKINS));
+        if (c == null) return null;
+        List<Color> out = new ArrayList<>(c.length);
+        for (int v : c) out.add(Color.fromRGB(v & 0xffffff));
+        return out;
+    }
+
+    /** 스킨 → 머리 픽셀 384 색. 덧옷 층 픽셀을 그 알파만큼 겹친다 (pack/roll_figure.py head_pixels 와 같은 정수 셈). */
+    static int[] headPixels(BufferedImage img) {
+        int[] out = new int[HEAD_PIXELS];
+        int n = 0;
+        for (int[] r : HEAD_REGION) {
+            for (int j = 0; j < 8; j++) {
+                for (int i = 0; i < 8; i++) {
+                    int b = img.getRGB(r[0] + i, r[1] + j), h = img.getRGB(r[0] + 32 + i, r[1] + j);
+                    int al = h >>> 24;
+                    int rgb = 0;
+                    for (int sh = 16; sh >= 0; sh -= 8) {
+                        int v = (((h >> sh) & 255) * al + ((b >> sh) & 255) * (255 - al) + 127) / 255;
+                        rgb |= v << sh;
+                    }
+                    out[n++] = rgb;
+                }
+            }
+        }
+        return out;
     }
 
     /** 대역 몸의 다섯 색 (갑옷 색이 위). 하나도 모르면 null (팩 정의의 기본색). */
@@ -137,6 +188,7 @@ public final class SkinTint {
     /** 나간 사람의 받은 색을 버린다. */
     public void forget(UUID id) {
         fetched.remove(id);
+        fetchedHead.remove(id);
     }
 
     /** 프로필의 스킨 주소에서 받는다 (비동기, Roll 이 들어올 때 부른다). 주소가 없으면 기본 스킨 표를 쓴다. */
@@ -159,6 +211,7 @@ public final class SkinTint {
                 if (img == null || img.getWidth() != 64 || (img.getHeight() != 64 && img.getHeight() != 32)) return;
                 int[] c = colors(img, slim);
                 if (c != null) fetched.put(id, c);
+                fetchedHead.put(id, headPixels(img));
             } catch (Exception ex) {
                 plugin.getLogger().fine("스킨을 받지 못했습니다 (" + id + "): " + ex);
             }

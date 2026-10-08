@@ -11,6 +11,8 @@
   gradient   아주 작은 차이로 5칸 넘게 이어지는 매끈한 그라데이션 (가로·세로)
   glowalpha  빛 허용 그림이 아닌데 발광 알파(250~252)
   restricted 쓰는 곳이 정해진 계열(palette.RESTRICTED, 생피)을 다른 그림에 씀
+  markalpha  구르기 대역의 1인칭 표시 알파 (palette.MARK_ALPHA, 240~249): 표시 그림 (palette.is_mark_path) 은 보이는 픽셀이 모두
+             한 표시 알파여야 하고, 아이템·블록 그림 가운데 다른 그림은 그 알파를 쓰면 안 된다 (아이템 셰이더가 카메라 곁에서 버린다)
 경고
   colors     16×16 칸 하나에 색이 12개 넘음
   symmetric  아이콘(textures/item, pack.png)의 완벽한 좌우 대칭
@@ -59,7 +61,7 @@ SLOT_PITCH = (18, 20)   # GUI 칸 격자 간격 (창 18, 단축 슬롯 20). 이 
 SPECK_MAX = 0.06       # 블록 그림: 외톨이 점의 몫
 DITHER_MAX = 0.30      # 블록 그림: 바둑판 점의 몫
 
-ERRORS = ("palette", "saturated", "blue", "gradient", "glowalpha", "restricted")
+ERRORS = ("palette", "saturated", "blue", "gradient", "glowalpha", "restricted", "markalpha")
 # 반투명이 성질인 블록 그림 (이름 조각). 바닐라도 이 그림들만 반투명 픽셀을 쓴다
 BLOCK_TRANSLUCENT = ("glass", "ice", "water_", "nether_portal", "respawn_anchor_top", "slime_block", "honey_block",
                      "tripwire", "frogspawn", "destroy_stage_")
@@ -163,6 +165,8 @@ def check_image(path, report, rel=None):
     rel = (rel or path).replace("\\", "/")
     glow = palette.is_glow_path(rel)
     vivid = palette.is_vivid_path(rel)
+    mark = palette.is_mark_path(rel)
+    tint_base = palette.is_tint_base_path(rel)
     img = Image.open(path).convert("RGBA")
     a = np.array(img)
     h, w = a.shape[:2]
@@ -182,7 +186,7 @@ def check_image(path, report, rel=None):
             seen[rgb] = (nm, palette.too_saturated(rgb), palette.blue_glow(rgb),
                          nm is not None and not palette.family_allowed(nm, rel))
         name, sat, blue, fam = seen[rgb]
-        if name is None:
+        if name is None and not tint_base:
             bad_pal.append((x, y, rgb))
         if sat and not (glow or vivid):
             bad_sat.append((x, y, rgb))
@@ -211,8 +215,17 @@ def check_image(path, report, rel=None):
     block = palette.is_block_path(rel)
     semi = (alpha > 0) & (alpha < 250)
     ui = "/textures/gui/" in "/" + rel or "/textures/font/" in "/" + rel
-    if semi.any() and not ui and not (block and any(t in palette.block_name(rel) for t in BLOCK_TRANSLUCENT)):
-        report.add("경고", path, "alpha", f"반투명 픽셀 {int(semi.sum())}개")
+    if mark:
+        # 구르기 대역의 표시 그림: 보이는 픽셀이 모두 한 표시 알파여야 한다 (셰이더가 그 값으로 반지름을 고른다)
+        vals = set(int(v) for v in np.unique(alpha[vis]))
+        if len(vals) != 1 or not vals <= set(palette.MARK_ALPHA):
+            report.add("오류", path, "markalpha", f"표시 알파가 한 값 ({palette.MARK_ALPHA[0]}~{palette.MARK_ALPHA[-1]}) 이 아니다: {sorted(vals)[:6]}")
+    else:
+        # 아이템 셰이더로 그려지는 그림 (아이템·블록 아틀라스) 이 표시 알파를 쓰면 카메라 곁에서 사라진다 (1인칭 손에 든 것)
+        if not ui and np.isin(alpha, palette.MARK_ALPHA).any() and ("/textures/item/" in "/" + rel or "/textures/block/" in "/" + rel):
+            report.add("오류", path, "markalpha", "구르기 대역의 표시 알파 (240~249) 를 다른 그림이 쓴다 (카메라 곁에서 사라진다)")
+        if semi.any() and not ui and not (block and any(t in palette.block_name(rel) for t in BLOCK_TRANSLUCENT)):
+            report.add("경고", path, "alpha", f"반투명 픽셀 {int(semi.sum())}개")
 
     # 5. 매끈한 그라데이션 (가로줄, 세로줄)
     rgb = a[..., :3]

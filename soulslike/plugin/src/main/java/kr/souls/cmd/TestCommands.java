@@ -45,9 +45,11 @@ import java.util.Locale;
  *   rollhit <틱 1~40> [피해]          걸어 둔 뒤 처음 구르는 구르기의 그 틱에 generic 피해. [T] ROLLHIT off= dodged=
  *   warn <틱> [피해]                  "[T] WARN hit_in=<틱>" 을 보내고 그 틱 뒤에 generic 피해 (봇이 자기 화면 기준으로 피하는 시험, 13.3)
  *   roll                             서버에서 곧바로 구르기 (F 패킷 대신)
- *   tumble [자세 번호] [side|front|back]
+ *   tumble [자세 번호] [side|front|back] [seen|own|both]
  *                                    구르기 대역을 그 열쇠 자세로 멈춰 세운다 (10초, 3칸 앞). 번호가 없거나 -1 이면 열쇠 자세를 모두 한 줄로.
- *                                    side: 구르는 쪽이 보는 사람의 오른쪽 (옆모습), front: 보는 사람 쪽으로 (앞모습), back: 멀어지는 쪽 (등)
+ *                                    side: 구르는 쪽이 보는 사람의 오른쪽 (옆모습), front: 보는 사람 쪽으로 (앞모습), back: 멀어지는 쪽 (등).
+ *                                    seen (기본): 남에게 보이는 벌 (바닐라 머리), own: 그 사람 화면의 벌 (표시 알파, 픽셀 머리),
+ *                                    both: 둘을 나란히 (own 이 오른쪽 1.2칸. 픽셀 머리와 바닐라 머리를 견준다)
  *   kill | heal | info | pos | title | skill <id>
  *   hud                              [T] HUD mode=glyph|text bossbar= hp=채움/길이 trail= fp= st= souls= blank= (보낸 HUD 막대 값, 픽셀, 10.2)
  *   dialog                           휴식 창 꼴의 Dialog (13.4 의 4). 단추를 누르면 [T] DIALOG click=<id>, Esc 로 닫으면 [T] DIALOG exit
@@ -113,16 +115,23 @@ public final class TestCommands {
                                                 DoubleArgumentType.getDouble(ctx, "amount")))))))
                 .then(Commands.literal("roll").executes(ctx -> withPlayer(ctx, p -> plugin.roll().tryRoll(p))))
                 .then(Commands.literal("tumble")
-                        .executes(ctx -> withPlayer(ctx, p -> tumble(plugin, p, -1, "side")))
+                        .executes(ctx -> withPlayer(ctx, p -> tumble(plugin, p, -1, "side", "seen")))
                         .then(Commands.argument("frame", IntegerArgumentType.integer(-1, 63))
-                                .executes(ctx -> withPlayer(ctx, p -> tumble(plugin, p, IntegerArgumentType.getInteger(ctx, "frame"), "side")))
+                                .executes(ctx -> withPlayer(ctx, p -> tumble(plugin, p, IntegerArgumentType.getInteger(ctx, "frame"), "side", "seen")))
                                 .then(Commands.argument("facing", StringArgumentType.word())
                                         .suggests((c, b) -> {
                                             for (String x : List.of("side", "front", "back")) b.suggest(x);
                                             return b.buildFuture();
                                         })
                                         .executes(ctx -> withPlayer(ctx, p -> tumble(plugin, p, IntegerArgumentType.getInteger(ctx, "frame"),
-                                                StringArgumentType.getString(ctx, "facing")))))))
+                                                StringArgumentType.getString(ctx, "facing"), "seen")))
+                                        .then(Commands.argument("which", StringArgumentType.word())
+                                                .suggests((c, b) -> {
+                                                    for (String x : List.of("seen", "own", "both")) b.suggest(x);
+                                                    return b.buildFuture();
+                                                })
+                                                .executes(ctx -> withPlayer(ctx, p -> tumble(plugin, p, IntegerArgumentType.getInteger(ctx, "frame"),
+                                                        StringArgumentType.getString(ctx, "facing"), StringArgumentType.getString(ctx, "which"))))))))
                 .then(Commands.literal("kill").executes(ctx -> withPlayer(ctx, p -> {
                     plugin.test(p, "KILL t=" + plugin.ticker().now());
                     p.setHealth(0);
@@ -186,8 +195,9 @@ public final class TestCommands {
     /**
      * 구르기 대역을 그 열쇠 자세로 멈춰 세운다 (10초). 보는 쪽 3칸 앞. facing: side 는 구르는 쪽이 보는 사람의 오른쪽 (옆에서 본다),
      * front 는 보는 사람 쪽 (앞모습), back 은 멀어지는 쪽 (등). frame 이 -1 이면 열쇠 자세를 모두, 오른쪽으로 1.3칸 간격.
+     * which: seen (남에게 보이는 벌), own (그 사람 화면의 벌: 표시 알파, 픽셀 머리), both (own 을 오른쪽 1.2칸에 나란히).
      */
-    private static void tumble(Souls plugin, Player p, int frame, String facing) {
+    private static void tumble(Souls plugin, Player p, int frame, String facing, String which) {
         Tumble t = plugin.roll().tumble();
         Location eye = p.getLocation();
         double yaw = Math.toRadians(eye.getYaw());
@@ -200,13 +210,19 @@ public final class TestCommands {
         };
         Location base = eye.clone().add(fwd.clone().multiply(3));
         int n = t.frames();
-        if (frame >= 0) {
-            t.pose(p, base, dir, frame, 200);
-        } else {
-            for (int i = 0; i < n; i++) t.pose(p, base.clone().add(right.clone().multiply((i - (n - 1) / 2.0) * 1.3)), dir, i, 200);
+        boolean both = which.equals("both");
+        boolean own = which.equals("own");
+        for (int k = 0; k < (both ? 2 : 1); k++) {
+            boolean o = both ? k == 1 : own;
+            Location b = both ? base.clone().add(right.clone().multiply(k == 1 ? 0.6 : -0.6)) : base;
+            if (frame >= 0) {
+                t.pose(p, b, dir, frame, 200, o);
+            } else {
+                for (int i = 0; i < n; i++) t.pose(p, b.clone().add(right.clone().multiply((i - (n - 1) / 2.0) * (both ? 2.6 : 1.3))), dir, i, 200, o);
+            }
         }
-        plugin.test(p, String.format(Locale.ROOT, "TUMBLE frame=%s of=%d facing=%s t=%d", frame < 0 ? "row" : String.valueOf(frame), n,
-                facing, plugin.ticker().now()));
+        plugin.test(p, String.format(Locale.ROOT, "TUMBLE frame=%s of=%d facing=%s which=%s t=%d", frame < 0 ? "row" : String.valueOf(frame), n,
+                facing, which, plugin.ticker().now()));
     }
 
     private interface PlayerAction {

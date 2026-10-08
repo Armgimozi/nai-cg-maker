@@ -177,6 +177,25 @@ def is_glow_path(path):
     return is_block_path(p) and block_name(p) in BLOCK_GLOW
 
 
+# 구르기 대역의 1인칭 표시 그림 (pack/roll_figure.py "1인칭에서 감추기"): 그 사람 화면의 대역만 쓰는 그림이라 보이는 픽셀의 알파가
+# 모두 표시 알파 (MARK_ALPHA) 다. 셰이더가 읽는 기술 값이라 반투명 경고에서 뺀다 (그림은 원본과 같은 색이고 셰이더가 불투명하게 그린다).
+#   textures/item/roll_<재료>_m.png, <무기 그림>_m<k>.png
+MARK_ALPHA = tuple(range(240, 250))
+# 물들이는 흰 바탕 (그대로 보이지 않고 tints 가 곱한 색만 보인다): 팔레트 검사에서 뺀다. 픽셀 머리 (색은 그 사람 스킨)
+TINT_BASE = ("textures/item/roll_px",)
+
+
+def is_mark_path(path):
+    import re
+    p = path.replace("\\", "/").lower()
+    return "/textures/item/" in "/" + p and re.search(r"(roll_[a-z]+_m|_m[0-9])\.png$", p) is not None
+
+
+def is_tint_base_path(path):
+    p = path.replace("\\", "/").lower()
+    return any(g in p for g in TINT_BASE)
+
+
 def is_block_path(path):
     """블록 그림인가 (블록 전용 계열을 쓸 수 있는 곳)."""
     p = path.replace("\\", "/").lower()

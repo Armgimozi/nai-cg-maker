@@ -7,7 +7,7 @@ mood_serif 시안의 글꼴 (모두 SIL OFL 1.1). 받고 → 굵기를 고정하
   제목 한글   Noto Serif KR (wght 600)  같은 명조의 한 단 굵은 것 (souls:title 에서 조금 크게)
 
 받는 곳은 google/fonts 저장소 (raw.githubusercontent.com). 받은 원본은 캐시 폴더 (SOULS_FONT_CACHE, 기본
-~/.cache/souls-fonts) 에 두고 팩에는 잘라 낸 것만 넣는다. 잘라 낸 글꼴은 개조판이라 (OFL 4·5항) 이름 표의 글꼴 이름을
+~/.cache/souls-fonts/mood_serif) 에 두고 팩에는 잘라 낸 것만 넣는다. 잘라 낸 글꼴은 개조판이라 (OFL 4·5항) 이름 표의 글꼴 이름을
 "Souls ..." 로 바꾸고 저작권 줄 (name 0) 과 사용 허락 줄 (name 13, 14) 은 그대로 둔다. 원 글꼴 셋 다 예약 글꼴 이름
 (Reserved Font Name) 이 없지만 같은 이름의 원본과 헷갈리지 않게 바꾼다.
 
@@ -32,7 +32,7 @@ SOURCES = {
 
 
 def cache_dir():
-    d = os.environ.get("SOULS_FONT_CACHE") or os.path.join(os.path.expanduser("~"), ".cache", "souls-fonts")
+    d = os.environ.get("SOULS_FONT_CACHE") or os.path.join(os.path.expanduser("~"), ".cache", "souls-fonts", "mood_serif")
     os.makedirs(d, exist_ok=True)
     return d
 

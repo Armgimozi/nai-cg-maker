@@ -366,8 +366,9 @@ class Bot {
         if (d.entityId !== this.id || !bot.entity || !bot.entity.velocity) return
         bot.entity.velocity.set(d.velocity.x, d.velocity.y, d.velocity.z)
       })
-      const barrier = bot.registry.blocksByName.barrier
-      this.isBarrier = (st) => !!barrier && st >= barrier.minStateId && st <= barrier.maxStateId
+      // 기어가기 막힘: 플러그인 Roll.CEILING (라임 색유리, 팩이 보이지 않게 한다). 예전 판의 방벽도 센다
+      const ceil = ['lime_stained_glass', 'barrier'].map((n) => bot.registry.blocksByName[n]).filter(Boolean)
+      this.isBarrier = (st) => ceil.some((b) => st >= b.minStateId && st <= b.maxStateId)
       c.on('block_change', (d) => this.onBlock(d.location.x, d.location.y, d.location.z, d.type))
       c.on('multi_block_change', (d) => {
         const cc = d.chunkCoordinates
