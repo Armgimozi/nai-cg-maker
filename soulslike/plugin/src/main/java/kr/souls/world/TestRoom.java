@@ -6,18 +6,20 @@ import org.bukkit.World;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
+import org.bukkit.block.data.type.Campfire;
 import org.bukkit.block.data.type.Lantern;
 import org.bukkit.block.data.type.Slab;
 
 /**
  * M0 시험 방. 코드로 짓는다 (지도 빌더가 생기기 전의 작은 판). 접속하면 여기 선다.
  * 25×25 바닥 (구르기 길이를 재는 3칸 길 포함), 그 북쪽의 반 블록 판석 길 (온 블록이 아닌 바닥에서 구르기의 방벽 높이를 보는 곳),
- * 낮은 벽, 벽 기둥 위 랜턴, 북서쪽 모서리의 6칸 높이 턱 (낙하 피해는 구르기로 피하지 못하는지 보는 곳, 사다리로 오른다).
- * 같은 무늬를 늘어놓지 않게 블록은 위치 해시로 섞는다 (8.4). 빛은 랜턴만 쓴다.
+ * 낮은 벽, 벽 기둥 위 랜턴, 북서쪽 모서리의 6칸 높이 턱 (낙하 피해는 구르기로 피하지 못하는지 보는 곳, 사다리로 오른다),
+ * 첫 자리 동쪽 6칸의 시험 방 화톳불 (켜진 캠프파이어, 판 3: bonfire/TestBonfire 가 우클릭을 받아 휴식 창, 4.1).
+ * 같은 무늬를 늘어놓지 않게 블록은 위치 해시로 섞는다 (8.4). 빛은 랜턴과 화톳불만 쓴다.
  */
 public final class TestRoom {
-    /** 방 모양을 바꾸면 올린다. 시작할 때 세계에 적힌 판보다 크면 지우고 다시 짓는다. */
-    public static final int VERSION = 2;
+    /** 방 모양을 바꾸면 올린다. 시작할 때 세계에 적힌 판보다 크면 지우고 다시 짓는다 (3: 시험 방 화톳불). */
+    public static final int VERSION = 3;
     /** 바닥 반지름 (가운데에서 벽 안쪽까지) */
     static final int HALF = 12;
 
@@ -41,6 +43,11 @@ public final class TestRoom {
     /** 판석 길의 시작 칸 (바닥 위 아래 반 블록, 동쪽 +x 로 구른다). */
     public static Location slab(World w, int cx, int cy, int cz) {
         return new Location(w, cx - 9.5, cy + 1.5, cz + 3.5, -90f, 0f);
+    }
+
+    /** 시험 방 화톳불 블록 (첫 자리 동쪽 6칸, 구르기 길 z 6..8 과 판석 길 z 2..4 밖). */
+    public static Location bonfire(World w, int cx, int cy, int cz) {
+        return new Location(w, cx + 6, cy + 1, cz + 10);
     }
 
     /** 지운 뒤 짓는다. 돌려주는 값은 놓은 블록 수. */
@@ -112,6 +119,13 @@ public final class TestRoom {
             b.set(-6, y, -10, ladder);
         }
         lantern(b, -11, 7, -11);
+
+        // 시험 방 화톳불: 켜진 캠프파이어 하나 (꽂힌 검·앉는 자리는 지도의 진짜 화톳불이 생기는 M2 에)
+        BlockData fire = Material.CAMPFIRE.createBlockData();
+        ((Campfire) fire).setLit(true);
+        ((Campfire) fire).setSignalFire(false);
+        ((Campfire) fire).setFacing(BlockFace.WEST);
+        b.set(6, 1, 10, fire);
         return b.count;
     }
 

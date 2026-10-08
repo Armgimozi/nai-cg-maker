@@ -16,8 +16,8 @@ import org.bukkit.entity.Player;
  * 팩 무리와 폭은 pack/typeset.py 의 CELLS 와 같다 (열쇠 꼴과 오른쪽 맞춤 칸의 폭 STAT_COL).
  */
 public final class Columns {
-    /** 값 열 폭 (GUI 픽셀): "1105 → 1132" 가 든다 */
-    public static final int VALUE = 56;
+    /** 값 열 폭 (GUI 픽셀): "1105 → 1132" (56), "+9.5% → +9.8%" (64) 가 든다 */
+    public static final int VALUE = 64;
     /** 두 칸 사이 */
     public static final int GAP = 12;
     /** 출신 줄의 레벨·능력치 칸 (오른쪽 맞춤, typeset 의 stat.*.short rcell 폭과 같다) */
@@ -69,7 +69,7 @@ public final class Columns {
         return b.build();
     }
 
-    /** 표 한 줄: [이름 칸][값] [사이][이름 칸][값]. 둘째 칸이 없으면 같은 폭의 빈칸 (줄 폭이 늘 같게). */
+    /** 표 한 줄: [이름 칸][값] [사이][이름 칸][값]. 이름 칸은 같은 무리 (derived.*) 라 폭이 같고 값은 VALUE 에 오른쪽 맞춤이라 줄 폭이 늘 같다. */
     public static Component row(Player p, String key1, Component v1, String key2, Component v2) {
         TextComponent.Builder b = Component.text();
         b.append(Lang.cell(p, key1)).append(v1).append(pad(GAP)); // lang-dyn: derived.*
