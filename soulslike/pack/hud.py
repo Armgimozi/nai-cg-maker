@@ -3,13 +3,13 @@ HUD 그림과 글꼴 (DESIGN.md 10.2, 10.3, 10.9). gen_pack.py 가 부른다.
 
 만드는 것
   허기            food_* 여섯 장을 투명하게 (허기 6 은 달리기를 막는 데만 쓴다, 3.2).
-  사망 화면 제목  "YOU DIED" (사용자 결정 3). 제목 글꼴 Cinzel (OFL, fonts.py) 을 FreeType 으로 크게 그린 생피 글자를
+  사망 화면 제목  "YOU DIED" (사용자 결정 3). 손으로 찍은 픽셀 글자 art/you_died.txt (평평한 생피, 윗가장자리만 밝게) 를
                   minecraft:default 글꼴의 개인 영역 문자로 넣는다 (언어 문자열은 글꼴을 고를 수 없다, 10.9). 뒤에 화면을
                   가로지르는 검은 띠 (2 배 그림, 청동 실).
   souls:hud 글꼴  자리 맞춤 빈칸 (음수·양수), 플러그인 화면 제목용 YOU DIED (death.title: true),
                   다크 소울 HUD (2026-10-07 사용자 결정, 2026-10-08 고딕 촛불 시안 B): 왼쪽 위 막대 셋 (체력·마나·스태미나) 의
                   조각과 마구리, 오른쪽 아래 소울 상자·넋 표식·숫자, 화면 아래 가운데 보스 막대 (체력·잃은 몫·자세 조각과
-                  마구리). 자리는 아래 "다크 소울 HUD" 의 머리말. 그림은 GUI 한 픽셀에 2 텍셀
+                  마구리). 막대 몸의 색 짜임은 bar_styles.py. 자리는 아래 "다크 소울 HUD" 의 머리말. 그림은 GUI 한 픽셀에 2 텍셀
                   (uidraw.py, 숫자는 4 텍셀) 이고 글꼴 셰이더가 넓이 평균으로 읽는다 (shaders.py).
   HUD 셰이더 덩이 hud_shader(): 바닐라 1.21.11 rendertype_text.vsh 에 한 덩이를 더해 표식 색의 HUD 글만 옮긴다 (막대 셋 왼쪽 위,
                   소울 상자 오른쪽 아래, 보스 막대 화면 아래 가운데). shaders.py 가 GUI 글자 덩이를 더해 쓴다 (10.8).
@@ -38,6 +38,7 @@ import os
 import numpy as np
 from PIL import Image
 
+import bar_styles
 import uidraw
 from palette import c
 from uidraw import Img, Mask
@@ -117,23 +118,20 @@ def glyph_advance(img, x0, cell_w, cell_h, scale):
 
 # ─────────────────────────── 사망 화면 제목 ───────────────────────────
 
-# 그림 이름, 문자. 두 D 는 같은 글자 그림이지만 문자는 따로 둔다 (glyphs.yml 의 이름이 그대로).
+# art/*.txt 의 기호 → 팔레트 이름 (꼴만 정한다: 칠은 아래 you_died_sheet 가 평평한 생피와 윗가장자리로 다시 한다)
+YOU_DIED_INK = {"o": "gore0", "-": "gore1", "#": "gore2", "+": "gore3"}
+# 그림 이름, 문자. 두 D 는 따로 그린 다른 그림이다 (윤곽부터 다르다).
 YOU_DIED_LETTERS = [("y", "\ue000"), ("o", "\ue001"), ("u", "\ue002"), ("d1", "\ue003"),
                     ("i", "\ue004"), ("e", "\ue005"), ("d2", "\ue006")]
-YOU_DIED_CHARS = {"y": "Y", "o": "O", "u": "U", "d1": "D", "i": "I", "e": "E", "d2": "D"}
 YOU_DIED_GAP = ("you_died_gap", "\ue00e", 3)     # 글자 사이 (글꼴 픽셀). 소울 시리즈처럼 넓게 띄운다
 YOU_DIED_WORD = ("you_died_word", "\ue00f", 10)  # YOU 와 DIED 사이
-# 글자 (2026-10-08 비평: 손으로 찍은 픽셀 글자는 계단진 가장자리와 O·U·D 의 홈이 다른 글 (매끈한 명조·가라몽) 과 따로 놀았다):
-# 제목 글꼴 Cinzel Bold (fonts.TITLE_LA 와 같은 OFL 글꼴) 를 FreeType 으로 글꼴 한 픽셀에 YOU_DIED_K 텍셀로 그려, 생피 색에 덮임을
-# 알파로 넣는다. 대문자 높이 YOU_DIED_CAP 글꼴 픽셀 (사망 화면 제목은 2배로 그려져 GUI 24 픽셀), 칸은 위·아래 한 글꼴 픽셀씩 여유.
-# 글꼴 셰이더 (shaders.py) 가 그림 글자를 화면 픽셀이 덮는 넓이만큼 섞어 읽으므로 GUI 배율 2·3·4 에서 가장자리가 고르다.
-YOU_DIED_K = 8
-YOU_DIED_CAP = 12
-YOU_DIED_HEIGHT = 14
-# 사망 화면은 제목 줄을 GUI y 60 (2배 좌표 30) 에 그리고, 글자 칸 위쪽은 줄 위쪽에서 7 - ascent 만큼 아래다 (2배).
+# 글자 그림 24줄을 글꼴 높이 12 로 넣는다 (배율 0.5). 사망 화면 제목은 2배로 그려지므로 그림 한 칸 = GUI 1픽셀
+# (2026-10-08 사용자: 손으로 찍은 픽셀 글자가 더 낫다. 제목 글꼴 Cinzel 로 그린 매끈한 판은 취소).
+YOU_DIED_HEIGHT = 12
+# 사망 화면은 제목 줄을 GUI y 60 (2배 좌표 30) 에 그리고, 글자 위쪽은 줄 위쪽에서 7 - ascent 만큼 아래다 (2배).
 # 단추는 화면 높이/4 + 72 (GUI 높이가 가장 작은 240 일 때 132) 부터라, 그 위로 가능한 한 가운데에 둔다:
-# ascent -4 면 대문자가 GUI y 84~108 (높이 240 에서 가운데가 40%), 단추와 24 픽셀 띈다.
-YOU_DIED_ASCENT = -4
+# ascent -5 면 GUI y 84~108 (높이 240 에서 가운데가 40%), 단추와 24 픽셀 띈다. 바닐라 글씨 자리(9)보다 24 픽셀 아래.
+YOU_DIED_ASCENT = -5
 # 다크 소울의 사망 화면처럼 YOU DIED 뒤에 화면을 가로지르는 반투명 검은 띠 (2026-10-07, 다크 소울 UI). 기본 글꼴의 64 폭
 # 조각 여덟 (왼쪽 끝, 가운데 여섯, 오른쪽 끝: 글꼴 그림은 256×256 판에 들어가야 하므로 한 장으로는 그릴 수 없다) 이 이어져
 # 2배로 GUI 1024×44 픽셀 (GUI 폭 960 까지 덮는다). 글자 가운데에 맞춰 위·아래로 11 씩 (ascent 0), 위·아래 가장자리와
@@ -143,56 +141,43 @@ DEATH_BAND_SPACES = ("death_band_pre", "\ue010"), ("death_band_post", "\ue011"),
 DEATH_BAND_TILE, DEATH_BAND_TILES, DEATH_BAND_H, DEATH_BAND_ASCENT = 64, 8, 22, 0
 
 # 플러그인 화면 제목용 (death.title: true). 사망 화면 판과 같은 그림을 souls:hud 글꼴에 따로 넣어, 사망 화면 판의
-# 자리(ascent)를 바꿔도 이 판은 그대로 둔다. 화면 제목은 4배로 그려지므로 대문자가 GUI 48 픽셀: 사망 화면 판의 두 배 크기다.
-# 제목 줄은 화면 가운데에서 -10 (4배 좌표) 에 놓이고 대문자 아래끝은 -10 + 7 - ascent + 13 이라, ascent 10 면 가운데보다
+# 자리(ascent)를 바꿔도 이 판은 그대로 둔다. 화면 제목은 4배로 그려지므로 높이 12 면 그림 한 칸이 GUI 2픽셀:
+# 사망 화면 판의 두 배 크기다 (이 판을 고르는 까닭). 대신 단추·HUD 와 픽셀 크기가 섞인다 (16절 질문 4 에 적었다).
+# 제목 줄은 화면 가운데에서 -10 (4배 좌표) 에 놓이고 글자 아래끝은 -10 + 7 - ascent + 12 이라, ascent 9 면 가운데보다
 # GUI 24픽셀 위에서 끝난다. 세로 한가운데에 두면 바닐라 단추(화면 높이/4 + 72)와 겹친다.
 TITLE_LETTERS = [(name, chr(0xE0F0 + i)) for i, (name, _) in enumerate(YOU_DIED_LETTERS)]
-TITLE_HEIGHT = 14
-TITLE_ASCENT = 10
+TITLE_HEIGHT = 12
+TITLE_ASCENT = 9
 TITLE_GAP = ("you_died_title_gap", "\ue030", 3)
 TITLE_WORD = ("you_died_title_word", "\ue031", 10)
 
 
-# 칠하기: 평평한 생피 하나 (YOU_DIED_FLAT), 획의 윗가장자리 (반 글꼴 픽셀 위가 비었다) 만 한 단 밝게 (YOU_DIED_TOP). 바닐라가 사망
-# 화면 제목에 그리는 그림자 (글자 × 0.25) 는 글꼴 셰이더가 반 픽셀 먹 그림자로 바꾸고, 거의 검은 띠 위라 묻힌다.
+# 칠하기 (2026-10-08 비평: 글자 속의 어두운 점과 오른쪽·아래의 어두운 가장자리가 지저분하고 "만든 티" 가 났다): 손으로 찍은 꼴
+# (art/you_died.txt) 은 그대로 두고 색은 평평한 생피 하나 (YOU_DIED_FLAT), 획의 윗가장자리 (바로 위 칸이 비었다) 만 한 단 밝게
+# (YOU_DIED_TOP). 알파는 늘 불투명 (섞인 가장자리 없음). 바닐라가 사망 화면 제목에 그리는 그림자 (글자 × 0.25, 2 GUI 픽셀
+# 오른쪽 아래) 는 거의 검은 띠 위라 묻힌다.
 YOU_DIED_FLAT, YOU_DIED_TOP = "gore2", "gore3"
-_SHEET = None
 
 
 def you_died_sheet():
-    """(글자 그림 한 장, 칸 폭 텍셀, 칸 높이 텍셀). 칸 일곱 (Y O U D I E D), 대문자 바탕선은 칸 위에서 (CAP + 1) × K 텍셀."""
-    global _SHEET
-    if _SHEET is not None:
-        return _SHEET
-    import fonts
-    k, cap = YOU_DIED_K, YOU_DIED_CAP * YOU_DIED_K
-    probe = fonts.Face(fonts.TITLE_LA[0], 200, fonts.TITLE_LA[2], hint="none")
-    a, _, top, _ = probe.render("H")
-    face = fonts.Face(fonts.TITLE_LA[0], int(round(200 * cap / a.shape[0])), fonts.TITLE_LA[2], hint="none")
-    base = (YOU_DIED_CAP + 1) * k
-    cell_h = YOU_DIED_HEIGHT * k
-    glyphs = {}
-    for name, _ in YOU_DIED_LETTERS:
-        a, left, top, _ = face.render(YOU_DIED_CHARS[name])
-        cols = np.nonzero(a.max(0) > 0)[0]
-        glyphs[name] = (a[:, cols[0]:cols[-1] + 1], top)
-    cell_w = max(g.shape[1] for g, _ in glyphs.values()) + 2
-    assert cell_w <= 256 and cell_h <= 256, "글꼴 그림 한 칸은 256 텍셀 안"
-    img = Img(cell_w * len(YOU_DIED_LETTERS), cell_h)
+    """(글자 그림 한 장, 칸 폭 텍셀, 칸 높이 텍셀). 칸 일곱 (Y O U D I E D), 칸 폭은 가장 넓은 글자, 왼쪽 맞춤."""
+    grids = load_grids(os.path.join(ART, "you_died.txt"))
+    cell_h = len(grids["y"])
+    cell_w = max(len(grids[n][0]) for n, _ in YOU_DIED_LETTERS)
+    sheet = Image.new("RGBA", (cell_w * len(YOU_DIED_LETTERS), cell_h), (0, 0, 0, 0))
     for i, (name, _) in enumerate(YOU_DIED_LETTERS):
-        g, top = glyphs[name]
-        y0 = base - top
-        cov = np.zeros((cell_h, cell_w), np.float32)
-        cov[y0:y0 + g.shape[0], 1:1 + g.shape[1]] = g
-        on = cov > 0.5
-        above = np.zeros_like(on)
-        above[k // 2:] = on[:-(k // 2)]
-        names = np.where(on & ~above, YOU_DIED_TOP, YOU_DIED_FLAT)
-        sub = Img(cell_w, cell_h)
-        sub.over_layer(names.astype(object), cov)
-        img.over(sub, i * cell_w, 0)
-    _SHEET = (img.image(), cell_w, cell_h)
-    return _SHEET
+        rows = grids[name]
+        if len(rows) != cell_h:
+            raise ValueError(f"you_died [{name}]: 높이 {len(rows)} (다른 글자는 {cell_h})")
+        img = grid_image(rows, YOU_DIED_INK)
+        px = img.load()
+        for y in range(img.height):
+            for x in range(img.width):
+                if px[x, y][3]:
+                    top = y == 0 or px[x, y - 1][3] == 0
+                    px[x, y] = c(YOU_DIED_TOP if top else YOU_DIED_FLAT)
+        sheet.alpha_composite(img, (i * cell_w, 0))
+    return sheet, cell_w, cell_h
 
 
 def death_title(glyphs, prefix="you_died_"):
@@ -239,7 +224,7 @@ def plugin_title(glyphs):
 # ─────────────────────────── 다크 소울 HUD (10.2, 2026-10-07 사용자 결정, 2026-10-08 고딕 촛불 시안 B) ───────────────────────────
 #
 # 왼쪽 위에 가는 가로 막대 셋 (체력 · 마나 · 스태미나), 오른쪽 아래에 소울 수 상자, 보스는 화면 아래 가운데에 이름 (왼쪽 맞춤) 과
-# 넓은 체력 막대 + 그 밑 반 픽셀 자세 줄. 바닐라 하트·허기·방어·경험치 막대와 조준점은 그림을 투명하게 해서 숨기고 (gui_skin),
+# 넓은 체력 막대 + 그 밑 1 GUI 픽셀 자세 줄. 바닐라 하트·허기·방어·경험치 막대와 조준점은 그림을 투명하게 해서 숨기고 (gui_skin),
 # 막대는 플러그인이 그림 글자로 그린다:
 #   막대 셋   HUD 전용 보스 막대 (WHITE, 막대 그림 투명) 의 이름 줄. 첫 보스 막대의 이름 줄은 y 3 (12 - 9) 에 놓이고,
 #             줄마다 ascent 로 내려 막대 셋을 쌓는다
@@ -256,16 +241,16 @@ def plugin_title(glyphs):
 # 내리고 막대를 화면 폭의 약 45% 로 늘인다 (1 ~ 2.5 배, 0.25 마디). 셰이더가 없으면 1280×720 GUI 배율 3 에서 가장자리 8 자리.
 #
 # 그림 (2026-10-08 사용자: 고딕 촛불 시안 B): GUI 한 픽셀에 2 텍셀 (S, 숫자는 4 텍셀) 이고 글꼴 셰이더가 넓이 평균으로 읽는다.
-#   막대     위에서 비친 단조 쇠 테 (윗날에 청동빛 반 픽셀), 안쪽 홈은 위가 가장 어둡고 아래에 녹슨 입술, 채움은 윗줄이 한 단
-#            밝고 아래로 어두워진다. 체력은 짙은 진홍, 마나는 다크 소울 FP 처럼 깊고 바랜 쪽빛 (palette 의 mana, 마나 막대 전용
-#            예외), 스태미나는 누른 풀빛. 잃은 체력은 진홍보다 어두운 탁한 황토 (잉걸).
-#   마구리   (2026-10-08 고친 것: 막대마다 붙인 세 잎 단조 장식이 셋 쌓여 무거웠다) 막대 양 끝에 반 픽셀 위·아래로만 나오는 가는
-#            쇠 기둥. 왼쪽 장식은 체력 막대 하나에만 작은 마름모 창끝 하나. 오른쪽은 기둥과 작은 마름모. 마구리끼리 세로로 닿지
-#            않는다 (막대 사이 3 픽셀).
+#   막대     위에서 비친 단조 쇠 테 (윗날에 청동빛 반 픽셀). 몸은 한 색이 아니라 거무칙칙한 겹띠 (2026-10-08 사용자 결정,
+#            bar_styles.py): 윗부분이 막대 색 (체력 진홍, 마나 깊고 바랜 쪽빛 (palette 의 mana, 마나 막대 전용 예외), 스태미나
+#            누른 풀빛), 아래는 흑갈·그을음·이끼 띠. 잃은 체력은 탁한 황토 위에 같은 흑갈 띠, 빈 몫은 먹과 녹·흑갈 입술.
+#   마구리   (2026-10-08 사용자: 초안 모양이 더 낫다) 왼쪽은 세 잎 단조 장식 (둥근 꼭지의 기둥, 기둥에 묶인 고리, 왼쪽으로 뻗은
+#            속 빈 마름모 창끝, 꼭지에서 고리로 말린 덩굴 둘), 오른쪽은 기둥과 작은 마름모 창끝. 막대 위·아래로 3 GUI 픽셀씩
+#            나와 막대 셋의 왼쪽 장식이 한 기둥으로 쌓인다 (서로 1 GUI 픽셀 겹친다).
 #   소울 수  검은 옻칠 상자, 윗날에 촛불 기운 (가운데가 따뜻하다), 금실 윗줄과 양 끝 마름모, 위 가운데 작은 꽃 장식. 넋 표식은
 #            위로 꼬리가 선 옅은 뼈빛 불꽃, 숫자는 가라몽 라이닝 숫자 (고정 폭, fonts.digit_role).
-#   보스     체력 막대와 같은 말씨, 양 끝은 같은 작은 마름모 창끝 마구리 (왼쪽은 오른쪽을 뒤집은 것), 그 밑 반 픽셀 자세 줄
-#            (흐린 금 채움 + 옅은 청동 빈 길). 이름은 제목 글꼴 (YAML 의 꼴 태그).
+#   보스     체력 막대와 같은 말씨에 더 큰 마구리 (왼쪽은 고리와 덩굴, 오른쪽은 창끝), 그 밑 1 GUI 픽셀 자세 줄 (흐린 금 채움 +
+#            옅은 청동 빈 길). 이름은 제목 글꼴 (YAML 의 꼴 태그).
 
 S = 2                       # 텍셀 / GUI 픽셀 (막대·마구리·상자·띠)
 HUD_MARGIN = 8              # 셰이더 없이: 화면 가장자리와 HUD 사이 (GUI 픽셀, 폭 427 에서)
@@ -292,109 +277,59 @@ ACTION_LINE_UP = 72         # 행동 막대 줄의 위 = 화면 아래 - 72
 HUD_TOP = 8                 # 셰이더 없이: 막대 셋의 맨 위 (GUI y)
 RUN_STEPS = (1, 2, 4, 8, 16, 32, 64, 128)   # 막대 조각 폭 (조합해 아무 길이나 만든다)
 
-# 막대: 채움 줄 색 (위 → 아래, 텍셀 줄), 막대 셋의 맨 위에서의 자리 (GUI)
-FILL = {
-    "hp": ("crimson3", "crimson2", "crimson2", "crimson2", "crimson2", "crimson1", "crimson1", "crimson0"),
-    "fp": ("mana3", "mana2", "mana2", "mana2", "mana1", "mana0"),
-    "st": ("sap3", "sap2", "sap2", "sap2", "sap1", "sap0"),
-}
+# 막대 셋의 맨 위에서의 자리 (GUI). 몸의 색 짜임 (채움·잃은 몫·빈 몫·자세 줄) 은 bar_styles.py
 TOP = {"hp": 0, "fp": 11, "st": 21}
-# 잃은 몫 (2026-10-08 비평: 옅은 금빛 흰색이 HUD 에서 가장 밝아 둘째 막대처럼 읽혔다): 진홍보다 어두운 탁한 황토 (잉걸 계열,
-# UI 전용), 윗줄만 한 단 밝다
-TRAIL = (("cinder2", 0.8),) + (("cinder1", 0.84),) * 5 + (("cinder0", 0.84),) * 2
-RIM = ("bronze2", 0.85)                     # 윗날: 촛불이 비친 청동 한 줄 (반 픽셀)
-FRAME = ("ink0", 0.95)
-DROP = ("ink0", 0.40)                       # 막대 밑 그늘 반 픽셀
 IRON = ["ink0", "rust1", "bronze2", "parch3"]    # 단조 쇠: 아랫날 → 몸 → 윗날 밑 → 윗날 (촛불이 위에서)
 GOLD = ["rust1", "bronze3", "parch2", "glim0"]
-CAP_EXT = 2                                 # 막대 셋의 마구리가 막대 위·아래로 나오는 텍셀 (반 픽셀 넘게: 1 GUI)
-CAP_L_W, CAP_R_W = 12, 10                   # 마구리 칸 폭 (텍셀). 왼쪽은 셋 다 같아 채움이 같은 자리에서 시작한다
-CAP_ORN = ("hp",)                           # 왼쪽 작은 마름모를 다는 막대 (하나뿐)
+EXT = 6                     # 막대 셋의 마구리가 막대 위·아래로 나오는 텍셀 (3 GUI 픽셀)
+BOSS_EXT = 4                # 보스 막대 마구리 (2 GUI 픽셀: 이름 줄 위 -1 .. +17 안, 셰이더가 꼭짓점 y 로 보스 줄을 고른다)
 
 # 소울 상자 (행동 막대): GUI 72×15, 화면 아래에서 8 위에 끝난다 (셰이더 없이). 표식은 상자 왼쪽 안 5, 숫자는 오른쪽 안 6
 SOUL_BOX_W, SOUL_BOX_H, SOUL_BOX_BOTTOM = 72, 15, 8
 SOUL_INSET = 2
 DIGIT_INK = "bone2"
-# 보스 막대 (보스 이름 줄 안, 줄 위에서 GUI): 이름 0..7, 체력 막대 맨 위 9, 마구리 7..17, 자세 줄 15.5 (반 픽셀)
+# 보스 막대 (보스 이름 줄 안, 줄 위에서 GUI): 이름 0..7, 체력 막대 맨 위 9, 마구리 7..17, 자세 줄 16 (1 GUI 픽셀)
 BOSS_BAR_ROW = 9
-BOSS_FILL_ROWS = ("crimson3", "crimson2", "crimson2", "crimson2", "crimson2", "crimson1", "crimson1", "crimson0")
 
 
-def trough(n):
-    """빈 몫 (홈) n 줄: 위가 가장 어둡고 아래에 녹슨 입술."""
-    rows = [("ink0", 0.97), ("ink0", 0.88)] + [("ink0", 0.82)] * max(0, n - 4) + [("rust0", 0.80), ("rust1", 0.55)]
-    return rows[:n]
+def bar_rows(bar):
+    """막대 한 칸의 텍셀 줄 수 (윗날·테·몸·테·그늘)."""
+    return len(bar_styles.column(bar, "fill"))
 
 
-def column(bar, kind):
-    """막대 한 칸 세로 줄 (텍셀, 위 → 아래): [(이름, 알파)]."""
-    fill = FILL[bar]
-    n = len(fill)
-    body = {"fill": [(x, 1.0) for x in fill],
-            "trail": list(TRAIL[:1] + TRAIL[-(n - 1):]),
-            "empty": trough(n)}[kind]
-    return [RIM, FRAME] + body + [FRAME, DROP]
-
-
-def run_sheet(col):
-    """폭 1, 2, 4 … 128 GUI 픽셀 조각을 256 텍셀 칸 간격으로 (bitmap 글꼴 한 공급자 = 한 그림, 칸 폭이 같다). None 은 빈 줄."""
-    cell = RUN_STEPS[-1] * S
-    img = Img(cell * len(RUN_STEPS), len(col))
-    for i, n in enumerate(RUN_STEPS):
-        for x in range(n * S):
-            for y, (nm, a) in enumerate(col):
-                if nm:
-                    img.put(i * cell + x, y, nm, a)
-    return img.image()
-
-
-def cap_left(hb, ornament):
+def cap_left(hb, big=False, ext=EXT):
     """
-    막대 셋의 왼쪽 마구리 (텍셀 CAP_L_W × (hb + 2 CAP_EXT)): 칸 오른쪽 끝의 가는 쇠 기둥 (2 텍셀 = GUI 1, 위·아래 끝 둥글게).
-    ornament 면 기둥에서 왼쪽으로 짧은 자루와 작은 마름모 창끝 하나 (속이 빈). 셋 다 칸 폭이 같아 기둥과 채움이 한 줄에 선다.
+    왼쪽 마구리 (텍셀): 높이 hb + 2 ext, 폭 26 (보스 30). 막대 끝의 세운 기둥 (위·아래 끝에 둥근 꼭지), 기둥에 붙은 단조 고리,
+    고리에서 왼쪽으로 뻗은 마름모 창끝, 기둥 꼭지에서 고리로 말려 내려오는 덩굴 둘 (세 잎 장식). 획은 2 텍셀 (1 GUI 픽셀) 이상이라
+    윗날 (촛불 빛) 과 아랫날 (그늘) 이 갈린다. 막대 셋의 마구리는 위·아래로 3 GUI 픽셀씩 나와 셋이 한 장식 기둥으로 쌓인다.
     """
-    w, h = CAP_L_W, hb + 2 * CAP_EXT
+    w = 30 if big else 26
+    h = hb + 2 * ext
     cy = h / 2.0
     m = Mask(w, h)
-    m.rect(w - 2, 0.9, w, h - 0.9)
-    m.disc(w - 1.0, 1.0, 1.0)
-    m.disc(w - 1.0, h - 1.0, 1.0)
-    if ornament:
-        m.rect(6.5, cy - 0.8, w - 1.5, cy + 0.8)
-        m.poly([(0.6, cy), (3.8, cy - 3.0), (7.0, cy), (3.8, cy + 3.0)])
-        hole = Mask(w, h).poly([(2.6, cy), (3.8, cy - 1.0), (5.0, cy), (3.8, cy + 1.0)])
-        cov = np.clip(m.cov() - hole.cov(), 0, 1)
-    else:
-        cov = m.cov()
-    return uidraw.lit(cov, IRON)
+    px = w - 3.0
+    m.rect(w - 5, 2, w - 1, h - 2)                  # 기둥 4 텍셀
+    m.disc(px, 2.4, 2.4)
+    m.disc(px, h - 2.4, 2.4)
+    rc = w - 13.0                                  # 고리 가운데
+    ro = 5.2 if not big else 5.8
+    m.ring(rc, cy, ro - 2.2, ro)
+    m.rect(rc + ro - 1, cy - 1.2, w - 4, cy + 1.2)  # 고리 → 기둥
+    tip = 0.6
+    m.poly([(tip, cy), (rc - ro - 3.6, cy - 3.4), (rc - ro + 1.0, cy), (rc - ro - 3.6, cy + 3.4)])
+    m.rect(rc - ro - 1.5, cy - 1.0, rc - ro + 1.0, cy + 1.0)
+    # 덩굴: 기둥 꼭지에서 왼쪽으로 휘어 고리 위·아래에 닿는 반원
+    rr = (h / 2.0 - ro) / 2.0 + 1.6
+    m.ring(px - rr - 0.6, 2.4 + rr, rr - 2.0, rr, 180, 360)
+    m.ring(px - rr - 0.6, h - 2.4 - rr, rr - 2.0, rr, 0, 180)
+    hole = Mask(w, h).poly([(tip + 4.2, cy), (rc - ro - 3.6, cy - 1.4), (rc - ro - 1.2, cy), (rc - ro - 3.6, cy + 1.4)])
+    return uidraw.lit(np.clip(m.cov() - hole.cov(), 0, 1), IRON, light_rows=1, dark_rows=1)
 
 
-def cap_right(hb):
-    """막대 셋의 오른쪽 마구리 (CAP_R_W × (hb + 2 CAP_EXT)): 칸 왼쪽 끝의 가는 쇠 기둥, 짧은 자루와 작은 마름모 창끝."""
-    w, h = CAP_R_W, hb + 2 * CAP_EXT
-    cy = h / 2.0
-    m = Mask(w, h)
-    m.rect(0, 0.9, 2, h - 0.9)
-    m.disc(1.0, 1.0, 1.0)
-    m.disc(1.0, h - 1.0, 1.0)
-    m.rect(1.5, cy - 0.8, 4.5, cy + 0.8)
-    m.poly([(3.6, cy), (6.6, cy - 2.6), (9.6, cy), (6.6, cy + 2.6)])
-    hole = Mask(w, h).poly([(5.6, cy), (6.6, cy - 0.9), (7.6, cy), (6.6, cy + 0.9)])
-    return uidraw.lit(np.clip(m.cov() - hole.cov(), 0, 1), IRON)
-
-
-def boss_cap_left(hb, ext=4):
-    """
-    보스 막대 왼쪽 마구리 (16 × (hb + 2 ext)): 오른쪽 마구리를 뒤집은 것 (둥근 꼭지의 기둥과 작은 마름모 창끝). 2026-10-08 비평:
-    고리와 덩굴이 달린 30 텍셀 장식은 HUD 막대 셋에서 뺀 무거운 장식과 같았다.
-    """
-    right = boss_cap_right(hb, ext)
-    return uidraw.lit(right.alpha[:, ::-1].copy(), IRON)
-
-
-def boss_cap_right(hb, ext=4):
-    """보스 막대 오른쪽 마구리 (16 × (hb + 2 ext)): 둥근 꼭지의 기둥과 작은 마름모 창끝."""
-    w, h = 16, hb + 2 * ext
+def cap_right(hb, big=False, ext=EXT):
+    """오른쪽 마구리: 둥근 꼭지의 기둥과 작은 마름모 창끝 (폭 14, 보스 16)."""
+    w = 16 if big else 14
+    h = hb + 2 * ext
     cy = h / 2.0
     m = Mask(w, h)
     m.rect(0, 2, 4, h - 2)
@@ -406,8 +341,9 @@ def boss_cap_right(hb, ext=4):
     return uidraw.lit(np.clip(m.cov() - hole.cov(), 0, 1), IRON)
 
 
-def pair_sheet(left, right):
+def caps_sheet(hb, big=False, ext=EXT):
     """마구리 둘을 한 그림에 (칸 폭 같게): [왼쪽][오른쪽]. 돌려주는 값: 그림."""
+    left, right = cap_left(hb, big, ext), cap_right(hb, big, ext)
     cw = max(left.w, right.w)
     sheet = Img(cw * 2, left.h)
     sheet.over(left, 0, 0)
@@ -642,10 +578,9 @@ def hud_glyphs(out, code, digit_role):
         top = HUD_TOP + TOP[bar]
         kinds = ("fill", "trail", "empty") if bar == "hp" else ("fill", "empty")
         for kind in kinds:
-            add(f"hud_{bar}_{kind}", run_sheet(column(bar, kind)), asc_hud(top), [f"hud_{bar}_{kind}_{n}" for n in RUN_STEPS])
-        hb = len(column(bar, "fill"))
-        add(f"hud_{bar}_cap", pair_sheet(cap_left(hb, bar in CAP_ORN), cap_right(hb)), asc_hud(top - CAP_EXT // S),
-            [f"hud_{bar}_cap_l", f"hud_{bar}_cap_r"])
+            add(f"hud_{bar}_{kind}", bar_styles.run_sheet(bar_styles.column(bar, kind)), asc_hud(top),
+                [f"hud_{bar}_{kind}_{n}" for n in RUN_STEPS])
+        add(f"hud_{bar}_cap", caps_sheet(bar_rows(bar)), asc_hud(top - EXT // S), [f"hud_{bar}_cap_l", f"hud_{bar}_cap_r"])
 
     box_top = SOUL_BOX_BOTTOM + SOUL_BOX_H
     add("hud_soulbox", soul_box(), box_top - (ACTION_LINE_UP - 7), ["hud_soulbox"])
@@ -655,19 +590,16 @@ def hud_glyphs(out, code, digit_role):
     add("hud_digits", dimg, (base_from_bottom + dasc) - (ACTION_LINE_UP - 7), [f"hud_digit_{d}" for d in range(10)],
         scale=1.0 / 4)
 
-    # 보스 막대 (보스 이름 줄 안): 체력 (윗날·테·채움 여덟·테·그늘), 자세 (반 픽셀 줄), 마구리
-    col = [RIM, FRAME] + [(x, 1.0) for x in BOSS_FILL_ROWS] + [FRAME, DROP]
+    # 보스 막대 (보스 이름 줄 안): 체력 (윗날·테·몸 여덟·테·그늘), 자세 줄 (막대 밑 1 GUI 띄고 1 GUI 픽셀), 마구리.
+    # 그림은 모두 막대와 같은 위에서 (자세 줄 그림은 16 텍셀 = GUI 8: 이름 줄 위 +17 을 넘지 않는다)
     for kind in ("fill", "trail", "empty"):
-        c_ = col if kind == "fill" else ([RIM, FRAME] + (list(TRAIL) if kind == "trail" else trough(8)) + [FRAME, DROP])
-        add(f"hud_boss_hp_{kind}", run_sheet(c_), 7 - BOSS_BAR_ROW, [f"boss_hp_{kind}_{n}" for n in RUN_STEPS])
-    # 자세 줄: 막대 밑 그늘 줄 (텍셀 11) 다음, 텍셀 13 (GUI 15.5) 에 1 텍셀. 그림은 막대와 같은 위에서
-    # 2026-10-08 비평: 잃은 몫과 같은 상아빛 줄이 빈 길 없이 떠 있었다. 채움은 흐린 금 (청동 밝은 색), 빈 몫은 옅은 청동 길
-    post_fill = [(None, 0)] * 13 + [("bronze3", 0.95)] + [(None, 0)] * 2
-    post_empty = [(None, 0)] * 13 + [("bronze1", 0.6)] + [(None, 0)] * 2
-    for kind, cl in (("fill", post_fill), ("empty", post_empty)):
-        add(f"hud_boss_post_{kind}", run_sheet(cl), 7 - BOSS_BAR_ROW, [f"boss_post_{kind}_{n}" for n in RUN_STEPS])
-    # 보스 마구리는 위·아래 2 GUI 픽셀만 (이름 줄 위 -1 .. +17 안: 셰이더가 꼭짓점 y 로 보스 줄을 고른다)
-    add("hud_boss_cap", pair_sheet(boss_cap_left(len(col)), boss_cap_right(len(col))), 7 - (BOSS_BAR_ROW - 2),
+        add(f"hud_boss_hp_{kind}", bar_styles.run_sheet(bar_styles.column("boss", kind)), 7 - BOSS_BAR_ROW,
+            [f"boss_hp_{kind}_{n}" for n in RUN_STEPS])
+    for kind in ("fill", "empty"):
+        add(f"hud_boss_post_{kind}", bar_styles.run_sheet(bar_styles.column("boss", "post_" + kind)), 7 - BOSS_BAR_ROW,
+            [f"boss_post_{kind}_{n}" for n in RUN_STEPS])
+    # 보스 마구리: 큰 고리·덩굴 (왼쪽, 30 텍셀) 과 창끝 (오른쪽), 위·아래 2 GUI 픽셀만
+    add("hud_boss_cap", caps_sheet(bar_rows("boss"), big=True, ext=BOSS_EXT), 7 - (BOSS_BAR_ROW - BOSS_EXT // S),
         ["boss_cap_l", "boss_cap_r"])
     return providers, glyphs, code
 
