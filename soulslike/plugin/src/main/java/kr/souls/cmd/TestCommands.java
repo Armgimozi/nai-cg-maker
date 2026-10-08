@@ -77,6 +77,7 @@ import java.util.Locale;
  *   tap                              마지막 짧은 누름 판정 ([T] ROLL_TAP ... / ROLL_TAP_SKIP ...)
  *   press <창> <단추>                 열린 우리 창의 단추를 누른 것과 같다 (창 이름: settings, origin, origin_confirm, levelup, stats, rest)
  *   ui                               [T] UI open=<창>
+ *   opens <자물쇠 id>                 Keys.opens (만능 열쇠·문 열쇠, 9.5): [T] OPENS lock= result= master= (이야기로 막힌 문은 늘 false)
  */
 public final class TestCommands {
     private TestCommands() {}
@@ -306,6 +307,18 @@ public final class TestCommands {
                                             if (!ok) plugin.test(p, "PRESS error=not_open open=" + plugin.ui().openDialog(p));
                                         })))))
                 .then(Commands.literal("ui").executes(ctx -> withPlayer(ctx, p -> plugin.test(p, "UI open=" + plugin.ui().openDialog(p)))))
+                .then(Commands.literal("opens")
+                        .then(Commands.argument("lock", StringArgumentType.word())
+                                .suggests((c, b) -> {
+                                    for (String id : kr.souls.item.MasterKey.KEY_DOORS.keySet()) b.suggest(id);
+                                    for (String id : kr.souls.item.MasterKey.STORY_DOORS) b.suggest(id);
+                                    return b.buildFuture();
+                                })
+                                .executes(ctx -> withPlayer(ctx, p -> {
+                                    String lock = StringArgumentType.getString(ctx, "lock");
+                                    boolean master = java.util.Arrays.stream(p.getInventory().getContents()).anyMatch(kr.souls.item.MasterKey::is);
+                                    plugin.test(p, "OPENS lock=" + lock + " result=" + kr.souls.Keys.opens(p, lock) + " master=" + master);
+                                }))))
                 .build();
         reg.register(root, "Soulslike test hooks (debug.test-mode)", List.of());
     }
@@ -548,10 +561,25 @@ public final class TestCommands {
         Player t = other(plugin, p, name);
         if (t == null) return;
         org.bukkit.Location from = p.getEyeLocation();
-        org.bukkit.util.Vector dir = t.getLocation().add(0, 1.0, 0).toVector().subtract(from.toVector()).normalize();
+        org.bukkit.Location aim = t.getLocation().add(0, 1.0, 0);
+        org.bukkit.util.Vector dir = aim.toVector().subtract(from.toVector()).normalize();
+        // 맞는 사람 1.3칸 앞에서 그를 겨눠 띄운다 (쏜 사람의 몸에 걸리거나 빗나가지 않게). 쏜 사람은 나다
+        org.bukkit.Location at = aim.clone().subtract(dir.clone().multiply(1.3));
+        at.setDirection(dir);
         switch (kind) {
-            case "arrow" -> p.launchProjectile(org.bukkit.entity.Arrow.class, dir.multiply(2.0));
-            case "snowball" -> p.launchProjectile(org.bukkit.entity.Snowball.class, dir.multiply(1.5));
+            case "arrow" -> {
+                org.bukkit.entity.Arrow ar = t.getWorld().spawnArrow(at, dir, 1.6f, 0f);
+                ar.setShooter(p);
+                // 화살이 어디로 갔나 (봇 시험의 진단 줄): 5틱 뒤
+                org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> plugin.test(p, String.format(Locale.ROOT,
+                        "PVPSHOOT_TRACE kind=arrow valid=%s ground=%s at=%.2f,%.2f,%.2f from=%.2f,%.2f,%.2f target=%.2f,%.2f,%.2f",
+                        ar.isValid(), ar.isInBlock(), ar.getLocation().getX(), ar.getLocation().getY(), ar.getLocation().getZ(),
+                        at.getX(), at.getY(), at.getZ(), aim.getX(), aim.getY(), aim.getZ())), 5);
+            }
+            case "snowball" -> t.getWorld().spawn(at, org.bukkit.entity.Snowball.class, sb -> {
+                sb.setShooter(p);
+                sb.setVelocity(dir.clone().multiply(1.2));
+            });
             case "potion" -> {
                 org.bukkit.entity.ThrownPotion tp = p.launchProjectile(org.bukkit.entity.ThrownPotion.class, dir.multiply(0.8));
                 org.bukkit.inventory.ItemStack it = org.bukkit.inventory.ItemStack.of(org.bukkit.Material.SPLASH_POTION);

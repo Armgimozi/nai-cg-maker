@@ -93,6 +93,8 @@ public final class Origins {
                 }
                 if ("weapon".equals(kind) && weapons.get(kid) == null) log.warning("출신 " + id + ": weapons.yml 에 없는 무기 " + kid);
                 Object to = m.get("to");
+                // YAML 1.1 은 따옴표 없는 off 를 거짓으로 읽는다 (to: off → false): 왼손으로 되돌린다
+                if (to instanceof Boolean bo) to = bo ? "on" : "off";
                 kit.add(new Kit(kind, kid, to == null ? null : String.valueOf(to).trim().toLowerCase(Locale.ROOT)));
             }
             list.add(new Origin(id.toLowerCase(Locale.ROOT), sec.getInt("order", 99), s, Collections.unmodifiableList(kit)));

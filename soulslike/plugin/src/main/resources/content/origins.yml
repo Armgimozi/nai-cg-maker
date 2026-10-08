@@ -22,7 +22,7 @@ knight:
   stats: {vig: 15, mnd: 9, end: 11, str: 13, dex: 11, int: 9}
   kit:
     - {weapon: redin_guard_sword, to: main}
-    - {weapon: redin_guard_shield, to: off}
+    - {weapon: redin_guard_shield, to: "off"}
     - {armor: redin_watch_garb}
     - {item: estus}
 
@@ -39,7 +39,7 @@ thief:
   stats: {vig: 10, mnd: 10, end: 12, str: 9, dex: 16, int: 10}
   kit:
     - {weapon: alley_dagger, to: main}
-    - {weapon: parrying_dagger, to: off}
+    - {weapon: parrying_dagger, to: "off"}
     - {item: master_key}
     - {armor: prisoner_rags}
     - {item: estus}
@@ -69,6 +69,6 @@ deprived:
   stats: {vig: 10, mnd: 10, end: 10, str: 10, dex: 10, int: 10}
   kit:
     - {weapon: gaoler_club, to: main}
-    - {weapon: plank_shield, to: off}
+    - {weapon: plank_shield, to: "off"}
     - {armor: prisoner_rags}
     - {item: estus}

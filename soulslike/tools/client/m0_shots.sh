@@ -55,9 +55,9 @@ trap '"$RC" --stop "$PORT" >/dev/null 2>&1' EXIT
   join "cmd:/clear" "cmd:/soulstest heal" "cmd:/souls tp room" wait:8 shot:01_join_test_room_hud \
   down:ctrl+w wait:1.5 shot:02_sprint_stamina_drain up:ctrl+w wait:1 \
   "cmd:/soulstest heal" "cmd:/souls tp lane" wait:1.5 key:F5 wait:0.5 \
-  down:w key:f wait:0.2 shot:03_roll_third_person up:w wait:1 \
+  down:w hold:Shift_L:0.1 wait:0.15 shot:03_roll_third_person up:w wait:1 \
   "cmd:/soulstest heal" "cmd:/souls tp slab" wait:1.5 \
-  down:w key:f wait:0.3 shot:03b_roll_slab_third_person up:w wait:1 key:F5 key:F5 wait:0.3 \
+  down:w hold:Shift_L:0.1 wait:0.25 shot:03b_roll_slab_third_person up:w wait:1 key:F5 key:F5 wait:0.3 \
   "cmd:/souls tp room" wait:1 "cmd:/soulstest stamina set 0" wait:0.3 \
   down:ctrl+w wait:1.2 shot:04_exhausted_vs_sprint up:ctrl+w hold:s:2 \
   "cmd:/soulstest heal" "cmd:/soulstest dialog" wait:1.2 shot:05_dialog close wait:0.5 \
@@ -68,7 +68,7 @@ trap '"$RC" --stop "$PORT" >/dev/null 2>&1' EXIT
   mdown:right wait:0.8 shot:09_guard_custom_model key:F5 key:F5 wait:0.6 shot:09b_guard_custom_model_front \
   mup:right wait:0.6 shot:09c_guard_custom_model_idle key:F5 wait:0.3 \
   "cmd:/soulstest swing 12 1.0" wait:1.5 mouse:left wait:0.15 shot:10_swing_mid wait:0.15 shot:10b_attack_indicator wait:1.2 \
-  "cmd:/soulstest hit 7" wait:0.15 shot:12_hud_damaged wait:1 \
+  "cmd:/soulstest hit 140" wait:0.15 shot:12_hud_damaged wait:1 \
   "cmd:/soulstest kill" wait:0.5 shot:07b_you_died_early wait:1.3 shot:07_you_died \
   respawn wait:2 "cmd:/soulstest heal" || exit 1
 
@@ -77,7 +77,7 @@ if [ -n "$SRVDIR" ]; then
   orig_visual=$(grep -E '^ +visual:' "$SRVDIR/plugins/Soulslike/config.yml" | head -n 1 | sed 's/^ *visual: *//')
   set_cfg "visual" "visual: spin"
   "$RC" --do "$PORT" "cmd:/souls tp lane" wait:1.5 key:F5 wait:0.4 \
-    down:w key:f wait:0.2 shot:13_spin_third_person up:w wait:1 key:F5 key:F5 || exit 1
+    down:w hold:Shift_L:0.1 wait:0.15 shot:13_spin_third_person up:w wait:1 key:F5 key:F5 || exit 1
   set_cfg "visual" "visual: ${orig_visual:-tumble}"
 
   # 13: 설정 단계에서 팩 보내기. 클라이언트를 끄고 새로 켜서 들어온다

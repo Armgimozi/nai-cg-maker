@@ -15,6 +15,9 @@ L.run('guard', async (sc) => {
   await L.sleep(1500)
   await b.cmd('/souls tp room', null, 1200)
   await L.sleep(500)
+  // 체력은 큰 숫자 (최대 HP 400~1500), 화면은 하트 10개 (5.2): 클라이언트 체력 2 = 서버 HP 2S
+  const S = await b.hpScale()
+  sc.note('하트 배율 ' + S)
 
   const cases = [
     ['empty', { full: true, clean: true }],
@@ -32,7 +35,7 @@ L.run('guard', async (sc) => {
     const hp0 = b.health
     b.use()
     await L.sleep(500)
-    const h = await b.cmd('/soulstest hit 2', 'HIT ')
+    const h = await b.cmd(`/soulstest hit ${2 * S}`, 'HIT ')
     await L.sleep(250)
     b.release()
     if (!sc.checkCmd(`guard ${kind}: server sees blocking`, h, (r) => r.kv.blocking === 'true', h.line)) { await L.sleep(400); continue }
@@ -57,17 +60,17 @@ L.run('guard', async (sc) => {
   await L.sleep(400)
   b.release()
   await L.sleep(300)
-  const off = await b.cmd('/soulstest hit 2', 'HIT ')
+  const off = await b.cmd(`/soulstest hit ${2 * S}`, 'HIT ')
   sc.checkCmd('released guard (status 5) does not block', off, (r) => r.kv.blocking === 'false' && r.kv.full === 'true', off.line)
 
   // generic 은 방어구를 지나친다 (방어력 +20 을 잠깐 걸고 맞는다)
   await b.cmd('/soulstest heal', 'HEAL')
-  const ar = await b.cmd('/soulstest hit 3 type=generic armor', 'HIT ')
+  const ar = await b.cmd(`/soulstest hit ${3 * S} type=generic armor`, 'HIT ')
   sc.checkCmd('generic damage bypasses armor', ar, (r) => r.kv.full === 'true' && L.num(r.kv.armor) >= 20, ar.line)
 
   // 데이터팩 피해 종류 souls:hit (12.2)
   await b.cmd('/soulstest heal', 'HEAL')
-  const sh = await b.cmd('/soulstest hit 3 type=hit', 'HIT ')
+  const sh = await b.cmd(`/soulstest hit ${3 * S} type=hit`, 'HIT ')
   if (sh.kv && /missing/.test(sh.kv.type || '')) sc.miss('souls:hit damage type registered', sh.line)
   else sc.checkCmd('souls:hit damage type deals full damage', sh, (r) => r.kv.type === 'souls:hit' && r.kv.full === 'true', sh.line)
   await b.cmd('/soulstest heal', 'HEAL')

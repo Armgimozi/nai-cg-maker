@@ -113,8 +113,14 @@ public final class Config {
      * 걸을 수 있다 (0 이면 막지 않는다). packWait: 팩을 다 싣고 창을 띄우기까지 틱, noPackWait: 팩을 싣지 않은 사람 (선택 팩을 거절,
      * 팩이 꺼짐) 은 접속 뒤 이만큼.
      */
-    public record StartCfg(String setupBy, int reopenCooldown, String auto, String autoOrigin, int unbornRadius, int packWait,
-                           int noPackWait) {}
+    public record StartCfg(String setupBy, int reopenCooldown, String auto, String autoOrigin, List<String> autoNames, int unbornRadius,
+                           int packWait, int noPackWait) {
+        /** 시험 모드의 auto-origin 을 받는 이름인가 (auto-names 의 앞머리 가운데 하나로 시작한다). */
+        public boolean autoName(String name) {
+            for (String n : autoNames) if (!n.isEmpty() && name.startsWith(n)) return true;
+            return false;
+        }
+    }
 
     /** 난이도 하나 (5.7 의 표, difficulty.levels.&lt;id&gt;.*). 바닐라 난이도는 늘 normal 이다 (3.9). */
     public record Difficulty(String id, double enemyDamage, double enemyHealth, double enemyPoise, int parryWindowBonus, int estusStart,
@@ -227,6 +233,7 @@ public final class Config {
         String by = c.getString("start.setup-by", "first").toLowerCase(Locale.ROOT).trim();
         start = new StartCfg("op".equals(by) ? "op" : "first", Math.max(1, c.getInt("start.reopen-cooldown", 40)),
                 c.getString("start.auto", "").trim(), c.getString("start.auto-origin", "").trim().toLowerCase(Locale.ROOT),
+                java.util.Arrays.stream(c.getString("start.auto-names", "Souls").split(",")).map(String::trim).filter(x -> !x.isEmpty()).toList(),
                 Math.max(0, c.getInt("start.unborn-radius", 8)), Math.max(0, c.getInt("start.pack-wait", 20)),
                 Math.max(0, c.getInt("start.no-pack-wait", 200)));
         difficulties = difficulties(c);

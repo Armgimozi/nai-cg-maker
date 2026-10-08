@@ -13,6 +13,9 @@
 #   toasts     발전 과제 알림과 제작법 알림 (오른쪽 위)
 #   stats adv  일시 정지 → 통계 / 발전 과제 창
 #   widgets    고름 칸·글 칸 (게임 안에서는 바닐라 /dialog 의 boolean·text 입력으로만 보인다)
+#   settings   세계를 정한다 창 (5.7: 난이도 넷 + PvP 체크 칸)
+#   origin     출신 창과 도적 확인 창 (5.10). 찍은 뒤 빈털터리로 되돌린다 (souls 아이템이 거둬진다)
+#   levelup    휴식 창 → 레벨 올리기 창 (체력 +3, 민첩 +2 를 더한 미리보기) → 능력치 창 (5.9)
 #   그리고 chat
 # 시험 줄 ([T] …) 이 그림에 남지 않게: chat 밖의 장면은 MC_OPTIONS="chatScale:0.0" 로 켠 클라이언트에서 (채팅 글이 그려지지
 # 않는다), chat 은 보통 클라이언트에서 채팅을 비운 뒤 서버 콘솔의 tellraw 줄만, 채팅 창을 열지 않고 찍는다 (들어온 사람 자신에게는
@@ -21,7 +24,7 @@
 set -u
 R=$(cd "$(dirname "$0")/../.." && pwd)
 PORT=$1; SRV=$2; P=$3; shift 3
-SCENES=${*:-"hud damage low boss inv invplain recipe chest chests craft effects water toasts pause stats adv options widgets dialog death"}
+SCENES=${*:-"hud damage low boss inv invplain recipe chest chests craft effects water toasts pause stats adv options widgets dialog settings origin levelup death"}
 W=${W:-1920}; H=${H:-1080}; G=${G:-4}
 X=${SUFFIX:-}     # 그림 이름 끝 (영어 클라이언트면 _en)
 CX=$((W/2)); CY=$((H/2)); GH=$((H/G))
@@ -54,14 +57,14 @@ if has hud; then
   do_ wait:1 shot:${P}hud_idle${X}
 fi
 if has damage; then
-  con execute as Tester run soulstest hit 7 type=none
+  con execute as Tester run soulstest hit 140 type=none
   do_ wait:0.25 shot:${P}hud_damage${X} wait:1.5
   con execute as Tester run soulstest heal
   do_ wait:0.5
 fi
 if has low; then
   con execute as Tester run soulstest stamina set 6
-  con execute as Tester run soulstest hit 15 type=none
+  con execute as Tester run soulstest hit 300 type=none
   do_ wait:0.4 shot:${P}hud_low_stamina${X} wait:0.5
   # 잃은 몫이 다 빠진 뒤 (Hud.TRAIL_HOLD 0.8 초 + 줄어듦): 체력 채움 → 빈 몫의 끝
   do_ wait:1.6 shot:${P}hud_low_drained${X}
@@ -194,6 +197,37 @@ fi
 if has dialog; then
   do_ "cmd:/soulstest dialog" wait:3 move:$((CX + 40)):$((CY)) wait:0.5 move:$((CX)):$((99*G)) wait:0.5 move:$((CX + 3)):$((100*G)) \
       wait:0.8 shot:${P}rest_dialog${X} key:Escape wait:0.6
+fi
+# 시작 설정·출신·레벨 (5.7~5.10): 서버가 띄우는 Dialog 창. 단추는 시험 명령 (soulstest press) 으로 누른다 (봇과 같은 단추 이름)
+tst() { con execute as Tester run soulstest "$@"; }
+if has settings; then
+  con execute as Tester run souls settings
+  do_ wait:2.5 move:$((CX)):$((H - 20)) wait:0.8 shot:${P}settings_dialog${X} key:Escape wait:0.8
+fi
+if has origin; then
+  con souls origin reset Tester
+  do_ wait:2.5 move:$((CX)):$((H - 20)) wait:0.8 shot:${P}origin_dialog${X}
+  tst press origin thief
+  do_ wait:2 move:$((CX)):$((H - 20)) wait:0.8 shot:${P}origin_confirm${X}
+  tst press origin_confirm choose
+  do_ wait:1 key:e wait:1 move:$((L - 40*G)):$((T + 40*G)) wait:0.8 shot:${P}origin_thief_inventory${X} key:Escape wait:0.5
+  con souls origin reset Tester
+  do_ wait:1.5
+  tst origin deprived
+  do_ wait:1 slot:1 "cmd:/soulstest give redin_guard_sword main" "cmd:/soulstest give pilgrim_buckler off" wait:1 clearchat
+fi
+if has levelup; then
+  tst souls 25000
+  tst rest
+  do_ wait:2.5 move:$((CX)):$((H - 20)) wait:0.8 shot:${P}rest_menu${X}
+  tst press rest levelup
+  tst levelup vig 3
+  tst levelup dex 2
+  do_ wait:2 move:$((CX)):$((H - 20)) wait:0.8 shot:${P}levelup${X}
+  tst press levelup exit
+  tst press rest stats
+  do_ wait:2 move:$((CX)):$((H - 20)) wait:0.8 shot:${P}stats_dialog${X} key:Escape wait:0.8
+  tst souls 0
 fi
 if has chat; then
   do_ clearchat wait:0.5

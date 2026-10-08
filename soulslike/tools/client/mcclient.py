@@ -18,7 +18,8 @@
                          끝나고 PNG 로 바꾼다. PNG 로 바로 찍으면 한 장에 0.5초). 간격(초)을 주면 장마다 그만큼 쉰다.
                          키를 주면 몇째(기본 1) 장을 찍기 직전에 누르고 다음 장 뒤에 뗀다. 찍은 때는 이름_times.json
                          ({"key_at": 누른 때, "shots": [찍은 때...], "t0": 첫 장 시작 (유닉스 초)}, t0 에서 잰 초)
-  key:키[+키]            눌렀다 뗀다. xdotool 이름 (f, w, space, Escape, Return, Tab, F1, F3, 1~9, ctrl+w)
+  key:키[+키]            눌렀다 뗀다. xdotool 이름 (f, w, space, Escape, Return, Tab, F1, F3, 1~9, ctrl+w). 아주 짧게
+                         눌렀다 떼므로 클라이언트가 틱 사이에 놓칠 수 있다: 구르기 (웅크리기 짧게, 2.1) 는 hold:Shift_L:0.1
   hold:키[+키]:초        누르고 있다가 뗀다 (앞 키부터 누르고 거꾸로 뗀다)
   sprint:초              hold:Control_L+w:초 (왼쪽 Ctrl 을 먼저 누른 채 W)
   walk:초                hold:w:초

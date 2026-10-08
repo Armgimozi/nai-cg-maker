@@ -11,7 +11,7 @@
 | `m0_shots.sh` | M0 점검 그림 묶음 (13.4 가운데 M0 에 있는 것 전부. 그림마다 몇 번을 보는지 머리말에 있다). 서버폴더를 주면 9 회전 구르기와 13 설정 단계 팩 보내기도 |
 | `roll_strip.sh` | 구르기 모습 한 줄 그림 (3.3 "보이는 모습"): `roll_strip.sh <포트> <서버폴더> [tumble spin crawl]`. 모습마다 서버 설정 `combat.roll.visual` 을 바꾸고, 구르기 길에서 W 를 누른 채 앞으로 구르는 것을 F5 등 뒤·앞에서 `burst` 로 찍어 F 뒤 게임 시간으로 고른 8장을 가로로 잇는다 (`dist/screenshots/roll/<모습>_<보는 쪽>.png`). 기본은 `/tick rate 5` (4배 느리게) 로 찍는다: 이 클라이언트는 초당 10장 안팎이라 제 속도로는 구르기 0.6초에 다른 장면이 5~6장뿐이다. `TICK_RATE=20 SUFFIX=_rt` 은 제 속도, `ITEMS=1 HUD=1` 은 장비를 들고 HUD 와 함께, `GEAR="/item replace entity @s weapon.mainhand with minecraft:iron_sword"` 는 그 장비만 (명령을 `|` 로 잇는다), `VIEWS=first` 는 1인칭 (`PITCH=50` 이면 50° 내려다보며, 음수는 올려다보며: 1인칭에서 대역이 안 보이는지 본다. 온 화면이면 `CROP=0,0,1280,720 COLS=6 SCALE=0.4` 로 여러 줄에 줄여 잇는다), `KEY=d LOC=room` 은 옆으로 구르기 (등 뒤 카메라에 구르기의 옆모습). 관절 대역의 그림은 `OUT=dist/screenshots/roll2`, 1인칭 숙이기·셰이더 판은 `OUT=dist/screenshots/roll3` (F5 로 올려다보며 `VIEWS=back PITCH=-20`: 숙인 눈의 F5 카메라가 막혀 숙이지 않는지, 등 뒤 턱·좁은 통로·1칸 틈 같은 장면은 서버 콘솔 `fill` 로 깔고 찍는다. 시험 줄 `ROLL … duck=`, `ROLL_UNDUCK`, `ROLL_INPUT`, `TUMBLE_WALL`, `TUMBLE_LATE` 가 클라이언트 기록에 남는다). 찍은 원본은 `RAW` (기본 `$TMPDIR/roll_strip_raw`, 저장소 밖) |
 | (둘째 클라이언트) | 다른 사람이 보는 모습: `SOULS_CLIENT_HOME` 을 다른 폴더로 (그 안에 `assets`·`libraries`·`versions` 를 이 폴더의 것으로 링크) `MC_NAME=Watcher` 를 같은 서버에 붙인다. 실행 폴더·가상 화면이 따로라 한 서버에 둘이 붙는다. `/execute as Tester at @s rotated ~ 0 run tp Watcher ^4 ^0.2 ^1.5 facing ^ ^0.6 ^1.5` 로 옆에 세우고 Watcher 의 `burst` 를 뒤에서 돌리는 동안 Tester 가 구른다 (`dist/screenshots/roll/tumble_watcher_side.png`) |
-| `ui_shots.sh` | UI 점검 그림 (10.2, 10.4, 10.5): `ui_shots.sh <포트> <서버폴더> <앞머리> [장면...]` (HUD 가만히·맞은 뒤·스태미나 바닥 (맞은 직후, 잃은 몫이 빠진 뒤 `hud_low_drained`)·효과·물속 숨 거품, 알림, 보스 막대 (한 번 맞고 잃은 몫이 빠진 뒤 다시 맞혀 짧은 잃은 몫과 빈 길이 함께), 인벤토리 (무기 설명 칸 / 설명 칸 없이 빈 왼손 칸 / 제작법 책 / 효과 표시), 상자, 큰 상자·통·엔더 상자, 제작대, 일시 정지, 통계, 발전 과제, 설정·비디오 설정의 밀대와 두루마리 (마우스는 위젯 밖 오른쪽 위 귀에), 고름 칸·글 칸 (바닐라 `/dialog` 입력), 휴식 창, 사망 화면, 채팅. 장면 이름은 스크립트 머리말). 클라이언트는 켜서 들어와 있어야 하고 `W`·`H`·`G` (화면 크기·GUI 배율) 를 클라이언트와 같게 준다. 시험 줄이 그림에 남지 않게 채팅 밖의 장면은 `MC_OPTIONS="chatScale:0.0"` 로 켠 클라이언트에서, `chat` 은 보통 클라이언트에서 찍는다. 효과 (`effects`) 와 엔더 상자 (`chests`) 는 `particles:2` (입자 최소) 를 더해 찍는다 (`MC_OPTIONS="chatScale:0.0;particles:2"`): 저항 효과의 보라 입자와 엔더 상자의 보라 입자가 눈앞에 크게 떠 그림에 남는다. 효과를 `hideParticles` 로 주면 HUD 효과 아이콘도 사라진다. 영어는 `MC_LANG=en_us` 클라이언트와 `SUFFIX=_en` (`dist/screenshots/ui_final/`) |
+| `ui_shots.sh` | UI 점검 그림 (10.2, 10.4, 10.5): `ui_shots.sh <포트> <서버폴더> <앞머리> [장면...]` (HUD 가만히·맞은 뒤·스태미나 바닥 (맞은 직후, 잃은 몫이 빠진 뒤 `hud_low_drained`)·효과·물속 숨 거품, 알림, 보스 막대 (한 번 맞고 잃은 몫이 빠진 뒤 다시 맞혀 짧은 잃은 몫과 빈 길이 함께), 인벤토리 (무기 설명 칸 / 설명 칸 없이 빈 왼손 칸 / 제작법 책 / 효과 표시), 상자, 큰 상자·통·엔더 상자, 제작대, 일시 정지, 통계, 발전 과제, 설정·비디오 설정의 밀대와 두루마리 (마우스는 위젯 밖 오른쪽 위 귀에), 고름 칸·글 칸 (바닐라 `/dialog` 입력), 휴식 창, 세계를 정한다 창·출신 창과 확인 창·휴식 창·레벨 올리기 창·능력치 창 (`settings origin levelup`), 사망 화면, 채팅. 장면 이름은 스크립트 머리말). 클라이언트는 켜서 들어와 있어야 하고 `W`·`H`·`G` (화면 크기·GUI 배율) 를 클라이언트와 같게 준다. 시험 줄이 그림에 남지 않게 채팅 밖의 장면은 `MC_OPTIONS="chatScale:0.0"` 로 켠 클라이언트에서, `chat` 은 보통 클라이언트에서 찍는다. 효과 (`effects`) 와 엔더 상자 (`chests`) 는 `particles:2` (입자 최소) 를 더해 찍는다 (`MC_OPTIONS="chatScale:0.0;particles:2"`): 저항 효과의 보라 입자와 엔더 상자의 보라 입자가 눈앞에 크게 떠 그림에 남는다. 효과를 `hideParticles` 로 주면 HUD 효과 아이콘도 사라진다. 영어는 `MC_LANG=en_us` 클라이언트와 `SUFFIX=_en` (`dist/screenshots/ui_final/`) |
 | `i18n_shots.sh` | 영어판 점검 그림 (10.3, 10.9): 같은 장면 (들어온 HUD, 휴식 창, 아이템 설명 칸, 사망 화면, 그만두기 확인) 을 `ko_kr` 과 `en_us` 클라이언트로 찍는다 (`dist/screenshots/i18n/`). `SRVDIR=<서버폴더>` 를 주면 설정 단계 (`send-at: configure`) 의 팩 안내·쫓아냄 글도 두 언어로 찍는다 |
 | `log4j2-client.xml` | 클라이언트 기록을 보통 글줄로 (런처 설정은 XML 로 낸다) |
 
@@ -23,7 +23,7 @@ PAPER_JAR=/경로/paper-1.21.11-132.jar tools/client/devserver.sh 25602 /tmp/srv
 
 # 2. 한 번에: 켜고 → 동작 → 끈다
 tools/client/run_client.sh 25602 /tmp/shots \
-  join shot:joined sprint:2 shot:after_sprint key:f wait:0.3 shot:roll \
+  join shot:joined sprint:2 shot:after_sprint hold:Shift_L:0.1 wait:0.3 shot:roll \
   "cmd:/soulstest kill" wait:2 shot:died respawn wait:2 shot:respawned
 
 # 또는 켜 두고 여러 번
@@ -86,6 +86,13 @@ tools/client/devserver.sh --stop /tmp/srv
 | `MC_PACK` | `accept` | 서버 팩: `accept` 묻지 않고 받는다, `prompt` 묻는 창을 띄운다 (서버 안내 글이 보인다), `decline` 받지 않는다 |
 
 `devserver.sh` 는 `SET="pack.send-at=configure pack.self-check=false"` 처럼 플러그인 설정 몇 개를 더 바꿔 켤 수 있다 (최상위 묶음 바로 밑의 키, 빈칸으로 나눈다).
+기본으로 시작 설정 (DESIGN 5.7, 5.10) 을 건너뛴다: 세계는 보통·PvP 끔으로 확정되고 Tester 와 봇 (Souls…) 은 접속할 때 빈털터리로 태어난다
+(`start.auto`, `start.auto-origin`, `start.auto-names`). 점검 그림이 창에 막히지 않게 하려는 것이고, `START=""` 로 켜면 실제 차례 (세계를
+정한다 → 출신 창) 를 받는다. 창 그림은 `ui_shots.sh` 의 `settings origin levelup` 장면이 창을 다시 불러 찍는다.
+
+구르기는 웅크리기 키 (기본 왼쪽 Shift) 를 짧게 눌렀다 떼는 것이다 (`controls.roll-key: sneak`, DESIGN 2.1). `key:Shift_L` 은 너무 짧아
+클라이언트가 틱 사이에 놓칠 수 있으니 `hold:Shift_L:0.1` 로 누른다. F 는 무기 기술 자리라 구르지 않는다 (서버를 `SET="controls.roll-key=f"`
+로 켜면 예전처럼 F). 체력은 큰 숫자 (빈털터리 최대 HP 400) 이고 화면은 하트 10개라, 하트 한 칸만큼 깎으려면 `/soulstest hit 40` 이다.
 
 ## 알아 둘 것
 

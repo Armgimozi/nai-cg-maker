@@ -2,10 +2,12 @@
 # 구르기 모습 한 줄 그림 (DESIGN.md 3.3 "보이는 모습"). 실제 클라이언트로 앞구르기를 찍어 장면 몇 장을 가로로 잇는다.
 #   roll_strip.sh <포트> <서버폴더> [모습...]        모습: tumble spin crawl (기본 셋 다)
 # 서버는 devserver.sh 로 켠 시험 서버여야 한다 (Tester 에게 op). 모습마다 서버 설정 combat.roll.visual 을 바꾸고
-# /souls reload 한 뒤, 구르기 길 (/souls tp lane) 에서 W 를 누른 채 F 로 앞으로 구른다. 끝나면 설정을 처음 값으로 되돌린다.
+# /souls reload 한 뒤, 구르기 길 (/souls tp lane) 에서 W 를 누른 채 웅크리기 키 (왼쪽 Shift, 서버 설정 controls.roll-key: sneak) 를
+# 짧게 눌렀다 떼어 앞으로 구른다 (ROLL_KEY=f 면 F, 서버의 roll-key 가 f·both 일 때). 끝나면 설정을 처음 값으로 되돌린다.
 # 보는 쪽 (VIEWS): back = F5 한 번 (3인칭 등 뒤), front = F5 두 번 (3인칭 앞), first = 1인칭 (CROP 은 화면 전체가 알맞다).
-# 찍기: mcclient 의 burst (BMP 로 잇달아 찍기, 한 장 약 0.04초) 가 F 를 누르기 직전부터 찍고, 찍은 때를 _times.json 에 남긴다.
-# 그 가운데 F 를 누른 때부터 SPAN 틱 동안을 FRAMES 장으로 고르게 골라 (가장 가까운 장) 몸 둘레를 잘라 가로로 잇는다.
+# 찍기: mcclient 의 burst (BMP 로 잇달아 찍기, 한 장 약 0.04초) 가 구르기 키를 누르기 직전부터 찍고, 찍은 때를 _times.json 에 남긴다.
+# 구르기 키는 둘째 장 앞에서 누르고 셋째 장 뒤에 뗀다 (웅크리기 판은 뗄 때 구르니 key_at 보다 한 장쯤 늦게 시작한다).
+# 그 가운데 키를 누른 때부터 SPAN 틱 동안을 FRAMES 장으로 고르게 골라 (가장 가까운 장) 몸 둘레를 잘라 가로로 잇는다.
 # 장마다 밑에 F 뒤 게임 시간 (틱, 밀리초) 과 실제로 찍은 때를 적는다.
 #
 # 환경 변수
@@ -25,6 +27,7 @@
 #               tumble 이 3인칭에서 든 것·입은 것을 감추고 끝나면 되돌리는지, 단축 슬롯 그림이 그대로인지 본다 (HUD=1, 넓은 CROP 과 함께)
 #   GEAR        ITEMS 대신 줄 장비: 명령을 | 로 잇는다 (앞의 / 포함. 예 "/item replace entity @s weapon.mainhand with minecraft:iron_sword")
 #   SUFFIX      그림 이름 꼬리 (예 _rt: TICK_RATE=20 으로 제 속도로 찍은 판을 tumble_back_rt.png 로 따로 남긴다)
+#   ROLL_KEY    구르기 키의 xdotool 이름 (기본 Shift_L = 웅크리기. 서버의 controls.roll-key 가 f 면 f)
 #   KEY         구르는 쪽 방향키 (기본 w = 앞). d·a 는 옆으로 구른다 (등 뒤 카메라에서 구르기의 옆모습이 보인다), s 는 카메라 쪽으로.
 #               w 가 아니면 그림 이름에 _<키> 가 붙는다 (tumble_back_d.png)
 #   LOC         구를 자리 (/souls tp 의 자리, 기본 lane). 옆으로 구를 때는 room (탁 트인 바닥. lane 은 오른쪽이 벽이다)
@@ -102,7 +105,7 @@ for v in $VISUALS; do
     IFS='|' read -r -a gearv <<< "$gear"
     "$RC" --do "$PORT" "cmd:/clear" "${gearv[@]}" "cmd:/soulstest heal" "cmd:/souls tp ${LOC:-lane}" wait:1.2 ${PITCH:+"cmd:/tp @s ~ ~ ~ ~ $PITCH"} ${PITCH:+wait:0.6} ${LOOK:+look:$LOOK} wait:0.2 "cmd:/tick rate $TICK_RATE" wait:0.6 \
       $f5 $hud wait:0.8 down:$key wait:$(python3 -c "print(0.25 * $slow)") \
-      "burst:$name:$count:f:2:$gap" up:$key wait:$(python3 -c "print(0.6 * $slow)") \
+      "burst:$name:$count:${ROLL_KEY:-Shift_L}:2:$gap" up:$key wait:$(python3 -c "print(0.6 * $slow)") \
       "cmd:/tick rate 20" $hud $(case "$view" in back) echo key:F5 key:F5 ;; front) echo key:F5 ;; *) echo wait:0 ;; esac) wait:0.5 \
       > "$RAW/${name}.log" 2>&1 \
       || { tail -20 "$RAW/${name}.log"; exit 1; }

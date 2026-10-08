@@ -6,7 +6,7 @@
 #   run_client.sh --stop <포트>
 #   run_client.sh --status <포트>
 # 예:
-#   run_client.sh 25602 shots join shot:joined sprint:2 key:f wait:0.3 shot:roll "cmd:/soulstest kill" wait:2 shot:died respawn
+#   run_client.sh 25602 shots join shot:joined sprint:2 hold:Shift_L:0.1 wait:0.3 shot:roll "cmd:/soulstest kill" wait:2 shot:died respawn
 # 동작 목록과 환경 변수는 인수 없이 실행하면 나온다 (README.md 에도 있다).
 # 처음에는 클라이언트·라이브러리·에셋을 받는다 (약 110MB, ~/.cache/souls-client). Xvfb·xdotool·ImageMagick·mesa 가 없고
 # root 에 apt-get 이 있으면 여기서 설치한다 (컨테이너를 새로 받을 때마다 빠져 있다).

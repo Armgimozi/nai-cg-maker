@@ -214,6 +214,16 @@ function render (c, table) {
 }
 
 /** 글 요소 안의 번역 열쇠 (겉에서 안으로, 처음 나오는 차례). */
+/** NBT 나무 어디에 있든 번역 열쇠 (Dialog 창의 제목·본문·단추·입력 이름까지). */
+function deepKeys (o, out = []) {
+  o = simple(o)
+  if (!o || typeof o !== 'object') return out
+  if (Array.isArray(o)) { for (const x of o) deepKeys(x, out); return out }
+  if (typeof o.translate === 'string') out.push(o.translate)
+  for (const v of Object.values(o)) deepKeys(v, out)
+  return out
+}
+
 function translateKeys (c, out = []) {
   c = simple(c)
   if (c == null || typeof c !== 'object') return out
@@ -259,6 +269,9 @@ function fetchBuf (url, ms = 20000) {
     req.on('error', reject)
   })
 }
+
+// 놀이 단계 serverbound custom_click_action 의 패킷 번호 (1.21.11, minecraft-data protocol.json 의 play.toServer 0x41)
+const CUSTOM_CLICK_PLAY_ID = 0x41
 
 const GAMEMODES = ['survival', 'creative', 'adventure', 'spectator']
 const modeName = (m) => (typeof m === 'number' ? GAMEMODES[m] || String(m) : String(m))
@@ -546,9 +559,110 @@ class Bot {
     }
   }
 
-  /** F (손 바꾸기) = block_dig 상태 6. */
+  /** F (손 바꾸기) = block_dig 상태 6. 기본 설정 (controls.roll-key: sneak) 에서는 무기 기술 자리 (구르지 않는다) */
   swap () {
     this._bot._client.write('block_dig', { status: 6, location: { x: 0, y: 0, z: 0 }, face: 0, sequence: 0 })
+  }
+
+  /**
+   * 웅크리기 짧게 누르기 (구르기, 2.1·3.3): keys (방향키) 는 그대로 둔 채 웅크리기만 눌렀다가 holdMs 뒤에 뗀다.
+   * 서버는 뗄 때 판정한다 (누름에서 뗌까지 controls.roll-tap.max-ticks 틱 안이면 구른다). 뗄 때 방향키도 함께 떼면
+   * 창이 열려 키가 모두 떼어진 것으로 읽으니 (screen) 방향키는 떼지 않는다.
+   */
+  async tapSneak (keys = {}, holdMs = 80) {
+    const k = Object.assign({}, keys)
+    delete k.shift
+    this.input(Object.assign({}, k, { shift: true }))
+    await sleep(holdMs)
+    this.input(Object.assign({}, k, { shift: false }))
+  }
+
+  /** 지금 누른 방향키 그대로 웅크리기를 같은 순간에 눌렀다 뗀다 (받은 줄에 곧바로 반응할 때. 서버는 0틱 누름으로 본다). */
+  tapSneakNow () {
+    const k = Object.assign({}, this.inputs)
+    this.input(Object.assign({}, k, { shift: true }))
+    this.input(Object.assign({}, k, { shift: false }))
+  }
+
+  /** 서버 설정의 구르기 키로 구른다 (sneak·both: 웅크리기 짧게, f: F). 돌려주는 값은 없다 (ROLL 줄을 기다린다). */
+  async rollKey (keys = {}, mode = rollConfig().rollKey) {
+    if (mode === 'f') { this.input(keys); this.swap(); return }
+    await this.tapSneak(keys)
+  }
+
+  /** rollKey 와 같지만 같은 순간에 (onSysOnce 안에서). */
+  rollKeyNow (mode = rollConfig().rollKey) {
+    if (mode === 'f') this.swap()
+    else this.tapSneakNow()
+  }
+
+  /** 최대 HP / 20 (하트 10개 배율: 클라이언트 체력 1 이 서버 HP 몇인가). /soulstest info 의 maxhp. */
+  async hpScale () {
+    const r = await this.cmd('/soulstest info', 'INFO ')
+    const m = r && r.kv && num(r.kv.maxhp)
+    return m > 0 ? m / 20 : 1
+  }
+
+  // ── Dialog 창 (5.7, 5.9, 5.10): 마지막으로 받은 창, 단추, 누르기 ──
+  /** 마지막으로 받은 show_dialog 의 NBT (편 것). */
+  lastDialog () {
+    const d = this.p.dialogs[this.p.dialogs.length - 1]
+    return d ? d.raw : null
+  }
+
+  /** 창의 souls:ui 단추들: {b: {d, n, b}}. 단추의 동작 NBT 에서 additions {d, n, b} 를 찾는다. */
+  dialogButtons (raw = this.lastDialog()) {
+    const out = {}
+    const walk = (o) => {
+      if (!o || typeof o !== 'object') return
+      if (Array.isArray(o)) { for (const x of o) walk(x); return }
+      if (typeof o.d === 'string' && typeof o.n === 'string' && typeof o.b === 'string') { out[o.b] = { d: o.d, n: o.n, b: o.b }; return }
+      for (const v of Object.values(o)) walk(v)
+    }
+    walk(raw)
+    return out
+  }
+
+  /** 창 이름 (단추의 d). */
+  dialogId (raw = this.lastDialog()) {
+    const b = Object.values(this.dialogButtons(raw))[0]
+    return b ? b.d : null
+  }
+
+  /**
+   * 창의 단추를 누른다 (custom_click_action, id souls:ui, 단추의 additions + 입력 값). inputs: {열쇠: true|false|문자열}.
+   * 실제 클라이언트가 보내는 것과 같다. 단추가 없으면 false.
+   */
+  clickDialog (button, inputs = {}, raw = this.lastDialog()) {
+    const b = this.dialogButtons(raw)[button]
+    if (!b) return false
+    const v = { d: nbt.string(b.d), n: nbt.string(b.n), b: nbt.string(b.b) }
+    for (const [k, x] of Object.entries(inputs)) v[k] = typeof x === 'boolean' ? nbt.byte(x ? 1 : 0) : nbt.string(String(x))
+    this.customClick('souls:ui', nbt.comp(v, ''))
+    return true
+  }
+
+  /**
+   * custom_click_action 을 날 바이트로 보낸다. 1.21.11 의 꼴은 id 다음에 길이 (VarInt) 를 앞에 붙인 "있을 수도 있는" 이름 없는 NBT 다
+   * (ServerboundCustomClickActionPacket.UNTRUSTED_TAG_CODEC = ByteBufCodecs.optionalTagCodec(…).apply(lengthPrefixed(65536)):
+   * 있음 깃발은 없고 꼴 바이트 0 이 "없음"). minecraft-data 의 표 (option + anonymousNbt) 와 달라 client.write 로 보내면 서버가
+   * 패킷을 못 읽고 끊는다 [확인 (서버 jar 의 바이트코드, 실행)].
+   */
+  customClick (id, comp) {
+    const varint = (n) => { const out = []; do { let x = n & 0x7f; n >>>= 7; if (n) x |= 0x80; out.push(x) } while (n); return Buffer.from(out) }
+    const named = nbt.writeUncompressed(comp, 'big') // 0x0a, 이름 길이 (2바이트, 0), 내용
+    const anon = Buffer.concat([named.subarray(0, 1), named.subarray(3)])
+    const idb = Buffer.from(id, 'utf8')
+    const c = this._bot._client
+    const buf = Buffer.concat([varint(CUSTOM_CLICK_PLAY_ID), varint(idb.length), idb, varint(anon.length), anon])
+    c.writeRaw(buf)
+  }
+
+  /** 새 창이 올 때까지 (from 번째 뒤). 돌려주는 값은 그 창의 NBT 또는 null. */
+  async waitDialog (from, ms = 4000) {
+    const end = Date.now() + ms
+    while (this.p.dialogs.length <= from && Date.now() < end && !this.ended) await sleep(25)
+    return this.p.dialogs.length > from ? this.p.dialogs[this.p.dialogs.length - 1].raw : null
   }
 
   /** 우클릭을 누른다 (use_item). 떼기는 release (block_dig 상태 5). */
@@ -885,6 +999,8 @@ function testRoom () {
 function rollConfig () {
   const out = {
     load: 'light',
+    auto: false,
+    rollKey: 'sneak',
     visual: 'tumble',
     crawl: false,
     source: '3.3 표',
@@ -901,8 +1017,13 @@ function rollConfig () {
   const sec = text.match(/\n  roll:\n([\s\S]*?)(?=\n  [A-Za-z][\w-]*:\s*\n|\n[A-Za-z][\w-]*:)/)
   if (!sec) return out
   const body = sec[1]
-  const load = body.match(/^\s+load:\s*([a-z]+)/m)
-  if (load) out.load = load[1]
+  const load = body.match(/^\s+load:\s*"?([a-z]+)/m)
+  // auto (5.8): 장비 무게 단계를 따른다. 시험 봇의 시작 아이템 (빈털터리: 곤봉·판자 방패 6.5 / 한도 40) 은 가벼움
+  if (load) out.load = load[1] === 'auto' ? 'light' : load[1]
+  out.auto = !!(load && load[1] === 'auto')
+  const ctl = text.match(/\ncontrols:\n([\s\S]*?)(?=\n[A-Za-z][\w-]*:)/)
+  const rk = ctl && ctl[1].match(/^\s+roll-key:\s*"?([a-z]+)/m)
+  if (rk) out.rollKey = rk[1]
   const crawl = body.match(/^\s+crawl:\s*(true|false)/m)
   if (crawl) out.crawl = crawl[1] === 'true'
   const visual = body.match(/^\s+visual:\s*([a-z]+)/m)
@@ -973,6 +1094,6 @@ function decodeHud (parts, glyphs) {
 }
 
 module.exports = {
-  ENV, VERSION, sleep, run, connect, Scenario, Bot, kvOf, num, plain, flatten, simple, langTable, render, formatTr, translateKeys,
+  ENV, VERSION, sleep, run, connect, Scenario, Bot, kvOf, num, plain, flatten, simple, langTable, render, formatTr, translateKeys, deepKeys,
   loadGlyphs, readZip, decodePng, hsv, readProps, testRoom, rollConfig, deathConfig, fetchBuf, decodeHud
 }

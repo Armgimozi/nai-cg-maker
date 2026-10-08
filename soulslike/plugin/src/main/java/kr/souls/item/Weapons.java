@@ -77,7 +77,10 @@ public final class Weapons {
                 if (sc != null && sc.isString(s)) scaling.put(s, sc.getString(s, "E").toUpperCase(Locale.ROOT));
                 if (rq != null && rq.isInt(s)) requires.put(s, rq.getInt(s));
             }
-            defs.put(id, new Def(id, p.s("class", "straight_sword"), p.s("hand", MAIN), use, p.d("walk", 0.55), p.i("attack", 0),
+            // YAML 1.1 은 따옴표 없는 off 를 거짓으로 읽는다 (hand: off → "false")
+            String hand = p.s("hand", MAIN).toLowerCase(Locale.ROOT);
+            if ("false".equals(hand)) hand = OFF;
+            defs.put(id, new Def(id, p.s("class", "straight_sword"), hand, use, p.d("walk", 0.55), p.i("attack", 0),
                     Collections.unmodifiableMap(scaling), Collections.unmodifiableMap(requires), p.d("weight", 1.0),
                     p.i("absorb", 0), p.i("stability", 0), p.i("parry", 0), p.i("fire", 0)));
         }

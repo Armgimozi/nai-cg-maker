@@ -55,6 +55,8 @@ public final class StartFlow implements Listener {
     private UUID chooser;
     /** 이번 접속에서 차례를 시작한 사람 */
     private final Set<UUID> begun = new HashSet<>();
+    /** 이 접속에서 출신을 지운 사람 (관리자 지우기·다시 고르기): 시험 봇이라도 자동으로 고르지 않고 창을 받는다 */
+    private final Set<UUID> resetSinceJoin = new HashSet<>();
     /** 출신이 없는 사람에게 창을 다시 띄운 틱 */
     private final Map<UUID, Long> reopenAt = new HashMap<>();
 
@@ -114,6 +116,8 @@ public final class StartFlow implements Listener {
         // 능력치를 속성에 건다 (최대 HP 는 저장된 수정자, 이동 속도와 하트 배율은 접속마다)
         plugin.attributes().apply(p);
         begun.remove(p.getUniqueId());
+        // 시험 봇: 접속하는 그 자리에서 출신을 정한다 (봇이 첫 명령을 보내기 전에 태어나 있게. 창 차례는 그대로 돈다)
+        if (autoOrigin(p)) chooseOrigin(p, cfg().autoOrigin(), "auto");
         boolean packReady = plugin.hud().hasPack(p) || !plugin.cfg().pack.enabled() || !plugin.pack().ready();
         Bukkit.getScheduler().runTaskLater(plugin, () -> begin(p, "pack"), packReady ? cfg().packWait() : cfg().noPackWait());
     }
@@ -130,7 +134,18 @@ public final class StartFlow implements Listener {
         UUID id = e.getPlayer().getUniqueId();
         begun.remove(id);
         reopenAt.remove(id);
+        resetSinceJoin.remove(id);
         if (id.equals(chooser)) chooser = null;
+    }
+
+    /**
+     * 시험 모드의 start.auto-origin: 이름이 start.auto-names 의 앞머리 (기본 Souls = 시험 봇) 로 시작하는 사람은 출신을 묻지 않고 그것으로 고른다. 출신 창 자체를
+     * 시험하는 봇은 /souls origin reset 으로 출신을 지운 뒤 창을 받는다 (지운 뒤에는 이 자동 고르기를 하지 않는다: 접속할 때만 본다).
+     */
+    private boolean autoOrigin(Player p) {
+        String auto = cfg().autoOrigin();
+        return plugin.cfg().testMode && !auto.isBlank() && cfg().autoName(p.getName()) && plugin.origins().get(auto) != null
+                && unborn(p) && !resetSinceJoin.contains(p.getUniqueId());
     }
 
     /** 차례를 시작한다 (접속마다 한 번). */
@@ -176,9 +191,8 @@ public final class StartFlow implements Listener {
         Profile pr = plugin.profiles().of(p);
         WorldState.Settings s = plugin.worldState().get();
         if (!pr.born()) {
-            String auto = cfg().autoOrigin();
-            if (plugin.cfg().testMode && !auto.isBlank() && p.getName().startsWith("Souls") && plugin.origins().get(auto) != null) {
-                chooseOrigin(p, auto, "auto");
+            if (autoOrigin(p)) {
+                chooseOrigin(p, cfg().autoOrigin(), "auto");
                 return;
             }
             p.sendMessage(notice(p, s));
@@ -348,6 +362,7 @@ public final class StartFlow implements Listener {
         plugin.attributes().apply(p);
         plugin.load().refresh(p);
         plugin.profiles().save(p, true);
+        resetSinceJoin.add(p.getUniqueId());
         plugin.test(p, "REPICK from=" + o.id() + " items=" + items);
         OriginDialog.show(plugin, p);
         return true;
@@ -362,6 +377,7 @@ public final class StartFlow implements Listener {
         plugin.hud().invalidate(target);
         plugin.profiles().save(target, true);
         plugin.getLogger().info("출신 지우기: " + target.getName() + " (by " + by + ", 거둔 아이템 " + items + (keepItems ? ", keep-items: 다시 고르면 아이템이 겹친다" : "") + ")");
+        resetSinceJoin.add(target.getUniqueId());
         plugin.test(target, "ORIGIN_RESET who=" + target.getName() + " by=" + by + " items=" + items);
         reopenAt.remove(target.getUniqueId());
         OriginDialog.show(plugin, target);

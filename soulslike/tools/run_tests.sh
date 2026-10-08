@@ -18,6 +18,7 @@
 #   --timeout 300   시나리오 하나의 제한 시간 (초)
 #   --visual V      구르기 모습 combat.roll.visual (tumble 기본 · spin · crawl) 을 바꾼다. 주지 않으면 jar 설정 그대로 (tumble:
 #                   roll_iframes 가 관절 대역의 부위 열하나 이상이 타고 투명 깃발이 섰다가 걷히는지도 본다)
+#   --roll-key K    구르기 키 controls.roll-key (sneak 기본 · f · both) 를 바꾼다. roll_iframes 가 그 키로 구른다 (2.1)
 #   --crawl         구르기 기어가기 막힘(combat.roll.crawl)을 jar 설정 그대로 둔다 (막힘은 visual: tumble 과 crawl 이 깐다).
 #                   기본은 끈다 (봇은 기어가기 자세가 없다. 켜면 lib.js 가 머리 높이 막힘 (Roll.CEILING 라임 색유리) 을 봇 세계에서
 #                   지워 기어가기를 흉내 내고, roll_iframes 가 막힘이 깔리고 걷히는지 본다)
@@ -35,10 +36,13 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(dirname "$HERE")"
 BOTS="$HERE/bots"
 
-ALL_SCENARIOS="t1_boot join lang stamina roll_iframes guard death reconnect"
-# 시나리오별 봇 이름 (ops.json 에 미리 올린다. 오프라인 UUID)
+# start 는 세계 설정을 지웠다가 되돌리므로 다른 시나리오 사이에 둔다 (끝에 보통·PvP 끔으로 되돌린다). pvp 는 봇 둘 (A 가 B 를 때린다)
+ALL_SCENARIOS="t1_boot join lang stamina roll_iframes guard death reconnect start origin levelup pvp"
+# 시나리오별 봇 이름 (ops.json 에 미리 올린다. 오프라인 UUID). 이름이 Souls 로 시작하면 시험 서버에서 빈털터리로 태어난다
+# (start.auto-origin). pvp_b 는 시나리오가 아니라 pvp 의 둘째 봇
 declare -A BOT=( [t1_boot]=SoulsBoot [join]=SoulsJoin [lang]=SoulsLang [stamina]=SoulsStam [roll_iframes]=SoulsRoll
-                 [guard]=SoulsGuard [death]=SoulsDeath [reconnect]=SoulsRecon [lag]=SoulsLag )
+                 [guard]=SoulsGuard [death]=SoulsDeath [reconnect]=SoulsRecon [lag]=SoulsLag
+                 [start]=SoulsStart [origin]=SoulsOrigin [levelup]=SoulsLevel [pvp]=SoulsPvpA [pvp_b]=SoulsPvpB )
 
 PORT=25601
 SCRATCH="${SOULS_TEST_DIR:-}"
@@ -51,6 +55,7 @@ LAG="60 120"
 KEEP=0
 CRAWL=0
 VISUAL=""
+ROLLKEY=""
 MEM=2G
 SC_TIMEOUT=300
 
@@ -67,6 +72,7 @@ while [ $# -gt 0 ]; do
     --keep-running) KEEP=1; shift ;;
     --crawl) CRAWL=1; shift ;;
     --visual) VISUAL="$2"; shift 2 ;;
+    --roll-key) ROLLKEY="$2"; shift 2 ;;
     --mem) MEM="$2"; shift 2 ;;
     --timeout) SC_TIMEOUT="$2"; shift 2 ;;
     --list) echo "lang_check $ALL_SCENARIOS (+ roll_iframes@lag<ms>)"; exit 0 ;;
@@ -137,10 +143,20 @@ if [ "$BUILD" = 1 ]; then
     done
     if [ "$SHA_1" = "$SHA_2" ]; then REPRO="PASS pack_repro sha1=$SHA_1"; else REPRO="FAIL pack_repro $SHA_1 != $SHA_2"; fi
   fi
-  say "-- gradle build"
+  say "-- gradle build (JUnit 포함, 13.1)"
   if ! (cd "$ROOT/plugin" && ./gradlew build -q) > "$RUN/logs/build-gradle.log" 2>&1; then
     tail -n 30 "$RUN/logs/build-gradle.log"; say "FAIL  build:gradle  ($RUN/logs/build-gradle.log)"; exit 2
   fi
+  # 순수 셈의 JUnit (능력치 곡선·레벨 비용·출신·무게·짧은 누름·프로필 JSON·피해 셈·기본 설정): gradle build 가 돌린 결과를 센다
+  JUNIT=$(python3 - "$ROOT/plugin/build/test-results/test" <<'PY'
+import glob, sys, xml.etree.ElementTree as ET
+t = f = 0; n = 0
+for p in glob.glob(sys.argv[1] + "/*.xml"):
+    r = ET.parse(p).getroot(); n += 1
+    t += int(r.get("tests", 0)); f += int(r.get("failures", 0)) + int(r.get("errors", 0))
+print(("PASS" if t and not f else "FAIL") + f" junit classes={n} tests={t} failed={f}")
+PY
+)
 fi
 [ -n "$JAR" ] || JAR="$ROOT/plugin/build/libs/Soulslike.jar"
 [ -f "$JAR" ] || die "플러그인 jar 가 없다: $JAR"
@@ -163,9 +179,9 @@ unzip -p "$JAR" config.yml > "$RUN/config.default.yml" 2>/dev/null || die "jar �
 
 python3 - "$ROOT/server/server.properties" "$SRV/server.properties" "$PORT" \
           "$RUN/config.default.yml" "$SRV/plugins/Soulslike/config.yml" "$PACK_PORT" \
-          "$SRV/ops.json" "$CRAWL" "$VISUAL" "${BOT[@]}" <<'PY' || die "서버 설정을 쓰지 못했다"
+          "$SRV/ops.json" "$CRAWL" "$VISUAL" "$ROLLKEY" "${BOT[@]}" <<'PY' || die "서버 설정을 쓰지 못했다"
 import hashlib, json, os, re, sys, uuid
-props_src, props_dst, port, cfg_src, cfg_dst, pack_port, ops_dst, keep_crawl, visual, *names = sys.argv[1:]
+props_src, props_dst, port, cfg_src, cfg_dst, pack_port, ops_dst, keep_crawl, visual, roll_key, *names = sys.argv[1:]
 
 # server.properties: 저장소 판(12.7) 그대로 + 시험용으로 포트와 online-mode 만 바꾼다
 lines = open(props_src, encoding="utf-8").read().splitlines() if os.path.exists(props_src) else []
@@ -197,9 +213,17 @@ for l in open(cfg_src, encoding="utf-8").read().split("\n"):
     if sec == "combat" and re.match(r"^\s+crawl:", l):
         if keep_crawl != "1": l = re.sub(r"crawl:.*", "crawl: false", l)
         done.add("crawl")
+    # 시작 설정 (5.7, 5.10): 세계 설정은 보통·PvP 끔으로 확정하고, 봇 (이름이 Souls…) 은 접속할 때 빈털터리로 태어난다.
+    # 창 차례 자체는 start·origin 시나리오가 설정을 지우거나 출신을 지운 뒤 본다
+    if sec == "start" and re.match(r"^\s+auto:", l):
+        l = re.sub(r"auto:.*", 'auto: "normal,off"', l); done.add("auto")
+    if sec == "start" and re.match(r"^\s+auto-origin:", l):
+        l = re.sub(r"auto-origin:.*", 'auto-origin: "deprived"', l); done.add("auto-origin")
+    if sec == "controls" and roll_key and re.match(r"^\s+roll-key:", l):
+        l = re.sub(r"roll-key:.*", "roll-key: " + roll_key, l)
     out.append(l)
 open(cfg_dst, "w", encoding="utf-8").write("\n".join(out))
-missing = {"test-mode", "url", "serve-port", "crawl"} - done
+missing = {"test-mode", "url", "serve-port", "crawl", "auto", "auto-origin"} - done
 if missing: print("  경고: config.yml 에서 못 찾은 열쇠:", ", ".join(sorted(missing)))
 
 # ops.json: 봇 이름의 오프라인 UUID (UUID.nameUUIDFromBytes("OfflinePlayer:" + 이름))
@@ -276,7 +300,7 @@ run_one() {
   local label="$1" file="$2" name="$3" port="$4" lag="${5:-0}" tag=""
   [ "$lag" != 0 ] && tag="lag$lag"
   local log="$RUN/logs/$label.log"
-  MC_PORT="$port" BOT_NAME="$name" LAG_RTT="$lag" SCENARIO_TAG="$tag" \
+  MC_PORT="$port" BOT_NAME="$name" BOT_NAME_B="${BOT[pvp_b]}" LAG_RTT="$lag" SCENARIO_TAG="$tag" \
     timeout --kill-after=15 $((SC_TIMEOUT + 30)) node "$BOTS/$file.js" > "$log" 2>&1
   local code=$?
   local res; res=$(grep -a '^RESULT ' "$log" | tail -n 1)
@@ -298,6 +322,12 @@ run_one() {
 }
 
 say "-- 시나리오"
+if [ -n "${JUNIT:-}" ]; then
+  j_status=${JUNIT%% *}
+  printf '%-10s %-24s %s\n' "$j_status" junit "${JUNIT#* junit }"
+  [ "$j_status" = PASS ] || FAILED=$((FAILED + 1))
+  SUMMARY+=("$j_status junit")
+fi
 if [ -n "$REPRO" ]; then
   r_status=${REPRO%% *}; r_rest=${REPRO#* }
   printf '%-10s %-24s %s\n' "$r_status" pack_repro "${r_rest#pack_repro }"
