@@ -597,6 +597,116 @@ def group_reach(seq=None):
     return out
 
 
+# ── 틱마다 부위마다의 반지름 (그 사람 화면의 벌: 물들이는 색에 실어 보낸다) ──
+# 위의 표시 알파 반지름은 그림 하나에 하나라 모든 자세·모든 눈 높이 (EYES) 의 가장 먼 거리다 (머리 2.5, 팔 2.15 블록). F5 카메라가
+# 벽·바닥에 막혀 눈 가까이 당겨지면 (올려다보기, 등 뒤의 턱) 그 반지름 안에 든 대역이 잘려 사라졌다 (2026-10-08 비평). 그래서
+# 플러그인이 열쇠 자세를 보낼 때마다 own 벌의 부위마다 그 자세에 맞는 반지름을 물들이는 색 (custom_model_data colors) 의 낮은 비트에
+# 실어 보낸다 (Tumble). 셰이더 (꼭짓점 셰이더) 가 그 값을 읽는다: 색마다 R·G·B 의 낮은 두 비트 = 6 비트 code, 반지름 = code ×
+# CODE_STEP 블록 (code 1..62. 0 과 63 (물들이지 않은 흰 면: 손에 든 souls 아이템) 은 표시 알파 반지름으로 돌아간다). 색은 채널마다
+# 3/255 안에서만 바뀐다.
+# 표 (roll_anim.yml radius): 열쇠 자세 j 를 보낸 때부터 다음 자세를 보낼 때까지 (그 사이 보간 포함) 부위의 겉면이 1인칭 카메라에서
+# 가장 멀어지는 거리 (블록). 카메라 높이는 그 사람 클라이언트의 자세를 따른다:
+#   stand  기어가기 막힘이 없다: 서기 1.62 (이어 구르기에서 아직 올라오는 1.45, 1.5 높이 틈에 갇혀 웅크린 1.27 까지)
+#   duck   막힘을 duck 틱 깔았다: 아래 눈 높이 모형 (eye_height) 의 그 틱 앞뒤 EYE_WINDOW 틱 + stand 의 높이 (막힘이 늦게 듣거나 일찍
+#          걷혀도 (Roll 이 카메라·바닥을 보고 일찍 거둔다) 눈 높이는 그 사이에 있고, 거리는 눈 높이에 대해 볼록이라 두 끝만 보면 된다)
+# 플러그인은 반지름에 RADIUS_MARGIN 과 벽 때문에 옆으로 옮긴 몫을 더해 code 로 올림한다.
+CODE_STEP = 0.05
+CODE_CLEAR = 0xFCFCFC    # 색에서 code 비트를 비운다
+EYE_WINDOW = 1.0
+RADIUS_MARGIN = 0.1
+STAND_EYES = (1.27, 1.45, 1.62)
+
+
+def eye_height(s, duck):
+    """
+    기어가기 막힘을 duck 틱 동안 깐 구르기에서 그 사람 1인칭 카메라 높이 (발 위, 블록). s 는 대역의 시계 (열쇠 자세 t 에 닿는 때가
+    s = t, 서버 n 틱에 보낸 것이 클라이언트에서 s = n 에 보간을 시작한다). 클라이언트 [확인 (클라이언트 코드: Camera.tick, LocalPlayer)]:
+    막힘과 대역은 함께 닿고 다음 틱 (s = 1) 의 플레이어 틱에서 자세가 기어가기 (눈 0.4) 로 바뀐다. 카메라 틱은 플레이어 틱보다 먼저라
+    그다음 틱 (s = 2) 부터 눈 높이가 틱마다 남은 몫의 반씩 옮겨 가고, 그리는 높이는 틱 사이를 잇는다. 막힘을 걷는 서버 duck 틱의 것은
+    s = duck 에 서기로 바뀌어 s = duck + 1 부터 올라온다. 실제 클라이언트에서 잰 값 (1인칭 89° 바닥 텍셀 간격) 은 이 모형보다 0.5 틱쯤
+    앞선다: EYE_WINDOW 가 덮는다.
+    """
+    vals = [1.62]
+    q = 1.62
+    for n in range(1, int(math.ceil(s)) + 2):
+        target = 0.4 if 1 <= n - 1 < duck else 1.62
+        q += (target - q) * 0.5
+        vals.append(q)
+    if s <= 1:
+        return 1.62
+    n = int(math.floor(s))
+    return vals[n - 1] + (vals[n] - vals[n - 1]) * (s - n)
+
+
+def _send_ticks(fs):
+    """열쇠 자세마다 보내는 서버 틱 (anim_table 과 같다)."""
+    out, prev = [], None
+    for t, _ in fs:
+        out.append(0 if prev is None else max(prev, FIRST_SEND))
+        prev = t
+    return out
+
+
+def _segment(fs, j, steps=8):
+    """자세 j 를 보낸 때부터 보이는 자세들: 앞 자세에서 j 까지의 보간 (j = 0 은 처음 자세)."""
+    if j == 0:
+        return [fs[0][1]]
+    return [between(fs[j - 1][1], fs[j][1], a) for a in np.linspace(0.0, 1.0, steps + 1)]
+
+
+def _reach_from(pts, eyes):
+    return max(float(np.linalg.norm(pts - np.array([0.0, e * PX, 0.0]), axis=1).max()) / PX for e in eyes)
+
+
+def radius_table(duck, fs=None):
+    """{"stand": [[부위마다 반지름] 자세마다], "duck": ...} (블록, PARTS 차례. hand_r·hand_l 은 손 관절까지의 거리: 손에 든 것은
+    표시 알파 반지름을 쓰므로 플러그인은 쓰지 않는다)."""
+    fs = fs or frames()
+    send = _send_ticks(fs)
+    out = {"stand": [], "duck": []}
+    for j in range(len(fs)):
+        lo = send[j]
+        hi = send[j + 1] if j + 1 < len(fs) else fs[j][0] + 1
+        seg = _segment(fs, j)
+        span = np.linspace(lo - EYE_WINDOW, hi + EYE_WINDOW, 25)
+        duck_eyes = sorted(set(STAND_EYES) | {round(eye_height(s, duck), 4) for s in span})
+        for mode, eyes in (("stand", STAND_EYES), ("duck", duck_eyes)):
+            row = []
+            for part in PARTS:
+                if part.startswith("hand"):
+                    pts_list = [f[part][0][None, :] for f in seg]
+                else:
+                    pts_list = [part_surface(f, part) for f in seg]
+                row.append(max(_reach_from(p, eyes) for p in pts_list))
+            out[mode].append(row)
+    return out
+
+
+def side_table(fs=None):
+    """자세마다 대역 몸 (손에 든 것은 빼고) 의 옆 끝 [가장 오른쪽 x, 가장 왼쪽 x] (블록, 대역 공간 +X = 그 사람의 왼쪽): 그 자세로
+    가는 보간과 다음 자세로 가는 보간을 모두 덮는다. 플러그인이 구르는 길 옆의 벽을 보고 반대 어깨로 구르거나 옆으로 옮긴다 (Tumble)."""
+    fs = fs or frames()
+    body = [p for p in PARTS if not p.startswith("hand")]
+    out = []
+    for j in range(len(fs)):
+        segs = _segment(fs, j) + (_segment(fs, j + 1) if j + 1 < len(fs) else [])
+        xs = np.concatenate([np.concatenate([part_surface(f, p) for p in body])[:, 0] for f in segs]) / PX
+        out.append([float(xs.min()), float(xs.max())])
+    return out
+
+
+def config_duck(path):
+    """플러그인 config.yml 의 combat.roll.tumble.duck (못 읽으면 5)."""
+    try:
+        import yaml
+        with open(path, encoding="utf-8") as f:
+            cfg = yaml.safe_load(f) or {}
+        return int(cfg["combat"]["roll"]["tumble"]["duck"])
+    except Exception as ex:  # noqa: BLE001
+        print("config.yml 의 combat.roll.tumble.duck 을 읽지 못해 5 로 셈한다:", ex)
+        return 5
+
+
 def mark_class(reach):
     """가장 먼 거리 (블록) → 반지름 마디 k. 마디를 넘으면 ValueError (셰이더 표를 늘린다)."""
     k = int(math.ceil((reach + MARK_MARGIN - MARK_R0) / MARK_STEP - 1e-9))
@@ -620,8 +730,10 @@ def marked_image(img, k):
 # 셰이더: 바닐라 1.21.11 rendertype_item_entity_translucent_cull 에 표시 알파 한 덩이를 더했다 (ASCII 만: 드라이버마다 주석의 글자를 다르게 본다)
 ITEM_VSH = """#version 330
 
-// Square Soul (pack/roll_figure.py). Vanilla 1.21.11 rendertype_item_entity_translucent_cull.vsh
-// plus soulsRel: the camera-relative position, for the roll stand-in marker test in the fragment shader.
+// Square Soul (pack/roll_figure.py). Vanilla 1.21.11 rendertype_item_entity_translucent_cull.vsh plus:
+// soulsRel: the camera-relative position, for the roll stand-in marker test in the fragment shader;
+// soulsCode / soulsIn: the radius the plugin codes into the low two bits of each tint channel (R, G, B -> 6 bits,
+// radius = code * %(cstep).2f blocks, codes 1..62; 0 and 63 = no code) and whether this vertex lies inside it.
 
 #moj_import <minecraft:light.glsl>
 #moj_import <minecraft:fog.glsl>
@@ -645,6 +757,8 @@ out vec2 texCoord0;
 out vec2 texCoord1;
 out vec2 texCoord2;
 out vec3 soulsRel;
+out float soulsIn;
+flat out float soulsCode;
 
 void main() {
     gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
@@ -656,17 +770,24 @@ void main() {
     texCoord1 = UV1;
     texCoord2 = UV2;
     soulsRel = Position;
+    ivec3 bits = ivec3(Color.rgb * 255.0 + 0.5) & 3;
+    int code = bits.r | (bits.g << 2) | (bits.b << 4);
+    soulsCode = float(code);
+    soulsIn = (code > 0 && code < 63 && length(Position) < float(code) * %(cstep).4f) ? 1.0 : 0.0;
 }
-"""
+""" % {"cstep": CODE_STEP}
 
 ITEM_FSH = """#version 330
 
 // Square Soul (pack/roll_figure.py). Vanilla 1.21.11 rendertype_item_entity_translucent_cull.fsh plus one block:
-// texels whose alpha is a roll stand-in marker (%(lo)d..%(hi)d) belong to the copy of the roll stand-in that only the
-// rolling player sees. Marker k = %(hi)d - alpha gives a radius r = %(r0).2f + k * %(step).2f blocks: the farthest any
-// point drawn with that texture gets from that player's first-person camera. A fragment closer to the camera than r
-// is dropped (first person: the camera sits inside the stand-in, so all of it is dropped); otherwise it is drawn
-// opaque (third person: the camera is 4 blocks away, nothing is dropped). No other texture uses these alphas.
+// texels whose alpha (read at mip level 0) is a roll stand-in marker (%(lo)d..%(hi)d) belong to the copy of the roll
+// stand-in that only the rolling player sees. If the plugin coded a radius into the tint (soulsCode 1..62, see the .vsh),
+// a triangle is dropped when all three of its corners lie inside that radius around the camera (soulsIn interpolates to 1);
+// otherwise the whole triangle is drawn opaque. The radius is the farthest that part gets from the player's first-person
+// camera while that pose is shown, so in first person every corner is inside and nothing of the stand-in is drawn; the
+// third-person camera is 4 blocks away and draws all of it. Without a code (held items: untinted, code 63) the marker
+// k = %(hi)d - alpha gives a fixed radius r = %(r0).2f + k * %(step).2f blocks tested per fragment.
+// No other texture in the item and block atlases uses these alphas.
 
 #moj_import <minecraft:fog.glsl>
 #moj_import <minecraft:dynamictransforms.glsl>
@@ -679,14 +800,20 @@ in vec4 vertexColor;
 in vec2 texCoord0;
 in vec2 texCoord1;
 in vec3 soulsRel;
+in float soulsIn;
+flat in float soulsCode;
 
 out vec4 fragColor;
 
 void main() {
     vec4 tex = texture(Sampler0, texCoord0);
-    float mark = floor(tex.a * 255.0 + 0.5);
+    float mark = floor(textureLod(Sampler0, texCoord0, 0.0).a * 255.0 + 0.5);
     if (mark >= %(lo)d.0 && mark <= %(hi)d.0) {
-        if (length(soulsRel) < %(r0).4f + (%(hi)d.0 - mark) * %(step).4f) {
+        if (soulsCode > 0.5 && soulsCode < 62.5) {
+            if (soulsIn > 0.999) {
+                discard;
+            }
+        } else if (length(soulsRel) < %(r0).4f + (%(hi)d.0 - mark) * %(step).4f) {
             discard;
         }
         tex.a = 1.0;
@@ -949,7 +1076,9 @@ def _mark_tree(node, models, made, seq):
         ref = mark_item_model(models, node["model"], made, seq)
         if ref is None:
             return {"type": "minecraft:empty"}
-        out = dict(node)
+        # 물들이지 않는다: 셰이더가 물들이는 색의 낮은 비트를 반지름 code 로 읽으므로 (radius_table), 표시판은 흰 면 (code 63:
+        # 표시 알파 반지름) 이어야 한다
+        out = {k: v for k, v in node.items() if k != "tints"}
         out["model"] = ref
         return out
     if t == "special":
@@ -957,10 +1086,18 @@ def _mark_tree(node, models, made, seq):
     return {k: (_mark_tree(v, models, made, seq) if isinstance(v, (dict, list)) else v) for k, v in node.items()}
 
 
-def anim_table(path):
-    """플러그인 자원 roll_anim.yml: 열쇠 자세마다 보낼 틱 (닿는 틱 - 보간 틱), 보간 틱, 부위마다 [x, y, z, qx, qy, qz, qw]."""
+def anim_table(path, duck=None):
+    """
+    플러그인 자원 roll_anim.yml: 열쇠 자세마다 보낼 틱 (닿는 틱 - 보간 틱), 보간 틱, 부위마다 [x, y, z, qx, qy, qz, qw].
+    그리고 1인칭 반지름 표 (radius: 자세마다 부위마다, 위 "틱마다 부위마다의 반지름") 와 옆 끝 표 (side). duck 은 기어가기 막힘의 틱
+    수 (없으면 path 옆 config.yml 의 combat.roll.tumble.duck): 플러그인은 설정의 duck 이 표의 것과 다르면 반지름 표를 쓰지 않는다.
+    """
     fs = frames()
     check_steps(fs)
+    if duck is None:
+        duck = config_duck(os.path.join(os.path.dirname(os.path.abspath(path)), "config.yml"))
+    radius = radius_table(duck, fs)
+    side = side_table(fs)
     lines = ["# 구르기 대역의 열쇠 자세 (pack/roll_figure.py anim_table 이 뼈대에서 셈해 쓴다. 손대지 않는다).",
              "# 자리는 대역 공간 D 의 픽셀 (원점 발밑 땅, +Y 위, +Z 구르는 쪽, +X 그 사람의 왼쪽), 회전은 사원수 x y z w.",
              "# 플러그인 (combat/Tumble) 이 구르는 쪽 Y 회전을 걸고 탑승 자리만큼 내려 tick 틱에 dur 틱 보간으로 보낸다.",
@@ -987,6 +1124,19 @@ def anim_table(path):
         lines.append("    p:")
         lines += [f"      - {r}   # {part}" for r, part in zip(rows, PARTS)]
         prev = t
+    lines += ["# 1인칭 반지름 (블록): 자세마다 (그 자세를 보낸 때부터 다음 자세를 보낼 때까지) 부위마다 (parts 차례) 그 사람 1인칭 카메라에서",
+              "# 겉면이 가장 멀어지는 거리. stand 는 기어가기 막힘이 없을 때, crawl 은 막힘을 duck 틱 깔았을 때. 플러그인이 margin 과 옆으로",
+              "# 옮긴 몫을 더해 code-step 으로 올림한 code 를 own 벌의 물들이는 색의 낮은 비트에 실어 보낸다 (팩의 아이템 셰이더가 읽는다).",
+              "radius:",
+              f"  duck: {duck}",
+              f"  code-step: {CODE_STEP}",
+              f"  margin: {RADIUS_MARGIN}"]
+    for mode, key in (("stand", "stand"), ("duck", "crawl")):
+        lines.append(f"  {key}:")
+        lines += ["    - [" + ", ".join(f"{v:.3f}" for v in row) + "]" for row in radius[mode]]
+    lines += ["# 옆 끝 (블록, 자세마다 [가장 오른쪽 x, 가장 왼쪽 x], 대역 공간 +X = 그 사람의 왼쪽. 그 자세로 가는 보간과 다음 보간을 덮는다)",
+              "side:"]
+    lines += ["  - [" + ", ".join(f"{v:.3f}" for v in row) + "]" for row in side]
     with open(path, "w", encoding="utf-8", newline="\n") as fh:
         fh.write("\n".join(lines) + "\n")
     return path
@@ -1078,7 +1228,8 @@ def build(out):
     # 픽셀 머리의 바탕: 흰 칸 (물들이는 색이 그대로 나오게. artlint 의 팔레트 검사에서 뺀다: palette.TINT_BASE)
     marked_image(Image.new("RGBA", (16, 16), (255, 255, 255, 255)), klass["head"]).save(
         os.path.join(assets, "textures", "item", "roll_px_m.png"))
-    tints = [{"type": "minecraft:custom_model_data", "index": i, "default": _int(c(col))} for _, i, col in TINTS]
+    # 기본색은 낮은 비트를 비운다 (code 0: 플러그인이 색을 못 보내면 셰이더가 표시 알파 반지름으로 돌아간다, radius_table)
+    tints = [{"type": "minecraft:custom_model_data", "index": i, "default": _int(c(col)) & CODE_CLEAR} for _, i, col in TINTS]
     for name in BODY_MODELS:
         model = part_model(name)
         _json(os.path.join(assets, "models", "item", f"roll_{name}.json"), model)
@@ -1098,10 +1249,10 @@ def build(out):
     _json(os.path.join(assets, "models", "item", "roll_headpx.json"), headpx_model())
     _json(os.path.join(assets, "items", "roll_headpx.json"),
           {"model": {"type": "minecraft:model", "model": f"{NS}:item/roll_headpx",
-                     "tints": [{"type": "minecraft:custom_model_data", "index": i, "default": v}
+                     "tints": [{"type": "minecraft:custom_model_data", "index": i, "default": v & CODE_CLEAR}
                                for i, v in enumerate(head_pixels(None))]}})
     helm = helm_model()
-    helm_tint = [{"type": "minecraft:custom_model_data", "index": 0, "default": _int(c(HELM_DEFAULT))}]
+    helm_tint = [{"type": "minecraft:custom_model_data", "index": 0, "default": _int(c(HELM_DEFAULT)) & CODE_CLEAR}]
     _json(os.path.join(assets, "models", "item", "roll_helm.json"), helm)
     _json(os.path.join(assets, "items", "roll_helm.json"),
           {"model": {"type": "minecraft:model", "model": f"{NS}:item/roll_helm", "tints": helm_tint}})

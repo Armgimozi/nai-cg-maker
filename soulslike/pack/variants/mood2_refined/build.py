@@ -19,7 +19,20 @@ glyphs.yml 과 java_hook 의 작은 고리만 다르다) 를 쓴다.
   lang.py      언어 파일 장식 (제목 밑 실선, 영어 창 제목의 Cinzel)
   java_hook.py 플러그인 사본: <font:> 꼴 태그 (제목 글꼴), 보스 이름·아이템 이름에 제목 글꼴
   measure.py   실제 클라이언트 그림에서 바탕선·획 굵기를 잰다
-  shots.sh     실제 클라이언트로 찍기
+  shots.sh     실제 클라이언트로 찍기 (texttest.sh 글 시험 줄, textround.sh GUI 배율 4·3·2 한 바퀴)
+
+재현 (포트 25760, 팩 8760)
+  python3 pack/variants/mood2_refined/build.py <작업폴더> <기본 jar>
+  PAPER_JAR=<paper.jar> tools/client/devserver.sh 25760 <서버폴더> <작업폴더>/Soulslike.jar
+  MC_SIZE=1920x1080 MC_GUI_SCALE=4 tools/client/run_client.sh --start 25760 <찍을폴더>; run_client.sh --do 25760 join
+  W=1920 H=1080 G=4 pack/variants/mood2_refined/shots.sh 25760 <서버폴더> <찍을폴더> 1920x1080_g4_
+  pack/variants/mood2_refined/textround.sh 25760 <서버폴더> <jar> <작업폴더>/pack <찍을폴더> text
+
+잰 값 (2026-10-08, 실제 클라이언트, 채팅 바탕을 검게 한 시험 줄 다섯, 화면 픽셀)
+  1차 시안 A   바탕선 어긋남 최대 GUI2 1.96 · GUI3 4.31 · GUI4 5.45, 표준편차 0.31 · 0.44 · 0.61,
+               획 굵기 변동 (글자 잉크 / 윤곽 넓이의 변동 계수) 평균 10.4 · 9.6 · 9.8% (최대 17 · 30 · 26%)
+  refined      바탕선 어긋남 최대 0.29 · 0.25 · 0.43 (잰 방법의 잡음 수준), 표준편차 0.08 · 0.08 · 0.08,
+               획 굵기 변동 평균 3.6 · 3.1 · 2.1% (최대 4.9 · 5.8 · 2.5%)
 """
 import hashlib
 import io
@@ -126,7 +139,7 @@ def main(argv):
         plugin_jar = jar
     else:
         import java_hook  # noqa: E402
-        plugin_jar = java_hook.build(work, ROOT)
+        plugin_jar = java_hook.build(work, ROOT, info.get("decor"))
     replace_in_jar(plugin_jar, out_jar, {"pack.zip": data, "glyphs.yml": glyphs_yml.encode("utf-8")})
     print(f"시안 팩 {len(data):,} 바이트 (기본보다 {len(data) - base_size:+,}), sha1 {sha1}")
     print(f"  → {os.path.join(work, 'pack.zip')}, {out_jar}")

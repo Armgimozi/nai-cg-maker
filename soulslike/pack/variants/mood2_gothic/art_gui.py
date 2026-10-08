@@ -468,7 +468,7 @@ def tooltip_bg(divider_at=None, top_border=12):
     """
     W = H = TT * S
     img = Img(W, H)
-    panel(img, 6, 6, W - 12, H - 12, alpha=0.92, glow=min(2 * top_border - 10, 22), uniform=True)
+    panel(img, 6, 6, W - 12, H - 12, alpha=0.97, glow=min(2 * top_border - 10, 22), uniform=True)
     frame(img, 6, 6, W - 12, H - 12, inset=4, inner=False, uniform=True)
     corners(img, 6, 6, W - 12, H - 12, inset=1, size=14)
     if divider_at is not None:

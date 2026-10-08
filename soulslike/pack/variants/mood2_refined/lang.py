@@ -1,12 +1,15 @@
 """
-mood2_refined 언어 파일 덧입히기 (팩 안 JSON 만. 글은 그대로, 장식 글자와 글꼴 거울만 더한다).
+mood2_refined 의 언어 장식 (장식 글자와 글꼴 거울. 글은 그대로).
 
-  설명 칸 이름 밑 선  souls.weapon.class.* (무기 설명의 첫 줄) 앞에 선 그림 (ITEM, 4배, 52 + 52 GUI) 과 그 폭만큼 되돌아가는 빈칸.
-                      선은 이름 줄과 첫 줄 사이 틈에 그려지고 줄의 진행 폭은 그대로다
-  가운데 제목 밑 선   일시 정지 제목 (menu.game) 과 휴식 창 제목 (souls.bonfire.test-name) 밑에 TITLE 선 (60 + 60 GUI, 가운데
-                      마름모와 덩굴, 양 끝으로 사라진다). [제목][빈칸 -(w+S)/2][선][빈칸 (w-S)/2] 라 전체 폭은 w 그대로
-  창 제목 글꼴        en_us 의 창 제목 → 개인 영역의 Cinzel (로마 비문 대문자), ko_kr 의 창 제목 → 개인 영역의 굵은 명조
+  설명 칸 이름 밑 선  무기 설명의 첫 줄 (분류 줄) 앞에 선 그림 (ITEM, 4배, 52 + 52 GUI) 과 그 폭만큼 되돌아가는 빈칸. 선은 이름
+                      줄과 첫 줄 사이 틈에 그려지고 줄의 진행 폭은 그대로다. 플러그인 사본이 분류 줄 앞에 붙인다 (java_hook)
+  가운데 제목 밑 선   휴식 창 제목 (souls.bonfire.test-name) 과 일시 정지 제목 (menu.game) 밑에 TITLE 선 (60 + 60 GUI, 가운데
+                      마름모와 덩굴, 양 끝으로 사라진다). [제목][빈칸 -(w+S)/2][선][빈칸 -(첫 빈칸 + S)] 라 전체 폭은 w 그대로.
+                      휴식 창은 플러그인 사본이 제목 뒤에 붙이고 (언어마다 폭 w 를 미리 셈한다), 일시 정지 제목은 언어 파일에
+  일시 정지 제목 글꼴 menu.game → 개인 영역의 제목 글꼴 (한국어 굵은 명조, 영어 Cinzel)
   빈칸 글자           U+E200+k 는 -k/4, U+E600+k 는 +k/4 GUI 픽셀 (1/4 은 1/12 의 배수라 뒤 글자의 텍셀 정렬이 그대로)
+YAML 에서 만드는 언어 열쇠 (souls.*, 바닐라 창 제목 container.*) 는 건드리지 않는다: 봇 시험의 lang_check 가 팩의 언어 파일을
+YAML 에서 만든 것과 견준다.
 """
 import json
 import os
@@ -26,8 +29,6 @@ ITEM_H, ITEM_ASCENT = 13, 12         # 설명 칸 선: 그림 위 = 줄 위 - 5 
                                      # (= 첫 줄 위 - 2.25, 이름 줄과의 틈)
 
 VANILLA_EN = {"menu.game": "Game Menu"}
-TITLE_KEYS = ("menu.game", "container.crafting", "container.inventory", "container.chest", "container.chestDouble",
-              "container.barrel", "container.enderchest")
 
 
 def _rj(p):
@@ -159,43 +160,42 @@ def to_pua(txt, pua):
 
 
 def build(pack, info):
-    """언어 파일을 고치고, minecraft:default 에 더할 공급자 (선 그림, 빈칸) 를 돌려준다."""
+    """
+    minecraft:default 에 더할 공급자 (선 그림, 빈칸) 를 돌려주고, 플러그인 사본이 붙일 장식 글자열을 info["decor"] 에 둔다.
+
+    언어 파일은 YAML 에서 만드는 열쇠를 건드리지 않는다 (봇 시험의 lang_check 가 팩 언어 파일을 YAML 에서 만든 것과 견준다):
+      설명 칸 이름 밑 선, 휴식 창 제목 밑 선 → 플러그인 사본이 글 앞뒤에 붙인다 (java_hook, RefinedDecor)
+      창 제목 (container.*) 은 YAML 이 만드는 열쇠라 본문 명조 그대로 (색은 셰이더가 바랜 양피지빛으로)
+      일시 정지 제목 (menu.game, YAML 밖의 바닐라 열쇠) 만 개인 영역 제목 글꼴 + 가운데 선
+    """
     providers = write_art(pack)
     body = textmod.Measure(pack, info["providers_body"]
                            + [textmod.ttf("title_la", style.TITLE[0][1], 0.0), textmod.ttf("title_kr", style.TITLE[1][1], 0.0)])
     title = textmod.Measure(pack, info["providers_title"])
-    report = {}
+    decor = {"item_prefix": ITEM_L + NEG1 + ITEM_R + space(-item_adv())}
     for lang in ("ko_kr", "en_us"):
-        path = os.path.join(pack, "assets", "souls", "lang", lang + ".json")
-        d = _rj(path)
-        for k in list(d):
-            if k.startswith("souls.weapon.class."):
-                d[k] = item_rule(d[k])
+        d = _rj(os.path.join(pack, "assets", "souls", "lang", lang + ".json"))
         k = "souls.bonfire.test-name"
         if k in d:
             w = title.width(d[k])
-            report[f"{lang} {k}"] = w
-            d[k] = centred_rule(d[k], w, "§f")
-        _wj(path, d)
+            full = centred_rule("", w, "")
+            decor["title_suffix_" + lang[:2]] = full
+            print(f"  제목 폭 {lang} {k}: {w:.2f}")
     for lang in ("ko_kr", "en_us"):
         path = os.path.join(pack, "assets", "minecraft", "lang", lang + ".json")
         d = _rj(path) if os.path.exists(path) else {}
         if lang == "ko_kr":
-            for k, v in info["titles_kr"].items():
-                d.setdefault(k, v)
+            d.setdefault("menu.game", info["titles_kr"].get("menu.game", "게임 메뉴"))
             pua = info["pua_kr"]
         else:
             for k, v in VANILLA_EN.items():
                 d.setdefault(k, v)
             pua = info["pua_la"]
-        for k in TITLE_KEYS:
-            if k in d:
-                d[k] = to_pua(d[k], pua)
         if "menu.game" in d:
+            d["menu.game"] = to_pua(d["menu.game"], pua)
             w = body.width(d["menu.game"])
-            report[f"{lang} menu.game"] = w
-            d["menu.game"] = centred_rule("§7" + d["menu.game"], w)
+            print(f"  제목 폭 {lang} menu.game: {w:.2f}")
+            d["menu.game"] = centred_rule("\u00a77" + d["menu.game"], w)
         _wj(path, d)
-    for k, w in report.items():
-        print(f"  제목 폭 {k}: {w:.2f}")
+    info["decor"] = decor
     return providers

@@ -65,6 +65,8 @@ public final class Roll implements Listener {
     public static final Material CEILING = Material.LIME_STAINED_GLASS;
     /** 막힘을 깔 칸: 몸 상자를 구르는 쪽으로 AHEAD 블록 쓸고 둘레로 SIDE 넓힌 곳 (클라이언트는 서버가 아는 자리보다 한두 틱 앞선다) */
     private static final double AHEAD = 1.2, SIDE = 0.35;
+    /** 기어가기 자세의 눈 높이 (바닐라 Pose.SWIMMING) */
+    private static final double DUCK_EYE = 0.4;
     private final Souls plugin;
     /** 사람마다 화면에만 깔아 둔 머리 위 막힘 자리 (기어가기 상자 바로 위 층) */
     private final Map<UUID, Set<Pos>> fakes = new HashMap<>();
@@ -155,7 +157,7 @@ public final class Roll implements Listener {
         // 대역의 생성 패킷은 이 틱의 추적 단계에 나간다). 바닥 높이 때문에 기어가기 자세가 안 나오면 (crawlable) 깔지 않는다
         boolean tum = vis == Config.RollVisual.TUMBLE;
         int duck = tum ? cfg().tumble().duck() : kind.glide() + 2;
-        boolean crawl = !back && cfg().barrier() && duck > 0 && crawlable(p.getLocation().getY());
+        boolean crawl = !back && cfg().barrier() && duck > 0 && crawlable(p.getLocation().getY()) && (!tum || cameraClear(p));
         unceilAtEnd.remove(p.getUniqueId());
         if (crawl) {
             // 어귀 막힘은 미는 힘이 끝날 때까지 둔다 (머리 위 막힘을 걷은 뒤에 남은 밀기가 기어가는 몸을 틈 밑으로 밀어 넣지 않게)
@@ -343,6 +345,38 @@ public final class Roll implements Listener {
         return crawlLayer(feetY) - feetY < 1.5 - 1e-3;
     }
 
+    /**
+     * 숙인 눈 (발 위 {@link #DUCK_EYE}) 에서 바닐라 F5 등 뒤 카메라가 combat.roll.tumble.duck-camera 블록 넘게 물러날 수 있는가
+     * (tumble 만 본다: 0 이면 늘 참). 바닐라 Camera.getMaxZoom 처럼 눈에서 ±0.1 비킨 여덟 점에서 시선 반대쪽으로 카메라 거리
+     * (camera_distance × scale 속성) 만큼 빛을 쏘아 가장 가까이 막힌 곳을 본다 [확인 (클라이언트 코드)]. 서버는 부딪힘 모양으로 본다
+     * (클라이언트는 보이는 모양: 유리·잎은 서버 쪽이 더 일찍 막힌다. 막힘 블록 ({@link #CEILING}) 은 서버에 없다).
+     * 숙이면 눈이 바닥 가까이 내려가 F5 카메라도 함께 내려간다: 올려다보면 (6° 남짓 넘게) 카메라가 곧 바닥에 막혀 눈 곁으로
+     * 당겨지고, 팩 셰이더는 카메라가 대역 곁이면 1인칭으로 여겨 대역을 감춘다 (2026-10-08 비평: F5 로 20° 올려다보며 구르면 대역이
+     * 잘려 사라졌다). 그래서 그럴 때는 숙이지 않는다 (1인칭은 서 있는 눈 높이로 구른다. 대역은 그대로 감춰진다). 숙인 동안에도 틱마다
+     * 보고 막히면 일찍 일어선다 (Roll.tick).
+     */
+    private boolean cameraClear(Player p) {
+        double need = cfg().tumble().duckCamera();
+        if (need <= 0) return true;
+        double dist = 4.0, scale = 1.0;
+        org.bukkit.attribute.AttributeInstance a = p.getAttribute(org.bukkit.attribute.Attribute.CAMERA_DISTANCE);
+        if (a != null) dist = a.getValue();
+        org.bukkit.attribute.AttributeInstance s = p.getAttribute(org.bukkit.attribute.Attribute.SCALE);
+        if (s != null) scale = s.getValue();
+        double max = dist * scale;
+        if (max < need) return false;
+        Location l = p.getLocation();
+        Vector back = l.getDirection().multiply(-1);
+        Vector eye = l.toVector().add(new Vector(0, DUCK_EYE, 0));
+        org.bukkit.World w = p.getWorld();
+        for (int i = 0; i < 8; i++) {
+            Vector from = eye.clone().add(new Vector(((i & 1) * 2 - 1) * 0.1, ((i >> 1 & 1) * 2 - 1) * 0.1, ((i >> 2 & 1) * 2 - 1) * 0.1));
+            org.bukkit.util.RayTraceResult r = w.rayTraceBlocks(from.toLocation(w), back, max, org.bukkit.FluidCollisionMode.NEVER, true);
+            if (r != null && r.getHitPosition().distance(eye) < need) return false;
+        }
+        return true;
+    }
+
     /** 깔아 둔 막힘을 모두 거둔다 (진짜 블록 모양으로 다시 보낸다). */
     private void uncrawl(Player p) {
         crawling.remove(p.getUniqueId());
@@ -451,7 +485,7 @@ public final class Roll implements Listener {
             if (cr != null && !unceilAtEnd.contains(p.getUniqueId())) {
                 if (p.isDead() || (cr.tumble && !tumble.active(p))) {
                     uncrawl(p);
-                } else if (cr.ducking && (now >= cr.until || !crawlable(p.getLocation().getY()))) {
+                } else if (cr.ducking && (now >= cr.until || !crawlable(p.getLocation().getY()) || (cr.tumble && !cameraClear(p)))) {
                     if (cr.tumble) {
                         tumble.unduck(p);
                         unceilAtEnd.add(p.getUniqueId());
