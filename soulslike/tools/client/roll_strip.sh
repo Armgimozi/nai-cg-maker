@@ -18,6 +18,8 @@
 #   FRAMES      고를 장수 (기본 8)
 #   SPAN        F 뒤 몇 틱까지 고를지 (기본 14: 가벼운 구르기 끝 12틱 + 클라이언트가 늦게 보는 몫)
 #   CROP        잘라낼 상자 x0,y0,x1,y1 (기본 440,320,840,700: 1280x720 화면에서 구르는 몸 둘레)
+#   COLS        한 줄에 놓을 장수 (기본 FRAMES: 한 줄). 넘으면 다음 줄로 (1인칭 온 화면처럼 넓게 자를 때)
+#   SCALE       자른 장을 줄이는 배율 (기본 1)
 #   HUD=1       HUD 를 숨기지 않는다 (기본은 F1 로 숨긴다: 행동 막대 글자가 대역 위에 겹친다)
 #   ITEMS=1     구르기 전에 손·몸에 장비를 준다: 주손 시험 막기 도구 (souls 아이템), 왼손 바닐라 방패, 쇠 투구·흉갑.
 #               tumble 이 3인칭에서 든 것·입은 것을 감추고 끝나면 되돌리는지, 단축 슬롯 그림이 그대로인지 본다 (HUD=1, 넓은 CROP 과 함께)
@@ -106,11 +108,11 @@ for v in $VISUALS; do
       || { tail -20 "$RAW/${name}.log"; exit 1; }
     grep -a "간격" "$RAW/${name}.log"
     if [ "$SHOTDIR" != "$RAW" ]; then mv "$SHOTDIR/${name}"_*.png "$SHOTDIR/${name}_times.json" "$RAW/"; fi
-    python3 - "$OUT" "$RAW" "$name" "$TICK_RATE" "$FRAMES" "$SPAN" "$CROP" "$v" "$view" <<'PY' || exit 1
+    python3 - "$OUT" "$RAW" "$name" "$TICK_RATE" "$FRAMES" "$SPAN" "$CROP" "$v" "$view" "${COLS:-$FRAMES}" "${SCALE:-1}" <<'PY' || exit 1
 import json, os, sys
 from PIL import Image, ImageDraw
-out, raw, name, rate, frames, span, crop, visual, view = sys.argv[1:]
-rate, frames, span = float(rate), int(frames), float(span)
+out, raw, name, rate, frames, span, crop, visual, view, cols, scale = sys.argv[1:]
+rate, frames, span, cols, scale = float(rate), int(frames), float(span), max(1, int(cols)), float(scale)
 box = tuple(int(x) for x in crop.split(","))
 tm = json.load(open(os.path.join(raw, name + "_times.json")))
 shots, key = tm["shots"], tm["key_at"]
@@ -119,21 +121,25 @@ slow = 20.0 / rate
 want = [key + (span * k / (frames - 1)) * 0.05 * slow for k in range(frames)]
 pick = [min(range(len(shots)), key=lambda i: abs(shots[i] - w)) for w in want]
 ims = [Image.open(os.path.join(raw, "%s_%02d.png" % (name, i))).convert("RGB").crop(box) for i in pick]
+if scale != 1:
+    ims = [im.resize((round(im.width * scale), round(im.height * scale)), Image.LANCZOS) for im in ims]
 w, h = ims[0].size
 head, foot = 22, 30
-sheet = Image.new("RGB", (w * len(ims), h + head + foot), (18, 17, 16))
+cols = min(cols, len(ims))
+rows = (len(ims) + cols - 1) // cols
+sheet = Image.new("RGB", (w * cols, head + rows * (h + foot)), (18, 17, 16))
 d = ImageDraw.Draw(sheet)
 gaps = [b - a for a, b in zip(shots, shots[1:])]
 d.text((6, 5), "roll visual=%s view=%s key=%s  tick rate %g (x%g slow)  shots %d, spacing %.0f-%.0f ms real, frames picked by game time after F"
        % (visual, view, os.environ.get("KEY", "w"), rate, slow, len(shots), min(gaps) * 1000, max(gaps) * 1000), fill=(225, 220, 205))
 for n, (im, i) in enumerate(zip(ims, pick)):
-    x = n * w
-    sheet.paste(im, (x, head))
+    x, y = (n % cols) * w, head + (n // cols) * (h + foot)
+    sheet.paste(im, (x, y))
     g = (shots[i] - key) / slow          # 게임 시간 (초)
-    d.text((x + 6, head + h + 3), "t=%+.1f tick  %+d ms" % (g / 0.05, round(g * 1000)), fill=(225, 220, 205))
-    d.text((x + 6, head + h + 16), "shot %d @ %+d ms real" % (i, round((shots[i] - key) * 1000)), fill=(150, 145, 135))
-    if n:
-        d.line((x, head, x, head + h), fill=(60, 56, 52))
+    d.text((x + 6, y + h + 3), "t=%+.1f tick  %+d ms" % (g / 0.05, round(g * 1000)), fill=(225, 220, 205))
+    d.text((x + 6, y + h + 16), "shot %d @ %+d ms real" % (i, round((shots[i] - key) * 1000)), fill=(150, 145, 135))
+    if n % cols:
+        d.line((x, y, x, y + h), fill=(60, 56, 52))
 path = os.path.join(out, name + ".png")
 sheet.save(path)
 print("STRIP", path, "picked", pick)

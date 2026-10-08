@@ -19,14 +19,15 @@ FILES = {
 }
 
 # 공급자: (파일, size, shift y). 바닐라 줄 높이 9 (설명 칸 10), 바탕선 7
-BODY = [("body_la", 10.5, 0.0), ("body_kr", 8.0, 0.0)]
-TITLE = [("title_la", 9.5, 0.0), ("title_kr", 10.0, 0.0)]
-LORE = [("body_la", 10.0, 0.0), ("body_kr", 7.5, 0.0)]
+BODY = [("body_la", 10.0, 0.0), ("body_kr", 8.0, 0.0)]
+TITLE = [("title_la", 10.25, 0.0), ("title_kr", 10.0, 0.0)]
+LORE = [("body_la", 9.25, 0.0), ("body_kr", 7.5, 0.0)]
 
 # 기본 글꼴 (minecraft:default) 개인 영역 (바닐라·기본 팩과 겹치지 않는 곳)
 PUA_TITLE_LA = 0xF120         # 제목 로마자 (Marcellus SC) 를 ASCII 0x20..0x7E 순서로
 PUA_TITLE_KR = 0xF200         # 제목 한글 (Song Myung): 언어 파일의 창 제목에 나오는 음절만 차례로
-PUA_ORN = 0xE300              # 장식 그림 글자 (제목 밑 금실, 설명 칸 실선)
+PUA_ORN = 0xE300              # 장식 그림 글자 (제목 밑 금실)
+PUA_RULE = 0xE301             # 설명 칸의 수치와 설명 사이 실선 (언어마다 수치 칸 폭이 달라 둘: ko, en)
 PUA_SPACE = 0xE380            # 자리 맞춤 빈칸 (수치 칸 열, 제목 밑 금실의 가운데 맞춤)
 
 # 글꼴 이름공간 (플러그인 사본이 아이템 이름·설명에 입힌다)
@@ -39,7 +40,7 @@ TEXT_GREY = "parch2"          # §7 (#AAAAAA): 창 제목·사망 화면 단추�
 TEXT_OFF = "ash3"             # 꺼진 단추 (#A0A0A0)
 TEXT_DARK = "parch0"          # §8 (#555555)
 TEXT_YELLOW = "parch3"        # §e (들어옴/나감 알림) → 바랜 양피지
-VIGNETTE_MIN = 0.62           # 게임 화면 비네트의 가장 옅은 세기 (바닐라는 선 자리가 어두운 만큼만)
+VIGNETTE_MIN = 0.86           # 게임 화면 비네트의 가장 옅은 세기 (바닐라는 선 자리가 어두운 만큼만)
 SHADOW_ALPHA = 0.72           # 그림자 (바닐라는 글자색 × 0.25): 먹빛, 반 픽셀만 내린다
 
 # 플러그인 사본의 아이템 설명 칸 색

@@ -18,6 +18,8 @@ mood_gothic 의 글꼴 정의와 언어 덧입힘.
 import json
 import os
 
+import art
+
 ORN_FILE = "souls:font/gothic_orn.png"
 
 # 창 제목: 열쇠 → 언어별 글 (꼴 기호 §7 은 앞에 그대로 둔다)
@@ -173,6 +175,7 @@ def build(pack, st, metrics, orn):
     mc_lang = os.path.join(pack, "assets", "minecraft", "lang")
     souls_lang = os.path.join(pack, "assets", "souls", "lang")
     report = {}
+    rules = []
     for lang in ("ko_kr", "en_us"):
         path = os.path.join(mc_lang, lang + ".json")
         data = read_json(path) if os.path.exists(path) else {}
@@ -194,8 +197,19 @@ def build(pack, st, metrics, orn):
         name = sdata["souls.bonfire.test-name"]
         sdata["souls.bonfire.test-name"] = with_divider(name, title.width(name), orn["char"], orn["vis"], orn["adv"],
                                                         spaces)
+        # 수치와 설명 사이 실선: 이 언어의 수치 칸 폭 (두 칸 + 열 간격) 만큼
+        block = 2 * (col + st.VALUE_COL) + st.COL_GAP
+        rule_ch = chr(st.PUA_RULE + i)
+        rule_img = art.lore_rule(block)
+        rule_file = f"souls:font/gothic_rule_{lang}.png"
+        rule_path = os.path.join(pack, "assets", "souls", "textures", "font", f"gothic_rule_{lang}.png")
+        os.makedirs(os.path.dirname(rule_path), exist_ok=True)
+        rule_img.save(rule_path)
+        rules.append({"type": "bitmap", "file": rule_file, "height": rule_img.height // art.ORN_SCALE, "ascent": 3,
+                      "chars": [rule_ch]})
+        sdata["souls.gothic.lore-rule"] = rule_ch
         write_json(spath, dict(sorted(sdata.items())))
-        report[lang] = {"label_col": col}
+        report[lang] = {"label_col": col, "rule": block}
 
     # 플러그인이 값을 오른쪽에 맞출 빈칸 (2 의 거듭제곱과 1/4 단위)
     pads = {}
@@ -209,7 +223,7 @@ def build(pack, st, metrics, orn):
     base = read_json(os.path.join(fdir, "default.json"))
     providers = [ttf(n, s, y, st.OVERSAMPLE) for n, s, y in st.BODY]
     providers += [ttf(n, s, y, st.OVERSAMPLE) for n, s, y in st.TITLE]
-    providers += [orn["provider"], spaces.provider()]
+    providers += [orn["provider"]] + rules + [spaces.provider()]
     write_json(os.path.join(fdir, "default.json"), {"providers": providers + base["providers"]})
     sdir = os.path.join(pack, "assets", "souls", "font")
     write_json(os.path.join(sdir, "gothic_title.json"), {"providers": [ttf(n, s, y, st.OVERSAMPLE) for n, s, y in st.TITLE]

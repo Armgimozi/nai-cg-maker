@@ -109,7 +109,29 @@ def relight_container(img):
                 out[y, x, :3] = rgb("ink1") * (1.15 - 0.35 * t) + rgb("bronze0") * 0.0
             elif px == well:
                 out[y, x, 3] = min(255.0, al * 1.08)
+    _seat_ornaments(a, out, top, left, right)
     return to_img(out)
+
+
+def _seat_ornaments(a, out, top, left, right):
+    """
+    윗날 장식 (기본 팩의 위 가운데 마름모) 둘레의 빈 픽셀은 판 밖이 비쳐 마름모가 검은 네모 안에 든 것처럼 보였다.
+    같은 줄 양옆 (7 픽셀 안) 에 판 픽셀이 있으면 그 빈 픽셀을 가장 가까운 판 픽셀 (다시 비춘 색과 알파) 로 메운다.
+    """
+    panel = np.array(c("ash0")[:3], dtype=np.float64)
+
+    def is_panel(y, x):
+        return left <= x <= right and a[y, x, 3] > 0 and np.array_equal(a[y, x, :3], panel)
+
+    for y in range(top, min(top + 6, a.shape[0])):
+        for x in range(left + 1, right):
+            if a[y, x, 3] != 0:
+                continue
+            lx = next((x - d for d in range(1, 8) if is_panel(y, x - d)), None)
+            rx = next((x + d for d in range(1, 8) if is_panel(y, x + d)), None)
+            if lx is None or rx is None:
+                continue
+            out[y, x] = out[y, lx] if (x - lx) <= (rx - x) else out[y, rx]
 
 
 # ─────────────────────────── 설명 칸 ───────────────────────────
@@ -268,7 +290,7 @@ def vignette():
     yy, xx = np.mgrid[0:n, 0:n]
     p = (np.stack([xx, yy], -1) + 0.5) / n * 2 - 1
     r = np.sqrt((p[..., 0] * 0.92) ** 2 + p[..., 1] ** 2)
-    v = np.clip((r - 0.42) / (1.30 - 0.42), 0, 1)
+    v = np.clip((r - 0.30) / (1.18 - 0.30), 0, 1)
     v = v * v * (3 - 2 * v)
     g = np.clip(np.rint(v * 255), 0, 255).astype(np.uint8)
     return Image.fromarray(g, "L").convert("RGB")
@@ -313,6 +335,29 @@ def title_divider():
     # 양 끝 점
     for ex in (int(W * 0.02), W - 1 - int(W * 0.02)):
         a[cy, ex, :3], a[cy, ex, 3] = rgb("parch1"), 200
+    return to_img(a)
+
+
+def lore_rule(width):
+    """
+    설명 칸의 수치와 설명 사이 실선 (GUI width×3, 텍셀 2배). 수치 칸 폭만큼: 가운데 작은 마름모 (흐린 금빛), 양쪽으로 1 텍셀
+    청동 줄이 끝으로 갈수록 알파가 옅어진다. 이름 밑 금실보다 한 단 어둡고 가늘다 (설명은 조용한 톤).
+    """
+    s = ORN_SCALE
+    W, H = int(round(width * s)), 3 * s
+    a = np.zeros((H, W, 4))
+    cx, cy = (W - 1) / 2.0, H // 2
+    line = rgb("bronze2")
+    for x in range(W):
+        d = abs(x - cx) / (W / 2.0)
+        if abs(x - cx) > 4.5:
+            al = 175 * max(0.0, 1.0 - d) ** 0.7
+            a[cy, x, :3], a[cy, x, 3] = line, al
+    for y in range(H):
+        for x in range(int(cx) - 4, int(cx) + 6):
+            dd = abs(x - cx) + abs(y - cy) * 1.25
+            if dd <= 2.6:
+                a[y, x, :3], a[y, x, 3] = (rgb("parch2") if dd <= 1.2 else rgb("bronze3")), 235
     return to_img(a)
 
 

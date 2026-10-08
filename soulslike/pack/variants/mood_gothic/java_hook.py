@@ -44,7 +44,10 @@ def patch_lang_java(path):
 def patch_item_factory(path):
     with open(path, encoding="utf-8") as f:
         s = f.read()
-    s = _sub(s, "        lore.addAll(statLines(d));\n", "        lore.addAll(GothicStats.lines(d));\n", "ItemFactory.weapon 수치")
+    s = _sub(s, "        lore.addAll(statLines(d));\n        lore.add(Component.empty());\n",
+             "        lore.addAll(GothicStats.lines(d));\n"
+             "        lore.add(Lang.c(\"gothic.lore-rule\").color(TextColor.color(0xFFFFFF)));"
+             " // 그림 글자: 흰색이라야 그림 색 그대로 (설명 줄의 기본 보라를 받지 않게)\n", "ItemFactory.weapon 수치")
     s = _sub(s, "        it.setData(DataComponentTypes.LORE, ItemLore.lore(lore));\n        it.setData(DataComponentTypes.MAX_STACK_SIZE, 1);\n",
              "        it.setData(DataComponentTypes.LORE, ItemLore.lore(lore));\n"
              "        it.setData(DataComponentTypes.TOOLTIP_STYLE, Key.key(Keys.NS, \"gothic_weapon\"));\n"
@@ -201,7 +204,9 @@ def patch_yaml(path, lang, st, palette_hex):
                 line = m.group(1) + f"<{palette_hex(st.NAME)}><font:{st.FONT_TITLE}>" + m.group(3)
         out.append(line)
     i = 0 if lang == "ko" else 1
-    add = ["", "gothic:", "  # UI 분위기 시안 mood_gothic: 무기 설명 칸의 수치 이름 (팩이 이름 열 폭까지 빈칸으로 채운다)", "  stat:"]
+    add = ["", "gothic:", "  # UI 분위기 시안 mood_gothic: 수치와 설명 사이 실선 (팩의 언어 파일이 실선 글자로 바꾼다)",
+           '  lore-rule: " "',
+           "  # 무기 설명 칸의 수치 이름 (팩이 이름 열 폭까지 빈칸으로 채운다)", "  stat:"]
     for k, v in lang_mod.STAT_LABELS.items():
         add.append(f'    {k}: "<{palette_hex(st.LABEL)}>{v[i]}"')
     text = "\n".join(out).rstrip("\n") + "\n" + "\n".join(add) + "\n"
