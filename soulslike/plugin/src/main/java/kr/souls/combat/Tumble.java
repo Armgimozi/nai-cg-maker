@@ -79,10 +79,12 @@ import java.util.UUID;
  *       9틱에 올라와 있게: 손이 바닥에서 곧바로 올라온다) 대역 손의 든 것은 그 사람 화면에서 감춘다 (F5 에서 둘로 보이지 않게).</li>
  *   <li>때 (2026-10-08 비평: 늦게 시작하고, 다른 사람에게는 진짜 몸과 대역이 나란히 둘로 보였다): 대역은 F 를 받자마자 띄우고
  *       (생성 패킷은 곧바로 나간다), 투명 깃발은 hide-delay (0) 틱 뒤 = 곧바로 건다 (그다음 틱 끝, 첫 자세 보간과 같은 추적 단계에
- *       나간다). 두 벌 (seen 과 own) 모두 크기 0 으로 띄웠다가 깃발이 나가는 틱 ({@link #REVEAL} + hide-delay) 에 그때 자세로 곧바로
- *       (보간 없이) 키운다: 깃발과 같은 추적 단계에 나가서 그 사람의 F5 화면에서도 남의 화면에서도 몸과 대역이 바뀐다. 예전에는 대역을
- *       띄우자마자 보이고 깃발이 한 틱 뒤에 나가, 그 한 틱 동안 대역이 진짜 몸 옆에 둘로 보였다 (남의 화면 [확인 (클라, 둘째
- *       클라이언트)], 그 사람의 F5 화면 [확인 (클라): 2026-10-08 비평의 tumble_back_p30 #4]).
+ *       나간다). 두 벌 (seen 과 own) 모두 보기 거리 (view_range) 0 으로 띄워 그려지지 않다가 깃발이 나가는 틱 ({@link #REVEAL} +
+ *       hide-delay) 에 보기 거리를 1 로 돌린다: 보기 거리와 투명 깃발은 클라이언트가 받자마자 (다음 틱을 기다리지 않고) 그리므로 같은
+ *       추적 단계에 나가면 그 사람의 F5 화면에서도 남의 화면에서도 몸과 대역이 같은 그림에서 바뀐다. 자세 (변환) 는 띄울 때부터 보내 둔다.
+ *       예전에는 own 을 띄우자마자 보여 깃발이 닿기 전 0~1틱 둘로 보였고 (그 사람의 F5 화면 [확인 (클라): 2026-10-08 비평의
+ *       tumble_back_p30 #4]), 크기 0 으로 띄웠다가 키우는 판은 변환을 다음 틱에야 그려 0~1틱 빈 바닥이 생겼고, 키우는 변환과 다음
+ *       자세가 클라이언트의 한 틱에 겹쳐 닿으면 크기 0 에서 보간해 팔다리가 점에서 자라났다 [확인 (클라): 1칸 틈 앞 구르기].
  *       장비 바꾸기는 깃발을 건 틱 끝 (ServerTickEndEvent). 거둘 때는 reveal 틱 처음에 투명을 걷고 대역을 곧바로 지운다.</li>
  *   <li>기어가기 (Roll 의 crawl): 구르는 동안 그 사람 화면에만 머리 위 막힘을 깔아 클라이언트가 기어가기 자세 (몸 상자 0.6, 눈 0.4) 로
  *       구르면 1인칭 시야가 바닥까지 내려갔다 올라온다. 탑승 자리는 클라이언트가 자기 자세의 몸 상자 꼭대기로 정하므로 own 벌은 그
@@ -102,7 +104,7 @@ public final class Tumble {
     public static final int HIDE_FLAG = 0;
     private static final EquipmentSlot[] SLOTS = {EquipmentSlot.HAND, EquipmentSlot.OFF_HAND, EquipmentSlot.HEAD,
             EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET};
-    /** 두 벌을 크기 0 에서 키우는 구르기 틱 (+ hide-delay): 진짜 몸을 감추는 깃발과 같은 틱 (클래스 머리말 "때") */
+    /** 두 벌을 보이게 하는 구르기 틱 (+ hide-delay): 진짜 몸을 감추는 깃발과 같은 틱 (클래스 머리말 "때") */
     private static final int REVEAL = 1;
     /** own 벌이 손에 든 souls 아이템의 custom_model_data 깃발: 팩이 표시판 (1인칭에서 버리는 표시 알파 그림) 으로 그린다 (pack/roll_figure.py MARK_FLAG) */
     public static final int MARK_FLAG = 1;
@@ -212,9 +214,9 @@ public final class Tumble {
         final List<EquipmentSlot> faked = new ArrayList<>();
         /** own 벌의 든 것을 그 사람 화면에서 감추었다 (hand-back 뒤: 진짜 손에 든 것과 둘로 보이지 않게) */
         boolean ownHeldHidden;
-        /** 두 벌을 키웠다 (그 전에는 크기 0) */
+        /** 두 벌을 보이게 했다 (그 전에는 보기 거리 0) */
         boolean revealed;
-        /** 키우는 틱 (구르기 틱: REVEAL + hide-delay) */
+        /** 보이게 하는 틱 (구르기 틱: REVEAL + hide-delay) */
         int revealAt = REVEAL;
         /** 지금 준 밝기 (블록 빛 << 4 | 하늘 빛, -1 은 아직) */
         int light = -1;
@@ -290,7 +292,7 @@ public final class Tumble {
             spawn(p, f);
             // F 는 틱 사이에 오고 (now 는 지난 틱의 번호), 새 표시 물체는 다음 틱 (now + 1) 부터 그려진다.
             // 그 틱에 깃발을 걸면 둘이 한 번에 나간다 (hide-delay 0: 곧바로 건다). hide-delay 틱 더 늦춘다.
-            // 두 벌은 크기 0 으로 띄웠다가 깃발이 나가는 틱에 키운다 (클래스 머리말 "때")
+            // 두 벌은 보기 거리 0 으로 띄웠다가 깃발이 나가는 틱에 보이게 한다 (클래스 머리말 "때")
             f.hideAt = now + 1 + c.hideDelay();
             f.revealAt = REVEAL + c.hideDelay();
             if (c.hideDelay() == 0) hide(p, f);
@@ -439,11 +441,9 @@ public final class Tumble {
             }
             if (!moved && resized) apply(p, f, f.shown, 1, -1);
             if (!f.revealed && t >= f.revealAt) {
-                // 두 벌을 지금 자세로 곧바로 키운다 (깃발과 같은 추적 단계)
+                // 두 벌을 보이게 한다 (보기 거리: 클라이언트가 받자마자 그린다. 깃발과 같은 추적 단계)
                 f.revealed = true;
-                sendCodes(p, f, f.shown, -1);
-                sendRig(f, f.seen, f.shown, 1f, (float) -f.attach, 0);
-                sendRig(f, f.own, f.shown, 1f, (float) -f.ownAttach, 0);
+                for (ItemDisplay d : f.parts()) if (d.isValid()) d.setViewRange(1f);
             }
             light(p, f);
         }
@@ -460,7 +460,7 @@ public final class Tumble {
         if (f == null || !f.crawl || anim == null) return;
         f.crawl = false;
         f.ownAttach = f.attach;
-        if (f.revealed) sendRig(f, f.own, f.shown, 1f, (float) -f.ownAttach, 1);
+        sendRig(f, f.own, f.shown, 1f, (float) -f.ownAttach, 1);
     }
 
     /** 대역의 밝기를 진짜 몸처럼 그 사람 눈 자리의 블록 빛·하늘 빛으로 (바뀔 때만). */
@@ -601,11 +601,11 @@ public final class Tumble {
         // 탑승 자리 (몸 상자 꼭대기) 에 띄운다: 첫 그림부터 탑승한 자리와 같다. 변환도 만들 때 넣는다 (생성 패킷에 실려
         // 나간다. 만든 뒤에 바꾸면 클라이언트가 한 틱 동안 변환 없이 머리 위에 그렸다). own 벌은 그 사람 클라이언트의 탑승 자리
         // (기어가기면 기어가기 상자 꼭대기) 에 띄운다: 새 탑승물이 처음 그리는 틱에 생성 자리에서 탑승 자리로 미끄러지지 않게
-        // 두 벌 모두 크기 0 으로 (revealAt 틱에 키운다: 클래스 머리말 "때")
+        // 두 벌 모두 보기 거리 0 으로 (revealAt 틱에 보이게 한다: 클래스 머리말 "때")
         f.revealed = false;
         f.sentCode.clear();
-        fill(p, f, f.seen, at(p, f.attach), 0, 0f, (float) -f.attach, false);
-        fill(p, f, f.own, at(p, f.ownAttach), 0, 0f, (float) -f.ownAttach, true);
+        fill(p, f, f.seen, at(p, f.attach), 0, 1f, (float) -f.attach, false);
+        fill(p, f, f.own, at(p, f.ownAttach), 0, 1f, (float) -f.ownAttach, true);
         for (ItemDisplay d : f.parts()) p.addPassenger(d);
         // own 벌은 아무에게도 보이지 않게 만들었다: 그 사람에게만 보인다
         for (ItemDisplay d : f.own.all()) p.showEntity(plugin, d);
@@ -683,6 +683,8 @@ public final class Tumble {
             d.setShadowRadius(0f);
             // 만들기 전에 감추면 생성 패킷이 가지 않는다
             if (own == null) return;
+            // 보기 거리 0: 그려지지 않는다 (revealAt 틱에 1 로: 클래스 머리말 "때")
+            d.setViewRange(0f);
             if (own) d.setVisibleByDefault(false);
             else p.hideEntity(plugin, d);
         });
@@ -818,8 +820,6 @@ public final class Tumble {
                 : Math.max(0f, Math.min(1f, (reach - c.riseAt()) / (float) c.riseTurn()));
         float body = (float) Math.toRadians(-p.getBodyYaw());
         f.yaw = f.rollYaw + turn * wrap(body - f.rollYaw);
-        // 키우기 전 (revealAt) 에는 보내지 않는다: 크기 0 에서 보간하면 점에서 자라 보인다. 키울 때 그 자세로 곧바로 보낸다
-        if (!f.revealed) return;
         sendCodes(p, f, i, prev);
         sendRig(f, f.own, i, 1f, (float) -f.ownAttach, duration);
         sendRig(f, f.seen, i, 1f, (float) -f.attach, duration);
