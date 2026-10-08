@@ -35,7 +35,7 @@ import java.util.function.ToLongFunction;
 /**
  * 다크 소울 HUD (10.2, 2026-10-07 사용자 결정). 화면에 무엇을 띄우는 곳은 여기 한 곳이다 (행동 막대와 HUD 보스 막대를
  * 다른 체계가 덮어쓰지 않게). 다른 체계는 값만 넘긴다.
- *  - 왼쪽 위 막대 셋 (체력 · 온기 · 스태미나): 사람마다 HUD 전용 보스 막대 하나 (WHITE, 리소스팩이 막대 그림을 투명하게 했다)
+ *  - 왼쪽 위 막대 셋 (체력 · 마나 · 스태미나): 사람마다 HUD 전용 보스 막대 하나 (WHITE, 리소스팩이 막대 그림을 투명하게 했다)
  *    의 이름에 그림 글자 (souls:hud) 로 그린다. 길이는 최대치에 비례하고 (설정 hud.bars), 맞으면 잃은 몫이 잠깐 바랜 양피지빛으로
  *    남았다가 줄어든다. 바뀐 틱에 보낸다. 진짜 보스는 RED (체력)·YELLOW (자세) 막대를 쓴다.
  *  - 오른쪽 아래 소울 수 상자: 행동 막대. 바뀔 때와 actionbar-refresh 틱마다 보낸다 (바닐라는 3초 뒤 흐려진다).
@@ -50,7 +50,7 @@ import java.util.function.ToLongFunction;
  *  - 바닐라 하트·허기·방어·경험치 막대는 팩이 숨긴다. 진짜 경험치는 늘 0 이고 레벨도 0 (형광 초록 숫자가 서지 않는다).
  *  - 죽어 있는 동안은 HUD 를 비운다 (다크 소울처럼 YOU DIED 만).
  *  - 그림 글자는 팩을 실은 사람에게만 쓴다 (팩을 싣기 전 몇 초는 개인 영역 문자가 빈 네모로, HUD 보스 막대가 바닐라 흰 막대로
- *    보인다). 그 전과 glyphs.yml 에 HUD 그림 글자가 없을 때 (옛 팩) 는 막대 없이 행동 막대 글 "소울 N" ("온기 n/m") 으로 대신한다.
+ *    보인다). 그 전과 glyphs.yml 에 HUD 그림 글자가 없을 때 (옛 팩) 는 막대 없이 행동 막대 글 "소울 N" ("마나 n/m") 으로 대신한다.
  */
 public final class Hud implements Listener {
     /** 맞은 뒤 잃은 몫이 그대로 남는 틱. 그 뒤 틱마다 남은 몫의 1/4 씩 줄어든다 */
@@ -356,7 +356,7 @@ public final class Hud implements Listener {
         return l.component(lay.markRight());
     }
 
-    /** 그림 글자가 없을 때 (옛 팩): 행동 막대 글 "온기 n/m   소울 N" (10.3 의 hud.warmth, hud.souls). */
+    /** 그림 글자가 없을 때 (옛 팩): 행동 막대 글 "마나 n/m   소울 N" (10.3 의 hud.warmth, hud.souls). */
     private static Component soulText(Player p, long n, Pool mana, boolean showSouls) {
         Component out = Component.empty();
         boolean any = false;

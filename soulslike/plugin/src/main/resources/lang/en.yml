@@ -3,7 +3,7 @@
 #
 # Voice: terse, dry, a little archaic. No exclamation marks, no hype words (legendary, ultimate, epic, mighty ...),
 # no modern slang, no "you can ..." explanations. tools/textlint.py checks this.
-# Names are fixed in lang/names.yml (Hrolf, Redin, Oswin ...). Terms: bonfire, Estus, souls, warmth (the resource of
+# Names are fixed in lang/names.yml (Hrolf, Redin, Oswin ...). Terms: bonfire, Estus, souls, mana (the resource of
 # rites), rite (술), memory (기억 칸), catalyst, bloodstain, fog gate, parry, roll, foe (적), guard (막기).
 # One word, one thing: "fires" (plural, lower case) are the bonfires as a network (Pass Between Fires); "the Fire"
 # (capital) is the kiln's great fire and is used only in ending.*.
@@ -237,7 +237,7 @@ skill:
 
 hud:
   souls: "<#b3a37f>Souls <n>"
-  warmth: "<#b3a37f>Warmth <n>/<m>"
+  warmth: "<#b3a37f>Mana <n>/<m>"
 
 admin:
   players-only: "<#858079>A player must run this (or use /execute as)."

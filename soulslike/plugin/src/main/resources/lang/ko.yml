@@ -268,7 +268,7 @@ hud:
   # 행동 막대 한 줄
   souls: "<#b3a37f>소울 <n>"
   # 술의 자원 (M5 의 첫 꼴, 10.2). <n> 지금, <m> 최대
-  warmth: "<#b3a37f>온기 <n>/<m>"
+  warmth: "<#b3a37f>마나 <n>/<m>"
 
 admin:
   # 관리자 명령어 (/souls, /soulstest) 의 답. 점검 줄 ([CHECK], [T]) 은 봇이 읽는 기계 글이라 여기 두지 않는다

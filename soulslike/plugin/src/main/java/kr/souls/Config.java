@@ -70,8 +70,8 @@ public final class Config {
                            double borderX, double borderZ, double borderSize, boolean forceAdventure) {}
 
     /**
-     * HUD (10.2). 막대 셋 (체력·온기·스태미나) 의 길이는 최대치 × px 배율 (GUI 픽셀, minPx..maxPx). warmthPlaceholder 는 술이 없을
-     * 때 (M5 전) 온기 막대를 이 최대치로 가득 찬 채 보인다 (0 이면 숨긴다). barRefresh: 막대가 바뀌지 않아도 이 틱마다 다시 보낸다.
+     * HUD (10.2). 막대 셋 (체력·마나·스태미나) 의 길이는 최대치 × px 배율 (GUI 픽셀, minPx..maxPx). warmthPlaceholder 는 술이 없을
+     * 때 (M5 전) 마나 막대를 이 최대치로 가득 찬 채 보인다 (0 이면 숨긴다). barRefresh: 막대가 바뀌지 않아도 이 틱마다 다시 보낸다.
      */
     public record HudCfg(boolean showSouls, int actionbarRefresh, double healthPx, double warmthPx, double staminaPx,
                          int minPx, int maxPx, double warmthPlaceholder, int barRefresh) {}
