@@ -34,7 +34,7 @@ TEXT_GREY = "parch2"            # §7 (#AAAAAA): 창 제목·부제 → 흐린 �
 TEXT_OFF = "ash3"               # 꺼진 단추 (#A0A0A0)
 TEXT_DARK = "parch0"            # §8 (#555555)
 TEXT_TITLE = "parch2"           # 바닐라 창 제목 (#404040)
-TEXT_YELLOW = "parch3"          # §e (들어옴/나감 알림)
+TEXT_YELLOW = "parch3"          # §e (들어옴/나감 알림), 발전 과제 알림의 노랑 (#FFFF00)·도전 과제의 분홍 (#FF88FF)
 TEXT_HOVER = "glim0"            # 가리킨 단추 글 (#FFFFA0)
 
 CORE = "assets/minecraft/shaders/core/"
@@ -82,6 +82,7 @@ TEXT_VSH_BLOCK = """
             else if (rgbi == ivec3(85, 85, 85)) ink = TEXT_DARK;
             else if (rgbi == ivec3(64, 64, 64)) ink = TEXT_TITLE;
             else if (rgbi == ivec3(255, 255, 85)) ink = TEXT_YELLOW;
+            else if (rgbi == ivec3(255, 255, 0) || rgbi == ivec3(255, 136, 255)) ink = TEXT_YELLOW;
             else if (rgbi == ivec3(255, 255, 160)) ink = TEXT_HOVER;
             vertexColor = vec4(ink, Color.a) * light;
         }

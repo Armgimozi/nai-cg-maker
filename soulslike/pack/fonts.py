@@ -456,7 +456,7 @@ def build(out, ko_lines):
     for role in (body_la, body_kr, title_la, title_kr, pua_la, pua_kr, marks):
         provs[role.name], n = write_atlas(out, role, "text_" + role.name)
         size += n
-    print(f"  글자 그림: " + ", ".join(f"{r.name} {len(r.glyphs)}자" for r in (body_la, body_kr, title_la, title_kr, pua_la, pua_kr))
+    print("  글자 그림: " + ", ".join(f"{r.name} {len(r.glyphs)}자" for r in (body_la, body_kr, title_la, title_kr, pua_la, pua_kr, marks))
           + f", {size // 1024} KB ({time.time() - t:.1f}초)")
 
     div = title_divider().image()

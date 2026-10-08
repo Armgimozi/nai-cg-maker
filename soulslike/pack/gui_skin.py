@@ -8,13 +8,14 @@
   테     두 줄: 바깥 굵은 줄 (위는 촛불이 비친 금빛, 옆은 청동, 아래는 녹슨 쇠로 꺼진다) 과 안쪽 가는 청동 줄.
   장식   네 귀에 단조 꺾쇠 (꺾인 쇠, 안으로 말린 덩굴 고리, 바깥 대각선 창끝), 위 가운데에 마름모 꽃 장식. 모두 위가 밝다.
   칸     판보다 진한 우물: 위·왼쪽 안벽은 그늘 (먹), 아래 안벽은 촛불을 받은 녹빛 입술. 결과 칸은 금빛 테.
-  단축 슬롯 (2026-10-08 고친 것: 칸 사이 마름모 못과 칸 뒤 쇠 띠를 뺐다) 시안 A 처럼 조용하게: 칸마다 테 없는 먹빛 우물에 가는
-         그늘 테, 위·아래로 양 끝이 옅어지는 가는 금실 한 줄씩, 양 끝에 작은 마름모. 고른 칸만 금빛 네모 테와 네 귀의 작은
-         마름모.
+  단축 슬롯 (2026-10-08 고친 것: 칸 사이 마름모 못과 칸 뒤 쇠 띠를 뺐다. 비평 뒤 양 끝 마름모와 고른 칸의 둘째 테도 뺐다)
+         시안 A 처럼 조용하게: 칸마다 테 없는 먹빛 우물에 가는 그늘 테, 위·아래로 양 끝이 옅어지는 가는 금실 한 줄씩. 고른 칸만
+         금빛 네모 테 한 겹과 네 귀의 작은 마름모.
   단추   띠 위의 글: 위 금실 (가운데가 밝다)·아래 녹슨 줄이 양 끝으로 옅어진다. 가리키면 띠 윗부분에 촛불 기운, 금실이 밝아지고
          양 끝에 단조 마름모 장식.
-  밀대   (2026-10-08 고친 것: 가운데 홈 줄이 글 ("시야 범위") 을 가로질렀다) 단추와 같은 띠, 가운데 줄 없음. 손잡이는 위·아래
-         두 토막의 단조 쇠와 가는 옆 기둥이라 글이 지나는 가운데가 비었다.
+  밀대   (2026-10-08 고친 것: 가운데 홈 줄이 글 ("시야 범위") 을 가로질렀다. 비평 뒤 손잡이의 옆 기둥도 글을 가로질러 뺐다)
+         단추보다 조금 진한 띠, 위는 아주 흐린 금실, 아래는 손잡이가 올라타는 홈과 작은 눈금. 손잡이는 위·아래 두 토막뿐이라
+         글이 지나는 가운데 (텍셀 12..28) 는 비었다.
   모든 그림은 GUI 한 픽셀에 2 텍셀 (uidraw.py) 이고 GUI 그림 셰이더가 넓이 평균으로 읽는다 (shaders.py). 색은 팔레트 이름과
   알파만 (발광 알파 250~252 는 쓰지 않는다). 칸 자리는 바닐라와 픽셀까지 같다 (CONTAINER_LAYOUTS, write_previews 의 증명).
 
@@ -29,10 +30,13 @@
   단추        widget/button, button_highlighted, button_disabled 200×20. 사망 화면·일시 정지·설정·Dialog 단추가 모두 이 그림.
               recipe_book/button(_highlighted) 20×18 (1 배)
   설정 화면   widget/slider(_highlighted), slider_handle(_highlighted), checkbox(_selected)(_highlighted), text_field(_highlighted),
-              tab*·scroller* (1 배), textures/gui/(inworld_)header·footer_separator, inworld_menu_background
-  설명 칸     tooltip/background, tooltip/frame 100×100 (9조각 14), 무기 설명 칸 souls:tooltip/weapon_* (이름 밑 금실,
-              플러그인이 tooltip_style souls:weapon 을 단다)
-  Dialog      dialog/warning_button(_highlighted, _disabled) 20×20
+              tab* (1 배), scroller* (가는 쇠 막대와 1 픽셀 길), textures/gui/(inworld_)header·footer_separator (흐리게),
+              inworld_menu_background
+  설명 칸     tooltip/background, tooltip/frame 100×100 (9조각 14, 보통 칸은 가벼운 판과 귀의 작은 L 자), 무기 설명 칸
+              souls:tooltip/weapon_* (촛불 기운, 귀 꺾쇠, 이름 밑 금실. 플러그인이 tooltip_style souls:weapon 을 단다)
+  Dialog      dialog/warning_button(_highlighted, _disabled) 20×20 (흐린 "!" 하나)
+  그 밖       숨 거품 hud/air*, 효과 표시 (HUD·인벤토리 옆), 알림 toast/*, 제작법 책 (gui/recipe_book.png, recipe_book/*),
+              발전 과제 창 (advancements/window.png, 안의 그림은 바닐라 꼴에 색만 팔레트로) — extra_sprites
 
   python3 pack/gui_skin.py [팩폴더] [미리보기폴더]
       그림만 다시 그리고 미리보기(gui_hud, gui_containers, gui_widgets, align_*)를 쓴다 (팩은 묶지 않는다)
@@ -1118,7 +1122,7 @@ def toast(w, h, light=False, mark=False):
     return img
 
 
-def recipe_book_panel(van):
+def recipe_book_panel():
     """제작법 책 판 (gui/recipe_book.png 256×256 → 512): 바닐라 판 자리 (1,1)~(148,167) 에 창과 같은 판·테·귀 꺾쇠, 돋보기."""
     img = Img(512, 512)
     x0, y0, w, h = 2, 2, 2 * 147, 2 * 166
@@ -1168,14 +1172,14 @@ def recipe_tab(selected):
 
 
 def recipe_filter(enabled, hi):
-    """'만들 수 있는 것만' 단추 26×16 (텍셀 52×32): 작은 판에 쇠 격자 (작업대) 와 켜짐은 금빛 마름모, 꺼짐은 흐린 빈 마름모."""
+    """'만들 수 있는 것만' 단추 26×16 (텍셀 52×32): 작은 판에 십자 창살의 쇠 네모 (작업대) 와 켜짐은 금빛 마름모, 꺼짐은 흐린 빈 마름모."""
     img = Img(52, 32)
     small_panel(img, 0, 0, 52, 32, alpha=0.85, line=1.0 if hi else 0.8, ticks=False)
     g = Mask(52, 32)
-    for i in range(4):
-        g.rect(30 + 5 * i, 8, 31.4 + 5 * i, 24)
-        g.rect(30, 8 + 5 * i, 46.4, 9.4 + 5 * i)
-    img.over(uidraw.lit(g.cov(), IRON))
+    g.rect(30, 8, 46, 24)
+    hole = Mask(52, 32).rect(32, 10, 44, 22)
+    g2 = Mask(52, 32).rect(37.3, 9, 38.7, 23).rect(31, 15.3, 45, 16.7)
+    img.over(uidraw.lit(np.clip(np.maximum(g.cov() - hole.cov(), g2.cov()), 0, 1), IRON))
     if enabled:
         lozenge(img, 15.0, 16.0, 6.0)
     else:
@@ -1229,6 +1233,51 @@ def advancement_window(van):
     return img
 
 
+def remap(img, ramp):
+    """
+    바닐라 그림의 꼴 (알파) 은 두고 색만 팔레트 계단으로: 밝기 단계를 어두운 차례로 세어 ramp (어둠 → 밝음) 에 고르게 나눈다.
+    발전 과제 창 안의 작은 그림 (탭 바탕 돌, 칸 테, 이름 상자, 탭) 처럼 모양은 바닐라 그대로 두고 밝은 회색·파랑·노랑만 걷어낼 때.
+    """
+    a = np.asarray(img.convert("RGBA")).astype(np.int32)
+    lum = (a[..., 0] * 299 + a[..., 1] * 587 + a[..., 2] * 114) // 1000
+    on = a[..., 3] > 0
+    levels = sorted(set(lum[on].tolist()))
+    out = Img(img.width, img.height)
+    for y in range(img.height):
+        for x in range(img.width):
+            if on[y, x]:
+                i = levels.index(lum[y, x])
+                out.put(x, y, ramp[min(len(ramp) - 1, i * len(ramp) // max(1, len(levels)))], a[y, x, 3] / 255.0)
+    return out
+
+
+ADV_DARK = ["ink0", "ash0", "ash0", "ash1"]                 # 탭 바탕 (돌·네더 …): 거의 검은 돌
+ADV_GOLD = ["ink0", "rust1", "bronze2", "bronze3", "parch2"]   # 얻은 것
+ADV_IRON = ["ink0", "ash1", "rust1", "ash2", "ash3"]            # 얻지 못한 것
+
+
+def advancement_sprites(z, out):
+    """발전 과제 창 안의 그림: 탭 바탕 다섯, 칸 테 여섯, 이름 상자 셋, 탭 스물넷을 팔레트로 옮긴다 (꼴은 바닐라)."""
+    written = []
+    base = "assets/minecraft/textures/gui/"
+    for n in ("adventure", "end", "husbandry", "nether", "stone"):
+        v = _jar_png(z, base + f"advancements/backgrounds/{n}.png")
+        if v is not None:
+            written.append(gsave(remap(v, ADV_DARK), out, "advancements", "backgrounds", n + ".png"))
+    names = [n[len(base + "sprites/advancements/"):-4] for n in z.namelist()
+             if n.startswith(base + "sprites/advancements/") and n.endswith(".png")]
+    for n in sorted(names):
+        v = _jar_png(z, base + f"sprites/advancements/{n}.png")
+        ramp = ADV_GOLD if ("obtained" in n and "unobtained" not in n) or n.endswith("_selected") else ADV_IRON
+        written.append(gsave(remap(v, ramp), out, "sprites", "advancements", n + ".png"))
+        meta = base + f"sprites/advancements/{n}.png.mcmeta"
+        if meta in z.namelist():
+            path = os.path.join(out, *GUI, "sprites", "advancements", n + ".png.mcmeta")
+            with open(path, "wb") as f:
+                f.write(z.read(meta))
+    return written
+
+
 def extra_sprites(out):
     """그 밖의 바닐라 그림을 쓴다. 쓴 경로 목록."""
     written = []
@@ -1256,7 +1305,8 @@ def extra_sprites(out):
     if jar:
         with zipfile.ZipFile(jar) as z:
             van["window"] = _jar_png(z, "assets/minecraft/textures/gui/advancements/window.png")
-    written.append(gsave(recipe_book_panel(None), out, "recipe_book.png"))
+            written += advancement_sprites(z, out)
+    written.append(gsave(recipe_book_panel(), out, "recipe_book.png"))
     written.append(gsave(advancement_window(van.get("window")), out, "advancements", "window.png"))
     rb = ("sprites", "recipe_book")
     for craft in (True, False):

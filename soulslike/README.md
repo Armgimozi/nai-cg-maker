@@ -17,7 +17,7 @@
 | 제목 | 스퀘어 소울 (영어 Square Soul). 팩 설명과 서버 목록 이름이 이것이다. 예전 가제 "식은 가마" (Cold Kiln) 는 마지막 지역 (R7) 의 이름으로만 남는다 |
 | 난이도 | 아직 정하지 않았다. 문서의 수치를 `config.yml` 값으로 둔다 |
 | 마법 | 넣는다 (촉매, 마나 같은 자원, 기억 칸). 설계는 나중이고 M0 에는 없다. HUD·데이터에 마나 막대 자리를 남긴다 |
-| 사망 화면 | 한국어 "사망했다" 대신 크고 새빨간 "YOU DIED". 손으로 찍은 그림 글자 |
+| 사망 화면 | 한국어 "사망했다" 대신 크고 새빨간 "YOU DIED". 제목 글꼴 (Cinzel) 로 크게 그린 그림 글자 |
 | 화톳불 이동 | 처음부터 (넷째 보스 뒤가 아니다) |
 | 에스트 | 바닐라 물약처럼: 단축 슬롯에 두고 우클릭을 누르고 있으면 마신다. 슬롯을 저절로 바꾸지 않는다 |
 | 규모 | 짧은 맛보기판부터. 7지역 전체가 아니다 |
@@ -64,12 +64,12 @@ python3 tools/make_dist.py --no-build # 관문만 보고 묶는다
 |---|---|---|
 | EB Garamond | 본문 로마자, 소울 숫자 | SIL Open Font License 1.1 |
 | Noto Serif KR | 본문 한글 | SIL Open Font License 1.1 |
-| Cinzel | 제목 로마자 (창 제목, 무기·보스 이름) | SIL Open Font License 1.1 |
+| Cinzel | 제목 로마자 (창·설정 화면 제목, 무기·보스 이름, 사망 화면 YOU DIED) | SIL Open Font License 1.1 |
 | Nanum Myeongjo ExtraBold | 제목 한글 | SIL Open Font License 1.1 |
 
 - 원본은 github.com/google/fonts (`ofl/`) 에서 빌드 때 `~/.cache/souls-fonts/ofl` 에 받고 (`SOULS_FONT_CACHE` 로 바꾼다) sha256 으로 확인한다. 다르면 팩을 만들지 않는다 (`pack/fonts.py` 의 `SOURCES`).
 - 팩에는 그린 그림 (`assets/souls/textures/font/text_*.png`) 만 들어가고, OFL 원문 넷은 팩의 `assets/souls/font/licenses/`, 알림은 팩 뿌리의 `FONTS-OFL.txt` 에 있다.
-- 창 제목 (일시 정지·인벤토리·상자·제작대) 은 언어 파일이 글꼴을 고를 수 없어 팩이 YAML 의 글을 기본 글꼴 안의 제목 글자로 바꿔 쓴다 (`pack/typeset.py`). 글은 `lang/*.yml` 에만 있다.
+- 창 제목 (일시 정지·설정 화면·인벤토리·상자·제작대) 은 언어 파일이 글꼴을 고를 수 없어 팩이 YAML 의 글을 기본 글꼴 안의 제목 글자로 바꿔 쓴다 (`pack/typeset.py`). 글은 `lang/*.yml` 에만 있다.
 
 ## 문구와 영어판
 

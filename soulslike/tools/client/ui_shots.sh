@@ -4,15 +4,24 @@
 # 클라이언트는 켜서 들어와 있어야 한다 (run_client.sh --start <포트> <찍을폴더>, --do <포트> join). 그림은 그 찍을폴더에
 # <앞머리><장면>.png 로 남는다. W, H, G = 화면 크기, GUI 배율 (클라이언트를 켤 때의 MC_SIZE, MC_GUI_SCALE 과 같게).
 # 장면 (기본: chat 을 뺀 전부):
-#   hud damage low boss inv chest craft pause options dialog death   그리고 chat
+#   hud damage low boss inv chest craft pause options dialog death      (처음부터 있던 것)
+#   invplain   설명 칸 없는 인벤토리, 왼손 칸이 빈 것 (빈 방패 칸 그림)
+#   recipe     인벤토리의 제작법 책 (판, 탭, 검색 글 칸, 제작법 칸, 거르개 단추). 찍은 뒤 다시 닫는다 (클라이언트가 기억한다)
+#   chests     큰 상자 (작은 설명 칸 "뼈다귀" 를 띄운다), 통, 엔더 상자
+#   effects    효과 표시 (HUD 오른쪽 위, 인벤토리 옆)
+#   water      물속의 숨 거품 (단축 슬롯 위)
+#   toasts     발전 과제 알림과 제작법 알림 (오른쪽 위)
+#   stats adv  일시 정지 → 통계 / 발전 과제 창
+#   widgets    고름 칸·글 칸 (게임 안에서는 바닐라 /dialog 의 boolean·text 입력으로만 보인다)
+#   그리고 chat
 # 시험 줄 ([T] …) 이 그림에 남지 않게: chat 밖의 장면은 MC_OPTIONS="chatScale:0.0" 로 켠 클라이언트에서 (채팅 글이 그려지지
-# 않는다), chat 은 보통 클라이언트에서 채팅을 비운 뒤 서버 콘솔의 tellraw 줄만 찍는다. 영어 설명 칸은 MC_LANG=en_us 로 켠
-# 클라이언트에서 inv 만.
+# 않는다), chat 은 보통 클라이언트에서 채팅을 비운 뒤 서버 콘솔의 tellraw 줄만, 채팅 창을 열지 않고 찍는다 (들어온 사람 자신에게는
+# 플러그인이 "게임에 참여했습니다" 를 보내지 않는다, WorldService.onJoin). 영어 그림은 MC_LANG=en_us 로 켠 클라이언트에서.
 # 시험 방 저녁 (시간 12700), 단축 슬롯에 아이템 여럿, 든 칸·소지품 첫 칸에 레딘 경비대 직검, 왼손에 순례자 버클러.
 set -u
 R=$(cd "$(dirname "$0")/../.." && pwd)
 PORT=$1; SRV=$2; P=$3; shift 3
-SCENES=${*:-"hud damage low boss inv chest craft pause options dialog death"}
+SCENES=${*:-"hud damage low boss inv invplain recipe chest chests craft effects water toasts pause stats adv options widgets dialog death"}
 W=${W:-1920}; H=${H:-1080}; G=${G:-4}
 X=${SUFFIX:-}     # 그림 이름 끝 (영어 클라이언트면 _en)
 VY=${VY:-85}      # 비디오 설정에서 가리킬 밀대 줄 (GUI y, 왼쪽 열: 최대 프레임률)
@@ -70,6 +79,18 @@ L=$((CX - 88*G)); T=$((CY - 83*G))
 if has inv; then
   do_ key:e wait:1 move:$((L + 16*G)):$((T + 92*G)) wait:0.8 shot:${P}inventory_tooltip${X} key:Escape wait:0.5
 fi
+if has invplain; then
+  # 왼손을 비우고 (빈 방패 칸 그림), 마우스는 창 밖 (설명 칸 없이 27 칸 전부)
+  con item replace entity Tester weapon.offhand with minecraft:air
+  do_ wait:0.5 key:e wait:1 move:$((L - 40*G)):$((T + 40*G)) wait:0.8 shot:${P}inventory${X} key:Escape wait:0.5
+  do_ "cmd:/soulstest give pilgrim_buckler off" wait:1
+fi
+if has recipe; then
+  # 제작법 책 단추 (바닐라 InventoryScreen: 판 왼쪽 + 104, 화면 가운데 높이 - 22, 20×18). 열면 판이 오른쪽으로 77 비킨다
+  RX=$((L + (104 + 10)*G)); RY=$((CY - 13*G))
+  do_ key:e wait:1 click:$RX:$RY wait:1.2 move:$((CX - 120*G)):$((CY - 40*G)) wait:0.8 shot:${P}inventory_recipe${X} \
+      click:$((RX + 77*G)):$RY wait:0.8 key:Escape wait:0.5
+fi
 if has chest; then
   # 시험 방은 블록 상호작용을 막는다 (짓는 사람 = 창작 모드만): 상자를 열 동안만 창작 모드
   con gamemode creative Tester
@@ -84,6 +105,28 @@ if has chest; then
   inw setblock 200 102 -191 minecraft:air
   con gamemode adventure Tester
 fi
+if has chests; then
+  # 큰 상자 (오른쪽 반 x 200 + 왼쪽 반 x 201, 남쪽을 본다), 통, 엔더 상자. 큰 상자는 뼈다귀 위를 가리켜 작은 설명 칸을 띄운다
+  con gamemode creative Tester
+  inw setblock 200 102 -191 "minecraft:chest[facing=south,type=right]"
+  inw setblock 201 102 -191 "minecraft:chest[facing=south,type=left]"
+  inw item replace block 200 102 -191 container.3 with minecraft:rotten_flesh 7
+  inw item replace block 200 102 -191 container.13 with minecraft:bone 2
+  inw item replace block 201 102 -191 container.5 with minecraft:coal 12
+  home
+  T6=$((CY - 111*G))
+  do_ mouse:right wait:1.5 move:$((L + (8+18*4+8)*G)):$((T6 + (18+18*1+8)*G)) wait:0.6 shot:${P}chest_double${X} key:Escape wait:0.5
+  inw setblock 201 102 -191 minecraft:air
+  inw setblock 200 102 -191 "minecraft:barrel[facing=south]"
+  inw item replace block 200 102 -191 container.4 with minecraft:flint 3
+  home
+  do_ mouse:right wait:1.5 move:$((L - 40*G)):$((CY)) wait:0.6 shot:${P}barrel${X} key:Escape wait:0.5
+  inw setblock 200 102 -191 "minecraft:ender_chest[facing=south]"
+  home
+  do_ mouse:right wait:1.5 move:$((L - 40*G)):$((CY)) wait:0.6 shot:${P}ender_chest${X} key:Escape wait:0.5
+  inw setblock 200 102 -191 minecraft:air
+  con gamemode adventure Tester
+fi
 if has craft; then
   con gamemode creative Tester
   inw setblock 200 102 -191 minecraft:crafting_table
@@ -92,9 +135,41 @@ if has craft; then
   inw setblock 200 102 -191 minecraft:air
   con gamemode adventure Tester
 fi
+if has effects; then
+  con effect give Tester minecraft:resistance 120 0
+  con effect give Tester minecraft:slowness 120 0
+  do_ wait:1 shot:${P}hud_effects${X} key:e wait:1 move:$((L - 40*G)):$((T + 40*G)) wait:0.6 shot:${P}inventory_effects${X} key:Escape wait:0.5
+  con effect clear Tester
+fi
+if has water; then
+  inw setblock 200 101 -190 minecraft:water
+  inw setblock 200 102 -190 minecraft:water
+  home
+  do_ wait:6 shot:${P}hud_underwater${X}
+  inw setblock 200 102 -190 minecraft:air
+  inw setblock 200 101 -190 minecraft:air
+  home
+  do_ wait:1
+fi
+if has toasts; then
+  con advancement revoke Tester only minecraft:story/mine_stone
+  con recipe take Tester minecraft:torch
+  con advancement grant Tester only minecraft:story/mine_stone
+  con recipe give Tester minecraft:torch
+  do_ wait:1.6 shot:${P}toasts${X} wait:6
+fi
 if has pause; then
   do_ key:Escape wait:2.5 move:$((CX + 40)):$((CY - 40*G)) wait:0.5 move:$((CX)):$((CY - 49*G)) wait:0.5 \
       move:$((CX + 3)):$((CY - 48*G)) wait:0.8 shot:${P}pause${X} key:Escape wait:0.5
+fi
+if has stats; then
+  # 일시 정지 화면 둘째 줄 (가운데 높이/4 + 8 + 24 줄의 가운데): 왼쪽 발전 과제, 오른쪽 통계
+  do_ key:Escape wait:2.5 click:$((CX + 53*G)):$(( (GH/4 + 42) * G )) wait:2 move:$((CX)):$((H - 20)) wait:0.5 shot:${P}stats${X} \
+      key:Escape wait:1 key:Escape wait:0.8
+fi
+if has adv; then
+  do_ key:Escape wait:2.5 click:$((CX - 53*G)):$(( (GH/4 + 42) * G )) wait:2 move:$((CX)):$((H - 20)) wait:0.5 shot:${P}advancements${X} \
+      key:Escape wait:1 key:Escape wait:0.8
 fi
 if has options; then
   # 일시 정지 → 설정 (시야 범위 밀대를 가리킨다) → 비디오 설정 (밀대 여럿, 두루마리, 나눔줄)
@@ -104,6 +179,12 @@ if has options; then
   do_ click:$((CX - 80*G)):$((121*G)) wait:2.5 move:$((CX - 40*G)):$((VY*G - 12*G)) wait:0.5 move:$((CX - 82*G)):$((VY*G - 2*G)) wait:0.5 \
       move:$((CX - 80*G)):$((VY*G)) wait:1 shot:${P}video${X} key:Escape wait:1 key:Escape wait:1 key:Escape wait:0.8
 fi
+if has widgets; then
+  # 고름 칸 (checkbox) 과 글 칸 (text_field): 게임 안에서 바닐라가 그리는 곳이 없어 (설정의 원격 측정 창은 꺼져 있다) 바닐라
+  # /dialog 의 boolean·text 입력으로 띄운다. 글은 바닐라 언어 열쇠
+  con 'dialog show Tester {type:"minecraft:notice",title:{translate:"options.title"},inputs:[{type:"minecraft:boolean",key:"a",label:{translate:"options.autoJump"},initial:1b},{type:"minecraft:boolean",key:"b",label:{translate:"options.hideMatchedNames"}},{type:"minecraft:text",key:"c",label:{translate:"gui.recipebook.search_hint"},width:200}]}'
+  do_ wait:2 move:$((CX + 40)):$((CY - 30*G)) wait:0.5 move:$((CX)):$((H - 40)) wait:0.8 shot:${P}widgets${X} key:Escape wait:0.8
+fi
 if has dialog; then
   do_ "cmd:/soulstest dialog" wait:3 move:$((CX + 40)):$((CY)) wait:0.5 move:$((CX)):$((99*G)) wait:0.5 move:$((CX + 3)):$((100*G)) \
       wait:0.8 shot:${P}rest_dialog${X} key:Escape wait:0.6
@@ -112,9 +193,8 @@ if has chat; then
   do_ clearchat wait:0.5
   con tellraw Tester '{"translate":"souls.bonfire.lit","color":"#9e7c44"}'
   con tellraw Tester '{"translate":"souls.bonfire.enemies-back","color":"#858079"}'
-  con tellraw Tester '{"translate":"multiplayer.player.joined","with":["Tester"],"color":"yellow"}'
   con tellraw Tester '{"translate":"souls.souls.recovered","color":"#b3a37f"}'
-  do_ wait:0.8 key:t wait:0.8 shot:${P}chat${X} key:Escape wait:0.5
+  do_ wait:1.2 shot:${P}chat${X}
 fi
 if has death; then
   do_ "cmd:/soulstest kill" wait:2.5 move:$((CX)):$((CY + 30*G)) wait:0.6 shot:${P}death${X} respawn wait:3
