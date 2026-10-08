@@ -34,17 +34,26 @@ const T = {
 const level = (v) => 1 + (v - 10) // 나머지 다섯이 10 일 때
 const hudLen = (max, px) => Math.max(24, Math.min(190, Math.round(max * px)))
 
-/** 클라이언트가 받은 속성 (mineflayer 의 entity.attributes, 열쇠는 판마다 이름이 달라 끝말로 찾는다). */
-function attr (b, name) {
-  const a = b.bot.entity && b.bot.entity.attributes
-  if (!a) return null
-  const k = Object.keys(a).find((x) => x === name || x.endsWith('.' + name) || x.endsWith(':' + name))
-  return k ? a[k] : null
-}
+/** 클라이언트가 받은 속성 (lib Bot.attr: 바탕값과 수정자로 셈한 값). */
+const attr = (b, name) => b.attr(name)
 function mods (a, idPart) {
   if (!a || !Array.isArray(a.modifiers)) return []
-  return a.modifiers.filter((m) => JSON.stringify(m).includes(idPart))
+  return a.modifiers.filter((m) => m.id.includes(idPart))
 }
+/** 서버 쪽 속성 (/soulstest attr): {max_health, movement_speed, attack_speed, mods: {이름: [열쇠…]}} */
+async function srvAttr (b) {
+  const r = await b.cmd('/soulstest attr', 'ATTRS ')
+  if (!r.kv) return null
+  const out = { line: r.line, mods: {} }
+  for (const n of ['max_health', 'movement_speed', 'attack_speed']) {
+    out[n] = L.num(r.kv[n])
+    const m = r.kv[n + '_mods']
+    out.mods[n] = !m || m === '-' ? [] : m.split(',').map((x) => x.replace(/:[-0-9.]+$/, ''))
+  }
+  return out
+}
+const count = (arr, k) => arr.filter((x) => x === k).length
+
 async function waitAttr (b, name, pred, ms = 2500) {
   const end = Date.now() + ms
   for (;;) {
@@ -66,7 +75,7 @@ L.run('stats_fx', async (sc) => {
   const s0 = await stats()
   if (!sc.checkCmd('starts as deprived, all 10', s0, (r) => r.kv.origin === 'deprived' && r.kv.level === '1' && r.kv.weapon === 'gaoler_club')) return
   const a0 = attr(b, 'max_health'); const m0 = attr(b, 'movement_speed'); const as0 = attr(b, 'attack_speed')
-  sc.note(`처음 속성: max_health ${a0 && a0.value} movement_speed ${m0 && m0.value} attack_speed ${as0 && as0.value}, 열쇠 ${Object.keys(b.bot.entity.attributes || {}).join(',')}`)
+  sc.note(`처음 속성: max_health ${a0 && a0.value} movement_speed ${m0 && m0.value} attack_speed ${as0 && as0.value}, 받은 속성 ${Object.keys(b.bot.entity.attributes || {}).join(',')}`)
 
   // ── 체력: 최대 HP + 방어력 ──
   for (let i = 0; i < PTS.length; i++) {
@@ -74,10 +83,15 @@ L.run('stats_fx', async (sc) => {
     await stat('vig', v)
     const info = await b.cmd('/soulstest info', 'INFO ')
     const want = T.maxhp[i]
-    const ca = await waitAttr(b, 'max_health', (x) => Math.abs(x - want) < 0.01)
-    sc.check(`vigor ${v}: max HP ${want} (server, client attribute, one souls:lvl_vig modifier, 10 hearts)`, info.kv && L.num(info.kv.maxhp) === want &&
-      info.kv.scale === '20' && ca && Math.abs(ca.value - want) < 0.01 && mods(ca, 'lvl_vig').length === 1,
-      `${info.kv && info.kv.maxhp} / client ${ca && ca.value} mods ${ca ? JSON.stringify(ca.modifiers) : '-'}`)
+    const sa = await srvAttr(b)
+    sc.check(`vigor ${v}: max HP ${want} (server attribute with one souls:lvl_vig modifier, INFO maxhp)`, info.kv && L.num(info.kv.maxhp) === want &&
+      sa && Math.abs(sa.max_health - want) < 0.01 && count(sa.mods.max_health, 'souls:lvl_vig') === 1 && sa.mods.max_health.length === 1,
+      `${info.kv && info.kv.maxhp} | ${sa ? sa.line : '-'}`)
+    // 하트는 늘 10개: 서버가 클라이언트에 보내는 max_health 는 하트 배율 (scale 20) 로 바꿔 넣은 값이다 (Paper 의 health scale)
+    const ca = await waitAttr(b, 'max_health', (x) => Math.abs(x - 20) < 0.01)
+    const hh = b.lastHealth()
+    sc.check(`vigor ${v}: client still sees 10 hearts (max_health 20, scale 20, health <= 20)`, info.kv.scale === '20' && ca && Math.abs(ca.value - 20) < 0.01 &&
+      hh && hh.health <= 20.001, `client max_health ${ca && ca.value}, health ${hh && hh.health}`)
     const st = await stats()
     const def = 20 + 0.4 * level(v) + T.vigDef[i]
     sc.check(`vigor ${v}: defense 20 + 0.4 x level ${level(v)} + ${T.vigDef[i]} = ${def.toFixed(1)}`, st.kv && Math.abs(L.num(st.kv.def) - def) < 0.05, st.line || '')
@@ -211,9 +225,9 @@ L.run('stats_fx', async (sc) => {
   await L.sleep(300)
   const dg = await stats()
   sc.check('dexterity 99: attack speed x1.36 with the dagger (dex A 1.2)', dg.kv && dg.kv.weapon === 'alley_dagger' && Math.abs(L.num(dg.kv.aspd) - 1.36) < 1e-3, dg.line || '')
-  const asNow = attr(b, 'attack_speed')
-  sc.check('vanilla attack_speed attribute has no dex modifier (5.2: attack moves use the multiplier, M1)', asNow && !mods(asNow, 'lvl_dex').length,
-    asNow ? `${asBase && asBase.value} -> ${asNow.value} ${JSON.stringify(asNow.modifiers)}` : '-')
+  const saD = await srvAttr(b)
+  sc.check('vanilla attack_speed attribute untouched by dexterity (5.2: attack moves use the multiplier, M1)', saD && !saD.mods.attack_speed.some((k) => /lvl_dex/.test(k)),
+    saD ? `server attack_speed ${saD.attack_speed} mods ${saD.mods.attack_speed.join(',') || '-'}; client ${asBase ? asBase.value : '기본값 (받지 않음)'}` : '-')
   await b.cmd('/soulstest give gaoler_club main', 'GIVE')
   await stat('dex', 10)
 
@@ -265,10 +279,12 @@ L.run('stats_fx', async (sc) => {
   // ── 되돌린 뒤: 수정자가 쌓이지 않았다 ──
   for (const id of ['vig', 'mnd', 'end', 'str', 'dex', 'int']) await stat(id, 10)
   await L.sleep(500)
-  const hp = attr(b, 'max_health'); const mv = attr(b, 'movement_speed')
-  sc.check('all back to 10: max_health 400 with one souls:lvl_vig, movement 0.100 with no souls modifier', hp && Math.abs(hp.value - 400) < 0.01 &&
-    mods(hp, 'lvl_vig').length === 1 && mv && Math.abs(mv.value - 0.1) < 1e-5 && !mods(mv, 'souls').length,
-    `${hp && hp.value} ${hp ? JSON.stringify(hp.modifiers) : ''} / ${mv && mv.value} ${mv ? JSON.stringify(mv.modifiers) : ''}`)
+  const sa = await srvAttr(b)
+  const mv = attr(b, 'movement_speed')
+  sc.check('all back to 10: server max_health 400 with one souls:lvl_vig, movement 0.100 with no souls modifier (server and client)', sa &&
+    Math.abs(sa.max_health - 400) < 0.01 && sa.mods.max_health.join(',') === 'souls:lvl_vig' && Math.abs(sa.movement_speed - 0.1) < 1e-5 &&
+    !sa.mods.movement_speed.some((k) => k.startsWith('souls:')) && mv && Math.abs(mv.value - 0.1) < 1e-5 && !mods(mv, 'souls').length,
+    `${sa ? sa.line : '-'} / client ${mv && mv.value}`)
   const sEnd = await stats()
   sc.check('level back to 1', sEnd.kv && sEnd.kv.level === '1', sEnd.line || '')
   sc.check('no kick during stats scenario', !b.kick, b.kick || '')

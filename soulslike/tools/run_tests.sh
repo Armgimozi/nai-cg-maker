@@ -12,7 +12,7 @@
 #   --jar JAR       빌드하지 않고 이 플러그인 jar 를 쓴다. --no-build 는 plugin/build/libs/Soulslike.jar 를 그대로 쓴다
 #   --no-pack       pack/gen_pack.py 를 돌리지 않는다 (jar 안 pack.zip 은 지난번 것)
 #   --only "..."    이 시나리오만 (이름은 --list)
-#   --lag "..."     roll_iframes 를 지연 프록시로 다시 돌릴 왕복 지연 ms 목록 (기본 "60 120", 13.3). none 이면 건너뛴다
+#   --lag "..."     roll_iframes 와 taplat 을 지연 프록시로 다시 돌릴 왕복 지연 ms 목록 (기본 "60 120", 13.3). none 이면 건너뛴다
 #   --keep-running  끝나도 서버를 끄지 않는다 (콘솔: echo '<명령>' > DIR/server/console.in)
 #   --mem 2G        서버 메모리
 #   --timeout 300   시나리오 하나의 제한 시간 (초)
@@ -39,14 +39,14 @@ BOTS="$HERE/bots"
 # start 는 세계 설정을 지웠다가 되돌리므로 다른 시나리오 사이에 둔다 (끝에 보통·PvP 끔으로 되돌린다). pvp 는 봇 둘 (A 가 B 를 때린다).
 # difficulty 는 난이도 넷을 돌고 보통으로, rollkey 는 controls.roll-key 를 f·both 로 바꿨다가 (/souls reload) 서버 설정 그대로 되돌린다.
 # persist 는 지연 판 뒤 맨 끝에 돌고 (세계 설정을 어려움·PvP 켬으로 남긴다), 두 번째 기동에서 persist_check 가 다시 켠 서버로 본다
-ALL_SCENARIOS="t1_boot join lang stamina roll_iframes guard death reconnect start origin levelup pvp difficulty stats_fx origins_all rollkey"
+ALL_SCENARIOS="t1_boot join lang stamina roll_iframes taplat guard death reconnect start origin levelup pvp difficulty stats_fx origins_all rollkey"
 # 시나리오별 봇 이름 (ops.json 에 미리 올린다. 오프라인 UUID). 이름이 Souls 로 시작하면 시험 서버에서 빈털터리로 태어난다
 # (start.auto-origin). pvp_b 는 시나리오가 아니라 pvp 의 둘째 봇
 # late 는 persist_check 의 나중에 들어온 사람: 이름이 Souls 로 시작하지 않아 출신 없이 들어와 알림과 출신 창을 받는다
 declare -A BOT=( [t1_boot]=SoulsBoot [join]=SoulsJoin [lang]=SoulsLang [stamina]=SoulsStam [roll_iframes]=SoulsRoll
                  [guard]=SoulsGuard [death]=SoulsDeath [reconnect]=SoulsRecon [lag]=SoulsLag
                  [start]=SoulsStart [origin]=SoulsOrigin [levelup]=SoulsLevel [pvp]=SoulsPvpA [pvp_b]=SoulsPvpB
-                 [difficulty]=SoulsDiff [stats_fx]=SoulsStatFx [origins_all]=SoulsOrigins [rollkey]=SoulsKeys
+                 [taplat]=SoulsTap [difficulty]=SoulsDiff [stats_fx]=SoulsStatFx [origins_all]=SoulsOrigins [rollkey]=SoulsKeys
                  [persist]=SoulsPersist [late]=LateJoiner )
 
 PORT=25601
@@ -80,7 +80,7 @@ while [ $# -gt 0 ]; do
     --roll-key) ROLLKEY="$2"; shift 2 ;;
     --mem) MEM="$2"; shift 2 ;;
     --timeout) SC_TIMEOUT="$2"; shift 2 ;;
-    --list) echo "lang_check $ALL_SCENARIOS (+ roll_iframes@lag<ms>)"; exit 0 ;;
+    --list) echo "lang_check $ALL_SCENARIOS persist (+ roll_iframes@lag<ms> taplat@lag<ms>, second_boot + persist_check)"; exit 0 ;;
     -h|--help) sed -n '2,/^set -u/p' "$0" | sed '$d'; exit 0 ;;
     *) echo "모르는 인수: $1 (--help)"; exit 2 ;;
   esac
@@ -358,8 +358,8 @@ for s in $ALL_SCENARIOS; do
   run_one "$s" "$s" "${BOT[$s]}" "$PORT"
 done
 
-# 지연 프록시로 구르기·무적 다시 (13.3)
-if [ -n "$LAG" ] && want roll_iframes; then
+# 지연 프록시로 구르기·무적과 짧은 누름의 늦음 다시 (13.3)
+if [ -n "$LAG" ] && { want roll_iframes || want taplat; }; then
   i=0
   for rtt in $LAG; do
     i=$((i + 1))
@@ -372,14 +372,24 @@ if [ -n "$LAG" ] && want roll_iframes; then
     if ! grep -q 'LAGPROXY ready' "$RUN/logs/lagproxy-$rtt.log"; then
       say "FAIL       roll_iframes@lag$rtt     지연 프록시가 켜지지 않았다"; FAILED=$((FAILED + 1)); SUMMARY+=("FAIL roll_iframes@lag$rtt"); continue
     fi
-    run_one "roll_iframes@lag$rtt" roll_iframes "${BOT[lag]}" "$pp" "$rtt"
+    want roll_iframes && run_one "roll_iframes@lag$rtt" roll_iframes "${BOT[lag]}" "$pp" "$rtt"
+    want taplat && run_one "taplat@lag$rtt" taplat "${BOT[lag]}" "$pp" "$rtt"
     kill "$ppid" 2>/dev/null
   done
+fi
+
+# 남는 것 (persist): 맨 끝에 돌려 세계 설정을 어려움·PvP 켬으로, 봇을 기사 레벨 13 으로 남긴다. 두 번째 기동에서 persist_check 가 본다
+if want persist; then
+  run_one persist persist "${BOT[persist]}" "$PORT"
 fi
 
 # 자기 화면 기준 피한 비율 (roll_iframes 의 SCREENDODGE 줄, 지연별). 대기열(3.9)이 없는 M0 의 기준선이라 판정하지 않는다
 SD=$(grep -a -h '^SCREENDODGE ' "$RUN"/logs/roll_iframes*.log 2>/dev/null | sed 's/^SCREENDODGE //' | sort -t= -k2 -n | tr '\n' ';')
 [ -n "$SD" ] && printf '%-10s %-24s %s\n' NOTE screen_dodge "${SD%;}"
+# 짧은 누름의 늦음 (taplat 의 TAPLAT 줄, 지연별. 판정은 시나리오가 한다): 서버가 읽은 누른 틱, 구른 수, 누름 → 구르기 ms
+grep -a -h '^TAPLAT ' "$RUN"/logs/taplat*.log 2>/dev/null | sed 's/^TAPLAT //' | sort -t= -k2 -n | while read -r l; do
+  printf '%-10s %-24s %s\n' NOTE tap_latency "$l"
+done
 
 # 시험하는 동안 서버 기록에 남은 오류. 켜지는 동안의 줄은 t1_boot 가 보니, 여기서는 Done 뒤를 본다.
 # 플러그인 끄기(onDisable)와 세계 저장의 오류도 잡도록 서버를 먼저 끄고 꺼질 때까지 기다린 뒤 본다
@@ -407,9 +417,16 @@ else
 fi
 
 # 두 번째 기동: 같은 세계로 다시 켠다. 새로 만들지 않고 (level.dat 이 있다), 난이도는 이미 normal, 시험 방은 그대로
-if [ "$KEEP" != 1 ] && { [ -z "$ONLY" ] || want second_boot; }; then
+if [ "$KEEP" != 1 ] && { [ -z "$ONLY" ] || want second_boot || want persist; }; then
   if start_server console-2.log; then
     sleep 3
+    # 다시 켠 서버에서 persist 가 남긴 값을 본다 (세계 설정, 능력치·소울·최대 HP, 시작 아이템, 나중에 들어온 사람의 알림)
+    if want persist && [ -s "$RUN/persist.json" ]; then
+      run_one persist_check persist_check "${BOT[persist]}" "$PORT"
+    elif want persist; then
+      printf '%-10s %-24s %s\n' FAIL persist_check "persist.json 이 없다 (persist 가 끝까지 돌지 않았다)"
+      FAILED=$((FAILED + 1)); SUMMARY+=("FAIL persist_check")
+    fi
     stop_server
     L2="$SRV/console-2.log"
     bad=""

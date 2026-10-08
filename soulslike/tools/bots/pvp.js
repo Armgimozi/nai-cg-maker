@@ -81,12 +81,44 @@ L.run('pvp', async (sc) => {
   }
   const mel = b.tLines('DEF ', from).find((x) => /^player_(melee|vanilla)$/.test(x.kv.from))
   sc.check('on: melee with the club uses its attack rating (DEF from=player_melee)', mel && mel.kv.from === 'player_melee' && L.num(mel.kv.raw) > 20, mel ? mel.line : b.tLines('', from).map((x) => x.line).slice(0, 4).join(' | ') || '줄 없음')
+  // 근력이 PvP 근접 피해를 올린다 (공격력 = 74 × (1 + 0.8 × 곡선(근력)): 근력 10 → 81.8, 40 → 112.5, × 1.375)
+  if (mel) {
+    await a.cmd('/soulstest stat str 40', 'STAT ')
+    await b.cmd('/soulstest heal', 'HEAL')
+    from = b.sys.length
+    const e3 = target()
+    if (e3) {
+      await a.bot.lookAt(e3.position.offset(0, 1.5, 0), true)
+      await L.sleep(800)
+      a.bot.attack(e3)
+      await L.sleep(600)
+    }
+    const mel40 = b.tLines('DEF ', from).find((x) => x.kv.from === 'player_melee')
+    const ratio = mel40 ? L.num(mel40.kv.raw) / L.num(mel.kv.raw) : NaN
+    sc.check('on: strength 40 hits harder than strength 10 (raw x1.375 = attack rating 112.5 / 81.8)', Math.abs(ratio - 112.48 / 81.84) < 0.04,
+      `${mel.kv.raw} → ${mel40 ? mel40.kv.raw : '?'} (×${ratio.toFixed(3)})`)
+    await a.cmd('/soulstest stat str 10', 'STAT ')
+  }
   await b.cmd('/soulstest heal', 'HEAL')
   from = b.sys.length
   await a.cmd(`/soulstest pvpshoot ${b.name} arrow`, 'PVPSHOOT ')
   const arr = await b.waitSys((m) => m.plain.startsWith('[T] DEF ') && L.kvOf(m.plain).from === 'player_projectile', 3000, from)
   await L.sleep(300)
   sc.check('on: an arrow lands, scaled by max HP / 20 (DEF from=player_projectile)', !!arr, arr ? arr.plain : '줄 없음 ' + a.tLines('PVPSHOOT_TRACE').slice(-1).map((x) => x.line).join(''))
+  // 투척 물약과 잔류 구름도 걸린다 (막는 줄 없이 독)
+  for (const kind of ['potion', 'cloud']) {
+    await b.cmd('/effect clear @s', null, 1000)
+    await L.sleep(300)
+    from = b.sys.length
+    // 효과를 모두 지운 뒤라 들어온 효과는 그 독뿐이다 (효과 번호는 판마다 0/1 부터라 번호로 가리지 않는다)
+    const poisoned = () => Object.values(b.bot.entity.effects || {}).some((x) => x && x.duration > 0)
+    await a.cmd(`/soulstest pvpshoot ${b.name} ${kind}`, 'PVPSHOOT ')
+    const end = Date.now() + 3000
+    while (!poisoned() && Date.now() < end) await L.sleep(50)
+    sc.check(`on: ${kind} poisons the other player (no PVP_BLOCK)`, poisoned() && !blocks(from).length,
+      JSON.stringify(Object.values(b.bot.entity.effects || {})).slice(0, 120) + ' ' + blocks(from).map((x) => x.line).join(' | '))
+  }
+  await b.cmd('/effect clear @s', null, 1000)
 
   // 되돌린다 (뒤 시나리오를 위해)
   await a.cmd('/souls settings pvp off', (m) => L.translateKeys(m.raw).includes('souls.admin.settings-set'), 3000)

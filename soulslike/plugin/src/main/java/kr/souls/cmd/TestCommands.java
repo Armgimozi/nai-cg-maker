@@ -77,6 +77,8 @@ import java.util.Locale;
  *   tap                              마지막 짧은 누름 판정 ([T] ROLL_TAP ... / ROLL_TAP_SKIP ...)
  *   press <창> <단추>                 열린 우리 창의 단추를 누른 것과 같다 (창 이름: settings, origin, origin_confirm, levelup, stats, rest)
  *   ui                               [T] UI open=<창>
+ *   attr                             [T] ATTRS max_health=<값>[수정자 열쇠:값,…] movement_speed=… attack_speed=… (서버 쪽 속성과 수정자.
+ *                                    클라이언트는 하트 배율 때문에 max_health 를 20 으로 받으므로 수정자가 쌓이지 않았는지는 여기서 본다)
  *   opens <자물쇠 id>                 Keys.opens (만능 열쇠·문 열쇠, 9.5): [T] OPENS lock= result= master= (이야기로 막힌 문은 늘 false)
  */
 public final class TestCommands {
@@ -307,6 +309,7 @@ public final class TestCommands {
                                             if (!ok) plugin.test(p, "PRESS error=not_open open=" + plugin.ui().openDialog(p));
                                         })))))
                 .then(Commands.literal("ui").executes(ctx -> withPlayer(ctx, p -> plugin.test(p, "UI open=" + plugin.ui().openDialog(p)))))
+                .then(Commands.literal("attr").executes(ctx -> withPlayer(ctx, p -> attrs(plugin, p))))
                 .then(Commands.literal("opens")
                         .then(Commands.argument("lock", StringArgumentType.word())
                                 .suggests((c, b) -> {
@@ -512,6 +515,24 @@ public final class TestCommands {
                 .type(DialogType.multiAction(buttons).exitAction(exit).columns(1).build()));
         p.showDialog(d);
         plugin.test(p, "DIALOG shown t=" + plugin.ticker().now());
+    }
+
+    /** 서버 쪽 속성 값과 수정자 (열쇠:값). 같은 열쇠가 둘이면 쌓인 것이다. */
+    private static void attrs(Souls plugin, Player p) {
+        StringBuilder sb = new StringBuilder("ATTRS");
+        for (org.bukkit.attribute.Attribute a : List.of(org.bukkit.attribute.Attribute.MAX_HEALTH, org.bukkit.attribute.Attribute.MOVEMENT_SPEED,
+                org.bukkit.attribute.Attribute.ATTACK_SPEED)) {
+            org.bukkit.attribute.AttributeInstance in = p.getAttribute(a);
+            if (in == null) continue;
+            StringBuilder m = new StringBuilder();
+            for (org.bukkit.attribute.AttributeModifier mod : in.getModifiers()) {
+                if (!m.isEmpty()) m.append(',');
+                m.append(mod.getKey().asString()).append(':').append(String.format(Locale.ROOT, "%.4f", mod.getAmount()));
+            }
+            sb.append(' ').append(a.getKey().getKey()).append('=').append(String.format(Locale.ROOT, "%.4f", in.getValue()))
+                    .append(" ").append(a.getKey().getKey()).append("_mods=").append(m.isEmpty() ? "-" : m);
+        }
+        plugin.test(p, sb.toString());
     }
 
     private static void levelAdd(Souls plugin, Player p, String stat, int n) {

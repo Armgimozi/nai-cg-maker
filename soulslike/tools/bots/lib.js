@@ -53,6 +53,25 @@ const ENV = {
 const VERSION = '1.21.11'
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
+// minecraft-data 의 1.21.11 프로토콜 표는 속성 번호 (entity_update_attributes 의 key) 가 1.21.9 판 그대로라 넷 (mining_efficiency,
+// movement_efficiency, oxygen_bonus, sneaking_speed) 이 빠져 있다: 20 번 뒤가 모두 밀리고 (movement_speed 가 "scale" 로 읽힌다), 31 번 뒤의
+// 속성이 든 패킷은 읽지 못해 통째로 버려진다. 서버 jar 의 Attributes 등록 차례 (0 armor … 22 movement_speed … 34 waypoint_receive_range) 와
+// 같은 minecraft-data 의 속성 표 (attributesArray) 로 봇을 만들기 전에 바로잡는다 [확인 (서버 jar 의 바이트코드, 실행)]
+;(function fixAttributeIds () {
+  try {
+    const md = require('minecraft-data')(VERSION)
+    const pk = md.protocol.play.toClient.types.packet_entity_update_attributes
+    const key = pk[1][1].type[1].type[1].find((f) => f.name === 'key')
+    // attributesArray 는 등록 차례 그대로다 (번호 칸이 없다: 자리가 곧 번호)
+    const arr = md.attributesArray || []
+    if (key && key.type[0] === 'mapper' && arr.length > Object.keys(key.type[1].mappings).length) {
+      const m = {}
+      arr.forEach((a, i) => { m[String(i)] = String(a.resource || a.name).replace(/^minecraft:/, '') })
+      key.type[1].mappings = m
+    }
+  } catch (e) { /* 표 꼴이 바뀐 판이면 그대로 둔다 */ }
+})()
+
 // ─── 결과 ───────────────────────────────────────────────
 
 class Scenario {
@@ -312,6 +331,7 @@ class Bot {
       // 구르기 대역 (3.3 tumble): 이 봇에 탄 물체, 이 봇의 공유 깃발 (0x20 = 투명), 생긴·지운 물체
       passengers: [],
       flags: [],
+      poses: [],
       spawned: [],
       destroyed: []
     }
@@ -401,7 +421,11 @@ class Bot {
     })
     c.on('entity_metadata', (d) => {
       if (d.entityId !== this.id) return
-      for (const m of d.metadata || []) if (m.key === 0) this.p.flags.push({ t: now(), value: Number(m.value) })
+      for (const m of d.metadata || []) {
+        if (m.key === 0) this.p.flags.push({ t: now(), value: Number(m.value) })
+        // 자세 (6): 0 서기, 3 헤엄 (기어가기도 같다), 5 웅크리기 …
+        if (m.key === 6) this.p.poses.push({ t: now(), value: typeof m.value === 'number' ? m.value : String(m.value) })
+      }
     })
     c.on('spawn_entity', (d) => this.p.spawned.push({ t: now(), id: d.entityId, type: d.type }))
     c.on('entity_destroy', (d) => this.p.destroyed.push({ t: now(), ids: (d.entityIds || []).slice() }))
@@ -720,6 +744,25 @@ class Bot {
     return e ? e.name : '#' + s.id
   }
   lastHealth () { return this.p.health[this.p.health.length - 1] || null }
+
+  /**
+   * 이 봇이 받은 속성 하나 (entity_update_attributes, 이름은 movement_speed 처럼 끝말). 바닐라 클라이언트처럼 바탕값과 수정자로 셈한 값:
+   * (바탕 + add_value 합) × (1 + add_multiplied_base 합) × Π(1 + add_multiplied_total). 돌려주는 값 {base, value, modifiers} 또는 null.
+   */
+  attr (name) {
+    const a = this._bot.entity && this._bot.entity.attributes
+    if (!a) return null
+    const k = Object.keys(a).find((x) => x === name || x.endsWith('.' + name) || x.endsWith(':' + name))
+    if (!k) return null
+    const mods = (a[k].modifiers || []).map((m) => ({ id: String(m.uuid || m.id || ''), amount: m.amount, operation: m.operation }))
+    let v = a[k].value
+    for (const m of mods) if (m.operation === 0) v += m.amount
+    let mb = 1
+    for (const m of mods) if (m.operation === 1) mb += m.amount
+    v *= mb
+    for (const m of mods) if (m.operation === 2) v *= 1 + m.amount
+    return { base: a[k].value, value: v, modifiers: mods }
+  }
 
   async quit () {
     if (this.ended) return
