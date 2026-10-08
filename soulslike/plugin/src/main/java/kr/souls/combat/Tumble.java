@@ -78,8 +78,9 @@ import java.util.UUID;
  *       때 내려갔다가 올라와 세 틱이 늦었다). hand-back 틱에 그 사람 화면에만 두 손을 진짜로 돌려주고 (1인칭 무기가 구르기 공격 창
  *       9틱에 올라와 있게: 손이 바닥에서 곧바로 올라온다) 대역 손의 든 것은 그 사람 화면에서 감춘다 (F5 에서 둘로 보이지 않게).</li>
  *   <li>때 (2026-10-08 비평: 늦게 시작하고, 다른 사람에게는 진짜 몸과 대역이 나란히 둘로 보였다): 대역은 F 를 받자마자 띄우고
- *       (생성 패킷은 곧바로 나간다), 투명 깃발은 hide-delay (0) 틱 뒤 = 곧바로 건다 (그다음 틱 끝, 첫 자세 보간과 같은 추적 단계에
- *       나간다). 두 벌 (seen 과 own) 모두 보기 거리 (view_range) 0 으로 띄워 그려지지 않다가 깃발이 나가는 틱 ({@link #REVEAL} +
+ *       (생성 패킷은 곧바로 나간다), 투명 깃발은 hide-delay (1) 틱 뒤에 건다 (F 를 받은 다음다음 틱의 추적 단계에 나간다. 0 이면
+ *       다음 틱: 클라이언트가 새 대역을 한 번도 다루기 전에 깃발이 닿으면 대역이 처음 그려지기까지 0~1틱 빈 바닥이 생겼다 [확인
+ *       (클라)]). 두 벌 (seen 과 own) 모두 보기 거리 (view_range) 0 으로 띄워 그려지지 않다가 깃발이 나가는 틱 ({@link #REVEAL} +
  *       hide-delay) 에 보기 거리를 1 로 돌린다: 보기 거리와 투명 깃발은 클라이언트가 받자마자 (다음 틱을 기다리지 않고) 그리므로 같은
  *       추적 단계에 나가면 그 사람의 F5 화면에서도 남의 화면에서도 몸과 대역이 같은 그림에서 바뀐다. 자세 (변환) 는 띄울 때부터 보내 둔다.
  *       예전에는 own 을 띄우자마자 보여 깃발이 닿기 전 0~1틱 둘로 보였고 (그 사람의 F5 화면 [확인 (클라): 2026-10-08 비평의
@@ -106,6 +107,12 @@ public final class Tumble {
             EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET};
     /** 두 벌을 보이게 하는 구르기 틱 (+ hide-delay): 진짜 몸을 감추는 깃발과 같은 틱 (클래스 머리말 "때") */
     private static final int REVEAL = 1;
+    /**
+     * 깃발·보기 거리를 늦추는 틱 수의 끝: 생성 패킷이 나간 틱 끝에서 이 틱 처음까지 틱 간격의 반이 지나지 않았으면 (서버가 밀린
+     * 틱을 쉬지 않고 따라잡는 중: 첫 구르기의 차가운 코드, 렉) 한 틱씩 늦춘다. 두 패킷이 붙어 닿으면 클라이언트가 대역을 한 틱도
+     * 다루지 못해 (그리기 상태가 없다) 한 틱 빈 바닥이 생겼다 [확인 (클라): 들어와서 첫 구르기]
+     */
+    private static final int MAX_LATE = 3;
     /** own 벌이 손에 든 souls 아이템의 custom_model_data 깃발: 팩이 표시판 (1인칭에서 버리는 표시 알파 그림) 으로 그린다 (pack/roll_figure.py MARK_FLAG) */
     public static final int MARK_FLAG = 1;
     /** 기어가기 자세의 몸 상자 높이 (바닐라 Pose.SWIMMING): 그 사람 화면에서 탑승 자리가 여기다 */
@@ -202,6 +209,8 @@ public final class Tumble {
         boolean equipPending, handBack;
         /** 이 틱에 진짜 몸을 감춘다 (hide-delay, 감춘 뒤 -1) */
         long hideAt = -1;
+        /** 대역의 생성 패킷이 나간 틱 끝의 System.nanoTime (0 은 아직, {@link #MAX_LATE}) */
+        long sentNanos;
         /** 지금 변환이 맞춘 탑승 높이 (몸 상자 높이: 서기 1.8, 웅크리기 1.5). seen 벌 = 서버의 자세 */
         double attach;
         /** own 벌의 탑승 높이 (그 사람 클라이언트의 자세: 기어가기면 {@link #CRAWL_HEIGHT}, 아니면 attach) */
@@ -291,7 +300,7 @@ public final class Tumble {
         if (fresh) {
             spawn(p, f);
             // F 는 틱 사이에 오고 (now 는 지난 틱의 번호), 새 표시 물체는 다음 틱 (now + 1) 부터 그려진다.
-            // 그 틱에 깃발을 걸면 둘이 한 번에 나간다 (hide-delay 0: 곧바로 건다). hide-delay 틱 더 늦춘다.
+            // 그 틱에 깃발을 걸면 둘이 한 번에 나간다 (hide-delay 0: 곧바로 건다). hide-delay 틱 더 늦춘다 (기본 1: 클라이언트가 대역을 한 틱 다룬 뒤).
             // 두 벌은 보기 거리 0 으로 띄웠다가 깃발이 나가는 틱에 보이게 한다 (클래스 머리말 "때")
             f.hideAt = now + 1 + c.hideDelay();
             f.revealAt = REVEAL + c.hideDelay();
@@ -399,7 +408,13 @@ public final class Tumble {
                 continue;
             }
             long t = now - f.base;
-            if (f.hideAt >= 0 && now >= f.hideAt) hide(p, f);
+            if (f.hideAt >= 0 && now >= f.hideAt) {
+                // 생성 패킷이 나간 뒤 틱 간격의 반이 지나야 감추고 보이게 한다 (MAX_LATE). 시험 줄은 늦춘 틱에
+                long gap = f.sentNanos == 0 ? 0 : System.nanoTime() - f.sentNanos;
+                double half = 5e8 / Math.max(1f, Bukkit.getServerTickManager().getTickRate());
+                if (gap >= half || now >= f.hideAt + MAX_LATE) hide(p, f);
+                else plugin.test(p, String.format(Locale.ROOT, "TUMBLE_LATE gap=%.1fms t=%d", gap / 1e6, now));
+            }
             if (t >= c.reveal()) {
                 // 투명을 걷고 (깃발은 이 틱의 추적 단계에서 나간다) 대역을 곧바로 지운다. 틱 끝에 지우면 지우기 패킷이 다음 틱에야
                 // 나가 일어서는 대역과 진짜 몸이 한 틱 겹쳐 보였다 [확인 (클라): 느린 화면]
@@ -440,7 +455,7 @@ public final class Tumble {
                 moved = true;
             }
             if (!moved && resized) apply(p, f, f.shown, 1, -1);
-            if (!f.revealed && t >= f.revealAt) {
+            if (!f.revealed && f.hideAt < 0 && t >= f.revealAt) {
                 // 두 벌을 보이게 한다 (보기 거리: 클라이언트가 받자마자 그린다. 깃발과 같은 추적 단계)
                 f.revealed = true;
                 for (ItemDisplay d : f.parts()) if (d.isValid()) d.setViewRange(1f);
@@ -484,6 +499,7 @@ public final class Tumble {
                 drop(id);
                 continue;
             }
+            if (f.sentNanos == 0) f.sentNanos = System.nanoTime();
             if (f.equipPending) {
                 f.equipPending = false;
                 hideEquipment(p, f);
@@ -603,6 +619,7 @@ public final class Tumble {
         // (기어가기면 기어가기 상자 꼭대기) 에 띄운다: 새 탑승물이 처음 그리는 틱에 생성 자리에서 탑승 자리로 미끄러지지 않게
         // 두 벌 모두 보기 거리 0 으로 (revealAt 틱에 보이게 한다: 클래스 머리말 "때")
         f.revealed = false;
+        f.sentNanos = 0;
         f.sentCode.clear();
         fill(p, f, f.seen, at(p, f.attach), 0, 1f, (float) -f.attach, false);
         fill(p, f, f.own, at(p, f.ownAttach), 0, 1f, (float) -f.ownAttach, true);

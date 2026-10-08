@@ -23,7 +23,7 @@ WorldCheck 실패면 거절)을 더한다. 그때까지 server/ 에 세계 폴�
   jar      resources/ 의 파일이 jar 안과 바이트까지 같다 (낡은 jar 거르기), paper-plugin.yml (12.2),
            데이터팩 soulsdp (형식 94.1, 지역 바이옴 9개, souls:hit)
   설정     jar 안 config.yml: pack.url 이 https 이고 {sha1} 이 있다, required, serve-port 0, test-mode 꺼짐
-  팩       형식 75, 셰이더는 HUD 글꼴 셰이더와 구르기 대역의 아이템 셰이더뿐 (10.8), 8MB 아래, 정렬 zip (경로 순서·날짜 고정, 폴더 항목 없음), artlint 오류 0,
+  팩       형식 75, 셰이더는 점검한 목록 (pack/shaders.py ALLOWED: 글꼴·GUI·메뉴 흐림·구르기 대역) 그대로 (10.8), 8MB 아래, 정렬 zip (경로 순서·날짜 고정, 폴더 항목 없음), artlint 오류 0,
            글꼴·모형·그림 참조가 팩 안에 있다 (바닐라 minecraft: 그림은 건너뛴다),
            사망 화면 언어 다섯 키가 바닐라의 모든 언어에 (gen_pack.LANGS, 10.9)
   글자표   glyphs.yml 의 모든 글자가 그 글꼴에 있고 빈칸 폭이 맞다, you_died 가 deathScreen.title 과 같다
@@ -261,15 +261,15 @@ def check_pack(jar):
                 f"pack.mcmeta description {mc.get('description')!r} (souls.pack.description, 대체 글 {TITLE['en']!r}, 0.4 의 7)")
     except (KeyError, ValueError) as ex:
         g.check(False, f"pack.mcmeta 를 읽지 못했다: {ex}")
-    # 셰이더는 실제 클라이언트로 점검한 것뿐이다 (10.8): HUD 글꼴 셰이더와 구르기 대역의 아이템 셰이더 (1인칭에서 대역을 버린다, 3.3).
-    # 다른 것은 점검 전에 넣지 않는다
-    shaders = [n for n in names if re.match(r"assets/[^/]+/shaders/", n)]
-    roll_sh = [f"assets/minecraft/shaders/core/rendertype_item_entity_translucent_cull.{x}" for x in ("vsh", "fsh")]
-    extra = [n for n in shaders if n != "assets/minecraft/shaders/core/rendertype_text.vsh" and n not in roll_sh]
+    # 셰이더는 실제 클라이언트로 점검한 것뿐이다 (10.8, pack/shaders.py 의 ALLOWED): 글꼴 셰이더 (우리 bitmap 글꼴은 덮임을 R 에
+    # 두고 알파가 0 이라 이것이 없으면 글이 보이지 않는다, HUD 덩이), GUI 셰이더 (2 배 창 그림의 넓이 평균, 비네트), 메뉴 흐림,
+    # 구르기 대역의 아이템 셰이더 (1인칭에서 대역을 버린다, 3.3). 다른 것은 점검 전에 넣지 않는다
+    import shaders as pack_shaders
+    present = [n for n in names if re.match(r"assets/[^/]+/shaders/", n)]
+    extra = [n for n in present if n not in pack_shaders.ALLOWED]
+    missing = [n for n in pack_shaders.ALLOWED if n not in present]
     g.check(not extra, f"점검하지 않은 셰이더가 들어 있다 (10.8): {extra[:3]}")
-    g.check("assets/minecraft/shaders/core/rendertype_text.vsh" in shaders,
-            "HUD 글꼴 셰이더 (assets/minecraft/shaders/core/rendertype_text.vsh) 가 없다 (10.2)")
-    g.check(all(n in shaders for n in roll_sh), f"구르기 대역의 아이템 셰이더가 없다 (3.3, 10.8): {[n for n in roll_sh if n not in shaders]}")
+    g.check(not missing, f"점검한 셰이더가 빠졌다 (10.8, 글꼴 셰이더가 없으면 글이 보이지 않는다): {missing[:3]}")
 
     # 참조: 글꼴 → 그림, 아이템 정의 → 모형, 모형 → 부모·그림. minecraft: 의 바닐라 파일은 팩에 없어도 된다
     def need(ns, path, what):
@@ -375,6 +375,9 @@ def check_glyphs(jar, fonts, langs):
     g.check("you_died_title" in table, "glyphs.yml 에 you_died_title (플러그인 화면 제목) 이 없다")
     # HUD 자리 값 (hud.layout): 그림 글자가 아니다. 팩의 글꼴 셰이더가 같은 값으로 HUD 를 화면 가장자리로 옮긴다 (10.2, 10.8)
     lay = table.pop("layout", None) or {}
+    stats = table.pop("stats", None) or {}     # 무기 설명 칸 수치 표 (pack/typeset.py): 값 글자 폭이 기본 글꼴과 같은지는 아래
+    g.check(len(str(stats.get("chars", ""))) == len(stats.get("widths", [])) and stats.get("value_col"),
+            f"glyphs.yml stats 가 틀렸다: {stats}")
     shader = jar_pack_text(jar, "assets/minecraft/shaders/core/rendertype_text.vsh")
     g.check(all(k in lay for k in ("margin", "left", "right", "mark_left", "mark_right")), f"glyphs.yml layout 이 모자라다: {lay}")
     if shader is not None and lay:

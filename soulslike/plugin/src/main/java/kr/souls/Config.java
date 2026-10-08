@@ -44,7 +44,7 @@ public final class Config {
      * 대역 (combat/Tumble). 움직임 (열쇠 자세) 은 팩 생성기가 쓰는 자원 roll_anim.yml 에 있고, 여기는 때만 정한다.
      * riseAt·riseTurn: riseAt 틱 뒤에 닿는 자세부터 riseTurn 틱에 걸쳐 구르는 쪽에서 몸 방향으로 돈다,
      * reveal: 이 틱에 대역을 거두고 진짜 몸을 보인다, handBack: 이 틱에 그 사람 화면에만 주손을 돌려준다 (0 이면 reveal 과 같이),
-     * hideDelay: 대역을 띄우고 몇 틱 뒤에 진짜 몸을 감추는가 (0: 같은 틱. 1: 클라이언트가 대역을 처음 그린 뒤),
+     * hideDelay: 대역을 띄우고 몇 틱 뒤에 진짜 몸을 감추고 대역을 보이게 하는가 (0: 다음 틱. 1: 클라이언트가 대역을 한 틱 다룬 뒤),
      * duck: combat.roll.crawl 일 때 기어가기 막힘을 두는 틱 수 (1인칭 시야가 바닥으로 내려갔다 대역의 머리와 함께 올라온다. 0 이면 깔지 않는다),
      * duckCamera: 숙인 눈 (발 위 0.4) 에서 F5 등 뒤 카메라가 이 거리 (블록) 안에서 막히면 숙이지 않는다 (올려다볼 때, 등 뒤에 턱·벽이
      * 있을 때: 카메라가 대역 곁으로 당겨지면 1인칭으로 여겨 감춘다). 0 이면 보지 않는다.
@@ -173,7 +173,7 @@ public final class Config {
         int reveal = Math.max(1, c.getInt("combat.roll.tumble.reveal", 11));
         return new TumbleCfg(c.getInt("combat.roll.tumble.rise-at", 8), Math.max(0, c.getInt("combat.roll.tumble.rise-turn", 3)), reveal,
                 Math.min(reveal, Math.max(0, c.getInt("combat.roll.tumble.hand-back", 6))),
-                Math.max(0, Math.min(2, c.getInt("combat.roll.tumble.hide-delay", 0))),
+                Math.max(0, Math.min(2, c.getInt("combat.roll.tumble.hide-delay", 1))),
                 Math.max(0, Math.min(reveal, c.getInt("combat.roll.tumble.duck", 5))),
                 Math.max(0.0, Math.min(4.0, c.getDouble("combat.roll.tumble.duck-camera", 3.0))));
     }

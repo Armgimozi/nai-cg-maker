@@ -8,7 +8,7 @@
 
 ## 지금 판: M0 기반과 점검
 
-접속하면 리소스팩을 받고 시험 방에 선다. 왼쪽 위에 다크 소울처럼 체력·마나·스태미나 막대가 있고 달리면 스태미나 막대가 준다 (소울 수는 오른쪽 아래). F 로 구른다 (시제품). 죽으면 핏빛 "YOU DIED". 지도·적·보스·에스트는 아직 없다. 관문은 `DESIGN.md` 13.4 의 실제 클라이언트 점검이다.
+접속하면 리소스팩을 받고 시험 방에 선다. 화면은 고딕 촛불 말씨 (깊은 검은 옻칠 판, 촛불 기운, 단조 장식, 명조·가라몽 글꼴) 다. 왼쪽 위에 다크 소울처럼 체력·마나·스태미나 막대가 있고 달리면 스태미나 막대가 준다 (소울 수는 오른쪽 아래). F 로 구른다 (시제품). 죽으면 핏빛 "YOU DIED". 지도·적·보스·에스트는 아직 없다. 관문은 `DESIGN.md` 13.4 의 실제 클라이언트 점검이다.
 
 설계 문서를 쓴 뒤 정한 것 (문서와 다르면 이쪽이 앞선다):
 
@@ -28,8 +28,10 @@
 ```
 plugin/   Gradle 플러그인 (kr.souls). 리소스: paper-plugin.yml, config.yml, content/, datapack/soulsdp/,
           lang/ko.yml (게임 문구, 한국어 원본), lang/en.yml (영어), lang/names.yml (고유 이름의 영어 표기)
-pack/     리소스팩 생성기 (gen_pack.py, langpack.py 문구 → 팩 언어 파일, hud.py 글꼴·사망 제목, gui_skin.py 하트·스태미나
-          막대·단축 슬롯·창·단추, icons.py 아이템 그림·모형·입자, palette.py, artlint.py, art/ 손으로 찍은 그림)
+pack/     리소스팩 생성기 (gen_pack.py, langpack.py 문구 → 팩 언어 파일, fonts.py 게임 글꼴 (미리 그린 명조·가라몽),
+          typeset.py 팩 글꼴로 창 제목·열 맞춤 짜기, hud.py HUD 그림 글자·사망 제목, gui_skin.py 단축 슬롯·창·단추·설명 칸,
+          uidraw.py 2 배 UI 그림판, shaders.py 글꼴·GUI 셰이더, icons.py 아이템 그림·모형·입자, palette.py, artlint.py,
+          art/ 손으로 찍은 그림)
 server/   배포할 서버 폴더 (start.bat → start.ps1, start.sh, server.properties, bukkit.yml, config/paper-global.yml, README.txt)
 tools/    make_dist.py (배포 묶기), textlint.py (글 검사, 한국어·영어), langcheck.py (문구 관문), run_tests.sh + bots/ (봇 시험),
           client/ (실제 클라이언트로 찍기)
@@ -38,7 +40,7 @@ dist/     묶은 결과: Soulslike.jar, Soulslike-Server.zip, packs/<sha1>.zip
 
 ## 빌드
 
-필요한 것: JDK 21, Python 3 (Pillow, numpy, PyYAML).
+필요한 것: JDK 21, Python 3 (Pillow, numpy, PyYAML, freetype-py). 처음 팩을 만들 때 글꼴 넷을 github.com/google/fonts 에서 받는다 (아래 "글꼴").
 
 ```sh
 python3 tools/make_dist.py            # 아래 셋을 차례로 하고 관문을 지나면 dist/ 에 묶는다
@@ -52,7 +54,22 @@ cd plugin && ./gradlew build          # → plugin/build/libs/Soulslike.jar (pac
 python3 tools/make_dist.py --no-build # 관문만 보고 묶는다
 ```
 
-`make_dist.py` 는 글 검사(textlint), 문구 관문(langcheck), 그림 검사(artlint), 낡은 jar, 시험용 설정(`debug.test-mode`, `pack.serve-port`), 팩 형식 75·셰이더 없음·참조, 그림 글자 표, 서버 폴더 인코딩 규칙과 `server.properties` 값 가운데 하나라도 어긋나면 아무것도 쓰지 않고 멈춘다.
+`make_dist.py` 는 글 검사(textlint), 문구 관문(langcheck), 그림 검사(artlint), 낡은 jar, 시험용 설정(`debug.test-mode`, `pack.serve-port`), 팩 형식 75·점검한 셰이더 목록 (`pack/shaders.py` 의 `ALLOWED`, `DESIGN.md` 10.8)·참조, 그림 글자 표, 서버 폴더 인코딩 규칙과 `server.properties` 값 가운데 하나라도 어긋나면 아무것도 쓰지 않고 멈춘다.
+
+## 글꼴 (FONTS)
+
+모든 글 (바닐라 화면·채팅·설명 칸까지) 을 명조·가라몽으로 그린다. TTF 는 팩에 넣지 않고 `pack/fonts.py` 가 FreeType 으로 GUI 한 픽셀에 4 텍셀로 미리 그린 bitmap 글꼴을 넣는다. 팩의 글꼴 셰이더 (`rendertype_text.fsh`) 가 그 글자를 넓이 평균으로 읽어 어느 GUI 배율에서나 바탕선과 굵기가 고르다 (이 셰이더가 없으면 글이 보이지 않는다). 자세한 것은 `DESIGN.md` 10.9.
+
+| 글꼴 | 쓰는 곳 | 사용 허락 |
+|---|---|---|
+| EB Garamond | 본문 로마자, 소울 숫자 | SIL Open Font License 1.1 |
+| Noto Serif KR | 본문 한글 | SIL Open Font License 1.1 |
+| Cinzel | 제목 로마자 (창 제목, 무기·보스 이름) | SIL Open Font License 1.1 |
+| Nanum Myeongjo ExtraBold | 제목 한글 | SIL Open Font License 1.1 |
+
+- 원본은 github.com/google/fonts (`ofl/`) 에서 빌드 때 `~/.cache/souls-fonts/ofl` 에 받고 (`SOULS_FONT_CACHE` 로 바꾼다) sha256 으로 확인한다. 다르면 팩을 만들지 않는다 (`pack/fonts.py` 의 `SOURCES`).
+- 팩에는 그린 그림 (`assets/souls/textures/font/text_*.png`) 만 들어가고, OFL 원문 넷은 팩의 `assets/souls/font/licenses/`, 알림은 팩 뿌리의 `FONTS-OFL.txt` 에 있다.
+- 창 제목 (일시 정지·인벤토리·상자·제작대) 은 언어 파일이 글꼴을 고를 수 없어 팩이 YAML 의 글을 기본 글꼴 안의 제목 글자로 바꿔 쓴다 (`pack/typeset.py`). 글은 `lang/*.yml` 에만 있다.
 
 ## 문구와 영어판
 
@@ -61,7 +78,7 @@ python3 tools/make_dist.py --no-build # 관문만 보고 묶는다
 - 글을 고칠 때: `plugin/src/main/resources/lang/ko.yml` 과 `en.yml` 을 함께 고친다 (열쇠, 맨 앞 꼴 태그, `<자리>`, 목록 줄 수가 같아야 한다). 영어는 직역하지 않고 짧고 건조한 옛 말투로. 고유 이름은 `lang/names.yml` 대로.
 - 그다음 `python3 tools/make_dist.py` (팩과 jar 를 함께 다시 만든다). 서버 폴더에는 문구 파일이 없다.
 - 관문: `python3 tools/langcheck.py` (두 언어의 짝, Java 의 한글 문자열과 번역 안 되는 글, 부르는 열쇠와 자리 이름, 콘텐츠 id 의 열쇠, 낡은 팩 언어 파일, 자리 폭), `python3 tools/textlint.py` (문체, 고유 이름 표기). 하나라도 오류면 `make_dist` 가 묶지 않는다. Java 에서 열쇠를 만들어 부르면 그 줄에 `// lang-dyn: <glob>`, 봇이 읽는 기계 글에는 `// lang-machine` (`DESIGN.md` 13.7).
-- 실제 클라이언트로 두 언어 보기: `MC_LANG=en_us tools/client/run_client.sh …` (`dist/screenshots/i18n/`).
+- 실제 클라이언트로 두 언어 보기: `MC_LANG=en_us tools/client/run_client.sh …` (`dist/screenshots/i18n/`). UI 전체 그림은 `tools/client/ui_shots.sh` (`dist/screenshots/ui_final/`).
 
 ## 배포
 

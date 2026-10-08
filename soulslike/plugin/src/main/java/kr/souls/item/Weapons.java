@@ -16,7 +16,7 @@ import java.util.logging.Logger;
 
 /**
  * 무기·방패·활·촉매 등록부 (content/weapons.yml, 9.1, 9.2, 3.12.4, 12.5). 아이템은 ItemFactory.weapon 이 만든다.
- * 글은 콘텐츠에 없다: 이름 weapon.&lt;id&gt;.name, 설명 weapon.&lt;id&gt;.lore, 분류 줄 weapon.class.&lt;class&gt;, 수치 줄 weapon.stat.*.
+ * 글은 콘텐츠에 없다: 이름 weapon.&lt;id&gt;.name, 설명 weapon.&lt;id&gt;.lore, 분류 줄 weapon.class.&lt;class&gt;, 수치 이름 weapon.stat.* (값은 item/StatTable 이 두 열 표로).
  */
 public final class Weapons {
     /** 손 */

@@ -16,9 +16,6 @@ import kr.souls.Keys;
 import kr.souls.Lang;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.TextComponent;
-import net.kyori.adventure.text.format.TextColor;
-import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
@@ -30,7 +27,6 @@ import org.bukkit.persistence.PersistentDataType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 /**
  * 데이터 성분을 붙이는 곳은 여기 한 곳이다 (9.8). 데이터 성분 API 는 1.21.11 에서도 실험 기능이라
@@ -134,15 +130,15 @@ public final class ItemFactory {
         return it;
     }
 
-    /** 수치 줄의 빈칸·가운뎃점 색 (분류 줄과 같은 회색, 9.7) */
-    private static final TextColor STAT_GREY = TextColor.color(0x858079);
     /** 활 당기기: 끝까지 당겨도 먹기가 끝나지 않을 만큼 (바닐라 활의 사용 시간 72000 틱과 같다). 먹기는 WeaponGuard 가 취소한다 */
     private static final float BOW_HOLD_SECONDS = 3600f;
+    /** 무기 설명 칸 그림 souls:tooltip/weapon_background·_frame (이름 밑 금실, pack/gui_skin.py) */
+    private static final Key WEAPON_TOOLTIP = Key.key(Keys.NS, "weapon");
 
     /**
      * 무기·방패·활·촉매 아이템 (9.8). 검 태그 없는 껍데기에 모형 souls:&lt;id&gt; (팩 pack/weapons, 손에 든 3D 모형과 16 픽셀 그림),
-     * 이름 weapon.&lt;id&gt;.name, 설명 칸 = 분류 줄, 수치 두 줄, 빈 줄, weapon.&lt;id&gt;.lore (9.7). 모두 번역 열쇠라 보는 사람의 언어로
-     * 보인다. 막는 것 (무기 guard, 방패 block) 은 빈 막기 성분과 걸음 배율 (2.3.9), 활은 당기기 몸짓 (CONSUMABLE bow, 쏘기는 M1).
+     * 이름 weapon.&lt;id&gt;.name (제목 글꼴), 설명 칸 = 분류 줄, 수치 표 (StatTable, 두 열), 실선, weapon.&lt;id&gt;.lore (9.7). 모두
+     * 번역 열쇠라 보는 사람의 언어로 보인다. 설명 칸 그림은 무기 칸 (tooltip_style souls:weapon: 이름 밑 금실, pack/gui_skin.py). 막는 것 (무기 guard, 방패 block) 은 빈 막기 성분과 걸음 배율 (2.3.9), 활은 당기기 몸짓 (CONSUMABLE bow, 쏘기는 M1).
      * 불에 타지 않는다. 묶음은 하나.
      */
     public static ItemStack weapon(Weapons.Def d) {
@@ -151,10 +147,11 @@ public final class ItemFactory {
         it.setData(DataComponentTypes.ITEM_NAME, Lang.c("weapon." + d.id() + ".name")); // lang-dyn: weapon.*.name
         List<Component> lore = new ArrayList<>();
         lore.add(Lang.c("weapon.class." + d.cls())); // lang-dyn: weapon.class.*
-        lore.addAll(statLines(d));
-        lore.add(Component.empty());
+        lore.addAll(StatTable.lines(d));
+        lore.add(StatTable.rule());
         lore.addAll(Lang.lines("weapon." + d.id() + ".lore")); // lang-dyn: weapon.*.lore
         it.setData(DataComponentTypes.LORE, ItemLore.lore(lore));
+        it.setData(DataComponentTypes.TOOLTIP_STYLE, WEAPON_TOOLTIP);
         it.setData(DataComponentTypes.MAX_STACK_SIZE, 1);
         it.setData(DataComponentTypes.DAMAGE_RESISTANT, DamageResistant.damageResistant(DamageTypeTagKeys.IS_FIRE));
         switch (d.use()) {
@@ -173,58 +170,6 @@ public final class ItemFactory {
         }
         it.editPersistentDataContainer(pdc -> pdc.set(Keys.WEAPON, PersistentDataType.STRING, d.id()));
         return it;
-    }
-
-    /** 수치 두 줄 (9.7 의 회색 칸): 공격력과 보정 (방패는 흡수와 안정성), 필요 능력치와 무게. */
-    private static List<Component> statLines(Weapons.Def d) {
-        List<Component> first = new ArrayList<>();
-        if (d.shield()) {
-            first.add(Lang.c("weapon.stat.absorb", "value", String.valueOf(d.absorb())));
-            first.add(Lang.c("weapon.stat.stability", "value", String.valueOf(d.stability())));
-        } else {
-            if (d.attack() > 0) first.add(Lang.c("weapon.stat.attack", "value", String.valueOf(d.attack())));
-            first.addAll(stats(d.scaling()));
-        }
-        List<Component> second = new ArrayList<>();
-        if (!d.requires().isEmpty()) {
-            TextComponent.Builder need = Component.text().append(Lang.c("weapon.stat.need")).append(Component.text(" "));
-            List<Component> req = stats(d.requires());
-            for (int i = 0; i < req.size(); i++) {
-                if (i > 0) need.append(Component.text(" · "));
-                need.append(req.get(i));
-            }
-            second.add(need.build());
-        }
-        second.add(Lang.c("weapon.stat.weight", "value", String.format(Locale.ROOT, "%.1f", d.weight())));
-        List<Component> out = new ArrayList<>();
-        if (!first.isEmpty()) out.add(join(first));
-        out.add(join(second));
-        return out;
-    }
-
-    private static List<Component> stats(Map<String, ?> values) {
-        List<Component> out = new ArrayList<>();
-        for (String s : Weapons.STATS) {
-            Object v = values.get(s);
-            if (v == null) continue;
-            String val = String.valueOf(v);
-            out.add(switch (s) {
-                case "str" -> Lang.c("weapon.stat.str", "value", val);
-                case "dex" -> Lang.c("weapon.stat.dex", "value", val);
-                default -> Lang.c("weapon.stat.att", "value", val);
-            });
-        }
-        return out;
-    }
-
-    /** 수치 조각을 빈칸 셋으로 잇는다 (빈칸·가운뎃점은 글이 아니라 두 언어 공통). */
-    private static Component join(List<Component> parts) {
-        TextComponent.Builder b = Component.text().color(STAT_GREY);
-        for (int i = 0; i < parts.size(); i++) {
-            if (i > 0) b.append(Component.text("   "));
-            b.append(parts.get(i));
-        }
-        return b.build().decoration(TextDecoration.ITALIC, TextDecoration.State.FALSE);
     }
 
     /** 이 아이템이 시험 막기 도구인가. */

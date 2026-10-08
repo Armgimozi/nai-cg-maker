@@ -57,14 +57,23 @@ public final class Glyphs {
      * margin: 셰이더 없이 화면 가장자리 여백, left: 막대 왼쪽 끝을 가운데에서 왼쪽으로 민 거리, right: 소울 상자 오른쪽 끝을
      * 가운데에서 오른쪽으로 민 거리, markLeft/markRight: 셰이더가 왼쪽 위·오른쪽 아래로 옮기는 글자색, soulBox: 소울 상자 폭.
      * 보스 막대: markBoss (막대 그림 글자, 셰이더가 화면 아래로 내리고 가로로 늘인다), markBossName / markBossShadow (이름과
-     * 그 그림자, 막대 왼쪽 끝 위로), markHidden (셰이더가 지우는 이름 사본), bossWidth (체력 막대의 바탕 길이).
+     * 그 그림자, 막대 왼쪽 끝 위로), markHidden (셰이더가 지우는 이름 사본), markBossCap (보스 막대 마구리: 늘이지 않고 늘인
+     * 막대 끝을 따라 옮긴다), bossWidth (체력 막대의 바탕 길이).
      */
     public record Layout(int margin, int left, int right, TextColor markLeft, TextColor markRight, int soulBox,
-                         TextColor markBoss, TextColor markBossName, TextColor markBossShadow, TextColor markHidden, int bossWidth) {}
+                         TextColor markBoss, TextColor markBossName, TextColor markBossShadow, TextColor markHidden,
+                         TextColor markBossCap, int bossWidth) {}
+
+    /**
+     * 무기 설명 칸의 수치 표 (glyphs.yml 의 stats, pack/typeset.py): 값 열 폭 valueCol, 두 칸 사이 colGap (GUI 픽셀), 값 글자의
+     * 진행 폭 (기본 글꼴, 팩에서 잰 것). 이름 열은 팩이 수치 이름 번역 뒤를 빈칸으로 채워 맞춘다.
+     */
+    public record Stats(int valueCol, int colGap, Map<Character, Integer> widths) {}
 
     private static final Key DEFAULT_FONT = Key.key("souls", "hud");
     private static Map<String, Glyph> glyphs = Collections.emptyMap();
     private static Layout layout;
+    private static Stats stats;
 
     private Glyphs() {}
 
@@ -85,9 +94,18 @@ public final class Glyphs {
                     color(lay.getString("mark_left"), 0xfefd01), color(lay.getString("mark_right"), 0xfefd02), lay.getInt("soul_box", 64),
                     color(lay.getString("mark_boss"), 0xfefd03), color(lay.getString("mark_boss_name"), 0xfefd04),
                     color(lay.getString("mark_boss_shadow"), 0xfefd05), color(lay.getString("mark_hidden"), 0xfefd06),
-                    lay.getInt("boss_width", 200));
+                    color(lay.getString("mark_boss_cap"), 0xfefd07), lay.getInt("boss_width", 200));
+            ConfigurationSection st = root.getConfigurationSection("stats");
+            stats = null;
+            if (st != null) {
+                String chars = decode(st.getString("chars", ""));
+                java.util.List<Integer> ws = st.getIntegerList("widths");
+                Map<Character, Integer> w = new LinkedHashMap<>();
+                for (int i = 0; i < chars.length() && i < ws.size(); i++) w.put(chars.charAt(i), ws.get(i));
+                stats = new Stats(st.getInt("value_col", 18), st.getInt("col_gap", 14), Collections.unmodifiableMap(w));
+            }
             for (String name : root.getKeys(false)) {
-                if (name.equals("layout")) continue;
+                if (name.equals("layout") || name.equals("stats")) continue;
                 ConfigurationSection g = root.getConfigurationSection(name);
                 if (g == null) continue;
                 String ch = decode(g.getString("char", ""));
@@ -120,6 +138,11 @@ public final class Glyphs {
     /** HUD 자리 값. glyphs.yml 에 layout 이 없으면 (옛 팩) null: HUD 는 그림 글자 막대 없이 글로 대신한다. */
     public static Layout layout() {
         return layout;
+    }
+
+    /** 무기 설명 칸의 수치 표. glyphs.yml 에 stats 가 없으면 (옛 팩) null: 수치는 빈칸 하나로 잇는다. */
+    public static Stats stats() {
+        return stats;
     }
 
     /** YAML 이 "" 을 풀지 않은 채(작은따옴표) 적었거나 "U+E001" 로 적었어도 받아 준다. */

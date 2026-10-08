@@ -20,8 +20,10 @@
            skills.yml → skill.<id>.name 한 줄, skill.<id>.desc 목록)
   content  content/*.yml 에 한글 글이 없고 글 칸 (name, description, lore, text …) 이 없다 (글자와 상관없이)
   pack     팩 언어 파일이 YAML 에서 만든 것과 같다 (낡은 팩): assets/souls/lang/ko_kr.json·en_us.json,
-           assets/minecraft/lang/<언어>.json 의 vanilla.* 열쇠 (ko_kr 은 한국어, 나머지는 영어)
-  width    글이 그 자리 폭에 들어간다 (바닐라 기본 글꼴 폭, 1280×720 GUI 배율 3 = 화면 426 픽셀 기준. SLOTS 표).
+           assets/minecraft/lang/<언어>.json 의 vanilla.* 열쇠 (ko_kr 은 한국어, 나머지는 영어). 창 제목의 제목 글자, 제목 밑
+           금실, 무기 수치 이름의 열 맞춤 빈칸은 검사하는 팩의 글꼴로 gen_pack 과 같은 셈을 해 견준다 (pack/typeset.py)
+  width    글이 그 자리 폭에 들어간다 (1280×720 GUI 배율 3 = 화면 426 픽셀 기준. SLOTS 표). 폭은 팩의 글꼴 (본문 가라몽·명조,
+           꼴 태그 <font:souls:title> 이나 창 제목은 제목 글꼴) 로 잰다. 팩이 없거나 팩 글꼴에 없는 글자면 바닐라 기본 글꼴 폭.
            큰 글씨는 4배로 그려져 104 픽셀, 부제목은 2배라 200 픽셀, Dialog 단추(폭 160) 150, 사망 화면 단추(폭 200) 190
 경고
   slot     폭을 정하지 않은 열쇠 (SLOTS 에 더한다)
@@ -42,6 +44,7 @@ PACK_SRC = os.path.join(ROOT, "pack")
 if PACK_SRC not in sys.path:
     sys.path.insert(0, PACK_SRC)
 import langpack  # noqa: E402
+import typeset  # noqa: E402
 
 JAVA = os.path.join(ROOT, "plugin", "src", "main", "java")
 CONTENT = os.path.join(ROOT, "plugin", "src", "main", "resources", "content")
@@ -65,6 +68,7 @@ SLOT_PX = {
     "tooltip": 250,                  # 아이템 이름·설명 한 줄
     "screen": 400,                   # 바닐라 확인 창 제목
     "container_title": 72,           # 창 제목 (인벤토리의 "제작" 은 x 97 에서 판 안쪽 끝 168 까지, 10.4)
+    "container_title_wide": 150,     # 판 왼쪽 (x 8) 에서 시작하는 창 제목 (상자·통·보관함, 판 안쪽 끝 168 까지)
     "boss_name": 200,                # 보스 막대 이름 (막대 왼쪽 끝 위, 늘이기 전 막대 폭 200 안, 10.2)
     "wrap": None,                    # 채팅·접속 거절·팩 창 (클라이언트가 줄을 바꾼다)
 }
@@ -79,7 +83,8 @@ SLOTS = [
     ("item.*", "tooltip"), ("weapon.*", "tooltip"), ("test.*", "tooltip"), ("skill.*", "tooltip"),
     ("vanilla.deathScreen.respawn", "button200"), ("vanilla.deathScreen.titleScreen", "button200"),
     ("vanilla.deathScreen.quit.confirm", "screen"), ("vanilla.deathScreen.score.value", "screen"),
-    ("vanilla.container.*", "container_title"), ("boss.*.name", "boss_name"),
+    ("vanilla.container.crafting", "container_title"), ("vanilla.container.*", "container_title_wide"),
+    ("boss.*.name", "boss_name"), ("vanilla.menu.game", "screen"),
     ("pack.*", "wrap"), ("build.*", "wrap"), ("admin.*", "wrap"),
 ]
 # 폭을 잴 때 자리에 넣는 값 (가장 길게 나올 만한 것)
@@ -544,7 +549,11 @@ def check_pack(report, tables, pack):
         report.add("경고", "pack", str(pack)[:80], "팩이 없어 언어 파일을 견주지 못했다 (python3 pack/gen_pack.py)")
         return
     import gen_pack
-    want = langpack.build(tables, gen_pack.LANGS)
+    try:
+        want = langpack.build(tables, gen_pack.LANGS, typeset=typeset.Typeset(typeset.PackFonts.open(pack)))
+    except KeyError as ex:
+        report.add("오류", "pack", "font", f"팩 글꼴로 창 제목·수치 이름을 짤 수 없다 (낡은 팩, gen_pack 을 다시): {ex}")
+        return
     for rel, data in sorted(want.items()):
         got = read(rel)
         if got is None:
@@ -557,8 +566,28 @@ def check_pack(report, tables, pack):
             report.add("오류", "pack", rel, f"YAML 에서 만든 것과 다르다 (낡은 팩, gen_pack 을 다시): {diff[:5]}")
 
 
-def check_width(report, tables):
+def measurer(pack):
+    """(열쇠, 꼴 태그, 글) → 폭 (GUI 픽셀). 팩 글꼴로 재고, 못 재면 바닐라 기본 글꼴 폭."""
+    pf = typeset.PackFonts.open(pack) if pack is not None else None
+    ko_map = {}
+
+    def measure(key, tags, line, ko):
+        if pf is not None:
+            try:
+                if typeset.matches(key, typeset.TITLE_KEYS):
+                    if "map" not in ko_map:
+                        ko_map["map"] = typeset.title_map(typeset.title_syllables(ko))
+                    return pf.width(typeset.DEFAULT_FONT, typeset.to_title(line, ko_map["map"]))
+                return pf.width(typeset.font_of(tags), line)
+            except KeyError:
+                pass
+        return width(line)
+    return measure
+
+
+def check_width(report, tables, pack=None):
     ko = langpack.lines(tables["ko"])
+    measure = measurer(pack)
     for lang in langpack.LANGS:
         for key, raw in sorted(langpack.lines(tables[lang]).items()):
             slot = slot_of(key)
@@ -569,11 +598,11 @@ def check_width(report, tables):
             px = SLOT_PX[slot]
             if px is None:
                 continue
-            text = langpack.split_style(raw)[1]
+            tags, text = langpack.split_style(raw)
             for name in langpack.slots(langpack.split_style(ko.get(key, raw))[1]):
                 text = text.replace(f"<{name}>", SAMPLE.get(name, "0"))
             for line in text.split("\n"):
-                w = width(line)
+                w = measure(key, tags, line, ko)
                 if w > px:
                     report.add("오류", "width", f"{lang}.yml {key}", f"{w}px > {slot} {px}px: {line!r}")
 
@@ -587,7 +616,7 @@ def lint(pack=PACK_DIR, quiet=False):
     checked, dynamic = check_keys(report, found, tables["ko"])
     check_content(report, tables["ko"])
     check_pack(report, tables, pack)
-    check_width(report, tables)
+    check_width(report, tables, pack)
     report.calls = (checked, dynamic)
     if not quiet:
         report.print()

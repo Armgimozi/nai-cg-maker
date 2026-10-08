@@ -265,7 +265,8 @@ class Typeset:
         """플러그인 수치 표의 값 글자 폭 (glyphs.yml 의 stats)."""
         return {ch: self.fonts.advance(DEFAULT_FONT, ch) for ch in VALUE_CHARS}
 
-    def font_of(self, key, style):
-        """열쇠의 글이 그려지는 글꼴: 꼴 태그 <font:…> 가 있으면 그것, 창 제목은 기본 글꼴 (제목 글자로 바꾼 뒤)."""
-        m = re.search(r"<font:([a-z0-9_.-]+:[a-z0-9_./-]+)>", style or "")
-        return m.group(1) if m else DEFAULT_FONT
+
+def font_of(style):
+    """꼴 태그 (YAML 글 맨 앞) 가 고른 글꼴: <font:…> 가 있으면 그것, 없으면 기본 글꼴. 창 제목은 제목 글자로 바꾼 뒤 기본 글꼴."""
+    m = re.search(r"<font:([a-z0-9_.-]+:[a-z0-9_./-]+)>", style or "")
+    return m.group(1) if m else DEFAULT_FONT

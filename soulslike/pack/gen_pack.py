@@ -19,19 +19,22 @@
 
 순서
   1. 팩 폴더를 비우고 pack.mcmeta (형식 75), pack.png
-  2. hud.build: 투명한 허기, 사망 화면 글자, 글꼴 (다크 소울 HUD 막대·소울 상자 그림 글자), HUD 글꼴 셰이더.
-     gui_skin.build: 숨기는 HUD (하트·방어·경험치 막대)·보스 막대·단축 슬롯·창·단추·설명 칸·Dialog 경고 단추.
+  2. fonts.build: 게임 글꼴 (FreeType 으로 미리 그린 명조·가라몽·비문 대문자 bitmap, 제목 밑 금실, OFL 사용 허락 글).
+     hud.build: 투명한 허기, 사망 화면 글자, 글꼴 (다크 소울 HUD 막대·소울 상자·보스 막대 그림 글자).
+     shaders.build: 글꼴 셰이더 (HUD 덩이 + 글자 넓이 평균), GUI 셰이더 (비네트·그림 넓이 평균), 메뉴 뒤 흐림.
+     gui_skin.build: 숨기는 HUD (하트·방어·경험치 막대)·보스 막대·단축 슬롯·창·단추·설명 칸·Dialog 경고 단추 (고딕 촛불).
      icons.build: 아이템 그림과 모형 (M0 은 시험 도구 souls:test_guard 하나), 입자 (poof)
   3. 언어 파일 (langpack.py): 게임 문구 assets/souls/lang/ko_kr.json·en_us.json (lang/ko.yml·en.yml 에서),
-     바닐라 덮어쓰기 assets/minecraft/lang/<언어>.json (사망 화면 다섯 키. 제목은 그림 글자로 모든 언어가 같고, 단추 글은
-     ko_kr 이 한국어, 나머지 모든 언어가 영어). ko.yml 과 en.yml 의 짝이 틀리면 (열쇠·자리·꼴) 여기서 멈춘다
+     바닐라 덮어쓰기 assets/minecraft/lang/<언어>.json (사망 화면 다섯 키와 창 제목. 제목은 그림 글자로 모든 언어가 같고, 단추 글은
+     ko_kr 이 한국어, 나머지 모든 언어가 영어). ko.yml 과 en.yml 의 짝이 틀리면 (열쇠·자리·꼴) 여기서 멈춘다.
+     typeset.py 가 막 쓴 팩 글꼴로 창 제목을 제목 글자로, 제목 밑 금실, 무기 수치 이름의 열 맞춤 빈칸을 짠다
   3b. 블록: blocks_grade.build (1층, 바닐라 블록 그림 전부의 색을 옮긴다. 클라이언트 jar 가 있어야 한다) 뒤에
      blocks_core.build (2층, 맵의 핵심 블록을 새로 그려 덮는다)
   4. artlint: 오류가 하나라도 있으면 여기서 멈추고 zip 을 만들지 않는다
   5. 정렬 zip: 경로 순서, 날짜, 권한을 고정해 같은 입력이면 SHA-1 이 같다
   6. glyphs.yml, 미리보기
 
-셰이더는 HUD 글꼴 셰이더 하나뿐이다 (rendertype_text.vsh, 10.8). 무기·보스·갑옷 그림(wkit, mc3d, art/vboss_*)은 M1 부터 이 파일에 다시 붙인다
+셰이더는 shaders.ALLOWED 뿐이다 (글꼴·GUI 셰이더와 구르기 대역의 아이템 셰이더, 10.8). 무기·보스·갑옷 그림(wkit, mc3d, art/vboss_*)은 M1 부터 이 파일에 다시 붙인다
 (M0 에는 wkit 을 쓰는 그림이 없다. 구르기 대역 roll_figure.py 는 플레이어 비례의 상자 모형을 직접 쓴다).
 아이템 그림은 모두 textures/item/ 아래에 둔다. 1.21.11 은 items 아틀라스가 textures/item 폴더를
 이름공간과 상관없이 모두 읽으므로 skyblock 의 write_atlas_sources 는 필요 없다 (icons.py 의 souls:item/test_guard 로 확인).
@@ -52,12 +55,15 @@ if HERE not in sys.path:
 import artlint  # noqa: E402
 import blocks_core  # noqa: E402
 import blocks_grade  # noqa: E402
+import fonts  # noqa: E402
 import gui_skin  # noqa: E402
 import hud  # noqa: E402
 import icons  # noqa: E402
 import langpack  # noqa: E402
 import previews  # noqa: E402
 import roll_figure  # noqa: E402
+import shaders  # noqa: E402
+import typeset  # noqa: E402
 try:
     from weapons import set_b as weapons_b  # 무기 B 묶음 (자루 무기·판자 방패·손종, weapons/SPEC.md 4절)
 except ImportError:
@@ -151,7 +157,7 @@ def yaml_str(s):
     return '"' + "".join(out) + '"'
 
 
-def write_glyphs(path, glyphs, title, plugin_title):
+def write_glyphs(path, glyphs, title, plugin_title, value_widths):
     lines = [
         "# HUD·사망 화면 그림 글자 표 (pack/gen_pack.py 가 만든다. 직접 고치지 말 것)",
         "# 이름: {char: 문자, width: 진행 폭 (글꼴 픽셀, 음수는 왼쪽으로 민다), font: 글꼴}",
@@ -159,16 +165,22 @@ def write_glyphs(path, glyphs, title, plugin_title):
         "# you_died 는 사망 화면 제목 한 줄 전체 (deathScreen.title 과 같은 문자열). 언어 문자열은 글꼴을 고를 수 없어",
         "#   minecraft:default 에 있다 (10.9). you_died_title 은 플러그인 화면 제목용 (death.title: true) 한 줄 전체로",
         "#   souls:hud 에 있다. 글꼴은 줄마다 font 를 따른다. 나머지는 한 글자씩.",
+        "# text_space_* 는 기본 글꼴의 빈칸 (pack/typeset.py), lore_rule 은 무기 설명 칸의 실선 (item/StatTable).",
+        "# stats 는 무기 설명 칸 수치 표의 열 (GUI 픽셀) 과 값 글자의 진행 폭 (기본 글꼴, pack/typeset.py 가 팩에서 잰 것).",
     ]
     adv = {(g.font, g.char): g.width for g in glyphs}
     rows = [("you_died", title, sum(adv[(hud.DEFAULT_FONT, ch)] for ch in title), hud.DEFAULT_FONT),
             ("you_died_title", plugin_title, sum(adv[(hud.HUD_FONT, ch)] for ch in plugin_title), hud.HUD_FONT)]
     rows += [(g.name, g.char, g.width, g.font) for g in glyphs]
+    rows += [(n, ch, w, typeset.DEFAULT_FONT) for n, ch, w in typeset.space_chars()]
     for name, ch, width, font in rows:
         lines.append(f"{name}: {{char: {yaml_str(ch)}, width: {width}, font: {yaml_str(font)}}}")
     # HUD 자리 값 (hud.layout, 글꼴 셰이더와 같은 값). 플러그인 Glyphs 가 그림 글자와 따로 읽는다
     lines.append("layout: {" + ", ".join(f"{k}: {yaml_str(str(v)) if isinstance(v, str) else v}"
                                          for k, v in hud.layout().items()) + "}")
+    chars = "".join(value_widths)
+    lines.append(f"stats: {{value_col: {typeset.VALUE_COL}, col_gap: {typeset.COL_GAP}, chars: {yaml_str(chars)}, "
+                 f"widths: [{', '.join(str(value_widths[ch]) for ch in chars)}]}}")
     with open(path, "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join(lines) + "\n")
 
@@ -231,10 +243,19 @@ def main(argv):
     icon = pack_icon()
     icon.save(os.path.join(OUT, "pack.png"))
 
-    # 2. HUD 그림과 글꼴
-    glyphs, fonts = hud.build(OUT)
-    for (ns, name), data in fonts.items():
+    # 2. 글꼴 (본문·제목 글자 그림, 금실, 빈칸) 과 HUD 그림 글자, 셰이더, 창 그림
+    fontset = fonts.build(OUT, langpack.lines(tables["ko"]))
+    glyphs, font_json, hud_providers = hud.build(OUT, fonts.digit_role())
+    font_json[("minecraft", "default")]["providers"][:0] = fontset.default
+    font_json[("minecraft", "uniform")]["providers"][:0] = fontset.uniform
+    font_json[(NS, "title")] = {"providers": fontset.title}
+    for (ns, name), data in font_json.items():
         write_json(os.path.join(OUT, "assets", ns, "font", name + ".json"), data)
+    bad = fonts.check(OUT)
+    if bad:
+        print("글꼴 정의가 틀려 팩을 묶지 않는다:", *bad, sep="\n  ")
+        return 1
+    shaders.build(OUT)    # 글꼴 셰이더 (HUD 덩이 + 글자 넓이 평균), GUI 셰이더, 메뉴 뒤 흐림 (10.8)
     gui_skin.build(OUT)   # 숨기는 HUD (하트·방어·경험치 막대)·보스 막대·단축 슬롯·창·단추·설명 칸·Dialog 경고 단추
     icons.build(OUT)      # 아이템 그림·모형·정의 (items 아틀라스), 입자
     if weapons_b:
@@ -251,7 +272,8 @@ def main(argv):
     # 3. 언어 파일: 게임 문구 (assets/souls/lang) 와 바닐라 덮어쓰기 (assets/minecraft/lang, 사망 화면)
     # YOU DIED 는 한 번만 보인다 (5.6). 기본은 사망 화면 제목 자리 (플러그인 death.title: false).
     # plugin 이면 이 제목을 비우고 플러그인이 화면 제목으로 띄운다 (둘을 함께 쓰면 겹쳐 보였다)
-    lang_files = langpack.build(tables, LANGS)
+    packfonts = typeset.PackFonts.open(OUT)
+    lang_files = langpack.build(tables, LANGS, typeset=typeset.Typeset(packfonts))
     for rel, data in lang_files.items():
         if rel.startswith("assets/minecraft/lang/"):
             data["deathScreen.title"] = title if mode == "screen" else ""
@@ -301,14 +323,15 @@ def main(argv):
             f.write(data)
 
     # 6. 글자 표, 미리보기
-    write_glyphs(os.path.join(RES, "glyphs.yml"), glyphs, title, hud.plugin_title(glyphs))
+    write_glyphs(os.path.join(RES, "glyphs.yml"), glyphs, title, hud.plugin_title(glyphs),
+                 typeset.Typeset(packfonts).value_widths())
     sheet, cell_w, _ = hud.you_died_sheet()
     previews.write_all(PREVIEW, {
         "sheet": sheet, "cell_w": cell_w, "glyphs": glyphs, "title": title, "height": hud.YOU_DIED_HEIGHT,
         "ascent": hud.YOU_DIED_ASCENT, "lang": lang, "icon": icon,
     })
     gui_skin.write_previews(OUT, PREVIEW)
-    hud.preview_hud(OUT, os.path.join(PREVIEW, "hud.png"), glyphs)
+    hud.preview_hud(OUT, os.path.join(PREVIEW, "hud.png"), glyphs, hud_providers)
     roll_figure.preview_default(os.path.join(PREVIEW, "roll_figure.png"))
     print(f"팩 파일 {len(names)}개, {len(data):,} 바이트, sha1 {sha1}")
     print(f"  → {os.path.relpath(os.path.join(RES, 'pack.zip'), ROOT)}"

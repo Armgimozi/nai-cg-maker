@@ -210,6 +210,23 @@ def is_mark_path(path):
     return "/textures/item/" in "/" + p and re.search(r"(roll_[a-z]+_m|_m[0-9])\.png$", p) is not None
 
 
+# 셰이더가 읽는 자료 그림 (색이 아니다, artlint 는 꼴만 본다):
+#   글꼴 덮임 (fonts.py 의 textures/font/text_*.png): R = 글자 덮임, G = 0, B = 1 (우리 글자 표식), 알파 0 (진행 폭 점만 1)
+#   게임 화면 비네트의 세기 지도 (shaders.py, textures/misc/vignette.png): 회색 (바닐라도 그렇다)
+TEXT_DATA = ("textures/font/text_",)
+SHADE_MAP = ("textures/misc/vignette.png",)
+
+
+def data_kind(path):
+    """자료 그림이면 "text" 또는 "shade", 아니면 None."""
+    p = path.replace("\\", "/").lower()
+    if any(g in p for g in TEXT_DATA):
+        return "text"
+    if any(p.endswith(g) for g in SHADE_MAP):
+        return "shade"
+    return None
+
+
 def is_tint_base_path(path):
     p = path.replace("\\", "/").lower()
     return any(g in p for g in TINT_BASE)

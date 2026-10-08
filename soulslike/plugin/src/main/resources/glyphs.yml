@@ -4,6 +4,8 @@
 # you_died 는 사망 화면 제목 한 줄 전체 (deathScreen.title 과 같은 문자열). 언어 문자열은 글꼴을 고를 수 없어
 #   minecraft:default 에 있다 (10.9). you_died_title 은 플러그인 화면 제목용 (death.title: true) 한 줄 전체로
 #   souls:hud 에 있다. 글꼴은 줄마다 font 를 따른다. 나머지는 한 글자씩.
+# text_space_* 는 기본 글꼴의 빈칸 (pack/typeset.py), lore_rule 은 무기 설명 칸의 실선 (item/StatTable).
+# stats 는 무기 설명 칸 수치 표의 열 (GUI 픽셀) 과 값 글자의 진행 폭 (기본 글꼴, pack/typeset.py 가 팩에서 잰 것).
 you_died: {char: "\ue010\ue007\ue012\ue008\ue012\ue008\ue012\ue008\ue012\ue008\ue012\ue008\ue012\ue008\ue012\ue009\ue012\ue011\ue000\ue00e\ue001\ue00e\ue002\ue00f\ue003\ue00e\ue004\ue00e\ue005\ue00e\ue006", width: 93, font: "minecraft:default"}
 you_died_title: {char: "\ue0f0\ue030\ue0f1\ue030\ue0f2\ue031\ue0f3\ue030\ue0f4\ue030\ue0f5\ue030\ue0f6", width: 93, font: "souls:hud"}
 you_died_y: {char: "\ue000", width: 10, font: "minecraft:default"}
@@ -70,8 +72,8 @@ hud_hp_empty_16: {char: "\ue054", width: 17, font: "souls:hud"}
 hud_hp_empty_32: {char: "\ue055", width: 33, font: "souls:hud"}
 hud_hp_empty_64: {char: "\ue056", width: 65, font: "souls:hud"}
 hud_hp_empty_128: {char: "\ue057", width: 129, font: "souls:hud"}
-hud_hp_cap_l: {char: "\ue058", width: 3, font: "souls:hud"}
-hud_hp_cap_r: {char: "\ue059", width: 3, font: "souls:hud"}
+hud_hp_cap_l: {char: "\ue058", width: 7, font: "souls:hud"}
+hud_hp_cap_r: {char: "\ue059", width: 6, font: "souls:hud"}
 hud_fp_fill_1: {char: "\ue05a", width: 2, font: "souls:hud"}
 hud_fp_fill_2: {char: "\ue05b", width: 3, font: "souls:hud"}
 hud_fp_fill_4: {char: "\ue05c", width: 5, font: "souls:hud"}
@@ -88,8 +90,8 @@ hud_fp_empty_16: {char: "\ue066", width: 17, font: "souls:hud"}
 hud_fp_empty_32: {char: "\ue067", width: 33, font: "souls:hud"}
 hud_fp_empty_64: {char: "\ue068", width: 65, font: "souls:hud"}
 hud_fp_empty_128: {char: "\ue069", width: 129, font: "souls:hud"}
-hud_fp_cap_l: {char: "\ue06a", width: 3, font: "souls:hud"}
-hud_fp_cap_r: {char: "\ue06b", width: 3, font: "souls:hud"}
+hud_fp_cap_l: {char: "\ue06a", width: 7, font: "souls:hud"}
+hud_fp_cap_r: {char: "\ue06b", width: 6, font: "souls:hud"}
 hud_st_fill_1: {char: "\ue06c", width: 2, font: "souls:hud"}
 hud_st_fill_2: {char: "\ue06d", width: 3, font: "souls:hud"}
 hud_st_fill_4: {char: "\ue06e", width: 5, font: "souls:hud"}
@@ -106,20 +108,20 @@ hud_st_empty_16: {char: "\ue078", width: 17, font: "souls:hud"}
 hud_st_empty_32: {char: "\ue079", width: 33, font: "souls:hud"}
 hud_st_empty_64: {char: "\ue07a", width: 65, font: "souls:hud"}
 hud_st_empty_128: {char: "\ue07b", width: 129, font: "souls:hud"}
-hud_st_cap_l: {char: "\ue07c", width: 3, font: "souls:hud"}
-hud_st_cap_r: {char: "\ue07d", width: 3, font: "souls:hud"}
-hud_soulbox: {char: "\ue07e", width: 65, font: "souls:hud"}
-soul_mark: {char: "\ue07f", width: 9, font: "souls:hud"}
-hud_digit_0: {char: "\ue080", width: 7, font: "souls:hud"}
-hud_digit_1: {char: "\ue081", width: 7, font: "souls:hud"}
-hud_digit_2: {char: "\ue082", width: 7, font: "souls:hud"}
-hud_digit_3: {char: "\ue083", width: 7, font: "souls:hud"}
-hud_digit_4: {char: "\ue084", width: 7, font: "souls:hud"}
-hud_digit_5: {char: "\ue085", width: 7, font: "souls:hud"}
-hud_digit_6: {char: "\ue086", width: 7, font: "souls:hud"}
-hud_digit_7: {char: "\ue087", width: 7, font: "souls:hud"}
-hud_digit_8: {char: "\ue088", width: 7, font: "souls:hud"}
-hud_digit_9: {char: "\ue089", width: 7, font: "souls:hud"}
+hud_st_cap_l: {char: "\ue07c", width: 7, font: "souls:hud"}
+hud_st_cap_r: {char: "\ue07d", width: 6, font: "souls:hud"}
+hud_soulbox: {char: "\ue07e", width: 73, font: "souls:hud"}
+soul_mark: {char: "\ue07f", width: 10, font: "souls:hud"}
+hud_digit_0: {char: "\ue080", width: 8, font: "souls:hud"}
+hud_digit_1: {char: "\ue081", width: 8, font: "souls:hud"}
+hud_digit_2: {char: "\ue082", width: 8, font: "souls:hud"}
+hud_digit_3: {char: "\ue083", width: 8, font: "souls:hud"}
+hud_digit_4: {char: "\ue084", width: 8, font: "souls:hud"}
+hud_digit_5: {char: "\ue085", width: 8, font: "souls:hud"}
+hud_digit_6: {char: "\ue086", width: 8, font: "souls:hud"}
+hud_digit_7: {char: "\ue087", width: 8, font: "souls:hud"}
+hud_digit_8: {char: "\ue088", width: 8, font: "souls:hud"}
+hud_digit_9: {char: "\ue089", width: 8, font: "souls:hud"}
 boss_hp_fill_1: {char: "\ue08a", width: 2, font: "souls:hud"}
 boss_hp_fill_2: {char: "\ue08b", width: 3, font: "souls:hud"}
 boss_hp_fill_4: {char: "\ue08c", width: 5, font: "souls:hud"}
@@ -160,6 +162,24 @@ boss_post_empty_16: {char: "\ue0ae", width: 17, font: "souls:hud"}
 boss_post_empty_32: {char: "\ue0af", width: 33, font: "souls:hud"}
 boss_post_empty_64: {char: "\ue0b0", width: 65, font: "souls:hud"}
 boss_post_empty_128: {char: "\ue0b1", width: 129, font: "souls:hud"}
-boss_cap_l: {char: "\ue0b2", width: 3, font: "souls:hud"}
-boss_cap_r: {char: "\ue0b3", width: 3, font: "souls:hud"}
-layout: {margin: 8, left: 205, right: 206, mark_left: "#fefd01", mark_right: "#fefd02", mark_boss: "#fefd03", mark_boss_name: "#fefd04", mark_boss_shadow: "#fefd05", mark_hidden: "#fefd06", boss_width: 200, soul_box: 64, soul_inset: 2}
+boss_cap_l: {char: "\ue0b2", width: 16, font: "souls:hud"}
+boss_cap_r: {char: "\ue0b3", width: 9, font: "souls:hud"}
+lore_rule: {char: "\ue0b4", width: 121, font: "souls:hud"}
+text_space_neg1: {char: "\ue380", width: -1, font: "minecraft:default"}
+text_space_neg2: {char: "\ue381", width: -2, font: "minecraft:default"}
+text_space_neg4: {char: "\ue382", width: -4, font: "minecraft:default"}
+text_space_neg8: {char: "\ue383", width: -8, font: "minecraft:default"}
+text_space_neg16: {char: "\ue384", width: -16, font: "minecraft:default"}
+text_space_neg32: {char: "\ue385", width: -32, font: "minecraft:default"}
+text_space_neg64: {char: "\ue386", width: -64, font: "minecraft:default"}
+text_space_neg128: {char: "\ue387", width: -128, font: "minecraft:default"}
+text_space_pos1: {char: "\ue388", width: 1, font: "minecraft:default"}
+text_space_pos2: {char: "\ue389", width: 2, font: "minecraft:default"}
+text_space_pos4: {char: "\ue38a", width: 4, font: "minecraft:default"}
+text_space_pos8: {char: "\ue38b", width: 8, font: "minecraft:default"}
+text_space_pos16: {char: "\ue38c", width: 16, font: "minecraft:default"}
+text_space_pos32: {char: "\ue38d", width: 32, font: "minecraft:default"}
+text_space_pos64: {char: "\ue38e", width: 64, font: "minecraft:default"}
+text_space_pos128: {char: "\ue38f", width: 128, font: "minecraft:default"}
+layout: {margin: 8, left: 205, right: 206, mark_left: "#fefd01", mark_right: "#fefd02", mark_boss: "#fefd03", mark_boss_name: "#fefd04", mark_boss_shadow: "#fefd05", mark_hidden: "#fefd06", mark_boss_cap: "#fefd07", boss_width: 200, soul_box: 72, soul_inset: 2}
+stats: {value_col: 18, col_gap: 14, chars: "0123456789.-%SABCDE", widths: [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 2, 3, 6, 4, 7, 6, 7, 7, 6]}

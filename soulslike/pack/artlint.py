@@ -11,6 +11,8 @@
   gradient   아주 작은 차이로 5칸 넘게 이어지는 매끈한 그라데이션 (가로·세로)
   glowalpha  빛 허용 그림이 아닌데 발광 알파(250~252)
   restricted 쓰는 곳이 정해진 계열(palette.RESTRICTED, 생피)을 다른 그림에 씀
+  data       셰이더가 읽는 자료 그림 (palette.data_kind) 의 꼴: 글꼴 덮임 (textures/font/text_*) 은 G = 0, B = 1, 알파 0 또는 1,
+             비네트 세기 지도는 회색·불투명. 이 그림들은 색이 아니라 자료라 다른 검사를 받지 않는다
   markalpha  구르기 대역의 1인칭 표시 알파 (palette.MARK_ALPHA, 240~249): 표시 그림 (palette.is_mark_path) 은 보이는 픽셀이 모두
              한 표시 알파여야 하고, 아이템·블록 그림 가운데 다른 그림은 그 알파를 쓰면 안 된다 (아이템 셰이더가 카메라 곁에서 버린다)
 경고
@@ -61,7 +63,7 @@ SLOT_PITCH = (18, 20)   # GUI 칸 격자 간격 (창 18, 단축 슬롯 20). 이 
 SPECK_MAX = 0.06       # 블록 그림: 외톨이 점의 몫
 DITHER_MAX = 0.30      # 블록 그림: 바둑판 점의 몫
 
-ERRORS = ("palette", "saturated", "blue", "gradient", "glowalpha", "restricted", "markalpha")
+ERRORS = ("palette", "saturated", "blue", "gradient", "glowalpha", "restricted", "markalpha", "data")
 # 반투명이 성질인 블록 그림 (이름 조각). 바닐라도 이 그림들만 반투명 픽셀을 쓴다
 BLOCK_TRANSLUCENT = ("glass", "ice", "water_", "nether_portal", "respawn_anchor_top", "slime_block", "honey_block",
                      "tripwire", "frogspawn", "destroy_stage_")
@@ -169,6 +171,16 @@ def check_image(path, report, rel=None):
     tint_base = palette.is_tint_base_path(rel)
     img = Image.open(path).convert("RGBA")
     a = np.array(img)
+    data = palette.data_kind(rel)
+    if data == "text":
+        ok = (a[..., 1] == 0).all() and (a[..., 2] == 1).all() and (a[..., 3] <= 1).all()
+        if not ok:
+            report.add("오류", path, "data", "글꼴 덮임 자료의 꼴이 아니다 (G 0, B 1, 알파 0·1)")
+        return
+    if data == "shade":
+        if not ((a[..., 0] == a[..., 1]).all() and (a[..., 1] == a[..., 2]).all() and (a[..., 3] == 255).all()):
+            report.add("오류", path, "data", "세기 지도가 회색·불투명이 아니다")
+        return
     h, w = a.shape[:2]
     alpha = a[..., 3]
     vis = alpha > 0

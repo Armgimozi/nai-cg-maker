@@ -11,6 +11,8 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.SoundGroup;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
@@ -208,8 +210,27 @@ public final class Roll implements Listener {
         double speed = kind.horizontal();
         if (i >= kind.glide() - 2) speed *= i == kind.glide() - 1 ? 0.35 : 0.65;
         Vector v = st.rollDir.clone().multiply(speed);
+        // 기어가기 막힘 아래의 클라이언트는 방향키 입력을 웅크리기 속도 (0.3) 로 줄인다: 줄어든 몫을 더해 숙이지 않을 때와 같은 거리로
+        CrawlRun cr = crawling.get(p.getUniqueId());
+        if (cr != null && cr.ducking && !unceilAtEnd.contains(p.getUniqueId())) v.add(lostInput(p));
         v.setY(i == 0 ? kind.vertical() : Math.min(p.getVelocity().getY(), 0));
         p.setVelocity(v);
+    }
+
+    /**
+     * 기어가기 자세의 클라이언트가 이 틱에 덜 움직이는 방향키 몫 [확인 (클라이언트 코드: LocalPlayer.modifyInput, KeyboardInput,
+     * Entity.getInputVector)]: 입력 (정규화) × 0.98 × 이동 속도 (달리기면 1.3 배, 보통 블록 위) × (1 − 웅크리기 속도).
+     */
+    private static Vector lostInput(Player p) {
+        Input in = p.getCurrentInput();
+        double fwd = (in.isForward() ? 1 : 0) - (in.isBackward() ? 1 : 0);
+        double side = (in.isLeft() ? 1 : 0) - (in.isRight() ? 1 : 0);
+        double len = Math.hypot(fwd, side);
+        if (len < 1e-6) return new Vector();
+        AttributeInstance speed = p.getAttribute(Attribute.MOVEMENT_SPEED), sneak = p.getAttribute(Attribute.SNEAKING_SPEED);
+        double lost = 0.98 * (speed == null ? 0.1 : speed.getValue()) * (1 - (sneak == null ? 0.3 : sneak.getValue())) / len;
+        double yaw = Math.toRadians(p.getYaw()), sin = Math.sin(yaw), cos = Math.cos(yaw);
+        return new Vector((side * cos - fwd * sin) * lost, 0, (fwd * cos + side * sin) * lost);
     }
 
     /** 미는 것을 그만둔다 (순간이동, 죽음, 세계 이동: 도착한 곳에서 미끄러지지 않게). 무적과 회복 틱은 그대로. */

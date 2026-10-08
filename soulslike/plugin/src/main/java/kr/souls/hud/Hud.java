@@ -288,29 +288,42 @@ public final class Hud implements Listener {
     }
 
     /**
-     * 보스 막대 이름 줄: [이름 사본 (지운다)][막대][이름][빈칸]. 진행 폭 = 이름 폭 × 2 라 바닐라는 가운데 - 이름 폭 에서 시작하고,
-     * 사본 뒤 = 가운데에서 막대를 그린다: 왼쪽 마구리, 체력 (채움·잃은 몫·빈 몫), 오른쪽 마구리, 그 밑 줄 자세 (채움·빈 몫), 그리고
-     * 가운데 - w/2 에서 이름, 마지막에 w/2 오른쪽으로. 짜는 차례는 pack/hud.py boss_bars 와 같다.
+     * 보스 막대 이름 줄: [이름 사본 (지운다)][왼쪽 마구리][체력][오른쪽 마구리][자세][이름][빈칸]. 진행 폭 = 이름 폭 × 2 라 바닐라는
+     * 가운데 - 이름 폭 에서 시작하고, 사본 뒤 = 가운데 에서 막대를 그린다: 왼쪽 마구리 (넓은 단조 장식이라 그 폭만큼 앞으로 당겨
+     * 체력 막대가 늘 가운데 - w/2 에서 시작한다), 체력 (채움·잃은 몫·빈 몫), 오른쪽 마구리, 그 밑 줄 자세 (채움·빈 몫), 그리고
+     * 가운데 - w/2 에서 이름, 마지막에 w/2 오른쪽으로. 마구리는 표식 색 markBossCap 이라 셰이더가 늘이지 않고 늘인 막대 끝을 따라
+     * 통째로 옮긴다. 짜는 차례는 pack/hud.py boss_line 과 같다.
      */
     private static Component bossLine(Glyphs.Layout lay, Component name, int w, int fill, int trail, int post) {
         int half = w / 2;
-        Line l = new Line();
-        l.move(-half - 2);
-        l.glyph("boss_cap_l");
-        l.runs("boss_hp_fill_", fill);
-        l.runs("boss_hp_trail_", trail);
-        l.runs("boss_hp_empty_", w - fill - trail);
-        l.glyph("boss_cap_r");
-        l.move(-half - l.pen);
-        l.runs("boss_post_fill_", post);
-        l.runs("boss_post_empty_", w - post);
-        l.move(-half - l.pen);
+        Glyphs.Glyph capL = Glyphs.get("boss_cap_l");
+        int capW = capL == null ? 2 : capL.width() - 1;
+        Line c1 = new Line();
+        c1.move(-half - capW);
+        c1.glyph("boss_cap_l");
+        int pen = c1.pen;
+        Line b1 = new Line();
+        b1.runs("boss_hp_fill_", fill);
+        b1.runs("boss_hp_trail_", trail);
+        b1.runs("boss_hp_empty_", w - fill - trail);
+        pen += b1.pen;
+        Line c2 = new Line();
+        c2.glyph("boss_cap_r");
+        pen += c2.pen;
+        Line b2 = new Line();
+        b2.move(-half - pen);
+        b2.runs("boss_post_fill_", post);
+        b2.runs("boss_post_empty_", w - post);
+        b2.move(-half - (pen + b2.pen));
         Line tail = new Line();
         tail.move(half);
         ShadowColor shadow = ShadowColor.shadowColor(0xFF000000 | lay.markBossShadow().value());
         return Component.text()
                 .append(name.color(lay.markHidden()).shadowColor(ShadowColor.none()))
-                .append(l.component(lay.markBoss()))
+                .append(c1.component(lay.markBossCap()))
+                .append(b1.component(lay.markBoss()))
+                .append(c2.component(lay.markBossCap()))
+                .append(b2.component(lay.markBoss()))
                 .append(name.color(lay.markBossName()).shadowColor(shadow))
                 .append(tail.component(lay.markBoss()))
                 .build();

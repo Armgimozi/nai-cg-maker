@@ -40,7 +40,8 @@ import java.util.regex.Pattern;
  * 팩을 싣기 전에 보이는 글 (팩 안내, 팩 때문에 쫓아낼 때, 짓는 중 접속 거절) 만 서버가 그 사람의 언어로 채운다 (render).
  * 데이터 폴더에는 꺼내 두지 않는다: 글을 바꾸면 팩도 바뀌어야 하므로 팩과 jar 를 함께 다시 만든다.
  *
- * YAML 의 한 줄 (예 "&lt;#b3a37f&gt;소울 &lt;souls&gt;"): 맨 앞 태그들이 꼴, 그 뒤의 이름 태그는 자리다.
+ * YAML 의 한 줄 (예 "&lt;#b3a37f&gt;소울 &lt;souls&gt;"): 맨 앞 태그들이 꼴 (색, 꾸밈, 글꼴 &lt;font:souls:title&gt;), 그 뒤의 이름
+ * 태그는 자리다.
  * 번역 인수의 차례는 한국어 원본에 자리가 나오는 차례다 (영어는 %2$s 처럼 차례를 바꿔도 된다).
  * 자리 값은 ("자리 이름", 값) 짝으로 넘기고 열쇠와 자리 이름은 글자 그대로 쓴다: tools/langcheck.py 가 부르는 곳마다
  * 열쇠가 있는지, 자리 이름이 lang 과 같은지 본다 (열쇠를 만들어 부르면 그 줄에 // lang-dyn: glob).
@@ -54,6 +55,8 @@ public final class Lang {
     private static final String VANILLA = "vanilla.";
     private static final Pattern TAG = Pattern.compile("<([^<>]+)>");
     private static final Pattern HEX = Pattern.compile("#[0-9a-fA-F]{6}");
+    /** 꼴 태그 &lt;font:이름공간:이름&gt; (제목 글꼴 souls:title, pack/fonts.py). pack/langpack.py 의 FONT 와 같다 */
+    private static final Pattern FONT = Pattern.compile("[a-z0-9_.-]+:[a-z0-9_./-]+");
 
     /**
      * 열쇠 하나. text 는 언어마다 꼴 태그를 뗀 글 (자리 태그는 그대로), slots 는 한국어에 자리가 나오는 차례,
@@ -160,6 +163,7 @@ public final class Lang {
 
     static boolean isStyleTag(String t) {
         String n = t.startsWith("!") ? t.substring(1) : t;
+        if (n.startsWith("font:")) return !t.startsWith("!") && FONT.matcher(n.substring(5)).matches();
         if (HEX.matcher(n).matches()) return !t.startsWith("!");
         if (NamedTextColor.NAMES.value(n) != null) return !t.startsWith("!");
         return TextDecoration.NAMES.value(n) != null;
@@ -172,7 +176,8 @@ public final class Lang {
             String t = m.group(1);
             boolean off = t.startsWith("!");
             String n = off ? t.substring(1) : t;
-            if (HEX.matcher(n).matches()) b.color(TextColor.fromHexString(n));
+            if (n.startsWith("font:")) b.font(net.kyori.adventure.key.Key.key(n.substring(5)));
+            else if (HEX.matcher(n).matches()) b.color(TextColor.fromHexString(n));
             else if (NamedTextColor.NAMES.value(n) != null) b.color(NamedTextColor.NAMES.value(n));
             else {
                 TextDecoration d = TextDecoration.NAMES.value(n);

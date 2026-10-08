@@ -52,7 +52,7 @@ L.run('join', async (sc) => {
   await L.sleep(1000)
   sc.check('not kicked after pack answer', !b.ended && !b.kick, b.kick || '')
 
-  // 받은 팩의 기본 (10.9, 10.8, 10.2): 형식 75, 셰이더는 HUD 글꼴 셰이더와 구르기 대역의 아이템 셰이더 둘 (3.3), 숨긴 바닐라 HUD 그림 (투명)
+  // 받은 팩의 기본 (10.9, 10.8, 10.2): 형식 75, 셰이더는 점검한 목록 (10.8, pack/shaders.py 의 ALLOWED) 그대로, 숨긴 바닐라 HUD 그림 (투명)
   if (got.ok) {
     const zip = L.readZip(got.buf)
     const meta = zip.json('pack.mcmeta')
@@ -60,9 +60,15 @@ L.run('join', async (sc) => {
     sc.check('pack.mcmeta min/max_format 75', mp && JSON.stringify(mp.min_format) === '75' && JSON.stringify(mp.max_format) === '75',
       mp ? `min=${JSON.stringify(mp.min_format)} max=${JSON.stringify(mp.max_format)}` : 'pack.mcmeta 없음')
     const shaders = zip.names.filter((n) => /^assets\/[^/]+\/shaders\//.test(n))
-    const allowed = ['assets/minecraft/shaders/core/rendertype_text.vsh',
-      'assets/minecraft/shaders/core/rendertype_item_entity_translucent_cull.vsh', 'assets/minecraft/shaders/core/rendertype_item_entity_translucent_cull.fsh']
-    sc.check('only the checked shaders: HUD text + roll stand-in item (10.8)', shaders.length === allowed.length && allowed.every((n) => shaders.includes(n)), shaders.join(', ') || '없음')
+    // 10.8 의 목록과 같다 (pack/shaders.py ALLOWED). 글꼴 셰이더 셋: 우리 bitmap 글꼴은 덮임을 R 에 두고 알파가 0 이라 이 셰이더가
+    // 넓이 평균으로 읽어야 글이 보이고 바탕선이 고르다 (평평한 글, 10.9). GUI 셰이더 넷과 메뉴 흐림 하나: 2 배 창 그림의 넓이 평균과
+    // 비네트·촛불 기운 (고딕 촛불 UI). 구르기 대역의 아이템 셰이더 둘 (3.3)
+    const C = 'assets/minecraft/shaders/core/'
+    const allowed = [C + 'rendertype_text.vsh', C + 'rendertype_text.fsh', C + 'rendertype_text_see_through.fsh',
+      C + 'gui.vsh', C + 'gui.fsh', C + 'position_tex_color.vsh', C + 'position_tex_color.fsh', 'assets/souls/shaders/post/menu_dim.fsh',
+      C + 'rendertype_item_entity_translucent_cull.vsh', C + 'rendertype_item_entity_translucent_cull.fsh']
+    sc.check('only the checked shaders: text (bitmap font area filter) + GUI + roll stand-in item (10.8)',
+      shaders.length === allowed.length && allowed.every((n) => shaders.includes(n)), shaders.join(', ') || '없음')
     const seen = (n) => { const im = L.decodePng(zip.get(n)); for (let i = 3; i < im.rgba.length; i += 4) if (im.rgba[i]) return true; return false }
     const hidden = zip.names.filter((n) => /textures\/gui\/sprites\/(hud\/(food_|armor_|experience_bar_|heart\/|crosshair_attack_indicator_)|boss_bar\/(white|red)_)[a-z_]*\.png$/.test(n))
     const kinds = ['food_', 'armor_', 'experience_bar_', 'heart/', 'crosshair_attack_indicator_', 'boss_bar/white_', 'boss_bar/red_'].filter((k) => !hidden.some((n) => n.includes(k)))

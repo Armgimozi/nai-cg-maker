@@ -9,7 +9,8 @@ tools/textlint.py 도 같은 읽개를 쓴다 (플러그인의 kr.souls.Lang 과
                                                         나머지 모든 언어는 영어 (아래)
 
 YAML 한 줄의 꼴: "<#b3a37f>소울 <souls> · 레벨 <level>"
-  - 맨 앞의 꼴 태그 (<#rrggbb>, 이름 색 <gray>, 꾸밈 <bold> <!italic>) 가 그 열쇠의 꼴이다. 플러그인이 번역 글에 입힌다.
+  - 맨 앞의 꼴 태그 (<#rrggbb>, 이름 색 <gray>, 꾸밈 <bold> <!italic>, 글꼴 <font:souls:title>) 가 그 열쇠의 꼴이다. 플러그인이
+    번역 글에 입힌다. 글꼴 태그는 제목 글꼴 (무기·보스·화톳불 이름, fonts.py) 을 고른다.
     언어 파일에는 꼴을 뗀 글만 들어간다. 꼴은 열쇠마다 하나이고, 두 언어의 꼴이 같아야 한다.
   - 그 뒤의 <이름> 은 자리다. 번역 인수의 차례는 한국어 원본에 처음 나오는 차례다 (영어는 차례를 바꿔도 된다: %2$s).
   - 목록은 줄마다 열쇠.1, 열쇠.2 ... (아이템 설명). 두 언어의 줄 수가 같아야 한다.
@@ -33,6 +34,7 @@ VANILLA = "vanilla."
 
 TAG = re.compile(r"<([^<>]+)>")
 HEX = re.compile(r"^#[0-9a-fA-F]{6}$")
+FONT = re.compile(r"^font:[a-z0-9_.-]+:[a-z0-9_./-]+$")   # Java Lang.FONT 와 같다
 SLOT = re.compile(r"^[a-z][a-z0-9_-]*$")
 LEGACY = {
     "black": "0", "dark_blue": "1", "dark_green": "2", "dark_aqua": "3", "dark_red": "4", "dark_purple": "5",
@@ -100,7 +102,7 @@ def lines(table):
 def is_style_tag(t):
     neg = t.startswith("!")
     n = t[1:] if neg else t
-    if HEX.match(n) or n in LEGACY:
+    if HEX.match(n) or n in LEGACY or FONT.match(n):
         return not neg
     return n in DECORATIONS
 
@@ -200,10 +202,12 @@ def problems(tables):
     return out
 
 
-def build(tables, vanilla_langs):
+def build(tables, vanilla_langs, typeset=None):
     """
     팩 언어 파일 → {팩 안 경로: {열쇠: 글}}. vanilla_langs 는 바닐라의 모든 언어 코드 (gen_pack.LANGS).
     바닐라 열쇠는 ko_kr 에 한국어, 나머지에 영어. 다른 바닐라 열쇠(사망 화면 제목처럼 그림 글자)는 gen_pack 이 더한다.
+    typeset (typeset.Typeset, 팩 글꼴을 읽은 것) 을 주면 창 제목을 제목 글자로, 제목 밑 금실, 수치 이름의 열 맞춤 빈칸을
+    짠다 (gen_pack 은 막 만든 팩으로, langcheck 는 검사하는 팩으로 같은 셈을 한다).
     """
     ko = lines(tables["ko"])
     files = {}
@@ -225,6 +229,8 @@ def build(tables, vanilla_langs):
                 vanilla[lang][k[len(VANILLA):]] = (legacy_prefix(tags) or "") + text.replace("%", "%%")
     for code in vanilla_langs:
         files[f"assets/minecraft/lang/{code}.json"] = dict(vanilla["ko" if code == "ko_kr" else "en"])
+    if typeset is not None:
+        typeset.apply(files, ko)
     return files
 
 
