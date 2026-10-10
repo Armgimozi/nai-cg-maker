@@ -95,7 +95,7 @@ window.addEventListener("pageshow", (e) => { if (e.persisted) render(); });
 function openAdd() {
   const s = sheet("게임 추가", h("div", { class: "add-options" },
     h("button", { class: "opt", onclick: () => { s.close(); $("#pick-zip").click(); } },
-      h("b", {}, "zip 파일"), h("span", {}, "게임 폴더를 압축한 파일 (가장 확실) · app.asar · 게임.exe 하나도 가능")),
+      h("b", {}, "zip 파일"), h("span", {}, "게임 폴더를 압축한 파일 (가장 확실) · app.asar 하나도 가능")),
     h("button", { class: "opt", onclick: () => { s.close(); $("#pick-folder").click(); } },
       h("b", {}, "폴더"), h("span", {}, "압축을 푼 빌드 폴더 통째로 (지원하는 브라우저만)")),
     h("button", { class: "opt", onclick: () => { s.close(); $("#pick-files").click(); } },
@@ -422,13 +422,16 @@ async function openSaves(id) {
   const sum = await saveSummary(g);
   const known = sum.prefixes.length > 0;
   const unity = /^unity/.test(g.kind || "");
+  const settingsIsolated = (await effectiveSettings(g)).isolateStorage !== false;
   const content = h("div", { class: "saves" },
     unity ? h("p", {}, known
       ? `세이브 파일 ${sum.files}개 (${formatBytes(sum.bytes)})${sum.latest ? ` · 마지막 저장 ${timeAgo(sum.latest)}` : ""}`
       : "아직 이 게임의 세이브 위치를 모릅니다. 게임을 플레이하며 한 번 저장하면 자동으로 기록됩니다.",
     sum.localStorageKeys ? ` · 웹 저장소 항목 ${sum.localStorageKeys}개` : "")
-      : h("p", {}, sum.localStorageKeys ? `브라우저 저장소에 세이브 항목 ${sum.localStorageKeys}개` : "아직 저장된 세이브가 없습니다."),
-    g.kind === "tyrano" ? h("p", { class: "dim small" }, "PC판 세이브(게임 .exe 옆의 ○○_tyrano_data.sav · ○○_sf.sav)도 '백업 파일에서 복원'으로 넣을 수 있어요.") : null,
+      : h("p", {}, sum.localStorageKeys ? `브라우저 저장소에 세이브 항목 ${sum.localStorageKeys}개`
+        : ["tyrano", "rpgmv"].includes(g.kind) && settingsIsolated ? "아직 저장된 세이브가 없습니다."
+          : "이 게임의 세이브를 찾지 못했습니다(게임이 다른 저장소를 쓰면 여기서 보이지 않을 수 있어요)."),
+    g.kind === "tyrano" ? h("p", { class: "dim small" }, "PC판 세이브 파일(.exe 옆의 ○○_tyrano_data.sav · ○○_sf.sav — 파일 세이브를 쓰는 게임만 있어요)도 '백업 파일에서 복원'으로 넣을 수 있어요.") : null,
     h("div", { class: "action-list" },
       h("button", { class: "btn primary", onclick: async () => {
         const { blob, count } = await exportSave(g);
@@ -481,6 +484,7 @@ async function restoreTyranoSav(g, list, s) {
   }
   const problems = [
     r.bad.length ? `티라노스크립트 세이브 파일이 아님: ${r.bad.join(", ")} (이름이 프로젝트ID_tyrano_data.sav · 프로젝트ID_sf.sav 같은 형식이어야 해요)` : "",
+    r.mismatch.length ? `이 게임의 세이브가 아님: ${r.mismatch.join(", ")} (이 게임의 세이브 파일 이름은 ${g.tyranoProjectID}_… 로 시작해요)` : "",
     r.full.length ? `저장 공간 부족으로 못 넣음: ${r.full.join(", ")} (브라우저 저장소는 모든 게임이 함께 약 5MB — 안 하는 게임의 세이브를 지워 주세요)` : "",
   ].filter(Boolean);
   if (!r.written) return dialog({ title: "복원 실패", body: h("p", { class: "dialog-body pre" }, problems.join("\n\n")) });
@@ -522,8 +526,8 @@ function openHelp() {
     h("p", {}, "티라노스크립트는 원래 HTML5 엔진이고, PC판은 그 게임을 NW.js·Electron 으로 감싼 것뿐이라 ",
       h("b", {}, "안의 게임을 꺼내 그대로 실행"), "합니다(에뮬레이션 아님)."),
     h("ul", {},
-      h("li", {}, "게임 폴더(.exe 가 있는 폴더) 전체를 zip 으로 압축해 넣으세요. resources/app.asar, package.nw, 게임.exe 하나만 골라도 됩니다."),
-      h("li", {}, "PC판 세이브(.exe 옆의 ○○_tyrano_data.sav · ○○_sf.sav)가 폴더에 있으면 함께 들어가 이어서 할 수 있어요."),
+      h("li", {}, "게임 폴더(.exe 가 있는 폴더) 전체를 zip 으로 압축해 넣으세요. 용량이 크면 resources/app.asar 파일 하나만 골라도 됩니다(옛 NW.js 판은 package.nw 나 게임.exe 하나)."),
+      h("li", {}, "PC판 세이브: 파일 세이브를 쓰는 게임은 .exe 옆(맥은 홈 폴더의 _TyranoGameData)에 ○○_tyrano_data.sav · ○○_sf.sav 가 있고, 폴더째 넣으면 함께 들어가 이어서 할 수 있어요. 이 파일이 없는 게임은 세이브가 PC 앱 내부 저장소에 있어 옮길 수 없습니다."),
       h("li", {}, "PC 전용 설정(파일 세이브, 화면 크기 고정 등)은 설치할 때 폰에 맞게 고칩니다."),
       h("li", {}, "처음에 화면이 멈춘 듯하면 한 번 탭하세요 — 소리 재생 허락을 기다리는 중입니다."),
       h("li", {}, "Node.js·Steam 기능을 직접 쓰는 일부 게임, Enigma Virtual Box 로 묶은 exe 는 실행할 수 없어요.")),

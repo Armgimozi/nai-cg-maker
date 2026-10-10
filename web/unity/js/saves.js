@@ -207,14 +207,16 @@ export async function gameStorageKey(game, key) {
 /**
  * 티라노스크립트 PC판 세이브(.sav) 가져오기. 파일 이름이 localStorage 키(<projectID>_tyrano_data 등)이고
  * 내용은 브라우저판과 같은 escape(JSON) 문자열이다(썸네일은 빼고 넣는다).
- * @returns {{written:number, bad:string[], full:string[]}} bad = 형식이 아님, full = 저장 공간 부족
+ * @returns {{written:number, bad:string[], full:string[], mismatch:string[]}}
+ *          bad = 형식이 아님, full = 저장 공간 부족, mismatch = 다른 게임(projectID)의 세이브
  */
 export async function importTyranoSav(game, fileList) {
   let written = 0;
-  const bad = [], full = [];
+  const bad = [], full = [], mismatch = [];
   for (const f of fileList) {
-    const m = /^(.+_(sf|tyrano_data|tyrano_quick_save|tyrano_auto_save))\.sav$/.exec(f.name);
+    const m = /^((.+)_(sf|tyrano_data|tyrano_quick_save|tyrano_auto_save))\.sav$/.exec(f.name);
     if (!m) { bad.push(f.name); continue; }
+    if (game.tyranoProjectID != null && m[2] !== game.tyranoProjectID) { mismatch.push(f.name); continue; }
     const text = (await f.text()).trim();
     try { JSON.parse(unescape(text)); } catch { bad.push(f.name); continue; }
     try {
@@ -222,7 +224,7 @@ export async function importTyranoSav(game, fileList) {
       written++;
     } catch { full.push(f.name); }
   }
-  return { written, bad, full };
+  return { written, bad, full, mismatch };
 }
 
 /** 이 게임의 세이브를 모두 지운다. */

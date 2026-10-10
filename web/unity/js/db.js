@@ -122,7 +122,8 @@ export async function globalDefaults() {
 /** 게임 종류별 기본값. 티라노스크립트는 스스로 화면 크기를 맞추고(DOM 기반) 캔버스를 효과용으로만 쓰므로
  *  UniPlay 가 캔버스를 옮기면 오히려 화면이 깨진다 → "손대지 않음"이 기본. */
 export const KIND_DEFAULTS = {
-  tyrano: { fit: "original" },
+  // 터치→마우스·터치패드로 바꾸면 엔진의 스와이프·두 번 탭 같은 터치 동작을 잃는다
+  tyrano: { fit: "original", touch: "direct" },
 };
 
 /** 전역 기본값 + 종류별 기본값 + 가져올 때 감지한 값(세로 게임 등) + 게임별 설정을 합친 실효 설정.

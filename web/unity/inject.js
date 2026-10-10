@@ -122,6 +122,18 @@
     };
   }
 
+  /* ───── localStorage 가득 참 알림 ───── */
+  // 티라노스크립트 등은 이 오류를 삼키고 "저장했다"고 보여 준다 → 플레이어가 대신 알린다(게임별 분리를 꺼도)
+  try {
+    var origSetItem = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (k, v) {
+      try { return origSetItem.apply(this, arguments); } catch (e) {
+        if (e && (e.name === "QuotaExceededError" || /quota/i.test(e.message || ""))) call("onStorageFull", String(k), String(v).length);
+        throw e;
+      }
+    };
+  } catch (e) { /* 무시 */ }
+
   /* ───── 게임별 localStorage ───── */
   if (gameId && S.isolateStorage !== false) {
     try {
@@ -134,13 +146,7 @@
       };
       var store = {
         getItem: function (k) { return real.getItem(P + k); },
-        setItem: function (k, v) {
-          try { real.setItem(P + k, String(v)); } catch (e) {
-            // 티라노스크립트 등은 이 오류를 삼키고 "저장했다"고 보여 준다 → 플레이어가 대신 알린다
-            if (e && (e.name === "QuotaExceededError" || /quota/i.test(e.message || ""))) call("onStorageFull", k, String(v).length);
-            throw e;
-          }
-        },
+        setItem: function (k, v) { real.setItem(P + k, String(v)); },
         removeItem: function (k) { real.removeItem(P + k); },
         clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
         key: function (i) { var l = keys(); return i < l.length ? l[i] : null; },
@@ -566,7 +572,7 @@
         if (type === BU && fn && wrapped.has(fn)) return remove.call(this, type, wrapped.get(fn), opt);
         return remove.apply(this, arguments);
       };
-      Object.defineProperty(window, "onbeforeunload", {
+      var accessor = {
         configurable: true,
         get: function () { return propFn; },
         set: function (fn) {
@@ -575,8 +581,20 @@
           propWrapped = propFn ? tame(propFn) : null;
           if (propWrapped) add.call(window, BU, propWrapped);
         },
+      };
+      Object.defineProperty(window, "onbeforeunload", accessor);
+      // document.body.onbeforeunload = … 은 window 의 처리기를 바로 바꾸므로 같은 길로 돌린다
+      [window.HTMLBodyElement, window.HTMLFrameSetElement].forEach(function (C) {
+        if (C) Object.defineProperty(C.prototype, "onbeforeunload", accessor);
       });
     } catch (e) { /* 무시 */ }
+    // <body onbeforeunload="…"> 속성: 지우고(처리기 해제) 같은 코드를 길들인 처리기로 다시 단다
+    document.addEventListener("DOMContentLoaded", function () {
+      var b = document.body, code = b && b.getAttribute("onbeforeunload");
+      if (!code) return;
+      b.removeAttribute("onbeforeunload");
+      try { window.onbeforeunload = new Function("event", code); } catch (e) { /* 무시 */ }
+    });
   })();
 
   /* ───── 티라노스크립트 ───── */
@@ -585,9 +603,55 @@
     var t = e.target, v = t && t.tagName === "SOURCE" ? t.parentNode : t;
     if (!v || v.tagName !== "VIDEO" || !window.TYRANO || !v.closest || !v.closest("#tyrano_base, .tyrano_base")) return;
     if (t !== v && t.nextElementSibling && t.nextElementSibling.tagName === "SOURCE") return; // 다음 후보가 있음
+    if (v.__uniplaySkipped) return;
+    v.__uniplaySkipped = true;
     call("log", "warn", "동영상을 재생할 수 없어 건너뜁니다: " + (v.currentSrc || v.src || (t && t.src) || ""));
-    setTimeout(function () { v.dispatchEvent(new Event("ended")); }, 0);
+    // [bgmovie] 대기열: 끝난 영상의 ended 처리기는 대기열(video_stack)이 남아 있으면 다음 영상을 또 만든다.
+    // 대기 중이던 영상(아직 id 가 bgmovie 가 아님)이 실패하면 대기열을 비워 같은 실패가 끝없이 반복되지 않게 한다.
+    var st = window.TYRANO && TYRANO.kag && TYRANO.kag.stat;
+    var queued = v.id !== "bgmovie";
+    if (st && st.video_stack && queued) st.video_stack = null;
+    setTimeout(function () {
+      v.dispatchEvent(new Event("ended"));
+      if (queued && v.parentNode) v.parentNode.removeChild(v);
+    }, 0);
   }, true);
+  // 폰에서 티라노는 $.fn.click 을 tap 으로 바꿔(터치 전용) 대사 넘기기·버튼 처리기가 "tap" 이벤트에만 붙는다.
+  // 그래서 엔진 자신의 Enter·게임패드 "다음"($(".layer_event_click").trigger("click"))과 UniPlay 의
+  // 마우스 입력(터치→마우스·터치패드·가상 패드의 클릭)이 아무것도 못 한다 → tap 처리기로 이어 준다.
+  function tapOnly(el) {
+    var jq = window.jQuery, ev = jq && jq._data && jq._data(el, "events");
+    return !!(ev && ev.tap && ev.tap.length && !(ev.click && ev.click.length));
+  }
+  function tyranoTapMode() {
+    var jq = window.jQuery;
+    return !!(window.TYRANO && jq && jq.fn && jq.fn.tap && jq.fn.click === jq.fn.tap);
+  }
+  function inTouchEnd() { var e = window.event; return !!(e && e.type === "touchend"); } // 진짜 탭은 엔진이 직접 tap 을 부른다
+  var tapHooked = false;
+  function hookTyranoTap() {
+    if (tapHooked || !tyranoTapMode()) return;
+    tapHooked = true;
+    var jq = window.jQuery, origTrigger = jq.fn.trigger;
+    jq.fn.trigger = function (ev) {
+      var type = typeof ev === "string" ? ev : ev && ev.type;
+      var r = origTrigger.apply(this, arguments);
+      if (type === "click" && !inTouchEnd()) {
+        this.each(function () { if (tapOnly(this)) origTrigger.call(jq(this), "tap"); });
+      }
+      return r;
+    };
+  }
+  document.addEventListener("click", function (e) {
+    // jQuery 의 trigger("click") 도 기본 동작으로 elem.click() 을 불러 여기로 오는데, 그쪽은 위 trigger 가 처리한다
+    if (e.isTrusted || !tyranoTapMode() || inTouchEnd() || window.jQuery.event.triggered === "click") return;
+    for (var el = e.target; el && el !== document; el = el.parentNode) {
+      if (el.nodeType === 1 && tapOnly(el)) { window.jQuery(el).trigger("tap"); return; }
+    }
+  }, true);
+  var tapTimer = setInterval(function () { hookTyranoTap(); if (tapHooked) clearInterval(tapTimer); }, 300);
+  setTimeout(function () { clearInterval(tapTimer); }, 60000);
+
   // 엔진은 100ms 안에 연달아 온 resize 를 버려서 회전·전체화면 직후 크기가 어긋날 수 있다 → 잠시 뒤 한 번 더
   var nudge = 0;
   window.addEventListener("resize", function (e) {

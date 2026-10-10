@@ -713,6 +713,8 @@ async function exitGame() {
   const back = history.length - baseHistoryLength + 1;
   if (fromLibrary && back >= 1 && back < history.length) history.go(-back);
   else location.replace("./");
+  // 게임이 "페이지를 나갈까요?" 로 막아 사용자가 머물기를 고르면 여기 남는다 → 다시 나갈 수 있게
+  setTimeout(() => { leaving = false; loading.hidden = true; }, 4000);
 }
 
 start();

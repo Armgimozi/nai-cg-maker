@@ -216,7 +216,9 @@ export function patchTyranoConfig(text, cfg = tyranoConfig(text), engine = { sca
     out = setTyranoConfigLine(out, "ScreenRatio", "fix");
     notes.push("화면 크기 맞춤(ScreenRatio)이 꺼져 있어 폰 화면에 맞도록 켰습니다.");
   }
-  if (cfg.configThumbnail !== "false" && !engine.scale) {
+  if (cfg.configThumbnail !== "false" && !engine.scale && engine.thumbOff === false) {
+    // 2014년 이전 엔진은 썸네일을 끄는 설정도 없다 → 손대지 않는다
+  } else if (cfg.configThumbnail !== "false" && !engine.scale) {
     // 2022년 8월 이전 엔진(V4·초기 V5)은 썸네일 크기를 줄일 수 없다(V4.50 이하는 화질 설정도 없음 = 원본 PNG)
     // → 슬롯 하나가 수백 KB~수 MB 라 몇 번 저장하면 저장소가 찬다 → 썸네일을 끈다
     out = setTyranoConfigLine(out, "configThumbnail", "false");
@@ -272,15 +274,16 @@ async function tyranoCompat(entries, dir) {
   return notes;
 }
 
-/** 이 엔진이 썸네일 크기·화질 설정을 읽는지(2022-08 이후 configThumbnailScale, V4.55 이후 configThumbnailQuality).
+/** 이 엔진이 썸네일 크기·화질·끄기 설정을 읽는지(2022-08 이후 configThumbnailScale, V4.55 이후 configThumbnailQuality,
+ *  2014-05 이후 configThumbnail).
  *  kag.menu.js 를 못 찾으면(합쳐서 압축한 빌드 등) 읽는다고 본다. */
 async function tyranoEngineSupport(entries, dir) {
   const m = entries.find((e) => e.path === (dir ? dir + "/" : "") + "tyrano/plugins/kag/kag.menu.js");
-  if (!m || m.size > 4 << 20) return { scale: true, quality: true };
+  if (!m || m.size > 4 << 20) return { scale: true, quality: true, thumbOff: true };
   try {
     const t = await readText(m);
-    return { scale: t.includes("configThumbnailScale"), quality: t.includes("configThumbnailQuality") };
-  } catch { return { scale: true, quality: true }; }
+    return { scale: t.includes("configThumbnailScale"), quality: t.includes("configThumbnailQuality"), thumbOff: t.includes("configThumbnail") };
+  } catch { return { scale: true, quality: true, thumbOff: true }; }
 }
 
 /** readme.txt 첫 줄의 엔진 버전("…Ver6.00（C）ShikemokuMK") */
@@ -614,7 +617,8 @@ export async function analyze(allEntries, sourceName = "", ctx = {}) {
         if (patched.text !== text) plan.overrides.set(relTo(dir, tjs.path), patched.text);
         warnings.push(...patched.notes, ...(await tyranoCompat(entries, dir)));
         // projectID 줄이 없으면 엔진 기본값 tyranoproject 로 저장된다(kag.js)
-        plan.seedStorage = await tyranoPcSaves(ctx.outer || entries, cfg.projectID ?? "tyranoproject");
+        plan.tyranoProjectID = cfg.projectID ?? "tyranoproject";
+        plan.seedStorage = await tyranoPcSaves(ctx.outer || entries, plan.tyranoProjectID);
         const n = Object.keys(plan.seedStorage).length;
         if (n) warnings.push(`PC판 세이브 파일 ${n}개를 찾았습니다. 설치하면 이어서 플레이할 수 있어요(세이브 목록의 썸네일 그림은 빠집니다).`);
         break;
@@ -879,6 +883,7 @@ export async function install(plan, opt = {}) {
       playSeconds: 0,
       settings: opt.settings || {},
       autoSettings: plan.autoSettings || {},
+      ...(plan.tyranoProjectID != null ? { tyranoProjectID: plan.tyranoProjectID } : {}),
       idbfsPrefix: null,
       sourceName: plan.sourceName || "",
       warnings: plan.warnings || [],

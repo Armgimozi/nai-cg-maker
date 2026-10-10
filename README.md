@@ -106,14 +106,17 @@ IL2CPP 빌드는 코드가 PC용 기계어(네이티브 코드)라 디컴파일�
   `;System.title`, 엔진 버전은 `readme.txt`, 세로 게임(`scHeight > scWidth`)은 세로 고정
 - PC판 포장 풀기 (`js/asar.js`, `js/zip.js`): Electron `resources/app.asar`(+`app.asar.unpacked`)·`resources/app/`,
   NW.js `package.nw`/`app.nw`(zip), `copy /b nw.exe+app.nw 게임.exe` 처럼 **exe 뒤에 붙은 zip**, 맥 `.app/Contents/Resources/`.
-  게임 폴더 zip 이 가장 확실하고, `app.asar`·`게임.exe`·`package.nw` 파일 하나만 골라도 됩니다
+  게임 폴더 zip 이 가장 확실하고, 용량이 크면 `app.asar` 하나만 골라도 됩니다(옛 NW.js 판은 `package.nw`·`게임.exe` 하나)
 - 브라우저에서 깨지는 PC판 설정을 설치할 때 고침(`Config.tjs`): `configSave = file`(Node.js 파일 세이브 → 시작도 못 함)
   → `webstorage`, `ScreenRatio = default`(폰에서 화면 잘림) → `fix`, PNG 원본 크기 세이브 썸네일 → JPEG·가로 480px 이하
-- **PC판 세이브 이어하기**: exe 옆의 `<projectID>_tyrano_data.sav`·`_sf.sav` 는 브라우저판 저장 값과 같은 형식이라
-  게임 폴더째 넣으면 자동으로, 나중에는 세이브 메뉴의 '백업 파일에서 복원'으로 넣을 수 있음
+- **PC판 세이브 이어하기**: 파일 세이브(`configSave = file`)를 쓰는 게임은 exe 옆(맥은 `~/_TyranoGameData`)의
+  `<projectID>_tyrano_data.sav`·`_sf.sav` 가 브라우저판 저장 값과 같은 형식이라 게임 폴더째 넣으면 자동으로,
+  나중에는 세이브 메뉴의 '백업 파일에서 복원'으로 넣을 수 있음(원본 크기 썸네일은 빼고 넣음). 이 파일이 없는 게임은
+  세이브가 PC 앱 내부 저장소(Electron/NW.js 의 Local Storage)에 있어 옮길 수 없음
 - 실행 중 보정(`inject.js`): 첫 BGM 이 탭을 기다리며 멈춰 보일 때 "탭하면 시작" 안내, 아이폰이 `.ogg` 대신 찾는
   `.m4a` 가 없으면 서비스워커가 다른 형식으로 대신 응답, 재생 못 하는 동영상(.ogv 등)은 건너뜀, 게임의 '종료' 버튼 →
-  라이브러리, "페이지를 나갈까요?" 확인창 끄기, 회전 뒤 화면 크기 다시 맞춤, 가상 게임패드(`useGamepad`) 인식
+  라이브러리, "페이지를 나갈까요?" 확인창 끄기, 회전 뒤 화면 크기 다시 맞춤, 가상 게임패드(`useGamepad`) 인식,
+  폰 모드 엔진이 터치(tap)에만 반응해 Enter·게임패드·마우스 입력으로는 대사가 안 넘어가던 문제 연결
 - 못 하는 것: Node.js·Steam 을 직접 부르는 플러그인(가져올 때 경고), Enigma Virtual Box 로 묶은 exe, 보호(변형)된 asar
 
 **플레이 중** (왼쪽 위 ≡ 또는 뒤로 가기 → 메뉴)
