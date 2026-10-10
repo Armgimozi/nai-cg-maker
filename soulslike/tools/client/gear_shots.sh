@@ -13,6 +13,8 @@
 #   tooltip_test_parry         시험 반지: 효과 줄 "패링 창 +0.10초" 와 설명뿐 (무게가 없어 무게 줄도 없다)
 # 그리고 레벨 올리기 창: 근력 +3 을 더한 미리보기 (levelup_str: 공격력 a → b) 와 근력 단추의 설명 칸 (levelup_str_tip: 한 점의 공격력 변화).
 # 시험 줄이 그림에 남지 않게 MC_OPTIONS="chatScale:0.0" 로 켠 클라이언트에서 찍는다. 영어는 MC_LANG=en_us 와 SUFFIX=_en.
+# ONLY=levelup 이면 레벨 올리기 창만. 근력 단추의 화면 높이는 TIP_Y (기본: 1080 이면 704, 720 이면 459. 창 본문이 위에서부터 놓여
+# 화면 높이에 따라 단추 줄이 옮겨 간다: 실제 화면에서 잰 값)
 set -u
 R=$(cd "$(dirname "$0")/../.." && pwd)
 PORT=$1; SRV=$2; P=$3; shift 3
@@ -43,7 +45,10 @@ home
 do_ slot:1 "cmd:/soulstest give redin_guard_sword main" "cmd:/soulstest give pilgrim_buckler off" "cmd:/soulstest heal" wait:1.5 clearchat wait:0.5
 # 인벤토리 판의 왼쪽 위 (GUI): 가운데 - 88, - 83. 소지품 첫 칸의 아이템 (8, 84)
 L=$((CX - 88*G)); T=$((CY - 83*G))
+ONLY=${ONLY:-}
+TIP_Y=${TIP_Y:-$(( H >= 1080 ? 704 : 459 ))}
 tip() {
+  [ "$ONLY" = levelup ] && return 0
   local name=$1; shift
   con item replace entity Tester inventory.0 with minecraft:air
   do_ "cmd:$*" wait:1 key:e wait:1 move:$((L + 16*G)):$((T + 92*G)) wait:0.8 shot:${P}tooltip_${name}${X} key:Escape wait:0.5
@@ -55,13 +60,13 @@ tip kiln_pot /soulstest give kiln_pot
 tip parrying_dagger /soulstest give parrying_dagger
 tip test_parry /soulstest ring give test_parry
 con item replace entity Tester inventory.0 with minecraft:air
-# 레벨 올리기 창: 근력 +3 (공격력의 미리보기), 그다음 근력 단추의 설명 칸 (단추 자리는 GUI: 가운데 + 75, 위에서 153)
+# 레벨 올리기 창: 근력 +3 (공격력의 미리보기), 그다음 근력 단추의 설명 칸 (단추 자리: 가로는 가운데 + 75 GUI, 세로는 TIP_Y)
 tst souls 25000
 tst rest
 tst press rest levelup
 tst levelup str 3
 do_ wait:2 move:$((CX)):$((H - 20)) wait:0.8 shot:${P}levelup_str${X}
-do_ move:$((CX + 75*G)):$((153*G)) wait:1.2 shot:${P}levelup_str_tip${X}
+do_ move:$((CX + 75*G)):$TIP_Y wait:1.2 shot:${P}levelup_str_tip${X}
 tst press levelup exit
 do_ wait:1 key:Escape wait:1
 tst souls 0
