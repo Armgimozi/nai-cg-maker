@@ -605,11 +605,14 @@
     if (t !== v && t.nextElementSibling && t.nextElementSibling.tagName === "SOURCE") return; // 다음 후보가 있음
     if (v.__uniplaySkipped) return;
     v.__uniplaySkipped = true;
+    var blend = v.classList && v.classList.contains("blendvideo"); // [layermode_movie]
+    // 반복 재생하는 [layermode_movie] 는 엔진이 이미 다음으로 넘어갔다(페이드인 때) → '끝남'을 보내면 한 줄을 건너뛴다
+    if (blend && v.loop) { call("log", "warn", "동영상을 재생할 수 없습니다: " + (v.currentSrc || v.src || "")); return; }
     call("log", "warn", "동영상을 재생할 수 없어 건너뜁니다: " + (v.currentSrc || v.src || (t && t.src) || ""));
     // [bgmovie] 대기열: 끝난 영상의 ended 처리기는 대기열(video_stack)이 남아 있으면 다음 영상을 또 만든다.
     // 대기 중이던 영상(아직 id 가 bgmovie 가 아님)이 실패하면 대기열을 비워 같은 실패가 끝없이 반복되지 않게 한다.
     var st = window.TYRANO && TYRANO.kag && TYRANO.kag.stat;
-    var queued = v.id !== "bgmovie";
+    var queued = !v.id && !blend; // id 없는 <video> = [bgmovie] 대기열에서 만든 다음 영상
     if (st && st.video_stack && queued) st.video_stack = null;
     setTimeout(function () {
       v.dispatchEvent(new Event("ended"));

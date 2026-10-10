@@ -70,7 +70,7 @@ const host = (window.UniPlayHost = {
   onGameClose() { exitGame(); },
   /** 브라우저 저장소(localStorage)가 가득 차 세이브를 못 씀 — 게임이 알리지 않을 수 있어 대신 알린다 */
   onStorageFull(key, size) {
-    host.log("error", `세이브 실패(저장 공간 부족): ${key} · ${Math.round(size / 1024)}KB`);
+    host.log("error", `세이브 실패(저장 공간 부족): ${String(key).replace(/^uniplay:[^:]*:/, "")} · ${Math.round(size / 1024)}KB`);
     const now = Date.now();
     if (now - (host.lastFullToast || 0) < 15000) return;
     host.lastFullToast = now;

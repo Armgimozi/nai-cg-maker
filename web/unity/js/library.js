@@ -1,9 +1,9 @@
 /* 라이브러리 화면: 게임 목록 · 가져오기 · 게임별 설정 · 세이브 백업 · 전역 설정 · 도움말. */
 
 import {
-  games, files as fileStore, kv, deleteGame, globalDefaults, effectiveSettings, formatBytes,
+  games, files as fileStore, kv, deleteGame, globalDefaults, effectiveSettings, formatBytes, gameFileURL,
 } from "./db.js";
-import { entriesFromFile, entriesFromFiles, analyze, install, ImportError } from "./importer.js";
+import { entriesFromFile, entriesFromFiles, analyze, install, ImportError, tyranoConfig } from "./importer.js";
 import { saveSummary, exportSave, importSave, importTyranoSav, deleteSave, idbfsGroups } from "./saves.js";
 import { PRESETS, autoPreset } from "./keys.js";
 import { showPortingReport } from "./porting.js";
@@ -478,6 +478,16 @@ async function restoreTyranoSav(g, list, s) {
   }
   const ok = await confirmBox("PC판 세이브 가져오기", "같은 이름의 세이브를 덮어씁니다. 게임이 실행 중이면 끄고 진행하세요.", "가져오기");
   if (!ok) return;
+  if (g.tyranoProjectID == null) {
+    try {
+      const dir = g.entry.includes("/") ? g.entry.slice(0, g.entry.lastIndexOf("/") + 1) : "";
+      const res = await caches.match(gameFileURL(g.id, `${dir}data/system/Config.tjs`));
+      if (res) {
+        g.tyranoProjectID = tyranoConfig(await res.text()).projectID ?? "tyranoproject";
+        await games.patch(g.id, { tyranoProjectID: g.tyranoProjectID });
+      }
+    } catch { /* 모르면 이름 검사 없이 넣는다 */ }
+  }
   let r;
   try { r = await importTyranoSav(g, list.filter((x) => /\.sav$/i.test(x.name))); } catch (e) {
     return dialog({ title: "복원 실패", body: e.message || String(e) });
