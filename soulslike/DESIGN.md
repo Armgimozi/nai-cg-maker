@@ -951,7 +951,7 @@ ember_toss:
 - 보통은 1.2판 문서의 수치 그대로다 (다크 소울 1 쯤). 구르기 (무적·비용) 와 스태미나, 피격 대기열 (핑 보정) 은 어느 난이도에서나 같다: 조작의 느낌은 바꾸지 않고 적의 무게만 바꾼다.
 - 아주 어려움도 동시에 노리는 적은 둘이다 (6.3 의 공정함 규칙 "둘을 넘지 않는다", 검토 vh-tokens). 소울 배율은 모두 1 이다: 어려운 판이 레벨을 더 빨리 올려 어려움을 깎지 않게 (검토 souls-bonus). 배율은 남겨 두어 나중에 바꿀 수 있다.
 - 쳐내기 보너스는 적의 공격에만 붙는다. PvP 의 쳐내기는 도구·반지의 기본 창만 쓴다 (같은 결투가 세계 난이도에 따라 달라지지 않게, 검토 pvp-parry-bonus, 3.5).
-- 단추 글 (아래 창) 은 이름과 흐린 한 줄: 쉬움 "적이 약하고 에스트가 넉넉하다", 보통 "처음 맞춘 세기", 어려움 "적이 세고 쳐내기가 빠듯하다", 아주 어려움 "적이 아주 세고 에스트가 적다" (`difficulty.<id>.name`·`.desc`). 1.3판 초안의 내력 글 ("불이 아직 따뜻하다" …) 은 이야기가 정해진 뒤로 미룬다. 배율은 단추의 설명 칸 두 줄 (`difficulty.summary`): "적 피해 ×0.7 · 적 HP ×0.8 / 쳐내기 +2틱 · 에스트 5".
+- 단추 글 (아래 창) 은 이름과 흐린 한 줄: 쉬움 "적이 약하고 에스트가 넉넉하다", 보통 "처음 맞춘 세기", 어려움 "적이 세고 잘 버틴다", 아주 어려움 "적이 아주 세고 에스트가 적다" (`difficulty.<id>.name`·`.desc`). 1.3판 초안의 내력 글 ("불이 아직 따뜻하다" …) 은 이야기가 정해진 뒤로 미룬다. 배율은 단추의 설명 칸 두 줄 (`difficulty.summary`): "적 피해 ×0.7 · 적 HP ×0.8 / 쳐내기 +2틱 · 에스트 5".
 - 바꾼 난이도는 곧바로 듣는 것 (적 피해, 쳐내기 창) 과 다음에 듣는 것 (적 체력·강인도는 새로 생기는 적부터, 쉬면 모두 되살아나므로 그때 모두. 에스트 횟수는 다음 휴식) 이 있다.
 
 **PvP**
@@ -996,7 +996,7 @@ ember_toss:
         [■] PvP                                   (bool 체크 칸, 처음은 지금 값)
    [ 쉬움 — 적이 약하고 에스트가 넉넉하다 ]         (단추 폭 250. 가리키면 배율 두 줄)
    [ 보통 — 처음 맞춘 세기 (처음이라면) ]
-   [ 어려움 — 적이 세고 쳐내기가 빠듯하다 ]
+   [ 어려움 — 적이 세고 잘 버틴다 ]
    [ 아주 어려움 — 적이 아주 세고 에스트가 적다 ]
                            [ 나중에 정한다 ]       (나가기 동작 = Esc)
 ```
@@ -2356,7 +2356,7 @@ y 10                [두르크: 모루 옥좌 B6]  <---- h 용암 굴 ---->  [�
 | 세계 설정 창 | `start.title` / `start.body` / `start.pvp-hit` / `start.pvp-sweep` | 세계를 정한다 / 이 세계에 한 번 정한다. 관리자는 나중에 바꿀 수 있다. / 켜면 다른 사람을 벨 수 있다. / 함께 싸울 때 휘두른 칼도 맞는다. | Terms of This World / Set once for this world. An admin may alter it. / If set, the living may strike one another. / Sweeps and rites strike allies too. | 창 (5.7). 본문 셋째·넷째 줄은 흐리게 |
 | 세계 설정 체크 칸·단추 | `start.pvp` / `start.choice` / `start.choice-default` / `start.later` (자리 `<name> <desc>`) | PvP / <name> — <desc> / <name> — <desc> (처음이라면) / 나중에 정한다 | PvP / <name> — <desc> / <name> — <desc> (first time) / Decide Later | 체크 칸, 난이도 단추 (폭 250), 나가기 동작 |
 | 난이도 이름 | `difficulty.easy.name` / `difficulty.normal.name` / `difficulty.hard.name` / `difficulty.very_hard.name` | 쉬움 / 보통 / 어려움 / 아주 어려움 | Easy / Normal / Hard / Very Hard | 단추, 알림 안의 자리 |
-| 난이도 한 줄 | `difficulty.easy.desc` / `difficulty.normal.desc` / `difficulty.hard.desc` / `difficulty.very_hard.desc` | 적이 약하고 에스트가 넉넉하다 / 처음 맞춘 세기 / 적이 세고 쳐내기가 빠듯하다 / 적이 아주 세고 에스트가 적다 | Weaker foes, more Estus / As the game was tuned / Stronger foes, tighter parries / Far stronger foes, less Estus | 단추, 흐린 회색. 내력 글은 이야기가 정해진 뒤 |
+| 난이도 한 줄 | `difficulty.easy.desc` / `difficulty.normal.desc` / `difficulty.hard.desc` / `difficulty.very_hard.desc` | 적이 약하고 에스트가 넉넉하다 / 처음 맞춘 세기 / 적이 세고 잘 버틴다 / 적이 아주 세고 에스트가 적다 | Weaker foes, more Estus / As the game was tuned / Stronger foes, tighter parries / Far stronger foes, less Estus | 단추, 흐린 회색. 내력 글은 이야기가 정해진 뒤 |
 | 난이도 배율 | `difficulty.summary` (자리 `<damage> <health> <parry> <estus>`) | 적 피해 ×<damage> · 적 HP ×<health> ⏎ 쳐내기 <parry>틱 · 에스트 <estus> | Foe harm ×<damage> · Foe HP ×<health> ⏎ Parry <parry> ticks · Estus <estus> | 난이도 단추의 설명 칸 (두 줄) |
 | PvP 켬·끔 | `pvp.on` / `pvp.off` | PvP 켬 / PvP 끔 | PvP on / PvP off | 알림 안의 자리 |
 | 이 세계 알림 | `start.notice` (자리 `<difficulty> <pvp>`) | 이 세계: <difficulty> · <pvp> | This world: <difficulty> · <pvp> | 채팅 (출신 창 앞) |
@@ -2952,15 +2952,21 @@ Node TCP 프록시(`tools/bots/lagproxy.js`)가 봇과 서버 사이에 왕복 0
 
 - 서버가 정한 틱에 때리는 판정 (`rollhit`) 과, 구르기 입력과 피해 명령을 같은 길로 차례로 보내는 판정은 서버가 처리하는 차례가 지연과 상관없어 지연으로는 실패할 수 없다. 지연 판에서 이것들은 연기 시험일 뿐이다.
 - 지연에 따라 달라지는 것은 `/soulstest warn k` 다: 서버가 "[T] WARN" 줄을 보내고 k 틱 뒤에 때리며, 봇은 그 줄을 받은 순간 웅크리기 키를 누르고 2 클라이언트 틱 뒤 뗀다 (`roll-key: f` 판은 F). `roll_iframes.js` 는 구르기 입력 가 서버에 닿는 늦음이 왕복 지연만큼 커지는지 판정하고, 피한 비율을 `SCREENDODGE` 줄로 남긴다. `run_tests.sh` 가 지연별로 모아 보인다 (`screen_dodge`). M0 에는 대기열이 없어 지연이 길면 비율이 준다. 이것이 M1 대기열의 기준선이고, M1 에서 세 지연의 비율이 같은 범위인지를 관문으로 바꾼다.
-- **짧은 누름의 늦음 (구르기 입력이 웅크리기 키로 바뀌며 더해진 것, 3.3):** 봇이 누름·뗌을 보낸 클라이언트 틱과 서버의 `ROLL_TAP held=<n> press=<P> t=<R>` 를 견준다. 고른 지연에서는 `held` 가 보낸 틱 수와 같아야 한다 (0/60/120ms 모두, 20번씩 2틱 누름 → `held=2` 가 20번, 구르기 20번). 10틱 누름 20번은 구르기 0번. 핑 120 에서는 창이 6틱이라 6틱 누름도 구른다 (`lag-extra-ticks`). `run_tests.sh` 가 지연별로 `TAPLAT rtt=… held_ok=…/20 roll=…/20 hold_roll=0/20` 을 모아 보인다 (판정은 `tools/bots/taplat.js` 가 한다: 2틱 누름 20번이 모두 구르고 `held` 1~3 이 19번 이상·2 가 14번 이상, 10틱 누름은 0번, 핑 120 의 창 6틱, 모든 누름에서 held ≤ window ⇔ 구름, 누름 → 구르기 ≈ 누른 시간 + 왕복 지연). 잰 값 (1.3판, 두 번 돌림): 2틱 누름 20번이 0 / 60ms 에서 `held=2` 20번, 120ms 에서 19~20번 (한 번은 1: 봇 타이머가 틱 경계에 걸림), 구르기는 셋 모두 20번, 10틱 누름 구르기 0번, 120ms 에서 창 6 과 6틱 누름 10번 모두 구름. 봇 시각으로 누름 → `ROLL` 줄 107~110 / 167~168 / 227~228 ms (= 누른 100ms + 왕복 지연 + 약 10ms). F 판과 견주면 웅크리기 짧게는 누른 시간만큼 늦다 (`rollkey.js`: 80ms 누름 92 ms, F 10 ms).
+- **짧은 누름의 늦음 (구르기 입력이 웅크리기 키로 바뀌며 더해진 것, 3.3):** 봇이 누름·뗌을 보낸 클라이언트 틱과 서버의 `ROLL_TAP held=<n> press=<P> t=<R>` 를 견준다. 고른 지연에서는 `held` 가 보낸 틱 수와 같아야 한다 (0/60/120ms 모두, 20번씩 2틱 누름 → `held=2` 가 20번, 구르기 20번). 10틱 누름 20번은 구르기 0번. 핑 120 에서는 창이 6틱이라 6틱 누름도 구른다 (`lag-extra-ticks`). `run_tests.sh` 가 지연별로 `TAPLAT rtt=… held_ok=…/20 roll=…/20 hold_roll=0/20` 을 모아 보인다 (판정은 `tools/bots/taplat.js` 가 한다: 2틱 누름 20번이 모두 구르고 `held` 1~3 이 19번 이상·2 가 14번 이상, 10틱 누름은 0번, 핑 120 의 창 6틱, 모든 누름에서 held ≤ window ⇔ 구름, 누름 → 구르기 ≈ 누른 시간 + 왕복 지연). 잰 값 (1.3판, 두 번 돌림): 2틱 누름 20번이 0 / 60ms 에서 `held=2` 20번, 120ms 에서 19번 (나머지 한 번은 1 또는 3: 봇 타이머가 틱 경계에 걸림), 구르기는 셋 모두 20번, 10틱 누름 구르기 0번, 120ms 에서 창 6 과 6틱 누름 10번 모두 구름. 봇 시각으로 누름 → `ROLL` 줄 107~110 / 167~168 / 227~228 ms (= 누른 100ms + 왕복 지연 + 약 10ms). F 판과 견주면 웅크리기 짧게는 누른 시간만큼 늦다 (`rollkey.js`: 80ms 누름 92 ms, F 10 ms).
 - 사람의 짧은 누름 길이는 실제 클라이언트에서 잰다 (13.4 의 16): xdotool 로 0.08·0.12·0.20초 누르기 → 서버의 `held` 분포. 사람이 손가락으로 누른 길이 (사용자가 M1 에서 열 번) 도 `ROLL_TAP` 줄로 기록에 남긴다 (13.5). 기대값: 사람의 짧은 누름 70~150ms 는 `held` 1~3, 그래서 키를 누른 때부터 구르기 0틱까지 F 판보다 50~150ms 늦다. 이 표를 이 절에 적는다 (구현 뒤):
 
-  | 누른 길이 | 서버 `held` (0ms) | 구르기 | 60ms | 120ms |
+  | 누른 길이 (xdotool) | 서버 `held` (0ms, 다섯 번) | 구르기 | 60ms | 120ms |
   |---|---|---|---|---|
-  | 0.08초 | (잴 것) | | | |
-  | 0.12초 | | | | |
-  | 0.20초 | | | | |
-  | 0.30초 (긴 누름) | | 구르지 않아야 한다 | | |
+  | 0.08초 | 3, 4, 3, 3, 3 | 5/5 | (봇: `held` 가 지연과 상관없다) | (봇: 창 6틱) |
+  | 0.12초 | 3, 5, 5, 3, 4 | 5/5 | | |
+  | 0.20초 | 7, 6, 5, 4, 6 | 2/5 | | |
+  | 0.30초 (긴 누름) | 7, 7, 6, 7, 8 | 0/5 (구르지 않아야 한다: 맞다) | | |
+
+  잰 것 (1.3판 검증): 이 표의 실제 클라이언트는 가상 화면의 소프트웨어 렌더 (llvmpipe, 약 17 FPS) 라 키를 그림 한 장마다 읽어 서버의 `held` 가
+  누른 시간보다 약 2틱 길다 (0.08초 → 3틱). 그래서 0.12초 누름이 창 5틱의 끝에 걸리고 0.20초는 절반쯤 웅크리기가 된다. 보통 컴퓨터 (60 FPS 이상)
+  는 봇 (0.10초 → 2틱) 에 가깝겠지만, 낮은 FPS 의 사람은 짧게 눌렀는데 구르지 않을 수 있다: 사용자가 손가락으로 눌러 보고 (13.6) 짧은 누름이
+  자주 빠지면 `controls.roll-tap.max-ticks` 를 6 (다크 소울의 약 0.3초) 으로 올린다. 지연 열은 봇 `taplat.js` 로 갈음한다 (고른 지연은 `held` 를
+  바꾸지 않는다, 120ms 는 창이 6틱).
 
 ### 13.4 실제 클라이언트 점검 (가상 화면에서 찍기)
 

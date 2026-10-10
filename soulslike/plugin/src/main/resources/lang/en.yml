@@ -284,7 +284,7 @@ difficulty:
     desc: "<#8f8164>As the game was tuned"
   hard:
     name: "<#d1c3a0>Hard"
-    desc: "<#8f8164>Stronger foes, tighter parries"
+    desc: "<#8f8164>Stronger, sturdier foes"
   very_hard:
     name: "<#d1c3a0>Very Hard"
     desc: "<#8f8164>Far stronger foes, less Estus"
