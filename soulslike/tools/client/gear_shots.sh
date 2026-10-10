@@ -8,11 +8,11 @@
 #   origin   출신 확인 창 (5.10): origin_confirm_warrior (양손 대검 공격력 123), origin_confirm_thief (단도 52, 패링 알림).
 #            찍은 뒤 빈털터리로 되돌리고 꾸밈을 다시 한다
 #   tips     소지품 첫 칸에 아이템 하나를 두고 마우스를 올려 설명 칸을 찍는다:
-#              tooltip_redin_guard_sword  직검: 공격력 · 무게 한 줄 (보정·필요 능력치 줄이 없다)
-#              tooltip_gaoler_greatsword  대검: 공격력 · 무게
+#              tooltip_redin_guard_sword  직검: 공격력과 무게 한 줄 (보정·필요 능력치 줄이 없다)
+#              tooltip_gaoler_greatsword  대검: 공격력과 무게
 #              tooltip_redin_guard_shield 중형 방패: 물리 컷률, 무게 (패링 창은 보이지 않는다)
 #              tooltip_kiln_pot           촉매: 술법 위력, 무게
-#              tooltip_parrying_dagger    패링 단검 (왼손 무기): 분류 줄 "패링 단검 · 찌르기", 공격력 · 무게
+#              tooltip_parrying_dagger    패링 단검 (왼손 무기): 분류 줄 "패링 단검 (찌르기)", 공격력과 무게
 #              tooltip_test_parry         시험 반지: 효과 줄 "패링 판정 +0.1초", 실선, 설명 (무게가 없어 무게 줄도 없다)
 #   levelup  레벨 업 창 (5.9): 근력 +3 (levelup_str: 공격력 a → b) 과 근력 단추의 설명 칸 (levelup_str_tip),
 #            민첩 +10 (levelup_dex: 공격 속도 0% → +10%) 과 민첩 단추 (levelup_dex_tip),

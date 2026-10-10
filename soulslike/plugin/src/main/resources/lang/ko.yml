@@ -357,7 +357,7 @@ start:
 
 difficulty:
   # 난이도 넷 (5.7). 이름은 단추, desc 는 단추 설명 칸의 첫 줄 (설정 창이라 존댓말). 지금 듣는 것 (적이 주는 피해, 적 체력) 만 적는다:
-  # 에스트·패링 창은 그 체계가 생기는 M1 에 보통과 다를 때만 더한다 (검토 difficulty-promises-unbuilt)
+  # 에스트·패링 판정은 그 체계가 생기는 M1 에 보통과 다를 때만 더한다 (검토 difficulty-promises-unbuilt)
   easy:
     name: "<#d1c3a0>쉬움"
     desc: "<#8f8164>적이 약합니다."
