@@ -108,9 +108,15 @@ public final class RingSlots implements Listener {
         return Rings.combine(ds);
     }
 
-    /** 스태미나 회복 배율 (combat/Stamina, 능력치 창의 회복 값). */
+    /** 스태미나 회복 배율 (combat/Stamina 가 틱마다, 능력치 창의 회복 값). 틱마다 불리므로 모으지 않고 바로 곱한다. */
     public double staminaRegen(Player p) {
-        return worn(p).staminaRegen();
+        Profile pr = plugin.profiles().of(p);
+        double m = 1.0;
+        for (int i = 0; i < Profile.RING_SLOTS; i++) {
+            Rings.Def d = def(pr.ring(i));
+            if (d != null) m *= d.staminaRegen();
+        }
+        return m;
     }
 
     /** 강인도 덧셈 비율 (0.4 = +40%). 고리: 강인도 체계 (3.8) 가 생기면 부른다. 지금은 부르는 곳이 없다. */
@@ -412,9 +418,15 @@ public final class RingSlots implements Listener {
         return true;
     }
 
-    /** 반지 칸 r 에 in 을 껴도 되나 (같은 반지 둘은 끼지 않는다). 안 되면 둔탁한 소리. */
+    /**
+     * 반지 칸 r 에 in 을 껴도 되나 (같은 반지 둘은 끼지 않는다). 안 되면 둔탁한 소리. 그 칸의 프로필에 rings.yml 에서 지운 반지 id 가
+     * 남아 있었으면 (칸에는 보이지 않는다) 그것을 덮어쓴다는 것을 서버 기록에 남긴다.
+     */
     private boolean wear(Player p, String[] worn, int r, Rings.Def in) {
         if (in == null) return false;
+        if (worn[r] != null && rings().get(worn[r]) == null) {
+            plugin.getLogger().warning(p.getName() + " 의 반지 칸 " + (r + 1) + " 에 남아 있던 모르는 반지 " + worn[r] + " 를 " + in.id() + " 로 덮어씁니다.");
+        }
         if (RingRules.duplicate(worn, r, in.id())) {
             p.playSound(p, Sound.BLOCK_CHAIN_HIT, SoundCategory.PLAYERS, 0.5f, 0.7f);
             plugin.test(p, "RING_SAME ring=" + (r + 1) + " id=" + in.id());
@@ -587,7 +599,8 @@ public final class RingSlots implements Listener {
             if (Rings.isWornCopy(all[i])) strays++;
             inv.add(i + ":" + id);
         }
-        String cursor = Rings.idOf(p.getItemOnCursor());
+        ItemStack cur = p.getItemOnCursor();
+        String cursor = empty(cur) ? null : Rings.idOf(cur) != null ? Rings.idOf(cur) + (Rings.isWornCopy(cur) ? "*" : "") : cur.getType().getKey().getKey();
         int ground = 0;
         for (Entity en : p.getNearbyEntities(32, 32, 32)) if (en instanceof Item item && Rings.idOf(item.getItemStack()) != null) ground++;
         Rings.Worn fx = worn(p);

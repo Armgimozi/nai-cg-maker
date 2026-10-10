@@ -39,7 +39,9 @@ BOTS="$HERE/bots"
 # start 는 세계 설정을 지웠다가 되돌리므로 다른 시나리오 사이에 둔다 (끝에 보통·PvP 끔으로 되돌린다). pvp 는 봇 둘 (A 가 B 를 때린다).
 # difficulty 는 난이도 넷을 돌고 보통으로, rollkey 는 controls.roll-key 를 f·both 로 바꿨다가 (/souls reload) 서버 설정 그대로 되돌린다.
 # persist 는 지연 판 뒤 맨 끝에 돌고 (세계 설정을 어려움·PvP 켬으로 남긴다), 두 번째 기동에서 persist_check 가 다시 켠 서버로 본다
-ALL_SCENARIOS="t1_boot join lang stamina roll_iframes taplat guard death reconnect start origin levelup pvp difficulty stats_fx origins_all rollkey"
+# rings 는 반지 칸 (9.4) 을 끼고 빼고 거절하고 창 닫기·다시 접속·죽음·다른 세계를 지난 뒤 RUN_DIR/rings.json 을 남기고, 두 번째 기동에서
+# rings_check 가 다시 켠 서버로 본다
+ALL_SCENARIOS="t1_boot join lang stamina roll_iframes taplat guard death reconnect start origin levelup pvp difficulty stats_fx origins_all rollkey rings"
 # 시나리오별 봇 이름 (ops.json 에 미리 올린다. 오프라인 UUID). 이름이 Souls 로 시작하면 시험 서버에서 빈털터리로 태어난다
 # (start.auto-origin). pvp_b 는 시나리오가 아니라 pvp 의 둘째 봇
 # late 는 persist_check 의 나중에 들어온 사람: 이름이 Souls 로 시작하지 않아 출신 없이 들어와 알림과 출신 창을 받는다
@@ -47,7 +49,7 @@ declare -A BOT=( [t1_boot]=SoulsBoot [join]=SoulsJoin [lang]=SoulsLang [stamina]
                  [guard]=SoulsGuard [death]=SoulsDeath [reconnect]=SoulsRecon [lag]=SoulsLag
                  [start]=SoulsStart [origin]=SoulsOrigin [levelup]=SoulsLevel [pvp]=SoulsPvpA [pvp_b]=SoulsPvpB
                  [taplat]=SoulsTap [difficulty]=SoulsDiff [stats_fx]=SoulsStatFx [origins_all]=SoulsOrigins [rollkey]=SoulsKeys
-                 [persist]=SoulsPersist [late]=LateJoiner )
+                 [persist]=SoulsPersist [late]=LateJoiner [rings]=SoulsRings )
 
 PORT=25601
 SCRATCH="${SOULS_TEST_DIR:-}"
@@ -80,7 +82,7 @@ while [ $# -gt 0 ]; do
     --roll-key) ROLLKEY="$2"; shift 2 ;;
     --mem) MEM="$2"; shift 2 ;;
     --timeout) SC_TIMEOUT="$2"; shift 2 ;;
-    --list) echo "lang_check $ALL_SCENARIOS persist (+ roll_iframes@lag<ms> taplat@lag<ms>, second_boot + persist_check)"; exit 0 ;;
+    --list) echo "lang_check $ALL_SCENARIOS persist (+ roll_iframes@lag<ms> taplat@lag<ms>, second_boot + persist_check + rings_check)"; exit 0 ;;
     -h|--help) sed -n '2,/^set -u/p' "$0" | sed '$d'; exit 0 ;;
     *) echo "모르는 인수: $1 (--help)"; exit 2 ;;
   esac
@@ -417,7 +419,7 @@ else
 fi
 
 # 두 번째 기동: 같은 세계로 다시 켠다. 새로 만들지 않고 (level.dat 이 있다), 난이도는 이미 normal, 시험 방은 그대로
-if [ "$KEEP" != 1 ] && { [ -z "$ONLY" ] || want second_boot || want persist; }; then
+if [ "$KEEP" != 1 ] && { [ -z "$ONLY" ] || want second_boot || want persist || want rings; }; then
   if start_server console-2.log; then
     sleep 3
     # 다시 켠 서버에서 persist 가 남긴 값을 본다 (세계 설정, 능력치·소울·최대 HP, 시작 아이템, 나중에 들어온 사람의 알림)
@@ -426,6 +428,13 @@ if [ "$KEEP" != 1 ] && { [ -z "$ONLY" ] || want second_boot || want persist; }; 
     elif want persist; then
       printf '%-10s %-24s %s\n' FAIL persist_check "persist.json 이 없다 (persist 가 끝까지 돌지 않았다)"
       FAILED=$((FAILED + 1)); SUMMARY+=("FAIL persist_check")
+    fi
+    # 반지 칸 (9.4): 끼고 있던 반지가 다시 켠 서버에서도 프로필에서 되살아나 칸에 보인다
+    if want rings && [ -s "$RUN/rings.json" ]; then
+      run_one rings_check rings_check "${BOT[rings]}" "$PORT"
+    elif want rings; then
+      printf '%-10s %-24s %s\n' FAIL rings_check "rings.json 이 없다 (rings 가 끝까지 돌지 않았다)"
+      FAILED=$((FAILED + 1)); SUMMARY+=("FAIL rings_check")
     fi
     stop_server
     L2="$SRV/console-2.log"

@@ -377,6 +377,8 @@ in vec3 Position;
 in vec2 UV0;
 in vec4 Color;
 
+uniform sampler2D Sampler0;
+
 out vec2 texCoord0;
 out vec4 vertexColor;
 out float soulsGui;
@@ -384,9 +386,49 @@ out float soulsGui;
 // Block Soul (pack/shaders.py): vanilla position_tex_color.vsh plus
 //  * a flag for GUI quads (orthographic): the fragment shader reads their texture with an area filter;
 //  * the in-game vignette (the only full-screen GUI quad with texture 0..1 on the screen corners, drawn in a grey below
-//    white) is kept at least VIGNETTE_MIN strong, so the corners always close in (misc/vignette.png gives the shape).
+//    white) is kept at least VIGNETTE_MIN strong, so the corners always close in (misc/vignette.png gives the shape);
+//  * no slot highlight on the three erased slots of the player inventory (its 2x2 crafting grid is two ring slots now:
+//    only the left column is drawn, DESIGN 9.4). The client still hovers the right column and the result slot. The two
+//    highlight sprites (container/slot_highlight_back, _front, 24x24 drawn as one quad) carry an invisible mark in each
+//    corner texel (alpha 1, a different ash colour per corner, pack/gui_skin.py HIGHLIGHT_MARKS). A vertex reads the texel
+//    half a texel inside each diagonal of its UV; the mark it finds tells which corner it is, hence the quad origin. If
+//    that origin is an erased slot (slot - 4) of a 176x166 screen centred like the inventory (recipe book shut, or open
+//    and pushed right), the vertex goes off screen, so the whole quad is dropped.
+
+bool soulsMark(vec2 uv, ivec3 rgb) {
+    ivec4 t = ivec4(textureLod(Sampler0, uv, 0.0) * 255.0 + 0.5);
+    return t.a == 1 && t.rgb == rgb;
+}
+
+bool soulsErasedSlot(vec2 o) {
+    vec2 screen = ceil(vec2(2.0 / ProjMat[0][0], -2.0 / ProjMat[1][1]) - 0.01);
+    float top = floor((screen.y - 166.0) / 2.0);
+    for (int k = 0; k < 2; k++) {
+        float left = floor((screen.x - 176.0) / 2.0);
+        if (k == 1) {
+            if (screen.x < 379.0) break;
+            left = 177.0 + floor((screen.x - 376.0) / 2.0);
+        }
+        vec2 p = o - vec2(left, top);
+ERASED_TESTS
+    }
+    return false;
+}
+
 void main() {
     gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
+    if (ProjMat[3][3] == 1.0) {
+        vec2 h = 0.5 / vec2(textureSize(Sampler0, 0));
+        vec2 at = (ModelViewMat * vec4(Position, 1.0)).xy;
+        vec2 o = vec2(-1000.0);
+        if (soulsMark(UV0 + vec2(h.x, h.y), MARK_TL)) o = at;
+        else if (soulsMark(UV0 + vec2(-h.x, h.y), MARK_TR)) o = at - vec2(24.0, 0.0);
+        else if (soulsMark(UV0 + vec2(h.x, -h.y), MARK_BL)) o = at - vec2(0.0, 24.0);
+        else if (soulsMark(UV0 + vec2(-h.x, -h.y), MARK_BR)) o = at - vec2(24.0, 24.0);
+        if (o.x > -999.0 && soulsErasedSlot(o)) {
+            gl_Position = vec4(3.0, 3.0, 0.0, 1.0);
+        }
+    }
 
     texCoord0 = UV0;
     vertexColor = Color;
@@ -463,6 +505,25 @@ void main() {
 }
 """
 
+
+
+def ptc_vsh():
+    """GUI 그림 꼭짓점 셰이더: 표식 색 (gui_skin.HIGHLIGHT_MARKS) 과 지운 칸 (gui_skin.CONTAINER_LAYOUTS 인벤토리의 erased) 을 채운다."""
+    import gui_skin
+    marks = {}
+    for (x, y), name in gui_skin.HIGHLIGHT_MARKS.items():
+        r, g, b, _ = c(name)
+        key = ("T" if y == 0 else "B") + ("L" if x == 0 else "R")
+        marks["MARK_" + key] = f"ivec3({r}, {g}, {b})"
+    tests = []
+    for x, y, w, h in gui_skin.CONTAINER_LAYOUTS["inventory"]["erased"]:
+        # 바닐라 칸 상자 (x, y) 의 칸 자리는 (x + 1, y + 1), 가리킴 그림은 칸 자리 - 4 에서 24×24
+        ox, oy = x + 1 - 4, y + 1 - 4
+        tests.append(f"        if (all(lessThan(abs(p - vec2({ox:.1f}, {oy:.1f})), vec2(0.01)))) return true;")
+    out = PTC_VSH.replace("VIGNETTE_MIN", f"{VIGNETTE_MIN:.3f}").replace("ERASED_TESTS", "\n".join(tests))
+    for k, v in marks.items():
+        out = out.replace(k, v)
+    return out
 
 
 def menu_fsh():
@@ -579,7 +640,7 @@ def build(out):
     write(os.path.join(core, "gui.vsh"), GUI_VSH.replace("BRONZE", vec3("bronze2")).replace("PARCH", vec3(GUI_WHITE)))
     write(os.path.join(core, "gui.fsh"), GUI_FSH.replace("BRONZE1", vec3("bronze1")).replace("BLOOD", vec3("blood0"))
           .replace("INK", vec3("ink0")))
-    write(os.path.join(core, "position_tex_color.vsh"), PTC_VSH.replace("VIGNETTE_MIN", f"{VIGNETTE_MIN:.3f}"))
+    write(os.path.join(core, "position_tex_color.vsh"), ptc_vsh())
     write(os.path.join(core, "position_tex_color.fsh"), PTC_FSH)
     write(os.path.join(out, "assets", "souls", "shaders", "post", "menu_dim.fsh"), menu_fsh())
     blur = os.path.join(out, "assets", "minecraft", "post_effect", "blur.json")

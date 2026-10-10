@@ -326,20 +326,51 @@ CONTAINER_LAYOUTS = {
 # ─────────────────────────── 칸 가리킴, 빈 칸 그림 ───────────────────────────
 
 SLOT_HIGHLIGHT_SCALING = {"type": "nine_slice", "width": 24, "height": 24, "border": 4}
+# 칸 가리킴 그림의 네 귀 표식 (알파 1 이라 보이지 않는다): 귀마다 다른 색. GUI 그림 셰이더 (shaders.py position_tex_color.vsh) 가
+# 꼭짓점마다 안쪽 대각선의 텍셀을 읽어 이 표식이면 그 꼭짓점이 가리킴 네모의 어느 귀인지 알고, 네모의 자리가 인벤토리에서 지운
+# 칸 (2×2 의 오른쪽 두 칸과 결과 칸, 9.4) 이면 네모를 그리지 않는다 (바닐라 클라이언트는 그 칸을 여전히 가리킨다).
+# 바닐라는 24×24 그림을 24×24 로 그릴 때 9 조각으로 나누지 않고 네모 하나로 그린다 (GuiGraphics.blitNineSlicedSprite).
+# 다른 그림이 같은 표식을 쓰면 안 된다 (highlight_marks_unique 가 본다)
+HIGHLIGHT_MARKS = {(0, 0): "ash0", (23, 0): "ash1", (0, 23): "ash2", (23, 23): "ash3"}
+HIGHLIGHT_MARK_ALPHA = 1
 
 
 def slot_highlight():
     """
     마우스가 올라간 칸 (24×24, 아이템 자리는 4..19). 뒤 (아이템 아래): 칸 속 (5..18) 이 옅은 금빛으로 데워진다.
     앞 (아이템 위): 칸 네모 바로 바깥 (3..20, 바닐라의 그늘·입술 자리라 아이템을 가리지 않는다) 에 밝은 금빛 테,
-    네 귀는 가장 밝은 점. 또렷하되 칸 하나만큼만.
+    네 귀는 가장 밝은 점. 또렷하되 칸 하나만큼만. 둘 다 네 귀 텍셀에 셰이더가 읽는 표식 (HIGHLIGHT_MARKS).
     """
     back, front = Cv(24, 24), Cv(24, 24)
     back.rect(5, 5, 18, 18, ("parch0", 70))
     front.box(3, 3, 20, 20, ORN)
     for x, y in ((3, 3), (20, 3), (3, 20), (20, 20)):
         front.put(x, y, ORN_HI)
+    for cv in (back, front):
+        for (x, y), name in HIGHLIGHT_MARKS.items():
+            cv.put(x, y, (name, HIGHLIGHT_MARK_ALPHA))
     return back.image(), front.image()
+
+
+def highlight_marks_unique(out):
+    """팩의 GUI 그림 가운데 칸 가리킴 표식 (HIGHLIGHT_MARKS 의 색과 알파) 을 쓰는 다른 그림 [(경로, 개수)]. 비어야 한다."""
+    marks = {tuple(c(n, HIGHLIGHT_MARK_ALPHA)) for n in HIGHLIGHT_MARKS.values()}
+    own = {os.path.join(out, *GUI, "sprites", "container", n + ".png") for n in ("slot_highlight_back", "slot_highlight_front")}
+    bad = []
+    for ns in ("minecraft", "souls"):
+        root = os.path.join(out, "assets", ns, "textures", "gui")
+        for dp, _, fs in os.walk(root):
+            for f in fs:
+                p = os.path.join(dp, f)
+                if not f.endswith(".png") or p in own:
+                    continue
+                a = np.asarray(Image.open(p).convert("RGBA"))
+                hit = a[..., 3] == HIGHLIGHT_MARK_ALPHA
+                if hit.any():
+                    n = sum(1 for rgba in a[hit] if tuple(int(v) for v in rgba) in marks)
+                    if n:
+                        bad.append((os.path.relpath(p, out), n))
+    return bad
 
 
 # 빈 갑옷·방패 칸에 비치는 흐린 그림 (16×16): 한 색 (ICON) 윤곽. 모두 16×16 의 가운데에 둔다 (바닐라 그림과 같은 자리).
@@ -1501,6 +1532,9 @@ def build(out):
         written.append(gsave(separator(), out, n + ".png"))
     written.append(gsave(menu_background(), out, "inworld_menu_background.png"))
     written += extra_sprites(out)
+    clash = highlight_marks_unique(out)
+    if clash:
+        raise ValueError(f"칸 가리킴 표식 (HIGHLIGHT_MARKS) 을 다른 GUI 그림이 쓴다: {clash[:4]}")
     empty = Img(TT * S, TT * S)
     written.append(gsave(tooltip_bg(), out, "sprites", "tooltip", "background.png"))
     written.append(gsave(empty, out, "sprites", "tooltip", "frame.png"))

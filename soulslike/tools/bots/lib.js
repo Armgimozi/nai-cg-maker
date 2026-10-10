@@ -767,6 +767,57 @@ class Bot {
     return { base: a[k].value, value: v, modifiers: mods }
   }
 
+  // ── 인벤토리 창 (반지 칸, 9.4) ──
+  /**
+   * 자기 인벤토리 창 (창 번호 0) 을 날 window_click 으로 누른다. mode: 0 누르기 (button 0 왼쪽, 1 오른쪽), 1 웅크리고 누르기,
+   * 2 숫자 키 (button = 단축 칸 0..8, 왼손 바꾸기는 40), 3 가운데, 4 버리기 (0 하나, 1 묶음), 5 끌기 (slot -999 button 0 시작·
+   * 끌 칸 button 1·-999 button 2 끝), 6 두 번 누르기. mineflayer 의 clickWindow 는 2×2 칸 (0..4) 을 누르면 결과 칸 갱신을 기다리다 멈추고
+   * 서버가 거절할 누르기를 미리 고쳐 그리므로 쓰지 않는다: 바뀐 칸을 비워 보내 (changedSlots []) 서버가 바뀐 칸을 모두 다시 보내게 하고,
+   * opts.sync 가 false 가 아니면 창 전체를 다시 받는다 (syncWindow).
+   */
+  async rawClick (slot, button, mode, opts = {}) {
+    const bot = this._bot
+    const Item = require('prismarine-item')(bot.registry)
+    bot._client.write('window_click', {
+      windowId: 0,
+      stateId: -1,
+      slot,
+      mouseButton: button,
+      mode,
+      changedSlots: [],
+      cursorItem: Item.toNotch(null)
+    })
+    if (opts.sync === false) return
+    await sleep(opts.wait || 150)
+    await this.syncInventory()
+  }
+
+  /** 창 전체를 서버에서 다시 받는다 (2초 안에 오지 않으면 그냥 돌아온다). */
+  async syncInventory () {
+    const bot = this._bot
+    await Promise.race([bot._syncWindow(bot.inventory), sleep(2000)])
+  }
+
+  /** 창작 모드의 칸 쓰기 (set_creative_slot): 칸 slot 에 item (null 이면 비우기). */
+  creativeSlot (slot, item = null) {
+    const bot = this._bot
+    const Item = require('prismarine-item')(bot.registry)
+    bot._client.write('set_creative_slot', { slot, item: Item.toNotch(item) })
+  }
+
+  /** 창을 닫는다 (클라이언트가 인벤토리를 닫을 때처럼 close_window 0). */
+  closeInventory () {
+    this._bot._client.write('close_window', { windowId: 0 })
+  }
+
+  /** 클라이언트가 가진 창 칸 slot 의 반지 id (souls.ring.<id>.name 열쇠로 알아본다), 반지가 아니면 null, 비었으면 ''. */
+  ringAt (slot) {
+    const it = this._bot.inventory.slots[slot]
+    if (!it) return ''
+    const m = JSON.stringify(it.components || it.nbt || {}).match(/souls\.ring\.([a-z0-9_]+)\.name/)
+    return m ? m[1] : null
+  }
+
   async quit () {
     if (this.ended) return
     try { this._bot.quit() } catch (e) {}
