@@ -19,8 +19,8 @@
 #            왼손에 쇠단지를 들고 지력 +10 (levelup_int: 술법 세기 110 → 128) 과 지력 단추 (levelup_int_tip)
 #   stats    능력치 창 (5.9): 왼손 쇠단지 (stats_dialog: 공격력 한손 68, 술법 세기 110)
 # 시험 줄이 그림에 남지 않게 MC_OPTIONS="chatScale:0.0" 로 켠 클라이언트에서 찍는다. 영어는 MC_LANG=en_us 와 SUFFIX=_en.
-# 근력 단추의 화면 높이는 TIP_Y (기본: 1080 이면 704, 720 이면 459. 창 본문이 위에서부터 놓여 화면 높이에 따라 단추 줄이 옮겨 간다:
-# 실제 화면에서 잰 값). 단추 줄 사이는 22 GUI, 왼쪽 열은 가운데 − 75 GUI, 오른쪽 열은 + 75 GUI
+# 능력치 "+" 단추 줄의 화면 높이는 TIP_Y (기본: 1080 이면 797, 720 이면 525. 창 본문이 위에서부터 놓여 화면 높이에 따라 단추 줄이
+# 옮겨 간다: 실제 화면에서 잰 값). 단추는 한 줄에 여섯 (폭 64 + 사이 2, 5.9): i 째 (0 부터) 단추의 가운데는 가운데 + (i − 2.5) × 66 GUI
 set -u
 R=$(cd "$(dirname "$0")/../.." && pwd)
 PORT=$1; SRV=$2; P=$3; shift 3
@@ -71,8 +71,8 @@ fi
 gear
 # 인벤토리 판의 왼쪽 위 (GUI): 가운데 - 88, - 83. 소지품 첫 칸의 아이템 (8, 84)
 L=$((CX - 88*G)); T=$((CY - 83*G))
-TIP_Y=${TIP_Y:-$(( H >= 1080 ? 704 : 459 ))}
-ROW2=$((TIP_Y + 22*G))
+TIP_Y=${TIP_Y:-$(( H >= 1080 ? 797 : 525 ))}
+plus_x() { echo $(( CX + ($1 * 66 - 165) * G )); }   # 능력치 i (vig 0 … int 5) 의 "+" 단추 가운데
 tip() {
   local name=$1; shift
   con item replace entity Tester inventory.0 with minecraft:air
@@ -103,8 +103,8 @@ if want levelup || want stats; then
   do_ wait:2
 fi
 if want levelup; then
-  lv str 3 str $((CX + 75*G)) $TIP_Y
-  lv dex 10 dex $((CX - 75*G)) $ROW2
+  lv str 3 str $(plus_x 3) $TIP_Y
+  lv dex 10 dex $(plus_x 4) $TIP_Y
 fi
 if want levelup || want stats; then
   # 지력·능력치 창은 왼손에 쇠단지 (촉매는 왼손, 3.12.4): 술법 세기가 보인다
@@ -114,7 +114,7 @@ if want levelup || want stats; then
   do_ wait:2
 fi
 if want levelup; then
-  lv int 10 int $((CX + 75*G)) $ROW2
+  lv int 10 int $(plus_x 5) $TIP_Y
 fi
 if want stats; then
   tst press rest stats

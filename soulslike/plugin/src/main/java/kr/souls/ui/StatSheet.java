@@ -79,6 +79,24 @@ public final class StatSheet {
         return Lang.cell(p, key).color(LABEL_COLOR); // lang-dyn: table.*, stat.*.name, derived.*
     }
 
+    /**
+     * 왼쪽 열만 (휴식 창 본문: 레벨·보유 소울·필요 소울, 레벨 올리기 창의 머리와 같은 칸). 줄 폭은 모두 왼쪽 이름 칸 + LEFT_VALUE 라
+     * 가운데 맞춤에서도 열이 선다. 예전의 "소울 30,000 · 레벨 8 · 다음 460" 가운뎃점 줄을 바꿨다 (DECISIONS 2026-10-10).
+     */
+    public static List<Component> leftLines(Player p, List<Cell> left) {
+        List<Component> out = new ArrayList<>(left.size());
+        for (Cell l : left) {
+            out.add(Component.text().append(label(p, l.key())).append(l.value() != null ? l.value() : Columns.pad(LEFT_VALUE)).build()
+                    .decoration(TextDecoration.ITALIC, TextDecoration.State.FALSE));
+        }
+        return out;
+    }
+
+    /** 휴식 창 본문의 세 칸: 레벨, 보유 소울, 필요 소울 (다음 한 레벨의 비용). */
+    public static List<Cell> restHead(String level, String held, String need) {
+        return List.of(head("table.level", level), head("table.held", held), head("table.need", need));
+    }
+
     // ------------------------------------------------------------------ 왼쪽 열
 
     /** 능력치 여섯 (차례 StatBlock.IDS). target 이 base 와 다르면 "10 → 13". main 은 굵게 (출신 확인 창의 주 능력치). */

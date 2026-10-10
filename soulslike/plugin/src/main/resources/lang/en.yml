@@ -21,7 +21,6 @@ bonfire:
   rest: "<#d1c3a0>Rest"
   warp: "<#d1c3a0>Pass Between Fires"
   leave: "<#d1c3a0>Rise"
-  status: "<#b3a37f>Souls <souls> · Level <level> · Next <next>"
   levelup: "<#d1c3a0>Level Up"
   stats: "<#d1c3a0>Status"
   settings: "<#d1c3a0>Set the Terms"

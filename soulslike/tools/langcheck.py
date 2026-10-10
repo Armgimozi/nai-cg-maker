@@ -106,7 +106,7 @@ SLOTS = [
     ("start.changed", "wrap"), ("start.provisional-chat", "wrap"), ("start.*", "subtitle"),
     ("stat.*.name", "button64"), ("stat.*.short", "dialog_body370"),
     ("stats.title", "dialog_title"), ("stats.close", "button200"), ("stats.*", "dialog_body320"),
-    ("bonfire.status", "dialog_body"), ("bonfire.no-warp", "dialog_body"), ("spell.no-slot", "dialog_body"),
+    ("bonfire.no-warp", "dialog_body"), ("spell.no-slot", "dialog_body"),
     ("hud.*", "actionbar"),
     ("item.*", "tooltip"), ("weapon.*", "tooltip"), ("test.*", "tooltip"), ("skill.*", "tooltip"), ("ring.*", "tooltip"),
     ("container.workbench", "container_title"),

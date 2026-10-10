@@ -21,6 +21,8 @@ import kr.souls.hud.Glyphs;
 import kr.souls.item.ItemFactory;
 import kr.souls.skill.SkillContext;
 import kr.souls.skill.SkillDef;
+import kr.souls.ui.Columns;
+import kr.souls.ui.StatSheet;
 import io.papermc.paper.dialog.Dialog;
 import io.papermc.paper.registry.data.dialog.ActionButton;
 import io.papermc.paper.registry.data.dialog.DialogBase;
@@ -578,7 +580,7 @@ public final class TestCommands {
         Dialog d = Dialog.create(b -> b.empty()
                 .base(DialogBase.builder(Glyphs.dialogTitle(Lang.c(p, "bonfire.test-name")))
                         .canCloseWithEscape(true).pause(false).afterAction(DialogBase.DialogAfterAction.CLOSE)
-                        .body(List.of(DialogBody.plainMessage(Lang.c(p, "bonfire.status", "souls", "0", "level", "1", "next", "320"))))
+                        .body(List.of(DialogBody.plainMessage(Columns.lines(StatSheet.leftLines(p, StatSheet.restHead("1", "0", "320"))), 200)))
                         .build())
                 .type(DialogType.multiAction(buttons).exitAction(exit).columns(1).build()));
         p.showDialog(d);

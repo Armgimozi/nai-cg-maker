@@ -106,7 +106,7 @@ L.run('lang', async (sc) => {
   if (!dg || b.p.dialogs.length === d0) sc.check('show_dialog packet received', false, '패킷 없음')
   else {
     const keys = L.translateKeys(collectText(dg.raw))
-    const want = ['souls.bonfire.test-name', 'souls.bonfire.status', 'souls.bonfire.rest', 'souls.bonfire.warp', 'souls.bonfire.leave']
+    const want = ['souls.bonfire.test-name', 'souls.table.level.cell', 'souls.table.held.cell', 'souls.bonfire.rest', 'souls.bonfire.warp', 'souls.bonfire.leave']
     sc.check('dialog title, body and buttons are translatable', want.every((k) => keys.includes(k)), keys.join(','))
     const title = dg.raw && dg.raw.title
     sc.check('dialog title reads in English', title && !HANGUL.test(L.render(title, T.en)), title ? L.render(title, T.en) : JSON.stringify(dg.raw).slice(0, 200))

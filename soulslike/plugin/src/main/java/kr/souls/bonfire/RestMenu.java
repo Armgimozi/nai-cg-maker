@@ -9,6 +9,8 @@ import kr.souls.Lang;
 import kr.souls.Souls;
 import kr.souls.data.Profile;
 import kr.souls.hud.Glyphs;
+import kr.souls.ui.Columns;
+import kr.souls.ui.StatSheet;
 import kr.souls.ui.StatsDialog;
 import kr.souls.ui.Ui;
 import org.bukkit.entity.Player;
@@ -65,8 +67,9 @@ public final class RestMenu {
         Dialog d = Dialog.create(b -> b.empty()
                 .base(DialogBase.builder(Glyphs.dialogTitle(Lang.c(p, "bonfire.test-name")))
                         .canCloseWithEscape(true).pause(false).afterAction(DialogBase.DialogAfterAction.NONE)
-                        .body(List.of(DialogBody.plainMessage(Lang.c(p, "bonfire.status", "souls", souls, "level",
-                                String.valueOf(pr.stats().level()), "next", next))))
+                        // 레벨·보유 소울·필요 소울을 칸 맞춤 세 줄로 (레벨 올리기 창의 머리와 같은 칸, ui/StatSheet)
+                        .body(List.of(DialogBody.plainMessage(Columns.lines(StatSheet.leftLines(p, StatSheet.restHead(
+                                String.valueOf(pr.stats().level()), souls, next))), 200)))
                         .build())
                 .type(DialogType.multiAction(buttons).exitAction(leave).columns(1).build()));
         ui.show(p, s, d);
