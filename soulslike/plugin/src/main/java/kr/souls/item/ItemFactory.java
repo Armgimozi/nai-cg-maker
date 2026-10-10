@@ -130,6 +130,12 @@ public final class ItemFactory {
 
     /** 활의 껍데기: 바닐라 활 (당기기·쏘기·화살 쓰기가 바닐라 그대로, 3.6 의 "바닐라 당기기". 피해 바꾸기·화살 돌려주기는 M1) */
     public static final Material BOW_SHELL = Material.BOW;
+    /**
+     * 방패 (use: block) 의 껍데기: 바닐라 방패 (DECISIONS 2026-10-11 "방패는 바닐라 방패"). 1인칭 막기에서 바닐라는 방패가 아닌 막는
+     * 아이템에만 칼 막기 몸짓 (Rx −102.25 …) 을 더 건다. 껍데기가 방패라야 모형의 shield_blocking 자세가 바닐라 방패와 똑같이 보인다
+     * (pack/weapons/SPEC.md 1.3). 막기 계산은 그대로 플러그인이 한다 (빈 막기 성분, guardComponent).
+     */
+    public static final Material SHIELD_SHELL = Material.SHIELD;
     /** 무기 설명 칸 그림 souls:tooltip/weapon_background·_frame (이름 밑 금실, pack/gui_skin.py) */
     private static final Key WEAPON_TOOLTIP = Key.key(Keys.NS, "weapon");
 
@@ -139,12 +145,15 @@ public final class ItemFactory {
      * 번역 열쇠라 보는 사람의 언어로 보인다. 설명 칸 그림은 무기 칸 (tooltip_style souls:weapon: 이름 밑 금실, pack/gui_skin.py). 막는 것 (무기 guard, 방패 block) 은 빈 막기 성분과 걸음 배율 (2.3.9).
      * 촉매와 패링 단검 (use: none) 은 막지 않는다 (패링 단검: 우클릭은 왼손 공격 M1, F 는 패링).
      * 활 (use: bow) 은 바닐라 활 껍데기라 화살이 있으면 바닐라처럼 당겨 쏜다 (검토 archer-thief-promises: 궁수가 활을 쏠 수 있게. 모형의
-     * 당긴 모습은 using_item·use_duration 이라 껍데기와 상관없다). 닳지 않고 마법부여·수리를 받지 않는다. 불에 타지 않는다. 묶음은 하나.
+     * 당긴 모습은 using_item·use_duration 이라 껍데기와 상관없다). 방패 (use: block) 는 바닐라 방패 껍데기 (SHIELD_SHELL). 바닐라 방패의
+     * equippable (왼손, 우클릭으로 바꿔 끼지 않음) 은 남겨 둔다: 인벤토리에서 웅크리고 누르면 바닐라 방패처럼 빈 왼손 칸으로 간다.
+     * 닳지 않고 마법부여·수리를 받지 않는다. 불에 타지 않는다. 묶음은 하나.
      */
     public static ItemStack weapon(Weapons.Def d) {
         boolean bow = Weapons.BOW.equals(d.use());
-        ItemStack it = ItemStack.of(bow ? BOW_SHELL : SHELL);
-        if (bow) {
+        boolean shield = Weapons.BLOCK.equals(d.use());
+        ItemStack it = ItemStack.of(bow ? BOW_SHELL : shield ? SHIELD_SHELL : SHELL);
+        if (bow || shield) {
             it.unsetData(DataComponentTypes.MAX_DAMAGE);
             it.unsetData(DataComponentTypes.DAMAGE);
             it.unsetData(DataComponentTypes.ENCHANTABLE);
@@ -186,7 +195,8 @@ public final class ItemFactory {
     }
 
     /**
-     * 예전 판의 souls 무기를 지금 판으로 다시 만든 것, 지금 판 그대로면 null: 활의 껍데기가 바뀌었거나 (부싯돌 → 바닐라 활), 설명 칸이
+     * 예전 판의 souls 무기를 지금 판으로 다시 만든 것, 지금 판 그대로면 null: 껍데기가 바뀌었거나 (활: 부싯돌 → 바닐라 활, 방패: 부싯돌 →
+     * 바닐라 방패, 2026-10-11), 설명 칸이
      * 지금 판과 다르거나 (2026-10-10: 보정·요구 능력치 줄을 없애고 수치를 한 줄로, 방패는 막기 하나. weapons.yml 을 고치고 다시 읽은 값,
      * 언어 파일의 대체 글이 바뀐 것도), 쓰는 몸짓이 바뀐 것 (패링 단검·촉매는 막지 않는다). 주손 무기의 막기 성분은 견주지 않는다
      * (WeaponGuard 가 든 손을 보고 맞춘다).
