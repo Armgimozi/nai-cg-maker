@@ -119,9 +119,15 @@ export async function globalDefaults() {
   return Object.assign({}, DEFAULT_SETTINGS, (await kv.get("defaults")) || {});
 }
 
-/** 전역 기본값 + 게임별 설정을 합친 실효 설정. */
+/** 게임 종류별 기본값. 티라노스크립트는 스스로 화면 크기를 맞추고(DOM 기반) 캔버스를 효과용으로만 쓰므로
+ *  UniPlay 가 캔버스를 옮기면 오히려 화면이 깨진다 → "손대지 않음"이 기본. */
+export const KIND_DEFAULTS = {
+  tyrano: { fit: "original" },
+};
+
+/** 전역 기본값 + 종류별 기본값 + 게임별 설정을 합친 실효 설정. */
 export async function effectiveSettings(game) {
-  return Object.assign(await globalDefaults(), game?.settings || {});
+  return Object.assign(await globalDefaults(), KIND_DEFAULTS[game?.kind] || {}, game?.settings || {});
 }
 
 export async function deleteGame(id) {

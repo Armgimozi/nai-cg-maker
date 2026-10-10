@@ -158,6 +158,17 @@ export const PRESETS = {
       btn(0.94, 0.75, 0.12, "key:Space", "다음", { shape: "pill" }),
     ],
   },
+  // 티라노스크립트 기본 키: Enter=다음, Ctrl=누르는 동안 스킵, 휠↑=백로그, 우클릭=메시지 숨기기
+  // (Space 는 다음이 아니라 메시지 숨기기라 vn 프리셋 대신 따로 둔다)
+  tyrano: {
+    name: "티라노스크립트 (로그·스킵·숨기기)",
+    controls: [
+      btn(0.94, 0.3, 0.12, "wheel:up", "로그", { shape: "pill" }),
+      btn(0.94, 0.45, 0.12, "key:ControlLeft", "스킵", { shape: "pill" }),
+      btn(0.94, 0.6, 0.12, "mouse:2", "숨기기", { shape: "pill" }),
+      btn(0.94, 0.75, 0.12, "key:Enter", "다음", { shape: "pill" }),
+    ],
+  },
   mouse: {
     name: "마우스 보조 (우클릭·휠·Esc)",
     controls: [

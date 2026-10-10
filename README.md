@@ -65,7 +65,7 @@ NAI V5 그림체를 찾아내는 탭입니다.
 
 ## 🎮 UniPlay — 유니티 게임 플레이어 (`/unity/`)
 
-JoiPlay 처럼 **유니티 게임을 폰에 넣어 두고 실행**하는 설치형 웹앱(PWA)입니다.
+JoiPlay 처럼 **유니티 게임(과 티라노스크립트 비주얼노벨)을 폰에 넣어 두고 실행**하는 설치형 웹앱(PWA)입니다.
 같은 서버의 `/unity/` 주소로 열리며(예: `https://<이름>.onrender.com/unity/`), 게임 파일은
 서버로 올라가지 않고 **폰 안(브라우저 저장소)에만** 설치되어 오프라인으로도 실행됩니다.
 순수 정적 파일(`web/unity/`)이라 GitHub Pages 같은 아무 HTTPS 정적 호스팅에 올려도 동작합니다.
@@ -100,8 +100,24 @@ IL2CPP 빌드는 코드가 PC용 기계어(네이티브 코드)라 디컴파일�
 - 폴더째/여러 파일 선택, ZIP64, 한글(CP949)·일본어 파일명 zip 지원
 - 덤으로 RPG Maker MV/MZ·일반 HTML5 게임도 실행을 시도
 
+**티라노스크립트(TyranoScript · TyranoBuilder) 비주얼노벨** — 엔진이 원래 HTML5(jQuery)라
+브라우저판은 물론 **PC판(.exe)도 안의 게임을 꺼내 그대로 실행**합니다(에뮬레이션 아님).
+- 판별: `index.html` 옆의 `tyrano/tyrano.js`(또는 `libs.js`) + `data/system/Config.tjs`. 제목은 `Config.tjs` 의
+  `;System.title`, 엔진 버전은 `readme.txt`, 세로 게임(`scHeight > scWidth`)은 세로 고정
+- PC판 포장 풀기 (`js/asar.js`, `js/zip.js`): Electron `resources/app.asar`(+`app.asar.unpacked`)·`resources/app/`,
+  NW.js `package.nw`/`app.nw`(zip), `copy /b nw.exe+app.nw 게임.exe` 처럼 **exe 뒤에 붙은 zip**, 맥 `.app/Contents/Resources/`.
+  게임 폴더 zip 이 가장 확실하고, `app.asar`·`게임.exe`·`package.nw` 파일 하나만 골라도 됩니다
+- 브라우저에서 깨지는 PC판 설정을 설치할 때 고침(`Config.tjs`): `configSave = file`(Node.js 파일 세이브 → 시작도 못 함)
+  → `webstorage`, `ScreenRatio = default`(폰에서 화면 잘림) → `fix`, PNG 원본 크기 세이브 썸네일 → JPEG·가로 480px 이하
+- **PC판 세이브 이어하기**: exe 옆의 `<projectID>_tyrano_data.sav`·`_sf.sav` 는 브라우저판 저장 값과 같은 형식이라
+  게임 폴더째 넣으면 자동으로, 나중에는 세이브 메뉴의 '백업 파일에서 복원'으로 넣을 수 있음
+- 실행 중 보정(`inject.js`): 첫 BGM 이 탭을 기다리며 멈춰 보일 때 "탭하면 시작" 안내, 아이폰이 `.ogg` 대신 찾는
+  `.m4a` 가 없으면 서비스워커가 다른 형식으로 대신 응답, 재생 못 하는 동영상(.ogv 등)은 건너뜀, 게임의 '종료' 버튼 →
+  라이브러리, "페이지를 나갈까요?" 확인창 끄기, 회전 뒤 화면 크기 다시 맞춤, 가상 게임패드(`useGamepad`) 인식
+- 못 하는 것: Node.js·Steam 을 직접 부르는 플러그인(가져올 때 경고), Enigma Virtual Box 로 묶은 exe, 보호(변형)된 asar
+
 **플레이 중** (왼쪽 위 ≡ 또는 뒤로 가기 → 메뉴)
-- **가상 패드**: 프리셋(RPG · 액션 · 방향키 · 게임패드 · 비주얼노벨 · 마우스 보조) 또는 직접 편집
+- **가상 패드**: 프리셋(RPG · 액션 · 방향키 · 게임패드 · 비주얼노벨 · 티라노스크립트 · 마우스 보조) 또는 직접 편집
   (끌어서 배치, 버튼마다 키보드 키 / 키 조합 / 게임패드 버튼 / 아날로그 스틱 / 마우스 클릭·휠 지정)
 - **터치 방식**: 터치 그대로 · 터치→마우스(길게=우클릭, 두 손가락=스크롤) · 터치패드(커서)
 - 해상도 배율(0.5배~기기 최대), 화면 맞춤(비율 유지/꽉 채우기), 가로·세로 고정, 전체화면,
@@ -109,13 +125,15 @@ IL2CPP 빌드는 코드가 PC용 기계어(네이티브 코드)라 디컴파일�
 - 블루투스 키보드·게임패드는 그대로 동작
 
 **세이브** — 유니티 세이브(`/idbfs`)와 게임별로 분리된 localStorage 를 파일로 **백업/복원**.
+localStorage 는 이 사이트의 모든 게임이 함께 쓰는 약 5MB 라, 가득 차서 세이브가 실패하면(티라노스크립트는 실패를
+알리지 않음) 플레이 화면이 대신 알려 줍니다.
 
 **구조** (`web/unity/`)
 ```
 index.html / play.html     라이브러리 / 플레이 화면
 sw.js                      서비스워커: games/<id>/… 를 기기 캐시에서 응답 + inject.js 주입
 inject.js                  게임 iframe 안에서 먼저 실행(해상도·입력 주입·가상 패드·세이브 경로·유니티 캐시 끄기)
-js/zip.js                  스트리밍 zip 리더(DecompressionStream)
+js/zip.js · asar.js        스트리밍 zip 리더(DecompressionStream, 앞에 exe 가 붙은 zip 포함) · Electron asar 리더
 js/importer.js             빌드 판별·설치 · js/db.js 저장소 · js/saves.js 세이브 백업
 js/pcbuild.js · porting.js PC 빌드 진단(유니티 버전·Mono/IL2CPP·걸림돌) · 진단 화면
 js/player.js · controls.js · keys.js   플레이 화면 · 가상 패드 · 키/프리셋

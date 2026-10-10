@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0e1014">
-  <meta name="description" content="유니티 WebGL 게임을 폰에 넣어 두고 오프라인으로 실행하는 플레이어">
+  <meta name="description" content="유니티 WebGL·티라노스크립트 게임을 폰에 넣어 두고 오프라인으로 실행하는 플레이어">
   <title>UniPlay — 유니티 게임 플레이어</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon-192.png">
@@ -42,16 +42,16 @@
   <section id="empty" class="empty" hidden>
     <div class="empty-art" aria-hidden="true">🎮</div>
     <h2>아직 게임이 없어요</h2>
-    <p>유니티로 만든 게임의 <b>WebGL 빌드</b>(index.html + Build 폴더)를 zip 으로 넣으면<br>
-      폰에 설치되어 인터넷 없이도 실행됩니다.</p>
+    <p>유니티로 만든 게임의 <b>WebGL 빌드</b>(index.html + Build 폴더)나 <b>티라노스크립트</b> 게임(PC판 포함)을<br>
+      zip 으로 넣으면 폰에 설치되어 인터넷 없이도 실행됩니다.</p>
     <button class="btn primary" id="empty-add">＋ zip 파일 고르기</button>
     <button class="btn" id="empty-help">어떤 파일을 넣어야 하나요?</button>
   </section>
 
-  <input type="file" id="pick-zip" accept=".zip,application/zip,application/x-zip-compressed" hidden>
+  <input type="file" id="pick-zip" accept=".zip,application/zip,application/x-zip-compressed,.nw,.asar,.exe" hidden>
   <input type="file" id="pick-folder" webkitdirectory multiple hidden>
   <input type="file" id="pick-files" multiple hidden>
-  <input type="file" id="pick-save" accept=".json,application/json" hidden>
+  <input type="file" id="pick-save" accept=".json,application/json,.sav" multiple hidden>
   <input type="file" id="pick-cover" accept="image/*" hidden>
 
   <div id="drop-hint" hidden>여기에 놓으면 게임을 가져옵니다</div>

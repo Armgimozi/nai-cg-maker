@@ -9,6 +9,8 @@
  *   - 세이브 위치(/idbfs/<해시>) 기록, Unity 2022+ 세이브 자동 동기화
  *   - 구버전 UnityLoader 의 "모바일 미지원" 팝업 건너뛰기
  *   - 오류·로그 수집, FPS, 스크린샷
+ *   - iframe 안이라 안 되는 것 보정: window.close → 게임 종료, "페이지를 나갈까요?" 확인창 끄기
+ *   - 티라노스크립트: 재생 못 하는 동영상 건너뛰기, 화면 크기 다시 맞추기, "탭해서 시작" 안내
  *
  * 바깥 플레이어(play.html)는 같은 출처라 window.parent.UniPlayHost 로 직접 연결된다.
  * 게임 주소를 따로 열면 host 없이도 해상도/캐시/로더 보정만 적용된다.
@@ -132,7 +134,13 @@
       };
       var store = {
         getItem: function (k) { return real.getItem(P + k); },
-        setItem: function (k, v) { real.setItem(P + k, String(v)); },
+        setItem: function (k, v) {
+          try { real.setItem(P + k, String(v)); } catch (e) {
+            // 티라노스크립트 등은 이 오류를 삼키고 "저장했다"고 보여 준다 → 플레이어가 대신 알린다
+            if (e && (e.name === "QuotaExceededError" || /quota/i.test(e.message || ""))) call("onStorageFull", k, String(v).length);
+            throw e;
+          }
+        },
         removeItem: function (k) { real.removeItem(P + k); },
         clear: function () { keys().forEach(function (k) { real.removeItem(P + k); }); },
         key: function (i) { var l = keys(); return i < l.length ? l[i] : null; },
@@ -177,19 +185,29 @@
       var list;
       try { list = Array.prototype.slice.call(realGetPads() || []); } catch (e) { list = []; }
       if (!vpad.connected) return list;
-      if (vpad.index < 0) { var free = list.indexOf(null); vpad.index = free < 0 ? list.length : free; }
+      if (vpad.index < 0 || list[vpad.index]) { var free = list.indexOf(null); vpad.index = free < 0 ? list.length : free; }
       while (list.length <= vpad.index) list.push(null);
-      if (list[vpad.index] && list[vpad.index] !== vpad) list.push(vpad); else list[vpad.index] = vpad;
+      list[vpad.index] = padSnapshot();
       return list;
     };
   } catch (e) { /* 일부 브라우저는 덮어쓰기 불가 */ }
+  /** 실제 브라우저처럼 부를 때마다 새 스냅숏을 준다. 같은 객체를 돌려주면 "지난번 상태"를 객체째 기억해
+   *  비교하는 엔진(티라노스크립트 등)이 버튼이 눌린 것을 알아채지 못한다. */
+  function padSnapshot() {
+    return {
+      id: vpad.id, index: vpad.index, connected: true, mapping: "standard", timestamp: vpad.timestamp,
+      axes: vpad.axes.slice(),
+      buttons: vpad.buttons.map(function (b) { return { pressed: b.pressed, touched: b.touched, value: b.value }; }),
+      vibrationActuator: null, hapticActuators: [],
+    };
+  }
   function padConnect() {
     if (vpad.connected) return;
     vpad.connected = true;
     vpad.timestamp = performance.now();
     navigator.getGamepads();
     var ev = new Event("gamepadconnected");
-    Object.defineProperty(ev, "gamepad", { value: vpad });
+    Object.defineProperty(ev, "gamepad", { value: padSnapshot() });
     window.dispatchEvent(ev);
   }
   api.pad = {
@@ -520,6 +538,85 @@
       setTimeout(function () { if (shots.indexOf(s) >= 0) takeShots(); }, 1000);
     });
   };
+
+  /* ───── iframe 안이라 안 되는 것들 ───── */
+  // 게임의 "종료" 버튼(window.close)은 iframe 에서 아무 일도 안 한다 → 플레이어가 라이브러리로 나간다
+  try { window.close = function () { call("onGameClose"); }; } catch (e) { /* 무시 */ }
+  // "페이지를 나갈까요?" 확인창(티라노 useCloseConfirm 등) 끄기. 핸들러는 그대로 실행해서 저장 같은 마무리는 된다.
+  // (다시 시작·나가기는 플레이어가 직접 확인한다)
+  (function () {
+    var BU = "beforeunload", wrapped = new WeakMap(), propFn = null, propWrapped = null;
+    var add = window.addEventListener, remove = window.removeEventListener;
+    function tame(fn) {
+      return function (e) {
+        try {
+          Object.defineProperty(e, "returnValue", { configurable: true, get: function () { return ""; }, set: function () {} });
+          e.preventDefault = function () {};
+        } catch (x) { /* 무시 */ }
+        try { typeof fn === "function" ? fn.call(window, e) : fn && fn.handleEvent && fn.handleEvent(e); } catch (x) { /* 무시 */ }
+      };
+    }
+    try {
+      window.addEventListener = function (type, fn, opt) {
+        if (type !== BU || !fn) return add.apply(this, arguments);
+        if (!wrapped.has(fn)) wrapped.set(fn, tame(fn));
+        return add.call(this, type, wrapped.get(fn), opt);
+      };
+      window.removeEventListener = function (type, fn, opt) {
+        if (type === BU && fn && wrapped.has(fn)) return remove.call(this, type, wrapped.get(fn), opt);
+        return remove.apply(this, arguments);
+      };
+      Object.defineProperty(window, "onbeforeunload", {
+        configurable: true,
+        get: function () { return propFn; },
+        set: function (fn) {
+          if (propWrapped) remove.call(window, BU, propWrapped);
+          propFn = typeof fn === "function" ? fn : null;
+          propWrapped = propFn ? tame(propFn) : null;
+          if (propWrapped) add.call(window, BU, propWrapped);
+        },
+      });
+    } catch (e) { /* 무시 */ }
+  })();
+
+  /* ───── 티라노스크립트 ───── */
+  // [movie] 는 재생 오류를 처리하지 않아 폰이 못 여는 동영상(.ogv 등)에서 게임이 멈춘다 → 끝난 것으로 처리
+  document.addEventListener("error", function (e) {
+    var t = e.target, v = t && t.tagName === "SOURCE" ? t.parentNode : t;
+    if (!v || v.tagName !== "VIDEO" || !window.TYRANO || !v.closest || !v.closest("#tyrano_base, .tyrano_base")) return;
+    if (t !== v && t.nextElementSibling && t.nextElementSibling.tagName === "SOURCE") return; // 다음 후보가 있음
+    call("log", "warn", "동영상을 재생할 수 없어 건너뜁니다: " + (v.currentSrc || v.src || (t && t.src) || ""));
+    setTimeout(function () { v.dispatchEvent(new Event("ended")); }, 0);
+  }, true);
+  // 엔진은 100ms 안에 연달아 온 resize 를 버려서 회전·전체화면 직후 크기가 어긋날 수 있다 → 잠시 뒤 한 번 더
+  var nudge = 0;
+  window.addEventListener("resize", function (e) {
+    if (!e.isTrusted || !window.TYRANO) return;
+    clearTimeout(nudge);
+    nudge = setTimeout(function () { window.dispatchEvent(new Event("resize")); }, 400);
+  });
+  // 첫 [playbgm] 은 소리 재생 허락(첫 탭)을 기다리며 화면을 멈춰 둔다 → "탭하면 시작" 안내
+  (function () {
+    var tries = 0;
+    var t = setInterval(function () {
+      if (++tries > 60) { clearInterval(t); return; }
+      var jq = window.jQuery, base = document.querySelector(".tyrano_base");
+      if (!window.TYRANO || !jq || !jq._data || !base) return;
+      var ev = jq._data(base, "events");
+      if (ev && ev.click && ev.click.some(function (h) { return h.namespace === "bgm"; })) {
+        clearInterval(t);
+        call("onHint", "tapToStart");
+        // 첫 탭으로 대기가 풀리면(click.bgm 해제) 안내를 내린다
+        var w = setInterval(function () {
+          var e2 = base.isConnected ? jq._data(base, "events") : null;
+          if (!e2 || !e2.click || !e2.click.some(function (h) { return h.namespace === "bgm"; })) {
+            clearInterval(w);
+            call("onHint", "started");
+          }
+        }, 200);
+      }
+    }, 250);
+  })();
 
   /* ───── 사용자 제스처 → 바깥(전체화면·화면 꺼짐 방지) ───── */
   ["pointerdown", "touchstart", "keydown"].forEach(function (t) {

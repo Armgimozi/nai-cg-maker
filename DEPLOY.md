@@ -14,7 +14,7 @@
 3. 런타임 **Docker** 선택 (Dockerfile 자동 인식). 끝.
    - Docker 안 쓰려면: Environment=Python, Build=`pip install -r requirements.txt && python fetch_tags.py`, Start=`gunicorn wsgi:app --timeout 300`.
 4. 발급된 `https://<이름>.onrender.com` 주소를 PC·폰 어디서나 접속 → 🔑 설정에 키 입력 → 사용.
-   - 유니티 게임 플레이어(UniPlay)는 `https://<이름>.onrender.com/unity/` (키 불필요, 게임 파일은 폰에만 저장).
+   - 유니티·티라노스크립트 게임 플레이어(UniPlay)는 `https://<이름>.onrender.com/unity/` (키 불필요, 게임 파일은 폰에만 저장).
    - 무료 플랜은 15분 미사용 시 잠들고 다음 접속 때 깨어나는 데 30초쯤 걸립니다.
 
 ## 옵션 B — Hugging Face Spaces (무료, Docker)

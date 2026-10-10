@@ -4,8 +4,11 @@
  *   1) 유니티 2020+  : *.loader.js 를 참조하는 html (createUnityInstance)
  *   2) 유니티 5.6~2019: UnityLoader.js + UnityLoader.instantiate
  *   3) html 없이 Build 폴더만 있으면 실행용 index.html 을 만들어 준다
- *   4) RPG Maker MV/MZ, 그 밖의 HTML5 게임(index.html) 도 실행은 시도한다
- *   5) 위가 전부 아니면 Windows/맥/안드로이드 빌드인지 알려 준다
+ *   4) RPG Maker MV/MZ, 티라노스크립트(TyranoBuilder 포함)
+ *   5) PC판 HTML5 게임 포장 풀기 — NW.js(package.nw, 게임.exe 뒤에 붙은 zip), Electron(resources/app.asar)
+ *      안에서 꺼낸 파일로 1)~4) 를 다시 판별한다
+ *   6) 그 밖의 HTML5 게임(index.html, NW.js package.json 의 main)도 실행은 시도한다
+ *   7) 위가 전부 아니면 Windows/맥/안드로이드 빌드인지 알려 준다
  *      (PC 유니티 빌드면 pcbuild.js 로 모바일 변환 가능성을 진단해 err.report 로 붙인다)
  *
  * Build 폴더의 .gz/.br 파일은 여기서 미리 풀어 둔다. 원래는 웹서버가
@@ -14,8 +17,9 @@
  */
 
 import { readZip } from "./zip.js";
-import { inspectPcBuild } from "./pcbuild.js";
-import { gameCacheName, gameFileURL, newId, games, files as fileStore } from "./db.js";
+import { isAsar, readAsar } from "./asar.js";
+import { inspectPcBuild, readHead } from "./pcbuild.js";
+import { gameCacheName, gameFileURL, newId, games, files as fileStore, globalDefaults } from "./db.js";
 
 export class ImportError extends Error {
   constructor(code, message) { super(message); this.code = code; }
@@ -55,6 +59,30 @@ export async function entriesFromZip(file) {
   return list.filter((e) => !e.dir).map((e) => ({ path: e.path, size: e.size, open: e.open }));
 }
 
+/** Electron app.asar → 항목 목록. unpackedEntries: 같은 폴더의 app.asar.unpacked/ 아래 항목(경로는 그 안 기준) */
+async function entriesFromAsar(blob, unpackedEntries) {
+  const map = new Map((unpackedEntries || []).map((e) => [e.path, e]));
+  return readAsar(blob, (p) => map.get(p) || null);
+}
+
+/**
+ * 파일 하나 → 항목 목록. zip 말고도 PC판 HTML5 게임의 포장을 바로 연다:
+ * NW.js 의 package.nw(=zip), 뒤에 zip 이 붙은 게임.exe, Electron 의 app.asar.
+ */
+export async function entriesFromFile(file) {
+  if (await isAsar(file)) return entriesFromAsar(file, null);
+  try {
+    return await entriesFromZip(file);
+  } catch (e) {
+    if (/\.exe$/i.test(file.name || "")) {
+      throw new ImportError("WINDOWS", "이 .exe 파일 안에는 게임 파일이 묶여 있지 않습니다.\n\n" +
+        "게임 폴더 전체(.exe 와 같은 폴더에 있는 파일·폴더 모두)를 zip 으로 압축해서 넣어 주세요. " +
+        "티라노스크립트·RPG Maker MV/MZ 같은 HTML5 게임이면 그 안에서 게임을 꺼내 실행합니다.");
+    }
+    throw e;
+  }
+}
+
 /** <input webkitdirectory> 또는 여러 파일 선택 → 항목 목록 */
 export function entriesFromFiles(fileList) {
   return Array.from(fileList, (f) => ({
@@ -68,6 +96,14 @@ async function readText(entry, max = 4 << 20) {
   if (entry.size > max) return "";
   const body = await entry.open();
   return body instanceof Blob ? body.text() : new Response(body).text();
+}
+
+/** 텍스트 읽기: UTF-8 이 아니면 Shift_JIS(일본 PC 게임)로 다시 읽는다 */
+async function readTextGuess(entry, max) {
+  if (entry.size > max) return "";
+  const bytes = new Uint8Array(await (await readBlob(entry)).arrayBuffer());
+  try { return new TextDecoder("utf-8", { fatal: true }).decode(bytes); } catch { /* 아래로 */ }
+  try { return new TextDecoder("shift_jis").decode(bytes); } catch { return new TextDecoder().decode(bytes); }
 }
 
 async function readBlob(entry) {
@@ -131,6 +167,199 @@ function platformError(paths) {
     return new ImportError("WINDOWS", "Windows 프로그램(.exe)이 들어 있는 게임입니다.\n\n" + winHint);
   }
   return new ImportError("NO_GAME", "실행할 수 있는 게임을 찾지 못했습니다.\n유니티 WebGL 빌드라면 index.html 과 Build 폴더(*.loader.js 또는 UnityLoader.js)가 들어 있어야 해요.");
+}
+
+/* ───────────── 티라노스크립트 ───────────── */
+
+/** Config.tjs → { 키: 값 } — 엔진의 compileConfig(kag.parser.js)와 같은 규칙으로 읽는다 */
+export function tyranoConfig(text) {
+  const map = {};
+  for (const raw of String(text || "").split("\n")) {
+    let line = raw.trim();
+    if (!line.startsWith(";")) continue;
+    const c = line.indexOf("//");
+    if (c >= 0) line = line.slice(0, c).trim();
+    line = line.replace(/;/g, "").replace(/"/g, "");
+    const parts = line.split("=");
+    map[parts[0].trim()] = (parts[1] || "").trim();
+  }
+  return map;
+}
+
+/** Config.tjs 의 ";키 = 값" 줄을 바꾼다(없으면 끝에 붙인다). 다른 줄은 손대지 않는다. */
+function setTyranoConfigLine(text, key, value) {
+  const re = new RegExp(`^[ \\t]*;[ \\t]*${key}[ \\t]*=[^\\r\\n]*`, "gm");
+  return re.test(text) ? text.replace(re, `;${key} = ${value};`) : `${text.replace(/\s*$/, "")}\n;${key} = ${value};\n`;
+}
+
+const THUMB_MAX_WIDTH = 480;
+
+/**
+ * 폰 브라우저에서 문제가 되는 설정 고치기.
+ *   - configSave = file : PC판 전용 "파일 세이브" → 브라우저에서는 경고창이 반복되고 시작도 못 한다 → webstorage
+ *   - ScreenRatio = default : 화면 크기 조절 안 함 → 폰에서 화면이 잘린다 → fix(비율 유지)
+ *   - 세이브 썸네일 PNG 원본 크기 : 슬롯 하나가 1MB 를 넘어 모든 게임이 함께 쓰는 브라우저 저장소(약 5MB)를
+ *     금방 채우고, 엔진은 실패를 알리지 않는다 → JPEG(middle) · 가로 480px 이하
+ * @returns {{ text: string, notes: string[] }}
+ */
+export function patchTyranoConfig(text, cfg = tyranoConfig(text)) {
+  let out = String(text);
+  const notes = [];
+  if (/^file$/i.test(cfg.configSave || "")) {
+    out = setTyranoConfigLine(out, "configSave", "webstorage");
+    notes.push("PC판 전용 '파일 세이브' 설정을 브라우저 저장소 세이브로 바꿔 설치합니다.");
+  }
+  if (/^default$/i.test(cfg.ScreenRatio || "")) {
+    out = setTyranoConfigLine(out, "ScreenRatio", "fix");
+    notes.push("화면 크기 맞춤(ScreenRatio)이 꺼져 있어 폰 화면에 맞도록 켰습니다.");
+  }
+  if (cfg.configThumbnail !== "false") {
+    let thumb = false;
+    if (!/^(low|middle)$/.test(cfg.configThumbnailQuality || "")) { out = setTyranoConfigLine(out, "configThumbnailQuality", "middle"); thumb = true; }
+    // 엔진 기본값은 1(원본 크기). 썸네일 가로가 480px 을 넘으면 그 이하로 줄인다(1280→0.37, 1920→0.25)
+    const width = +cfg.scWidth > 0 ? +cfg.scWidth : 1280;
+    const scale = parseFloat(cfg.configThumbnailScale);
+    const eff = scale > 0 ? Math.min(scale, 1) : 1;
+    if (eff * width > THUMB_MAX_WIDTH) {
+      out = setTyranoConfigLine(out, "configThumbnailScale", String(Math.floor((THUMB_MAX_WIDTH / width) * 100) / 100));
+      thumb = true;
+    }
+    if (thumb) notes.push("세이브 썸네일을 작게 저장하도록 바꿨습니다(브라우저 저장 공간 절약).");
+  }
+  return { text: out, notes };
+}
+
+// PC 전용 기능(Node.js·NW.js·Electron·Steam)을 부르는 플러그인/스크립트 흔적.
+// UMD 래퍼(require("jquery"))나 Emscripten(ENVIRONMENT_IS_NODE 일 때만 require("fs")) 처럼
+// Node 인지 먼저 확인하고 쓰는 코드는 브라우저에서 문제없으므로 빼고 센다.
+const TYRANO_PC_ONLY = new RegExp([
+  "\\brequire\\s*\\(\\s*[\"'`](fs|fs-extra|original-fs|path|os|child_process|electron|nw\\.gui|greenworks|steamworks[\\w.-]*|adm-zip)[\"'`]\\s*\\)",
+  "\\bnw\\.(gui|Window|App|Shell)\\b", "\\bstudio_api\\b", "\\bgreenworks\\b", "\\bsteamworks\\b",
+].join("|"));
+const NODE_GUARD = /ENVIRONMENT_IS_NODE|typeof\s+(require|process|module|nw)\b\s*[!=]=|[!=]=\s*typeof\s+(require|process|module|nw)\b|\$\.isNWJS\s*\(|\$\.isElectron\s*\(/;
+
+/** 가져올 때 미리 알려 줄 호환성 문제(경고만, 실행은 막지 않음) */
+async function tyranoCompat(entries, dir) {
+  const notes = [];
+  const j = (p) => (dir ? dir + "/" + p : p);
+  const hits = new Set();
+  let budget = 24 << 20;
+  const scripts = entries.filter((e) => (e.path.startsWith(j("data/others/")) && /\.js$/i.test(e.path)) ||
+    (e.path.startsWith(j("data/scenario/")) && /\.ks$/i.test(e.path)));
+  for (const e of scripts) {
+    if (e.size > 2 << 20 || (budget -= e.size) < 0) continue;
+    try {
+      const t = await readText(e);
+      if (TYRANO_PC_ONLY.test(t) && !NODE_GUARD.test(t)) hits.add(relTo(dir, e.path));
+    } catch { /* 무시 */ }
+    if (hits.size >= 3) break;
+  }
+  if (hits.size) {
+    notes.push(`PC 전용 기능(Node.js·Steam 등)을 쓰는 스크립트가 있어 그 부분은 동작하지 않을 수 있어요: ${[...hits].join(", ")}`);
+  }
+  const videos = entries.filter((e) => e.path.startsWith(j("data/video/")));
+  if (videos.some((e) => /\.(ogv|wmv|avi)$/i.test(e.path)) && !videos.some((e) => /\.(webm|mp4|m4v)$/i.test(e.path))) {
+    notes.push("동영상이 폰 브라우저에서 재생되지 않는 형식(.ogv 등)이라 동영상 장면은 건너뜁니다.");
+  }
+  return notes;
+}
+
+/** readme.txt 첫 줄의 엔진 버전("…Ver6.00（C）ShikemokuMK") */
+async function tyranoVersion(entries, dir) {
+  const r = entries.find((e) => e.path === (dir ? dir + "/readme.txt" : "readme.txt"));
+  if (!r || r.size > 1 << 20) return "";
+  try {
+    const first = (await readText(r)).split("\n")[0];
+    const m = /Tyrano\S*.*?Ver\.?\s*(\d+(?:\.\d+)?)/i.exec(first);
+    return m ? m[1] : "";
+  } catch { return ""; }
+}
+
+const TYRANO_SAVE = /^(.+)_(sf|tyrano_data|tyrano_quick_save|tyrano_auto_save)\.sav$/;
+
+/**
+ * PC판 세이브(<projectID>_tyrano_data.sav 등) 찾기. 내용은 브라우저판 localStorage 값과 같은
+ * escape(JSON) 문자열이라 그대로 옮기면 이어서 할 수 있다.
+ * @returns {Promise<Record<string,string>>} localStorage 키 → 값
+ */
+async function tyranoPcSaves(entries, projectID) {
+  const out = {};
+  if (!projectID) return out;
+  for (const e of entries) {
+    const m = TYRANO_SAVE.exec(basename(e.path));
+    if (!m || m[1] !== projectID || e.size > 64 << 20) continue;
+    const key = basename(e.path).replace(/\.sav$/, "");
+    try {
+      const text = (await readText(e, 64 << 20)).trim();
+      JSON.parse(unescape(text)); // 깨진 파일은 건너뛴다
+      // 같은 키가 여러 곳(예: 맥의 _TyranoGameData 와 exe 옆)에 있으면 큰 쪽(더 많이 저장된 쪽)
+      if (!out[key] || text.length > out[key].length) out[key] = text;
+    } catch { /* 무시 */ }
+  }
+  return out;
+}
+
+/* ───────────── PC판 HTML5 포장(NW.js · Electron) ───────────── */
+
+// NW.js 런타임 파일(이 폴더의 .exe 는 뒤에 게임 zip 이 붙어 있을 수 있다)
+const NW_RUNTIME = /(^|\/)(nw\.dll|nw_elf\.dll|node\.dll|nw\.pak|nw_100_percent\.pak|ffmpegsumo\.dll|libnw\.so|libnode\.so)$/i;
+
+/** 포장 후보: [{ type: "asar"|"nw"|"exe", entry }] (우선순위 순) */
+function findPackages(entries) {
+  const out = [];
+  for (const e of entries) if (/(^|\/)app\.asar$/i.test(e.path)) out.push({ type: "asar", entry: e });
+  for (const e of entries) if (/(^|\/)(package|app)\.nw$/i.test(e.path)) out.push({ type: "nw", entry: e });
+  const nwDirs = new Set(entries.filter((e) => NW_RUNTIME.test(e.path)).map((e) => dirname(e.path)));
+  for (const e of entries) {
+    const d = dirname(e.path);
+    // 윈도: 게임.exe / 리눅스: 확장자 없는 실행 파일(nw 런타임과 같은 폴더)
+    if (nwDirs.has(d) && e.size > 64 << 10 && (/\.exe$/i.test(e.path) || !/\.[^/]*$/.test(basename(e.path)))) {
+      out.push({ type: "exe", entry: e });
+    }
+  }
+  return out.sort((a, b) => depth(a.entry.path) - depth(b.entry.path));
+}
+
+const PACKAGE_LABEL = { asar: "Electron · app.asar", nw: "NW.js · package.nw/app.nw", exe: "NW.js · 실행 파일에 묶인 zip" };
+
+async function openPackage(c, entries) {
+  const blob = await readBlob(c.entry);
+  if (c.type === "asar") {
+    const up = c.entry.path + ".unpacked/";
+    const unpacked = entries.filter((e) => e.path.startsWith(up)).map((e) => ({ ...e, path: e.path.slice(up.length) }));
+    return entriesFromAsar(blob, unpacked);
+  }
+  const list = await readZip(blob);
+  return list.filter((e) => !e.dir).map((e) => ({ path: e.path, size: e.size, open: e.open }));
+}
+
+/** Enigma Virtual Box 로 묶은 exe("앞 5KB 안에 .enigma 섹션") — 안의 파일을 꺼낼 수 없다 */
+async function enigmaExe(entries) {
+  const exes = entries.filter((e) => /\.exe$/i.test(e.path) && e.size > 1 << 20).sort((a, b) => b.size - a.size).slice(0, 3);
+  for (const e of exes) {
+    try {
+      const head = await readHead(e, 5120);
+      if (new TextDecoder("latin1").decode(head).includes(".enigma")) return e.path;
+    } catch { /* 무시 */ }
+  }
+  return null;
+}
+
+/** NW.js package.json 의 main 이 html 이면 그것이 시작 페이지 ("app://./index.html" 같은 형식 포함) */
+async function nwMainHtml(entries) {
+  const pkgs = entries.filter((e) => /(^|\/)package\.json$/i.test(e.path) && !/(^|\/)node_modules\//i.test(e.path))
+    .sort((a, b) => depth(a.path) - depth(b.path));
+  for (const pkg of pkgs.slice(0, 3)) {
+    let main = "";
+    try { main = String(JSON.parse(await readText(pkg, 1 << 20)).main || ""); } catch { continue; }
+    main = main.replace(/^[a-z][\w+.-]*:\/\/[^/]*\//i, "").replace(/^\.?\//, "").split(/[?#]/)[0];
+    if (!/\.html?$/i.test(main)) continue;
+    const dir = dirname(pkg.path);
+    const path = dir ? `${dir}/${main}` : main;
+    const hit = entries.find((e) => e.path === path) || entries.find((e) => e.path.toLowerCase() === path.toLowerCase());
+    if (hit) return { root: dir, entry: relTo(dir, hit.path), html: hit };
+  }
+  return null;
 }
 
 const COVER_SKIP = /(unity-logo|webgl-logo|progress|fullscreen|memoryprofiler|webmemd|favicon)/i;
@@ -235,9 +464,11 @@ var unityInstance = UnityLoader.instantiate("unityContainer", ${JSON.stringify(j
  * 항목 목록을 보고 설치 계획을 세운다.
  * @returns {Promise<{kind,kindLabel,root,entry,generatedHtml,title,company,version,files,decompress:Set<string>,cover,warnings:string[],totalSize}>}
  */
-export async function analyze(allEntries, sourceName = "") {
+export async function analyze(allEntries, sourceName = "", ctx = {}) {
+  const nested = ctx.nested || 0; // PC판 포장 안을 판별 중이면 1 이상
   const entries = allEntries.filter((e) => !JUNK.test(e.path) && e.path);
   if (!entries.length) throw new ImportError("EMPTY", "비어 있는 압축 파일/폴더입니다.");
+  const missingUnpacked = allEntries.missingUnpacked || [];
 
   const htmls = entries
     .filter((e) => /\.html?$/i.test(e.path))
@@ -296,12 +527,30 @@ export async function analyze(allEntries, sourceName = "") {
     warnings.push("index.html 이 없어 실행용 페이지를 자동으로 만들었습니다.");
   }
 
-  // 4) RPG Maker MV/MZ · 기타 HTML5
+  // 4) RPG Maker MV/MZ · 티라노스크립트
   if (!plan) {
     for (const h of htmls) {
       const dir = dirname(h.path);
       if (!/index\.html?$/i.test(h.path)) continue;
       const j = (p) => (dir ? dir + "/" + p : p);
+      const tjs = entries.find((e) => e.path === j("data/system/Config.tjs"));
+      if (tjs && (has(j("tyrano/tyrano.js")) || has(j("tyrano/libs.js")) || has(j("tyrano/tyrano.base.js")))) {
+        const text = await readTextGuess(tjs, 1 << 20);
+        const cfg = tyranoConfig(text);
+        const ver = await tyranoVersion(entries, dir);
+        plan = { kind: "tyrano", kindLabel: ver ? `TyranoScript ${ver}` : "TyranoScript", root: dir, entry: relTo(dir, h.path),
+          title: cfg["System.title"] || "", version: cfg.game_version && cfg.game_version !== "0.0" ? cfg.game_version : "",
+          overrides: new Map(), seedStorage: {}, settings: {} };
+        // 세로 화면 게임(스마트폰용 720x1280 등)은 세로로 고정
+        if (+cfg.scHeight > +cfg.scWidth) plan.settings.orientation = "portrait";
+        const patched = patchTyranoConfig(text, cfg);
+        if (patched.text !== text) plan.overrides.set(relTo(dir, tjs.path), patched.text);
+        warnings.push(...patched.notes, ...(await tyranoCompat(entries, dir)));
+        plan.seedStorage = await tyranoPcSaves(ctx.outer || entries, cfg.projectID);
+        const n = Object.keys(plan.seedStorage).length;
+        if (n) warnings.push(`PC판 세이브 파일 ${n}개를 찾았습니다. 설치하면 이어서 플레이할 수 있어요.`);
+        break;
+      }
       if (has(j("js/rpg_core.js")) || has(j("js/rmmz_core.js"))) {
         const mz = has(j("js/rmmz_core.js"));
         let title = "";
@@ -313,24 +562,57 @@ export async function analyze(allEntries, sourceName = "") {
       }
     }
   }
-  if (!plan) {
-    // PC 유니티 빌드(UnityPlayer.dll 이나 _Data/.app 의 globalgamemanagers 등)면 안의 html(크레딧·매뉴얼·내장 브라우저 화면)은
-    // 게임이 아니다 → 아래 5) 에서 변환 진단을 보여 준다. nw.js 같은 HTML5 게임의 .exe 는 이 표시가 없어 영향 없음.
-    const pcUnity = entries.some((e) => /(^|\/)UnityPlayer\.(dll|so)$/i.test(e.path) ||
-      /(_Data|\.app\/Contents\/Resources\/Data)\/(globalgamemanagers|mainData|data\.unity3d)$/i.test(e.path));
-    const h = pcUnity ? null : htmls.find((e) => /index\.html?$/i.test(e.path));
+  // PC 유니티 빌드(UnityPlayer.dll 이나 _Data/.app 의 globalgamemanagers 등)면 안의 html(크레딧·매뉴얼·내장 브라우저 화면)은
+  // 게임이 아니다 → 아래 7) 에서 변환 진단을 보여 준다. nw.js 같은 HTML5 게임의 .exe 는 이 표시가 없어 영향 없음.
+  const pcUnity = entries.some((e) => /(^|\/)UnityPlayer\.(dll|so)$/i.test(e.path) ||
+    /(_Data|\.app\/Contents\/Resources\/Data)\/(globalgamemanagers|mainData|data\.unity3d)$/i.test(e.path));
+
+  // 5) PC판 HTML5 포장(NW.js · Electron) 안의 게임 꺼내기
+  let brokenAsar = null;
+  if (!plan && !pcUnity && nested < 2) {
+    for (const c of findPackages(entries)) {
+      let inner;
+      try { inner = await openPackage(c, entries); } catch { // zip 이 안 붙은 exe 등
+        if (c.type === "asar") brokenAsar = c.entry.path;
+        continue;
+      }
+      if (!inner.length) continue;
+      let p;
+      try { p = await analyze(inner, sourceName, { nested: nested + 1, outer: ctx.outer || entries }); } catch { continue; }
+      p.warnings.unshift(`PC판(${PACKAGE_LABEL[c.type]}) 안에서 게임 파일을 꺼내 설치합니다.`);
+      // 아는 엔진(유니티·RPG Maker·티라노)은 브라우저 모드가 있지만, 그 밖의 게임은 PC 전용 기능을 쓸 수 있다
+      if (p.kind === "html5") p.warnings.push("PC판 전용 기능(Node.js 파일 접근 등)을 쓰는 부분은 브라우저에서 동작하지 않을 수 있어요.");
+      return p;
+    }
+  }
+
+  // 6) 그 밖의 HTML5 — NW.js package.json 의 main, 없으면 가장 얕은 index.html
+  if (!plan && !pcUnity) {
+    const main = await nwMainHtml(entries);
+    const h = main ? main.html : htmls.find((e) => /index\.html?$/i.test(e.path));
     if (h) {
       const text = await readText(h);
-      plan = { kind: "html5", kindLabel: "HTML5", root: dirname(h.path), entry: basename(h.path), title: htmlTitle(text) };
+      plan = { kind: "html5", kindLabel: "HTML5", root: main ? main.root : dirname(h.path), entry: main ? main.entry : basename(h.path), title: htmlTitle(text) };
       warnings.push("유니티 빌드가 아닌 일반 HTML5 게임으로 보입니다. 실행은 시도하지만 동작은 보장하지 않아요.");
     }
   }
 
-  // 5) 실행할 게 없음 → 어떤 플랫폼인지 알려 주기
+  // 7) 실행할 게 없음 → 어떤 플랫폼인지 알려 주기
+  if (!plan && brokenAsar) {
+    throw new ImportError("PACKAGE", `Electron 게임(${brokenAsar})이지만 app.asar 를 열 수 없습니다. ` +
+      "파일이 손상됐거나, 꺼내지 못하게 일부러 변형(보호)한 경우입니다.");
+  }
+  if (!plan && !pcUnity && nested === 0) {
+    const enigma = await enigmaExe(entries);
+    if (enigma) {
+      throw new ImportError("WINDOWS", `${basename(enigma)} 는 Enigma Virtual Box 로 게임 파일을 실행 파일 안에 숨겨 묶은 형식이라 꺼낼 수 없습니다.\n\n` +
+        "PC 에서 evbunpack 같은 도구로 먼저 풀어 낸 폴더를 zip 으로 넣어 주세요. (안의 게임이 티라노스크립트·RPG Maker MV/MZ 같은 HTML5 게임이면 실행됩니다)");
+    }
+  }
   if (!plan) {
     const err = platformError(entries.map((e) => e.path));
     // PC 빌드면 "모바일로 바꿀 수 있는지" 진단을 붙여 보낸다
-    if (["WINDOWS", "MAC", "LINUX"].includes(err.code)) err.report = await inspectPcBuild(entries).catch(() => null);
+    if (["WINDOWS", "MAC", "LINUX"].includes(err.code) && !nested) err.report = await inspectPcBuild(entries).catch(() => null);
     throw err;
   }
 
@@ -366,10 +648,16 @@ export async function analyze(allEntries, sourceName = "") {
     }
   }
 
+  if (missingUnpacked.length) {
+    warnings.push(`app.asar 밖(app.asar.unpacked 폴더)에 있어야 할 파일 ${missingUnpacked.length}개가 없습니다` +
+      ` (${missingUnpacked.slice(0, 3).join(", ")}${missingUnpacked.length > 3 ? " …" : ""}). 게임 폴더 전체를 zip 으로 넣어 주세요.`);
+  }
   plan.title = plan.title || baseName(sourceName) || "이름 없는 게임";
   plan.files = inRoot.map((e) => ({ rel: relTo(root, e.path), entry: e }));
   if (plan.generatedHtml) plan.files = plan.files.filter((f) => f.rel !== plan.entry);
   plan.decompress = decompress;
+  plan.overrides = plan.overrides || new Map();
+  plan.seedStorage = plan.seedStorage || {};
   plan.cover = findCover(entries, root);
   plan.warnings = warnings;
   plan.totalSize = plan.files.reduce((s, f) => s + (f.entry.size || 0), 0);
@@ -402,6 +690,20 @@ async function decompressBuildFile(blob, rel) {
   return blob;
 }
 
+/** PC판에서 가져온 세이브를 이 게임의 localStorage 에 넣는다(inject.js 의 게임별 분리 규칙과 같은 키). */
+async function seedLocalStorage(id, data) {
+  const keys = Object.keys(data || {});
+  if (!keys.length) return 0;
+  const isolate = (await globalDefaults()).isolateStorage !== false;
+  let n = 0;
+  for (const k of keys) {
+    try { localStorage.setItem(isolate ? `uniplay:${id}:${k}` : k, data[k]); n++; } catch (e) {
+      console.warn("[uniplay] 세이브를 넣지 못했습니다:", k, e);
+    }
+  }
+  return n;
+}
+
 function isQuota(e) {
   return e && (e.name === "QuotaExceededError" || /quota/i.test(e.message || ""));
 }
@@ -425,8 +727,8 @@ export async function install(plan, opt = {}) {
     if (signal?.aborted) throw new DOMException("취소됨", "AbortError");
     const url = gameFileURL(id, f.rel);
     const headers = { "Content-Type": mimeFor(f.rel), "X-UniPlay-Path": encodeURIComponent(f.rel) };
-    let body = await f.entry.open();
-    let size = f.entry.size;
+    let body = plan.overrides?.has(f.rel) ? new Blob([plan.overrides.get(f.rel)]) : await f.entry.open();
+    let size = body instanceof Blob ? body.size : f.entry.size;
     if (plan.decompress.has(f.rel)) {
       const blob = body instanceof Blob ? body : await new Response(body).blob();
       body = await decompressBuildFile(blob, f.rel);
@@ -489,7 +791,7 @@ export async function install(plan, opt = {}) {
       addedAt: Date.now(),
       lastPlayed: 0,
       playSeconds: 0,
-      settings: opt.settings || {},
+      settings: { ...(plan.settings || {}), ...(opt.settings || {}) },
       idbfsPrefix: null,
       sourceName: plan.sourceName || "",
       warnings: plan.warnings || [],
@@ -497,6 +799,7 @@ export async function install(plan, opt = {}) {
     stored.sort((a, b) => a[0].localeCompare(b[0]));
     await fileStore.put(id, stored);
     await games.put(game);
+    await seedLocalStorage(id, plan.seedStorage);
     return game;
   } catch (e) {
     await caches.delete(cacheName).catch(() => {});

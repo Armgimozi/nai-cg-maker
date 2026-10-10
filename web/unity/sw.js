@@ -6,7 +6,7 @@
  *    - 격리 모드 게임은 COOP/COEP 헤더를 붙여 SharedArrayBuffer(멀티스레드 빌드)를 쓸 수 있게 한다.
  * 2) 앱 화면(셸)은 네트워크 우선 + 2.5초 안에 응답이 없으면 캐시(잠든 무료 서버·오프라인 대비).
  */
-const VERSION = "uniplay-shell-v1";
+const VERSION = "uniplay-shell-v2";
 const SHELL_PREFIX = "uniplay-shell-";
 const GAME_PREFIX = "uniplay-game-";
 const SCOPE = new URL(self.registration.scope);
@@ -17,7 +17,7 @@ const SHELL_FILES = [
   "./", "index.html", "play.html", "manifest.webmanifest", "inject.js",
   "css/app.css",
   "js/db.js", "js/zip.js", "js/importer.js", "js/library.js", "js/player.js",
-  "js/controls.js", "js/keys.js", "js/saves.js", "js/ui.js", "js/pcbuild.js", "js/porting.js",
+  "js/controls.js", "js/keys.js", "js/saves.js", "js/ui.js", "js/pcbuild.js", "js/porting.js", "js/asar.js",
   "vendor/brotli-decode.js",
   "icons/icon-192.png", "icons/icon-512.png", "icons/icon-maskable-512.png", "icons/apple-touch-icon.png",
 ];
@@ -131,6 +131,8 @@ async function gameInfo(id, fresh) {
 
 /** 정확한 경로가 없을 때: 대소문자 무시 → (그래도 없으면) 파일 이름만으로 찾기.
  *  폴더 구조 없이 파일만 골라 넣은 경우(안드로이드 파일 선택 등)에도 Build/xxx 요청이 맞춰진다. */
+const AUDIO_ALT = { ogg: ["m4a", "mp3"], m4a: ["ogg", "mp3"], mp3: ["m4a", "ogg"] };
+
 async function fuzzyPath(id, info, rel) {
   if (!info.lower) {
     const list = (await idbGet("files", id).catch(() => null)) || [];
@@ -174,6 +176,15 @@ async function serveGame(req, url) {
   if (!hit) {
     const fixed = await fuzzyPath(id, info, rel);
     if (fixed) { rel = fixed; hit = await cache.match(new URL(base + encodeRel(fixed), url.origin).href); }
+  }
+  // 소리 파일 형식 바꿔 찾기: 티라노스크립트는 아이폰에서 .ogg 를 .m4a 로 바꿔 요청하는데
+  // PC판(NW.js/Electron)은 .ogg 만 들어 있는 경우가 많다(반대도 있음)
+  const audio = !hit && /^(.*)\.(ogg|m4a|mp3)$/i.exec(rel);
+  if (audio) {
+    for (const ext of AUDIO_ALT[audio[2].toLowerCase()]) {
+      const alt = await fuzzyPath(id, info, `${audio[1]}.${ext}`);
+      if (alt && (hit = await cache.match(new URL(base + encodeRel(alt), url.origin).href))) { rel = alt; break; }
+    }
   }
   if (!hit) {
     if (req.mode === "navigate") return htmlResponse(404, "파일을 찾을 수 없습니다: " + rel);

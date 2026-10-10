@@ -3,7 +3,8 @@
  * 유니티 WebGL 은 PlayerPrefs 와 Application.persistentDataPath 를 IndexedDB "/idbfs"
  * (스토어 FILE_DATA, 키 "/idbfs/<해시>/파일경로")에 저장한다. 게임마다 <해시>가 다르므로
  * inject.js 가 실행 중 처음 저장되는 경로를 기록해 둔 game.idbfsPrefix 로 구분한다.
- * 게임별로 분리된 localStorage("uniplay:<id>:키")도 함께 백업한다(RPG Maker MV 등).
+ * 게임별로 분리된 localStorage("uniplay:<id>:키")도 함께 백업한다(RPG Maker MV, 티라노스크립트 등).
+ * 티라노스크립트 PC판 세이브(.sav)도 그대로 가져올 수 있다(내용 형식이 브라우저판과 같음).
  */
 
 import { games } from "./db.js";
@@ -178,6 +179,24 @@ export async function importSave(game, file) {
     written++;
   }
   return { written, remapped: !!target, unknownTarget: !target && !!data.idbfs?.length };
+}
+
+/**
+ * 티라노스크립트 PC판 세이브(.sav) 가져오기. 파일 이름이 localStorage 키(<projectID>_tyrano_data 등)이고
+ * 내용은 브라우저판과 같은 escape(JSON) 문자열이다.
+ */
+export async function importTyranoSav(game, fileList) {
+  let written = 0;
+  const bad = [];
+  for (const f of fileList) {
+    const m = /^(.+_(sf|tyrano_data|tyrano_quick_save|tyrano_auto_save))\.sav$/.exec(f.name);
+    if (!m) { bad.push(f.name); continue; }
+    const text = (await f.text()).trim();
+    try { JSON.parse(unescape(text)); } catch { bad.push(f.name); continue; }
+    localStorage.setItem(lsPrefix(game.id) + m[1], text);
+    written++;
+  }
+  return { written, bad };
 }
 
 /** 이 게임의 세이브를 모두 지운다. */

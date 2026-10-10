@@ -29,6 +29,7 @@ let menu = null;              // 열린 메뉴 시트
 let lastPoint = null;         // 마우스 바인딩이 누를 위치
 let errorCount = 0;
 const logs = [];
+const tapHint = document.body.appendChild(h("div", { class: "tap-hint", hidden: true, role: "status" }, "▶ 화면을 탭하면 시작합니다"));
 
 /* ───────────── 게임과 연결되는 호스트 객체 ───────────── */
 
@@ -64,6 +65,21 @@ const host = (window.UniPlayHost = {
   onGameGesture(x, y) {
     if (Number.isFinite(x)) lastPoint = { x, y };
     userGesture();
+  },
+  /** 게임의 "종료" 버튼(window.close) */
+  onGameClose() { exitGame(); },
+  /** 브라우저 저장소(localStorage)가 가득 차 세이브를 못 씀 — 게임이 알리지 않을 수 있어 대신 알린다 */
+  onStorageFull(key, size) {
+    host.log("error", `세이브 실패(저장 공간 부족): ${key} · ${Math.round(size / 1024)}KB`);
+    const now = Date.now();
+    if (now - (host.lastFullToast || 0) < 15000) return;
+    host.lastFullToast = now;
+    toast("세이브하지 못했습니다: 브라우저 저장 공간(모든 게임이 함께 쓰는 약 5MB)이 가득 찼어요. 라이브러리에서 안 하는 게임의 세이브를 백업한 뒤 지워 주세요.", 9000);
+  },
+  onHint(kind) {
+    // 첫 BGM 이 소리 재생 허락(첫 탭)을 기다리며 화면이 멈춰 있을 때: 가운데에 계속 보이는 안내
+    if (kind === "tapToStart") tapHint.hidden = false;
+    else if (kind === "started") tapHint.hidden = true;
   },
 });
 
