@@ -349,9 +349,10 @@ L.run('rings', async (sc) => {
   }
 
   // 7a. 가방 (단축 줄까지 36 칸) 이 다 차면 낀 반지를 빼지 않는다: 손에 든 반지가 돌아갈 자리가 늘 있게 (검토 R1)
+  // (/clear 는 2×2 의 사본도 지운다: 가방을 먼저 채우고 낀다)
   await reset()
-  await b.cmd('/soulstest ring equip 1 test_stamina', 'RING_SET')
   await cobble(36)
+  await b.cmd('/soulstest ring equip 1 test_stamina', 'RING_SET')
   const bagFull = b.bot.inventory.slots.slice(9, 45).every((x) => !!x)
   from = b.sys.length
   await b.rawClick(1, 0, 0)
@@ -381,9 +382,9 @@ L.run('rings', async (sc) => {
   // 7b. 손에 반지를 든 채 가방이 찬다 (빼고 나서 무엇을 받았다) → 창 닫기: 반지는 빈 반지 칸으로 돌아간다 (사라지지 않는다)
   const takeThenFill = async (ring2) => {
     await reset()
+    await cobble(35)
     await b.cmd('/soulstest ring equip 1 test_stamina', 'RING_SET')
     if (ring2) await b.cmd('/soulstest ring equip 2 ' + ring2, 'RING_SET')
-    await cobble(35)
     return b.bot.inventory.slots[35] === null || b.bot.inventory.slots[35] === undefined
   }
   let spare = await takeThenFill(null)
