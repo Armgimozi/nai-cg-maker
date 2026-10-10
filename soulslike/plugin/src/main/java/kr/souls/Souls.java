@@ -6,6 +6,7 @@ import kr.souls.cmd.SoulsCommands;
 import kr.souls.cmd.TestCommands;
 import kr.souls.combat.CombatState;
 import kr.souls.combat.DamageHook;
+import kr.souls.combat.FoeScaling;
 import kr.souls.combat.Pvp;
 import kr.souls.combat.PvpGuard;
 import kr.souls.combat.Roll;
@@ -83,6 +84,7 @@ public final class Souls extends JavaPlugin {
     private LevelUpDialog levelUp;
     private TestBonfire testBonfire;
     private SneakTap sneakTap;
+    private FoeScaling foes;
 
     @Override
     public void onEnable() {
@@ -110,6 +112,7 @@ public final class Souls extends JavaPlugin {
         profiles = new Profiles(this);
         worldState = new WorldState(this);
         pvp = new Pvp(this);
+        foes = new FoeScaling(this);
         // 5. 세계: 로비와 souls_world, 게임 규칙, 난이도, 필요하면 접속을 막고 짓기
         worlds = new WorldService(this);
         worlds.start();
@@ -132,6 +135,7 @@ public final class Souls extends JavaPlugin {
         load = new Load(this);
         purse = new SoulPurse(this);
         ui = new Ui(this);
+        titles.setBusy(ui::open);
         start = new StartFlow(this);
         levelUp = new LevelUpDialog(this);
         testBonfire = new TestBonfire(this);
@@ -161,6 +165,7 @@ public final class Souls extends JavaPlugin {
         pm.registerEvents(pvp, this);
         pm.registerEvents(new PvpGuard(this), this);
         pm.registerEvents(new DamageHook(this), this);
+        pm.registerEvents(foes, this);
         pm.registerEvents(new Ailments(this), this);
         pm.registerEvents(load, this);
         pm.registerEvents(ui, this);
@@ -212,7 +217,10 @@ public final class Souls extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        if (profiles != null) profiles.saveAll();
+        if (profiles != null) {
+            profiles.saveAll();
+            profiles.shutdown();
+        }
         if (ticker != null) ticker.stop();
         if (pack != null) pack.stop();
         if (roll != null) roll.shutdown();
@@ -250,11 +258,16 @@ public final class Souls extends JavaPlugin {
         skills.load(content.yml("skills.yml"));
         weapons.load(content.yml("weapons.yml"));
         origins.load(content.yml("origins.yml"), weapons);
-        // 시험 모드를 켜고 끄면 /soulstest 가 보이고 숨는다. 바뀐 설정 (hud.show-souls 같은 것) 으로 HUD 를 다시 그린다
+        // 시험 모드를 켜고 끄면 /soulstest 가 보이고 숨는다. 바뀐 설정 (최대 HP·이동 속도·공격 속도 곡선, 무게 단계의 걷기 배율,
+        // hud.show-souls 같은 것) 을 곧바로 건다: 창과 HUD 만 새 값이고 속성은 옛 값인 채 남지 않게 (검토 reload-stale-attributes)
         for (Player p : Bukkit.getOnlinePlayers()) {
             p.updateCommands();
+            attributes.apply(p);
+            load.reset(p);
             hud.invalidate(p);
         }
+        foes.applyAll();
+        checkMaxHealthCap();
     }
 
     /**
@@ -294,6 +307,7 @@ public final class Souls extends JavaPlugin {
     public LevelUpDialog levelUp() { return levelUp; }
     public TestBonfire testBonfire() { return testBonfire; }
     public SneakTap sneakTap() { return sneakTap; }
+    public FoeScaling foes() { return foes; }
 
     /** 지금 세계 설정의 난이도 (5.7, 설정이 없으면 difficulty.default). */
     public Config.Difficulty difficulty() {

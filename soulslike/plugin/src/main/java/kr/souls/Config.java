@@ -111,10 +111,11 @@ public final class Config {
      * 시작 흐름 (5.7, 5.10). setupBy: first (세계를 처음 연 사람) | op. reopenCooldown: 창을 닫은 사람에게 다시 띄우는 가장 짧은 틈.
      * auto / autoOrigin 은 시험 모드에서만 듣는다 (봇 묶음이 창에 막히지 않게). unbornRadius: 출신을 고르기 전에 시작 자리에서 이만큼만
      * 걸을 수 있다 (0 이면 막지 않는다). packWait: 팩을 다 싣고 창을 띄우기까지 틱, noPackWait: 팩을 싣지 않은 사람 (선택 팩을 거절,
-     * 팩이 꺼짐) 은 접속 뒤 이만큼.
+     * 팩이 꺼짐) 은 접속 뒤 이만큼. hintEvery: 출신 창을 닫은 사람이 걷는 동안 "고르려면 · 웅크리기 짧게" 를 다시 알리는 틈 (0 이면 닫을
+     * 때만).
      */
     public record StartCfg(String setupBy, int reopenCooldown, String auto, String autoOrigin, List<String> autoNames, int unbornRadius,
-                           int packWait, int noPackWait) {
+                           int packWait, int noPackWait, int hintEvery) {
         /** 시험 모드의 auto-origin 을 받는 이름인가 (auto-names 의 앞머리 가운데 하나로 시작한다). */
         public boolean autoName(String name) {
             for (String n : autoNames) if (!n.isEmpty() && name.startsWith(n)) return true;
@@ -132,6 +133,18 @@ public final class Config {
      */
     public record PvpCfg(boolean def, double damageScale, int respawnGrace, boolean keepSouls) {}
 
+    /**
+     * 적과의 싸움 (M1 의 동작 실행기 전의 다리, 3.7). bridgeScale: souls 근접 무기로 플레이어가 아닌 것을 치면 바닐라 피해를
+     * 공격력 × (0.2 + 0.8 × 회복²) × bridgeScale 로 바꾼다 (직검 71 → 약 6.4, 바닐라 철검쯤). swingTicks: 분류마다 약공격 한 주기 (틱).
+     * 든 무기의 바닐라 공격 속도 = 20 / 주기 (AttributeApplier.weaponSpeed), 민첩이 그것을 곱한다.
+     */
+    public record PveCfg(double bridgeScale, Map<String, Integer> swingTicks) {
+        /** 분류의 약공격 한 주기 (틱, 3.6 의 준비 + 판정 + 회복). 모르는 분류면 null (공격 속도를 걸지 않는다). */
+        public Integer swingTicks(String cls) {
+            return cls == null ? null : swingTicks.get(cls);
+        }
+    }
+
     /** 레벨 올리기 창의 "올린다" 소리 (5.9). */
     public record LevelUpCfg(String sound, float volume, float pitch) {}
 
@@ -142,6 +155,7 @@ public final class Config {
     /** 난이도 넷 (차례 그대로: easy, normal, hard, very_hard) */
     public final Map<String, Difficulty> difficulties;
     public final PvpCfg pvp;
+    public final PveCfg pve;
     public final StatCurves stats;
     public final LevelCost levelCost;
     public final LoadTiers load;
@@ -235,12 +249,24 @@ public final class Config {
                 c.getString("start.auto", "").trim(), c.getString("start.auto-origin", "").trim().toLowerCase(Locale.ROOT),
                 java.util.Arrays.stream(c.getString("start.auto-names", "Souls").split(",")).map(String::trim).filter(x -> !x.isEmpty()).toList(),
                 Math.max(0, c.getInt("start.unborn-radius", 8)), Math.max(0, c.getInt("start.pack-wait", 20)),
-                Math.max(0, c.getInt("start.no-pack-wait", 200)));
+                Math.max(0, c.getInt("start.no-pack-wait", 200)), Math.max(0, c.getInt("start.hint-every", 1200)));
         difficulties = difficulties(c);
         String dd = c.getString("difficulty.default", "normal").toLowerCase(Locale.ROOT).trim();
         difficultyDefault = difficulties.containsKey(dd) ? dd : difficulties.keySet().iterator().next();
         pvp = new PvpCfg(c.getBoolean("pvp.default", false), c.getDouble("pvp.damage-scale", 1.0), Math.max(0, c.getInt("pvp.respawn-grace", 100)),
                 c.getBoolean("pvp.death.keep-souls", true));
+        Map<String, Integer> swing = new LinkedHashMap<>();
+        swing.put("dagger", 10); swing.put("straight_sword", 13); swing.put("curved_sword", 12); swing.put("greatsword", 22);
+        swing.put("ultra_greatsword", 30); swing.put("axe", 18); swing.put("hammer", 18); swing.put("spear", 13); swing.put("halberd", 20);
+        ConfigurationSection sw = c.getConfigurationSection("pve.swing-ticks");
+        if (sw != null) {
+            for (String k : sw.getKeys(false)) {
+                int v = sw.getInt(k, 0);
+                if (v > 0) swing.put(k, Math.max(2, v));
+                else swing.remove(k);
+            }
+        }
+        pve = new PveCfg(Math.max(0, c.getDouble("pve.bridge-scale", 0.09)), Collections.unmodifiableMap(swing));
         stats = statCurves(c, curve);
         List<?> cubic = c.getList("level.cost.cubic");
         double[] cu = {0.02, 3.06, 105.6, -895};

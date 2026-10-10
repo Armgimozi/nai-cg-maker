@@ -32,7 +32,7 @@ public final class StatsDialog {
     /** of: 이 사람의 능력치를 viewer 에게 (관리자의 /stats &lt;이름&gt;). fromRest 면 닫을 때 휴식 창으로. */
     public static void show(Souls plugin, Player viewer, Player of, boolean fromRest) {
         Ui ui = plugin.ui();
-        Ui.Session s = ui.begin(ID);
+        Ui.Session s = ui.begin(ID, fromRest);
         Profile pr = plugin.profiles().of(of);
         StatBlock st = pr.stats();
         Derived d = plugin.stats().derived(of);

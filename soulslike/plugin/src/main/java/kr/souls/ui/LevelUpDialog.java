@@ -83,7 +83,7 @@ public final class LevelUpDialog implements Listener {
     public void show(Player p) {
         Session ss = session(p);
         Ui ui = plugin.ui();
-        Ui.Session s = ui.begin(ID);
+        Ui.Session s = ui.begin(ID, true);
         StatBlock base = ss.base, target = ss.target();
         int from = base.level(), to = target.level();
         long cost = plugin.cfg().levelCost.sum(from, to - from);

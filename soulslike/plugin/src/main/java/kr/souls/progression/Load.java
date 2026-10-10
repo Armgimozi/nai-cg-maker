@@ -39,7 +39,9 @@ import java.util.UUID;
  * 한도 = 근력 한도 (stats.strength.equip-load). 단계 (load.tiers): 구르기 종류, 스태미나 회복 배율, 걷기 배율 (MOVEMENT_SPEED 임시 수정자
  * souls:load), 달리기 (너무 무거우면 Stamina 가 허기를 6 으로 둔다: 허기는 Stamina 한 곳만 쓴다, 검토 T13).
  * 다시 셈하는 때: 인벤토리 닫기·클릭 다음 틱, 방어구 바꾸기, 줍기, 슬롯 바꾸기, 손 바꾸기, 접속·부활, 레벨업 (refresh), 그리고 10틱마다.
- * 단계가 바뀌면 회색 부제목 한 번 ("짐이 무거워졌다 · 무거움"). Roll 은 rollKind 를 읽기만 한다.
+ * 단계가 바뀌면 흐린 부제목 한 번: 단계마다 무엇이 바뀌는지 한 줄 (burden.light|medium|heavy|over, "짐이 무겁다 — 구르기가 둔하고 걸음이
+ * 느리다", 검토 burden-notice). Roll 은 rollKind 를 읽기만 한다. 다시 셈하는 때마다 든 무기의 공격 속도도 맞춘다
+ * (AttributeApplier.weaponSpeed: 같으면 걸지 않는다).
  */
 public final class Load implements Listener {
     public static final NamespacedKey MOD = Keys.of("load");
@@ -90,13 +92,15 @@ public final class Load implements Listener {
         return !tier(p).sprint();
     }
 
-    /** 지금 다시 셈한다. 단계가 바뀌면 걷기 수정자를 바꾸고 시험 줄 LOAD 와 회색 부제목. */
+    /** 지금 다시 셈한다. 단계가 바뀌면 걷기 수정자를 바꾸고 시험 줄 LOAD 와 흐린 부제목. */
     public LoadTiers.Tier refresh(Player p) {
+        plugin.attributes().weaponSpeed(p);
         double w = weight(p);
         double cap = plugin.cfg().stats.equipLoad.at(plugin.stats().of(p).str());
         LoadTiers.Tier t = plugin.cfg().load.of(w, cap);
         State old = states.put(p.getUniqueId(), new State(w, cap, t));
-        boolean tierChanged = old == null || !old.tier().id().equals(t.id());
+        // 단계가 그대로여도 그 단계의 걷기 배율이 바뀌었으면 (/souls reload) 다시 건다 (검토 reload-stale-attributes)
+        boolean tierChanged = old == null || !old.tier().id().equals(t.id()) || Math.abs(old.tier().walk() - t.walk()) > 1e-9;
         if (tierChanged) {
             AttributeInstance speed = p.getAttribute(Attribute.MOVEMENT_SPEED);
             if (speed != null) {
@@ -106,11 +110,9 @@ public final class Load implements Listener {
                             EquipmentSlotGroup.ANY));
                 }
             }
-            // 처음 셈한 때 (접속) 는 알리지 않는다. 무거워지면 "짐이 무거워졌다", 가벼워지면 "짐이 가벼워졌다" 와 단계 이름
-            if (old != null && plugin.profiles().of(p).born()) {
-                boolean heavier = plugin.cfg().load.all().indexOf(t) > plugin.cfg().load.all().indexOf(old.tier());
-                Component name = Lang.c(p, "load." + t.id()); // lang-dyn: load.*
-                Component msg = heavier ? Lang.c(p, "burden.heavier", "tier", name) : Lang.c(p, "burden.lighter", "tier", name);
+            // 처음 셈한 때 (접속, 다시 읽기) 는 알리지 않는다. 단계가 바뀌면 그 단계에서 무엇이 바뀌는지 한 줄
+            if (old != null && !old.tier().id().equals(t.id()) && plugin.profiles().of(p).born()) {
+                Component msg = Lang.c(p, "burden." + t.id()); // lang-dyn: burden.*
                 plugin.titles().notice(p, plugin.ticker().now(), msg);
             }
         }
@@ -141,6 +143,14 @@ public final class Load implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent e) {
         states.remove(e.getPlayer().getUniqueId());
+        plugin.attributes().forget(e.getPlayer());
+    }
+
+    /** 다시 읽기 (/souls reload): 셈해 둔 것을 버리고 지금 설정으로 다시 건다 (알림 없이). */
+    public void reset(Player p) {
+        states.remove(p.getUniqueId());
+        plugin.attributes().forget(p);
+        refresh(p);
     }
 
     @EventHandler(priority = EventPriority.MONITOR)

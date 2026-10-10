@@ -182,12 +182,21 @@ public final class SneakTap implements Listener {
         plugin.roll().tryRoll(p);
     }
 
-    /** Ticker: 기억한 짧은 누름을 되는 첫 틱에. */
+    /**
+     * Ticker: 기억한 짧은 누름을 되는 첫 틱에. 기다리는 사이 죽었거나, 싸움 밖이 되었거나, 출신을 잃었거나, 우리 창이 떴으면 버린다
+     * (주검이 구르거나 창 뒤에서 구르지 않게, 검토 buffered-roll-no-recheck).
+     */
     public void tick(long now) {
         if (buffered.isEmpty()) return;
         buffered.entrySet().removeIf(en -> {
             Player p = plugin.getServer().getPlayer(en.getKey());
             if (p == null) return true;
+            String drop = p.isDead() ? "dead" : !Stamina.fighting(p) ? "out" : plugin.start().unborn(p) ? "unborn"
+                    : plugin.ui().open(p) ? "dialog" : null;
+            if (drop != null) {
+                skip(p, "buffer_" + drop, 0, now);
+                return true;
+            }
             CombatState st = CombatState.of(p);
             if (st.canRollAgain(now)) {
                 plugin.test(p, "ROLL_TAP_BUFFERED t=" + now);

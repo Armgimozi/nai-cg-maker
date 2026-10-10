@@ -19,6 +19,16 @@ public final class Combat {
 
     public static boolean inSkill() { return depth > 0; }
 
+    /** r 을 스킬 피해 안에서 (DamageHook 이 이미 HP 단위로 본다). 시험 명령 pvphit 처럼 PvP 확인 없이 바로 때리는 곳. */
+    public static void asSkill(Runnable r) {
+        depth++;
+        try {
+            r.run();
+        } finally {
+            depth--;
+        }
+    }
+
     public static double damage(SkillContext ctx, LivingEntity target, double amount, boolean magic) {
         return damage(ctx.caster, target, amount, magic, ctx);
     }

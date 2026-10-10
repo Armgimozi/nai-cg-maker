@@ -44,7 +44,10 @@ import java.util.UUID;
  *   <li>정하는 사람은 한 번에 하나 (chooser 잠금, 검토 T16). 나중에 들어온 사람은 기다리지 않고 잠정 설정으로 곧바로 출신 창으로 간다
  *       (검토 join-blocking). 정해지면 접속한 모두에게 알린다.</li>
  *   <li>출신 창을 닫으면 출신이 없는 채 시작 자리 둘레 (start.unborn-radius) 에서만 걷는다: 공격·구르기·우클릭·F·Q·물체·화톳불 입력은
- *       버리고 창을 다시 띄운다 (start.reopen-cooldown 에 한 번). 적과 다른 플레이어에게 맞지 않는다 (PvpGuard). 언제든 고르면 된다.</li>
+ *       버리고 창을 다시 띄운다 (start.reopen-cooldown 에 한 번). 적과 다른 플레이어에게 맞지 않는다 (PvpGuard). 언제든 고르면 된다.
+ *       둘레의 가운데는 시험 방 첫 자리, 출신을 지운 사람 (관리자 지우기·다시 고르기) 은 지운 그 자리 (home). 가운데에서 멀어지지 않는
+ *       걸음은 늘 된다 (둘레 밖에서 지워져도 굳지 않게, 검토 unborn-freeze-outside-radius). "고르려면 · 웅크리기 짧게" 를 닫을 때와
+ *       걷는 동안 start.hint-every 틱마다 알린다 (검토 origin-none-no-way-back).</li>
  * </ul>
  * 창이 뜨는 때: 접속할 때 팩을 이미 실었으면 (설정 단계에서 보낸 판) 곧바로, 아니면 SUCCESSFULLY_LOADED 를 받고 start.pack-wait 틱 뒤
  * (검토 T14). 팩을 싣지 않으면 (선택 팩을 거절, 팩 꺼짐) 접속 start.no-pack-wait 틱 뒤에 바닐라 그림으로.
@@ -59,6 +62,10 @@ public final class StartFlow implements Listener {
     private final Set<UUID> resetSinceJoin = new HashSet<>();
     /** 출신이 없는 사람에게 창을 다시 띄운 틱 */
     private final Map<UUID, Long> reopenAt = new HashMap<>();
+    /** 출신이 없는 사람이 걸을 둘레의 가운데 (없으면 시험 방 첫 자리) */
+    private final Map<UUID, Location> home = new HashMap<>();
+    /** "고르려면 …" 을 마지막으로 알린 틱 */
+    private final Map<UUID, Long> hintAt = new HashMap<>();
 
     public StartFlow(Souls plugin) {
         this.plugin = plugin;
@@ -116,6 +123,8 @@ public final class StartFlow implements Listener {
         // 능력치를 속성에 건다 (최대 HP 는 저장된 수정자, 이동 속도와 하트 배율은 접속마다)
         plugin.attributes().apply(p);
         begun.remove(p.getUniqueId());
+        // 둘레 밖에서 출신을 잃은 채 나갔다 들어왔으면 그 자리가 가운데다 (새 사람은 WorldService 가 시험 방 첫 자리에 세운다)
+        if (unborn(p) && !home.containsKey(p.getUniqueId()) && !nearSpawn(p.getLocation())) home.put(p.getUniqueId(), p.getLocation().clone());
         // 시험 봇: 접속하는 그 자리에서 출신을 정한다 (봇이 첫 명령을 보내기 전에 태어나 있게. 창 차례는 그대로 돈다)
         if (autoOrigin(p)) chooseOrigin(p, cfg().autoOrigin(), "auto");
         boolean packReady = plugin.hud().hasPack(p) || !plugin.cfg().pack.enabled() || !plugin.pack().ready();
@@ -135,6 +144,8 @@ public final class StartFlow implements Listener {
         begun.remove(id);
         reopenAt.remove(id);
         resetSinceJoin.remove(id);
+        home.remove(id);
+        hintAt.remove(id);
         if (id.equals(chooser)) chooser = null;
     }
 
@@ -198,7 +209,11 @@ public final class StartFlow implements Listener {
                 return;
             }
             p.sendMessage(notice(p, s));
-            if (s != null && !s.confirmed()) p.sendMessage(Lang.c(p, "start.provisional-chat"));
+            if (s != null && !s.confirmed()) {
+                // 부제목이 아니라 채팅으로 (곧 뜨는 출신 창 뒤에 비치지 않게, 검토 provisional-subtitle-bleed)
+                p.sendMessage(Lang.c(p, "start.provisional"));
+                p.sendMessage(Lang.c(p, "start.provisional-chat"));
+            }
             plugin.test(p, "START_NOTICE to=" + p.getName() + " " + (s == null ? "-" : s.line()));
             OriginDialog.show(plugin, p);
             return;
@@ -235,11 +250,25 @@ public final class StartFlow implements Listener {
 
     // ------------------------------------------------------------------ 세계 설정
 
-    /** 세계 설정 창의 난이도 단추 (via=dialog), 시험 명령, 관리자 명령 (via=command). difficulty 는 config 의 난이도 id 만. */
+    /**
+     * 세계 설정 창의 난이도 단추 (via=dialog), 시험 명령, 관리자 명령 (via=command). difficulty 는 config 의 난이도 id 만.
+     * 창의 단추는 누른 그때 다시 본다: 정할 사람이 아니게 되었으면 (그 사이 관리자가 확정했다) 거절하고 알린다 (검토
+     * settings-stale-eligibility). 창의 단추가 거절되면 창을 다시 띄우거나 다음 차례로 간다 (afterAction NONE 인 창이 세션 없이 남지 않게).
+     */
     public boolean chooseSettings(Player p, String difficulty, boolean pvp, String via) {
         String d = WorldState.normalize(difficulty);
+        boolean dialog = p != null && "dialog".equals(via);
         if (!plugin.cfg().difficulties.containsKey(d)) {
             plugin.test(p, "SETTINGS_DENY why=unknown difficulty=" + difficulty);
+            if (dialog) SettingsDialog.show(plugin, p);
+            return false;
+        }
+        if (dialog && !eligible(p)) {
+            plugin.test(p, "SETTINGS_DENY why=not_eligible t=" + plugin.ticker().now());
+            if (p.getUniqueId().equals(chooser)) chooser = null;
+            p.sendMessage(Lang.c(p, "start.already-set"));
+            if (unborn(p)) originStep(p);
+            else plugin.ui().close(p);
             return false;
         }
         WorldState.Settings old = plugin.worldState().get();
@@ -248,7 +277,7 @@ public final class StartFlow implements Listener {
                 p == null ? "console" : p.getName(), System.currentTimeMillis(), via);
         if (p != null && p.getUniqueId().equals(chooser)) chooser = null;
         apply(s, p);
-        if (p != null && "dialog".equals(via)) {
+        if (dialog) {
             if (unborn(p)) originStep(p);
             else plugin.ui().close(p);
         }
@@ -268,9 +297,13 @@ public final class StartFlow implements Listener {
         if (p.getUniqueId().equals(chooser)) chooser = null;
         // 이미 확정된 세계에서 관리자가 창을 열었다 닫았으면 잠정이 아니다
         WorldState.Settings now = plugin.worldState().get();
-        if (now == null || !now.confirmed()) plugin.titles().notice(p, plugin.ticker().now(), Lang.c(p, "start.provisional"));
-        if (unborn(p)) originStep(p);
-        else plugin.ui().close(p);
+        if (unborn(p)) {
+            // 출신 창이 곧 뜬다: "아직 임시다" 는 originStep 이 채팅으로 (부제목은 창 뒤에 비친다)
+            originStep(p);
+        } else {
+            plugin.ui().close(p);
+            if (now == null || !now.confirmed()) plugin.titles().notice(p, plugin.ticker().now(), Lang.c(p, "start.provisional"));
+        }
     }
 
     /** 세계 설정을 적고 듣게 한다: 바닐라 pvp 규칙, 접속한 모두에게 알림 (확정이면). */
@@ -278,6 +311,7 @@ public final class StartFlow implements Listener {
         WorldState.Settings old = plugin.worldState().get();
         plugin.worldState().set(plugin.worlds().world(), s);
         plugin.worlds().applyPvp();
+        plugin.foes().applyAll();
         plugin.test(by, "SETTINGS " + s.line());
         if (!s.confirmed()) return;
         boolean changed = old != null && old.confirmed();
@@ -305,9 +339,13 @@ public final class StartFlow implements Listener {
         Origins.Origin o = plugin.origins().get(id);
         if (o == null) {
             plugin.test(p, "ORIGIN_DENY why=unknown id=" + id);
+            // 창의 단추였으면 출신 창을 다시 (세션 없는 창이 남지 않게)
+            if ("dialog".equals(via)) OriginDialog.show(plugin, p);
             return false;
         }
         pr.setOrigin(o.id(), System.currentTimeMillis());
+        home.remove(p.getUniqueId());
+        hintAt.remove(p.getUniqueId());
         pr.setStats(o.stats());
         WorldState.Settings s = plugin.worldState().get();
         if (s != null) pr.setSettingsSeen(s.rev());
@@ -332,11 +370,27 @@ public final class StartFlow implements Listener {
         });
     }
 
-    /** 출신 창을 닫았다 (Esc, "나중에 고른다"). */
+    /**
+     * 출신 창을 닫았다 (Esc, "나중에 고른다"). 마우스로 누른 "나중에 고른다" 는 클라이언트가 창의 afterAction (NONE) 을 따라 창을
+     * 그대로 두므로 서버가 닫는다 (Esc 만 클라이언트가 닫는다. 검토 origin-later-dead-dialog). 그리고 다시 여는 길을 알린다.
+     */
     public void originLater(Player p) {
-        reopenAt.put(p.getUniqueId(), plugin.ticker().now());
-        plugin.titles().notice(p, plugin.ticker().now(), Lang.c(p, "origin.none"));
-        plugin.test(p, "ORIGIN_LATER t=" + plugin.ticker().now());
+        plugin.ui().close(p);
+        long now = plugin.ticker().now();
+        reopenAt.put(p.getUniqueId(), now);
+        hint(p, now, true);
+        plugin.test(p, "ORIGIN_LATER t=" + now);
+    }
+
+    /** "아직 누구였는지 정하지 않았다" (first 일 때만) 와 "고르려면 · 웅크리기 키 짧게" (부제목과 채팅). */
+    private void hint(Player p, long now, boolean first) {
+        hintAt.put(p.getUniqueId(), now);
+        Component how = plugin.cfg().controls.sneakRolls()
+                ? Lang.c(p, "origin.none-hint", "bind", Component.keybind("key.sneak"))
+                : Lang.c(p, "origin.none-hint-f", "bind", Component.keybind("key.swapOffhand"));
+        if (first) plugin.titles().notices(p, now, Lang.c(p, "origin.none"), how);
+        else plugin.titles().notice(p, now, how);
+        p.sendMessage(how);
     }
 
     /** 출신이 없는 사람이 무엇을 하려 했다: 버리고 창을 다시 띄운다 (start.reopen-cooldown 에 한 번). */
@@ -352,17 +406,19 @@ public final class StartFlow implements Listener {
 
     /**
      * 출신 다시 고르기 (휴식 창, 아직 레벨을 하나도 올리지 않았을 때 한 번. 검토 caster-trap): 시작 아이템을 거두고 출신·능력치·장부를
-     * 지운 뒤 (소울은 남긴다) 출신 창을 띄운다.
+     * 지운 뒤 (소울과 "다시 골랐다" 표시 repicked 는 남긴다) 출신 창을 띄운다. 한 번 쓰면 다시 나오지 않는다 (검토 repick-not-once:
+     * 관리자 지우기만 표시를 지운다). 출신이 없는 동안 걸을 둘레의 가운데는 그 자리 (화톳불 곁).
      */
     public boolean repick(Player p) {
         Profile pr = plugin.profiles().of(p);
         Origins.Origin o = plugin.origins().get(pr.origin());
-        if (o == null || pr.stats().level() != o.level()) {
-            plugin.test(p, "REPICK_DENY why=" + (o == null ? "no_origin" : "leveled"));
+        if (!canRepick(p)) {
+            plugin.test(p, "REPICK_DENY why=" + (o == null ? "no_origin" : pr.repicked() ? "used" : "leveled"));
             return false;
         }
         int items = Origins.removeSoulsItems(p);
-        plugin.profiles().reset(p, true);
+        plugin.profiles().reset(p, true).setRepicked(true);
+        home.put(p.getUniqueId(), p.getLocation().clone());
         plugin.attributes().apply(p);
         plugin.load().refresh(p);
         plugin.profiles().save(p, true);
@@ -372,10 +428,21 @@ public final class StartFlow implements Listener {
         return true;
     }
 
-    /** 관리자의 출신 지우기 (5.10): 출신·능력치 (모두 10)·소울 (0)·장부를 지우고, keepItems 가 아니면 souls 아이템을 거둔다. */
+    /** 휴식 창의 "출신을 다시 고른다" 를 보일까: 출신이 있고, 레벨을 하나도 사지 않았고, 아직 다시 고른 적이 없다. */
+    public boolean canRepick(Player p) {
+        Profile pr = plugin.profiles().of(p);
+        Origins.Origin o = plugin.origins().get(pr.origin());
+        return o != null && pr.stats().level() == o.level() && !pr.repicked();
+    }
+
+    /**
+     * 관리자의 출신 지우기 (5.10): 출신·능력치 (모두 10)·소울 (0)·장부·다시 고른 표시를 지우고, keepItems 가 아니면 souls 아이템을
+     * 거둔다. 그 사람이 선 자리가 출신이 없는 동안의 둘레 가운데다 (시험 방 첫 자리에서 멀리 있어도 굳지 않게).
+     */
     public int resetOrigin(Player target, String by, boolean keepItems) {
         int items = keepItems ? 0 : Origins.removeSoulsItems(target);
         plugin.profiles().reset(target, false);
+        home.put(target.getUniqueId(), target.getLocation().clone());
         plugin.attributes().apply(target);
         plugin.load().refresh(target);
         plugin.hud().invalidate(target);
@@ -426,18 +493,40 @@ public final class StartFlow implements Listener {
         reopen(e.getPlayer(), "drop");
     }
 
-    /** 출신이 없는 사람은 시작 자리 둘레에서만 걷는다 (정찰·레버·줍기를 막는다, 검토 unborn-exploit). */
+    /** 시험 방 첫 자리 둘레 (start.unborn-radius) 안인가 (반지름이 0 이면 늘 참). */
+    private boolean nearSpawn(Location at) {
+        int r = cfg().unbornRadius();
+        Location c = plugin.worlds().roomSpawn();
+        if (r <= 0 || c == null || c.getWorld() == null || at == null || !c.getWorld().equals(at.getWorld())) return true;
+        return dist2(at, c) <= (double) r * r;
+    }
+
+    private static double dist2(Location a, Location b) {
+        double dx = a.getX() - b.getX(), dz = a.getZ() - b.getZ();
+        return dx * dx + dz * dz;
+    }
+
+    /**
+     * 출신이 없는 사람은 둘레 (가운데 home, 없으면 시험 방 첫 자리) 안에서만 걷는다 (정찰·레버·줍기를 막는다, 검토 unborn-exploit).
+     * 가운데에서 멀어지지 않는 걸음은 둘레 밖에서도 된다 (검토 unborn-freeze-outside-radius).
+     */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onMove(PlayerMoveEvent e) {
         int r = cfg().unbornRadius();
-        if (r <= 0 || !e.hasChangedBlock() || !unborn(e.getPlayer())) return;
+        if (!e.hasChangedBlock() || !unborn(e.getPlayer())) return;
         Player p = e.getPlayer();
         if (!plugin.worlds().isGameWorld(p.getWorld())) return;
-        Location home = plugin.worlds().roomSpawn();
+        long now = plugin.ticker().now();
+        Long hinted = hintAt.get(p.getUniqueId());
+        // 창을 한 번 닫은 뒤에만 (창이 뜨기 전의 첫 걸음에 알리지 않게)
+        if (hinted != null && cfg().hintEvery() > 0 && !plugin.ui().open(p) && now - hinted >= cfg().hintEvery()) hint(p, now, false);
+        if (r <= 0) return;
+        Location c = home.get(p.getUniqueId());
+        if (c == null || c.getWorld() == null || !c.getWorld().equals(p.getWorld())) c = plugin.worlds().roomSpawn();
         Location to = e.getTo();
-        if (home.getWorld() == null || !home.getWorld().equals(to.getWorld())) return;
-        double dx = to.getX() - home.getX(), dz = to.getZ() - home.getZ();
-        if (dx * dx + dz * dz <= (double) r * r) return;
+        if (c == null || c.getWorld() == null || !c.getWorld().equals(to.getWorld())) return;
+        double dTo = dist2(to, c);
+        if (dTo <= (double) r * r || dTo <= dist2(e.getFrom(), c) + 1e-9) return;
         Location back = e.getFrom().clone();
         back.setYaw(to.getYaw());
         back.setPitch(to.getPitch());

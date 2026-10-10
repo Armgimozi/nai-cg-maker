@@ -19,7 +19,8 @@ import java.util.UUID;
  * <ul>
  *   <li>출신을 골랐고 (출신이 없는 사람은 맞지 않는다, 5.10),</li>
  *   <li>일어선 직후가 아니고 (접속·부활·명령 순간이동 뒤 pvp.respawn-grace 틱. 진주·후렴 과일 순간이동은 세지 않는다),</li>
- *   <li>쉬는 중이거나 우리 창 (Dialog) 을 보고 있지 않을 때 (친구끼리 겨룰 때 창 앞에서 맞지 않게, 검토 pvp-friends).</li>
+ *   <li>쉬는 창이나 시작 차례의 창 (휴식·레벨 올리기·휴식 창에서 연 능력치·세계 설정·출신, Ui 의 shelter) 을 보고 있지 않을 때
+ *       (친구끼리 겨룰 때 창 앞에서 맞지 않게, 검토 pvp-friends). 어디서나 여는 /stats 창은 보호하지 않는다 (검토 stats-dialog-pvp-immunity).</li>
  * </ul>
  * 끔일 때 막는 길은 PvpGuard, 켬일 때의 피해 계산은 DamageHook.
  */
@@ -49,7 +50,7 @@ public final class Pvp implements Listener {
         if (!plugin.profiles().of(victim).born()) return "unborn";
         Long until = graceUntil.get(victim.getUniqueId());
         if (until != null && plugin.ticker().now() < until) return "grace";
-        if (plugin.ui().open(victim)) return "dialog";
+        if (plugin.ui().sheltered(victim)) return "dialog";
         return null;
     }
 

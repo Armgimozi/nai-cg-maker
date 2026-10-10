@@ -14,7 +14,8 @@ import java.util.Set;
 
 /**
  * 플레이어 프로필 (5.10, 12.6): 플레이어 PDC souls:profile 의 판 번호가 붙은 JSON.
- * {"v":1,"origin":"knight","originAt":…,"stats":{"vig":15,…},"souls":0,"kit":{"given":["weapon:redin_guard_sword"]},"settingsSeen":1}
+ * {"v":1,"origin":"knight","originAt":…,"stats":{"vig":15,…},"souls":0,"kit":{"given":["weapon:redin_guard_sword"]},"settingsSeen":1,
+ *  "repicked":true} (repicked: 휴식 창의 "출신 다시 고르기" 를 썼다. 없으면 거짓)
  * 레벨은 적지 않고 능력치로 셈한다. 모르는 칸은 지우지 않고 그대로 둔다 (다음 판이 더한 칸을 옛 플러그인이 지우지 않게).
  * 순수 클래스 (Gson 만, 13.1 의 ProfileJsonTest).
  */
@@ -31,6 +32,7 @@ public final class Profile {
     private long souls;
     private final Set<String> given = new LinkedHashSet<>();
     private int settingsSeen;
+    private boolean repicked;
 
     private Profile(JsonObject raw) {
         this.raw = raw;
@@ -74,6 +76,8 @@ public final class Profile {
             }
         }
         p.settingsSeen = (int) num(o, "settingsSeen", 0);
+        JsonElement rp = o.get("repicked");
+        p.repicked = rp != null && rp.isJsonPrimitive() && rp.getAsJsonPrimitive().isBoolean() && rp.getAsBoolean();
         return p;
     }
 
@@ -100,6 +104,8 @@ public final class Profile {
         kit.add("given", arr);
         o.add("kit", kit);
         o.addProperty("settingsSeen", settingsSeen);
+        if (repicked) o.addProperty("repicked", true);
+        else o.remove("repicked");
         return GSON.toJson(o);
     }
 
@@ -177,6 +183,15 @@ public final class Profile {
 
     public void setSettingsSeen(int rev) {
         this.settingsSeen = rev;
+    }
+
+    /** 휴식 창의 "출신 다시 고르기" 를 이미 썼나 (한 번만, 검토 repick-not-once). */
+    public boolean repicked() {
+        return repicked;
+    }
+
+    public void setRepicked(boolean v) {
+        this.repicked = v;
     }
 
     /** 모르는 칸 (시험이 보존을 본다). */

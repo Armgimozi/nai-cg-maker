@@ -71,8 +71,9 @@ public final class Stats {
         return null;
     }
 
+    /** 근접 무기: 공격력이 있는 주손 무기 가운데 방패·촉매·활이 아닌 것 (활로 때리는 것은 근접 한 대가 아니다, 검토 bow-counts-as-melee). */
     public static boolean isMelee(Weapons.Def d) {
-        return d != null && d.attack() > 0 && !d.shield() && Weapons.MAIN.equals(d.hand()) && !isCatalyst(d);
+        return d != null && d.attack() > 0 && !d.shield() && Weapons.MAIN.equals(d.hand()) && !isCatalyst(d) && !Weapons.BOW.equals(d.use());
     }
 
     public static boolean isCatalyst(Weapons.Def d) {

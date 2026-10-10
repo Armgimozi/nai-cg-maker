@@ -19,17 +19,28 @@ import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * 프로필 읽기·쓰기 (12.6). 접속 중인 사람의 프로필을 메모리에 들고 있다가 바꾼 때 PDC (souls:profile) 에 쓴다.
  * PDC 는 플레이어가 저장될 때 디스크에 가므로, 출신·레벨업·관리자 변경 같은 큰일 뒤에는 {@link #save(Player, boolean)} 로
  * player.saveData() 까지 부른다 (인벤토리와 PDC 가 같은 파일이라 시작 아이템과 장부가 함께 저장된다, 5.10).
- * 백업: plugins/Soulslike/profiles/&lt;uuid&gt;.json (쓰기만, 비동기). 깨진 프로필은 profiles/&lt;uuid&gt;.broken-&lt;ms&gt;.json 으로 남긴다.
+ * 백업: plugins/Soulslike/profiles/&lt;uuid&gt;.json (쓰기만). 쓰기는 플러그인의 쓰레드 하나가 차례대로 한다: 잇달아 저장해도 (출신 고르기와
+ * 그 뒤의 저장, 레벨업 뒤 나가기) 두 쓰기가 같은 임시 파일을 함께 쓰거나 옛 JSON 이 나중에 덮지 않는다 (검토 backup-tmp-race). 임시 파일
+ * 이름도 쓰기마다 다르다. 끌 때 남은 쓰기를 기다린다 (shutdown). 깨진 프로필은 profiles/&lt;uuid&gt;.broken-&lt;ms&gt;.json 으로 남긴다.
  */
 public final class Profiles implements Listener {
     private final Souls plugin;
     private final Map<UUID, Profile> live = new HashMap<>();
     private final File dir;
+    /** 백업 쓰기 (차례대로 하나씩) */
+    private final ExecutorService writer = Executors.newSingleThreadExecutor(r -> {
+        Thread t = new Thread(r, "souls-profile-backup");
+        t.setDaemon(true);
+        return t;
+    });
 
     public Profiles(Souls plugin) {
         this.plugin = plugin;
@@ -71,11 +82,16 @@ public final class Profiles implements Listener {
         backup(p.getUniqueId(), json, "");
     }
 
-    /** 프로필을 처음 상태로 (관리자의 출신 지우기). 소울은 keepSouls 면 남긴다. */
+    /**
+     * 프로필을 처음 상태로. keepSouls (출신 다시 고르기) 면 소울과 "다시 골랐다" 표시를 남기고, 아니면 (관리자의 출신 지우기) 둘 다 지운다.
+     */
     public Profile reset(Player p, boolean keepSouls) {
         Profile old = of(p);
         Profile pr = Profile.fresh();
-        if (keepSouls) pr.setSouls(old.souls());
+        if (keepSouls) {
+            pr.setSouls(old.souls());
+            pr.setRepicked(old.repicked());
+        }
         pr.setSettingsSeen(old.settingsSeen());
         live.put(p.getUniqueId(), pr);
         return pr;
@@ -83,16 +99,35 @@ public final class Profiles implements Listener {
 
     private void backup(UUID id, String json, String suffix) {
         File f = new File(dir, id + suffix + ".json");
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            try {
-                Files.createDirectories(dir.toPath());
-                File tmp = new File(dir, id + suffix + ".json.tmp");
-                Files.writeString(tmp.toPath(), json, StandardCharsets.UTF_8);
-                Files.move(tmp.toPath(), f.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-            } catch (IOException ex) {
-                plugin.getLogger().warning("프로필 백업을 쓰지 못했습니다 (" + f.getName() + "): " + ex.getMessage());
-            }
-        });
+        try {
+            writer.execute(() -> {
+                File tmp = new File(dir, id + suffix + ".json." + System.nanoTime() + ".tmp");
+                try {
+                    Files.createDirectories(dir.toPath());
+                    Files.writeString(tmp.toPath(), json, StandardCharsets.UTF_8);
+                    Files.move(tmp.toPath(), f.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+                } catch (IOException ex) {
+                    plugin.getLogger().warning("프로필 백업을 쓰지 못했습니다 (" + f.getName() + "): " + ex.getMessage());
+                    try {
+                        Files.deleteIfExists(tmp.toPath());
+                    } catch (IOException ignored) {
+                        // 지우지 못한 임시 파일은 다음 쓰기와 상관없다 (이름이 다르다)
+                    }
+                }
+            });
+        } catch (java.util.concurrent.RejectedExecutionException ex) {
+            // 끄는 중 (shutdown 뒤): 백업은 쓰기만 하는 사본이라 건너뛴다. 정본은 PDC
+        }
+    }
+
+    /** 끌 때: 남은 백업 쓰기를 기다린다 (길어도 5초). */
+    public void shutdown() {
+        writer.shutdown();
+        try {
+            if (!writer.awaitTermination(5, TimeUnit.SECONDS)) plugin.getLogger().warning("프로필 백업 쓰기가 끝나지 않아 두고 끕니다.");
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     @EventHandler(priority = EventPriority.LOWEST)

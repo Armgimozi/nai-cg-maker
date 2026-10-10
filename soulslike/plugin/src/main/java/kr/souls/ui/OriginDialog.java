@@ -42,7 +42,7 @@ public final class OriginDialog {
 
     public static void show(Souls plugin, Player p) {
         Ui ui = plugin.ui();
-        Ui.Session s = ui.begin(ID);
+        Ui.Session s = ui.begin(ID, true);
         List<ActionButton> buttons = new ArrayList<>();
         for (Origins.Origin o : plugin.origins().all()) {
             String id = o.id();
@@ -90,7 +90,7 @@ public final class OriginDialog {
             return;
         }
         Ui ui = plugin.ui();
-        Ui.Session s = ui.begin(CONFIRM);
+        Ui.Session s = ui.begin(CONFIRM, true);
         List<DialogBody> body = new ArrayList<>();
         List<Component> top = new ArrayList<>();
         top.add(Lang.c(p, "origin." + id + ".desc")); // lang-dyn: origin.*.desc

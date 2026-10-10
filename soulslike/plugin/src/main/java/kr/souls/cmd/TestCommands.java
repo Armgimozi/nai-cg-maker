@@ -70,8 +70,9 @@ import java.util.Locale;
  *   stat <id> <값>                    능력치 하나를 바로 정한다 (시험용, 레벨이 따라 바뀐다)
  *   rest                             시험 방 화톳불에서 쉰 것과 같다 (HP·스태미나를 채우고 휴식 창). [T] REST shown
  *   load                             [T] LOAD ... (5.8)
- *   pvphit <이름> [피해]              그 사람을 원인이 나인 generic 피해로 때린다 (PvP 길). [T] PVPHIT dealt= ...
- *   pvpshoot <이름> <arrow|snowball|potion|cloud>   그 사람에게 쏜 사람이 나인 투사체·구름. [T] PVPSHOOT kind=
+ *   pvphit <이름> [피해]              그 사람을 원인이 나인 generic 피해로 때린다 (PvP 길, 스킬 피해처럼 HP 단위). [T] PVPHIT dealt= ...
+ *   pvpshoot <이름> <arrow|snowball|potion|cloud|harm>   그 사람에게 쏜 사람이 나인 투사체·구름 (harm: 즉시 피해 잔류 구름). [T] PVPSHOOT kind=
+ *   foehp spawn|check|hurt|clear     시험 좀비 (움직이지 않는다) 를 3칸 앞에 / 지금 값 / 체력 절반으로 / 지운다. [T] FOEHP n= hp=체력/최대,… mult=
  *   effect <효과> <틱>                 나에게 해로운 효과 (지능의 상태 이상 저항 시험). [T] AILMENT ... 와 EFFECT have=
  *   burn <틱>                         나에게 불붙음 (불붙이는 이벤트를 지나 저항으로 줄인다). [T] BURN fire=
  *   tap                              마지막 짧은 누름 판정 ([T] ROLL_TAP ... / ROLL_TAP_SKIP ...)
@@ -287,7 +288,7 @@ public final class TestCommands {
                         .then(Commands.argument("name", StringArgumentType.word())
                                 .then(Commands.argument("kind", StringArgumentType.word())
                                         .suggests((c, b) -> {
-                                            for (String x : List.of("arrow", "snowball", "potion", "cloud")) b.suggest(x);
+                                            for (String x : List.of("arrow", "snowball", "potion", "cloud", "harm")) b.suggest(x);
                                             return b.buildFuture();
                                         })
                                         .executes(ctx -> withPlayer(ctx, p -> pvpShoot(plugin, p, StringArgumentType.getString(ctx, "name"),
@@ -310,6 +311,11 @@ public final class TestCommands {
                                         })))))
                 .then(Commands.literal("ui").executes(ctx -> withPlayer(ctx, p -> plugin.test(p, "UI open=" + plugin.ui().openDialog(p)))))
                 .then(Commands.literal("attr").executes(ctx -> withPlayer(ctx, p -> attrs(plugin, p))))
+                .then(Commands.literal("foehp")
+                        .then(Commands.literal("spawn").executes(ctx -> withPlayer(ctx, p -> foeHp(plugin, p, "spawn"))))
+                        .then(Commands.literal("check").executes(ctx -> withPlayer(ctx, p -> foeHp(plugin, p, "check"))))
+                        .then(Commands.literal("hurt").executes(ctx -> withPlayer(ctx, p -> foeHp(plugin, p, "hurt"))))
+                        .then(Commands.literal("clear").executes(ctx -> withPlayer(ctx, p -> foeHp(plugin, p, "clear")))))
                 .then(Commands.literal("opens")
                         .then(Commands.argument("lock", StringArgumentType.word())
                                 .suggests((c, b) -> {
@@ -571,10 +577,45 @@ public final class TestCommands {
         if (t == null) return;
         double before = t.getHealth();
         t.setNoDamageTicks(0);
-        t.damage(amount, kr.souls.skill.Combat.source(org.bukkit.damage.DamageType.GENERIC, p));
+        // 플러그인 스킬 피해와 같은 길 (이미 HP 단위, DEF from=player_skill). PvP 확인은 바닐라 규칙과 PvpGuard 가 한다
+        kr.souls.skill.Combat.asSkill(() -> t.damage(amount, kr.souls.skill.Combat.source(org.bukkit.damage.DamageType.GENERIC, p)));
         double dealt = Math.max(0, before - (t.isDead() ? 0 : t.getHealth()));
         plugin.test(p, String.format(Locale.ROOT, "PVPHIT to=%s amount=%.1f dealt=%.2f pvp=%s why=%s t=%d", t.getName(), amount, dealt,
                 plugin.pvp().enabled(), plugin.pvp().protectedWhy(t), plugin.ticker().now()));
+    }
+
+    /** 시험 적 (난이도 체력, 5.7): 머리줄 [T] FOEHP n= max= health= mult= (적마다 max/health 를 쉼표로). */
+    private static void foeHp(Souls plugin, Player p, String what) {
+        String tag = "souls_test_foe";
+        List<org.bukkit.entity.LivingEntity> foes = new java.util.ArrayList<>();
+        for (org.bukkit.entity.LivingEntity le : p.getWorld().getLivingEntities()) if (le.getScoreboardTags().contains(tag)) foes.add(le);
+        switch (what) {
+            case "spawn" -> {
+                org.bukkit.Location at = p.getLocation().add(p.getLocation().getDirection().setY(0).normalize().multiply(3));
+                foes.add(p.getWorld().spawn(at, org.bukkit.entity.Zombie.class, z -> {
+                    z.setAI(false);
+                    z.setSilent(true);
+                    z.setPersistent(false);
+                    z.setShouldBurnInDay(false);
+                    z.addScoreboardTag(tag);
+                    z.addScoreboardTag(TestHits.ENT_TAG);
+                }));
+            }
+            case "hurt" -> foes.forEach(le -> le.setHealth(Math.max(1, le.getHealth() / 2)));
+            case "clear" -> {
+                foes.forEach(org.bukkit.entity.Entity::remove);
+                foes.clear();
+            }
+            default -> {
+            }
+        }
+        StringBuilder hp = new StringBuilder();
+        for (org.bukkit.entity.LivingEntity le : foes) {
+            if (hp.length() > 0) hp.append(',');
+            hp.append(String.format(Locale.ROOT, "%.2f/%.2f", le.getHealth(), kr.souls.skill.Combat.maxHealth(le)));
+        }
+        plugin.test(p, String.format(Locale.ROOT, "FOEHP what=%s n=%d hp=%s mult=%.2f difficulty=%s", what, foes.size(),
+                hp.length() == 0 ? "-" : hp, plugin.difficulty().enemyHealth(), plugin.difficulty().id()));
     }
 
     /** 그 사람에게 쏜 사람이 나인 투사체·구름 (PvP 막기의 길마다). */
@@ -607,6 +648,15 @@ public final class TestCommands {
                 it.editMeta(org.bukkit.inventory.meta.PotionMeta.class, m -> m.setBasePotionType(org.bukkit.potion.PotionType.POISON));
                 tp.setItem(it);
             }
+            // 해치는 잔류 구름 (즉시 피해): 맞는 이의 피해 원인은 나, 바로 친 것은 구름 (간접 피해 player_indirect, 검토 pvp-indirect-unscaled)
+            case "harm" -> t.getWorld().spawn(t.getLocation(), org.bukkit.entity.AreaEffectCloud.class, c -> {
+                c.setSource(p);
+                c.setRadius(2.0f);
+                c.setDuration(30);
+                c.setWaitTime(0);
+                c.setReapplicationDelay(40);
+                c.addCustomEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.INSTANT_DAMAGE, 1, 0), true);
+            });
             case "cloud" -> t.getWorld().spawn(t.getLocation(), org.bukkit.entity.AreaEffectCloud.class, c -> {
                 c.setSource(p);
                 c.setRadius(2.0f);

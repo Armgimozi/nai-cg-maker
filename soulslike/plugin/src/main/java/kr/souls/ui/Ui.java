@@ -30,7 +30,9 @@ import java.util.UUID;
  * 아무 클라이언트나 이 패킷을 아무 때나 보낼 수 있으므로, 서버가 사람마다 지금 띄운 창 (세션: 창 이름과 n) 을 들고 있다가 맞는 것만
  * 받는다 (지난 창의 단추·꾸며 낸 값은 UI_STALE). 한 창의 단추는 한 번만 듣는다: 누르면 세션이 닫히고, 다음 창을 띄우는 처리기가 새 세션을
  * 연다. 그래서 처리기는 늘 새 창을 띄우거나 창을 닫는다 (afterAction NONE 인 창이 열린 채 남지 않게, 검토 T7).
- * 창이 열려 있는 동안: 짧게 누른 웅크리기 키는 구르기가 되지 않고 (SneakTap), 다른 플레이어에게 맞지 않는다 (Pvp).
+ * 창이 열려 있는 동안: 짧게 누른 웅크리기 키는 구르기가 되지 않는다 (SneakTap). 다른 플레이어에게 맞지 않는 것은 쉬는 창과 시작 차례의
+ * 창 (shelter: 휴식·레벨 올리기·휴식 창에서 연 능력치·세계 설정·출신) 뿐이다 (Pvp). 어디서나 여는 /stats 는 숨을 곳이 아니다 (검토
+ * stats-dialog-pvp-immunity: 지는 싸움에서 /stats 를 열고 스태미나를 채우던 길).
  */
 public final class Ui implements Listener {
     public static final Key KEY = Key.key(Keys.NS, "ui");
@@ -45,10 +47,13 @@ public final class Ui implements Listener {
     public static final class Session {
         final String dialog;
         final String nonce;
+        /** 쉬는 창·시작 차례의 창: 열려 있는 동안 PvP 로 맞지 않는다 */
+        final boolean shelter;
         final Map<String, Click> handlers = new HashMap<>();
 
-        Session(String dialog) {
+        Session(String dialog, boolean shelter) {
             this.dialog = dialog;
+            this.shelter = shelter;
             this.nonce = Long.toHexString(RNG.nextLong() & 0xffffffffffL);
         }
 
@@ -65,9 +70,14 @@ public final class Ui implements Listener {
         this.plugin = plugin;
     }
 
-    /** 새 창의 세션 (show 로 띄운다). */
+    /** 새 창의 세션 (show 로 띄운다). 숨을 곳이 아니다 (PvP 로 맞는다). */
     public Session begin(String dialog) {
-        return new Session(dialog);
+        return new Session(dialog, false);
+    }
+
+    /** 새 창의 세션. shelter 면 열려 있는 동안 PvP 로 맞지 않는다 (휴식·시작 차례의 창, Pvp.protectedWhy). */
+    public Session begin(String dialog, boolean shelter) {
+        return new Session(dialog, shelter);
     }
 
     /** 이 세션의 단추. id 는 창 안에서 하나 (시험 줄과 봇이 쓰는 이름). tooltip 은 null 이어도 된다. */
@@ -86,6 +96,8 @@ public final class Ui implements Listener {
     public void show(Player p, Session s, Dialog d) {
         open.put(p.getUniqueId(), s);
         shownAt.put(p.getUniqueId(), plugin.ticker().now());
+        // 떠 있던 부제목이 창 뒤에 비치지 않게 걷고, 창이 닫힌 뒤에 다시 띄운다 (검토 provisional-subtitle-bleed)
+        plugin.titles().onDialog(p, plugin.ticker().now());
         p.showDialog(d);
         plugin.test(p, "UI show d=" + s.dialog + " buttons=" + String.join(",", s.handlers.keySet()) + " t=" + plugin.ticker().now());
     }
@@ -102,6 +114,12 @@ public final class Ui implements Listener {
     /** 우리 창이 열려 있나. */
     public boolean open(Player p) {
         return open.containsKey(p.getUniqueId());
+    }
+
+    /** 숨을 곳인 창 (쉬는 창·시작 차례의 창) 이 열려 있나 (Pvp). */
+    public boolean sheltered(Player p) {
+        Session s = open.get(p.getUniqueId());
+        return s != null && s.shelter;
     }
 
     /** 열린 창 이름 (없으면 null). */

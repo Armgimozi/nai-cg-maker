@@ -32,7 +32,7 @@ public final class SettingsDialog {
 
     public static void show(Souls plugin, Player p) {
         Ui ui = plugin.ui();
-        Ui.Session s = ui.begin(ID);
+        Ui.Session s = ui.begin(ID, true);
         WorldState.Settings cur = plugin.worldState().get();
         boolean pvp0 = cur != null ? cur.pvp() : plugin.cfg().pvp.def();
         List<ActionButton> buttons = new ArrayList<>();
