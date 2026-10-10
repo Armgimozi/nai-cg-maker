@@ -6,6 +6,10 @@
 //   3. 제작 없음: 2×2 에 판자 둘을 세로로 (/item) 넣어도 결과 칸이 비고, 1초 안에 판자는 인벤토리로 돌아가고 반지가 다시 비친다
 //   4. 효과: 스태미나 회복 반지를 끼면 회복이 1.2 배 (식과 잰 값), 빼면 돌아간다
 //   5. 남는 것: 창 닫기, 다시 접속, 죽음과 다시 태어남, 다른 세계 다녀오기. 끼고 있던 것이 그대로, 겹친 반지도 땅에 떨어진 반지도 없다
+//   7. 가장자리 (검토 ring-polish): 가방이 다 차면 빼기 거절, 손에 반지를 든 채 가방이 차면 닫기·나가기에서 반지 칸으로 (칸이 다 차면
+//      발밑으로), 가방이 찬 채 왼손에서 집은 방패는 사라지지 않고 떨어진다, 칸 밖에 나온 사본은 반지가 아니다 (숫자 키로 겹치지 않는다),
+//      칸이 비어 보여도 프로필의 반지는 덮어써지지 않는다, 낀 반지의 둘째는 웅크리고 누르면 단축 줄로, 상자가 열린 채 다른 세계로 가도
+//      사본이 가방에 오지 않는다, /souls reload 뒤 설명 칸이 새 값
 //   6. 다시 켠 뒤 (rings_check.js) 볼 값을 RUN_DIR/rings.json 에 적는다
 'use strict'
 const fs = require('fs')
@@ -297,9 +301,10 @@ L.run('rings', async (sc) => {
   sc.check('world change (lobby and back): rings worn and shown, no copies in the inventory', inLobby && s.r1 === 'test_stamina' && s.s1 === 'test_stamina*' &&
     s.s3 === 'test_parry*' && L.num(s.strays) === 0 && ringsIn(s).length === carried, JSON.stringify(s))
 
-  // ── 5e. 다른 창 (깔때기) 이 열린 채 죽는다: 2×2 에 손이 닿지 않아 비우지 못한 사본은 몸이 치워질 때 떨어지려다 막힌다 ──
+  // ── 5e. 다른 창 (상자) 이 열린 채 죽는다: 죽을 때 그 창을 먼저 닫고 2×2 를 비운다 (사본이 떨어지거나 가방에 오지 않는다) ──
   const c0 = await b.cmd('/soulstest ring chest', 'RING_CHEST')
   await L.sleep(500)
+  from = b.sys.length
   const r1 = b.p.respawns.length
   await b.cmd('/soulstest kill', 'KILL')
   const end2 = Date.now() + 6000
@@ -308,9 +313,10 @@ L.run('rings', async (sc) => {
   await L.sleep(2500)
   await b.syncInventory()
   s = await show()
-  sc.check('death with another container open (hopper): rings still worn and shown, nothing dropped, no copies in the inventory', c0.kv &&
-    s.r1 === 'test_stamina' && s.r2 === 'test_parry' && s.s1 === 'test_stamina*' && s.s3 === 'test_parry*' && L.num(s.ground) === 0 &&
-    L.num(s.strays) === 0 && ringsIn(s).length === carried, (c0.line || '') + ' | ' + JSON.stringify(s))
+  sc.check('death with another container open (chest): rings still worn and shown, nothing dropped, no copies in the inventory, no sweep needed',
+    c0.kv && c0.kv.open === 'CHEST' && s.r1 === 'test_stamina' && s.r2 === 'test_parry' && s.s1 === 'test_stamina*' && s.s3 === 'test_parry*' &&
+    L.num(s.ground) === 0 && L.num(s.strays) === 0 && ringsIn(s).length === carried && b.tLines('RING_SWEEP', from).length === 0,
+    (c0.line || '') + ' | sweeps ' + b.tLines('RING_SWEEP', from).map((x) => x.line).join(';') + ' | ' + JSON.stringify(s))
 
   // ── 4b. 빼면 효과도 빠진다 ──
   b.closeInventory()
@@ -326,6 +332,233 @@ L.run('rings', async (sc) => {
   const off = await measure()
   sc.check('ring removed: measured stamina regen back to the baseline (±3%)', off.ok && base.ok && Math.abs(off.measured / base.measured - 1) < 0.03,
     `${base.measured && base.measured.toFixed(4)} -> ${off.measured && off.measured.toFixed(4)}`)
+
+  // ── 7. 가장자리 ──
+  const cobble = async (stacks) => {
+    await b.cmd('/clear @s', null, 1200)
+    if (stacks > 0) await b.cmd(`/give @s minecraft:cobblestone ${64 * stacks}`, null, 1500)
+    await b.syncInventory()
+  }
+  const reset = async () => {
+    b.closeInventory()
+    await L.sleep(300)
+    await b.cmd('/soulstest ring equip 1 none', 'RING_SET')
+    await b.cmd('/soulstest ring equip 2 none', 'RING_SET')
+    await b.cmd('/kill @e[type=item,distance=..16]', null, 800)
+    await cobble(0)
+  }
+
+  // 7a. 가방 (단축 줄까지 36 칸) 이 다 차면 낀 반지를 빼지 않는다: 손에 든 반지가 돌아갈 자리가 늘 있게 (검토 R1)
+  await reset()
+  await b.cmd('/soulstest ring equip 1 test_stamina', 'RING_SET')
+  await cobble(36)
+  const bagFull = b.bot.inventory.slots.slice(9, 45).every((x) => !!x)
+  from = b.sys.length
+  await b.rawClick(1, 0, 0)
+  const full1 = await b.waitT('RING_FULL', 2000, from)
+  s = await show()
+  sc.check('full bag: an empty-hand click on a worn ring is refused (RING_FULL), the ring stays worn, the cursor stays empty', bagFull && full1 &&
+    s.r1 === 'test_stamina' && s.s1 === 'test_stamina*' && s.cursor === '-', `full=${bagFull} ` + (full1 ? full1.line : 'no RING_FULL') + ' | ' + JSON.stringify(s))
+  from = b.sys.length
+  await b.rawClick(1, 0, 1)
+  const full2 = await b.waitT('RING_FULL', 2000, from)
+  s = await show()
+  sc.check('full bag: shift-clicking a worn ring is refused too (RING_FULL), still worn', full2 && s.r1 === 'test_stamina' && s.s1 === 'test_stamina*',
+    (full2 ? full2.line : 'no RING_FULL') + ' | ' + JSON.stringify(s))
+  // 가방의 반지로 바꾸기는 가방이 차도 된다 (집은 칸이 비었다가 빼낸 반지가 그 자리에 간다)
+  await b.cmd('/item replace entity @s inventory.11 with minecraft:air', null, 800)
+  await b.cmd('/soulstest ring give test_poise', 'RING_GIVE')
+  await b.syncInventory()
+  await b.rawClick(20, 0, 0)
+  from = b.sys.length
+  await b.rawClick(1, 0, 0)
+  act = await b.waitT('RING act=', 2000, from)
+  await b.rawClick(20, 0, 0)
+  s = await show()
+  sc.check('full bag: swapping through a ring from the bag still works (RING act=swap), the old ring lands in the freed bag slot', act && act.kv.act === 'swap' &&
+    s.r1 === 'test_poise' && s.cursor === '-' && ringsIn(s).some((x) => x.idx === 20 && x.id === 'test_stamina'), (act ? act.line : 'none') + ' | ' + JSON.stringify(s))
+
+  // 7b. 손에 반지를 든 채 가방이 찬다 (빼고 나서 무엇을 받았다) → 창 닫기: 반지는 빈 반지 칸으로 돌아간다 (사라지지 않는다)
+  const takeThenFill = async (ring2) => {
+    await reset()
+    await b.cmd('/soulstest ring equip 1 test_stamina', 'RING_SET')
+    if (ring2) await b.cmd('/soulstest ring equip 2 ' + ring2, 'RING_SET')
+    await cobble(35)
+    return b.bot.inventory.slots[35] === null || b.bot.inventory.slots[35] === undefined
+  }
+  let spare = await takeThenFill(null)
+  await b.rawClick(1, 0, 0)
+  s = await show()
+  const took = s.cursor === 'test_stamina' && s.r1 === '-'
+  await b.cmd('/item replace entity @s inventory.26 with minecraft:cobblestone 64', null, 1000)
+  from = b.sys.length
+  b.closeInventory()
+  let resc = await b.waitT('RING_RESCUE', 2000, from)
+  await L.sleep(400)
+  s = await show()
+  sc.check('ring on the cursor, bag filled, inventory closed: the ring goes back into the free ring slot (RING_RESCUE to=ring1), nothing lost',
+    spare && took && resc && resc.kv.to === 'ring1' && s.r1 === 'test_stamina' && s.s1 === 'test_stamina*' && s.cursor === '-' && L.num(s.ground) === 0,
+    `spare=${spare} took=${took} ` + (resc ? resc.line : 'no RING_RESCUE') + ' | ' + JSON.stringify(s))
+
+  // 7c. 같은 차림에서 나간다 (창을 닫지 않고): 다시 들어오면 반지가 끼워져 있다
+  spare = await takeThenFill(null)
+  await b.rawClick(1, 0, 0)
+  s = await show()
+  const took2 = s.cursor === 'test_stamina' && s.r1 === '-'
+  await b.cmd('/item replace entity @s inventory.26 with minecraft:cobblestone 64', null, 1000)
+  await b.quit()
+  await L.sleep(1500)
+  b = await L.connect(sc, { name: b.name })
+  await L.sleep(2000)
+  await b.syncInventory()
+  s = await show()
+  sc.check('ring on the cursor, bag filled, disconnect: after relog the ring is worn again, not on the ground, no strays', spare && took2 &&
+    s.r1 === 'test_stamina' && s.s1 === 'test_stamina*' && s.cursor === '-' && L.num(s.ground) === 0 && L.num(s.strays) === 0,
+    `spare=${spare} took=${took2} ` + JSON.stringify(s))
+  await b.cmd('/souls tp room', null, 1200)
+
+  // 7d. 반지 칸이 다 찼고 손에 셋째 반지, 가방도 찼다 → 창 닫기: 발밑에 떨어진다 (자리가 나면 주워진다)
+  spare = await takeThenFill('test_parry')
+  await b.cmd('/soulstest ring give test_poise', 'RING_GIVE')
+  await b.syncInventory()
+  const poiseAt = b.bot.inventory.slots.findIndex((it, i) => i >= 9 && i <= 44 && b.ringAt(i) === 'test_poise')
+  await b.rawClick(poiseAt, 0, 0)
+  await b.cmd('/give @s minecraft:cobblestone 64', null, 1000)
+  from = b.sys.length
+  b.closeInventory()
+  resc = await b.waitT('RING_RESCUE', 2000, from)
+  await L.sleep(400)
+  s = await show()
+  sc.check('both ring slots worn, a third ring on the cursor, bag full, closed: the ring is put at the feet (RING_RESCUE to=ground), worn rings untouched',
+    poiseAt >= 0 && resc && resc.kv.to === 'ground' && L.num(s.ground) === 1 && s.r1 === 'test_stamina' && s.r2 === 'test_parry' && s.cursor === '-',
+    `poiseAt=${poiseAt} ` + (resc ? resc.line : 'no RING_RESCUE') + ' | ' + JSON.stringify(s))
+  await b.cmd('/clear @s minecraft:cobblestone 64', null, 1000)
+  await L.sleep(2500)
+  s = await show()
+  sc.check('...and with room again it is picked back up (nothing lost)', ringsIn(s).some((x) => x.id === 'test_poise') && L.num(s.ground) === 0, JSON.stringify(s))
+
+  // 7e. 반지가 아닌 것도: 가방이 찬 채 왼손의 방패를 집어 들고 창을 닫으면 버리기 막기가 그것을 지우지 않고 발밑에 떨어진다 (Protection)
+  await reset()
+  await cobble(36)
+  await b.cmd('/item replace entity @s weapon.offhand with minecraft:shield', null, 1000)
+  await b.syncInventory()
+  await b.rawClick(45, 0, 0)
+  s = await show()
+  const heldShield = s.cursor === 'shield'
+  b.closeInventory()
+  await L.sleep(1000)
+  s = await show()
+  sc.check('full bag, the off-hand shield on the cursor, inventory closed: the shield falls at the feet instead of vanishing (near=shield:1)',
+    heldShield && /(^|,)shield:1(,|$)/.test(s.near || '') && s.cursor === '-', `held=${heldShield} ` + JSON.stringify(s))
+  // 가방에 자리가 있으면 버리기는 여전히 막는다 (Q 는 아무것도 떨어뜨리지 않는다)
+  await reset()
+  await b.cmd('/item replace entity @s hotbar.0 with minecraft:stick', null, 1000)
+  await b.syncInventory()
+  await b.rawClick(36, 0, 4)
+  await L.sleep(800)
+  s = await show()
+  sc.check('with room in the bag a Q drop is still blocked (nothing on the ground, the stick stays in the inventory)', !/stick/.test(s.near || '') &&
+    b.bot.inventory.slots.some((it) => it && it.name === 'stick'), JSON.stringify(s))
+
+  // 7f. 칸 밖에 나온 사본 (/item 으로 2×2 에서 단축 칸으로 베낀 것) 은 반지가 아니다: 숫자 키로 같은 반지를 낀 칸과 바꾸면 거절하고
+  //     사본을 지운다 (검토 R2: 진짜 반지가 하나 더 생겼다). 1초 훑기가 먼저 지우면 다시 해 본다
+  await reset()
+  let copyTry = null
+  let ringCountOk = true
+  let lastCopy = ''
+  for (let tries = 0; tries < 6 && !copyTry; tries++) {
+    await b.cmd('/clear @s', null, 600)
+    await b.cmd('/soulstest ring equip 1 test_stamina', 'RING_SET')
+    await L.sleep(150)
+    from = b.sys.length
+    await b.cmd('/item replace entity @s hotbar.0 from entity @s player.crafting.0', null, 300)
+    await b.rawClick(1, 0, 2, { wait: 60 })
+    await L.sleep(1300)
+    s = await show()
+    lastCopy = `try ${tries} ` + JSON.stringify(s)
+    if (total(s) !== 1 || L.num(s.strays) !== 0) ringCountOk = false
+    if (b.tLines('RING_DENY', from).some((x) => x.kv.why === 'copy')) copyTry = s
+  }
+  sc.check('a leaked worn copy is no ring: number-key swap with it is refused (RING_DENY why=copy), the copy is swept, still exactly one ring',
+    !!copyTry && ringCountOk && copyTry.r1 === 'test_stamina' && !ringsIn(copyTry).length, lastCopy)
+
+  // 7g. 칸이 비어 보여도 (2×2 를 /item 으로 비웠다) 프로필의 반지는 덮어써지지 않는다: 다른 반지를 누르면 바꾸기 (검토 R3)
+  await reset()
+  await b.cmd('/soulstest ring equip 1 test_stamina', 'RING_SET')
+  await b.cmd('/soulstest ring give test_poise', 'RING_GIVE')
+  await b.syncInventory()
+  s = await show()
+  const pz = ringsIn(s).find((x) => x.id === 'test_poise')
+  await b.rawClick(rawOf(pz.idx), 0, 0, { wait: 60 })
+  await b.cmd('/item replace entity @s player.crafting.0 with minecraft:air', null, 200)
+  from = b.sys.length
+  await b.rawClick(1, 0, 0, { wait: 60 })
+  act = await b.waitT('RING act=', 2000, from)
+  s = await show()
+  sc.check('ring slot emptied on the server while the profile still holds a ring: putting another ring swaps (RING act=swap), the old ring comes to the cursor',
+    act && act.kv.act === 'swap' && s.r1 === 'test_poise' && s.cursor === 'test_stamina', (act ? act.line : 'none') + ' | ' + JSON.stringify(s))
+  await putDown()
+
+  // 7h. 낀 반지의 둘째를 웅크리고 누르면 (다른 반지 칸이 비어도) 끼지 않고 바닐라대로 단축 줄로 간다 (검토 R4: 누르기가 삼켜졌다)
+  await reset()
+  await b.cmd('/soulstest ring equip 1 test_stamina', 'RING_SET')
+  await b.cmd('/soulstest ring give test_stamina', 'RING_GIVE')
+  await b.syncInventory()
+  s = await show()
+  const st2 = ringsIn(s).find((x) => x.id === 'test_stamina')
+  from = b.sys.length
+  await b.rawClick(rawOf(st2.idx), 0, 1)
+  s = await show()
+  const moved = ringsIn(s).find((x) => x.id === 'test_stamina')
+  sc.check('shift-click a second copy of a worn ring: no RING_SAME, not equipped, vanilla moves it from the bag to the hotbar',
+    b.tLines('RING_SAME', from).length === 0 && s.r2 === '-' && st2.idx >= 9 && moved && moved.idx <= 8, `from ${st2.idx} | ` + JSON.stringify(s))
+
+  // 7i. 상자가 열린 채 다른 세계로 (검토 R2: 2×2 에 손이 닿지 않아 사본 둘이 가방에 왔다가 다음 틱에 지워졌다)
+  await reset()
+  await b.cmd('/soulstest ring equip 1 test_stamina', 'RING_SET')
+  await b.cmd('/soulstest ring equip 2 test_parry', 'RING_SET')
+  await L.sleep(300)
+  await b.cmd('/soulstest ring chest', 'RING_CHEST')
+  from = b.sys.length
+  await b.cmd('/souls tp lobby', null, 2500)
+  await L.sleep(1500)
+  s = await show()
+  sc.check('world change with a chest open: no copies came into the bag (no RING_SWEEP), rings worn and shown', b.tLines('RING_SWEEP', from).length === 0 &&
+    s.r1 === 'test_stamina' && s.s1 === 'test_stamina*' && s.s3 === 'test_parry*' && L.num(s.strays) === 0 && ringsIn(s).length === 0,
+    b.tLines('RING_SWEEP', from).map((x) => x.line).join(';') + ' | ' + JSON.stringify(s))
+  await b.cmd('/souls tp room', null, 2500)
+  await L.sleep(1000)
+
+  // 7j. /souls reload 뒤 낀 반지의 설명 칸도 새 값 (검토 R6: id 가 같은 사본을 그대로 두어 옛 효과 줄이 남았다)
+  const RY = L.ENV.serverDir && path.join(L.ENV.serverDir, 'plugins', 'Soulslike', 'content', 'rings.yml')
+  if (sc.check('server content/rings.yml found for the reload check', RY && fs.existsSync(RY), RY || 'SERVER_DIR 없음')) {
+    const lore = () => JSON.stringify((b.bot.inventory.slots[1] && (b.bot.inventory.slots[1].components || b.bot.inventory.slots[1].nbt)) || '')
+    await b.syncInventory()
+    const before = lore()
+    const orig = fs.readFileSync(RY, 'utf8')
+    const reloaded = (m) => L.translateKeys(m.raw).includes('souls.admin.reloaded')
+    try {
+      fs.writeFileSync(RY, orig.replace(/stamina-regen: 1\.20/, 'stamina-regen: 1.30'))
+      await b.cmd('/souls reload', reloaded, 5000)
+      await L.sleep(400)
+      await b.syncInventory()
+      s = await show()
+      const after = lore()
+      sc.check('after /souls reload with stamina-regen 1.20 -> 1.30: effect 1.3 and the worn ring\'s tooltip says +30 (not +20)', L.num(s.regen) === 1.3 &&
+        s.s1 === 'test_stamina*' && before.includes('+20') && after.includes('+30') && !after.includes('+20'),
+        `regen=${s.regen} before+20=${before.includes('+20')} after+30=${after.includes('+30')} after+20=${after.includes('+20')}`)
+    } finally {
+      fs.writeFileSync(RY, orig)
+      await b.cmd('/souls reload', reloaded, 5000)
+    }
+  }
+
+  // 6 의 출발: 반지 칸 2 에 쳐내기, 가방에 스태미나·강인도
+  await reset()
+  await b.cmd('/soulstest ring equip 2 test_parry', 'RING_SET')
+  await b.cmd('/soulstest ring give test_stamina', 'RING_GIVE')
+  await b.cmd('/soulstest ring give test_poise', 'RING_GIVE')
+  await b.syncInventory()
 
   // ── 6. 다시 켠 뒤 볼 값: 스태미나 반지를 다시 끼운다 ──
   s = await show()

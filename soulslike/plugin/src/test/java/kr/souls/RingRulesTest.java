@@ -107,4 +107,16 @@ class RingRulesTest {
         assertEquals(0, RingRules.firstFree(new String[] {null, "test_poise"}));
         assertEquals(-1, RingRules.firstFree(new String[] {"a", "b"}));
     }
+
+    /** 이미 낀 반지의 둘째를 웅크리고 누르면: 빈 칸이 있어도 끼지 않고 바닐라의 가방 ↔ 단축 줄 (검토 R4: 누르기가 삼켜졌다). */
+    @Test
+    void shiftClickOfASecondCopyFallsThroughToVanilla() {
+        String[] worn = {"test_stamina", null};
+        assertEquals(-1, RingRules.freeFor(worn, "test_stamina"));
+        assertEquals(1, RingRules.freeFor(worn, "test_poise"));
+        assertEquals(1, RingRules.freeFor(worn, null));
+        assertEquals(-1, RingRules.freeFor(new String[] {"a", "b"}, "c"));
+        assertEquals(Act.PASS, act(20, Kind.SHIFT, E, R, E, RingRules.freeFor(worn, "test_stamina")));
+        assertEquals(Act.EQUIP_FROM, act(20, Kind.SHIFT, E, R, E, RingRules.freeFor(worn, "test_poise")));
+    }
 }

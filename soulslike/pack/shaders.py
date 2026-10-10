@@ -394,6 +394,10 @@ out float soulsGui;
 //    half a texel inside each diagonal of its UV; the mark it finds tells which corner it is, hence the quad origin. If
 //    that origin is an erased slot (slot - 4) of a 176x166 screen centred like the inventory (recipe book shut, or open
 //    and pushed right), the vertex goes off screen, so the whole quad is dropped.
+//    The test only knows positions, not screens, so another screen loses the highlight on a slot that lands exactly on an
+//    erased one (DESIGN 9.4 known limit 2): the hopper (176x133) fifth slot (116,20) at even scaled GUI heights, the
+//    shulker box (176x167) slots (116,18) and (116,36) at odd scaled heights, and the donkey, mule and llama chest
+//    slots (116,18) and (116,36). Chests, barrels, ender chests (168 tall) and the furnace result (116,35) never land.
 
 bool soulsMark(vec2 uv, ivec3 rgb) {
     ivec4 t = ivec4(textureLod(Sampler0, uv, 0.0) * 255.0 + 0.5);

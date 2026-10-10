@@ -492,6 +492,8 @@ public final class StartFlow implements Listener {
     @EventHandler(priority = EventPriority.LOWEST)
     public void onDrop(PlayerDropItemEvent e) {
         if (!unborn(e.getPlayer())) return;
+        // 되돌릴 자리가 없는 것 (가방이 다 찼다) 은 막으면 사라진다: 막지 않고 떨어지게 둔다 (world/Protection.onDrop 과 같다)
+        if (!kr.souls.world.Protection.fitsBack(e.getPlayer().getInventory(), e.getItemDrop().getItemStack())) return;
         e.setCancelled(true);
         reopen(e.getPlayer(), "drop");
     }

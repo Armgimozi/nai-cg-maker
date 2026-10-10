@@ -15,10 +15,13 @@ package kr.souls.item;
  *   숫자 키·왼손 바꾸기  그 단축 칸 (왼손) 과 반지 칸을 바꾼다 (SWAP_WITH): 저쪽이 반지이거나 비었을 때만, 둘 다 비면 거절.
  *   버리기 (Q, Ctrl+Q), 두 번 누르기, 가운데 누르기, 창작 모드 칸 쓰기, 그 밖 → 거절 (낀 반지는 빼서 버린다).
  * 반지 칸 밖에서
- *   웅크리고 누른 것이 반지이고 빈 반지 칸이 있으면 → 그 칸에 낀다 (EQUIP_FROM). 반지 칸이 차 있으면 바닐라 그대로 (가방 ↔ 단축 슬롯).
+ *   웅크리고 누른 것이 반지이고 빈 반지 칸이 있으면 → 그 칸에 낀다 (EQUIP_FROM). 반지 칸이 차 있거나, 빈 칸에 끼면 같은 반지 둘이
+ *   되면 ({@link #freeFor}) 바닐라 그대로 (가방 ↔ 단축 슬롯).
  *   손에 반지를 들고 두 번 누르기 (같은 것 모으기) → 거절 (반지는 한 칸에 하나라 모을 것이 없지만, 반지 칸에서 집어 오지 않게).
  *   그 밖 → 바닐라 그대로 (PASS).
  * 같은 반지 둘은 끼지 않는다 (다크 소울처럼, {@link #duplicate}): RingSlots 가 끼기 전에 본다.
+ * RingSlots 가 넘기는 "칸에 있는 것" 은 반지 칸이면 칸 그림이 아니라 프로필 (낀 반지) 이고, 칸 밖에 나온 사본 (souls:ring_worn) 은
+ * 반지가 아니다 (그런 누르기는 RingSlots 가 판정 전에 거절한다).
  * 끌기 (여러 칸에 나눠 놓기) 가 2×2 칸에 닿으면 RingSlots 가 통째로 거절한다 (반지는 한 칸에 하나라 바닐라 클라이언트는 반지를
  * 끌지 않고 한 칸 누르기로 보낸다).
  */
@@ -110,5 +113,14 @@ public final class RingRules {
     public static int firstFree(String[] worn) {
         for (int i = 0; i < worn.length; i++) if (worn[i] == null) return i;
         return -1;
+    }
+
+    /**
+     * 웅크리고 누른 반지 id 를 낄 빈 반지 칸 ({@link #decide} 의 free): 첫 빈 칸, 그 칸에 끼면 같은 반지 둘이 되면 -1 (그러면 판정이
+     * 바닐라의 가방 ↔ 단축 줄 옮기기로 넘긴다. 거절해 누르기를 삼키지 않는다).
+     */
+    public static int freeFor(String[] worn, String id) {
+        int free = firstFree(worn);
+        return free >= 0 && duplicate(worn, free, id) ? -1 : free;
     }
 }

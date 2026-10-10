@@ -85,9 +85,10 @@ import java.util.Locale;
  * 반지 (9.4, item/RingSlots):
  *   ring give <id>                   반지를 인벤토리에 (시험 반지는 이것으로만 얻는다). [T] RING_GIVE id= ok=
  *   ring show                        [T] RINGS r1= r2= (프로필) s0..s4= (2×2 칸: 사본은 id*, 결과 칸 s0, 반지 칸 s1·s3) inv=<칸:id,…>
- *                                    cursor= strays= (칸 밖의 사본) ground= (32칸 안의 반지 물체) regen= poise= parry= guard=
+ *                                    cursor= strays= (칸 밖의 사본) ground= (32칸 안의 반지 물체) near=<종류:수,…> (8칸 안의 반지가
+ *                                    아닌 물체) regen= poise= parry= guard=
  *   ring equip <1|2> <id|none>       반지 칸에 바로 낀다 / 뺀다 (아이템을 쓰거나 주지 않는다. 찍기 준비). [T] RING_SET ok=
- *   ring chest                       빈 깔때기 창을 연다 (다른 창이 열린 동안 죽거나 나갈 때 2×2 사본이 새지 않는지). [T] RING_CHEST open=
+ *   ring chest                       빈 상자 창 (세 줄) 을 연다 (다른 창이 열린 동안 죽거나 나갈 때 2×2 사본이 새지 않는지). [T] RING_CHEST open=
  * 반지 칸의 누르기는 [T] RING act=put|take|swap|unequip|hotbar|offhand|equip, 거절은 RING_DENY slot= why=, 같은 반지 둘은 RING_SAME,
  * 칸 밖 사본 지우기는 RING_SWEEP, 2×2 에 들어온 다른 것을 돌려주면 RING_STRAY.
  */
@@ -347,8 +348,9 @@ public final class TestCommands {
                                         .executes(ctx -> withPlayer(ctx, p -> ringGive(plugin, p, StringArgumentType.getString(ctx, "id"))))))
                         .then(Commands.literal("show").executes(ctx -> withPlayer(ctx, p -> plugin.test(p, plugin.ringSlots().line(p)))))
                         .then(Commands.literal("chest").executes(ctx -> withPlayer(ctx, p -> {
-                            // 다른 창 (깔때기 꼴, 바닐라 제목) 을 연다: 그 창이 열린 동안의 죽음·나가기에서 2×2 사본이 새지 않는지 본다
-                            p.openInventory(org.bukkit.Bukkit.createInventory(null, org.bukkit.event.inventory.InventoryType.HOPPER));
+                            // 다른 창 (세 줄 상자 꼴, 바닐라 제목) 을 연다: 그 창이 열린 동안의 죽음·나가기에서 2×2 사본이 새지 않는지 본다.
+                            // 깔때기·셜커 상자 꼴은 쓰지 않는다: 그 창의 칸 하나가 GUI 의 지운 칸 자리와 겹쳐 가리킴 테가 지워진다 (9.4 알려진 한계)
+                            p.openInventory(org.bukkit.Bukkit.createInventory(null, 27));
                             plugin.test(p, "RING_CHEST open=" + p.getOpenInventory().getTopInventory().getType());
                         })))
                         .then(Commands.literal("equip")

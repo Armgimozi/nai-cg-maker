@@ -278,7 +278,8 @@ public final class Souls extends JavaPlugin {
             attributes.apply(p);
             load.reset(p);
             hud.invalidate(p);
-            ringSlots.apply(p);
+            // 반지 칸의 사본을 새로 (rings.yml 의 효과 값이 바뀌면 설명 칸도 새 값, 검토 R6)
+            ringSlots.refresh(p);
         }
         foes.applyAll();
         checkMaxHealthCap();

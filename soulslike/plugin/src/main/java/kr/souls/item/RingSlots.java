@@ -55,8 +55,15 @@ import java.util.UUID;
  * 나가거나 죽어서 몸이 치워질 때는 땅에 떨어뜨리고 (Player.remove → dropOrPlaceInInventory), 다른 세계로 갈 때는 인벤토리로
  * 돌려준다. 그래서 그 일이 일어나기 바로 전에 칸을 비우고 (창 닫기 InventoryCloseEvent, 죽음, 나가기, 다른 세계로 가는 순간이동·관문,
  * 플러그인 끄기) 그 뒤 다시 채운다 (다음 틱, 다시 태어남, 접속, 세계 바뀜). 놓친 길이 있어도 사본은 표시가 있어 칸 밖에서 보이면
- * 지운다: 1초마다 인벤토리·커서를 훑고 ({@link #sweep}), 땅에 생기려는 사본은 막는다 (ItemSpawnEvent). 반지는 그 사이에도 프로필에
- * 있으므로 잃지도 겹치지도 않는다. 효과는 프로필만 보므로 창을 닫아도, 나갔다 와도, 죽어도, 서버를 다시 켜도 그대로다.
+ * 지운다: 1초마다 인벤토리·커서를 훑고 ({@link #sweep}), 땅에 생기려는 사본은 막는다 (ItemSpawnEvent). 칸 밖의 사본은 어떤 누르기의
+ * 반지로도 쓰지 않는다 (그 누르기는 거절하고 사본을 지운다, 검토 R2). 반지는 그 사이에도 프로필에 있으므로 잃지도 겹치지도 않는다.
+ * 효과는 프로필만 보므로 창을 닫아도, 나갔다 와도, 죽어도, 서버를 다시 켜도 그대로다. 상자 같은 다른 창이 열린 채 죽거나 다른 세계로
+ * 가면 2×2 에 손이 닿지 않으므로 그 창을 먼저 닫고 비운다.
+ *
+ * 손 (커서) 의 진짜 반지: 가방이 다 차면 빼지 않는다 (빈손으로 반지 칸을 눌러도 거절). 그래도 손에 반지를 든 채 가방이 찬 때
+ * (반지를 집은 뒤 무엇을 주웠다) 창을 닫거나 나가거나 죽거나 다른 세계로 가면, 바닐라가 돌려줄 자리를 못 찾아 떨어뜨리려다
+ * 버리기 막기 (world/Protection) 에 걸려 사라질 뻔했다 (검토 R1): 그 전에 빈 반지 칸에 다시 끼고, 빈 칸이 없으면 발밑에 놓는다
+ * ({@link #rescueCursor}).
  *
  * 클릭: 2×2 자리 (날 칸 0..4) 를 건드리는 누르기는 모두 취소하고 판정 ({@link RingRules}) 대로 여기서 옮긴다 (바닐라가 2×2 에
  * 아무것도 넣거나 빼지 않는다). 가방의 반지를 웅크리고 누르면 빈 반지 칸에 낀다. 끌기가 2×2 에 닿으면 거절, 창작 모드의 칸 쓰기도
@@ -199,6 +206,15 @@ public final class RingSlots implements Listener {
         return changed;
     }
 
+    /**
+     * 칸의 사본을 늘 새로 만든다 (/souls reload 뒤: rings.yml 의 효과 값이 바뀌었으면 apply 는 id 가 같은 사본을 그대로 두어 설명 칸이
+     * 옛 값으로 남는다, 검토 R6).
+     */
+    public void refresh(Player p) {
+        clear(p);
+        apply(p);
+    }
+
     /** 2×2 를 비운다 (바닐라가 돌려주거나 떨어뜨리기 전에). 사본이 아닌 것은 인벤토리로 돌려준다. */
     public void clear(Player p) {
         CraftingInventory ci = own(p);
@@ -234,6 +250,39 @@ public final class RingSlots implements Listener {
         Map<Integer, ItemStack> left = p.getInventory().addItem(it.clone());
         // 넘치면 발밑에 (바닐라 Protection 의 버리기 막기를 지나지 않는 길: 플레이어가 버린 것이 아니다)
         for (ItemStack rest : left.values()) p.getWorld().dropItem(p.getLocation(), rest);
+    }
+
+    /**
+     * 손 (커서) 에 든 진짜 반지가 돌아갈 가방 칸이 없으면 (검토 R1): 바닐라는 창을 닫거나 몸이 치워질 때 손의 것을 가방에 넣다가
+     * 자리가 없으면 떨어뜨리고 (PlayerDropItemEvent), 버리기 막기가 그것을 취소하면 CraftBukkit 은 addItem 으로 되돌리며 넘친 것을
+     * 버린다. 그 전에 (InventoryCloseEvent·PlayerQuitEvent·죽음·다른 세계로 가는 순간이동은 바닐라가 손의 것을 돌려주기 전에 온다)
+     * 같은 반지가 아닌 첫 빈 반지 칸에 다시 끼고 (프로필), 빈 칸이 없으면 발밑에 놓는다 (dropItem 은 버리기 사건을 지나지 않는다).
+     * 칸 그림은 부르는 쪽이 다시 채운다 (later, 다시 태어남, 접속).
+     */
+    private void rescueCursor(Player p, String why) {
+        ItemStack cur = p.getItemOnCursor();
+        if (empty(cur) || Rings.isWornCopy(cur)) return;
+        Rings.Def d = rings().of(cur);
+        if (d == null || freeStorage(p.getInventory()) >= 0) return;
+        String[] worn = wornIds(p);
+        int r = -1;
+        for (int i = 0; i < worn.length && r < 0; i++) if (worn[i] == null && !RingRules.duplicate(worn, i, d.id())) r = i;
+        p.setItemOnCursor(null);
+        if (r >= 0) {
+            plugin.profiles().of(p).setRing(r, d.id());
+            plugin.profiles().save(p, false);
+            plugin.test(p, "RING_RESCUE id=" + d.id() + " to=ring" + (r + 1) + " why=" + why);
+        } else {
+            p.getWorld().dropItem(p.getLocation(), cur);
+            plugin.test(p, "RING_RESCUE id=" + d.id() + " to=ground why=" + why);
+        }
+    }
+
+    /** 상자 같은 다른 창이 열려 2×2 에 손이 닿지 않으면 그 창을 닫는다 (닫기에서 onClose 가 손의 반지를 지킨다). 그다음 비운다. */
+    private void closeAndClear(Player p, String why) {
+        if (own(p) == null) p.closeInventory();
+        rescueCursor(p, why);
+        clear(p);
     }
 
     /** 다음 틱에 칸을 다시 채운다. */
@@ -299,9 +348,21 @@ public final class RingSlots implements Listener {
         };
     }
 
+    /** 손·칸·단축 칸에 있는 것. 칸 밖의 사본 (souls:ring_worn) 은 반지로 치지 않는다 (검토 R2: 바꾸기에서 진짜 반지가 되어 겹쳤다). */
     private RingRules.Thing thing(ItemStack it) {
         if (empty(it)) return RingRules.Thing.EMPTY;
+        if (Rings.isWornCopy(it)) return RingRules.Thing.OTHER;
         return rings().of(it) != null ? RingRules.Thing.RING : RingRules.Thing.OTHER;
+    }
+
+    /**
+     * 반지 칸 r 에 있는 것은 칸 그림이 아니라 프로필로 본다 (검토 R3: 칸은 1초 맞추기 사이에 프로필과 어긋날 수 있다. /clear 로
+     * 칸이 비어 보여도 프로필에는 반지가 있다). 칸에 사본이 아닌 것 (/item, 다른 플러그인) 이 들어와 있으면 반지가 아닌 것 (1초 안에
+     * 인벤토리로 돌려준다).
+     */
+    private RingRules.Thing ringSlotThing(ItemStack inGrid, String[] worn, int r) {
+        if (!empty(inGrid) && !Rings.isWornCopy(inGrid)) return RingRules.Thing.OTHER;
+        return def(worn[r]) != null ? RingRules.Thing.RING : RingRules.Thing.EMPTY;
     }
 
     /** 자기 인벤토리 창 (2×2 가 보이는 창) 인가. 창작 모드 화면도 같은 창이다. */
@@ -313,6 +374,12 @@ public final class RingSlots implements Listener {
     public void onClick(InventoryClickEvent e) {
         if (!(e.getWhoClicked() instanceof Player p) || !ownView(e.getView())) return;
         int raw = e.getRawSlot();
+        if (e.isCancelled()) {
+            // 다른 플러그인이 먼저 막은 누르기 (잠금, 메뉴 틀, 부정 막기, 검토 R5): 그 막기를 넘어 반지를 옮기지 않는다. 막힌
+            // 누르기는 바닐라에 닿지 않으므로 2×2 는 그대로다. 클라이언트의 헛것만 다음 틱에 걷는다
+            if (RingRules.craftArea(raw)) resyncLater(p);
+            return;
+        }
         if (e instanceof InventoryCreativeEvent) {
             // 창작 모드 화면은 2×2 를 보이지 않지만, "모두 지우기" 는 모든 칸 (2×2 포함) 을 비우라고 보낸다
             if (RingRules.craftArea(raw)) deny(e, p, raw, "creative");
@@ -325,9 +392,19 @@ public final class RingSlots implements Listener {
             case OFFHAND -> inv.getItemInOffHand();
             default -> null;
         };
+        ItemStack current = e.getCurrentItem();
+        // 칸 밖에 나온 사본 (손, 누른 칸, 숫자 키·왼손 바꾸기의 저쪽) 은 어떤 누르기에도 쓰지 않는다: 거절하고 지운다 (검토 R2)
+        if (Rings.isWornCopy(e.getCursor()) || Rings.isWornCopy(otherItem) || (!RingRules.craftArea(raw) && Rings.isWornCopy(current))) {
+            deny(e, p, raw, "copy");
+            sweep(p);
+            return;
+        }
         String[] worn = wornIds(p);
-        RingRules.Decision d = RingRules.decide(raw, kind, thing(e.getCursor()), thing(e.getCurrentItem()), thing(otherItem),
-                RingRules.firstFree(worn));
+        int ring = RingRules.ringIndex(raw);
+        RingRules.Thing slot = ring >= 0 ? ringSlotThing(current, worn, ring) : thing(current);
+        // 가방의 반지를 웅크리고 누를 때: 빈 반지 칸에 끼면 같은 반지 둘이 되는 반지는 끼지 않고 바닐라대로 가방 ↔ 단축 줄 (검토 R4)
+        RingRules.Decision d = RingRules.decide(raw, kind, thing(e.getCursor()), slot, thing(otherItem),
+                RingRules.freeFor(worn, Rings.idOf(current)));
         switch (d.act()) {
             case PASS -> {
                 return;
@@ -360,14 +437,18 @@ public final class RingSlots implements Listener {
             case PUT -> {
                 Rings.Def in = rings().of(e.getCursor());
                 if (!wear(p, worn, r, in)) return false;
+                // 판정은 프로필로 하지만, 그사이 프로필에 반지가 들어왔으면 버리지 않고 손에 준다 (바꾸기와 같다, 검토 R3)
+                Rings.Def old = def(pr.ring(r));
                 pr.setRing(r, in.id());
                 ci.setItem(RingRules.rawOf(r), rings().wornCopy(in));
-                p.setItemOnCursor(null);
-                done(p, "put", r, in.id());
+                p.setItemOnCursor(old == null ? null : rings().make(old));
+                done(p, old == null ? "put" : "swap", r, in.id());
             }
             case TAKE -> {
                 Rings.Def out = def(pr.ring(r));
                 if (out == null) return false;
+                // 가방에 빈 칸이 없으면 빼지 않는다: 손에 든 반지가 돌아갈 자리가 늘 있게 (검토 R1). 가방의 반지로 바꾸기는 된다
+                if (freeStorage(inv) < 0) return full(p, r);
                 pr.setRing(r, null);
                 ci.setItem(RingRules.rawOf(r), null);
                 p.setItemOnCursor(rings().make(out));
@@ -385,7 +466,8 @@ public final class RingSlots implements Listener {
             case TO_STORAGE -> {
                 Rings.Def out = def(pr.ring(r));
                 int at = freeStorage(inv);
-                if (out == null || at < 0) return false;
+                if (out == null) return false;
+                if (at < 0) return full(p, r);
                 pr.setRing(r, null);
                 ci.setItem(RingRules.rawOf(r), null);
                 inv.setItem(at, rings().make(out));
@@ -435,6 +517,13 @@ public final class RingSlots implements Listener {
         return true;
     }
 
+    /** 가방이 다 차서 빼지 못한다: 둔탁한 소리 (같은 반지 둘과 같다). */
+    private boolean full(Player p, int r) {
+        p.playSound(p, Sound.BLOCK_CHAIN_HIT, SoundCategory.PLAYERS, 0.5f, 0.7f);
+        plugin.test(p, "RING_FULL ring=" + (r + 1));
+        return false;
+    }
+
     /** 가방 (9..35) 의 첫 빈 칸, 없으면 단축 슬롯 (0..8). 바닐라가 2×2 에서 웅크리고 누른 것을 옮기는 차례. 없으면 -1. */
     private static int freeStorage(PlayerInventory inv) {
         for (int i = 9; i < 36; i++) if (empty(inv.getItem(i))) return i;
@@ -464,19 +553,27 @@ public final class RingSlots implements Listener {
 
     // ------------------------------------------------------------------ 바닐라가 2×2 를 돌려주는 때
 
-    /** 창을 닫으면 바닐라가 2×2 를 인벤토리로 돌려준다 (넘치면 떨어뜨린다): 그 전에 비우고 다음 틱에 다시 채운다. */
+    /**
+     * 창을 닫으면 바닐라가 2×2 와 손의 것을 인벤토리로 돌려준다 (넘치면 떨어뜨린다): 그 전에 손의 반지를 지키고 비우고 다음 틱에 다시
+     * 채운다. 나갈 때도 바닐라가 먼저 창을 닫으므로 (PlayerList.remove 의 closeContainer, 까닭 DISCONNECT) 여기를 지난다.
+     */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onClose(InventoryCloseEvent e) {
         if (!(e.getPlayer() instanceof Player p)) return;
+        // 상자 같은 다른 창의 손도 같다 (그 창의 손에 든 반지)
+        rescueCursor(p, "close");
         if (ownView(e.getView())) clear(p);
         // 상자 같은 다른 창을 닫았을 때도: 그 창이 열려 있는 동안은 2×2 에 손이 닿지 않아 맞추지 못했다
         later(p);
     }
 
-    /** 죽으면 몸이 치워질 때 (다시 태어날 때) 바닐라가 2×2 를 그 자리에 떨어뜨린다: 비워 둔다. 반지는 떨어지지 않는다. */
+    /**
+     * 죽으면 몸이 치워질 때 (다시 태어날 때) 바닐라가 2×2 를 그 자리에 떨어뜨린다: 비워 둔다. 반지는 떨어지지 않는다. 다른 창이 열려
+     * 있으면 먼저 닫는다 (검토 R2: 열린 채면 2×2 에 손이 닿지 않아 사본이 남는다).
+     */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onDeath(PlayerDeathEvent e) {
-        clear(e.getEntity());
+        closeAndClear(e.getEntity(), "death");
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -488,6 +585,7 @@ public final class RingSlots implements Listener {
     @EventHandler(priority = EventPriority.LOW)
     public void onQuit(PlayerQuitEvent e) {
         Player p = e.getPlayer();
+        rescueCursor(p, "quit");
         clear(p);
         sweep(p);
         restore.remove(p.getUniqueId());
@@ -499,11 +597,14 @@ public final class RingSlots implements Listener {
         later(e.getPlayer());
     }
 
-    /** 다른 세계로 가면 바닐라가 2×2 를 인벤토리로 돌려준다: 가기 전에 비우고, 세계가 바뀐 뒤 다시 채운다. */
+    /**
+     * 다른 세계로 가면 바닐라가 2×2 와 손의 것을 인벤토리로 돌려준다: 가기 전에 (다른 창이 열려 있으면 닫고, 검토 R2) 손의 반지를
+     * 지키고 비우고, 세계가 바뀐 뒤 다시 채운다.
+     */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onTeleport(PlayerTeleportEvent e) {
         if (e.getTo().getWorld() != null && !e.getTo().getWorld().equals(e.getFrom().getWorld())) {
-            clear(e.getPlayer());
+            closeAndClear(e.getPlayer(), "world");
             later(e.getPlayer());
         }
     }
@@ -511,7 +612,7 @@ public final class RingSlots implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPortal(PlayerPortalEvent e) {
         if (e.getTo().getWorld() != null && !e.getTo().getWorld().equals(e.getFrom().getWorld())) {
-            clear(e.getPlayer());
+            closeAndClear(e.getPlayer(), "world");
             later(e.getPlayer());
         }
     }
@@ -603,10 +704,20 @@ public final class RingSlots implements Listener {
         String cursor = empty(cur) ? null : Rings.idOf(cur) != null ? Rings.idOf(cur) + (Rings.isWornCopy(cur) ? "*" : "") : cur.getType().getKey().getKey();
         int ground = 0;
         for (Entity en : p.getNearbyEntities(32, 32, 32)) if (en instanceof Item item && Rings.idOf(item.getItemStack()) != null) ground++;
+        // 발밑 (8칸 안) 에 떨어진 반지가 아닌 것 (가방이 찬 채 창을 닫으면 사라지지 않고 떨어지는지, world/Protection.fitsBack)
+        Map<String, Integer> near = new java.util.TreeMap<>();
+        for (Entity en : p.getNearbyEntities(8, 8, 8)) {
+            if (en instanceof Item item && Rings.idOf(item.getItemStack()) == null) {
+                near.merge(item.getItemStack().getType().getKey().getKey(), item.getItemStack().getAmount(), Integer::sum);
+            }
+        }
+        StringBuilder nearS = new StringBuilder();
+        near.forEach((k, v) -> nearS.append(nearS.length() == 0 ? "" : ",").append(k).append(':').append(v));
         Rings.Worn fx = worn(p);
-        return String.format(Locale.ROOT, "RINGS r1=%s r2=%s%s inv=%s cursor=%s strays=%d ground=%d regen=%.4f poise=%.2f parry=%d guard=%s",
+        return String.format(Locale.ROOT, "RINGS r1=%s r2=%s%s inv=%s cursor=%s strays=%d ground=%d near=%s regen=%.4f poise=%.2f parry=%d guard=%s",
                 w[0] == null ? "-" : w[0], w[1] == null ? "-" : w[1], view, inv.isEmpty() ? "-" : String.join(",", inv),
-                cursor == null ? "-" : cursor, strays, ground, fx.staminaRegen(), fx.poise(), fx.parryWindow(), fx.soulGuard());
+                cursor == null ? "-" : cursor, strays, ground, nearS.length() == 0 ? "-" : nearS, fx.staminaRegen(), fx.poise(), fx.parryWindow(),
+                fx.soulGuard());
     }
 
     /** 시험: 반지 칸 r (0, 1) 에 id 를 바로 낀다 (찍기 준비. 아이템을 쓰지 않는다). null 이면 뺀다 (아이템은 주지 않는다). */
