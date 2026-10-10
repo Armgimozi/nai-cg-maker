@@ -245,6 +245,19 @@ public final class Lang {
     }
 
     /**
+     * 팩이 갈래마다 짠 제목 (번역 열쇠 souls.열쇠.갈래, 출신 확인 창의 제목 origin.confirm-title.&lt;id&gt;: 제목 글꼴과 금실, pack/typeset.py
+     * 의 TITLE_VARIANTS). 꼴은 열쇠 그대로, 대체 글 (팩이 없을 때) 은 fallbackKey 의 그 사람 언어 글 (자리 없는 열쇠).
+     */
+    public static Component titled(Player viewer, String key, String branch, String fallbackKey) {
+        Entry e = entries.get(key);
+        Entry f = entries.get(fallbackKey);
+        if (e == null) return missing(key);
+        if (f == null) return missing(fallbackKey);
+        return Component.translatable(PREFIX + key + "." + branch, f.fallback().get(langOf(viewer)), e.style())
+                .decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE);
+    }
+
+    /**
      * 표의 칸 (Dialog 창의 열 맞추기, 5.9·5.10): 팩이 그 언어에서 같은 무리 (pack/typeset.py 의 CELLS) 의 가장 긴 글 폭까지 뒤를
      * 빈칸 글자로 채운 열쇠 souls.열쇠.cell (팩의 언어 파일에만 있다). 그래서 같은 무리의 칸은 모두 폭이 같다. 자리가 없는 열쇠만.
      * 팩이 없으면 대체 글 (그 사람의 언어) 뒤에 빈칸 하나.
@@ -264,6 +277,7 @@ public final class Lang {
      */
     private static final String[][] CELL_GROUPS = {
             {"cell", "derived.*"},
+            {"cell", "stat.*.tag"},
             {"cell", "origin.*.name", "origin.head-name"},
             {"cell", "origin.*.kit", "origin.head-kit"},
             {"rcell", "stat.*.short", "origin.head-level"},

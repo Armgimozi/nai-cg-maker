@@ -101,7 +101,7 @@ public final class StatCurves {
         return g == null ? 0 : speedGrades.getOrDefault(g, 0.0);
     }
 
-    /** 설계 문서 5.2 의 표 (1.3판, 민첩은 검토 뒤 앞쪽을 올린 판). config.yml 이 비었을 때 쓴다. */
+    /** 설계 문서 5.2 의 표 (1.3판. 근력·지능 보정, 기력 회복, 민첩 이동은 검토 slow-stats-feel-dead 뒤 앞쪽을 올린 판). config.yml 이 비었을 때 쓴다. */
     public static StatCurves defaults() {
         Map<String, Double> grades = new LinkedHashMap<>();
         grades.put("E", 0.25); grades.put("D", 0.5); grades.put("C", 0.8); grades.put("B", 1.1); grades.put("A", 1.4); grades.put("S", 1.7);
@@ -110,7 +110,7 @@ public final class StatCurves {
         Map<Integer, Integer> slots = new TreeMap<>();
         slots.put(8, 1); slots.put(13, 2); slots.put(18, 3); slots.put(24, 4); slots.put(30, 5);
         return new StatCurves(99, grades, speed,
-                Curve.of(1, 0.0, 18, 0.25, 40, 0.65, 60, 0.80, 99, 1.0),
+                Curve.of(1, 0.0, 10, 0.13, 20, 0.35, 30, 0.52, 40, 0.68, 60, 0.80, 99, 1.0),
                 20, 0.4, 0.4, 0.15,
                 Curve.of(1, 310, 10, 400, 20, 670, 30, 905, 40, 1105, 60, 1305, 99, 1500),
                 Curve.of(1, 10, 10, 16, 20, 26, 30, 33, 40, 38, 60, 42, 99, 46),
@@ -118,9 +118,9 @@ public final class StatCurves {
                 Curve.of(1, 6, 10, 12, 20, 26, 30, 36, 40, 44, 60, 52, 99, 58),
                 new Steps(slots),
                 Curve.of(1, 82, 10, 100, 20, 130, 30, 150, 40, 165, 60, 180, 99, 200),
-                Curve.of(1, 0.91, 10, 1.0, 20, 1.10, 30, 1.18, 40, 1.24, 60, 1.30, 99, 1.35),
+                Curve.of(1, 0.91, 10, 1.0, 20, 1.15, 30, 1.24, 40, 1.30, 60, 1.36, 99, 1.40),
                 Curve.of(1, 30, 10, 40, 20, 54, 30, 66, 40, 76, 60, 88, 99, 100),
-                Curve.of(10, 0.0, 20, 0.04, 30, 0.07, 40, 0.09, 60, 0.11, 99, 0.12),
+                Curve.of(10, 0.0, 20, 0.05, 30, 0.08, 40, 0.10, 60, 0.12, 99, 0.13),
                 Curve.of(10, 0.0, 20, 0.10, 30, 0.17, 40, 0.22, 60, 0.26, 99, 0.30),
                 Curve.of(10, 0.0, 20, 0.10, 30, 0.18, 40, 0.24, 60, 0.30, 99, 0.35));
     }

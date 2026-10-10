@@ -91,15 +91,24 @@ public final class LevelUpDialog implements Listener {
         Derived now = plugin.stats().derived(p, base);
         Derived next = plugin.stats().derived(p, target);
         List<Component> lines = new ArrayList<>();
-        lines.add(Lang.c(p, "levelup.head", "from", String.valueOf(from), "to", String.valueOf(to), "held", souls(held), "cost", souls(cost)));
+        long nextPoint = plugin.cfg().levelCost.next(to);
+        // 더한 점이 없으면 다음 레벨 비용을 머리줄에 (검토 levelup-next-cost-hidden), 있으면 "레벨 a → b · 필요한 소울"
+        lines.add(to == from
+                ? Lang.c(p, "levelup.head-idle", "level", String.valueOf(from), "held", souls(held), "next", souls(nextPoint))
+                : Lang.c(p, "levelup.head", "from", String.valueOf(from), "to", String.valueOf(to), "held", souls(held), "cost", souls(cost)));
         lines.addAll(StatRows.rows(p, now, to == from ? null : next));
         List<ActionButton> buttons = new ArrayList<>();
-        long nextPoint = plugin.cfg().levelCost.next(to);
+        // 다음 한 점을 살 수 있나 (모자라면 "+" 를 흐리게, 설명 칸에 "소울이 모자라다")
+        boolean afford = plugin.cfg().levelCost.sum(from, to - from + 1) <= held;
         for (String id : StatBlock.IDS) {
             int a = base.get(id), b = target.get(id);
             String value = a == b ? String.valueOf(a) : a + " → " + b;
-            Component label = Lang.c(p, "levelup.plus", "stat", Lang.c(p, "stat." + id + ".name"), "value", value); // lang-dyn: stat.*.name
-            buttons.add(ui.button(s, "plus_" + id, label, tip(p, id, target, nextPoint), WIDTH, (pl, v) -> plus(pl, id)));
+            boolean can = afford && b < plugin.cfg().stats.max;
+            Component label = Component.text()
+                    .append(Lang.c(p, "levelup.plus", "stat", Lang.c(p, "stat." + id + ".name"), "value", value)) // lang-dyn: stat.*.name
+                    .append(Component.text(" +").color(can ? Columns.MAIN_COLOR : Columns.DIM_COLOR))
+                    .build();
+            buttons.add(ui.button(s, "plus_" + id, label, tip(p, id, target, nextPoint, afford), WIDTH, (pl, v) -> plus(pl, id)));
         }
         buttons.add(ui.button(s, "undo", Lang.c(p, "levelup.undo"), null, WIDTH, (pl, v) -> undo(pl)));
         buttons.add(ui.button(s, "confirm", Lang.c(p, "levelup.confirm"), null, WIDTH, (pl, v) -> confirm(pl)));
@@ -113,24 +122,35 @@ public final class LevelUpDialog implements Listener {
         ui.show(p, s, d);
     }
 
-    /** "+" 단추의 설명 칸: 그 능력치의 두 효과를 한 점 더했을 때의 값, 다음 한 점의 비용. */
-    private Component tip(Player p, String id, StatBlock target, long nextPoint) {
+    /**
+     * "+" 단추의 설명 칸: 그 능력치의 두 효과를 한 점 더했을 때의 값, (근력) 장비 무게와 무게 단계, (정신·지능) 아직 듣지 않는 값, (지능)
+     * 불에 타는 시간 (달라질 때만), 다음 한 점의 비용, 모자라면 "소울이 모자라다".
+     */
+    private Component tip(Player p, String id, StatBlock target, long nextPoint, boolean afford) {
         Derived a = plugin.stats().derived(p, target);
         Derived b = plugin.stats().derived(p, target.plus(id, 1));
         int row = StatRows.rowOf(id);
         String[] k = StatRows.keys(row, b), va = StatRows.values(row, a), vb = StatRows.values(row, b);
         Component first = Lang.c(p, k[0]); // lang-dyn: derived.*
         Component second = Lang.c(p, k[1]); // lang-dyn: derived.*
-        Component t = Lang.c(p, "levelup.tip", "first", first, "firstv", va[0] + " → " + vb[0], "second", second, "secondv", va[1] + " → " + vb[1]);
-        Component more = Lang.c(p, "levelup.next", "cost", souls(nextPoint));
-        if ("int".equals(id)) {
-            more = Component.text().append(Lang.c(p, "levelup.burn", "from", burn(a.ailment()), "to", burn(b.ailment())))
-                    .append(Component.newline()).append(more).build();
+        List<Component> out = new ArrayList<>();
+        out.add(Lang.c(p, "levelup.tip", "first", first, "firstv", va[0] + " → " + vb[0], "second", second, "secondv", va[1] + " → " + vb[1]));
+        if ("str".equals(id)) {
+            String w = String.format(Locale.ROOT, "%.1f", a.weight());
+            Component ta = Lang.c(p, "load." + a.tier().id()), tb = Lang.c(p, "load." + b.tier().id()); // lang-dyn: load.*
+            out.add(a.tier().id().equals(b.tier().id()) ? Lang.c(p, "levelup.load", "weight", w, "tier", ta)
+                    : Lang.c(p, "levelup.load-change", "weight", w, "from", ta, "to", tb));
         }
-        return Component.text().append(t).append(Component.newline()).append(more).build();
+        if (StatRows.later(row, 0)) out.add(Lang.c(p, "levelup.later", "what", first));
+        if ("int".equals(id) && !burn(a.ailment()).equals(burn(b.ailment()))) {
+            out.add(Lang.c(p, "levelup.burn", "from", burn(a.ailment()), "to", burn(b.ailment())));
+        }
+        out.add(Lang.c(p, "levelup.next", "cost", souls(nextPoint)));
+        if (!afford) out.add(Lang.c(p, "levelup.short"));
+        return Columns.lines(out);
     }
 
-    /** 불붙음 3초가 저항으로 몇 초가 되나 ("2.5"). */
+    /** 불에 타는 3초가 저항으로 몇 초가 되나 ("2.5"). */
     public static String burn(double resist) {
         return String.format(Locale.ROOT, "%.1f", 3.0 * (1 - resist));
     }

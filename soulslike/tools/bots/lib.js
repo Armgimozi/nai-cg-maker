@@ -313,6 +313,8 @@ class Bot {
       clearTitles: [],
       actionBars: [],
       dialogs: [],
+      // 서버가 닫은 창 (clear_dialog 패킷의 시각)
+      dialogClears: [],
       slots: [],
       xp: [],
       // 보스 막대 패킷 (HUD 전용 보스 막대 = 처음 ADD 된 white 막대, 10.2): {t, id, action, raw, parts, color, health}
@@ -352,6 +354,7 @@ class Bot {
     const c = bot._client
     const now = () => Date.now()
     c.on('packet', (d, meta) => {
+      if (meta.name === 'clear_dialog') this.p.dialogClears.push(now())
       this.pkts.push(meta.state + ':' + meta.name)
       if (this.pkts.length > 300) this.pkts.shift()
     })

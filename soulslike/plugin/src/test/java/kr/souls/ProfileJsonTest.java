@@ -32,6 +32,20 @@ class ProfileJsonTest {
         assertEquals(3, q.settingsSeen());
     }
 
+    /** 출신 다시 고르기는 한 번 (검토 repick-not-once): repicked 가 돌아오고, 쓰지 않았으면 JSON 에 칸이 없다. */
+    @Test
+    void repickedFlag() {
+        Profile p = Profile.fresh();
+        assertFalse(p.repicked());
+        assertFalse(p.toJson().contains("repicked"));
+        p.setRepicked(true);
+        Profile q = Profile.parse(p.toJson());
+        assertTrue(q.repicked());
+        q.setRepicked(false);
+        assertFalse(Profile.parse(q.toJson()).repicked());
+        assertFalse(Profile.parse("{\"v\":1,\"repicked\":\"yes\"}").repicked());
+    }
+
     @Test
     void keepsUnknownFields() {
         String json = "{\"v\":1,\"origin\":\"thief\",\"future\":{\"x\":1},\"stats\":{\"vig\":10,\"mnd\":10,\"end\":12,\"str\":9,\"dex\":16,\"int\":10}}";

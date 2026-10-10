@@ -317,6 +317,10 @@ public final class SoulsCommands {
             for (String id : plugin.weapons().all().keySet()) want.add(Lang.PREFIX + "weapon.rule." + id);
             // 표의 칸 (Lang.cell / rcell): 능력치·출신 창의 열 맞추기 (pack/typeset.py 의 CELLS)
             for (String k : Lang.cellKeys()) want.add(Lang.PREFIX + k);
+            // 갈래 제목 (Lang.titled): 출신 확인 창 제목 origin.confirm-title.<출신 id> (pack/typeset.py 의 TITLE_VARIANTS)
+            for (var o : plugin.origins().all()) {
+                if (Lang.has("origin." + o.id() + ".name")) want.add(Lang.PREFIX + "origin.confirm-title." + o.id());
+            }
             Set<String> ko = pk.packLangKeys("souls", "ko_kr");
             Set<String> en = pk.packLangKeys("souls", "en_us");
             line(to, fails, !want.isEmpty() && want.equals(ko) && want.equals(en), "lang keys " + want.size() + ", pack souls ko_kr "

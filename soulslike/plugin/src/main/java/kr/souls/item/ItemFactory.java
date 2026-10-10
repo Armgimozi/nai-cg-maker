@@ -2,7 +2,6 @@ package kr.souls.item;
 
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import io.papermc.paper.datacomponent.item.BlocksAttacks;
-import io.papermc.paper.datacomponent.item.Consumable;
 import io.papermc.paper.datacomponent.item.DamageResistant;
 import io.papermc.paper.datacomponent.item.ItemAttributeModifiers;
 import io.papermc.paper.datacomponent.item.ItemLore;
@@ -10,7 +9,6 @@ import io.papermc.paper.datacomponent.item.SwingAnimation;
 import io.papermc.paper.datacomponent.item.UseEffects;
 import io.papermc.paper.datacomponent.item.blocksattacks.DamageReduction;
 import io.papermc.paper.datacomponent.item.blocksattacks.ItemDamageFunction;
-import io.papermc.paper.datacomponent.item.consumable.ItemUseAnimation;
 import io.papermc.paper.registry.keys.tags.DamageTypeTagKeys;
 import kr.souls.Keys;
 import kr.souls.Lang;
@@ -130,19 +128,27 @@ public final class ItemFactory {
         return it;
     }
 
-    /** 활 당기기: 끝까지 당겨도 먹기가 끝나지 않을 만큼 (바닐라 활의 사용 시간 72000 틱과 같다). 먹기는 WeaponGuard 가 취소한다 */
-    private static final float BOW_HOLD_SECONDS = 3600f;
+    /** 활의 껍데기: 바닐라 활 (당기기·쏘기·화살 쓰기가 바닐라 그대로, 3.6 의 "바닐라 당기기". 피해 바꾸기·화살 돌려주기는 M1) */
+    public static final Material BOW_SHELL = Material.BOW;
     /** 무기 설명 칸 그림 souls:tooltip/weapon_background·_frame (이름 밑 금실, pack/gui_skin.py) */
     private static final Key WEAPON_TOOLTIP = Key.key(Keys.NS, "weapon");
 
     /**
      * 무기·방패·활·촉매 아이템 (9.8). 검 태그 없는 껍데기에 모형 souls:&lt;id&gt; (팩 pack/weapons, 손에 든 3D 모형과 16 픽셀 그림),
      * 이름 weapon.&lt;id&gt;.name (제목 글꼴), 설명 칸 = 분류 줄, 수치 표 (StatTable, 두 열), 실선, weapon.&lt;id&gt;.lore (9.7). 모두
-     * 번역 열쇠라 보는 사람의 언어로 보인다. 설명 칸 그림은 무기 칸 (tooltip_style souls:weapon: 이름 밑 금실, pack/gui_skin.py). 막는 것 (무기 guard, 방패 block) 은 빈 막기 성분과 걸음 배율 (2.3.9), 활은 당기기 몸짓 (CONSUMABLE bow, 쏘기는 M1).
-     * 불에 타지 않는다. 묶음은 하나.
+     * 번역 열쇠라 보는 사람의 언어로 보인다. 설명 칸 그림은 무기 칸 (tooltip_style souls:weapon: 이름 밑 금실, pack/gui_skin.py). 막는 것 (무기 guard, 방패 block) 은 빈 막기 성분과 걸음 배율 (2.3.9).
+     * 활 (use: bow) 은 바닐라 활 껍데기라 화살이 있으면 바닐라처럼 당겨 쏜다 (검토 archer-thief-promises: 궁수가 활을 쏠 수 있게. 모형의
+     * 당긴 모습은 using_item·use_duration 이라 껍데기와 상관없다). 닳지 않고 마법부여·수리를 받지 않는다. 불에 타지 않는다. 묶음은 하나.
      */
     public static ItemStack weapon(Weapons.Def d) {
-        ItemStack it = ItemStack.of(SHELL);
+        boolean bow = Weapons.BOW.equals(d.use());
+        ItemStack it = ItemStack.of(bow ? BOW_SHELL : SHELL);
+        if (bow) {
+            it.unsetData(DataComponentTypes.MAX_DAMAGE);
+            it.unsetData(DataComponentTypes.DAMAGE);
+            it.unsetData(DataComponentTypes.ENCHANTABLE);
+            it.unsetData(DataComponentTypes.REPAIRABLE);
+        }
         it.setData(DataComponentTypes.ITEM_MODEL, Key.key(Keys.NS, d.id()));
         it.setData(DataComponentTypes.ITEM_NAME, Lang.c("weapon." + d.id() + ".name")); // lang-dyn: weapon.*.name
         List<Component> lore = new ArrayList<>();
@@ -159,17 +165,40 @@ public final class ItemFactory {
                 it.setData(DataComponentTypes.BLOCKS_ATTACKS, guardComponent());
                 it.setData(DataComponentTypes.USE_EFFECTS, guardUse((float) d.walk()));
             }
-            case Weapons.BOW -> {
-                it.setData(DataComponentTypes.CONSUMABLE, Consumable.consumable().consumeSeconds(BOW_HOLD_SECONDS)
-                        .animation(ItemUseAnimation.BOW).hasConsumeParticles(false).build());
-                it.setData(DataComponentTypes.USE_EFFECTS, guardUse((float) d.walk()));
-            }
+            case Weapons.BOW -> it.setData(DataComponentTypes.USE_EFFECTS, guardUse((float) d.walk()));
             default -> {
                 // 촉매: 술 (CONSUMABLE 의 몸짓·시간) 은 M5 에 붙인다 (3.12.4)
             }
         }
         it.editPersistentDataContainer(pdc -> pdc.set(Keys.WEAPON, PersistentDataType.STRING, d.id()));
         return it;
+    }
+
+    /**
+     * 궁수의 시작 화살 (바닐라 화살 n 개). souls 표시 souls:item=arrows 를 붙여 출신 지우기·다시 고르기가 거둔다 (쏘아 주운 화살도
+     * 표시가 남아 함께 묶인다). 화살 아이템은 M1 의 화살 돌려주기와 함께 다시 본다.
+     */
+    public static ItemStack arrows(int n) {
+        ItemStack it = ItemStack.of(Material.ARROW, Math.max(1, Math.min(64, n)));
+        it.editPersistentDataContainer(pdc -> pdc.set(Keys.ITEM, PersistentDataType.STRING, "arrows"));
+        return it;
+    }
+
+    /**
+     * 예전 판의 활 (부싯돌 껍데기, 당기기만 했다) 을 바닐라 활 껍데기로 바꾼다 (접속할 때, StartFlow). 같은 칸에 새로 만든 것을 놓는다.
+     * 바꾼 수.
+     */
+    public static int upgradeBows(org.bukkit.inventory.PlayerInventory inv, Weapons weapons) {
+        int n = 0;
+        ItemStack[] all = inv.getContents();
+        for (int i = 0; i < all.length; i++) {
+            ItemStack it = all[i];
+            Weapons.Def d = it == null ? null : weapons.of(it);
+            if (d == null || !Weapons.BOW.equals(d.use()) || it.getType() == BOW_SHELL) continue;
+            inv.setItem(i, weapon(d));
+            n++;
+        }
+        return n;
     }
 
     /** 이 아이템이 시험 막기 도구인가. */

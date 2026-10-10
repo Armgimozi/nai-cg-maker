@@ -9,8 +9,6 @@ import kr.souls.Lang;
 import kr.souls.Souls;
 import kr.souls.combat.DamageCalc;
 import kr.souls.hud.Glyphs;
-import kr.souls.item.ItemFactory;
-import kr.souls.item.MasterKey;
 import kr.souls.item.Weapons;
 import kr.souls.progression.Derived;
 import kr.souls.progression.Origins;
@@ -70,16 +68,33 @@ public final class OriginDialog {
         return b.build().decoration(TextDecoration.ITALIC, TextDecoration.State.FALSE);
     }
 
-    /** 출신 한 줄 (단추 글). */
+    /** 출신 한 줄 (단추 글). 그 출신의 주 능력치 (가장 높은 것, 둘째가 12 넘고 셋째보다 높으면 그것도) 는 양피지색 굵게 (검토 origin-table-scan). */
     static Component row(Player p, Origins.Origin o) {
         TextComponent.Builder b = Component.text();
         b.append(Lang.cell(p, "origin." + o.id() + ".name")); // lang-dyn: origin.*.name
         b.append(Columns.right(String.valueOf(o.level()), Columns.STAT_COL, Columns.VALUE_COLOR));
         StatBlock s = o.stats();
-        for (String id : StatBlock.IDS) b.append(Columns.right(String.valueOf(s.get(id)), Columns.STAT_COL, Columns.VALUE_COLOR));
+        java.util.Set<String> main = mainStats(s);
+        for (String id : StatBlock.IDS) {
+            boolean m = main.contains(id);
+            b.append(Columns.right(String.valueOf(s.get(id)), Columns.STAT_COL, m ? Columns.MAIN_COLOR : Columns.VALUE_COLOR, m));
+        }
         b.append(Columns.pad(Columns.KIT_GAP));
         b.append(Lang.cell(p, "origin." + o.id() + ".kit")); // lang-dyn: origin.*.kit
         return b.build().decoration(TextDecoration.ITALIC, TextDecoration.State.FALSE);
+    }
+
+    /** 주 능력치: 가장 높은 값이 하나뿐이면 그것, 둘째 값이 12 이상이고 셋째보다 높으면 그것도 (빈털터리처럼 모두 같으면 없음). */
+    static java.util.Set<String> mainStats(StatBlock s) {
+        List<String> ids = new ArrayList<>(StatBlock.IDS);
+        ids.sort((x, y) -> Integer.compare(s.get(y), s.get(x)));
+        java.util.Set<String> out = new java.util.HashSet<>();
+        int v0 = s.get(ids.get(0)), v1 = s.get(ids.get(1)), v2 = s.get(ids.get(2));
+        if (v0 > v1) {
+            out.add(ids.get(0));
+            if (v1 >= 12 && v1 > v2) out.add(ids.get(1));
+        }
+        return out;
     }
 
     /** 확인 창. */
@@ -98,24 +113,21 @@ public final class OriginDialog {
         body.add(DialogBody.plainMessage(Columns.lines(top), 300));
         // 시작 아이템 그림 (지금 만들 수 있는 것만. 가리키면 무기 설명 칸)
         Weapons.Def main = null, cat = null;
-        boolean offEmpty = true, bow = false;
+        boolean offEmpty = true;
         for (Origins.Kit k : o.kit()) {
-            ItemStack it = null;
+            if (!Origins.creatable(k, plugin.weapons())) continue;
+            ItemStack it = Origins.make(k, plugin.weapons());
+            if (it == null) continue;
             if ("weapon".equals(k.kind())) {
                 Weapons.Def d = plugin.weapons().get(k.id());
-                if (d == null) continue;
-                it = ItemFactory.weapon(d);
                 if ("off".equals(k.to())) offEmpty = false;
                 if ("main".equals(k.to()) && Stats.isMelee(d)) main = d;
                 if (Stats.isCatalyst(d)) cat = d;
-                if (Weapons.BOW.equals(d.use())) bow = true;
-            } else if ("item".equals(k.kind()) && MasterKey.ID.equals(k.id())) {
-                it = MasterKey.make();
             }
-            if (it != null) {
-                body.add(DialogBody.item(it).description(DialogBody.plainMessage(it.getData(io.papermc.paper.datacomponent.DataComponentTypes.ITEM_NAME), 200))
-                        .showTooltip(true).showDecorations(true).build());
-            }
+            // 이름 칸 폭 150: 이름이 그림 곁에 붙는다 (200 이면 가운데 맞춤이라 그림에서 멀리 떨어졌다, 검토 origin-table-scan)
+            Component name = it.getData(io.papermc.paper.datacomponent.DataComponentTypes.ITEM_NAME);
+            if (name == null) name = Component.translatable(it.getType().translationKey());
+            body.add(DialogBody.item(it).description(DialogBody.plainMessage(name, 150)).showTooltip(true).showDecorations(true).build());
         }
         StatBlock st = o.stats();
         Derived d = Derived.of(st, plugin.cfg().stats, plugin.cfg().load, Stats.arms(main), offEmpty, Stats.arms(cat), 0,
@@ -130,14 +142,14 @@ public final class OriginDialog {
             info.add(offEmpty ? Lang.c(p, "origin.attack-2h", "weapon", w, "attack", ar) : Lang.c(p, "origin.attack", "weapon", w, "attack", ar));
         }
         if (cat != null) info.add(Lang.c(p, "origin.no-rites"));
-        if (bow) info.add(Lang.c(p, "origin.no-bow"));
         info.add(rollHint(plugin, p));
         info.add(Lang.c(p, "controls.hint.art", "bind", Component.keybind("key.swapOffhand")));
         body.add(DialogBody.plainMessage(Columns.lines(info), 300));
         ActionButton yes = ui.button(s, "choose", Lang.c(p, "origin.choose"), null, 150, (pl, v) -> plugin.start().chooseOrigin(pl, id, "dialog"));
         ActionButton no = ui.button(s, "back", Lang.c(p, "origin.back"), null, 150, (pl, v) -> show(plugin, pl));
         Dialog dlg = Dialog.create(b -> b.empty()
-                .base(DialogBase.builder(Glyphs.dialogTitle(Lang.c(p, "origin." + id + ".name"))) // lang-dyn: origin.*.name
+                // 제목 글꼴과 금실 (다른 창 제목과 같게, 검토 confirm-title-unstyled): 팩이 출신마다 짠 origin.confirm-title.<id>
+                .base(DialogBase.builder(Glyphs.dialogTitle(Lang.titled(p, "origin.confirm-title", id, "origin." + id + ".name"))) // lang-dyn: origin.*.name
                         .canCloseWithEscape(true).pause(false).afterAction(DialogBase.DialogAfterAction.NONE)
                         .body(body)
                         .build())

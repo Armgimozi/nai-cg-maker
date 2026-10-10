@@ -80,7 +80,7 @@ L.run('persist_check', async (sc) => {
     from = c.sys.length
     if (conf) c.clickDialog('choose', {}, conf)
     const og = await c.waitT('ORIGIN ', 3000, from)
-    sc.check('later joiner: archer chosen (hatchet + short bow)', og && og.kv.id === 'archer' && og.kv.kit === 'weapon:levy_hatchet,weapon:wall_shortbow', og ? og.line : '줄 없음')
+    sc.check('later joiner: archer chosen (hatchet + short bow)', og && og.kv.id === 'archer' && og.kv.kit === 'weapon:levy_hatchet,weapon:wall_shortbow,item:arrows', og ? og.line : '줄 없음')
     await L.sleep(400)
   }
   const s2 = await c.cmd('/soulstest settings show', 'SETTINGS ')

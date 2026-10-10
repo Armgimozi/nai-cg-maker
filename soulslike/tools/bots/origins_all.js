@@ -15,7 +15,7 @@ const O = {
   deprived: { level: 1, stats: [10, 10, 10, 10, 10, 10], main: 'gaoler_club', off: 'plank_shield', kit: 'weapon:gaoler_club,weapon:plank_shield', pending: ['armor:prisoner_rags', 'item:estus'] },
   warrior: { level: 8, stats: [11, 9, 12, 16, 10, 9], main: 'gaoler_greatsword', kit: 'weapon:gaoler_greatsword', pending: ['armor:redin_watch_garb', 'item:estus'] },
   thief: { level: 8, stats: [10, 10, 12, 9, 16, 10], main: 'alley_dagger', off: 'parrying_dagger', bag: 'master_key', kit: 'weapon:alley_dagger,weapon:parrying_dagger,item:master_key', pending: ['armor:prisoner_rags', 'item:estus'] },
-  archer: { level: 8, stats: [11, 9, 10, 12, 15, 10], main: 'levy_hatchet', hot2: 'wall_shortbow', kit: 'weapon:levy_hatchet,weapon:wall_shortbow', pending: ['armor:prisoner_rags', 'item:arrows', 'item:estus'] },
+  archer: { level: 8, stats: [11, 9, 10, 12, 15, 10], main: 'levy_hatchet', hot2: 'wall_shortbow', arrows: 32, kit: 'weapon:levy_hatchet,weapon:wall_shortbow,item:arrows', pending: ['armor:prisoner_rags', 'item:estus'] },
   sorcerer: { level: 8, stats: [9, 13, 9, 9, 11, 16], main: 'alley_dagger', hot2: 'kiln_pot', kit: 'weapon:alley_dagger,weapon:kiln_pot', pending: ['armor:prisoner_rags', 'spell:ember_toss', 'item:estus'] },
   knight: { level: 9, stats: [15, 9, 11, 13, 11, 9], main: 'redin_guard_sword', off: 'redin_guard_shield', kit: 'weapon:redin_guard_sword,weapon:redin_guard_shield', pending: ['armor:redin_watch_garb', 'item:estus'] }
 }
@@ -28,7 +28,7 @@ const curve = (pts, x) => {
 }
 const MAXHP = { 1: 310, 10: 400, 20: 670, 30: 905, 40: 1105, 60: 1305, 99: 1500 }
 const STAM = { 1: 82, 10: 100, 20: 130, 30: 150, 40: 165, 60: 180, 99: 200 }
-const MOVE = { 10: 0, 20: 0.04, 30: 0.07, 40: 0.09, 60: 0.11, 99: 0.12 }
+const MOVE = { 10: 0, 20: 0.05, 30: 0.08, 40: 0.10, 60: 0.12, 99: 0.13 }
 
 /** 인벤토리의 souls 아이템: [{slot, id}] (item_name 번역 열쇠 souls.weapon.<id>.name / souls.item.<id>.name 에서 id). */
 function soulsItems (b) {
@@ -46,10 +46,12 @@ function kitPlaced (b, o) {
   const items = soulsItems(b)
   const at = (slot) => (items.find((x) => x.slot === slot) || {}).id || null
   const want = [o.main, o.off, o.hot2, o.bag].filter(Boolean)
+  // 궁수의 화살은 바닐라 화살 (souls 이름이 없다): 개수만 센다 (o.arrows, 없으면 0)
+  const arrows = b.bot.inventory.slots.reduce((n, it) => n + (it && it.name === 'arrow' ? it.count : 0), 0)
   const ok = at(36) === o.main && (o.off ? at(45) === o.off : at(45) === null) && (o.hot2 ? at(37) === o.hot2 : true) &&
     (o.bag ? items.some((x) => x.id === o.bag && x.slot >= 9 && x.slot <= 35) : true) &&
-    items.length === want.length && items.every((x) => x.count === 1)
-  return { ok, txt: items.map((x) => `${x.slot}:${x.id}${x.count > 1 ? 'x' + x.count : ''}`).join(' ') || '없음' }
+    items.length === want.length && items.every((x) => x.count === 1) && arrows === (o.arrows || 0)
+  return { ok, txt: (items.map((x) => `${x.slot}:${x.id}${x.count > 1 ? 'x' + x.count : ''}`).join(' ') || '없음') + (arrows ? ` arrows×${arrows}` : '') }
 }
 /** 출신 창에서 그 출신 단추의 글 (평문) 과 숫자들. */
 function rowOf (raw, id) {
@@ -115,6 +117,24 @@ L.run('origins_all', async (sc) => {
     sc.check(`${id}: inventory holds exactly its kit (main ${o.main}${o.off ? ', off ' + o.off : ''}${o.hot2 ? ', hotbar 2 ' + o.hot2 : ''}${o.bag ? ', bag ' + o.bag : ''})`, kp.ok, kp.txt)
     const ld = await b.cmd('/soulstest load', 'LOAD ')
     sc.checkCmd(`${id}: starting kit is light`, ld, (r) => r.kv.tier === 'light')
+    if (o.arrows) {
+      // 궁수의 단궁은 바닐라 활 껍데기: 화살이 있으면 당겨 쏜다 (검토 archer-thief-promises)
+      const bow = b.bot.inventory.slots[37]
+      sc.check(`${id}: the short bow is a real bow item (vanilla draw and shoot)`, bow && bow.name === 'bow', bow ? bow.name : '없음')
+      b.bot.setQuickBarSlot(1)
+      await L.sleep(300)
+      b.bot.activateItem()
+      await L.sleep(1200)
+      b.bot.deactivateItem()
+      await L.sleep(800)
+      const left = b.bot.inventory.slots.reduce((n, it) => n + (it && it.name === 'arrow' ? it.count : 0), 0)
+      sc.check(`${id}: drawing and releasing the bow looses an arrow (${o.arrows} -> ${o.arrows - 1})`, left === o.arrows - 1, `화살 ${left}`)
+      b.bot.setQuickBarSlot(0)
+      await L.sleep(300)
+      // 쏜 화살은 주울 수 있다: 뒤의 셈이 흔들리지 않게 땅의 화살을 치우고 지금 개수로 맞춰 둔다
+      await b.cmd('/kill @e[type=arrow]', null, 800)
+      o.arrows = left
+    }
     // 창을 다시 열어 눌러도 다시 고를 수 없다
     d = b.p.dialogs.length
     await b.cmd('/soulstest origin show', null, 800)

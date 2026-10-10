@@ -27,8 +27,11 @@ start:
   setup-by: first
   # 창을 닫은 사람에게 창을 다시 띄우는 가장 짧은 틈 (틱)
   reopen-cooldown: 40
-  # 출신을 고르기 전에는 시작 자리에서 이 칸 수 안에서만 걷는다 (0 이면 막지 않는다)
+  # 출신을 고르기 전에는 시작 자리에서 이 칸 수 안에서만 걷는다 (0 이면 막지 않는다). 관리자가 출신을 지웠거나 다시 고르는 사람은
+  # 그 자리가 가운데다. 가운데에서 멀어지지 않는 걸음은 늘 된다
   unborn-radius: 8
+  # 출신 창을 닫은 사람이 걷는 동안 "고르려면 · 웅크리기 키 짧게" 를 다시 알리는 틈 (틱, 1200 = 1분. 0 이면 닫을 때만)
+  hint-every: 1200
   # 리소스팩을 다 싣고 이 틱 뒤에 창을 띄운다. 팩을 싣지 않은 사람 (선택 팩을 거절했거나 팩이 꺼짐) 은 접속하고 no-pack-wait 틱 뒤
   pack-wait: 20
   no-pack-wait: 200
@@ -46,18 +49,27 @@ difficulty:
   # 세계 설정이 없을 때·창을 닫았을 때 쓰는 난이도
   default: normal
   # 난이도마다의 배율. 구르기 (무적·비용)·스태미나·피격 대기열은 어느 난이도에서나 같다
-  #   enemy-damage        적·보스가 주는 피해 배율 (3.7 의 원피해)
-  #   enemy-health        적·보스 체력 배율 (새로 생기는 적부터, 쉬면 모두)
-  #   enemy-poise         적 강인도·보스 자세 최대치 배율
-  #   parry-window-bonus  쳐내기 창에 더하는 틱 (PvP 의 쳐내기에는 더하지 않는다)
-  #   estus-start         처음 에스트 횟수 (최대 횟수 = 이것 + 오다의 병 조각, 다음 휴식부터)
-  #   souls               적을 쓰러뜨려 얻는 소울 배율 (소울 아이템은 곱하지 않는다)
-  #   attack-tokens       한 사람을 동시에 노리는 적 (공정함 규칙 6.3: 둘을 넘지 않는다)
+  #   enemy-damage        적·보스가 주는 피해 배율 (3.7 의 원피해)                                         지금 듣는다
+  #   enemy-health        적 체력 배율 (souls 세계의 적에 최대 HP 수정자 souls:difficulty. 생길 때, 바꿀 때 모두) 지금 듣는다
+  #   enemy-poise         적 강인도·보스 자세 최대치 배율                                              강인도가 생기는 M1·M2 부터
+  #   parry-window-bonus  쳐내기 창에 더하는 틱 (PvP 의 쳐내기에는 더하지 않는다)                       쳐내기가 생기는 M1 부터
+  #   estus-start         처음 에스트 횟수 (최대 횟수 = 이것 + 오다의 병 조각, 다음 휴식부터)              에스트가 생기는 M1 부터
+  #   souls               적을 쓰러뜨려 얻는 소울 배율 (소울 아이템은 곱하지 않는다)                       적이 소울을 주는 M2 부터
+  #   attack-tokens       한 사람을 동시에 노리는 적 (공정함 규칙 6.3: 둘을 넘지 않는다)                   적 두뇌가 생기는 M2 부터
+  # 세계를 정한다 창의 단추 설명 칸에는 지금 듣는 둘 (적 피해·적 HP) 만 보인다
   levels:
     easy:      {enemy-damage: 0.70, enemy-health: 0.80, enemy-poise: 0.80, parry-window-bonus: 2,  estus-start: 5, souls: 1.0, attack-tokens: 1}
     normal:    {enemy-damage: 1.00, enemy-health: 1.00, enemy-poise: 1.00, parry-window-bonus: 0,  estus-start: 4, souls: 1.0, attack-tokens: 2}
     hard:      {enemy-damage: 1.25, enemy-health: 1.20, enemy-poise: 1.15, parry-window-bonus: 0,  estus-start: 4, souls: 1.0, attack-tokens: 2}
     very_hard: {enemy-damage: 1.50, enemy-health: 1.40, enemy-poise: 1.30, parry-window-bonus: -1, estus-start: 3, souls: 1.0, attack-tokens: 2}
+
+pve:
+  # 적을 칠 때 (M1 의 공격 동작 전의 다리, 3.7): souls 근접 무기로 플레이어가 아닌 것을 치면 바닐라 피해 대신
+  # 공격력 × (0.2 + 0.8 × 공격 대기²) × bridge-scale (직검 71 → 6.4, 대검 118 → 10.6, 단도 51 → 4.6. 근력·양손 잡기가 듣는다)
+  bridge-scale: 0.09
+  # 분류마다 약공격 한 주기 (틱, 3.6 의 준비 + 판정 + 회복). 든 무기의 바닐라 공격 속도 = 20 / 주기 (공격 대기가 이만큼에 다 찬다),
+  # 민첩의 공격 속도 몫이 그것을 곱한다 (souls:lvl_dex). 없는 분류 (활·방패·촉매) 는 맨손 4.0
+  swing-ticks: {dagger: 10, straight_sword: 13, curved_sword: 12, greatsword: 22, ultra_greatsword: 30, axe: 18, hammer: 18, spear: 13, halberd: 20}
 
 pvp:
   # 세계 설정이 없을 때의 PvP (켜고 끄는 것은 처음 들어온 사람이 고르고, 관리자는 /souls settings pvp on|off)
@@ -78,8 +90,8 @@ stats:
   grades: {E: 0.25, D: 0.5, C: 0.8, B: 1.1, A: 1.4, S: 1.7}
   # 공격 속도 등급 계수 (무기의 민첩 보정, 3.6): 속도 배율 = 1 + 민첩 속도(민첩) × 계수
   speed-grades: {E: 0.4, D: 0.6, C: 0.8, B: 1.0, A: 1.2, S: 1.4}
-  # 근력·지능의 보정 곡선 (18·40·60 에서 꺾인다)
-  scaling-curve: {1: 0.0, 18: 0.25, 40: 0.65, 60: 0.80, 99: 1.0}
+  # 근력·지능의 보정 곡선 (10·20·30·40·60 에서 꺾인다. 10~40 이 가장 가파르다: 한 점에 약 +2%, 검토 slow-stats-feel-dead)
+  scaling-curve: {1: 0.0, 10: 0.13, 20: 0.35, 30: 0.52, 40: 0.68, 60: 0.80, 99: 1.0}
   # 방어력 = defense-base + defense-per-level × 레벨 + 체력 방어, 마법 저항 = 같은 바탕 + 정신 저항. 받는 피해 = 원피해² / (원피해 + 방어)
   defense-base: 20
   defense-per-level: 0.4
@@ -100,14 +112,14 @@ stats:
     memory-slots: {8: 1, 13: 2, 18: 3, 24: 4, 30: 5}
   endurance:
     # 스태미나 회복 배율 (최대 스태미나는 combat.stamina.curve)
-    regen-scale: {1: 0.91, 10: 1.0, 20: 1.10, 30: 1.18, 40: 1.24, 60: 1.30, 99: 1.35}
+    regen-scale: {1: 0.91, 10: 1.0, 20: 1.15, 30: 1.24, 40: 1.30, 60: 1.36, 99: 1.40}
   strength:
     # 장비 무게 한도 (5.8). 한도가 늘면 같은 장비의 무게 단계가 내려간다
     equip-load: {1: 30, 10: 40, 20: 54, 30: 66, 40: 76, 60: 88, 99: 100}
   dexterity:
-    # 이동 속도 덧셈 몫 (0.04 = +4%. 10 밑은 0)
-    move-speed: {10: 0.0, 20: 0.04, 30: 0.07, 40: 0.09, 60: 0.11, 99: 0.12}
-    # 공격 속도 몫 (민첩 보정 B 기준. 무기 등급 계수를 곱한다)
+    # 이동 속도 덧셈 몫 (0.05 = +5%. 10 밑은 0)
+    move-speed: {10: 0.0, 20: 0.05, 30: 0.08, 40: 0.10, 60: 0.12, 99: 0.13}
+    # 공격 속도 몫 (민첩 보정 B 기준. 무기 등급 계수를 곱한다). 든 무기의 바닐라 공격 속도 (pve.swing-ticks) 에 곱해 공격 대기가 빨리 찬다
     attack-speed: {10: 0.0, 20: 0.10, 30: 0.17, 40: 0.22, 60: 0.26, 99: 0.30}
   intelligence:
     # 상태 이상 저항: 해로운 효과 (구속·독·불붙음 …) 의 길이를 × (1 − 저항) 으로 (확률이 아니다. 10틱 밑이면 걸리지 않는다)

@@ -72,7 +72,7 @@ import java.util.Locale;
  *   load                             [T] LOAD ... (5.8)
  *   pvphit <이름> [피해]              그 사람을 원인이 나인 generic 피해로 때린다 (PvP 길, 스킬 피해처럼 HP 단위). [T] PVPHIT dealt= ...
  *   pvpshoot <이름> <arrow|snowball|potion|cloud|harm>   그 사람에게 쏜 사람이 나인 투사체·구름 (harm: 즉시 피해 잔류 구름). [T] PVPSHOOT kind=
- *   foehp spawn|check|hurt|clear     시험 좀비 (움직이지 않는다) 를 3칸 앞에 / 지금 값 / 체력 절반으로 / 지운다. [T] FOEHP n= hp=체력/최대,… mult=
+ *   foehp spawn|check|hurt|clear     시험 좀비 (움직이지 않는다) 를 2칸 앞에 / 지금 값 / 체력 절반으로 / 지운다. [T] FOEHP n= hp=체력/최대,… mult=
  *   effect <효과> <틱>                 나에게 해로운 효과 (지능의 상태 이상 저항 시험). [T] AILMENT ... 와 EFFECT have=
  *   burn <틱>                         나에게 불붙음 (불붙이는 이벤트를 지나 저항으로 줄인다). [T] BURN fire=
  *   tap                              마지막 짧은 누름 판정 ([T] ROLL_TAP ... / ROLL_TAP_SKIP ...)
@@ -516,7 +516,7 @@ public final class TestCommands {
         Dialog d = Dialog.create(b -> b.empty()
                 .base(DialogBase.builder(Glyphs.dialogTitle(Lang.c(p, "bonfire.test-name")))
                         .canCloseWithEscape(true).pause(false).afterAction(DialogBase.DialogAfterAction.CLOSE)
-                        .body(List.of(DialogBody.plainMessage(Lang.c(p, "bonfire.status", "souls", "0", "level", "1"))))
+                        .body(List.of(DialogBody.plainMessage(Lang.c(p, "bonfire.status", "souls", "0", "level", "1", "next", "320"))))
                         .build())
                 .type(DialogType.multiAction(buttons).exitAction(exit).columns(1).build()));
         p.showDialog(d);
@@ -591,7 +591,7 @@ public final class TestCommands {
         for (org.bukkit.entity.LivingEntity le : p.getWorld().getLivingEntities()) if (le.getScoreboardTags().contains(tag)) foes.add(le);
         switch (what) {
             case "spawn" -> {
-                org.bukkit.Location at = p.getLocation().add(p.getLocation().getDirection().setY(0).normalize().multiply(3));
+                org.bukkit.Location at = p.getLocation().add(p.getLocation().getDirection().setY(0).normalize().multiply(2));
                 foes.add(p.getWorld().spawn(at, org.bukkit.entity.Zombie.class, z -> {
                     z.setAI(false);
                     z.setSilent(true);

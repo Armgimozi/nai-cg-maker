@@ -8,7 +8,9 @@
 //   근력  공격력 (STATS atk: 곤봉 C 한손, 왼손을 비우면 양손 ×1.5), 장비 무게 한도 (LOAD cap) 와 단계 (무기를 잔뜩 들면 무거움 →
 //         근력을 올리면 보통: 걷기 속성 ×0.92 → ×1.00, 스태미나 회복 ×0.85 → ×0.95, 구르기 종류, "짐이 가벼워졌다" 알림).
 //   민첩  이동 속도: 클라이언트가 받은 movement_speed 값 (souls:lvl_dex 수정자 하나). 공격 속도: STATS aspd (그 무기의 민첩 보정 계수 ×
-//         공격 속도 몫). 바닐라 attack_speed 속성은 건드리지 않는다 (5.2: 공격 동작 M1 이 쓴다) 는 것도 본다.
+//         공격 속도 몫) 가 서버의 attack_speed 속성에 걸린다: 든 무기 분류의 기본 (20 / 한 주기 틱, souls:weapon_speed) × aspd
+//         (souls:lvl_dex). 곤봉 (망치, 18틱) 은 1.111, 단도 (10틱) 는 2.0.
+//   근력  적을 치는 다리 (3.7): 시험 좀비를 곤봉으로 치면 PVE_HIT dealt = 공격력 × (0.2 + 0.8 × 대기²) × 0.09, 근력 40 이 10 보다 세다.
 //   지능  상태 이상 저항: 해로운 효과 길이 (독 200틱 → × (1 − 저항), 10틱 밑이면 걸리지 않는다), 불붙음, 실제 투척 물약 (POTION_SPLASH).
 //         술 세기: 쇠단지 (지능 C, 필요 지능 12) 를 들면 STATS spell (술은 M5. 지금은 이 배율이 API 값이다).
 // 끝에 모두 10 으로 되돌리고 속성이 처음 값인지 (수정자가 쌓이지 않았는지) 본다.
@@ -24,10 +26,10 @@ const T = {
   magDef: [12, 26, 36, 44, 52, 58],
   slots: [1, 3, 5, 5, 5, 5],
   stamina: [100, 130, 150, 165, 180, 200],
-  regen: [1.0, 1.10, 1.18, 1.24, 1.30, 1.35],
+  regen: [1.0, 1.15, 1.24, 1.30, 1.36, 1.40],
   cap: [40, 54, 66, 76, 88, 100],
-  scaling: [0.13235, 0.28636, 0.46818, 0.65, 0.80, 1.0],
-  move: [0, 0.04, 0.07, 0.09, 0.11, 0.12],
+  scaling: [0.13, 0.35, 0.52, 0.68, 0.80, 1.0],
+  move: [0, 0.05, 0.08, 0.10, 0.12, 0.13],
   aspd: [0, 0.10, 0.17, 0.22, 0.26, 0.30],
   resist: [0, 0.10, 0.18, 0.24, 0.30, 0.35]
 }
@@ -174,11 +176,41 @@ L.run('stats_fx', async (sc) => {
       Math.abs(L.num(st.kv.atk) - ar) <= 0.51 && st.kv.load.split('/')[1] === T.cap[i].toFixed(1), st.line || '')
   }
   await stat('str', 10)
+  // 적을 치는 다리 (3.7, 검토 stat-values-without-effect): 곤봉 한 손, 시험 좀비 (움직이지 않는다) 를 대기가 다 찬 뒤 친다
+  {
+    await b.cmd('/soulstest foehp clear', 'FOEHP ')
+    await b.cmd('/soulstest foehp spawn', 'FOEHP ', 1500)
+    const hits = []
+    for (const sv of [10, 40]) {
+      await stat('str', sv)
+      await b.cmd('/soulstest foehp clear', 'FOEHP ')
+      await b.cmd('/soulstest foehp spawn', 'FOEHP ', 1500)
+      await L.sleep(400)
+      const z = Object.values(b.bot.entities).filter((e) => e.name === 'zombie').sort((x, y) => x.position.distanceTo(b.bot.entity.position) - y.position.distanceTo(b.bot.entity.position))[0]
+      const from = b.sys.length
+      if (z) {
+        await b.bot.lookAt(z.position.offset(0, 1.4, 0), true)
+        await L.sleep(1300) // 곤봉 (망치) 한 주기 18틱 = 0.9초: 대기가 다 찬다
+        b.bot.attack(z)
+      }
+      const h = await b.waitT('PVE_HIT ', 2000, from)
+      const ar = 74 * (1 + 0.8 * T.scaling[PTS.indexOf(sv)])
+      const cd = h ? L.num(h.kv.cd) : NaN
+      const want = ar * (0.2 + 0.8 * cd * cd) * 0.09
+      sc.check(`strength ${sv}: hitting a foe with the club deals attack ${ar.toFixed(1)} x (0.2 + 0.8 cd^2) x 0.09 = ${want.toFixed(2)} (PVE_HIT)`,
+        h && h.kv.weapon === 'gaoler_club' && Math.abs(L.num(h.kv.ar) - ar) <= 0.51 && Math.abs(L.num(h.kv.dealt) - want) < 0.05 && cd > 0.9, h ? h.line : (z ? '줄 없음' : '좀비 없음'))
+      if (h) hits.push(L.num(h.kv.dealt) / Math.max(0.01, 0.2 + 0.8 * cd * cd))
+    }
+    sc.check('strength 40 hits foes harder than strength 10 (x1.40, attack rating)', hits.length === 2 && Math.abs(hits[1] / hits[0] - (1 + 0.8 * 0.68) / (1 + 0.8 * 0.13)) < 0.02,
+      hits.map((x) => x.toFixed(2)).join(' -> '))
+    await b.cmd('/soulstest foehp clear', 'FOEHP ')
+    await stat('str', 10)
+  }
   // 양손 (왼손을 비운다): 근력 ×1.5 = 15
   await b.cmd('/item replace entity @s weapon.offhand with air', null, 1200)
   await L.sleep(400)
   const two = await stats()
-  const ar2 = 74 * (1 + 0.8 * (14 / 17 * 0.25))
+  const ar2 = 74 * (1 + 0.8 * (0.13 + 5 * 0.022))
   sc.check(`two-handed (empty off hand): strength 10 counts as 15, attack ${ar2.toFixed(1)}`, two.kv && two.kv.twohand === 'true' && Math.abs(L.num(two.kv.atk) - ar2) <= 0.51, two.line || '')
   // 무게: 단축 슬롯을 무기로 채운다 (39.5 + 곤봉 칸)
   await b.cmd('/soulstest give all', 'GIVE')
@@ -197,8 +229,8 @@ L.run('stats_fx', async (sc) => {
   const mvM = await waitAttr(b, 'movement_speed', (x) => Math.abs(x - 0.1) < 1e-4)
   sc.check('medium: walking speed back to 0.100 (no souls:load modifier)', mvM && Math.abs(mvM.value - 0.1) < 1e-4 && mods(mvM, 'load').length === 0,
     mvM ? `${mvM.value} ${JSON.stringify(mvM.modifiers)}` : '-')
-  const lt = b.p.subtitles.slice(sub0).filter((m) => L.translateKeys(m.raw).includes('souls.burden.lighter'))
-  sc.check('tier change is announced once (subtitle souls.burden.lighter)', lt.length === 1, b.p.subtitles.slice(sub0).map((m) => L.translateKeys(m.raw).join('+')).join(' | ') || '부제목 없음')
+  const lt = b.p.subtitles.slice(sub0).filter((m) => L.translateKeys(m.raw).includes('souls.burden.medium'))
+  sc.check('tier change is announced once, saying what changed (subtitle souls.burden.medium)', lt.length === 1, b.p.subtitles.slice(sub0).map((m) => L.translateKeys(m.raw).join('+')).join(' | ') || '부제목 없음')
   const rM = await regenRate()
   sc.check('medium: measured stamina regen x0.95 (2.090 per tick)', Math.abs(rM - 2.2 * 0.95) < 0.01, `잰 값 ${rM.toFixed(4)}/틱`)
   await b.cmd('/clear @s', null, 1500)
@@ -220,13 +252,19 @@ L.run('stats_fx', async (sc) => {
     const aspd = 1 + T.aspd[i] * 0.4
     sc.check(`dexterity ${v}: attack speed x${aspd.toFixed(3)} with the club (dex E 0.4)`, st.kv && Math.abs(L.num(st.kv.aspd) - aspd) < 1e-3 &&
       Math.abs(L.num(st.kv.move) - T.move[i]) < 1e-6, st.line || '')
+    const sa = await srvAttr(b)
+    const want2 = 20 / 18 * aspd
+    sc.check(`dexterity ${v}: server attack_speed ${want2.toFixed(3)} (club base 20/18 x ${aspd.toFixed(3)})`, sa && Math.abs(sa.attack_speed - want2) < 1e-3 &&
+      count(sa.mods.attack_speed, 'souls:weapon_speed') === 1 && count(sa.mods.attack_speed, 'souls:lvl_dex') === (T.aspd[i] ? 1 : 0), sa ? sa.line : '-')
   }
   await b.cmd('/soulstest give alley_dagger main', 'GIVE')
   await L.sleep(300)
   const dg = await stats()
   sc.check('dexterity 99: attack speed x1.36 with the dagger (dex A 1.2)', dg.kv && dg.kv.weapon === 'alley_dagger' && Math.abs(L.num(dg.kv.aspd) - 1.36) < 1e-3, dg.line || '')
+  await L.sleep(400)
   const saD = await srvAttr(b)
-  sc.check('vanilla attack_speed attribute untouched by dexterity (5.2: attack moves use the multiplier, M1)', saD && !saD.mods.attack_speed.some((k) => /lvl_dex/.test(k)),
+  sc.check('dexterity 99 with the dagger: attack_speed 2.0 x 1.36 = 2.72 (souls:weapon_speed + souls:lvl_dex)', saD && Math.abs(saD.attack_speed - 2.72) < 1e-3 &&
+    count(saD.mods.attack_speed, 'souls:weapon_speed') === 1 && count(saD.mods.attack_speed, 'souls:lvl_dex') === 1,
     saD ? `server attack_speed ${saD.attack_speed} mods ${saD.mods.attack_speed.join(',') || '-'}; client ${asBase ? asBase.value : '기본값 (받지 않음)'}` : '-')
   await b.cmd('/soulstest give gaoler_club main', 'GIVE')
   await stat('dex', 10)
@@ -281,6 +319,8 @@ L.run('stats_fx', async (sc) => {
   await L.sleep(500)
   const sa = await srvAttr(b)
   const mv = attr(b, 'movement_speed')
+  sc.check('all back to 10 with the club: attack_speed 1.111 with one souls:weapon_speed and no souls:lvl_dex', sa && Math.abs(sa.attack_speed - 20 / 18) < 1e-3 &&
+    count(sa.mods.attack_speed, 'souls:weapon_speed') === 1 && count(sa.mods.attack_speed, 'souls:lvl_dex') === 0, sa ? sa.line : '-')
   sc.check('all back to 10: server max_health 400 with one souls:lvl_vig, movement 0.100 with no souls modifier (server and client)', sa &&
     Math.abs(sa.max_health - 400) < 0.01 && sa.mods.max_health.join(',') === 'souls:lvl_vig' && Math.abs(sa.movement_speed - 0.1) < 1e-5 &&
     !sa.mods.movement_speed.some((k) => k.startsWith('souls:')) && mv && Math.abs(mv.value - 0.1) < 1e-5 && !mods(mv, 'souls').length,

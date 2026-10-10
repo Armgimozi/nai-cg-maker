@@ -25,7 +25,8 @@ import java.util.logging.Logger;
 /**
  * 출신 (5.1, 5.10, content/origins.yml). 출신마다 시작 능력치 여섯과 시작 아이템. 레벨은 적지 않고 합 − 59 로 셈한다.
  * 시작 아이템은 한 번만: 프로필의 장부 (kit.given) 에 "종류:id" 를 적고, 장부에 없고 지금 만들 수 있는 항목만 준다. 아직 못 만드는 것
- * (방어구 M3, 에스트 M1, 술 M5, 화살) 은 건너뛰고 장부에도 적지 않아, 그 체계가 생긴 뒤 처음 접속할 때 한 번 준다.
+ * (방어구 M3, 에스트 M1, 술법 M5) 은 건너뛰고 장부에도 적지 않아, 그 체계가 생긴 뒤 처음 접속할 때 한 번 준다. 궁수의 화살
+ * (item: arrows) 은 바닐라 화살 ARROWS 개 (souls 표시 souls:item=arrows 가 붙어 출신 지우기·다시 고르기가 거둔다, 바닐라 활이 쏜다).
  */
 public final class Origins {
     /** 시작 아이템 한 줄. kind: weapon | item | armor | spell. to: main | off | hotbar:N | null (가방부터). */
@@ -45,6 +46,10 @@ public final class Origins {
     /** 지금 판 (M1 전) 에 동작이 있는 무기 분류 (14절: M1 의 무기 분류와 방패). 시험이 출신의 주무기가 여기 드는지 본다 */
     public static final Set<String> M1_CLASSES = Set.of("straight_sword", "greatsword", "dagger", "spear", "axe", "hammer", "bow",
             "small_shield", "shield", "parrying_dagger", "catalyst_kiln");
+
+    /** 궁수의 시작 화살 수 */
+    public static final int ARROWS = 32;
+    public static final String ARROWS_ID = "arrows";
 
     private final Map<String, Origin> origins = new LinkedHashMap<>();
     private final Logger log;
@@ -116,15 +121,16 @@ public final class Origins {
     public static boolean creatable(Kit k, Weapons weapons) {
         return switch (k.kind()) {
             case "weapon" -> weapons.get(k.id()) != null;
-            case "item" -> MasterKey.ID.equals(k.id());
+            case "item" -> MasterKey.ID.equals(k.id()) || ARROWS_ID.equals(k.id());
             default -> false;
         };
     }
 
-    static ItemStack make(Kit k, Weapons weapons) {
+    /** 그 줄의 아이템 (만들 수 없으면 null). */
+    public static ItemStack make(Kit k, Weapons weapons) {
         return switch (k.kind()) {
-            case "weapon" -> ItemFactory.weapon(weapons.get(k.id()));
-            case "item" -> MasterKey.ID.equals(k.id()) ? MasterKey.make() : null;
+            case "weapon" -> weapons.get(k.id()) == null ? null : ItemFactory.weapon(weapons.get(k.id()));
+            case "item" -> MasterKey.ID.equals(k.id()) ? MasterKey.make() : ARROWS_ID.equals(k.id()) ? ItemFactory.arrows(ARROWS) : null;
             default -> null;
         };
     }

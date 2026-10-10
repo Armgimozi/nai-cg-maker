@@ -116,7 +116,7 @@ L.run('levelup', async (sc) => {
 
   // ── 민첩·지능·기력 ──
   const dex = await b.cmd('/soulstest stat dex 40', 'ATTR ')
-  sc.checkCmd('dex 40 -> movement speed +9% (attribute modifier souls:lvl_dex)', dex, (r) => Math.abs(L.num(r.kv.move) - 0.09) < 1e-6)
+  sc.checkCmd('dex 40 -> movement speed +10% (attribute modifier souls:lvl_dex)', dex, (r) => Math.abs(L.num(r.kv.move) - 0.10) < 1e-6)
   await b.cmd('/soulstest stat int 40', 'ATTR ')
   const po = await b.cmd('/soulstest effect poison 200', 'AILMENT ')
   sc.checkCmd('int 40 -> poison 200 ticks shortened by 24% (152)', po, (r) => r.kv.from === '200' && r.kv.to === '152')

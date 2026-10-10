@@ -223,6 +223,9 @@ public final class StartFlow implements Listener {
             pr.setSettingsSeen(s.rev());
         }
         Origins.Origin o = plugin.origins().get(pr.origin());
+        // 예전 판의 활 (부싯돌 껍데기) 을 바닐라 활로 (궁수가 쏠 수 있게)
+        int bows = kr.souls.item.ItemFactory.upgradeBows(p.getInventory(), plugin.weapons());
+        if (bows > 0) plugin.test(p, "BOW_UPGRADE n=" + bows);
         if (o != null) {
             List<String> late = Origins.grant(p, o, pr, plugin.weapons());
             if (!late.isEmpty()) {

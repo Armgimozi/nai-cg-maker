@@ -6,11 +6,16 @@
 //   3. 바닐라 난이도는 어느 판에서나 normal 이다 (3.9: hard 면 바닐라가 적 피해를 1.5 배 한다). HIT 줄의 diff, INFO 의 difficulty,
 //      봇이 받은 difficulty 패킷.
 //   4. 확정된 세계에서 바꾸면 접속한 사람에게 "세계 설정이 바뀌었다" (start.changed) 채팅과 부제목이 간다.
+//   5. 적 체력 (enemy-health ×0.8 / 1.0 / 1.2 / 1.4, 검토 difficulty-promises-unbuilt): 새로 생긴 시험 좀비의 최대 HP 가 20 × 배율이고
+//      가득 차 있다. 이미 있던 좀비 (체력 절반) 는 난이도를 바꾸면 새 최대치로 바뀌고 체력 비율은 그대로다.
 // 끝에 보통·PvP 끔으로 되돌린다.
 'use strict'
 const L = require('./lib')
 
 const MULT = { easy: 0.70, normal: 1.00, hard: 1.25, very_hard: 1.50 }
+const HPM = { easy: 0.80, normal: 1.00, hard: 1.20, very_hard: 1.40 }
+/** FOEHP 줄의 hp=체력/최대,… → [[체력, 최대], …] */
+const foes = (r) => (r && r.kv && r.kv.hp && r.kv.hp !== '-' ? r.kv.hp.split(',').map((x) => x.split('/').map(Number)) : [])
 
 L.run('difficulty', async (sc) => {
   const b = await L.connect(sc)
@@ -72,7 +77,22 @@ async function body (sc, b) {
     sc.check(`${d}: magic hit 100 -> raw ${want.toFixed(0)}, reduced by magic resistance`, md && md.kv.kind === 'magic' && Math.abs(L.num(md.kv.raw) - want) < 0.01 &&
       Math.abs(L.num(md.kv.def) - L.num(st.kv.mres)) < 0.05, md ? md.line : 'DEF 줄 없음 ' + (mh.line || ''))
     rows.push({ d, dealt: def ? L.num(def.kv.dealt) : NaN, txt: `${d} ×${MULT[d]}: raw ${raw.toFixed(1)} dealt ${def ? def.kv.dealt : '?'} / magic ${md ? md.kv.dealt : '?'}` })
+    // 적 체력: 새로 생긴 적은 20 × 배율로 가득
+    await b.cmd('/soulstest foehp clear', 'FOEHP ')
+    const fs = await b.cmd('/soulstest foehp spawn', 'FOEHP ')
+    const f1 = foes(fs)[0]
+    const fmax = 20 * HPM[d]
+    sc.check(`${d}: a new foe has max HP 20 x ${HPM[d]} = ${fmax} and is full (enemy-health)`, f1 && Math.abs(f1[1] - fmax) < 0.01 && Math.abs(f1[0] - fmax) < 0.01, fs.line || '')
   }
+  // 이미 있는 적 (체력 절반) 은 난이도를 바꾸면 새 최대치로, 비율은 그대로 (very_hard 28 의 절반 14 → normal 20 의 절반 10)
+  const fh = await b.cmd('/soulstest foehp hurt', 'FOEHP ')
+  const before = foes(fh)[0]
+  await b.cmd('/soulstest settings normal off', (m) => m.plain.startsWith('[T] SETTINGS ') && L.kvOf(m.plain).difficulty === 'normal', 4000)
+  const fc = await b.cmd('/soulstest foehp check', 'FOEHP ')
+  const after = foes(fc)[0]
+  sc.check('changing difficulty rescales live foes, keeping their health ratio (14/28 -> 10/20)', before && after && Math.abs(after[1] - 20) < 0.01 &&
+    Math.abs(after[0] / after[1] - before[0] / before[1]) < 0.01, `${fh.line || ''} -> ${fc.line || ''}`)
+  await b.cmd('/soulstest foehp clear', 'FOEHP ')
   sc.note('적 한 대 100: ' + rows.map((r) => r.txt).join(' · '))
   const rising = rows.length === 4 && rows.every((r, i) => i === 0 || r.dealt > rows[i - 1].dealt)
   sc.check('damage taken rises with difficulty (easy < normal < hard < very hard)', rising, rows.map((r) => r.d + '=' + r.dealt).join(' '))

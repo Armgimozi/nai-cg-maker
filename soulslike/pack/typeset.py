@@ -13,6 +13,8 @@ gen_pack.py 가 막 만든 팩 폴더로, tools/langcheck.py 가 검사하는 �
   제목 밑 금실 DIVIDED 의 열쇠 (게임 메뉴 제목, 화톳불 이름) 뒤에 금실 그림 글자를 붙인다: 제목 폭 W 를 재서 펜을 제목 가운데 -
               금실 폭/2 로 되돌려 금실을 그리고 다시 W 로 (글 전체의 진행 폭은 W 그대로라 바닐라가 제목을 가운데에 놓는다).
               설정 화면 제목에는 붙이지 않는다 (고딕 촛불 초안 그대로, 2026-10-08 사용자 결정).
+  갈래 제목   TITLE_VARIANTS: 자리 (<name>) 가 든 창 제목 (출신 확인 창 origin.confirm-title) 은 팩이 잴 수 없으므로, 갈래마다
+              (출신 id) 그 이름 글 (origin.<id>.name) 로 souls.<열쇠>.<id> 를 짜고 금실을 붙인다 (플러그인 Lang.titled).
   수치 이름   weapon.stat.* (무기 설명 칸의 수치 이름): 이름 뒤를 빈칸 글자로 채워 그 언어의 이름 열 폭 (가장 긴 이름 +
               LABEL_GAP) 까지. 플러그인 (item/StatTable) 이 그 뒤에 값을 값 열 (VALUE_COL) 끝에 오른쪽 맞춤으로 붙인다.
   실선        weapon.rule.<무기 id> (무기 설명 칸의 수치와 설명 사이 실선, 팩의 언어 파일에만 있는 열쇠. 플러그인은
@@ -66,6 +68,8 @@ TITLE_KEYS_EN = ("vanilla.options.*", "vanilla.controls.*")
 # 2026-10-08 사용자 결정 "초안 모양이 더 낫다" 로 뺐다. 720p 에서 첫 밀대 줄에 붙었다)
 DIVIDED = (("vanilla.menu.game", DEFAULT_FONT), ("bonfire.test-name", TITLE_FONT), ("bonfire.*.name", TITLE_FONT),
            ("start.title", TITLE_FONT), ("origin.title", TITLE_FONT), ("levelup.title", TITLE_FONT), ("stats.title", TITLE_FONT))
+# 갈래 제목 (자리가 든 창 제목, 검토 confirm-title-unstyled): (열쇠, 갈래 글의 꼴 origin.*.name 의 * 가 갈래 이름). 제목 글꼴 + 금실
+TITLE_VARIANTS = (("origin.confirm-title", "origin.*.name"),)
 # 무기 설명 칸의 수치 표 (GUI 픽셀): 이름 열 = 가장 긴 이름 + LABEL_GAP, 값 열 VALUE_COL (값은 오른쪽 맞춤), 두 칸 사이 COL_GAP
 LABEL_KEYS = "weapon.stat.*"
 LABEL_GAP = 6
@@ -80,7 +84,8 @@ CELLS = (
     (("derived.*",), "cell", "left", ("gap", 6)),            # 값 표의 이름 (능력치 창·레벨 올리기 창)
     (("origin.*.name", "origin.head-name"), "cell", "left", ("gap", 6)),   # 출신 창의 이름 칸 (머리줄 origin.head-name 도 같은 무리)
     (("origin.*.kit", "origin.head-kit"), "cell", "left", ("gap", 0)),     # 출신 창의 시작 아이템 칸 (머리줄 origin.head-kit 도)
-    (("stat.*.short", "origin.head-level"), "rcell", "right", ("fixed", 22)),   # 출신 창 머리줄의 능력치·레벨 (ui/Columns.STAT_COL)
+    (("stat.*.short", "origin.head-level"), "rcell", "right", ("fixed", 24)),   # 출신 창 머리줄의 능력치·레벨 (ui/Columns.STAT_COL)
+    (("stat.*.tag",), "cell", "left", ("gap", 4)),            # 값 표 줄 맨 앞의 능력치 한 글자 (체·정·기 …, VIG MND …)
 )
 
 LEGACY = re.compile("§.")
@@ -350,6 +355,17 @@ class Typeset:
                     font = next((f for p, f in DIVIDED if fnmatch.fnmatchcase(k[len("souls."):], p)), None)
                     if font:
                         data[k] = with_divider(data[k], self.fonts.width(font, data[k]), self._div(div_adv, font))
+                for key, pattern in TITLE_VARIANTS:
+                    if "souls." + key not in data:
+                        continue
+                    head, _, tail = pattern.partition("*")
+                    for k in sorted(data):
+                        name = k[len("souls."):]
+                        if not k.startswith("souls.") or not fnmatch.fnmatchcase(name, pattern) or name.count(".") != pattern.count("."):
+                            continue
+                        branch = name[len(head):len(name) - len(tail)]
+                        v = data[k]
+                        data[f"souls.{key}.{branch}"] = with_divider(v, self.fonts.width(TITLE_FONT, v), self._div(div_adv, TITLE_FONT))
                 self.cells(data, rel)
         return files
 

@@ -18,6 +18,8 @@ L.run('pvp', async (sc) => {
   await L.sleep(800)
   const s0 = await a.cmd('/soulstest settings show', 'SETTINGS ')
   sc.check('world settings: pvp off (start.auto)', s0.kv && s0.kv.pvp === 'false' && s0.kv.gamerule_pvp === 'false', s0.line || '')
+  const ib = await b.cmd('/soulstest info', 'INFO ')
+  const maxhpB = ib.kv ? L.num(ib.kv.maxhp) : 400
 
   const target = () => Object.values(a.bot.entities).find((e) => e.type === 'player' && e.username === b.name)
   const blocks = (from) => b.tLines('PVP_BLOCK', from)
@@ -68,20 +70,43 @@ L.run('pvp', async (sc) => {
   from = b.sys.length
   const ph2 = await a.cmd(`/soulstest pvphit ${b.name} 40`, 'PVPHIT ')
   const def = b.tLines('DEF ', from)[0]
-  sc.checkCmd('on: plugin damage lands, reduced by defense', ph2, (r) => L.num(r.kv.dealt) > 0 && L.num(r.kv.dealt) < 40 && def && def.kv.from === 'player', (ph2.line || '') + ' | ' + (def ? def.line : 'DEF 없음'))
+  sc.checkCmd('on: plugin (skill) damage lands in HP units, reduced by defense (DEF from=player_skill)', ph2, (r) => L.num(r.kv.dealt) > 0 && L.num(r.kv.dealt) < 40 && def && def.kv.from === 'player_skill' && Math.abs(L.num(def.kv.raw) - 40) < 0.01, (ph2.line || '') + ' | ' + (def ? def.line : 'DEF 없음'))
   await b.cmd('/soulstest heal', 'HEAL')
+  // /stats 는 어디서나 열리지만 숨을 곳이 아니다 (검토 stats-dialog-pvp-immunity): 창이 열려 있어도 맞는다. 휴식 창은 숨을 곳이다
+  await b.cmd('/stats', 'STATS ', 2000)
+  from = b.sys.length
+  const ps = await a.cmd(`/soulstest pvphit ${b.name} 40`, 'PVPHIT ')
+  sc.checkCmd('on: a player with /stats open can still be hit (stats dialog is no shelter)', ps, (r) => L.num(r.kv.dealt) > 0 && r.kv.why === 'null')
+  await b.cmd('/soulstest press stats exit', null, 600)
+  await b.cmd('/soulstest heal', 'HEAL')
+  await b.cmd('/soulstest rest', 'REST ', 2000)
+  from = b.sys.length
+  const pr = await a.cmd(`/soulstest pvphit ${b.name} 40`, 'PVPHIT ')
+  sc.checkCmd('on: a resting player (rest menu open) is not hit (PVP_BLOCK why=dialog)', pr, (r) => L.num(r.kv.dealt) === 0 && r.kv.why === 'dialog')
+  await b.cmd('/soulstest press rest exit', null, 600)
+  await b.cmd('/soulstest heal', 'HEAL')
+  // 해치는 잔류 구름: 바닐라 단위 (즉시 피해 I 의 구름 몫 3) 라 최대 HP / 20 배율을 받는다 (검토 pvp-indirect-unscaled)
+  from = b.sys.length
+  await a.cmd(`/soulstest pvpshoot ${b.name} harm`, 'PVPSHOOT ')
+  const hc = await b.waitSys((m) => m.plain.startsWith('[T] DEF ') && L.kvOf(m.plain).from === 'player_indirect', 3000, from)
+  const hk = hc ? L.kvOf(hc.plain) : null
+  sc.check('on: a harming cloud is scaled like other vanilla damage (DEF from=player_indirect, raw = 3 x maxHP/20)', hk && Math.abs(L.num(hk.raw) - 3 * maxhpB / 20) < 0.5,
+    hc ? hc.plain : '줄 없음 ' + b.tLines('DEF ', from).map((x) => x.line).join(' | '))
+  await L.sleep(1600)
+  await b.cmd('/soulstest heal', 'HEAL')
+  await L.sleep(300)
   await L.sleep(300)
   from = b.sys.length
   const e2 = target()
   if (e2) {
     await a.bot.lookAt(e2.position.offset(0, 1.5, 0), true)
-    await L.sleep(800) // 공격 대기가 다 찬 뒤 (회복 1)
+    await L.sleep(1300) // 공격 대기가 다 찬 뒤 (회복 1: 곤봉은 망치 분류, 한 주기 18틱 = 0.9초)
     a.bot.attack(e2)
     await L.sleep(600)
   }
   const mel = b.tLines('DEF ', from).find((x) => /^player_(melee|vanilla)$/.test(x.kv.from))
   sc.check('on: melee with the club uses its attack rating (DEF from=player_melee)', mel && mel.kv.from === 'player_melee' && L.num(mel.kv.raw) > 20, mel ? mel.line : b.tLines('', from).map((x) => x.line).slice(0, 4).join(' | ') || '줄 없음')
-  // 근력이 PvP 근접 피해를 올린다 (공격력 = 74 × (1 + 0.8 × 곡선(근력)): 근력 10 → 81.8, 40 → 112.5, × 1.375)
+  // 근력이 PvP 근접 피해를 올린다 (공격력 = 74 × (1 + 0.8 × 곡선(근력)): 근력 10 → 81.7, 40 → 114.3, × 1.399)
   if (mel) {
     await a.cmd('/soulstest stat str 40', 'STAT ')
     await b.cmd('/soulstest heal', 'HEAL')
@@ -89,13 +114,13 @@ L.run('pvp', async (sc) => {
     const e3 = target()
     if (e3) {
       await a.bot.lookAt(e3.position.offset(0, 1.5, 0), true)
-      await L.sleep(800)
+      await L.sleep(1300)
       a.bot.attack(e3)
       await L.sleep(600)
     }
     const mel40 = b.tLines('DEF ', from).find((x) => x.kv.from === 'player_melee')
     const ratio = mel40 ? L.num(mel40.kv.raw) / L.num(mel.kv.raw) : NaN
-    sc.check('on: strength 40 hits harder than strength 10 (raw x1.375 = attack rating 112.5 / 81.8)', Math.abs(ratio - 112.48 / 81.84) < 0.04,
+    sc.check('on: strength 40 hits harder than strength 10 (raw x1.399 = attack rating 114.3 / 81.7)', Math.abs(ratio - 114.256 / 81.696) < 0.04,
       `${mel.kv.raw} → ${mel40 ? mel40.kv.raw : '?'} (×${ratio.toFixed(3)})`)
     await a.cmd('/soulstest stat str 10', 'STAT ')
   }

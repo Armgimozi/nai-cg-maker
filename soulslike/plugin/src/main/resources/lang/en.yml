@@ -21,7 +21,7 @@ bonfire:
   rest: "<#d1c3a0>Rest"
   warp: "<#d1c3a0>Pass Between Fires"
   leave: "<#d1c3a0>Rise"
-  status: "<#b3a37f>Souls <souls> · Level <level>"
+  status: "<#b3a37f>Souls <souls> · Level <level> · Next <next>"
   levelup: "<#d1c3a0>Level Up"
   stats: "<#d1c3a0>Status"
   settings: "<#d1c3a0>Set the Terms"
@@ -226,8 +226,10 @@ origin:
   attack: "<#b3a37f><weapon>: Attack <attack>"
   attack-2h: "<#b3a37f><weapon>: Attack <attack> (two hands)"
   no-rites: "<#8f8164>No rite learned yet"
-  no-bow: "<#8f8164>The bow cannot be loosed yet"
+  confirm-title: "<#d1c3a0><font:souls:title><name>"
   none: "<#858079>No past chosen yet"
+  none-hint: "<#858079>To choose · tap <bind>"
+  none-hint-f: "<#858079>To choose · press <bind>"
   knight:
     name: "<#d1c3a0>Knight"
     desc: "<#8f8164>A soldier of sword and shield."
@@ -236,13 +238,13 @@ origin:
   warrior:
     name: "<#d1c3a0>Warrior"
     desc: "<#8f8164>Swings a greatsword with both hands."
-    style: "<#b3a37f>Cleaves with both hands. No shield."
+    style: "<#b3a37f>Heavy blows. No shield."
     kit: "<#b3a37f>Greatsword"
   thief:
     name: "<#d1c3a0>Thief"
-    desc: "<#8f8164>Quick of hand, with a master key."
-    style: "<#b3a37f>Swift, and quick to parry."
-    kit: "<#b3a37f>Dagger · Parry · Key"
+    desc: "<#8f8164>Light of hand, with a master key."
+    style: "<#b3a37f>Swift; guards with the off-hand dagger."
+    kit: "<#b3a37f>Daggers · Master Key"
   archer:
     name: "<#d1c3a0>Archer"
     desc: "<#8f8164>Strikes first, from afar, with a bow."
@@ -250,45 +252,47 @@ origin:
     kit: "<#b3a37f>Bow · Hatchet"
   sorcerer:
     name: "<#d1c3a0>Sorcerer"
-    desc: "<#8f8164>Learned to work rites through a catalyst."
+    desc: "<#8f8164>Rites through a catalyst; a dagger for now."
     style: "<#b3a37f>Rites strike hardest. Frail."
-    kit: "<#b3a37f>Pot · Dagger · Rites later"
+    kit: "<#b3a37f>Iron Pot · Dagger"
   deprived:
     name: "<#d1c3a0>Deprived"
     desc: "<#8f8164>Nothing owned, nothing to lean on."
-    style: "<#b3a37f>May become anything. Early levels come cheap."
+    style: "<#b3a37f>All tens. Grows any way."
     kit: "<#b3a37f>Club · Plank Shield"
 
 start:
   title: "<#d1c3a0><font:souls:title>Terms of This World"
   body: "<#b3a37f>Set once for this world. An admin may alter it."
   pvp: "<#d1c3a0>PvP"
-  pvp-hit: "<#8f8164>If set, the living may strike one another."
-  pvp-sweep: "<#8f8164>Sweeps and rites strike allies too."
+  pvp-hit: "<#8f8164>With PvP on, the living may strike one another."
+  pvp-sweep: "<#8f8164>A wide swing will cut a friend too."
   choice: "<#d1c3a0><name> — <desc>"
-  choice-default: "<#d1c3a0><name> — <desc> (first time)"
+  choice-default: "<#d1c3a0><name> — <desc> (first journey)"
   later: "<#d1c3a0>Decide Later"
+  later-tip: "<#8f8164>For now: <difficulty> · <pvp>"
   notice: "<#b3a37f>This world: <difficulty> · <pvp>"
   changed: "<#b3a37f>The terms have changed: <difficulty> · <pvp>"
   provisional: "<#858079>The terms are not yet fixed"
   provisional-chat: "<#858079>Asked again on return, or at a bonfire."
   waiting: "<#858079>The terms are being set"
   op-only: "<#858079>Only an admin may set the terms"
+  already-set: "<#858079>The terms are already set"
 
 difficulty:
   easy:
     name: "<#d1c3a0>Easy"
-    desc: "<#8f8164>Weaker foes, more Estus"
+    desc: "<#8f8164>Weaker foes"
   normal:
     name: "<#d1c3a0>Normal"
-    desc: "<#8f8164>As the game was tuned"
+    desc: "<#8f8164>As the game was meant"
   hard:
     name: "<#d1c3a0>Hard"
     desc: "<#8f8164>Stronger, sturdier foes"
   very_hard:
     name: "<#d1c3a0>Very Hard"
-    desc: "<#8f8164>Far stronger foes, less Estus"
-  summary: "<#b3a37f>Foe harm ×<damage> · Foe HP ×<health>\nParry <parry> ticks · Estus <estus>"
+    desc: "<#8f8164>Far stronger, tougher foes"
+  summary: "<#b3a37f>Damage taken ×<damage> · Foe HP ×<health>"
 
 pvp:
   "on": "<#b3a37f>PvP on"
@@ -298,21 +302,27 @@ stat:
   vig:
     name: "<#d1c3a0>Vigor"
     short: "<#858079>Vig"
+    tag: "<#9e7c44>VIG"
   mnd:
     name: "<#d1c3a0>Mind"
     short: "<#858079>Mnd"
+    tag: "<#9e7c44>MND"
   end:
     name: "<#d1c3a0>Endurance"
     short: "<#858079>End"
+    tag: "<#9e7c44>END"
   str:
     name: "<#d1c3a0>Strength"
     short: "<#858079>Str"
+    tag: "<#9e7c44>STR"
   dex:
     name: "<#d1c3a0>Dexterity"
     short: "<#858079>Dex"
+    tag: "<#9e7c44>DEX"
   int:
     name: "<#d1c3a0>Intelligence"
     short: "<#858079>Int"
+    tag: "<#9e7c44>INT"
 
 derived:
   max-hp: "<#858079>Max HP"
@@ -320,7 +330,7 @@ derived:
   max-mana: "<#858079>Max Mana"
   magic-res: "<#858079>Magic Res."
   max-stamina: "<#858079>Max Stamina"
-  regen: "<#858079>Recovery"
+  regen: "<#858079>Stamina Regen"
   attack: "<#858079>Attack"
   attack-2h: "<#858079>Attack (2H)"
   load-cap: "<#858079>Load Cap"
@@ -336,19 +346,26 @@ load:
   over: "<#b3a37f>Overburdened"
 
 burden:
-  heavier: "<#858079>Burden grows · <tier>"
-  lighter: "<#858079>Burden eases · <tier>"
+  light: "<#858079>Light again"
+  medium: "<#858079>Burdened — rolls slow a little"
+  heavy: "<#858079>Heavy — slow rolls, slow steps"
+  over: "<#858079>Overburdened — cannot roll"
 
 levelup:
   title: "<#d1c3a0><font:souls:title>Level Up"
   head: "<#b3a37f>Level <from> → <to> · Souls <held> · Required <cost>"
-  plus: "<#d1c3a0><stat> <value> +"
+  head-idle: "<#b3a37f>Level <level> · Souls <held> · Next level <next>"
+  plus: "<#d1c3a0><stat> <value>"
   undo: "<#d1c3a0>Undo"
   confirm: "<#d1c3a0>Confirm"
   cancel: "<#d1c3a0>Cancel"
   tip: "<#b3a37f><first> <firstv>\n<second> <secondv>"
   next: "<#8f8164>Next point: <cost> souls"
-  burn: "<#8f8164>Burning <from>s → <to>s"
+  short: "<#8f8164>Not enough souls"
+  later: "<#6b5f4a><what> · not yet in effect"
+  load: "<#8f8164>Equip Load <weight> · <tier>"
+  load-change: "<#8f8164>Equip Load <weight> · <from> → <to>"
+  burn: "<#8f8164>Burn time <from>s → <to>s"
 
 stats:
   title: "<#d1c3a0><font:souls:title>Status"
@@ -357,7 +374,7 @@ stats:
   pair: "<#b3a37f><stat> <value>"
   sep: "<#6b5f4a> · "
   load: "<#b3a37f>Equip Load <weight> / <cap> · <tier>"
-  burn: "<#8f8164>Burning <from>s → <to>s"
+  burn: "<#8f8164>Burn time <from>s → <to>s"
   close: "<#d1c3a0>Close"
 
 controls:
