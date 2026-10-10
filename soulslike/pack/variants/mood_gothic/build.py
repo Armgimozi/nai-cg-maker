@@ -114,7 +114,7 @@ def write_fonts(pack):
         print(f"  글꼴 {name}: {fonts.SOURCES[key][2]}{' wght ' + str(wght) if wght else ''}, 글자 {n}, {nbytes:,} 바이트")
     lic_dir = os.path.join(pack, "assets", "souls", "font", "gothic", "licenses")
     os.makedirs(lic_dir, exist_ok=True)
-    notice = ["Square Soul resource pack, UI mood variant \"gothic\" - fonts", "",
+    notice = ["Block Soul resource pack, UI mood variant \"gothic\" - fonts", "",
               "The TrueType fonts in assets/souls/font/gothic/ are subsets of the following fonts, licensed under the",
               "SIL Open Font License, Version 1.1 (full text next to this notice in assets/souls/font/gothic/licenses/).",
               "They are Modified Versions (subset, digits remapped, private-use copies of some glyphs) and were renamed",

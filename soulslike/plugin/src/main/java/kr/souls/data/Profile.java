@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import kr.souls.progression.StatBlock;
@@ -15,7 +16,9 @@ import java.util.Set;
 /**
  * 플레이어 프로필 (5.10, 12.6): 플레이어 PDC souls:profile 의 판 번호가 붙은 JSON.
  * {"v":1,"origin":"knight","originAt":…,"stats":{"vig":15,…},"souls":0,"kit":{"given":["weapon:redin_guard_sword"]},"settingsSeen":1,
- *  "repicked":true} (repicked: 휴식 창의 "출신 다시 고르기" 를 썼다. 없으면 거짓)
+ *  "repicked":true,"rings":["test_stamina",null]} (repicked: 휴식 창의 "출신 다시 고르기" 를 썼다. 없으면 거짓. rings: 낀 반지 id,
+ *  칸마다 하나 (인벤토리 2×2 자리의 왼쪽 위·왼쪽 아래 칸, 9.4). 끼지 않은 칸은 null, 반지가 하나도 없으면 칸을 쓰지 않는다.
+ *  반지 칸의 정본은 이것이다: 칸에 보이는 아이템은 item/RingSlots 가 여기서 다시 만든 사본)
  * 레벨은 적지 않고 능력치로 셈한다. 모르는 칸은 지우지 않고 그대로 둔다 (다음 판이 더한 칸을 옛 플러그인이 지우지 않게).
  * 순수 클래스 (Gson 만, 13.1 의 ProfileJsonTest).
  */
@@ -23,6 +26,8 @@ public final class Profile {
     public static final int VERSION = 1;
     /** 소울 지갑의 끝 (5.10) */
     public static final long SOULS_MAX = 999_999_999L;
+    /** 반지 칸 수 (9.4, 2026-10-08 사용자 결정 B 안: 인벤토리 2×2 의 왼쪽 세로 두 칸. 셋째 칸은 나중) */
+    public static final int RING_SLOTS = 2;
     private static final Gson GSON = new GsonBuilder().disableHtmlEscaping().create();
 
     private final JsonObject raw;
@@ -33,6 +38,7 @@ public final class Profile {
     private final Set<String> given = new LinkedHashSet<>();
     private int settingsSeen;
     private boolean repicked;
+    private final String[] rings = new String[RING_SLOTS];
 
     private Profile(JsonObject raw) {
         this.raw = raw;
@@ -78,6 +84,13 @@ public final class Profile {
         p.settingsSeen = (int) num(o, "settingsSeen", 0);
         JsonElement rp = o.get("repicked");
         p.repicked = rp != null && rp.isJsonPrimitive() && rp.getAsJsonPrimitive().isBoolean() && rp.getAsBoolean();
+        if (o.has("rings") && o.get("rings").isJsonArray()) {
+            JsonArray a = o.getAsJsonArray("rings");
+            for (int i = 0; i < Math.min(a.size(), RING_SLOTS); i++) {
+                JsonElement e = a.get(i);
+                p.rings[i] = e != null && e.isJsonPrimitive() && !e.getAsString().isBlank() ? e.getAsString() : null;
+            }
+        }
         return p;
     }
 
@@ -106,6 +119,18 @@ public final class Profile {
         o.addProperty("settingsSeen", settingsSeen);
         if (repicked) o.addProperty("repicked", true);
         else o.remove("repicked");
+        // 반지: 이 판의 칸 (RING_SLOTS) 만 고치고, 뒤의 판이 더한 칸 (셋째 칸) 은 그대로 둔다
+        JsonArray old = o.has("rings") && o.get("rings").isJsonArray() ? o.getAsJsonArray("rings") : new JsonArray();
+        JsonArray ra = new JsonArray();
+        boolean any = false;
+        for (int i = 0; i < Math.max(RING_SLOTS, old.size()); i++) {
+            String r = i < RING_SLOTS ? rings[i] : null;
+            JsonElement e = i < RING_SLOTS ? (r == null ? JsonNull.INSTANCE : new com.google.gson.JsonPrimitive(r)) : old.get(i);
+            any |= e != null && !e.isJsonNull();
+            ra.add(e == null ? JsonNull.INSTANCE : e);
+        }
+        if (any) o.add("rings", ra);
+        else o.remove("rings");
         return GSON.toJson(o);
     }
 
@@ -192,6 +217,21 @@ public final class Profile {
 
     public void setRepicked(boolean v) {
         this.repicked = v;
+    }
+
+    /** 반지 칸 i (0 = 왼쪽 위, 1 = 왼쪽 아래) 에 낀 반지 id, 없으면 null. */
+    public String ring(int i) {
+        return i >= 0 && i < RING_SLOTS ? rings[i] : null;
+    }
+
+    public void setRing(int i, String id) {
+        if (i >= 0 && i < RING_SLOTS) rings[i] = id == null || id.isBlank() ? null : id;
+    }
+
+    /** 낀 반지가 하나라도 있나. */
+    public boolean hasRings() {
+        for (String r : rings) if (r != null) return true;
+        return false;
     }
 
     /** 모르는 칸 (시험이 보존을 본다). */

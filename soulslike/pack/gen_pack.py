@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-스퀘어 소울 리소스팩 생성기 (DESIGN.md 10.6). augment-skyblock pack/gen_pack.py 에서 읽기·쓰기 틀만 옮겼다.
+블록 소울 리소스팩 생성기 (DESIGN.md 10.6). augment-skyblock pack/gen_pack.py 에서 읽기·쓰기 틀만 옮겼다.
 
   python3 pack/gen_pack.py            그림 생성 → artlint → zip
   python3 pack/gen_pack.py --no-dist  dist/packs/ 에 쓰지 않는다 (시험용)

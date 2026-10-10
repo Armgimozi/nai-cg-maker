@@ -586,7 +586,7 @@ out float cylindricalVertexDistance;
 out vec4 vertexColor;
 out vec2 texCoord0;
 
-// Square Soul HUD (pack/hud.py). Vanilla 1.21.11 rendertype_text.vsh plus one block:
+// Block Soul HUD (pack/hud.py). Vanilla 1.21.11 rendertype_text.vsh plus one block:
 // GUI text (orthographic projection) whose colour is a HUD marker {r} {g} b is moved (whole GUI pixels):
 //   b {b1}: HUD bars (boss bar name, drawn from the screen centre minus {kl}, top at y {top0})
 //          -> left edge + {ix} x width, top edge + {iy} x height

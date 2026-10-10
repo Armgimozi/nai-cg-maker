@@ -18,6 +18,8 @@ import kr.souls.input.SneakTap;
 import kr.souls.hud.Glyphs;
 import kr.souls.hud.Hud;
 import kr.souls.hud.Titles;
+import kr.souls.item.RingSlots;
+import kr.souls.item.Rings;
 import kr.souls.item.WeaponGuard;
 import kr.souls.item.Weapons;
 import kr.souls.pack.PackService;
@@ -49,7 +51,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.util.Set;
 
 /**
- * 스퀘어 소울 (Square Soul). 혼자 하는 소울류 서버 플러그인. 지금 판은 M0 (기반과 점검, 14절).
+ * 블록 소울 (Block Soul). 혼자 하는 소울류 서버 플러그인. 지금 판은 M0 (기반과 점검, 14절).
  * 데이터팩은 부트스트래퍼(SoulsBootstrap)가 세계를 읽기 전에 싣는다. 켜는 순서는 12.3 을 따른다.
  */
 public final class Souls extends JavaPlugin {
@@ -60,6 +62,8 @@ public final class Souls extends JavaPlugin {
     private Content content;
     private SkillRegistry skills;
     private Weapons weapons;
+    private Rings rings;
+    private RingSlots ringSlots;
     private Cooldowns cooldowns;
     private WorldService worlds;
     private Ticker ticker;
@@ -100,7 +104,7 @@ public final class Souls extends JavaPlugin {
         // 3. 콘텐츠 꺼내기
         content = new Content(this);
         content.extract();
-        // 4. 등록부 (스킬, 무기·방패·촉매. 그 뒤로 items → armor → rings → enemies → bosses → encounters)
+        // 4. 등록부 (스킬, 무기·방패·촉매, 출신, 반지. 그 뒤로 items → armor → enemies → bosses → encounters)
         cooldowns = new Cooldowns();
         skills = new SkillRegistry(getLogger());
         skills.load(content.yml("skills.yml"));
@@ -108,6 +112,8 @@ public final class Souls extends JavaPlugin {
         weapons.load(content.yml("weapons.yml"));
         origins = new Origins(getLogger());
         origins.load(content.yml("origins.yml"), weapons);
+        rings = new Rings(getLogger());
+        rings.load(content.yml("rings.yml"));
         // 프로필과 세계 설정 (게임 규칙 pvp 가 세계 설정을 따르므로 세계보다 먼저 만든다)
         profiles = new Profiles(this);
         worldState = new WorldState(this);
@@ -140,6 +146,7 @@ public final class Souls extends JavaPlugin {
         levelUp = new LevelUpDialog(this);
         testBonfire = new TestBonfire(this);
         sneakTap = new SneakTap(this);
+        ringSlots = new RingSlots(this);
         hud.setSoulSource(purse::get);
         Targets.pvp = pvp::allowed;
         start.enable();
@@ -149,6 +156,7 @@ public final class Souls extends JavaPlugin {
         ticker.add("tap", sneakTap::tick);
         ticker.add("hud", hud::tick);
         ticker.add("titles", titles::tick);
+        ticker.add("rings", ringSlots::tick);
         ticker.start();
         // 7. 리스너, 명령어
         var pm = getServer().getPluginManager();
@@ -173,6 +181,7 @@ public final class Souls extends JavaPlugin {
         pm.registerEvents(levelUp, this);
         pm.registerEvents(testBonfire, this);
         pm.registerEvents(sneakTap, this);
+        pm.registerEvents(ringSlots, this);
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, e -> {
             SoulsCommands.register(this, e.registrar());
             TestCommands.register(this, e.registrar());
@@ -187,8 +196,9 @@ public final class Souls extends JavaPlugin {
                 stamina.refill(p);
                 hud.invalidate(p);
             }
+            ringSlots.enable();
         });
-        getLogger().info("스퀘어 소울 (M0, 1.3판 시작 설정·출신·능력치) 준비 완료" + (cfg.testMode ? " — 시험 모드" : ""));
+        getLogger().info("블록 소울 (M0, 1.3판 시작 설정·출신·능력치) 준비 완료" + (cfg.testMode ? " — 시험 모드" : ""));
     }
 
     /**
@@ -217,6 +227,8 @@ public final class Souls extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        // 반지 칸 (2×2) 을 먼저 비운다: 서버를 끄면 플러그인이 꺼진 뒤 플레이어를 내보내며 바닐라가 2×2 를 떨어뜨린다 (반지는 프로필에 있다)
+        if (ringSlots != null) ringSlots.disable();
         if (profiles != null) {
             profiles.saveAll();
             profiles.shutdown();
@@ -258,6 +270,7 @@ public final class Souls extends JavaPlugin {
         skills.load(content.yml("skills.yml"));
         weapons.load(content.yml("weapons.yml"));
         origins.load(content.yml("origins.yml"), weapons);
+        rings.load(content.yml("rings.yml"));
         // 시험 모드를 켜고 끄면 /soulstest 가 보이고 숨는다. 바뀐 설정 (최대 HP·이동 속도·공격 속도 곡선, 무게 단계의 걷기 배율,
         // hud.show-souls 같은 것) 을 곧바로 건다: 창과 HUD 만 새 값이고 속성은 옛 값인 채 남지 않게 (검토 reload-stale-attributes)
         for (Player p : Bukkit.getOnlinePlayers()) {
@@ -265,6 +278,7 @@ public final class Souls extends JavaPlugin {
             attributes.apply(p);
             load.reset(p);
             hud.invalidate(p);
+            ringSlots.apply(p);
         }
         foes.applyAll();
         checkMaxHealthCap();
@@ -284,6 +298,8 @@ public final class Souls extends JavaPlugin {
     public Content content() { return content; }
     public SkillRegistry skills() { return skills; }
     public Weapons weapons() { return weapons; }
+    public Rings rings() { return rings; }
+    public RingSlots ringSlots() { return ringSlots; }
     public Cooldowns cooldowns() { return cooldowns; }
     public WorldService worlds() { return worlds; }
     public Ticker ticker() { return ticker; }

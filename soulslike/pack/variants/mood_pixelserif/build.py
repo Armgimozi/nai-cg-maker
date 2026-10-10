@@ -206,7 +206,7 @@ REMAP = [
 ]
 
 SHADER_BLOCK = """
-    // Square Soul pixel-serif variant (pack/variants/mood_pixelserif/build.py): GUI text colours -> Dark Souls palette.
+    // Block Soul pixel-serif variant (pack/variants/mood_pixelserif/build.py): GUI text colours -> Dark Souls palette.
     // Vanilla colours (and their x0.25 shadows) become bone / dim bone / pale gold; the ornament marker colour
     // (dark blue, set by the language files around title rules) draws the ornament's own colours and drops its shadow.
     if (ProjMat[3][3] == 1.0{guard}) {{
@@ -349,7 +349,7 @@ def build(base_pack, out):
     ornaments.hud_digits().save(os.path.join(A, NS, "textures", "font", "hud_digits.png"))
 
     # 5. 저작권
-    parts = ["Square Soul resource pack - pixel serif font (assets/souls/font/pixel_serif.zip)",
+    parts = ["Block Soul resource pack - pixel serif font (assets/souls/font/pixel_serif.zip)",
              "",
              "The 1-bit glyphs in pixel_serif.zip are a Modified Version (rasterised bitmap font) of the fonts below,",
              "distributed under the SIL Open Font License 1.1. It is not named after any Reserved Font Name.",

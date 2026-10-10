@@ -440,7 +440,7 @@ def title_chars(ko_lines):
 def write_licences(out):
     lic = os.path.join(out, "assets", "souls", "font", "licenses")
     os.makedirs(lic, exist_ok=True)
-    notice = ["Square Soul resource pack - fonts", "",
+    notice = ["Block Soul resource pack - fonts", "",
               "The glyph images assets/souls/textures/font/text_*.png were rendered (FreeType) from these fonts,",
               "licensed under the SIL Open Font License, Version 1.1 (full text in assets/souls/font/licenses/).",
               "No font software is included in this pack; only pre-rendered glyph bitmaps (a Modified Version",

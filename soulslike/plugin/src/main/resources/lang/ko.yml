@@ -87,6 +87,38 @@ item:
       - "<#8f8164>자물쇠로 잠긴 문이라면 대개 연다."
       - "<#8f8164>봉인된 문은 열리지 않는다."
 
+ring:
+  # 반지 (9.4, content/rings.yml). 인벤토리 2×2 자리의 왼쪽 세로 두 칸에 낀다 (item/RingSlots). 이름은 ring.<id>.name (제목 글꼴),
+  # 설명 칸은 효과 줄 (플러그인이 ring.effect.* 에 값을 채운다) 다음에 ring.<id>.lore.
+  # 이야기를 사용자가 정하기 전이라 이름 있는 반지는 없다. 아래 test_* 셋은 시험 반지 (/soulstest ring give) 이고 기능을 그대로 적은
+  # 임시 이름이다. 이야기의 반지가 들어오면 지운다
+  effect:
+    # 효과 줄 (설명 칸 맨 위, 흐린 옛 금빛). <pct> 는 "+20" 꼴, <sec> 는 "+0.10" 꼴
+    stamina-regen: "<#9e7c44>스태미나 회복 <pct>%"
+    poise: "<#9e7c44>강인도 <pct>%"
+    parry-window: "<#9e7c44>쳐내기 창 <sec>초"
+    soul-guard: "<#9e7c44>죽어도 소울을 한 번 잃지 않고 부서진다"
+    # 고리만 있는 효과 (그 체계가 아직 없다) 가 있으면 효과 줄 밑에 붙는다
+    pending: "<#5c5955>이 효과는 아직 듣지 않는다"
+  test_stamina:
+    name: "<#d1c3a0><font:souls:title>시험 반지: 스태미나 회복"
+    lore:
+      - "<#8f8164>시험용 반지. 이야기가 정해지면 없앤다."
+  test_poise:
+    name: "<#d1c3a0><font:souls:title>시험 반지: 강인도"
+    lore:
+      - "<#8f8164>시험용 반지. 이야기가 정해지면 없앤다."
+  test_parry:
+    name: "<#d1c3a0><font:souls:title>시험 반지: 쳐내기"
+    lore:
+      - "<#8f8164>시험용 반지. 이야기가 정해지면 없앤다."
+
+container:
+  # 제작대 창 제목 (item/RingSlots 가 제작대를 열 때 단다). 바닐라는 인벤토리 2×2 의 글과 제작대 제목에 같은 열쇠 container.crafting 을
+  # 쓰는데, 인벤토리의 그 자리가 반지 칸이 되어 글을 지웠다 (vanilla.container.crafting 을 비움, 사용자 결정 "반지 글자는 넣지 않는다").
+  # 제작대는 짓는 사람 (창작 모드) 만 연다. 바닐라 창 제목과 같은 꼴 (§7 회색 → 글꼴 셰이더가 흐린 옛 금빛, 제목 글꼴)
+  workbench: "<gray><font:souls:title>제작"
+
 weapon:
   # 무기·방패·촉매 (9.1, 9.2, 3.12.4, 9.7). 열쇠는 weapon.<id>.name (한 줄), weapon.<id>.lore (목록). id 와 모형 명세는
   # pack/weapons/SPEC.md. 이름은 바랜 양피지에 제목 글꼴 (<font:souls:title>, 로마 비문 대문자·무거운 명조), 분류 줄은 흐린 옛 금빛
@@ -462,7 +494,7 @@ pack:
   declined: "<#b3a37f>리소스팩을 받지 않으면 들어올 수 없다."
   failed: "<#b3a37f>리소스팩을 받지 못했다. 다시 들어와 보라."
   # 팩 목록에 보이는 팩 설명 (pack.mcmeta). 게임 제목이다. 서버 목록 이름 (server.properties 의 motd) 도 이 글이다
-  description: "스퀘어 소울"
+  description: "블록 소울"
 
 test:
   # 시험 도구 이름과 설명 (debug.test-mode 의 /soulstest guard, swing). <ticks> 휘두름 틱.
@@ -549,7 +581,9 @@ vanilla:
   # 읽히지 않는다. <gray> (§7) 로 밝힌다. 글은 바닐라 한국어와 같다. 다시 그리지 않은 바닐라 창 (화로, 모루 …) 의
   # "보관함" 도 회색이 되지만, 그 창은 짓는 사람 (창작 모드) 만 연다 (Protection)
   container:
-    crafting: "<gray>제작"
+    # 인벤토리 2×2 자리의 글 "제작": 그 자리가 반지 칸이 되었고 반지 칸에는 글을 넣지 않는다 (2026-10-08 사용자 결정 B 안). 같은 열쇠를
+    # 쓰는 제작대 창 제목은 플러그인이 container.workbench 로 단다
+    crafting: ""
     chest: "<gray>상자"
     chestDouble: "<gray>큰 상자"
     enderchest: "<gray>엔더 상자"

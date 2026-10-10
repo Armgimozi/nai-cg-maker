@@ -100,7 +100,7 @@ def _rename(font, family, style, origin):
         if rec.nameID not in keep:
             name.removeNames(nameID=rec.nameID)
     for nid, val in ((1, family), (2, "Regular"), (3, f"{ps};souls-subset"), (4, full), (5, "Version 1.000; subset"),
-                     (6, ps), (10, f"Subset of {origin} for Square Soul (pack/variants/mood_serif). SIL OFL 1.1.")):
+                     (6, ps), (10, f"Subset of {origin} for Block Soul (pack/variants/mood_serif). SIL OFL 1.1.")):
         name.setName(val, nid, 3, 1, 0x409)
         name.setName(val, nid, 1, 0, 0)
 

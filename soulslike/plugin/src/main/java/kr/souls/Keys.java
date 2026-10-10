@@ -33,6 +33,8 @@ public final class Keys {
     public static NamespacedKey SETTINGS;  // 세계 설정 JSON: 난이도·PvP (5.7, souls_world PDC)
     public static NamespacedKey ROOM;      // 시험 방을 지은 판 번호 (souls_world PDC)
     public static NamespacedKey BIOMES;    // souls_world 를 만들 때의 바이옴 경계 판 번호
+    public static NamespacedKey RING;      // 반지 id (content/rings.yml, 9.4)
+    public static NamespacedKey RING_WORN; // 반지 칸에 비친 사본 표시 (item/RingSlots: 칸 밖에서 보이면 지운다)
 
     private Keys() {}
 
@@ -59,6 +61,8 @@ public final class Keys {
         SETTINGS = of("settings");
         ROOM = of("test_room");
         BIOMES = of("biome_layout");
+        RING = of("ring");
+        RING_WORN = of("ring_worn");
     }
 
     public static NamespacedKey of(String path) {

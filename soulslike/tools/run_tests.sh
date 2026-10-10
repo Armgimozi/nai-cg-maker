@@ -113,7 +113,7 @@ command -v python3 >/dev/null || die "python3 가 없다"
 
 SRV="$SCRATCH/server"
 RUN="$SCRATCH/run"
-say "== 스퀘어 소울 봇 시험  port=$PORT  pack=$PACK_PORT  dir=$SCRATCH"
+say "== 블록 소울 봇 시험  port=$PORT  pack=$PACK_PORT  dir=$SCRATCH"
 say "   paper=$PAPER"
 say "   mineflayer=$NODE_MODULES"
 

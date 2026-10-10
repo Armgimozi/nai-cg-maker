@@ -21,7 +21,8 @@ import java.util.TreeMap;
  * 달리기 금지는 허기를 6 으로 내려서 한다. 클라이언트는 허기가 6 이하이면 달리기를 시작하지도 이어가지도 않는다 [확인 (클라)].
  * 허기는 이 체계만 바꾼다 (FoodLevelChangeEvent 는 늘 취소, 평소 20). 장비가 너무 무거울 때 (5.8) 도 여기서 허기 6 으로 둔다
  * (허기를 쓰는 곳은 여기 한 곳, 검토 T13).
- * 최대치는 기력 (5.2, combat.stamina.curve), 회복은 regen-per-tick × 기력 배율 (stats.endurance.regen-scale) × 장비 무게 배율 (load.*.regen).
+ * 최대치는 기력 (5.2, combat.stamina.curve), 회복은 regen-per-tick × 기력 배율 (stats.endurance.regen-scale) × 장비 무게 배율 (load.*.regen)
+ * × 낀 반지의 회복 배율 (9.4, item/RingSlots: 반지 칸에 낀 동안만).
  * 화면은 Hud 가 왼쪽 위 스태미나 막대 (HUD 보스 막대의 그림 글자) 로 그린다. 여기서는 값만 바꾼다.
  */
 public final class Stamina implements Listener {
@@ -117,7 +118,8 @@ public final class Stamina implements Listener {
                 // 달리는 동안은 회복 없음. 멈춘 틱이 행동이 끝난 틱이다
                 pool.holdUntil(now + 1 + (zero ? c.exhaustedDelay() : c.regenDelay()));
             } else {
-                double rate = c.regenPerTick() * plugin.cfg().stats.regenScale.at(endurance(p)) * plugin.load().regen(p);
+                double rate = c.regenPerTick() * plugin.cfg().stats.regenScale.at(endurance(p)) * plugin.load().regen(p)
+                        * plugin.ringSlots().staminaRegen(p);
                 if (p.isBlocking()) rate *= c.guardRegenScale();
                 pool.regen(now, rate);
             }

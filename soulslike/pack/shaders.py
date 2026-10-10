@@ -62,7 +62,7 @@ def write(path, text):
 
 # GUI 글자 덩이 (rendertype_text.vsh 의 texCoord0 = UV0; 바로 뒤). HUD 덩이가 그 뒤에서 표식 색 글자를 다시 칠한다.
 TEXT_VSH_BLOCK = """
-    // Square Soul (pack/shaders.py): GUI text colours and shadows.
+    // Block Soul (pack/shaders.py): GUI text colours and shadows.
     soulsShadow = 0.0;
     soulsDeathT = 1.0e6;
     soulsVeil = vec2(0.0);
@@ -137,7 +137,7 @@ in vec2 soulsVeil;
 
 out vec4 fragColor;
 
-// Square Soul (pack/shaders.py): vanilla rendertype_text.fsh, but GUI glyphs are
+// Block Soul (pack/shaders.py): vanilla rendertype_text.fsh, but GUI glyphs are
 // read with an area (box) filter over the texels the screen pixel covers. Our pre-rasterised serif glyphs
 // (pack/fonts.py: 4 texels per GUI pixel, coverage in R, B = 1 and alpha 0 as the marker) come out
 // identical at every position on GUI scales 2, 3 and 4; pixel art at 1 texel per GUI pixel is unchanged.
@@ -260,7 +260,7 @@ in vec2 texCoord0;
 
 out vec4 fragColor;
 
-// Square Soul (pack/shaders.py): vanilla rendertype_text_see_through.fsh; our glyph texels (B = 1, alpha 0) carry
+// Block Soul (pack/shaders.py): vanilla rendertype_text_see_through.fsh; our glyph texels (B = 1, alpha 0) carry
 // their coverage in R (pack/fonts.py).
 void main() {
     vec4 t = texture(Sampler0, texCoord0);
@@ -296,7 +296,7 @@ out vec4 vertexColor;
 out vec3 soulsFill;
 out float soulsX;
 
-// Square Soul (pack/shaders.py): vanilla gui.vsh plus flags for a few vanilla fills:
+// Block Soul (pack/shaders.py): vanilla gui.vsh plus flags for a few vanilla fills:
 // container screen dim (0xC0101010..0xD0101010) -> 1, death screen red wash (0x60500000 / 0xA0803030) -> 2,
 // chat line backdrop (black, translucent) -> 3; the chat "system message" bar (0xD0D0D0) becomes bronze;
 // opaque pure white lines (advancement connectors, the selected tab underline, focus outlines) become pale parchment.
@@ -333,7 +333,7 @@ in float soulsX;
 
 out vec4 fragColor;
 
-// Square Soul (pack/shaders.py): the flagged fills become deep vignettes with a little candle light from above (see gui.vsh).
+// Block Soul (pack/shaders.py): the flagged fills become deep vignettes with a little candle light from above (see gui.vsh).
 void main() {
     vec4 color = vertexColor;
     if (soulsFill.z > 2.5) {
@@ -381,7 +381,7 @@ out vec2 texCoord0;
 out vec4 vertexColor;
 out float soulsGui;
 
-// Square Soul (pack/shaders.py): vanilla position_tex_color.vsh plus
+// Block Soul (pack/shaders.py): vanilla position_tex_color.vsh plus
 //  * a flag for GUI quads (orthographic): the fragment shader reads their texture with an area filter;
 //  * the in-game vignette (the only full-screen GUI quad with texture 0..1 on the screen corners, drawn in a grey below
 //    white) is kept at least VIGNETTE_MIN strong, so the corners always close in (misc/vignette.png gives the shape).
@@ -422,7 +422,7 @@ in float soulsGui;
 
 out vec4 fragColor;
 
-// Square Soul (pack/shaders.py): vanilla position_tex_color.fsh, but GUI sprites are read with an area (box) filter over the
+// Block Soul (pack/shaders.py): vanilla position_tex_color.fsh, but GUI sprites are read with an area (box) filter over the
 // texels the screen pixel covers. Our UI art is drawn at 2 texels per GUI pixel; at GUI scale 3 a texel is 1.5 screen
 // pixels and nearest sampling made lines 1 or 2 pixels thick by position. 1:1 art is unchanged.
 void main() {
@@ -479,7 +479,7 @@ in vec2 texCoord;
 
 out vec4 fragColor;
 
-// Square Soul (pack/shaders.py): after the vanilla menu blur, drain the colour, darken, close in with a heavy vignette and
+// Block Soul (pack/shaders.py): after the vanilla menu blur, drain the colour, darken, close in with a heavy vignette and
 // let a little warm candle light fall from above.
 void main() {{
     vec3 c = texture(InSampler, texCoord).rgb;

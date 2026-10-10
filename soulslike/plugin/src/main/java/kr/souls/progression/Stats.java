@@ -33,12 +33,12 @@ public final class Stats {
         return derived(p, of(p));
     }
 
-    /** 능력치를 s 로 가정한 값 (레벨 올리기 창의 미리보기). 무게는 지금 든 것 그대로. */
+    /** 능력치를 s 로 가정한 값 (레벨 올리기 창의 미리보기). 무게는 지금 든 것 그대로, 스태미나 회복에는 낀 반지 (9.4) 의 배율도. */
     public Derived derived(Player p, StatBlock s) {
         Weapons.Def melee = melee(p);
         Weapons.Def cat = catalyst(p);
         return Derived.of(s, plugin.cfg().stats, plugin.cfg().load, arms(melee), melee != null && twoHanded(p, melee), arms(cat),
-                plugin.load().weight(p), plugin.cfg().stamina.regenPerTick());
+                plugin.load().weight(p), plugin.cfg().stamina.regenPerTick() * plugin.ringSlots().staminaRegen(p));
     }
 
     public static DamageCalc.Arms arms(Weapons.Def d) {

@@ -9,6 +9,10 @@
   테     두 줄: 바깥 굵은 줄 (위는 촛불이 비친 금빛, 옆은 청동, 아래는 녹슨 쇠로 꺼진다) 과 안쪽 가는 청동 줄.
   장식   네 귀에 단조 꺾쇠 (꺾인 쇠, 안으로 말린 덩굴 고리, 바깥 대각선 창끝), 위 가운데에 마름모 꽃 장식. 모두 위가 밝다.
   칸     판보다 진한 우물: 위·왼쪽 안벽은 그늘 (먹), 아래 안벽은 촛불을 받은 녹빛 입술. 결과 칸은 금빛 테.
+  반지 칸 인벤토리의 2×2 제작 칸 자리는 반지 칸 둘 (왼쪽 세로 두 칸, 9.4, 2026-10-08 사용자 결정 B 안): 다른 칸과 같은 우물에
+         갑옷 칸의 빈 칸 그림과 같은 말씨의 흐린 반지 (icons.RING_PLACEHOLDER) 를 바탕에 그린다 (바닐라 클라이언트는 2×2 칸에 빈 칸
+         그림을 주지 않는다. 반지 그림이 그것을 다 덮는다). 오른쪽 두 칸, 화살표, 결과 칸, "제작" 글은 지웠고 (글은 lang 의
+         vanilla.container.crafting 을 비운다), 제작법 책 단추 그림은 투명하다 (누를 자리는 바닐라 그대로).
   단축 슬롯 칸마다 먹 받침과 창의 칸과 같은 쇠 테 우물, 칸 뒤로 지나가는 단조 쇠 띠, 칸 사이 띠 위에 금빛 마름모 못, 양 끝
          짧은 쇠 기둥 (마지막 칸의 개수 글자 위에서 끝난다). 고른 칸은 굵은 금빛 테와 네 귀 꼭지, 위 가운데 속 빈 마름모.
   단추   띠 위의 글: 위 금실 (가운데가 밝다)·아래 녹슨 줄이 양 끝으로 옅어진다. 가리키면 띠 윗부분에 촛불 기운, 금실이 밝아지고
@@ -27,7 +31,8 @@
   창          container/inventory.png, generic_54.png, crafting_table.png (256×256 GUI = 512 텍셀)
               container/slot_highlight_back/front, container/slot/* 빈 칸 그림 (1 배)
   단추        widget/button, button_highlighted, button_disabled 200×20. 사망 화면·일시 정지·설정·Dialog 단추가 모두 이 그림.
-              recipe_book/button(_highlighted) 20×18 (1 배)
+              recipe_book/button(_highlighted) 20×18 (1 배): 투명 (인벤토리 2×2 자리가 반지 칸이 되었다. 제작대·화로의 단추도
+              같은 그림이라 함께 사라진다: 그 창은 짓는 사람만 연다)
   설정 화면   widget/slider(_highlighted), slider_handle(_highlighted), checkbox(_selected)(_highlighted), text_field(_highlighted),
               tab* (1 배), scroller* (1 배, 초안 때 그림), textures/gui/(inworld_)header·footer_separator (금실과 그늘),
               inworld_menu_background
@@ -269,6 +274,9 @@ def attack_indicator():
 #   result  결과 칸 상자 (x, y, 폭, 높이): 인벤토리의 18×18, 제작대의 26×26
 #   alcove  인벤토리의 인물 자리 상자
 #   arrow   (자루 시작 x, 촉 끝 x, 가운데 y, 촉 반높이) — 바닐라 화살표와 같은 자리
+#   erased  바닐라 그림에 있지만 우리 그림에서 지운 칸 상자 (인벤토리 2×2 의 오른쪽 두 칸과 결과 칸: 반지 칸 B 안, 9.4).
+#           칸 자리 증명은 이 상자에 우물이 없는지 본다
+#   rings   반지 칸의 아이템 자리 (GUI x, y): 우물 바닥에 흐린 반지 (icons.RING_PLACEHOLDER) 를 그린다
 #   titles  바닐라가 제목 글을 쓰는 (x, y) (AbstractContainerScreen 의 titleLabelY 6, 인벤토리는 titleLabelX 97,
 #           제작대 29, "보관함" 은 inventoryLabelY = 창 높이 - 94, 상자 그림에서는 아래 판이 126 줄부터라 129).
 #           그림에는 아무것도 그리지 않는다: 글은 언어 파일이 회색 (§7) 으로 바꾼다 (lang 의 vanilla.container.*, 10.4)
@@ -282,13 +290,16 @@ def _grid(x0, y0, cols, rows):
 CONTAINER_LAYOUTS = {
     "inventory": {
         "size": (176, 166),
-        "wells": [(7, 7 + 18 * i) for i in range(4)] + [(76, 61)] + _grid(97, 17, 2, 2)
+        # 갑옷 넷, 왼손, 반지 칸 둘 (바닐라 2×2 의 왼쪽 위·왼쪽 아래 칸 상자 (97, 17)·(97, 35)), 가방, 단축 줄
+        "wells": [(7, 7 + 18 * i) for i in range(4)] + [(76, 61)] + _grid(97, 17, 1, 2)
                  + _grid(7, 83, 9, 3) + _grid(7, 141, 9, 1),
-        "result": [(153, 27, 18, 18)],
+        "result": [],
         "alcove": (25, 7, 51, 72),
-        "arrow": (135, 150, 35, 6),
-        "titles": [(97, 6)],
+        "arrow": None,
+        "titles": [],
         "dividers": [(7, 167, 80), (7, 167, 138)],
+        "erased": [(115, 17, 18, 18), (115, 35, 18, 18), (153, 27, 18, 18)],
+        "rings": [(98, 18), (98, 36)],
     },
     "crafting_table": {
         "size": (176, 166),
@@ -434,30 +445,7 @@ def slot_icon(name):
 
 
 
-# ─────────────────────────── 제작법 책 단추, 탭, 두루마리 (1 배) ───────────────────────────
-
-RECIPE_BOOK = [
-    "......LLLLLLL.",
-    "......L.....LL",
-    "......L.....LL",
-    "......L.HHH.LL",
-    "......L.....LL",
-    "......L.HHH.LL",
-    "......L.....LL",
-    "......L.....LL",
-    "......LLLLLLLL",
-    ".......LLLLLLL",
-]
-
-
-def recipe_button(hi):
-    cv = Cv(20, 18)
-    fill, edge, _ = SQUARE_TONES["highlighted" if hi else "normal"]
-    _cv_panel(cv, 20, 18, inset=1, line=edge, fill=fill, fade=(fill[1] // 3,))
-    cv.stamp(0, 4, [r.replace(".", " ") for r in RECIPE_BOOK], {"L": ORN if hi else LINE, "H": LINE_DIM})
-    return cv.image()
-
-
+# ─────────────────────────── 탭, 두루마리 (1 배. 제작법 책 단추는 build 에서 투명하게) ───────────────────────────
 
 def tab(selected, hi):
     """
@@ -695,8 +683,30 @@ def arrow(img, x0, x1, ym, half):
     img.over(uidraw.lit(m.cov(), IRON), 0, oy)
 
 
+# 반지 칸 바닥의 흐린 반지 색: 갑옷 칸의 빈 칸 그림 (ICON = 바랜 양피지 parch0 의 알파 170 을 먹 우물 위에 겹친 것, 약 #4b4335)
+# 과 같게 보이는 팔레트 색을 우물 바닥과 같은 알파로 (창 그림은 칸 바닥에 직접 그리므로 겹칠 수 없다)
+RING_ICON = ("rust1", 0.93)
+
+
+def ring_placeholder(img, x, y):
+    """
+    반지 칸 (아이템 자리 GUI x, y 의 16×16) 바닥의 흐린 반지: icons.RING_PLACEHOLDER 의 점마다 GUI 한 픽셀 (2×2 텍셀) 을 RING_ICON
+    으로. 아이템 그림과 같은 GUI 픽셀 격자라 반지를 끼면 반지 그림의 불투명한 점이 이것을 다 덮는다 (icons.ring_cover).
+    """
+    for i, j in ring_placeholder_pixels():
+        for dy in (0, 1):
+            for dx in (0, 1):
+                img.put(2 * (x + i) + dx, 2 * (y + j) + dy, *RING_ICON)
+
+
+def ring_placeholder_pixels():
+    """흐린 반지의 점 (16×16 안의 GUI 픽셀 i, j)."""
+    import icons
+    return [(i, j) for j, row in enumerate(icons.RING_PLACEHOLDER) for i, ch in enumerate(row) if ch != "."]
+
+
 def container(name):
-    """창 256×256 GUI (512 텍셀): 판, 두 줄 테, 네 귀 꺾쇠, 위 가운데 꽃 장식, 칸 우물, 결과 칸, 화살표, 나눔줄."""
+    """창 256×256 GUI (512 텍셀): 판, 두 줄 테, 네 귀 꺾쇠, 위 가운데 꽃 장식, 칸 우물, 결과 칸, 반지 칸의 흐린 반지, 화살표, 나눔줄."""
     L = CONTAINER_LAYOUTS[name]
     w, h = L["size"]
     img = Img(512, 512)
@@ -712,6 +722,8 @@ def container(name):
         well(img, x, y)
     for x, y, rw, rh in L["result"]:
         well(img, x, y, rw, rh, rim=("parch3", "bronze2", "bronze3"))
+    for x, y in L.get("rings", ()):
+        ring_placeholder(img, x, y)
     if L["arrow"]:
         arrow(img, *L["arrow"])
     for x0, x1, y in L["dividers"]:
@@ -1461,8 +1473,10 @@ def build(out):
         save_mcmeta(out, SLOT_HIGHLIGHT_SCALING, "sprites", "container", n + ".png")
     for n in SLOT_ICONS:
         written.append(save(slot_icon(n), out, "sprites", "container", "slot", n + ".png"))
-    written.append(save(recipe_button(False), out, "sprites", "recipe_book", "button.png"))
-    written.append(save(recipe_button(True), out, "sprites", "recipe_book", "button_highlighted.png"))
+    # 제작법 책 단추: 그림만 지운다 (인벤토리 2×2 자리가 반지 칸이 되었다, 9.4). 누를 자리는 바닐라 그대로라 그 자리를 누르면
+    # 빈 제작법 책이 열린다 (이 게임의 플레이어는 제작법을 얻지 않는다: Protection 이 막는다)
+    written.append(save(clear(20, 18), out, "sprites", "recipe_book", "button.png"))
+    written.append(save(clear(20, 18), out, "sprites", "recipe_book", "button_highlighted.png"))
     for state, fname in (("normal", "warning_button"), ("highlighted", "warning_button_highlighted"),
                          ("disabled", "warning_button_disabled")):
         written.append(gsave(warning_button(state), out, "sprites", "dialog", fname + ".png"))
@@ -1643,7 +1657,7 @@ def _names(img):
     return names, a[..., 3].astype(np.float32) / 255.0
 
 
-def cell_texels(ours, wells, van=None):
+def cell_texels(ours, wells, van=None, marks=()):
     """
     칸마다 자리를 텍셀로 견준다 (ours = 2 배 창 그림). [(텍셀 x, 텍셀 y, 맞음)] 과 어긋난 칸 목록을 돌려준다. 바닐라 칸 상자
     (x, y, 폭, 높이) 에서 아이템 자리 (네모) = GUI (x+1 .. x+폭-2) = 텍셀 [2(x+1), 2(x+폭-1)):
@@ -1651,7 +1665,9 @@ def cell_texels(ours, wells, van=None):
       네모 바로 바깥 한 텍셀 (바닐라 그늘·입술 줄의 안쪽 반) 은 칸 테 (RIM_COLOURS)
       바닐라 상자의 가장자리 줄의 바깥 반 텍셀은 우물이 아니다 (보이는 우물이 아이템 자리보다 반 픽셀 넘게 크지 않다)
     van (바닐라 그림) 을 주면 바깥 줄은 바닐라가 그늘·입술로 칠한 픽셀만 본다 (인물 자리의 오른쪽 아래 귀는 왼손 칸이 덮는다).
+    marks: 우물 바닥에 그린 흐린 그림의 텍셀 (반지 칸의 흐린 반지): 그 텍셀은 RING_ICON 이면 맞다.
     """
+    marks = set(marks)
     names, alpha = _names(ours)
     vx = van.load() if van is not None else None
     checks, bad = [], []
@@ -1660,7 +1676,10 @@ def cell_texels(ours, wells, van=None):
         mine = []
         for yy in range(Y0, Y1):
             for xx in range(X0, X1):
-                mine.append(((xx, yy), names[yy, xx] in WELL_COLOURS and alpha[yy, xx] > 0.85))
+                if (xx, yy) in marks:
+                    mine.append(((xx, yy), names[yy, xx] == RING_ICON[0] and alpha[yy, xx] > 0.85))
+                else:
+                    mine.append(((xx, yy), names[yy, xx] in WELL_COLOURS and alpha[yy, xx] > 0.85))
         rim = [(xx, Y0 - 1) for xx in range(X0 - 1, X1 + 1)] + [(xx, Y1) for xx in range(X0 - 1, X1 + 1)]
         rim += [(X0 - 1, yy) for yy in range(Y0, Y1)] + [(X1, yy) for yy in range(Y0, Y1)]
         mine += [((xx, yy), names[yy, xx] in RIM_COLOURS) for xx, yy in rim]
@@ -1696,8 +1715,20 @@ def align_proof(out, preview_dir, jar):
             ours2 = _sprite(out, "container", name + ".png")
             w, h = L["size"]
             wells = vanilla_wells(van)
-            checks, bad = cell_texels(ours2, wells, van)
-            report[name] = (len(wells), bad, len(checks), sum(1 for c_ in checks if not c_[2]))
+            erased = [b for b in wells if b in L.get("erased", ())]
+            wells = [b for b in wells if b not in erased]
+            marks = [(2 * (x + i) + dx, 2 * (y + j) + dy) for x, y in L.get("rings", ()) for i, j in ring_placeholder_pixels()
+                     for dy in (0, 1) for dx in (0, 1)]
+            checks, bad = cell_texels(ours2, wells, van, marks)
+            # 지운 칸 (반지 칸 B 안의 오른쪽 두 칸과 결과 칸): 바닐라 칸 상자 안에 우물·칸 테 색이 하나도 없다
+            names2, _ = _names(ours2)
+            for x, y, ww, hh in erased:
+                box = [(xx, yy) for yy in range(2 * y, 2 * (y + hh)) for xx in range(2 * x, 2 * (x + ww))]
+                gone = [((xx, yy), names2[yy, xx] not in WELL_COLOURS + RIM_COLOURS) for xx, yy in box]
+                checks += [(q[0], q[1], ok) for q, ok in gone]
+                if not all(ok for _, ok in gone):
+                    bad.append((x, y, ww, hh))
+            report[name] = (len(wells), bad, len(checks), sum(1 for c_ in checks if not c_[2]), len(erased))
             back = Image.new("RGBA", (w * k, h * k), (40, 40, 44, 255))
             a = back.copy()
             a.alpha_composite(_big(van.crop((0, 0, w, h)), k))
@@ -1779,17 +1810,21 @@ def _hotbar_proof(preview_dir, hv, hb, hs, hsv, k):
 # 창 미리보기에 놓을 바닐라 아이템 (칸 번호 → 그림, 개수). 어두운 아이템 (석탄, 부싯돌, 네더라이트) 이 칸 바닥에서
 # 읽히는지도 본다
 MOCK_ITEMS = {
-    "inventory": {9: ("item/iron_helmet", 1), 13: ("item/bread", 24), 18: ("item/iron_sword", 1), 22: ("item/bone", 3),
-                  36: ("item/flint", 5), 37: ("item/coal", 9), 38: ("item/netherite_ingot", 1), 40: ("item/rotten_flesh", 7),
-                  41: ("item/stick", 2), 42: ("item/iron_axe", 1)},
+    # 인벤토리 칸 차례: 갑옷 0..3, 왼손 4, 반지 칸 5·6, 가방 7..33, 단축 줄 34..42. 반지 칸 5 에는 팩의 시험 반지 (MOCK_RINGS)
+    "inventory": {7: ("item/iron_helmet", 1), 11: ("item/bread", 24), 16: ("item/iron_sword", 1), 20: ("item/bone", 3),
+                  34: ("item/flint", 5), 35: ("item/coal", 9), 36: ("item/netherite_ingot", 1), 38: ("item/rotten_flesh", 7),
+                  39: ("item/stick", 2), 40: ("item/iron_axe", 1)},
     "crafting_table": {1: ("item/stick", 1), 4: ("item/stick", 1), 7: ("item/iron_ingot", 1), 14: ("item/bread", 24),
                        30: ("item/iron_sword", 1), 31: ("item/coal", 9), 32: ("item/flint", 3)},
     "generic_54": {3: ("item/rotten_flesh", 7), 13: ("item/bone", 2), 20: ("item/coal", 12), 21: ("item/flint", 4),
                    30: ("item/iron_axe", 1), 60: ("item/bread", 24), 82: ("item/iron_sword", 1), 83: ("item/netherite_ingot", 1)},
 }
-# 제목 글 (바닐라 언어 열쇠 container.* 를 lang 의 vanilla.container.* 가 덮는다). 미리보기는 그 글을 §7 회색으로 쓴다
+# 미리보기의 반지 칸에 끼울 팩의 반지 그림 (칸 차례 → 모형 이름): 흐린 반지를 덮는지 본다
+MOCK_RINGS = {"inventory": {5: "ring_test_stamina"}}
+# 제목 글 (바닐라 언어 열쇠 container.* 를 lang 의 vanilla.container.* 가 덮는다). 미리보기는 그 글을 §7 회색으로 쓴다.
+# 인벤토리의 "제작" 은 반지 칸이 되며 비웠다 (9.4)
 TITLES = {
-    "inventory": (("제작", "Crafting"),),
+    "inventory": (),
     "crafting_table": (("제작", "Crafting"), ("보관함", "Inventory")),
     "generic_54": (("큰 상자", "Large Chest"), ("보관함", "Inventory")),
     "generic_54/3": (("상자", "Chest"), ("보관함", "Inventory")),
@@ -1846,16 +1881,20 @@ def _mock_container(out, name, lang, z, gui=3, rows=6):
         rx, ry, rw, rh = L["result"][0]
         slots.append((rx + (rw - 16) // 2, ry + (rh - 16) // 2))
     if name == "inventory":
-        small.alpha_composite(_sprite(out, "sprites", "recipe_book", "button.png"), (pad + 104, pad + 61))
+        small.alpha_composite(_sprite(out, "sprites", "recipe_book", "button.png"), (pad + 104, pad + 61))   # 투명 (9.4)
         icon_slots = {0: "helmet", 1: "chestplate", 2: "leggings", 3: "boots", 4: "shield"}
         for i, n in icon_slots.items():
             small.alpha_composite(_sprite(out, "sprites", "container", "slot", n + ".png"), (pad + slots[i][0], pad + slots[i][1]))
     if name == "crafting_table":
         small.alpha_composite(_sprite(out, "sprites", "recipe_book", "button_highlighted.png"), (pad + 5, pad + 34))
-    hover = {"inventory": 20, "crafting_table": 20, "generic_54": 22}[name]
+    hover = {"inventory": 18, "crafting_table": 20, "generic_54": 22}[name]
     hx, hy = slots[hover]
     small.alpha_composite(_sprite(out, "sprites", "container", "slot_highlight_back.png"), (pad + hx - 4, pad + hy - 4))
     counts = []
+    for i, model in MOCK_RINGS.get(name, {}).items():
+        p = os.path.join(out, "assets", "souls", "textures", "item", model + ".png")
+        if os.path.exists(p) and i < len(slots):
+            small.alpha_composite(Image.open(p).convert("RGBA"), (pad + slots[i][0], pad + slots[i][1]))
     if z is not None:
         for i, (tex, n) in items.items():
             im = _jar_png(z, f"assets/minecraft/textures/{tex}.png")
@@ -1965,8 +2004,8 @@ def write_previews(out, preview_dir):
     if jar:
         report = align_proof(out, preview_dir, jar)
         for name in CONTAINER_LAYOUTS:
-            n, bad, npx, badpx = report[name]
-            print(f"  칸 자리 {name}: 바닐라 칸 {n}개 (인벤토리는 인물 자리 하나 포함), 어긋난 칸 {len(bad)}, "
+            n, bad, npx, badpx, nerased = report[name]
+            print(f"  칸 자리 {name}: 바닐라 칸 {n}개 (인벤토리는 인물 자리 하나 포함), 지운 칸 {nerased}개, 어긋난 칸 {len(bad)}, "
                   f"견준 텍셀 {npx}개 중 어긋남 {badpx}" + (f" {bad}" if bad else ""))
         n, bad = report["hotbar"]
         print(f"  칸 자리 hotbar: 칸 {n}개, 어긋남 {len(bad)}, 선택 테 구멍 안의 그림 텍셀 {report['selection_hole']}")

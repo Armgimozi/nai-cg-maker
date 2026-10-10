@@ -84,6 +84,8 @@ public final class Profiles implements Listener {
 
     /**
      * 프로필을 처음 상태로. keepSouls (출신 다시 고르기) 면 소울과 "다시 골랐다" 표시를 남기고, 아니면 (관리자의 출신 지우기) 둘 다 지운다.
+     * 낀 반지는 어느 쪽이든 남는다: 반지는 출신의 시작 아이템이 아니라 그 사람이 가진 아이템이고, 칸에 보이는 것은 프로필의 사본이라
+     * 프로필에서 지우면 아이템이 사라진다 (item/RingSlots, 9.4).
      */
     public Profile reset(Player p, boolean keepSouls) {
         Profile old = of(p);
@@ -92,6 +94,7 @@ public final class Profiles implements Listener {
             pr.setSouls(old.souls());
             pr.setRepicked(old.repicked());
         }
+        for (int i = 0; i < Profile.RING_SLOTS; i++) pr.setRing(i, old.ring(i));
         pr.setSettingsSeen(old.settingsSeen());
         live.put(p.getUniqueId(), pr);
         return pr;

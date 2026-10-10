@@ -81,6 +81,14 @@ import java.util.Locale;
  *   attr                             [T] ATTRS max_health=<값>[수정자 열쇠:값,…] movement_speed=… attack_speed=… (서버 쪽 속성과 수정자.
  *                                    클라이언트는 하트 배율 때문에 max_health 를 20 으로 받으므로 수정자가 쌓이지 않았는지는 여기서 본다)
  *   opens <자물쇠 id>                 Keys.opens (만능 열쇠·문 열쇠, 9.5): [T] OPENS lock= result= master= (이야기로 막힌 문은 늘 false)
+ *
+ * 반지 (9.4, item/RingSlots):
+ *   ring give <id>                   반지를 인벤토리에 (시험 반지는 이것으로만 얻는다). [T] RING_GIVE id= ok=
+ *   ring show                        [T] RINGS r1= r2= (프로필) s0..s4= (2×2 칸: 사본은 id*, 결과 칸 s0, 반지 칸 s1·s3) inv=<칸:id,…>
+ *                                    cursor= strays= (칸 밖의 사본) ground= (32칸 안의 반지 물체) regen= poise= parry= guard=
+ *   ring equip <1|2> <id|none>       반지 칸에 바로 낀다 / 뺀다 (아이템을 쓰거나 주지 않는다. 찍기 준비). [T] RING_SET ok=
+ * 반지 칸의 누르기는 [T] RING act=put|take|swap|unequip|hotbar|offhand|equip, 거절은 RING_DENY slot= why=, 같은 반지 둘은 RING_SAME,
+ * 칸 밖 사본 지우기는 RING_SWEEP, 2×2 에 들어온 다른 것을 돌려주면 RING_STRAY.
  */
 public final class TestCommands {
     private TestCommands() {}
@@ -328,6 +336,29 @@ public final class TestCommands {
                                     boolean master = java.util.Arrays.stream(p.getInventory().getContents()).anyMatch(kr.souls.item.MasterKey::is);
                                     plugin.test(p, "OPENS lock=" + lock + " result=" + kr.souls.Keys.opens(p, lock) + " master=" + master);
                                 }))))
+                .then(Commands.literal("ring")
+                        .then(Commands.literal("give")
+                                .then(Commands.argument("id", StringArgumentType.word())
+                                        .suggests((c, b) -> {
+                                            for (String id : plugin.rings().all().keySet()) b.suggest(id);
+                                            return b.buildFuture();
+                                        })
+                                        .executes(ctx -> withPlayer(ctx, p -> ringGive(plugin, p, StringArgumentType.getString(ctx, "id"))))))
+                        .then(Commands.literal("show").executes(ctx -> withPlayer(ctx, p -> plugin.test(p, plugin.ringSlots().line(p)))))
+                        .then(Commands.literal("equip")
+                                .then(Commands.argument("slot", IntegerArgumentType.integer(1, kr.souls.data.Profile.RING_SLOTS))
+                                        .then(Commands.argument("id", StringArgumentType.word())
+                                                .suggests((c, b) -> {
+                                                    b.suggest("none");
+                                                    for (String id : plugin.rings().all().keySet()) b.suggest(id);
+                                                    return b.buildFuture();
+                                                })
+                                                .executes(ctx -> withPlayer(ctx, p -> {
+                                                    int slot = IntegerArgumentType.getInteger(ctx, "slot");
+                                                    String id = StringArgumentType.getString(ctx, "id");
+                                                    boolean ok = plugin.ringSlots().set(p, slot - 1, "none".equals(id) ? null : id);
+                                                    plugin.test(p, "RING_SET slot=" + slot + " id=" + id + " ok=" + ok);
+                                                }))))))
                 .build();
         reg.register(root, "Soulslike test hooks (debug.test-mode)", List.of());
     }
@@ -387,9 +418,23 @@ public final class TestCommands {
 
     private static void stamina(Souls plugin, Player p) {
         CombatState st = CombatState.of(p);
-        plugin.test(p, String.format(Locale.ROOT, "STAMINA cur=%.2f max=%.1f ratio=%.4f exhausted=%s food=%d sprinting=%s regenFrom=%d t=%d",
+        // rate: 지금 틱당 회복 (Stamina.tick 의 셈: 기본 × 기력 × 장비 무게 × 반지, 막는 중 배율은 빼고)
+        double rate = plugin.cfg().stamina.regenPerTick() * plugin.cfg().stats.regenScale.at(plugin.stamina().endurance(p))
+                * plugin.load().regen(p) * plugin.ringSlots().staminaRegen(p);
+        plugin.test(p, String.format(Locale.ROOT, "STAMINA cur=%.2f max=%.1f ratio=%.4f exhausted=%s food=%d sprinting=%s regenFrom=%d t=%d rate=%.4f",
                 st.stamina.cur(), st.stamina.max(), st.stamina.ratio(), st.exhausted, p.getFoodLevel(), p.isSprinting(),
-                st.stamina.regenFrom(), plugin.ticker().now()));
+                st.stamina.regenFrom(), plugin.ticker().now(), rate));
+    }
+
+    /** 시험 반지를 인벤토리에 (9.4: 시험 반지는 이 명령으로만 얻는다). [T] RING_GIVE id= ok= */
+    private static void ringGive(Souls plugin, Player p, String id) {
+        kr.souls.item.Rings.Def d = plugin.rings().get(id);
+        if (d == null) {
+            plugin.test(p, "RING_GIVE id=" + id + " ok=false why=unknown");
+            return;
+        }
+        kr.souls.util.Items.give(p, plugin.rings().make(d));
+        plugin.test(p, "RING_GIVE id=" + id + " ok=true test=" + d.test());
     }
 
     private static void hit(Souls plugin, Player p, double amount, String flags) {

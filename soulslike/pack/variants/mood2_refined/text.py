@@ -88,7 +88,7 @@ def write_fonts(pack):
         print(f"  글꼴 {name}: {fonts.SOURCES[key][2]} wght {wght}, 글자 {n}, {size:,} 바이트")
     lic_dir = os.path.join(font_dir, "licenses")
     os.makedirs(lic_dir, exist_ok=True)
-    notice = ["Square Soul resource pack - fonts (pack/variants/mood2_refined)", "",
+    notice = ["Block Soul resource pack - fonts (pack/variants/mood2_refined)", "",
               "The TrueType fonts in assets/souls/font/ are subsets of the following fonts, licensed under the",
               "SIL Open Font License, Version 1.1. They were renamed (\"Souls Refined ...\") because they are modified",
               "(subset, fixed weight, layout tables removed).", ""]
@@ -220,7 +220,7 @@ void main() {{
 
 GUI_FSH = """#version 330
 
-// Square Soul mood2_refined: vanilla position_tex_color.fsh with the box filter (4x GUI art stays even at GUI scale 3).
+// Block Soul mood2_refined: vanilla position_tex_color.fsh with the box filter (4x GUI art stays even at GUI scale 3).
 // Can't moj_import in things used during startup, when resource packs don't exist.
 layout(std140) uniform DynamicTransforms {{
     mat4 ModelViewMat;
@@ -308,8 +308,8 @@ def write_shaders(pack):
     head, tail = base_vsh.rsplit("}", 1)
     assert "ivec3 mark" in head, "rendertype_text.vsh 에 HUD 표식 덩이가 없다 (hud.py 가 바뀌었다)"
     vsh = head + remap_block() + "}" + tail
-    vsh = vsh.replace("// Square Soul HUD (pack/hud.py).",
-                      "// Square Soul HUD (pack/hud.py) + mood2_refined text colours (pack/variants/mood2_refined/text.py).", 1)
+    vsh = vsh.replace("// Block Soul HUD (pack/hud.py).",
+                      "// Block Soul HUD (pack/hud.py) + mood2_refined text colours (pack/variants/mood2_refined/text.py).", 1)
     files = {
         "rendertype_text_intensity.vsh": vsh,
         "rendertype_text_intensity.fsh": TEXT_FSH.format(

@@ -730,7 +730,7 @@ def marked_image(img, k):
 # 셰이더: 바닐라 1.21.11 rendertype_item_entity_translucent_cull 에 표시 알파 한 덩이를 더했다 (ASCII 만: 드라이버마다 주석의 글자를 다르게 본다)
 ITEM_VSH = """#version 330
 
-// Square Soul (pack/roll_figure.py). Vanilla 1.21.11 rendertype_item_entity_translucent_cull.vsh plus:
+// Block Soul (pack/roll_figure.py). Vanilla 1.21.11 rendertype_item_entity_translucent_cull.vsh plus:
 // soulsRel: the camera-relative position, for the roll stand-in marker test in the fragment shader;
 // soulsCode / soulsIn: the radius the plugin codes into the low two bits of each tint channel (R, G, B -> 6 bits,
 // radius = code * %(cstep).2f blocks, codes 1..62; 0 and 63 = no code) and whether this vertex lies inside it.
@@ -779,7 +779,7 @@ void main() {
 
 ITEM_FSH = """#version 330
 
-// Square Soul (pack/roll_figure.py). Vanilla 1.21.11 rendertype_item_entity_translucent_cull.fsh plus one block:
+// Block Soul (pack/roll_figure.py). Vanilla 1.21.11 rendertype_item_entity_translucent_cull.fsh plus one block:
 // texels whose alpha (read at mip level 0) is a roll stand-in marker (%(lo)d..%(hi)d) belong to the copy of the roll
 // stand-in that only the rolling player sees. If the plugin coded a radius into the tint (soulsCode 1..62, see the .vsh),
 // a triangle is dropped when all three of its corners lie inside that radius around the camera (soulsIn interpolates to 1);

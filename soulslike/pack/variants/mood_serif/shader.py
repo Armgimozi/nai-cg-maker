@@ -123,8 +123,8 @@ def build(pack):
     head, tail = text.rsplit("}", 1)
     assert "ivec3 mark" in head, "rendertype_text.vsh 에 HUD 표식 덩이가 없다 (hud.py 가 바뀌었다)"
     out = head + remap_block() + "}" + tail
-    out = out.replace("// Square Soul HUD (pack/hud.py).",
-                      "// Square Soul HUD (pack/hud.py) + mood_serif text colours (pack/variants/mood_serif/shader.py).", 1)
+    out = out.replace("// Block Soul HUD (pack/hud.py).",
+                      "// Block Soul HUD (pack/hud.py) + mood_serif text colours (pack/variants/mood_serif/shader.py).", 1)
     with open(os.path.join(core, "rendertype_text_intensity.vsh"), "w", encoding="ascii", newline="\n") as f:
         f.write(out)
     with open(os.path.join(core, "rendertype_text_intensity.fsh"), "w", encoding="ascii", newline="\n") as f:

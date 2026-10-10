@@ -4,6 +4,10 @@
 M0 에서 만드는 것
   souls:master_key   만능 열쇠 (9.5, 도적의 시작 아이템). 손으로 찍은 16px 쇠 열쇠: 왼쪽 아래 청동 고리, 비스듬한 자루, 오른쪽 위
                      이빨. 평면 아이템 (item/generated).
+  souls:ring_*       반지 (9.4, content/rings.yml 의 model). 지금은 시험 반지 셋 (RING_ART): 같은 꼴의 고딕 반지 (둥근 테 위에
+                     네 갈래 물림쇠로 문 마름모 돌) 에 테와 돌의 색만 다르다. 인벤토리 반지 칸 바탕에 흐리게 비치는 반지 그림
+                     (RING_PLACEHOLDER, gui_skin 이 그린다) 은 이 꼴의 바깥 테두리라서 반지를 끼면 반지 그림이 그것을 다 덮는다
+                     (바닐라 클라이언트는 2×2 칸에 빈 칸 그림을 주지 않아 바탕에 그렸다. ring_cover 가 덮는지 본다).
   souls:test_guard   시험 막기·휘두름 도구의 맞춤 모형 (13.4 의 6, 8). 손으로 찍은 16px 쇠 버클러 하나.
                      items/test_guard.json 이 using_item 으로 평소 모형과 막는 모형을 가른다 (바닐라 방패와 같은 꼴, 10.6).
                      그림은 assets/souls/textures/item/ 에 둔다. 1.21.11 은 items 아틀라스가 이름공간마다 textures/item
@@ -101,6 +105,69 @@ ITEM_ART = {
     ),
 }
 
+# 반지 (9.4). 꼴은 하나 (RING_SHAPE), 색만 다르다. 기호: 테 금속은 반지마다 (H 밝음, M 가운데, L 어두움, D 그늘), P 물림쇠,
+# S·s 돌 (밝음·어두움). 테는 바깥 지름 10 (x 3..12, y 5..14), 굵기 2 의 둥근 고리 (속 구멍 지름 약 5). 빛은 왼쪽 위: 바깥 면은
+# 왼쪽 위가 밝고 오른쪽 아래가 꺼지며, 속 면은 거꾸로 (위 테의 아랫면은 그늘, 아래 테의 윗면은 빛을 받는다). 돌은 위 가운데
+# x 7..8, y 2..3 을 물림쇠가 마름모로 감싼다. 먹 테두리는 두지 않는다 (칸 바닥이 먹이라 보이지 않고 반지만 작아진다).
+RING_SHAPE = [
+    "................",
+    ".......PP.......",
+    "......PSsP......",
+    "......PssP......",
+    ".......PP.......",
+    ".....HHHHHM.....",
+    "....HHLLLLMM....",
+    "...HHLL..LLLL...",
+    "...HLL....MML...",
+    "...HL......ML...",
+    "...ML......HD...",
+    "...MLL....HHD...",
+    "...MMMM..HHDD...",
+    "....LLMHHHDD....",
+    ".....LLDDDD.....",
+    "................",
+]
+# 반지 칸 바탕의 흐린 반지 (gui_skin 이 2×2 의 왼쪽 위·왼쪽 아래 칸 바탕에 한 색 윤곽으로 그린다. 갑옷 칸의 빈 칸 그림과 같은 말씨):
+# 반지 꼴의 바깥 테두리와 돌 테두리. 모든 반지 그림이 이 점들을 불투명하게 덮어야 한다 (ring_cover)
+RING_PLACEHOLDER = [
+    "................",
+    ".......oo.......",
+    "......o..o......",
+    "......o..o......",
+    ".......oo.......",
+    ".....oooooo.....",
+    "....o......o....",
+    "...o........o...",
+    "...o........o...",
+    "...o........o...",
+    "...o........o...",
+    "...o........o...",
+    "...o........o...",
+    "....o......o....",
+    ".....oooooo.....",
+    "................",
+]
+# 반지마다 (모형 이름 → 테 금속 H M L D, 물림쇠 P, 돌 S s). 스태미나는 이끼빛 돌 (스태미나 막대의 계열) 에 청동 테, 강인도는 뼈빛 돌에
+# 녹슨 쇠 테, 쳐내기는 마른 핏빛 돌에 어두운 쇠 테
+RING_INKS = {
+    "ring_test_stamina": {"H": "bronze3", "M": "bronze2", "L": "bronze1", "D": "bronze0", "P": "bronze1", "S": "moss2", "s": "moss1"},
+    "ring_test_poise": {"H": "rust3", "M": "rust2", "L": "rust1", "D": "rust0", "P": "bronze2", "S": "bone2", "s": "bone0"},
+    "ring_test_parry": {"H": "ash3", "M": "rust2", "L": "rust1", "D": "rust0", "P": "bronze2", "S": "blood3", "s": "blood1"},
+}
+RING_ART = {name: (RING_SHAPE, dict(ink, K="ash0")) for name, ink in RING_INKS.items()}
+
+
+def ring_cover():
+    """반지 그림마다 바탕의 흐린 반지 (RING_PLACEHOLDER) 를 덮지 못하는 점 [(모형, x, y)]. 비어 있어야 한다."""
+    bad = []
+    for name, (rows, _) in RING_ART.items():
+        for y, row in enumerate(RING_PLACEHOLDER):
+            for x, ch in enumerate(row):
+                if ch != "." and rows[y][x] == ".":
+                    bad.append((name, x, y))
+    return bad
+
+
 # 막는 모형: 평소 모형을 부모로 두고 손 자세만 바꾼다 (왼손 값은 비워 두면 클라이언트가 오른손 값을 거울로 쓴다).
 # 1인칭: 바닐라가 막는 몸짓(BLOCK) 으로 아이템을 이미 정면으로 세운 뒤라, 평면 아이템 기본값(-90, 25)에서
 #   위로 (y), 가운데 쪽으로 (z) 옮기고 기울기를 줄였다. 판이 조준점 바로 아래, 가운데에서 조금 오른쪽에 선다.
@@ -112,9 +179,21 @@ GUARD_BLOCKING_DISPLAY = {
 
 
 def build_items(out):
-    for name, (rows, ink) in ITEM_ART.items():
+    bad = ring_cover()
+    if bad:
+        raise ValueError(f"반지 그림이 반지 칸 바탕의 흐린 반지를 덮지 못한다: {bad[:6]}")
+    for name, (rows, ink) in list(ITEM_ART.items()) + list(RING_ART.items()):
         _png(_img(rows, ink), os.path.join(out, "assets", NS, "textures", "item", name + ".png"))
     models = os.path.join(out, "assets", NS, "models", "item")
+    # 반지: 평면 아이템 하나씩 (souls:<모형 이름>, 플러그인 Rings.make 의 item_model)
+    for name in RING_ART:
+        _json(os.path.join(models, name + ".json"), {
+            "parent": "minecraft:item/generated",
+            "textures": {"layer0": f"{NS}:item/{name}"},
+        })
+        _json(os.path.join(out, "assets", NS, "items", name + ".json"), {
+            "model": {"type": "minecraft:model", "model": f"{NS}:item/{name}"},
+        })
     # 만능 열쇠: 평면 아이템 하나
     _json(os.path.join(models, "master_key.json"), {
         "parent": "minecraft:item/generated",

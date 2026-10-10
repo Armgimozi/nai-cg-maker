@@ -63,6 +63,32 @@ item:
       - "<#8f8164>Opens most doors held shut by a lock."
       - "<#8f8164>Sealed doors stay sealed."
 
+ring:
+  # Rings (9.4, content/rings.yml), worn in the left column of the inventory's 2x2 (item/RingSlots). The test_* rings are
+  # placeholders named for what they do (/soulstest ring give); they go once the story's rings come in.
+  effect:
+    stamina-regen: "<#9e7c44>Stamina recovery <pct>%"
+    poise: "<#9e7c44>Poise <pct>%"
+    parry-window: "<#9e7c44>Parry window <sec>s"
+    soul-guard: "<#9e7c44>Spares your souls once in death, then breaks"
+    pending: "<#5c5955>Not yet in effect"
+  test_stamina:
+    name: "<#d1c3a0><font:souls:title>Test Ring: Stamina Recovery"
+    lore:
+      - "<#8f8164>A ring for testing. Gone once the tale is set."
+  test_poise:
+    name: "<#d1c3a0><font:souls:title>Test Ring: Poise"
+    lore:
+      - "<#8f8164>A ring for testing. Gone once the tale is set."
+  test_parry:
+    name: "<#d1c3a0><font:souls:title>Test Ring: Parry"
+    lore:
+      - "<#8f8164>A ring for testing. Gone once the tale is set."
+
+container:
+  # Crafting table title (set by item/RingSlots; container.crafting is blank because its inventory spot is now the ring slots)
+  workbench: "<gray><font:souls:title>Crafting"
+
 weapon:
   # Weapons, shields, catalysts (9.1, 9.2, 3.12.4, 9.7). Ids and models: pack/weapons/SPEC.md.
   # Lore lines stay under the 250 px tooltip width (tools/langcheck.py).
@@ -394,7 +420,7 @@ pack:
   prompt: "<#b3a37f>None may enter without the resource pack."
   declined: "<#b3a37f>Resource pack refused. None may enter."
   failed: "<#b3a37f>The resource pack did not arrive. Try again."
-  description: "Square Soul"
+  description: "Block Soul"
 
 test:
   # <kind> is the /soulstest guard argument (empty|control|bypass|strip), shown as typed, not translated
@@ -466,7 +492,8 @@ vanilla:
     score:
       value: ""
   container:
-    crafting: "<gray>Crafting"
+    # Blank: the inventory 2x2 is the ring slots now, and they carry no label. The crafting table gets container.workbench
+    crafting: ""
     chest: "<gray>Chest"
     chestDouble: "<gray>Large Chest"
     enderchest: "<gray>Ender Chest"

@@ -420,7 +420,7 @@ def container(name):
 
 GUI_VSH = """#version 330
 
-// Square Soul mood2_refined: vanilla gui.vsh plus one block. The chat's black line backgrounds (and the chat input
+// Block Soul mood2_refined: vanilla gui.vsh plus one block. The chat's black line backgrounds (and the chat input
 // box: vanilla fills 0x7F000000 / 0x80000000) become warm ink that fades out towards the right, like a DS3 message band.
 // Can't moj_import in things used during startup, when resource packs don't exist.
 layout(std140) uniform DynamicTransforms {{

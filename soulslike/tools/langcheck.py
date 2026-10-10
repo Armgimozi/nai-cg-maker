@@ -106,7 +106,8 @@ SLOTS = [
     ("stats.title", "dialog_title"), ("stats.close", "button200"), ("stats.*", "dialog_body300"),
     ("bonfire.status", "dialog_body"), ("bonfire.no-warp", "dialog_body"), ("spell.no-slot", "dialog_body"),
     ("hud.*", "actionbar"),
-    ("item.*", "tooltip"), ("weapon.*", "tooltip"), ("test.*", "tooltip"), ("skill.*", "tooltip"),
+    ("item.*", "tooltip"), ("weapon.*", "tooltip"), ("test.*", "tooltip"), ("skill.*", "tooltip"), ("ring.*", "tooltip"),
+    ("container.workbench", "container_title"),
     ("vanilla.deathScreen.respawn", "button200"), ("vanilla.deathScreen.titleScreen", "button200"),
     ("vanilla.deathScreen.quit.confirm", "screen"), ("vanilla.deathScreen.score.value", "screen"),
     ("vanilla.container.crafting", "container_title"), ("vanilla.container.*", "container_title_wide"),
@@ -120,7 +121,9 @@ SAMPLE = {"souls": "9,999,999", "n": "9,999,999", "level": "713", "m": "999", "k
           "from": "713", "to": "713", "held": "999,999,999", "cost": "9,999,999", "value": "15 → 99",
           "first": "Max Stamina", "second": "Ailment Resist", "firstv": "1,000 → 1,000", "secondv": "+12% → +12%", "hp": "1,000", "mana": "200", "stamina": "200",
           "attack": "999", "weight": "99.9", "cap": "99.9", "damage": "1.25", "health": "1.4", "parry": "-1", "estus": "5",
-          "next": "9,999,999", "what": "Max Mana", "tier": "Overburdened", "difficulty": "Very Hard", "pvp": "PvP off"}
+          "next": "9,999,999", "what": "Max Mana", "tier": "Overburdened", "difficulty": "Very Hard", "pvp": "PvP off",
+          # 반지 효과 줄 (9.4): 배율·비율은 "+20" 꼴, 쳐내기 창은 초 "+0.10" 꼴
+          "pct": "+999", "sec": "+0.95"}
 
 # ── Java 를 읽는 표 ──
 # 열쇠를 받는 부르기: (임자, 이름) → 인수 목록 → 열쇠 자리들. 열쇠 자리 뒤 인수는 (자리 이름, 값) 짝이다 (Lang.args)
@@ -176,6 +179,7 @@ CONTENT_KEYS = {
     "weapons.yml": (("weapon.{id}.name", "line"), ("weapon.{id}.lore", "list")),
     "origins.yml": (("origin.{id}.name", "line"), ("origin.{id}.desc", "line"), ("origin.{id}.style", "line"),
                     ("origin.{id}.kit", "line")),
+    "rings.yml": (("ring.{id}.name", "line"), ("ring.{id}.lore", "list")),
 }
 # 콘텐츠에 있으면 안 되는 글 칸 (글은 lang 열쇠로). display 는 투사체 모습 (재료 id) 이라 id 꼴이면 된다
 CONTENT_TEXT_FIELDS = {"name", "display_name", "title", "subtitle", "description", "desc", "lore", "text", "flavor",

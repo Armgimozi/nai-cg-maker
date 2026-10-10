@@ -59,7 +59,7 @@ out float cylindricalVertexDistance;
 out vec4 vertexColor;
 out vec2 texCoord0;
 
-// Square Soul, UI mood variant "gothic" (pack/variants/mood_gothic/shaders.py).
+// Block Soul, UI mood variant "gothic" (pack/variants/mood_gothic/shaders.py).
 // Vanilla 1.21.11 rendertype_text_intensity.vsh (TrueType glyphs) plus:
 //  * GUI text in vanilla colours -> palette: white -> bone, grey (section 7) -> dim old gold, disabled -> ash,
 //    dark grey -> dark parchment, yellow -> faded parchment.
@@ -118,7 +118,7 @@ out vec4 vertexColor;
 out vec3 gothicVignette;
 out float gothicX;
 
-// Square Soul, UI mood variant "gothic": vanilla gui.vsh plus flags for a few vanilla fills
+// Block Soul, UI mood variant "gothic": vanilla gui.vsh plus flags for a few vanilla fills
 // (container screen dim 0xC0101010..0xD0101010 -> 1, death screen red wash 0x60500000..0xA0803030 -> 2).
 void main() {
     gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
@@ -158,7 +158,7 @@ in float gothicX;
 
 out vec4 fragColor;
 
-// Square Soul, UI mood variant "gothic": the flagged fills become vignettes (see gui.vsh).
+// Block Soul, UI mood variant "gothic": the flagged fills become vignettes (see gui.vsh).
 void main() {{
     vec4 color = vertexColor;
     if (gothicVignette.z > 2.5) {{
@@ -200,7 +200,7 @@ in vec2 texCoord;
 
 out vec4 fragColor;
 
-// Square Soul, UI mood variant "gothic": after the vanilla menu blur, drain the colour, darken,
+// Block Soul, UI mood variant "gothic": after the vanilla menu blur, drain the colour, darken,
 // close in with a heavy vignette and let a little warm candle light fall from above.
 void main() {{
     vec3 c = texture(InSampler, texCoord).rgb;
@@ -246,7 +246,7 @@ in vec2 texCoord0;
 
 out vec4 fragColor;
 
-// Square Soul, UI mood variant "gothic": vanilla rendertype_text_intensity.fsh, but the TrueType glyph atlas is read
+// Block Soul, UI mood variant "gothic": vanilla rendertype_text_intensity.fsh, but the TrueType glyph atlas is read
 // bilinearly (the atlas is drawn 4 texels per GUI pixel; at GUI scale 3 and 2 nearest sampling dropped whole texel rows
 // of the thin serif strokes).
 float glyph(vec2 uv) {
@@ -293,7 +293,7 @@ in vec4 Color;
 out vec2 texCoord0;
 out vec4 vertexColor;
 
-// Square Soul, UI mood variant "gothic": vanilla position_tex_color.vsh plus one check.
+// Block Soul, UI mood variant "gothic": vanilla position_tex_color.vsh plus one check.
 // The in-game vignette is the only full-screen GUI quad (texture 0..1 on the screen corners) drawn in a grey
 // below white at full alpha (its strength follows how dark the player's spot is). Keep it at least VIGNETTE_MIN
 // so the corners always close in (misc/vignette.png gives the shape).

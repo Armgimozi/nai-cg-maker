@@ -51,7 +51,7 @@ def write_fonts(pack):
         print(f"  글꼴 {name}: {fonts.SOURCES[key][2]} wght {wght}, 글자 {n}, {size:,} 바이트")
     lic_dir = os.path.join(font_dir, "licenses")
     os.makedirs(lic_dir, exist_ok=True)
-    notice = ["Square Soul resource pack - fonts (pack/variants/mood_serif)", "",
+    notice = ["Block Soul resource pack - fonts (pack/variants/mood_serif)", "",
               "The TrueType fonts in assets/souls/font/ are subsets of the following fonts, licensed under the",
               "SIL Open Font License, Version 1.1. They were renamed (\"Souls ...\") because they are modified (subset).", ""]
     for key in sorted({v[0] for v in FILES.values()}):
