@@ -125,9 +125,10 @@ export const KIND_DEFAULTS = {
   tyrano: { fit: "original" },
 };
 
-/** 전역 기본값 + 종류별 기본값 + 게임별 설정을 합친 실효 설정. */
+/** 전역 기본값 + 종류별 기본값 + 가져올 때 감지한 값(세로 게임 등) + 게임별 설정을 합친 실효 설정.
+ *  "기본값으로" 는 game.settings 만 비우므로 감지한 값은 남는다. */
 export async function effectiveSettings(game) {
-  return Object.assign(await globalDefaults(), KIND_DEFAULTS[game?.kind] || {}, game?.settings || {});
+  return Object.assign(await globalDefaults(), KIND_DEFAULTS[game?.kind] || {}, game?.autoSettings || {}, game?.settings || {});
 }
 
 export async function deleteGame(id) {

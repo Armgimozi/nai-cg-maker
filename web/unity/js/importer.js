@@ -20,6 +20,7 @@ import { readZip } from "./zip.js";
 import { isAsar, readAsar } from "./asar.js";
 import { inspectPcBuild, readHead } from "./pcbuild.js";
 import { gameCacheName, gameFileURL, newId, games, files as fileStore, globalDefaults } from "./db.js";
+import { stripTyranoThumbs } from "./saves.js";
 
 export class ImportError extends Error {
   constructor(code, message) { super(message); this.code = code; }
@@ -71,6 +72,7 @@ async function entriesFromAsar(blob, unpackedEntries) {
  */
 export async function entriesFromFile(file) {
   if (await isAsar(file)) return entriesFromAsar(file, null);
+  if (/\.asar$/i.test(file.name || "")) throw new ImportError("PACKAGE", BROKEN_ASAR(file.name));
   try {
     return await entriesFromZip(file);
   } catch (e) {
@@ -202,18 +204,24 @@ const THUMB_MAX_WIDTH = 480;
  *     금방 채우고, 엔진은 실패를 알리지 않는다 → JPEG(middle) · 가로 480px 이하
  * @returns {{ text: string, notes: string[] }}
  */
-export function patchTyranoConfig(text, cfg = tyranoConfig(text)) {
+export function patchTyranoConfig(text, cfg = tyranoConfig(text), engine = { scale: true, quality: true }) {
   let out = String(text);
   const notes = [];
   if (/^file$/i.test(cfg.configSave || "")) {
     out = setTyranoConfigLine(out, "configSave", "webstorage");
     notes.push("PC판 전용 '파일 세이브' 설정을 브라우저 저장소 세이브로 바꿔 설치합니다.");
   }
-  if (/^default$/i.test(cfg.ScreenRatio || "")) {
+  // 엔진은 fix·fit 일 때만 화면에 맞춰 늘이고 줄인다(그 밖의 값이나 줄이 없으면 원래 크기 그대로 → 폰에서 잘림)
+  if (!/^(fix|fit)$/.test(cfg.ScreenRatio || "")) {
     out = setTyranoConfigLine(out, "ScreenRatio", "fix");
     notes.push("화면 크기 맞춤(ScreenRatio)이 꺼져 있어 폰 화면에 맞도록 켰습니다.");
   }
-  if (cfg.configThumbnail !== "false") {
+  if (cfg.configThumbnail !== "false" && !engine.scale) {
+    // 2022년 8월 이전 엔진(V4·초기 V5)은 썸네일 크기를 줄일 수 없다(V4.50 이하는 화질 설정도 없음 = 원본 PNG)
+    // → 슬롯 하나가 수백 KB~수 MB 라 몇 번 저장하면 저장소가 찬다 → 썸네일을 끈다
+    out = setTyranoConfigLine(out, "configThumbnail", "false");
+    notes.push("이 게임의 엔진(옛 버전)은 세이브 썸네일을 줄일 수 없어 썸네일을 껐습니다(브라우저 저장 공간 절약).");
+  } else if (cfg.configThumbnail !== "false") {
     let thumb = false;
     if (!/^(low|middle)$/.test(cfg.configThumbnailQuality || "")) { out = setTyranoConfigLine(out, "configThumbnailQuality", "middle"); thumb = true; }
     // 엔진 기본값은 1(원본 크기). 썸네일 가로가 480px 을 넘으면 그 이하로 줄인다(1280→0.37, 1920→0.25)
@@ -264,6 +272,17 @@ async function tyranoCompat(entries, dir) {
   return notes;
 }
 
+/** 이 엔진이 썸네일 크기·화질 설정을 읽는지(2022-08 이후 configThumbnailScale, V4.55 이후 configThumbnailQuality).
+ *  kag.menu.js 를 못 찾으면(합쳐서 압축한 빌드 등) 읽는다고 본다. */
+async function tyranoEngineSupport(entries, dir) {
+  const m = entries.find((e) => e.path === (dir ? dir + "/" : "") + "tyrano/plugins/kag/kag.menu.js");
+  if (!m || m.size > 4 << 20) return { scale: true, quality: true };
+  try {
+    const t = await readText(m);
+    return { scale: t.includes("configThumbnailScale"), quality: t.includes("configThumbnailQuality") };
+  } catch { return { scale: true, quality: true }; }
+}
+
 /** readme.txt 첫 줄의 엔진 버전("…Ver6.00（C）ShikemokuMK") */
 async function tyranoVersion(entries, dir) {
   const r = entries.find((e) => e.path === (dir ? dir + "/readme.txt" : "readme.txt"));
@@ -293,13 +312,17 @@ async function tyranoPcSaves(entries, projectID) {
       const text = (await readText(e, 64 << 20)).trim();
       JSON.parse(unescape(text)); // 깨진 파일은 건너뛴다
       // 같은 키가 여러 곳(예: 맥의 _TyranoGameData 와 exe 옆)에 있으면 큰 쪽(더 많이 저장된 쪽)
-      if (!out[key] || text.length > out[key].length) out[key] = text;
+      // 원본 크기 썸네일은 빼고 넣는다(저장 공간) — 엔진이 다음 저장 때 다시 만든다
+      if (!out[key] || text.length > out[key].length) out[key] = stripTyranoThumbs(text);
     } catch { /* 무시 */ }
   }
   return out;
 }
 
 /* ───────────── PC판 HTML5 포장(NW.js · Electron) ───────────── */
+
+const BROKEN_ASAR = (name) => `Electron 게임(${name})이지만 app.asar 를 열 수 없습니다. ` +
+  "파일이 손상됐거나, 꺼내지 못하게 일부러 변형(보호)한 경우입니다.";
 
 // NW.js 런타임 파일(이 폴더의 .exe 는 뒤에 게임 zip 이 붙어 있을 수 있다)
 const NW_RUNTIME = /(^|\/)(nw\.dll|nw_elf\.dll|node\.dll|nw\.pak|nw_100_percent\.pak|ffmpegsumo\.dll|libnw\.so|libnode\.so)$/i;
@@ -313,7 +336,7 @@ function findPackages(entries) {
   for (const e of entries) {
     const d = dirname(e.path);
     // 윈도: 게임.exe / 리눅스: 확장자 없는 실행 파일(nw 런타임과 같은 폴더)
-    if (nwDirs.has(d) && e.size > 64 << 10 && (/\.exe$/i.test(e.path) || !/\.[^/]*$/.test(basename(e.path)))) {
+    if (nwDirs.has(d) && e.size > 64 << 10 && !NW_HELPER.test(e.path) && (/\.exe$/i.test(e.path) || !/\.[^/]*$/.test(basename(e.path)))) {
       out.push({ type: "exe", entry: e });
     }
   }
@@ -322,8 +345,51 @@ function findPackages(entries) {
 
 const PACKAGE_LABEL = { asar: "Electron · app.asar", nw: "NW.js · package.nw/app.nw", exe: "NW.js · 실행 파일에 묶인 zip" };
 
-async function openPackage(c, entries) {
-  const blob = await readBlob(c.entry);
+/** 항목의 마지막 n 바이트(스트림이면 끝까지 흘려 보내며 끝부분만 남긴다 — 통째로 메모리에 올리지 않음) */
+async function tailBytes(entry, n) {
+  const body = await entry.open();
+  if (body instanceof Blob) return new Uint8Array(await body.slice(Math.max(0, body.size - n)).arrayBuffer());
+  const reader = body.getReader();
+  let buf = new Uint8Array(0);
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    const joined = new Uint8Array(Math.min(n, buf.length + value.length));
+    const fromValue = Math.min(value.length, joined.length);
+    joined.set(buf.subarray(buf.length - (joined.length - fromValue)), 0);
+    joined.set(value.subarray(value.length - fromValue), joined.length - fromValue);
+    buf = joined;
+  }
+  return buf;
+}
+
+/** 끝부분에 zip 의 끝 표시(EOCD "PK\x05\x06")가 있는가 */
+function hasZipEnd(tail) {
+  for (let i = tail.length - 22; i >= 0; i--) {
+    if (tail[i] === 0x50 && tail[i + 1] === 0x4b && tail[i + 2] === 0x05 && tail[i + 3] === 0x06) return true;
+  }
+  return false;
+}
+
+// NW.js·크롬 런타임의 보조 실행 파일(게임 zip 이 붙어 있지 않다)
+const NW_HELPER = /(^|\/)(notification_helper|nacl64|nacl_helper\w*|nwjc|chrome_crashpad_handler|crashpad_handler|chromedriver|minidump_stackwalk|payload)(\.exe)?$/i;
+
+/**
+ * 포장 꺼내기.
+ * @returns {Promise<Blob|null>} 포장 파일 내용. exe 끝에 zip 이 없으면 null(후보 아님).
+ * 바깥 zip 에서 이 항목을 못 꺼내면(지원하지 않는 압축·암호·용량) 그 이유를 알리는 ImportError.
+ */
+async function packageBlob(c) {
+  try {
+    if (c.type === "exe" && !hasZipEnd(await tailBytes(c.entry, 22 + 0xffff + 20))) return null;
+    return await readBlob(c.entry);
+  } catch (e) {
+    throw new ImportError("PACKAGE", `${basename(c.entry.path)} 을(를) 압축 파일에서 꺼내지 못했습니다.\n${e.message || e}\n\n` +
+      "게임 폴더를 일반 zip(Deflate) 또는 '압축 안 함(저장)' 으로 다시 압축하거나, 이 파일만 따로 골라 넣어 보세요.");
+  }
+}
+
+async function openPackage(c, entries, blob) {
   if (c.type === "asar") {
     const up = c.entry.path + ".unpacked/";
     const unpacked = entries.filter((e) => e.path.startsWith(up)).map((e) => ({ ...e, path: e.path.slice(up.length) }));
@@ -469,6 +535,7 @@ export async function analyze(allEntries, sourceName = "", ctx = {}) {
   const entries = allEntries.filter((e) => !JUNK.test(e.path) && e.path);
   if (!entries.length) throw new ImportError("EMPTY", "비어 있는 압축 파일/폴더입니다.");
   const missingUnpacked = allEntries.missingUnpacked || [];
+  const truncated = allEntries.truncated || [];
 
   const htmls = entries
     .filter((e) => /\.html?$/i.test(e.path))
@@ -540,15 +607,16 @@ export async function analyze(allEntries, sourceName = "", ctx = {}) {
         const ver = await tyranoVersion(entries, dir);
         plan = { kind: "tyrano", kindLabel: ver ? `TyranoScript ${ver}` : "TyranoScript", root: dir, entry: relTo(dir, h.path),
           title: cfg["System.title"] || "", version: cfg.game_version && cfg.game_version !== "0.0" ? cfg.game_version : "",
-          overrides: new Map(), seedStorage: {}, settings: {} };
+          overrides: new Map(), seedStorage: {}, autoSettings: {} };
         // 세로 화면 게임(스마트폰용 720x1280 등)은 세로로 고정
-        if (+cfg.scHeight > +cfg.scWidth) plan.settings.orientation = "portrait";
-        const patched = patchTyranoConfig(text, cfg);
+        if (+cfg.scHeight > +cfg.scWidth) plan.autoSettings.orientation = "portrait";
+        const patched = patchTyranoConfig(text, cfg, await tyranoEngineSupport(entries, dir));
         if (patched.text !== text) plan.overrides.set(relTo(dir, tjs.path), patched.text);
         warnings.push(...patched.notes, ...(await tyranoCompat(entries, dir)));
-        plan.seedStorage = await tyranoPcSaves(ctx.outer || entries, cfg.projectID);
+        // projectID 줄이 없으면 엔진 기본값 tyranoproject 로 저장된다(kag.js)
+        plan.seedStorage = await tyranoPcSaves(ctx.outer || entries, cfg.projectID ?? "tyranoproject");
         const n = Object.keys(plan.seedStorage).length;
-        if (n) warnings.push(`PC판 세이브 파일 ${n}개를 찾았습니다. 설치하면 이어서 플레이할 수 있어요.`);
+        if (n) warnings.push(`PC판 세이브 파일 ${n}개를 찾았습니다. 설치하면 이어서 플레이할 수 있어요(세이브 목록의 썸네일 그림은 빠집니다).`);
         break;
       }
       if (has(j("js/rpg_core.js")) || has(j("js/rmmz_core.js"))) {
@@ -571,8 +639,10 @@ export async function analyze(allEntries, sourceName = "", ctx = {}) {
   let brokenAsar = null;
   if (!plan && !pcUnity && nested < 2) {
     for (const c of findPackages(entries)) {
+      const blob = await packageBlob(c); // 바깥 zip 에서 못 꺼내면 이유와 함께 멈춘다
+      if (!blob) continue; // 끝에 zip 이 안 붙은 exe
       let inner;
-      try { inner = await openPackage(c, entries); } catch { // zip 이 안 붙은 exe 등
+      try { inner = await openPackage(c, entries, blob); } catch { // asar·zip 형식이 아님
         if (c.type === "asar") brokenAsar = c.entry.path;
         continue;
       }
@@ -599,8 +669,7 @@ export async function analyze(allEntries, sourceName = "", ctx = {}) {
 
   // 7) 실행할 게 없음 → 어떤 플랫폼인지 알려 주기
   if (!plan && brokenAsar) {
-    throw new ImportError("PACKAGE", `Electron 게임(${brokenAsar})이지만 app.asar 를 열 수 없습니다. ` +
-      "파일이 손상됐거나, 꺼내지 못하게 일부러 변형(보호)한 경우입니다.");
+    throw new ImportError("PACKAGE", BROKEN_ASAR(brokenAsar));
   }
   if (!plan && !pcUnity && nested === 0) {
     const enigma = await enigmaExe(entries);
@@ -652,6 +721,9 @@ export async function analyze(allEntries, sourceName = "", ctx = {}) {
     warnings.push(`app.asar 밖(app.asar.unpacked 폴더)에 있어야 할 파일 ${missingUnpacked.length}개가 없습니다` +
       ` (${missingUnpacked.slice(0, 3).join(", ")}${missingUnpacked.length > 3 ? " …" : ""}). 게임 폴더 전체를 zip 으로 넣어 주세요.`);
   }
+  if (truncated.length) {
+    warnings.push(`app.asar 가 중간에 잘려 있어(덜 받았거나 복사 중 끊김) 파일 ${truncated.length}개가 빠졌습니다. 원본을 다시 받아 넣어 주세요.`);
+  }
   plan.title = plan.title || baseName(sourceName) || "이름 없는 게임";
   plan.files = inRoot.map((e) => ({ rel: relTo(root, e.path), entry: e }));
   if (plan.generatedHtml) plan.files = plan.files.filter((f) => f.rel !== plan.entry);
@@ -690,18 +762,32 @@ async function decompressBuildFile(blob, rel) {
   return blob;
 }
 
-/** PC판에서 가져온 세이브를 이 게임의 localStorage 에 넣는다(inject.js 의 게임별 분리 규칙과 같은 키). */
+/**
+ * PC판에서 가져온 세이브를 이 게임의 localStorage 에 넣는다(inject.js 의 게임별 분리 규칙과 같은 키).
+ * 분리를 끈 경우 같은 키(projectID 가 같은 다른 게임)의 세이브는 덮어쓰지 않는다.
+ * @returns {Promise<{written:number, failed:string[], message:string}>}
+ */
 async function seedLocalStorage(id, data) {
   const keys = Object.keys(data || {});
-  if (!keys.length) return 0;
+  const out = { written: 0, failed: [], message: "" };
+  if (!keys.length) return out;
   const isolate = (await globalDefaults()).isolateStorage !== false;
-  let n = 0;
+  let full = false;
   for (const k of keys) {
-    try { localStorage.setItem(isolate ? `uniplay:${id}:${k}` : k, data[k]); n++; } catch (e) {
+    const key = isolate ? `uniplay:${id}:${k}` : k;
+    if (!isolate && localStorage.getItem(key) !== null) { out.failed.push(k); continue; }
+    try { localStorage.setItem(key, data[k]); out.written++; } catch (e) {
       console.warn("[uniplay] 세이브를 넣지 못했습니다:", k, e);
+      out.failed.push(k);
+      full = true;
     }
   }
-  return n;
+  if (out.failed.length) {
+    out.message = full
+      ? `PC판 세이브 ${out.failed.length}개는 브라우저 저장 공간(모든 게임이 함께 쓰는 약 5MB)이 부족해 넣지 못했습니다: ${out.failed.join(", ")}. 안 하는 게임의 세이브를 지운 뒤 세이브 메뉴의 '백업 파일에서 복원'으로 .sav 를 넣어 주세요.`
+      : `PC판 세이브 ${out.failed.length}개는 같은 이름의 세이브가 이미 있어 넣지 않았습니다(게임별 저장소 분리가 꺼져 있음): ${out.failed.join(", ")}.`;
+  }
+  return out;
 }
 
 function isQuota(e) {
@@ -791,15 +877,18 @@ export async function install(plan, opt = {}) {
       addedAt: Date.now(),
       lastPlayed: 0,
       playSeconds: 0,
-      settings: { ...(plan.settings || {}), ...(opt.settings || {}) },
+      settings: opt.settings || {},
+      autoSettings: plan.autoSettings || {},
       idbfsPrefix: null,
       sourceName: plan.sourceName || "",
       warnings: plan.warnings || [],
     };
     stored.sort((a, b) => a[0].localeCompare(b[0]));
     await fileStore.put(id, stored);
+    const seeded = await seedLocalStorage(id, plan.seedStorage);
+    if (seeded.failed.length) game.warnings.push(seeded.message);
     await games.put(game);
-    await seedLocalStorage(id, plan.seedStorage);
+    game.installNotes = seeded.failed.length ? [seeded.message] : [];
     return game;
   } catch (e) {
     await caches.delete(cacheName).catch(() => {});

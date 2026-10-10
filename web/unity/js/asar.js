@@ -30,7 +30,7 @@ export async function isAsar(blob) {
  * @param {(path:string)=>({size:number, open:()=>Promise<Blob|ReadableStream>})|null} [unpacked]
  *        asar 안에 없는(unpacked) 파일을 asar.unpacked 폴더에서 찾아 주는 함수
  * @returns {Promise<{path:string,size:number,open:()=>Promise<Blob|ReadableStream>}[]>}
- *          배열의 missingUnpacked 속성 = 못 찾은 unpacked 파일 경로들
+ *          배열의 missingUnpacked 속성 = 못 찾은 unpacked 파일, truncated = 파일 끝에서 잘린 항목
  */
 export async function readAsar(blob, unpacked) {
   if (!(await isAsar(blob))) throw new AsarError("asar 파일이 아니거나 손상되었습니다.");
@@ -46,6 +46,7 @@ export async function readAsar(blob, unpacked) {
   const base = 8 + headerSize;
   const out = [];
   out.missingUnpacked = []; // asar 밖(app.asar.unpacked)에 있어야 하는데 못 찾은 파일
+  out.truncated = [];       // 파일 끝을 넘어가는 항목(덜 받은·잘린 asar)
   const walk = (node, prefix, depth) => {
     if (!node || typeof node.files !== "object" || depth > 64) return;
     for (const [name, child] of Object.entries(node.files)) {
@@ -61,7 +62,7 @@ export async function readAsar(blob, unpacked) {
         continue;
       }
       const start = base + Number(child.offset || 0);
-      if (!Number.isFinite(start) || start + size > blob.size) continue; // 잘린 파일
+      if (!Number.isFinite(start) || start + size > blob.size) { out.truncated.push(path); continue; }
       out.push({ path, size, open: async () => blob.slice(start, start + size) });
     }
   };

@@ -150,7 +150,9 @@ async function importEntries(getEntries, sourceName) {
     await render();
     const go = await dialog({
       title: "설치 완료",
-      body: `"${game.title}" 을(를) 라이브러리에 추가했습니다.`,
+      body: game.installNotes?.length
+        ? h("div", {}, h("p", {}, `"${game.title}" 을(를) 라이브러리에 추가했습니다.`), game.installNotes.map((n) => h("p", { class: "warn" }, n)))
+        : `"${game.title}" 을(를) 라이브러리에 추가했습니다.`,
       buttons: [{ label: "나중에", value: false }, { label: "지금 플레이", value: true, kind: "primary" }],
     });
     if (go) location.href = playURL(game);
@@ -473,11 +475,17 @@ async function restoreTyranoSav(g, list, s) {
   }
   const ok = await confirmBox("PC판 세이브 가져오기", "같은 이름의 세이브를 덮어씁니다. 게임이 실행 중이면 끄고 진행하세요.", "가져오기");
   if (!ok) return;
-  const r = await importTyranoSav(g, list.filter((x) => /\.sav$/i.test(x.name)));
-  if (!r.written) {
-    return dialog({ title: "복원 실패", body: `티라노스크립트 세이브 파일이 아닙니다: ${r.bad.join(", ")}\n(이름이 프로젝트ID_tyrano_data.sav · _sf.sav 같은 형식이어야 해요)` });
+  let r;
+  try { r = await importTyranoSav(g, list.filter((x) => /\.sav$/i.test(x.name))); } catch (e) {
+    return dialog({ title: "복원 실패", body: e.message || String(e) });
   }
-  toast(`PC판 세이브 ${r.written}개를 넣었습니다.${r.bad.length ? ` (건너뜀: ${r.bad.join(", ")})` : ""}`);
+  const problems = [
+    r.bad.length ? `티라노스크립트 세이브 파일이 아님: ${r.bad.join(", ")} (이름이 프로젝트ID_tyrano_data.sav · 프로젝트ID_sf.sav 같은 형식이어야 해요)` : "",
+    r.full.length ? `저장 공간 부족으로 못 넣음: ${r.full.join(", ")} (브라우저 저장소는 모든 게임이 함께 약 5MB — 안 하는 게임의 세이브를 지워 주세요)` : "",
+  ].filter(Boolean);
+  if (!r.written) return dialog({ title: "복원 실패", body: h("p", { class: "dialog-body pre" }, problems.join("\n\n")) });
+  if (problems.length) dialog({ title: `PC판 세이브 ${r.written}개를 넣었습니다`, body: h("p", { class: "dialog-body pre" }, problems.join("\n\n")) });
+  else toast(`PC판 세이브 ${r.written}개를 넣었습니다(썸네일 그림은 빠집니다).`);
   s.close();
 }
 

@@ -7,7 +7,7 @@
  * 티라노스크립트 PC판 세이브(.sav)도 그대로 가져올 수 있다(내용 형식이 브라우저판과 같음).
  */
 
-import { games } from "./db.js";
+import { games, effectiveSettings } from "./db.js";
 
 const IDBFS = "/idbfs";
 const STORE = "FILE_DATA";
@@ -182,21 +182,47 @@ export async function importSave(game, file) {
 }
 
 /**
+ * 티라노스크립트 세이브 값(escape(JSON))에서 썸네일 그림(img_data)을 뺀다. PC판 세이브의 썸네일은 원본 크기라
+ * 슬롯 하나가 수백 KB~수 MB 여서 모든 게임이 함께 쓰는 localStorage(약 5MB)에 들어가지 않는다.
+ * 엔진은 빈 썸네일을 그대로 보여 주고(그림 없음), 다음에 저장할 때 새로 만든다.
+ * @returns {string} 바뀐 값(형식이 다르면 원래 값)
+ */
+export function stripTyranoThumbs(text) {
+  try {
+    const o = JSON.parse(unescape(text));
+    if (!o || typeof o !== "object") return text;
+    let n = 0;
+    for (const slot of Array.isArray(o.data) ? o.data : [o]) {
+      if (slot && typeof slot === "object" && slot.img_data) { slot.img_data = ""; n++; }
+    }
+    return n ? escape(JSON.stringify(o)) : text;
+  } catch { return text; }
+}
+
+/** 이 게임의 localStorage 키(inject.js 의 게임별 분리 규칙과 같게) */
+export async function gameStorageKey(game, key) {
+  return (await effectiveSettings(game)).isolateStorage !== false ? lsPrefix(game.id) + key : key;
+}
+
+/**
  * 티라노스크립트 PC판 세이브(.sav) 가져오기. 파일 이름이 localStorage 키(<projectID>_tyrano_data 등)이고
- * 내용은 브라우저판과 같은 escape(JSON) 문자열이다.
+ * 내용은 브라우저판과 같은 escape(JSON) 문자열이다(썸네일은 빼고 넣는다).
+ * @returns {{written:number, bad:string[], full:string[]}} bad = 형식이 아님, full = 저장 공간 부족
  */
 export async function importTyranoSav(game, fileList) {
   let written = 0;
-  const bad = [];
+  const bad = [], full = [];
   for (const f of fileList) {
     const m = /^(.+_(sf|tyrano_data|tyrano_quick_save|tyrano_auto_save))\.sav$/.exec(f.name);
     if (!m) { bad.push(f.name); continue; }
     const text = (await f.text()).trim();
     try { JSON.parse(unescape(text)); } catch { bad.push(f.name); continue; }
-    localStorage.setItem(lsPrefix(game.id) + m[1], text);
-    written++;
+    try {
+      localStorage.setItem(await gameStorageKey(game, m[1]), stripTyranoThumbs(text));
+      written++;
+    } catch { full.push(f.name); }
   }
-  return { written, bad };
+  return { written, bad, full };
 }
 
 /** 이 게임의 세이브를 모두 지운다. */
