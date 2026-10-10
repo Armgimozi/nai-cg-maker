@@ -42,13 +42,13 @@ L.run('persist_check', async (sc) => {
   let c = await L.connect(sc, { name: late })
   const noticeKey = (m) => L.translateKeys(m.raw).includes('souls.start.notice')
   const n = await c.waitSys(noticeKey, 15000)
-  sc.check('later joiner: chat notice "this world: hard · PvP on" (souls.start.notice with the saved values)', n && L.translateKeys(n.raw).includes('souls.difficulty.hard.name') &&
+  sc.check('later joiner: chat notice "World settings: Hard, PvP on" (souls.start.notice with the saved values)', n && L.translateKeys(n.raw).includes('souls.difficulty.hard.name') &&
     L.translateKeys(n.raw).includes('souls.pvp.on'), n ? L.translateKeys(n.raw).join(',') : c.sys.map((m) => m.plain.slice(0, 50)).join(' | '))
   const sn = await c.waitT('START_NOTICE', 3000)
   sc.check('later joiner: START_NOTICE line, not a settings dialog', sn && !c.tLines('START_DIALOG').length, sn ? sn.line : '줄 없음')
   let raw = await c.waitDialog(0, 4000)
   sc.check('later joiner: origin dialog follows', raw && c.dialogId(raw) === 'origin', raw ? c.dialogId(raw) : '창 없음')
-  // 출신 창을 닫아도 (Esc = "나중에 고른다") 망가지지 않는다: 출신 없이 서 있고, 무엇을 하려 하면 창이 다시 뜨고, 다시 들어오면 또 묻는다
+  // 출신 창을 닫아도 (Esc = "나중에 고르기") 망가지지 않는다: 출신 없이 서 있고, 무엇을 하려 하면 창이 다시 뜨고, 다시 들어오면 또 묻는다
   let from = c.sys.length
   if (raw) c.clickDialog('exit', {}, raw)
   const later = await c.waitT('ORIGIN_LATER', 3000, from)

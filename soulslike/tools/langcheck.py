@@ -71,9 +71,9 @@ SLOT_PX = {
     "container_title": 72,           # 창 제목 (인벤토리의 "제작" 은 x 97 에서 판 안쪽 끝 168 까지, 10.4)
     "container_title_wide": 150,     # 판 왼쪽 (x 8) 에서 시작하는 창 제목 (상자·통·보관함, 판 안쪽 끝 168 까지)
     "boss_name": 200,                # 보스 막대 이름 (막대 왼쪽 끝 위, 늘이기 전 막대 폭 200 안, 10.2)
-    "button150": 140,                # Dialog 단추 폭 150 (출신 확인 창, 5.10. 레벨 올리기의 되돌린다·올린다는 폭 196 이라 넉넉히 이 폭으로 잰다)
-    "button250": 240,                # Dialog 단추 폭 250 (세계를 정한다 창의 난이도 단추, 5.7)
-    "dialog_body300": 284,           # 폭 300 Dialog 본문 (세계를 정한다 창, 5.7. 글이 서는 폭 300 − 16)
+    "button150": 140,                # Dialog 단추 폭 150 (출신 확인 창, 5.10. 레벨 업 창의 되돌리기·결정은 폭 196 이라 넉넉히 이 폭으로 잰다)
+    "button250": 240,                # Dialog 단추 폭 250 (세계 설정 창의 난이도 단추, 5.7)
+    "dialog_body300": 284,           # 폭 300 Dialog 본문 (세계 설정 창, 5.7. 글이 서는 폭 300 − 16)
     "dialog_body320": 304,           # 폭 320 Dialog 본문 (레벨 올리기·능력치·출신 확인 창의 능력치 표 ui/StatSheet, 5.9. 글이 서는 폭 320 − 16)
     "dialog_body370": 354,           # 폭 370 Dialog 본문 (출신 창 머리줄과 출신 줄, 5.10. 글이 서는 폭 370 − 16)
     "button64": 51,                  # 레벨 올리기의 능력치 단추 (폭 64, 글 칸 60 에 플러그인이 붙이는 " +" 9 를 뺀다, 5.9)
@@ -91,7 +91,7 @@ SLOTS = [
     ("bonfire.stats", "button160"), ("bonfire.repick", "button160"),
     ("burden.*", "subtitle"), ("controls.hint.*", "dialog_body320"), ("derived.*", "dialog_body320"),
     ("load.*", "dialog_body320"), ("table.*", "dialog_body320"),
-    ("difficulty.summary", "button_tip"), ("difficulty.*", "button250"),
+    ("difficulty.summary", "button_tip"), ("difficulty.*.desc", "button_tip"), ("difficulty.*", "button250"),
     ("levelup.title", "dialog_title"), ("levelup.cancel", "button200"),
     ("levelup.tip", "button_tip"), ("levelup.burn", "button_tip"), ("levelup.short", "button_tip"), ("levelup.later", "button_tip"),
     ("levelup.load*", "button_tip"), ("levelup.*", "button150"),
@@ -123,8 +123,8 @@ SAMPLE = {"souls": "9,999,999", "n": "9,999,999", "level": "713", "m": "999", "k
           "from": "713", "to": "713", "held": "999,999,999", "cost": "9,999,999", "value": "15 → 99",
           "first": "Max Stamina", "second": "Ailment Resist", "firstv": "1,000 → 1,000", "secondv": "+12% → +12%", "hp": "1,000", "mana": "200", "stamina": "200",
           "attack": "999", "weight": "99.9", "cap": "99.9", "damage": "1.25", "health": "1.4", "parry": "-1", "estus": "5",
-          "next": "9,999,999", "what": "Max Mana", "tier": "Overburdened", "difficulty": "Very Hard", "pvp": "PvP off",
-          # 반지 효과 줄 (9.4): 배율·비율은 "+20" 꼴, 패링 창은 초 "+0.10" 꼴
+          "next": "9,999,999", "what": "Max Mana", "tier": "Overloaded", "difficulty": "Very Hard", "pvp": "PvP off",
+          # 반지 효과 줄 (9.4): 배율·비율은 "+20" 꼴, 패링 판정은 초 "+0.1" 꼴 (끝의 0 은 뗀다)
           "pct": "+999", "sec": "+0.95"}
 
 # ── Java 를 읽는 표 ──

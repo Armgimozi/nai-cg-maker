@@ -197,7 +197,7 @@ public final class Rings {
                 case STAMINA_REGEN -> Lang.c("ring.effect.stamina-regen", "pct", signed(Math.round((d.staminaRegen() - 1.0) * 100.0)));
                 case POISE -> Lang.c("ring.effect.poise", "pct", signed(Math.round(d.poise() * 100.0)));
                 case PARRY_WINDOW -> Lang.c("ring.effect.parry-window", "sec",
-                        (d.parryWindow() < 0 ? "-" : "+") + String.format(Locale.ROOT, "%.2f", Math.abs(d.parryWindow()) / 20.0));
+                        (d.parryWindow() < 0 ? "-" : "+") + seconds(Math.abs(d.parryWindow())));
                 default -> Lang.c("ring.effect.soul-guard");
             });
             pending |= !LIVE.contains(e);
@@ -209,6 +209,13 @@ public final class Rings {
         if (!lore.isEmpty()) out.add(Lang.variant("ring.rule", d.id()));
         out.addAll(lore);
         return out;
+    }
+
+    /** 틱 → 초, 끝의 0 은 뗀다 (2 → "0.1", 1 → "0.05", 20 → "1"). pack/typeset.py ring_effect_value 와 같다. */
+    static String seconds(int ticks) {
+        String s = String.format(Locale.ROOT, "%.2f", ticks / 20.0);
+        s = s.replaceAll("0+$", "");
+        return s.endsWith(".") ? s.substring(0, s.length() - 1) : s;
     }
 
     private static String signed(long v) {

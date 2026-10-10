@@ -88,7 +88,7 @@ public final class Load implements Listener {
         return tier(p).regen();
     }
 
-    /** 달릴 수 없을 만큼 무겁다 (너무 무거움). */
+    /** 달릴 수 없을 만큼 무겁다 (과적). */
     public boolean noSprint(Player p) {
         return !tier(p).sprint();
     }

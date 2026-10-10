@@ -145,7 +145,7 @@ L.run('death', async (sc) => {
         dt === undefined ? '키 없음 (바닐라 글이 남는다)' : dt === '' ? '빈칸' : [...dt].map((c) => c.codePointAt(0).toString(16)).join(' '))
       sc.check(`${lang}: score line empty`, j['deathScreen.score.value'] === '', JSON.stringify(j['deathScreen.score.value']))
       const rb = j['deathScreen.respawn'] || ''
-      if (lang === 'ko_kr') sc.check('ko_kr: respawn button is Korean (일어선다)', /^\u00a77[가-힣 ]+$/.test(rb), JSON.stringify(rb))
+      if (lang === 'ko_kr') sc.check('ko_kr: respawn button is Korean (다시 일어서기)', /^\u00a77[가-힣 ]+$/.test(rb), JSON.stringify(rb))
       else sc.check(`${lang}: respawn button is the souls English text (same as en_us, not vanilla Respawn)`, rb === enRespawn && /^\u00a77[A-Za-z ]+$/.test(rb) && !/Respawn/.test(rb), JSON.stringify(rb))
     }
     // 그림 글자 줄: screen 판은 사망 화면 제목 (기본 글꼴), 서서히 판은 문구 줄 (souls:death, 1배라 글꼴 높이가 두 배)

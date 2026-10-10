@@ -1978,8 +1978,8 @@ def write_previews(out, preview_dir):
     canvas = pv.dusk_scene(W2 * gui, H2 * gui)
     canvas.alpha_composite(pv.death_overlay(W2 * gui, H2 * gui))
     small = Image.new("RGBA", (W2, H2), (0, 0, 0, 0))
-    btns = [("button", 200, 20, 113, 10, "일어선다"), ("button_highlighted", 200, 20, 113, 34, "그만둔다"),
-            ("button_disabled", 200, 20, 113, 58, "일어선다"), ("button", 98, 20, 10, 90, "설정"),
+    btns = [("button", 200, 20, 113, 10, "다시 일어서기"), ("button_highlighted", 200, 20, 113, 34, "타이틀 화면으로"),
+            ("button_disabled", 200, 20, 113, 58, "다시 일어서기"), ("button", 98, 20, 10, 90, "설정"),
             ("button_highlighted", 98, 20, 112, 90, "통계"), ("button", 204, 20, 214, 90, "게임으로 돌아가기")]
     for spr, bw, bh, bx, by, _ in btns:
         small.alpha_composite(nine_slice(_gui(out, "sprites", "widget", spr + ".png", gui_w=200), bw, bh,

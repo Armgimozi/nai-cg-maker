@@ -85,7 +85,7 @@ L.run('lang', async (sc) => {
   }
   sc.check('item_name = translatable souls.test.guard', !!item, b.p.slots.slice(s0).map((x) => JSON.stringify(x.name)).join(' | ').slice(0, 300) || '칸 패킷 없음')
   if (item) {
-    sc.check('item name reads in English / Korean (<kind> is the typed argument)', L.render(item.name, T.en) === 'Test Guard [empty]' && /^시험 막기 \[empty\]$/.test(L.render(item.name, T.ko)),
+    sc.check('item name reads in English / Korean (<kind> is the typed argument)', L.render(item.name, T.en) === 'Test Guard [empty]' && /^시험 가드 \[empty\]$/.test(L.render(item.name, T.ko)),
       `${L.render(item.name, T.en)} / ${L.render(item.name, T.ko)}`)
     // 아이템은 여러 사람이 볼 수 있어 대체 글 (팩이 없을 때) 이 영어다 (10.9)
     sc.check('item fallback (no pack) is English', L.render(item.name, {}) === 'Test Guard [empty]', JSON.stringify(L.render(item.name, {})))
@@ -115,7 +115,7 @@ L.run('lang', async (sc) => {
   // ── 관리자 답 (번역 열쇠 + 인수) ──
   const tp = await b.cmd('/souls tp nowhere', (m) => L.translateKeys(m.raw).includes('souls.admin.no-anchor'), 3000)
   sc.checkCmd('admin reply = translatable souls.admin.no-anchor', tp, (r) => !!r.msg)
-  if (tp.msg) sc.check('admin reply reads "No such anchor: nowhere"', L.render(tp.msg.raw, T.en) === 'No such anchor: nowhere', L.render(tp.msg.raw, T.en))
+  if (tp.msg) sc.check('admin reply reads "Unknown location: nowhere"', L.render(tp.msg.raw, T.en) === 'Unknown location: nowhere', L.render(tp.msg.raw, T.en))
   sc.check('no kick during lang scenario', !b.kick, b.kick || '')
   await b.quit()
 

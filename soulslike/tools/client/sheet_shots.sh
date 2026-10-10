@@ -7,7 +7,7 @@
 # 장면 (ONLY 에 빈칸으로 골라 준다. 없으면 모두):
 #   settings  세계 설정 창 (5.7): settings
 #   origin    출신 창 (origin_list) 과 도적 확인 창 (origin_confirm_thief: 시작 아이템 셋, 능력치 표, 조작 줄). 찍은 뒤 빈털터리로
-#   levelup   레벨 올리기 창 (5.9, 소울 25,000, 왼손 순례자 버클러): 더한 점 없이 (levelup_idle), 근력 +3 (levelup_str: 레벨 1 → 4,
+#   levelup   레벨 업 창 (5.9, 소울 25,000, 왼손 순례자 버클러): 더한 점 없이 (levelup_idle), 근력 +3 (levelup_str: 레벨 1 → 4,
 #             보유 소울 25,000 → 23,980, 근력 10 → 13, 공격력·장비 중량·방어력 미리보기) 과 근력 "+" 단추의 설명 칸 (levelup_str_tip)
 #   stats     능력치 창 (5.9): 출신·레벨·보유 소울과 능력치 여섯 | 나온 값, 장비 중량 밑의 무게 단계 (stats)
 #   rest      휴식 창 (4.1): 본문의 레벨·보유 소울·필요 소울 세 줄 (rest_menu)

@@ -59,7 +59,7 @@ public final class StatCurves {
      * DECISIONS 2026-10-10). 옛 판의 보정 C (0.8 × 옛 곡선) 를 그대로 옮겼다
      */
     public final Curve strAttack;
-    /** 지력의 술법 세기 몫 (stats.intelligence.spell-power): 술법 세기 = 촉매의 술법 세기 × (1 + 이 값). 모든 촉매에 같다 */
+    /** 지력의 술법 위력 몫 (stats.intelligence.spell-power): 술법 위력 = 촉매의 술법 위력 × (1 + 이 값). 모든 촉매에 같다 */
     public final Curve intSpell;
     public final double defenseBase, defensePerLevel;
     public final Curve maxHealth, vigorDefense;

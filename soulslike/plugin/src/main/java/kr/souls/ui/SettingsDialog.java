@@ -20,9 +20,10 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * "세계를 정한다" 창 (5.7). 본문 한 줄과 PvP 줄 둘, PvP 체크 칸 하나, 난이도 단추 넷 ("쉬움 — 적이 약하다" …, 단추 설명 칸에 지금 듣는
- * 배율). 단추를 누르면 체크 칸 값을 읽어 곧바로 정하고 출신 창으로 간다 (검토 settings-dialog-dense: 고름 칸과 "시작한다" 를 없앴다).
- * 보통 단추에 "처음이라면" 을 단다. Esc 와 "나중에 정한다" 는 잠정 기본값 그대로 (StartFlow.settingsLater, 설명 칸에 그 값).
+ * "세계 설정" 창 (5.7). 본문 한 줄과 PvP 줄 둘, PvP 체크 칸 하나, 난이도 단추 넷 (이름만: "쉬움", "보통 (권장)" …. 단추 설명 칸에 그
+ * 난이도의 한 줄과 지금 듣는 배율). 단추를 누르면 체크 칸 값을 읽어 곧바로 정하고 출신 창으로 간다 (검토 settings-dialog-dense: 고름
+ * 칸과 "시작한다" 를 없앴다). 기본 난이도 단추에 "(권장)" 을 단다. Esc 와 "나중에 정하기" 는 잠정 기본값 그대로 (StartFlow.settingsLater,
+ * 설명 칸에 그 값). 예전 단추 글 "쉬움 — 적이 약하다" 는 줄표와 내레이션이 AI 티가 나서 바꿨다 (DECISIONS 2026-10-10).
  */
 public final class SettingsDialog {
     public static final String ID = "settings";
@@ -41,12 +42,12 @@ public final class SettingsDialog {
             Component name = Lang.c(p, "difficulty." + id + ".name"); // lang-dyn: difficulty.*.name
             Component desc = Lang.c(p, "difficulty." + id + ".desc"); // lang-dyn: difficulty.*.desc
             Component label = id.equals(plugin.cfg().difficultyDefault)
-                    ? Lang.c(p, "start.choice-default", "name", name, "desc", desc)
-                    : Lang.c(p, "start.choice", "name", name, "desc", desc);
-            buttons.add(ui.button(s, id, label, summary(p, d), WIDTH,
+                    ? Lang.c(p, "start.choice-default", "name", name)
+                    : Lang.c(p, "start.choice", "name", name);
+            buttons.add(ui.button(s, id, label, Columns.lines(List.of(desc, summary(p, d))), WIDTH,
                     (pl, v) -> plugin.start().chooseSettings(pl, id, bool(v, "pvp", pvp0), "dialog")));
         }
-        // "나중에 정한다" 의 설명 칸: 그동안 쓰는 잠정 설정 (검토 start-dialog-wording)
+        // "나중에 정하기" 의 설명 칸: 그동안 쓰는 잠정 설정 (검토 start-dialog-wording)
         String dNow = cur != null ? cur.difficulty() : plugin.cfg().difficultyDefault;
         Component laterTip = Lang.c(p, "start.later-tip", "difficulty", kr.souls.start.StartFlow.diffName(p, dNow), "pvp",
                 kr.souls.start.StartFlow.pvpName(p, pvp0));
@@ -64,7 +65,7 @@ public final class SettingsDialog {
     }
 
     /**
-     * 단추 설명 칸: 지금 듣는 배율만 한 줄 "적 피해 ×0.7 · 적 HP ×0.8" (검토 difficulty-promises-unbuilt). 패링 창·에스트 횟수는 그 체계가
+     * 단추 설명 칸의 둘째 줄: 지금 듣는 배율만 "받는 피해 ×0.7, 적 HP ×0.8" (검토 difficulty-promises-unbuilt). 패링 판정·에스트 횟수는 그 체계가
      * 생기는 M1 에 보통과 다를 때만 더한다 ("+0틱" 을 보이지 않게).
      */
     static Component summary(Player p, Config.Difficulty d) {

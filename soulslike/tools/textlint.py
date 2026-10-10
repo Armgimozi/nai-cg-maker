@@ -10,24 +10,34 @@
   팩 언어 파일 (pack/resourcepack/assets/*/lang/*.json) 은 이 YAML 에서 만들어지므로 기본으로는 보지 않는다
   (YAML 과 같은지는 tools/langcheck.py 가 본다). 인수로 주면 본다.
 
+  말씨의 규칙은 DESIGN.md 10.3 의 "UI 글 규칙" 이다. 이야기 글 (is_story: 무기·반지·아이템·스킬 설명과 출신 설명, STORY_KEYS 의 세계 안
+  사건 글) 은 해라체 단문, 그 밖 (단추·칸 이름·알림·설정 창·접속·관리자 글) 은 UI 글이다.
+
 한국어 (한글이 든 문자열)
   오류  exclaim 느낌표, emoji 이모지, hype 금지어 (전설, 궁극, 압도, 최강, 강력한),
-        explain 설명문체 어미 (습니다, 할 수 있, 입니다): 이야기·설명 글 (lore, desc … 와 STORY_KEYS) 에만.
+        explain 설명문체 어미 (습니다, 할 수 있, 입니다): 이야기 글에만.
         단추·알림·설정 창·시스템 글은 존댓말 (~합니다, ~하세요) 을 쓴다 (DECISIONS 2026-10-10 "설정 창·시스템 글은 내레이션 없이 존댓말")
-  경고  lines 설명(lore, desc, description …)이 4줄 넘음, long 한 줄이 32자 넘음,
-        cliche 이름이 "어둠의", "그림자", "빛의" 로 시작, dupname 같은 이름이 두 번 넘게 나옴
-  UI    (단계는 UI_LEVEL: 지금 경고. 글을 다 고치면 "오류" 로 올린다)
+  경고  lines 설명(lore, desc, description …)이 4줄 넘음, long 한 줄이 32자 넘음 (채팅·접속 거절처럼 저절로 줄을 바꾸는 자리
+        "wrap" 은 보지 않는다: 폭은 tools/langcheck.py 가 픽셀로 잰다), cliche 이름이 "어둠의", "그림자", "빛의" 로 시작,
+        dupname 같은 이름이 두 번 넘게 나옴
+  UI    (UI 글만. 단계는 UI_LEVEL = 오류: 2026-10-10 에 글을 다 고치고 올렸다)
         button-verb 단추 글 (tools/langcheck.py 의 SLOTS 가 단추 폭 button* 으로 정한 열쇠) 이 "-다" 로 끝남 (되돌린다 → 되돌리기)
-        emdash 한국어 글의 줄표 "—" (쉼표·쌍점·괄호를 쓴다)
+        emdash      한국어 글의 줄표 "—" (쉼표·쌍점·괄호를 쓴다)
+        archaic     사극투·내레이션 어미 ("다시 오라", "들어와 보라", "그만두겠나", "누구였나": ~오라·~보라·~하라·~겠나·~였나·~는가)
+        polite      시스템 글 (SYSTEM_KEYS: 접속·팩·관리자 답·세계 설정 창과 그 알림·타이틀로 나가기 확인) 의 문장이 해라체 "-다" 로 끝남
+                    ("세계를 짓는 중이다" → "세계를 만드는 중입니다")
+        term        정한 용어를 쓰지 않음 (TERMS_KO: 술법 세기 → 술법 위력, 가진 소울 → 보유 소울, 패링 창 → 패링 판정 …)
+        test-marker 시험용 물건 (TEST_LORE) 의 설명 첫 줄이 "[시험용]" / "[Test]" 가 아님 (개발 메모를 설명 칸에 쓰지 않는다)
 영어 (en.yml, en_us.json 의 글)
   오류  exclaim 느낌표, emoji 이모지, hype 과장어 (legendary, ultimate, epic, mighty, powerful …),
         slang 현대 구어 (okay, cool, gonna, awesome …), explain 설명문체 (you can, allows you, lets you, please …):
-        explain 은 한국어처럼 이야기·설명 글에만
-  경고  long 한 줄이 48자 넘음 (폭은 tools/langcheck.py 가 픽셀로 잰다), lines
-  UI    emdash 이야기 글이 아닌 영어 글의 줄표 "—" (UI_LEVEL)
+        explain 은 한국어처럼 이야기 글에만
+  경고  long 한 줄이 48자 넘음 ("wrap" 자리는 보지 않는다), lines
+  UI    emdash 이야기 글이 아닌 영어 글의 줄표 "—", term 옛말·정하지 않은 말 (TERMS_EN: foe → enemy, terms → world settings,
+        none may, depart, the living, Rite Power → Spell Power …), test-marker (UI_LEVEL)
 두 언어 (UI_LEVEL)
   middot  값·이름을 " · " (띄운 가운뎃점) 으로 잇는 줄 ("레벨 8 · 소울 30,000", "구르기 · Shift"). 이야기 글은 보지 않는다.
-          꼭 써야 하는 열쇠는 ALLOW["middot"] 에 glob 으로 적는다 (무기 분류 줄 "weapon.class.*" 같은 것). 붙여 쓴 "직검·방패" 는 된다
+          꼭 써야 하는 열쇠는 ALLOW["middot"] 에 glob 으로 적는다. 붙여 쓴 "직검·방패" 는 된다 (그래도 값 목록은 쉼표로 쓴다)
   ALLOW = {규칙: (열쇠 glob, …)}: UI 규칙을 일부러 어기는 열쇠를 적는 곳 (까닭을 주석으로)
 이름 (lang/names.yml)
   오류  name: ko.yml 의 열쇠에 고유 이름이 있으면 en.yml 의 같은 열쇠에 정한 영어 표기가 있어야 한다 (대소문자 없이 글 안에
@@ -75,14 +85,43 @@ DESC_KEYS = {"lore", "desc", "description", "flavor", "text", "lines"}
 # 이야기·설명 글 (해라체 단문, explain 금지가 걸리는 곳): 마지막 열쇠가 DESC_KEYS 인 것 (무기·반지·아이템 설명, 출신·스킬 설명) 과
 # 세계 안의 사건 글 (큰 글씨·문 알림·결말). 단추·알림·설정 창·시스템 글은 여기에 넣지 않는다 (존댓말을 쓴다)
 STORY_KEYS = ("ending.*", "bell.*", "taster.*", "door.*", "bonfire.lit", "boss.felled", "souls.recovered", "death.*")
-# 단추·줄표·가운뎃점 규칙의 단계 (경고 → 글을 다 고치면 "오류")
-UI_LEVEL = "경고"
+# 마지막 열쇠가 desc 여도 UI 글인 것: 난이도 한 줄은 세계 설정 창의 단추 설명 칸 (존댓말)
+UI_DESC = ("difficulty.*",)
+# 시스템 글 (존댓말 ~합니다·~하세요, 해라체 "-다" 로 끝나는 문장이 없어야 한다, rule polite): 접속 전 글, 관리자 답, 세계 설정 창과 그 알림,
+# 사망 화면의 타이틀로 나가기 확인, 출신을 고르지 않았다는 알림, 레벨 업 창의 "소울이 부족합니다", 출신 다시 고르기 설명
+SYSTEM_KEYS = ("pack.prompt", "pack.declined", "pack.failed", "build.*", "admin.*", "start.body", "start.pvp-*", "start.changed",
+               "start.provisional*", "start.waiting", "start.op-only", "start.already-set", "difficulty.*.desc", "origin.none",
+               "levelup.short", "bonfire.repick-tip", "vanilla.deathScreen.quit.confirm")
+# 사극투·내레이션 어미 (UI 글, rule archaic). 문장 끝 (마침표·물음표·줄 끝 앞) 에서만 본다
+ARCHAIC_KO = re.compile(r"(오라|보라|하라|겠나|였나|었나|는가|느냐)[.?]?(?=\s|$)")
+# 정한 용어 (UI 글, rule term): 틀린 말 → 쓸 말. 2026-10-10 "소울 유저가 쓰는 말" (DECISIONS) 과 10.3 의 용어표
+TERMS_KO = {
+    "술법 세기": "술법 위력", "가진 소울": "보유 소울", "필요한 소울": "필요 소울", "다음 한 점": "필요 소울",
+    "패링 창": "패링 판정", "너무 무거움": "과적", "장비 무게": "장비 중량", "작은 방패": "소형 방패", "대방패": "대형 방패",
+    "때리기": "타격", "베기": "참격", "마법 저항": "마법 방어력", "상태 이상 저항": "상태 이상 내성", "세계를 정한다": "세계 설정",
+    "월드": "세계 (바닐라 한국어와 같게)", "아직 듣지": "(미적용) / 아직 적용되지 않음", "기억할 자리": "기억 슬롯",
+    "누구였": "출신", "그림 글자": "글리프",
+}
+# 영어 (낱말 경계로, 대소문자 없이): 옛말·은유·줄임 → 쓸 말
+TERMS_EN = {
+    "foe": "enemy", "foes": "enemies", "the terms": "world settings", "terms": "world settings", "none may": "a plain sentence",
+    "the living": "players", "depart": "Quit / Leave", "pass between fires": "Travel", "overburdened": "Overloaded",
+    "rite power": "Spell Power", "rite learned": "Spell learned", "stam.": "Stamina", "res.": "Resist / Defense",
+    "another past": "Change Origin", "take this path": "Begin",
+}
+# 시험용 물건의 설명 (rule test-marker): 첫 줄이 이 표시 하나 (DECISIONS 2026-10-10 "시험용 표시는 [시험용] 으로 쓴다")
+TEST_LORE = ("ring.test_*.lore", "skill.test_*.desc", "test.guard-lore")
+TEST_MARK = {"ko": "[시험용]", "en": "[Test]"}
+# UI 규칙의 단계: 2026-10-10 글을 다 고치고 "오류" 로 올렸다 (새 글이 같은 버릇을 다시 들이지 않게)
+UI_LEVEL = "오류"
 # UI 규칙을 일부러 어기는 열쇠 (glob). 예: "middot": ("weapon.class.*",)  # 분류 줄 "직검 · 베기/찌르기" 를 그대로 둘 때
 ALLOW = {
     "middot": (),
     "button-verb": (),
     # 무기·반지 설명 칸 실선의 대체 글 (팩이 없을 때만 보인다. 팩은 실선 그림 글자로 바꾼다, pack/typeset.py)
     "emdash": ("weapon.rule", "ring.rule"),
+    # 무기 이름은 이야기에 묶여 있어 이야기가 정해질 때 함께 고친다 ("볼크 가의 대방패", DECISIONS 2026-10-08·10-10)
+    "term": ("weapon.*.name",),
 }
 # 단추 폭 자리 (tools/langcheck.py SLOTS 의 자리 이름): 이 자리의 열쇠가 단추 글이다
 BUTTON_SLOTS = ("button160", "button200", "button150", "button250", "button64")
@@ -172,6 +211,8 @@ def is_story(key):
     """이야기·설명 글인가 (explain 금지와 UI 규칙을 가르는 곳)."""
     import fnmatch
     k = re.sub(r"\[\d+\]$", "", key)
+    if any(fnmatch.fnmatchcase(k, g) for g in UI_DESC):
+        return False
     return last_key(key) in DESC_KEYS or any(fnmatch.fnmatchcase(k, g) for g in STORY_KEYS)
 
 
@@ -184,8 +225,8 @@ def allowed(rule, key):
 _SLOT_OF = None
 
 
-def is_button(key):
-    """단추 글인가: tools/langcheck.py 의 SLOTS 가 단추 폭 (BUTTON_SLOTS) 으로 정한 열쇠."""
+def slot(key):
+    """tools/langcheck.py 의 SLOTS 가 정한 자리 이름 (없으면 None)."""
     global _SLOT_OF
     if _SLOT_OF is None:
         try:
@@ -194,7 +235,23 @@ def is_button(key):
             _SLOT_OF = langcheck.slot_of
         except Exception:
             _SLOT_OF = lambda k: None
-    return _SLOT_OF(lang_key(key)) in BUTTON_SLOTS
+    return _SLOT_OF(lang_key(key))
+
+
+def is_button(key):
+    """단추 글인가: tools/langcheck.py 의 SLOTS 가 단추 폭 (BUTTON_SLOTS) 으로 정한 열쇠."""
+    return slot(key) in BUTTON_SLOTS
+
+
+def wraps(key):
+    """저절로 줄을 바꾸는 자리 (채팅, 접속 거절, 팩 창: langcheck 의 "wrap") 인가. long (글자 수) 은 보지 않는다."""
+    return slot(key) == "wrap"
+
+
+def matches_any(key, globs):
+    import fnmatch
+    k = re.sub(r"\[\d+\]$", "", key)
+    return any(fnmatch.fnmatchcase(k, g) for g in globs)
 
 
 PLACEHOLDER = re.compile(r"<[a-z][a-z0-9_-]*>")
@@ -211,8 +268,19 @@ def ui_text(text):
     return FORMAT.sub("0", LEGACY.sub("", TAG.sub("", PLACEHOLDER.sub("0", body))))
 
 
+def check_test_marker(report, path, key, text, korean):
+    """시험용 물건의 설명 첫 줄은 "[시험용]" / "[Test]" 하나 (개발 메모를 설명 칸에 쓰지 않는다)."""
+    if not matches_any(key, TEST_LORE) or not re.search(r"\[0\]$", key):
+        return
+    want = TEST_MARK["ko" if korean else "en"]
+    vis = ui_text(text).strip()
+    if vis != want and not allowed("test-marker", key):
+        report.add(UI_LEVEL, path, key, "test-marker", f"시험용 물건의 설명 첫 줄은 {want!r} 하나: {vis!r}")
+
+
 def check_ui(report, path, key, text, korean):
-    """UI 규칙 (이야기 글이 아닌 것): 가운뎃점 잇기, 줄표, 단추의 "-다"."""
+    """UI 규칙 (이야기 글이 아닌 것): 가운뎃점 잇기, 줄표, 단추의 "-다", 사극투, 시스템 글의 존댓말, 용어, 시험용 표시."""
+    check_test_marker(report, path, key, text, korean)
     if is_story(key):
         return
     vis = ui_text(text)
@@ -220,10 +288,27 @@ def check_ui(report, path, key, text, korean):
         report.add(UI_LEVEL, path, key, "middot", f"\" · \" 로 잇는 줄 (칸 맞춤·쉼표·괄호를 쓴다): {vis!r}")
     if "\u2014" in vis and not allowed("emdash", key):
         report.add(UI_LEVEL, path, key, "emdash", f"줄표 \"—\" (쉼표·쌍점·괄호를 쓴다): {vis!r}")
-    if korean and HANGUL.search(vis) and is_button(key) and not allowed("button-verb", key):
-        tail = re.sub(r"[\s.)\]0]+$", "", vis)
-        if tail.endswith("다"):
-            report.add(UI_LEVEL, path, key, "button-verb", f"단추 글이 \"-다\" 로 끝남 (명사형: 되돌리기·결정·닫기): {vis!r}")
+    if korean and HANGUL.search(vis):
+        if is_button(key) and not allowed("button-verb", key):
+            tail = re.sub(r"[\s.)\]0]+$", "", vis)
+            if tail.endswith("다"):
+                report.add(UI_LEVEL, path, key, "button-verb", f"단추 글이 \"-다\" 로 끝남 (명사형: 되돌리기·결정·닫기): {vis!r}")
+        if ARCHAIC_KO.search(vis) and not allowed("archaic", key):
+            report.add(UI_LEVEL, path, key, "archaic", f"사극투·내레이션 어미 (존댓말이나 명사형으로): {vis!r}")
+        if matches_any(key, SYSTEM_KEYS) and not allowed("polite", key):
+            for sent in re.split(r"[.?\n]", vis):
+                sent = re.sub(r"[\s)\]0]+$", "", sent.strip())
+                if sent.endswith("다") and not sent.endswith("니다"):
+                    report.add(UI_LEVEL, path, key, "polite", f"시스템 글은 존댓말 (~합니다·~하세요): {sent!r}")
+                    break
+        for wrong, right in TERMS_KO.items():
+            if wrong in vis and not allowed("term", key):
+                report.add(UI_LEVEL, path, key, "term", f"'{wrong}' 대신 '{right}': {vis!r}")
+    if not korean:
+        low = vis.lower()
+        for wrong, right in TERMS_EN.items():
+            if re.search(r"(?<![a-z])" + re.escape(wrong) + (r"(?![a-z])" if wrong[-1].isalpha() else ""), low) and not allowed("term", key):
+                report.add(UI_LEVEL, path, key, "term", f"'{wrong}' -> '{right}': {vis!r}")
 
 
 def check_english(report, path, key, text):
@@ -249,7 +334,7 @@ def check_english(report, path, key, text):
                 report.add("오류", path, key, "explain", f"설명문체 '{w}': {vis!r}")
     check_ui(report, path, key, text, korean=False)
     for line in vis.split("\n"):
-        if len(line) > MAX_LINE_EN:
+        if len(line) > MAX_LINE_EN and not wraps(key):
             report.add("경고", path, key, "long", f"{len(line)}자 (>{MAX_LINE_EN}): {line!r}")
 
 
@@ -274,7 +359,7 @@ def check_text(report, path, key, text):
             if w in vis:
                 report.add("오류", path, key, "explain", f"설명문체 '{w}': {vis!r}")
     for line in vis.split("\n"):
-        if len(line) > MAX_LINE:
+        if len(line) > MAX_LINE and not wraps(key):
             report.add("경고", path, key, "long", f"{len(line)}자 (>{MAX_LINE}): {line!r}")
 
 

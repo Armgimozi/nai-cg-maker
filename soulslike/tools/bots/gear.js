@@ -1,8 +1,8 @@
 // 장비에는 능력치 보정도 요구 능력치도 없다 (DECISIONS 2026-10-10, DESIGN 9.1·9.2·9.7, 3.5). 봇은 빈털터리 (곤봉 + 판자 방패) 로 태어난다.
-//   설명 칸: 무기·활·패링 단검은 "공격력 · 무게" 한 줄, 방패는 "막기 · 무게", 촉매는 "술법 세기 · 무게". 보정·필요 능력치 줄, 흡수·안정성
+//   설명 칸: 무기·활·패링 단검은 "공격력, 무게" 한 줄, 방패는 "물리 컷률, 무게" (Phys. Negation), 촉매는 "술법 위력, 무게". 보정·필요 능력치 줄, 흡수·안정성
 //            줄이 없다 (번역 열쇠와 받은 팩의 ko_kr·en_us 로 그린 글). 반지는 효과 줄과 설명뿐이고 무게가 없는 반지에는 무게 줄도 없다.
-//   패링 (F): 왼손 물건의 분류로 창이 정해진다 (combat.parry.windows, 설명 칸에 없다). 패링 단검 9, 작은 방패 7 (판자·버클러 모두),
-//            중형 방패 5, 왼손 단검 4. 대방패·대검·빈 왼손은 패링하지 못한다 (PARRY_NONE why=cannot: F 는 아무것도 하지 않는다).
+//   패링 (F): 왼손 물건의 분류로 창이 정해진다 (combat.parry.windows, 설명 칸에 없다). 패링 단검 9, 소형 방패 7 (판자·버클러 모두),
+//            중형 방패 5, 왼손 단검 4. 대형 방패·대검·빈 왼손은 패링하지 못한다 (PARRY_NONE why=cannot: F 는 아무것도 하지 않는다).
 //            패링 반지 (+2틱) 가 더해진다. 연달아 누르면 잠긴다 (PARRY_LOCKED, 놓친 뒤 12틱).
 //   패링 단검은 왼손 무기: 막기 성분이 없고 (막지 않는다), 왼손에 들면 주손 곤봉의 막기 성분도 떼어진다 (우클릭은 왼손에 든 것을 쓴다).
 //   다른 무기 (단검) 도 왼손에 들면 막기 성분이 떼어진다 (왼손 무기의 우클릭은 왼손 공격, M1).
@@ -53,11 +53,11 @@ L.run('gear', async (sc) => {
     ['gaoler_greatsword', 'attack', '92', '9.0', '공격력', 'Attack'],
     ['wall_shortbow', 'attack', '45', '2.0', '공격력', 'Attack'],
     ['parrying_dagger', 'attack', '40', '0.5', '공격력', 'Attack'],
-    ['plank_shield', 'guard', '60', '1.0', '막기', 'Guard'],
-    ['redin_guard_shield', 'guard', '90', '4.0', '막기', 'Guard'],
-    ['volk_greatshield', 'guard', '100', '14.0', '막기', 'Guard'],
-    ['kiln_pot', 'spell', '100', '1.5', '술법 세기', 'Rite Power'],
-    ['pilgrim_handbell', 'spell', '100', '2.0', '술법 세기', 'Rite Power']
+    ['plank_shield', 'guard', '60', '1.0', '물리 컷률', 'Phys. Negation'],
+    ['redin_guard_shield', 'guard', '90', '4.0', '물리 컷률', 'Phys. Negation'],
+    ['volk_greatshield', 'guard', '100', '14.0', '물리 컷률', 'Phys. Negation'],
+    ['kiln_pot', 'spell', '100', '1.5', '술법 위력', 'Spell Power'],
+    ['pilgrim_handbell', 'spell', '100', '2.0', '술법 위력', 'Spell Power']
   ]
   const DEAD = ['bonus_str', 'bonus_dex', 'bonus_int', 'need_str', 'need_dex', 'need_int', 'absorb', 'stability']
   for (const [id, first, value, weight, ko, en] of CASES) {
@@ -97,12 +97,14 @@ L.run('gear', async (sc) => {
     if (T && rule > 0) sc.check('the pack builds the ring rule in both languages', !!T.ko['souls.ring.rule.test_parry'] && !!T.en['souls.ring.rule.test_parry'])
     if (T && it) {
       const k = L.render(it.lore[0], T.ko)
-      sc.check('ring effect line says 패링 (not 쳐내기)', /^패링 창 \+0\.10초$/.test(k) && !/쳐내기/.test(k), JSON.stringify(k))
+      sc.check('ring effect line says 패링 판정 +0.1초 (not 쳐내기, not 패링 창)', /^패링 판정 \+0\.1초$/.test(k) && !/쳐내기|패링 창/.test(k), JSON.stringify(k))
+      const lore = it.lore.filter((l) => L.translateKeys(l).some((x) => x.startsWith('souls.ring.test_parry.lore'))).map((l) => L.render(l, T.ko))
+      sc.check('test ring lore is the [시험용] marker, not a developer note', lore.join('|') === '[시험용]', JSON.stringify(lore))
       sc.check('test ring name says 패링', L.render(it.name, T.ko) === '시험 반지: 패링', JSON.stringify(L.render(it.name, T.ko)))
     }
   }
 
-  // ── 패링 창: 왼손 물건의 분류마다 ──
+  // ── 패링 판정: 왼손 물건의 분류마다 ──
   const press = async (sneak = false) => {
     if (sneak) { b.input({ shift: true }); await L.sleep(250) }
     const from = b.sys.length

@@ -13,12 +13,14 @@ import java.util.Locale;
  * <pre>
  *   생명력  최대 HP        방어력
  *   정신력  최대 마나      마법 저항
- *   지구력  최대 스태미나  스태미나 회복 (초당)
+ *   지구력  최대 스태미나  스태미나 회복 (초당, 정수)
  *   근력    공격력         장비 중량 ("장비 무게 / 한도": 한 점은 한도를 올린다)
- *   민첩    이동 속도      공격 속도
- *   지력    술법 세기      상태 이상 저항
+ *   민첩    이동 속도      공격 속도 (기준 100%: "100%", "103%")
+ *   지력    술법 위력      상태 이상 내성
  * </pre>
- * 아직 듣지 않는 값 (술법이 생기는 M5 전의 최대 마나·술법 세기) 은 흐린 갈색 (검토 stat-values-without-effect).
+ * 아직 적용되지 않는 값 (술법이 생기는 M5 전의 최대 마나·술법 위력) 은 흐린 갈색 (검토 stat-values-without-effect).
+ * 값은 계산기 출력처럼 보이지 않게 쓴다 (DECISIONS 2026-10-10 "AI 티"): 속도는 "0%" 가 아니라 기준 100% 로, 스태미나 회복은 "44.0" 이 아니라
+ * "44" 로. 반올림이 한 점을 가리면 "+" 단추의 설명 칸만 한 자리 더 보인다 (fine).
  */
 public final class StatRows {
     private StatRows() {}
@@ -40,7 +42,7 @@ public final class StatRows {
         return switch (i) {
             case 0 -> new String[] {f0(d.maxHp()), f0(d.defense())};
             case 1 -> new String[] {f0(d.maxMana()), f0(d.magicRes())};
-            case 2 -> new String[] {f0(d.maxStamina()), String.format(Locale.ROOT, "%.1f", d.regenPerSec())};
+            case 2 -> new String[] {f0(d.maxStamina()), f0(d.regenPerSec())};
             case 3 -> new String[] {d.attack() <= 0 ? "–" : f0(d.attack()), String.format(Locale.ROOT, "%.1f", d.cap())};
             case 4 -> new String[] {pct(d.move()), pct(d.attackSpeed() - 1)};
             default -> new String[] {d.spellPower() <= 0 ? "–" : f0(d.spellPower()), String.format(Locale.ROOT, "%.0f%%", d.ailment() * 100)};
@@ -56,18 +58,16 @@ public final class StatRows {
         return switch (i) {
             case 0 -> new String[] {f1(d.maxHp()), f1(d.defense())};
             case 1 -> new String[] {f1(d.maxMana()), f1(d.magicRes())};
-            case 2 -> new String[] {f1(d.maxStamina()), String.format(Locale.ROOT, "%.2f", d.regenPerSec())};
+            case 2 -> new String[] {f1(d.maxStamina()), f1(d.regenPerSec())};
             case 3 -> new String[] {d.attack() <= 0 ? "–" : f1(d.attack()), f1(d.cap())};
             case 4 -> new String[] {pct1(d.move()), pct1(d.attackSpeed() - 1)};
             default -> new String[] {d.spellPower() <= 0 ? "–" : f1(d.spellPower()), String.format(Locale.ROOT, "%.1f%%", d.ailment() * 100)};
         };
     }
 
-    /** 몫 → 소수 한 자리 퍼센트 ("+22.4%", 0 은 "0%"). */
+    /** 몫 → 기준 100% 의 소수 한 자리 퍼센트 ("+" 단추의 설명 칸: 0.224 → "122.4%", 0 → "100.0%"). */
     static String pct1(double v) {
-        double a = Math.abs(v);
-        if (a < 0.0005) return "0%";
-        return String.format(Locale.ROOT, "%s%.1f%%", v < 0 ? "-" : "+", a * 100);
+        return String.format(Locale.ROOT, "%.1f%%", 100 + v * 100);
     }
 
     /** 능력치 id 의 줄 번호. */
@@ -75,7 +75,7 @@ public final class StatRows {
         return Math.max(0, StatBlock.IDS.indexOf(stat));
     }
 
-    /** 줄 i 의 값 j 가 아직 듣지 않나 (술법 M5 전: 정신의 최대 마나, 지력의 술법 세기). */
+    /** 줄 i 의 값 j 가 아직 적용되지 않나 (술법 M5 전: 정신력의 최대 마나, 지력의 술법 위력). */
     public static boolean later(int i, int j) {
         return j == 0 && (i == 1 || i == 5);
     }
@@ -97,14 +97,11 @@ public final class StatRows {
     }
 
     /**
-     * 몫 → 부호가 붙은 퍼센트: 10% 밑은 소수 한 자리 ("+0.5%", "−15%" 는 "-15%"), 10% 넘으면 정수 ("+12%"), 0 은 "0%". 한 점마다 무엇이든
-     * 보이게 1% 밑도 숨기지 않는다 (검토 slow-stats-feel-dead).
+     * 몫 → 기준 100% 의 정수 퍼센트 (표의 이동 속도·공격 속도: 0 → "100%", 0.03 → "103%", -0.15 → "85%"). 예전의 "0%" "+0.5%" 는 계산기
+     * 출력처럼 읽혔다 (DECISIONS 2026-10-10). 1% 밑의 한 점은 표에서 반올림으로 숨고, "+" 단추의 설명 칸이 fine (pct1) 으로 보인다
+     * (검토 slow-stats-feel-dead).
      */
     public static String pct(double v) {
-        double a = Math.abs(v);
-        if (a < 0.0005) return "0%";
-        String sign = v < 0 ? "-" : "+";
-        if (a >= 0.0995) return String.format(Locale.ROOT, "%s%.0f%%", sign, a * 100);
-        return String.format(Locale.ROOT, "%s%.1f%%", sign, a * 100);
+        return String.format(Locale.ROOT, "%.0f%%", 100 + v * 100);
     }
 }

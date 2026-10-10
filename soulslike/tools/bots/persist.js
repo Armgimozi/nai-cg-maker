@@ -1,6 +1,6 @@
 // 남는 것 (5.3, 5.7, 5.10). run_tests.sh 가 맨 끝 (지연 판 뒤) 에 돌리고, 서버를 다시 켠 뒤 persist_check.js 가 같은 봇으로 본다.
 //   1. 레벨 비용이 5.3 의 식 그대로: 레벨 1 → 2 는 320 (319 면 거절 LEVELUP_PLUS_DENY why=souls), 레벨 40 → 41 은 5,974 (5,973 이면 거절),
-//      한 번에 셋 (41 → 44) 은 차례로 더한 값. "올린다" 가 정확히 그만큼 빼고, 모자라면 아무것도 바꾸지 않는다.
+//      한 번에 셋 (41 → 44) 은 차례로 더한 값. "결정" 이 정확히 그만큼 빼고, 모자라면 아무것도 바꾸지 않는다.
 //   2. 관리자가 출신을 지우고 기사로 고른 뒤 생명력 +2, 지구력 +1, 정신력 +1 (레벨 9 → 13, 480 + 500 + 520 + 623 = 2,123 소울).
 //      레벨을 샀으니 휴식 창에 "출신 다시 고르기" 가 없다.
 //   3. 관리자 명령으로 세계 설정을 어려움·PvP 켬으로 (via=command, settings.log, 접속한 사람에게 알림).
@@ -69,13 +69,13 @@ L.run('persist', async (sc) => {
   await b.cmd(`/soulstest souls ${three}`, 'SOULS ')
   const r3 = await b.cmd('/soulstest levelup dex', (m) => /^\[T\] LEVELUP_PLUS/.test(m.plain))
   sc.check(`with ${three}: running cost ${cost(41)} + ${cost(42)} + ${cost(43)} = ${three}`, r3.kv && L.num(r3.kv.cost) === three, r3.line || '')
-  // 그 사이 소울이 줄면 "올린다" 는 거절하고 아무것도 바꾸지 않는다
+  // 그 사이 소울이 줄면 "결정" 은 거절하고 아무것도 바꾸지 않는다
   await b.cmd(`/soulstest souls ${three - 1}`, 'SOULS ')
   const cd = await b.cmd('/soulstest levelup confirm', (m) => /^\[T\] LEVELUP(_DENY)? /.test(m.plain) && !/open/.test(m.plain))
   const sd = await b.cmd('/soulstest stats', 'STATS ')
   sc.check('souls dropped meanwhile: confirm refused (LEVELUP_DENY why=souls), level and purse unchanged', cd.line && cd.line.startsWith('[T] LEVELUP_DENY') &&
     cd.kv.why === 'souls' && sd.kv && sd.kv.level === '41' && L.num(sd.kv.souls) === three - 1, (cd.line || '') + ' | ' + (sd.line || ''))
-  // 거절한 "올린다" 는 쌓아 둔 점을 비운다 (지금 값으로 창을 다시 띄운다): 다시 셋
+  // 거절한 "결정" 은 쌓아 둔 점을 비운다 (지금 값으로 창을 다시 띄운다): 다시 셋
   await b.cmd(`/soulstest souls ${three}`, 'SOULS ')
   const again = await b.cmd('/soulstest levelup dex 3', (m) => /^\[T\] LEVELUP_PLUS stat=dex pending=3 /.test(m.plain))
   sc.check('after the refusal the pending points were dropped; three again', again.kv && L.num(again.kv.cost) === three, again.line || '')

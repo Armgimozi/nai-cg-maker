@@ -21,7 +21,7 @@ import java.util.List;
 /**
  * 능력치 창 (5.9, 읽기만): 휴식 창의 "능력치" 와 명령 /stats (어디서나). 본문은 레벨 올리기 창과 같은 표 (StatSheet, 화살표 없이): 왼쪽에
  * 출신·레벨·보유 소울과 능력치 여섯, 오른쪽에 나온 값 (장비 중량 밑에 무게 단계). 표 밑에 불에 타는 시간 한 줄 ("불에 타는 시간 3.0초 →
- * 2.5초": 지력의 상태 이상 저항을 길이로, 검토 int-dead-now·burn-line-unlabelled. 저항이 없으면 줄이 없다). 단추 "닫는다" (휴식 창에서
+ * 2.5초": 지력의 상태 이상 내성을 길이로, 검토 int-dead-now·burn-line-unlabelled. 내성이 없으면 줄이 없다). 단추 "닫기" (휴식 창에서
  * 열었으면 휴식 창으로). 휴식 창에서 열었을 때만 PvP 로 맞지 않는다 (어디서나 여는 /stats 는 숨을 곳이 아니다).
  */
 public final class StatsDialog {
@@ -44,7 +44,7 @@ public final class StatsDialog {
         left.add(StatSheet.blankLeft());
         left.addAll(StatSheet.stats(st, st, java.util.Set.of()));
         List<Component> lines = new ArrayList<>(StatSheet.lines(viewer, left, StatSheet.derived(viewer, d, null, true)));
-        // 지력의 상태 이상 저항을 길이로 (불에 타는 3초 → 몇 초). 저항이 없으면 (같은 값) 보이지 않는다 (검토 burn-line-unlabelled)
+        // 지력의 상태 이상 내성을 길이로 (불에 타는 3초 → 몇 초). 저항이 없으면 (같은 값) 보이지 않는다 (검토 burn-line-unlabelled)
         String burnTo = LevelUpDialog.burn(d.ailment());
         if (!"3.0".equals(burnTo)) lines.add(Lang.c(viewer, "stats.burn", "from", "3.0", "to", burnTo));
         ActionButton close = ui.button(s, "exit", Lang.c(viewer, "stats.close"), null, 200, (pl, v) -> {

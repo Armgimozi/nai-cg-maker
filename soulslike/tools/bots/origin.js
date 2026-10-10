@@ -2,7 +2,7 @@
 // 관리자 명령으로 출신을 지운 뒤 진짜 창 차례를 밟는다 (custom_click_action).
 //   1. /souls origin reset → 출신 창 (단추 여섯 + 나중에), 단추 글은 팩이 맞춘 칸 열쇠 (origin.*.name.cell …).
 //   2. 출신이 없는 동안: 짧은 누름은 구르지 않고 (why=unborn), 원인 있는 피해를 받지 않는다 (UNBORN_SAFE).
-//   3. 도적 → 확인 창 (이 출신으로 / 돌아간다) → 돌아간다 → 다시 도적 → 이 출신으로: 능력치 10·10·12·9·16·10 (레벨 8),
+//   3. 도적 → 확인 창 (이 출신으로 시작 / 뒤로) → 뒤로 → 다시 도적 → 이 출신으로 시작: 능력치 10·10·12·9·16·10 (레벨 8),
 //      시작 아이템 (단도 주손, 결투 단검 왼손, 만능 열쇠 가방), 아직 없는 체계 (방어구·에스트) 는 기다린다 (pending).
 //   4. 다시 고르기는 거절 (ORIGIN_DENY why=chosen). 다시 들어와도 시작 아이템이 겹치지 않는다 (장부).
 //   5. 만능 열쇠: 열쇠 문 (탑옥 위층 독방, 병영 지하 감옥) 은 열고, 이야기로 막힌 문 (서쪽 탑) 은 열지 않는다.
@@ -53,8 +53,8 @@ L.run('origin', async (sc) => {
   const hit = await b.cmd('/soulstest hit 40', 'HIT ')
   sc.check('unborn: caused damage does not land (UNBORN_SAFE)', hit.kv && L.num(hit.kv.dealt) === 0 && b.tLines('UNBORN_SAFE', from).length > 0, hit.line || '')
 
-  // ── "나중에 고른다" 를 진짜 단추로 (검토 origin-later-dead-dialog): 클라이언트는 단추의 afterAction (NONE) 을 따라 창을 두므로 서버가 닫는다.
-  //    그리고 다시 여는 길 ("고르려면 · 웅크리기 키 짧게", 키 묶음 글) 을 부제목과 채팅으로 알린다 (검토 origin-none-no-way-back) ──
+  // ── "나중에 고르기" 를 진짜 단추로 (검토 origin-later-dead-dialog): 클라이언트는 단추의 afterAction (NONE) 을 따라 창을 두므로 서버가 닫는다.
+  //    그리고 다시 여는 길 ("출신 고르기: 웅크리기 키 짧게 누르기", 키 묶음 글) 을 부제목과 채팅으로 알린다 (검토 origin-none-no-way-back) ──
   from = b.sys.length
   const cl0 = b.p.dialogClears.length
   const sub0 = b.p.subtitles.length
@@ -103,7 +103,7 @@ L.run('origin', async (sc) => {
   raw = await b.waitDialog(d0, 3000)
   if (!sc.check('origin dialog shown again', raw && b.dialogId(raw) === 'origin', raw ? b.dialogId(raw) : '창 없음')) return
 
-  // ── 도적 → 돌아간다 → 도적 → 이 출신으로 ──
+  // ── 도적 → 뒤로 → 도적 → 이 출신으로 시작 ──
   d0 = b.p.dialogs.length
   b.clickDialog('thief', {}, raw)
   let conf = await b.waitDialog(d0, 3000)

@@ -18,7 +18,7 @@ import java.util.logging.Logger;
 /**
  * 무기·방패·활·촉매 등록부 (content/weapons.yml, 9.1, 9.2, 3.12.4, 12.5). 아이템은 ItemFactory.weapon 이 만든다.
  * 글은 콘텐츠에 없다: 이름 weapon.&lt;id&gt;.name, 설명 weapon.&lt;id&gt;.lore, 분류 줄 weapon.class.&lt;class&gt;, 수치 이름 weapon.stat.* (값은 item/StatTable 이 한 줄로).
- * 장비에는 능력치 보정도 요구 능력치도 없다 (DECISIONS 2026-10-10): 보이는 값은 제 값 하나 (공격력·막기·술법 세기) 와 무게뿐이다.
+ * 장비에는 능력치 보정도 요구 능력치도 없다 (DECISIONS 2026-10-10): 보이는 값은 제 값 하나 (공격력·막기·술법 위력) 와 무게뿐이다.
  */
 public final class Weapons {
     /** 손 */
@@ -31,7 +31,7 @@ public final class Weapons {
     public static final String NONE = "none";
     /** 예전 판 (보정·요구 능력치·방패 넷) 의 열쇠. 남아 있으면 읽지 않고 서버 기록에 한 번 알린다 */
     static final List<String> LEGACY = List.of("scaling", "requires", "absorb", "stability", "parry", "fire");
-    /** 술법 세기가 적히지 않은 예전 판 촉매의 값 (지금 판의 두 촉매와 같다) */
+    /** 술법 위력이 적히지 않은 예전 판 촉매의 값 (지금 판의 두 촉매와 같다) */
     static final int LEGACY_SPELL = 100;
 
     /**
@@ -42,7 +42,7 @@ public final class Weapons {
      * @param walk 막거나 당기는 동안 걸음 배율 (2.3.9)
      * @param attack 기본 물리 공격력 (+0, 3.7). 방패·촉매는 0
      * @param guard 막기: 막는 동안 막는 물리 피해 % (방패만, 0..100)
-     * @param spell 술법 세기 (촉매만, 3.12.4)
+     * @param spell 술법 위력 (촉매만, 3.12.4)
      */
     public record Def(String id, String cls, String hand, String use, double walk, int attack, int guard, int spell, double weight) {
         /** 방패 (막기 값이 있다). */
@@ -87,13 +87,13 @@ public final class Weapons {
             // 그러지 않으면 막기 0 이라 방패로 보지 않는다)
             if (!sec.contains("guard") && BLOCK.equals(use) && sec.contains("absorb")) guard = Math.max(0, Math.min(100, p.i("absorb", 0)));
             int spell = Math.max(0, p.i("spell", 0));
-            // 예전 판의 촉매에는 술법 세기가 없었다: 지금 판의 바탕 값 100 (3.12.4)
+            // 예전 판의 촉매에는 술법 위력이 없었다: 지금 판의 바탕 값 100 (3.12.4)
             if (!sec.contains("spell") && cls.startsWith("catalyst")) spell = LEGACY_SPELL;
             defs.put(id, new Def(id, cls, hand, use, p.d("walk", 0.55), Math.max(0, p.i("attack", 0)), guard, spell, p.d("weight", 1.0)));
         }
         if (!legacy.isEmpty()) {
             log.warning("weapons.yml 의 예전 열쇠는 읽지 않는다 (장비에는 보정·요구 능력치가 없고 방패는 guard 하나다. guard 가 없는 방패는 "
-                    + "absorb 를 막기로, spell 이 없는 촉매는 술법 세기 " + LEGACY_SPELL + " 으로 본다): " + String.join(", ", legacy));
+                    + "absorb 를 막기로, spell 이 없는 촉매는 술법 위력 " + LEGACY_SPELL + " 으로 본다): " + String.join(", ", legacy));
         }
         log.info("무기·방패·촉매 " + defs.size() + "개 불러옴");
     }

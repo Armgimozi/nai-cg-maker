@@ -37,7 +37,7 @@ class PlainGearTest {
         }
     }
 
-    /** 무기·활·패링 단검: 공격력과 무게 한 줄. 방패: 막기와 무게. 촉매: 술법 세기와 무게. 다른 칸은 없다. */
+    /** 무기·활·패링 단검: 공격력과 무게 한 줄. 방패: 막기와 무게. 촉매: 술법 위력과 무게. 다른 칸은 없다. */
     @Test
     void tooltipShowsOneValueAndWeight() {
         for (Weapons.Def d : weapons.all().values()) {
@@ -84,7 +84,7 @@ class PlainGearTest {
         assertFalse(kr.souls.progression.Stats.isMelee(d), "주손 근접 무기가 아니다 (공격력 셈은 주무기만)");
     }
 
-    /** 촉매마다 제 술법 세기 (둘 다 100 에서 시작). 촉매는 왼손에 든다 (우클릭 = 왼손에 든 것, DECISIONS 2026-10-10). */
+    /** 촉매마다 제 술법 위력 (둘 다 100 에서 시작). 촉매는 왼손에 든다 (우클릭 = 왼손에 든 것, DECISIONS 2026-10-10). */
     @Test
     void catalystsHaveSpellPower() {
         int n = 0;
@@ -117,7 +117,7 @@ class PlainGearTest {
 
     /**
      * 예전 판 (v4, 커밋 3e894c0) 의 weapons.yml 을 되살려 써도 방패는 방패로, 촉매는 촉매로 남는다 (검토 legacy-weapons-yml-no-fallback):
-     * 막기가 없으면 흡수 absorb 를 막기로, 옛 분류 shield 는 medium_shield, 술법 세기가 없는 촉매는 100.
+     * 막기가 없으면 흡수 absorb 를 막기로, 옛 분류 shield 는 medium_shield, 술법 위력이 없는 촉매는 100.
      */
     @Test
     void legacyWeaponsFileDegradesGracefully() {

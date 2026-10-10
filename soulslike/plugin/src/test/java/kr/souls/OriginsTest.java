@@ -144,7 +144,7 @@ class OriginsTest {
         }
     }
 
-    /** 시작 값 (5.1 의 표): 최대 HP, 공격력, 술법 세기. 전사의 양손 대검이 가장 세고, 술법 세기는 마법사만. 공격력은 옛 판 (보정 C) 그대로. */
+    /** 시작 값 (5.1 의 표): 최대 HP, 공격력, 술법 위력. 전사의 양손 대검이 가장 세고, 술법 위력은 마법사만. 공격력은 옛 판 (보정 C) 그대로. */
     @Test
     void startingDerivedValues() {
         var c = kr.souls.progression.StatCurves.defaults();
@@ -170,7 +170,7 @@ class OriginsTest {
         assertEquals(best, d.get("warrior").attack(), 1e-9, "양손 대검이 가장 세다");
         for (var en : d.entrySet()) {
             assertTrue(en.getValue().attack() > 0, en.getKey() + " 공격력");
-            assertEquals(en.getKey().equals("sorcerer"), en.getValue().spellPower() > 0, en.getKey() + " 술법 세기");
+            assertEquals(en.getKey().equals("sorcerer"), en.getValue().spellPower() > 0, en.getKey() + " 술법 위력");
         }
         // 5.1 의 "시작 때의 값" 표와 같다 (표가 다시 어긋나지 않게 여섯 모두, 검토 design-5.1-start-table-stale)
         assertEquals(72, Math.round(d.get("knight").attack()), "기사의 직검 (근력 13)");

@@ -446,9 +446,10 @@ def pack_titles():
 
 
 def motd():
-    """서버 목록 이름 = §7 + 한국어 · 영어 (lang/ko.yml·en.yml 의 pack.description, 꼴 태그를 뗀 글)."""
+    """서버 목록 이름 = §7 + "한국어 (영어)" (lang/ko.yml·en.yml 의 pack.description, 꼴 태그를 뗀 글). 2026-10-10: 가운뎃점으로 잇지
+    않는다 (DESIGN 10.3 의 "UI 글 규칙")."""
     text = pack_titles()
-    return "\u00a77" + " \u00b7 ".join(text[lang] for lang in ("ko", "en"))
+    return "\u00a77" + text["ko"] + " (" + text["en"] + ")"
 
 
 def check_server():

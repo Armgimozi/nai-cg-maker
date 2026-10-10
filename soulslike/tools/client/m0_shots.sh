@@ -19,7 +19,7 @@
 #   05_dialog                        (4) 휴식 창 꼴: 단추 글 양피지색, 제목 옆 경고 단추는 녹슨 쇠판
 #   06_offhand_shield_after_strip    (7) 막기 성분을 뗀 도구 + 왼손 방패 → 같은 우클릭으로 왼손 방패를 든다
 #   07b_you_died_early               (3) 죽고 0.5초: 단추가 아직 꺼져 있다, 몸이 사라지는 연기는 재 부스러기 몇 점
-#   07_you_died                      (3) 사망 화면: 새빨간 YOU DIED 한 번, 회색 "일어선다", 점수 줄·밑 문구 없음
+#   07_you_died                      (3) 사망 화면: 새빨간 YOU DIED 한 번, 회색 "다시 일어서기", 점수 줄·밑 문구 없음
 #   09_guard_custom_model            (6) 맞춤 모형 souls:test_guard 로 막는 1인칭
 #   09b_guard_custom_model_front     (6) 같은 자세를 앞에서 (3인칭)
 #   09c_guard_custom_model_idle      (6) 막지 않을 때 (3인칭 앞)

@@ -28,7 +28,7 @@ public final class Columns {
     public static final TextColor NEXT_COLOR = TextColor.color(0xc9a65c);
     /** 출신 줄에서 그 출신의 주 능력치 (굵게): 양피지 */
     public static final TextColor MAIN_COLOR = TextColor.color(0xd1c3a0);
-    /** 아직 듣지 않는 값 (술법 전의 최대 마나·술법 세기), 소울이 모자란 "+": 흐린 갈색 */
+    /** 아직 적용되지 않는 값 (술법 전의 최대 마나·술법 위력), 소울이 모자란 "+": 흐린 갈색 */
     public static final TextColor DIM_COLOR = TextColor.color(0x6b5f4a);
 
     private Columns() {}

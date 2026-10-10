@@ -8,7 +8,7 @@ import kr.souls.combat.DamageCalc;
  *
  * @param attack      든 근접 무기의 공격력 (없으면 0). twoHanded 면 양손 잡기 (왼손이 빈 근접 무기, 근력 ×1.5)
  * @param attackSpeed 공격 속도 배율 (1.0 = 그대로). 민첩 하나로 정해지고 모든 무기에 같다 (든 무기가 없어도 보인다)
- * @param spellPower  든 촉매 (없으면 왼손, 단축 슬롯의 첫 촉매) 의 술법 세기, 없으면 0
+ * @param spellPower  든 촉매 (없으면 왼손, 단축 슬롯의 첫 촉매) 의 술법 위력, 없으면 0
  * @param regenPerSec 스태미나 초당 회복 (그 무게 단계에서)
  * @param move        이동 속도 덧셈 몫 (0.04 = +4%, 무게 단계의 걷기 배율은 따로)
  * @param ailment     상태 이상 저항 (0.18 = 해로운 효과 길이 ×0.82)

@@ -18,7 +18,7 @@
 #   ring_one               가방의 스태미나 반지를 집어 반지 칸 1 (왼쪽 위) 에 누른다
 #   ring_two               가방의 강인도 반지를 웅크리고 누른다 (빈 반지 칸 2 에 낀다)
 #   ring_tooltip           낀 스태미나 반지의 설명 칸 (이름, 효과 줄 "스태미나 회복 +20%", 설명)
-#   ring_tooltip_pending   낀 강인도 반지의 설명 칸 (효과 줄 밑에 "이 효과는 아직 듣지 않는다")
+#   ring_tooltip_pending   낀 강인도 반지의 설명 칸 (효과 줄 밑에 "아직 적용되지 않는 효과")
 # 찍기 앞의 꾸밈은 ui_shots.sh 의 invplain (시안 dist/screenshots/ring_slots/ring_B_1080.png 의 바탕) 과 같다: 시험 방 저녁,
 # 단축 슬롯에 아이템 여럿, 든 칸·소지품 첫 칸에 레딘 경비대 직검, 왼손은 비움. 끝나면 반지를 빼고 인벤토리를 비운다.
 set -u

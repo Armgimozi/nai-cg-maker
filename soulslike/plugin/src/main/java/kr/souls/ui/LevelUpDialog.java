@@ -32,22 +32,22 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * 레벨 올리기 창 (5.9): 휴식 창의 "레벨 올리기" (화톳불에서만, 시험 모드는 /soulstest levelup). 서버가 사람마다 더할 점 (세션) 을 들고
+ * 레벨 업 창 (5.9): 휴식 창의 "레벨 업" (화톳불에서만, 시험 모드는 /soulstest levelup). 서버가 사람마다 더할 점 (세션) 을 들고
  * 있다. 본문은 다크 소울 상태 창 꼴의 표 (StatSheet): 왼쪽에 레벨·보유 소울·필요 소울과 능력치 여섯 ("10 → 13"), 오른쪽에 나온 값.
- * 능력치 단추 ("생명력 +", 한 줄에 여섯) 는 지금 레벨부터 (더한 점 + 1) 레벨의 비용 합이 가진 소울 이하일 때만 한 점 더하고, "되돌린다" 는
- * 마지막으로 더한 점을 뺀다 (원래 값 밑으로는 못 내린다), "올린다" 는 소울과 비용을 다시 셈해 맞으면 소울을 빼고 능력치를 올린다. 누를
- * 때마다 새 값으로 창을 다시 띄운다. "그만둔다" 와 Esc 는 더한 점을 버리고 휴식 창으로 돌아간다. 쉬는 중에 맞으면 창을 닫고 버린다.
+ * 능력치 단추 ("생명력 +", 한 줄에 여섯) 는 지금 레벨부터 (더한 점 + 1) 레벨의 비용 합이 가진 소울 이하일 때만 한 점 더하고, "되돌리기" 는
+ * 마지막으로 더한 점을 뺀다 (원래 값 밑으로는 못 내린다), "결정" 은 소울과 비용을 다시 셈해 맞으면 소울을 빼고 능력치를 올린다. 누를
+ * 때마다 새 값으로 창을 다시 띄운다. "취소" 와 Esc 는 더한 점을 버리고 휴식 창으로 돌아간다. 쉬는 중에 맞으면 창을 닫고 버린다.
  * 단추를 표의 왼쪽 목록에 넣지 못하는 까닭: 바닐라 Dialog 는 본문 (글) 을 모두 그린 뒤에 단추 격자를 둔다 (MultiButtonDialogScreen). 그래서
  * 능력치 단추는 표 밑 한 줄에 표의 차례대로 둔다.
  * 높이 (검토 dialog-height·T6, 1.21.11 DialogScreen: 본문 요소 사이 10, 단추 20 + 사이 2): 표 열두 줄 (12 × 9 + 8 = 116) + 10 + 단추
- * 두 줄 (능력치 여섯, 되돌린다·올린다) 42 = 168 이라 1280×720 GUI 3 의 본문 칸 174 (240 − 머리 33 − 바닥 33) 안에 들어 다시 띄워도
+ * 두 줄 (능력치 여섯, 되돌리기·결정) 42 = 168 이라 1280×720 GUI 3 의 본문 칸 174 (240 − 머리 33 − 바닥 33) 안에 들어 다시 띄워도
  * 단추가 밀려나지 않는다 (스크롤이 생기지 않는다).
  */
 public final class LevelUpDialog implements Listener {
     public static final String ID = "levelup";
     /** 능력치 단추 폭 (여섯이 한 줄: 6 × 64 + 5 × 2 = 394, 1280×720 GUI 3 의 화면 폭 426 안) */
     static final int PLUS_WIDTH = 64;
-    /** 되돌린다·올린다 (둘이 한 줄: 능력치 단추 줄과 같은 폭 394) */
+    /** 되돌리기·결정 (둘이 한 줄: 능력치 단추 줄과 같은 폭 394) */
     static final int ACTION_WIDTH = 196;
 
     /** 사람마다 더할 점 (차례대로 되돌리려고 쌓아 둔다). base 는 창을 연 때의 능력치. */
@@ -107,7 +107,7 @@ public final class LevelUpDialog implements Listener {
         left.addAll(StatSheet.stats(base, target, java.util.Set.of()));
         List<Component> lines = StatSheet.lines(p, left, StatSheet.derived(p, now, to == from ? null : next, false));
         List<ActionButton> buttons = new ArrayList<>();
-        // 다음 한 점을 살 수 있나 (모자라면 "+" 를 흐리게, 설명 칸에 "소울이 모자라다")
+        // 다음 한 점을 살 수 있나 (모자라면 "+" 를 흐리게, 설명 칸에 "소울이 부족합니다")
         boolean afford = plugin.cfg().levelCost.sum(from, to - from + 1) <= held;
         for (String id : StatBlock.IDS) {
             boolean can = afford && target.get(id) < plugin.cfg().stats.max;
@@ -125,14 +125,14 @@ public final class LevelUpDialog implements Listener {
                         .canCloseWithEscape(true).pause(false).afterAction(DialogBase.DialogAfterAction.NONE)
                         .body(List.of(DialogBody.plainMessage(Columns.lines(lines), StatSheet.WIDTH)))
                         .build())
-                // 여섯 열: 능력치 단추가 한 줄, 남은 둘 (되돌린다·올린다) 은 바닐라가 다음 줄 가운데에 놓는다
+                // 여섯 열: 능력치 단추가 한 줄, 남은 둘 (되돌리기·결정) 은 바닐라가 다음 줄 가운데에 놓는다
                 .type(DialogType.multiAction(buttons).exitAction(cancel).columns(StatBlock.IDS.size()).build()));
         ui.show(p, s, d);
     }
 
     /**
      * "+" 단추의 설명 칸: 그 능력치의 두 효과를 한 점 더했을 때의 값 (근력의 둘째 줄은 "장비 중량 4.5 / 40.0 → 41.4", 무게 단계가 바뀌면
-     * 셋째 줄 "보통 → 가벼움"), (정신력·지력) 아직 듣지 않는 값, (지력) 불에 타는 시간 (달라질 때만), 모자라면 "소울이 모자라다". 다음 한
+     * 셋째 줄 "보통 → 가벼움"), (정신력·지력) 아직 적용되지 않는 값, (지력) 불에 타는 시간 (달라질 때만), 모자라면 "소울이 부족합니다". 다음 한
      * 점의 비용은 표의 필요 소울에 있다.
      */
     private Component tip(Player p, String id, StatBlock target, boolean afford) {
@@ -207,7 +207,7 @@ public final class LevelUpDialog implements Listener {
         show(p);
     }
 
-    /** 올린다. 시험 명령도 부른다. */
+    /** 결정 (레벨을 올린다). 시험 명령도 부른다. */
     public void confirm(Player p) {
         Session ss = session(p);
         StatBlock base = ss.base, target = ss.target();
@@ -240,7 +240,7 @@ public final class LevelUpDialog implements Listener {
         show(p);
     }
 
-    /** 그만둔다 (Esc): 더한 점을 버리고 휴식 창으로. */
+    /** 취소 (Esc): 더한 점을 버리고 휴식 창으로. */
     public void cancel(Player p) {
         sessions.remove(p.getUniqueId());
         plugin.test(p, "LEVELUP cancel");

@@ -14,9 +14,9 @@
 #   toasts     발전 과제 알림과 제작법 알림 (오른쪽 위)
 #   stats adv  일시 정지 → 통계 / 발전 과제 창
 #   widgets    고름 칸·글 칸 (게임 안에서는 바닐라 /dialog 의 boolean·text 입력으로만 보인다)
-#   settings   세계를 정한다 창 (5.7: 난이도 넷 + PvP 체크 칸)
+#   settings   세계 설정 창 (5.7: 난이도 넷 + PvP 체크 칸)
 #   origin     출신 창과 도적 확인 창 (5.10). 찍은 뒤 빈털터리로 되돌린다 (souls 아이템이 거둬진다)
-#   levelup    휴식 창 → 레벨 올리기 창 (생명력 +3, 민첩 +2 를 더한 미리보기) → 능력치 창 (5.9)
+#   levelup    휴식 창 → 레벨 업 창 (생명력 +3, 민첩 +2 를 더한 미리보기) → 능력치 창 (5.9)
 #   그리고 chat
 # 시험 줄 ([T] …) 이 그림에 남지 않게: chat 밖의 장면은 MC_OPTIONS="chatScale:0.0" 로 켠 클라이언트에서 (채팅 글이 그려지지
 # 않는다), chat 은 보통 클라이언트에서 채팅을 비운 뒤 서버 콘솔의 tellraw 줄만, 채팅 창을 열지 않고 찍는다 (들어온 사람 자신에게는
@@ -227,7 +227,7 @@ if has levelup; then
   do_ wait:2 move:$((CX)):$((H - 20)) wait:0.8 shot:${P}levelup${X}
   tst press levelup exit
   tst press rest stats
-  # 능력치 창의 나가기는 휴식 창으로 돌아가고, 휴식 창의 나가기 (일어선다) 가 닫는다
+  # 능력치 창의 나가기는 휴식 창으로 돌아가고, 휴식 창의 나가기 (떠나기) 가 닫는다
   do_ wait:2 move:$((CX)):$((H - 20)) wait:0.8 shot:${P}stats_dialog${X} key:Escape wait:1 key:Escape wait:0.8
   tst souls 0
 fi

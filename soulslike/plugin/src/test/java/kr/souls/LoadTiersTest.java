@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-/** 장비 무게 단계 (DESIGN 5.8): 30% 밑 가벼움, 70% 밑 보통, 100% 까지 무거움, 넘으면 너무 무거움 (뒷걸음만, 달리기 없음). */
+/** 장비 무게 단계 (DESIGN 5.8): 30% 밑 가벼움, 70% 밑 보통, 100% 까지 무거움, 넘으면 과적 (뒷걸음만, 달리기 없음). */
 class LoadTiersTest {
     private final LoadTiers t = LoadTiers.defaults();
 

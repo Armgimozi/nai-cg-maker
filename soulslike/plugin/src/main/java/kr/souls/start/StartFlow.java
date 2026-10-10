@@ -35,8 +35,8 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * 처음 들어왔을 때의 차례 (1.3, 5.7, 5.10): 리소스팩을 다 싣고 → (세계 설정이 없거나 잠정이면 정할 사람에게) "세계를 정한다" 창 → 출신이
- * 없으면 "너는 누구였나" 창. 망가진 상태가 없게:
+ * 처음 들어왔을 때의 차례 (1.3, 5.7, 5.10): 리소스팩을 다 싣고 → (세계 설정이 없거나 잠정이면 정할 사람에게) "세계 설정" 창 → 출신이
+ * 없으면 "출신 선택" 창. 망가진 상태가 없게:
  * <ul>
  *   <li>세계 설정은 창을 띄우기 전에 잠정 기본값 (difficulty.default, pvp.default, confirmed=false) 으로 먼저 적는다 (검토 T5). 창을 닫으면
  *       잠정 그대로 게임을 하고, 정할 사람이 다음에 들어올 때와 화톳불에서 쉴 때 다시 묻는다.</li>
@@ -45,7 +45,7 @@ import java.util.UUID;
  *   <li>출신 창을 닫으면 출신이 없는 채 시작 자리 둘레 (start.unborn-radius) 에서만 걷는다: 공격·구르기·우클릭·F·Q·물체·화톳불 입력은
  *       버리고 창을 다시 띄운다 (start.reopen-cooldown 에 한 번). 적과 다른 플레이어에게 맞지 않는다 (PvpGuard). 언제든 고르면 된다.
  *       둘레의 가운데는 시험 방 첫 자리, 출신을 지운 사람 (관리자 지우기·다시 고르기) 은 지운 그 자리 (home). 가운데에서 멀어지지 않는
- *       걸음은 늘 된다 (둘레 밖에서 지워져도 굳지 않게, 검토 unborn-freeze-outside-radius). "고르려면 · 웅크리기 짧게" 를 닫을 때와
+ *       걸음은 늘 된다 (둘레 밖에서 지워져도 굳지 않게, 검토 unborn-freeze-outside-radius). "출신 고르기: 웅크리기 키 짧게 누르기" 를 닫을 때와
  *       걷는 동안 start.hint-every 틱마다 알린다 (검토 origin-none-no-way-back).</li>
  * </ul>
  * 창이 뜨는 때: 접속할 때 팩을 이미 실었으면 (설정 단계에서 보낸 판) 곧바로, 아니면 SUCCESSFULLY_LOADED 를 받고 start.pack-wait 틱 뒤
@@ -63,7 +63,7 @@ public final class StartFlow implements Listener {
     private final Map<UUID, Long> reopenAt = new HashMap<>();
     /** 출신이 없는 사람이 걸을 둘레의 가운데 (없으면 시험 방 첫 자리) */
     private final Map<UUID, Location> home = new HashMap<>();
-    /** "고르려면 …" 을 마지막으로 알린 틱 */
+    /** "출신 고르기: …" 를 마지막으로 알린 틱 */
     private final Map<UUID, Long> hintAt = new HashMap<>();
 
     public StartFlow(Souls plugin) {
@@ -108,7 +108,7 @@ public final class StartFlow implements Listener {
         return false;
     }
 
-    /** 잠정 설정이고 이 사람이 정할 사람이라 휴식 창에 "세계를 정한다" 를 보인다. */
+    /** 잠정 설정이고 이 사람이 정할 사람이라 휴식 창에 "세계 설정" 을 보인다. */
     public boolean canSetNow(Player p) {
         WorldState.Settings s = plugin.worldState().get();
         return (s == null || !s.confirmed()) && eligible(p) && lockFree(p);
@@ -285,7 +285,7 @@ public final class StartFlow implements Listener {
         return true;
     }
 
-    /** 세계 설정 창을 닫았다 (Esc, "나중에 정한다"): 잠정 그대로, 출신 단계로. */
+    /** 세계 설정 창을 닫았다 (Esc, "나중에 정하기"): 잠정 그대로, 출신 단계로. */
     public void settingsLater(Player p) {
         WorldState.Settings old = plugin.worldState().get();
         if (old == null || !old.confirmed()) {
@@ -329,7 +329,7 @@ public final class StartFlow implements Listener {
 
     // ------------------------------------------------------------------ 출신
 
-    /** 출신 확인 창의 "이 출신으로" (via=dialog), 시험 명령, 시험 서버의 auto. 이미 출신이 있으면 거절 (ORIGIN_DENY why=chosen). */
+    /** 출신 확인 창의 "이 출신으로 시작" (via=dialog), 시험 명령, 시험 서버의 auto. 이미 출신이 있으면 거절 (ORIGIN_DENY why=chosen). */
     public boolean chooseOrigin(Player p, String id, String via) {
         Profile pr = plugin.profiles().of(p);
         if (pr.born()) {
@@ -372,7 +372,7 @@ public final class StartFlow implements Listener {
     }
 
     /**
-     * 출신 창을 닫았다 (Esc, "나중에 고른다"). 마우스로 누른 "나중에 고른다" 는 클라이언트가 창의 afterAction (NONE) 을 따라 창을
+     * 출신 창을 닫았다 (Esc, "나중에 고르기"). 마우스로 누른 "나중에 고르기" 는 클라이언트가 창의 afterAction (NONE) 을 따라 창을
      * 그대로 두므로 서버가 닫는다 (Esc 만 클라이언트가 닫는다. 검토 origin-later-dead-dialog). 그리고 다시 여는 길을 알린다.
      */
     public void originLater(Player p) {
@@ -383,7 +383,7 @@ public final class StartFlow implements Listener {
         plugin.test(p, "ORIGIN_LATER t=" + now);
     }
 
-    /** "아직 누구였는지 정하지 않았다" (first 일 때만) 와 "고르려면 · 웅크리기 키 짧게" (부제목과 채팅). */
+    /** "아직 출신을 고르지 않았습니다" (first 일 때만) 와 "출신 고르기: 웅크리기 키 짧게 누르기" (부제목과 채팅). */
     private void hint(Player p, long now, boolean first) {
         hintAt.put(p.getUniqueId(), now);
         Component how = plugin.cfg().controls.sneakRolls()
@@ -429,7 +429,7 @@ public final class StartFlow implements Listener {
         return true;
     }
 
-    /** 휴식 창의 "출신을 다시 고른다" 를 보일까: 출신이 있고, 레벨을 하나도 사지 않았고, 아직 다시 고른 적이 없다. */
+    /** 휴식 창의 "출신 변경" 을 보일까: 출신이 있고, 레벨을 하나도 사지 않았고, 아직 다시 고른 적이 없다. */
     public boolean canRepick(Player p) {
         Profile pr = plugin.profiles().of(p);
         Origins.Origin o = plugin.origins().get(pr.origin());

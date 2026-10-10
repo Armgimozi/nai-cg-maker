@@ -1,5 +1,5 @@
-﻿# 블록 소울 서버 시작기. start.bat 이 이 파일을 실행합니다.
-# 처음 실행하면 Java 21 과 Paper 1.21.11 (빌드 132) 을 자동으로 내려받습니다.
+﻿# 블록 소울 서버 실행기. start.bat이 이 파일을 실행합니다.
+# 처음 실행하면 Java 21과 Paper 1.21.11 (빌드 132)을 자동으로 내려받습니다.
 # 무슨 일이 있었는지는 이 폴더의 start-log.txt 에 그대로 남습니다.
 # (윈도우 PowerShell 5.1 에서도 돌아가도록 새 문법은 쓰지 않습니다)
 # 이 파일은 UTF-8 (BOM) + CRLF 로 둡니다. BOM 이 없으면 PowerShell 5.1 이 한글을 깨뜨려 읽습니다.
@@ -83,7 +83,7 @@ function Get-File($url, $file) {
             return $true
         }
         # 일부 회선/보안 프로그램은 최신 보안 연결(TLS 1.3, HTTP/2)을 끊는다 (SEC_E_INVALID_TOKEN 등). 낮춰서 한 번 더
-        Say "  curl 로 받지 못했습니다 (코드 $LASTEXITCODE). 연결 방식을 바꿔 다시 받습니다..." 'Yellow'
+        Say "  curl로 받지 못했습니다 (코드 $LASTEXITCODE). 연결 방식을 바꿔 다시 받습니다..." 'Yellow'
         & $curl.Source -fL --retry 2 --connect-timeout 30 --http1.1 --tls-max 1.2 -o $part $url
         if ($LASTEXITCODE -eq 0 -and (Test-Path -LiteralPath $part)) {
             Move-Item -LiteralPath $part -Destination $file -Force
@@ -132,15 +132,15 @@ function Move-Retry($from, $to) {
 }
 
 try {
-    Say '[블록 소울 시작기 1판]' 'Cyan'
+    Say '[블록 소울 서버 실행기 v1]' 'Cyan'
     Say "폴더: $Root"
 
     # ── 압축을 풀었는지 (M0 에는 미리 지은 세계가 없다. 처음 켤 때 플러그인이 짓는다) ──
     if (-not (Test-Path -LiteralPath 'plugins\Soulslike.jar')) {
         Stop-WithMessage @(
             '압축을 먼저 모두 풀어 주세요.',
-            'zip 파일을 연 상태에서 바로 start.bat 을 실행하면 플러그인이 없어 서버가 켜지지 않습니다.',
-            'zip 파일을 마우스 오른쪽 버튼으로 눌러 "압축 풀기" 를 한 뒤, 풀린 폴더 안의 start.bat 을 실행하세요.')
+            'zip 파일을 연 상태에서 바로 start.bat을 실행하면 플러그인이 없어 서버가 켜지지 않습니다.',
+            'zip 파일을 마우스 오른쪽 버튼으로 눌러 "압축 풀기"를 한 뒤, 압축을 푼 폴더 안의 start.bat을 실행하세요.')
     }
 
     # ── Java 21 ──
@@ -154,12 +154,12 @@ try {
         if ($cmd -and ((Get-JavaMajor $cmd.Source) -ge 21)) { $java = $cmd.Source }
     }
     if (-not $java) {
-        Say '[1/2] Java 21 을 내려받는 중입니다... (처음 한 번만, 50MB 정도, 1~2분)' 'Cyan'
+        Say '[1/2] Java 21을 내려받는 중입니다... (처음 한 번만, 50MB 정도, 1~2분)' 'Cyan'
         $zip = Join-Path $Root 'java21.zip'
         if (-not (Get-File $JavaUrl $zip) -or -not (Test-Zip $zip)) {
             Stop-WithMessage @(
-                'Java 21 을 자동으로 받지 못했습니다. 인터넷 연결을 확인하거나 VPN 을 켜고 다시 실행하거나,',
-                'https://adoptium.net 에서 "Temurin 21" (Windows x64, .msi) 을 설치한 뒤 다시 실행하세요.')
+                'Java 21을 자동으로 받지 못했습니다. 인터넷 연결을 확인하거나 VPN을 켜고 다시 실행하거나,',
+                'https://adoptium.net 에서 "Temurin 21" (Windows x64, .msi)을 설치한 뒤 다시 실행하세요.')
         }
         Say '  압축 푸는 중...'
         $tmp = Join-Path $Root 'runtime_tmp'
@@ -170,14 +170,14 @@ try {
         $rt = Join-Path $Root 'runtime'
         if (Test-Path -LiteralPath $rt) { Remove-Item -LiteralPath $rt -Recurse -Force }
         if (-not $inner -or -not (Move-Retry $inner.FullName $rt)) {
-            Stop-WithMessage @('받은 Java 를 runtime 폴더로 옮기지 못했습니다. 백신이 막았을 수 있습니다.',
-                               '잠시 뒤 다시 실행해 보세요.')
+            Stop-WithMessage @('받은 Java를 runtime 폴더로 옮기지 못했습니다. 백신 프로그램이 막았을 수 있습니다.',
+                               '잠시 후 다시 실행해 주세요.')
         }
         Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
         Remove-Item -LiteralPath $zip -Force -ErrorAction SilentlyContinue
         if ((Get-JavaMajor $local) -lt 21) {
-            Stop-WithMessage @('받은 Java 가 실행되지 않습니다. runtime 폴더를 지우고 다시 실행하거나,',
-                               'https://adoptium.net 에서 "Temurin 21" 을 설치하세요.')
+            Stop-WithMessage @('받은 Java가 실행되지 않습니다. runtime 폴더를 지우고 다시 실행하거나,',
+                               'https://adoptium.net 에서 "Temurin 21"을 설치하세요.')
         }
         $java = $local
     }
@@ -187,7 +187,7 @@ try {
     $paper = Join-Path $Root 'paper.jar'
     if (-not (Test-PaperJar $paper)) {
         if (Test-Path -LiteralPath $paper) {
-            Say '  paper.jar 가 1.21.11 빌드 132 가 아니어서 다시 받습니다.' 'Yellow'
+            Say '  paper.jar가 1.21.11 빌드 132가 아니어서 다시 받습니다.' 'Yellow'
             Remove-Item -LiteralPath $paper -Force
         }
         Say '[2/2] Paper 1.21.11 서버 파일을 내려받는 중입니다... (55MB 정도)' 'Cyan'
@@ -197,9 +197,9 @@ try {
             Stop-WithMessage @(
                 'Paper 서버 파일을 받지 못했거나, 받은 파일이 맞지 않습니다 (크기·sha256 확인 실패).',
                 '회선이나 보안 프로그램이 papermc.io 연결을 막는 경우가 있습니다.',
-                ' - VPN 을 켜고 다시 실행해 보세요. 한 번 받은 뒤에는 VPN 을 꺼도 됩니다.',
+                ' - VPN을 켜고 다시 실행해 주세요. 한 번 받은 뒤에는 VPN을 꺼도 됩니다.',
                 ' - 또는 https://papermc.io/downloads/all 에서 1.21.11 의 빌드 132 를 받아',
-                '   이 폴더에 paper.jar 라는 이름으로 넣어 주세요. 다른 빌드는 받지 않습니다.')
+                '   이 폴더에 paper.jar라는 이름으로 넣어 주세요. 다른 빌드는 다시 받습니다.')
         }
     }
     Say '  Paper: paper.jar (1.21.11 빌드 132, sha256 확인)'
@@ -213,10 +213,10 @@ try {
     }
     $xms = '1G'
     if (-not (Test-JavaMemory $java $xms $Memory)) {
-        Say "  메모리 $Memory 로 Java 가 뜨지 않아 2G 로 낮춥니다." 'Yellow'
+        Say "  Java가 메모리 $Memory 설정으로 시작되지 않아 2G로 낮춥니다." 'Yellow'
         $Memory = '2G'; $xms = '512M'
         if (-not (Test-JavaMemory $java $xms $Memory)) {
-            Stop-WithMessage @('Java 가 시작되지 않습니다. Java 가 남긴 말:', $script:JvmSays,
+            Stop-WithMessage @('Java가 시작되지 않습니다. Java 오류 메시지:', $script:JvmSays,
                                '이 창을 사진으로 찍어 보내 주세요.')
         }
     }
@@ -227,14 +227,14 @@ try {
     if (-not $agreed) {
         Say ''
         Say '================================================================' 'Cyan'
-        Say ' 마인크래프트 서버를 열려면 Mojang 의 최종 사용자 계약(EULA)에'
+        Say ' 마인크래프트 서버를 열려면 Mojang의 최종 사용자 계약(EULA)에'
         Say ' 동의해야 합니다.  내용: https://aka.ms/MinecraftEULA'
         Say '================================================================' 'Cyan'
         while ($true) {
-            $a = Read-Host '동의하면 Y 를 입력하고 Enter 를 누르세요'
+            $a = Read-Host '동의하면 Y를 입력하고 Enter를 누르세요'
             # 한글 입력 상태에서 Y 를 누르면 'ㅛ' 가 들어간다
             if ($a -and ($a.Trim() -match '^(y|yes|ㅛ|예|네)$')) { break }
-            Say ' Y 를 입력해야 서버를 켤 수 있습니다. (한/영 키를 눌러 영어로 바꿔도 됩니다)' 'Yellow'
+            Say ' Y를 입력해야 서버를 켤 수 있습니다. (한/영 키를 눌러 영어 입력으로 바꿔 주세요)' 'Yellow'
         }
         Set-Content -LiteralPath $eula -Value 'eula=true' -Encoding ASCII
         Say ' 동의했습니다.'
@@ -243,10 +243,10 @@ try {
     # ── 서버 켜기 ──
     # stdout.encoding 은 정하지 않는다. 윈도우 콘솔의 코드 페이지(한국어 949)를 Java 가 스스로 따라야 한글이 깨지지 않는다
     Say ''
-    Say '서버를 켭니다. 아래에 "Done" 이 나오면 마인크래프트 1.21.11 에서 localhost 로 접속하세요.' 'Green'
-    Say '처음 켤 때는 마인크래프트 서버 파일을 한 번 더 받고 세계를 짓느라 몇 분 걸립니다.'
-    Say '세계를 짓는 동안 들어가면 "세계를 짓는 중이다" 로 거절됩니다. 잠시 뒤 다시 들어가세요.'
-    Say '서버를 끌 때는 이 창에 stop 을 입력하세요.'
+    Say '서버를 켭니다. 아래에 "Done"이 나오면 마인크래프트 1.21.11에서 localhost로 접속하세요.' 'Green'
+    Say '처음 켤 때는 마인크래프트 서버 파일을 한 번 더 받고 세계를 만드느라 몇 분 걸립니다.'
+    Say '세계를 만드는 동안 접속하면 "세계를 만드는 중입니다"라는 안내와 함께 거절됩니다. 잠시 후 다시 접속하세요.'
+    Say '서버를 끌 때는 이 창에 stop을 입력하세요.'
     Say ''
     Say "실행: `"$java`" -Xms$xms -Xmx$Memory -jar paper.jar nogui"
     & $java "-Xms$xms" "-Xmx$Memory" -jar paper.jar nogui
@@ -256,7 +256,7 @@ try {
         Say '서버가 꺼졌습니다.' 'Green'
     } else {
         Say "서버가 오류로 꺼졌습니다 (코드 $code). 위쪽의 ERROR 줄을 확인하세요." 'Red'
-        Say ' - "FAILED TO BIND TO PORT" 가 보이면: 서버가 이미 하나 켜져 있습니다. 다른 서버 창을 닫으세요.'
+        Say ' - "FAILED TO BIND TO PORT"가 보이면 서버가 이미 하나 켜져 있는 것입니다. 다른 서버 창을 닫으세요.'
         Say ' - 자세한 기록: logs\latest.log'
     }
 } catch {

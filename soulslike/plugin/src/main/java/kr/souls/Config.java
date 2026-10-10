@@ -111,7 +111,7 @@ public final class Config {
      * 시작 흐름 (5.7, 5.10). setupBy: first (세계를 처음 연 사람) | op. reopenCooldown: 창을 닫은 사람에게 다시 띄우는 가장 짧은 틈.
      * auto / autoOrigin 은 시험 모드에서만 듣는다 (봇 묶음이 창에 막히지 않게). unbornRadius: 출신을 고르기 전에 시작 자리에서 이만큼만
      * 걸을 수 있다 (0 이면 막지 않는다). packWait: 팩을 다 싣고 창을 띄우기까지 틱, noPackWait: 팩을 싣지 않은 사람 (선택 팩을 거절,
-     * 팩이 꺼짐) 은 접속 뒤 이만큼. hintEvery: 출신 창을 닫은 사람이 걷는 동안 "고르려면 · 웅크리기 짧게" 를 다시 알리는 틈 (0 이면 닫을
+     * 팩이 꺼짐) 은 접속 뒤 이만큼. hintEvery: 출신 창을 닫은 사람이 걷는 동안 "출신 고르기: 웅크리기 키 짧게 누르기" 를 다시 알리는 틈 (0 이면 닫을
      * 때만).
      */
     public record StartCfg(String setupBy, int reopenCooldown, String auto, String autoOrigin, List<String> autoNames, int unbornRadius,
@@ -173,7 +173,7 @@ public final class Config {
         }
     }
 
-    /** 레벨 올리기 창의 "올린다" 소리 (5.9). */
+    /** 레벨 업 창의 "결정" 소리 (5.9). */
     public record LevelUpCfg(String sound, float volume, float pitch) {}
 
     public final ControlsCfg controls;

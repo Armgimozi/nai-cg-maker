@@ -1,12 +1,15 @@
 # In-game text, English (10.3, 10.9, 12.5). Korean (lang/ko.yml) is the source; this file is written apart from it,
 # not translated line by line. The keys must be the same as in ko.yml, with the same style tag and the same <slots>.
 #
-# Voice: terse, dry, a little archaic. No exclamation marks, no hype words (legendary, ultimate, epic, mighty ...),
-# no modern slang, no "you can ..." explanations. tools/textlint.py checks this.
+# Voice (DESIGN.md 10.3, "UI writing rules"): lore (weapon/item descriptions) is terse, dry, a little archaic. Everything
+# else is plain modern game English: buttons are short nouns or verbs in title case (Rest, Travel, Undo, Close), labels
+# are nouns, system and connection messages are plain sentences (This server requires its resource pack.). No " · "
+# chains between values (use aligned columns, commas or brackets), no em dashes outside lore, no exclamation marks, no
+# hype words (legendary, ultimate, epic, mighty ...), no modern slang. tools/textlint.py checks this.
 # Names are fixed in lang/names.yml (Hrolf, Redin, Oswin ...). Terms: bonfire, Estus, souls, mana (the resource of
-# rites), rite (술), memory (기억 칸), catalyst, bloodstain, fog gate, parry, roll, foe (적), guard (막기).
-# One word, one thing: "fires" (plural, lower case) are the bonfires as a network (Pass Between Fires); "the Fire"
-# (capital) is the kiln's great fire and is used only in ending.*.
+# spells), spell (술법), memory slot (기억 슬롯), catalyst, bloodstain, fog gate, parry, roll, enemy (적), guard (막기),
+# equip load (장비 중량), origin (출신), world settings (세계 설정). "Rites" stays only in the catalyst school names
+# (Kiln Rites, Bell Rites), which wait for the story. "the Fire" (capital) is the kiln's great fire, used only in ending.*.
 # Big titles are in capitals, as YOU DIED is. Menu buttons are in title case. Mind the width of each slot
 # (tools/langcheck.py measures every line against its slot, e.g. a title must stay under 104 pixels).
 
@@ -15,21 +18,21 @@ death:
 
 bonfire:
   lit: "<#9e7c44>BONFIRE LIT"
-  enemies-back: "<#858079>The fallen walk again"
-  refuse: "<#858079>Foes are near"
-  no-warp: "<#8f8164>No other fire burns yet"
+  enemies-back: "<#858079>Enemies have returned"
+  refuse: "<#858079>Cannot rest with enemies nearby"
+  no-warp: "<#8f8164>No other bonfire to travel to"
   rest: "<#d1c3a0>Rest"
-  warp: "<#d1c3a0>Pass Between Fires"
-  leave: "<#d1c3a0>Rise"
+  warp: "<#d1c3a0>Travel"
+  leave: "<#d1c3a0>Leave"
   levelup: "<#d1c3a0>Level Up"
   stats: "<#d1c3a0>Status"
-  settings: "<#d1c3a0>Set the Terms"
-  repick: "<#d1c3a0>Choose Another Past"
-  repick-tip: "<#8f8164>Once, before any level is bought.\nStarting gear is taken back."
+  settings: "<#d1c3a0>World Settings"
+  repick: "<#d1c3a0>Change Origin"
+  repick-tip: "<#8f8164>Only before your first level up.\nStarting items are taken back."
   test-name: "<#d1c3a0><font:souls:title>Beneath the Gaol Tower"
 
 boss:
-  felled: "<#9e7c44>FOE FELLED"
+  felled: "<#9e7c44>ENEMY FELLED"
   hrolf:
     name: "<#d1c3a0><font:souls:title>Hrolf, the Gatewarden"
 
@@ -49,16 +52,16 @@ taster:
   end: "<#b3a37f>THE WAY IS BARRED"
 
 spell:
-  learned: "<#b3a37f>Rite learned"
-  no-slot: "<#8f8164>Memory can hold no more"
-  none: "<#858079>No rite held in memory"
+  learned: "<#b3a37f>Spell learned"
+  no-slot: "<#8f8164>Not enough memory slots"
+  none: "<#858079>No spells memorized"
 
 item:
   master_key:
     name: "<#d1c3a0><font:souls:title>Master Key"
     lore:
-      - "<#8f8164>Opens most doors held shut by a lock."
-      - "<#8f8164>Sealed doors stay sealed."
+      - "<#8f8164>Opens most simple locks."
+      - "<#8f8164>Useless against sealed doors."
 
 ring:
   # Rings (9.4, content/rings.yml), worn in the left column of the inventory's 2x2 (item/RingSlots). The test_* rings are
@@ -67,7 +70,7 @@ ring:
     stamina-regen: "<#9e7c44>Stamina recovery <pct>%"
     poise: "<#9e7c44>Poise <pct>%"
     parry-window: "<#9e7c44>Parry window <sec>s"
-    soul-guard: "<#9e7c44>Spares your souls once in death, then breaks"
+    soul-guard: "<#9e7c44>Lose no souls on death. The ring then breaks"
     pending: "<#5c5955>Not yet in effect"
   weight: "<#858079>Weight <weight>"
   # Rule between the effect lines and the lore (like weapon.rule). The pack builds ring.rule.<id> at each ring's tooltip width
@@ -76,15 +79,15 @@ ring:
   test_stamina:
     name: "<#d1c3a0><font:souls:title>Test Ring: Stamina Recovery"
     lore:
-      - "<#8f8164>A ring for testing. Gone once the tale is set."
+      - "<#8f8164>[Test]"
   test_poise:
     name: "<#d1c3a0><font:souls:title>Test Ring: Poise"
     lore:
-      - "<#8f8164>A ring for testing. Gone once the tale is set."
+      - "<#8f8164>[Test]"
   test_parry:
     name: "<#d1c3a0><font:souls:title>Test Ring: Parry"
     lore:
-      - "<#8f8164>A ring for testing. Gone once the tale is set."
+      - "<#8f8164>[Test]"
 
 container:
   # Crafting table title (set by item/RingSlots; container.crafting is blank because its inventory spot is now the ring slots)
@@ -94,24 +97,24 @@ weapon:
   # Weapons, shields, catalysts (9.1, 9.2, 3.12.4, 9.7). Ids and models: pack/weapons/SPEC.md.
   # Lore lines stay under the 250 px tooltip width (tools/langcheck.py).
   class:
-    straight_sword: "<#9e7c44>Straight Sword · Slash/Thrust"
-    dagger: "<#9e7c44>Dagger · Slash/Thrust"
-    greatsword: "<#9e7c44>Greatsword · Slash"
-    axe: "<#9e7c44>Axe · Slash"
-    hammer: "<#9e7c44>Hammer · Strike"
-    spear: "<#9e7c44>Spear · Thrust"
-    halberd: "<#9e7c44>Halberd · Slash/Thrust"
+    straight_sword: "<#9e7c44>Straight Sword (Slash/Thrust)"
+    dagger: "<#9e7c44>Dagger (Slash/Thrust)"
+    greatsword: "<#9e7c44>Greatsword (Slash)"
+    axe: "<#9e7c44>Axe (Slash)"
+    hammer: "<#9e7c44>Hammer (Strike)"
+    spear: "<#9e7c44>Spear (Thrust)"
+    halberd: "<#9e7c44>Halberd (Slash/Thrust)"
     bow: "<#9e7c44>Bow"
     small_shield: "<#9e7c44>Small Shield"
     medium_shield: "<#9e7c44>Medium Shield"
     greatshield: "<#9e7c44>Greatshield"
-    parrying_dagger: "<#9e7c44>Parrying Dagger · Thrust"
-    catalyst_kiln: "<#9e7c44>Catalyst · Kiln Rites"
-    catalyst_bell: "<#9e7c44>Catalyst · Bell Rites"
+    parrying_dagger: "<#9e7c44>Parrying Dagger (Thrust)"
+    catalyst_kiln: "<#9e7c44>Catalyst (Kiln Rites)"
+    catalyst_bell: "<#9e7c44>Catalyst (Bell Rites)"
   stat:
     attack: "<#858079>Attack"
-    guard: "<#858079>Guard"
-    spell: "<#858079>Rite Power"
+    guard: "<#858079>Phys. Negation"
+    spell: "<#858079>Spell Power"
     weight: "<#858079>Weight"
   rule: "<#fefefe>—"
   redin_guard_sword:
@@ -236,81 +239,81 @@ weapon:
       - "<#8f8164>So small a bell called no one home."
 
 origin:
-  title: "<#d1c3a0><font:souls:title>Who were you?"
+  title: "<#d1c3a0><font:souls:title>Choose Origin"
   head-name: "<#858079>Origin"
-  head-level: "<#858079>Lv"
-  head-kit: "<#858079>Equipment"
+  head-level: "<#858079>Level"
+  head-kit: "<#858079>Starting Items"
   later: "<#d1c3a0>Decide Later"
-  choose: "<#d1c3a0>Take This Path"
+  choose: "<#d1c3a0>Begin"
   back: "<#d1c3a0>Back"
-  no-rites: "<#8f8164>No rite learned yet"
+  no-rites: "<#8f8164>Knows no spells yet. Fights with a dagger."
   confirm-title: "<#d1c3a0><font:souls:title><name>"
-  none: "<#858079>No past chosen yet"
-  none-hint: "<#858079>To choose · tap <bind>"
-  none-hint-f: "<#858079>To choose · press <bind>"
+  none: "<#858079>No origin chosen yet"
+  none-hint: "<#858079>Tap <bind> to choose an origin"
+  none-hint-f: "<#858079>Press <bind> to choose an origin"
   knight:
     name: "<#d1c3a0>Knight"
-    desc: "<#8f8164>A soldier of sword and shield."
-    style: "<#b3a37f>Holds firm behind the shield. Hardy."
-    kit: "<#b3a37f>Sword · Shield"
+    desc: "<#8f8164>A knight with sword and shield."
+    style: "<#b3a37f>High Vigor. Holds the line behind a shield."
+    kit: "<#b3a37f>Sword, Shield"
   warrior:
     name: "<#d1c3a0>Warrior"
-    desc: "<#8f8164>Swings a greatsword with both hands."
-    style: "<#b3a37f>Heavy blows. No shield."
+    desc: "<#8f8164>A warrior with a greatsword."
+    style: "<#b3a37f>High Strength. Hits hard, but has no shield."
     kit: "<#b3a37f>Greatsword"
   thief:
     name: "<#d1c3a0>Thief"
-    desc: "<#8f8164>Light of hand, with a master key."
-    style: "<#b3a37f>Swift; parries with the off-hand dagger."
-    kit: "<#b3a37f>Daggers · Master Key"
+    desc: "<#8f8164>A thief who carries a master key."
+    style: "<#b3a37f>High Dexterity. Parries with a left-hand dagger."
+    kit: "<#b3a37f>Daggers, Key"
   archer:
     name: "<#d1c3a0>Archer"
-    desc: "<#8f8164>Strikes first, from afar, with a bow."
-    style: "<#b3a37f>Looses from afar, ends it with the hatchet."
-    kit: "<#b3a37f>Bow · Hatchet"
+    desc: "<#8f8164>An archer who strikes first."
+    style: "<#b3a37f>Shoots from afar, draws a hand axe up close."
+    kit: "<#b3a37f>Bow, Hand Axe"
   sorcerer:
     name: "<#d1c3a0>Sorcerer"
-    desc: "<#8f8164>Rites through a catalyst; a dagger for now."
-    style: "<#b3a37f>Rites strike hardest. Frail."
-    kit: "<#b3a37f>Iron Pot · Dagger"
+    desc: "<#8f8164>A sorcerer with a catalyst."
+    style: "<#b3a37f>High Intelligence, but low HP."
+    kit: "<#b3a37f>Catalyst, Dagger"
   deprived:
     name: "<#d1c3a0>Deprived"
-    desc: "<#8f8164>Nothing owned, nothing to lean on."
-    style: "<#b3a37f>All tens. Grows any way."
-    kit: "<#b3a37f>Club · Plank Shield"
+    desc: "<#8f8164>Starts with only a club and a plank shield."
+    style: "<#b3a37f>Every stat at 10, free to grow in any direction."
+    kit: "<#b3a37f>Club, Plank Shield"
 
 start:
-  title: "<#d1c3a0><font:souls:title>Terms of This World"
-  body: "<#b3a37f>Set once for this world. An admin may alter it."
+  title: "<#d1c3a0><font:souls:title>World Settings"
+  body: "<#b3a37f>Set once. Only an admin can change them later."
   pvp: "<#d1c3a0>PvP"
-  pvp-hit: "<#8f8164>With PvP on, the living may strike one another."
-  pvp-sweep: "<#8f8164>A wide swing will cut a friend too."
-  choice: "<#d1c3a0><name> — <desc>"
-  choice-default: "<#d1c3a0><name> — <desc> (first journey)"
+  pvp-hit: "<#8f8164>With PvP on, players can attack each other."
+  pvp-sweep: "<#8f8164>Wide swings also hit players beside you."
+  choice: "<#d1c3a0><name>"
+  choice-default: "<#d1c3a0><name> (Recommended)"
   later: "<#d1c3a0>Decide Later"
-  later-tip: "<#8f8164>For now: <difficulty> · <pvp>"
-  notice: "<#b3a37f>This world: <difficulty> · <pvp>"
-  changed: "<#b3a37f>The terms have changed: <difficulty> · <pvp>"
-  provisional: "<#858079>The terms are not yet fixed"
-  provisional-chat: "<#858079>Asked again on return, or at a bonfire."
-  waiting: "<#858079>The terms are being set"
-  op-only: "<#858079>Only an admin may set the terms"
-  already-set: "<#858079>The terms are already set"
+  later-tip: "<#8f8164>Until then: <difficulty>, <pvp>"
+  notice: "<#b3a37f>World settings: <difficulty>, <pvp>"
+  changed: "<#b3a37f>World settings changed: <difficulty>, <pvp>"
+  provisional: "<#858079>World settings are not final yet"
+  provisional-chat: "<#858079>You will be asked again when you rejoin or rest at a bonfire."
+  waiting: "<#858079>Another player is choosing settings"
+  op-only: "<#858079>Only an admin can change world settings"
+  already-set: "<#858079>World settings are already chosen"
 
 difficulty:
   easy:
     name: "<#d1c3a0>Easy"
-    desc: "<#8f8164>Weaker foes"
+    desc: "<#8f8164>Weaker enemies."
   normal:
     name: "<#d1c3a0>Normal"
-    desc: "<#8f8164>As the game was meant"
+    desc: "<#8f8164>The standard difficulty."
   hard:
     name: "<#d1c3a0>Hard"
-    desc: "<#8f8164>Stronger, sturdier foes"
+    desc: "<#8f8164>Stronger, tougher enemies."
   very_hard:
     name: "<#d1c3a0>Very Hard"
-    desc: "<#8f8164>Far stronger, tougher foes"
-  summary: "<#b3a37f>Damage taken ×<damage> · Foe HP ×<health>"
+    desc: "<#8f8164>Much stronger, tougher enemies."
+  summary: "<#b3a37f>Damage taken ×<damage>, Enemy HP ×<health>"
 
 pvp:
   "on": "<#b3a37f>PvP on"
@@ -347,29 +350,29 @@ derived:
   max-hp: "<#858079>Max HP"
   defense: "<#858079>Defense"
   max-mana: "<#858079>Max Mana"
-  magic-res: "<#858079>Magic Res."
+  magic-res: "<#858079>Magic Defense"
   max-stamina: "<#858079>Max Stamina"
-  regen: "<#858079>Stam. Regen"
+  regen: "<#858079>Stamina Regen"
   attack: "<#858079>Attack"
   attack-2h: "<#858079>Attack (2H)"
   load: "<#858079>Equip Load"
-  move: "<#858079>Movement"
+  move: "<#858079>Move Speed"
   attack-speed: "<#858079>Attack Speed"
-  spell: "<#858079>Rite Power"
-  ailment: "<#858079>Ailment Res."
+  spell: "<#858079>Spell Power"
+  ailment: "<#858079>Ailment Resist"
   blank: ""
 
 load:
-  light: "<#b3a37f>Light"
-  medium: "<#b3a37f>Medium"
-  heavy: "<#b3a37f>Heavy"
-  over: "<#b3a37f>Overburdened"
+  light: "<#b3a37f>Light Load"
+  medium: "<#b3a37f>Med. Load"
+  heavy: "<#b3a37f>Heavy Load"
+  over: "<#b3a37f>Overloaded"
 
 burden:
-  light: "<#858079>Light again"
-  medium: "<#858079>Burdened — rolls slow a little"
-  heavy: "<#858079>Heavy — slow rolls, slow steps"
-  over: "<#858079>Overburdened — cannot roll"
+  light: "<#858079>Light load: quick rolls"
+  medium: "<#858079>Medium load: slower rolls"
+  heavy: "<#858079>Heavy load: slow rolls and movement"
+  over: "<#858079>Overloaded: cannot roll"
 
 levelup:
   title: "<#d1c3a0><font:souls:title>Level Up"
@@ -378,7 +381,7 @@ levelup:
   cancel: "<#d1c3a0>Cancel"
   tip: "<#b3a37f><first> <firstv>\n<second> <secondv>"
   short: "<#8f8164>Not enough souls"
-  later: "<#6b5f4a><what> · not yet in effect"
+  later: "<#6b5f4a><what> (not yet active)"
   load-change: "<#8f8164><from> → <to>"
   burn: "<#8f8164>Burn time <from>s → <to>s"
 
@@ -390,59 +393,59 @@ stats:
 
 controls:
   hint:
-    roll: "<#8f8164>Roll · tap <bind>"
-    roll-f: "<#8f8164>Roll · <bind>"
-    parry: "<#8f8164>Parry · <bind>"
-    parry-sneak: "<#8f8164>Parry · <sneak> + <bind>"
+    roll: "<#8f8164>Roll: tap <bind>"
+    roll-f: "<#8f8164>Roll: <bind>"
+    parry: "<#8f8164>Parry: <bind>"
+    parry-sneak: "<#8f8164>Parry: <sneak> + <bind>"
 
 ending:
   rekindle: "Rekindle the Fire"
   leave-cold: "Leave It Cold"
 
 build:
-  refuse: "The world is still being raised. Return later."
+  refuse: "The world is still being generated. Please try again in a minute."
 
 pack:
-  prompt: "<#b3a37f>None may enter without the resource pack."
-  declined: "<#b3a37f>Resource pack refused. None may enter."
-  failed: "<#b3a37f>The resource pack did not arrive. Try again."
+  prompt: "<#b3a37f>This server requires its resource pack."
+  declined: "<#b3a37f>The resource pack is required to join this server."
+  failed: "<#b3a37f>The resource pack failed to download. Please reconnect."
   description: "Block Soul"
 
 test:
   # <kind> is the /soulstest guard argument (empty|control|bypass|strip), shown as typed, not translated
   guard: "<#d1c3a0>Test Guard [<kind>]"
   guard-lore:
-    - "<#8f8164>For testing the guard."
-    - "<#6b5f4a>Raised, it covers the front."
-  swing: "<#d1c3a0>Test Swing · <ticks>"
+    - "<#8f8164>[Test]"
+    - "<#6b5f4a>Blocks from the front while held."
+  swing: "<#d1c3a0>Test Swing (<ticks> ticks)"
 
 skill:
   test_sweep:
     name: "<#d1c3a0>Test Sweep"
     desc:
-      - "<#8f8164>For testing the engine."
+      - "<#8f8164>[Test]"
   test_slam:
     name: "<#d1c3a0>Test Slam"
     desc:
-      - "<#8f8164>For testing the engine."
+      - "<#8f8164>[Test]"
 
 hud:
   souls: "<#b3a37f>Souls <n>"
   warmth: "<#b3a37f>Mana <n>/<m>"
 
 admin:
-  players-only: "<#858079>A player must run this (or use /execute as)."
+  players-only: "<#858079>Only players can use this command (from the console, use /execute as)."
   reloaded: "<#858079>Settings, glyphs and content reloaded."
-  no-anchor: "<#858079>No such anchor: <anchor>"
-  no-world: "<#858079>There is no game world."
-  room-built: "<#858079>Test room raised: <detail>"
-  room-failed: "<#858079>Test room could not be raised: <error>"
-  settings-busy: "<#858079>Another is setting the terms."
+  no-anchor: "<#858079>Unknown location: <anchor>"
+  no-world: "<#858079>The game world is not loaded."
+  room-built: "<#858079>Test room built: <detail>"
+  room-failed: "<#858079>Could not build the test room: <error>"
+  settings-busy: "<#858079>Another player has the world settings open."
   settings-unknown: "<#858079>Unknown value: <value>"
-  settings-set: "<#858079>Terms set: <difficulty> · <pvp>"
-  origin-reset: "<#858079>Origin cleared for <player> (items taken: <items>)"
-  souls-set: "<#858079>Souls of <player>: <souls>"
-  no-player: "<#858079>No such player: <player>"
+  settings-set: "<#858079>World settings changed: <difficulty>, <pvp>"
+  origin-reset: "<#858079>Origin reset for <player> (<items> items taken back)"
+  souls-set: "<#858079><player> now holds <souls> souls"
+  no-player: "<#858079>Player not found: <player>"
 
 vanilla:
   menu:
@@ -472,9 +475,9 @@ vanilla:
       title: "Key Binds"
   deathScreen:
     respawn: "<gray>Rise"
-    titleScreen: "<gray>Depart"
+    titleScreen: "<gray>Title Screen"
     quit:
-      confirm: "Depart this place?"
+      confirm: "Quit to title?"
     score:
       value: ""
   container:

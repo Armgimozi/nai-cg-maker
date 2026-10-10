@@ -4,13 +4,13 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * 장비 무게 단계 (5.8): 비율 = 무게 / 한도. 가벼움 &lt; 30%, 보통 &lt; 70%, 무거움 ≤ 100%, 너무 무거움 &gt; 100% (load.tiers).
+ * 장비 무게 단계 (5.8): 비율 = 무게 / 한도. 가벼움 &lt; 30%, 보통 &lt; 70%, 무거움 ≤ 100%, 과적 &gt; 100% (load.tiers).
  * 단계마다 구르기 종류, 스태미나 회복 배율, 걷기 배율, 달리기 (load.&lt;단계&gt;.*). 순수 클래스 (13.1 의 LoadTest).
  */
 public final class LoadTiers {
     /**
      * 한 단계. upTo 는 이 단계의 비율 윗끝 (마지막 단계는 무한). inclusive 면 윗끝을 넣는다 (무거움 ≤ 100%).
-     * roll 은 combat.roll.kinds 의 열쇠 (너무 무거움은 backstep: 방향과 상관없이 뒷걸음).
+     * roll 은 combat.roll.kinds 의 열쇠 (과적은 backstep: 방향과 상관없이 뒷걸음).
      */
     public record Tier(String id, double upTo, boolean inclusive, String roll, double regen, double walk, boolean sprint) {}
 

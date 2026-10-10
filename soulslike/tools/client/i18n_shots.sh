@@ -4,10 +4,10 @@
 #   i18n_shots.sh <포트> <찍을폴더> [언어...]      언어 기본 "ko_kr en_us"
 # 그림 (언어마다 <언어>_ 를 앞에 붙인다):
 #   01_join_hud        들어온 화면. 행동 막대 "소울 0" / "Souls 0" (번역 열쇠 souls.hud.souls)
-#   02_rest_dialog     휴식 창 꼴 (/soulstest dialog): 제목 (화톳불 이름), 본문 "소울 0 · 레벨 1", 단추 셋 (폭 160)
-#   03_item_tooltip    인벤토리에서 시험 막기 도구 위에 마우스: 이름과 설명 두 줄 (번역 열쇠라 클라이언트 언어로)
-#   04_death_screen    사망 화면: YOU DIED (두 언어 공통 그림 글자), 회색 단추 둘 (일어선다/그만둔다, Rise/Depart)
-#   05_quit_confirm    사망 화면의 둘째 단추를 누른 확인 창 (deathScreen.quit.confirm). 둘째 단추 (일어선다/Rise) 로 돌아온다
+#   02_rest_dialog     휴식 창 꼴 (/soulstest dialog): 제목 (화톳불 이름), 본문 레벨·보유 소울·필요 소울 칸 맞춤 세 줄, 단추 셋 (휴식·이동·떠나기, 폭 160)
+#   03_item_tooltip    인벤토리에서 시험 가드 도구 위에 마우스: 이름과 설명 두 줄 ("[시험용]" 표시와 한 줄) (번역 열쇠라 클라이언트 언어로)
+#   04_death_screen    사망 화면: YOU DIED (두 언어 공통 그림 글자), 회색 단추 둘 (다시 일어서기/타이틀 화면으로, Rise/Title Screen)
+#   05_quit_confirm    사망 화면의 둘째 단추를 누른 확인 창 (deathScreen.quit.confirm, "타이틀 화면으로 나갈까요?"). 확인 창의 둘째 단추 (다시 일어서기/Rise) 로 돌아온다
 #   06_title_subtitle  큰 글씨와 부제목의 폭 (10.3): 바닐라 /title 로 번역 열쇠를 띄운다. 가장 긴 큰 글씨 taster.end
 #                      (4배로 그려진다) 와 가장 긴 부제목 door.one-way (2배)
 # SRVDIR=<서버폴더> (devserver.sh 로 켠 그 폴더) 를 주면 설정 단계 (pack.send-at: configure) 점검도 한다. 팩을 싣기 전이라

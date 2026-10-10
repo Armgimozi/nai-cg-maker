@@ -74,8 +74,8 @@ DIVIDED = (("vanilla.menu.game", DEFAULT_FONT), ("bonfire.test-name", TITLE_FONT
 TITLE_VARIANTS = (("origin.confirm-title", "origin.*.name"),)
 # 무기 설명 칸의 수치 표 (GUI 픽셀): 이름 열 = 가장 긴 이름 + LABEL_GAP, 값 열 VALUE_COL (값은 오른쪽 맞춤), 두 칸 사이 COL_GAP
 LABEL_KEYS = "weapon.stat.*"
-# 이름과 값 사이 여백: 가장 긴 이름 (술법 세기 / Rite Power) 뒤에도 빈칸 글자 둘쯤 (검토 tooltip-label-gutter: 6 이면 촉매 줄이
-# "술법 세기 100" 처럼 빈칸 하나로 붙어 보였다)
+# 이름과 값 사이 여백: 가장 긴 이름 (물리 컷률·술법 위력 / Phys. Negation) 뒤에도 빈칸 글자 둘쯤 (검토 tooltip-label-gutter: 6 이면 촉매 줄이
+# "술법 세기 100" (옛 이름) 처럼 빈칸 하나로 붙어 보였다)
 LABEL_GAP = 10
 VALUE_COL = 18
 COL_GAP = 14
@@ -85,7 +85,7 @@ VALUE_CHARS = "0123456789.-%+/→×–, "   # 무기 수치 표와 Dialog 표의
 # 폭이 같고 값 (숫자) 을 플러그인이 고정 열에 오른쪽 맞춤하면 모든 줄의 폭이 같아 열이 위아래로 선다.
 #   (열쇠 꼴들, 갈래, 맞춤 left|right, 폭: ("gap", n) = 가장 긴 것 + n, ("fixed", n) = n 고정 (넘으면 오류))
 CELLS = (
-    (("derived.*",), "cell", "left", ("gap", 8)),            # 능력치 표 오른쪽 열의 이름 (능력치 창·레벨 올리기 창·출신 확인 창, ui/StatSheet)
+    (("derived.*",), "cell", "left", ("gap", 8)),            # 능력치 표 오른쪽 열의 이름 (능력치 창·레벨 업 창·출신 확인 창, ui/StatSheet)
     (("table.*", "stat.*.name"), "cell", "left", ("gap", 8)),  # 능력치 표 왼쪽 열의 이름 (레벨·보유 소울·필요 소울·출신과 능력치 여섯)
     (("origin.*.name", "origin.head-name"), "cell", "left", ("gap", 6)),   # 출신 창의 이름 칸 (머리줄 origin.head-name 도 같은 무리)
     (("origin.*.kit", "origin.head-kit"), "cell", "left", ("gap", 0)),     # 출신 창의 시작 아이템 칸 (머리줄 origin.head-kit 도)
@@ -100,7 +100,7 @@ CELLS = (
 #   (이름, [CELLS 의 첫 꼴 (그 무리의 칸 폭) 또는 고정 폭 (정수)], 한도)
 BODY_PAD = 16
 ROWS = (
-    ("능력치 표 줄 (ui/StatSheet, 레벨 올리기·능력치·출신 확인 창)", ("table.*", 84, 24, "derived.*", 64), 320 - BODY_PAD),
+    ("능력치 표 줄 (ui/StatSheet, 레벨 업·능력치·출신 확인 창)", ("table.*", 84, 24, "derived.*", 64), 320 - BODY_PAD),
     ("출신 머리줄·출신 줄 (ui/OriginDialog)", ("origin.*.name", 30 * 7, 8, "origin.*.kit"), 370 - BODY_PAD),
 )
 
@@ -189,14 +189,15 @@ def ring_effect_value(effect, v):
         return ("-" if n < 0 else "+") + str(abs(n))
     if effect == "parry-window":
         n = int(v)
-        return ("-" if n < 0 else "+") + "%.2f" % (abs(n) / 20.0)
+        sec = ("%.2f" % (abs(n) / 20.0)).rstrip("0").rstrip(".")   # 끝의 0 은 뗀다 (플러그인 item/Rings.seconds 와 같다)
+        return ("-" if n < 0 else "+") + sec
     return None
 
 
 def stat_cells(d):
     """
     수치 표의 칸 (플러그인 item/StatTable.cells 와 같은 차례): 한 줄, 제 값 하나와 무게 (장비에는 보정·요구 능력치가 없다,
-    DECISIONS 2026-10-10). 방패 (guard) 는 막기, 촉매 (spell) 는 술법 세기, 나머지 (attack) 는 공격력.
+    DECISIONS 2026-10-10). 방패 (guard) 는 물리 컷률, 촉매 (spell) 는 술법 위력, 나머지 (attack) 는 공격력.
     """
     cells = []
     if int(d.get("guard", 0) or 0) > 0:
@@ -479,7 +480,7 @@ class Typeset:
 
     def ring_width(self, data, rid, r):
         """
-        반지 rid 의 설명 칸 글 열 폭 (한 언어, GUI 픽셀): 이름 (제목 글꼴)·효과 줄 (값을 채운 글)·아직 듣지 않는 효과의 한 줄·무게
+        반지 rid 의 설명 칸 글 열 폭 (한 언어, GUI 픽셀): 이름 (제목 글꼴)·효과 줄 (값을 채운 글)·아직 적용되지 않는 효과의 한 줄·무게
         줄·설명 줄 가운데 가장 넓은 것 (플러그인 item/Rings.lore 와 같은 줄들). 설명과 효과 사이 실선 ring.rule.<id> 의 폭이다.
         """
         def fill(text, value):

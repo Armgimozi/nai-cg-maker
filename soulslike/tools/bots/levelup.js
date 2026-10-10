@@ -1,11 +1,11 @@
 // 레벨 올리기 (5.3, 5.9), 능력치 창, 능력치가 바꾸는 것 (5.2, 5.8). 봇은 빈털터리 (레벨 1, 모두 10) 로 태어난다.
-//   1. 휴식 창 → "레벨 올리기" → 창 (능력치 여섯 + 되돌린다 + 올린다, 나가기 그만둔다). 단추를 누를 때마다 새 창 (새 값, 새 표식).
-//   2. 생명력 + 세 번 (비용 320 + 340 + 360), 되돌린다 한 번, 올린다: 레벨 3, 소울 −660, 최대 HP 454, 하트는 그대로 10개.
+//   1. 휴식 창 → "레벨 업" → 창 (능력치 여섯 + 되돌리기 + 결정, 나가기 취소). 단추를 누를 때마다 새 창 (새 값, 새 표식).
+//   2. 생명력 + 세 번 (비용 320 + 340 + 360), 되돌리기 한 번, 결정: 레벨 3, 소울 −660, 최대 HP 454, 하트는 그대로 10개.
 //      지난 창의 단추는 버린다 (UI_STALE). 소울이 모자라면 더하지 않는다 (LEVELUP_PLUS_DENY why=souls).
 //   3. 창이 떠 있는 동안 짧은 누름은 구르지 않는다 (why=dialog). 쉬는 중에 맞으면 창이 닫힌다 (REST interrupted).
 //   4. 능력치 창 (휴식 창 "능력치", /stats): 값 표와 STATS 줄이 같은 수를 낸다.
 //   5. 민첩 → 이동 속도 수정자, 지력 → 해로운 효과·불붙음 길이가 준다 (AILMENT), 지구력 → 최대 스태미나.
-//   6. 장비 무게 (5.8): 무기를 잔뜩 들면 무게 단계가 오르고 구르기 종류가 따라간다 (너무 무거움 = 뒷걸음, 달리기 없음).
+//   6. 장비 무게 (5.8): 무기를 잔뜩 들면 무게 단계가 오르고 구르기 종류가 따라간다 (과적 = 뒷걸음, 달리기 없음).
 'use strict'
 const L = require('./lib')
 
@@ -49,7 +49,7 @@ L.run('levelup', async (sc) => {
   const sk = await b.waitT('ROLL_TAP_SKIP', 1500, from)
   sc.check('sneak tap while the level-up dialog is open does not roll (why=dialog)', sk && sk.kv.why === 'dialog' && !b.tLines('ROLL ', from).length, sk ? sk.line : '줄 없음')
 
-  // ── 생명력 + 세 번, 되돌린다, 올린다 ──
+  // ── 생명력 + 세 번, 되돌리기, 결정 ──
   const costs = []
   for (let i = 0; i < 3; i++) {
     d = b.p.dialogs.length
@@ -90,7 +90,7 @@ L.run('levelup', async (sc) => {
   sc.check('not enough souls: no point added (LEVELUP_PLUS_DENY why=souls)', deny && deny.kv.why === 'souls', deny ? deny.line : '줄 없음')
   raw = await b.waitDialog(d, 3000)
 
-  // ── 그만둔다 → 휴식 창 → 능력치 창 ──
+  // ── 취소 → 휴식 창 → 능력치 창 ──
   d = b.p.dialogs.length
   b.clickDialog('exit', {}, raw)
   const back = await b.waitDialog(d, 3000)

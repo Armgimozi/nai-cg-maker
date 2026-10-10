@@ -16,21 +16,21 @@ import java.util.Set;
 
 /**
  * 능력치 표 (5.9, 5.10, DECISIONS 2026-10-10): 다크 소울 상태 창처럼 왼쪽 열에 머리 (레벨·보유 소울·필요 소울, 능력치 창은 출신도) 와
- * 능력치 여섯의 세로 목록 (이름 왼쪽, 값 오른쪽, 더할 점이 있으면 "10 → 13"), 오른쪽 열에 그 능력치에서 나온 값 (최대 HP … 상태 이상 저항).
+ * 능력치 여섯의 세로 목록 (이름 왼쪽, 값 오른쪽, 더할 점이 있으면 "10 → 13"), 오른쪽 열에 그 능력치에서 나온 값 (최대 HP … 상태 이상 내성).
  * 예전 표의 한 글자 열 (체·정·기 …) 과 "체력 10 · 정신 10 · …" 줄은 없앴다 (사용자: 한 글자씩 세로로 붙은 게 이상하다).
  * <pre>
  *   레벨          1 → 4      최대 HP          400 → 454
  *   보유 소울    25,000      최대 마나               60
  *   필요 소울       380      최대 스태미나          100
- *                            스태미나 회복         44.0
+ *                            스태미나 회복           44
  *   생명력      10 → 12      장비 중량       4.5 / 40.0
- *   정신력           10      이동 속도               0%
+ *   정신력           10      이동 속도             100%
  *   지구력           10      공격력            68 → 72
- *   근력        10 → 11      공격 속도               0%
- *   민첩             10      술법 세기                –
+ *   근력        10 → 11      공격 속도             100%
+ *   민첩             10      술법 위력                –
  *   지력             10      방어력            36 → 38
- *                            마법 저항         32 → 34
- *                            상태 이상 저항          0%
+ *                            마법 방어력       32 → 34
+ *                            상태 이상 내성          0%
  * </pre>
  * 줄 맞추기 (Columns 와 같은 길): 바닐라 plain_message 는 줄마다 가운데에 놓으므로 모든 줄의 폭이 같아야 열이 선다. 이름 칸은 팩이 그
  * 언어의 무리 (왼쪽 table.*·stat.*.name, 오른쪽 derived.*) 에서 가장 긴 이름 폭까지 채운 칸 (Lang.cell), 값은 열 끝에 오른쪽 맞춤한 고정 폭
@@ -131,9 +131,9 @@ public final class StatSheet {
     // ------------------------------------------------------------------ 오른쪽 열
 
     /**
-     * 오른쪽 열 (레벨 올리기 창과 능력치 창이 같다): 몸 (최대 HP·마나·스태미나, 스태미나 회복, 장비 중량, 이동 속도), 공격 (공격력, 공격
-     * 속도, 술법 세기), 막기 (방어력, 마법 저항, 상태 이상 저항). next 가 있으면 바뀐 값만 "a → b" (장비 중량은 새 한도만 바랜 금).
-     * 아직 듣지 않는 값 (술법이 생기는 M5 전의 최대 마나·술법 세기) 은 흐린 갈색. tierRow 면 장비 중량 밑에 무게 단계 (이름 없는 칸,
+     * 오른쪽 열 (레벨 업 창과 능력치 창이 같다): 몸 (최대 HP·마나·스태미나, 스태미나 회복, 장비 중량, 이동 속도), 공격 (공격력, 공격
+     * 속도, 술법 위력), 막기 (방어력, 마법 방어력, 상태 이상 내성). next 가 있으면 바뀐 값만 "a → b" (장비 중량은 새 한도만 바랜 금).
+     * 아직 적용되지 않는 값 (술법이 생기는 M5 전의 최대 마나·술법 위력) 은 흐린 갈색. tierRow 면 장비 중량 밑에 무게 단계 (이름 없는 칸,
      * 능력치 창: 레벨 올리기 창은 근력 단추의 설명 칸이 단계가 바뀌는 것을 보인다).
      */
     public static List<Cell> derived(Player p, Derived now, Derived next, boolean tierRow) {
@@ -142,7 +142,7 @@ public final class StatSheet {
         out.add(new Cell("derived.max-hp", Columns.change(f0(now.maxHp()), f0(n.maxHp()), Columns.VALUE)));
         out.add(new Cell("derived.max-mana", later(f0(now.maxMana()), f0(n.maxMana()))));
         out.add(new Cell("derived.max-stamina", Columns.change(f0(now.maxStamina()), f0(n.maxStamina()), Columns.VALUE)));
-        out.add(new Cell("derived.regen", Columns.change(f1(now.regenPerSec()), f1(n.regenPerSec()), Columns.VALUE)));
+        out.add(new Cell("derived.regen", Columns.change(f0(now.regenPerSec()), f0(n.regenPerSec()), Columns.VALUE)));
         out.add(new Cell("derived.load", StatRows.load(now, next)));
         if (tierRow) out.add(new Cell(BLANK_RIGHT, Lang.rcell(p, "load." + now.tier().id()))); // lang-dyn: load.*
         out.add(new Cell("derived.move", Columns.change(StatRows.pct(now.move()), StatRows.pct(n.move()), Columns.VALUE)));
@@ -173,7 +173,7 @@ public final class StatSheet {
         return out;
     }
 
-    /** 아직 듣지 않는 값: 흐린 갈색 (바뀌어도 화살표째 흐리게). */
+    /** 아직 적용되지 않는 값: 흐린 갈색 (바뀌어도 화살표째 흐리게). */
     static Component later(String now, String next) {
         if (now.equals(next)) return Columns.right(now, Columns.VALUE, Columns.DIM_COLOR);
         return Columns.rightParts(Columns.VALUE, new String[] {now + " → " + next}, new TextColor[] {Columns.DIM_COLOR});
@@ -189,9 +189,5 @@ public final class StatSheet {
 
     static String f0(double v) {
         return String.format(Locale.ROOT, "%.0f", v);
-    }
-
-    static String f1(double v) {
-        return String.format(Locale.ROOT, "%.1f", v);
     }
 }

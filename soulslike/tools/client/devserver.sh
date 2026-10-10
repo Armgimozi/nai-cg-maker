@@ -12,7 +12,7 @@
 #               최상위 묶음 바로 밑의 키만 된다. 값은 그대로 쓴다 (글이면 따옴표까지 준다)
 # 플러그인 설정(config.yml)은 켤 때마다 jar 안의 것을 새로 풀어 debug.test-mode: true, pack.serve-port, pack.url 만 바꾼다
 # (그리고 SET). 시작 설정 (5.7, 5.10) 은 기본으로 세계를 보통·PvP 끔으로 확정하고 Tester·봇 (Souls…) 을 접속할 때 빈털터리로
-# 태어나게 한다 (점검 그림이 창에 막히지 않게): START="" 로 끄면 실제 차례 (세계를 정한다 → 출신 창) 를 그대로 받는다.
+# 태어나게 한다 (점검 그림이 창에 막히지 않게): START="" 로 끄면 실제 차례 (세계 설정 → 출신 창) 를 그대로 받는다.
 # 창 그림만 볼 때는 켠 채로 /soulstest settings clear 와 /souls origin reset Tester 로 창을 다시 부른다 (ui_shots.sh).
 # 기록: <폴더>/console.log
 set -u
