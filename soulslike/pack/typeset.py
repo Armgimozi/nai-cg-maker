@@ -87,6 +87,15 @@ CELLS = (
     (("stat.*.short", "origin.head-level"), "rcell", "right", ("fixed", 24)),   # 출신 창 머리줄의 능력치·레벨 (ui/Columns.STAT_COL)
     (("stat.*.tag",), "cell", "left", ("gap", 4)),            # 값 표 줄 맨 앞의 능력치 한 글자 (체·정·기 …, VIG MND …)
 )
+# 칸을 이은 한 줄이 Dialog 본문에 한 줄로 서는가 (검토 뒤 실제 클라이언트에서 영어 값 표 줄이 둘로 꺾였다). 바닐라의 plain_message 는
+# FocusableTextWidget (안쪽 여백 4) 이라 글이 서는 폭이 본문 폭 − 16 이다: 본문 300 → 284, 320 → 304. 숫자 칸은 플러그인 ui/Columns 의
+# 상수와 같다 (VALUE 64, GAP 12, STAT_COL 24, KIT_GAP 8). 넘으면 팩 만들기가 멈춘다 (그 언어의 이름을 줄인다).
+#   (이름, [CELLS 의 첫 꼴 (그 무리의 칸 폭) 또는 고정 폭 (정수)], 한도)
+BODY_PAD = 16
+ROWS = (
+    ("값 표 줄 (ui/Columns.row, 레벨 올리기·능력치 창)", ("stat.*.tag", "derived.*", 64, 12, "derived.*", 64), 300 - BODY_PAD),
+    ("출신 머리줄·출신 줄 (ui/OriginDialog)", ("origin.*.name", 24 * 7, 8, "origin.*.kit"), 320 - BODY_PAD),
+)
 
 LEGACY = re.compile("§.")
 HANGUL = re.compile("[가-힣]")
@@ -374,6 +383,7 @@ class Typeset:
         CELLS 의 칸 열쇠를 더한다 (souls.<열쇠>.cell / .rcell). 같은 무리의 칸은 모두 같은 폭이다. 고정 폭을 넘는 글은 ValueError
         (그 언어의 글을 줄이거나 ui/Columns 의 폭을 늘린다). 칸 열쇠는 자리 (%s) 가 없는 글만.
         """
+        cols = {}
         for patterns, branch, align, (kind, n) in CELLS:
             group = {k: v for k, v in data.items() if k.startswith("souls.") and not k.endswith(".cell") and not k.endswith(".rcell")
                      and any(fnmatch.fnmatchcase(k[len("souls."):], p) for p in patterns) and "%" not in v.replace("%%", "")}
@@ -381,11 +391,19 @@ class Typeset:
                 continue
             widths = {k: self.fonts.width(DEFAULT_FONT, v.replace("%%", "%")) for k, v in group.items()}
             col = max(widths.values()) + n if kind == "gap" else n
+            cols[patterns[0]] = col
             for k, v in group.items():
                 if widths[k] > col:
                     raise ValueError(f"{rel}: {k} 의 글 폭 {widths[k]} 이 칸 폭 {col} 을 넘는다 ({v!r}, pack/typeset.py CELLS)")
                 pad = spaces(col - widths[k])
                 data[f"{k}.{branch}"] = v + pad if align == "left" else pad + v
+        for name, parts, limit in ROWS:
+            if not all(isinstance(x, int) or x in cols for x in parts):
+                continue
+            w = sum(x if isinstance(x, int) else cols[x] for x in parts)
+            if w > limit:
+                raise ValueError(f"{rel}: {name} 의 폭 {w} 이 본문에 서는 폭 {limit} 을 넘는다 (칸 "
+                                 f"{[cols.get(x, x) for x in parts]}, pack/typeset.py ROWS: 그 언어의 이름을 줄인다)")
 
     @staticmethod
     def cell_keys(keys):

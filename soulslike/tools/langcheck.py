@@ -65,7 +65,7 @@ SLOT_PX = {
     "button160": 150,                # Dialog 단추 (폭 160, 10.4)
     "button200": 190,                # 사망 화면 단추 (폭 200)
     "dialog_title": 300,             # Dialog 제목
-    "dialog_body": 200,              # Dialog 본문 (plain_message 기본 폭 200, 넘으면 줄이 바뀐다)
+    "dialog_body": 184,              # Dialog 본문 (plain_message 기본 폭 200. 바닐라 FocusableTextWidget 의 안쪽 여백 4×4 를 빼면 184 에서 줄이 바뀐다)
     "tooltip": 250,                  # 아이템 이름·설명 한 줄
     "screen": 400,                   # 바닐라 확인 창 제목
     "container_title": 72,           # 창 제목 (인벤토리의 "제작" 은 x 97 에서 판 안쪽 끝 168 까지, 10.4)
@@ -73,8 +73,8 @@ SLOT_PX = {
     "boss_name": 200,                # 보스 막대 이름 (막대 왼쪽 끝 위, 늘이기 전 막대 폭 200 안, 10.2)
     "button150": 140,                # Dialog 단추 폭 150 (레벨 올리기 능력치 단추, 출신 확인 창, 5.9)
     "button250": 240,                # Dialog 단추 폭 250 (세계를 정한다 창의 난이도 단추, 5.7)
-    "dialog_body300": 300,           # 폭 300 Dialog 본문 (세계를 정한다·레벨 올리기·능력치 창의 표, 5.9)
-    "dialog_body320": 320,           # 폭 320 Dialog 본문 (출신 창 머리줄과 출신 줄, 5.10)
+    "dialog_body300": 284,           # 폭 300 Dialog 본문 (세계를 정한다·레벨 올리기·능력치 창의 표, 5.9. 글이 서는 폭 300 − 16)
+    "dialog_body320": 304,           # 폭 320 Dialog 본문 (출신 창 머리줄과 출신 줄, 5.10. 글이 서는 폭 320 − 16)
     "button_tip": 170,               # Dialog 단추 설명 칸 (클라이언트가 170 에서 줄을 바꾼다: 넘지 않게 쓴다)
     "wrap": None,                    # 채팅·접속 거절·팩 창 (클라이언트가 줄을 바꾼다)
 }

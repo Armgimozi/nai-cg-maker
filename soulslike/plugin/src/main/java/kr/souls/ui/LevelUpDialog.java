@@ -134,7 +134,7 @@ public final class LevelUpDialog implements Listener {
         Component first = Lang.c(p, k[0]); // lang-dyn: derived.*
         Component second = Lang.c(p, k[1]); // lang-dyn: derived.*
         List<Component> out = new ArrayList<>();
-        out.add(Lang.c(p, "levelup.tip", "first", first, "firstv", va[0] + " → " + vb[0], "second", second, "secondv", va[1] + " → " + vb[1]));
+        out.add(Lang.c(p, "levelup.tip", "first", first, "firstv", step(va[0], vb[0]), "second", second, "secondv", step(va[1], vb[1])));
         if ("str".equals(id)) {
             String w = String.format(Locale.ROOT, "%.1f", a.weight());
             Component ta = Lang.c(p, "load." + a.tier().id()), tb = Lang.c(p, "load." + b.tier().id()); // lang-dyn: load.*
@@ -148,6 +148,11 @@ public final class LevelUpDialog implements Listener {
         out.add(Lang.c(p, "levelup.next", "cost", souls(nextPoint)));
         if (!afford) out.add(Lang.c(p, "levelup.short"));
         return Columns.lines(out);
+    }
+
+    /** 설명 칸의 한 값: 한 점으로 달라지면 "51 → 52", 반올림으로 그대로면 "52" 하나 ("52 → 52" 는 고장처럼 읽힌다). */
+    static String step(String now, String next) {
+        return now.equals(next) ? now : now + " → " + next;
     }
 
     /** 불에 타는 3초가 저항으로 몇 초가 되나 ("2.5"). */
