@@ -23,7 +23,7 @@ import java.util.Locale;
  *       걸어 둘이 곱해진다.</li>
  *   <li>든 근접 무기 → ATTACK_SPEED 임시 수정자 둘 (M1 의 동작 실행기 전의 다리, 3.6·3.7): souls:weapon_speed (ADD_NUMBER, 분류의 약공격
  *       한 주기 pve.swing-ticks 로 20 / 주기 − 4: 단검 10틱 → 2.0, 직검 13 → 1.54, 대검 22 → 0.91) 와 민첩의 souls:lvl_dex
- *       (ADD_MULTIPLIED_TOTAL, 공격 속도 배율 − 1 = 민첩 속도 × 무기의 민첩 보정 계수, 필요 민첩 미달이면 깎인다). 바닐라 공격 대기가 이
+ *       (ADD_MULTIPLIED_TOTAL, 공격 속도 배율 − 1 = 민첩 속도: 모든 무기에 같다, 장비에는 보정이 없다). 바닐라 공격 대기가 이
  *       값으로 차고, 적을 칠 때의 피해 다리 (DamageHook) 가 그 대기를 쓴다. 근접 무기를 들지 않으면 둘 다 뗀다 (맨손 4.0).
  *       든 것이 바뀔 때마다 (Load 의 다시 셈하는 때와 같다) weaponSpeed 로 다시 건다.</li>
  *   <li>하트는 늘 10개 (setHealthScale(20)). 이 값은 저장되지 않아 접속할 때마다 건다.</li>
@@ -91,7 +91,7 @@ public final class AttributeApplier {
         Weapons.Def w = plugin.weapons().of(p.getInventory().getItemInMainHand());
         Integer cycle = Stats.isMelee(w) ? plugin.cfg().pve.swingTicks(w.cls()) : null;
         double base = cycle == null ? BASE_ATTACK_SPEED : 20.0 / cycle;
-        double mult = cycle == null ? 1 : DamageCalc.attackSpeed(plugin.cfg().stats, Stats.arms(w), plugin.stats().of(p).dex());
+        double mult = cycle == null ? 1 : DamageCalc.attackSpeed(plugin.cfg().stats, plugin.stats().of(p).dex());
         String key = (w == null ? "-" : w.id()) + String.format(Locale.ROOT, "/%.5f/%.5f", base, mult);
         if (key.equals(lastSpeed.get(p.getUniqueId())) && (as.getModifier(WEAPON_SPEED) != null) == (cycle != null)) return;
         lastSpeed.put(p.getUniqueId(), key);

@@ -75,7 +75,7 @@ LABEL_KEYS = "weapon.stat.*"
 LABEL_GAP = 6
 VALUE_COL = 18
 COL_GAP = 14
-VALUE_CHARS = "0123456789.-%SABCDE+/→×–, "   # 무기 수치 표와 Dialog 표의 값 글자 (플러그인 ui/Columns 가 오른쪽 맞춤에 쓴다)
+VALUE_CHARS = "0123456789.-%SABCDE+/→×–, "   # 무기 수치 표와 Dialog 표의 값 글자 (플러그인 ui/Columns 가 오른쪽 맞춤에 쓴다. S·A..E 는 예전 판의 보정 등급, 남겨 둔다)
 # Dialog 창의 표 칸 (5.9, 5.10, 플러그인 Lang.cell·rcell, ui/Columns): 무리마다 그 언어에서 가장 긴 글의 폭 (+ gap) 또는 고정 폭까지
 # 빈칸 글자로 채운 갈래 열쇠 souls.<열쇠>.<갈래> 를 만든다. 바닐라는 창 본문과 단추 글을 줄마다 가운데에 놓으므로, 한 무리의 칸
 # 폭이 같고 값 (숫자) 을 플러그인이 고정 열에 오른쪽 맞춤하면 모든 줄의 폭이 같아 열이 위아래로 선다.
@@ -143,7 +143,6 @@ def rule_text(width):
 
 WEAPONS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                        "plugin", "src", "main", "resources", "content", "weapons.yml")
-STATS = ("str", "dex", "int")           # 플러그인 item/Weapons.STATS 와 같은 차례 (1.3판: att → int)
 
 
 def load_weapons(path=WEAPONS):
@@ -156,19 +155,17 @@ def load_weapons(path=WEAPONS):
 
 def stat_cells(d):
     """
-    수치 표의 칸 (플러그인 item/StatTable.lines 와 같은 차례): [이름 또는 None]. 두 칸씩 한 줄이고 홀수면 보정 줄 뒤를 비운다.
+    수치 표의 칸 (플러그인 item/StatTable.cells 와 같은 차례): 한 줄, 제 값 하나와 무게 (장비에는 보정·요구 능력치가 없다,
+    DECISIONS 2026-10-10). 방패 (guard) 는 막기, 촉매 (spell) 는 술법 세기, 나머지 (attack) 는 공격력.
     """
     cells = []
-    if int(d.get("absorb", 0) or 0) > 0:
-        cells += ["absorb", "stability"]
+    if int(d.get("guard", 0) or 0) > 0:
+        cells.append("guard")
+    elif int(d.get("spell", 0) or 0) > 0:
+        cells.append("spell")
     elif int(d.get("attack", 0) or 0) > 0:
         cells.append("attack")
     cells.append("weight")
-    sc, rq = d.get("scaling") or {}, d.get("requires") or {}
-    cells += ["bonus_" + s for s in STATS if isinstance(sc.get(s), str)]
-    if len(cells) % 2:
-        cells.append(None)
-    cells += ["need_" + s for s in STATS if isinstance(rq.get(s), int)]
     return cells
 
 

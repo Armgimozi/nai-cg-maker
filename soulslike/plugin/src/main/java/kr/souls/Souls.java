@@ -7,6 +7,7 @@ import kr.souls.cmd.TestCommands;
 import kr.souls.combat.CombatState;
 import kr.souls.combat.DamageHook;
 import kr.souls.combat.FoeScaling;
+import kr.souls.combat.Parry;
 import kr.souls.combat.Pvp;
 import kr.souls.combat.PvpGuard;
 import kr.souls.combat.Roll;
@@ -69,6 +70,8 @@ public final class Souls extends JavaPlugin {
     private Ticker ticker;
     private Stamina stamina;
     private Roll roll;
+    private Parry parry;
+    private WeaponGuard weaponGuard;
     private Titles titles;
     private Hud hud;
     private DeathFlow death;
@@ -130,6 +133,7 @@ public final class Souls extends JavaPlugin {
         Glyphs.load(this);
         stamina = new Stamina(this);
         roll = new Roll(this);
+        parry = new Parry(this);
         titles = new Titles();
         hud = new Hud(this);
         death = new DeathFlow(this);
@@ -168,7 +172,8 @@ public final class Souls extends JavaPlugin {
         pm.registerEvents(death, this);
         pm.registerEvents(testHits, this);
         pm.registerEvents(pack, this);
-        pm.registerEvents(new WeaponGuard(this), this);
+        weaponGuard = new WeaponGuard(this);
+        pm.registerEvents(weaponGuard, this);
         pm.registerEvents(profiles, this);
         pm.registerEvents(pvp, this);
         pm.registerEvents(new PvpGuard(this), this);
@@ -306,6 +311,8 @@ public final class Souls extends JavaPlugin {
     public Ticker ticker() { return ticker; }
     public Stamina stamina() { return stamina; }
     public Roll roll() { return roll; }
+    public Parry parry() { return parry; }
+    public WeaponGuard weaponGuard() { return weaponGuard; }
     public Titles titles() { return titles; }
     public Hud hud() { return hud; }
     public DeathFlow death() { return death; }

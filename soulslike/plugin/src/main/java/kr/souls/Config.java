@@ -135,13 +135,41 @@ public final class Config {
 
     /**
      * 적과의 싸움 (M1 의 동작 실행기 전의 다리, 3.7). bridgeScale: souls 근접 무기로 플레이어가 아닌 것을 치면 바닐라 피해를
-     * 공격력 × (0.2 + 0.8 × 회복²) × bridgeScale 로 바꾼다 (직검 71 → 약 6.4, 바닐라 철검쯤). swingTicks: 분류마다 약공격 한 주기 (틱).
+     * 공격력 × (0.2 + 0.8 × 회복²) × bridgeScale 로 바꾼다 (직검 72 → 약 6.4, 바닐라 철검쯤). swingTicks: 분류마다 약공격 한 주기 (틱).
      * 든 무기의 바닐라 공격 속도 = 20 / 주기 (AttributeApplier.weaponSpeed), 민첩이 그것을 곱한다.
      */
     public record PveCfg(double bridgeScale, Map<String, Integer> swingTicks) {
         /** 분류의 약공격 한 주기 (틱, 3.6 의 준비 + 판정 + 회복). 모르는 분류면 null (공격 속도를 걸지 않는다). */
         public Integer swingTicks(String cls) {
             return cls == null ? null : swingTicks.get(cls);
+        }
+    }
+
+    /**
+     * 막기 (3.4). 방패의 막기 값 g (weapons.yml guard) 는 막는 동안 막는 물리 피해 % 다. nonPhysical: 불·술은 g × 이 값.
+     * 막다가 맞으면 쓰는 스태미나 = 그 공격의 스태미나 피해 × (1 − staminaScale × (g/100)²), 최소 staminaMin (DamageCalc.guardStamina).
+     * twoHanded: 왼손이 비어 주무기로 막을 때 (양손 잡기) 의 막기 값, 무기 분류마다 (없으면 twoHandedDefault). 설명 칸에는 없다.
+     */
+    public record GuardCfg(double nonPhysical, double staminaScale, double staminaMin, int twoHandedDefault, Map<String, Integer> twoHanded) {
+        /** 주무기 분류 cls 로 양손으로 막을 때의 막기 값. */
+        public int twoHanded(String cls) {
+            Integer v = cls == null ? null : twoHanded.get(cls);
+            return v != null ? v : twoHandedDefault;
+        }
+    }
+
+    /**
+     * 패링 (3.5, DECISIONS 2026-10-10: 다크 소울 방식). F 를 누르면 왼손에 든 것으로 쳐낸다. 창 (틱) 은 왼손 물건의 분류마다
+     * (windows, weapons.yml 의 class. 없는 분류는 0) 이고, 왼손이 비면 empty, souls 물건이 아니면 0. 0 이면 패링하지 못한다 (F 는
+     * 아무것도 하지 않는다). 반지 (parry-window) 와 난이도 (parry-window-bonus) 를 더해도 min 틱 밑으로 내려가지 않는다 (0 은 그대로 0).
+     * lockMiss: 아무것도 쳐내지 못한 패링 뒤 이 틱 안에 다시 누르면 창이 열리지 않는다. lockHit: 쳐낸 뒤에는 이만큼만.
+     * 설명 칸에는 보이지 않는다 (다크 소울처럼).
+     */
+    public record ParryCfg(Map<String, Integer> windows, int empty, int min, int lockMiss, int lockHit) {
+        /** 분류 cls 의 바탕 창 (틱). 모르는 분류는 0. */
+        public int window(String cls) {
+            Integer v = cls == null ? null : windows.get(cls);
+            return v == null ? 0 : Math.max(0, v);
         }
     }
 
@@ -161,6 +189,8 @@ public final class Config {
     public final LoadTiers load;
     public final LevelUpCfg levelup;
     public final StaminaCfg stamina;
+    public final GuardCfg guard;
+    public final ParryCfg parry;
     public final RollCfg roll;
     public final WorldCfg world;
     public final HudCfg hud;
@@ -192,6 +222,9 @@ public final class Config {
                 c.getDouble("combat.stamina.exhausted-sprint-until", 25),
                 c.getDouble("combat.stamina.guard-regen-scale", 0.35),
                 c.getDouble("combat.stamina.sprint-per-tick", 0.6));
+
+        guard = guard(c);
+        parry = parry(c);
 
         Map<String, RollKind> kinds = new LinkedHashMap<>();
         kinds.put("light", new RollKind("light", 8, 0.42, 0.0, 7, 10, 12, 18));
@@ -326,10 +359,9 @@ public final class Config {
                 }
             }
         }
-        return new StatCurves(c.getInt("stats.max", d.max), grades(c, "stats.grades", d.grades), grades(c, "stats.speed-grades", d.speedGrades),
-                curve(c, "stats.scaling-curve", d.scaling), c.getDouble("stats.defense-base", d.defenseBase),
-                c.getDouble("stats.defense-per-level", d.defensePerLevel), c.getDouble("stats.unfit-penalty", d.unfitPenalty),
-                c.getDouble("stats.unfit-speed", d.unfitSpeed),
+        return new StatCurves(c.getInt("stats.max", d.max), curve(c, "stats.strength.attack", d.strAttack),
+                curve(c, "stats.intelligence.spell-power", d.intSpell), c.getDouble("stats.defense-base", d.defenseBase),
+                c.getDouble("stats.defense-per-level", d.defensePerLevel),
                 curve(c, "stats.vigor.max-health", d.maxHealth), curve(c, "stats.vigor.defense", d.vigorDefense),
                 curve(c, "stats.mind.max-mana", d.maxMana), curve(c, "stats.mind.magic-defense", d.magicDefense),
                 slots.isEmpty() ? d.memorySlots : new StatCurves.Steps(slots), new StatCurves.Curve(stamina),
@@ -352,12 +384,42 @@ public final class Config {
         return m.isEmpty() ? def : new StatCurves.Curve(m);
     }
 
-    private static Map<String, Double> grades(FileConfiguration c, String path, Map<String, Double> def) {
-        ConfigurationSection s = c.getConfigurationSection(path);
-        if (s == null) return def;
-        Map<String, Double> m = new LinkedHashMap<>();
-        for (String k : s.getKeys(false)) m.put(k.toUpperCase(Locale.ROOT), s.getDouble(k));
-        return m.isEmpty() ? def : m;
+    /** combat.guard (3.4). */
+    private static GuardCfg guard(FileConfiguration c) {
+        Map<String, Integer> two = new LinkedHashMap<>();
+        two.put("greatsword", 65);
+        two.put("ultra_greatsword", 65);
+        int def = 50;
+        ConfigurationSection s = c.getConfigurationSection("combat.guard.two-handed");
+        if (s != null) {
+            two.clear();
+            for (String k : s.getKeys(false)) {
+                int v = Math.max(0, Math.min(100, s.getInt(k, def)));
+                if ("default".equals(k)) def = v;
+                else two.put(k, v);
+            }
+        }
+        return new GuardCfg(Math.max(0, Math.min(1, c.getDouble("combat.guard.non-physical", 0.5))),
+                Math.max(0, Math.min(1, c.getDouble("combat.guard.stamina-scale", 0.8))),
+                Math.max(0, c.getDouble("combat.guard.stamina-min", 4)), def, Collections.unmodifiableMap(two));
+    }
+
+    /** combat.parry (3.5). 기본은 문서의 표: 패링 단검 8, 작은 방패 7, 중형 방패 5, 한손 무기 4, 대방패·긴 무기·촉매·활 0, 빈 왼손 0. */
+    private static ParryCfg parry(FileConfiguration c) {
+        Map<String, Integer> w = new LinkedHashMap<>();
+        w.put("parrying_dagger", 8);
+        w.put("small_shield", 7);
+        w.put("medium_shield", 5);
+        w.put("greatshield", 0);
+        for (String k : List.of("dagger", "straight_sword", "curved_sword", "axe", "hammer")) w.put(k, 4);
+        ConfigurationSection s = c.getConfigurationSection("combat.parry.windows");
+        if (s != null) {
+            w.clear();
+            for (String k : s.getKeys(false)) w.put(k, Math.max(0, Math.min(40, s.getInt(k, 0))));
+        }
+        int lockMiss = Math.max(0, c.getInt("combat.parry.lock-miss", 12));
+        return new ParryCfg(Collections.unmodifiableMap(w), Math.max(0, Math.min(40, c.getInt("combat.parry.empty", 0))),
+                Math.max(1, c.getInt("combat.parry.min", 2)), lockMiss, Math.max(0, Math.min(lockMiss, c.getInt("combat.parry.lock-hit", 6))));
     }
 
     /** load.* (5.8). 경계는 load.tiers, 단계 값은 load.&lt;단계&gt;.{roll, regen, walk, sprint}. */

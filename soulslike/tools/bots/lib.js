@@ -591,7 +591,7 @@ class Bot {
     }
   }
 
-  /** F (손 바꾸기) = block_dig 상태 6. 기본 설정 (controls.roll-key: sneak) 에서는 무기 기술 자리 (구르지 않는다) */
+  /** F (손 바꾸기) = block_dig 상태 6. 기본 설정 (controls.roll-key: sneak) 에서는 패링 (왼손에 든 것으로, 구르지 않는다) */
   swap () {
     this._bot._client.write('block_dig', { status: 6, location: { x: 0, y: 0, z: 0 }, face: 0, sequence: 0 })
   }

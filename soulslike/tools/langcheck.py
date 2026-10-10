@@ -122,7 +122,7 @@ SAMPLE = {"souls": "9,999,999", "n": "9,999,999", "level": "713", "m": "999", "k
           "first": "Max Stamina", "second": "Ailment Resist", "firstv": "1,000 → 1,000", "secondv": "+12% → +12%", "hp": "1,000", "mana": "200", "stamina": "200",
           "attack": "999", "weight": "99.9", "cap": "99.9", "damage": "1.25", "health": "1.4", "parry": "-1", "estus": "5",
           "next": "9,999,999", "what": "Max Mana", "tier": "Overburdened", "difficulty": "Very Hard", "pvp": "PvP off",
-          # 반지 효과 줄 (9.4): 배율·비율은 "+20" 꼴, 쳐내기 창은 초 "+0.10" 꼴
+          # 반지 효과 줄 (9.4): 배율·비율은 "+20" 꼴, 패링 창은 초 "+0.10" 꼴
           "pct": "+999", "sec": "+0.95"}
 
 # ── Java 를 읽는 표 ──

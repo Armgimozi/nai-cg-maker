@@ -13,6 +13,7 @@
 | (둘째 클라이언트) | 다른 사람이 보는 모습: `SOULS_CLIENT_HOME` 을 다른 폴더로 (그 안에 `assets`·`libraries`·`versions` 를 이 폴더의 것으로 링크) `MC_NAME=Watcher` 를 같은 서버에 붙인다. 실행 폴더·가상 화면이 따로라 한 서버에 둘이 붙는다. `/execute as Tester at @s rotated ~ 0 run tp Watcher ^4 ^0.2 ^1.5 facing ^ ^0.6 ^1.5` 로 옆에 세우고 Watcher 의 `burst` 를 뒤에서 돌리는 동안 Tester 가 구른다 (`dist/screenshots/roll/tumble_watcher_side.png`) |
 | `ui_shots.sh` | UI 점검 그림 (10.2, 10.4, 10.5): `ui_shots.sh <포트> <서버폴더> <앞머리> [장면...]` (HUD 가만히·맞은 뒤·스태미나 바닥 (맞은 직후, 잃은 몫이 빠진 뒤 `hud_low_drained`)·효과·물속 숨 거품, 알림, 보스 막대 (한 번 맞고 잃은 몫이 빠진 뒤 다시 맞혀 짧은 잃은 몫과 빈 길이 함께), 인벤토리 (무기 설명 칸 / 설명 칸 없이 빈 왼손 칸 / 제작법 책 / 효과 표시), 상자, 큰 상자·통·엔더 상자, 제작대, 일시 정지, 통계, 발전 과제, 설정·비디오 설정의 밀대와 두루마리 (마우스는 위젯 밖 오른쪽 위 귀에), 고름 칸·글 칸 (바닐라 `/dialog` 입력), 휴식 창, 세계를 정한다 창·출신 창과 확인 창·휴식 창·레벨 올리기 창·능력치 창 (`settings origin levelup`), 사망 화면, 채팅. 장면 이름은 스크립트 머리말). 클라이언트는 켜서 들어와 있어야 하고 `W`·`H`·`G` (화면 크기·GUI 배율) 를 클라이언트와 같게 준다. 시험 줄이 그림에 남지 않게 채팅 밖의 장면은 `MC_OPTIONS="chatScale:0.0"` 로 켠 클라이언트에서, `chat` 은 보통 클라이언트에서 찍는다. 효과 (`effects`) 와 엔더 상자 (`chests`) 는 `particles:2` (입자 최소) 를 더해 찍는다 (`MC_OPTIONS="chatScale:0.0;particles:2"`): 저항 효과의 보라 입자와 엔더 상자의 보라 입자가 눈앞에 크게 떠 그림에 남는다. 효과를 `hideParticles` 로 주면 HUD 효과 아이콘도 사라진다. 영어는 `MC_LANG=en_us` 클라이언트와 `SUFFIX=_en` (`dist/screenshots/ui_final/`) |
 | `ring_shots.sh` | 반지 칸 그림 (9.4, 10.4): `ring_shots.sh <포트> <서버폴더> <앞머리>`. `ui_shots.sh` 의 invplain 과 같은 꾸밈에서 반지를 끼지 않은 인벤토리 (`ring_none`), 가방의 반지를 집어 반지 칸 1 에 누른 것 (`ring_one`), 다른 반지를 웅크리고 눌러 칸 2 에 낀 것 (`ring_two`), 낀 반지의 설명 칸 (`ring_tooltip`, 고리만 있는 효과는 `ring_tooltip_pending`), 가리킴 테: 같은 길로 빈 반지 칸 (`ring_hover_ring`, 대조: 테가 있다. 찍은 그림에 커서가 없어 마우스 자리를 보인다) 과 지운 세 칸 (`ring_hover_erased` (116, 18), `ring_hover_erased_lower` (116, 36), `ring_hover_result` (154, 28): 테가 없다), 투명한 제작법 책 단추를 눌러 빈 책이 열리고 판이 밀린 것 (`ring_recipe_open`) 과 그 상태의 반지 칸·지운 칸·결과 칸 (`ring_hover_ring_open`, `ring_hover_erased_open`, `ring_hover_result_open`. 끝나면 책을 닫는다). `W`·`H`·`G`·`SUFFIX` 는 `ui_shots.sh` 와 같다 (`dist/screenshots/ring_slots/final_*`) |
+| `gear_shots.sh` | 장비 설명 칸과 레벨 올리기 그림 (2026-10-10 "장비에는 보정·요구 능력치가 없다", 9.7·5.9): `gear_shots.sh <포트> <서버폴더> <앞머리>`. `ui_shots.sh` 의 inv 장면과 같은 꾸밈에서 소지품 첫 칸에 직검·대검·중형 방패·쇠단지·패링 단검·시험 패링 반지를 차례로 두고 설명 칸을 찍는다 (`tooltip_<id>`: 수치 한 줄 = 제 값과 무게), 레벨 올리기 창에 근력 +3 (`levelup_str`) 과 근력 단추의 설명 칸 (`levelup_str_tip`). `W`·`H`·`G`·`SUFFIX` 는 `ui_shots.sh` 와 같다 (`dist/screenshots/plain_gear/`) |
 | `i18n_shots.sh` | 영어판 점검 그림 (10.3, 10.9): 같은 장면 (들어온 HUD, 휴식 창, 아이템 설명 칸, 사망 화면, 그만두기 확인) 을 `ko_kr` 과 `en_us` 클라이언트로 찍는다 (`dist/screenshots/i18n/`). `SRVDIR=<서버폴더>` 를 주면 설정 단계 (`send-at: configure`) 의 팩 안내·쫓아냄 글도 두 언어로 찍는다 |
 | `log4j2-client.xml` | 클라이언트 기록을 보통 글줄로 (런처 설정은 XML 로 낸다) |
 
@@ -92,7 +93,7 @@ tools/client/devserver.sh --stop /tmp/srv
 정한다 → 출신 창) 를 받는다. 창 그림은 `ui_shots.sh` 의 `settings origin levelup` 장면이 창을 다시 불러 찍는다.
 
 구르기는 웅크리기 키 (기본 왼쪽 Shift) 를 짧게 눌렀다 떼는 것이다 (`controls.roll-key: sneak`, DESIGN 2.1). `key:Shift_L` 은 너무 짧아
-클라이언트가 틱 사이에 놓칠 수 있으니 `hold:Shift_L:0.1` 로 누른다. F 는 무기 기술 자리라 구르지 않는다 (서버를 `SET="controls.roll-key=f"`
+클라이언트가 틱 사이에 놓칠 수 있으니 `hold:Shift_L:0.1` 로 누른다. F 는 패링 (왼손에 든 것으로) 이라 구르지 않는다 (서버를 `SET="controls.roll-key=f"`
 로 켜면 예전처럼 F). 체력은 큰 숫자 (빈털터리 최대 HP 400) 이고 화면은 하트 10개라, 하트 한 칸만큼 깎으려면 `/soulstest hit 40` 이다.
 
 ## 알아 둘 것

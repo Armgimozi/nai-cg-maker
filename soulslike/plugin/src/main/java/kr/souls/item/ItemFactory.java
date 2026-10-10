@@ -135,8 +135,9 @@ public final class ItemFactory {
 
     /**
      * 무기·방패·활·촉매 아이템 (9.8). 검 태그 없는 껍데기에 모형 souls:&lt;id&gt; (팩 pack/weapons, 손에 든 3D 모형과 16 픽셀 그림),
-     * 이름 weapon.&lt;id&gt;.name (제목 글꼴), 설명 칸 = 분류 줄, 수치 표 (StatTable, 두 열), 실선, weapon.&lt;id&gt;.lore (9.7). 모두
+     * 이름 weapon.&lt;id&gt;.name (제목 글꼴), 설명 칸 = 분류 줄, 수치 한 줄 (StatTable: 제 값과 무게), 실선, weapon.&lt;id&gt;.lore (9.7). 모두
      * 번역 열쇠라 보는 사람의 언어로 보인다. 설명 칸 그림은 무기 칸 (tooltip_style souls:weapon: 이름 밑 금실, pack/gui_skin.py). 막는 것 (무기 guard, 방패 block) 은 빈 막기 성분과 걸음 배율 (2.3.9).
+     * 촉매와 패링 단검 (use: none) 은 막지 않는다 (패링 단검: 우클릭은 왼손 공격 M1, F 는 패링).
      * 활 (use: bow) 은 바닐라 활 껍데기라 화살이 있으면 바닐라처럼 당겨 쏜다 (검토 archer-thief-promises: 궁수가 활을 쏠 수 있게. 모형의
      * 당긴 모습은 using_item·use_duration 이라 껍데기와 상관없다). 닳지 않고 마법부여·수리를 받지 않는다. 불에 타지 않는다. 묶음은 하나.
      */
@@ -167,7 +168,7 @@ public final class ItemFactory {
             }
             case Weapons.BOW -> it.setData(DataComponentTypes.USE_EFFECTS, guardUse((float) d.walk()));
             default -> {
-                // 촉매: 술 (CONSUMABLE 의 몸짓·시간) 은 M5 에 붙인다 (3.12.4)
+                // 촉매: 술법 (CONSUMABLE 의 몸짓·시간) 은 M5 에 붙인다 (3.12.4). 패링 단검: 왼손 공격은 M1
             }
         }
         it.editPersistentDataContainer(pdc -> pdc.set(Keys.WEAPON, PersistentDataType.STRING, d.id()));
@@ -185,20 +186,33 @@ public final class ItemFactory {
     }
 
     /**
-     * 예전 판의 활 (부싯돌 껍데기, 당기기만 했다) 을 바닐라 활 껍데기로 바꾼다 (접속할 때, StartFlow). 같은 칸에 새로 만든 것을 놓는다.
-     * 바꾼 수.
+     * 예전 판의 souls 무기를 지금 판으로 다시 만든다 (접속할 때, StartFlow): 활의 껍데기가 바뀌었거나 (부싯돌 → 바닐라 활), 설명 칸이
+     * 지금 판과 다르거나 (2026-10-10: 보정·요구 능력치 줄을 없애고 수치를 한 줄로, 방패는 막기 하나), 쓰는 몸짓이 바뀐 것 (패링 단검은
+     * 이제 막지 않는다). 같은 칸에 새로 만든 것을 놓는다. 주손 무기의 막기 성분은 WeaponGuard 가 다음 틱에 다시 맞춘다. 바꾼 수.
      */
-    public static int upgradeBows(org.bukkit.inventory.PlayerInventory inv, Weapons weapons) {
+    public static int refreshWeapons(org.bukkit.inventory.PlayerInventory inv, Weapons weapons) {
         int n = 0;
         ItemStack[] all = inv.getContents();
         for (int i = 0; i < all.length; i++) {
             ItemStack it = all[i];
-            Weapons.Def d = it == null ? null : weapons.of(it);
-            if (d == null || !Weapons.BOW.equals(d.use()) || it.getType() == BOW_SHELL) continue;
-            inv.setItem(i, weapon(d));
+            Weapons.Def d = it == null || it.isEmpty() ? null : weapons.of(it);
+            if (d == null) continue;
+            ItemStack fresh = weapon(d);
+            if (it.getType() == fresh.getType() && sameLore(it, fresh) && !staleUse(it, d)) continue;
+            inv.setItem(i, fresh);
             n++;
         }
         return n;
+    }
+
+    private static boolean sameLore(ItemStack a, ItemStack b) {
+        ItemLore la = a.getData(DataComponentTypes.LORE), lb = b.getData(DataComponentTypes.LORE);
+        return la == null ? lb == null : lb != null && la.lines().equals(lb.lines());
+    }
+
+    /** 막기 성분이 있으면 안 되는 것 (방패도 막는 무기도 아닌 것: 촉매, 패링 단검) 에 막기 성분이 남았다. */
+    private static boolean staleUse(ItemStack it, Weapons.Def d) {
+        return Weapons.NONE.equals(d.use()) && it.hasData(DataComponentTypes.BLOCKS_ATTACKS);
     }
 
     /** 이 아이템이 시험 막기 도구인가. */

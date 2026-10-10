@@ -74,9 +74,9 @@ class OriginsTest {
         assertEquals(13, origins.get("sorcerer").stats().mnd());
     }
 
-    /** 시작 무기는 모두 weapons.yml 에 있고, 주무기는 지금 판에 동작이 있는 분류 (14절). 무기의 필요 능력치를 출신이 채운다. */
+    /** 시작 무기는 모두 weapons.yml 에 있고, 주무기는 지금 판에 동작이 있는 분류 (14절). 장비에는 요구 능력치가 없다 (2026-10-10). */
     @Test
-    void kitWeaponsExistAndFit() {
+    void kitWeaponsExist() {
         for (Origins.Origin o : origins.all()) {
             boolean main = false;
             for (Origins.Kit k : o.kit()) {
@@ -86,9 +86,6 @@ class OriginsTest {
                 if ("main".equals(k.to())) {
                     main = true;
                     assertTrue(Origins.M1_CLASSES.contains(d.cls()), o.id() + " 주무기 분류 " + d.cls());
-                }
-                for (var r : d.requires().entrySet()) {
-                    assertTrue(o.stats().get(r.getKey()) >= r.getValue(), o.id() + " 은 " + k.id() + " 의 " + r.getKey() + " " + r.getValue() + " 를 못 채운다");
                 }
             }
             assertTrue(main, o.id() + " 에 주무기가 없다");
@@ -147,7 +144,7 @@ class OriginsTest {
         }
     }
 
-    /** 시작 값 (5.1 의 표): 최대 HP, 공격력, 술 세기. 전사의 양손 대검이 가장 세고, 술 세기는 마법사만. */
+    /** 시작 값 (5.1 의 표): 최대 HP, 공격력, 술법 세기. 전사의 양손 대검이 가장 세고, 술법 세기는 마법사만. 공격력은 옛 판 (보정 C) 그대로. */
     @Test
     void startingDerivedValues() {
         var c = kr.souls.progression.StatCurves.defaults();
@@ -173,8 +170,11 @@ class OriginsTest {
         assertEquals(best, d.get("warrior").attack(), 1e-9, "양손 대검이 가장 세다");
         for (var en : d.entrySet()) {
             assertTrue(en.getValue().attack() > 0, en.getKey() + " 공격력");
-            assertEquals(en.getKey().equals("sorcerer"), en.getValue().spellPower() > 0, en.getKey() + " 술 세기");
+            assertEquals(en.getKey().equals("sorcerer"), en.getValue().spellPower() > 0, en.getKey() + " 술법 세기");
         }
+        assertEquals(72, Math.round(d.get("knight").attack()), "기사의 직검 (근력 13)");
+        assertEquals(123, Math.round(d.get("warrior").attack()), "전사의 대검 양손 (근력 16 → 24)");
+        assertEquals(121, Math.round(d.get("sorcerer").spellPower()), "마법사의 쇠단지 (지능 16)");
     }
 
     @Test

@@ -223,9 +223,12 @@ public final class StartFlow implements Listener {
             pr.setSettingsSeen(s.rev());
         }
         Origins.Origin o = plugin.origins().get(pr.origin());
-        // 예전 판의 활 (부싯돌 껍데기) 을 바닐라 활로 (궁수가 쏠 수 있게)
-        int bows = kr.souls.item.ItemFactory.upgradeBows(p.getInventory(), plugin.weapons());
-        if (bows > 0) plugin.test(p, "BOW_UPGRADE n=" + bows);
+        // 예전 판의 무기를 지금 판으로 (활의 껍데기, 2026-10-10 의 한 줄 수치 설명 칸, 막지 않게 된 패링 단검)
+        int refreshed = kr.souls.item.ItemFactory.refreshWeapons(p.getInventory(), plugin.weapons());
+        if (refreshed > 0) {
+            new WeaponGuard(plugin).refresh(p);
+            plugin.test(p, "WEAPON_REFRESH n=" + refreshed);
+        }
         if (o != null) {
             List<String> late = Origins.grant(p, o, pr, plugin.weapons());
             if (!late.isEmpty()) {

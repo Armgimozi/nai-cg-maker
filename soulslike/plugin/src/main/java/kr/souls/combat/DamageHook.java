@@ -54,8 +54,8 @@ import java.util.UUID;
  * M1 에서 적의 공격이 DamageCalc 를 먼저 지나면 그 피해에 표시를 달아 여기서 두 번 줄이지 않는다.
  * <p>
  * 적을 칠 때 (플레이어가 아닌 것, onHitFoe): souls 근접 무기로 바로 그것을 친 한 대면 바닐라 피해 (주먹 1 + 치명타) 를 공격력으로
- * 바꾼다: AR × (0.2 + 0.8 × 회복²) × pve.bridge-scale (M1 의 동작 실행기 전의 다리, 검토 stat-values-without-effect. 직검 71 → 6.4,
- * 대검 118 → 10.6, 단도 51 → 4.6: 바닐라 철검·다이아 도끼쯤). 그래서 근력·양손 잡기가 혼자 할 때도 듣는다. 회복은 든 무기 분류의
+ * 바꾼다: AR × (0.2 + 0.8 × 회복²) × pve.bridge-scale (M1 의 동작 실행기 전의 다리, 검토 stat-values-without-effect. 직검 72 → 6.4,
+ * 양손 대검 123 → 11.1, 단도 52 → 4.7: 바닐라 철검·다이아 도끼쯤). 그래서 근력·양손 잡기가 혼자 할 때도 듣는다. 회복은 든 무기 분류의
  * 공격 속도 (AttributeApplier.weaponSpeed: 민첩이 빠르게 한다) 로 찬다. 스킬 피해와 휩쓸기는 그대로.
  */
 public final class DamageHook implements Listener {

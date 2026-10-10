@@ -106,7 +106,7 @@ L.run('pvp', async (sc) => {
   }
   const mel = b.tLines('DEF ', from).find((x) => /^player_(melee|vanilla)$/.test(x.kv.from))
   sc.check('on: melee with the club uses its attack rating (DEF from=player_melee)', mel && mel.kv.from === 'player_melee' && L.num(mel.kv.raw) > 20, mel ? mel.line : b.tLines('', from).map((x) => x.line).slice(0, 4).join(' | ') || '줄 없음')
-  // 근력이 PvP 근접 피해를 올린다 (공격력 = 74 × (1 + 0.8 × 곡선(근력)): 근력 10 → 81.7, 40 → 114.3, × 1.399)
+  // 근력이 PvP 근접 피해를 올린다 (공격력 = 74 × (1 + 근력 몫): 근력 10 → 81.4, 40 → 114.0, × 1.400. 모든 무기에 같은 몫)
   if (mel) {
     await a.cmd('/soulstest stat str 40', 'STAT ')
     await b.cmd('/soulstest heal', 'HEAL')
@@ -120,7 +120,7 @@ L.run('pvp', async (sc) => {
     }
     const mel40 = b.tLines('DEF ', from).find((x) => x.kv.from === 'player_melee')
     const ratio = mel40 ? L.num(mel40.kv.raw) / L.num(mel.kv.raw) : NaN
-    sc.check('on: strength 40 hits harder than strength 10 (raw x1.399 = attack rating 114.3 / 81.7)', Math.abs(ratio - 114.256 / 81.696) < 0.04,
+    sc.check('on: strength 40 hits harder than strength 10 (raw x1.400 = attack rating 114.0 / 81.4)', Math.abs(ratio - 1.54 / 1.10) < 0.04,
       `${mel.kv.raw} → ${mel40 ? mel40.kv.raw : '?'} (×${ratio.toFixed(3)})`)
     await a.cmd('/soulstest stat str 10', 'STAT ')
   }

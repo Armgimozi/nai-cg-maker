@@ -1,10 +1,10 @@
 // 구르기 키 (2.1, 2.3 의 11, 3.3, 사용자 결정 "구르기는 웅크리기 키로, F 가 아니라"). 서버의 config.yml controls.roll-key 를
 // 바꾸고 /souls reload 로 다시 읽는다 (sneak → f → both → 처음 값). 기본 sneak 판의 짧게·길게·조합·창·기억은 roll_iframes 가 본다.
-//   sneak  짧게 누르면 뗄 때 구른다 (방향키 → 그 쪽, 없으면 뒷걸음). F 는 구르지 않고 무기 기술 (ART). 누른 채 좌클릭 (물체를 쳐도),
+//   sneak  짧게 누르면 뗄 때 구른다 (방향키 → 그 쪽, 없으면 뒷걸음). F 는 구르지 않고 패링 (PARRY, 왼손에 든 것으로). 누른 채 좌클릭 (물체를 쳐도),
 //          누른 채 Q (버리기), 누른 채 창이 열림 (키가 모두 떼어짐) 은 구르지 않는다. 웅크리기 자세는 누른 동안만 (구른 뒤 남지 않는다).
 //          지연: 누름 → 구르기는 뗄 때까지의 시간만큼 늦다 (ROLL_TAP held 틱, 봇 시각으로 F 판과 견준다).
-//   f      F 가 구른다 (방향 그대로, 웅크린 채 F 는 무기 기술). 웅크리기 짧게는 구르지 않는다.
-//   both   둘 다 구른다. 웅크린 채 F 는 무기 기술.
+//   f      F 가 구른다 (방향 그대로, 웅크린 채 F 는 패링). 웅크리기 짧게는 구르지 않는다.
+//   both   둘 다 구른다. 웅크린 채 F 는 패링.
 'use strict'
 const fs = require('fs')
 const path = require('path')
@@ -28,12 +28,12 @@ async function fresh (b) {
   await L.sleep(200)
 }
 
-/** 키를 누르고 무엇이 났나: {roll, art, tap, skip} (from 뒤 줄). */
+/** 키를 누르고 무엇이 났나: {roll, parry, tap, skip} (from 뒤 줄. parry 는 PARRY·PARRY_NONE·PARRY_LOCKED 가운데 첫 줄). */
 function seen (b, from) {
   return {
     roll: b.tLines('ROLL ', from)[0] || null,
     deny: b.tLines('ROLL_DENY', from)[0] || null,
-    art: b.tLines('ART ', from)[0] || null,
+    parry: b.tLines('PARRY', from)[0] || null,
     tap: b.tLines('ROLL_TAP ', from)[0] || null,
     skip: b.tLines('ROLL_TAP_SKIP', from)[0] || null
   }
@@ -104,7 +104,7 @@ async function body (sc, b, original) {
     poses.map((x) => `${x.value}@${x.t - (poses[0] ? poses[0].t : 0)}`).join(' ') + ` flag=0x${lastFlag.toString(16)}`)
   await fresh(b)
   r = await fkey(b, { forward: true })
-  sc.check('sneak: F alone does not roll (weapon art, ART line)', !r.roll && r.art && r.art.kv.sneak === 'false', r.art ? r.art.line : JSON.stringify(r))
+  sc.check('sneak: F alone does not roll (parry, PARRY line)', !r.roll && r.parry && r.parry.kv.sneak === 'false', r.parry ? r.parry.line : JSON.stringify(r))
   // 누른 채 좌클릭으로 물체를 친다 (강공격 자리): 구르지 않는다
   await fresh(b)
   await b.cmd('/summon minecraft:armor_stand ~2 ~ ~ {Tags:["souls_ent"],NoGravity:1b}', null, 800)
@@ -173,7 +173,7 @@ async function body (sc, b, original) {
   await setKey(sc, b, 'f', original)
   await fresh(b)
   r = await fkey(b, { forward: true })
-  sc.check('f: F rolls forward', r.roll && r.roll.kv.dir === 'fwd' && !r.art, r.roll ? r.roll.line : JSON.stringify(r))
+  sc.check('f: F rolls forward', r.roll && r.roll.kv.dir === 'fwd' && !r.parry, r.roll ? r.roll.line : JSON.stringify(r))
   await fresh(b)
   r = await fkey(b, {})
   sc.check('f: F with no direction = backstep', r.roll && r.roll.kv.kind === 'backstep', r.roll ? r.roll.line : JSON.stringify(r))
@@ -182,7 +182,7 @@ async function body (sc, b, original) {
   sc.check('f: a sneak tap does not roll (no ROLL_TAP judged)', !r.roll && !r.tap, JSON.stringify(r))
   await fresh(b)
   r = await fkey(b, { forward: true }, true)
-  sc.check('f: sneak held + F is the weapon art', !r.roll && r.art && r.art.kv.sneak === 'true', r.art ? r.art.line : JSON.stringify(r))
+  sc.check('f: sneak held + F is parry', !r.roll && r.parry && r.parry.kv.sneak === 'true', r.parry ? r.parry.line : JSON.stringify(r))
   const latF = []
   for (let i = 0; i < 3; i++) {
     await fresh(b)
@@ -213,7 +213,7 @@ async function body (sc, b, original) {
   sc.check('both: a sneak tap rolls too', r.roll && r.roll.kv.dir === 'fwd' && r.tap, r.roll ? r.roll.line : JSON.stringify(r))
   await fresh(b)
   r = await fkey(b, {}, true)
-  sc.check('both: sneak held + F is the weapon art, no roll', !r.roll && r.art && r.art.kv.sneak === 'true', r.art ? r.art.line : JSON.stringify(r))
+  sc.check('both: sneak held + F is parry, no roll', !r.roll && r.parry && r.parry.kv.sneak === 'true', r.parry ? r.parry.line : JSON.stringify(r))
   // 확인 창의 조작 안내도 키를 따른다 (both·sneak 은 웅크리기 키, f 는 F)
   await setKey(sc, b, 'f', original)
   let d = b.p.dialogs.length

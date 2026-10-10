@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * 플레이어 한 명의 전투 상태 (3.1). M0 에는 스태미나와 구르기만 있다.
+ * 플레이어 한 명의 전투 상태 (3.1). M0 에는 스태미나와 구르기, 패링을 누른 틱 (판정은 M1) 만 있다.
  * 상태(공격, 막기, 마시기, 경직, 넘어짐, 치명타 중, 휴식)와 깃발(버팀, 치명타 기회, 고정 표적, 입력 기억)은 M1 에 더한다.
  * 접속 중인 동안만 메모리에 있다 (나가면 지운다). 저장할 값은 프로필(M2)에 둔다.
  */
@@ -39,6 +39,16 @@ public final class CombatState {
     public double armedRollHitAmount;
     /** 걸어 둔 시험 피해가 묶인 구르기의 시작 틱 (걸어 둔 뒤 처음 구른 것. 그 전이면 Long.MIN_VALUE) */
     public long armedRollStart = Long.MIN_VALUE;
+
+    // 패링 (3.5, combat/Parry). F 를 눌러 창을 연 틱과 그 창의 몫 (바탕 = 왼손 물건의 분류, 반지). 난이도 덧셈은 판정 때 (PvP 는 더하지 않는다)
+    public long parryAt = Long.MIN_VALUE / 2;
+    public int parryBase;
+    public int parryRing;
+    /** 마지막 패링이 무엇을 쳐냈나 (연타 잠금이 lock-hit 으로 짧아진다) */
+    public boolean parryHit;
+    /** 치명타 (리포스트) 기회: 쳐낸 적과 끝 틱 (M1 의 주무기 공격 입력이 Parry.riposte 로 본다) */
+    public UUID riposteFoe;
+    public long riposteUntil = Long.MIN_VALUE / 2;
 
     private CombatState(UUID id, double maxStamina) {
         this.id = id;

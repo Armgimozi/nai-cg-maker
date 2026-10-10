@@ -44,7 +44,8 @@ import java.util.UUID;
  * 공중·물속·사다리·탈것 위에서는 안 된다. 막다가 구르기 입력이 오면 막기를 풀고 구른다 (2.3.7).
  * 무적이 막는 것: 원인 물체가 있는 피해(적이 일으킨 피해), 바닐라 밀림. 막지 않는 것: 낙하, 용암, 공허, 불붙음.
  * M1 에서 적 공격은 IncomingHitQueue 가 무적 구간과 판정 틱을 맞대어 본다 (핑 보정). 지금은 서버 틱 그대로다.
- * F 는 무기 기술 자리다 (M3, 촉매면 다음 술 M5): 지금은 시험 줄 ART 만 낸다 (roll-key: f·both 면 웅크리기 키를 누른 채 F 가 무기 기술).
+ * F 는 패링이다 (3.5, 왼손에 든 것으로, combat/Parry: 지금은 창을 적고 시험 줄 PARRY 만. 판정은 M1). roll-key: f·both 면 웅크리기 키를
+ * 누른 채 F 가 패링이다. 무기 기술은 없앴다 (DECISIONS 2026-10-10).
  *
  * 돌진처럼 보이지 않게: 한 번 튕기는 대신 glide 틱 동안 같은 빠르기로 밀다가 끝 두 틱에 줄여 멈춘다.
  * 보이는 모습은 combat.roll.visual (3.3 "보이는 모습"): tumble 은 진짜 몸을 감추고 관절이 있는 대역이 어깨로 구른다 (Tumble),
@@ -114,7 +115,7 @@ public final class Roll implements Listener {
 
     /**
      * F (손 바꾸기). 손 바꾸기는 늘 취소한다 (왼손 방패는 인벤토리에서 든다). roll-key 가 f·both 이고 웅크리기 키를 누르지 않았으면 구르고,
-     * 아니면 무기 기술 (M3) 자리라 시험 줄 ART 만 (2.3 의 12).
+     * 아니면 패링 (3.5, 다크 소울 방식: 왼손에 든 것으로 쳐낸다, combat/Parry. 무기 기술은 없앴다, DECISIONS 2026-10-10).
      */
     @EventHandler(priority = EventPriority.LOW)
     public void onSwap(PlayerSwapHandItemsEvent e) {
@@ -126,8 +127,7 @@ public final class Roll implements Listener {
             tryRoll(p);
             return;
         }
-        var held = plugin.weapons().of(p.getInventory().getItemInMainHand());
-        plugin.test(p, "ART key=f item=" + (held == null ? "-" : held.id()) + " sneak=" + p.isSneaking() + " t=" + plugin.ticker().now());
+        plugin.parry().press(p);
     }
 
     /** 구른다. 구르지 못하면 false (이유는 시험 줄로). */

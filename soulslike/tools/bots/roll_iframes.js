@@ -1,8 +1,8 @@
 // 구르기와 무적 (3.3, 13.2 T3 roll_iframes). 지연 프록시로 다시 돌린다 (13.3, LAG_RTT).
 // 구르기 키는 서버 설정 controls.roll-key 를 따른다 (2.1): sneak (기본) 이면 웅크리기를 짧게 눌렀다 뗀다 (player_input 의 shift 깃발,
 // 뗄 때 판정), f 면 F (block_dig 상태 6), both 면 웅크리기로 구른다 (F 도 구른다). 아래 "F" 는 그 구르기 키를 말한다.
-// 웅크리기 판에서는 더: 회복 중에 뗀 짧은 누름은 기억했다가 되는 첫 틱에 구른다 (ROLL_TAP_BUFFER), F 는 구르지 않고 무기 기술 자리
-// (ART 줄), 길게 누르면 웅크리기 (ROLL_TAP_SKIP why=hold), 누르는 동안 휘두르면 조합 (why=attack).
+// 웅크리기 판에서는 더: 회복 중에 뗀 짧은 누름은 기억했다가 되는 첫 틱에 구른다 (ROLL_TAP_BUFFER), F 는 구르지 않고 패링
+// (PARRY 줄, 왼손에 든 것으로), 길게 누르면 웅크리기 (ROLL_TAP_SKIP why=hold), 누르는 동안 휘두르면 조합 (why=attack).
 // 구르기: 서버가 보낸 첫 틱 속도와 미는 틱 수(glide), 서버에서 잰 거리,
 // 보이는 모습 (tumble: 관절 대역의 부위 표시 물체 두 벌이 타고 (봇은 자기 벌 열하나 이상을 받는다) 투명 깃발이 섰다가 걷힌다, 뒷걸음은 대역 없음 / crawl·tumble 에 combat.roll.crawl 이면: 기어가기 막힘이 깔리고 걷힘), 회복 지연 (구르기 끝 + 12틱), 회복 중 다시 F, 공중·웅크리기 F 막힘, 스태미나 1 이상이면 구름.
 // 수치는 서버의 config.yml (combat.roll) 에서 읽는다. 3.3 표는 출발값이고 조정은 설정에서 한다 (사용자 결정 1).
@@ -186,7 +186,7 @@ L.run('roll_iframes', async (sc) => {
   const rr = await roll(b, { right: true })
   sc.check('right key -> roll right', rr.r && rr.r.kv.dir === 'right' && rr.vel[0] && rr.vel[0].z > 0.25, rr.r ? rr.r.line + (rr.vel[0] ? ` vz=${rr.vel[0].z.toFixed(3)}` : '') : '줄 없음')
 
-  // ── 웅크리기 + F ── 무기 기술 자리 (M3), 지금은 아무것도 하지 않는다 (ART 줄만)
+  // ── 웅크리기 + F ── 패링 (3.5: 왼손에 든 것으로. 판정은 M1, 지금은 PARRY 줄만. 무기 기술은 없앴다)
   await fresh(b)
   b.input({ shift: true })
   await L.sleep(250)
@@ -196,7 +196,7 @@ L.run('roll_iframes', async (sc) => {
   b.input({})
   const sn = b.sys.slice(from).find((m) => m.plain.startsWith('[T] ROLL '))
   sc.check('sneak + F does not roll', !sn, sn ? sn.plain : '')
-  sc.check('sneak + F is the weapon art key (ART line)', b.tLines('ART ', from).some((x) => x.kv.sneak === 'true'), b.tLines('ART ', from).map((x) => x.line).join(' | ') || 'ART 줄 없음')
+  sc.check('sneak + F is parry (PARRY line)', b.tLines('PARRY', from).some((x) => x.kv.sneak === 'true'), b.tLines('PARRY', from).map((x) => x.line).join(' | ') || 'PARRY 줄 없음')
   await L.sleep(500)
   if (RC.rollKey === 'sneak') {
     // ── F 만 (구르기 키가 웅크리기) ── 구르지 않는다
@@ -208,7 +208,7 @@ L.run('roll_iframes', async (sc) => {
     await L.sleep(700)
     b.input({})
     const fr = b.sys.slice(from).find((m) => m.plain.startsWith('[T] ROLL '))
-    sc.check('F alone does not roll (controls.roll-key: sneak)', !fr && b.tLines('ART ', from).length === 1, fr ? fr.plain : (b.tLines('ART ', from)[0] || {}).line || 'ART 줄 없음')
+    sc.check('F alone does not roll, it parries (controls.roll-key: sneak)', !fr && b.tLines('PARRY', from).length === 1, fr ? fr.plain : (b.tLines('PARRY', from)[0] || {}).line || 'PARRY 줄 없음')
   }
   if (SNEAK) {
     // ── 길게 누르면 웅크리기 ── 뗄 때 구르지 않는다

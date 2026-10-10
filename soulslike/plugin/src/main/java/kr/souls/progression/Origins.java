@@ -45,7 +45,7 @@ public final class Origins {
 
     /** 지금 판 (M1 전) 에 동작이 있는 무기 분류 (14절: M1 의 무기 분류와 방패). 시험이 출신의 주무기가 여기 드는지 본다 */
     public static final Set<String> M1_CLASSES = Set.of("straight_sword", "greatsword", "dagger", "spear", "axe", "hammer", "bow",
-            "small_shield", "shield", "parrying_dagger", "catalyst_kiln");
+            "small_shield", "medium_shield", "parrying_dagger", "catalyst_kiln");
 
     /** 궁수의 시작 화살 수 */
     public static final int ARROWS = 32;

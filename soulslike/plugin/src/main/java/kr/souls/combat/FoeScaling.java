@@ -29,7 +29,7 @@ import java.util.Locale;
  *   <li>청크가 올라올 때 (EntitiesLoadEvent): 저장된 수정자가 지금 난이도와 다르면 다시 건다 (내려가 있는 동안 바뀌었을 때).</li>
  * </ul>
  * 저장되는 수정자라 적이 저장되어도 그대로 남는다. 보통 (×1.0) 이면 수정자를 떼어 바닐라 값이다. 적의 몸 (가상 체력, 6.1) 이 생기는 M2 에서는
- * 그 체력에 같은 배율을 곱하고 이 클래스는 바닐라 몹에만 남는다. 강인도·쳐내기 창·에스트 횟수는 그 체계 (M1·M2) 가 생길 때 듣는다.
+ * 그 체력에 같은 배율을 곱하고 이 클래스는 바닐라 몹에만 남는다. 강인도·패링 창·에스트 횟수는 그 체계 (M1·M2) 가 생길 때 듣는다.
  */
 public final class FoeScaling implements Listener {
     public static final NamespacedKey MOD = Keys.of("difficulty");

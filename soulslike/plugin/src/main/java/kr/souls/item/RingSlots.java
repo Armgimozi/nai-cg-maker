@@ -75,8 +75,8 @@ import java.util.UUID;
  * 인벤토리의 글을 지웠으므로 (반지 칸에 글을 넣지 않는다, 사용자 결정) 제작대 창은 여기서 제 제목 (lang 의 container.workbench)
  * 을 단다. 제작대는 짓는 사람 (창작 모드) 만 연다 (world/Protection).
  *
- * 효과 ({@link #worn}): stamina-regen 은 combat/Stamina 가 지금 쓴다. poise·parry-window·soul-guard 는 그 체계가 생길 때 부를 고리다
- * ({@link #poiseBonus}, {@link #parryWindowBonus}, {@link #consumeSoulGuard}).
+ * 효과 ({@link #worn}): stamina-regen 은 combat/Stamina 가 지금 쓴다. parry-window 는 패링 (combat/Parry) 이 F 를 누를 때 창에 더한다
+ * (판정은 M1). poise·soul-guard 는 그 체계가 생길 때 부를 고리다 ({@link #poiseBonus}, {@link #consumeSoulGuard}).
  */
 public final class RingSlots implements Listener {
     /** 훑기와 칸 맞추기의 틈 (틱) */
@@ -131,7 +131,7 @@ public final class RingSlots implements Listener {
         return worn(p).poise();
     }
 
-    /** 쳐내기 창 덧셈 틱. 고리: 쳐내기 (3.5) 가 생기면 부른다. 지금은 부르는 곳이 없다. */
+    /** 패링 창 덧셈 틱. 패링 (3.5, combat/Parry) 이 F 를 누를 때 더한다 (판정은 M1). */
     public int parryWindowBonus(Player p) {
         return worn(p).parryWindow();
     }

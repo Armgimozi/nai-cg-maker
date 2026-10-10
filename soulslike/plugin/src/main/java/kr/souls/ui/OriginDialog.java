@@ -8,6 +8,7 @@ import io.papermc.paper.registry.data.dialog.type.DialogType;
 import kr.souls.Lang;
 import kr.souls.Souls;
 import kr.souls.combat.DamageCalc;
+import kr.souls.combat.Parry;
 import kr.souls.hud.Glyphs;
 import kr.souls.item.Weapons;
 import kr.souls.progression.Derived;
@@ -112,7 +113,7 @@ public final class OriginDialog {
         top.add(Lang.c(p, "origin." + id + ".style")); // lang-dyn: origin.*.style
         body.add(DialogBody.plainMessage(Columns.lines(top), 300));
         // 시작 아이템 그림 (지금 만들 수 있는 것만. 가리키면 무기 설명 칸)
-        Weapons.Def main = null, cat = null;
+        Weapons.Def main = null, cat = null, off = null;
         boolean offEmpty = true;
         for (Origins.Kit k : o.kit()) {
             if (!Origins.creatable(k, plugin.weapons())) continue;
@@ -120,7 +121,10 @@ public final class OriginDialog {
             if (it == null) continue;
             if ("weapon".equals(k.kind())) {
                 Weapons.Def d = plugin.weapons().get(k.id());
-                if ("off".equals(k.to())) offEmpty = false;
+                if ("off".equals(k.to())) {
+                    offEmpty = false;
+                    off = d;
+                }
                 if ("main".equals(k.to()) && Stats.isMelee(d)) main = d;
                 if (Stats.isCatalyst(d)) cat = d;
             }
@@ -143,7 +147,8 @@ public final class OriginDialog {
         }
         if (cat != null) info.add(Lang.c(p, "origin.no-rites"));
         info.add(rollHint(plugin, p));
-        info.add(Lang.c(p, "controls.hint.art", "bind", Component.keybind("key.swapOffhand")));
+        // 패링 (F, 왼손에 든 것으로): 그 출신의 왼손 물건이 패링할 수 있을 때만 (대방패·빈 왼손은 F 가 아무것도 하지 않는다)
+        if (Parry.baseWindow(plugin.cfg().parry, off, offEmpty) > 0) info.add(parryHint(plugin, p));
         body.add(DialogBody.plainMessage(Columns.lines(info), 300));
         ActionButton yes = ui.button(s, "choose", Lang.c(p, "origin.choose"), null, 150, (pl, v) -> plugin.start().chooseOrigin(pl, id, "dialog"));
         ActionButton no = ui.button(s, "back", Lang.c(p, "origin.back"), null, 150, (pl, v) -> show(plugin, pl));
@@ -162,6 +167,13 @@ public final class OriginDialog {
         return plugin.cfg().controls.sneakRolls()
                 ? Lang.c(p, "controls.hint.roll", "bind", Component.keybind("key.sneak"))
                 : Lang.c(p, "controls.hint.roll-f", "bind", Component.keybind("key.swapOffhand"));
+    }
+
+    /** 조작 알림: 패링 (키 묶음 글. F, roll-key: f·both 면 F 가 구르기라 웅크리기 키 + F). */
+    public static Component parryHint(Souls plugin, Player p) {
+        return plugin.cfg().controls.fRolls()
+                ? Lang.c(p, "controls.hint.parry-sneak", "sneak", Component.keybind("key.sneak"), "bind", Component.keybind("key.swapOffhand"))
+                : Lang.c(p, "controls.hint.parry", "bind", Component.keybind("key.swapOffhand"));
     }
 
     /** "체력 15 · 정신 9 · 기력 11 · 근력 13 · 민첩 11 · 지능 9" (능력치 이름은 줄임 이름). */

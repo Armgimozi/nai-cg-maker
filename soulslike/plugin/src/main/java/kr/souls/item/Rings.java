@@ -32,14 +32,16 @@ import java.util.regex.Pattern;
  * 효과 (두 반지의 효과는 합친다: 배율은 곱, 나머지는 더한다. 같은 반지 둘은 끼지 않는다)
  *   stamina-regen  스태미나 회복 배율 (1.20 = +20%). 지금 듣는다: combat/Stamina 의 회복과 능력치 창의 회복 값
  *   poise          강인도 덧셈 비율 (0.40 = +40%). 고리만 있다: 강인도 (3.8) 가 생기면 RingSlots.poiseBonus 를 부른다
- *   parry-window   쳐내기 창 덧셈 틱. 고리만 있다: 쳐내기 (3.5) 가 RingSlots.parryWindowBonus 를 부른다
+ *   parry-window   패링 창 덧셈 틱. 패링 (3.5, combat/Parry) 이 F 를 누를 때 RingSlots.parryWindowBonus 로 더한다 (판정은 M1 이라 설명 칸은
+ *                  아직 "듣지 않는다")
  *   soul-guard     죽어도 소울을 한 번 잃지 않고 반지가 부서진다. 고리만 있다: 소울 잃기 (5.5, M2) 가 RingSlots.consumeSoulGuard 를 부른다
  * 고리만 있는 효과는 설명 칸에 "아직 이 효과를 받는 체계가 없다" 줄이 붙는다 (ring.effect.pending).
  *
  * 아이템: 껍데기는 무기와 같은 부싯돌 (2×2 에 둘이 세로로 놓여도 바닐라 제작법이 없다. 제작은 RingSlots 가 어차피 막는다), 모형
  * souls:&lt;model&gt; (pack/icons.py 의 RING_ART: 모든 반지가 같은 테 꼴이라 반지 칸 바탕의 흐린 반지 그림을 덮는다), 한 칸에 하나,
  * 불에 타지 않는다. PDC souls:ring = id. 반지 칸에 비친 사본에는 souls:ring_worn 이 더 붙는다 (칸 밖에서 보이면 지운다).
- * 무게는 없다 (5.8 은 무기·방어구만 센다). 순수 셈 ({@link #load}, {@link #combine}) 은 13.1 의 RingsTest 가 본다.
+ * 무게 (weight, 없으면 0) 는 낀 반지만 장비 무게 (5.8) 에 들고, 0 보다 클 때만 설명 칸에 "무게" 줄이 붙는다 (지금 반지는 모두 0).
+ * 설명 칸에는 수치 표가 없다: 효과 줄과 설명뿐이다 (DECISIONS 2026-10-10). 순수 셈 ({@link #load}, {@link #combine}) 은 13.1 의 RingsTest 가 본다.
  */
 @SuppressWarnings("UnstableApiUsage")
 public final class Rings {
@@ -59,10 +61,16 @@ public final class Rings {
      * @param test         시험 반지 (/soulstest ring give 로만, 세계에 놓지 않는다)
      * @param staminaRegen 스태미나 회복 배율 (없으면 1)
      * @param poise        강인도 덧셈 비율 (없으면 0)
-     * @param parryWindow  쳐내기 창 덧셈 틱 (없으면 0)
+     * @param parryWindow  패링 창 덧셈 틱 (없으면 0)
      * @param soulGuard    소울 지키기 (한 번, 부서진다)
+     * @param weight       무게 (없으면 0. 0 보다 크면 설명 칸에 무게 줄)
      */
-    public record Def(String id, String model, boolean test, double staminaRegen, double poise, int parryWindow, boolean soulGuard) {
+    public record Def(String id, String model, boolean test, double staminaRegen, double poise, int parryWindow, boolean soulGuard,
+                      double weight) {
+        public Def(String id, String model, boolean test, double staminaRegen, double poise, int parryWindow, boolean soulGuard) {
+            this(id, model, test, staminaRegen, poise, parryWindow, soulGuard, 0);
+        }
+
         /** 이 반지에 있는 효과 (EFFECTS 차례). */
         public List<String> effects() {
             List<String> out = new ArrayList<>();
@@ -74,9 +82,13 @@ public final class Rings {
         }
     }
 
-    /** 낀 반지들의 효과를 합친 것. */
-    public record Worn(double staminaRegen, double poise, int parryWindow, boolean soulGuard) {
-        public static final Worn NONE = new Worn(1.0, 0.0, 0, false);
+    /** 낀 반지들의 효과를 합친 것 (weight 는 무게의 합). */
+    public record Worn(double staminaRegen, double poise, int parryWindow, boolean soulGuard, double weight) {
+        public static final Worn NONE = new Worn(1.0, 0.0, 0, false, 0);
+
+        public Worn(double staminaRegen, double poise, int parryWindow, boolean soulGuard) {
+            this(staminaRegen, poise, parryWindow, soulGuard, 0);
+        }
     }
 
     private final Map<String, Def> defs = new LinkedHashMap<>();
@@ -119,7 +131,12 @@ public final class Rings {
                     }
                 }
             }
-            defs.put(id, new Def(id, model, sec.getBoolean("test", false), regen, poise, parry, guard));
+            double weight = sec.getDouble("weight", 0);
+            if (weight < 0 || weight > 100) {
+                log.warning("반지 " + id + ": weight " + weight + " 은 0..100 이라야 한다 (0 으로 본다)");
+                weight = 0;
+            }
+            defs.put(id, new Def(id, model, sec.getBoolean("test", false), regen, poise, parry, guard, weight));
         }
     }
 
@@ -133,7 +150,7 @@ public final class Rings {
 
     /** 반지들의 효과를 합친다 (null 은 건너뛴다). */
     public static Worn combine(Collection<Def> worn) {
-        double regen = 1.0, poise = 0.0;
+        double regen = 1.0, poise = 0.0, weight = 0.0;
         int parry = 0;
         boolean guard = false;
         for (Def d : worn) {
@@ -142,8 +159,9 @@ public final class Rings {
             poise += d.poise();
             parry += d.parryWindow();
             guard |= d.soulGuard();
+            weight += d.weight();
         }
-        return new Worn(regen, poise, parry, guard);
+        return new Worn(regen, poise, parry, guard, weight);
     }
 
     // ------------------------------------------------------------------ 아이템
@@ -167,7 +185,10 @@ public final class Rings {
         return it;
     }
 
-    /** 설명 칸: 효과 줄 (흐린 옛 금빛), 고리만 있는 효과가 있으면 그 밑에 재빛 한 줄, 그리고 ring.&lt;id&gt;.lore. */
+    /**
+     * 설명 칸: 효과 줄 (흐린 옛 금빛), 고리만 있는 효과가 있으면 그 밑에 재빛 한 줄, 무게가 0 보다 크면 무게 한 줄, 그리고
+     * ring.&lt;id&gt;.lore. 다른 수치는 없다 (DECISIONS 2026-10-10: 반지는 효과만).
+     */
     static List<Component> lore(Def d) {
         List<Component> out = new ArrayList<>();
         boolean pending = false;
@@ -182,6 +203,7 @@ public final class Rings {
             pending |= !LIVE.contains(e);
         }
         if (pending) out.add(Lang.c("ring.effect.pending"));
+        if (d.weight() > 0) out.add(Lang.c("ring.weight", "weight", String.format(Locale.ROOT, "%.1f", d.weight())));
         out.addAll(Lang.lines("ring." + d.id() + ".lore")); // lang-dyn: ring.*.lore
         return out;
     }

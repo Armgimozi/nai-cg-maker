@@ -64,7 +64,7 @@ public final class SettingsDialog {
     }
 
     /**
-     * 단추 설명 칸: 지금 듣는 배율만 한 줄 "적 피해 ×0.7 · 적 HP ×0.8" (검토 difficulty-promises-unbuilt). 쳐내기 창·에스트 횟수는 그 체계가
+     * 단추 설명 칸: 지금 듣는 배율만 한 줄 "적 피해 ×0.7 · 적 HP ×0.8" (검토 difficulty-promises-unbuilt). 패링 창·에스트 횟수는 그 체계가
      * 생기는 M1 에 보통과 다를 때만 더한다 ("+0틱" 을 보이지 않게).
      */
     static Component summary(Player p, Config.Difficulty d) {

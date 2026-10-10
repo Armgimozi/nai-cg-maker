@@ -55,13 +55,14 @@ public final class Load implements Listener {
         this.plugin = plugin;
     }
 
-    /** 장비 무게 (단축 슬롯 아홉 칸 + 왼손 + 방어구). */
+    /** 장비 무게 (단축 슬롯 아홉 칸 + 왼손 + 방어구 + 낀 반지의 무게: 지금 반지는 모두 0). */
     public double weight(Player p) {
         PlayerInventory inv = p.getInventory();
         double w = 0;
         for (int i = 0; i < 9; i++) w += weightOf(inv.getItem(i));
         w += weightOf(inv.getItemInOffHand());
         for (ItemStack a : inv.getArmorContents()) w += weightOf(a);
+        if (plugin.ringSlots() != null) w += plugin.ringSlots().worn(p).weight();
         return w;
     }
 
@@ -126,7 +127,11 @@ public final class Load implements Listener {
     /** Ticker: 10틱마다 모두 (열네 칸 훑기는 싸다). */
     public void tick(long now) {
         if (now % 10 != 0) return;
-        for (Player p : Bukkit.getOnlinePlayers()) refresh(p);
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            refresh(p);
+            // 왼손이 사건 없이 바뀐 것 (명령 /item, 다른 플러그인) 도 주손 막기 성분을 맞춘다 (2.3 의 3. 맞으면 아무것도 하지 않는다)
+            if (plugin.weaponGuard() != null) plugin.weaponGuard().refresh(p);
+        }
     }
 
     private void later(Player p) {

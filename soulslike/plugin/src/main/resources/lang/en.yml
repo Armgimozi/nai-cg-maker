@@ -55,8 +55,6 @@ spell:
   none: "<#858079>No rite held in memory"
 
 item:
-  unfit-mark: "<#a8301f>×"
-  unfit: "<#8f8164>Cannot be wielded properly"
   master_key:
     name: "<#d1c3a0><font:souls:title>Master Key"
     lore:
@@ -72,6 +70,7 @@ ring:
     parry-window: "<#9e7c44>Parry window <sec>s"
     soul-guard: "<#9e7c44>Spares your souls once in death, then breaks"
     pending: "<#5c5955>Not yet in effect"
+  weight: "<#858079>Weight <weight>"
   test_stamina:
     name: "<#d1c3a0><font:souls:title>Test Ring: Stamina Recovery"
     lore:
@@ -102,22 +101,16 @@ weapon:
     halberd: "<#9e7c44>Halberd · Slash/Thrust"
     bow: "<#9e7c44>Bow"
     small_shield: "<#9e7c44>Small Shield"
-    shield: "<#9e7c44>Shield"
+    medium_shield: "<#9e7c44>Medium Shield"
     greatshield: "<#9e7c44>Greatshield"
     parrying_dagger: "<#9e7c44>Parrying Dagger"
     catalyst_kiln: "<#9e7c44>Catalyst · Kiln Rites"
     catalyst_bell: "<#9e7c44>Catalyst · Bell Rites"
   stat:
     attack: "<#858079>Attack"
+    guard: "<#858079>Guard"
+    spell: "<#858079>Rite Power"
     weight: "<#858079>Weight"
-    bonus_str: "<#858079>Str Bonus"
-    bonus_dex: "<#858079>Dex Bonus"
-    bonus_int: "<#858079>Int Bonus"
-    need_str: "<#858079>Req. Str"
-    need_dex: "<#858079>Req. Dex"
-    need_int: "<#858079>Req. Int"
-    absorb: "<#858079>Absorption"
-    stability: "<#858079>Stability"
   rule: "<#fefefe>—"
   redin_guard_sword:
     name: "<#d1c3a0><font:souls:title>Redin Watch Straight Sword"
@@ -269,7 +262,7 @@ origin:
   thief:
     name: "<#d1c3a0>Thief"
     desc: "<#8f8164>Light of hand, with a master key."
-    style: "<#b3a37f>Swift; guards with the off-hand dagger."
+    style: "<#b3a37f>Swift; parries with the off-hand dagger."
     kit: "<#b3a37f>Daggers · Master Key"
   archer:
     name: "<#d1c3a0>Archer"
@@ -407,7 +400,8 @@ controls:
   hint:
     roll: "<#8f8164>Roll · tap <bind>"
     roll-f: "<#8f8164>Roll · <bind>"
-    art: "<#8f8164>Weapon Skill · <bind>"
+    parry: "<#8f8164>Parry · <bind>"
+    parry-sneak: "<#8f8164>Parry · <sneak> + <bind>"
 
 ending:
   rekindle: "Rekindle the Fire"

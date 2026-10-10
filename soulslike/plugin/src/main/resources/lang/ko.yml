@@ -76,10 +76,6 @@ spell:
   none: "<#858079>기억한 술법이 없다"
 
 item:
-  # 요구 능력치 미달 (아이템 설명). 설명 칸 바탕이 어두워 핏빛 글씨는 읽히지 않으므로 앞의 짧은 표시만 핏빛으로 한다.
-  # 꼴이 둘이라 열쇠를 나눴다: 플러그인이 unfit-mark, 빈칸, unfit 을 이어 붙인다
-  unfit-mark: "<#a8301f>×"
-  unfit: "<#8f8164>제대로 다룰 수 없다"
   # 만능 열쇠 (9.5): 도적의 시작 아이템. 열쇠로 잠긴 문을 연다 (문은 M2·M3)
   master_key:
     name: "<#d1c3a0><font:souls:title>만능 열쇠"
@@ -96,10 +92,12 @@ ring:
     # 효과 줄 (설명 칸 맨 위, 흐린 옛 금빛). <pct> 는 "+20" 꼴, <sec> 는 "+0.10" 꼴
     stamina-regen: "<#9e7c44>스태미나 회복 <pct>%"
     poise: "<#9e7c44>강인도 <pct>%"
-    parry-window: "<#9e7c44>쳐내기 창 <sec>초"
+    parry-window: "<#9e7c44>패링 창 <sec>초"
     soul-guard: "<#9e7c44>죽어도 소울을 한 번 잃지 않고 부서진다"
     # 고리만 있는 효과 (그 체계가 아직 없다) 가 있으면 효과 줄 밑에 붙는다
     pending: "<#5c5955>이 효과는 아직 듣지 않는다"
+  # 무게가 있는 반지만 (효과 줄 밑). 지금 반지는 모두 무게가 없어 보이지 않는다. 반지 설명 칸에는 다른 수치가 없다
+  weight: "<#858079>무게 <weight>"
   test_stamina:
     name: "<#d1c3a0><font:souls:title>시험 반지: 스태미나 회복"
     lore:
@@ -109,7 +107,7 @@ ring:
     lore:
       - "<#8f8164>시험용 반지. 이야기가 정해지면 없앤다."
   test_parry:
-    name: "<#d1c3a0><font:souls:title>시험 반지: 쳐내기"
+    name: "<#d1c3a0><font:souls:title>시험 반지: 패링"
     lore:
       - "<#8f8164>시험용 반지. 이야기가 정해지면 없앤다."
 
@@ -134,26 +132,19 @@ weapon:
     halberd: "<#9e7c44>미늘창 · 베기/찌르기"
     bow: "<#9e7c44>활"
     small_shield: "<#9e7c44>작은 방패"
-    shield: "<#9e7c44>방패"
+    medium_shield: "<#9e7c44>중형 방패"
     greatshield: "<#9e7c44>대방패"
-    parrying_dagger: "<#9e7c44>쳐내기 단검"
+    parrying_dagger: "<#9e7c44>패링 단검"
     catalyst_kiln: "<#9e7c44>촉매 · 가마 술법"
     catalyst_bell: "<#9e7c44>촉매 · 종 술법"
   stat:
-    # 설명 칸의 수치 표 (9.7, 다크 소울 3 처럼 두 열): 이름은 여기, 값은 플러그인 (item/StatTable) 이 content/weapons.yml
-    # 에서 채워 값 열 끝에 오른쪽 맞춤으로 붙인다. 팩 (pack/typeset.py) 이 이름 뒤를 빈칸 글자로 채워 그 언어의 이름 열을
-    # 맞춘다. 그래서 이름 사이 폭이 언어마다 달라도 값이 한 줄에 선다
+    # 설명 칸의 수치 한 줄 (9.7): 제 값 하나와 무게 (장비에는 보정·요구 능력치가 없다, DECISIONS 2026-10-10). 이름은 여기, 값은
+    # 플러그인 (item/StatTable) 이 content/weapons.yml 에서 채워 값 열 끝에 오른쪽 맞춤으로 붙인다. 팩 (pack/typeset.py) 이 이름
+    # 뒤를 빈칸 글자로 채워 그 언어의 이름 열을 맞춘다. 무기·활·패링 단검은 공격력, 방패는 막기, 촉매는 술법 세기
     attack: "<#858079>공격력"
+    guard: "<#858079>막기"
+    spell: "<#858079>술법 세기"
     weight: "<#858079>무게"
-    # 1.3판 (5.2, 9.1): 근력 보정 = 공격력, 민첩 보정 = 그 무기의 공격 속도 몫, 지능 보정 = 촉매의 술 세기
-    bonus_str: "<#858079>근력 보정"
-    bonus_dex: "<#858079>민첩 보정"
-    bonus_int: "<#858079>지능 보정"
-    need_str: "<#858079>필요 근력"
-    need_dex: "<#858079>필요 민첩"
-    need_int: "<#858079>필요 지능"
-    absorb: "<#858079>물리 흡수"
-    stability: "<#858079>안정성"
   # 수치 표와 설명 사이의 실선 (9.7). 글이 아니라 팩이 무기마다 weapon.rule.<id> 열쇠를 실선 그림 글자로 짠다 (pack/typeset.py:
   # 그 무기 설명 칸의 글 열 폭만큼, 이름 밑 금실과 같은 색·굵기·금빛 마름모). 여기 글은 팩이 없을 때만 보이는 대체 글.
   # 글자색 #fefefe 는 색 그림 글자를 그대로 보이게 하는 흰색 (셰이더가 순백 #ffffff 만 뼈빛으로 바꾼다)
@@ -318,7 +309,7 @@ origin:
   thief:
     name: "<#d1c3a0>도적"
     desc: "<#8f8164>손이 날래고 만능 열쇠를 가졌다."
-    style: "<#b3a37f>빠르다. 왼손 단검으로 막는다."
+    style: "<#b3a37f>빠르다. 왼손 단검으로 패링한다."
     kit: "<#b3a37f>단도 · 결투 단검 · 열쇠"
   archer:
     name: "<#d1c3a0>궁수"
@@ -361,7 +352,7 @@ start:
 
 difficulty:
   # 난이도 넷 (5.7). 이름은 보이는 그대로 짧게, 한 줄은 흐리게. 지금 듣는 것 (적이 주는 피해, 적 체력) 만 적는다:
-  # 에스트·쳐내기 창은 그 체계가 생기는 M1 에 보통과 다를 때만 더한다 (검토 difficulty-promises-unbuilt)
+  # 에스트·패링 창은 그 체계가 생기는 M1 에 보통과 다를 때만 더한다 (검토 difficulty-promises-unbuilt)
   easy:
     name: "<#d1c3a0>쉬움"
     desc: "<#8f8164>적이 약하다"
@@ -478,7 +469,9 @@ controls:
   hint:
     roll: "<#8f8164>구르기 · <bind> 짧게"
     roll-f: "<#8f8164>구르기 · <bind>"
-    art: "<#8f8164>무기 기술 · <bind>"
+    # 패링 (F: 왼손에 든 것으로 쳐낸다). 출신 확인 창에서 그 출신의 왼손 물건이 패링할 수 있을 때만. roll-key: f·both 면 웅크리기 키 + F
+    parry: "<#8f8164>패링 · <bind>"
+    parry-sneak: "<#8f8164>패링 · <sneak> + <bind>"
 
 ending:
   rekindle: "불을 잇는다"

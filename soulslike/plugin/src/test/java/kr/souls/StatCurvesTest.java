@@ -30,25 +30,39 @@ class StatCurvesTest {
         assertEquals(99, c.max);
     }
 
-    /** 검토 dex-too-weak·slow-stats-feel-dead: 민첩의 첫 열 점 (10 → 20) 이 이동 속도 +5%, 공격 속도 +10% 를 준다 (앞쪽을 올린 판). */
+    /**
+     * 검토 dex-too-weak·slow-stats-feel-dead: 민첩의 첫 열 점 (10 → 20) 이 이동 속도 +5%, 공격 속도 +8% 를 준다 (앞쪽을 올린 판).
+     * 공격 속도는 모든 무기에 같은 곡선 (옛 B 기준 표 × 옛 C 0.8, 2026-10-10).
+     */
     @Test
     void dexterityIsFrontLoaded() {
         assertEquals(0.05, c.moveSpeed.at(20), 1e-9);
         assertEquals(0.13, c.moveSpeed.at(99), 1e-9);
-        assertEquals(0.10, c.attackSpeed.at(20), 1e-9);
+        assertEquals(0.08, c.attackSpeed.at(20), 1e-9);
+        assertEquals(0.18, c.attackSpeed.at(40), 1e-9);
+        assertEquals(0.24, c.attackSpeed.at(99), 1e-9);
         double first = c.moveSpeed.at(20) - c.moveSpeed.at(10);
         double late = c.moveSpeed.at(99) - c.moveSpeed.at(60);
         assertTrue(first > late, "앞쪽 열 점이 뒤쪽 39 점보다 많이 준다");
     }
 
-    /** 검토 slow-stats-feel-dead: 근력·지능 보정과 기력 회복의 10 → 40 이 가팔라졌다 (한 점에 보정 약 +0.02, 회복 +1.5%). 상한은 그대로. */
+    /**
+     * 근력의 공격력 몫과 지능의 술법 세기 몫 (2026-10-10: 장비의 보정 등급을 없애고 곡선 하나. 옛 보정 C 의 몫 = 0.8 × 옛 곡선):
+     * 10 → 40 이 가장 가파르다 (한 점에 약 +1.4%). 기력 회복은 그대로 (한 점에 +1.5%).
+     */
     @Test
     void earlyPointsCount() {
-        assertEquals(0.13, c.scaling.at(10), 1e-9);
-        assertEquals(0.35, c.scaling.at(20), 1e-9);
-        assertEquals(0.52, c.scaling.at(30), 1e-9);
-        assertEquals(0.68, c.scaling.at(40), 1e-9);
-        assertEquals(1.0, c.scaling.at(99), 1e-9);
+        for (StatCurves.Curve k : new StatCurves.Curve[] {c.strAttack, c.intSpell}) {
+            assertEquals(0.0, k.at(1), 1e-9);
+            assertEquals(0.10, k.at(10), 1e-9);
+            assertEquals(0.28, k.at(20), 1e-9);
+            assertEquals(0.42, k.at(30), 1e-9);
+            assertEquals(0.54, k.at(40), 1e-9);
+            assertEquals(0.64, k.at(60), 1e-9);
+            assertEquals(0.80, k.at(99), 1e-9);
+            double early = (k.at(40) - k.at(10)) / 30, late = (k.at(99) - k.at(60)) / 39;
+            assertTrue(early > 3 * late, "10 → 40 이 가장 가파르다");
+        }
         assertEquals(1.15, c.regenScale.at(20), 1e-9);
         assertEquals(1.30, c.regenScale.at(40), 1e-9);
         assertEquals(1.40, c.regenScale.at(99), 1e-9);
@@ -60,7 +74,7 @@ class StatCurvesTest {
     /** 모든 곡선은 줄지 않는다 (능력치를 올려 손해 보는 일이 없다). */
     @Test
     void curvesNeverDecrease() {
-        StatCurves.Curve[] all = {c.scaling, c.maxHealth, c.vigorDefense, c.maxMana, c.magicDefense, c.maxStamina, c.regenScale, c.equipLoad,
+        StatCurves.Curve[] all = {c.strAttack, c.intSpell, c.maxHealth, c.vigorDefense, c.maxMana, c.magicDefense, c.maxStamina, c.regenScale, c.equipLoad,
                 c.moveSpeed, c.attackSpeed, c.statusResist};
         for (StatCurves.Curve k : all) {
             for (int x = 1; x < 99; x++) assertTrue(k.at(x + 1) >= k.at(x) - 1e-9, "곡선이 " + x + " 에서 준다: " + k.points());

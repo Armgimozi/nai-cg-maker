@@ -11,8 +11,9 @@ import java.util.Locale;
 
 /**
  * 플레이어의 능력치와 그 값 (5.2). 능력치는 프로필에 있고 (출신을 고르기 전에는 모두 10), 값은 {@link Derived} 의 셈이다.
- * 공격력·공격 속도는 든 근접 무기 (없으면 단축 슬롯의 첫 souls 근접 무기), 술 세기는 든 촉매 (없으면 단축 슬롯의 첫 촉매) 기준.
- * 양손 잡기는 왼손이 빈 근접 무기다 (근력 ×1.5, 2.1).
+ * 공격력은 든 근접 무기 (없으면 단축 슬롯의 첫 souls 근접 무기), 술법 세기는 든 촉매 (주손, 왼손, 없으면 단축 슬롯의 첫 촉매) 기준.
+ * 장비에는 보정·요구 능력치가 없다 (DECISIONS 2026-10-10): 근력·민첩·지능은 모든 장비에 같은 곡선으로 듣는다 (DamageCalc).
+ * 양손 잡기는 왼손이 빈 근접 무기다 (근력 ×1.5, 2.1: 장비의 보정이 아니라 잡는 자세).
  */
 public final class Stats {
     private final Souls plugin;
@@ -43,8 +44,7 @@ public final class Stats {
 
     public static DamageCalc.Arms arms(Weapons.Def d) {
         if (d == null) return null;
-        return new DamageCalc.Arms(d.attack(), d.scaling().get("str"), d.scaling().get("dex"), d.scaling().get("int"),
-                d.requires().getOrDefault("str", 0), d.requires().getOrDefault("dex", 0), d.requires().getOrDefault("int", 0));
+        return new DamageCalc.Arms(d.attack(), d.spell());
     }
 
     /** 근접 무기 (공격력이 있고 촉매·방패가 아닌 것). 든 것이 아니면 단축 슬롯의 첫 것. */
@@ -59,11 +59,13 @@ public final class Stats {
         return null;
     }
 
-    /** 촉매 (분류가 catalyst_*). 든 것이 아니면 단축 슬롯의 첫 것. */
+    /** 촉매 (분류가 catalyst_*). 주손, 왼손 (우클릭은 왼손에 든 것을 쓴다, DECISIONS 2026-10-10), 아니면 단축 슬롯의 첫 것. */
     public Weapons.Def catalyst(Player p) {
         PlayerInventory inv = p.getInventory();
         Weapons.Def held = plugin.weapons().of(inv.getItemInMainHand());
         if (isCatalyst(held)) return held;
+        Weapons.Def off = plugin.weapons().of(inv.getItemInOffHand());
+        if (isCatalyst(off)) return off;
         for (int i = 0; i < 9; i++) {
             Weapons.Def d = plugin.weapons().of(inv.getItem(i));
             if (isCatalyst(d)) return d;
@@ -77,7 +79,7 @@ public final class Stats {
     }
 
     public static boolean isCatalyst(Weapons.Def d) {
-        return d != null && d.cls().startsWith("catalyst");
+        return d != null && d.catalyst();
     }
 
     /** 양손 잡기: 활이 아닌 근접 무기를 들고 왼손이 비었다 (2.1). 들지 않은 무기는 왼손이 비었으면 양손으로 본다. */

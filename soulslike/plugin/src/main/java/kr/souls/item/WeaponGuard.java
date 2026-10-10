@@ -15,8 +15,9 @@ import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.ItemStack;
 
 /**
- * 주손 막기가 왼손 방패를 가리지 않게 (2.3 의 3). 주손 무기에 막기 성분이 있으면 우클릭이 그것을 먼저 쓰므로, 왼손에 막는 것
- * (방패, 쳐내기 단검, 시험 막기 도구) 이 있을 때는 주손 무기에서 막기 성분을 떼고, 왼손이 비면 다시 붙인다.
+ * 주손 막기가 왼손을 가리지 않게 (2.3 의 3). 주손 무기에 막기 성분이 있으면 우클릭이 그것을 먼저 쓰므로, 왼손에 무엇이든 있을 때는
+ * (방패, 패링 단검, 왼손 무기, 촉매: 우클릭은 왼손에 든 것을 쓴다, DECISIONS 2026-10-10) 주손 무기에서 막기 성분을 떼고, 왼손이
+ * 비면 (양손 잡기: 주무기로 막는다) 다시 붙인다.
  * 슬롯 바꾸기, 손 바꾸기 (F), 인벤토리 닫기, 접속 때 다음 틱에 다시 계산한다. 활의 당기기 성분 (CONSUMABLE) 은 끝까지
  * 당겨도 아이템이 줄지 않게 먹기를 취소한다 (활 쏘기는 M1).
  */
@@ -34,10 +35,10 @@ public final class WeaponGuard implements Listener {
         Weapons.Def d = plugin.weapons().of(main);
         if (d == null || !Weapons.GUARD.equals(d.use())) return false;
         ItemStack off = p.getInventory().getItemInOffHand();
-        boolean offBlocks = !off.isEmpty() && off.hasData(DataComponentTypes.BLOCKS_ATTACKS);
+        boolean offHeld = !off.isEmpty();
         boolean has = main.hasData(DataComponentTypes.BLOCKS_ATTACKS);
-        if (offBlocks == !has) return false;
-        if (offBlocks) {
+        if (offHeld == !has) return false;
+        if (offHeld) {
             main.unsetData(DataComponentTypes.BLOCKS_ATTACKS);
             main.unsetData(DataComponentTypes.USE_EFFECTS);
         } else {
