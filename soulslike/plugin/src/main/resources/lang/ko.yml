@@ -98,6 +98,9 @@ ring:
     pending: "<#5c5955>이 효과는 아직 듣지 않는다"
   # 무게가 있는 반지만 (효과 줄 밑). 지금 반지는 모두 무게가 없어 보이지 않는다. 반지 설명 칸에는 다른 수치가 없다
   weight: "<#858079>무게 <weight>"
+  # 효과 줄과 설명 사이의 실선 (무기의 weapon.rule 과 같다). 팩이 반지마다 ring.rule.<id> 를 그 반지 설명 칸 폭으로 짠다 (pack/typeset.py).
+  # 여기 글은 팩이 없을 때만 보이는 대체 글
+  rule: "<#fefefe>—"
   test_stamina:
     name: "<#d1c3a0><font:souls:title>시험 반지: 스태미나 회복"
     lore:
@@ -134,7 +137,7 @@ weapon:
     small_shield: "<#9e7c44>작은 방패"
     medium_shield: "<#9e7c44>중형 방패"
     greatshield: "<#9e7c44>대방패"
-    parrying_dagger: "<#9e7c44>패링 단검"
+    parrying_dagger: "<#9e7c44>패링 단검 · 찌르기"
     catalyst_kiln: "<#9e7c44>촉매 · 가마 술법"
     catalyst_bell: "<#9e7c44>촉매 · 종 술법"
   stat:

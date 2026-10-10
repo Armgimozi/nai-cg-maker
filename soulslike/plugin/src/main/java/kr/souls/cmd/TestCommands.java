@@ -89,6 +89,7 @@ import java.util.Locale;
  *                                    아닌 물체) regen= poise= parry= guard=
  *   ring equip <1|2> <id|none>       반지 칸에 바로 낀다 / 뺀다 (아이템을 쓰거나 주지 않는다. 찍기 준비). [T] RING_SET ok=
  *   ring chest                       빈 상자 창 (세 줄) 을 연다 (다른 창이 열린 동안 죽거나 나갈 때 2×2 사본이 새지 않는지). [T] RING_CHEST open=
+ * enderchest                         그 사람의 엔더 상자 창을 연다 (창을 열 때 예전 판 무기를 새로 만드는지, item/WeaponRefresh). [T] ENDERCHEST open=
  * 반지 칸의 누르기는 [T] RING act=put|take|swap|unequip|hotbar|offhand|equip, 거절은 RING_DENY slot= why=, 같은 반지 둘은 RING_SAME,
  * 칸 밖 사본 지우기는 RING_SWEEP, 2×2 에 들어온 다른 것을 돌려주면 RING_STRAY.
  */
@@ -320,6 +321,12 @@ public final class TestCommands {
                                             if (!ok) plugin.test(p, "PRESS error=not_open open=" + plugin.ui().openDialog(p));
                                         })))))
                 .then(Commands.literal("ui").executes(ctx -> withPlayer(ctx, p -> plugin.test(p, "UI open=" + plugin.ui().openDialog(p)))))
+                // 그 사람의 엔더 상자 창을 연다 (souls 세계는 상자 블록을 열지 못하게 막으므로, 창을 열 때 예전 판 무기를 새로 만드는지
+                // item/WeaponRefresh 를 이 길로 본다: 봇 gear.js)
+                .then(Commands.literal("enderchest").executes(ctx -> withPlayer(ctx, p -> {
+                    p.openInventory(p.getEnderChest());
+                    plugin.test(p, "ENDERCHEST open=" + p.getOpenInventory().getTopInventory().getType());
+                })))
                 .then(Commands.literal("attr").executes(ctx -> withPlayer(ctx, p -> attrs(plugin, p))))
                 .then(Commands.literal("foehp")
                         .then(Commands.literal("spawn").executes(ctx -> withPlayer(ctx, p -> foeHp(plugin, p, "spawn"))))

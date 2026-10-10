@@ -23,6 +23,8 @@ gen_pack.py 가 막 만든 팩 폴더로, tools/langcheck.py 가 검사하는 �
               조각) 을 그 무기의 설명 칸 글 열 폭 (이름·분류 줄·수치 표·설명 줄 가운데 가장 넓은 것, weapon_width) 끝까지 잇는다.
               그래서 칸은 무기마다 제 글에 맞는 폭이고 (고딕 촛불 초안처럼) 둘째 실선은 글 열 끝까지 끊김 없는 한 알파의 줄이다
               (2026-10-08 비평: 둘째 실선이 짧고 끝이 옅어졌다). weapon.rule 자체는 가장 넓은 무기의 폭.
+              반지도 같다: ring.rule.<반지 id> 는 효과 줄과 설명 사이 실선, 폭은 그 반지 설명 칸의 글 열 (ring_width. 효과
+              줄의 값은 content/rings.yml 에서 플러그인 item/Rings.lore 와 같은 꼴로 채워 잰다).
   가운뎃점    ko_kr 의 souls 언어 파일에서 "·" 를 한글 가운데 높이의 가운뎃점 (KO_MIDDOT) 으로 바꾼다 (가라몽의 "·" 는 로마자
               x 높이 가운데라 한글 사이에서는 바탕선에 붙은 마침표처럼 보였다). 영어는 그대로.
 
@@ -72,10 +74,12 @@ DIVIDED = (("vanilla.menu.game", DEFAULT_FONT), ("bonfire.test-name", TITLE_FONT
 TITLE_VARIANTS = (("origin.confirm-title", "origin.*.name"),)
 # 무기 설명 칸의 수치 표 (GUI 픽셀): 이름 열 = 가장 긴 이름 + LABEL_GAP, 값 열 VALUE_COL (값은 오른쪽 맞춤), 두 칸 사이 COL_GAP
 LABEL_KEYS = "weapon.stat.*"
-LABEL_GAP = 6
+# 이름과 값 사이 여백: 가장 긴 이름 (술법 세기 / Rite Power) 뒤에도 빈칸 글자 둘쯤 (검토 tooltip-label-gutter: 6 이면 촉매 줄이
+# "술법 세기 100" 처럼 빈칸 하나로 붙어 보였다)
+LABEL_GAP = 10
 VALUE_COL = 18
 COL_GAP = 14
-VALUE_CHARS = "0123456789.-%SABCDE+/→×–, "   # 무기 수치 표와 Dialog 표의 값 글자 (플러그인 ui/Columns 가 오른쪽 맞춤에 쓴다. S·A..E 는 예전 판의 보정 등급, 남겨 둔다)
+VALUE_CHARS = "0123456789.-%+/→×–, "   # 무기 수치 표와 Dialog 표의 값 글자 (플러그인 ui/Columns·item/StatTable 이 오른쪽 맞춤에 쓴다. 값은 숫자와 기호뿐: 보정 등급 글자는 2026-10-10 에 없앴다)
 # Dialog 창의 표 칸 (5.9, 5.10, 플러그인 Lang.cell·rcell, ui/Columns): 무리마다 그 언어에서 가장 긴 글의 폭 (+ gap) 또는 고정 폭까지
 # 빈칸 글자로 채운 갈래 열쇠 souls.<열쇠>.<갈래> 를 만든다. 바닐라는 창 본문과 단추 글을 줄마다 가운데에 놓으므로, 한 무리의 칸
 # 폭이 같고 값 (숫자) 을 플러그인이 고정 열에 오른쪽 맞춤하면 모든 줄의 폭이 같아 열이 위아래로 선다.
@@ -151,6 +155,39 @@ def load_weapons(path=WEAPONS):
     with open(path, encoding="utf-8") as f:
         data = yaml.safe_load(f) or {}
     return {k: v for k, v in data.items() if isinstance(v, dict)}
+
+
+RINGS = os.path.join(os.path.dirname(WEAPONS), "rings.yml")
+# 반지 효과 (content/rings.yml effects 의 열쇠, 플러그인 item/Rings) 가운데 지금 듣는 것 (Rings.LIVE). 나머지가 있으면 효과 줄 밑에
+# ring.effect.pending 한 줄이 붙는다
+RING_LIVE = ("stamina-regen",)
+RING_RULE_KEY = "ring.rule"
+
+
+def load_rings(path=RINGS):
+    """content/rings.yml → {id: 정의 (dict)}. 반지마다 설명 칸 실선 폭을 잰다 (효과 줄, 무게, 설명)."""
+    import yaml
+    with open(path, encoding="utf-8") as f:
+        data = yaml.safe_load(f) or {}
+    return {k: v for k, v in data.items() if isinstance(v, dict)}
+
+
+def _half_up(x):
+    return int(math.floor(x + 0.5))
+
+
+def ring_effect_value(effect, v):
+    """반지 효과 줄의 값 글 (플러그인 item/Rings.lore 와 같은 꼴): "+20", "+40", "+0.10". 값이 없는 효과는 None."""
+    if effect == "stamina-regen":
+        n = _half_up((float(v) - 1.0) * 100.0)
+        return ("-" if n < 0 else "+") + str(abs(n))
+    if effect == "poise":
+        n = _half_up(float(v) * 100.0)
+        return ("-" if n < 0 else "+") + str(abs(n))
+    if effect == "parry-window":
+        n = int(v)
+        return ("-" if n < 0 else "+") + "%.2f" % (abs(n) / 20.0)
+    return None
 
 
 def stat_cells(d):
@@ -318,9 +355,10 @@ class Typeset:
     content/weapons.yml): 무기마다 실선 폭을 잴 때 분류와 수치 표의 칸을 본다.
     """
 
-    def __init__(self, fonts, weapons=None):
+    def __init__(self, fonts, weapons=None, rings=None):
         self.fonts = fonts
         self.weapons = load_weapons() if weapons is None else weapons
+        self.rings = load_rings() if rings is None else rings
 
     def apply(self, files, ko_lines):
         """ko_lines = langpack.lines(ko 표) (점 열쇠 → 한국어 원문, 꼴 태그 포함). files 를 고쳐 돌려준다."""
@@ -355,6 +393,12 @@ class Typeset:
                     data["souls." + RULE_KEY] = rule_text(max(widths.values(), default=0))
                     for wid, w in widths.items():
                         data[f"souls.{RULE_KEY}.{wid}"] = rule_text(w)
+                if "souls." + RING_RULE_KEY in data:
+                    widths = {rid: self.ring_width(data, rid, r) for rid, r in self.rings.items()
+                              if "souls.ring." + rid + ".name" in data}
+                    data["souls." + RING_RULE_KEY] = rule_text(max(widths.values(), default=0))
+                    for rid, w in widths.items():
+                        data[f"souls.{RING_RULE_KEY}.{rid}"] = rule_text(w)
                 for k in list(data):
                     if not k.startswith("souls."):
                         continue
@@ -425,6 +469,31 @@ class Typeset:
         if cls is not None:
             w = max(w, self.fonts.width(DEFAULT_FONT, cls.replace("%%", "%")))
         pre = "souls.weapon." + wid + ".lore"
+        for k, v in data.items():
+            if k == pre or fnmatch.fnmatchcase(k, pre + ".*"):
+                w = max(w, self.fonts.width(DEFAULT_FONT, v.replace("%%", "%")))
+        return w
+
+    def ring_width(self, data, rid, r):
+        """
+        반지 rid 의 설명 칸 글 열 폭 (한 언어, GUI 픽셀): 이름 (제목 글꼴)·효과 줄 (값을 채운 글)·아직 듣지 않는 효과의 한 줄·무게
+        줄·설명 줄 가운데 가장 넓은 것 (플러그인 item/Rings.lore 와 같은 줄들). 설명과 효과 사이 실선 ring.rule.<id> 의 폭이다.
+        """
+        def fill(text, value):
+            return (text.replace("%1$s", value) if value is not None else text).replace("%%", "%")
+
+        w = self.fonts.width(TITLE_FONT, data["souls.ring." + rid + ".name"])
+        effects = r.get("effects") or {}
+        for e, v in effects.items():
+            t = data.get("souls.ring.effect." + str(e))
+            if t is not None:
+                w = max(w, self.fonts.width(DEFAULT_FONT, fill(t, ring_effect_value(e, v))))
+        if any(e not in RING_LIVE for e in effects) and "souls.ring.effect.pending" in data:
+            w = max(w, self.fonts.width(DEFAULT_FONT, fill(data["souls.ring.effect.pending"], None)))
+        weight = float(r.get("weight", 0) or 0)
+        if weight > 0 and "souls.ring.weight" in data:
+            w = max(w, self.fonts.width(DEFAULT_FONT, fill(data["souls.ring.weight"], "%.1f" % weight)))
+        pre = "souls.ring." + rid + ".lore"
         for k, v in data.items():
             if k == pre or fnmatch.fnmatchcase(k, pre + ".*"):
                 w = max(w, self.fonts.width(DEFAULT_FONT, v.replace("%%", "%")))

@@ -135,7 +135,7 @@ L.run('levelup', async (sc) => {
   await b.cmd('/soulstest give all', 'GIVE')
   await L.sleep(800)
   const l1 = await b.cmd('/soulstest load', 'LOAD ')
-  sc.checkCmd('a hotbar full of weapons is heavy at strength 10 (39.5 / 40)', l1, (r) => r.kv.tier === 'heavy' && r.kv.roll === 'heavy')
+  sc.checkCmd('a hotbar full of weapons is heavy at strength 10 (39.0 / 40)', l1, (r) => r.kv.tier === 'heavy' && r.kv.roll === 'heavy')
   await b.cmd('/soulstest stat str 1', 'ATTR ')
   const l1b = await b.cmd('/soulstest load', 'LOAD ')
   sc.checkCmd('strength 1 (limit 30): over the limit (backstep, no sprint)', l1b, (r) => r.kv.tier === 'over' && r.kv.roll === 'backstep')

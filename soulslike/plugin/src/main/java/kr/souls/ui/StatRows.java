@@ -50,6 +50,29 @@ public final class StatRows {
         };
     }
 
+    /**
+     * 줄 i 의 두 값을 한 자리 더 (레벨 올리기 "+" 단추의 설명 칸만): 정수로 보이는 값은 소수 한 자리, 퍼센트는 늘 소수 한 자리. 무른 상한
+     * 위에서 한 점이 반올림한 값을 바꾸지 못할 때 ("공격력 95 → 95" 가 되어 능력치가 죽은 듯 읽힌다, 검토 softcap-dead-points)
+     * LevelUpDialog 가 이것으로 "95.3 → 95.6" 을 보인다.
+     */
+    static String[] fine(int i, Derived d) {
+        return switch (i) {
+            case 0 -> new String[] {f1(d.maxHp()), f1(d.defense())};
+            case 1 -> new String[] {f1(d.maxMana()), f1(d.magicRes())};
+            case 2 -> new String[] {f1(d.maxStamina()), String.format(Locale.ROOT, "%.2f", d.regenPerSec())};
+            case 3 -> new String[] {d.attack() <= 0 ? "–" : f1(d.attack()), f1(d.cap())};
+            case 4 -> new String[] {pct1(d.move()), pct1(d.attackSpeed() - 1)};
+            default -> new String[] {d.spellPower() <= 0 ? "–" : f1(d.spellPower()), String.format(Locale.ROOT, "%.1f%%", d.ailment() * 100)};
+        };
+    }
+
+    /** 몫 → 소수 한 자리 퍼센트 ("+22.4%", 0 은 "0%"). */
+    static String pct1(double v) {
+        double a = Math.abs(v);
+        if (a < 0.0005) return "0%";
+        return String.format(Locale.ROOT, "%s%.1f%%", v < 0 ? "-" : "+", a * 100);
+    }
+
     /** 능력치 id 의 줄 번호. */
     public static int rowOf(String stat) {
         return Math.max(0, StatBlock.IDS.indexOf(stat));

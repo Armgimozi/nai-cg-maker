@@ -33,8 +33,8 @@ const T = {
   // 근력의 공격력 몫 = 지능의 술법 세기 몫 (stats.strength.attack, stats.intelligence.spell-power: 옛 보정 C 와 같은 몫)
   bonus: [0.10, 0.28, 0.42, 0.54, 0.64, 0.80],
   move: [0, 0.05, 0.08, 0.10, 0.12, 0.13],
-  // 민첩의 공격 속도 몫 (stats.dexterity.attack-speed, 모든 무기에 같다)
-  aspd: [0, 0.08, 0.14, 0.18, 0.21, 0.24],
+  // 민첩의 공격 속도 몫 (stats.dexterity.attack-speed, 모든 무기에 같다. 옛 B 기준 표 그대로, 검토 dex-weakest-stat)
+  aspd: [0, 0.10, 0.17, 0.22, 0.26, 0.30],
   resist: [0, 0.10, 0.18, 0.24, 0.30, 0.35]
 }
 const level = (v) => 1 + (v - 10) // 나머지 다섯이 10 일 때
@@ -216,7 +216,7 @@ L.run('stats_fx', async (sc) => {
   const two = await stats()
   const ar2 = 74 * (1 + 0.10 + 5 * 0.018)
   sc.check(`two-handed (empty off hand): strength 10 counts as 15, attack ${ar2.toFixed(1)}`, two.kv && two.kv.twohand === 'true' && Math.abs(L.num(two.kv.atk) - ar2) <= 0.51, two.line || '')
-  // 무게: 단축 슬롯을 무기로 채운다 (39.5 + 곤봉 칸)
+  // 무게: 단축 슬롯을 무기로 채운다 (곤봉 칸 + 무기 여덟 + 왼손 없음)
   await b.cmd('/soulstest give all', 'GIVE')
   await L.sleep(800)
   const lh = await b.cmd('/soulstest load', 'LOAD ')
@@ -264,10 +264,10 @@ L.run('stats_fx', async (sc) => {
   await b.cmd('/soulstest give alley_dagger main', 'GIVE')
   await L.sleep(300)
   const dg = await stats()
-  sc.check('dexterity 99: attack speed x1.24 with the dagger too (no per-weapon factor)', dg.kv && dg.kv.weapon === 'alley_dagger' && Math.abs(L.num(dg.kv.aspd) - 1.24) < 1e-3, dg.line || '')
+  sc.check('dexterity 99: attack speed x1.30 with the dagger too (no per-weapon factor)', dg.kv && dg.kv.weapon === 'alley_dagger' && Math.abs(L.num(dg.kv.aspd) - 1.30) < 1e-3, dg.line || '')
   await L.sleep(400)
   const saD = await srvAttr(b)
-  sc.check('dexterity 99 with the dagger: attack_speed 2.0 x 1.24 = 2.48 (souls:weapon_speed + souls:lvl_dex)', saD && Math.abs(saD.attack_speed - 2.48) < 1e-3 &&
+  sc.check('dexterity 99 with the dagger: attack_speed 2.0 x 1.30 = 2.60 (souls:weapon_speed + souls:lvl_dex)', saD && Math.abs(saD.attack_speed - 2.60) < 1e-3 &&
     count(saD.mods.attack_speed, 'souls:weapon_speed') === 1 && count(saD.mods.attack_speed, 'souls:lvl_dex') === 1,
     saD ? `server attack_speed ${saD.attack_speed} mods ${saD.mods.attack_speed.join(',') || '-'}; client ${asBase ? asBase.value : '기본값 (받지 않음)'}` : '-')
   await b.cmd('/soulstest give gaoler_club main', 'GIVE')

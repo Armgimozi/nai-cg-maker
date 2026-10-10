@@ -71,6 +71,9 @@ ring:
     soul-guard: "<#9e7c44>Spares your souls once in death, then breaks"
     pending: "<#5c5955>Not yet in effect"
   weight: "<#858079>Weight <weight>"
+  # Rule between the effect lines and the lore (like weapon.rule). The pack builds ring.rule.<id> at each ring's tooltip width
+  # (pack/typeset.py); this text only shows without the pack
+  rule: "<#fefefe>—"
   test_stamina:
     name: "<#d1c3a0><font:souls:title>Test Ring: Stamina Recovery"
     lore:
@@ -103,7 +106,7 @@ weapon:
     small_shield: "<#9e7c44>Small Shield"
     medium_shield: "<#9e7c44>Medium Shield"
     greatshield: "<#9e7c44>Greatshield"
-    parrying_dagger: "<#9e7c44>Parrying Dagger"
+    parrying_dagger: "<#9e7c44>Parrying Dagger · Thrust"
     catalyst_kiln: "<#9e7c44>Catalyst · Kiln Rites"
     catalyst_bell: "<#9e7c44>Catalyst · Bell Rites"
   stat:

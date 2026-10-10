@@ -186,8 +186,8 @@ public final class Rings {
     }
 
     /**
-     * 설명 칸: 효과 줄 (흐린 옛 금빛), 고리만 있는 효과가 있으면 그 밑에 재빛 한 줄, 무게가 0 보다 크면 무게 한 줄, 그리고
-     * ring.&lt;id&gt;.lore. 다른 수치는 없다 (DECISIONS 2026-10-10: 반지는 효과만).
+     * 설명 칸: 효과 줄 (흐린 옛 금빛), 고리만 있는 효과가 있으면 그 밑에 재빛 한 줄, 무게가 0 보다 크면 무게 한 줄, 설명이 있으면
+     * 실선 (ring.rule.&lt;id&gt;, 무기 설명 칸과 같다) 과 ring.&lt;id&gt;.lore. 다른 수치는 없다 (DECISIONS 2026-10-10: 반지는 효과만).
      */
     static List<Component> lore(Def d) {
         List<Component> out = new ArrayList<>();
@@ -204,7 +204,10 @@ public final class Rings {
         }
         if (pending) out.add(Lang.c("ring.effect.pending"));
         if (d.weight() > 0) out.add(Lang.c("ring.weight", "weight", String.format(Locale.ROOT, "%.1f", d.weight())));
-        out.addAll(Lang.lines("ring." + d.id() + ".lore")); // lang-dyn: ring.*.lore
+        List<Component> lore = Lang.lines("ring." + d.id() + ".lore"); // lang-dyn: ring.*.lore
+        // 효과와 설명 사이 실선 (무기 설명 칸과 같은 그림, 반지마다 제 설명 칸 폭: 팩의 ring.rule.<id>, pack/typeset.py)
+        if (!lore.isEmpty()) out.add(Lang.variant("ring.rule", d.id()));
+        out.addAll(lore);
         return out;
     }
 

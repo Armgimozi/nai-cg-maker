@@ -10,14 +10,14 @@
 const L = require('./lib')
 
 const IDS = ['vig', 'mnd', 'end', 'str', 'dex', 'int']
-// 5.1 의 표 (content/origins.yml)
+// 5.1 의 표 (content/origins.yml). atk 는 시작 공격력 (5.1 "시작 때의 값", STATS atk), 마법사의 쇠단지는 왼손 (우클릭 = 왼손, DECISIONS 2026-10-10)
 const O = {
-  deprived: { level: 1, stats: [10, 10, 10, 10, 10, 10], main: 'gaoler_club', off: 'plank_shield', kit: 'weapon:gaoler_club,weapon:plank_shield', pending: ['armor:prisoner_rags', 'item:estus'] },
-  warrior: { level: 8, stats: [11, 9, 12, 16, 10, 9], main: 'gaoler_greatsword', kit: 'weapon:gaoler_greatsword', pending: ['armor:redin_watch_garb', 'item:estus'] },
-  thief: { level: 8, stats: [10, 10, 12, 9, 16, 10], main: 'alley_dagger', off: 'parrying_dagger', bag: 'master_key', kit: 'weapon:alley_dagger,weapon:parrying_dagger,item:master_key', pending: ['armor:prisoner_rags', 'item:estus'] },
-  archer: { level: 8, stats: [11, 9, 10, 12, 15, 10], main: 'levy_hatchet', hot2: 'wall_shortbow', arrows: 32, kit: 'weapon:levy_hatchet,weapon:wall_shortbow,item:arrows', pending: ['armor:prisoner_rags', 'item:estus'] },
-  sorcerer: { level: 8, stats: [9, 13, 9, 9, 11, 16], main: 'alley_dagger', hot2: 'kiln_pot', kit: 'weapon:alley_dagger,weapon:kiln_pot', pending: ['armor:prisoner_rags', 'spell:ember_toss', 'item:estus'] },
-  knight: { level: 9, stats: [15, 9, 11, 13, 11, 9], main: 'redin_guard_sword', off: 'redin_guard_shield', kit: 'weapon:redin_guard_sword,weapon:redin_guard_shield', pending: ['armor:redin_watch_garb', 'item:estus'] }
+  deprived: { level: 1, stats: [10, 10, 10, 10, 10, 10], atk: 81, twohand: false, main: 'gaoler_club', off: 'plank_shield', kit: 'weapon:gaoler_club,weapon:plank_shield', pending: ['armor:prisoner_rags', 'item:estus'] },
+  warrior: { level: 8, stats: [11, 9, 12, 16, 10, 9], atk: 123, twohand: true, main: 'gaoler_greatsword', kit: 'weapon:gaoler_greatsword', pending: ['armor:redin_watch_garb', 'item:estus'] },
+  thief: { level: 8, stats: [10, 10, 12, 9, 16, 10], atk: 52, twohand: false, main: 'alley_dagger', off: 'parrying_dagger', bag: 'master_key', kit: 'weapon:alley_dagger,weapon:parrying_dagger,item:master_key', pending: ['armor:prisoner_rags', 'item:estus'] },
+  archer: { level: 8, stats: [11, 9, 10, 12, 15, 10], atk: 87, twohand: true, main: 'levy_hatchet', hot2: 'wall_shortbow', arrows: 32, kit: 'weapon:levy_hatchet,weapon:wall_shortbow,item:arrows', pending: ['armor:prisoner_rags', 'item:estus'] },
+  sorcerer: { level: 8, stats: [9, 13, 9, 9, 11, 16], atk: 52, twohand: false, spell: 121, main: 'alley_dagger', off: 'kiln_pot', kit: 'weapon:alley_dagger,weapon:kiln_pot', pending: ['armor:prisoner_rags', 'spell:ember_toss', 'item:estus'] },
+  knight: { level: 9, stats: [15, 9, 11, 13, 11, 9], atk: 72, twohand: false, main: 'redin_guard_sword', off: 'redin_guard_shield', kit: 'weapon:redin_guard_sword,weapon:redin_guard_shield', pending: ['armor:redin_watch_garb', 'item:estus'] }
 }
 // 5.2 의 곡선 (10 밑은 한 점에 HP −10, 스태미나 −2)
 const curve = (pts, x) => {
@@ -108,6 +108,8 @@ L.run('origins_all', async (sc) => {
     const st = await b.cmd('/soulstest stats', 'STATS ')
     sc.check(`${id}: stats ${IDS.map((k, i) => k + ' ' + o.stats[i]).join(', ')}, level ${o.level}`, st.kv && st.kv.origin === id &&
       st.kv.level === String(o.level) && IDS.every((k, i) => st.kv[k] === String(o.stats[i])), st.line || '')
+    sc.check(`${id}: starting attack ${o.atk}${o.twohand ? ' (two-handed)' : ''}${o.spell ? ', spell power ' + o.spell : ''} as in DESIGN 5.1`, st.kv &&
+      Math.round(L.num(st.kv.atk)) === o.atk && st.kv.twohand === String(o.twohand) && (o.spell ? Math.round(L.num(st.kv.spell)) === o.spell : true), st.line || '')
     const info = await b.cmd('/soulstest info', 'INFO ')
     const hp = curve(MAXHP, o.stats[0])
     const stam = curve(STAM, o.stats[2])

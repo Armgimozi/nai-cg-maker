@@ -315,6 +315,8 @@ public final class SoulsCommands {
             for (String k : Lang.keys()) want.add(Lang.PREFIX + k);
             // 팩이 갈래마다 짠 열쇠 (Lang.variant): 무기 설명 칸 실선 weapon.rule.<무기 id> (item/StatTable.rule, pack/typeset.py)
             for (String id : plugin.weapons().all().keySet()) want.add(Lang.PREFIX + "weapon.rule." + id);
+            // 반지 설명 칸 실선 ring.rule.<반지 id> (item/Rings.lore)
+            for (String id : plugin.rings().all().keySet()) want.add(Lang.PREFIX + "ring.rule." + id);
             // 표의 칸 (Lang.cell / rcell): 능력치·출신 창의 열 맞추기 (pack/typeset.py 의 CELLS)
             for (String k : Lang.cellKeys()) want.add(Lang.PREFIX + k);
             // 갈래 제목 (Lang.titled): 출신 확인 창 제목 origin.confirm-title.<출신 id> (pack/typeset.py 의 TITLE_VARIANTS)

@@ -131,10 +131,12 @@ public final class LevelUpDialog implements Listener {
         Derived b = plugin.stats().derived(p, target.plus(id, 1));
         int row = StatRows.rowOf(id);
         String[] k = StatRows.keys(row, b), va = StatRows.values(row, a), vb = StatRows.values(row, b);
+        String[] fa = StatRows.fine(row, a), fb = StatRows.fine(row, b);
         Component first = Lang.c(p, k[0]); // lang-dyn: derived.*
         Component second = Lang.c(p, k[1]); // lang-dyn: derived.*
         List<Component> out = new ArrayList<>();
-        out.add(Lang.c(p, "levelup.tip", "first", first, "firstv", step(va[0], vb[0]), "second", second, "secondv", step(va[1], vb[1])));
+        out.add(Lang.c(p, "levelup.tip", "first", first, "firstv", step(va[0], vb[0], fa[0], fb[0]), "second", second, "secondv",
+                step(va[1], vb[1], fa[1], fb[1])));
         if ("str".equals(id)) {
             String w = String.format(Locale.ROOT, "%.1f", a.weight());
             Component ta = Lang.c(p, "load." + a.tier().id()), tb = Lang.c(p, "load." + b.tier().id()); // lang-dyn: load.*
@@ -153,6 +155,15 @@ public final class LevelUpDialog implements Listener {
     /** 설명 칸의 한 값: 한 점으로 달라지면 "51 → 52", 반올림으로 그대로면 "52" 하나 ("52 → 52" 는 고장처럼 읽힌다). */
     static String step(String now, String next) {
         return now.equals(next) ? now : now + " → " + next;
+    }
+
+    /**
+     * 설명 칸의 한 값 (한 자리 더 본다): 보이는 값이 달라지면 "51 → 52". 반올림한 값은 그대로인데 실제로는 오르면 한 자리 더 ("95.3 → 95.6",
+     * "+22.4% → +22.6%": 무른 상한 위의 한 점도 무엇을 주는지 보이게, 검토 softcap-dead-points). 정말 그대로면 하나.
+     */
+    static String step(String now, String next, String fineNow, String fineNext) {
+        if (!now.equals(next)) return now + " → " + next;
+        return fineNow.equals(fineNext) ? now : fineNow + " → " + fineNext;
     }
 
     /** 불에 타는 3초가 저항으로 몇 초가 되나 ("2.5"). */
