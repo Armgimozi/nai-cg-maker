@@ -38,9 +38,9 @@
               inworld_menu_background
   설명 칸     tooltip/background, tooltip/frame 100×100 (9조각 14, 촛불 기운·두 색 테·귀 꺾쇠), 무기 설명 칸
               souls:tooltip/weapon_* (같은 판에 이름 밑 금빛 마름모 금실. 플러그인이 tooltip_style souls:weapon 을 단다)
-  Dialog      dialog/warning_button(_highlighted, _disabled) 20×20: 투명 (바닐라가 서버 창마다 제목 옆에 두는 "서버가 띄운 창"
+  Dialog      dialog/warning_button(_disabled) 20×20: 투명 (바닐라가 서버 창마다 제목 옆에 두는 "서버가 띄운 창"
               안내 단추. 금빛 "!" 상자로 그렸더니 모든 창에 경고가 붙은 것처럼 보였다, DECISIONS 2026-10-10. 누를 자리와 안내 화면은
-              바닐라 그대로)
+              바닐라 그대로). 가리키거나 Tab 으로 고른 그림 (_highlighted) 만 가운데 흐린 금빛 마름모 (warning_mark)
   그 밖       숨 거품 hud/air*, 효과 표시 (HUD·인벤토리 옆), 알림 toast/*, 제작법 책 (gui/recipe_book.png, recipe_book/*),
               발전 과제 창 (advancements/window.png, 안의 그림은 바닐라 꼴에 색만 팔레트로) — extra_sprites
 
@@ -985,6 +985,21 @@ TT = 100            # GUI (텍셀 200)
 RULE_ALPHA = 0.9    # 무기 설명 칸 바탕 그림의 이름 밑 금실의 덮임 (수치 밑 실선은 초안의 청동 줄, fonts.RULE_LINE)
 
 
+WARNING_MARK_ALPHA = 0.45
+
+
+def warning_mark():
+    """
+    Dialog 의 "서버가 띄운 창" 안내 단추를 가리켰을 때 (20×20 GUI = 40×40 텍셀): 가운데 흐린 금빛 마름모 하나 (창 제목 밑 금실의 마름모
+    꼴, 반지름 2.5 GUI, 덮임 WARNING_MARK_ALPHA). 평소 그림은 투명이다.
+    """
+    w = h = 20 * S
+    m = Mask(w, h).poly([(w / 2 - 5.0, h / 2), (w / 2, h / 2 - 5.0), (w / 2 + 5.0, h / 2), (w / 2, h / 2 + 5.0)])
+    gem = uidraw.lit(m.cov(), GOLD)
+    gem.alpha = gem.alpha * WARNING_MARK_ALPHA
+    return gem
+
+
 def rule_gem(w, h, cx, cy):
     """이름 밑 금실 왼쪽 끝의 금빛 마름모 (반폭 4, 반높이 3.4 텍셀, 위에서 비친 금). 무기 설명 칸 바탕 (tooltip_bg) 이 쓴다."""
     m = Mask(w, h).poly([(cx - 4.0, cy), (cx, cy - 3.4), (cx + 4.0, cy), (cx, cy + 3.4)])
@@ -1491,11 +1506,14 @@ def build(out):
     # 빈 제작법 책이 열린다 (이 게임의 플레이어는 제작법을 얻지 않는다: Protection 이 막는다)
     written.append(save(clear(20, 18), out, "sprites", "recipe_book", "button.png"))
     written.append(save(clear(20, 18), out, "sprites", "recipe_book", "button_highlighted.png"))
-    # Dialog 제목 옆의 "서버가 띄운 창" 안내 단추: 그림만 지운다 (DECISIONS 2026-10-10 "창 제목 옆의 금색 ! 상자는 숨긴다"). 단추는
+    # Dialog 제목 옆의 "서버가 띄운 창" 안내 단추: 평소 그림은 지운다 (DECISIONS 2026-10-10 "창 제목 옆의 금색 ! 상자는 숨긴다"). 단추는
     # 바닐라 그대로 제목 줄에 자리를 차지하고 (플러그인 Glyphs.DIALOG_TITLE_PAD 가 그 몫을 제목 앞에 비워 제목이 가운데에 선다), 가리키면
-    # 안내 글, 누르면 바닐라 안내 화면이 뜬다
-    for fname in ("warning_button", "warning_button_highlighted", "warning_button_disabled"):
-        written.append(save(clear(20, 20), out, "sprites", "dialog", fname + ".png"))
+    # 안내 글, 누르면 바닐라 안내 화면 (그 화면의 단추는 접속을 끊는다) 이 뜬다. 가리키거나 Tab 으로 고르면 흐린 금빛 마름모 하나가
+    # 보인다 (warning_button_highlighted): 보이지 않는 자리에 마우스가 닿아 갑자기 안내 글이 뜨거나 Tab 초점이 사라진 듯 보이지 않게
+    # (검토 hidden-warning-button-ghost-target). 바닐라 안내 글 (menu.custom_screen_info.*) 은 안전 안내라 덮어쓰지 않는다
+    written.append(save(clear(20, 20), out, "sprites", "dialog", "warning_button.png"))
+    written.append(gsave(warning_mark(), out, "sprites", "dialog", "warning_button_highlighted.png"))
+    written.append(save(clear(20, 20), out, "sprites", "dialog", "warning_button_disabled.png"))
     wd = ("sprites", "widget")
     for hi in (False, True):
         sfx = "_highlighted" if hi else ""

@@ -76,11 +76,25 @@ public final class Glyphs {
      */
     public record DeathMark(int r, int shadowR, int g0) {}
 
+    /**
+     * 아이템 이름의 제목 글꼴 폭 (glyphs.yml 의 captions, pack/typeset.py caption_widths): 언어 → (lang 열쇠 → GUI 픽셀). 출신 확인 창의
+     * 시작 아이템 이름 칸 폭을 이름에 맞춘다 (ui/OriginDialog: 영어 "Redin Conscript's Hand Axe" 가 폭 150 칸에서 두 줄로 꺾여 창이 넘쳤다).
+     */
+    public record Captions(Map<String, Map<String, Integer>> widths) {
+        /** lang 열쇠 key 의 제목 글꼴 폭, 모르면 -1. */
+        public int width(String lang, String key) {
+            Map<String, Integer> m = widths.get(lang);
+            Integer w = m == null ? null : m.get(key);
+            return w == null ? -1 : w;
+        }
+    }
+
     private static final Key DEFAULT_FONT = Key.key("souls", "hud");
     private static Map<String, Glyph> glyphs = Collections.emptyMap();
     private static Layout layout;
     private static Stats stats;
     private static DeathMark deathMark;
+    private static Captions captions;
 
     private Glyphs() {}
 
@@ -113,8 +127,21 @@ public final class Glyphs {
                 for (int i = 0; i < chars.length() && i < ws.size(); i++) w.put(chars.charAt(i), ws.get(i));
                 stats = new Stats(st.getInt("value_col", 18), st.getInt("col_gap", 14), Collections.unmodifiableMap(w));
             }
+            // 이름 칸 폭: 열쇠에 점이 있어 YamlConfiguration 이 갈래로 나눴다 (weapon → levy_hatchet → name). 끝 값까지 내려가 다시 잇는다
+            ConfigurationSection cap = root.getConfigurationSection("captions");
+            Map<String, Map<String, Integer>> cw = new LinkedHashMap<>();
+            if (cap != null) {
+                for (String lang : cap.getKeys(false)) {
+                    ConfigurationSection ls = cap.getConfigurationSection(lang);
+                    if (ls == null) continue;
+                    Map<String, Integer> m = new LinkedHashMap<>();
+                    for (String k : ls.getKeys(true)) if (!ls.isConfigurationSection(k)) m.put(k, ls.getInt(k));
+                    cw.put(lang, Collections.unmodifiableMap(m));
+                }
+            }
+            captions = new Captions(Collections.unmodifiableMap(cw));
             for (String name : root.getKeys(false)) {
-                if (name.equals("layout") || name.equals("stats") || name.equals("death_fade")) continue;
+                if (name.equals("layout") || name.equals("stats") || name.equals("death_fade") || name.equals("captions")) continue;
                 ConfigurationSection g = root.getConfigurationSection(name);
                 if (g == null) continue;
                 String ch = decode(g.getString("char", ""));
@@ -152,6 +179,11 @@ public final class Glyphs {
     /** 무기 설명 칸의 수치 표. glyphs.yml 에 stats 가 없으면 (옛 팩) null: 수치는 빈칸 하나로 잇는다. */
     public static Stats stats() {
         return stats;
+    }
+
+    /** 아이템 이름의 제목 글꼴 폭. glyphs.yml 에 captions 가 없으면 (옛 팩) 빈 표. */
+    public static Captions captions() {
+        return captions == null ? new Captions(Map.of()) : captions;
     }
 
     /** YAML 이 "" 을 풀지 않은 채(작은따옴표) 적었거나 "U+E001" 로 적었어도 받아 준다. */

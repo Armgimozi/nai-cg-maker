@@ -93,10 +93,13 @@ L.run('origins_all', async (sc) => {
     const ck = conf ? L.deepKeys(conf) : []
     const cj = conf ? JSON.stringify(conf) : ''
     const items = [o.main, o.off, o.hot2, o.bag].filter(Boolean)
-    sc.check(`${id}: confirm dialog shows desc, style, stats table and the kit items`, conf && b.dialogId(conf) === 'origin_confirm' &&
-      ck.includes(`souls.origin.${id}.desc`) && ck.includes(`souls.origin.${id}.style`) && ck.includes('souls.stat.vig.name.cell') &&
+    // desc 는 출신 창 단추의 설명 칸에만 (확인 창은 제목이 출신 이름이라 style 한 줄과 표, 검토 origin-confirm-crowded)
+    sc.check(`${id}: confirm dialog shows style (no desc), stats table and the kit items`, conf && b.dialogId(conf) === 'origin_confirm' &&
+      !ck.includes(`souls.origin.${id}.desc`) && ck.includes(`souls.origin.${id}.style`) && ck.includes('souls.stat.vig.name.cell') &&
       ck.includes('souls.derived.max-hp.cell') &&
       items.every((w) => cj.includes(w)), ck.filter((k) => k.startsWith('souls.origin')).join(','))
+    // 화살은 개수를 이름 칸에 ("화살 (32)", 아이콘의 개수 숫자는 끈다: 검토 archer-arrow-row-visual)
+    if (o.arrows) sc.check(`${id}: arrows caption carries the count (origin.kit-arrows, count ${o.arrows})`, ck.includes('souls.origin.kit-arrows') && cj.includes(`"${o.arrows}"`), ck.filter((k) => k.startsWith('souls.origin')).join(','))
     let from = b.sys.length
     d = b.p.dialogs.length
     b.clickDialog('choose', {}, conf)

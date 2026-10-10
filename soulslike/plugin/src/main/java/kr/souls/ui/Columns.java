@@ -14,14 +14,15 @@ import net.kyori.adventure.text.format.TextDecoration;
  * 팩 무리와 폭은 pack/typeset.py 의 CELLS 와 같다 (열쇠 꼴과 오른쪽 맞춤 칸의 폭 STAT_COL).
  */
 public final class Columns {
-    /** 능력치 표 오른쪽 열의 값 폭 (GUI 픽셀): "1105 → 1132" (56), "+9.5% → +9.8%" (64), 장비 중량 "21.0 / 38.9" (44) 가 든다.
-     *  무게 단계 칸 (load.*.rcell) 도 이 폭 */
+    /** 능력치 표 오른쪽 열의 값 폭 (GUI 픽셀): "1495 → 1500" (56), "100% → 104%", 장비 중량 "21.0 / 38.9" (44) 가 든다. 넘는 값은
+     *  바뀐 값만 (change). 무게 단계 칸 (load.*.rcell) 도 이 폭 */
     public static final int VALUE = 64;
     /** 출신 줄의 레벨·능력치 칸 (오른쪽 맞춤, typeset 의 stat.*.short rcell 폭과 같다. 한국어 머리줄이 줄이지 않은 세 글자 이름
      *  "생명력" (24) 이라 사이가 6 남게 30) */
     public static final int STAT_COL = 30;
-    /** 출신 줄의 능력치와 시작 아이템 사이 */
-    public static final int KIT_GAP = 8;
+    /** 출신 줄의 능력치와 시작 아이템 사이 (오른쪽 맞춤 숫자 열 바로 뒤에 왼쪽 맞춤 글이 붙어 "9 직검, 방패" 처럼 한 낱말로 읽혔다:
+     *  8 → 16, 검토 origin-list-gutter. pack/typeset.py ROWS 와 같다) */
+    public static final int KIT_GAP = 16;
     /** 값 글자색 (팔레트 뼈빛 bone2, 무기 설명 칸과 같다) */
     public static final TextColor VALUE_COLOR = TextColor.color(0xd6cbb0);
     /** 바뀔 값 (레벨 올리기 미리보기의 → 뒤): 바랜 금 */
@@ -75,11 +76,15 @@ public final class Columns {
         return b.build();
     }
 
-    /** 미리보기 값: 바뀌지 않으면 now, 바뀌면 "now → next" (next 는 바랜 금). 열 폭 col 에 오른쪽 맞춤. */
+    /**
+     * 미리보기 값: 바뀌지 않으면 now, 바뀌면 "now → next" (next 는 바랜 금). 열 폭 col 에 오른쪽 맞춤. "now → next" 가 col 을 넘으면 바뀐 값
+     * next 만 바랜 금으로 (넘친 줄이 모든 열을 밀지 않게. 왼쪽 열 머리 StatSheet.head 와 같은 길, 검토 right-column-no-overflow-fallback).
+     */
     public static Component change(String now, String next, int col) {
         if (next == null || next.equals(now)) return right(now, col, VALUE_COLOR);
         String full = now + " → " + next;
         int w = width(full);
+        if (w > col) return right(next, col, NEXT_COLOR);
         TextComponent.Builder b = Component.text();
         if (w >= 0) b.append(pad(Math.max(0, col - w)));
         else b.append(Component.text(" "));

@@ -18,7 +18,7 @@ L.run('lang', async (sc) => {
   while (!b.p.packs.length && Date.now() - t0 < 6000) await L.sleep(100)
   const pk = b.p.packs[0]
   if (!sc.check('resource pack pushed', !!pk)) return
-  sc.check('pack prompt is English for an en_us client (server-rendered)', pk.prompt && !HANGUL.test(pk.prompt) && /resource pack/i.test(pk.prompt) &&
+  sc.check('pack prompt is English for an en_us client (server-rendered)', pk.prompt && !HANGUL.test(pk.prompt) && /\bpack\b/i.test(pk.prompt) &&
     !L.translateKeys(pk.promptRaw).length, pk.prompt || '')
   const sent = b.tLines('PACK sent')[0]
   sc.check('server picked lang=en for the pack prompt', sent && sent.kv.lang === 'en', sent ? sent.line : '시험 줄 없음')
@@ -115,12 +115,12 @@ L.run('lang', async (sc) => {
   // ── 관리자 답 (번역 열쇠 + 인수) ──
   const tp = await b.cmd('/souls tp nowhere', (m) => L.translateKeys(m.raw).includes('souls.admin.no-anchor'), 3000)
   sc.checkCmd('admin reply = translatable souls.admin.no-anchor', tp, (r) => !!r.msg)
-  if (tp.msg) sc.check('admin reply reads "Unknown location: nowhere"', L.render(tp.msg.raw, T.en) === 'Unknown location: nowhere', L.render(tp.msg.raw, T.en))
+  if (tp.msg) sc.check('admin reply reads "Location not found: nowhere"', L.render(tp.msg.raw, T.en) === 'Location not found: nowhere', L.render(tp.msg.raw, T.en))
   sc.check('no kick during lang scenario', !b.kick, b.kick || '')
   await b.quit()
 
   // ── 팩을 거절하면 자기 언어의 서버 글로 쫓겨난다 (팩이 없으니 번역 열쇠가 아니다) ──
-  for (const [locale, re, label] of [['en_us', /^[^가-힣]*resource pack/i, 'English'], ['ko_kr', /리소스팩/, 'Korean']]) {
+  for (const [locale, re, label] of [['en_us', /^[^가-힣]*resource pack/i, 'English'], ['ko_kr', /리소스 팩/, 'Korean']]) {
     await L.sleep(1500)
     const d = await L.connect(sc, { locale, declinePack: true, retries: 3 })
     const ke = Date.now() + 8000

@@ -32,9 +32,10 @@ import java.util.Set;
  *                            마법 방어력       32 → 34
  *                            상태 이상 내성          0%
  * </pre>
+ * 능력치 창 (StatsDialog) 은 오른쪽 열의 무리 사이에 빈 줄을 두고 장비 중량 밑에 무게 단계를 더한다 (derived 의 statsView).
  * 줄 맞추기 (Columns 와 같은 길): 바닐라 plain_message 는 줄마다 가운데에 놓으므로 모든 줄의 폭이 같아야 열이 선다. 이름 칸은 팩이 그
  * 언어의 무리 (왼쪽 table.*·stat.*.name, 오른쪽 derived.*) 에서 가장 긴 이름 폭까지 채운 칸 (Lang.cell), 값은 열 끝에 오른쪽 맞춤한 고정 폭
- * (왼쪽 LEFT_VALUE, 오른쪽 Columns.VALUE), 빈 칸은 글이 없는 칸 열쇠 (table.blank, derived.blank) 와 값 폭만큼의 빈칸. 줄 폭 =
+ * (왼쪽 LEFT_VALUE, 오른쪽 Columns.VALUE: 넘으면 바뀐 값만, Columns.change), 빈 칸은 글이 없는 칸 열쇠 (table.blank, derived.blank) 와 값 폭만큼의 빈칸. 줄 폭 =
  * 왼쪽 이름 칸 + LEFT_VALUE + GAP + 오른쪽 이름 칸 + VALUE (팩의 pack/typeset.py ROWS 가 본문에 서는 폭 WIDTH − 16 을 넘지 않는지 본다).
  */
 public final class StatSheet {
@@ -115,12 +116,8 @@ public final class StatSheet {
         return new Cell(key, Columns.right(value, LEFT_VALUE, Columns.VALUE_COLOR));
     }
 
-    /** 왼쪽 열의 머리 한 칸: 바뀌는 값 ("1 → 4", 폭이 모자라면 바뀐 값만 바랜 금으로). */
+    /** 왼쪽 열의 머리 한 칸: 바뀌는 값 ("1 → 4", 폭이 모자라면 바뀐 값만 바랜 금으로: Columns.change). */
     public static Cell head(String key, String now, String next) {
-        if (next == null || next.equals(now)) return head(key, now);
-        String full = now + " → " + next;
-        int w = Columns.width(full);
-        if (w > LEFT_VALUE) return new Cell(key, Columns.right(next, LEFT_VALUE, Columns.NEXT_COLOR));
         return new Cell(key, Columns.change(now, next, LEFT_VALUE));
     }
 
@@ -131,26 +128,33 @@ public final class StatSheet {
     // ------------------------------------------------------------------ 오른쪽 열
 
     /**
-     * 오른쪽 열 (레벨 업 창과 능력치 창이 같다): 몸 (최대 HP·마나·스태미나, 스태미나 회복, 장비 중량, 이동 속도), 공격 (공격력, 공격
-     * 속도, 술법 위력), 막기 (방어력, 마법 방어력, 상태 이상 내성). next 가 있으면 바뀐 값만 "a → b" (장비 중량은 새 한도만 바랜 금).
-     * 아직 적용되지 않는 값 (술법이 생기는 M5 전의 최대 마나·술법 위력) 은 흐린 갈색. tierRow 면 장비 중량 밑에 무게 단계 (이름 없는 칸,
-     * 능력치 창: 레벨 올리기 창은 근력 단추의 설명 칸이 단계가 바뀌는 것을 보인다).
+     * 오른쪽 열 (레벨 업 창과 능력치 창이 같은 차례): 자원 (최대 HP·마나·스태미나, 스태미나 회복), 무게 (장비 중량), 움직임과 공격 (이동
+     * 속도, 공격력, 공격 속도, 술법 위력), 막기 (방어력, 마법 방어력, 상태 이상 내성). next 가 있으면 바뀐 값만 "a → b" (장비 중량은 새
+     * 한도만 바랜 금). 아직 적용되지 않는 값 (술법이 생기는 M5 전의 최대 마나·술법 위력) 은 흐린 갈색.
+     * statsView (능력치 창) 면 장비 중량 밑에 무게 단계 (derived.tier, 레벨 업 창은 근력 단추의 설명 칸이 단계가 바뀌는 것을 보인다) 와
+     * 무리 사이의 빈 줄 셋 (다크 소울·엘든 링 상태 창처럼 자원·무게·공격·막기를 나눠 눈이 바로 찾아가게, 검토 derived-column-wall).
+     * 레벨 업 창은 높이 (1280×720 GUI 3 의 본문 칸 174, LevelUpDialog) 때문에 빈 줄 없이 같은 차례.
      */
-    public static List<Cell> derived(Player p, Derived now, Derived next, boolean tierRow) {
+    public static List<Cell> derived(Player p, Derived now, Derived next, boolean statsView) {
         Derived n = next == null ? now : next;
-        List<Cell> out = new ArrayList<>(13);
+        List<Cell> out = new ArrayList<>(16);
         out.add(new Cell("derived.max-hp", Columns.change(f0(now.maxHp()), f0(n.maxHp()), Columns.VALUE)));
         out.add(new Cell("derived.max-mana", later(f0(now.maxMana()), f0(n.maxMana()))));
         out.add(new Cell("derived.max-stamina", Columns.change(f0(now.maxStamina()), f0(n.maxStamina()), Columns.VALUE)));
         out.add(new Cell("derived.regen", Columns.change(f0(now.regenPerSec()), f0(n.regenPerSec()), Columns.VALUE)));
+        if (statsView) out.add(Cell.blank(BLANK_RIGHT));
         out.add(new Cell("derived.load", StatRows.load(now, next)));
-        if (tierRow) out.add(new Cell(BLANK_RIGHT, Lang.rcell(p, "load." + now.tier().id()))); // lang-dyn: load.*
+        if (statsView) {
+            out.add(new Cell("derived.tier", Lang.rcell(p, "load." + now.tier().id()))); // lang-dyn: load.*
+            out.add(Cell.blank(BLANK_RIGHT));
+        }
         out.add(new Cell("derived.move", Columns.change(StatRows.pct(now.move()), StatRows.pct(n.move()), Columns.VALUE)));
         out.add(new Cell(n.twoHanded() ? "derived.attack-2h" : "derived.attack",
                 Columns.change(attack(now.attack()), attack(n.attack()), Columns.VALUE)));
         out.add(new Cell("derived.attack-speed", Columns.change(StatRows.pct(now.attackSpeed() - 1), StatRows.pct(n.attackSpeed() - 1),
                 Columns.VALUE)));
         out.add(new Cell("derived.spell", later(attack(now.spellPower()), attack(n.spellPower()))));
+        if (statsView) out.add(Cell.blank(BLANK_RIGHT));
         out.add(new Cell("derived.defense", Columns.change(f0(now.defense()), f0(n.defense()), Columns.VALUE)));
         out.add(new Cell("derived.magic-res", Columns.change(f0(now.magicRes()), f0(n.magicRes()), Columns.VALUE)));
         out.add(new Cell("derived.ailment", Columns.change(ailment(now.ailment()), ailment(n.ailment()), Columns.VALUE)));
@@ -173,9 +177,9 @@ public final class StatSheet {
         return out;
     }
 
-    /** 아직 적용되지 않는 값: 흐린 갈색 (바뀌어도 화살표째 흐리게). */
+    /** 아직 적용되지 않는 값: 흐린 갈색 (바뀌어도 화살표째 흐리게. 열 폭을 넘으면 바뀐 값만). */
     static Component later(String now, String next) {
-        if (now.equals(next)) return Columns.right(now, Columns.VALUE, Columns.DIM_COLOR);
+        if (now.equals(next) || Columns.width(now + " → " + next) > Columns.VALUE) return Columns.right(next, Columns.VALUE, Columns.DIM_COLOR);
         return Columns.rightParts(Columns.VALUE, new String[] {now + " → " + next}, new TextColor[] {Columns.DIM_COLOR});
     }
 

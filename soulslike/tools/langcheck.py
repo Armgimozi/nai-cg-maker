@@ -18,6 +18,8 @@
            열쇠에 맞거나 콘텐츠 표 (CONTENT_KEYS) 의 꼴. say 는 콘텐츠 say 부품의 key, param 은 열쇠를 넘기는 도우미.
            콘텐츠: say 부품의 key 가 lang 에 있고 자리가 없다, 콘텐츠 id 마다 CONTENT_KEYS 의 열쇠가 있다 (12.5 의 표:
            skills.yml → skill.<id>.name 한 줄, skill.<id>.desc 목록)
+           Java 의 글자 그대로인 문자열 가운데 능력치 표 열쇠 꼴 (LITERAL_KEY: table.*·derived.*·stat.*·load.*, StatSheet.Cell·head,
+           StatRows.keys, restHead 처럼 Lang 을 바로 부르지 않는 도우미가 넘기는 열쇠) 도 lang 에 있어야 한다
   content  content/*.yml 에 한글 글이 없고 글 칸 (name, description, lore, text …) 이 없다 (글자와 상관없이)
   pack     팩 언어 파일이 YAML 에서 만든 것과 같다 (낡은 팩): assets/souls/lang/ko_kr.json·en_us.json,
            assets/minecraft/lang/<언어>.json 의 vanilla.* 열쇠 (ko_kr 은 한국어, 나머지는 영어). 창 제목의 제목 글자, 제목 밑
@@ -25,7 +27,9 @@
            gen_pack 과 같은 셈을 해 견준다 (pack/typeset.py)
   width    글이 그 자리 폭에 들어간다 (1280×720 GUI 배율 3 = 화면 426 픽셀 기준. SLOTS 표). 폭은 팩의 글꼴 (본문 가라몽·명조,
            꼴 태그 <font:souls:title> 이나 창 제목은 제목 글꼴) 로 잰다. 팩이 없거나 팩 글꼴에 없는 글자면 바닐라 기본 글꼴 폭.
-           큰 글씨는 4배로 그려져 104 픽셀, 부제목은 2배라 200 픽셀, Dialog 단추(폭 160) 150, 사망 화면 단추(폭 200) 190
+           큰 글씨는 4배로 그려져 104 픽셀, 부제목은 2배라 200 픽셀, Dialog 단추(폭 160) 150, 사망 화면 단추(폭 200) 190.
+           자리 값 (SAMPLE) 이 여럿이면 (튜플) 모두 넣어 본다. 플러그인이 두 열쇠를 한 줄로 잇는 곳 (JOINED: 레벨 업 "+" 단추 설명
+           칸의 첫 줄 끝에 붙는 levelup.later) 은 이은 줄을 잰다
 경고
   slot     폭을 정하지 않은 열쇠 (SLOTS 에 더한다)
   content  CONTENT_KEYS 에 없는 콘텐츠 파일, 콘텐츠에 없는 id 의 열쇠가 lang 에 남음
@@ -94,16 +98,18 @@ SLOTS = [
     ("difficulty.summary", "button_tip"), ("difficulty.*.desc", "button_tip"), ("difficulty.*", "button250"),
     ("levelup.title", "dialog_title"), ("levelup.cancel", "button200"),
     ("levelup.tip", "button_tip"), ("levelup.burn", "button_tip"), ("levelup.short", "button_tip"), ("levelup.later", "button_tip"),
+    ("levelup.max", "button_tip"),
     ("levelup.load*", "button_tip"), ("levelup.*", "button150"),
     ("origin.later", "button200"), ("origin.choose", "button150"), ("origin.back", "button150"), ("origin.none", "subtitle"),
     ("origin.none-hint*", "subtitle"), ("origin.confirm-title", "dialog_title"),
     ("origin.head-*", "dialog_body370"), ("origin.*.name", "dialog_title"), ("origin.*.desc", "button_tip"),
-    ("origin.*.kit", "dialog_body370"), ("origin.*", "dialog_body320"),
+    ("origin.*.kit", "dialog_body370"), ("origin.kit-arrows", "tooltip"), ("origin.*", "dialog_body320"),
     ("pvp.*", "subtitle"),
     ("start.title", "dialog_title"), ("start.body", "dialog_body300"), ("start.pvp-hit", "dialog_body300"),
     ("start.pvp-sweep", "dialog_body300"), ("start.pvp", "button250"), ("start.choice*", "button250"), ("start.later", "button250"),
     ("start.later-tip", "button_tip"), ("start.already-set", "wrap"),
-    ("start.changed", "wrap"), ("start.provisional-chat", "wrap"), ("start.*", "subtitle"),
+    ("start.changed", "wrap"), ("start.provisional-chat", "wrap"), ("start.waiting", "wrap"), ("start.op-only", "wrap"),
+    ("start.*", "subtitle"),
     ("stat.*.name", "button64"), ("stat.*.short", "dialog_body370"),
     ("stats.title", "dialog_title"), ("stats.close", "button200"), ("stats.*", "dialog_body320"),
     ("bonfire.no-warp", "dialog_body"), ("spell.no-slot", "dialog_body"),
@@ -121,11 +127,23 @@ SLOTS = [
 SAMPLE = {"souls": "9,999,999", "n": "9,999,999", "level": "713", "m": "999", "kind": "control", "ticks": "100",
           # 레벨 올리기·능력치 창 (5.9): 레벨은 세 자리, 소울은 아홉 자리까지 (지갑 상한 999,999,999)
           "from": "713", "to": "713", "held": "999,999,999", "cost": "9,999,999", "value": "15 → 99",
-          "first": "Max Stamina", "second": "Ailment Resist", "firstv": "1,000 → 1,000", "secondv": "+12% → +12%", "hp": "1,000", "mana": "200", "stamina": "200",
+          # 레벨 업 "+" 단추의 설명 칸 (LevelUpDialog.tip): 값은 표의 꼴 (기준 100 의 퍼센트, 근력은 "장비 무게 / 한도 → 새 한도")
+          "first": "Max Stamina", "second": "Ailment Resist", "firstv": "1,000 → 1,000",
+          "secondv": ("100.5% → 101.0%", "120.5 / 130.0 → 131.4"), "hp": "1,000", "mana": "200", "stamina": "200",
           "attack": "999", "weight": "99.9", "cap": "99.9", "damage": "1.25", "health": "1.4", "parry": "-1", "estus": "5",
           "next": "9,999,999", "what": "Max Mana", "tier": "Overloaded", "difficulty": "Very Hard", "pvp": "PvP off",
           # 반지 효과 줄 (9.4): 배율·비율은 "+20" 꼴, 패링 판정은 초 "+0.1" 꼴 (끝의 0 은 뗀다)
-          "pct": "+999", "sec": "+0.95"}
+          "pct": "+999", "sec": "+0.95", "count": "64"}
+# 플러그인이 두 열쇠를 한 줄로 잇는 곳: (이름, [(열쇠, 그 열쇠의 몇째 줄)...], 자리 값, 자리). 이은 줄 (사이에 빈칸) 을 잰다
+JOINED = (
+    # 정신력·지력 "+" 단추의 설명 칸 첫 줄 "최대 마나 60 → 64 (미적용)" (LevelUpDialog.tip: 첫 줄 끝에 흐린 꼬리)
+    ("levelup.tip 첫 줄 + levelup.later", (("levelup.tip", 0), ("levelup.later", 0)),
+     {"first": ("Max Mana", "Spell Power", "최대 마나", "술법 위력"), "firstv": ("999 → 999", "– → –")}, "button_tip"),
+)
+# 능력치 표 열쇠 꼴 (Lang 을 바로 부르지 않는 도우미가 넘기는 글자 그대로의 열쇠: StatSheet.Cell·head, StatRows.keys, restHead).
+# 이 꼴의 Java 문자열은 lang 에 있어야 한다 (지우거나 이름을 바꾸면 게임에 "souls.derived.regen.cell" 이 그대로 보였다,
+# 검토 langcheck-misses-statsheet-keys)
+LITERAL_KEY = re.compile(r"^(table|derived|stat|load)\.[a-z0-9_.-]*[a-z0-9]$")
 
 # ── Java 를 읽는 표 ──
 # 열쇠를 받는 부르기: (임자, 이름) → 인수 목록 → 열쇠 자리들. 열쇠 자리 뒤 인수는 (자리 이름, 값) 짝이다 (Lang.args)
@@ -363,9 +381,22 @@ def dyn_markers(src):
     return out
 
 
+LITERALS = []    # check_java 가 모은 (파일, 줄, 열쇠 꼴 문자열): check_literal_keys 가 본다
+
+
+def check_literal_keys(report, ko):
+    """능력치 표 열쇠 꼴 (LITERAL_KEY) 의 Java 문자열이 lang 에 있는가. 돌려주는 값: 본 문자열 수."""
+    keys = set(langpack.lines(ko)) | set(ko)
+    for rel, ln, val in LITERALS:
+        if val not in keys:
+            report.add("오류", "keys", f"{rel}:{ln}", f"lang 에 없는 열쇠 {val!r} (StatSheet·StatRows 같은 도우미가 Lang.cell 로 넘긴다)")
+    return len(LITERALS)
+
+
 def check_java(report, root=JAVA):
     """Java 를 읽어 한글 문자열·번역 안 되는 글을 거르고, 열쇠 부르기 [(파일, 줄, 임자.이름, 열쇠 인수, 짝 인수, 표시)] 를 낸다."""
     found = []
+    LITERALS.clear()
     for base, dirs, files in os.walk(root):
         dirs.sort()
         for f in sorted(files):
@@ -403,6 +434,11 @@ def check_java(report, root=JAVA):
                 if bare and not machine & set(range(b[2], toks[end][2] + 1)):
                     report.add("오류", "text", f"{rel}:{b[2]}", f"{b[1]}({bare[0][:40]!r}...) 에 글을 바로 넣었다 "
                                "(Lang.c 열쇠로. 기계 글이면 그 줄에 // lang-machine)")
+
+            # 능력치 표 열쇠 꼴의 글자 그대로인 문자열 (LITERAL_KEY)
+            for kind, val, ln in toks:
+                if kind == "str" and LITERAL_KEY.match(val):
+                    LITERALS.append((rel, ln, val))
 
             # 열쇠 부르기
             for owner, name, args, ln, last, *_ in calls(toks, set(KEY_CALLS)):
@@ -651,12 +687,42 @@ def check_width(report, tables, pack=None):
             if px is None:
                 continue
             tags, text = langpack.split_style(raw)
-            for name in langpack.slots(langpack.split_style(ko.get(key, raw))[1]):
-                text = text.replace(f"<{name}>", SAMPLE.get(name, "0"))
-            for line in text.split("\n"):
-                w = measure(key, tags, line, ko, lang)
+            names = langpack.slots(langpack.split_style(ko.get(key, raw))[1])
+            for filled in fill_samples(text, names):
+                for line in filled.split("\n"):
+                    w = measure(key, tags, line, ko, lang)
+                    if w > px:
+                        report.add("오류", "width", f"{lang}.yml {key}", f"{w}px > {slot} {px}px: {line!r}")
+                        break
+        flat = langpack.lines(tables[lang])
+        for name, parts, samples, slot in JOINED:
+            if not all(k in flat for k, _ in parts):
+                continue
+            px = SLOT_PX[slot]
+            tags = langpack.split_style(flat[parts[0][0]])[0]
+            line = " ".join(langpack.split_style(flat[k])[1].split("\n")[i] for k, i in parts)
+            names = set()
+            for k, _ in parts:
+                names.update(langpack.slots(langpack.split_style(ko.get(k, flat[k]))[1]))
+            table = dict(SAMPLE, **samples)
+            for filled in fill_samples(line, names, table):
+                w = measure(parts[0][0], tags, filled, ko, lang)
                 if w > px:
-                    report.add("오류", "width", f"{lang}.yml {key}", f"{w}px > {slot} {px}px: {line!r}")
+                    report.add("오류", "width", f"{lang}.yml {name}", f"{w}px > {slot} {px}px: {filled!r}")
+                    break
+
+
+def fill_samples(text, names, table=None):
+    """자리에 SAMPLE 값을 넣은 글들. 값이 튜플이면 하나씩 모두 (자리마다의 곱)."""
+    import itertools
+    table = SAMPLE if table is None else table
+    names = sorted(names)
+    choices = [v if isinstance(v, tuple) else (v,) for v in (table.get(n, "0") for n in names)]
+    for combo in itertools.product(*choices):
+        out = text
+        for n, v in zip(names, combo):
+            out = out.replace(f"<{n}>", v)
+        yield out
 
 
 def lint(pack=PACK_DIR, quiet=False):
@@ -666,6 +732,7 @@ def lint(pack=PACK_DIR, quiet=False):
         report.add("오류", "pair", key, why)
     found = check_java(report)
     checked, dynamic = check_keys(report, found, tables["ko"])
+    literal_keys = check_literal_keys(report, tables["ko"])
     check_content(report, tables["ko"])
     check_pack(report, tables, pack)
     check_width(report, tables, pack)
@@ -675,7 +742,7 @@ def lint(pack=PACK_DIR, quiet=False):
         keys = langpack.lines(tables["ko"])
         van = sum(1 for k in keys if k.startswith(langpack.VANILLA))
         print(f"langcheck: 열쇠 {len(keys) - van}개 + 바닐라 {van}개 (ko, en), Java 열쇠 부르기 {checked + dynamic}곳 "
-              f"(글자 그대로 {checked}곳: 열쇠·자리 확인, 만든 열쇠 {dynamic}곳: lang-dyn 표시로 확인), "
+              f"(글자 그대로 {checked}곳: 열쇠·자리 확인, 만든 열쇠 {dynamic}곳: lang-dyn 표시로 확인), 능력치 표 열쇠 문자열 {literal_keys}곳, "
               f"오류 {len(report.errors)}, 경고 {len(report.warnings)}")
     return report
 

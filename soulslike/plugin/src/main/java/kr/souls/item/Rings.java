@@ -32,10 +32,10 @@ import java.util.regex.Pattern;
  * 효과 (두 반지의 효과는 합친다: 배율은 곱, 나머지는 더한다. 같은 반지 둘은 끼지 않는다)
  *   stamina-regen  스태미나 회복 배율 (1.20 = +20%). 지금 듣는다: combat/Stamina 의 회복과 능력치 창의 회복 값
  *   poise          강인도 덧셈 비율 (0.40 = +40%). 고리만 있다: 강인도 (3.8) 가 생기면 RingSlots.poiseBonus 를 부른다
- *   parry-window   패링 창 덧셈 틱. 패링 (3.5, combat/Parry) 이 F 를 누를 때 RingSlots.parryWindowBonus 로 더한다 (판정은 M1 이라 설명 칸은
- *                  아직 "듣지 않는다")
+ *   parry-window   패링 판정 덧셈 틱. 패링 (3.5, combat/Parry) 이 F 를 누를 때 RingSlots.parryWindowBonus 로 더한다 (판정은 M1 이라 설명 칸은
+ *                  아직 "(미적용)")
  *   soul-guard     죽어도 소울을 한 번 잃지 않고 반지가 부서진다. 고리만 있다: 소울 잃기 (5.5, M2) 가 RingSlots.consumeSoulGuard 를 부른다
- * 고리만 있는 효과는 설명 칸에 "아직 이 효과를 받는 체계가 없다" 줄이 붙는다 (ring.effect.pending).
+ * 고리만 있는 효과는 설명 칸의 그 효과 줄 끝에 "(미적용)" 이 붙는다 (ring.effect.pending, 아직 그 효과를 받는 체계가 없다).
  *
  * 아이템: 껍데기는 무기와 같은 부싯돌 (2×2 에 둘이 세로로 놓여도 바닐라 제작법이 없다. 제작은 RingSlots 가 어차피 막는다), 모형
  * souls:&lt;model&gt; (pack/icons.py 의 RING_ART: 모든 반지가 같은 테 꼴이라 반지 칸 바탕의 흐린 반지 그림을 덮는다), 한 칸에 하나,
@@ -186,23 +186,22 @@ public final class Rings {
     }
 
     /**
-     * 설명 칸: 효과 줄 (흐린 옛 금빛), 고리만 있는 효과가 있으면 그 밑에 재빛 한 줄, 무게가 0 보다 크면 무게 한 줄, 설명이 있으면
-     * 실선 (ring.rule.&lt;id&gt;, 무기 설명 칸과 같다) 과 ring.&lt;id&gt;.lore. 다른 수치는 없다 (DECISIONS 2026-10-10: 반지는 효과만).
+     * 설명 칸: 효과 줄 (흐린 옛 금빛. 고리만 있는 효과는 줄 끝에 재빛 "(미적용)", 레벨 업 창의 levelup.later 와 같은 꼴), 무게가 0 보다 크면
+     * 무게 한 줄, 설명이 있으면 실선 (ring.rule.&lt;id&gt;, 무기 설명 칸과 같다) 과 ring.&lt;id&gt;.lore. 다른 수치는 없다
+     * (DECISIONS 2026-10-10: 반지는 효과만).
      */
     static List<Component> lore(Def d) {
         List<Component> out = new ArrayList<>();
-        boolean pending = false;
         for (String e : d.effects()) {
-            out.add(switch (e) {
+            Component line = switch (e) {
                 case STAMINA_REGEN -> Lang.c("ring.effect.stamina-regen", "pct", signed(Math.round((d.staminaRegen() - 1.0) * 100.0)));
                 case POISE -> Lang.c("ring.effect.poise", "pct", signed(Math.round(d.poise() * 100.0)));
                 case PARRY_WINDOW -> Lang.c("ring.effect.parry-window", "sec",
                         (d.parryWindow() < 0 ? "-" : "+") + seconds(Math.abs(d.parryWindow())));
                 default -> Lang.c("ring.effect.soul-guard");
-            });
-            pending |= !LIVE.contains(e);
+            };
+            out.add(LIVE.contains(e) ? line : line.append(Component.space()).append(Lang.c("ring.effect.pending")));
         }
-        if (pending) out.add(Lang.c("ring.effect.pending"));
         if (d.weight() > 0) out.add(Lang.c("ring.weight", "weight", String.format(Locale.ROOT, "%.1f", d.weight())));
         List<Component> lore = Lang.lines("ring." + d.id() + ".lore"); // lang-dyn: ring.*.lore
         // 효과와 설명 사이 실선 (무기 설명 칸과 같은 그림, 반지마다 제 설명 칸 폭: 팩의 ring.rule.<id>, pack/typeset.py)

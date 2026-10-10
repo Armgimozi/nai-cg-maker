@@ -95,14 +95,27 @@ CELLS = (
 )
 # 칸을 이은 한 줄이 Dialog 본문에 한 줄로 서는가 (검토 뒤 실제 클라이언트에서 영어 값 표 줄이 둘로 꺾였다). 바닐라의 plain_message 는
 # FocusableTextWidget (안쪽 여백 4) 이라 글이 서는 폭이 본문 폭 − 16 이다: 본문 320 → 304, 370 → 354. 숫자 칸은 플러그인의
-# 상수와 같다 (ui/StatSheet: LEFT_VALUE 84, GAP 24, WIDTH 320. ui/Columns: VALUE 64, STAT_COL 30, KIT_GAP 8. ui/OriginDialog.WIDTH 370).
+# 상수와 같다 (ui/StatSheet: LEFT_VALUE 84, GAP 24, WIDTH 320. ui/Columns: VALUE 64, STAT_COL 30, KIT_GAP 16. ui/OriginDialog.WIDTH 370.
+# 휴식 창 본문 폭 200, bonfire/RestMenu).
 # 넘으면 팩 만들기가 멈춘다 (그 언어의 이름을 줄인다).
 #   (이름, [CELLS 의 첫 꼴 (그 무리의 칸 폭) 또는 고정 폭 (정수)], 한도)
 BODY_PAD = 16
 ROWS = (
     ("능력치 표 줄 (ui/StatSheet, 레벨 업·능력치·출신 확인 창)", ("table.*", 84, 24, "derived.*", 64), 320 - BODY_PAD),
-    ("출신 머리줄·출신 줄 (ui/OriginDialog)", ("origin.*.name", 30 * 7, 8, "origin.*.kit"), 370 - BODY_PAD),
+    ("출신 머리줄·출신 줄 (ui/OriginDialog)", ("origin.*.name", 30 * 7, 16, "origin.*.kit"), 370 - BODY_PAD),
+    ("휴식 창 본문 (StatSheet.leftLines: 레벨·보유 소울·필요 소울, bonfire/RestMenu)", ("table.*", 84), 200 - BODY_PAD),
 )
+
+# 출신 확인 창의 시작 아이템 이름 칸 (ui/OriginDialog: DialogBody.item 의 설명 plain_message). 칸 폭 = 그 창의 아이템 이름 가운데 가장 넓은
+# 제목 글꼴 폭 + CAPTION_PAD 를 [CAPTION_MIN, CAPTION_MAX] 에 가둔 것 (한 창의 이름은 같은 폭이라 아이콘이 세로로 선다). 폭은 팩이 언어마다
+# 재어 glyphs.yml 의 captions 로 넘긴다 (caption_widths). 가장 넓은 이름도 CAPTION_MAX 안에 한 줄로 서야 한다 (넘으면 팩 만들기가 멈춘다:
+# 영어 "Redin Conscript's Hand Axe" 가 폭 150 칸에서 두 줄로 꺾여 1280×720 GUI 3 에서 궁수 확인 창이 넘쳤다, 검토 en-archer-confirm-scrolls-720p).
+# 화살 (origin.kit-arrows) 은 개수 자리에 CAPTION_COUNT 를 넣어 잰다
+CAPTION_KEYS = ("weapon.*.name", "item.*.name", "origin.kit-arrows")
+CAPTION_MIN = 150
+CAPTION_MAX = 300
+CAPTION_PAD = 16
+CAPTION_COUNT = "64"
 
 LEGACY = re.compile("§.")
 HANGUL = re.compile("[가-힣]")
@@ -421,6 +434,7 @@ class Typeset:
                         v = data[k]
                         data[f"souls.{key}.{branch}"] = with_divider(v, self.fonts.width(TITLE_FONT, v), self._div(div_adv, TITLE_FONT))
                 self.cells(data, rel)
+                self.caption_widths(data, rel)
         return files
 
     def cells(self, data, rel=""):
@@ -449,6 +463,26 @@ class Typeset:
             if w > limit:
                 raise ValueError(f"{rel}: {name} 의 폭 {w} 이 본문에 서는 폭 {limit} 을 넘는다 (칸 "
                                  f"{[cols.get(x, x) for x in parts]}, pack/typeset.py ROWS: 그 언어의 이름을 줄인다)")
+
+    def caption_widths(self, data, rel=""):
+        """
+        시작 아이템 이름 칸 (CAPTION_KEYS) 의 제목 글꼴 폭 {열쇠 (souls. 없이): GUI 픽셀} (한 언어). 가장 넓은 이름 + CAPTION_PAD 가
+        CAPTION_MAX 를 넘으면 ValueError (그 칸에서 이름이 두 줄로 꺾인다).
+        """
+        out = {}
+        for k, v in sorted(data.items()):
+            if not k.startswith("souls."):
+                continue
+            name = k[len("souls."):]
+            if not any(fnmatch.fnmatchcase(name, p) and name.count(".") == p.count(".") for p in CAPTION_KEYS):
+                continue
+            text = re.sub(r"%(\d+\$)?s", CAPTION_COUNT, v).replace("%%", "%")
+            w = self.fonts.width(TITLE_FONT, text)
+            if w + CAPTION_PAD > CAPTION_MAX:
+                raise ValueError(f"{rel}: {name} 의 제목 글꼴 폭 {w} + {CAPTION_PAD} 이 아이템 이름 칸 {CAPTION_MAX} 을 넘는다 "
+                                 f"({v!r}, pack/typeset.py CAPTION_MAX: 출신 확인 창에서 이름이 두 줄로 꺾인다)")
+            out[name] = w
+        return out
 
     @staticmethod
     def cell_keys(keys):
@@ -480,7 +514,7 @@ class Typeset:
 
     def ring_width(self, data, rid, r):
         """
-        반지 rid 의 설명 칸 글 열 폭 (한 언어, GUI 픽셀): 이름 (제목 글꼴)·효과 줄 (값을 채운 글)·아직 적용되지 않는 효과의 한 줄·무게
+        반지 rid 의 설명 칸 글 열 폭 (한 언어, GUI 픽셀): 이름 (제목 글꼴)·효과 줄 (값을 채운 글, 고리만 있는 효과는 끝의 "(미적용)" 까지)·무게
         줄·설명 줄 가운데 가장 넓은 것 (플러그인 item/Rings.lore 와 같은 줄들). 설명과 효과 사이 실선 ring.rule.<id> 의 폭이다.
         """
         def fill(text, value):
@@ -488,12 +522,14 @@ class Typeset:
 
         w = self.fonts.width(TITLE_FONT, data["souls.ring." + rid + ".name"])
         effects = r.get("effects") or {}
+        pending = data.get("souls.ring.effect.pending")
         for e, v in effects.items():
             t = data.get("souls.ring.effect." + str(e))
             if t is not None:
-                w = max(w, self.fonts.width(DEFAULT_FONT, fill(t, ring_effect_value(e, v))))
-        if any(e not in RING_LIVE for e in effects) and "souls.ring.effect.pending" in data:
-            w = max(w, self.fonts.width(DEFAULT_FONT, fill(data["souls.ring.effect.pending"], None)))
+                line = fill(t, ring_effect_value(e, v))
+                if e not in RING_LIVE and pending is not None:
+                    line += " " + fill(pending, None)     # 고리만 있는 효과: 줄 끝의 "(미적용)" (item/Rings.lore)
+                w = max(w, self.fonts.width(DEFAULT_FONT, line))
         weight = float(r.get("weight", 0) or 0)
         if weight > 0 and "souls.ring.weight" in data:
             w = max(w, self.fonts.width(DEFAULT_FONT, fill(data["souls.ring.weight"], "%.1f" % weight)))

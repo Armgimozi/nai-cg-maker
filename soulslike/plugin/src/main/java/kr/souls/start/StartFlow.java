@@ -178,11 +178,18 @@ public final class StartFlow implements Listener {
             showSettings(p, "unconfirmed");
             return;
         }
-        if (!s.confirmed() && !eligible(p)) {
-            Component waitWhy = "op".equals(cfg().setupBy()) ? Lang.c(p, "start.op-only") : Lang.c(p, "start.waiting");
-            plugin.titles().notice(p, plugin.ticker().now(), waitWhy);
+        // 정할 수 없는 사람에게: 아직 잠정이라는 부제목과 누가 정하는지 (채팅). 출신이 없는 사람은 곧 출신 창이 떠 부제목이 창 뒤에
+        // 비치므로 originStep 이 둘 다 채팅으로 보낸다 (검토 provisional-subtitle-bleed)
+        if (!s.confirmed() && !eligible(p) && !unborn(p)) {
+            plugin.titles().notice(p, plugin.ticker().now(), Lang.c(p, "start.provisional"));
+            p.sendMessage(waitWhy(p));
         }
         originStep(p);
+    }
+
+    /** 세계 설정을 정할 수 없는 사람에게: 누가 정하는지 (setup-by: op 면 관리자만, first 면 첫 접속자나 관리자). */
+    private Component waitWhy(Player p) {
+        return "op".equals(cfg().setupBy()) ? Lang.c(p, "start.op-only") : Lang.c(p, "start.waiting");
     }
 
     private void showSettings(Player p, String reason) {
@@ -211,7 +218,9 @@ public final class StartFlow implements Listener {
             if (s != null && !s.confirmed()) {
                 // 부제목이 아니라 채팅으로 (곧 뜨는 출신 창 뒤에 비치지 않게, 검토 provisional-subtitle-bleed)
                 p.sendMessage(Lang.c(p, "start.provisional"));
-                p.sendMessage(Lang.c(p, "start.provisional-chat"));
+                // "다시 묻습니다" 는 정할 수 있는 사람에게만 맞다 (휴식 창의 "세계 설정", 다음 접속의 설정 창). 정할 수 없는 사람에게는
+                // 누가 정하는지 (검토 provisional-chat-wrong-audience)
+                p.sendMessage(eligible(p) ? Lang.c(p, "start.provisional-chat") : waitWhy(p));
             }
             plugin.test(p, "START_NOTICE to=" + p.getName() + " " + (s == null ? "-" : s.line()));
             OriginDialog.show(plugin, p);
@@ -234,7 +243,7 @@ public final class StartFlow implements Listener {
         plugin.profiles().save(p, false);
     }
 
-    /** "이 세계: 보통 · PvP 끔" */
+    /** "세계 설정: 보통, PvP 끔" */
     public Component notice(Player p, WorldState.Settings s) {
         String d = s == null ? plugin.cfg().difficultyDefault : s.difficulty();
         boolean pvp = s == null ? plugin.cfg().pvp.def() : s.pvp();

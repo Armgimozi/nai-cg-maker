@@ -22,11 +22,15 @@
         dupname 같은 이름이 두 번 넘게 나옴
   UI    (UI 글만. 단계는 UI_LEVEL = 오류: 2026-10-10 에 글을 다 고치고 올렸다)
         button-verb 단추 글 (tools/langcheck.py 의 SLOTS 가 단추 폭 button* 으로 정한 열쇠) 이 "-다" 로 끝남 (되돌린다 → 되돌리기)
-        emdash      한국어 글의 줄표 "—" (쉼표·쌍점·괄호를 쓴다)
-        archaic     사극투·내레이션 어미 ("다시 오라", "들어와 보라", "그만두겠나", "누구였나": ~오라·~보라·~하라·~겠나·~였나·~는가)
-        polite      시스템 글 (SYSTEM_KEYS: 접속·팩·관리자 답·세계 설정 창과 그 알림·타이틀로 나가기 확인) 의 문장이 해라체 "-다" 로 끝남
-                    ("세계를 짓는 중이다" → "세계를 만드는 중입니다")
-        term        정한 용어를 쓰지 않음 (TERMS_KO: 술법 세기 → 술법 위력, 가진 소울 → 보유 소울, 패링 창 → 패링 판정 …)
+        emdash      한국어 글의 줄표 "—" (U+2014), "―" (U+2015, 한국어 줄표), 띄운 "–" (U+2013) 와 " -- " " - " (쉼표·쌍점·괄호를
+                    쓴다. 빈 값 자리의 홀로 쓴 "–" 는 된다)
+        archaic     사극투·내레이션 어미 ("다시 오라", "들어와 보라", "그만두겠나", "누구였나": ~오라·~보라·~하라·~겠나·~였나·~는가).
+                    문장 끝 (마침표·물음표 뒤 줄 끝, 또는 자리 앞) 에서만 본다 ("불꽃 오라" 같은 이름은 된다)
+        polite      시스템 글 (SYSTEM_KEYS: 접속·팩·관리자 답·세계 설정 창과 그 알림·타이틀로 나가기 확인) 의 마디가 해라체 "-다" 로 끝남
+                    ("세계를 짓는 중이다" → "세계를 만드는 중입니다"). 마디는 . ? ! … 줄바꿈 : ( 에서 나눈다 ("시험 방을 지었다: <detail>",
+                    "지웠다 (거둔 아이템 <items>)" 도 잡는다)
+        term        정한 용어를 쓰지 않음 (TERMS_KO: 술법 세기 → 술법 위력, 가진 소울 → 보유 소울, 패링 창 → 패링 판정 …). 공격 속성
+                    (베기 → 참격, 때리기 → 타격) 은 무기 분류 줄 (weapon.class.*) 이나 괄호 안에서만 본다 ("내려베기" 같은 동작 이름은 된다)
         test-marker 시험용 물건 (TEST_LORE) 의 설명 첫 줄이 "[시험용]" / "[Test]" 가 아님 (개발 메모를 설명 칸에 쓰지 않는다)
 영어 (en.yml, en_us.json 의 글)
   오류  exclaim 느낌표, emoji 이모지, hype 과장어 (legendary, ultimate, epic, mighty, powerful …),
@@ -36,8 +40,11 @@
   UI    emdash 이야기 글이 아닌 영어 글의 줄표 "—", term 옛말·정하지 않은 말 (TERMS_EN: foe → enemy, terms → world settings,
         none may, depart, the living, Rite Power → Spell Power …), test-marker (UI_LEVEL)
 두 언어 (UI_LEVEL)
-  middot  값·이름을 " · " (띄운 가운뎃점) 으로 잇는 줄 ("레벨 8 · 소울 30,000", "구르기 · Shift"). 이야기 글은 보지 않는다.
-          꼭 써야 하는 열쇠는 ALLOW["middot"] 에 glob 으로 적는다. 붙여 쓴 "직검·방패" 는 된다 (그래도 값 목록은 쉼표로 쓴다)
+  middot  값·이름을 가운뎃점으로 잇는 줄: 한쪽이라도 띄웠거나 ("레벨 8 · 소울 30,000", "고르려면 ·<bind>") 자리에 붙은 것
+          ("<souls>·레벨"). 이야기 글은 보지 않는다. 꼭 써야 하는 열쇠는 ALLOW["middot"] 에 glob 으로 적는다. 양쪽을 붙여 쓴
+          "직검·방패" 는 된다 (그래도 값 목록은 쉼표로 쓴다)
+자기 시험 (SELF_TEST): 규칙마다 걸려야 할 글과 걸리지 않아야 할 글을 먼저 돌려 본다. 어긋나면 self-test 오류 (규칙이 조용히 무너지지
+  않게)
   ALLOW = {규칙: (열쇠 glob, …)}: UI 규칙을 일부러 어기는 열쇠를 적는 곳 (까닭을 주석으로)
 이름 (lang/names.yml)
   오류  name: ko.yml 의 열쇠에 고유 이름이 있으면 en.yml 의 같은 열쇠에 정한 영어 표기가 있어야 한다 (대소문자 없이 글 안에
@@ -88,26 +95,32 @@ STORY_KEYS = ("ending.*", "bell.*", "taster.*", "door.*", "bonfire.lit", "boss.f
 # 마지막 열쇠가 desc 여도 UI 글인 것: 난이도 한 줄은 세계 설정 창의 단추 설명 칸 (존댓말)
 UI_DESC = ("difficulty.*",)
 # 시스템 글 (존댓말 ~합니다·~하세요, 해라체 "-다" 로 끝나는 문장이 없어야 한다, rule polite): 접속 전 글, 관리자 답, 세계 설정 창과 그 알림,
-# 사망 화면의 타이틀로 나가기 확인, 출신을 고르지 않았다는 알림, 레벨 업 창의 "소울이 부족합니다", 출신 다시 고르기 설명
+# 사망 화면의 타이틀로 나가기 확인, 출신을 고르지 않았다는 알림, 창 안의 "모자라다·더 못 한다" 알림 (레벨 업 창의 "소울이 부족합니다"·
+# "더 올릴 수 없습니다", 기억 창의 "기억 슬롯이 부족합니다": 한 말씨로, DESIGN 10.3), 출신 다시 고르기 설명
 SYSTEM_KEYS = ("pack.prompt", "pack.declined", "pack.failed", "build.*", "admin.*", "start.body", "start.pvp-*", "start.changed",
                "start.provisional*", "start.waiting", "start.op-only", "start.already-set", "difficulty.*.desc", "origin.none",
-               "levelup.short", "bonfire.repick-tip", "vanilla.deathScreen.quit.confirm")
-# 사극투·내레이션 어미 (UI 글, rule archaic). 문장 끝 (마침표·물음표·줄 끝 앞) 에서만 본다
-ARCHAIC_KO = re.compile(r"(오라|보라|하라|겠나|였나|었나|는가|느냐)[.?]?(?=\s|$)")
+               "levelup.short", "levelup.max", "spell.no-slot", "bonfire.repick-tip", "vanilla.deathScreen.quit.confirm")
+# 사극투·내레이션 어미 (UI 글, rule archaic). 문장 끝에서만 본다: 마침표·물음표 뒤 줄 끝, 또는 자리 ("0", ui_text) 앞. "불꽃 오라 강화"
+# 같은 이름 (오라 = aura, 보라 = 보랏빛) 은 걸리지 않는다
+ARCHAIC_KO = re.compile(r"(오라|보라|하라|겠나|였나|었나|는가|느냐)[.?]?(?=[ \t]*(?:$|\n|0))", re.M)
 # 정한 용어 (UI 글, rule term): 틀린 말 → 쓸 말. 2026-10-10 "소울 유저가 쓰는 말" (DECISIONS) 과 10.3 의 용어표
 TERMS_KO = {
     "술법 세기": "술법 위력", "가진 소울": "보유 소울", "필요한 소울": "필요 소울", "다음 한 점": "필요 소울",
     "패링 창": "패링 판정", "너무 무거움": "과적", "장비 무게": "장비 중량", "작은 방패": "소형 방패", "대방패": "대형 방패",
     "때리기": "타격", "베기": "참격", "마법 저항": "마법 방어력", "상태 이상 저항": "상태 이상 내성", "세계를 정한다": "세계 설정",
     "월드": "세계 (바닐라 한국어와 같게)", "아직 듣지": "(미적용) / 아직 적용되지 않음", "기억할 자리": "기억 슬롯",
-    "누구였": "출신", "그림 글자": "글리프",
+    "누구였": "출신", "그림 글자": "글리프", "리소스팩": "리소스 팩 (바닐라 한국어처럼 띄어 쓴다)",
+    "아직 적용되지 않": "(미적용)",
 }
+# 공격 속성 낱말: 무기 분류 줄 (weapon.class.*) 이나 괄호 안 ("(베기/찌르기)") 에서만 본다 ("내려베기" 같은 동작 이름은 된다)
+TERMS_KO_ATTACK = ("베기", "때리기")
 # 영어 (낱말 경계로, 대소문자 없이): 옛말·은유·줄임 → 쓸 말
 TERMS_EN = {
     "foe": "enemy", "foes": "enemies", "the terms": "world settings", "terms": "world settings", "none may": "a plain sentence",
     "the living": "players", "depart": "Quit / Leave", "pass between fires": "Travel", "overburdened": "Overloaded",
     "rite power": "Spell Power", "rite learned": "Spell learned", "stam.": "Stamina", "res.": "Resist / Defense",
-    "another past": "Change Origin", "take this path": "Begin",
+    "another past": "Change Origin", "take this path": "Begin", "stamina recovery": "Stamina Regen",
+    "not yet active": "(not yet in effect)",
 }
 # 시험용 물건의 설명 (rule test-marker): 첫 줄이 이 표시 하나 (DECISIONS 2026-10-10 "시험용 표시는 [시험용] 으로 쓴다")
 TEST_LORE = ("ring.test_*.lore", "skill.test_*.desc", "test.guard-lore")
@@ -125,7 +138,11 @@ ALLOW = {
 }
 # 단추 폭 자리 (tools/langcheck.py SLOTS 의 자리 이름): 이 자리의 열쇠가 단추 글이다
 BUTTON_SLOTS = ("button160", "button200", "button150", "button250", "button64")
-MIDDOT_CHAIN = re.compile(r"\S \u00b7 \S|\S \u00b7$|^\u00b7 \S")
+# 가운뎃점 잇기 (rule middot): 한쪽이라도 띄웠거나 자리 (PLACE, middot_text) 에 붙은 가운뎃점. 양쪽을 붙여 쓴 "직검·방패" 는 된다
+PLACE = "\u0001"
+MIDDOT_CHAIN = re.compile(r"\S ?\u00b7 \S|\S \u00b7 ?\S|\S ?\u00b7 ?$|^ ?\u00b7 ?\S|\u0001 ?\u00b7|\u00b7 ?\u0001", re.M)
+# 줄표 (rule emdash): 어디서나 U+2014·U+2015, 띄운 U+2013 과 " -- " " - " (빈 값의 홀로 쓴 "–" 는 된다)
+DASH = re.compile(r"[\u2014\u2015]|\S ?\u2013 \S|\S \u2013 ?\S|\S ?--? \S|\S --? ?\S")
 
 EMOJI_RANGES = ((0x1F000, 0x1FAFF), (0x2600, 0x27BF), (0x2300, 0x23FF), (0x2B50, 0x2B55),
                 (0xFE0F, 0xFE0F), (0x200D, 0x200D))
@@ -268,6 +285,21 @@ def ui_text(text):
     return FORMAT.sub("0", LEGACY.sub("", TAG.sub("", PLACEHOLDER.sub("0", body))))
 
 
+# 시스템 글의 마디 (rule polite): 마침표·물음표·느낌표·말줄임·줄바꿈·쌍점·여는 괄호에서 나눈다 ("~다: <slot>", "~다 (...)", "~중이다…")
+POLITE_SPLIT = re.compile(r"[.?!\u2026\n:(]")
+
+
+def middot_text(text):
+    """가운뎃점 규칙에서 보는 글: ui_text 와 같되 자리 (<bind>) 는 PLACE 로 둔다 ("·<bind>" 처럼 자리에 붙은 가운뎃점도 잡게)."""
+    try:
+        sys.path.insert(0, os.path.join(ROOT, "pack"))
+        import langpack
+        _, body = langpack.split_style(text)
+    except Exception:
+        body = text
+    return FORMAT.sub(PLACE, LEGACY.sub("", TAG.sub("", PLACEHOLDER.sub(PLACE, body))))
+
+
 def check_test_marker(report, path, key, text, korean):
     """시험용 물건의 설명 첫 줄은 "[시험용]" / "[Test]" 하나 (개발 메모를 설명 칸에 쓰지 않는다)."""
     if not matches_any(key, TEST_LORE) or not re.search(r"\[0\]$", key):
@@ -284,10 +316,10 @@ def check_ui(report, path, key, text, korean):
     if is_story(key):
         return
     vis = ui_text(text)
-    if MIDDOT_CHAIN.search(vis) and not allowed("middot", key):
-        report.add(UI_LEVEL, path, key, "middot", f"\" · \" 로 잇는 줄 (칸 맞춤·쉼표·괄호를 쓴다): {vis!r}")
-    if "\u2014" in vis and not allowed("emdash", key):
-        report.add(UI_LEVEL, path, key, "emdash", f"줄표 \"—\" (쉼표·쌍점·괄호를 쓴다): {vis!r}")
+    if MIDDOT_CHAIN.search(middot_text(text)) and not allowed("middot", key):
+        report.add(UI_LEVEL, path, key, "middot", f"가운뎃점으로 잇는 줄 (칸 맞춤·쉼표·괄호를 쓴다): {vis!r}")
+    if DASH.search(vis) and not allowed("emdash", key):
+        report.add(UI_LEVEL, path, key, "emdash", f"줄표 \"{DASH.search(vis).group().strip()}\" (쉼표·쌍점·괄호를 쓴다): {vis!r}")
     if korean and HANGUL.search(vis):
         if is_button(key) and not allowed("button-verb", key):
             tail = re.sub(r"[\s.)\]0]+$", "", vis)
@@ -296,12 +328,14 @@ def check_ui(report, path, key, text, korean):
         if ARCHAIC_KO.search(vis) and not allowed("archaic", key):
             report.add(UI_LEVEL, path, key, "archaic", f"사극투·내레이션 어미 (존댓말이나 명사형으로): {vis!r}")
         if matches_any(key, SYSTEM_KEYS) and not allowed("polite", key):
-            for sent in re.split(r"[.?\n]", vis):
+            for sent in POLITE_SPLIT.split(vis):
                 sent = re.sub(r"[\s)\]0]+$", "", sent.strip())
                 if sent.endswith("다") and not sent.endswith("니다"):
                     report.add(UI_LEVEL, path, key, "polite", f"시스템 글은 존댓말 (~합니다·~하세요): {sent!r}")
                     break
         for wrong, right in TERMS_KO.items():
+            if wrong in TERMS_KO_ATTACK and not (matches_any(key, ("weapon.class.*",)) or re.search(r"\([^)]*" + wrong, vis)):
+                continue
             if wrong in vis and not allowed("term", key):
                 report.add(UI_LEVEL, path, key, "term", f"'{wrong}' 대신 '{right}': {vis!r}")
     if not korean:
@@ -463,9 +497,50 @@ def flat_strings(data):
     return out
 
 
+# 자기 시험: (열쇠, 언어, 글, 걸려야 할 규칙 또는 None). 2026-10-10 검토 textlint-polite-misses-colon-paren·textlint-dash-variants·
+# textlint-false-positives 가 찾은 빈틈과 헛걸림. 규칙을 고치면 여기도 함께 본다
+SELF_TEST = (
+    ("admin.room-built", "ko", "<#858079>시험 방을 지었다: <detail>", "polite"),
+    ("admin.origin-reset", "ko", "<#858079><player> 의 출신을 지웠다 (거둔 아이템 <items>)", "polite"),
+    ("build.refuse", "ko", "세계를 짓는 중이다… 잠시 뒤에", "polite"),
+    ("admin.souls-set", "ko", "<#858079><player>: 보유 소울을 바꿨습니다 (<souls>)", None),
+    ("admin.players-only", "ko", "<#858079>플레이어만 쓸 수 있는 명령어입니다 (콘솔에서는 /execute as).", None),
+    ("bonfire.rest", "ko", "<#d1c3a0>휴식 ― 쉬기", "emdash"),
+    ("start.body", "ko", "<#b3a37f>한 번 정한다 – 관리자만", "emdash"),
+    ("burden.heavy", "ko", "<#858079>무거움 -- 구르기", "emdash"),
+    ("burden.over", "en", "<#858079>Overloaded - cannot roll", "emdash"),
+    ("derived.spell", "ko", "<#858079>–", None),
+    ("origin.none-hint", "ko", "<#858079>고르려면 ·<bind>", "middot"),
+    ("hud.souls", "ko", "<#b3a37f>소울 <n>·레벨", "middot"),
+    ("origin.knight.kit", "ko", "<#b3a37f>직검·방패", None),
+    ("controls.hint.roll", "ko", "<#8f8164>구르기 · <bind> 짧게", "middot"),
+    ("bonfire.no-warp", "ko", "<#8f8164>불꽃 오라 강화가 없다", None),
+    ("bonfire.refuse", "ko", "<#858079>다시 들어와 보라.", "archaic"),
+    ("origin.none", "ko", "<#858079>너는 누구였나", "archaic"),
+    ("burden.light", "ko", "<#858079>내려베기가 빠름", None),
+    ("weapon.class.hammer", "ko", "<#9e7c44>망치 (때리기)", "term"),
+    ("weapon.class.axe", "ko", "<#9e7c44>도끼 (베기)", "term"),
+    ("pack.failed", "ko", "<#b3a37f>리소스팩을 받지 못했습니다.", "term"),
+    ("ring.effect.stamina-regen", "en", "<#9e7c44>Stamina recovery <pct>%", "term"),
+)
+
+
+def self_test(report):
+    """SELF_TEST 의 글을 돌려 규칙이 걸리고 (또는 걸리지 않고) 하는지 본다. 어긋나면 self-test 오류."""
+    for key, lang, text, want in SELF_TEST:
+        r = Report()
+        check_text(r, "en.yml" if lang == "en" else "ko.yml", key, text)
+        got = {i[3] for i in r.items if i[0] == UI_LEVEL}
+        if want is None and got:
+            report.add("오류", "self-test", key, "self-test", f"걸리지 않아야 할 글이 {sorted(got)} 에 걸렸다: {text!r}")
+        elif want is not None and want not in got:
+            report.add("오류", "self-test", key, "self-test", f"규칙 {want} 이 이 글을 잡지 못했다: {text!r} (잡힌 규칙 {sorted(got)})")
+
+
 def lint(paths=None, quiet=False):
     paths = paths or DEFAULT_PATHS
     report = Report()
+    self_test(report)
     names = {}
     files = collect(paths)
     for f in files:

@@ -132,12 +132,15 @@ public final class LevelUpDialog implements Listener {
 
     /**
      * "+" 단추의 설명 칸: 그 능력치의 두 효과를 한 점 더했을 때의 값 (근력의 둘째 줄은 "장비 중량 4.5 / 40.0 → 41.4", 무게 단계가 바뀌면
-     * 셋째 줄 "보통 → 가벼움"), (정신력·지력) 아직 적용되지 않는 값, (지력) 불에 타는 시간 (달라질 때만), 모자라면 "소울이 부족합니다". 다음 한
-     * 점의 비용은 표의 필요 소울에 있다.
+     * 셋째 줄 "무게 단계 보통 → 가벼움"), (지력) 불에 타는 시간 (달라질 때만), 모자라면 "소울이 부족합니다". 아직 적용되지 않는 값
+     * (정신력의 최대 마나·지력의 술법 위력) 은 첫 줄 끝에 흐린 "(미적용)" (줄을 따로 내어 이름을 다시 부르지 않는다, 검토
+     * not-yet-active-wording-split). 능력치가 상한 (stats.max) 이면 화살표 없이 지금 값과 "더 올릴 수 없습니다" (검토 levelup-tip-at-99).
+     * 다음 한 점의 비용은 표의 필요 소울에 있다.
      */
     private Component tip(Player p, String id, StatBlock target, boolean afford) {
+        boolean max = target.get(id) >= plugin.cfg().stats.max;
         Derived a = plugin.stats().derived(p, target);
-        Derived b = plugin.stats().derived(p, target.plus(id, 1));
+        Derived b = max ? a : plugin.stats().derived(p, target.plus(id, 1));
         int row = StatRows.rowOf(id);
         String[] k = StatRows.keys(row, b), va = StatRows.values(row, a), vb = StatRows.values(row, b);
         String[] fa = StatRows.fine(row, a), fb = StatRows.fine(row, b);
@@ -147,16 +150,18 @@ public final class LevelUpDialog implements Listener {
         String secondv = step(va[1], vb[1], fa[1], fb[1]);
         // 근력: 장비 중량은 "장비 무게 / 한도" 로 (한 점은 한도만 올린다)
         if ("str".equals(id)) secondv = String.format(Locale.ROOT, "%.1f", a.weight()) + " / " + secondv;
-        out.add(Lang.c(p, "levelup.tip", "first", first, "firstv", step(va[0], vb[0], fa[0], fb[0]), "second", second, "secondv", secondv));
+        Component firstv = Component.text(step(va[0], vb[0], fa[0], fb[0]));
+        if (StatRows.later(row, 0)) firstv = firstv.append(Component.space()).append(Lang.c(p, "levelup.later"));
+        out.add(Lang.c(p, "levelup.tip", "first", first, "firstv", firstv, "second", second, "secondv", secondv));
         if ("str".equals(id) && !a.tier().id().equals(b.tier().id())) {
             Component ta = Lang.c(p, "load." + a.tier().id()), tb = Lang.c(p, "load." + b.tier().id()); // lang-dyn: load.*
             out.add(Lang.c(p, "levelup.load-change", "from", ta, "to", tb));
         }
-        if (StatRows.later(row, 0)) out.add(Lang.c(p, "levelup.later", "what", first));
         if ("int".equals(id) && !burn(a.ailment()).equals(burn(b.ailment()))) {
             out.add(Lang.c(p, "levelup.burn", "from", burn(a.ailment()), "to", burn(b.ailment())));
         }
-        if (!afford) out.add(Lang.c(p, "levelup.short"));
+        if (max) out.add(Lang.c(p, "levelup.max"));
+        else if (!afford) out.add(Lang.c(p, "levelup.short"));
         return Columns.lines(out);
     }
 

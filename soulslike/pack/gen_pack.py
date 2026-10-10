@@ -159,7 +159,7 @@ def yaml_str(s):
     return '"' + "".join(out) + '"'
 
 
-def write_glyphs(path, glyphs, title, plugin_title, fade_line, value_widths):
+def write_glyphs(path, glyphs, title, plugin_title, fade_line, value_widths, captions=None):
     lines = [
         "# HUD·사망 화면 그림 글자 표 (pack/gen_pack.py 가 만든다. 직접 고치지 말 것)",
         "# 이름: {char: 문자, width: 진행 폭 (글꼴 픽셀, 음수는 왼쪽으로 민다), font: 글꼴}",
@@ -171,6 +171,7 @@ def write_glyphs(path, glyphs, title, plugin_title, fade_line, value_widths):
         "#   나머지는 한 글자씩 (fade_* 는 souls:death 의 글자).",
         "# text_space_* 는 기본 글꼴의 빈칸 (pack/typeset.py, 수치 표의 열 맞춤과 Dialog 제목 앞 빈칸).",
         "# stats 는 무기 설명 칸 수치 표의 열 (GUI 픽셀) 과 값 글자의 진행 폭 (기본 글꼴, pack/typeset.py 가 팩에서 잰 것).",
+        "# captions 는 언어마다 아이템 이름 (lang 열쇠) 의 제목 글꼴 폭 (출신 확인 창의 시작 아이템 이름 칸, pack/typeset.py caption_widths).",
     ]
     adv = {(g.font, g.char): g.width for g in glyphs}
     rows = [("you_died", title, sum(adv[(hud.DEFAULT_FONT, ch)] for ch in title), hud.DEFAULT_FONT),
@@ -188,6 +189,10 @@ def write_glyphs(path, glyphs, title, plugin_title, fade_line, value_widths):
     chars = "".join(value_widths)
     lines.append(f"stats: {{value_col: {typeset.VALUE_COL}, col_gap: {typeset.COL_GAP}, chars: {yaml_str(chars)}, "
                  f"widths: [{', '.join(str(value_widths[ch]) for ch in chars)}]}}")
+    if captions:
+        lines.append("captions:")
+        for lang, table in sorted(captions.items()):
+            lines.append(f"  {lang}: {{" + ", ".join(f"{yaml_str(k)}: {w}" for k, w in sorted(table.items())) + "}")
     with open(path, "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join(lines) + "\n")
 
@@ -340,8 +345,11 @@ def main(argv):
             f.write(data)
 
     # 6. 글자 표, 미리보기
+    ts = typeset.Typeset(packfonts)
+    captions = {code.split("_")[0]: ts.caption_widths(lang_files[f"assets/souls/lang/{code}.json"], code)
+                for code in ("ko_kr", "en_us") if f"assets/souls/lang/{code}.json" in lang_files}
     write_glyphs(os.path.join(RES, "glyphs.yml"), glyphs, title, hud.plugin_title(glyphs), hud.death_fade_line(glyphs),
-                 typeset.Typeset(packfonts).value_widths())
+                 ts.value_widths(), captions)
     print("YOU DIED:", {"screen": "사망 화면 제목 (한꺼번에)", "fade": "사망 화면 문구 줄 (서서히, death.screen-fade)",
                         "plugin": "플러그인 화면 제목 (death.title)"}[mode])
     sheet, cell_w, _ = hud.you_died_sheet()
