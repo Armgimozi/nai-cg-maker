@@ -7,6 +7,7 @@
 // 밀림은 둘을 본다. knockback 은 맞은 봇: generic 은 #no_knockback 이라 피해 밀림은 없지만, 바닐라 막기가 일어나면
 // 1.21.11 은 막은 사람을 민다 (blockUsingItem → blockedByItem, 3.4 가 막으려는 부작용). 대조군에서 true 로 나와
 // 이 판정이 실제로 실패할 수 있음을 보인다 [확인 (실행)]. attackerKnockback 은 원인 좀비 (1.21.11 은 공격자를 밀지 않는다).
+// 방패 껍데기 (바닐라 방패, weapons/SPEC.md 1.3): souls 방패를 왼손에 들고 우클릭으로 막아도 같은 결과 (빈 감소표, 밀림·내구도 없음).
 'use strict'
 const L = require('./lib')
 
@@ -49,6 +50,31 @@ L.run('guard', async (sc) => {
       sc.check(`guard ${kind}: vanilla durability loss (control works)`, !/^(0->0|-->-)$/.test(h.kv.dur), 'dur=' + h.kv.dur)
     }
     sc.check(`guard ${kind}: client health ${want.full ? 'drops by 2' : 'unchanged'}`, want.full ? Math.abs(hp0 - 2 - b.health) < 0.6 : Math.abs(hp0 - b.health) < 0.01, `hp ${hp0} → ${b.health}`)
+    await L.sleep(400)
+  }
+
+  // 방패 껍데기 (바닐라 방패, M1 P0, S8): 왼손 방패를 우클릭으로 들면 막는 자세이고, 빈 감소표라 피해가 그대로, 밀림·내구도 감소가 없다
+  {
+    await b.cmd('/soulstest heal', 'HEAL')
+    await b.cmd('/item replace entity @s weapon.mainhand with air', null, 800)
+    await b.cmd('/soulstest give redin_guard_shield off', 'GIVE')
+    await L.sleep(600)
+    const off = b.bot.inventory.slots[45]
+    sc.check('shield: the off hand holds a vanilla-shield-shelled souls shield', off && off.name === 'shield', off ? off.name : '없음')
+    const hp0 = b.health
+    b._bot.activateItem(true)
+    await L.sleep(500)
+    const h = await b.cmd(`/soulstest hit ${2 * S}`, 'HIT ')
+    await L.sleep(250)
+    b._bot.deactivateItem()
+    if (sc.checkCmd('shield: server sees blocking with the shield shell', h, (r) => r.kv.blocking === 'true', h.line)) {
+      sc.check('shield: generic damage goes through in full (plugin guard, empty reductions)', h.kv.full === 'true', `dealt=${h.kv.dealt}`)
+      sc.check('shield: no vanilla block knockback on the defender', h.kv.knockback === 'false', 'knockback=' + h.kv.knockback)
+      sc.check('shield: attacker not pushed', h.kv.attackerKnockback === 'false', 'attackerKnockback=' + h.kv.attackerKnockback)
+      sc.check('shield: no durability (no damage component)', h.kv.dur === '-->-', 'dur=' + h.kv.dur)
+      sc.check('shield: client health drops by 2', Math.abs(hp0 - 2 - b.health) < 0.6, `hp ${hp0} → ${b.health}`)
+    }
+    await b.cmd('/item replace entity @s weapon.offhand with air', null, 800)
     await L.sleep(400)
   }
 

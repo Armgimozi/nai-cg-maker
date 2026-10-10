@@ -92,10 +92,8 @@ def kiln_pot():
     return w
 
 
-# 1인칭: 단지가 주먹 아래 화면 오른쪽에 매달리고, 입 (+X) 이 위에서 카메라 쪽으로 45° 기울어 입 안의 불씨가 보인다
-# (판정 B 쇠단지 3: 입과 불씨가 이 아이템의 얼굴이다). 들손의 곧은 꼭대기 (Y) 는 화면 가로를 따른다 [확인 (클라)]
-FP = C.fp_frame((0, math.cos(math.radians(45)), math.sin(math.radians(45))), (1, 0, 0.3), (0.78, 0.52, -0.75))
-
+# 손 자세 (SPEC 1.3): 바닐라 검처럼 handheld (DECISIONS 2026-10-11 기본안: 촉매는 바닐라 검처럼). 들손 꼭대기 (쥐는 점) 가 바닐라
+# 칼 손잡이 자리에 오고, 단지는 −X (칼의 아랫날 쪽) 로 매달린다
 ITEMS = {
-    "kiln_pot": {"make": kiln_pot, "kind": "catalyst", "use": "same", "display": C.catalyst_display(*FP)},
+    "kiln_pot": {"make": kiln_pot, "kind": "catalyst", "use": None, "display": C.catalyst_display()},
 }

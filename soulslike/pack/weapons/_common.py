@@ -5,21 +5,21 @@
                                    범위 X ±24, Y ±48, Z ±16 복셀 (1 복셀 = 1/32 블록). 복셀 가운데는 ±0.5, ±1.5 ...
   pmat(rows, ink, light=0)         손으로 찍은 16×16 재료 칸 (글자 격자, 팔레트 이름만) → wkit Mat. light 는 그 재료 요소의
                                    light_emission (불씨만, 1.8). 셰이더 발광 알파는 쓰지 않는다
-  hand_display(kind)               손 자세 (1.3): 3인칭 정한 값 + 1인칭 (분류마다 크기)
-  guard_display(kind)              주손 무기 막기 자세 (모형 <id>_guard, 회전만 다르다)
-  shield_display(), shield_block_display(), bow_display(), catalyst_display(...)
-  write_item(out, wid, ...)        모형 <id>_3d (+ _guard / _block / 활 당김) 쓰기, 16px 그림 <id>, 아이템 정의 (1.9),
+  hand_display(kind)               손 자세 (1.3): 그 분류의 바닐라 모형 (handheld, 창, 철퇴) 을 합성한 네 손 맥락 + 구르기 head
+  shield_display(), shield_block_display(), bow_display(), catalyst_display()
+                                   바닐라 방패·방패 막기·활·handheld 를 합성한 네 손 맥락
+  compose(vanilla, q, g, k)        바닐라 display × P (아래 "손 자세") → 우리 display
+  write_item(out, wid, ...)        모형 <id>_3d (+ 방패 _block / 활 당김) 쓰기, 16px 그림 <id>, 아이템 정의 (1.9),
                                    wkit 이 같이 쓰는 items/<id>_3d.json 지우기
   load_icons(path) / icon_image(rows, ink)   pack/art/weapon_icons_*.txt 의 16×16 그림
 
 쥐는 점 (1.2)
   모든 souls 손 아이템의 쥐는 점은 모형 (8, 8, 8) 이다. 바닐라는 모형을 (−0.5, −0.5, −0.5) 블록 옮겨 그리므로 손 자세의
-  회전과 크기는 쥐는 점을 움직이지 않는다. 3인칭 이동 값 TP_T 는 무기·방패·활·촉매가 모두 같고 회전만 다르다.
-  결과: 쥐는 점은 오른팔 모형 좌표 (−1, 8.46, −0.08) 픽셀 (팔 회전 중심 기준, y 는 팔을 따라 아래, −z 가 앞) = 주먹 한가운데.
-  구르기 대역·몹·보스 인형이 무기를 쥐는 법은 SPEC.md 1.4 (변환 사슬) 를 본다. 아래 HOLD 표가 그 값들을 모은다.
+  회전과 크기는 쥐는 점을 움직이지 않는다. 손 자세는 바닐라 1.21.11 그대로다 (DECISIONS 2026-10-11): 바닐라 그림의 쥐는 자리에
+  우리 쥐는 점이 오도록 바닐라 display 와 합성한다 (아래 "손 자세", 검사 gripcheck.py). handheld 의 쥐는 점은 3인칭 오른팔
+  모형 좌표 (−1, 8.46, −0.08) 픽셀 (팔 회전 중심 기준, y 는 팔을 따라 아래, −z 가 앞) = 주먹 한가운데. HOLD 표가 값들을 모은다.
 """
 import json
-import math
 import os
 import sys
 
@@ -264,20 +264,26 @@ def put(w, cells, mat):
 #   쥐는 점은 모형 (8, 8, 8) 그대로. 바닐라 모형 (그림 판) 의 쥐는 자리 g_v 와 그림의 축을 정하고,
 #   P(p) = Q·K·(p − 8) + g_v  (우리 모형 점 → 그 바닐라 그림의 점) 을 손 맥락마다 바닐라 display 뒤에 붙인다.
 #   display 는 T(t)·R·S·(q − 8) 이라 합성하면 rotation = euler(R·Q), translation = t + R·S·(g_v − 8), scale = S·K.
-#   왼손은 바닐라가 거울로 쓰는 몫 (ItemTransform.apply: 왼손이면 x 이동과 y·z 회전의 부호를 뒤집는다) 을 풀어 실제로 그려지는
-#   변환에서 합성하고, 다시 거울로 적는다 (모든 손 맥락을 늘 적는다: 비우면 바닐라가 오른손 값을 거울로 써서 왼손 무기가 뒤집힌다).
+#   왼손은 바닐라가 거울로 쓰는 몫 (ItemTransform.apply: 왼손이면 x 이동과 y·z 회전의 부호를 뒤집는다. 모형에 왼손 값을 적어도
+#   그 값을 거울로 쓴다) 을 풀어 실제로 그려지는 변환에서 합성하고, 다시 거울로 적는다. 네 손 맥락을 늘 모두 적는다 (왼손을
+#   비우면 바닐라가 오른손 값을 거울로 써서 바닐라 모형과 어긋난다: 활의 왼손은 오른손의 거울이 아니다).
 # 바닐라 모형마다 (P 의 Q, K, g_v):
-#   handheld         item/handheld (검·도구). 그림 대각선 (1, 1) 이 끝, 손잡이 (3, 3, 8) 이 주먹 한가운데. Q = Rz(−45°)
+#   handheld         item/handheld (검·도구). 그림 대각선 (1, 1) 이 끝. Q = Rz(−45°), g_v (3, 3, 8) 은 칼 손잡이 위의 점이고
+#                    3인칭 오른손에서 팔 한가운데 줄 위 주먹 한가운데 (팔 좌표 (−1, 8.46, −0.08) 픽셀) 에 온다
 #   spear            item/spear_in_hand (1.21.11 창). 32×32 그림을 xy 로 두 배 (1.7) 키워 그린다. 그림 대각선 (−1, 1) 이 끝이라
-#                    Q = Rz(45°), 우리 모형은 xy 를 반으로 (K) 넣어 크기가 handheld 와 같다 (0.85, 0.68). g_v 는 handheld 의 주먹
-#                    한가운데를 자루 가운데 줄 (x + y = 16) 에 내린 점
-#   mace             item/handheld_mace (철퇴). Q = Rz(−45°), g_v 는 주먹 한가운데를 자루 가운데 줄 (x = y) 에 내린 점
-#   shield           item/shield 와 item/shield_blocking (방패 특수 모형 ShieldModel: 모형 모서리 원점에 scale(1, −1, −1), 손잡이
+#                    Q = Rz(45°). 그림 한 칸이 우리 복셀 한 칸이 되게 K = xy 반 (크기가 handheld 와 같다: 3인칭 0.85, 1인칭 0.68).
+#                    g_v 는 위 주먹 한가운데를 창 그림 공간으로 되돌려 자루 가운데 줄 (x + y = 16) 에 내린 점
+#   mace             item/handheld_mace (철퇴). Q = Rz(−45°), g_v 는 주먹 한가운데를 자루 가운데 줄 (x = y) 에 내린 점.
+#                    바닐라 철퇴처럼 칼보다 크게 든다 (3인칭 1.0, 1인칭 0.9)
+#   shield           item/shield 와 item/shield_blocking (방패 특수 모형 ShieldModel: 모형 모서리 원점에 scale(1, −1, −1). 손잡이
 #                    가운데 (0, 0, −2), 판은 z 1..2 앞). Q = I (우리 +Y 위, +Z 앞면, 손잡이는 뒤)
-#   bow              item/bow (당김 셋도 같은 display). Q = Rz(−45°), g_v (6, 10, 8) 는 그림의 손잡이 안쪽
+#   bow              item/bow (당김 셋도 같은 display: 바닐라 bow_pulling_* 가 item/bow 를 부모로 둔다). Q = Rz(−45°),
+#                    g_v (6, 10, 8) 은 그림의 대칭 줄 (u = v) 위 활대 가운데 (손잡이)
 # 분류 → 바닐라 모형 (DECISIONS 2026-10-11 기본안): 창·미늘창은 창, 망치 (곤봉·철퇴·종 철퇴) 는 철퇴, 나머지 무기와 촉매는 handheld,
 # 방패는 방패, 활은 활. 열쇠 (master_key) 와 반지는 이미 item/generated (바닐라 trial_key 와 같은 납작 그림) 라 손대지 않는다.
-# 값은 바닐라 display 를 그대로 쓰므로 3인칭에서 handheld 무기는 0.85 배 (참 크기보다 15 % 작게) 보인다. 검사: weapons/gripcheck.py
+# 팔 자세는 모형이 아니라 아이템이 정한다: 바닐라 창은 아이템 태그 #minecraft:spears 라서 3인칭에서 팔을 들어 앞으로 겨눈다
+# (ArmPose.SPEAR). 그래서 플러그인의 창·미늘창 껍데기는 바닐라 창 아이템이다 (item/ItemFactory.SPEAR_SHELL). 방패의 1인칭 막기도
+# 아이템이 ShieldItem 이어야 바닐라 방패와 같다 (SHIELD_SHELL). 검사: weapons/gripcheck.py (바닐라 jar 의 값과 견준다)
 
 HANDS = ("thirdperson_righthand", "thirdperson_lefthand", "firstperson_righthand", "firstperson_lefthand")
 
@@ -325,11 +331,11 @@ VANILLA = {
         "firstperson_lefthand": _v([0, 90, -25], [1.13, 3.2, 1.13], 0.68),
     },
 }
-# 그 바닐라 모형의 jar 이름 (gripcheck)
+# 그 바닐라 모형의 jar 이름과 견줄 바닐라 아이템 (gripcheck, tools/client/grip_shots.sh)
 VANILLA_MODEL = {"handheld": "item/handheld", "spear": "item/spear_in_hand", "mace": "item/handheld_mace",
                  "shield": "item/shield", "shield_blocking": "item/shield_blocking", "bow": "item/bow"}
 
-# P 의 값: q (Rz 각, 도), k (xy 배율), g (바닐라 그림의 쥐는 자리, 모형 픽셀)
+# P 의 값: q (Rz 각, 도), k (xy 배율), g (바닐라 그림의 쥐는 자리, 모형 픽셀). g 를 셈하는 법은 gripcheck.grip_points
 GRIP = {
     "handheld": {"q": -45.0, "k": 1.0, "g": (3.0, 3.0, 8.0)},
     "spear": {"q": 45.0, "k": 0.5, "g": (9.630, 6.370, 8.0)},
@@ -338,7 +344,7 @@ GRIP = {
     "shield_blocking": {"q": 0.0, "k": 1.0, "g": (0.0, 0.0, -2.0)},
     "bow": {"q": -45.0, "k": 1.0, "g": (6.0, 10.0, 8.0)},
 }
-# 분류 (weapon(kind=...), write_item 의 kind) → 바닐라 모형
+# 분류 (weapon(kind=...), write_item 의 kind) → 바닐라 모형. 여기 없는 분류 (칼 넷, 도끼 둘, 패링 단검, 촉매) 는 handheld
 GRIP_OF = {"spear": "spear", "halberd": "spear", "hammer": "mace", "bell_mace": "mace",
            "small_shield": "shield", "shield": "shield", "greatshield": "shield", "bow": "bow"}
 
@@ -363,9 +369,14 @@ def _num(v, nd=3):
     return 0.0 if v == 0 else v
 
 
+def p_matrix(q=0.0, k=1.0):
+    """P 의 선형 몫 Q·K (3×3)."""
+    return _rot(0, 0, q) @ np.diag([k, k, 1.0])
+
+
 def compose(vanilla, q=0.0, g=(8.0, 8.0, 8.0), k=1.0):
     """바닐라 display (네 손 맥락) × P → 우리 display (네 손 맥락). P(p) = Rz(q)·diag(k, k, 1)·(p − 8) + g."""
-    Q = _rot(0, 0, q) @ np.diag([k, k, 1.0])
+    Q = p_matrix(q, k)
     g = np.array(g, float)
     out = {}
     for ctx in HANDS:
@@ -428,7 +439,7 @@ def _with_head(disp, rot):
 
 
 def hand_display(kind):
-    """무기 (분류 kind) 와 촉매의 손 자세: 바닐라 모형 (grip_set) 의 네 손 맥락 + 구르기 head."""
+    """무기 (분류 kind), 패링 단검, 촉매의 손 자세: 바닐라 모형 (grip_set) 의 네 손 맥락 + 구르기 head."""
     return _with_head(vanilla_display(grip_set(kind)), ROLL_TUCK)
 
 
@@ -456,15 +467,15 @@ def bow_display():
 def tuck_pre(tp):
     """
     구르기 대역이 THIRDPERSON_RIGHTHAND 로 그리면서 자세만 ROLL_TUCK 으로 바꾸려면 손 사슬과 ItemDisplay 의 Y 180° 지움
-    사이에 이 4×4 (블록 단위) 를 끼운다: Q = T(t)·R(ROLL_TUCK)·R(tp)⁻¹·T(−t) (t = tp 이동/16, 크기는 둘이 같아 빠진다).
+    사이에 이 4×4 (블록 단위) 를 끼운다: Q = T(t)·R(ROLL_TUCK)·R(tp)⁻¹·T(−t) (t = tp 이동/16, 크기는 head 가 tp 와 같아 빠진다).
     tp 는 그 아이템 모형의 thirdperson_righthand display. head 맥락을 쓰면 이것이 필요 없다 (모형에 있다).
     """
     t = np.array(tp["translation"], float) / 16
     return _m4(t=t) @ _m4(_rot(*ROLL_TUCK) @ _rot(*tp["rotation"]).T) @ _m4(t=-t)
 
 
-# 바꿔 들기 몸짓 (아이템 정의의 swap_animation_scale): 바닐라 아이템 정의 그대로. 창은 바닐라 창 (items/iron_spear.json 1.95),
-# 나머지 (검, 철퇴, 방패, 활) 는 바닐라 기본 1.0
+# 바꿔 들기 몸짓 (아이템 정의의 swap_animation_scale): 바닐라 아이템 정의 그대로. 창·미늘창은 바닐라 창 (items/iron_spear.json
+# 1.95), 나머지 (검, 철퇴, 방패, 활) 는 바닐라 기본 1.0
 SWAP = {"spear": 1.95, "halberd": 1.95}
 
 
@@ -581,30 +592,39 @@ def write_icon(assets, wid, img):
           {"parent": "minecraft:item/generated", "textures": {"layer0": f"{NS}:item/{wid}"}})
 
 
-def write_item(out, wid, w, display, icon, kind, use=None, use_display=None, swap=None, bow_states=None,
-               pull_display=None):
+def _need_hands(wid, display):
+    miss = [c for c in HANDS if c not in (display or {})]
+    if miss:
+        raise ValueError(f"{wid}: 손 맥락 {miss} 가 없다 (바닐라 자세는 네 손 맥락을 모두 적는다, SPEC 1.3)")
+
+
+def write_item(out, wid, w, display, icon, kind, use=None, use_display=None, swap=None, bow_states=None):
     """
-    한 아이템을 쓴다. 돌려주는 값: {"3d": Model, "use": Model 또는 None, "pull": [Model ...]}.
+    한 아이템을 쓴다. 돌려주는 값: {"3d": Model, "use": None, "pull": [Model ...]}.
       w            SoulsWeapon (평소 모양)
-      display      평소 손 자세 (hand_display / shield_display / ...)
+      display      손 자세 (hand_display / shield_display / bow_display / catalyst_display): 네 손 맥락 모두
       icon         16×16 PIL 그림 (인벤토리·땅·액자·선반)
-      kind         FP_SCALE·SWAP 의 열쇠
-      use          "guard" (무기 막기) | "block" (방패·쳐내기 단검) | "same" (촉매: 쓰는 중에도 _3d) | "bow"
-      use_display  guard / block 모형의 손 자세
+      kind         SWAP 의 열쇠 (분류)
+      use          None (무기·패링 단검·촉매: 쓰는 중에도 _3d. 무기 막기는 바닐라 칼 막기 몸짓이 _3d 위에 걸린다) |
+                   "block" (방패: 모형 <id>_block, 바닐라 방패 막기) | "bow" (당김 셋 _3d_pulling_0..2, 같은 display)
+      use_display  방패 막기 모형의 손 자세 (shield_block_display)
       bow_states   활 당김 셋 [SoulsWeapon ×3] (use="bow")
-      pull_display 당긴 활 모형의 손 자세 (없으면 display). 당기는 동안 팔 자세가 바뀌므로 따로 둔다
     """
+    if use not in (None, "block", "bow"):
+        raise ValueError(f"{wid}: use={use!r} — 무기 막기 모형 (_guard) 은 없앴다 (바닐라 칼 막기, SPEC 1.3)")
+    _need_hands(wid, display)
     assets = os.path.join(out, "assets", NS)
     made = {"3d": w.build(f"item/{wid}_3d", assets, display=display), "use": None, "pull": []}
     _drop_def(assets, wid + "_3d")
     write_icon(assets, wid, icon)
-    if use in ("guard", "block"):
-        _json(os.path.join(assets, "models", "item", f"{wid}_{use}.json"),
+    if use == "block":
+        _need_hands(wid + "_block", use_display)
+        _json(os.path.join(assets, "models", "item", f"{wid}_block.json"),
               {"parent": f"{NS}:item/{wid}_3d", "display": use_display})
-        on_true = _ref(f"{wid}_{use}")
+        on_true = _ref(f"{wid}_block")
     elif use == "bow":
         for i, st in enumerate(bow_states):
-            made["pull"].append(st.build(f"item/{wid}_3d_pulling_{i}", assets, display=pull_display or display))
+            made["pull"].append(st.build(f"item/{wid}_3d_pulling_{i}", assets, display=display))
             _drop_def(assets, f"{wid}_3d_pulling_{i}")
         on_true = {"type": "minecraft:range_dispatch", "property": "minecraft:use_duration", "scale": 0.05,
                    "entries": [{"threshold": 0.65, "model": _ref(f"{wid}_3d_pulling_1")},
@@ -612,12 +632,13 @@ def write_item(out, wid, w, display, icon, kind, use=None, use_display=None, swa
                    "fallback": _ref(f"{wid}_3d_pulling_0")}
     else:
         on_true = _ref(f"{wid}_3d")
+    fallback = _ref(f"{wid}_3d") if use is None else {
+        "type": "minecraft:condition", "property": "minecraft:using_item", "on_false": _ref(f"{wid}_3d"), "on_true": on_true}
     definition = {
         "model": {
             "type": "minecraft:select", "property": "minecraft:display_context",
             "cases": [{"when": ["gui", "ground", "fixed", "on_shelf"], "model": _ref(wid)}],
-            "fallback": {"type": "minecraft:condition", "property": "minecraft:using_item",
-                         "on_false": _ref(f"{wid}_3d"), "on_true": on_true},
+            "fallback": fallback,
         },
         "swap_animation_scale": float(swap if swap is not None else SWAP.get(kind, 1.0)),
     }
@@ -631,8 +652,29 @@ def mat_count(w):
 
 
 def _selfcheck():
-    assert TP_ROT == [-10.0, -90.0, 0.0] and TP_T == [0.0, -1.919, 1.544], (TP_ROT, TP_T)
-    assert TP_ROT_CLASS["greatsword"] == [-40.0, -90.0, 0.0] and TP_ROT_CLASS["polearm"] == [35.0, -90.0, 0.0], TP_ROT_CLASS
+    # M1 계획 P0 의 표 (바닐라 handheld·방패·방패 막기·활을 우리 모형에 합성한 값)
+    h = vanilla_display("handheld")
+    assert h["thirdperson_righthand"] == _t([-10, -90, 0], [0, -1.919, 1.544], 0.85), h["thirdperson_righthand"]
+    assert h["thirdperson_lefthand"] == _t([-10, 90, 0], [0, -1.919, 1.544], 0.85), h["thirdperson_lefthand"]
+    assert h["firstperson_righthand"] == _t([20, -90, 0], [1.13, -1.318, -0.515], 0.68), h["firstperson_righthand"]
+    assert h["firstperson_lefthand"] == _t([20, 90, 0], [1.13, -1.318, -0.515], 0.68), h["firstperson_lefthand"]
+    sh, bl, bw = vanilla_display("shield"), vanilla_display("shield_blocking"), vanilla_display("bow")
+    assert sh["thirdperson_righthand"] == _t([0, 90, 0], [0, -2, 4], 1) == sh["thirdperson_lefthand"], sh
+    assert sh["firstperson_righthand"] == _t([-180, 0, -175], [-0.91, -8.834, 2.5], 1.25), sh
+    assert sh["firstperson_lefthand"] == _t([-180, 0, -175], [-0.834, -9.09, 2.5], 1.25), sh
+    assert bl["thirdperson_righthand"] == _t([-135, 25, -180], [-0.466, -3.456, 1.142], 1), bl
+    assert bl["thirdperson_lefthand"] == _t([-135, 25, 180], [0.033, -2.675, 0.861], 1), bl
+    assert bl["firstperson_righthand"] == _t([-180, 0, 175], [-4.166, -4.09, 1.5], 1.25), bl
+    assert bl["firstperson_lefthand"] == _t([-180, 0, 175], [-4.09, -5.834, 1.5], 1.25), bl
+    assert bw["thirdperson_righthand"] == _t([100, -80, 95], [-0.961, -1.775, -0.035], 0.9), bw
+    assert bw["thirdperson_lefthand"] == _t([-80, 80, 85], [-0.961, -1.775, -0.035], 0.9), bw
+    assert bw["firstperson_righthand"] == _t([20, -90, 0], [1.13, 3.858, -0.677], 0.68), bw
+    assert bw["firstperson_lefthand"] == _t([20, 90, 0], [1.13, 3.858, -0.677], 0.68), bw
+    # 창은 handheld 크기 (K = 반), 철퇴는 바닐라 철퇴 크기
+    sp, mc = vanilla_display("spear"), vanilla_display("mace")
+    assert sp["thirdperson_righthand"]["scale"] == [0.85] * 3 and sp["firstperson_righthand"]["scale"] == [0.68] * 3, sp
+    assert mc["thirdperson_righthand"]["scale"] == [1.0] * 3 and mc["firstperson_righthand"]["scale"] == [0.9] * 3, mc
+    assert HOLD["grip_arm_px"]["handheld"] == [-1.0, 8.46, -0.08], HOLD["grip_arm_px"]
     assert ROLL_TUCK == [90.0, -90.0, 0.0], ROLL_TUCK
 
 

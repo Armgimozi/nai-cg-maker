@@ -8,10 +8,6 @@
 하나뿐인 것: 아래 활대에 덧댄 부목을 끈으로 감은 자리 (6 복셀). 한 번 부러진 활.
 당긴 모양: 시위 가운데가 +X 로 (당김 0 / 1 / 2 = 9 / 14 / 18 복셀), 끝이 조금 더 휘고 안쪽으로 온다. 화살을 메긴다.
 """
-import math
-
-import numpy as np
-
 from weapons import _common as C
 from weapons._common import pmat, put, weapon
 from weapons._mats import mats
@@ -107,15 +103,9 @@ def wall_shortbow():
     return [_make(p) for p in PULLS]
 
 
-# 손 자세 (_views 흉내 그림으로 맞추고 실제 클라이언트로 보았다) [확인 (클라)]
-# 평소: 3인칭은 활대가 서고 화살 쪽 (−X) 이 앞 (팔을 내린 채 옆에 든다), 1인칭은 화면 오른쪽 아래에 비스듬히.
-# 당김 (팔을 앞으로 든 BOW_AND_ARROW 자세 + 바닐라 1인칭 활 몸짓): 활대가 거의 서고 화살이 십자선 쪽을 본다.
-# 평소 1인칭: 활을 옆모습으로 세워 (시위가 오른쪽, 활대가 위로 조금 왼쪽) 화면 오른쪽에 거의 다 보이게. 바닐라 활처럼
-# 비스듬히 눕히면 위 활대 한 줄만 보여 막대로 읽혔다 (실제 클라이언트, 2026-10-07)
-_IDLE_FP = C.fp_frame((1, 0.2, 0.6), (-0.5, 1, -0.2), (0.80, 0.64, -0.85))
-IDLE = C.bow_display(tp_rot=C.BOW_TP_ROT, fp_rot=_IDLE_FP[0], fp_t=_IDLE_FP[1])
-PULL = C.bow_display(tp_rot=C.BOW_PULL_TP_ROT, fp_rot=[0, -75, -20], fp_t=[-3.13, 5.02, -3.93], fp_s=0.6)
-
+# 손 자세 (SPEC 1.3): 바닐라 활 (item/bow) 을 합성한 값. 평소와 당김 셋이 같은 display 다 (바닐라 bow_pulling_* 처럼).
+# 손잡이 가운데 (쥐는 점) 가 바닐라 활 그림의 손잡이 (활대 가운데) 에 온다. 당길 때의 몸짓은 바닐라 1인칭 활 몸짓과 BOW_AND_ARROW 팔
+# 자세가 한다
 ITEMS = {
-    "wall_shortbow": {"make": wall_shortbow, "kind": "bow", "use": "bow", "display": IDLE, "pull_display": PULL},
+    "wall_shortbow": {"make": wall_shortbow, "kind": "bow", "use": "bow", "display": C.bow_display()},
 }

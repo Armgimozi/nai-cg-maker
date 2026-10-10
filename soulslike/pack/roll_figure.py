@@ -994,7 +994,8 @@ def _hand_points(pts, frames_, disp_r, disp_l):
     out = []
     for left in (False, True):
         d = disp_l if (left and disp_l is not None) else disp_r
-        Rd, td, sd = _display_matrix(d, left and disp_l is None)
+        # 왼손은 모형에 적은 왼손 값이라도 바닐라가 거울로 쓴다 (ItemTransform.apply). 무기는 네 손 맥락을 모두 적는다 (weapons SPEC 1.3)
+        Rd, td, sd = _display_matrix(d, left)
         local = (v * sd) @ Rd.T + td          # 아이템 공간 (가운데 원점, 픽셀)
         local = local @ y180.T
         for f in frames_:

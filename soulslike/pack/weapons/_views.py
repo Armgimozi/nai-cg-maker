@@ -5,10 +5,12 @@
   side(model)               3D 모형만: 앞면 (+Z), 비스듬히, 날 쪽 (−X) 에서
   first_person(...)         1인칭 (1280×720, 세로 시야 70°, 바닐라 손 그림의 시야는 늘 70°): ItemInHandRenderer 의
                             applyItemArmTransform T(±0.56, −0.52, −0.72) 뒤 아이템 1인칭 자세. 막기 (BLOCK) 는 방패가 아닌
-                            아이템에 바닐라가 더 거는 몸짓까지
+                            아이템 (무기 막기) 에 바닐라가 더 거는 칼 막기 몸짓까지. 방패는 껍데기가 바닐라 방패라 몸짓이 없다
   third_person(...)         3인칭: 사람 모형 (넓은 팔, 0.9375 배) 의 팔 변환 → ItemInHandLayer 사슬
                             Rx(−90°)·Ry(180°)·T(±1/16, 0.125, −0.625) → 아이템 3인칭 자세
   lineup(...)               쥐는 점 높이를 맞춰 키 2 블록 사람 그림자 곁에 세운 줄 (비례 확인)
+  hand_previews(...)        무기 미리보기 한 벌 (1인칭 오른손·왼손·막기·당김, 3인칭 앞·옆·가까이·막기·왼손)
+  ctx(disp, kind, side)     display 의 손 맥락 한 칸 (왼손은 *_lefthand: 모형에 적은 값, 바닐라가 거울로 쓴다)
 
 빛: 바닐라 엔티티 빛과 비슷하게 두 방향 빛 (0.2, 1, −0.7), (−0.2, 1, 0.7) + 바탕 0.4. 실제 게임 화면은 13.4 로 따로 본다.
 """
@@ -58,8 +60,17 @@ def xyz(rx, ry, rz):
     return R("x", rx) @ R("y", ry) @ R("z", rz)
 
 
+def ctx(disp, kind, side):
+    """display 의 손 맥락 한 칸. kind 'firstperson' | 'thirdperson', side 'r' | 'l'. 왼손 값이 없으면 바닐라처럼 오른손 값."""
+    r = disp[f"{kind}_righthand"]
+    return disp.get(f"{kind}_lefthand", r) if side == "l" else r
+
+
 def display_matrix(d, left=False):
-    """모형 display 한 칸 → 4×4 (바닐라 ItemTransform.apply). 왼손은 x 이동과 y·z 회전을 뒤집는다."""
+    """
+    모형 display 한 칸 → 4×4 (바닐라 ItemTransform.apply). 왼손은 x 이동과 y·z 회전을 뒤집는다 (모형에 적은 *_lefthand 값도
+    뒤집어 쓴다). 왼손에는 ctx(disp, ..., "l") 의 값을 준다.
+    """
     t = list(d.get("translation", [0, 0, 0]))
     r = list(d.get("rotation", [0, 0, 0]))
     s = d.get("scale", [1, 1, 1])
@@ -247,6 +258,8 @@ def arm_pose(pose, side):
     sgn = 1 if side == "r" else -1
     if pose == "item":
         return (-PI / 10, 0.0, 0.0)
+    if pose == "spear":      # 바닐라 창 (#minecraft:spears, ArmPose.SPEAR, SpearAnimations): 팔을 들어 앞으로, 머리 각 0
+        return (-PI / 2 + 0.8, -sgn * 0.1, 0.0)
     if pose == "block":
         return (-0.9424779, -sgn * PI / 6, 0.0)
     if pose == "bow_hold":    # 활을 든 손 (오른손): 머리 방향 앞으로
@@ -288,7 +301,7 @@ def add_player(scene, root, right="item", left="none"):
 
 
 def hand_item_matrix(root, arm, side, disp):
-    """ItemInHandLayer: 팔 → Rx(−90)·Ry(180)·T(±1/16, 0.125, −0.625) → 3인칭 자세."""
+    """ItemInHandLayer: 팔 → Rx(−90)·Ry(180)·T(±1/16, 0.125, −0.625) → 3인칭 자세. disp 는 그 손의 맥락 한 칸 (ctx)."""
     k = 1 if side == "r" else -1
     return root @ arm @ R("x", -90) @ R("y", 180) @ T(k / 16, 0.125, -0.625) @ display_matrix(disp, left=(side == "l"))
 
@@ -298,7 +311,9 @@ def hand_item_matrix(root, arm, side, disp):
 def fp_matrix(disp, side="r", use=None, pull=1.0):
     """
     1인칭 손 사슬 (1.21.11 클라이언트 ItemInHandRenderer 바이트코드에서 옮김).
-    use: None (평소) | "block" (방패가 아닌 막기 아이템. souls 방패도 껍데기가 부싯돌이라 여기에 든다) | "bow" (당김 pull 0..1)
+    disp 는 그 손의 맥락 한 칸 (ctx(display, "firstperson", side)).
+    use: None (평소, 방패 막기도: 바닐라 방패 껍데기라 몸짓이 없고 _block 의 display 가 자세를 바꾼다) | "block" (방패가 아닌
+    막기 아이템 = 무기 막기: 바닐라 칼 막기 몸짓) | "bow" (당김 pull 0..1)
     """
     k = 1 if side == "r" else -1
     M = T(k * 0.56, -0.52, -0.72)
@@ -460,3 +475,55 @@ def lineup(entries, out_png, px_per_block=150, bg=BG, gap=0.62):
         x += int(wd * s)
     img.save(out_png)
     return out_png
+
+
+# ─────────────────────────── 무기 미리보기 한 벌 ───────────────────────────
+
+def hand_previews(model, disp, kind, use=None, use_disp=None, pull_model=None, offhand=False, pose="item"):
+    """
+    무기 하나의 미리보기 (set_a, set_b 가 같이 쓴다). 돌려주는 값 (1인칭 그림들, 이름표들, 3인칭 그림들, 이름표들).
+      disp       평소 display (네 손 맥락), use_disp 방패 막기 display (_block)
+      use        None (무기·촉매: 무기 막기는 바닐라 칼 막기 몸짓) | "block" (방패) | "bow" (pull_model = 다 당긴 모형)
+      offhand    왼손이 제 자리인 것 (방패, 패링 단검, 촉매): 왼손을 먼저 보인다
+      pose       3인칭 오른팔 자세: "item" (바닐라 handheld·철퇴), "spear" (바닐라 창)
+    """
+    fp, fpl, tp, tpl = [], [], [], []
+    if use == "block":
+        fp += [first_person([(model, ctx(disp, "firstperson", "l"), "l", None)]),
+               first_person([(model, ctx(use_disp, "firstperson", "l"), "l", None)])]
+        fpl += ["first person, off hand", "first person, off hand, blocking"]
+        tp += third_person([(model, ctx(disp, "thirdperson", "l"), "l")], poses=("none", "item"),
+                           views=((-35, 10), (-90, 4)))
+        tp += third_person([(model, ctx(disp, "thirdperson", "l"), "l")], poses=("none", "item"), views=((-90, 4),),
+                           close=2.6)
+        tp += third_person([(model, ctx(use_disp, "thirdperson", "l"), "l")], poses=("none", "block"),
+                           views=((-35, 10),))
+        tpl += ["third person, off hand, front 3/4", "off hand, side", "off hand, side, close", "off hand, blocking"]
+        return fp, fpl, tp, tpl
+    if use == "bow":
+        fp += [first_person([(model, ctx(disp, "firstperson", "r"), "r", None)]),
+               first_person([(pull_model, ctx(disp, "firstperson", "r"), "r", "bow")])]
+        fpl += ["first person, idle", "first person, full draw"]
+        tp += third_person([(model, ctx(disp, "thirdperson", "r"), "r")], views=((-35, 10), (90, 4)))
+        tp += third_person([(model, ctx(disp, "thirdperson", "r"), "r")], views=((90, 4),), close=2.6)
+        tp += third_person([(pull_model, ctx(disp, "thirdperson", "r"), "r")], poses=("bow_hold", "bow_draw"),
+                           views=((-60, 6),))
+        tpl += ["third person, front 3/4", "side", "side, close", "drawing"]
+        return fp, fpl, tp, tpl
+    r = (first_person([(model, ctx(disp, "firstperson", "r"), "r", None)]), "first person, main hand")
+    l_ = (first_person([(model, ctx(disp, "firstperson", "l"), "l", None)]), "first person, off hand")
+    pair = [l_, r] if offhand else [r, l_]
+    if kind not in ("catalyst", "parrying_dagger"):
+        pair.append((first_person([(model, ctx(disp, "firstperson", "r"), "r", "block")]),
+                     "first person, guard (vanilla sword block)"))
+    fp += [a for a, _ in pair]
+    fpl += [b for _, b in pair]
+    tp += third_person([(model, ctx(disp, "thirdperson", "r"), "r")], poses=(pose, "none"), views=((-35, 10), (90, 4)))
+    tp += third_person([(model, ctx(disp, "thirdperson", "r"), "r")], poses=(pose, "none"), views=((90, 4),), close=2.6)
+    tpl += ["third person, front 3/4", "side", "side, close"]
+    if kind not in ("catalyst", "parrying_dagger"):
+        tp += third_person([(model, ctx(disp, "thirdperson", "r"), "r")], poses=("block", "none"), views=((-35, 10),))
+        tpl.append("guard")
+    tp += third_person([(model, ctx(disp, "thirdperson", "l"), "l")], poses=("none", pose), views=((-35, 10),))
+    tpl.append("off hand")
+    return fp, fpl, tp, tpl

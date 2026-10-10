@@ -30,6 +30,8 @@
      바닐라 덮어쓰기 assets/minecraft/lang/<언어>.json (사망 화면 다섯 키와 창 제목. 제목은 그림 글자로 모든 언어가 같고, 단추 글은
      ko_kr 이 한국어, 나머지 모든 언어가 영어). ko.yml 과 en.yml 의 짝이 틀리면 (열쇠·자리·꼴) 여기서 멈춘다.
      typeset.py 가 막 쓴 팩 글꼴로 창 제목을 제목 글자로, 제목 밑 금실, 무기 수치 이름의 열 맞춤 빈칸을 짠다
+  3a. roll_figure.wrap_item_definitions (구르기 깃발로 souls 아이템 정의를 감싼다) 뒤 weapons/gripcheck.build: 무기 손 자세를
+     바닐라 jar 의 자세와 견주고 (네 손 맥락, 쥐는 점, 축) 시험 모형 souls:test_grip_* 를 쓴다. 오류가 있으면 여기서 멈춘다
   3b. 블록: blocks_grade.build (1층, 바닐라 블록 그림 전부의 색을 옮긴다. 클라이언트 jar 가 있어야 한다) 뒤에
      blocks_core.build (2층, 맵의 핵심 블록을 새로 그려 덮는다)
   4. artlint: 오류가 하나라도 있으면 여기서 멈추고 zip 을 만들지 않는다
@@ -74,6 +76,10 @@ try:
     from weapons import set_a as weapons_a  # 무기 A 묶음 (칼·방패·활·쇠단지, weapons/SPEC.md 4절)
 except ImportError:
     weapons_a = None
+try:
+    from weapons import gripcheck  # 무기 손 자세 검사와 시험 모형 (바닐라 자세, weapons/SPEC.md 1.3)
+except ImportError:
+    gripcheck = None
 
 ROOT = os.path.dirname(HERE)
 RES = os.path.join(ROOT, "plugin", "src", "main", "resources")
@@ -305,6 +311,12 @@ def main(argv):
 
     # 구르는 동안 손에 든 souls 아이템을 3인칭에서 비우는 깃발 (아이템 정의를 모두 쓴 뒤에 감싼다, 3.3)
     roll_figure.wrap_item_definitions(OUT)
+    # 무기 손 자세가 바닐라 1.21.11 과 같은가 (DECISIONS 2026-10-11) 와 시험 모형 souls:test_grip_* (감싼 뒤에: 감싸기도 본다)
+    if gripcheck and (weapons_a or weapons_b):
+        bad = gripcheck.build(OUT)
+        if bad:
+            print("무기 손 자세 검사 (gripcheck) 오류가 있어 팩을 묶지 않는다:", *bad, sep="\n  ")
+            return 1
 
     # 블록 1층: 바닐라 블록 그림 전부 (+ .mcmeta, 풀빛·잎빛 색 지도) 의 색을 다크소울 쪽으로 옮긴다 (blocks_grade.py,
     # 클라이언트 jar 에서 읽는다)

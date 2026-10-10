@@ -8,9 +8,9 @@
 
 아이템마다 (SPEC 1.9)
   souls:item/<id>      16×16 손으로 찍은 그림 (pack/art/weapon_icons_a.txt): 인벤토리·땅·액자·선반
-  souls:item/<id>_3d   wkit 복셀 모형 (손에 든 것, 몹·대역·보스 인형)
-  souls:item/<id>_guard / _block   막기 자세 (부모 _3d, display 만)
-  활: _3d_pulling_0..2
+  souls:item/<id>_3d   wkit 복셀 모형 (손에 든 것, 몹·대역·보스 인형). 손 자세는 바닐라 그대로 (SPEC 1.3)
+  souls:item/<id>_block   방패 막기 자세 (부모 _3d, display 만: 바닐라 item/shield_blocking)
+  활: _3d_pulling_0..2 (평소와 같은 display: 바닐라 item/bow)
 """
 import os
 import sys
@@ -53,10 +53,10 @@ def registry():
 
 
 def _spec(entry):
-    """옛 꼴 (make, kind) 도 받는다 → 무기 기본값. display / use_display 가 None 이면 지은 무기의 길이로 셈한다 (build_one)."""
+    """옛 꼴 (make, kind) 도 받는다 → 무기 기본값. display 가 None 이면 그 분류의 바닐라 자세 (hand_display)."""
     if isinstance(entry, tuple):
         make, kind = entry
-        return {"make": make, "kind": kind, "use": "guard", "display": None, "use_display": None}
+        return {"make": make, "kind": kind, "use": None, "display": None, "use_display": None}
     return entry
 
 
@@ -73,12 +73,9 @@ def build_one(out, wid, spec, icon):
         w, pulls = made, None
     spec = dict(spec)
     if spec.get("display") is None:
-        spec["display"] = C.hand_display(spec["kind"], w)
-    if spec.get("use_display") is None and spec["use"] == "guard":
-        spec["use_display"] = C.guard_display(spec["kind"], w)
-    res = C.write_item(out, wid, w, spec["display"], icon, spec["kind"], use=spec["use"],
-                       use_display=spec.get("use_display"), swap=spec.get("swap"), bow_states=pulls,
-                       pull_display=spec.get("pull_display"))
+        spec["display"] = C.hand_display(spec["kind"])
+    res = C.write_item(out, wid, w, spec["display"], icon, spec["kind"], use=spec.get("use"),
+                       use_display=spec.get("use_display"), swap=spec.get("swap"), bow_states=pulls)
     res["weapon"] = w
     res["spec"] = spec
     return res
@@ -101,14 +98,16 @@ def build(out, strict=True):
 
 
 # ─────────────────────────── 미리보기 ───────────────────────────
+# 왼손이 제 자리인 분류 (weapons.yml hand: off) 와 3인칭 팔 자세 (바닐라 창은 팔을 들어 겨눈다)
+OFFHAND = ("small_shield", "shield", "greatshield", "parrying_dagger", "catalyst")
+POSE = {"spear": "spear"}
+
 
 def previews(wid, spec, res, icon):
     from weapons import _views as V
     os.makedirs(SHOTS, exist_ok=True)
     model = res["3d"]
-    use_model = model  # _guard/_block 는 같은 모형에 손 자세만 다르다
     disp = spec["display"]
-    udisp = spec.get("use_display") or {}
     kind = spec["kind"]
     files = []
     # 1. 16px 그림
@@ -119,45 +118,16 @@ def previews(wid, spec, res, icon):
     p = os.path.join(SHOTS, f"{wid}_side.png")
     V.strip(V.side(model), ["front (+Z)", "3/4", "edge (from +X)"]).save(p)
     files.append(p)
-    # 3. 1인칭
-    shots, labels = [], []
-    if spec["use"] == "bow":
-        shots.append(V.first_person([(model, disp["firstperson_righthand"], "r", None)]))
-        labels.append("first person, idle")
-        pdisp = spec.get("pull_display") or disp
-        shots.append(V.first_person([(res["pull"][2], pdisp["firstperson_righthand"], "r", "bow")]))
-        labels.append("first person, full draw")
-    elif spec["use"] == "block":
-        shots.append(V.first_person([(model, disp["firstperson_righthand"], "l", None)]))
-        labels.append("first person, off hand")
-        shots.append(V.first_person([(model, udisp["firstperson_righthand"], "l", "block")]))
-        labels.append("first person, off hand, blocking")
-    else:
-        shots.append(V.first_person([(model, disp["firstperson_righthand"], "r", None)]))
-        labels.append("first person, main hand")
-        if spec["use"] == "guard":
-            shots.append(V.first_person([(use_model, udisp["firstperson_righthand"], "r", "block")]))
-            labels.append("first person, guard")
+    # 3. 1인칭, 4. 3인칭 (바닐라 자세, 왼손은 모형에 적은 왼손 값)
+    use = spec.get("use")
+    fp, fpl, tp, tpl = V.hand_previews(model, disp, kind, use=use, use_disp=spec.get("use_display"),
+                                       pull_model=res["pull"][2] if use == "bow" else None,
+                                       offhand=kind in OFFHAND, pose=POSE.get(C.grip_set(kind), "item"))
     p = os.path.join(SHOTS, f"{wid}_fp.png")
-    V.strip([s.resize((640, 360)) for s in shots], labels).save(p)
+    V.strip([s.resize((640, 360)) for s in fp], fpl).save(p)
     files.append(p)
-    # 4. 3인칭
-    side = "l" if spec["use"] == "block" else "r"
-    poses = ("none", "item") if side == "l" else ("item", "none")
-    tp = V.third_person([(model, disp["thirdperson_righthand"], side)], poses=poses, views=((-35, 10), (90, 4)))
-    tp += V.third_person([(model, disp["thirdperson_righthand"], side)], poses=poses, views=((90, 4),), close=2.6)
-    labels = ["third person, front 3/4", "third person, side", "side, close"]
-    if spec["use"] in ("guard", "block"):
-        bp = ("none", "block") if side == "l" else ("block", "none")
-        tp += V.third_person([(use_model, udisp["thirdperson_righthand"], side)], poses=bp, views=((-35, 10),))
-        labels.append("third person, " + ("blocking" if spec["use"] == "block" else "guard"))
-    elif spec["use"] == "bow":
-        pdisp = spec.get("pull_display") or disp
-        tp += V.third_person([(res["pull"][2], pdisp["thirdperson_righthand"], "r")], poses=("bow_hold", "bow_draw"),
-                             views=((-60, 6),))
-        labels.append("third person, drawing")
     p = os.path.join(SHOTS, f"{wid}_tp.png")
-    V.strip(tp, labels).save(p)
+    V.strip(tp, tpl).save(p)
     files.append(p)
     return files
 
@@ -198,11 +168,12 @@ def sheets(done, ic):
     for wid, res in done.items():
         spec = res["spec"]
         icon = ic.get(wid) or Image.new("RGBA", (16, 16), (0, 0, 0, 0))
-        side = "l" if spec["use"] == "block" else "r"
-        poses = ("none", "item") if side == "l" else ("item", "none")
+        side = "l" if spec["kind"] in OFFHAND else "r"
+        pose = POSE.get(C.grip_set(spec["kind"]), "item")
+        poses = ("none", pose) if side == "l" else (pose, "none")
         views = [V.gui(icon).crop((0, 0, 288, 288)).resize((240, 240), Image.NEAREST)]
         views += [v.resize((180, 260)) for v in V.side(res["3d"], size=(360, 520))[:2]]
-        views += V.third_person([(res["3d"], spec["display"]["thirdperson_righthand"], side)], poses=poses,
+        views += V.third_person([(res["3d"], V.ctx(spec["display"], "thirdperson", side), side)], poses=poses,
                                 views=((-35, 10),), size=(260, 260), close=1.7)
         rows.append(V.strip(views, [wid, "front", "3/4", "third person"]))
     w = max(r.width for r in rows)

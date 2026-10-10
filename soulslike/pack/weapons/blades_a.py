@@ -18,7 +18,6 @@ A 의 칼 다섯 자루 (SPEC.md 3.1~3.4, 3.16): 레딘 경비대 직검, 볼크
   E 날 끝 (밝게 간 줄)   e 날 끝인데 무뎌 밝은 줄이 없는 곳   S 날 몸   K 날 몸의 가운데 결   R 녹   F 홈 (앞이 한 칸 파였다)
   G 가드·폼멜 쇠   g 쇠의 빛 받는 모서리   L 가죽 손잡이   w 쇠줄   P 폼멜
 """
-from weapons import _common as C
 from weapons._common import blade, draw, pmat, put, skin, weapon
 from weapons._mats import mats
 
@@ -445,19 +444,11 @@ def gaoler_greatsword():
     return w
 
 
-# 쳐내기 단검 막기 (_block, 왼손): 날을 위로 세우고 곁가지를 앞으로 내밀어 받는다. 3인칭은 들어 올린 팔 앞에서 날이 서고
-# 날 면이 앞을 본다. 1인칭은 화면 왼쪽, 십자선 아래에 날이 서고 면이 화면을 본다. 이동은 3인칭 정한 값 그대로 [확인 (클라)]
-PARRY_BLOCK = {
-    "thirdperson_righthand": C._t([-160, 30, -170], C.TP_T, 1.0),
-    "firstperson_righthand": C._t([135, -70, 60], [-0.73, 3.95, 1.76], C.FP_SCALE["parrying_dagger"]),
-}
-
 ITEMS = {
     "redin_guard_sword": (redin_guard_sword, "straight_sword"),
     "volk_longsword": (volk_longsword, "longsword"),
     "alley_dagger": (alley_dagger, "dagger"),
     "gaoler_greatsword": (gaoler_greatsword, "greatsword"),
-    # 쳐내기 단검은 방패 칸 (왼손): 평소는 무기 자세 (길이로 셈), 막기는 _block (날을 세우고 곁가지로 받는다)
-    "parrying_dagger": {"make": parrying_dagger, "kind": "parrying_dagger", "use": "block",
-                        "display": None, "use_display": PARRY_BLOCK},
+    # 패링 단검은 왼손 무기 (막지 않는다: weapons.yml use none). 손 자세는 다른 칼처럼 바닐라 handheld
+    "parrying_dagger": {"make": parrying_dagger, "kind": "parrying_dagger", "use": None, "display": None},
 }

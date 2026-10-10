@@ -1,5 +1,6 @@
 package kr.souls.item;
 
+import io.papermc.paper.datacomponent.DataComponentType;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import io.papermc.paper.datacomponent.item.BlocksAttacks;
 import io.papermc.paper.datacomponent.item.DamageResistant;
@@ -25,6 +26,7 @@ import org.bukkit.persistence.PersistentDataType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 /**
  * 데이터 성분을 붙이는 곳은 여기 한 곳이다 (9.8). 데이터 성분 API 는 1.21.11 에서도 실험 기능이라
@@ -136,6 +138,14 @@ public final class ItemFactory {
      * (pack/weapons/SPEC.md 1.3). 막기 계산은 그대로 플러그인이 한다 (빈 막기 성분, guardComponent).
      */
     public static final Material SHIELD_SHELL = Material.SHIELD;
+    /**
+     * 창·미늘창 (분류 spear, halberd) 의 껍데기: 바닐라 창 (DECISIONS 2026-10-11 "창·미늘창은 바닐라 창처럼 쥔다"). 1.21.11 클라이언트는
+     * 아이템 태그 #minecraft:spears 인 것을 3인칭에서 팔을 들어 앞으로 겨누는 자세 (ArmPose.SPEAR) 로 든다. 손에 든 모형의 자세
+     * (팩 item/spear_in_hand 합성, pack/weapons/SPEC.md 1.3) 는 그 팔 자세에 맞춘 것이라 껍데기가 창이어야 바닐라 창과 같다.
+     * 돌창: 화로에 녹지 않고 땔감이 아니다. 바닐라 창의 성분 (찌르기·돌진·사거리·내구도·공격 속성 …) 은 모두 떼어 부싯돌 껍데기와
+     * 같은 성분만 남긴다 ({@link #asFlint}). 휘두르기·막기·피해는 그대로 플러그인이 한다.
+     */
+    public static final Material SPEAR_SHELL = Material.STONE_SPEAR;
     /** 무기 설명 칸 그림 souls:tooltip/weapon_background·_frame (이름 밑 금실, pack/gui_skin.py) */
     private static final Key WEAPON_TOOLTIP = Key.key(Keys.NS, "weapon");
 
@@ -152,7 +162,9 @@ public final class ItemFactory {
     public static ItemStack weapon(Weapons.Def d) {
         boolean bow = Weapons.BOW.equals(d.use());
         boolean shield = Weapons.BLOCK.equals(d.use());
-        ItemStack it = ItemStack.of(bow ? BOW_SHELL : shield ? SHIELD_SHELL : SHELL);
+        boolean spear = SPEAR_CLASSES.contains(d.cls());
+        ItemStack it = ItemStack.of(bow ? BOW_SHELL : shield ? SHIELD_SHELL : spear ? SPEAR_SHELL : SHELL);
+        if (spear) asFlint(it);
         if (bow || shield) {
             it.unsetData(DataComponentTypes.MAX_DAMAGE);
             it.unsetData(DataComponentTypes.DAMAGE);
@@ -184,6 +196,31 @@ public final class ItemFactory {
         return it;
     }
 
+    /** 바닐라 창 껍데기 (SPEAR_SHELL) 로 만드는 분류 (weapons.yml class) */
+    public static final Set<String> SPEAR_CLASSES = Set.of("spear", "halberd");
+
+    /**
+     * 성분을 부싯돌 (SHELL) 의 기본 성분과 똑같이 맞춘다: 부싯돌에 없는 성분은 떼고, 둘 다 있는 성분은 부싯돌 값으로. 바닐라 창 껍데기가
+     * 아이템 종류 (태그 #minecraft:spears, 팔 자세) 말고는 부싯돌 무기와 똑같이 쓰이게 (뗀다: kinetic_weapon, piercing_weapon,
+     * attack_range, minimum_attack_charge, damage_type, weapon, max_damage, damage, enchantable, repairable, use_effects,
+     * 부싯돌 값으로: attribute_modifiers (창의 공격력·공격 속도), swing_animation (창의 찌르기 stab)).
+     */
+    static void asFlint(ItemStack it) {
+        ItemStack flint = ItemStack.of(SHELL);
+        for (DataComponentType t : Set.copyOf(it.getDataTypes())) {
+            if (!flint.hasData(t)) it.unsetData(t);
+        }
+        for (DataComponentType t : flint.getDataTypes()) {
+            if (t instanceof DataComponentType.Valued<?> v) copyData(flint, it, v);
+            else if (t instanceof DataComponentType.NonValued n && !it.hasData(n)) it.setData(n);
+        }
+    }
+
+    private static <T> void copyData(ItemStack from, ItemStack to, DataComponentType.Valued<T> t) {
+        T v = from.getData(t);
+        if (v != null && !v.equals(to.getData(t))) to.setData(t, v);
+    }
+
     /**
      * 궁수의 시작 화살 (바닐라 화살 n 개). souls 표시 souls:item=arrows 를 붙여 출신 지우기·다시 고르기가 거둔다 (쏘아 주운 화살도
      * 표시가 남아 함께 묶인다). 화살 아이템은 M1 의 화살 돌려주기와 함께 다시 본다.
@@ -196,7 +233,7 @@ public final class ItemFactory {
 
     /**
      * 예전 판의 souls 무기를 지금 판으로 다시 만든 것, 지금 판 그대로면 null: 껍데기가 바뀌었거나 (활: 부싯돌 → 바닐라 활, 방패: 부싯돌 →
-     * 바닐라 방패, 2026-10-11), 설명 칸이
+     * 바닐라 방패, 창·미늘창: 부싯돌 → 바닐라 돌창, 2026-10-11), 설명 칸이
      * 지금 판과 다르거나 (2026-10-10: 보정·요구 능력치 줄을 없애고 수치를 한 줄로, 방패는 막기 하나. weapons.yml 을 고치고 다시 읽은 값,
      * 언어 파일의 대체 글이 바뀐 것도), 쓰는 몸짓이 바뀐 것 (패링 단검·촉매는 막지 않는다). 주손 무기의 막기 성분은 견주지 않는다
      * (WeaponGuard 가 든 손을 보고 맞춘다).

@@ -22,7 +22,7 @@
   굵기 3 인 자루는 x, z 가 [−2, 1) 이다 (가운데 −0.5, 쥐는 점에서 반 복셀 = 1/64 블록 비껴 있다). 홀수 굵기는 모두
   가운데가 −0.5 라 자루와 머리가 한 줄에 선다.
 
-손 자세는 _common.hand_display / guard_display / shield_display / catalyst_display (SPEC 1.3) 를 그대로 쓴다.
+손 자세는 _common.hand_display / shield_display / catalyst_display (SPEC 1.3, 바닐라 자세를 합성한 값) 를 그대로 쓴다.
 재료는 _mats.py (B 가 낸 손으로 찍은 칸), 격자는 _mats.VoxWeapon (Z 칸 경계를 옮겨 요소를 아낀다).
 """
 import math
@@ -690,45 +690,31 @@ def pilgrim_handbell():
 
 
 # ─────────────────────────── 목록 ───────────────────────────
-# id: (만드는 함수, 분류 (FP_SCALE 열쇠), 쓰는 중 모형 "guard" | "block" | "same")
+# id: (만드는 함수, 분류 (SWAP·바닐라 모형 _common.GRIP_OF 의 열쇠), 쓰는 중 모형 None (평소 _3d) | "block" (방패 _block))
 WEAPONS = {
-    "levy_hatchet": (levy_hatchet, "hand_axe", "guard"),
-    "sellsword_axe": (sellsword_axe, "axe", "guard"),
-    "gaoler_club": (gaoler_club, "hammer", "guard"),
-    "penitent_mace": (penitent_mace, "hammer", "guard"),
-    "mathes_bell_mace": (mathes_bell_mace, "bell_mace", "guard"),
-    "redin_spear": (redin_spear, "spear", "guard"),
-    "hrolf_halberd": (hrolf_halberd, "halberd", "guard"),
-    "warden_halberd": (warden_halberd, "halberd", "guard"),
+    "levy_hatchet": (levy_hatchet, "hand_axe", None),
+    "sellsword_axe": (sellsword_axe, "axe", None),
+    "gaoler_club": (gaoler_club, "hammer", None),
+    "penitent_mace": (penitent_mace, "hammer", None),
+    "mathes_bell_mace": (mathes_bell_mace, "bell_mace", None),
+    "redin_spear": (redin_spear, "spear", None),
+    "hrolf_halberd": (hrolf_halberd, "halberd", None),
+    "warden_halberd": (warden_halberd, "halberd", None),
     "plank_shield": (plank_shield, "shield", "block"),
-    "pilgrim_handbell": (pilgrim_handbell, "catalyst", "same"),
+    "pilgrim_handbell": (pilgrim_handbell, "catalyst", None),
 }
 
 
-def display_for(wid, kind, use, w=None):
-    """w: 지은 무기 (1인칭을 그 길이로 셈한다, _common.hand_display)."""
-    if use == "same":
-        return cm.catalyst_display(*CATALYST_FP[wid])
+def display_for(wid, kind, use):
+    """손 자세: 방패는 바닐라 방패, 나머지는 그 분류의 바닐라 모형 (handheld, 철퇴, 창) 을 합성한 값 (SPEC 1.3)."""
     if use == "block":
-        return cm.shield_display(*SHIELD_FP[wid])
-    return cm.hand_display(kind, w)
+        return cm.shield_display()
+    return cm.hand_display(kind)
 
 
-def use_display_for(wid, kind, use, w=None):
-    if use == "guard":
-        return cm.guard_display(kind, w)
-    if use == "block":
-        return cm.shield_block_display(*SHIELD_BLOCK_FP[wid])
-    return None
-
-
-# 1인칭 회전·이동 (크기) [확인 (클라)]. 3인칭은 _common 의 정한 값 (이동은 모두 같고 회전만 분류마다)
-# 판자 방패는 A 의 경비대 방패 (shields_a.HEATER_FP, 높이 26) 와 같은 자세, 크기만 높이 28 에 맞춰 0.6
-# 손종: 종 입 (+Y) 이 앞 위로 45° 기울어 화면 오른쪽 아래에 종과 손잡이가 함께 보인다 (_common.fp_frame)
-CATALYST_FP = {"pilgrim_handbell": cm.fp_frame((1, 0, 0), (-0.5, math.sin(math.radians(45)), -math.cos(math.radians(45))),
-                                                (0.80, 0.80, -0.75))}
-SHIELD_FP = {"plank_shield": ([10, -35, 10], [-1.76, 0.0, -0.96], 0.6)}
-SHIELD_BLOCK_FP = {"plank_shield": ([-40, 65, 120], [-0.53, 4.33, 0.4], 0.6)}
+def use_display_for(wid, kind, use):
+    """방패 막기 (_block): 바닐라 방패 막기. 무기는 막기 모형이 없다 (바닐라 칼 막기 몸짓이 _3d 위에 걸린다)."""
+    return cm.shield_block_display() if use == "block" else None
 
 
 def icons():
@@ -751,7 +737,7 @@ def build(out, only=None, draft=False):
             icon = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
         if icon is None:
             raise ValueError(f"{wid}: {ICONS} 에 16px 그림이 없다")
-        disp, udisp = display_for(wid, kind, use, w), use_display_for(wid, kind, use, w)
+        disp, udisp = display_for(wid, kind, use), use_display_for(wid, kind, use)
         made[wid] = cm.write_item(out, wid, w, disp, icon, kind, use=use, use_display=udisp)
         made[wid]["w"] = w
         made[wid]["display"], made[wid]["use_display"] = disp, udisp
@@ -761,13 +747,13 @@ def build(out, only=None, draft=False):
 # ─────────────────────────── 미리보기 ───────────────────────────
 
 def tp_close(model, disp, hand="r", yaw=-40, pitch=12, size=(360, 480), pose=None):
-    """3인칭 가까이: 쥔 손과 든 것만 화면에 꽉 차게. yaw 0 = 사람 앞, 90 = 사람의 오른쪽."""
+    """3인칭 가까이: 쥔 손과 든 것만 화면에 꽉 차게. yaw 0 = 사람 앞, 90 = 사람의 오른쪽. disp 는 display (네 손 맥락)."""
     from weapons import _views as vw
     root = vw.player_root(180.0)
     sc = vw.Scene()
     poses = (pose or "item", "none") if hand == "r" else ("none", pose or "item")
     arms = vw.add_player(sc, root, right=poses[0], left=poses[1])
-    M = vw.hand_item_matrix(root, arms[hand], hand, disp)
+    M = vw.hand_item_matrix(root, arms[hand], hand, vw.ctx(disp, "thirdperson", hand))
     n0 = len(sc.faces)
     sc.add(model, M)
     grip = (M @ np.array([0, 0, 0, 1.0]))[:3]
@@ -829,28 +815,17 @@ def previews(ids=None, scratch=None):
         cl = closeup(model, *CLOSE[wid])
         vw.strip(sides + cl, ["front +Z", "3/4", "edge", "close front", "close 3/4", "close back"]).save(
             os.path.join(SHOTS, f"{wid}_side.png"))
-        # 1인칭
-        hand = "l" if use == "block" else "r"
-        shots = [vw.first_person([(model, disp["firstperson_righthand"], hand, None)])]
-        labels = ["first person, " + ("off hand" if hand == "l" else "main hand")]
-        if use in ("guard", "block"):
-            shots.append(vw.first_person([(model, udisp["firstperson_righthand"], hand, "block")]))
-            labels.append("first person, " + ("blocking" if use == "block" else "guard"))
-        vw.strip([s.resize((640, 360)) for s in shots], labels).save(os.path.join(SHOTS, f"{wid}_fp.png"))
-        # 3인칭
-        poses = ("none", "item") if hand == "l" else ("item", "none")
-        tp = vw.third_person([(model, disp["thirdperson_righthand"], hand)], poses=poses,
-                             views=((-35, 10), (90 if hand == "r" else -90, 5)), size=(380, 480), zoom=150)
-        labels = ["front 3/4", "side"]
+        # 1인칭·3인칭 (바닐라 자세, 왼손은 모형에 적은 왼손 값): set_a 와 같은 한 벌 + 쥔 손 가까이
+        offhand = kind in ("shield", "catalyst")
+        pose = "spear" if cm.grip_set(kind) == "spear" else "item"
+        fp, fpl, tp, labels = vw.hand_previews(model, disp, kind, use=use, use_disp=udisp or None, offhand=offhand,
+                                               pose=pose)
+        vw.strip([s.resize((640, 360)) for s in fp], fpl).save(os.path.join(SHOTS, f"{wid}_fp.png"))
+        hand = "l" if offhand else "r"
         sgn = 1 if hand == "r" else -1
-        tp += [tp_close(model, disp["thirdperson_righthand"], hand, yaw, pitch)
+        tp += [tp_close(model, disp, hand, yaw, pitch, pose=pose)
                for yaw, pitch in ((-40 * sgn, 12), (100 * sgn, 8))]
         labels += ["near front", "near side"]
-        if use in ("guard", "block"):
-            bp = ("none", "block") if hand == "l" else ("block", "none")
-            tp += vw.third_person([(model, udisp["thirdperson_righthand"], hand)], poses=bp, views=((-35, 10),),
-                                  size=(380, 480), zoom=150)
-            labels.append("blocking" if use == "block" else "guard")
         vw.strip(tp, labels).save(os.path.join(SHOTS, f"{wid}_tp.png"))
         print(f"{wid}: 요소 {len(model.elements)}, 재료 {cm.mat_count(res['w'])}")
         fronts.append((wid, model))

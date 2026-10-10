@@ -9,6 +9,10 @@
 //   왼손을 비우면 양손 잡기 (주무기로 막는다: 곤봉에 막기 성분, 근력 ×1.5).
 //   예전 판의 무기 (설명 칸에 옛 줄이 구워진 것) 는 창 (엔더 상자) 을 열 때, 땅에서 주울 때, /souls reload 때 지금 판으로 바뀐다 (WEAPON_REFRESH).
 //   반지 설명 칸: 효과 줄과 설명 사이에 무기처럼 실선 (ring.rule.<id>).
+//   껍데기 (DECISIONS 2026-10-11 바닐라 쥐는 법, weapons/SPEC.md 1.3): 방패는 바닐라 방패 (minecraft:shield, 막기 성분은 빈 감소표·지연 0,
+//            내구도·마법부여·수리 성분을 뗐다), 창·미늘창은 바닐라 돌창 (#minecraft:spears 라 3인칭 창 팔 자세. 창의 찌르기·돌진·사거리·
+//            내구도·공격 속성 성분을 모두 뗐다), 나머지 무기·촉매는 부싯돌, 활은 바닐라 활. 예전 판의 부싯돌 방패는 접속할 때
+//            바닐라 방패로 바뀐다 (WEAPON_REFRESH where=join). 인벤토리에서 웅크리고 누른 방패는 바닐라 방패처럼 빈 왼손 칸으로 간다.
 'use strict'
 const L = require('./lib')
 
@@ -32,6 +36,18 @@ async function waitItem (b, from, nameKey, ms = 3000) {
 function comps (b, slot) {
   const it = b.bot.inventory.slots[slot]
   return it && Array.isArray(it.components) ? it.components.map((c) => c.type) : []
+}
+
+/** 칸 아이템이 바닐라 기본 성분에서 뗀 성분 종류 목록 (슬롯 패킷의 removeComponents). */
+function removed (b, slot) {
+  const it = b.bot.inventory.slots[slot]
+  return it && Array.isArray(it.removedComponents) ? it.removedComponents.map((c) => (typeof c === 'string' ? c : c.type)) : []
+}
+
+function compData (b, slot, type) {
+  const it = b.bot.inventory.slots[slot]
+  const c = it && Array.isArray(it.components) ? it.components.find((x) => x.type === type) : null
+  return c ? c.data : null
 }
 
 L.run('gear', async (sc) => {
@@ -106,6 +122,63 @@ L.run('gear', async (sc) => {
       sc.check('test ring lore is the [시험용] marker, not a developer note', lore.join('|') === '[시험용]', JSON.stringify(lore))
       sc.check('test ring name says 패링', L.render(it.name, T.ko) === '시험 반지: 패링', JSON.stringify(L.render(it.name, T.ko)))
     }
+  }
+
+  // ── 껍데기: 방패 = 바닐라 방패, 창·미늘창 = 바닐라 돌창, 나머지 = 부싯돌 (바닐라 쥐는 법, SPEC 1.3) ──
+  {
+    await b.cmd('/clear @s', null, 1200)
+    await b.cmd('/soulstest give redin_guard_shield off', 'GIVE')
+    await b.cmd('/soulstest give redin_spear main', 'GIVE')
+    await L.sleep(800)
+    const off = b.bot.inventory.slots[45]
+    const main = b.bot.inventory.slots[36]
+    sc.check('shield shell is the vanilla shield (minecraft:shield)', off && off.name === 'shield', off ? off.name : '없음')
+    const ba = compData(b, 45, 'blocks_attacks')
+    const baj = JSON.stringify(ba || {})
+    sc.check('the shield blocks with the plugin guard: empty damage reductions, no block delay, #bypasses_shield', !!ba &&
+      Array.isArray(ba.damageReductions) && ba.damageReductions.length === 0 && Number(ba.blockDelaySeconds) === 0 && /bypasses_shield/.test(baj),
+      baj.slice(0, 300))
+    const rs = removed(b, 45)
+    sc.check('the shield shell drops durability and repair (max_damage, damage, repairable removed; never enchantable)',
+      ['max_damage', 'damage', 'repairable'].every((t) => rs.includes(t)) && !comps(b, 45).includes('enchantable'), rs.join(','))
+    sc.check('the shield keeps our name (item_name souls.weapon.redin_guard_shield.name, no base_color)', comps(b, 45).includes('item_name') &&
+      !comps(b, 45).includes('base_color') && JSON.stringify(compData(b, 45, 'item_name') || '').includes('souls.weapon.redin_guard_shield.name'),
+      comps(b, 45).join(','))
+    sc.check('spear shell is a vanilla spear (stone_spear, #minecraft:spears)', main && main.name === 'stone_spear', main ? main.name : '없음')
+    const rm = removed(b, 36)
+    const SPEAR_DROP = ['kinetic_weapon', 'piercing_weapon', 'attack_range', 'minimum_attack_charge', 'damage_type', 'weapon', 'max_damage', 'damage',
+      'enchantable', 'repairable']
+    sc.check('the spear shell drops the vanilla spear components (stab, charge, reach, durability, enchanting)', SPEAR_DROP.every((t) => rm.includes(t)),
+      'removed ' + rm.join(','))
+    const swing = JSON.stringify(compData(b, 36, 'swing_animation') || '')
+    const attrs = compData(b, 36, 'attribute_modifiers')
+    const attrsJ = JSON.stringify(attrs || '')
+    sc.check('the spear shell takes the flint swing and attributes (no stab swing, no spear attack damage/speed modifiers)',
+      !/stab/i.test(swing) && !rm.includes('swing_animation') && !/attack_damage|attack_speed|spear/i.test(attrsJ),
+      `swing ${swing.slice(0, 120)} attrs ${attrsJ.slice(0, 160)} comps ${comps(b, 36).join(',')}`)
+    await b.cmd('/soulstest give hrolf_halberd main', 'GIVE')
+    await b.cmd('/soulstest give gaoler_club inv', 'GIVE')
+    await L.sleep(600)
+    const hal = b.bot.inventory.slots[36]
+    sc.check('halberds use the spear shell too', hal && hal.name === 'stone_spear', hal ? hal.name : '없음')
+    const club = b.bot.inventory.slots.find((it, i) => i >= 9 && i < 45 && it && JSON.stringify(it.components || []).includes('souls.weapon.gaoler_club.name'))
+    sc.check('other weapons stay on the flint shell (gaoler_club)', club && club.name === 'flint', club ? club.name : '없음')
+    // 인벤토리에서 웅크리고 누르면 바닐라 방패처럼 빈 왼손 칸으로 (equippable 을 남겼다, S8)
+    await b.cmd('/item replace entity @s weapon.offhand with air', null, 800)
+    await b.cmd('/soulstest give plank_shield inv', 'GIVE')
+    await L.sleep(600)
+    const at = b.bot.inventory.slots.findIndex((it, i) => i >= 9 && i < 45 && it && it.name === 'shield')
+    if (sc.check('plank shield lands in the inventory', at >= 9, String(at))) {
+      await b.bot.clickWindow(at, 0, 1).catch(() => {})
+      await L.sleep(800)
+      const o = b.bot.inventory.slots[45]
+      sc.check('shift-click moves the shield to the empty off hand (like a vanilla shield)', o && o.name === 'shield' &&
+        JSON.stringify(o.components || []).includes('souls.weapon.plank_shield.name') && !b.bot.inventory.slots[at], o ? o.name : '왼손 빔')
+    }
+    await b.cmd('/clear @s', null, 1200)
+    await b.cmd('/soulstest give gaoler_club main', 'GIVE')
+    await b.cmd('/soulstest give plank_shield off', 'GIVE')
+    await L.sleep(500)
   }
 
   // ── 패링 판정: 왼손 물건의 분류마다 ──
@@ -262,6 +335,30 @@ L.run('gear', async (sc) => {
     await b.cmd('/souls reload', null, 4000)
     await L.sleep(500)
     sc.check('a current weapon is not rebuilt again (no WEAPON_REFRESH on the second reload)', !b.tLines('WEAPON_REFRESH', after).length, b.tLines('WEAPON_REFRESH', after).map((x) => x.line).join(' | '))
+  }
+  {
+    // 예전 판의 부싯돌 방패 (껍데기를 바닐라 방패로 바꾸기 전) 는 다시 들어올 때 바닐라 방패로 바뀐다
+    await b.cmd('/clear @s', null, 1200)
+    const m = await b.cmd('/item replace entity @s weapon.offhand with minecraft:flint[custom_data={PublicBukkitValues:{"souls:weapon":"plank_shield"}},' +
+      'item_model="souls:plank_shield"]', null, 1200)
+    await L.sleep(400)
+    const before = b.bot.inventory.slots[45]
+    sc.check('an old flint plank shield sits in the off hand before rejoining', before && before.name === 'flint', (before ? before.name : '없음') + ' | ' + (m.line || ''))
+    await b.quit()
+    await L.sleep(1500)
+    const b2 = await L.connect(sc)
+    const r = await b2.waitT('WEAPON_REFRESH', 6000, 0)
+    sc.check('rejoining rebuilds the flint shield (WEAPON_REFRESH n=1 where=join)', r && r.kv.n === '1' && r.kv.where === 'join', r ? r.line : '줄 없음')
+    await L.sleep(600)
+    const after = b2.bot.inventory.slots[45]
+    sc.check('the off hand now holds a vanilla-shield-shelled plank shield with the guard', after && after.name === 'shield' &&
+      JSON.stringify(after.components || []).includes('souls.weapon.plank_shield.name') && (after.components || []).some((c) => c.type === 'blocks_attacks'),
+      after ? after.name + ' ' + (after.components || []).map((c) => c.type).join(',') : '없음')
+    // 빈털터리의 시작 장비로 되돌린다 (뒤 시나리오)
+    await b2.cmd('/clear @s', null, 1200)
+    await b2.cmd('/soulstest give gaoler_club main', 'GIVE')
+    await b2.cmd('/soulstest give plank_shield off', 'GIVE')
+    sc.check('no kick after rejoining', !b2.kick, b2.kick || '')
   }
   sc.check('no kick during gear scenario', !b.kick, b.kick || '')
 })

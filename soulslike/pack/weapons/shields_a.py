@@ -201,11 +201,6 @@ def redin_guard_shield():
     return w
 
 
-# 방패 손 자세. 3인칭은 _common 의 공통 회전 (평소 [90, 90, 0], 막기 [−145, 40, −180]) 과 이동.
-# 1인칭 (왼손): 평소는 화면 왼쪽 아래에 윗변과 앞면 귀퉁이, 막기는 십자선 아래 조금 왼쪽에 뒷면 (손잡이·끈) 이 보인다.
-# 값은 _views 흉내 그림으로 맞추고 실제 클라이언트로 보았다 [확인 (클라)]
-HEATER_FP = ([10, -35, 10], [-1.76, 0.0, -0.96], 0.62)
-HEATER_FP_BLOCK = ([-40, 65, 120], [-0.53, 4.33, 0.4], 0.62)
 
 # ─────────────────────────── 3.15 오스윈 순례자의 버클러 ───────────────────────────
 # 지름 14 복셀 (0.44 블록), 판 두께 2, 가운데 쇠 징은 세 단 둥근 돔 (지름 8, 6, 4, 앞으로 세 칸). 가죽 씌운 나무 판에 쇠 테,
@@ -380,23 +375,20 @@ def volk_greatshield():
     return w
 
 
-# 버클러는 작아서 조금 더 위·가운데로, 대방패는 커서 아래·왼쪽으로 (막기에서 화면 왼쪽 아래 절반을 가린다)
-BUCKLER_FP = ([10, -35, 10], [-2.56, 1.92, 0.0], 0.8)
-BUCKLER_FP_BLOCK = ([-40, 65, 120], [-0.84, 4.81, 1.24], 0.8)
-GREAT_FP = ([10, -35, 10], [-1.28, 0.96, -1.28], 0.5)
-GREAT_FP_BLOCK = ([-40, 65, 120], [0.66, 3.05, -0.39], 0.5)
+# 방패 손 자세 (SPEC 1.3): 셋 모두 바닐라 방패 (item/shield, 막기 item/shield_blocking) 를 합성한 값. 손잡이 가운데가
+# 바닐라 방패의 손잡이 가운데에 온다. 크기는 모형 그대로 (바닐라 방패 판은 높이 22 픽셀, 경비대 방패 26 복셀 = 13 픽셀)
 
 ITEMS = {
     "pilgrim_buckler": {
         "make": pilgrim_buckler, "kind": "small_shield", "use": "block",
-        "display": C.shield_display(*BUCKLER_FP), "use_display": C.shield_block_display(*BUCKLER_FP_BLOCK),
+        "display": C.shield_display(), "use_display": C.shield_block_display(),
     },
     "volk_greatshield": {
         "make": volk_greatshield, "kind": "greatshield", "use": "block",
-        "display": C.shield_display(*GREAT_FP), "use_display": C.shield_block_display(*GREAT_FP_BLOCK),
+        "display": C.shield_display(), "use_display": C.shield_block_display(),
     },
     "redin_guard_shield": {
         "make": redin_guard_shield, "kind": "shield", "use": "block",
-        "display": C.shield_display(*HEATER_FP), "use_display": C.shield_block_display(*HEATER_FP_BLOCK),
+        "display": C.shield_display(), "use_display": C.shield_block_display(),
     },
 }
