@@ -111,7 +111,8 @@ L.run('origin', async (sc) => {
     conf ? b.dialogId(conf) + ' ' + Object.keys(b.dialogButtons(conf)).join(',') : '창 없음')
   if (conf) {
     const ck = L.deepKeys(conf)
-    sc.check('confirm shows style, stats and the roll key as a keybind (key.sneak)', ck.includes('souls.origin.thief.style') && ck.includes('souls.origin.stats') &&
+    sc.check('confirm shows style, stats table and the roll key as a keybind (key.sneak)', ck.includes('souls.origin.thief.style') &&
+      ck.includes('souls.stat.dex.name.cell') && ck.includes('souls.derived.max-hp.cell') &&
       ck.includes('souls.controls.hint.roll') && JSON.stringify(conf).includes('key.sneak'), ck.filter((k) => k.startsWith('souls.')).join(','))
   }
   d0 = b.p.dialogs.length

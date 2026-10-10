@@ -59,7 +59,7 @@ public final class StatCurves {
      * DECISIONS 2026-10-10). 옛 판의 보정 C (0.8 × 옛 곡선) 를 그대로 옮겼다
      */
     public final Curve strAttack;
-    /** 지능의 술법 세기 몫 (stats.intelligence.spell-power): 술법 세기 = 촉매의 술법 세기 × (1 + 이 값). 모든 촉매에 같다 */
+    /** 지력의 술법 세기 몫 (stats.intelligence.spell-power): 술법 세기 = 촉매의 술법 세기 × (1 + 이 값). 모든 촉매에 같다 */
     public final Curve intSpell;
     public final double defenseBase, defensePerLevel;
     public final Curve maxHealth, vigorDefense;
@@ -92,7 +92,7 @@ public final class StatCurves {
     }
 
     /**
-     * 설계 문서 5.2 의 표 (2026-10-10 판: 장비의 보정 등급을 없애고 근력·민첩·지능 곡선 하나씩. 근력·지능은 옛 보정 C 의 몫
+     * 설계 문서 5.2 의 표 (2026-10-10 판: 장비의 보정 등급을 없애고 근력·민첩·지력 곡선 하나씩. 근력·지력은 옛 보정 C 의 몫
      * (0.8 × 옛 곡선), 민첩 공격 속도는 옛 B 기준 표 그대로 (C 로 맞추면 민첩이 가장 약한 능력치가 되어서, 검토 dex-weakest-stat).
      * config.yml 이 비었을 때 쓴다.
      */

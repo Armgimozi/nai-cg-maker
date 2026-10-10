@@ -38,7 +38,9 @@
               inworld_menu_background
   설명 칸     tooltip/background, tooltip/frame 100×100 (9조각 14, 촛불 기운·두 색 테·귀 꺾쇠), 무기 설명 칸
               souls:tooltip/weapon_* (같은 판에 이름 밑 금빛 마름모 금실. 플러그인이 tooltip_style souls:weapon 을 단다)
-  Dialog      dialog/warning_button(_highlighted, _disabled) 20×20 (작은 옻칠 판과 단조 테, 금빛 "!")
+  Dialog      dialog/warning_button(_highlighted, _disabled) 20×20: 투명 (바닐라가 서버 창마다 제목 옆에 두는 "서버가 띄운 창"
+              안내 단추. 금빛 "!" 상자로 그렸더니 모든 창에 경고가 붙은 것처럼 보였다, DECISIONS 2026-10-10. 누를 자리와 안내 화면은
+              바닐라 그대로)
   그 밖       숨 거품 hud/air*, 효과 표시 (HUD·인벤토리 옆), 알림 toast/*, 제작법 책 (gui/recipe_book.png, recipe_book/*),
               발전 과제 창 (advancements/window.png, 안의 그림은 바닐라 꼴에 색만 팔레트로) — extra_sprites
 
@@ -977,25 +979,6 @@ def text_field(hi):
     return img
 
 
-def warning_button(state):
-    """Dialog 경고 단추 20×20 GUI (고딕 촛불 초안): 작은 옻칠 판과 단조 테 (가리키면 금빛), 가운데 금빛 "!" (창끝 모양)."""
-    img = Img(40, 40)
-    panel(img, 1, 1, 38, 38, alpha={"normal": 0.75, "highlighted": 0.85, "disabled": 0.45}[state],
-          glow=10 if state == "highlighted" else 0, fade=(0.5,))
-    m = Mask(40, 40)
-    m.rect(3, 3, 37, 5)
-    m.rect(3, 35, 37, 37)
-    m.rect(3, 3, 5, 37)
-    m.rect(35, 3, 37, 37)
-    img.over(uidraw.lit(m.cov(), GOLD if state == "highlighted" else IRON))
-    ex = Mask(40, 40)
-    ex.poly([(17.4, 9), (22.6, 9), (21.0, 24), (19.0, 24)])
-    ex.disc(20, 29.5, 2.4)
-    ramp = GOLD if state != "disabled" else ["ink0", "ash1", "ash2", "ash3"]
-    img.over(uidraw.lit(ex.cov(), ramp))
-    return img
-
-
 # ─────────────────────────── 설명 칸 ───────────────────────────
 
 TT = 100            # GUI (텍셀 200)
@@ -1508,9 +1491,11 @@ def build(out):
     # 빈 제작법 책이 열린다 (이 게임의 플레이어는 제작법을 얻지 않는다: Protection 이 막는다)
     written.append(save(clear(20, 18), out, "sprites", "recipe_book", "button.png"))
     written.append(save(clear(20, 18), out, "sprites", "recipe_book", "button_highlighted.png"))
-    for state, fname in (("normal", "warning_button"), ("highlighted", "warning_button_highlighted"),
-                         ("disabled", "warning_button_disabled")):
-        written.append(gsave(warning_button(state), out, "sprites", "dialog", fname + ".png"))
+    # Dialog 제목 옆의 "서버가 띄운 창" 안내 단추: 그림만 지운다 (DECISIONS 2026-10-10 "창 제목 옆의 금색 ! 상자는 숨긴다"). 단추는
+    # 바닐라 그대로 제목 줄에 자리를 차지하고 (플러그인 Glyphs.DIALOG_TITLE_PAD 가 그 몫을 제목 앞에 비워 제목이 가운데에 선다), 가리키면
+    # 안내 글, 누르면 바닐라 안내 화면이 뜬다
+    for fname in ("warning_button", "warning_button_highlighted", "warning_button_disabled"):
+        written.append(save(clear(20, 20), out, "sprites", "dialog", fname + ".png"))
     wd = ("sprites", "widget")
     for hi in (False, True):
         sfx = "_highlighted" if hi else ""
@@ -1988,7 +1973,7 @@ def write_previews(out, preview_dir):
     if z is not None:
         z.close()
 
-    # 단추 (사망 화면 크기 200, 일시정지 화면 크기 98·204), 설명 칸, Dialog 경고 단추, 설정 위젯, 보스 막대
+    # 단추 (사망 화면 크기 200, 일시정지 화면 크기 98·204), 설명 칸, 설정 위젯, 보스 막대 (Dialog 경고 단추는 투명이라 뺐다)
     W2, H2 = 427, 200
     canvas = pv.dusk_scene(W2 * gui, H2 * gui)
     canvas.alpha_composite(pv.death_overlay(W2 * gui, H2 * gui))
@@ -1999,8 +1984,6 @@ def write_previews(out, preview_dir):
     for spr, bw, bh, bx, by, _ in btns:
         small.alpha_composite(nine_slice(_gui(out, "sprites", "widget", spr + ".png", gui_w=200), bw, bh,
                                          BUTTON_SCALING["border"]), (bx, by))
-    for i, st in enumerate(("warning_button", "warning_button_highlighted", "warning_button_disabled")):
-        small.alpha_composite(_gui(out, "sprites", "dialog", st + ".png", gui_w=20), (10 + 24 * i, 120))
     wd = ("sprites", "widget")
     sliders = []
     for i, (hi, val) in enumerate(((False, 0.35), (True, 0.7))):

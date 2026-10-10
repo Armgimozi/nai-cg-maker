@@ -5,7 +5,7 @@
 #  origin.<id>.style (확인 창의 한 줄), origin.<id>.kit (출신 창의 짧은 아이템 글).
 #
 #  order   출신 창의 차례
-#  stats   체력 vig · 정신 mnd · 기력 end · 근력 str · 민첩 dex · 지능 int (각 1..99). 레벨 = 합 − 59 (적지 않고 셈한다).
+#  stats   생명력 vig · 정신력 mnd · 지구력 end · 근력 str · 민첩 dex · 지력 int (각 1..99). 레벨 = 합 − 59 (적지 않고 셈한다).
 #          합이 60 보다 작거나 값이 1..99 밖이면 그 출신을 빼고 서버 기록에 경고한다
 #  kit     시작 아이템. 차례대로 주고 장부 (프로필 kit.given) 에 "종류:id" 로 적는다. 한 번 준 것은 다시 주지 않는다.
 #            weapon: <weapons.yml 의 id>   무기·방패·활·촉매

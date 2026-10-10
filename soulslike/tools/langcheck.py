@@ -71,10 +71,12 @@ SLOT_PX = {
     "container_title": 72,           # 창 제목 (인벤토리의 "제작" 은 x 97 에서 판 안쪽 끝 168 까지, 10.4)
     "container_title_wide": 150,     # 판 왼쪽 (x 8) 에서 시작하는 창 제목 (상자·통·보관함, 판 안쪽 끝 168 까지)
     "boss_name": 200,                # 보스 막대 이름 (막대 왼쪽 끝 위, 늘이기 전 막대 폭 200 안, 10.2)
-    "button150": 140,                # Dialog 단추 폭 150 (레벨 올리기 능력치 단추, 출신 확인 창, 5.9)
+    "button150": 140,                # Dialog 단추 폭 150 (출신 확인 창, 5.10. 레벨 올리기의 되돌린다·올린다는 폭 196 이라 넉넉히 이 폭으로 잰다)
     "button250": 240,                # Dialog 단추 폭 250 (세계를 정한다 창의 난이도 단추, 5.7)
-    "dialog_body300": 284,           # 폭 300 Dialog 본문 (세계를 정한다·레벨 올리기·능력치 창의 표, 5.9. 글이 서는 폭 300 − 16)
-    "dialog_body320": 304,           # 폭 320 Dialog 본문 (출신 창 머리줄과 출신 줄, 5.10. 글이 서는 폭 320 − 16)
+    "dialog_body300": 284,           # 폭 300 Dialog 본문 (세계를 정한다 창, 5.7. 글이 서는 폭 300 − 16)
+    "dialog_body320": 304,           # 폭 320 Dialog 본문 (레벨 올리기·능력치·출신 확인 창의 능력치 표 ui/StatSheet, 5.9. 글이 서는 폭 320 − 16)
+    "dialog_body370": 354,           # 폭 370 Dialog 본문 (출신 창 머리줄과 출신 줄, 5.10. 글이 서는 폭 370 − 16)
+    "button64": 51,                  # 레벨 올리기의 능력치 단추 (폭 64, 글 칸 60 에 플러그인이 붙이는 " +" 9 를 뺀다, 5.9)
     "button_tip": 170,               # Dialog 단추 설명 칸 (클라이언트가 170 에서 줄을 바꾼다: 넘지 않게 쓴다)
     "wrap": None,                    # 채팅·접속 거절·팩 창 (클라이언트가 줄을 바꾼다)
 }
@@ -87,23 +89,23 @@ SLOTS = [
     # 시작 설정·출신·능력치·레벨 올리기 (5.7~5.10)
     ("bonfire.repick-tip", "button_tip"), ("bonfire.levelup", "button160"), ("bonfire.settings", "button160"),
     ("bonfire.stats", "button160"), ("bonfire.repick", "button160"),
-    ("burden.*", "subtitle"), ("controls.hint.*", "dialog_body300"), ("derived.*", "dialog_body300"),
-    ("load.*", "dialog_body300"),
+    ("burden.*", "subtitle"), ("controls.hint.*", "dialog_body320"), ("derived.*", "dialog_body320"),
+    ("load.*", "dialog_body320"), ("table.*", "dialog_body320"),
     ("difficulty.summary", "button_tip"), ("difficulty.*", "button250"),
-    ("levelup.title", "dialog_title"), ("levelup.head", "dialog_body300"), ("levelup.head-idle", "dialog_body300"), ("levelup.cancel", "button200"),
-    ("levelup.tip", "button_tip"), ("levelup.next", "button_tip"), ("levelup.burn", "button_tip"), ("levelup.short", "button_tip"), ("levelup.later", "button_tip"),
+    ("levelup.title", "dialog_title"), ("levelup.cancel", "button200"),
+    ("levelup.tip", "button_tip"), ("levelup.burn", "button_tip"), ("levelup.short", "button_tip"), ("levelup.later", "button_tip"),
     ("levelup.load*", "button_tip"), ("levelup.*", "button150"),
     ("origin.later", "button200"), ("origin.choose", "button150"), ("origin.back", "button150"), ("origin.none", "subtitle"),
     ("origin.none-hint*", "subtitle"), ("origin.confirm-title", "dialog_title"),
-    ("origin.head-*", "dialog_body320"), ("origin.*.name", "dialog_title"), ("origin.*.desc", "button_tip"),
-    ("origin.*.kit", "dialog_body320"), ("origin.*", "dialog_body300"),
+    ("origin.head-*", "dialog_body370"), ("origin.*.name", "dialog_title"), ("origin.*.desc", "button_tip"),
+    ("origin.*.kit", "dialog_body370"), ("origin.*", "dialog_body320"),
     ("pvp.*", "subtitle"),
     ("start.title", "dialog_title"), ("start.body", "dialog_body300"), ("start.pvp-hit", "dialog_body300"),
     ("start.pvp-sweep", "dialog_body300"), ("start.pvp", "button250"), ("start.choice*", "button250"), ("start.later", "button250"),
     ("start.later-tip", "button_tip"), ("start.already-set", "wrap"),
     ("start.changed", "wrap"), ("start.provisional-chat", "wrap"), ("start.*", "subtitle"),
-    ("stat.*.name", "button150"), ("stat.*.short", "dialog_body300"), ("stat.*.tag", "dialog_body300"),
-    ("stats.title", "dialog_title"), ("stats.close", "button200"), ("stats.*", "dialog_body300"),
+    ("stat.*.name", "button64"), ("stat.*.short", "dialog_body370"),
+    ("stats.title", "dialog_title"), ("stats.close", "button200"), ("stats.*", "dialog_body320"),
     ("bonfire.status", "dialog_body"), ("bonfire.no-warp", "dialog_body"), ("spell.no-slot", "dialog_body"),
     ("hud.*", "actionbar"),
     ("item.*", "tooltip"), ("weapon.*", "tooltip"), ("test.*", "tooltip"), ("skill.*", "tooltip"), ("ring.*", "tooltip"),

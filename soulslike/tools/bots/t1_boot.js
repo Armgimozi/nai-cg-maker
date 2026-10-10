@@ -87,7 +87,7 @@ L.run('t1_boot', async (sc) => {
       if (l.startsWith('[CHECK] FAIL ')) sc.check('check: ' + l.slice(13).split(' ').slice(0, 2).join(' '), false, l)
     }
     sc.check('/souls check FAIL 0', /FAIL 0\s*$/.test(end.plain), end.plain)
-    // 최대 HP 상한 (spigot.yml, 5.2·12.7): 체력 99 의 최대 HP 가 잘리지 않는다
+    // 최대 HP 상한 (spigot.yml, 5.2·12.7): 생명력 99 의 최대 HP 가 잘리지 않는다
     const cap = lines.find((l) => /max health cap/.test(l))
     sc.check('max health cap fits vigor 99 (server/spigot.yml)', cap && cap.startsWith('[CHECK] OK '), cap || '줄 없음')
     for (const l of lines.filter((x) => x.startsWith('[CHECK] OK '))) sc.note(l)

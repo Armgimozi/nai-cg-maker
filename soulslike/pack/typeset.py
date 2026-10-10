@@ -85,20 +85,23 @@ VALUE_CHARS = "0123456789.-%+/→×–, "   # 무기 수치 표와 Dialog 표의
 # 폭이 같고 값 (숫자) 을 플러그인이 고정 열에 오른쪽 맞춤하면 모든 줄의 폭이 같아 열이 위아래로 선다.
 #   (열쇠 꼴들, 갈래, 맞춤 left|right, 폭: ("gap", n) = 가장 긴 것 + n, ("fixed", n) = n 고정 (넘으면 오류))
 CELLS = (
-    (("derived.*",), "cell", "left", ("gap", 6)),            # 값 표의 이름 (능력치 창·레벨 올리기 창)
+    (("derived.*",), "cell", "left", ("gap", 8)),            # 능력치 표 오른쪽 열의 이름 (능력치 창·레벨 올리기 창·출신 확인 창, ui/StatSheet)
+    (("table.*", "stat.*.name"), "cell", "left", ("gap", 8)),  # 능력치 표 왼쪽 열의 이름 (레벨·보유 소울·필요 소울·출신과 능력치 여섯)
     (("origin.*.name", "origin.head-name"), "cell", "left", ("gap", 6)),   # 출신 창의 이름 칸 (머리줄 origin.head-name 도 같은 무리)
     (("origin.*.kit", "origin.head-kit"), "cell", "left", ("gap", 0)),     # 출신 창의 시작 아이템 칸 (머리줄 origin.head-kit 도)
-    (("stat.*.short", "origin.head-level"), "rcell", "right", ("fixed", 24)),   # 출신 창 머리줄의 능력치·레벨 (ui/Columns.STAT_COL)
-    (("stat.*.tag",), "cell", "left", ("gap", 4)),            # 값 표 줄 맨 앞의 능력치 한 글자 (체·정·기 …, VIG MND …)
+    (("stat.*.short", "origin.head-level"), "rcell", "right", ("fixed", 30)),   # 출신 창 머리줄의 능력치·레벨 (ui/Columns.STAT_COL)
+    (("stats.no-origin", "origin.*.name"), "rcell", "right", ("fixed", 84)),    # 능력치 창 왼쪽 열의 출신 값 (ui/StatSheet.LEFT_VALUE)
+    (("load.*",), "rcell", "right", ("fixed", 64)),          # 능력치 창 오른쪽 열의 무게 단계 (장비 중량 밑, ui/Columns.VALUE)
 )
 # 칸을 이은 한 줄이 Dialog 본문에 한 줄로 서는가 (검토 뒤 실제 클라이언트에서 영어 값 표 줄이 둘로 꺾였다). 바닐라의 plain_message 는
-# FocusableTextWidget (안쪽 여백 4) 이라 글이 서는 폭이 본문 폭 − 16 이다: 본문 300 → 284, 320 → 304. 숫자 칸은 플러그인 ui/Columns 의
-# 상수와 같다 (VALUE 64, GAP 12, STAT_COL 24, KIT_GAP 8). 넘으면 팩 만들기가 멈춘다 (그 언어의 이름을 줄인다).
+# FocusableTextWidget (안쪽 여백 4) 이라 글이 서는 폭이 본문 폭 − 16 이다: 본문 320 → 304, 370 → 354. 숫자 칸은 플러그인의
+# 상수와 같다 (ui/StatSheet: LEFT_VALUE 84, GAP 24, WIDTH 320. ui/Columns: VALUE 64, STAT_COL 30, KIT_GAP 8. ui/OriginDialog.WIDTH 370).
+# 넘으면 팩 만들기가 멈춘다 (그 언어의 이름을 줄인다).
 #   (이름, [CELLS 의 첫 꼴 (그 무리의 칸 폭) 또는 고정 폭 (정수)], 한도)
 BODY_PAD = 16
 ROWS = (
-    ("값 표 줄 (ui/Columns.row, 레벨 올리기·능력치 창)", ("stat.*.tag", "derived.*", 64, 12, "derived.*", 64), 300 - BODY_PAD),
-    ("출신 머리줄·출신 줄 (ui/OriginDialog)", ("origin.*.name", 24 * 7, 8, "origin.*.kit"), 320 - BODY_PAD),
+    ("능력치 표 줄 (ui/StatSheet, 레벨 올리기·능력치·출신 확인 창)", ("table.*", 84, 24, "derived.*", 64), 320 - BODY_PAD),
+    ("출신 머리줄·출신 줄 (ui/OriginDialog)", ("origin.*.name", 30 * 7, 8, "origin.*.kit"), 370 - BODY_PAD),
 )
 
 LEGACY = re.compile("§.")

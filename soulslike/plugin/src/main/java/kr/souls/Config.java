@@ -358,7 +358,7 @@ public final class Config {
         return Collections.unmodifiableMap(read.isEmpty() ? out : read);
     }
 
-    /** stats.* (5.2). 최대 스태미나는 combat.stamina.curve 하나만 쓴다 (기력). */
+    /** stats.* (5.2). 최대 스태미나는 combat.stamina.curve 하나만 쓴다 (지구력). */
     private static StatCurves statCurves(FileConfiguration c, TreeMap<Integer, Double> stamina) {
         StatCurves d = StatCurves.defaults();
         Map<Integer, Integer> slots = new TreeMap<>();

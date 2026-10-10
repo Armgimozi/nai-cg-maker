@@ -286,9 +286,7 @@ origin:
   # 확인 창
   choose: "<#d1c3a0>이 출신으로"
   back: "<#d1c3a0>돌아간다"
-  stats: "<#b3a37f>레벨 <level> · 최대 HP <hp> · 마나 <mana> · 스태미나 <stamina>"
-  attack: "<#b3a37f><weapon> 공격력 <attack>"
-  attack-2h: "<#b3a37f><weapon> 공격력 <attack> (양손)"
+  # 확인 창의 능력치 표 (왼쪽 능력치 여섯, 오른쪽 최대 HP·마나·스태미나·장비 중량·공격력·방어력) 는 stat.*·derived.* 칸으로 짠다
   no-rites: "<#8f8164>술법은 아직 익히지 못했다"
   # 확인 창의 제목 (제목 글꼴, 밑에 금실: 팩이 출신마다 origin.confirm-title.<id> 로 짠다)
   confirm-title: "<#d1c3a0><font:souls:title><name>"
@@ -376,35 +374,39 @@ pvp:
   "off": "<#b3a37f>PvP 끔"
 
 stat:
-  # 능력치 여섯 (5.2). name 은 레벨 올리기 단추와 표, short 는 출신 창의 머리줄과 능력치 한 줄,
-  # tag 는 값 표 줄 맨 앞의 한 글자 (그 줄의 두 값이 어느 능력치에서 오는지, 검토 levelup-row-mapping)
+  # 능력치 여섯 (5.2, DECISIONS 2026-10-10: 생명력·정신력·지구력·근력·민첩·지력). name 은 레벨 올리기·능력치·출신 확인 창의 능력치
+  # 목록 (왼쪽 열, 팩이 table.* 와 같은 폭으로 채운 칸) 과 레벨 올리기의 "+" 단추, short 는 출신 창의 머리줄 (오른쪽 맞춤 칸).
+  # 한국어는 줄이지 않는다 (short 도 같은 이름)
   vig:
-    name: "<#d1c3a0>체력"
-    short: "<#858079>체력"
-    tag: "<#9e7c44>체"
+    name: "<#d1c3a0>생명력"
+    short: "<#858079>생명력"
   mnd:
-    name: "<#d1c3a0>정신"
-    short: "<#858079>정신"
-    tag: "<#9e7c44>정"
+    name: "<#d1c3a0>정신력"
+    short: "<#858079>정신력"
   end:
-    name: "<#d1c3a0>기력"
-    short: "<#858079>기력"
-    tag: "<#9e7c44>기"
+    name: "<#d1c3a0>지구력"
+    short: "<#858079>지구력"
   str:
     name: "<#d1c3a0>근력"
     short: "<#858079>근력"
-    tag: "<#9e7c44>근"
   dex:
     name: "<#d1c3a0>민첩"
     short: "<#858079>민첩"
-    tag: "<#9e7c44>민"
   int:
-    name: "<#d1c3a0>지능"
-    short: "<#858079>지능"
-    tag: "<#9e7c44>지"
+    name: "<#d1c3a0>지력"
+    short: "<#858079>지력"
+
+table:
+  # 레벨 올리기·능력치 창의 왼쪽 열 머리 (5.9): 이름 왼쪽, 값 오른쪽. 팩이 stat.*.name 과 같은 폭으로 채운다 (table.*.cell).
+  # blank 는 빈 칸 (왼쪽 열이 비는 줄): 글이 없고 폭만 있다
+  level: "<#858079>레벨"
+  held: "<#858079>보유 소울"
+  need: "<#858079>필요 소울"
+  origin: "<#858079>출신"
+  blank: ""
 
 derived:
-  # 능력치 창·레벨 올리기 창의 값 표 (5.9). 팩이 그 언어의 가장 긴 이름 폭까지 채워 칸을 맞춘다 (derived.*.cell)
+  # 레벨 올리기·능력치 창의 오른쪽 열 (5.9). 팩이 그 언어의 가장 긴 이름 폭까지 채워 칸을 맞춘다 (derived.*.cell). blank 는 빈 칸
   max-hp: "<#858079>최대 HP"
   defense: "<#858079>방어력"
   max-mana: "<#858079>최대 마나"
@@ -413,11 +415,13 @@ derived:
   regen: "<#858079>스태미나 회복"
   attack: "<#858079>공격력"
   attack-2h: "<#858079>공격력 (양손)"
-  load-cap: "<#858079>무게 한도"
+  # 장비 무게 / 한도 ("4.5 / 40.0")
+  load: "<#858079>장비 중량"
   move: "<#858079>이동 속도"
   attack-speed: "<#858079>공격 속도"
   spell: "<#858079>술법 세기"
   ailment: "<#858079>상태 이상 저항"
+  blank: ""
 
 load:
   # 장비 무게 단계 (5.8)
@@ -436,34 +440,26 @@ burden:
 levelup:
   # 레벨 올리기 창 (5.9)
   title: "<#d1c3a0><font:souls:title>레벨 올리기"
-  head: "<#b3a37f>레벨 <from> → <to> · 가진 소울 <held> · 필요한 소울 <cost>"
-  # 더한 점이 없을 때의 머리줄: 다음 레벨 비용 (검토 levelup-next-cost-hidden)
-  head-idle: "<#b3a37f>레벨 <level> · 가진 소울 <held> · 다음 레벨 <next> 소울"
-  # 능력치 단추 (폭 150). <value> 는 "15" 또는 "15 → 17". 뒤의 "+" 는 플러그인이 붙인다 (소울이 모자라면 흐리게)
-  plus: "<#d1c3a0><stat> <value>"
+  # 본문은 표 (5.9): 왼쪽 열 레벨·보유 소울·필요 소울 (table.*) 과 능력치 여섯 (stat.*.name), 오른쪽 열 derived.*.
+  # 능력치 단추 (폭 64, 한 줄에 여섯) 는 능력치 이름 (stat.*.name) 뒤에 플러그인이 "+" 를 붙인다 (소울이 모자라면 흐리게)
   undo: "<#d1c3a0>되돌린다"
   confirm: "<#d1c3a0>올린다"
   cancel: "<#d1c3a0>그만둔다"
-  # 능력치 단추의 설명 칸: 그 능력치의 두 효과를 한 점 더했을 때, 다음 한 점의 비용
+  # 능력치 단추의 설명 칸: 그 능력치의 두 효과를 한 점 더했을 때 (다음 한 점의 비용은 표의 필요 소울)
   tip: "<#b3a37f><first> <firstv>\n<second> <secondv>"
-  next: "<#8f8164>다음 한 점 <cost> 소울"
   short: "<#8f8164>소울이 모자라다"
   # 아직 듣지 않는 값 (술법이 생기는 M5 전의 최대 마나·술법 세기, 흐리게). <what> 은 그 값의 이름 (derived.*)
   later: "<#6b5f4a><what> · 아직 듣지 않는다"
-  # 근력 단추의 셋째 줄: 지금 장비 무게와 무게 단계 (한 점 더하면 바뀌면 화살표)
-  load: "<#8f8164>장비 무게 <weight> · <tier>"
-  load-change: "<#8f8164>장비 무게 <weight> · <from> → <to>"
-  # 지능의 상태 이상 저항을 길이로 (불에 타는 3초가 몇 초가 되나. 같으면 보이지 않는다)
+  # 근력 단추의 셋째 줄: 한 점 더해 무게 단계가 바뀔 때만 (둘째 줄이 "장비 중량 4.5 / 40.0 → 41.4")
+  load-change: "<#8f8164><from> → <to>"
+  # 지력의 상태 이상 저항을 길이로 (불에 타는 3초가 몇 초가 되나. 같으면 보이지 않는다)
   burn: "<#8f8164>불에 타는 시간 <from>초 → <to>초"
 
 stats:
   # 능력치 창 (5.9, /stats)
   title: "<#d1c3a0><font:souls:title>능력치"
-  head: "<#b3a37f>레벨 <level> · 소울 <souls> · <origin>"
+  # 본문은 레벨 올리기 창과 같은 표 (왼쪽 출신·레벨·보유 소울과 능력치 여섯, 오른쪽 derived.* 와 장비 중량 밑의 무게 단계)
   no-origin: "<#858079>출신 없음"
-  pair: "<#b3a37f><stat> <value>"
-  sep: "<#6b5f4a> · "
-  load: "<#b3a37f>장비 무게 <weight> / <cap> · <tier>"
   burn: "<#8f8164>불에 타는 시간 <from>초 → <to>초"
   close: "<#d1c3a0>닫는다"
 

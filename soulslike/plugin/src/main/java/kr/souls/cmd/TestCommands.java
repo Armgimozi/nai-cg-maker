@@ -73,7 +73,7 @@ import java.util.Locale;
  *   pvphit <이름> [피해]              그 사람을 원인이 나인 generic 피해로 때린다 (PvP 길, 스킬 피해처럼 HP 단위). [T] PVPHIT dealt= ...
  *   pvpshoot <이름> <arrow|snowball|potion|cloud|harm>   그 사람에게 쏜 사람이 나인 투사체·구름 (harm: 즉시 피해 잔류 구름). [T] PVPSHOOT kind=
  *   foehp spawn|check|hurt|clear     시험 좀비 (움직이지 않는다) 를 2칸 앞에 / 지금 값 / 체력 절반으로 / 지운다. [T] FOEHP n= hp=체력/최대,… mult=
- *   effect <효과> <틱>                 나에게 해로운 효과 (지능의 상태 이상 저항 시험). [T] AILMENT ... 와 EFFECT have=
+ *   effect <효과> <틱>                 나에게 해로운 효과 (지력의 상태 이상 저항 시험). [T] AILMENT ... 와 EFFECT have=
  *   burn <틱>                         나에게 불붙음 (불붙이는 이벤트를 지나 저항으로 줄인다). [T] BURN fire=
  *   tap                              마지막 짧은 누름 판정 ([T] ROLL_TAP ... / ROLL_TAP_SKIP ...)
  *   press <창> <단추>                 열린 우리 창의 단추를 누른 것과 같다 (창 이름: settings, origin, origin_confirm, levelup, stats, rest)
@@ -433,7 +433,7 @@ public final class TestCommands {
 
     private static void stamina(Souls plugin, Player p) {
         CombatState st = CombatState.of(p);
-        // rate: 지금 틱당 회복 (Stamina.tick 의 셈: 기본 × 기력 × 장비 무게 × 반지, 막는 중 배율은 빼고)
+        // rate: 지금 틱당 회복 (Stamina.tick 의 셈: 기본 × 지구력 × 장비 무게 × 반지, 막는 중 배율은 빼고)
         double rate = plugin.cfg().stamina.regenPerTick() * plugin.cfg().stats.regenScale.at(plugin.stamina().endurance(p))
                 * plugin.load().regen(p) * plugin.ringSlots().staminaRegen(p);
         plugin.test(p, String.format(Locale.ROOT, "STAMINA cur=%.2f max=%.1f ratio=%.4f exhausted=%s food=%d sprinting=%s regenFrom=%d t=%d rate=%.4f",

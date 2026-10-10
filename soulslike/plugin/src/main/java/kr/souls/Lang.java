@@ -277,10 +277,12 @@ public final class Lang {
      */
     private static final String[][] CELL_GROUPS = {
             {"cell", "derived.*"},
-            {"cell", "stat.*.tag"},
+            {"cell", "table.*", "stat.*.name"},
             {"cell", "origin.*.name", "origin.head-name"},
             {"cell", "origin.*.kit", "origin.head-kit"},
             {"rcell", "stat.*.short", "origin.head-level"},
+            {"rcell", "stats.no-origin", "origin.*.name"},
+            {"rcell", "load.*"},
     };
 
     /** 팩이 더하는 칸 열쇠 (souls. 없이): 자리가 없는 열쇠 가운데 CELL_GROUPS 의 꼴에 맞는 것의 열쇠.cell / 열쇠.rcell. */

@@ -71,8 +71,8 @@ class DamageCalcTest {
     void spellPower() {
         DamageCalc.Arms pot = new DamageCalc.Arms(0, 100), other = new DamageCalc.Arms(0, 80);
         assertEquals(100 * (1 + c.intSpell.at(16)), DamageCalc.spellPower(c, pot, 16), 1e-9);
-        assertEquals(121, Math.round(DamageCalc.spellPower(c, pot, 16)), "마법사 (지능 16) 의 쇠단지: 옛 판과 같다");
-        assertEquals(100, DamageCalc.spellPower(c, pot, 1), 1e-9, "지능 1 도 깎이지 않는다 (요구 능력치 없음)");
+        assertEquals(121, Math.round(DamageCalc.spellPower(c, pot, 16)), "마법사 (지력 16) 의 쇠단지: 옛 판과 같다");
+        assertEquals(100, DamageCalc.spellPower(c, pot, 1), 1e-9, "지력 1 도 깎이지 않는다 (요구 능력치 없음)");
         assertEquals(DamageCalc.spellPower(c, pot, 30) / 100, DamageCalc.spellPower(c, other, 30) / 80, 1e-12, "모든 촉매에 같은 비율");
         assertEquals(0, DamageCalc.spellPower(c, DamageCalc.Arms.BARE, 40), 1e-9);
     }

@@ -16,7 +16,7 @@
 #              tooltip_test_parry         시험 반지: 효과 줄 "패링 창 +0.10초", 실선, 설명 (무게가 없어 무게 줄도 없다)
 #   levelup  레벨 올리기 창 (5.9): 근력 +3 (levelup_str: 공격력 a → b) 과 근력 단추의 설명 칸 (levelup_str_tip),
 #            민첩 +10 (levelup_dex: 공격 속도 0% → +10%) 과 민첩 단추 (levelup_dex_tip),
-#            왼손에 쇠단지를 들고 지능 +10 (levelup_int: 술법 세기 110 → 128) 과 지능 단추 (levelup_int_tip)
+#            왼손에 쇠단지를 들고 지력 +10 (levelup_int: 술법 세기 110 → 128) 과 지력 단추 (levelup_int_tip)
 #   stats    능력치 창 (5.9): 왼손 쇠단지 (stats_dialog: 공격력 한손 68, 술법 세기 110)
 # 시험 줄이 그림에 남지 않게 MC_OPTIONS="chatScale:0.0" 로 켠 클라이언트에서 찍는다. 영어는 MC_LANG=en_us 와 SUFFIX=_en.
 # 근력 단추의 화면 높이는 TIP_Y (기본: 1080 이면 704, 720 이면 459. 창 본문이 위에서부터 놓여 화면 높이에 따라 단추 줄이 옮겨 간다:
@@ -107,7 +107,7 @@ if want levelup; then
   lv dex 10 dex $((CX - 75*G)) $ROW2
 fi
 if want levelup || want stats; then
-  # 지능·능력치 창은 왼손에 쇠단지 (촉매는 왼손, 3.12.4): 술법 세기가 보인다
+  # 지력·능력치 창은 왼손에 쇠단지 (촉매는 왼손, 3.12.4): 술법 세기가 보인다
   tst press rest leave 2>/dev/null
   do_ wait:1 key:Escape wait:0.5 "cmd:/soulstest give kiln_pot off" wait:1 clearchat wait:0.5
   tst rest

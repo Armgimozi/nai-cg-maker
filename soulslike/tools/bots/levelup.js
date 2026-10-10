@@ -1,10 +1,10 @@
 // 레벨 올리기 (5.3, 5.9), 능력치 창, 능력치가 바꾸는 것 (5.2, 5.8). 봇은 빈털터리 (레벨 1, 모두 10) 로 태어난다.
 //   1. 휴식 창 → "레벨 올리기" → 창 (능력치 여섯 + 되돌린다 + 올린다, 나가기 그만둔다). 단추를 누를 때마다 새 창 (새 값, 새 표식).
-//   2. 체력 + 세 번 (비용 320 + 340 + 360), 되돌린다 한 번, 올린다: 레벨 3, 소울 −660, 최대 HP 454, 하트는 그대로 10개.
+//   2. 생명력 + 세 번 (비용 320 + 340 + 360), 되돌린다 한 번, 올린다: 레벨 3, 소울 −660, 최대 HP 454, 하트는 그대로 10개.
 //      지난 창의 단추는 버린다 (UI_STALE). 소울이 모자라면 더하지 않는다 (LEVELUP_PLUS_DENY why=souls).
 //   3. 창이 떠 있는 동안 짧은 누름은 구르지 않는다 (why=dialog). 쉬는 중에 맞으면 창이 닫힌다 (REST interrupted).
 //   4. 능력치 창 (휴식 창 "능력치", /stats): 값 표와 STATS 줄이 같은 수를 낸다.
-//   5. 민첩 → 이동 속도 수정자, 지능 → 해로운 효과·불붙음 길이가 준다 (AILMENT), 기력 → 최대 스태미나.
+//   5. 민첩 → 이동 속도 수정자, 지력 → 해로운 효과·불붙음 길이가 준다 (AILMENT), 지구력 → 최대 스태미나.
 //   6. 장비 무게 (5.8): 무기를 잔뜩 들면 무게 단계가 오르고 구르기 종류가 따라간다 (너무 무거움 = 뒷걸음, 달리기 없음).
 'use strict'
 const L = require('./lib')
@@ -34,8 +34,13 @@ L.run('levelup', async (sc) => {
   sc.check('LEVELUP open level=1 souls=5000', op && op.kv.level === '1' && op.kv.souls === '5000', op ? op.line : '줄 없음')
   if (raw) {
     const k = L.deepKeys(raw)
-    sc.check('value table uses derived.*.cell and tooltips show the next point', k.includes('souls.derived.max-hp.cell') && k.includes('souls.levelup.tip') && k.includes('souls.levelup.next'),
-      k.filter((x) => x.startsWith('souls.')).slice(0, 10).join(','))
+    // 다크 소울 꼴 표 (5.9, DECISIONS 2026-10-10): 왼쪽 레벨·보유 소울·필요 소울과 능력치 여섯 (이름 칸), 오른쪽 나온 값. 한 글자 열
+    // (stat.*.tag) 은 없다
+    sc.check('level-up table: left column (level, souls held/needed, six stats), right column derived values, no one-letter tags',
+      ['souls.table.level.cell', 'souls.table.held.cell', 'souls.table.need.cell', 'souls.stat.vig.name.cell', 'souls.stat.int.name.cell',
+        'souls.derived.max-hp.cell', 'souls.derived.load.cell', 'souls.levelup.tip'].every((x) => k.includes(x)) &&
+        !k.some((x) => /^souls\.stat\.[a-z]+\.tag/.test(x)),
+      k.filter((x) => x.startsWith('souls.')).slice(0, 12).join(','))
   }
 
   // ── 창이 떠 있는 동안 짧은 누름 ──
@@ -44,7 +49,7 @@ L.run('levelup', async (sc) => {
   const sk = await b.waitT('ROLL_TAP_SKIP', 1500, from)
   sc.check('sneak tap while the level-up dialog is open does not roll (why=dialog)', sk && sk.kv.why === 'dialog' && !b.tLines('ROLL ', from).length, sk ? sk.line : '줄 없음')
 
-  // ── 체력 + 세 번, 되돌린다, 올린다 ──
+  // ── 생명력 + 세 번, 되돌린다, 올린다 ──
   const costs = []
   for (let i = 0; i < 3; i++) {
     d = b.p.dialogs.length
@@ -96,7 +101,12 @@ L.run('levelup', async (sc) => {
   const sd = await b.waitDialog(d, 3000)
   const sl = await b.waitT('STATS ', 2000, from)
   sc.check('stats dialog opens from the rest menu and logs the same numbers', sd && sl && sl.kv.hp === '454' && sl.kv.level === '3' && sl.kv.vig === '12', sl ? sl.line : '줄 없음')
-  if (sd) sc.check('stats dialog: derived table + load line', L.deepKeys(sd).includes('souls.derived.defense.cell') && L.deepKeys(sd).includes('souls.stats.load'))
+  if (sd) {
+    const sk = L.deepKeys(sd)
+    sc.check('stats dialog: same table (origin, level, souls, six stats | derived values, load tier under equip load)',
+      ['souls.table.origin.cell', 'souls.table.held.cell', 'souls.stat.vig.name.cell', 'souls.derived.defense.cell', 'souls.derived.load.cell'].every((x) => sk.includes(x)) &&
+        sk.some((x) => /^souls\.load\.[a-z]+\.rcell$/.test(x)), sk.filter((x) => x.startsWith('souls.')).slice(0, 12).join(','))
+  }
   if (sd) b.clickDialog('exit', {}, sd)
   await L.sleep(300)
   const cmdStats = await b.cmd('/stats', 'STATS ', 3000)
@@ -114,7 +124,7 @@ L.run('levelup', async (sc) => {
   sc.check('a hit while resting closes the dialog (REST interrupted)', intr && ui.kv && ui.kv.open === 'null', (intr ? intr.line : '줄 없음') + ' | ' + (ui.line || ''))
   await b.cmd('/soulstest heal', 'HEAL')
 
-  // ── 민첩·지능·기력 ──
+  // ── 민첩·지력·지구력 ──
   const dex = await b.cmd('/soulstest stat dex 40', 'ATTR ')
   sc.checkCmd('dex 40 -> movement speed +10% (attribute modifier souls:lvl_dex)', dex, (r) => Math.abs(L.num(r.kv.move) - 0.10) < 1e-6)
   await b.cmd('/soulstest stat int 40', 'ATTR ')

@@ -1,10 +1,10 @@
 // 능력치 여섯이 바꾸는 둘씩을 실제 값으로 잰다 (5.2, 5.8, 3.2, 3.7, 10.2). 봇은 빈털터리 (모두 10, 레벨 1) 로 태어나고,
 // 능력치는 시험 명령 (/soulstest stat, 레벨업과 같은 AttributeApplier·Load·Stamina.grow 길) 으로 바꾼다. 값마다 5.2 표의
 // 10 / 20 / 30 / 40 / 60 / 99 를 그대로 견준다 (곡선 자체는 JUnit StatCurvesTest 가 본다. 여기서는 게임 안에 실제로 걸리는지).
-//   체력  최대 HP: 서버 (INFO maxhp) 와 클라이언트가 받은 속성 (max_health 값, souls:lvl_vig 수정자 하나), 하트는 늘 10 (scale 20),
-//         HUD HP 막대 길이 (최대 HP × 0.17). 방어력: STATS def = 20 + 0.4 × 레벨 + 체력 몫, 적의 한 대가 실제로 그만큼 준다.
-//   정신  최대 마나 (STATS mana, HUD 마나 막대 길이 = × 0.8), 기억 칸. 마법 저항: STATS mres, 술 피해 (souls:magic) 가 그만큼 준다.
-//   기력  최대 스태미나 (STAMINA max, HUD 막대 × 0.65), 회복: 스태미나를 비운 뒤 두 번 읽어 틱당 회복을 잰다 (2.2 × 기력 배율 × 무게).
+//   생명력  최대 HP: 서버 (INFO maxhp) 와 클라이언트가 받은 속성 (max_health 값, souls:lvl_vig 수정자 하나), 하트는 늘 10 (scale 20),
+//         HUD HP 막대 길이 (최대 HP × 0.17). 방어력: STATS def = 20 + 0.4 × 레벨 + 생명력 몫, 적의 한 대가 실제로 그만큼 준다.
+//   정신력  최대 마나 (STATS mana, HUD 마나 막대 길이 = × 0.8), 기억 칸. 마법 저항: STATS mres, 술 피해 (souls:magic) 가 그만큼 준다.
+//   지구력  최대 스태미나 (STAMINA max, HUD 막대 × 0.65), 회복: 스태미나를 비운 뒤 두 번 읽어 틱당 회복을 잰다 (2.2 × 지구력 배율 × 무게).
 //   근력  공격력 (STATS atk: 곤봉 한손 = 74 × (1 + 근력 몫), 왼손을 비우면 양손 ×1.5. 장비에는 보정이 없어 모든 무기에 같은 몫,
 //         DECISIONS 2026-10-10), 장비 무게 한도 (LOAD cap) 와 단계 (무기를 잔뜩 들면 무거움 →
 //         근력을 올리면 보통: 걷기 속성 ×0.92 → ×1.00, 스태미나 회복 ×0.85 → ×0.95, 구르기 종류, "짐이 가벼워졌다" 알림).
@@ -12,8 +12,8 @@
 //         같다) 가 서버의 attack_speed 속성에 걸린다: 든 무기 분류의 기본 (20 / 한 주기 틱, souls:weapon_speed) × aspd
 //         (souls:lvl_dex). 곤봉 (망치, 18틱) 은 1.111, 단도 (10틱) 는 2.0. 곤봉과 단도의 배율이 같다.
 //   근력  적을 치는 다리 (3.7): 시험 좀비를 곤봉으로 치면 PVE_HIT dealt = 공격력 × (0.2 + 0.8 × 대기²) × 0.09, 근력 40 이 10 보다 세다.
-//   지능  상태 이상 저항: 해로운 효과 길이 (독 200틱 → × (1 − 저항), 10틱 밑이면 걸리지 않는다), 불붙음, 실제 투척 물약 (POTION_SPLASH).
-//         술법 세기: 쇠단지 (술법 세기 100) 를 들면 STATS spell = 100 × (1 + 지능 몫) (요구 능력치가 없어 지능 10 도 깎이지 않는다.
+//   지력  상태 이상 저항: 해로운 효과 길이 (독 200틱 → × (1 − 저항), 10틱 밑이면 걸리지 않는다), 불붙음, 실제 투척 물약 (POTION_SPLASH).
+//         술법 세기: 쇠단지 (술법 세기 100) 를 들면 STATS spell = 100 × (1 + 지력 몫) (요구 능력치가 없어 지력 10 도 깎이지 않는다.
 //         술법은 M5. 지금은 이 배율이 API 값이다).
 // 끝에 모두 10 으로 되돌리고 속성이 처음 값인지 (수정자가 쌓이지 않았는지) 본다.
 'use strict'
@@ -30,7 +30,7 @@ const T = {
   stamina: [100, 130, 150, 165, 180, 200],
   regen: [1.0, 1.15, 1.24, 1.30, 1.36, 1.40],
   cap: [40, 54, 66, 76, 88, 100],
-  // 근력의 공격력 몫 = 지능의 술법 세기 몫 (stats.strength.attack, stats.intelligence.spell-power: 옛 보정 C 와 같은 몫)
+  // 근력의 공격력 몫 = 지력의 술법 세기 몫 (stats.strength.attack, stats.intelligence.spell-power: 옛 보정 C 와 같은 몫)
   bonus: [0.10, 0.28, 0.42, 0.54, 0.64, 0.80],
   move: [0, 0.05, 0.08, 0.10, 0.12, 0.13],
   // 민첩의 공격 속도 몫 (stats.dexterity.attack-speed, 모든 무기에 같다. 옛 B 기준 표 그대로, 검토 dex-weakest-stat)
@@ -83,7 +83,7 @@ L.run('stats_fx', async (sc) => {
   const a0 = attr(b, 'max_health'); const m0 = attr(b, 'movement_speed'); const as0 = attr(b, 'attack_speed')
   sc.note(`처음 속성: max_health ${a0 && a0.value} movement_speed ${m0 && m0.value} attack_speed ${as0 && as0.value}, 받은 속성 ${Object.keys(b.bot.entity.attributes || {}).join(',')}`)
 
-  // ── 체력: 최대 HP + 방어력 ──
+  // ── 생명력: 최대 HP + 방어력 ──
   for (let i = 0; i < PTS.length; i++) {
     const v = PTS[i]
     await stat('vig', v)
@@ -117,7 +117,7 @@ L.run('stats_fx', async (sc) => {
   await stat('vig', 10)
   await b.cmd('/soulstest heal', 'HEAL')
 
-  // ── 정신: 최대 마나 + 마법 저항 ──
+  // ── 정신력: 최대 마나 + 마법 저항 ──
   for (let i = 0; i < PTS.length; i++) {
     const v = PTS[i]
     await stat('mnd', v)
@@ -140,7 +140,7 @@ L.run('stats_fx', async (sc) => {
   }
   await stat('mnd', 10)
 
-  // ── 기력: 최대 스태미나 + 회복 ──
+  // ── 지구력: 최대 스태미나 + 회복 ──
   const regenRate = async () => {
     await b.cmd('/soulstest stamina set 5', 'STAMINA')
     await L.sleep(800) // 회복 지연 12틱 뒤
@@ -273,7 +273,7 @@ L.run('stats_fx', async (sc) => {
   await b.cmd('/soulstest give gaoler_club main', 'GIVE')
   await stat('dex', 10)
 
-  // ── 지능: 상태 이상 저항 + 술 세기 ──
+  // ── 지력: 상태 이상 저항 + 술 세기 ──
   await b.cmd('/soulstest give kiln_pot inv', 'GIVE')
   await L.sleep(300)
   for (let i = 0; i < PTS.length; i++) {
@@ -291,14 +291,14 @@ L.run('stats_fx', async (sc) => {
       Math.abs(L.num(st.kv.spell) - sp) <= 0.51 && Math.abs(L.num(st.kv.ailment) - T.resist[i]) < 1e-3, st.line || '')
     await b.cmd('/effect clear @s', null, 1000)
   }
-  // 지능 99: 아주 짧은 효과는 털어 낸다 (12틱 × 0.65 = 8 < 10)
+  // 지력 99: 아주 짧은 효과는 털어 낸다 (12틱 × 0.65 = 8 < 10)
   {
     const from = b.sys.length
     const ef = await b.cmd('/soulstest effect slowness 12', 'EFFECT ')
     const ail = b.tLines('AILMENT ', from)[0]
     sc.check('intelligence 99: a 12-tick slowness is shaken off (under 10 ticks)', ef.kv && L.num(ef.kv.have) === 0 && ail && ail.kv.to === '0', (ail ? ail.line : '') + ' | ' + (ef.line || ''))
   }
-  // 불붙음과 실제 투척 물약 (지능 40)
+  // 불붙음과 실제 투척 물약 (지력 40)
   await stat('int', 40)
   {
     let from = b.sys.length

@@ -1,7 +1,7 @@
 // 남는 것 (5.3, 5.7, 5.10). run_tests.sh 가 맨 끝 (지연 판 뒤) 에 돌리고, 서버를 다시 켠 뒤 persist_check.js 가 같은 봇으로 본다.
 //   1. 레벨 비용이 5.3 의 식 그대로: 레벨 1 → 2 는 320 (319 면 거절 LEVELUP_PLUS_DENY why=souls), 레벨 40 → 41 은 5,974 (5,973 이면 거절),
 //      한 번에 셋 (41 → 44) 은 차례로 더한 값. "올린다" 가 정확히 그만큼 빼고, 모자라면 아무것도 바꾸지 않는다.
-//   2. 관리자가 출신을 지우고 기사로 고른 뒤 체력 +2, 기력 +1, 정신 +1 (레벨 9 → 13, 480 + 500 + 520 + 623 = 2,123 소울).
+//   2. 관리자가 출신을 지우고 기사로 고른 뒤 생명력 +2, 지구력 +1, 정신력 +1 (레벨 9 → 13, 480 + 500 + 520 + 623 = 2,123 소울).
 //      레벨을 샀으니 휴식 창에 "출신 다시 고르기" 가 없다.
 //   3. 관리자 명령으로 세계 설정을 어려움·PvP 켬으로 (via=command, settings.log, 접속한 사람에게 알림).
 //   4. 다시 켠 뒤 볼 값을 RUN_DIR/persist.json 에 적는다.
@@ -83,7 +83,7 @@ L.run('persist', async (sc) => {
   sc.check(`confirm: level 41 -> 44 for exactly ${three}, purse 0`, c3.kv && c3.kv.from === '41' && c3.kv.to === '44' && L.num(c3.kv.cost) === three && c3.kv.souls === '0', c3.line || '')
   await b.cmd('/soulstest levelup cancel', 'LEVELUP', 1500)
 
-  // ── 기사로 다시: 체력 +2, 기력 +1, 정신 +1 ──
+  // ── 기사로 다시: 생명력 +2, 지구력 +1, 정신력 +1 ──
   let d = b.p.dialogs.length
   await b.cmd('/souls origin reset ' + b.name, 'ORIGIN_RESET', 4000)
   await b.waitDialog(d, 3000)

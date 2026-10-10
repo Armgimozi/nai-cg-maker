@@ -497,7 +497,7 @@ def check_server():
         g.check((bukkit.get("settings") or {}).get("allow-end") is False, "bukkit.yml settings.allow-end 가 false 가 아니다 (12.7)")
         spigot = yaml.safe_load(raw["spigot.yml"].decode("utf-8")) or {}
         cap = (((spigot.get("settings") or {}).get("attribute") or {}).get("maxHealth") or {}).get("max")
-        g.check(isinstance(cap, (int, float)) and cap >= 1500, f"spigot.yml settings.attribute.maxHealth.max={cap} (체력 99 의 최대 HP 1500 이상, 5.2)")
+        g.check(isinstance(cap, (int, float)) and cap >= 1500, f"spigot.yml settings.attribute.maxHealth.max={cap} (생명력 99 의 최대 HP 1500 이상, 5.2)")
         paper = yaml.safe_load(raw["config/paper-global.yml"].decode("utf-8")) or {}
         g.check((paper.get("misc") or {}).get("enable-nether") is False, "config/paper-global.yml misc.enable-nether 가 false 가 아니다")
 

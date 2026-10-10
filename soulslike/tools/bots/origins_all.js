@@ -93,8 +93,9 @@ L.run('origins_all', async (sc) => {
     const ck = conf ? L.deepKeys(conf) : []
     const cj = conf ? JSON.stringify(conf) : ''
     const items = [o.main, o.off, o.hot2, o.bag].filter(Boolean)
-    sc.check(`${id}: confirm dialog shows desc, style, stats line and the kit items`, conf && b.dialogId(conf) === 'origin_confirm' &&
-      ck.includes(`souls.origin.${id}.desc`) && ck.includes(`souls.origin.${id}.style`) && ck.includes('souls.origin.stats') &&
+    sc.check(`${id}: confirm dialog shows desc, style, stats table and the kit items`, conf && b.dialogId(conf) === 'origin_confirm' &&
+      ck.includes(`souls.origin.${id}.desc`) && ck.includes(`souls.origin.${id}.style`) && ck.includes('souls.stat.vig.name.cell') &&
+      ck.includes('souls.derived.max-hp.cell') &&
       items.every((w) => cj.includes(w)), ck.filter((k) => k.startsWith('souls.origin')).join(','))
     let from = b.sys.length
     d = b.p.dialogs.length

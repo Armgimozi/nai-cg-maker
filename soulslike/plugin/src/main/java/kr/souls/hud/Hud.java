@@ -220,7 +220,7 @@ public final class Hud implements Listener {
             fpLen = length(mana.max() * c.warmthPx(), c);
             fpFill = fill(mana.cur(), mana.max(), fpLen);
         } else if (c.warmthPlaceholder() > 0) {
-            // 술이 없는 지금 (M5 전) 은 가득 찬 막대. 길이는 정신의 최대 마나 (5.2, 출신을 고르기 전에는 정신 10 = 60)
+            // 술이 없는 지금 (M5 전) 은 가득 찬 막대. 길이는 정신력의 최대 마나 (5.2, 출신을 고르기 전에는 정신력 10 = 60)
             fpLen = length(plugin.cfg().stats.maxMana.at(plugin.stats().of(p).mnd()) * c.warmthPx(), c);
             fpFill = fpLen;
         }

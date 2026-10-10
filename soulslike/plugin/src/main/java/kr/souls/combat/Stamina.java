@@ -21,7 +21,7 @@ import java.util.TreeMap;
  * 달리기 금지는 허기를 6 으로 내려서 한다. 클라이언트는 허기가 6 이하이면 달리기를 시작하지도 이어가지도 않는다 [확인 (클라)].
  * 허기는 이 체계만 바꾼다 (FoodLevelChangeEvent 는 늘 취소, 평소 20). 장비가 너무 무거울 때 (5.8) 도 여기서 허기 6 으로 둔다
  * (허기를 쓰는 곳은 여기 한 곳, 검토 T13).
- * 최대치는 기력 (5.2, combat.stamina.curve), 회복은 regen-per-tick × 기력 배율 (stats.endurance.regen-scale) × 장비 무게 배율 (load.*.regen)
+ * 최대치는 지구력 (5.2, combat.stamina.curve), 회복은 regen-per-tick × 지구력 배율 (stats.endurance.regen-scale) × 장비 무게 배율 (load.*.regen)
  * × 낀 반지의 회복 배율 (9.4, item/RingSlots: 반지 칸에 낀 동안만).
  * 화면은 Hud 가 왼쪽 위 스태미나 막대 (HUD 보스 막대의 그림 글자) 로 그린다. 여기서는 값만 바꾼다.
  */
@@ -38,7 +38,7 @@ public final class Stamina implements Listener {
         return plugin.cfg().stamina;
     }
 
-    /** 기력 → 최대 스태미나. 표 사이는 직선으로 잇고, 표 밖은 끝값. */
+    /** 지구력 → 최대 스태미나. 표 사이는 직선으로 잇고, 표 밖은 끝값. */
     public static double maxFor(TreeMap<Integer, Double> curve, int endurance) {
         if (curve.isEmpty()) return 100;
         Map.Entry<Integer, Double> lo = curve.floorEntry(endurance), hi = curve.ceilingEntry(endurance);
@@ -49,7 +49,7 @@ public final class Stamina implements Listener {
         return lo.getValue() + (hi.getValue() - lo.getValue()) * t;
     }
 
-    /** 이 플레이어의 기력 (프로필, 5.2. 출신을 고르기 전에는 10). */
+    /** 이 플레이어의 지구력 (프로필, 5.2. 출신을 고르기 전에는 10). */
     public int endurance(Player p) {
         return plugin.stats().of(p).end();
     }

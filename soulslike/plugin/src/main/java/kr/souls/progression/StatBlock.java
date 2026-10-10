@@ -5,7 +5,7 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * 능력치 여섯 (5.2): 체력 vig, 정신 mnd, 기력 end, 근력 str, 민첩 dex, 지능 int. 창·표의 차례도 이것이다 (HUD 막대 셋의 차례 뒤에 공격 셋).
+ * 능력치 여섯 (5.2): 생명력 vig, 정신력 mnd, 지구력 end, 근력 str, 민첩 dex, 지력 int. 창·표의 차례도 이것이다 (HUD 막대 셋의 차례 뒤에 공격 셋).
  * 레벨 = 합 − 59 (여섯이 모두 10 이면 레벨 1). 값은 1..99. 바꿀 수 없는 값이다 (with 가 새 값을 만든다).
  */
 public record StatBlock(int vig, int mnd, int end, int str, int dex, int intel) {

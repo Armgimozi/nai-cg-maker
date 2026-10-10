@@ -304,7 +304,7 @@ public final class Souls extends JavaPlugin {
      */
     private void warnLegacyConfig() {
         if (cfg.legacy.isEmpty()) return;
-        getLogger().warning("config.yml 의 예전 열쇠는 읽지 않는다 (장비에는 보정·요구 능력치가 없다. 근력·민첩·지능은 모든 장비에 같은 곡선 "
+        getLogger().warning("config.yml 의 예전 열쇠는 읽지 않는다 (장비에는 보정·요구 능력치가 없다. 근력·민첩·지력은 모든 장비에 같은 곡선 "
                 + "stats.strength.attack · stats.dexterity.attack-speed · stats.intelligence.spell-power 로 듣는다): " + String.join(", ", cfg.legacy));
     }
 

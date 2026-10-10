@@ -12,13 +12,23 @@
 
 한국어 (한글이 든 문자열)
   오류  exclaim 느낌표, emoji 이모지, hype 금지어 (전설, 궁극, 압도, 최강, 강력한),
-        explain 설명문체 어미 (습니다, 할 수 있, 입니다)
+        explain 설명문체 어미 (습니다, 할 수 있, 입니다): 이야기·설명 글 (lore, desc … 와 STORY_KEYS) 에만.
+        단추·알림·설정 창·시스템 글은 존댓말 (~합니다, ~하세요) 을 쓴다 (DECISIONS 2026-10-10 "설정 창·시스템 글은 내레이션 없이 존댓말")
   경고  lines 설명(lore, desc, description …)이 4줄 넘음, long 한 줄이 32자 넘음,
         cliche 이름이 "어둠의", "그림자", "빛의" 로 시작, dupname 같은 이름이 두 번 넘게 나옴
+  UI    (단계는 UI_LEVEL: 지금 경고. 글을 다 고치면 "오류" 로 올린다)
+        button-verb 단추 글 (tools/langcheck.py 의 SLOTS 가 단추 폭 button* 으로 정한 열쇠) 이 "-다" 로 끝남 (되돌린다 → 되돌리기)
+        emdash 한국어 글의 줄표 "—" (쉼표·쌍점·괄호를 쓴다)
 영어 (en.yml, en_us.json 의 글)
   오류  exclaim 느낌표, emoji 이모지, hype 과장어 (legendary, ultimate, epic, mighty, powerful …),
-        slang 현대 구어 (okay, cool, gonna, awesome …), explain 설명문체 (you can, allows you, lets you, please …)
+        slang 현대 구어 (okay, cool, gonna, awesome …), explain 설명문체 (you can, allows you, lets you, please …):
+        explain 은 한국어처럼 이야기·설명 글에만
   경고  long 한 줄이 48자 넘음 (폭은 tools/langcheck.py 가 픽셀로 잰다), lines
+  UI    emdash 이야기 글이 아닌 영어 글의 줄표 "—" (UI_LEVEL)
+두 언어 (UI_LEVEL)
+  middot  값·이름을 " · " (띄운 가운뎃점) 으로 잇는 줄 ("레벨 8 · 소울 30,000", "구르기 · Shift"). 이야기 글은 보지 않는다.
+          꼭 써야 하는 열쇠는 ALLOW["middot"] 에 glob 으로 적는다 (무기 분류 줄 "weapon.class.*" 같은 것). 붙여 쓴 "직검·방패" 는 된다
+  ALLOW = {규칙: (열쇠 glob, …)}: UI 규칙을 일부러 어기는 열쇠를 적는 곳 (까닭을 주석으로)
 이름 (lang/names.yml)
   오류  name: ko.yml 의 열쇠에 고유 이름이 있으면 en.yml 의 같은 열쇠에 정한 영어 표기가 있어야 한다 (대소문자 없이 글 안에
         들어 있으면 된다. 목록이면 하나). 이름 앞이 한글이면 이름이 아니다 (돌아오다). 낱말과 소리가 같은 이름 (오다) 은
@@ -62,6 +72,21 @@ EXPLAIN_EN = ("you can", "can be used", "allows you", "lets you", "is able to", 
 
 NAME_KEYS = {"name", "display", "display_name", "title"}
 DESC_KEYS = {"lore", "desc", "description", "flavor", "text", "lines"}
+# 이야기·설명 글 (해라체 단문, explain 금지가 걸리는 곳): 마지막 열쇠가 DESC_KEYS 인 것 (무기·반지·아이템 설명, 출신·스킬 설명) 과
+# 세계 안의 사건 글 (큰 글씨·문 알림·결말). 단추·알림·설정 창·시스템 글은 여기에 넣지 않는다 (존댓말을 쓴다)
+STORY_KEYS = ("ending.*", "bell.*", "taster.*", "door.*", "bonfire.lit", "boss.felled", "souls.recovered", "death.*")
+# 단추·줄표·가운뎃점 규칙의 단계 (경고 → 글을 다 고치면 "오류")
+UI_LEVEL = "경고"
+# UI 규칙을 일부러 어기는 열쇠 (glob). 예: "middot": ("weapon.class.*",)  # 분류 줄 "직검 · 베기/찌르기" 를 그대로 둘 때
+ALLOW = {
+    "middot": (),
+    "button-verb": (),
+    # 무기·반지 설명 칸 실선의 대체 글 (팩이 없을 때만 보인다. 팩은 실선 그림 글자로 바꾼다, pack/typeset.py)
+    "emdash": ("weapon.rule", "ring.rule"),
+}
+# 단추 폭 자리 (tools/langcheck.py SLOTS 의 자리 이름): 이 자리의 열쇠가 단추 글이다
+BUTTON_SLOTS = ("button160", "button200", "button150", "button250", "button64")
+MIDDOT_CHAIN = re.compile(r"\S \u00b7 \S|\S \u00b7$|^\u00b7 \S")
 
 EMOJI_RANGES = ((0x1F000, 0x1FAFF), (0x2600, 0x27BF), (0x2300, 0x23FF), (0x2B50, 0x2B55),
                 (0xFE0F, 0xFE0F), (0x200D, 0x200D))
@@ -86,6 +111,14 @@ class Report:
     @property
     def warnings(self):
         return [i for i in self.items if i[0] == "경고"]
+
+    def counts(self):
+        """규칙마다 (오류, 경고) 수."""
+        out = {}
+        for level, _, _, rule, _ in self.items:
+            e, w = out.get(rule, (0, 0))
+            out[rule] = (e + (level == "오류"), w + (level == "경고"))
+        return out
 
     def print(self):
         for level, path, key, rule, msg in self.items:
@@ -129,6 +162,70 @@ def last_key(key):
     return re.sub(r"\[\d+\]$", "", key).split(".")[-1]
 
 
+def lang_key(key):
+    """walk 의 키 ('weapon.x.lore[2]') → 언어 열쇠 ('weapon.x.lore.3', 목록 줄은 1부터)."""
+    m = re.match(r"^(.*)\[(\d+)\]$", key)
+    return f"{m.group(1)}.{int(m.group(2)) + 1}" if m else key
+
+
+def is_story(key):
+    """이야기·설명 글인가 (explain 금지와 UI 규칙을 가르는 곳)."""
+    import fnmatch
+    k = re.sub(r"\[\d+\]$", "", key)
+    return last_key(key) in DESC_KEYS or any(fnmatch.fnmatchcase(k, g) for g in STORY_KEYS)
+
+
+def allowed(rule, key):
+    import fnmatch
+    k = re.sub(r"\[\d+\]$", "", key)
+    return any(fnmatch.fnmatchcase(k, g) for g in ALLOW.get(rule, ()))
+
+
+_SLOT_OF = None
+
+
+def is_button(key):
+    """단추 글인가: tools/langcheck.py 의 SLOTS 가 단추 폭 (BUTTON_SLOTS) 으로 정한 열쇠."""
+    global _SLOT_OF
+    if _SLOT_OF is None:
+        try:
+            sys.path.insert(0, HERE)
+            import langcheck
+            _SLOT_OF = langcheck.slot_of
+        except Exception:
+            _SLOT_OF = lambda k: None
+    return _SLOT_OF(lang_key(key)) in BUTTON_SLOTS
+
+
+PLACEHOLDER = re.compile(r"<[a-z][a-z0-9_-]*>")
+
+
+def ui_text(text):
+    """UI 규칙에서 보는 글: 맨 앞 꼴 태그를 떼고 자리 (<souls>) 는 "0" 으로 둔다 ("소울 <souls> · 레벨" 의 가운뎃점 앞뒤가 비지 않게)."""
+    try:
+        sys.path.insert(0, os.path.join(ROOT, "pack"))
+        import langpack
+        _, body = langpack.split_style(text)
+    except Exception:
+        body = text
+    return FORMAT.sub("0", LEGACY.sub("", TAG.sub("", PLACEHOLDER.sub("0", body))))
+
+
+def check_ui(report, path, key, text, korean):
+    """UI 규칙 (이야기 글이 아닌 것): 가운뎃점 잇기, 줄표, 단추의 "-다"."""
+    if is_story(key):
+        return
+    vis = ui_text(text)
+    if MIDDOT_CHAIN.search(vis) and not allowed("middot", key):
+        report.add(UI_LEVEL, path, key, "middot", f"\" · \" 로 잇는 줄 (칸 맞춤·쉼표·괄호를 쓴다): {vis!r}")
+    if "\u2014" in vis and not allowed("emdash", key):
+        report.add(UI_LEVEL, path, key, "emdash", f"줄표 \"—\" (쉼표·쌍점·괄호를 쓴다): {vis!r}")
+    if korean and HANGUL.search(vis) and is_button(key) and not allowed("button-verb", key):
+        tail = re.sub(r"[\s.)\]0]+$", "", vis)
+        if tail.endswith("다"):
+            report.add(UI_LEVEL, path, key, "button-verb", f"단추 글이 \"-다\" 로 끝남 (명사형: 되돌리기·결정·닫기): {vis!r}")
+
+
 def check_english(report, path, key, text):
     vis = plain(text)
     if any(e in vis for e in EXCLAIM):
@@ -146,9 +243,11 @@ def check_english(report, path, key, text):
         if w in words:
             report.add("오류", path, key, "slang", f"현대 구어 '{w}': {vis!r}")
     low = " ".join(words)
-    for w in EXPLAIN_EN:
-        if re.search(r"\b" + re.escape(w.replace("'", "")) + r"\b", low.replace("'", "")):
-            report.add("오류", path, key, "explain", f"설명문체 '{w}': {vis!r}")
+    if is_story(key):
+        for w in EXPLAIN_EN:
+            if re.search(r"\b" + re.escape(w.replace("'", "")) + r"\b", low.replace("'", "")):
+                report.add("오류", path, key, "explain", f"설명문체 '{w}': {vis!r}")
+    check_ui(report, path, key, text, korean=False)
     for line in vis.split("\n"):
         if len(line) > MAX_LINE_EN:
             report.add("경고", path, key, "long", f"{len(line)}자 (>{MAX_LINE_EN}): {line!r}")
@@ -159,6 +258,7 @@ def check_text(report, path, key, text):
         check_english(report, path, key, text)
         return
     vis = plain(text)
+    check_ui(report, path, key, text, korean=True)   # 자리뿐인 글 ("<name> — <desc>") 도 본다
     if not HANGUL.search(vis):
         return
     if any(e in vis for e in EXCLAIM):
@@ -169,9 +269,10 @@ def check_text(report, path, key, text):
     for w in HYPE:
         if w in vis:
             report.add("오류", path, key, "hype", f"금지어 '{w}': {vis!r}")
-    for w in EXPLAIN:
-        if w in vis:
-            report.add("오류", path, key, "explain", f"설명문체 '{w}': {vis!r}")
+    if is_story(key):
+        for w in EXPLAIN:
+            if w in vis:
+                report.add("오류", path, key, "explain", f"설명문체 '{w}': {vis!r}")
     for line in vis.split("\n"):
         if len(line) > MAX_LINE:
             report.add("경고", path, key, "long", f"{len(line)}자 (>{MAX_LINE}): {line!r}")
@@ -294,7 +395,8 @@ def lint(paths=None, quiet=False):
             report.add("경고", where[0][0], where[0][1], "dupname", f"이름 {name!r} 이 {len(where)}번: {locs}")
     if not quiet:
         report.print()
-        print(f"textlint: 파일 {len(files)}개, 오류 {len(report.errors)}, 경고 {len(report.warnings)}")
+        rules = ", ".join(f"{r} {e + w}" for r, (e, w) in sorted(report.counts().items()))
+        print(f"textlint: 파일 {len(files)}개, 오류 {len(report.errors)}, 경고 {len(report.warnings)}" + (f" ({rules})" if rules else ""))
     return report
 
 

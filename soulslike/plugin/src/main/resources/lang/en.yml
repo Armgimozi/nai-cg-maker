@@ -244,9 +244,6 @@ origin:
   later: "<#d1c3a0>Decide Later"
   choose: "<#d1c3a0>Take This Path"
   back: "<#d1c3a0>Back"
-  stats: "<#b3a37f>Level <level> · Max HP <hp> · Mana <mana> · Stamina <stamina>"
-  attack: "<#b3a37f><weapon>: Attack <attack>"
-  attack-2h: "<#b3a37f><weapon>: Attack <attack> (two hands)"
   no-rites: "<#8f8164>No rite learned yet"
   confirm-title: "<#d1c3a0><font:souls:title><name>"
   none: "<#858079>No past chosen yet"
@@ -324,27 +321,28 @@ stat:
   vig:
     name: "<#d1c3a0>Vigor"
     short: "<#858079>Vig"
-    tag: "<#9e7c44>VIG"
   mnd:
     name: "<#d1c3a0>Mind"
     short: "<#858079>Mnd"
-    tag: "<#9e7c44>MND"
   end:
     name: "<#d1c3a0>Endurance"
     short: "<#858079>End"
-    tag: "<#9e7c44>END"
   str:
     name: "<#d1c3a0>Strength"
     short: "<#858079>Str"
-    tag: "<#9e7c44>STR"
   dex:
     name: "<#d1c3a0>Dexterity"
     short: "<#858079>Dex"
-    tag: "<#9e7c44>DEX"
   int:
     name: "<#d1c3a0>Intelligence"
     short: "<#858079>Int"
-    tag: "<#9e7c44>INT"
+
+table:
+  level: "<#858079>Level"
+  held: "<#858079>Souls Held"
+  need: "<#858079>Souls Needed"
+  origin: "<#858079>Origin"
+  blank: ""
 
 derived:
   max-hp: "<#858079>Max HP"
@@ -355,11 +353,12 @@ derived:
   regen: "<#858079>Stam. Regen"
   attack: "<#858079>Attack"
   attack-2h: "<#858079>Attack (2H)"
-  load-cap: "<#858079>Load Cap"
+  load: "<#858079>Equip Load"
   move: "<#858079>Movement"
   attack-speed: "<#858079>Attack Speed"
   spell: "<#858079>Rite Power"
   ailment: "<#858079>Ailment Res."
+  blank: ""
 
 load:
   light: "<#b3a37f>Light"
@@ -375,27 +374,18 @@ burden:
 
 levelup:
   title: "<#d1c3a0><font:souls:title>Level Up"
-  head: "<#b3a37f>Level <from> → <to> · Souls <held> · Required <cost>"
-  head-idle: "<#b3a37f>Level <level> · Souls <held> · Next level <next>"
-  plus: "<#d1c3a0><stat> <value>"
   undo: "<#d1c3a0>Undo"
   confirm: "<#d1c3a0>Confirm"
   cancel: "<#d1c3a0>Cancel"
   tip: "<#b3a37f><first> <firstv>\n<second> <secondv>"
-  next: "<#8f8164>Next point: <cost> souls"
   short: "<#8f8164>Not enough souls"
   later: "<#6b5f4a><what> · not yet in effect"
-  load: "<#8f8164>Equip Load <weight> · <tier>"
-  load-change: "<#8f8164>Equip Load <weight> · <from> → <to>"
+  load-change: "<#8f8164><from> → <to>"
   burn: "<#8f8164>Burn time <from>s → <to>s"
 
 stats:
   title: "<#d1c3a0><font:souls:title>Status"
-  head: "<#b3a37f>Level <level> · Souls <souls> · <origin>"
   no-origin: "<#858079>No origin"
-  pair: "<#b3a37f><stat> <value>"
-  sep: "<#6b5f4a> · "
-  load: "<#b3a37f>Equip Load <weight> / <cap> · <tier>"
   burn: "<#8f8164>Burn time <from>s → <to>s"
   close: "<#d1c3a0>Close"
 

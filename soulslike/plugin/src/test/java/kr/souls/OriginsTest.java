@@ -180,7 +180,7 @@ class OriginsTest {
         assertEquals(52, Math.round(d.get("sorcerer").attack()), "마법사의 단도 한손 (근력 9, 왼손에 쇠단지)");
         assertEquals(81, Math.round(d.get("deprived").attack()), "빈털터리의 곤봉 한손 (근력 10, 왼손에 판자 방패)");
         assertFalse(d.get("sorcerer").twoHanded(), "촉매는 왼손에 든다 (우클릭 = 왼손, DECISIONS 2026-10-10)");
-        assertEquals(121, Math.round(d.get("sorcerer").spellPower()), "마법사의 쇠단지 (지능 16)");
+        assertEquals(121, Math.round(d.get("sorcerer").spellPower()), "마법사의 쇠단지 (지력 16)");
     }
 
     @Test
