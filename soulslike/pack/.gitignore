@@ -1,0 +1,2 @@
+# gen_pack.py 가 만드는 팩 폴더 (zip 은 plugin/src/main/resources/pack.zip 과 dist/packs/ 에 있다)
+resourcepack/

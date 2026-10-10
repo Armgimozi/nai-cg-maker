@@ -1,0 +1,112 @@
+# ─────────────────────────────────────────────────────────────
+#  증강 스카이블럭 설정
+#  고친 뒤 게임 안에서 /증강관리 리로드 (서버를 다시 켜도 됨)
+#
+#  같은 폴더의 다른 파일
+#    augments.yml  증강 목록        weapons.yml  무기 목록
+#    skills.yml    스킬 목록        mobs.yml     몬스터와 균열
+#    items.yml     재료 아이템       players/     플레이어별 증강 저장
+# ─────────────────────────────────────────────────────────────
+
+altar:
+  # 제단은 제물 없이 우클릭하면 증강 선택지가 열린다.
+  # 한 번 쓰면 힘을 잃는다:
+  #   global  서버 전체에서 한 번 (누가 쓰면 그 제단의 보석이 빛을 잃는다)
+  #   player  한 사람당 한 번 (친구들은 각자 한 번씩 쓸 수 있다)
+  #   off     몇 번이고 쓸 수 있다
+  single-use: player
+  # 보여 주는 증강 선택지 수 (증강 '증강 공명'으로 늘어남, 최대 5)
+  choices: 3
+  # 선택지마다 주는 무료 다시 뽑기 횟수
+  rerolls: 1
+  # 무료 횟수를 다 쓴 뒤 다시 뽑기에 드는 증강 파편 수 (0 이면 더 못 뽑음)
+  reroll-shards: 3
+
+vfx:
+  # 스킬 연출. 입자로 베기 궤적·회오리·충격파·기둥을 그리고, 무기 등급(기본 < 섬 < 균열 < 보스 < 프리즘)이 높을수록 화려하다.
+  # false 면 예전처럼 skills.yml 에 적힌 입자만 쓴다
+  enabled: true
+  # 입자 양 (0.3 ~ 1.5). 렉이 있으면 낮춘다
+  density: 1.0
+
+pvp:
+  # server.properties 의 pvp=true 일 때 무기 스킬·무기 패시브·증강 효과가 다른 플레이어에게도 들어간다.
+  # 그중 플러그인이 주는 추가 피해(스킬 피해 등)에 곱하는 배율. 몬스터 기준 수치라 1 이면 강한 스킬이 한 방에 끝날 수 있다.
+  # 처형(체력이 적으면 즉사) 효과는 플레이어에게 쓰이지 않는다.
+  skill-damage: 0.5
+
+bosses:
+  # 보스가 쓰러진 뒤 둥지에서 다시 깨어나기까지 걸리는 시간(분)
+  respawn-minutes: 30
+  # 보스가 둥지 가운데서 이만큼 멀어지면 되돌아간다
+  leash: 22
+  # 둥지 결투장 반지름. 이 안의 블록은 부수거나 놓을 수 없다
+  arena-radius: 17
+
+drops:
+  # 일반 적대 몬스터를 플레이어가 잡았을 때 증강 파편이 나올 확률
+  shard-chance: 0.06
+  # 돌, 조약돌, 광석, 네더랙을 캘 때 증강 파편이 나올 확률
+  shard-mining-chance: 0.01
+
+generator:
+  # 증강이 없어도 조약돌 생성기에서 광석이 나올 확률 (기본 0 = 고전 스카이블럭)
+  base-ore-chance: 0.0
+  # '광맥의 기운' 증강 단계별로 나오는 광석과 가중치
+  tiers:
+    1: {COAL_ORE: 40, COPPER_ORE: 30, IRON_ORE: 25}
+    2: {COAL_ORE: 30, COPPER_ORE: 20, IRON_ORE: 25, GOLD_ORE: 12, REDSTONE_ORE: 10, LAPIS_ORE: 8}
+    3: {COAL_ORE: 20, COPPER_ORE: 12, IRON_ORE: 24, GOLD_ORE: 14, REDSTONE_ORE: 10, LAPIS_ORE: 8, DIAMOND_ORE: 7, EMERALD_ORE: 5}
+
+mobs:
+  # 자연 스폰 몬스터 일부를 새로운 몬스터로 바꾼다
+  natural-replace: true
+  # 균열 섬에서 몬스터가 계속 나온다
+  rift-spawning: true
+
+starter:
+  # 처음 들어온 플레이어에게 주는 물건 (안내서는 따로 준다). "아이템*개수"
+  items:
+    - "weapon:apprentice_sword"
+    - "item:shard*3"
+    - "BREAD*4"
+
+resource-pack:
+  enabled: true
+  # 비워 두면 플레이어가 접속한 주소의 port 번으로 팩을 직접 내보낸다.
+  # 친구들이 터널(playit.gg 등)로 들어와서 팩을 못 받으면, pack.zip 을 인터넷에 올리고 그 주소를 적는다.
+  url: ""
+  port: 8163
+  # 팩 주소에 쓸 호스트 이름을 고정하고 싶을 때 (예: 123.45.67.89 또는 mc.example.kr)
+  public-host: ""
+  # true 면 팩을 거절한 사람은 접속할 수 없다
+  required: false
+  # false 면 무기/아이템 모양을 바꾸지 않는다 (팩 없이 바닐라 모양으로)
+  custom-models: true
+
+nether:
+  # true: 네더 문을 열면 플러그인이 만든 하늘 네더(공허 위에 뜬 네더 섬들)로 간다. 처음 켤 때 섬을 한 번 짓는다
+  # false: 예전처럼 하늘에서 네더 문이 열리지 않는다 (하늘 네더에 있던 사람은 돌아올 수 있다)
+  enabled: true
+
+guide-book:
+  - "<b><dark_purple>증강 스카이블럭</dark_purple></b>\n\n하늘 위 작은 섬에서 시작합니다.\n\n맵 곳곳의 제단에서 <dark_purple>증강</dark_purple>을 모으고, 새 무기와 갑옷으로 둥지의 보스를 쓰러뜨리세요.\n\n<dark_gray>다음 장 ▶"
+  - "<b>1. 섬에서 살아남기</b>\n\n상자에 용암, 얼음 2개, 묘목, 씨앗, 뼛가루, 횃불이 있어요. 얼음을 녹여 물을 만들고 용암 옆으로 흘려 <b>조약돌 생성기</b>를 만드세요.\n\n작업대는 나무를 베어 직접 만들어요.\n\n죽으면 아이템을 떨어뜨려요. 증강으로 지킬 수 있어요."
+  - "<b>2. 제단과 증강</b>\n\n제단은 하늘과 네더 곳곳의 섬에 흩어져 있어요. 네 기둥 가운데 보석이 떠 있으면 제단이에요.\n<gray>실버</gray> 12곳 <gold>골드</gold> 8곳\n<dark_purple>프리즘</dark_purple> 4곳\n\n우클릭하면 증강 3개 중 하나를 고릅니다. 한 번 쓰면 보석이 빛을 잃어요."
+  - "<b>3. 다시 뽑기와 증강권</b>\n\n선택지가 마음에 안 들면 한 번은 무료로, 그 뒤로는 <dark_purple>증강 파편</dark_purple> 3개로 다시 뽑아요.\n\n<b>증강권</b>은 손에 들고 우클릭하면 어디서든 증강을 고릅니다."
+  - "<b>4. 맵</b>\n\n시작의 섬엔 꼭 필요한 것만 있어요. 다른 재료는 다리를 놓아 다른 섬에서 구하세요.\n\n하늘의 섬은 41가지이고 섬마다 나는 재료가 달라요. 이름표는 없어요. 땅과 나무, 동물을 보고 알아보세요. 어디 있는지는 직접 찾아보세요.\n\n네더에도 하늘섬이 있어요."
+  - "<b>섬 도감 ①</b> 풀밭\n\n<dark_green>숲</dark_green> 참나무·자작나무\n<dark_green>광산</dark_green> 석탄·철·구리·금\n<dark_green>목장</dark_green> 소·양·돼지·닭\n<dark_green>밭</dark_green> 밀·당근·감자·비트\n<dark_green>호박밭</dark_green> 호박\n<dark_green>연못</dark_green> 점토·사탕수수·연잎\n<dark_green>꽃밭</dark_green> 꽃·벌집·꿀\n<dark_green>버섯</dark_green> 버섯·무시룸\n<dark_green>사막</dark_green> 모래·선인장·토끼\n<dark_green>거미굴</dark_green> 거미 생성기·거미줄"
+  - "<b>섬 도감 ②</b> 눈과 얼음\n\n<dark_aqua>가문비 숲</dark_aqua> 가문비·달콤한 열매\n<dark_aqua>얼음 호수</dark_aqua> 얼음·눈 골렘\n<dark_aqua>서리 광산</dark_aqua> 청금석·다이아몬드\n<dark_aqua>얼음 가시</dark_aqua> 단단한·푸른 얼음\n<dark_aqua>이글루</dark_aqua> 양조기·지하실 상자\n\n눈 덮인 섬에는 비 대신 눈이 내려요."
+  - "<b>섬 도감 ③</b> 화염\n\n<dark_red>현무암</dark_red> 현무암·마그마 블록\n<dark_red>진홍 숲</dark_red> 진홍빛 자루·버섯불\n<dark_red>뒤틀린 숲</dark_red> 뒤틀린 자루\n<dark_red>영혼 골짜기</dark_red> 뼈 블록·영혼 흙\n<dark_red>작은 요새</dark_red> 블레이즈 생성기\n<dark_red>화산</dark_red> 흑요석·용암·점적석\n<dark_red>네더 광맥</dark_red> 석영·금·발광석\n\n네더 사마귀는 영혼 골짜기와 작은 요새에서 자라요."
+  - "<b>섬 도감 ④</b> 엔드와 수정\n\n<dark_purple>코러스 숲</dark_purple> 후렴과·엔드 돌\n<dark_purple>자수정 정동</dark_purple> 자수정·방해석\n<dark_purple>흑요석 첨탑</dark_purple> 엔드 막대기\n<dark_purple>퍼퍼 폐허</dark_purple> 퍼퍼 블록·상자\n\n엔드 차원문 틀이 놓인 섬도 하나 있어요."
+  - "<b>섬 도감 ⑤</b> 바다\n\n<blue>해변</blue> 모래·자갈·거북\n<blue>산호초</blue> 불우렁쉥이·켈프\n<blue>구리 해안</blue> 구리·산화된 구리\n<blue>해저 유적</blue> 프리즈머린·상자\n<blue>난파선</blue> 상자 2개\n\n물고기는 저절로 생기지 않아요. 낚시로 잡으세요."
+  - "<b>섬 도감 ⑥</b> 야생\n\n<dark_green>정글</dark_green> 대나무·수박·덩굴\n<dark_green>마녀의 늪</dark_green> 슬라임·진흙·개구리\n<dark_green>붉은 협곡</dark_green> 금·테라코타\n<dark_green>사바나</dark_green> 아카시아·아르마딜로\n<dark_green>이끼 동굴</dark_green> 진달래·발광 열매\n<dark_green>산봉우리</dark_green> 철·에메랄드·화강암\n<dark_green>심층 광산</dark_green> 레드스톤·응회암\n<dark_green>어두운 숲</dark_green> 짙은 참나무·버섯\n<dark_green>벚꽃</dark_green> 벚나무·분홍 꽃잎\n<dark_green>옛 폐허</dark_green> 석재 벽돌·상자"
+  - "<b>섬 도감 ⑦</b> 네더 하늘\n\n<dark_red>석영 절벽</dark_red> 석영·네더 금\n<dark_red>발광석 처마</dark_red> 발광석\n<dark_red>진홍 숲</dark_red> 균·버섯불·피글린\n<dark_red>뒤틀린 숲</dark_red> 균·엔더맨\n<dark_red>영혼 골짜기</dark_red> 네더 사마귀\n<dark_red>삼각주</dark_red> 마그마 큐브\n<dark_red>네더 요새</dark_red> 위더 스켈레톤\n<dark_red>보루 잔해</dark_red> 금·피글린·보물\n<dark_red>무너진 문</dark_red> 우는 흑요석\n<dark_red>용암 호수</dark_red> 스트라이더\n<dark_red>검은 바위</dark_red> 고대 잔해"
+  - "<b>네더로 가기</b>\n\n흑요석으로 네더 문을 세우고 불을 붙이면 공허 위에 뜬 네더의 섬으로 가요.\n\n하늘에서 안 나는 재료가 있어요. 고대 잔해, 위더 해골 머리, 보루의 보물…\n\n몹이 더 사납고 발밑은 공허예요. 단단히 준비하세요."
+  - "<b>5. 무기</b>\n\n무기는 작업대에서 만들어요. 무기마다 다른 섬의 재료가 들어가요. 레시피 책을 보세요.\n\n다른 무기를 넣는 강화는 같은 종류끼리만 돼요.\n\n강한 무기엔 스킬이, 프리즘 무기엔 <dark_purple>궁극기</dark_purple>도 붙어요.\n\n/무기도감"
+  - "<b>6. 스킬 쓰기</b>\n\n<dark_red>우클릭</dark_red> 스킬\n<dark_red>웅크리기+우클릭</dark_red> 두 번째\n<dark_red>웅크리기+좌클릭</dark_red> 궁극기\n\n<b>활</b>은 그냥 당기면 화살\n<dark_red>웅크리기+당겨 쏘기</dark_red> 스킬\n<dark_red>웅크리기+좌클릭</dark_red> 두 번째\n\n보스·프리즘 활만 화살이 줄지 않아요. F키는 손 바꾸기예요."
+  - "<b>7. 갑옷</b>\n\n같은 세트를 2개, 4개 입으면 세트 효과가 붙어요.\n\n개척자·광부: 섬 재료\n서리·화염·공허: 균열 정수\n보스 세트: 보스가 떨굼\n프리즘: 보스 갑옷과 결정\n\n/갑옷도감"
+  - "<b>8. 곡괭이</b>\n\n곡괭이 7가지도 작업대에서 만들어요. 앞 곡괭이를 넣어 한 단계씩 올려요.\n\n설명의 <dark_purple>채굴 등급</dark_purple>이 낮으면 캐도 아무것도 안 나와요. 돌 등급은 다이아몬드를, 철 등급은 흑요석을 못 캐요.\n\n높은 곡괭이는 더 빨리 캐고, 광석을 바로 녹이기도 해요."
+  - "<b>9. 수리와 마법서</b>\n\n장비는 쓰면 닳고, 스킬을 써도 조금 닳아요. <b>모루</b>에 설명의 <dark_purple>수리 재료</dark_purple>나 같은 아이템을 올려 고쳐요. <b>숫돌</b>은 같은 아이템끼리만.\n\n<dark_purple>수선</dark_purple>·<dark_purple>무한</dark_purple> 마법서는 몇몇 섬의 상자, 보스, 보루의 보물, 낚시에서 나와요. 무한은 화살을 쓰는 활에 붙여요."
+  - "<b>10. 균열과 둥지</b>\n\n어딘가에 균열의 몬스터가 쏟아지는 섬과, 보스가 사는 <b>둥지</b>가 있어요.\n\n균열 몬스터는 <dark_purple>정수</dark_purple>를 떨궈요. 정수 3가지와 다이아몬드로 프리즘 결정도 만들어요.\n\n보스는 처음부터 둥지를 지키고, 쓰러지면 30분 뒤 다시 깨어나요."
+  - "<b>11. 보스 보상</b>\n\n<dark_purple>프리즘 결정</dark_purple>, 증강권, 보스 무기와 갑옷. 함께 싸운 친구 모두가 각자 받아요.\n\n<b>명령어</b>\n/증강  /증강 도감\n/증강 선택  /증강 제단\n/무기도감  /갑옷도감  /스폰"

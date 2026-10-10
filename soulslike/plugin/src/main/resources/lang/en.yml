@@ -1,0 +1,490 @@
+# In-game text, English (10.3, 10.9, 12.5). Korean (lang/ko.yml) is the source; this file is written apart from it,
+# not translated line by line. The keys must be the same as in ko.yml, with the same style tag and the same <slots>.
+#
+# Voice (DESIGN.md 10.3, "UI writing rules"): lore (weapon/item descriptions) is terse, dry, a little archaic. Everything
+# else is plain modern game English: buttons are short nouns or verbs in title case (Rest, Travel, Undo, Close), labels
+# are nouns, system and connection messages are plain sentences (This server requires its resource pack.). No " · "
+# chains between values (use aligned columns, commas or brackets), no em dashes outside lore, no exclamation marks, no
+# hype words (legendary, ultimate, epic, mighty ...), no modern slang. tools/textlint.py checks this.
+# Names are fixed in lang/names.yml (Hrolf, Redin, Oswin ...). Terms: bonfire, Estus, souls, mana (the resource of
+# spells), spell (술법), memory slot (기억 슬롯), catalyst, bloodstain, fog gate, parry, roll, enemy (적), guard (막기),
+# equip load (장비 중량), origin (출신), world settings (세계 설정). "Rites" stays only in the catalyst school names
+# (Kiln Rites, Bell Rites), which wait for the story. "the Fire" (capital) is the kiln's great fire, used only in ending.*.
+# Big titles are in capitals, as YOU DIED is. Menu buttons are in title case. Mind the width of each slot
+# (tools/langcheck.py measures every line against its slot, e.g. a title must stay under 104 pixels).
+
+death:
+  title: "YOU DIED"
+
+bonfire:
+  lit: "<#9e7c44>BONFIRE LIT"
+  enemies-back: "<#858079>Enemies have returned"
+  refuse: "<#858079>Cannot rest with enemies nearby"
+  no-warp: "<#8f8164>No other bonfire to travel to"
+  rest: "<#d1c3a0>Rest"
+  warp: "<#d1c3a0>Travel"
+  leave: "<#d1c3a0>Leave"
+  levelup: "<#d1c3a0>Level Up"
+  stats: "<#d1c3a0>Status"
+  settings: "<#d1c3a0>World Settings"
+  repick: "<#d1c3a0>Change Origin"
+  repick-tip: "<#8f8164>Only before your first level up.\nStarting items are taken back."
+  test-name: "<#d1c3a0><font:souls:title>Beneath the Gaol Tower"
+
+boss:
+  felled: "<#9e7c44>ENEMY FELLED"
+  hrolf:
+    name: "<#d1c3a0><font:souls:title>Hrolf, the Gatewarden"
+
+souls:
+  recovered: "<#b3a37f>Souls reclaimed"
+
+door:
+  one-way: "<#858079>It will not open from this side"
+  locked: "<#858079>Locked"
+  opened: "<#858079>Unlocked"
+  sealed: "<#858079>Sealed"
+
+bell:
+  rung: "<#b3a37f>The toll of the bell carries far"
+
+taster:
+  end: "<#b3a37f>THE WAY IS BARRED"
+
+spell:
+  learned: "<#b3a37f>Spell learned"
+  no-slot: "<#8f8164>Not enough memory slots"
+  none: "<#858079>No spells memorized"
+
+item:
+  master_key:
+    name: "<#d1c3a0><font:souls:title>Master Key"
+    lore:
+      - "<#8f8164>Opens most simple locks."
+      - "<#8f8164>Useless against sealed doors."
+
+ring:
+  # Rings (9.4, content/rings.yml), worn in the left column of the inventory's 2x2 (item/RingSlots). The test_* rings are
+  # placeholders named for what they do (/soulstest ring give); they go once the story's rings come in.
+  effect:
+    stamina-regen: "<#9e7c44>Stamina recovery <pct>%"
+    poise: "<#9e7c44>Poise <pct>%"
+    parry-window: "<#9e7c44>Parry window <sec>s"
+    soul-guard: "<#9e7c44>Lose no souls on death. The ring then breaks"
+    pending: "<#5c5955>Not yet in effect"
+  weight: "<#858079>Weight <weight>"
+  # Rule between the effect lines and the lore (like weapon.rule). The pack builds ring.rule.<id> at each ring's tooltip width
+  # (pack/typeset.py); this text only shows without the pack
+  rule: "<#fefefe>—"
+  test_stamina:
+    name: "<#d1c3a0><font:souls:title>Test Ring: Stamina Recovery"
+    lore:
+      - "<#8f8164>[Test]"
+  test_poise:
+    name: "<#d1c3a0><font:souls:title>Test Ring: Poise"
+    lore:
+      - "<#8f8164>[Test]"
+  test_parry:
+    name: "<#d1c3a0><font:souls:title>Test Ring: Parry"
+    lore:
+      - "<#8f8164>[Test]"
+
+container:
+  # Crafting table title (set by item/RingSlots; container.crafting is blank because its inventory spot is now the ring slots)
+  workbench: "<gray><font:souls:title>Crafting"
+
+weapon:
+  # Weapons, shields, catalysts (9.1, 9.2, 3.12.4, 9.7). Ids and models: pack/weapons/SPEC.md.
+  # Lore lines stay under the 250 px tooltip width (tools/langcheck.py).
+  class:
+    straight_sword: "<#9e7c44>Straight Sword (Slash/Thrust)"
+    dagger: "<#9e7c44>Dagger (Slash/Thrust)"
+    greatsword: "<#9e7c44>Greatsword (Slash)"
+    axe: "<#9e7c44>Axe (Slash)"
+    hammer: "<#9e7c44>Hammer (Strike)"
+    spear: "<#9e7c44>Spear (Thrust)"
+    halberd: "<#9e7c44>Halberd (Slash/Thrust)"
+    bow: "<#9e7c44>Bow"
+    small_shield: "<#9e7c44>Small Shield"
+    medium_shield: "<#9e7c44>Medium Shield"
+    greatshield: "<#9e7c44>Greatshield"
+    parrying_dagger: "<#9e7c44>Parrying Dagger (Thrust)"
+    catalyst_kiln: "<#9e7c44>Catalyst (Kiln Rites)"
+    catalyst_bell: "<#9e7c44>Catalyst (Bell Rites)"
+  stat:
+    attack: "<#858079>Attack"
+    guard: "<#858079>Phys. Negation"
+    spell: "<#858079>Spell Power"
+    weight: "<#858079>Weight"
+  rule: "<#fefefe>—"
+  redin_guard_sword:
+    name: "<#d1c3a0><font:souls:title>Redin Watch Straight Sword"
+    lore:
+      - "<#8f8164>Straight sword of the Redin Watch."
+      - "<#8f8164>Every man on the wall stood facing inward."
+      - "<#8f8164>None recorded where their blades pointed."
+  volk_longsword:
+    name: "<#d1c3a0><font:souls:title>House Volk Longsword"
+    lore:
+      - "<#8f8164>Longsword of a House Volk knight."
+      - "<#8f8164>The Gaol Tower's keepers hollowed first."
+      - "<#8f8164>The crest on its pommel was scraped away."
+  alley_dagger:
+    name: "<#d1c3a0><font:souls:title>Redin Alley Knife"
+    lore:
+      - "<#8f8164>Short knife of the alleys of Redin."
+      - "<#8f8164>When the walls closed, the alleys narrowed."
+      - "<#8f8164>It cut best from behind."
+  gaoler_greatsword:
+    name: "<#d1c3a0><font:souls:title>Gaol Tower Jailer's Greatsword"
+    lore:
+      - "<#8f8164>Heavy greatsword of the Gaol Tower jailers."
+      - "<#8f8164>Used more to beat men down than to cut."
+      - "<#8f8164>Hence its point was ground blunt."
+  levy_hatchet:
+    name: "<#d1c3a0><font:souls:title>Redin Conscript's Hand Axe"
+    lore:
+      - "<#8f8164>Hand axe Redin gave its conscripts."
+      - "<#8f8164>A wood axe, given a little more iron."
+      - "<#8f8164>Those who bore it never saw past the walls."
+  sellsword_axe:
+    name: "<#d1c3a0><font:souls:title>House Volk Hireling's Axe"
+    lore:
+      - "<#8f8164>Axe of the men House Volk paid to serve."
+      - "<#8f8164>Paid out of the Gaol Tower's coffers."
+      - "<#8f8164>Some stayed when the coffers ran dry."
+  gaoler_club:
+    name: "<#d1c3a0><font:souls:title>Volk Jailer's Club"
+    lore:
+      - "<#8f8164>Belt club of a House Volk jailer."
+      - "<#8f8164>Oak, bound in iron."
+      - "<#8f8164>Meant to fell a man, not to kill him."
+  penitent_mace:
+    name: "<#d1c3a0><font:souls:title>Oswin Penitent's Mace"
+    lore:
+      - "<#8f8164>Mace of a penitent, Parish of Oswin."
+      - "<#8f8164>They struck their own backs first."
+      - "<#8f8164>After the flood, they forgot their sin."
+  mathes_bell_mace:
+    name: "<#d1c3a0><font:souls:title>Mathes' Bell Mace"
+    lore:
+      - "<#8f8164>Mace Ansel forged from the soul of Mathes."
+      - "<#8f8164>Its head is a small bell, filled with lead."
+      - "<#8f8164>Mathes never let go of the bell."
+  redin_spear:
+    name: "<#d1c3a0><font:souls:title>Redin Spearman's Spear"
+    lore:
+      - "<#8f8164>Thrust from the shield wall of Redin."
+      - "<#8f8164>Its point ever faced the city."
+      - "<#8f8164>The rag on its haft was once Redin red."
+  hrolf_halberd:
+    name: "<#d1c3a0><font:souls:title>Hrolf's Halberd"
+    lore:
+      - "<#8f8164>Halberd of the last Gatewarden of Redin."
+      - "<#8f8164>The gate was shut against those within."
+      - "<#8f8164>Hrolf never asked why."
+  warden_halberd:
+    name: "<#d1c3a0><font:souls:title>Parish Guardian's Halberd"
+    lore:
+      - "<#8f8164>Halberd of the parish's hulking guardians."
+      - "<#8f8164>Said to be the guard Oswin's bell called."
+      - "<#8f8164>They hold that the summons has not ended."
+  wall_shortbow:
+    name: "<#d1c3a0><font:souls:title>Redin Wall Shortbow"
+    lore:
+      - "<#8f8164>Bow of the archers on the Redin Wall."
+      - "<#8f8164>It need only reach the foot of the wall."
+      - "<#8f8164>Most of its arrows flew inward."
+  plank_shield:
+    name: "<#d1c3a0><font:souls:title>Gaol Tower Plank Shield"
+    lore:
+      - "<#8f8164>Shield torn from a Gaol Tower cell door."
+      - "<#8f8164>Nail marks still score the inner face."
+      - "<#8f8164>None ask whose."
+  pilgrim_buckler:
+    name: "<#d1c3a0><font:souls:title>Oswin Pilgrim's Buckler"
+    lore:
+      - "<#8f8164>Small shield of a pilgrim bound for Oswin."
+      - "<#8f8164>A bell is stamped into its boss."
+      - "<#8f8164>The road drowned, and none went home."
+  parrying_dagger:
+    name: "<#d1c3a0><font:souls:title>Redin Parrying Dagger"
+    lore:
+      - "<#8f8164>Left-hand dagger of the duelists of Redin."
+      - "<#8f8164>Made to turn a blade, not to kill."
+      - "<#8f8164>In the shut city, duels outnumbered meals."
+  redin_guard_shield:
+    name: "<#d1c3a0><font:souls:title>Redin Watch Shield"
+    lore:
+      - "<#8f8164>Iron-rimmed shield of the Redin Watch."
+      - "<#8f8164>Its gate sigil is all but worn away."
+      - "<#8f8164>In the sigil, the gate is shut."
+  volk_greatshield:
+    name: "<#d1c3a0><font:souls:title>House Volk Greatshield"
+    lore:
+      - "<#8f8164>Sent by House Volk to the gate of Redin."
+      - "<#8f8164>Hrolf stood before the gate behind it."
+      - "<#8f8164>What it was sent to hold back, none know."
+  kiln_pot:
+    name: "<#d1c3a0><font:souls:title>Kilnkeeper's Iron Pot"
+    lore:
+      - "<#8f8164>Kilnkeepers bore the last warmth in it."
+      - "<#8f8164>A few embers still cling to its bottom."
+      - "<#8f8164>The kiln went cold. The pot was slower."
+  pilgrim_handbell:
+    name: "<#d1c3a0><font:souls:title>Oswin Pilgrim's Handbell"
+    lore:
+      - "<#8f8164>Rung by pilgrims of Oswin on the road."
+      - "<#8f8164>It mimics the great bell of the parish."
+      - "<#8f8164>So small a bell called no one home."
+
+origin:
+  title: "<#d1c3a0><font:souls:title>Choose Origin"
+  head-name: "<#858079>Origin"
+  head-level: "<#858079>Level"
+  head-kit: "<#858079>Starting Items"
+  later: "<#d1c3a0>Decide Later"
+  choose: "<#d1c3a0>Begin"
+  back: "<#d1c3a0>Back"
+  no-rites: "<#8f8164>Knows no spells yet. Fights with a dagger."
+  confirm-title: "<#d1c3a0><font:souls:title><name>"
+  none: "<#858079>No origin chosen yet"
+  none-hint: "<#858079>Tap <bind> to choose an origin"
+  none-hint-f: "<#858079>Press <bind> to choose an origin"
+  knight:
+    name: "<#d1c3a0>Knight"
+    desc: "<#8f8164>A knight with sword and shield."
+    style: "<#b3a37f>High Vigor. Holds the line behind a shield."
+    kit: "<#b3a37f>Sword, Shield"
+  warrior:
+    name: "<#d1c3a0>Warrior"
+    desc: "<#8f8164>A warrior with a greatsword."
+    style: "<#b3a37f>High Strength. Hits hard, but has no shield."
+    kit: "<#b3a37f>Greatsword"
+  thief:
+    name: "<#d1c3a0>Thief"
+    desc: "<#8f8164>A thief who carries a master key."
+    style: "<#b3a37f>High Dexterity. Parries with a left-hand dagger."
+    kit: "<#b3a37f>Daggers, Key"
+  archer:
+    name: "<#d1c3a0>Archer"
+    desc: "<#8f8164>An archer who strikes first."
+    style: "<#b3a37f>Shoots from afar, draws a hand axe up close."
+    kit: "<#b3a37f>Bow, Hand Axe"
+  sorcerer:
+    name: "<#d1c3a0>Sorcerer"
+    desc: "<#8f8164>A sorcerer with a catalyst."
+    style: "<#b3a37f>High Intelligence, but low HP."
+    kit: "<#b3a37f>Catalyst, Dagger"
+  deprived:
+    name: "<#d1c3a0>Deprived"
+    desc: "<#8f8164>Starts with only a club and a plank shield."
+    style: "<#b3a37f>Every stat at 10, free to grow in any direction."
+    kit: "<#b3a37f>Club, Plank Shield"
+
+start:
+  title: "<#d1c3a0><font:souls:title>World Settings"
+  body: "<#b3a37f>Set once. Only an admin can change them later."
+  pvp: "<#d1c3a0>PvP"
+  pvp-hit: "<#8f8164>With PvP on, players can attack each other."
+  pvp-sweep: "<#8f8164>Wide swings also hit players beside you."
+  choice: "<#d1c3a0><name>"
+  choice-default: "<#d1c3a0><name> (Recommended)"
+  later: "<#d1c3a0>Decide Later"
+  later-tip: "<#8f8164>Until then: <difficulty>, <pvp>"
+  notice: "<#b3a37f>World settings: <difficulty>, <pvp>"
+  changed: "<#b3a37f>World settings changed: <difficulty>, <pvp>"
+  provisional: "<#858079>World settings are not final yet"
+  provisional-chat: "<#858079>You will be asked again when you rejoin or rest at a bonfire."
+  waiting: "<#858079>Another player is choosing settings"
+  op-only: "<#858079>Only an admin can change world settings"
+  already-set: "<#858079>World settings are already chosen"
+
+difficulty:
+  easy:
+    name: "<#d1c3a0>Easy"
+    desc: "<#8f8164>Weaker enemies."
+  normal:
+    name: "<#d1c3a0>Normal"
+    desc: "<#8f8164>The standard difficulty."
+  hard:
+    name: "<#d1c3a0>Hard"
+    desc: "<#8f8164>Stronger, tougher enemies."
+  very_hard:
+    name: "<#d1c3a0>Very Hard"
+    desc: "<#8f8164>Much stronger, tougher enemies."
+  summary: "<#b3a37f>Damage taken ×<damage>, Enemy HP ×<health>"
+
+pvp:
+  "on": "<#b3a37f>PvP on"
+  "off": "<#b3a37f>PvP off"
+
+stat:
+  vig:
+    name: "<#d1c3a0>Vigor"
+    short: "<#858079>Vig"
+  mnd:
+    name: "<#d1c3a0>Mind"
+    short: "<#858079>Mnd"
+  end:
+    name: "<#d1c3a0>Endurance"
+    short: "<#858079>End"
+  str:
+    name: "<#d1c3a0>Strength"
+    short: "<#858079>Str"
+  dex:
+    name: "<#d1c3a0>Dexterity"
+    short: "<#858079>Dex"
+  int:
+    name: "<#d1c3a0>Intelligence"
+    short: "<#858079>Int"
+
+table:
+  level: "<#858079>Level"
+  held: "<#858079>Souls Held"
+  need: "<#858079>Souls Needed"
+  origin: "<#858079>Origin"
+  blank: ""
+
+derived:
+  max-hp: "<#858079>Max HP"
+  defense: "<#858079>Defense"
+  max-mana: "<#858079>Max Mana"
+  magic-res: "<#858079>Magic Defense"
+  max-stamina: "<#858079>Max Stamina"
+  regen: "<#858079>Stamina Regen"
+  attack: "<#858079>Attack"
+  attack-2h: "<#858079>Attack (2H)"
+  load: "<#858079>Equip Load"
+  move: "<#858079>Move Speed"
+  attack-speed: "<#858079>Attack Speed"
+  spell: "<#858079>Spell Power"
+  ailment: "<#858079>Ailment Resist"
+  blank: ""
+
+load:
+  light: "<#b3a37f>Light Load"
+  medium: "<#b3a37f>Med. Load"
+  heavy: "<#b3a37f>Heavy Load"
+  over: "<#b3a37f>Overloaded"
+
+burden:
+  light: "<#858079>Light load: quick rolls"
+  medium: "<#858079>Medium load: slower rolls"
+  heavy: "<#858079>Heavy load: slow rolls and movement"
+  over: "<#858079>Overloaded: cannot roll"
+
+levelup:
+  title: "<#d1c3a0><font:souls:title>Level Up"
+  undo: "<#d1c3a0>Undo"
+  confirm: "<#d1c3a0>Confirm"
+  cancel: "<#d1c3a0>Cancel"
+  tip: "<#b3a37f><first> <firstv>\n<second> <secondv>"
+  short: "<#8f8164>Not enough souls"
+  later: "<#6b5f4a><what> (not yet active)"
+  load-change: "<#8f8164><from> → <to>"
+  burn: "<#8f8164>Burn time <from>s → <to>s"
+
+stats:
+  title: "<#d1c3a0><font:souls:title>Status"
+  no-origin: "<#858079>No origin"
+  burn: "<#8f8164>Burn time <from>s → <to>s"
+  close: "<#d1c3a0>Close"
+
+controls:
+  hint:
+    roll: "<#8f8164>Roll: tap <bind>"
+    roll-f: "<#8f8164>Roll: <bind>"
+    parry: "<#8f8164>Parry: <bind>"
+    parry-sneak: "<#8f8164>Parry: <sneak> + <bind>"
+
+ending:
+  rekindle: "Rekindle the Fire"
+  leave-cold: "Leave It Cold"
+
+build:
+  refuse: "The world is still being generated. Please try again in a minute."
+
+pack:
+  prompt: "<#b3a37f>This server requires its resource pack."
+  declined: "<#b3a37f>The resource pack is required to join this server."
+  failed: "<#b3a37f>The resource pack failed to download. Please reconnect."
+  description: "Block Soul"
+
+test:
+  # <kind> is the /soulstest guard argument (empty|control|bypass|strip), shown as typed, not translated
+  guard: "<#d1c3a0>Test Guard [<kind>]"
+  guard-lore:
+    - "<#8f8164>[Test]"
+    - "<#6b5f4a>Blocks from the front while held."
+  swing: "<#d1c3a0>Test Swing (<ticks> ticks)"
+
+skill:
+  test_sweep:
+    name: "<#d1c3a0>Test Sweep"
+    desc:
+      - "<#8f8164>[Test]"
+  test_slam:
+    name: "<#d1c3a0>Test Slam"
+    desc:
+      - "<#8f8164>[Test]"
+
+hud:
+  souls: "<#b3a37f>Souls <n>"
+  warmth: "<#b3a37f>Mana <n>/<m>"
+
+admin:
+  players-only: "<#858079>Only players can use this command (from the console, use /execute as)."
+  reloaded: "<#858079>Settings, glyphs and content reloaded."
+  no-anchor: "<#858079>Unknown location: <anchor>"
+  no-world: "<#858079>The game world is not loaded."
+  room-built: "<#858079>Test room built: <detail>"
+  room-failed: "<#858079>Could not build the test room: <error>"
+  settings-busy: "<#858079>Another player has the world settings open."
+  settings-unknown: "<#858079>Unknown value: <value>"
+  settings-set: "<#858079>World settings changed: <difficulty>, <pvp>"
+  origin-reset: "<#858079>Origin reset for <player> (<items> items taken back)"
+  souls-set: "<#858079><player> now holds <souls> souls"
+  no-player: "<#858079>Player not found: <player>"
+
+vanilla:
+  menu:
+    game: "Game Menu"
+  options:
+    title: "Options"
+    videoTitle: "Video Settings"
+    sounds:
+      title: "Music & Sound Options"
+    language:
+      title: "Language"
+    chat:
+      title: "Chat Settings"
+    accessibility:
+      title: "Accessibility Settings"
+    skinCustomisation:
+      title: "Skin Customization"
+    online:
+      title: "Online Options"
+    mouse_settings:
+      title: "Mouse Settings"
+    font:
+      title: "Font Settings"
+  controls:
+    title: "Controls"
+    keybinds:
+      title: "Key Binds"
+  deathScreen:
+    respawn: "<gray>Rise"
+    titleScreen: "<gray>Title Screen"
+    quit:
+      confirm: "Quit to title?"
+    score:
+      value: ""
+  container:
+    # Blank: the inventory 2x2 is the ring slots now, and they carry no label. The crafting table gets container.workbench
+    crafting: ""
+    chest: "<gray>Chest"
+    chestDouble: "<gray>Large Chest"
+    enderchest: "<gray>Ender Chest"
+    barrel: "<gray>Barrel"
+    inventory: "<gray>Inventory"

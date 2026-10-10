@@ -1,0 +1,455 @@
+{
+ "boss": "inferno_colossus",
+ "parts": [
+  {
+   "id": "torso",
+   "model": "augsky:boss/inferno_colossus_torso",
+   "offset": [
+    0,
+    3.0,
+    0
+   ],
+   "scale": 2.0,
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "frame": "body",
+   "anims": [
+    {
+     "type": "bob",
+     "amplitude": 0.1,
+     "period": 60,
+     "phase": 0.0
+    },
+    {
+     "type": "sway",
+     "axis": "z",
+     "angle": 2.0,
+     "period": 120,
+     "phase": 0
+    },
+    {
+     "type": "swing",
+     "axis": "x",
+     "angle": 6,
+     "ticks": 12
+    }
+   ]
+  },
+  {
+   "id": "right_shoulder",
+   "model": "augsky:boss/inferno_colossus_right_shoulder",
+   "offset": [
+    -1.25,
+    3.625,
+    0
+   ],
+   "scale": 2.0,
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "frame": "body",
+   "anims": [
+    {
+     "type": "bob",
+     "amplitude": 0.1,
+     "period": 60,
+     "phase": 0.0
+    },
+    {
+     "type": "sway",
+     "axis": "z",
+     "angle": 3,
+     "period": 60,
+     "phase": 0.5
+    },
+    {
+     "type": "swing",
+     "axis": "z",
+     "angle": -8,
+     "ticks": 12
+    }
+   ]
+  },
+  {
+   "id": "left_shoulder",
+   "model": "augsky:boss/inferno_colossus_left_shoulder",
+   "offset": [
+    1.25,
+    3.625,
+    0
+   ],
+   "scale": 2.0,
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "frame": "body",
+   "anims": [
+    {
+     "type": "bob",
+     "amplitude": 0.1,
+     "period": 60,
+     "phase": 0.0
+    },
+    {
+     "type": "sway",
+     "axis": "z",
+     "angle": 3,
+     "period": 60,
+     "phase": 0.0
+    },
+    {
+     "type": "swing",
+     "axis": "z",
+     "angle": 8,
+     "ticks": 12
+    }
+   ]
+  },
+  {
+   "id": "head",
+   "model": "augsky:boss/inferno_colossus_head",
+   "offset": [
+    0,
+    4.375,
+    0.375
+   ],
+   "scale": 2.0,
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "frame": "body",
+   "anims": [
+    {
+     "type": "bob",
+     "amplitude": 0.12,
+     "period": 60,
+     "phase": 0.04
+    },
+    {
+     "type": "sway",
+     "axis": "y",
+     "angle": 9,
+     "period": 140,
+     "phase": 0
+    },
+    {
+     "type": "sway",
+     "axis": "x",
+     "angle": 3,
+     "period": 90,
+     "phase": 0.3
+    },
+    {
+     "type": "swing",
+     "axis": "x",
+     "angle": -10,
+     "ticks": 12
+    }
+   ]
+  },
+  {
+   "id": "tail",
+   "model": "augsky:boss/inferno_colossus_tail",
+   "offset": [
+    0,
+    2.125,
+    0
+   ],
+   "scale": 2.0,
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "frame": "body",
+   "anims": [
+    {
+     "type": "bob",
+     "amplitude": 0.1,
+     "period": 60,
+     "phase": 0.04
+    },
+    {
+     "type": "sway",
+     "axis": "z",
+     "angle": 6,
+     "period": 80,
+     "phase": 0
+    },
+    {
+     "type": "sway",
+     "axis": "x",
+     "angle": 5,
+     "period": 110,
+     "phase": 0.3
+    }
+   ]
+  },
+  {
+   "id": "tail_low",
+   "model": "augsky:boss/inferno_colossus_tail_low",
+   "offset": [
+    0,
+    1.375,
+    0
+   ],
+   "scale": 2.0,
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "frame": "body",
+   "anims": [
+    {
+     "type": "bob",
+     "amplitude": 0.1,
+     "period": 60,
+     "phase": 0.1
+    },
+    {
+     "type": "sway",
+     "axis": "z",
+     "angle": 8,
+     "period": 80,
+     "phase": 0.1
+    },
+    {
+     "type": "sway",
+     "axis": "x",
+     "angle": 6,
+     "period": 110,
+     "phase": 0.4
+    }
+   ]
+  },
+  {
+   "id": "right_fist",
+   "model": "augsky:boss/inferno_colossus_right_fist",
+   "offset": [
+    -2.375,
+    3.25,
+    1.25
+   ],
+   "scale": 2.0,
+   "rotation": [
+    0,
+    6,
+    0
+   ],
+   "frame": "body",
+   "anims": [
+    {
+     "type": "bob",
+     "amplitude": 0.15,
+     "period": 50,
+     "phase": 0.25
+    },
+    {
+     "type": "sway",
+     "axis": "x",
+     "angle": 6,
+     "period": 70,
+     "phase": 0.1
+    },
+    {
+     "type": "swing",
+     "axis": "x",
+     "angle": -75,
+     "ticks": 12
+    }
+   ]
+  },
+  {
+   "id": "left_fist",
+   "model": "augsky:boss/inferno_colossus_left_fist",
+   "offset": [
+    2.375,
+    3.25,
+    1.25
+   ],
+   "scale": 2.0,
+   "rotation": [
+    0,
+    -6,
+    0
+   ],
+   "frame": "body",
+   "anims": [
+    {
+     "type": "bob",
+     "amplitude": 0.15,
+     "period": 50,
+     "phase": 0.75
+    },
+    {
+     "type": "sway",
+     "axis": "x",
+     "angle": 6,
+     "period": 70,
+     "phase": 0.6
+    },
+    {
+     "type": "swing",
+     "axis": "x",
+     "angle": -60,
+     "ticks": 10
+    }
+   ]
+  },
+  {
+   "id": "rock1",
+   "model": "augsky:boss/inferno_colossus_rock_a",
+   "offset": [
+    0,
+    0,
+    0
+   ],
+   "scale": 2.0,
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "frame": "world",
+   "anims": [
+    {
+     "type": "orbit",
+     "radius": 4.6,
+     "speed": 1.8,
+     "phase": 0,
+     "height": 4.2
+    },
+    {
+     "type": "spin",
+     "axis": "y",
+     "speed": 4.0
+    },
+    {
+     "type": "bob",
+     "amplitude": 0.2,
+     "period": 40,
+     "phase": 0.0
+    }
+   ]
+  },
+  {
+   "id": "rock2",
+   "model": "augsky:boss/inferno_colossus_rock_b",
+   "offset": [
+    0,
+    0,
+    0
+   ],
+   "scale": 2.0,
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "frame": "world",
+   "anims": [
+    {
+     "type": "orbit",
+     "radius": 4.6,
+     "speed": 1.8,
+     "phase": 90,
+     "height": 4.2
+    },
+    {
+     "type": "spin",
+     "axis": "y",
+     "speed": -5.0
+    },
+    {
+     "type": "bob",
+     "amplitude": 0.2,
+     "period": 40,
+     "phase": 0.25
+    }
+   ]
+  },
+  {
+   "id": "rock3",
+   "model": "augsky:boss/inferno_colossus_rock_a",
+   "offset": [
+    0,
+    0,
+    0
+   ],
+   "scale": 2.0,
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "frame": "world",
+   "anims": [
+    {
+     "type": "orbit",
+     "radius": 4.6,
+     "speed": 1.8,
+     "phase": 180,
+     "height": 4.2
+    },
+    {
+     "type": "spin",
+     "axis": "y",
+     "speed": 4.0
+    },
+    {
+     "type": "bob",
+     "amplitude": 0.2,
+     "period": 40,
+     "phase": 0.5
+    }
+   ]
+  },
+  {
+   "id": "rock4",
+   "model": "augsky:boss/inferno_colossus_rock_b",
+   "offset": [
+    0,
+    0,
+    0
+   ],
+   "scale": 2.0,
+   "rotation": [
+    0,
+    0,
+    0
+   ],
+   "frame": "world",
+   "anims": [
+    {
+     "type": "orbit",
+     "radius": 4.6,
+     "speed": 1.8,
+     "phase": 270,
+     "height": 4.2
+    },
+    {
+     "type": "spin",
+     "axis": "y",
+     "speed": -5.0
+    },
+    {
+     "type": "bob",
+     "amplitude": 0.2,
+     "period": 40,
+     "phase": 0.75
+    }
+   ]
+  }
+ ],
+ "notes": "화염 거신 (복셀): 1 복셀 = 1/8 블록 (모든 조각 vox 1.0, scale 2.0), 몸 조각 오프셋은 모두 1/8 블록의 배수라 큐브 격자가 조각 사이에서 이어진다. 피벗 = 모델 (8,8,8). 앞=+Z, 오른손=-X. torso=가슴 핵 가운데(y 3.0; 몸통 y 2.13..4.25, x ±1.38), shoulders=어깨 관절(몸통에서 옆 1.25·위 0.63블록, 바깥 끝 x ±2.38, 위 끝 y 4.5), head=목 밑동(y 4.38 = 몸통 위 끝보다 2칸 위, 0.38 앞; 그 틈에 마그마 목이 빛난다. 눈 높이 y≈5.3..5.4, 정수리 6.1, 뿔 끝 6.9), tail/tail_low=허리 밑 바위 덩어리 탑(폭 10 / 6·4·2, 맨 아래 y 0.25, bob 0.1 → 가장 낮을 때도 바닥 위 0.15), fists=손목 피벗 (±2.38, 3.25, +1.25): 주먹 몸통 y 1.63..3.13, x ±1.25..3.25, z 0.6..2.1 — 가슴 높이, 어깨선 앞. swing 은 -X(앞-위로 올려 치기): 오른손 -75도/12틱, 왼손 -60도/10틱 (Rigs.swing 재무장 12틱 이내) → 정점에서 주먹 바닥(마디·손가락·엄지 면)이 앞을 향한다. rocks=world 프레임 orbit 한 고리 (반지름 4.6, 발 기준 높이 4.2, 넷이 90도 간격). 빛 순서: core(흰-노랑 fire)=눈 > lava(깊은 주황-빨강 flow 홈) > magma(pulse, 틈/입) > ember(주먹 금, 고정). 미리보기: inferno_colossus_voxel*.png 는 깊이 버퍼 렌더(정확), *_mc3d.png 는 wkit.rig_preview/mc3d.render(면 정렬 오류 있음)."
+}

@@ -1,0 +1,162 @@
+# ─────────────────────────────────────────────────────────────
+#  갑옷 세트. 부위: helmet(투구) chestplate(갑옷) leggings(각반) boots(신발)
+#    name      세트 이름          color   이름 색
+#    source    얻는 곳 (설명에 표시)
+#    pieces    부위별 [방어력, 방어 강도, 밀치기 저항]
+#    bonus     같은 세트를 2개, 4개 입었을 때 효과 (augments.yml 의 effects 와 같은 형식, 서로 더해진다)
+#              전투 효과(hit_potion ignite dodge crit)의 chance 는 확률이 아니라 1/chance 를 반올림한
+#              N 번째 공격마다 터진다 (0.15 → 7번마다, 0.25 → 4번마다). bonus_desc 에도 그 N 을 적는다.
+#    bonus_desc 세트 효과 설명
+#    aura      4부위를 다 입으면 몸 주변에 도는 입자 (없으면 생략)
+#    durability 내구도 배수. 부위별 최대 내구도 = 배수 × (투구 11, 갑옷 16, 각반 15, 신발 13) — 바닐라와 같은 계산
+#              (바닐라 철 15, 다이아몬드 33, 네더라이트 37). 맞으면 바닐라처럼 닳는다
+#    repair    모루 수리 재료 (weapons.yml 의 repair 와 같은 형식). 같은 세트 같은 부위 둘을 합쳐도 고쳐진다
+#    recipe    조합법. M 은 주재료, S 는 특수 재료로 바닐라 갑옷 모양에 S 가 한 칸 들어간다.
+#              shape 를 직접 적으면 그 모양을 쓴다. "armor:세트1,세트2" 는 같은 부위의 그 세트 갑옷.
+#              조합법이 없는 세트는 보스가 떨군다 (mobs.yml drops 의 "armor:<세트>").
+# ─────────────────────────────────────────────────────────────
+
+pioneer:
+  name: 개척자
+  color: "#d9a86a"
+  source: "섬 재료로 만든다 (가죽, 건초 더미)"
+  pieces: {helmet: [2, 0, 0], chestplate: [4, 0, 0], leggings: [3, 0, 0], boots: [1, 0, 0]}
+  durability: 10
+  repair: LEATHER
+  bonus:
+    2: [{type: attribute, attribute: movement_speed, amount: 0.06, operation: percent}]
+    4: [{type: attribute, attribute: max_health, amount: 4}, {type: harvest_bonus, chance: 0.2}, {type: sapling_luck, chance: 0.3}]
+  bonus_desc:
+    2: "이동 속도 +6%"
+    4: "최대 체력 +4, 수확물 20% 더, 묘목 30% 더"
+  recipe: {M: LEATHER, S: HAY_BLOCK}
+
+miner:
+  name: 광부
+  color: "#e8916a"
+  source: "섬 재료로 만든다 (철 주괴, 랜턴)"
+  pieces: {helmet: [2, 0, 0], chestplate: [6, 0, 0], leggings: [5, 0, 0], boots: [2, 0, 0]}
+  durability: 15
+  repair: IRON_INGOT
+  bonus:
+    2: [{type: attribute, attribute: block_break_speed, amount: 0.25, operation: percent}]
+    4: [{type: ore_gen, chance: 0.05, tier: 1}, {type: potion, effect: night_vision}, {type: attribute, attribute: max_health, amount: 2}]
+  bonus_desc:
+    2: "블록 캐는 속도 +25%"
+    4: "조약돌 생성기에서 5% 확률로 광석, 야간 투시, 최대 체력 +2"
+  aura: "DUST:#ffcf80:0.8"
+  recipe: {M: IRON_INGOT, S: LANTERN}
+
+frost:
+  name: 서리
+  color: "#9ad8ff"
+  source: "서리 균열 (단단한 얼음, 서리 정수)"
+  pieces: {helmet: [3, 1, 0], chestplate: [7, 1, 0], leggings: [6, 1, 0], boots: [3, 1, 0]}
+  durability: 33
+  repair: "item:essence_frost"
+  bonus:
+    2: [{type: hit_potion, effect: slowness, chance: 0.15, seconds: 2, amplifier: 0}]
+    4: [{type: attribute, attribute: max_health, amount: 4}, {type: damage_reduction, amount: 0.08}, {type: hit_potion, effect: slowness, chance: 0.1, seconds: 3, amplifier: 1}]
+  bonus_desc:
+    2: "공격 7번마다 대상 둔화"
+    4: "최대 체력 +4, 받는 피해 -8%, 공격 10번마다 강한 둔화"
+  aura: "SNOWFLAKE"
+  recipe: {M: PACKED_ICE, S: "item:essence_frost"}
+
+flame:
+  name: 화염
+  color: "#ff8a3d"
+  source: "화염 균열 (마그마 블록, 화염 정수)"
+  pieces: {helmet: [3, 1, 0], chestplate: [7, 1, 0], leggings: [6, 1, 0], boots: [3, 1, 0]}
+  durability: 33
+  repair: "item:essence_flame"
+  bonus:
+    2: [{type: ignite, chance: 0.15, seconds: 3}]
+    4: [{type: potion, effect: fire_resistance}, {type: attribute, attribute: attack_damage, amount: 2}]
+  bonus_desc:
+    2: "공격 7번마다 불붙임"
+    4: "화염 저항, 공격력 +2"
+  aura: "SMALL_FLAME"
+  recipe: {M: MAGMA_BLOCK, S: "item:essence_flame"}
+
+void:
+  name: 공허
+  color: "#c86bff"
+  source: "공허 균열 (흑요석, 공허 정수)"
+  pieces: {helmet: [3, 1, 0], chestplate: [7, 1, 0], leggings: [6, 1, 0], boots: [3, 1, 0]}
+  durability: 33
+  repair: "item:essence_void"
+  bonus:
+    2: [{type: dodge, chance: 0.07}]
+    4: [{type: skill_power, amount: 0.15}, {type: void_rescue, cooldown: 240}]
+  bonus_desc:
+    2: "받는 공격 14번마다 한 번 피함"
+    4: "스킬 위력 +15%, 공허로 떨어지면 부활 지점으로 (4분에 한 번)"
+  aura: "REVERSE_PORTAL"
+  recipe: {M: OBSIDIAN, S: "item:essence_void"}
+
+frostlord:
+  name: 서리 군주
+  color: "#c8f0ff"
+  source: "서리 군주가 떨군다"
+  pieces: {helmet: [3, 2.5, 0.05], chestplate: [8, 2.5, 0.05], leggings: [6, 2.5, 0.05], boots: [3, 2.5, 0.05]}
+  durability: 37
+  repair: DIAMOND
+  bonus:
+    2: [{type: hit_potion, effect: slowness, chance: 0.25, seconds: 3, amplifier: 1}]
+    4: [{type: attribute, attribute: max_health, amount: 8}, {type: damage_reduction, amount: 0.1}, {type: thorns, amount: 0.2}]
+  bonus_desc:
+    2: "공격 4번마다 대상 강한 둔화"
+    4: "최대 체력 +8, 받는 피해 -10%, 받은 피해 20% 반사"
+  aura: "SNOWFLAKE|END_ROD"
+
+inferno:
+  name: 화염 거신
+  color: "#ffb347"
+  source: "화염 거신이 떨군다"
+  pieces: {helmet: [3, 2.5, 0.05], chestplate: [8, 2.5, 0.05], leggings: [6, 2.5, 0.05], boots: [3, 2.5, 0.05]}
+  durability: 37
+  repair: DIAMOND
+  bonus:
+    2: [{type: ignite, chance: 0.25, seconds: 4}]
+    4: [{type: attribute, attribute: attack_damage, amount: 3}, {type: berserk, threshold: 0.5, amount: 0.2}, {type: potion, effect: fire_resistance}]
+  bonus_desc:
+    2: "공격 4번마다 불붙임"
+    4: "공격력 +3, 체력 50% 이하에서 피해 +20%, 화염 저항"
+  aura: "FLAME|LAVA"
+
+sovereign:
+  name: 공허 군주
+  color: "#b06bff"
+  source: "공허의 군주가 떨군다"
+  pieces: {helmet: [3, 2.5, 0.05], chestplate: [8, 2.5, 0.05], leggings: [6, 2.5, 0.05], boots: [3, 2.5, 0.05]}
+  durability: 37
+  repair: DIAMOND
+  bonus:
+    2: [{type: lifesteal, amount: 0.05}]
+    4: [{type: skill_power, amount: 0.25}, {type: skill_haste, amount: 0.15}, {type: dodge, chance: 0.1}]
+  bonus_desc:
+    2: "준 피해의 5% 회복"
+    4: "스킬 위력 +25%, 스킬 재사용 -15%, 받는 공격 10번마다 한 번 피함"
+  aura: "PORTAL|DUST:#c86bff:1.0"
+
+prism:
+  name: 프리즘
+  color: "#ff9ad0"
+  source: "보스 갑옷 + 프리즘 결정 2개로 만든다"
+  pieces: {helmet: [4, 4, 0.1], chestplate: [9, 4, 0.1], leggings: [7, 4, 0.1], boots: [4, 4, 0.1]}
+  durability: 50
+  repair: "item:prism_crystal"
+  bonus:
+    2: [{type: attribute, attribute: max_health, amount: 6}, {type: crit, chance: 0.1, multiplier: 1.5}]
+    4: [{type: damage_bonus, amount: 0.2}, {type: undying, cooldown: 240, heal: 0.4}, {type: double_jump, power: 1.0, cooldown: 1.5}]
+  bonus_desc:
+    2: "최대 체력 +6, 공격 10번마다 치명타"
+    4: "주는 피해 +20%, 죽을 피해를 한 번 버팀(4분), 이단 점프"
+  aura: "PRISM"
+  recipe:
+    shape: ["GCG", "DAD", "GCG"]
+    G: AMETHYST_BLOCK
+    C: "item:prism_crystal"
+    D: DIAMOND
+    A: "armor:frostlord,inferno,sovereign"

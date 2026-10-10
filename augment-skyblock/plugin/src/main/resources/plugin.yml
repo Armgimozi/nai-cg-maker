@@ -1,0 +1,27 @@
+name: AugmentSkyblock
+version: '${version}'
+main: kr.augsky.AugSky
+api-version: '1.21'
+description: 증강 스카이블럭 - 실버/골드/프리즘 증강, 커스텀 무기와 스킬, 새로운 몬스터
+authors: [augsky]
+commands:
+  augment:
+    description: 내 증강 보기 / 도감 / 선택
+    aliases: [증강, aug]
+  augspawn:
+    description: 시작의 섬으로 이동
+    aliases: [스폰, 섬]
+  weapons:
+    description: 무기 도감
+    aliases: [무기도감, 무기]
+  armorcodex:
+    description: 갑옷 도감
+    aliases: [갑옷도감, 갑옷]
+  augadmin:
+    description: 증강 스카이블럭 관리자 명령어
+    aliases: [증강관리]
+    permission: augsky.admin
+permissions:
+  augsky.admin:
+    description: 관리자 명령어
+    default: op

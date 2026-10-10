@@ -1,0 +1,721 @@
+# ─────────────────────────────────────────────────────────────
+#  증강 목록. tier: SILVER(실버) / GOLD(골드) / PRISM(프리즘)
+#    icon        선택 화면에 보일 아이템
+#    max_stacks  같은 증강을 몇 번까지 겹쳐 받을 수 있는지 (기본 1)
+#    weight      뽑힐 확률 가중치 (기본 10)
+#    effects     효과 목록. 같은 종류는 서로 더해진다.
+#
+#  효과 종류
+#    attribute {attribute, amount, operation: add | percent | multiply}
+#        attribute 이름: max_health movement_speed attack_damage attack_speed armor armor_toughness
+#        block_break_speed block_interaction_range entity_interaction_range fall_damage_multiplier
+#        safe_fall_distance jump_strength step_height scale luck oxygen_bonus knockback_resistance ...
+#    potion {effect, amplifier}               항상 걸려 있는 포션 효과
+#    hit_potion {effect, every, seconds, amplifier}  공격 every 번마다 대상에게
+#    lifesteal {amount}  thorns {amount}  dodge {every}  damage_reduction {amount}
+#    crit {every, multiplier}  double_strike {every, ratio}  execute {threshold}
+#    first_strike {amount}  berserk {threshold, amount}  boss_damage {amount}  damage_bonus {amount}
+#    lightning {every, damage}  chain_lightning {every, targets, damage}  ignite {every, seconds}
+#    regen {interval, amount}  kill_heal {amount}  kill_speed {seconds, amplifier}
+#    soul_harvest {per_kill, max}  tank_engine {amount}  undying {cooldown, heal}  void_rescue {cooldown}
+#    double_jump {power, cooldown}  glide  magnet {radius}
+#    xp_boost {amount}  shard_luck {amount}  loot_boost {chance}  weapon_luck {chance}
+#    skill_haste {amount}  skill_power {amount}
+#    ore_gen {chance, tier}  auto_smelt  harvest_bonus {chance}  sapling_luck {chance}
+#    growth_aura {radius, interval}  fishing_luck {chance}
+#    extra_choice {amount}  reroll_bonus {amount}
+#    grant_random {tier, count}  grant_item {item, amount}   (얻는 순간 한 번)
+#    죽었을 때 지키기: keep_hotbar {slots}  keep_weapons  keep_armor  keep_materials  keep_levels  keep_all
+#
+#  전투 효과는 확률이 아니다 (hit_potion ignite lightning chain_lightning crit double_strike dodge)
+#    every: N  → 맞힌 공격 N번째마다 터진다 (회피는 받는 공격 N번째마다). 1 이면 매번.
+#    직접 휘두른 근접 공격과 화살 같은 투사체만 센다 (스킬·가시 피해는 세지 않는다). 효과마다 따로 세고, 접속을 끊으면 처음부터.
+#    휩쓸기에 함께 맞은 몹은 세지 않고, 그 휘두름에서 주 대상에게 터진 효과를 똑같이 받는다.
+#    chance: 0.2 처럼 적어도 되고, 그러면 1/chance 를 반올림한 N(0.2 → 5, 0.15 → 7)으로 바뀐다. 갑옷 세트 효과도 같다.
+#    같은 효과를 여러 곳에서 얻으면 비율(1/N)을 더한 뒤 다시 N 으로 바꾼다. 예) 5번마다 + 4번마다 → 2번마다
+#    (hit_potion 만은 항목마다 따로 센다: 증강 둔화와 갑옷 둔화는 각자 제 횟수에 터진다)
+#  그 밖의 chance (광석 생성, 수확, 묘목, 낚시, 전리품, 무기 발견 등)는 지금처럼 확률이다.
+#  tank_engine: 다른 플레이어를 처치할 때마다 최대 체력 +amount. 쌓인 값은 증강을 잃거나 죽어도 남고,
+#    관리자 증강 초기화(/증강관리 증강 초기화)에서만 지워진다.
+# ─────────────────────────────────────────────────────────────
+
+# ═══════════════════════ 실버 ═══════════════════════
+
+s_vitality:
+  tier: SILVER
+  name: 체력 단련
+  icon: APPLE
+  max_stacks: 3
+  description: ["최대 체력 +4 (하트 2칸)"]
+  effects:
+    - {type: attribute, attribute: max_health, amount: 4}
+
+s_swift:
+  tier: SILVER
+  name: 날렵한 발
+  icon: FEATHER
+  max_stacks: 2
+  description: ["이동 속도 +8%"]
+  effects:
+    - {type: attribute, attribute: movement_speed, amount: 0.08, operation: percent}
+
+s_strength:
+  tier: SILVER
+  name: 근력 단련
+  icon: IRON_SWORD
+  max_stacks: 3
+  description: ["공격력 +1.5"]
+  effects:
+    - {type: attribute, attribute: attack_damage, amount: 1.5}
+
+s_armor:
+  tier: SILVER
+  name: 단단한 피부
+  icon: IRON_CHESTPLATE
+  max_stacks: 2
+  description: ["방어력 +3"]
+  effects:
+    - {type: attribute, attribute: armor, amount: 3}
+
+s_miner:
+  tier: SILVER
+  name: 광부의 손길
+  icon: IRON_PICKAXE
+  max_stacks: 2
+  description: ["블록 캐는 속도 +25%"]
+  effects:
+    - {type: attribute, attribute: block_break_speed, amount: 0.25, operation: percent}
+
+s_reach:
+  tier: SILVER
+  name: 긴 팔
+  icon: STICK
+  description: ["블록 닿는 거리 +1.5, 공격 거리 +0.5, 다리 놓기가 편해진다."]
+  effects:
+    - {type: attribute, attribute: block_interaction_range, amount: 1.5}
+    - {type: attribute, attribute: entity_interaction_range, amount: 0.5}
+
+s_feather:
+  tier: SILVER
+  name: 깃털 낙하
+  icon: CHICKEN_SPAWN_EGG
+  description: ["낙하 피해 -60%, 안전하게 떨어지는 높이 +3"]
+  effects:
+    - {type: attribute, attribute: fall_damage_multiplier, amount: -0.6}
+    - {type: attribute, attribute: safe_fall_distance, amount: 3}
+
+s_ore1:
+  tier: SILVER
+  name: 광맥의 기운 I
+  icon: COAL_ORE
+  description: ["조약돌 생성기에서 6% 확률로 광석이 생긴다.", "(석탄, 구리, 철 · 생성기 16칸 안에 있을 때)"]
+  weight: 14
+  effects:
+    - {type: ore_gen, chance: 0.06, tier: 1}
+
+s_vamp:
+  tier: SILVER
+  name: 피의 갈증
+  icon: REDSTONE
+  description: ["준 피해의 5%만큼 체력 회복"]
+  effects:
+    - {type: lifesteal, amount: 0.05}
+
+s_scholar:
+  tier: SILVER
+  name: 학자의 지혜
+  icon: EXPERIENCE_BOTTLE
+  max_stacks: 2
+  description: ["얻는 경험치 +30%"]
+  effects:
+    - {type: xp_boost, amount: 0.3}
+
+s_harvest:
+  tier: SILVER
+  name: 풍작
+  icon: WHEAT
+  description: ["다 자란 작물, 수박, 호박, 사탕수수를 캘 때 25% 확률로 두 배"]
+  effects:
+    - {type: harvest_bonus, chance: 0.25}
+
+s_forester:
+  tier: SILVER
+  name: 숲지기
+  icon: OAK_SAPLING
+  description: ["나뭇잎에서 묘목과 사과가 더 자주 나온다."]
+  effects:
+    - {type: sapling_luck, chance: 0.5}
+
+s_shard:
+  tier: SILVER
+  name: 파편 수집가
+  icon: ECHO_SHARD
+  max_stacks: 2
+  description: ["증강 파편이 나올 확률 +50%"]
+  effects:
+    - {type: shard_luck, amount: 0.5}
+
+s_step:
+  tier: SILVER
+  name: 가벼운 걸음
+  icon: LEATHER_BOOTS
+  description: ["한 칸 높이를 점프 없이 올라간다."]
+  effects:
+    - {type: attribute, attribute: step_height, amount: 0.5}
+
+s_diver:
+  tier: SILVER
+  name: 잠수부
+  icon: TURTLE_HELMET
+  description: ["물속에서 숨을 더 오래 참고, 더 빨리 헤엄치고 캔다."]
+  effects:
+    - {type: attribute, attribute: oxygen_bonus, amount: 3}
+    - {type: attribute, attribute: submerged_mining_speed, amount: 0.8}
+    - {type: attribute, attribute: water_movement_efficiency, amount: 0.33}
+
+s_fire_fist:
+  tier: SILVER
+  name: 불꽃 주먹
+  icon: BLAZE_POWDER
+  description: ["공격 5번마다 3초 동안 불태운다."]
+  effects:
+    - {type: ignite, every: 5, seconds: 3}
+
+s_frost_touch:
+  tier: SILVER
+  name: 서리 손길
+  icon: SNOWBALL
+  description: ["공격 5번마다 2초 동안 느리게 만든다."]
+  effects:
+    - {type: hit_potion, effect: slowness, every: 5, seconds: 2, amplifier: 1}
+
+s_regen:
+  tier: SILVER
+  name: 회복력
+  icon: GLISTERING_MELON_SLICE
+  description: ["6초마다 체력 1 회복"]
+  effects:
+    - {type: regen, interval: 6, amount: 1}
+
+s_magnet:
+  tier: SILVER
+  name: 자석
+  icon: IRON_NUGGET
+  description: ["5칸 안의 떨어진 아이템을 끌어당긴다."]
+  effects:
+    - {type: magnet, radius: 5}
+
+s_night:
+  tier: SILVER
+  name: 올빼미 눈
+  icon: ENDER_EYE
+  description: ["항상 야간 투시"]
+  effects:
+    - {type: potion, effect: night_vision}
+
+s_jump:
+  tier: SILVER
+  name: 개구리 다리
+  icon: SLIME_BALL
+  description: ["점프력이 오르고 낙하 피해를 덜 받는다."]
+  effects:
+    - {type: attribute, attribute: jump_strength, amount: 0.08}
+    - {type: attribute, attribute: safe_fall_distance, amount: 1}
+
+s_tough:
+  tier: SILVER
+  name: 끈기
+  icon: SHIELD
+  description: ["밀려나는 힘 -30%. 섬 끝에서 덜 떨어진다."]
+  effects:
+    - {type: attribute, attribute: knockback_resistance, amount: 0.3}
+    - {type: attribute, attribute: explosion_knockback_resistance, amount: 0.3}
+
+s_fisher:
+  tier: SILVER
+  name: 강태공
+  icon: FISHING_ROD
+  description: ["낚시할 때 25% 확률로 한 마리 더, 행운 +1"]
+  effects:
+    - {type: fishing_luck, chance: 0.25}
+    - {type: attribute, attribute: luck, amount: 1}
+
+s_hunter:
+  tier: SILVER
+  name: 사냥꾼
+  icon: LEATHER
+  description: ["몬스터 전리품이 15% 확률로 두 배"]
+  effects:
+    - {type: loot_boost, chance: 0.15}
+
+s_focus:
+  tier: SILVER
+  name: 집중
+  icon: CLOCK
+  description: ["무기 스킬 재사용 대기시간 -10%"]
+  effects:
+    - {type: skill_haste, amount: 0.1}
+
+s_glide:
+  tier: SILVER
+  name: 활공
+  icon: PHANTOM_MEMBRANE
+  description: ["떨어지는 중에 웅크리면 천천히 내려온다."]
+  effects:
+    - {type: glide}
+
+s_feast:
+  tier: SILVER
+  name: 전리품 섭취
+  icon: COOKED_BEEF
+  description: ["몬스터를 처치하면 체력 2 회복"]
+  effects:
+    - {type: kill_heal, amount: 2}
+
+s_pocket:
+  tier: SILVER
+  name: 단단한 주머니
+  icon: BARREL
+  max_stacks: 3
+  description: ["죽어도 핫바 왼쪽 3칸의 아이템은 잃지 않는다.", "(겹칠 때마다 3칸씩 늘어 최대 9칸)"]
+  effects:
+    - {type: keep_hotbar, slots: 3}
+
+s_weapon_bond:
+  tier: SILVER
+  name: 무기 수호
+  icon: STONE_SWORD
+  description: ["죽어도 새 무기(무기도감의 무기)는 스킬이 없어도 떨어뜨리지 않는다."]
+  effects:
+    - {type: keep_weapons}
+
+# ═══════════════════════ 골드 ═══════════════════════
+
+g_vampire:
+  tier: GOLD
+  name: 흡혈귀
+  icon: RED_DYE
+  description: ["준 피해의 12%만큼 체력 회복"]
+  effects:
+    - {type: lifesteal, amount: 0.12}
+
+g_ore2:
+  tier: GOLD
+  name: 광맥의 기운 II
+  icon: GOLD_ORE
+  description: ["조약돌 생성기에서 12% 확률로 광석이 생긴다.", "(금, 레드스톤, 청금석까지)"]
+  weight: 14
+  effects:
+    - {type: ore_gen, chance: 0.12, tier: 2}
+
+g_thunder:
+  tier: GOLD
+  name: 뇌전의 손길
+  icon: LIGHTNING_ROD
+  description: ["공격 7번마다 번개가 떨어져 피해 6"]
+  effects:
+    - {type: lightning, every: 7, damage: 6}
+
+g_giant:
+  tier: GOLD
+  name: 거인화
+  icon: IRON_GOLEM_SPAWN_EGG
+  description: ["몸집 +25%, 최대 체력 +6, 닿는 거리 +0.5"]
+  effects:
+    - {type: attribute, attribute: scale, amount: 0.25}
+    - {type: attribute, attribute: max_health, amount: 6}
+    - {type: attribute, attribute: entity_interaction_range, amount: 0.5}
+    - {type: attribute, attribute: block_interaction_range, amount: 0.5}
+
+g_double_jump:
+  tier: GOLD
+  name: 이단 점프
+  icon: RABBIT_FOOT
+  description: ["공중에서 점프 키를 한 번 더 누르면 다시 뛴다."]
+  effects:
+    - {type: double_jump, power: 1.0, cooldown: 1.0}
+
+g_void_guard:
+  tier: GOLD
+  name: 공허 수호
+  icon: ENDER_PEARL
+  description: ["공허로 떨어지면 부활 지점으로 끌어올린다. (재사용 5분)"]
+  weight: 12
+  effects:
+    - {type: void_rescue, cooldown: 300}
+
+g_berserk:
+  tier: GOLD
+  name: 광전사
+  icon: NETHERITE_AXE
+  description: ["체력이 절반 이하면 주는 피해 +35%"]
+  effects:
+    - {type: berserk, threshold: 0.5, amount: 0.35}
+
+g_smelt:
+  tier: GOLD
+  name: 용광로 손
+  icon: FURNACE
+  description: ["캔 광석이 바로 주괴가 된다. 모래는 유리로."]
+  effects:
+    - {type: auto_smelt}
+
+g_thorns:
+  tier: GOLD
+  name: 가시 갑옷
+  icon: CACTUS
+  description: ["받은 피해의 30%를 공격한 몬스터에게 되돌린다."]
+  effects:
+    - {type: thorns, amount: 0.3}
+
+g_heart:
+  tier: GOLD
+  name: 재생의 심장
+  icon: GOLDEN_APPLE
+  description: ["3초마다 체력 1 회복"]
+  effects:
+    - {type: regen, interval: 3, amount: 1}
+
+g_crit:
+  tier: GOLD
+  name: 치명타 장인
+  icon: DIAMOND_SWORD
+  description: ["공격 5번마다 1.6배 피해"]
+  effects:
+    - {type: crit, every: 5, multiplier: 1.6}
+
+g_inferno:
+  tier: GOLD
+  name: 화염의 몸
+  icon: MAGMA_CREAM
+  description: ["공격하면 항상 4초 동안 불태운다. 불에 면역."]
+  effects:
+    - {type: ignite, chance: 1.0, seconds: 4}
+    - {type: potion, effect: fire_resistance}
+
+g_haste:
+  tier: GOLD
+  name: 시간 가속
+  icon: CLOCK
+  description: ["무기 스킬 재사용 대기시간 -25%"]
+  effects:
+    - {type: skill_haste, amount: 0.25}
+
+g_treasure:
+  tier: GOLD
+  name: 보물 사냥꾼
+  icon: CHEST
+  description: ["몬스터를 처치하면 3% 확률로 무작위 무기를 얻는다."]
+  effects:
+    - {type: weapon_luck, chance: 0.03}
+
+g_loot:
+  tier: GOLD
+  name: 넉넉한 주머니
+  icon: BUNDLE
+  description: ["몬스터 전리품이 50% 확률로 두 배"]
+  effects:
+    - {type: loot_boost, chance: 0.5}
+
+g_soul:
+  tier: GOLD
+  name: 영혼 흡수
+  icon: SOUL_LANTERN
+  description: ["적대 몬스터를 잡을 때마다 최대 체력 +0.2 (최대 +6)"]
+  effects:
+    - {type: soul_harvest, per_kill: 0.2, max: 6}
+
+g_digger:
+  tier: GOLD
+  name: 숙련된 광부
+  icon: GOLDEN_PICKAXE
+  description: ["항상 성급함 I, 블록 캐는 속도 +20%"]
+  effects:
+    - {type: potion, effect: haste}
+    - {type: attribute, attribute: block_break_speed, amount: 0.2, operation: percent}
+
+g_dodge:
+  tier: GOLD
+  name: 그림자 걸음
+  icon: BLACK_DYE
+  description: ["받는 공격 8번마다 한 번은 피한다."]
+  effects:
+    - {type: dodge, every: 8}
+
+g_executioner:
+  tier: GOLD
+  name: 처형자
+  icon: WITHER_SKELETON_SKULL
+  description: ["체력이 15% 이하인 몬스터를 때리면 즉시 처치 (보스 제외)"]
+  effects:
+    - {type: execute, threshold: 0.15}
+
+g_growth:
+  tier: GOLD
+  name: 대지의 축복
+  icon: BONE_MEAL
+  description: ["주변 6칸의 작물과 묘목이 빨리 자란다."]
+  effects:
+    - {type: growth_aura, radius: 6, interval: 40}
+
+g_arcane:
+  tier: GOLD
+  name: 마력 증폭
+  icon: LAPIS_LAZULI
+  description: ["무기 스킬 피해 +30%"]
+  effects:
+    - {type: skill_power, amount: 0.3}
+
+g_ambush:
+  tier: GOLD
+  name: 기습
+  icon: TRIPWIRE_HOOK
+  description: ["체력이 가득 찬 적에게 주는 피해 +50%"]
+  effects:
+    - {type: first_strike, amount: 0.5}
+
+g_iron_will:
+  tier: GOLD
+  name: 강철 의지
+  icon: IRON_BLOCK
+  description: ["받는 피해 -12%"]
+  effects:
+    - {type: damage_reduction, amount: 0.12}
+
+g_altar:
+  tier: GOLD
+  name: 제단의 총애
+  icon: AMETHYST_CLUSTER
+  description: ["증강을 고를 때 무료 다시 뽑기 +2", "증강 파편을 25% 더 얻는다"]
+  effects:
+    - {type: reroll_bonus, amount: 2}
+    - {type: shard_luck, amount: 0.25}
+
+g_thrill:
+  tier: GOLD
+  name: 사냥의 흥분
+  icon: SUGAR
+  description: ["몬스터를 처치하면 4초 동안 신속 II, 체력 2 회복"]
+  effects:
+    - {type: kill_speed, seconds: 4, amplifier: 1}
+    - {type: kill_heal, amount: 2}
+
+g_chain:
+  tier: GOLD
+  name: 연쇄 번개
+  icon: COPPER_BLOCK
+  description: ["공격 7번마다 적 3명에게 튀는 번개 (피해 5)"]
+  effects:
+    - {type: chain_lightning, every: 7, targets: 3, damage: 5}
+
+g_wanderer:
+  tier: GOLD
+  name: 하늘 방랑자
+  icon: ELYTRA
+  description: ["이동 속도 +10%, 낙하 피해 -100%, 활공"]
+  effects:
+    - {type: attribute, attribute: movement_speed, amount: 0.1, operation: percent}
+    - {type: attribute, attribute: fall_damage_multiplier, amount: -1}
+    - {type: glide}
+
+g_armor_bond:
+  tier: GOLD
+  name: 갑옷 결속
+  icon: CHAINMAIL_CHESTPLATE
+  description: ["죽어도 입고 있는 갑옷과 왼손 아이템은 잃지 않는다."]
+  effects:
+    - {type: keep_armor}
+
+g_treasure_bond:
+  tier: GOLD
+  name: 보물 결속
+  icon: AMETHYST_SHARD
+  description: ["죽어도 증강 파편, 정수, 프리즘 결정, 증강권은 잃지 않는다."]
+  effects:
+    - {type: keep_materials}
+
+g_memory:
+  tier: GOLD
+  name: 경험 보존
+  icon: ENCHANTING_TABLE
+  description: ["죽어도 경험치 레벨을 잃지 않는다."]
+  effects:
+    - {type: keep_levels}
+
+# ═══════════════════════ 프리즘 ═══════════════════════
+
+p_midas:
+  tier: PRISM
+  name: 미다스의 손
+  icon: GOLD_BLOCK
+  description: ["조약돌 생성기에서 20% 확률로 광석. 다이아몬드와", "에메랄드까지 나온다. 캔 광석은 바로 주괴가 된다."]
+  weight: 14
+  effects:
+    - {type: ore_gen, chance: 0.2, tier: 3}
+    - {type: auto_smelt}
+
+p_undying:
+  tier: PRISM
+  name: 불사
+  icon: TOTEM_OF_UNDYING
+  description: ["죽을 만큼 맞으면 한 번 버티고 체력 절반으로 회복.", "(재사용 3분, 공허 낙하 제외)"]
+  effects:
+    - {type: undying, cooldown: 180, heal: 0.5}
+
+p_titan:
+  tier: PRISM
+  name: 거신
+  icon: NETHERITE_CHESTPLATE
+  description: ["몸집 +60%, 최대 체력 +20, 공격력 +4, 밀려나지 않는다. 조금 느려진다."]
+  effects:
+    - {type: attribute, attribute: scale, amount: 0.6}
+    - {type: attribute, attribute: max_health, amount: 20}
+    - {type: attribute, attribute: attack_damage, amount: 4}
+    - {type: attribute, attribute: knockback_resistance, amount: 0.8}
+    - {type: attribute, attribute: movement_speed, amount: -0.05, operation: percent}
+    - {type: attribute, attribute: entity_interaction_range, amount: 1}
+    - {type: attribute, attribute: block_interaction_range, amount: 1}
+
+p_time:
+  tier: PRISM
+  name: 시간 왜곡
+  icon: RECOVERY_COMPASS
+  description: ["무기 스킬 재사용 대기시간 -50%"]
+  effects:
+    - {type: skill_haste, amount: 0.5}
+
+p_storm:
+  tier: PRISM
+  name: 폭풍의 화신
+  icon: TRIDENT
+  description: ["공격 3번마다 적 4명에게 튀는 번개 (피해 8), 항상 신속 I"]
+  effects:
+    - {type: chain_lightning, every: 3, targets: 4, damage: 8}
+    - {type: potion, effect: speed}
+
+p_reaper:
+  tier: PRISM
+  name: 영혼 수확자
+  icon: WITHER_ROSE
+  description: ["적대 몬스터를 잡을 때마다 최대 체력 +0.5 (최대 +20)"]
+  effects:
+    - {type: soul_harvest, per_kill: 0.5, max: 20}
+
+p_phantom:
+  tier: PRISM
+  name: 환영
+  icon: PHANTOM_MEMBRANE
+  description: ["받는 공격 3번마다 한 번은 피한다."]
+  effects:
+    - {type: dodge, every: 3}
+
+p_twin:
+  tier: PRISM
+  name: 쌍검술
+  icon: GOLDEN_SWORD
+  description: ["근접 공격 3번마다 같은 피해를 한 번 더"]
+  effects:
+    - {type: double_strike, every: 3, ratio: 1.0}
+
+p_resonance:
+  tier: PRISM
+  name: 증강 공명
+  icon: BEACON
+  description: ["증강 선택지 +1개, 무료 다시 뽑기 +1"]
+  effects:
+    - {type: extra_choice, amount: 1}
+    - {type: reroll_bonus, amount: 1}
+
+p_dice:
+  tier: PRISM
+  name: 운명의 주사위
+  icon: TARGET
+  description: ["얻는 즉시 무작위 골드 증강 2개를 받는다."]
+  effects:
+    - {type: grant_random, tier: GOLD, count: 2}
+
+p_vampire_lord:
+  tier: PRISM
+  name: 흡혈 군주
+  icon: CRIMSON_FUNGUS
+  description: ["준 피해의 25%만큼 회복, 몬스터 처치 시 체력 4 회복"]
+  effects:
+    - {type: lifesteal, amount: 0.25}
+    - {type: kill_heal, amount: 4}
+
+p_world_tree:
+  tier: PRISM
+  name: 세계수의 축복
+  icon: FLOWERING_AZALEA
+  description: ["주변 10칸 작물이 매우 빨리 자라고, 수확 50% 두 배, 묘목 대량"]
+  effects:
+    - {type: growth_aura, radius: 10, interval: 20}
+    - {type: harvest_bonus, chance: 0.5}
+    - {type: sapling_luck, chance: 1.0}
+
+p_avatar:
+  tier: PRISM
+  name: 화신
+  icon: NETHER_STAR
+  description: ["최대 체력 +8, 공격력 +3, 방어력 +4, 이동 속도 +10%"]
+  effects:
+    - {type: attribute, attribute: max_health, amount: 8}
+    - {type: attribute, attribute: attack_damage, amount: 3}
+    - {type: attribute, attribute: armor, amount: 4}
+    - {type: attribute, attribute: movement_speed, amount: 0.1, operation: percent}
+
+p_glass_cannon:
+  tier: PRISM
+  name: 유리 대포
+  icon: GLASS
+  description: ["주는 피해 +60%, 스킬 피해 +60%, 하지만 최대 체력 -8"]
+  effects:
+    - {type: damage_bonus, amount: 0.6}
+    - {type: skill_power, amount: 0.6}
+    - {type: attribute, attribute: max_health, amount: -8}
+
+p_wings:
+  tier: PRISM
+  name: 천공의 날개
+  icon: ELYTRA
+  description: ["강한 이단 점프, 활공, 낙하 피해 없음, 공허 수호(재사용 2분)"]
+  effects:
+    - {type: double_jump, power: 1.3, cooldown: 0.6}
+    - {type: glide}
+    - {type: attribute, attribute: fall_damage_multiplier, amount: -1}
+    - {type: void_rescue, cooldown: 120}
+
+p_arsenal:
+  tier: PRISM
+  name: 무기고
+  icon: ARMOR_STAND
+  description: ["얻는 즉시 보스 무기 1개, 몬스터 처치 시 5% 확률로 무작위 무기"]
+  effects:
+    - {type: grant_item, item: "pool:boss"}
+    - {type: weapon_luck, chance: 0.05}
+
+p_judgment:
+  tier: PRISM
+  name: 심판
+  icon: MACE
+  description: ["체력 25% 이하의 적 즉시 처치(보스 제외), 공격 4번마다 2배 피해, 보스 피해 +20%"]
+  effects:
+    - {type: execute, threshold: 0.25}
+    - {type: crit, every: 4, multiplier: 2.0}
+    - {type: boss_damage, amount: 0.2}
+
+p_soul_bind:
+  tier: PRISM
+  name: 영혼 결속
+  icon: ENDER_CHEST
+  description: ["죽어도 아무것도 잃지 않는다.", "(인벤토리와 경험치 전부 유지)"]
+  effects:
+    - {type: keep_all}
+
+p_tank_engine:
+  tier: PRISM
+  name: 탱크엔진
+  icon: FURNACE_MINECART
+  description: ["다른 플레이어를 처치할 때마다 최대 체력 +1 (영구, 상한 없음)", "죽거나 증강을 잃어도 쌓인 체력은 남는다.", "(PvP 가 켜진 서버에서만 쌓인다)"]
+  effects:
+    - {type: tank_engine, amount: 1}
