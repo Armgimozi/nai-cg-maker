@@ -2418,7 +2418,7 @@ y 10                [두르크: 모루 옥좌 B6]  <---- h 용암 굴 ---->  [�
 | 사망 화면 단추 | `vanilla.deathScreen.respawn` / `.titleScreen` | 일어선다 / 그만둔다 | Rise / Depart | 바닐라 단추, 회색 |
 | 사망 화면 그만두기 확인 | `vanilla.deathScreen.quit.confirm` | 여기서 그만두겠나 | Depart this place? | 바닐라 확인 창 |
 | 창 제목 (인벤토리·제작대·상자) | `vanilla.container.crafting` / `.chest` / `.chestDouble` / `.inventory` (+ `.enderchest`, `.barrel`) | (빈 글) / 상자 / 큰 상자 / 보관함 | (빈 글) / Chest / Large Chest / Inventory | 바닐라 제목 자리, 흐린 옛 금빛 (§7, 10.4), 제목 글꼴 (영어는 로마 비문 대문자). `container.crafting` 은 인벤토리 2×2 자리의 글이자 제작대 창 제목인데, 그 자리가 반지 칸이 되어 (9.4, 0.4 의 16: "반지" 글자는 넣지 않는다) 비웠다 |
-| 제작대 창 제목 | `container.workbench` | 제작 | Crafting | 플러그인이 제작대 창을 열 때 단다 (`InventoryOpenEvent.titleOverride`, 짓는 사람만 연다). 바닐라 창 제목과 같은 꼴 (§7 + 제목 글꼴) |
+| 제작대 창 제목 | `container.workbench` | 제작 | Crafting | 플러그인이 제작대 창을 열 때 단다 (`InventoryOpenEvent.titleOverride`, 짓는 사람만 연다). 바닐라 창 제목과 같은 꼴 (§7 + 제목 글꼴) [확인 (클라): `dist/screenshots/ring_slots/final_1280x720_g3_workbench.png`] |
 | 일시 정지 화면 제목 | `vanilla.menu.game` | 게임 메뉴 | Game Menu | 제목 글꼴, 밑에 금실 (10.4, 10.9) |
 | 화톳불을 처음 켬 | `bonfire.lit` | 화톳불을 밝혔다 | BONFIRE LIT | 큰 글씨, 바랜 금 |
 | 보스 처치 | `boss.felled` | 쓰러뜨렸다 (아랫줄에 보스 이름) | FOE FELLED | 큰 글씨, 바랜 금 |
