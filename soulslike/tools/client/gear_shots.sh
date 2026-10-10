@@ -15,7 +15,7 @@
 #              tooltip_parrying_dagger    패링 단검 (왼손 무기): 분류 줄 "패링 단검 (찌르기)", 공격력과 무게
 #              tooltip_test_parry         시험 반지: 효과 줄 "패링 판정 +0.1초", 실선, 설명 (무게가 없어 무게 줄도 없다)
 #   levelup  레벨 업 창 (5.9): 근력 +3 (levelup_str: 공격력 a → b) 과 근력 단추의 설명 칸 (levelup_str_tip),
-#            민첩 +10 (levelup_dex: 공격 속도 0% → +10%) 과 민첩 단추 (levelup_dex_tip),
+#            민첩 +10 (levelup_dex: 공격 속도 100% → 110%) 과 민첩 단추 (levelup_dex_tip),
 #            왼손에 쇠단지를 들고 지력 +10 (levelup_int: 술법 위력 110 → 128) 과 지력 단추 (levelup_int_tip)
 #   stats    능력치 창 (5.9): 왼손 쇠단지 (stats_dialog: 공격력 한손 68, 술법 위력 110)
 # 시험 줄이 그림에 남지 않게 MC_OPTIONS="chatScale:0.0" 로 켠 클라이언트에서 찍는다. 영어는 MC_LANG=en_us 와 SUFFIX=_en.

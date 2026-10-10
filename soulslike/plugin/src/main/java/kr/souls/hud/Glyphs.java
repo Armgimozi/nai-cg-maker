@@ -100,15 +100,23 @@ public final class Glyphs {
 
     /** jar 안 glyphs.yml 을 읽는다. 없으면 그림 글자 없이 (일반 글씨로 대신) 돈다. */
     public static void load(JavaPlugin plugin) {
-        Map<String, Glyph> out = new LinkedHashMap<>();
         try (InputStream in = plugin.getResource("glyphs.yml")) {
             layout = null;
             if (in == null) {
                 plugin.getLogger().warning("jar 안에 glyphs.yml 이 없습니다 (pack/gen_pack.py 를 gradle 보다 먼저 돌리세요). 그림 글자 대신 일반 글씨를 씁니다.");
-                glyphs = out;
+                glyphs = new LinkedHashMap<>();
                 return;
             }
-            YamlConfiguration y = YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
+            load(YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8)), plugin.getLogger());
+        } catch (Exception ex) {
+            plugin.getLogger().warning("glyphs.yml 을 읽지 못했습니다: " + ex.getMessage());
+        }
+    }
+
+    /** 읽은 glyphs.yml 로 표를 채운다 (JUnit 은 저장소의 glyphs.yml 로 부른다: ui/Columns 의 폭 셈). */
+    public static void load(YamlConfiguration y, java.util.logging.Logger log) {
+        Map<String, Glyph> out = new LinkedHashMap<>();
+        try {
             ConfigurationSection root = y.isConfigurationSection("glyphs") ? y.getConfigurationSection("glyphs") : y;
             ConfigurationSection lay = root.getConfigurationSection("layout");
             layout = lay == null ? null : new Layout(lay.getInt("margin", 8), lay.getInt("left", 205), lay.getInt("right", 206),
@@ -146,7 +154,7 @@ public final class Glyphs {
                 if (g == null) continue;
                 String ch = decode(g.getString("char", ""));
                 if (ch.isEmpty()) {
-                    plugin.getLogger().warning("glyphs.yml 의 " + name + " 에 char 가 없습니다");
+                    log.warning("glyphs.yml 의 " + name + " 에 char 가 없습니다");
                     continue;
                 }
                 String font = g.getString("font", DEFAULT_FONT.asString());
@@ -154,16 +162,16 @@ public final class Glyphs {
                 try {
                     key = Key.key(font);
                 } catch (RuntimeException ex) {
-                    plugin.getLogger().warning("glyphs.yml 의 " + name + " 글꼴 이름이 틀렸습니다: " + font);
+                    log.warning("glyphs.yml 의 " + name + " 글꼴 이름이 틀렸습니다: " + font);
                     key = DEFAULT_FONT;
                 }
                 out.put(name, new Glyph(name, ch, g.getInt("width", 0), key));
             }
-        } catch (Exception ex) {
-            plugin.getLogger().warning("glyphs.yml 을 읽지 못했습니다: " + ex.getMessage());
+        } catch (RuntimeException ex) {
+            log.warning("glyphs.yml 을 읽지 못했습니다: " + ex.getMessage());
         }
         glyphs = Collections.unmodifiableMap(out);
-        plugin.getLogger().info("그림 글자 " + glyphs.size() + "개 (glyphs.yml)");
+        log.info("그림 글자 " + glyphs.size() + "개 (glyphs.yml)");
     }
 
     private static TextColor color(String hex, int fallback) {

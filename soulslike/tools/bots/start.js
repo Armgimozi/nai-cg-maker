@@ -61,6 +61,20 @@ async function body (sc, b, swap) {
   sc.check('pvp checkbox input (boolean, starts off)', JSON.stringify(raw).includes('"pvp"'), JSON.stringify(raw.inputs || '').slice(0, 160))
   const p0 = await settings(b)
   sc.check('provisional default written before the answer (confirmed=false via=default)', p0.confirmed === 'false' && p0.via === 'default' && p0.difficulty === 'normal', JSON.stringify(p0))
+  // 정할 수 없는 사람 (op 가 아니고 처음 연 사람도 아니다) 이 그 사이 들어오면: 채팅에 "아직 정해지지 않았습니다" 와 누가 정하는지
+  // (start.waiting), "다시 묻습니다" (start.provisional-chat) 는 받지 않는다 (다시 묻지 않으므로, 검토 provisional-chat-wrong-audience)
+  {
+    const g = await L.connect(sc, { name: 'StartGuest' })
+    const keysOf = (m) => L.translateKeys(m.raw)
+    const w = await g.waitSys((m) => keysOf(m).includes('souls.start.waiting'), 8000)
+    await L.sleep(500)
+    const all = g.sys.map(keysOf).flat()
+    sc.check('ineligible joiner: chat says who chooses (start.waiting) after start.provisional', !!w && all.includes('souls.start.provisional'),
+      all.filter((k) => k.startsWith('souls.start')).join(','))
+    sc.check('ineligible joiner: no "asked again" line (start.provisional-chat is for the chooser only)', !all.includes('souls.start.provisional-chat'),
+      all.filter((k) => k.startsWith('souls.start')).join(','))
+    await g.quit()
+  }
   // 창이 떠 있는 동안 구르기 키는 막힌다 (창이 웅크리기를 뗀다)
   {
     const from = b.sys.length

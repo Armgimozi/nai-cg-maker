@@ -91,13 +91,17 @@ L.run('gear', async (sc) => {
     const keys = it ? it.lore.flatMap((l) => L.translateKeys(l)) : []
     sc.check('ring tooltip: effect line, pending note, rule and lore only (no weight row for a weightless ring)', it && keys.includes('souls.ring.effect.parry-window') &&
       !keys.includes('souls.ring.weight') && !keys.some((k) => k.startsWith('souls.weapon.stat.')), keys.join(','))
+    // 고리만 있는 효과는 따로 줄을 내지 않고 효과 줄 끝에 "(미적용)" (레벨 업 설명 칸과 같은 꼬리, 검토 not-yet-active-wording-split)
+    const first = it && it.lore[0] ? L.translateKeys(it.lore[0]) : []
+    sc.check('ring tooltip: the pending tail sits on the effect line (ring.effect.pending inside line 1)', first.includes('souls.ring.effect.parry-window') &&
+      first.includes('souls.ring.effect.pending') && it.lore.filter((l) => L.translateKeys(l).includes('souls.ring.effect.pending')).length === 1, first.join(','))
     const rule = it ? it.lore.findIndex((l) => L.translateKeys(l).includes('souls.ring.rule.test_parry')) : -1
     const loreAt = it ? it.lore.findIndex((l) => L.translateKeys(l).some((k) => k.startsWith('souls.ring.test_parry.lore'))) : -1
     sc.check('ring tooltip: a rule line (ring.rule.<id>, like weapons) sits right above the lore', rule > 0 && loreAt === rule + 1, `rule ${rule}, lore ${loreAt}`)
     if (T && rule > 0) sc.check('the pack builds the ring rule in both languages', !!T.ko['souls.ring.rule.test_parry'] && !!T.en['souls.ring.rule.test_parry'])
     if (T && it) {
       const k = L.render(it.lore[0], T.ko)
-      sc.check('ring effect line says 패링 판정 +0.1초 (not 쳐내기, not 패링 창)', /^패링 판정 \+0\.1초$/.test(k) && !/쳐내기|패링 창/.test(k), JSON.stringify(k))
+      sc.check('ring effect line says 패링 판정 +0.1초 (미적용) (not 쳐내기, not 패링 창)', /^패링 판정 \+0\.1초 \(미적용\)$/.test(k) && !/쳐내기|패링 창/.test(k), JSON.stringify(k))
       const lore = it.lore.filter((l) => L.translateKeys(l).some((x) => x.startsWith('souls.ring.test_parry.lore'))).map((l) => L.render(l, T.ko))
       sc.check('test ring lore is the [시험용] marker, not a developer note', lore.join('|') === '[시험용]', JSON.stringify(lore))
       sc.check('test ring name says 패링', L.render(it.name, T.ko) === '시험 반지: 패링', JSON.stringify(L.render(it.name, T.ko)))
