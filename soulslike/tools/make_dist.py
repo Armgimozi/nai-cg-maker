@@ -31,7 +31,8 @@ WorldCheck 실패면 거절)을 더한다. 그때까지 server/ 에 세계 폴�
            YOU DIED 는 한 번만, 5.6. gen_pack 이 같은 config.yml 을 읽어 팩을 만들므로 설정 한 곳만 바꾸면 맞는다),
            서서히 판의 문구 줄 you_died_fade (souls:death) 와 표식 death_fade 가 있고 표식이 글꼴 셰이더의 값과 같다,
            death.title-glyphs 의 이름이 glyphs.yml 에 있다,
-           glyphs.yml 의 HUD 자리 값 (layout) 이 글꼴 셰이더의 값과 같다 (10.2)
+           glyphs.yml 의 HUD 자리 값 (layout) 이 글꼴 셰이더의 값과 같다 (10.2), 아이템 이름 칸 폭 (captions) 이 두 언어에
+           있고 칸 상한 (pack/typeset.py CAPTION_MAX) 안이다
   제목     게임 제목 블록 소울 / Block Soul (0.4 의 15): lang 의 pack.description, pack.mcmeta 대체 글,
            start.bat·start.ps1 창 제목, README.txt 첫머리
   서버     인코딩 규칙 (12.9), server.properties 가 12.7 값 그대로 (motd 는 lang 의 pack.description 두 언어),
@@ -380,6 +381,14 @@ def check_glyphs(jar, fonts, langs):
     lay = table.pop("layout", None) or {}
     stats = table.pop("stats", None) or {}     # 무기 설명 칸 수치 표 (pack/typeset.py): 값 글자 폭이 기본 글꼴과 같은지는 아래
     marks = table.pop("death_fade", None) or {}  # 서서히 나타나는 YOU DIED 의 표식 (hud.death_mark): 글꼴 셰이더와 같은 값
+    # 아이템 이름의 제목 글꼴 폭 (pack/typeset.py caption_widths, ui/OriginDialog 의 시작 아이템 이름 칸): 두 언어 모두, 칸 상한 안
+    captions = table.pop("captions", None) or {}
+    ts = gen_pack.typeset
+    g.check(all(isinstance(captions.get(code), dict) and captions[code] for code in ("ko", "en")),
+            f"glyphs.yml captions 에 ko·en 표가 없다: {sorted(captions)}")
+    over = [f"{code} {k} {w}" for code, t in captions.items() if isinstance(t, dict)
+            for k, w in t.items() if not isinstance(w, int) or w + ts.CAPTION_PAD > ts.CAPTION_MAX]
+    g.check(not over, f"glyphs.yml captions: 이름 칸 {ts.CAPTION_MAX} 을 넘는 이름 {over[:5]}")
     g.check(len(str(stats.get("chars", ""))) == len(stats.get("widths", [])) and stats.get("value_col"),
             f"glyphs.yml stats 가 틀렸다: {stats}")
     shader = jar_pack_text(jar, "assets/minecraft/shaders/core/rendertype_text.vsh")
