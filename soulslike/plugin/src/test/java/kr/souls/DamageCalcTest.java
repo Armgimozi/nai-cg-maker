@@ -81,9 +81,9 @@ class DamageCalcTest {
     @Test
     void attackSpeedIsDexOnly() {
         assertEquals(1.0, DamageCalc.attackSpeed(c, 10), 1e-9);
-        assertEquals(1.08, DamageCalc.attackSpeed(c, 20), 1e-9);
-        assertEquals(1.18, DamageCalc.attackSpeed(c, 40), 1e-9);
-        assertEquals(1.24, DamageCalc.attackSpeed(c, 99), 1e-9);
+        assertEquals(1.10, DamageCalc.attackSpeed(c, 20), 1e-9);
+        assertEquals(1.22, DamageCalc.attackSpeed(c, 40), 1e-9);
+        assertEquals(1.30, DamageCalc.attackSpeed(c, 99), 1e-9);
         assertEquals(1.0, DamageCalc.attackSpeed(c, 1), 1e-9, "민첩이 낮아도 느려지지 않는다 (요구 능력치 없음)");
     }
 

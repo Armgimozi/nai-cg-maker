@@ -26,7 +26,7 @@ class ParryTest {
     /** 패링 단검·작은 방패는 넉넉하고, 중형 방패는 보통, 왼손 무기는 짧고, 대방패는 패링하지 못한다. */
     @Test
     void windowByLeftHandClass() {
-        assertEquals(8, base("parrying_dagger"));
+        assertEquals(9, base("parrying_dagger"));
         assertEquals(7, base("plank_shield"));
         assertEquals(7, base("pilgrim_buckler"), "같은 분류는 같은 창 (물건마다의 값이 없다)");
         assertEquals(5, base("redin_guard_shield"));

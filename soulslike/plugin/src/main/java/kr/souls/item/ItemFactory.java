@@ -186,19 +186,29 @@ public final class ItemFactory {
     }
 
     /**
-     * 예전 판의 souls 무기를 지금 판으로 다시 만든다 (접속할 때, StartFlow): 활의 껍데기가 바뀌었거나 (부싯돌 → 바닐라 활), 설명 칸이
-     * 지금 판과 다르거나 (2026-10-10: 보정·요구 능력치 줄을 없애고 수치를 한 줄로, 방패는 막기 하나), 쓰는 몸짓이 바뀐 것 (패링 단검은
-     * 이제 막지 않는다). 같은 칸에 새로 만든 것을 놓는다. 주손 무기의 막기 성분은 WeaponGuard 가 다음 틱에 다시 맞춘다. 바꾼 수.
+     * 예전 판의 souls 무기를 지금 판으로 다시 만든 것, 지금 판 그대로면 null: 활의 껍데기가 바뀌었거나 (부싯돌 → 바닐라 활), 설명 칸이
+     * 지금 판과 다르거나 (2026-10-10: 보정·요구 능력치 줄을 없애고 수치를 한 줄로, 방패는 막기 하나. weapons.yml 을 고치고 다시 읽은 값,
+     * 언어 파일의 대체 글이 바뀐 것도), 쓰는 몸짓이 바뀐 것 (패링 단검·촉매는 막지 않는다). 주손 무기의 막기 성분은 견주지 않는다
+     * (WeaponGuard 가 든 손을 보고 맞춘다).
      */
-    public static int refreshWeapons(org.bukkit.inventory.PlayerInventory inv, Weapons weapons) {
+    public static ItemStack refreshed(ItemStack it, Weapons weapons) {
+        Weapons.Def d = it == null || it.isEmpty() ? null : weapons.of(it);
+        if (d == null) return null;
+        ItemStack fresh = weapon(d);
+        if (it.getType() == fresh.getType() && sameLore(it, fresh) && !staleUse(it, d)) return null;
+        return fresh;
+    }
+
+    /**
+     * 인벤토리 (플레이어의 것이면 단축 슬롯·가방·갑옷·왼손, 상자·엔더 상자 …) 의 예전 판 souls 무기를 같은 칸에서 지금 판으로 바꾼다
+     * (item/WeaponRefresh: 접속, 줍기, 상자 열기, /souls reload). 바꾼 수.
+     */
+    public static int refreshWeapons(org.bukkit.inventory.Inventory inv, Weapons weapons) {
         int n = 0;
         ItemStack[] all = inv.getContents();
         for (int i = 0; i < all.length; i++) {
-            ItemStack it = all[i];
-            Weapons.Def d = it == null || it.isEmpty() ? null : weapons.of(it);
-            if (d == null) continue;
-            ItemStack fresh = weapon(d);
-            if (it.getType() == fresh.getType() && sameLore(it, fresh) && !staleUse(it, d)) continue;
+            ItemStack fresh = refreshed(all[i], weapons);
+            if (fresh == null) continue;
             inv.setItem(i, fresh);
             n++;
         }

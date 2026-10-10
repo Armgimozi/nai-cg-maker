@@ -31,16 +31,18 @@ class StatCurvesTest {
     }
 
     /**
-     * 검토 dex-too-weak·slow-stats-feel-dead: 민첩의 첫 열 점 (10 → 20) 이 이동 속도 +5%, 공격 속도 +8% 를 준다 (앞쪽을 올린 판).
-     * 공격 속도는 모든 무기에 같은 곡선 (옛 B 기준 표 × 옛 C 0.8, 2026-10-10).
+     * 검토 dex-too-weak·slow-stats-feel-dead: 민첩의 첫 열 점 (10 → 20) 이 이동 속도 +5%, 공격 속도 +10% 를 준다 (앞쪽을 올린 판).
+     * 공격 속도는 모든 무기에 같은 곡선 (옛 B 기준 표 그대로, 2026-10-10 검토 dex-weakest-stat).
      */
     @Test
     void dexterityIsFrontLoaded() {
         assertEquals(0.05, c.moveSpeed.at(20), 1e-9);
         assertEquals(0.13, c.moveSpeed.at(99), 1e-9);
-        assertEquals(0.08, c.attackSpeed.at(20), 1e-9);
-        assertEquals(0.18, c.attackSpeed.at(40), 1e-9);
-        assertEquals(0.24, c.attackSpeed.at(99), 1e-9);
+        assertEquals(0.10, c.attackSpeed.at(20), 1e-9);
+        assertEquals(0.17, c.attackSpeed.at(30), 1e-9);
+        assertEquals(0.22, c.attackSpeed.at(40), 1e-9);
+        assertEquals(0.26, c.attackSpeed.at(60), 1e-9);
+        assertEquals(0.30, c.attackSpeed.at(99), 1e-9);
         double first = c.moveSpeed.at(20) - c.moveSpeed.at(10);
         double late = c.moveSpeed.at(99) - c.moveSpeed.at(60);
         assertTrue(first > late, "앞쪽 열 점이 뒤쪽 39 점보다 많이 준다");

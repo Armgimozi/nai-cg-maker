@@ -31,6 +31,8 @@ public final class Weapons {
     public static final String NONE = "none";
     /** 예전 판 (보정·요구 능력치·방패 넷) 의 열쇠. 남아 있으면 읽지 않고 서버 기록에 한 번 알린다 */
     static final List<String> LEGACY = List.of("scaling", "requires", "absorb", "stability", "parry", "fire");
+    /** 술법 세기가 적히지 않은 예전 판 촉매의 값 (지금 판의 두 촉매와 같다) */
+    static final int LEGACY_SPELL = 100;
 
     /**
      * 한 아이템.
@@ -77,12 +79,21 @@ public final class Weapons {
             // YAML 1.1 은 따옴표 없는 off 를 거짓으로 읽는다 (hand: off → "false")
             String hand = p.s("hand", MAIN).toLowerCase(Locale.ROOT);
             if ("false".equals(hand)) hand = OFF;
+            String cls = p.s("class", "straight_sword");
+            // 예전 판 (v4) 의 중형 방패 분류 이름. 지금은 medium_shield (패링 창·설명 칸 분류 줄의 열쇠)
+            if ("shield".equals(cls)) cls = "medium_shield";
             int guard = Math.max(0, Math.min(100, p.i("guard", 0)));
-            defs.put(id, new Def(id, p.s("class", "straight_sword"), hand, use, p.d("walk", 0.55), Math.max(0, p.i("attack", 0)), guard,
-                    Math.max(0, p.i("spell", 0)), p.d("weight", 1.0)));
+            // 예전 판의 방패 (absorb·stability·fire) 를 되살려 쓴 파일: 막기 값이 없으면 물리 흡수를 막기로 본다 (검토 legacy-weapons-yml-no-fallback.
+            // 그러지 않으면 막기 0 이라 방패로 보지 않는다)
+            if (!sec.contains("guard") && BLOCK.equals(use) && sec.contains("absorb")) guard = Math.max(0, Math.min(100, p.i("absorb", 0)));
+            int spell = Math.max(0, p.i("spell", 0));
+            // 예전 판의 촉매에는 술법 세기가 없었다: 지금 판의 바탕 값 100 (3.12.4)
+            if (!sec.contains("spell") && cls.startsWith("catalyst")) spell = LEGACY_SPELL;
+            defs.put(id, new Def(id, cls, hand, use, p.d("walk", 0.55), Math.max(0, p.i("attack", 0)), guard, spell, p.d("weight", 1.0)));
         }
         if (!legacy.isEmpty()) {
-            log.warning("weapons.yml 의 예전 열쇠는 읽지 않는다 (장비에는 보정·요구 능력치가 없고 방패는 guard 하나다): " + String.join(", ", legacy));
+            log.warning("weapons.yml 의 예전 열쇠는 읽지 않는다 (장비에는 보정·요구 능력치가 없고 방패는 guard 하나다. guard 가 없는 방패는 "
+                    + "absorb 를 막기로, spell 이 없는 촉매는 술법 세기 " + LEGACY_SPELL + " 으로 본다): " + String.join(", ", legacy));
         }
         log.info("무기·방패·촉매 " + defs.size() + "개 불러옴");
     }

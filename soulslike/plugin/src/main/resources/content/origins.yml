@@ -59,7 +59,7 @@ sorcerer:
   stats: {vig: 9, mnd: 13, end: 9, str: 9, dex: 11, int: 16}
   kit:
     - {weapon: alley_dagger, to: main}
-    - {weapon: kiln_pot, to: "hotbar:2"}
+    - {weapon: kiln_pot, to: "off"}
     - {armor: prisoner_rags}
     - {spell: ember_toss}
     - {item: estus}

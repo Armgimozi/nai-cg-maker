@@ -22,6 +22,7 @@ import kr.souls.hud.Titles;
 import kr.souls.item.RingSlots;
 import kr.souls.item.Rings;
 import kr.souls.item.WeaponGuard;
+import kr.souls.item.WeaponRefresh;
 import kr.souls.item.Weapons;
 import kr.souls.pack.PackService;
 import kr.souls.progression.Ailments;
@@ -72,6 +73,7 @@ public final class Souls extends JavaPlugin {
     private Roll roll;
     private Parry parry;
     private WeaponGuard weaponGuard;
+    private WeaponRefresh weaponRefresh;
     private Titles titles;
     private Hud hud;
     private DeathFlow death;
@@ -103,6 +105,7 @@ public final class Souls extends JavaPlugin {
         // 2. 기본 설정과 문구
         saveDefaultConfig();
         cfg = new Config(getConfig());
+        warnLegacyConfig();
         Lang.load(this);
         // 3. 콘텐츠 꺼내기
         content = new Content(this);
@@ -174,6 +177,8 @@ public final class Souls extends JavaPlugin {
         pm.registerEvents(pack, this);
         weaponGuard = new WeaponGuard(this);
         pm.registerEvents(weaponGuard, this);
+        weaponRefresh = new WeaponRefresh(this);
+        pm.registerEvents(weaponRefresh, this);
         pm.registerEvents(profiles, this);
         pm.registerEvents(pvp, this);
         pm.registerEvents(new PvpGuard(this), this);
@@ -271,6 +276,7 @@ public final class Souls extends JavaPlugin {
     public void reloadAll() {
         reloadConfig();
         cfg = new Config(getConfig());
+        warnLegacyConfig();
         Glyphs.load(this);
         skills.load(content.yml("skills.yml"));
         weapons.load(content.yml("weapons.yml"));
@@ -285,9 +291,21 @@ public final class Souls extends JavaPlugin {
             hud.invalidate(p);
             // 반지 칸의 사본을 새로 (rings.yml 의 효과 값이 바뀌면 설명 칸도 새 값, 검토 R6)
             ringSlots.refresh(p);
+            // 든 무기도 새 값으로 (weapons.yml 의 공격력·막기·무게가 바뀌면 설명 칸도, 검토 stale-weapons-outside-inventory)
+            weaponRefresh.player(p, "reload");
         }
         foes.applyAll();
         checkMaxHealthCap();
+    }
+
+    /**
+     * 예전 판의 config.yml (보정 등급이 있던 판) 이면 읽지 않은 열쇠를 한 번 알린다. stats.dexterity.attack-speed 는 이름이 같고, 예전 판의
+     * 값 (민첩 보정 B 기준 표) 이 지금 판의 기본 (모든 무기에 같은 곡선) 과 같아 그대로 읽는다.
+     */
+    private void warnLegacyConfig() {
+        if (cfg.legacy.isEmpty()) return;
+        getLogger().warning("config.yml 의 예전 열쇠는 읽지 않는다 (장비에는 보정·요구 능력치가 없다. 근력·민첩·지능은 모든 장비에 같은 곡선 "
+                + "stats.strength.attack · stats.dexterity.attack-speed · stats.intelligence.spell-power 로 듣는다): " + String.join(", ", cfg.legacy));
     }
 
     /**
@@ -313,6 +331,7 @@ public final class Souls extends JavaPlugin {
     public Roll roll() { return roll; }
     public Parry parry() { return parry; }
     public WeaponGuard weaponGuard() { return weaponGuard; }
+    public WeaponRefresh weaponRefresh() { return weaponRefresh; }
     public Titles titles() { return titles; }
     public Hud hud() { return hud; }
     public DeathFlow death() { return death; }

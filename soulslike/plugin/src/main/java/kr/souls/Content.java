@@ -23,11 +23,12 @@ public final class Content {
      * 스물. 4: 1.3판 능력치 열쇠 (att → int, 모든 근접 무기에 근력·민첩 보정, 곤봉 필요 근력 10) 와 출신 여섯 origins.yml.
      * 5: 장비에서 보정 (scaling) 과 요구 능력치 (requires) 를 없앴다 (DECISIONS 2026-10-10). 방패는 absorb·stability·parry·fire 대신
      * 막기 guard 하나, 촉매는 술법 세기 spell, 패링 단검은 막지 않는 왼손 무기 (use: none, attack), 경비대 방패의 분류는 medium_shield.
-     * 패링 창은 분류마다 config.yml combat.parry.windows).
+     * 패링 창은 분류마다 config.yml combat.parry.windows). 6: 같은 분류의 무거운 무기 공격력 (장검 66, 용병 도끼 78, 참회자 메이스 80,
+     * 간수장 미늘창 94, 창 60), 대방패 무게 14, 판자 방패 무게 1.0, 촉매는 왼손 (hand: off, 마법사의 쇠단지도 왼손으로).
      * 새 파일 (반지 rings.yml, 9.4) 은 없을 때 꺼내므로 판을 올리지 않는다 (판을 올리면 고친 옛 파일까지 옮겨진다).
      * 콘텐츠에는 보이는 글을 쓰지 않는다 (12.5).
      */
-    public static final int CONTENT_VERSION = 5;
+    public static final int CONTENT_VERSION = 6;
     public static final List<String> FILES = List.of("skills.yml", "weapons.yml", "origins.yml", "rings.yml");
     private static final String DIR = "content";
 

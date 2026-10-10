@@ -2,26 +2,19 @@
 #  무기·방패·활·촉매 (맛보기판 20개, DESIGN 9.1, 9.2, 3.12.4, 9.8, 12.5). 모형과 쥐는 법은 pack/weapons/SPEC.md.
 #  이름과 설명은 여기 쓰지 않는다: lang/ko.yml·en.yml 의 weapon.<id>.name (한 줄), weapon.<id>.lore (목록),
 #  설명 칸 둘째 줄은 weapon.class.<class>, 수치 줄은 weapon.stat.* (플러그인이 아래 값으로 채운다).
-#  /soulstest give <id|all> 이 아이템으로 만들어 준다 (시험 모드). 전투 동작 (약공격·강공격·왼손 공격) 은 M1 에 붙인다.
+#  /soulstest give <id|all> 이 아이템으로 만들어 준다 (시험 모드). 전투 동작 (약공격·강공격·무기 기술) 은 M1 에 붙인다.
 #
-#  장비에는 능력치 보정도 요구 능력치도 없다 (DECISIONS 2026-10-10). 설명 칸의 수치는 한 줄: 제 값 하나와 무게.
-#  근력은 모든 무기의 공격력을, 민첩은 모든 무기의 공격 속도를, 지능은 모든 촉매의 술법 세기를 똑같이 올린다 (config.yml stats.*).
-#
-#  보이는 값 (설명 칸)
-#  attack    기본 물리 공격력 (+0, 3.7: 분류 값, 보스 무기는 ×1.25). 무기·활·패링 단검. 공격력 = attack × (1 + 근력 몫).
-#            같은 분류의 무거운 것은 가벼운 것보다 +6~10% (보정 등급이 없으니 무게만 무겁고 같은 값이면 늘 손해다, 9.1)
-#  guard     막기 (방패만): 막는 동안 (우클릭을 누르고 있는 동안) 막는 물리 피해 % (0..100). 불·술은 그 × combat.guard.non-physical,
-#            막다가 맞으면 쓰는 스태미나도 이 값에서 셈한다 (combat.guard, 3.4)
-#  spell     술법 세기 (촉매만, 3.12.4). 술법 세기 = spell × (1 + 지능 몫)
-#  weight    무게 (5.8)
-#
-#  보이지 않는 값 (수치가 아니다)
-#  class     분류 (lang weapon.class.<class>). 모형의 1인칭 자세, 패링 창 (combat.parry.windows: 다크 소울처럼 설명 칸에 없다),
-#            양손 막기 (combat.guard.two-handed) 도 이 분류를 따른다. 방패는 small_shield (작은) | medium_shield (중형) | greatshield (대형)
-#  hand      main (주손) | off (왼손에 드는 방패·패링 단검·촉매: 우클릭은 왼손에 든 것을 쓴다, DECISIONS 2026-10-10)
-#  use       guard (막기 성분, 막는 모형 <id>_guard: 왼손이 비었을 때 주무기로 막는다) | block (방패 막기, <id>_block)
-#            | bow (당기기, 사용 시간에 따라 당긴 모형) | none (촉매: 술법은 M5, 패링 단검: 우클릭은 왼손 공격 (M1), 막지 않는다)
+#  class     분류 (lang weapon.class.<class>). 모형의 1인칭 자세도 이 분류를 따른다
+#  hand      main (주손) | off (왼손에 드는 방패·쳐내기 단검)
+#  use       guard (막기 성분, 막는 모형 <id>_guard) | block (방패 막기, <id>_block) | bow (당기기, 사용 시간에 따라 당긴 모형)
+#            | none (촉매: 술은 M5 에 붙인다)
 #  walk      막는 동안 (또는 당기는 동안) 걸음 배율 (2.3.9)
+#  attack    기본 물리 공격력 (+0, 3.7: 분류 값, 보스 무기는 ×1.25). 방패·촉매에는 없다
+#  scaling   보정 등급 (1.3판, 9.1): str 근력 (공격력, 3.7), dex 민첩 (그 무기의 공격 속도 몫, 3.6), int 지능 (촉매의 술 세기, 3.12.4).
+#            피해를 올리는 능력치는 근력 하나다. 등급 E D C B A S
+#  requires  필요 능력치 (근력·지능이 모자라면 공격력·술 세기 −40%, 민첩이 모자라면 공격 속도 ×0.85)
+#  weight    무게
+#  absorb    물리 흡수 % (방패), stability 안정성, parry 쳐내기 창 (틱, 0 이면 쳐내기 없음), fire 불 흡수 %
 # ─────────────────────────────────────────────────────────────
 
 redin_guard_sword:
@@ -30,6 +23,8 @@ redin_guard_sword:
   use: guard
   walk: 0.55
   attack: 62
+  scaling: {str: C, dex: D}
+  requires: {str: 10, dex: 10}
   weight: 3.0
 
 volk_longsword:
@@ -37,7 +32,9 @@ volk_longsword:
   hand: main
   use: guard
   walk: 0.55
-  attack: 66
+  attack: 62
+  scaling: {str: C, dex: C}
+  requires: {str: 10, dex: 10}
   weight: 3.5
 
 alley_dagger:
@@ -46,6 +43,8 @@ alley_dagger:
   use: guard
   walk: 0.55
   attack: 48
+  scaling: {str: D, dex: A}
+  requires: {str: 5, dex: 9}
   weight: 1.5
 
 gaoler_greatsword:
@@ -54,6 +53,8 @@ gaoler_greatsword:
   use: guard
   walk: 0.55
   attack: 92
+  scaling: {str: C, dex: E}
+  requires: {str: 16, dex: 10}
   weight: 9.0
 
 levy_hatchet:
@@ -62,6 +63,8 @@ levy_hatchet:
   use: guard
   walk: 0.55
   attack: 70
+  scaling: {str: D, dex: D}
+  requires: {str: 12, dex: 8}
   weight: 2.5
 
 sellsword_axe:
@@ -69,7 +72,9 @@ sellsword_axe:
   hand: main
   use: guard
   walk: 0.55
-  attack: 78
+  attack: 70
+  scaling: {str: C, dex: E}
+  requires: {str: 12, dex: 8}
   weight: 4.0
 
 gaoler_club:
@@ -78,6 +83,8 @@ gaoler_club:
   use: guard
   walk: 0.55
   attack: 74
+  scaling: {str: C, dex: E}
+  requires: {str: 10}
   weight: 5.0
 
 penitent_mace:
@@ -85,7 +92,9 @@ penitent_mace:
   hand: main
   use: guard
   walk: 0.55
-  attack: 80
+  attack: 74
+  scaling: {str: B, dex: E}
+  requires: {str: 14}
   weight: 4.5
 
 mathes_bell_mace:
@@ -94,6 +103,8 @@ mathes_bell_mace:
   use: guard
   walk: 0.55
   attack: 93
+  scaling: {str: B, dex: E}
+  requires: {str: 14}
   weight: 5.5
 
 redin_spear:
@@ -101,7 +112,9 @@ redin_spear:
   hand: main
   use: guard
   walk: 0.55
-  attack: 60
+  attack: 64
+  scaling: {str: D, dex: C}
+  requires: {str: 11, dex: 12}
   weight: 4.5
 
 hrolf_halberd:
@@ -110,6 +123,8 @@ hrolf_halberd:
   use: guard
   walk: 0.55
   attack: 110
+  scaling: {str: C, dex: D}
+  requires: {str: 16, dex: 10}
   weight: 6.5
 
 warden_halberd:
@@ -117,7 +132,9 @@ warden_halberd:
   hand: main
   use: guard
   walk: 0.55
-  attack: 94
+  attack: 88
+  scaling: {str: B, dex: E}
+  requires: {str: 16, dex: 10}
   weight: 7.0
 
 wall_shortbow:
@@ -126,6 +143,8 @@ wall_shortbow:
   use: bow
   walk: 0.5
   attack: 45
+  scaling: {str: D, dex: C}
+  requires: {str: 9, dex: 12}
   weight: 2.0
 
 plank_shield:
@@ -133,31 +152,43 @@ plank_shield:
   hand: off
   use: block
   walk: 0.55
-  guard: 60
-  weight: 1.0
+  absorb: 60
+  stability: 25
+  parry: 6
+  fire: 30
+  weight: 1.5
 
 pilgrim_buckler:
   class: small_shield
   hand: off
   use: block
   walk: 0.65
-  guard: 70
+  absorb: 70
+  stability: 30
+  parry: 7
+  fire: 35
   weight: 1.5
 
 parrying_dagger:
   class: parrying_dagger
   hand: off
-  use: none
+  use: block
   walk: 0.65
-  attack: 40
+  absorb: 40
+  stability: 15
+  parry: 8
+  fire: 20
   weight: 0.5
 
 redin_guard_shield:
-  class: medium_shield
+  class: shield
   hand: off
   use: block
   walk: 0.55
-  guard: 90
+  absorb: 100
+  stability: 52
+  parry: 5
+  fire: 45
   weight: 4.0
 
 volk_greatshield:
@@ -165,21 +196,26 @@ volk_greatshield:
   hand: off
   use: block
   walk: 0.45
-  guard: 100
-  weight: 14.0
+  absorb: 100
+  stability: 80
+  parry: 0
+  fire: 60
+  weight: 12.0
 
 kiln_pot:
   class: catalyst_kiln
-  hand: off
+  hand: main
   use: none
   walk: 0.45
-  spell: 100
+  scaling: {int: C, dex: D}
+  requires: {int: 12}
   weight: 1.5
 
 pilgrim_handbell:
   class: catalyst_bell
-  hand: off
+  hand: main
   use: none
   walk: 0.5
-  spell: 100
+  scaling: {int: D, str: D, dex: D}
+  requires: {int: 10, str: 8}
   weight: 2.0

@@ -95,7 +95,7 @@ class OriginsTest {
     /** 왼손 줄은 정말 왼손으로 (YAML 의 off 가 거짓으로 읽혀 가방으로 가던 것). */
     @Test
     void offHandLines() {
-        for (String id : List.of("knight", "thief", "deprived")) {
+        for (String id : List.of("knight", "thief", "sorcerer", "deprived")) {
             assertTrue(origins.get(id).kit().stream().anyMatch(k -> "off".equals(k.to())), id + " 의 왼손 줄");
         }
         for (Origins.Origin o : origins.all()) {
@@ -172,8 +172,14 @@ class OriginsTest {
             assertTrue(en.getValue().attack() > 0, en.getKey() + " 공격력");
             assertEquals(en.getKey().equals("sorcerer"), en.getValue().spellPower() > 0, en.getKey() + " 술법 세기");
         }
+        // 5.1 의 "시작 때의 값" 표와 같다 (표가 다시 어긋나지 않게 여섯 모두, 검토 design-5.1-start-table-stale)
         assertEquals(72, Math.round(d.get("knight").attack()), "기사의 직검 (근력 13)");
         assertEquals(123, Math.round(d.get("warrior").attack()), "전사의 대검 양손 (근력 16 → 24)");
+        assertEquals(52, Math.round(d.get("thief").attack()), "도적의 단도 한손 (근력 9, 왼손에 패링 단검)");
+        assertEquals(87, Math.round(d.get("archer").attack()), "궁수의 손도끼 양손 (근력 12 → 18)");
+        assertEquals(52, Math.round(d.get("sorcerer").attack()), "마법사의 단도 한손 (근력 9, 왼손에 쇠단지)");
+        assertEquals(81, Math.round(d.get("deprived").attack()), "빈털터리의 곤봉 한손 (근력 10, 왼손에 판자 방패)");
+        assertFalse(d.get("sorcerer").twoHanded(), "촉매는 왼손에 든다 (우클릭 = 왼손, DECISIONS 2026-10-10)");
         assertEquals(121, Math.round(d.get("sorcerer").spellPower()), "마법사의 쇠단지 (지능 16)");
     }
 

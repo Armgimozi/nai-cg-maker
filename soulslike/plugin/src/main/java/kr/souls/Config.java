@@ -197,6 +197,15 @@ public final class Config {
     public final DeathCfg death;
     public final PackCfg pack;
     public final boolean testMode, logTestLines;
+    /**
+     * 읽지 않고 버린 예전 판의 열쇠 (stats.grades 같은 보정 등급, 요구 능력치 벌칙). 장비에는 보정·요구 능력치가 없다 (DECISIONS
+     * 2026-10-10). Souls 가 서버 기록에 한 번 알린다 (검토 old-config-dex-attack-speed-key-reused). 없으면 빈 목록.
+     */
+    public final List<String> legacy;
+
+    /** 예전 판 (보정 등급) 의 stats 열쇠. 지금 판은 읽지 않는다 */
+    public static final List<String> LEGACY_STATS = List.of("stats.grades", "stats.speed-grades", "stats.scaling-curve", "stats.unfit-penalty",
+            "stats.unfit-speed");
 
     public Config(FileConfiguration c) {
         TreeMap<Integer, Double> curve = new TreeMap<>();
@@ -301,6 +310,10 @@ public final class Config {
         }
         pve = new PveCfg(Math.max(0, c.getDouble("pve.bridge-scale", 0.09)), Collections.unmodifiableMap(swing));
         stats = statCurves(c, curve);
+        List<String> old = new ArrayList<>();
+        // isSet 은 파일에 적힌 것만 본다 (jar 기본값은 보지 않는다)
+        for (String k : LEGACY_STATS) if (c.isSet(k)) old.add(k);
+        legacy = Collections.unmodifiableList(old);
         List<?> cubic = c.getList("level.cost.cubic");
         double[] cu = {0.02, 3.06, 105.6, -895};
         if (cubic != null && cubic.size() == 4) {
@@ -391,7 +404,9 @@ public final class Config {
         two.put("ultra_greatsword", 65);
         int def = 50;
         ConfigurationSection s = c.getConfigurationSection("combat.guard.two-handed");
-        if (s != null) {
+        // 예전 판의 config.yml 에는 이 절이 없다. 그때 Bukkit 은 jar 기본값을 보고 빈 절을 새로 만들어 돌려준다 (null 이 아니다):
+        // 열쇠가 있을 때만 표를 바꾼다 (검토 old-config-parry-windows-empty)
+        if (s != null && !s.getKeys(false).isEmpty()) {
             two.clear();
             for (String k : s.getKeys(false)) {
                 int v = Math.max(0, Math.min(100, s.getInt(k, def)));
@@ -404,16 +419,17 @@ public final class Config {
                 Math.max(0, c.getDouble("combat.guard.stamina-min", 4)), def, Collections.unmodifiableMap(two));
     }
 
-    /** combat.parry (3.5). 기본은 문서의 표: 패링 단검 8, 작은 방패 7, 중형 방패 5, 한손 무기 4, 대방패·긴 무기·촉매·활 0, 빈 왼손 0. */
+    /** combat.parry (3.5). 기본은 문서의 표: 패링 단검 9, 작은 방패 7, 중형 방패 5, 한손 무기 4, 대방패·긴 무기·촉매·활 0, 빈 왼손 0. */
     private static ParryCfg parry(FileConfiguration c) {
         Map<String, Integer> w = new LinkedHashMap<>();
-        w.put("parrying_dagger", 8);
+        w.put("parrying_dagger", 9);
         w.put("small_shield", 7);
         w.put("medium_shield", 5);
         w.put("greatshield", 0);
         for (String k : List.of("dagger", "straight_sword", "curved_sword", "axe", "hammer")) w.put(k, 4);
         ConfigurationSection s = c.getConfigurationSection("combat.parry.windows");
-        if (s != null) {
+        // 빈 절 (예전 판의 config.yml: jar 기본값을 보고 Bukkit 이 만든 빈 절) 이면 위의 표를 그대로 둔다
+        if (s != null && !s.getKeys(false).isEmpty()) {
             w.clear();
             for (String k : s.getKeys(false)) w.put(k, Math.max(0, Math.min(40, s.getInt(k, 0))));
         }

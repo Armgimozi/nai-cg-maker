@@ -84,13 +84,53 @@ class PlainGearTest {
         assertFalse(kr.souls.progression.Stats.isMelee(d), "주손 근접 무기가 아니다 (공격력 셈은 주무기만)");
     }
 
-    /** 촉매마다 제 술법 세기 (둘 다 100 에서 시작). */
+    /** 촉매마다 제 술법 세기 (둘 다 100 에서 시작). 촉매는 왼손에 든다 (우클릭 = 왼손에 든 것, DECISIONS 2026-10-10). */
     @Test
     void catalystsHaveSpellPower() {
+        int n = 0;
         for (Weapons.Def d : weapons.all().values()) {
             if (!d.catalyst()) continue;
+            n++;
             assertEquals(100, d.spell(), d.id());
             assertEquals(0, d.attack(), d.id());
+            assertEquals(Weapons.OFF, d.hand(), d.id());
         }
+        assertEquals(2, n);
+    }
+
+    /**
+     * 보정 등급이 없으니 같은 분류에서 무게만 무겁고 공격력이 같으면 늘 손해다: 같은 분류의 더 무거운 무기는 공격력이 6~12% 높다
+     * (검토 same-class-dominated-weapons). 보스 무기 (×1.25) 와 빈털터리의 곤봉 (시작 무기라 찾은 메이스보다 못한 것이 다크 소울답다) 은 따로.
+     */
+    @Test
+    void heavierSameClassHitsHarder() {
+        String[][] pairs = {{"volk_longsword", "redin_guard_sword"}, {"sellsword_axe", "levy_hatchet"}};
+        for (String[] pr : pairs) {
+            Weapons.Def heavy = weapons.get(pr[0]), light = weapons.get(pr[1]);
+            assertEquals(heavy.cls(), light.cls(), pr[0]);
+            assertTrue(heavy.weight() > light.weight(), pr[0]);
+            double gain = (double) heavy.attack() / light.attack() - 1;
+            assertTrue(gain >= 0.06 && gain <= 0.12, pr[0] + " 은 " + pr[1] + " 보다 +" + Math.round(gain * 100) + "%");
+        }
+        assertTrue(weapons.get("penitent_mace").attack() > weapons.get("gaoler_club").attack(), "찾은 메이스가 시작 곤봉보다 세다");
+    }
+
+    /**
+     * 예전 판 (v4, 커밋 3e894c0) 의 weapons.yml 을 되살려 써도 방패는 방패로, 촉매는 촉매로 남는다 (검토 legacy-weapons-yml-no-fallback):
+     * 막기가 없으면 흡수 absorb 를 막기로, 옛 분류 shield 는 medium_shield, 술법 세기가 없는 촉매는 100.
+     */
+    @Test
+    void legacyWeaponsFileDegradesGracefully() {
+        Weapons old = new Weapons(Logger.getLogger("test"));
+        old.load(org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(new java.io.File("src/test/resources/legacy/weapons-3e894c0.yml")));
+        assertEquals(60, old.get("plank_shield").guard());
+        assertTrue(old.get("plank_shield").shield());
+        assertEquals(100, old.get("redin_guard_shield").guard());
+        assertEquals("medium_shield", old.get("redin_guard_shield").cls());
+        assertEquals(100, old.get("volk_greatshield").guard());
+        assertEquals(100, old.get("kiln_pot").spell());
+        assertEquals(List.of("guard", "weight"), names(old.get("redin_guard_shield")));
+        assertEquals(List.of("spell", "weight"), names(old.get("kiln_pot")));
+        assertEquals(List.of("attack", "weight"), names(old.get("redin_guard_sword")));
     }
 }

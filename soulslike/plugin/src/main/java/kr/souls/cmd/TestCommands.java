@@ -497,7 +497,7 @@ public final class TestCommands {
             n++;
         }
         org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> {
-            if (p.isOnline()) new kr.souls.item.WeaponGuard(plugin).refresh(p);
+            if (p.isOnline()) plugin.weaponGuard().refresh(p);
         });
         plugin.test(p, "GIVE id=" + id + " n=" + n + " to=" + to);
     }

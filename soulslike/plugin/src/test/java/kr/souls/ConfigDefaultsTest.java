@@ -70,7 +70,7 @@ class ConfigDefaultsTest {
         assertEquals(50, cfg.guard.twoHanded("straight_sword"));
         assertEquals(65, cfg.guard.twoHanded("greatsword"));
         Config.ParryCfg p = cfg.parry;
-        assertEquals(8, p.window("parrying_dagger"));
+        assertEquals(9, p.window("parrying_dagger"));
         assertEquals(7, p.window("small_shield"));
         assertEquals(5, p.window("medium_shield"));
         assertEquals(0, p.window("greatshield"), "대방패는 패링하지 못한다");
@@ -86,6 +86,36 @@ class ConfigDefaultsTest {
         Config bare = new Config(new org.bukkit.configuration.file.YamlConfiguration());
         assertEquals(p.windows(), bare.parry.windows());
         assertEquals(cfg.guard, bare.guard);
+    }
+
+    /**
+     * 예전 판 (커밋 3e894c0, 장비에 보정 등급이 있던 판) 의 config.yml 을 그대로 둔 서버 (saveDefaultConfig 는 있는 파일을 다시 쓰지
+     * 않는다). JavaPlugin.reloadConfig 처럼 jar 의 config.yml 을 기본값으로 붙여 읽는다. combat.parry·combat.guard 절이 없는 파일에서
+     * Bukkit 은 빈 절을 만들어 돌려주는데, 그때 코드의 표를 지우면 패링이 죽는다 (검토 old-config-parry-windows-empty).
+     */
+    @Test
+    void oldConfigKeepsBuiltInTables() {
+        var old = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(new java.io.File("src/test/resources/legacy/config-3e894c0.yml"));
+        assertFalse(old.getKeys(true).contains("combat.parry"), "고정한 예전 파일에는 패링 절이 없다");
+        old.setDefaults(TestFiles.yaml("config.yml"));
+        Config c = new Config(old);
+        assertEquals(7, c.parry.window("small_shield"));
+        assertEquals(9, c.parry.window("parrying_dagger"));
+        assertEquals(5, c.parry.window("medium_shield"));
+        assertEquals(4, c.parry.window("dagger"));
+        assertEquals(65, c.guard.twoHanded("greatsword"));
+        assertEquals(50, c.guard.twoHanded("straight_sword"));
+        assertEquals(cfg.parry, c.parry);
+        assertEquals(cfg.guard, c.guard);
+        // 민첩의 공격 속도: 이름이 같은 열쇠의 예전 값 (B 기준 표) 은 지금 판의 기본과 같다. 근력은 지금 판의 곡선 (예전 파일에 없다)
+        assertEquals(0.30, c.stats.attackSpeed.at(99), 1e-9);
+        assertEquals(0.10, c.stats.attackSpeed.at(20), 1e-9);
+        assertEquals(0.28, c.stats.strAttack.at(20), 1e-9);
+        assertEquals(0.28, c.stats.intSpell.at(20), 1e-9);
+        for (int x = 1; x <= 99; x++) assertEquals(cfg.stats.attackSpeed.at(x), c.stats.attackSpeed.at(x), 1e-9, "민첩 " + x);
+        // 읽지 않은 예전 열쇠는 알린다 (Souls 가 서버 기록에)
+        assertEquals(Config.LEGACY_STATS, c.legacy);
+        assertTrue(cfg.legacy.isEmpty(), "지금 판의 config.yml 에는 예전 열쇠가 없다");
     }
 
     @Test

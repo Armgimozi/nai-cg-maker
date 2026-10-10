@@ -6,7 +6,6 @@ import kr.souls.Lang;
 import kr.souls.Souls;
 import kr.souls.data.Profile;
 import kr.souls.data.WorldState;
-import kr.souls.item.WeaponGuard;
 import kr.souls.progression.Origins;
 import kr.souls.ui.OriginDialog;
 import kr.souls.ui.SettingsDialog;
@@ -223,12 +222,8 @@ public final class StartFlow implements Listener {
             pr.setSettingsSeen(s.rev());
         }
         Origins.Origin o = plugin.origins().get(pr.origin());
-        // 예전 판의 무기를 지금 판으로 (활의 껍데기, 2026-10-10 의 한 줄 수치 설명 칸, 막지 않게 된 패링 단검)
-        int refreshed = kr.souls.item.ItemFactory.refreshWeapons(p.getInventory(), plugin.weapons());
-        if (refreshed > 0) {
-            new WeaponGuard(plugin).refresh(p);
-            plugin.test(p, "WEAPON_REFRESH n=" + refreshed);
-        }
+        // 예전 판의 무기를 지금 판으로 (활의 껍데기, 2026-10-10 의 한 줄 수치 설명 칸, 막지 않게 된 패링 단검, item/WeaponRefresh)
+        plugin.weaponRefresh().player(p, "join");
         if (o != null) {
             List<String> late = Origins.grant(p, o, pr, plugin.weapons());
             if (!late.isEmpty()) {
@@ -371,7 +366,7 @@ public final class StartFlow implements Listener {
     private void afterKit(Player p) {
         Bukkit.getScheduler().runTask(plugin, () -> {
             if (!p.isOnline()) return;
-            new WeaponGuard(plugin).refresh(p);
+            plugin.weaponGuard().refresh(p);
             plugin.load().refresh(p);
         });
     }
