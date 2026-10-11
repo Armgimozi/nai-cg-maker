@@ -58,8 +58,8 @@ import java.util.function.Predicate;
  * <p>
  * 몸 (FoeBody) 에는 태그 souls_foe 와 souls_ent (켤 때 쓸기, Souls.SWEEP_TAGS) 가 붙고 저장되지 않는다: 청크가 내려가면 사라지므로
  * 등록부는 EntityRemoveFromWorldEvent 로 지우고 (R7), 세우는 쪽 (P1b 의 Dojo) 이 틱마다 다시 세운다. 등록부에서 빠질 때마다
- * {@link #onGone} 에 건 쪽에 왜 빠졌는지 (hit 맞아 쓰러짐, kill 바닐라 /kill, clear 지움, unload 청크가 내려감, 그 밖은 Paper 의
- * EntityRemoveEvent 원인 이름) 를 알린다.
+ * {@link #onGone} 에 건 쪽에 왜 빠졌는지 (hit 맞아 쓰러짐, kill 바닐라 /kill, clear 지움, unload 청크가 내려감 (원인 없이 빠진 몸),
+ * 그 밖은 Paper 의 EntityRemoveEvent 원인 이름) 를 알린다.
  * <p>
  * 적은 enemies.yml 의 정의 (EnemyDefs) 와 가상 체력 (VirtualHealth: 최대치 = hp × 난이도 enemy-health, 생길 때 한 번) 을 가진
  * {@link Live}. 정의를 다시 읽어도 (/souls reload) 이미 선 적은 그대로이고 새로 서는 적부터 새 값이다. 맞으면 가상 체력이 깎이고
@@ -296,8 +296,9 @@ public final class Foes implements Listener {
     }
 
     /**
-     * 몸이 지워질 원인을 적어 둔다. 등록부에서 빼는 것은 아래 EntityRemoveFromWorldEvent. 청크가 내려갈 때는 EntityRemoveEvent 가 오지 않아
-     * (1.21.11 Paper 에서 잰 것: 원인 없이 EntityRemoveFromWorldEvent 만 왔다) 그 앞에 오는 EntitiesUnloadEvent 로 unload 를 적는다.
+     * 몸이 지워질 원인을 적어 둔다. 등록부에서 빼는 것은 아래 EntityRemoveFromWorldEvent. 청크가 내려갈 때는 EntityRemoveEvent 가 오지 않고
+     * (1.21.11 Paper 에서 잰 것: 원인 없이 EntityRemoveFromWorldEvent 만 왔다. 저장하지 않는 몸이라 EntitiesUnloadEvent 도 그 앞에 오지 않았다)
+     * 그래서 원인이 적히지 않은 채 빠진 몸은 unload 로 본다. EntitiesUnloadEvent 가 먼저 오는 판이면 거기서도 unload 를 적는다.
      */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onRemoveCause(EntityRemoveEvent e) {
@@ -316,7 +317,7 @@ public final class Foes implements Listener {
         UUID id = e.getEntity().getUniqueId();
         Foe f = all.get(id);
         String why = causes.remove(id);
-        if (f != null) drop(f, why == null ? "removed" : why, null);
+        if (f != null) drop(f, why == null ? "unload" : why, null);
     }
 
     /** enemies.yml 의 정의와 가상 체력을 가진 적 (spawn 이 만든다). */

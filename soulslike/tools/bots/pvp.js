@@ -31,14 +31,19 @@ L.run('pvp', async (sc) => {
   // 원인이 플레이어인 피해는 바닐라 규칙 pvp=false 가 이벤트 전에 버린다 (ServerPlayer.hurtServer 의 canHarmPlayer): 줄 없이 0
   sc.checkCmd('off: damage caused by a player does not land (vanilla rule, before any event)', ph, (r) => L.num(r.kv.dealt) === 0 && !b.tLines('DEF ', from).length)
   from = b.sys.length
+  let fromA = a.sys.length
   const e = target()
   if (e) {
     await a.bot.lookAt(e.position.offset(0, 1.5, 0), true)
     await L.sleep(150)
     a.bot.attack(e)
-    await L.sleep(500)
+    await L.sleep(800)
   }
   sc.check('off: melee is blocked before vanilla (PVP_BLOCK path=melee)', blocks(from).some((x) => x.kv.path === 'melee'), (e ? '' : '대상 없음 ') + blocks(from).map((x) => x.line).join(' | '))
+  // M1 P1a: 휘두르기는 동작이 되지만 (MOVE light1) PvP 가 꺼져 있으니 한 대가 없다 (HIT_PVP 도 DEF 도 없다)
+  sc.check('off: the swing still starts a move but no player hit lands (no HIT_PVP, no DEF)', L.moveLines(a, fromA).length === 1 &&
+    !a.tLines('HIT_PVP', fromA).length && !b.tLines('DEF ', from).length,
+    a.tLines('', fromA).map((x) => x.line).filter((l) => /MOVE|HIT/.test(l)).join(' | ') || '줄 없음')
   for (const kind of ['arrow', 'snowball', 'potion', 'cloud']) {
     from = b.sys.length
     await a.cmd(`/soulstest pvpshoot ${b.name} ${kind}`, 'PVPSHOOT ')
@@ -100,12 +105,18 @@ L.run('pvp', async (sc) => {
   const e2 = target()
   if (e2) {
     await a.bot.lookAt(e2.position.offset(0, 1.5, 0), true)
-    await L.sleep(1300) // 공격 대기가 다 찬 뒤 (회복 1: 곤봉은 망치 분류, 한 주기 18틱 = 0.9초)
+    await L.sleep(1300) // 앞 동작이 다 끝난 뒤 (곤봉 = 망치 한 주기 18틱 = 0.9초): 약공격 1단
+    fromA = a.sys.length
     a.bot.attack(e2)
-    await L.sleep(600)
+    await L.sleep(800)
   }
-  const mel = b.tLines('DEF ', from).find((x) => /^player_(melee|vanilla)$/.test(x.kv.from))
-  sc.check('on: melee with the club uses its attack rating (DEF from=player_melee)', mel && mel.kv.from === 'player_melee' && L.num(mel.kv.raw) > 20, mel ? mel.line : b.tLines('', from).map((x) => x.line).slice(0, 4).join(' | ') || '줄 없음')
+  // M1 P1a: 근접 한 대는 동작 실행기가 낸다 (souls 단위 × pvp.damage-scale 이 Combat.damage 로, DEF from=player_skill). 바닐라 근접 피해는 없다
+  const mel = b.tLines('DEF ', from).find((x) => /^player_(skill|melee|vanilla)$/.test(x.kv.from))
+  const hp1 = a.tLines('HIT_PVP', fromA)[0]
+  sc.check('on: melee with the club is a move hit with its attack rating (HIT_PVP move=light1, DEF from=player_skill)', mel && mel.kv.from === 'player_skill' &&
+    L.num(mel.kv.raw) > 20 && hp1 && hp1.kv.move === 'light1' && Math.abs(L.num(hp1.kv.raw) - L.num(mel.kv.raw)) < 0.05 &&
+    !b.tLines('DEF ', from).some((x) => /^player_(melee|vanilla)$/.test(x.kv.from)),
+    (mel ? mel.line : b.tLines('', from).map((x) => x.line).slice(0, 4).join(' | ') || '줄 없음') + ' | ' + (hp1 ? hp1.line : 'HIT_PVP 없음'))
   // 근력이 PvP 근접 피해를 올린다 (공격력 = 74 × (1 + 근력 몫): 근력 10 → 81.4, 40 → 114.0, × 1.400. 모든 무기에 같은 몫)
   if (mel) {
     await a.cmd('/soulstest stat str 40', 'STAT ')
@@ -118,7 +129,7 @@ L.run('pvp', async (sc) => {
       a.bot.attack(e3)
       await L.sleep(600)
     }
-    const mel40 = b.tLines('DEF ', from).find((x) => x.kv.from === 'player_melee')
+    const mel40 = b.tLines('DEF ', from).find((x) => x.kv.from === 'player_skill')
     const ratio = mel40 ? L.num(mel40.kv.raw) / L.num(mel.kv.raw) : NaN
     sc.check('on: strength 40 hits harder than strength 10 (raw x1.400 = attack rating 114.0 / 81.4)', Math.abs(ratio - 1.54 / 1.10) < 0.04,
       `${mel.kv.raw} → ${mel40 ? mel40.kv.raw : '?'} (×${ratio.toFixed(3)})`)
