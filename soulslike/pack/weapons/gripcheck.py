@@ -25,9 +25,10 @@ flint[item_model=souls:test_grip_sword] 로 든다. tools/client/grip_shots.sh �
   souls:test_grip_sword    바닐라 철검 그림 (minecraft:item/iron_sword) 을 칸마다 상자로 P⁻¹ 해 놓은 것 + 우리 handheld display
   souls:test_grip_mace     바닐라 철퇴 그림 + 우리 철퇴 display        souls:test_grip_spear  바닐라 철창 (손에 든 32×32 그림) + 창
   souls:test_grip_bow      바닐라 활 그림 (당김 셋도) + 우리 활 display, 아이템 정의는 우리 활과 같은 꼴 (using_item, use_duration)
-  souls:test_grip_shield   바닐라 ShieldModel 상자 둘 (판·손잡이) 에 minecraft:entity/shield_base_nopattern + 우리 방패·막기 display.
-                           1.21.11 은 그림 이름을 아틀라스 모두에서 찾으므로 그 그림은 바닐라 shield_patterns 아틀라스의 것을 그대로
-                           부른다 (items 아틀라스에 다시 넣으면 "Duplicate sprite" 경고가 난다)
+  souls:test_grip_shield   바닐라 ShieldModel 상자 둘 (판·손잡이) 에 바닐라 방패 그림 + 우리 방패·막기 display. 아이템 모형은 items
+                           아틀라스의 그림만 쓰므로 바닐라 그림 파일 textures/entity/shield_base_nopattern.png 을 items 아틀라스에
+                           다른 이름 (SHIELD_SPRITE) 으로 하나 더 싣는다 (assets/minecraft/atlases/items.json 의 single 소스, sprite 이름 바꿈:
+                           같은 이름으로 실으면 shield_patterns 아틀라스와 겹쳐 "Duplicate sprite" 경고가 난다). 그림 파일은 팩에 넣지 않는다
   souls:test_grip_empty    빈 모형 (팔 자세는 그대로라 겹침 그림의 바탕)
   souls:test_grip_shield_block, test_grip_bow_pulling_0..2 와 바닐라 짝 test_grip_vanilla_shield_block (특수 방패 모형, 바탕
                            item/shield_blocking), test_grip_vanilla_bow_pulling_0..2: 쓰지 않아도 막기·당김 모형을 보인다 (아이템을
@@ -78,7 +79,9 @@ PROBE = {
 SHAFT = {"spear": ("iron_spear_in_hand", range(10, 29), 32), "mace": ("mace", range(9, 13), 8)}
 # ShieldModel (1.21.11): 판 texOffs(0, 0) addBox(−6, −11, −2, 12, 22, 1), 손잡이 texOffs(26, 0) addBox(−1, −3, −1, 2, 6, 6), 그림 64×64
 SHIELD_BOXES = (((-6, -11, -2), (12, 22, 1), (0, 0)), ((-1, -3, -1), (2, 6, 6), (26, 0)))
-SHIELD_TEX = "minecraft:entity/shield_base_nopattern"
+SHIELD_TEX = "minecraft:entity/shield_base_nopattern"      # 바닐라 그림 파일 (textures/<이것>.png)
+SHIELD_SPRITE = f"{NS}:item/test_grip_shield_base"          # 그 파일을 items 아틀라스에 실은 이름
+SHIELD_ATLAS = {"sources": [{"type": "single", "resource": SHIELD_TEX, "sprite": SHIELD_SPRITE}]}
 
 # 바닐라 1.21.11 그림의 알파 (jar 에서 뽑았다. '#' 불투명). jar 가 있으면 build·check 가 jar 와 견준다
 MASKS = {
@@ -486,7 +489,8 @@ def write_probes(out, masks, g):
     for probe, p in PROBE.items():
         name = f"test_grip_{probe}"
         if probe == "shield":
-            _json(os.path.join(models, name + ".json"), {"textures": {"s": SHIELD_TEX, "particle": SHIELD_TEX},
+            _json(os.path.join(out, "assets", "minecraft", "atlases", "items.json"), SHIELD_ATLAS)
+            _json(os.path.join(models, name + ".json"), {"textures": {"s": SHIELD_SPRITE, "particle": SHIELD_SPRITE},
                                                          "elements": shield_elements(g["shield"]),
                                                          "display": C.shield_display()})
             _json(os.path.join(models, name + "_block.json"), {"parent": f"{NS}:item/{name}",
@@ -640,6 +644,11 @@ def check(out, masks=None):
             check_display(m, disp, name, van, g, errs)
             n_models += 1
     check_probe_geometry(models, masks, g, errs)
+    # 방패 시험 모형의 그림: items 아틀라스에 다른 이름으로 실었는가 (없으면 클라이언트가 "Missing textures" 로 보라·검정 칸을 그린다)
+    atlas = os.path.join(out, "assets", "minecraft", "atlases", "items.json")
+    srcs = _load(atlas).get("sources", []) if os.path.exists(atlas) else []
+    if SHIELD_ATLAS["sources"][0] not in srcs:
+        errs.append(f"assets/minecraft/atlases/items.json: 방패 시험 그림 소스 {SHIELD_ATLAS['sources'][0]} 가 없다")
     # 4. 무기 막기 모형 (<id>_guard) 없음 (시험 막기 도구 souls:test_guard 는 무기가 아니다), 아이템 정의의 감싸기
     guards = {f"{NS}:item/{wid}_guard" for wid in weapon_kinds()} | {f"{NS}:item/{wid}_guard_m" for wid in weapon_kinds()}
     for ref in sorted(guards):

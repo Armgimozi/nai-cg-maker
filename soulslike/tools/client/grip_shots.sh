@@ -26,6 +26,7 @@
 #         한 세계에 아이템마다 새 마네킹을 소환한다 (장비는 소환 NBT: 언 몸은 장비 바뀜을 보내지 않는다). 클라이언트에서 새 몸은
 #         틱 0 에 언 채라 팔 흔들림 (bobArms) 이 장마다 같다: 3인칭 display 의 정확한 검사
 #   tp    플레이어 F5 등 뒤·앞: 평소, 막기, 활 당김. 플레이어는 얼지 않아 팔 흔들림이 장마다 조금 다르다 (/tick rate 1 로 줄인다)
+#         그래서 바닐라를 빈 모형 뒤에 한 번 더 찍어 (c) 바닐라끼리의 어긋남 (팔 흔들림만의 몫) 을 대조로 잰다 (overlay.json control)
 #   walk  플레이어 F5 걷기 (잇달아 찍고 몸 자세가 가장 비슷한 장끼리 견준다)
 #   look  실제 아이템 (/soulstest give): 1인칭, F5 등 뒤·앞, 막기·당김 (look_<id>.png)
 # 환경 변수: OUT, ONLY_PROBES (기본 "sword mace spear bow shield"), LOOK (look 의 "id:main|off" 목록)
@@ -80,7 +81,7 @@ item() {   # item <probe> <v|p|e> [block]
   [ "${3:-}" = block ] && blk="blocks_attacks={}"
   [ "${3:-}" = block ] && [ "$1" = spear ] && blk="blocks_attacks={},!kinetic_weapon"
   case $2 in
-    v) [ -n "$blk" ] && echo "$v[$blk]" || echo "$v" ;;
+    v|c) [ -n "$blk" ] && echo "$v[$blk]" || echo "$v" ;;
     p) echo "$base[item_model=\"souls:test_grip_$1\"${blk:+,$blk}]" ;;
     e) echo "$base[item_model=\"souls:test_grip_empty\"${blk:+,$blk}]" ;;
   esac
@@ -102,7 +103,8 @@ con "tick unfreeze"
 con "tick rate 20"
 con "kill @e[type=minecraft:mannequin,tag=grip]"
 con "execute in minecraft:$W run summon minecraft:mannequin $MX $PY $MZ {Rotation:[0f,0f],Tags:[\"grip\"],hide_description:1b,immovable:1b}"
-con "give Tester minecraft:arrow 64"
+# 화살은 손이 아닌 칸에 (give 는 빈 단축 슬롯 0, 곧 주손에 넣어 clear_hands 가 지운다: 그러면 활을 당기지 못한다)
+con "item replace entity Tester inventory.0 with minecraft:arrow 64"
 home
 do_ wait:1.5
 
@@ -217,13 +219,13 @@ if want tp; then
     vn=back; [ $view = 2 ] && vn=front
     for pr in $PROBES; do
       hand=main; [ "$pr" = shield ] && hand=off
-      for k in v p e; do
+      for k in v p e c; do
         put $PL weapon.${hand}hand "$(item $pr $k)" 0.2
         do_ wait:1.6 "shot:tp_${vn}_${pr}_$k"
       done
       put $PL weapon.${hand}hand minecraft:air 0.2
       if [ "$pr" != bow ] && [ "$pr" != mace ]; then
-        for k in v p e; do
+        for k in v p e c; do
           put $PL weapon.${hand}hand "$(item $pr $k block)" 0.2
           do_ wait:1.2 mdown:right wait:2.6 "shot:tp_${vn}_${pr}_block_$k" mup:right wait:1.2
         done
@@ -235,7 +237,7 @@ if want tp; then
   if [[ " $PROBES " == *" bow "* ]]; then
     cam 2
     con "tick rate 2"
-    for k in v p e; do
+    for k in v p e c; do
       put $PL weapon.mainhand "$(item bow $k)" 0.3
       do_ wait:2 mdown:right wait:7.5 "shot:tp_front_bow_draw075_$k" wait:5.3 "shot:tp_front_bow_draw130_$k" mup:right wait:2
     done
@@ -382,7 +384,13 @@ def shifted(A, dy, dx):
     return np.roll(np.roll(A, dy, axis=0), dx, axis=1)
 def explain(V, P, U):
     """어긋남 셈 (아이템 자리 U 안): 시험 모형 그림을 ±4 화소 옮겨 바닐라와 가장 잘 맞는 자리 (차이의 합이 가장 작은 곳).
-    돌려주는 값 (그 자리 (dy, dx), 그 자리에서도 남는 차이 화소 수 (작은 점 지움), 0~3 화소 안에서 옮겨 보아도 남는 차이 [k=0..3])."""
+    돌려주는 값 (그 자리 (dy, dx), 그 자리에서도 남는 차이 화소 수 (작은 점 지움), 0~3 화소 안에서 옮겨 보아도 남는 차이 [k=0..3]).
+    U 의 둘레 (+6 화소) 만 잘라 셈한다: 옮김은 4 화소까지라 U 안의 값은 자르지 않은 것과 같다."""
+    ys, xs = np.nonzero(U)
+    if len(xs):
+        y0, y1 = max(0, ys.min() - 6), min(U.shape[0], ys.max() + 7)
+        x0, x1 = max(0, xs.min() - 6), min(U.shape[1], xs.max() + 7)
+        V, P, U = V[y0:y1, x0:x1], P[y0:y1, x0:x1], U[y0:y1, x0:x1]
     best, cost = (0, 0), None
     for dy in range(-4, 5):
         for dx in range(-4, 5):
@@ -426,6 +434,18 @@ for vp in sorted(glob.glob(os.path.join(raw, "*_v.png"))):
     sh, col, left = explain(V, P, U)
     r = {"scene": base, "px": max(abs(sh[0]), abs(sh[1])), "shift": list(sh), "sil": sil(mV, mP, U), "colour": col,
          "unexplained": left, "item_px": int(mV.sum()), "shape_xor": int((mV ^ mP).sum())}
+    cp = os.path.join(raw, base + "_c.png")
+    if os.path.exists(cp):
+        # 대조: 같은 바닐라 아이템을 시험 모형·빈 모형 뒤에 한 번 더 찍은 장 (C). 바닐라끼리의 어긋남 (V↔C) 이 팔 흔들림만의 몫이다.
+        # 시험 모형과 바로 이웃한 바닐라 장 (P↔C, 한 장 사이) 도 잰다
+        C = load(cp)
+        mC = clean((np.abs(C - E).max(axis=2) > T) & keep)
+        s_vc, c_vc, _ = explain(V, C, roi(mV, mC) & keep)
+        s_cp, c_cp, _ = explain(C, P, roi(mC, mP) & keep)
+        r["control"] = {"vanilla_vs_vanilla_px": max(abs(s_vc[0]), abs(s_vc[1])), "vanilla_vs_vanilla_shift": list(s_vc),
+                        "vanilla_vs_vanilla_colour": c_vc,
+                        "probe_vs_next_vanilla_px": max(abs(s_cp[0]), abs(s_cp[1])), "probe_vs_next_vanilla_shift": list(s_cp),
+                        "probe_vs_next_vanilla_colour": c_cp}
     results.append(r)
     sheet(base, V, P, mV, mP, f"{base}: best overlay shift {sh} px; {col} px still differ there (thin side-face lines, shading); "
                               f"left after any 0/1/2/3 px shift: {left}; vanilla item {r['item_px']} px")
@@ -471,8 +491,11 @@ for wid, views in looks.items():
 if results:
     with open(os.path.join(out, "overlay.json"), "w", encoding="utf-8") as f:
         json.dump(results, f, indent=1)
-    print("%-34s %4s %9s %7s %7s  %s" % ("scene", "px", "shift", "rest", "item", "left after 0/1/2/3 px"))
+    print("%-34s %4s %9s %7s %7s  %-24s %s" % ("scene", "px", "shift", "rest", "item", "left after 0/1/2/3 px",
+                                                "control: V-V2 px, P-V2 px"))
     for r in results:
-        print("%-34s %4d %9s %7d %7d  %s" % (r["scene"], r["px"], tuple(r["shift"]), r["colour"], r["item_px"], r["unexplained"]))
+        c = r.get("control")
+        print("%-34s %4d %9s %7d %7d  %-24s %s" % (r["scene"], r["px"], tuple(r["shift"]), r["colour"], r["item_px"], r["unexplained"],
+                                                  "%d, %d" % (c["vanilla_vs_vanilla_px"], c["probe_vs_next_vanilla_px"]) if c else ""))
 print("겹침 그림:", out)
 PY

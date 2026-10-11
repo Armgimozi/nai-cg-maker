@@ -101,7 +101,7 @@
 
 **검사**
 - `pack/weapons/gripcheck.py` (gen_pack 이 `roll_figure.wrap_item_definitions` 뒤에 부른다): jar 의 바닐라 display 가 `VANILLA` 와 같은지, g_v 를 바닐라 그림에서 다시 셈해 `GRIP` 과 같은지, 모든 무기 모형 (`_3d`, `_block`, 당김, 구르기 표시판 `_m`) 이 네 손 맥락을 가지고 맥락마다 쥐는 점 (8, 8, 8) 이 바닐라 g_v 의 자리로, +Y·+X·+Z 가 바닐라 그림의 끝·옆·앞으로 가는지 (1e-3), `_guard` 가 없는지, 당김 모형의 display 가 같은지, souls 아이템 정의가 구르기 감싸기를 지녔는지.
-- 시험 모형 `souls:test_grip_sword`·`_mace`·`_spear`·`_bow`·`_shield` (바닐라 그림을 P⁻¹ 로 우리 모형 공간에 놓고 우리 display 를 붙였다) 를 실제 클라이언트에서 바닐라 철검·철퇴·철창·활·방패와 겹쳐 본다 (`tools/client/grip_shots.sh`, `dist/screenshots/grip/`). 언어 열쇠도 플러그인 아이템도 없다: `/item replace entity @s weapon.mainhand with minecraft:flint[item_model="souls:test_grip_sword"]`.
+- 시험 모형 `souls:test_grip_sword`·`_mace`·`_spear`·`_bow`·`_shield` (바닐라 그림을 P⁻¹ 로 우리 모형 공간에 놓고 우리 display 를 붙였다) 를 실제 클라이언트에서 바닐라 철검·철퇴·철창·활·방패와 겹쳐 본다 (`tools/client/grip_shots.sh`, `dist/screenshots/grip/`). 언어 열쇠도 플러그인 아이템도 없다: `/item replace entity @s weapon.mainhand with minecraft:flint[item_model="souls:test_grip_sword"]`. 방패 시험 모형의 그림은 바닐라 파일 `entity/shield_base_nopattern` 을 items 아틀라스에 다른 이름 (`souls:item/test_grip_shield_base`, `assets/minecraft/atlases/items.json` 의 single 소스) 으로 실어 쓴다 (아이템 모형은 items 아틀라스만 본다. 같은 이름으로 실으면 shield_patterns 아틀라스와 겹친다는 경고가 난다). 그림 파일은 팩에 넣지 않는다.
 
 ### 1.4 구르기 대역과 몹, 보스 인형이 무기를 쥐는 법
 

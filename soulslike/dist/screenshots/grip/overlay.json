@@ -1,0 +1,1694 @@
+[
+ {
+  "scene": "fp_bow_draw075",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 396,
+  "unexplained": [
+   396,
+   392,
+   386,
+   382
+  ],
+  "item_px": 41913,
+  "shape_xor": 2410
+ },
+ {
+  "scene": "fp_bow_draw130",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 396,
+  "unexplained": [
+   396,
+   392,
+   386,
+   382
+  ],
+  "item_px": 41913,
+  "shape_xor": 2410
+ },
+ {
+  "scene": "fp_bow_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 396,
+  "unexplained": [
+   396,
+   392,
+   386,
+   382
+  ],
+  "item_px": 41913,
+  "shape_xor": 2410
+ },
+ {
+  "scene": "fp_bow_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 171,
+  "unexplained": [
+   171,
+   167,
+   161,
+   157
+  ],
+  "item_px": 31685,
+  "shape_xor": 840
+ },
+ {
+  "scene": "fp_mace_block",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 692,
+  "unexplained": [
+   692,
+   575,
+   498,
+   443
+  ],
+  "item_px": 77586,
+  "shape_xor": 883
+ },
+ {
+  "scene": "fp_mace_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 761,
+  "unexplained": [
+   761,
+   759,
+   753,
+   743
+  ],
+  "item_px": 52757,
+  "shape_xor": 479
+ },
+ {
+  "scene": "fp_mace_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 920,
+  "unexplained": [
+   920,
+   918,
+   917,
+   913
+  ],
+  "item_px": 45732,
+  "shape_xor": 373
+ },
+ {
+  "scene": "fp_shield_block",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 0,
+  "unexplained": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "item_px": 109516,
+  "shape_xor": 26
+ },
+ {
+  "scene": "fp_shield_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 0,
+  "unexplained": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "item_px": 56430,
+  "shape_xor": 29
+ },
+ {
+  "scene": "fp_shield_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 0,
+  "unexplained": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "item_px": 48340,
+  "shape_xor": 18
+ },
+ {
+  "scene": "fp_spear_block",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 3249,
+  "unexplained": [
+   3249,
+   2734,
+   2252,
+   1795
+  ],
+  "item_px": 27702,
+  "shape_xor": 89
+ },
+ {
+  "scene": "fp_spear_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 2511,
+  "unexplained": [
+   2511,
+   2263,
+   2010,
+   1695
+  ],
+  "item_px": 48899,
+  "shape_xor": 988
+ },
+ {
+  "scene": "fp_spear_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 1976,
+  "unexplained": [
+   1976,
+   1741,
+   1500,
+   1196
+  ],
+  "item_px": 39030,
+  "shape_xor": 1004
+ },
+ {
+  "scene": "fp_sword_block",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 131,
+  "unexplained": [
+   131,
+   111,
+   91,
+   79
+  ],
+  "item_px": 38687,
+  "shape_xor": 35
+ },
+ {
+  "scene": "fp_sword_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 163,
+  "unexplained": [
+   163,
+   161,
+   157,
+   151
+  ],
+  "item_px": 34928,
+  "shape_xor": 1787
+ },
+ {
+  "scene": "fp_sword_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 34,
+  "unexplained": [
+   34,
+   34,
+   34,
+   34
+  ],
+  "item_px": 33564,
+  "shape_xor": 85
+ },
+ {
+  "scene": "mq_back_bow_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 880,
+  "unexplained": [
+   880,
+   850,
+   807,
+   757
+  ],
+  "item_px": 1773,
+  "shape_xor": 120
+ },
+ {
+  "scene": "mq_back_bow_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 883,
+  "unexplained": [
+   883,
+   852,
+   809,
+   763
+  ],
+  "item_px": 1773,
+  "shape_xor": 22
+ },
+ {
+  "scene": "mq_back_bowpull0_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 1248,
+  "unexplained": [
+   1248,
+   1191,
+   1124,
+   1049
+  ],
+  "item_px": 2378,
+  "shape_xor": 49
+ },
+ {
+  "scene": "mq_back_bowpull1_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 2,
+  "colour": 1277,
+  "unexplained": [
+   1277,
+   1289,
+   1237,
+   1176
+  ],
+  "item_px": 2394,
+  "shape_xor": 30
+ },
+ {
+  "scene": "mq_back_bowpull2_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 1158,
+  "unexplained": [
+   1158,
+   1146,
+   1130,
+   1112
+  ],
+  "item_px": 2231,
+  "shape_xor": 1
+ },
+ {
+  "scene": "mq_back_mace_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 388,
+  "unexplained": [
+   388,
+   341,
+   286,
+   228
+  ],
+  "item_px": 757,
+  "shape_xor": 138
+ },
+ {
+  "scene": "mq_back_mace_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 391,
+  "unexplained": [
+   391,
+   341,
+   285,
+   226
+  ],
+  "item_px": 657,
+  "shape_xor": 59
+ },
+ {
+  "scene": "mq_back_shield_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 0,
+  "colour": 0,
+  "unexplained": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "item_px": 8619,
+  "shape_xor": 0
+ },
+ {
+  "scene": "mq_back_shield_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 0,
+  "colour": 0,
+  "unexplained": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "item_px": 8411,
+  "shape_xor": 0
+ },
+ {
+  "scene": "mq_back_shieldblock_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 0,
+  "unexplained": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "item_px": 18011,
+  "shape_xor": 2
+ },
+ {
+  "scene": "mq_back_spear_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 2,
+  "colour": 1130,
+  "unexplained": [
+   1130,
+   1107,
+   1060,
+   980
+  ],
+  "item_px": 2086,
+  "shape_xor": 29
+ },
+ {
+  "scene": "mq_back_spear_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 1127,
+  "unexplained": [
+   1127,
+   1108,
+   1071,
+   1004
+  ],
+  "item_px": 2048,
+  "shape_xor": 107
+ },
+ {
+  "scene": "mq_back_sword_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 0,
+  "colour": 253,
+  "unexplained": [
+   253,
+   247,
+   239,
+   234
+  ],
+  "item_px": 314,
+  "shape_xor": 0
+ },
+ {
+  "scene": "mq_back_sword_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 0,
+  "colour": 254,
+  "unexplained": [
+   254,
+   249,
+   242,
+   236
+  ],
+  "item_px": 314,
+  "shape_xor": 0
+ },
+ {
+  "scene": "mq_front_bow_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 1024,
+  "unexplained": [
+   1024,
+   1024,
+   1024,
+   1024
+  ],
+  "item_px": 1769,
+  "shape_xor": 2
+ },
+ {
+  "scene": "mq_front_bow_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 1042,
+  "unexplained": [
+   1042,
+   942,
+   844,
+   749
+  ],
+  "item_px": 1793,
+  "shape_xor": 2
+ },
+ {
+  "scene": "mq_front_bowpull0_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 1823,
+  "unexplained": [
+   1823,
+   1818,
+   1809,
+   1802
+  ],
+  "item_px": 2766,
+  "shape_xor": 5
+ },
+ {
+  "scene": "mq_front_bowpull1_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 1607,
+  "unexplained": [
+   1607,
+   1600,
+   1585,
+   1569
+  ],
+  "item_px": 2617,
+  "shape_xor": 12
+ },
+ {
+  "scene": "mq_front_bowpull2_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 2,
+  "colour": 1719,
+  "unexplained": [
+   1719,
+   1692,
+   1660,
+   1624
+  ],
+  "item_px": 2464,
+  "shape_xor": 51
+ },
+ {
+  "scene": "mq_front_mace_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 2301,
+  "unexplained": [
+   2301,
+   2197,
+   2079,
+   1884
+  ],
+  "item_px": 6000,
+  "shape_xor": 490
+ },
+ {
+  "scene": "mq_front_mace_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 2330,
+  "unexplained": [
+   2330,
+   2272,
+   2134,
+   1945
+  ],
+  "item_px": 5880,
+  "shape_xor": 337
+ },
+ {
+  "scene": "mq_front_shield_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 0,
+  "colour": 0,
+  "unexplained": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "item_px": 11683,
+  "shape_xor": 0
+ },
+ {
+  "scene": "mq_front_shield_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 0,
+  "colour": 0,
+  "unexplained": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "item_px": 11593,
+  "shape_xor": 0
+ },
+ {
+  "scene": "mq_front_shieldblock_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 0,
+  "unexplained": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "item_px": 26132,
+  "shape_xor": 2
+ },
+ {
+  "scene": "mq_front_spear_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 5144,
+  "unexplained": [
+   5144,
+   5063,
+   4924,
+   4734
+  ],
+  "item_px": 5309,
+  "shape_xor": 464
+ },
+ {
+  "scene": "mq_front_spear_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 4358,
+  "unexplained": [
+   4358,
+   4249,
+   4121,
+   3970
+  ],
+  "item_px": 5051,
+  "shape_xor": 190
+ },
+ {
+  "scene": "mq_front_sword_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 464,
+  "unexplained": [
+   464,
+   414,
+   370,
+   332
+  ],
+  "item_px": 3817,
+  "shape_xor": 232
+ },
+ {
+  "scene": "mq_front_sword_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 514,
+  "unexplained": [
+   514,
+   462,
+   412,
+   367
+  ],
+  "item_px": 3819,
+  "shape_xor": 189
+ },
+ {
+  "scene": "mq_left_bow_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 361,
+  "unexplained": [
+   361,
+   242,
+   223,
+   192
+  ],
+  "item_px": 4141,
+  "shape_xor": 50
+ },
+ {
+  "scene": "mq_left_bow_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 585,
+  "unexplained": [
+   585,
+   304,
+   171,
+   70
+  ],
+  "item_px": 8205,
+  "shape_xor": 68
+ },
+ {
+  "scene": "mq_left_bowpull0_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 549,
+  "unexplained": [
+   549,
+   392,
+   373,
+   342
+  ],
+  "item_px": 4856,
+  "shape_xor": 72
+ },
+ {
+  "scene": "mq_left_bowpull1_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 534,
+  "unexplained": [
+   534,
+   406,
+   365,
+   326
+  ],
+  "item_px": 4807,
+  "shape_xor": 60
+ },
+ {
+  "scene": "mq_left_bowpull2_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 426,
+  "unexplained": [
+   426,
+   316,
+   266,
+   233
+  ],
+  "item_px": 4510,
+  "shape_xor": 80
+ },
+ {
+  "scene": "mq_left_mace_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 304,
+  "unexplained": [
+   304,
+   272,
+   218,
+   169
+  ],
+  "item_px": 7180,
+  "shape_xor": 48
+ },
+ {
+  "scene": "mq_left_mace_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 499,
+  "unexplained": [
+   499,
+   488,
+   480,
+   469
+  ],
+  "item_px": 14897,
+  "shape_xor": 47
+ },
+ {
+  "scene": "mq_left_shield_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 0,
+  "colour": 0,
+  "unexplained": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "item_px": 15175,
+  "shape_xor": 0
+ },
+ {
+  "scene": "mq_left_shield_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 0,
+  "colour": 0,
+  "unexplained": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "item_px": 57051,
+  "shape_xor": 0
+ },
+ {
+  "scene": "mq_left_shieldblock_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 0,
+  "unexplained": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "item_px": 15015,
+  "shape_xor": 7
+ },
+ {
+  "scene": "mq_left_spear_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 257,
+  "unexplained": [
+   257,
+   255,
+   252,
+   232
+  ],
+  "item_px": 7471,
+  "shape_xor": 150
+ },
+ {
+  "scene": "mq_left_spear_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 363,
+  "unexplained": [
+   363,
+   362,
+   362,
+   362
+  ],
+  "item_px": 13595,
+  "shape_xor": 127
+ },
+ {
+  "scene": "mq_left_sword_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 2,
+  "colour": 431,
+  "unexplained": [
+   431,
+   256,
+   115,
+   102
+  ],
+  "item_px": 4955,
+  "shape_xor": 14
+ },
+ {
+  "scene": "mq_left_sword_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 558,
+  "unexplained": [
+   558,
+   309,
+   122,
+   46
+  ],
+  "item_px": 8405,
+  "shape_xor": 5
+ },
+ {
+  "scene": "mq_right_bow_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 618,
+  "unexplained": [
+   618,
+   330,
+   170,
+   71
+  ],
+  "item_px": 8331,
+  "shape_xor": 186
+ },
+ {
+  "scene": "mq_right_bow_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 326,
+  "unexplained": [
+   326,
+   222,
+   198,
+   177
+  ],
+  "item_px": 4095,
+  "shape_xor": 47
+ },
+ {
+  "scene": "mq_right_bowpull0_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 708,
+  "unexplained": [
+   708,
+   452,
+   279,
+   140
+  ],
+  "item_px": 9214,
+  "shape_xor": 554
+ },
+ {
+  "scene": "mq_right_bowpull1_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 628,
+  "unexplained": [
+   628,
+   392,
+   258,
+   142
+  ],
+  "item_px": 9100,
+  "shape_xor": 226
+ },
+ {
+  "scene": "mq_right_bowpull2_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 533,
+  "unexplained": [
+   533,
+   357,
+   217,
+   115
+  ],
+  "item_px": 8671,
+  "shape_xor": 622
+ },
+ {
+  "scene": "mq_right_mace_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 2,
+  "colour": 503,
+  "unexplained": [
+   503,
+   485,
+   459,
+   423
+  ],
+  "item_px": 14737,
+  "shape_xor": 35
+ },
+ {
+  "scene": "mq_right_mace_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 290,
+  "unexplained": [
+   290,
+   264,
+   231,
+   178
+  ],
+  "item_px": 7092,
+  "shape_xor": 51
+ },
+ {
+  "scene": "mq_right_shield_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 0,
+  "colour": 0,
+  "unexplained": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "item_px": 57009,
+  "shape_xor": 0
+ },
+ {
+  "scene": "mq_right_shield_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 0,
+  "colour": 0,
+  "unexplained": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "item_px": 15359,
+  "shape_xor": 0
+ },
+ {
+  "scene": "mq_right_shieldblock_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 0,
+  "unexplained": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "item_px": 11436,
+  "shape_xor": 1
+ },
+ {
+  "scene": "mq_right_spear_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 965,
+  "unexplained": [
+   965,
+   960,
+   943,
+   918
+  ],
+  "item_px": 13806,
+  "shape_xor": 196
+ },
+ {
+  "scene": "mq_right_spear_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 104,
+  "unexplained": [
+   104,
+   95,
+   81,
+   73
+  ],
+  "item_px": 7527,
+  "shape_xor": 89
+ },
+ {
+  "scene": "mq_right_sword_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 555,
+  "unexplained": [
+   555,
+   271,
+   90,
+   8
+  ],
+  "item_px": 8353,
+  "shape_xor": 520
+ },
+ {
+  "scene": "mq_right_sword_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 2,
+  "colour": 433,
+  "unexplained": [
+   433,
+   257,
+   119,
+   98
+  ],
+  "item_px": 4957,
+  "shape_xor": 14
+ },
+ {
+  "scene": "tp_back_bow",
+  "px": 1,
+  "shift": [
+   0,
+   1
+  ],
+  "sil": 1,
+  "colour": 264,
+  "unexplained": [
+   306,
+   183,
+   141,
+   89
+  ],
+  "item_px": 558,
+  "shape_xor": 192
+ },
+ {
+  "scene": "tp_back_mace",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 226,
+  "unexplained": [
+   226,
+   119,
+   81,
+   61
+  ],
+  "item_px": 638,
+  "shape_xor": 57
+ },
+ {
+  "scene": "tp_back_shield_block",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 147,
+  "unexplained": [
+   147,
+   0,
+   0,
+   0
+  ],
+  "item_px": 1950,
+  "shape_xor": 461
+ },
+ {
+  "scene": "tp_back_shield",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 40,
+  "unexplained": [
+   40,
+   0,
+   0,
+   0
+  ],
+  "item_px": 3756,
+  "shape_xor": 96
+ },
+ {
+  "scene": "tp_back_spear_block",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 684,
+  "unexplained": [
+   684,
+   316,
+   242,
+   157
+  ],
+  "item_px": 1474,
+  "shape_xor": 508
+ },
+ {
+  "scene": "tp_back_spear",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 593,
+  "unexplained": [
+   593,
+   495,
+   477,
+   446
+  ],
+  "item_px": 789,
+  "shape_xor": 71
+ },
+ {
+  "scene": "tp_back_sword_block",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 327,
+  "unexplained": [
+   327,
+   102,
+   0,
+   0
+  ],
+  "item_px": 563,
+  "shape_xor": 404
+ },
+ {
+  "scene": "tp_back_sword",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 128,
+  "unexplained": [
+   128,
+   110,
+   98,
+   77
+  ],
+  "item_px": 394,
+  "shape_xor": 46
+ },
+ {
+  "scene": "tp_front_bow_draw075",
+  "px": 1,
+  "shift": [
+   1,
+   1
+  ],
+  "sil": 3,
+  "colour": 5013,
+  "unexplained": [
+   4635,
+   2860,
+   2168,
+   1648
+  ],
+  "item_px": 6208,
+  "shape_xor": 3723
+ },
+ {
+  "scene": "tp_front_bow_draw130",
+  "px": 3,
+  "shift": [
+   0,
+   3
+  ],
+  "sil": 3,
+  "colour": 5713,
+  "unexplained": [
+   5400,
+   3992,
+   3010,
+   2178
+  ],
+  "item_px": 6469,
+  "shape_xor": 5128
+ },
+ {
+  "scene": "tp_front_bow",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 2724,
+  "unexplained": [
+   2724,
+   1851,
+   991,
+   740
+  ],
+  "item_px": 4397,
+  "shape_xor": 2026
+ },
+ {
+  "scene": "tp_front_mace",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 2042,
+  "unexplained": [
+   2042,
+   1352,
+   805,
+   473
+  ],
+  "item_px": 6171,
+  "shape_xor": 2627
+ },
+ {
+  "scene": "tp_front_shield_block",
+  "px": 1,
+  "shift": [
+   0,
+   -1
+  ],
+  "sil": 3,
+  "colour": 2156,
+  "unexplained": [
+   2943,
+   1268,
+   186,
+   13
+  ],
+  "item_px": 24362,
+  "shape_xor": 2396
+ },
+ {
+  "scene": "tp_front_shield",
+  "px": 1,
+  "shift": [
+   1,
+   0
+  ],
+  "sil": 3,
+  "colour": 1333,
+  "unexplained": [
+   1595,
+   662,
+   291,
+   90
+  ],
+  "item_px": 6828,
+  "shape_xor": 2172
+ },
+ {
+  "scene": "tp_front_spear_block",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 2589,
+  "unexplained": [
+   2589,
+   1641,
+   1040,
+   710
+  ],
+  "item_px": 6882,
+  "shape_xor": 2763
+ },
+ {
+  "scene": "tp_front_spear",
+  "px": 4,
+  "shift": [
+   4,
+   0
+  ],
+  "sil": 3,
+  "colour": 1956,
+  "unexplained": [
+   2485,
+   1694,
+   1063,
+   801
+  ],
+  "item_px": 4410,
+  "shape_xor": 2239
+ },
+ {
+  "scene": "tp_front_sword_block",
+  "px": 1,
+  "shift": [
+   1,
+   0
+  ],
+  "sil": 3,
+  "colour": 4058,
+  "unexplained": [
+   4338,
+   3315,
+   2805,
+   2430
+  ],
+  "item_px": 7078,
+  "shape_xor": 3475
+ },
+ {
+  "scene": "tp_front_sword",
+  "px": 2,
+  "shift": [
+   2,
+   0
+  ],
+  "sil": 3,
+  "colour": 3009,
+  "unexplained": [
+   3181,
+   1689,
+   861,
+   300
+  ],
+  "item_px": 5933,
+  "shape_xor": 2335
+ },
+ {
+  "scene": "walk_shield",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 2021,
+  "unexplained": [
+   2021,
+   1360,
+   921,
+   566
+  ],
+  "item_px": 11280,
+  "shape_xor": 4466,
+  "frames": [
+   2,
+   2,
+   2
+  ],
+  "note": "burst, closest body pose; includes walk-phase mismatch"
+ },
+ {
+  "scene": "walk_spear",
+  "px": 1,
+  "shift": [
+   1,
+   -1
+  ],
+  "sil": 3,
+  "colour": 27415,
+  "unexplained": [
+   16813,
+   7780,
+   4005,
+   2895
+  ],
+  "item_px": 137755,
+  "shape_xor": 65949,
+  "frames": [
+   13,
+   13,
+   10
+  ],
+  "note": "burst, closest body pose; includes walk-phase mismatch"
+ },
+ {
+  "scene": "walk_sword",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 7974,
+  "unexplained": [
+   7974,
+   2712,
+   2335,
+   2138
+  ],
+  "item_px": 121727,
+  "shape_xor": 18848,
+  "frames": [
+   9,
+   8,
+   3
+  ],
+  "note": "burst, closest body pose; includes walk-phase mismatch"
+ }
+]
