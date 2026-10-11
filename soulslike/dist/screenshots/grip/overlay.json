@@ -1,21 +1,21 @@
 [
  {
   "scene": "fp_bow_draw075",
-  "px": 0,
+  "px": 1,
   "shift": [
    0,
-   0
+   -1
   ],
   "sil": 3,
-  "colour": 396,
+  "colour": 4790,
   "unexplained": [
-   396,
-   392,
-   386,
-   382
+   6198,
+   3491,
+   2908,
+   2829
   ],
-  "item_px": 41913,
-  "shape_xor": 2410
+  "item_px": 95532,
+  "shape_xor": 7556
  },
  {
   "scene": "fp_bow_draw130",
@@ -25,15 +25,15 @@
    0
   ],
   "sil": 3,
-  "colour": 396,
+  "colour": 2319,
   "unexplained": [
-   396,
-   392,
-   386,
-   382
+   2319,
+   2308,
+   2297,
+   2284
   ],
-  "item_px": 41913,
-  "shape_xor": 2410
+  "item_px": 93923,
+  "shape_xor": 1233
  },
  {
   "scene": "fp_bow_main",
@@ -82,7 +82,7 @@
   "colour": 692,
   "unexplained": [
    692,
-   575,
+   578,
    498,
    443
   ],
@@ -141,7 +141,7 @@
    0
   ],
   "item_px": 109516,
-  "shape_xor": 26
+  "shape_xor": 27
  },
  {
   "scene": "fp_shield_main",
@@ -266,8 +266,8 @@
    157,
    151
   ],
-  "item_px": 34928,
-  "shape_xor": 1787
+  "item_px": 34407,
+  "shape_xor": 2172
  },
  {
   "scene": "fp_sword_off",
@@ -284,8 +284,8 @@
    34,
    34
   ],
-  "item_px": 33564,
-  "shape_xor": 85
+  "item_px": 33519,
+  "shape_xor": 113
  },
  {
   "scene": "mq_back_bow_main",
@@ -392,8 +392,8 @@
    286,
    228
   ],
-  "item_px": 757,
-  "shape_xor": 138
+  "item_px": 855,
+  "shape_xor": 31
  },
  {
   "scene": "mq_back_mace_off",
@@ -438,7 +438,7 @@
    0,
    0
   ],
-  "sil": 0,
+  "sil": 1,
   "colour": 0,
   "unexplained": [
    0,
@@ -447,7 +447,7 @@
    0
   ],
   "item_px": 8411,
-  "shape_xor": 0
+  "shape_xor": 1
  },
  {
   "scene": "mq_back_shieldblock_off",
@@ -969,7 +969,7 @@
    0
   ],
   "item_px": 15015,
-  "shape_xor": 7
+  "shape_xor": 6
  },
  {
   "scene": "mq_left_spear_main",
@@ -1221,7 +1221,7 @@
    0
   ],
   "item_px": 11436,
-  "shape_xor": 1
+  "shape_xor": 2
  },
  {
   "scene": "mq_right_spear_main",
@@ -1297,21 +1297,35 @@
  },
  {
   "scene": "tp_back_bow",
-  "px": 1,
+  "px": 0,
   "shift": [
    0,
-   1
+   0
   ],
-  "sil": 1,
-  "colour": 264,
+  "sil": 3,
+  "colour": 305,
   "unexplained": [
-   306,
+   305,
    183,
-   141,
-   89
+   147,
+   107
   ],
-  "item_px": 558,
-  "shape_xor": 192
+  "item_px": 642,
+  "shape_xor": 244,
+  "control": {
+   "vanilla_vs_vanilla_px": 2,
+   "vanilla_vs_vanilla_shift": [
+    0,
+    2
+   ],
+   "vanilla_vs_vanilla_colour": 84,
+   "probe_vs_next_vanilla_px": 1,
+   "probe_vs_next_vanilla_shift": [
+    0,
+    -1
+   ],
+   "probe_vs_next_vanilla_colour": 259
+  }
  },
  {
   "scene": "tp_back_mace",
@@ -1320,16 +1334,30 @@
    0,
    0
   ],
-  "sil": 1,
-  "colour": 226,
+  "sil": 2,
+  "colour": 257,
   "unexplained": [
-   226,
-   119,
-   81,
-   61
+   257,
+   117,
+   87,
+   64
   ],
-  "item_px": 638,
-  "shape_xor": 57
+  "item_px": 614,
+  "shape_xor": 268,
+  "control": {
+   "vanilla_vs_vanilla_px": 1,
+   "vanilla_vs_vanilla_shift": [
+    0,
+    -1
+   ],
+   "vanilla_vs_vanilla_colour": 236,
+   "probe_vs_next_vanilla_px": 1,
+   "probe_vs_next_vanilla_shift": [
+    0,
+    1
+   ],
+   "probe_vs_next_vanilla_colour": 335
+  }
  },
  {
   "scene": "tp_back_shield_block",
@@ -1339,15 +1367,29 @@
    0
   ],
   "sil": 3,
-  "colour": 147,
+  "colour": 381,
   "unexplained": [
-   147,
-   0,
-   0,
-   0
+   381,
+   114,
+   26,
+   13
   ],
-  "item_px": 1950,
-  "shape_xor": 461
+  "item_px": 2026,
+  "shape_xor": 591,
+  "control": {
+   "vanilla_vs_vanilla_px": 4,
+   "vanilla_vs_vanilla_shift": [
+    0,
+    4
+   ],
+   "vanilla_vs_vanilla_colour": 958,
+   "probe_vs_next_vanilla_px": 2,
+   "probe_vs_next_vanilla_shift": [
+    0,
+    -2
+   ],
+   "probe_vs_next_vanilla_colour": 636
+  }
  },
  {
   "scene": "tp_back_shield",
@@ -1357,15 +1399,29 @@
    0
   ],
   "sil": 1,
-  "colour": 40,
+  "colour": 0,
   "unexplained": [
-   40,
+   0,
    0,
    0,
    0
   ],
-  "item_px": 3756,
-  "shape_xor": 96
+  "item_px": 3759,
+  "shape_xor": 60,
+  "control": {
+   "vanilla_vs_vanilla_px": 0,
+   "vanilla_vs_vanilla_shift": [
+    0,
+    0
+   ],
+   "vanilla_vs_vanilla_colour": 13,
+   "probe_vs_next_vanilla_px": 0,
+   "probe_vs_next_vanilla_shift": [
+    0,
+    0
+   ],
+   "probe_vs_next_vanilla_colour": 0
+  }
  },
  {
   "scene": "tp_back_spear_block",
@@ -1375,33 +1431,61 @@
    0
   ],
   "sil": 3,
-  "colour": 684,
+  "colour": 402,
   "unexplained": [
-   684,
-   316,
-   242,
-   157
+   402,
+   277,
+   199,
+   118
   ],
-  "item_px": 1474,
-  "shape_xor": 508
+  "item_px": 1379,
+  "shape_xor": 295,
+  "control": {
+   "vanilla_vs_vanilla_px": 2,
+   "vanilla_vs_vanilla_shift": [
+    -1,
+    2
+   ],
+   "vanilla_vs_vanilla_colour": 415,
+   "probe_vs_next_vanilla_px": 2,
+   "probe_vs_next_vanilla_shift": [
+    1,
+    -2
+   ],
+   "probe_vs_next_vanilla_colour": 776
+  }
  },
  {
   "scene": "tp_back_spear",
-  "px": 0,
+  "px": 1,
   "shift": [
    0,
-   0
+   -1
   ],
-  "sil": 1,
-  "colour": 593,
+  "sil": 2,
+  "colour": 643,
   "unexplained": [
-   593,
-   495,
-   477,
-   446
+   712,
+   487,
+   468,
+   438
   ],
-  "item_px": 789,
-  "shape_xor": 71
+  "item_px": 797,
+  "shape_xor": 141,
+  "control": {
+   "vanilla_vs_vanilla_px": 2,
+   "vanilla_vs_vanilla_shift": [
+    0,
+    -2
+   ],
+   "vanilla_vs_vanilla_colour": 286,
+   "probe_vs_next_vanilla_px": 1,
+   "probe_vs_next_vanilla_shift": [
+    0,
+    1
+   ],
+   "probe_vs_next_vanilla_colour": 631
+  }
  },
  {
   "scene": "tp_back_sword_block",
@@ -1410,16 +1494,30 @@
    0,
    0
   ],
-  "sil": 3,
-  "colour": 327,
+  "sil": 0,
+  "colour": 0,
   "unexplained": [
-   327,
-   102,
+   0,
+   0,
    0,
    0
   ],
-  "item_px": 563,
-  "shape_xor": 404
+  "item_px": 163,
+  "shape_xor": 163,
+  "control": {
+   "vanilla_vs_vanilla_px": 0,
+   "vanilla_vs_vanilla_shift": [
+    0,
+    0
+   ],
+   "vanilla_vs_vanilla_colour": 0,
+   "probe_vs_next_vanilla_px": 0,
+   "probe_vs_next_vanilla_shift": [
+    0,
+    0
+   ],
+   "probe_vs_next_vanilla_colour": 0
+  }
  },
  {
   "scene": "tp_back_sword",
@@ -1429,51 +1527,93 @@
    0
   ],
   "sil": 3,
-  "colour": 128,
+  "colour": 193,
   "unexplained": [
-   128,
-   110,
-   98,
-   77
+   193,
+   120,
+   103,
+   81
   ],
-  "item_px": 394,
-  "shape_xor": 46
+  "item_px": 523,
+  "shape_xor": 403,
+  "control": {
+   "vanilla_vs_vanilla_px": 1,
+   "vanilla_vs_vanilla_shift": [
+    0,
+    1
+   ],
+   "vanilla_vs_vanilla_colour": 137,
+   "probe_vs_next_vanilla_px": 1,
+   "probe_vs_next_vanilla_shift": [
+    0,
+    -1
+   ],
+   "probe_vs_next_vanilla_colour": 204
+  }
  },
  {
   "scene": "tp_front_bow_draw075",
-  "px": 1,
+  "px": 4,
   "shift": [
-   1,
-   1
+   -4,
+   -1
   ],
   "sil": 3,
-  "colour": 5013,
+  "colour": 2592,
   "unexplained": [
-   4635,
-   2860,
-   2168,
-   1648
+   2643,
+   1833,
+   1278,
+   845
   ],
-  "item_px": 6208,
-  "shape_xor": 3723
+  "item_px": 3084,
+  "shape_xor": 3314,
+  "control": {
+   "vanilla_vs_vanilla_px": 1,
+   "vanilla_vs_vanilla_shift": [
+    -1,
+    0
+   ],
+   "vanilla_vs_vanilla_colour": 2557,
+   "probe_vs_next_vanilla_px": 1,
+   "probe_vs_next_vanilla_shift": [
+    -1,
+    0
+   ],
+   "probe_vs_next_vanilla_colour": 1399
+  }
  },
  {
   "scene": "tp_front_bow_draw130",
-  "px": 3,
+  "px": 1,
   "shift": [
-   0,
-   3
+   1,
+   0
   ],
   "sil": 3,
-  "colour": 5713,
+  "colour": 3127,
   "unexplained": [
-   5400,
-   3992,
-   3010,
-   2178
+   3285,
+   2173,
+   1541,
+   1060
   ],
-  "item_px": 6469,
-  "shape_xor": 5128
+  "item_px": 4225,
+  "shape_xor": 2871,
+  "control": {
+   "vanilla_vs_vanilla_px": 0,
+   "vanilla_vs_vanilla_shift": [
+    0,
+    0
+   ],
+   "vanilla_vs_vanilla_colour": 3080,
+   "probe_vs_next_vanilla_px": 1,
+   "probe_vs_next_vanilla_shift": [
+    1,
+    0
+   ],
+   "probe_vs_next_vanilla_colour": 2518
+  }
  },
  {
   "scene": "tp_front_bow",
@@ -1483,189 +1623,301 @@
    0
   ],
   "sil": 3,
-  "colour": 2724,
+  "colour": 576,
   "unexplained": [
-   2724,
-   1851,
-   991,
-   740
+   576,
+   562,
+   550,
+   511
   ],
-  "item_px": 4397,
-  "shape_xor": 2026
+  "item_px": 1175,
+  "shape_xor": 87,
+  "control": {
+   "vanilla_vs_vanilla_px": 0,
+   "vanilla_vs_vanilla_shift": [
+    0,
+    0
+   ],
+   "vanilla_vs_vanilla_colour": 41,
+   "probe_vs_next_vanilla_px": 0,
+   "probe_vs_next_vanilla_shift": [
+    0,
+    0
+   ],
+   "probe_vs_next_vanilla_colour": 591
+  }
  },
  {
   "scene": "tp_front_mace",
-  "px": 0,
+  "px": 1,
   "shift": [
-   0,
+   -1,
    0
   ],
   "sil": 3,
-  "colour": 2042,
+  "colour": 941,
   "unexplained": [
-   2042,
-   1352,
-   805,
-   473
+   957,
+   523,
+   424,
+   307
   ],
-  "item_px": 6171,
-  "shape_xor": 2627
+  "item_px": 3256,
+  "shape_xor": 573,
+  "control": {
+   "vanilla_vs_vanilla_px": 2,
+   "vanilla_vs_vanilla_shift": [
+    -2,
+    -1
+   ],
+   "vanilla_vs_vanilla_colour": 577,
+   "probe_vs_next_vanilla_px": 1,
+   "probe_vs_next_vanilla_shift": [
+    1,
+    1
+   ],
+   "probe_vs_next_vanilla_colour": 948
+  }
  },
  {
   "scene": "tp_front_shield_block",
   "px": 1,
   "shift": [
-   0,
-   -1
+   -1,
+   1
   ],
   "sil": 3,
-  "colour": 2156,
+  "colour": 1766,
   "unexplained": [
-   2943,
-   1268,
-   186,
-   13
+   3129,
+   1057,
+   19,
+   0
   ],
-  "item_px": 24362,
-  "shape_xor": 2396
+  "item_px": 22595,
+  "shape_xor": 869,
+  "control": {
+   "vanilla_vs_vanilla_px": 3,
+   "vanilla_vs_vanilla_shift": [
+    -3,
+    1
+   ],
+   "vanilla_vs_vanilla_colour": 2938,
+   "probe_vs_next_vanilla_px": 2,
+   "probe_vs_next_vanilla_shift": [
+    2,
+    0
+   ],
+   "probe_vs_next_vanilla_colour": 1421
+  }
  },
  {
   "scene": "tp_front_shield",
-  "px": 1,
-  "shift": [
-   1,
-   0
-  ],
-  "sil": 3,
-  "colour": 1333,
-  "unexplained": [
-   1595,
-   662,
-   291,
-   90
-  ],
-  "item_px": 6828,
-  "shape_xor": 2172
- },
- {
-  "scene": "tp_front_spear_block",
   "px": 0,
   "shift": [
    0,
    0
   ],
   "sil": 3,
-  "colour": 2589,
+  "colour": 386,
   "unexplained": [
-   2589,
-   1641,
-   1040,
-   710
+   386,
+   0,
+   0,
+   0
   ],
-  "item_px": 6882,
-  "shape_xor": 2763
+  "item_px": 4097,
+  "shape_xor": 221,
+  "control": {
+   "vanilla_vs_vanilla_px": 1,
+   "vanilla_vs_vanilla_shift": [
+    -1,
+    0
+   ],
+   "vanilla_vs_vanilla_colour": 1216,
+   "probe_vs_next_vanilla_px": 1,
+   "probe_vs_next_vanilla_shift": [
+    1,
+    0
+   ],
+   "probe_vs_next_vanilla_colour": 817
+  }
+ },
+ {
+  "scene": "tp_front_spear_block",
+  "px": 2,
+  "shift": [
+   -2,
+   0
+  ],
+  "sil": 3,
+  "colour": 3540,
+  "unexplained": [
+   3806,
+   1952,
+   1046,
+   490
+  ],
+  "item_px": 5585,
+  "shape_xor": 2782,
+  "control": {
+   "vanilla_vs_vanilla_px": 4,
+   "vanilla_vs_vanilla_shift": [
+    -4,
+    -4
+   ],
+   "vanilla_vs_vanilla_colour": 3156,
+   "probe_vs_next_vanilla_px": 4,
+   "probe_vs_next_vanilla_shift": [
+    4,
+    1
+   ],
+   "probe_vs_next_vanilla_colour": 2975
+  }
  },
  {
   "scene": "tp_front_spear",
-  "px": 4,
+  "px": 0,
   "shift": [
-   4,
+   0,
    0
   ],
   "sil": 3,
-  "colour": 1956,
+  "colour": 997,
   "unexplained": [
-   2485,
-   1694,
-   1063,
-   801
+   997,
+   865,
+   797,
+   712
   ],
-  "item_px": 4410,
-  "shape_xor": 2239
+  "item_px": 1805,
+  "shape_xor": 317,
+  "control": {
+   "vanilla_vs_vanilla_px": 1,
+   "vanilla_vs_vanilla_shift": [
+    -1,
+    0
+   ],
+   "vanilla_vs_vanilla_colour": 410,
+   "probe_vs_next_vanilla_px": 0,
+   "probe_vs_next_vanilla_shift": [
+    0,
+    0
+   ],
+   "probe_vs_next_vanilla_colour": 1153
+  }
  },
  {
   "scene": "tp_front_sword_block",
-  "px": 1,
-  "shift": [
-   1,
-   0
-  ],
-  "sil": 3,
-  "colour": 4058,
-  "unexplained": [
-   4338,
-   3315,
-   2805,
-   2430
-  ],
-  "item_px": 7078,
-  "shape_xor": 3475
- },
- {
-  "scene": "tp_front_sword",
   "px": 2,
   "shift": [
    2,
    0
   ],
   "sil": 3,
-  "colour": 3009,
+  "colour": 1262,
   "unexplained": [
-   3181,
-   1689,
-   861,
-   300
+   1736,
+   852,
+   721,
+   686
   ],
-  "item_px": 5933,
-  "shape_xor": 2335
+  "item_px": 3705,
+  "shape_xor": 1173,
+  "control": {
+   "vanilla_vs_vanilla_px": 4,
+   "vanilla_vs_vanilla_shift": [
+    4,
+    -1
+   ],
+   "vanilla_vs_vanilla_colour": 1474,
+   "probe_vs_next_vanilla_px": 3,
+   "probe_vs_next_vanilla_shift": [
+    -3,
+    1
+   ],
+   "probe_vs_next_vanilla_colour": 1398
+  }
+ },
+ {
+  "scene": "tp_front_sword",
+  "px": 1,
+  "shift": [
+   1,
+   0
+  ],
+  "sil": 3,
+  "colour": 458,
+  "unexplained": [
+   468,
+   125,
+   80,
+   63
+  ],
+  "item_px": 2271,
+  "shape_xor": 277,
+  "control": {
+   "vanilla_vs_vanilla_px": 2,
+   "vanilla_vs_vanilla_shift": [
+    2,
+    1
+   ],
+   "vanilla_vs_vanilla_colour": 579,
+   "probe_vs_next_vanilla_px": 1,
+   "probe_vs_next_vanilla_shift": [
+    -1,
+    0
+   ],
+   "probe_vs_next_vanilla_colour": 535
+  }
  },
  {
   "scene": "walk_shield",
+  "px": 1,
+  "shift": [
+   0,
+   -1
+  ],
+  "sil": 3,
+  "colour": 1085,
+  "unexplained": [
+   1188,
+   389,
+   19,
+   0
+  ],
+  "item_px": 5674,
+  "shape_xor": 2552,
+  "frames": [
+   9,
+   8,
+   8
+  ],
+  "note": "burst, closest body pose, player box only (x 520-760, y 290-520); includes walk-phase mismatch"
+ },
+ {
+  "scene": "walk_spear",
   "px": 0,
   "shift": [
    0,
    0
   ],
   "sil": 3,
-  "colour": 2021,
+  "colour": 1489,
   "unexplained": [
-   2021,
-   1360,
-   921,
-   566
+   1489,
+   1250,
+   1058,
+   911
   ],
-  "item_px": 11280,
-  "shape_xor": 4466,
+  "item_px": 2207,
+  "shape_xor": 1267,
   "frames": [
-   2,
-   2,
-   2
+   10,
+   9,
+   11
   ],
-  "note": "burst, closest body pose; includes walk-phase mismatch"
- },
- {
-  "scene": "walk_spear",
-  "px": 1,
-  "shift": [
-   1,
-   -1
-  ],
-  "sil": 3,
-  "colour": 27415,
-  "unexplained": [
-   16813,
-   7780,
-   4005,
-   2895
-  ],
-  "item_px": 137755,
-  "shape_xor": 65949,
-  "frames": [
-   13,
-   13,
-   10
-  ],
-  "note": "burst, closest body pose; includes walk-phase mismatch"
+  "note": "burst, closest body pose, player box only (x 520-760, y 290-520); includes walk-phase mismatch"
  },
  {
   "scene": "walk_sword",
@@ -1675,20 +1927,20 @@
    0
   ],
   "sil": 3,
-  "colour": 7974,
+  "colour": 836,
   "unexplained": [
-   7974,
-   2712,
-   2335,
-   2138
+   836,
+   261,
+   128,
+   88
   ],
-  "item_px": 121727,
-  "shape_xor": 18848,
+  "item_px": 2382,
+  "shape_xor": 799,
   "frames": [
-   9,
-   8,
-   3
+   12,
+   13,
+   11
   ],
-  "note": "burst, closest body pose; includes walk-phase mismatch"
+  "note": "burst, closest body pose, player box only (x 520-760, y 290-520); includes walk-phase mismatch"
  }
 ]

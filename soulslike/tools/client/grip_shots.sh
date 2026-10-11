@@ -8,7 +8,8 @@
 # 거리다 (0 이면 그대로 겹친다). 그 자리에서도 남는 차이 (rest) 는 옆면의 가는 줄·빛 셈이 다른 곳, 0~3 화소 안에서 어떻게 옮겨도
 # 남는 차이 (left) 도 적는다. overlay.json 의 sil 은 실루엣 (빈 모형 장과 다른 화소) 끼리의 가장 먼 거리 (견줄 자리 안, 12 까지:
 # 아이템 색이 바탕과 비슷한 가장자리에서 1~3 화소가 늘 나와 참고만 한다). 견줄 자리는 두 그림 모두에서 아이템인 화소를 3 화소 넓힌 곳이라 한쪽에만 있는 날리는 재 입자가 빠진다.
-# 아이템 자리는 빈 모형 장 (E) 과 다른 화소에서 작은 덩이 (날리는 재, 등불 불꽃) 를 지운 것. MC_GUI_SCALE=2 (1280×720) 로 켠 클라이언트에서 찍는다 (1인칭은 단축 슬롯·이름
+# 아이템 자리는 빈 모형 장 (E) 과 다른 화소에서 작은 덩이 (날리는 재, 등불 불꽃) 를 지운 것. F5 (tp) 와 걷기 (walk) 는 화면 가운데
+# 사람 둘레 상자만 견준다 (모닥불 연기·등불 깜박임, 걸을 때 흐르는 바닥이 빠진다). MC_GUI_SCALE=2 (1280×720) 로 켠 클라이언트에서 찍는다 (1인칭은 단축 슬롯·이름
 # 자리를 가리고 견준다). 시험 줄과 흐르는 구름이 그림에 남지 않게 MC_OPTIONS='chatScale:0.0;bobView:false;renderClouds:"false";particles:2' 로 켠다.
 #
 # 시험 모형 (팩 pack/weapons/gripcheck.py): 바닐라 그림을 P⁻¹ 로 우리 모형 공간에 놓고 우리 display 를 붙인 모형이다. 바닐라 아이템과
@@ -311,6 +312,9 @@ def hud_mask(name, shape):
     m = np.ones(shape[:2], bool)
     if name.startswith("fp_"):          # 1인칭은 HUD 가 보인다: 단축 슬롯·왼손 칸·든 것 이름 자리
         m[580:720, 380:840] = False
+    if name.startswith("tp_"):          # F5: 사람 둘레만 (앞에서 보면 왼쪽에 모닥불 연기, 뒤에서 보면 오른쪽 끝에 등불 깜박임이 든다)
+        m[:] = False
+        m[180:600, 520:820] = True
     return m
 def dilate(m):
     o = m.copy()
@@ -457,11 +461,14 @@ for vp0 in sorted(glob.glob(os.path.join(raw, "walk_*_v_00.png"))):
     Es = [load(p) for p in sorted(glob.glob(os.path.join(raw, base + "_e_[0-9][0-9].png")))]
     if not (Vs and Ps and Es):
         continue
-    small = lambda a: a[::4, ::4]
+    small = lambda a: a[290:520:2, 520:760:2]     # 사람 둘레만 (아래 keep 과 같은 상자)
     i, j = min(((i, j) for i in range(len(Vs)) for j in range(len(Ps))), key=lambda ij: np.abs(small(Vs[ij[0]]) - small(Ps[ij[1]])).mean())
     k = min(range(len(Es)), key=lambda k: np.abs(small(Vs[i]) - small(Es[k])).mean())
     V, P, E = Vs[i], Ps[j], Es[k]
-    keep = np.ones(V.shape[:2], bool)
+    # 카메라가 걷는 사람을 따라가 바닥 무늬가 장마다 흐른다: 사람 둘레 (F5 앞 4 블록, 화면 가운데) 만 견준다. 지평선 아래 바닥과
+    # 왼쪽의 모닥불 연기는 빠진다
+    keep = np.zeros(V.shape[:2], bool)
+    keep[290:520, 520:760] = True
     mV, mP = item_masks(V, P, E, keep)
     U = roi(mV, mP)
     sh, col, left = explain(V, P, U)
@@ -469,7 +476,7 @@ for vp0 in sorted(glob.glob(os.path.join(raw, "walk_*_v_00.png"))):
     xor = int((mV ^ mP).sum())
     r = {"scene": base, "px": h, "shift": list(sh), "sil": sil(mV, mP, U), "colour": col, "unexplained": left, "item_px": int(mV.sum()),
          "shape_xor": xor,
-         "frames": [i, j, k], "note": "burst, closest body pose; includes walk-phase mismatch"}
+         "frames": [i, j, k], "note": "burst, closest body pose, player box only (x 520-760, y 290-520); includes walk-phase mismatch"}
     results.append(r)
     sheet(base, V, P, mV, mP, f"{base}: frames v{i} p{j} e{k} (closest pose), offset {h} px (left {left}), {col} px colour")
 # 실제 아이템 한 줄
