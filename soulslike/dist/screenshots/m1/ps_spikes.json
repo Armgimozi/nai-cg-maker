@@ -131,6 +131,62 @@
    1269
   ]
  },
+ "s3x_echo_main_1_echo": {
+  "server_hand": "HAND",
+  "echo": [
+   "interact:HAND/LEFT_CLICK_AIR@+0t,42ms",
+   "swing:HAND/ARM_SWING@+0t,43ms"
+  ]
+ },
+ "s3x_echo_main_2_echo": {
+  "server_hand": "HAND",
+  "echo": [
+   "interact:HAND/LEFT_CLICK_AIR@+0t,5ms",
+   "swing:HAND/ARM_SWING@+0t,6ms"
+  ]
+ },
+ "s3x_echo_main_3_echo": {
+  "server_hand": "HAND",
+  "echo": [
+   "interact:HAND/LEFT_CLICK_AIR@+0t,23ms",
+   "swing:HAND/ARM_SWING@+0t,24ms"
+  ]
+ },
+ "s3x_echo_off_1_echo": {
+  "server_hand": "OFF_HAND",
+  "echo": [
+   "interact:HAND/LEFT_CLICK_AIR@+1t,58ms",
+   "swing:OFF_HAND/OFF_ARM_SWING@+1t,60ms"
+  ]
+ },
+ "s3x_echo_off_2_echo": {
+  "server_hand": "OFF_HAND",
+  "echo": [
+   "interact:HAND/LEFT_CLICK_AIR@+0t,20ms",
+   "swing:OFF_HAND/OFF_ARM_SWING@+0t,21ms"
+  ]
+ },
+ "s3x_echo_off_3_echo": {
+  "server_hand": "OFF_HAND",
+  "echo": [
+   "interact:HAND/LEFT_CLICK_AIR@+1t,52ms",
+   "swing:OFF_HAND/OFF_ARM_SWING@+1t,52ms"
+  ]
+ },
+ "s3x_srv_main_echo": {
+  "server_hand": "HAND",
+  "echo": [
+   "interact:HAND/LEFT_CLICK_AIR@+0t,57ms",
+   "swing:HAND/ARM_SWING@+0t,62ms"
+  ]
+ },
+ "s3x_srv_off_echo": {
+  "server_hand": "OFF_HAND",
+  "echo": [
+   "interact:HAND/LEFT_CLICK_AIR@+0t,47ms",
+   "swing:OFF_HAND/OFF_ARM_SWING@+0t,51ms"
+  ]
+ },
  "burst_s12_crit_cancel": {
   "frames": 50,
   "span_s": 3.55,
@@ -2215,91 +2271,421 @@
    3.13
   ]
  },
- "burst_s4_walk50": {
-  "frames": 24,
-  "span_s": 1.57,
-  "tick_rate": 20,
+ "burst_s3x_f_noswing": {
+  "frames": 36,
+  "span_s": 2.51,
+  "tick_rate": 5,
+  "inputs": [
+   [
+    "key:f",
+    0.426
+   ]
+  ],
+  "off": [],
+  "off_px": [
+   0,
+   78,
+   0,
+   67,
+   67,
+   69,
+   0,
+   91,
+   0,
+   83,
+   0,
+   47,
+   66,
+   0,
+   95,
+   113,
+   106,
+   107,
+   86,
+   49,
+   0,
+   82,
+   124,
+   129,
+   0,
+   123,
+   127,
+   176,
+   177,
+   0,
+   144,
+   156,
+   130,
+   0,
+   141,
+   239
+  ],
+  "main": [],
+  "main_px": [
+   0,
+   92,
+   0,
+   99,
+   119,
+   111,
+   0,
+   127,
+   0,
+   100,
+   0,
+   68,
+   118,
+   0,
+   115,
+   123,
+   96,
+   60,
+   60,
+   69,
+   0,
+   80,
+   124,
+   138,
+   0,
+   127,
+   133,
+   120,
+   69,
+   0,
+   52,
+   87,
+   100,
+   0,
+   138,
+   220
+  ],
+  "sheet_frames_s": [
+   0.03,
+   0.25,
+   0.46,
+   0.74,
+   0.95,
+   1.19,
+   1.4,
+   1.61,
+   1.82,
+   2.11,
+   2.33,
+   2.54
+  ]
+ },
+ "burst_s3x_srv_main": {
+  "frames": 36,
+  "span_s": 2.54,
+  "tick_rate": 5,
+  "inputs": [
+   [
+    "tst:probe_swing_main",
+    0.599
+   ]
+  ],
   "off": [
    {
-    "from_s": 0.08,
-    "to_s": 1.61,
-    "ticks": 30.6,
-    "peak_px": 28763
+    "from_s": 0.82,
+    "to_s": 1.68,
+    "ticks": 4.3,
+    "peak_px": 8354
    }
   ],
   "off_px": [
    0,
-   22189,
-   22224,
+   54,
+   52,
+   51,
+   53,
+   55,
+   51,
+   60,
    0,
-   19539,
-   20479,
+   47,
+   73,
+   2428,
+   5891,
+   7456,
+   8354,
+   7581,
    0,
-   20120,
+   4114,
+   5456,
    0,
-   24291,
+   4514,
+   2707,
+   649,
+   58,
+   57,
+   45,
    0,
-   21676,
+   45,
+   64,
+   67,
    0,
-   28595,
-   24658,
-   0,
-   18835,
-   0,
-   24267,
-   28763,
-   22860,
-   16605,
-   22602,
-   23708
+   42,
+   62,
+   47,
+   50,
+   44
   ],
   "main": [
    {
-    "from_s": 0.08,
-    "to_s": 1.61,
-    "ticks": 30.6,
-    "peak_px": 33605
+    "from_s": 0.82,
+    "to_s": 2.1,
+    "ticks": 6.4,
+    "peak_px": 18772
    }
   ],
   "main_px": [
    0,
-   25300,
-   25163,
+   31,
+   22,
+   33,
+   33,
+   50,
+   34,
+   37,
    0,
-   24307,
-   27611,
+   20,
+   30,
+   12200,
+   18772,
+   11150,
+   9534,
+   5934,
    0,
-   27592,
+   3645,
+   4461,
    0,
-   30746,
+   4483,
+   3549,
+   3417,
+   4137,
+   5163,
+   8186,
    0,
-   31745,
+   9449,
+   5243,
+   28,
    0,
-   33605,
-   32073,
+   36,
+   49,
+   43,
+   34,
+   35
+  ],
+  "sheet_frames_s": [
+   0.03,
+   0.27,
+   0.49,
+   0.78,
+   1.0,
+   1.22,
+   1.43,
+   1.64,
+   1.85,
+   2.13,
+   2.36,
+   2.57
+  ]
+ },
+ "burst_s3x_srv_off": {
+  "frames": 36,
+  "span_s": 2.52,
+  "tick_rate": 5,
+  "inputs": [
+   [
+    "tst:probe_swing_off",
+    0.589
+   ]
+  ],
+  "off": [
+   {
+    "from_s": 1.0,
+    "to_s": 2.56,
+    "ticks": 7.8,
+    "peak_px": 16008
+   }
+  ],
+  "off_px": [
    0,
-   28258,
+   89,
+   124,
+   71,
    0,
-   28931,
-   31158,
-   27139,
-   23371,
-   24990,
-   26059
+   70,
+   179,
+   185,
+   162,
+   143,
+   132,
+   113,
+   0,
+   81,
+   9652,
+   16008,
+   0,
+   11961,
+   0,
+   6134,
+   2172,
+   1793,
+   1697,
+   0,
+   1562,
+   1190,
+   850,
+   1154,
+   937,
+   1110,
+   1492,
+   589,
+   345,
+   0,
+   488,
+   308
+  ],
+  "main": [],
+  "main_px": [
+   0,
+   94,
+   103,
+   87,
+   0,
+   102,
+   163,
+   178,
+   171,
+   131,
+   130,
+   145,
+   0,
+   112,
+   110,
+   93,
+   0,
+   145,
+   0,
+   109,
+   160,
+   83,
+   75,
+   0,
+   102,
+   122,
+   101,
+   77,
+   66,
+   42,
+   40,
+   30,
+   23,
+   0,
+   34,
+   46
   ],
   "sheet_frames_s": [
    0.04,
-   0.18,
-   0.31,
-   0.43,
-   0.54,
-   0.67,
-   0.85,
-   1.0,
+   0.25,
+   0.47,
+   0.76,
+   0.97,
+   1.18,
+   1.39,
+   1.6,
+   1.81,
+   2.1,
+   2.31,
+   2.56
+  ]
+ },
+ "burst_s4_walk50": {
+  "frames": 24,
+  "span_s": 1.35,
+  "tick_rate": 20,
+  "off": [
+   {
+    "from_s": 0.06,
+    "to_s": 1.35,
+    "ticks": 25.8,
+    "peak_px": 27224
+   }
+  ],
+  "off_px": [
+   0,
+   22107,
+   0,
+   23182,
+   20578,
+   0,
+   19842,
+   0,
+   24512,
+   27085,
+   20313,
+   0,
+   20327,
+   0,
+   22151,
+   0,
+   24632,
+   0,
+   26130,
+   0,
+   27224,
+   0,
+   20096,
+   0
+  ],
+  "main": [
+   {
+    "from_s": 0.06,
+    "to_s": 1.35,
+    "ticks": 25.8,
+    "peak_px": 31410
+   }
+  ],
+  "main_px": [
+   0,
+   26117,
+   0,
+   26850,
+   27490,
+   0,
+   26132,
+   0,
+   30414,
+   31410,
+   27582,
+   0,
+   27903,
+   0,
+   30623,
+   0,
+   28691,
+   0,
+   30080,
+   0,
+   30975,
+   0,
+   29362,
+   0
+  ],
+  "sheet_frames_s": [
+   0.03,
+   0.14,
+   0.26,
+   0.38,
+   0.49,
+   0.61,
+   0.8,
+   0.91,
+   1.02,
    1.14,
-   1.29,
-   1.45,
-   1.61
+   1.26,
+   1.38
   ]
  },
  "s4_none": {
@@ -2352,17 +2738,17 @@
     -192.5
    ],
    [
-    193.895,
+    194.057,
     101.0,
     -192.5
    ],
    [
-    193.895,
+    194.057,
     102.024,
     -192.5
    ]
   ],
-  "walk_blocks": 3.395,
+  "walk_blocks": 3.557,
   "jump_dy_after": 1.024
  },
  "s4_slow50": {
@@ -2373,18 +2759,18 @@
     -192.5
    ],
    [
-    192.76,
+    192.868,
     101.0,
     -192.5
    ],
    [
-    192.76,
-    102.177,
+    192.868,
+    102.252,
     -192.5
    ]
   ],
-  "walk_blocks": 2.26,
-  "jump_dy_after": 1.177
+  "walk_blocks": 2.368,
+  "jump_dy_after": 1.252
  },
  "s4_slowness2": {
   "pos": [
@@ -2407,6 +2793,48 @@
   "walk_blocks": 3.168,
   "jump_dy_after": 1.024
  },
+ "s4_walk50": {
+  "pos": [
+   [
+    190.5,
+    101.0,
+    -192.5
+   ],
+   [
+    192.868,
+    101.0,
+    -192.5
+   ],
+   [
+    192.868,
+    102.024,
+    -192.5
+   ]
+  ],
+  "walk_blocks": 2.368,
+  "jump_dy_after": 1.024
+ },
+ "s4_walkroot": {
+  "pos": [
+   [
+    190.5,
+    101.0,
+    -192.5
+   ],
+   [
+    190.5,
+    101.0,
+    -192.5
+   ],
+   [
+    190.5,
+    101.0,
+    -192.5
+   ]
+  ],
+  "walk_blocks": 0.0,
+  "jump_dy_after": 0.0
+ },
  "s4_fov_zoom": {
   "none": {
    "zoom_vs_none": 1.0,
@@ -2414,36 +2842,97 @@
   },
   "root": {
    "zoom_vs_none": 2.22,
-   "err": 8.66
+   "err": 9.67
   },
   "slow25": {
    "zoom_vs_none": 1.18,
-   "err": 6.21
+   "err": 5.99
   },
   "slow50": {
    "zoom_vs_none": 1.42,
-   "err": 7.58
+   "err": 8.39
   },
   "slowness2": {
    "zoom_vs_none": 1.23,
-   "err": 8.89
+   "err": 9.09
   },
   "walk50": {
    "zoom_vs_none": 1.0,
-   "err": 6.82
+   "err": 5.4
   },
   "walkroot": {
    "zoom_vs_none": 1.0,
-   "err": 7.49
+   "err": 6.38
   }
  },
+ "s10_crawl": [
+  "PROBE_CRAWL placed=9 pose=STANDING t=14204",
+  "PROBE_CRAWL pose=STANDING swimming=false t=14209",
+  "PROBE_CRAWL pose=STANDING t=14404",
+  "GIVE ",
+  "GIVE "
+ ],
+ "s11_chat": [
+  "PROBE ev=input hand=- action=+sneak cancelled=- using=- blocking=false in=sneak t=14625 ms=110277",
+  "ROLL_TAP_SKIP t=14640 why=hold held=15",
+  "PROBE ev=input hand=- action=-sneak cancelled=- using=- blocking=false in=none t=14640 ms=111008",
+  "PROBE ev=input hand=- action=+sneak cancelled=- using=- blocking=false in=sneak t=14662 ms=112145",
+  "ROLL_TAP_SKIP t=14678 why=hold held=16",
+  "PROBE ev=input hand=- action=-sneak cancelled=- using=- blocking=false in=none t=14678 ms=112930"
+ ],
+ "s11_inv_release": [
+  "PROBE ev=input hand=- action=+sneak cancelled=- using=- blocking=false in=sneak t=14704 ms=114236",
+  "ROLL_TAP_SKIP t=14718 why=hold held=14",
+  "PROBE ev=input hand=- action=-sneak cancelled=- using=- blocking=false in=none t=14718 ms=114945",
+  "PROBE ev=close hand=- action=CRAFTING cancelled=- using=- blocking=false t=14747 ms=116387 reason=PLAYER",
+  "PROBE_SET t=14773",
+  "ASPD base=1.538 value=1.538",
+  "ATTR ",
+  "LOAD t=342",
+  "PACK ",
+  "PACK ",
+  "PACK ",
+  "PACK ",
+  "ASPD base=4.000 value=4.000",
+  "LOAD t=630",
+  "PROBE_SET t=639",
+  "PROBE_SET t=645",
+  "PROBE_SET t=651",
+  "PROBE_MOB t=658"
+ ],
+ "s11_inventory": [
+  "PROBE ev=input hand=- action=+sneak cancelled=- using=- blocking=false in=sneak t=14539 ms=105952",
+  "ROLL_TAP_SKIP t=14552 why=hold held=13",
+  "PROBE ev=input hand=- action=-sneak cancelled=- using=- blocking=false in=none t=14552 ms=106638",
+  "PROBE ev=close hand=- action=CRAFTING cancelled=- using=- blocking=false t=14583 ms=108192 reason=PLAYER",
+  "PROBE ev=input hand=- action=+sneak cancelled=- using=- blocking=false in=sneak t=14584 ms=108200",
+  "ROLL_TAP_SKIP t=14599 why=hold held=15",
+  "PROBE ev=input hand=- action=-sneak cancelled=- using=- blocking=false in=none t=14599 ms=108990"
+ ],
  "s12_crit_cancel": [
   "PROBE ev=input hand=- action=+jump cancelled=- using=- blocking=false in=jump t=3602 ms=36952",
   "PROBE ev=input hand=- action=-jump cancelled=- using=- blocking=false in=none t=3603 ms=37150",
   "PROBE ev=attack hand=HAND action=ATTACK cancelled=true using=- blocking=false t=3610 ms=38575 dist=2.212 sprinting=false target=husk",
   "PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false using=- blocking=false t=3610 ms=38576",
   "PROBE_SET t=3667",
-  "PROBE_SET t=3692"
+  "PROBE_SET t=3692",
+  "ASPD base=4.000 value=4.000",
+  "ATTR ",
+  "LOAD t=8772",
+  "PACK ",
+  "PACK ",
+  "PACK ",
+  "PACK ",
+  "LOAD t=9030",
+  "PROBE_SET t=9036",
+  "PROBE_SET t=9042",
+  "PROBE_SET t=9048",
+  "PROBE_MOB t=9055",
+  "GIVE ",
+  "GIVE ",
+  "ASPD base=1.538 value=1.538",
+  "LOAD t=9070",
+  "PROBE_SET t=9082"
  ],
  "s12_crit_plain": [
   "PROBE ev=input hand=- action=+jump cancelled=- using=- blocking=false in=jump t=3508 ms=18172",
@@ -2483,7 +2972,7 @@
  "s5_drink_release": [
   "PROBE ev=interact hand=HAND action=RIGHT_CLICK_AIR cancelled=true using=- blocking=false t=10059 ms=70445",
   "PROBE ev=input hand=- action=+sneak cancelled=- using=HAND blocking=false in=sneak t=10070 ms=70952",
-  "PROBE ev=stopuse hand=- action=STOP cancelled=- using=HAND blocking=false t=10073 ms=71108 ticks=14",
+  "PROBE ev=useend hand=- action=STOP cancelled=- using=HAND blocking=false t=10073 ms=71108 ticks=14",
   "ROLL_TAP t=10073 held=3",
   "ROLL t=10073",
   "PROBE ev=input hand=- action=-sneak cancelled=- using=- blocking=false in=none t=10073 ms=71110",
@@ -2506,7 +2995,7 @@
   "PROBE ev=input hand=- action=+sneak cancelled=- using=OFF_HAND blocking=true in=sneak t=9853 ms=60110",
   "ROLL_TAP_SKIP t=9865 why=hold held=12",
   "PROBE ev=input hand=- action=-sneak cancelled=- using=OFF_HAND blocking=true in=none t=9865 ms=60725",
-  "PROBE ev=stopuse hand=- action=STOP cancelled=- using=OFF_HAND blocking=true t=9874 ms=61185 ticks=32",
+  "PROBE ev=useend hand=- action=STOP cancelled=- using=OFF_HAND blocking=true t=9874 ms=61185 ticks=32",
   "ASPD base=4.000 value=4.000",
   "LOAD t=9900"
  ],
@@ -2520,7 +3009,7 @@
   "PROBE ev=interact hand=HAND action=RIGHT_CLICK_AIR cancelled=true using=- blocking=false t=9797 ms=57302",
   "PROBE ev=interact hand=OFF_HAND action=RIGHT_CLICK_AIR cancelled=true using=- blocking=false t=9797 ms=57308",
   "ROLLEND t=9804 dist=0.92",
-  "PROBE ev=stopuse hand=- action=STOP cancelled=- using=OFF_HAND blocking=true t=9811 ms=58025 ticks=14"
+  "PROBE ev=useend hand=- action=STOP cancelled=- using=OFF_HAND blocking=true t=9811 ms=58025 ticks=14"
  ],
  "s6_plain_28": [
   "PROBE ev=attack hand=HAND action=ATTACK cancelled=false using=- blocking=false t=10478 ms=91378 dist=2.800 sprinting=false target=husk",
@@ -2576,6 +3065,53 @@
   "PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false using=- blocking=false t=10290 ms=81973",
   "ASPD base=4.000 value=4.000",
   "LOAD t=10320"
+ ],
+ "s6b_margin0_43": [
+  "PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true using=- blocking=false t=2896 ms=4825",
+  "PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false using=- blocking=false t=2896 ms=4826"
+ ],
+ "s6b_range_445": [
+  "PROBE ev=attack hand=HAND action=ATTACK cancelled=false using=- blocking=false t=2962 ms=8106 dist=4.450 sprinting=false target=husk",
+  "PROBE ev=damage hand=HAND action=ENTITY_ATTACK cancelled=false using=- blocking=false t=2962 ms=8110 dist=4.450 target=husk dmg=0.94 crit=false",
+  "PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true using=- blocking=false t=2962 ms=8117",
+  "PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false using=- blocking=false t=2962 ms=8117"
+ ],
+ "s6b_range_46": [
+  "PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true using=- blocking=false t=3020 ms=11035",
+  "PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false using=- blocking=false t=3020 ms=11035",
+  "PROBE_SET t=3059"
+ ],
+ "s9_husk_aggr": [
+  "PROBE_MOB type=husk mode=aggr after=0 hand=OFF_HAND using=true raised=true aggressive=true off=shield t=13982",
+  "PROBE_MOB type=husk mode=aggr after=1 hand=OFF_HAND using=true raised=true aggressive=true off=shield t=13983",
+  "PROBE_MOB type=husk mode=aggr after=20 hand=OFF_HAND using=true raised=true aggressive=true off=shield t=14002",
+  "PROBE_MOB t=14029"
+ ],
+ "s9_husk_block": [
+  "PROBE_MOB type=husk mode=block after=0 hand=OFF_HAND using=true raised=true aggressive=false off=shield t=13919",
+  "PROBE_MOB type=husk mode=block after=1 hand=OFF_HAND using=true raised=true aggressive=false off=shield t=13920",
+  "PROBE_MOB type=husk mode=block after=20 hand=OFF_HAND using=true raised=true aggressive=false off=shield t=13939",
+  "PROBE_MOB t=13965"
+ ],
+ "s9_husk_idle": [
+  "PROBE_MOB type=husk mode=idle after=0 hand=- using=false raised=false aggressive=false off=shield t=13855",
+  "PROBE_MOB type=husk mode=idle after=1 hand=- using=false raised=false aggressive=false off=shield t=13856",
+  "PROBE_MOB type=husk mode=idle after=20 hand=- using=false raised=false aggressive=false off=shield t=13875",
+  "PROBE_MOB t=13902"
+ ],
+ "s9_skeleton_block": [
+  "PROBE_MOB type=skeleton mode=block after=0 hand=OFF_HAND using=true raised=true aggressive=false off=shield t=14045",
+  "PROBE_MOB type=skeleton mode=block after=1 hand=OFF_HAND using=true raised=true aggressive=false off=shield t=14046",
+  "PROBE_MOB type=skeleton mode=block after=20 hand=OFF_HAND using=true raised=true aggressive=false off=shield t=14065",
+  "PROBE_MOB t=14092"
+ ],
+ "s9_zombie_block_shield": [
+  "PROBE_MOB type=zombie mode=block after=0 hand=OFF_HAND using=true raised=true aggressive=false off=shield t=14109",
+  "PROBE_MOB type=zombie mode=block after=1 hand=OFF_HAND using=true raised=true aggressive=false off=shield t=14110",
+  "PROBE_MOB type=zombie mode=block after=20 hand=OFF_HAND using=true raised=true aggressive=false off=shield t=14129",
+  "PROBE_MOB t=14156",
+  "GIVE ",
+  "GIVE "
  ],
  "s12_sprint_plain_speed": {
   "attack_t": 3337,

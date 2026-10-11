@@ -42,7 +42,7 @@ import java.util.UUID;
  *
  * <p>줄 꼴 (ASCII, 봇과 tools/client/probe_shots.sh 가 읽는다): 모든 줄에 같은 칸이 있고, 해당 없는 칸은 {@code -}.
  * <pre>
- * [T] PROBE ev=&lt;interact|swing|attack|damage|swap|input|drop|shoot|sprint|stopuse|consume|open|close|srvswing|move&gt;
+ * [T] PROBE ev=&lt;interact|swing|attack|damage|swap|input|drop|shoot|sprint|useend|consume|open|close|srvswing|move&gt;
  *           hand= action= cancelled= useItem= will= t= ms= seq= item= using= blocking= [더: in= block= target= dist= force= ticks=]
  * </pre>
  * <ul>
@@ -284,7 +284,7 @@ public final class InputProbe implements Listener {
     public void onStopUsing(PlayerStopUsingItemEvent e) {
         Opts o = opts(e.getPlayer());
         if (o == null) return;
-        line(e.getPlayer(), o, "stopuse", null, "STOP", null, null, null, e.getItem(), " ticks=" + e.getTicksHeldFor()); // lang-machine
+        line(e.getPlayer(), o, "useend", null, "STOP", null, null, null, e.getItem(), " ticks=" + e.getTicksHeldFor()); // lang-machine
     }
 
     @EventHandler(priority = EventPriority.MONITOR)

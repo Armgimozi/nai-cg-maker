@@ -8,6 +8,7 @@
 //   probe swing main → srvswing 과 animation 0. probe off → 줄이 없다
 //   probe mob husk block → 허스크가 왼손 방패를 쓰는 중 (서버 쪽, S9). probe crawl → 머리 칸 막힘 block_change (S10)
 //   S8 메모: 방패 껍데기로 막고 맞을 때 받은 소리 (판정 아님)
+//   probe mark / walkspeed 0·0.2 (걷기 속도와 이동 속도 바탕값이 함께) / move on (걸을 때 틱마다 이동량 줄)
 'use strict'
 const L = require('./lib')
 
@@ -164,6 +165,25 @@ L.run('probe', async (sc) => {
     await L.sleep(200)
     sc.note('S8 sounds while the shield shell guards a hit: ' + (b.p.sounds.slice(s0).map((s) => b.soundName(s)).join(', ') || '(none)'))
   }
+
+  // ── 표시 줄, 걷기 속도 (S4: 걷기 속도와 속성 바탕값을 함께 바꾸면 시야가 좁아지지 않는다), 틱마다 이동량 (S12) ──
+  const mk = await b.cmd('/soulstest probe mark bot_mark', 'PROBE_MARK')
+  sc.checkCmd('probe mark → PROBE_MARK label=', mk, (r) => r.kv.label === 'bot_mark')
+  const w0 = await b.cmd('/soulstest probe walkspeed 0', 'PROBE_WALK')
+  sc.checkCmd('probe walkspeed 0 → walk speed and movement_speed base both 0 (root without the FOV zoom)', w0, (r) => +r.kv.walk === 0 && +r.kv.base === 0)
+  const w1 = await b.cmd('/soulstest probe walkspeed 0.2', 'PROBE_WALK')
+  sc.checkCmd('probe walkspeed 0.2 → back to the vanilla walk speed (base 0.1)', w1, (r) => Math.abs(+r.kv.walk - 0.2) < 1e-3 && Math.abs(+r.kv.base - 0.1) < 1e-4)
+  await b.cmd('/soulstest probe move on', 'PROBE_SET')
+  from = b.sys.length
+  b.input({ forward: true })
+  b._bot.setControlState('forward', true)
+  await L.sleep(700)
+  b._bot.clearControlStates()
+  b.input({})
+  await L.sleep(300)
+  const mv = evLines(b, from, 'move')
+  sc.check('probe move on: per-tick horizontal movement lines while walking', mv.length >= 3 && mv.every((x) => +x.kv.v > 0), `${mv.length} 줄, v=` + mv.slice(0, 4).map((x) => x.kv.v).join(','))
+  await b.cmd('/soulstest probe move off', 'PROBE_SET')
 
   // ── 끄기 ──
   const offr = await b.cmd('/soulstest probe off', 'PROBE_SET')

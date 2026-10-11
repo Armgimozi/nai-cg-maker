@@ -19,17 +19,19 @@
 #        (probe walkspeed 0.1 / 0 + 점프 −100%). 시야 (FOV) 그림과 1초 걸음, 뛰기
 #   s5   막는 중 (왼손 방패를 우클릭으로) 과 바닐라 물약을 마시는 중의 웅크리기 짧게 누르기
 #   s6   attack_range {max_reach:4.2} 부싯돌로 4.0 칸 (눈에서 상자까지) 허스크를 좌클릭 / 대조: 그냥 부싯돌 / 4.3 칸
+#   s6b  attack_range 의 hitbox_margin: {max_reach:4.2,hitbox_margin:0} 으로 4.3 칸, 기본 margin 으로 4.45·4.6 칸
 #   s9   몹의 왼손 방패 startUsingItem(OFF_HAND): 허스크 쥐기만·쓰기·쓰기+공격 자세, 스켈레톤, 바닐라 방패
 #   s10  머리 칸에 화면에만 있는 막힘 (probe crawl): 1인칭, F5 등·앞
 #   s11  웅크리기 키를 누른 채 인벤토리 (E) / 채팅 (T) 을 열고 닫기
 #   s12  달리며 허스크를 좌클릭 (취소 안 함 / probe cancel attack), /tick rate 5 의 떨어지며 치기 (치명타 입자)
-# 결과: OUT (기본 dist/screenshots/m1) 에 ps_<장면>_*.png (그림·연속 그림 띠), ps_probe.log (장면별 [T] 줄), ps_spikes.json (잰 값).
-# 연속 그림 원본은 RAW (기본 $TMPDIR/probe_raw, 저장소 밖).
+# 결과: OUT (기본 dist/screenshots/m1) 에 ps_<장면>_*.png (그림, 연속 그림은 12 장 판, s12 치기는 _close, s13 은 F 뒤 같은 때끼리
+# 맞춘 ps_s13_offhand_aligned), ps_probe.log (장면별 [T] 줄), ps_spikes.json (잰 값). 연속 그림 원본과 읽은 기록 (archive_T.log,
+# start.offset: 서버를 다시 켜도 지난 장면이 남는다. FRESH=1 이면 새로) 은 RAW (기본 $TMPDIR/probe_raw, 저장소 밖).
 set -u
 R=$(cd "$(dirname "$0")/../.." && pwd)
-[ $# -ge 2 ] || { sed -n '2,24p' "$0"; exit 2; }
+[ $# -ge 2 ] || { sed -n '2,29p' "$0"; exit 2; }
 PORT=$1; SRV=$(cd "$2" && pwd); shift 2
-ALL="s1 s2 s3 s3x s13 s4 s5 s6 s9 s10 s11 s12"
+ALL="s1 s2 s3 s3x s13 s4 s5 s6 s6b s9 s10 s11 s12"
 SCENES=${*:-$ALL}
 OUT=${OUT:-$R/dist/screenshots/m1}
 RAW=${RAW:-${TMPDIR:-/tmp}/probe_raw}
@@ -48,10 +50,13 @@ with open(log, "rb") as f:
     f.seek(off)
     text = f.read().decode("utf-8", "replace")
 lines = [m.group(1) for m in re.finditer(r"\[T\] Tester (.*)", text)]
-# 서버를 다시 켜면 기록이 새로 시작한다: 그 전 줄은 RAW/archive_T.log 에 모아 둔다 (같은 장면은 나중 것이 이긴다)
+# 지난번까지 읽은 줄은 RAW/archive_T.log 에 쌓아 두고, 서버 기록은 지난번에 읽은 자리 (start.offset) 부터 읽는다. 서버를 다시 켜
+# 기록이 새로 시작해도 지난 장면이 남는다 (같은 장면 이름은 나중 것이 이긴다)
 arch = os.path.join(raw, "archive_T.log")
 if os.path.exists(arch):
     lines = [l.rstrip("\n") for l in open(arch) if l.strip()] + lines
+open(arch, "w").write("\n".join(lines) + "\n")
+open(os.path.join(raw, "start.offset"), "w").write(str(os.path.getsize(log)))
 open(os.path.join(out, "ps_probe.log"), "w").write("\n".join(lines) + "\n")
 def kv(s):
     d = {"_": s.split(" ", 1)[0]}
@@ -169,6 +174,24 @@ for name in sorted({os.path.basename(p)[:-11] for p in glob.glob(os.path.join(ra
     tr = 5 if name.startswith(("s3_", "s3x_", "s13_", "s12_crit")) else 20
     b = burst(name, tr)
     if b: R["burst_" + name] = b
+# S13: 왼손 휘두름 (F) 을 꾸밈마다 한 줄로, F 뒤 같은 때의 장끼리 세로로 맞춘다 (길이와 꼴을 견준다)
+rows = [n for n in ("s13_empty_f", "s13_whack20_f", "s13_stab20_f", "s13_offstab20_f") if os.path.exists(os.path.join(raw, n + "_times.json"))]
+if rows:
+    from PIL import ImageDraw
+    offs = [0.5, 0.7, 0.9, 1.1, 1.3, 1.6, 2.0, 2.6, 3.4, 4.2]
+    sheet = Image.new("RGB", (320 * len(offs), 180 * len(rows)))
+    dr = ImageDraw.Draw(sheet)
+    for r, n in enumerate(rows):
+        tj = json.load(open(os.path.join(raw, n + "_times.json")))
+        key = [float(l.split()[2]) - tj["t0"] for l in open(os.path.join(raw, n + ".bg")) if " key:f " in l][0]
+        for c, dt in enumerate(offs):
+            i = min(range(len(tj["shots"])), key=lambda i: abs(tj["shots"][i] - (key + dt)))
+            im = Image.open(os.path.join(raw, "%s_%02d.png" % (n, i))).convert("RGB")
+            W0, H0 = im.size
+            sheet.paste(im.crop((0, H0 // 3, W0 * 5 // 8, H0 * 23 // 24)).resize((320, 180)), (c * 320, r * 180))
+            dr.rectangle((c * 320, r * 180, c * 320 + 170, r * 180 + 14), fill=(0, 0, 0))
+            dr.text((c * 320 + 3, r * 180 + 1), "%s F+%.1fs" % (n[4:], dt), fill=(255, 255, 0))
+    sheet.save(os.path.join(out, "ps_s13_offhand_aligned.png"))
 # ── S4 ──
 def pos(d): return float(d["x"]), float(d["y"]), float(d["z"])
 for lab in sorted(k for k in seg if k.startswith("s4_")):
@@ -203,7 +226,7 @@ def brief(d):
     keep = ("ev", "type", "mode", "after", "hand", "action", "cancelled", "using", "raised", "aggressive", "off", "blocking", "in", "placed", "pose", "swimming",
             "t", "ms", "ticks", "dist", "sprinting", "target", "dmg", "crit", "why", "held", "reason", "walk", "base", "value")
     return d["_"] + " " + " ".join(f"{k}={d[k]}" for k in keep if k in d)
-for lab in sorted(k for k in seg if k.startswith(("s5_", "s11_", "s12_", "s6_", "s9_", "s10_"))):
+for lab in sorted(k for k in seg if k.startswith(("s5_", "s11_", "s12_", "s6_", "s6b_", "s9_", "s10_"))):
     R[lab] = [brief(d) for d in seg[lab] if not (d["_"] == "PROBE" and d.get("ev") in ("input", "move") and d.get("action") in ("none", "MOVE"))][:40]
 # S12: 달리며 친 틱 앞뒤의 수평 이동량 (ev=move, 블록/틱)
 for lab in ("s12_sprint_plain", "s12_sprint_cancel"):
@@ -257,13 +280,10 @@ HOME_TP="200.5 101 -189.5"
 home() { inw tp Tester $HOME_TP "${1:-180}" "${2:-0}"; }
 gear() { tst give redin_guard_sword main; tst give parrying_dagger off; }
 
-# 기록을 어디서부터 읽나: 처음 한 번 (FRESH=1 이면 새로). 장면을 다시 돌리면 같은 이름의 나중 것을 쓴다
-{ [ "${FRESH:-0}" = 1 ] || [ ! -s "$RAW/start.offset" ]; } && wc -c < "$LOG" > "$RAW/start.offset"
-# 서버를 다시 켜 기록이 짧아졌으면: 지난 줄을 archive_T.log 에 옮겨 두고 새 기록의 처음부터 읽는다
-if [ "$(wc -c < "$LOG")" -lt "$(cat "$RAW/start.offset")" ]; then
-  [ -s "$OUT/ps_probe.log" ] && cp "$OUT/ps_probe.log" "$RAW/archive_T.log"
-  echo 0 > "$RAW/start.offset"
-fi
+# 기록을 어디서부터 읽나 (analyze 가 읽은 줄은 RAW/archive_T.log 에 쌓이고 자리는 start.offset 에). FRESH=1 이면 지난 장면을 버린다.
+# 서버를 다시 켜 기록이 그 자리보다 짧으면 새 기록의 처음부터
+if [ "${FRESH:-0}" = 1 ] || [ ! -s "$RAW/start.offset" ]; then rm -f "$RAW/archive_T.log"; wc -c < "$LOG" > "$RAW/start.offset"; fi
+[ "$(wc -c < "$LOG")" -lt "$(cat "$RAW/start.offset")" ] && echo 0 > "$RAW/start.offset"
 con gamemode adventure Tester
 con effect clear Tester
 inw time set 6000
@@ -420,6 +440,26 @@ if want s6; then
   con item replace entity Tester weapon.mainhand with minecraft:flint
   do_ wait:0.8
   mk s6_plain_28;  do_ mouse:left wait:0.9
+  inw kill @e[tag=souls_probe]
+  home
+fi
+
+if want s6b; then
+  # attack_range 의 hitbox_margin (상자를 넓히는 몫) 이 사거리에 더해지는가: margin 0 으로 4.3, 기본으로 4.45·4.6
+  inw kill @e[tag=souls_probe]
+  inw tp Tester 192.5 101 -195.5 -90 0
+  inw summon minecraft:husk 197.1 101 -195.5 "{NoAI:1b,Silent:1b,Tags:[\"souls_ent\",\"souls_probe\"],Rotation:[90f,0f]}"
+  con item replace entity Tester weapon.offhand with minecraft:air
+  con item replace entity Tester weapon.mainhand with "minecraft:flint[minecraft:attack_range={max_reach:4.2,hitbox_margin:0}]"
+  do_ wait:1.2
+  mk s6b_margin0_43; do_ mouse:left wait:0.9
+  con item replace entity Tester weapon.mainhand with "minecraft:flint[minecraft:attack_range={max_reach:4.2}]"
+  inw tp @e[tag=souls_probe,type=minecraft:husk] 197.25 101 -195.5 90 0
+  do_ wait:0.8
+  mk s6b_range_445; do_ mouse:left wait:0.9
+  inw tp @e[tag=souls_probe,type=minecraft:husk] 197.4 101 -195.5 90 0
+  do_ wait:0.8
+  mk s6b_range_46; do_ mouse:left wait:0.9
   inw kill @e[tag=souls_probe]
   home
 fi
