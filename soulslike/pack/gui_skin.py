@@ -1017,7 +1017,7 @@ def tooltip_bg(divider_at=None, top_border=12):
     """
     W = H = TT * S
     img = Img(W, H)
-    panel(img, 6, 6, W - 12, H - 12, alpha=0.97, glow=min(2 * top_border - 10, 22), uniform=True)
+    panel(img, 6, 6, W - 12, H - 12, alpha=1.0, glow=min(2 * top_border - 10, 22), uniform=True)  # 불투명: 밑의 글이 비치면 겹쳐 보인다 (2026-10-11)
     frame(img, 6, 6, W - 12, H - 12, inset=4, inner=False, uniform=True)
     corners(img, 6, 6, W - 12, H - 12, inset=1, size=14)
     if divider_at is not None:

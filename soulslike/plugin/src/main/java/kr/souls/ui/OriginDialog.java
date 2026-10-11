@@ -26,7 +26,7 @@ import java.util.List;
 /**
  * "출신 선택" 창 (5.10): 머리줄 하나와 출신마다 단추 하나 (폭 370). 단추 글은 [이름 칸][레벨][능력치 여섯][시작 아이템 칸] 을
  * 열 맞추기로 짜서 (Columns, 팩의 칸) 모든 줄의 폭이 같고, 그래서 가운데 맞춤인 단추 글과 머리줄의 열이 위아래로 선다. 단추의 설명 칸은
- * 그 출신이 무엇을 들었는지 한 줄 (origin.*.desc).
+ * 이제 띄우지 않는다 (2026-10-11: 바닐라 설명 칸이 아랫줄을 덮어 숫자가 겹쳐 보였다). 무엇을 들었는지는 줄의 시작 아이템 칸이 보인다.
  * 단추를 누르면 확인 창: 한 글 (어떻게 싸우는지 한 줄 origin.*.style, 빈 줄, 능력치 표 StatSheet: 왼쪽 능력치 여섯, 오른쪽 최대 HP·마나·
  * 스태미나·장비 중량·공격력·방어력, 조작 한 줄: 키 묶음 글이라 그 사람이 바꾼 키 이름) 과 시작 아이템 그림 (가리키면 설명 칸). 설명 한 줄
  * (desc) 은 확인 창에 다시 쓰지 않는다: 제목이 출신 이름이고 desc 는 출신 창의 설명 칸에 있다 (검토 origin-confirm-crowded).
@@ -54,8 +54,9 @@ public final class OriginDialog {
         List<ActionButton> buttons = new ArrayList<>();
         for (Origins.Origin o : plugin.origins().all()) {
             String id = o.id();
-            buttons.add(ui.button(s, id, row(p, o), Lang.c(p, "origin." + id + ".desc"), WIDTH, // lang-dyn: origin.*.desc
-                    (pl, v) -> confirm(plugin, pl, id)));
+            // 줄에 마우스를 올려도 설명 칸을 띄우지 않는다: 바닐라 설명 칸이 아랫줄 숫자를 덮어 겹쳐 보였다 (사용자 2026-10-11).
+            // 무엇을 들었는지는 줄의 시작 아이템 칸이 이미 보인다.
+            buttons.add(ui.button(s, id, row(p, o), null, WIDTH, (pl, v) -> confirm(plugin, pl, id)));
         }
         ActionButton later = ui.button(s, "exit", Lang.c(p, "origin.later"), null, 200, (pl, v) -> plugin.start().originLater(pl));
         Dialog d = Dialog.create(b -> b.empty()

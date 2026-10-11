@@ -40,7 +40,7 @@ L.run('origin', async (sc) => {
   sc.check('rows use pack-padded cells (origin.*.name.cell, origin.*.kit.cell, stat.*.short.rcell)',
     ['souls.origin.thief.name.cell', 'souls.origin.thief.kit.cell', 'souls.stat.dex.short.rcell', 'souls.origin.head-name.cell'].every((k) => keys.includes(k)),
     keys.filter((k) => /cell$/.test(k)).slice(0, 8).join(','))
-  sc.check('origin descriptions are button tooltips (origin.*.desc)', keys.includes('souls.origin.thief.desc') && keys.includes('souls.origin.knight.desc'))
+  sc.check('origin rows have no hover tooltip (it covered the next row)', !keys.includes('souls.origin.thief.desc') && !keys.includes('souls.origin.knight.desc'))
   const inv0 = b.bot.inventory.slots.filter(Boolean).length
   sc.check('reset took the starting items back', inv0 === 0, `칸 ${inv0}`)
 
