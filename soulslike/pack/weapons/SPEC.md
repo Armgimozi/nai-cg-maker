@@ -1,6 +1,6 @@
 # 무기 명세 (맛보기판)
 
-- 상태: 20개 모두 모형·인벤토리 그림·플러그인 아이템이 있다 (2026-10-07). 모형 `set_a.py`·`set_b.py`, 미리보기 `dist/screenshots/weapons/<id>_{gui,side,fp,tp}.png`, 실제 클라이언트 화면 `dist/screenshots/weapons/ingame_*.png`. 처음 명세 뒤 다듬기에서 바뀐 것은 6절. 2026-10-11 부터 손 자세는 바닐라 그대로 (1.3, 실제 클라이언트 겹침 `dist/screenshots/grip/`). 숫자는 코드가 원본이다.
+- 상태: 20개 모두 모형·인벤토리 그림·플러그인 아이템이 있다 (2026-10-07). 모형 `set_a.py`·`set_b.py`, 미리보기 `dist/screenshots/weapons/<id>_{gui,side,fp,tp}.png`, 실제 클라이언트 화면 `dist/screenshots/weapons/ingame_*.png` (손에 든 모습 `ingame_fp_*`·`ingame_tp_front` 는 2026-10-11 바닐라 쥐는 법으로 다시 찍었다: `tools/client/grip_shots.sh gear`. 인벤토리·단축 칸·설명 칸·액자·진열대 그림은 2026-10-07 판 그대로). 처음 명세 뒤 다듬기에서 바뀐 것은 6절. 2026-10-11 부터 손 자세는 바닐라 그대로 (1.3, 실제 클라이언트 겹침과 실제 아이템 `dist/screenshots/grip/`: `look_<id>.png`, 휘두름 `swing_*.png`, 구르기 `tumble_*.png`, 방패가 1인칭에서 보이는 정도 `shield_size_fp.png`). 숫자는 코드가 원본이다.
 - 근거: `DECISIONS.md` 2026-10-08 "무기도 전부 자체 제작", `ART_DIRECTION.md`, `DESIGN.md` 9.1 (무기), 9.2 (방패), 9.7 (아이템 글), 9.8 (구현), 3.12.4 (촉매), 10.1 (팔레트), 10.6·10.7 (리소스팩, AI 티 막기).
 - 숫자 가운데 [미확인 (클라)] 는 모형을 만들 때 실제 클라이언트 화면으로 맞추고, 맞춘 값을 이 문서에 다시 적는다. 표시가 없는 것은 정한 값이다.
 
