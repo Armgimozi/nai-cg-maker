@@ -32,7 +32,7 @@ import java.util.Locale;
  *   moves                          든 무기 분류의 틱을 이 사람의 민첩으로 (모아 둔 몫 0 에서 한 번).
  *                                  [T] MOVES cls= weapon= dex= aspd= tier= light=s/a/r,… heavy=s/a/r running=s/a/r swing=틱 stab= range=
  *   state                          [T] MOVE_STATE move= phase= start= end= combo= buf= carry= slow= ready= held= fmt= tier= want= swing= aspd=
- *                                  using= main= off= t=
+ *                                  using= main= off= echo=&lt;주손 되돌림 남은 수&gt;/&lt;왼손&gt; (2026-10-11 장부) ping=&lt;서버가 본 핑 ms&gt; t=
  * </pre>
  */
 public final class MoveTestCommands {
@@ -95,14 +95,15 @@ public final class MoveTestCommands {
             Weapons.Def w = plugin.weapons().of(main);
             plugin.test(p, String.format(Locale.ROOT,
                     "MOVE_STATE move=%s phase=%s start=%s end=%s combo=%d buf=%s carry=%.3f slow=%.2f walk=%.3f ready=%s held=%s fmt=%d tier=%d want=%d "
-                            + "swing=%s aspd=%.3f using=%s main=%s off=%s t=%d",
+                            + "swing=%s aspd=%.3f using=%s main=%s off=%s echo=%d/%d ping=%d t=%d",
                     m == null ? "-" : m.kind, m == null ? "-" : m.phase(now).name().toLowerCase(Locale.ROOT), m == null ? "-" : m.start,
                     m == null ? "-" : m.end(), st.combo, b == null ? "-" : b.kind().name().toLowerCase(Locale.ROOT) + "@" + b.at(), st.dexCarry,
                     Slow.factor(p), p.getWalkSpeed(), st.rollReadyAt <= CombatState.NEVER ? "-" : st.rollReadyAt, w == null ? "-" : w.id(),
                     ItemFactory.fmtOf(main), ItemFactory.tierOf(main), plugin.moves().tier(p),
                     anim == null ? "-" : anim.type().name().toLowerCase(Locale.ROOT) + "/" + anim.duration(), as == null ? -1 : as.getValue(),
                     p.hasActiveItem() ? p.getActiveItem().getType().getKey().getKey() : "-", main.isEmpty() ? "-" : main.getType().getKey().getKey(),
-                    p.getInventory().getItemInOffHand().isEmpty() ? "-" : p.getInventory().getItemInOffHand().getType().getKey().getKey(), now));
+                    p.getInventory().getItemInOffHand().isEmpty() ? "-" : p.getInventory().getItemInOffHand().getType().getKey().getKey(),
+                    st.echoMain.due(now), st.echoOff.due(now), p.getPing(), now));
         }));
     }
 

@@ -25,6 +25,7 @@ import kr.souls.input.InputProbe;
 import kr.souls.hud.Glyphs;
 import kr.souls.hud.Hud;
 import kr.souls.hud.Titles;
+import kr.souls.item.ItemFactory;
 import kr.souls.item.RingSlots;
 import kr.souls.item.Rings;
 import kr.souls.item.WeaponGuard;
@@ -113,6 +114,8 @@ public final class Souls extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        // 0. 빌드 표시 (2026-10-11: 서버에 어느 빌드가 들었는지 기록에서 바로 보이게. 판 = 0.1.0+<빌드한 UTC 때>, 무기 판)
+        getLogger().info("Soulslike " + getPluginMeta().getVersion() + " weapon-fmt " + ItemFactory.WEAPON_FMT);
         // 1. 키와 로거
         Keys.init(this);
         Fx.setLogger(getLogger());
@@ -237,6 +240,8 @@ public final class Souls extends JavaPlugin {
         pm.registerEvents(inputRouter, this);
         ticker.into("input", "router", inputRouter::tick);
         ticker.into("moves", "runner", moves::tick);
+        // 서버 휘두름 (Swings): 서버 쪽 휘두름 시계의 차례 (Ticker 안·밖) 와 되돌림 창 (combat.input.echo-window, /souls reload 뒤의 값)
+        kr.souls.combat.Swings.configure(ticker::running, () -> cfg.tuning.input.echoWindow());
         // 든 칸의 무기가 지금 판·민첩 단계인지 (10틱마다, 공격 중이 아닐 때)
         ticker.into("moves", "held", weaponRefresh::heldTick);
         CombatReset.register("moves", moves::reset);

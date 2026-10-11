@@ -1,9 +1,16 @@
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
+
 plugins {
     java
 }
 
 group = "kr.souls"
-version = "0.1.0"
+// 2026-10-11: 판 뒤에 빌드한 때 (UTC, yyyyMMdd.HHmm) 를 붙인다. 판이 늘 0.1.0 이라 서버에 어느 빌드가 들었는지 알 수 없었다.
+// 설정 단계에서 한 번 셈해 이 빌드 안에서는 같은 값이다 (paper-plugin.yml 의 version, 켤 때의 기록 줄)
+val buildStamp: String = ZonedDateTime.now(ZoneOffset.UTC).format(DateTimeFormatter.ofPattern("yyyyMMdd.HHmm"))
+version = "0.1.0+$buildStamp"
 
 repositories {
     mavenCentral()
@@ -41,6 +48,8 @@ tasks.withType<JavaCompile> {
 
 tasks.processResources {
     filteringCharset = "UTF-8"
+    // 판 (빌드한 때가 붙는다) 을 입력으로 적어, 리소스가 그대로여도 빌드마다 paper-plugin.yml 을 새로 쓴다 (2026-10-11)
+    inputs.property("version", project.version)
     // paper-plugin.yml (부트스트래퍼가 jar 안 데이터팩을 싣는다, 12.2). 버전만 채운다
     filesMatching("paper-plugin.yml") {
         expand("version" to project.version)

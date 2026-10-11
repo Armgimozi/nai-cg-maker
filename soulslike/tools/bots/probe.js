@@ -15,7 +15,8 @@ const L = require('./lib')
 const evLines = (b, from, ev) => b.tLines('PROBE ev=' + ev, from)
 
 L.run('probe', async (sc) => {
-  const b = await L.connect(sc)
+  // 날 패킷만 본다: 서버 휘두름의 되돌림 흉내 (L.echoSwings) 는 끈다 (켜면 휘두르기 줄이 하나씩 더 나온다)
+  const b = await L.connect(sc, { echoSwings: false })
   await L.sleep(1500)
   await b.cmd('/souls tp room', null, 1200)
   await L.sleep(500)

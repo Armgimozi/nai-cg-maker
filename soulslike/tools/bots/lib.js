@@ -335,8 +335,13 @@ class Bot {
       flags: [],
       poses: [],
       spawned: [],
-      destroyed: []
+      destroyed: [],
+      // 서버가 이 봇의 손을 휘두른 것 (animation 0 주손 · 3 왼손 → hand 0·1) 과 되돌려 보낸 휘두르기 (2026-10-11, S3)
+      selfAnims: [],
+      echoes: []
     }
+    // 되돌림 흉내 (L.echoSwings): 바닐라 클라이언트처럼 서버 휘두름마다 같은 손의 arm_animation 하나를 되돌려 보낸다. opts.echoSwings === false 면 끈다
+    this.echo = opts.echoSwings !== false
     this.crawlLive = new Set()
     this.sysHooks = [] // 받은 그 자리에서 부를 것 (onSysOnce)
     this.pkts = [] // 받은 패킷 이름 (마지막 300개, 실패 설명용)
@@ -429,6 +434,17 @@ class Bot {
         // 자세 (6): 0 서기, 3 헤엄 (기어가기도 같다), 5 웅크리기 …
         if (m.key === 6) this.p.poses.push({ t: now(), value: typeof m.value === 'number' ? m.value : String(m.value) })
       }
+    })
+    // 되돌림 (S3, 2026-10-11): 바닐라 클라이언트는 서버가 자기 손을 휘두르면 (ClientboundAnimate 0 주손, 3 왼손) 같은 손의
+    // ServerboundSwing 을 하나 되돌려 보낸다 (LocalPlayer.swing: 팔이 다시 휘둘러지지 않아도 늘 보낸다). 플러그인은 서버 휘두름 하나에
+    // 그 손의 휘두르기 하나를 공격으로 치지 않으므로 (InputRouter 의 장부), 봇이 되돌리지 않으면 진짜 클릭 하나가 먹힌다
+    c.on('animation', (d) => {
+      if (d.entityId !== this.id || (d.animation !== 0 && d.animation !== 3)) return
+      const hand = d.animation === 3 ? 1 : 0
+      this.p.selfAnims.push({ t: now(), hand })
+      if (!this.echo || this.ended) return
+      try { c.write('arm_animation', { hand }) } catch (e) { return }
+      this.p.echoes.push({ t: now(), hand })
     })
     c.on('spawn_entity', (d) => this.p.spawned.push({ t: now(), id: d.entityId, type: d.type }))
     c.on('entity_destroy', (d) => this.p.destroyed.push({ t: now(), ids: (d.entityIds || []).slice() }))
@@ -843,7 +859,8 @@ function i64 (v) {
 /**
  * 봇 하나를 접속시킨다. 서버가 아직 짓는 중이라 막거나 포트가 닫혀 있으면 잠시 뒤 다시 한다.
  * opts: name, respawn(기본 true), retries(기본 8), host, port, allowDead(기본 true: 체력 0 으로 들어와도 접속으로 친다),
- *   locale, declinePack (팩을 거절), holdPack (받겠다고만 하고 다 싣지 않는다)
+ *   locale, declinePack (팩을 거절), holdPack (받겠다고만 하고 다 싣지 않는다),
+ *   echoSwings (기본 true: 서버가 휘두른 손의 휘두르기를 바닐라 클라이언트처럼 되돌려 보낸다. false 면 날 패킷만, L.echoSwings)
  */
 async function connect (sc, opts = {}) {
   const name = opts.name || ENV.name || 'SoulsBot'
@@ -1247,9 +1264,19 @@ async function faceEntity (b, e, dy = 1.2) {
 function moveLines (b, from = 0, prefix = 'MOVE ') {
   return b.tLines(prefix, from).map((x) => Object.assign(x, { tick: num(x.kv.t), s: num(x.kv.s), a: num(x.kv.a), r: num(x.kv.r), cycle: num(x.kv.cycle) }))
 }
+/**
+ * 되돌림 흉내를 켜고 끈다 (2026-10-11, S3). 켜 두면 서버가 이 봇의 손을 휘두를 때마다 (animation 0·3) 같은 손의 arm_animation 을
+ * 곧바로 하나 되돌려 보낸다 (바닐라 LocalPlayer.swing). connect 가 기본으로 켠다 (opts.echoSwings === false 면 끈 채로).
+ * 받은 서버 휘두름은 b.p.selfAnims, 되돌린 것은 b.p.echoes ({t, hand}).
+ */
+function echoSwings (b, on = true) {
+  b.echo = !!on
+  return b
+}
 module.exports.nearestEntity = nearestEntity
 module.exports.faceEntity = faceEntity
 module.exports.moveLines = moveLines
+module.exports.echoSwings = echoSwings
 // ── M1 P1b ──
 /**
  * 서버 기록의 이름 없는 시험 줄 "[T] <prefix>..." 들 (어느 플레이어에게도 보내지 않은 줄: 적의 FOE spawn|die|gone 처럼 plugin.test(null, …)).

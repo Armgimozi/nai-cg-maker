@@ -49,7 +49,7 @@ import java.util.Map;
  *   contract foes                    [T] CONTRACT_FOES n= near= (이 명령이 세운 적, 눈에서 8칸)
  *   contract clear                   이 명령이 세운 적의 몸을 지운다. [T] CONTRACT_FOES n=0 cleared=
  *   contract slow &lt;배율|root|clear|show&gt;   Slow.set(이 사람, "contract", 배율). [T] CONTRACT_SLOW factor= walk= base= jump= owners=
- *   contract swing main|off          Swings.main / off. [T] CONTRACT_SWING hand= at= since=
+ *   contract swing main|off          Swings.main / off. [T] CONTRACT_SWING hand= sent=0|1 at= since= (sent=0: 서버의 휘두름 규칙에 막혔다)
  *   contract reset                   [T] CONTRACT_RESET owners= (CombatReset 에 걸린 이름들)
  *   contract content                 [T] CONTRACT_CONTENT files= merged= (Content.FILES, moves.yml·enemies.yml 의 맨 위 열쇠 수)
  * </pre>
@@ -116,11 +116,10 @@ public final class ContractTestCommands {
                                 .executes(ctx -> with(ctx, p -> {
                                     long now = plugin.ticker().now();
                                     boolean off = "off".equals(StringArgumentType.getString(ctx, "hand"));
-                                    if (off) Swings.off(p, now);
-                                    else Swings.main(p, now);
+                                    boolean sent = off ? Swings.off(p, now) : Swings.main(p, now);
                                     EquipmentSlot hand = off ? EquipmentSlot.OFF_HAND : EquipmentSlot.HAND;
-                                    plugin.test(p, "CONTRACT_SWING hand=" + hand + " at=" + Swings.last(p, hand) + " since=" + Swings.since(p, now)
-                                            + " t=" + now);
+                                    plugin.test(p, "CONTRACT_SWING hand=" + hand + " sent=" + (sent ? 1 : 0) + " at=" + Swings.last(p, hand)
+                                            + " since=" + Swings.since(p, now) + " t=" + now);
                                 }))))
                 .then(Commands.literal("reset").executes(ctx -> with(ctx, p ->
                         plugin.test(p, "CONTRACT_RESET owners=" + String.join(",", CombatReset.owners())))))

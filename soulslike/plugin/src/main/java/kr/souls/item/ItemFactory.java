@@ -223,8 +223,11 @@ public final class ItemFactory {
     }
 
     // ── M1 P1a ──
-    /** 무기 아이템의 판 (Keys.WEAPON_FMT). 1: M1 P1a (휘두르기·사거리·민첩 단계). 2: 휘두름 길이 = 약공격 한 주기 (2026-10-11). 판이 다르면 WeaponRefresh 가 새로 만든다 */
-    public static final int WEAPON_FMT = 2;
+    /**
+     * 무기 아이템의 판 (Keys.WEAPON_FMT). 1: M1 P1a (휘두르기·사거리·민첩 단계). 2: 휘두름 길이 = 약공격 한 주기 (2026-10-11).
+     * 3: 휘두름 잠금, 길이 = 2 × 가장 짧은 약공격 한 주기 − swing-margin (2026-10-11). 판이 다르면 WeaponRefresh 가 새로 만든다
+     */
+    public static final int WEAPON_FMT = 3;
 
     /** 근접 무기 분류의 휘두르기: stab (찌르기, 창), ticks (휘두르는 길이), reach (사거리 = attack_range 의 max_reach). */
     public record SwingSpec(boolean stab, int ticks, float reach) {}
@@ -242,12 +245,38 @@ public final class ItemFactory {
         swings = s == null ? (c, t) -> null : s;
     }
 
-    /** 판 (WEAPON_FMT) 이 다르거나, 근접 무기의 민첩 단계가 tier 가 아니다 (든 칸을 볼 때, item/WeaponRefresh.held). */
+    /**
+     * 판 (WEAPON_FMT) 이 다르거나, 근접 무기의 민첩 단계가 tier 가 아니거나, 붙은 휘두르기 (종류·길이) 와 사거리 (attack_range) 가 지금
+     * 셈 (swings) 과 다르다 (든 칸을 볼 때, item/WeaponRefresh.held). 2026-10-11: 판·단계만 보면 길이가 틀린 아이템이 다시 접속할 때까지 남았다.
+     */
     public static boolean swingStale(ItemStack it, Weapons weapons, int tier) {
         Weapons.Def d = it == null || it.isEmpty() ? null : weapons.of(it);
         if (d == null) return false;
-        if (fmtOf(it) != WEAPON_FMT) return true;
-        return kr.souls.progression.Stats.isMelee(d) && swings.of(d.cls(), Math.max(0, tier)) != null && tierOf(it) != Math.max(0, tier);
+        int want = Math.max(0, tier);
+        SwingSpec spec = kr.souls.progression.Stats.isMelee(d) ? swings.of(d.cls(), want) : null;
+        return swingStale(fmtOf(it), tierOf(it), want, spec, spec == null ? null : swingOf(it));
+    }
+
+    /**
+     * {@link #swingStale(ItemStack, Weapons, int)} 의 판정 (순수 함수, SwingTierTest). fmt·tier: 아이템에 적힌 판과 단계, want: 든 사람의
+     * 단계, spec: 지금 셈 (근접 무기가 아니면 null), have: 아이템에 붙은 휘두르기·사거리 ({@link #swingOf}, 우리 꼴이 아니면 null).
+     */
+    public static boolean swingStale(int fmt, int tier, int want, SwingSpec spec, SwingSpec have) {
+        if (fmt != WEAPON_FMT) return true;
+        if (spec == null) return false;
+        return tier != want || !spec.equals(have);
+    }
+
+    /**
+     * 아이템에 붙은 휘두르기 (swing_animation 종류·길이) 와 사거리 (attack_range 의 max_reach) 를 SwingSpec 으로. 둘 중 하나가 없거나 우리가
+     * 붙이는 꼴이 아니면 (종류가 whack·stab 이 아님, min_reach 나 hitbox_margin 이 0 이 아님) null: refreshed() 의 sameSwing 과 같은 것을 본다.
+     */
+    static SwingSpec swingOf(ItemStack it) {
+        SwingAnimation sa = it.getData(DataComponentTypes.SWING_ANIMATION);
+        AttackRange ra = it.getData(DataComponentTypes.ATTACK_RANGE);
+        if (sa == null || ra == null || ra.minReach() != 0f || ra.hitboxMargin() != 0f) return null;
+        if (sa.type() != SwingAnimation.Animation.WHACK && sa.type() != SwingAnimation.Animation.STAB) return null;
+        return new SwingSpec(sa.type() == SwingAnimation.Animation.STAB, sa.duration(), ra.maxReach());
     }
 
     /** 아이템에 적힌 판 (없으면 0). */

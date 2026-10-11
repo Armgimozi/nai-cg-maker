@@ -48,6 +48,7 @@ public final class Ticker {
     private final List<Sys> systems = new ArrayList<>();
     private BukkitTask handle;
     private long now;
+    private boolean running;
 
     public Ticker(Plugin plugin) {
         this.plugin = plugin;
@@ -109,7 +110,21 @@ public final class Ticker {
         handle = null;
     }
 
+    /** 지금 이 고리가 도는 중인가 (combat/Swings: Ticker 안의 서버 휘두름과 패킷·명령의 휘두름은 서버 쪽 휘두름 시계로 한 틱 다르다). */
+    public boolean running() {
+        return running;
+    }
+
     private void run() {
+        running = true;
+        try {
+            runSystems();
+        } finally {
+            running = false;
+        }
+    }
+
+    private void runSystems() {
         now++;
         int slot = (int) (now % WINDOW);
         // 번호로 돈다: 한 체계가 돌다가 into 로 일을 더해도 (명령·이벤트에서) 목록이 깨지지 않는다

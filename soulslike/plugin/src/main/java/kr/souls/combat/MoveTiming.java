@@ -14,7 +14,8 @@ import java.util.List;
  *       회복에 되돌린다. 그래서 단도 약공격은 준비만 짧아진다 (3/1/6 → 2/1/7).</li>
  *   <li>최소값에 걸려 늘린 동작은 모아 둔 몫을 쓰지 않고 비운다 (다음 동작이 그만큼 빨라지지 않게).</li>
  * </ul>
- * 아이템의 휘두르는 길이 (swing_animation, R13) 는 민첩 단계 (combat.moves.swing-tiers) 의 첫 값으로 셈한 준비 + 판정이다.
+ * 아이템의 휘두르는 길이 (swing_animation, R13) 는 {@link #lockTicks}: 민첩 단계 (combat.moves.swing-tiers) 의 가장 빠른 민첩으로 셈한
+ * 가장 짧은 약공격 한 주기의 두 배 − swing-margin (2026-10-11 휘두름 잠금. 그 전에는 준비 + 판정, 다음에는 약공격 1단 한 주기였다).
  */
 public final class MoveTiming {
     /** moves.yml 의 바탕 틱 (민첩 10). */
@@ -71,9 +72,41 @@ public final class MoveTiming {
         return new Timed(s, act, r, Math.max(0, Math.min(1 - EPS, saved)));
     }
 
-    /** 아이템의 휘두르는 길이 (틱): 민첩으로 나눈 준비 + 판정 (1 이상). */
+    /** 민첩으로 나눈 준비 + 판정 (1 이상). 2026-10-11 부터 아이템의 휘두르는 길이는 {@link #lockTicks} 다. */
     public static int swingTicks(int s, int act, double a, int minStartup) {
         return Math.max(1, startup(s, a, minStartup) + Math.max(0, act));
+    }
+
+    /**
+     * 아이템의 휘두르는 길이 D (틱, 2026-10-11 "휘두름 잠금"): D = 2 × Cmin − margin (2 이상).
+     * Cmin 은 약공격 단들 (lights) 의 가장 짧은 한 주기를 배율 aFast (그 민첩 단계의 가장 빠른 민첩) 로 셈한 것:
+     * max(min-cycle, min_i(준비_i + 판정_i + max(min-recovery, floor(회복_i / aFast)))). 회복은 모아 둔 몫 ({@link #time}) 으로 한 틱
+     * 짧아질 수 있어 내림으로 본다.
+     * 바닐라 클라이언트는 휘두름이 반 (D/2, 내림: margin 3 이면 Cmin − 2) 지나야 클릭으로 팔을 다시 휘두른다. 그래서 공격 한 주기 안에
+     * 더 누른 클릭은 팔을 다시 휘두르지 않고 (입력 기억에만 든다), 서버가 다음 동작의 시작에 휘두른 것 (Swings.main) 은 받아들여진다.
+     * margin 2 면 서버의 같은 규칙 (now − last ≥ D/2 + 1 = Cmin) 이 가장 짧은 주기에서도 맞는다. 기본 3 (combat.moves.swing-margin,
+     * 2026-10-11 검토): D/2 + 1 = Cmin − 1 이라 가장 짧은 주기에서도 서버와 클라이언트 (서버 휘두름 패킷이 닿은 클라이언트 틱으로 센다)
+     * 모두 한 틱이 남는다. 2 면 패킷이 몇 ms 만 일찍 닿아도 클라이언트가 그 내려치기를 버린다 (다른 사람에게는 팔이 보이지 않는다).
+     */
+    public static int lockTicks(List<Base> lights, double aFast, Rules r, int margin) {
+        double a = safe(aFast);
+        int c = Integer.MAX_VALUE;
+        if (lights != null) {
+            for (Base b : lights) {
+                int rec = Math.max(r.minRecovery(), (int) Math.floor(b.r() / a + EPS));
+                c = Math.min(c, startup(b.s(), a, r.minStartup()) + Math.max(0, b.a()) + rec);
+            }
+        }
+        if (c == Integer.MAX_VALUE) c = r.minCycle();
+        c = Math.max(r.minCycle(), c);
+        return Math.max(2, 2 * c - margin);
+    }
+
+    /** 단계 tier 의 가장 빠른 민첩: 다음 단계의 첫 값 − 1, 끝 단계면 99 (휘두름 잠금 {@link #lockTicks} 의 aFast). */
+    public static int fastestDex(int tier, List<Integer> steps) {
+        if (steps == null || steps.isEmpty()) return 99;
+        int t = Math.max(0, Math.min(steps.size() - 1, tier));
+        return t + 1 < steps.size() ? Math.max(steps.get(t), steps.get(t + 1) - 1) : 99;
     }
 
     /** 민첩 dex 의 단계: steps 가운데 dex 이하인 마지막 것의 번호 (첫 값보다 작으면 0). */

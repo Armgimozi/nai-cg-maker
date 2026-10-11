@@ -31,8 +31,13 @@ import java.util.UUID;
  * [확인 (서버 코드): handlePlayerInput 이 이벤트 뒤에 입력을 적는다]).
  * <ul>
  *   <li>누름 틱 P 를 적는다. 그때 탈것 위·죽음·출신 없음·우리 창을 띄운 지 2틱 안이면 그 누름은 구르기가 될 수 없다.</li>
- *   <li>누르는 동안 새로 들어온 좌클릭 (휘두름·공격·LEFT_*), 우클릭 (RIGHT_*, 물체), F, Q 는 조합 키로 쓴 것이라 구르기를 버린다
- *       (웅크리기 키 + 좌클릭 = 강공격, 웅크리기 키 + Q = 다음 표적). 이미 누르고 있던 우클릭 (막기·마시기) 은 새 입력이 아니다.</li>
+ *   <li>누르는 동안 새로 들어온 좌클릭 (휘두름·공격), 우클릭 (RIGHT_*, 물체), F, Q 는 조합 키로 쓴 것이라 구르기를 버린다
+ *       (웅크리기 키 + 좌클릭 = 강공격, 웅크리기 키 + Q = 다음 표적). 이미 누르고 있던 우클릭 (막기·마시기) 은 새 입력이 아니다.
+ *       2026-10-11: 서버가 휘둘러 되돌아온 휘두르기 (CombatState.lastSwingEcho, InputRouter 의 장부) 는 좌클릭이 아니다 (공격 바로 뒤의
+ *       짧은 누름이 그것에 먹혀 구르지 못했다). 되돌림이 닿기 전에 누른 진짜 클릭 (장부의 이른 휘두르기, 핑이 큰 클라이언트) 은
+ *       좌클릭이다 (웅크리기 + 좌클릭 = 강공격이 구르기가 되지 않게). LEFT_CLICK_AIR·LEFT_CLICK_BLOCK 은 보지 않는다: 모험 모드에서는
+ *       좌클릭마다 휘두르기 패킷이 따로 오고, Paper 는 그 휘두르기의 LEFT_CLICK 을 휘두르기 이벤트보다 먼저 내어 되돌아온 것인지 그때는
+ *       알 수 없다.</li>
  *   <li>뗌 틱 R 에 R − P ≤ max-ticks (핑이 lag-ping 을 넘으면 + lag-extra-ticks) 이면 그 틱에 Roll.tryRoll. 같은 틱에 둘 다 오면 R = P.</li>
  *   <li>창이 열려 키가 모두 떼어진 것 (뗌과 함께 방향키·점프·달리기가 사라졌다), 누름과 뗌 사이에 우리 창을 띄웠거나 상자 따위가
  *       열렸으면 구르지 않는다. 남는 구멍: 가만히 서서 누르고 0.25초 안에 E (인벤토리) 나 T (채팅) 를 열면 서버는 그 화면을 알 수 없어
@@ -232,8 +237,11 @@ public final class SneakTap implements Listener {
         if (j != null) j.combo(why);
     }
 
-    @EventHandler(priority = EventPriority.MONITOR)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = false)
     public void onSwing(PlayerArmSwingEvent e) {
+        // 서버가 휘두른 것이 되돌아온 휘두르기는 좌클릭이 아니다 (InputRouter 가 LOWEST 에서 이 이벤트를 이미 정했다, 2026-10-11)
+        CombatState st = CombatState.peek(e.getPlayer().getUniqueId());
+        if (st != null && st.lastSwingEcho) return;
         combo(e.getPlayer(), "attack");
     }
 
@@ -245,7 +253,7 @@ public final class SneakTap implements Listener {
     @EventHandler(priority = EventPriority.MONITOR)
     public void onInteract(PlayerInteractEvent e) {
         switch (e.getAction()) {
-            case LEFT_CLICK_AIR, LEFT_CLICK_BLOCK -> combo(e.getPlayer(), "attack");
+            // 좌클릭 (LEFT_CLICK_*) 은 휘두르기 (onSwing) 로 센다 (2026-10-11)
             case RIGHT_CLICK_AIR, RIGHT_CLICK_BLOCK -> combo(e.getPlayer(), "use");
             default -> {
             }

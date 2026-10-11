@@ -5,17 +5,23 @@
 //   - 단도 매 틱: 한 주기 정확히 10틱
 //   - 웅크리기 + 휘두르기: MOVE heavy 와 ROLL_TAP_SKIP why=attack. 달리며 휘두르기: MOVE running
 //   - 스태미나 0: MOVE_DENY why=stamina, 1: 공격하고 0 에서 멈춘다
-//   - 민첩 40: 틱이 3.6 의 셈과 같고, 든 무기의 휘두르는 길이 (swing_animation) 가 한 번만 바뀐다 (SWING_TIER)
+//   - 민첩 40: 틱이 3.6 의 셈과 같고, 든 무기의 휘두르는 길이 (swing_animation) 가 한 번만 바뀐다 (SWING_TIER, 곤봉 31 → 25)
 //   - 휘두르는 중에 단축 칸을 바꿔도 시작한 무기의 값으로 맞힌다
 //   - 가짜 휘두르기 (바닐라 클라이언트처럼 짝으로 보낸다, R36): Q (버리기) + 휘두르기, 우클릭 (use_item) + 휘두르기 → MOVE 없음
 //   - 주손에 활: MOVE_DENY why=weapon
 //   - 준비 중에 마신 물약은 막히고 (USE_DENY), 회복 중에는 마신다 (R17)
-//   - 아이템: 곤봉의 swing_animation (whack, 준비 + 판정 8틱), attack_range (2.9, hitbox_margin 0), 바닐라 attack_speed 높게 (S3)
+//   - 아이템: 곤봉의 swing_animation (whack 31: 휘두름 잠금 2 × 17 − 3, 2026-10-11), attack_range (2.9, hitbox_margin 0), 바닐라 attack_speed
+//     높게 (S3). 판 (fmt 3) 은 맞는데 길이가 틀린 무기는 든 칸 점검이 다시 만든다
+//   - 휘두름 잠금 (2026-10-11): 동작마다 시작에 서버가 휘두르고 (MOVE sw=1, 자기에게 animation 0 하나), 봇은 바닐라처럼 되돌린다
+//     (L.echoSwings). 되돌림은 서버 휘두름 하나에 하나만 버리고 (MOVE_FAKE why=echo), 진짜 클릭은 하나도 버리지 않는다
+//     (곧바로 낸 MOVE + MOVE_BUF + MOVE_EARLY + MOVE_DENY = 누른 수). 공격 바로 뒤 웅크린 채 되돌림이 와도 짧은 누름은 구른다
 // 2부 (M1 P1c): 구르기 공격과 공격 중의 구르기. 서버가 적은 틱 (ROLL t=, MOVE_BUF at=, MOVE t=) 으로 본다
 //   - 구른 뒤 d 틱의 휘두르기 (가벼운 구르기의 창 9~16): 창 앞이면 창 시작까지 기억했다가 (MOVE_BUF roll=1) 그 틱에 MOVE roll,
 //     창 안이면 곧바로 MOVE roll (배율 110, 대역을 곧바로 거둔다: ROLL_ATTACK revealed=true), 창 뒤면 MOVE light1. 5·9·17 언저리가
 //     모두 나올 때까지 몇 번 한다
 //   - 공격의 준비 중 구르기: ROLL_DENY why=attack. 회복의 끝 40% (곤봉 14틱째부터): 동작을 끊고 구른다 (MOVE_CANCEL why=roll)
+// 3부 (2026-10-11 검토): 지연 프록시 (왕복 250ms) 로 다시 들어와, 공격이 시작된 뒤 서버 휘두름이 닿기 전에 누른 웅크리기 + 좌클릭이
+//   되돌림보다 먼저 와도 강공격으로 남고 (MOVE_HELD) 그 짧은 누름이 구르기가 되지 않는다 (ROLL_TAP_SKIP why=attack)
 'use strict'
 const L = require('./lib')
 
@@ -53,15 +59,23 @@ L.run('attacks', async (sc) => {
 
   // ── 아이템 ──
   const st0 = await state()
-  sc.checkCmd('held club: weapon format 2, swing tier 0, whack swing 18 ticks (light 1 whole cycle: 6 + 2 + 10)', st0, (r) =>
-    r.kv.held === 'gaoler_club' && r.kv.fmt === '2' && r.kv.tier === '0' && r.kv.want === '0' && r.kv.swing === 'whack/18')
+  sc.checkCmd('held club: weapon format 3, swing tier 0, whack swing 31 ticks (swing lock: 2 x shortest light cycle at dex 19 (17) - 3)', st0, (r) =>
+    r.kv.held === 'gaoler_club' && r.kv.fmt === '3' && r.kv.tier === '0' && r.kv.want === '0' && r.kv.swing === 'whack/31')
   sc.checkCmd('vanilla attack_speed is high while holding a souls melee weapon (S3: no dip after server swings)', st0, (r) => L.num(r.kv.aspd) >= 4)
   const held = b.bot.inventory.slots[36 + b.bot.quickBarSlot]
   const comp = (t) => held && Array.isArray(held.components) ? (held.components.find((c) => c.type === t) || {}).data : null
   const ar = comp('attack_range')
   const sw = comp('swing_animation')
   sc.check('the client gets attack_range max 2.9 with hitbox margin 0 (S6) and the swing length', ar && Math.abs(ar.maxRange - 2.9) < 1e-3 &&
-    Math.abs(ar.hitboxMargin) < 1e-6 && sw && sw.duration === 18, JSON.stringify({ ar, sw }))
+    Math.abs(ar.hitboxMargin) < 1e-6 && sw && sw.duration === 31, JSON.stringify({ ar, sw }))
+
+  // 2026-10-11: 판 (fmt 3) 과 단계는 맞는데 휘두르는 길이가 틀린 무기 (무기 판 2 의 18) 도 든 칸 점검 (10틱마다) 이 다시 만든다
+  let from = b.sys.length
+  await b.cmd('/item modify entity @s weapon.mainhand {function:"minecraft:set_components",components:{"minecraft:swing_animation":{type:"whack",duration:18}}}', null, 1500)
+  const reb = await b.waitT('WEAPON_REFRESH', 3000, from)
+  const stR = await state()
+  sc.check('a format-3 club with a wrong swing length (18) is rebuilt by the held check (WEAPON_REFRESH where=held, whack/31 again)',
+    reb && reb.kv.where === 'held' && stR.kv && stR.kv.swing === 'whack/31' && stR.kv.fmt === '3', `${reb ? reb.line : 'WEAPON_REFRESH 없음'} | ${stR.line || ''}`)
 
   // ── 허수아비 ──
   await b.cmd('/soulstest dummy clear', 'DUMMY clear')
@@ -75,7 +89,8 @@ L.run('attacks', async (sc) => {
   await L.sleep(300)
 
   // ── 한 번 치기 ──
-  let from = b.sys.length
+  from = b.sys.length
+  let anim0 = b.p.selfAnims.length
   b.bot.attack(dummy)
   await L.sleep(1400)
   let mv = L.moveLines(b, from)
@@ -86,6 +101,44 @@ L.run('attacks', async (sc) => {
   sc.check('exactly one HIT at start + startup (tick 6), dealt = raw^2/(raw+def)', hits.length === 1 && hits[0].kv.tick === '6' && hits[0].kv.move === 'light1' &&
     Math.abs(L.num(hits[0].kv.dealt) - L.num(hits[0].kv.raw) ** 2 / (L.num(hits[0].kv.raw) + L.num(hits[0].kv.def))) < 0.05 &&
     L.num(hits[0].kv.raw) === L.num(mv[0] && mv[0].kv.ar), hits.map((x) => x.line).join(' | ') || '줄 없음')
+  // 2026-10-11 휘두름 잠금: 곧바로 낸 동작도 서버가 시작에 휘두른다 (자기에게 animation 0 하나), 되돌림 하나는 공격이 아니다
+  const fk1 = b.tLines('MOVE_FAKE', from)
+  sc.check('the direct attack swings the server arm at its start (MOVE sw=1, one animation 0 to the attacker) and its echo is dropped once (MOVE_FAKE why=echo)',
+    mv.length === 1 && mv[0].kv.sw === '1' && b.p.selfAnims.slice(anim0).filter((x) => x.hand === 0).length === 1 && fk1.length === 1 && fk1[0].kv.why === 'echo',
+    `${mv.map((x) => 'sw=' + x.kv.sw).join(',')} anim=${b.p.selfAnims.length - anim0} ${fk1.map((x) => x.line).join(' | ')}`)
+  await idle()
+
+  // ── 휘두름 잠금: 1초에 4.5번 누르기 (2026-10-11, 사용자가 누르는 빠르기쯤) ──
+  await stamina(100)
+  await L.sleep(300)
+  from = b.sys.length
+  anim0 = b.p.selfAnims.length
+  const echo0 = b.p.echoes.length
+  const clicks = 13
+  for (let i = 0; i < clicks; i++) {
+    swing()
+    await L.sleep(222)
+  }
+  await idle(3000)
+  await L.sleep(300)
+  mv = L.moveLines(b, from)
+  const animsN = b.p.selfAnims.slice(anim0).filter((x) => x.hand === 0).length
+  const echoesN = b.p.echoes.slice(echo0).length
+  const fakesN = b.tLines('MOVE_FAKE', from)
+  const sw1 = mv.filter((x) => x.kv.sw === '1').length
+  const timeline = mv.map((x) => `${x.kv.kind}@${x.tick} buf=${x.kv.buf} sw=${x.kv.sw}`).join(' ')
+  sc.check('4.5 clicks/s: every move start swings the server arm (sw=1) and starts are at least half the swing + 1 (16) apart', mv.length >= 3 &&
+    sw1 === mv.length && mv.slice(1).every((x, i) => x.tick - mv[i].tick >= 16), timeline)
+  sc.check('4.5 clicks/s: one swing animation to the attacker per move (the arm follows attacks, not clicks)', animsN === mv.length,
+    `animation 0 x${animsN}, MOVE x${mv.length}`)
+  sc.check('4.5 clicks/s: one echo dropped per server swing (MOVE_FAKE why=echo = sw=1 = echoes sent), no other fake', fakesN.length === sw1 &&
+    fakesN.every((x) => x.kv.why === 'echo') && echoesN === sw1, `fake ${fakesN.map((x) => x.kv.why).join(',')} sw=1 x${sw1} echoes ${echoesN}`)
+  const direct = mv.filter((x) => x.kv.buf === 'false').length
+  const bufN = b.tLines('MOVE_BUF', from).length
+  const earlyN = b.tLines('MOVE_EARLY', from).length
+  const denyN = b.tLines('MOVE_DENY', from).filter((x) => x.kv.buf !== 'true').length
+  sc.check('4.5 clicks/s: no real click lost (direct MOVE + MOVE_BUF + MOVE_EARLY + MOVE_DENY = clicks sent)', direct + bufN + earlyN + denyN === clicks,
+    `direct ${direct} + buf ${bufN} + early ${earlyN} + deny ${denyN} vs ${clicks} clicks; ${timeline}`)
   await idle()
 
   // ── 매 틱 휘두르기 (곤봉, 민첩 10: 6/2/10 = 18틱) ──
@@ -115,6 +168,10 @@ L.run('attacks', async (sc) => {
     `early ${b.tLines('MOVE_EARLY', from).length} buf ${b.tLines('MOVE_BUF', from).length}`)
   const hitsSpam = b.tLines('HIT ', from)
   sc.check('each move hits the dummy once', hitsSpam.length === mv.length && hitsSpam.every((x) => x.kv.n === '1'), hitsSpam.map((x) => `${x.kv.move}@${x.kv.tick}`).join(' '))
+  const fakeSpam = b.tLines('MOVE_FAKE', from)
+  sc.check('swinging every tick: every move swings the server arm (sw=1) and exactly one swing per server swing is dropped as its echo',
+    mv.every((x) => x.kv.sw === '1') && fakeSpam.length === mv.length && fakeSpam.every((x) => x.kv.why === 'echo'),
+    `sw ${mv.map((x) => x.kv.sw).join(',')} fake ${fakeSpam.map((x) => x.kv.why).join(',')}`)
 
   // ── 단도 매 틱: 한 주기 10 ──
   await b.cmd('/soulstest give alley_dagger main', 'GIVE')
@@ -126,6 +183,46 @@ L.run('attacks', async (sc) => {
   mv = L.moveLines(b, from)
   sc.check('dagger every tick: cycle exactly 10 (3/1/6), starts 10 ticks apart', mv.length >= 3 && mv.every((x) => x.cycle === 10 && x.kv.cls === 'dagger') &&
     mv.slice(1).every((x, i) => x.tick - mv[i].tick === 10), mv.map((x) => `${x.kv.kind}@${x.tick} ${x.s}/${x.a}/${x.r}`).join(' '))
+  // 가장 빠듯한 경우 (한 주기 10, 단도의 휘두름 17: 반 + 1 = 9 라 한 틱 남는다): 서버가 제 휘두름을 막았다면 sw=1 이어도 되돌림이 오지 않는다
+  // (되돌림 수 = 동작 수 로 본다)
+  const fakeDagger = b.tLines('MOVE_FAKE', from)
+  sc.check('dagger every tick: the 10-tick cycle lets the server swing every start (swing 17: half + 1 = 9, sw=1, one echo per move)',
+    mv.every((x) => x.kv.sw === '1') && fakeDagger.length === mv.length && fakeDagger.every((x) => x.kv.why === 'echo'),
+    `sw ${mv.map((x) => x.kv.sw).join(',')} fake ${fakeDagger.map((x) => x.kv.why).join(',')}`)
+
+  // ── 공격 바로 뒤의 짧은 웅크리기 (2026-10-11): 지연이 있는 클라이언트는 웅크리기를 누른 뒤에 되돌림이 닿는다. 되돌림은 좌클릭이 아니라
+  // 짧은 누름을 버리지 않는다 (예전: ROLL_TAP_SKIP why=attack). 단도 3/1/6: 끊을 수 있는 틱 (8) 이 기억 6틱 안이라 기다렸다 구른다 ──
+  L.echoSwings(b, false)
+  let tapRolls = 0
+  const tapBad = []
+  for (let i = 0; i < 5; i++) {
+    await idle()
+    await stamina(100)
+    await L.sleep(700)
+    const f = b.sys.length
+    const n0 = b.p.selfAnims.length
+    swing()
+    const until = Date.now() + 1500
+    while (b.p.selfAnims.length === n0 && Date.now() < until) await L.sleep(5)
+    // 서버 휘두름이 닿으면 웅크리기를 누르고, 누른 채로 되돌림을 보낸 뒤 (2~3틱 누름) 뗀다
+    b.input({ shift: true })
+    await L.sleep(30)
+    b._bot._client.write('arm_animation', { hand: 0 })
+    await L.sleep(90)
+    b.input({})
+    await L.sleep(900)
+    const rl = b.tLines('ROLL ', f)[0]
+    const skip = b.tLines('ROLL_TAP_SKIP', f)[0]
+    const ec = b.tLines('MOVE_FAKE', f).filter((x) => x.kv.why === 'echo')
+    const m = L.moveLines(b, f)[0]
+    const tap = b.tLines('ROLL_TAP', f).map((x) => x.line).join(' | ')
+    if (m && rl && !skip && ec.length === 1 && L.num(rl.kv.t) > m.tick) tapRolls++
+    else tapBad.push(`${m ? m.line.slice(0, 40) : 'MOVE 없음'} | ${tap || 'ROLL_TAP 없음'} | ${rl ? rl.line : 'ROLL 없음'} | echo ${ec.length}`)
+  }
+  L.echoSwings(b, true)
+  sc.check('an attack then a sneak tap within 3 ticks rolls even when the echo arrives while sneak is held (5 of 5: ROLL, no ROLL_TAP_SKIP why=attack)',
+    tapRolls === 5, tapBad.join(' || ') || 'ok')
+  await idle()
   await b.cmd('/soulstest give gaoler_club main', 'GIVE')
   await L.sleep(400)
 
@@ -192,7 +289,8 @@ L.run('attacks', async (sc) => {
   sc.check('dex 40: the swing tier changes once (tier 3) and the held club is rebuilt', tier.length === 1 && tier[0].kv.tier === '3' && L.num(tier[0].kv.n) >= 1,
     tier.map((x) => x.line).join(' | ') || '줄 없음')
   const st40 = await state()
-  sc.checkCmd('dex 40: the club swings 15 ticks (whole light cycle at tier 3) and carries tier 3', st40, (r) => r.kv.tier === '3' && r.kv.want === '3' && r.kv.swing === 'whack/15')
+  sc.checkCmd('dex 40: the club swings 25 ticks (swing lock at tier 3: 2 x shortest cycle at dex 59 (14) - 3) and carries tier 3', st40, (r) => r.kv.tier === '3' &&
+    r.kv.want === '3' && r.kv.swing === 'whack/25')
   from = b.sys.length
   await b.cmd('/soulstest stat dex 40', 'STAT ')
   await L.sleep(300)
@@ -209,11 +307,12 @@ L.run('attacks', async (sc) => {
   sc.check('dex 40: hammer 5/2/(8|9), cycle sum within one tick of n x 15.2 (fraction carried)', ok40 && Math.abs(sum - mv.length * (7 + 10 / 1.22)) <= 1,
     `${mv.map((x) => `${x.s}/${x.a}/${x.r}`).join(' ')} sum=${sum} want=${(mv.length * (7 + 10 / 1.22)).toFixed(2)}`)
   sc.check('dex 40: starts follow the shortened cycle', mv.slice(1).every((x, i) => x.tick - mv[i].tick === mv[i].cycle), mv.map((x) => x.tick).join(','))
+  sc.check('dex 40: every start still swings the server arm (cycles 15..16 >= half of 25 + 1)', mv.every((x) => x.kv.sw === '1'), mv.map((x) => x.kv.sw).join(','))
   from = b.sys.length
   await b.cmd('/soulstest stat dex 10', 'STAT ')
   await L.sleep(400)
   const back = await state()
-  sc.check('dex back to 10: tier 0 and the 18-tick swing again', b.tLines('SWING_TIER', from).length === 1 && back.kv && back.kv.tier === '0' && back.kv.swing === 'whack/18',
+  sc.check('dex back to 10: tier 0 and the 31-tick swing again', b.tLines('SWING_TIER', from).length === 1 && back.kv && back.kv.tier === '0' && back.kv.swing === 'whack/31',
     (back.line || '') + ' | ' + b.tLines('SWING_TIER', from).map((x) => x.line).join(' | '))
   await idle()
 
@@ -420,4 +519,63 @@ L.run('attacks', async (sc) => {
   await idle()
   await stamina(100)
   sc.check('no kick during attacks scenario', !b.kick, b.kick || '')
+
+  // ── 3부 (2026-10-11 검토): 핑이 큰 클라이언트의 늦은 되돌림 ──
+  // 지연 프록시 (왕복 250ms) 로 다시 들어온다. 서버가 공격을 시작해 휘두른 뒤 그 휘두름이 봇에 닿기 전에 누른 웅크리기 + 좌클릭 (강공격) 은
+  // 그 되돌림보다 먼저 서버에 닿는다. 장부가 그것을 되돌림으로 쓰면 강공격이 약공격이 되고 짧은 누름이 구르기로 간다 (ROLL_TAP →
+  // ROLL_DENY why=attack). 한 왕복 (핑 틱 − 2) 전에 온 휘두르기는 묶어 두었다가 되돌림이 오면 진짜로 푼다 (MOVE_HELD sneak=true).
+  // 허공에 휘두른다 (적을 누르면 공격 패킷 바로 뒤의 휘두르기라 늘 진짜다)
+  await b.quit()
+  await L.sleep(1500)
+  let px = null
+  for (let i = 0; i < 5 && !px; i++) {
+    px = await require('./lagproxy').startProxy({ listen: L.ENV.port + 2090 + i, port: L.ENV.port, rtt: 250, quiet: true }).catch(() => null)
+  }
+  if (!sc.check('lag proxy (250 ms round trip) starts', !!px, px ? `port ${px.port}` : '포트가 모두 쓰인다')) return
+  const bl = await L.connect(sc, { port: px.port })
+  // Paper 의 핑은 1초마다 재는 왕복의 평균이라 몇 초 기다린다
+  await L.sleep(6000)
+  const stateL = () => bl.cmd('/soulstest state', 'MOVE_STATE', 4000)
+  const idleL = async (ms = 4000) => {
+    const end = Date.now() + ms
+    for (;;) {
+      const r = await stateL()
+      if (r.kv && r.kv.move === '-' && r.kv.buf === '-') return r
+      if (Date.now() > end) return r
+      await L.sleep(150)
+    }
+  }
+  const pingL = await stateL()
+  sc.checkCmd('through the proxy the server sees a ping of at least 200 ms (echo cannot come back within ping ticks - 2)', pingL, (r) => L.num(r.kv.ping) >= 200)
+  const late = []
+  for (let i = 0; i < 3; i++) {
+    await idleL()
+    await bl.cmd('/soulstest stamina set 100', 'STAMINA', 4000)
+    await L.sleep(800)
+    const f = bl.sys.length
+    bl.bot.swingArm('right') // 약공격: 서버에 닿는 틱에 곧바로 시작하고 휘두른다
+    await L.sleep(60)
+    // 그 휘두름이 봇에 닿기 전 (왕복 250ms) 에 웅크리기 + 좌클릭, 곧 뗀다 (짧은 누름)
+    bl.input({ shift: true })
+    await L.sleep(20)
+    bl.bot.swingArm('right')
+    await L.sleep(60)
+    bl.input({})
+    await L.sleep(2400)
+    const mvs = L.moveLines(bl, f).map((x) => x.kv.kind)
+    const held = bl.tLines('MOVE_HELD', f)
+    const skip = bl.tLines('ROLL_TAP_SKIP', f).map((x) => x.kv.why)
+    const taps = bl.tLines('ROLL_TAP held', f).length + bl.tLines('ROLL ', f).length + bl.tLines('ROLL_DENY', f).length
+    const fakes = bl.tLines('MOVE_FAKE', f).map((x) => x.kv.why + (x.kv.early ? '/early' : ''))
+    late.push({ mvs, held: held.map((x) => x.kv.sneak), skip, taps, fakes })
+  }
+  sc.check('late echo (250 ms): a sneak + click sent before the server swing arrived stays a heavy (held until the echo: MOVE_HELD sneak=true, then MOVE heavy)',
+    late.every((o) => o.mvs.join(',') === 'light1,heavy' && o.held.length === 1 && o.held[0] === 'true'), JSON.stringify(late))
+  sc.check('late echo (250 ms): that sneak press is a combo, not a roll (ROLL_TAP_SKIP why=attack, no ROLL_TAP / ROLL / ROLL_DENY)',
+    late.every((o) => o.skip.includes('attack') && o.taps === 0), JSON.stringify(late.map((o) => ({ skip: o.skip, taps: o.taps }))))
+  sc.check('late echo (250 ms): still one echo dropped per server swing (MOVE_FAKE why=echo x2, none dropped as an early echo)',
+    late.every((o) => o.fakes.length === 2 && o.fakes.every((x) => x === 'echo')), JSON.stringify(late.map((o) => o.fakes)))
+  sc.check('no kick through the lag proxy', !bl.kick, bl.kick || '')
+  await bl.quit()
+  await px.close()
 })

@@ -124,6 +124,18 @@ class ConfigDefaultsTest {
         assertEquals(cfg.tuning.input, c.tuning.input);
     }
 
+    /**
+     * 설정 판 (config-version, Souls.upgradeConfig): 기본값을 바꾸면 올린다. 3 (2026-10-11): echo-window 2 → 6, combat.moves.swing-margin.
+     * 판이 낮은 서버의 config.yml 은 옮겨 두고 새 기본값으로 다시 쓴다 (옛 값 echo-window 2 가 남지 않게).
+     */
+    @Test
+    void configVersion() {
+        var y = TestFiles.yaml("config.yml");
+        assertEquals(3, y.getInt("config-version"));
+        assertEquals(6, y.getInt("combat.input.echo-window"));
+        assertEquals(3, y.getInt("combat.moves.swing-margin"));
+    }
+
     /** M1 P1a: combat.input·combat.moves 의 기본값 (3.6). 코드의 기본값 (빈 설정) 도 같다. */
     @Test
     void moveDefaults() {
@@ -131,7 +143,7 @@ class ConfigDefaultsTest {
         assertEquals(20, in.buffer());
         assertEquals(20, in.acceptBefore());
         assertEquals(1, in.fakeSwingWindow());
-        assertEquals(2, in.echoWindow());
+        assertEquals(6, in.echoWindow(), "2026-10-11: 되돌림은 서버 휘두름 하나에 하나만 버리므로 넓혀도 된다");
         var m = cfg.tuning.moves;
         assertEquals(java.util.List.of(100.0, 105.0, 115.0), m.light());
         assertEquals(115, m.lightMv(5), 1e-9, "목록보다 긴 단은 마지막 값");
@@ -152,6 +164,7 @@ class ConfigDefaultsTest {
         assertEquals(java.util.List.of(10, 20, 30, 40, 60, 99), m.swingTiers());
         assertTrue(m.attackSpeed() >= 4, "서버가 휘두른 뒤 주무기가 내려가지 않게 4 이상 (S3)");
         assertEquals(4, m.comboGrace());
+        assertEquals(3, m.swingMargin(), "휘두름 잠금: D = 2 × 가장 짧은 약공격 한 주기 − 3 (D/2 + 1 = 한 주기 − 1: 한 틱 남는다)");
         Config bare = new Config(new org.bukkit.configuration.file.YamlConfiguration());
         assertEquals(m, bare.tuning.moves, "jar 의 config.yml 과 코드의 기본값이 같다");
         assertEquals(in, bare.tuning.input);

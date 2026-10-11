@@ -6,7 +6,8 @@
 //   옮기기 (R6): 표식 (souls_mark) 을 태운 채 Foes.teleport 가 옮기고 표식이 남는다. 깃발 없는 teleport 의 결과는 기록만
 //   한 대: Foes.hit 원피해 100, 방어 20 → 83.33 (raw²/(raw+def)), 때린 사람의 lastCombatTick, 아파하는 몸짓 (hurt_animation),
 //     두 번째 한 대로 쓰러지면 몸을 지우고 등록부에서 뺀다. 바닐라 /kill 로 죽어 세계에서 빠져도 등록부에서 빠진다 (R7)
-//   서버 휘두르기 (S3): Swings.off / main 이 자기에게 animation 3 / 0 을 보내고 틱을 적는다
+//   서버 휘두르기 (S3): Swings.off / main 이 자기에게 animation 3 / 0 을 보내고 틱을 적는다. 두 손이 휘두름 시계 하나를 쓴다: 반 + 1 틱
+//     (곤봉 31 → 16틱) 안의 둘째 휘두름은 서버가 막으므로 Swings 도 보내지 않고 적지 않는다 (sent=0, 2026-10-11)
 //   느려짐 (S4): Slow 0.5 → 걷기 0.1 (abilities 패킷 walkingSpeed 0.05), 뿌리 → 걷기 0·뛰기 0. 죽음·다른 세계·나가기 (다시 들어오면)
 //     뒤에 바닐라 0.2 로 돌아온다. 서버 기록에 RESET why=DEATH|WORLD|QUIT|JOIN
 'use strict'
@@ -99,14 +100,21 @@ L.run('contract', async (sc) => {
   b._bot._client.on('animation', (d) => { if (d.entityId === b._bot.entity.id) anim.push(d.animation) })
   let a0 = anim.length
   r = await b.cmd('/soulstest contract swing off', 'CONTRACT_SWING')
+  sc.checkCmd('Swings.off swings the off hand to the player and records the tick', r, (x) => x.kv.hand === 'OFF_HAND' && x.kv.sent === '1' &&
+    x.kv.at === x.kv.t && x.kv.since === '0', r.line)
+  // 2026-10-11: 서버 쪽 휘두름 시계는 손이 하나다 (길이는 주손 곤봉의 swing_animation 31). 반 + 1 (16틱) 안의 주손 휘두름은 서버가 막으므로
+  // Swings 도 휘두르지 않고 적지 않는다 (sent=0: 되돌림 장부에 오지 않을 되돌림을 적지 않는다)
+  const early = await b.cmd('/soulstest contract swing main', 'CONTRACT_SWING')
+  sc.checkCmd('Swings.main right after Swings.off is refused (one swing clock, half of the club swing 31 + 1 = 16 ticks): sent=0, nothing recorded',
+    early, (x) => x.kv.sent === '0' && x.kv.at !== x.kv.t, early.line)
   await L.sleep(400)
-  sc.checkCmd('Swings.off swings the off hand to the player and records the tick', r, (x) => x.kv.hand === 'OFF_HAND' && x.kv.at === x.kv.t &&
-    x.kv.since === '0', r.line)
   sc.check('off-hand swing reaches the player (animation 3)', anim.slice(a0).includes(3), 'animation ' + anim.slice(a0).join(','))
+  sc.check('the refused main-hand swing sends nothing', !anim.slice(a0).includes(0), 'animation ' + anim.slice(a0).join(','))
+  await L.sleep(800)
   a0 = anim.length
   r = await b.cmd('/soulstest contract swing main', 'CONTRACT_SWING')
   await L.sleep(400)
-  sc.checkCmd('Swings.main records the main hand', r, (x) => x.kv.hand === 'HAND' && x.kv.at === x.kv.t, r.line)
+  sc.checkCmd('Swings.main records the main hand once the half swing has passed', r, (x) => x.kv.hand === 'HAND' && x.kv.sent === '1' && x.kv.at === x.kv.t, r.line)
   sc.check('main-hand swing reaches the player (animation 0)', anim.slice(a0).includes(0), 'animation ' + anim.slice(a0).join(','))
 
   // ── 느려짐 (S4) ──

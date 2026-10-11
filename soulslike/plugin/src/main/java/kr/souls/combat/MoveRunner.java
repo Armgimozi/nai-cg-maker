@@ -40,15 +40,18 @@ import java.util.UUID;
  *       공격 뒤의 약공격은 1단이다.</li>
  *   <li>동작 중의 입력은 끝나기 accept-before 틱 전부터 기억하고 (InputBuffer) 끝나는 틱에 낸다.</li>
  *   <li>준비·판정 중에 마시기·술 (CONSUMABLE 이 있는 것) 을 시작하지 못한다 (InputRouter 가 사용을 막고, 여기서도 끊는다, R17).</li>
- *   <li>서버는 이 동작 때문에 팔을 다시 휘두르지 않는다 (R3): 클라이언트가 누른 순간 이미 휘둘렀다.</li>
+ *   <li>휘두름 잠금 (2026-10-11, R3 를 바꿨다): 서버는 동작마다 시작하는 틱에 주손을 휘두른다 (Swings.main, 곧바로 낸 것도 기억했다가 낸
+ *       것도). 무기 아이템의 팔 휘두름 길이는 가장 짧은 약공격 한 주기의 두 배 − swing-margin ({@link MoveTiming#lockTicks}) 이라, 바닐라
+ *       클라이언트는 공격 한 주기 안에 더 누른 클릭으로 팔을 다시 휘두르지 않는다: 보이는 내려치기는 공격 하나에 하나, 공격의 시작에 맞는다.
+ *       우리 세계의 클라이언트 휘두르기는 서버 쪽 휘두름을 다시 시작하지 않으므로 (InputRouter) 서버의 휘두름은 막히지 않는다 (MOVE sw=1).</li>
  *   <li>구르기 공격 (P1c): 구르기 시작에서 센 {@link #rollAttackWindow} 틱 (가벼운 구르기 9~16, 뒷걸음 7~14) 의 약공격·달리기 공격.
  *       창이 열리기 전 (구르는 중) 의 입력은 창이 열리는 틱까지 기억한다 (accept-before 틱 전부터). 동작 배율 combat.moves.motion.roll,
  *       틱은 약공격 1단, 스태미나는 약공격 × cost.roll. 시작하면 구르기의 대역을 곧바로 거둔다 (Tumble.reveal). 뒤의 약공격은 2단.</li>
  *   <li>구르기 (P1c): 준비·판정 중에는 막히고 (Roll 의 ROLL_DENY why=attack), 회복의 마지막 cancel-at 몫 (rollReadyAt) 부터 동작을
  *       끊고 구른다 (MOVE_CANCEL why=roll).</li>
  * </ul>
- * 시험 줄 (ASCII): MOVE kind= cls= weapon= s= a= r= cycle= mv= ar= raw= stam= st= dex= buf= t=, MOVE_BUF kind= at= until=,
- * MOVE_EARLY kind= at= until=, MOVE_BUF kind= at= until= roll=1 (구르기 공격 창을 기다린다), MOVE_DENY why=weapon|state|stamina kind= …, MOVE_CANCEL why= kind= t=, HIT foe= move= …,
+ * 시험 줄 (ASCII): MOVE kind= cls= weapon= s= a= r= cycle= mv= ar= raw= stam= st= dex= buf= sw=0|1 t=, MOVE_BUF kind= at= until=,
+ * MOVE_EARLY kind= at= until=, MOVE_BUF kind= at= until= roll=1 (구르기 공격 창을 기다린다), MOVE_DENY why=weapon|state|stamina kind= … buf= t=, MOVE_CANCEL why= kind= t=, HIT foe= move= …,
  * HIT_PVP to= move= …, USE_DENY why= item= t=.
  */
 public final class MoveRunner {
@@ -180,18 +183,21 @@ public final class MoveRunner {
         return MoveTiming.tier(plugin.stats().of(p).dex(), cfg().swingTiers());
     }
 
-    /** 분류·단계의 아이템 휘두르기 (ItemFactory 가 부른다): 약공격 1단의 준비 + 판정을 그 단계의 첫 민첩으로 나눈 틱. */
+    /**
+     * 분류·단계의 아이템 휘두르기 (ItemFactory 가 부른다). 길이는 휘두름 잠금 ({@link MoveTiming#lockTicks}): 그 분류의 약공격 단들 가운데
+     * 가장 짧은 한 주기를 그 단계의 가장 빠른 민첩으로 셈한 Cmin 의 두 배 − combat.moves.swing-margin.
+     */
     private ItemFactory.SwingSpec swing(String cls, int tier) {
         Moveset.Cls c = moveset.of(cls);
         if (c == null) return null;
-        Moveset.Step l1 = c.light(0);
-        double a = speed(MoveTiming.tierDex(tier, cfg().swingTiers()));
-        // 2026-10-11: 팔 휘두름 길이를 약공격 한 주기 (준비 + 판정 + 회복) 로 늘인다. 바닐라 클라이언트는 클릭마다 팔을 휘두르는데,
-        // 휘두름이 짧으면 연타한 만큼 팔이 휘둘러져 "10번 휘둘렀는데 5번도 안 맞는다" 로 보였다 (실제 공격은 한 주기에 하나).
-        // 길게 두면 한 공격 동안 클릭을 더 해도 팔이 다시 휘둘러지지 않는다 (반이 지나야 다시 시작한다)
-        int swing = MoveTiming.swingTicks(l1.s(), l1.a(), a, cfg().minStartup())
-                + Math.max(cfg().minRecovery(), (int) Math.round(l1.r() / a));
-        swing = Math.max(cfg().minCycle(), swing);
+        // 2026-10-11: 휘두름 잠금. 바닐라 클라이언트는 휘두름이 반 지나야 클릭으로 팔을 다시 휘두른다. 길이를 공격 두 주기쯤으로 두면 한 공격
+        // 동안 더 누른 클릭은 팔을 다시 휘두르지 않고 (입력 기억에만 든다), 팔은 서버가 동작마다 시작에 휘두른 것 (Swings.main) 하나로 보인다.
+        // 그 전 (무기 판 2) 의 한 주기 길이는 반 주기 뒤부터 클릭이 팔을 일찍 다시 휘둘러 공격 하나에 1.4번쯤 휘둘러졌다
+        List<MoveTiming.Base> lights = new ArrayList<>();
+        for (Moveset.Step s : c.light()) lights.add(s.base());
+        CombatTuning.Moves m = cfg();
+        double a = speed(MoveTiming.fastestDex(tier, m.swingTiers()));
+        int swing = MoveTiming.lockTicks(lights, a, new MoveTiming.Rules(m.minStartup(), m.minRecovery(), m.minCycle()), m.swingMargin());
         return new ItemFactory.SwingSpec(c.stab(), swing, (float) c.spec().range());
     }
 
@@ -277,12 +283,12 @@ public final class MoveRunner {
         Moveset.Cls c = Stats.isMelee(w) ? moveset.of(w.cls()) : null;
         if (c == null) {
             plugin.test(p, "MOVE_DENY why=weapon kind=" + k + " weapon=" + (w == null ? (main.isEmpty() ? "-" : main.getType().getKey().getKey()) : w.id())
-                    + " t=" + now);
+                    + " buf=" + buffered + " t=" + now);
             return false;
         }
         String why = stateWhy(p);
         if (why != null) {
-            plugin.test(p, "MOVE_DENY why=state state=" + why + " kind=" + k + " t=" + now);
+            plugin.test(p, "MOVE_DENY why=state state=" + why + " kind=" + k + " buf=" + buffered + " t=" + now);
             return false;
         }
         CombatTuning.Moves m = cfg();
@@ -332,7 +338,7 @@ public final class MoveRunner {
         long end = now + t.cycle();
         double before = st.stamina.cur();
         if (!plugin.stamina().spend(p, cost, end)) {
-            plugin.test(p, String.format(Locale.ROOT, "MOVE_DENY why=stamina kind=%s st=%.1f cost=%.1f t=%d", k, before, cost, now));
+            plugin.test(p, String.format(Locale.ROOT, "MOVE_DENY why=stamina kind=%s st=%.1f cost=%.1f buf=%s t=%d", k, before, cost, buffered, now));
             return false;
         }
         st.dexCarry = t.carry();
@@ -345,14 +351,15 @@ public final class MoveRunner {
         st.combo = kind == InputBuffer.Kind.LIGHT ? index + 1 : kind == InputBuffer.Kind.ROLL ? 1 : 0;
         Slow.set(p, "move", 1 - m.slowStartup());
         active.add(p.getUniqueId());
+        // 2026-10-11 휘두름 잠금: 서버가 동작마다 시작에 주손을 휘두른다 (곧바로 낸 것도, 기억했다가 낸 것도). 팔 휘두름 길이가 공격 두 주기쯤이라
+        // 그사이 누른 클릭은 클라이언트의 팔을 다시 휘두르지 못하고, 보이는 내려치기는 이 휘두름 하나로 공격의 시작에 맞는다. 곧바로 낸 동작은
+        // 클라이언트가 이미 휘두르는 중이라 클라이언트 쪽에서 겹치지 않는다. 되돌아오는 휘두르기 하나는 Swings 가 장부에 적어 공격으로 안 친다
+        boolean sw = Swings.main(p, now);
         plugin.test(p, String.format(Locale.ROOT,
                 "MOVE kind=%s cls=%s weapon=%s s=%d a=%d r=%d cycle=%d mv=%.0f ar=%.1f raw=%.1f stam=%.1f st=%.1f dex=%d aspd=%.4f carry=%.3f "
-                        + "shape=%s range=%.1f buf=%s aim=%s t=%d",
+                        + "shape=%s range=%.1f buf=%s sw=%d aim=%s t=%d",
                 name, c.id(), w.id(), run.s, run.a, run.r, run.cycle(), mv, ar, raw, cost, st.stamina.cur(), sb.dex(), speed(sb.dex()), t.carry(),
-                step.spec().shape().name().toLowerCase(Locale.ROOT), step.spec().range(), buffered, target == null ? "-" : target, now));
-        // 기억했다가 낸 동작은 클라이언트가 그 순간 손을 휘두르지 않는다 (누른 순간에 이미 휘둘렀다). 그래서 서버가 휘둘러 실제로 치는
-        // 순간에 휘두름이 보이게 한다 (2026-10-11: "휘둘러져도 딜이 안 박힌다"). 되돌아오는 휘두름은 Swings 가 적어 둬 공격으로 안 친다
-        if (buffered) Swings.main(p, now);
+                step.spec().shape().name().toLowerCase(Locale.ROOT), step.spec().range(), buffered, sw ? 1 : 0, target == null ? "-" : target, now));
         if (kind == InputBuffer.Kind.ROLL) {
             // 구르기의 대역을 곧바로 거두고 진짜 몸으로 친다 (reveal 틱을 기다리면 대역이 일어서는 동안 공격이 보이지 않는다)
             plugin.test(p, "ROLL_ATTACK roll=" + st.roll.id() + " at=" + (now - st.rollStart) + " revealed=" + plugin.roll().tumble().reveal(p) + " t=" + now);

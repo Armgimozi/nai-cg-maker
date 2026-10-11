@@ -166,6 +166,8 @@ boolean teleport(Foe f, Location to);               // always RETAIN_PASSENGERS 
 
 S7 is deleted because USE_COOLDOWN groups are decided by design (R4). S3 is reduced (R3).
 
+*S3 note, 2026-10-11 (swing lock, see R3):* the server keeps one swing clock for both hands, and its length is the main-hand item's `swing_animation`. A swing restarts only once `D/2` has passed (server `LivingEntity.swing`; `now − last ≥ D/2 + 1` in Ticker ticks, one tick later for swings made outside the Ticker). So an off-hand swing (`Swings.off`; the parry gesture of P3 and the off-hand attack of P6 will call it, today only `/soulstest contract swing off` does) can block the next `Swings.main` for `D/2 + 1` ticks; `Swings` then sends nothing, records nothing and returns `false` (`MOVE sw=0`). The vanilla client always answers a swing it receives with one swing packet of the same hand (`LocalPlayer.swing`), even when its half rule refuses the animation.
+
 ---
 
 ## P0. Vanilla grip (DECISIONS 2026-10-11; starts now)
@@ -342,6 +344,7 @@ Lands everything listed under P1-0 in §1 as one small commit:
   - `MOVE_DENY why=weapon` when the main hand is not a souls melee weapon (bow, shield, catalyst, empty);
   - `MOVE_DENY why=state|stamina` in a vehicle, in water, climbing, gliding or dead.
 - **The attacker's own moves never call `swingMainHand()`** (R3).
+  - *Superseded 2026-10-11 (swing lock, R3 update):* every move start calls `Swings.main` (MOVE `sw=0|1`). The weapon's `swing_animation` lasts about two light cycles (`MoveTiming.lockTicks`), so extra clicks during an attack no longer restart the client arm.
 - `content/moves.yml`.
 
 **Changes.**
@@ -975,6 +978,14 @@ U1–U5 and V1–V15, N93 and N96 are as in the original plan, with these change
   - Never re-swing a left-click move.
   - The server swings only for moves that have no client swing: off-hand attack, the parry gesture, the riposte hit and the plunge landing.
   - S3 shrinks to "does `swingOffHand()` reach the player and obey the restart rule". The two-client half moves to M6.
+- *Update 2026-10-11 (swing lock, DECISIONS 2026-10-11).* The default above is replaced. The user's clips showed about three arm swings per hit: the client swings on every accepted click, while the server attacks once per cycle.
+  - The weapon's `swing_animation.duration` is `D = 2 × Cmin − combat.moves.swing-margin` (3). `Cmin` is the shortest light-combo cycle of the class at the fastest DEX of the item's swing tier (`MoveTiming.lockTicks`; axe and hammer tier 0: 31, dagger 17, greatsword tier 0: 37). The plan's margin 2 left no slack at the shortest cycle: the client accepted the next chop only if exactly `Cmin` client ticks had passed, so a packet a few ms early dropped the chop (for other players there is no click to restart the arm). Margin 3 gives `D/2 + 1 = Cmin − 1`, one tick of slack on the server and the client. The vanilla client restarts its arm only after `D/2`, so a click restarts it only after about one attack cycle. `WEAPON_FMT` 3 rebuilds old items, and `ItemFactory.swingStale` also compares the item's swing type, length and `attack_range` max reach.
+  - `InputRouter` cancels `PlayerArmSwingEvent` in our worlds (both hands, HIGH). Input is still recorded at MONITOR (`ignoreCancelled = false`). Only `Swings` restarts the server-side swing, so `Swings.main/off` know whether the animate packet was sent and return that.
+  - `Swings.main` runs at every move start, direct or buffered. Only that swing shows as the chop of each attack.
+  - Echoes are counted one to one: each sent server swing adds one to the hand's ledger (`CombatState.echoMain/echoOff`, a `FakeSwingFilter.Ledger`, until ping + `combat.input.echo-window` 6), and the LOWEST classifier discards exactly one swing of that hand. Swings already discarded by the mark rule do not use the ledger. `SneakTap` ignores echo swings and no longer counts `LEFT_CLICK_*` as an attack combo.
+  - A late echo must not take a real click's place. A client with ping sends clicks made before the server swing reached it ahead of the echo, so the first swing to arrive is not always the echo (review: a sneak + click heavy became a light, and its sneak tap a roll). Two rules keep the click's identity. A main-hand swing right after an attack packet in the same tick is a real entity click (vanilla sends attack, then swing) and skips the ledger. A swing that arrives before `from = swing tick + max(0, ping ticks − 2)` cannot be the echo; it counts as a click for `SneakTap` at once, and `InputRouter` holds it (and every later swing, to keep order) until the echo arrives (`MOVE_HELD`, delivered with its own tick, sneak and sprint) or the window ends without one, in which case the held swing was the echo (`MOVE_FAKE why=echo early=1`). So an overestimated ping can swap a click's identity but never creates an attack.
+  - Side effect: in our worlds other players no longer see arm swings from right-click interactions such as doors. Today they see one swing per attack start (`Swings.main`). The parry gesture (P3) and the off-hand attack (P6) do not swing yet; they will swing through `Swings` when they land.
+  - Known limits: during a heavy (longer than the light cycle) queued clicks can restart the arm early. A real air click that arrives within about two ticks before the echo is still taken as the echo (its sneak and sprint state are lost); entity clicks are always exact. A server-side vanilla swing we did not make (for example `useItemOn` with a server swing source) is not seen by `Swings`, so a later `Swings.main` may be refused by the server while `Swings` reports it sent. The ledger then waits for an echo that never comes and can discard one real click within ping + 6 ticks.
 
 **R4. S7 is already known, so it is not a spike.**
 - *Problem:* `setCooldown(ItemStack, 30)` uses the stack's cooldown group, and without USE_COOLDOWN the group is the item type. For FLINT that means every melee weapon and every catalyst, plus rings (Rings.java:171) and the master key (MasterKey.java:36). The fallback "clearActiveItem every tick" makes the guard flicker back up every 4 ticks (client `rightClickDelay`).

@@ -57,9 +57,25 @@ public final class CombatState {
     public long lastCombatTick = NEVER;
     /** 마지막으로 맞은 틱 (대기열이 찍는다, R23) */
     public long lastHurtTick = NEVER;
-    /** 서버가 이 사람의 주손·왼손을 마지막으로 휘두른 틱 (combat/Swings, S3 의 되돌아오는 휘두르기 거르기) */
+    /** 서버가 이 사람의 주손·왼손을 마지막으로 휘두른 틱 (combat/Swings: 실제로 휘둘렀을 때만 적는다) */
     public long srvSwingMain = NEVER;
     public long srvSwingOff = NEVER;
+    /** 마지막 서버 휘두름 (어느 손이든) 을 서버 쪽 휘두름 시계로 센 틱 (Swings.free: Ticker 밖에서 휘둘렀으면 now + 1) */
+    public long srvSwingClock = NEVER;
+    // 되돌아오는 휘두르기 장부 (2026-10-11, S3): 서버가 휘두른 손마다 하나씩 되돌아온다. 그 손의 휘두르기가 받는 끝 틱까지 오면 하나를
+    // 공격으로 치지 않는다 (FakeSwingFilter.Ledger, InputRouter 의 LOWEST 처리기). 지나면 남은 것은 버린다
+    /** 주손·왼손의 되돌림 장부 */
+    public final kr.souls.input.FakeSwingFilter.Ledger echoMain = new kr.souls.input.FakeSwingFilter.Ledger();
+    public final kr.souls.input.FakeSwingFilter.Ledger echoOff = new kr.souls.input.FakeSwingFilter.Ledger();
+    /** 지금 보내는 PlayerArmSwingEvent 가 되돌아온 것인가 (InputRouter 가 LOWEST 에서 정한다. SneakTap·InputRouter.onSwing 이 본다) */
+    public boolean lastSwingEcho;
+    /** 지금 보내는 주손 PlayerArmSwingEvent 가 되돌림보다 먼저 온 이른 휘두르기라 장부가 정할 때까지 묶는가 (InputRouter.onSwing 이 본다) */
+    public boolean lastSwingHeld;
+    /**
+     * 공격 패킷 (PrePlayerAttackEntityEvent) 을 받은 틱 (2026-10-11). 바닐라 클라이언트는 적을 누르면 공격 패킷 바로 뒤에 휘두르기를 보낸다
+     * (Minecraft.startAttack). 그 휘두르기는 진짜 클릭이라 되돌림 장부를 쓰지 않는다. 휘두르기 하나가 쓰면 NEVER
+     */
+    public long attackAt = NEVER;
     // ── M1 P1a ── (동작·입력 기억·민첩 몫)
     /** 지금 하는 공격 동작 (없으면 null). MoveRunner 만 바꾼다 */
     public MoveRunner.Run move;
