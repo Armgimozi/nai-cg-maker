@@ -223,8 +223,8 @@ public final class ItemFactory {
     }
 
     // ── M1 P1a ──
-    /** 무기 아이템의 판 (Keys.WEAPON_FMT). 1: M1 P1a (휘두르기·사거리·민첩 단계). 판이 다르면 WeaponRefresh 가 새로 만든다 */
-    public static final int WEAPON_FMT = 1;
+    /** 무기 아이템의 판 (Keys.WEAPON_FMT). 1: M1 P1a (휘두르기·사거리·민첩 단계). 2: 휘두름 길이 = 약공격 한 주기 (2026-10-11). 판이 다르면 WeaponRefresh 가 새로 만든다 */
+    public static final int WEAPON_FMT = 2;
 
     /** 근접 무기 분류의 휘두르기: stab (찌르기, 창), ticks (휘두르는 길이), reach (사거리 = attack_range 의 max_reach). */
     public record SwingSpec(boolean stab, int ticks, float reach) {}

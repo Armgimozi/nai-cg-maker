@@ -53,15 +53,15 @@ L.run('attacks', async (sc) => {
 
   // ── 아이템 ──
   const st0 = await state()
-  sc.checkCmd('held club: weapon format 1, swing tier 0, whack swing 8 ticks (light 1: 6 + 2)', st0, (r) =>
-    r.kv.held === 'gaoler_club' && r.kv.fmt === '1' && r.kv.tier === '0' && r.kv.want === '0' && r.kv.swing === 'whack/8')
+  sc.checkCmd('held club: weapon format 2, swing tier 0, whack swing 18 ticks (light 1 whole cycle: 6 + 2 + 10)', st0, (r) =>
+    r.kv.held === 'gaoler_club' && r.kv.fmt === '2' && r.kv.tier === '0' && r.kv.want === '0' && r.kv.swing === 'whack/18')
   sc.checkCmd('vanilla attack_speed is high while holding a souls melee weapon (S3: no dip after server swings)', st0, (r) => L.num(r.kv.aspd) >= 4)
   const held = b.bot.inventory.slots[36 + b.bot.quickBarSlot]
   const comp = (t) => held && Array.isArray(held.components) ? (held.components.find((c) => c.type === t) || {}).data : null
   const ar = comp('attack_range')
   const sw = comp('swing_animation')
   sc.check('the client gets attack_range max 2.9 with hitbox margin 0 (S6) and the swing length', ar && Math.abs(ar.maxRange - 2.9) < 1e-3 &&
-    Math.abs(ar.hitboxMargin) < 1e-6 && sw && sw.duration === 8, JSON.stringify({ ar, sw }))
+    Math.abs(ar.hitboxMargin) < 1e-6 && sw && sw.duration === 18, JSON.stringify({ ar, sw }))
 
   // ── 허수아비 ──
   await b.cmd('/soulstest dummy clear', 'DUMMY clear')
@@ -192,7 +192,7 @@ L.run('attacks', async (sc) => {
   sc.check('dex 40: the swing tier changes once (tier 3) and the held club is rebuilt', tier.length === 1 && tier[0].kv.tier === '3' && L.num(tier[0].kv.n) >= 1,
     tier.map((x) => x.line).join(' | ') || '줄 없음')
   const st40 = await state()
-  sc.checkCmd('dex 40: the club swings 7 ticks (5 + 2) and carries tier 3', st40, (r) => r.kv.tier === '3' && r.kv.want === '3' && r.kv.swing === 'whack/7')
+  sc.checkCmd('dex 40: the club swings 15 ticks (whole light cycle at tier 3) and carries tier 3', st40, (r) => r.kv.tier === '3' && r.kv.want === '3' && r.kv.swing === 'whack/15')
   from = b.sys.length
   await b.cmd('/soulstest stat dex 40', 'STAT ')
   await L.sleep(300)
@@ -213,7 +213,7 @@ L.run('attacks', async (sc) => {
   await b.cmd('/soulstest stat dex 10', 'STAT ')
   await L.sleep(400)
   const back = await state()
-  sc.check('dex back to 10: tier 0 and the 8-tick swing again', b.tLines('SWING_TIER', from).length === 1 && back.kv && back.kv.tier === '0' && back.kv.swing === 'whack/8',
+  sc.check('dex back to 10: tier 0 and the 18-tick swing again', b.tLines('SWING_TIER', from).length === 1 && back.kv && back.kv.tier === '0' && back.kv.swing === 'whack/18',
     (back.line || '') + ' | ' + b.tLines('SWING_TIER', from).map((x) => x.line).join(' | '))
   await idle()
 

@@ -186,7 +186,13 @@ public final class MoveRunner {
         if (c == null) return null;
         Moveset.Step l1 = c.light(0);
         double a = speed(MoveTiming.tierDex(tier, cfg().swingTiers()));
-        return new ItemFactory.SwingSpec(c.stab(), MoveTiming.swingTicks(l1.s(), l1.a(), a, cfg().minStartup()), (float) c.spec().range());
+        // 2026-10-11: 팔 휘두름 길이를 약공격 한 주기 (준비 + 판정 + 회복) 로 늘인다. 바닐라 클라이언트는 클릭마다 팔을 휘두르는데,
+        // 휘두름이 짧으면 연타한 만큼 팔이 휘둘러져 "10번 휘둘렀는데 5번도 안 맞는다" 로 보였다 (실제 공격은 한 주기에 하나).
+        // 길게 두면 한 공격 동안 클릭을 더 해도 팔이 다시 휘둘러지지 않는다 (반이 지나야 다시 시작한다)
+        int swing = MoveTiming.swingTicks(l1.s(), l1.a(), a, cfg().minStartup())
+                + Math.max(cfg().minRecovery(), (int) Math.round(l1.r() / a));
+        swing = Math.max(cfg().minCycle(), swing);
+        return new ItemFactory.SwingSpec(c.stab(), swing, (float) c.spec().range());
     }
 
     /** 이 동작의 틱 (모아 둔 몫 carry 로). */
