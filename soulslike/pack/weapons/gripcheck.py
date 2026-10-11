@@ -26,7 +26,8 @@ flint[item_model=souls:test_grip_sword] 로 든다. tools/client/grip_shots.sh �
   souls:test_grip_mace     바닐라 철퇴 그림 + 우리 철퇴 display        souls:test_grip_spear  바닐라 철창 (손에 든 32×32 그림) + 창
   souls:test_grip_bow      바닐라 활 그림 (당김 셋도) + 우리 활 display, 아이템 정의는 우리 활과 같은 꼴 (using_item, use_duration)
   souls:test_grip_shield   바닐라 ShieldModel 상자 둘 (판·손잡이) 에 minecraft:entity/shield_base_nopattern + 우리 방패·막기 display.
-                           그 그림을 아이템 모형이 쓰도록 items 아틀라스에 single 소스 하나를 더한다 (assets/minecraft/atlases)
+                           1.21.11 은 그림 이름을 아틀라스 모두에서 찾으므로 그 그림은 바닐라 shield_patterns 아틀라스의 것을 그대로
+                           부른다 (items 아틀라스에 다시 넣으면 "Duplicate sprite" 경고가 난다)
   souls:test_grip_empty    빈 모형 (팔 자세는 그대로라 겹침 그림의 바탕)
   souls:test_grip_shield_block, test_grip_bow_pulling_0..2 와 바닐라 짝 test_grip_vanilla_shield_block (특수 방패 모형, 바탕
                            item/shield_blocking), test_grip_vanilla_bow_pulling_0..2: 쓰지 않아도 막기·당김 모형을 보인다 (아이템을
@@ -532,13 +533,6 @@ def write_probes(out, masks, g):
     for name, model in still.items():
         _json(os.path.join(items, name + ".json"), {"model": model})
         made.append(name)
-    # 방패 그림을 아이템 모형이 쓰게: items 아틀라스에 single 소스 (아틀라스 파일은 팩마다 합쳐진다)
-    at = os.path.join(out, "assets", "minecraft", "atlases", "items.json")
-    data = _load(at) if os.path.exists(at) else {"sources": []}
-    src = {"type": "minecraft:single", "resource": SHIELD_TEX}
-    if src not in data["sources"]:
-        data["sources"].append(src)
-    _json(at, data)
     return made
 
 

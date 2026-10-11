@@ -6,7 +6,8 @@
 # 겹침 그림은 OUT (기본 dist/screenshots/grip/) 에 <장면>.png (바닐라 | 시험 모형 | 겹침 (빨강 바닐라만, 초록 시험 모형만, 노랑 둘 다)
 # | 차이 ×4), 수치는 OUT/overlay.json 과 표준 출력의 표. 어긋남 (px) 은 시험 모형 그림을 ±4 화소 옮겨 바닐라와 가장 잘 맞는 자리의
 # 거리다 (0 이면 그대로 겹친다). 그 자리에서도 남는 차이 (rest) 는 옆면의 가는 줄·빛 셈이 다른 곳, 0~3 화소 안에서 어떻게 옮겨도
-# 남는 차이 (left) 도 적는다.
+# 남는 차이 (left) 도 적는다. overlay.json 의 sil 은 실루엣 (빈 모형 장과 다른 화소) 끼리의 가장 먼 거리 (견줄 자리 안, 12 까지:
+# 아이템 색이 바탕과 비슷한 가장자리에서 1~3 화소가 늘 나와 참고만 한다). 견줄 자리는 두 그림 모두에서 아이템인 화소를 3 화소 넓힌 곳이라 한쪽에만 있는 날리는 재 입자가 빠진다.
 # 아이템 자리는 빈 모형 장 (E) 과 다른 화소에서 작은 덩이 (날리는 재, 등불 불꽃) 를 지운 것. MC_GUI_SCALE=2 (1280×720) 로 켠 클라이언트에서 찍는다 (1인칭은 단축 슬롯·이름
 # 자리를 가리고 견준다). 시험 줄과 흐르는 구름이 그림에 남지 않게 MC_OPTIONS='chatScale:0.0;bobView:false;renderClouds:"false";particles:2' 로 켠다.
 #
@@ -156,16 +157,17 @@ nbt() {   # nbt <probe> <v|p|e> → 아이템 NBT ({id, count, components})
   esac
 }
 mspawn() {   # mspawn <yaw> <mainhand|offhand> <아이템 NBT>
-  # 언 세계에서 죽인 몸은 쓰러지는 몸짓 (20틱) 에 멈춰 남는다: 21틱을 돌려 치운 뒤 새 몸을 소환한다 (새 몸은 틱 0)
-  con "kill @e[type=minecraft:mannequin,tag=grip]" 0.2
-  con "tick step 21" 1.6
+  # 지난 몸은 바닥 밑으로 치운다 (언 세계에서 죽이면 쓰러지는 몸짓과 연기에 멈춰 남는다). 옮김은 클라이언트가 틱마다 보간하므로
+  # 두 틱만 돌린다. 새 몸은 그 뒤에 소환해 틱 0 이다
+  con "execute as @e[type=minecraft:mannequin,tag=grip] at @s run tp @s ~ 80 ~" 0.2
+  con "tick step 2" 0.5
   con "execute in minecraft:$W run summon minecraft:mannequin $MX $PY $MZ {Rotation:[${1}f,0f],Tags:[\"grip\"],hide_description:1b,immovable:1b,equipment:{$2:$3}}" 1.0
 }
 if want mq; then
   clear_hands
   cam 0; hud 1
   home 10
-  con "kill @e[type=minecraft:mannequin,tag=grip]"
+  con "kill @e[type=minecraft:mannequin,tag=grip]" 3.5      # 쓰러지는 몸짓과 연기가 끝난 뒤에 얼린다
   con "tick freeze" 0.8
   for o in front back right left; do
     case $o in front) yaw=0 ;; back) yaw=180 ;; right) yaw=-90 ;; left) yaw=90 ;; esac
@@ -397,6 +399,16 @@ def explain(V, P, U):
                 cur = d if cur is None else np.minimum(cur, d)
         left.append(int(clean((cur > TC) & U, least=6).sum()))
     return best, rest, left
+def roi(mV, mP):
+    """견줄 자리: 두 그림 모두에서 아이템인 화소 (한쪽에만 있는 날리는 재는 빠진다) 를 3 화소 넓힌 곳."""
+    U = clean(mV & mP)
+    for _ in range(3):
+        U = dilate(U)
+    return U
+def sil(mV, mP, U):
+    """실루엣 어긋남 (화소, 체비쇼프): 견줄 자리 안에서 한 그림의 아이템 화소가 다른 그림의 아이템 화소에서 떨어진 가장 먼 거리."""
+    a, b = mV & U, mP & U
+    return max(directed(a, b, 12), directed(b, a, 12))
 def item_masks(V, P, E, keep):
     mV = clean((np.abs(V - E).max(axis=2) > T) & keep)
     mP = clean((np.abs(P - E).max(axis=2) > T) & keep)
@@ -410,10 +422,10 @@ for vp in sorted(glob.glob(os.path.join(raw, "*_v.png"))):
     V, P, E = load(vp), load(pp), load(ep)
     keep = hud_mask(base, V.shape)
     mV, mP = item_masks(V, P, E, keep)
-    U = dilate(dilate(mV | mP)) & keep
+    U = roi(mV, mP) & keep
     sh, col, left = explain(V, P, U)
-    r = {"scene": base, "px": max(abs(sh[0]), abs(sh[1])), "shift": list(sh), "colour": col, "unexplained": left,
-         "item_px": int(mV.sum()), "shape_xor": int((mV ^ mP).sum())}
+    r = {"scene": base, "px": max(abs(sh[0]), abs(sh[1])), "shift": list(sh), "sil": sil(mV, mP, U), "colour": col,
+         "unexplained": left, "item_px": int(mV.sum()), "shape_xor": int((mV ^ mP).sum())}
     results.append(r)
     sheet(base, V, P, mV, mP, f"{base}: best overlay shift {sh} px; {col} px still differ there (thin side-face lines, shading); "
                               f"left after any 0/1/2/3 px shift: {left}; vanilla item {r['item_px']} px")
@@ -431,11 +443,12 @@ for vp0 in sorted(glob.glob(os.path.join(raw, "walk_*_v_00.png"))):
     V, P, E = Vs[i], Ps[j], Es[k]
     keep = np.ones(V.shape[:2], bool)
     mV, mP = item_masks(V, P, E, keep)
-    U = dilate(dilate(mV | mP))
+    U = roi(mV, mP)
     sh, col, left = explain(V, P, U)
     h = max(abs(sh[0]), abs(sh[1]))
     xor = int((mV ^ mP).sum())
-    r = {"scene": base, "px": h, "shift": list(sh), "colour": col, "unexplained": left, "item_px": int(mV.sum()), "shape_xor": xor,
+    r = {"scene": base, "px": h, "shift": list(sh), "sil": sil(mV, mP, U), "colour": col, "unexplained": left, "item_px": int(mV.sum()),
+         "shape_xor": xor,
          "frames": [i, j, k], "note": "burst, closest body pose; includes walk-phase mismatch"}
     results.append(r)
     sheet(base, V, P, mV, mP, f"{base}: frames v{i} p{j} e{k} (closest pose), offset {h} px (left {left}), {col} px colour")
