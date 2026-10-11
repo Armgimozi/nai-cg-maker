@@ -274,9 +274,28 @@ def check_pack(jar):
     g.check(not extra, f"점검하지 않은 셰이더가 들어 있다 (10.8): {extra[:3]}")
     g.check(not missing, f"점검한 셰이더가 빠졌다 (10.8, 글꼴 셰이더가 없으면 글이 보이지 않는다): {missing[:3]}")
 
-    # 참조: 글꼴 → 그림, 아이템 정의 → 모형, 모형 → 부모·그림. minecraft: 의 바닐라 파일은 팩에 없어도 된다
+    # 참조: 글꼴 → 그림, 아이템 정의 → 모형, 모형 → 부모·그림. minecraft: 의 바닐라 파일은 팩에 없어도 된다.
+    # 아틀라스의 single 원천 (assets/*/atlases/*.json, {"type": "single", "resource": …, "sprite": …}) 이 다른 이름으로 올린 그림도
+    # 있는 그림이다 (P0 의 시험 방패 모형 souls:item/test_grip_shield_base = 바닐라 entity/shield_base_nopattern: 팩에 사본이 없다).
+    # 원천 그림이 팩에 있거나 바닐라일 때만 센다
+    sprites = set()
+    for n in names:
+        if not re.match(r"assets/[^/]+/atlases/.+\.json$", n):
+            continue
+        try:
+            sources = json.loads(files[n]).get("sources", [])
+        except ValueError:
+            g.check(False, f"{n} 를 읽지 못했다")
+            continue
+        for s in sources:
+            if not isinstance(s, dict) or s.get("type") not in ("single", "minecraft:single") or not isinstance(s.get("resource"), str):
+                continue
+            rns, rpath = ref_path(s["resource"], "textures", ".png")
+            if g.check(rpath in files or rns == "minecraft", f"{n}: 원천 그림 {rpath} 가 팩에 없다"):
+                sprites.add(ref_path(s.get("sprite") or s["resource"], "textures", ".png")[1])
+
     def need(ns, path, what):
-        if path in files or ns == "minecraft":
+        if path in files or ns == "minecraft" or path in sprites:
             return True
         return g.check(False, f"{what}: {path} 가 팩에 없다")
 
