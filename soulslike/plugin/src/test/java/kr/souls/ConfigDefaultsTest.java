@@ -116,6 +116,46 @@ class ConfigDefaultsTest {
         // 읽지 않은 예전 열쇠는 알린다 (Souls 가 서버 기록에)
         assertEquals(Config.LEGACY_STATS, c.legacy);
         assertTrue(cfg.legacy.isEmpty(), "지금 판의 config.yml 에는 예전 열쇠가 없다");
+        // M1 P1a: 적을 치는 다리와 바닐라 공격 대기의 한 주기 (MoveRunner 가 알린다)
+        assertEquals(Config.LEGACY_PVE, c.legacyPve);
+        assertTrue(cfg.legacyPve.isEmpty(), "지금 판의 config.yml 에는 pve 절이 없다");
+        // 예전 파일에 없는 M1 절은 jar 기본값 (빈 절이 아니다)
+        assertEquals(cfg.tuning.moves, c.tuning.moves);
+        assertEquals(cfg.tuning.input, c.tuning.input);
+    }
+
+    /** M1 P1a: combat.input·combat.moves 의 기본값 (3.6). 코드의 기본값 (빈 설정) 도 같다. */
+    @Test
+    void moveDefaults() {
+        var in = cfg.tuning.input;
+        assertEquals(6, in.buffer());
+        assertEquals(6, in.acceptBefore());
+        assertEquals(1, in.fakeSwingWindow());
+        assertEquals(2, in.echoWindow());
+        var m = cfg.tuning.moves;
+        assertEquals(java.util.List.of(100.0, 105.0, 115.0), m.light());
+        assertEquals(115, m.lightMv(5), 1e-9, "목록보다 긴 단은 마지막 값");
+        assertEquals(160, m.heavy(), 1e-9);
+        assertEquals(115, m.running(), 1e-9);
+        assertEquals(110, m.roll(), 1e-9);
+        assertEquals(1.15, m.costRunning(), 1e-9);
+        assertEquals(0.5, m.slowStartup(), 1e-9);
+        assertEquals(0.5, m.slowActive(), 1e-9);
+        assertEquals(0.25, m.slowRecovery(), 1e-9);
+        assertEquals(10, m.minCycle());
+        assertEquals(2, m.minStartup());
+        assertEquals(4, m.minRecovery());
+        assertEquals(0.4, m.cancelAt(), 1e-9);
+        assertEquals(1.2, m.vertical(), 1e-9);
+        assertEquals(-1, m.rollFrom());
+        assertEquals(6, m.rollTo());
+        assertEquals(java.util.List.of(10, 20, 30, 40, 60, 99), m.swingTiers());
+        assertTrue(m.attackSpeed() >= 4, "서버가 휘두른 뒤 주무기가 내려가지 않게 4 이상 (S3)");
+        assertEquals(4, m.comboGrace());
+        Config bare = new Config(new org.bukkit.configuration.file.YamlConfiguration());
+        assertEquals(m, bare.tuning.moves, "jar 의 config.yml 과 코드의 기본값이 같다");
+        assertEquals(in, bare.tuning.input);
+        assertFalse(TestFiles.yaml("config.yml").contains("pve"), "pve 절은 없앴다");
     }
 
     @Test

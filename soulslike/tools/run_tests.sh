@@ -48,7 +48,8 @@ ALL_SCENARIOS="$ALL_SCENARIOS probe"
 # ── M1 P1-0: 계약 (contract: 틱 차례, 적 몸 R8·옮기기 R6·한 대·등록부 R7, 거두기 CombatReset·걷기 속도 S4, 서버 휘두르기 S3, 콘텐츠) ──
 ALL_SCENARIOS="$ALL_SCENARIOS contract"
 # ── M1 P1a ──
-# ── M1 P1b ──
+# ── M1 P1b: 적·허수아비·도장 (foes: 들어오면 셋, 시험 방 북쪽 문으로 걸어 들어가기, 가상 체력·차오르기·쓰러짐·다시 세우기, 청크 내려감 R7, 몸 R8) ──
+ALL_SCENARIOS="$ALL_SCENARIOS foes"
 # ── M1 P1c ──
 # ── M1 P2a ──
 # ── M1 P2b ──
@@ -74,6 +75,7 @@ BOT[probe]=SoulsProbe
 BOT[contract]=SoulsContract
 # ── M1 P1a ──
 # ── M1 P1b ──
+BOT[foes]=SoulsFoes
 # ── M1 P1c ──
 # ── M1 P2a ──
 # ── M1 P2b ──

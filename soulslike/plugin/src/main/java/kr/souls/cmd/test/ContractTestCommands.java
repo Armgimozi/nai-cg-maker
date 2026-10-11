@@ -46,8 +46,8 @@ import java.util.Map;
  *   contract tp                      첫 적에 표식 (souls_mark 갑옷 거치대) 을 태우고 대조로 깃발 없는 teleport 1칸, 그다음 Foes.teleport
  *                                    1칸. [T] CONTRACT_TP plain= plainkept= plainmoved= ok= kept= moved= (R6)
  *   contract hit &lt;원피해&gt;            첫 적에 Foes.hit. [T] CONTRACT_HIT foe= raw= def= dealt= hp= max= killed= stamped=
- *   contract foes                    [T] CONTRACT_FOES n= near= (등록부, 눈에서 8칸)
- *   contract clear                   등록된 적의 몸을 지운다. [T] CONTRACT_FOES n=0 cleared=
+ *   contract foes                    [T] CONTRACT_FOES n= near= (이 명령이 세운 적, 눈에서 8칸)
+ *   contract clear                   이 명령이 세운 적의 몸을 지운다. [T] CONTRACT_FOES n=0 cleared=
  *   contract slow &lt;배율|root|clear|show&gt;   Slow.set(이 사람, "contract", 배율). [T] CONTRACT_SLOW factor= walk= base= jump= owners=
  *   contract swing main|off          Swings.main / off. [T] CONTRACT_SWING hand= at= since=
  *   contract reset                   [T] CONTRACT_RESET owners= (CombatReset 에 걸린 이름들)
@@ -57,6 +57,11 @@ import java.util.Map;
 public final class ContractTestCommands {
     /** 이 명령이 세운 적의 id (enemies.yml 에 없는 시험 id) */
     public static final String TEST_ID = "contract_probe";
+    /**
+     * spawn-id 로 세운 적의 표시 태그. foes·clear·hit 는 이 명령이 세운 적 (TEST_ID 또는 이 태그) 만 센다: P1b 부터 도장의 허수아비가
+     * 늘 등록부에 있다 (souls_foe·souls_ent 와 함께 켤 때 쓸린다)
+     */
+    public static final String MINE_TAG = "souls_contract";
 
     private ContractTestCommands() {}
 
@@ -84,6 +89,7 @@ public final class ContractTestCommands {
                                 .executes(ctx -> with(ctx, p -> {
                                     String id = StringArgumentType.getString(ctx, "id");
                                     Mob m = plugin.foes().spawn(id, ahead(p, 3));
+                                    if (m != null) m.addScoreboardTag(MINE_TAG);
                                     plugin.test(p, "CONTRACT_SPAWN_ID id=" + id + " ok=" + (m != null) + " type="
                                             + (m == null ? "-" : m.getType().getKey().getKey()));
                                 }))))
@@ -92,7 +98,7 @@ public final class ContractTestCommands {
                         .then(Commands.argument("raw", DoubleArgumentType.doubleArg(0, 100000))
                                 .executes(ctx -> with(ctx, p -> hit(plugin, p, DoubleArgumentType.getDouble(ctx, "raw"))))))
                 .then(Commands.literal("foes").executes(ctx -> with(ctx, p -> foes(plugin, p, -1))))
-                .then(Commands.literal("clear").executes(ctx -> with(ctx, p -> foes(plugin, p, plugin.foes().clear()))))
+                .then(Commands.literal("clear").executes(ctx -> with(ctx, p -> foes(plugin, p, plugin.foes().clear(ContractTestCommands::mine)))))
                 .then(Commands.literal("slow")
                         .then(Commands.argument("what", StringArgumentType.word())
                                 .suggests((c, b) -> {
@@ -174,11 +180,16 @@ public final class ContractTestCommands {
                 + "pickup=%d tags=%d reg=%d", type, made, baby, equipped, drop, made - loud, persistent, far, pickup, tags, reg));
     }
 
+    /** 이 명령이 세운 적인가 (도장의 허수아비 같은 다른 적은 세지 않는다). */
+    static boolean mine(Foe f) {
+        return TEST_ID.equals(f.id()) || f.entity().getScoreboardTags().contains(MINE_TAG);
+    }
+
     private static Foe first(Souls plugin, Player p) {
         Foe best = null;
         double bd = Double.MAX_VALUE;
         for (Foe f : plugin.foes().all()) {
-            if (!f.alive() || f.entity().getWorld() != p.getWorld()) continue;
+            if (!mine(f) || !f.alive() || f.entity().getWorld() != p.getWorld()) continue;
             double d = f.entity().getLocation().distanceSquared(p.getLocation());
             if (d < bd) {
                 bd = d;
@@ -235,8 +246,9 @@ public final class ContractTestCommands {
     }
 
     private static void foes(Souls plugin, Player p, int cleared) {
-        int near = plugin.foes().near(p.getEyeLocation(), 8).size();
-        plugin.test(p, "CONTRACT_FOES n=" + plugin.foes().all().size() + " near=" + near + (cleared >= 0 ? " cleared=" + cleared : ""));
+        int near = (int) plugin.foes().near(p.getEyeLocation(), 8).stream().filter(ContractTestCommands::mine).count();
+        int n = (int) plugin.foes().all().stream().filter(ContractTestCommands::mine).count();
+        plugin.test(p, "CONTRACT_FOES n=" + n + " near=" + near + (cleared >= 0 ? " cleared=" + cleared : ""));
     }
 
     private static void slow(Souls plugin, Player p, String what) {

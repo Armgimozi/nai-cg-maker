@@ -129,15 +129,25 @@ public final class WorldService implements Listener {
             applyPvp();
         }, 200, 200);
         Integer built = w.getPersistentDataContainer().get(Keys.ROOM, PersistentDataType.INTEGER);
-        if (built != null && built >= TestRoom.VERSION) {
-            building = false;
+        boolean needRoom = built == null || built < TestRoom.VERSION;
+        if (!needRoom) {
             lastBuild = "room v" + built + " (already built)";
             plugin.getLogger().info("시험 방은 이미 지었습니다 (판 " + built + "). 짓지 않습니다.");
+        }
+        // M1 P1b: 전투 도장 (world/Dojo). 판이 낮거나 자리 (dojo.offset) 가 바뀌었으면 다시 짓는다
+        boolean needDojo = !Dojo.isBuilt(w, Dojo.Cfg.read(plugin.getConfig(), plugin.getLogger()));
+        if (!needDojo) plugin.getLogger().info("도장은 이미 지었습니다 (판 " + w.getPersistentDataContainer().get(Keys.DOJO, PersistentDataType.INTEGER)
+                + "). 짓지 않습니다.");
+        if (!needRoom && !needDojo) {
+            building = false;
             return;
         }
         // 첫 틱에 짓는다. 그동안 접속을 막고 (아무도 없어도) 서버가 멈추지 않게 한다
         Bukkit.getServer().allowPausing(plugin, false);
-        Bukkit.getScheduler().runTask(plugin, () -> buildRoom(Bukkit.getConsoleSender()));
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            if (needRoom) buildRoom(Bukkit.getConsoleSender());
+            if (needDojo) buildDojo(Bukkit.getConsoleSender());
+        });
     }
 
     private World ensureWorld() {
@@ -305,6 +315,39 @@ public final class WorldService implements Listener {
         } catch (RuntimeException ex) {
             plugin.getLogger().log(Level.SEVERE, "시험 방을 짓다가 오류가 났습니다", ex);
             Lang.tell(to, "admin.room-failed", "error", String.valueOf(ex.getMessage()));
+        } finally {
+            building = false;
+            Bukkit.getServer().allowPausing(plugin, true);
+        }
+    }
+
+    /**
+     * 도장을 지운 뒤 짓는다 (켤 때, /soulstest dojo build. M1 P1b). 자리 (dojo.offset) 가 바뀌었으면 옛 자리를 먼저 비운다. 시험 방과 겹치지
+     * 않는다 (복도는 시험 방 문턱 북쪽에서 끝난다): 시험 방만 다시 지어도 도장은 그대로다.
+     */
+    public void buildDojo(CommandSender to) {
+        World w = world();
+        if (w == null || plugin.dojo() == null) {
+            Lang.tell(to, "admin.no-world");
+            return;
+        }
+        building = true;
+        Bukkit.getServer().allowPausing(plugin, false);
+        try {
+            long t0 = System.nanoTime();
+            int[] old = Dojo.builtAt(w);
+            Dojo.Cfg c = plugin.dojo().cfg();
+            if (old != null && old[0] == c.dx() && old[1] == c.dz()) old = null;
+            int n = plugin.dojo().build(w, old);
+            double ms = (System.nanoTime() - t0) / 1e6;
+            w.save(true);
+            String detail = String.format(Locale.ROOT, "dojo v%d, %d blocks, %.0f ms", Dojo.VERSION, n, ms);
+            lastBuild = lastBuild + "; " + detail;
+            plugin.getLogger().info("도장을 지었습니다: " + detail);
+            plugin.test(to instanceof Player p ? p : null, "DOJO build v=" + Dojo.VERSION + " blocks=" + n + String.format(Locale.ROOT, " ms=%.0f", ms));
+        } catch (RuntimeException ex) {
+            plugin.getLogger().log(Level.SEVERE, "도장을 짓다가 오류가 났습니다", ex);
+            plugin.test(to instanceof Player p ? p : null, "DOJO build error=" + ex.getClass().getSimpleName());
         } finally {
             building = false;
             Bukkit.getServer().allowPausing(plugin, true);

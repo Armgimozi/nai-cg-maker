@@ -4,24 +4,32 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.Bisected;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.type.Campfire;
 import org.bukkit.block.data.type.Lantern;
 import org.bukkit.block.data.type.Slab;
+import org.bukkit.block.data.type.Stairs;
 
 /**
  * M0 시험 방. 코드로 짓는다 (지도 빌더가 생기기 전의 작은 판). 접속하면 여기 선다.
  * 25×25 바닥 (구르기 길이를 재는 3칸 길 포함), 그 북쪽의 반 블록 판석 길 (온 블록이 아닌 바닥에서 구르기의 방벽 높이를 보는 곳),
  * 낮은 벽, 벽 기둥 위 랜턴, 북서쪽 모서리의 6칸 높이 턱 (낙하 피해는 구르기로 피하지 못하는지 보는 곳, 사다리로 오른다),
  * 첫 자리 동쪽 6칸의 시험 방 화톳불 (켜진 캠프파이어, 판 3: bonfire/TestBonfire 가 우클릭을 받아 휴식 창, 4.1).
+ * 판 4 (M1 P1b): 북쪽 벽 가운데 (x = -1..1) 에 3칸 너비의 문 (뾰족한 아치) 과 벽 밖 한 칸의 문턱. 문턱 북쪽은 전투 도장의 복도
+ * (world/Dojo, 따로 짓는 판). 문 앞을 막던 북쪽 벽 가운데 랜턴 기둥은 문 양옆 (x = ±3) 으로 옮겼다.
  * 같은 무늬를 늘어놓지 않게 블록은 위치 해시로 섞는다 (8.4). 빛은 랜턴과 화톳불만 쓴다.
  */
 public final class TestRoom {
-    /** 방 모양을 바꾸면 올린다. 시작할 때 세계에 적힌 판보다 크면 지우고 다시 짓는다 (3: 시험 방 화톳불). */
-    public static final int VERSION = 3;
+    /** 방 모양을 바꾸면 올린다. 시작할 때 세계에 적힌 판보다 크면 지우고 다시 짓는다 (3: 시험 방 화톳불, 4: 도장으로 가는 북쪽 문). */
+    public static final int VERSION = 4;
     /** 바닥 반지름 (가운데에서 벽 안쪽까지) */
     static final int HALF = 12;
+    /** 북쪽 문의 반폭 (x = -DOOR..DOOR, 3칸) */
+    static final int DOOR = 1;
+    /** 문턱 줄 (z, 북쪽 벽 바로 밖). 지울 때 덮는 끝 줄 (-(HALF+2)) 이라 도장의 복도는 그 북쪽 (z ≤ -(HALF+3)) 에서 시작한다 */
+    static final int SILL = -(HALF + 2);
 
     private TestRoom() {}
 
@@ -43,6 +51,11 @@ public final class TestRoom {
     /** 판석 길의 시작 칸 (바닥 위 아래 반 블록, 동쪽 +x 로 구른다). */
     public static Location slab(World w, int cx, int cy, int cz) {
         return new Location(w, cx - 9.5, cy + 1.5, cz + 3.5, -90f, 0f);
+    }
+
+    /** 북쪽 문 앞 (방 안, 문을 본다). 걸어서 도장으로 들어가는 시험이 여기서 시작한다. */
+    public static Location northDoor(World w, int cx, int cy, int cz) {
+        return new Location(w, cx + 0.5, cy + 1, cz - 9.5, 180f, 0f);
     }
 
     /** 시험 방 화톳불 블록 (첫 자리 동쪽 6칸, 구르기 길 z 6..8 과 판석 길 z 2..4 밖). */
@@ -86,20 +99,21 @@ public final class TestRoom {
         // 벽: 높이 3, 군데군데 한 칸 더 높거나 이가 빠진다
         int w0 = HALF + 1;
         for (int i = -w0; i <= w0; i++) {
-            wallColumn(b, i, -w0);
+            if (Math.abs(i) > DOOR + 1) wallColumn(b, i, -w0);
             wallColumn(b, i, w0);
             wallColumn(b, -w0, i);
             wallColumn(b, w0, i);
         }
+        northDoor(b, -w0);
 
-        // 벽 안쪽 기둥 위 랜턴 (기둥 높이는 1~2칸으로 고르지 않게)
+        // 벽 안쪽 기둥 위 랜턴 (기둥 높이는 1~2칸으로 고르지 않게). 북쪽 벽은 문 양옆에
         int[] at = {-8, 0, 8};
         for (int p : at) {
-            post(b, p, -HALF);
             post(b, p, HALF);
             post(b, -HALF, p);
             post(b, HALF, p);
         }
+        for (int p : new int[]{-8, -(DOOR + 2), DOOR + 2, 8}) post(b, p, -HALF);
 
         // 북서쪽 턱: x -12..-7, z -12..-7, 6칸 높이. 동쪽 면에 사다리
         for (int x = -HALF; x <= -7; x++) {
@@ -127,6 +141,43 @@ public final class TestRoom {
         ((Campfire) fire).setFacing(BlockFace.WEST);
         b.set(6, 1, 10, fire);
         return b.count;
+    }
+
+    /**
+     * 북쪽 문 (벽 줄 z = wz) 과 그 밖 한 칸의 문턱 (z = SILL): 문설주 x = ±(DOOR+1) 는 높이 5, 문은 3칸 높이 (y 1..3) 에 위가 뾰족한
+     * 아치 (y 4 의 거꾸로 계단 둘, 가운데 머릿돌은 y 5). 문턱은 도장 복도와 같은 꼴: 바닥, 두 겹 벽 (x = ±2, ±3), 지붕 y 4.
+     */
+    private static void northDoor(Builder b, int wz) {
+        for (int y = 1; y <= 5; y++) {
+            b.set(-(DOOR + 1), y, wz, Material.POLISHED_DEEPSLATE);
+            b.set(DOOR + 1, y, wz, Material.POLISHED_DEEPSLATE);
+        }
+        b.set(-DOOR, 4, wz, archStair(BlockFace.WEST));
+        b.set(DOOR, 4, wz, archStair(BlockFace.EAST));
+        b.set(0, 5, wz, Material.CHISELED_DEEPSLATE);
+        for (int x = -DOOR; x <= DOOR; x++) {
+            b.set(x, 0, wz, Material.POLISHED_DEEPSLATE);
+            b.set(x, 5, wz, x == 0 ? Material.CHISELED_DEEPSLATE : Material.DEEPSLATE_BRICKS);
+        }
+        // 문턱 (벽 밖 한 칸): 바닥과 받침, 두 겹 벽, 지붕
+        int z = SILL;
+        for (int x = -(DOOR + 2); x <= DOOR + 2; x++) {
+            b.set(x, -1, z, Material.COBBLED_DEEPSLATE);
+            b.set(x, 0, z, Math.abs(x) <= DOOR ? Material.POLISHED_DEEPSLATE : Material.DEEPSLATE_BRICKS);
+            b.set(x, 4, z, b.pick(x, 4, z, Material.DEEPSLATE_TILES, 75, Material.CRACKED_DEEPSLATE_TILES, 25));
+            if (Math.abs(x) > DOOR) {
+                for (int y = 1; y <= 3; y++) b.set(x, y, z, b.pick(x, y, z, Material.DEEPSLATE_BRICKS, 72, Material.CRACKED_DEEPSLATE_BRICKS, 28));
+            }
+        }
+    }
+
+    /** 아치의 거꾸로 계단 (아래 반쪽이 facing 쪽에 붙는다). */
+    static BlockData archStair(BlockFace facing) {
+        Stairs s = (Stairs) Material.DEEPSLATE_BRICK_STAIRS.createBlockData();
+        s.setFacing(facing);
+        s.setHalf(Bisected.Half.TOP);
+        s.setShape(Stairs.Shape.STRAIGHT);
+        return s;
     }
 
     private static Material floor(Builder b, int x, int z) {

@@ -1225,7 +1225,48 @@ function serverLogSize () {
 module.exports.serverTLines = serverTLines
 module.exports.serverLogSize = serverLogSize
 // ── M1 P1a ──
+/** 봇 둘레에서 pred 에 맞는 가장 가까운 물체 (mineflayer 의 entity, 없으면 null). */
+function nearestEntity (b, pred, maxDist = 16) {
+  const me = b.bot.entity && b.bot.entity.position
+  if (!me) return null
+  let best = null
+  let bd = Infinity
+  for (const e of Object.values(b.bot.entities)) {
+    if (!e || e === b.bot.entity || !e.position || !pred(e)) continue
+    const d = e.position.distanceTo(me)
+    if (d < bd && d <= maxDist) { bd = d; best = e }
+  }
+  return best
+}
+/** 물체의 몸통 (발 + 1.2) 을 바로 본다 (서버에 곧바로 보낸다). */
+async function faceEntity (b, e, dy = 1.2) {
+  if (!e) return
+  await b.bot.lookAt(e.position.offset(0, dy, 0), true)
+}
+/** "[T] MOVE ..." 줄 (from 번째 뒤): kind 로 거를 수 있다. 시험 줄 kv 에 숫자 t·s·a·r·cycle 을 숫자로 더한다. */
+function moveLines (b, from = 0, prefix = 'MOVE ') {
+  return b.tLines(prefix, from).map((x) => Object.assign(x, { tick: num(x.kv.t), s: num(x.kv.s), a: num(x.kv.a), r: num(x.kv.r), cycle: num(x.kv.cycle) }))
+}
+module.exports.nearestEntity = nearestEntity
+module.exports.faceEntity = faceEntity
+module.exports.moveLines = moveLines
 // ── M1 P1b ──
+/**
+ * 서버 기록의 이름 없는 시험 줄 "[T] <prefix>..." 들 (어느 플레이어에게도 보내지 않은 줄: 적의 FOE spawn|die|gone 처럼 plugin.test(null, …)).
+ * from: serverLogSize() 로 미리 잰 글자 위치. 돌려주는 값: [{line, kv}]
+ */
+function serverTAny (prefix, from = 0) {
+  if (!ENV.serverLog || !fs.existsSync(ENV.serverLog)) return []
+  const text = fs.readFileSync(ENV.serverLog, 'utf8').slice(from)
+  const want = '[T] ' + prefix
+  const out = []
+  for (const l of text.split(/\r?\n/)) {
+    const i = l.indexOf(want)
+    if (i >= 0) out.push({ line: l.slice(i + 4), kv: kvOf(l.slice(i)) })
+  }
+  return out
+}
+module.exports.serverTAny = serverTAny
 // ── M1 P1c ──
 // ── M1 P2a ──
 // ── M1 P2b ──

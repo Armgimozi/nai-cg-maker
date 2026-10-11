@@ -107,6 +107,9 @@ public final class Souls extends JavaPlugin {
     private InputProbe probe;
     // ── M1 P1-0: 적 등록부 (enemy/Foes, P1b 가 채운다) ──
     private Foes foes;
+    // ── M1 P1a: 공격 동작 (combat/MoveRunner) 과 좌클릭 입력 (input/InputRouter) ──
+    private kr.souls.combat.MoveRunner moves;
+    private kr.souls.input.InputRouter inputRouter;
 
     @Override
     public void onEnable() {
@@ -227,7 +230,21 @@ public final class Souls extends JavaPlugin {
         foes = new Foes(this);
         pm.registerEvents(foes, this);
         // ── M1 P1a ──
+        // 공격 동작: 좌클릭 (휘두르기) 이 input 자리에서 입력이 되고, moves 자리에서 준비·판정·회복이 돈다. 바닐라 근접 공격은 늘 취소한다
+        moves = new kr.souls.combat.MoveRunner(this);
+        inputRouter = new kr.souls.input.InputRouter(this, moves);
+        pm.registerEvents(inputRouter, this);
+        ticker.into("input", "router", inputRouter::tick);
+        ticker.into("moves", "runner", moves::tick);
+        // 든 칸의 무기가 지금 판·민첩 단계인지 (10틱마다, 공격 중이 아닐 때)
+        ticker.into("moves", "held", weaponRefresh::heldTick);
+        CombatReset.register("moves", moves::reset);
         // ── M1 P1b ──
+        // 적의 몸: 바닐라 피해·불붙기·탈바꿈 막기, 쓰러지면 떨굼 0 (enemy/FoeBody)
+        pm.registerEvents(new kr.souls.enemy.FoeBody(this), this);
+        // 전투 도장 (world/Dojo): 짓기는 WorldService, 허수아비 다시 세우기는 brains 자리 (두뇌 없는 허수아비의 생김을 맡는다)
+        dojo = new kr.souls.world.Dojo(this);
+        ticker.into("brains", "dojo", dojo::tick);
         // ── M1 P1c ──
         // ── M1 P2a ──
         // ── M1 P2b ──
@@ -335,7 +352,10 @@ public final class Souls extends JavaPlugin {
         // M1: moves.yml·enemies.yml 을 다시 겹쳐 읽는다. 읽는 쪽은 아래 자기 묶음 줄에서 다시 읽는다
         content.reload();
         // ── M1 P1a ──
+        moves.reload();
         // ── M1 P1b ──
+        foes.reload();
+        dojo.reload();
         // ── M1 P2b ──
         // ── M1 P5a ──
         // ── M1 P5b ──
@@ -416,7 +436,14 @@ public final class Souls extends JavaPlugin {
     /** 적 등록부 (enemy/Foes): of·near·hit·spawn·teleport */
     public Foes foes() { return foes; }
     // ── M1 P1a ──
+    /** 공격 동작 실행기 (combat/MoveRunner) */
+    public kr.souls.combat.MoveRunner moves() { return moves; }
+    /** 좌클릭 입력 (input/InputRouter) */
+    public kr.souls.input.InputRouter inputRouter() { return inputRouter; }
     // ── M1 P1b ──
+    private kr.souls.world.Dojo dojo;
+    /** 전투 도장 (world/Dojo): 자리·허수아비·짓기 */
+    public kr.souls.world.Dojo dojo() { return dojo; }
     // ── M1 P1c ──
     // ── M1 P2a ──
     // ── M1 P2b ──

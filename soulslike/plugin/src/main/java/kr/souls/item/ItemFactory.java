@@ -2,6 +2,7 @@ package kr.souls.item;
 
 import io.papermc.paper.datacomponent.DataComponentType;
 import io.papermc.paper.datacomponent.DataComponentTypes;
+import io.papermc.paper.datacomponent.item.AttackRange;
 import io.papermc.paper.datacomponent.item.BannerPatternLayers;
 import io.papermc.paper.datacomponent.item.BlocksAttacks;
 import io.papermc.paper.datacomponent.item.DamageResistant;
@@ -163,6 +164,15 @@ public final class ItemFactory {
      * 닳지 않고 마법부여·수리를 받지 않는다. 불에 타지 않는다. 묶음은 하나.
      */
     public static ItemStack weapon(Weapons.Def d) {
+        return weapon(d, 0);
+    }
+
+    /**
+     * {@link #weapon(Weapons.Def)} 을 민첩 단계 tier (combat.moves.swing-tiers, M1 P1a) 의 휘두르는 길이로. 근접 무기 (Stats.isMelee) 에만
+     * 휘두르기 (swing_animation: 약공격 1단의 준비 + 판정, 그 단계의 민첩으로 나눈 틱. 창·미늘창은 찌르기 stab) 와 사거리 (attack_range:
+     * 분류의 사거리, hitbox_margin 0, PS 의 S6) 를 붙이고, 아이템에 판 (WEAPON_FMT) 과 단계 (SWING_TIER) 를 적는다 (R13, 9.8 의 지문).
+     */
+    public static ItemStack weapon(Weapons.Def d, int tier) {
         boolean bow = Weapons.BOW.equals(d.use());
         boolean shield = Weapons.BLOCK.equals(d.use());
         boolean spear = SPEAR_CLASSES.contains(d.cls());
@@ -195,8 +205,61 @@ public final class ItemFactory {
                 // 촉매: 술법 (CONSUMABLE 의 몸짓·시간) 은 M5 에 붙인다 (3.12.4). 패링 단검: 왼손 공격은 M1
             }
         }
-        it.editPersistentDataContainer(pdc -> pdc.set(Keys.WEAPON, PersistentDataType.STRING, d.id()));
+        // ── M1 P1a: 근접 무기의 휘두르기·사거리 (content/moves.yml, combat/MoveRunner 가 끼운 셈) ──
+        boolean melee = kr.souls.progression.Stats.isMelee(d);
+        SwingSpec sw = melee ? swings.of(d.cls(), Math.max(0, tier)) : null;
+        if (sw != null) {
+            it.setData(DataComponentTypes.SWING_ANIMATION, SwingAnimation.swingAnimation()
+                    .type(sw.stab() ? SwingAnimation.Animation.STAB : SwingAnimation.Animation.WHACK).duration(sw.ticks()).build());
+            it.setData(DataComponentTypes.ATTACK_RANGE, AttackRange.attackRange().minReach(0f).maxReach(sw.reach()).hitboxMargin(0f).build());
+        }
+        int t = Math.max(0, tier);
+        it.editPersistentDataContainer(pdc -> {
+            pdc.set(Keys.WEAPON, PersistentDataType.STRING, d.id());
+            pdc.set(Keys.WEAPON_FMT, PersistentDataType.INTEGER, WEAPON_FMT);
+            if (sw != null) pdc.set(Keys.SWING_TIER, PersistentDataType.INTEGER, t);
+        });
         return it;
+    }
+
+    // ── M1 P1a ──
+    /** 무기 아이템의 판 (Keys.WEAPON_FMT). 1: M1 P1a (휘두르기·사거리·민첩 단계). 판이 다르면 WeaponRefresh 가 새로 만든다 */
+    public static final int WEAPON_FMT = 1;
+
+    /** 근접 무기 분류의 휘두르기: stab (찌르기, 창), ticks (휘두르는 길이), reach (사거리 = attack_range 의 max_reach). */
+    public record SwingSpec(boolean stab, int ticks, float reach) {}
+
+    /** 분류·민첩 단계 → 휘두르기 (moves.yml 에 없는 분류면 null). */
+    @FunctionalInterface
+    public interface SwingSource {
+        SwingSpec of(String cls, int tier);
+    }
+
+    private static volatile SwingSource swings = (c, t) -> null;
+
+    /** 휘두르기 셈을 끼운다 (combat/MoveRunner 가 moves.yml 을 읽을 때마다). */
+    public static void swings(SwingSource s) {
+        swings = s == null ? (c, t) -> null : s;
+    }
+
+    /** 판 (WEAPON_FMT) 이 다르거나, 근접 무기의 민첩 단계가 tier 가 아니다 (든 칸을 볼 때, item/WeaponRefresh.held). */
+    public static boolean swingStale(ItemStack it, Weapons weapons, int tier) {
+        Weapons.Def d = it == null || it.isEmpty() ? null : weapons.of(it);
+        if (d == null) return false;
+        if (fmtOf(it) != WEAPON_FMT) return true;
+        return kr.souls.progression.Stats.isMelee(d) && swings.of(d.cls(), Math.max(0, tier)) != null && tierOf(it) != Math.max(0, tier);
+    }
+
+    /** 아이템에 적힌 판 (없으면 0). */
+    public static int fmtOf(ItemStack it) {
+        Integer v = it == null ? null : it.getPersistentDataContainer().get(Keys.WEAPON_FMT, PersistentDataType.INTEGER);
+        return v == null ? 0 : v;
+    }
+
+    /** 아이템에 적힌 민첩 단계 (없으면 −1). */
+    public static int tierOf(ItemStack it) {
+        Integer v = it == null ? null : it.getPersistentDataContainer().get(Keys.SWING_TIER, PersistentDataType.INTEGER);
+        return v == null ? -1 : v;
     }
 
     /** 바닐라 창 껍데기 (SPEAR_SHELL) 로 만드는 분류 (weapons.yml class) */
@@ -243,11 +306,31 @@ public final class ItemFactory {
      * (WeaponGuard 가 든 손을 보고 맞춘다).
      */
     public static ItemStack refreshed(ItemStack it, Weapons weapons) {
+        return refreshed(it, weapons, -1);
+    }
+
+    /**
+     * {@link #refreshed(ItemStack, Weapons)} 에 든 사람의 민첩 단계 tier (M1 P1a) 를 더한 것: 판 (WEAPON_FMT) 이 다르거나, 근접 무기의
+     * 단계가 tier 와 다르거나, 휘두르기·사거리가 지금 moves.yml 의 셈과 다르면 새로 만든다. tier 가 −1 이면 (상자 속처럼 든 사람이 없을 때)
+     * 아이템에 적힌 단계를 그대로 쓴다.
+     */
+    public static ItemStack refreshed(ItemStack it, Weapons weapons, int tier) {
         Weapons.Def d = it == null || it.isEmpty() ? null : weapons.of(it);
         if (d == null) return null;
-        ItemStack fresh = weapon(d);
-        if (it.getType() == fresh.getType() && sameLore(it, fresh) && !staleUse(it, d) && !foreign(it, fresh)) return null;
+        int want = tier >= 0 ? tier : Math.max(0, tierOf(it));
+        ItemStack fresh = weapon(d, want);
+        if (it.getType() == fresh.getType() && sameLore(it, fresh) && !staleUse(it, d) && !foreign(it, fresh) && fmtOf(it) == WEAPON_FMT
+                && tierOf(it) == tierOf(fresh) && sameSwing(it, fresh)) return null;
         return fresh;
+    }
+
+    /** 휘두르기 (종류·길이) 와 사거리가 같다 (M1 P1a: moves.yml 을 고치고 다시 읽은 값도 견준다). */
+    private static boolean sameSwing(ItemStack a, ItemStack b) {
+        SwingAnimation sa = a.getData(DataComponentTypes.SWING_ANIMATION), sb = b.getData(DataComponentTypes.SWING_ANIMATION);
+        if (sa == null ? sb != null : sb == null || sa.type() != sb.type() || sa.duration() != sb.duration()) return false;
+        AttackRange ra = a.getData(DataComponentTypes.ATTACK_RANGE), rb = b.getData(DataComponentTypes.ATTACK_RANGE);
+        if (ra == null || rb == null) return ra == rb;
+        return ra.minReach() == rb.minReach() && ra.maxReach() == rb.maxReach() && ra.hitboxMargin() == rb.hitboxMargin();
     }
 
     /**
@@ -276,10 +359,15 @@ public final class ItemFactory {
      * (item/WeaponRefresh: 접속, 줍기, 상자 열기, /souls reload). 바꾼 수.
      */
     public static int refreshWeapons(org.bukkit.inventory.Inventory inv, Weapons weapons) {
+        return refreshWeapons(inv, weapons, -1);
+    }
+
+    /** {@link #refreshWeapons(org.bukkit.inventory.Inventory, Weapons)} 를 민첩 단계 tier 로 (그 사람의 인벤토리, −1 이면 적힌 단계 그대로). */
+    public static int refreshWeapons(org.bukkit.inventory.Inventory inv, Weapons weapons, int tier) {
         int n = 0;
         ItemStack[] all = inv.getContents();
         for (int i = 0; i < all.length; i++) {
-            ItemStack fresh = refreshed(all[i], weapons);
+            ItemStack fresh = refreshed(all[i], weapons, tier);
             if (fresh == null) continue;
             inv.setItem(i, fresh);
             n++;

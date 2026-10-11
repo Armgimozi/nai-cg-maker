@@ -136,11 +136,11 @@ class DamageCalcTest {
         assertTrue(DamageCalc.magicRes(c, 50, 30) > DamageCalc.magicRes(c, 50, 10));
     }
 
+    /** M1 P1a: 동작의 한 대 = 공격력 × 동작 배율 / 100 (바닐라 공격 대기의 다리 pvpMelee 는 없앴다). */
     @Test
-    void pvpMeleeCooldown() {
-        assertEquals(100, DamageCalc.pvpMelee(100, 1, 1), 1e-9);
-        assertEquals(20, DamageCalc.pvpMelee(100, 0, 1), 1e-9);
-        assertEquals(50, DamageCalc.pvpMelee(100, 1, 0.5), 1e-9);
-        assertEquals(100, DamageCalc.pvpMelee(100, 7, 1), 1e-9);
+    void moveHitIsArTimesMotion() {
+        assertEquals(81.4, DamageCalc.hit(81.4, 100, 1, 1), 1e-9, "곤봉 약공격 1단");
+        assertEquals(81.4 * 1.6, DamageCalc.hit(81.4, 160, 1, 1), 1e-9, "강공격");
+        assertEquals(81.4 * 1.15, DamageCalc.hit(81.4, 115, 1, 1), 1e-9, "약공격 3단·달리기 공격");
     }
 }

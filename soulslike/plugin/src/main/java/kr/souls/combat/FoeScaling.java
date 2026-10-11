@@ -40,9 +40,9 @@ public final class FoeScaling implements Listener {
         this.plugin = plugin;
     }
 
-    /** 난이도 체력을 받는 적인가. */
+    /** 난이도 체력을 받는 적인가. 우리 적 (souls_foe, 가상 체력이 같은 배율을 생길 때 받는다: enemy/VirtualHealth) 은 빼고 바닐라 몹만. */
     public static boolean foe(Entity e) {
-        return e instanceof Enemy && e instanceof LivingEntity && !(e instanceof Player);
+        return e instanceof Enemy && e instanceof LivingEntity && !(e instanceof Player) && !e.getScoreboardTags().contains(kr.souls.enemy.Foes.TAG);
     }
 
     /**

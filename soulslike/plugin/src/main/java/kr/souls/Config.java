@@ -134,18 +134,6 @@ public final class Config {
     public record PvpCfg(boolean def, double damageScale, int respawnGrace, boolean keepSouls) {}
 
     /**
-     * 적과의 싸움 (M1 의 동작 실행기 전의 다리, 3.7). bridgeScale: souls 근접 무기로 플레이어가 아닌 것을 치면 바닐라 피해를
-     * 공격력 × (0.2 + 0.8 × 회복²) × bridgeScale 로 바꾼다 (직검 72 → 약 6.4, 바닐라 철검쯤). swingTicks: 분류마다 약공격 한 주기 (틱).
-     * 든 무기의 바닐라 공격 속도 = 20 / 주기 (AttributeApplier.weaponSpeed), 민첩이 그것을 곱한다.
-     */
-    public record PveCfg(double bridgeScale, Map<String, Integer> swingTicks) {
-        /** 분류의 약공격 한 주기 (틱, 3.6 의 준비 + 판정 + 회복). 모르는 분류면 null (공격 속도를 걸지 않는다). */
-        public Integer swingTicks(String cls) {
-            return cls == null ? null : swingTicks.get(cls);
-        }
-    }
-
-    /**
      * 막기 (3.4). 방패의 막기 값 g (weapons.yml guard) 는 막는 동안 막는 물리 피해 % 다. nonPhysical: 불·술은 g × 이 값.
      * 막다가 맞으면 쓰는 스태미나 = 그 공격의 스태미나 피해 × (1 − staminaScale × (g/100)²), 최소 staminaMin (DamageCalc.guardStamina).
      * twoHanded: 왼손이 비어 주무기로 막을 때 (양손 잡기) 의 막기 값, 무기 분류마다 (없으면 twoHandedDefault). 설명 칸에는 없다.
@@ -183,7 +171,6 @@ public final class Config {
     /** 난이도 넷 (차례 그대로: easy, normal, hard, very_hard) */
     public final Map<String, Difficulty> difficulties;
     public final PvpCfg pvp;
-    public final PveCfg pve;
     public final StatCurves stats;
     public final LevelCost levelCost;
     public final LoadTiers load;
@@ -204,6 +191,14 @@ public final class Config {
      * 2026-10-10). Souls 가 서버 기록에 한 번 알린다 (검토 old-config-dex-attack-speed-key-reused). 없으면 빈 목록.
      */
     public final List<String> legacy;
+
+    /**
+     * 읽지 않고 버린 M1 전의 다리 열쇠 (pve.bridge-scale, pve.swing-ticks). 공격은 동작 실행기 (combat/MoveRunner) 가 content/moves.yml 의
+     * 틱으로 하고 적에게는 공격력 그대로 들어간다. MoveRunner 가 서버 기록에 한 번 알린다. 없으면 빈 목록.
+     */
+    public final List<String> legacyPve;
+    /** M1 전의 다리 열쇠 (M1 P1a 부터 읽지 않는다) */
+    public static final List<String> LEGACY_PVE = List.of("pve.bridge-scale", "pve.swing-ticks");
 
     /** 예전 판 (보정 등급) 의 stats 열쇠. 지금 판은 읽지 않는다 */
     public static final List<String> LEGACY_STATS = List.of("stats.grades", "stats.speed-grades", "stats.scaling-curve", "stats.unfit-penalty",
@@ -299,23 +294,15 @@ public final class Config {
         difficultyDefault = difficulties.containsKey(dd) ? dd : difficulties.keySet().iterator().next();
         pvp = new PvpCfg(c.getBoolean("pvp.default", false), c.getDouble("pvp.damage-scale", 1.0), Math.max(0, c.getInt("pvp.respawn-grace", 100)),
                 c.getBoolean("pvp.death.keep-souls", true));
-        Map<String, Integer> swing = new LinkedHashMap<>();
-        swing.put("dagger", 10); swing.put("straight_sword", 13); swing.put("curved_sword", 12); swing.put("greatsword", 22);
-        swing.put("ultra_greatsword", 30); swing.put("axe", 18); swing.put("hammer", 18); swing.put("spear", 13); swing.put("halberd", 20);
-        ConfigurationSection sw = c.getConfigurationSection("pve.swing-ticks");
-        if (sw != null) {
-            for (String k : sw.getKeys(false)) {
-                int v = sw.getInt(k, 0);
-                if (v > 0) swing.put(k, Math.max(2, v));
-                else swing.remove(k);
-            }
-        }
-        pve = new PveCfg(Math.max(0, c.getDouble("pve.bridge-scale", 0.09)), Collections.unmodifiableMap(swing));
         stats = statCurves(c, curve);
         List<String> old = new ArrayList<>();
         // isSet 은 파일에 적힌 것만 본다 (jar 기본값은 보지 않는다)
         for (String k : LEGACY_STATS) if (c.isSet(k)) old.add(k);
         legacy = Collections.unmodifiableList(old);
+        // M1 P1a: 적을 치는 다리 (pve.bridge-scale) 와 바닐라 공격 대기의 한 주기 (pve.swing-ticks) 는 동작 실행기가 대신한다
+        List<String> oldPve = new ArrayList<>();
+        for (String k : LEGACY_PVE) if (c.isSet(k)) oldPve.add(k);
+        legacyPve = Collections.unmodifiableList(oldPve);
         List<?> cubic = c.getList("level.cost.cubic");
         double[] cu = {0.02, 3.06, 105.6, -895};
         if (cubic != null && cubic.size() == 4) {

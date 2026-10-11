@@ -41,9 +41,14 @@ public final class WeaponRefresh implements Listener {
         this.plugin = plugin;
     }
 
-    /** p 의 인벤토리를 지금 판으로. 바꾼 수. */
+    /** p 의 민첩 단계 (M1 P1a, 휘두르는 길이. 동작 실행기가 없으면 0). */
+    private int tier(Player p) {
+        return plugin.moves() == null ? 0 : plugin.moves().tier(p);
+    }
+
+    /** p 의 인벤토리를 지금 판으로 (근접 무기는 p 의 민첩 단계로). 바꾼 수. */
     public int player(Player p, String where) {
-        int n = ItemFactory.refreshWeapons(p.getInventory(), plugin.weapons());
+        int n = ItemFactory.refreshWeapons(p.getInventory(), plugin.weapons(), tier(p));
         if (n > 0) {
             if (plugin.weaponGuard() != null) plugin.weaponGuard().refresh(p);
             if (plugin.load() != null) plugin.load().refresh(p);
@@ -55,10 +60,49 @@ public final class WeaponRefresh implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPickup(EntityPickupItemEvent e) {
         if (!(e.getEntity() instanceof Player p)) return;
-        if (ItemFactory.refreshed(e.getItem().getItemStack(), plugin.weapons()) == null) return;
+        if (ItemFactory.refreshed(e.getItem().getItemStack(), plugin.weapons(), tier(p)) == null) return;
         Bukkit.getScheduler().runTask(plugin, () -> {
             if (p.isOnline()) player(p, "pickup");
         });
+    }
+
+    // ── M1 P1a: 든 무기의 판·민첩 단계 ──
+
+    /**
+     * 든 칸 (주손) 의 무기가 지금 판 (WEAPON_FMT) 이 아니거나 그 사람의 민첩 단계가 아니면 새로 만든다 (명령으로 든 칸에 넣은 무기, 민첩을
+     * 바꾼 뒤). 설명 칸·마법부여 같은 다른 낡음은 여기서 보지 않는다 (접속·줍기·창·/souls reload 의 몫). 공격 중에는 하지 않는다: 아이템이
+     * 바뀌면 클라이언트가 무기를 다시 드는 몸짓을 해 휘두르기가 끊긴다. 바꿨으면 true. 시험 줄 WEAPON_REFRESH n=1 where=held.
+     */
+    public boolean held(Player p) {
+        ItemStack it = p.getInventory().getItemInMainHand();
+        if (it.isEmpty() || plugin.weapons().of(it) == null || !ItemFactory.swingStale(it, plugin.weapons(), tier(p))) return false;
+        if (plugin.moves() != null && plugin.moves().busy(p)) return false;
+        ItemStack fresh = ItemFactory.refreshed(it, plugin.weapons(), tier(p));
+        if (fresh == null) return false;
+        p.getInventory().setItemInMainHand(fresh);
+        if (plugin.weaponGuard() != null) plugin.weaponGuard().refresh(p);
+        plugin.test(p, "WEAPON_REFRESH n=1 where=held");
+        return true;
+    }
+
+    /** Ticker (moves 자리, 10틱마다): 싸움 세계의 사람마다 든 칸을 본다. */
+    public void heldTick(long now) {
+        if (now % 10 != 0) return;
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (plugin.worlds().ours(p.getWorld())) held(p);
+        }
+    }
+
+    /** 단축 칸을 바꾸면 새로 든 칸을 곧바로 본다 (어차피 무기를 새로 드는 몸짓이 나오는 때). */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onHeld(org.bukkit.event.player.PlayerItemHeldEvent e) {
+        Player p = e.getPlayer();
+        ItemStack it = p.getInventory().getItem(e.getNewSlot());
+        if (it == null || it.isEmpty() || plugin.weapons().of(it) == null || !ItemFactory.swingStale(it, plugin.weapons(), tier(p))) return;
+        ItemStack fresh = ItemFactory.refreshed(it, plugin.weapons(), tier(p));
+        if (fresh == null) return;
+        p.getInventory().setItem(e.getNewSlot(), fresh);
+        plugin.test(p, "WEAPON_REFRESH n=1 where=hotbar");
     }
 
     private boolean anyWeapon(ItemStack[] items) {

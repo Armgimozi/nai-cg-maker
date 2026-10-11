@@ -26,10 +26,12 @@ L.run('contract', async (sc) => {
 
   // ── 틱 차례와 콘텐츠, 거두기 이름 ──
   let r = await b.cmd('/soulstest contract ticker', 'CONTRACT_TICKER')
-  sc.checkCmd('ticker slots in the plan order (0.6)', r, (x) => x.kv.order === ORDER, r.line)
+  // 빈 자리만 견준다: 묶음이 ticker.into 로 넣은 일 ("brains/dojo" 처럼 자리/이름) 은 자기 자리 뒤에 끼므로 빼고 본다 (P1b 부터)
+  sc.checkCmd('ticker slots in the plan order (0.6)', r, (x) => x.kv.order.split(',').filter((s) => !s.includes('/')).join(',') === ORDER, r.line)
   r = await b.cmd('/soulstest contract content', 'CONTRACT_CONTENT')
-  sc.checkCmd('moves.yml and enemies.yml in Content.FILES, merged and empty (stubs)', r,
-    (x) => /moves\.yml/.test(x.kv.files) && /enemies\.yml/.test(x.kv.files) && x.kv.merged === 'moves.yml:0,enemies.yml:0', r.line)
+  // P1-0 은 두 파일이 비었는지 봤다. 묶음이 내용을 더하므로 (P1b 의 dummy, P1a 의 동작) 겹쳐 읽혔는지만 본다
+  sc.checkCmd('moves.yml and enemies.yml in Content.FILES and merged', r,
+    (x) => /moves\.yml/.test(x.kv.files) && /enemies\.yml/.test(x.kv.files) && /^moves\.yml:\d+,enemies\.yml:\d+$/.test(x.kv.merged), r.line)
   r = await b.cmd('/soulstest contract reset', 'CONTRACT_RESET')
   sc.checkCmd('CombatReset has the slow owner (S4)', r, (x) => x.kv.owners.split(',').includes('slow'), r.line)
   const srv = L.ENV.serverDir
@@ -50,7 +52,11 @@ L.run('contract', async (sc) => {
     sc.checkCmd(`${type}: clear removes and unregisters`, r, (x) => x.kv.n === '0' && +x.kv.cleared === n, r.line)
   }
   r = await b.cmd('/soulstest contract spawn-id no_such_enemy', 'CONTRACT_SPAWN_ID')
-  sc.checkCmd('Foes.spawn of an id not in enemies.yml gives nothing (stub file is empty)', r, (x) => x.kv.ok === 'false', r.line)
+  sc.checkCmd('Foes.spawn of an id not in enemies.yml gives nothing', r, (x) => x.kv.ok === 'false', r.line)
+  // P1b: enemies.yml 의 dummy 는 선다 (몸 zombie)
+  r = await b.cmd('/soulstest contract spawn-id dummy', 'CONTRACT_SPAWN_ID')
+  sc.checkCmd('Foes.spawn of dummy (enemies.yml, P1b) gives a zombie body', r, (x) => x.kv.ok === 'true' && x.kv.type === 'zombie', r.line)
+  await b.cmd('/soulstest contract clear', 'CONTRACT_FOES')
 
   // ── 옮기기 (R6) ──
   await b.cmd('/soulstest contract spawn zombie 1', 'CONTRACT_SPAWN')
@@ -79,7 +85,8 @@ L.run('contract', async (sc) => {
   await b.cmd('/soulstest contract spawn husk 2', 'CONTRACT_SPAWN')
   r = await b.cmd('/soulstest contract foes', 'CONTRACT_FOES')
   sc.checkCmd('two foes registered and near', r, (x) => x.kv.n === '2' && x.kv.near === '2', r.line)
-  await b.cmd('/kill @e[tag=souls_foe]', null, 1000)
+  // 이 시험이 세운 둘만 (도장의 허수아비는 시험 방에서 40칸 넘게 떨어져 있다)
+  await b.cmd('/kill @e[tag=souls_foe,distance=..16]', null, 1000)
   await L.sleep(2000)
   // 죽은 몸이 떨군 것 (전리품) 을 치운다: 뒤의 시나리오가 바닥의 물체를 센다
   await b.cmd('/kill @e[type=item,distance=..24]', null, 800)

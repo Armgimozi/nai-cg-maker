@@ -2,7 +2,6 @@ package kr.souls.progression;
 
 import kr.souls.Keys;
 import kr.souls.Souls;
-import kr.souls.combat.DamageCalc;
 import kr.souls.item.Weapons;
 import org.bukkit.NamespacedKey;
 import org.bukkit.attribute.Attribute;
@@ -21,11 +20,13 @@ import java.util.Locale;
  *       바뀌면 늘어난 몫만큼 지금 HP 를 더한다 (줄면 최대치로 자른다).</li>
  *   <li>민첩 → MOVEMENT_SPEED 임시 수정자 souls:lvl_dex (ADD_MULTIPLIED_TOTAL, +n%). 장비 무게의 걷기 배율 souls:load 는 Load 가 따로
  *       걸어 둘이 곱해진다.</li>
- *   <li>든 근접 무기 → ATTACK_SPEED 임시 수정자 둘 (M1 의 동작 실행기 전의 다리, 3.6·3.7): souls:weapon_speed (ADD_NUMBER, 분류의 약공격
- *       한 주기 pve.swing-ticks 로 20 / 주기 − 4: 단검 10틱 → 2.0, 직검 13 → 1.54, 대검 22 → 0.91) 와 민첩의 souls:lvl_dex
- *       (ADD_MULTIPLIED_TOTAL, 공격 속도 배율 − 1 = 민첩 속도: 모든 무기에 같다, 장비에는 보정이 없다). 바닐라 공격 대기가 이
- *       값으로 차고, 적을 칠 때의 피해 다리 (DamageHook) 가 그 대기를 쓴다. 근접 무기를 들지 않으면 둘 다 뗀다 (맨손 4.0).
- *       든 것이 바뀔 때마다 (Load 의 다시 셈하는 때와 같다) weaponSpeed 로 다시 건다.</li>
+ *   <li>든 근접 무기 → ATTACK_SPEED 임시 수정자 souls:weapon_speed (ADD_NUMBER) 로 바닐라 공격 속도를 combat.moves.vanilla-attack-speed
+ *       (기본 20) 에 맞춘다 (M1 P1a). 공격 주기는 동작 실행기 (combat/MoveRunner) 가 content/moves.yml 의 틱과 민첩으로 정하고, 바닐라
+ *       공격 대기는 쓰지 않는다. 대기를 낮게 두면 서버가 손을 휘두른 뒤 (패링 몸짓·왼손 공격, PS 의 S3) 주무기가 그 대기 동안 화면 밑으로
+ *       내려간다. 근접 무기를 들지 않으면 뗀다 (맨손 4.0). 예전 판의 민첩 수정자 souls:lvl_dex (ATTACK_SPEED) 는 늘 뗀다 (민첩은 동작 틱에
+ *       듣는다). 든 것이 바뀔 때마다 (Load 의 다시 셈하는 때와 같다) weaponSpeed 로 다시 건다.</li>
+ *   <li>민첩 단계 (combat.moves.swing-tiers): 바뀌면 그 사람의 무기를 그 단계의 휘두르는 길이로 새로 만든다 (WeaponRefresh, 시험 줄
+ *       SWING_TIER tier= dex= n=).</li>
  *   <li>하트는 늘 10개 (setHealthScale(20)). 이 값은 저장되지 않아 접속할 때마다 건다.</li>
  * </ul>
  * 같은 열쇠의 수정자가 이미 있으면 Bukkit 이 예외를 던지므로 늘 지운 뒤 건다 (부활은 같은 플레이어 물체를 쓰므로 수정자가 남는다, 검토 T11).
@@ -76,6 +77,7 @@ public final class AttributeApplier {
             }
         }
         weaponSpeed(p);
+        swingTier(p);
         p.setHealthScale(HEALTH_SCALE);
         plugin.test(p, String.format(Locale.ROOT, "ATTR hp=%.1f/%.0f move=%.4f stats=%s", p.getHealth(), hp == null ? 0 : hp.getValue(),
                 c.moveSpeed.at(s.dex()), s.line()));
@@ -84,31 +86,42 @@ public final class AttributeApplier {
     /** 사람마다 마지막으로 건 공격 속도 (무기 id 와 배율): 같으면 다시 걸지 않는다 (10틱마다 부른다) */
     private final java.util.Map<java.util.UUID, String> lastSpeed = new java.util.HashMap<>();
 
-    /** 든 근접 무기에 맞춰 공격 속도 수정자 둘을 건다 (다르면). */
+    /** 사람마다 마지막으로 본 민첩 단계 (휘두르는 길이) */
+    private final java.util.Map<java.util.UUID, Integer> lastTier = new java.util.HashMap<>();
+
+    /** 든 근접 무기에 맞춰 바닐라 공격 속도를 건다 (다르면). M1 P1a: 동작 실행기의 주기와 상관없는 높은 값 하나. */
     public void weaponSpeed(Player p) {
         AttributeInstance as = p.getAttribute(Attribute.ATTACK_SPEED);
         if (as == null) return;
         Weapons.Def w = plugin.weapons().of(p.getInventory().getItemInMainHand());
-        Integer cycle = Stats.isMelee(w) ? plugin.cfg().pve.swingTicks(w.cls()) : null;
-        double base = cycle == null ? BASE_ATTACK_SPEED : 20.0 / cycle;
-        double mult = cycle == null ? 1 : DamageCalc.attackSpeed(plugin.cfg().stats, plugin.stats().of(p).dex());
-        String key = (w == null ? "-" : w.id()) + String.format(Locale.ROOT, "/%.5f/%.5f", base, mult);
-        if (key.equals(lastSpeed.get(p.getUniqueId())) && (as.getModifier(WEAPON_SPEED) != null) == (cycle != null)) return;
+        boolean melee = Stats.isMelee(w);
+        double want = melee ? plugin.cfg().tuning.moves.attackSpeed() : BASE_ATTACK_SPEED;
+        String key = (w == null ? "-" : w.id()) + String.format(Locale.ROOT, "/%.5f", want);
+        boolean has = as.getModifier(WEAPON_SPEED) != null;
+        boolean needs = melee && Math.abs(want - BASE_ATTACK_SPEED) > 1e-9;
+        if (key.equals(lastSpeed.get(p.getUniqueId())) && has == needs && as.getModifier(DEX) == null) return;
         lastSpeed.put(p.getUniqueId(), key);
         as.removeModifier(WEAPON_SPEED);
         as.removeModifier(DEX);
-        if (cycle != null) {
-            as.addTransientModifier(new AttributeModifier(WEAPON_SPEED, base - BASE_ATTACK_SPEED, AttributeModifier.Operation.ADD_NUMBER,
+        if (needs) {
+            as.addTransientModifier(new AttributeModifier(WEAPON_SPEED, want - BASE_ATTACK_SPEED, AttributeModifier.Operation.ADD_NUMBER,
                     EquipmentSlotGroup.ANY));
-            if (Math.abs(mult - 1) > 1e-9) {
-                as.addTransientModifier(new AttributeModifier(DEX, mult - 1, AttributeModifier.Operation.MULTIPLY_SCALAR_1, EquipmentSlotGroup.ANY));
-            }
         }
-        plugin.test(p, String.format(Locale.ROOT, "ASPD weapon=%s base=%.3f mult=%.4f value=%.3f", w == null ? "-" : w.id(), base, mult,
-                as.getValue()));
+        plugin.test(p, String.format(Locale.ROOT, "ASPD weapon=%s value=%.3f", w == null ? "-" : w.id(), as.getValue()));
+    }
+
+    /** 민첩 단계가 바뀌었으면 무기를 새로 만든다 (능력치를 건 뒤: 접속·출신·레벨 올리기·관리자 변경). */
+    private void swingTier(Player p) {
+        if (plugin.moves() == null || plugin.weaponRefresh() == null) return;
+        int tier = plugin.moves().tier(p);
+        Integer was = lastTier.put(p.getUniqueId(), tier);
+        if (was != null && was == tier) return;
+        int n = plugin.weaponRefresh().player(p, "dex");
+        plugin.test(p, "SWING_TIER tier=" + tier + " dex=" + plugin.stats().of(p).dex() + " was=" + (was == null ? "-" : was) + " n=" + n);
     }
 
     public void forget(Player p) {
         lastSpeed.remove(p.getUniqueId());
+        lastTier.remove(p.getUniqueId());
     }
 }

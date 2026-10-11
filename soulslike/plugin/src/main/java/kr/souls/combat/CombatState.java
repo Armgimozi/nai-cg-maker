@@ -61,6 +61,21 @@ public final class CombatState {
     public long srvSwingMain = NEVER;
     public long srvSwingOff = NEVER;
     // ── M1 P1a ── (동작·입력 기억·민첩 몫)
+    /** 지금 하는 공격 동작 (없으면 null). MoveRunner 만 바꾼다 */
+    public MoveRunner.Run move;
+    /** 마지막 동작이 끝난 틱 (약공격 단을 잇는지 본다, combat.moves.combo-grace) */
+    public long moveEnd = NEVER;
+    /** 다음 약공격의 단 (0 부터). 강공격·달리기 공격 뒤와 쉰 뒤에는 0 */
+    public int combo;
+    /** 민첩으로 나눈 회복의 모아 둔 몫 (MoveTiming, 0..1) */
+    public double dexCarry;
+    /** 입력 기억 (3.6: 회복 − 6 부터 받고 6틱 산다) */
+    public final kr.souls.input.InputBuffer buffer = new kr.souls.input.InputBuffer();
+    /**
+     * 구르기가 지금 동작을 끊을 수 있는 첫 틱 (회복의 마지막 cancel-at 몫, P1c 의 Roll·SneakTap 이 본다). 동작이 없으면 NEVER.
+     * 준비·판정 중에는 구르지 못한다 (P1c 의 ROLL_DENY why=attack)
+     */
+    public long rollReadyAt = NEVER;
     // ── M1 P2a ── (막기 반격·막기 깨짐·경직·무적 창)
     // ── M1 P3 ── (치명타 중)
     // ── M1 P4 ── (강인도·넘어짐)

@@ -40,7 +40,9 @@ public final class Keys {
     public static NamespacedKey WEAPON_FMT; // 무기 아이템의 판 (P1a 가 1 로, P2a 가 2 로 쓴다. item/WeaponRefresh 가 견준다)
     public static NamespacedKey DOJO;       // 도장을 지은 판 번호 (souls_world PDC, P1b 의 world/Dojo)
     // ── M1 P1a ──
+    public static NamespacedKey SWING_TIER; // 근접 무기 아이템의 휘두르는 길이를 셈한 민첩 단계 (combat.moves.swing-tiers, item/WeaponRefresh 가 견준다)
     // ── M1 P1b ──
+    public static NamespacedKey DOJO_AT;    // 도장을 지은 자리 "dx,dz" (dojo.offset, souls_world PDC: 바뀌면 옛 자리를 비우고 다시 짓는다)
     // ── M1 P1c ──
     // ── M1 P2a ──
     // ── M1 P2b ──
@@ -84,7 +86,9 @@ public final class Keys {
         WEAPON_FMT = of("weapon_fmt");
         DOJO = of("dojo");
         // ── M1 P1a ──
+        SWING_TIER = of("swing_tier");
         // ── M1 P1b ──
+        DOJO_AT = of("dojo_at");
         // ── M1 P1c ──
         // ── M1 P2a ──
         // ── M1 P2b ──

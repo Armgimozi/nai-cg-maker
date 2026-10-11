@@ -110,13 +110,4 @@ public final class DamageCalc {
     private static double pos(double v) {
         return v > 0 && !Double.isInfinite(v) ? v : 0;
     }
-
-    /**
-     * PvP 의 바닐라 근접 한 대 (M1 의 동작 실행기 전, 5.7): AR × (0.2 + 0.8 × 회복²) × pvp.damage-scale. 회복은 바닐라 공격 대기
-     * (0..1, 휘두르기 직전의 값). 방어력은 그 뒤 피해 고리에서 줄인다.
-     */
-    public static double pvpMelee(double ar, double cooldown, double scale) {
-        double cd = Math.max(0, Math.min(1, cooldown));
-        return ar * (0.2 + 0.8 * cd * cd) * scale;
-    }
 }

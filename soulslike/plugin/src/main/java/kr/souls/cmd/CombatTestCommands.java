@@ -4,6 +4,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import kr.souls.Souls;
 import kr.souls.cmd.test.ContractTestCommands;
+import kr.souls.cmd.test.FoeTestCommands;
 import kr.souls.cmd.test.ProbeTestCommands;
 
 /**
@@ -36,7 +37,12 @@ public final class CombatTestCommands {
         // ── M1 P1-0 ──
         root.then(ContractTestCommands.node(plugin));
         // ── M1 P1a ──
+        root.then(kr.souls.cmd.test.MoveTestCommands.move(plugin));
+        root.then(kr.souls.cmd.test.MoveTestCommands.moves(plugin));
+        root.then(kr.souls.cmd.test.MoveTestCommands.state(plugin));
         // ── M1 P1b ──
+        root.then(FoeTestCommands.dummy(plugin));
+        root.then(FoeTestCommands.dojo(plugin));
         // ── M1 P1c ──
         // ── M1 P2a ──
         // ── M1 P2b ──
