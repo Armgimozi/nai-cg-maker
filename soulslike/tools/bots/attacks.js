@@ -110,7 +110,8 @@ L.run('attacks', async (sc) => {
   const ticks = mv.map((x) => x.tick)
   sc.check('at most one buffered input: never two moves on one tick, chained moves are buf=true', new Set(ticks).size === ticks.length &&
     mv.slice(1).every((x) => x.kv.buf === 'true'), ticks.join(','))
-  sc.check('early swings are dropped (MOVE_EARLY) and late ones buffered (MOVE_BUF)', b.tLines('MOVE_EARLY', from).length > 0 && b.tLines('MOVE_BUF', from).length > 0,
+  // 2026-10-11: accept-before 20 (휘두르는 내내 받는다): 한 번 휘두르는 동안 누른 클릭은 버리지 않고 하나 기억한다
+  sc.check('swings during a move are buffered (MOVE_BUF), none dropped as early (MOVE_EARLY)', b.tLines('MOVE_EARLY', from).length === 0 && b.tLines('MOVE_BUF', from).length > 0,
     `early ${b.tLines('MOVE_EARLY', from).length} buf ${b.tLines('MOVE_BUF', from).length}`)
   const hitsSpam = b.tLines('HIT ', from)
   sc.check('each move hits the dummy once', hitsSpam.length === mv.length && hitsSpam.every((x) => x.kv.n === '1'), hitsSpam.map((x) => `${x.kv.move}@${x.kv.tick}`).join(' '))

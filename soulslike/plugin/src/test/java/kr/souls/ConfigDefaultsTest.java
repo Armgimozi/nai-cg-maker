@@ -128,8 +128,8 @@ class ConfigDefaultsTest {
     @Test
     void moveDefaults() {
         var in = cfg.tuning.input;
-        assertEquals(6, in.buffer());
-        assertEquals(6, in.acceptBefore());
+        assertEquals(20, in.buffer());
+        assertEquals(20, in.acceptBefore());
         assertEquals(1, in.fakeSwingWindow());
         assertEquals(2, in.echoWindow());
         var m = cfg.tuning.moves;

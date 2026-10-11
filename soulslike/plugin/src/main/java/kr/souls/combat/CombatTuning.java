@@ -79,7 +79,7 @@ public final class CombatTuning {
         this.combat = combat != null ? combat : new YamlConfiguration();
         // ── M1 P1a ──
         ConfigurationSection in = section("input");
-        input = new Input(i(in, "buffer", 6, 0, 40), i(in, "accept-before", 6, 0, 40), i(in, "fake-swing-window", 1, 0, 10),
+        input = new Input(i(in, "buffer", 20, 0, 40), i(in, "accept-before", 20, 0, 40), i(in, "fake-swing-window", 1, 0, 10),
                 i(in, "echo-window", 2, 0, 20));
         ConfigurationSection mv = section("moves");
         java.util.List<Double> light = list(mv, "motion.light", java.util.List.of(100.0, 105.0, 115.0));
