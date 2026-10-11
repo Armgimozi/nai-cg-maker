@@ -35,6 +35,23 @@ public final class Keys {
     public static NamespacedKey BIOMES;    // souls_world 를 만들 때의 바이옴 경계 판 번호
     public static NamespacedKey RING;      // 반지 id (content/rings.yml, 9.4)
     public static NamespacedKey RING_WORN; // 반지 칸에 비친 사본 표시 (item/RingSlots: 칸 밖에서 보이면 지운다)
+    // ── M1 (M1_PLAN 0.3): 묶음마다 자기 줄 밑에만 더한다. 열쇠는 init 의 같은 묶음 줄 밑에서 만든다 ──
+    // ── M1 P1-0 ──
+    public static NamespacedKey WEAPON_FMT; // 무기 아이템의 판 (P1a 가 1 로, P2a 가 2 로 쓴다. item/WeaponRefresh 가 견준다)
+    public static NamespacedKey DOJO;       // 도장을 지은 판 번호 (souls_world PDC, P1b 의 world/Dojo)
+    // ── M1 P1a ──
+    // ── M1 P1b ──
+    // ── M1 P1c ──
+    // ── M1 P2a ──
+    // ── M1 P2b ──
+    // ── M1 P3 ──
+    // ── M1 P4 ──
+    // ── M1 P5a ──
+    // ── M1 P5b ──
+    // ── M1 P6 ──
+    // ── M1 P7 ──
+    // ── M1 P8 ──
+    // ── M1 끝 ──
 
     private Keys() {}
 
@@ -63,6 +80,22 @@ public final class Keys {
         BIOMES = of("biome_layout");
         RING = of("ring");
         RING_WORN = of("ring_worn");
+        // ── M1 P1-0 ──
+        WEAPON_FMT = of("weapon_fmt");
+        DOJO = of("dojo");
+        // ── M1 P1a ──
+        // ── M1 P1b ──
+        // ── M1 P1c ──
+        // ── M1 P2a ──
+        // ── M1 P2b ──
+        // ── M1 P3 ──
+        // ── M1 P4 ──
+        // ── M1 P5a ──
+        // ── M1 P5b ──
+        // ── M1 P6 ──
+        // ── M1 P7 ──
+        // ── M1 P8 ──
+        // ── M1 끝 ──
     }
 
     public static NamespacedKey of(String path) {

@@ -5,6 +5,7 @@ import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.LongArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
@@ -95,13 +96,16 @@ import java.util.Locale;
  * menu <anvil|crafting|smithing|grindstone>  그 작업 창을 블록 없이 연다 (souls 무기를 넣으면 결과 칸이 비는지, item/WeaponRefresh). [T] MENU open=
  * 반지 칸의 누르기는 [T] RING act=put|take|swap|unequip|hotbar|offhand|equip, 거절은 RING_DENY slot= why=, 같은 반지 둘은 RING_SAME,
  * 칸 밖 사본 지우기는 RING_SWEEP, 2×2 에 들어온 다른 것을 돌려주면 RING_STRAY.
+ *
+ * M1 전투 시험 (probe, contract, 그리고 묶음마다의 가지) 은 여기가 아니라 cmd/test/*TestCommands 에 있고 cmd/CombatTestCommands 가
+ * 붙인다 (M1_PLAN 3절, R32).
  */
 public final class TestCommands {
     private TestCommands() {}
 
     @SuppressWarnings("deprecation") // isOnGround: 클라이언트가 알려 준 값을 그대로 보인다
     public static void register(Souls plugin, Commands reg) {
-        LiteralCommandNode<CommandSourceStack> root = Commands.literal("soulstest")
+        LiteralArgumentBuilder<CommandSourceStack> tree = Commands.literal("soulstest")
                 .requires(s -> plugin.cfg().testMode && s.getSender().hasPermission("souls.test"))
                 .then(Commands.literal("stamina")
                         .executes(ctx -> withPlayer(ctx, p -> stamina(plugin, p)))
@@ -399,10 +403,10 @@ public final class TestCommands {
                                                     String id = StringArgumentType.getString(ctx, "id");
                                                     boolean ok = plugin.ringSlots().set(p, slot - 1, "none".equals(id) ? null : id);
                                                     plugin.test(p, "RING_SET slot=" + slot + " id=" + id + " ok=" + ok);
-                                                }))))))
-                // ── M1 PS: 입력 탐침 (cmd/test/ProbeTestCommands) ──
-                .then(kr.souls.cmd.test.ProbeTestCommands.node(plugin))
-                .build();
+                                                }))))));
+        // ── M1: 전투 시험 가지는 묶음마다 cmd/test/* 에 두고 한 곳 (cmd/CombatTestCommands) 에서 붙인다 (R32). PS 의 probe 도 거기 ──
+        CombatTestCommands.attach(plugin, tree);
+        LiteralCommandNode<CommandSourceStack> root = tree.build();
         reg.register(root, "Soulslike test hooks (debug.test-mode)", List.of());
     }
 

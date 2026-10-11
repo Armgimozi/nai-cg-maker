@@ -21,6 +21,8 @@
            Java 의 글자 그대로인 문자열 가운데 능력치 표 열쇠 꼴 (LITERAL_KEY: table.*·derived.*·stat.*·load.*, StatSheet.Cell·head,
            StatRows.keys, restHead 처럼 Lang 을 바로 부르지 않는 도우미가 넘기는 열쇠) 도 lang 에 있어야 한다
   content  content/*.yml 에 한글 글이 없고 글 칸 (name, description, lore, text …) 이 없다 (글자와 상관없이)
+  dup      lang/*.yml, config.yml, content/*.yml 의 한 절 안에 같은 열쇠가 두 번 없다 (YAML 은 뒤의 것만 읽고 앞의 것을 말없이 버린다.
+           M1 의 묶음마다 줄 (M1_PLAN 0.3) 에서 두 묶음이 같은 맨 위 열쇠를 쓰면 한쪽 글·설정이 사라진다)
   pack     팩 언어 파일이 YAML 에서 만든 것과 같다 (낡은 팩): assets/souls/lang/ko_kr.json·en_us.json,
            assets/minecraft/lang/<언어>.json 의 vanilla.* 열쇠 (ko_kr 은 한국어, 나머지는 영어). 창 제목의 제목 글자, 제목 밑
            금실, 무기 수치 이름의 열 맞춤 빈칸, 무기 설명 칸 실선 (weapon.rule), ko_kr 의 한글 가운뎃점은 검사하는 팩의 글꼴로
@@ -42,6 +44,8 @@ import os
 import re
 import sys
 import zipfile
+
+import yaml
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
@@ -85,6 +89,21 @@ SLOT_PX = {
     "wrap": None,                    # 채팅·접속 거절·팩 창 (클라이언트가 줄을 바꾼다)
 }
 SLOTS = [
+    # ── M1 (M1_PLAN 0.2, 0.3): 묶음마다 자기 줄 밑에 (열쇠 꼴, 자리). 처음 맞는 꼴을 쓰므로 좁은 꼴을 아래의 넓은 꼴 (test.* 같은) 보다
+    # 먼저 둔다: 그래서 M1 줄은 표의 맨 앞에 있다 ──
+    # ── M1 P1a ──
+    # ── M1 P1b ──
+    # ── M1 P1c ──
+    # ── M1 P2a ──
+    # ── M1 P2b ──
+    # ── M1 P3 ──
+    # ── M1 P4 ──
+    # ── M1 P5a ──
+    # ── M1 P5b ──
+    # ── M1 P6 ──
+    # ── M1 P7 ──
+    # ── M1 P8 ──
+    # ── M1 끝 ──
     ("death.title", "title"), ("bonfire.lit", "title"), ("boss.felled", "title"), ("taster.end", "title"),
     ("bonfire.enemies-back", "subtitle"), ("bonfire.refuse", "subtitle"), ("souls.recovered", "subtitle"),
     ("door.*", "subtitle"), ("bell.rung", "subtitle"), ("spell.learned", "subtitle"), ("spell.none", "subtitle"),
@@ -200,6 +219,9 @@ CONTENT_KEYS = {
     "origins.yml": (("origin.{id}.name", "line"), ("origin.{id}.desc", "line"), ("origin.{id}.style", "line"),
                     ("origin.{id}.kit", "line")),
     "rings.yml": (("ring.{id}.name", "line"), ("ring.{id}.lore", "list")),
+    # M1 (P1-0): 동작과 적. 보이는 이름이 없다 (이야기 보류, 시험 적은 [시험용] 표시만): id 마다 있어야 할 열쇠가 없다
+    "moves.yml": (),
+    "enemies.yml": (),
 }
 # 콘텐츠에 있으면 안 되는 글 칸 (글은 lang 열쇠로). display 는 투사체 모습 (재료 id) 이라 id 꼴이면 된다
 CONTENT_TEXT_FIELDS = {"name", "display_name", "title", "subtitle", "description", "desc", "lore", "text", "flavor",
@@ -614,6 +636,57 @@ def check_content(report, ko, root=CONTENT):
                         report.add("경고", "content", k, f"{rel} 에 id {i!r} 가 없는데 lang 에 열쇠가 남았다")
 
 
+class _DupLoader(yaml.SafeLoader):
+    """한 절 안에 같은 열쇠가 두 번 나오면 적어 둔다 (yaml.safe_load 는 말없이 뒤의 것만 남긴다)."""
+
+    def construct_mapping(self, node, deep=False):
+        seen = {}
+        for k_node, _ in node.value:
+            try:
+                k = self.construct_object(k_node, deep=True)
+            except yaml.YAMLError:
+                continue
+            if isinstance(k, (str, int, float, bool)) or k is None:
+                if k in seen:
+                    self.dups.append((k, seen[k] + 1, k_node.start_mark.line + 1))
+                else:
+                    seen[k] = k_node.start_mark.line
+        return super().construct_mapping(node, deep)
+
+
+def yaml_dups(path):
+    """[(열쇠, 처음 줄, 겹친 줄)]. 읽지 못하는 파일은 빈 목록 (다른 검사가 알린다)."""
+    with open(path, encoding="utf-8") as fh:
+        loader = _DupLoader(fh.read())
+    loader.dups = []
+    try:
+        loader.get_single_data()
+    except yaml.YAMLError:
+        return []
+    finally:
+        loader.dispose()
+    return loader.dups
+
+
+def check_dups(report):
+    """lang/*.yml, config.yml, content/*.yml 의 겹친 열쇠 (M1 의 묶음마다 줄에서 두 묶음이 같은 열쇠를 쓰면 한쪽이 사라진다)."""
+    res = os.path.join(ROOT, "plugin", "src", "main", "resources")
+    files = [os.path.join(res, "config.yml")]
+    for sub in ("lang", "content"):
+        d = os.path.join(res, sub)
+        if os.path.isdir(d):
+            files += [os.path.join(d, f) for f in sorted(os.listdir(d)) if f.endswith((".yml", ".yaml"))]
+    n = 0
+    for path in files:
+        if not os.path.isfile(path):
+            continue
+        n += 1
+        rel = os.path.relpath(path, ROOT)
+        for key, first, again in yaml_dups(path):
+            report.add("오류", "dup", f"{rel}:{again}", f"열쇠 {key!r} 가 한 절에 두 번 있다 (처음 {first}줄). YAML 은 뒤의 것만 읽는다")
+    return n
+
+
 def pack_reader(pack):
     """팩 폴더, zip 파일, 또는 zip 바이트 (make_dist 가 jar 안 pack.zip 을 넘긴다) → (경로 → json) 읽개. 없으면 None."""
     if isinstance(pack, (bytes, bytearray)) or (pack and os.path.isfile(pack)):
@@ -734,6 +807,7 @@ def lint(pack=PACK_DIR, quiet=False):
     checked, dynamic = check_keys(report, found, tables["ko"])
     literal_keys = check_literal_keys(report, tables["ko"])
     check_content(report, tables["ko"])
+    check_dups(report)
     check_pack(report, tables, pack)
     check_width(report, tables, pack)
     report.calls = (checked, dynamic)

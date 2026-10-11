@@ -25,14 +25,24 @@ public final class Content {
      * 막기 guard 하나, 촉매는 술법 위력 spell, 패링 단검은 막지 않는 왼손 무기 (use: none, attack), 경비대 방패의 분류는 medium_shield.
      * 패링 창은 분류마다 config.yml combat.parry.windows). 6: 같은 분류의 무거운 무기 공격력 (장검 66, 용병 도끼 78, 참회자 메이스 80,
      * 간수장 미늘창 94, 창 60), 대방패 무게 14, 판자 방패 무게 1.0, 촉매는 왼손 (hand: off, 마법사의 쇠단지도 왼손으로).
-     * 새 파일 (반지 rings.yml, 9.4) 은 없을 때 꺼내므로 판을 올리지 않는다 (판을 올리면 고친 옛 파일까지 옮겨진다).
+     * 새 파일 (반지 rings.yml, 9.4. 동작 moves.yml·적 enemies.yml, M1 P1-0) 은 없을 때 꺼내므로 판을 올리지 않는다 (판을 올리면
+     * 고친 옛 파일까지 옮겨진다).
      * 콘텐츠에는 보이는 글을 쓰지 않는다 (12.5).
      */
     public static final int CONTENT_VERSION = 6;
-    public static final List<String> FILES = List.of("skills.yml", "weapons.yml", "origins.yml", "rings.yml");
+    /**
+     * 꺼내는 파일. 뒤의 둘 (M1 P1-0) 은 {@link #MERGED}: 도장에서 사용자가 맞추는 파일이라 열쇠마다 jar 사본 위에 겹쳐 읽는다
+     * ({@link #merged}). 나중 묶음이 열쇠를 더해도 판을 올리지 않고 (사용자가 맞춘 값은 그대로, 새 열쇠는 jar 값), 판이 올라도
+     * 옛 폴더로 옮기지 않는다 (R20). 이름을 바꾸는 깨지는 고침은 읽는 쪽이 옛 이름도 읽게 한다.
+     */
+    public static final List<String> FILES = List.of("skills.yml", "weapons.yml", "origins.yml", "rings.yml", "moves.yml", "enemies.yml");
+    /** 열쇠마다 jar 값으로 채워 읽는 파일 (동작 moves.yml: P1a, 적 enemies.yml: P1b·P2b·P5a) */
+    public static final List<String> MERGED = List.of("moves.yml", "enemies.yml");
     private static final String DIR = "content";
 
     private final JavaPlugin plugin;
+    /** merged 파일을 읽어 둔 것 ({@link #reload} 때 새로) */
+    private final java.util.Map<String, YamlConfiguration> merged = new java.util.HashMap<>();
 
     public Content(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -52,7 +62,7 @@ public final class Content {
         boolean upgraded = true;
         if (stored < CONTENT_VERSION) {
             List<String> old = new ArrayList<>();
-            for (String f : FILES) if (new File(dir, f).exists()) old.add(f);
+            for (String f : FILES) if (!MERGED.contains(f) && new File(dir, f).exists()) old.add(f);
             if (!old.isEmpty()) upgraded = backup(dir, old, Math.max(1, stored));
         }
         for (String f : FILES) {
@@ -94,6 +104,76 @@ public final class Content {
         plugin.getLogger().info("콘텐츠가 새 판(v" + CONTENT_VERSION + ")으로 바뀌어 예전 " + String.join(", ", files) + " 을 "
                 + backup.getName() + "/ 에 옮겨 두고 새로 꺼냈습니다. 고친 내용이 있으면 그 폴더에서 옮겨 오세요.");
         return true;
+    }
+
+    /**
+     * merged 파일 ({@link #MERGED}) 을 모두 다시 읽는다 (켤 때, /souls reload). 읽는 쪽 (Moveset, EnemyDefs …) 은 그다음에
+     * {@link #merged} 로 받는다.
+     */
+    public void reload() {
+        merged.clear();
+        for (String f : MERGED) {
+            YamlConfiguration user = YamlConfiguration.loadConfiguration(new File(new File(plugin.getDataFolder(), DIR), f));
+            YamlConfiguration jar = new YamlConfiguration();
+            try (InputStream in = plugin.getResource(DIR + "/" + f)) {
+                if (in != null) jar = YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
+            } catch (IOException ignored) {
+                // jar 사본을 못 읽으면 사용자 파일만
+            }
+            Merge m = merge(jar, user);
+            merged.put(f, m.yml());
+            if (!m.filled().isEmpty()) {
+                plugin.getLogger().info("content/" + f + " 에 없는 열쇠 " + m.filled().size() + "개를 jar 기본값으로 읽었습니다 (파일은 그대로): "
+                        + String.join(", ", m.filled().subList(0, Math.min(8, m.filled().size()))) + (m.filled().size() > 8 ? " …" : ""));
+            }
+        }
+    }
+
+    /**
+     * merged 파일 하나 (열쇠마다: 사용자 파일에 있으면 그 값, 없으면 jar 값). {@link #reload} 전이면 지금 읽는다. 모르는 이름이면
+     * {@link #yml} 과 같다.
+     */
+    public YamlConfiguration merged(String name) {
+        if (!MERGED.contains(name)) return yml(name);
+        if (!merged.containsKey(name)) reload();
+        YamlConfiguration y = merged.get(name);
+        return y != null ? y : new YamlConfiguration();
+    }
+
+    /** 겹쳐 읽은 결과와 jar 에서 채운 열쇠 (끝 값의 경로, 차례대로). */
+    public record Merge(YamlConfiguration yml, List<String> filled) {}
+
+    /**
+     * 열쇠마다 겹친다 (순수, ContentMergeTest): jar 사본에서 시작해 사용자 파일의 끝 값 (절이 아닌 값: 수·글·목록) 을 모두 그 위에
+     * 쓴다. 목록은 통째로 바뀐다. 사용자가 절 자리에 값 하나를 쓰면 그 값이 이긴다 (읽는 쪽이 기본값으로 읽는다). filled 는 사용자 파일에
+     * 없어 jar 에서 온 끝 값들.
+     */
+    public static Merge merge(YamlConfiguration jar, YamlConfiguration user) {
+        YamlConfiguration out = new YamlConfiguration();
+        if (jar != null) {
+            for (String k : jar.getKeys(true)) if (!jar.isConfigurationSection(k)) out.set(k, jar.get(k));
+        }
+        if (user != null) {
+            for (String k : user.getKeys(true)) {
+                if (user.isConfigurationSection(k)) {
+                    // 빈 절은 그 자리를 비우지 않는다 (jar 값이 남는다). 값이 있던 자리에 절을 쓰면 절이 이긴다
+                    if (!out.isConfigurationSection(k)) {
+                        if (out.isSet(k)) out.set(k, null);
+                        if (user.getConfigurationSection(k).getKeys(false).isEmpty()) out.createSection(k);
+                    }
+                    continue;
+                }
+                out.set(k, user.get(k));
+            }
+        }
+        List<String> filled = new ArrayList<>();
+        if (jar != null) {
+            for (String k : jar.getKeys(true)) {
+                if (jar.isConfigurationSection(k)) continue;
+                if (user == null || !user.isSet(k)) filled.add(k);
+            }
+        }
+        return new Merge(out, java.util.Collections.unmodifiableList(filled));
     }
 
     /** content/<name> 을 읽는다. 사용자가 지운 항목은 채우지 않고, 파일이 깨졌을 때만 jar 기본값을 쓴다. */

@@ -490,3 +490,20 @@ vanilla:
     enderchest: "<gray>Ender Chest"
     barrel: "<gray>Barrel"
     inventory: "<gray>Inventory"
+
+# ── M1 (M1_PLAN 0.2, 0.3): each package adds its visible text under its own line, as one new top-level key (same keys and ──
+# styles as ko.yml). Never reuse a top-level key from above (test, bonfire ...) or from another package: YAML keeps only the
+# last of two equal keys (tools/langcheck.py rejects it). Test labels read [Test]. No story text (names, lore). Widths go in SLOTS.
+# ── M1 P1a ──
+# ── M1 P1b ──
+# ── M1 P1c ──
+# ── M1 P2a ──
+# ── M1 P2b ──
+# ── M1 P3 ──
+# ── M1 P4 ──
+# ── M1 P5a ──
+# ── M1 P5b ──
+# ── M1 P6 ──
+# ── M1 P7 ──
+# ── M1 P8 ──
+# ── M1 끝 ──

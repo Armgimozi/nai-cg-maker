@@ -188,6 +188,8 @@ public final class Config {
     public final LevelCost levelCost;
     public final LoadTiers load;
     public final LevelUpCfg levelup;
+    /** M1 전투의 맞출 값 (combat.* 의 M1 열쇠, combat/CombatTuning. M1_PLAN 0.4: Config 에는 이 칸 하나) */
+    public final kr.souls.combat.CombatTuning tuning;
     public final StaminaCfg stamina;
     public final GuardCfg guard;
     public final ParryCfg parry;
@@ -324,6 +326,7 @@ public final class Config {
         load = loadTiers(c);
         levelup = new LevelUpCfg(c.getString("levelup.sound", "block.beacon.power_select"), (float) c.getDouble("levelup.sound-volume", 0.5),
                 (float) c.getDouble("levelup.sound-pitch", 0.6));
+        tuning = kr.souls.combat.CombatTuning.read(c);
     }
 
     /** 이 난이도 (모르는 id 면 기본 난이도). */

@@ -90,6 +90,28 @@ public final class DamageCalc {
     }
 
     /**
+     * 한 대의 원피해 (3.7 의 1, M1 P1-0 계약): AR × 동작 배율/100 × 맞받아치기 × 치명. 맞받아치기·치명은 배율이다 (아니면 1:
+     * 맞받아치기 combat 의 counter 배율, 치명은 combat.crit 의 분류 값). 음수·수가 아닌 값은 0 으로 본다. 적이 때릴 때의 난이도
+     * 배율 (enemy-damage) 은 여기 넣지 않는다 (적의 공격이 따로 곱한다).
+     */
+    public static double hit(double ar, double mv, double counter, double crit) {
+        return pos(ar) * pos(mv) / 100.0 * pos(counter) * pos(crit);
+    }
+
+    /**
+     * 적이 받는 피해 (3.7 의 2~4, M1 P1-0 계약): 방어 공식 raw² / (raw + 방어력) 다음에 그 종류의 흡수 (× (1 − abs), 0..1 로 자른다),
+     * 그다음 약점 배율 (× weak, 1 이면 보통, 1.3 이면 타격에 약한 해골). 음수·수가 아닌 값은 0 (abs 는 0, weak 는 0) 으로 본다.
+     */
+    public static double toFoe(double raw, double def, double abs, double weak) {
+        double a = Double.isNaN(abs) ? 0 : Math.max(0, Math.min(1, abs));
+        return reduce(pos(raw), pos(def)) * (1 - a) * pos(weak);
+    }
+
+    private static double pos(double v) {
+        return v > 0 && !Double.isInfinite(v) ? v : 0;
+    }
+
+    /**
      * PvP 의 바닐라 근접 한 대 (M1 의 동작 실행기 전, 5.7): AR × (0.2 + 0.8 × 회복²) × pvp.damage-scale. 회복은 바닐라 공격 대기
      * (0..1, 휘두르기 직전의 값). 방어력은 그 뒤 피해 고리에서 줄인다.
      */

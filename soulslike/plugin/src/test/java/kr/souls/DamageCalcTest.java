@@ -19,6 +19,31 @@ class DamageCalcTest {
         assertTrue(DamageCalc.reduce(200, 50) / 200 > DamageCalc.reduce(20, 50) / 20, "큰 한 대는 덜 깎인다");
     }
 
+    /** M1 P1-0 계약: 원피해 = AR × 동작 배율/100 × 맞받아치기 × 치명 (3.7 의 1). 3.6 의 동작 배율과 맞받아치기 1.15. */
+    @Test
+    void hitRaw() {
+        assertEquals(72, DamageCalc.hit(72, 100, 1, 1), 1e-9, "약 1단 (100)");
+        assertEquals(72 * 1.15, DamageCalc.hit(72, 115, 1, 1), 1e-9, "약 3단 (115)");
+        assertEquals(72 * 1.6 * 1.15, DamageCalc.hit(72, 160, 1.15, 1), 1e-9, "강공격 (160) 맞받아치기");
+        assertEquals(72 * 3.0, DamageCalc.hit(72, 100, 1, 3.0), 1e-9, "치명 배율");
+        assertEquals(0, DamageCalc.hit(-5, 100, 1, 1), 1e-9, "음수 AR 은 0");
+        assertEquals(0, DamageCalc.hit(72, Double.NaN, 1, 1), 1e-9, "수가 아닌 배율은 0");
+    }
+
+    /** M1 P1-0 계약: 적이 받는 피해 = raw²/(raw+def) × (1 − 흡수) × 약점 (3.7 의 2~4). 3.7 의 보기: 기사의 직검 72 → 탑옥 망자 (방어 20) 에 약 56. */
+    @Test
+    void toFoe() {
+        assertEquals(DamageCalc.reduce(72, 20), DamageCalc.toFoe(72, 20, 0, 1), 1e-12);
+        assertEquals(56.3, DamageCalc.toFoe(72, 20, 0, 1), 0.05, "3.7 의 보기");
+        assertEquals(50, DamageCalc.toFoe(100, 100, 0, 1), 1e-9, "원피해 = 방어력이면 절반");
+        assertEquals(25, DamageCalc.toFoe(100, 100, 0.5, 1), 1e-9, "흡수 50%");
+        assertEquals(65, DamageCalc.toFoe(100, 100, 0, 1.3), 1e-9, "타격 약점 1.3");
+        assertEquals(0, DamageCalc.toFoe(100, 100, 1.5, 1), 1e-9, "흡수는 1 에서 자른다");
+        assertEquals(50, DamageCalc.toFoe(100, 100, -0.5, 1), 1e-9, "음수 흡수는 0");
+        assertEquals(0, DamageCalc.toFoe(0, 20, 0, 1), 1e-9);
+        assertEquals(100, DamageCalc.toFoe(100, -10, 0, 1), 1e-9, "음수 방어는 0");
+    }
+
     @Test
     void twoHandStrength() {
         assertEquals(16, DamageCalc.twoHandStr(16, false));

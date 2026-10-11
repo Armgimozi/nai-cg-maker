@@ -44,6 +44,22 @@ BOTS="$HERE/bots"
 ALL_SCENARIOS="t1_boot join lang stamina roll_iframes taplat guard death reconnect start origin levelup pvp difficulty stats_fx origins_all rollkey rings gear"
 # ── M1 PS: 입력 탐침 (probe: [T] PROBE 줄이 봇의 날 패킷을 그대로 따르는지) ──
 ALL_SCENARIOS="$ALL_SCENARIOS probe"
+# ── M1 (M1_PLAN 0.3): 묶음마다 자기 줄 밑에 시나리오를 더한다 (밑의 BOT 표에도 같은 묶음 줄 밑에 봇 이름) ──
+# ── M1 P1-0: 계약 (contract: 틱 차례, 적 몸 R8·옮기기 R6·한 대·등록부 R7, 거두기 CombatReset·걷기 속도 S4, 서버 휘두르기 S3, 콘텐츠) ──
+ALL_SCENARIOS="$ALL_SCENARIOS contract"
+# ── M1 P1a ──
+# ── M1 P1b ──
+# ── M1 P1c ──
+# ── M1 P2a ──
+# ── M1 P2b ──
+# ── M1 P3 ──
+# ── M1 P4 ──
+# ── M1 P5a ──
+# ── M1 P5b ──
+# ── M1 P6 ──
+# ── M1 P7 ──
+# ── M1 P8 ──
+# ── M1 끝 ──
 # 시나리오별 봇 이름 (ops.json 에 미리 올린다. 오프라인 UUID). 이름이 Souls 로 시작하면 시험 서버에서 빈털터리로 태어난다
 # (start.auto-origin). pvp_b 는 시나리오가 아니라 pvp 의 둘째 봇
 # late 는 persist_check 의 나중에 들어온 사람: 이름이 Souls 로 시작하지 않아 출신 없이 들어와 알림과 출신 창을 받는다
@@ -54,6 +70,21 @@ declare -A BOT=( [t1_boot]=SoulsBoot [join]=SoulsJoin [lang]=SoulsLang [stamina]
                  [persist]=SoulsPersist [late]=LateJoiner [rings]=SoulsRings [gear]=SoulsGear )
 # ── M1 PS ──
 BOT[probe]=SoulsProbe
+# ── M1 P1-0 ──
+BOT[contract]=SoulsContract
+# ── M1 P1a ──
+# ── M1 P1b ──
+# ── M1 P1c ──
+# ── M1 P2a ──
+# ── M1 P2b ──
+# ── M1 P3 ──
+# ── M1 P4 ──
+# ── M1 P5a ──
+# ── M1 P5b ──
+# ── M1 P6 ──
+# ── M1 P7 ──
+# ── M1 P8 ──
+# ── M1 끝 ──
 
 PORT=25601
 SCRATCH="${SOULS_TEST_DIR:-}"

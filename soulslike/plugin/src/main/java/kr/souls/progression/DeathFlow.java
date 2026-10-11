@@ -4,6 +4,7 @@ import com.destroystokyo.paper.event.player.PlayerPostRespawnEvent;
 import kr.souls.Config;
 import kr.souls.Lang;
 import kr.souls.Souls;
+import kr.souls.combat.CombatReset;
 import kr.souls.hud.Glyphs;
 import kr.souls.util.Fx;
 import net.kyori.adventure.text.Component;
@@ -41,6 +42,8 @@ public final class DeathFlow implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onDeath(PlayerDeathEvent e) {
+        // M1: 죽음에 거둘 전투 상태는 묶음마다 combat/CombatReset 에 건다 (여기는 P1-0 뒤로 고치지 않는다, M1_PLAN 0.8)
+        CombatReset.fire(e.getEntity(), CombatReset.Why.DEATH);
         if (!plugin.worlds().ours(e.getEntity().getWorld())) return;
         e.setKeepInventory(true);
         e.getDrops().clear();

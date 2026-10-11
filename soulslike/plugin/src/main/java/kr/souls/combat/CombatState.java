@@ -50,6 +50,22 @@ public final class CombatState {
     public UUID riposteFoe;
     public long riposteUntil = Long.MIN_VALUE / 2;
 
+    // ── M1 P1-0 계약 (P1a·P1b 가 함께 쓰는 칸, R31) ──
+    /** "아직 없음" 틱 (빼도 넘치지 않는 아주 작은 값) */
+    public static final long NEVER = Long.MIN_VALUE / 2;
+    /** 마지막으로 싸운 틱: 적을 때렸거나 적에게 맞았다 (Foes.hit 과 대기열이 한 곳에서 찍는다, R23. 쉬기 거절·왼손 잠금·화살이 본다) */
+    public long lastCombatTick = NEVER;
+    /** 마지막으로 맞은 틱 (대기열이 찍는다, R23) */
+    public long lastHurtTick = NEVER;
+    /** 서버가 이 사람의 주손·왼손을 마지막으로 휘두른 틱 (combat/Swings, S3 의 되돌아오는 휘두르기 거르기) */
+    public long srvSwingMain = NEVER;
+    public long srvSwingOff = NEVER;
+    // ── M1 P1a ── (동작·입력 기억·민첩 몫)
+    // ── M1 P2a ── (막기 반격·막기 깨짐·경직·무적 창)
+    // ── M1 P3 ── (치명타 중)
+    // ── M1 P4 ── (강인도·넘어짐)
+    // ── M1 P6 ── (모은 강공격·낙하)
+
     private CombatState(UUID id, double maxStamina) {
         this.id = id;
         this.stamina = new Pool(maxStamina);

@@ -321,7 +321,7 @@ public final class StartFlow implements Listener {
         WorldState.Settings old = plugin.worldState().get();
         plugin.worldState().set(plugin.worlds().world(), s);
         plugin.worlds().applyPvp();
-        plugin.foes().applyAll();
+        plugin.foeScaling().applyAll();
         plugin.test(by, "SETTINGS " + s.line());
         if (!s.confirmed()) return;
         boolean changed = old != null && old.confirmed();

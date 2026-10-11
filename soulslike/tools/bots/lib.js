@@ -1199,3 +1199,41 @@ module.exports = {
   ENV, VERSION, sleep, run, connect, Scenario, Bot, kvOf, num, plain, flatten, simple, langTable, render, formatTr, translateKeys, deepKeys,
   loadGlyphs, readZip, decodePng, hsv, readProps, testRoom, rollConfig, deathConfig, fetchBuf, decodeHud
 }
+
+// ── M1 (M1_PLAN 0.3): 묶음마다 자기 줄 밑에 도우미 함수와 module.exports.<이름> = <이름> 을 더한다 (위의 module.exports 는 고치지 않는다) ──
+// ── M1 P1-0 ──
+/**
+ * 서버 기록 (SERVER_LOG) 의 시험 줄 "[T] <봇 이름> <prefix>..." 들 (봇에게 오지 않는 줄: 나간 뒤의 RESET why=QUIT 같은 것).
+ * from: 기록의 이 글자 위치부터 (serverLogSize() 로 미리 재 둔다). 돌려주는 값: [{line, kv}]
+ */
+function serverTLines (name, prefix, from = 0) {
+  if (!ENV.serverLog || !fs.existsSync(ENV.serverLog)) return []
+  const text = fs.readFileSync(ENV.serverLog, 'utf8').slice(from)
+  const want = '[T] ' + name + ' ' + prefix
+  const out = []
+  for (const l of text.split(/\r?\n/)) {
+    const i = l.indexOf(want)
+    if (i >= 0) out.push({ line: l.slice(i + 4 + name.length + 1), kv: kvOf(l.slice(i)) })
+  }
+  return out
+}
+/** 서버 기록의 지금 길이 (글자 수, serverTLines 의 from). */
+function serverLogSize () {
+  if (!ENV.serverLog || !fs.existsSync(ENV.serverLog)) return 0
+  return fs.readFileSync(ENV.serverLog, 'utf8').length
+}
+module.exports.serverTLines = serverTLines
+module.exports.serverLogSize = serverLogSize
+// ── M1 P1a ──
+// ── M1 P1b ──
+// ── M1 P1c ──
+// ── M1 P2a ──
+// ── M1 P2b ──
+// ── M1 P3 ──
+// ── M1 P4 ──
+// ── M1 P5a ──
+// ── M1 P5b ──
+// ── M1 P6 ──
+// ── M1 P7 ──
+// ── M1 P8 ──
+// ── M1 끝 ──

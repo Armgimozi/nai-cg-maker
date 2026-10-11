@@ -4,6 +4,7 @@ import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
 import kr.souls.bonfire.TestBonfire;
 import kr.souls.cmd.SoulsCommands;
 import kr.souls.cmd.TestCommands;
+import kr.souls.combat.CombatReset;
 import kr.souls.combat.CombatState;
 import kr.souls.combat.DamageHook;
 import kr.souls.combat.FoeScaling;
@@ -11,10 +12,13 @@ import kr.souls.combat.Parry;
 import kr.souls.combat.Pvp;
 import kr.souls.combat.PvpGuard;
 import kr.souls.combat.Roll;
+import kr.souls.combat.Slow;
 import kr.souls.combat.Stamina;
 import kr.souls.combat.TestHits;
 import kr.souls.data.Profiles;
 import kr.souls.data.WorldState;
+// ── M1 P1-0: 계약 (적 등록부) ──
+import kr.souls.enemy.Foes;
 import kr.souls.input.SneakTap;
 // ── M1 PS: 입력 탐침 ──
 import kr.souls.input.InputProbe;
@@ -59,8 +63,11 @@ import java.util.Set;
  * 데이터팩은 부트스트래퍼(SoulsBootstrap)가 세계를 읽기 전에 싣는다. 켜는 순서는 12.3 을 따른다.
  */
 public final class Souls extends JavaPlugin {
-    /** 켤 때 쓸어 내는 남은 물체 태그 (플러그인이 만든 물체는 하나도 저장하지 않는다) */
-    public static final Set<String> SWEEP_TAGS = Set.of(Mechanics.FX_TAG, "souls_rig", TestHits.ENT_TAG);
+    /**
+     * 켤 때 쓸어 내는 남은 물체 태그 (플러그인이 만든 물체는 하나도 저장하지 않는다). M1 (P1-0): 적의 몸 souls_foe, 적에 붙는 표식
+     * souls_mark (P8). 새 태그를 쓰는 묶음은 여기에 더한다 (M1_PLAN 0.7).
+     */
+    public static final Set<String> SWEEP_TAGS = Set.of(Mechanics.FX_TAG, "souls_rig", TestHits.ENT_TAG, Foes.TAG, Foes.MARK_TAG);
 
     private Config cfg;
     private Content content;
@@ -95,9 +102,11 @@ public final class Souls extends JavaPlugin {
     private LevelUpDialog levelUp;
     private TestBonfire testBonfire;
     private SneakTap sneakTap;
-    private FoeScaling foes;
+    private FoeScaling foeScaling;
     // ── M1 PS: 입력 탐침 (시험 모드, /soulstest probe) ──
     private InputProbe probe;
+    // ── M1 P1-0: 적 등록부 (enemy/Foes, P1b 가 채운다) ──
+    private Foes foes;
 
     @Override
     public void onEnable() {
@@ -114,6 +123,8 @@ public final class Souls extends JavaPlugin {
         // 3. 콘텐츠 꺼내기
         content = new Content(this);
         content.extract();
+        // M1: 열쇠마다 jar 값으로 채워 읽는 moves.yml·enemies.yml (R20)
+        content.reload();
         // 4. 등록부 (스킬, 무기·방패·촉매, 출신, 반지. 그 뒤로 items → armor → enemies → bosses → encounters)
         cooldowns = new Cooldowns();
         skills = new SkillRegistry(getLogger());
@@ -128,7 +139,7 @@ public final class Souls extends JavaPlugin {
         profiles = new Profiles(this);
         worldState = new WorldState(this);
         pvp = new Pvp(this);
-        foes = new FoeScaling(this);
+        foeScaling = new FoeScaling(this);
         // 5. 세계: 로비와 souls_world, 게임 규칙, 난이도, 필요하면 접속을 막고 짓기
         worlds = new WorldService(this);
         worlds.start();
@@ -161,10 +172,18 @@ public final class Souls extends JavaPlugin {
         hud.setSoulSource(purse::get);
         Targets.pvp = pvp::allowed;
         start.enable();
+        // 차례 (M1_PLAN 0.6): load → stamina → input → moves → roll → tap → brains → queue → poise → lock → hud → titles → rings.
+        // 빈 자리는 묶음이 ticker.into(자리, 이름, 일) 로 채운다 (아래 M1 묶음 줄)
         ticker.add("load", load::tick);
         ticker.add("stamina", stamina::tick);
+        ticker.slot("input");
+        ticker.slot("moves");
         ticker.add("roll", roll::tick);
         ticker.add("tap", sneakTap::tick);
+        ticker.slot("brains");
+        ticker.slot("queue");
+        ticker.slot("poise");
+        ticker.slot("lock");
         ticker.add("hud", hud::tick);
         ticker.add("titles", titles::tick);
         ticker.add("rings", ringSlots::tick);
@@ -187,7 +206,7 @@ public final class Souls extends JavaPlugin {
         pm.registerEvents(pvp, this);
         pm.registerEvents(new PvpGuard(this), this);
         pm.registerEvents(new DamageHook(this), this);
-        pm.registerEvents(foes, this);
+        pm.registerEvents(foeScaling, this);
         pm.registerEvents(new Ailments(this), this);
         pm.registerEvents(load, this);
         pm.registerEvents(ui, this);
@@ -200,6 +219,26 @@ public final class Souls extends JavaPlugin {
         probe = new InputProbe(this);
         pm.registerEvents(probe, this);
         getServer().getScheduler().runTaskTimer(this, probe::tick, 1L, 1L);
+        // ── M1 (M1_PLAN 0.3): 묶음마다 자기 줄 밑에만 더한다 (만들기, 리스너, ticker.into, CombatReset.register) ──
+        // ── M1 P1-0 ──
+        pm.registerEvents(new CombatReset(getLogger(), this::test), this);
+        // 걷기 속도 (S4): 나가기·죽음·다른 세계·끄기·접속 때 바닐라 0.2 로 (플레이어 파일에 저장되는 값)
+        CombatReset.register("slow", (p, why) -> Slow.reset(p));
+        foes = new Foes(this);
+        pm.registerEvents(foes, this);
+        // ── M1 P1a ──
+        // ── M1 P1b ──
+        // ── M1 P1c ──
+        // ── M1 P2a ──
+        // ── M1 P2b ──
+        // ── M1 P3 ──
+        // ── M1 P4 ──
+        // ── M1 P5a ──
+        // ── M1 P5b ──
+        // ── M1 P6 ──
+        // ── M1 P7 ──
+        // ── M1 P8 ──
+        // ── M1 끝 ──
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, e -> {
             SoulsCommands.register(this, e.registrar());
             TestCommands.register(this, e.registrar());
@@ -245,6 +284,8 @@ public final class Souls extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        // M1: 전투 상태를 거둔다 (걷기 속도처럼 플레이어 파일에 저장되는 값은 서버가 플레이어를 쓰기 전에, CombatReset)
+        CombatReset.fireAll(CombatReset.Why.DISABLE);
         // 반지 칸 (2×2) 을 먼저 비운다: 서버를 끄면 플러그인이 꺼진 뒤 플레이어를 내보내며 바닐라가 2×2 를 떨어뜨린다 (반지는 프로필에 있다)
         if (ringSlots != null) ringSlots.disable();
         if (profiles != null) {
@@ -257,6 +298,7 @@ public final class Souls extends JavaPlugin {
         if (hud != null) hud.shutdown();
         Bukkit.getServer().allowPausing(this, true);
         CombatState.clear();
+        CombatReset.clear();
     }
 
     /** 우리 태그가 붙은 물체를 모든 세계에서 지운다. */
@@ -290,6 +332,14 @@ public final class Souls extends JavaPlugin {
         weapons.load(content.yml("weapons.yml"));
         origins.load(content.yml("origins.yml"), weapons);
         rings.load(content.yml("rings.yml"));
+        // M1: moves.yml·enemies.yml 을 다시 겹쳐 읽는다. 읽는 쪽은 아래 자기 묶음 줄에서 다시 읽는다
+        content.reload();
+        // ── M1 P1a ──
+        // ── M1 P1b ──
+        // ── M1 P2b ──
+        // ── M1 P5a ──
+        // ── M1 P5b ──
+        // ── M1 끝 ──
         // 시험 모드를 켜고 끄면 /soulstest 가 보이고 숨는다. 바뀐 설정 (최대 HP·이동 속도·공격 속도 곡선, 무게 단계의 걷기 배율,
         // hud.show-souls 같은 것) 을 곧바로 건다: 창과 HUD 만 새 값이고 속성은 옛 값인 채 남지 않게 (검토 reload-stale-attributes)
         for (Player p : Bukkit.getOnlinePlayers()) {
@@ -302,7 +352,7 @@ public final class Souls extends JavaPlugin {
             // 든 무기도 새 값으로 (weapons.yml 의 공격력·막기·무게가 바뀌면 설명 칸도, 검토 stale-weapons-outside-inventory)
             weaponRefresh.player(p, "reload");
         }
-        foes.applyAll();
+        foeScaling.applyAll();
         checkMaxHealthCap();
     }
 
@@ -358,9 +408,26 @@ public final class Souls extends JavaPlugin {
     public LevelUpDialog levelUp() { return levelUp; }
     public TestBonfire testBonfire() { return testBonfire; }
     public SneakTap sneakTap() { return sneakTap; }
-    public FoeScaling foes() { return foes; }
+    public FoeScaling foeScaling() { return foeScaling; }
     // ── M1 PS ──
     public InputProbe probe() { return probe; }
+    // ── M1 (M1_PLAN 0.3): 묶음마다 자기 줄 밑에 필드와 꺼내는 메서드 ──
+    // ── M1 P1-0 ──
+    /** 적 등록부 (enemy/Foes): of·near·hit·spawn·teleport */
+    public Foes foes() { return foes; }
+    // ── M1 P1a ──
+    // ── M1 P1b ──
+    // ── M1 P1c ──
+    // ── M1 P2a ──
+    // ── M1 P2b ──
+    // ── M1 P3 ──
+    // ── M1 P4 ──
+    // ── M1 P5a ──
+    // ── M1 P5b ──
+    // ── M1 P6 ──
+    // ── M1 P7 ──
+    // ── M1 P8 ──
+    // ── M1 끝 ──
 
     /** 지금 세계 설정의 난이도 (5.7, 설정이 없으면 difficulty.default). */
     public Config.Difficulty difficulty() {

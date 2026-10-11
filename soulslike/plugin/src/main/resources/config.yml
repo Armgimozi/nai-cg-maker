@@ -253,6 +253,18 @@ combat:
     sound: "item.armor.equip_leather"
     sound-volume: 0.6
     sound-pitch: 0.7
+  # ── M1 (M1_PLAN 0.3, 0.4): 전투 도장의 맞출 값. combat/CombatTuning 이 읽는다. 수는 모두 처음 값이고, 도장에서 해 보고 맞춘다 ──
+  # 묶음마다 자기 줄 밑에만 더한다. 위에 이미 있는 절 (stamina, guard, parry, roll) 에 더할 열쇠는 그 절 안에 쓴다 (같은 열쇠를 두 번
+  # 쓰면 YAML 은 뒤의 것만 읽는다: tools/langcheck.py 가 겹친 열쇠를 거른다)
+  # ── M1 P1a ── (input, moves)
+  # ── M1 P2a ── (queue. guard 의 arc·counter-window·break 는 위의 guard 절에)
+  # ── M1 P2b ── (telegraph)
+  # ── M1 P3 ── (riposte, backstab, crit, telemetry. parry 의 cost·arc·reach … 는 위의 parry 절에)
+  # ── M1 P4 ── (poise, posture)
+  # ── M1 P6 ── (offhand-swap. moves.charge·plunge·offhand 는 P1a 의 moves 절에)
+  # ── M1 P7 ── (bow)
+  # ── M1 P8 ── (lock)
+  # ── M1 끝 ──
 
 world:
   # 게임 세계 폴더 이름. 로비는 server.properties 의 level-name (world)
@@ -333,6 +345,12 @@ pack:
   # 0 보다 크면 jar 안 pack.zip 을 이 포트에서 직접 내보낸다 (로컬 시험용).
   # 이때 url 도 "http://127.0.0.1:<포트>/{sha1}.zip" 처럼 바꾼다. 터널(playit)은 25565 만 통하므로 실제 서버에서는 0
   serve-port: 0
+
+# ── M1 (M1_PLAN 0.3, 0.4): 전투 밖의 M1 절. 묶음마다 자기 줄 밑에만 더한다 ──
+# ── M1 P1b ── (dojo: 도장 자리 dojo.offset, world/Dojo.Cfg)
+# ── M1 P5a ── (enemies: 모든 적에 같은 값, enemy/EnemyTuning)
+# ── M1 P5b ── (rest: 쉬기 거절. dojo.waves·reset-on-death 는 P1b 의 dojo 절에)
+# ── M1 끝 ──
 
 debug:
   # 시험 명령어 /soulstest 와 시험 줄([T] ...)을 켠다. 봇 시험 서버에서만 켠다
