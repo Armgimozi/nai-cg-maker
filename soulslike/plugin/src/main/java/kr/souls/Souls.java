@@ -16,6 +16,8 @@ import kr.souls.combat.TestHits;
 import kr.souls.data.Profiles;
 import kr.souls.data.WorldState;
 import kr.souls.input.SneakTap;
+// ── M1 PS: 입력 탐침 ──
+import kr.souls.input.InputProbe;
 import kr.souls.hud.Glyphs;
 import kr.souls.hud.Hud;
 import kr.souls.hud.Titles;
@@ -94,6 +96,8 @@ public final class Souls extends JavaPlugin {
     private TestBonfire testBonfire;
     private SneakTap sneakTap;
     private FoeScaling foes;
+    // ── M1 PS: 입력 탐침 (시험 모드, /soulstest probe) ──
+    private InputProbe probe;
 
     @Override
     public void onEnable() {
@@ -192,6 +196,10 @@ public final class Souls extends JavaPlugin {
         pm.registerEvents(testBonfire, this);
         pm.registerEvents(sneakTap, this);
         pm.registerEvents(ringSlots, this);
+        // ── M1 PS: 입력 탐침 (시험 모드에서 켠 사람만 줄을 낸다) ──
+        probe = new InputProbe(this);
+        pm.registerEvents(probe, this);
+        getServer().getScheduler().runTaskTimer(this, probe::tick, 1L, 1L);
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, e -> {
             SoulsCommands.register(this, e.registrar());
             TestCommands.register(this, e.registrar());
@@ -351,6 +359,8 @@ public final class Souls extends JavaPlugin {
     public TestBonfire testBonfire() { return testBonfire; }
     public SneakTap sneakTap() { return sneakTap; }
     public FoeScaling foes() { return foes; }
+    // ── M1 PS ──
+    public InputProbe probe() { return probe; }
 
     /** 지금 세계 설정의 난이도 (5.7, 설정이 없으면 difficulty.default). */
     public Config.Difficulty difficulty() {

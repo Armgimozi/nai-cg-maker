@@ -42,6 +42,8 @@ BOTS="$HERE/bots"
 # rings 는 반지 칸 (9.4) 을 끼고 빼고 거절하고 창 닫기·다시 접속·죽음·다른 세계를 지난 뒤 RUN_DIR/rings.json 을 남기고, 두 번째 기동에서
 # rings_check 가 다시 켠 서버로 본다. gear 는 장비 설명 칸 (수치 한 줄: 제 값과 무게) 과 F 패링 (왼손 물건의 분류로 창) 을 본다
 ALL_SCENARIOS="t1_boot join lang stamina roll_iframes taplat guard death reconnect start origin levelup pvp difficulty stats_fx origins_all rollkey rings gear"
+# ── M1 PS: 입력 탐침 (probe: [T] PROBE 줄이 봇의 날 패킷을 그대로 따르는지) ──
+ALL_SCENARIOS="$ALL_SCENARIOS probe"
 # 시나리오별 봇 이름 (ops.json 에 미리 올린다. 오프라인 UUID). 이름이 Souls 로 시작하면 시험 서버에서 빈털터리로 태어난다
 # (start.auto-origin). pvp_b 는 시나리오가 아니라 pvp 의 둘째 봇
 # late 는 persist_check 의 나중에 들어온 사람: 이름이 Souls 로 시작하지 않아 출신 없이 들어와 알림과 출신 창을 받는다
@@ -50,6 +52,8 @@ declare -A BOT=( [t1_boot]=SoulsBoot [join]=SoulsJoin [lang]=SoulsLang [stamina]
                  [start]=SoulsStart [origin]=SoulsOrigin [levelup]=SoulsLevel [pvp]=SoulsPvpA [pvp_b]=SoulsPvpB
                  [taplat]=SoulsTap [difficulty]=SoulsDiff [stats_fx]=SoulsStatFx [origins_all]=SoulsOrigins [rollkey]=SoulsKeys
                  [persist]=SoulsPersist [late]=LateJoiner [rings]=SoulsRings [gear]=SoulsGear )
+# ── M1 PS ──
+BOT[probe]=SoulsProbe
 
 PORT=25601
 SCRATCH="${SOULS_TEST_DIR:-}"

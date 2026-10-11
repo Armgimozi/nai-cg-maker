@@ -376,6 +376,8 @@ public final class TestCommands {
                                                     boolean ok = plugin.ringSlots().set(p, slot - 1, "none".equals(id) ? null : id);
                                                     plugin.test(p, "RING_SET slot=" + slot + " id=" + id + " ok=" + ok);
                                                 }))))))
+                // ── M1 PS: 입력 탐침 (cmd/test/ProbeTestCommands) ──
+                .then(kr.souls.cmd.test.ProbeTestCommands.node(plugin))
                 .build();
         reg.register(root, "Soulslike test hooks (debug.test-mode)", List.of());
     }
