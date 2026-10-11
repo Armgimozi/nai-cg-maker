@@ -12,10 +12,14 @@ L.run('pvp', async (sc) => {
   await L.sleep(500)
   await a.ground(3000)
   // B 를 A 앞 2.2칸에 세운다 (구르기 길 lane 은 동쪽 +x 로 트였다. 시험 방은 머리 높이에 걸리는 것이 있어 화살이 박혔다)
-  const pa = a.bot.entity.position
-  await a.cmd(`/tp ${b.name} ${(pa.x + 2.2).toFixed(2)} ${pa.y.toFixed(2)} ${pa.z.toFixed(2)} 90 0`, null, 1500)
-  await a.cmd(`/tp ${a.name} ${pa.x.toFixed(2)} ${pa.y.toFixed(2)} ${pa.z.toFixed(2)} -90 0`, null, 1500)
-  await L.sleep(800)
+  const pa = a.bot.entity.position.clone()
+  // 근접 공격은 앞으로 내딛는다 (M1 P1a): 근접 뒤에는 A 만 제자리로 (명령 순간이동은 맞는 쪽에 보호 시간 pvp.respawn-grace 를 건다. B 는 옮기지 않는다)
+  const place = async (both) => {
+    if (both) await a.cmd(`/tp ${b.name} ${(pa.x + 2.2).toFixed(2)} ${pa.y.toFixed(2)} ${pa.z.toFixed(2)} 90 0`, null, 1500)
+    await a.cmd(`/tp ${a.name} ${pa.x.toFixed(2)} ${pa.y.toFixed(2)} ${pa.z.toFixed(2)} -90 0`, null, 1500)
+    await L.sleep(800)
+  }
+  await place(true)
   const s0 = await a.cmd('/soulstest settings show', 'SETTINGS ')
   sc.check('world settings: pvp off (start.auto)', s0.kv && s0.kv.pvp === 'false' && s0.kv.gamerule_pvp === 'false', s0.line || '')
   const ib = await b.cmd('/soulstest info', 'INFO ')
@@ -97,10 +101,11 @@ L.run('pvp', async (sc) => {
   const hk = hc ? L.kvOf(hc.plain) : null
   sc.check('on: a harming cloud is scaled like other vanilla damage (DEF from=player_indirect, raw = 3 x maxHP/20)', hk && Math.abs(L.num(hk.raw) - 3 * maxhpB / 20) < 0.5,
     hc ? hc.plain : '줄 없음 ' + b.tLines('DEF ', from).map((x) => x.line).join(' | '))
-  await L.sleep(1600)
+  // 남은 구름이 B 를 계속 깎아 쓰러뜨리면 다시 일어난 B 가 보호 시간 (grace) 이라 아래 근접이 막힌다: 구름을 지운다
+  await a.cmd('/kill @e[type=minecraft:area_effect_cloud]', null, 800)
+  await L.sleep(800)
   await b.cmd('/soulstest heal', 'HEAL')
-  await L.sleep(300)
-  await L.sleep(300)
+  await place()
   from = b.sys.length
   const e2 = target()
   if (e2) {
@@ -137,6 +142,7 @@ L.run('pvp', async (sc) => {
     await a.cmd('/soulstest stat str 10', 'STAT ')
   }
   await b.cmd('/soulstest heal', 'HEAL')
+  await place()
   from = b.sys.length
   await a.cmd(`/soulstest pvpshoot ${b.name} arrow`, 'PVPSHOOT ')
   const arr = await b.waitSys((m) => m.plain.startsWith('[T] DEF ') && L.kvOf(m.plain).from === 'player_projectile', 3000, from)

@@ -4,7 +4,7 @@
 //   휘두름: arm_animation 손 0·1 → swing HAND / OFF_HAND (+ 공중 좌클릭 LEFT_CLICK_AIR)
 //   F (block_dig 6) → swap (Roll 이 늘 취소). fswing off 면 서버가 왼손을 휘두르고 (srvswing), 그 animation 패킷이 봇에게도 온다 (S3)
 //   Q (block_dig 4) → drop. 웅크리기 (player_input) → input +sneak / -sneak
-//   엔터티 공격 (use_entity) → attack will=true, damage. cancel attack 이면 attack cancelled=true 이고 damage 가 없다 (S12 흉내)
+//   엔터티 공격 (use_entity) → attack will=true. M1 P1a 부터 InputRouter 가 늘 취소한다: cancelled=true 이고 damage 가 없다 (S12)
 //   probe swing main → srvswing 과 animation 0. probe off → 줄이 없다
 //   probe mob husk block → 허스크가 왼손 방패를 쓰는 중 (서버 쪽, S9). probe crawl → 머리 칸 막힘 block_change (S10)
 //   S8 메모: 방패 껍데기로 막고 맞을 때 받은 소리 (판정 아님)
@@ -107,9 +107,10 @@ L.run('probe', async (sc) => {
     await L.sleep(600)
     const at = evLines(b, from, 'attack')
     const dm = evLines(b, from, 'damage')
-    sc.check('use_entity attack → attack will=true, not cancelled', at.length === 1 && at[0].kv.will === 'true' && at[0].kv.cancelled === 'false' && at[0].kv.target === 'husk',
-      at.map((x) => x.line).join(' | ') || '줄 없음')
-    sc.check('uncancelled attack reaches damage', dm.length >= 1, dm.map((x) => `dmg=${x.kv.dmg} cancelled=${x.kv.cancelled}`).join(', ') || '줄 없음')
+    // M1 P1a: InputRouter (HIGH) 가 우리 세계의 바닐라 근접 공격을 늘 취소한다 (cancel none 이어도). 시험 허스크는 우리 적이 아니라 한 대도 없다
+    sc.check('use_entity attack → attack will=true, cancelled by the input router (P1a)', at.length === 1 && at[0].kv.will === 'true' && at[0].kv.cancelled === 'true' &&
+      at[0].kv.target === 'husk', at.map((x) => x.line).join(' | ') || '줄 없음')
+    sc.check('the cancelled vanilla attack deals no damage', dm.length === 0, dm.map((x) => `dmg=${x.kv.dmg} cancelled=${x.kv.cancelled}`).join(', ') || '줄 없음')
     await b.cmd('/soulstest probe cancel attack', 'PROBE_SET')
     await L.sleep(600) // 맞은 무적 시간 (10틱) 을 지난다
     from = b.sys.length

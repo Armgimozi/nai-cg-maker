@@ -115,7 +115,8 @@ public final class AttributeApplier {
         if (plugin.moves() == null || plugin.weaponRefresh() == null) return;
         int tier = plugin.moves().tier(p);
         Integer was = lastTier.put(p.getUniqueId(), tier);
-        if (was != null && was == tier) return;
+        // 처음 보는 단계 (접속·다시 읽기 뒤) 는 적어 두기만 한다: 그때의 무기는 접속·다시 읽기의 새로 만들기 (WeaponRefresh, 같은 단계) 가 맡는다
+        if (was == null || was == tier) return;
         int n = plugin.weaponRefresh().player(p, "dex");
         plugin.test(p, "SWING_TIER tier=" + tier + " dex=" + plugin.stats().of(p).dex() + " was=" + (was == null ? "-" : was) + " n=" + n);
     }

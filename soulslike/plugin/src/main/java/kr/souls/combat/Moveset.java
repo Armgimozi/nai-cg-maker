@@ -112,7 +112,7 @@ public final class Moveset {
         }
         for (Map.Entry<String, String> e : alias.entrySet()) {
             Cls to = out.get(e.getValue());
-            if (to == null) bad.add(e.getKey() + ".as: " + e.getValue() + " 가 없다");
+            if (to == null) bad.add(e.getKey() + ".as: " + e.getValue() + " 가 없다"); // lang-ok: 서버 기록에만
             else out.put(e.getKey(), to);
         }
         return new Moveset(out, bad);
@@ -135,7 +135,7 @@ public final class Moveset {
             }
         }
         if (light.isEmpty()) {
-            bad.add(id + ".light: 없거나 틀렸다");
+            bad.add(id + ".light: 없거나 틀렸다"); // lang-ok: 서버 기록에만
             light.add(new Step(DEFAULT_STEP[0], DEFAULT_STEP[1], DEFAULT_STEP[2], spec, type));
         }
         Step heavy = step(id + ".heavy", c.get("heavy"), spec, type, vertical, bad);
@@ -170,7 +170,7 @@ public final class Moveset {
         if (o instanceof List<?> l) {
             int[] t = triple(l);
             if (t == null) {
-                bad.add(where + ": [준비, 판정, 회복] 이 아니다 " + l);
+                bad.add(where + ": [준비, 판정, 회복] 이 아니다 " + l); // lang-ok: 서버 기록에만
                 return null;
             }
             return new Step(t[0], t[1], t[2], spec, type);
@@ -178,7 +178,7 @@ public final class Moveset {
         if (o instanceof ConfigurationSection m) {
             int[] t = triple(List.of(m.get("s", -1), m.get("a", -1), m.get("r", -1)));
             if (t == null) {
-                bad.add(where + ": s·a·r 이 없다");
+                bad.add(where + ": s·a·r 이 없다"); // lang-ok: 서버 기록에만
                 return null;
             }
             return new Step(t[0], t[1], t[2], spec(where, m, spec, vertical, bad), type(where, m.getString("type"), type, bad));
@@ -186,7 +186,7 @@ public final class Moveset {
         if (o instanceof Map<?, ?> m) {
             int[] t = triple(java.util.Arrays.asList(m.get("s"), m.get("a"), m.get("r")));
             if (t == null) {
-                bad.add(where + ": s·a·r 이 없다");
+                bad.add(where + ": s·a·r 이 없다"); // lang-ok: 서버 기록에만
                 return null;
             }
             org.bukkit.configuration.MemoryConfiguration sec = new org.bukkit.configuration.MemoryConfiguration();

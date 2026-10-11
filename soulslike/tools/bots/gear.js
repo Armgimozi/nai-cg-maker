@@ -146,15 +146,19 @@ L.run('gear', async (sc) => {
       comps(b, 45).join(','))
     sc.check('spear shell is a vanilla spear (stone_spear, #minecraft:spears)', main && main.name === 'stone_spear', main ? main.name : '없음')
     const rm = removed(b, 36)
-    const SPEAR_DROP = ['kinetic_weapon', 'piercing_weapon', 'attack_range', 'minimum_attack_charge', 'damage_type', 'weapon', 'max_damage', 'damage',
+    // M1 P1a: attack_range 와 swing_animation 은 우리 값으로 덮는다 (사거리 = 분류의 사거리, hitbox_margin 0. 창은 찌르기, Q6)
+    const SPEAR_DROP = ['kinetic_weapon', 'piercing_weapon', 'minimum_attack_charge', 'damage_type', 'weapon', 'max_damage', 'damage',
       'enchantable', 'repairable']
-    sc.check('the spear shell drops the vanilla spear components (stab, charge, reach, durability, enchanting)', SPEAR_DROP.every((t) => rm.includes(t)),
+    sc.check('the spear shell drops the vanilla spear components (stab, charge, durability, enchanting)', SPEAR_DROP.every((t) => rm.includes(t)),
       'removed ' + rm.join(','))
+    const sar = compData(b, 36, 'attack_range')
+    sc.check('the spear carries our attack_range (class reach 4.2, hitbox margin 0; P1a)', !!sar && Math.abs(sar.maxRange - 4.2) < 1e-3 &&
+      Math.abs(sar.hitboxMargin) < 1e-6 && Math.abs(sar.minRange || 0) < 1e-6, JSON.stringify(sar))
     const swing = JSON.stringify(compData(b, 36, 'swing_animation') || '')
     const attrs = compData(b, 36, 'attribute_modifiers')
     const attrsJ = JSON.stringify(attrs || '')
-    sc.check('the spear shell takes the flint swing and attributes (no stab swing, no spear attack damage/speed modifiers)',
-      !/stab/i.test(swing) && !rm.includes('swing_animation') && !/attack_damage|attack_speed|spear/i.test(attrsJ),
+    sc.check('the spear shell takes our stab swing (P1a, Q6) and the flint attributes (no spear attack damage/speed modifiers)',
+      /stab/i.test(swing) && !rm.includes('swing_animation') && !/attack_damage|attack_speed|spear/i.test(attrsJ),
       `swing ${swing.slice(0, 120)} attrs ${attrsJ.slice(0, 160)} comps ${comps(b, 36).join(',')}`)
     await b.cmd('/soulstest give hrolf_halberd main', 'GIVE')
     await b.cmd('/soulstest give gaoler_club inv', 'GIVE')
@@ -265,7 +269,7 @@ L.run('gear', async (sc) => {
     await L.sleep(500)
     const rm = removed(b, 36)
     sc.check('after the rebuild the extra component is gone and the spear components stay removed', !comps(b, 36).includes('glider') &&
-      ['kinetic_weapon', 'piercing_weapon', 'attack_range'].every((t) => rm.includes(t)), comps(b, 36).join(',') + ' | removed ' + rm.join(','))
+      ['kinetic_weapon', 'piercing_weapon'].every((t) => rm.includes(t)) && comps(b, 36).includes('attack_range'), comps(b, 36).join(',') + ' | removed ' + rm.join(','))
     from = b.sys.length
     await b.cmd('/souls reload', null, 4000)
     await L.sleep(600)
