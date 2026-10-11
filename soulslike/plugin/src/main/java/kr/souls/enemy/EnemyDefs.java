@@ -9,7 +9,6 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
 
 /**
  * 적 정의 (content/enemies.yml, DESIGN 6.1, M1 P1b). 파일은 Content.merged 로 열쇠마다 jar 사본 위에 겹쳐 읽은 것을 받는다 (R20). 여기서는
@@ -72,8 +71,14 @@ public final class EnemyDefs {
 
     private volatile Map<String, Def> defs = Map.of();
 
+    /** 틀린 값을 알리는 곳 (서버 기록: plugin.getLogger()::warning, 시험은 목록에 모은다). */
+    @FunctionalInterface
+    public interface Log {
+        void warning(String msg);
+    }
+
     /** 읽는다 (켤 때, /souls reload). merged: Content.merged("enemies.yml"), jar: jar 사본 (없으면 null). 틀린 값은 warn 으로 알린다. */
-    public void load(ConfigurationSection merged, ConfigurationSection jar, Consumer<String> warn) {
+    public void load(ConfigurationSection merged, ConfigurationSection jar, Log warn) {
         defs = parse(merged, jar, warn);
     }
 
@@ -86,18 +91,18 @@ public final class EnemyDefs {
     }
 
     /** 순수: 겹쳐 읽은 파일과 jar 사본 → id 차례대로의 정의. */
-    public static Map<String, Def> parse(ConfigurationSection merged, ConfigurationSection jar, Consumer<String> warn) {
-        Consumer<String> w = warn == null ? s -> { } : warn;
+    public static Map<String, Def> parse(ConfigurationSection merged, ConfigurationSection jar, Log warn) {
+        Log log = warn == null ? s -> { } : warn;
         Map<String, Def> out = new LinkedHashMap<>();
         if (merged == null) return Collections.unmodifiableMap(out);
         for (String id : merged.getKeys(false)) {
             ConfigurationSection s = merged.getConfigurationSection(id);
             if (s == null) {
-                w.accept("enemies.yml 의 " + id + " 는 절이 아니라 건너뜁니다 (id: {body: …, hp: …} 꼴로 씁니다).");
+                log.warning("enemies.yml 의 " + id + " 는 절 아니라 건너뜁니다 (id: {body: …, hp: …} 꼴로 씁니다).");
                 continue;
             }
             ConfigurationSection j = jar == null ? null : jar.getConfigurationSection(id);
-            Reader r = new Reader(id, s, j, w);
+            Reader r = new Reader(id, s, j, log);
             String body = r.word("body", BODY);
             double hp = r.num("hp", HP, 1, 1e9);
             double def = r.num("def", DEF, 0, 1e6);
@@ -114,13 +119,13 @@ public final class EnemyDefs {
     }
 
     /** 열쇠 하나를 사용자 값 → jar 값 → 기본값 차례로 읽는다. */
-    private record Reader(String id, ConfigurationSection s, ConfigurationSection jar, Consumer<String> warn) {
+    private record Reader(String id, ConfigurationSection s, ConfigurationSection jar, Log log) {
         double num(String key, double def, double lo, double hi) {
             Double v = number(s.get(key), lo, hi);
             if (v != null) return v;
             Double j = jar == null ? null : number(jar.get(key), lo, hi);
             double use = j != null ? j : def;
-            if (s.isSet(key)) warn.accept(String.format(Locale.ROOT, "enemies.yml 의 %s.%s = %s 는 %s..%s 의 수가 아니라 %s 로 읽습니다.", id, key,
+            if (s.isSet(key)) log.warning(String.format(Locale.ROOT, "enemies.yml 의 %s.%s = %s 는 %s..%s 의 수가 아니라 %s 로 읽습니다.", id, key,
                     s.get(key), trim(lo), trim(hi), trim(use)));
             return use;
         }
@@ -130,7 +135,7 @@ public final class EnemyDefs {
             if (v instanceof String x && !x.isBlank()) return x.trim().toLowerCase(Locale.ROOT);
             Object j = jar == null ? null : jar.get(key);
             String use = j instanceof String x && !x.isBlank() ? x.trim().toLowerCase(Locale.ROOT) : def;
-            if (s.isSet(key)) warn.accept("enemies.yml 의 " + id + "." + key + " = " + v + " 는 글이 아니라 " + use + " 로 읽습니다.");
+            if (s.isSet(key)) log.warning("enemies.yml 의 " + id + "." + key + " = " + v + " 는 글이 아니라 " + use + " 로 읽습니다.");
             return use;
         }
 
@@ -139,7 +144,7 @@ public final class EnemyDefs {
             if (m != null) return m;
             Material j = jar == null ? null : Material.parse(jar.get("material"));
             Material use = j != null ? j : MATERIAL;
-            if (s.isSet("material")) warn.accept("enemies.yml 의 " + id + ".material = " + s.get("material") + " 를 몰라 "
+            if (s.isSet("material")) log.warning("enemies.yml 의 " + id + ".material = " + s.get("material") + " 를 몰라 "
                     + use.name().toLowerCase(Locale.ROOT) + " 로 읽습니다 (flesh, bone, iron, straw).");
             return use;
         }
@@ -156,7 +161,7 @@ public final class EnemyDefs {
                 }
             }
             if (s.isSet(key) && !s.isConfigurationSection(key)) {
-                warn.accept("enemies.yml 의 " + id + "." + key + " 는 {slash: 0.1, …} 꼴이 아니라 jar 값으로 읽습니다.");
+                log.warning("enemies.yml 의 " + id + "." + key + " 는 {slash: 0.1, …} 꼴이 아니라 jar 값으로 읽습니다.");
                 return Collections.unmodifiableMap(out);
             }
             ConfigurationSection us = s.getConfigurationSection(key);
@@ -165,7 +170,7 @@ public final class EnemyDefs {
                     Hit.Type t = Hit.Type.parse(k, null);
                     Double v = number(us.get(k), lo, hi);
                     if (t == null || v == null) {
-                        warn.accept("enemies.yml 의 " + id + "." + key + "." + k + " = " + us.get(k) + " 는 읽지 않습니다 (종류 "
+                        log.warning("enemies.yml 의 " + id + "." + key + "." + k + " = " + us.get(k) + " 는 읽지 않습니다 (종류 "
                                 + "standard·slash·strike·thrust·fire·magic, 값 " + trim(lo) + ".." + trim(hi) + ").");
                         continue;
                     }
