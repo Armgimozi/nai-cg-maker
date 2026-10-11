@@ -94,7 +94,7 @@ public final class CombatTuning {
         int minStartup = i(mv, "min-startup", 2, 1, 40);
         moves = new Moves(light, d(mv, "motion.heavy", 160, 0, 1000), d(mv, "motion.running", 115, 0, 1000), d(mv, "motion.roll", 110, 0, 1000),
                 d(mv, "cost.running", 1.15, 0, 10), d(mv, "cost.roll", 1.0, 0, 10),
-                d(mv, "slow.startup", 0.5, 0, 1), d(mv, "slow.active", 0.5, 0, 1), d(mv, "slow.recovery", 0.25, 0, 1),
+                d(mv, "slow.startup", 0, 0, 1), d(mv, "slow.active", 0, 0, 1), d(mv, "slow.recovery", 0, 0, 1),
                 i(mv, "min-light-cycle", 10, 1, 200), minStartup, i(mv, "min-recovery", 4, 0, 200),
                 d(mv, "cancel-at", 0.4, 0, 1), d(mv, "vertical", 1.2, 0, 10), i(mv, "roll-attack.from", -1, -40, 40), i(mv, "roll-attack.to", 6, -40, 40),
                 java.util.List.copyOf(tiers), d(mv, "vanilla-attack-speed", 20, 4, 1024), i(mv, "combo-grace", 4, 0, 40));

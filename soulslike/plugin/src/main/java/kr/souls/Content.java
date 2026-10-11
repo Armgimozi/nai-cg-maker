@@ -29,7 +29,7 @@ public final class Content {
      * 고친 옛 파일까지 옮겨진다).
      * 콘텐츠에는 보이는 글을 쓰지 않는다 (12.5).
      */
-    public static final int CONTENT_VERSION = 6;
+    public static final int CONTENT_VERSION = 7;  // 7: 공격 앞걸음 0 (2026-10-11)
     /**
      * 꺼내는 파일. 뒤의 둘 (M1 P1-0) 은 {@link #MERGED}: 도장에서 사용자가 맞추는 파일이라 열쇠마다 jar 사본 위에 겹쳐 읽는다
      * ({@link #merged}). 나중 묶음이 열쇠를 더해도 판을 올리지 않고 (사용자가 맞춘 값은 그대로, 새 열쇠는 jar 값), 판이 올라도

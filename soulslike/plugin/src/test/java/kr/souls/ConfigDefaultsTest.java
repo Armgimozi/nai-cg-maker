@@ -139,9 +139,9 @@ class ConfigDefaultsTest {
         assertEquals(115, m.running(), 1e-9);
         assertEquals(110, m.roll(), 1e-9);
         assertEquals(1.15, m.costRunning(), 1e-9);
-        assertEquals(0.5, m.slowStartup(), 1e-9);
-        assertEquals(0.5, m.slowActive(), 1e-9);
-        assertEquals(0.25, m.slowRecovery(), 1e-9);
+        assertEquals(0.0, m.slowStartup(), 1e-9);
+        assertEquals(0.0, m.slowActive(), 1e-9);
+        assertEquals(0.0, m.slowRecovery(), 1e-9);
         assertEquals(10, m.minCycle());
         assertEquals(2, m.minStartup());
         assertEquals(4, m.minRecovery());

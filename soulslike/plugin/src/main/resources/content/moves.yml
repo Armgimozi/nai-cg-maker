@@ -39,7 +39,7 @@ dagger:
   heavy: [6, 1, 10]
   stamina: {light: 10, heavy: 16}
   poise: {light: 6, heavy: 14}
-  step: {light: 0.2, heavy: 0.3, running: 0.45}
+  step: {light: 0, heavy: 0, running: 0}
 
 straight_sword:
   shape: cone
@@ -51,7 +51,7 @@ straight_sword:
   heavy: [8, 2, 12]
   stamina: {light: 14, heavy: 22}
   poise: {light: 12, heavy: 24}
-  step: {light: 0.2, heavy: 0.3, running: 0.45}
+  step: {light: 0, heavy: 0, running: 0}
 
 curved_sword:
   shape: cone
@@ -63,7 +63,7 @@ curved_sword:
   heavy: [7, 2, 11]
   stamina: {light: 13, heavy: 20}
   poise: {light: 10, heavy: 20}
-  step: {light: 0.2, heavy: 0.3, running: 0.45}
+  step: {light: 0, heavy: 0, running: 0}
 
 greatsword:
   shape: cone
@@ -75,7 +75,7 @@ greatsword:
   heavy: [13, 3, 16]
   stamina: {light: 24, heavy: 36}
   poise: {light: 24, heavy: 48}
-  step: {light: 0.3, heavy: 0.35, running: 0.45}
+  step: {light: 0, heavy: 0, running: 0}
 
 ultra_greatsword:
   shape: cone
@@ -87,7 +87,7 @@ ultra_greatsword:
   heavy: [16, 3, 20]
   stamina: {light: 32, heavy: 46}
   poise: {light: 32, heavy: 64}
-  step: {light: 0.3, heavy: 0.35, running: 0.45}
+  step: {light: 0, heavy: 0, running: 0}
 
 axe:
   shape: cone
@@ -99,7 +99,7 @@ axe:
   heavy: [10, 2, 14]
   stamina: {light: 18, heavy: 28}
   poise: {light: 18, heavy: 36}
-  step: {light: 0.25, heavy: 0.3, running: 0.45}
+  step: {light: 0, heavy: 0, running: 0}
 
 hammer:
   shape: cone
@@ -111,7 +111,7 @@ hammer:
   heavy: [11, 2, 15]
   stamina: {light: 20, heavy: 30}
   poise: {light: 22, heavy: 46}
-  step: {light: 0.25, heavy: 0.3, running: 0.45}
+  step: {light: 0, heavy: 0, running: 0}
 
 spear:
   shape: line
@@ -124,7 +124,7 @@ spear:
   heavy: [9, 1, 12]
   stamina: {light: 15, heavy: 23}
   poise: {light: 12, heavy: 26}
-  step: {light: 0.3, heavy: 0.4, running: 0.45}
+  step: {light: 0, heavy: 0, running: 0}
 
 halberd:
   shape: cone
@@ -136,7 +136,7 @@ halberd:
   heavy: [11, 3, 15]
   stamina: {light: 22, heavy: 32}
   poise: {light: 20, heavy: 40}
-  step: {light: 0.3, heavy: 0.35, running: 0.45}
+  step: {light: 0, heavy: 0, running: 0}
 
 # 패링 단검 (왼손 공격, P6): 단검의 동작
 parrying_dagger:

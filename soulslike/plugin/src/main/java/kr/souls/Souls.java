@@ -120,6 +120,7 @@ public final class Souls extends JavaPlugin {
         Mechanics.setLogger(getLogger());
         // 2. 기본 설정과 문구
         saveDefaultConfig();
+        upgradeConfig();
         cfg = new Config(getConfig());
         warnLegacyConfig();
         Lang.load(this);
@@ -380,6 +381,41 @@ public final class Souls extends JavaPlugin {
      * 예전 판의 config.yml (보정 등급이 있던 판) 이면 읽지 않은 열쇠를 한 번 알린다. stats.dexterity.attack-speed 는 이름이 같고, 예전 판의
      * 값 (민첩 보정 B 기준 표) 이 지금 판의 기본 (모든 무기에 같은 곡선) 과 같아 그대로 읽는다.
      */
+    /**
+     * 설정 판 (config-version, 2026-10-11). 서버의 config.yml 판이 jar 의 판보다 낮으면 config-old-v<판>.yml 로 옮겨 두고 새 기본값으로
+     * 다시 쓴다. 개발 중에 기본값 (입력 기억, 공격 중 느려짐 같은) 을 바꾸면 jar 만 바꿔서는 서버에 남은 옛 값이 그대로 들었다.
+     * debug.test-mode 는 옮겨 적는다.
+     */
+    private void upgradeConfig() {
+        java.io.File f = new java.io.File(getDataFolder(), "config.yml");
+        java.io.InputStream in = getResource("config.yml");
+        if (!f.isFile() || in == null) return;
+        int want, have;
+        try (java.io.Reader r = new java.io.InputStreamReader(in, java.nio.charset.StandardCharsets.UTF_8)) {
+            want = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(r).getInt("config-version", 0);
+        } catch (java.io.IOException e) {
+            return;
+        }
+        org.bukkit.configuration.file.YamlConfiguration old = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(f);
+        have = old.getInt("config-version", 0);
+        if (have >= want) return;
+        boolean testMode = old.getBoolean("debug.test-mode", false);
+        java.io.File bak = new java.io.File(getDataFolder(), "config-old-v" + have + ".yml");
+        for (int i = 2; bak.exists(); i++) bak = new java.io.File(getDataFolder(), "config-old-v" + have + "-" + i + ".yml");
+        if (!f.renameTo(bak)) {
+            getLogger().warning("config.yml 판 " + have + " → " + want + ": 옛 파일을 옮기지 못해 그대로 씁니다");
+            return;
+        }
+        saveDefaultConfig();
+        reloadConfig();
+        if (testMode) {
+            getConfig().set("debug.test-mode", true);
+            saveConfig();
+        }
+        getLogger().warning("config.yml 판 " + have + " → " + want + ": 옛 파일은 " + bak.getName() + " 로 옮기고 새 기본값으로 다시 썼습니다"
+                + (testMode ? " (debug.test-mode 는 옮겨 적었습니다)" : ""));
+    }
+
     private void warnLegacyConfig() {
         if (cfg.legacy.isEmpty()) return;
         getLogger().warning("config.yml 의 예전 열쇠는 읽지 않는다 (장비에는 보정·요구 능력치가 없다. 근력·민첩·지력은 모든 장비에 같은 곡선 "

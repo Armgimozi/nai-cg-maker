@@ -344,6 +344,9 @@ public final class MoveRunner {
                         + "shape=%s range=%.1f buf=%s aim=%s t=%d",
                 name, c.id(), w.id(), run.s, run.a, run.r, run.cycle(), mv, ar, raw, cost, st.stamina.cur(), sb.dex(), speed(sb.dex()), t.carry(),
                 step.spec().shape().name().toLowerCase(Locale.ROOT), step.spec().range(), buffered, target == null ? "-" : target, now));
+        // 기억했다가 낸 동작은 클라이언트가 그 순간 손을 휘두르지 않는다 (누른 순간에 이미 휘둘렀다). 그래서 서버가 휘둘러 실제로 치는
+        // 순간에 휘두름이 보이게 한다 (2026-10-11: "휘둘러져도 딜이 안 박힌다"). 되돌아오는 휘두름은 Swings 가 적어 둬 공격으로 안 친다
+        if (buffered) Swings.main(p, now);
         if (kind == InputBuffer.Kind.ROLL) {
             // 구르기의 대역을 곧바로 거두고 진짜 몸으로 친다 (reveal 틱을 기다리면 대역이 일어서는 동안 공격이 보이지 않는다)
             plugin.test(p, "ROLL_ATTACK roll=" + st.roll.id() + " at=" + (now - st.rollStart) + " revealed=" + plugin.roll().tumble().reveal(p) + " t=" + now);
