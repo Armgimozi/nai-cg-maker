@@ -51,7 +51,7 @@ ALL_SCENARIOS="$ALL_SCENARIOS contract"
 ALL_SCENARIOS="$ALL_SCENARIOS attacks"
 # ── M1 P1b: 적·허수아비·도장 (foes: 들어오면 셋, 시험 방 북쪽 문으로 걸어 들어가기, 가상 체력·차오르기·쓰러짐·다시 세우기, 청크 내려감 R7, 몸 R8) ──
 ALL_SCENARIOS="$ALL_SCENARIOS foes"
-# ── M1 P1c ──
+# ── M1 P1c ── (구르기 공격 창·공격 중의 구르기는 attacks 시나리오의 2부)
 # ── M1 P2a ──
 # ── M1 P2b ──
 # ── M1 P3 ──

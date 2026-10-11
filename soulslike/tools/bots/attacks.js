@@ -11,6 +11,11 @@
 //   - 주손에 활: MOVE_DENY why=weapon
 //   - 준비 중에 마신 물약은 막히고 (USE_DENY), 회복 중에는 마신다 (R17)
 //   - 아이템: 곤봉의 swing_animation (whack, 준비 + 판정 8틱), attack_range (2.9, hitbox_margin 0), 바닐라 attack_speed 높게 (S3)
+// 2부 (M1 P1c): 구르기 공격과 공격 중의 구르기. 서버가 적은 틱 (ROLL t=, MOVE_BUF at=, MOVE t=) 으로 본다
+//   - 구른 뒤 d 틱의 휘두르기 (가벼운 구르기의 창 9~16): 창 앞이면 창 시작까지 기억했다가 (MOVE_BUF roll=1) 그 틱에 MOVE roll,
+//     창 안이면 곧바로 MOVE roll (배율 110, 대역을 곧바로 거둔다: ROLL_ATTACK revealed=true), 창 뒤면 MOVE light1. 5·9·17 언저리가
+//     모두 나올 때까지 몇 번 한다
+//   - 공격의 준비 중 구르기: ROLL_DENY why=attack. 회복의 끝 40% (곤봉 14틱째부터): 동작을 끊고 구른다 (MOVE_CANCEL why=roll)
 'use strict'
 const L = require('./lib')
 
@@ -301,6 +306,117 @@ L.run('attacks', async (sc) => {
   }
   await b.cmd('/soulstest give plank_shield off', 'GIVE')
   await b.cmd('/soulstest dummy clear', 'DUMMY clear')
+
+  // ── 2부 (P1c): 구르기 공격 창 ──
+  await b.cmd('/souls tp room', null, 1200)
+  await L.sleep(500)
+  await b.ground(3000)
+  const N = L.num
+  const rollWin = { light: [9, 16], medium: [11, 18], heavy: [15, 22], backstep: [7, 14] }
+  let side = 'left'
+  /** 옆으로 구르고 (번갈아 왼쪽·오른쪽) 봇이 ROLL 줄을 받은 뒤 ticks 틱에 휘두른다. 서버 틱으로 본 결과 */
+  const rollSwing = async (ticks) => {
+    await idle()
+    await stamina(100)
+    await L.sleep(700)
+    const from = b.sys.length
+    const keys = { [side]: true }
+    side = side === 'left' ? 'right' : 'left'
+    b.onSysOnce((x) => x.plain.startsWith('[T] ROLL '), () => setTimeout(swing, Math.max(0, ticks * 50 - 25)))
+    await b.tapSneak(keys)
+    await L.sleep(30)
+    b.input({})
+    await L.sleep(ticks * 50 + 1500)
+    const r = b.tLines('ROLL ', from)[0]
+    if (!r) return { band: 'none', line: 'ROLL 줄 없음 ' + b.tLines('ROLL', from).map((x) => x.line).join(' | ') }
+    const r0 = N(r.kv.t)
+    const w = rollWin[r.kv.kind]
+    const buf = b.tLines('MOVE_BUF', from)[0]
+    const early = b.tLines('MOVE_EARLY', from)[0]
+    const mv = L.moveLines(b, from)[0]
+    const ra = b.tLines('ROLL_ATTACK', from)[0]
+    const at = buf ? N(buf.kv.at) : early ? N(early.kv.at) : mv ? mv.tick : null
+    const d = at == null ? null : at - r0
+    const lines = [r, buf, early, mv, ra].filter((x) => x).map((x) => x.line).join(' | ')
+    let band = 'none'
+    let ok = false
+    if (d != null && w) {
+      if (d < w[0] - 6) {
+        band = 'early'
+        ok = !!early && early.kv.roll === '1' && !mv
+      } else if (d < w[0]) {
+        band = 'buffered'
+        ok = !!buf && buf.kv.roll === '1' && N(buf.kv.until) === r0 + w[0] && !!mv && mv.kv.kind === 'roll' && mv.tick === r0 + w[0] && mv.kv.buf === 'true'
+      } else if (d <= w[1]) {
+        band = 'window'
+        ok = !buf && !!mv && mv.kv.kind === 'roll' && mv.tick === at
+      } else {
+        band = 'after'
+        ok = !buf && !!mv && mv.kv.kind === 'light1'
+      }
+    }
+    return { band, ok, d, r, mv, ra, line: `d=${d} ${lines}` }
+  }
+  const seen = {}
+  const bad = []
+  for (const [want, ticks] of [['buffered', 5], ['window', 9], ['after', 17]]) {
+    for (let i = 0; i < 4 && !seen[want]; i++) {
+      const x = await rollSwing(ticks)
+      if (!x.ok) bad.push(`${x.band}: ${x.line}`)
+      else if (!seen[x.band]) seen[x.band] = x
+    }
+  }
+  sc.check('every swing after a roll follows the window rule (before: buffered to the window start, inside: roll attack, after: light 1)', !bad.length,
+    bad.join(' || ') || Object.keys(seen).join(','))
+  sc.check('a swing during the roll (tick 3..8) is buffered to tick 9 and becomes a roll attack', !!seen.buffered, seen.buffered ? seen.buffered.line : '안 나옴')
+  sc.check('a swing inside the window (9..16) is a roll attack at once', !!seen.window, seen.window ? seen.window.line : '안 나옴')
+  sc.check('a swing after the window (17+) is a plain light 1', !!seen.after, seen.after ? seen.after.line : '안 나옴')
+  const rb = seen.buffered || seen.window
+  sc.check('roll attack: motion 110, light 1 ticks (6/2/10), stamina 20 (light x cost.roll 1.0)', rb && rb.mv.kv.mv === '110' && rb.mv.s === 6 && rb.mv.a === 2 &&
+    rb.mv.r === 10 && rb.mv.kv.stam === '20.0', rb ? rb.mv.line : '없음')
+  sc.check('a roll attack before the reveal tick takes the stand-in down at once (ROLL_ATTACK revealed=true)', seen.buffered && seen.buffered.ra &&
+    seen.buffered.ra.kv.revealed === 'true' && N(seen.buffered.ra.kv.at) === rollWin[seen.buffered.r.kv.kind][0], seen.buffered && seen.buffered.ra ? seen.buffered.ra.line : '없음')
+
+  // ── 2부 (P1c): 공격 중의 구르기 ──
+  let denied = null
+  for (let i = 0; i < 3 && !denied; i++) {
+    await idle()
+    await stamina(100)
+    await L.sleep(700)
+    from = b.sys.length
+    swing()
+    const m = await b.waitT('MOVE ', 1500, from)
+    await b.tapSneak({ left: true }, 50)
+    await L.sleep(30)
+    b.input({})
+    await L.sleep(1200)
+    const dn = b.tLines('ROLL_DENY', from)[0]
+    // 준비·판정 (곤봉 6 + 2) 안에 뗀 것만 센다 (봇의 시각이 흔들려 회복에 들어가면 다시)
+    if (m && dn && N(dn.kv.t) - N(m.kv.t) < 8) denied = { m, dn, rolled: b.tLines('ROLL ', from), cancel: b.tLines('MOVE_CANCEL', from) }
+  }
+  sc.check('a roll in attack startup is denied (ROLL_DENY why=attack), the move goes on and no roll follows', denied && denied.dn.kv.why === 'attack' &&
+    !denied.rolled.length && !denied.cancel.length, denied ? `${denied.m.line} | ${denied.dn.line}` : '준비 중에 뗀 적이 없음')
+  let cut = null
+  for (let i = 0; i < 3 && !cut; i++) {
+    await idle()
+    await stamina(100)
+    await L.sleep(700)
+    from = b.sys.length
+    swing()
+    const m = await b.waitT('MOVE ', 1500, from)
+    // 회복 중 (곤봉 10틱째 언저리) 에 뗀다: 14틱째 (회복의 끝 40%) 까지 기억했다가 끊고 구르거나, 그 뒤면 곧바로
+    await L.sleep(420)
+    await b.tapSneak({ right: true }, 50)
+    await L.sleep(30)
+    b.input({})
+    await L.sleep(1200)
+    const c = b.tLines('MOVE_CANCEL', from)[0]
+    const rl = b.tLines('ROLL ', from)[0]
+    if (m && c) cut = { m, c, rl }
+  }
+  sc.check('a roll in the last 40% of recovery (club: tick 14..17) cancels the move (MOVE_CANCEL why=roll) on the roll tick', cut && cut.c.kv.why === 'roll' &&
+    N(cut.c.kv.at) >= 14 && N(cut.c.kv.at) < 18 && cut.rl && N(cut.rl.kv.t) === N(cut.c.kv.t), cut ? `${cut.m.line} | ${cut.c.line} | ${cut.rl ? cut.rl.line : 'ROLL 없음'}` : 'MOVE_CANCEL 없음')
+  await idle()
   await stamina(100)
   sc.check('no kick during attacks scenario', !b.kick, b.kick || '')
 })

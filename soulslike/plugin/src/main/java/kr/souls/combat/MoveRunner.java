@@ -41,9 +41,14 @@ import java.util.UUID;
  *   <li>동작 중의 입력은 끝나기 accept-before 틱 전부터 기억하고 (InputBuffer) 끝나는 틱에 낸다.</li>
  *   <li>준비·판정 중에 마시기·술 (CONSUMABLE 이 있는 것) 을 시작하지 못한다 (InputRouter 가 사용을 막고, 여기서도 끊는다, R17).</li>
  *   <li>서버는 이 동작 때문에 팔을 다시 휘두르지 않는다 (R3): 클라이언트가 누른 순간 이미 휘둘렀다.</li>
+ *   <li>구르기 공격 (P1c): 구르기 시작에서 센 {@link #rollAttackWindow} 틱 (가벼운 구르기 9~16, 뒷걸음 7~14) 의 약공격·달리기 공격.
+ *       창이 열리기 전 (구르는 중) 의 입력은 창이 열리는 틱까지 기억한다 (accept-before 틱 전부터). 동작 배율 combat.moves.motion.roll,
+ *       틱은 약공격 1단, 스태미나는 약공격 × cost.roll. 시작하면 구르기의 대역을 곧바로 거둔다 (Tumble.reveal). 뒤의 약공격은 2단.</li>
+ *   <li>구르기 (P1c): 준비·판정 중에는 막히고 (Roll 의 ROLL_DENY why=attack), 회복의 마지막 cancel-at 몫 (rollReadyAt) 부터 동작을
+ *       끊고 구른다 (MOVE_CANCEL why=roll).</li>
  * </ul>
  * 시험 줄 (ASCII): MOVE kind= cls= weapon= s= a= r= cycle= mv= ar= raw= stam= st= dex= buf= t=, MOVE_BUF kind= at= until=,
- * MOVE_EARLY kind= at= until=, MOVE_DENY why=weapon|state|stamina kind= …, MOVE_CANCEL why= kind= t=, HIT foe= move= …,
+ * MOVE_EARLY kind= at= until=, MOVE_BUF kind= at= until= roll=1 (구르기 공격 창을 기다린다), MOVE_DENY why=weapon|state|stamina kind= …, MOVE_CANCEL why= kind= t=, HIT foe= move= …,
  * HIT_PVP to= move= …, USE_DENY why= item= t=.
  */
 public final class MoveRunner {
@@ -125,6 +130,8 @@ public final class MoveRunner {
     private HitQuery.AimProvider aim = HitQuery.CROSSHAIR;
     /** 동작이 도는 사람 */
     private final Set<UUID> active = new LinkedHashSet<>();
+    /** 구르는 중에 누른 입력: 구르기 공격 창이 열리는 틱 (P1c) */
+    private final java.util.Map<UUID, Long> rollWait = new java.util.HashMap<>();
 
     public MoveRunner(Souls plugin) {
         this.plugin = plugin;
@@ -228,6 +235,19 @@ public final class MoveRunner {
     public void input(Player p, InputBuffer.Kind kind, UUID target, long now) {
         CombatState st = CombatState.of(p);
         Run cur = st.move;
+        // 구르는 중 (구르기 공격 창 앞) 의 입력은 창이 열리는 틱까지 기억한다 (P1c)
+        long open = cur == null ? rollAttackOpensAt(st, now) : CombatState.NEVER;
+        if (open > now) {
+            CombatTuning.Input in = inputCfg();
+            String k = kind.name().toLowerCase(Locale.ROOT);
+            if (st.buffer.offer(kind, now, open, in.acceptBefore(), target)) {
+                rollWait.put(p.getUniqueId(), open);
+                plugin.test(p, "MOVE_BUF kind=" + k + " at=" + now + " until=" + open + " roll=1");
+            } else {
+                plugin.test(p, "MOVE_EARLY kind=" + k + " at=" + now + " until=" + open + " from=" + (open - in.acceptBefore()) + " roll=1");
+            }
+            return;
+        }
         if (cur != null) {
             CombatTuning.Input in = inputCfg();
             String k = kind.name().toLowerCase(Locale.ROOT);
@@ -243,6 +263,8 @@ public final class MoveRunner {
 
     /** 동작을 시작한다. 시작했으면 true (못 하면 MOVE_DENY). */
     private boolean start(Player p, CombatState st, InputBuffer.Kind kind, UUID target, long now, boolean buffered) {
+        // 구르기 공격 창 안의 약공격·달리기 공격은 구르기 공격이다 (P1c)
+        if ((kind == InputBuffer.Kind.LIGHT || kind == InputBuffer.Kind.RUNNING) && inRollAttackWindow(st, now)) kind = InputBuffer.Kind.ROLL;
         String k = kind.name().toLowerCase(Locale.ROOT);
         ItemStack main = p.getInventory().getItemInMainHand();
         Weapons.Def w = plugin.weapons().of(main);
@@ -279,8 +301,17 @@ public final class MoveRunner {
                 poise = c.poiseLight();
                 stepDist = c.stepRunning();
             }
+            case ROLL -> {
+                // 구르기 공격 (P1c): 틱은 약공격 1단
+                step = c.light(0);
+                name = "roll";
+                mv = m.roll();
+                cost = c.staminaLight() * m.costRoll();
+                poise = c.poiseLight();
+                stepDist = c.stepLight();
+            }
             default -> {
-                // 약공격 (구르기 공격은 P1c 가 따로 잇는다). 끝난 지 combo-grace 틱 안이면 다음 단, 아니면 1단
+                // 약공격. 끝난 지 combo-grace 틱 안이면 다음 단, 아니면 1단
                 index = now <= st.moveEnd + m.comboGrace() ? Math.floorMod(st.combo, c.combo()) : 0;
                 step = c.light(index);
                 name = "light" + (index + 1);
@@ -304,7 +335,8 @@ public final class MoveRunner {
         Run run = new Run(name, kind, index, w, c, step, now, t, mv, ar, raw, poise, cost, stepDist, target, buffered);
         st.move = run;
         st.rollReadyAt = run.end() - Math.round(run.r * m.cancelAt());
-        st.combo = kind == InputBuffer.Kind.LIGHT || kind == InputBuffer.Kind.ROLL ? index + 1 : 0;
+        // 약공격은 다음 단으로, 구르기 공격 뒤의 약공격은 2단 (다크 소울처럼), 강공격·달리기 공격 뒤는 1단
+        st.combo = kind == InputBuffer.Kind.LIGHT ? index + 1 : kind == InputBuffer.Kind.ROLL ? 1 : 0;
         Slow.set(p, "move", 1 - m.slowStartup());
         active.add(p.getUniqueId());
         plugin.test(p, String.format(Locale.ROOT,
@@ -312,13 +344,53 @@ public final class MoveRunner {
                         + "shape=%s range=%.1f buf=%s aim=%s t=%d",
                 name, c.id(), w.id(), run.s, run.a, run.r, run.cycle(), mv, ar, raw, cost, st.stamina.cur(), sb.dex(), speed(sb.dex()), t.carry(),
                 step.spec().shape().name().toLowerCase(Locale.ROOT), step.spec().range(), buffered, target == null ? "-" : target, now));
+        if (kind == InputBuffer.Kind.ROLL) {
+            // 구르기의 대역을 곧바로 거두고 진짜 몸으로 친다 (reveal 틱을 기다리면 대역이 일어서는 동안 공격이 보이지 않는다)
+            plugin.test(p, "ROLL_ATTACK roll=" + st.roll.id() + " at=" + (now - st.rollStart) + " revealed=" + plugin.roll().tumble().reveal(p) + " t=" + now);
+        }
         return true;
+    }
+
+    // ── 구르기 공격 (P1c) ──
+
+    /** 구르기 공격 창 (구르기 시작에서 센 틱) [next + roll-attack.from, next + roll-attack.to]. 구른 적이 없으면 null. */
+    public long[] rollAttackWindow(Player p) {
+        CombatState st = CombatState.peek(p.getUniqueId());
+        return st == null ? null : rollAttackWindow(st);
+    }
+
+    private long[] rollAttackWindow(CombatState st) {
+        if (st.roll == null) return null;
+        CombatTuning.Moves m = cfg();
+        return window(st.roll.next(), m.rollFrom(), m.rollTo());
+    }
+
+    /** 구르기의 next 와 창 (from, to) 의 구르기 시작에서 센 틱 [시작, 끝]. */
+    public static long[] window(int next, int from, int to) {
+        return new long[]{next + from, next + to};
+    }
+
+    /** now 가 마지막 구르기의 구르기 공격 창 안인가. */
+    boolean inRollAttackWindow(CombatState st, long now) {
+        long[] w = rollAttackWindow(st);
+        if (w == null) return false;
+        long t = now - st.rollStart;
+        return t >= w[0] && t <= w[1];
+    }
+
+    /** 구르는 중이고 창이 아직 열리지 않았으면 창이 열리는 틱, 아니면 NEVER. */
+    long rollAttackOpensAt(CombatState st, long now) {
+        long[] w = rollAttackWindow(st);
+        if (w == null || !st.rolling(now)) return CombatState.NEVER;
+        long open = st.rollStart + w[0];
+        return now < open ? open : CombatState.NEVER;
     }
 
     // ── 틱 ──
 
     /** Ticker 의 moves 자리. */
     public void tick(long now) {
+        if (!rollWait.isEmpty()) waitRolls(now);
         if (active.isEmpty()) return;
         for (UUID id : List.copyOf(active)) {
             Player p = Bukkit.getPlayer(id);
@@ -350,6 +422,25 @@ public final class MoveRunner {
                 InputBuffer.Entry e = st.buffer.take(now, inputCfg().buffer());
                 if (e == null || !start(p, st, e.kind(), e.aim(), now, true)) active.remove(id);
             }
+        }
+    }
+
+    /** 구르는 중에 기억한 입력을 창이 열리는 틱에 낸다 (구르기를 끊었거나 죽었으면 버린다). */
+    private void waitRolls(long now) {
+        for (java.util.Map.Entry<UUID, Long> en : List.copyOf(rollWait.entrySet())) {
+            if (now < en.getValue()) continue;
+            rollWait.remove(en.getKey());
+            Player p = Bukkit.getPlayer(en.getKey());
+            CombatState st = CombatState.peek(en.getKey());
+            if (p == null || st == null || st.move != null || p.isDead()) continue;
+            // 그사이 새로 굴렀으면 그 구르기의 창까지 다시 기다린다
+            long open = rollAttackOpensAt(st, now);
+            if (open > now) {
+                rollWait.put(en.getKey(), open);
+                continue;
+            }
+            InputBuffer.Entry e = st.buffer.take(now, inputCfg().buffer());
+            if (e != null && start(p, st, e.kind(), e.aim(), now, true)) active.add(p.getUniqueId());
         }
     }
 
@@ -462,6 +553,7 @@ public final class MoveRunner {
         Run m = st.move;
         st.buffer.clear();
         active.remove(p.getUniqueId());
+        rollWait.remove(p.getUniqueId());
         if (m == null) return false;
         st.move = null;
         st.moveEnd = now;
@@ -476,6 +568,7 @@ public final class MoveRunner {
         CombatState st = CombatState.peek(p.getUniqueId());
         if (st == null) {
             active.remove(p.getUniqueId());
+            rollWait.remove(p.getUniqueId());
             return;
         }
         cancel(p, st, why.name().toLowerCase(Locale.ROOT), plugin.ticker().now());

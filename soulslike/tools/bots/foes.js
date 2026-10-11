@@ -149,7 +149,10 @@ L.run('foes', async (sc) => {
       die.map((x) => x.line).join(' | ') || '줄 없음')
   }
 
-  // /kill 은 그대로 죽인다 (KILL 만 막지 않는다), 다시 선다
+  // /kill 은 그대로 죽인다 (KILL 만 막지 않는다), 다시 선다.
+  // 앞에서 세운 떠돌이 허수아비가 가장 가까울 수 있어 (한 번 깨진 판), 먼저 모두 지우고 도장 셋이 다시 서기를 기다린다
+  await b.cmd('/soulstest dummy clear', 'DUMMY clear')
+  await waitDojo((x) => x.kv.alive === '3', 6000)
   logFrom = L.serverLogSize()
   await b.cmd('/kill @e[type=zombie,tag=souls_foe,limit=1,sort=nearest]', null, 1000)
   await L.sleep(600)

@@ -46,6 +46,8 @@ import java.util.UUID;
  * M1 에서 적 공격은 IncomingHitQueue 가 무적 구간과 판정 틱을 맞대어 본다 (핑 보정). 지금은 서버 틱 그대로다.
  * F 는 패링이다 (3.5, 왼손에 든 것으로, combat/Parry: 지금은 창을 적고 시험 줄 PARRY 만. 판정은 M1). roll-key: f·both 면 웅크리기 키를
  * 누른 채 F 가 패링이다. 무기 기술은 없앴다 (DECISIONS 2026-10-10).
+ * 공격 동작 중 (M1 P1c): 준비·판정에는 구르지 못하고 (ROLL_DENY why=attack), 회복은 마지막 cancel-at 몫 (CombatState.rollReadyAt)
+ * 부터 동작을 끊고 구른다 (MOVE_CANCEL why=roll). 그 앞의 회복은 why=recovering.
  *
  * 돌진처럼 보이지 않게: 한 번 튕기는 대신 glide 틱 동안 같은 빠르기로 밀다가 끝 두 틱에 줄여 멈춘다.
  * 보이는 모습은 combat.roll.visual (3.3 "보이는 모습"): tumble 은 진짜 몸을 감추고 관절이 있는 대역이 어깨로 구른다 (Tumble),
@@ -163,6 +165,8 @@ public final class Roll implements Listener {
         }
         // 막기·마시기를 풀고 구른다 (마시다 멈추면 횟수를 쓰지 않는다)
         if (p.hasActiveItem()) p.clearActiveItem();
+        // 회복의 끊을 수 있는 몫에 든 공격 동작을 끊는다 (MOVE_CANCEL why=roll, P1c)
+        if (st.move != null) plugin.moves().cancel(p, "roll", now);
 
         st.rollStart = now;
         st.roll = kind;
@@ -205,6 +209,8 @@ public final class Roll implements Listener {
         if (p.isInsideVehicle()) return "vehicle";
         if (p.isGliding() || p.isFlying()) return "flying";
         if (!st.canRollAgain(now)) return "recovering";
+        // 공격 동작 (P1c): 준비·판정 중에는 구르지 못하고, 회복은 마지막 cancel-at 몫 (rollReadyAt) 부터 끊고 구른다
+        if (st.move != null && now < st.rollReadyAt) return now < st.move.recoverAt() ? "attack" : "recovering";
         if (!st.stamina.canAct()) return "stamina";
         return null;
     }

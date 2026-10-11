@@ -12,6 +12,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInputEvent;
@@ -37,6 +38,10 @@ import java.util.UUID;
  *       열렸으면 구르지 않는다. 남는 구멍: 가만히 서서 누르고 0.25초 안에 E (인벤토리) 나 T (채팅) 를 열면 서버는 그 화면을 알 수 없어
  *       뒷걸음이 한 번 나갈 수 있다.</li>
  *   <li>회복 중 (다음 구르기를 받기 전) 에 뗀 짧은 누름은 buffer 틱 동안 기억했다가 되는 첫 틱에 구른다. 공중에서 뗀 것은 기억하지 않는다.</li>
+ *   <li>공격 동작 (M1 P1c): 구를 수 있는 첫 틱은 CombatState.rollReadyAt (회복의 마지막 cancel-at 몫). 그 틱이 buffer 틱 안에 오면
+ *       기억했다가 그 틱에 구르고 (동작을 끊는다), 더 멀면 (준비·판정 중) 곧바로 Roll 에 넘겨 ROLL_DENY why=attack 으로 막힌다.</li>
+ *   <li>창을 닫은 뒤 1틱 안의 누름은 구르기가 될 수 없다 (screen). 웅크리기 키를 누른 채 인벤토리를 닫으면 클라이언트가 닫은 다음 틱에
+ *       누름을 다시 보낸다 (PS 의 S11).</li>
  * </ul>
  * controls.roll-key: f 면 아무것도 하지 않는다 (F 가 구른다, Roll.onSwap). both 면 둘 다.
  * 시험 줄: ROLL_TAP held=&lt;R−P&gt; press=&lt;P&gt; t=&lt;R&gt;, ROLL_TAP_SKIP why=hold|attack|use|swap|drop|screen|dialog|vehicle|dead|unborn held= t=.
@@ -100,6 +105,8 @@ public final class SneakTap implements Listener {
     private final Map<UUID, Long> buffered = new HashMap<>();
     /** 서버가 연 창 (상자 따위) 의 틱 */
     private final Map<UUID, Long> invOpen = new HashMap<>();
+    /** 창 (인벤토리 포함) 을 닫은 틱 (S11) */
+    private final Map<UUID, Long> invClose = new HashMap<>();
     /** 마지막 판정 (/soulstest tap) */
     private final Map<UUID, String> last = new HashMap<>();
 
@@ -140,6 +147,7 @@ public final class SneakTap implements Listener {
             else if (p.isInsideVehicle()) why = "vehicle";
             else if (plugin.start().unborn(p)) why = "unborn";
             else if (plugin.ui().open(p) || t - plugin.ui().shownAt(p) <= 2) why = "dialog";
+            else if (t - invClose.getOrDefault(p.getUniqueId(), CombatState.NEVER) <= 1) why = "screen";
             j.press(t, why);
             return;
         }
@@ -174,7 +182,13 @@ public final class SneakTap implements Listener {
     private void roll(Player p, long t) {
         if (!Stamina.fighting(p)) return;
         CombatState st = CombatState.of(p);
-        if (!st.canRollAgain(t) && cfg().buffer() > 0) {
+        // 공격 동작: 끊을 수 있는 틱이 기억하는 동안에 오지 않으면 (준비·판정 중) 곧바로 넘겨 막힌 까닭을 남긴다 (ROLL_DENY why=attack)
+        boolean move = st.move != null && t < st.rollReadyAt;
+        if (move && (cfg().buffer() <= 0 || st.rollReadyAt > t + cfg().buffer())) {
+            plugin.roll().tryRoll(p);
+            return;
+        }
+        if ((move || !st.canRollAgain(t)) && cfg().buffer() > 0) {
             buffered.put(p.getUniqueId(), t + cfg().buffer());
             plugin.test(p, "ROLL_TAP_BUFFER until=" + (t + cfg().buffer()) + " t=" + t);
             return;
@@ -198,7 +212,7 @@ public final class SneakTap implements Listener {
                 return true;
             }
             CombatState st = CombatState.of(p);
-            if (st.canRollAgain(now)) {
+            if (st.canRollAgain(now) && (st.move == null || now >= st.rollReadyAt)) {
                 plugin.test(p, "ROLL_TAP_BUFFERED t=" + now);
                 plugin.roll().tryRoll(p);
                 return true;
@@ -258,6 +272,11 @@ public final class SneakTap implements Listener {
         if (e.getPlayer() instanceof Player p) invOpen.put(p.getUniqueId(), plugin.ticker().now());
     }
 
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onInventoryClose(InventoryCloseEvent e) {
+        if (e.getPlayer() instanceof Player p) invClose.put(p.getUniqueId(), plugin.ticker().now());
+    }
+
     /** Q 가 맨손이거나 표적 고정이면 버리기 이벤트가 없다: 표적 고정 (M1) 이 이것을 부른다. */
     public void comboFromTargetLock(Player p) {
         combo(p, "drop");
@@ -275,6 +294,7 @@ public final class SneakTap implements Listener {
         judges.remove(id);
         buffered.remove(id);
         invOpen.remove(id);
+        invClose.remove(id);
         last.remove(id);
     }
 }

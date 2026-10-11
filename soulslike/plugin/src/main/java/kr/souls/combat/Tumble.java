@@ -509,6 +509,15 @@ public final class Tumble {
         }
     }
 
+    /**
+     * 구르기 공격 (P1c, MoveRunner): reveal 틱을 기다리지 않고 대역을 곧바로 거두어 진짜 몸으로 친다. 거둔 대역이 있었으면 true.
+     */
+    public boolean reveal(Player p) {
+        if (!active(p)) return false;
+        stop(p);
+        return true;
+    }
+
     /** 대역을 거두고 진짜 몸과 장비를 되돌린다 (곧바로). 없으면 아무것도 하지 않는다. */
     public void stop(Player p) {
         Fig f = live.remove(p.getUniqueId());
