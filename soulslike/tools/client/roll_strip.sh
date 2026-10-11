@@ -6,7 +6,9 @@
 # 짧게 눌렀다 떼어 앞으로 구른다 (ROLL_KEY=f 면 F, 서버의 roll-key 가 f·both 일 때). 끝나면 설정을 처음 값으로 되돌린다.
 # 보는 쪽 (VIEWS): back = F5 한 번 (3인칭 등 뒤), front = F5 두 번 (3인칭 앞), first = 1인칭 (CROP 은 화면 전체가 알맞다).
 # 찍기: mcclient 의 burst (BMP 로 잇달아 찍기, 한 장 약 0.04초) 가 구르기 키를 누르기 직전부터 찍고, 찍은 때를 _times.json 에 남긴다.
-# 구르기 키는 둘째 장 앞에서 누르고 셋째 장 뒤에 뗀다 (웅크리기 판은 뗄 때 구르니 key_at 보다 한 장쯤 늦게 시작한다).
+# 구르기 키는 둘째 장 앞에서 누르고 1.5 틱 (게임 시간, 느리게 찍으면 그만큼 길게: /tick rate 5 면 0.3초) 이 지난 첫 장 앞에서 뗀다
+# (웅크리기 판은 뗄 때 구르니 key_at 보다 그만큼 늦게 시작한다. 예전에는 한 장 (0.1~0.16초) 만 눌러 /tick rate 5 의 틱 (0.2초) 사이에
+# 빠지면 구르지 않았다. 짧은 누름 판정 controls.roll-tap max-ticks 5 = 1초 안이다).
 # 그 가운데 키를 누른 때부터 SPAN 틱 동안을 FRAMES 장으로 고르게 골라 (가장 가까운 장) 몸 둘레를 잘라 가로로 잇는다.
 # 장마다 밑에 F 뒤 게임 시간 (틱, 밀리초) 과 실제로 찍은 때를 적는다.
 #
@@ -18,8 +20,9 @@
 #               제 속도 (20) 로는 구르기 0.6초에 다른 장면이 5~6장뿐이다. 클라이언트도 서버 틱 속도를 따라 몸·대역 보간·움직임이
 #               모두 같이 느려진다 (마인크래프트 /tick). 그림의 시간은 게임 시간이다. 20 으로 주면 제 속도로 찍는다
 #   FRAMES      고를 장수 (기본 8)
-#   SPAN        F 뒤 몇 틱까지 고를지 (기본 14: 가벼운 구르기 끝 12틱 + 클라이언트가 늦게 보는 몫)
-#   CROP        잘라낼 상자 x0,y0,x1,y1 (기본 440,320,840,700: 1280x720 화면에서 구르는 몸 둘레)
+#   SPAN        키를 누른 뒤 몇 틱까지 고를지 (기본 16: 누름 1.5틱 + 가벼운 구르기 끝 12틱 + 클라이언트가 늦게 보는 몫)
+#   CROP        잘라낼 상자 x0,y0,x1,y1 (기본 back·front 는 440,170,840,700: 1280x720 화면에서 구르는 몸 둘레와 그 위로 뛰어오른
+#               몸·든 긴 무기까지. first 는 440,320,840,700)
 #   COLS        한 줄에 놓을 장수 (기본 FRAMES: 한 줄). 넘으면 다음 줄로 (1인칭 온 화면처럼 넓게 자를 때)
 #   SCALE       자른 장을 줄이는 배율 (기본 1)
 #   HUD=1       HUD 를 숨기지 않는다 (기본은 F1 로 숨긴다: 행동 막대 글자가 대역 위에 겹친다)
@@ -36,7 +39,7 @@
 set -u
 HERE=$(cd "$(dirname "$0")" && pwd)
 ROOT=$(cd "$HERE/../.." && pwd)
-[ $# -ge 2 ] || { sed -n '2,30p' "$0"; exit 2; }
+[ $# -ge 2 ] || { sed -n '2,38p' "$0"; exit 2; }
 PORT=$1
 SRVDIR=$2
 shift 2
@@ -45,8 +48,8 @@ OUT=${OUT:-$ROOT/dist/screenshots/roll}
 VIEWS=${VIEWS:-back front}
 TICK_RATE=${TICK_RATE:-5}
 FRAMES=${FRAMES:-8}
-SPAN=${SPAN:-14}
-CROP=${CROP:-440,320,840,700}
+SPAN=${SPAN:-16}
+CROP0=${CROP:-}
 RC="$HERE/run_client.sh"
 DEV="$HERE/devserver.sh"
 CFG="$SRVDIR/plugins/Soulslike/config.yml"
@@ -81,6 +84,7 @@ trap cleanup EXIT
 # 느리게 찍으면 장 사이를 조금 띄운다 (같은 장면을 여러 번 찍지 않게). 장수는 SPAN 틱 + 앞뒤 여유를 덮게
 slow=$(python3 -c "print(20.0 / $TICK_RATE)")
 gap=$(python3 -c "print(0.0 if $slow <= 1 else min(0.12, 0.03 * $slow))")
+hold=$(python3 -c "print(round(1.5 * 0.05 * $slow, 3))")   # 구르기 키 누름: 1.5 틱 (게임 시간)
 count=$(python3 -c "import math; s=$slow; g=max($gap, 0.04); print(int(math.ceil(((($SPAN + 4) * 0.05 * s) + 0.15) / g)) + 3)")
 
 "$RC" --do "$PORT" "cmd:/clear" "cmd:/effect clear @s" wait:0.5 || exit 1
@@ -100,12 +104,14 @@ for v in $VISUALS; do
     key=${KEY:-w}
     kname=""; [ "$key" != w ] && kname="_$key"
     name="${v}_${view}${kname}${SUFFIX:-}"
+    CROP=$CROP0
+    [ -z "$CROP" ] && { [ "$view" = first ] && CROP=440,320,840,700 || CROP=440,170,840,700; }
     rm -f "$RAW/${name}"_*.png "$RAW/${name}_times.json" "$SHOTDIR/${name}"_*.png "$SHOTDIR/${name}_times.json"
     # shellcheck disable=SC2086
     IFS='|' read -r -a gearv <<< "$gear"
     "$RC" --do "$PORT" "cmd:/clear" "${gearv[@]}" "cmd:/soulstest heal" "cmd:/souls tp ${LOC:-lane}" wait:1.2 ${PITCH:+"cmd:/tp @s ~ ~ ~ ~ $PITCH"} ${PITCH:+wait:0.6} ${LOOK:+look:$LOOK} wait:0.2 "cmd:/tick rate $TICK_RATE" wait:0.6 \
       $f5 $hud wait:0.8 down:$key wait:$(python3 -c "print(0.25 * $slow)") \
-      "burst:$name:$count:${ROLL_KEY:-Shift_L}:2:$gap" up:$key wait:$(python3 -c "print(0.6 * $slow)") \
+      "burst:$name:$count:${ROLL_KEY:-Shift_L}:2:$gap:$hold" up:$key wait:$(python3 -c "print(0.6 * $slow)") \
       "cmd:/tick rate 20" $hud $(case "$view" in back) echo key:F5 key:F5 ;; front) echo key:F5 ;; *) echo wait:0 ;; esac) wait:0.5 \
       > "$RAW/${name}.log" 2>&1 \
       || { tail -20 "$RAW/${name}.log"; exit 1; }
@@ -133,7 +139,7 @@ rows = (len(ims) + cols - 1) // cols
 sheet = Image.new("RGB", (w * cols, head + rows * (h + foot)), (18, 17, 16))
 d = ImageDraw.Draw(sheet)
 gaps = [b - a for a, b in zip(shots, shots[1:])]
-d.text((6, 5), "roll visual=%s view=%s key=%s  tick rate %g (x%g slow)  shots %d, spacing %.0f-%.0f ms real, frames picked by game time after F"
+d.text((6, 5), "roll visual=%s view=%s key=%s  tick rate %g (x%g slow)  shots %d, spacing %.0f-%.0f ms real, frames picked by game time after the roll key press"
        % (visual, view, os.environ.get("KEY", "w"), rate, slow, len(shots), min(gaps) * 1000, max(gaps) * 1000), fill=(225, 220, 205))
 for n, (im, i) in enumerate(zip(ims, pick)):
     x, y = (n % cols) * w, head + (n // cols) * (h + foot)

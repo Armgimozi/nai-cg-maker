@@ -92,6 +92,7 @@ import java.util.Locale;
  *   ring equip <1|2> <id|none>       반지 칸에 바로 낀다 / 뺀다 (아이템을 쓰거나 주지 않는다. 찍기 준비). [T] RING_SET ok=
  *   ring chest                       빈 상자 창 (세 줄) 을 연다 (다른 창이 열린 동안 죽거나 나갈 때 2×2 사본이 새지 않는지). [T] RING_CHEST open=
  * enderchest                         그 사람의 엔더 상자 창을 연다 (창을 열 때 예전 판 무기를 새로 만드는지, item/WeaponRefresh). [T] ENDERCHEST open=
+ * menu <anvil|crafting|smithing|grindstone>  그 작업 창을 블록 없이 연다 (souls 무기를 넣으면 결과 칸이 비는지, item/WeaponRefresh). [T] MENU open=
  * 반지 칸의 누르기는 [T] RING act=put|take|swap|unequip|hotbar|offhand|equip, 거절은 RING_DENY slot= why=, 같은 반지 둘은 RING_SAME,
  * 칸 밖 사본 지우기는 RING_SWEEP, 2×2 에 들어온 다른 것을 돌려주면 RING_STRAY.
  */
@@ -329,6 +330,29 @@ public final class TestCommands {
                     p.openInventory(p.getEnderChest());
                     plugin.test(p, "ENDERCHEST open=" + p.getOpenInventory().getTopInventory().getType());
                 })))
+                // 모루·제작대·대장장이 작업대·숫돌 창 (souls 세계는 블록 쓰기를 막으므로 블록 없이 연다): souls 무기를 넣으면 결과 칸이
+                // 비는지 (item/WeaponRefresh, 봇 gear.js)
+                .then(Commands.literal("menu")
+                        .then(Commands.argument("kind", StringArgumentType.word())
+                                .suggests((c, b) -> {
+                                    for (String x : List.of("anvil", "crafting", "smithing", "grindstone")) b.suggest(x);
+                                    return b.buildFuture();
+                                })
+                                .executes(ctx -> withPlayer(ctx, p -> {
+                                    var type = switch (StringArgumentType.getString(ctx, "kind")) {
+                                        case "anvil" -> org.bukkit.inventory.MenuType.ANVIL.builder();
+                                        case "crafting" -> org.bukkit.inventory.MenuType.CRAFTING.builder();
+                                        case "smithing" -> org.bukkit.inventory.MenuType.SMITHING.builder();
+                                        case "grindstone" -> org.bukkit.inventory.MenuType.GRINDSTONE.builder();
+                                        default -> null;
+                                    };
+                                    if (type == null) {
+                                        plugin.test(p, "MENU error=kind");
+                                        return;
+                                    }
+                                    type.location(p.getLocation()).checkReachable(false).build(p).open();
+                                    plugin.test(p, "MENU open=" + p.getOpenInventory().getTopInventory().getType());
+                                }))))
                 .then(Commands.literal("attr").executes(ctx -> withPlayer(ctx, p -> attrs(plugin, p))))
                 .then(Commands.literal("foehp")
                         .then(Commands.literal("spawn").executes(ctx -> withPlayer(ctx, p -> foeHp(plugin, p, "spawn"))))

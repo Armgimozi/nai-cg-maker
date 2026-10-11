@@ -95,12 +95,20 @@
 - 패링 단검·촉매: 쓰는 모형이 따로 없다 (막지 않는다).
 
 **팔 자세는 아이템이 정한다**: 1.21.11 클라이언트는 아이템 태그 `#minecraft:spears` 인 것을 3인칭에서 팔을 들어 앞으로 겨누는 자세 (`ArmPose.SPEAR`, 고개를 따라 위아래) 로 든다. 바닐라 `item/spear_in_hand` 의 display 는 그 팔 자세에 맞춘 것이라 **창·미늘창의 껍데기는 바닐라 돌창** (`ItemFactory.SPEAR_SHELL = Material.STONE_SPEAR`, 바닐라 창 성분 (찌르기·돌진·사거리·내구도·공격 속성·찌르기 휘두름) 은 모두 떼어 부싯돌 껍데기와 같은 성분) 이다. 1인칭에는 창 태그를 보는 몸짓이 없다.
+- 확인 (실제 클라이언트, 2026-10-11 다듬기): 창 시험 모형을 **플레이어가 실제로 드는 아이템** (`/soulstest give redin_spear` 의 `item_model` 만 `souls:test_grip_spear` 로) 에 얹어 바닐라 철창과 겹쳐도 1인칭·마네킹 네 방향·F5·걷기에서 같은 자리다. 창 성분을 뗀 돌창도 창 팔 자세를 받는다. 대조로 같은 모형을 창 태그 없는 부싯돌에 얹으면 팔이 내려가 크게 달라진다 (`dist/screenshots/grip/*_spear_*_tagctl.png`, `overlay.json` 의 `tag_control`): 팔 자세는 아이템 종류 (태그) 가 고른다.
+- 돌창 껍데기는 `#minecraft:spears` 라 모루가 화염·밀치기·약탈·날카로움·돌진·내구성·수선 책을, 방패 껍데기는 제작대에서 깃발을 받을 수 있다. 그래서 souls 무기는 모루·대장장이 작업대·숫돌·제작대의 재료가 되지 않고 (`item/WeaponRefresh`: 결과 칸을 비운다), 이미 붙은 마법부여·깃발 색·무늬, 지금 판과 다른 성분 종류는 `ItemFactory.refreshed` 가 다시 만든다 (봇 `gear.js`).
+- 휘두름: 창·미늘창은 P1a 가 찌르기 (`swing_animation` stab) 를 붙이기 전까지 부싯돌의 휘두름 (whack) 을 창 팔 자세 위에서 한다. 바닐라에 없는 짝이라 모습을 따로 남겼다 (`dist/screenshots/grip/swing_redin_spear.png`, 바닐라 철창의 찌르기 `swing_iron_spear.png`).
 
 **인벤토리 · 땅 · 액자 · 선반 (`gui`, `ground`, `fixed`, `on_shelf`)**
 - 3D 모형이 아니라 **손으로 찍은 16×16 그림**을 쓴다 (1.5). 1.21.11 바닐라 창 (`items/iron_spear.json`) 과 같은 방식: 아이템 정의의 `minecraft:display_context` select.
 
 **검사**
-- `pack/weapons/gripcheck.py` (gen_pack 이 `roll_figure.wrap_item_definitions` 뒤에 부른다): jar 의 바닐라 display 가 `VANILLA` 와 같은지, g_v 를 바닐라 그림에서 다시 셈해 `GRIP` 과 같은지, 모든 무기 모형 (`_3d`, `_block`, 당김, 구르기 표시판 `_m`) 이 네 손 맥락을 가지고 맥락마다 쥐는 점 (8, 8, 8) 이 바닐라 g_v 의 자리로, +Y·+X·+Z 가 바닐라 그림의 끝·옆·앞으로 가는지 (1e-3), `_guard` 가 없는지, 당김 모형의 display 가 같은지, souls 아이템 정의가 구르기 감싸기를 지녔는지.
+- `pack/weapons/gripcheck.py` (gen_pack 이 `roll_figure.wrap_item_definitions` 뒤에 부른다. 가져오기에 실패하면 gen_pack 이 멈춘다): jar 의 바닐라 display 가 `VANILLA` 와 같은지, g_v 를 바닐라 그림에서 다시 셈해 `GRIP` 과 같은지, 모든 무기 모형 (`_3d`, `_block`, 당김, 구르기 표시판 `_m`) 이 네 손 맥락을 가지고 맥락마다 쥐는 점 (8, 8, 8) 이 바닐라 g_v 의 자리로, +Y·+X·+Z 가 바닐라 그림의 끝·옆·앞으로 가는지 (1e-3), `_guard` 가 없는지, 당김 모형의 display 가 같은지, souls 아이템 정의가 구르기 감싸기를 지녔는지. 그리고 (2026-10-11 다듬기)
+  - 그림 축: `FRAME` 의 끝 방향을 jar 그림의 불투명 칸 주축 (자루 반대쪽, 활은 시위 쪽에서) 으로 다시 셈해 견준다 (손으로 적은 `FRAME` 과 `GRIP` 을 함께 뒤집어도 걸린다).
+  - 플러그인과 같은 껍데기: `content/weapons.yml` 의 id·class·use 와 `ItemFactory.SPEAR_CLASSES` 를 읽어 창 자세 ⇔ 돌창 껍데기, 방패 ⇔ `use: block`, 활 ⇔ `use: bow`, 같은 id 목록, 팩 분류와 class 가 같은 바닐라 모형 (JUnit `GripParityTest` 가 지은 pack.zip 으로 같은 것을 본다).
+  - 아이템 정의 길: souls 무기·시험 모형 정의를 손 맥락 × `using_item` × `use_duration` {0, 13, 18} × 구르기 깃발 {없음, HIDE, MARK, 둘 다} 로 풀어 잎이 `<id>_3d` / `_block` / `_3d_pulling_{0,1,2}` (MARK 면 `_m`) 인지, `gui`·`ground`·`fixed`·`on_shelf` 가 `<id>` 인지 본다. 활 `range_dispatch` (속성·scale·문턱) 와 `swap_animation_scale` 은 jar 의 `items/bow.json`·`stone_spear.json`·`mace.json`·`shield.json`·`iron_sword.json` 과 견준다.
+  - 모양: 팩의 `*_3d`·`_block`·당김 모형은 모두 무기 id 의 것이다 (빠진 묶음이 조용히 넘어가지 않게). 방패가 아닌 것은 (8, 8, 8) 을 품은 요소가 있고, 쥐는 점에서 가장 먼 곳이 +Y (활 ±Y, 쇠단지는 1.2 표대로 −X 로 매달린다). 방패는 손잡이 막대가 x·y 로 (8, 8) 을 지나고 z 8..10.5, 판은 앞 (+Z).
+  - 손 맥락 display 는 위 무기·시험 모형에만 있다 (M0 시험 막기 도구 `test_guard` 의 자체 막는 자세는 뺐다).
 - 시험 모형 `souls:test_grip_sword`·`_mace`·`_spear`·`_bow`·`_shield` (바닐라 그림을 P⁻¹ 로 우리 모형 공간에 놓고 우리 display 를 붙였다) 를 실제 클라이언트에서 바닐라 철검·철퇴·철창·활·방패와 겹쳐 본다 (`tools/client/grip_shots.sh`, `dist/screenshots/grip/`). 언어 열쇠도 플러그인 아이템도 없다: `/item replace entity @s weapon.mainhand with minecraft:flint[item_model="souls:test_grip_sword"]`. 방패 시험 모형의 그림은 바닐라 파일 `entity/shield_base_nopattern` 을 items 아틀라스에 다른 이름 (`souls:item/test_grip_shield_base`, `assets/minecraft/atlases/items.json` 의 single 소스) 으로 실어 쓴다 (아이템 모형은 items 아틀라스만 본다. 같은 이름으로 실으면 shield_patterns 아틀라스와 겹친다는 경고가 난다). 그림 파일은 팩에 넣지 않는다.
 
 ### 1.4 구르기 대역과 몹, 보스 인형이 무기를 쥐는 법

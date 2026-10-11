@@ -8,10 +8,12 @@ M0 에서 만드는 것
                      물림쇠로 감싼 깎은 마름모 돌) 에 테와 돌의 색만 다르다. 인벤토리 반지 칸 바탕에 흐리게 비치는 반지 그림
                      (RING_PLACEHOLDER, gui_skin 이 그린다) 은 고른 시안의 팔각 테와 마름모 돌이고 반지를 끼면 반지 그림이 다 덮는다
                      (바닐라 클라이언트는 2×2 칸에 빈 칸 그림을 주지 않아 바탕에 그렸다. ring_cover 가 덮는지 본다).
-  souls:test_guard   시험 막기·휘두름 도구의 맞춤 모형 (13.4 의 6, 8). 손으로 찍은 16px 쇠 버클러 하나.
-                     items/test_guard.json 이 using_item 으로 평소 모형과 막는 모형을 가른다 (바닐라 방패와 같은 꼴, 10.6).
+  souls:test_guard   시험 막기·휘두름 도구의 맞춤 모형 (13.4 의 6, 8). 손으로 찍은 16px 쇠 버클러 하나 (평면 item/generated).
                      그림은 assets/souls/textures/item/ 에 둔다. 1.21.11 은 items 아틀라스가 이름공간마다 textures/item
                      폴더를 읽으므로 아틀라스 파일 없이 souls:item/test_guard 로 부른다. 이것이 M0 의 items 아틀라스 점검이다.
+                     막는 동안에도 같은 모형이다 (바닐라 칼 막기 몸짓만 걸린다). M0 에는 using_item 으로 자체 막는 자세
+                     (test_guard_blocking) 를 갈랐지만 손에 든 자세는 바닐라 그대로라 (DECISIONS 2026-10-11) 뺐다. using_item
+                     모형 바꾸기는 방패의 <id>_block 과 활 당김이 쓴다 (weapons/gripcheck.py 가 길을 푼다).
   poof 입자          바닐라 poof (몹이 죽을 때, 사망 화면 뒤에서 내 몸이 사라질 때) 는 흰 뭉게구름 여덟 장(generic_7..0)이라
                      사망 화면의 붉은 덧칠 밑에서 큰 연보라 덩어리로 보였다. 재 부스러기 몇 점(souls:poof_7..0)으로 바꾼다.
                      generic_*.png 는 연기·먼지·구름이 함께 쓰므로 고치지 않고 particles/poof.json 만 덮어쓴다.
@@ -172,16 +174,6 @@ def ring_cover():
     return bad
 
 
-# 막는 모형: 평소 모형을 부모로 두고 손 자세만 바꾼다 (왼손 값은 비워 두면 클라이언트가 오른손 값을 거울로 쓴다).
-# 1인칭: 바닐라가 막는 몸짓(BLOCK) 으로 아이템을 이미 정면으로 세운 뒤라, 평면 아이템 기본값(-90, 25)에서
-#   위로 (y), 가운데 쪽으로 (z) 옮기고 기울기를 줄였다. 판이 조준점 바로 아래, 가운데에서 조금 오른쪽에 선다.
-# 3인칭: 들어 올린 팔 앞에서 판이 앞을 보게 90° 돌렸다. 값은 실제 클라이언트 화면을 보며 맞췄다 (13.4 의 6).
-GUARD_BLOCKING_DISPLAY = {
-    "firstperson_righthand": {"rotation": [0, -90, 15], "translation": [1.13, 4.5, 4.5], "scale": [0.6, 0.6, 0.6]},
-    "thirdperson_righthand": {"rotation": [0, 90, 0], "translation": [1, 4, 2.5], "scale": [0.75, 0.75, 0.75]},
-}
-
-
 def build_items(out):
     bad = ring_cover()
     if bad:
@@ -206,22 +198,13 @@ def build_items(out):
     _json(os.path.join(out, "assets", NS, "items", "master_key.json"), {
         "model": {"type": "minecraft:model", "model": f"{NS}:item/master_key"},
     })
-    # 시험 도구: 평소 / 막는 중 (using_item)
+    # 시험 도구: 평면 모형 하나 (막는 동안도 같다: 바닐라 칼 막기 몸짓만)
     _json(os.path.join(models, "test_guard.json"), {
         "parent": "minecraft:item/generated",
         "textures": {"layer0": f"{NS}:item/test_guard"},
     })
-    _json(os.path.join(models, "test_guard_blocking.json"), {
-        "parent": f"{NS}:item/test_guard",
-        "display": GUARD_BLOCKING_DISPLAY,
-    })
     _json(os.path.join(out, "assets", NS, "items", "test_guard.json"), {
-        "model": {
-            "type": "minecraft:condition",
-            "property": "minecraft:using_item",
-            "on_false": {"type": "minecraft:model", "model": f"{NS}:item/test_guard"},
-            "on_true": {"type": "minecraft:model", "model": f"{NS}:item/test_guard_blocking"},
-        }
+        "model": {"type": "minecraft:model", "model": f"{NS}:item/test_guard"},
     })
 
 

@@ -14,9 +14,10 @@
   wait:초                기다린다 (소수 가능)
   shot:이름              화면을 <찍을폴더>/이름.png 로 (X 화면 그대로, import -window root)
   f2:이름                게임의 F2 스크린샷을 <찍을폴더>/이름.png 로 (채팅에 저장 줄이 남는다)
-  burst:이름:장수[:키[:몇째[:간격]]]  화면을 장수만큼 잇달아 찍는다 (이름_00.png ...). 한 장에 약 0.04초 (BMP 로 찍고
+  burst:이름:장수[:키[:몇째[:간격[:누름]]]]  화면을 장수만큼 잇달아 찍는다 (이름_00.png ...). 한 장에 약 0.04초 (BMP 로 찍고
                          끝나고 PNG 로 바꾼다. PNG 로 바로 찍으면 한 장에 0.5초). 간격(초)을 주면 장마다 그만큼 쉰다.
-                         키를 주면 몇째(기본 1) 장을 찍기 직전에 누르고 다음 장 뒤에 뗀다. 찍은 때는 이름_times.json
+                         키를 주면 몇째(기본 1) 장을 찍기 직전에 누르고 다음 장 뒤에 뗀다. 누름(초)을 주면 누른 뒤 그만큼이
+                         지난 첫 장 앞에서 뗀다 (적어도 한 장 뒤: 느린 /tick rate 에서 짧은 누름이 틱 사이에 빠지지 않게). 찍은 때는 이름_times.json
                          ({"key_at": 누른 때, "shots": [찍은 때...], "t0": 첫 장 시작 (유닉스 초)}, t0 에서 잰 초)
   key:키[+키]            눌렀다 뗀다. xdotool 이름 (f, w, space, Escape, Return, Tab, F1, F3, 1~9, ctrl+w). 아주 짧게
                          눌렀다 떼므로 클라이언트가 틱 사이에 놓칠 수 있다: 구르기 (웅크리기 짧게, 2.1) 는 hold:Shift_L:0.1
@@ -438,23 +439,25 @@ class Session:
         print("SHOT " + out, flush=True)
         return out
 
-    def burst(self, base, count, key=None, at=1, gap=0.0):
-        """화면을 쉬지 않고 찍는다. 찍는 동안은 BMP (인코딩이 없어 빠르다), 끝나고 PNG 로 바꾼다."""
+    def burst(self, base, count, key=None, at=1, gap=0.0, hold=0.0):
+        """화면을 쉬지 않고 찍는다. 찍는 동안은 BMP (인코딩이 없어 빠르다), 끝나고 PNG 로 바꾼다.
+        키는 at 째 장 앞에서 누르고, 적어도 한 장 뒤이면서 누른 지 hold 초가 지난 첫 장 앞에서 뗀다."""
         from PIL import Image
         keys = self.keys(key) if key else []
         if keys:
             self.focus()
         shots, raw = [], []
-        key_at = None
+        key_at = key_up = None
         t0 = time.time()
         for i in range(count):
             if keys and i == at:
                 for k in keys:
                     self.xdo("keydown", k)
                 key_at = time.time() - t0
-            if keys and i == at + 1:
+            if keys and key_at is not None and key_up is None and i > at and time.time() - t0 - key_at >= hold:
                 for k in reversed(keys):
                     self.xdo("keyup", k)
+                key_up = time.time() - t0
             path = os.path.join(self.outdir, "%s_%02d.bmp" % (base, i))
             a = time.time()
             r = subprocess.run(["import", "-window", "root", path], env=self.env(), capture_output=True, text=True)
@@ -465,9 +468,12 @@ class Session:
             raw.append(path)
             if gap > 0:
                 time.sleep(max(0.0, gap - (time.time() - a)))
-        if keys and count <= at + 1:
+        if keys and key_up is None:
+            if key_at is not None:
+                time.sleep(max(0.0, hold - (time.time() - t0 - key_at)))
             for k in reversed(keys):
                 self.xdo("keyup", k)
+            key_up = time.time() - t0
         out = []
         for path in raw:
             png = path[:-4] + ".png"
@@ -476,7 +482,8 @@ class Session:
             out.append(png)
             print("SHOT " + png, flush=True)
         with open(os.path.join(self.outdir, base + "_times.json"), "w", encoding="utf-8") as f:
-            json.dump({"key": key, "key_at": None if key_at is None else round(key_at, 4), "shots": shots,
+            json.dump({"key": key, "key_at": None if key_at is None else round(key_at, 4),
+                       "key_up": None if key_up is None or key_at is None else round(key_up, 4), "shots": shots,
                        "t0": round(t0, 4)}, f)
         gaps = [round(b - a, 3) for a, b in zip(shots, shots[1:])]
         say("  찍은 간격(초): %s" % gaps)
@@ -596,7 +603,8 @@ class Session:
             if len(parts) < 2:
                 fail("burst:이름:장수[:키[:몇째]] 이어야 한다: " + action)
             self.burst(parts[0], int(parts[1]), parts[2] if len(parts) > 2 and parts[2] else None,
-                       int(parts[3]) if len(parts) > 3 and parts[3] else 1, float(parts[4]) if len(parts) > 4 and parts[4] else 0.0)
+                       int(parts[3]) if len(parts) > 3 and parts[3] else 1, float(parts[4]) if len(parts) > 4 and parts[4] else 0.0,
+                       float(parts[5]) if len(parts) > 5 and parts[5] else 0.0)
         elif name == "key":
             self.tap(self.keys(rest))
         elif name == "hold":

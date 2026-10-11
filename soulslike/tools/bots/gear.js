@@ -181,6 +181,102 @@ L.run('gear', async (sc) => {
     await L.sleep(500)
   }
 
+  // ── 모루·제작대에 들어가지 않는다, 붙은 마법부여·깃발은 지운다 (검토 P0-5: 돌창 껍데기는 #minecraft:spears 라 모루가 화염·밀치기 책을
+  //    붙일 수 있고, 방패 껍데기는 깃발을 받으면 이름이 바닐라 "빨간 방패" 가 된다) ──
+  {
+    const Item = require('prismarine-item')(b.bot.registry)
+    // 열린 창 (windowId) 의 칸을 날 window_click 으로 누른다 (lib.rawClick 은 인벤토리 창 0 만): 서버가 그 창을 다시 보낸다
+    const winClick = async (win, slot) => {
+      b.bot._client.write('window_click', { windowId: win.id, stateId: -1, slot, mouseButton: 0, mode: 0, changedSlots: [], cursorItem: Item.toNotch(null) })
+      await L.sleep(300)
+    }
+    const openMenu = async (kind) => {
+      const opened = new Promise((resolve) => b.bot.once('windowOpen', (w) => resolve(w)))
+      await b.cmd(`/soulstest menu ${kind}`, 'MENU')
+      return Promise.race([opened, L.sleep(3000).then(() => null)])
+    }
+    // 단축 칸 0·1 의 것을 작업 창의 두 재료 칸에 (단축 칸 0 = 창 칸 first, 1 = first+1)
+    const twoIn = async (win, hot0, a, c) => {
+      await winClick(win, hot0); await winClick(win, a)
+      await winClick(win, hot0 + 1); await winClick(win, c)
+      await L.sleep(500)
+    }
+    const name = (it) => (it ? it.name + ' ' + JSON.stringify(it.components || []).slice(0, 160) : '빔')
+    const cases = [
+      // [창, 결과 칸, 단축 칸 0 의 창 칸, 재료 칸 둘, 주손 명령, 단축 칸 1 명령, souls 무기인가, 설명]
+      ['anvil', 2, 30, [0, 1], '/soulstest give redin_spear main', 'minecraft:enchanted_book[stored_enchantments={"minecraft:fire_aspect":2}]', true,
+        'an anvil gives no result for a souls spear + fire aspect book (WEAPON_CRAFT_DENY where=anvil)'],
+      ['anvil', 2, 30, [0, 1], '/item replace entity @s hotbar.0 with minecraft:iron_sword', 'minecraft:enchanted_book[stored_enchantments={"minecraft:sharpness":1}]', false,
+        'control: the same anvil does give a result for a vanilla iron sword + sharpness book'],
+      ['crafting', 0, 37, [1, 2], '/soulstest give redin_guard_shield main', 'minecraft:red_banner', true,
+        'a crafting table gives no result for a souls shield + banner (WEAPON_CRAFT_DENY where=craft)'],
+      ['crafting', 0, 37, [1, 2], '/item replace entity @s hotbar.0 with minecraft:shield', 'minecraft:red_banner', false,
+        'control: the same crafting table does decorate a vanilla shield with a banner']
+    ]
+    for (const [kind, out, hot0, [a, c], give, second, ours, what] of cases) {
+      await b.cmd('/clear @s', null, 1000)
+      await b.cmd(give, ours ? 'GIVE' : null, 800)
+      await b.cmd(`/item replace entity @s hotbar.1 with ${second}`, null, 800)
+      const from = b.sys.length
+      const win = await openMenu(kind)
+      if (!sc.check(`${kind} window opens (/soulstest menu ${kind})`, !!win, '창 없음')) continue
+      await twoIn(win, hot0, a, c)
+      const res = win.slots[out]
+      const deny = b.tLines('WEAPON_CRAFT_DENY', from).map((x) => x.line)
+      if (ours) {
+        sc.check(what, !res && deny.some((l) => l.includes(`where=${kind === 'anvil' ? 'anvil' : 'craft'}`)),
+          `결과 ${name(res)} | 재료 ${name(win.slots[a])} / ${name(win.slots[c])} | ${deny.join(' | ') || '거절 줄 없음'}`)
+      } else {
+        sc.check(what, !!res && !deny.length, `결과 ${name(res)} | ${deny.join(' | ')}`)
+      }
+      b.bot.closeWindow(win)
+      await L.sleep(500)
+    }
+    // 이미 붙은 마법부여·깃발 색 (다른 세계·예전 판에서): /souls reload 가 다시 만든다. 이름은 우리 것 그대로
+    await b.cmd('/clear @s', null, 1000)
+    await b.cmd('/soulstest give redin_spear main', 'GIVE')
+    await b.cmd('/soulstest give plank_shield off', 'GIVE')
+    await L.sleep(400)
+    await b.cmd('/item modify entity @s weapon.mainhand {function:"minecraft:set_enchantments",enchantments:{"minecraft:fire_aspect":2}}', null, 1000)
+    await b.cmd('/item modify entity @s weapon.offhand {function:"minecraft:set_components",components:{"minecraft:base_color":"red"}}', null, 1000)
+    await L.sleep(400)
+    sc.check('setup: the spear carries fire aspect and the shield a red base colour', comps(b, 36).includes('enchantments') && comps(b, 45).includes('base_color'),
+      comps(b, 36).join(',') + ' | ' + comps(b, 45).join(','))
+    let from = b.sys.length
+    await b.cmd('/souls reload', null, 4000)
+    let r = await b.waitT('WEAPON_REFRESH', 4000, from)
+    sc.check('/souls reload rebuilds the enchanted spear and the banner-coloured shield (WEAPON_REFRESH n=2 where=reload)', r && r.kv.n === '2' && r.kv.where === 'reload',
+      r ? r.line : '줄 없음')
+    await L.sleep(500)
+    sc.check('the rebuilt spear has no enchantments and keeps its item_name', !comps(b, 36).includes('enchantments') &&
+      JSON.stringify(compData(b, 36, 'item_name') || '').includes('souls.weapon.redin_spear.name'), comps(b, 36).join(','))
+    sc.check('the rebuilt shield has no base colour and keeps its item_name (not the vanilla "Red Shield")', !comps(b, 45).includes('base_color') &&
+      JSON.stringify(compData(b, 45, 'item_name') || '').includes('souls.weapon.plank_shield.name'), comps(b, 45).join(','))
+    // 껍데기 성분 종류가 지금 판과 다른 것 (마인크래프트 판이 바뀌어 돌창에 새 기본 성분이 생긴 경우, 예전 판에 남은 성분): 설명 칸·종류가
+    // 같아도 다시 만든다. 지금 판의 창에 우리가 붙이지 않는 성분 (glider) 하나를 더해 본다
+    await b.cmd('/item modify entity @s weapon.mainhand {function:"minecraft:set_components",components:{"minecraft:glider":{}}}', null, 1000)
+    await L.sleep(300)
+    sc.check('setup: the current spear now carries one extra component (glider)', comps(b, 36).includes('glider'), comps(b, 36).join(','))
+    from = b.sys.length
+    await b.cmd('/souls reload', null, 4000)
+    r = await b.waitT('WEAPON_REFRESH', 4000, from)
+    sc.check('a spear whose component set differs from the current build is rebuilt on reload (WEAPON_REFRESH n=1)', r && r.kv.n === '1' && r.kv.where === 'reload',
+      r ? r.line : '줄 없음')
+    await L.sleep(500)
+    const rm = removed(b, 36)
+    sc.check('after the rebuild the extra component is gone and the spear components stay removed', !comps(b, 36).includes('glider') &&
+      ['kinetic_weapon', 'piercing_weapon', 'attack_range'].every((t) => rm.includes(t)), comps(b, 36).join(',') + ' | removed ' + rm.join(','))
+    from = b.sys.length
+    await b.cmd('/souls reload', null, 4000)
+    await L.sleep(600)
+    sc.check('current spear and shield are not rebuilt again (no WEAPON_REFRESH on the next reload)', !b.tLines('WEAPON_REFRESH', from).length,
+      b.tLines('WEAPON_REFRESH', from).map((x) => x.line).join(' | '))
+    await b.cmd('/clear @s', null, 1200)
+    await b.cmd('/soulstest give gaoler_club main', 'GIVE')
+    await b.cmd('/soulstest give plank_shield off', 'GIVE')
+    await L.sleep(500)
+  }
+
   // ── 패링 판정: 왼손 물건의 분류마다 ──
   const press = async (sneak = false) => {
     if (sneak) { b.input({ shift: true }); await L.sleep(250) }

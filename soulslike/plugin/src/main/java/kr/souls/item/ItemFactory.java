@@ -2,9 +2,11 @@ package kr.souls.item;
 
 import io.papermc.paper.datacomponent.DataComponentType;
 import io.papermc.paper.datacomponent.DataComponentTypes;
+import io.papermc.paper.datacomponent.item.BannerPatternLayers;
 import io.papermc.paper.datacomponent.item.BlocksAttacks;
 import io.papermc.paper.datacomponent.item.DamageResistant;
 import io.papermc.paper.datacomponent.item.ItemAttributeModifiers;
+import io.papermc.paper.datacomponent.item.ItemEnchantments;
 import io.papermc.paper.datacomponent.item.ItemLore;
 import io.papermc.paper.datacomponent.item.SwingAnimation;
 import io.papermc.paper.datacomponent.item.UseEffects;
@@ -24,6 +26,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
@@ -235,15 +238,37 @@ public final class ItemFactory {
      * 예전 판의 souls 무기를 지금 판으로 다시 만든 것, 지금 판 그대로면 null: 껍데기가 바뀌었거나 (활: 부싯돌 → 바닐라 활, 방패: 부싯돌 →
      * 바닐라 방패, 창·미늘창: 부싯돌 → 바닐라 돌창, 2026-10-11), 설명 칸이
      * 지금 판과 다르거나 (2026-10-10: 보정·요구 능력치 줄을 없애고 수치를 한 줄로, 방패는 막기 하나. weapons.yml 을 고치고 다시 읽은 값,
-     * 언어 파일의 대체 글이 바뀐 것도), 쓰는 몸짓이 바뀐 것 (패링 단검·촉매는 막지 않는다). 주손 무기의 막기 성분은 견주지 않는다
+     * 언어 파일의 대체 글이 바뀐 것도), 쓰는 몸짓이 바뀐 것 (패링 단검·촉매는 막지 않는다), 우리가 붙이지 않은 것이 붙은 것
+     * ({@link #foreign}: 마법부여, 방패의 깃발 색·무늬, 지금 판과 다른 성분 종류). 주손 무기의 막기 성분은 견주지 않는다
      * (WeaponGuard 가 든 손을 보고 맞춘다).
      */
     public static ItemStack refreshed(ItemStack it, Weapons weapons) {
         Weapons.Def d = it == null || it.isEmpty() ? null : weapons.of(it);
         if (d == null) return null;
         ItemStack fresh = weapon(d);
-        if (it.getType() == fresh.getType() && sameLore(it, fresh) && !staleUse(it, d)) return null;
+        if (it.getType() == fresh.getType() && sameLore(it, fresh) && !staleUse(it, d) && !foreign(it, fresh)) return null;
         return fresh;
+    }
+
+    /**
+     * 우리가 붙이지 않은 것이 붙었다 (검토 P0-5): 마법부여 (돌창 껍데기는 #minecraft:spears 라 모루가 화염·밀치기·약탈·날카로움·돌진
+     * 책을 붙일 수 있다. 플러그인 피해 셈 밖에서 불·밀치기·떨굼이 돈다), 방패의 깃발 바탕색·무늬 (제작대에서 깃발을 붙이면 이름이 바닐라
+     * "빨간 방패" 가 된다), 지금 판과 다른 성분 종류 (예전 판의 껍데기에 남은 성분, 마인크래프트 판이 바뀌어 껍데기에 새로 생긴 성분).
+     * 모루·제작대 길은 {@link WeaponRefresh} 가 막지만, 다른 세계·예전 판에서 붙은 것은 여기서 고친다.
+     */
+    static boolean foreign(ItemStack it, ItemStack fresh) {
+        ItemEnchantments en = it.getData(DataComponentTypes.ENCHANTMENTS);
+        if (en != null && !en.enchantments().isEmpty()) return true;
+        if (it.hasData(DataComponentTypes.BASE_COLOR)) return true;
+        BannerPatternLayers bp = it.getData(DataComponentTypes.BANNER_PATTERNS);
+        if (bp != null && !bp.patterns().isEmpty()) return true;
+        // 플러그인이 든 손을 보고 붙였다 뗐다 하는 성분 (WeaponGuard 의 막기·걸음 배율, 구르기 깃발) 은 빼고 견준다.
+        // (상수로 두지 않는다: DataComponentTypes 는 서버 등록부에서 읽어 JUnit 이 ItemFactory 를 실을 때 없다)
+        List<DataComponentType> live = List.of(DataComponentTypes.BLOCKS_ATTACKS, DataComponentTypes.USE_EFFECTS, DataComponentTypes.CUSTOM_MODEL_DATA);
+        Set<DataComponentType> a = new HashSet<>(it.getDataTypes()), b = new HashSet<>(fresh.getDataTypes());
+        live.forEach(a::remove);
+        live.forEach(b::remove);
+        return !a.equals(b);
     }
 
     /**

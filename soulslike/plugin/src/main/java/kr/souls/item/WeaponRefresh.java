@@ -1,5 +1,6 @@
 package kr.souls.item;
 
+import com.destroystokyo.paper.event.inventory.PrepareResultEvent;
 import kr.souls.Souls;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -8,7 +9,13 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
+import org.bukkit.event.inventory.PrepareAnvilEvent;
+import org.bukkit.event.inventory.PrepareGrindstoneEvent;
+import org.bukkit.event.inventory.PrepareItemCraftEvent;
+import org.bukkit.event.inventory.PrepareSmithingEvent;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryView;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
 /**
@@ -21,6 +28,11 @@ import org.bukkit.inventory.PlayerInventory;
  *   <li>상자·엔더 상자 같은 창을 열 때: 그 창 (위쪽) 의 칸.</li>
  * </ul>
  * 바꾼 것이 있으면 주손 막기 성분 (WeaponGuard) 과 무게 (Load) 를 다시 맞추고 시험 줄 {@code WEAPON_REFRESH n= where=join|reload|pickup|container}.
+ * <p>
+ * souls 무기는 모루·대장장이 작업대·숫돌·제작대의 재료가 되지 않는다 (검토 P0-5): 결과 칸을 비운다. 창·미늘창의 껍데기 돌창은
+ * #minecraft:spears 라 모루가 화염·밀치기·약탈·날카로움·강타·돌진·내구성·수선 책을 붙일 수 있고 (부싯돌 무기는 아무것도 받지 않았다),
+ * 방패 껍데기는 제작대에서 깃발을 받으면 이름이 바닐라 방패 이름 ("빨간 방패") 으로 바뀌며, 부싯돌 껍데기는 부싯돌과 부시의 재료다.
+ * 이미 붙은 것은 ItemFactory.refreshed 가 지운다. 시험 줄 {@code WEAPON_CRAFT_DENY where=anvil|smithing|grindstone|craft}.
  */
 public final class WeaponRefresh implements Listener {
     private final Souls plugin;
@@ -47,6 +59,45 @@ public final class WeaponRefresh implements Listener {
         Bukkit.getScheduler().runTask(plugin, () -> {
             if (p.isOnline()) player(p, "pickup");
         });
+    }
+
+    private boolean anyWeapon(ItemStack[] items) {
+        for (ItemStack it : items) {
+            if (it != null && !it.isEmpty() && plugin.weapons().of(it) != null) return true;
+        }
+        return false;
+    }
+
+    private void deny(InventoryView view, String where) {
+        if (view.getPlayer() instanceof Player p) plugin.test(p, "WEAPON_CRAFT_DENY where=" + where);
+    }
+
+    private void denyResult(PrepareResultEvent e, String where) {
+        if (!anyWeapon(e.getInventory().getContents())) return;
+        e.setResult(null);
+        deny(e.getView(), where);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onAnvil(PrepareAnvilEvent e) {
+        denyResult(e, "anvil");
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onSmithing(PrepareSmithingEvent e) {
+        denyResult(e, "smithing");
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onGrindstone(PrepareGrindstoneEvent e) {
+        denyResult(e, "grindstone");
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void onCraft(PrepareItemCraftEvent e) {
+        if (!anyWeapon(e.getInventory().getMatrix())) return;
+        e.getInventory().setResult(null);
+        deny(e.getView(), "craft");
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)

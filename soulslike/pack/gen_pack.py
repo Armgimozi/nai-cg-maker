@@ -68,18 +68,11 @@ import previews  # noqa: E402
 import roll_figure  # noqa: E402
 import shaders  # noqa: E402
 import typeset  # noqa: E402
-try:
-    from weapons import set_b as weapons_b  # 무기 B 묶음 (자루 무기·판자 방패·손종, weapons/SPEC.md 4절)
-except ImportError:
-    weapons_b = None
-try:
-    from weapons import set_a as weapons_a  # 무기 A 묶음 (칼·방패·활·쇠단지, weapons/SPEC.md 4절)
-except ImportError:
-    weapons_a = None
-try:
-    from weapons import gripcheck  # 무기 손 자세 검사와 시험 모형 (바닐라 자세, weapons/SPEC.md 1.3)
-except ImportError:
-    gripcheck = None
+# 무기는 빼고 지을 수 없다 (플러그인 아이템 20개가 souls:<id> 모형을 부른다): 가져오기가 실패하면 그대로 멈춘다 (검토 P0-8.
+# 예전에는 ImportError 를 삼켜 무기 모형도 손 자세 검사도 없는 팩을 묶었다)
+from weapons import set_b as weapons_b  # noqa: E402  무기 B 묶음 (자루 무기·판자 방패·손종, weapons/SPEC.md 4절)
+from weapons import set_a as weapons_a  # noqa: E402  무기 A 묶음 (칼·방패·활·쇠단지, weapons/SPEC.md 4절)
+from weapons import gripcheck  # noqa: E402  무기 손 자세 검사와 시험 모형 (바닐라 자세, weapons/SPEC.md 1.3)
 
 ROOT = os.path.dirname(HERE)
 RES = os.path.join(ROOT, "plugin", "src", "main", "resources")
@@ -285,10 +278,8 @@ def main(argv):
     shaders.build(OUT)    # 글꼴 셰이더 (HUD 덩이 + 글자 넓이 평균), GUI 셰이더, 메뉴 뒤 흐림 (10.8)
     gui_skin.build(OUT)   # 숨기는 HUD (하트·방어·경험치 막대)·보스 막대·단축 슬롯·창·단추·설명 칸·Dialog 경고 단추
     icons.build(OUT)      # 아이템 그림·모형·정의 (items 아틀라스), 입자
-    if weapons_b:
-        weapons_b.build(OUT)  # 무기 B: 3D 모형·16px 그림·아이템 정의 (roll_figure 의 손 감추기가 감싸기 전에)
-    if weapons_a:
-        weapons_a.build(OUT)  # 무기 A: 3D 모형·16px 그림·아이템 정의 (roll_figure 의 손 감추기가 감싸기 전에)
+    weapons_b.build(OUT)  # 무기 B: 3D 모형·16px 그림·아이템 정의 (roll_figure 의 손 감추기가 감싸기 전에)
+    weapons_a.build(OUT)  # 무기 A: 3D 모형·16px 그림·아이템 정의 (roll_figure 의 손 감추기가 감싸기 전에)
     roll_figure.build(OUT)   # 구르기 대역 (관절 부위·머리·투구 모형, 물들일 재료), 급류 회전 소용돌이 감추기 (3.3)
     # 대역의 열쇠 자세 표 (플러그인 Tumble 이 읽는다. 팩의 부위 모형과 같은 뼈대에서 셈한다)
     roll_figure.anim_table(os.path.join(RES, "roll_anim.yml"))
@@ -312,11 +303,10 @@ def main(argv):
     # 구르는 동안 손에 든 souls 아이템을 3인칭에서 비우는 깃발 (아이템 정의를 모두 쓴 뒤에 감싼다, 3.3)
     roll_figure.wrap_item_definitions(OUT)
     # 무기 손 자세가 바닐라 1.21.11 과 같은가 (DECISIONS 2026-10-11) 와 시험 모형 souls:test_grip_* (감싼 뒤에: 감싸기도 본다)
-    if gripcheck and (weapons_a or weapons_b):
-        bad = gripcheck.build(OUT)
-        if bad:
-            print("무기 손 자세 검사 (gripcheck) 오류가 있어 팩을 묶지 않는다:", *bad, sep="\n  ")
-            return 1
+    bad = gripcheck.build(OUT)
+    if bad:
+        print("무기 손 자세 검사 (gripcheck) 오류가 있어 팩을 묶지 않는다:", *bad, sep="\n  ")
+        return 1
 
     # 블록 1층: 바닐라 블록 그림 전부 (+ .mcmeta, 풀빛·잎빛 색 지도) 의 색을 다크소울 쪽으로 옮긴다 (blocks_grade.py,
     # 클라이언트 jar 에서 읽는다)

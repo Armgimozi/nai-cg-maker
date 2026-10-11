@@ -19,6 +19,19 @@
   4. 무기 막기 모형 (_guard) 이 없다. 활 당김 모형의 display 가 평소 모형과 같다. souls 아이템 정의 (구르기 대역의 것과 시험
      모형은 빼고) 가 모두 roll_figure 의 감싸기 (custom_model_data 깃발 MARK_FLAG → HIDE_FLAG) 를 지녔다
   5. 시험 모형이 바닐라 그림을 P⁻¹ 로 놓았다 (요소의 쥐는 점 기준 자리)
+  6. 플러그인과 같은 껍데기 (검토 P0-2): content/weapons.yml 의 id·class·use 와 ItemFactory.SPEAR_CLASSES 를 읽어, 팩의 바닐라 모형
+     (창·방패·활) 과 플러그인이 고르는 껍데기 아이템 (돌창·방패·활) 이 맞는가. 창 자세 ⇔ class ∈ SPEAR_CLASSES, 방패 ⇔ use: block,
+     활 ⇔ use: bow, 두 쪽의 id 가 같다, 팩 분류와 weapons.yml class 가 같은 바닐라 모형으로 간다 (JUnit GripParityTest 가 pack.zip 으로 같은 것을 본다)
+  7. 아이템 정의 길 (검토 P0-3): souls 무기 정의를 손 맥락 × using_item × use_duration {0, 13, 18} × 깃발 {없음, HIDE, MARK, 둘 다}
+     마다 풀어 잎이 <id>_3d / _block / _3d_pulling_{0,1,2} (MARK 면 _m) 인지, gui·ground·fixed·on_shelf 가 <id> 인지, HIDE 면 손이
+     비는지 본다. 활의 range_dispatch (속성·scale·문턱) 와 swap_animation_scale 은 jar 의 items/bow.json·stone_spear.json·mace.json …
+     과 견준다
+  8. 모양 (검토 P0-4): 팩의 *_3d·_block·_pulling 모형은 모두 무기 id 의 것이다 (빠진 묶음이 조용히 검사를 건너뛰지 않게). 방패가 아닌
+     것은 쥐는 점 (8, 8, 8) 을 품은 요소가 있다 (방패는 손잡이 막대가 x·y 로 (8, 8) 을 지나고 z 8..10.5). 쥐는 점에서 가장 먼 곳이 +Y
+     (끝) 쪽이다 (활은 ±Y, 쇠단지는 SPEC 대로 −X 로 매달린다, 방패는 앞면 +Z). 바닐라 그림의 끝 방향은 FRAME 을 믿지 않고 jar 그림의
+     불투명 칸의 주축 (자루 쪽 반대로, 활은 시위 쪽에서) 으로 다시 셈해 FRAME 과 견준다
+  9. souls 모형 가운데 손 맥락 display 를 지닌 것은 위에서 검사한 무기·시험 모형뿐이다 (예전 M0 시험 막기 도구의 자체 막는 자세 같은 것이
+     다시 들어오지 않게)
 
 시험 모형 (언어 열쇠도 플러그인 아이템도 없다. 바닐라 명령 /item replace entity @s weapon.mainhand with
 flint[item_model=souls:test_grip_sword] 로 든다. tools/client/grip_shots.sh 가 바닐라 아이템과 겹쳐 찍는다):
@@ -40,6 +53,7 @@ import io
 import json
 import math
 import os
+import re
 import sys
 import zipfile
 
@@ -56,6 +70,9 @@ NS = C.NS
 TOL = 1e-3
 HANDS = C.HANDS
 JAR = os.path.expanduser("~/.cache/souls-client/versions/1.21.11.jar")
+ROOT = os.path.dirname(PACK)
+WEAPONS_YML = os.path.join(ROOT, "plugin", "src", "main", "resources", "content", "weapons.yml")
+ITEM_FACTORY = os.path.join(ROOT, "plugin", "src", "main", "java", "kr", "souls", "item", "ItemFactory.java")
 
 # 바닐라 그림의 축 (우리 모형 축이 가야 할 곳). tip = 우리 +Y (끝), side = 우리 +X (윗날·도끼 등·활 시위 쪽), 앞은 늘 그림의 +Z.
 # k = 우리 모형 1 픽셀이 그림의 몇 픽셀인가 (창: 32×32 그림이라 반)
@@ -423,6 +440,327 @@ def _walk_refs(node, out):
     return out
 
 
+# ─────────────────────────── 6. 플러그인과 같은 껍데기 (검토 P0-2) ───────────────────────────
+
+
+def class_set(cls):
+    """weapons.yml 의 class → 바닐라 모형 (expected_set 과 같은 기본안. 플러그인은 중형 방패를 medium_shield 로 적는다)."""
+    if cls in ("spear", "halberd"):
+        return "spear"
+    if cls in ("hammer", "bell_mace"):
+        return "mace"
+    if cls in ("small_shield", "medium_shield", "shield", "greatshield"):
+        return "shield"
+    return "bow" if cls == "bow" else "handheld"
+
+
+def plugin_weapons(errs, path=None):
+    """content/weapons.yml → {id: (class, use)} (플러그인 Weapons.load 처럼: use 기본 guard, class 기본 straight_sword)."""
+    import yaml
+    path = path or WEAPONS_YML
+    if not os.path.exists(path):
+        errs.append(f"{path}: 플러그인 무기 목록이 없다 (껍데기 검사를 할 수 없다)")
+        return {}
+    with open(path, encoding="utf-8") as f:
+        data = yaml.safe_load(f) or {}
+    out = {}
+    for wid, sec in data.items():
+        if isinstance(sec, dict):
+            out[str(wid)] = (str(sec.get("class", "straight_sword")), str(sec.get("use", "guard")).lower())
+    return out
+
+
+def spear_classes(errs, path=None):
+    """ItemFactory.SPEAR_CLASSES (돌창 껍데기로 만드는 class) 를 소스에서 읽는다. 못 읽으면 오류 (조용히 건너뛰지 않는다)."""
+    path = path or ITEM_FACTORY
+    src = open(path, encoding="utf-8").read() if os.path.exists(path) else ""
+    m = re.search(r"SPEAR_CLASSES\s*=\s*Set\.of\(([^)]*)\)", src)
+    if not m:
+        errs.append(f"{path}: SPEAR_CLASSES = Set.of(...) 를 찾지 못했다 (껍데기 검사를 고친다)")
+        return set()
+    return set(re.findall(r'"([^"]+)"', m.group(1)))
+
+
+def check_plugin(kinds, errs):
+    """팩의 바닐라 모형과 플러그인이 고르는 껍데기 아이템 (ItemFactory.weapon: 활·방패·돌창·부싯돌) 이 맞는가."""
+    defs = plugin_weapons(errs)
+    spears = spear_classes(errs)
+    if not defs:
+        return
+    for wid in sorted(set(kinds) - set(defs)):
+        errs.append(f"{wid}: 팩에 모형이 있는데 weapons.yml 에 없다")
+    for wid in sorted(set(defs) - set(kinds)):
+        errs.append(f"{wid}: weapons.yml 에 있는데 팩 무기 목록 (set_a.registry, set_b.WEAPONS) 에 없다")
+    for wid in sorted(set(kinds) & set(defs)):
+        cls, use = defs[wid]
+        s = expected_set(kinds[wid])
+        if s != class_set(cls):
+            errs.append(f"{wid}: 팩 분류 {kinds[wid]} → {s} 인데 weapons.yml class {cls} → {class_set(cls)}")
+        for name, pack_side, plugin_side, why in (
+                ("spear", s == "spear", cls in spears, f"class {cls} ∈ ItemFactory.SPEAR_CLASSES {sorted(spears)} (돌창 껍데기)"),
+                ("shield", s == "shield", use == "block", f"use {use} == block (방패 껍데기)"),
+                ("bow", s == "bow", use == "bow", f"use {use} == bow (활 껍데기)")):
+            if pack_side != plugin_side:
+                errs.append(f"{wid}: 팩의 손 자세가 {s} 인데 플러그인 쪽 {why} 이 {plugin_side} 이다 (자세와 껍데기 아이템이 어긋난다)")
+
+
+# ─────────────────────────── 7. 아이템 정의 길 (검토 P0-3) ───────────────────────────
+
+FLAT = ("gui", "ground", "fixed", "on_shelf")
+HELD = HANDS + ("head",)
+DURATIONS = (0, 13, 18)               # 틱. 바닐라 활 문턱 (0.65, 0.9) × 20 의 양쪽
+# 바닐라 아이템 (jar items/<이름>.json) 과 그것이 없을 때의 값
+VANILLA_ITEM = {"handheld": "iron_sword", "mace": "mace", "spear": "stone_spear", "shield": "shield", "bow": "bow"}
+VANILLA_SWAP = {"handheld": 1.0, "mace": 1.0, "spear": 1.95, "shield": 1.0, "bow": 1.0}
+VANILLA_BOW_RANGE = ("minecraft:use_duration", 0.05, (0.65, 0.9))
+
+
+def resolve(node, st):
+    """아이템 정의 모형 나무를 상태 st (ctx, using, dur, flags) 로 풀어 잎 (모형 이름, "empty", "special:<base>") 을 돌려준다."""
+    if not isinstance(node, dict):
+        return "missing"
+    t = node.get("type", "").replace("minecraft:", "")
+    if t == "model":
+        return node.get("model", "")
+    if t == "empty":
+        return "empty"
+    if t == "special":
+        return "special:" + node.get("base", "")
+    if t == "composite":
+        return "composite:" + ",".join(resolve(m, st) for m in node.get("models", []))
+    if t == "condition":
+        prop = node.get("property", "")
+        if prop == "minecraft:using_item":
+            v = st["using"]
+        elif prop == "minecraft:custom_model_data":
+            v = int(node.get("index", 0)) in st["flags"]
+        else:
+            return f"unknown-condition:{prop}"
+        return resolve(node.get("on_true" if v else "on_false"), st)
+    if t == "select":
+        if node.get("property") != "minecraft:display_context":
+            return f"unknown-select:{node.get('property')}"
+        for case in node.get("cases", []):
+            when = case.get("when")
+            when = [when] if isinstance(when, str) else when
+            if st["ctx"] in when:
+                return resolve(case.get("model"), st)
+        return resolve(node.get("fallback"), st)
+    if t == "range_dispatch":
+        if node.get("property") != "minecraft:use_duration":
+            return f"unknown-range:{node.get('property')}"
+        v = st["dur"] * float(node.get("scale", 1.0))
+        pick = None
+        for e in sorted(node.get("entries", []), key=lambda e: e["threshold"]):
+            if e["threshold"] <= v + 1e-9:
+                pick = e["model"]
+        return resolve(pick if pick is not None else node.get("fallback"), st)
+    return f"unknown-type:{t}"
+
+
+def _range_nodes(node, out):
+    if isinstance(node, dict):
+        if node.get("type", "").replace("minecraft:", "") == "range_dispatch":
+            out.append(node)
+        for v in node.values():
+            _range_nodes(v, out)
+    elif isinstance(node, list):
+        for v in node:
+            _range_nodes(v, out)
+    return out
+
+
+def vanilla_items(z):
+    """바닐라 아이템 정의 값: {set: swap}, 활 (속성, scale, 문턱)."""
+    swap, bow = dict(VANILLA_SWAP), VANILLA_BOW_RANGE
+    if z is not None:
+        for s, name in VANILLA_ITEM.items():
+            d = json.loads(z.read(f"assets/minecraft/items/{name}.json"))
+            swap[s] = float(d.get("swap_animation_scale", 1.0))
+            if s == "bow":
+                r = _range_nodes(d, [])[0]
+                bow = (r["property"], float(r.get("scale", 1.0)), tuple(sorted(float(e["threshold"]) for e in r["entries"])))
+    return swap, bow
+
+
+def want_leaf(base, s, ctx, using, dur, flags, bow_thr, wrapped=True):
+    """그 상태에서 souls 무기 정의가 골라야 할 잎."""
+    from roll_figure import HIDE_FLAG, MARK_FLAG
+    mark = wrapped and MARK_FLAG in flags
+    m = "_m" if mark else ""
+    d3 = "_3d" if wrapped else ""          # 시험 모형은 손에 든 모형이 그 이름 그대로 (test_grip_bow, test_grip_bow_pulling_0)
+    if ctx in FLAT:
+        return f"{NS}:item/{base}{m}"
+    if wrapped and not mark and HIDE_FLAG in flags:
+        return "empty"
+    if using and s == "shield":
+        return f"{NS}:item/{base}_block{m}"
+    if using and s == "bow":
+        i = sum(1 for t in bow_thr if dur * 0.05 >= t - 1e-9)
+        return f"{NS}:item/{base}{d3}_pulling_{i}{m}"
+    return f"{NS}:item/{base}{d3}{m}"
+
+
+def check_routes(items, kinds, z, errs):
+    """souls 무기 정의 (roll_figure 가 감싼 것) 와 시험 모형 정의를 모든 상태로 풀어 본다. 돌려주는 값: 푼 상태 수."""
+    from roll_figure import HIDE_FLAG, MARK_FLAG
+    swap, bow = vanilla_items(z)
+    flagsets = (frozenset(), frozenset({HIDE_FLAG}), frozenset({MARK_FLAG}), frozenset({HIDE_FLAG, MARK_FLAG}))
+    cases = [(wid, wid, expected_set(k), True) for wid, k in sorted(kinds.items())]
+    cases += [(f"test_grip_{p}", f"test_grip_{p}", v["set"], False) for p, v in PROBE.items()]
+    n = 0
+    for name, base, s, wrapped in cases:
+        path = os.path.join(items, name + ".json")
+        if not os.path.exists(path):
+            errs.append(f"items/{name}.json: 아이템 정의가 없다")
+            continue
+        data = _load(path)
+        bad = []
+        for flags in (flagsets if wrapped else (frozenset(),)):
+            for ctx in (FLAT + HELD if wrapped else HANDS):
+                for using in (False, True):
+                    for dur in (DURATIONS if using else (0,)):
+                        got = resolve(data["model"], {"ctx": ctx, "using": using, "dur": dur, "flags": flags})
+                        want = want_leaf(base, s, ctx, using, dur, flags, bow[2], wrapped)
+                        n += 1
+                        if got != want:
+                            bad.append(f"{ctx} using={using} dur={dur} flags={sorted(flags)}: {got} (바라는 것 {want})")
+        if bad:
+            errs.append(f"items/{name}.json: 정의 길이 어긋난다 ({len(bad)}곳). 처음: " + "; ".join(bad[:3]))
+        got_swap = float(data.get("swap_animation_scale", 1.0))
+        if abs(got_swap - swap[s]) > 1e-9:
+            errs.append(f"items/{name}.json: swap_animation_scale {got_swap} 이 바닐라 {VANILLA_ITEM[s]} 의 {swap[s]} 와 다르다")
+        for r in _range_nodes(data, []):
+            mine = (r.get("property"), float(r.get("scale", 1.0)), tuple(sorted(float(e["threshold"]) for e in r.get("entries", []))))
+            if mine != bow:
+                errs.append(f"items/{name}.json: range_dispatch {mine} 이 바닐라 활 {bow} 와 다르다")
+        if s != "bow" and _range_nodes(data, []):
+            errs.append(f"items/{name}.json: 활이 아닌데 use_duration 나눔이 있다")
+    return n
+
+
+# ─────────────────────────── 8. 모양 (검토 P0-4) ───────────────────────────
+
+# 쥐는 점에서 가장 먼 곳의 방향 (기본 "+y" = 끝). SPEC.md 1.2 의 축 표: 쇠단지는 −X (땅 쪽) 로 매달린다, 활은 활대가 위아래 같은 길이
+AXIS = {"kiln_pot": "-x"}
+AXIS_OF_SET = {"bow": "±y"}
+MODEL_RE = re.compile(r"(.+?)_(3d(?:_pulling_\d)?|block)(_m)?\.json$")
+
+
+def _elements(models, name, seen=0):
+    p = os.path.join(models, name + ".json")
+    if not os.path.exists(p) or seen > 8:
+        return None
+    m = _load(p)
+    if "elements" in m:
+        return m["elements"]
+    parent = m.get("parent", "")
+    return _elements(models, parent.split("/", 1)[1], seen + 1) if parent.startswith(NS + ":item/") else None
+
+
+def _boxes(els):
+    """요소마다 (from, to, R, origin) (회전은 축 하나)."""
+    out = []
+    for e in els:
+        a, b = np.array(e["from"], float), np.array(e["to"], float)
+        r = e.get("rotation") or {}
+        R = _r(r.get("axis", "x"), float(r.get("angle", 0))) if r.get("angle") else np.eye(3)
+        out.append((np.minimum(a, b), np.maximum(a, b), R, np.array(r.get("origin", [8, 8, 8]), float)))
+    return out
+
+
+def _contains(box, p, eps=0.01):
+    lo, hi, R, o = box
+    q = R.T @ (p - o) + o
+    return bool(np.all(q >= lo - eps) and np.all(q <= hi + eps))
+
+
+def _corners(boxes):
+    pts = []
+    for lo, hi, R, o in boxes:
+        for x in (lo[0], hi[0]):
+            for y in (lo[1], hi[1]):
+                for zz in (lo[2], hi[2]):
+                    pts.append(R @ (np.array([x, y, zz]) - o) + o)
+    return np.array(pts)
+
+
+def check_geometry(models, kinds, errs):
+    """쥐는 점 (8, 8, 8) 의 요소, 긴 축, 무기 id 가 없는 모형. 돌려주는 값: 본 모형 수."""
+    g = np.array([8.0, 8.0, 8.0])
+    for f in sorted(os.listdir(models)) if os.path.isdir(models) else []:
+        m = MODEL_RE.match(f)
+        if m and not m.group(1).startswith("test_grip") and m.group(1) not in kinds:
+            errs.append(f"models/item/{f}: 무기 모형인데 무기 목록 (set_a.registry, set_b.WEAPONS) 에 {m.group(1)} 이 없다 "
+                        "(새 묶음이면 gripcheck.weapon_kinds 에 더한다: 그러지 않으면 손 자세 검사를 건너뛴다)")
+    n = 0
+    for wid, kind in sorted(kinds.items()):
+        s = expected_set(kind)
+        names = [f"{wid}_3d"] + [f"{wid}_3d_pulling_{i}" for i in range(3) if os.path.exists(os.path.join(models, f"{wid}_3d_pulling_{i}.json"))]
+        for name in names:
+            els = _elements(models, name)
+            if not els:
+                errs.append(f"{name}: 요소가 없다")
+                continue
+            n += 1
+            boxes = _boxes(els)
+            pts = _corners(boxes) - g
+            if s == "shield":
+                # 손잡이 막대: x·y 로 (8, 8) 을 지나고 z 가 쥐는 점 뒤 8..10.5 (판 뒷면 10.5) 안
+                bar = [b for b in boxes if b[0][0] <= 8.01 and b[1][0] >= 7.99 and b[0][1] <= 8.01 and b[1][1] >= 7.99
+                       and b[0][2] >= 7.99 and b[1][2] <= 10.51 and np.allclose(b[2], np.eye(3))]
+                if not bar:
+                    errs.append(f"{name}: 방패 손잡이 막대 (x·y 가 (8, 8) 을 지나고 z 8..10.5) 가 없다 (쥐는 점이 손잡이에서 벗어났다)")
+                if not pts[:, 2].max() > -pts[:, 2].min():
+                    errs.append(f"{name}: 방패 판이 앞 (+Z) 에 있지 않다 (z {pts[:, 2].min():.1f}..{pts[:, 2].max():.1f})")
+                continue
+            if not any(_contains(b, g) for b in boxes):
+                errs.append(f"{name}: 쥐는 점 (8, 8, 8) 을 품은 요소가 없다 (모형이 주먹에서 떠 있다: 격자·PIVOT 을 본다)")
+            far = pts[np.argmax(np.linalg.norm(pts, axis=1))]
+            ax = AXIS.get(wid, AXIS_OF_SET.get(s, "+y"))
+            i = "xyz".index(ax[-1])
+            dom = abs(far[i]) > max(abs(far[j]) for j in range(3) if j != i)
+            sign = {"+": far[i] > 0, "-": far[i] < 0, "±": True}[ax[0]]
+            if not (dom and sign):
+                errs.append(f"{name}: 쥐는 점에서 가장 먼 곳 {np.round(far, 2).tolist()} 이 {ax} 쪽이 아니다 (끝 = +Y, SPEC 1.2 축 표)")
+    return n
+
+
+def sprite_tip(rows, g, name):
+    """jar 그림의 불투명 칸에서 끝 방향 (그림 모형 픽셀, y 위) 을 다시 셈한다: 주축을 45° 단위로 맞추고, 자루 쪽 (쥐는 자리 g 에서
+    짧은 쪽) 의 반대를 끝으로. 활은 활대가 쥐는 자리 양쪽에 같아 시위 쪽 (쥐는 자리에서 칸 무게 가운데 쪽) 을 옆 (+X) 으로 보고 끝 = Z × 옆."""
+    n = len(rows)
+    pts = np.array([texel_center(u, v, n)[:2] for u, v in cells(rows)])
+    c = pts.mean(axis=0)
+    w, vecs = np.linalg.eigh(np.cov((pts - c).T))
+    a = vecs[:, int(np.argmax(w))]
+    ang = round(math.degrees(math.atan2(a[1], a[0])) / 45.0) * 45.0
+    a = np.array([math.cos(math.radians(ang)), math.sin(math.radians(ang))])
+    if name == "bow":
+        side = np.array([a[1], -a[0]])                  # 주축에 수직
+        if (c - g[:2]) @ side < 0:
+            side = -side                                # 시위 쪽: 쥐는 자리는 활대가 가장 휜 꼭대기라 나머지 칸 (활대 끝·시위) 은 시위 쪽에 있다
+        tip = np.array([-side[1], side[0]])             # Z × 옆
+    else:
+        proj = (pts - g[:2]) @ a
+        tip = a if proj.max() >= -proj.min() else -a
+    return np.round(np.array([tip[0], tip[1], 0.0]), 6)
+
+
+def check_frames(masks, g, errs):
+    """FRAME (손으로 적은 그림 축) 을 jar 그림에서 다시 셈한 끝 방향과 견준다."""
+    for name, sprite in (("handheld", "iron_sword"), ("mace", "mace"), ("spear", "iron_spear_in_hand"), ("bow", "bow")):
+        want = np.array(FRAME[name]["tip"], float)
+        want /= np.linalg.norm(want)
+        got = sprite_tip(masks[sprite], g[name], name)
+        if np.max(np.abs(got - want)) > 1e-6:
+            errs.append(f"FRAME[{name!r}] 끝 {np.round(want, 3).tolist()} 이 jar 그림 {sprite} 의 주축에서 셈한 끝 {got.tolist()} 와 다르다")
+        side = np.array(FRAME[name]["side"], float)
+        side /= np.linalg.norm(side)
+        if np.max(np.abs(np.cross(side, want) - np.array([0, 0, 1]))) > 1e-6:
+            errs.append(f"FRAME[{name!r}]: 옆·끝·앞이 오른손 좌표가 아니다 (옆 × 끝 ≠ +Z: 모형이 거울로 뒤집힌다)")
+
+
 # ─────────────────────────── 시험 모형 ───────────────────────────
 
 
@@ -600,11 +938,14 @@ def check(out, masks=None):
             errs.append(f"_common.GRIP[{name!r}] 의 q·k 가 FRAME 과 다르다")
     notes.append("쥐는 자리 g_v: " + ", ".join(f"{k} {(np.round(v, 3) + 0.0).tolist()}" for k, v in g.items() if k != "shield_blocking")
                  + f" (주먹 한가운데 팔 좌표 {np.round(arm_px(fist), 2).tolist()})")
+    check_frames(masks, g, errs)
     # 3. 무기 모형
     models = os.path.join(out, "assets", NS, "models", "item")
     items = os.path.join(out, "assets", NS, "items")
     n_models = 0
-    for wid, kind in sorted(weapon_kinds().items()):
+    checked = set()
+    kinds = weapon_kinds()
+    for wid, kind in sorted(kinds.items()):
         want = expected_set(kind)
         if C.grip_set(kind) != want:
             errs.append(f"{wid}: _common.GRIP_OF 의 {kind} → {C.grip_set(kind)} (DECISIONS 기본안은 {want})")
@@ -632,6 +973,7 @@ def check(out, masks=None):
                 errs.append(f"{m}: 모형이나 display 가 없다")
                 continue
             check_display(m, disp, name, van, g, errs)
+            checked.add(m)
             n_models += 1
     # 시험 모형도 같은 검사
     for probe, p in PROBE.items():
@@ -642,15 +984,26 @@ def check(out, masks=None):
                 errs.append(f"{m}: 시험 모형이 없다")
                 continue
             check_display(m, disp, name, van, g, errs)
+            checked.add(m)
             n_models += 1
     check_probe_geometry(models, masks, g, errs)
+    # 9. 손 맥락 display 는 검사한 모형에만
+    for f in sorted(os.listdir(models)) if os.path.isdir(models) else []:
+        own = _load(os.path.join(models, f)).get("display", {}) if f.endswith(".json") else {}
+        if f.endswith(".json") and f[:-5] not in checked and any(c in own for c in HANDS):
+            errs.append(f"models/item/{f}: 바닐라와 견주지 않은 손 맥락 display {sorted(c for c in own if c in HANDS)} "
+                        "(손에 든 자세는 바닐라 그대로다: 무기 모형이면 weapon_kinds 에, 아니면 display 를 뺀다)")
+    # 6·7·8. 플러그인 껍데기, 아이템 정의 길, 모양
+    check_plugin(kinds, errs)
+    n_routes = check_routes(items, kinds, z, errs)
+    n_geo = check_geometry(models, kinds, errs)
     # 방패 시험 모형의 그림: items 아틀라스에 다른 이름으로 실었는가 (없으면 클라이언트가 "Missing textures" 로 보라·검정 칸을 그린다)
     atlas = os.path.join(out, "assets", "minecraft", "atlases", "items.json")
     srcs = _load(atlas).get("sources", []) if os.path.exists(atlas) else []
     if SHIELD_ATLAS["sources"][0] not in srcs:
         errs.append(f"assets/minecraft/atlases/items.json: 방패 시험 그림 소스 {SHIELD_ATLAS['sources'][0]} 가 없다")
     # 4. 무기 막기 모형 (<id>_guard) 없음 (시험 막기 도구 souls:test_guard 는 무기가 아니다), 아이템 정의의 감싸기
-    guards = {f"{NS}:item/{wid}_guard" for wid in weapon_kinds()} | {f"{NS}:item/{wid}_guard_m" for wid in weapon_kinds()}
+    guards = {f"{NS}:item/{wid}_guard" for wid in kinds} | {f"{NS}:item/{wid}_guard_m" for wid in kinds}
     for ref in sorted(guards):
         if os.path.exists(os.path.join(models, ref.split("/", 1)[1] + ".json")):
             errs.append(f"{ref}: 무기 막기 모형은 없앴다 (바닐라 칼 막기, SPEC 1.3)")
@@ -670,6 +1023,8 @@ def check(out, masks=None):
         if not ok:
             errs.append(f"items/{f}: 구르기 감싸기 (MARK_FLAG → HIDE_FLAG) 가 없다 (gripcheck 는 roll_figure 뒤에 부른다)")
     notes.append(f"무기·시험 모형 {n_models}개의 네 손 맥락을 바닐라 jar 값과 견줬다 (1e-3)")
+    notes.append(f"아이템 정의 {len(kinds) + len(PROBE)}개를 {n_routes}가지 상태로 풀었다, 모형 {n_geo}개의 쥐는 점·긴 축, "
+                 f"weapons.yml·ItemFactory.SPEAR_CLASSES 와 껍데기")
     return errs, notes
 
 
