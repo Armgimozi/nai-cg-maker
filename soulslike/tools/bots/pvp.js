@@ -116,7 +116,8 @@ L.run('pvp', async (sc) => {
   sc.check('on: melee with the club is a move hit with its attack rating (HIT_PVP move=light1, DEF from=player_skill)', mel && mel.kv.from === 'player_skill' &&
     L.num(mel.kv.raw) > 20 && hp1 && hp1.kv.move === 'light1' && Math.abs(L.num(hp1.kv.raw) - L.num(mel.kv.raw)) < 0.05 &&
     !b.tLines('DEF ', from).some((x) => /^player_(melee|vanilla)$/.test(x.kv.from)),
-    (mel ? mel.line : b.tLines('', from).map((x) => x.line).slice(0, 4).join(' | ') || '줄 없음') + ' | ' + (hp1 ? hp1.line : 'HIT_PVP 없음'))
+    (mel ? mel.line : b.tLines('', from).map((x) => x.line).slice(0, 4).join(' | ') || '줄 없음') + ' | ' + (hp1 ? hp1.line : 'HIT_PVP 없음 ' +
+      a.tLines('', fromA).map((x) => x.line).filter((l) => /MOVE|HIT/.test(l)).join(' | ')))
   // 근력이 PvP 근접 피해를 올린다 (공격력 = 74 × (1 + 근력 몫): 근력 10 → 81.4, 40 → 114.0, × 1.400. 모든 무기에 같은 몫)
   if (mel) {
     await a.cmd('/soulstest stat str 40', 'STAT ')

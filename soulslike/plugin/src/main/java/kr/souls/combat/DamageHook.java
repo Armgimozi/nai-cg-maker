@@ -95,8 +95,9 @@ public final class DamageHook implements Listener {
             if (Combat.inSkill()) {
                 // 플러그인 술·스킬, 동작 실행기의 근접 한 대 (M1 P1a), 시험 pvphit: 이미 HP 단위
                 from = "player_skill";
-            } else if (dc == DamageCause.ENTITY_ATTACK || dc == DamageCause.ENTITY_SWEEP_ATTACK) {
-                // 바닐라 근접 (InputRouter 가 늘 취소하므로 다른 플러그인이 넣은 것뿐): 바닐라 단위
+            } else if (direct == cause && (dc == DamageCause.ENTITY_ATTACK || dc == DamageCause.ENTITY_SWEEP_ATTACK)) {
+                // 바닐라 근접 (InputRouter 가 늘 취소하므로 다른 플러그인이 넣은 것뿐): 바닐라 단위. 때린 이가 몸소 친 것만 (잔류 구름의
+                // 즉시 피해도 원인이 사람이고 ENTITY_ATTACK 으로 올 수 있다: 그것은 아래 player_indirect)
                 from = "player_vanilla";
                 raw = raw * scale;
             } else {
