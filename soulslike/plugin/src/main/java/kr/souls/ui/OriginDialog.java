@@ -88,7 +88,7 @@ public final class OriginDialog {
         java.util.Set<String> main = mainStats(s);
         for (String id : StatBlock.IDS) {
             boolean m = main.contains(id);
-            b.append(Columns.right(String.valueOf(s.get(id)), Columns.STAT_COL, m ? Columns.MAIN_COLOR : Columns.VALUE_COLOR, m));
+            b.append(Columns.right(String.valueOf(s.get(id)), Columns.STAT_COL, m ? Columns.MAIN_COLOR : Columns.VALUE_COLOR, false));
         }
         b.append(Columns.pad(Columns.KIT_GAP));
         b.append(Lang.cell(p, "origin." + o.id() + ".kit")); // lang-dyn: origin.*.kit

@@ -27,8 +27,8 @@ public final class Columns {
     public static final TextColor VALUE_COLOR = TextColor.color(0xd6cbb0);
     /** 바뀔 값 (레벨 올리기 미리보기의 → 뒤): 바랜 금 */
     public static final TextColor NEXT_COLOR = TextColor.color(0xc9a65c);
-    /** 출신 줄에서 그 출신의 주 능력치 (굵게): 양피지 */
-    public static final TextColor MAIN_COLOR = TextColor.color(0xd1c3a0);
+    /** 출신 줄에서 그 출신의 주 능력치: 금빛. 굵게 쓰지 않는다 (바닐라 굵은 글씨는 1 칸 비켜 두 번 그려 숫자가 겹쳐 보였다, 2026-10-11) */
+    public static final TextColor MAIN_COLOR = TextColor.color(0xdcb468);
     /** 아직 적용되지 않는 값 (술법 전의 최대 마나·술법 위력), 소울이 모자란 "+": 흐린 갈색 */
     public static final TextColor DIM_COLOR = TextColor.color(0x6b5f4a);
 

@@ -105,7 +105,7 @@ public final class StatSheet {
         List<Cell> out = new ArrayList<>(6);
         for (String id : StatBlock.IDS) {
             String a = String.valueOf(base.get(id)), b = String.valueOf(target.get(id));
-            Component v = main.contains(id) ? Columns.right(a, LEFT_VALUE, Columns.MAIN_COLOR, true) : Columns.change(a, b, LEFT_VALUE);
+            Component v = main.contains(id) ? Columns.right(a, LEFT_VALUE, Columns.MAIN_COLOR, false) : Columns.change(a, b, LEFT_VALUE);
             out.add(new Cell("stat." + id + ".name", v));
         }
         return out;
