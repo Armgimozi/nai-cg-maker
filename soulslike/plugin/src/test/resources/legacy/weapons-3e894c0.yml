@@ -1,0 +1,221 @@
+# ─────────────────────────────────────────────────────────────
+#  무기·방패·활·촉매 (맛보기판 20개, DESIGN 9.1, 9.2, 3.12.4, 9.8, 12.5). 모형과 쥐는 법은 pack/weapons/SPEC.md.
+#  이름과 설명은 여기 쓰지 않는다: lang/ko.yml·en.yml 의 weapon.<id>.name (한 줄), weapon.<id>.lore (목록),
+#  설명 칸 둘째 줄은 weapon.class.<class>, 수치 줄은 weapon.stat.* (플러그인이 아래 값으로 채운다).
+#  /soulstest give <id|all> 이 아이템으로 만들어 준다 (시험 모드). 전투 동작 (약공격·강공격·무기 기술) 은 M1 에 붙인다.
+#
+#  class     분류 (lang weapon.class.<class>). 모형의 1인칭 자세도 이 분류를 따른다
+#  hand      main (주손) | off (왼손에 드는 방패·쳐내기 단검)
+#  use       guard (막기 성분, 막는 모형 <id>_guard) | block (방패 막기, <id>_block) | bow (당기기, 사용 시간에 따라 당긴 모형)
+#            | none (촉매: 술은 M5 에 붙인다)
+#  walk      막는 동안 (또는 당기는 동안) 걸음 배율 (2.3.9)
+#  attack    기본 물리 공격력 (+0, 3.7: 분류 값, 보스 무기는 ×1.25). 방패·촉매에는 없다
+#  scaling   보정 등급 (1.3판, 9.1): str 근력 (공격력, 3.7), dex 민첩 (그 무기의 공격 속도 몫, 3.6), int 지능 (촉매의 술 세기, 3.12.4).
+#            피해를 올리는 능력치는 근력 하나다. 등급 E D C B A S
+#  requires  필요 능력치 (근력·지능이 모자라면 공격력·술 세기 −40%, 민첩이 모자라면 공격 속도 ×0.85)
+#  weight    무게
+#  absorb    물리 흡수 % (방패), stability 안정성, parry 쳐내기 창 (틱, 0 이면 쳐내기 없음), fire 불 흡수 %
+# ─────────────────────────────────────────────────────────────
+
+redin_guard_sword:
+  class: straight_sword
+  hand: main
+  use: guard
+  walk: 0.55
+  attack: 62
+  scaling: {str: C, dex: D}
+  requires: {str: 10, dex: 10}
+  weight: 3.0
+
+volk_longsword:
+  class: straight_sword
+  hand: main
+  use: guard
+  walk: 0.55
+  attack: 62
+  scaling: {str: C, dex: C}
+  requires: {str: 10, dex: 10}
+  weight: 3.5
+
+alley_dagger:
+  class: dagger
+  hand: main
+  use: guard
+  walk: 0.55
+  attack: 48
+  scaling: {str: D, dex: A}
+  requires: {str: 5, dex: 9}
+  weight: 1.5
+
+gaoler_greatsword:
+  class: greatsword
+  hand: main
+  use: guard
+  walk: 0.55
+  attack: 92
+  scaling: {str: C, dex: E}
+  requires: {str: 16, dex: 10}
+  weight: 9.0
+
+levy_hatchet:
+  class: axe
+  hand: main
+  use: guard
+  walk: 0.55
+  attack: 70
+  scaling: {str: D, dex: D}
+  requires: {str: 12, dex: 8}
+  weight: 2.5
+
+sellsword_axe:
+  class: axe
+  hand: main
+  use: guard
+  walk: 0.55
+  attack: 70
+  scaling: {str: C, dex: E}
+  requires: {str: 12, dex: 8}
+  weight: 4.0
+
+gaoler_club:
+  class: hammer
+  hand: main
+  use: guard
+  walk: 0.55
+  attack: 74
+  scaling: {str: C, dex: E}
+  requires: {str: 10}
+  weight: 5.0
+
+penitent_mace:
+  class: hammer
+  hand: main
+  use: guard
+  walk: 0.55
+  attack: 74
+  scaling: {str: B, dex: E}
+  requires: {str: 14}
+  weight: 4.5
+
+mathes_bell_mace:
+  class: hammer
+  hand: main
+  use: guard
+  walk: 0.55
+  attack: 93
+  scaling: {str: B, dex: E}
+  requires: {str: 14}
+  weight: 5.5
+
+redin_spear:
+  class: spear
+  hand: main
+  use: guard
+  walk: 0.55
+  attack: 64
+  scaling: {str: D, dex: C}
+  requires: {str: 11, dex: 12}
+  weight: 4.5
+
+hrolf_halberd:
+  class: halberd
+  hand: main
+  use: guard
+  walk: 0.55
+  attack: 110
+  scaling: {str: C, dex: D}
+  requires: {str: 16, dex: 10}
+  weight: 6.5
+
+warden_halberd:
+  class: halberd
+  hand: main
+  use: guard
+  walk: 0.55
+  attack: 88
+  scaling: {str: B, dex: E}
+  requires: {str: 16, dex: 10}
+  weight: 7.0
+
+wall_shortbow:
+  class: bow
+  hand: main
+  use: bow
+  walk: 0.5
+  attack: 45
+  scaling: {str: D, dex: C}
+  requires: {str: 9, dex: 12}
+  weight: 2.0
+
+plank_shield:
+  class: small_shield
+  hand: off
+  use: block
+  walk: 0.55
+  absorb: 60
+  stability: 25
+  parry: 6
+  fire: 30
+  weight: 1.5
+
+pilgrim_buckler:
+  class: small_shield
+  hand: off
+  use: block
+  walk: 0.65
+  absorb: 70
+  stability: 30
+  parry: 7
+  fire: 35
+  weight: 1.5
+
+parrying_dagger:
+  class: parrying_dagger
+  hand: off
+  use: block
+  walk: 0.65
+  absorb: 40
+  stability: 15
+  parry: 8
+  fire: 20
+  weight: 0.5
+
+redin_guard_shield:
+  class: shield
+  hand: off
+  use: block
+  walk: 0.55
+  absorb: 100
+  stability: 52
+  parry: 5
+  fire: 45
+  weight: 4.0
+
+volk_greatshield:
+  class: greatshield
+  hand: off
+  use: block
+  walk: 0.45
+  absorb: 100
+  stability: 80
+  parry: 0
+  fire: 60
+  weight: 12.0
+
+kiln_pot:
+  class: catalyst_kiln
+  hand: main
+  use: none
+  walk: 0.45
+  scaling: {int: C, dex: D}
+  requires: {int: 12}
+  weight: 1.5
+
+pilgrim_handbell:
+  class: catalyst_bell
+  hand: main
+  use: none
+  walk: 0.5
+  scaling: {int: D, str: D, dex: D}
+  requires: {int: 10, str: 8}
+  weight: 2.0

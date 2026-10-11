@@ -1,0 +1,108 @@
+// 스태미나 (3.2, 10.2): 달리면 줄고 (틱당 0.6, 그동안 회복 없음), 멈추면 12틱 뒤부터 틱당 2.2 씩 찬다.
+// 0 이 되면 탈진: 허기 6 (달리기 막힘), 회복 지연 24틱, 25 까지 차면 허기 20. 왼쪽 위 스태미나 막대 (HUD 보스 막대의
+// 그림 글자, 10.2) 가 스태미나를 따른다. 경험치 레벨은 늘 0.
+'use strict'
+const L = require('./lib')
+
+// 두 시험 줄 사이의 틱당 변화량
+const rate = (a, b) => (L.num(b.kv.cur) - L.num(a.kv.cur)) / Math.max(1, L.num(b.kv.t) - L.num(a.kv.t))
+
+// HUD 보스 막대의 스태미나 막대: 채움 / 길이 (막대가 없으면 null)
+function hudStamina (b, glyphs) {
+  const hb = b.hudBar()
+  const st = hb && L.decodeHud(hb.parts, glyphs).bars.st
+  return st ? { fill: st.fill, len: st.fill + st.trail + st.empty, ratio: st.fill / Math.max(1, st.fill + st.trail + st.empty) } : null
+}
+
+L.run('stamina', async (sc) => {
+  const glyphs = L.loadGlyphs()
+  const b = await L.connect(sc)
+  await L.sleep(1500)
+  await b.cmd('/souls tp room', null, 1500)
+  await b.cmd('/soulstest heal', 'HEAL')
+  await L.sleep(800)
+
+  const s0 = await b.cmd('/soulstest stamina', 'STAMINA')
+  if (!sc.checkCmd('stamina readout', s0, (r) => r.kv.cur !== undefined)) return
+  sc.check('full at rest', L.num(s0.kv.cur) === L.num(s0.kv.max), s0.line)
+  sc.check('max 100 at endurance 10 (3.2)', L.num(s0.kv.max) === 100, 'max=' + s0.kv.max)
+
+  // ── 달리기 ── 시험 방 남쪽 벽 앞에서 북쪽(-z)으로 22칸쯤 달릴 수 있다
+  await b.bot.look(0, 0, true) // mineflayer 시선 0 = 북쪽
+  b.sprint(true)
+  await L.sleep(700)
+  const s1 = await b.cmd('/soulstest stamina', 'STAMINA')
+  await L.sleep(700)
+  const s2 = await b.cmd('/soulstest stamina', 'STAMINA')
+  const barRun = hudStamina(b, glyphs)
+  b.sprint(false)
+  sc.check('server sees sprinting', s1.kv && s1.kv.sprinting === 'true', s1.line)
+  sc.check('sprint drains stamina', s2.kv && L.num(s2.kv.cur) < L.num(s0.kv.cur) - 5, s2.line)
+  const drain = s1.kv && s2.kv ? -rate(s1, s2) : NaN
+  sc.check('drain ~0.6 per tick, no regen while sprinting', Math.abs(drain - 0.6) <= 0.2, 'drain=' + drain.toFixed(3) + '/틱')
+  sc.check('HUD stamina bar follows stamina while sprinting', barRun && Math.abs(barRun.ratio - L.num(s2.kv.ratio)) < 0.06 && barRun.ratio < 0.97,
+    barRun ? `막대 ${barRun.fill}/${barRun.len} = ${barRun.ratio.toFixed(3)}, ratio=${s2.kv.ratio}` : 'HUD 보스 막대 없음')
+  sc.check('xp level stays 0 while sprinting', b.p.xp.every((x) => x.level === 0))
+
+  // 멈춘 뒤 첫 시험 줄: 회복은 멈춘 틱 + 12 부터 (regenFrom)
+  const stop = await b.cmd('/soulstest stamina', 'STAMINA')
+  if (stop.kv) {
+    const left = L.num(stop.kv.regenFrom) - L.num(stop.kv.t)
+    sc.check('regen held ~12 ticks after sprint stops', left >= 8 && left <= 13, `regenFrom-t=${left}`)
+  }
+
+  // ── 회복 속도 ── 30 으로 내려 두고 잰다 (set 은 지금부터 regen-delay 동안 회복을 멈춘다)
+  await L.sleep(300)
+  const a = await b.cmd('/soulstest stamina set 30', 'STAMINA')
+  await L.sleep(250)
+  const d1 = await b.cmd('/soulstest stamina', 'STAMINA')
+  await L.sleep(550)
+  const r1 = await b.cmd('/soulstest stamina', 'STAMINA')
+  await L.sleep(250)
+  const r2 = await b.cmd('/soulstest stamina', 'STAMINA')
+  if (a.kv && d1.kv && r1.kv && r2.kv) {
+    const dt = L.num(d1.kv.t) - L.num(a.kv.t)
+    sc.check('no regen during the delay', dt >= 12 || L.num(d1.kv.cur) === 30, `+${dt}틱 cur=${d1.kv.cur}`)
+    const rr = rate(r1, r2)
+    const capped = L.num(r2.kv.cur) >= L.num(r2.kv.max)
+    sc.check('regen ~2.2 per tick after delay', capped ? L.num(r1.kv.cur) > 30 : Math.abs(rr - 2.2) <= 0.3,
+      `${r1.kv.cur}@${r1.kv.t} → ${r2.kv.cur}@${r2.kv.t} (${rr.toFixed(2)}/틱)`)
+  } else sc.check('regen readouts', false, '시험 줄이 빠졌다')
+
+  // ── 탈진 ── 10 에서 달려 0 을 만든다 (시험 명령으로 0 을 넣는 대신 실제 길로)
+  await L.sleep(1200)
+  await b.cmd('/souls tp room', null, 1500)
+  await b.cmd('/soulstest heal', 'HEAL')
+  await L.sleep(600)
+  await b.bot.look(0, 0, true)
+  const s10 = await b.cmd('/soulstest stamina set 10', 'STAMINA')
+  b.sprint(true)
+  await L.sleep(1300) // 0.6/틱이면 17틱에 바닥
+  const z = await b.cmd('/soulstest stamina', 'STAMINA')
+  sc.checkCmd('sprinting to 0 exhausts', z, (r) => L.num(r.kv.cur) === 0 && r.kv.exhausted === 'true', z.line)
+  await L.sleep(300)
+  sc.check('exhausted -> food 6 (client stops sprinting)', b.food === 6, 'food=' + b.food)
+  const bar0 = hudStamina(b, glyphs)
+  sc.check('HUD stamina bar empty at 0', bar0 && bar0.fill === 0, bar0 ? `막대 ${bar0.fill}/${bar0.len}` : 'HUD 보스 막대 없음')
+  b.sprint(false)
+  await L.sleep(150)
+  const ez = await b.cmd('/soulstest stamina', 'STAMINA')
+  if (ez.kv && s10.kv) {
+    // 서버는 0 이 된 틱에 달리기를 내린다 (그 틱이 행동이 끝난 틱). 10 / 0.6 = 17 틱째에 바닥
+    const zeroTick = L.num(s10.kv.t) + Math.ceil(10 / 0.6)
+    const delay = L.num(ez.kv.regenFrom) - zeroTick
+    sc.check('exhausted regen delay ~24 ticks', delay >= 22 && delay <= 28, `regenFrom-바닥=${delay} (${ez.line})`)
+  }
+  await L.sleep(700)
+  const e1 = await b.cmd('/soulstest stamina', 'STAMINA')
+  if (e1.kv && ez.kv) {
+    const held = L.num(e1.kv.t) < L.num(ez.kv.regenFrom)
+    sc.check('no regen while exhausted delay runs', !held || L.num(e1.kv.cur) === 0, e1.line)
+    sc.check('still exhausted below 25', L.num(e1.kv.cur) >= 25 || e1.kv.exhausted === 'true', e1.line)
+  }
+  await L.sleep(2000)
+  const e2 = await b.cmd('/soulstest stamina', 'STAMINA')
+  sc.check('recovers to >= 25 and leaves exhaustion', e2.kv && L.num(e2.kv.cur) >= 25 && e2.kv.exhausted === 'false', e2.line)
+  await L.sleep(200)
+  sc.check('food back to 20 after exhaustion', b.food === 20, 'food=' + b.food)
+})

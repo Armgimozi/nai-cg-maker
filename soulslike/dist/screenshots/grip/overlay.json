@@ -1,0 +1,2656 @@
+[
+ {
+  "scene": "fp_bow_draw075",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 5059,
+  "unexplained": [
+   5059,
+   3277,
+   2970,
+   2880
+  ],
+  "item_px": 96033,
+  "shape_xor": 5882,
+  "bg_shift": [
+   0,
+   -1
+  ],
+  "bg_px": 1,
+  "bg_area": 12307
+ },
+ {
+  "scene": "fp_bow_draw130",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 2348,
+  "unexplained": [
+   2348,
+   2305,
+   2294,
+   2281
+  ],
+  "item_px": 93921,
+  "shape_xor": 1615,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 10446
+ },
+ {
+  "scene": "fp_bow_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 396,
+  "unexplained": [
+   396,
+   392,
+   386,
+   382
+  ],
+  "item_px": 41913,
+  "shape_xor": 2410,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 5763
+ },
+ {
+  "scene": "fp_bow_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 171,
+  "unexplained": [
+   171,
+   167,
+   161,
+   157
+  ],
+  "item_px": 31685,
+  "shape_xor": 840,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 4666
+ },
+ {
+  "scene": "fp_mace_block",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 692,
+  "unexplained": [
+   692,
+   578,
+   498,
+   443
+  ],
+  "item_px": 77586,
+  "shape_xor": 883,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 11751
+ },
+ {
+  "scene": "fp_mace_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 761,
+  "unexplained": [
+   761,
+   759,
+   753,
+   743
+  ],
+  "item_px": 52757,
+  "shape_xor": 479,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 5125
+ },
+ {
+  "scene": "fp_mace_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 920,
+  "unexplained": [
+   920,
+   918,
+   917,
+   913
+  ],
+  "item_px": 45732,
+  "shape_xor": 373,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 4756
+ },
+ {
+  "scene": "fp_shield_block",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 0,
+  "unexplained": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "item_px": 109516,
+  "shape_xor": 27,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 13090
+ },
+ {
+  "scene": "fp_shield_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 0,
+  "unexplained": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "item_px": 56430,
+  "shape_xor": 29,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 5153
+ },
+ {
+  "scene": "fp_shield_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 0,
+  "unexplained": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "item_px": 48340,
+  "shape_xor": 18,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 4320
+ },
+ {
+  "scene": "fp_spear_block",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 3249,
+  "unexplained": [
+   3249,
+   2734,
+   2252,
+   1795
+  ],
+  "item_px": 27702,
+  "shape_xor": 89,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 3711
+ },
+ {
+  "scene": "fp_spear_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 2511,
+  "unexplained": [
+   2511,
+   2263,
+   2010,
+   1695
+  ],
+  "item_px": 48899,
+  "shape_xor": 988,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 6826
+ },
+ {
+  "scene": "fp_spear_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 1976,
+  "unexplained": [
+   1976,
+   1741,
+   1500,
+   1196
+  ],
+  "item_px": 39030,
+  "shape_xor": 1003,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 6929
+ },
+ {
+  "scene": "fp_sword_block",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 131,
+  "unexplained": [
+   131,
+   111,
+   91,
+   79
+  ],
+  "item_px": 38687,
+  "shape_xor": 35,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 6497
+ },
+ {
+  "scene": "fp_sword_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 163,
+  "unexplained": [
+   163,
+   161,
+   157,
+   151
+  ],
+  "item_px": 34342,
+  "shape_xor": 2239,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 3992
+ },
+ {
+  "scene": "fp_sword_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 34,
+  "unexplained": [
+   34,
+   34,
+   34,
+   34
+  ],
+  "item_px": 33519,
+  "shape_xor": 113,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 2745
+ },
+ {
+  "scene": "mq_back_bow_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 880,
+  "unexplained": [
+   880,
+   850,
+   807,
+   757
+  ],
+  "item_px": 1773,
+  "shape_xor": 120,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 2030
+ },
+ {
+  "scene": "mq_back_bow_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 883,
+  "unexplained": [
+   883,
+   852,
+   809,
+   763
+  ],
+  "item_px": 1773,
+  "shape_xor": 22,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 2008
+ },
+ {
+  "scene": "mq_back_bowpull0_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 1248,
+  "unexplained": [
+   1248,
+   1191,
+   1124,
+   1049
+  ],
+  "item_px": 2378,
+  "shape_xor": 49,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 2176
+ },
+ {
+  "scene": "mq_back_bowpull1_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 2,
+  "colour": 1277,
+  "unexplained": [
+   1277,
+   1289,
+   1237,
+   1176
+  ],
+  "item_px": 2394,
+  "shape_xor": 30,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 2280
+ },
+ {
+  "scene": "mq_back_bowpull2_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 1158,
+  "unexplained": [
+   1158,
+   1146,
+   1130,
+   1112
+  ],
+  "item_px": 2231,
+  "shape_xor": 1,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 2358
+ },
+ {
+  "scene": "mq_back_mace_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 388,
+  "unexplained": [
+   388,
+   341,
+   286,
+   228
+  ],
+  "item_px": 650,
+  "shape_xor": 31,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 1785
+ },
+ {
+  "scene": "mq_back_mace_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 391,
+  "unexplained": [
+   391,
+   341,
+   285,
+   226
+  ],
+  "item_px": 862,
+  "shape_xor": 264,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 3392
+ },
+ {
+  "scene": "mq_back_shield_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 0,
+  "colour": 0,
+  "unexplained": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "item_px": 8619,
+  "shape_xor": 0,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 5377
+ },
+ {
+  "scene": "mq_back_shield_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 0,
+  "unexplained": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "item_px": 8411,
+  "shape_xor": 1,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 5510
+ },
+ {
+  "scene": "mq_back_shieldblock_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 0,
+  "unexplained": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "item_px": 18011,
+  "shape_xor": 2,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 4679
+ },
+ {
+  "scene": "mq_back_spear_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 2,
+  "colour": 1132,
+  "unexplained": [
+   1132,
+   1111,
+   1062,
+   982
+  ],
+  "item_px": 2086,
+  "shape_xor": 31,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 2863,
+  "tag_control": {
+   "what": "flint[item_model=souls:test_grip_spear] vs vanilla iron_spear (no #minecraft:spears tag)",
+   "px": 4,
+   "shift": [
+    1,
+    -4
+   ],
+   "sil": 40,
+   "shape_xor": 5268,
+   "item_px": 6258,
+   "unexplained": [
+    2589,
+    2515,
+    2432,
+    2253
+   ]
+  }
+ },
+ {
+  "scene": "mq_back_spear_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 1114,
+  "unexplained": [
+   1114,
+   1095,
+   1059,
+   990
+  ],
+  "item_px": 2047,
+  "shape_xor": 103,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 2845,
+  "tag_control": {
+   "what": "flint[item_model=souls:test_grip_spear] vs vanilla iron_spear (no #minecraft:spears tag)",
+   "px": 4,
+   "shift": [
+    0,
+    4
+   ],
+   "sil": 40,
+   "shape_xor": 5585,
+   "item_px": 6468,
+   "unexplained": [
+    2564,
+    2483,
+    2395,
+    2219
+   ]
+  }
+ },
+ {
+  "scene": "mq_back_sword_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 0,
+  "colour": 253,
+  "unexplained": [
+   253,
+   247,
+   239,
+   234
+  ],
+  "item_px": 421,
+  "shape_xor": 0,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 3038
+ },
+ {
+  "scene": "mq_back_sword_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 0,
+  "colour": 254,
+  "unexplained": [
+   254,
+   249,
+   242,
+   236
+  ],
+  "item_px": 314,
+  "shape_xor": 0,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 1249
+ },
+ {
+  "scene": "mq_front_bow_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 1024,
+  "unexplained": [
+   1024,
+   1024,
+   1024,
+   1024
+  ],
+  "item_px": 1769,
+  "shape_xor": 2,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 1174
+ },
+ {
+  "scene": "mq_front_bow_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 1042,
+  "unexplained": [
+   1042,
+   942,
+   844,
+   749
+  ],
+  "item_px": 1793,
+  "shape_xor": 2,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 1227
+ },
+ {
+  "scene": "mq_front_bowpull0_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 1823,
+  "unexplained": [
+   1823,
+   1818,
+   1809,
+   1802
+  ],
+  "item_px": 2766,
+  "shape_xor": 5,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 1894
+ },
+ {
+  "scene": "mq_front_bowpull1_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 1607,
+  "unexplained": [
+   1607,
+   1600,
+   1585,
+   1569
+  ],
+  "item_px": 2617,
+  "shape_xor": 12,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 1777
+ },
+ {
+  "scene": "mq_front_bowpull2_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 2,
+  "colour": 1719,
+  "unexplained": [
+   1719,
+   1692,
+   1660,
+   1624
+  ],
+  "item_px": 2464,
+  "shape_xor": 51,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 1661
+ },
+ {
+  "scene": "mq_front_mace_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 2301,
+  "unexplained": [
+   2301,
+   2197,
+   2079,
+   1884
+  ],
+  "item_px": 6000,
+  "shape_xor": 490,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 4250
+ },
+ {
+  "scene": "mq_front_mace_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 2330,
+  "unexplained": [
+   2330,
+   2272,
+   2134,
+   1945
+  ],
+  "item_px": 5880,
+  "shape_xor": 337,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 4178
+ },
+ {
+  "scene": "mq_front_shield_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 0,
+  "colour": 0,
+  "unexplained": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "item_px": 11683,
+  "shape_xor": 0,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 5269
+ },
+ {
+  "scene": "mq_front_shield_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 0,
+  "colour": 0,
+  "unexplained": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "item_px": 11593,
+  "shape_xor": 0,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 5114
+ },
+ {
+  "scene": "mq_front_shieldblock_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 0,
+  "unexplained": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "item_px": 26132,
+  "shape_xor": 2,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 5204
+ },
+ {
+  "scene": "mq_front_spear_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 5119,
+  "unexplained": [
+   5119,
+   5042,
+   4910,
+   4731
+  ],
+  "item_px": 5327,
+  "shape_xor": 504,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 4243,
+  "tag_control": {
+   "what": "flint[item_model=souls:test_grip_spear] vs vanilla iron_spear (no #minecraft:spears tag)",
+   "px": 4,
+   "shift": [
+    4,
+    -4
+   ],
+   "sil": 40,
+   "shape_xor": 13385,
+   "item_px": 11912,
+   "unexplained": [
+    2804,
+    2787,
+    2756,
+    2730
+   ]
+  }
+ },
+ {
+  "scene": "mq_front_spear_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 4379,
+  "unexplained": [
+   4379,
+   4277,
+   4159,
+   4025
+  ],
+  "item_px": 5082,
+  "shape_xor": 200,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 4136,
+  "tag_control": {
+   "what": "flint[item_model=souls:test_grip_spear] vs vanilla iron_spear (no #minecraft:spears tag)",
+   "px": 4,
+   "shift": [
+    4,
+    -1
+   ],
+   "sil": 40,
+   "shape_xor": 13129,
+   "item_px": 11817,
+   "unexplained": [
+    2749,
+    2741,
+    2725,
+    2711
+   ]
+  }
+ },
+ {
+  "scene": "mq_front_sword_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 464,
+  "unexplained": [
+   464,
+   414,
+   370,
+   332
+  ],
+  "item_px": 3817,
+  "shape_xor": 232,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 3660
+ },
+ {
+  "scene": "mq_front_sword_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 514,
+  "unexplained": [
+   514,
+   462,
+   412,
+   367
+  ],
+  "item_px": 3819,
+  "shape_xor": 189,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 3396
+ },
+ {
+  "scene": "mq_left_bow_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 361,
+  "unexplained": [
+   361,
+   242,
+   223,
+   192
+  ],
+  "item_px": 4141,
+  "shape_xor": 50,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 6183
+ },
+ {
+  "scene": "mq_left_bow_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 585,
+  "unexplained": [
+   585,
+   304,
+   171,
+   70
+  ],
+  "item_px": 8205,
+  "shape_xor": 68,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 7506
+ },
+ {
+  "scene": "mq_left_bowpull0_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 549,
+  "unexplained": [
+   549,
+   392,
+   373,
+   342
+  ],
+  "item_px": 4856,
+  "shape_xor": 72,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 6627
+ },
+ {
+  "scene": "mq_left_bowpull1_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 534,
+  "unexplained": [
+   534,
+   406,
+   365,
+   326
+  ],
+  "item_px": 4807,
+  "shape_xor": 60,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 6309
+ },
+ {
+  "scene": "mq_left_bowpull2_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 426,
+  "unexplained": [
+   426,
+   316,
+   266,
+   233
+  ],
+  "item_px": 4510,
+  "shape_xor": 80,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 5952
+ },
+ {
+  "scene": "mq_left_mace_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 304,
+  "unexplained": [
+   304,
+   272,
+   218,
+   169
+  ],
+  "item_px": 7180,
+  "shape_xor": 48,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 5956
+ },
+ {
+  "scene": "mq_left_mace_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 499,
+  "unexplained": [
+   499,
+   488,
+   480,
+   469
+  ],
+  "item_px": 14897,
+  "shape_xor": 47,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 8486
+ },
+ {
+  "scene": "mq_left_shield_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 0,
+  "colour": 0,
+  "unexplained": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "item_px": 15175,
+  "shape_xor": 0,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 7951
+ },
+ {
+  "scene": "mq_left_shield_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 0,
+  "colour": 0,
+  "unexplained": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "item_px": 57051,
+  "shape_xor": 0,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 10835
+ },
+ {
+  "scene": "mq_left_shieldblock_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 0,
+  "unexplained": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "item_px": 15015,
+  "shape_xor": 6,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 7631
+ },
+ {
+  "scene": "mq_left_spear_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 265,
+  "unexplained": [
+   265,
+   261,
+   252,
+   233
+  ],
+  "item_px": 7517,
+  "shape_xor": 140,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 7911,
+  "tag_control": {
+   "what": "flint[item_model=souls:test_grip_spear] vs vanilla iron_spear (no #minecraft:spears tag)",
+   "px": 2,
+   "shift": [
+    -2,
+    0
+   ],
+   "sil": 40,
+   "shape_xor": 17063,
+   "item_px": 9766,
+   "unexplained": [
+    373,
+    371,
+    370,
+    366
+   ]
+  }
+ },
+ {
+  "scene": "mq_left_spear_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 351,
+  "unexplained": [
+   351,
+   350,
+   350,
+   350
+  ],
+  "item_px": 13632,
+  "shape_xor": 121,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 9702,
+  "tag_control": {
+   "what": "flint[item_model=souls:test_grip_spear] vs vanilla iron_spear (no #minecraft:spears tag)",
+   "px": 4,
+   "shift": [
+    -4,
+    -4
+   ],
+   "sil": 40,
+   "shape_xor": 33866,
+   "item_px": 23208,
+   "unexplained": [
+    2043,
+    2012,
+    1962,
+    1930
+   ]
+  }
+ },
+ {
+  "scene": "mq_left_sword_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 2,
+  "colour": 431,
+  "unexplained": [
+   431,
+   256,
+   115,
+   102
+  ],
+  "item_px": 4955,
+  "shape_xor": 14,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 6714
+ },
+ {
+  "scene": "mq_left_sword_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 558,
+  "unexplained": [
+   558,
+   309,
+   122,
+   46
+  ],
+  "item_px": 8405,
+  "shape_xor": 5,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 7895
+ },
+ {
+  "scene": "mq_right_bow_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 618,
+  "unexplained": [
+   618,
+   330,
+   170,
+   71
+  ],
+  "item_px": 8331,
+  "shape_xor": 186,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 7410
+ },
+ {
+  "scene": "mq_right_bow_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 326,
+  "unexplained": [
+   326,
+   222,
+   198,
+   177
+  ],
+  "item_px": 4095,
+  "shape_xor": 47,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 6046
+ },
+ {
+  "scene": "mq_right_bowpull0_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 708,
+  "unexplained": [
+   708,
+   452,
+   279,
+   140
+  ],
+  "item_px": 9214,
+  "shape_xor": 554,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 7981
+ },
+ {
+  "scene": "mq_right_bowpull1_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 628,
+  "unexplained": [
+   628,
+   392,
+   258,
+   142
+  ],
+  "item_px": 9100,
+  "shape_xor": 226,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 7602
+ },
+ {
+  "scene": "mq_right_bowpull2_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 533,
+  "unexplained": [
+   533,
+   357,
+   217,
+   115
+  ],
+  "item_px": 8671,
+  "shape_xor": 622,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 8515
+ },
+ {
+  "scene": "mq_right_mace_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 2,
+  "colour": 503,
+  "unexplained": [
+   503,
+   485,
+   459,
+   423
+  ],
+  "item_px": 14737,
+  "shape_xor": 35,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 8543
+ },
+ {
+  "scene": "mq_right_mace_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 290,
+  "unexplained": [
+   290,
+   264,
+   231,
+   178
+  ],
+  "item_px": 7092,
+  "shape_xor": 51,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 5990
+ },
+ {
+  "scene": "mq_right_shield_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 0,
+  "colour": 0,
+  "unexplained": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "item_px": 57009,
+  "shape_xor": 0,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 10247
+ },
+ {
+  "scene": "mq_right_shield_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 0,
+  "colour": 0,
+  "unexplained": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "item_px": 15359,
+  "shape_xor": 0,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 7702
+ },
+ {
+  "scene": "mq_right_shieldblock_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 1,
+  "colour": 0,
+  "unexplained": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "item_px": 11436,
+  "shape_xor": 2,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 5217
+ },
+ {
+  "scene": "mq_right_spear_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 941,
+  "unexplained": [
+   941,
+   934,
+   921,
+   900
+  ],
+  "item_px": 13824,
+  "shape_xor": 175,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 10151,
+  "tag_control": {
+   "what": "flint[item_model=souls:test_grip_spear] vs vanilla iron_spear (no #minecraft:spears tag)",
+   "px": 4,
+   "shift": [
+    -4,
+    4
+   ],
+   "sil": 40,
+   "shape_xor": 34105,
+   "item_px": 23251,
+   "unexplained": [
+    2042,
+    2004,
+    1942,
+    1908
+   ]
+  }
+ },
+ {
+  "scene": "mq_right_spear_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 103,
+  "unexplained": [
+   103,
+   96,
+   89,
+   86
+  ],
+  "item_px": 7499,
+  "shape_xor": 90,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 7463,
+  "tag_control": {
+   "what": "flint[item_model=souls:test_grip_spear] vs vanilla iron_spear (no #minecraft:spears tag)",
+   "px": 4,
+   "shift": [
+    -4,
+    -1
+   ],
+   "sil": 40,
+   "shape_xor": 17173,
+   "item_px": 9896,
+   "unexplained": [
+    367,
+    364,
+    360,
+    357
+   ]
+  }
+ },
+ {
+  "scene": "mq_right_sword_main",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 555,
+  "unexplained": [
+   555,
+   271,
+   90,
+   8
+  ],
+  "item_px": 8353,
+  "shape_xor": 520,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 8189
+ },
+ {
+  "scene": "mq_right_sword_off",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 2,
+  "colour": 433,
+  "unexplained": [
+   433,
+   257,
+   119,
+   98
+  ],
+  "item_px": 4957,
+  "shape_xor": 14,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 6440
+ },
+ {
+  "scene": "tp_back_bow",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 2,
+  "colour": 406,
+  "unexplained": [
+   406,
+   309,
+   270,
+   215
+  ],
+  "item_px": 488,
+  "shape_xor": 65,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 2893,
+  "control": {
+   "vanilla_vs_vanilla_px": 1,
+   "vanilla_vs_vanilla_shift": [
+    0,
+    -1
+   ],
+   "vanilla_vs_vanilla_colour": 63,
+   "probe_vs_next_vanilla_px": 1,
+   "probe_vs_next_vanilla_shift": [
+    0,
+    1
+   ],
+   "probe_vs_next_vanilla_colour": 364
+  }
+ },
+ {
+  "scene": "tp_back_mace",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 261,
+  "unexplained": [
+   261,
+   117,
+   85,
+   58
+  ],
+  "item_px": 629,
+  "shape_xor": 254,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 5516,
+  "control": {
+   "vanilla_vs_vanilla_px": 1,
+   "vanilla_vs_vanilla_shift": [
+    0,
+    1
+   ],
+   "vanilla_vs_vanilla_colour": 128,
+   "probe_vs_next_vanilla_px": 1,
+   "probe_vs_next_vanilla_shift": [
+    0,
+    -1
+   ],
+   "probe_vs_next_vanilla_colour": 286
+  }
+ },
+ {
+  "scene": "tp_back_shield_block",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 572,
+  "unexplained": [
+   572,
+   200,
+   78,
+   40
+  ],
+  "item_px": 2617,
+  "shape_xor": 771,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 6259,
+  "control": {
+   "vanilla_vs_vanilla_px": 3,
+   "vanilla_vs_vanilla_shift": [
+    0,
+    -3
+   ],
+   "vanilla_vs_vanilla_colour": 895,
+   "probe_vs_next_vanilla_px": 0,
+   "probe_vs_next_vanilla_shift": [
+    0,
+    0
+   ],
+   "probe_vs_next_vanilla_colour": 585
+  }
+ },
+ {
+  "scene": "tp_back_shield",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 2,
+  "colour": 0,
+  "unexplained": [
+   0,
+   0,
+   0,
+   0
+  ],
+  "item_px": 3765,
+  "shape_xor": 104,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 4457,
+  "control": {
+   "vanilla_vs_vanilla_px": 0,
+   "vanilla_vs_vanilla_shift": [
+    0,
+    0
+   ],
+   "vanilla_vs_vanilla_colour": 233,
+   "probe_vs_next_vanilla_px": 0,
+   "probe_vs_next_vanilla_shift": [
+    0,
+    0
+   ],
+   "probe_vs_next_vanilla_colour": 145
+  }
+ },
+ {
+  "scene": "tp_back_spear_block",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 433,
+  "unexplained": [
+   433,
+   261,
+   180,
+   120
+  ],
+  "item_px": 1247,
+  "shape_xor": 198,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 5707,
+  "control": {
+   "vanilla_vs_vanilla_px": 4,
+   "vanilla_vs_vanilla_shift": [
+    1,
+    -4
+   ],
+   "vanilla_vs_vanilla_colour": 506,
+   "probe_vs_next_vanilla_px": 3,
+   "probe_vs_next_vanilla_shift": [
+    0,
+    3
+   ],
+   "probe_vs_next_vanilla_colour": 949
+  }
+ },
+ {
+  "scene": "tp_back_spear",
+  "px": 1,
+  "shift": [
+   0,
+   1
+  ],
+  "sil": 3,
+  "colour": 633,
+  "unexplained": [
+   811,
+   501,
+   430,
+   375
+  ],
+  "item_px": 862,
+  "shape_xor": 288,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 3633,
+  "tag_control": {
+   "what": "flint[item_model=souls:test_grip_spear] vs vanilla iron_spear (no #minecraft:spears tag)",
+   "px": 4,
+   "shift": [
+    -1,
+    4
+   ],
+   "sil": 40,
+   "shape_xor": 3555,
+   "item_px": 3171,
+   "unexplained": [
+    589,
+    550,
+    522,
+    484
+   ]
+  },
+  "control": {
+   "vanilla_vs_vanilla_px": 2,
+   "vanilla_vs_vanilla_shift": [
+    0,
+    2
+   ],
+   "vanilla_vs_vanilla_colour": 351,
+   "probe_vs_next_vanilla_px": 1,
+   "probe_vs_next_vanilla_shift": [
+    0,
+    -1
+   ],
+   "probe_vs_next_vanilla_colour": 757
+  }
+ },
+ {
+  "scene": "tp_back_sword_block",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 84,
+  "unexplained": [
+   84,
+   44,
+   27,
+   6
+  ],
+  "item_px": 176,
+  "shape_xor": 49,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 2784,
+  "control": {
+   "vanilla_vs_vanilla_px": 0,
+   "vanilla_vs_vanilla_shift": [
+    0,
+    0
+   ],
+   "vanilla_vs_vanilla_colour": 19,
+   "probe_vs_next_vanilla_px": 0,
+   "probe_vs_next_vanilla_shift": [
+    0,
+    0
+   ],
+   "probe_vs_next_vanilla_colour": 68
+  }
+ },
+ {
+  "scene": "tp_back_sword",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 155,
+  "unexplained": [
+   155,
+   118,
+   108,
+   106
+  ],
+  "item_px": 299,
+  "shape_xor": 142,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 2617,
+  "control": {
+   "vanilla_vs_vanilla_px": 1,
+   "vanilla_vs_vanilla_shift": [
+    0,
+    -1
+   ],
+   "vanilla_vs_vanilla_colour": 84,
+   "probe_vs_next_vanilla_px": 1,
+   "probe_vs_next_vanilla_shift": [
+    0,
+    1
+   ],
+   "probe_vs_next_vanilla_colour": 175
+  }
+ },
+ {
+  "scene": "tp_front_bow_draw075",
+  "px": 1,
+  "shift": [
+   1,
+   0
+  ],
+  "sil": 3,
+  "colour": 2772,
+  "unexplained": [
+   5158,
+   2338,
+   1932,
+   1471
+  ],
+  "item_px": 9755,
+  "shape_xor": 8837,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 8291,
+  "control": {
+   "vanilla_vs_vanilla_px": 0,
+   "vanilla_vs_vanilla_shift": [
+    0,
+    0
+   ],
+   "vanilla_vs_vanilla_colour": 5660,
+   "probe_vs_next_vanilla_px": 1,
+   "probe_vs_next_vanilla_shift": [
+    1,
+    0
+   ],
+   "probe_vs_next_vanilla_colour": 3037
+  }
+ },
+ {
+  "scene": "tp_front_bow_draw130",
+  "px": 2,
+  "shift": [
+   2,
+   0
+  ],
+  "sil": 3,
+  "colour": 2151,
+  "unexplained": [
+   2152,
+   1861,
+   1499,
+   1192
+  ],
+  "item_px": 1707,
+  "shape_xor": 4570,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 4189,
+  "control": {
+   "vanilla_vs_vanilla_px": 4,
+   "vanilla_vs_vanilla_shift": [
+    -4,
+    1
+   ],
+   "vanilla_vs_vanilla_colour": 1634,
+   "probe_vs_next_vanilla_px": 3,
+   "probe_vs_next_vanilla_shift": [
+    -3,
+    0
+   ],
+   "probe_vs_next_vanilla_colour": 3266
+  }
+ },
+ {
+  "scene": "tp_front_bow",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 593,
+  "unexplained": [
+   593,
+   563,
+   551,
+   510
+  ],
+  "item_px": 1189,
+  "shape_xor": 115,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 2182,
+  "control": {
+   "vanilla_vs_vanilla_px": 1,
+   "vanilla_vs_vanilla_shift": [
+    -1,
+    1
+   ],
+   "vanilla_vs_vanilla_colour": 249,
+   "probe_vs_next_vanilla_px": 1,
+   "probe_vs_next_vanilla_shift": [
+    1,
+    -1
+   ],
+   "probe_vs_next_vanilla_colour": 802
+  }
+ },
+ {
+  "scene": "tp_front_mace",
+  "px": 1,
+  "shift": [
+   1,
+   0
+  ],
+  "sil": 3,
+  "colour": 804,
+  "unexplained": [
+   846,
+   521,
+   444,
+   364
+  ],
+  "item_px": 3128,
+  "shape_xor": 562,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 1519,
+  "control": {
+   "vanilla_vs_vanilla_px": 1,
+   "vanilla_vs_vanilla_shift": [
+    1,
+    1
+   ],
+   "vanilla_vs_vanilla_colour": 589,
+   "probe_vs_next_vanilla_px": 1,
+   "probe_vs_next_vanilla_shift": [
+    -1,
+    0
+   ],
+   "probe_vs_next_vanilla_colour": 746
+  }
+ },
+ {
+  "scene": "tp_front_shield_block",
+  "px": 1,
+  "shift": [
+   -1,
+   -1
+  ],
+  "sil": 3,
+  "colour": 2513,
+  "unexplained": [
+   3277,
+   1319,
+   299,
+   21
+  ],
+  "item_px": 22836,
+  "shape_xor": 918,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 4970,
+  "control": {
+   "vanilla_vs_vanilla_px": 3,
+   "vanilla_vs_vanilla_shift": [
+    -3,
+    -2
+   ],
+   "vanilla_vs_vanilla_colour": 4045,
+   "probe_vs_next_vanilla_px": 3,
+   "probe_vs_next_vanilla_shift": [
+    3,
+    1
+   ],
+   "probe_vs_next_vanilla_colour": 970
+  }
+ },
+ {
+  "scene": "tp_front_shield",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 488,
+  "unexplained": [
+   488,
+   7,
+   7,
+   0
+  ],
+  "item_px": 4261,
+  "shape_xor": 325,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 3622,
+  "control": {
+   "vanilla_vs_vanilla_px": 1,
+   "vanilla_vs_vanilla_shift": [
+    0,
+    -1
+   ],
+   "vanilla_vs_vanilla_colour": 1223,
+   "probe_vs_next_vanilla_px": 1,
+   "probe_vs_next_vanilla_shift": [
+    0,
+    1
+   ],
+   "probe_vs_next_vanilla_colour": 786
+  }
+ },
+ {
+  "scene": "tp_front_spear_block",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 1762,
+  "unexplained": [
+   1762,
+   786,
+   448,
+   236
+  ],
+  "item_px": 4930,
+  "shape_xor": 1594,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 6084,
+  "control": {
+   "vanilla_vs_vanilla_px": 3,
+   "vanilla_vs_vanilla_shift": [
+    -3,
+    1
+   ],
+   "vanilla_vs_vanilla_colour": 1110,
+   "probe_vs_next_vanilla_px": 3,
+   "probe_vs_next_vanilla_shift": [
+    3,
+    0
+   ],
+   "probe_vs_next_vanilla_colour": 1633
+  }
+ },
+ {
+  "scene": "tp_front_spear",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 975,
+  "unexplained": [
+   975,
+   891,
+   851,
+   813
+  ],
+  "item_px": 1510,
+  "shape_xor": 166,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 2846,
+  "tag_control": {
+   "what": "flint[item_model=souls:test_grip_spear] vs vanilla iron_spear (no #minecraft:spears tag)",
+   "px": 1,
+   "shift": [
+    0,
+    1
+   ],
+   "sil": 40,
+   "shape_xor": 5869,
+   "item_px": 5241,
+   "unexplained": [
+    1021,
+    964,
+    917,
+    859
+   ]
+  },
+  "control": {
+   "vanilla_vs_vanilla_px": 0,
+   "vanilla_vs_vanilla_shift": [
+    0,
+    0
+   ],
+   "vanilla_vs_vanilla_colour": 269,
+   "probe_vs_next_vanilla_px": 0,
+   "probe_vs_next_vanilla_shift": [
+    0,
+    0
+   ],
+   "probe_vs_next_vanilla_colour": 1052
+  }
+ },
+ {
+  "scene": "tp_front_sword_block",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 897,
+  "unexplained": [
+   897,
+   652,
+   651,
+   650
+  ],
+  "item_px": 3611,
+  "shape_xor": 920,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 4663,
+  "control": {
+   "vanilla_vs_vanilla_px": 1,
+   "vanilla_vs_vanilla_shift": [
+    1,
+    1
+   ],
+   "vanilla_vs_vanilla_colour": 689,
+   "probe_vs_next_vanilla_px": 1,
+   "probe_vs_next_vanilla_shift": [
+    -1,
+    0
+   ],
+   "probe_vs_next_vanilla_colour": 1034
+  }
+ },
+ {
+  "scene": "tp_front_sword",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 141,
+  "unexplained": [
+   141,
+   93,
+   76,
+   58
+  ],
+  "item_px": 2023,
+  "shape_xor": 136,
+  "bg_shift": [
+   0,
+   0
+  ],
+  "bg_px": 0,
+  "bg_area": 2403,
+  "control": {
+   "vanilla_vs_vanilla_px": 0,
+   "vanilla_vs_vanilla_shift": [
+    0,
+    0
+   ],
+   "vanilla_vs_vanilla_colour": 55,
+   "probe_vs_next_vanilla_px": 0,
+   "probe_vs_next_vanilla_shift": [
+    0,
+    0
+   ],
+   "probe_vs_next_vanilla_colour": 163
+  }
+ },
+ {
+  "scene": "walk_shield",
+  "px": 2,
+  "shift": [
+   -2,
+   2
+  ],
+  "sil": 3,
+  "colour": 4049,
+  "unexplained": [
+   3684,
+   2680,
+   2122,
+   1803
+  ],
+  "item_px": 5587,
+  "shape_xor": 3225,
+  "frames": [
+   10,
+   11,
+   10
+  ],
+  "note": "burst, closest body pose, player box only (x 520-760, y 290-520); includes walk-phase mismatch"
+ },
+ {
+  "scene": "walk_spear",
+  "px": 1,
+  "shift": [
+   0,
+   1
+  ],
+  "sil": 3,
+  "colour": 1895,
+  "unexplained": [
+   1680,
+   999,
+   873,
+   805
+  ],
+  "item_px": 3326,
+  "shape_xor": 1478,
+  "frames": [
+   12,
+   11,
+   10
+  ],
+  "note": "burst, closest body pose, player box only (x 520-760, y 290-520); includes walk-phase mismatch"
+ },
+ {
+  "scene": "walk_sword",
+  "px": 0,
+  "shift": [
+   0,
+   0
+  ],
+  "sil": 3,
+  "colour": 1076,
+  "unexplained": [
+   1076,
+   521,
+   302,
+   184
+  ],
+  "item_px": 3898,
+  "shape_xor": 2825,
+  "frames": [
+   9,
+   9,
+   8
+  ],
+  "note": "burst, closest body pose, player box only (x 520-760, y 290-520); includes walk-phase mismatch"
+ }
+]

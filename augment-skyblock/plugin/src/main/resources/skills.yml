@@ -1,0 +1,2198 @@
+# ─────────────────────────────────────────────────────────────
+#  스킬 목록. 무기(weapons.yml)와 몬스터(mobs.yml)가 이 id 를 가져다 쓴다.
+#  지금 어느 무기에도 붙어 있지 않은 스킬도 지우지 않고 둔다. weapons.yml 의
+#  skill / skill2 / skill3 에 id 를 적으면 그 무기에 바로 붙는다.
+#
+#  mechanics 에 쓸 수 있는 부품(type):
+#    cone      전방 부채꼴 베기      range, angle, particle, effects
+#    nova      원형 폭발/충격파      radius, at(self|aim|target), expand_ticks, particle, effects
+#    projectile 투사체              speed, range, count, spread, homing, gravity, pierce, ground,
+#                                   display(날아가는 아이템), spin, explode{radius, effects}, on_impact
+#    beam      즉발 광선            length, width, through_walls, particle, core, effects, on_end
+#    dash      돌진                 distance, ticks, effects(지나가며 맞힘), on_end
+#    leap      도약 후 착지          forward, upward, land(착지 때 실행할 부품들)
+#    blink     순간이동              distance, behind(대상 뒤로)
+#    rain      하늘에서 떨어지는 공격 count, radius, interval, height, display, impact_radius, effects
+#    strike    낙뢰/기둥            count, radius, targets, visual(lightning|pillar), impact_radius, effects
+#    chain     연쇄                 jumps, range, first_range, effects
+#    zone      장판                 radius, duration, interval, follow, effects, ally_effects
+#    orbit     주위를 도는 칼날       count, radius, duration, speed, display, effects
+#    vortex    끌어당기는 소용돌이    radius, duration, strength, effects, end(끝날 때 부품들)
+#    self      나에게 효과           effects
+#    target    지금 대상에게 효과     effects
+#    party     주변 아군에게 효과     radius, effects
+#    summon    소환                 entity(플레이어 스킬) / mob(몬스터 스킬), count, duration, health, damage
+#    repeat / delay / sound / particle / say / skill / velocity
+#
+#  effects(맞은 대상에게): damage, percent, ignite, potion, slow, poison, wither, knockback, pull,
+#    launch, freeze, stun, heal, heal_caster, lifesteal, absorption, cleanse, lightning, explosion,
+#    particle, sound, execute, glow
+#  짧게 쓰기: "- damage: 8" 은 "{type: damage, amount: 8}" 과 같다.
+#  피해 수치는 무기의 skill_power 와 증강 '마력 증폭'이 곱해진다.
+# ─────────────────────────────────────────────────────────────
+
+# ═══════════════════════ 섬 초반 무기 ═══════════════════════
+
+dash_slash:
+  name: 돌진 베기
+  description: ["앞으로 돌진하며 지나가는 적을 벤다."]
+  cooldown: 6
+  mechanics:
+    - type: dash
+      distance: 6
+      particle: SWEEP_ATTACK
+      effects: [{damage: 7}, {knockback: 0.6}]
+    - {type: sound, sound: entity.player.attack.sweep, pitch: 1.2}
+
+shadow_stab:
+  name: 그림자 찌르기
+  description: ["짧게 순간이동한 뒤 앞을 찌른다."]
+  cooldown: 5
+  mechanics:
+    - {type: blink, distance: 5, particle: LARGE_SMOKE}
+    - type: cone
+      range: 2.8
+      angle: 70
+      particle: CRIT
+      effects: [{damage: 8}]
+    - {type: sound, sound: entity.player.attack.crit}
+
+whirlwind:
+  name: 회오리 베기
+  description: ["제자리에서 세 번 돌며 주변을 벤다."]
+  cooldown: 7
+  mechanics:
+    - type: repeat
+      times: 3
+      interval: 5
+      mechanics:
+        - type: nova
+          radius: 3.2
+          particle: SWEEP_ATTACK
+          effects: [{damage: 4}, {knockback: 0.4}]
+        - {type: sound, sound: entity.player.attack.sweep, pitch: 0.9}
+
+magic_missile:
+  name: 마력 화살
+  description: ["적을 쫓아가는 마력 화살을 쏜다."]
+  cooldown: 2.5
+  mechanics:
+    - type: projectile
+      speed: 1.4
+      homing: 0.15
+      particle: "DUST:#8f7bff:1.2"
+      particle_count: 3
+      effects: [{damage: 6, magic: true}]
+    - {type: sound, sound: entity.illusioner.cast_spell, pitch: 1.6}
+
+ground_slam:
+  name: 대지 강타
+  description: ["뛰어올라 땅을 내려찍고 주변 적을 띄운다."]
+  cooldown: 8
+  mechanics:
+    - type: leap
+      forward: 0.5
+      upward: 0.8
+      land:
+        - type: nova
+          radius: 4
+          particle: "BLOCK:dirt"
+          effects: [{damage: 8}, {launch: 0.6}]
+        - {type: sound, sound: item.mace.smash_ground}
+
+spear_lunge:
+  name: 꿰뚫는 돌진
+  description: ["창을 앞세워 돌진하고 맞은 적을 밀어낸다."]
+  cooldown: 6
+  mechanics:
+    - type: dash
+      distance: 6
+      ticks: 4
+      particle: CRIT
+      effects: [{damage: 8}, {knockback: 1.0}]
+    - {type: sound, sound: item.trident.throw}
+
+spark_slash:
+  name: 전격 베기
+  description: ["전기가 흐르는 칼날로 앞을 베어 느리게 만든다."]
+  cooldown: 6
+  mechanics:
+    - type: cone
+      range: 4
+      angle: 90
+      particle: ELECTRIC_SPARK
+      effects: [{damage: 6}, {slow: 1.5}]
+    - {type: sound, sound: entity.lightning_bolt.impact, pitch: 1.8, volume: 0.6}
+
+thorn_burst:
+  name: 가시 폭발
+  description: ["주변에 가시를 터뜨려 피해를 주고 중독시킨다."]
+  cooldown: 8
+  mechanics:
+    - type: nova
+      radius: 4
+      particle: "BLOCK:cactus"
+      effects: [{damage: 5}, {poison: 3}]
+    - {type: sound, sound: block.grass.break, pitch: 0.7}
+
+minor_heal:
+  name: 작은 치유
+  description: ["나와 주변 친구들의 체력을 회복한다."]
+  cooldown: 12
+  mechanics:
+    - type: party
+      radius: 7
+      particle: HEART
+      effects: [{heal: 6}]
+    - {type: sound, sound: entity.zombie_villager.cure, pitch: 1.8, volume: 0.6}
+
+shockwave:
+  name: 충격파
+  description: ["땅을 타고 나아가는 충격파를 보낸다."]
+  cooldown: 7
+  mechanics:
+    - type: projectile
+      ground: true
+      speed: 0.9
+      range: 12
+      pierce: true
+      hit_radius: 1.4
+      particle: "BLOCK:stone"
+      particle_count: 6
+      particle_spread: 0.4
+      effects: [{damage: 7}, {launch: 0.5}]
+    - {type: sound, sound: item.mace.smash_ground}
+
+# ═══════════════════════ 섬 재료 · 균열 무기 ═══════════════════════
+
+flame_slash:
+  name: 화염 베기
+  description: ["앞을 크게 베어 화염 피해를 주고 불태운다."]
+  cooldown: 6
+  mechanics:
+    - type: cone
+      range: 5
+      angle: 110
+      particle: FLAME
+      effects: [{damage: 9}, {ignite: 4}]
+    - {type: sound, sound: entity.blaze.shoot}
+
+ice_shard_throw:
+  name: 서리 투척
+  description: ["얼음 조각 세 개를 부채꼴로 던진다."]
+  cooldown: 5
+  mechanics:
+    - type: projectile
+      count: 3
+      spread: 12
+      speed: 1.5
+      particle: SNOWFLAKE
+      display: BLUE_ICE
+      display_scale: 0.35
+      spin: true
+      effects: [{damage: 6}, {slow: 2}, {freeze: 1}]
+    - {type: sound, sound: entity.player.hurt_freeze, pitch: 1.4}
+
+lightning_javelin:
+  name: 번개 창 투척
+  description: ["번개를 두른 창을 던져 줄지어 선 적을 꿰뚫는다."]
+  cooldown: 7
+  mechanics:
+    - type: projectile
+      speed: 1.8
+      range: 30
+      pierce: true
+      display: "weapon:storm_spear"
+      display_scale: 1.0
+      particle: ELECTRIC_SPARK
+      particle_count: 4
+      effects: [{damage: 10}, {lightning: true}]
+    - {type: sound, sound: item.trident.thunder, volume: 0.7}
+
+poison_cloud:
+  name: 독 구름
+  description: ["노린 곳에 독 구름을 깐다."]
+  cooldown: 9
+  mechanics:
+    - type: zone
+      at: aim
+      radius: 3.5
+      duration: 5
+      interval: 10
+      particle: "DUST:#6abf40:1.4"
+      ring: "DUST:#3d7a1e:1.0"
+      effects: [{damage: 2, magic: true}, {poison: 3}]
+    - {type: sound, sound: entity.witch.throw}
+
+tidal_wave:
+  name: 해일
+  description: ["물결을 일으켜 앞의 적을 밀어낸다."]
+  cooldown: 8
+  mechanics:
+    - type: projectile
+      ground: true
+      speed: 0.8
+      range: 14
+      pierce: true
+      hit_radius: 1.8
+      particle: SPLASH
+      particle_count: 12
+      particle_spread: 0.6
+      effects: [{damage: 7}, {knockback: 1.2}]
+    - {type: sound, sound: entity.generic.splash}
+
+earthquake:
+  name: 지진
+  description: ["주변 땅을 흔들어 적을 띄우고 느리게 만든다."]
+  cooldown: 10
+  mechanics:
+    - type: nova
+      radius: 6
+      expand_ticks: 10
+      particle: "BLOCK:coarse_dirt"
+      effects: [{damage: 9}, {launch: 0.8}, {slow: 2}]
+    - {type: sound, sound: item.mace.smash_ground_heavy}
+
+gale_dash:
+  name: 질풍
+  description: ["바람을 타고 멀리 돌진하며 적을 띄운다."]
+  cooldown: 5
+  mechanics:
+    - type: dash
+      distance: 9
+      ticks: 5
+      particle: CLOUD
+      effects: [{damage: 6}, {launch: 0.5}]
+    - {type: sound, sound: entity.breeze.wind_burst}
+
+healing_light:
+  name: 치유의 빛
+  description: ["나와 친구들을 회복시키고 해로운 효과를 지운다."]
+  cooldown: 14
+  mechanics:
+    - type: party
+      radius: 9
+      particle: END_ROD
+      effects: [{heal: 8}, {cleanse: true}]
+    - {type: sound, sound: block.beacon.power_select, pitch: 1.6}
+
+fireball:
+  name: 화염구
+  description: ["터지는 화염구를 날린다."]
+  cooldown: 4
+  mechanics:
+    - type: projectile
+      speed: 1.2
+      particle: FLAME
+      particle_count: 4
+      display: FIRE_CHARGE
+      display_scale: 0.6
+      explode:
+        radius: 3
+        particle: FLAME
+        effects: [{damage: 9}, {ignite: 3}]
+    - {type: sound, sound: entity.blaze.shoot}
+
+frost_bolt:
+  name: 얼음 화살
+  description: ["맞은 적을 얼리는 화살을 쏜다."]
+  cooldown: 3.5
+  mechanics:
+    - type: projectile
+      speed: 1.6
+      particle: SNOWFLAKE
+      particle_count: 3
+      effects: [{damage: 8, magic: true}, {freeze: 2}]
+    - {type: sound, sound: block.glass.break, pitch: 1.6, volume: 0.6}
+
+blood_reap:
+  name: 피의 수확
+  description: ["넓게 베어 준 피해의 절반만큼 회복한다."]
+  cooldown: 8
+  mechanics:
+    - type: cone
+      range: 4.5
+      angle: 160
+      particle: "DUST:#a0002a:1.5"
+      effects: [{damage: 9}, {lifesteal: 0.5}]
+    - {type: sound, sound: entity.player.attack.sweep, pitch: 0.6}
+
+vine_bind:
+  name: 덩굴 속박
+  description: ["덩굴 씨앗을 던져 맞은 곳의 적을 묶는다."]
+  cooldown: 9
+  mechanics:
+    - type: projectile
+      speed: 1.3
+      particle: "BLOCK:oak_leaves"
+      particle_count: 4
+      explode:
+        radius: 3
+        particle: "BLOCK:vine"
+        effects: [{damage: 6}, {stun: 2}, {poison: 2}]
+    - {type: sound, sound: block.vine.break, pitch: 0.8}
+
+ice_lance:
+  name: 빙창
+  description: ["곧게 뻗는 얼음 창으로 줄지어 선 적을 꿰뚫는다."]
+  cooldown: 6
+  mechanics:
+    - type: beam
+      length: 14
+      width: 0.8
+      particle: SNOWFLAKE
+      core: END_ROD
+      effects: [{damage: 10}, {freeze: 1.5}]
+    - {type: sound, sound: block.glass.break, pitch: 0.8}
+
+sky_leap:
+  name: 하늘 도약
+  description: ["높이 뛰어올라 천천히 내려온다. 섬 사이를 건널 때 좋다."]
+  cooldown: 6
+  mechanics:
+    - {type: velocity, forward: 1.3, upward: 1.0}
+    - type: self
+      particle: CLOUD
+      effects: [{potion: {effect: slow_falling, seconds: 4}}]
+    - {type: sound, sound: entity.breeze.jump}
+
+splash_slash:
+  name: 물보라 베기
+  description: ["물보라를 일으키며 베어 적을 밀어낸다."]
+  cooldown: 5
+  mechanics:
+    - type: cone
+      range: 4.5
+      angle: 120
+      particle: SPLASH
+      effects: [{damage: 8}, {knockback: 0.8}]
+    - {type: sound, sound: entity.player.splash, pitch: 1.3}
+
+crystal_bolt:
+  name: 수정 탄환
+  description: ["자수정 조각 두 발을 쏜다."]
+  cooldown: 3
+  mechanics:
+    - type: projectile
+      count: 2
+      spread: 6
+      speed: 1.6
+      particle: "DUST:#c58cff:1.0"
+      display: AMETHYST_SHARD
+      display_scale: 0.5
+      spin: true
+      effects: [{damage: 6}]
+    - {type: sound, sound: block.amethyst_block.resonate, pitch: 1.5}
+
+# ═══════════════════════ 강화 무기 ═══════════════════════
+
+inferno_slam:
+  name: 화염 강타
+  description: ["뛰어올라 불꽃을 터뜨리며 내려찍는다."]
+  cooldown: 9
+  mechanics:
+    - type: leap
+      forward: 0.9
+      upward: 0.9
+      particle: FLAME
+      land:
+        - type: nova
+          radius: 5
+          expand_ticks: 6
+          particle: FLAME
+          effects: [{damage: 13}, {ignite: 5}, {launch: 0.6}]
+        - {type: particle, particle: LAVA, count: 30, spread: 2}
+        - {type: sound, sound: entity.generic.explode}
+
+fire_tornado:
+  name: 화염 회오리
+  description: ["불꽃 네 개가 몸 주위를 돌며 닿는 적을 태운다."]
+  cooldown: 14
+  mechanics:
+    - type: orbit
+      count: 4
+      radius: 2.8
+      duration: 5
+      speed: 18
+      particle: FLAME
+      display: FIRE_CHARGE
+      display_scale: 0.5
+      hit_cooldown: 8
+      effects: [{damage: 4}, {ignite: 3}]
+    - {type: sound, sound: item.firecharge.use}
+
+frost_nova:
+  name: 빙결 파동
+  description: ["얼음 파동을 퍼뜨려 주변 적을 얼린다."]
+  cooldown: 9
+  mechanics:
+    - type: nova
+      radius: 6
+      expand_ticks: 8
+      particle: SNOWFLAKE
+      effects: [{damage: 9}, {freeze: 3}]
+    - {type: sound, sound: block.glass.break, pitch: 0.6}
+
+glacier_spike:
+  name: 빙하 가시
+  description: ["노린 곳에 얼음 기둥 다섯 개를 솟게 한다."]
+  cooldown: 12
+  mechanics:
+    - type: strike
+      at: aim
+      count: 5
+      radius: 4
+      interval: 3
+      visual: pillar
+      particle: SNOWFLAKE
+      impact_radius: 2
+      effects: [{damage: 9}, {freeze: 2}, {launch: 0.5}]
+    - {type: sound, sound: block.glass.break, pitch: 0.5}
+
+thunder_strike:
+  name: 낙뢰
+  description: ["노린 곳에 번개를 내리꽂아 기절시킨다."]
+  cooldown: 8
+  mechanics:
+    - type: strike
+      at: aim
+      visual: lightning
+      impact_radius: 3
+      effects: [{damage: 14}, {stun: 1}]
+
+thunder_field:
+  name: 뇌운
+  description: ["주변 적에게 번개를 여섯 번 떨어뜨린다."]
+  cooldown: 16
+  mechanics:
+    - type: strike
+      at: self
+      targets: true
+      count: 6
+      radius: 8
+      interval: 5
+      visual: lightning
+      impact_radius: 1.5
+      effects: [{damage: 9}]
+
+void_slash:
+  name: 공허 베기
+  description: ["공허를 가르는 참격을 날려 시들게 한다."]
+  cooldown: 7
+  mechanics:
+    - type: beam
+      length: 9
+      width: 1.4
+      particle: REVERSE_PORTAL
+      core: "DUST:#7a2cff:1.6"
+      effects: [{damage: 12}, {wither: 3}]
+    - {type: sound, sound: entity.enderman.scream, pitch: 1.6, volume: 0.6}
+
+void_rift:
+  name: 차원 균열
+  description: ["적을 빨아들이는 균열을 열고 마지막에 터뜨린다."]
+  cooldown: 14
+  mechanics:
+    - type: vortex
+      at: aim
+      radius: 6
+      duration: 3
+      strength: 0.3
+      particle: PORTAL
+      effects: [{damage: 3, magic: true}]
+      end:
+        - type: nova
+          radius: 4
+          particle: REVERSE_PORTAL
+          effects: [{damage: 10}]
+        - {type: sound, sound: entity.generic.explode, pitch: 0.7}
+
+shadow_step:
+  name: 그림자 습격
+  description: ["그림자 속으로 순간이동해 주변을 베고 눈을 멀게 한다."]
+  cooldown: 6
+  mechanics:
+    - {type: blink, distance: 7, particle: LARGE_SMOKE}
+    - type: nova
+      radius: 2.8
+      particle: LARGE_SMOKE
+      effects: [{damage: 11}, {potion: {effect: blindness, seconds: 2}}]
+    - {type: sound, sound: entity.illusioner.mirror_move}
+
+shadow_veil:
+  name: 그림자 장막
+  description: ["5초 동안 투명해지고 빨라지며 강해진다."]
+  cooldown: 18
+  mechanics:
+    - type: self
+      particle: LARGE_SMOKE
+      effects:
+        - {potion: {effect: invisibility, seconds: 5}}
+        - {potion: {effect: speed, seconds: 5, amplifier: 1}}
+        - {potion: {effect: strength, seconds: 5}}
+    - {type: sound, sound: entity.illusioner.prepare_mirror}
+
+iaido:
+  name: 발도
+  description: ["눈 깜짝할 새 앞으로 베고 지나간다."]
+  cooldown: 7
+  mechanics:
+    - type: dash
+      distance: 8
+      ticks: 3
+      particle: SWEEP_ATTACK
+      effects: [{damage: 13}]
+    - {type: sound, sound: entity.player.attack.sweep, pitch: 0.6}
+
+storm_cut:
+  name: 폭풍 베기
+  description: ["번개를 두르고 앞을 네 번 연달아 벤다."]
+  cooldown: 12
+  mechanics:
+    - type: repeat
+      times: 4
+      interval: 4
+      mechanics:
+        - type: cone
+          range: 5
+          angle: 140
+          particle: ELECTRIC_SPARK
+          effects: [{damage: 5}]
+        - {type: sound, sound: entity.player.attack.sweep, pitch: 1.5}
+
+blood_spray:
+  name: 혈흔
+  description: ["피의 파동으로 주변을 베고 그만큼 회복한다."]
+  cooldown: 8
+  mechanics:
+    - type: nova
+      radius: 4
+      particle: "DUST:#a0002a:1.5"
+      effects: [{damage: 10}, {lifesteal: 0.4}]
+    - {type: sound, sound: entity.player.attack.sweep, pitch: 0.5}
+
+blood_pact:
+  name: 피의 계약
+  description: ["8초 동안 힘과 속도가 오르고 흡혈 오라를 두른다."]
+  cooldown: 16
+  mechanics:
+    - type: self
+      particle: "DUST:#a0002a:1.5"
+      effects:
+        - {potion: {effect: strength, seconds: 8, amplifier: 1}}
+        - {potion: {effect: speed, seconds: 8}}
+    - type: zone
+      at: self
+      follow: true
+      radius: 3
+      duration: 8
+      interval: 20
+      particle: "DUST:#a0002a:1.0"
+      effects: [{damage: 2}, {lifesteal: 1.0}]
+    - {type: sound, sound: entity.wither.ambient, pitch: 1.5, volume: 0.5}
+
+holy_smite:
+  name: 신성 강타
+  description: ["빛의 기둥으로 적을 치고 주변 친구를 회복시킨다."]
+  cooldown: 8
+  mechanics:
+    - type: strike
+      at: aim
+      visual: pillar
+      particle: END_ROD
+      impact_radius: 3
+      effects: [{damage: 12, magic: true}]
+    - type: party
+      radius: 6
+      effects: [{heal: 4}]
+    - {type: sound, sound: block.beacon.activate, pitch: 1.5}
+
+sanctuary:
+  name: 성역
+  description: ["6초 동안 성역을 펼쳐 적은 태우고 친구는 회복시킨다."]
+  cooldown: 20
+  mechanics:
+    - type: zone
+      at: self
+      radius: 5
+      duration: 6
+      interval: 20
+      particle: END_ROD
+      ring: WAX_ON
+      effects: [{damage: 3, magic: true}]
+      ally_effects: [{heal: 2}]
+    - {type: sound, sound: block.beacon.power_select}
+
+boulder_toss:
+  name: 바위 투척
+  description: ["커다란 바위를 던져 맞은 곳 주변을 날려 버린다."]
+  cooldown: 8
+  mechanics:
+    - type: projectile
+      speed: 1.0
+      gravity: 0.04
+      display: COBBLESTONE
+      display_scale: 1.0
+      spin: true
+      particle: "BLOCK:stone"
+      explode:
+        radius: 3.5
+        particle: "BLOCK:stone"
+        effects: [{damage: 13}, {launch: 0.6}]
+    - {type: sound, sound: entity.iron_golem.attack}
+
+stone_skin:
+  name: 바위 피부
+  description: ["8초 동안 받는 피해가 줄고 보호막을 얻는다."]
+  cooldown: 18
+  mechanics:
+    - type: self
+      particle: "BLOCK:stone"
+      effects:
+        - {potion: {effect: resistance, seconds: 8, amplifier: 1}}
+        - {absorption: {amount: 8, seconds: 8}}
+    - {type: sound, sound: item.armor.equip_netherite}
+
+venom_fang:
+  name: 독니
+  description: ["맹독 침 세 발을 부채꼴로 쏜다."]
+  cooldown: 5
+  mechanics:
+    - type: projectile
+      count: 3
+      spread: 10
+      speed: 1.6
+      particle: "DUST:#6abf40:1.0"
+      effects: [{damage: 6}, {poison: {seconds: 4, amplifier: 1}}]
+    - {type: sound, sound: entity.llama.spit}
+
+venom_mire:
+  name: 독늪
+  description: ["넓은 독늪을 깔아 적을 느리고 약하게 만든다."]
+  cooldown: 14
+  mechanics:
+    - type: zone
+      at: aim
+      radius: 4.5
+      duration: 6
+      interval: 10
+      particle: "DUST:#4f9a2b:1.6"
+      ring: "DUST:#2c5a12:1.2"
+      effects:
+        - {damage: 2, magic: true}
+        - {poison: {seconds: 3, amplifier: 1}}
+        - {potion: {effect: weakness, seconds: 3}}
+        - {slow: 1}
+
+water_prison:
+  name: 물의 감옥
+  description: ["물 소용돌이로 적을 가둔 뒤 터뜨린다."]
+  cooldown: 12
+  mechanics:
+    - type: vortex
+      at: aim
+      radius: 5
+      duration: 3
+      strength: 0.25
+      particle: FALLING_WATER
+      effects: [{damage: 2}, {slow: 1}]
+      end:
+        - type: nova
+          radius: 4
+          particle: SPLASH
+          effects: [{damage: 10}, {knockback: 1.0}]
+        - {type: sound, sound: entity.generic.splash}
+
+meteor_small:
+  name: 유성우
+  description: ["작은 별똥별 여섯 개를 떨어뜨린다."]
+  cooldown: 12
+  mechanics:
+    - type: rain
+      count: 6
+      radius: 4
+      interval: 4
+      particle: END_ROD
+      impact_particle: FIREWORK
+      impact_radius: 2.2
+      effects: [{damage: 8, magic: true}]
+
+star_shield:
+  name: 별의 가호
+  description: ["나와 친구들에게 보호막을 씌운다."]
+  cooldown: 18
+  mechanics:
+    - type: party
+      radius: 8
+      particle: FIREWORK
+      effects: [{absorption: {amount: 6, seconds: 12}}]
+    - {type: sound, sound: block.amethyst_block.chime}
+
+crystal_burst:
+  name: 수정 파편
+  description: ["사방으로 수정 조각을 흩뿌린다."]
+  cooldown: 7
+  mechanics:
+    - type: nova
+      radius: 2.5
+      particle: "DUST:#c58cff:1.3"
+      effects: [{damage: 6}]
+    - type: projectile
+      count: 7
+      spread: 25
+      speed: 1.3
+      range: 12
+      display: AMETHYST_SHARD
+      display_scale: 0.4
+      particle: "DUST:#c58cff:0.8"
+      effects: [{damage: 6}]
+    - {type: sound, sound: block.amethyst_block.break}
+
+wolf_pack:
+  name: 영혼 늑대
+  description: ["20초 동안 함께 싸우는 영혼 늑대 셋을 부른다."]
+  cooldown: 25
+  mechanics:
+    - type: summon
+      entity: WOLF
+      count: 3
+      duration: 20
+      name: "<gray>영혼 늑대"
+      health: 20
+      damage: 5
+    - {type: sound, sound: entity.wolf.howl}
+
+soul_reap:
+  name: 영혼 거두기
+  description: ["넓게 베어 영혼을 거두고 체력을 회복한다."]
+  cooldown: 9
+  mechanics:
+    - type: cone
+      range: 5
+      angle: 150
+      particle: SOUL
+      effects: [{damage: 10}, {lifesteal: 0.3}]
+    - {type: sound, sound: particle.soul_escape, volume: 1.5}
+
+tornado:
+  name: 회오리바람
+  description: ["천천히 나아가며 적을 띄우는 회오리를 보낸다."]
+  cooldown: 12
+  mechanics:
+    - type: projectile
+      ground: true
+      speed: 0.5
+      range: 12
+      pierce: true
+      hit_radius: 2
+      particle: CLOUD
+      particle_count: 10
+      particle_spread: 0.7
+      effects: [{damage: 4}, {launch: 1.0}]
+    - {type: sound, sound: entity.breeze.idle_air}
+
+chain_lightning:
+  name: 연쇄 번개
+  description: ["적에서 적으로 튀는 번개를 쏜다."]
+  cooldown: 6
+  mechanics:
+    - type: chain
+      jumps: 5
+      range: 7
+      first_range: 14
+      particle: ELECTRIC_SPARK
+      effects: [{damage: 9, magic: true}]
+    - {type: sound, sound: entity.lightning_bolt.impact, pitch: 1.5}
+
+blink:
+  name: 순간이동
+  description: ["바라보는 쪽으로 순간이동한다."]
+  cooldown: 4
+  mechanics:
+    - {type: blink, distance: 9}
+
+lava_eruption:
+  name: 용암 분출
+  description: ["노린 곳에서 용암을 뿜어 주변을 태운다."]
+  cooldown: 10
+  mechanics:
+    - type: nova
+      at: aim
+      radius: 3
+      particle: LAVA
+      effects: [{damage: 10}, {launch: 0.5}]
+    - type: zone
+      at: aim
+      radius: 3
+      duration: 3
+      interval: 10
+      particle: FLAME
+      effects: [{damage: 3}, {ignite: 4}]
+    - {type: sound, sound: block.lava.pop, volume: 2}
+
+# ═══════════════════════ 보스 무기 ═══════════════════════
+
+eternal_winter:
+  name: 영원한 겨울
+  description: ["6초 동안 몸 주위에 눈보라를 두른다."]
+  cooldown: 18
+  mechanics:
+    - type: zone
+      at: self
+      follow: true
+      radius: 6
+      duration: 6
+      interval: 10
+      particle: SNOWFLAKE
+      ring: "DUST:#bdf3ff:1.2"
+      effects: [{damage: 4, magic: true}, {freeze: 1}, {slow: 1.5}]
+    - {type: sound, sound: entity.player.hurt_freeze, pitch: 0.6}
+
+glacier_prison:
+  name: 빙하 감옥
+  description: ["주변 적을 통째로 얼려 기절시킨다."]
+  cooldown: 22
+  mechanics:
+    - type: nova
+      radius: 7
+      expand_ticks: 10
+      particle: SNOWFLAKE
+      effects: [{damage: 12}, {stun: 2.5}, {freeze: 3}]
+    - {type: sound, sound: block.glass.break, pitch: 0.4, volume: 1.5}
+
+meteor:
+  name: 운석 낙하
+  description: ["하늘에서 거대한 운석을 떨어뜨린다."]
+  cooldown: 16
+  mechanics:
+    - type: rain
+      count: 1
+      radius: 0
+      height: 22
+      speed: 1.2
+      display: MAGMA_BLOCK
+      display_scale: 2.5
+      particle: FLAME
+      impact_particle: EXPLOSION_EMITTER
+      impact_radius: 5
+      effects: [{damage: 26}, {ignite: 6}, {launch: 0.8}]
+
+volcano:
+  name: 화산 폭발
+  description: ["주변에 화산탄 열네 개를 쏟아붓는다."]
+  cooldown: 22
+  mechanics:
+    - type: rain
+      at: self
+      count: 14
+      radius: 7
+      interval: 2
+      display: MAGMA_BLOCK
+      display_scale: 0.6
+      particle: LAVA
+      impact_radius: 2.2
+      effects: [{damage: 8}, {ignite: 4}]
+    - {type: sound, sound: entity.generic.explode, pitch: 0.6}
+
+black_hole:
+  name: 블랙홀
+  description: ["모든 것을 빨아들이는 블랙홀을 열고 붕괴시킨다."]
+  cooldown: 20
+  mechanics:
+    - type: vortex
+      at: aim
+      radius: 8
+      duration: 4
+      strength: 0.4
+      particle: REVERSE_PORTAL
+      effects: [{damage: 4, magic: true}]
+      end:
+        - type: nova
+          radius: 5
+          particle: EXPLOSION
+          effects: [{damage: 18}]
+        - {type: sound, sound: entity.generic.explode, pitch: 0.5}
+    - {type: sound, sound: block.portal.trigger, volume: 0.6}
+
+dimension_cut:
+  name: 차원 베기
+  description: ["벽마저 꿰뚫는 차원의 참격을 날린다."]
+  cooldown: 12
+  mechanics:
+    - type: beam
+      length: 20
+      width: 1.6
+      through_walls: true
+      particle: REVERSE_PORTAL
+      core: "DUST:#3a0066:2.0"
+      effects: [{damage: 18}, {wither: 4}]
+    - {type: sound, sound: entity.warden.sonic_boom, volume: 0.6}
+
+judgment_bolt:
+  name: 천벌
+  description: ["번개 광선을 쏘고 끝에 낙뢰를 떨어뜨린다."]
+  cooldown: 12
+  mechanics:
+    - type: beam
+      length: 22
+      width: 1.0
+      particle: ELECTRIC_SPARK
+      core: END_ROD
+      effects: [{damage: 16}]
+      on_end:
+        - type: strike
+          at: aim
+          visual: lightning
+          impact_radius: 3
+          effects: [{damage: 10}]
+    - {type: sound, sound: item.trident.thunder, volume: 0.8}
+
+thunder_descent:
+  name: 뇌신 강림
+  description: ["하늘로 솟았다 내려오며 주변에 번개 여덟 줄기를 내린다."]
+  cooldown: 24
+  mechanics:
+    - type: leap
+      forward: 0.4
+      upward: 1.3
+      particle: ELECTRIC_SPARK
+      land:
+        - type: nova
+          radius: 5
+          particle: ELECTRIC_SPARK
+          effects: [{damage: 8}, {launch: 0.8}]
+        - type: strike
+          at: self
+          targets: true
+          count: 8
+          radius: 8
+          interval: 2
+          visual: lightning
+          effects: [{damage: 12}]
+
+holy_judgment:
+  name: 성스러운 심판
+  description: ["노린 곳에 빛의 기둥 다섯 개를 내린다."]
+  cooldown: 14
+  mechanics:
+    - type: strike
+      at: aim
+      count: 5
+      radius: 4
+      interval: 4
+      visual: pillar
+      particle: END_ROD
+      impact_radius: 2.2
+      effects: [{damage: 12, magic: true}]
+    - {type: sound, sound: block.beacon.activate}
+
+guardian_light:
+  name: 수호의 빛
+  description: ["친구들에게 큰 보호막과 저항을 주고 회복시킨다."]
+  cooldown: 30
+  mechanics:
+    - type: party
+      radius: 10
+      particle: TOTEM_OF_UNDYING
+      effects:
+        - {absorption: {amount: 12, seconds: 15}}
+        - {potion: {effect: resistance, seconds: 10}}
+        - {heal: 8}
+        - {cleanse: true}
+    - {type: sound, sound: item.totem.use, volume: 0.6}
+
+crimson_moon:
+  name: 혈월 참
+  description: ["붉은 달 같은 거대한 참격으로 베고 흡혈한다."]
+  cooldown: 12
+  mechanics:
+    - type: cone
+      range: 7
+      angle: 200
+      particle: "DUST:#c4002f:2.0"
+      effects: [{damage: 16}, {lifesteal: 0.35}]
+    - {type: sound, sound: entity.player.attack.sweep, pitch: 0.5}
+
+blood_rush:
+  name: 피의 질주
+  description: ["멀리 돌진하며 베고, 빨라진다."]
+  cooldown: 10
+  mechanics:
+    - type: dash
+      distance: 10
+      ticks: 5
+      particle: "DUST:#c4002f:1.5"
+      effects: [{damage: 12}, {lifesteal: 0.3}]
+    - type: self
+      effects: [{potion: {effect: speed, seconds: 4, amplifier: 1}}]
+
+life_garden:
+  name: 생명의 정원
+  description: ["8초 동안 꽃밭을 펼쳐 친구들을 회복시킨다."]
+  cooldown: 24
+  mechanics:
+    - type: zone
+      at: self
+      radius: 6
+      duration: 8
+      interval: 20
+      particle: HAPPY_VILLAGER
+      ring: "DUST:#7cff8c:1.2"
+      ally_effects: [{heal: 3}]
+      effects: [{damage: 2, magic: true}, {poison: 2}]
+    - {type: sound, sound: block.azalea.place}
+
+vine_storm:
+  name: 덩굴 폭풍
+  description: ["덩굴 씨앗 일곱 개를 흩뿌려 적을 묶는다."]
+  cooldown: 16
+  mechanics:
+    - type: projectile
+      count: 7
+      spread: 15
+      speed: 1.2
+      particle: "BLOCK:oak_leaves"
+      particle_count: 3
+      effects: [{damage: 8}, {stun: 1}, {poison: 2}]
+    - {type: sound, sound: block.vine.break}
+
+tsunami:
+  name: 대해일
+  description: ["세 갈래의 거대한 해일을 일으킨다."]
+  cooldown: 16
+  mechanics:
+    - type: projectile
+      ground: true
+      count: 3
+      spread: 20
+      speed: 0.9
+      range: 20
+      pierce: true
+      hit_radius: 2
+      particle: SPLASH
+      particle_count: 14
+      particle_spread: 0.7
+      effects: [{damage: 12}, {knockback: 1.4}, {launch: 0.4}]
+    - {type: sound, sound: entity.generic.splash, volume: 2}
+
+maelstrom:
+  name: 소용돌이
+  description: ["거대한 소용돌이로 적을 모은 뒤 터뜨린다."]
+  cooldown: 20
+  mechanics:
+    - type: vortex
+      at: aim
+      radius: 7
+      duration: 4
+      strength: 0.35
+      particle: FALLING_WATER
+      effects: [{damage: 3}, {slow: 1}]
+      end:
+        - type: nova
+          radius: 5
+          particle: SPLASH
+          effects: [{damage: 14}, {launch: 0.7}]
+
+blade_dance:
+  name: 암살자의 춤
+  description: ["칼날 네 자루가 5초 동안 몸 주위를 빠르게 돈다."]
+  cooldown: 14
+  mechanics:
+    - type: orbit
+      count: 4
+      radius: 2.2
+      duration: 5
+      speed: 22
+      display: IRON_SWORD
+      display_scale: 0.7
+      particle: CRIT
+      hit_cooldown: 6
+      effects: [{damage: 6}]
+    - {type: sound, sound: entity.player.attack.sweep, pitch: 1.6}
+
+shadow_clone:
+  name: 그림자 분신
+  description: ["15초 동안 함께 싸우는 그림자 셋을 부른다."]
+  cooldown: 20
+  mechanics:
+    - type: summon
+      entity: VEX
+      count: 3
+      duration: 15
+      name: "<dark_gray>그림자"
+      health: 14
+      damage: 6
+    - {type: sound, sound: entity.evoker.prepare_summon}
+
+starfall:
+  name: 별똥별
+  description: ["별똥별 열 개를 쏟아 내린다."]
+  cooldown: 16
+  mechanics:
+    - type: rain
+      count: 10
+      radius: 5
+      interval: 3
+      particle: END_ROD
+      impact_particle: FIREWORK
+      impact_radius: 2.5
+      effects: [{damage: 11, magic: true}]
+
+galaxy_burst:
+  name: 은하 폭발
+  description: ["주변을 끌어모은 뒤 은하를 터뜨린다."]
+  cooldown: 24
+  mechanics:
+    - type: vortex
+      at: self
+      radius: 7
+      duration: 2
+      strength: 0.35
+      particle: END_ROD
+      end:
+        - type: nova
+          radius: 7
+          expand_ticks: 8
+          particle: FIREWORK
+          effects: [{damage: 20}, {launch: 0.9}]
+        - {type: sound, sound: entity.firework_rocket.large_blast}
+
+# ═══════════════════════ 프리즘 무기 ═══════════════════════
+
+prism_burst:
+  name: 프리즘 폭발
+  description: ["일곱 빛깔 파동을 세 번 터뜨린다."]
+  cooldown: 12
+  mechanics:
+    - type: nova
+      radius: 6
+      expand_ticks: 6
+      particle: "DUST:#ff6b9d:1.6"
+      effects: [{damage: 8}]
+    - type: delay
+      ticks: 6
+      mechanics:
+        - type: nova
+          radius: 6
+          expand_ticks: 6
+          particle: "DUST:#6bffb0:1.6"
+          effects: [{damage: 8}]
+    - type: delay
+      ticks: 12
+      mechanics:
+        - type: nova
+          radius: 6
+          expand_ticks: 6
+          particle: "DUST:#6bc8ff:1.6"
+          effects: [{damage: 8}, {launch: 0.6}]
+    - {type: sound, sound: block.amethyst_block.resonate, volume: 2}
+
+rainbow_beam:
+  name: 무지개 광선
+  description: ["무지개 광선을 다섯 번 연달아 쏜다."]
+  cooldown: 16
+  mechanics:
+    - type: repeat
+      times: 5
+      interval: 4
+      mechanics:
+        - type: beam
+          length: 24
+          width: 1.2
+          particle: "DUST_COLOR_TRANSITION:#ff6b9d:#6bc8ff:1.6"
+          core: END_ROD
+          effects: [{damage: 7, magic: true}]
+        - {type: sound, sound: block.beacon.power_select, pitch: 2}
+
+apocalypse:
+  name: 종말
+  description: ["하늘에서 공허의 파편 열여덟 개를 쏟아붓는다."]
+  cooldown: 20
+  mechanics:
+    - type: rain
+      count: 18
+      radius: 8
+      interval: 2
+      display: CRYING_OBSIDIAN
+      display_scale: 0.8
+      particle: "DUST:#3a0066:1.5"
+      impact_particle: SOUL_FIRE_FLAME
+      impact_radius: 2.5
+      effects: [{damage: 12}, {wither: 3}]
+    - {type: sound, sound: entity.wither.spawn, volume: 0.5}
+
+soul_storm:
+  name: 영혼 폭풍
+  description: ["해골 여섯이 몸 주위를 돌며 영혼을 빨아들인다."]
+  cooldown: 18
+  mechanics:
+    - type: orbit
+      count: 6
+      radius: 3.5
+      duration: 6
+      speed: 16
+      display: SKELETON_SKULL
+      display_scale: 0.6
+      particle: SOUL_FIRE_FLAME
+      hit_cooldown: 8
+      effects: [{damage: 8}, {lifesteal: 0.2}]
+    - {type: sound, sound: particle.soul_escape, volume: 2}
+
+genesis:
+  name: 창세
+  description: ["빛의 파동으로 적을 쓸어내고 친구들을 크게 회복시킨다."]
+  cooldown: 22
+  mechanics:
+    - type: nova
+      radius: 9
+      expand_ticks: 12
+      particle: END_ROD
+      effects: [{damage: 22, magic: true}]
+    - type: party
+      radius: 10
+      effects: [{heal: 10}, {cleanse: true}]
+    - {type: sound, sound: block.end_portal.spawn, volume: 0.6}
+
+time_stop:
+  name: 시간 정지
+  description: ["주변 적의 시간을 4초 동안 멈춘다. 보스는 느려지기만 한다."]
+  cooldown: 40
+  mechanics:
+    - type: nova
+      radius: 12
+      expand_ticks: 6
+      particle: "DUST:#ffffff:2.0"
+      effects: [{stun: 4}, {glow: 4}]
+    - {type: sound, sound: block.beacon.deactivate, pitch: 0.5, volume: 2}
+
+thunder_god:
+  name: 천뢰
+  description: ["번개 세 줄기를 내리꽂고 주변 적에게 번개를 튕긴다."]
+  cooldown: 14
+  mechanics:
+    - type: strike
+      at: aim
+      count: 3
+      radius: 2
+      interval: 3
+      visual: lightning
+      impact_radius: 3
+      effects: [{damage: 18}]
+    - type: chain
+      jumps: 6
+      range: 8
+      first_range: 20
+      effects: [{damage: 10, magic: true}]
+
+thunderstorm:
+  name: 천둥 폭풍
+  description: ["8초 동안 주변 적에게 끊임없이 번개가 떨어진다."]
+  cooldown: 28
+  mechanics:
+    - type: repeat
+      times: 8
+      interval: 15
+      mechanics:
+        - type: strike
+          at: self
+          targets: true
+          count: 3
+          radius: 9
+          interval: 2
+          visual: lightning
+          effects: [{damage: 12}]
+
+solar_flare:
+  name: 태양 폭발
+  description: ["태양빛 광선을 쏘고 끝에서 폭발시킨다."]
+  cooldown: 14
+  mechanics:
+    - type: beam
+      length: 18
+      width: 1.6
+      particle: FLAME
+      core: "DUST:#fff3a0:2.0"
+      effects: [{damage: 16}, {ignite: 6}]
+      on_end:
+        - type: nova
+          at: aim
+          radius: 4
+          particle: FLAME
+          effects: [{damage: 12}, {ignite: 4}]
+    - {type: sound, sound: entity.blaze.shoot, pitch: 0.6}
+
+sunfall:
+  name: 태양 강림
+  description: ["작은 태양을 떨어뜨려 넓은 범위를 불태운다."]
+  cooldown: 26
+  mechanics:
+    - type: rain
+      count: 1
+      radius: 0
+      height: 24
+      speed: 1.0
+      display: SHROOMLIGHT
+      display_scale: 3.0
+      particle: FLAME
+      impact_particle: EXPLOSION_EMITTER
+      impact_radius: 7
+      effects: [{damage: 34}, {ignite: 8}, {launch: 1.0}]
+
+# ── 프리즘 무기 궁극기 (skill3, 웅크리기+좌클릭) ──
+# 재사용이 길고 여러 단계로 이어지는 그 무기의 가장 강한 기술.
+# vortex 의 end 는 소용돌이 중심에서 실행되므로, 뒤 단계들이 같은 자리에 떨어진다.
+
+spectrum_break:
+  name: 칠색 분광
+  description: ["빛을 끌어모은 뒤 일곱 빛줄기로 나눠 내리꽂고,", "마지막에 하나로 모아 터뜨린다."]
+  cooldown: 50
+  mechanics:
+    - {type: sound, sound: block.beacon.activate, pitch: 0.7, volume: 1.5}
+    - type: vortex
+      at: self
+      radius: 8
+      duration: 1.5
+      strength: 0.3
+      interval: 10
+      particle: "DUST:#ffffff:1.4"
+      effects: [{damage: 3, magic: true}]
+      end:
+        # 빨주노초파남보 순서로 가까운 적에게 빛기둥을 내린다
+        - {type: strike, at: self, targets: true, count: 2, radius: 9, visual: pillar, particle: "DUST:#ff4d4d:2.0", impact_radius: 2.5, effects: [{damage: 7, magic: true}]}
+        - {type: sound, sound: block.note_block.chime, pitch: 0.7, volume: 1.5}
+        - type: delay
+          ticks: 4
+          mechanics:
+            - {type: strike, at: self, targets: true, count: 2, radius: 9, visual: pillar, particle: "DUST:#ff9f40:2.0", impact_radius: 2.5, effects: [{damage: 7, magic: true}]}
+            - {type: sound, sound: block.note_block.chime, pitch: 0.8, volume: 1.5}
+        - type: delay
+          ticks: 8
+          mechanics:
+            - {type: strike, at: self, targets: true, count: 2, radius: 9, visual: pillar, particle: "DUST:#ffe84d:2.0", impact_radius: 2.5, effects: [{damage: 7, magic: true}]}
+            - {type: sound, sound: block.note_block.chime, pitch: 0.9, volume: 1.5}
+        - type: delay
+          ticks: 12
+          mechanics:
+            - {type: strike, at: self, targets: true, count: 2, radius: 9, visual: pillar, particle: "DUST:#6bff8a:2.0", impact_radius: 2.5, effects: [{damage: 7, magic: true}]}
+            - {type: sound, sound: block.note_block.chime, pitch: 1.05, volume: 1.5}
+        - type: delay
+          ticks: 16
+          mechanics:
+            - {type: strike, at: self, targets: true, count: 2, radius: 9, visual: pillar, particle: "DUST:#4dc3ff:2.0", impact_radius: 2.5, effects: [{damage: 7, magic: true}]}
+            - {type: sound, sound: block.note_block.chime, pitch: 1.2, volume: 1.5}
+        - type: delay
+          ticks: 20
+          mechanics:
+            - {type: strike, at: self, targets: true, count: 2, radius: 9, visual: pillar, particle: "DUST:#5b6bff:2.0", impact_radius: 2.5, effects: [{damage: 7, magic: true}]}
+            - {type: sound, sound: block.note_block.chime, pitch: 1.35, volume: 1.5}
+        - type: delay
+          ticks: 24
+          mechanics:
+            - {type: strike, at: self, targets: true, count: 2, radius: 9, visual: pillar, particle: "DUST:#c06bff:2.0", impact_radius: 2.5, effects: [{damage: 7, magic: true}]}
+            - {type: sound, sound: block.note_block.chime, pitch: 1.6, volume: 1.5}
+        - type: delay
+          ticks: 34
+          mechanics:
+            - type: nova
+              radius: 8
+              expand_ticks: 8
+              particle: "DUST_COLOR_TRANSITION:#ff6b9d:#6bc8ff:2.2"
+              effects: [{damage: 20, magic: true}, {launch: 0.8}]
+            - {type: particle, particle: FLASH, count: 1, spread: 0, speed: 0}
+            - {type: particle, particle: FIREWORK, count: 80, spread: 2.5, speed: 0.15}
+            - {type: sound, sound: entity.firework_rocket.large_blast, pitch: 0.8, volume: 1.5}
+            - {type: sound, sound: block.beacon.power_select, pitch: 2}
+
+doomsday:
+  name: 최후의 날
+  description: ["영혼을 모조리 끌어당긴 뒤 사방을 두 번 크게 베어 거둔다.", "보스가 아닌 적은 체력이 적으면 단번에 쓰러진다."]
+  cooldown: 55
+  mechanics:
+    - {type: sound, sound: entity.warden.emerge, pitch: 0.8, volume: 1.2}
+    - {type: particle, particle: SCULK_SOUL, count: 60, spread: 2, speed: 0.05}
+    - type: vortex
+      at: self
+      radius: 9
+      duration: 2.5
+      strength: 0.35
+      interval: 10
+      particle: SOUL_FIRE_FLAME
+      effects: [{damage: 3, magic: true}, {wither: 2}]
+      end:
+        # 낫을 한 바퀴 크게 두 번 휘두른다. 두 번째 베기에 처형이 붙는다
+        - type: cone
+          range: 8
+          angle: 360
+          height: 3
+          particle: SOUL_FIRE_FLAME
+          effects: [{damage: 24}, {wither: 4}, {lifesteal: 0.3}]
+        - {type: sound, sound: entity.player.attack.sweep, pitch: 0.5, volume: 1.5}
+        - type: delay
+          ticks: 8
+          mechanics:
+            - type: cone
+              range: 8
+              angle: 360
+              height: 3
+              particle: "DUST:#3a0066:2.0"
+              effects: [{damage: 26}, {lifesteal: 0.3}, {execute: 0.2}]
+            - {type: particle, particle: SCULK_SOUL, count: 80, spread: 3, speed: 0.08}
+            - {type: sound, sound: entity.wither.death, pitch: 1.4, volume: 0.6}
+            - {type: sound, sound: particle.soul_escape, volume: 2}
+
+world_creation:
+  name: 천지창조
+  description: ["노린 곳에 빛을 모아 적의 시간을 멈추고 별을 쏟아붓는다.", "친구들은 축복을 받고, 그 자리에 생명의 땅이 남는다."]
+  cooldown: 60
+  mechanics:
+    - type: party
+      radius: 10
+      particle: TOTEM_OF_UNDYING
+      effects: [{heal: 8}, {absorption: {amount: 8, seconds: 15}}, {cleanse: true}]
+    - {type: sound, sound: block.end_portal.spawn, pitch: 1.4, volume: 0.6}
+    - type: vortex
+      at: aim
+      range: 24
+      radius: 8
+      duration: 2
+      strength: 0.3
+      interval: 10
+      particle: END_ROD
+      effects: [{damage: 3, magic: true}, {slow: 1}]
+      end:
+        # 빛 → 시간 정지 → 별 → 생명의 땅 순서로 같은 자리에 이어진다
+        - type: strike
+          at: self
+          visual: pillar
+          particle: "DUST:#fff6c8:2.2"
+          impact_radius: 3.5
+          effects: [{damage: 14, magic: true}]
+        - type: nova
+          radius: 8
+          expand_ticks: 10
+          particle: "DUST_COLOR_TRANSITION:#fff6c8:#7cff8c:1.8"
+          effects: [{damage: 14, magic: true}, {stun: 2.5}, {glow: 4}]
+        - {type: sound, sound: block.beacon.deactivate, pitch: 0.5, volume: 2}
+        - type: delay
+          ticks: 12
+          mechanics:
+            - type: rain
+              at: aim
+              count: 12
+              radius: 6
+              interval: 2
+              particle: END_ROD
+              impact_particle: FIREWORK
+              impact_radius: 2.5
+              effects: [{damage: 7, magic: true}]
+            - {type: sound, sound: entity.firework_rocket.twinkle_far, volume: 1.5}
+        - type: delay
+          ticks: 40
+          mechanics:
+            - type: zone
+              at: aim
+              radius: 7
+              duration: 6
+              interval: 20
+              particle: HAPPY_VILLAGER
+              ring: "DUST:#7cff8c:1.4"
+              effects: [{damage: 2, magic: true}, {slow: 1}]
+              ally_effects: [{heal: 3}]
+            - {type: sound, sound: block.azalea.place, volume: 1.5}
+
+thunder_wrath:
+  name: 뇌정벽력
+  description: ["번개 구름으로 적을 끌어모아 거대한 낙뢰를 내리꽂고,", "4초 동안 주변 적에게 번개를 쉴 새 없이 떨어뜨린다."]
+  cooldown: 55
+  mechanics:
+    - type: self
+      particle: ELECTRIC_SPARK
+      effects: [{potion: {effect: resistance, seconds: 6}}]
+    - {type: sound, sound: item.trident.thunder, pitch: 0.6, volume: 1.2}
+    - type: vortex
+      at: aim
+      range: 22
+      radius: 8
+      duration: 1.5
+      strength: 0.35
+      interval: 10
+      particle: ELECTRIC_SPARK
+      effects: [{damage: 4, magic: true}]
+      end:
+        - type: strike
+          at: self
+          visual: lightning
+          particle: "DUST:#9ad8ff:2.0"
+          impact_radius: 4.5
+          effects: [{damage: 28}, {stun: 2}]
+        - type: nova
+          radius: 8
+          expand_ticks: 8
+          particle: ELECTRIC_SPARK
+          effects: [{damage: 12}, {launch: 0.7}]
+        - {type: sound, sound: entity.lightning_bolt.thunder, pitch: 0.7, volume: 1.5}
+        - type: delay
+          ticks: 10
+          mechanics:
+            - type: repeat
+              times: 8
+              interval: 10
+              mechanics:
+                - type: strike
+                  at: self
+                  targets: true
+                  count: 3
+                  radius: 10
+                  interval: 2
+                  visual: lightning
+                  impact_radius: 2
+                  effects: [{damage: 8, magic: true}]
+
+supernova:
+  name: 초신성
+  description: ["4초 동안 작은 태양 셋을 두르고 타오르다가", "초신성처럼 터져 주변을 불태운다."]
+  cooldown: 50
+  mechanics:
+    - type: self
+      particle: FLAME
+      effects:
+        - {potion: {effect: fire_resistance, seconds: 8}}
+        - {potion: {effect: speed, seconds: 4, amplifier: 1}}
+    - {type: sound, sound: entity.blaze.ambient, pitch: 0.5, volume: 1.5}
+    - type: orbit
+      count: 3
+      radius: 3
+      duration: 4
+      speed: 16
+      display: SHROOMLIGHT
+      display_scale: 0.7
+      particle: FLAME
+      hit_cooldown: 10
+      effects: [{damage: 6}, {ignite: 4}]
+    - type: zone
+      at: self
+      follow: true
+      radius: 4.5
+      duration: 4
+      interval: 10
+      particle: SMALL_FLAME
+      ring: "DUST:#ffb347:1.4"
+      effects: [{damage: 3, magic: true}, {ignite: 3}]
+    # 터지기 1초 전에 예고한다
+    - type: delay
+      ticks: 60
+      mechanics:
+        - {type: particle, particle: FLAME, count: 80, spread: 1.2, speed: 0.02}
+        - {type: sound, sound: block.beacon.deactivate, pitch: 1.6, volume: 1.5}
+    - type: delay
+      ticks: 80
+      mechanics:
+        - type: nova
+          radius: 9
+          expand_ticks: 10
+          particle: "DUST_COLOR_TRANSITION:#fff3a0:#ff5a1f:2.2"
+          effects: [{damage: 32}, {ignite: 8}, {launch: 0.9}]
+        - {type: particle, particle: EXPLOSION_EMITTER, count: 3, spread: 1.5, speed: 0}
+        - {type: particle, particle: FLASH, count: 1, spread: 0, speed: 0}
+        - {type: particle, particle: LAVA, count: 40, spread: 3}
+        - {type: sound, sound: entity.generic.explode, pitch: 0.5, volume: 2}
+        - {type: sound, sound: entity.blaze.death, pitch: 0.6}
+
+# ═══════════════════════ 몬스터 스킬 ═══════════════════════
+# 몬스터가 쓰면 플레이어를 노린다.
+
+m_moss_heal:
+  name: 이끼 치유
+  cooldown: 10
+  mechanics:
+    - type: party
+      radius: 6
+      particle: HAPPY_VILLAGER
+      effects: [{heal: 4}]
+
+m_piercing_shot:
+  name: 관통 사격
+  cooldown: 7
+  mechanics:
+    - {type: particle, particle: CRIT, count: 15, spread: 0.3}
+    - type: delay
+      ticks: 10
+      mechanics:
+        - type: projectile
+          speed: 2.2
+          range: 30
+          pierce: true
+          particle: CRIT
+          effects: [{damage: 6}]
+        - {type: sound, sound: entity.arrow.shoot, pitch: 0.6}
+
+m_blink_strike:
+  name: 그림자 기습
+  cooldown: 8
+  mechanics:
+    - {type: blink, behind: true, particle: LARGE_SMOKE}
+    - type: delay
+      ticks: 4
+      mechanics:
+        - type: cone
+          range: 3
+          angle: 90
+          particle: LARGE_SMOKE
+          effects: [{damage: 6}, {potion: {effect: blindness, seconds: 1}}]
+
+m_poison_spit:
+  name: 독 침
+  cooldown: 5
+  mechanics:
+    - type: projectile
+      speed: 1.0
+      particle: "DUST:#6abf40:1.2"
+      effects: [{damage: 3}, {poison: 4}]
+    - {type: sound, sound: entity.llama.spit}
+
+m_self_destruct:
+  name: 자폭
+  cooldown: 1
+  mechanics:
+    - {type: particle, particle: SMOKE, count: 20, spread: 0.3}
+    - {type: sound, sound: entity.creeper.primed}
+    - type: delay
+      ticks: 12
+      mechanics:
+        - type: nova
+          radius: 3
+          particle: EXPLOSION
+          effects: [{damage: 8}, {knockback: 0.8}]
+        - {type: sound, sound: entity.generic.explode}
+        - type: self
+          effects: [{percent: {ratio: 1.0, max: 1000}}]
+
+m_crystal_shards:
+  name: 수정 파편
+  cooldown: 1
+  mechanics:
+    - type: projectile
+      count: 6
+      spread: 60
+      speed: 1.0
+      range: 10
+      particle: "DUST:#c58cff:1.0"
+      display: AMETHYST_SHARD
+      display_scale: 0.4
+      effects: [{damage: 4}]
+
+m_miner_throw:
+  name: 곡괭이 투척
+  cooldown: 6
+  mechanics:
+    - type: projectile
+      speed: 1.1
+      gravity: 0.03
+      display: IRON_PICKAXE
+      display_scale: 0.8
+      spin: true
+      effects: [{damage: 5}]
+    - {type: sound, sound: entity.witch.throw}
+
+m_frost_touch:
+  name: 서리 손길
+  cooldown: 2
+  mechanics:
+    - type: target
+      particle: SNOWFLAKE
+      effects: [{freeze: 2}, {slow: 1.5}]
+
+m_ice_volley:
+  name: 얼음 일제사격
+  cooldown: 6
+  mechanics:
+    - type: projectile
+      count: 3
+      spread: 10
+      speed: 1.4
+      particle: SNOWFLAKE
+      display: BLUE_ICE
+      display_scale: 0.3
+      effects: [{damage: 4}, {slow: 2}]
+    - {type: sound, sound: entity.player.hurt_freeze, pitch: 1.4}
+
+m_frost_slam:
+  name: 서리 강타
+  cooldown: 7
+  mechanics:
+    - {type: particle, particle: SNOWFLAKE, count: 30, spread: 1}
+    - type: delay
+      ticks: 12
+      mechanics:
+        - type: nova
+          radius: 4
+          particle: SNOWFLAKE
+          effects: [{damage: 7}, {freeze: 2}, {launch: 0.5}]
+        - {type: sound, sound: item.mace.smash_ground}
+
+m_blizzard:
+  name: 눈보라
+  cooldown: 9
+  mechanics:
+    - {type: say, text: "<#9ad8ff>서리 군주: <white>얼어붙어라!", radius: 40}
+    - type: rain
+      at: target
+      count: 12
+      radius: 5
+      interval: 3
+      display: PACKED_ICE
+      display_scale: 0.5
+      particle: SNOWFLAKE
+      impact_particle: "BLOCK:packed_ice"
+      impact_radius: 2
+      effects: [{damage: 6}, {freeze: 1}]
+
+m_ice_nova:
+  name: 빙결 폭발
+  cooldown: 12
+  mechanics:
+    - {type: particle, particle: SNOWFLAKE, count: 60, spread: 2}
+    - type: delay
+      ticks: 20
+      mechanics:
+        - type: nova
+          radius: 8
+          expand_ticks: 10
+          particle: SNOWFLAKE
+          effects: [{damage: 9}, {freeze: 3}]
+        - {type: sound, sound: block.glass.break, pitch: 0.5, volume: 2}
+
+m_frozen_beam:
+  name: 얼음 광선
+  cooldown: 8
+  mechanics:
+    - {type: sound, sound: entity.guardian.attack}
+    - type: delay
+      ticks: 15
+      mechanics:
+        - type: beam
+          length: 22
+          width: 1.0
+          particle: SNOWFLAKE
+          core: "DUST:#bdf3ff:1.6"
+          effects: [{damage: 10}, {freeze: 2}]
+
+m_summon_frost:
+  name: 서리 망자 소환
+  cooldown: 18
+  mechanics:
+    - {type: say, text: "<#9ad8ff>서리 군주: <white>일어나라, 얼어붙은 자들이여.", radius: 40}
+    - {type: summon, mob: frost_wraith, count: 2}
+
+m_frost_roar:
+  name: 서리 군주의 분노
+  cooldown: 1
+  mechanics:
+    - {type: say, text: "<#9ad8ff>서리 군주: <white>겨울은 끝나지 않는다!", radius: 48}
+    - type: self
+      particle: SNOWFLAKE
+      effects:
+        - {absorption: {amount: 40, seconds: 30}}
+        - {potion: {effect: speed, seconds: 30}}
+    - {type: summon, mob: frost_golem, count: 1}
+
+m_fire_touch:
+  name: 불씨
+  cooldown: 2
+  mechanics:
+    - type: target
+      particle: FLAME
+      effects: [{ignite: 4}]
+
+m_fireball_mob:
+  name: 화염탄
+  cooldown: 5
+  mechanics:
+    - type: projectile
+      speed: 1.0
+      particle: FLAME
+      display: FIRE_CHARGE
+      display_scale: 0.5
+      explode:
+        radius: 2.5
+        particle: FLAME
+        effects: [{damage: 6}, {ignite: 3}]
+    - {type: sound, sound: entity.ghast.shoot}
+
+m_flame_slash_mob:
+  name: 용암 베기
+  cooldown: 6
+  mechanics:
+    - {type: particle, particle: FLAME, count: 20, spread: 0.6}
+    - type: delay
+      ticks: 8
+      mechanics:
+        - type: cone
+          range: 3.5
+          angle: 100
+          particle: FLAME
+          effects: [{damage: 7}, {ignite: 3}]
+
+m_magma_nova:
+  name: 마그마 분출
+  cooldown: 6
+  mechanics:
+    - type: nova
+      radius: 3
+      particle: LAVA
+      effects: [{damage: 5}, {ignite: 3}]
+    - {type: sound, sound: block.lava.pop}
+
+m_meteor_rain:
+  name: 운석우
+  cooldown: 10
+  mechanics:
+    - {type: say, text: "<#ff8a3d>화염 거신: <white>하늘이 불타오른다!", radius: 40}
+    - type: rain
+      at: target
+      count: 10
+      radius: 6
+      interval: 4
+      display: MAGMA_BLOCK
+      display_scale: 0.8
+      particle: FLAME
+      impact_radius: 2.5
+      effects: [{damage: 8}, {ignite: 4}]
+
+m_fire_ring:
+  name: 화염 고리
+  cooldown: 12
+  mechanics:
+    - {type: particle, particle: FLAME, count: 80, spread: 2}
+    - type: delay
+      ticks: 20
+      mechanics:
+        - type: nova
+          radius: 7
+          expand_ticks: 10
+          particle: FLAME
+          effects: [{damage: 8}, {ignite: 5}]
+
+m_flame_beam:
+  name: 화염 광선
+  cooldown: 7
+  mechanics:
+    - {type: sound, sound: entity.blaze.ambient, pitch: 0.5}
+    - type: delay
+      ticks: 15
+      mechanics:
+        - type: beam
+          length: 22
+          width: 1.2
+          particle: FLAME
+          core: "DUST:#ffb347:1.8"
+          effects: [{damage: 9}, {ignite: 4}]
+
+m_summon_imps:
+  name: 임프 소환
+  cooldown: 20
+  mechanics:
+    - {type: summon, mob: ember_imp, count: 3}
+
+m_inferno_rage:
+  name: 화염 거신의 분노
+  cooldown: 1
+  mechanics:
+    - {type: say, text: "<#ff8a3d>화염 거신: <white>모두 재가 되어라!", radius: 48}
+    - type: self
+      particle: LAVA
+      effects:
+        - {absorption: {amount: 40, seconds: 30}}
+        - {potion: {effect: strength, seconds: 30}}
+    - type: nova
+      radius: 6
+      particle: FLAME
+      effects: [{damage: 6}, {ignite: 6}, {knockback: 1.5}]
+
+m_void_blink:
+  name: 공허 걸음
+  cooldown: 7
+  mechanics:
+    - {type: blink, behind: true, particle: PORTAL}
+    - type: target
+      particle: REVERSE_PORTAL
+      effects: [{potion: {effect: darkness, seconds: 3}}]
+
+m_void_bolt:
+  name: 공허 탄
+  cooldown: 4
+  mechanics:
+    - type: projectile
+      speed: 1.2
+      homing: 0.08
+      particle: REVERSE_PORTAL
+      particle_count: 4
+      effects: [{damage: 6}, {wither: 2}]
+    - {type: sound, sound: entity.shulker.shoot}
+
+m_void_explode:
+  name: 공허 붕괴
+  cooldown: 1
+  mechanics:
+    - {type: particle, particle: PORTAL, count: 30, spread: 0.4}
+    - type: delay
+      ticks: 12
+      mechanics:
+        - type: nova
+          radius: 3
+          particle: REVERSE_PORTAL
+          effects: [{damage: 7}, {wither: 2}]
+        - {type: sound, sound: entity.generic.explode, pitch: 1.4}
+        - type: self
+          effects: [{percent: {ratio: 1.0, max: 1000}}]
+
+m_void_dash:
+  name: 공허 돌진
+  cooldown: 7
+  mechanics:
+    - {type: particle, particle: PORTAL, count: 30, spread: 0.6}
+    - type: delay
+      ticks: 8
+      mechanics:
+        - type: dash
+          distance: 7
+          ticks: 4
+          particle: PORTAL
+          effects: [{damage: 8}, {knockback: 0.8}]
+
+m_void_beam:
+  name: 공허 광선
+  cooldown: 8
+  mechanics:
+    - {type: say, text: "<#c86bff>공허의 군주: <white>사라져라.", radius: 40}
+    - type: delay
+      ticks: 15
+      mechanics:
+        - type: beam
+          length: 26
+          width: 1.2
+          through_walls: true
+          particle: REVERSE_PORTAL
+          core: "DUST:#3a0066:2.0"
+          effects: [{damage: 12}, {wither: 3}]
+        - {type: sound, sound: entity.warden.sonic_boom, volume: 0.8}
+
+m_void_hole:
+  name: 공허의 아가리
+  cooldown: 14
+  mechanics:
+    - type: vortex
+      at: target
+      radius: 7
+      duration: 3
+      strength: 0.3
+      particle: REVERSE_PORTAL
+      effects: [{damage: 3, magic: true}]
+      end:
+        - type: nova
+          radius: 4
+          particle: EXPLOSION
+          effects: [{damage: 12}]
+
+m_void_meteors:
+  name: 공허 낙하
+  cooldown: 12
+  mechanics:
+    - type: rain
+      at: target
+      count: 12
+      radius: 6
+      interval: 3
+      display: CRYING_OBSIDIAN
+      display_scale: 0.6
+      particle: PORTAL
+      impact_particle: REVERSE_PORTAL
+      impact_radius: 2.5
+      effects: [{damage: 8}, {wither: 2}]
+
+m_void_blink_boss:
+  name: 차원 도약
+  cooldown: 10
+  mechanics:
+    - {type: blink, behind: true, particle: REVERSE_PORTAL}
+    - type: delay
+      ticks: 6
+      mechanics:
+        - type: nova
+          radius: 3.5
+          particle: REVERSE_PORTAL
+          effects: [{damage: 8}, {knockback: 1.2}]
+
+m_summon_void:
+  name: 공허 기사 소환
+  cooldown: 22
+  mechanics:
+    - {type: say, text: "<#c86bff>공허의 군주: <white>나의 기사들이여.", radius: 40}
+    - {type: summon, mob: void_knight, count: 2}
+
+m_void_awaken:
+  name: 공허의 각성
+  cooldown: 1
+  mechanics:
+    - {type: say, text: "<#c86bff>공허의 군주: <white>진정한 공허를 보여주마!", radius: 48}
+    - type: self
+      particle: REVERSE_PORTAL
+      effects:
+        - {absorption: {amount: 60, seconds: 30}}
+        - {potion: {effect: strength, seconds: 30}}
+        - {potion: {effect: speed, seconds: 30}}
+    - {type: summon, mob: void_mite, count: 4}
+
+# ═══════════════════════ 활 스킬 ═══════════════════════
+
+triple_shot:
+  name: 세 갈래 사격
+  description: ["화살 세 발을 부채꼴로 쏜다."]
+  cooldown: 5
+  mechanics:
+    - type: projectile
+      speed: 2.4
+      count: 3
+      spread: 14
+      gravity: 0.02
+      display: ARROW
+      display_scale: 0.7
+      particle: CRIT
+      effects: [{damage: 5}]
+    - {type: sound, sound: entity.arrow.shoot, pitch: 1.2}
+
+gale_arrow:
+  name: 질풍 화살
+  description: ["적을 꿰뚫고 날려 버리는 바람 화살을 쏜다."]
+  cooldown: 7
+  mechanics:
+    - type: projectile
+      speed: 2.8
+      pierce: true
+      range: 32
+      display: ARROW
+      display_scale: 0.8
+      particle: CLOUD
+      particle_count: 2
+      effects: [{damage: 7}, {knockback: 2.0}, {launch: 0.5}]
+    - {type: sound, sound: entity.breeze.shoot, pitch: 1.1}
+
+venom_rain:
+  name: 독화살 비
+  description: ["조준한 곳에 독 화살을 퍼붓는다."]
+  cooldown: 10
+  mechanics:
+    - type: rain
+      count: 10
+      radius: 3.5
+      interval: 2
+      display: ARROW
+      particle: "DUST:#9ad850:1.0"
+      impact_particle: ITEM_SLIME
+      impact_radius: 1.8
+      effects: [{damage: 4}, {poison: 2}]
+    - {type: sound, sound: entity.arrow.shoot, pitch: 0.8}
+
+glacier_arrow:
+  name: 빙하 화살
+  description: ["적을 꿰뚫는 얼음 화살. 맞은 곳이 얼어붙는다."]
+  cooldown: 8
+  mechanics:
+    - type: projectile
+      speed: 2.6
+      pierce: true
+      range: 30
+      display: BLUE_ICE
+      display_scale: 0.3
+      particle: SNOWFLAKE
+      particle_count: 3
+      effects: [{damage: 10}, {slow: 2}, {freeze: 2}]
+      explode:
+        radius: 2.5
+        effects: [{damage: 4}, {slow: 2}]
+    - {type: sound, sound: entity.player.hurt_freeze, pitch: 1.3}
+
+firestorm_arrows:
+  name: 불화살 폭풍
+  description: ["조준한 곳에 불타는 화살을 쏟아붓는다."]
+  cooldown: 11
+  mechanics:
+    - type: rain
+      count: 12
+      radius: 4
+      interval: 2
+      display: ARROW
+      particle: FLAME
+      impact_particle: LAVA
+      impact_radius: 2
+      effects: [{damage: 6}, {ignite: 3}]
+    - {type: sound, sound: item.firecharge.use}
+
+void_piercer:
+  name: 공허 관통
+  description: ["벽까지 꿰뚫는 공허의 화살을 쏜다."]
+  cooldown: 9
+  mechanics:
+    - type: beam
+      length: 30
+      width: 1.2
+      through_walls: true
+      particle: REVERSE_PORTAL
+      core: "DUST:#c86bff:1.6"
+      effects: [{damage: 13, magic: true}, {wither: 2}]
+    - {type: sound, sound: entity.enderman.teleport, pitch: 0.6}
+
+thunder_volley:
+  name: 뇌전 일제사격
+  description: ["주변의 적들에게 번개를 떨어뜨린다."]
+  cooldown: 12
+  mechanics:
+    - type: strike
+      count: 6
+      radius: 10
+      targets: true
+      visual: lightning
+      impact_radius: 2.5
+      effects: [{damage: 10, magic: true}]
+
+chain_arrow:
+  name: 연쇄 번개 화살
+  description: ["적 사이를 튀어 다니는 번개 화살."]
+  cooldown: 9
+  mechanics:
+    - type: chain
+      jumps: 6
+      range: 8
+      first_range: 26
+      particle: ELECTRIC_SPARK
+      effects: [{damage: 11, magic: true}]
+    - {type: sound, sound: entity.lightning_bolt.impact, pitch: 1.6}
+
+starfall_volley:
+  name: 별무리 일제사격
+  description: ["하늘에서 무지갯빛 별 화살이 쏟아진다."]
+  cooldown: 12
+  mechanics:
+    - type: rain
+      count: 18
+      radius: 5
+      interval: 2
+      particle: END_ROD
+      impact_particle: "DUST:#ff9ad0:1.6"
+      impact_radius: 2.5
+      effects: [{damage: 9, magic: true}]
+    - {type: sound, sound: entity.firework_rocket.twinkle}
+
+rainbow_piercer:
+  name: 무지개 관통
+  description: ["모든 것을 꿰뚫는 무지개 화살."]
+  cooldown: 10
+  mechanics:
+    - type: beam
+      length: 34
+      width: 1.5
+      through_walls: true
+      particle: END_ROD
+      core: "DUST:#ffffff:1.6"
+      effects: [{damage: 18, magic: true}]
+    - {type: sound, sound: block.beacon.power_select, pitch: 1.6}

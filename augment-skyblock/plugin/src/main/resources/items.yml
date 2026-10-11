@@ -1,0 +1,68 @@
+# ─────────────────────────────────────────────────────────────
+#  재료 아이템. 바닐라 아이템을 껍데기로 쓰고, 리소스팩 모델 augsky:<id> 로 모양을 바꾼다.
+#  커스텀 아이템은 설치/연료/바닐라 조합 재료로 쓸 수 없다.
+#  name/lore 를 바꾸면 이미 가진 아이템이 조합법에 안 맞게 된다 (조합법은 아이템을 통째로 비교한다).
+# ─────────────────────────────────────────────────────────────
+
+shard:
+  name: "<#c86bff>증강 파편"
+  material: ECHO_SHARD
+  lore:
+    - "<gray>무기 재료. 증강을 다시 뽑을 때도 쓴다."
+    - "<gray>몬스터를 잡거나 돌을 캘 때 얻는다."
+
+prism_crystal:
+  name: "<gradient:#ff6b9d:#ffd36b:#6bffb0:#6bc8ff:#c86bff>프리즘 결정</gradient>"
+  material: HEART_OF_THE_SEA
+  glint: true
+  lore:
+    - "<gray>최상위 무기와 갑옷의 재료."
+    - "<gray>둥지의 보스에게서 얻거나"
+    - "<gray>세 가지 정수를 모아 만든다."
+  recipe:
+    shape: ["ABC", "SDS", "CBA"]
+    ingredients: {A: "item:essence_frost", B: "item:essence_flame", C: "item:essence_void", S: "item:shard", D: DIAMOND}
+
+ticket_silver:
+  name: "<#cfdbe6>실버 증강권"
+  material: PAPER
+  lore:
+    - "<gray>손에 들고 우클릭하면 어디서든"
+    - "<gray>실버 증강을 하나 고른다."
+
+ticket_gold:
+  name: "<#ffcf40>골드 증강권"
+  material: PAPER
+  lore:
+    - "<gray>손에 들고 우클릭하면 어디서든"
+    - "<gray>골드 증강을 하나 고른다."
+
+ticket_prism:
+  name: "<gradient:#ff6b9d:#ffd36b:#6bffb0:#6bc8ff:#c86bff>프리즘 증강권</gradient>"
+  material: PAPER
+  glint: true
+  lore:
+    - "<gray>손에 들고 우클릭하면 어디서든"
+    - "<gray>프리즘 증강을 하나 고른다."
+
+essence_frost:
+  name: "<#9ad8ff>서리 정수"
+  material: ECHO_SHARD
+  lore:
+    - "<gray>서리 균열의 몬스터가 떨군다."
+    - "<gray>무기와 갑옷, 프리즘 결정의 재료."
+
+essence_flame:
+  name: "<#ff8a3d>화염 정수"
+  material: ECHO_SHARD
+  lore:
+    - "<gray>화염 균열의 몬스터가 떨군다."
+    - "<gray>무기와 갑옷, 프리즘 결정의 재료."
+
+essence_void:
+  name: "<#c86bff>공허 정수"
+  material: ECHO_SHARD
+  lore:
+    - "<gray>공허 균열의 몬스터가 떨군다."
+    - "<gray>무기와 갑옷, 프리즘 결정의 재료."
+

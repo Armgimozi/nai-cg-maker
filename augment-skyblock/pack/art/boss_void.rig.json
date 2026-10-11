@@ -1,0 +1,383 @@
+{
+  "parts": [
+    {
+      "id": "robe",
+      "model": "augsky:boss/void_sovereign_robe",
+      "offset": [
+        0.0,
+        2.875,
+        0.0
+      ],
+      "scale": 2.5,
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "frame": "body",
+      "anims": [
+        {
+          "type": "bob",
+          "amplitude": 0.08,
+          "period": 80,
+          "phase": 0.0
+        },
+        {
+          "type": "sway",
+          "axis": "x",
+          "angle": 2.5,
+          "period": 70,
+          "phase": 0.0
+        },
+        {
+          "type": "sway",
+          "axis": "z",
+          "angle": 1.5,
+          "period": 95,
+          "phase": 0.25
+        }
+      ]
+    },
+    {
+      "id": "torso",
+      "model": "augsky:boss/void_sovereign_torso",
+      "offset": [
+        0.0,
+        2.875,
+        0.0
+      ],
+      "scale": 2.5,
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "frame": "body",
+      "anims": [
+        {
+          "type": "bob",
+          "amplitude": 0.08,
+          "period": 80,
+          "phase": 0.0
+        }
+      ]
+    },
+    {
+      "id": "cape",
+      "model": "augsky:boss/void_sovereign_cape",
+      "offset": [
+        0.0,
+        4.5,
+        -0.6875
+      ],
+      "scale": 3.2,
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "frame": "body",
+      "anims": [
+        {
+          "type": "bob",
+          "amplitude": 0.08,
+          "period": 80,
+          "phase": 0.0
+        },
+        {
+          "type": "sway",
+          "axis": "x",
+          "angle": 5,
+          "period": 60,
+          "phase": 0.1
+        }
+      ]
+    },
+    {
+      "id": "head",
+      "model": "augsky:boss/void_sovereign_head",
+      "offset": [
+        0.0,
+        4.625,
+        0.0
+      ],
+      "scale": 1.75,
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "frame": "body",
+      "anims": [
+        {
+          "type": "bob",
+          "amplitude": 0.08,
+          "period": 80,
+          "phase": 0.0
+        },
+        {
+          "type": "sway",
+          "axis": "y",
+          "angle": 8,
+          "period": 140,
+          "phase": 0.0
+        }
+      ]
+    },
+    {
+      "id": "crown",
+      "model": "augsky:boss/void_sovereign_crown",
+      "offset": [
+        0.0,
+        6.75,
+        0.0
+      ],
+      "scale": 1.5,
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "frame": "body",
+      "anims": [
+        {
+          "type": "bob",
+          "amplitude": 0.08,
+          "period": 80,
+          "phase": 0.0
+        },
+        {
+          "type": "bob",
+          "amplitude": 0.1,
+          "period": 50,
+          "phase": 0.3
+        },
+        {
+          "type": "spin",
+          "axis": "y",
+          "speed": 1.5
+        }
+      ]
+    },
+    {
+      "id": "right_arm",
+      "model": "augsky:boss/void_sovereign_right_arm",
+      "offset": [
+        -1.0625,
+        4.375,
+        0.0
+      ],
+      "scale": 2.0,
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "frame": "body",
+      "anims": [
+        {
+          "type": "bob",
+          "amplitude": 0.08,
+          "period": 80,
+          "phase": 0.0
+        },
+        {
+          "type": "sway",
+          "axis": "x",
+          "angle": 3,
+          "period": 80,
+          "phase": 0.0
+        },
+        {
+          "type": "swing",
+          "axis": "x",
+          "angle": -110,
+          "ticks": 16
+        }
+      ]
+    },
+    {
+      "id": "scythe",
+      "model": "augsky:boss/void_sovereign_scythe",
+      "offset": [
+        -1.0625,
+        4.375,
+        0.0
+      ],
+      "scale": 3.2,
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "frame": "body",
+      "anims": [
+        {
+          "type": "bob",
+          "amplitude": 0.08,
+          "period": 80,
+          "phase": 0.0
+        },
+        {
+          "type": "sway",
+          "axis": "x",
+          "angle": 3,
+          "period": 80,
+          "phase": 0.0
+        },
+        {
+          "type": "swing",
+          "axis": "x",
+          "angle": -110,
+          "ticks": 16
+        }
+      ]
+    },
+    {
+      "id": "left_arm",
+      "model": "augsky:boss/void_sovereign_left_arm",
+      "offset": [
+        1.0625,
+        4.375,
+        0.0
+      ],
+      "scale": 2.0,
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "frame": "body",
+      "anims": [
+        {
+          "type": "bob",
+          "amplitude": 0.08,
+          "period": 80,
+          "phase": 0.0
+        },
+        {
+          "type": "sway",
+          "axis": "x",
+          "angle": 4,
+          "period": 70,
+          "phase": 0.5
+        },
+        {
+          "type": "swing",
+          "axis": "x",
+          "angle": -60,
+          "ticks": 12
+        }
+      ]
+    },
+    {
+      "id": "orb_1",
+      "model": "augsky:boss/void_sovereign_orb",
+      "offset": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": 1.2,
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "frame": "world",
+      "anims": [
+        {
+          "type": "orbit",
+          "radius": 2.6,
+          "speed": 2.0,
+          "phase": 0.0,
+          "height": 2.4
+        },
+        {
+          "type": "spin",
+          "axis": "y",
+          "speed": 5.0
+        },
+        {
+          "type": "bob",
+          "amplitude": 0.22,
+          "period": 46,
+          "phase": 0.0
+        }
+      ]
+    },
+    {
+      "id": "orb_2",
+      "model": "augsky:boss/void_sovereign_orb",
+      "offset": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": 1.2,
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "frame": "world",
+      "anims": [
+        {
+          "type": "orbit",
+          "radius": 2.6,
+          "speed": 2.0,
+          "phase": 120.0,
+          "height": 3.3
+        },
+        {
+          "type": "spin",
+          "axis": "y",
+          "speed": 5.0
+        },
+        {
+          "type": "bob",
+          "amplitude": 0.22,
+          "period": 46,
+          "phase": 0.3333333333333333
+        }
+      ]
+    },
+    {
+      "id": "orb_3",
+      "model": "augsky:boss/void_sovereign_orb",
+      "offset": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": 1.2,
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "frame": "world",
+      "anims": [
+        {
+          "type": "orbit",
+          "radius": 2.6,
+          "speed": 2.0,
+          "phase": 240.0,
+          "height": 4.2
+        },
+        {
+          "type": "spin",
+          "axis": "y",
+          "speed": 5.0
+        },
+        {
+          "type": "bob",
+          "amplitude": 0.22,
+          "period": 46,
+          "phase": 0.6666666666666666
+        }
+      ]
+    }
+  ],
+  "notes": "공허의 군주. 보스 오른손 = -X 쪽(낫), 왼손 = +X 쪽(공허 불꽃). 앞 = +Z. 모든 포즈는 모델에 구워 넣어 rotation 은 [0,0,0]. 낫(scythe)은 오른팔과 같은 피벗(오른 어깨)·같은 애니메이션을 써야 손에 붙어 있다. swing angle 이 음수면 팔이 앞으로 들려 올라간다(서리 군주와 같은 규약). 로브는 허리 피벗에서 살짝 흔들리고, 몸 전체가 같은 bob(BODY_BOB)으로 떠 있다. 왕관은 두건 위에 떠서 y 축으로 천천히 돈다. 구슬은 world 프레임 orbit, offset y=0, 높이는 orbit.height. 텍스처: augsky:boss/void_sovereign_{body,head,void,glow,blade}; void/glow/blade 는 16프레임(4틱) 애니메이션."
+}

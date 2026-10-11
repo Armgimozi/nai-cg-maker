@@ -1,0 +1,1268 @@
+# ─────────────────────────────────────────────────────────────
+#  무기 목록. 무기 한 종 = 항목 하나.
+#    pool    얻는 곳: basic(섬 초반) island(섬 재료) frost/flame/void(균열) boss(보스) prism(프리즘)
+#            몬스터 드롭 "pool:frost" 는 그 pool 의 무기 중 하나를 준다
+#    source  설명에 보일 '얻는 곳' 문구 (안 적으면 pool 에 맞게 자동)
+#    type    sword greatsword dagger katana axe hammer spear scythe staff wand bow pickaxe
+#    element 리소스팩 색상표 (iron stone wood bone copper flame frost storm venom ocean
+#            earth wind holy nature blood abyss shadow star crystal prism gold ender sun doom)
+#    damage  공격력(맨손 1 포함),  speed  초당 공격 횟수(바닐라 검 1.6)
+#    reach   공격 거리 추가,  skill_power  스킬 피해 배율
+#    skill / skill2 / skill3   스킬 칸 1·2·3 (skills.yml 의 id). 필요한 무기에만 붙인다 — 안 적은 칸은 비어 있다.
+#            근접·마법 무기  skill  우클릭
+#                            skill2 웅크리기+우클릭 (skill2 가 없으면 웅크리기+우클릭도 skill 을 쓴다)
+#                            skill3 웅크리기+좌클릭 (허공·블록·적을 때릴 때 모두. 프리즘 무기의 궁극기)
+#            활              skill  웅크리기+당겨 쏘기,  skill2 웅크리기+좌클릭,  skill3 은 쓰지 않는다
+#            F키는 스킬과 상관없이 바닐라 그대로 손을 바꾼다.
+#    passive 공격 시 효과 {chance, description, effects}. 확률이 아니라 정해진 횟수마다 터진다:
+#            1/chance 를 반올림한 N 번째로 맞힌 공격마다 (0.25 → 4번마다, 0.3 → 3번마다, 0.15 → 7번마다).
+#            근접 무기는 직접 휘두른 공격, 활은 맞은 화살만 세고, 플레이어·무기마다 따로 센다.
+#            description 의 N 은 chance 와 맞춰 적는다.
+#    recipe  작업대 조합법 (item:아이템id, weapon:무기id, 바닐라 재료 이름)
+#            weapon: 은 같은 종류의 무기만 넣는다 (도끼엔 도끼). 레시피 책에는 그 무기 모양 그대로 보인다
+#    droppable false 면 '무작위 무기' 드롭에 나오지 않는다
+#    durability 최대 내구도. 안 적으면 얻는 곳에 맞춘다: 섬 초반 250, 섬 재료 750, 균열 1561, 보스 2031, 프리즘 3000
+#            (단검·카타나처럼 빠른 무기는 공격 속도만큼 최대 1.4배, 활은 384 이상). 바닐라처럼 휘두르고 쏘고 캐면 닳고,
+#            스킬은 한 번에 실제 재사용 대기 2초마다 1 (최소 1, 최대 내구도의 1%까지) 닳는다
+#    repair  모루 수리 재료: 바닐라 재료 이름(여러 개는 쉼표), PLANKS(아무 판자), item:아이템id.
+#            안 적으면 섬 무기는 element 의 재료, 균열 무기는 그 정수, 보스는 다이아몬드, 프리즘은 프리즘 결정.
+#            같은 무기 둘을 모루에 올려도 고쳐진다. 다른 무기·바닐라 아이템·네더라이트 주괴로는 고칠 수 없다
+#    mining  곡괭이만. {tier: stone|iron|diamond|netherite, speed: 채굴 속도}
+#            tier 는 그 등급 바닐라 곡괭이처럼 캐서 떨어지는 블록 (바닐라 속도: 돌 4, 철 6, 다이아몬드 8, 네더라이트 9)
+#    perks   곡괭이만. {auto_smelt: true (캐낸 광석이 곧바로 주괴), haste: N (들고 있는 동안 채굴 속도 +N×20%, 성급함 N단계만큼)}
+#            같은 증강이 있으면 그 위에 더해진다 (제련 경험치 두 배, 증강 성급함과 서로 곱해진다)
+#  리소스팩 모델 이름은 augsky:<무기id> 이다.
+# ─────────────────────────────────────────────────────────────
+
+# ═══════════════════════ 섬 초반 — 시작의 섬과 흔한 섬(숲, 광산, 목장, 사막…)의 재료로 만든다 ═══════════════════════
+
+apprentice_sword:
+  name: 견습생의 검
+  pool: basic
+  type: sword
+  element: iron
+  repair: COBBLESTONE
+  damage: 6.5
+  speed: 1.6
+  lore: ["모든 모험은 이 검 한 자루에서 시작된다."]
+  recipe:
+    shape: ["  C", "PC ", "SP "]
+    ingredients: {C: COBBLESTONE, P: OAK_PLANKS, S: STICK}
+
+hunter_dagger:
+  name: 사냥꾼의 단검
+  pool: basic
+  type: dagger
+  element: iron
+  damage: 5
+  speed: 2.2
+  passive:
+    chance: 0.15
+    description: "공격 7번마다 급소를 찔러 추가 피해 2."
+    effects: [{damage: 2}, {particle: CRIT, count: 8}]
+  lore: ["가볍고 빠르다. 등 뒤를 노려라."]
+  recipe:
+    shape: ["LF", "SL"]
+    ingredients: {L: LEATHER, F: FLINT, S: STICK}
+
+woodcutter_axe:
+  name: 나무꾼의 도끼
+  pool: basic
+  type: axe
+  element: wood
+  repair: COBBLESTONE
+  damage: 8
+  speed: 1.0
+  lore: ["나무도, 몬스터도 한 번에."]
+  recipe:
+    shape: ["CF", "CL", " L"]
+    ingredients: {C: COBBLESTONE, F: FLINT, L: BIRCH_LOG}
+
+novice_wand:
+  name: 수습 마법봉
+  pool: basic
+  type: wand
+  element: crystal
+  damage: 3.5
+  speed: 1.8
+  skill: magic_missile
+  lore: ["처음 마법을 배우는 이들의 지팡이."]
+  recipe:
+    shape: ["  S", " T ", "T  "]
+    ingredients: {S: "item:shard", T: STICK}
+
+stone_hammer:
+  name: 돌망치
+  pool: basic
+  type: hammer
+  element: stone
+  damage: 9
+  speed: 0.8
+  passive:
+    chance: 0.12
+    description: "공격 8번마다 묵직하게 밀쳐낸다."
+    effects: [{knockback: 0.7}, {particle: "BLOCK:stone", count: 10}]
+  lore: ["무겁다. 그래서 아프다."]
+  recipe:
+    shape: ["CSC", "CTC", " T "]
+    ingredients: {C: COBBLESTONE, S: STONE, T: STICK}
+
+bone_spear:
+  name: 뼈창
+  pool: basic
+  type: spear
+  element: bone
+  damage: 7
+  speed: 1.2
+  reach: 1
+  passive:
+    chance: 0.12
+    description: "공격 8번마다 잠깐 느리게 만든다."
+    effects: [{slow: 1}]
+  lore: ["해골에게서 빌린 뼈로 깎았다."]
+  recipe:
+    shape: [" BB", " TB", "T  "]
+    ingredients: {B: BONE, T: STICK}
+
+copper_sword:
+  name: 구리 검
+  pool: basic
+  type: sword
+  element: copper
+  damage: 7
+  speed: 1.6
+  passive:
+    chance: 0.15
+    description: "공격 7번마다 전격 추가 피해 2."
+    effects: [{damage: 2, magic: true}, {particle: ELECTRIC_SPARK, count: 8}]
+  lore: ["전기가 잘 통한다. 가끔 찌릿하다."]
+  recipe:
+    shape: ["  C", "CC ", "TC "]
+    ingredients: {C: COPPER_INGOT, T: STICK}
+
+thorn_club:
+  name: 가시 곤봉
+  pool: basic
+  type: hammer
+  element: nature
+  repair: CACTUS
+  damage: 8.5
+  speed: 0.9
+  passive:
+    chance: 0.15
+    description: "공격 7번마다 가시가 박혀 중독시킨다."
+    effects: [{poison: 2}]
+  lore: ["선인장을 통째로 묶었다. 쥐는 쪽도 조금 아프다."]
+  recipe:
+    shape: ["CSC", "CLC", " L "]
+    ingredients: {C: CACTUS, S: STRING, L: OAK_LOG}
+
+iron_greatsword:
+  name: 철 대검
+  pool: basic
+  type: greatsword
+  element: iron
+  damage: 9.5
+  speed: 1.0
+  lore: ["튼튼하고 정직한 대검."]
+  recipe:
+    shape: [" II", "CII", "TC "]
+    ingredients: {I: IRON_INGOT, C: COBBLESTONE, T: STICK}
+
+gold_wand:
+  name: 황금 마법봉
+  pool: basic
+  type: wand
+  element: gold
+  damage: 3.5
+  speed: 1.8
+  skill: minor_heal
+  lore: ["친구를 아끼는 마법사의 첫 지팡이."]
+  recipe:
+    shape: ["  G", " H ", "T  "]
+    ingredients: {G: GOLD_INGOT, H: HONEYCOMB, T: STICK}
+
+wooden_katana:
+  name: 목도
+  pool: basic
+  type: katana
+  element: wood
+  damage: 6
+  speed: 1.8
+  lore: ["수련용이지만 제대로 맞으면 아프다."]
+  recipe:
+    shape: ["  P", " P ", "TS "]
+    ingredients: {P: BIRCH_PLANKS, T: STICK, S: OAK_SLAB}
+
+smith_hammer:
+  name: 대장장이 망치
+  pool: basic
+  type: hammer
+  element: iron
+  damage: 9.5
+  speed: 0.8
+  lore: ["모루를 두드리던 망치. 땅도 잘 두드린다."]
+  recipe:
+    shape: ["IKI", "CTC", " T "]
+    ingredients: {I: IRON_INGOT, K: COAL_BLOCK, C: COBBLESTONE, T: STICK}
+
+amethyst_wand:
+  name: 자수정 마법봉
+  pool: basic
+  type: wand
+  element: crystal
+  damage: 4
+  speed: 1.8
+  skill: crystal_bolt
+  lore: ["수정 크리퍼의 조각을 깎아 만들었다."]
+  recipe:
+    shape: ["  A", " A ", "T  "]
+    ingredients: {A: AMETHYST_SHARD, T: STICK}
+
+# ═══════════════════════ 섬 재료 — 드문 섬의 자원(피뢰침, 레드스톤, 금, 프리즈머린, 이끼…)으로 만든다 ═══════════════════════
+
+storm_spear:
+  name: 번개 창
+  pool: island
+  type: spear
+  element: storm
+  damage: 8
+  speed: 1.2
+  reach: 1
+  skill: lightning_javelin
+  passive:
+    chance: 0.15
+    description: "공격 7번마다 번개가 떨어진다."
+    effects: [{lightning: true}, {damage: 4, magic: true}]
+  lore: ["폭풍이 지나간 자리에서 주웠다."]
+  recipe:
+    shape: [" CL", " TC", "T  "]
+    ingredients: {C: WEATHERED_COPPER, L: LIGHTNING_ROD, T: STICK}
+
+venom_dagger:
+  name: 독사의 단검
+  pool: island
+  type: dagger
+  element: venom
+  damage: 6.5
+  speed: 2.2
+  passive:
+    chance: 0.45
+    description: "공격 2번마다 중독시킨다."
+    effects: [{poison: 3}]
+  lore: ["한 번 물리면 잊을 수 없다."]
+  recipe:
+    shape: ["EF", "TE"]
+    ingredients: {E: SLIME_BALL, F: FERMENTED_SPIDER_EYE, T: STICK}
+
+tide_spear:
+  name: 파도의 창
+  pool: island
+  type: spear
+  element: ocean
+  damage: 8
+  speed: 1.2
+  reach: 1
+  skill: tidal_wave
+  lore: ["바다 냄새가 난다. 섬에는 바다가 없는데."]
+  recipe:
+    shape: [" PR", " TP", "T  "]
+    ingredients: {P: PRISMARINE, R: PRISMARINE_CRYSTALS, T: STICK}
+
+earth_hammer:
+  name: 대지의 망치
+  pool: island
+  type: hammer
+  element: earth
+  damage: 11
+  speed: 0.8
+  skill: earthquake
+  lore: ["내려칠 때마다 섬이 흔들린다."]
+  recipe:
+    shape: ["MPM", "MTM", " T "]
+    ingredients: {M: MOSSY_COBBLESTONE, P: TUFF, T: STICK}
+
+wind_sword:
+  name: 바람의 검
+  pool: island
+  type: sword
+  element: wind
+  damage: 7.5
+  speed: 1.7
+  skill: gale_dash
+  lore: ["휘두르면 바람 소리가 먼저 난다."]
+  recipe:
+    shape: ["  I", "FI ", "PF "]
+    ingredients: {I: IRON_INGOT, F: FEATHER, P: PHANTOM_MEMBRANE}
+
+holy_staff:
+  name: 빛의 지팡이
+  pool: island
+  type: staff
+  element: holy
+  damage: 5
+  speed: 1.4
+  skill: healing_light
+  lore: ["친구가 있어야 빛난다."]
+  recipe:
+    shape: [" G ", "HTH", " T "]
+    ingredients: {G: GLOWSTONE, H: HONEYCOMB, T: STICK}
+
+blood_scythe:
+  name: 피의 낫
+  pool: island
+  type: scythe
+  element: blood
+  damage: 10
+  speed: 1.1
+  reach: 0.5
+  passive:
+    chance: 0.4
+    description: "공격 3번마다 체력 2 회복."
+    effects: [{heal_caster: 2}]
+  lore: ["베면 벨수록 목이 마르다."]
+  recipe:
+    shape: ["IIN", "IC ", "C  "]
+    ingredients: {I: IRON_INGOT, N: NETHER_WART_BLOCK, C: CRIMSON_STEM}
+
+nature_staff:
+  name: 숲의 지팡이
+  pool: island
+  type: staff
+  element: nature
+  damage: 5
+  speed: 1.4
+  skill: vine_bind
+  lore: ["가끔 지팡이에서 잎이 돋는다."]
+  recipe:
+    shape: [" A ", "VTV", " T "]
+    ingredients: {A: FLOWERING_AZALEA, V: VINE, T: STICK}
+
+cloud_staff:
+  name: 구름 지팡이
+  pool: island
+  type: staff
+  element: wind
+  damage: 4.5
+  speed: 1.5
+  skill: sky_leap
+  lore: ["섬과 섬 사이를 건너는 이들의 친구."]
+  recipe:
+    shape: [" P ", "WTW", " T "]
+    ingredients: {P: PHANTOM_MEMBRANE, W: WHITE_WOOL, T: STICK}
+
+pirate_katana:
+  name: 해적의 카타나
+  pool: island
+  type: katana
+  element: ocean
+  damage: 7.5
+  speed: 1.8
+  skill: splash_slash
+  lore: ["하늘 해적이 쓰던 칼. 하늘 해적이 있었나?"]
+  recipe:
+    shape: ["  I", " I ", "TK "]
+    ingredients: {I: IRON_INGOT, T: STICK, K: DRIED_KELP_BLOCK}
+
+crystal_sword:
+  name: 수정 검
+  pool: island
+  type: sword
+  element: crystal
+  damage: 10
+  speed: 1.6
+  skill: crystal_burst
+  lore: ["견습생의 검에 자수정을 입혔더니 이렇게 됐다."]
+  recipe:
+    shape: ["  B", "BW ", "CB "]
+    ingredients: {B: AMETHYST_BLOCK, W: "weapon:apprentice_sword", C: CALCITE}
+
+thunder_hammer:
+  name: 뇌신의 망치
+  pool: island
+  type: hammer
+  element: storm
+  damage: 13
+  speed: 0.8
+  skill: thunder_strike
+  passive:
+    chance: 0.2
+    description: "공격 5번마다 번개 추가 피해 6."
+    effects: [{lightning: true}, {damage: 6, magic: true}]
+  lore: ["들면 머리카락이 선다."]
+  recipe:
+    shape: ["CRC", "CLC", " L "]
+    ingredients: {C: COPPER_INGOT, R: REDSTONE_BLOCK, L: LIGHTNING_ROD}
+
+storm_katana:
+  name: 폭풍의 카타나
+  pool: island
+  type: katana
+  element: storm
+  damage: 10
+  speed: 1.8
+  skill: iaido
+  passive:
+    chance: 0.2
+    description: "공격 5번마다 전격 추가 피해 4."
+    effects: [{damage: 4, magic: true}, {particle: ELECTRIC_SPARK, count: 12}]
+  lore: ["칼집에서 뽑는 순간이 가장 빠르다."]
+  recipe:
+    shape: ["  L", " L ", "BR "]
+    ingredients: {L: LIGHTNING_ROD, B: BAMBOO, R: REDSTONE_BLOCK}
+
+blood_sword:
+  name: 혈검
+  pool: island
+  type: sword
+  element: blood
+  damage: 11
+  speed: 1.6
+  passive:
+    chance: 0.4
+    description: "공격 3번마다 체력 3 회복."
+    effects: [{heal_caster: 3}]
+  lore: ["붉은 날은 닦아도 붉다."]
+  recipe:
+    shape: ["  R", "GR ", "CG "]
+    ingredients: {R: REDSTONE_BLOCK, G: GOLD_INGOT, C: CRIMSON_STEM}
+
+holy_hammer:
+  name: 성기사의 망치
+  pool: island
+  type: hammer
+  element: holy
+  damage: 12.5
+  speed: 0.8
+  skill: holy_smite
+  passive:
+    chance: 0.25
+    description: "공격 4번마다 신성 피해 3, 체력 2 회복."
+    effects: [{damage: 3, magic: true}, {heal_caster: 2}]
+  lore: ["친구를 지키는 자의 망치."]
+  recipe:
+    shape: ["QGQ", "QTQ", " T "]
+    ingredients: {Q: QUARTZ, G: GOLD_BLOCK, T: STICK}
+
+earth_axe:
+  name: 대지의 도끼
+  pool: island
+  type: axe
+  element: earth
+  damage: 12
+  speed: 1.0
+  skill: boulder_toss
+  skill2: stone_skin
+  lore: ["바위를 쪼개 던지는 데 쓴다. 원래 용도는 모른다."]
+  recipe:
+    shape: ["GD", "GA", " A"]
+    ingredients: {G: POLISHED_GRANITE, D: POINTED_DRIPSTONE, A: ACACIA_LOG}
+
+venom_spear:
+  name: 독사의 창
+  pool: island
+  type: spear
+  element: venom
+  damage: 10
+  speed: 1.2
+  reach: 1
+  skill: venom_fang
+  passive:
+    chance: 0.35
+    description: "공격 3번마다 강한 독."
+    effects: [{poison: {seconds: 4, amplifier: 1}}]
+  lore: ["창끝에서 독이 끊이지 않고 떨어진다."]
+  recipe:
+    shape: [" SF", " BS", "B  "]
+    ingredients: {S: SLIME_BALL, F: FERMENTED_SPIDER_EYE, B: BAMBOO}
+
+ocean_staff:
+  name: 바다의 지팡이
+  pool: island
+  type: staff
+  element: ocean
+  damage: 7
+  speed: 1.4
+  skill: water_prison
+  skill2: tidal_wave
+  lore: ["귀에 대면 파도 소리가 난다."]
+  recipe:
+    shape: [" O ", "PTP", " T "]
+    ingredients: {O: SEA_LANTERN, P: SEA_PICKLE, T: STICK}
+
+star_staff:
+  name: 별의 지팡이
+  pool: island
+  type: staff
+  element: star
+  damage: 7
+  speed: 1.4
+  skill: meteor_small
+  skill2: star_shield
+  lore: ["밤하늘을 조금 떼어 왔다."]
+  recipe:
+    shape: [" G ", "ETE", " T "]
+    ingredients: {G: TINTED_GLASS, E: END_ROD, T: STICK}
+
+spirit_scythe:
+  name: 영혼의 낫
+  pool: island
+  type: scythe
+  element: bone
+  repair: BONE_BLOCK
+  damage: 11
+  speed: 1.1
+  reach: 0.5
+  skill: wolf_pack
+  lore: ["베어 낸 영혼들이 주인을 따른다."]
+  recipe:
+    shape: ["BBL", "BT ", "T  "]
+    ingredients: {B: BONE_BLOCK, L: SOUL_LANTERN, T: STICK}
+
+wind_axe:
+  name: 폭풍의 도끼
+  pool: island
+  type: axe
+  element: wind
+  damage: 11.5
+  speed: 1.0
+  skill: tornado
+  lore: ["던지지 마라. 돌아오지 않는다."]
+  recipe:
+    shape: ["IP", "IB", " B"]
+    ingredients: {I: IRON_INGOT, P: PHANTOM_MEMBRANE, B: BAMBOO}
+
+storm_dagger:
+  name: 번개 단검
+  pool: island
+  type: dagger
+  element: storm
+  damage: 8
+  speed: 2.2
+  skill: chain_lightning
+  skill2: blink
+  passive:
+    chance: 0.2
+    description: "공격 5번마다 전격 추가 피해 3."
+    effects: [{damage: 3, magic: true}]
+  lore: ["번개처럼 왔다가 번개처럼 사라진다."]
+  recipe:
+    shape: ["CL", "PC"]
+    ingredients: {C: OXIDIZED_COPPER, L: LIGHTNING_ROD, P: PHANTOM_MEMBRANE}
+
+# ═══════════════════════ 서리 균열 — 서리 정수로 만든다 ═══════════════════════
+
+frost_dagger:
+  name: 서리 단검
+  pool: frost
+  type: dagger
+  element: frost
+  damage: 6
+  speed: 2.2
+  skill: ice_shard_throw
+  passive:
+    chance: 0.3
+    description: "공격 3번마다 느리게 만든다."
+    effects: [{slow: 2}]
+  lore: ["손잡이까지 차갑다."]
+  recipe:
+    shape: ["IE", "TI"]
+    ingredients: {I: ICE, E: "item:essence_frost", T: STICK}
+
+frost_staff:
+  name: 서리 지팡이
+  pool: frost
+  type: staff
+  element: frost
+  damage: 5
+  speed: 1.4
+  skill: frost_bolt
+  lore: ["입김이 하얗게 나온다."]
+  recipe:
+    shape: [" E ", "SLS", " L "]
+    ingredients: {E: "item:essence_frost", S: SNOW_BLOCK, L: SPRUCE_LOG}
+
+frost_spear:
+  name: 빙창
+  pool: frost
+  type: spear
+  element: frost
+  damage: 8
+  speed: 1.2
+  reach: 1
+  skill: ice_lance
+  lore: ["녹지 않는 얼음으로 벼렸다."]
+  recipe:
+    shape: [" EP", " TE", "T  "]
+    ingredients: {E: "item:essence_frost", P: PACKED_ICE, T: STICK}
+
+frost_greatsword:
+  name: 서리 대검
+  pool: frost
+  type: greatsword
+  element: frost
+  damage: 12
+  speed: 1.0
+  skill: frost_nova
+  skill2: glacier_spike
+  passive:
+    chance: 0.25
+    description: "공격 4번마다 얼린다."
+    effects: [{freeze: 2}]
+  lore: ["칼집에 넣으면 칼집이 언다."]
+  recipe:
+    shape: [" BE", "EBB", "LE "]
+    ingredients: {B: BLUE_ICE, E: "item:essence_frost", L: LAPIS_BLOCK}
+
+# ═══════════════════════ 화염 균열 — 화염 정수로 만든다 ═══════════════════════
+
+flame_sword:
+  name: 화염 검
+  pool: flame
+  type: sword
+  element: flame
+  damage: 8
+  speed: 1.6
+  skill: flame_slash
+  passive:
+    chance: 0.25
+    description: "공격 4번마다 3초 동안 불태운다."
+    effects: [{ignite: 3}]
+  lore: ["칼날이 식지 않는다."]
+  recipe:
+    shape: ["  E", "ME ", "BM "]
+    ingredients: {E: "item:essence_flame", M: MAGMA_CREAM, B: BLAZE_ROD}
+
+flame_staff:
+  name: 화염 지팡이
+  pool: flame
+  type: staff
+  element: flame
+  damage: 5
+  speed: 1.4
+  skill: fireball
+  lore: ["끝에서 항상 불씨가 튄다."]
+  recipe:
+    shape: [" E ", "FBF", " B "]
+    ingredients: {E: "item:essence_flame", F: FIRE_CHARGE, B: BLAZE_ROD}
+
+ember_greatsword:
+  name: 화염 대검
+  pool: flame
+  type: greatsword
+  element: flame
+  damage: 12
+  speed: 1.0
+  skill: inferno_slam
+  skill2: fire_tornado
+  passive:
+    chance: 0.3
+    description: "공격 3번마다 불꽃 추가 피해 3과 화상."
+    effects: [{damage: 3, magic: true}, {ignite: 4}]
+  lore: ["마그마를 화염 정수로 달궈 통째로 벼려 낸 대검."]
+  recipe:
+    shape: [" ME", "EMM", "BE "]
+    ingredients: {M: MAGMA_BLOCK, E: "item:essence_flame", B: BLAZE_ROD}
+
+volcano_axe:
+  name: 화산 도끼
+  pool: flame
+  type: axe
+  element: flame
+  damage: 12
+  speed: 1.0
+  skill: lava_eruption
+  passive:
+    chance: 0.25
+    description: "공격 4번마다 불태운다."
+    effects: [{ignite: 4}]
+  lore: ["나무꾼의 도끼를 용암에 담갔다 꺼냈다."]
+  recipe:
+    shape: ["ML", "MW", " E"]
+    ingredients: {M: MAGMA_BLOCK, L: LAVA_BUCKET, W: "weapon:woodcutter_axe", E: "item:essence_flame"}
+
+# ═══════════════════════ 공허 균열 — 공허 정수로 만든다 ═══════════════════════
+
+abyss_scythe:
+  name: 심연의 낫
+  pool: void
+  type: scythe
+  element: abyss
+  damage: 11.5
+  speed: 1.1
+  reach: 0.5
+  skill: void_slash
+  skill2: void_rift
+  passive:
+    chance: 0.25
+    description: "공격 4번마다 시들게 한다."
+    effects: [{wither: 3}]
+  lore: ["날 끝이 보이지 않는다. 공허로 이어져 있다."]
+  recipe:
+    shape: ["EOE", "EP ", "P  "]
+    ingredients: {E: "item:essence_void", O: OBSIDIAN, P: PURPUR_PILLAR}
+
+shadow_dagger:
+  name: 그림자 단검
+  pool: void
+  type: dagger
+  element: shadow
+  damage: 8
+  speed: 2.2
+  skill: shadow_step
+  skill2: shadow_veil
+  passive:
+    chance: 0.2
+    description: "공격 5번마다 추가 피해 3과 실명."
+    effects: [{damage: 3}, {potion: {effect: blindness, seconds: 1}}]
+  lore: ["빛 아래에서는 보이지 않는다."]
+  recipe:
+    shape: ["OE", "EE"]
+    ingredients: {O: OBSIDIAN, E: "item:essence_void"}
+
+ender_dagger:
+  name: 엔더 단검
+  pool: void
+  type: dagger
+  element: ender
+  damage: 8
+  speed: 2.2
+  skill: blink
+  lore: ["쥐고 있으면 자꾸 어딘가로 가고 싶어진다."]
+  recipe:
+    shape: ["PE", "RP"]
+    ingredients: {P: ENDER_PEARL, E: "item:essence_void", R: END_ROD}
+
+# ═══════════════════════ 보스 — 보스가 떨어뜨리거나 프리즘 결정으로 만든다 ═══════════════════════
+
+frostlord_greatsword:
+  name: 서리 군주의 대검
+  pool: boss
+  type: greatsword
+  element: frost
+  damage: 15
+  speed: 1.0
+  skill: eternal_winter
+  skill2: glacier_prison
+  passive:
+    chance: 0.3
+    description: "공격 3번마다 얼리고 추가 피해 4."
+    effects: [{freeze: 2}, {damage: 4, magic: true}]
+  lore: ["서리 군주가 쓰러지며 남긴 대검. 아직 겨울을 품고 있다."]
+  source: 서리 군주를 쓰러뜨리면 얻는다
+
+inferno_hammer:
+  name: 화염 거신의 망치
+  pool: boss
+  type: hammer
+  element: flame
+  damage: 16
+  speed: 0.8
+  skill: meteor
+  skill2: volcano
+  passive:
+    chance: 0.3
+    description: "공격 3번마다 화염 폭발 피해 5."
+    effects: [{damage: 5, magic: true}, {ignite: 5}, {explosion: true}]
+  lore: ["화염 거신의 심장을 박아 넣은 망치."]
+  source: 화염 거신을 쓰러뜨리면 얻는다
+
+void_reaper:
+  name: 공허의 대낫
+  pool: boss
+  type: scythe
+  element: abyss
+  damage: 14.5
+  speed: 1.1
+  reach: 0.7
+  skill: black_hole
+  skill2: dimension_cut
+  passive:
+    chance: 0.3
+    description: "공격 3번마다 시들게 하고 체력 2 회복."
+    effects: [{wither: 3}, {heal_caster: 2}]
+  lore: ["공허의 군주가 쥐고 있던 낫. 아무것도 비추지 않는다."]
+  source: 공허의 군주를 쓰러뜨리면 얻는다
+
+heavens_spear:
+  name: 천둥의 창
+  pool: boss
+  type: spear
+  element: storm
+  damage: 13
+  speed: 1.2
+  reach: 1.2
+  skill: judgment_bolt
+  skill2: thunder_descent
+  passive:
+    chance: 0.25
+    description: "공격 4번마다 번개 추가 피해 7."
+    effects: [{lightning: true}, {damage: 7, magic: true}]
+  lore: ["하늘이 내린 창. 하늘로 돌려보낼 생각은 없다."]
+  recipe:
+    shape: [" LC", " WL", "B  "]
+    ingredients: {L: LIGHTNING_ROD, C: "item:prism_crystal", W: "weapon:storm_spear", B: COPPER_BLOCK}
+
+holy_blade:
+  name: 성검
+  pool: boss
+  type: sword
+  element: holy
+  damage: 13
+  speed: 1.6
+  skill: holy_judgment
+  skill2: guardian_light
+  passive:
+    chance: 0.25
+    description: "공격 4번마다 신성 피해 5, 체력 3 회복."
+    effects: [{damage: 5, magic: true}, {heal_caster: 3}]
+  lore: ["이 검을 든 자 곁에서는 아무도 쓰러지지 않는다."]
+  recipe:
+    shape: ["  D", "QC ", "GQ "]
+    ingredients: {D: DIAMOND, Q: GLOWSTONE, C: "item:prism_crystal", G: GOLD_BLOCK}
+
+bloodmoon_katana:
+  name: 혈월의 카타나
+  pool: boss
+  type: katana
+  element: blood
+  damage: 13
+  speed: 1.8
+  skill: crimson_moon
+  skill2: blood_rush
+  passive:
+    chance: 0.3
+    description: "공격 3번마다 체력 4 회복."
+    effects: [{heal_caster: 4}]
+  lore: ["붉은 달이 뜨는 밤에만 칼집에서 나온다고 한다."]
+  recipe:
+    shape: ["M C", " C ", "SR "]
+    ingredients: {M: SHROOMLIGHT, C: "item:prism_crystal", S: CRIMSON_STEM, R: REDSTONE_BLOCK}
+
+worldtree_staff:
+  name: 세계수의 지팡이
+  pool: boss
+  type: staff
+  element: nature
+  damage: 9
+  speed: 1.4
+  skill: life_garden
+  skill2: vine_storm
+  lore: ["세계수의 가지. 심으면 섬 하나가 생긴다는 소문이 있다."]
+  recipe:
+    shape: [" C ", "KWH", " M "]
+    ingredients: {C: "item:prism_crystal", K: DARK_OAK_SAPLING, W: "weapon:nature_staff", H: CHERRY_SAPLING, M: MOSS_BLOCK}
+
+abyssal_trident:
+  name: 심해의 삼지창
+  pool: boss
+  type: spear
+  element: ocean
+  damage: 13
+  speed: 1.2
+  reach: 1
+  skill: tsunami
+  skill2: maelstrom
+  passive:
+    chance: 0.25
+    description: "공격 4번마다 크게 밀어낸다."
+    effects: [{knockback: 1.4}, {damage: 4}]
+  lore: ["하늘 아래 바다가 있다면, 그 바닥에 있던 것."]
+  recipe:
+    shape: ["PCP", " W ", " N "]
+    ingredients: {P: DARK_PRISMARINE, C: "item:prism_crystal", W: "weapon:tide_spear", N: NAUTILUS_SHELL}
+
+shadow_twinblade:
+  name: 암살자의 쌍검
+  pool: boss
+  type: dagger
+  element: shadow
+  damage: 10
+  speed: 2.3
+  skill: blade_dance
+  skill2: shadow_clone
+  passive:
+    chance: 0.3
+    description: "공격 3번마다 추가 피해 5."
+    effects: [{damage: 5}, {particle: CRIT, count: 10}]
+  lore: ["두 자루가 한 몸처럼 움직인다."]
+  recipe:
+    shape: ["SC", "VE"]
+    ingredients: {S: "weapon:shadow_dagger", C: "item:prism_crystal", V: "item:essence_void", E: "weapon:ender_dagger"}
+
+star_greatsword:
+  name: 별의 대검
+  pool: boss
+  type: greatsword
+  element: star
+  damage: 15
+  speed: 1.0
+  skill: starfall
+  skill2: galaxy_burst
+  passive:
+    chance: 0.25
+    description: "공격 4번마다 별빛 피해 6."
+    effects: [{damage: 6, magic: true}, {particle: END_ROD, count: 12}]
+  lore: ["떨어진 별을 통째로 벼렸다."]
+  recipe:
+    shape: [" GC", "EAG", "AE "]
+    ingredients: {G: GLOWSTONE, C: "item:prism_crystal", E: END_ROD, A: AMETHYST_BLOCK}
+
+# ═══════════════════════ 프리즘 — 프리즘 결정과 같은 종류의 무기 하나로 만든다 ═══════════════════════
+
+prism_greatsword:
+  name: 프리즘 대검
+  pool: prism
+  type: greatsword
+  element: prism
+  damage: 18
+  speed: 1.0
+  skill: prism_burst
+  skill2: rainbow_beam
+  skill3: spectrum_break
+  passive:
+    chance: 0.3
+    description: "공격 3번마다 무지개 피해 8."
+    effects: [{damage: 8, magic: true}, {particle: "DUST:#ff6b9d:1.5", count: 20}]
+  lore: ["모든 증강의 빛이 이 칼날 하나에 모였다."]
+  recipe:
+    shape: [" CC", "DWC", "CD "]
+    ingredients: {C: "item:prism_crystal", D: DIAMOND, W: "weapon:star_greatsword"}
+
+apocalypse_scythe:
+  name: 종말의 낫
+  pool: prism
+  type: scythe
+  element: doom
+  damage: 17
+  speed: 1.1
+  reach: 0.8
+  skill: apocalypse
+  skill2: soul_storm
+  skill3: doomsday
+  passive:
+    chance: 0.3
+    description: "공격 3번마다 시들게 하고 체력 4 회복."
+    effects: [{wither: 4}, {heal_caster: 4}]
+  lore: ["이 낫이 휘둘러진 뒤에는 아무것도 남지 않았다."]
+  recipe:
+    shape: ["CCK", "CW ", "C  "]
+    ingredients: {C: "item:prism_crystal", K: CRYING_OBSIDIAN, W: "weapon:void_reaper"}
+
+genesis_staff:
+  name: 창세의 지팡이
+  pool: prism
+  type: staff
+  element: prism
+  damage: 12
+  speed: 1.4
+  skill_power: 1.1
+  skill: genesis
+  skill2: time_stop
+  skill3: world_creation
+  lore: ["세상이 처음 만들어질 때 쓰인 지팡이."]
+  recipe:
+    shape: [" C ", "CWC", "ECE"]
+    ingredients: {C: "item:prism_crystal", W: "weapon:worldtree_staff", E: EMERALD}
+
+thundergod_hammer:
+  name: 천뢰의 망치
+  pool: prism
+  type: hammer
+  element: storm
+  damage: 19
+  speed: 0.8
+  skill: thunder_god
+  skill2: thunderstorm
+  skill3: thunder_wrath
+  passive:
+    chance: 0.3
+    description: "공격 3번마다 낙뢰 피해 10."
+    effects: [{lightning: true}, {damage: 10, magic: true}]
+  lore: ["이 망치가 땅에 닿으면 하늘이 대답한다."]
+  source: "프리즘 결정 5개로 만든다"
+  recipe:
+    shape: ["CLC", "CWC", " C "]
+    ingredients: {C: "item:prism_crystal", L: LIGHTNING_ROD, W: "weapon:thunder_hammer"}
+
+sun_blade:
+  name: 태양검
+  pool: prism
+  type: sword
+  element: sun
+  damage: 16
+  speed: 1.6
+  skill: solar_flare
+  skill2: sunfall
+  skill3: supernova
+  passive:
+    chance: 0.3
+    description: "공격 3번마다 태양열 피해 6과 화상."
+    effects: [{damage: 6, magic: true}, {ignite: 6}]
+  lore: ["한낮의 태양을 칼날에 가뒀다. 밤에도 따뜻하다."]
+  recipe:
+    shape: ["B C", "CW ", "CCB"]
+    ingredients: {B: BLAZE_ROD, C: "item:prism_crystal", W: "weapon:holy_blade"}
+
+# ═══════════════════════ 활 ═══════════════════════
+#  활은 우클릭으로 당겨 쏘는 보통 활이다. 화살을 쓰고, 무한 마법(마법 부여대·책)을 붙이면 줄지 않는다.
+#  보스·프리즘 활(pool: boss, prism)만 무한 마법 없이도 화살 1개만 있으면 줄지 않는다 (그 화살은 주울 수 없다).
+#  damage 는 끝까지 당겨 쐈을 때 화살 피해.
+#  웅크리기+당겨 쏘기는 화살 대신 skill 이 나간다 (재사용 대기 중이면 그냥 화살). 웅크리기+좌클릭은 skill2.
+#  활에는 skill3 이 없다.
+
+hunter_bow:
+  name: 사냥꾼의 활
+  pool: basic
+  type: bow
+  element: wood
+  repair: STRING
+  damage: 6.5
+  speed: 1.0
+  lore: ["처음 잡아 보는 활. 바람을 읽어라."]
+  recipe:
+    shape: [" TS", "TLS", " TS"]
+    ingredients: {T: STICK, S: STRING, L: LEATHER}
+
+wind_bow:
+  name: 바람의 활
+  pool: island
+  type: bow
+  element: wind
+  damage: 7.5
+  speed: 1.0
+  skill: gale_arrow
+  passive:
+    chance: 0.2
+    description: "화살이 5번 맞을 때마다 크게 밀쳐낸다."
+    effects: [{knockback: 1.5}]
+  lore: ["시위를 놓으면 바람이 따라간다."]
+  recipe:
+    shape: ["FTS", "TPS", "FTS"]
+    ingredients: {F: FEATHER, T: STICK, S: STRING, P: PHANTOM_MEMBRANE}
+
+venom_bow:
+  name: 독사의 활
+  pool: island
+  type: bow
+  element: venom
+  damage: 7
+  speed: 1.0
+  skill: venom_rain
+  passive:
+    chance: 0.3
+    description: "화살이 3번 맞을 때마다 독."
+    effects: [{poison: 2}]
+  lore: ["활대에 독사의 비늘이 감겨 있다."]
+  recipe:
+    shape: ["ETS", "TPS", "ETS"]
+    ingredients: {E: SPIDER_EYE, T: STICK, S: STRING, P: PUFFERFISH}
+
+frost_bow:
+  name: 서리 활
+  pool: frost
+  type: bow
+  element: frost
+  damage: 9
+  speed: 1.0
+  skill: glacier_arrow
+  passive:
+    chance: 0.3
+    description: "화살이 3번 맞을 때마다 느리게 만든다."
+    effects: [{slow: 2}]
+  lore: ["시위가 얼음처럼 차갑게 울린다."]
+  recipe:
+    shape: ["ETS", "TBS", "ETS"]
+    ingredients: {E: "item:essence_frost", T: STICK, S: STRING, B: BLUE_ICE}
+
+flame_bow:
+  name: 화염 활
+  pool: flame
+  type: bow
+  element: flame
+  damage: 9.5
+  speed: 1.0
+  skill: firestorm_arrows
+  passive:
+    chance: 0.3
+    description: "화살이 3번 맞을 때마다 불붙인다."
+    effects: [{ignite: 3}]
+  lore: ["화살촉이 공기에 닿기만 해도 불이 붙는다."]
+  recipe:
+    shape: ["ETS", "TCS", "ETS"]
+    ingredients: {E: "item:essence_flame", T: BLAZE_ROD, S: STRING, C: MAGMA_CREAM}
+
+void_bow:
+  name: 공허의 활
+  pool: void
+  type: bow
+  element: abyss
+  damage: 10
+  speed: 1.0
+  skill: void_piercer
+  passive:
+    chance: 0.25
+    description: "화살이 4번 맞을 때마다 시들게 한다."
+    effects: [{wither: 2}]
+  lore: ["쏜 화살은 날아가는 대신 사라졌다가 나타난다."]
+  recipe:
+    shape: ["ETS", "TPS", "ETS"]
+    ingredients: {E: "item:essence_void", T: END_ROD, S: STRING, P: ENDER_PEARL}
+
+storm_longbow:
+  name: 뇌천궁
+  pool: boss
+  type: bow
+  element: storm
+  damage: 14
+  speed: 1.0
+  skill: thunder_volley
+  skill2: chain_arrow
+  passive:
+    chance: 0.25
+    description: "화살이 4번 맞을 때마다 번개가 떨어진다."
+    effects: [{lightning: true}, {damage: 5, magic: true}]
+  lore: ["하늘을 향해 쏘면 하늘이 대답한다."]
+  source: "프리즘 결정으로 만든다 (보스도 가끔 떨군다)"
+  recipe:
+    shape: ["CLS", "LWS", "RLS"]
+    ingredients: {C: "item:prism_crystal", L: LIGHTNING_ROD, S: STRING, W: "weapon:wind_bow", R: REDSTONE_BLOCK}
+
+prism_bow:
+  name: 별무리 활
+  pool: prism
+  type: bow
+  element: prism
+  damage: 17
+  speed: 1.0
+  skill: starfall_volley
+  skill2: rainbow_piercer
+  passive:
+    chance: 0.3
+    description: "화살이 3번 맞을 때마다 무지개 피해 8."
+    effects: [{damage: 8, magic: true}, {particle: "DUST:#ff6b9d:1.5", count: 20}]
+  lore: ["별을 화살 삼아 쏜다."]
+  recipe:
+    shape: ["CCS", "DWS", "CCS"]
+    ingredients: {C: "item:prism_crystal", S: STRING, D: DIAMOND, W: "weapon:storm_longbow"}
+
+# ═══════════════════════ 곡괭이 — 바로 전 곡괭이를 재료로 한 단계씩 강화한다 ═══════════════════════
+#  스킬은 없고 우클릭·좌클릭은 바닐라 그대로다. 무작위 무기 드롭에는 나오지 않는다 (droppable: false).
+#  mining.tier 보다 단단한 광석은 캐도 아무것도 떨어지지 않는다 (개척자의 곡괭이로는 금·다이아몬드·레드스톤이 안 나온다,
+#  흑요석·우는 흑요석·고대 잔해는 심층 곡괭이부터).
+
+pioneer_pickaxe:
+  name: 개척자의 곡괭이
+  pool: basic
+  type: pickaxe
+  element: stone
+  damage: 3
+  speed: 1.2
+  mining: {tier: stone, speed: 4.5}
+  durability: 200
+  repair: COBBLESTONE
+  droppable: false
+  lore: ["부싯돌 날을 가죽끈으로 동여맨 첫 곡괭이."]
+  recipe:
+    shape: ["CFC", " S ", " S "]
+    ingredients: {C: COBBLESTONE, F: FLINT, S: STICK}
+
+miner_pickaxe:
+  name: 광부의 곡괭이
+  pool: basic
+  type: pickaxe
+  element: iron
+  damage: 4
+  speed: 1.2
+  mining: {tier: iron, speed: 6.5}
+  durability: 375
+  repair: IRON_INGOT
+  droppable: false
+  lore: ["광부들이 대대로 써 온 쌍날 곡괭이. 작은 랜턴이 길을 비춘다."]
+  recipe:
+    shape: ["ILI", " W ", " S "]
+    ingredients: {I: IRON_INGOT, L: LANTERN, W: "weapon:pioneer_pickaxe", S: STICK}
+
+amethyst_pickaxe:
+  name: 자수정 곡괭이
+  pool: island
+  type: pickaxe
+  element: crystal
+  damage: 4.5
+  speed: 1.2
+  mining: {tier: iron, speed: 8.5}
+  durability: 1100
+  repair: AMETHYST_SHARD
+  droppable: false
+  lore: ["자수정 결정이 돌을 결대로 쪼갠다.", "심층으로 내려가는 디딤돌."]
+  recipe:
+    shape: ["ABA", " W ", " C "]
+    ingredients: {A: AMETHYST_SHARD, B: AMETHYST_BLOCK, W: "weapon:miner_pickaxe", C: CALCITE}
+
+deep_pickaxe:
+  name: 심층 곡괭이
+  pool: island
+  type: pickaxe
+  element: earth
+  damage: 5
+  speed: 1.2
+  mining: {tier: diamond, speed: 9.5}
+  durability: 1800
+  repair: DIAMOND
+  droppable: false
+  lore: ["심층암을 통째로 깎아 다이아몬드 끝을 박았다. 흑요석도 캔다."]
+  recipe:
+    shape: ["DRD", " W ", " T "]
+    ingredients: {D: DIAMOND, R: REDSTONE_BLOCK, W: "weapon:amethyst_pickaxe", T: TUFF}
+
+magma_pickaxe:
+  name: 용암 곡괭이
+  pool: flame
+  type: pickaxe
+  element: flame
+  damage: 5.5
+  speed: 1.2
+  mining: {tier: diamond, speed: 10.5}
+  durability: 2000
+  repair: "item:essence_flame"
+  perks: {auto_smelt: true}
+  droppable: false
+  lore: ["날이 늘 달아올라 있어 캐낸 광석이 그대로 녹는다."]
+  recipe:
+    shape: ["EME", " W ", " B "]
+    ingredients: {E: "item:essence_flame", M: MAGMA_BLOCK, W: "weapon:deep_pickaxe", B: BLAZE_ROD}
+
+meteor_pickaxe:
+  name: 운석 곡괭이
+  pool: boss
+  type: pickaxe
+  element: star
+  damage: 6
+  speed: 1.2
+  mining: {tier: netherite, speed: 11.5}
+  durability: 2400
+  repair: DIAMOND
+  perks: {auto_smelt: true, haste: 1}
+  droppable: false
+  lore: ["하늘에서 떨어진 운석을 박았다. 쥐면 손이 빨라진다."]
+  recipe:
+    shape: ["YCO", " W ", " R "]
+    ingredients: {Y: CRYING_OBSIDIAN, C: "item:prism_crystal", O: OBSIDIAN, W: "weapon:magma_pickaxe", R: END_ROD}
+
+prism_pickaxe:
+  name: 프리즘 곡괭이
+  pool: prism
+  type: pickaxe
+  element: prism
+  damage: 7
+  speed: 1.2
+  mining: {tier: netherite, speed: 13}
+  durability: 3200
+  repair: "item:prism_crystal"
+  perks: {auto_smelt: true, haste: 2}
+  droppable: false
+  lore: ["빛을 가르는 두 날. 캐는 소리마저 무지갯빛이다."]
+  source: "프리즘 결정 3개로 만든다"
+  recipe:
+    shape: ["CDC", " W ", " C "]
+    ingredients: {C: "item:prism_crystal", D: DIAMOND, W: "weapon:meteor_pickaxe"}

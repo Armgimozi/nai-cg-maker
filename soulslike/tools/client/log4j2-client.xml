@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 하네스용 클라이언트 기록 설정. 런처의 client-1.21.2.xml 과 같되 콘솔도 보통 글줄로 쓴다 (mcclient.py 가 이 줄을 읽는다) -->
+<Configuration status="WARN">
+    <Appenders>
+        <Console name="SysOut" target="SYSTEM_OUT">
+            <PatternLayout pattern="[%d{HH:mm:ss.SSS}] [%t/%level]: %msg{nolookups}%n" charset="UTF-8"/>
+        </Console>
+        <RandomAccessFile name="File" fileName="logs/latest.log" append="false">
+            <PatternLayout pattern="[%d{HH:mm:ss.SSS}] [%t/%level]: %msg{nolookups}%n" charset="UTF-8"/>
+        </RandomAccessFile>
+    </Appenders>
+    <Loggers>
+        <Root level="info">
+            <filters>
+                <MarkerFilter marker="NETWORK_PACKETS" onMatch="DENY" onMismatch="NEUTRAL"/>
+            </filters>
+            <AppenderRef ref="SysOut"/>
+            <AppenderRef ref="File"/>
+        </Root>
+    </Loggers>
+</Configuration>

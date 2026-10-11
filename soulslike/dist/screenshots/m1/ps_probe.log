@@ -1,0 +1,888 @@
+ASPD weapon=- base=4.000 mult=1.0000 value=4.000
+LOAD weight=0.0 cap=40.0 ratio=0.00 tier=light t=840
+PROBE_SET on=true cancel=none fswing=none t=845
+PROBE_SET on=true cancel=none fswing=none t=852
+PROBE_SET on=true cancel=none fswing=none t=858
+PROBE_MOB cleared=0 t=864
+GIVE id=redin_guard_sword n=1 to=main
+GIVE id=parrying_dagger n=1 to=off
+ASPD weapon=redin_guard_sword base=1.538 mult=1.0000 value=1.538
+LOAD weight=3.5 cap=40.0 ratio=0.09 tier=light t=880
+PROBE_MARK label=s1_air_click t=913
+PROBE ev=interact hand=HAND action=RIGHT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=926 ms=4056 seq=1 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=-
+PROBE ev=interact hand=OFF_HAND action=RIGHT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=926 ms=4066 seq=2 item=flint:parrying_dagger using=- blocking=false useBlock=DENY block=-
+PROBE_MARK label=s1_air_hold t=948
+PROBE ev=interact hand=HAND action=RIGHT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=961 ms=5810 seq=3 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=-
+PROBE ev=interact hand=OFF_HAND action=RIGHT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=961 ms=5813 seq=4 item=flint:parrying_dagger using=- blocking=false useBlock=DENY block=-
+PROBE ev=interact hand=HAND action=RIGHT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=965 ms=6031 seq=5 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=-
+PROBE ev=interact hand=OFF_HAND action=RIGHT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=965 ms=6033 seq=6 item=flint:parrying_dagger using=- blocking=false useBlock=DENY block=-
+PROBE ev=interact hand=HAND action=RIGHT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=968 ms=6195 seq=7 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=-
+PROBE ev=interact hand=OFF_HAND action=RIGHT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=968 ms=6196 seq=8 item=flint:parrying_dagger using=- blocking=false useBlock=DENY block=-
+PROBE ev=interact hand=HAND action=RIGHT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=973 ms=6419 seq=9 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=-
+PROBE ev=interact hand=OFF_HAND action=RIGHT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=973 ms=6421 seq=10 item=flint:parrying_dagger using=- blocking=false useBlock=DENY block=-
+PROBE ev=interact hand=HAND action=RIGHT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=977 ms=6608 seq=11 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=-
+PROBE ev=interact hand=OFF_HAND action=RIGHT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=977 ms=6613 seq=12 item=flint:parrying_dagger using=- blocking=false useBlock=DENY block=-
+PROBE ev=interact hand=HAND action=RIGHT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=980 ms=6794 seq=13 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=-
+PROBE ev=interact hand=OFF_HAND action=RIGHT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=980 ms=6795 seq=14 item=flint:parrying_dagger using=- blocking=false useBlock=DENY block=-
+PROBE ev=interact hand=HAND action=RIGHT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=985 ms=7017 seq=15 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=-
+PROBE ev=interact hand=OFF_HAND action=RIGHT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=985 ms=7022 seq=16 item=flint:parrying_dagger using=- blocking=false useBlock=DENY block=-
+PROBE ev=interact hand=HAND action=RIGHT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=989 ms=7226 seq=17 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=-
+PROBE ev=interact hand=OFF_HAND action=RIGHT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=989 ms=7229 seq=18 item=flint:parrying_dagger using=- blocking=false useBlock=DENY block=-
+PROBE ev=interact hand=HAND action=RIGHT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=993 ms=7405 seq=19 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=-
+PROBE ev=interact hand=OFF_HAND action=RIGHT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=993 ms=7406 seq=20 item=flint:parrying_dagger using=- blocking=false useBlock=DENY block=-
+PROBE ev=interact hand=HAND action=RIGHT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=997 ms=7617 seq=21 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=-
+PROBE ev=interact hand=OFF_HAND action=RIGHT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=997 ms=7618 seq=22 item=flint:parrying_dagger using=- blocking=false useBlock=DENY block=-
+PROBE_MARK label=s1_floor_click t=1039
+PROBE ev=interact hand=HAND action=RIGHT_CLICK_BLOCK cancelled=true useItem=DEFAULT will=- t=1052 ms=10350 seq=23 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=cracked_deepslate_tiles
+PROBE ev=interact hand=OFF_HAND action=RIGHT_CLICK_BLOCK cancelled=true useItem=DEFAULT will=- t=1052 ms=10359 seq=24 item=flint:parrying_dagger using=- blocking=false useBlock=DENY block=cracked_deepslate_tiles
+PROBE_MARK label=s1_floor_hold t=1074
+PROBE ev=interact hand=HAND action=RIGHT_CLICK_BLOCK cancelled=true useItem=DEFAULT will=- t=1087 ms=12133 seq=25 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=cracked_deepslate_tiles
+PROBE ev=interact hand=OFF_HAND action=RIGHT_CLICK_BLOCK cancelled=true useItem=DEFAULT will=- t=1087 ms=12134 seq=26 item=flint:parrying_dagger using=- blocking=false useBlock=DENY block=cracked_deepslate_tiles
+PROBE ev=interact hand=HAND action=RIGHT_CLICK_BLOCK cancelled=true useItem=DEFAULT will=- t=1091 ms=12331 seq=27 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=cracked_deepslate_tiles
+PROBE ev=interact hand=OFF_HAND action=RIGHT_CLICK_BLOCK cancelled=true useItem=DEFAULT will=- t=1091 ms=12333 seq=28 item=flint:parrying_dagger using=- blocking=false useBlock=DENY block=cracked_deepslate_tiles
+PROBE ev=interact hand=HAND action=RIGHT_CLICK_BLOCK cancelled=true useItem=DEFAULT will=- t=1095 ms=12527 seq=29 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=cracked_deepslate_tiles
+PROBE ev=interact hand=OFF_HAND action=RIGHT_CLICK_BLOCK cancelled=true useItem=DEFAULT will=- t=1095 ms=12529 seq=30 item=flint:parrying_dagger using=- blocking=false useBlock=DENY block=cracked_deepslate_tiles
+PROBE ev=interact hand=HAND action=RIGHT_CLICK_BLOCK cancelled=true useItem=DEFAULT will=- t=1098 ms=12695 seq=31 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=cracked_deepslate_tiles
+PROBE ev=interact hand=OFF_HAND action=RIGHT_CLICK_BLOCK cancelled=true useItem=DEFAULT will=- t=1098 ms=12697 seq=32 item=flint:parrying_dagger using=- blocking=false useBlock=DENY block=cracked_deepslate_tiles
+PROBE ev=interact hand=HAND action=RIGHT_CLICK_BLOCK cancelled=true useItem=DEFAULT will=- t=1103 ms=12939 seq=33 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=cracked_deepslate_tiles
+PROBE ev=interact hand=OFF_HAND action=RIGHT_CLICK_BLOCK cancelled=true useItem=DEFAULT will=- t=1103 ms=12940 seq=34 item=flint:parrying_dagger using=- blocking=false useBlock=DENY block=cracked_deepslate_tiles
+PROBE ev=interact hand=HAND action=RIGHT_CLICK_BLOCK cancelled=true useItem=DEFAULT will=- t=1107 ms=13131 seq=35 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=cracked_deepslate_tiles
+PROBE ev=interact hand=OFF_HAND action=RIGHT_CLICK_BLOCK cancelled=true useItem=DEFAULT will=- t=1107 ms=13133 seq=36 item=flint:parrying_dagger using=- blocking=false useBlock=DENY block=cracked_deepslate_tiles
+PROBE ev=interact hand=HAND action=RIGHT_CLICK_BLOCK cancelled=true useItem=DEFAULT will=- t=1111 ms=13307 seq=37 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=cracked_deepslate_tiles
+PROBE ev=interact hand=OFF_HAND action=RIGHT_CLICK_BLOCK cancelled=true useItem=DEFAULT will=- t=1111 ms=13308 seq=38 item=flint:parrying_dagger using=- blocking=false useBlock=DENY block=cracked_deepslate_tiles
+PROBE ev=interact hand=HAND action=RIGHT_CLICK_BLOCK cancelled=true useItem=DEFAULT will=- t=1114 ms=13493 seq=39 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=cracked_deepslate_tiles
+PROBE ev=interact hand=OFF_HAND action=RIGHT_CLICK_BLOCK cancelled=true useItem=DEFAULT will=- t=1114 ms=13494 seq=40 item=flint:parrying_dagger using=- blocking=false useBlock=DENY block=cracked_deepslate_tiles
+PROBE ev=interact hand=HAND action=RIGHT_CLICK_BLOCK cancelled=true useItem=DEFAULT will=- t=1119 ms=13726 seq=41 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=cracked_deepslate_tiles
+PROBE ev=interact hand=OFF_HAND action=RIGHT_CLICK_BLOCK cancelled=true useItem=DEFAULT will=- t=1119 ms=13728 seq=42 item=flint:parrying_dagger using=- blocking=false useBlock=DENY block=cracked_deepslate_tiles
+PROBE ev=interact hand=HAND action=RIGHT_CLICK_BLOCK cancelled=true useItem=DEFAULT will=- t=1123 ms=13914 seq=43 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=cracked_deepslate_tiles
+PROBE ev=interact hand=OFF_HAND action=RIGHT_CLICK_BLOCK cancelled=true useItem=DEFAULT will=- t=1123 ms=13915 seq=44 item=flint:parrying_dagger using=- blocking=false useBlock=DENY block=cracked_deepslate_tiles
+GIVE id=redin_guard_sword n=1 to=main
+GIVE id=parrying_dagger n=1 to=off
+PROBE_MARK label=s2_hold15 t=1185
+PARRY item=parrying_dagger class=parrying_dagger base=9 ring=0 diff=0 window=9 sneak=false t=1197
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1197 ms=17651 seq=45 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY item=parrying_dagger class=parrying_dagger base=9 ring=0 diff=0 window=9 sneak=false t=1211
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1211 ms=18322 seq=46 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=0 lock=12 sneak=false t=1211
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1211 ms=18330 seq=47 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=2 lock=12 sneak=false t=1213
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1213 ms=18399 seq=48 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=2 lock=12 sneak=false t=1213
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1213 ms=18401 seq=49 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=3 lock=12 sneak=false t=1214
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1214 ms=18490 seq=50 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=3 lock=12 sneak=false t=1214
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1214 ms=18497 seq=51 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=5 lock=12 sneak=false t=1216
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1216 ms=18593 seq=52 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=5 lock=12 sneak=false t=1216
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1216 ms=18595 seq=53 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=7 lock=12 sneak=false t=1218
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1218 ms=18660 seq=54 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=7 lock=12 sneak=false t=1218
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1218 ms=18660 seq=55 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=8 lock=12 sneak=false t=1219
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1219 ms=18737 seq=56 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=8 lock=12 sneak=false t=1219
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1219 ms=18737 seq=57 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=10 lock=12 sneak=false t=1221
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1221 ms=18810 seq=58 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=10 lock=12 sneak=false t=1221
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1221 ms=18811 seq=59 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=11 lock=12 sneak=false t=1222
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1222 ms=18878 seq=60 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY item=parrying_dagger class=parrying_dagger base=9 ring=0 diff=0 window=9 sneak=false t=1223
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1223 ms=18946 seq=61 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=0 lock=12 sneak=false t=1223
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1223 ms=18946 seq=62 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=2 lock=12 sneak=false t=1225
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1225 ms=19019 seq=63 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=2 lock=12 sneak=false t=1225
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1225 ms=19020 seq=64 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=3 lock=12 sneak=false t=1226
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1226 ms=19091 seq=65 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=3 lock=12 sneak=false t=1226
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1226 ms=19091 seq=66 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=5 lock=12 sneak=false t=1228
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1228 ms=19167 seq=67 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=6 lock=12 sneak=false t=1229
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1229 ms=19240 seq=68 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PROBE_MARK label=s2_hold30 t=1242
+PARRY item=parrying_dagger class=parrying_dagger base=9 ring=0 diff=0 window=9 sneak=false t=1255
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1255 ms=20509 seq=69 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY item=parrying_dagger class=parrying_dagger base=9 ring=0 diff=0 window=9 sneak=false t=1268
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1268 ms=21169 seq=70 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=0 lock=12 sneak=false t=1268
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1268 ms=21170 seq=71 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=1 lock=12 sneak=false t=1269
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1269 ms=21231 seq=72 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=1 lock=12 sneak=false t=1269
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1269 ms=21231 seq=73 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=3 lock=12 sneak=false t=1271
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1271 ms=21303 seq=74 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=4 lock=12 sneak=false t=1272
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1272 ms=21375 seq=75 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=4 lock=12 sneak=false t=1272
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1272 ms=21376 seq=76 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=6 lock=12 sneak=false t=1274
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1274 ms=21452 seq=77 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=6 lock=12 sneak=false t=1274
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1274 ms=21453 seq=78 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=7 lock=12 sneak=false t=1275
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1275 ms=21520 seq=79 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=7 lock=12 sneak=false t=1275
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1275 ms=21520 seq=80 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=8 lock=12 sneak=false t=1276
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1276 ms=21596 seq=81 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=8 lock=12 sneak=false t=1276
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1276 ms=21597 seq=82 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=10 lock=12 sneak=false t=1278
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1278 ms=21667 seq=83 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=11 lock=12 sneak=false t=1279
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1279 ms=21735 seq=84 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=11 lock=12 sneak=false t=1279
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1279 ms=21736 seq=85 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY item=parrying_dagger class=parrying_dagger base=9 ring=0 diff=0 window=9 sneak=false t=1281
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1281 ms=21817 seq=86 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=0 lock=12 sneak=false t=1281
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1281 ms=21818 seq=87 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=1 lock=12 sneak=false t=1282
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1282 ms=21887 seq=88 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=1 lock=12 sneak=false t=1282
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1282 ms=21888 seq=89 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=3 lock=12 sneak=false t=1284
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1284 ms=21951 seq=90 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=4 lock=12 sneak=false t=1285
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1285 ms=22024 seq=91 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=4 lock=12 sneak=false t=1285
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1285 ms=22025 seq=92 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=5 lock=12 sneak=false t=1286
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1286 ms=22093 seq=93 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=5 lock=12 sneak=false t=1286
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1286 ms=22093 seq=94 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=7 lock=12 sneak=false t=1288
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1288 ms=22158 seq=95 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=8 lock=12 sneak=false t=1289
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1289 ms=22224 seq=96 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=8 lock=12 sneak=false t=1289
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1289 ms=22224 seq=97 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=9 lock=12 sneak=false t=1290
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1290 ms=22291 seq=98 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=9 lock=12 sneak=false t=1290
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1290 ms=22292 seq=99 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=11 lock=12 sneak=false t=1292
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1292 ms=22354 seq=100 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY item=parrying_dagger class=parrying_dagger base=9 ring=0 diff=0 window=9 sneak=false t=1293
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1293 ms=22425 seq=101 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=0 lock=12 sneak=false t=1293
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1293 ms=22427 seq=102 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=1 lock=12 sneak=false t=1294
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1294 ms=22495 seq=103 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=1 lock=12 sneak=false t=1294
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1294 ms=22496 seq=104 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=3 lock=12 sneak=false t=1296
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1296 ms=22565 seq=105 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=3 lock=12 sneak=false t=1296
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1296 ms=22566 seq=106 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=4 lock=12 sneak=false t=1297
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1297 ms=22631 seq=107 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=6 lock=12 sneak=false t=1299
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1299 ms=22701 seq=108 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=6 lock=12 sneak=false t=1299
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1299 ms=22702 seq=109 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=7 lock=12 sneak=false t=1300
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1300 ms=22776 seq=110 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=7 lock=12 sneak=false t=1300
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1300 ms=22777 seq=111 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=9 lock=12 sneak=false t=1302
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1302 ms=22850 seq=112 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=9 lock=12 sneak=false t=1302
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1302 ms=22851 seq=113 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=10 lock=12 sneak=false t=1303
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1303 ms=22914 seq=114 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=11 lock=12 sneak=false t=1304
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1304 ms=22982 seq=115 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=11 lock=12 sneak=false t=1304
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1304 ms=22985 seq=116 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY item=parrying_dagger class=parrying_dagger base=9 ring=0 diff=0 window=9 sneak=false t=1306
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1306 ms=23051 seq=117 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=1 lock=12 sneak=false t=1307
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1307 ms=23125 seq=118 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=1 lock=12 sneak=false t=1307
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1307 ms=23126 seq=119 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=2 lock=12 sneak=false t=1308
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1308 ms=23192 seq=120 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=2 lock=12 sneak=false t=1308
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1308 ms=23193 seq=121 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=4 lock=12 sneak=false t=1310
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1310 ms=23267 seq=122 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=4 lock=12 sneak=false t=1310
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1310 ms=23270 seq=123 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=5 lock=12 sneak=false t=1311
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1311 ms=23338 seq=124 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=5 lock=12 sneak=false t=1311
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1311 ms=23340 seq=125 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=7 lock=12 sneak=false t=1313
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1313 ms=23420 seq=126 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=7 lock=12 sneak=false t=1313
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1313 ms=23421 seq=127 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=8 lock=12 sneak=false t=1314
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1314 ms=23492 seq=128 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PARRY_LOCKED since=10 lock=12 sneak=false t=1316
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=1316 ms=23565 seq=129 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PROBE_SET on=false cancel=none fswing=none t=1335
+ASPD weapon=redin_guard_sword base=1.538 mult=1.0000 value=1.538
+ATTR hp=400.0/400 move=0.0000 stats=vig:10,mnd:10,end:10,str:10,dex:10,int:10
+LOAD weight=3.5 cap=40.0 ratio=0.09 tier=light t=2341
+PACK sent sha1=da101e11327ae62e5fdf19ad5153aa7d999c9665 required=true lang=ko locale=ko_KR
+PACK status=ACCEPTED
+PACK status=DOWNLOADED
+PACK status=SUCCESSFULLY_LOADED
+ASPD weapon=- base=4.000 mult=1.0000 value=4.000
+LOAD weight=0.0 cap=40.0 ratio=0.00 tier=light t=2610
+PROBE_SET on=true cancel=none fswing=none t=2622
+PROBE_SET on=true cancel=none fswing=none t=2628
+PROBE_SET on=true cancel=none fswing=none t=2634
+PROBE_MOB cleared=0 t=2640
+GIVE id=redin_guard_sword n=1 to=main
+ASPD weapon=redin_guard_sword base=1.538 mult=1.0000 value=1.538
+LOAD weight=3.0 cap=40.0 ratio=0.08 tier=light t=2650
+GIVE id=parrying_dagger n=1 to=off
+LOAD weight=3.5 cap=40.0 ratio=0.09 tier=light t=2660
+PROBE_SET on=true cancel=none fswing=off t=2668
+PROBE_MARK label=s3_f_only t=2680
+PARRY item=parrying_dagger class=parrying_dagger base=9 ring=0 diff=0 window=9 sneak=false t=2684
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=2684 ms=5928 seq=1 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PROBE ev=srvswing hand=OFF_HAND action=F cancelled=- useItem=- will=- t=2684 ms=5929 seq=2 item=flint:parrying_dagger using=- blocking=false
+PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=2685 ms=6020 seq=3 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=-
+PROBE ev=swing hand=OFF_HAND action=OFF_ARM_SWING cancelled=false useItem=- will=- t=2685 ms=6021 seq=4 item=flint:parrying_dagger using=- blocking=false
+PROBE_MARK label=s3_click_f_fast t=2734
+PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=2738 ms=16681 seq=5 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=-
+PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false useItem=- will=- t=2738 ms=16683 seq=6 item=flint:redin_guard_sword using=- blocking=false
+PARRY item=parrying_dagger class=parrying_dagger base=9 ring=0 diff=0 window=9 sneak=false t=2739
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=2739 ms=16912 seq=7 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PROBE ev=srvswing hand=OFF_HAND action=F cancelled=- useItem=- will=- t=2739 ms=16912 seq=8 item=flint:parrying_dagger using=- blocking=false
+PROBE_MARK label=s3_click_f_slow t=2786
+PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=2790 ms=27093 seq=9 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=-
+PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false useItem=- will=- t=2790 ms=27095 seq=10 item=flint:redin_guard_sword using=- blocking=false
+PARRY item=parrying_dagger class=parrying_dagger base=9 ring=0 diff=0 window=9 sneak=false t=2795
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=2795 ms=28108 seq=11 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PROBE ev=srvswing hand=OFF_HAND action=F cancelled=- useItem=- will=- t=2795 ms=28109 seq=12 item=flint:parrying_dagger using=- blocking=false
+PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=2796 ms=28232 seq=13 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=-
+PROBE ev=swing hand=OFF_HAND action=OFF_ARM_SWING cancelled=false useItem=- will=- t=2796 ms=28236 seq=14 item=flint:parrying_dagger using=- blocking=false
+PROBE_MARK label=s3_f_click_fast t=2842
+PARRY item=parrying_dagger class=parrying_dagger base=9 ring=0 diff=0 window=9 sneak=false t=2846
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=2846 ms=38300 seq=15 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PROBE ev=srvswing hand=OFF_HAND action=F cancelled=- useItem=- will=- t=2846 ms=38301 seq=16 item=flint:parrying_dagger using=- blocking=false
+PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=2847 ms=38442 seq=17 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=-
+PROBE ev=swing hand=OFF_HAND action=OFF_ARM_SWING cancelled=false useItem=- will=- t=2847 ms=38445 seq=18 item=flint:parrying_dagger using=- blocking=false
+PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=2847 ms=38521 seq=19 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=-
+PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false useItem=- will=- t=2847 ms=38522 seq=20 item=flint:redin_guard_sword using=- blocking=false
+PROBE_MARK label=s3_click_only t=2896
+PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=2900 ms=49076 seq=21 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=-
+PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false useItem=- will=- t=2900 ms=49077 seq=22 item=flint:redin_guard_sword using=- blocking=false
+PROBE_SET on=true cancel=none fswing=none t=2932
+PROBE_SET on=true cancel=none fswing=off t=2947
+GIVE id=parrying_dagger n=1 to=off
+ASPD weapon=- base=4.000 mult=1.0000 value=4.000
+LOAD weight=0.5 cap=40.0 ratio=0.01 tier=light t=2960
+PROBE_MARK label=s13_whack20_f t=2967
+PARRY item=parrying_dagger class=parrying_dagger base=9 ring=0 diff=0 window=9 sneak=false t=2971
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=2971 ms=61577 seq=23 item=flint:parrying_dagger using=- blocking=false main=flint
+PROBE ev=srvswing hand=OFF_HAND action=F cancelled=- useItem=- will=- t=2971 ms=61578 seq=24 item=flint:parrying_dagger using=- blocking=false
+PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=2972 ms=61654 seq=25 item=flint using=- blocking=false useBlock=DENY block=-
+PROBE ev=swing hand=OFF_HAND action=OFF_ARM_SWING cancelled=false useItem=- will=- t=2972 ms=61655 seq=26 item=flint:parrying_dagger using=- blocking=false
+PROBE_MARK label=s13_whack20_click t=3046
+PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=3050 ms=77212 seq=27 item=flint using=- blocking=false useBlock=DENY block=-
+PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false useItem=- will=- t=3050 ms=77212 seq=28 item=flint using=- blocking=false
+PROBE_MARK label=s13_stab20_f t=3133
+PARRY item=parrying_dagger class=parrying_dagger base=9 ring=0 diff=0 window=9 sneak=false t=3137
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=3137 ms=94772 seq=29 item=flint:parrying_dagger using=- blocking=false main=flint
+PROBE ev=srvswing hand=OFF_HAND action=F cancelled=- useItem=- will=- t=3137 ms=94773 seq=30 item=flint:parrying_dagger using=- blocking=false
+PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=3138 ms=94850 seq=31 item=flint using=- blocking=false useBlock=DENY block=-
+PROBE ev=swing hand=OFF_HAND action=OFF_ARM_SWING cancelled=false useItem=- will=- t=3138 ms=94850 seq=32 item=flint:parrying_dagger using=- blocking=false
+PROBE_MARK label=s13_stab20_click t=3207
+PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=3211 ms=109558 seq=33 item=flint using=- blocking=false useBlock=DENY block=-
+PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false useItem=- will=- t=3211 ms=109558 seq=34 item=flint using=- blocking=false
+PROBE_MARK label=s13_empty_f t=3289
+PARRY item=parrying_dagger class=parrying_dagger base=9 ring=0 diff=0 window=9 sneak=false t=3294
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=3294 ms=126025 seq=35 item=flint:parrying_dagger using=- blocking=false main=-
+PROBE ev=srvswing hand=OFF_HAND action=F cancelled=- useItem=- will=- t=3294 ms=126027 seq=36 item=flint:parrying_dagger using=- blocking=false
+PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=3294 ms=126113 seq=37 item=- using=- blocking=false useBlock=DENY block=-
+PROBE ev=swing hand=OFF_HAND action=OFF_ARM_SWING cancelled=false useItem=- will=- t=3294 ms=126114 seq=38 item=flint:parrying_dagger using=- blocking=false
+GIVE id=redin_guard_sword n=1 to=main
+ASPD weapon=redin_guard_sword base=1.538 mult=1.0000 value=1.538
+LOAD weight=3.0 cap=40.0 ratio=0.08 tier=light t=3370
+PROBE_MARK label=s13_offstab20_f t=3377
+PARRY_NONE item=- class=other why=cannot sneak=false t=3382
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=3382 ms=143602 seq=39 item=flint using=- blocking=false main=flint:redin_guard_sword
+PROBE ev=srvswing hand=OFF_HAND action=F cancelled=- useItem=- will=- t=3382 ms=143603 seq=40 item=flint using=- blocking=false
+PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=3382 ms=143678 seq=41 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=-
+PROBE ev=swing hand=OFF_HAND action=OFF_ARM_SWING cancelled=false useItem=- will=- t=3382 ms=143679 seq=42 item=flint using=- blocking=false
+PROBE_MARK label=s13_offstab20_click t=3451
+PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=3455 ms=158195 seq=43 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=-
+PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false useItem=- will=- t=3455 ms=158196 seq=44 item=flint:redin_guard_sword using=- blocking=false
+PROBE_SET on=true cancel=none fswing=none t=3526
+PROBE_SET on=false cancel=none fswing=none t=3539
+ASPD weapon=redin_guard_sword base=1.538 mult=1.0000 value=1.538
+ATTR hp=400.0/400 move=0.0000 stats=vig:10,mnd:10,end:10,str:10,dex:10,int:10
+LOAD weight=3.0 cap=40.0 ratio=0.08 tier=light t=8384
+PACK sent sha1=da101e11327ae62e5fdf19ad5153aa7d999c9665 required=true lang=ko locale=ko_KR
+PACK status=ACCEPTED
+PACK status=DOWNLOADED
+PACK status=SUCCESSFULLY_LOADED
+ASPD weapon=- base=4.000 mult=1.0000 value=4.000
+LOAD weight=0.0 cap=40.0 ratio=0.00 tier=light t=8640
+PROBE_SET on=true cancel=none fswing=none t=8651
+PROBE_SET on=true cancel=none fswing=none t=8657
+PROBE_SET on=true cancel=none fswing=none t=8663
+PROBE_MOB cleared=0 t=8669
+GIVE id=redin_guard_sword n=1 to=main
+ASPD weapon=redin_guard_sword base=1.538 mult=1.0000 value=1.538
+LOAD weight=3.0 cap=40.0 ratio=0.08 tier=light t=8680
+GIVE id=parrying_dagger n=1 to=off
+LOAD weight=3.5 cap=40.0 ratio=0.09 tier=light t=8690
+PROBE_MARK label=s4_none t=8759
+POS x=190.500 y=101.000 z=-192.500 yaw=-90.0 ground=true t=8770
+PROBE ev=input hand=- action=+fwd cancelled=- useItem=- will=- t=8778 ms=6359 seq=1 item=flint:redin_guard_sword using=- blocking=false in=fwd
+PROBE ev=input hand=- action=-fwd cancelled=- useItem=- will=- t=8800 ms=7460 seq=2 item=flint:redin_guard_sword using=- blocking=false in=none
+POS x=195.245 y=101.000 z=-192.500 yaw=-90.0 ground=true t=8813
+PROBE ev=input hand=- action=+jump cancelled=- useItem=- will=- t=8821 ms=8545 seq=3 item=flint:redin_guard_sword using=- blocking=false in=jump
+PROBE ev=input hand=- action=-jump cancelled=- useItem=- will=- t=8824 ms=8687 seq=4 item=flint:redin_guard_sword using=- blocking=false in=none
+POS x=195.245 y=102.177 z=-192.500 yaw=-90.0 ground=false t=8828
+PROBE_MARK label=s4_slow25 t=8928
+POS x=190.500 y=101.000 z=-192.500 yaw=-90.0 ground=true t=8939
+PROBE ev=input hand=- action=+fwd cancelled=- useItem=- will=- t=8948 ms=14879 seq=5 item=flint:redin_guard_sword using=- blocking=false in=fwd
+PROBE ev=input hand=- action=-fwd cancelled=- useItem=- will=- t=8969 ms=15924 seq=6 item=flint:redin_guard_sword using=- blocking=false in=none
+POS x=193.895 y=101.000 z=-192.500 yaw=-90.0 ground=true t=8982
+PROBE ev=input hand=- action=+jump cancelled=- useItem=- will=- t=8990 ms=16981 seq=7 item=flint:redin_guard_sword using=- blocking=false in=jump
+PROBE ev=input hand=- action=-jump cancelled=- useItem=- will=- t=8993 ms=17120 seq=8 item=flint:redin_guard_sword using=- blocking=false in=none
+POS x=193.895 y=102.024 z=-192.500 yaw=-90.0 ground=false t=8997
+PROBE_MARK label=s4_slow50 t=9101
+POS x=190.500 y=101.000 z=-192.500 yaw=-90.0 ground=true t=9112
+PROBE ev=input hand=- action=+fwd cancelled=- useItem=- will=- t=9121 ms=23521 seq=9 item=flint:redin_guard_sword using=- blocking=false in=fwd
+PROBE ev=input hand=- action=-fwd cancelled=- useItem=- will=- t=9141 ms=24522 seq=10 item=flint:redin_guard_sword using=- blocking=false in=none
+POS x=192.760 y=101.000 z=-192.500 yaw=-90.0 ground=true t=9155
+PROBE ev=input hand=- action=+jump cancelled=- useItem=- will=- t=9163 ms=25639 seq=11 item=flint:redin_guard_sword using=- blocking=false in=jump
+PROBE ev=input hand=- action=-jump cancelled=- useItem=- will=- t=9166 ms=25774 seq=12 item=flint:redin_guard_sword using=- blocking=false in=none
+POS x=192.760 y=102.177 z=-192.500 yaw=-90.0 ground=false t=9170
+PROBE_MARK label=s4_root t=9275
+POS x=190.500 y=101.000 z=-192.500 yaw=-90.0 ground=true t=9286
+PROBE ev=input hand=- action=+fwd cancelled=- useItem=- will=- t=9294 ms=32195 seq=13 item=flint:redin_guard_sword using=- blocking=false in=fwd
+PROBE ev=input hand=- action=-fwd cancelled=- useItem=- will=- t=9316 ms=33256 seq=14 item=flint:redin_guard_sword using=- blocking=false in=none
+POS x=190.500 y=101.000 z=-192.500 yaw=-90.0 ground=true t=9329
+PROBE ev=input hand=- action=+jump cancelled=- useItem=- will=- t=9339 ms=34407 seq=15 item=flint:redin_guard_sword using=- blocking=false in=jump
+PROBE ev=input hand=- action=-jump cancelled=- useItem=- will=- t=9341 ms=34534 seq=16 item=flint:redin_guard_sword using=- blocking=false in=none
+POS x=190.500 y=101.000 z=-192.500 yaw=-90.0 ground=true t=9345
+PROBE_MARK label=s4_slowness2 t=9445
+POS x=190.500 y=101.000 z=-192.500 yaw=-90.0 ground=true t=9455
+PROBE ev=input hand=- action=+fwd cancelled=- useItem=- will=- t=9464 ms=40697 seq=17 item=flint:redin_guard_sword using=- blocking=false in=fwd
+PROBE ev=input hand=- action=-fwd cancelled=- useItem=- will=- t=9486 ms=41759 seq=18 item=flint:redin_guard_sword using=- blocking=false in=none
+POS x=193.668 y=101.000 z=-192.500 yaw=-90.0 ground=true t=9499
+PROBE ev=input hand=- action=+jump cancelled=- useItem=- will=- t=9507 ms=42816 seq=19 item=flint:redin_guard_sword using=- blocking=false in=jump
+PROBE ev=input hand=- action=-jump cancelled=- useItem=- will=- t=9511 ms=43012 seq=20 item=flint:redin_guard_sword using=- blocking=false in=none
+POS x=193.668 y=102.024 z=-192.500 yaw=-90.0 ground=false t=9514
+PROBE ev=input hand=- action=+fwd cancelled=- useItem=- will=- t=9575 ms=46200 seq=21 item=flint:redin_guard_sword using=- blocking=false in=fwd
+PROBE ev=input hand=- action=-fwd cancelled=- useItem=- will=- t=9693 ms=52109 seq=22 item=flint:redin_guard_sword using=- blocking=false in=none
+GIVE id=redin_guard_sword n=1 to=main
+GIVE id=redin_guard_shield n=1 to=off
+LOAD weight=7.0 cap=40.0 ratio=0.18 tier=light t=9730
+PROBE_MARK label=s5_guard_tap t=9755
+PROBE ev=interact hand=HAND action=RIGHT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=9767 ms=55817 seq=23 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=-
+PROBE ev=interact hand=OFF_HAND action=RIGHT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=9767 ms=55818 seq=24 item=shield:redin_guard_shield using=- blocking=false useBlock=DENY block=-
+PROBE ev=input hand=- action=+sneak cancelled=- useItem=- will=- t=9792 ms=57055 seq=25 item=flint:redin_guard_sword using=OFF_HAND blocking=true in=sneak
+ROLL_TAP held=2 press=9792 t=9794 window=5 ping=3
+ROLL kind=backstep dir=back cost=12 st=88.0 vis=body duck=false t=9794
+PROBE ev=input hand=- action=-sneak cancelled=- useItem=- will=- t=9794 ms=57219 seq=26 item=flint:redin_guard_sword using=- blocking=false in=none
+PROBE ev=interact hand=HAND action=RIGHT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=9797 ms=57302 seq=27 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=-
+PROBE ev=interact hand=OFF_HAND action=RIGHT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=9797 ms=57308 seq=28 item=shield:redin_guard_shield using=- blocking=false useBlock=DENY block=-
+ROLLEND kind=backstep dist=0.92 st=88.0 t=9804
+PROBE ev=useend hand=- action=STOP cancelled=- useItem=- will=- t=9811 ms=58025 seq=29 item=shield:redin_guard_shield using=OFF_HAND blocking=true ticks=14
+PROBE_MARK label=s5_guard_hold t=9828
+PROBE ev=interact hand=HAND action=RIGHT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=9842 ms=59565 seq=30 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=-
+PROBE ev=interact hand=OFF_HAND action=RIGHT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=9842 ms=59566 seq=31 item=shield:redin_guard_shield using=- blocking=false useBlock=DENY block=-
+PROBE ev=input hand=- action=+sneak cancelled=- useItem=- will=- t=9853 ms=60110 seq=32 item=flint:redin_guard_sword using=OFF_HAND blocking=true in=sneak
+ROLL_TAP_SKIP why=hold held=12 t=9865
+PROBE ev=input hand=- action=-sneak cancelled=- useItem=- will=- t=9865 ms=60725 seq=33 item=flint:redin_guard_sword using=OFF_HAND blocking=true in=none
+PROBE ev=useend hand=- action=STOP cancelled=- useItem=- will=- t=9874 ms=61185 seq=34 item=shield:redin_guard_shield using=OFF_HAND blocking=true ticks=32
+ASPD weapon=- base=4.000 mult=1.0000 value=4.000
+LOAD weight=0.0 cap=40.0 ratio=0.00 tier=light t=9900
+PROBE_MARK label=s5_drink_tap t=9927
+PROBE ev=interact hand=HAND action=RIGHT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=9938 ms=64393 seq=35 item=potion using=- blocking=false useBlock=DENY block=-
+PROBE ev=input hand=- action=+sneak cancelled=- useItem=- will=- t=9961 ms=65528 seq=36 item=potion using=HAND blocking=false in=sneak
+ROLL_TAP held=2 press=9961 t=9963 window=5 ping=2
+ROLL kind=backstep dir=back cost=12 st=88.0 vis=body duck=false t=9963
+PROBE ev=input hand=- action=-sneak cancelled=- useItem=- will=- t=9963 ms=65634 seq=37 item=potion using=- blocking=false in=none
+PROBE ev=interact hand=HAND action=RIGHT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=9965 ms=65710 seq=38 item=potion using=- blocking=false useBlock=DENY block=-
+ROLLEND kind=backstep dist=0.53 st=88.0 t=9973
+PROBE ev=consume hand=HAND action=CONSUME cancelled=false useItem=- will=- t=9997 ms=67300 seq=39 item=potion using=HAND blocking=false
+PROBE ev=interact hand=HAND action=RIGHT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=9998 ms=67382 seq=40 item=glass_bottle using=- blocking=false useBlock=DENY block=-
+PROBE_MARK label=s5_drink_release t=10046
+PROBE ev=interact hand=HAND action=RIGHT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=10059 ms=70445 seq=41 item=potion using=- blocking=false useBlock=DENY block=-
+PROBE ev=input hand=- action=+sneak cancelled=- useItem=- will=- t=10070 ms=70952 seq=42 item=potion using=HAND blocking=false in=sneak
+PROBE ev=useend hand=- action=STOP cancelled=- useItem=- will=- t=10073 ms=71108 seq=43 item=potion using=HAND blocking=false ticks=14
+ROLL_TAP held=3 press=10070 t=10073 window=5 ping=1
+ROLL kind=backstep dir=back cost=12 st=88.0 vis=body duck=false t=10073
+PROBE ev=input hand=- action=-sneak cancelled=- useItem=- will=- t=10073 ms=71110 seq=44 item=potion using=- blocking=false in=none
+ROLLEND kind=backstep dist=0.00 st=88.0 t=10083
+PROBE_MARK label=s6_plain_40 t=10168
+PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=10182 ms=76572 seq=45 item=flint using=- blocking=false useBlock=DENY block=-
+PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false useItem=- will=- t=10182 ms=76573 seq=46 item=flint using=- blocking=false
+PROBE_MARK label=s6_range_40 t=10223
+PROBE ev=attack hand=HAND action=ATTACK cancelled=false useItem=- will=true t=10236 ms=79302 seq=47 item=flint using=- blocking=false target=husk dist=4.000 sprinting=false
+PROBE ev=damage hand=HAND action=ENTITY_ATTACK cancelled=false useItem=- will=- t=10236 ms=79320 seq=48 item=flint using=- blocking=false target=husk dist=4.000 dmg=0.94 crit=false
+PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=10236 ms=79329 seq=49 item=flint using=- blocking=false useBlock=DENY block=-
+PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false useItem=- will=- t=10236 ms=79330 seq=50 item=flint using=- blocking=false
+GIVE id=redin_guard_sword n=1 to=main
+ASPD weapon=redin_guard_sword base=1.538 mult=1.0000 value=1.538
+LOAD weight=3.0 cap=40.0 ratio=0.08 tier=light t=10260
+PROBE_MARK label=s6_sword_40 t=10278
+PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=10290 ms=81972 seq=51 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=-
+PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false useItem=- will=- t=10290 ms=81973 seq=52 item=flint:redin_guard_sword using=- blocking=false
+ASPD weapon=- base=4.000 mult=1.0000 value=4.000
+LOAD weight=0.0 cap=40.0 ratio=0.00 tier=light t=10320
+PROBE_MARK label=s6_range_43 t=10342
+PROBE ev=attack hand=HAND action=ATTACK cancelled=false useItem=- will=true t=10354 ms=85182 seq=53 item=flint using=- blocking=false target=husk dist=4.300 sprinting=false
+PROBE ev=damage hand=HAND action=ENTITY_ATTACK cancelled=false useItem=- will=- t=10354 ms=85183 seq=54 item=flint using=- blocking=false target=husk dist=4.300 dmg=0.94 crit=false
+PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=10354 ms=85185 seq=55 item=flint using=- blocking=false useBlock=DENY block=-
+PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false useItem=- will=- t=10354 ms=85186 seq=56 item=flint using=- blocking=false
+PROBE_MARK label=s6_range_38 t=10400
+PROBE ev=attack hand=HAND action=ATTACK cancelled=false useItem=- will=true t=10413 ms=88119 seq=57 item=flint using=- blocking=false target=husk dist=3.800 sprinting=false
+PROBE ev=damage hand=HAND action=ENTITY_ATTACK cancelled=false useItem=- will=- t=10413 ms=88120 seq=58 item=flint using=- blocking=false target=husk dist=3.800 dmg=0.94 crit=false
+PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=10413 ms=88122 seq=59 item=flint using=- blocking=false useBlock=DENY block=-
+PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false useItem=- will=- t=10413 ms=88122 seq=60 item=flint using=- blocking=false
+PROBE_MARK label=s6_plain_28 t=10465
+PROBE ev=attack hand=HAND action=ATTACK cancelled=false useItem=- will=true t=10478 ms=91378 seq=61 item=flint using=- blocking=false target=husk dist=2.800 sprinting=false
+PROBE ev=damage hand=HAND action=ENTITY_ATTACK cancelled=false useItem=- will=- t=10478 ms=91379 seq=62 item=flint using=- blocking=false target=husk dist=2.800 dmg=0.94 crit=false
+PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false useItem=- will=- t=10478 ms=91380 seq=63 item=flint using=- blocking=false
+PROBE_SET on=false cancel=none fswing=none t=10517
+ASPD weapon=redin_guard_sword base=1.538 mult=1.0000 value=1.538
+ATTR hp=400.0/400 move=0.0000 stats=vig:10,mnd:10,end:10,str:10,dex:10,int:10
+LOAD weight=3.5 cap=40.0 ratio=0.09 tier=light t=416
+PACK sent sha1=da101e11327ae62e5fdf19ad5153aa7d999c9665 required=true lang=ko locale=ko_KR
+PACK status=ACCEPTED
+PACK status=DOWNLOADED
+PACK status=SUCCESSFULLY_LOADED
+ASPD weapon=- base=4.000 mult=1.0000 value=4.000
+LOAD weight=0.0 cap=40.0 ratio=0.00 tier=light t=690
+PROBE_SET on=true cancel=none fswing=none move=false t=696
+PROBE_SET on=true cancel=none fswing=none move=false t=702
+PROBE_SET on=true cancel=none fswing=none move=false t=709
+PROBE_MOB cleared=0 t=715
+GIVE id=redin_guard_sword n=1 to=main
+GIVE id=parrying_dagger n=1 to=off
+ASPD weapon=redin_guard_sword base=1.538 mult=1.0000 value=1.538
+LOAD weight=3.5 cap=40.0 ratio=0.09 tier=light t=730
+PROBE_SET on=true cancel=none fswing=none move=true t=746
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=754 ms=2895 seq=1 item=- using=- blocking=false v=10.4403 y=101.000 sprinting=false
+PROBE_MARK label=s12_sprint_plain t=788
+PROBE ev=input hand=- action=+sprint cancelled=- useItem=- will=- t=802 ms=5321 seq=2 item=flint:redin_guard_sword using=- blocking=false in=sprint
+PROBE ev=input hand=- action=+fwd cancelled=- useItem=- will=- t=804 ms=5417 seq=3 item=flint:redin_guard_sword using=- blocking=false in=fwd,sprint
+PROBE ev=sprint hand=- action=on cancelled=false useItem=- will=- t=804 ms=5418 seq=4 item=- using=- blocking=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=805 ms=5445 seq=5 item=- using=- blocking=false v=0.3244 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=807 ms=5546 seq=6 item=- using=- blocking=false v=0.4906 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=809 ms=5646 seq=7 item=- using=- blocking=false v=0.5402 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=810 ms=5696 seq=8 item=- using=- blocking=false v=0.2766 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=812 ms=5795 seq=9 item=- using=- blocking=false v=0.5578 y=101.000 sprinting=true
+PROBE ev=attack hand=HAND action=ATTACK cancelled=false useItem=- will=true t=813 ms=5892 seq=10 item=flint:redin_guard_sword using=- blocking=false target=husk dist=2.310 sprinting=true
+PVE_HIT weapon=redin_guard_sword ar=68.2 cd=1.00 vanilla=1.00 dealt=6.14 to=husk t=813
+PROBE ev=damage hand=HAND action=ENTITY_ATTACK cancelled=false useItem=- will=- t=813 ms=5913 seq=11 item=flint:redin_guard_sword using=- blocking=false target=husk dist=2.310 dmg=6.04 crit=false
+PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false useItem=- will=- t=813 ms=5934 seq=12 item=flint:redin_guard_sword using=- blocking=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=814 ms=5937 seq=13 item=- using=- blocking=false v=0.5602 y=101.000 sprinting=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=816 ms=5995 seq=14 item=- using=- blocking=false v=0.5609 y=101.000 sprinting=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=818 ms=6096 seq=15 item=- using=- blocking=false v=0.5611 y=101.000 sprinting=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=820 ms=6196 seq=16 item=- using=- blocking=false v=0.2806 y=101.000 sprinting=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=821 ms=6245 seq=17 item=- using=- blocking=false v=0.2806 y=101.000 sprinting=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=822 ms=6295 seq=18 item=- using=- blocking=false v=0.2503 y=101.000 sprinting=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=823 ms=6345 seq=19 item=- using=- blocking=false v=0.5273 y=101.000 sprinting=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=825 ms=6445 seq=20 item=- using=- blocking=false v=0.6105 y=101.000 sprinting=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=827 ms=6545 seq=21 item=- using=- blocking=false v=0.5759 y=101.000 sprinting=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=829 ms=6645 seq=22 item=- using=- blocking=false v=0.5656 y=101.000 sprinting=false
+PROBE ev=input hand=- action=-fwd,-sprint cancelled=- useItem=- will=- t=830 ms=6717 seq=23 item=flint:redin_guard_sword using=- blocking=false in=none
+PROBE ev=sprint hand=- action=off cancelled=false useItem=- will=- t=830 ms=6719 seq=24 item=- using=- blocking=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=831 ms=6745 seq=25 item=- using=- blocking=false v=0.2382 y=101.000 sprinting=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=833 ms=6845 seq=26 item=- using=- blocking=false v=0.0459 y=101.000 sprinting=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=834 ms=6895 seq=27 item=- using=- blocking=false v=0.0388 y=101.000 sprinting=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=836 ms=6995 seq=28 item=- using=- blocking=false v=0.0116 y=101.000 sprinting=false
+PROBE_SET on=true cancel=attack fswing=none move=true t=844
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=852 ms=7799 seq=29 item=- using=- blocking=false v=7.2971 y=101.000 sprinting=false
+PROBE_MARK label=s12_sprint_cancel t=885
+PROBE ev=input hand=- action=+sprint cancelled=- useItem=- will=- t=898 ms=10096 seq=30 item=flint:redin_guard_sword using=- blocking=false in=sprint
+PROBE ev=input hand=- action=+fwd cancelled=- useItem=- will=- t=899 ms=10167 seq=31 item=flint:redin_guard_sword using=- blocking=false in=fwd,sprint
+PROBE ev=sprint hand=- action=on cancelled=false useItem=- will=- t=899 ms=10168 seq=32 item=- using=- blocking=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=900 ms=10196 seq=33 item=- using=- blocking=false v=0.3244 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=901 ms=10244 seq=34 item=- using=- blocking=false v=0.2349 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=903 ms=10345 seq=35 item=- using=- blocking=false v=0.5227 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=904 ms=10395 seq=36 item=- using=- blocking=false v=0.2732 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=906 ms=10495 seq=37 item=- using=- blocking=false v=0.2766 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=908 ms=10598 seq=38 item=- using=- blocking=false v=0.5578 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=909 ms=10647 seq=39 item=- using=- blocking=false v=0.5602 y=101.000 sprinting=true
+PROBE ev=attack hand=HAND action=ATTACK cancelled=true useItem=- will=true t=910 ms=10701 seq=40 item=flint:redin_guard_sword using=- blocking=false target=husk dist=1.750 sprinting=true
+PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false useItem=- will=- t=910 ms=10703 seq=41 item=flint:redin_guard_sword using=- blocking=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=911 ms=10745 seq=42 item=- using=- blocking=false v=0.2804 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=912 ms=10795 seq=43 item=- using=- blocking=false v=0.5611 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=914 ms=10895 seq=44 item=- using=- blocking=false v=0.5612 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=916 ms=10996 seq=45 item=- using=- blocking=false v=0.2806 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=917 ms=11045 seq=46 item=- using=- blocking=false v=0.4973 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=919 ms=11145 seq=47 item=- using=- blocking=false v=0.5928 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=920 ms=11195 seq=48 item=- using=- blocking=false v=0.2980 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=922 ms=11295 seq=49 item=- using=- blocking=false v=0.5759 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=924 ms=11400 seq=50 item=- using=- blocking=false v=0.2834 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=925 ms=11445 seq=51 item=- using=- blocking=false v=0.5636 y=101.000 sprinting=true
+PROBE ev=input hand=- action=-fwd cancelled=- useItem=- will=- t=926 ms=11516 seq=52 item=flint:redin_guard_sword using=- blocking=false in=sprint
+PROBE ev=sprint hand=- action=off cancelled=false useItem=- will=- t=926 ms=11519 seq=53 item=- using=- blocking=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=927 ms=11545 seq=54 item=- using=- blocking=false v=0.2376 y=101.000 sprinting=false
+PROBE ev=input hand=- action=-sprint cancelled=- useItem=- will=- t=928 ms=11604 seq=55 item=flint:redin_guard_sword using=- blocking=false in=none
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=929 ms=11645 seq=56 item=- using=- blocking=false v=0.0458 y=101.000 sprinting=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=930 ms=11698 seq=57 item=- using=- blocking=false v=0.0387 y=101.000 sprinting=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=932 ms=11799 seq=58 item=- using=- blocking=false v=0.0115 y=101.000 sprinting=false
+PROBE_SET on=true cancel=attack fswing=none move=false t=941
+PROBE_SET on=true cancel=none fswing=none move=false t=947
+PROBE_MARK label=s12_crit_plain t=968
+PROBE ev=attack hand=HAND action=ATTACK cancelled=false useItem=- will=true t=982 ms=18555 seq=59 item=flint:redin_guard_sword using=- blocking=false target=husk dist=2.100 sprinting=false
+PVE_HIT weapon=redin_guard_sword ar=68.2 cd=1.00 vanilla=1.00 dealt=6.14 to=husk t=982
+PROBE ev=damage hand=HAND action=ENTITY_ATTACK cancelled=false useItem=- will=- t=982 ms=18557 seq=60 item=flint:redin_guard_sword using=- blocking=false target=husk dist=2.100 dmg=6.04 crit=false
+PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false useItem=- will=- t=982 ms=18560 seq=61 item=flint:redin_guard_sword using=- blocking=false
+PROBE_SET on=true cancel=attack fswing=none move=false t=1040
+PROBE_MARK label=s12_crit_cancel t=1054
+PROBE ev=attack hand=HAND action=ATTACK cancelled=true useItem=- will=true t=1066 ms=35491 seq=62 item=flint:redin_guard_sword using=- blocking=false target=husk dist=2.100 sprinting=false
+PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false useItem=- will=- t=1066 ms=35492 seq=63 item=flint:redin_guard_sword using=- blocking=false
+PROBE_SET on=true cancel=none fswing=none move=false t=1128
+PROBE_SET on=false cancel=none fswing=none move=false t=1152
+ASPD weapon=redin_guard_sword base=1.538 mult=1.0000 value=1.538
+ATTR hp=400.0/400 move=0.0000 stats=vig:10,mnd:10,end:10,str:10,dex:10,int:10
+LOAD weight=3.5 cap=40.0 ratio=0.09 tier=light t=2942
+PACK sent sha1=da101e11327ae62e5fdf19ad5153aa7d999c9665 required=true lang=ko locale=ko_KR
+PACK status=ACCEPTED
+PACK status=DOWNLOADED
+PACK status=SUCCESSFULLY_LOADED
+ASPD weapon=- base=4.000 mult=1.0000 value=4.000
+LOAD weight=0.0 cap=40.0 ratio=0.00 tier=light t=3220
+PROBE_SET on=true cancel=none fswing=none move=false t=3223
+PROBE_SET on=true cancel=none fswing=none move=false t=3229
+PROBE_SET on=true cancel=none fswing=none move=false t=3235
+PROBE_MOB cleared=0 t=3242
+GIVE id=redin_guard_sword n=1 to=main
+ASPD weapon=redin_guard_sword base=1.538 mult=1.0000 value=1.538
+LOAD weight=3.0 cap=40.0 ratio=0.08 tier=light t=3250
+GIVE id=parrying_dagger n=1 to=off
+LOAD weight=3.5 cap=40.0 ratio=0.09 tier=light t=3260
+PROBE_SET on=true cancel=none fswing=none move=true t=3273
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3280 ms=2854 seq=1 item=- using=- blocking=false v=10.4403 y=101.000 sprinting=false
+PROBE_MARK label=s12_sprint_plain t=3313
+PROBE ev=input hand=- action=+sprint cancelled=- useItem=- will=- t=3325 ms=5104 seq=2 item=flint:redin_guard_sword using=- blocking=false in=sprint
+PROBE ev=input hand=- action=+fwd cancelled=- useItem=- will=- t=3326 ms=5175 seq=3 item=flint:redin_guard_sword using=- blocking=false in=fwd,sprint
+PROBE ev=sprint hand=- action=on cancelled=false useItem=- will=- t=3326 ms=5175 seq=4 item=- using=- blocking=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3327 ms=5201 seq=5 item=- using=- blocking=false v=0.3244 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3329 ms=5299 seq=6 item=- using=- blocking=false v=0.2349 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3330 ms=5349 seq=7 item=- using=- blocking=false v=0.5227 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3332 ms=5449 seq=8 item=- using=- blocking=false v=0.2732 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3333 ms=5499 seq=9 item=- using=- blocking=false v=0.5550 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3336 ms=5648 seq=10 item=- using=- blocking=false v=0.5594 y=101.000 sprinting=true
+PROBE ev=attack hand=HAND action=ATTACK cancelled=false useItem=- will=true t=3337 ms=5715 seq=11 item=flint:redin_guard_sword using=- blocking=false target=husk dist=2.031 sprinting=true
+PVE_HIT weapon=redin_guard_sword ar=68.2 cd=1.00 vanilla=1.00 dealt=6.14 to=husk t=3337
+PROBE ev=damage hand=HAND action=ENTITY_ATTACK cancelled=false useItem=- will=- t=3337 ms=5720 seq=12 item=flint:redin_guard_sword using=- blocking=false target=husk dist=2.031 dmg=6.04 crit=false
+PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false useItem=- will=- t=3337 ms=5725 seq=13 item=flint:redin_guard_sword using=- blocking=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3338 ms=5748 seq=14 item=- using=- blocking=false v=0.5607 y=101.000 sprinting=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3339 ms=5798 seq=15 item=- using=- blocking=false v=0.5611 y=101.000 sprinting=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3341 ms=5898 seq=16 item=- using=- blocking=false v=0.2806 y=101.000 sprinting=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3342 ms=5948 seq=17 item=- using=- blocking=false v=0.5612 y=101.000 sprinting=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3344 ms=6048 seq=18 item=- using=- blocking=false v=0.4973 y=101.000 sprinting=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3346 ms=6148 seq=19 item=- using=- blocking=false v=0.2803 y=101.000 sprinting=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3347 ms=6199 seq=20 item=- using=- blocking=false v=0.6105 y=101.000 sprinting=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3349 ms=6300 seq=21 item=- using=- blocking=false v=0.2901 y=101.000 sprinting=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3350 ms=6349 seq=22 item=- using=- blocking=false v=0.5693 y=101.000 sprinting=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3352 ms=6454 seq=23 item=- using=- blocking=false v=0.2822 y=101.000 sprinting=false
+PROBE ev=input hand=- action=-fwd cancelled=- useItem=- will=- t=3352 ms=6492 seq=24 item=flint:redin_guard_sword using=- blocking=false in=sprint
+PROBE ev=sprint hand=- action=off cancelled=false useItem=- will=- t=3352 ms=6493 seq=25 item=- using=- blocking=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3353 ms=6498 seq=26 item=- using=- blocking=false v=0.2382 y=101.000 sprinting=false
+PROBE ev=input hand=- action=-sprint cancelled=- useItem=- will=- t=3354 ms=6577 seq=27 item=flint:redin_guard_sword using=- blocking=false in=none
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3355 ms=6598 seq=28 item=- using=- blocking=false v=0.0459 y=101.000 sprinting=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3357 ms=6698 seq=29 item=- using=- blocking=false v=0.0388 y=101.000 sprinting=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3358 ms=6748 seq=30 item=- using=- blocking=false v=0.0116 y=101.000 sprinting=false
+PROBE_SET on=true cancel=attack fswing=none move=true t=3368
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3375 ms=7601 seq=31 item=- using=- blocking=false v=7.2971 y=101.000 sprinting=false
+PROBE_MARK label=s12_sprint_cancel t=3407
+PROBE ev=input hand=- action=+sprint cancelled=- useItem=- will=- t=3421 ms=9921 seq=32 item=flint:redin_guard_sword using=- blocking=false in=sprint
+PROBE ev=input hand=- action=+fwd cancelled=- useItem=- will=- t=3422 ms=9991 seq=33 item=flint:redin_guard_sword using=- blocking=false in=fwd,sprint
+PROBE ev=sprint hand=- action=on cancelled=false useItem=- will=- t=3422 ms=9993 seq=34 item=- using=- blocking=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3423 ms=9999 seq=35 item=- using=- blocking=false v=0.3244 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3425 ms=10098 seq=36 item=- using=- blocking=false v=0.2349 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3426 ms=10149 seq=37 item=- using=- blocking=false v=0.5227 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3428 ms=10249 seq=38 item=- using=- blocking=false v=0.2732 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3429 ms=10299 seq=39 item=- using=- blocking=false v=0.5550 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3431 ms=10405 seq=40 item=- using=- blocking=false v=0.2794 y=101.000 sprinting=true
+PROBE ev=attack hand=HAND action=ATTACK cancelled=true useItem=- will=true t=3431 ms=10445 seq=41 item=flint:redin_guard_sword using=- blocking=false target=husk dist=2.310 sprinting=true
+PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false useItem=- will=- t=3431 ms=10447 seq=42 item=flint:redin_guard_sword using=- blocking=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3432 ms=10451 seq=43 item=- using=- blocking=false v=0.5602 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3434 ms=10551 seq=44 item=- using=- blocking=false v=0.5609 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3436 ms=10648 seq=45 item=- using=- blocking=false v=0.2806 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3438 ms=10748 seq=46 item=- using=- blocking=false v=0.5612 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3439 ms=10799 seq=47 item=- using=- blocking=false v=0.5309 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3441 ms=10898 seq=48 item=- using=- blocking=false v=0.5273 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3443 ms=10998 seq=49 item=- using=- blocking=false v=0.3125 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3444 ms=11051 seq=50 item=- using=- blocking=false v=0.5881 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3446 ms=11149 seq=51 item=- using=- blocking=false v=0.2858 y=101.000 sprinting=true
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3447 ms=11201 seq=52 item=- using=- blocking=false v=0.5656 y=101.000 sprinting=true
+PROBE ev=input hand=- action=-fwd cancelled=- useItem=- will=- t=3448 ms=11263 seq=53 item=flint:redin_guard_sword using=- blocking=false in=sprint
+PROBE ev=sprint hand=- action=off cancelled=false useItem=- will=- t=3448 ms=11266 seq=54 item=- using=- blocking=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3449 ms=11298 seq=55 item=- using=- blocking=false v=0.1541 y=101.000 sprinting=false
+PROBE ev=input hand=- action=-sprint cancelled=- useItem=- will=- t=3449 ms=11341 seq=56 item=flint:redin_guard_sword using=- blocking=false in=none
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3450 ms=11349 seq=57 item=- using=- blocking=false v=0.1300 y=101.000 sprinting=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3453 ms=11499 seq=58 item=- using=- blocking=false v=0.0462 y=101.000 sprinting=false
+PROBE ev=move hand=- action=MOVE cancelled=- useItem=- will=- t=3455 ms=11598 seq=59 item=- using=- blocking=false v=0.0041 y=101.000 sprinting=false
+PROBE_SET on=true cancel=attack fswing=none move=false t=3463
+PROBE_SET on=true cancel=none fswing=none move=false t=3469
+ASPD weapon=- base=4.000 mult=1.0000 value=4.000
+LOAD weight=0.5 cap=40.0 ratio=0.01 tier=light t=3480
+PROBE_MARK label=s12_crit_plain t=3504
+PROBE ev=input hand=- action=+jump cancelled=- useItem=- will=- t=3508 ms=18172 seq=60 item=flint using=- blocking=false in=jump
+PROBE ev=input hand=- action=-jump cancelled=- useItem=- will=- t=3508 ms=18314 seq=61 item=flint using=- blocking=false in=none
+PROBE ev=attack hand=HAND action=ATTACK cancelled=false useItem=- will=true t=3516 ms=19898 seq=62 item=flint using=- blocking=false target=husk dist=2.151 sprinting=false
+PROBE ev=damage hand=HAND action=ENTITY_ATTACK cancelled=false useItem=- will=- t=3516 ms=19900 seq=63 item=flint using=- blocking=false target=husk dist=2.151 dmg=1.42 crit=true
+PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false useItem=- will=- t=3516 ms=19906 seq=64 item=flint using=- blocking=false
+PROBE_SET on=true cancel=attack fswing=none move=false t=3576
+PROBE_MARK label=s12_crit_cancel t=3598
+PROBE ev=input hand=- action=+jump cancelled=- useItem=- will=- t=3602 ms=36952 seq=65 item=flint using=- blocking=false in=jump
+PROBE ev=input hand=- action=-jump cancelled=- useItem=- will=- t=3603 ms=37150 seq=66 item=flint using=- blocking=false in=none
+PROBE ev=attack hand=HAND action=ATTACK cancelled=true useItem=- will=true t=3610 ms=38575 seq=67 item=flint using=- blocking=false target=husk dist=2.212 sprinting=false
+PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false useItem=- will=- t=3610 ms=38576 seq=68 item=flint using=- blocking=false
+PROBE_SET on=true cancel=none fswing=none move=false t=3667
+PROBE_SET on=false cancel=none fswing=none move=false t=3692
+ASPD weapon=- base=4.000 mult=1.0000 value=4.000
+ATTR hp=400.0/400 move=0.0000 stats=vig:10,mnd:10,end:10,str:10,dex:10,int:10
+LOAD weight=0.5 cap=40.0 ratio=0.01 tier=light t=8772
+PACK sent sha1=da101e11327ae62e5fdf19ad5153aa7d999c9665 required=true lang=ko locale=ko_KR
+PACK status=ACCEPTED
+PACK status=DOWNLOADED
+PACK status=SUCCESSFULLY_LOADED
+LOAD weight=0.0 cap=40.0 ratio=0.00 tier=light t=9030
+PROBE_SET on=true cancel=none fswing=none move=false t=9036
+PROBE_SET on=true cancel=none fswing=none move=false t=9042
+PROBE_SET on=true cancel=none fswing=none move=false t=9048
+PROBE_MOB cleared=0 t=9055
+GIVE id=redin_guard_sword n=1 to=main
+GIVE id=parrying_dagger n=1 to=off
+ASPD weapon=redin_guard_sword base=1.538 mult=1.0000 value=1.538
+LOAD weight=3.5 cap=40.0 ratio=0.09 tier=light t=9070
+PROBE_SET on=true cancel=none fswing=none move=false t=9082
+PROBE_MARK label=s3x_f_noswing t=9094
+PARRY item=parrying_dagger class=parrying_dagger base=9 ring=0 diff=0 window=9 sneak=false t=9099
+PROBE ev=swap hand=- action=F cancelled=true useItem=- will=- t=9099 ms=6098 seq=1 item=flint:parrying_dagger using=- blocking=false main=flint:redin_guard_sword
+PROBE_MARK label=s3x_srv_off t=9148
+PROBE ev=srvswing hand=OFF_HAND action=cmd cancelled=- useItem=- will=- t=9153 ms=16801 seq=2 item=flint:parrying_dagger using=- blocking=false
+PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=9153 ms=16848 seq=3 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=-
+PROBE ev=swing hand=OFF_HAND action=OFF_ARM_SWING cancelled=false useItem=- will=- t=9153 ms=16852 seq=4 item=flint:parrying_dagger using=- blocking=false
+PROBE_MARK label=s3x_srv_main t=9201
+PROBE ev=srvswing hand=HAND action=cmd cancelled=- useItem=- will=- t=9205 ms=27202 seq=5 item=flint:redin_guard_sword using=- blocking=false
+PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=9205 ms=27259 seq=6 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=-
+PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false useItem=- will=- t=9205 ms=27264 seq=7 item=flint:redin_guard_sword using=- blocking=false
+PROBE_MARK label=s3x_echo_main_1 t=9269
+PROBE ev=srvswing hand=HAND action=cmd cancelled=- useItem=- will=- t=9279 ms=36454 seq=8 item=flint:redin_guard_sword using=- blocking=false
+PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=9279 ms=36496 seq=9 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=-
+PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false useItem=- will=- t=9279 ms=36497 seq=10 item=flint:redin_guard_sword using=- blocking=false
+PROBE_MARK label=s3x_echo_off_1 t=9304
+PROBE ev=srvswing hand=OFF_HAND action=cmd cancelled=- useItem=- will=- t=9314 ms=38200 seq=11 item=flint:parrying_dagger using=- blocking=false
+PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=9315 ms=38258 seq=12 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=-
+PROBE ev=swing hand=OFF_HAND action=OFF_ARM_SWING cancelled=false useItem=- will=- t=9315 ms=38260 seq=13 item=flint:parrying_dagger using=- blocking=false
+PROBE_MARK label=s3x_echo_main_2 t=9339
+PROBE ev=srvswing hand=HAND action=cmd cancelled=- useItem=- will=- t=9350 ms=40002 seq=14 item=flint:redin_guard_sword using=- blocking=false
+PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=9350 ms=40007 seq=15 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=-
+PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false useItem=- will=- t=9350 ms=40008 seq=16 item=flint:redin_guard_sword using=- blocking=false
+PROBE_MARK label=s3x_echo_off_2 t=9375
+PROBE ev=srvswing hand=OFF_HAND action=cmd cancelled=- useItem=- will=- t=9385 ms=41750 seq=17 item=flint:parrying_dagger using=- blocking=false
+PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=9385 ms=41770 seq=18 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=-
+PROBE ev=swing hand=OFF_HAND action=OFF_ARM_SWING cancelled=false useItem=- will=- t=9385 ms=41771 seq=19 item=flint:parrying_dagger using=- blocking=false
+PROBE_MARK label=s3x_echo_main_3 t=9410
+PROBE ev=srvswing hand=HAND action=cmd cancelled=- useItem=- will=- t=9421 ms=43550 seq=20 item=flint:redin_guard_sword using=- blocking=false
+PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=9421 ms=43573 seq=21 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=-
+PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false useItem=- will=- t=9421 ms=43574 seq=22 item=flint:redin_guard_sword using=- blocking=false
+PROBE_MARK label=s3x_echo_off_3 t=9446
+PROBE ev=srvswing hand=OFF_HAND action=cmd cancelled=- useItem=- will=- t=9456 ms=45299 seq=23 item=flint:parrying_dagger using=- blocking=false
+PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=9457 ms=45351 seq=24 item=flint:redin_guard_sword using=- blocking=false useBlock=DENY block=-
+PROBE ev=swing hand=OFF_HAND action=OFF_ARM_SWING cancelled=false useItem=- will=- t=9457 ms=45351 seq=25 item=flint:parrying_dagger using=- blocking=false
+PROBE_SET on=false cancel=none fswing=none move=false t=9488
+ASPD weapon=redin_guard_sword base=1.538 mult=1.0000 value=1.538
+ATTR hp=400.0/400 move=0.0000 stats=vig:10,mnd:10,end:10,str:10,dex:10,int:10
+LOAD weight=3.5 cap=40.0 ratio=0.09 tier=light t=12151
+PACK sent sha1=da101e11327ae62e5fdf19ad5153aa7d999c9665 required=true lang=ko locale=ko_KR
+PACK status=ACCEPTED
+PACK status=DOWNLOADED
+PACK status=SUCCESSFULLY_LOADED
+ASPD weapon=- base=4.000 mult=1.0000 value=4.000
+LOAD weight=0.0 cap=40.0 ratio=0.00 tier=light t=12410
+PROBE_SET on=true cancel=none fswing=none move=false t=12420
+PROBE_SET on=true cancel=none fswing=none move=false t=12427
+PROBE_SET on=true cancel=none fswing=none move=false t=12433
+PROBE_MOB cleared=0 t=12439
+GIVE id=redin_guard_sword n=1 to=main
+ASPD weapon=redin_guard_sword base=1.538 mult=1.0000 value=1.538
+LOAD weight=3.0 cap=40.0 ratio=0.08 tier=light t=12450
+GIVE id=parrying_dagger n=1 to=off
+LOAD weight=3.5 cap=40.0 ratio=0.09 tier=light t=12460
+PROBE_MARK label=s4_none t=12525
+POS x=190.500 y=101.000 z=-192.500 yaw=-90.0 ground=true t=12536
+PROBE ev=input hand=- action=+fwd cancelled=- useItem=- will=- t=12544 ms=6226 seq=1 item=flint:redin_guard_sword using=- blocking=false in=fwd
+PROBE ev=input hand=- action=-fwd cancelled=- useItem=- will=- t=12565 ms=7289 seq=2 item=flint:redin_guard_sword using=- blocking=false in=none
+POS x=195.245 y=101.000 z=-192.500 yaw=-90.0 ground=true t=12579
+PROBE ev=input hand=- action=+jump cancelled=- useItem=- will=- t=12587 ms=8385 seq=3 item=flint:redin_guard_sword using=- blocking=false in=jump
+PROBE ev=input hand=- action=-jump cancelled=- useItem=- will=- t=12590 ms=8524 seq=4 item=flint:redin_guard_sword using=- blocking=false in=none
+POS x=195.245 y=102.177 z=-192.500 yaw=-90.0 ground=false t=12594
+PROBE_MARK label=s4_slow25 t=12693
+POS x=190.500 y=101.000 z=-192.500 yaw=-90.0 ground=true t=12704
+PROBE ev=input hand=- action=+fwd cancelled=- useItem=- will=- t=12711 ms=14592 seq=5 item=flint:redin_guard_sword using=- blocking=false in=fwd
+PROBE ev=input hand=- action=-fwd cancelled=- useItem=- will=- t=12733 ms=15685 seq=6 item=flint:redin_guard_sword using=- blocking=false in=none
+POS x=194.057 y=101.000 z=-192.500 yaw=-90.0 ground=true t=12746
+PROBE ev=input hand=- action=+jump cancelled=- useItem=- will=- t=12755 ms=16755 seq=7 item=flint:redin_guard_sword using=- blocking=false in=jump
+PROBE ev=input hand=- action=-jump cancelled=- useItem=- will=- t=12757 ms=16896 seq=8 item=flint:redin_guard_sword using=- blocking=false in=none
+POS x=194.057 y=102.024 z=-192.500 yaw=-90.0 ground=false t=12762
+PROBE_MARK label=s4_slow50 t=12862
+POS x=190.500 y=101.000 z=-192.500 yaw=-90.0 ground=true t=12872
+PROBE ev=input hand=- action=+fwd cancelled=- useItem=- will=- t=12880 ms=23006 seq=9 item=flint:redin_guard_sword using=- blocking=false in=fwd
+PROBE ev=input hand=- action=-fwd cancelled=- useItem=- will=- t=12902 ms=24115 seq=10 item=flint:redin_guard_sword using=- blocking=false in=none
+POS x=192.868 y=101.000 z=-192.500 yaw=-90.0 ground=true t=12915
+PROBE ev=input hand=- action=+jump cancelled=- useItem=- will=- t=12923 ms=25197 seq=11 item=flint:redin_guard_sword using=- blocking=false in=jump
+PROBE ev=input hand=- action=-jump cancelled=- useItem=- will=- t=12926 ms=25320 seq=12 item=flint:redin_guard_sword using=- blocking=false in=none
+POS x=192.868 y=102.252 z=-192.500 yaw=-90.0 ground=false t=12930
+PROBE_MARK label=s4_root t=13036
+POS x=190.500 y=101.000 z=-192.500 yaw=-90.0 ground=true t=13046
+PROBE ev=input hand=- action=+fwd cancelled=- useItem=- will=- t=13055 ms=31750 seq=13 item=flint:redin_guard_sword using=- blocking=false in=fwd
+PROBE ev=input hand=- action=-fwd cancelled=- useItem=- will=- t=13075 ms=32786 seq=14 item=flint:redin_guard_sword using=- blocking=false in=none
+POS x=190.500 y=101.000 z=-192.500 yaw=-90.0 ground=true t=13089
+PROBE ev=input hand=- action=+jump cancelled=- useItem=- will=- t=13098 ms=33923 seq=15 item=flint:redin_guard_sword using=- blocking=false in=jump
+PROBE ev=input hand=- action=-jump cancelled=- useItem=- will=- t=13101 ms=34062 seq=16 item=flint:redin_guard_sword using=- blocking=false in=none
+POS x=190.500 y=101.000 z=-192.500 yaw=-90.0 ground=true t=13105
+PROBE_MARK label=s4_slowness2 t=13204
+POS x=190.500 y=101.000 z=-192.500 yaw=-90.0 ground=true t=13215
+PROBE ev=input hand=- action=+fwd cancelled=- useItem=- will=- t=13224 ms=40242 seq=17 item=flint:redin_guard_sword using=- blocking=false in=fwd
+PROBE ev=input hand=- action=-fwd cancelled=- useItem=- will=- t=13245 ms=41298 seq=18 item=flint:redin_guard_sword using=- blocking=false in=none
+POS x=193.668 y=101.000 z=-192.500 yaw=-90.0 ground=true t=13258
+PROBE ev=input hand=- action=+jump cancelled=- useItem=- will=- t=13266 ms=42349 seq=19 item=flint:redin_guard_sword using=- blocking=false in=jump
+PROBE ev=input hand=- action=-jump cancelled=- useItem=- will=- t=13270 ms=42515 seq=20 item=flint:redin_guard_sword using=- blocking=false in=none
+POS x=193.668 y=102.024 z=-192.500 yaw=-90.0 ground=false t=13274
+PROBE_WALK walk=0.100 base=0.0500 value=0.0500 t=13324
+PROBE_MARK label=s4_walk50 t=13374
+POS x=190.500 y=101.000 z=-192.500 yaw=-90.0 ground=true t=13384
+PROBE ev=input hand=- action=+fwd cancelled=- useItem=- will=- t=13392 ms=48640 seq=21 item=flint:redin_guard_sword using=- blocking=false in=fwd
+PROBE ev=input hand=- action=-fwd cancelled=- useItem=- will=- t=13414 ms=49728 seq=22 item=flint:redin_guard_sword using=- blocking=false in=none
+POS x=192.868 y=101.000 z=-192.500 yaw=-90.0 ground=true t=13427
+PROBE ev=input hand=- action=+jump cancelled=- useItem=- will=- t=13435 ms=50795 seq=23 item=flint:redin_guard_sword using=- blocking=false in=jump
+PROBE ev=input hand=- action=-jump cancelled=- useItem=- will=- t=13439 ms=50981 seq=24 item=flint:redin_guard_sword using=- blocking=false in=none
+POS x=192.868 y=102.024 z=-192.500 yaw=-90.0 ground=false t=13443
+PROBE_WALK walk=0.000 base=0.0000 value=0.0000 t=13492
+PROBE_MARK label=s4_walkroot t=13547
+POS x=190.500 y=101.000 z=-192.500 yaw=-90.0 ground=true t=13558
+PROBE ev=input hand=- action=+fwd cancelled=- useItem=- will=- t=13565 ms=57275 seq=25 item=flint:redin_guard_sword using=- blocking=false in=fwd
+PROBE ev=input hand=- action=-fwd cancelled=- useItem=- will=- t=13588 ms=58408 seq=26 item=flint:redin_guard_sword using=- blocking=false in=none
+POS x=190.500 y=101.000 z=-192.500 yaw=-90.0 ground=true t=13600
+PROBE ev=input hand=- action=+jump cancelled=- useItem=- will=- t=13608 ms=59427 seq=27 item=flint:redin_guard_sword using=- blocking=false in=jump
+PROBE ev=input hand=- action=-jump cancelled=- useItem=- will=- t=13612 ms=59616 seq=28 item=flint:redin_guard_sword using=- blocking=false in=none
+POS x=190.500 y=101.000 z=-192.500 yaw=-90.0 ground=true t=13615
+PROBE_WALK walk=0.200 base=0.1000 value=0.1000 t=13640
+PROBE ev=input hand=- action=+fwd cancelled=- useItem=- will=- t=13681 ms=63094 seq=29 item=flint:redin_guard_sword using=- blocking=false in=fwd
+PROBE ev=input hand=- action=-fwd cancelled=- useItem=- will=- t=13787 ms=68371 seq=30 item=flint:redin_guard_sword using=- blocking=false in=none
+GIVE id=redin_guard_sword n=1 to=main
+GIVE id=parrying_dagger n=1 to=off
+PROBE_MOB cleared=0 t=13839
+PROBE_MARK label=s9_husk_idle t=13845
+PROBE_MOB type=husk mode=idle after=0 using=false hand=- raised=false aggressive=false off=shield t=13855
+PROBE_MOB type=husk mode=idle after=1 using=false hand=- raised=false aggressive=false off=shield t=13856
+PROBE_MOB type=husk mode=idle after=20 using=false hand=- raised=false aggressive=false off=shield t=13875
+PROBE_MOB cleared=1 t=13902
+PROBE_MARK label=s9_husk_block t=13909
+PROBE_MOB type=husk mode=block after=0 using=true hand=OFF_HAND raised=true aggressive=false off=shield t=13919
+PROBE_MOB type=husk mode=block after=1 using=true hand=OFF_HAND raised=true aggressive=false off=shield t=13920
+PROBE_MOB type=husk mode=block after=20 using=true hand=OFF_HAND raised=true aggressive=false off=shield t=13939
+PROBE_MOB cleared=1 t=13965
+PROBE_MARK label=s9_husk_aggr t=13972
+PROBE_MOB type=husk mode=aggr after=0 using=true hand=OFF_HAND raised=true aggressive=true off=shield t=13982
+PROBE_MOB type=husk mode=aggr after=1 using=true hand=OFF_HAND raised=true aggressive=true off=shield t=13983
+PROBE_MOB type=husk mode=aggr after=20 using=true hand=OFF_HAND raised=true aggressive=true off=shield t=14002
+PROBE_MOB cleared=1 t=14029
+PROBE_MARK label=s9_skeleton_block t=14035
+PROBE_MOB type=skeleton mode=block after=0 using=true hand=OFF_HAND raised=true aggressive=false off=shield t=14045
+PROBE_MOB type=skeleton mode=block after=1 using=true hand=OFF_HAND raised=true aggressive=false off=shield t=14046
+PROBE_MOB type=skeleton mode=block after=20 using=true hand=OFF_HAND raised=true aggressive=false off=shield t=14065
+PROBE_MOB cleared=1 t=14092
+PROBE_MARK label=s9_zombie_block_shield t=14099
+PROBE_MOB type=zombie mode=block after=0 using=true hand=OFF_HAND raised=true aggressive=false off=shield t=14109
+PROBE_MOB type=zombie mode=block after=1 using=true hand=OFF_HAND raised=true aggressive=false off=shield t=14110
+PROBE_MOB type=zombie mode=block after=20 using=true hand=OFF_HAND raised=true aggressive=false off=shield t=14129
+PROBE_MOB cleared=1 t=14156
+GIVE id=redin_guard_sword n=1 to=main
+GIVE id=parrying_dagger n=1 to=off
+PROBE_MARK label=s10_crawl t=14193
+PROBE_CRAWL placed=9 y=102 feet=101.000 pose=STANDING until=14404 t=14204
+PROBE_CRAWL check pose=STANDING swimming=false t=14209
+PROBE_CRAWL off pose=STANDING t=14404
+GIVE id=redin_guard_sword n=1 to=main
+GIVE id=parrying_dagger n=1 to=off
+PROBE_MARK label=s11_inventory t=14526
+PROBE ev=input hand=- action=+sneak cancelled=- useItem=- will=- t=14539 ms=105952 seq=31 item=flint:redin_guard_sword using=- blocking=false in=sneak
+ROLL_TAP_SKIP why=hold held=13 t=14552
+PROBE ev=input hand=- action=-sneak cancelled=- useItem=- will=- t=14552 ms=106638 seq=32 item=flint:redin_guard_sword using=- blocking=false in=none
+PROBE ev=close hand=- action=CRAFTING cancelled=- useItem=- will=- t=14583 ms=108192 seq=33 item=- using=- blocking=false reason=PLAYER
+PROBE ev=input hand=- action=+sneak cancelled=- useItem=- will=- t=14584 ms=108200 seq=34 item=flint:redin_guard_sword using=- blocking=false in=sneak
+ROLL_TAP_SKIP why=hold held=15 t=14599
+PROBE ev=input hand=- action=-sneak cancelled=- useItem=- will=- t=14599 ms=108990 seq=35 item=flint:redin_guard_sword using=- blocking=false in=none
+PROBE_MARK label=s11_chat t=14613
+PROBE ev=input hand=- action=+sneak cancelled=- useItem=- will=- t=14625 ms=110277 seq=36 item=flint:redin_guard_sword using=- blocking=false in=sneak
+ROLL_TAP_SKIP why=hold held=15 t=14640
+PROBE ev=input hand=- action=-sneak cancelled=- useItem=- will=- t=14640 ms=111008 seq=37 item=flint:redin_guard_sword using=- blocking=false in=none
+PROBE ev=input hand=- action=+sneak cancelled=- useItem=- will=- t=14662 ms=112145 seq=38 item=flint:redin_guard_sword using=- blocking=false in=sneak
+ROLL_TAP_SKIP why=hold held=16 t=14678
+PROBE ev=input hand=- action=-sneak cancelled=- useItem=- will=- t=14678 ms=112930 seq=39 item=flint:redin_guard_sword using=- blocking=false in=none
+PROBE_MARK label=s11_inv_release t=14692
+PROBE ev=input hand=- action=+sneak cancelled=- useItem=- will=- t=14704 ms=114236 seq=40 item=flint:redin_guard_sword using=- blocking=false in=sneak
+ROLL_TAP_SKIP why=hold held=14 t=14718
+PROBE ev=input hand=- action=-sneak cancelled=- useItem=- will=- t=14718 ms=114945 seq=41 item=flint:redin_guard_sword using=- blocking=false in=none
+PROBE ev=close hand=- action=CRAFTING cancelled=- useItem=- will=- t=14747 ms=116387 seq=42 item=- using=- blocking=false reason=PLAYER
+PROBE_SET on=false cancel=none fswing=none move=false t=14773
+ASPD weapon=redin_guard_sword base=1.538 mult=1.0000 value=1.538
+ATTR hp=400.0/400 move=0.0000 stats=vig:10,mnd:10,end:10,str:10,dex:10,int:10
+LOAD weight=3.5 cap=40.0 ratio=0.09 tier=light t=342
+PACK sent sha1=da101e11327ae62e5fdf19ad5153aa7d999c9665 required=true lang=ko locale=ko_KR
+PACK status=ACCEPTED
+PACK status=DOWNLOADED
+PACK status=SUCCESSFULLY_LOADED
+ASPD weapon=- base=4.000 mult=1.0000 value=4.000
+LOAD weight=0.0 cap=40.0 ratio=0.00 tier=light t=630
+PROBE_SET on=true cancel=none fswing=none move=false t=639
+PROBE_SET on=true cancel=none fswing=none move=false t=645
+PROBE_SET on=true cancel=none fswing=none move=false t=651
+PROBE_MOB cleared=0 t=658
+PROBE_MARK label=s6b_margin0_43 t=722
+PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=735 ms=4811 seq=1 item=flint using=- blocking=false useBlock=DENY block=-
+PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false useItem=- will=- t=735 ms=4819 seq=2 item=flint using=- blocking=false
+PROBE_MARK label=s6b_range_445 t=787
+PROBE ev=attack hand=HAND action=ATTACK cancelled=false useItem=- will=true t=799 ms=8041 seq=3 item=flint using=- blocking=false target=husk dist=4.150 sprinting=false
+PROBE ev=damage hand=HAND action=ENTITY_ATTACK cancelled=false useItem=- will=- t=799 ms=8052 seq=4 item=flint using=- blocking=false target=husk dist=4.150 dmg=0.94 crit=false
+PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=799 ms=8064 seq=5 item=flint using=- blocking=false useBlock=DENY block=-
+PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false useItem=- will=- t=799 ms=8065 seq=6 item=flint using=- blocking=false
+PROBE_MARK label=s6b_range_46 t=845
+PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=858 ms=10958 seq=7 item=flint using=- blocking=false useBlock=DENY block=-
+PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false useItem=- will=- t=858 ms=10959 seq=8 item=flint using=- blocking=false
+PROBE_SET on=false cancel=none fswing=none move=false t=897
+ASPD weapon=- base=4.000 mult=1.0000 value=4.000
+ATTR hp=400.0/400 move=0.0000 stats=vig:10,mnd:10,end:10,str:10,dex:10,int:10
+LOAD weight=0.0 cap=40.0 ratio=0.00 tier=light t=2514
+PACK sent sha1=da101e11327ae62e5fdf19ad5153aa7d999c9665 required=true lang=ko locale=ko_KR
+PACK status=ACCEPTED
+PACK status=DOWNLOADED
+PACK status=SUCCESSFULLY_LOADED
+PROBE_SET on=true cancel=none fswing=none move=false t=2800
+PROBE_SET on=true cancel=none fswing=none move=false t=2806
+PROBE_SET on=true cancel=none fswing=none move=false t=2812
+PROBE_MOB cleared=0 t=2819
+PROBE_MARK label=s6b_margin0_43 t=2884
+PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=2896 ms=4825 seq=1 item=flint using=- blocking=false useBlock=DENY block=-
+PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false useItem=- will=- t=2896 ms=4826 seq=2 item=flint using=- blocking=false
+PROBE_MARK label=s6b_range_445 t=2949
+PROBE ev=attack hand=HAND action=ATTACK cancelled=false useItem=- will=true t=2962 ms=8106 seq=3 item=flint using=- blocking=false target=husk dist=4.450 sprinting=false
+PROBE ev=damage hand=HAND action=ENTITY_ATTACK cancelled=false useItem=- will=- t=2962 ms=8110 seq=4 item=flint using=- blocking=false target=husk dist=4.450 dmg=0.94 crit=false
+PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=2962 ms=8117 seq=5 item=flint using=- blocking=false useBlock=DENY block=-
+PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false useItem=- will=- t=2962 ms=8117 seq=6 item=flint using=- blocking=false
+PROBE_MARK label=s6b_range_46 t=3007
+PROBE ev=interact hand=HAND action=LEFT_CLICK_AIR cancelled=true useItem=DEFAULT will=- t=3020 ms=11035 seq=7 item=flint using=- blocking=false useBlock=DENY block=-
+PROBE ev=swing hand=HAND action=ARM_SWING cancelled=false useItem=- will=- t=3020 ms=11035 seq=8 item=flint using=- blocking=false
+PROBE_SET on=false cancel=none fswing=none move=false t=3059

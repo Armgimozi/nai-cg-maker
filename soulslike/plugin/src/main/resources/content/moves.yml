@@ -1,0 +1,144 @@
+# ─────────────────────────────────────────────────────────────
+#  플레이어의 공격 동작 (DESIGN 3.6 의 무기 분류표, M1). 무기 분류 (weapons.yml class) 마다 약공격 1·2·3단, 강공격, 달리기 공격,
+#  구르기 공격의 준비/판정/회복 틱, 판정 모양 (부채꼴·직선, 각도, 사거리), 스태미나, 강인도 피해.
+#  값은 DESIGN 3.6 의 처음 값이다 (M1 P1a, combat/Moveset 이 읽는다). 사용자가 도장에서 직접 해 보고 맞춘다.
+#
+#  이 파일은 열쇠마다 jar 사본 위에 겹쳐 읽는다 (Content.merged): 여기서 지운 열쇠는 jar 의 기본값으로 읽고, 새 판의 플러그인이
+#  열쇠를 더해도 여기서 맞춘 값은 그대로 남는다. 콘텐츠 판 (CONTENT_VERSION) 이 올라도 옛 폴더로 옮기지 않는다.
+#  보이는 글은 쓰지 않는다 (12.5). 고친 뒤 /souls reload.
+#  동작 배율 (약 1단 100 …), 입력 기억, 공격 중 느려짐은 config.yml combat.moves·combat.input (값 하나는 한 곳에만, R21).
+# ─────────────────────────────────────────────────────────────
+#
+#  분류마다의 열쇠 (combat/Moveset):
+#    shape    cone (부채꼴: 안의 모두를 맞힌다, 휩쓸기) | line (직선: 첫 대상만, 찌르기)
+#    angle    부채꼴의 전체 각 (도). line 은 무시
+#    range    사거리: 눈에서 상대 상자 가장자리까지 (칸). 무기 아이템의 attack_range 도 이 값 (빗나간 클릭이 되지 않게)
+#    width    line 의 폭 (칸. 몸 0.5 를 더해 본다)
+#    type     피해 종류 slash (참격) | strike (타격) | thrust (찌르기) | standard. 적의 흡수·약점표 (enemies.yml) 를 고른다
+#    swing    무기 아이템의 휘두르는 모습 whack (내리치기) | stab (찌르기). 길이는 휘두름 잠금 (2026-10-11): 2 × 가장 짧은 약공격 한 주기
+#             (민첩 단계의 가장 빠른 민첩으로 나눈다) − combat.moves.swing-margin. 클릭은 공격 한 주기쯤 지나야 팔을 다시 휘두른다
+#    light    약공격 1·2·3단의 [준비, 판정, 회복] 틱 (민첩 10 기준, 1틱 = 0.05초). 단마다 {s: 7, a: 2, r: 11, shape: line, type: thrust}
+#             처럼 모양·종류를 바꿀 수 있다. 단 수가 곧 이어지는 단 수다 (미늘창 2, 특대검 2)
+#    heavy    강공격 (웅크리기 키 + 좌클릭) 의 [준비, 판정, 회복]
+#    running  달리기 공격의 [준비, 판정, 회복] (없으면 약공격 1단)
+#    stamina  {light: 약공격, heavy: 강공격}. 달리기 공격은 light × combat.moves.cost.running
+#    poise    강인도 피해 {light, heavy} (P4 가 쓴다)
+#    step     첫 판정 틱에 앞으로 내딛는 거리 {light, heavy, running} (칸, 땅 위에서)
+#    as       다른 분류를 그대로 쓴다
+#  준비·회복은 민첩의 공격 속도 배율로 나누고 (판정은 그대로), 한 동작은 combat.moves.min-light-cycle (10틱) 밑으로 가지 않는다.
+#  아래는 DESIGN 3.6 의 분류표다. 약공격 1단의 한 주기는 M1 전의 pve.swing-ticks 와 같다 (단검 10, 직검 13, 곡검 12, 대검 22,
+#  특대검 30, 도끼 18, 망치 18, 창 13, 미늘창 20).
+# ─────────────────────────────────────────────────────────────
+
+dagger:
+  shape: cone
+  angle: 60
+  range: 2.4
+  type: slash
+  swing: whack
+  light: [[3, 1, 6], [3, 1, 6], [3, 1, 6]]
+  heavy: [6, 1, 10]
+  stamina: {light: 10, heavy: 16}
+  poise: {light: 6, heavy: 14}
+  step: {light: 0, heavy: 0, running: 0}
+
+straight_sword:
+  shape: cone
+  angle: 100
+  range: 3.0
+  type: slash
+  swing: whack
+  light: [[4, 2, 7], [4, 2, 7], [5, 2, 8]]
+  heavy: [8, 2, 12]
+  stamina: {light: 14, heavy: 22}
+  poise: {light: 12, heavy: 24}
+  step: {light: 0, heavy: 0, running: 0}
+
+curved_sword:
+  shape: cone
+  angle: 130
+  range: 2.8
+  type: slash
+  swing: whack
+  light: [[3, 2, 7], [3, 2, 7], [4, 2, 8]]
+  heavy: [7, 2, 11]
+  stamina: {light: 13, heavy: 20}
+  poise: {light: 10, heavy: 20}
+  step: {light: 0, heavy: 0, running: 0}
+
+greatsword:
+  shape: cone
+  angle: 120
+  range: 3.6
+  type: slash
+  swing: whack
+  light: [[8, 2, 12], [8, 2, 12], [9, 2, 13]]
+  heavy: [13, 3, 16]
+  stamina: {light: 24, heavy: 36}
+  poise: {light: 24, heavy: 48}
+  step: {light: 0, heavy: 0, running: 0}
+
+ultra_greatsword:
+  shape: cone
+  angle: 150
+  range: 4.0
+  type: standard
+  swing: whack
+  light: [[11, 3, 16], [11, 3, 16]]
+  heavy: [16, 3, 20]
+  stamina: {light: 32, heavy: 46}
+  poise: {light: 32, heavy: 64}
+  step: {light: 0, heavy: 0, running: 0}
+
+axe:
+  shape: cone
+  angle: 100
+  range: 3.0
+  type: slash
+  swing: whack
+  light: [[6, 2, 10], [6, 2, 10], [6, 2, 10]]
+  heavy: [10, 2, 14]
+  stamina: {light: 18, heavy: 28}
+  poise: {light: 18, heavy: 36}
+  step: {light: 0, heavy: 0, running: 0}
+
+hammer:
+  shape: cone
+  angle: 80
+  range: 2.9
+  type: strike
+  swing: whack
+  light: [[6, 2, 10], [6, 2, 10], [6, 2, 10]]
+  heavy: [11, 2, 15]
+  stamina: {light: 20, heavy: 30}
+  poise: {light: 22, heavy: 46}
+  step: {light: 0, heavy: 0, running: 0}
+
+spear:
+  shape: line
+  angle: 20
+  range: 4.2
+  width: 0.4
+  type: thrust
+  swing: stab
+  light: [[4, 1, 8], [4, 1, 8], [4, 1, 8]]
+  heavy: [9, 1, 12]
+  stamina: {light: 15, heavy: 23}
+  poise: {light: 12, heavy: 26}
+  step: {light: 0, heavy: 0, running: 0}
+
+halberd:
+  shape: cone
+  angle: 150
+  range: 4.2
+  type: slash
+  swing: stab
+  light: [{s: 7, a: 2, r: 11}, {s: 7, a: 2, r: 11, shape: line, width: 0.4, type: thrust}]
+  heavy: [11, 3, 15]
+  stamina: {light: 22, heavy: 32}
+  poise: {light: 20, heavy: 40}
+  step: {light: 0, heavy: 0, running: 0}
+
+# 패링 단검 (왼손 공격, P6): 단검의 동작
+parrying_dagger:
+  as: dagger

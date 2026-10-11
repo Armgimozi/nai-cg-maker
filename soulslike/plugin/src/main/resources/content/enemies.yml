@@ -1,0 +1,29 @@
+# ─────────────────────────────────────────────────────────────
+#  적 (DESIGN 6.1, 6.2, M1 의 시험 적). id 마다 몸 (바닐라 몹 종류, 보이지 않게 하는 것은 M2), 가상 체력, 방어력, 강인도, 두뇌,
+#  흡수·약점, 동작.
+#  M1 P1-0 은 빈 틀만 둔다. P1b 가 허수아비 (dummy), P2b 가 시험 말뚝 (post), P5a 가 이름 없는 시험 적 셋을 더한다.
+#  이야기가 정해지기 전이라 id 는 일반 이름이고 보이는 이름은 없다 ([시험용] 표시는 lang 열쇠로만).
+#
+#  이 파일은 열쇠마다 jar 사본 위에 겹쳐 읽는다 (Content.merged): 여기서 지운 열쇠는 jar 의 기본값으로 읽고, 새 판의 플러그인이
+#  열쇠를 더해도 여기서 맞춘 값은 그대로 남는다. 콘텐츠 판 (CONTENT_VERSION) 이 올라도 옛 폴더로 옮기지 않는다.
+#  보이는 글은 쓰지 않는다 (12.5). 고친 뒤 /souls reload.
+#  모든 적에 같은 값 (보는 거리, 따라오는 거리 …) 은 config.yml enemies.* (P5a). 도장의 자리·파도는 config.yml dojo.* (P1b, P5b).
+#
+#  열쇠 (enemy/EnemyDefs, 틀린 값은 같은 id 의 jar 값, 그것도 없으면 기본값으로 읽고 서버 기록에 알린다):
+#    body         바닐라 몹 종류 (zombie, husk …). 기본 zombie
+#    hp           가상 체력. 생길 때 × 난이도 enemy-health (difficulty.levels.*), 그 뒤 난이도가 바뀌어도 이미 선 적은 그대로. 기본 100
+#    def          방어력 (3.7: 피해 = 원피해² / (원피해 + 방어력)). 기본 20
+#    poise        강인도 (3.8, P4 가 쓴다). 기본 0
+#    ai           두뇌. none 은 움직이지 않는 허수아비 (몸의 AI 를 끄고 밀리지 않는다). 나머지는 P2b·P5a. 기본 none
+#    regen-after  마지막으로 맞고 이만큼 (틱, 20틱 = 1초) 지나면 가상 체력이 다 찬다. 0 이면 차지 않는다. 기본 0
+#    respawn      쓰러지거나 지운 뒤 도장이 다시 세우기까지 (틱). 기본 0
+#    material     맞는 소리와 핏방울 색: flesh 살, bone 뼈, iron 쇠, straw 짚. 기본 flesh
+#    absorb       피해 종류마다 흡수율 0..1 ({slash: 0.1, fire: 0.3} 꼴. 종류는 standard·slash·strike·thrust·fire·magic). 기본 없음
+#    weak         피해 종류마다 약점 배율 (1 이면 보통). 기본 없음
+# ─────────────────────────────────────────────────────────────
+
+# ── M1 P1b ── 허수아비 (도장 1판의 셋과 /soulstest dummy spawn). 맞고 3초 지나면 다 차고, 쓰러지면 3초 뒤 도장이 다시 세운다
+dummy: {body: zombie, hp: 1000, def: 20, poise: 0, ai: none, regen-after: 60, respawn: 60, material: straw}
+# ── M1 P2b ── (post)
+# ── M1 P5a ── (mob_bare, mob_shield, elite)
+# ── M1 끝 ──

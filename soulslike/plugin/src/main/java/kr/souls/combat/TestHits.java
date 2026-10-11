@@ -1,0 +1,139 @@
+package kr.souls.combat;
+
+import io.papermc.paper.datacomponent.DataComponentTypes;
+import io.papermc.paper.event.entity.EntityKnockbackEvent;
+import io.papermc.paper.registry.RegistryAccess;
+import io.papermc.paper.registry.RegistryKey;
+import kr.souls.Keys;
+import kr.souls.skill.Combat;
+import net.kyori.adventure.key.Key;
+import org.bukkit.Location;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.attribute.AttributeModifier;
+import org.bukkit.damage.DamageType;
+import org.bukkit.entity.Player;
+import org.bukkit.entity.Zombie;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.inventory.EquipmentSlotGroup;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.Vector;
+
+import java.util.Locale;
+
+/**
+ * M0 서버 시험 (13.4 표 첫 줄, 3.4): 막기 성분 + minecraft:generic 피해.
+ * 플레이어 앞 2칸에 잠깐 세운 좀비를 원인 물체로 삼아 피해를 넣고, 실제로 깎인 체력, 막는 중이었는지,
+ * 바닐라 밀림이 일어났는지, 든 아이템 내구도가 바뀌었는지를 잰다. /soulstest hit 와 rollhit 이 쓴다.
+ * 밀림은 둘을 따로 본다: knockback 은 맞은 사람, attackerKnockback 은 원인 좀비. generic 은 #no_knockback 이라 피해 밀림은
+ * 없지만, 바닐라 막기가 일어나면 1.21.11 은 막은 사람을 민다 (blockUsingItem → blockedByItem, 3.4 가 막으려는 부작용).
+ * 대조군(다 막는 감소표)에서 knockback=true 로 확인했다. 공격자는 밀리지 않는다 (attackerKnockback=false).
+ * 원인 물체가 살아 있는 비플레이어라 난이도 배율 규칙이 걸린다 (normal 이면 배율 없음).
+ */
+public final class TestHits implements Listener {
+    /** 시험용으로 잠깐 세운 몸에 붙이는 태그 (켤 때 쓸어 낸다) */
+    public static final String ENT_TAG = "souls_ent";
+    private static final Key ARMOR_KEY = Key.key(Keys.NS, "test_armor");
+
+    public record Result(String type, double amount, double dealt, boolean blocking, boolean knockback,
+                         boolean attackerKnockback, boolean cancelled, String durability, double armor, String difficulty) {
+        /** 시험 줄 꼬리 ([T] 다음에 붙인다) */
+        public String line() {
+            return String.format(Locale.ROOT, "type=%s amount=%.2f dealt=%.2f full=%s blocking=%s knockback=%s attackerKnockback=%s cancelled=%s dur=%s armor=%.0f diff=%s",
+                    type, amount, dealt, Math.abs(dealt - amount) < 1e-3, blocking, knockback, attackerKnockback, cancelled, durability, armor, difficulty);
+        }
+    }
+
+    private Player active;
+    private Zombie activeCause;
+    private boolean sawKnockback, sawAttackerKnockback, sawCancel;
+    /** 날 피해를 넣는 중 (DamageHook 의 방어·환경 배율을 건너뛴다) */
+    private static int rawDepth;
+
+    /** 지금 날 시험 피해를 넣는 중인가 (DamageHook 이 본다). */
+    public static boolean raw() {
+        return rawDepth > 0;
+    }
+
+    public Result hit(Player p, double amount, String type, boolean armor) {
+        return hit(p, amount, type, armor, false);
+    }
+
+    /**
+     * 시험 피해 하나.
+     * @param type generic | hit (데이터팩 souls:hit) | magic (souls:magic, 마법 저항으로 줄인다) | none (원인 없는 generic)
+     * @param armor 잠깐 방어력 +20 을 걸고 맞는다 (generic 이 방어구를 지나치는지)
+     * @param def   플레이어의 방어 (DamageHook: 방어력·마법 저항, 난이도 배율) 를 지난다. 거짓이면 날 피해 (M0 의 시험 그대로)
+     */
+    public Result hit(Player p, double amount, String type, boolean armor, boolean def) {
+        DamageType dt = DamageType.GENERIC;
+        if ("hit".equals(type) || "magic".equals(type)) {
+            dt = RegistryAccess.registryAccess().getRegistry(RegistryKey.DAMAGE_TYPE).get(Key.key(Keys.NS, type));
+            if (dt == null) return new Result(type + "(missing)", amount, 0, p.isBlocking(), false, false, true, "-", 0, p.getWorld().getDifficulty().name());
+        }
+        Zombie cause = null;
+        if (!"none".equals(type)) {
+            Vector f = p.getLocation().getDirection().setY(0);
+            if (f.lengthSquared() < 1e-6) f = new Vector(0, 0, 1);
+            Location at = p.getLocation().add(f.normalize().multiply(2));
+            at.setDirection(p.getLocation().toVector().subtract(at.toVector()));
+            cause = p.getWorld().spawn(at, Zombie.class, z -> {
+                z.setAI(false);
+                z.setSilent(true);
+                z.setPersistent(false);
+                z.setShouldBurnInDay(false);
+                z.setAdult();
+                z.addScoreboardTag(ENT_TAG);
+                z.getEquipment().clear();
+            });
+        }
+        AttributeInstance armorAttr = p.getAttribute(Attribute.ARMOR);
+        AttributeModifier mod = new AttributeModifier(new org.bukkit.NamespacedKey(ARMOR_KEY.namespace(), ARMOR_KEY.value()), 20,
+                AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.ANY);
+        if (armor && armorAttr != null) armorAttr.addTransientModifier(mod);
+        ItemStack held = p.getActiveItem().isEmpty() ? p.getInventory().getItemInMainHand() : p.getActiveItem();
+        Integer durBefore = held.getData(DataComponentTypes.DAMAGE);
+        boolean blocking = p.isBlocking();
+        double armorValue = armorAttr == null ? 0 : armorAttr.getValue();
+        double before = p.getHealth() + p.getAbsorptionAmount();
+        p.setNoDamageTicks(0);
+        active = p;
+        activeCause = cause;
+        sawKnockback = false;
+        sawAttackerKnockback = false;
+        sawCancel = false;
+        if (!def) rawDepth++;
+        try {
+            p.damage(amount, Combat.source(dt, cause));
+        } finally {
+            if (!def) rawDepth--;
+            active = null;
+            activeCause = null;
+            if (armor && armorAttr != null) armorAttr.removeModifier(mod);
+            if (cause != null) cause.remove();
+        }
+        double after = p.isDead() ? 0 : p.getHealth() + p.getAbsorptionAmount();
+        ItemStack heldAfter = p.getActiveItem().isEmpty() ? p.getInventory().getItemInMainHand() : p.getActiveItem();
+        Integer durAfter = heldAfter.getData(DataComponentTypes.DAMAGE);
+        String dur = (durBefore == null ? "-" : durBefore) + "->" + (durAfter == null ? "-" : durAfter);
+        String name = "none".equals(type) ? "generic(no_cause)" : "hit".equals(type) ? "souls:hit" : "magic".equals(type) ? "souls:magic"
+                : "minecraft:generic";
+        return new Result(name, amount, Math.max(0, before - after), blocking, sawKnockback, sawAttackerKnockback, sawCancel, dur, armorValue,
+                p.getWorld().getDifficulty().name());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onDamage(EntityDamageEvent e) {
+        if (active != null && e.getEntity() == active && e.isCancelled()) sawCancel = true;
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onKnockback(EntityKnockbackEvent e) {
+        if (active == null || e.isCancelled()) return;
+        if (e.getEntity() == active) sawKnockback = true;
+        if (activeCause != null && e.getEntity() == activeCause) sawAttackerKnockback = true;
+    }
+}

@@ -1,0 +1,131 @@
+package kr.souls.util;
+
+import kr.souls.Keys;
+import kr.souls.Lang;
+import net.kyori.adventure.text.Component;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
+import org.bukkit.entity.Item;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemFlag;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
+
+import java.util.HashMap;
+import java.util.List;
+
+public final class Items {
+    private Items() {}
+
+    /**
+     * 창의 그림 칸 같은 아이템. 이름과 설명은 lang 열쇠 (loreKey 는 목록 열쇠, 없으면 null). 아이템이라 대체 글은 영어다 (10.9).
+     * 열쇠를 넘기기만 하므로 tools/langcheck.py 는 이것을 부르는 곳의 열쇠를 본다 (HELPERS).
+     */
+    public static ItemStack icon(Material m, String nameKey, String loreKey) {
+        ItemStack it = new ItemStack(m);
+        ItemMeta meta = it.getItemMeta();
+        meta.displayName(Lang.c(nameKey)); // lang-dyn: param
+        if (loreKey != null) meta.lore(Lang.lines(loreKey)); // lang-dyn: param
+        meta.addItemFlags(ItemFlag.values());
+        it.setItemMeta(meta);
+        return it;
+    }
+
+    public static ItemStack icon(Material m, Component name, List<Component> lore, boolean glint) {
+        ItemStack it = new ItemStack(m);
+        ItemMeta meta = it.getItemMeta();
+        meta.displayName(name);
+        if (lore != null && !lore.isEmpty()) meta.lore(lore);
+        meta.addItemFlags(ItemFlag.values());
+        if (glint) meta.setEnchantmentGlintOverride(true);
+        it.setItemMeta(meta);
+        return it;
+    }
+
+    public static String tag(ItemStack it, NamespacedKey key) {
+        if (it == null || it.getType() == Material.AIR || !it.hasItemMeta()) return null;
+        return it.getItemMeta().getPersistentDataContainer().get(key, PersistentDataType.STRING);
+    }
+
+    public static boolean isCustom(ItemStack it) {
+        return tag(it, Keys.ITEM) != null || tag(it, Keys.WEAPON) != null || tag(it, Keys.ARMOR) != null;
+    }
+
+    /**
+     * 인벤토리에 넣고, 넘치면 발밑에 떨어뜨린다. souls 무기·방어구는 가방 (안쪽 27칸) 부터 넣는다: 단축 슬롯 아홉 칸은 장비 칸이라
+     * 무게에 들므로 (5.8), 주운 대방패가 몰래 무게 단계를 올리지 않게.
+     */
+    public static void give(Player p, ItemStack item) {
+        if (item == null || item.getType() == Material.AIR) return;
+        if ((tag(item, Keys.WEAPON) != null || tag(item, Keys.ARMOR) != null) && item.getMaxStackSize() == 1
+                && putBackpackFirst(p.getInventory(), item)) {
+            return;
+        }
+        HashMap<Integer, ItemStack> left = p.getInventory().addItem(item);
+        for (ItemStack rest : left.values()) {
+            Location l = p.getLocation();
+            Item drop = p.getWorld().dropItem(l, rest);
+            drop.setPickupDelay(0);
+            drop.setOwner(p.getUniqueId());
+        }
+    }
+
+    /** 가방 (9..35) 의 첫 빈 칸, 없으면 단축 슬롯 (0..8) 의 첫 빈 칸에 놓는다. 자리가 없으면 false (놓지 않는다). */
+    public static boolean putBackpackFirst(PlayerInventory inv, ItemStack it) {
+        for (int i = 9; i < 36; i++) {
+            ItemStack cur = inv.getItem(i);
+            if (cur == null || cur.isEmpty()) {
+                inv.setItem(i, it);
+                return true;
+            }
+        }
+        for (int i = 0; i < 9; i++) {
+            ItemStack cur = inv.getItem(i);
+            if (cur == null || cur.isEmpty()) {
+                inv.setItem(i, it);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** 인벤토리에서 조건에 맞는 아이템 개수를 센다. */
+    public static int count(Player p, java.util.function.Predicate<ItemStack> match) {
+        int n = 0;
+        for (ItemStack it : p.getInventory().getStorageContents()) {
+            if (it != null && match.test(it)) n += it.getAmount();
+        }
+        ItemStack off = p.getInventory().getItemInOffHand();
+        if (off != null && match.test(off)) n += off.getAmount();
+        return n;
+    }
+
+    /** 조건에 맞는 아이템을 amount 개 제거한다. 모자라면 아무것도 지우지 않고 false. */
+    public static boolean take(Player p, java.util.function.Predicate<ItemStack> match, int amount) {
+        if (amount <= 0) return true;
+        if (count(p, match) < amount) return false;
+        int need = amount;
+        ItemStack[] contents = p.getInventory().getStorageContents();
+        for (int i = 0; i < contents.length && need > 0; i++) {
+            ItemStack it = contents[i];
+            if (it == null || !match.test(it)) continue;
+            int use = Math.min(need, it.getAmount());
+            it.setAmount(it.getAmount() - use);
+            need -= use;
+            contents[i] = it.getAmount() <= 0 ? null : it;
+        }
+        p.getInventory().setStorageContents(contents);
+        if (need > 0) {
+            ItemStack off = p.getInventory().getItemInOffHand();
+            if (off != null && match.test(off)) {
+                int use = Math.min(need, off.getAmount());
+                off.setAmount(off.getAmount() - use);
+                p.getInventory().setItemInOffHand(off.getAmount() <= 0 ? null : off);
+            }
+        }
+        return true;
+    }
+}

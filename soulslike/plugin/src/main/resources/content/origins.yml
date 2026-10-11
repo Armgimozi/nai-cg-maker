@@ -1,0 +1,74 @@
+# ─────────────────────────────────────────────────────────────
+#  출신 (DESIGN 5.1, 5.10). 처음 들어올 때 사람마다 하나를 고르고, 시작 능력치 여섯과 시작 아이템을 한 번만 받는다.
+#  그 뒤로는 모두 화톳불에서 소울로 한 점씩 올린다 (5.3, 5.9).
+#  이름과 설명은 여기 쓰지 않는다: lang/ko.yml·en.yml 의 origin.<id>.name (한 줄), origin.<id>.desc (한 줄),
+#  origin.<id>.style (확인 창의 한 줄), origin.<id>.kit (출신 창의 짧은 아이템 글).
+#
+#  order   출신 창의 차례
+#  stats   생명력 vig · 정신력 mnd · 지구력 end · 근력 str · 민첩 dex · 지력 int (각 1..99). 레벨 = 합 − 59 (적지 않고 셈한다).
+#          합이 60 보다 작거나 값이 1..99 밖이면 그 출신을 빼고 서버 기록에 경고한다
+#  kit     시작 아이템. 차례대로 주고 장부 (프로필 kit.given) 에 "종류:id" 로 적는다. 한 번 준 것은 다시 주지 않는다.
+#            weapon: <weapons.yml 의 id>   무기·방패·활·촉매
+#            item: <id>                   우리 아이템 (지금은 master_key 만. estus 는 에스트가 아이템이 되는 M1 부터)
+#            armor: <id>                  방어구 (방어구가 생기는 M3 부터)
+#            spell: <id>                  아는 술 (술이 생기는 M5 부터)
+#          아직 만들 수 없는 것은 건너뛰고 장부에도 적지 않는다: 그 체계가 생긴 뒤 처음 접속할 때 한 번 준다.
+#          to: main (단축 슬롯 1, 비었으면) | off (왼손) | "hotbar:<1..9>" | 없으면 가방 (안쪽 27칸) 부터.
+#          자리가 없으면 그 항목은 주지 않는다 (다음 접속에 다시 본다)
+# ─────────────────────────────────────────────────────────────
+
+knight:
+  order: 1
+  stats: {vig: 15, mnd: 9, end: 11, str: 13, dex: 11, int: 9}
+  kit:
+    - {weapon: redin_guard_sword, to: main}
+    - {weapon: redin_guard_shield, to: "off"}
+    - {armor: redin_watch_garb}
+    - {item: estus}
+
+warrior:
+  order: 2
+  stats: {vig: 11, mnd: 9, end: 12, str: 16, dex: 10, int: 9}
+  kit:
+    - {weapon: gaoler_greatsword, to: main}
+    - {armor: redin_watch_garb}
+    - {item: estus}
+
+thief:
+  order: 3
+  stats: {vig: 10, mnd: 10, end: 12, str: 9, dex: 16, int: 10}
+  kit:
+    - {weapon: alley_dagger, to: main}
+    - {weapon: parrying_dagger, to: "off"}
+    - {item: master_key}
+    - {armor: prisoner_rags}
+    - {item: estus}
+
+archer:
+  order: 4
+  stats: {vig: 11, mnd: 9, end: 10, str: 12, dex: 15, int: 10}
+  kit:
+    - {weapon: levy_hatchet, to: main}
+    - {weapon: wall_shortbow, to: "hotbar:2"}
+    - {armor: prisoner_rags}
+    - {item: arrows}
+    - {item: estus}
+
+sorcerer:
+  order: 5
+  stats: {vig: 9, mnd: 13, end: 9, str: 9, dex: 11, int: 16}
+  kit:
+    - {weapon: alley_dagger, to: main}
+    - {weapon: kiln_pot, to: "off"}
+    - {armor: prisoner_rags}
+    - {spell: ember_toss}
+    - {item: estus}
+
+deprived:
+  order: 6
+  stats: {vig: 10, mnd: 10, end: 10, str: 10, dex: 10, int: 10}
+  kit:
+    - {weapon: gaoler_club, to: main}
+    - {weapon: plank_shield, to: "off"}
+    - {armor: prisoner_rags}
+    - {item: estus}

@@ -1,0 +1,10 @@
+plugin/build/
+plugin/.gradle/
+__pycache__/
+# 루트 .gitignore 의 config.yml 무시 규칙에서 플러그인 기본 설정은 뺀다
+!plugin/src/main/resources/config.yml
+# pack/gen_pack.py 가 만드는 것 (배포본은 dist/AugmentSkyblock-pack.zip)
+pack/resourcepack/
+pack/art/_scratch/
+pack/weapons/preview/_scratch/
+.wf-*.js

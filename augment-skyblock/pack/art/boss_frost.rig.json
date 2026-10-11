@@ -1,0 +1,327 @@
+{
+  "parts": [
+    {
+      "id": "legs",
+      "model": "augsky:boss/frost_tyrant_legs",
+      "offset": [
+        0.0,
+        2.125,
+        0.0
+      ],
+      "scale": 2.0,
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "frame": "body",
+      "anims": []
+    },
+    {
+      "id": "torso",
+      "model": "augsky:boss/frost_tyrant_torso",
+      "offset": [
+        0.0,
+        2.125,
+        0.0
+      ],
+      "scale": 2.0,
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "frame": "body",
+      "anims": [
+        {
+          "type": "bob",
+          "amplitude": 0.04,
+          "period": 60,
+          "phase": 0.0
+        }
+      ]
+    },
+    {
+      "id": "cape",
+      "model": "augsky:boss/frost_tyrant_cape",
+      "offset": [
+        0.0,
+        3.9375,
+        -0.5
+      ],
+      "scale": 3.0,
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "frame": "body",
+      "anims": [
+        {
+          "type": "bob",
+          "amplitude": 0.04,
+          "period": 60,
+          "phase": 0.0
+        },
+        {
+          "type": "sway",
+          "axis": "x",
+          "angle": 4,
+          "period": 50,
+          "phase": 0.0
+        }
+      ]
+    },
+    {
+      "id": "head",
+      "model": "augsky:boss/frost_tyrant_head",
+      "offset": [
+        0.0,
+        4.0,
+        0.0
+      ],
+      "scale": 1.888,
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "frame": "body",
+      "anims": [
+        {
+          "type": "bob",
+          "amplitude": 0.04,
+          "period": 60,
+          "phase": 0.0
+        },
+        {
+          "type": "sway",
+          "axis": "y",
+          "angle": 9,
+          "period": 120,
+          "phase": 0.0
+        }
+      ]
+    },
+    {
+      "id": "right_arm",
+      "model": "augsky:boss/frost_tyrant_right_arm",
+      "offset": [
+        -1.0625,
+        3.75,
+        0.0
+      ],
+      "scale": 2.5,
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "frame": "body",
+      "anims": [
+        {
+          "type": "bob",
+          "amplitude": 0.04,
+          "period": 60,
+          "phase": 0.0
+        },
+        {
+          "type": "sway",
+          "axis": "x",
+          "angle": 4,
+          "period": 60,
+          "phase": 0.0
+        },
+        {
+          "type": "swing",
+          "axis": "x",
+          "angle": -100,
+          "ticks": 14
+        }
+      ]
+    },
+    {
+      "id": "sword",
+      "model": "augsky:boss/frost_tyrant_sword",
+      "offset": [
+        -1.0625,
+        3.75,
+        0.0
+      ],
+      "scale": 3.0,
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "frame": "body",
+      "anims": [
+        {
+          "type": "bob",
+          "amplitude": 0.04,
+          "period": 60,
+          "phase": 0.0
+        },
+        {
+          "type": "sway",
+          "axis": "x",
+          "angle": 4,
+          "period": 60,
+          "phase": 0.0
+        },
+        {
+          "type": "swing",
+          "axis": "x",
+          "angle": -100,
+          "ticks": 14
+        }
+      ]
+    },
+    {
+      "id": "left_arm",
+      "model": "augsky:boss/frost_tyrant_left_arm",
+      "offset": [
+        1.0625,
+        3.75,
+        0.0
+      ],
+      "scale": 2.5,
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "frame": "body",
+      "anims": [
+        {
+          "type": "bob",
+          "amplitude": 0.04,
+          "period": 60,
+          "phase": 0.0
+        },
+        {
+          "type": "sway",
+          "axis": "x",
+          "angle": 5,
+          "period": 60,
+          "phase": 0.5
+        },
+        {
+          "type": "swing",
+          "axis": "x",
+          "angle": -75,
+          "ticks": 10
+        }
+      ]
+    },
+    {
+      "id": "shard_1",
+      "model": "augsky:boss/frost_tyrant_shard",
+      "offset": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": 0.9,
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "frame": "world",
+      "anims": [
+        {
+          "type": "orbit",
+          "radius": 2.3,
+          "speed": 3.0,
+          "phase": 0.0,
+          "height": 3.4
+        },
+        {
+          "type": "spin",
+          "axis": "y",
+          "speed": 6.0
+        },
+        {
+          "type": "bob",
+          "amplitude": 0.25,
+          "period": 50,
+          "phase": 0.0
+        }
+      ]
+    },
+    {
+      "id": "shard_2",
+      "model": "augsky:boss/frost_tyrant_shard",
+      "offset": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": 0.9,
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "frame": "world",
+      "anims": [
+        {
+          "type": "orbit",
+          "radius": 2.3,
+          "speed": 3.0,
+          "phase": 120.0,
+          "height": 3.9
+        },
+        {
+          "type": "spin",
+          "axis": "y",
+          "speed": 6.0
+        },
+        {
+          "type": "bob",
+          "amplitude": 0.25,
+          "period": 50,
+          "phase": 0.3333333333333333
+        }
+      ]
+    },
+    {
+      "id": "shard_3",
+      "model": "augsky:boss/frost_tyrant_shard",
+      "offset": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "scale": 0.9,
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "frame": "world",
+      "anims": [
+        {
+          "type": "orbit",
+          "radius": 2.3,
+          "speed": 3.0,
+          "phase": 240.0,
+          "height": 3.4
+        },
+        {
+          "type": "spin",
+          "axis": "y",
+          "speed": 6.0
+        },
+        {
+          "type": "bob",
+          "amplitude": 0.25,
+          "period": 50,
+          "phase": 0.6666666666666666
+        }
+      ]
+    }
+  ],
+  "notes": "서리 군주 (키 약 5.5블록, 대검 끝까지 약 6.4블록). 보스 오른손 = -X 쪽(대검), 왼손 = +X 쪽(발톱), 앞 = +Z. 모든 포즈는 모델에 구워 넣었으므로 rotation 은 전부 [0,0,0]. sword 파트는 right_arm 과 같은 피벗(오른 어깨)·같은 anims 를 써야 손에 붙어 있다(둘이 함께 swing). swing angle 음수 = 팔이 앞으로 들려 올라감(+Y 를 +Z 쪽으로 돌리는 방향이 양수; mc3d.mat/JOML rotateX 와 동일). -100° 스윙은 대검을 머리 위 뒤로 치켜올렸다가 제자리로 내려치는 동작이 된다. 다리를 뺀 몸 위쪽 파트(torso/head/cape/arms/sword)는 같은 bob 으로 숨쉬기를 맞춘다; legs 는 고정. head 는 모델 작성 스케일 1.6 을 1.18 배 키운 1.888 로 표시한다. shard 3개는 frame=world orbit (offset 0, 높이는 orbit.height), spin+bob 추가. 텍스처: augsky:boss/frost_tyrant_{body,head,cape,sword}(정적) + frost_tyrant_glow(128x128, 16프레임, frametime 3). 발광: 눈/보석/룬/대검 날/발톱/파편에 light_emission 10~15."
+}

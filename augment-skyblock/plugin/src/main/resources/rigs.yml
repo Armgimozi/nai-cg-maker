@@ -1,0 +1,314 @@
+# 보스 3D 모델 조각 (pack/gen_pack.py 가 pack/art/boss_*.py 로 만든다. 직접 고치지 말 것)
+frost_tyrant:
+  parts:
+  - id: legs
+    model: augsky:boss/frost_tyrant_legs
+    offset: [0.0, 2.125, 0.0]
+    scale: 2.0
+    rotation: [0, 0, 0]
+    frame: body
+    anims: []
+  - id: torso
+    model: augsky:boss/frost_tyrant_torso
+    offset: [0.0, 2.75, 0.0]
+    scale: 2.0
+    rotation: [0, 0, 0]
+    frame: body
+    anims:
+    - {type: bob, amplitude: 0.04, period: 60, phase: 0.0}
+  - id: cape
+    model: augsky:boss/frost_tyrant_cape
+    offset: [0.0, 4.0, -1.0]
+    scale: 4.0
+    rotation: [0, 0, 0]
+    frame: body
+    anims:
+    - {type: bob, amplitude: 0.04, period: 60, phase: 0.0}
+    - {type: sway, axis: x, angle: 5, period: 50, phase: 0.0}
+  - id: head
+    model: augsky:boss/frost_tyrant_head
+    offset: [0.0, 4.375, 0.0]
+    scale: 2.0
+    rotation: [0, 0, 0]
+    frame: body
+    anims:
+    - {type: bob, amplitude: 0.04, period: 60, phase: 0.0}
+    - {type: sway, axis: y, angle: 9, period: 120, phase: 0.0}
+  - id: right_arm
+    model: augsky:boss/frost_tyrant_right_arm
+    offset: [-1.5, 3.875, 0.0]
+    scale: 2.0
+    rotation: [0, 0, 0]
+    frame: body
+    anims:
+    - {type: bob, amplitude: 0.04, period: 60, phase: 0.0}
+    - {type: sway, axis: x, angle: 3, period: 60, phase: 0.0}
+    - {type: swing, axis: x, angle: -118, ticks: 14}
+  - id: sword
+    model: augsky:boss/frost_tyrant_sword
+    offset: [-1.5, 3.875, 0.0]
+    scale: 4.0
+    rotation: [0, 0, 0]
+    frame: body
+    anims:
+    - {type: bob, amplitude: 0.04, period: 60, phase: 0.0}
+    - {type: sway, axis: x, angle: 3, period: 60, phase: 0.0}
+    - {type: swing, axis: x, angle: -118, ticks: 14}
+  - id: left_arm
+    model: augsky:boss/frost_tyrant_left_arm
+    offset: [1.5, 3.875, 0.0]
+    scale: 2.0
+    rotation: [0, 0, 0]
+    frame: body
+    anims:
+    - {type: bob, amplitude: 0.04, period: 60, phase: 0.0}
+    - {type: sway, axis: x, angle: 4, period: 60, phase: 0.5}
+    - {type: swing, axis: x, angle: -75, ticks: 10}
+  - id: shard_1
+    model: augsky:boss/frost_tyrant_shard
+    offset: [0.0, 0.0, 0.0]
+    scale: 2.0
+    rotation: [0, 0, 0]
+    frame: world
+    anims:
+    - {type: orbit, radius: 1.25, speed: 3.0, phase: 0.0, height: 7.6}
+    - {type: spin, axis: y, speed: 6.0}
+    - {type: bob, amplitude: 0.12, period: 50, phase: 0.0}
+  - id: shard_2
+    model: augsky:boss/frost_tyrant_shard
+    offset: [0.0, 0.0, 0.0]
+    scale: 2.0
+    rotation: [0, 0, 0]
+    frame: world
+    anims:
+    - {type: orbit, radius: 1.25, speed: 3.0, phase: 120.0, height: 7.6}
+    - {type: spin, axis: y, speed: 6.0}
+    - {type: bob, amplitude: 0.12, period: 50, phase: 0.3333333333333333}
+  - id: shard_3
+    model: augsky:boss/frost_tyrant_shard
+    offset: [0.0, 0.0, 0.0]
+    scale: 2.0
+    rotation: [0, 0, 0]
+    frame: world
+    anims:
+    - {type: orbit, radius: 1.25, speed: 3.0, phase: 240.0, height: 7.6}
+    - {type: spin, axis: y, speed: 6.0}
+    - {type: bob, amplitude: 0.12, period: 50, phase: 0.6666666666666666}
+inferno_colossus:
+  parts:
+  - id: torso
+    model: augsky:boss/inferno_colossus_torso
+    offset: [0, 3.0, 0]
+    scale: 2.0
+    rotation: [0, 0, 0]
+    frame: body
+    anims:
+    - {type: bob, amplitude: 0.1, period: 60, phase: 0.0}
+    - {type: sway, axis: z, angle: 2.0, period: 120, phase: 0}
+    - {type: swing, axis: x, angle: 6, ticks: 12}
+  - id: right_shoulder
+    model: augsky:boss/inferno_colossus_right_shoulder
+    offset: [-1.25, 3.625, 0]
+    scale: 2.0
+    rotation: [0, 0, 0]
+    frame: body
+    anims:
+    - {type: bob, amplitude: 0.1, period: 60, phase: 0.0}
+    - {type: sway, axis: z, angle: 3, period: 60, phase: 0.5}
+    - {type: swing, axis: z, angle: -8, ticks: 12}
+  - id: left_shoulder
+    model: augsky:boss/inferno_colossus_left_shoulder
+    offset: [1.25, 3.625, 0]
+    scale: 2.0
+    rotation: [0, 0, 0]
+    frame: body
+    anims:
+    - {type: bob, amplitude: 0.1, period: 60, phase: 0.0}
+    - {type: sway, axis: z, angle: 3, period: 60, phase: 0.0}
+    - {type: swing, axis: z, angle: 8, ticks: 12}
+  - id: head
+    model: augsky:boss/inferno_colossus_head
+    offset: [0, 4.375, 0.375]
+    scale: 2.0
+    rotation: [0, 0, 0]
+    frame: body
+    anims:
+    - {type: bob, amplitude: 0.12, period: 60, phase: 0.04}
+    - {type: sway, axis: y, angle: 9, period: 140, phase: 0}
+    - {type: sway, axis: x, angle: 3, period: 90, phase: 0.3}
+    - {type: swing, axis: x, angle: -10, ticks: 12}
+  - id: tail
+    model: augsky:boss/inferno_colossus_tail
+    offset: [0, 2.125, 0]
+    scale: 2.0
+    rotation: [0, 0, 0]
+    frame: body
+    anims:
+    - {type: bob, amplitude: 0.1, period: 60, phase: 0.04}
+    - {type: sway, axis: z, angle: 6, period: 80, phase: 0}
+    - {type: sway, axis: x, angle: 5, period: 110, phase: 0.3}
+  - id: tail_low
+    model: augsky:boss/inferno_colossus_tail_low
+    offset: [0, 1.375, 0]
+    scale: 2.0
+    rotation: [0, 0, 0]
+    frame: body
+    anims:
+    - {type: bob, amplitude: 0.1, period: 60, phase: 0.1}
+    - {type: sway, axis: z, angle: 8, period: 80, phase: 0.1}
+    - {type: sway, axis: x, angle: 6, period: 110, phase: 0.4}
+  - id: right_fist
+    model: augsky:boss/inferno_colossus_right_fist
+    offset: [-2.375, 3.25, 1.25]
+    scale: 2.0
+    rotation: [0, 6, 0]
+    frame: body
+    anims:
+    - {type: bob, amplitude: 0.15, period: 50, phase: 0.25}
+    - {type: sway, axis: x, angle: 6, period: 70, phase: 0.1}
+    - {type: swing, axis: x, angle: -75, ticks: 12}
+  - id: left_fist
+    model: augsky:boss/inferno_colossus_left_fist
+    offset: [2.375, 3.25, 1.25]
+    scale: 2.0
+    rotation: [0, -6, 0]
+    frame: body
+    anims:
+    - {type: bob, amplitude: 0.15, period: 50, phase: 0.75}
+    - {type: sway, axis: x, angle: 6, period: 70, phase: 0.6}
+    - {type: swing, axis: x, angle: -60, ticks: 10}
+  - id: rock1
+    model: augsky:boss/inferno_colossus_rock_a
+    offset: [0, 0, 0]
+    scale: 2.0
+    rotation: [0, 0, 0]
+    frame: world
+    anims:
+    - {type: orbit, radius: 4.6, speed: 1.8, phase: 0, height: 4.2}
+    - {type: spin, axis: y, speed: 4.0}
+    - {type: bob, amplitude: 0.2, period: 40, phase: 0.0}
+  - id: rock2
+    model: augsky:boss/inferno_colossus_rock_b
+    offset: [0, 0, 0]
+    scale: 2.0
+    rotation: [0, 0, 0]
+    frame: world
+    anims:
+    - {type: orbit, radius: 4.6, speed: 1.8, phase: 90, height: 4.2}
+    - {type: spin, axis: y, speed: -5.0}
+    - {type: bob, amplitude: 0.2, period: 40, phase: 0.25}
+  - id: rock3
+    model: augsky:boss/inferno_colossus_rock_a
+    offset: [0, 0, 0]
+    scale: 2.0
+    rotation: [0, 0, 0]
+    frame: world
+    anims:
+    - {type: orbit, radius: 4.6, speed: 1.8, phase: 180, height: 4.2}
+    - {type: spin, axis: y, speed: 4.0}
+    - {type: bob, amplitude: 0.2, period: 40, phase: 0.5}
+  - id: rock4
+    model: augsky:boss/inferno_colossus_rock_b
+    offset: [0, 0, 0]
+    scale: 2.0
+    rotation: [0, 0, 0]
+    frame: world
+    anims:
+    - {type: orbit, radius: 4.6, speed: 1.8, phase: 270, height: 4.2}
+    - {type: spin, axis: y, speed: -5.0}
+    - {type: bob, amplitude: 0.2, period: 40, phase: 0.75}
+void_sovereign:
+  parts:
+  - id: robe_lower
+    model: augsky:boss/void_sovereign_robe_lower
+    offset: [0.0, 2.75, 0.0]
+    scale: 2.0
+    rotation: [0, 0, 0]
+    frame: body
+    anims:
+    - {type: bob, amplitude: 0.08, period: 70, phase: 0.0}
+    - {type: sway, axis: x, angle: 4, period: 70, phase: 0.25}
+    - {type: sway, axis: z, angle: 2.5, period: 110, phase: 0.0}
+  - id: torso_hood
+    model: augsky:boss/void_sovereign_torso_hood
+    offset: [0.0, 3.5, 0.0]
+    scale: 2.0
+    rotation: [0, 0, 0]
+    frame: body
+    anims:
+    - {type: bob, amplitude: 0.08, period: 70, phase: 0.0}
+    - {type: sway, axis: x, angle: 2, period: 70, phase: 0.5}
+    - {type: swing, axis: x, angle: 10, ticks: 16}
+  - id: crown
+    model: augsky:boss/void_sovereign_crown
+    offset: [0.0, 3.5, 0.0]
+    scale: 4.0
+    rotation: [0, 0, 0]
+    frame: body
+    anims:
+    - {type: bob, amplitude: 0.12, period: 50, phase: 0.3}
+    - {type: sway, axis: x, angle: 2, period: 70, phase: 0.5}
+    - {type: swing, axis: x, angle: 10, ticks: 16}
+    - {type: spin, axis: y, speed: 1.5}
+  - id: right_arm
+    model: augsky:boss/void_sovereign_right_arm
+    offset: [-1.25, 4.125, 0.0]
+    scale: 2.0
+    rotation: [0, 0, 0]
+    frame: body
+    anims:
+    - {type: bob, amplitude: 0.08, period: 70, phase: 0.0}
+    - {type: sway, axis: x, angle: 4, period: 70, phase: 0.1}
+    - {type: swing, axis: y, angle: 75, ticks: 16}
+    - {type: swing, axis: x, angle: -30, ticks: 16}
+  - id: scythe
+    model: augsky:boss/void_sovereign_scythe
+    offset: [-1.25, 4.125, 0.0]
+    scale: 4.0
+    rotation: [0, 0, 0]
+    frame: body
+    anims:
+    - {type: bob, amplitude: 0.08, period: 70, phase: 0.0}
+    - {type: sway, axis: x, angle: 4, period: 70, phase: 0.1}
+    - {type: swing, axis: y, angle: 75, ticks: 16}
+    - {type: swing, axis: x, angle: -30, ticks: 16}
+  - id: left_arm
+    model: augsky:boss/void_sovereign_left_arm
+    offset: [1.25, 4.125, 0.0]
+    scale: 2.0
+    rotation: [0, 0, 0]
+    frame: body
+    anims:
+    - {type: bob, amplitude: 0.08, period: 70, phase: 0.0}
+    - {type: sway, axis: x, angle: 5, period: 70, phase: 0.6}
+    - {type: swing, axis: x, angle: -45, ticks: 14}
+  - id: orb_1
+    model: augsky:boss/void_sovereign_orb
+    offset: [0.0, 0.0, 0.0]
+    scale: 2.0
+    rotation: [0, 0, 0]
+    frame: world
+    anims:
+    - {type: orbit, radius: 3.7, speed: 2.4, phase: 0.0, height: 4.2}
+    - {type: spin, axis: y, speed: 5.0}
+    - {type: bob, amplitude: 0.3, period: 46, phase: 0.0}
+  - id: orb_2
+    model: augsky:boss/void_sovereign_orb
+    offset: [0.0, 0.0, 0.0]
+    scale: 2.0
+    rotation: [0, 0, 0]
+    frame: world
+    anims:
+    - {type: orbit, radius: 3.7, speed: 2.4, phase: 120.0, height: 4.2}
+    - {type: spin, axis: y, speed: 5.0}
+    - {type: bob, amplitude: 0.3, period: 46, phase: 0.3333333333333333}
+  - id: orb_3
+    model: augsky:boss/void_sovereign_orb
+    offset: [0.0, 0.0, 0.0]
+    scale: 2.0
+    rotation: [0, 0, 0]
+    frame: world
+    anims:
+    - {type: orbit, radius: 3.7, speed: 2.4, phase: 240.0, height: 4.2}
+    - {type: spin, axis: y, speed: 5.0}
+    - {type: bob, amplitude: 0.3, period: 46, phase: 0.6666666666666666}
