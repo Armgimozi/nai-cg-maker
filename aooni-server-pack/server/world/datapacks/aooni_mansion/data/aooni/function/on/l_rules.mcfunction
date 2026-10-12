@@ -1,0 +1,1 @@
+function aooni:msg/rules

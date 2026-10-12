@@ -1,0 +1,13 @@
+execute unless entity @a[tag=aooni.jailed] run return run tellraw @s {"text":"감옥은 비어 있다.","color":"gray"}
+execute if score #rescue_cd aooni.var matches 1.. run return run tellraw @s {"text":"자물쇠가 아직 돌아가지 않는다… 잠시 후 다시.","color":"gray"}
+fill 5 -60 30 5 -59 30 minecraft:air
+setblock 5 -60 30 minecraft:iron_door[half=lower,facing=north,hinge=left,open=true]
+setblock 5 -59 30 minecraft:iron_door[half=upper,facing=north,hinge=left,open=true]
+schedule function aooni:jail/close 60t
+playsound minecraft:block.iron_door.open block @a[distance=..20] ~ ~ ~ 1 0.7
+tellraw @a[tag=aooni.player] {"text":"","extra":[{"selector":"@s","color":"aqua"},{"text":" 이(가) 감옥 문을 열었다! ","color":"green"},{"text":"…쇳소리에 아오오니가 반응한다.","color":"dark_red","italic":true}]}
+execute as @a[tag=aooni.jailed] run function aooni:player/release
+scoreboard players set #rescue_cd aooni.var 20
+tag @s add aooni.me
+function aooni:oni/alert
+tag @s remove aooni.me

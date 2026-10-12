@@ -1,0 +1,15 @@
+# 검사기 캐시
+.mcmeta-cache/
+__pycache__/
+# 서버를 실제로 돌리면 생기는 파일들 (데이터팩만 추적)
+server/*.jar
+server/eula.txt
+server/*.json
+server/logs/
+server/libraries/
+server/versions/
+server/crash-reports/
+server/world/*
+!server/world/datapacks/
+server/world/datapacks/*
+!server/world/datapacks/aooni_mansion/
