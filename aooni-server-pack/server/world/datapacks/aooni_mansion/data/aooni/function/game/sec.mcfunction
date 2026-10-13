@@ -16,7 +16,8 @@ execute unless score #test aooni.var matches 2 if score #a0 aooni.var matches 20
 execute unless entity @a[tag=aooni.oni_p,tag=!aooni.oni_dead,gamemode=adventure] unless entity @e[type=minecraft:zombie,tag=aooni.dummy] run scoreboard players add #oni_gone aooni.var 1
 execute if entity @a[tag=aooni.oni_p,tag=!aooni.oni_dead,gamemode=adventure] run scoreboard players set #oni_gone aooni.var 0
 execute if entity @e[type=minecraft:zombie,tag=aooni.dummy] run scoreboard players set #oni_gone aooni.var 0
-execute if score #final aooni.var matches 1 if score #oni_gone aooni.var matches 30.. run return run function aooni:game/victory
+# (연습용 아오오니가 쓰러지지 않고 그냥 사라진 경우는 '중단')
+execute unless score #test aooni.var matches 1 if score #final aooni.var matches 1 if score #oni_gone aooni.var matches 30.. run return run function aooni:game/victory
 execute if score #oni_gone aooni.var matches 30.. run return run function aooni:game/no_oni
 execute if score #wpn aooni.var matches 1 run function aooni:weapon/watch
 function aooni:hide/stall

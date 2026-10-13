@@ -49,6 +49,7 @@ execute as @a[tag=aooni.cand_part,tag=!aooni.oni_p] run function aooni:player/sp
 execute as @a[tag=aooni.oni_p,tag=aooni.cand_part,limit=1] run function aooni:oni/enter
 execute store result score #nsurv aooni.var if entity @a[tag=aooni.player,tag=!aooni.oni_p]
 tag @a remove aooni.cand_part
+scoreboard players reset * aooni.kz
 execute if score #test aooni.var matches 1 run function aooni:test/dummy_spawn
 execute if score #test aooni.var matches 1.. run scoreboard players enable @a aooni.quit
 function aooni:game/assign_loot

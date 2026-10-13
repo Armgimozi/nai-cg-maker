@@ -1,5 +1,6 @@
 # 좀비는 즉시 회복 물약에 오히려 다치므로 체력을 직접 채운다
 tag @s add aooni.giant
+function aooni:final/unstick
 $attribute @s minecraft:max_health base set $(hp)
 $data merge entity @s {Health:$(hp)f}
 attribute @s minecraft:scale base set 1.3

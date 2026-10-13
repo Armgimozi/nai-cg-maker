@@ -10,6 +10,7 @@ scoreboard objectives add aooni.hit minecraft.custom:minecraft.damage_resisted
 scoreboard objectives add aooni.wc dummy
 # 연습 끝내기: OP 가 아니어도 /trigger aooni.quit
 scoreboard objectives add aooni.quit trigger
+scoreboard objectives add aooni.kz minecraft.killed:minecraft.zombie
 team add aooni_alive
 team modify aooni_alive displayName {"text":"생존자","color":"aqua"}
 team modify aooni_alive color aqua

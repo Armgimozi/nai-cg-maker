@@ -873,6 +873,7 @@ def logic():
        "scoreboard objectives add aooni.wc dummy",
        "# 연습 끝내기: OP 가 아니어도 /trigger aooni.quit",
        "scoreboard objectives add aooni.quit trigger",
+       "scoreboard objectives add aooni.kz minecraft.killed:minecraft.zombie",
        "team add aooni_alive",
        f"team modify aooni_alive displayName {comp(T('생존자', 'aqua'))}",
        "team modify aooni_alive color aqua",
@@ -924,6 +925,8 @@ def logic():
        "execute unless loaded 48 -60 48 run return run schedule function aooni:setup/check_build 1s",
        "execute unless loaded -30 -60 48 run return run schedule function aooni:setup/check_build 1s",
        "execute unless loaded 48 -60 -3 run return run schedule function aooni:setup/check_build 1s",
+       "# 게임 도중에 다시 지으면 숨겨 둔 숫자·모형이 사라진다 → 판이 끝난 뒤에 짓는다",
+       f"execute unless score #built aooni.var matches {BUILD_VERSION} unless score #state aooni.var matches 0 run return run schedule function aooni:setup/check_build 10s",
        f"execute unless score #built aooni.var matches {BUILD_VERSION} run function aooni:build/all",
        "execute if score #state aooni.var matches 0 run function aooni:lobby/show_diff")
     fn("build/all",
@@ -982,6 +985,7 @@ def logic():
        f"execute if entity @s[tag=aooni.jailed] run tp @s {P(*JAIL)} 180 0",
        "execute if entity @s[tag=aooni.out] run gamemode spectator @s")
     fn("player/leave_role",
+       "effect clear @s",
        "function aooni:player/clear_tags",
        "function aooni:player/reset_attrs",
        "team leave @s")
@@ -990,7 +994,9 @@ def logic():
        "team join aooni_out @s",
        "gamemode spectator @s",
        f"tp @s {P(*SPEC_POS)} 0 60",
-       tell("@s", T("게임이 진행 중입니다. 다음 판까지 관전 모드로 지켜보세요.", "gray")))
+       tell("@s", T("게임이 진행 중입니다. 다음 판까지 관전 모드로 지켜보세요.", "gray")),
+       "execute if score #test aooni.var matches 1.. run scoreboard players enable @s aooni.quit",
+       "execute if score #test aooni.var matches 1.. run " + tell("@s", T("지금은 혼자 연습 중입니다. 끝내려면 ", "gray"), T("/trigger aooni.quit", "yellow")))
     fn("player/clear_tags",
        *[f"tag @s remove aooni.{t}" for t in ("player", "alive", "jailed", "out", "hidden", "hid_new", "safe", "me",
                                               "armed", "lasthit", "oni_p", "oni_dead", "cand_part", "enraged", "giant")])
@@ -1106,6 +1112,7 @@ def logic():
        "execute as @a[tag=aooni.oni_p,tag=aooni.cand_part,limit=1] run function aooni:oni/enter",
        f"execute store result score #nsurv aooni.var if entity {SURV}",
        "tag @a remove aooni.cand_part",
+       "scoreboard players reset * aooni.kz",
        "execute if score #test aooni.var matches 1 run function aooni:test/dummy_spawn",
        "execute if score #test aooni.var matches 1.. run scoreboard players enable @a aooni.quit",
        "function aooni:game/assign_loot",
@@ -1207,8 +1214,9 @@ def logic():
        "tag @a[tag=aooni.safe,scores={aooni.grace=..0}] remove aooni.safe",
        f"execute if score #final aooni.var matches 1 as {ONI} at @s run function aooni:final/hp",
        f"execute if score #final aooni.var matches 1 as {DUMMY} at @s run function aooni:final/hp",
-       "# 죽은 몹은 @e 에 잡히지 않는다 → 결전 중 연습용 아오오니가 사라지면 쓰러진 것",
-       f"execute if score #test aooni.var matches 1 if score #final aooni.var matches 1 unless entity {DUMMY} run function aooni:test/dummy_down")
+       "# 죽은 몹은 @e 에 잡히지 않는다 → 결전 중 연습용 아오오니가 사라졌고 누군가 좀비를 잡았으면 쓰러진 것",
+       f"execute if score #test aooni.var matches 1 if score #final aooni.var matches 1 unless entity {DUMMY} "
+       "if entity @a[scores={aooni.kz=1..}] run function aooni:test/dummy_down")
     fn("game/sec",
        "scoreboard players add #sec aooni.var 1",
        "# 게임 도중 크리에이티브로 바뀐 사람은 역할에서 뺀다",
@@ -1228,7 +1236,8 @@ def logic():
        f"execute unless entity {ONI} unless entity {DUMMY} run scoreboard players add #oni_gone aooni.var 1",
        f"execute if entity {ONI} run scoreboard players set #oni_gone aooni.var 0",
        f"execute if entity {DUMMY} run scoreboard players set #oni_gone aooni.var 0",
-       "execute if score #final aooni.var matches 1 if score #oni_gone aooni.var matches 30.. run return run function aooni:game/victory",
+       "# (연습용 아오오니가 쓰러지지 않고 그냥 사라진 경우는 '중단')",
+       "execute unless score #test aooni.var matches 1 if score #final aooni.var matches 1 if score #oni_gone aooni.var matches 30.. run return run function aooni:game/victory",
        "execute if score #oni_gone aooni.var matches 30.. run return run function aooni:game/no_oni",
        "execute if score #wpn aooni.var matches 1 run function aooni:weapon/watch",
        "function aooni:hide/stall",
@@ -1338,9 +1347,13 @@ def logic():
        f"kill {DUMMY}",
        "kill @e[type=minecraft:experience_orb]",
        "scoreboard players set #test aooni.var 0",
+       "scoreboard players reset * aooni.kz",
+       "# 연습용 아오오니가 남긴 팀 기록 정리(사람은 이 아래에서 모두 다른 팀으로 옮겨진다)",
+       "team empty aooni_out",
        "scoreboard objectives setdisplay sidebar",
        "scoreboard players reset * aooni.side",
        "execute as @a[gamemode=!creative] run function aooni:player/to_lobby",
+       "execute as @a[gamemode=creative,tag=aooni.player] run effect clear @s",
        "execute as @a[gamemode=creative] run function aooni:player/clear_tags",
        "execute as @a[gamemode=creative] run function aooni:player/reset_attrs",
        "team leave @a[gamemode=creative]")
@@ -1497,6 +1510,7 @@ def logic():
        "function aooni:game/progress")
     fn("oni/giant",
        "tag @s add aooni.giant",
+       "function aooni:final/unstick",
        "$attribute @s minecraft:max_health base set $(hp)",
        "effect give @s minecraft:instant_health 1 6 true",
        f"attribute @s minecraft:scale base set {FINAL_SCALE}",
@@ -1555,6 +1569,12 @@ def logic():
     hide += ["execute as @a[tag=aooni.hid_new,tag=!aooni.hidden] run function aooni:hide/enter",
              "execute as @a[tag=aooni.hidden,tag=!aooni.hid_new] run function aooni:hide/leave"]
     fn("hide/check", *hide)
+    unstick = ["# 1.3배가 되면 키가 2칸을 넘는다 → 옷장(2칸)이나 낮은 곳에 있으면 질식하므로 먼저 꺼낸다"]
+    for c in CLOSETS:
+        x, y, z, dx, dy, dz = c["box"]
+        unstick.append(f"execute if entity @s[x={x},y={y},z={z},dx={dx},dy={dy},dz={dz}] run return run tp @s {P(*c['out'])}")
+    unstick.append(f"execute at @s unless block ~ ~2 ~ minecraft:air run tp @s {P(*ONI_SPAWN)}")
+    fn("final/unstick", *unstick)
     fn("hide/enter",
        "tag @s add aooni.hidden",
        actionbar("@s", T("옷장에 숨었다 — 아오오니는 이 문을 열 수 없다", "dark_aqua")))
@@ -1703,23 +1723,26 @@ def logic():
     dummy_nbt = ('{Tags:["aooni.dummy"],NoAI:1b,Silent:1b,PersistenceRequired:1b,CanPickUpLoot:0b,CanBreakDoors:0b,IsBaby:0b,'
                  'active_effects:[{id:"minecraft:invisibility",amplifier:0b,duration:-1,show_particles:0b},'
                  '{id:"minecraft:fire_resistance",amplifier:0b,duration:-1,show_particles:0b}],'
-                 'attributes:[{id:"minecraft:follow_range",base:64.0d},{id:"minecraft:knockback_resistance",base:1.0d},'
+                 'attributes:[{id:"minecraft:follow_range",base:256.0d},{id:"minecraft:knockback_resistance",base:1.0d},'
                  '{id:"minecraft:spawn_reinforcements",base:0.0d}]}')
     fn("test/dummy_spawn",
        "# 깨어나기 전까지는 NoAI 로 다락방에 묶어 둔다(game/oni_wake 에서 풀림)",
        f"kill {DUMMY}",
        f"summon minecraft:zombie {P(*ONI_SPAWN)} {dummy_nbt}",
+       "# 갇힌/탈락한 사람과 같은 팀 → 그 사람들은 즉시 목표에서 빠진다",
+       f"team join aooni_out {DUMMY}",
        *[f"execute if score #diff aooni.var matches {d} as {DUMMY} run attribute @s minecraft:movement_speed base set {v}"
          for d, v in DUMMY_SPEED.items()],
        f"execute at {DUMMY[:-1]},limit=1] run function aooni:oni/model")
+    HUNT_SEL = '@p[tag=aooni.alive,tag=!aooni.hidden,gamemode=adventure,nbt=!{active_effects:[{id:"minecraft:invisibility"}]}]'
     fn("test/hunt",
-       "# 벽 너머의 생존자도 쫓아오게: 가장 가까운(숨지 않은) 생존자가 때린 것으로 쳐서 그쪽을 노리게 한다",
+       "# 벽 너머의 생존자도 쫓아오게: 가장 가까운(숨지 않은·투명하지 않은) 생존자가 때린 것으로 쳐서 그쪽을 노리게 한다",
        f"scoreboard players set #hunt aooni.var {DUMMY_HUNT}",
-       f"execute as {DUMMY} at @s if entity @p[tag=aooni.alive,tag=!aooni.hidden,gamemode=adventure] "
-       "run damage @s 0.01 minecraft:generic by @p[tag=aooni.alive,tag=!aooni.hidden,gamemode=adventure]")
+       f"execute as {DUMMY} at @s if entity {HUNT_SEL} run damage @s 0.01 minecraft:generic by {HUNT_SEL}")
     fn("test/dummy_giant",
        "# 좀비는 즉시 회복 물약에 오히려 다치므로 체력을 직접 채운다",
        "tag @s add aooni.giant",
+       "function aooni:final/unstick",
        "$attribute @s minecraft:max_health base set $(hp)",
        "$data merge entity @s {Health:$(hp)f}",
        f"attribute @s minecraft:scale base set {FINAL_SCALE}",
@@ -1728,9 +1751,8 @@ def logic():
        "particle minecraft:large_smoke ~ ~1.5 ~ 0.8 1.2 0.8 0.03 120",
        "playsound minecraft:entity.ravager.roar master @a[distance=..48] ~ ~ ~ 2 0.5")
     fn("test/dummy_down",
-       "# 피해를 줄 수 있는 건 마검을 든 사람뿐 → 최후의 일격은 마검 소지자",
-       "execute if entity @a[tag=aooni.armed] run tag @a remove aooni.lasthit",
-       "tag @a[tag=aooni.armed] add aooni.lasthit",
+       "tag @a remove aooni.lasthit",
+       "tag @a[scores={aooni.kz=1..}] add aooni.lasthit",
        "function aooni:game/victory")
     fn("test/quit",
        "scoreboard players set @s aooni.quit 0",
@@ -1743,13 +1765,13 @@ def logic():
         "execute unless score #state aooni.var matches 0 run return run " + tell("@s", T("이미 게임이 진행 중입니다.", "red")),
         "execute if score #cd aooni.var matches 1.. run return run " + tell("@s", T("게임 시작 카운트다운 중입니다.", "red")),
         "execute unless score #built aooni.var matches 1.. run return run " + tell("@s", T("저택을 짓는 중입니다. 잠시 후 다시 눌러 주세요.", "red")),
-        "execute unless entity @s[gamemode=!creative,gamemode=!spectator] run return run " + tell(
-            "@s", T("크리에이티브 모드에서는 참가할 수 없습니다. /gamemode adventure 후 다시 눌러 주세요.", "red")),
         "execute store result score #n aooni.var if entity @a[gamemode=!creative,gamemode=!spectator]",
+        "execute if score #n aooni.var matches 0 run return run " + tell(
+            "@s", T("크리에이티브 모드에서는 참가할 수 없습니다. /gamemode adventure 후 다시 눌러 주세요.", "red")),
         "execute unless score #n aooni.var matches 1 run return run " + tell(
             "@s", T("혼자 접속해 있을 때만 쓸 수 있습니다. 여럿이면 [게임 시작]을 누르세요.", "red"))]
     fn("on/l_solo", *solo_checks, "function aooni:test/solo")
-    fn("on/l_solo_oni", *solo_checks, "function aooni:test/solo_oni")
+    fn("on/l_solo_oni", *solo_checks, "execute as @a[gamemode=!creative,gamemode=!spectator,limit=1] run function aooni:test/solo_oni")
 
     # ---------------- 관리자 명령
     fn("admin/start", "scoreboard players set #cd aooni.var 0",
@@ -1773,7 +1795,9 @@ def logic():
            "@s", T("모험 모드인 플레이어가 직접 실행해야 합니다.", "red")),
        "scoreboard players set #cd aooni.var 0",
        "function aooni:test/solo_oni")
-    fn("admin/rebuild", "scoreboard players set #built aooni.var 0", "function aooni:setup/check_build")
+    fn("admin/rebuild", "scoreboard players set #built aooni.var 0",
+       "execute unless score #state aooni.var matches 0 run " + tell("@s", T("게임이 끝나면 다시 짓습니다.", "gray")),
+       "function aooni:setup/check_build")
     for d, (n, c) in DIFF_NAMES.items():
         fn(f"admin/difficulty_{d}", f"scoreboard players set #diff aooni.var {d}", "function aooni:lobby/show_diff",
            tell("@a", T("난이도: ", "gray"), T(n, c, bold=True)))
