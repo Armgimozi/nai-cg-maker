@@ -1,4 +1,5 @@
 tag @e[type=minecraft:zombie,tag=aooni.oni,sort=nearest,limit=1] add aooni.got
+function aooni:player/drop_weapons
 tag @s remove aooni.alive
 tag @s remove aooni.hidden
 tag @s remove aooni.hid_new

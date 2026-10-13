@@ -1,11 +1,12 @@
 scoreboard players add #sec aooni.var 1
 execute store result score #alive aooni.var if entity @a[tag=aooni.alive]
 execute store result score #jailed aooni.var if entity @a[tag=aooni.jailed]
-execute store result score #escaped aooni.var if entity @a[tag=aooni.escaped]
 execute store result score #onis aooni.var if entity @e[type=minecraft:zombie,tag=aooni.oni]
 function aooni:game/sidebar
 bossbar set aooni:goal players @a[tag=aooni.player]
+execute if score #boss_up aooni.var matches 1 unless entity @e[type=minecraft:zombie,tag=aooni.boss] run return run function aooni:game/victory
 execute if score #alive aooni.var matches 0 run return run function aooni:game/end
+execute as @a[tag=aooni.alive] run function aooni:player/arm_check
 execute if score #oni_on aooni.var matches 1 run function aooni:oni/manager
 execute as @e[type=minecraft:zombie,tag=aooni.oni] at @s run function aooni:oni/sec
 execute as @a[tag=aooni.hidden] at @s run function aooni:hide/sec

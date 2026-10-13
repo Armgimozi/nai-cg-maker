@@ -7,3 +7,5 @@ tag @s remove aooni.hidden
 tag @s remove aooni.hid_new
 tag @s remove aooni.safe
 tag @s remove aooni.me
+tag @s remove aooni.armed
+tag @s remove aooni.lasthit

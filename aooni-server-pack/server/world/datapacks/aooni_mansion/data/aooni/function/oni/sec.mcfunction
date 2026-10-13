@@ -1,3 +1,4 @@
+execute if entity @s[tag=aooni.boss] run return run function aooni:boss/sec
 scoreboard players add @s aooni.life 1
 scoreboard players add @s aooni.tgt 1
 execute if entity @a[tag=aooni.alive,tag=!aooni.hidden,distance=..16] run scoreboard players set @s aooni.lost 0

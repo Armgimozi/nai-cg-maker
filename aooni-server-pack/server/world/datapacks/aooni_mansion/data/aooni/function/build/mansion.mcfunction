@@ -119,10 +119,17 @@ fill 11 -60 3 12 -60 3 minecraft:dark_oak_planks
 setblock 11 -60 4 minecraft:dark_oak_stairs[facing=south]
 setblock 12 -59 3 minecraft:candle[candles=3,lit=true]
 setblock 7 -57 6 minecraft:soul_lantern[hanging=true]
-setblock 13 -60 6 minecraft:lantern
+setblock 12 -57 6 minecraft:lantern[hanging=true]
 setblock 11 -59 3 minecraft:polished_blackstone_button[face=floor,facing=north,powered=false]
 setblock 2 -59 9 minecraft:polished_blackstone_button[face=wall,facing=east,powered=false]
 setblock 5 -59 7 minecraft:polished_blackstone_button[face=wall,facing=north,powered=false]
+fill 14 -60 3 14 -58 9 minecraft:iron_block
+fill 14 -59 4 14 -59 8 minecraft:polished_deepslate
+setblock 13 -59 4 minecraft:polished_blackstone_button[face=wall,facing=west,powered=false]
+setblock 13 -59 5 minecraft:polished_blackstone_button[face=wall,facing=west,powered=false]
+setblock 13 -59 6 minecraft:polished_blackstone_button[face=wall,facing=west,powered=false]
+setblock 13 -59 7 minecraft:polished_blackstone_button[face=wall,facing=west,powered=false]
+setblock 13 -59 8 minecraft:stone_button[face=wall,facing=west,powered=false]
 fill 13 -60 9 13 -59 9 minecraft:spruce_planks
 fill 13 -60 11 13 -59 11 minecraft:spruce_planks
 fill 13 -60 10 13 -59 10 minecraft:air
@@ -272,6 +279,9 @@ setblock 36 -60 24 minecraft:potted_wither_rose
 setblock 33 -57 26 minecraft:lantern[hanging=true]
 setblock 36 -59 25 minecraft:polished_blackstone_button[face=floor,facing=north,powered=false]
 setblock 31 -59 29 minecraft:polished_blackstone_button[face=wall,facing=east,powered=false]
+setblock 36 -60 28 minecraft:chiseled_quartz_block
+setblock 36 -57 28 minecraft:soul_lantern[hanging=true]
+setblock 36 -59 28 minecraft:polished_blackstone_button[face=floor,facing=north,powered=false]
 fill 33 -60 36 33 -59 36 minecraft:air
 setblock 33 -60 36 minecraft:iron_door[half=lower,facing=north,hinge=left,open=false]
 setblock 33 -59 36 minecraft:iron_door[half=upper,facing=north,hinge=left,open=false]
@@ -301,6 +311,13 @@ fill 38 -58 33 39 -58 35 minecraft:spruce_planks
 fill 39 -60 34 39 -59 34 minecraft:air
 setblock 39 -60 34 minecraft:spruce_door[half=lower,facing=west,hinge=left,open=false]
 setblock 39 -59 34 minecraft:spruce_door[half=upper,facing=west,hinge=left,open=false]
+fill 39 -60 36 45 -58 36 minecraft:iron_block
+fill 40 -59 36 44 -59 36 minecraft:polished_deepslate
+setblock 40 -59 35 minecraft:polished_blackstone_button[face=wall,facing=north,powered=false]
+setblock 41 -59 35 minecraft:polished_blackstone_button[face=wall,facing=north,powered=false]
+setblock 42 -59 35 minecraft:polished_blackstone_button[face=wall,facing=north,powered=false]
+setblock 43 -59 35 minecraft:polished_blackstone_button[face=wall,facing=north,powered=false]
+setblock 44 -59 35 minecraft:stone_button[face=wall,facing=north,powered=false]
 fill 46 -59 33 46 -58 34 minecraft:glass_pane
 fill 1 -55 14 45 -55 15 minecraft:blue_carpet
 setblock 6 -52 14 minecraft:soul_lantern[hanging=true]
@@ -342,13 +359,13 @@ setblock 34 -54 2 minecraft:spruce_door[half=upper,facing=east,hinge=left,open=f
 fill 31 -54 0 32 -53 0 minecraft:glass_pane
 setblock 24 -55 10 minecraft:light_weighted_pressure_plate
 fill 37 -56 1 45 -56 11 minecraft:spruce_planks
-fill 38 -55 1 44 -53 1 minecraft:iron_block
-fill 39 -54 1 43 -54 1 minecraft:polished_deepslate
-setblock 39 -54 2 minecraft:polished_blackstone_button[face=wall,facing=south,powered=false]
-setblock 40 -54 2 minecraft:polished_blackstone_button[face=wall,facing=south,powered=false]
-setblock 41 -54 2 minecraft:polished_blackstone_button[face=wall,facing=south,powered=false]
-setblock 42 -54 2 minecraft:polished_blackstone_button[face=wall,facing=south,powered=false]
-setblock 43 -54 2 minecraft:stone_button[face=wall,facing=south,powered=false]
+fill 38 -55 0 44 -53 0 minecraft:iron_block
+fill 39 -54 0 43 -54 0 minecraft:polished_deepslate
+setblock 39 -54 1 minecraft:polished_blackstone_button[face=wall,facing=south,powered=false]
+setblock 40 -54 1 minecraft:polished_blackstone_button[face=wall,facing=south,powered=false]
+setblock 41 -54 1 minecraft:polished_blackstone_button[face=wall,facing=south,powered=false]
+setblock 42 -54 1 minecraft:polished_blackstone_button[face=wall,facing=south,powered=false]
+setblock 43 -54 1 minecraft:stone_button[face=wall,facing=south,powered=false]
 setblock 44 -55 10 minecraft:barrel[facing=up]
 setblock 43 -55 10 minecraft:barrel[facing=up]
 setblock 45 -55 7 minecraft:hay_block
@@ -407,6 +424,13 @@ fill 15 -53 20 16 -53 22 minecraft:spruce_planks
 fill 16 -55 21 16 -54 21 minecraft:air
 setblock 16 -55 21 minecraft:spruce_door[half=lower,facing=west,hinge=left,open=false]
 setblock 16 -54 21 minecraft:spruce_door[half=upper,facing=west,hinge=left,open=false]
+fill 24 -55 17 30 -53 17 minecraft:iron_block
+fill 25 -54 17 29 -54 17 minecraft:polished_deepslate
+setblock 25 -54 18 minecraft:polished_blackstone_button[face=wall,facing=south,powered=false]
+setblock 26 -54 18 minecraft:polished_blackstone_button[face=wall,facing=south,powered=false]
+setblock 27 -54 18 minecraft:polished_blackstone_button[face=wall,facing=south,powered=false]
+setblock 28 -54 18 minecraft:polished_blackstone_button[face=wall,facing=south,powered=false]
+setblock 29 -54 18 minecraft:stone_button[face=wall,facing=south,powered=false]
 fill 24 -54 36 25 -53 36 minecraft:glass_pane
 setblock 27 -55 20 minecraft:light_weighted_pressure_plate
 fill 31 -56 18 45 -56 35 minecraft:stripped_spruce_wood

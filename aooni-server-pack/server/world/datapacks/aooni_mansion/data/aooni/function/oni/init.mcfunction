@@ -5,6 +5,8 @@ effect give @s minecraft:fire_resistance infinite 0 true
 attribute @s minecraft:knockback_resistance base set 1
 attribute @s minecraft:follow_range base set 48
 attribute @s minecraft:spawn_reinforcements base set 0
+attribute @s minecraft:max_health base set 40
+data merge entity @s {Health:40f}
 function aooni:oni/apply_speed
 scoreboard players set @s aooni.life 0
 scoreboard players set @s aooni.lost 0
