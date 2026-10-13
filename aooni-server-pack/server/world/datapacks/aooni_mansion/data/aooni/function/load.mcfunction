@@ -27,6 +27,7 @@ team modify aooni_oni friendlyFire false
 team add aooni_out
 team modify aooni_out color gray
 team modify aooni_out collisionRule never
+team modify aooni_out seeFriendlyInvisibles false
 team add aooni_lobby
 team modify aooni_lobby friendlyFire false
 team modify aooni_lobby collisionRule never

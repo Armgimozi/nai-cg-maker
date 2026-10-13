@@ -852,6 +852,7 @@ ONI = "@a[tag=aooni.oni_p,tag=!aooni.oni_dead,gamemode=adventure]"
 # 혼자 연습(생존자) 때만 나오는 연습용 아오오니(좀비 AI). 실전에는 절대 나오지 않는다.
 DUMMY = "@e[type=minecraft:zombie,tag=aooni.dummy]"
 DUMMY_SPEED = {1: 0.27, 2: 0.30, 3: 0.33}   # 걷는 플레이어 ≈ 0.31, 달리면 따돌릴 수 있음
+INVIS = '{active_effects:[{id:"minecraft:invisibility"}]}'
 DUMMY_HUNT = 6                              # 몇 초마다 가장 가까운 생존자 냄새를 맡는지
 
 
@@ -890,6 +891,7 @@ def logic():
        "team add aooni_out",
        "team modify aooni_out color gray",
        "team modify aooni_out collisionRule never",
+       "team modify aooni_out seeFriendlyInvisibles false",
        "team add aooni_lobby",
        "team modify aooni_lobby friendlyFire false",
        "team modify aooni_lobby collisionRule never",
@@ -1247,6 +1249,9 @@ def logic():
        f"execute as @a[tag=aooni.alive,tag=!aooni.hidden] at @s if entity {ONI[:-1]},distance=..9] run function aooni:player/near_oni",
        f"execute as @a[tag=aooni.alive,tag=!aooni.hidden] at @s if entity {DUMMY[:-1]},distance=..9] run function aooni:player/near_oni",
        "execute if score #test aooni.var matches 1 if score #freeze aooni.var matches 0 run scoreboard players remove #hunt aooni.var 1",
+       "# 연습: 투명한 동안은 연습용 아오오니와 같은 팀(aooni_out)에 두어 노려지지 않게 한다",
+       f"execute if score #test aooni.var matches 1 run team join aooni_out @a[tag=aooni.alive,team=aooni_alive,nbt={INVIS}]",
+       f"execute if score #test aooni.var matches 1 run team join aooni_alive @a[tag=aooni.alive,team=aooni_out,nbt=!{INVIS}]",
        "execute if score #test aooni.var matches 1 if score #freeze aooni.var matches 0 if score #hunt aooni.var matches ..0 run function aooni:test/hunt",
        f"execute as @a[tag=aooni.jailed] unless entity @s[x=1,y={Y1},z=31,dx=8,dy=5,dz=4] run tp @s {P(*JAIL)} 180 0",
        "execute if score #rescue_cd aooni.var matches 1.. run scoreboard players remove #rescue_cd aooni.var 1",
@@ -1573,7 +1578,16 @@ def logic():
     for c in CLOSETS:
         x, y, z, dx, dy, dz = c["box"]
         unstick.append(f"execute if entity @s[x={x},y={y},z={z},dx={dx},dy={dy},dz={dz}] run return run tp @s {P(*c['out'])}")
-    unstick.append(f"execute at @s unless block ~ ~2 ~ minecraft:air run tp @s {P(*ONI_SPAWN)}")
+    low = set()
+    for (x, y, z) in reachable((33, F1, 30), doors_open=True):
+        blk = WORLD.get((x, y + 2, z))
+        if blk is None:
+            continue
+        b = bid(blk)
+        if b.endswith(PASSABLE_SUFFIX) or "lantern" in b or "glass" in b or b.endswith(("_bars", "_door", "_trapdoor")):
+            continue
+        low.add(b)
+    unstick += [f"execute at @s if block ~ ~2 ~ minecraft:{b} run return run tp @s {P(*ONI_SPAWN)}" for b in sorted(low)]
     fn("final/unstick", *unstick)
     fn("hide/enter",
        "tag @s add aooni.hidden",

@@ -11,4 +11,6 @@ execute if entity @s[x=37,y=-55,z=10,dx=1,dy=1,dz=0] run return run tp @s 39.5 -
 execute if entity @s[x=12,y=-55,z=33,dx=1,dy=1,dz=0] run return run tp @s 11.5 -55 33.5
 execute if entity @s[x=15,y=-55,z=21,dx=1,dy=1,dz=0] run return run tp @s 17.5 -55 21.5
 execute if entity @s[x=44,y=-55,z=27,dx=1,dy=1,dz=0] run return run tp @s 43.5 -55 27.5
-execute at @s unless block ~ ~2 ~ minecraft:air run tp @s 38.5 -55 27.5
+execute at @s if block ~ ~2 ~ minecraft:bricks run return run tp @s 38.5 -55 27.5
+execute at @s if block ~ ~2 ~ minecraft:dark_oak_planks run return run tp @s 38.5 -55 27.5
+execute at @s if block ~ ~2 ~ minecraft:spruce_planks run return run tp @s 38.5 -55 27.5

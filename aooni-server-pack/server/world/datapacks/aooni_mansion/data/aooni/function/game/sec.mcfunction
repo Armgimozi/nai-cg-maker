@@ -27,6 +27,9 @@ execute as @a[tag=aooni.alive] run function aooni:player/arm_check
 execute as @a[tag=aooni.alive,tag=!aooni.hidden] at @s if entity @a[tag=aooni.oni_p,tag=!aooni.oni_dead,gamemode=adventure,distance=..9] run function aooni:player/near_oni
 execute as @a[tag=aooni.alive,tag=!aooni.hidden] at @s if entity @e[type=minecraft:zombie,tag=aooni.dummy,distance=..9] run function aooni:player/near_oni
 execute if score #test aooni.var matches 1 if score #freeze aooni.var matches 0 run scoreboard players remove #hunt aooni.var 1
+# 연습: 투명한 동안은 연습용 아오오니와 같은 팀(aooni_out)에 두어 노려지지 않게 한다
+execute if score #test aooni.var matches 1 run team join aooni_out @a[tag=aooni.alive,team=aooni_alive,nbt={active_effects:[{id:"minecraft:invisibility"}]}]
+execute if score #test aooni.var matches 1 run team join aooni_alive @a[tag=aooni.alive,team=aooni_out,nbt=!{active_effects:[{id:"minecraft:invisibility"}]}]
 execute if score #test aooni.var matches 1 if score #freeze aooni.var matches 0 if score #hunt aooni.var matches ..0 run function aooni:test/hunt
 execute as @a[tag=aooni.jailed] unless entity @s[x=1,y=-61,z=31,dx=8,dy=5,dz=4] run tp @s 5.5 -60 33.5 180 0
 execute if score #rescue_cd aooni.var matches 1.. run scoreboard players remove #rescue_cd aooni.var 1
