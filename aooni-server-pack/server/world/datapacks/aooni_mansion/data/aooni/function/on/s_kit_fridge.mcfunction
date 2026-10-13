@@ -1,2 +1,5 @@
 playsound minecraft:item.book.page_turn block @s ~ ~ ~ 1 1
-tellraw @s {"text":"냉장고 문을 살짝 열었다가… 아무것도 못 본 걸로 하자.","color":"gray","italic":true}
+tellraw @s {"text":"냉장고 문을 살짝 열었다…","color":"gray","italic":true}
+tag @s add aooni.me
+execute as @e[type=minecraft:marker,tag=aooni.spot_s_kit_fridge,limit=1] at @s run function aooni:loot/open
+tag @s remove aooni.me

@@ -32,7 +32,7 @@ MACRO_SAMPLES = {
     "n1": "도", "n2": "레", "n3": "미", "n4": "파", "n5": "솔",
     "n": "4", "t": "보통", "sec": "12", "min": "3",
     "o": "doMobSpawning", "v": "false", "r": "doMobSpawning",
-    "nm": "전설의 검",
+    "nm": "마검", "hp": "140", "w": "2",
 }
 # 버전마다 이름이 달라 일부러 한쪽이 실패하도록 만든 매크로 파일(별도 검사)
 MACRO_SKIP_FILES = {"compat/gamerule_try.mcfunction"}
@@ -698,7 +698,7 @@ def validate(pack, versions):
                             continue
                         line = line[1:]
                         missing = [m for m in re.findall(r"\$\((\w+)\)", line)
-                                   if m not in MACRO_SAMPLES and not re.fullmatch(r"[kd]\d\d", m)]
+                                   if m not in MACRO_SAMPLES and not re.fullmatch(r"[kd]\d+", m)]
                         if missing:
                             print(f"[{version}] {ns}:{rel}:{ln}: 매크로 예시값 없음 {missing}")
                             errs += 1

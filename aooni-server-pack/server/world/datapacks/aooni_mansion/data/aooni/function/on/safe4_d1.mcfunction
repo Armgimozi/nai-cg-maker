@@ -1,6 +1,6 @@
-execute if score #w4 aooni.var matches 1 run return run tellraw @s {"text":"봉인④는 이미 풀렸다.","color":"gray"}
-scoreboard players add #d41 aooni.var 1
-execute if score #d41 aooni.var matches 10.. run scoreboard players set #d41 aooni.var 0
-execute store result storage aooni:v d41 int 1 run scoreboard players get #d41 aooni.var
-function aooni:safe/show4 with storage aooni:v
+execute if score #wpn aooni.var matches 1 run return run tellraw @s {"text":"금고는 이미 비어 있다.","color":"gray"}
+scoreboard players add #d1 aooni.var 1
+execute if score #d1 aooni.var matches 10.. run scoreboard players set #d1 aooni.var 0
+execute store result storage aooni:v d1 int 1 run scoreboard players get #d1 aooni.var
+function aooni:safe/show with storage aooni:v
 playsound minecraft:ui.button.click block @a[distance=..8] ~ ~ ~ 0.6 1.6

@@ -2,10 +2,13 @@ tag @s remove aooni.player
 tag @s remove aooni.alive
 tag @s remove aooni.jailed
 tag @s remove aooni.out
-tag @s remove aooni.escaped
 tag @s remove aooni.hidden
 tag @s remove aooni.hid_new
 tag @s remove aooni.safe
 tag @s remove aooni.me
 tag @s remove aooni.armed
 tag @s remove aooni.lasthit
+tag @s remove aooni.oni_p
+tag @s remove aooni.oni_dead
+tag @s remove aooni.cand_part
+tag @s remove aooni.enraged

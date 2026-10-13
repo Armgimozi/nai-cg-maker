@@ -21,6 +21,8 @@ setblock -16 -60 19 minecraft:spruce_stairs[facing=south]
 setblock -23 -59 4 minecraft:lime_concrete
 setblock -21 -59 4 minecraft:yellow_concrete
 setblock -19 -59 4 minecraft:light_blue_concrete
+setblock -25 -59 4 minecraft:red_concrete
+setblock -25 -59 5 minecraft:stone_button[face=wall,facing=south,powered=false]
 setblock -23 -59 5 minecraft:stone_button[face=wall,facing=south,powered=false]
 setblock -21 -59 5 minecraft:stone_button[face=wall,facing=south,powered=false]
 setblock -19 -59 5 minecraft:stone_button[face=wall,facing=south,powered=false]

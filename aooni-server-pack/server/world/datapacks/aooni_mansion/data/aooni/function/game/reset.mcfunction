@@ -1,4 +1,4 @@
-function aooni:oni/kill_all
+kill @e[type=minecraft:block_display,tag=aooni.part]
 scoreboard players set #state aooni.var 0
 scoreboard players set #cd aooni.var 0
 bossbar set aooni:goal visible false

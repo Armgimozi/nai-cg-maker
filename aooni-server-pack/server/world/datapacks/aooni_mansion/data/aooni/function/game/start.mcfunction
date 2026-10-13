@@ -1,75 +1,63 @@
 scoreboard players set #state aooni.var 1
 scoreboard players add #gid aooni.var 1
 function aooni:build/all
-scoreboard players set #k_lib aooni.var 0
-scoreboard players set #lib aooni.var 0
-scoreboard players set #k_din aooni.var 0
-scoreboard players set #din aooni.var 0
-scoreboard players set #stairs aooni.var 0
-scoreboard players set #store aooni.var 0
-scoreboard players set #sheet aooni.var 0
-scoreboard players set #oni_on aooni.var 0
-scoreboard players set #pstep aooni.var 0
-scoreboard players set #rescue_cd aooni.var 0
 scoreboard players set #sec aooni.var 0
 scoreboard players set #sp aooni.var 0
 scoreboard players set #cd aooni.var 0
-scoreboard players set #weap aooni.var 0
+scoreboard players set #found aooni.var 0
 scoreboard players set #wpn aooni.var 0
-scoreboard players set #altar aooni.var 0
 scoreboard players set #final aooni.var 0
-scoreboard players set #boss_up aooni.var 0
-scoreboard players set #bhp aooni.var 0
+scoreboard players set #rescue_cd aooni.var 0
+scoreboard players set #freeze aooni.var 0
+scoreboard players set #oni_gone aooni.var 0
+scoreboard players set #bh aooni.var 0
 scoreboard players set #bhp_prev aooni.var 0
-scoreboard players set #bmax aooni.var 0
 scoreboard players set #half10 aooni.var 0
-scoreboard players set #pw1 aooni.var 0
-scoreboard players set #pw2 aooni.var 0
-scoreboard players set #pw3 aooni.var 0
-scoreboard players set #pw4 aooni.var 0
-scoreboard players set #q1 aooni.var 0
-scoreboard players set #q2 aooni.var 0
-scoreboard players set #q3 aooni.var 0
-scoreboard players set #q4 aooni.var 0
-scoreboard players set #w1 aooni.var 0
-scoreboard players set #w2 aooni.var 0
-scoreboard players set #w3 aooni.var 0
-scoreboard players set #w4 aooni.var 0
-scoreboard players set #d11 aooni.var 0
-scoreboard players set #d12 aooni.var 0
-scoreboard players set #d13 aooni.var 0
-scoreboard players set #d14 aooni.var 0
-scoreboard players set #d21 aooni.var 0
-scoreboard players set #d22 aooni.var 0
-scoreboard players set #d23 aooni.var 0
-scoreboard players set #d24 aooni.var 0
-scoreboard players set #d31 aooni.var 0
-scoreboard players set #d32 aooni.var 0
-scoreboard players set #d33 aooni.var 0
-scoreboard players set #d34 aooni.var 0
-scoreboard players set #d41 aooni.var 0
-scoreboard players set #d42 aooni.var 0
-scoreboard players set #d43 aooni.var 0
-scoreboard players set #d44 aooni.var 0
+scoreboard players set #hp aooni.var 0
+scoreboard players set #amb aooni.var 0
+scoreboard players set #d1 aooni.var 0
+scoreboard players set #d2 aooni.var 0
+scoreboard players set #d3 aooni.var 0
+scoreboard players set #d4 aooni.var 0
 scoreboard players set #amb aooni.var 40
-scoreboard players set #onis aooni.var 0
-scoreboard players set #oni_cd aooni.var 0
+scoreboard players set #freeze aooni.var 20
 time set 18000
 bossbar set aooni:boss visible false
-function aooni:game/randomize
-tag @e[type=minecraft:marker,tag=aooni.z1] add aooni.on
-execute as @a[gamemode=!creative,gamemode=!spectator] run function aooni:player/enter
-execute as @a[tag=aooni.player] run function aooni:player/spawn_pos
+execute store result score #k1 aooni.var run random value 0..9
+execute store result score #k2 aooni.var run random value 0..9
+execute store result score #k3 aooni.var run random value 0..9
+execute store result score #k4 aooni.var run random value 0..9
+execute store result storage aooni:v k1 int 1 run scoreboard players get #k1 aooni.var
+execute store result storage aooni:v k2 int 1 run scoreboard players get #k2 aooni.var
+execute store result storage aooni:v k3 int 1 run scoreboard players get #k3 aooni.var
+execute store result storage aooni:v k4 int 1 run scoreboard players get #k4 aooni.var
+execute store result storage aooni:v d1 int 1 run scoreboard players get #d1 aooni.var
+execute store result storage aooni:v d2 int 1 run scoreboard players get #d2 aooni.var
+execute store result storage aooni:v d3 int 1 run scoreboard players get #d3 aooni.var
+execute store result storage aooni:v d4 int 1 run scoreboard players get #d4 aooni.var
+execute as @a[gamemode=!creative,gamemode=!spectator] run function aooni:player/clear_tags
+tag @a[gamemode=!creative,gamemode=!spectator] add aooni.cand_part
+# 아오오니 1명: 지원자 중 무작위, 지원자가 없으면 전체 중 무작위
+execute as @r[tag=aooni.cand_part,tag=aooni.want_oni] run tag @s add aooni.oni_p
+execute unless entity @a[tag=aooni.oni_p] as @r[tag=aooni.cand_part] run tag @s add aooni.oni_p
+execute as @a[tag=aooni.cand_part,tag=!aooni.oni_p] run function aooni:player/enter
+execute as @a[tag=aooni.cand_part,tag=!aooni.oni_p] run function aooni:player/spawn_pos
+execute as @a[tag=aooni.oni_p] run function aooni:oni/enter
+tag @a remove aooni.cand_part
+function aooni:game/assign_loot
 bossbar set aooni:goal players @a[tag=aooni.player]
 bossbar set aooni:goal visible true
 scoreboard objectives setdisplay sidebar aooni.side
 function aooni:game/progress
 function aooni:game/sidebar
 title @a[tag=aooni.player] times 10 70 20
-title @a[tag=aooni.player] title {"text":"아오오니 저택","color":"blue","bold":true}
-title @a[tag=aooni.player] subtitle {"text":"…쾅! 등 뒤에서 현관문이 잠겼다","color":"gray","italic":true}
+title @a[tag=aooni.player,tag=!aooni.oni_p] title {"text":"아오오니 저택","color":"blue","bold":true}
+title @a[tag=aooni.player,tag=!aooni.oni_p] subtitle {"text":"비밀번호 숫자 4개를 찾아 마검을 손에 넣어라","color":"gray"}
+title @a[tag=aooni.oni_p] title {"text":"당신은 아오오니","color":"dark_red","bold":true}
+title @a[tag=aooni.oni_p] subtitle {"text":"20초 뒤 깨어난다 — 생존자를 모두 잡아라","color":"red"}
 execute as @a[tag=aooni.player] at @s run playsound minecraft:block.iron_door.close master @s ~ ~ ~ 1 0.6
 execute as @a[tag=aooni.player] at @s run playsound minecraft:entity.zombie.attack_iron_door master @s ~ ~ ~ 0.6 0.5
-execute if score #diff aooni.var matches 1 run tellraw @a[tag=aooni.player] {"text":"","extra":[{"text":"난이도 ","color":"gray"},{"text":"쉬움","color":"green","bold":true},{"text":" · 목숨 3개. 비밀번호 4개로 봉인을 풀고, 개쎈 무기로 아오오니를 족쳐라!","color":"gray"}]}
-execute if score #diff aooni.var matches 2 run tellraw @a[tag=aooni.player] {"text":"","extra":[{"text":"난이도 ","color":"gray"},{"text":"보통","color":"yellow","bold":true},{"text":" · 목숨 2개. 비밀번호 4개로 봉인을 풀고, 개쎈 무기로 아오오니를 족쳐라!","color":"gray"}]}
-execute if score #diff aooni.var matches 3 run tellraw @a[tag=aooni.player] {"text":"","extra":[{"text":"난이도 ","color":"gray"},{"text":"어려움","color":"red","bold":true},{"text":" · 목숨 1개. 비밀번호 4개로 봉인을 풀고, 개쎈 무기로 아오오니를 족쳐라!","color":"gray"}]}
+tellraw @a[tag=aooni.player] {"text":"","extra":[{"text":"이번 판의 아오오니: ","color":"gray"},{"selector":"@a[tag=aooni.oni_p]","color":"dark_red","bold":true}]}
+execute if score #diff aooni.var matches 1 run tellraw @a[tag=aooni.player] {"text":"","extra":[{"text":"난이도 ","color":"gray"},{"text":"쉬움","color":"green","bold":true},{"text":" · 생존자 목숨 3개 · 아오오니 없음","color":"gray"}]}
+execute if score #diff aooni.var matches 2 run tellraw @a[tag=aooni.player] {"text":"","extra":[{"text":"난이도 ","color":"gray"},{"text":"보통","color":"yellow","bold":true},{"text":" · 생존자 목숨 2개 · 아오오니 신속 I","color":"gray"}]}
+execute if score #diff aooni.var matches 3 run tellraw @a[tag=aooni.player] {"text":"","extra":[{"text":"난이도 ","color":"gray"},{"text":"어려움","color":"red","bold":true},{"text":" · 생존자 목숨 1개 · 아오오니 신속 II","color":"gray"}]}

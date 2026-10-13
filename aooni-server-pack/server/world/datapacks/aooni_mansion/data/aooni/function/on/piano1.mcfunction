@@ -1,4 +1,1 @@
 playsound minecraft:block.note_block.harp block @a[distance=..16] ~ ~ ~ 1 0.707107
-execute if score #stairs aooni.var matches 1 run return run function aooni:clue/pw3 with storage aooni:v
-scoreboard players set #key aooni.var 1
-function aooni:piano/press

@@ -5,9 +5,7 @@ setblock 5 -60 30 minecraft:iron_door[half=lower,facing=north,hinge=left,open=tr
 setblock 5 -59 30 minecraft:iron_door[half=upper,facing=north,hinge=left,open=true]
 schedule function aooni:jail/close 60t
 playsound minecraft:block.iron_door.open block @a[distance=..20] ~ ~ ~ 1 0.7
-tellraw @a[tag=aooni.player] {"text":"","extra":[{"selector":"@s","color":"aqua"},{"text":" 이(가) 감옥 문을 열었다! ","color":"green"},{"text":"…쇳소리에 아오오니가 반응한다.","color":"dark_red","italic":true}]}
+tellraw @a[tag=aooni.player] {"text":"","extra":[{"selector":"@s","color":"aqua"},{"text":" 이(가) 감옥 문을 열었다!","color":"green"}]}
 execute as @a[tag=aooni.jailed] run function aooni:player/release
 scoreboard players set #rescue_cd aooni.var 20
-tag @s add aooni.me
-function aooni:oni/alert
-tag @s remove aooni.me
+execute as @a[tag=aooni.oni_p] run title @s actionbar {"text":"감옥 문이 열리는 소리가 났다!","color":"red","bold":true}

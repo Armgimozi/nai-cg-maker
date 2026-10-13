@@ -1,4 +1,5 @@
 playsound minecraft:item.book.page_turn block @s ~ ~ ~ 1 1
-tellraw @s {"text":"오르골이 저절로 울리기 시작했다…","color":"gray","italic":true}
-playsound minecraft:block.note_block.chime block @a[distance=..16] ~ ~ ~ 1 0.6
-schedule function aooni:fx/musicbox 10t
+tellraw @s {"text":"장난감 상자를 뒤지자 오르골이 저절로 울린다…","color":"gray","italic":true}
+tag @s add aooni.me
+execute as @e[type=minecraft:marker,tag=aooni.spot_s_kid_toy,limit=1] at @s run function aooni:loot/open
+tag @s remove aooni.me

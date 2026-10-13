@@ -1,2 +1,5 @@
 playsound minecraft:item.book.page_turn block @s ~ ~ ~ 1 1
-tellraw @s {"text":"","extra":[{"text":"설계 메모: ","color":"gray","italic":true},{"text":"'녀석을 벨 수 있는 건 전설의 검뿐. 검은 네 개의 봉인으로 제단에 잠가 두었다… 검을 뽑으면 녀석의 본체가 깨어난다.'","color":"dark_aqua"}]}
+tellraw @s {"text":"작업실 책상 위 설계 메모: '녀석을 벨 수 있는 건 마검뿐… 금고는 창고에.'","color":"gray","italic":true}
+tag @s add aooni.me
+execute as @e[type=minecraft:marker,tag=aooni.spot_s_st_note,limit=1] at @s run function aooni:loot/open
+tag @s remove aooni.me
