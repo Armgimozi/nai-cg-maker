@@ -1,0 +1,1 @@
+$item replace block ~ ~ ~ container.13 with minecraft:paper[minecraft:custom_name={text:"비밀번호 쪽지 ③",color:"gold",italic:false},minecraft:lore=[{text:"셋째 자리 숫자: $(k3)",color:"white",italic:false}],minecraft:custom_data={aooni_dig:3}]

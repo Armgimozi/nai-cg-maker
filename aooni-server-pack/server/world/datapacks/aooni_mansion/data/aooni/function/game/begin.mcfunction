@@ -20,7 +20,10 @@ scoreboard players set #stall aooni.var 0
 scoreboard players set #a0 aooni.var 0
 scoreboard players set #swlost aooni.var 0
 scoreboard players set #wmsg aooni.var 0
-scoreboard players set #hunt aooni.var 0
+scoreboard players set #f1 aooni.var 0
+scoreboard players set #f2 aooni.var 0
+scoreboard players set #f3 aooni.var 0
+scoreboard players set #f4 aooni.var 0
 scoreboard players set #d1 aooni.var 0
 scoreboard players set #d2 aooni.var 0
 scoreboard players set #d3 aooni.var 0
@@ -49,8 +52,6 @@ execute as @a[tag=aooni.cand_part,tag=!aooni.oni_p] run function aooni:player/sp
 execute as @a[tag=aooni.oni_p,tag=aooni.cand_part,limit=1] run function aooni:oni/enter
 execute store result score #nsurv aooni.var if entity @a[tag=aooni.player,tag=!aooni.oni_p]
 tag @a remove aooni.cand_part
-scoreboard players reset * aooni.kz
-execute if score #test aooni.var matches 1 run function aooni:test/dummy_spawn
 execute if score #test aooni.var matches 1.. run scoreboard players enable @a aooni.quit
 function aooni:game/assign_loot
 bossbar set aooni:goal players @a[tag=aooni.player]
@@ -67,7 +68,7 @@ title @a[tag=aooni.oni_p] subtitle {"text":"20초 뒤 깨어난다 — 생존자
 execute as @a[tag=aooni.player] at @s run playsound minecraft:block.iron_door.close master @s ~ ~ ~ 1 0.6
 execute as @a[tag=aooni.player] at @s run playsound minecraft:entity.zombie.attack_iron_door master @s ~ ~ ~ 0.6 0.5
 execute if score #test aooni.var matches 0 run tellraw @a[tag=aooni.player] {"text":"","extra":[{"text":"이번 판의 아오오니: ","color":"gray"},{"selector":"@a[tag=aooni.oni_p]","color":"dark_red","bold":true}]}
-execute if score #test aooni.var matches 1 run tellraw @a[tag=aooni.player] {"text":"","extra":[{"text":"\n[혼자 연습 · 생존자] ","color":"aqua","bold":true},{"text":"연습용 아오오니(AI)가 20초 뒤 2층 다락방에서 깨어나 쫓아온다. 실전에서는 사람이 아오오니를 맡는다.\n","color":"white"},{"text":"끝내기: 채팅에 ","color":"gray"},{"text":"/trigger aooni.quit","color":"yellow"}]}
+execute if score #test aooni.var matches 1 run tellraw @a[tag=aooni.player] {"text":"","extra":[{"text":"\n[혼자 연습 · 생존자] ","color":"aqua","bold":true},{"text":"아오오니 없이 저택을 둘러보며 상자를 열고 금고를 풀어 볼 수 있다. 마검을 꺼내면 연습 끝.\n","color":"white"},{"text":"끝내기: 채팅에 ","color":"gray"},{"text":"/trigger aooni.quit","color":"yellow"}]}
 execute if score #test aooni.var matches 2 run tellraw @a[tag=aooni.player] {"text":"","extra":[{"text":"\n[혼자 연습 · 아오오니] ","color":"light_purple","bold":true},{"text":"생존자가 없어서 승패가 나지 않는다. 20초 뒤 움직일 수 있다. 문·버튼·옷장을 못 만지는지 확인해 보자.\n","color":"white"},{"text":"끝내기: 채팅에 ","color":"gray"},{"text":"/trigger aooni.quit","color":"yellow"}]}
 execute if score #diff aooni.var matches 1 run tellraw @a[tag=aooni.player] {"text":"","extra":[{"text":"난이도 ","color":"gray"},{"text":"쉬움","color":"green","bold":true},{"text":" · 생존자 목숨 3개 · 아오오니 기본 속도","color":"gray"}]}
 execute if score #diff aooni.var matches 2 run tellraw @a[tag=aooni.player] {"text":"","extra":[{"text":"난이도 ","color":"gray"},{"text":"보통","color":"yellow","bold":true},{"text":" · 생존자 목숨 2개 · 아오오니 신속 I","color":"gray"}]}

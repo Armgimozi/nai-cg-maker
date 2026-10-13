@@ -21,7 +21,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 PACK = os.path.join(ROOT, "server", "world", "datapacks", "aooni_mansion")
 NS = "aooni"
-BUILD_VERSION = 5          # 바꾸면 기존 월드도 다음 로드 때 다시 짓는다
+BUILD_VERSION = 6          # 바꾸면 기존 월드도 다음 로드 때 다시 짓는다
 PACK_MIN, PACK_MAX = 71, 121   # 1.21.5 ~ 26.3
 
 # ------------------------------------------------------------------ 좌표 상수
@@ -157,9 +157,14 @@ def door(x, y, z, facing, hinge, mat="iron_door", open_=False):
 
 # ------------------------------------------------------------------ 상호작용(버튼) 등록
 ACTS = []   # (id, x, y, z, state, scope) scope: lobby|game
+SPOT_REQ = []   # 조사 상자 자리 요청 (id, x, y, z, face, facing) — 저택을 다 지은 뒤 place_chests() 가 놓는다
+SPOTS = []      # 놓인 조사 상자 (id, x, y, z)
 
 
 def button(aid, x, y, z, face, facing, kind="stone_button", scope="game"):
+    if aid.startswith("s_"):   # 조사 지점은 버튼이 아니라 상자
+        SPOT_REQ.append((aid, x, y, z, face, facing))
+        return
     state = f"minecraft:{kind}[face={face},facing={facing},powered=false]"
     setb(x, y, z, state)
     ACTS.append((aid, x, y, z, state, kind, scope))
@@ -322,7 +327,6 @@ def build_mansion():
     setb(19, RF - 1, 3, "lantern[hanging=true]")
     setb(17, C1 - 1, 11, "soul_lantern[hanging=true]")
     fill(16, F1, 12, 17, F1 + 2, 12, "air")      # 계단실 입구 (높이 3칸)
-    text(17.0, F1 + 2.75, 13.2, T("계단", "gray"), "aooni.fx")
 
     # 5) 1층 복도
     fill(1, F1, 14, 45, F1, 15, "red_carpet")
@@ -347,7 +351,6 @@ def build_mansion():
     button("s_lib_diary", 5, F1 + 1, 7, "wall", "north", "polished_blackstone_button")
     closet(13, F1, 10, "W")
     fill(7, F1, 12, 7, F1 + 2, 12, "air")        # 서재 입구
-    text(7.5, F1 + 2.75, 13.2, T("서재", "gray"), "aooni.fx")
 
     # 7) 식당 (x23..35, z1..11) — 잠김
     fill(23, Y1, 1, 35, Y1, 11, "dark_oak_planks")
@@ -365,7 +368,6 @@ def build_mansion():
     for x in (26, 27, 31, 32):
         fill(x, F1 + 1, 0, x, F1 + 2, 0, "glass_pane")
     fill(29, F1, 12, 29, F1 + 2, 12, "air")      # 식당 입구
-    text(29.5, F1 + 2.75, 13.2, T("식당", "gray"), "aooni.fx")
 
     # 8) 피아노실 (x37..45, z1..11)
     fill(37, Y1, 1, 45, Y1, 11, "stripped_dark_oak_wood")
@@ -381,7 +383,6 @@ def build_mansion():
     setb(41, C1 - 1, 6, "lantern[hanging=true]")
     closet(45, F1, 10, "W")
     fill(46, F1 + 1, 5, 46, F1 + 2, 6, "glass_pane")
-    text(36.5, F1 + 2.75, 5.9, T("피아노실", "gray"), "aooni.fx")
 
     # 9) 감옥 (x1..9, z18..35)
     fill(1, Y1, 18, 9, Y1, 35, "cobblestone")
@@ -398,7 +399,6 @@ def build_mansion():
     button("s_jail_note", 8, F1 + 1, 19, "floor", "north", "polished_blackstone_button")
     button("rescue", 2, F1 + 1, 18, "wall", "south", "stone_button")
     text(2.5, F1 + 1.9, 18.35, T("감옥 문 열기", "yellow"), "aooni.fx", scale=0.55)
-    text(5.5, F1 + 2.75, 16.8, T("감옥", "gray"), "aooni.fx")
 
     # 10) 화장실 (x11..17, z18..35)
     fill(11, Y1, 18, 17, Y1, 35, "polished_diorite")
@@ -412,7 +412,6 @@ def build_mansion():
     button("s_bath_tub", 11, F1 + 1, 34, "floor", "north", "polished_blackstone_button")
     setb(14, C1 - 1, 27, "lantern[hanging=true]")
     closet(11, F1, 24, "E")
-    text(14.5, F1 + 2.75, 16.8, T("화장실", "gray"), "aooni.fx")
 
     # 11) 거실 (x19..29, z18..35)
     fill(19, Y1, 18, 29, Y1, 35, "spruce_planks")
@@ -433,7 +432,6 @@ def build_mansion():
     button("s_liv_clock", 28, F1 + 1, 19, "wall", "west", "polished_blackstone_button")
     closet(19, F1, 20, "E")
     fill(21, F1 + 1, 36, 22, F1 + 2, 36, "glass_pane")
-    text(24.5, F1 + 2.75, 16.8, T("거실", "gray"), "aooni.fx")
 
     # 12) 현관홀 (x31..36, z18..35)
     fill(31, Y1, 18, 36, Y1, 35, "polished_andesite")
@@ -448,8 +446,6 @@ def build_mansion():
     door(33, F1, 36, "north", "left")
     door(34, F1, 36, "north", "right")
     button("d_front", 31, F1 + 1, 35, "wall", "north")
-    text(33.95, F1 + 2.6, 35.3, T("현관문", "gold"), "aooni.fx")
-    text(33.95, F1 + 2.75, 16.8, T("현관홀", "gray"), "aooni.fx")
 
     # 13) 주방 (x38..45, z18..35)
     fill(38, Y1, 18, 45, Y1, 35, "smooth_stone")
@@ -466,7 +462,6 @@ def build_mansion():
     button("s_kit_sink", 45, F1 + 1, 23, "floor", "north", "polished_blackstone_button")
     closet(38, F1, 34, "E")
     fill(46, F1 + 1, 33, 46, F1 + 2, 34, "glass_pane")
-    text(41.95, F1 + 2.75, 16.8, T("주방", "gray"), "aooni.fx")
 
     # ---------------- 2층
     fill(1, F2, 14, 45, F2, 15, "blue_carpet")
@@ -481,7 +476,6 @@ def build_mansion():
     setb(7, RF - 1, 6, "lantern[hanging=true]")
     closet(13, F2, 8, "W")
     fill(7, F2 + 1, 0, 8, F2 + 2, 0, "glass_pane")
-    text(7.5, F2 + 2.75, 13.2, T("안방", "gray"), "aooni.fx")
 
     # 손님방 (x23..35, z1..11)
     fill(24, F2, 2, 25, F2, 4, "blue_wool")
@@ -491,7 +485,6 @@ def build_mansion():
     setb(29, RF - 1, 6, "lantern[hanging=true]")
     closet(35, F2, 2, "W")
     fill(31, F2 + 1, 0, 32, F2 + 2, 0, "glass_pane")
-    text(29.5, F2 + 2.75, 13.2, T("손님방", "gray"), "aooni.fx")
 
     # 창고 (x37..45, z1..11) — 발판 퍼즐로 열림
     fill(37, C1, 1, 45, C1, 11, "spruce_planks")
@@ -505,7 +498,6 @@ def build_mansion():
     closet(37, F2, 10, "E")
     fill(46, F2 + 1, 5, 46, F2 + 2, 6, "glass_pane")
     fill(41, F2, 12, 41, F2 + 2, 12, "air")      # 창고 입구
-    text(41.5, F2 + 2.75, 13.2, T("창고", "gray"), "aooni.fx")
 
     # 아이방 (x1..13, z18..35)
     fill(1, C1, 18, 13, C1, 35, "birch_planks")
@@ -518,7 +510,6 @@ def build_mansion():
     setb(7, RF - 1, 27, "lantern[hanging=true]")
     closet(13, F2, 33, "W")
     fill(6, F2 + 1, 36, 7, F2 + 2, 36, "glass_pane")
-    text(7.5, F2 + 2.75, 16.8, T("아이방", "gray"), "aooni.fx")
 
     # 작업실 (x15..29, z18..35)
     fill(15, C1, 18, 29, C1, 35, "spruce_planks")
@@ -530,7 +521,6 @@ def build_mansion():
     setb(22, RF - 1, 26, "lantern[hanging=true]")
     closet(15, F2, 21, "E")
     fill(24, F2 + 1, 36, 25, F2 + 2, 36, "glass_pane")
-    text(22.95, F2 + 2.75, 16.8, T("작업실", "gray"), "aooni.fx")
 
     # 다락방 (x31..45, z18..35)
     fill(31, C1, 18, 45, C1, 35, "stripped_spruce_wood")
@@ -543,7 +533,6 @@ def build_mansion():
     closet(45, F2, 27, "W")
     fill(36, F2 + 1, 36, 37, F2 + 2, 36, "glass_pane")
     fill(42, F2 + 1, 36, 43, F2 + 2, 36, "glass_pane")
-    text(38.5, F2 + 2.75, 16.8, T("다락방", "gray"), "aooni.fx")
 
     # 굴뚝
     fill(19, RF + 1, 28, 19, RF + 3, 28, "bricks")
@@ -558,6 +547,25 @@ def build_mansion():
         fill(x, F1, 40, x, F1 + 1, 40, "dark_oak_fence")
         setb(x, F1 + 2, 40, "lantern")
     text(33.95, F1 + 3.3, 45.5, T("아침이다…", "gold", bold=True), "aooni.fx", scale=1.0)
+    place_chests()
+
+
+FACE_DIRS = {"south": (0, 1), "north": (0, -1), "east": (1, 0), "west": (-1, 0)}
+
+
+def place_chests():
+    """조사 상자를 놓는다. 벽에 붙어 있던 자리는 바닥까지 내리고, 앞면은 트인 쪽으로 돌린다."""
+    for (aid, x, y, z, face, facing) in SPOT_REQ:
+        while y > Y1 + 1 and passable(WORLD.get((x, y - 1, z)), False):
+            y -= 1
+        if face != "wall":
+            facing = max(FACE_DIRS, key=lambda d: sum(passable(WORLD.get((x + FACE_DIRS[d][0] * k, y, z + FACE_DIRS[d][1] * k)), False)
+                                                       for k in (1, 2, 3)))
+        above = WORLD.get((x, y + 1, z))
+        # 위가 꽉 찬 블록이면 상자 뚜껑이 안 열린다
+        assert passable(above, False) or any(t in bid(above) for t in ("glass", "slab", "stairs", "lantern")), (aid, above)
+        setb(x, y, z, f"chest[facing={facing},type=single,waterlogged=false]")
+        SPOTS.append((aid, x, y, z))
 
 
 def build_lobby():
@@ -599,7 +607,7 @@ def build_lobby():
     text(-20.5, F1 + 2.45, 5.5, T("난이도: 보통", "yellow"), "aooni.fx", "aooni.t_diff", scale=0.7)
     text(-20.5, F1 + 2.15, 5.5, T("접속 인원: 0명", "white"), "aooni.fx", "aooni.t_count", scale=0.6)
     rules = ("한 명은 아오오니, 나머지는 생존자! (아오오니 지원 버튼)\n"
-             "· 생존자: 검은 버튼을 눌러 저택을 뒤져 비밀번호 숫자 4개를 찾자\n"
+             "· 생존자: 저택 곳곳의 상자를 열어 비밀번호 쪽지 4장을 찾자\n"
              "· 2층 창고 금고에 비밀번호를 넣으면 마검! 마검으로만 아오오니를 벨 수 있다\n"
              "· 아오오니: 20초 뒤 깨어나 생존자를 때려 잡는다. 문·버튼·옷장은 못 만진다\n"
              "· 잡히면 감옥행 → 동료가 감옥 입구 버튼으로 구출. 목숨을 다 잃으면 관전\n"
@@ -786,37 +794,12 @@ VAULT_DROP = (41.5, F2 + 1, 3.5)    # 아오오니가 마검을 주우면 금고
 CIRC = {1: "①", 2: "②", 3: "③", 4: "④"}
 ORD = {1: "첫째", 2: "둘째", 3: "셋째", 4: "넷째"}
 NOTE_PITCH = {1: 0.707107, 2: 0.793701, 3: 0.890899, 4: 0.943874, 5: 1.059463}
-# 조사 지점에서 나올 수 있는 물약(한 번 쓰면 끝)
-BUFFS = {1: ("speed", 1, 20, "신속 물약", "몸이 가벼워졌다! (20초)"),
-         2: ("invisibility", 0, 25, "투명 물약", "몸이 투명해졌다… (25초)"),
-         3: ("night_vision", 0, 120, "손전등", "어둠 속이 잘 보인다 (2분)")}
-NOTHING = ["아무것도 없었다.", "종이인 줄 알았는데… 그냥 영수증이다.", "돌멩이 하나. 비밀번호가 아니다.", "먼지만 풀썩 날린다."]
-FLAVOR = {
-    "s_lib_desk": "서재 책상 서랍을 뒤졌다.",
-    "s_lib_sheet": "책장 사이를 더듬었다.",
-    "s_lib_diary": "낡은 일기장: '이 집에는 무언가가 산다. 파랗고, 거대하고… 문을 잠가도 소용없다.'",
-    "s_din_plate": "식탁 위 빈 접시를 들춰 봤다.",
-    "s_din_candle": "촛불이 흔들린다. 누군가 방금 옆을 지나간 것처럼…",
-    "s_jail_note": "벽에 손톱으로 긁은 글씨: '도망쳐… 파란… 숨어…'",
-    "s_bath_mirror": "김 서린 거울을 손으로 닦았다.",
-    "s_bath_tub": "욕조에 검푸른 물이 고여 있다.",
-    "s_liv_cab": "장식장 서랍을 열었다.",
-    "s_liv_fire": "벽난로 재 속을 뒤졌다. 타다 남은 사진 조각… '1999년 여름'",
-    "s_liv_clock": "괘종시계가 멈춰 있다. 바늘은 3시 33분.",
-    "s_hall_vase": "꽃병 속을 들여다봤다. 장미는 오래전에 시들었다.",
-    "s_hall_photo": "가족사진. 아이의 얼굴만 검게 칠해져 있다…",
-    "s_kit_fridge": "냉장고 문을 살짝 열었다…",
-    "s_kit_sink": "싱크대를 뒤졌다. 식칼꽂이에 칼 하나가 비어 있다.",
-    "s_mb_diary": "부부의 일기장을 넘겼다.",
-    "s_gr_bag": "손님의 여행 가방을 열었다.",
-    "s_sto_box": "낡은 상자. 아이 장난감이 가득하다.",
-    "s_kid_toy": "장난감 상자를 뒤지자 오르골이 저절로 울린다…",
-    "s_kid_draw": "크레파스로 그린 파란 괴물 그림.",
-    "s_st_note": "작업실 책상 위 설계 메모: '녀석을 벨 수 있는 건 마검뿐… 금고는 창고에.'",
-    "s_spare_mirror": "거울 속, 내 어깨 너머로 파란 무언가가… 돌아보니 아무도 없다.",
-}
+# 상자에서 나올 수 있는 물약: (효과, 세기, 초, 이름, 설명, 색)
+BUFFS = {1: ("speed", 1, 20, "신속 물약", "마시면 20초 동안 빨라진다", 8171462),
+         2: ("invisibility", 0, 25, "투명 물약", "마시면 25초 동안 투명해진다", 8356754),
+         3: ("night_vision", 0, 120, "야간 투시 물약", "마시면 2분 동안 어둠 속이 잘 보인다", 2039713)}
 ALL_FLAGS = (["#sec", "#sp", "#cd", "#found", "#wpn", "#final", "#rescue_cd", "#freeze", "#oni_gone", "#bh",
-              "#bhp_prev", "#half10", "#hp", "#amb", "#stall", "#a0", "#swlost", "#wmsg", "#hunt"] + [f"#d{k}" for k in range(1, 5)])
+              "#bhp_prev", "#half10", "#hp", "#amb", "#stall", "#a0", "#swlost", "#wmsg", "#f1", "#f2", "#f3", "#f4"] + [f"#d{k}" for k in range(1, 5)])
 
 ONI_PARTS = [  # (블록, 크기xyz, 최소좌표xyz(발밑 기준), 밝기)
     # 다리·몸통·팔은 높이 1.2 아래 → 아오오니 본인 시야(눈높이 1.62)에 윗면이 들어오지 않는다
@@ -835,6 +818,20 @@ ONI_PARTS = [  # (블록, 크기xyz, 최소좌표xyz(발밑 기준), 밝기)
 ]
 
 
+def potion_item(b):
+    eff, amp, dur, name, desc, color = BUFFS[b]
+    return (f'minecraft:potion[minecraft:potion_contents={{custom_color:{color},custom_effects:[{{id:"minecraft:{eff}",'
+            f'amplifier:{amp}b,duration:{dur * 20},show_particles:0b}}]}},'
+            f'minecraft:custom_name={{text:"{name}",color:"light_purple",italic:false}},'
+            f'minecraft:lore=[{{text:"{desc}",color:"gray",italic:false}}]]')
+
+
+def digit_paper(j, value):
+    return (f'minecraft:paper[minecraft:custom_name={{text:"비밀번호 쪽지 {CIRC[j]}",color:"gold",italic:false}},'
+            f'minecraft:lore=[{{text:"{ORD[j]} 자리 숫자: {value}",color:"white",italic:false}}],'
+            f'minecraft:custom_data={{aooni_dig:{j}}}]')
+
+
 def oni_model_cmds(scale):
     """아오오니 플레이어를 매 틱 따라다니는 블록 디스플레이 모형(플레이어 본체는 투명)."""
     out = ["kill @e[type=minecraft:block_display,tag=aooni.part]"]
@@ -849,16 +846,10 @@ def oni_model_cmds(scale):
 
 SURV = "@a[tag=aooni.player,tag=!aooni.oni_p]"
 ONI = "@a[tag=aooni.oni_p,tag=!aooni.oni_dead,gamemode=adventure]"
-# 혼자 연습(생존자) 때만 나오는 연습용 아오오니(좀비 AI). 실전에는 절대 나오지 않는다.
-DUMMY = "@e[type=minecraft:zombie,tag=aooni.dummy]"
-DUMMY_SPEED = {1: 0.27, 2: 0.30, 3: 0.33}   # 걷는 플레이어 ≈ 0.31, 달리면 따돌릴 수 있음
-INVIS = '{active_effects:[{id:"minecraft:invisibility"}]}'
-DUMMY_HUNT = 6                              # 몇 초마다 가장 가까운 생존자 냄새를 맡는지
 
 
 def logic():
-    spots = [a for a in ACTS if a[0].startswith("s_")]
-    assert set(FLAVOR) == {a[0] for a in spots}, set(FLAVOR) ^ {a[0] for a in spots}
+    assert len(SPOTS) >= 7, len(SPOTS)
 
     # ---------------- load / tick
     fn("load",
@@ -874,7 +865,6 @@ def logic():
        "scoreboard objectives add aooni.wc dummy",
        "# 연습 끝내기: OP 가 아니어도 /trigger aooni.quit",
        "scoreboard objectives add aooni.quit trigger",
-       "scoreboard objectives add aooni.kz minecraft.killed:minecraft.zombie",
        "team add aooni_alive",
        f"team modify aooni_alive displayName {comp(T('생존자', 'aqua'))}",
        "team modify aooni_alive color aqua",
@@ -934,7 +924,6 @@ def logic():
     fn("build/all",
        "kill @e[tag=aooni.fx]",
        "kill @e[type=minecraft:zombie,tag=aooni.oni]",
-       f"kill {DUMMY}",
        "function aooni:build/lobby",
        "function aooni:build/mansion",
        "function aooni:build/fixtures",
@@ -1076,14 +1065,14 @@ def logic():
     fn("msg/rules",
        tell("@s", T("\n━━━━ 아오오니 저택 규칙 ━━━━\n", "blue", bold=True),
             T("역할: ", "gold"), T("한 명이 아오오니(술래), 나머지는 생존자. 지원자가 있으면 그중에서 무작위로 뽑는다.\n", "white"),
-            T("생존자: ", "gold"), T("검은 버튼을 눌러 저택을 뒤져 비밀번호 숫자 4개(①~④번째 자리)를 찾고, ", "white"),
+            T("생존자: ", "gold"), T("저택 곳곳의 상자를 열어 비밀번호 쪽지 4장(①~④번째 자리)을 찾고, ", "white"),
             T("2층 창고 금고에 넣어 마검을 꺼내라. 판마다 숫자와 숨은 위치가 바뀐다.\n", "white"),
             T("아오오니: ", "gold"), T("20초 뒤 깨어난다. 생존자를 때리면 잡힌다. 문·버튼·옷장은 만질 수 없다.\n", "white"),
             T("잡히면: ", "gold"), T("감옥행(목숨 -1). 동료가 감옥 입구 버튼으로 구출. 목숨을 다 잃으면 관전.\n", "white"),
             T("옷장: ", "gold"), T("가문비나무 문 옷장에 들어가 문을 닫으면 완전히 안전. 아오오니는 절대 열 수 없다.\n", "white"),
             T("결전: ", "gold"), T("마검이 나오면 아오오니가 거대해지고 체력바가 뜬다. 마검(힘 V)만 피해를 준다 — 맨손은 0. ", "white"),
             T("마검을 든 사람이 잡히면 그 자리에 떨어진다.\n", "white"),
-            T("혼자 연습: ", "gold"), T("대기실 양쪽 끝 버튼. 생존자 연습은 연습용 아오오니(AI)가 쫓아오고, 아오오니 연습은 승패 없이 둘러본다. ", "white"),
+            T("혼자 연습: ", "gold"), T("대기실 양쪽 끝 버튼. 생존자 연습은 아오오니 없이 상자·금고를 해 보고, 아오오니 연습은 승패 없이 둘러본다. ", "white"),
             T("끝내기 /trigger aooni.quit\n", "white"),
             T("승패: ", "gold"), T("아오오니를 쓰러뜨리면 생존자 승리, 생존자가 모두 갇히거나 탈락하면 아오오니 승리.", "white")))
 
@@ -1114,8 +1103,6 @@ def logic():
        "execute as @a[tag=aooni.oni_p,tag=aooni.cand_part,limit=1] run function aooni:oni/enter",
        f"execute store result score #nsurv aooni.var if entity {SURV}",
        "tag @a remove aooni.cand_part",
-       "scoreboard players reset * aooni.kz",
-       "execute if score #test aooni.var matches 1 run function aooni:test/dummy_spawn",
        "execute if score #test aooni.var matches 1.. run scoreboard players enable @a aooni.quit",
        "function aooni:game/assign_loot",
        "bossbar set aooni:goal players @a[tag=aooni.player]",
@@ -1135,7 +1122,7 @@ def logic():
                                                                 {"selector": "@a[tag=aooni.oni_p]", "color": "dark_red", "bold": True}),
        "execute if score #test aooni.var matches 1 run " + tell(
            "@a[tag=aooni.player]", T("\n[혼자 연습 · 생존자] ", "aqua", bold=True),
-           T(f"연습용 아오오니(AI)가 {ONI_FREEZE}초 뒤 2층 다락방에서 깨어나 쫓아온다. 실전에서는 사람이 아오오니를 맡는다.\n", "white"),
+           T("아오오니 없이 저택을 둘러보며 상자를 열고 금고를 풀어 볼 수 있다. 마검을 꺼내면 연습 끝.\n", "white"),
            T("끝내기: 채팅에 ", "gray"), T("/trigger aooni.quit", "yellow")),
        "execute if score #test aooni.var matches 2 run " + tell(
            "@a[tag=aooni.player]", T("\n[혼자 연습 · 아오오니] ", "light_purple", bold=True),
@@ -1201,24 +1188,25 @@ def logic():
     for tag in [f"dig{j}" for j in range(1, 5)] + [f"buff{b}" for b in BUFFS]:
         assign += [f"execute as @e[type=minecraft:marker,tag=aooni.spot,tag=!aooni.loot,sort=random,limit=1] run tag @s add aooni.{tag}",
                    f"tag @e[type=minecraft:marker,tag=aooni.{tag}] add aooni.loot"]
-    fn("game/assign_loot", "# 비밀번호 숫자 4개와 물약 3개를 조사 지점 중 무작위 위치에 숨긴다", *assign)
+    fn("game/assign_loot", "# 비밀번호 쪽지 4장과 물약 3개를 조사 상자 중 무작위로 골라 넣는다(나머지 상자는 빈 상자)",
+       "execute at @e[type=minecraft:marker,tag=aooni.spot] run data modify block ~ ~ ~ Items set value []",
+       *assign,
+       *[f"execute at @e[type=minecraft:marker,tag=aooni.dig{j}] run function aooni:loot/put_digit{j} with storage aooni:v"
+         for j in range(1, 5)],
+       *[f"execute at @e[type=minecraft:marker,tag=aooni.buff{b}] run item replace block ~ ~ ~ container.13 with {potion_item(b)}"
+         for b in BUFFS])
 
     # ---------------- 틱/초
     fn("game/tick",
        f"execute if score #freeze aooni.var matches 1.. as {ONI} positioned {P(*ONI_SPAWN)} unless entity @s[distance=..0.4] run tp @s {P(*ONI_SPAWN)}",
        f"execute as {ONI} at @s run tp @e[type=minecraft:block_display,tag=aooni.part] ~ ~ ~ ~ 0",
-       f"execute as {DUMMY} at @s run tp @e[type=minecraft:block_display,tag=aooni.part] ~ ~ ~ ~ 0",
        "execute as @a[tag=aooni.alive,scores={aooni.hit=1..}] at @s run function aooni:player/hit",
        "scoreboard players reset @a[scores={aooni.hit=1..}] aooni.hit",
        f"execute as @a[tag=aooni.oni_p] at @s run function aooni:oni/no_sword",
        "function aooni:hide/check",
        "scoreboard players remove @a[tag=aooni.safe] aooni.grace 1",
        "tag @a[tag=aooni.safe,scores={aooni.grace=..0}] remove aooni.safe",
-       f"execute if score #final aooni.var matches 1 as {ONI} at @s run function aooni:final/hp",
-       f"execute if score #final aooni.var matches 1 as {DUMMY} at @s run function aooni:final/hp",
-       "# 죽은 몹은 @e 에 잡히지 않는다 → 결전 중 연습용 아오오니가 사라졌고 누군가 좀비를 잡았으면 쓰러진 것",
-       f"execute if score #test aooni.var matches 1 if score #final aooni.var matches 1 unless entity {DUMMY} "
-       "if entity @a[scores={aooni.kz=1..}] run function aooni:test/dummy_down")
+       f"execute if score #final aooni.var matches 1 as {ONI} at @s run function aooni:final/hp")
     fn("game/sec",
        "scoreboard players add #sec aooni.var 1",
        "# 게임 도중 크리에이티브로 바뀐 사람은 역할에서 뺀다",
@@ -1232,14 +1220,13 @@ def logic():
        f"execute store result score #son aooni.var if entity {SURV}",
        "execute if score #alive aooni.var matches 1.. run scoreboard players set #a0 aooni.var 0",
        "execute if score #alive aooni.var matches 0 run scoreboard players add #a0 aooni.var 1",
-       "# (아오오니 연습은 생존자가 없으니 승패 판정을 하지 않는다)",
-       "execute unless score #test aooni.var matches 2 if score #alive aooni.var matches 0 if score #son aooni.var >= #nsurv aooni.var run return run function aooni:game/oni_win",
-       "execute unless score #test aooni.var matches 2 if score #a0 aooni.var matches 20.. run return run function aooni:game/oni_win",
-       f"execute unless entity {ONI} unless entity {DUMMY} run scoreboard players add #oni_gone aooni.var 1",
+       "# (혼자 연습은 승패 판정을 하지 않는다. 생존자 연습에서 아무도 안 남으면 연습을 끝낸다)",
+       "execute if score #test aooni.var matches 0 if score #alive aooni.var matches 0 if score #son aooni.var >= #nsurv aooni.var run return run function aooni:game/oni_win",
+       "execute if score #test aooni.var matches 0 if score #a0 aooni.var matches 20.. run return run function aooni:game/oni_win",
+       "execute if score #test aooni.var matches 1 if score #a0 aooni.var matches 20.. run return run function aooni:test/abandon",
+       f"execute unless score #test aooni.var matches 1 unless entity {ONI} run scoreboard players add #oni_gone aooni.var 1",
        f"execute if entity {ONI} run scoreboard players set #oni_gone aooni.var 0",
-       f"execute if entity {DUMMY} run scoreboard players set #oni_gone aooni.var 0",
-       "# (연습용 아오오니가 쓰러지지 않고 그냥 사라진 경우는 '중단')",
-       "execute unless score #test aooni.var matches 1 if score #final aooni.var matches 1 if score #oni_gone aooni.var matches 30.. run return run function aooni:game/victory",
+       "execute if score #final aooni.var matches 1 if score #oni_gone aooni.var matches 30.. run return run function aooni:game/victory",
        "execute if score #oni_gone aooni.var matches 30.. run return run function aooni:game/no_oni",
        "execute if score #wpn aooni.var matches 1 run function aooni:weapon/watch",
        "function aooni:hide/stall",
@@ -1247,12 +1234,9 @@ def logic():
        "execute if score #freeze aooni.var matches 1.. run function aooni:game/freeze_sec",
        "execute as @a[tag=aooni.alive] run function aooni:player/arm_check",
        f"execute as @a[tag=aooni.alive,tag=!aooni.hidden] at @s if entity {ONI[:-1]},distance=..9] run function aooni:player/near_oni",
-       f"execute as @a[tag=aooni.alive,tag=!aooni.hidden] at @s if entity {DUMMY[:-1]},distance=..9] run function aooni:player/near_oni",
-       "execute if score #test aooni.var matches 1 if score #freeze aooni.var matches 0 run scoreboard players remove #hunt aooni.var 1",
-       "# 연습: 투명한 동안은 연습용 아오오니와 같은 팀(aooni_out)에 두어 노려지지 않게 한다",
-       f"execute if score #test aooni.var matches 1 run team join aooni_out @a[tag=aooni.alive,team=aooni_alive,nbt={INVIS}]",
-       f"execute if score #test aooni.var matches 1 run team join aooni_alive @a[tag=aooni.alive,team=aooni_out,nbt=!{INVIS}]",
-       "execute if score #test aooni.var matches 1 if score #freeze aooni.var matches 0 if score #hunt aooni.var matches ..0 run function aooni:test/hunt",
+       "function aooni:loot/check",
+       "execute if score #wpn aooni.var matches 1 as @e[type=minecraft:marker,tag=aooni.spot] at @s "
+       "if data block ~ ~ ~ Items[{id:\"minecraft:netherite_sword\"}] run function aooni:weapon/unchest",
        f"execute as @a[tag=aooni.jailed] unless entity @s[x=1,y={Y1},z=31,dx=8,dy=5,dz=4] run tp @s {P(*JAIL)} 180 0",
        "execute if score #rescue_cd aooni.var matches 1.. run scoreboard players remove #rescue_cd aooni.var 1",
        "execute if score #wmsg aooni.var matches 1.. run scoreboard players remove #wmsg aooni.var 1",
@@ -1277,15 +1261,14 @@ def logic():
        f"title {SURV} subtitle {comp(T('…아오오니가 깨어났다', 'dark_red', bold=True))}",
        f"title @a[tag=aooni.oni_p] subtitle {comp(T('사냥 시작!', 'red', bold=True))}",
        sound_all("minecraft:entity.elder_guardian.curse", 0.5, 0.8),
-       "bossbar set aooni:goal color red",
-       f"execute as {DUMMY} run data merge entity @s {{NoAI:0b}}")
+       "bossbar set aooni:goal color red")
     fn("game/sidebar",
        "scoreboard players operation §a생존자 aooni.side = #alive aooni.var",
        "scoreboard players operation §c감옥 aooni.side = #jailed aooni.var",
        "scoreboard players operation §6숫자(4) aooni.side = #found aooni.var",
        "scoreboard players operation §7경과(분) aooni.side = #sec aooni.var",
        "scoreboard players operation §7경과(분) aooni.side /= #60 aooni.var")
-    goals = ["비밀번호 숫자 4개를 찾아라 (검은 버튼 = 조사)", "2층 창고 금고에 비밀번호를 넣어 마검을 꺼내라!",
+    goals = ["상자를 열어 비밀번호 쪽지 4장을 찾아라", "2층 창고 금고에 비밀번호를 넣어 마검을 꺼내라!",
              "마검으로 아오오니를 족쳐라!"]
     fn("game/progress",
        "execute store result bossbar aooni:goal value run scoreboard players get #found aooni.var",
@@ -1301,7 +1284,6 @@ def logic():
         return ["scoreboard players set #state aooni.var 2",
                 f"scoreboard players set #end_t aooni.var {t}",
                 "kill @e[type=minecraft:block_display,tag=aooni.part]",
-                f"kill {DUMMY}",
                 "bossbar set aooni:boss visible false",
                 "scoreboard players operation #min aooni.var = #sec aooni.var",
                 "scoreboard players operation #min aooni.var /= #60 aooni.var",
@@ -1327,12 +1309,8 @@ def logic():
        f"title @a title {comp(T('아오오니의 승리', 'dark_red', bold=True))}",
        "title @a subtitle " + comp(T("생존자가 모두 붙잡혔다", "gray"), *took),
        "execute as @a at @s run playsound minecraft:entity.elder_guardian.curse master @s ~ ~ ~ 1 0.6",
-       "execute unless score #test aooni.var matches 1 run " + tell(
-           "@a", T("\n[아오오니 저택] ", "blue"), T("아오오니 ", "dark_red", bold=True),
-           {"selector": "@a[tag=aooni.oni_p]", "color": "dark_red"}, T(" 의 승리! 10초 뒤 대기실로.", "white")),
-       "execute if score #test aooni.var matches 1 run " + tell(
-           "@a", T("\n[아오오니 저택] ", "blue"), T("연습용 아오오니의 승리! ", "dark_red", bold=True),
-           T("10초 뒤 대기실로. 다시 하려면 [혼자 연습] 버튼.", "white")))
+       tell("@a", T("\n[아오오니 저택] ", "blue"), T("아오오니 ", "dark_red", bold=True),
+            {"selector": "@a[tag=aooni.oni_p]", "color": "dark_red"}, T(" 의 승리! 10초 뒤 대기실로.", "white")))
     fn("game/no_oni",
        *end_common(5),
        f"title @a title {comp(T('게임 중단', 'gray'))}",
@@ -1349,12 +1327,7 @@ def logic():
        "bossbar set aooni:boss visible false",
        "time set 18000",
        "kill @e[type=minecraft:item]",
-       f"kill {DUMMY}",
-       "kill @e[type=minecraft:experience_orb]",
        "scoreboard players set #test aooni.var 0",
-       "scoreboard players reset * aooni.kz",
-       "# 연습용 아오오니가 남긴 팀 기록 정리(사람은 이 아래에서 모두 다른 팀으로 옮겨진다)",
-       "team empty aooni_out",
        "scoreboard objectives setdisplay sidebar",
        "scoreboard players reset * aooni.side",
        "execute as @a[gamemode=!creative] run function aooni:player/to_lobby",
@@ -1372,7 +1345,6 @@ def logic():
        "execute if score #freeze aooni.var matches 1.. run return 0",
        "scoreboard players set #byoni aooni.var 0",
        "execute on attacker if entity @s[tag=aooni.oni_p] run scoreboard players set #byoni aooni.var 1",
-       "execute on attacker if entity @s[tag=aooni.dummy] run scoreboard players set #byoni aooni.var 1",
        "execute if score #byoni aooni.var matches 0 run return 0",
        "function aooni:player/caught")
     fn("player/caught",
@@ -1454,8 +1426,14 @@ def logic():
        "# 아오오니와 24칸 넘게 떨어진 조사 지점 중 무작위 한 곳(없으면 창고 금고 앞)에 마검을 놓는다",
        "tag @e[type=minecraft:marker,tag=aooni.wcand] remove aooni.wcand",
        "execute as @e[type=minecraft:marker,tag=aooni.spot] at @s unless entity @a[tag=aooni.oni_p,distance=..24] run tag @s add aooni.wcand",
-       f"execute at @e[type=minecraft:marker,tag=aooni.wcand,sort=random,limit=1] run summon minecraft:item ~ ~0.5 ~ {sword_item}",
+       f"execute at @e[type=minecraft:marker,tag=aooni.wcand,sort=random,limit=1] run summon minecraft:item ~ ~1 ~ {sword_item}",
        f"execute unless entity @e[type=minecraft:marker,tag=aooni.wcand] run summon minecraft:item {P(*VAULT_DROP)} {sword_item}")
+    fn("weapon/unchest",
+       "# 마검은 상자에 가둘 수 없다 → 상자 위로 튀어나온다",
+       f"data remove block ~ ~ ~ Items[{{id:\"minecraft:{WEAPON_ITEM}\"}}]",
+       f"summon minecraft:item ~ ~1 ~ {sword_item}",
+       "playsound minecraft:block.chest.close block @a[distance=..16] ~ ~ ~ 1 0.6",
+       tell("@a[tag=aooni.player]", T("마검은 상자에 가둘 수 없다! ", "gold"), T("상자 위로 튀어나왔다.", "yellow")))
     SWORD_SEL = f"@e[type=minecraft:item,nbt={{Item:{{id:\"minecraft:{WEAPON_ITEM}\"}}}}]"
     fn("weapon/watch",
        "# 떨어진 마검은 사라지지 않고 반짝이게, 어디에도 없으면(소지자 퇴장 등) 10초 뒤 다시 나타나게",
@@ -1489,6 +1467,8 @@ def logic():
 
     # ---------------- 결전
     fn("final/start",
+       "# 생존자 연습은 싸울 아오오니가 없으니 여기서 연습 끝",
+       "execute if score #test aooni.var matches 1 run return run function aooni:test/done",
        "scoreboard players set #final aooni.var 1",
        f"execute store result score #n aooni.var if entity {SURV}",
        f"scoreboard players set #k aooni.var {ONI_HP_PER}",
@@ -1500,11 +1480,9 @@ def logic():
        "scoreboard players operation #half10 aooni.var = #hp aooni.var",
        "scoreboard players operation #half10 aooni.var *= #k aooni.var",
        f"execute as {ONI} at @s run function aooni:oni/giant with storage aooni:v",
-       f"execute as {DUMMY} at @s run function aooni:test/dummy_giant with storage aooni:v",
        "execute store result bossbar aooni:boss max run scoreboard players get #hp aooni.var",
        "execute store result bossbar aooni:boss value run scoreboard players get #hp aooni.var",
        "bossbar set aooni:boss name " + comp(T("거대 아오오니 ", "dark_red", bold=True), {"selector": "@a[tag=aooni.oni_p]", "color": "red"}),
-       "execute if score #test aooni.var matches 1 run bossbar set aooni:boss name " + comp(T("거대 아오오니 (연습용)", "dark_red", bold=True)),
        "bossbar set aooni:boss players @a[tag=aooni.player]",
        "bossbar set aooni:boss visible true",
        "title @a[tag=aooni.player] times 5 60 20",
@@ -1540,9 +1518,7 @@ def logic():
        "execute unless entity @s[tag=aooni.enraged] if score #bh aooni.var <= #half10 aooni.var run function aooni:final/enrage")
     fn("final/enrage",
        "tag @s add aooni.enraged",
-       "execute if entity @s[type=minecraft:player] run effect give @s minecraft:speed infinite 2 true",
-       "# 좀비는 같은 신속에도 훨씬 빨라지므로 한 단계만",
-       "execute unless entity @s[type=minecraft:player] run effect give @s minecraft:speed infinite 0 true",
+       "effect give @s minecraft:speed infinite 2 true",
        "playsound minecraft:entity.ravager.roar master @a[distance=..48] ~ ~ ~ 2 0.4",
        "title @a[tag=aooni.player] times 5 40 10",
        f"title @a[tag=aooni.player] title {comp(T('', 'red'))}",
@@ -1567,8 +1543,6 @@ def logic():
         hide.append(f"execute as @a[tag=aooni.alive,{box}] "
                     f"if block {P(*c['door'])} minecraft:spruce_door[open=false] run tag @s add aooni.hid_new")
         hide.append(f"execute as @a[tag=aooni.oni_p,{box}] if block {P(*c['door'])} minecraft:spruce_door[open=false] "
-                    f"run tp @s {P(*c['out'])}")
-        hide.append(f"execute as {DUMMY[:-1]},{box}] if block {P(*c['door'])} minecraft:spruce_door[open=false] "
                     f"run tp @s {P(*c['out'])}")
         force += door_cmds(*c["door"], c["facing"], "left", True, mat="spruce_door")
     hide += ["execute as @a[tag=aooni.hid_new,tag=!aooni.hidden] run function aooni:hide/enter",
@@ -1619,7 +1593,6 @@ def logic():
        "execute store result score #amb aooni.var run random value 30..60")
     vx, vy, vz = SAFES[4]["ok"][0], F2 + 1, SAFES[4]["ok"][1]
     fn("fx/glimmer",
-       "execute as @e[type=minecraft:marker,tag=aooni.spot,tag=!aooni.searched] at @s run particle minecraft:glow ~ ~0.35 ~ 0.15 0.1 0.15 0 2",
        f"execute if score #found aooni.var matches 4.. if score #wpn aooni.var matches 0 run particle minecraft:glow {P(vx + 0.5, vy + 0.35, vz + 0.5)} 0.2 0.15 0.2 0 6")
 
     # ---------------- 버튼 폴링
@@ -1633,44 +1606,28 @@ def logic():
            f"execute {cond}positioned {P(x + 0.5, y + 0.5, z + 0.5)} as {who} at @s run function aooni:on/{aid}")
     fn("act/poll", *poll)
 
-    # ---------------- 조사 지점: 판마다 무작위로 숫자/물약/꽝
-    for (aid, x, y, z, state, kind, scope) in spots:
-        fn(f"on/{aid}",
-           "playsound minecraft:item.book.page_turn block @s ~ ~ ~ 1 1",
-           tell("@s", T(FLAVOR[aid], "gray", italic=True)),
-           "tag @s add aooni.me",
-           f"execute as @e[type=minecraft:marker,tag=aooni.spot_{aid},limit=1] at @s run function aooni:loot/open",
-           "tag @s remove aooni.me")
-    fn("loot/open",
-       "tag @s add aooni.searched",
-       *[f"execute if entity @s[tag=aooni.dig{j}] as @a[tag=aooni.me,limit=1] run return run function aooni:loot/digit{j} with storage aooni:v"
-         for j in range(1, 5)],
-       *[f"execute if entity @s[tag=aooni.buff{b},tag=!aooni.used] as @a[tag=aooni.me,limit=1] run return run function aooni:loot/buff{b}"
-         for b in BUFFS],
-       "execute as @a[tag=aooni.me,limit=1] run function aooni:loot/nothing")
+    # ---------------- 조사 상자: 쪽지를 처음 손에 넣으면 '찾음'
     for j in range(1, 5):
-        fn(f"loot/digit{j}",
-           f'$tellraw @s {{"text":"쪽지를 찾았다: 『비밀번호 {ORD[j]} 자리 = $(k{j})』","color":"dark_red","bold":true}}',
-           "execute if entity @e[type=minecraft:marker,tag=aooni.spot,tag=aooni.found,distance=..0.5] run return 0",
-           "tag @e[type=minecraft:marker,tag=aooni.spot,distance=..0.5,limit=1] add aooni.found",
+        fn(f"loot/put_digit{j}", f"$item replace block ~ ~ ~ container.13 with {digit_paper(j, f'$(k{j})')}")
+    check = []
+    for j in range(1, 5):
+        pred = f"minecraft:paper[minecraft:custom_data={{aooni_dig:{j}}}]"
+        for slot in ("container.*", "weapon.offhand"):
+            check.append(f"execute if score #f{j} aooni.var matches 0 as @a[tag=aooni.alive] if items entity @s {slot} {pred} "
+                         f"run function aooni:loot/found{j}")
+    fn("loot/check", "# 생존자가 비밀번호 쪽지를 처음 손에 넣었는지(1초마다)", *check)
+    for j in range(1, 5):
+        fn(f"loot/found{j}",
+           f"execute if score #f{j} aooni.var matches 1 run return 0",
+           f"scoreboard players set #f{j} aooni.var 1",
            "scoreboard players add #found aooni.var 1",
-           f'$summon minecraft:text_display ~ ~0.7 ~ {{Tags:["aooni.fx","aooni.digit"],text:{{"text":"{CIRC[j]} $(k{j})","color":"dark_red","bold":true}},'
-           'billboard:"vertical",background:0,shadow:1b,transformation:{left_rotation:[0f,0f,0f,1f],right_rotation:[0f,0f,0f,1f],'
-           'translation:[0f,0f,0f],scale:[0.8f,0.8f,0.8f]}}',
-           tell(SURV, SEL, T(" 이(가) 비밀번호 ", "white"), T(f"{ORD[j]} 자리", "gold", bold=True), T("를 찾았다! (", "white"),
+           f"function aooni:loot/read{j} with storage aooni:v",
+           tell(SURV, SEL, T(" 이(가) ", "white"), T(f"비밀번호 쪽지 {CIRC[j]}", "gold", bold=True), T(" 을(를) 찾았다! (", "white"),
                 {"score": {"name": "#found", "objective": "aooni.var"}, "color": "gold"}, T("/4)", "white")),
            sound_all("minecraft:entity.experience_orb.pickup", 1.3, who=SURV),
            "function aooni:game/progress")
-    for b, (eff, amp, dur, name, msg) in BUFFS.items():
-        fn(f"loot/buff{b}",
-           "tag @e[type=minecraft:marker,tag=aooni.spot,distance=..0.5,limit=1] add aooni.used",
-           f"effect give @s minecraft:{eff} {dur} {amp} true",
-           "playsound minecraft:entity.generic.drink player @s ~ ~ ~ 1 1",
-           tell("@s", T(f"[{name}]", "light_purple", bold=True), T(f" 을(를) 찾아 썼다! {msg}", "white")))
-    nothing = ["execute store result score #r aooni.var run random value 1..%d" % len(NOTHING)]
-    for i, line in enumerate(NOTHING, 1):
-        nothing.append(f"execute if score #r aooni.var matches {i} run " + tell("@s", T(line, "dark_gray")))
-    fn("loot/nothing", *nothing)
+        fn(f"loot/read{j}",
+           f'$tellraw @s {{"text":"쪽지에 적혀 있다: 『비밀번호 {ORD[j]} 자리 = $(k{j})』","color":"dark_red","bold":true}}')
 
     # ---------------- 금고(마검)
     for k in range(1, 5):
@@ -1722,7 +1679,7 @@ def logic():
 
     # ---------------- 혼자 연습
     fn("test/solo",
-       "# 생존자 연습: 모험 모드인 사람 모두 생존자, 아오오니는 연습용 AI",
+       "# 생존자 연습: 모험 모드인 사람 모두 생존자, 아오오니 없음(상자·금고·마검까지)",
        "execute as @a run function aooni:player/clear_tags",
        "tag @a[gamemode=!creative,gamemode=!spectator] add aooni.cand_part",
        "scoreboard players set #test aooni.var 1",
@@ -1734,40 +1691,15 @@ def logic():
        "tag @s add aooni.oni_p",
        "scoreboard players set #test aooni.var 2",
        "function aooni:game/begin")
-    dummy_nbt = ('{Tags:["aooni.dummy"],NoAI:1b,Silent:1b,PersistenceRequired:1b,CanPickUpLoot:0b,CanBreakDoors:0b,IsBaby:0b,'
-                 'active_effects:[{id:"minecraft:invisibility",amplifier:0b,duration:-1,show_particles:0b},'
-                 '{id:"minecraft:fire_resistance",amplifier:0b,duration:-1,show_particles:0b}],'
-                 'attributes:[{id:"minecraft:follow_range",base:256.0d},{id:"minecraft:knockback_resistance",base:1.0d},'
-                 '{id:"minecraft:spawn_reinforcements",base:0.0d}]}')
-    fn("test/dummy_spawn",
-       "# 깨어나기 전까지는 NoAI 로 다락방에 묶어 둔다(game/oni_wake 에서 풀림)",
-       f"kill {DUMMY}",
-       f"summon minecraft:zombie {P(*ONI_SPAWN)} {dummy_nbt}",
-       "# 갇힌/탈락한 사람과 같은 팀 → 그 사람들은 즉시 목표에서 빠진다",
-       f"team join aooni_out {DUMMY}",
-       *[f"execute if score #diff aooni.var matches {d} as {DUMMY} run attribute @s minecraft:movement_speed base set {v}"
-         for d, v in DUMMY_SPEED.items()],
-       f"execute at {DUMMY[:-1]},limit=1] run function aooni:oni/model")
-    HUNT_SEL = '@p[tag=aooni.alive,tag=!aooni.hidden,gamemode=adventure,nbt=!{active_effects:[{id:"minecraft:invisibility"}]}]'
-    fn("test/hunt",
-       "# 벽 너머의 생존자도 쫓아오게: 가장 가까운(숨지 않은·투명하지 않은) 생존자가 때린 것으로 쳐서 그쪽을 노리게 한다",
-       f"scoreboard players set #hunt aooni.var {DUMMY_HUNT}",
-       f"execute as {DUMMY} at @s if entity {HUNT_SEL} run damage @s 0.01 minecraft:generic by {HUNT_SEL}")
-    fn("test/dummy_giant",
-       "# 좀비는 즉시 회복 물약에 오히려 다치므로 체력을 직접 채운다",
-       "tag @s add aooni.giant",
-       "function aooni:final/unstick",
-       "$attribute @s minecraft:max_health base set $(hp)",
-       "$data merge entity @s {Health:$(hp)f}",
-       f"attribute @s minecraft:scale base set {FINAL_SCALE}",
-       "function aooni:oni/model_big",
-       "execute store result score #bhp_prev aooni.var run data get entity @s Health 10",
-       "particle minecraft:large_smoke ~ ~1.5 ~ 0.8 1.2 0.8 0.03 120",
-       "playsound minecraft:entity.ravager.roar master @a[distance=..48] ~ ~ ~ 2 0.5")
-    fn("test/dummy_down",
-       "tag @a remove aooni.lasthit",
-       "tag @a[scores={aooni.kz=1..}] add aooni.lasthit",
-       "function aooni:game/victory")
+    fn("test/done",
+       *end_common(10),
+       f"title @a title {comp(T('마검을 손에 넣었다!', 'gold', bold=True))}",
+       f"title @a subtitle {comp(T('실전이라면 여기서 아오오니와 결전이 시작된다', 'gray'))}",
+       "execute as @a at @s run playsound minecraft:ui.toast.challenge_complete master @s ~ ~ ~ 1 1",
+       tell("@a", T("\n[혼자 연습] ", "aqua", bold=True), T("연습 끝! 10초 뒤 대기실로.", "white")))
+    fn("test/abandon",
+       tell("@a", T("[아오오니 저택] ", "blue"), T("연습하던 사람이 없어서 연습을 끝냅니다.", "gray")),
+       "function aooni:game/reset")
     fn("test/quit",
        "scoreboard players set @s aooni.quit 0",
        "scoreboard players enable @s aooni.quit",
@@ -1796,7 +1728,7 @@ def logic():
        "execute if score #state aooni.var matches 1 run " + tell("@a", T("[아오오니 저택] 관리자가 게임을 중단했습니다.", "red")),
        "function aooni:game/reset")
     fn("admin/solo",
-       "# 인원 제한 없이 생존자 연습(모험 모드인 사람 모두 생존자, 연습용 AI 아오오니)",
+       "# 인원 제한 없이 생존자 연습(모험 모드인 사람 모두 생존자, 아오오니 없음)",
        "execute unless score #state aooni.var matches 0 run return run " + tell("@s", T("게임이 끝난 뒤에 쓸 수 있습니다. (중단: /function aooni:admin/stop)", "red")),
        "execute unless entity @a[gamemode=!creative,gamemode=!spectator] run return run " + tell(
            "@s", T("모험 모드인 플레이어가 없습니다. (크리에이티브는 참가자에서 빠집니다)", "red")),
@@ -1844,9 +1776,8 @@ def logic():
 
 def fixtures():
     out = []
-    for (aid, x, y, z, state, kind, scope) in ACTS:
-        if aid.startswith("s_"):
-            out.append(f"summon minecraft:marker {P(x + 0.5, y, z + 0.5)} {{Tags:[\"aooni.fx\",\"aooni.spot\",\"aooni.spot_{aid}\"]}}")
+    for (aid, x, y, z) in SPOTS:
+        out.append(f"summon minecraft:marker {P(x + 0.5, y, z + 0.5)} {{Tags:[\"aooni.fx\",\"aooni.spot\",\"aooni.spot_{aid}\"]}}")
     for (x, y, z, tags) in MARKERS:
         out.append(f"summon minecraft:marker {P(x, y, z)} {{Tags:{json.dumps(['aooni.fx'] + tags)}}}")
     for (x, y, z, c, tags, scale, bb, extra) in TEXTS:

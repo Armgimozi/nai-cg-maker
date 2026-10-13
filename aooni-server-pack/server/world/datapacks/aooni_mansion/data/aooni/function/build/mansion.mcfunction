@@ -114,9 +114,6 @@ setblock 11 -60 4 minecraft:dark_oak_stairs[facing=south]
 setblock 12 -59 3 minecraft:candle[candles=3,lit=true]
 setblock 7 -57 6 minecraft:soul_lantern[hanging=true]
 setblock 12 -57 6 minecraft:lantern[hanging=true]
-setblock 11 -59 3 minecraft:polished_blackstone_button[face=floor,facing=north,powered=false]
-setblock 2 -59 9 minecraft:polished_blackstone_button[face=wall,facing=east,powered=false]
-setblock 5 -59 7 minecraft:polished_blackstone_button[face=wall,facing=north,powered=false]
 fill 13 -60 9 13 -59 9 minecraft:spruce_planks
 fill 13 -60 11 13 -59 11 minecraft:spruce_planks
 fill 13 -60 10 13 -59 10 minecraft:air
@@ -142,8 +139,6 @@ setblock 32 -60 7 minecraft:spruce_stairs[facing=south]
 setblock 27 -59 6 minecraft:candle[candles=3,lit=true]
 setblock 31 -59 6 minecraft:candle[candles=2,lit=true]
 setblock 29 -57 6 minecraft:lantern[hanging=true]
-setblock 29 -59 6 minecraft:polished_blackstone_button[face=floor,facing=north,powered=false]
-setblock 25 -59 6 minecraft:polished_blackstone_button[face=floor,facing=north,powered=false]
 fill 35 -60 9 35 -59 9 minecraft:spruce_planks
 fill 35 -60 11 35 -59 11 minecraft:spruce_planks
 fill 35 -60 10 35 -59 10 minecraft:air
@@ -200,7 +195,6 @@ setblock 1 -57 18 minecraft:cobweb
 setblock 9 -57 18 minecraft:cobweb
 setblock 1 -57 35 minecraft:cobweb
 setblock 8 -60 19 minecraft:chiseled_stone_bricks
-setblock 8 -59 19 minecraft:polished_blackstone_button[face=floor,facing=north,powered=false]
 setblock 2 -59 18 minecraft:stone_button[face=wall,facing=south,powered=false]
 fill 11 -61 18 17 -61 35 minecraft:polished_diorite
 fill 11 -60 33 11 -60 35 minecraft:smooth_quartz
@@ -209,8 +203,6 @@ fill 12 -60 33 12 -60 35 minecraft:water_cauldron[level=3]
 setblock 16 -60 35 minecraft:cauldron
 setblock 17 -60 22 minecraft:polished_diorite
 fill 17 -58 21 17 -57 23 minecraft:light_gray_stained_glass
-setblock 17 -59 22 minecraft:polished_blackstone_button[face=floor,facing=north,powered=false]
-setblock 11 -59 34 minecraft:polished_blackstone_button[face=floor,facing=north,powered=false]
 setblock 14 -57 27 minecraft:lantern[hanging=true]
 fill 11 -60 23 11 -59 23 minecraft:spruce_planks
 fill 11 -60 25 11 -59 25 minecraft:spruce_planks
@@ -235,9 +227,6 @@ fill 26 -60 35 27 -59 35 minecraft:dark_oak_planks
 setblock 27 -58 35 minecraft:flower_pot
 fill 29 -60 19 29 -58 19 minecraft:dark_oak_log
 setblock 24 -57 28 minecraft:lantern[hanging=true]
-setblock 26 -58 35 minecraft:polished_blackstone_button[face=floor,facing=north,powered=false]
-setblock 20 -59 26 minecraft:polished_blackstone_button[face=wall,facing=east,powered=false]
-setblock 28 -59 19 minecraft:polished_blackstone_button[face=wall,facing=west,powered=false]
 fill 19 -60 19 19 -59 19 minecraft:spruce_planks
 fill 19 -60 21 19 -59 21 minecraft:spruce_planks
 fill 19 -60 20 19 -59 20 minecraft:air
@@ -258,8 +247,6 @@ fill 36 -60 33 36 -57 33 minecraft:stripped_dark_oak_log
 setblock 36 -60 25 minecraft:polished_andesite
 setblock 36 -60 24 minecraft:potted_wither_rose
 setblock 33 -57 26 minecraft:lantern[hanging=true]
-setblock 36 -59 25 minecraft:polished_blackstone_button[face=floor,facing=north,powered=false]
-setblock 31 -59 29 minecraft:polished_blackstone_button[face=wall,facing=east,powered=false]
 fill 33 -60 36 33 -59 36 minecraft:air
 setblock 33 -60 36 minecraft:iron_door[half=lower,facing=north,hinge=left,open=false]
 setblock 33 -59 36 minecraft:iron_door[half=upper,facing=north,hinge=left,open=false]
@@ -277,8 +264,6 @@ fill 41 -60 25 42 -60 27 minecraft:spruce_slab[type=top]
 setblock 40 -60 26 minecraft:spruce_stairs[facing=west]
 setblock 43 -60 26 minecraft:spruce_stairs[facing=east]
 setblock 41 -57 26 minecraft:lantern[hanging=true]
-setblock 44 -59 30 minecraft:polished_blackstone_button[face=wall,facing=west,powered=false]
-setblock 45 -59 23 minecraft:polished_blackstone_button[face=floor,facing=north,powered=false]
 fill 38 -60 33 38 -59 33 minecraft:spruce_planks
 fill 38 -60 35 38 -59 35 minecraft:spruce_planks
 fill 38 -60 34 38 -59 34 minecraft:air
@@ -298,7 +283,6 @@ setblock 42 -52 14 minecraft:soul_lantern[hanging=true]
 fill 2 -55 2 3 -55 4 minecraft:red_wool
 fill 2 -55 2 3 -55 2 minecraft:white_wool
 setblock 5 -55 2 minecraft:spruce_planks
-setblock 5 -54 2 minecraft:polished_blackstone_button[face=floor,facing=north,powered=false]
 setblock 7 -52 6 minecraft:lantern[hanging=true]
 fill 13 -55 7 13 -54 7 minecraft:spruce_planks
 fill 13 -55 9 13 -54 9 minecraft:spruce_planks
@@ -314,7 +298,6 @@ fill 7 -54 0 8 -53 0 minecraft:glass_pane
 fill 24 -55 2 25 -55 4 minecraft:blue_wool
 fill 28 -55 2 29 -55 4 minecraft:blue_wool
 setblock 33 -55 9 minecraft:brown_wool
-setblock 33 -54 9 minecraft:polished_blackstone_button[face=floor,facing=north,powered=false]
 setblock 29 -52 6 minecraft:lantern[hanging=true]
 fill 35 -55 1 35 -54 1 minecraft:spruce_planks
 fill 35 -55 3 35 -54 3 minecraft:spruce_planks
@@ -338,7 +321,6 @@ setblock 43 -54 1 minecraft:stone_button[face=wall,facing=south,powered=false]
 setblock 44 -55 10 minecraft:spruce_planks
 setblock 43 -55 10 minecraft:spruce_planks
 setblock 45 -55 7 minecraft:hay_block
-setblock 44 -54 10 minecraft:polished_blackstone_button[face=floor,facing=north,powered=false]
 setblock 41 -52 6 minecraft:lantern[hanging=true]
 setblock 45 -52 1 minecraft:cobweb
 fill 37 -55 9 37 -54 9 minecraft:spruce_planks
@@ -358,8 +340,6 @@ fill 3 -55 27 7 -55 31 minecraft:light_blue_carpet
 fill 2 -55 34 3 -55 35 minecraft:pink_wool
 setblock 10 -55 19 minecraft:pink_wool
 setblock 8 -55 34 minecraft:white_wool
-setblock 10 -54 19 minecraft:polished_blackstone_button[face=floor,facing=north,powered=false]
-setblock 1 -54 24 minecraft:polished_blackstone_button[face=wall,facing=east,powered=false]
 setblock 7 -52 27 minecraft:lantern[hanging=true]
 fill 13 -55 32 13 -54 32 minecraft:spruce_planks
 fill 13 -55 34 13 -54 34 minecraft:spruce_planks
@@ -377,7 +357,6 @@ fill 29 -55 23 29 -53 28 minecraft:bookshelf
 fill 20 -55 34 21 -55 34 minecraft:dark_oak_planks
 setblock 20 -55 33 minecraft:dark_oak_stairs[facing=south]
 setblock 24 -55 22 minecraft:lectern[facing=south]
-setblock 20 -54 34 minecraft:polished_blackstone_button[face=floor,facing=north,powered=false]
 setblock 22 -52 26 minecraft:lantern[hanging=true]
 fill 15 -55 20 15 -54 20 minecraft:spruce_planks
 fill 15 -55 22 15 -54 22 minecraft:spruce_planks
@@ -398,7 +377,6 @@ setblock 45 -52 35 minecraft:cobweb
 setblock 38 -52 35 minecraft:cobweb
 setblock 40 -55 33 minecraft:spruce_planks
 setblock 34 -55 24 minecraft:spruce_stairs[facing=west]
-setblock 40 -54 33 minecraft:polished_blackstone_button[face=floor,facing=north,powered=false]
 setblock 38 -52 26 minecraft:soul_lantern[hanging=true]
 fill 45 -55 26 45 -54 26 minecraft:spruce_planks
 fill 45 -55 28 45 -54 28 minecraft:spruce_planks
@@ -422,3 +400,25 @@ fill 30 -60 40 30 -59 40 minecraft:dark_oak_fence
 setblock 30 -58 40 minecraft:lantern
 fill 37 -60 40 37 -59 40 minecraft:dark_oak_fence
 setblock 37 -58 40 minecraft:lantern
+setblock 11 -59 3 minecraft:chest[facing=south,type=single,waterlogged=false]
+setblock 2 -60 9 minecraft:chest[facing=east,type=single,waterlogged=false]
+setblock 5 -60 7 minecraft:chest[facing=north,type=single,waterlogged=false]
+setblock 29 -59 6 minecraft:chest[facing=south,type=single,waterlogged=false]
+setblock 25 -59 6 minecraft:chest[facing=south,type=single,waterlogged=false]
+setblock 8 -59 19 minecraft:chest[facing=south,type=single,waterlogged=false]
+setblock 17 -59 22 minecraft:chest[facing=south,type=single,waterlogged=false]
+setblock 11 -59 34 minecraft:chest[facing=north,type=single,waterlogged=false]
+setblock 26 -58 35 minecraft:chest[facing=north,type=single,waterlogged=false]
+setblock 20 -60 26 minecraft:chest[facing=east,type=single,waterlogged=false]
+setblock 28 -60 19 minecraft:chest[facing=west,type=single,waterlogged=false]
+setblock 36 -59 25 minecraft:chest[facing=south,type=single,waterlogged=false]
+setblock 31 -60 29 minecraft:chest[facing=east,type=single,waterlogged=false]
+setblock 44 -60 30 minecraft:chest[facing=west,type=single,waterlogged=false]
+setblock 45 -59 23 minecraft:chest[facing=south,type=single,waterlogged=false]
+setblock 5 -54 2 minecraft:chest[facing=south,type=single,waterlogged=false]
+setblock 33 -54 9 minecraft:chest[facing=north,type=single,waterlogged=false]
+setblock 44 -54 10 minecraft:chest[facing=north,type=single,waterlogged=false]
+setblock 10 -54 19 minecraft:chest[facing=south,type=single,waterlogged=false]
+setblock 1 -55 24 minecraft:chest[facing=east,type=single,waterlogged=false]
+setblock 20 -54 34 minecraft:chest[facing=north,type=single,waterlogged=false]
+setblock 40 -54 33 minecraft:chest[facing=north,type=single,waterlogged=false]

@@ -1,7 +1,6 @@
 scoreboard players set #state aooni.var 2
 scoreboard players set #end_t aooni.var 12
 kill @e[type=minecraft:block_display,tag=aooni.part]
-kill @e[type=minecraft:zombie,tag=aooni.dummy]
 bossbar set aooni:boss visible false
 scoreboard players operation #min aooni.var = #sec aooni.var
 scoreboard players operation #min aooni.var /= #60 aooni.var

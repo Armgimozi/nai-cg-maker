@@ -5,12 +5,7 @@ bossbar set aooni:goal visible false
 bossbar set aooni:boss visible false
 time set 18000
 kill @e[type=minecraft:item]
-kill @e[type=minecraft:zombie,tag=aooni.dummy]
-kill @e[type=minecraft:experience_orb]
 scoreboard players set #test aooni.var 0
-scoreboard players reset * aooni.kz
-# 연습용 아오오니가 남긴 팀 기록 정리(사람은 이 아래에서 모두 다른 팀으로 옮겨진다)
-team empty aooni_out
 scoreboard objectives setdisplay sidebar
 scoreboard players reset * aooni.side
 execute as @a[gamemode=!creative] run function aooni:player/to_lobby

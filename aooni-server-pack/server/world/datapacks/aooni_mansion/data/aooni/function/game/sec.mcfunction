@@ -10,14 +10,13 @@ execute if score #final aooni.var matches 1 run bossbar set aooni:boss players @
 execute store result score #son aooni.var if entity @a[tag=aooni.player,tag=!aooni.oni_p]
 execute if score #alive aooni.var matches 1.. run scoreboard players set #a0 aooni.var 0
 execute if score #alive aooni.var matches 0 run scoreboard players add #a0 aooni.var 1
-# (아오오니 연습은 생존자가 없으니 승패 판정을 하지 않는다)
-execute unless score #test aooni.var matches 2 if score #alive aooni.var matches 0 if score #son aooni.var >= #nsurv aooni.var run return run function aooni:game/oni_win
-execute unless score #test aooni.var matches 2 if score #a0 aooni.var matches 20.. run return run function aooni:game/oni_win
-execute unless entity @a[tag=aooni.oni_p,tag=!aooni.oni_dead,gamemode=adventure] unless entity @e[type=minecraft:zombie,tag=aooni.dummy] run scoreboard players add #oni_gone aooni.var 1
+# (혼자 연습은 승패 판정을 하지 않는다. 생존자 연습에서 아무도 안 남으면 연습을 끝낸다)
+execute if score #test aooni.var matches 0 if score #alive aooni.var matches 0 if score #son aooni.var >= #nsurv aooni.var run return run function aooni:game/oni_win
+execute if score #test aooni.var matches 0 if score #a0 aooni.var matches 20.. run return run function aooni:game/oni_win
+execute if score #test aooni.var matches 1 if score #a0 aooni.var matches 20.. run return run function aooni:test/abandon
+execute unless score #test aooni.var matches 1 unless entity @a[tag=aooni.oni_p,tag=!aooni.oni_dead,gamemode=adventure] run scoreboard players add #oni_gone aooni.var 1
 execute if entity @a[tag=aooni.oni_p,tag=!aooni.oni_dead,gamemode=adventure] run scoreboard players set #oni_gone aooni.var 0
-execute if entity @e[type=minecraft:zombie,tag=aooni.dummy] run scoreboard players set #oni_gone aooni.var 0
-# (연습용 아오오니가 쓰러지지 않고 그냥 사라진 경우는 '중단')
-execute unless score #test aooni.var matches 1 if score #final aooni.var matches 1 if score #oni_gone aooni.var matches 30.. run return run function aooni:game/victory
+execute if score #final aooni.var matches 1 if score #oni_gone aooni.var matches 30.. run return run function aooni:game/victory
 execute if score #oni_gone aooni.var matches 30.. run return run function aooni:game/no_oni
 execute if score #wpn aooni.var matches 1 run function aooni:weapon/watch
 function aooni:hide/stall
@@ -25,12 +24,8 @@ execute as @a[tag=aooni.player,tag=!aooni.jailed,gamemode=adventure,x=1,y=-61,z=
 execute if score #freeze aooni.var matches 1.. run function aooni:game/freeze_sec
 execute as @a[tag=aooni.alive] run function aooni:player/arm_check
 execute as @a[tag=aooni.alive,tag=!aooni.hidden] at @s if entity @a[tag=aooni.oni_p,tag=!aooni.oni_dead,gamemode=adventure,distance=..9] run function aooni:player/near_oni
-execute as @a[tag=aooni.alive,tag=!aooni.hidden] at @s if entity @e[type=minecraft:zombie,tag=aooni.dummy,distance=..9] run function aooni:player/near_oni
-execute if score #test aooni.var matches 1 if score #freeze aooni.var matches 0 run scoreboard players remove #hunt aooni.var 1
-# 연습: 투명한 동안은 연습용 아오오니와 같은 팀(aooni_out)에 두어 노려지지 않게 한다
-execute if score #test aooni.var matches 1 run team join aooni_out @a[tag=aooni.alive,team=aooni_alive,nbt={active_effects:[{id:"minecraft:invisibility"}]}]
-execute if score #test aooni.var matches 1 run team join aooni_alive @a[tag=aooni.alive,team=aooni_out,nbt=!{active_effects:[{id:"minecraft:invisibility"}]}]
-execute if score #test aooni.var matches 1 if score #freeze aooni.var matches 0 if score #hunt aooni.var matches ..0 run function aooni:test/hunt
+function aooni:loot/check
+execute if score #wpn aooni.var matches 1 as @e[type=minecraft:marker,tag=aooni.spot] at @s if data block ~ ~ ~ Items[{id:"minecraft:netherite_sword"}] run function aooni:weapon/unchest
 execute as @a[tag=aooni.jailed] unless entity @s[x=1,y=-61,z=31,dx=8,dy=5,dz=4] run tp @s 5.5 -60 33.5 180 0
 execute if score #rescue_cd aooni.var matches 1.. run scoreboard players remove #rescue_cd aooni.var 1
 execute if score #wmsg aooni.var matches 1.. run scoreboard players remove #wmsg aooni.var 1
