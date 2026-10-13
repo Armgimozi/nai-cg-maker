@@ -15,6 +15,10 @@ scoreboard players set #bhp_prev aooni.var 0
 scoreboard players set #half10 aooni.var 0
 scoreboard players set #hp aooni.var 0
 scoreboard players set #amb aooni.var 0
+scoreboard players set #stall aooni.var 0
+scoreboard players set #a0 aooni.var 0
+scoreboard players set #swlost aooni.var 0
+scoreboard players set #wmsg aooni.var 0
 scoreboard players set #d1 aooni.var 0
 scoreboard players set #d2 aooni.var 0
 scoreboard players set #d3 aooni.var 0
@@ -35,17 +39,19 @@ execute store result storage aooni:v d1 int 1 run scoreboard players get #d1 aoo
 execute store result storage aooni:v d2 int 1 run scoreboard players get #d2 aooni.var
 execute store result storage aooni:v d3 int 1 run scoreboard players get #d3 aooni.var
 execute store result storage aooni:v d4 int 1 run scoreboard players get #d4 aooni.var
-execute as @a[gamemode=!creative,gamemode=!spectator] run function aooni:player/clear_tags
+execute as @a run function aooni:player/clear_tags
 tag @a[gamemode=!creative,gamemode=!spectator] add aooni.cand_part
 # 아오오니 1명: 지원자 중 무작위, 지원자가 없으면 전체 중 무작위
 execute as @r[tag=aooni.cand_part,tag=aooni.want_oni] run tag @s add aooni.oni_p
 execute unless entity @a[tag=aooni.oni_p] as @r[tag=aooni.cand_part] run tag @s add aooni.oni_p
 execute as @a[tag=aooni.cand_part,tag=!aooni.oni_p] run function aooni:player/enter
 execute as @a[tag=aooni.cand_part,tag=!aooni.oni_p] run function aooni:player/spawn_pos
-execute as @a[tag=aooni.oni_p] run function aooni:oni/enter
+execute as @a[tag=aooni.oni_p,tag=aooni.cand_part,limit=1] run function aooni:oni/enter
+execute store result score #nsurv aooni.var if entity @a[tag=aooni.player,tag=!aooni.oni_p]
 tag @a remove aooni.cand_part
 function aooni:game/assign_loot
 bossbar set aooni:goal players @a[tag=aooni.player]
+bossbar set aooni:goal color blue
 bossbar set aooni:goal visible true
 scoreboard objectives setdisplay sidebar aooni.side
 function aooni:game/progress
@@ -58,6 +64,6 @@ title @a[tag=aooni.oni_p] subtitle {"text":"20초 뒤 깨어난다 — 생존자
 execute as @a[tag=aooni.player] at @s run playsound minecraft:block.iron_door.close master @s ~ ~ ~ 1 0.6
 execute as @a[tag=aooni.player] at @s run playsound minecraft:entity.zombie.attack_iron_door master @s ~ ~ ~ 0.6 0.5
 tellraw @a[tag=aooni.player] {"text":"","extra":[{"text":"이번 판의 아오오니: ","color":"gray"},{"selector":"@a[tag=aooni.oni_p]","color":"dark_red","bold":true}]}
-execute if score #diff aooni.var matches 1 run tellraw @a[tag=aooni.player] {"text":"","extra":[{"text":"난이도 ","color":"gray"},{"text":"쉬움","color":"green","bold":true},{"text":" · 생존자 목숨 3개 · 아오오니 없음","color":"gray"}]}
+execute if score #diff aooni.var matches 1 run tellraw @a[tag=aooni.player] {"text":"","extra":[{"text":"난이도 ","color":"gray"},{"text":"쉬움","color":"green","bold":true},{"text":" · 생존자 목숨 3개 · 아오오니 기본 속도","color":"gray"}]}
 execute if score #diff aooni.var matches 2 run tellraw @a[tag=aooni.player] {"text":"","extra":[{"text":"난이도 ","color":"gray"},{"text":"보통","color":"yellow","bold":true},{"text":" · 생존자 목숨 2개 · 아오오니 신속 I","color":"gray"}]}
 execute if score #diff aooni.var matches 3 run tellraw @a[tag=aooni.player] {"text":"","extra":[{"text":"난이도 ","color":"gray"},{"text":"어려움","color":"red","bold":true},{"text":" · 생존자 목숨 1개 · 아오오니 신속 II","color":"gray"}]}

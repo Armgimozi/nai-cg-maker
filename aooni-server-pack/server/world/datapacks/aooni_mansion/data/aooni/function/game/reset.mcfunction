@@ -8,3 +8,6 @@ kill @e[type=minecraft:item]
 scoreboard objectives setdisplay sidebar
 scoreboard players reset * aooni.side
 execute as @a[gamemode=!creative] run function aooni:player/to_lobby
+execute as @a[gamemode=creative] run function aooni:player/clear_tags
+execute as @a[gamemode=creative] run function aooni:player/reset_attrs
+team leave @a[gamemode=creative]

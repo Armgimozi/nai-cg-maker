@@ -94,12 +94,7 @@ fill 18 -55 6 18 -55 10 minecraft:dark_oak_fence
 fill 16 -55 11 17 -55 11 minecraft:dark_oak_fence
 setblock 19 -52 3 minecraft:lantern[hanging=true]
 setblock 17 -57 11 minecraft:soul_lantern[hanging=true]
-fill 16 -60 12 16 -59 12 minecraft:air
-setblock 16 -60 12 minecraft:iron_door[half=lower,facing=north,hinge=left,open=true]
-setblock 16 -59 12 minecraft:iron_door[half=upper,facing=north,hinge=left,open=true]
-fill 17 -60 12 17 -59 12 minecraft:air
-setblock 17 -60 12 minecraft:iron_door[half=lower,facing=north,hinge=right,open=true]
-setblock 17 -59 12 minecraft:iron_door[half=upper,facing=north,hinge=right,open=true]
+fill 16 -60 12 17 -58 12 minecraft:air
 fill 1 -60 14 45 -60 15 minecraft:red_carpet
 setblock 4 -57 14 minecraft:soul_lantern[hanging=true]
 setblock 12 -57 15 minecraft:soul_lantern[hanging=true]
@@ -132,9 +127,7 @@ fill 12 -58 9 13 -58 11 minecraft:spruce_planks
 fill 12 -60 10 12 -59 10 minecraft:air
 setblock 12 -60 10 minecraft:spruce_door[half=lower,facing=east,hinge=left,open=false]
 setblock 12 -59 10 minecraft:spruce_door[half=upper,facing=east,hinge=left,open=false]
-fill 7 -60 12 7 -59 12 minecraft:air
-setblock 7 -60 12 minecraft:iron_door[half=lower,facing=north,hinge=left,open=true]
-setblock 7 -59 12 minecraft:iron_door[half=upper,facing=north,hinge=left,open=true]
+fill 7 -60 12 7 -58 12 minecraft:air
 fill 23 -61 1 35 -61 11 minecraft:dark_oak_planks
 fill 25 -60 4 33 -60 8 minecraft:red_carpet
 fill 25 -60 6 33 -60 6 minecraft:dark_oak_slab[type=top]
@@ -165,9 +158,7 @@ fill 26 -59 0 26 -58 0 minecraft:glass_pane
 fill 27 -59 0 27 -58 0 minecraft:glass_pane
 fill 31 -59 0 31 -58 0 minecraft:glass_pane
 fill 32 -59 0 32 -58 0 minecraft:glass_pane
-fill 29 -60 12 29 -59 12 minecraft:air
-setblock 29 -60 12 minecraft:iron_door[half=lower,facing=north,hinge=left,open=true]
-setblock 29 -59 12 minecraft:iron_door[half=upper,facing=north,hinge=left,open=true]
+fill 29 -60 12 29 -58 12 minecraft:air
 fill 37 -61 1 45 -61 11 minecraft:stripped_dark_oak_wood
 fill 38 -60 1 44 -59 1 minecraft:black_concrete
 setblock 38 -60 2 minecraft:black_concrete
@@ -279,8 +270,8 @@ setblock 31 -59 35 minecraft:stone_button[face=wall,facing=north,powered=false]
 fill 38 -61 18 45 -61 35 minecraft:smooth_stone
 fill 45 -60 20 45 -60 28 minecraft:polished_andesite
 setblock 45 -60 24 minecraft:water_cauldron[level=3]
-setblock 45 -60 21 minecraft:smoker[facing=west]
-setblock 45 -60 26 minecraft:furnace[facing=west]
+setblock 45 -60 21 minecraft:polished_deepslate
+setblock 45 -60 26 minecraft:polished_blackstone_bricks
 fill 45 -60 30 45 -59 30 minecraft:iron_block
 fill 41 -60 25 42 -60 27 minecraft:spruce_slab[type=top]
 setblock 40 -60 26 minecraft:spruce_stairs[facing=west]
@@ -344,8 +335,8 @@ setblock 40 -54 1 minecraft:polished_blackstone_button[face=wall,facing=south,po
 setblock 41 -54 1 minecraft:polished_blackstone_button[face=wall,facing=south,powered=false]
 setblock 42 -54 1 minecraft:polished_blackstone_button[face=wall,facing=south,powered=false]
 setblock 43 -54 1 minecraft:stone_button[face=wall,facing=south,powered=false]
-setblock 44 -55 10 minecraft:barrel[facing=up]
-setblock 43 -55 10 minecraft:barrel[facing=up]
+setblock 44 -55 10 minecraft:spruce_planks
+setblock 43 -55 10 minecraft:spruce_planks
 setblock 45 -55 7 minecraft:hay_block
 setblock 44 -54 10 minecraft:polished_blackstone_button[face=floor,facing=north,powered=false]
 setblock 41 -52 6 minecraft:lantern[hanging=true]
@@ -361,9 +352,7 @@ fill 38 -55 10 38 -54 10 minecraft:air
 setblock 38 -55 10 minecraft:spruce_door[half=lower,facing=west,hinge=left,open=false]
 setblock 38 -54 10 minecraft:spruce_door[half=upper,facing=west,hinge=left,open=false]
 fill 46 -54 5 46 -53 6 minecraft:glass_pane
-fill 41 -55 12 41 -54 12 minecraft:air
-setblock 41 -55 12 minecraft:iron_door[half=lower,facing=north,hinge=left,open=true]
-setblock 41 -54 12 minecraft:iron_door[half=upper,facing=north,hinge=left,open=true]
+fill 41 -55 12 41 -53 12 minecraft:air
 fill 1 -56 18 13 -56 35 minecraft:birch_planks
 fill 3 -55 27 7 -55 31 minecraft:light_blue_carpet
 fill 2 -55 34 3 -55 35 minecraft:pink_wool

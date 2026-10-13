@@ -1,3 +1,4 @@
+$title @s actionbar {"text":"금고 다이얼:  $(d1)  $(d2)  $(d3)  $(d4)","color":"gold","bold":true}
 $data modify entity @e[type=minecraft:text_display,tag=aooni.dial41,limit=1] text set value {"text":"$(d1)","color":"white","bold":true}
 $data modify entity @e[type=minecraft:text_display,tag=aooni.dial42,limit=1] text set value {"text":"$(d2)","color":"white","bold":true}
 $data modify entity @e[type=minecraft:text_display,tag=aooni.dial43,limit=1] text set value {"text":"$(d3)","color":"white","bold":true}

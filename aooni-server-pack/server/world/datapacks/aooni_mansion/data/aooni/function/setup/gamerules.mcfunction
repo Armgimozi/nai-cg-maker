@@ -18,5 +18,6 @@ function aooni:compat/gamerule {o:"doInsomnia",n:"spawn_phantoms",v:"false"}
 function aooni:compat/gamerule {o:"doPatrolSpawning",n:"spawn_patrols",v:"false"}
 function aooni:compat/gamerule {o:"doTraderSpawning",n:"spawn_wandering_traders",v:"false"}
 function aooni:compat/gamerule {o:"doImmediateRespawn",n:"immediate_respawn",v:"true"}
+function aooni:compat/gamerule {o:"naturalRegeneration",n:"natural_health_regeneration",v:"false"}
 function aooni:compat/gamerule {o:"locatorBar",n:"locator_bar",v:"false"}
 function aooni:compat/gamerule {o:"pvp",n:"pvp",v:"true"}

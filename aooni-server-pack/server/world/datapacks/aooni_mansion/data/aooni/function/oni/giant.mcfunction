@@ -1,3 +1,4 @@
+tag @s add aooni.giant
 $attribute @s minecraft:max_health base set $(hp)
 effect give @s minecraft:instant_health 1 6 true
 attribute @s minecraft:scale base set 1.3

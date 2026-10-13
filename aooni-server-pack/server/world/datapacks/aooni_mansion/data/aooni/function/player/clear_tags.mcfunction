@@ -12,3 +12,4 @@ tag @s remove aooni.oni_p
 tag @s remove aooni.oni_dead
 tag @s remove aooni.cand_part
 tag @s remove aooni.enraged
+tag @s remove aooni.giant

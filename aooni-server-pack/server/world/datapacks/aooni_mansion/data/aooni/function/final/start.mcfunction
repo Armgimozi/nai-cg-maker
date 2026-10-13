@@ -8,7 +8,7 @@ execute store result storage aooni:v hp int 1 run scoreboard players get #hp aoo
 scoreboard players set #k aooni.var 5
 scoreboard players operation #half10 aooni.var = #hp aooni.var
 scoreboard players operation #half10 aooni.var *= #k aooni.var
-execute as @a[tag=aooni.oni_p,tag=!aooni.oni_dead] at @s run function aooni:oni/giant with storage aooni:v
+execute as @a[tag=aooni.oni_p,tag=!aooni.oni_dead,gamemode=adventure] at @s run function aooni:oni/giant with storage aooni:v
 execute store result bossbar aooni:boss max run scoreboard players get #hp aooni.var
 execute store result bossbar aooni:boss value run scoreboard players get #hp aooni.var
 bossbar set aooni:boss name {"text":"","extra":[{"text":"거대 아오오니 ","color":"dark_red","bold":true},{"selector":"@a[tag=aooni.oni_p]","color":"red"}]}
