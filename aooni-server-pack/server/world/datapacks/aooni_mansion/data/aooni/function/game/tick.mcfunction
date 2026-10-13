@@ -3,6 +3,7 @@ execute as @a[tag=aooni.oni_p,tag=!aooni.oni_dead,gamemode=adventure] at @s run 
 execute as @a[tag=aooni.alive,scores={aooni.hit=1..}] at @s run function aooni:player/hit
 scoreboard players reset @a[scores={aooni.hit=1..}] aooni.hit
 execute as @a[tag=aooni.oni_p] at @s run function aooni:oni/no_sword
+execute as @a[tag=aooni.oni_p] if items entity @s container.* minecraft:paper run function aooni:oni/no_paper
 function aooni:hide/check
 scoreboard players remove @a[tag=aooni.safe] aooni.grace 1
 tag @a[tag=aooni.safe,scores={aooni.grace=..0}] remove aooni.safe

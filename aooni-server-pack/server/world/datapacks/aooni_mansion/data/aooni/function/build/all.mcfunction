@@ -1,5 +1,7 @@
 kill @e[tag=aooni.fx]
 kill @e[type=minecraft:zombie,tag=aooni.oni]
+# 이전 버전의 연습용 좀비가 남아 있으면 정리
+kill @e[type=minecraft:zombie,tag=aooni.dummy]
 function aooni:build/lobby
 function aooni:build/mansion
 function aooni:build/fixtures

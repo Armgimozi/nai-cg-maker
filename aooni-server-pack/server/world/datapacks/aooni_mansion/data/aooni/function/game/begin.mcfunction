@@ -30,6 +30,7 @@ scoreboard players set #d3 aooni.var 0
 scoreboard players set #d4 aooni.var 0
 scoreboard players set #amb aooni.var 40
 scoreboard players set #freeze aooni.var 20
+execute if score #test aooni.var matches 1 run scoreboard players set #freeze aooni.var 0
 time set 18000
 bossbar set aooni:boss visible false
 execute store result score #k1 aooni.var run random value 0..9

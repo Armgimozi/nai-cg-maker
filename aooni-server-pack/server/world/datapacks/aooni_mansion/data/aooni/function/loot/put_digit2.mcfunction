@@ -1,1 +1,1 @@
-$item replace block ~ ~ ~ container.13 with minecraft:paper[minecraft:custom_name={text:"비밀번호 쪽지 ②",color:"gold",italic:false},minecraft:lore=[{text:"둘째 자리 숫자: $(k2)",color:"white",italic:false}],minecraft:custom_data={aooni_dig:2}]
+item replace block ~ ~ ~ container.13 with minecraft:paper[minecraft:custom_name={text:"비밀번호 쪽지 ②",color:"gold",italic:false},minecraft:lore=[{text:"접혀 있다. 집어서 펼쳐 보자",color:"white",italic:false}],minecraft:custom_data={aooni_dig:2}]

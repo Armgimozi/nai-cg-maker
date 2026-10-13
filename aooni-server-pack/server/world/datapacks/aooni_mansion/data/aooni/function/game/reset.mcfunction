@@ -5,6 +5,7 @@ bossbar set aooni:goal visible false
 bossbar set aooni:boss visible false
 time set 18000
 kill @e[type=minecraft:item]
+kill @e[type=minecraft:zombie,tag=aooni.dummy]
 scoreboard players set #test aooni.var 0
 scoreboard objectives setdisplay sidebar
 scoreboard players reset * aooni.side

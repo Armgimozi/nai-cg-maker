@@ -6,3 +6,5 @@ scoreboard players operation #sw aooni.var += #swi aooni.var
 execute if score #sw aooni.var matches 1.. run scoreboard players set #swlost aooni.var 0
 execute if score #sw aooni.var matches 0 run scoreboard players add #swlost aooni.var 1
 execute if score #swlost aooni.var matches 10.. run function aooni:weapon/lost
+# 어떤 이유로든 2개가 되면 바닥에 떨어진 쪽을 하나 지운다
+execute if score #sw aooni.var matches 2.. if score #swi aooni.var matches 1.. run kill @e[type=minecraft:item,nbt={Item:{id:"minecraft:netherite_sword"}},limit=1]

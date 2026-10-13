@@ -1,1 +1,2 @@
-$tellraw @s {"text":"쪽지에 적혀 있다: 『비밀번호 셋째 자리 = $(k3)』","color":"dark_red","bold":true}
+$give @s minecraft:paper[minecraft:custom_name={text:"비밀번호 쪽지 ③",color:"gold",italic:false},minecraft:lore=[{text:"셋째 자리 숫자: $(k3)",color:"white",italic:false}],minecraft:custom_data={aooni_dig:3,read:1b}]
+$tellraw @a[tag=aooni.player,tag=!aooni.oni_p] {"text":"","extra":[{"selector":"@s","color":"aqua"},{"text":" 이(가) 비밀번호 쪽지 ③ 을(를) 찾았다: ","color":"white"},{"text":"『셋째 자리 = $(k3)』","color":"dark_red","bold":true},{"text":" (","color":"white"},{"score":{"name":"#found","objective":"aooni.var"},"color":"gold"},{"text":"/4)","color":"white"}]}

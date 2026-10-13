@@ -1,1 +1,2 @@
-$tellraw @s {"text":"쪽지에 적혀 있다: 『비밀번호 넷째 자리 = $(k4)』","color":"dark_red","bold":true}
+$give @s minecraft:paper[minecraft:custom_name={text:"비밀번호 쪽지 ④",color:"gold",italic:false},minecraft:lore=[{text:"넷째 자리 숫자: $(k4)",color:"white",italic:false}],minecraft:custom_data={aooni_dig:4,read:1b}]
+$tellraw @a[tag=aooni.player,tag=!aooni.oni_p] {"text":"","extra":[{"selector":"@s","color":"aqua"},{"text":" 이(가) 비밀번호 쪽지 ④ 을(를) 찾았다: ","color":"white"},{"text":"『넷째 자리 = $(k4)』","color":"dark_red","bold":true},{"text":" (","color":"white"},{"score":{"name":"#found","objective":"aooni.var"},"color":"gold"},{"text":"/4)","color":"white"}]}

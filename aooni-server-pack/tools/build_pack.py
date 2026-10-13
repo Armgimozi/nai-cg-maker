@@ -826,10 +826,15 @@ def potion_item(b):
             f'minecraft:lore=[{{text:"{desc}",color:"gray",italic:false}}]]')
 
 
-def digit_paper(j, value):
+def digit_paper(j, value=None):
+    """value 가 없으면 상자에 넣는 '아직 안 읽은' 쪽지, 있으면 손에 넣은 뒤의 숫자 적힌 쪽지."""
+    if value is None:
+        lore, data = "접혀 있다. 집어서 펼쳐 보자", f"{{aooni_dig:{j}}}"
+    else:
+        lore, data = f"{ORD[j]} 자리 숫자: {value}", f"{{aooni_dig:{j},read:1b}}"
     return (f'minecraft:paper[minecraft:custom_name={{text:"비밀번호 쪽지 {CIRC[j]}",color:"gold",italic:false}},'
-            f'minecraft:lore=[{{text:"{ORD[j]} 자리 숫자: {value}",color:"white",italic:false}}],'
-            f'minecraft:custom_data={{aooni_dig:{j}}}]')
+            f'minecraft:lore=[{{text:"{lore}",color:"white",italic:false}}],'
+            f'minecraft:custom_data={data}]')
 
 
 def oni_model_cmds(scale):
@@ -924,6 +929,8 @@ def logic():
     fn("build/all",
        "kill @e[tag=aooni.fx]",
        "kill @e[type=minecraft:zombie,tag=aooni.oni]",
+       "# 이전 버전의 연습용 좀비가 남아 있으면 정리",
+       "kill @e[type=minecraft:zombie,tag=aooni.dummy]",
        "function aooni:build/lobby",
        "function aooni:build/mansion",
        "function aooni:build/fixtures",
@@ -1090,6 +1097,7 @@ def logic():
        *[f"scoreboard players set {f} aooni.var 0" for f in ALL_FLAGS],
        "scoreboard players set #amb aooni.var 40",
        f"scoreboard players set #freeze aooni.var {ONI_FREEZE}",
+       "execute if score #test aooni.var matches 1 run scoreboard players set #freeze aooni.var 0",
        "time set 18000",
        "bossbar set aooni:boss visible false",
        *[f"execute store result score #k{j} aooni.var run random value 0..9" for j in range(1, 5)],
@@ -1191,7 +1199,7 @@ def logic():
     fn("game/assign_loot", "# 비밀번호 쪽지 4장과 물약 3개를 조사 상자 중 무작위로 골라 넣는다(나머지 상자는 빈 상자)",
        "execute at @e[type=minecraft:marker,tag=aooni.spot] run data modify block ~ ~ ~ Items set value []",
        *assign,
-       *[f"execute at @e[type=minecraft:marker,tag=aooni.dig{j}] run function aooni:loot/put_digit{j} with storage aooni:v"
+       *[f"execute at @e[type=minecraft:marker,tag=aooni.dig{j}] run function aooni:loot/put_digit{j}"
          for j in range(1, 5)],
        *[f"execute at @e[type=minecraft:marker,tag=aooni.buff{b}] run item replace block ~ ~ ~ container.13 with {potion_item(b)}"
          for b in BUFFS])
@@ -1203,6 +1211,7 @@ def logic():
        "execute as @a[tag=aooni.alive,scores={aooni.hit=1..}] at @s run function aooni:player/hit",
        "scoreboard players reset @a[scores={aooni.hit=1..}] aooni.hit",
        f"execute as @a[tag=aooni.oni_p] at @s run function aooni:oni/no_sword",
+       "execute as @a[tag=aooni.oni_p] if items entity @s container.* minecraft:paper run function aooni:oni/no_paper",
        "function aooni:hide/check",
        "scoreboard players remove @a[tag=aooni.safe] aooni.grace 1",
        "tag @a[tag=aooni.safe,scores={aooni.grace=..0}] remove aooni.safe",
@@ -1327,6 +1336,7 @@ def logic():
        "bossbar set aooni:boss visible false",
        "time set 18000",
        "kill @e[type=minecraft:item]",
+       "kill @e[type=minecraft:zombie,tag=aooni.dummy]",
        "scoreboard players set #test aooni.var 0",
        "scoreboard objectives setdisplay sidebar",
        "scoreboard players reset * aooni.side",
@@ -1443,13 +1453,16 @@ def logic():
        "scoreboard players operation #sw aooni.var += #swi aooni.var",
        "execute if score #sw aooni.var matches 1.. run scoreboard players set #swlost aooni.var 0",
        "execute if score #sw aooni.var matches 0 run scoreboard players add #swlost aooni.var 1",
-       "execute if score #swlost aooni.var matches 10.. run function aooni:weapon/lost")
+       "execute if score #swlost aooni.var matches 10.. run function aooni:weapon/lost",
+       "# 어떤 이유로든 2개가 되면 바닥에 떨어진 쪽을 하나 지운다",
+       f"execute if score #sw aooni.var matches 2.. if score #swi aooni.var matches 1.. run kill {SWORD_SEL[:-1]},limit=1]")
     fn("weapon/lost",
        "scoreboard players set #swlost aooni.var 0",
        "function aooni:weapon/respawn",
        tell("@a[tag=aooni.player]", T("사라졌던 마검이 저택 어딘가에 다시 나타났다! ", "gold"), T("(반짝이는 곳)", "yellow")))
     fn("weapon/dedupe",
-       "# 오프라인으로 들고 나갔던 마검이 이미 다시 나타났다면, 돌아온 사람 것은 지운다",
+       "# 오프라인으로 들고 나갔던 마검이 이미 다시 나타났다면, 돌아온 사람 것은 지운다(상자 속 마검도 먼저 꺼내서 센다)",
+       "execute as @e[type=minecraft:marker,tag=aooni.spot] at @s if data block ~ ~ ~ Items[{id:\"minecraft:netherite_sword\"}] run function aooni:weapon/unchest",
        f"execute store result score #sw aooni.var run clear @a minecraft:{WEAPON_ITEM} 0",
        f"execute store result score #swi aooni.var if entity {SWORD_SEL}",
        "scoreboard players operation #sw aooni.var += #swi aooni.var",
@@ -1608,12 +1621,12 @@ def logic():
 
     # ---------------- 조사 상자: 쪽지를 처음 손에 넣으면 '찾음'
     for j in range(1, 5):
-        fn(f"loot/put_digit{j}", f"$item replace block ~ ~ ~ container.13 with {digit_paper(j, f'$(k{j})')}")
+        fn(f"loot/put_digit{j}", f"item replace block ~ ~ ~ container.13 with {digit_paper(j)}")
     check = []
     for j in range(1, 5):
         pred = f"minecraft:paper[minecraft:custom_data={{aooni_dig:{j}}}]"
         for slot in ("container.*", "weapon.offhand"):
-            check.append(f"execute if score #f{j} aooni.var matches 0 as @a[tag=aooni.alive] if items entity @s {slot} {pred} "
+            check.append(f"execute if score #f{j} aooni.var matches 0 as {SURV} if items entity @s {slot} {pred} "
                          f"run function aooni:loot/found{j}")
     fn("loot/check", "# 생존자가 비밀번호 쪽지를 처음 손에 넣었는지(1초마다)", *check)
     for j in range(1, 5):
@@ -1621,13 +1634,21 @@ def logic():
            f"execute if score #f{j} aooni.var matches 1 run return 0",
            f"scoreboard players set #f{j} aooni.var 1",
            "scoreboard players add #found aooni.var 1",
+           f"clear @s minecraft:paper[minecraft:custom_data={{aooni_dig:{j}}}]",
            f"function aooni:loot/read{j} with storage aooni:v",
-           tell(SURV, SEL, T(" 이(가) ", "white"), T(f"비밀번호 쪽지 {CIRC[j]}", "gold", bold=True), T(" 을(를) 찾았다! (", "white"),
-                {"score": {"name": "#found", "objective": "aooni.var"}, "color": "gold"}, T("/4)", "white")),
            sound_all("minecraft:entity.experience_orb.pickup", 1.3, who=SURV),
            "function aooni:game/progress")
+        # 숫자는 생존자 모두에게 알린다(쪽지를 가진 사람이 잡히거나 나가도 숫자가 사라지지 않게). 아오오니에게는 안 보인다
         fn(f"loot/read{j}",
-           f'$tellraw @s {{"text":"쪽지에 적혀 있다: 『비밀번호 {ORD[j]} 자리 = $(k{j})』","color":"dark_red","bold":true}}')
+           f"$give @s {digit_paper(j, f'$(k{j})')}",
+           f'$tellraw {SURV} {{"text":"","extra":[{{"selector":"@s","color":"aqua"}},{{"text":" 이(가) 비밀번호 쪽지 {CIRC[j]} 을(를) 찾았다: ","color":"white"}},'
+           f'{{"text":"『{ORD[j]} 자리 = $(k{j})』","color":"dark_red","bold":true}},{{"text":" (","color":"white"}},'
+           '{"score":{"name":"#found","objective":"aooni.var"},"color":"gold"},{"text":"/4)","color":"white"}]}')
+    # 아오오니가 (누가 떨어뜨린) 쪽지를 주우면: 아직 아무도 안 읽은 쪽지는 원래 상자로 돌려보내고, 읽은 쪽지는 없앤다
+    fn("oni/no_paper",
+       *[f"execute if items entity @s container.* minecraft:paper[minecraft:custom_data={{aooni_dig:{j}}}] "
+         f"at @e[type=minecraft:marker,tag=aooni.dig{j},limit=1] run function aooni:loot/put_digit{j}" for j in range(1, 5)],
+       "clear @s minecraft:paper")
 
     # ---------------- 금고(마검)
     for k in range(1, 5):
