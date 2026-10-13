@@ -8,6 +8,8 @@ scoreboard objectives add aooni.deaths deathCount
 # 생존자가 아오오니에게 맞으면 저항 효과가 피해를 막으면서 이 통계가 오른다 → 잡힘 판정
 scoreboard objectives add aooni.hit minecraft.custom:minecraft.damage_resisted
 scoreboard objectives add aooni.wc dummy
+# 연습 끝내기: OP 가 아니어도 /trigger aooni.quit
+scoreboard objectives add aooni.quit trigger
 team add aooni_alive
 team modify aooni_alive displayName {"text":"생존자","color":"aqua"}
 team modify aooni_alive color aqua
@@ -36,6 +38,7 @@ bossbar set aooni:boss style notched_10
 execute unless score #state aooni.var matches 0..2 run scoreboard players set #state aooni.var 0
 execute unless score #diff aooni.var matches 1..3 run scoreboard players set #diff aooni.var 2
 execute unless score #gid aooni.var matches 0.. run scoreboard players set #gid aooni.var 0
+execute unless score #test aooni.var matches 0..2 run scoreboard players set #test aooni.var 0
 scoreboard players set #t aooni.var 0
 scoreboard players set #60 aooni.var 60
 scoreboard players set #2 aooni.var 2

@@ -22,6 +22,10 @@ setblock -23 -59 4 minecraft:lime_concrete
 setblock -21 -59 4 minecraft:yellow_concrete
 setblock -19 -59 4 minecraft:light_blue_concrete
 setblock -25 -59 4 minecraft:red_concrete
+setblock -27 -59 4 minecraft:purple_concrete
+setblock -17 -59 4 minecraft:cyan_concrete
+setblock -27 -59 5 minecraft:stone_button[face=wall,facing=south,powered=false]
+setblock -17 -59 5 minecraft:stone_button[face=wall,facing=south,powered=false]
 setblock -25 -59 5 minecraft:stone_button[face=wall,facing=south,powered=false]
 setblock -23 -59 5 minecraft:stone_button[face=wall,facing=south,powered=false]
 setblock -21 -59 5 minecraft:stone_button[face=wall,facing=south,powered=false]
