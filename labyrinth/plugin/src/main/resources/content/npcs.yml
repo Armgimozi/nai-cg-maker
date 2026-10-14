@@ -1,0 +1,264 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# npcs.yml — NPC (Mannequin + 자체 제작 64x64 스킨)
+#
+# 스키마: ARCHITECTURE.md §6 npcs.yml (+ 추가 필드는 §6 에 기록됨)
+#  role       : entrance | blacksmith | class_master | title_keeper | merchant | lore
+#               (lore = 층 안 휴식방에 서 있는 이야기/공략 힌트 NPC, 우클릭 시 대사 순환)
+#  skin       : textures/entity/npc/<skin>.png  (리소스팩 생성기가 skin_style 로 그림)
+#  skin_style : 생성기 지시 — outfit/hair/accessories 값은 GDD.md "Pack generator templates" 닫힌 목록
+#               palette 순서: [피부, 머리카락, 옷 주색, 옷 보조색, 장식/금속, 눈]
+#  nameplate  : 이름 위에 뜨는 직함 줄 (MiniMessage)
+#  placement  : overworld(관리자가 /labadmin setnpc 로 배치) | floor(해당 층 휴식방에 자동 배치)
+#  dialogue   : 우클릭 시 차례로 보여 줄 대사 (메뉴 NPC 는 메뉴를 연 뒤 액션바/채팅에 1줄)
+#  shop       : merchant 전용. item(items.yml id), price(골드), level_req(선택)
+# ─────────────────────────────────────────────────────────────────────────────
+version: 1
+
+npcs:
+
+  # ═══════════════════════════ 오버월드 입구 NPC ═══════════════════════════
+
+  guide:
+    name: "미궁 안내인 벨라"
+    nameplate: "<gradient:#7fa043:#c9d98a>[미궁 안내인]</gradient>"
+    skin: guide
+    role: entrance
+    placement: overworld
+    skin_style:
+      palette: ["#f1c9a5", "#3b2a20", "#3f5a23", "#c9d98a", "#d9b25a", "#2f6b3a"]
+      outfit: robe
+      hair: long_braid
+      accessories: [hood_down, lantern_belt, satchel]
+    dialogue:
+      - "<gray>어서 와요, 모험가님. 이 아래가 바로 <gold>미궁 라비린스</gold>예요.</gray>"
+      - "<gray>혼자 들어가도 되고, 동료와 <yellow>파티</yellow>를 맺어 함께 들어가도 돼요. 인원이 많을수록 미궁도 더 사나워지죠.</gray>"
+      - "<gray>층의 주인을 쓰러뜨리면 다음 층으로 가는 계단이 열려요. 지하 10층까지… 끝을 본 사람은 아직 없답니다.</gray>"
+      - "<gray>난이도는 들어갈 때 고를 수 있어요. 처음이라면 <green>보통</green>을 권해요.</gray>"
+
+  blacksmith:
+    name: "대장장이 두르간"
+    nameplate: "<gradient:#e0571d:#ffc46b>[대장장이]</gradient>"
+    skin: blacksmith
+    role: blacksmith
+    placement: overworld
+    skin_style:
+      palette: ["#c98e6b", "#5a2e1a", "#4a3121", "#7b4f2c", "#9a9aa2", "#3a2a1a"]
+      outfit: apron
+      hair: short_beard
+      accessories: [soot_marks, thick_gloves, goggles_forehead]
+    dialogue:
+      - "<gray>흠! 몹한테서 뜯어 온 재료가 있으면 보여 줘. 쓸 만한 걸로 벼려 주지.</gray>"
+      - "<gray>보스가 떨어뜨리는 핵이나 정수는 아주 귀해. 그걸로만 만들 수 있는 물건이 있거든.</gray>"
+      - "<gray>전설급 무기? 하하, 재료만 모아 오면 내 망치가 노래를 부를 거다.</gray>"
+
+  class_master:
+    name: "전직관 세라핀"
+    nameplate: "<gradient:#7fb2ff:#b07cff>[전직관]</gradient>"
+    skin: class_master
+    role: class_master
+    placement: overworld
+    skin_style:
+      palette: ["#f3d2b8", "#e8e2d4", "#2a3a6a", "#d8c8a0", "#d9b25a", "#4a6ab0"]
+      outfit: coat
+      hair: silver_ponytail
+      accessories: [shoulder_cape, medal_sash, monocle]
+    dialogue:
+      - "<gray>미궁은 혼자의 힘만으로는 끝까지 갈 수 없는 곳이지. 그대에게 맞는 길을 고르게.</gray>"
+      - "<gray>수호기사, 광전사, 사냥꾼, 비전술사, 사제, 그림자. 서로를 채워 주는 파티가 가장 강하다네.</gray>"
+      - "<gray>직업 스킬은 <yellow>F</yellow>, <yellow>웅크리기+F</yellow>, <yellow>Q</yellow>, <yellow>웅크리기+Q</yellow>로 쓴다네. 레벨이 오르면 하나씩 깨어나지.</gray>"
+
+  title_keeper:
+    name: "기록관 노아"
+    nameplate: "<gradient:#ffd27a:#fff4d6>[칭호 기록관]</gradient>"
+    skin: title_keeper
+    role: title_keeper
+    placement: overworld
+    skin_style:
+      palette: ["#e8c0a0", "#1e1a2e", "#5a2a3a", "#efe4c8", "#c8a060", "#6a3a8a"]
+      outfit: scholar
+      hair: messy_short
+      accessories: [round_glasses, scroll_bundle, quill_ear]
+    dialogue:
+      - "<gray>미궁에서 이룬 모든 위업은 이 두루마리에 기록됩니다. 서버 최초의 기록이라면 더더욱요.</gray>"
+      - "<gray>얻은 칭호 중 하나를 골라 이름 앞에 달 수 있어요. 어떤 칭호는 작은 축복도 내려 주죠.</gray>"
+      - "<gray>아직 아무도 이루지 못한 기록이 많아요. 그 첫 번째 이름이 당신일지도요.</gray>"
+
+  merchant:
+    name: "떠돌이 상인 핀"
+    nameplate: "<gradient:#8fd16a:#e8f5a0>[상인]</gradient>"
+    skin: merchant
+    role: merchant
+    placement: overworld
+    skin_style:
+      palette: ["#d9a882", "#c45a22", "#3a5a2a", "#c8a060", "#e8c870", "#2a6a4a"]
+      outfit: traveler
+      hair: curly_short
+      accessories: [big_backpack, coin_pouch, scarf]
+    dialogue:
+      - "<gray>물약 필요해? 미궁에선 한 병이 목숨 하나야. 싸게 줄게!</gray>"
+      - "<gray>귀환 두루마리는 꼭 챙겨. 깊은 층에서 길 잃으면 아무도 못 찾아.</gray>"
+    shop:
+      - {item: minor_healing_potion, price: 20}
+      - {item: minor_mana_potion, price: 20}
+      - {item: healing_potion, price: 60, level_req: 15}
+      - {item: mana_potion, price: 60, level_req: 15}
+      - {item: greater_healing_potion, price: 150, level_req: 30}
+      - {item: greater_mana_potion, price: 150, level_req: 30}
+      - {item: return_scroll, price: 100}
+      - {item: stat_reset_scroll, price: 2000}
+
+  # ═══════════════════════════ 층 안 이야기 NPC (휴식방) ═══════════════════════════
+
+  lore_floor2_miner:
+    name: "살아남은 광부 토브"
+    nameplate: "<gray>[생존자]</gray>"
+    skin: lore_miner
+    role: lore
+    placement: floor
+    floor: 2
+    skin_style:
+      palette: ["#c98e6b", "#3a2a20", "#5a3a26", "#8c5a34", "#d9b07a", "#2a2a2a"]
+      outfit: miner
+      hair: short_beard
+      accessories: [helmet_lamp, bandage_arm]
+    dialogue:
+      - "<gray>여왕의 은실에 묶이면… 짝꿍이랑 <yellow>멀리 떨어져</yellow>야 해. 12걸음은 넘게.</gray>"
+      - "<gray>가까이 붙어 있으면 실이 오그라들면서 둘 다 끌려가 꽁꽁 묶여 버려.</gray>"
+      - "<gray>벽에 붙은 알주머니는 깨어나기 전에 부숴! 새끼들이 쏟아지면 끝장이야.</gray>"
+
+  lore_floor3_explorer:
+    name: "길 잃은 탐험가 하린"
+    nameplate: "<gray>[탐험가]</gray>"
+    skin: lore_explorer
+    role: lore
+    placement: floor
+    floor: 3
+    skin_style:
+      palette: ["#f1c9a5", "#6a3a1a", "#6a5a3a", "#a89060", "#c8a060", "#3a6a2a"]
+      outfit: traveler
+      hair: short_bob
+      accessories: [map_case, scarf, goggles_forehead]
+    dialogue:
+      - "<gray>균사의 왕은 머리 위에 두 가지 표식을 띄워. <aqua>파란 포자</aqua>가 붙으면 <aqua>흩어지고</aqua>, <yellow>노란 꽃</yellow>이 피면 <yellow>모두 모여</yellow>야 해.</gray>"
+      - "<gray>노란 꽃의 피해는 안에 선 사람 수만큼 나뉘어. 혼자 맞으면… 버섯 거름이 되는 거지.</gray>"
+      - "<gray>파란 포자가 터진 자리엔 독 웅덩이가 남아. 가장자리에서 터뜨리는 게 좋아.</gray>"
+
+  lore_floor4_lockkeeper:
+    name: "견습 수문지기 에일라"
+    nameplate: "<gray>[견습 수문지기]</gray>"
+    skin: lore_lockkeeper
+    role: lore
+    placement: floor
+    floor: 4
+    skin_style:
+      palette: ["#e8c0a0", "#1e3a4a", "#24413c", "#7aa899", "#b0b8c0", "#3a8a9a"]
+      outfit: uniform
+      hair: long_straight
+      accessories: [key_ring, rain_cape]
+    dialogue:
+      - "<gray>스승님이 물을 끌어올리기 시작하면 <aqua>단상 위로</aqua> 올라가세요. 물속에선 몸이 무거워지고 숨이 막혀요.</gray>"
+      - "<gray>벽의 수문 밸브를 <yellow>웅크린 채로</yellow> 돌리면 돼요. 모든 밸브를 거의 동시에 돌려야 물이 빠져요.</gray>"
+      - "<gray>물이 빠지면 스승님이 잠시 비틀거려요. 그때가 기회예요.</gray>"
+
+  lore_floor5_apprentice:
+    name: "견습 대장장이 미라"
+    nameplate: "<gray>[견습 대장장이]</gray>"
+    skin: lore_apprentice
+    role: lore
+    placement: floor
+    floor: 5
+    skin_style:
+      palette: ["#d9a882", "#a83a1a", "#4a3121", "#7b4f2c", "#9a9aa2", "#5a3a1a"]
+      outfit: apron
+      hair: twin_buns
+      accessories: [soot_marks, thick_gloves]
+    dialogue:
+      - "<gray>모루왕이 망치를 높이 들면 땅이 울려요! 그대로 서 있으면 용암 해자까지 날아가요.</gray>"
+      - "<gray>바닥 가장자리의 <gold>쇠사슬 말뚝</gold> 옆에서 <yellow>웅크리면</yellow> 사슬을 붙잡아 버틸 수 있어요.</gray>"
+      - "<gray>아니면 왕과 해자 사이에 서지 마세요. 날아가는 방향은 왕에게서 멀어지는 쪽이에요.</gray>"
+
+  lore_floor6_knight:
+    name: "얼어붙은 기사 에드윈의 망령"
+    nameplate: "<gray>[망령]</gray>"
+    skin: lore_ghost_knight
+    role: lore
+    placement: floor
+    floor: 6
+    skin_style:
+      palette: ["#c8d8e8", "#e8f4ff", "#3e4a5e", "#7a8aa8", "#bfe4ff", "#9ad0ff"]
+      outfit: armor
+      hair: none
+      accessories: [ghostly, frost_cracks, broken_crown]
+    dialogue:
+      - "<gray>…멈추지 마라. 이 묘역에서 가만히 서 있는 자는 얼음이 된다. 얼어붙은 동료는 <aqua>두드려</aqua> 깨워 주어라.</gray>"
+      - "<gray>여제가 얼음 껍질에 숨으면 세 개의 인장이 나타난다. <red>칼날</red>, <green>화살</green>, <light_purple>주문</light_purple>… 각각 맞는 힘으로만 깨진다.</gray>"
+      - "<gray>주문이 끝나기 전에 셋을 모두 깨지 못하면… 나처럼 영원히 이곳에 남게 되리라.</gray>"
+
+  lore_floor7_tuner:
+    name: "조율사 루시엔"
+    nameplate: "<gray>[떠돌이 조율사]</gray>"
+    skin: lore_tuner
+    role: lore
+    placement: floor
+    floor: 7
+    skin_style:
+      palette: ["#f3d2b8", "#2a1e48", "#6a4ab8", "#e0d0ff", "#fff2b0", "#8a5ae0"]
+      outfit: robe
+      hair: long_straight
+      accessories: [tuning_fork, crystal_pendant]
+    dialogue:
+      - "<gray>다이아드 앞에 서면 머리 위에 <yellow>빛</yellow>이나 <dark_purple>어둠</dark_purple>의 수정이 생겨요. 그게 당신의 색이에요.</gray>"
+      - "<gray>파동은 <u>같은 색</u>이면 스쳐 지나가고 다른 색이면 찢어 버려요. 양쪽 기둥을 만지면 색을 바꿀 수 있어요.</gray>"
+      - "<gray>그리고 다이아드의 지금 얼굴과 <u>반대 색</u>일 때 공격이 더 잘 들어가요.</gray>"
+
+  lore_floor8_scribe:
+    name: "필경사 유령 마르타"
+    nameplate: "<gray>[필경사의 유령]</gray>"
+    skin: lore_scribe
+    role: lore
+    placement: floor
+    floor: 8
+    skin_style:
+      palette: ["#d8d0c0", "#2a2418", "#22182e", "#efe4c8", "#c8a060", "#5a7ab0"]
+      outfit: scholar
+      hair: bun
+      accessories: [ghostly, round_glasses, ink_stains]
+    dialogue:
+      - "<gray>사서님이 공중으로 떠오르면 벽의 룬 책장이 하나씩 빛날 거예요. <yellow>순서를 외우세요</yellow>.</gray>"
+      - "<gray>빛난 순서대로 룬 책장을 두드리면 돼요. 누가 쳐도 상관없지만, 틀리면 먹물이 쏟아져요.</gray>"
+      - "<gray>먹물 분신은 진짜와 똑같이 생겼어요. 진짜는 <u>발밑에 그림자</u>가 있고, 가짜는 먹물을 흘려요.</gray>"
+
+  lore_floor9_tinker:
+    name: "태엽 수리공 오토"
+    nameplate: "<gray>[태엽 수리공]</gray>"
+    skin: lore_tinker
+    role: lore
+    placement: floor
+    floor: 9
+    skin_style:
+      palette: ["#c98e6b", "#d8d8d8", "#4a3020", "#a06a34", "#e0b070", "#6ad0b0"]
+      outfit: uniform
+      hair: bald_mustache
+      accessories: [goggles_forehead, tool_belt, mechanical_arm]
+    dialogue:
+      - "<gray>테오라와 싸우는 동안 종말의 시계가 줄어든다네. 0이 되면… 모두 처음으로 되감기지.</gray>"
+      - "<gray>바닥의 봉인석은 <yellow>시곗바늘이 그 위를 지날 때</yellow> 올라서야 하네. 그러면 시계가 늘어나고 간수가 휘청거리지.</gray>"
+      - "<gray>바늘이 없는데 올라서면? 5초 전의 자리로 끌려가고 시계도 줄어들어. 조심하게.</gray>"
+
+  lore_floor10_challenger:
+    name: "첫 번째 도전자 리아"
+    nameplate: "<gray>[첫 번째 도전자]</gray>"
+    skin: lore_challenger
+    role: lore
+    placement: floor
+    floor: 10
+    skin_style:
+      palette: ["#e8c0a0", "#b01a3a", "#1a3c46", "#2fe0d0", "#ffe9a8", "#2fe0d0"]
+      outfit: armor
+      hair: short_messy
+      accessories: [ghostly, torn_cape, sculk_scars]
+    dialogue:
+      - "<gray>…여기까지 왔구나. 나는 이 심장 앞에서 멈췄어. 너희는 다르길.</gray>"
+      - "<gray>바닥이 금이 가며 보랏빛으로 빛나면 그 칸에서 벗어나. 떨어지면 심연이 너를 갉아먹어.</gray>"
+      - "<gray>심장이 포효하면 <red>뒤도 보지 말고 달려</red>. 심연의 해일은 멈추지 않아. 길 끝의 낭떠러지까지.</gray>"
+      - "<gray>마지막엔… 너희가 지나온 모든 층의 메아리가 덮쳐 올 거야. 기억해, 너희는 이미 그걸 한 번씩 이겨냈어.</gray>"

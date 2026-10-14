@@ -1,0 +1,503 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# bosses.yml — 층별 보스 10종 (패턴 로직: bosses/impl/FloorNNBoss.java)
+#
+# 스키마: ARCHITECTURE.md §6 bosses.yml (+ 추가 필드는 §6 에 기록됨)
+#  phases    : HP 비율 경계. [1.0, 0.6, 0.25] = 1페이즈 100~60%, 2페이즈 60~25%, 3페이즈 25~0%
+#  rotation  : 페이즈 번호 → 그 페이즈에 쓰는 패턴 키 목록 (스케줄러가 쿨다운 돌아온 것 중 고름)
+#  patterns  : 패턴 키 → 파라미터. 공통 규칙(GDD.md "보스 패턴 카탈로그"):
+#     damage        = 보스 damage 에 곱하는 배율 (…_pct 는 대상 최대 HP 비율)
+#     windup        = 경고 장판 표시 시간(초). 난이도 telegraph 배율이 곱해짐
+#     cooldown      = 같은 패턴 재사용 대기(초)
+#     *_base + *_per_member = 파티 인원 n 일 때  base + floor((n-1) × per_member)
+#     *_per_members: k      = k 명마다 +1  →  base + floor((n-1) / k)
+#  core      : 이 보스만의 핵심 기믹 (보스끼리 겹치지 않음 — GDD.md 표 참고)
+#  arena     : 보스방 생성 지시 (FloorGenerator/보스 구현이 읽음)
+#  bossbar   : Adventure BossBar 색 (PINK|BLUE|RED|GREEN|YELLOW|PURPLE|WHITE)
+#  lines     : 등장/페이즈 전환/처치 대사 (MiniMessage)
+# 수치(hp/damage)는 솔로·보통 기준. 파티 인원·난이도 배율은 config.
+# ─────────────────────────────────────────────────────────────────────────────
+version: 1
+
+bosses:
+
+  # ═══════════════════════════════ 지하 1층 ═══════════════════════════════
+  floor01_moss_warden:
+    name: "이끼 파수꾼 그로브"
+    floor: 1
+    title: "회랑의 수호자"
+    core: destructible_pillars
+    description: "회랑을 지키도록 빚어진 이끼 석상. 침입자를 향해 맹목적으로 돌진한다 — 그 앞을 막는 것이 무엇이든."
+    base: IRON_GOLEM
+    scale: 1.6
+    hp: 2400
+    damage: 14
+    defense: 8
+    speed: 0.24
+    phases: [1.0, 0.6, 0.25]
+    xp: 400
+    gold: [80, 120]
+    drops: floor01_boss
+    bossbar: GREEN
+    arena: {radius: 14, theme: mossy, shape: circle, height: 9}
+    lines:
+      intro: "<green>그로브</green><gray>: ...회랑을... 더럽히는 자... 짓밟는다...</gray>"
+      phase2: "<green>그로브</green><gray>: 뿌리여, 깨어나라!</gray>"
+      phase3: "<green>그로브</green><gray>: 쓰러지지... 않는다...!</gray>"
+      death: "<green>그로브</green><gray>: 이끼는... 다시... 자란다...</gray>"
+    rotation:
+      1: [vine_lash, root_snare, rampage_charge]
+      2: [vine_lash, root_snare, rampage_charge, spore_burst, sproutling_call]
+      3: [vine_lash, rampage_charge, spore_burst, sproutling_call]
+    patterns:
+      vine_lash: {damage: 1.3, angle: 90, length: 6, windup: 1.0, cooldown: 6}
+      root_snare: {damage: 0.8, radius: 2.0, windup: 1.4, root: 2.0, count_base: 2, count_per_member: 0.34, cooldown: 11}
+      rampage_charge: {damage: 2.0, mark_time: 2.0, width: 3.0, speed: 1.4, max_distance: 28, stun: 4.0, vulnerable: 0.5, wall_recover: 1.0, knockback: 1.2, cooldown: 16}
+      moss_pillars: {count: 4, extra_per_members: 4, ring_radius: 8, pillar_radius: 1, height: 5, crashes_to_break: 1, block: MOSSY_STONE_BRICKS, crack_block: CRACKED_STONE_BRICKS}
+      spore_burst: {damage: 1.0, radius: 6, windup: 1.5, effect: poison, effect_duration: 4, cooldown: 14}
+      sproutling_call: {add: moss_sproutling, count_base: 2, count_per_member: 0.5, from_pillars: true, max_alive: 8, cooldown: 25}
+      overgrowth: {phase: 3, double_charge: true, second_mark_delay: 1.0, no_pillar_enrage: 0.30}
+    sounds: {ambient: "minecraft:entity.iron_golem.step", hurt: "minecraft:block.stone.hit", death: "minecraft:entity.iron_golem.death", pitch: 0.6}
+    model:
+      texture_size: [128, 128]
+      parts:
+        - {name: torso, form: box, size: [20, 18, 12], pivot: [0, 1.65, 0], anim: body}
+        - {name: mantle, form: leaf_cluster, size: [26, 10, 18], pivot: [0, 2.1, -0.05], anim: body}
+        - {name: head, form: box, size: [9, 9, 9], pivot: [0, 2.25, 0.15], anim: head}
+        - {name: arm_left, form: arm, size: [8, 24, 8], pivot: [0.82, 2.05, 0], anim: arm_left}
+        - {name: arm_right, form: arm, size: [8, 24, 8], pivot: [-0.82, 2.05, 0], anim: arm_right}
+        - {name: legs, form: leg_pair, size: [14, 14, 7], pivot: [0, 0.9, 0], anim: legs_walk}
+      style: {shape: golem, palette: ["#1a1d16", "#3a4034", "#6a705e", "#4f7a28", "#a8d055", "#f0ffc0"], features: [cracked_stone, moss_tufts, root_tendrils, emissive_core, boss_trim]}
+
+  # ═══════════════════════════════ 지하 2층 ═══════════════════════════════
+  floor02_silk_queen:
+    name: "실잣는 여왕 베셀라"
+    floor: 2
+    title: "갱도의 직조자"
+    core: tether
+    description: "버려진 은광 전체를 둥지로 삼은 거미 여왕. 은빛 실로 먹잇감을 짝지어 묶고 서로를 끌어당기게 만든다."
+    base: SPIDER
+    scale: 2.2
+    hp: 4500
+    damage: 20
+    defense: 10
+    speed: 0.27
+    phases: [1.0, 0.65, 0.3]
+    xp: 1100
+    gold: [120, 180]
+    drops: floor02_boss
+    bossbar: WHITE
+    arena: {radius: 15, theme: mine, shape: circle, height: 12, nests: 4}
+    lines:
+      intro: "<white>베셀라</white><gray>: 어머, 길 잃은 벌레들. 실로 곱게 엮어 줄게.</gray>"
+      phase2: "<white>베셀라</white><gray>: 아가들아, 저녁 시간이란다.</gray>"
+      phase3: "<white>베셀라</white><gray>: 고치 속에서 천천히 녹아내리렴!</gray>"
+      death: "<white>베셀라</white><gray>: 내... 실이... 끊어지다니...</gray>"
+    rotation:
+      1: [venom_spit, foreleg_sweep, silk_tether]
+      2: [venom_spit, foreleg_sweep, silk_tether, egg_sacs, ceiling_ambush]
+      3: [venom_spit, foreleg_sweep, silk_tether, egg_sacs, cocoon]
+    patterns:
+      venom_spit: {damage: 1.0, speed: 0.9, windup: 0.8, pool_radius: 2.0, pool_duration: 6, pool_damage: 0.3, effect: poison, effect_duration: 3, cooldown: 5}
+      foreleg_sweep: {damage: 1.4, angle: 120, length: 5, windup: 0.9, cooldown: 7}
+      silk_tether: {interval: 20, contract_time: 6.0, snap_distance: 12, snap_hold: 1.5, contract_damage: 1.5, root: 1.5, pull_strength: 1.0, solo_anchor: true, anchor_ring_radius: 12, fx: tether_silk}
+      egg_sacs: {add: silk_hatchling, count_base: 2, count_per_member: 0.25, hp: 220, hp_per_member: 0.5, hatch_time: 15, hatchlings_base: 3, hatchlings_per_member: 1, max_alive: 14, fx: egg_sac, cooldown: 35}
+      ceiling_ambush: {damage: 2.0, radius: 4, windup: 2.0, airborne_time: 6, cooldown: 30}
+      cocoon: {count_base: 1, count_per_member: 0.2, hp: 300, hp_per_member: 0.5, duration: 8, dot: 0.15, fail_damage: 3.0, struggle_per_sneak: 0.10, fx: cocoon, cooldown: 28}
+    sounds: {ambient: "minecraft:entity.spider.ambient", hurt: "minecraft:entity.spider.hurt", death: "minecraft:entity.spider.death", pitch: 0.5}
+    model:
+      texture_size: [128, 128]
+      parts:
+        - {name: abdomen, form: sphere, size: [26, 20, 28], pivot: [0, 0.75, -0.7], anim: pulse}
+        - {name: thorax, form: rounded, size: [16, 10, 14], pivot: [0, 0.7, 0.2], anim: body}
+        - {name: head, form: rounded, size: [10, 9, 9], pivot: [0, 0.85, 0.75], anim: head}
+        - {name: crown, form: crystal_cluster, size: [10, 7, 6], pivot: [0, 1.2, 0.7], anim: head}
+        - {name: fangs, form: claw, size: [8, 5, 5], pivot: [0, 0.65, 1.0], anim: jaw}
+        - {name: legs, form: leg_eight, size: [44, 14, 34], pivot: [0, 0.4, 0], anim: legs_walk}
+      style: {shape: crawler, palette: ["#14161c", "#2e3240", "#6a7088", "#c0c8dc", "#f4f8ff", "#a070f0"], features: [silk_strands, silver_markings, glowing_eyes, boss_trim]}
+
+  # ═══════════════════════════════ 지하 3층 ═══════════════════════════════
+  floor03_mycelium_king:
+    name: "균사의 왕 무르노크"
+    floor: 3
+    title: "포자의 군주"
+    core: stack_spread
+    description: "동굴의 모든 균사가 모여 이룬 왕. 포자 낙인으로 먹잇감을 흩어지게 하고, 공생의 꽃으로 다시 끌어모은다."
+    base: IRON_GOLEM
+    scale: 1.5
+    hp: 7500
+    damage: 27
+    defense: 12
+    speed: 0.22
+    phases: [1.0, 0.6, 0.3]
+    xp: 2200
+    gold: [160, 240]
+    drops: floor03_boss
+    bossbar: PURPLE
+    arena: {radius: 16, theme: fungal, shape: circle, height: 12}
+    lines:
+      intro: "<light_purple>무르노크</light_purple><gray>: 너희도 곧 나의 일부가 되리라. 흩어지든, 모이든.</gray>"
+      phase2: "<light_purple>무르노크</light_purple><gray>: 흩어져라, 그리고 다시 하나가 되어라!</gray>"
+      phase3: "<light_purple>무르노크</light_purple><gray>: 땅이 너희를 기억하리라. 균사가 너희를 삼키리라.</gray>"
+      death: "<light_purple>무르노크</light_purple><gray>: 포자는... 바람을 타고... 언젠가...</gray>"
+    rotation:
+      1: [cap_slam, puffball_toss, spore_brand, symbiosis_bloom]
+      2: [cap_slam, puffball_toss, brand_and_bloom]
+      3: [cap_slam, brand_and_bloom, mycelium_network]
+    patterns:
+      cap_slam: {damage: 1.5, radius: 5, windup: 1.2, cooldown: 7}
+      puffball_toss: {damage: 1.2, radius: 3, speed: 0.7, target: farthest, windup: 0.9, effect: poison, effect_duration: 3, cooldown: 9}
+      spore_brand: {damage: 1.6, radius: 5, duration: 5.0, count_base: 1, count_per_member: 0.5, max: 5, patch_radius: 3, patch_duration: 10, patch_damage: 0.2, fx: marker_spread, cooldown: 20}
+      symbiosis_bloom: {total_damage: 6.0, total_per_member: 1.0, solo_damage: 1.4, radius: 3, duration: 5.0, min_share: 1, fx: marker_stack, cooldown: 24}
+      brand_and_bloom: {bloom_delay: 3.0, cooldown: 30}
+      mycelium_network: {tile_size: 3, spread_interval: 4, max_coverage: 0.45, infection_per_second: 1, infection_max: 5, root: 2.0, burst_damage: 1.2, fx: telegraph_tile}
+    sounds: {ambient: "minecraft:block.fungus.place", hurt: "minecraft:block.fungus.hit", death: "minecraft:block.fungus.break", pitch: 0.4}
+    model:
+      texture_size: [128, 128]
+      parts:
+        - {name: torso, form: rounded, size: [20, 20, 14], pivot: [0, 1.65, 0], anim: body}
+        - {name: cap, form: cap, size: [36, 12, 36], pivot: [0, 2.6, 0], anim: pulse}
+        - {name: head, form: rounded, size: [10, 9, 9], pivot: [0, 2.25, 0.2], anim: head}
+        - {name: arm_left, form: tentacle_cluster, size: [8, 24, 8], pivot: [0.85, 2.05, 0], anim: arm_left}
+        - {name: arm_right, form: tentacle_cluster, size: [8, 24, 8], pivot: [-0.85, 2.05, 0], anim: arm_right}
+        - {name: roots, form: tentacle_cluster, size: [30, 14, 30], pivot: [0, 0.6, 0], anim: legs_walk}
+      style: {shape: colossus, palette: ["#1a1018", "#3e2438", "#7a3e6a", "#d07ab0", "#ffd0ea", "#f5e05a"], features: [cap_spots, spore_glow, hyphae_web, boss_trim]}
+
+  # ═══════════════════════════════ 지하 4층 ═══════════════════════════════
+  floor04_floodwarden:
+    name: "수문의 망령 오스릭"
+    floor: 4
+    title: "범람한 수문의 주인"
+    core: rising_water
+    description: "수문을 잠그다 함께 수장된 관리인. 그가 닻을 끌 때마다 수위가 올라 침입자를 삼킨다."
+    base: HUSK
+    scale: 1.9
+    hp: 12000
+    damage: 36
+    defense: 16
+    speed: 0.23
+    phases: [1.0, 0.6, 0.25]
+    xp: 3600
+    gold: [220, 320]
+    drops: floor04_boss
+    bossbar: BLUE
+    arena: {radius: 16, theme: flooded, shape: circle, height: 12, platforms: 4, platform_radius: 2.5, platform_height: 2, valves: 3}
+    lines:
+      intro: "<aqua>오스릭</aqua><gray>: 수문은... 열려선 안 됐다... 모두 가라앉아라...</gray>"
+      phase2: "<aqua>오스릭</aqua><gray>: 물이 차오른다... 숨을 아껴라...</gray>"
+      phase3: "<aqua>오스릭</aqua><gray>: 이 물은... 내 눈물이다...!</gray>"
+      death: "<aqua>오스릭</aqua><gray>: 이제야... 수문이... 닫히는구나...</gray>"
+    rotation:
+      1: [key_strike, anchor_hurl, tidal_sweep, rising_flood]
+      2: [key_strike, anchor_hurl, tidal_sweep, rising_flood, whirlpool]
+      3: [key_strike, anchor_hurl, tidal_sweep, rising_flood, whirlpool, floodling_tide]
+    patterns:
+      key_strike: {damage: 1.3, angle: 70, length: 5, windup: 0.8, cooldown: 6}
+      anchor_hurl: {damage: 1.4, impact_radius: 3, windup: 1.0, pull_strength: 1.3, target: farthest, fx: proj_anchor, cooldown: 12}
+      tidal_sweep: {damage: 1.6, width: 4, windup: 1.6, knockback: 1.0, safe_height: 1.5, cooldown: 14}
+      rising_flood: {stages: 3, stage_height: 1.0, stage_interval: 12, p2_stage_interval: 9, submerged_slow: 0.35, submerged_dot_pct: 0.02, boss_water_dr: 0.25, boss_water_damage: 0.15, valves_base: 3, valves_per_members: 4, valve_channel: 3.0, valve_window_party: 10, valve_window_solo: 25, drain_stun: 5.0, drain_vulnerable: 0.4, reflood_delay: 8, fx: water_plane}
+      whirlpool: {radius: 4, pull: 0.25, center_damage: 0.5, duration: 6, windup: 1.2, count_base: 1, count_per_member: 0.25, cooldown: 18}
+      floodling_tide: {add: floodling, count_base: 2, count_per_member: 1, max_alive: 10, cooldown: 25}
+    sounds: {ambient: "minecraft:entity.drowned.ambient", hurt: "minecraft:entity.drowned.hurt", death: "minecraft:entity.drowned.death", pitch: 0.5}
+    model:
+      texture_size: [128, 128]
+      parts:
+        - {name: torso, form: rounded, size: [12, 14, 8], pivot: [0, 1.2, 0], anim: body}
+        - {name: coat, form: cloak, size: [14, 18, 10], pivot: [0, 0.9, 0], anim: body}
+        - {name: head, form: rounded, size: [9, 9, 9], pivot: [0, 1.7, 0], anim: head}
+        - {name: lantern, form: lantern, size: [5, 7, 5], pivot: [0.45, 1.5, 0], anim: arm_left}
+        - {name: arm_left, form: arm, size: [4, 14, 4], pivot: [0.45, 1.5, 0], anim: arm_left}
+        - {name: arm_right, form: arm, size: [4, 14, 4], pivot: [-0.45, 1.5, 0], anim: arm_right}
+        - {name: anchor_key, form: blade, size: [14, 26, 3], pivot: [-0.45, 1.5, 0], anim: arm_right}
+      style: {shape: wraith, palette: ["#0a1416", "#183034", "#2e5a5e", "#5aa8a0", "#c0f0e8", "#e8c870"], features: [barnacles, dripping, translucent, verdigris_patina, boss_trim]}
+
+  # ═══════════════════════════════ 지하 5층 ═══════════════════════════════
+  floor05_anvil_king:
+    name: "모루왕 카르둠"
+    floor: 5
+    title: "꺼지지 않는 용광로"
+    core: knockback_edge
+    description: "용광로 심장부를 다스리는 쇠의 거인. 망치가 모루를 칠 때마다 대지가 울려 침입자를 용암 해자로 날려 보낸다."
+    base: IRON_GOLEM
+    scale: 2.0
+    hp: 18000
+    damage: 47
+    defense: 22
+    speed: 0.22
+    phases: [1.0, 0.55, 0.2]
+    xp: 5500
+    gold: [300, 440]
+    drops: floor05_boss
+    bossbar: RED
+    arena: {radius: 13, theme: forge, shape: circle, height: 14, moat_width: 2, moat: LAVA, anchors: 6}
+    lines:
+      intro: "<gold>카르둠</gold><gray>: 모루 위에 올라온 쇠는 두 가지뿐이다. 벼려지거나, 부서지거나.</gray>"
+      phase2: "<gold>카르둠</gold><gray>: 풀무여, 숨을 불어라!</gray>"
+      phase3: "<gold>카르둠</gold><gray>: 이 망치에 담긴 열기, 전부 받아 보아라!</gray>"
+      death: "<gold>카르둠</gold><gray>: 훌륭한... 담금질이었다...</gray>"
+    rotation:
+      1: [hammer_swing, forge_quake, molten_pour, hammer_toss]
+      2: [hammer_swing, forge_quake, molten_pour, hammer_toss, bellows_gale]
+      3: [hammer_swing, molten_pour, hammer_toss, anvil_crush]
+    patterns:
+      hammer_swing: {damage: 1.4, angle: 100, length: 5, windup: 0.9, cooldown: 6}
+      forge_quake: {damage: 1.0, windup: 2.0, knockback: 2.4, vertical: 0.4, lava_damage_pct: 0.30, lava_return: true, fx: telegraph_ring, cooldown: 12}
+      chain_grip: {anchors: 6, grip_radius: 2.0, sneak_required: true, max_grips_per_anchor: 2, fx: chain_anchor}
+      molten_pour: {damage: 1.2, lines: 3, width: 2, windup: 1.5, duration: 5, dps: 0.4, fx: molten_puddle, cooldown: 15}
+      hammer_toss: {damage: 1.5, length: 16, width: 2.5, windup: 1.2, return_delay: 1.0, fx: proj_hammer, cooldown: 11}
+      bellows_gale: {strength: 0.18, duration: 3.0, windup: 2.0, fx: telegraph_arrow, cooldown: 22}
+      anvil_crush: {gale_quake_delay: 1.0, cooldown: 26}
+    sounds: {ambient: "minecraft:block.anvil.land", hurt: "minecraft:block.anvil.hit", death: "minecraft:block.anvil.destroy", pitch: 0.5}
+    model:
+      texture_size: [128, 128]
+      parts:
+        - {name: torso, form: box, size: [22, 18, 14], pivot: [0, 1.7, 0], anim: body}
+        - {name: furnace, form: box, size: [10, 8, 4], pivot: [0, 1.7, 0.45], anim: pulse}
+        - {name: head, form: box, size: [9, 9, 9], pivot: [0, 2.35, 0.1], anim: head}
+        - {name: crown, form: crystal_cluster, size: [11, 6, 11], pivot: [0, 2.7, 0.1], anim: head}
+        - {name: arm_left, form: arm, size: [9, 24, 9], pivot: [0.9, 2.1, 0], anim: arm_left}
+        - {name: arm_right, form: arm, size: [9, 24, 9], pivot: [-0.9, 2.1, 0], anim: arm_right}
+        - {name: hammer, form: blade, size: [18, 30, 10], pivot: [-0.9, 2.1, 0], anim: arm_right}
+        - {name: legs, form: leg_pair, size: [16, 14, 8], pivot: [0, 0.9, 0], anim: legs_walk}
+      style: {shape: golem, palette: ["#0c0808", "#2a1c18", "#5a3a2a", "#a8a8b0", "#ff6a1a", "#ffd27a"], features: [molten_cracks, rivets, emissive_core, boss_trim]}
+
+  # ═══════════════════════════════ 지하 6층 ═══════════════════════════════
+  floor06_frost_empress:
+    name: "얼음관의 여제 시린"
+    floor: 6
+    title: "영원한 겨울의 왕관"
+    core: shield_break_roles
+    description: "얼음관에서 깨어난 옛 여제. 위기가 오면 얼음 껍질에 숨어 모든 것을 얼리는 주문을 왼다 — 세 가지 다른 힘으로만 깰 수 있다."
+    base: HUSK
+    scale: 1.8
+    hp: 26000
+    damage: 60
+    defense: 28
+    speed: 0.22
+    phases: [1.0, 0.7, 0.35]
+    xp: 8000
+    gold: [380, 560]
+    drops: floor06_boss
+    bossbar: BLUE
+    arena: {radius: 15, theme: frost, shape: circle, height: 12, sigil_ring_radius: 10}
+    lines:
+      intro: "<aqua>시린</aqua><gray>: 감히 내 잠을 깨우다니. 영원히 얼어붙어 내 정원의 조각상이 되거라.</gray>"
+      phase2: "<aqua>시린</aqua><gray>: 절대영도 앞에선 모든 것이 멈춘다!</gray>"
+      phase3: "<aqua>시린</aqua><gray>: 다시 한번... 겨울을!</gray>"
+      death: "<aqua>시린</aqua><gray>: 봄이... 오는가...</gray>"
+    rotation:
+      1: [scepter_sweep, glacial_spikes, frostbite]
+      2: [scepter_sweep, glacial_spikes, frostbite, blizzard]
+      3: [scepter_sweep, glacial_spikes, frostbite, blizzard, permafrost]
+    patterns:
+      scepter_sweep: {damage: 1.3, angle: 80, length: 5, windup: 0.8, cooldown: 6}
+      glacial_spikes: {damage: 1.4, width: 2, length: 16, windup: 1.2, count: 1, p3_count: 3, p3_spread: 35, cooldown: 8}
+      frostbite: {interval: 2.0, move_threshold: 1.5, max_stacks: 5, freeze: 4.0, break_hits: 4, stack_decay: 6.0, fx: ice_block}
+      glacier_shell: {trigger_phases: [2, 3], cast_time: 12, solo_cast_time: 16, wipe_damage: 9.0, sigil_hp: 900, sigil_hp_per_member: 0.6, sigils: [melee, ranged, magic], missing_role_hp_mult: 1.5, shatter_stun: 6.0, shatter_vulnerable: 0.3, glare_damage: 0.6, glare_interval: 2.0, fx_shell: ice_shell, fx_sigil_melee: frost_sigil_melee, fx_sigil_ranged: frost_sigil_ranged, fx_sigil_magic: frost_sigil_magic}
+      blizzard: {hail_base: 6, hail_per_member: 1, hail_radius: 2, hail_damage: 1.0, windup: 1.2, duration: 10, visibility_particles: 40, cooldown: 25}
+      permafrost: {tile_size: 3, coverage: 0.3, slide_strength: 0.12, duration: 15, fx: telegraph_tile, cooldown: 30}
+    sounds: {ambient: "minecraft:entity.stray.ambient", hurt: "minecraft:block.glass.hit", death: "minecraft:block.glass.break", pitch: 0.7}
+    model:
+      texture_size: [128, 128]
+      parts:
+        - {name: gown, form: cloak, size: [14, 24, 12], pivot: [0, 1.0, 0], anim: float}
+        - {name: torso, form: box, size: [9, 10, 6], pivot: [0, 1.55, 0], anim: body}
+        - {name: head, form: rounded, size: [8, 9, 8], pivot: [0, 1.95, 0], anim: head}
+        - {name: crown, form: crystal_cluster, size: [12, 8, 10], pivot: [0, 2.3, 0], anim: head}
+        - {name: arm_left, form: arm, size: [3, 13, 3], pivot: [0.4, 1.8, 0], anim: arm_left}
+        - {name: arm_right, form: arm, size: [3, 13, 3], pivot: [-0.4, 1.8, 0], anim: arm_right}
+        - {name: scepter, form: blade, size: [4, 28, 4], pivot: [-0.4, 1.8, 0], anim: arm_right}
+        - {name: shards, form: ring, size: [30, 6, 30], pivot: [0, 1.4, 0], anim: orbit}
+      style: {shape: wraith, palette: ["#101828", "#2a4466", "#6a9ad0", "#bfe6ff", "#ffffff", "#c8b4ff"], features: [frost_rime, translucent, veil, emissive_core, boss_trim]}
+
+  # ═══════════════════════════════ 지하 7층 ═══════════════════════════════
+  floor07_dyad:
+    name: "양극의 수정체 다이아드"
+    floor: 7
+    title: "빛과 그림자의 공명"
+    core: polarity
+    description: "빛과 어둠이 한 몸에서 공명하는 거대한 수정. 같은 색은 감싸 주고 다른 색은 찢어발긴다."
+    base: BLAZE
+    flying: true
+    scale: 2.0
+    hp: 36000
+    damage: 75
+    defense: 34
+    speed: 0.20
+    phases: [1.0, 0.6, 0.3]
+    xp: 11000
+    gold: [460, 680]
+    drops: floor07_boss
+    bossbar: PURPLE
+    arena: {radius: 16, theme: crystal, shape: circle, height: 14, pylons: 2}
+    lines:
+      intro: "<white>다이아드</white><gray>: </gray><yellow>빛이여</yellow><gray>... </gray><dark_purple>그림자여</dark_purple><gray>... 이 불협화음을 조율하라.</gray>"
+      phase2: "<white>다이아드</white><gray>: 갈라진 빛은 서로를 찾는다.</gray>"
+      phase3: "<white>다이아드</white><gray>: 공명이... 붕괴한다...!</gray>"
+      death: "<white>다이아드</white><gray>: 마침내... 하나의 음으로...</gray>"
+    rotation:
+      1: [shard_orbit, crystal_rain, polarity_wave]
+      2: [shard_orbit, crystal_rain, polarity_wave, split_beam]
+      3: [shard_orbit, crystal_rain, polarity_wave, split_beam, prism_refraction]
+    patterns:
+      polarity_assign: {mode: alternate, swap_cooldown: 5, pylons: 2, pylon_radius: 1.5, pylon_ring_radius: 12, fx_light: pylon_light, fx_dark: pylon_dark, fx_mark_light: marker_light, fx_mark_dark: marker_dark}
+      face_shift: {interval: 20, p3_interval: 10, opposite_bonus: 0.25, same_penalty: 0.5}
+      polarity_wave: {damage: 3.0, windup: 3.0, p3_double: true, p3_gap: 2.5, cooldown: 15}
+      split_beam: {damage: 3.0, soak_damage: 0.6, width: 1.5, length: 22, windup: 2.5, fx: telegraph_line, cooldown: 18}
+      prism_refraction: {duration: 6, reflect_ratio: 0.5, fx: refraction_shell, cooldown: 25}
+      crystal_rain: {count_base: 4, count_per_member: 1, radius: 2.5, damage: 1.2, windup: 1.3, cooldown: 10}
+      shard_orbit: {damage: 0.8, radius: 4, duration: 3, tick: 0.5, windup: 1.0, cooldown: 12}
+    sounds: {ambient: "minecraft:block.amethyst_block.resonate", hurt: "minecraft:block.amethyst_block.hit", death: "minecraft:block.amethyst_block.break", pitch: 0.6}
+    model:
+      texture_size: [128, 128]
+      parts:
+        - {name: core, form: crystal_cluster, size: [18, 30, 18], pivot: [0, 1.6, 0], anim: float}
+        - {name: light_half, form: crystal_cluster, size: [12, 22, 10], pivot: [0.45, 1.7, 0], anim: pulse}
+        - {name: dark_half, form: crystal_cluster, size: [12, 22, 10], pivot: [-0.45, 1.7, 0], anim: pulse}
+        - {name: ring_inner, form: ring, size: [34, 3, 34], pivot: [0, 1.6, 0], anim: spin}
+        - {name: ring_outer, form: ring, size: [44, 2, 44], pivot: [0, 1.6, 0], anim: orbit}
+      style: {shape: floating, palette: ["#0c0814", "#2a1e48", "#6a4ab8", "#fff2b0", "#ffffff", "#140c24"], features: [crystal_growth, prism_glint, emissive_core, dual_tone, boss_trim]}
+
+  # ═══════════════════════════════ 지하 8층 ═══════════════════════════════
+  floor08_ink_librarian:
+    name: "잉크 사서 오르벨"
+    floor: 8
+    title: "지워진 이름의 기록자"
+    core: puzzle_phase
+    description: "망각의 서고를 관리하는 먹물의 사서. 금서의 색인을 펼쳐 침입자에게 기억력을 시험하고, 먹물로 제 분신을 그려 낸다."
+    base: HUSK
+    scale: 1.7
+    hp: 50000
+    damage: 92
+    defense: 40
+    speed: 0.22
+    phases: [1.0, 0.7, 0.4]
+    xp: 15000
+    gold: [560, 820]
+    drops: floor08_boss
+    bossbar: YELLOW
+    arena: {radius: 15, theme: archive, shape: circle, height: 14, rune_shelves: 8, rune_ring_radius: 13}
+    lines:
+      intro: "<yellow>오르벨</yellow><gray>: 정숙. 이곳은 서고다. 떠드는 자의 이름은 지워질 것이다.</gray>"
+      phase2: "<yellow>오르벨</yellow><gray>: 색인을 외워라. 틀리면 먹물에 잠긴다.</gray>"
+      phase3: "<yellow>오르벨</yellow><gray>: 너희의 기록을... 지금 지운다!</gray>"
+      death: "<yellow>오르벨</yellow><gray>: 이 마지막 장은... 너희가 써라...</gray>"
+    rotation:
+      1: [ink_lash, quill_barrage]
+      2: [ink_lash, quill_barrage, ink_doubles]
+      3: [ink_lash, quill_barrage, ink_doubles, erasure]
+    patterns:
+      ink_lash: {damage: 1.4, angle: 90, length: 6, windup: 1.0, cooldown: 6}
+      quill_barrage: {damage: 0.7, count: 5, spread: 40, speed: 1.3, windup: 0.8, targets_base: 1, targets_per_member: 0.34, fx: proj_quill, cooldown: 9}
+      forbidden_index: {trigger_phases: [2, 3], runes: 8, sequence_base: 4, sequence_per_members: 3, sequence_max: 7, show_interval: 1.0, time_limit: 20, solo_time_limit: 25, wrong_damage: 1.5, wrong_time_penalty: 5, fail_damage: 4.0, fail_heal: 0.05, success_stun: 10, success_vulnerable: 0.5, ink_drop_interval: 2.5, ink_drop_radius: 2, ink_drop_damage: 0.8, fx_rune_prefix: rune_}
+      ink_doubles: {count_base: 2, count_per_member: 0.34, max: 5, duration: 20, reveal_damage_ratio: 0.05, burst_damage: 0.5, burst_blind: 2.0, double_damage_mult: 0.5, tell_particle: SQUID_INK, cooldown: 32}
+      erasure: {damage: 2.5, angle: 90, radius: 16, windup: 2.0, fx: telegraph_cone, cooldown: 14}
+    sounds: {ambient: "minecraft:item.book.page_turn", hurt: "minecraft:entity.squid.hurt", death: "minecraft:entity.squid.death", pitch: 0.5}
+    model:
+      texture_size: [128, 128]
+      parts:
+        - {name: robe, form: cloak, size: [14, 24, 12], pivot: [0, 1.0, 0], anim: float}
+        - {name: torso, form: box, size: [10, 10, 6], pivot: [0, 1.55, 0], anim: body}
+        - {name: head, form: rounded, size: [9, 10, 9], pivot: [0, 2.0, 0], anim: head}
+        - {name: spectacles, form: ring, size: [8, 3, 1], pivot: [0, 2.05, 0.3], anim: head}
+        - {name: arm_left, form: arm, size: [4, 14, 4], pivot: [0.45, 1.8, 0], anim: arm_left}
+        - {name: arm_right, form: arm, size: [4, 14, 4], pivot: [-0.45, 1.8, 0], anim: arm_right}
+        - {name: quill, form: blade, size: [3, 20, 6], pivot: [-0.45, 1.8, 0], anim: arm_right}
+        - {name: tomes, form: book, size: [12, 4, 14], pivot: [0, 1.6, 0], anim: orbit}
+      style: {shape: wraith, palette: ["#06060c", "#141a30", "#2a3a6a", "#c8a060", "#efe4c8", "#5a7ab0"], features: [ink_drips, chained_book, translucent, boss_trim]}
+
+  # ═══════════════════════════════ 지하 9층 ═══════════════════════════════
+  floor09_clock_warden:
+    name: "시계탑의 간수 테오라"
+    floor: 9
+    title: "멈추지 않는 시간의 간수"
+    core: timed_seals
+    description: "태엽 성소의 대시계를 지키는 간수. 종말의 시계가 0을 가리키면 모든 것이 처음으로 되감긴다 — 침입자의 존재까지도."
+    base: IRON_GOLEM
+    scale: 1.8
+    hp: 68000
+    damage: 112
+    defense: 46
+    speed: 0.23
+    phases: [1.0, 0.6, 0.25]
+    xp: 20000
+    gold: [680, 980]
+    drops: floor09_boss
+    bossbar: YELLOW
+    arena: {radius: 14, theme: clockwork, shape: clock_face, height: 14, seal_ring_radius: 12}
+    lines:
+      intro: "<gold>테오라</gold><gray>: 늦었군. 너희에게 남은 시간은 정확히 4분이다.</gray>"
+      phase2: "<gold>테오라</gold><gray>: 초침을 서두르겠다. 따라올 수 있겠나?</gray>"
+      phase3: "<gold>테오라</gold><gray>: 시간이여, 거꾸로 흘러라!</gray>"
+      death: "<gold>테오라</gold><gray>: 시계가... 멈춘다... 처음으로... 평온하군...</gray>"
+    rotation:
+      1: [hand_strike, pendulum_sweep, rewind_echo]
+      2: [hand_strike, pendulum_sweep, rewind_echo, gear_storm]
+      3: [hand_strike, pendulum_sweep, rewind_echo, gear_storm]
+    patterns:
+      hand_strike: {damage: 1.4, angle: 90, length: 5, windup: 0.9, cooldown: 6}
+      doom_clock: {start_seconds: 240, seal_bonus: 20, wrong_penalty: 10, zero_damage_pct: 9.99, damage_ramp_per_minute: 0.10}
+      timed_seals: {seals_base: 4, seals_at_six_or_more: 6, hand_period: 24, p2_hand_period: 16, p3_reverse: true, window: 1.5, stand_time: 1.5, seal_damage_pct: 0.03, seal_stun: 2.0, rewind_seconds: 5, rewind_damage: 1.0, fx_seal: seal_glyph, fx_hand: clock_hand}
+      pendulum_sweep: {damage: 1.8, width: 3, windup: 1.5, swings: 2, swing_time: 1.2, fx: pendulum, cooldown: 14}
+      rewind_echo: {delay: 6, radius: 2.5, damage: 1.2, record_interval: 0.5, fx: telegraph_circle, cooldown: 18}
+      gear_storm: {lines_base: 3, lines_per_member: 0.34, width: 2, speed: 0.6, damage: 1.3, windup: 1.4, fx: proj_gear_large, cooldown: 16}
+    sounds: {ambient: "minecraft:block.copper_bulb.turn_on", hurt: "minecraft:block.copper.hit", death: "minecraft:block.bell.resonate", pitch: 0.5}
+    model:
+      texture_size: [128, 128]
+      parts:
+        - {name: torso, form: box, size: [20, 18, 12], pivot: [0, 1.7, 0], anim: body}
+        - {name: clockface, form: gear, size: [16, 16, 2], pivot: [0, 1.75, 0.4], anim: spin}
+        - {name: head, form: lantern, size: [9, 10, 9], pivot: [0, 2.35, 0.05], anim: head}
+        - {name: arm_left, form: arm, size: [8, 24, 8], pivot: [0.85, 2.1, 0], anim: arm_left}
+        - {name: arm_right, form: arm, size: [8, 24, 8], pivot: [-0.85, 2.1, 0], anim: arm_right}
+        - {name: hand_blade, form: blade, size: [6, 32, 2], pivot: [-0.85, 2.1, 0], anim: arm_right}
+        - {name: pendulum, form: tail, size: [5, 22, 5], pivot: [0, 2.0, -0.45], anim: tail}
+        - {name: legs, form: leg_pair, size: [14, 14, 7], pivot: [0, 0.9, 0], anim: legs_walk}
+      style: {shape: construct, palette: ["#100a06", "#3a2412", "#8a5a26", "#e8b060", "#fff4d0", "#7ae0c0"], features: [clockface_chest, brass_trim, rivets, emissive_core, boss_trim]}
+
+  # ═══════════════════════════════ 지하 10층 ═══════════════════════════════
+  floor10_abyss_heart:
+    name: "심연의 심장 넬카르"
+    floor: 10
+    title: "미궁의 근원"
+    core: collapse_and_chase
+    description: "미궁의 모든 층에 뿌리를 뻗은 검은 심장. 박동할 때마다 바닥이 무너지고, 도망치는 자를 심연의 해일로 집어삼킨다."
+    base: IRON_GOLEM
+    scale: 2.4
+    hp: 95000
+    damage: 135
+    defense: 56
+    speed: 0.0
+    phases: [1.0, 0.7, 0.35]
+    xp: 30000
+    gold: [900, 1400]
+    drops: floor10_boss
+    bossbar: RED
+    arena: {radius: 18, theme: abyss, shape: tiled_circle, tile_size: 3, height: 16, corridor_length: 80, corridor_width: 7, rim_radius: 12}
+    lines:
+      intro: "<dark_aqua>넬카르</dark_aqua><gray>: ...쿵. ...쿵. 너희가 밟고 온 모든 층이, 나의 혈관이다.</gray>"
+      phase2: "<dark_aqua>넬카르</dark_aqua><gray>: 도망쳐라. 심연은 언제나 한 걸음 뒤에 있다.</gray>"
+      phase3: "<dark_aqua>넬카르</dark_aqua><gray>: 기억하라... 너희가 쓰러뜨린 모든 것을...!</gray>"
+      death: "<dark_aqua>넬카르</dark_aqua><gray>: ...쿵. ......쿵. ............</gray>"
+    rotation:
+      1: [tendril_lash, void_orbs, abyssal_collapse]
+      2: [tendril_lash, void_orbs, rotating_gaze, abyss_rift]
+      3: [tendril_lash, rotating_gaze, abyss_rift, floor_echoes, heartbeat_pulse]
+    patterns:
+      tendril_lash: {damage: 1.4, angle: 100, length: 7, windup: 1.0, cooldown: 6}
+      void_orbs: {count_base: 2, count_per_member: 0.5, speed: 0.35, homing: 0.06, radius: 2, damage: 1.2, lifetime: 8, fx: proj_void_orb, cooldown: 12}
+      abyssal_collapse: {tile_size: 3, warn_time: 2.5, regen_time: 15, interval: 9, tiles_per_wave: 0.30, tiles_per_wave_per_member: 0.02, layouts: [scatter, checker, rings, cross, spiral], fall_damage_pct: 0.25, fall_mark_vulnerable: 0.2, fall_mark_duration: 3, fx: telegraph_tile}
+      devouring_pursuit: {start_delay: 3, wall_speed: 4.6, wall_accel: 0.05, wall_damage_pct: 0.5, wall_push: 1.2, debris_base: 6, debris_per_member: 1, debris_radius: 2, debris_damage: 1.0, gaps: 3, gap_length: 2, fx_wall: abyss_wall}
+      rotating_gaze: {beams: 2, p3_beams: 3, length: 16, width: 1.5, rotation_speed: 30, duration: 8, tick: 0.25, damage_per_tick: 0.5, windup: 2.0, fx: telegraph_line, cooldown: 20}
+      abyss_rift: {count_base: 3, count_per_member: 0.5, radius: 3, windup: 1.6, damage: 1.6, linger: 4, linger_dps: 0.3, cooldown: 12}
+      heartbeat_pulse: {interval: 30, damage: 0.8, ramp: 0.15}
+      floor_echoes: {pool: [rampage_charge, spore_brand, symbiosis_bloom, tidal_sweep, forge_quake, glacial_spikes, rewind_echo, erasure], picks: 1, power: 0.7, windup_mult: 1.2, cooldown: 20}
+    sounds: {ambient: "minecraft:entity.warden.heartbeat", hurt: "minecraft:block.sculk.hit", death: "minecraft:entity.warden.death", pitch: 0.5}
+    model:
+      texture_size: [128, 128]
+      parts:
+        - {name: heart, form: sphere, size: [28, 32, 26], pivot: [0, 2.2, 0], anim: pulse}
+        - {name: core, form: eye, size: [12, 12, 8], pivot: [0, 2.2, 0.55], anim: head}
+        - {name: veins, form: tentacle_cluster, size: [40, 20, 40], pivot: [0, 1.0, 0], anim: legs_walk}
+        - {name: crown, form: horn_pair, size: [34, 18, 6], pivot: [0, 3.3, 0], anim: body}
+        - {name: ring, form: ring, size: [48, 4, 48], pivot: [0, 2.2, 0], anim: orbit}
+      style: {shape: colossus, palette: ["#020306", "#08141a", "#123842", "#2fe0d0", "#c8fff8", "#b01a3a"], features: [sculk_veins, veined_eye, emissive_core, heartbeat_glow, boss_trim]}

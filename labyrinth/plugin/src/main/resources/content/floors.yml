@@ -1,0 +1,302 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# floors.yml — 미궁 지하 1~10층
+#
+# 스키마: ARCHITECTURE.md §6 floors.yml (+ 추가 필드는 §6 에 기록됨)
+#  palette.*        : 실제 26.3 블록 Material 이름. 목록 안에서 가중치 없이 무작위(앞쪽일수록 자주: 생성기가 1/(i+1) 가중치 권장)
+#  rooms            : 방 종류별 개수. 시작방·보스방은 항상 1개씩 자동 추가
+#  mob_density      : 전투방 1개당 일반 몹 수 [최소, 최대] (파티 인원 배율 전, 솔로 기준)
+#  gimmick          : 기믹방 구현 키 (dungeon/rooms/, GDD.md "기믹방" 참고) + gimmick_params
+#  ambient          : particle(Particle enum, 데이터 없는 입자만) / density(플레이어 1명 주변 초당 개수)
+#                     sound(바닐라 사운드 키) / sound_interval([최소,최대] 초) / volume / pitch
+#  decor            : 장식 블록 산포. where: floor | ceiling | wall | corner,  chance: 해당 면 블록당 확률
+#  liquid           : 수로/용암 도랑에 쓸 액체 (WATER | LAVA | null). 통로 가장자리 1칸 도랑, 난간 필수
+#  level_range      : 권장 레벨 [최소, 최대] — 입장 메뉴 표시 + 경고
+# 모든 블록 배치는 labyrinth_world 의 인스턴스 슬롯 안에서만 이루어진다.
+# ─────────────────────────────────────────────────────────────────────────────
+version: 1
+
+floors:
+
+  1:
+    name: "이끼 낀 회랑"
+    subtitle: "지하 1층"
+    theme: mossy
+    level_range: [1, 5]
+    description: "<gray>미궁의 첫 관문. 무너진 석조 회랑을 이끼와 뿌리가 집어삼켰다. 반딧불만이 길을 비춘다.</gray>"
+    palette:
+      floor: [MOSSY_STONE_BRICKS, STONE_BRICKS, MOSSY_COBBLESTONE, CRACKED_STONE_BRICKS]
+      wall: [STONE_BRICKS, MOSSY_STONE_BRICKS, CRACKED_STONE_BRICKS]
+      ceiling: [STONE_BRICKS, MOSSY_COBBLESTONE]
+      accent: [CHISELED_STONE_BRICKS, MOSS_BLOCK, STRIPPED_OAK_LOG]
+      light: [VERDANT_FROGLIGHT, SHROOMLIGHT]
+    decor:
+      - {block: MOSS_CARPET, where: floor, chance: 0.10}
+      - {block: GLOW_LICHEN, where: wall, chance: 0.03}
+      - {block: HANGING_ROOTS, where: ceiling, chance: 0.04}
+      - {block: VINE, where: wall, chance: 0.04}
+    liquid: null
+    room_height: 5
+    size: {cells: 6}
+    rooms: {combat: 6, elite: 1, treasure: 1, gimmick: 1, rest: 1}
+    mob_density: [3, 5]
+    mobs: [moss_crawler, root_shambler, lantern_wisp, stone_beetle]
+    elite: moss_crawler_alpha
+    boss: floor01_moss_warden
+    gimmick: lever_sequence
+    gimmick_params: {levers: 5, sequence_length: 4, show_interval: 0.9, attempts: 3, fail_spawn: moss_crawler, fail_spawn_count: 2}
+    ambient: {particle: FIREFLY, density: 1.5, sound: "minecraft:ambient.cave", sound_interval: [40, 90], volume: 0.6, pitch: 1.0}
+
+  2:
+    name: "거미줄 갱도"
+    subtitle: "지하 2층"
+    theme: mine
+    level_range: [5, 10]
+    description: "<gray>버려진 은광. 광부들이 사라진 갱도마다 질긴 은빛 거미줄이 드리워져 있다.</gray>"
+    palette:
+      floor: [STONE, ANDESITE, GRAVEL, COARSE_DIRT]
+      wall: [STONE, ANDESITE, TUFF, IRON_ORE, COPPER_ORE]
+      ceiling: [STONE, COBBLESTONE, ANDESITE]
+      accent: [SPRUCE_PLANKS, STRIPPED_SPRUCE_LOG, SPRUCE_LOG]
+      light: [LANTERN, COPPER_LANTERN]
+    decor:
+      - {block: COBWEB, where: corner, chance: 0.12}
+      - {block: COBWEB, where: ceiling, chance: 0.02}
+      - {block: RAIL, where: floor, chance: 0.03}
+      - {block: IRON_CHAIN, where: ceiling, chance: 0.02}
+    liquid: null
+    room_height: 5
+    size: {cells: 6}
+    rooms: {combat: 7, elite: 1, treasure: 1, gimmick: 1, rest: 1}
+    mob_density: [3, 5]
+    mobs: [tunnel_skitter, rusted_miner, ore_mimic, echo_bat]
+    elite: foreman_gorrak
+    boss: floor02_silk_queen
+    gimmick: torch_relay
+    gimmick_params: {braziers: 4, burn_time: 18, hold_seconds: 40, darkness_spawn: tunnel_skitter, spawn_interval: 6}
+    ambient: {particle: ASH, density: 1.0, sound: "minecraft:block.chain.step", sound_interval: [30, 70], volume: 0.4, pitch: 0.6}
+
+  3:
+    name: "균사 동굴"
+    subtitle: "지하 3층"
+    theme: fungal
+    level_range: [10, 15]
+    description: "<gray>거대한 버섯들이 숨 쉬는 동굴. 공기 속 포자 하나하나가 이 굴의 왕에게 이어져 있다.</gray>"
+    palette:
+      floor: [MYCELIUM, PODZOL, ROOTED_DIRT, MUD]
+      wall: [TUFF, MUSHROOM_STEM, BROWN_MUSHROOM_BLOCK, DRIPSTONE_BLOCK]
+      ceiling: [BROWN_MUSHROOM_BLOCK, MUSHROOM_STEM, RED_MUSHROOM_BLOCK]
+      accent: [RED_MUSHROOM_BLOCK, MUSHROOM_STEM, ROOTED_DIRT]
+      light: [SHROOMLIGHT, OCHRE_FROGLIGHT]
+    decor:
+      - {block: BROWN_MUSHROOM, where: floor, chance: 0.06}
+      - {block: RED_MUSHROOM, where: floor, chance: 0.04}
+      - {block: SHELF_MUSHROOM, where: wall, chance: 0.03}
+      - {block: GLOW_LICHEN, where: wall, chance: 0.03}
+      - {block: HANGING_ROOTS, where: ceiling, chance: 0.03}
+    liquid: null
+    room_height: 6
+    size: {cells: 7}
+    rooms: {combat: 7, elite: 1, treasure: 1, gimmick: 1, rest: 1}
+    mob_density: [3, 5]
+    mobs: [capcap, mycelid_shambler, spore_turret, glowcap_moth]
+    elite: spore_mother
+    boss: floor03_mycelium_king
+    gimmick: spore_purge
+    gimmick_params: {pods: 4, pod_hp: 400, clean_tiles: 6, tile_shift_interval: 8, infection_per_second: 1, infection_max: 5, infection_damage: 0.05}
+    ambient: {particle: SPORE_BLOSSOM_AIR, density: 2.5, sound: "minecraft:block.fungus.step", sound_interval: [20, 50], volume: 0.5, pitch: 0.7}
+
+  4:
+    name: "잠긴 수로"
+    subtitle: "지하 4층"
+    theme: flooded
+    level_range: [15, 20]
+    description: "<gray>미궁에 물을 대던 옛 수도. 수문이 고장 난 뒤로 물과 함께 익사자들이 차올랐다.</gray>"
+    palette:
+      floor: [SMOOTH_STONE, POLISHED_ANDESITE, MOSSY_STONE_BRICKS, PACKED_MUD]
+      wall: [PRISMARINE_BRICKS, DARK_PRISMARINE, STONE_BRICKS, MUD_BRICKS]
+      ceiling: [STONE_BRICKS, DARK_PRISMARINE]
+      accent: [WAXED_OXIDIZED_COPPER, WAXED_OXIDIZED_CUT_COPPER, WAXED_OXIDIZED_COPPER_GRATE]
+      light: [SEA_LANTERN]
+    decor:
+      - {block: WAXED_OXIDIZED_COPPER_GRATE, where: floor, chance: 0.04}
+      - {block: GLOW_LICHEN, where: wall, chance: 0.04}
+      - {block: HANGING_ROOTS, where: ceiling, chance: 0.02}
+    liquid: WATER
+    room_height: 6
+    size: {cells: 7}
+    rooms: {combat: 8, elite: 1, treasure: 1, gimmick: 1, rest: 1}
+    mob_density: [3, 6]
+    mobs: [sluice_drowner, brine_spitter, rust_eel, bubble_jelly]
+    elite: verdigris_crab
+    boss: floor04_floodwarden
+    gimmick: valve_flow
+    gimmick_params: {valves: 3, states: 4, flood_seconds: 60, flood_damage: 0.03, hint_particle: BUBBLE_POP}
+    ambient: {particle: DRIPPING_WATER, density: 3.0, sound: "minecraft:ambient.underwater.loop.additions", sound_interval: [25, 60], volume: 0.5, pitch: 0.9}
+
+  5:
+    name: "용광로 심장부"
+    subtitle: "지하 5층"
+    theme: forge
+    level_range: [20, 25]
+    description: "<gray>미궁을 벼려낸 거대한 대장간. 꺼지지 않는 용광로 앞에서 모루의 왕이 망치를 든다.</gray>"
+    palette:
+      floor: [POLISHED_BLACKSTONE_BRICKS, BLACKSTONE, POLISHED_BASALT, CINNABAR_BRICKS]
+      wall: [POLISHED_BLACKSTONE_BRICKS, CRACKED_POLISHED_BLACKSTONE_BRICKS, BLACKSTONE, NETHER_BRICKS]
+      ceiling: [BLACKSTONE, BASALT]
+      accent: [GILDED_BLACKSTONE, CHISELED_POLISHED_BLACKSTONE, CHISELED_CINNABAR, IRON_BLOCK]
+      light: [LANTERN, MAGMA_BLOCK]
+    decor:
+      - {block: IRON_CHAIN, where: ceiling, chance: 0.04}
+      - {block: IRON_BARS, where: wall, chance: 0.02}
+      - {block: ANVIL, where: corner, chance: 0.03}
+    liquid: LAVA
+    room_height: 7
+    size: {cells: 8}
+    rooms: {combat: 8, elite: 1, treasure: 1, gimmick: 1, rest: 1}
+    mob_density: [4, 6]
+    mobs: [slag_golem, cinder_imp, bellows_hound, forge_acolyte]
+    elite: forge_executioner
+    boss: floor05_anvil_king
+    gimmick: forge_bellows
+    gimmick_params: {plates: 3, heat_needed: 100, heat_per_plate: 4, heat_decay: 6, solo_hold_bonus: 2.0}
+    ambient: {particle: LAVA, density: 0.6, sound: "minecraft:block.lava.ambient", sound_interval: [10, 30], volume: 0.6, pitch: 0.8}
+
+  6:
+    name: "서리 묘역"
+    subtitle: "지하 6층"
+    theme: frost
+    level_range: [25, 30]
+    description: "<gray>얼음 속에 잠든 옛 왕족의 묘지. 숨결마저 얼어붙는 이곳에서는 멈추는 순간 얼음이 된다.</gray>"
+    palette:
+      floor: [PACKED_ICE, POLISHED_DIORITE, SNOW_BLOCK, CALCITE]
+      wall: [CALCITE, POLISHED_DIORITE, PACKED_ICE, BLUE_ICE]
+      ceiling: [PACKED_ICE, SNOW_BLOCK, CALCITE]
+      accent: [BLUE_ICE, CHISELED_QUARTZ_BLOCK, QUARTZ_PILLAR]
+      light: [SEA_LANTERN, SOUL_LANTERN, PEARLESCENT_FROGLIGHT]
+    decor:
+      - {block: SNOW, where: floor, chance: 0.12}
+      - {block: SKELETON_SKULL, where: corner, chance: 0.02}
+      - {block: POINTED_DRIPSTONE, where: ceiling, chance: 0.02}
+    liquid: null
+    room_height: 6
+    size: {cells: 8}
+    rooms: {combat: 9, elite: 1, treasure: 1, gimmick: 1, rest: 1}
+    mob_density: [4, 6]
+    mobs: [rime_mourner, crypt_hound, frozen_knight, icicle_wraith]
+    elite: crypt_bellringer
+    boss: floor06_frost_empress
+    gimmick: lights_out
+    gimmick_params: {grid: 4, scramble_moves: 6, time_limit: 120, frost_damage: 0.02}
+    ambient: {particle: SNOWFLAKE, density: 2.5, sound: "minecraft:block.powder_snow.step", sound_interval: [20, 40], volume: 0.4, pitch: 0.5}
+
+  7:
+    name: "수정 공명동"
+    subtitle: "지하 7층"
+    theme: crystal
+    level_range: [30, 35]
+    description: "<gray>자수정이 노래하는 동굴. 빛과 어둠이 서로를 비추며 끝없이 공명한다.</gray>"
+    palette:
+      floor: [CALCITE, SMOOTH_BASALT, DEEPSLATE_TILES, AMETHYST_BLOCK]
+      wall: [AMETHYST_BLOCK, CALCITE, SMOOTH_BASALT, TINTED_GLASS]
+      ceiling: [SMOOTH_BASALT, CALCITE, AMETHYST_BLOCK]
+      accent: [BUDDING_AMETHYST, QUARTZ_BRICKS, POLISHED_DEEPSLATE]
+      light: [PEARLESCENT_FROGLIGHT, SEA_LANTERN]
+    decor:
+      - {block: AMETHYST_CLUSTER, where: floor, chance: 0.03}
+      - {block: LARGE_AMETHYST_BUD, where: wall, chance: 0.03}
+      - {block: MEDIUM_AMETHYST_BUD, where: ceiling, chance: 0.04}
+      - {block: SMALL_AMETHYST_BUD, where: floor, chance: 0.04}
+    liquid: null
+    room_height: 7
+    size: {cells: 8}
+    rooms: {combat: 9, elite: 1, treasure: 2, gimmick: 1, rest: 1}
+    mob_density: [4, 6]
+    mobs: [shard_skitterer, prism_sentinel, echo_wisp, geode_brute]
+    elite: resonance_tuner
+    boss: floor07_dyad
+    gimmick: resonance_tune
+    gimmick_params: {crystals: 5, melody_length: 5, rounds: 2, attempts: 3, fail_damage: 0.08}
+    ambient: {particle: END_ROD, density: 0.8, sound: "minecraft:block.amethyst_block.chime", sound_interval: [8, 20], volume: 0.7, pitch: 1.0}
+
+  8:
+    name: "망각의 서고"
+    subtitle: "지하 8층"
+    theme: archive
+    level_range: [35, 40]
+    description: "<gray>미궁이 삼킨 모든 기록이 모이는 서고. 이름을 잃은 책들이 스스로 페이지를 넘긴다.</gray>"
+    palette:
+      floor: [DARK_OAK_PLANKS, SPRUCE_PLANKS, POLISHED_DEEPSLATE]
+      wall: [BOOKSHELF, CHISELED_BOOKSHELF, DARK_OAK_PLANKS, STRIPPED_DARK_OAK_LOG]
+      ceiling: [DARK_OAK_PLANKS, SPRUCE_PLANKS]
+      accent: [CHISELED_DEEPSLATE, DEEPSLATE_TILES, STRIPPED_DARK_OAK_LOG]
+      light: [LANTERN, SOUL_LANTERN]
+    decor:
+      - {block: COBWEB, where: corner, chance: 0.04}
+      - {block: CANDLE, where: corner, chance: 0.05}
+      - {block: IRON_CHAIN, where: ceiling, chance: 0.02}
+    liquid: null
+    room_height: 7
+    size: {cells: 9}
+    rooms: {combat: 10, elite: 1, treasure: 2, gimmick: 1, rest: 2}
+    mob_density: [4, 7]
+    mobs: [ink_wraith, page_swarm, biting_tome, archive_sentinel]
+    elite: forbidden_keeper
+    boss: floor08_ink_librarian
+    gimmick: book_cipher
+    gimmick_params: {shelves: 12, books: 3, attempts: 3, time_limit: 180, fail_spawn: ink_wraith, fail_spawn_count: 3}
+    ambient: {particle: ENCHANT, density: 3.0, sound: "minecraft:item.book.page_turn", sound_interval: [12, 30], volume: 0.6, pitch: 0.8}
+
+  9:
+    name: "태엽 성소"
+    subtitle: "지하 9층"
+    theme: clockwork
+    level_range: [40, 45]
+    description: "<gray>미궁의 시간을 재는 거대한 시계 장치. 톱니 하나라도 어긋나면 시간이 거꾸로 흐른다.</gray>"
+    palette:
+      floor: [WAXED_CUT_COPPER, WAXED_WEATHERED_CUT_COPPER, POLISHED_TUFF, TUFF_BRICKS]
+      wall: [WAXED_COPPER_BLOCK, WAXED_EXPOSED_COPPER, TUFF_BRICKS, WAXED_COPPER_GRATE]
+      ceiling: [TUFF_BRICKS, POLISHED_TUFF]
+      accent: [WAXED_CHISELED_COPPER, CHISELED_TUFF_BRICKS, WAXED_LIGHTNING_ROD]
+      light: [WAXED_COPPER_LANTERN, COPPER_LANTERN]
+    decor:
+      - {block: WAXED_COPPER_CHAIN, where: ceiling, chance: 0.04}
+      - {block: WAXED_COPPER_BARS, where: wall, chance: 0.02}
+    liquid: null
+    room_height: 7
+    size: {cells: 9}
+    rooms: {combat: 10, elite: 2, treasure: 2, gimmick: 1, rest: 2}
+    mob_density: [4, 7]
+    mobs: [gear_hound, clockwork_sentry, spring_jumper, chrono_moth]
+    elite: grand_regulator
+    boss: floor09_clock_warden
+    gimmick: gear_timing
+    gimmick_params: {buttons: 4, window: 0.6, rounds: 3, hand_period: 6.0, fail_damage: 0.06}
+    ambient: {particle: ELECTRIC_SPARK, density: 0.8, sound: "minecraft:block.copper_bulb.turn_on", sound_interval: [6, 14], volume: 0.4, pitch: 0.6}
+
+  10:
+    name: "심연의 핵"
+    subtitle: "지하 10층"
+    theme: abyss
+    level_range: [45, 50]
+    description: "<gray>미궁의 가장 깊은 곳. 모든 층이 뿌리내린 검은 심장이 박동하며 세계를 끌어당긴다.</gray>"
+    palette:
+      floor: [DEEPSLATE_TILES, SCULK, POLISHED_DEEPSLATE, BLACKSTONE]
+      wall: [DEEPSLATE_BRICKS, CRACKED_DEEPSLATE_BRICKS, SCULK, OBSIDIAN]
+      ceiling: [DEEPSLATE_TILES, SCULK, COBBLED_DEEPSLATE]
+      accent: [CRYING_OBSIDIAN, REINFORCED_DEEPSLATE, CHISELED_DEEPSLATE]
+      light: [SOUL_LANTERN, OCHRE_FROGLIGHT]
+    decor:
+      - {block: SCULK_VEIN, where: wall, chance: 0.06}
+      - {block: SCULK_VEIN, where: floor, chance: 0.05}
+      - {block: SOUL_CAMPFIRE, where: corner, chance: 0.01}
+    liquid: null
+    room_height: 8
+    size: {cells: 10}
+    rooms: {combat: 11, elite: 2, treasure: 2, gimmick: 1, rest: 2}
+    mob_density: [4, 7]
+    mobs: [void_stalker, echo_colossus, abyss_eye, hollow_choir]
+    elite: abyss_gatekeeper
+    boss: floor10_abyss_heart
+    gimmick: void_trial
+    gimmick_params: {duration: 60, radius_start: 10, radius_end: 4, wave_interval: 12, wave_mobs: [void_stalker, abyss_eye], outside_damage: 0.08}
+    ambient: {particle: SCULK_SOUL, density: 0.6, sound: "minecraft:ambient.soul_sand_valley.mood", sound_interval: [30, 60], volume: 0.7, pitch: 0.5}

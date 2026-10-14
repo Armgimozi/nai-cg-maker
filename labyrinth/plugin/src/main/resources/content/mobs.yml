@@ -1,0 +1,1646 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# mobs.yml — 일반 몹 40종 + 엘리트 10종 + 보스 소환물 5종 (전부 자체 디자인)
+#
+# 스키마: ARCHITECTURE.md §6 mobs.yml (+ 추가 필드는 §6 에 기록됨)
+#  rank     : normal | elite | add   (add = 보스/엘리트가 소환하는 하수인, 층 몹 목록엔 없음)
+#  base     : 히트박스·길찾기용 바닐라 엔티티 (투명·무음·바닐라 공격 제거, 사망은 remove())
+#  flying   : true 면 비행형 (Java 가 중력 끄고 대상 위 1.5~3칸에서 맴돌게 함)
+#  hp/damage/defense : 솔로·보통 난이도 기준. 파티/난이도 배율은 config
+#  skills[] : {type, cooldown, params} — type 은 GDD.md "Mob skill types" 의 닫힌 목록
+#             params.damage 는 이 몹 damage 에 곱하는 배율, windup 은 경고 표시 시간(초)
+#             cooldown 0 인 타입(explode_on_death, split_on_death, enrage, ambush, aura)은 패시브
+#  sounds   : 바닐라 사운드 키 + pitch (자체 사운드 파일 없음, 피치로 개성)
+#  model    : parts[].{name, form, size[px], pivot[블록, scale 1 기준], anim}
+#             form/anim/shape/features 는 GDD.md "Pack generator templates" 의 닫힌 목록
+#             같은 pivot + 같은 anim 을 가진 파트는 한 덩어리처럼 함께 움직인다 (무기를 팔에 붙일 때)
+# 수치 곡선(일반 몹 기준): GDD.md "밸런스 곡선" 표
+# ─────────────────────────────────────────────────────────────────────────────
+version: 1
+
+mobs:
+
+  # ════════════════════════════ 지하 1층 · 이끼 낀 회랑 ════════════════════════════
+
+  moss_crawler:
+    name: "이끼 기어다니는 자"
+    description: "등껍질 위로 이끼가 자라는 여섯 발 사냥꾼. 먹잇감을 향해 높이 뛰어오른다."
+    floor: 1
+    rank: normal
+    base: SPIDER
+    scale: 1.0
+    hp: 60
+    damage: 6
+    defense: 2
+    speed: 0.28
+    xp: 12
+    gold: [2, 5]
+    ai: melee
+    skills:
+      - {type: leap, cooldown: 6, params: {power: 0.9, damage: 1.2, range: 8, windup: 0.5}}
+    drops: moss_crawler
+    sounds: {ambient: "minecraft:entity.spider.ambient", hurt: "minecraft:entity.spider.hurt", death: "minecraft:entity.spider.death", pitch: 1.3}
+    model:
+      texture_size: [64, 64]
+      parts:
+        - {name: body, form: shell, size: [14, 8, 16], pivot: [0, 0.4, 0], anim: body}
+        - {name: head, form: rounded, size: [8, 6, 7], pivot: [0, 0.6, 0.4], anim: head}
+        - {name: legs, form: leg_six, size: [24, 8, 16], pivot: [0, 0.2, 0], anim: legs_walk}
+      style: {shape: crawler, palette: ["#1d2b14", "#3f5a23", "#7fa043", "#c9d98a"], features: [moss_tufts, glowing_eyes]}
+
+  root_shambler:
+    name: "뿌리 비틀이"
+    description: "회랑 바닥에서 뽑혀 나온 뿌리 덩어리가 사람 흉내를 낸다. 발밑에서 뿌리를 솟구쳐 발을 묶는다."
+    floor: 1
+    rank: normal
+    base: HUSK
+    scale: 1.0
+    hp: 95
+    damage: 7
+    defense: 3
+    speed: 0.20
+    xp: 14
+    gold: [2, 6]
+    ai: melee
+    skills:
+      - {type: snare, cooldown: 10, params: {range: 9, root: 1.5, radius: 1.5, windup: 1.0, damage: 0.6, fx: telegraph_circle}}
+      - {type: slam, cooldown: 8, params: {radius: 2.5, damage: 1.3, windup: 0.8, knockback: 0.4}}
+    drops: root_shambler
+    sounds: {ambient: "minecraft:block.rooted_dirt.step", hurt: "minecraft:block.wood.hit", death: "minecraft:block.wood.break", pitch: 0.7}
+    model:
+      texture_size: [64, 64]
+      parts:
+        - {name: torso, form: box, size: [10, 12, 6], pivot: [0, 1.15, 0], anim: body}
+        - {name: head, form: rounded, size: [8, 8, 8], pivot: [0, 1.6, 0], anim: head}
+        - {name: arm_left, form: arm, size: [4, 14, 4], pivot: [0.38, 1.45, 0], anim: arm_left}
+        - {name: arm_right, form: arm, size: [4, 14, 4], pivot: [-0.38, 1.45, 0], anim: arm_right}
+        - {name: legs, form: leg_pair, size: [8, 12, 4], pivot: [0, 0.75, 0], anim: legs_walk}
+      style: {shape: humanoid, palette: ["#2a1b10", "#4e3520", "#7a5a34", "#5f7d2e", "#a8c46a"], features: [root_tendrils, moss_tufts, hollow_eyes]}
+
+  lantern_wisp:
+    name: "회랑 등불 정령"
+    description: "옛 회랑 등불에 깃든 작은 정령. 반딧불 불티를 튕겨 침입자를 쫓아낸다."
+    floor: 1
+    rank: normal
+    base: BAT
+    flying: true
+    scale: 1.2
+    hp: 40
+    damage: 7
+    defense: 1
+    speed: 0.30
+    xp: 12
+    gold: [2, 5]
+    ai: ranged
+    skills:
+      - {type: projectile, cooldown: 3, params: {fx: proj_wisp_spark, speed: 0.9, damage: 1.0, count: 1, spread: 0, gravity: false, range: 14, windup: 0.4}}
+      - {type: blink, cooldown: 9, params: {range: 6, behind: false, damage: 0}}
+    drops: lantern_wisp
+    sounds: {ambient: "minecraft:block.amethyst_block.chime", hurt: "minecraft:block.glass.hit", death: "minecraft:block.glass.break", pitch: 1.8}
+    model:
+      texture_size: [32, 32]
+      parts:
+        - {name: core, form: sphere, size: [6, 6, 6], pivot: [0, 0.5, 0], anim: pulse}
+        - {name: cage, form: ring, size: [10, 10, 2], pivot: [0, 0.5, 0], anim: spin}
+        - {name: tail, form: tail, size: [3, 3, 8], pivot: [0, 0.45, -0.2], anim: float}
+      style: {shape: floating, palette: ["#2d3b1a", "#6f8f2a", "#d9f27a", "#fffbd6"], features: [emissive_core, firefly_specks]}
+
+  stone_beetle:
+    name: "돌갑충"
+    description: "회랑의 무너진 석재를 등딱지로 삼은 갑충. 위협을 받으면 몸을 말아 단단해진다."
+    floor: 1
+    rank: normal
+    base: SPIDER
+    scale: 0.9
+    hp: 110
+    damage: 6
+    defense: 6
+    speed: 0.22
+    xp: 15
+    gold: [3, 6]
+    ai: charger
+    skills:
+      - {type: shield, cooldown: 12, params: {amount: 0.25, duration: 3, reduction: 0.6, self_only: true}}
+      - {type: charge, cooldown: 9, params: {speed: 0.9, distance: 7, damage: 1.4, width: 1.5, windup: 0.9, stun: 0}}
+    drops: stone_beetle
+    sounds: {ambient: "minecraft:block.stone.step", hurt: "minecraft:block.stone.hit", death: "minecraft:block.stone.break", pitch: 1.1}
+    model:
+      texture_size: [64, 64]
+      parts:
+        - {name: shell, form: shell, size: [14, 9, 16], pivot: [0, 0.45, 0], anim: body}
+        - {name: head, form: box, size: [7, 5, 5], pivot: [0, 0.35, 0.5], anim: head}
+        - {name: horn, form: spike, size: [2, 3, 6], pivot: [0, 0.45, 0.7], anim: head}
+        - {name: legs, form: leg_six, size: [20, 6, 14], pivot: [0, 0.18, 0], anim: legs_walk}
+      style: {shape: insect, palette: ["#2b2b2e", "#55565a", "#8a8b8f", "#6d8a3a", "#b9c8a0"], features: [cracked_stone, moss_tufts]}
+
+  moss_crawler_alpha:
+    name: "우두머리 이끼 기어다니는 자"
+    description: "회랑의 기어다니는 자들을 거느리는 거대 개체. 등에 자란 이끼 볏이 포자를 흩뿌린다."
+    floor: 1
+    rank: elite
+    base: SPIDER
+    scale: 1.8
+    hp: 480
+    damage: 10
+    defense: 3
+    speed: 0.30
+    xp: 96
+    gold: [12, 30]
+    ai: melee
+    skills:
+      - {type: leap, cooldown: 7, params: {power: 1.2, damage: 1.5, range: 12, radius: 3, windup: 0.8}}
+      - {type: summon, cooldown: 20, params: {mob: moss_crawler, count: 2, max_alive: 4, radius: 4}}
+      - {type: snare, cooldown: 12, params: {range: 12, root: 1.5, radius: 2, windup: 1.0, damage: 0.5, fx: proj_spore}}
+      - {type: enrage, cooldown: 0, params: {threshold: 0.30, damage_mult: 1.3, speed_mult: 1.2}}
+    drops: moss_crawler_alpha
+    sounds: {ambient: "minecraft:entity.spider.ambient", hurt: "minecraft:entity.spider.hurt", death: "minecraft:entity.spider.death", pitch: 0.7}
+    model:
+      texture_size: [64, 64]
+      parts:
+        - {name: body, form: shell, size: [16, 9, 18], pivot: [0, 0.42, 0], anim: body}
+        - {name: crest, form: leaf_cluster, size: [12, 8, 12], pivot: [0, 0.75, -0.05], anim: body}
+        - {name: head, form: rounded, size: [9, 7, 8], pivot: [0, 0.6, 0.45], anim: head}
+        - {name: jaw, form: claw, size: [8, 3, 4], pivot: [0, 0.5, 0.65], anim: jaw}
+        - {name: legs, form: leg_six, size: [28, 9, 18], pivot: [0, 0.2, 0], anim: legs_walk}
+      style: {shape: crawler, palette: ["#142010", "#2f4a1c", "#5f8a2c", "#a8d055", "#e8f5a0"], features: [moss_tufts, glowing_eyes, spore_glow, elite_trim]}
+
+  # ════════════════════════════ 지하 2층 · 거미줄 갱도 ════════════════════════════
+
+  tunnel_skitter:
+    name: "갱도 거미"
+    description: "갱도 천장을 떼 지어 기어다니는 은빛 거미. 끈적한 실을 쏘아 발을 묶는다."
+    floor: 2
+    rank: normal
+    base: CAVE_SPIDER
+    scale: 1.1
+    hp: 48
+    damage: 6
+    defense: 2
+    speed: 0.32
+    xp: 12
+    gold: [2, 5]
+    ai: swarm
+    skills:
+      - {type: snare, cooldown: 9, params: {range: 10, slow: 0.4, root: 0, duration: 2.5, radius: 1, windup: 0.4, damage: 0.3, fx: proj_web}}
+    drops: tunnel_skitter
+    sounds: {ambient: "minecraft:entity.spider.ambient", hurt: "minecraft:entity.spider.hurt", death: "minecraft:entity.spider.death", pitch: 1.7}
+    model:
+      texture_size: [32, 32]
+      parts:
+        - {name: body, form: rounded, size: [8, 5, 10], pivot: [0, 0.25, 0], anim: body}
+        - {name: head, form: rounded, size: [5, 4, 4], pivot: [0, 0.25, 0.3], anim: head}
+        - {name: legs, form: leg_eight, size: [16, 5, 10], pivot: [0, 0.12, 0], anim: legs_walk}
+      style: {shape: crawler, palette: ["#1a1c22", "#3b404c", "#8d95a8", "#dfe6f2"], features: [silk_strands, glowing_eyes]}
+
+  rusted_miner:
+    name: "녹슨 광부"
+    description: "갱도에 갇혀 녹물과 하나가 된 광부. 곡괭이를 던지고 내려찍는다."
+    floor: 2
+    rank: normal
+    base: HUSK
+    scale: 1.0
+    hp: 100
+    damage: 10
+    defense: 4
+    speed: 0.23
+    xp: 20
+    gold: [3, 7]
+    ai: melee
+    skills:
+      - {type: projectile, cooldown: 7, params: {fx: proj_pickaxe, speed: 0.8, damage: 1.2, count: 1, spread: 0, gravity: true, range: 14, windup: 0.7}}
+      - {type: cleave, cooldown: 6, params: {angle: 80, length: 3.5, damage: 1.5, windup: 0.8}}
+    drops: rusted_miner
+    sounds: {ambient: "minecraft:entity.husk.ambient", hurt: "minecraft:block.chain.hit", death: "minecraft:entity.husk.death", pitch: 0.8}
+    model:
+      texture_size: [64, 64]
+      parts:
+        - {name: torso, form: box, size: [9, 12, 5], pivot: [0, 1.15, 0], anim: body}
+        - {name: head, form: box, size: [8, 8, 8], pivot: [0, 1.6, 0], anim: head}
+        - {name: lamp, form: lantern, size: [3, 3, 3], pivot: [0, 1.95, 0.25], anim: head}
+        - {name: arm_left, form: arm, size: [4, 12, 4], pivot: [0.36, 1.45, 0], anim: arm_left}
+        - {name: arm_right, form: arm, size: [4, 12, 4], pivot: [-0.36, 1.45, 0], anim: arm_right}
+        - {name: pickaxe, form: blade, size: [12, 14, 2], pivot: [-0.36, 1.45, 0], anim: arm_right}
+        - {name: legs, form: leg_pair, size: [8, 12, 4], pivot: [0, 0.75, 0], anim: legs_walk}
+      style: {shape: humanoid, palette: ["#2a1d16", "#5a3a26", "#8c5a34", "#b8743c", "#d9b07a"], features: [rust_streaks, helmet_lamp]}
+
+  ore_mimic:
+    name: "광맥 흉내쟁이"
+    description: "은광석 덩어리로 위장해 광부를 삼켜 온 돌 아가리. 가까이 다가오면 입을 벌린다."
+    floor: 2
+    rank: normal
+    base: SLIME
+    scale: 1.0
+    hp: 140
+    damage: 12
+    defense: 8
+    speed: 0.20
+    xp: 24
+    gold: [5, 10]
+    ai: melee
+    skills:
+      - {type: ambush, cooldown: 0, params: {reveal_range: 4, first_hit_mult: 1.8, disguise_fx: ore_disguise}}
+      - {type: slam, cooldown: 7, params: {radius: 3, damage: 1.3, windup: 0.9, knockback: 0.6}}
+    drops: ore_mimic
+    sounds: {ambient: "minecraft:block.stone.place", hurt: "minecraft:block.stone.hit", death: "minecraft:block.stone.break", pitch: 0.6}
+    model:
+      texture_size: [64, 64]
+      parts:
+        - {name: rock, form: box, size: [14, 10, 14], pivot: [0, 0.5, 0], anim: body}
+        - {name: lid, form: slab, size: [14, 5, 14], pivot: [0, 0.85, -0.4], anim: jaw}
+        - {name: tongue, form: tail, size: [4, 2, 8], pivot: [0, 0.55, 0.2], anim: jaw}
+        - {name: legs, form: leg_quad, size: [14, 4, 14], pivot: [0, 0.12, 0], anim: legs_walk}
+      style: {shape: blob, palette: ["#2a2a2c", "#5c5d60", "#8e9094", "#c9ced6", "#f1f4fa"], features: [ore_flecks, teeth_ring]}
+
+  echo_bat:
+    name: "메아리 박쥐"
+    description: "갱도의 메아리를 먹고 자란 박쥐. 귀를 찢는 초음파로 사냥감의 발을 무겁게 한다."
+    floor: 2
+    rank: normal
+    base: BAT
+    flying: true
+    scale: 1.4
+    hp: 45
+    damage: 7
+    defense: 1
+    speed: 0.32
+    xp: 14
+    gold: [2, 5]
+    ai: swarm
+    skills:
+      - {type: breath, cooldown: 8, params: {angle: 50, length: 6, damage_per_tick: 0.4, duration: 1.5, tick: 0.5, effect: slow, amount: 0.3, effect_duration: 2.5, windup: 0.5, particle: SCULK_CHARGE_POP}}
+    drops: echo_bat
+    sounds: {ambient: "minecraft:entity.bat.ambient", hurt: "minecraft:entity.bat.hurt", death: "minecraft:entity.bat.death", pitch: 0.8}
+    model:
+      texture_size: [32, 32]
+      parts:
+        - {name: body, form: rounded, size: [5, 6, 5], pivot: [0, 0.5, 0], anim: float}
+        - {name: ears, form: horn_pair, size: [6, 4, 2], pivot: [0, 0.75, 0], anim: head}
+        - {name: wings, form: wing_pair, size: [22, 8, 2], pivot: [0, 0.55, 0], anim: wings}
+      style: {shape: floating, palette: ["#1b1416", "#3e2a2e", "#6e4a4f", "#c48a8a"], features: [big_ears, glowing_eyes]}
+
+  foreman_gorrak:
+    name: "갱도 감독관 고르락"
+    description: "광부들을 채찍질하던 감독관의 망령. 곡괭이 망치를 휘두르며 휘파람으로 부하들을 부른다."
+    floor: 2
+    rank: elite
+    base: VINDICATOR
+    scale: 1.3
+    hp: 760
+    damage: 15
+    defense: 6
+    speed: 0.25
+    xp: 160
+    gold: [20, 42]
+    ai: charger
+    skills:
+      - {type: charge, cooldown: 10, params: {speed: 1.1, distance: 10, damage: 1.6, width: 2, windup: 1.0, stun: 1.0}}
+      - {type: slam, cooldown: 8, params: {radius: 4, damage: 1.4, windup: 1.0, knockback: 0.8}}
+      - {type: summon, cooldown: 22, params: {mob: rusted_miner, count: 2, max_alive: 3, radius: 5}}
+      - {type: buff_allies, cooldown: 18, params: {radius: 10, damage_mult: 1.2, speed_mult: 1.1, duration: 8}}
+    drops: foreman_gorrak
+    sounds: {ambient: "minecraft:entity.vindicator.ambient", hurt: "minecraft:entity.vindicator.hurt", death: "minecraft:entity.vindicator.death", pitch: 0.6}
+    model:
+      texture_size: [64, 64]
+      parts:
+        - {name: torso, form: box, size: [12, 13, 7], pivot: [0, 1.2, 0], anim: body}
+        - {name: head, form: box, size: [8, 9, 8], pivot: [0, 1.7, 0], anim: head}
+        - {name: arm_left, form: arm, size: [5, 13, 5], pivot: [0.45, 1.5, 0], anim: arm_left}
+        - {name: arm_right, form: arm, size: [5, 13, 5], pivot: [-0.45, 1.5, 0], anim: arm_right}
+        - {name: maul, form: blade, size: [14, 18, 6], pivot: [-0.45, 1.5, 0], anim: arm_right}
+        - {name: legs, form: leg_pair, size: [10, 12, 5], pivot: [0, 0.75, 0], anim: legs_walk}
+      style: {shape: humanoid, palette: ["#1f1611", "#4a3121", "#7b4f2c", "#b27a3a", "#e8c27a"], features: [rust_streaks, leather_straps, elite_trim]}
+
+  # ════════════════════════════ 지하 3층 · 균사 동굴 ════════════════════════════
+
+  capcap:
+    name: "갓꼬마"
+    description: "아장아장 걷는 독버섯 꼬마. 터질 때 독 포자를 흩뿌린다."
+    floor: 3
+    rank: normal
+    base: HUSK
+    scale: 0.55
+    hp: 75
+    damage: 9
+    defense: 2
+    speed: 0.30
+    xp: 18
+    gold: [3, 6]
+    ai: swarm
+    skills:
+      - {type: leap, cooldown: 7, params: {power: 0.7, damage: 1.0, range: 6, windup: 0.4}}
+      - {type: explode_on_death, cooldown: 0, params: {radius: 2.5, damage: 1.2, delay: 0.6, effect: poison, effect_duration: 4}}
+    drops: capcap
+    sounds: {ambient: "minecraft:block.fungus.step", hurt: "minecraft:block.fungus.hit", death: "minecraft:block.fungus.break", pitch: 1.6}
+    model:
+      texture_size: [32, 32]
+      parts:
+        - {name: cap, form: cap, size: [12, 6, 12], pivot: [0, 0.75, 0], anim: body}
+        - {name: stem, form: cylinder, size: [6, 8, 6], pivot: [0, 0.4, 0], anim: body}
+        - {name: legs, form: leg_pair, size: [6, 4, 3], pivot: [0, 0.12, 0], anim: legs_walk}
+      style: {shape: blob, palette: ["#3a1410", "#8c2a1c", "#d9563a", "#f5d6a8", "#fff4e0"], features: [cap_spots, glowing_eyes]}
+
+  mycelid_shambler:
+    name: "균사 걸음꾼"
+    description: "균사가 시체를 엮어 만든 꼭두각시. 균사 촉수를 꽂아 생명력을 빨아들인다."
+    floor: 3
+    rank: normal
+    base: HUSK
+    scale: 1.15
+    hp: 220
+    damage: 14
+    defense: 8
+    speed: 0.21
+    xp: 36
+    gold: [5, 11]
+    ai: melee
+    skills:
+      - {type: life_drain, cooldown: 11, params: {range: 7, damage: 0.5, heal_ratio: 1.0, duration: 3, tick: 0.5, fx: tether_hypha}}
+      - {type: slam, cooldown: 8, params: {radius: 3, damage: 1.3, windup: 0.9, knockback: 0.4}}
+    drops: mycelid_shambler
+    sounds: {ambient: "minecraft:entity.husk.ambient", hurt: "minecraft:block.fungus.hit", death: "minecraft:entity.husk.death", pitch: 0.6}
+    model:
+      texture_size: [64, 64]
+      parts:
+        - {name: torso, form: box, size: [10, 12, 6], pivot: [0, 1.15, 0], anim: body}
+        - {name: head, form: cap, size: [10, 6, 10], pivot: [0, 1.65, 0], anim: head}
+        - {name: arm_left, form: tentacle_cluster, size: [4, 14, 4], pivot: [0.38, 1.45, 0], anim: arm_left}
+        - {name: arm_right, form: tentacle_cluster, size: [4, 14, 4], pivot: [-0.38, 1.45, 0], anim: arm_right}
+        - {name: legs, form: leg_pair, size: [8, 12, 4], pivot: [0, 0.75, 0], anim: legs_walk}
+      style: {shape: humanoid, palette: ["#231a14", "#4a3a2c", "#8a7458", "#d8c8a0", "#f2ead2"], features: [hyphae_web, hollow_eyes]}
+
+  spore_turret:
+    name: "포자 포탑 버섯"
+    description: "땅에 뿌리박은 거대 버섯. 갓을 부풀려 독 포자 덩어리를 쏘아 올린다."
+    floor: 3
+    rank: normal
+    base: HUSK
+    scale: 1.0
+    hp: 130
+    damage: 15
+    defense: 5
+    speed: 0.0
+    xp: 30
+    gold: [4, 9]
+    ai: turret
+    skills:
+      - {type: projectile, cooldown: 4, params: {fx: proj_spore, speed: 0.6, damage: 1.0, count: 1, spread: 0, gravity: true, range: 16, windup: 0.6, pool_radius: 2, pool_duration: 5, effect: poison, effect_duration: 3}}
+      - {type: aura, cooldown: 0, params: {radius: 3, effect: infection, amount: 1, interval: 2.0}}
+    drops: spore_turret
+    sounds: {ambient: "minecraft:block.fungus.place", hurt: "minecraft:block.fungus.hit", death: "minecraft:block.fungus.break", pitch: 0.5}
+    model:
+      texture_size: [64, 64]
+      parts:
+        - {name: bulb, form: rounded, size: [12, 10, 12], pivot: [0, 0.35, 0], anim: pulse}
+        - {name: cap, form: cap, size: [18, 7, 18], pivot: [0, 1.0, 0], anim: pulse}
+        - {name: nozzle, form: cylinder, size: [5, 6, 5], pivot: [0, 1.3, 0], anim: static}
+      style: {shape: turret, palette: ["#2a1e2c", "#5a3a5e", "#9a62a0", "#e2b0e0", "#fff0ff"], features: [cap_spots, spore_glow]}
+
+  glowcap_moth:
+    name: "빛갓 나방"
+    description: "버섯 빛을 날개에 품은 나방. 날갯가루를 뿌려 눈앞을 가린다."
+    floor: 3
+    rank: normal
+    base: BAT
+    flying: true
+    scale: 1.5
+    hp: 95
+    damage: 12
+    defense: 3
+    speed: 0.30
+    xp: 28
+    gold: [4, 8]
+    ai: ranged
+    skills:
+      - {type: breath, cooldown: 10, params: {angle: 60, length: 6, damage_per_tick: 0.3, duration: 1.5, tick: 0.5, effect: blind, effect_duration: 2, windup: 0.6, particle: WHITE_ASH}}
+      - {type: blink, cooldown: 8, params: {range: 8, behind: false, damage: 0}}
+    drops: glowcap_moth
+    sounds: {ambient: "minecraft:entity.bee.loop", hurt: "minecraft:entity.bat.hurt", death: "minecraft:entity.bat.death", pitch: 0.6}
+    model:
+      texture_size: [64, 32]
+      parts:
+        - {name: body, form: rounded, size: [5, 5, 10], pivot: [0, 0.5, 0], anim: float}
+        - {name: antennae, form: horn_pair, size: [8, 6, 2], pivot: [0, 0.65, 0.3], anim: head}
+        - {name: wings, form: wing_pair, size: [28, 2, 14], pivot: [0, 0.58, 0], anim: wings}
+      style: {shape: floating, palette: ["#2a2414", "#6e5a24", "#d8b440", "#fff2a0", "#ffffff"], features: [wing_eyespots, emissive_core]}
+
+  spore_mother:
+    name: "포자 어미 군락체"
+    description: "균사 동굴 깊숙이 뿌리내린 살아 있는 군락. 갓꼬마들을 끝없이 낳고 감염의 숨결을 내뿜는다."
+    floor: 3
+    rank: elite
+    base: IRON_GOLEM
+    scale: 1.2
+    hp: 1200
+    damage: 21
+    defense: 9
+    speed: 0.18
+    xp: 256
+    gold: [30, 60]
+    ai: caster
+    skills:
+      - {type: summon, cooldown: 16, params: {mob: capcap, count: 3, max_alive: 6, radius: 4}}
+      - {type: projectile, cooldown: 6, params: {fx: proj_spore, speed: 0.6, damage: 1.0, count: 3, spread: 25, gravity: true, range: 18, windup: 0.8, pool_radius: 2, pool_duration: 6, effect: poison, effect_duration: 3}}
+      - {type: aura, cooldown: 0, params: {radius: 5, effect: infection, amount: 1, interval: 2.0}}
+      - {type: heal_allies, cooldown: 14, params: {radius: 10, amount: 0.15}}
+    drops: spore_mother
+    sounds: {ambient: "minecraft:block.fungus.place", hurt: "minecraft:block.slime_block.hit", death: "minecraft:block.slime_block.break", pitch: 0.5}
+    model:
+      texture_size: [64, 64]
+      parts:
+        - {name: mass, form: sphere, size: [24, 20, 24], pivot: [0, 0.8, 0], anim: pulse}
+        - {name: caps, form: cap, size: [26, 10, 26], pivot: [0, 1.55, 0], anim: body}
+        - {name: maw, form: claw, size: [10, 6, 6], pivot: [0, 0.8, 0.7], anim: jaw}
+        - {name: tendrils, form: tentacle_cluster, size: [28, 12, 28], pivot: [0, 0.3, 0], anim: legs_walk}
+      style: {shape: blob, palette: ["#1e1420", "#4a2a4e", "#8c4a7a", "#d988b8", "#ffe0f0"], features: [cap_spots, spore_glow, hyphae_web, elite_trim]}
+
+  # ════════════════════════════ 지하 4층 · 잠긴 수로 ════════════════════════════
+
+  sluice_drowner:
+    name: "수문 익사자"
+    description: "수문에 휩쓸린 관리인들. 녹슨 쇠갈고리로 사냥감을 물속으로 끌어당긴다."
+    floor: 4
+    rank: normal
+    base: HUSK
+    scale: 1.05
+    hp: 240
+    damage: 18
+    defense: 9
+    speed: 0.23
+    xp: 50
+    gold: [7, 14]
+    ai: melee
+    skills:
+      - {type: pull, cooldown: 10, params: {range: 10, strength: 1.2, damage: 0.8, windup: 0.7, fx: proj_hook}}
+      - {type: cleave, cooldown: 6, params: {angle: 90, length: 3.5, damage: 1.4, windup: 0.7}}
+    drops: sluice_drowner
+    sounds: {ambient: "minecraft:entity.drowned.ambient", hurt: "minecraft:entity.drowned.hurt", death: "minecraft:entity.drowned.death", pitch: 0.8}
+    model:
+      texture_size: [64, 64]
+      parts:
+        - {name: torso, form: rounded, size: [11, 12, 7], pivot: [0, 1.15, 0], anim: body}
+        - {name: head, form: rounded, size: [8, 8, 8], pivot: [0, 1.62, 0], anim: head}
+        - {name: arm_left, form: arm, size: [4, 13, 4], pivot: [0.4, 1.45, 0], anim: arm_left}
+        - {name: arm_right, form: arm, size: [4, 13, 4], pivot: [-0.4, 1.45, 0], anim: arm_right}
+        - {name: hook, form: claw, size: [6, 10, 2], pivot: [-0.4, 1.45, 0], anim: arm_right}
+        - {name: legs, form: leg_pair, size: [8, 12, 4], pivot: [0, 0.75, 0], anim: legs_walk}
+      style: {shape: humanoid, palette: ["#13211f", "#24413c", "#3f6e62", "#7aa899", "#cfe6dc"], features: [barnacles, dripping, hollow_eyes]}
+
+  brine_spitter:
+    name: "소금물 뿜개"
+    description: "수로 벽에 붙어 사는 고둥. 짠물을 뿜어 상대를 굳게 만들고 위험하면 껍데기에 숨는다."
+    floor: 4
+    rank: normal
+    base: SPIDER
+    scale: 0.8
+    hp: 190
+    damage: 20
+    defense: 10
+    speed: 0.16
+    xp: 46
+    gold: [6, 13]
+    ai: ranged
+    skills:
+      - {type: projectile, cooldown: 4, params: {fx: proj_brine, speed: 0.8, damage: 1.0, count: 1, spread: 0, gravity: true, range: 16, windup: 0.5, effect: slow, amount: 0.3, effect_duration: 2.5, pool_radius: 1.5, pool_duration: 4}}
+      - {type: shield, cooldown: 14, params: {amount: 0.3, duration: 3, reduction: 0.7, self_only: true}}
+    drops: brine_spitter
+    sounds: {ambient: "minecraft:entity.turtle.ambient_land", hurt: "minecraft:entity.turtle.hurt", death: "minecraft:entity.turtle.death", pitch: 1.2}
+    model:
+      texture_size: [64, 32]
+      parts:
+        - {name: shell, form: shell, size: [12, 12, 12], pivot: [0, 0.6, -0.1], anim: body}
+        - {name: foot, form: slab, size: [8, 4, 16], pivot: [0, 0.15, 0.1], anim: legs_walk}
+        - {name: eyes, form: horn_pair, size: [6, 6, 2], pivot: [0, 0.45, 0.5], anim: head}
+      style: {shape: crawler, palette: ["#1a2626", "#2e4a48", "#4f7a6e", "#a3c9b4", "#e6f2e8"], features: [spiral_shell, barnacles]}
+
+  rust_eel:
+    name: "녹물 장어"
+    description: "녹물 웅덩이에서 튀어나와 미끄러지듯 돌진하는 장어. 몸에 흐르는 전기가 근육을 굳힌다."
+    floor: 4
+    rank: normal
+    base: SPIDER
+    scale: 0.9
+    hp: 210
+    damage: 20
+    defense: 7
+    speed: 0.33
+    xp: 48
+    gold: [6, 13]
+    ai: charger
+    skills:
+      - {type: charge, cooldown: 7, params: {speed: 1.3, distance: 10, damage: 1.4, width: 1.5, windup: 0.8, stun: 0}}
+      - {type: debuff, cooldown: 12, params: {range: 4, radius: 3, effect: slow, amount: 0.35, duration: 3, windup: 0.6, particle: ELECTRIC_SPARK}}
+    drops: rust_eel
+    sounds: {ambient: "minecraft:entity.guardian.ambient_land", hurt: "minecraft:entity.guardian.hurt_land", death: "minecraft:entity.guardian.death_land", pitch: 1.5}
+    model:
+      texture_size: [64, 32]
+      parts:
+        - {name: head, form: rounded, size: [6, 6, 8], pivot: [0, 0.35, 0.55], anim: head}
+        - {name: jaw, form: claw, size: [5, 2, 5], pivot: [0, 0.25, 0.75], anim: jaw}
+        - {name: body_front, form: cylinder, size: [6, 6, 14], pivot: [0, 0.3, 0.1], anim: body}
+        - {name: body_back, form: tail, size: [5, 5, 18], pivot: [0, 0.28, -0.4], anim: tail}
+        - {name: fin, form: fin, size: [2, 6, 20], pivot: [0, 0.55, -0.1], anim: tail}
+      style: {shape: serpent, palette: ["#1e1410", "#5a2e1a", "#a0522a", "#d98a46", "#7fd0c0"], features: [rust_streaks, electric_veins]}
+
+  bubble_jelly:
+    name: "거품 해파리"
+    description: "물 밖에서도 거품 막에 싸여 떠다니는 해파리. 가까이 가면 찌릿한 방전을 일으킨다."
+    floor: 4
+    rank: normal
+    base: BAT
+    flying: true
+    scale: 1.4
+    hp: 170
+    damage: 16
+    defense: 5
+    speed: 0.22
+    xp: 44
+    gold: [6, 12]
+    ai: caster
+    skills:
+      - {type: slam, cooldown: 7, params: {radius: 3.5, damage: 1.4, windup: 1.0, knockback: 0.2, effect: slow, amount: 0.25, effect_duration: 2}}
+      - {type: aura, cooldown: 0, params: {radius: 2, effect: damage, amount: 0.25, interval: 2.0}}
+      - {type: explode_on_death, cooldown: 0, params: {radius: 3, damage: 1.0, delay: 0.5, effect: slow, effect_duration: 2}}
+    drops: bubble_jelly
+    sounds: {ambient: "minecraft:block.bubble_column.bubble_pop", hurt: "minecraft:entity.slime.hurt", death: "minecraft:entity.slime.death", pitch: 1.4}
+    model:
+      texture_size: [64, 32]
+      parts:
+        - {name: bell, form: cap, size: [14, 10, 14], pivot: [0, 0.9, 0], anim: pulse}
+        - {name: bubble, form: sphere, size: [18, 18, 18], pivot: [0, 0.8, 0], anim: pulse}
+        - {name: tentacles, form: tentacle_cluster, size: [12, 14, 12], pivot: [0, 0.45, 0], anim: float}
+      style: {shape: floating, palette: ["#14263a", "#2a5a7a", "#5ab0d0", "#b0f0ff", "#ffffff"], features: [translucent, emissive_core, electric_veins]}
+
+  verdigris_crab:
+    name: "녹청 집게 파수꾼"
+    description: "수문을 지키도록 만들어진 구리 갑각 파수꾼. 집게를 모아 막으면 공격을 되받아친다."
+    floor: 4
+    rank: elite
+    base: RAVAGER
+    scale: 0.9
+    hp: 1840
+    damage: 29
+    defense: 14
+    speed: 0.22
+    xp: 400
+    gold: [42, 84]
+    ai: charger
+    skills:
+      - {type: shield, cooldown: 16, params: {amount: 0.2, duration: 4, reduction: 0.7, self_only: true}}
+      - {type: reflect, cooldown: 16, params: {duration: 4, ratio: 0.3}}
+      - {type: cleave, cooldown: 6, params: {angle: 100, length: 4, damage: 1.5, windup: 0.8}}
+      - {type: charge, cooldown: 12, params: {speed: 1.0, distance: 9, damage: 1.6, width: 3, windup: 1.1, stun: 0.8}}
+      - {type: slam, cooldown: 10, params: {radius: 4.5, damage: 1.3, windup: 1.2, knockback: 1.0}}
+    drops: verdigris_crab
+    sounds: {ambient: "minecraft:block.copper.step", hurt: "minecraft:block.copper.hit", death: "minecraft:block.copper.break", pitch: 0.5}
+    model:
+      texture_size: [128, 64]
+      parts:
+        - {name: carapace, form: shell, size: [28, 12, 24], pivot: [0, 0.95, 0], anim: body}
+        - {name: eyes, form: horn_pair, size: [8, 8, 2], pivot: [0, 1.35, 0.6], anim: head}
+        - {name: claw_left, form: claw, size: [10, 10, 14], pivot: [0.85, 0.9, 0.7], anim: arm_left}
+        - {name: claw_right, form: claw, size: [12, 12, 16], pivot: [-0.85, 0.9, 0.7], anim: arm_right}
+        - {name: legs, form: leg_eight, size: [36, 12, 22], pivot: [0, 0.45, 0], anim: legs_walk}
+      style: {shape: crawler, palette: ["#10241e", "#1f4a3c", "#3f8a6e", "#7fd0a8", "#c8f0dc"], features: [verdigris_patina, rivets, elite_trim]}
+
+  # ════════════════════════════ 지하 5층 · 용광로 심장부 ════════════════════════════
+
+  slag_golem:
+    name: "슬래그 골렘"
+    description: "용광로 찌꺼기가 굳어 걸어 다니는 덩어리. 지나간 자리에 녹은 쇳물을 흘린다."
+    floor: 5
+    rank: normal
+    base: IRON_GOLEM
+    scale: 0.85
+    hp: 560
+    damage: 27
+    defense: 18
+    speed: 0.20
+    xp: 90
+    gold: [12, 24]
+    ai: melee
+    skills:
+      - {type: slam, cooldown: 8, params: {radius: 4, damage: 1.4, windup: 1.1, knockback: 0.8}}
+      - {type: trail, cooldown: 0, params: {interval: 1.0, radius: 1.2, duration: 4, damage_per_second: 0.3, fx: molten_puddle}}
+    drops: slag_golem
+    sounds: {ambient: "minecraft:block.basalt.step", hurt: "minecraft:block.basalt.hit", death: "minecraft:block.basalt.break", pitch: 0.6}
+    model:
+      texture_size: [128, 64]
+      parts:
+        - {name: torso, form: rounded, size: [18, 16, 12], pivot: [0, 1.6, 0], anim: body}
+        - {name: head, form: box, size: [8, 7, 8], pivot: [0, 2.15, 0.1], anim: head}
+        - {name: arm_left, form: arm, size: [7, 22, 7], pivot: [0.75, 2.0, 0], anim: arm_left}
+        - {name: arm_right, form: arm, size: [7, 22, 7], pivot: [-0.75, 2.0, 0], anim: arm_right}
+        - {name: legs, form: leg_pair, size: [12, 14, 6], pivot: [0, 0.9, 0], anim: legs_walk}
+      style: {shape: golem, palette: ["#141010", "#2e2422", "#5a3a2e", "#d9541c", "#ffb04a"], features: [molten_cracks, emissive_core]}
+
+  cinder_imp:
+    name: "불씨 도깨비"
+    description: "용광로 불씨에서 태어난 꼬마 도깨비. 날쌔게 사라졌다 나타나며 불덩이를 던진다."
+    floor: 5
+    rank: normal
+    base: BLAZE
+    flying: true
+    scale: 0.8
+    hp: 280
+    damage: 26
+    defense: 8
+    speed: 0.30
+    xp: 70
+    gold: [9, 18]
+    ai: ranged
+    skills:
+      - {type: projectile, cooldown: 3, params: {fx: proj_ember, speed: 1.0, damage: 1.0, count: 1, spread: 0, gravity: false, range: 18, windup: 0.4, effect: burn, effect_duration: 3}}
+      - {type: blink, cooldown: 7, params: {range: 8, behind: true, damage: 0.8}}
+    drops: cinder_imp
+    sounds: {ambient: "minecraft:entity.blaze.ambient", hurt: "minecraft:entity.blaze.hurt", death: "minecraft:entity.blaze.death", pitch: 1.6}
+    model:
+      texture_size: [64, 32]
+      parts:
+        - {name: body, form: rounded, size: [7, 8, 6], pivot: [0, 0.8, 0], anim: float}
+        - {name: head, form: rounded, size: [7, 6, 6], pivot: [0, 1.15, 0], anim: head}
+        - {name: horns, form: horn_pair, size: [9, 5, 2], pivot: [0, 1.35, 0], anim: head}
+        - {name: wings, form: wing_pair, size: [16, 8, 2], pivot: [0, 0.95, -0.15], anim: wings}
+        - {name: tail, form: tail, size: [2, 2, 10], pivot: [0, 0.65, -0.2], anim: tail}
+      style: {shape: floating, palette: ["#1a0a06", "#5a1a0a", "#c43c12", "#ff9a2a", "#fff0a0"], features: [flame_tips, glowing_eyes]}
+
+  bellows_hound:
+    name: "풀무 사냥개"
+    description: "등에 풀무를 단 쇠 사냥개. 숨을 들이켰다가 뜨거운 불길을 토해낸다."
+    floor: 5
+    rank: normal
+    base: WOLF
+    scale: 1.2
+    hp: 340
+    damage: 26
+    defense: 10
+    speed: 0.34
+    xp: 76
+    gold: [10, 20]
+    ai: charger
+    skills:
+      - {type: charge, cooldown: 8, params: {speed: 1.3, distance: 10, damage: 1.3, width: 1.5, windup: 0.8, stun: 0}}
+      - {type: breath, cooldown: 11, params: {angle: 45, length: 6, damage_per_tick: 0.45, duration: 2, tick: 0.5, effect: burn, effect_duration: 3, windup: 0.9, particle: FLAME}}
+    drops: bellows_hound
+    sounds: {ambient: "minecraft:entity.wolf.growl", hurt: "minecraft:block.anvil.land", death: "minecraft:entity.wolf.death", pitch: 0.6}
+    model:
+      texture_size: [64, 64]
+      parts:
+        - {name: body, form: box, size: [8, 8, 16], pivot: [0, 0.6, 0], anim: body}
+        - {name: bellows, form: box, size: [8, 5, 8], pivot: [0, 0.95, -0.1], anim: pulse}
+        - {name: head, form: box, size: [7, 7, 8], pivot: [0, 0.75, 0.55], anim: head}
+        - {name: jaw, form: claw, size: [6, 2, 6], pivot: [0, 0.6, 0.75], anim: jaw}
+        - {name: legs, form: leg_quad, size: [10, 9, 14], pivot: [0, 0.3, 0], anim: legs_walk}
+        - {name: tail, form: tail, size: [2, 2, 8], pivot: [0, 0.75, -0.5], anim: tail}
+      style: {shape: beast, palette: ["#16110f", "#3a2a24", "#6e5a4e", "#c45a22", "#ffc06a"], features: [rivets, molten_cracks, glowing_eyes]}
+
+  forge_acolyte:
+    name: "용광로 시종"
+    description: "모루왕을 섬기는 쇠가면의 시종. 녹은 쇳물 구슬을 던지고 동료를 달군다."
+    floor: 5
+    rank: normal
+    base: HUSK
+    scale: 1.0
+    hp: 300
+    damage: 24
+    defense: 9
+    speed: 0.22
+    xp: 74
+    gold: [10, 20]
+    ai: caster
+    skills:
+      - {type: projectile, cooldown: 4, params: {fx: proj_molten_orb, speed: 0.7, damage: 1.2, count: 1, spread: 0, gravity: true, range: 16, windup: 0.6, pool_radius: 1.5, pool_duration: 4, effect: burn, effect_duration: 3}}
+      - {type: buff_allies, cooldown: 16, params: {radius: 10, damage_mult: 1.2, speed_mult: 1.0, duration: 8}}
+      - {type: shield, cooldown: 20, params: {amount: 0.15, duration: 6, self_only: false, radius: 8}}
+    drops: forge_acolyte
+    sounds: {ambient: "minecraft:entity.evoker.ambient", hurt: "minecraft:entity.evoker.hurt", death: "minecraft:entity.evoker.death", pitch: 0.7}
+    model:
+      texture_size: [64, 64]
+      parts:
+        - {name: robe, form: cloak, size: [10, 18, 7], pivot: [0, 0.95, 0], anim: body}
+        - {name: head, form: box, size: [8, 8, 8], pivot: [0, 1.6, 0], anim: head}
+        - {name: mask, form: slab, size: [7, 7, 2], pivot: [0, 1.6, 0.27], anim: head}
+        - {name: arm_left, form: arm, size: [4, 12, 4], pivot: [0.38, 1.45, 0], anim: arm_left}
+        - {name: arm_right, form: arm, size: [4, 12, 4], pivot: [-0.38, 1.45, 0], anim: arm_right}
+        - {name: censer, form: lantern, size: [5, 6, 5], pivot: [-0.38, 1.45, 0], anim: arm_right}
+      style: {shape: humanoid, palette: ["#120c0a", "#3a1e14", "#6a2e1a", "#a8a8b0", "#ffb04a"], features: [iron_mask, ember_glow]}
+
+  forge_executioner:
+    name: "단조 집행관"
+    description: "실패한 대장장이를 처단하던 집행관. 거대한 처형 도끼를 휘두를수록 광폭해진다."
+    floor: 5
+    rank: elite
+    base: VINDICATOR
+    scale: 1.4
+    hp: 2800
+    damage: 40
+    defense: 18
+    speed: 0.25
+    xp: 600
+    gold: [60, 120]
+    ai: charger
+    skills:
+      - {type: charge, cooldown: 10, params: {speed: 1.2, distance: 12, damage: 1.6, width: 2.5, windup: 1.0, stun: 1.0}}
+      - {type: cleave, cooldown: 6, params: {angle: 120, length: 4.5, damage: 1.7, windup: 1.0}}
+      - {type: slam, cooldown: 12, params: {radius: 5, damage: 1.5, windup: 1.3, knockback: 1.2}}
+      - {type: enrage, cooldown: 0, params: {threshold: 0.40, damage_mult: 1.35, speed_mult: 1.2}}
+    drops: forge_executioner
+    sounds: {ambient: "minecraft:entity.vindicator.ambient", hurt: "minecraft:block.anvil.hit", death: "minecraft:entity.vindicator.death", pitch: 0.5}
+    model:
+      texture_size: [128, 64]
+      parts:
+        - {name: torso, form: box, size: [12, 13, 7], pivot: [0, 1.2, 0], anim: body}
+        - {name: head, form: box, size: [8, 9, 8], pivot: [0, 1.7, 0], anim: head}
+        - {name: hood, form: cone, size: [9, 8, 9], pivot: [0, 1.95, 0], anim: head}
+        - {name: arm_left, form: arm, size: [5, 13, 5], pivot: [0.45, 1.5, 0], anim: arm_left}
+        - {name: arm_right, form: arm, size: [5, 13, 5], pivot: [-0.45, 1.5, 0], anim: arm_right}
+        - {name: axe, form: blade, size: [16, 24, 3], pivot: [-0.45, 1.5, 0], anim: arm_right}
+        - {name: legs, form: leg_pair, size: [10, 12, 5], pivot: [0, 0.75, 0], anim: legs_walk}
+      style: {shape: humanoid, palette: ["#0e0a0a", "#2e1414", "#5a1e1a", "#9a9aa2", "#ff8a2a"], features: [executioner_hood, molten_cracks, elite_trim]}
+
+  # ════════════════════════════ 지하 6층 · 서리 묘역 ════════════════════════════
+
+  rime_mourner:
+    name: "서리 곡하는 자"
+    description: "묘역을 떠도는 베일 쓴 곡녀. 그녀의 울음은 얼음 조각이 되어 날아든다."
+    floor: 6
+    rank: normal
+    base: HUSK
+    scale: 1.0
+    hp: 420
+    damage: 36
+    defense: 13
+    speed: 0.22
+    xp: 110
+    gold: [14, 26]
+    ai: caster
+    skills:
+      - {type: projectile, cooldown: 3.5, params: {fx: proj_frost_shard, speed: 1.0, damage: 1.0, count: 1, spread: 0, gravity: false, range: 18, windup: 0.5, effect: frost, amount: 1}}
+      - {type: debuff, cooldown: 12, params: {range: 12, radius: 3, effect: slow, amount: 0.35, duration: 3, windup: 1.0, particle: SNOWFLAKE}}
+    drops: rime_mourner
+    sounds: {ambient: "minecraft:entity.vex.ambient", hurt: "minecraft:entity.vex.hurt", death: "minecraft:entity.vex.death", pitch: 0.6}
+    model:
+      texture_size: [64, 64]
+      parts:
+        - {name: veil, form: cloak, size: [10, 20, 8], pivot: [0, 1.0, 0], anim: float}
+        - {name: head, form: rounded, size: [8, 8, 8], pivot: [0, 1.65, 0], anim: head}
+        - {name: arm_left, form: arm, size: [3, 12, 3], pivot: [0.36, 1.45, 0], anim: arm_left}
+        - {name: arm_right, form: arm, size: [3, 12, 3], pivot: [-0.36, 1.45, 0], anim: arm_right}
+      style: {shape: wraith, palette: ["#1a2030", "#3a4a6a", "#8aa0c8", "#d8e6ff", "#ffffff"], features: [translucent, veil, frost_rime]}
+
+  crypt_hound:
+    name: "얼음 묘지견"
+    description: "왕릉을 지키던 사냥개의 해골. 등뼈에 고드름이 자라 있고, 물린 상처는 얼어붙는다."
+    floor: 6
+    rank: normal
+    base: WOLF
+    scale: 1.2
+    hp: 500
+    damage: 34
+    defense: 14
+    speed: 0.34
+    xp: 112
+    gold: [14, 26]
+    ai: charger
+    skills:
+      - {type: charge, cooldown: 8, params: {speed: 1.3, distance: 11, damage: 1.3, width: 1.5, windup: 0.8, stun: 0}}
+      - {type: debuff, cooldown: 9, params: {range: 3, radius: 0, effect: frost, amount: 2, duration: 6, windup: 0.3}}
+    drops: crypt_hound
+    sounds: {ambient: "minecraft:entity.wolf.growl", hurt: "minecraft:entity.skeleton.hurt", death: "minecraft:entity.skeleton.death", pitch: 0.7}
+    model:
+      texture_size: [64, 64]
+      parts:
+        - {name: body, form: box, size: [7, 7, 16], pivot: [0, 0.6, 0], anim: body}
+        - {name: spines, form: crystal_cluster, size: [6, 6, 14], pivot: [0, 0.95, 0], anim: body}
+        - {name: head, form: skull, size: [7, 7, 9], pivot: [0, 0.75, 0.55], anim: head}
+        - {name: jaw, form: claw, size: [6, 2, 6], pivot: [0, 0.6, 0.75], anim: jaw}
+        - {name: legs, form: leg_quad, size: [10, 9, 14], pivot: [0, 0.3, 0], anim: legs_walk}
+        - {name: tail, form: tail, size: [2, 2, 9], pivot: [0, 0.7, -0.5], anim: tail}
+      style: {shape: beast, palette: ["#1c2230", "#4a5268", "#c8ccd6", "#9ad0ff", "#f0faff"], features: [bone_ribs, frost_rime, glowing_eyes]}
+
+  frozen_knight:
+    name: "얼어붙은 묘지기사"
+    description: "죽어서도 맹세를 지키는 기사. 얼음 방패로 막고 검을 땅에 꽂아 서리를 터뜨린다."
+    floor: 6
+    rank: normal
+    base: HUSK
+    scale: 1.2
+    hp: 830
+    damage: 36
+    defense: 24
+    speed: 0.21
+    xp: 130
+    gold: [16, 30]
+    ai: melee
+    skills:
+      - {type: shield, cooldown: 14, params: {amount: 0.2, duration: 4, reduction: 0.6, self_only: true}}
+      - {type: slam, cooldown: 9, params: {radius: 3.5, damage: 1.4, windup: 1.1, knockback: 0.4, effect: frost, amount: 1}}
+      - {type: cleave, cooldown: 6, params: {angle: 90, length: 3.5, damage: 1.3, windup: 0.8}}
+    drops: frozen_knight
+    sounds: {ambient: "minecraft:entity.stray.ambient", hurt: "minecraft:block.glass.hit", death: "minecraft:entity.stray.death", pitch: 0.6}
+    model:
+      texture_size: [64, 64]
+      parts:
+        - {name: torso, form: box, size: [10, 12, 6], pivot: [0, 1.15, 0], anim: body}
+        - {name: head, form: box, size: [8, 9, 8], pivot: [0, 1.62, 0], anim: head}
+        - {name: crown, form: crystal_cluster, size: [8, 4, 8], pivot: [0, 1.95, 0], anim: head}
+        - {name: arm_left, form: arm, size: [4, 12, 4], pivot: [0.4, 1.45, 0], anim: arm_left}
+        - {name: shield, form: slab, size: [2, 14, 10], pivot: [0.4, 1.45, 0], anim: arm_left}
+        - {name: arm_right, form: arm, size: [4, 12, 4], pivot: [-0.4, 1.45, 0], anim: arm_right}
+        - {name: sword, form: blade, size: [3, 20, 2], pivot: [-0.4, 1.45, 0], anim: arm_right}
+        - {name: legs, form: leg_pair, size: [8, 12, 4], pivot: [0, 0.75, 0], anim: legs_walk}
+      style: {shape: humanoid, palette: ["#1a1e2a", "#3e4a5e", "#7a8aa8", "#bfe4ff", "#ffffff"], features: [plate_armor, frost_rime, hollow_eyes]}
+
+  icicle_wraith:
+    name: "고드름 원령"
+    description: "부서진 고드름에 깃든 원한. 허공을 미끄러지며 얼음 파편을 부채꼴로 흩뿌린다."
+    floor: 6
+    rank: normal
+    base: VEX
+    flying: true
+    scale: 1.3
+    hp: 400
+    damage: 38
+    defense: 10
+    speed: 0.30
+    xp: 108
+    gold: [14, 26]
+    ai: ranged
+    skills:
+      - {type: projectile, cooldown: 5, params: {fx: proj_frost_shard, speed: 1.1, damage: 0.8, count: 3, spread: 30, gravity: false, range: 16, windup: 0.6, effect: frost, amount: 1}}
+      - {type: blink, cooldown: 8, params: {range: 8, behind: true, damage: 0.8}}
+    drops: icicle_wraith
+    sounds: {ambient: "minecraft:block.glass.place", hurt: "minecraft:block.glass.hit", death: "minecraft:block.glass.break", pitch: 1.5}
+    model:
+      texture_size: [64, 32]
+      parts:
+        - {name: core, form: crystal_cluster, size: [8, 12, 8], pivot: [0, 0.8, 0], anim: float}
+        - {name: shards, form: ring, size: [18, 4, 18], pivot: [0, 0.8, 0], anim: spin}
+        - {name: tail, form: tail, size: [4, 4, 10], pivot: [0, 0.5, -0.1], anim: float}
+      style: {shape: wraith, palette: ["#16283a", "#2e5a8a", "#6ab0f0", "#cfefff", "#ffffff"], features: [translucent, emissive_core, frost_rime]}
+
+  crypt_bellringer:
+    name: "묘역의 종지기"
+    description: "등에 진 거대한 장례 종을 울려 죽은 자를 깨우는 종지기. 종소리가 얼음을 부른다."
+    floor: 6
+    rank: elite
+    base: HUSK
+    scale: 1.5
+    hp: 4160
+    damage: 53
+    defense: 24
+    speed: 0.20
+    xp: 880
+    gold: [84, 156]
+    ai: caster
+    skills:
+      - {type: slam, cooldown: 10, params: {radius: 6, damage: 1.2, windup: 1.4, knockback: 0.3, stun: 1.0, effect: frost, amount: 1, shape: ring, inner_radius: 2.5}}
+      - {type: summon, cooldown: 20, params: {mob: icicle_wraith, count: 2, max_alive: 3, radius: 5}}
+      - {type: aura, cooldown: 0, params: {radius: 6, effect: frost, amount: 1, interval: 3.0}}
+      - {type: buff_allies, cooldown: 18, params: {radius: 12, damage_mult: 1.15, speed_mult: 1.15, duration: 8}}
+    drops: crypt_bellringer
+    sounds: {ambient: "minecraft:block.bell.resonate", hurt: "minecraft:block.bell.use", death: "minecraft:block.bell.resonate", pitch: 0.5}
+    model:
+      texture_size: [128, 64]
+      parts:
+        - {name: torso, form: box, size: [11, 12, 8], pivot: [0, 1.1, -0.05], anim: body}
+        - {name: head, form: rounded, size: [8, 8, 8], pivot: [0, 1.55, 0.15], anim: head}
+        - {name: bell, form: cap, size: [16, 16, 16], pivot: [0, 1.7, -0.35], anim: pulse}
+        - {name: arm_left, form: arm, size: [4, 14, 4], pivot: [0.42, 1.4, 0], anim: arm_left}
+        - {name: arm_right, form: arm, size: [4, 14, 4], pivot: [-0.42, 1.4, 0], anim: arm_right}
+        - {name: legs, form: leg_pair, size: [8, 12, 5], pivot: [0, 0.75, 0], anim: legs_walk}
+      style: {shape: humanoid, palette: ["#14161e", "#34384a", "#6a6e86", "#c8b070", "#e8f4ff"], features: [funeral_bell, tattered_cloth, frost_rime, elite_trim]}
+
+  # ════════════════════════════ 지하 7층 · 수정 공명동 ════════════════════════════
+
+  shard_skitterer:
+    name: "파편 갑충"
+    description: "자수정 조각을 등에 꽂고 다니는 갑충. 공명하는 등껍질은 공격을 일부 튕겨낸다."
+    floor: 7
+    rank: normal
+    base: SPIDER
+    scale: 0.9
+    hp: 600
+    damage: 40
+    defense: 18
+    speed: 0.31
+    xp: 150
+    gold: [18, 34]
+    ai: melee
+    skills:
+      - {type: leap, cooldown: 7, params: {power: 1.0, damage: 1.2, range: 9, windup: 0.5}}
+      - {type: reflect, cooldown: 14, params: {duration: 3, ratio: 0.2}}
+    drops: shard_skitterer
+    sounds: {ambient: "minecraft:block.amethyst_cluster.step", hurt: "minecraft:block.amethyst_cluster.hit", death: "minecraft:block.amethyst_cluster.break", pitch: 1.4}
+    model:
+      texture_size: [64, 32]
+      parts:
+        - {name: body, form: shell, size: [12, 7, 14], pivot: [0, 0.4, 0], anim: body}
+        - {name: crystals, form: crystal_cluster, size: [10, 8, 10], pivot: [0, 0.7, -0.05], anim: body}
+        - {name: head, form: rounded, size: [6, 5, 5], pivot: [0, 0.38, 0.45], anim: head}
+        - {name: legs, form: leg_six, size: [20, 6, 14], pivot: [0, 0.18, 0], anim: legs_walk}
+      style: {shape: insect, palette: ["#1a1426", "#3a2a5a", "#7a52b8", "#c8a0ff", "#f4ecff"], features: [crystal_growth, emissive_core]}
+
+  prism_sentinel:
+    name: "프리즘 파수석"
+    description: "공명동의 길목을 지키는 수정 기둥. 빛을 꺾어 일직선의 광선을 뿜는다."
+    floor: 7
+    rank: normal
+    base: HUSK
+    scale: 1.0
+    hp: 700
+    damage: 48
+    defense: 20
+    speed: 0.0
+    xp: 160
+    gold: [18, 34]
+    ai: turret
+    skills:
+      - {type: beam, cooldown: 7, params: {length: 14, width: 1.2, damage_per_tick: 0.5, duration: 1.5, tick: 0.25, windup: 1.2, fx: telegraph_line}}
+      - {type: shield, cooldown: 16, params: {amount: 0.25, duration: 5, self_only: true}}
+    drops: prism_sentinel
+    sounds: {ambient: "minecraft:block.amethyst_block.resonate", hurt: "minecraft:block.amethyst_block.hit", death: "minecraft:block.amethyst_block.break", pitch: 0.8}
+    model:
+      texture_size: [64, 64]
+      parts:
+        - {name: base, form: cylinder, size: [12, 6, 12], pivot: [0, 0.2, 0], anim: static}
+        - {name: prism, form: crystal_cluster, size: [8, 20, 8], pivot: [0, 1.0, 0], anim: spin}
+        - {name: ring, form: ring, size: [16, 2, 16], pivot: [0, 1.0, 0], anim: orbit}
+      style: {shape: turret, palette: ["#14101e", "#2e2a3e", "#6a5aa0", "#e0d0ff", "#ffffff"], features: [crystal_growth, emissive_core, prism_glint]}
+
+  echo_wisp:
+    name: "메아리 정령"
+    description: "공명음이 형체를 얻은 정령. 그 노래를 들은 자는 한동안 주문을 떠올리지 못한다."
+    floor: 7
+    rank: normal
+    base: BAT
+    flying: true
+    scale: 1.3
+    hp: 560
+    damage: 46
+    defense: 14
+    speed: 0.30
+    xp: 150
+    gold: [18, 34]
+    ai: caster
+    skills:
+      - {type: debuff, cooldown: 12, params: {range: 14, radius: 0, effect: silence, duration: 2, windup: 0.8, particle: NOTE}}
+      - {type: projectile, cooldown: 3.5, params: {fx: proj_crystal, speed: 1.0, damage: 1.0, count: 1, spread: 0, gravity: false, range: 16, windup: 0.4}}
+      - {type: blink, cooldown: 9, params: {range: 8, behind: false, damage: 0}}
+    drops: echo_wisp
+    sounds: {ambient: "minecraft:block.amethyst_block.chime", hurt: "minecraft:block.amethyst_block.hit", death: "minecraft:block.amethyst_cluster.break", pitch: 1.9}
+    model:
+      texture_size: [32, 32]
+      parts:
+        - {name: core, form: sphere, size: [7, 7, 7], pivot: [0, 0.6, 0], anim: pulse}
+        - {name: rings, form: ring, size: [14, 14, 2], pivot: [0, 0.6, 0], anim: spin}
+        - {name: tail, form: tail, size: [3, 3, 9], pivot: [0, 0.5, -0.2], anim: float}
+      style: {shape: floating, palette: ["#201430", "#4a2a7a", "#a070f0", "#e8d8ff", "#ffffff"], features: [emissive_core, sound_ripples]}
+
+  geode_brute:
+    name: "정동 거한"
+    description: "갈라진 몸통 속에서 자수정이 빛나는 바위 거한. 쓰러지면 조각이 갑충이 되어 기어 나온다."
+    floor: 7
+    rank: normal
+    base: IRON_GOLEM
+    scale: 1.0
+    hp: 1220
+    damage: 47
+    defense: 32
+    speed: 0.20
+    xp: 190
+    gold: [22, 40]
+    ai: melee
+    skills:
+      - {type: slam, cooldown: 8, params: {radius: 4, damage: 1.4, windup: 1.1, knockback: 0.8}}
+      - {type: shield, cooldown: 16, params: {amount: 0.2, duration: 5, reduction: 0.4, self_only: true}}
+      - {type: split_on_death, cooldown: 0, params: {mob: shard_skitterer, count: 2}}
+    drops: geode_brute
+    sounds: {ambient: "minecraft:block.deepslate.step", hurt: "minecraft:block.amethyst_block.hit", death: "minecraft:block.amethyst_block.break", pitch: 0.5}
+    model:
+      texture_size: [128, 64]
+      parts:
+        - {name: torso, form: rounded, size: [18, 16, 12], pivot: [0, 1.6, 0], anim: body}
+        - {name: geode, form: crystal_cluster, size: [10, 10, 6], pivot: [0, 1.6, 0.3], anim: pulse}
+        - {name: head, form: box, size: [8, 7, 8], pivot: [0, 2.15, 0.1], anim: head}
+        - {name: arm_left, form: arm, size: [7, 20, 7], pivot: [0.75, 2.0, 0], anim: arm_left}
+        - {name: arm_right, form: arm, size: [7, 20, 7], pivot: [-0.75, 2.0, 0], anim: arm_right}
+        - {name: legs, form: leg_pair, size: [12, 14, 6], pivot: [0, 0.9, 0], anim: legs_walk}
+      style: {shape: golem, palette: ["#16141a", "#34303c", "#5a5468", "#9a62e0", "#efd8ff"], features: [crystal_growth, cracked_stone, emissive_core]}
+
+  resonance_tuner:
+    name: "공명 조율자"
+    description: "공명동의 음을 조율하던 수정 사제. 소리굽쇠 지팡이로 빛을 꺾고 공격을 되돌려 보낸다."
+    floor: 7
+    rank: elite
+    base: HUSK
+    scale: 1.3
+    hp: 6080
+    damage: 69
+    defense: 32
+    speed: 0.22
+    xp: 1280
+    gold: [108, 204]
+    ai: caster
+    skills:
+      - {type: beam, cooldown: 9, params: {length: 16, width: 1.5, damage_per_tick: 0.5, duration: 2, tick: 0.25, windup: 1.3, fx: telegraph_line}}
+      - {type: reflect, cooldown: 18, params: {duration: 4, ratio: 0.4}}
+      - {type: projectile, cooldown: 6, params: {fx: proj_crystal, speed: 1.0, damage: 0.8, count: 5, spread: 50, gravity: false, range: 18, windup: 0.8}}
+      - {type: buff_allies, cooldown: 18, params: {radius: 12, damage_mult: 1.2, speed_mult: 1.1, duration: 8}}
+      - {type: blink, cooldown: 12, params: {range: 10, behind: false, damage: 0}}
+    drops: resonance_tuner
+    sounds: {ambient: "minecraft:block.amethyst_block.resonate", hurt: "minecraft:block.amethyst_block.hit", death: "minecraft:block.amethyst_block.break", pitch: 1.2}
+    model:
+      texture_size: [64, 64]
+      parts:
+        - {name: body, form: crystal_cluster, size: [10, 18, 8], pivot: [0, 1.0, 0], anim: float}
+        - {name: head, form: rounded, size: [7, 8, 7], pivot: [0, 1.65, 0], anim: head}
+        - {name: fork, form: horn_pair, size: [8, 8, 2], pivot: [0, 2.0, 0], anim: head}
+        - {name: arm_left, form: arm, size: [3, 12, 3], pivot: [0.36, 1.45, 0], anim: arm_left}
+        - {name: arm_right, form: arm, size: [3, 12, 3], pivot: [-0.36, 1.45, 0], anim: arm_right}
+        - {name: staff, form: blade, size: [3, 26, 3], pivot: [-0.36, 1.45, 0], anim: arm_right}
+        - {name: halo, form: ring, size: [20, 2, 20], pivot: [0, 1.1, 0], anim: orbit}
+      style: {shape: wraith, palette: ["#160f24", "#3a2662", "#8a5ae0", "#e8d4ff", "#ffffff"], features: [crystal_growth, emissive_core, prism_glint, elite_trim]}
+
+  # ════════════════════════════ 지하 8층 · 망각의 서고 ════════════════════════════
+
+  ink_wraith:
+    name: "먹물 원령"
+    description: "지워진 이름들이 먹물로 고여 생긴 원령. 먹물을 끼얹어 시야를 빼앗는다."
+    floor: 8
+    rank: normal
+    base: VEX
+    flying: true
+    scale: 1.2
+    hp: 880
+    damage: 60
+    defense: 18
+    speed: 0.30
+    xp: 220
+    gold: [24, 44]
+    ai: caster
+    skills:
+      - {type: blink, cooldown: 7, params: {range: 9, behind: true, damage: 1.0}}
+      - {type: debuff, cooldown: 12, params: {range: 10, radius: 2.5, effect: blind, duration: 2, windup: 0.8, particle: SQUID_INK}}
+      - {type: projectile, cooldown: 4, params: {fx: proj_ink, speed: 0.9, damage: 1.0, count: 1, spread: 0, gravity: false, range: 16, windup: 0.5}}
+    drops: ink_wraith
+    sounds: {ambient: "minecraft:entity.vex.ambient", hurt: "minecraft:entity.squid.hurt", death: "minecraft:entity.squid.death", pitch: 0.5}
+    model:
+      texture_size: [64, 64]
+      parts:
+        - {name: body, form: cloak, size: [10, 18, 8], pivot: [0, 0.95, 0], anim: float}
+        - {name: head, form: rounded, size: [8, 9, 8], pivot: [0, 1.6, 0], anim: head}
+        - {name: arm_left, form: arm, size: [3, 12, 3], pivot: [0.36, 1.45, 0], anim: arm_left}
+        - {name: arm_right, form: arm, size: [3, 12, 3], pivot: [-0.36, 1.45, 0], anim: arm_right}
+      style: {shape: wraith, palette: ["#08080e", "#141a2e", "#2a3a6a", "#5a7ab0", "#e8e0c8"], features: [ink_drips, translucent, hollow_eyes]}
+
+  page_swarm:
+    name: "흩날리는 책장 떼"
+    description: "찢겨 나간 책장들이 무리를 지어 날아다닌다. 종이 날에 베이면 피가 멈추지 않는다."
+    floor: 8
+    rank: normal
+    base: BAT
+    flying: true
+    scale: 1.5
+    hp: 550
+    damage: 39
+    defense: 10
+    speed: 0.32
+    xp: 180
+    gold: [20, 38]
+    ai: swarm
+    skills:
+      - {type: breath, cooldown: 7, params: {angle: 70, length: 5, damage_per_tick: 0.4, duration: 1.5, tick: 0.5, effect: bleed, effect_duration: 4, windup: 0.5, particle: SWEEP_ATTACK}}
+    drops: page_swarm
+    sounds: {ambient: "minecraft:item.book.page_turn", hurt: "minecraft:item.book.put", death: "minecraft:item.book.page_turn", pitch: 1.3}
+    model:
+      texture_size: [64, 32]
+      parts:
+        - {name: core, form: book, size: [6, 2, 8], pivot: [0, 0.7, 0], anim: float}
+        - {name: pages, form: ring, size: [20, 8, 20], pivot: [0, 0.7, 0], anim: spin}
+        - {name: pages_outer, form: ring, size: [26, 4, 26], pivot: [0, 0.7, 0], anim: orbit}
+      style: {shape: swarm, palette: ["#2a2418", "#6a5a40", "#c8b48a", "#efe4c8", "#1a1a2a"], features: [paper_scraps, ink_scribbles]}
+
+  biting_tome:
+    name: "물어뜯는 고서"
+    description: "바닥에 떨어진 평범한 책처럼 보인다. 표지가 쩍 벌어지기 전까지는."
+    floor: 8
+    rank: normal
+    base: SPIDER
+    scale: 0.6
+    hp: 1000
+    damage: 60
+    defense: 20
+    speed: 0.30
+    xp: 230
+    gold: [24, 44]
+    ai: melee
+    skills:
+      - {type: ambush, cooldown: 0, params: {reveal_range: 4, first_hit_mult: 1.8, disguise_fx: tome_disguise}}
+      - {type: leap, cooldown: 6, params: {power: 0.9, damage: 1.2, range: 8, windup: 0.4}}
+      - {type: debuff, cooldown: 14, params: {range: 3, radius: 0, effect: silence, duration: 2, windup: 0.3}}
+    drops: biting_tome
+    sounds: {ambient: "minecraft:item.book.put", hurt: "minecraft:item.book.page_turn", death: "minecraft:item.book.put", pitch: 0.6}
+    model:
+      texture_size: [64, 32]
+      parts:
+        - {name: cover_bottom, form: book, size: [12, 3, 14], pivot: [0, 0.2, 0], anim: body}
+        - {name: cover_top, form: book, size: [12, 3, 14], pivot: [0, 0.4, -0.4], anim: jaw}
+        - {name: teeth, form: spike, size: [10, 3, 12], pivot: [0, 0.3, 0], anim: jaw}
+        - {name: legs, form: leg_quad, size: [12, 4, 12], pivot: [0, 0.1, 0], anim: legs_walk}
+      style: {shape: blob, palette: ["#1e0e0a", "#4a1e14", "#8a3a22", "#d8b070", "#f4ead0"], features: [gilded_corners, teeth_ring, glowing_eyes]}
+
+  archive_sentinel:
+    name: "서고 감시자"
+    description: "책장을 몸통으로 삼은 거대한 감시자. 쇠사슬로 도둑을 끌어당겨 짓누른다."
+    floor: 8
+    rank: normal
+    base: HUSK
+    scale: 1.3
+    hp: 1760
+    damage: 61
+    defense: 39
+    speed: 0.20
+    xp: 280
+    gold: [28, 52]
+    ai: melee
+    skills:
+      - {type: pull, cooldown: 10, params: {range: 12, strength: 1.3, damage: 0.8, windup: 0.8, fx: proj_chain}}
+      - {type: shield, cooldown: 16, params: {amount: 0.2, duration: 5, reduction: 0.4, self_only: true}}
+      - {type: slam, cooldown: 9, params: {radius: 4, damage: 1.4, windup: 1.1, knockback: 0.6}}
+    drops: archive_sentinel
+    sounds: {ambient: "minecraft:block.wood.step", hurt: "minecraft:block.chiseled_bookshelf.hit", death: "minecraft:block.chiseled_bookshelf.break", pitch: 0.5}
+    model:
+      texture_size: [64, 64]
+      parts:
+        - {name: torso, form: box, size: [12, 13, 8], pivot: [0, 1.15, 0], anim: body}
+        - {name: head, form: lantern, size: [8, 9, 8], pivot: [0, 1.65, 0], anim: head}
+        - {name: arm_left, form: arm, size: [5, 13, 5], pivot: [0.45, 1.45, 0], anim: arm_left}
+        - {name: arm_right, form: arm, size: [5, 13, 5], pivot: [-0.45, 1.45, 0], anim: arm_right}
+        - {name: chain, form: tail, size: [3, 3, 14], pivot: [-0.45, 1.45, 0], anim: arm_right}
+        - {name: legs, form: leg_pair, size: [10, 12, 5], pivot: [0, 0.75, 0], anim: legs_walk}
+      style: {shape: construct, palette: ["#140e0a", "#3a2618", "#6a4a2a", "#c8a060", "#fff0b0"], features: [bookshelf_chest, rivets, ember_glow]}
+
+  forbidden_keeper:
+    name: "금서의 수호자"
+    description: "봉인된 금서를 사슬로 몸에 묶은 수호자. 금서의 저주는 상처를 더 깊게 만든다."
+    floor: 8
+    rank: elite
+    base: HUSK
+    scale: 1.5
+    hp: 8800
+    damage: 88
+    defense: 39
+    speed: 0.21
+    xp: 1840
+    gold: [144, 264]
+    ai: caster
+    skills:
+      - {type: debuff, cooldown: 12, params: {range: 14, radius: 4, effect: vulnerable, amount: 0.15, duration: 6, windup: 1.0, particle: ENCHANT}}
+      - {type: summon, cooldown: 22, params: {mob: page_swarm, count: 2, max_alive: 3, radius: 5}}
+      - {type: beam, cooldown: 10, params: {length: 16, width: 1.5, damage_per_tick: 0.5, duration: 2, tick: 0.25, windup: 1.3, fx: telegraph_line}}
+      - {type: projectile, cooldown: 6, params: {fx: proj_quill, speed: 1.2, damage: 0.7, count: 5, spread: 45, gravity: false, range: 18, windup: 0.7, effect: bleed, effect_duration: 3}}
+    drops: forbidden_keeper
+    sounds: {ambient: "minecraft:entity.illusioner.ambient", hurt: "minecraft:entity.illusioner.hurt", death: "minecraft:entity.illusioner.death", pitch: 0.6}
+    model:
+      texture_size: [128, 64]
+      parts:
+        - {name: robe, form: cloak, size: [12, 20, 9], pivot: [0, 1.0, 0], anim: body}
+        - {name: head, form: rounded, size: [8, 9, 8], pivot: [0, 1.7, 0], anim: head}
+        - {name: arm_left, form: arm, size: [4, 13, 4], pivot: [0.42, 1.5, 0], anim: arm_left}
+        - {name: arm_right, form: arm, size: [4, 13, 4], pivot: [-0.42, 1.5, 0], anim: arm_right}
+        - {name: tome, form: book, size: [10, 4, 12], pivot: [0.0, 1.4, 0.6], anim: orbit}
+        - {name: chains, form: ring, size: [18, 10, 18], pivot: [0, 1.1, 0], anim: spin}
+      style: {shape: wraith, palette: ["#0c0a10", "#22182e", "#4a2a5a", "#c8a060", "#e8e0ff"], features: [chained_book, ink_drips, elite_trim]}
+
+  # ════════════════════════════ 지하 9층 · 태엽 성소 ════════════════════════════
+
+  gear_hound:
+    name: "톱니 사냥개"
+    description: "등의 톱니바퀴가 돌수록 빨라지는 태엽 사냥개. 덮칠 때는 쇳소리가 먼저 들린다."
+    floor: 9
+    rank: normal
+    base: WOLF
+    scale: 1.2
+    hp: 1550
+    damage: 70
+    defense: 30
+    speed: 0.35
+    xp: 320
+    gold: [30, 56]
+    ai: charger
+    skills:
+      - {type: charge, cooldown: 7, params: {speed: 1.4, distance: 12, damage: 1.3, width: 1.5, windup: 0.7, stun: 0}}
+      - {type: leap, cooldown: 8, params: {power: 1.0, damage: 1.2, range: 9, radius: 2, windup: 0.5}}
+    drops: gear_hound
+    sounds: {ambient: "minecraft:entity.wolf.growl", hurt: "minecraft:block.copper.hit", death: "minecraft:block.copper.break", pitch: 1.2}
+    model:
+      texture_size: [64, 64]
+      parts:
+        - {name: body, form: box, size: [8, 8, 16], pivot: [0, 0.6, 0], anim: body}
+        - {name: gear, form: gear, size: [10, 10, 2], pivot: [0, 1.0, -0.05], anim: spin}
+        - {name: head, form: box, size: [7, 7, 8], pivot: [0, 0.75, 0.55], anim: head}
+        - {name: jaw, form: claw, size: [6, 2, 6], pivot: [0, 0.6, 0.75], anim: jaw}
+        - {name: legs, form: leg_quad, size: [10, 9, 14], pivot: [0, 0.3, 0], anim: legs_walk}
+        - {name: tail, form: tail, size: [2, 2, 8], pivot: [0, 0.75, -0.5], anim: tail}
+      style: {shape: beast, palette: ["#1e120a", "#5a3218", "#b0642e", "#e8a050", "#6ad0b0"], features: [rivets, verdigris_patina, glowing_eyes]}
+
+  clockwork_sentry:
+    name: "태엽 보초"
+    description: "등의 태엽이 다 풀릴 때까지 톱니 탄환을 연사하는 보초 포대."
+    floor: 9
+    rank: normal
+    base: HUSK
+    scale: 1.0
+    hp: 1240
+    damage: 77
+    defense: 28
+    speed: 0.0
+    xp: 300
+    gold: [28, 52]
+    ai: turret
+    skills:
+      - {type: projectile, cooldown: 4, params: {fx: proj_gear, speed: 1.3, damage: 0.6, count: 3, spread: 0, burst_interval: 0.2, gravity: false, range: 20, windup: 0.6}}
+      - {type: shield, cooldown: 18, params: {amount: 0.2, duration: 5, self_only: true}}
+    drops: clockwork_sentry
+    sounds: {ambient: "minecraft:block.copper_bulb.turn_off", hurt: "minecraft:block.copper.hit", death: "minecraft:block.copper.break", pitch: 1.3}
+    model:
+      texture_size: [64, 64]
+      parts:
+        - {name: tripod, form: leg_quad, size: [14, 10, 14], pivot: [0, 0.3, 0], anim: static}
+        - {name: turret, form: box, size: [10, 8, 10], pivot: [0, 0.9, 0], anim: head}
+        - {name: barrel, form: cylinder, size: [4, 4, 12], pivot: [0, 0.9, 0.35], anim: head}
+        - {name: key, form: gear, size: [8, 8, 2], pivot: [0, 1.25, -0.3], anim: spin}
+      style: {shape: turret, palette: ["#1a120c", "#4a3220", "#9a6a3a", "#e8b060", "#fff0c0"], features: [rivets, brass_trim]}
+
+  spring_jumper:
+    name: "용수철 도약병"
+    description: "다리 대신 거대한 용수철을 단 태엽 병사. 높이 튀어 올라 내려찍는다."
+    floor: 9
+    rank: normal
+    base: HUSK
+    scale: 1.1
+    hp: 1400
+    damage: 72
+    defense: 30
+    speed: 0.28
+    xp: 310
+    gold: [30, 54]
+    ai: melee
+    skills:
+      - {type: leap, cooldown: 6, params: {power: 1.3, damage: 1.4, range: 12, radius: 3, windup: 0.7}}
+      - {type: slam, cooldown: 9, params: {radius: 3.5, damage: 1.2, windup: 0.9, knockback: 1.0}}
+    drops: spring_jumper
+    sounds: {ambient: "minecraft:block.piston.extend", hurt: "minecraft:block.copper.hit", death: "minecraft:block.piston.contract", pitch: 1.2}
+    model:
+      texture_size: [64, 64]
+      parts:
+        - {name: torso, form: box, size: [10, 11, 6], pivot: [0, 1.2, 0], anim: body}
+        - {name: head, form: sphere, size: [8, 8, 8], pivot: [0, 1.65, 0], anim: head}
+        - {name: arm_left, form: arm, size: [4, 12, 4], pivot: [0.4, 1.5, 0], anim: arm_left}
+        - {name: arm_right, form: arm, size: [4, 12, 4], pivot: [-0.4, 1.5, 0], anim: arm_right}
+        - {name: spring, form: cylinder, size: [8, 14, 8], pivot: [0, 0.5, 0], anim: pulse}
+      style: {shape: construct, palette: ["#16100a", "#4a3020", "#a06a34", "#e0b070", "#c8d8e0"], features: [rivets, brass_trim, coil_spring]}
+
+  chrono_moth:
+    name: "시간 나방"
+    description: "날개에 시계 문자판 무늬가 새겨진 나방. 날갯가루를 맞으면 몸이 느려지고 시간이 끈적해진다."
+    floor: 9
+    rank: normal
+    base: BAT
+    flying: true
+    scale: 1.5
+    hp: 1250
+    damage: 74
+    defense: 22
+    speed: 0.30
+    xp: 300
+    gold: [28, 52]
+    ai: caster
+    skills:
+      - {type: debuff, cooldown: 11, params: {range: 12, radius: 3, effect: slow, amount: 0.4, duration: 3, cooldown_slow: 0.3, windup: 0.8, particle: WAX_OFF}}
+      - {type: blink, cooldown: 8, params: {range: 9, behind: false, damage: 0}}
+      - {type: projectile, cooldown: 4, params: {fx: proj_gear, speed: 1.0, damage: 0.9, count: 1, spread: 0, gravity: false, range: 16, windup: 0.4}}
+    drops: chrono_moth
+    sounds: {ambient: "minecraft:entity.bee.loop", hurt: "minecraft:entity.bat.hurt", death: "minecraft:entity.bat.death", pitch: 0.5}
+    model:
+      texture_size: [64, 32]
+      parts:
+        - {name: body, form: rounded, size: [5, 5, 10], pivot: [0, 0.5, 0], anim: float}
+        - {name: antennae, form: horn_pair, size: [8, 6, 2], pivot: [0, 0.65, 0.3], anim: head}
+        - {name: wings, form: wing_pair, size: [30, 2, 16], pivot: [0, 0.58, 0], anim: wings}
+      style: {shape: floating, palette: ["#1a140c", "#4a3a20", "#b08a40", "#f0d890", "#6ad0b0"], features: [clockface_wings, emissive_core]}
+
+  grand_regulator:
+    name: "대시계 집행관"
+    description: "성소의 시간을 바로잡는 집행관. 가슴의 시계판이 한 바퀴 돌 때마다 심판이 내려진다."
+    floor: 9
+    rank: elite
+    base: IRON_GOLEM
+    scale: 1.3
+    hp: 12400
+    damage: 112
+    defense: 48
+    speed: 0.22
+    xp: 2560
+    gold: [180, 336]
+    ai: melee
+    skills:
+      - {type: summon, cooldown: 20, params: {mob: cog_drone, count: 3, max_alive: 4, radius: 5}}
+      - {type: slam, cooldown: 10, params: {radius: 7, damage: 1.3, windup: 1.4, knockback: 0.6, shape: ring, inner_radius: 3}}
+      - {type: shield, cooldown: 20, params: {amount: 0.2, duration: 5, reduction: 0.3, self_only: true}}
+      - {type: beam, cooldown: 12, params: {length: 18, width: 3, damage_per_tick: 0.6, duration: 1.5, tick: 0.25, windup: 1.5, fx: telegraph_line, sweep: true}}
+    drops: grand_regulator
+    sounds: {ambient: "minecraft:block.copper_bulb.turn_on", hurt: "minecraft:block.copper.hit", death: "minecraft:block.copper.break", pitch: 0.5}
+    model:
+      texture_size: [128, 64]
+      parts:
+        - {name: torso, form: box, size: [18, 16, 10], pivot: [0, 1.6, 0], anim: body}
+        - {name: clockface, form: gear, size: [12, 12, 2], pivot: [0, 1.6, 0.35], anim: spin}
+        - {name: head, form: box, size: [8, 8, 8], pivot: [0, 2.2, 0.05], anim: head}
+        - {name: arm_left, form: arm, size: [7, 20, 7], pivot: [0.75, 2.0, 0], anim: arm_left}
+        - {name: arm_right, form: arm, size: [7, 20, 7], pivot: [-0.75, 2.0, 0], anim: arm_right}
+        - {name: pendulum, form: tail, size: [4, 18, 4], pivot: [0, 1.9, -0.35], anim: tail}
+        - {name: legs, form: leg_pair, size: [12, 14, 6], pivot: [0, 0.9, 0], anim: legs_walk}
+      style: {shape: golem, palette: ["#140e08", "#4a2e16", "#a0622a", "#f0c070", "#7ae0c0"], features: [clockface_chest, rivets, brass_trim, elite_trim]}
+
+  # ════════════════════════════ 지하 10층 · 심연의 핵 ════════════════════════════
+
+  void_stalker:
+    name: "심연 추적자"
+    description: "눈 없는 얼굴로 심장 박동을 듣고 사냥하는 자. 어둠에 녹아 있다가 등 뒤에서 나타난다."
+    floor: 10
+    rank: normal
+    base: HUSK
+    scale: 1.1
+    hp: 2000
+    damage: 100
+    defense: 34
+    speed: 0.32
+    xp: 450
+    gold: [40, 75]
+    ai: melee
+    skills:
+      - {type: stealth, cooldown: 14, params: {duration: 4, reveal_on_hit: true, bonus_damage: 0.6}}
+      - {type: blink, cooldown: 8, params: {range: 10, behind: true, damage: 1.2}}
+    drops: void_stalker
+    sounds: {ambient: "minecraft:entity.warden.heartbeat", hurt: "minecraft:block.sculk.hit", death: "minecraft:block.sculk.break", pitch: 1.4}
+    model:
+      texture_size: [64, 64]
+      parts:
+        - {name: torso, form: box, size: [8, 13, 5], pivot: [0, 1.2, 0], anim: body}
+        - {name: head, form: rounded, size: [7, 9, 7], pivot: [0, 1.7, 0.05], anim: head}
+        - {name: arm_left, form: blade, size: [3, 18, 2], pivot: [0.36, 1.5, 0], anim: arm_left}
+        - {name: arm_right, form: blade, size: [3, 18, 2], pivot: [-0.36, 1.5, 0], anim: arm_right}
+        - {name: legs, form: leg_pair, size: [7, 13, 4], pivot: [0, 0.78, 0], anim: legs_walk}
+      style: {shape: humanoid, palette: ["#04080a", "#0c1e24", "#134a52", "#29dfd0", "#c8fff8"], features: [eyeless, sculk_veins, translucent]}
+
+  echo_colossus:
+    name: "울림 거상"
+    description: "가슴의 울림통으로 심연의 맥박을 증폭하는 거상. 그 울음은 땅을 타고 번진다."
+    floor: 10
+    rank: normal
+    base: IRON_GOLEM
+    scale: 1.2
+    hp: 3520
+    damage: 97
+    defense: 60
+    speed: 0.20
+    xp: 560
+    gold: [50, 90]
+    ai: melee
+    skills:
+      - {type: slam, cooldown: 9, params: {radius: 6, damage: 1.3, windup: 1.3, knockback: 0.6, shape: ring, inner_radius: 2}}
+      - {type: pull, cooldown: 12, params: {range: 12, strength: 1.2, damage: 0.6, windup: 0.9, radius: 8}}
+    drops: echo_colossus
+    sounds: {ambient: "minecraft:entity.warden.ambient", hurt: "minecraft:entity.warden.hurt", death: "minecraft:entity.warden.death", pitch: 1.2}
+    model:
+      texture_size: [128, 64]
+      parts:
+        - {name: torso, form: box, size: [18, 16, 12], pivot: [0, 1.6, 0], anim: body}
+        - {name: resonator, form: sphere, size: [10, 10, 4], pivot: [0, 1.6, 0.35], anim: pulse}
+        - {name: head, form: box, size: [8, 8, 8], pivot: [0, 2.2, 0.05], anim: head}
+        - {name: antlers, form: horn_pair, size: [18, 10, 2], pivot: [0, 2.5, 0.05], anim: head}
+        - {name: arm_left, form: arm, size: [7, 22, 7], pivot: [0.75, 2.0, 0], anim: arm_left}
+        - {name: arm_right, form: arm, size: [7, 22, 7], pivot: [-0.75, 2.0, 0], anim: arm_right}
+        - {name: legs, form: leg_pair, size: [12, 14, 6], pivot: [0, 0.9, 0], anim: legs_walk}
+      style: {shape: golem, palette: ["#05090c", "#0e2228", "#1a4a52", "#2fe0d0", "#d8fff8"], features: [sculk_veins, emissive_core, cracked_stone]}
+
+  abyss_eye:
+    name: "심연의 눈"
+    description: "심장에서 떨어져 나와 떠도는 거대한 눈알. 그 시선이 닿는 곳은 약해진다."
+    floor: 10
+    rank: normal
+    base: BAT
+    flying: true
+    scale: 1.6
+    hp: 1760
+    damage: 97
+    defense: 26
+    speed: 0.24
+    xp: 430
+    gold: [40, 75]
+    ai: ranged
+    skills:
+      - {type: beam, cooldown: 7, params: {length: 16, width: 1.2, damage_per_tick: 0.5, duration: 1.5, tick: 0.25, windup: 1.2, fx: telegraph_line}}
+      - {type: debuff, cooldown: 12, params: {range: 16, radius: 0, effect: vulnerable, amount: 0.15, duration: 5, windup: 0.6, particle: REVERSE_PORTAL}}
+    drops: abyss_eye
+    sounds: {ambient: "minecraft:entity.elder_guardian.ambient_land", hurt: "minecraft:entity.elder_guardian.hurt_land", death: "minecraft:entity.elder_guardian.death_land", pitch: 1.4}
+    model:
+      texture_size: [64, 64]
+      parts:
+        - {name: eye, form: eye, size: [12, 12, 12], pivot: [0, 0.9, 0], anim: head}
+        - {name: lids, form: shell, size: [14, 14, 10], pivot: [0, 0.9, -0.05], anim: pulse}
+        - {name: tendrils, form: tentacle_cluster, size: [12, 14, 12], pivot: [0, 0.45, -0.1], anim: float}
+      style: {shape: floating, palette: ["#05060a", "#141a2a", "#3a2a6a", "#2fe0d0", "#fff8e0"], features: [veined_eye, sculk_veins, emissive_core]}
+
+  hollow_choir:
+    name: "공허 성가대"
+    description: "속이 빈 가면을 쓰고 심연을 찬양하는 성가대원. 노래가 동료를 치유하고 적의 입을 막는다."
+    floor: 10
+    rank: normal
+    base: HUSK
+    scale: 1.0
+    hp: 1900
+    damage: 92
+    defense: 30
+    speed: 0.22
+    xp: 440
+    gold: [40, 75]
+    ai: caster
+    skills:
+      - {type: heal_allies, cooldown: 12, params: {radius: 10, amount: 0.12}}
+      - {type: debuff, cooldown: 14, params: {range: 14, radius: 3, effect: silence, duration: 2, windup: 1.0, particle: SCULK_SOUL}}
+      - {type: projectile, cooldown: 4, params: {fx: proj_void_orb, speed: 0.7, damage: 1.1, count: 1, spread: 0, gravity: false, homing: 0.08, range: 18, windup: 0.6}}
+    drops: hollow_choir
+    sounds: {ambient: "minecraft:entity.allay.ambient_without_item", hurt: "minecraft:entity.allay.hurt", death: "minecraft:entity.allay.death", pitch: 0.5}
+    model:
+      texture_size: [64, 64]
+      parts:
+        - {name: robe, form: cloak, size: [10, 18, 7], pivot: [0, 0.95, 0], anim: body}
+        - {name: head, form: rounded, size: [8, 9, 8], pivot: [0, 1.62, 0], anim: head}
+        - {name: mask, form: slab, size: [7, 8, 2], pivot: [0, 1.62, 0.27], anim: head}
+        - {name: arm_left, form: arm, size: [3, 12, 3], pivot: [0.36, 1.45, 0], anim: arm_left}
+        - {name: arm_right, form: arm, size: [3, 12, 3], pivot: [-0.36, 1.45, 0], anim: arm_right}
+        - {name: halo, form: ring, size: [12, 2, 12], pivot: [0, 2.05, 0], anim: spin}
+      style: {shape: wraith, palette: ["#04060a", "#101c24", "#22404a", "#2fe0d0", "#e8f8f4"], features: [hollow_mask, sculk_veins, tattered_cloth]}
+
+  abyss_gatekeeper:
+    name: "심연의 문지기"
+    description: "심장으로 가는 마지막 문을 몸에 새긴 거인. 가슴의 문이 열리면 심연의 자식들이 쏟아진다."
+    floor: 10
+    rank: elite
+    base: IRON_GOLEM
+    scale: 1.6
+    hp: 17600
+    damage: 141
+    defense: 60
+    speed: 0.21
+    xp: 3600
+    gold: [240, 450]
+    ai: melee
+    skills:
+      - {type: summon, cooldown: 20, params: {mob: abyss_spawn, count: 3, max_alive: 5, radius: 5}}
+      - {type: beam, cooldown: 11, params: {length: 18, width: 2, damage_per_tick: 0.6, duration: 2, tick: 0.25, windup: 1.4, fx: telegraph_line}}
+      - {type: shield, cooldown: 22, params: {amount: 0.2, duration: 6, reduction: 0.3, self_only: true}}
+      - {type: slam, cooldown: 9, params: {radius: 5, damage: 1.5, windup: 1.2, knockback: 1.0}}
+      - {type: enrage, cooldown: 0, params: {threshold: 0.30, damage_mult: 1.3, speed_mult: 1.15}}
+    drops: abyss_gatekeeper
+    sounds: {ambient: "minecraft:entity.warden.ambient", hurt: "minecraft:entity.warden.hurt", death: "minecraft:entity.warden.death", pitch: 0.6}
+    model:
+      texture_size: [128, 128]
+      parts:
+        - {name: torso, form: box, size: [20, 18, 12], pivot: [0, 1.65, 0], anim: body}
+        - {name: gate, form: slab, size: [12, 14, 2], pivot: [0, 1.6, 0.38], anim: pulse}
+        - {name: head, form: box, size: [9, 9, 9], pivot: [0, 2.3, 0.05], anim: head}
+        - {name: horns, form: horn_pair, size: [20, 12, 3], pivot: [0, 2.65, 0], anim: head}
+        - {name: arm_left, form: arm, size: [8, 22, 8], pivot: [0.82, 2.05, 0], anim: arm_left}
+        - {name: arm_right, form: arm, size: [8, 22, 8], pivot: [-0.82, 2.05, 0], anim: arm_right}
+        - {name: legs, form: leg_pair, size: [14, 14, 7], pivot: [0, 0.9, 0], anim: legs_walk}
+      style: {shape: golem, palette: ["#030507", "#0a1a20", "#1a3c46", "#2fe0d0", "#ffe9a8"], features: [sculk_veins, gate_runes, emissive_core, elite_trim]}
+
+  # ════════════════════════════ 보스·엘리트 소환물 (rank: add) ════════════════════════════
+
+  moss_sproutling:
+    name: "이끼 새싹"
+    description: "이끼 파수꾼이 기둥에서 틔워 내는 작은 새싹. 터지면 포자가 퍼진다."
+    floor: 1
+    rank: add
+    base: HUSK
+    scale: 0.5
+    hp: 30
+    damage: 4
+    defense: 0
+    speed: 0.27
+    xp: 2
+    gold: [0, 0]
+    ai: swarm
+    skills:
+      - {type: explode_on_death, cooldown: 0, params: {radius: 2, damage: 0.8, delay: 0.5, effect: poison, effect_duration: 3}}
+    drops: null              # 소환물은 드롭 없음
+    sounds: {ambient: "minecraft:block.azalea_leaves.step", hurt: "minecraft:block.azalea_leaves.hit", death: "minecraft:block.azalea_leaves.break", pitch: 1.6}
+    model:
+      texture_size: [32, 32]
+      parts:
+        - {name: bulb, form: sphere, size: [8, 8, 8], pivot: [0, 0.35, 0], anim: body}
+        - {name: leaves, form: leaf_cluster, size: [10, 6, 10], pivot: [0, 0.75, 0], anim: pulse}
+        - {name: legs, form: leg_pair, size: [6, 4, 3], pivot: [0, 0.1, 0], anim: legs_walk}
+      style: {shape: blob, palette: ["#1a2a10", "#3f6a22", "#7fbf3a", "#d8f5a0"], features: [moss_tufts, glowing_eyes]}
+
+  silk_hatchling:
+    name: "은실 새끼거미"
+    description: "실잣는 여왕의 알주머니에서 깨어난 새끼. 수가 많으면 위험하다."
+    floor: 2
+    rank: add
+    base: CAVE_SPIDER
+    scale: 0.8
+    hp: 38
+    damage: 5
+    defense: 1
+    speed: 0.33
+    xp: 3
+    gold: [0, 0]
+    ai: swarm
+    skills: []
+    drops: null              # 소환물은 드롭 없음
+    sounds: {ambient: "minecraft:entity.spider.ambient", hurt: "minecraft:entity.spider.hurt", death: "minecraft:entity.spider.death", pitch: 2.0}
+    model:
+      texture_size: [32, 32]
+      parts:
+        - {name: body, form: rounded, size: [6, 4, 7], pivot: [0, 0.2, 0], anim: body}
+        - {name: legs, form: leg_eight, size: [12, 4, 8], pivot: [0, 0.1, 0], anim: legs_walk}
+      style: {shape: crawler, palette: ["#20222a", "#5a6070", "#b8c0d0", "#f4f8ff"], features: [silk_strands, glowing_eyes]}
+
+  floodling:
+    name: "범람 정령"
+    description: "수문의 망령이 물에서 빚어내는 정령. 부서질 때 물보라가 사방을 밀쳐낸다."
+    floor: 4
+    rank: add
+    base: HUSK
+    scale: 0.8
+    hp: 90
+    damage: 10
+    defense: 3
+    speed: 0.25
+    xp: 6
+    gold: [0, 0]
+    ai: swarm
+    skills:
+      - {type: explode_on_death, cooldown: 0, params: {radius: 3, damage: 0.6, delay: 0.3, effect: knockback, amount: 0.8}}
+    drops: null              # 소환물은 드롭 없음
+    sounds: {ambient: "minecraft:entity.drowned.ambient_water", hurt: "minecraft:entity.drowned.hurt_water", death: "minecraft:entity.drowned.death_water", pitch: 1.5}
+    model:
+      texture_size: [32, 32]
+      parts:
+        - {name: body, form: sphere, size: [10, 12, 10], pivot: [0, 0.6, 0], anim: pulse}
+        - {name: crest, form: fin, size: [2, 8, 10], pivot: [0, 1.05, 0], anim: float}
+      style: {shape: blob, palette: ["#0e2230", "#1e4a6a", "#3a9ad0", "#b0e8ff"], features: [translucent, dripping]}
+
+  cog_drone:
+    name: "톱니 드론"
+    description: "대시계 집행관이 풀어놓는 작은 비행 톱니. 부서질 때 파편이 튄다."
+    floor: 9
+    rank: add
+    base: BAT
+    flying: true
+    scale: 1.0
+    hp: 620
+    damage: 42
+    defense: 12
+    speed: 0.32
+    xp: 20
+    gold: [0, 0]
+    ai: swarm
+    skills:
+      - {type: explode_on_death, cooldown: 0, params: {radius: 2.5, damage: 0.8, delay: 0.4}}
+    drops: null              # 소환물은 드롭 없음
+    sounds: {ambient: "minecraft:block.copper_bulb.turn_on", hurt: "minecraft:block.copper.hit", death: "minecraft:block.copper.break", pitch: 1.8}
+    model:
+      texture_size: [32, 32]
+      parts:
+        - {name: gear, form: gear, size: [10, 10, 3], pivot: [0, 0.6, 0], anim: spin}
+        - {name: eye, form: eye, size: [4, 4, 4], pivot: [0, 0.6, 0.05], anim: head}
+      style: {shape: floating, palette: ["#1e120a", "#6a3a1a", "#c87a3a", "#f0c080"], features: [rivets, emissive_core]}
+
+  abyss_spawn:
+    name: "심연의 자식"
+    description: "문지기의 가슴과 심장의 균열에서 기어 나오는 검은 덩어리. 쓰러지면 맥박처럼 터진다."
+    floor: 10
+    rank: add
+    base: HUSK
+    scale: 0.6
+    hp: 800
+    damage: 50
+    defense: 15
+    speed: 0.30
+    xp: 25
+    gold: [0, 0]
+    ai: swarm
+    skills:
+      - {type: explode_on_death, cooldown: 0, params: {radius: 3, damage: 1.0, delay: 0.6, effect: vulnerable, amount: 0.1, effect_duration: 4}}
+    drops: null              # 소환물은 드롭 없음
+    sounds: {ambient: "minecraft:block.sculk.spread", hurt: "minecraft:block.sculk.hit", death: "minecraft:block.sculk.break", pitch: 1.6}
+    model:
+      texture_size: [32, 32]
+      parts:
+        - {name: body, form: sphere, size: [10, 9, 10], pivot: [0, 0.35, 0], anim: pulse}
+        - {name: tendrils, form: tentacle_cluster, size: [12, 6, 12], pivot: [0, 0.15, 0], anim: legs_walk}
+      style: {shape: blob, palette: ["#020406", "#0a1a20", "#16404a", "#2fe0d0"], features: [sculk_veins, glowing_eyes]}

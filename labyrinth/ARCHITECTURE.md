@@ -65,6 +65,10 @@ labyrinth/
   플러그인은 `Mannequin` 엔티티 + `ResolvableProfile` 의 SkinPatch(body 텍스처 = `labyrinth:entity/npc/<id>`) 사용.
 - **이펙트 모델**(아우라 링, 장판 경고, 투사체 등): `labyrinth:fx/<name>` → `assets/labyrinth/items/fx/<name>.json`.
   목록은 `content/fx.yml`.
+- **표시 규칙(몹 파트·이펙트 공통)**: 플러그인은 `ItemDisplay` + `ItemDisplayTransform.FIXED` 로 띄운다. 생성기는 모델 좌표 한계
+  (−16~32)를 넘는 큰 모델을 비율 s 로 줄여 만들고 `display.fixed.scale = 1/s`(rotation/translation 0)로 원래 크기를 복원한다.
+  몹 파트는 **pivot 이 모델 중심(8,8,8)** 에 오게 만든다 → 플러그인의 Transformation 회전 중심 = pivot. YAML `size`(px, 16=1블록)가
+  곧 화면 크기. 상세(파트 배치 기준·손에 쥐기 규칙): GDD.md §14.6.
 - **UI 글리프**: `content/glyphs.yml` 이 원본. 폰트 `labyrinth:ui` (`assets/labyrinth/font/ui.json`).
   각 글리프 = 사설 영역 코드포인트(U+E000~) + PNG + ascent + height. 음수/양수 공백 글리프로 위치 이동.
   플러그인은 `Component.text(char).font(Key.key("labyrinth","ui"))` 로 사용. 하드코딩 금지, glyphs.yml 에서 읽기.
@@ -347,6 +351,33 @@ spaces: {neg_1: -1, neg_8: -8, neg_169: -169, pos_1: 1}   # 공백 프로바이�
 ```
 
 스키마를 확장해야 하면 필드를 **추가**만 하고 이 문서 §6 을 갱신한다. 생성기·플러그인 모두 모르는 필드는 무시한다.
+
+### 6.1 콘텐츠 단계에서 추가된 필드 (classes/floors/mobs/bosses/npcs/titles/fx)
+값의 닫힌 목록과 해석은 GDD.md 에 있다(§번호 표기). 모두 **추가** 필드이며 위 예시의 기존 필드는 그대로다.
+
+- **classes.yml**: `color`(UI 색), `description`, `primary_stat`, `base_hp`, `base_mp`, `mana_regen`(초당),
+  `passive: {id, name, description, params}`. 스킬 params 해석 규칙 = GDD §4.1.
+- **floors.yml**: `subtitle`, `description`, `level_range: [min, max]`, `decor: [{block, where(floor|ceiling|wall|corner), chance}]`,
+  `liquid(WATER|LAVA|null)`, `room_height`, `mob_density: [min, max]`(전투방당), `gimmick_params`(기믹방 구현이 읽음, GDD §10),
+  `ambient: {particle, density, sound(바닐라 사운드 키), sound_interval: [min, max], volume, pitch}`.
+- **mobs.yml**: `description`, `rank(normal|elite|add)`, `flying`, `sounds: {ambient, hurt, death, pitch}`, `drops: null`(소환물).
+  `skills[].type` = GDD §9.1 닫힌 목록(24종), `params.effect` = §9.2. `model.parts[]` 에 `form`·`size: [w,h,d]`(px) 추가,
+  `model.style` 에 `features` 추가 (form/anim/shape/features 목록 = GDD §14.3).
+- **bosses.yml**: `core`(핵심 기믹 키, 보스마다 다름), `description`, `speed`, `flying`, `bossbar`(BossBar 색),
+  `lines: {intro, phase2, phase3, death}`, `rotation: {페이즈번호: [패턴키…]}`, `sounds`, `arena` 에 보스별 배치 키
+  (pillars/nests/platforms/valves/anchors/pylons/rune_shelves/corridor_length …). 패턴 params 공통 규칙(`*_base`·`*_per_member`·
+  `*_per_members`·`*_pct`·`solo_*`·`p2_*`) = GDD §8.4. rotation 에 없는 패턴 키 = 상시 시스템/페이즈 트리거(GDD §8.3).
+- **npcs.yml**: `role` 에 `lore`(층 휴식방 이야기 NPC) 추가, `nameplate`, `placement(overworld|floor)`, `floor`, `dialogue: [..]`,
+  `shop: [{item, price, level_req?}]`(merchant), `skin_style` 에 `hair`, `accessories` (목록 = GDD §14.5, palette 6색 순서 고정).
+- **titles.yml**: `category(pioneer|clear|challenge|combat|growth|collection|craft|pvp)`, `hidden`, `reward: {gold, items: {id: 개수}}`.
+  condition 파라미터: CLEAR `{floor, count?}`, NO_DEATH_CLEAR `{floor, party_min?}`, DIFFICULTY_CLEAR `{floor, difficulty}`,
+  SPEED_CLEAR `{floor, seconds}`, KILL `{count, mob?, rank?}`, BOSS_KILL `{count, boss?}`, LEVEL `{level}`, OBTAIN_RARITY `{rarity, count?}`,
+  CRAFT `{count, rarity?}`, PVP_WIN/PVP_STREAK `{count}`, PVP_RATING `{min}`. `bonus` 키 = 스탯 6종 + `xp_bonus`, `gold_bonus`.
+- **fx.yml**: `auras.<id>`: `tier(legendary|mythic)`, `particles[]: {type, count, radius, height, pattern, chance?, speed?, color?, color_to?, size?}`
+  (color 류는 DUST/DUST_COLOR_TRANSITION 전용), `ring_scale`, `ring_height`, `ring_step`, `secondary_model`, `secondary_spin`,
+  `secondary_mode(ring|back)`, `interval`(틱), `swing`. `models.<name>`: `motif`, `shape`(projectile), `frametime`, `size: [w,h,d]`(px),
+  `flat`, `billboard(FIXED|CENTER|VERTICAL)`, `glow`. 아우라마다 `<id>_ring`/`<id>_slash`/`<id>_orb`/`<id>_burst` 모델이 있다
+  (무기 스킬 `params.fx` 용). style/motif 목록 = GDD §14.4.
 
 ## 7. 성능·안정성 규칙
 

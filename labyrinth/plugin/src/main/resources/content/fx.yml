@@ -1,0 +1,381 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# fx.yml — 아우라 · 무기 스킬 이펙트 · 경고 장판 · 투사체 · 기믹 오브젝트 모델 (전부 자체 제작)
+#
+# 스키마: ARCHITECTURE.md §6 fx.yml (+ 추가 필드는 §6 에 기록됨)
+#  models.<name>  → 아이템 모델 labyrinth:fx/<name>  (assets/labyrinth/items/fx/<name>.json)
+#    style     : 생성기 템플릿 (GDD.md "Pack generator templates" → FX 스타일 닫힌 목록)
+#    motif     : 무늬/장식 (같은 목록 참고). palette: 어두운 색 → 밝은 색
+#    animated/frames/frametime : 텍스처 프레임 애니메이션 (.png.mcmeta)
+#    size      : [w, h, d] 픽셀(16 = 1블록, 표시 스케일 1 기준). Java 가 Display 변환으로 크기 조절
+#    flat      : true 면 바닥에 눕는 모델 (경고 장판 등, Y 두께 거의 0)
+#    billboard : FIXED | CENTER | VERTICAL — Java 가 Display.Billboard 로 설정
+#    glow      : true 면 Java 가 Display 밝기를 (15,15)로 고정 (어둠 속에서도 빛남)
+#  auras.<id>    → 전설·신화 무기를 들었을 때 (items.yml 의 aura 값)
+#    tier      : legendary | mythic
+#    particles : [{type(Particle), count, radius, height(발 기준 Y), pattern, chance?, color?, color_to?, size?, speed?}]
+#                pattern = orbit | spiral | rise | fall | swirl | burst | trail (GDD.md "아우라" 설명)
+#                color/color_to/size 는 DUST / DUST_COLOR_TRANSITION 전용
+#    ring_model / ring_spin(도/틱) / ring_scale / ring_height(발 기준 Y) / ring_step(true = 시계처럼 끊어 회전)
+#    secondary_model / secondary_spin / secondary_mode(ring | back) — 신화 전용 2번째 레이어
+#    interval  : 파티클 생성 주기(틱). LOD 는 AuraService 가 거리·인원으로 추가 조절
+#    swing     : 휘두를 때 한 번 터지는 파티클 (선택)
+# ─────────────────────────────────────────────────────────────────────────────
+version: 1
+
+auras:
+
+  # ═══════════════════════ 전설 (금색 등급, 링 아우라) ═══════════════════════
+  dawn:
+    tier: legendary
+    particles:
+      - {type: DUST, color: "#ffd27a", size: 1.0, count: 2, radius: 0.7, height: 1.0, pattern: orbit}
+      - {type: END_ROD, count: 1, radius: 0.5, height: 0.3, pattern: rise, chance: 0.4, speed: 0.02}
+    ring_model: dawn_ring
+    ring_spin: 4.0
+    ring_scale: 1.2
+    ring_height: 0.05
+    interval: 4
+    swing: {type: END_ROD, count: 6, speed: 0.08}
+  ember:
+    tier: legendary
+    particles:
+      - {type: FLAME, count: 2, radius: 0.6, height: 0.6, pattern: rise, speed: 0.01}
+      - {type: SMALL_FLAME, count: 1, radius: 0.4, height: 1.2, pattern: orbit}
+      - {type: LAVA, count: 1, radius: 0.3, height: 1.0, pattern: burst, chance: 0.05}
+    ring_model: ember_ring
+    ring_spin: 6.0
+    ring_scale: 1.2
+    ring_height: 0.05
+    interval: 3
+    swing: {type: FLAME, count: 8, speed: 0.06}
+  gale:
+    tier: legendary
+    particles:
+      - {type: SMALL_GUST, count: 1, radius: 0.8, height: 0.8, pattern: swirl, chance: 0.3}
+      - {type: DUST, color: "#c8f0dc", size: 0.7, count: 2, radius: 0.8, height: 0.2, pattern: spiral}
+    ring_model: gale_ring
+    ring_spin: 10.0
+    ring_scale: 1.3
+    ring_height: 0.05
+    interval: 4
+    swing: {type: SMALL_GUST, count: 1, speed: 0.0}
+  rime:
+    tier: legendary
+    particles:
+      - {type: SNOWFLAKE, count: 2, radius: 0.7, height: 2.0, pattern: fall, speed: 0.01}
+      - {type: DUST, color: "#bfe6ff", size: 0.8, count: 1, radius: 0.6, height: 1.0, pattern: orbit}
+    ring_model: rime_ring
+    ring_spin: 3.0
+    ring_scale: 1.2
+    ring_height: 0.05
+    interval: 4
+    swing: {type: SNOWFLAKE, count: 8, speed: 0.05}
+  sanctum:
+    tier: legendary
+    particles:
+      - {type: END_ROD, count: 1, radius: 0.4, height: 0.2, pattern: rise, speed: 0.03}
+      - {type: DUST, color: "#fff4d6", size: 1.0, count: 2, radius: 0.5, height: 2.1, pattern: orbit}
+    ring_model: sanctum_ring
+    ring_spin: 2.0
+    ring_scale: 0.7
+    ring_height: 2.2
+    interval: 4
+    swing: {type: WAX_ON, count: 6, speed: 0.1}
+  nightshade:
+    tier: legendary
+    particles:
+      - {type: DUST_COLOR_TRANSITION, color: "#5a2a8a", color_to: "#0a0a12", size: 1.2, count: 2, radius: 0.6, height: 0.5, pattern: swirl}
+      - {type: SQUID_INK, count: 1, radius: 0.3, height: 1.0, pattern: burst, chance: 0.15, speed: 0.01}
+    ring_model: nightshade_ring
+    ring_spin: -5.0
+    ring_scale: 1.2
+    ring_height: 0.05
+    interval: 4
+    swing: {type: SMOKE, count: 6, speed: 0.04}
+  tide:
+    tier: legendary
+    particles:
+      - {type: DRIPPING_WATER, count: 2, radius: 0.6, height: 1.6, pattern: fall}
+      - {type: DUST, color: "#5ab0d0", size: 0.9, count: 2, radius: 0.7, height: 0.4, pattern: spiral}
+      - {type: BUBBLE_POP, count: 1, radius: 0.5, height: 1.0, pattern: orbit, chance: 0.5}
+    ring_model: tide_ring
+    ring_spin: 5.0
+    ring_scale: 1.25
+    ring_height: 0.05
+    interval: 4
+    swing: {type: SPLASH, count: 10, speed: 0.1}
+  prism:
+    tier: legendary
+    particles:
+      - {type: DUST, color: "#fff2b0", size: 0.9, count: 1, radius: 0.7, height: 1.0, pattern: orbit}
+      - {type: DUST, color: "#6a4ab8", size: 0.9, count: 1, radius: 0.7, height: 1.0, pattern: orbit}
+      - {type: END_ROD, count: 1, radius: 0.4, height: 0.5, pattern: rise, chance: 0.3, speed: 0.02}
+    ring_model: prism_ring
+    ring_spin: 7.0
+    ring_scale: 1.2
+    ring_height: 0.05
+    interval: 4
+    swing: {type: END_ROD, count: 6, speed: 0.08}
+  chrono:
+    tier: legendary
+    particles:
+      - {type: WAX_OFF, count: 1, radius: 0.6, height: 1.0, pattern: orbit}
+      - {type: DUST, color: "#e8b060", size: 0.8, count: 2, radius: 0.75, height: 0.1, pattern: orbit}
+      - {type: ELECTRIC_SPARK, count: 1, radius: 0.4, height: 1.2, pattern: burst, chance: 0.2}
+    ring_model: chrono_ring
+    ring_spin: 6.0
+    ring_step: true
+    ring_scale: 1.3
+    ring_height: 0.05
+    interval: 5
+    swing: {type: WAX_OFF, count: 8, speed: 0.1}
+
+  # ═══════════════════════ 신화 (빨강 등급, 2겹 애니메이션 아우라) ═══════════════════════
+  celestial:
+    tier: mythic
+    particles:
+      - {type: END_ROD, count: 2, radius: 0.9, height: 1.2, pattern: orbit, speed: 0.0}
+      - {type: DUST, color: "#7fb2ff", size: 1.1, count: 2, radius: 0.7, height: 0.3, pattern: spiral}
+      - {type: FIREWORK, count: 1, radius: 0.5, height: 1.8, pattern: burst, chance: 0.08, speed: 0.02}
+    ring_model: celestial_ring
+    ring_spin: 3.0
+    ring_scale: 1.4
+    ring_height: 0.05
+    secondary_model: celestial_ring_outer
+    secondary_spin: -2.0
+    secondary_mode: ring
+    interval: 3
+    swing: {type: END_ROD, count: 12, speed: 0.12}
+  bloodmoon:
+    tier: mythic
+    particles:
+      - {type: DUST, color: "#b01a3a", size: 1.3, count: 3, radius: 0.7, height: 0.6, pattern: swirl}
+      - {type: CRIMSON_SPORE, count: 2, radius: 0.6, height: 1.0, pattern: rise}
+      - {type: DRIPPING_LAVA, count: 1, radius: 0.3, height: 1.3, pattern: fall, chance: 0.3}
+    ring_model: bloodmoon_ring
+    ring_spin: 8.0
+    ring_scale: 1.4
+    ring_height: 0.05
+    secondary_model: bloodmoon_ring_outer
+    secondary_spin: -4.0
+    secondary_mode: ring
+    interval: 3
+    swing: {type: DUST, color: "#ff3b3b", size: 1.5, count: 12, speed: 0.1}
+  tempest:
+    tier: mythic
+    particles:
+      - {type: ELECTRIC_SPARK, count: 3, radius: 0.7, height: 1.0, pattern: burst, speed: 0.05}
+      - {type: SMALL_GUST, count: 1, radius: 0.9, height: 0.5, pattern: swirl, chance: 0.25}
+      - {type: DUST, color: "#e0f0ff", size: 0.8, count: 2, radius: 0.8, height: 0.2, pattern: spiral}
+    ring_model: tempest_ring
+    ring_spin: 12.0
+    ring_scale: 1.4
+    ring_height: 0.05
+    secondary_model: tempest_ring_outer
+    secondary_spin: -9.0
+    secondary_mode: ring
+    interval: 3
+    swing: {type: ELECTRIC_SPARK, count: 14, speed: 0.2}
+  void:
+    tier: mythic
+    particles:
+      - {type: REVERSE_PORTAL, count: 3, radius: 0.6, height: 0.8, pattern: swirl, speed: 0.02}
+      - {type: PORTAL, count: 2, radius: 1.0, height: 1.0, pattern: orbit, speed: 0.4}
+      - {type: DUST, color: "#2a0a4a", size: 1.4, count: 1, radius: 0.5, height: 0.2, pattern: spiral}
+    ring_model: void_ring
+    ring_spin: -6.0
+    ring_scale: 1.4
+    ring_height: 0.05
+    secondary_model: void_ring_outer
+    secondary_spin: 4.0
+    secondary_mode: ring
+    interval: 3
+    swing: {type: REVERSE_PORTAL, count: 14, speed: 0.15}
+  seraph:
+    tier: mythic
+    particles:
+      - {type: END_ROD, count: 2, radius: 0.5, height: 0.2, pattern: rise, speed: 0.04}
+      - {type: DUST, color: "#ffffff", size: 1.0, count: 2, radius: 0.6, height: 2.2, pattern: orbit}
+      - {type: WAX_ON, count: 1, radius: 0.6, height: 1.4, pattern: burst, chance: 0.3}
+    ring_model: seraph_ring
+    ring_spin: 2.0
+    ring_scale: 0.75
+    ring_height: 2.25
+    secondary_model: seraph_wings
+    secondary_spin: 0.0
+    secondary_mode: back
+    interval: 3
+    swing: {type: END_ROD, count: 12, speed: 0.1}
+  eclipse:
+    tier: mythic
+    particles:
+      - {type: DUST_COLOR_TRANSITION, color: "#ffd27a", color_to: "#05040a", size: 1.3, count: 3, radius: 0.8, height: 1.0, pattern: orbit}
+      - {type: SMOKE, count: 1, radius: 0.4, height: 0.3, pattern: rise, speed: 0.02}
+      - {type: SQUID_INK, count: 1, radius: 0.3, height: 1.2, pattern: burst, chance: 0.15, speed: 0.01}
+    ring_model: eclipse_ring
+    ring_spin: 4.0
+    ring_scale: 1.4
+    ring_height: 0.05
+    secondary_model: eclipse_ring_outer
+    secondary_spin: -6.0
+    secondary_mode: ring
+    interval: 3
+    swing: {type: DUST_COLOR_TRANSITION, color: "#ffd27a", color_to: "#05040a", size: 1.5, count: 12, speed: 0.1}
+
+models:
+
+  # ═══════════════════════ 아우라 링 (전설 9 · 신화 6 + 신화 2번째 레이어 6) ═══════════════════════
+  dawn_ring:        {style: ring, motif: sun_rays, palette: ["#5a3a10", "#c8902a", "#ffd27a", "#fff4d6"], animated: true, frames: 8, frametime: 2, size: [32, 1, 32], flat: true, glow: true}
+  ember_ring:       {style: ring, motif: flames, palette: ["#2b0d05", "#7a2410", "#e0571d", "#ffc46b", "#fff4d6"], animated: true, frames: 8, frametime: 2, size: [32, 1, 32], flat: true, glow: true}
+  gale_ring:        {style: ring, motif: wind_streaks, palette: ["#1e3a2e", "#4f9a7a", "#c8f0dc", "#ffffff"], animated: true, frames: 8, frametime: 1, size: [34, 1, 34], flat: true, glow: true}
+  rime_ring:        {style: ring, motif: snowflakes, palette: ["#16283a", "#4a7ab0", "#bfe6ff", "#ffffff"], animated: true, frames: 8, frametime: 3, size: [32, 1, 32], flat: true, glow: true}
+  sanctum_ring:     {style: ring, motif: halo_runes, palette: ["#6a5020", "#d9b25a", "#fff4d6", "#ffffff"], animated: true, frames: 8, frametime: 3, size: [20, 1, 20], flat: true, glow: true}
+  nightshade_ring:  {style: ring, motif: thorns, palette: ["#05040a", "#1e1030", "#5a2a8a", "#b07cff"], animated: true, frames: 8, frametime: 2, size: [32, 1, 32], flat: true, glow: true}
+  tide_ring:        {style: ring, motif: waves, palette: ["#0e2230", "#1e4a6a", "#5ab0d0", "#d8f8ff"], animated: true, frames: 8, frametime: 2, size: [34, 1, 34], flat: true, glow: true}
+  prism_ring:       {style: ring, motif: crystal_facets, palette: ["#140c24", "#6a4ab8", "#fff2b0", "#ffffff"], animated: true, frames: 8, frametime: 2, size: [32, 1, 32], flat: true, glow: true}
+  chrono_ring:      {style: ring, motif: clock_gears, palette: ["#3a2412", "#8a5a26", "#e8b060", "#7ae0c0"], animated: true, frames: 8, frametime: 4, size: [34, 1, 34], flat: true, glow: true}
+  celestial_ring:         {style: ring, motif: constellation, palette: ["#0a1430", "#2a4a9a", "#7fb2ff", "#ffffff"], animated: true, frames: 16, frametime: 2, size: [36, 1, 36], flat: true, glow: true}
+  celestial_ring_outer:   {style: ring, motif: star_dots, palette: ["#2a4a9a", "#7fb2ff", "#ffe9a8", "#ffffff"], animated: true, frames: 16, frametime: 2, size: [46, 1, 46], flat: true, glow: true}
+  bloodmoon_ring:         {style: ring, motif: crescent, palette: ["#1a0006", "#5a0a18", "#b01a3a", "#ff6a6a"], animated: true, frames: 16, frametime: 2, size: [36, 1, 36], flat: true, glow: true}
+  bloodmoon_ring_outer:   {style: ring, motif: blood_drops, palette: ["#3a0610", "#8a0a1a", "#ff3b3b", "#ffc0a0"], animated: true, frames: 16, frametime: 2, size: [46, 1, 46], flat: true, glow: true}
+  tempest_ring:           {style: ring, motif: lightning, palette: ["#10183a", "#3a5ab0", "#a8d0ff", "#ffffff"], animated: true, frames: 16, frametime: 1, size: [36, 1, 36], flat: true, glow: true}
+  tempest_ring_outer:     {style: ring, motif: wind_streaks, palette: ["#1a2a4a", "#5a7ab0", "#e0f0ff", "#ffffff"], animated: true, frames: 16, frametime: 1, size: [46, 1, 46], flat: true, glow: true}
+  void_ring:              {style: ring, motif: void_rift, palette: ["#020104", "#1a0a2e", "#5a1a8a", "#c080ff"], animated: true, frames: 16, frametime: 2, size: [36, 1, 36], flat: true, glow: true}
+  void_ring_outer:        {style: ring, motif: star_dots, palette: ["#05020a", "#2a0a4a", "#8a3ad0", "#e8c8ff"], animated: true, frames: 16, frametime: 2, size: [46, 1, 46], flat: true, glow: true}
+  seraph_ring:            {style: ring, motif: halo_runes, palette: ["#8a7040", "#e8d090", "#ffffff", "#ffffff"], animated: true, frames: 16, frametime: 2, size: [20, 1, 20], flat: true, glow: true}
+  seraph_wings:           {style: wings, motif: feathers, palette: ["#a89870", "#e8e0c8", "#ffffff", "#fff4d6"], animated: true, frames: 16, frametime: 3, size: [40, 28, 2], billboard: FIXED, glow: true}
+  eclipse_ring:           {style: ring, motif: black_sun, palette: ["#000000", "#140c08", "#ffd27a", "#fff4d6"], animated: true, frames: 16, frametime: 2, size: [36, 1, 36], flat: true, glow: true}
+  eclipse_ring_outer:     {style: ring, motif: corona, palette: ["#05040a", "#3a2412", "#ffb04a", "#ffffff"], animated: true, frames: 16, frametime: 2, size: [46, 1, 46], flat: true, glow: true}
+
+  # ═══════════════════════ 무기 스킬 이펙트 (테마별 검기·구체·폭발) ═══════════════════════
+  # items.yml 의 weapon_skills[].params.fx 에서 참조. 이름 규칙: <테마>_slash | <테마>_orb | <테마>_burst
+  slash_wave:       {style: slash, motif: steel, palette: ["#3a3e48", "#a8b0c0", "#e8eef8", "#ffffff"], animated: true, frames: 6, frametime: 1, size: [32, 4, 12], billboard: FIXED, glow: true}
+  dawn_slash:       {style: slash, motif: sun_rays, palette: ["#5a3a10", "#c8902a", "#ffd27a", "#fff4d6"], animated: true, frames: 6, frametime: 1, size: [32, 4, 12], billboard: FIXED, glow: true}
+  dawn_orb:         {style: orb, motif: sun_rays, palette: ["#5a3a10", "#c8902a", "#ffd27a", "#fff4d6"], animated: true, frames: 6, frametime: 2, size: [8, 8, 8], billboard: CENTER, glow: true}
+  dawn_burst:       {style: shockwave, motif: sun_rays, palette: ["#5a3a10", "#c8902a", "#ffd27a", "#fff4d6"], animated: true, frames: 8, frametime: 1, size: [32, 1, 32], flat: true, glow: true}
+  ember_slash:      {style: slash, motif: flames, palette: ["#2b0d05", "#7a2410", "#e0571d", "#ffc46b", "#fff4d6"], animated: true, frames: 6, frametime: 1, size: [32, 4, 12], billboard: FIXED, glow: true}
+  ember_orb:        {style: orb, motif: flames, palette: ["#2b0d05", "#7a2410", "#e0571d", "#ffc46b"], animated: true, frames: 6, frametime: 2, size: [8, 8, 8], billboard: CENTER, glow: true}
+  ember_burst:      {style: shockwave, motif: flames, palette: ["#2b0d05", "#7a2410", "#e0571d", "#ffc46b"], animated: true, frames: 8, frametime: 1, size: [32, 1, 32], flat: true, glow: true}
+  gale_slash:       {style: slash, motif: wind_streaks, palette: ["#1e3a2e", "#4f9a7a", "#c8f0dc", "#ffffff"], animated: true, frames: 6, frametime: 1, size: [32, 4, 12], billboard: FIXED, glow: true}
+  gale_orb:         {style: orb, motif: wind_streaks, palette: ["#1e3a2e", "#4f9a7a", "#c8f0dc", "#ffffff"], animated: true, frames: 6, frametime: 1, size: [8, 8, 8], billboard: CENTER, glow: true}
+  gale_burst:       {style: shockwave, motif: wind_streaks, palette: ["#1e3a2e", "#4f9a7a", "#c8f0dc", "#ffffff"], animated: true, frames: 8, frametime: 1, size: [32, 1, 32], flat: true, glow: true}
+  rime_slash:       {style: slash, motif: snowflakes, palette: ["#16283a", "#4a7ab0", "#bfe6ff", "#ffffff"], animated: true, frames: 6, frametime: 1, size: [32, 4, 12], billboard: FIXED, glow: true}
+  rime_orb:         {style: orb, motif: snowflakes, palette: ["#16283a", "#4a7ab0", "#bfe6ff", "#ffffff"], animated: true, frames: 6, frametime: 2, size: [8, 8, 8], billboard: CENTER, glow: true}
+  rime_burst:       {style: shockwave, motif: snowflakes, palette: ["#16283a", "#4a7ab0", "#bfe6ff", "#ffffff"], animated: true, frames: 8, frametime: 1, size: [32, 1, 32], flat: true, glow: true}
+  sanctum_slash:    {style: slash, motif: halo_runes, palette: ["#6a5020", "#d9b25a", "#fff4d6", "#ffffff"], animated: true, frames: 6, frametime: 1, size: [32, 4, 12], billboard: FIXED, glow: true}
+  sanctum_orb:      {style: orb, motif: halo_runes, palette: ["#6a5020", "#d9b25a", "#fff4d6", "#ffffff"], animated: true, frames: 6, frametime: 2, size: [8, 8, 8], billboard: CENTER, glow: true}
+  sanctum_burst:    {style: shockwave, motif: halo_runes, palette: ["#6a5020", "#d9b25a", "#fff4d6", "#ffffff"], animated: true, frames: 8, frametime: 1, size: [32, 1, 32], flat: true, glow: true}
+  nightshade_slash: {style: slash, motif: thorns, palette: ["#05040a", "#1e1030", "#5a2a8a", "#b07cff"], animated: true, frames: 6, frametime: 1, size: [32, 4, 12], billboard: FIXED, glow: true}
+  nightshade_orb:   {style: orb, motif: thorns, palette: ["#05040a", "#1e1030", "#5a2a8a", "#b07cff"], animated: true, frames: 6, frametime: 2, size: [8, 8, 8], billboard: CENTER, glow: true}
+  nightshade_burst: {style: shockwave, motif: thorns, palette: ["#05040a", "#1e1030", "#5a2a8a", "#b07cff"], animated: true, frames: 8, frametime: 1, size: [32, 1, 32], flat: true, glow: true}
+  tide_slash:       {style: slash, motif: waves, palette: ["#0e2230", "#1e4a6a", "#5ab0d0", "#d8f8ff"], animated: true, frames: 6, frametime: 1, size: [32, 4, 12], billboard: FIXED, glow: true}
+  tide_orb:         {style: orb, motif: waves, palette: ["#0e2230", "#1e4a6a", "#5ab0d0", "#d8f8ff"], animated: true, frames: 6, frametime: 2, size: [8, 8, 8], billboard: CENTER, glow: true}
+  tide_burst:       {style: shockwave, motif: waves, palette: ["#0e2230", "#1e4a6a", "#5ab0d0", "#d8f8ff"], animated: true, frames: 8, frametime: 1, size: [32, 1, 32], flat: true, glow: true}
+  prism_slash:      {style: slash, motif: crystal_facets, palette: ["#140c24", "#6a4ab8", "#fff2b0", "#ffffff"], animated: true, frames: 6, frametime: 1, size: [32, 4, 12], billboard: FIXED, glow: true}
+  prism_orb:        {style: orb, motif: crystal_facets, palette: ["#140c24", "#6a4ab8", "#fff2b0", "#ffffff"], animated: true, frames: 6, frametime: 2, size: [8, 8, 8], billboard: CENTER, glow: true}
+  prism_burst:      {style: shockwave, motif: crystal_facets, palette: ["#140c24", "#6a4ab8", "#fff2b0", "#ffffff"], animated: true, frames: 8, frametime: 1, size: [32, 1, 32], flat: true, glow: true}
+  chrono_slash:     {style: slash, motif: clock_gears, palette: ["#3a2412", "#8a5a26", "#e8b060", "#7ae0c0"], animated: true, frames: 6, frametime: 1, size: [32, 4, 12], billboard: FIXED, glow: true}
+  chrono_orb:       {style: orb, motif: clock_gears, palette: ["#3a2412", "#8a5a26", "#e8b060", "#7ae0c0"], animated: true, frames: 6, frametime: 2, size: [8, 8, 8], billboard: CENTER, glow: true}
+  chrono_burst:     {style: shockwave, motif: clock_gears, palette: ["#3a2412", "#8a5a26", "#e8b060", "#7ae0c0"], animated: true, frames: 8, frametime: 1, size: [32, 1, 32], flat: true, glow: true}
+  celestial_slash:  {style: slash, motif: constellation, palette: ["#0a1430", "#2a4a9a", "#7fb2ff", "#ffffff"], animated: true, frames: 8, frametime: 1, size: [36, 4, 14], billboard: FIXED, glow: true}
+  celestial_orb:    {style: orb, motif: constellation, palette: ["#0a1430", "#2a4a9a", "#7fb2ff", "#ffffff"], animated: true, frames: 8, frametime: 2, size: [10, 10, 10], billboard: CENTER, glow: true}
+  celestial_burst:  {style: shockwave, motif: constellation, palette: ["#0a1430", "#2a4a9a", "#7fb2ff", "#ffffff"], animated: true, frames: 10, frametime: 1, size: [40, 1, 40], flat: true, glow: true}
+  bloodmoon_slash:  {style: slash, motif: crescent, palette: ["#1a0006", "#5a0a18", "#b01a3a", "#ff6a6a"], animated: true, frames: 8, frametime: 1, size: [36, 4, 14], billboard: FIXED, glow: true}
+  bloodmoon_orb:    {style: orb, motif: crescent, palette: ["#1a0006", "#5a0a18", "#b01a3a", "#ff6a6a"], animated: true, frames: 8, frametime: 2, size: [10, 10, 10], billboard: CENTER, glow: true}
+  bloodmoon_burst:  {style: shockwave, motif: blood_drops, palette: ["#1a0006", "#5a0a18", "#b01a3a", "#ff6a6a"], animated: true, frames: 10, frametime: 1, size: [40, 1, 40], flat: true, glow: true}
+  tempest_slash:    {style: slash, motif: lightning, palette: ["#10183a", "#3a5ab0", "#a8d0ff", "#ffffff"], animated: true, frames: 8, frametime: 1, size: [36, 4, 14], billboard: FIXED, glow: true}
+  tempest_orb:      {style: orb, motif: lightning, palette: ["#10183a", "#3a5ab0", "#a8d0ff", "#ffffff"], animated: true, frames: 8, frametime: 1, size: [10, 10, 10], billboard: CENTER, glow: true}
+  tempest_burst:    {style: shockwave, motif: lightning, palette: ["#10183a", "#3a5ab0", "#a8d0ff", "#ffffff"], animated: true, frames: 10, frametime: 1, size: [40, 1, 40], flat: true, glow: true}
+  void_slash:       {style: slash, motif: void_rift, palette: ["#020104", "#1a0a2e", "#5a1a8a", "#c080ff"], animated: true, frames: 8, frametime: 1, size: [36, 4, 14], billboard: FIXED, glow: true}
+  void_orb:         {style: orb, motif: void_rift, palette: ["#020104", "#1a0a2e", "#5a1a8a", "#c080ff"], animated: true, frames: 8, frametime: 2, size: [10, 10, 10], billboard: CENTER, glow: true}
+  void_burst:       {style: shockwave, motif: void_rift, palette: ["#020104", "#1a0a2e", "#5a1a8a", "#c080ff"], animated: true, frames: 10, frametime: 1, size: [40, 1, 40], flat: true, glow: true}
+  seraph_slash:     {style: slash, motif: feathers, palette: ["#a89870", "#e8e0c8", "#ffffff", "#fff4d6"], animated: true, frames: 8, frametime: 1, size: [36, 4, 14], billboard: FIXED, glow: true}
+  seraph_orb:       {style: orb, motif: feathers, palette: ["#a89870", "#e8e0c8", "#ffffff", "#fff4d6"], animated: true, frames: 8, frametime: 2, size: [10, 10, 10], billboard: CENTER, glow: true}
+  seraph_burst:     {style: shockwave, motif: halo_runes, palette: ["#a89870", "#e8e0c8", "#ffffff", "#fff4d6"], animated: true, frames: 10, frametime: 1, size: [40, 1, 40], flat: true, glow: true}
+  eclipse_slash:    {style: slash, motif: black_sun, palette: ["#000000", "#140c08", "#ffd27a", "#fff4d6"], animated: true, frames: 8, frametime: 1, size: [36, 4, 14], billboard: FIXED, glow: true}
+  eclipse_orb:      {style: orb, motif: black_sun, palette: ["#000000", "#140c08", "#ffd27a", "#fff4d6"], animated: true, frames: 8, frametime: 2, size: [10, 10, 10], billboard: CENTER, glow: true}
+  eclipse_burst:    {style: shockwave, motif: corona, palette: ["#000000", "#140c08", "#ffd27a", "#fff4d6"], animated: true, frames: 10, frametime: 1, size: [40, 1, 40], flat: true, glow: true}
+
+  # ═══════════════════════ 직업 스킬 이펙트 (classes.yml params.fx*) ═══════════════════════
+  slash_arc:            {style: slash, motif: steel, palette: ["#3a1410", "#a83a22", "#ff8a5a", "#ffffff"], animated: true, frames: 6, frametime: 1, size: [40, 2, 40], flat: true, glow: true}
+  shockwave:            {style: shockwave, motif: cracks, palette: ["#2a1e14", "#6a5a40", "#c8a070", "#fff0d0"], animated: true, frames: 8, frametime: 1, size: [32, 1, 32], flat: true}
+  proj_piercing_arrow:  {style: projectile, shape: arrow, palette: ["#2a3a1a", "#6a9a3a", "#c8f08a", "#ffffff"], animated: true, frames: 4, frametime: 1, size: [3, 3, 18], billboard: FIXED, glow: true}
+  mark_hunter:          {style: marker, motif: crosshair, palette: ["#3a1a0a", "#c84a1a", "#ffb060", "#ffffff"], animated: true, frames: 8, frametime: 2, size: [12, 12, 1], billboard: CENTER, glow: true}
+  snare_trap:           {style: glyph, motif: jaw_trap, palette: ["#1a1a12", "#5a5a40", "#a8c46a", "#e8ffb0"], animated: true, frames: 4, frametime: 4, size: [32, 1, 32], flat: true, glow: true}
+  proj_arcane_bolt:     {style: orb, motif: runes, palette: ["#1a0a3a", "#5a2ab0", "#b07cff", "#ffffff"], animated: true, frames: 6, frametime: 1, size: [8, 8, 8], billboard: CENTER, glow: true}
+  frost_nova_ring:      {style: shockwave, motif: snowflakes, palette: ["#16283a", "#4a7ab0", "#bfe6ff", "#ffffff"], animated: true, frames: 8, frametime: 1, size: [32, 1, 32], flat: true, glow: true}
+  blink_echo:           {style: glyph, motif: runes, palette: ["#1a0a3a", "#5a2ab0", "#b07cff", "#ffffff"], animated: true, frames: 8, frametime: 1, size: [24, 1, 24], flat: true, glow: true}
+  meteor:               {style: projectile, shape: meteor, palette: ["#1a0806", "#5a1a0a", "#e0571d", "#ffc46b", "#fff4d6"], animated: true, frames: 6, frametime: 1, size: [24, 24, 24], billboard: FIXED, glow: true}
+  heal_glyph:           {style: glyph, motif: cross_flower, palette: ["#2a4a1a", "#6ab03a", "#d8ffb0", "#ffffff"], animated: true, frames: 8, frametime: 2, size: [24, 1, 24], flat: true, glow: true}
+  holy_wave:            {style: shockwave, motif: halo_runes, palette: ["#6a5020", "#d9b25a", "#fff4d6", "#ffffff"], animated: true, frames: 8, frametime: 1, size: [32, 1, 32], flat: true, glow: true}
+  hymn_pillar:          {style: pillar, motif: halo_runes, palette: ["#6a5020", "#d9b25a", "#fff4d6", "#ffffff"], animated: true, frames: 8, frametime: 2, size: [16, 48, 16], billboard: FIXED, glow: true}
+  shadow_dash:          {style: slash, motif: smoke, palette: ["#05040a", "#1e1030", "#4a3a8a", "#9a8cff"], animated: true, frames: 6, frametime: 1, size: [32, 4, 10], billboard: FIXED, glow: true}
+  smoke_cloud:          {style: dome, motif: smoke, palette: ["#0e0c14", "#2a2632", "#4a4656", "#6a6676"], animated: true, frames: 8, frametime: 3, size: [32, 20, 32], billboard: FIXED}
+  citadel_banner:       {style: banner, motif: shield_crest, palette: ["#14203a", "#2a4a8a", "#7fb2ff", "#ffd27a"], animated: true, frames: 8, frametime: 3, size: [12, 40, 2], billboard: FIXED, glow: true}
+  citadel_dome:         {style: dome, motif: hex_grid, palette: ["#14203a", "#2a4a8a", "#7fb2ff", "#ffffff"], animated: true, frames: 8, frametime: 2, size: [32, 20, 32], billboard: FIXED, glow: true}
+
+  # ═══════════════════════ 경고 장판·표식 (보스 패턴 카탈로그) ═══════════════════════
+  telegraph_circle:   {style: telegraph_circle, palette: ["#5a0a0a", "#ff3b3b", "#ffb0a0"], animated: true, frames: 6, frametime: 2, size: [32, 1, 32], flat: true, glow: true}
+  telegraph_ring:     {style: telegraph_ring, palette: ["#5a2a0a", "#ff8a2a", "#ffd0a0"], animated: true, frames: 6, frametime: 2, size: [32, 1, 32], flat: true, glow: true}
+  telegraph_line:     {style: telegraph_line, palette: ["#5a0a0a", "#ff3b3b", "#ffb0a0"], animated: true, frames: 6, frametime: 1, size: [16, 1, 32], flat: true, glow: true}
+  telegraph_cone:     {style: telegraph_cone, palette: ["#5a0a0a", "#ff3b3b", "#ffb0a0"], animated: true, frames: 6, frametime: 2, size: [32, 1, 32], flat: true, glow: true}
+  telegraph_arrow:    {style: telegraph_arrow, palette: ["#3a0a3a", "#c03ad0", "#f0b0ff"], animated: true, frames: 6, frametime: 1, size: [16, 1, 32], flat: true, glow: true}
+  telegraph_tile:     {style: telegraph_tile, palette: ["#2a0a3a", "#a03ad0", "#e8b0ff"], animated: true, frames: 6, frametime: 2, size: [16, 1, 16], flat: true, glow: true}
+  telegraph_safe:     {style: telegraph_circle, palette: ["#0a3a1a", "#3ad06a", "#c0ffd0"], animated: true, frames: 6, frametime: 3, size: [32, 1, 32], flat: true, glow: true}
+  telegraph_mechanic: {style: telegraph_circle, palette: ["#2a0a3a", "#a03ad0", "#e8b0ff"], animated: true, frames: 6, frametime: 2, size: [32, 1, 32], flat: true, glow: true}
+  marker_spread:      {style: marker, motif: spore_burst, palette: ["#0a1a3a", "#2a6ad0", "#a0d0ff", "#ffffff"], animated: true, frames: 8, frametime: 2, size: [12, 12, 1], billboard: CENTER, glow: true}
+  marker_stack:       {style: marker, motif: bloom, palette: ["#3a2a0a", "#d0a02a", "#ffe58a", "#ffffff"], animated: true, frames: 8, frametime: 2, size: [12, 12, 1], billboard: CENTER, glow: true}
+  marker_target:      {style: marker, motif: crosshair, palette: ["#3a0a3a", "#c03ad0", "#f0b0ff", "#ffffff"], animated: true, frames: 8, frametime: 1, size: [12, 12, 1], billboard: CENTER, glow: true}
+  marker_light:       {style: marker, motif: light_crystal, palette: ["#6a5020", "#ffd27a", "#fff8d0", "#ffffff"], animated: true, frames: 8, frametime: 2, size: [8, 12, 8], billboard: VERTICAL, glow: true}
+  marker_dark:        {style: marker, motif: dark_crystal, palette: ["#05020a", "#2a0a4a", "#6a2ab0", "#c080ff"], animated: true, frames: 8, frametime: 2, size: [8, 12, 8], billboard: VERTICAL, glow: true}
+
+  # ═══════════════════════ 투사체 ═══════════════════════
+  proj_wisp_spark:   {style: orb, motif: firefly, palette: ["#2d3b1a", "#6f8f2a", "#d9f27a", "#fffbd6"], animated: true, frames: 4, frametime: 2, size: [5, 5, 5], billboard: CENTER, glow: true}
+  proj_spore:        {style: projectile, shape: glob, palette: ["#2a1e2c", "#5a3a5e", "#9a62a0", "#e2b0e0"], animated: true, frames: 4, frametime: 2, size: [8, 8, 8], billboard: CENTER}
+  proj_web:          {style: projectile, shape: web_ball, palette: ["#3b404c", "#8d95a8", "#dfe6f2", "#ffffff"], animated: false, frames: 1, size: [8, 8, 8], billboard: CENTER}
+  proj_pickaxe:      {style: projectile, shape: pickaxe, palette: ["#2a1d16", "#5a3a26", "#8c5a34", "#b8743c", "#c0c0c8"], animated: false, frames: 1, size: [14, 14, 2], billboard: FIXED}
+  proj_hook:         {style: projectile, shape: hook, palette: ["#13211f", "#3f6e62", "#7a7a80", "#c0c0c8"], animated: false, frames: 1, size: [6, 10, 2], billboard: FIXED}
+  proj_brine:        {style: projectile, shape: glob, palette: ["#1a2626", "#4f7a6e", "#a3c9b4", "#e6f2e8"], animated: true, frames: 4, frametime: 2, size: [7, 7, 7], billboard: CENTER}
+  proj_ember:        {style: orb, motif: flames, palette: ["#1a0a06", "#c43c12", "#ff9a2a", "#fff0a0"], animated: true, frames: 4, frametime: 1, size: [7, 7, 7], billboard: CENTER, glow: true}
+  proj_molten_orb:   {style: projectile, shape: glob, palette: ["#2a0a04", "#a83a10", "#ff8a2a", "#ffd27a"], animated: true, frames: 4, frametime: 2, size: [8, 8, 8], billboard: CENTER, glow: true}
+  proj_frost_shard:  {style: projectile, shape: shard, palette: ["#16283a", "#4a7ab0", "#bfe6ff", "#ffffff"], animated: false, frames: 1, size: [3, 3, 12], billboard: FIXED, glow: true}
+  proj_crystal:      {style: projectile, shape: shard, palette: ["#1a1426", "#7a52b8", "#c8a0ff", "#f4ecff"], animated: false, frames: 1, size: [3, 3, 12], billboard: FIXED, glow: true}
+  proj_ink:          {style: projectile, shape: glob, palette: ["#05050a", "#141a2e", "#2a3a6a", "#5a7ab0"], animated: true, frames: 4, frametime: 2, size: [7, 7, 7], billboard: CENTER}
+  proj_quill:        {style: projectile, shape: quill, palette: ["#1a1410", "#5a4a3a", "#e8e0c8", "#ffffff"], animated: false, frames: 1, size: [3, 3, 14], billboard: FIXED}
+  proj_chain:        {style: projectile, shape: hook, palette: ["#1a1a1e", "#4a4a52", "#8a8a94", "#c0c0c8"], animated: false, frames: 1, size: [6, 10, 2], billboard: FIXED}
+  proj_gear:         {style: projectile, shape: gear, palette: ["#1e120a", "#6a3a1a", "#c87a3a", "#f0c080"], animated: true, frames: 4, frametime: 1, size: [8, 8, 2], billboard: FIXED}
+  proj_gear_large:   {style: projectile, shape: gear, palette: ["#1e120a", "#6a3a1a", "#c87a3a", "#f0c080"], animated: true, frames: 4, frametime: 1, size: [32, 32, 4], billboard: FIXED}
+  proj_void_orb:     {style: orb, motif: void_rift, palette: ["#020306", "#123842", "#2fe0d0", "#c8fff8"], animated: true, frames: 6, frametime: 2, size: [10, 10, 10], billboard: CENTER, glow: true}
+  proj_anchor:       {style: projectile, shape: anchor, palette: ["#0a1416", "#2e5a5e", "#7a8a8a", "#c0d0d0"], animated: false, frames: 1, size: [14, 20, 3], billboard: FIXED}
+  proj_hammer:       {style: projectile, shape: hammer, palette: ["#1a1414", "#5a3a2a", "#a8a8b0", "#ffd27a"], animated: true, frames: 4, frametime: 1, size: [18, 24, 10], billboard: FIXED, glow: true}
+
+  # ═══════════════════════ 장판·오브젝트 (몹·보스 기믹) ═══════════════════════
+  molten_puddle:      {style: puddle, motif: lava, palette: ["#2a0a04", "#a83a10", "#ff8a2a", "#ffd27a"], animated: true, frames: 8, frametime: 3, size: [24, 1, 24], flat: true, glow: true}
+  tether_hypha:       {style: tether, motif: hyphae, palette: ["#4a3a2c", "#8a7458", "#d8c8a0", "#f2ead2"], animated: true, frames: 4, frametime: 2, size: [2, 2, 16], billboard: FIXED}
+  tether_silk:        {style: tether, motif: silk, palette: ["#6a7088", "#c0c8dc", "#f4f8ff", "#ffffff"], animated: true, frames: 4, frametime: 2, size: [2, 2, 16], billboard: FIXED, glow: true}
+  ore_disguise:       {style: disguise, motif: silver_ore, palette: ["#2a2a2c", "#5c5d60", "#8e9094", "#c9ced6", "#f1f4fa"], animated: false, frames: 1, size: [16, 16, 16], billboard: FIXED}
+  tome_disguise:      {style: disguise, motif: closed_book, palette: ["#1e0e0a", "#4a1e14", "#8a3a22", "#d8b070"], animated: false, frames: 1, size: [12, 3, 14], billboard: FIXED}
+  egg_sac:            {style: sac, motif: silk, palette: ["#3b404c", "#8d95a8", "#dfe6f2", "#a070f0"], animated: true, frames: 6, frametime: 4, size: [16, 20, 16], billboard: FIXED}
+  cocoon:             {style: cocoon, motif: silk, palette: ["#3b404c", "#8d95a8", "#dfe6f2", "#ffffff"], animated: true, frames: 4, frametime: 4, size: [14, 34, 14], billboard: FIXED}
+  water_plane:        {style: plane, motif: water_surface, palette: ["#0a1e2e", "#1e4a6a", "#3a8ab0", "#a8e0f0"], animated: true, frames: 16, frametime: 2, size: [32, 1, 32], flat: true}
+  chain_anchor:       {style: pole, motif: iron_chain, palette: ["#1a1a1e", "#4a4a52", "#8a8a94", "#ffb04a"], animated: false, frames: 1, size: [6, 24, 6], billboard: FIXED, glow: true}
+  ice_block:          {style: ice_block, motif: frost, palette: ["#4a7ab0", "#8ab8e0", "#bfe6ff", "#ffffff"], animated: true, frames: 4, frametime: 4, size: [16, 32, 16], billboard: FIXED}
+  ice_shell:          {style: shell, motif: frost, palette: ["#2a4466", "#6a9ad0", "#bfe6ff", "#ffffff"], animated: true, frames: 8, frametime: 3, size: [40, 48, 40], billboard: FIXED, glow: true}
+  frost_sigil_melee:  {style: crystal, motif: sigil_blade, palette: ["#3a0a0a", "#c03a2a", "#ffb0a0", "#ffffff"], animated: true, frames: 8, frametime: 2, size: [16, 32, 16], billboard: FIXED, glow: true}
+  frost_sigil_ranged: {style: crystal, motif: sigil_arrow, palette: ["#0a3a1a", "#3ab06a", "#b0ffd0", "#ffffff"], animated: true, frames: 8, frametime: 2, size: [16, 32, 16], billboard: FIXED, glow: true}
+  frost_sigil_magic:  {style: crystal, motif: sigil_star, palette: ["#2a0a3a", "#a03ad0", "#e8b0ff", "#ffffff"], animated: true, frames: 8, frametime: 2, size: [16, 32, 16], billboard: FIXED, glow: true}
+  pylon_light:        {style: crystal, motif: light_crystal, palette: ["#6a5020", "#ffd27a", "#fff8d0", "#ffffff"], animated: true, frames: 8, frametime: 2, size: [16, 40, 16], billboard: FIXED, glow: true}
+  pylon_dark:         {style: crystal, motif: dark_crystal, palette: ["#05020a", "#2a0a4a", "#6a2ab0", "#c080ff"], animated: true, frames: 8, frametime: 2, size: [16, 40, 16], billboard: FIXED, glow: true}
+  refraction_shell:   {style: shell, motif: crystal_facets, palette: ["#140c24", "#6a4ab8", "#fff2b0", "#ffffff"], animated: true, frames: 8, frametime: 2, size: [48, 56, 48], billboard: FIXED, glow: true}
+  rune_1:             {style: rune, motif: rune_eye, palette: ["#141a30", "#2a3a6a", "#c8a060", "#fff0b0"], animated: true, frames: 6, frametime: 3, size: [16, 16, 1], billboard: FIXED, glow: true}
+  rune_2:             {style: rune, motif: rune_key, palette: ["#141a30", "#2a3a6a", "#c8a060", "#fff0b0"], animated: true, frames: 6, frametime: 3, size: [16, 16, 1], billboard: FIXED, glow: true}
+  rune_3:             {style: rune, motif: rune_moon, palette: ["#141a30", "#2a3a6a", "#c8a060", "#fff0b0"], animated: true, frames: 6, frametime: 3, size: [16, 16, 1], billboard: FIXED, glow: true}
+  rune_4:             {style: rune, motif: rune_flame, palette: ["#141a30", "#2a3a6a", "#c8a060", "#fff0b0"], animated: true, frames: 6, frametime: 3, size: [16, 16, 1], billboard: FIXED, glow: true}
+  rune_5:             {style: rune, motif: rune_wave, palette: ["#141a30", "#2a3a6a", "#c8a060", "#fff0b0"], animated: true, frames: 6, frametime: 3, size: [16, 16, 1], billboard: FIXED, glow: true}
+  rune_6:             {style: rune, motif: rune_tree, palette: ["#141a30", "#2a3a6a", "#c8a060", "#fff0b0"], animated: true, frames: 6, frametime: 3, size: [16, 16, 1], billboard: FIXED, glow: true}
+  rune_7:             {style: rune, motif: rune_star, palette: ["#141a30", "#2a3a6a", "#c8a060", "#fff0b0"], animated: true, frames: 6, frametime: 3, size: [16, 16, 1], billboard: FIXED, glow: true}
+  rune_8:             {style: rune, motif: rune_crown, palette: ["#141a30", "#2a3a6a", "#c8a060", "#fff0b0"], animated: true, frames: 6, frametime: 3, size: [16, 16, 1], billboard: FIXED, glow: true}
+  seal_glyph:         {style: glyph, motif: clock_seal, palette: ["#3a2412", "#8a5a26", "#e8b060", "#7ae0c0"], animated: true, frames: 8, frametime: 2, size: [32, 1, 32], flat: true, glow: true}
+  clock_hand:         {style: clock_hand, motif: brass, palette: ["#3a2412", "#8a5a26", "#e8b060", "#fff4d0"], animated: false, frames: 1, size: [8, 2, 48], flat: true, glow: true}
+  pendulum:           {style: pendulum, motif: brass, palette: ["#1a120c", "#5a3a20", "#a8a8b0", "#e8b060"], animated: false, frames: 1, size: [32, 48, 4], billboard: FIXED}
+  abyss_wall:         {style: wall, motif: abyss_tide, palette: ["#020306", "#08141a", "#123842", "#2fe0d0"], animated: true, frames: 16, frametime: 1, size: [48, 48, 4], billboard: FIXED, glow: true}
