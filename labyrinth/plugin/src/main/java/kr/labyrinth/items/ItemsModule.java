@@ -1,17 +1,40 @@
 package kr.labyrinth.items;
 
+import com.mojang.brigadier.Command;
+import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.suggestion.SuggestionProvider;
+import io.papermc.paper.command.brigadier.CommandSourceStack;
+import io.papermc.paper.command.brigadier.Commands;
+import java.util.Locale;
+import java.util.Set;
+import java.util.TreeSet;
 import kr.labyrinth.Services;
+import kr.labyrinth.command.CommandService;
+import kr.labyrinth.content.ItemDef;
+import kr.labyrinth.core.Log;
 import kr.labyrinth.core.Module;
+import kr.labyrinth.core.Text;
+import kr.labyrinth.items.crafting.LabCraftingService;
+import kr.labyrinth.items.loot.LabLootService;
+import kr.labyrinth.items.weaponskills.LabWeaponSkillService;
+import org.bukkit.Bukkit;
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
 /**
- * items 담당 모듈 진입점. 이 파일과 이 패키지는 items 담당 소유 — 다른 작업자는 수정하지 않는다.
- * <p>
- * enable() 에서 실제 구현을 등록한다: {@code services.setItems / setLoot / setCrafting / setWeaponSkills} (+ AuraService, 장비 StatContributor).
- * 등록 전까지는 Services 의 안전한 기본 구현이 쓰인다. 하위 명령은 {@code services.commands().addSubcommand(...)} 로.
+ * items 담당 모듈 진입점: ItemService(굴림·툴팁·장비 컴포넌트) · LootService(개인 루팅) · CraftingService(대장장이 GUI) ·
+ * WeaponSkillService(17종 무기 스킬) · AuraService(전설·신화 아우라) · 장비 StatContributor(+세트 효과) · 소모품 · 바닐라 가공 차단.
+ * 관리 명령: /labadmin blacksmith [플레이어] · /labadmin loot &lt;테이블&gt; [플레이어] · /labadmin weaponskills.
  */
 public final class ItemsModule implements Module {
 
     private final Services services;
+    private LabWeaponSkillService weaponSkills;
+    private AuraService auras;
+    private ConsumableListener consumables;
+    private EquipmentListener equipment;
+    private LabLootService loot;
 
     public ItemsModule(Services services) { this.services = services; }
 
@@ -20,6 +43,123 @@ public final class ItemsModule implements Module {
 
     @Override
     public void enable() {
-        // 예: services.setXxx(new XxxServiceImpl(services));
+        services.setItems(new GearItemService(services));
+        loot = new LabLootService(services);
+        services.setLoot(loot);
+        services.setCrafting(new LabCraftingService(services));
+        weaponSkills = new LabWeaponSkillService(services);
+        services.setWeaponSkills(weaponSkills);
+
+        var pm = Bukkit.getPluginManager();
+        equipment = new EquipmentListener(services);
+        pm.registerEvents(equipment, services.plugin());
+        services.stats().addContributor(equipment);
+        pm.registerEvents(loot, services.plugin());
+        pm.registerEvents(new ItemGuardListener(services), services.plugin());
+        weaponSkills.start();
+        consumables = new ConsumableListener(services, weaponSkills);
+        consumables.start();
+        auras = new AuraService(services);
+        auras.start();
+
+        registerCommands();
+        checkContent();
+        for (Player p : Bukkit.getOnlinePlayers()) services.stats().markDirty(p);
+    }
+
+    @Override
+    public void disable() {
+        if (auras != null) auras.stop();
+        if (weaponSkills != null) weaponSkills.stop();
+        if (consumables != null) consumables.stop();
+        if (equipment != null) services.stats().removeContributor(equipment);
+    }
+
+    @Override
+    public void reload() {
+        if (auras != null) auras.reload();
+        checkContent();
+        for (Player p : Bukkit.getOnlinePlayers()) services.stats().markDirty(p);
+    }
+
+    /** 콘텐츠에 쓰인 무기 스킬 id 가 전부 구현돼 있는지 로그로 확인. */
+    private void checkContent() {
+        Set<String> missing = new TreeSet<>();
+        for (ItemDef d : services.content().items().values()) {
+            for (ItemDef.WeaponSkillDef s : d.weaponSkills()) {
+                if (!weaponSkills.implementedIds().contains(s.id())) missing.add(s.id() + "(" + d.id() + ")");
+            }
+        }
+        if (!missing.isEmpty()) Log.warn("[무기 스킬] 구현이 없는 id: " + String.join(", ", missing));
+    }
+
+    // ── 명령 ──────────────────────────────────────────────────────────────
+
+    private SuggestionProvider<CommandSourceStack> players() {
+        return (c, b) -> {
+            String rem = b.getRemainingLowerCase();
+            for (Player p : Bukkit.getOnlinePlayers()) if (p.getName().toLowerCase(Locale.ROOT).startsWith(rem)) b.suggest(p.getName());
+            return b.buildFuture();
+        };
+    }
+
+    private SuggestionProvider<CommandSourceStack> tables() {
+        return (c, b) -> {
+            String rem = b.getRemainingLowerCase();
+            int n = 0;
+            for (String id : services.content().lootTables().keySet()) {
+                if (id.startsWith(rem) || (rem.length() >= 2 && id.contains(rem))) {
+                    b.suggest(id);
+                    if (++n >= 60) break;
+                }
+            }
+            return b.buildFuture();
+        };
+    }
+
+    private static int run(CommandContext<CommandSourceStack> ctx, Runnable r) {
+        CommandService.safeRun(ctx, r);
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private Player target(CommandContext<CommandSourceStack> ctx, String name) {
+        CommandSender s = ctx.getSource().getSender();
+        Player t = name != null ? Bukkit.getPlayerExact(name) : CommandService.sender(ctx) instanceof Player p ? p : null;
+        if (t == null) Text.error(s, "대상 플레이어를 찾을 수 없습니다.");
+        return t;
+    }
+
+    private void registerCommands() {
+        CommandService cmd = services.commands();
+        cmd.addSubcommand("labadmin", Commands.literal("blacksmith")
+                .executes(ctx -> run(ctx, () -> {
+                    Player t = target(ctx, null);
+                    if (t != null) services.crafting().openBlacksmith(t);
+                }))
+                .then(Commands.argument("player", StringArgumentType.word()).suggests(players())
+                        .executes(ctx -> run(ctx, () -> {
+                            Player t = target(ctx, StringArgumentType.getString(ctx, "player"));
+                            if (t != null) services.crafting().openBlacksmith(t);
+                        }))));
+        cmd.addSubcommand("labadmin", Commands.literal("loot")
+                .then(Commands.argument("table", StringArgumentType.word()).suggests(tables())
+                        .executes(ctx -> run(ctx, () -> lootTest(ctx, null)))
+                        .then(Commands.argument("player", StringArgumentType.word()).suggests(players())
+                                .executes(ctx -> run(ctx, () -> lootTest(ctx, StringArgumentType.getString(ctx, "player")))))));
+        cmd.addSubcommand("labadmin", Commands.literal("weaponskills").executes(ctx -> run(ctx, () -> {
+            CommandSender s = ctx.getSource().getSender();
+            Text.send(s, "<gray>무기 스킬 구현 " + weaponSkills.implementedIds().size() + "종: <white>"
+                    + String.join(", ", new TreeSet<>(weaponSkills.implementedIds())));
+        })));
+    }
+
+    private void lootTest(CommandContext<CommandSourceStack> ctx, String player) {
+        String table = StringArgumentType.getString(ctx, "table");
+        if (services.content().lootTable(table) == null) {
+            Text.error(ctx.getSource().getSender(), "없는 루팅 테이블: " + Text.escape(table));
+            return;
+        }
+        Player t = target(ctx, player);
+        if (t != null) loot.adminTest(t, table);
     }
 }

@@ -124,6 +124,8 @@ labyrinth/
   - 피해: 모든 피해는 `services.damage().deal(DamageContext...)` 한 곳. `DamageContext.attack(player, target, 배율, type)`(공격력 기반),
     `raw(attacker, target, 원피해, type)`(몹·보스), `percent(attacker, target, pct)`(_pct·방어 무시). `.skill(id)`, `.pattern(id)`(회피 불가),
     `.knockback(s)`, `.noCrit()`... 결과(`dealt/crit/evaded/blocked/killed`)는 ctx 에. 치유는 `services.damage().heal(target, amount, true)`.
+  - 피해 가로채기: `services.damage().addInterceptor(DamageInterceptor)` — 회피되지 않은 최종 피해를 적용 직전에 바꾼다
+    (0 = "막음"). items 가 무기 스킬 무적·보호막(`LabWeaponSkillService#shield`)·방어 자세·자동 부활 소모품에 쓴다. 직업 보호막도 이걸로.
   - 커스텀 몹·보스 HP: `combat.HealthPool` 계약(`applyDamage` 에 최종 피해가 온다, HP 0 이면 구현이 사망 처리). 바닐라 근접·화살 → 몹,
     몹의 바닐라 공격 → 플레이어 연결은 core `CombatListener` 가 이미 한다(`MobService.byEntity`/`BossService.byEntity` 로 판별).
   - 플레이어 HP: 바닐라 체력 = min(최대 HP, 1024), 하트는 10칸 고정 표시. 직접 만지지 말고 `services.stats().currentHp/heal/setHp`.
@@ -162,8 +164,15 @@ combat/  DamageService(모든 피해 계산의 단일 경로: 플레이어→몹
 classes/ RoleClass(classes.yml 로드), Skill(interface), ClassService(전직, 스킬 입력, 마나, 쿨다운), skills/*(직업별 구현)
 items/   ItemDef, Rarity, ItemService(정의→ItemStack, ItemStack→정의/굴림값 PDC, 툴팁 lore 생성), AuraService(전설·신화 무기
          들고 있을 때 파티클 + ItemDisplay 링 이펙트, 플레이어 수·거리 기반 LOD)
+         구현: GearItemService(기반 재질 PAPER, 활만 BOW+무한·파괴불가 — 활을 들면 '미궁 화살' 1개 자동 지급),
+         ItemRolls(굴림·PDC 형식 "key=value;…"), ItemTooltip, EquipRules(레벨·직업 미달 = 스탯/무기 스킬 없음, 방어구는 착용 즉시 반환),
+         EquipmentListener(장비 StatContributor + 세트 효과), ConsumableListener, ItemGuardListener(바닐라 제작·화로·모루·거래 차단)
+items/weaponskills/ LabWeaponSkillService(입력: LEFT = PlayerArmSwingEvent, RIGHT = 우클릭, 쿨다운·마나·침묵),
+         WeaponTargeting(무기 스킬 대상 선택의 단일 도형 헬퍼 — 적/아군 판정은 TargetFilter; classes 단계에서 pvp/TargetFilter 로 이동 예정),
+         SkillCast(공통 키 처리), Fx(ItemDisplay 이펙트), 17종 구현 = Projectile/Movement/Area/SupportSkills
 loot/    LootService(loot 테이블, 희귀도 가중치, LUK 보정, 파티 개인 루팅: 아이템은 개인별로 지급/표시)
-crafting/CraftingService(+대장장이 GUI, 재료 확인/소모, 결과 지급)
+         구현 items/loot: LootRoller(순수 굴림), LabLootService(주인에게만 보이는 아이템 엔티티, 줍는 순간 ItemObtainEvent·전설 알림)
+crafting/CraftingService(+대장장이 GUI, 재료 확인/소모, 결과 지급) — 구현 items/crafting: RecipeCheck, LabCraftingService, BlacksmithMenu
 mobs/    MobDef, CustomMob(기반 엔티티 + 모델 리그 + HP 풀 + AI 상태), ModelRig(파트별 ItemDisplay, 보간 애니메이션:
          idle/walk/attack/hurt/death), MobService(스폰, 틱, 디스폰, 일반 몹 스킬 타입), mob skill 타입은 YAML 로 조합
 bosses/  BossDef, Boss(추상: 페이즈·패턴 스케줄러), Pattern, Telegraph(원/선/부채꼴/링 장판 경고 + 판정), BossService,
@@ -190,6 +199,7 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
   `/pvp`(`/대전`: 도전 <파티장>, 수락, 거절, 대기열 참가/취소, 순위, 전적, 관전)
 - 관리자(`labyrinth.admin`): `/labadmin reload|give <item> [player]|spawnmob <id>|spawnboss <floor>|setentrance|removeentrance|
   setnpc <id>|tpfloor <n>|unlock <player> <floor>|reset <player>|instances|endinstance <id>|pvp season|pvp end <매치>|pvp arena <id>`
+  (items 가 붙임: `blacksmith [player]`(대장간 GUI) · `loot <table> [player]`(개인 루팅 테스트) · `weaponskills`(구현 목록))
 
 ### 스킬 입력 (미궁 무기를 들고 있을 때)
 - **무기 스킬** (상위 무기에 내장, `items.yml` 의 `weapon_skills`):

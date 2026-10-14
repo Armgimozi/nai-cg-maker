@@ -27,6 +27,8 @@ public final class DamageService implements Module {
     private final RandomGenerator rng = RandomGenerator.getDefault();
     /** 우리가 직접 바닐라 피해를 줄 때 CombatListener 가 다시 가로채지 않게 하는 표시. */
     private boolean applyingVanilla;
+    /** 피해 적용 직전 가로채기 (items: 무기 스킬 보호막·방어 자세·무적, 자동 부활). */
+    private final java.util.List<DamageInterceptor> interceptors = new java.util.concurrent.CopyOnWriteArrayList<>();
 
     public DamageService(Services services) {
         this.services = services;
@@ -42,6 +44,11 @@ public final class DamageService implements Module {
     }
 
     public DamageNumbers numbers() { return numbers; }
+
+    /** 피해 적용 직전 가로채기 등록 ({@link DamageInterceptor}). */
+    public void addInterceptor(DamageInterceptor i) { interceptors.add(i); }
+
+    public void removeInterceptor(DamageInterceptor i) { interceptors.remove(i); }
 
     boolean isApplyingVanilla() { return applyingVanilla; }
 
@@ -121,22 +128,38 @@ public final class DamageService implements Module {
             return ctx;
         }
 
+        // 가로채기 (보호막·방어 자세·무적·자동 부활) — 0 이 되면 "막음"
+        double finalDamage = out.damage();
+        boolean absorbed = false;
+        if (!interceptors.isEmpty() && finalDamage > 0) {
+            for (DamageInterceptor i : interceptors) {
+                try {
+                    finalDamage = Math.max(0, i.intercept(ctx, finalDamage));
+                } catch (Throwable t) {
+                    kr.labyrinth.core.Log.error("DamageInterceptor 오류", t);
+                }
+                if (finalDamage <= 0) break;
+            }
+            absorbed = finalDamage <= 0;
+            ctx.result(finalDamage, out.crit(), false, out.blocked() || absorbed);
+        }
+
         double dealt;
         boolean killed;
         if (pool != null) {
-            dealt = pool.applyDamage(out.damage(), ctx);
+            dealt = pool.applyDamage(finalDamage, ctx);
             killed = !pool.isAlive();
             if (pool instanceof CustomMob mob && attackerPlayer != null && dealt > 0) {
                 mob.addThreat(attackerPlayer, dealt * ctx.threatMultiplier());
             }
         } else if (targetPlayer != null) {
             double before = services.stats().currentHp(targetPlayer);
-            killed = applyToPlayer(targetPlayer, out.damage(), ctx.attacker());
-            dealt = Math.min(before, out.damage());
+            killed = applyToPlayer(targetPlayer, finalDamage, ctx.attacker());
+            dealt = Math.min(before, finalDamage);
         } else {
             double before = target.getHealth();
-            applyVanilla(target, out.damage(), ctx.attacker());
-            dealt = Math.min(before, out.damage());
+            applyVanilla(target, finalDamage, ctx.attacker());
+            dealt = Math.min(before, finalDamage);
             killed = target.isDead();
         }
         ctx.applied(dealt, killed);
@@ -146,11 +169,11 @@ public final class DamageService implements Module {
             services.stats().heal(attackerPlayer, dealt * atk.lifesteal());
         }
         if (ctx.showNumber()) {
-            DamageNumbers.Kind kind = out.blocked() ? DamageNumbers.Kind.BLOCK
+            DamageNumbers.Kind kind = out.blocked() || absorbed ? DamageNumbers.Kind.BLOCK
                     : targetPlayer != null ? DamageNumbers.Kind.PLAYER_HURT
                     : out.crit() ? DamageNumbers.Kind.CRIT
                     : ctx.type() == DamageType.TRUE ? DamageNumbers.Kind.TRUE : DamageNumbers.Kind.DAMAGE;
-            numbers.show(target, out.damage(), kind);
+            numbers.show(target, finalDamage, kind);
         }
         if (targetPlayer != null) services.hud().refresh(targetPlayer);
         return ctx;
