@@ -30,7 +30,7 @@ public final class ShopMenu extends Menu {
     private final NpcDef npc;
 
     public ShopMenu(Services services, NpcDef npc) {
-        super(5, Text.mm("<dark_gray>" + Text.strip(npc.name()) + " · 상점"));
+        super(5, kr.labyrinth.ui.UiTheme.title("merchant", 5, "<dark_gray>" + Text.strip(npc.name()) + " · 상점"));
         this.services = services;
         this.npc = npc;
     }

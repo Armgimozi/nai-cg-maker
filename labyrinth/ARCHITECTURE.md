@@ -272,6 +272,39 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
 - **DungeonService** 기본 메서드: `isDowned(p)`, `revive(p, at, hpRatio)`(사제 부활의 성가) — dungeon 구현은 자기 사망 상태와 맞게 재정의.
 - 직업 스킬은 미궁 무기 + **직업 무기 타입**(classes.yml weapon_types)을 들었을 때만 발동. 명령: `/직업 선택|choose <직업>`, `/직업 정보|info`, `/직업 스킬|skills`.
 
+### 4.2 ui+titles 단계에서 추가된 계약 (다른 모듈이 쓰는 것)
+- **MenuService** 실제 구현 `ui.LabMenuService`(상자 GUI, `ui/menus/*`; 열다가 오류 나면 채팅 메뉴로 대체). 기본 메서드 추가:
+  `openPvp`(대전 메뉴) · `openBlacksmith`(→ CraftingService GUI) · `openMerchant`(npcs.yml `role: merchant` 의 ShopMenu).
+  `/대전` 인자 없이 = 대전 메뉴. `/미궁 메뉴|장신구|대장간|상점|대전|기록` 하위 명령.
+  메뉴는 다른 모듈 기능을 **명령으로 위임**한다(검사·메시지 일관): 파티 `party create|invite|accept|decline|kick|promote|disband|leave|chat`,
+  대전 `pvp 도전 <파티장>|수락|거절|대기열 참가|대기열 취소` ← **pvp 담당은 이 한국어 하위 명령 이름을 그대로 등록할 것**.
+  초기 설정 GUI 확정 = `labadmin setup <난이도>` + config `entrance.mode`, "여기에 설치" = `labadmin setentrance <block|npc>`.
+- **대전 전적 표시(PvpMenu·순위)**: PlayerData ext `pvp.rating · pvp.wins · pvp.losses · pvp.streak · pvp.best_streak · pvp.best_rating`
+  (정수) 를 읽는다 → **pvp 담당이 이 키로 기록할 것**. 없으면 titles 카운터(`titles.pvp_*`)로 대신 표시.
+- **HudService** 실제 구현 `ui.LabHudService`: 액션바(0.25초 검사, 바뀐 때만 + 2초 유지 재전송) HP·MP·경험치 막대·레벨·골드,
+  미궁 사이드바(층·난이도·인원·정복한 방·타이머·사망·파티원 HP), 플레이어마다 개인 스코어보드(이름표 팀 접두어 = 칭호).
+  기본 메서드 추가: `nameTagPrefix(target, prefix)`, **`pvpMatch(viewer, HudService.PvpHud)` / `clearPvpMatch(viewer)`** —
+  pvp 담당은 매치 중 1초마다 참가자·관전자에게 `PvpHud(matchId, phase(prep|fight|sudden_death|between|end), round, roundsToWin,
+  scoreUs, scoreThem, secondsLeft, phaseSeconds, usName, themName, us[TeamMember(name,hpRatio,alive)], them[...])` 를 보내면
+  사이드바 + 라운드 보스바가 그려진다(15초 갱신이 없으면 자동 정리).
+- **DungeonService** 기본 메서드 `floorProgress(p)` → `FloorProgress(floor, roomsCleared, roomsTotal, deaths, startedAt, bossDefeated,
+  ready, progress)` (HUD 용; 전투·정예·시련·수호자 방만 셈). dungeon 담당이 더 정확히 재정의해도 된다.
+- **TitleService** 실제 구현 `titles.LabTitleService`. 기본 메서드 추가: `setBonusSuppressed(p, on)`(**pvp 담당이 매치 시작/종료 때 호출** —
+  §18.3 칭호 보너스 꺼짐), `progress(p, id)`. 판정은 `titles.AchievementRules`(순수, 테스트), 카운터 갱신은 `titles.TitleCounters` —
+  카운터 키 `titles.*` 목록은 AchievementRules 문서가 원본. 서버 기록 키: `first_clear.floor_<n>`(층 최초 돌파 파티 전원),
+  `speed.floor_<n>`(최단 시간), `title.<업적 id>`(server_first 업적). 첫 칭호는 자동 장착. 채팅 = AsyncChatEvent 렌더러
+  `[칭호] 이름 » 메시지`(취소된 파티 채팅은 건드리지 않음), 탭 목록 이름 = 접두어 + 이름.
+  명령: `/칭호 장착|해제|목록|기록`, `/labadmin title grant|revoke <플레이어> <id>`, `/labadmin title recheck`.
+- **UI 글리프 이름 (pack-ui 단계가 glyphs.yml 에 이 이름으로 넣으면 자동 적용, 없으면 글리프 없이 동작)**:
+  - 메뉴 배경 `gui_<메뉴>`: main · stats · class · class_detail · party · players · titles · records · entrance · setup · accessories ·
+    pvp · pvp_ranking · blacksmith · merchant (없으면 `gui_rows_<줄 수>`). 6줄 메뉴 = 54칸, 5줄 = 장신구·상점.
+    선택 필드(glyphs.yml 항목에 추가 가능): `width`(배경 폭 px, 기본 176), `title_x`(제목 글자 시작 x, 기본 8), `title_color`(#RRGGBB,
+    기본 #3b2a4d). 배경 글리프는 펜을 −8 당겨 컨테이너 왼쪽 끝부터 그린다 → ascent 는 제목 줄 기준(바닐라 상자 제목 높이)으로 맞출 것.
+    글리프 배경이 있으면 빈 칸을 유리판으로 채우지 않는다(배경 그림이 보이도록).
+  - HUD 막대 kind = `hp` · `mp` · `xp`: 프레임 방식 `hud_<kind>_0..N`(채움 단계별 한 장) 또는 칸 방식 `hud_<kind>_full|half|empty`
+    (hp 10칸, mp 8칸, xp 6칸; 옛 이름 `<kind>_bar_full|half|empty` 도 인식). 아이콘 `hud_hp_icon · hud_mp_icon · hud_level_icon ·
+    hud_gold_icon`. 액션바 줄 높이에 맞는 ascent 로 만들 것.
+
 ### 명령어
 - 플레이어: `/lab`(별칭 `/미궁`: 입장 메뉴·퇴장·정보), `/party`(`/파티`), `/stats`(`/스탯`), `/class`(`/직업`), `/title`(`/칭호`),
   `/pvp`(`/대전`: 도전 <파티장>, 수락, 거절, 대기열 참가/취소, 순위, 전적, 관전)

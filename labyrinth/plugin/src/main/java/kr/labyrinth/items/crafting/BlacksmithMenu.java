@@ -37,8 +37,7 @@ final class BlacksmithMenu extends Menu {
     private boolean ownClassOnly = true;
 
     BlacksmithMenu(Services services, LabCraftingService crafting, Player viewer) {
-        // 배경 = glyphs.yml gui_blacksmith (탭 1·3·5·7 / 레시피 18..44 / 45·47·51·53 소켓이 그려져 있음)
-        super(6, Glyphs.menuTitle("gui_blacksmith", 176, Text.mm("<#f3e3bd>대장장이 두르간의 대장간")));
+        super(6, kr.labyrinth.ui.UiTheme.title("blacksmith", 6, "<#f3e3bd>대장장이 두르간의 대장간"));
         this.services = services;
         this.crafting = crafting;
     }
