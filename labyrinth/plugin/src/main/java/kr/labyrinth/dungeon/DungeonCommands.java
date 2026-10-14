@@ -15,7 +15,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 /**
- * 미궁 명령: /미궁 귀환(return)·정보(info) + 관리자 setentrance [block|npc] · removeentrance · tpfloor &lt;층&gt; ·
+ * 미궁 명령: /미궁 귀환(return)·정보(info)·지도(map) + 관리자 setentrance [block|npc] · removeentrance · tpfloor &lt;층&gt; ·
  * unlock &lt;플레이어&gt; &lt;층&gt; · instances · endinstance &lt;id&gt;. (입장·퇴장은 core 가 붙임 → DungeonService)
  */
 final class DungeonCommands {
@@ -40,6 +40,10 @@ final class DungeonCommands {
         for (String name : new String[] {"return", "귀환"}) {
             cmd.addSubcommand("lab", Commands.literal(name).executes(ctx -> run(ctx,
                     () -> CommandService.withPlayer(CommandService.sender(ctx), p -> manager.leave(p)))));
+        }
+        for (String name : new String[] {"map", "지도"}) {
+            cmd.addSubcommand("lab", Commands.literal(name).executes(ctx -> run(ctx,
+                    () -> CommandService.withPlayer(CommandService.sender(ctx), p -> manager.showMap(p)))));
         }
         for (String name : new String[] {"info", "정보"}) {
             cmd.addSubcommand("lab", Commands.literal(name).executes(ctx -> run(ctx,

@@ -70,6 +70,8 @@ public final class FloorState {
     int[] stairs;
     long clearedAt = -1;
     private Runnable cancelBuild;
+    private final SecretPassages secrets;
+    private final Exploration exploration;
 
     FloorState(DungeonManager manager, Run run, int floor, FloorDef def, InstanceContext ctx, FloorLayout layout,
                long seed, int ox, int y0, int oz) {
@@ -83,10 +85,10 @@ public final class FloorState {
         this.ox = ox;
         this.y0 = y0;
         this.oz = oz;
-        int top = 0;
-        for (FloorLayout.RoomInfo r : layout.rooms()) top = Math.max(top, r.height());
-        this.maxTop = top + 1; // 천장
+        this.maxTop = layout.maxTop(); // 가장 높은 천장 (계단 복도 단상 포함)
         for (FloorLayout.RoomInfo r : layout.rooms()) rooms.add(createRoom(r));
+        this.secrets = new SecretPassages(this);
+        this.exploration = new Exploration(this);
     }
 
     private Room createRoom(FloorLayout.RoomInfo r) {
@@ -208,6 +210,11 @@ public final class FloorState {
 
     void tick(long t) {
         if (!ready || destroyed) return;
+        try {
+            secrets.tick(t);
+        } catch (Throwable e) {
+            Log.error("비밀 통로 틱 오류", e);
+        }
         for (Room r : rooms) {
             try {
                 r.tick(t);
@@ -221,6 +228,7 @@ public final class FloorState {
     void updatePresence(Player p) {
         Location l = p.getLocation();
         if (!onThisFloor(l)) return;
+        exploration.visit(l);
         int region = layout.region(tileX(l), tileZ(l));
         if (region < 0) return;
         if (layout.kind(tileX(l), tileZ(l)) != FloorLayout.FLOOR) return;
@@ -256,6 +264,10 @@ public final class FloorState {
     public int y0() { return y0; }
     public int oz() { return oz; }
     public List<Room> rooms() { return rooms; }
+    /** 금 간 벽 비밀 통로 (열기·열림 알림). */
+    public SecretPassages secrets() { return secrets; }
+    /** 파티가 함께 쓰는 탐험 기록 (지나간 셀·보스 문·비밀 통로). */
+    public Exploration exploration() { return exploration; }
     public Room startRoom() { return rooms.get(layout.startRoom().index()); }
     public Room bossRoom() { return rooms.get(layout.bossRoom().index()); }
     public boolean ready() { return ready; }

@@ -58,6 +58,11 @@ public interface DungeonService {
         return true;
     }
 
+    // ── 미로 담당 추가 (탐험 지도) ──
+
+    /** 채팅에 지금 층의 탐험 지도(지나간 길만)를 그린다. 미궁 밖이면 안내 후 false. */
+    default boolean showMap(Player player) { return false; }
+
     // ── ui 담당 추가 (HUD 사이드바) — dungeon 구현이 더 정확한 값으로 재정의해도 된다 ──
 
     /**

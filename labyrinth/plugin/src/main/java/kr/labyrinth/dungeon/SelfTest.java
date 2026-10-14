@@ -33,6 +33,7 @@ import org.bukkit.scheduler.BukkitTask;
  * 관리자 자가 진단 {@code /labadmin selftest [층 수]} — 플레이어 없이 런타임 경로 전체를 한 번 돌려 본다.
  * <ol>
  *   <li>임시 인스턴스 슬롯에 지하 1층(… n층)을 실제로 생성 (FloorGenerator → BlockPlacer, 방 준비)</li>
+ *   <li>미로 확인: 주 경로 길이, 계단·금 간 벽 블록, 금 간 벽 열기, 탐험 지도 그리기</li>
  *   <li>첫 층에 몹·정예 정의 전부(이후 층은 그 층 몹) 소환 + 정예 변종 1마리, 몇 초 AI 틱</li>
  *   <li>DamageService 로 피해 → 처치 (경험치·골드·루팅·MobKillEvent 경로, 플레이어 없음)</li>
  *   <li>1~5층 보스(+ 구현 없는 6층은 대체 보스 = 층 정예 × 보스 배율)를 차례로 보스방에 소환 → 페이즈가 넘어가게 피해 → 처치</li>
@@ -218,6 +219,7 @@ final class SelfTest {
                 count("floors_built", 1);
                 Text.send(sender, "<gray>  지하 " + f + "층 생성 완료 (" + (System.currentTimeMillis() - t0) + "ms, 방 "
                         + fs.rooms().size() + "개)");
+                step("dungeon", () -> checkMaze(f));
                 step("selftest", this::spawnMobs);
             });
         });
@@ -233,6 +235,107 @@ final class SelfTest {
                 releaseFloor(this::nextFloor);
             }
         });
+    }
+
+    /** 미로 구조 확인: 주 경로 길이, 계단·금 간 벽 블록이 실제로 놓였나, 금 간 벽 열기 → 공기, 탐험 지도 그리기. */
+    private void checkMaze(int f) {
+        var l = fs.layout();
+        var plan = l.plan();
+        count("maze_cells", plan.usedCount());
+        count("maze_loops", plan.loopCount());
+        count("dead_ends", l.deadEnds().size());
+        int need = (int) Math.ceil(2.2 * plan.size());
+        if (plan.mainPath().size() < need) {
+            bump(errors, "dungeon");
+            errorSamples.add("dungeon: 지하 " + f + "층 주 경로 " + plan.mainPath().size() + " < " + need);
+        }
+        // 계단 블록
+        boolean stairChecked = false;
+        for (int z = 0; z < l.depth() && !stairChecked; z++) {
+            for (int x = 0; x < l.width(); x++) {
+                if (l.kind(x, z) != kr.labyrinth.dungeon.gen.FloorLayout.STAIR) continue;
+                var b = fs.block(x, l.elevation(x, z) + 1, z);
+                if (!(b.getBlockData() instanceof org.bukkit.block.data.type.Stairs)) {
+                    bump(errors, "dungeon");
+                    errorSamples.add("dungeon: 지하 " + f + "층 계단 블록 없음 (" + b.getType() + ")");
+                } else {
+                    count("stairs_ok", 1);
+                }
+                stairChecked = true;
+                break;
+            }
+        }
+        String dumpDir = System.getProperty("labyrinth.mazeDump");
+        if (dumpDir != null) blockDump(f, java.nio.file.Path.of(dumpDir), "before");
+        // 금 간 벽 → 열기
+        for (var s : l.secretRooms()) {
+            int w = s.wall()[s.wall().length / 2];
+            int x = kr.labyrinth.dungeon.gen.FloorLayout.unpackX(w), z = kr.labyrinth.dungeon.gen.FloorLayout.unpackZ(w);
+            if (fs.block(x, 1, z).getType().isAir()) {
+                bump(errors, "dungeon");
+                errorSamples.add("dungeon: 지하 " + f + "층 금 간 벽 블록 없음");
+                continue;
+            }
+            fs.secrets().open(s.index(), null);
+            if (!fs.block(x, 1, z).getType().isAir() || !fs.secrets().isOpen(s.index())) {
+                bump(errors, "dungeon");
+                errorSamples.add("dungeon: 지하 " + f + "층 금 간 벽이 열리지 않음");
+            } else {
+                count("secrets_opened", 1);
+            }
+        }
+        if (dumpDir != null) blockDump(f, java.nio.file.Path.of(dumpDir), "after");
+        fs.exploration().revealAll();
+        count("map_lines", ExplorationMap.render(fs, null).size());
+    }
+
+    /**
+     * 개발용 (JVM -Dlabyrinth.mazeDump=폴더 일 때만): 실제로 놓인 블록을 글자로 덤프 — 발 높이 평면도 + 계단·비밀 통로 셀 세로 단면.
+     * 평면도: '.' 공기 '/' 계단 '#' 벽 '~' 액체 'X' 금 간 벽 블록 '*' 그 밖(장식·소품). 단면: 위→아래 y0+10 … y0−1.
+     */
+    private void blockDump(int f, java.nio.file.Path dir, String tag) {
+        var l = fs.layout();
+        var secretMat = org.bukkit.Material.matchMaterial(fs.def().palette("secret").isEmpty() ? "" : fs.def().palette("secret").get(0));
+        StringBuilder sb = new StringBuilder();
+        for (int z = 0; z < l.depth(); z++) {
+            for (int x = 0; x < l.width(); x++) {
+                int e = l.open(x, z) ? l.elevation(x, z) : 0;
+                sb.append(blockChar(fs.block(x, e + 1, z), secretMat));
+            }
+            sb.append('\n');
+        }
+        StringBuilder sec = new StringBuilder();
+        for (int c = 0; c < l.plan().cellCount(); c++) {
+            var st = l.plan().style(c);
+            if (st != kr.labyrinth.dungeon.gen.HallStyle.STAIRS && st != kr.labyrinth.dungeon.gen.HallStyle.SECRET) continue;
+            int bx = l.cellMinX(c), bz = l.cellMinZ(c);
+            int ex = l.plan().exits(c);
+            boolean alongZ = (ex & 0b0101) != 0;
+            sec.append("CELL ").append(c).append(' ').append(st).append(" exits=").append(ex).append('\n');
+            for (int dy = 10; dy >= -1; dy--) {
+                for (int i = -2; i < 26; i++) {
+                    int x = alongZ ? bx + 12 : bx + i, z = alongZ ? bz + i : bz + 12;
+                    sec.append(blockChar(fs.block(x, dy, z), secretMat));
+                }
+                sec.append("  y0").append(dy >= 0 ? "+" : "").append(dy).append('\n');
+            }
+        }
+        try {
+            java.nio.file.Files.createDirectories(dir);
+            java.nio.file.Files.writeString(dir.resolve("floor" + f + "_" + tag + "_plan.txt"), sb.toString());
+            java.nio.file.Files.writeString(dir.resolve("floor" + f + "_" + tag + "_slices.txt"), sec.toString());
+        } catch (java.io.IOException e) {
+            Log.warn("미로 덤프 실패: " + e.getMessage());
+        }
+    }
+
+    private static char blockChar(org.bukkit.block.Block b, org.bukkit.Material secret) {
+        var t = b.getType();
+        if (t.isAir()) return '.';
+        if (t == secret) return 'X';
+        if (b.getBlockData() instanceof org.bukkit.block.data.type.Stairs) return '/';
+        if (t == org.bukkit.Material.WATER || t == org.bukkit.Material.LAVA) return '~';
+        return t.isOccluding() ? '#' : '*';
     }
 
     private List<Location> spots() {

@@ -8,7 +8,10 @@ import kr.labyrinth.core.Log;
 import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 
-/** floors.yml palette → 블록. 목록 앞쪽일수록 자주(가중치 1/(i+1)). 알 수 없는 이름은 경고 후 대체 블록. */
+/**
+ * floors.yml palette → 블록. 목록 앞쪽일수록 자주(가중치 1/(i+1)). 알 수 없는 이름은 경고 후 대체 블록.
+ * 키: floor · wall · ceiling · accent · light · secret(비밀 통로 금 간 벽) · stairs(계단 복도).
+ */
 public final class Palette {
 
     private final Map<String, List<Material>> lists = new java.util.HashMap<>();
@@ -20,6 +23,22 @@ public final class Palette {
         put("ceiling", raw.get("ceiling"), Material.STONE_BRICKS);
         put("accent", raw.get("accent"), Material.CHISELED_STONE_BRICKS);
         put("light", raw.get("light"), Material.LANTERN);
+        // 비밀 통로 금 간 벽 — 그 층 벽과 살짝 다른 블록 (floors.yml palette.secret, 없으면 금 간 석재 벽돌)
+        put("secret", raw.get("secret"), Material.CRACKED_STONE_BRICKS);
+        // 계단 복도 — 계단 블록 (palette.stairs, 계단이 아니면 석재 벽돌 계단)
+        put("stairs", raw.get("stairs"), Material.STONE_BRICK_STAIRS);
+    }
+
+    /** 계단 복도에 쓸 계단 블록 (목록 첫 번째가 계단이 아니면 석재 벽돌 계단). */
+    public Material stairs() {
+        for (Material m : lists.get("stairs")) {
+            try {
+                if (m.createBlockData() instanceof org.bukkit.block.data.type.Stairs) return m;
+            } catch (Throwable ignored) {
+                // 서버 없이(단위 테스트) 부를 때
+            }
+        }
+        return Material.STONE_BRICK_STAIRS;
     }
 
     private void put(String key, List<String> names, Material fallback) {

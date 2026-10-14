@@ -93,6 +93,12 @@ public final class MainMenu extends LabMenu {
         set(47, Button.icon(Material.KNOWLEDGE_BOOK, "<#ffd36b><b>미궁 도감</b>",
                 List.of("<gray>모든 무기·방어구·장신구·재료와", "<gray>몬스터·보스, 그리고 어디서 얻는지.", "", "<#ffd36b>클릭: 도감 열기 <dark_gray>(/도감)")),
                 ctx -> { click(ctx.player()); new CodexMenu(services).open(ctx.player()); });
+        if (services.dungeon().currentInstance(p).isPresent()) {
+            set(51, Button.icon(Material.FILLED_MAP, "<#7fd8ff><b>탐험 지도</b>",
+                    List.of("<gray>지금 층에서 파티가 지나온 길을", "<gray>채팅에 그립니다. <dark_gray>(/미궁 지도)", "",
+                            "<dark_gray>지도를 들고 우클릭해도 됩니다.", "", "<#ffd36b>클릭: 지도 보기")),
+                    ctx -> { click(ctx.player()); ctx.player().closeInventory(); services.dungeon().showMap(ctx.player()); });
+        }
         set(45, UiTheme.close(), ctx -> ctx.player().closeInventory());
         if (kr.labyrinth.core.ServerSetup.canSetDifficulty(p)) {
             set(53, Button.icon(Material.COMMAND_BLOCK, "<#ff6b6b><b>서버 설정</b> <gray>(난이도)",

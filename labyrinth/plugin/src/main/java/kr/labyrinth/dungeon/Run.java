@@ -160,14 +160,19 @@ public final class Run {
         var boss = manager.services().content().boss(def.boss());
         var arena = boss == null ? kr.labyrinth.content.Params.EMPTY : boss.arena();
         boolean liquid = def.liquid() != null && !def.liquid().isBlank() && !"null".equalsIgnoreCase(def.liquid());
-        FloorGenerator.Params gp = new FloorGenerator.Params(def.cells(), def.rooms(), def.roomHeight(), 4, liquid,
-                arena.integer("radius", 14), arena.integer("height", 10), arena.integer("corridor_length", 0),
-                arena.integer("corridor_width", 7));
+        FloorGenerator.Params gp = params(def, arena, liquid);
         long seed = seedBase * 1_000_003L + floor * 7919L;
         FloorLayout layout = FloorGenerator.generate(gp, seed);
         int ox = InstanceAllocator.originX(slot), oz = InstanceAllocator.originZ(slot);
         int y0 = manager.config().floorY(floor);
         return new FloorState(manager, this, floor, def, contextFor(floor), layout, seed, ox, y0, oz);
+    }
+
+    /** floors.yml 층 + 보스 투기장 → 층 설계 입력 (미로 복잡도 = floors.yml maze). */
+    static FloorGenerator.Params params(FloorDef def, kr.labyrinth.content.Params arena, boolean liquid) {
+        return new FloorGenerator.Params(def.cells(), def.rooms(), def.roomHeight(), 4, liquid,
+                arena.integer("radius", 14), arena.integer("height", 10), arena.integer("corridor_length", 0),
+                arena.integer("corridor_width", 7), kr.labyrinth.dungeon.gen.MazeGenerator.Settings.of(def.raw().sub("maze")));
     }
 
     /** 층 첫 도착: 제목 + 카운트다운 후 시작방 문 개방. */
@@ -246,7 +251,8 @@ public final class Run {
             Text.send(p, "<gray>발을 헛디뎠습니다! <red>-" + Text.pct(pct) + " HP");
             return;
         }
-        if (p.isOnGround() && fs.layout().walkable(fs.tileX(l), fs.tileZ(l)) && Math.abs(l.getY() - (fs.y0() + 1)) < 1.2) {
+        int tx = fs.tileX(l), tz = fs.tileZ(l);
+        if (p.isOnGround() && fs.layout().walkable(tx, tz) && Math.abs(l.getY() - (fs.y0() + fs.layout().standHeight(tx, tz))) < 1.2) {
             lastSafe.put(p.getUniqueId(), l.clone());
         }
     }

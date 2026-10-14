@@ -11,6 +11,16 @@
 #  decor            : 장식 블록 산포. where: floor | ceiling | wall | corner,  chance: 해당 면 블록당 확률
 #  liquid           : 수로/용암 도랑에 쓸 액체 (WATER | LAVA | null). 통로 가장자리 1칸 도랑, 난간 필수
 #  level_range      : 권장 레벨 [최소, 최대] — 입장 메뉴 표시 + 경고
+#  size.cells       : 미로 격자 한 변 셀 수 (셀 하나 24×24 블록). 깊은 층일수록 크다 (7 → 9)
+#  maze             : 미로 복잡도 (GDD §5.4, 생략한 키는 기본값)
+#                     dead_end_keep  막다른 길을 남기는 비율 (나머지는 고리로 잇거나 잘라 냄) — 끝에 상자·함정·비밀 통로
+#                     loop_chance    닫힌 벽마다 고리(돌아가는 다른 길)로 뚫을 확률 (바로 옆 칸끼리의 작은 고리는 제외)
+#                     branch         신장 트리가 아무 칸에서나 가지를 칠 확률 (0 = 긴 구불길, 1 = 짧은 가지투성이)
+#                     braid          잘라 낼 막다른 길을 대신 이웃과 이어 고리로 만들 확률
+#                     twist          복도 셀이 꺾인 복도·좁은 통로·광장·계단·기둥 숲이 될 확률
+#                     secret_ratio / secret_max   남은 막다른 길 중 금 간 벽 비밀 통로가 될 비율 / 최대 개수
+#                     min_path       주 경로(시작→보스 최단) 최소 길이 = 격자 한 변 × 이 값 (기본 2.2, 모자라면 다시 생성)
+#  palette.secret   : 비밀 통로 금 간 벽 블록 (그 층 벽과 살짝 달라야 함), palette.stairs: 계단 복도 계단 블록
 # 모든 블록 배치는 labyrinth_world 의 인스턴스 슬롯 안에서만 이루어진다.
 # ─────────────────────────────────────────────────────────────────────────────
 version: 1
@@ -29,6 +39,8 @@ floors:
       ceiling: [STONE_BRICKS, MOSSY_COBBLESTONE]
       accent: [CHISELED_STONE_BRICKS, MOSS_BLOCK, STRIPPED_OAK_LOG]
       light: [VERDANT_FROGLIGHT, SHROOMLIGHT]
+      secret: [MOSSY_COBBLESTONE]
+      stairs: [MOSSY_STONE_BRICK_STAIRS]
     decor:
       - {block: MOSS_CARPET, where: floor, chance: 0.10}
       - {block: GLOW_LICHEN, where: wall, chance: 0.03}
@@ -36,7 +48,8 @@ floors:
       - {block: VINE, where: wall, chance: 0.04}
     liquid: null
     room_height: 5
-    size: {cells: 6}
+    size: {cells: 7}
+    maze: {dead_end_keep: 0.30, loop_chance: 0.20, branch: 0.50, braid: 0.50, twist: 0.45, secret_ratio: 0.25, secret_max: 1}
     rooms: {combat: 6, elite: 1, treasure: 1, gimmick: 1, rest: 1}
     mob_density: [3, 5]
     mobs: [moss_crawler, root_shambler, lantern_wisp, stone_beetle]
@@ -58,6 +71,8 @@ floors:
       ceiling: [STONE, COBBLESTONE, ANDESITE]
       accent: [SPRUCE_PLANKS, STRIPPED_SPRUCE_LOG, SPRUCE_LOG]
       light: [LANTERN, COPPER_LANTERN]
+      secret: [COBBLESTONE]
+      stairs: [STONE_STAIRS]
     decor:
       - {block: COBWEB, where: corner, chance: 0.12}
       - {block: COBWEB, where: ceiling, chance: 0.02}
@@ -65,7 +80,8 @@ floors:
       - {block: IRON_CHAIN, where: ceiling, chance: 0.02}
     liquid: null
     room_height: 5
-    size: {cells: 6}
+    size: {cells: 7}
+    maze: {dead_end_keep: 0.32, loop_chance: 0.21, branch: 0.52, braid: 0.50, twist: 0.48, secret_ratio: 0.25, secret_max: 1}
     rooms: {combat: 7, elite: 1, treasure: 1, gimmick: 1, rest: 1}
     mob_density: [3, 5]
     mobs: [tunnel_skitter, rusted_miner, ore_mimic, echo_bat]
@@ -87,6 +103,8 @@ floors:
       ceiling: [BROWN_MUSHROOM_BLOCK, MUSHROOM_STEM, RED_MUSHROOM_BLOCK]
       accent: [RED_MUSHROOM_BLOCK, MUSHROOM_STEM, ROOTED_DIRT]
       light: [SHROOMLIGHT, OCHRE_FROGLIGHT]
+      secret: [ROOTED_DIRT]
+      stairs: [TUFF_STAIRS]
     decor:
       - {block: BROWN_MUSHROOM, where: floor, chance: 0.06}
       - {block: RED_MUSHROOM, where: floor, chance: 0.04}
@@ -96,6 +114,7 @@ floors:
     liquid: null
     room_height: 6
     size: {cells: 7}
+    maze: {dead_end_keep: 0.34, loop_chance: 0.22, branch: 0.54, braid: 0.50, twist: 0.50, secret_ratio: 0.28, secret_max: 2}
     rooms: {combat: 7, elite: 1, treasure: 1, gimmick: 1, rest: 1}
     mob_density: [3, 5]
     mobs: [capcap, mycelid_shambler, spore_turret, glowcap_moth]
@@ -117,13 +136,16 @@ floors:
       ceiling: [STONE_BRICKS, DARK_PRISMARINE]
       accent: [WAXED_OXIDIZED_COPPER, WAXED_OXIDIZED_CUT_COPPER, WAXED_OXIDIZED_COPPER_GRATE]
       light: [SEA_LANTERN]
+      secret: [CRACKED_STONE_BRICKS]
+      stairs: [POLISHED_ANDESITE_STAIRS]
     decor:
       - {block: WAXED_OXIDIZED_COPPER_GRATE, where: floor, chance: 0.04}
       - {block: GLOW_LICHEN, where: wall, chance: 0.04}
       - {block: HANGING_ROOTS, where: ceiling, chance: 0.02}
     liquid: WATER
     room_height: 6
-    size: {cells: 7}
+    size: {cells: 8}
+    maze: {dead_end_keep: 0.36, loop_chance: 0.23, branch: 0.56, braid: 0.50, twist: 0.52, secret_ratio: 0.28, secret_max: 2}
     rooms: {combat: 8, elite: 1, treasure: 1, gimmick: 1, rest: 1}
     mob_density: [3, 6]
     mobs: [sluice_drowner, brine_spitter, rust_eel, bubble_jelly]
@@ -145,6 +167,8 @@ floors:
       ceiling: [BLACKSTONE, BASALT]
       accent: [GILDED_BLACKSTONE, CHISELED_POLISHED_BLACKSTONE, CHISELED_CINNABAR, IRON_BLOCK]
       light: [LANTERN, MAGMA_BLOCK]
+      secret: [GILDED_BLACKSTONE]
+      stairs: [POLISHED_BLACKSTONE_BRICK_STAIRS]
     decor:
       - {block: IRON_CHAIN, where: ceiling, chance: 0.04}
       - {block: IRON_BARS, where: wall, chance: 0.02}
@@ -152,6 +176,7 @@ floors:
     liquid: LAVA
     room_height: 7
     size: {cells: 8}
+    maze: {dead_end_keep: 0.38, loop_chance: 0.24, branch: 0.58, braid: 0.50, twist: 0.55, secret_ratio: 0.30, secret_max: 2}
     rooms: {combat: 8, elite: 1, treasure: 1, gimmick: 1, rest: 1}
     mob_density: [4, 6]
     mobs: [slag_golem, cinder_imp, bellows_hound, forge_acolyte]
@@ -173,6 +198,8 @@ floors:
       ceiling: [PACKED_ICE, SNOW_BLOCK, CALCITE]
       accent: [BLUE_ICE, CHISELED_QUARTZ_BLOCK, QUARTZ_PILLAR]
       light: [SEA_LANTERN, SOUL_LANTERN, PEARLESCENT_FROGLIGHT]
+      secret: [SNOW_BLOCK]
+      stairs: [POLISHED_DIORITE_STAIRS]
     decor:
       - {block: SNOW, where: floor, chance: 0.12}
       - {block: SKELETON_SKULL, where: corner, chance: 0.02}
@@ -180,6 +207,7 @@ floors:
     liquid: null
     room_height: 6
     size: {cells: 8}
+    maze: {dead_end_keep: 0.40, loop_chance: 0.25, branch: 0.60, braid: 0.50, twist: 0.57, secret_ratio: 0.30, secret_max: 2}
     rooms: {combat: 9, elite: 1, treasure: 1, gimmick: 1, rest: 1}
     mob_density: [4, 6]
     mobs: [rime_mourner, crypt_hound, frozen_knight, icicle_wraith]
@@ -201,6 +229,8 @@ floors:
       ceiling: [SMOOTH_BASALT, CALCITE, AMETHYST_BLOCK]
       accent: [BUDDING_AMETHYST, QUARTZ_BRICKS, POLISHED_DEEPSLATE]
       light: [PEARLESCENT_FROGLIGHT, SEA_LANTERN]
+      secret: [COBBLED_DEEPSLATE]
+      stairs: [DEEPSLATE_TILE_STAIRS]
     decor:
       - {block: AMETHYST_CLUSTER, where: floor, chance: 0.03}
       - {block: LARGE_AMETHYST_BUD, where: wall, chance: 0.03}
@@ -209,6 +239,7 @@ floors:
     liquid: null
     room_height: 7
     size: {cells: 8}
+    maze: {dead_end_keep: 0.42, loop_chance: 0.26, branch: 0.61, braid: 0.50, twist: 0.60, secret_ratio: 0.32, secret_max: 3}
     rooms: {combat: 9, elite: 1, treasure: 2, gimmick: 1, rest: 1}
     mob_density: [4, 6]
     mobs: [shard_skitterer, prism_sentinel, echo_wisp, geode_brute]
@@ -230,6 +261,8 @@ floors:
       ceiling: [DARK_OAK_PLANKS, SPRUCE_PLANKS]
       accent: [CHISELED_DEEPSLATE, DEEPSLATE_TILES, STRIPPED_DARK_OAK_LOG]
       light: [LANTERN, SOUL_LANTERN]
+      secret: [SPRUCE_PLANKS]
+      stairs: [DARK_OAK_STAIRS]
     decor:
       - {block: COBWEB, where: corner, chance: 0.04}
       - {block: CANDLE, where: corner, chance: 0.05}
@@ -237,6 +270,7 @@ floors:
     liquid: null
     room_height: 7
     size: {cells: 9}
+    maze: {dead_end_keep: 0.45, loop_chance: 0.27, branch: 0.62, braid: 0.50, twist: 0.62, secret_ratio: 0.32, secret_max: 3}
     rooms: {combat: 10, elite: 1, treasure: 2, gimmick: 1, rest: 2}
     mob_density: [4, 7]
     mobs: [ink_wraith, page_swarm, biting_tome, archive_sentinel]
@@ -258,12 +292,15 @@ floors:
       ceiling: [TUFF_BRICKS, POLISHED_TUFF]
       accent: [WAXED_CHISELED_COPPER, CHISELED_TUFF_BRICKS, WAXED_LIGHTNING_ROD]
       light: [WAXED_COPPER_LANTERN, COPPER_LANTERN]
+      secret: [WAXED_WEATHERED_COPPER]
+      stairs: [WAXED_CUT_COPPER_STAIRS]
     decor:
       - {block: WAXED_COPPER_CHAIN, where: ceiling, chance: 0.04}
       - {block: WAXED_COPPER_BARS, where: wall, chance: 0.02}
     liquid: null
     room_height: 7
     size: {cells: 9}
+    maze: {dead_end_keep: 0.47, loop_chance: 0.28, branch: 0.64, braid: 0.50, twist: 0.65, secret_ratio: 0.35, secret_max: 3}
     rooms: {combat: 10, elite: 2, treasure: 2, gimmick: 1, rest: 2}
     mob_density: [4, 7]
     mobs: [gear_hound, clockwork_sentry, spring_jumper, chrono_moth]
@@ -285,13 +322,16 @@ floors:
       ceiling: [DEEPSLATE_TILES, SCULK, COBBLED_DEEPSLATE]
       accent: [CRYING_OBSIDIAN, REINFORCED_DEEPSLATE, CHISELED_DEEPSLATE]
       light: [SOUL_LANTERN, OCHRE_FROGLIGHT]
+      secret: [CRACKED_DEEPSLATE_TILES]
+      stairs: [DEEPSLATE_TILE_STAIRS]
     decor:
       - {block: SCULK_VEIN, where: wall, chance: 0.06}
       - {block: SCULK_VEIN, where: floor, chance: 0.05}
       - {block: SOUL_CAMPFIRE, where: corner, chance: 0.01}
     liquid: null
     room_height: 8
-    size: {cells: 10}
+    size: {cells: 9}
+    maze: {dead_end_keep: 0.50, loop_chance: 0.30, branch: 0.66, braid: 0.50, twist: 0.68, secret_ratio: 0.35, secret_max: 3}
     rooms: {combat: 11, elite: 2, treasure: 2, gimmick: 1, rest: 2}
     mob_density: [4, 7]
     mobs: [void_stalker, echo_colossus, abyss_eye, hollow_choir]
