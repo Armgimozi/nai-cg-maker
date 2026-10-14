@@ -116,7 +116,7 @@ pvp/     파티 대 파티 PvP: ArenaService(arenas.yml 의 오리지널 투기�
          미궁에선 몹, 매치에선 상대 팀 플레이어 — 아군 오사 방지)
 titles/  Achievement(titles.yml), TitleService(조건 검사, 서버 최초 달성 방송, 칭호 장착: 채팅·탭·이름표 접두어, 소소한 보너스)
 npc/     NpcService(npcs.yml: 안내인/대장장이/전직관/칭호관리인… Mannequin + 커스텀 스킨, 우클릭 → GUI)
-ui/      Menu 프레임워크(InventoryHolder 기반, 커스텀 폰트 배경 타이틀, 버튼 콜백), menus/*(스탯, 직업, 파티, 입장/난이도,
+ui/      Menu 프레임워크(InventoryHolder 기반, 커스텀 폰트 배경 타이틀, 버튼 콜백), menus/*(초기 설정(난이도), 스탯, 직업, 파티, 입장(층 선택),
          대장장이, 칭호, 장신구), HudService(액션바: HP/MP 바·레벨·골드, 사이드바: 층·남은 적·파티원 HP, 보스바)
 pack/    PackService(HTTP 서빙 + 전송)
 command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
@@ -150,7 +150,12 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
   - 해금: 처음엔 1층만. 층을 깨면 다음 층 해금. 파티는 **파티원 중 최소 해금층**까지 선택 가능.
   - 솔로 입장 또는 파티 입장(파티원 모두 입구 근처, 파티장만 시작).
   - **파티 인원 배율**: 몹 HP ×(1 + `hp_per_member`×(n−1)), 피해 ×(1 + `dmg_per_member`×(n−1)), 보상 약간 증가. config.
-  - **난이도**(입장 시 파티장이 선택, 관리자가 허용 목록 설정): 쉬움/보통/어려움/악몽. HP·피해·드롭 배율, 악몽은 어려움 10층 클리어 후 해금.
+  - **난이도는 서버 전체 설정 하나**: 쉬움/보통/어려움/악몽 (HP·피해·드롭 배율, config.yml 프리셋). **난이도 해금 없음**,
+    입장할 때 고르지도 않음. **서버를 처음 만들 때 관리자가 정한다**: 첫 실행 시 `config.yml: difficulty` 가 비어 있으면
+    처음 접속한 관리자(OP/`labyrinth.admin`)에게 **초기 설정 GUI**(난이도 4개 + 입구 방식 블록/NPC-only)를 띄우고,
+    정하기 전까지 미궁 입장을 막는다(안내 메시지). 이후 변경은 `/labadmin difficulty <난이도>` 또는 config 수정 후 reload
+    (진행 중인 인스턴스에는 다음 입장부터 적용). 콘솔에서도 `/labadmin setup <난이도>` 가능.
+    (층 해금은 그대로 유지: 처음엔 1층, 깬 층의 다음 층까지 입장 가능.)
   - 사망: 파티원이 있으면 관전 모드 → 휴식방 도달/보스 처치 시 부활. 전멸 시 인스턴스 실패·귀환. 아이템 손실 없음.
 - **PvP (파티 대 파티)**: 파티장이 다른 파티에 도전하거나 대기열로 매칭. 전용 투기장(미궁 월드 별도 슬롯, 지형 무관)에서
   best-of-3 라운드. 인원이 다르면 config 에 따라 거절/허용(적은 쪽 HP·피해 보정). PvP 전용 밸런스 규칙(피해 배율, 치유 감소,

@@ -53,7 +53,7 @@
 ## 2. 진행 구조
 
 ### 2.1 핵심 루프
-입구 마을(오버월드, 블록 변경 없음) → 파티 결성·난이도 선택 → 미궁 층 입장(전용 공허 월드에 그 자리에서 생성)
+입구 마을(오버월드, 블록 변경 없음) → 파티 결성·층 선택 → 미궁 층 입장(전용 공허 월드에 그 자리에서 생성)
 → 전투방·엘리트방·보물방·기믹방·휴식방을 지나 보스방 → 보스 처치 → 보상 + 다음 층 해금 → 마을 귀환 →
 대장장이 제작·스탯 투자·칭호 장착 → 더 깊이.
 
@@ -67,16 +67,20 @@
 - 처음엔 1층만. 층 보스를 처치하면 참가자 전원에게 다음 층 해금.
 - 파티는 **파티원 중 최소 해금층**까지 선택 가능.
 
-### 2.4 난이도 (config `difficulties`, 파티장이 입장 시 선택)
+### 2.4 난이도 (서버 전체 설정 1개 — 서버를 처음 만들 때 관리자가 선택)
 
-| 키 | 이름 | 몹 HP | 몹 피해 | 드롭 | 경험치 | 경고 시간(windup) | 해금 |
-|---|---|---|---|---|---|---|---|
-| `easy` | 쉬움 | ×0.7 | ×0.6 | ×0.8 | ×0.8 | ×1.3 | 기본 |
-| `normal` | 보통 | ×1.0 | ×1.0 | ×1.0 | ×1.0 | ×1.0 | 기본 |
-| `hard` | 어려움 | ×1.5 | ×1.4 | ×1.3 | ×1.3 | ×0.85 | 기본 |
-| `nightmare` | 악몽 | ×2.4 | ×2.0 | ×1.8 | ×1.7 | ×0.7 | 어려움 10층 클리어 |
+- **해금 없음, 입장할 때 고르지 않음.** 첫 실행 때 `config.yml: difficulty` 가 비어 있으면 처음 접속한 관리자에게
+  초기 설정 GUI(난이도 4개 + 입구 방식)가 뜨고, 정하기 전까지 미궁 입장이 막힌다. 콘솔: `/labadmin setup <난이도>`.
+- 나중에 바꾸려면 `/labadmin difficulty <난이도>` 또는 config 수정 후 `/labadmin reload` (다음 입장부터 적용).
 
-- 희귀도 가중치도 난이도별로 오른다(LootService). **신화 장비는 악몽 9~10층과 10층 보스(어려움 이상)에서만** 나온다.
+| 키 | 이름 | 몹 HP | 몹 피해 | 드롭 | 경험치 | 경고 시간(windup) |
+|---|---|---|---|---|---|---|
+| `easy` | 쉬움 | ×0.7 | ×0.6 | ×0.8 | ×0.8 | ×1.3 |
+| `normal` | 보통 | ×1.0 | ×1.0 | ×1.0 | ×1.0 | ×1.0 |
+| `hard` | 어려움 | ×1.5 | ×1.4 | ×1.3 | ×1.3 | ×0.85 |
+| `nightmare` | 악몽 | ×2.4 | ×2.0 | ×1.8 | ×1.7 | ×0.7 |
+
+- 희귀도 가중치도 난이도별로 오른다(LootService). **신화 장비는 서버 난이도가 악몽일 때 9~10층, 어려움 이상일 때 10층 보스에서만** 나온다.
 - windup 배율은 모든 보스 패턴·몹 스킬의 `windup` 에 곱한다. 최소 0.5초는 보장(공정성).
 
 ### 2.5 파티 인원 배율 (config `party`)
@@ -972,7 +976,7 @@ PvP 매치에서는 소모품 전부 사용 불가(§18).
 | `CLEAR` | floor, count | 보스 처치 시 층별 누적 |
 | `SOLO_CLEAR` | floor | 입장 인원 1명으로 클리어 |
 | `NO_DEATH_CLEAR` | floor, party_min | 인스턴스 동안 사망 0, 입장 인원 ≥ party_min |
-| `DIFFICULTY_CLEAR` | floor, difficulty | 선택 난이도 ≥ difficulty |
+| `DIFFICULTY_CLEAR` | floor, difficulty | 서버 난이도 ≥ difficulty |
 | `SPEED_CLEAR` | floor, seconds | 시작방 개방 ~ 보스 처치 |
 | `KILL` | count, mob?, rank? | 처치(막타 아닌 **기여자 전원**) 누적 |
 | `BOSS_KILL` | count, boss? | 보스 처치 참가 누적 |
@@ -997,7 +1001,7 @@ PvP 매치에서는 소모품 전부 사용 불가(§18).
 
 | id | 이름 | 역할 | 위치 | 기능 |
 |---|---|---|---|---|
-| `guide` | 미궁 안내인 벨라 | entrance | 오버월드 | 입장 메뉴(파티·층·난이도), 미궁 설명 |
+| `guide` | 미궁 안내인 벨라 | entrance | 오버월드 | 입장 메뉴(파티·층 선택, 서버 난이도 표시), 미궁 설명 |
 | `blacksmith` | 대장장이 두르간 | blacksmith | 오버월드 | 제작 GUI(recipes.yml) |
 | `class_master` | 전직관 세라핀 | class_master | 오버월드 | 직업 선택/변경, 스킬 설명, 스탯 메뉴 바로가기 |
 | `title_keeper` | 기록관 노아 | title_keeper | 오버월드 | 업적·칭호 목록, 칭호 장착, 서버 최초 기록 열람 |
@@ -1242,8 +1246,8 @@ difficulties:
   easy:      {name: "쉬움",  hp: 0.7, damage: 0.6, drop: 0.8, xp: 0.8, telegraph: 1.3}
   normal:    {name: "보통",  hp: 1.0, damage: 1.0, drop: 1.0, xp: 1.0, telegraph: 1.0}
   hard:      {name: "어려움", hp: 1.5, damage: 1.4, drop: 1.3, xp: 1.3, telegraph: 0.85}
-  nightmare: {name: "악몽",  hp: 2.4, damage: 2.0, drop: 1.8, xp: 1.7, telegraph: 0.7, unlock: {floor: 10, difficulty: hard}}
-allowed_difficulties: [easy, normal, hard, nightmare]
+  nightmare: {name: "악몽",  hp: 2.4, damage: 2.0, drop: 1.8, xp: 1.7, telegraph: 0.7}
+difficulty: ""          # 서버 난이도. 비어 있으면 첫 관리자 접속 시 초기 설정 GUI
 party: {max_size: 10, hp_per_member: 0.6, dmg_per_member: 0.08, reward_per_member: 0.05}
 ```
 
