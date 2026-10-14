@@ -36,7 +36,7 @@ final class BlacksmithMenu extends Menu {
     private boolean ownClassOnly = true;
 
     BlacksmithMenu(Services services, LabCraftingService crafting, Player viewer) {
-        super(6, Text.mm("<#3a2a1a>대장장이 두르간의 대장간"));
+        super(6, kr.labyrinth.ui.UiTheme.title("blacksmith", 6, "<#3a2a1a>대장장이 두르간의 대장간"));
         this.services = services;
         this.crafting = crafting;
     }

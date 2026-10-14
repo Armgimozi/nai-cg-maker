@@ -57,4 +57,39 @@ public interface DungeonService {
         s.stats().setHp(player, s.stats().maxHp(player) * Math.max(0.05, Math.min(1.0, hpRatio)));
         return true;
     }
+
+    // ── ui 담당 추가 (HUD 사이드바) — dungeon 구현이 더 정확한 값으로 재정의해도 된다 ──
+
+    /**
+     * HUD 사이드바용 현재 층 진행 요약. 인스턴스 밖이면 null.
+     * roomsTotal/roomsCleared 는 전투·정예·시련·수호자의 방만 센다.
+     */
+    default FloorProgress floorProgress(Player player) {
+        if (this instanceof DungeonManager m) {
+            Run run = m.runOf(player);
+            if (run == null || run.current() == null) return null;
+            FloorState fs = run.current();
+            int total = 0;
+            int cleared = 0;
+            for (kr.labyrinth.dungeon.rooms.Room room : fs.rooms()) {
+                switch (room.type()) {
+                    case COMBAT, ELITE, GIMMICK, BOSS -> {
+                        total++;
+                        if (room.cleared()) cleared++;
+                    }
+                    default -> { }
+                }
+            }
+            return new FloorProgress(fs.floor(), cleared, total, fs.deaths(),
+                    fs.startedAt() > 0 ? fs.startedAt() : run.createdAt(), fs.cleared(), fs.ready(), fs.progress());
+        }
+        return currentInstance(player).map(c -> new FloorProgress(c.floor(), 0, 0, 0, c.startedAt(), false, true, 1.0)).orElse(null);
+    }
+
+    /**
+     * @param startedAt   층 시작 시각(ms) — 타이머
+     * @param ready       층 생성이 끝났는가 (false 면 progress = 생성 진행도 0~1)
+     */
+    record FloorProgress(int floor, int roomsCleared, int roomsTotal, int deaths, long startedAt, boolean bossDefeated,
+                         boolean ready, double progress) {}
 }
