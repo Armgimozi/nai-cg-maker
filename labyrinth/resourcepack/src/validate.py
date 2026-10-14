@@ -162,4 +162,82 @@ def validate(files: dict, content: dict, expect_frames: dict, fx_names=()) -> Re
                 rep.err(f'equipment {s} {layer}: size {img.size} != 64x32')
     for name in fx_names:
         check_item_definition(files, f'assets/{NS}/items/fx/{name}.json', rep, expect_frames)
+    validate_mobs_npcs_fx(files, content, rep, expect_frames)
     return rep
+
+
+def _fixed_ok(files, model_ref, rep):
+    """ARCHITECTURE §2: display.fixed must be rotation 0 / translation 0 / uniform scale ≥ 1 (1/s restore)."""
+    ns, p = model_ref.split(':', 1)
+    path = f'assets/{ns}/models/{p}.json'
+    if path not in files:
+        return
+    m = json.loads(files[path].decode('utf-8'))
+    fx = (m.get('display') or {}).get('fixed')
+    if not fx:
+        rep.err(f'{path}: missing display.fixed')
+        return
+    if any(abs(v) > 1e-6 for v in fx.get('rotation', [0, 0, 0]) + fx.get('translation', [0, 0, 0])):
+        rep.err(f'{path}: display.fixed must have zero rotation/translation')
+    sc = fx.get('scale', [1, 1, 1])
+    if len(set(sc)) != 1 or sc[0] < 1 - 1e-6:
+        rep.err(f'{path}: display.fixed scale {sc} must be uniform and ≥ 1')
+
+
+def validate_mobs_npcs_fx(files, content, rep, expect_frames):
+    # mob / boss parts: item definition + model + shared atlas
+    for coll in ('mobs', 'bosses'):
+        data = (content.get(coll) or {}).get(coll) or {}
+        for mid, d in data.items():
+            parts = ((d or {}).get('model') or {}).get('parts') or []
+            if not parts:
+                rep.err(f'{coll} {mid}: no model parts')
+            names = [p.get('name') for p in parts]
+            if len(names) != len(set(names)):
+                rep.err(f'{coll} {mid}: duplicate part names {names}')
+            tex = f'assets/{NS}/textures/mob/{mid}.png'
+            if tex not in files:
+                rep.err(f'{coll} {mid}: missing atlas {tex}')
+            for p in parts:
+                ref = f'{NS}:mob/{mid}/{p.get("name")}'
+                check_item_definition(files, f'assets/{NS}/items/mob/{mid}/{p.get("name")}.json', rep, expect_frames)
+                _fixed_ok(files, ref, rep)
+                mp = f'assets/{NS}/models/mob/{mid}/{p.get("name")}.json'
+                if mp in files:
+                    m = json.loads(files[mp].decode('utf-8'))
+                    if (m.get('textures') or {}).get('0') != f'{NS}:mob/{mid}':
+                        rep.err(f'{mp}: must use the shared atlas {NS}:mob/{mid}')
+    # NPC skins: 64×64, opaque base layer
+    base_rects = [(0, 0, 32, 16), (0, 16, 56, 32), (16, 48, 48, 64)]
+    for nid, d in ((content.get('npcs') or {}).get('npcs') or {}).items():
+        sid = (d or {}).get('skin') or nid
+        img = _png(files, f'assets/{NS}/textures/entity/npc/{sid}.png', rep)
+        if img is None:
+            continue
+        if img.size != (64, 64):
+            rep.err(f'npc skin {sid}: size {img.size} != 64x64')
+            continue
+        im = img.convert('RGBA')
+        px = im.load()
+        # head/body/arm/leg base faces (not the unused corners) must be opaque
+        holes = 0
+        for (x0, y0, x1, y1) in base_rects:
+            for y in range(y0, y1):
+                for x in range(x0, x1):
+                    used = not ((y < 8 or 16 <= y < 20 or 48 <= y < 52) and
+                                (x in range(0, 8) or x in range(24, 32) or x in range(0, 4) or x in range(12, 20)
+                                 or x in range(36, 44) or x in range(52, 56) or x in range(28, 36) or x in range(44, 48)))
+                    if used and px[x, y][3] == 0 and y >= 8:
+                        holes += 1
+        if holes > 40:
+            rep.err(f'npc skin {sid}: {holes} transparent base-layer pixels')
+    # every fx.yml model
+    for name in sorted(((content.get('fx') or {}).get('models') or {})):
+        check_item_definition(files, f'assets/{NS}/items/fx/{name}.json', rep, expect_frames)
+        _fixed_ok(files, f'{NS}:fx/{name}', rep)
+    # every aura's ring/secondary model must exist
+    for aid, a in (((content.get('fx') or {}).get('auras')) or {}).items():
+        for key in ('ring_model', 'secondary_model'):
+            ref = (a or {}).get(key)
+            if ref and f'assets/{NS}/items/fx/{ref}.json' not in files:
+                rep.err(f'aura {aid}: {key} {ref} has no fx model')

@@ -61,6 +61,22 @@ labyrinth/
   - `assets/labyrinth/items/mob/<id>/<part>.json`, 모델 `assets/labyrinth/models/mob/<id>/<part>.json`
   - 텍스처 `assets/labyrinth/textures/mob/<id>.png` (한 몹 = 한 장 아틀라스, UV 로 파트 나눔)
   - 파트 목록·피벗은 `mobs.yml`/`bosses.yml` 의 `model.parts` 가 원본 (아래 스키마).
+  - **생성 결과 계약(pack-models 단계, `resourcepack/src/mobs.py`)** — Java `ModelRig` 은 이것만 믿으면 된다:
+    - 파트마다 ItemDisplay 1개, `setItemDisplayTransform(ItemDisplayTransform.FIXED)`, 아이템 = 아무 아이템 + `ITEM_MODEL = labyrinth:mob/<id>/<part>`.
+    - 엔티티 위치 = 몹 위치 + `rotY(몹 yaw)(pivot) × scale` (pivot 은 몹 로컬: +Z = 몹이 보는 방향, +X = 몹의 왼쪽, 블록 단위),
+      ItemDisplay 의 yaw(또는 Transformation 회전) = 몹 yaw. `Transformation.scale` = 몹 `scale` (모델이 이미 1/s 복원을 품고 있으므로
+      **Java 는 추가 배율 없이** YAML `size` 가 그대로 화면 크기). translation = 0 (회전 중심 = pivot = 모델 (8,8,8)).
+    - 모델 **−Z = 몹의 앞**(얼굴·눈·발톱·무기 끝), 모델 −X = 몹의 왼쪽. 팔(`arm`/`tentacle_cluster` + `arm_left|arm_right`)·다리
+      (`leg_pair` + `legs_walk`)는 pivot 에서 **아래로 매달린** 모양, `tail` 은 pivot 에서 뒤(몹 −Z)로 뻗거나(길이>높이) 아래로 매달린다.
+    - **손에 쥔 파트**(팔과 pivot·anim 이 같은 blade/claw/slab/lantern/book…)는 생성기가 그 팔의 손 위치(pivot − (0, 팔 길이, 0))에
+      붙여 만들었다 → Java 는 그 파트에 **팔과 똑같은 Transformation 회전**을 주면 손에 붙어 함께 휘두른다. blade 는 손에서 앞(−Z)으로,
+      slab(방패)은 바깥쪽(±X)을 향한다.
+    - 아틀라스 크기는 생성기가 자동으로 정한다(정사각형 2의 거듭제곱; YAML `texture_size` 는 참고값). 보스 아틀라스는 8프레임,
+      발광 몹(emissive_core·heartbeat_glow·spore_glow·sculk_veins·molten_cracks·electric_veins)은 4프레임 `.mcmeta` 애니메이션 —
+      발광 부위가 맥동한다. Java 는 신경 쓸 것 없음.
+    - 눈·핵·수정 같은 발광 요소는 모델 요소의 `light_emission`(12~15)으로 이미 밝게 그려진다 → `Display#setBrightness` 불필요
+      (어두운 미궁에서 몸 전체를 밝히고 싶을 때만 Brightness(블록 빛 ≥ 10) 권장).
+    - 모든 파트 모델은 `display.fixed`(= `display.head`) rotation 0 / translation 0 / scale 1/s(≥1, ≤4), `gui`·`ground` 는 미리보기용.
 - **3D 모델 공통 좌표 규칙 (몹 파트·fx·무기스킬 이펙트 — 플러그인과 생성기가 이것만 믿는다)**:
   모델 좌표 16 = 1블록. 파트의 **피벗(회전 중심)은 모델 좌표 (8, 8, 8)**. 요소는 -16~32 범위 안.
   모델의 `display.fixed` = rotation [0,0,0], translation [0,0,0], scale [1,1,1] (그 외 컨텍스트는 자유).
@@ -74,14 +90,28 @@ labyrinth/
   포함하므로 생성기가 `assets/minecraft/atlases/items.json` 에 `fx/`·`mob/` 디렉터리 소스를 추가한다(팩끼리 sources 병합).
   → fx 텍스처 `assets/labyrinth/textures/fx/<name>.png`(모델 `models/fx/<name>.json`), 몹 텍스처 `textures/mob/<id>.png` 가 그대로 동작.
   다른 폴더를 새로 쓰려면 같은 파일에 소스를 추가할 것.
-- **NPC 스킨**: `npcs.yml` 의 `skin: <id>` → `assets/labyrinth/textures/entity/npc/<id>.png` (64x64 플레이어 스킨 레이아웃).
-  플러그인은 `Mannequin` 엔티티 + `ResolvableProfile` 의 SkinPatch(body 텍스처 = `labyrinth:entity/npc/<id>`) 사용.
+- **NPC 스킨**: `npcs.yml` 의 `skin: <id>` → `assets/labyrinth/textures/entity/npc/<id>.png` (64x64 플레이어 스킨 레이아웃, 두 번째
+  레이어 포함, **classic(4px 팔)**). 플러그인은 `Mannequin` 엔티티 + `ResolvableProfile` 의 SkinPatch 사용:
+  `mannequin.setProfile(ResolvableProfile.resolvableProfile().skinPatch(b -> b.body(Key.key("labyrinth", "entity/npc/" + skin))
+  .model(PlayerTextures.SkinModel.CLASSIC)).build())`. **asset id 형식 확인됨(26.3 클라이언트 `ClientAsset$ResourceTexture`)**:
+  키 `ns:path` → 리소스 `assets/<ns>/textures/<path>.png` (= `"textures/" + path + ".png"`), 아틀라스 아님(단독 텍스처) →
+  `labyrinth:entity/npc/<skin>` 이 정답(앞에 `textures/`·뒤에 `.png` 붙이지 말 것). 겉옷 레이어가 보이도록 `setSkinParts` 는 전부 켠다.
 - **이펙트 모델**(아우라 링, 장판 경고, 투사체 등): `labyrinth:fx/<name>` → `assets/labyrinth/items/fx/<name>.json`.
   목록은 `content/fx.yml`.
 - **표시 규칙(몹 파트·이펙트 공통)**: 플러그인은 `ItemDisplay` + `ItemDisplayTransform.FIXED` 로 띄운다. 생성기는 모델 좌표 한계
   (−16~32)를 넘는 큰 모델을 비율 s 로 줄여 만들고 `display.fixed.scale = 1/s`(rotation/translation 0)로 원래 크기를 복원한다.
   몹 파트는 **pivot 이 모델 중심(8,8,8)** 에 오게 만든다 → 플러그인의 Transformation 회전 중심 = pivot. YAML `size`(px, 16=1블록)가
   곧 화면 크기. 상세(파트 배치 기준·손에 쥐기 규칙): GDD.md §14.6.
+- **fx 앵커와 크기(pack-models 단계, `src/fx_extra.py`)**: fx 모델은 전부 pivot (8,8,8) 중심. 예외(시작점 = pivot, 모델 −Z = 디스플레이가
+  보는 방향으로 뻗음): `telegraph_line`·`telegraph_arrow`·`telegraph_cone`·`clock_hand`. `pendulum` 은 pivot = 막대 위 끝(Z축 회전으로 흔들기).
+  바닥형(`flat: true`)은 두께 0.1px 판의 **윗면만** 텍스처 → 바닥 블록 윗면 + 0.02 블록 높이에 띄울 것. `size` 의 w/d(px) 가 scale 1 일 때 크기:
+  - `telegraph_circle`/`telegraph_safe`/`telegraph_mechanic`/`telegraph_ring`: 지름 = w/16 블록 → 반경 r 이면 X·Z scale = 2r ÷ (w/16)
+    (기본 32px → scale = r). `telegraph_ring` 안쪽 구멍 = 바깥 반경의 46% 고정.
+  - `telegraph_line`/`telegraph_arrow`: X scale = 폭 ÷ (w/16), Z scale = 길이 ÷ (d/16), yaw = 방향. 시작점 = 디스플레이 위치.
+  - `telegraph_cone`: 꼭짓점 = 디스플레이 위치, 반경 = d/16 블록, 90° 부채꼴 → Z scale = 길이 ÷ (d/16), X scale = 같은 값 × tan(각도/2).
+  - `telegraph_tile`: 한 변 = w/16 블록. `clock_hand`: 길이 = d/16 블록, yaw 를 돌려 시곗바늘처럼 회전.
+  - 아우라 `*_ring`: 지름 w/16 블록 링(애니메이션 텍스처가 모티프를 흘림), `ring_scale`·`ring_spin` 은 Java 가 Transformation 으로.
+  - 경고 장판은 전부 프레임 애니메이션(테두리 맥동 + 중심→바깥 스윕 = 차오르는 느낌). 안쪽 채움은 반투명(α≈90) 텍스처.
 - **UI 글리프**: `content/glyphs.yml` 이 원본. 폰트 `labyrinth:ui` (`assets/labyrinth/font/ui.json`).
   각 글리프 = 사설 영역 코드포인트(U+E000~) + PNG + ascent + height. 음수/양수 공백 글리프로 위치 이동.
   **공백 문자 규칙**: `spaces` 의 값 v(px, −1024~255)는 같은 폰트의 `space` 프로바이더에서 문자 **U+F800 + v** 로 매핑한다
@@ -98,7 +128,8 @@ labyrinth/
   26.x 형식(확인됨): `{"pack": {"description": [...컴포넌트], "min_format": [97, 1], "max_format": 97}}` —
   정수 `max_format` 은 "그 major 의 모든 minor"(TOP_CODEC = minor 최대값)라서 26.3.x 패치에도 경고 없이 맞는다. `pack_format` 은 넣지 않는다.
 - 생성기 산출물: `resourcepack/dist/labyrinth-pack.zip`(결정적 zip: 정렬·고정 시각) + `labyrinth-pack.sha1`, 사람용 미리보기
-  `preview_items.png`·`preview_anim.gif`·`preview_fx.png`·`preview_helmets_worn.png`·`preview_armor.png`.
+  `preview_items.png`·`preview_anim.gif`·`preview_fx.png`·`preview_helmets_worn.png`·`preview_armor.png`·
+  `preview_mobs.png`(몹·보스를 YAML pivot 에 조립한 정면 3/4 렌더)·`preview_mob_atlases.png`·`preview_npcs.png`.
   생성기는 `generate.py` 의 `BUILDERS` 레지스트리(공유 `Ctx` → `ctx.add(path, bytes)`)로 확장한다: 몹·UI 글리프·NPC 스킨·나머지 fx 스타일
   단계는 자기 모듈을 `src/` 에 두고 BUILDERS 에 추가. 3D 모델 엔진 `src/model.py`(Model/El/bake/UV 아틀라스/display 맞춤),
   재질 셰이더 `src/materials.py`, 애니메이션 `src/effects.py`, 미리보기 렌더러 `src/render.py` 를 재사용할 것.

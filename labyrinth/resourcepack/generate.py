@@ -23,7 +23,7 @@ from PIL import Image
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
-from src import equipment, fx_models, items, pack, render, validate  # noqa: E402
+from src import equipment, fx_extra, fx_models, items, mobs, npc_skins, pack, render, validate  # noqa: E402
 from src.materials import Look  # noqa: E402
 from src.util import stable_seed  # noqa: E402
 
@@ -44,6 +44,8 @@ class Ctx:
         self.fx_previews = []
         self.fx_names: list[str] = []
         self.armor_previews = []   # (label, hum, leg)
+        self.mob_previews = []     # (id, boss, assembled model, faces_uv, frame0)
+        self.npc_previews = []     # (skin id, image)
         self.stats: dict[str, int] = {}
 
     def load(self, name):
@@ -116,6 +118,27 @@ def build_equipment(ctx: Ctx):
 FX_STYLES = {'slash', 'shockwave', 'orb', 'tether', 'projectile'}
 
 
+def _emit_fx(ctx: Ctx, name, spec, m, fn):
+    """Bake one fx model (pivot 8,8,8; display.fixed identity or 1/s) + its (animated) texture."""
+    fx_models.finalize_display(m)
+    ref = f'{NS}:fx/{name}'
+    baked = m.bake(lambda c: ([(0, 0, 0)], 0, (0, 0, 0), 0), ref)
+    frames = [baked.frame(lambda t, f=f: (lambda r: (r[0], 0, r[1]))(fn(t, f))) for f in range(spec.frames)]
+    tp = f'assets/{NS}/textures/fx/{name}.png'
+    if spec.frames > 1:
+        if not items.frames_differ(frames):
+            ctx.warnings.append(f'fx {name}: frames identical')
+        ctx.add(tp, items.png_bytes(items.strip(frames)))
+        ctx.add(tp + '.mcmeta', items.jdump({'animation': {'frametime': spec.frametime}}))
+        ctx.expect_frames[tp] = spec.frames
+    else:
+        ctx.add(tp, items.png_bytes(frames[0]))
+    ctx.add(f'assets/{NS}/models/fx/{name}.json', items.jdump(baked.model_json()))
+    ctx.add(f'assets/{NS}/items/fx/{name}.json',
+            items.jdump({'model': {'type': 'minecraft:model', 'model': ref}}))
+    ctx.fx_previews.append((name, m, baked.faces_uv, frames[0]))
+
+
 def build_weapon_fx(ctx: Ctx):
     """FX models for weapon skills (+ every other fx.yml model of the same styles)."""
     fxm = (ctx.content.get('fx') or {}).get('models') or {}
@@ -133,28 +156,65 @@ def build_weapon_fx(ctx: Ctx):
         d = fxm.get(name) or {'style': 'orb', 'palette': ['#202040', '#6060c0', '#c0c0ff', '#ffffff']}
         spec = fx_models.FxSpec(name, d)
         m, fn = fx_models.build(spec)
-        fx_models.finalize_display(m)
-        ref = f'{NS}:fx/{name}'
-        baked = m.bake(lambda c: ([(0, 0, 0)], 0, (0, 0, 0), 0), ref)
-        frames = [baked.frame(lambda t, f=f: (lambda r: (r[0], 0, r[1]))(fn(t, f))) for f in range(spec.frames)]
-        tp = f'assets/{NS}/textures/fx/{name}.png'
-        if spec.frames > 1:
-            if not items.frames_differ(frames):
-                ctx.warnings.append(f'fx {name}: frames identical')
-            ctx.add(tp, items.png_bytes(items.strip(frames)))
-            ctx.add(tp + '.mcmeta', items.jdump({'animation': {'frametime': spec.frametime}}))
-            ctx.expect_frames[tp] = spec.frames
-        else:
-            ctx.add(tp, items.png_bytes(frames[0]))
-        ctx.add(f'assets/{NS}/models/fx/{name}.json', items.jdump(baked.model_json()))
-        ctx.add(f'assets/{NS}/items/fx/{name}.json',
-                items.jdump({'model': {'type': 'minecraft:model', 'model': ref}}))
-        ctx.fx_previews.append((name, m, baked.faces_uv, frames[0]))
+        _emit_fx(ctx, name, spec, m, fn)
     ctx.fx_names = sorted(needed)
     ctx.stats['fx_models'] = len(names) + len(missing)
 
 
-BUILDERS = [build_core, build_items, build_equipment, build_weapon_fx]
+def build_fx_extra(ctx: Ctx):
+    """Every other fx.yml style: aura rings, telegraphs, glyphs, runes, markers, crystals, props (src/fx_extra.py)."""
+    fxm = (ctx.content.get('fx') or {}).get('models') or {}
+    n = 0
+    for name in sorted(fxm):
+        d = fxm[name] or {}
+        st = d.get('style')
+        if st in FX_STYLES:
+            continue
+        if st not in fx_extra.EXTRA_STYLES:
+            ctx.warnings.append(f'fx {name}: unknown style {st!r} — generated as a soft plate')
+        spec = fx_models.FxSpec(name, d)
+        m, fn = fx_extra.build(spec)
+        _emit_fx(ctx, name, spec, m, fn)
+        n += 1
+    ctx.stats['fx_models'] = ctx.stats.get('fx_models', 0) + n
+
+
+def build_mobs(ctx: Ctx):
+    """3D part models + one atlas per mob/boss (src/mobs.py)."""
+    nparts = 0
+    for coll, boss in (('mobs', False), ('bosses', True)):
+        data = (ctx.content.get(coll) or {}).get(coll) or {}
+        for mid, d in data.items():
+            res = mobs.build_mob(mid, d or {}, boss, items.jdump, items.png_bytes, items.strip)
+            for p, b in res.files.items():
+                ctx.add(p, b)
+            ctx.warnings.extend(res.warnings)
+            if res.frames > 1:
+                ctx.expect_frames[res.texture_path] = res.frames
+            if res.preview:
+                ctx.mob_previews.append((mid, boss) + res.preview)
+            nparts += len(res.parts)
+        ctx.stats[coll] = len(data)
+    ctx.stats['mob_parts'] = nparts
+
+
+def build_npcs(ctx: Ctx):
+    """64×64 player-layout skins for every npcs.yml skin id (src/npc_skins.py)."""
+    data = (ctx.content.get('npcs') or {}).get('npcs') or {}
+    done = set()
+    for nid, d in data.items():
+        sid = (d or {}).get('skin') or nid
+        if sid in done:
+            continue
+        done.add(sid)
+        img, warns = npc_skins.paint_skin(sid, (d or {}).get('skin_style'))
+        ctx.warnings.extend(warns)
+        ctx.add(f'assets/{NS}/textures/entity/npc/{sid}.png', items.png_bytes(img))
+        ctx.npc_previews.append((sid, img))
+    ctx.stats['npc_skins'] = len(done)
+
+
+BUILDERS = [build_core, build_items, build_equipment, build_weapon_fx, build_fx_extra, build_mobs, build_npcs]
 
 
 # ───────────────────────────── previews ─────────────────────────────
@@ -195,6 +255,28 @@ def write_previews(ctx: Ctx):
             cells.append((sheet.resize((256, 256), Image.NEAREST), s))
         render.grid(cells, 4, 256, title='Equipment layers (top: humanoid, bottom: humanoid_leggings)').convert('RGB').save(
             os.path.join(ctx.out_dir, 'preview_armor.png'))
+    if ctx.mob_previews:
+        cells = []
+        for (mid, boss, pm, uv, fr) in ctx.mob_previews:
+            cells.append((mobs.preview_cell(pm, uv, fr, px=192), ('[BOSS] ' if boss else '') + mid))
+        render.grid(cells, 8, 192, label_h=12,
+                    title=f'Mobs & bosses: {len(cells)} (assembled at YAML pivots, front 3/4 view, frame 0)').convert(
+            'RGB').save(os.path.join(ctx.out_dir, 'preview_mobs.png'))
+        sheets = []
+        for (mid, boss, pm, uv, fr) in ctx.mob_previews:
+            sheets.append((fr.resize((128, 128), Image.NEAREST), mid))
+        render.grid(sheets, 12, 128, title='Mob texture atlases (frame 0)').convert('RGB').save(
+            os.path.join(ctx.out_dir, 'preview_mob_atlases.png'))
+    if ctx.npc_previews:
+        cells = []
+        for (sid, img) in ctx.npc_previews:
+            fig = npc_skins.preview_figure(img, 5)
+            cell = Image.new('RGBA', (200, 200), (0, 0, 0, 0))
+            cell.alpha_composite(fig, ((200 - fig.size[0]) // 2, (200 - fig.size[1]) // 2))
+            cells.append((cell, sid))
+            cells.append((img.resize((200, 200), Image.NEAREST), sid + ' (sheet)'))
+        render.grid(cells, 6, 200, title='NPC skins (front/back + 64x64 sheet)').convert('RGB').save(
+            os.path.join(ctx.out_dir, 'preview_npcs.png'))
     if ctx.anim_previews:
         nmax = max(len(fr) for (_, _, _, fr) in ctx.anim_previews)
         per = [[render.render(m, uv, fr, m.display['gui'], ppu=5) for fr in frames]
