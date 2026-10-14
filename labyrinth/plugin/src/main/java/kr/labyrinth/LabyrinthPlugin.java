@@ -59,6 +59,7 @@ public final class LabyrinthPlugin extends JavaPlugin {
         // ──────────────────────────────────────────────────────────────────────────
         modules.add(new SetupListener(services));
         modules.add(services.commands());
+        modules.add(new kr.labyrinth.core.ServerListListener(services));
 
         for (Module m : modules) {
             try {
