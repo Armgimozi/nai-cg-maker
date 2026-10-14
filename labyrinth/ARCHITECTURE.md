@@ -105,6 +105,11 @@ dungeon/ DungeonService(입장/퇴장/진행), Instance(파티·층·난이도·
          VoidGenerator(ChunkGenerator: 빈 월드), FloorGenerator(층 테마 팔레트로 방+복도 미로 생성, 시드 기반),
          rooms/*(전투방, 엘리트방, 보물방, 기믹방, 휴식방, 보스방), EntranceService(오버월드 입구: 지형 존중)
 party/   Party, PartyService(생성/초대/수락/탈퇴/추방/위임, 파티 채팅, 최대 인원 config)
+pvp/     파티 대 파티 PvP: ArenaService(arenas.yml 의 오리지널 투기장을 labyrinth_world 의 별도 슬롯에 생성·정리),
+         MatchService(도전/수락, 매칭 대기열, 라운드제 best-of-N, 준비 카운트다운, 사망→관전, 라운드 종료·승패 판정,
+         인원 차 보정), PvpRules(PvP 전용 피해 배율·치유 감소·제어기 지속시간 감소·포션/소모품 제한, 장비 격차 완화 옵션),
+         RatingService(파티 레이팅 Elo + 개인 전적, 시즌 리셋 명령), TargetFilter(스킬·무기스킬이 '적'을 고르는 단일 규칙:
+         미궁에선 몹, 매치에선 상대 팀 플레이어 — 아군 오사 방지)
 titles/  Achievement(titles.yml), TitleService(조건 검사, 서버 최초 달성 방송, 칭호 장착: 채팅·탭·이름표 접두어, 소소한 보너스)
 npc/     NpcService(npcs.yml: 안내인/대장장이/전직관/칭호관리인… Mannequin + 커스텀 스킨, 우클릭 → GUI)
 ui/      Menu 프레임워크(InventoryHolder 기반, 커스텀 폰트 배경 타이틀, 버튼 콜백), menus/*(스탯, 직업, 파티, 입장/난이도,
@@ -114,7 +119,8 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
 ```
 
 ### 명령어
-- 플레이어: `/lab`(별칭 `/미궁`: 입장 메뉴·퇴장·정보), `/party`(`/파티`), `/stats`(`/스탯`), `/class`(`/직업`), `/title`(`/칭호`)
+- 플레이어: `/lab`(별칭 `/미궁`: 입장 메뉴·퇴장·정보), `/party`(`/파티`), `/stats`(`/스탯`), `/class`(`/직업`), `/title`(`/칭호`),
+  `/pvp`(`/대전`: 도전 <파티장>, 수락, 거절, 대기열 참가/취소, 순위, 전적)
 - 관리자(`labyrinth.admin`): `/labadmin reload|give <item> [player]|spawnmob <id>|spawnboss <floor>|setentrance|removeentrance|
   setnpc <id>|tpfloor <n>|unlock <player> <floor>|reset <player>|instances|endinstance <id>`
 
@@ -142,6 +148,10 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
   - **파티 인원 배율**: 몹 HP ×(1 + `hp_per_member`×(n−1)), 피해 ×(1 + `dmg_per_member`×(n−1)), 보상 약간 증가. config.
   - **난이도**(입장 시 파티장이 선택, 관리자가 허용 목록 설정): 쉬움/보통/어려움/악몽. HP·피해·드롭 배율, 악몽은 어려움 10층 클리어 후 해금.
   - 사망: 파티원이 있으면 관전 모드 → 휴식방 도달/보스 처치 시 부활. 전멸 시 인스턴스 실패·귀환. 아이템 손실 없음.
+- **PvP (파티 대 파티)**: 파티장이 다른 파티에 도전하거나 대기열로 매칭. 전용 투기장(미궁 월드 별도 슬롯, 지형 무관)에서
+  best-of-3 라운드. 인원이 다르면 config 에 따라 거절/허용(적은 쪽 HP·피해 보정). PvP 전용 밸런스 규칙(피해 배율, 치유 감소,
+  제어기 감소). 미궁 밖·미궁 안에서는 PvP 꺼짐(매치 안에서만). 결과로 파티 레이팅·개인 전적·PvP 칭호. 장비/아이템 손실 없음,
+  돈으로 살 수 있는 이점 없음(EULA).
 - 칭호: 업적 달성 시 획득. 서버 최초 층 클리어(1등 파티 전원에게만), 솔로 클리어, 무사망 클리어, 난이도별 클리어,
   처치 수, 레벨, 전설·신화 획득, 제작 횟수, 스피드런 등. 칭호 1개 장착(채팅/탭/이름표 접두어), 일부는 작은 스탯 보너스.
 
@@ -294,6 +304,25 @@ achievements:
     title: "<gradient:#7fa043:#c9d98a>회랑의 개척자</gradient>"
     bonus: {LUK: 1}
     broadcast: true
+
+# arenas.yml  (오리지널 투기장 — 생성기 코드가 블록 팔레트로 지음)
+arenas:
+  sunken_colosseum:
+    name: "가라앉은 투기장"
+    size: [41, 41]             # 바닥 크기
+    palette: {floor: [...], wall: [...], accent: [...], light: [...]}
+    layout: pillars_ring        # 구현 키: pillars_ring | bridges | tiers | maze_lite | central_altar ...
+    team_spawns: 2
+    hazards: [{type: rising_water, start: 90}]   # 선택: 시간이 지나면 발동
+pvp:
+  rounds_to_win: 2
+  round_time: 180
+  allow_uneven: true
+  uneven_bonus: {hp: 0.15, damage: 0.10}   # 인원 1명 차이당 적은 쪽 보정
+  rules: {damage_mult: 0.6, healing_mult: 0.7, cc_duration_mult: 0.6, consumables: false}
+  rating: {start: 1000, k: 32}
+
+# titles.yml 조건 추가: PVP_WIN(count) | PVP_STREAK(count) | PVP_RATING(min) | PVP_FIRST_WIN
 
 # npcs.yml
 npcs:
