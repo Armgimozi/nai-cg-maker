@@ -12,6 +12,10 @@ from . import shapes_weapons as W
 from .materials import Look, RARITY_LEVEL, make_shader
 from .model import Model
 from .util import stable_seed
+from .voxel import armor as VA
+from .voxel import build as VB
+from .voxel import weapons as VW
+from .voxel.core import Grid
 
 NS = 'labyrinth'
 
@@ -118,6 +122,35 @@ def _bake_and_write(res: ItemResult, m: Model, name: str, look: Look, tex: dict,
     return baked
 
 
+def _voxel_write(res: ItemResult, name, g, look, theme, tex, animated, seed, vs, origin, display_fn, label=None,
+                 max_el=720, preview=True):
+    """Voxel model → palette texture (animated strip for legendary/mythic glow) + model JSON."""
+    ref = f'{NS}:item/{name}'
+    n, ft, eff = _anim_params(tex) if animated else (8, 2, 'rune_flow')
+    if animated and eff not in effects.KNOWN:
+        res.warnings.append(f'{res.iid}: unknown effect {eff!r} → rune_flow')
+    out = VB.finish(name, g, look, theme, ref, vs, origin, animated, eff, n, seed, display_fn, max_el)
+    tex_path = f'assets/{NS}/textures/item/{name}.png'
+    m = out.vm.model
+    if animated:
+        frames = out.frames
+        res.files[tex_path] = png_bytes(strip(frames))
+        res.files[tex_path + '.mcmeta'] = _mcmeta(ft, eff)
+        res.expect_frames[tex_path] = n
+        if res.anim_frames is None:
+            res.anim_frames = (m, out.vm.faces_uv, frames)
+    else:
+        res.files[tex_path] = png_bytes(out.frames[0])
+    res.files[f'assets/{NS}/models/item/{name}.json'] = jdump(out.model_json)
+    if preview:
+        res.previews.append((label or name, m, out.vm.faces_uv, out.frames[0]))
+    return out
+
+
+def _budget(level):
+    return 720 if level >= 4 else 520 if level == 3 else 380
+
+
 def item_definition(iid, bow=False):
     if not bow:
         return {'model': {'type': 'minecraft:model', 'model': f'{NS}:item/{iid}'}}
@@ -179,6 +212,40 @@ def build_item(iid: str, it: dict) -> ItemResult:
             {'parent': 'minecraft:item/generated', 'textures': {'layer0': f'{NS}:item/{iid}'}})
         res.files[f'assets/{NS}/items/{iid}.json'] = jdump(item_definition(iid))
         res.previews.append((iid, None, None, img0))
+        return res
+
+    lv = RARITY_LEVEL.get(rarity, 0)
+    theme = VW.theme_of(iid, look.style)
+    vp = VW.P(iid, lv, theme, length, seed, animated)
+    if kind == 'weapon' and shape in VW.BOWS:
+        for pull, name in [(-1, iid)] + [(k, f'{iid}_pulling_{k}') for k in range(3)]:
+            g = Grid(seed)
+            VW.bow(g, VW.P(iid, lv, theme, length, seed, animated), shape, pull)
+            _voxel_write(res, name, g, look, theme, tex, animated, seed, 0.5, (W.BOW_GX, W.BOW_GY, 8.0),
+                         displays.voxel_bow, max_el=_budget(lv), preview=pull < 0)
+        res.files[f'assets/{NS}/items/{iid}.json'] = jdump(item_definition(iid, bow=True))
+        return res
+    if kind in ('weapon', 'helmet', 'body', 'shield') and (shape in VW.TEMPLATES or shape in VA.HELMETS or
+                                                          shape in VA.BODY or shape in VA.SHIELDS):
+        g = Grid(seed)
+        if kind == 'weapon':
+            VW.TEMPLATES[shape](g, vp)
+            two = shape in VW.TWO_HANDED
+            _voxel_write(res, iid, g, look, theme, tex, animated, seed, 0.5, (8.0, 1.0, 8.0),
+                         lambda m: displays.voxel_weapon(m, two_handed=two), max_el=_budget(lv))
+        elif kind == 'helmet':
+            VA.HELMETS[shape](g, vp)
+            _voxel_write(res, iid, g, look, theme, tex, animated, seed, 0.8, (2.0, 2.0, 2.0), displays.helmet,
+                         max_el=_budget(lv))
+        elif kind == 'body':
+            VA.BODY[shape](g, vp)
+            _voxel_write(res, iid, g, look, theme, tex, animated, seed, 0.5, (8.0, 8.0, 8.0), displays.miniature,
+                         max_el=_budget(lv))
+        else:
+            VA.SHIELDS[shape](g, vp)
+            _voxel_write(res, iid, g, look, theme, tex, animated, seed, 0.5, (8.0, 8.0, 8.0), displays.shield,
+                         max_el=_budget(lv))
+        res.files[f'assets/{NS}/items/{iid}.json'] = jdump(item_definition(iid))
         return res
 
     if kind == 'weapon' and shape in W.BOWS:
