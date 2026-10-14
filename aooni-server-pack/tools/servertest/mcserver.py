@@ -489,16 +489,33 @@ class MCServer:
             })
         return items
 
+    def build_version(self) -> int | None:
+        """데이터팩이 건축을 마치면 #built 에 넣는 값(build/all.mcfunction 의 BUILD_VERSION)."""
+        pack = os.path.join(self.dir, "world", "datapacks", "aooni_mansion") if self.dir else self.pack_src
+        path = os.path.join(pack, "data", "aooni", "function", "build", "all.mcfunction")
+        try:
+            with open(path, encoding="utf-8") as f:
+                m = re.search(r"scoreboard players set #built aooni\.var (\d+)", f.read())
+            return int(m.group(1)) if m else None
+        except OSError:
+            return None
+
+    def is_built(self) -> bool:
+        want = self.build_version()
+        got = self.score("#built")
+        return got is not None and (got == want if want is not None else got > 0)
+
     def wait_built(self, timeout: float = 90) -> float:
-        """데이터팩이 저택을 다 지을 때까지(#built = 6) 기다린다. 걸린 초를 돌려준다."""
+        """데이터팩이 저택을 다 지을 때까지(#built = BUILD_VERSION) 기다린다. 걸린 초를 돌려준다."""
         t0 = time.monotonic()
         while time.monotonic() - t0 < timeout:
-            if self.score("#built") == 6:
+            if self.is_built():
                 return time.monotonic() - t0
             if not self.alive():
                 raise RuntimeError("서버가 꺼졌습니다")
-            time.sleep(1)
-        raise TimeoutError(f"{timeout:.0f}초 안에 #built 가 6 이 되지 않았습니다(저택 건축 실패?)")
+            time.sleep(0.5)
+        raise TimeoutError(f"{timeout:.0f}초 안에 #built 가 {self.build_version()} 이 되지 않았습니다"
+                           f"(지금 {self.score('#built')}, 저택 건축 실패?)")
 
     # ---- 로그 검사
     def errors(self, since: int = 0, ignore: list[str] | tuple = ()) -> list[str]:
@@ -615,7 +632,7 @@ def _cli() -> int:
         p.add_argument("--version", default=DEFAULT_VERSION)
         p.add_argument("--base", default=None, help="임시 서버 폴더를 만들 곳(저장소 밖)")
         p.add_argument("--keep", action="store_true", help="끝난 뒤 서버 폴더를 지우지 않음")
-        p.add_argument("--no-wait-built", action="store_true", help="저택 건축(#built=6)을 기다리지 않음")
+        p.add_argument("--no-wait-built", action="store_true", help="저택 건축(#built=BUILD_VERSION)을 기다리지 않음")
         if name == "exec":
             p.add_argument("commands", nargs="*")
     p = sub.add_parser("errors", help="로그 파일에서 오류 줄 찾기")

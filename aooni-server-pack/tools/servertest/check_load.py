@@ -5,7 +5,7 @@
   python3 tools/servertest/check_load.py --version 1.21.5 --version 1.21.11
 
 하는 일
- 1. 일회용 서버를 켜고 저택 건축(#built = 6)을 기다린 뒤 몇 초 더 돌린다(--settle).
+ 1. 일회용 서버를 켜고 저택 건축(#built = BUILD_VERSION)을 기다린 뒤 몇 초 더 돌린다(--settle).
  2. `datapack list` 에 file/aooni_mansion 이 켜져 있는지 확인.
  3. `function aooni:admin/help` 실행.
  4. .mcfunction 파일마다 `schedule function <id> 1000000s append` 를 보내서 서버에 실제로 등록됐는지 확인한다.
@@ -27,12 +27,13 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import packinfo  # noqa: E402
-from mcserver import DEFAULT_VERSION, MCServer, java_major, version_info  # noqa: E402
+from botrun import GlobalTimeout  # noqa: E402
+from mcserver import DEFAULT_VERSION, MCServer, RconError, java_major, version_info  # noqa: E402
 
 MAX_FILL = 32768
 
 
-def check_version(version: str, settle: float, base: str | None, keep: bool) -> bool:
+def check_version(version: str, settle: float, base: str | None, keep: bool, timeout: float = 600) -> bool:
     print(f"\n=== 아오오니 데이터팩 로드 점검 · Minecraft {version} ===")
     need = version_info(version).get("javaVersion", {}).get("majorVersion", 21)
     if java_major() < need:
@@ -41,13 +42,17 @@ def check_version(version: str, settle: float, base: str | None, keep: bool) -> 
     problems: list[str] = []
     srv = MCServer(version, base=base, keep=keep)
     t0 = time.monotonic()
+    guard = GlobalTimeout(timeout, srv)      # 무슨 일이 있어도 멈춰 있지 않도록 서버를 강제로 끈다
+    guard.__enter__()
+    errs: list[str] = []
+    notes: list[str] = []
     try:
         srv.start()
         t_start = time.monotonic() - t0
         pack = os.path.join(srv.dir, "world", "datapacks", "aooni_mansion")   # 서버에 복사된 그 팩을 기준으로
         try:
             t_built = srv.wait_built(timeout=90)
-            print(f"서버 시작 {t_start:.1f}초, 저택 건축(#built=6) {t_built:.1f}초")
+            print(f"서버 시작 {t_start:.1f}초, 저택 건축(#built={srv.build_version()}) {t_built:.1f}초")
         except TimeoutError as e:
             problems.append(str(e))
             print(f"[실패] {e}")
@@ -107,7 +112,7 @@ def check_version(version: str, settle: float, base: str | None, keep: bool) -> 
             problems.append(f"등록 안 된 함수 {len(missing) + len(odd)}개")
 
         # 5) 건축 결과 확인
-        if srv.score("#built") == 6 and srv.score("#state") == 0:
+        if srv.is_built() and srv.score("#state") == 0:
             exp, _ = packinfo.expected_blocks(pack)
             bad = []
             for (x, y, z), bid in exp.items():
@@ -127,12 +132,18 @@ def check_version(version: str, settle: float, base: str | None, keep: bool) -> 
         if big:
             problems.append(f"{MAX_FILL}칸이 넘는 fill {len(big)}개")
 
-        # 6) 로그
-        errs = srv.errors()
-        notes = srv.notes()
+    except (TimeoutError, RuntimeError, RconError, OSError) as e:
+        problems.append(f"점검 중단: {type(e).__name__}: {e}")
+        print(f"[실패] 점검 중단: {type(e).__name__}: {e}")
     finally:
+        guard.__exit__(None, None, None)
+        if srv.proc:
+            errs = srv.errors()       # 6) 로그
+            notes = srv.notes()
         srv.stop()
         srv.cleanup()
+    if guard.fired:
+        problems.append(f"전체 시간 제한 {timeout:.0f}초 초과")
 
     print(f"로그 오류: {len(errs)}건")
     for e in errs:
@@ -157,10 +168,11 @@ def main() -> int:
     ap.add_argument("--settle", type=float, default=10, help="서버 시작 뒤 최소 몇 초 돌릴지(기본 10)")
     ap.add_argument("--base", default=None, help="임시 서버 폴더를 만들 곳(저장소 밖)")
     ap.add_argument("--keep", action="store_true", help="서버 폴더를 지우지 않음")
+    ap.add_argument("--timeout", type=float, default=600, help="버전 하나당 전체 시간 제한(초)")
     a = ap.parse_args()
     ok = True
     for v in a.version or [DEFAULT_VERSION]:
-        ok = check_version(v, a.settle, a.base, a.keep) and ok
+        ok = check_version(v, a.settle, a.base, a.keep, a.timeout) and ok
     return 0 if ok else 1
 
 

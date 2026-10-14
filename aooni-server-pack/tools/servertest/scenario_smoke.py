@@ -28,7 +28,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import packinfo  # noqa: E402
 from botrun import GlobalTimeout, NodeScenario, ScenarioError, pick_version  # noqa: E402
-from mcserver import DEFAULT_VERSION, MCServer  # noqa: E402
+from mcserver import DEFAULT_VERSION, MCServer, RconError  # noqa: E402
 
 
 def entity_pos(srv: MCServer, name: str) -> tuple[float, float, float] | None:
@@ -98,7 +98,7 @@ def run(a) -> int:
             snap = {c: srv.block_items(*c) for c in chests}
             report["chest_count"] = len(chests)
             missing = [c for c, v in snap.items() if v is None]
-            m = re.search(r"count: (\d+)", srv.cmd("execute if entity @e[type=minecraft:marker,tag=aooni.spot]"))
+            m = re.search(r"count: (\d+)", srv.cmd("execute if entity @e[type=minecraft:marker,tag=aooni.spot]"), re.I)
             spots = int(m.group(1)) if m else 0
             report["spot_markers"] = spots
             check("상자 블록 수 = 조사 지점 마커 수", not missing and len(chests) == spots,
@@ -151,6 +151,14 @@ def run(a) -> int:
                       "; ".join(f"{i.get('customName')}: {' / '.join(i.get('lore') or [])}" for i in inv_read))
             else:
                 warns.append("이번에는 진짜 비밀번호 쪽지를 집지 못해 #found 확인을 건너뜀")
+            fakes = [i for o in opened for i in o["taken"] if (i.get("customData") or {}).get("aooni_fake")]
+            report["taken_fakes"] = len(fakes)
+            if fakes:
+                smsgs = [m["text"] for m in res["messages"].get(surv, [])]
+                smudged = [i for i in res["inventory"] if i.get("customName") == "번진 쪽지"]
+                check("가짜 쪽지를 집으면 '번진 쪽지'로 바뀌고 본인에게 알림",
+                      bool(smudged) and any("가짜" in m for m in smsgs),
+                      f"집은 가짜 {len(fakes)}장, 번진 쪽지 {sum(i['count'] for i in smudged)}장")
 
             titles = {n: [m["text"] for m in res["messages"].get(n, []) if m["kind"] in ("title", "subtitle")]
                       for n in names}
@@ -161,7 +169,7 @@ def run(a) -> int:
             check("생존자에게 시작 타이틀", any("아오오니 저택" in t for t in titles.get(surv, [])),
                   " | ".join(titles.get(surv, [])))
             ns.send_signal("done")
-        except (ScenarioError, TimeoutError, RuntimeError) as e:
+        except (ScenarioError, TimeoutError, RuntimeError, RconError, OSError) as e:
             check("시나리오 진행", False, f"{type(e).__name__}: {e}")
         finally:
             if ns:

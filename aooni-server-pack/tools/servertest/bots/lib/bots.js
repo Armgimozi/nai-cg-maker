@@ -153,12 +153,26 @@ async function goto (bot, x, y, z, { range = 1, timeoutMs = 60000 } = {}) {
 }
 
 // 블록 면이 보이고 손이 닿는 곳까지 간다(상자·버튼용).
+// 상자처럼 큰 블록은 GoalLookAtBlock(면이 보이는 자리), 버튼처럼 작은 블록은 그 방식이 자리를 못 찾으므로
+// 블록 2칸 안으로만 간다(누를 때는 mineflayer 가 면을 알아서 고른다).
 async function gotoReach (bot, x, y, z, { reach = 4, timeoutMs = 60000 } = {}) {
   const pos = new Vec3(x, y, z)
   const eye = bot.entity.position.offset(0, bot.entity.eyeHeight || 1.62, 0)
   if (eye.distanceTo(pos.offset(0.5, 0.5, 0.5)) <= reach - 0.3 && canSee(bot, pos)) return
-  const goal = new goals.GoalLookAtBlock(pos, bot.world, { reach })
-  await withTimeout(bot.pathfinder.goto(goal), timeoutMs, `${bot.username} → 블록 ${x} ${y} ${z}`, () => bot.pathfinder.stop())
+  const block = bot.blockAt(pos)
+  const small = block && /button|lever|pressure_plate|torch|sign|banner|carpet/.test(block.name)
+  const label = `${bot.username} → 블록 ${x} ${y} ${z}`
+  const stop = () => bot.pathfinder.stop()
+  const end = Date.now() + timeoutMs
+  if (!small) {
+    try {
+      await withTimeout(bot.pathfinder.goto(new goals.GoalLookAtBlock(pos, bot.world, { reach })), timeoutMs, label, stop)
+      return
+    } catch (e) {
+      if (!/No path/i.test(String(e && e.message))) throw e
+    }
+  }
+  await withTimeout(bot.pathfinder.goto(new goals.GoalNear(x, y, z, 2)), Math.max(1000, end - Date.now()), label, stop)
 }
 
 function canSee (bot, pos) {
@@ -229,8 +243,23 @@ async function equip (bot, match, dest = 'hand') {
 }
 
 // 손에 든 것을 먹거나 마신다.
-async function consume (bot, { timeoutMs = 8000 } = {}) {
+// mineflayer 는 배가 부르면(food 20) 'Food is full' 로 거절하는데, 이 팩의 빵·스테이크처럼
+// food 컴포넌트에 can_always_eat 이 있으면 배불러도 먹을 수 있으므로 그 검사를 잠깐 피한다.
+// 또 mineflayer 는 손 아이템 갱신 패킷만 와도 '다 먹었다'고 일찍 끝내므로, 손의 개수가 실제로 줄거나
+// 다른 아이템(물약 → 빈 병)으로 바뀔 때까지 기다린다.
+async function consume (bot, { timeoutMs = 8000, force = false } = {}) {
+  const held = bot.heldItem
+  if (!held) throw new Error(`${bot.username}: 손에 든 것이 없음`)
+  const { slot, type, count } = held
+  const food = held.componentMap && held.componentMap.get('food')
+  const always = force || !!(food && food.data && (food.data.canAlwaysEat || food.data.can_always_eat))
+  if (always && bot.food >= 20) bot.food = 19      // 다음 체력 패킷이 오면 원래 값으로 돌아온다
+  const end = Date.now() + timeoutMs
   await withTimeout(bot.consume(), timeoutMs, `${bot.username} 먹기/마시기`)
+  await waitUntil(() => {
+    const it = bot.inventory.slots[slot]
+    return !it || it.type !== type || it.count < count
+  }, Math.max(500, end - Date.now()), `${bot.username} 먹기/마시기 완료`)
 }
 
 // 이름으로 찾은 플레이어를 한 번 때린다(가까이 있어야 함).
@@ -243,16 +272,22 @@ async function attackPlayer (bot, name) {
 }
 
 // 쫓아가서 때린다(reach 안에 들어오면 한 번 공격).
+// 멀리 있을 때 GoalFollow 는 층을 오가는 긴 경로를 잘 못 찾아서, 대상의 현재 위치로 GoalNear 를 여러 번 다시 잡는다.
 async function chaseAndAttack (bot, name, { timeoutMs = 30000, reach = 3 } = {}) {
   const end = Date.now() + timeoutMs
   while (Date.now() < end) {
     const p = bot.players[name]
-    if (p && p.entity) {
-      const d = bot.entity.position.distanceTo(p.entity.position)
-      if (d <= reach) return attackPlayer(bot, name)
-      bot.pathfinder.setGoal(new goals.GoalFollow(p.entity, 1), true)
+    if (!p || !p.entity) { await sleep(200); continue }
+    const d = bot.entity.position.distanceTo(p.entity.position)
+    if (d <= reach) { bot.pathfinder.setGoal(null); return attackPlayer(bot, name) }
+    const t = p.entity.position
+    try {
+      await withTimeout(bot.pathfinder.goto(new goals.GoalNear(t.x, t.y, t.z, Math.max(1, reach - 1.5))),
+        Math.max(500, Math.min(d > 8 ? 15000 : 3000, end - Date.now())), `${bot.username} → ${name}`,
+        () => bot.pathfinder.stop())
+    } catch (e) {
+      await sleep(150)
     }
-    await sleep(150)
   }
   bot.pathfinder.setGoal(null)
   throw new Error(`${bot.username}: ${timeoutMs}ms 안에 ${name} 에게 닿지 못함`)

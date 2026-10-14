@@ -22,6 +22,7 @@ import json
 import os
 import queue
 import re
+import shutil
 import subprocess
 import sys
 import threading
@@ -41,7 +42,8 @@ def ensure_node_modules(timeout: float = 300) -> None:
     if os.path.isdir(os.path.join(BOTS_DIR, "node_modules", "mineflayer")):
         return
     _say("bots/ 에 npm ci 를 실행합니다(처음 한 번)...")
-    subprocess.run(["npm", "ci", "--no-audit", "--no-fund"], cwd=BOTS_DIR, check=True, timeout=timeout)
+    npm = shutil.which("npm") or "npm"        # 윈도우는 npm.cmd
+    subprocess.run([npm, "ci", "--no-audit", "--no-fund"], cwd=BOTS_DIR, check=True, timeout=timeout)
 
 
 def bot_versions() -> dict:

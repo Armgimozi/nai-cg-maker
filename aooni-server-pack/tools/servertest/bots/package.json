@@ -9,7 +9,8 @@
     "node": ">=18"
   },
   "scripts": {
-    "versions": "node lib/versions.js"
+    "versions": "node lib/versions.js",
+    "check": "node --check lib/bots.js && node --check lib/link.js && node --check driver.js && node --check scenarios/smoke.js"
   },
   "dependencies": {
     "mineflayer": "^4.39.0",
