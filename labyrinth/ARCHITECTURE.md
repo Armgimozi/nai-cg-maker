@@ -685,6 +685,8 @@ hud: {total: 182, bar_steps: 20, bar_width: 82, hp_x: 0, badge_x: 82, mp_x: 100,
 - `patterns.<key>` 공통 키: `weight`(스케줄러 가중치, 기본 1), `first_delay`(페이즈 진입 후 첫 사용까지 초, 기본 = 쿨다운/간격의 절반),
   `interruptible`(true 면 `interrupt` 상태이상으로 시전 차단).
 - `arena` 4층: `platform_block`/`platform_base`(단상 블록, 기본 PRISMARINE_BRICKS/DARK_PRISMARINE), `valve_block`(기본 WAXED_OXIDIZED_COPPER).
+- 9층 `timed_seals`·`doom_clock`: 바늘·봉인석은 바닥 판(`clock_hand`/`clock_hand_reverse`, `seal_glyph`/`seal_glyph_open` 모델 교체)이고 블록을 바꾸지 않는다.
+  종말 시계는 세 번째 보스바(HUD 키 `boss_doom`), 이 보스는 기본 광폭화 대신 종말 시계를 쓴다(`enrage` 를 적으면 둘 다). 되감기·시간 역류는 `impl.PositionHistory`(0.5초 링버퍼).
 
 ## 7. 성능·안정성 규칙
 
