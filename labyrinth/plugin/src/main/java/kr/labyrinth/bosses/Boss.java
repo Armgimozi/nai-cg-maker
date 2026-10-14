@@ -300,12 +300,12 @@ public abstract class Boss implements BossHandle {
         } catch (Throwable t) {
             Log.error("보스 아레나 배치 오류 (" + def.id() + ")", t);
         }
+        refreshViewers(); // 등장 대사가 참가자에게 가도록 보스바 시청자를 먼저 채운다
         say(def.line("intro"));
         rig.play(BossAnim.ROAR, 40, now);
         BossFx.sound(center, def.sounds().str("ambient"), 2f, (float) def.sounds().dbl("pitch", 1.0));
         BossFx.sound(center, Sound.ENTITY_WARDEN_ROAR, 0.6f, 0.8f);
         busyUntil = now + 40;
-        refreshViewers();
         refreshPlate();
     }
 
@@ -989,6 +989,13 @@ public abstract class Boss implements BossHandle {
         String ch = "<!shadow><white><font:labyrinth:ui>" + g.ch() + "</font></white></!shadow>";
         String gap = "<font:labyrinth:ui>" + new String(Character.toChars(0xF800 + 2)) + "</font>";
         return left ? ch + gap : gap + ch;
+    }
+
+    /** 보스바 기본 색 바꾸기 (7층 극성 얼굴처럼 전투 중 색이 바뀌는 기믹). 광폭화·깜빡임은 그대로 위에 덮인다. */
+    protected void setBarColor(BossBar.Color color) {
+        if (color == null || color == barColor) return;
+        barColor = color;
+        updateBars();
     }
 
     private void updateBars() {
