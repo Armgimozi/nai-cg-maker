@@ -687,9 +687,15 @@ def dress_shaft(g, p: P, y0, y1, hy, top):
             fungi(g, (2, y0 + 12, 0), p, 1.6, up=(0.5, 1, 0))
     elif th == 'crystal':
         # crystals erupting along the haft (growth)
-        for k, yy in enumerate(range(y0 + 2, y1, 5)):
-            s = 1 if k % 2 else -1
-            g.crystal((s * 1, yy, 0), (s, 1.3, (k % 3 - 1) * 0.4), 3.0 + (k % 2), 0.9, 'crystal', glow=big, prio=3)
+        rr = p.rng
+        for k, yy in enumerate(range(y0 + 1, y1, 3 if big else 5)):
+            for s in ((-1, 1) if big else (1 if k % 2 else -1,)):
+                a = rr.random() * 6.28
+                d = (s * (0.6 + rr.random()), 1.0 + rr.random() * 0.6, math.sin(a) * 0.7)
+                g.crystal((s * 1, yy + rr.randint(0, 1), math.cos(a) * 0.8), d, 2.2 + rr.random() * 2.2, 0.75 + 0.3 * rr.random(),
+                          'crystal', glow=big and rr.random() < 0.5, prio=3)
+        if big:
+            vines(g, y0, y1, 1.9, p, n=1, leaves=False, buds=True)
         if big:
             crystal_cluster(g, (0, top + 1, 0), p, 4, 5.0, 1.3, glow=True)
     elif th in ('water',):
