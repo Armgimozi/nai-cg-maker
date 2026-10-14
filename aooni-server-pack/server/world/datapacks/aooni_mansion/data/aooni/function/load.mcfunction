@@ -50,5 +50,5 @@ time set 18000
 weather clear
 difficulty normal
 setworldspawn -21 -60 14
-forceload add -32 -4 50 50
+forceload add -32 -6 61 61
 schedule function aooni:setup/check_build 2s

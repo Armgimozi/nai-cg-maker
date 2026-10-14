@@ -21,22 +21,24 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 PACK = os.path.join(ROOT, "server", "world", "datapacks", "aooni_mansion")
 NS = "aooni"
-BUILD_VERSION = 6          # 바꾸면 기존 월드도 다음 로드 때 다시 짓는다
+BUILD_VERSION = 7          # 바꾸면 기존 월드도 다음 로드 때 다시 짓는다
 PACK_MIN, PACK_MAX = 71, 121   # 1.21.5 ~ 26.3
 
 # ------------------------------------------------------------------ 좌표 상수
-Y1 = -61      # 1층 바닥
-C1 = -56      # 1층 천장 = 2층 바닥
-RF = -51      # 지붕
-F1 = Y1 + 1   # 1층 발 높이 (-60)
-F2 = C1 + 1   # 2층 발 높이 (-55)
-X0, X1, Z0, Z1 = 0, 46, 0, 36
+FB, F1, F2, F3 = -60, -55, -50, -45   # 지하·1층·2층·3층 발 높이 (층 사이 5칸, 바닥 블록은 각각 한 칸 아래)
+FLOORS = (FB, F1, F2, F3)
+ROOF_Y = F3 + 4              # 3층 천장 = 지붕
+GROUND = F1 - 1              # 저택 둘레 땅(풀) 높이 — 지하층은 땅속
+X0, X1, Z0, Z1 = 0, 55, 0, 43
+LF, LY = -60, -61            # 대기실 발 높이 / 바닥
 
-LOBBY = (-21, F1, 14)      # 대기실 스폰
-SPAWN_POINTS = [(32, 32), (35, 32), (32, 34), (35, 34), (33, 30), (34, 30)]
-JAIL = (5.5, F1, 33.5)
-RELEASE = (5.5, F1, 26.5)
-SPEC_POS = (23, -45, 18)
+LOBBY = (-21, LF, 14)      # 대기실 스폰
+SPAWN_POINTS = [(26, 41), (27, 41), (28, 41), (26, 42), (27, 42), (28, 42)]   # 1층 현관홀
+JAIL = (6.5, FB, 5.5)        # 지하 감옥 칸
+RELEASE = (6.5, FB, 15.5)    # 감옥 앞방
+JAIL_BOX = f"x=1,y={FB - 1},z=1,dx=11,dy=4,dz=8"
+MANSION_BOX = f"x={X0},y={FB - 1},z={Z0},dx={X1 - X0},dy={ROOF_Y - FB + 1},dz={Z1 - Z0}"
+SPEC_POS = (27, F3 + 12, 21)
 
 # ------------------------------------------------------------------ 출력 버퍼
 FUNCS: dict[str, list[str]] = {}
@@ -242,311 +244,562 @@ def text(x, y, z, comp_, *tags, scale=0.7, billboard="vertical", extra=""):
 
 
 # ================================================================== 저택 건축
+# 지하 1층 + 지상 3층. 층마다 십자 복도(동서 z20..22, 남북 x26..28)와 방 8개.
+# 계단은 두 갈래(남북 복도 · 동서 복도)가 층마다 번갈아 놓여 있어 쫓고 쫓기는 순환로가 생긴다.
+ROOMS = {}        # 이름 -> (층 발높이, x1, z1, x2, z2)
+ROOM_PROBES = {}  # 이름 -> 반드시 갈 수 있어야 하는 칸 (구조 점검용)
+QUADS = {"NWa": (1, 1, 12, 18), "NWb": (14, 1, 24, 18), "NEa": (30, 1, 41, 18), "NEb": (43, 1, 54, 18),
+         "SWa": (1, 24, 12, 42), "SWb": (14, 24, 24, 42), "SEa": (30, 24, 41, 42), "SEb": (43, 24, 54, 42)}
+
+
+def lamp(x, z, F, soul=False):
+    setb(x, F + 3, z, ("soul_lantern" if soul else "lantern") + "[hanging=true]")
+
+
+def chest(x, z, F, facing="south"):
+    SPOT_REQ.append((f"s_{len(SPOT_REQ) + 1}", x, F, z, "floor", facing))
+
+
+def table(x1, z1, x2, z2, F, wood="dark_oak"):
+    fill(x1, F, z1, x2, F, z2, f"{wood}_slab[type=top]")
+
+
+def shelf(x1, z1, x2, z2, F, h=2, block="bookshelf"):
+    fill(x1, F, z1, x2, F + h - 1, z2, block)
+
+
+def bed(x, z, F, color, dz=1, dx=0):
+    """진짜 침대를 쓰면 잠들어 부활 지점이 바뀌므로 양털 두 칸으로 흉내만 낸다."""
+    setb(x, F, z, "white_wool")
+    setb(x + dx, F, z + dz, f"{color}_wool")
+
+
+def cobwebs(x1, z1, x2, z2, F):
+    for (x, z) in [(x1, z1), (x2, z1), (x1, z2), (x2, z2)]:
+        setb(x, F + 3, z, "cobweb")
+
+
+def room(name, F, quad, floor_block, probe_off=(2, 2)):
+    x1, z1, x2, z2 = QUADS[quad]
+    ROOMS[name] = (F, x1, z1, x2, z2)
+    fill(x1, F - 1, z1, x2, F - 1, z2, floor_block)
+    ROOM_PROBES[name] = (x1 + probe_off[0], F, z1 + probe_off[1])
+    return x1, z1, x2, z2
+
+
+def opening(x1, z1, x2, z2, F, h=3):
+    fill(x1, F, z1, x2, F + h - 1, z2, "air")
+
+
+def stair_run(lanes, axis, start, sd, F, wood="dark_oak"):
+    """F층에서 바로 위층으로 오르는 2칸 폭 계단(5단). 계단 위로는 3칸을 비워 거대 아오오니도 지나간다."""
+    facing = {("z", -1): "north", ("z", 1): "south", ("x", -1): "west", ("x", 1): "east"}[(axis, sd)]
+    for k in range(5):
+        p = start + sd * k
+        for ln in lanes:
+            x, z = (ln, p) if axis == "z" else (p, ln)
+            if k:
+                fill(x, F, z, x, F + k - 1, z, f"{wood}_planks")
+            setb(x, F + k, z, f"{wood}_stairs[facing={facing}]")
+            # 거대 아오오니(키 2.3)가 한 칸 올라설 때 머리 위가 비어 있어야 한다 → 위층 바닥을 4칸 뚫는다
+            fill(x, F + k + 1, z, x, F + k + (4 if k < 4 else 3), z, "air")
+
+
 def build_mansion():
     target(BUILD)
-    # 0) 부지 정리 + 땅
-    fill(-3, F1, -3, 49, -44, 49, "air")
-    fill(-3, Y1, -3, 49, Y1, 49, "grass_block")
-    fill(-3, Y1 - 1, -3, 49, Y1 - 1, 49, "dirt")
+    # 0) 부지 정리. 저택 둘레 땅을 1층 높이까지 돋워 지하층이 땅속에 묻히게 한다
+    fill(-5, FB - 1, -5, 60, ROOF_Y + 12, 60, "air")
+    fill(-5, FB - 1, -5, 60, GROUND - 1, 60, "dirt")
+    fill(-5, GROUND, -5, 60, GROUND, 60, "grass_block")
 
-    # 1) 바닥/외벽/천장/지붕
-    fill(X0, Y1, Z0, X1, Y1, Z1, "dark_oak_planks")
-    for (a, b, c, d) in [(X0, Z0, X1, Z0), (X0, Z1, X1, Z1), (X0, Z0, X0, Z1), (X1, Z0, X1, Z1)]:
-        fill(a, Y1, b, c, Y1, d, "stone_bricks")
-        fill(a, F1, b, c, RF - 1, d, "dark_oak_planks")
-    fill(X0, C1, Z0, X1, C1, Z1, "dark_oak_planks")
-    fill(X0, RF, Z0, X1, RF, Z1, "deepslate_tiles")
+    # 1) 외벽 · 층 바닥 · 지붕
+    levels = [(FB, "polished_andesite", "stone_bricks"), (F1, "dark_oak_planks", "dark_oak_planks"),
+              (F2, "spruce_planks", "dark_oak_planks"), (F3, "spruce_planks", "dark_oak_planks")]
+    for F, flo, outer in levels:
+        fill(X0, F - 1, Z0, X1, F - 1, Z1, flo)
+        for (a, b, c, d) in [(X0, Z0, X1, Z0), (X0, Z1, X1, Z1), (X0, Z0, X0, Z1), (X1, Z0, X1, Z1)]:
+            fill(a, F - 1, b, c, F + 3, d, outer)
+        fill(X0 + 1, F, Z0 + 1, X1 - 1, F + 3, Z1 - 1, "air")
+    fill(X0, FB - 1, Z0, X1, FB - 1, Z1, "cobblestone")
+    fill(X0, ROOF_Y, Z0, X1, ROOF_Y, Z1, "deepslate_tiles")
     for (a, b, c, d) in [(X0 - 1, Z0 - 1, X1 + 1, Z0 - 1), (X0 - 1, Z1 + 1, X1 + 1, Z1 + 1),
                          (X0 - 1, Z0 - 1, X0 - 1, Z1 + 1), (X1 + 1, Z0 - 1, X1 + 1, Z1 + 1)]:
-        fill(a, RF, b, c, RF, d, "deepslate_tile_slab[type=top]")
+        fill(a, ROOF_Y, b, c, ROOF_Y, d, "deepslate_tile_slab[type=top]")
     for (a, b, c, d) in [(X0, Z0, X1, Z0), (X0, Z1, X1, Z1), (X0, Z0, X0, Z1), (X1, Z0, X1, Z1)]:
-        fill(a, RF + 1, b, c, RF + 1, d, "deepslate_brick_wall")
-    # 외벽 기둥
-    for (x, z) in [(0, 0), (46, 0), (0, 36), (46, 36), (14, 0), (22, 0), (36, 0), (10, 36), (18, 36),
-                   (30, 36), (37, 36), (0, 12), (0, 17), (46, 12), (46, 17)]:
-        fill(x, F1, z, x, RF - 1, z, "dark_oak_log")
-    # 1층/2층 경계 띠
-    for (a, b, c, d) in [(X0, Z0, X1, Z0), (X0, Z1, X1, Z1), (X0, Z0, X0, Z1), (X1, Z0, X1, Z1)]:
-        fill(a, C1, b, c, C1, d, "stripped_dark_oak_wood")
+        fill(a, ROOF_Y + 1, b, c, ROOF_Y + 1, d, "deepslate_brick_wall")
+    # 지상층 외벽 기둥과 층 경계 띠
+    for x in range(0, X1 + 1, 11):
+        for z in (Z0, Z1):
+            fill(x, F1 - 1, z, x, ROOF_Y - 1, z, "dark_oak_log")
+    for z in range(0, Z1 + 1, 11):
+        for x in (X0, X1):
+            fill(x, F1 - 1, z, x, ROOF_Y - 1, z, "dark_oak_log")
+    for F in (F1, F2, F3):
+        for (a, b, c, d) in [(X0, Z0, X1, Z0), (X0, Z1, X1, Z1), (X0, Z0, X0, Z1), (X1, Z0, X1, Z1)]:
+            fill(a, F - 1, b, c, F - 1, d, "stripped_dark_oak_wood")
+    # 시계탑 (지붕 위 장식)
+    fill(25, ROOF_Y + 1, 19, 29, ROOF_Y + 7, 23, "dark_oak_planks")
+    fill(26, ROOF_Y + 1, 20, 28, ROOF_Y + 6, 22, "air")
+    fill(25, ROOF_Y + 8, 19, 29, ROOF_Y + 8, 23, "deepslate_tiles")
+    setb(27, ROOF_Y + 5, 19, "black_concrete")
 
-    wall = "stripped_spruce_wood"
+    # 2) 칸막이(층마다 같은 뼈대)
+    walls = {FB: "stone_bricks", F1: "stripped_spruce_wood", F2: "stripped_birch_wood", F3: "spruce_planks"}
+    for F, wb in walls.items():
+        top = F + 3
+        fill(1, F, 19, 54, top, 19, wb)
+        fill(1, F, 23, 54, top, 23, wb)
+        opening(26, 19, 28, 19, F, 4)
+        opening(26, 23, 28, 23, F, 4)
+        for x in (13, 25, 29, 42):
+            fill(x, F, 1, x, top, 18, wb)
+            fill(x, F, 24, x, top, 42, wb)
+        # 방 입구 (2칸 폭, 3칸 높이)
+        opening(11, 19, 12, 19, F)      # NWa
+        opening(16, 19, 17, 19, F)      # NWb
+        opening(25, 13, 25, 14, F)      # NWb ↔ 남북 복도
+        opening(29, 12, 29, 13, F)      # NEa ↔ 남북 복도
+        opening(38, 19, 39, 19, F)      # NEa
+        opening(43, 19, 44, 19, F)      # NEb
+        opening(5, 23, 6, 23, F)        # SWa
+        opening(20, 23, 21, 23, F)      # SWb
+        opening(25, 28, 25, 29, F)      # SWb ↔ 남북 복도
+        opening(29, 28, 29, 29, F)      # SEa ↔ 남북 복도
+        opening(33, 23, 34, 23, F)      # SEa
+        opening(48, 23, 49, 23, F)      # SEb
+        # 방끼리 이어지는 샛문(순환로)
+        if F != FB:
+            opening(13, 4, 13, 5, F)    # NWa ↔ NWb
+        opening(42, 15, 42, 16, F)      # NEa ↔ NEb
+        opening(13, 37, 13, 38, F)      # SWa ↔ SWb
+        opening(42, 38, 42, 39, F)      # SEa ↔ SEb
+        # 복도 조명
+        for x in (4, 16, 40, 52):
+            lamp(x, 22, F, soul=True)
+        for z in (12, 31):
+            lamp(28, z, F, soul=True)
 
-    # 2) 1층 칸막이
-    fill(X0, F1, 12, X1, C1 - 1, 12, wall)
-    fill(X0, F1, 17, X1, C1 - 1, 17, wall)
-    for x in (14, 22, 36):
-        fill(x, F1, Z0, x, C1 - 1, 12, wall)
-    for x in (10, 18, 30, 37):
-        fill(x, F1, 17, x, C1 - 1, Z1, wall)
-    # 감옥 벽은 돌벽돌
-    fill(0, F1, 17, 10, C1 - 1, 17, "stone_bricks")
-    fill(10, F1, 17, 10, C1 - 1, 36, "stone_bricks")
+    # 3) 계단: 남북 복도(x26..27) 북쪽/남쪽, 동서 복도(z20..21) 서쪽/동쪽 — 층마다 번갈아
+    stair_run((26, 27), "z", 8, -1, FB)            # 지하 → 1층 (북)
+    stair_run((20, 21), "x", 46, 1, FB)            # 지하 → 1층 (동)
+    stair_run((26, 27), "z", 34, 1, F1, "spruce")  # 1층 → 2층 (현관홀의 큰 계단)
+    stair_run((20, 21), "x", 9, -1, F1)            # 1층 → 2층 (서)
+    stair_run((26, 27), "z", 8, -1, F2)            # 2층 → 3층 (북)
+    stair_run((20, 21), "x", 46, 1, F2)            # 2층 → 3층 (동)
 
-    def gap(x1, z1, x2, z2, y=F1, h=3):
-        fill(x1, y, z1, x2, y + h - 1, z2, "air")
+    # 4) 창문 (지상층 외벽)
+    for F in (F1, F2, F3):
+        for x in (4, 8, 17, 21, 33, 37, 46, 50):
+            for z in (Z0, Z1):
+                fill(x, F + 1, z, x + 1, F + 2, z, "glass_pane")
+        for z in (6, 14, 30, 37):
+            for x in (X0, X1):
+                fill(x, F + 1, z, x, F + 2, z + 1, "glass_pane")
 
-    gap(36, 5, 36, 6)           # 식당 ↔ 피아노실
-    gap(5, 17, 6, 17)           # 감옥
-    gap(14, 17, 14, 17)         # 화장실
-    gap(23, 17, 25, 17)         # 거실
-    gap(32, 17, 35, 17)         # 현관홀
-    gap(41, 17, 42, 17)         # 주방
-    gap(30, 26, 30, 27)         # 거실 ↔ 현관홀
-    gap(37, 30, 37, 31)         # 현관홀 ↔ 주방
+    # ================= 지하
+    F = FB
+    # 감옥 (NWa): 칸 z1..9, 쇠창살 z10, 앞방 z11..18
+    room("감옥 앞", F, "NWa", "cobblestone", (5, 14))
+    for (x, z) in [(2, 3), (9, 6), (4, 8), (11, 2), (7, 14), (3, 16)]:
+        setb(x, F - 1, z, "mossy_cobblestone")
+    fill(1, F, 10, 12, F + 3, 10, "iron_bars")
+    setb(3, F, 10, "stone_bricks")
+    setb(3, F + 1, 10, "stone_bricks")
+    door(6, F, 10, "north", "left")
+    button("rescue", 3, F + 1, 11, "wall", "south", "stone_button")
+    text(3.5, F + 1.9, 11.35, T("감옥 문 열기", "yellow"), "aooni.fx", scale=0.55)
+    lamp(6, 5, F, soul=True)
+    lamp(6, 15, F)
+    cobwebs(1, 1, 12, 9, F)
+    chest(11, 17, F)
+    closet(1, F, 13, "E")
+    # 보일러실 (NWb)
+    room("보일러실", F, "NWb", "polished_andesite", (5, 8))
+    fill(15, F, 2, 17, F + 2, 4, "iron_block")
+    fill(20, F, 2, 22, F + 2, 4, "iron_block")
+    for x in (16, 21):
+        fill(x, F + 3, 3, x, F + 3, 3, "lightning_rod")
+    fill(15, F, 8, 15, F + 3, 8, "copper_block")
+    fill(23, F, 10, 24, F + 1, 11, "cut_copper")
+    lamp(19, 9, F, soul=True)
+    chest(14, 16, F)
+    chest(24, 6, F)
+    closet(14, F, 12, "E")
+    # 와인 저장고 (NEa)
+    room("와인 저장고", F, "NEa", "spruce_planks", (2, 4))
+    for z in (3, 7, 11):
+        fill(31, F, z, 39, F + 1, z, "stripped_spruce_log[axis=x]")
+    lamp(35, 5, F)
+    lamp(35, 15, F, soul=True)
+    chest(41, 9, F)
+    chest(30, 17, F)
+    closet(41, F, 1, "S")
+    # 실험실 (NEb)
+    room("실험실", F, "NEb", "white_concrete", (2, 4))
+    fill(45, F, 3, 52, F, 3, "smooth_quartz")
+    fill(45, F, 8, 52, F, 8, "smooth_quartz")
+    for x in (46, 49, 52):
+        setb(x, F + 1, 3, "cauldron")
+    fill(44, F, 12, 46, F + 2, 14, "iron_bars")
+    fill(45, F, 13, 45, F + 1, 13, "air")
+    setb(45, F, 13, "skeleton_skull[rotation=8]")
+    fill(51, F, 13, 53, F, 15, "blue_concrete")
+    lamp(48, 6, F, soul=True)
+    lamp(50, 15, F)
+    chest(48, 9, F + 1)
+    chest(54, 17, F)
+    closet(54, F, 5, "W")
+    # 지하 창고 (SWa)
+    room("지하 창고", F, "SWa", "cobblestone", (5, 5))
+    for (x, z) in [(2, 26), (3, 26), (2, 27), (9, 30), (10, 30), (2, 35), (8, 40), (9, 40), (9, 39)]:
+        setb(x, F, z, "spruce_planks")
+    fill(4, F, 33, 5, F + 1, 33, "hay_block")
+    cobwebs(1, 24, 12, 42, F)
+    lamp(6, 32, F, soul=True)
+    chest(3, 27, F)
+    chest(12, 41, F)
+    closet(1, F, 39, "E")
+    # 물탱크실 (SWb)
+    room("물탱크실", F, "SWb", "stone_bricks", (2, 2))
+    fill(16, F - 1, 30, 22, F, 36, "stone_bricks")
+    fill(17, F, 31, 21, F, 35, "water")
+    fill(17, F - 1, 31, 21, F - 1, 35, "stone_bricks")
+    lamp(19, 27, F, soul=True)
+    lamp(19, 39, F)
+    chest(14, 41, F)
+    chest(24, 25, F)
+    closet(24, F, 42, "N")
+    # 지하 서고 (SEa)
+    room("지하 서고", F, "SEa", "spruce_planks", (1, 2))
+    for z in (27, 31, 35, 39):
+        fill(32, F, z, 39, F + 2, z, "bookshelf")
+        opening(35, z, 35, z, F)
+    lamp(35, 25, F)
+    lamp(35, 33, F, soul=True)
+    chest(41, 29, F)
+    chest(31, 41, F)
+    closet(41, F, 42, "N")
+    # 관이 있는 방 (SEb)
+    room("관이 있는 방", F, "SEb", "polished_blackstone_bricks")
+    for z in (28, 33, 38):
+        fill(46, F, z, 47, F, z + 2, "dark_oak_planks")
+        fill(51, F, z, 52, F, z + 2, "dark_oak_planks")
+        setb(49, F, z + 1, "candle[candles=3,lit=true]")
+    cobwebs(43, 24, 54, 42, F)
+    lamp(49, 31, F, soul=True)
+    chest(54, 25, F)
+    chest(44, 41, F)
+    closet(54, F, 41, "W")
 
-    # 3) 2층 칸막이
-    fill(X0, F2, 12, X1, RF - 1, 12, wall)
-    fill(X0, F2, 17, X1, RF - 1, 17, wall)
-    for x in (14, 22, 36):
-        fill(x, F2, Z0, x, RF - 1, 12, wall)
-    for x in (14, 30):
-        fill(x, F2, 17, x, RF - 1, Z1, wall)
-    gap(7, 12, 7, 12, F2)        # 안방
-    gap(20, 12, 21, 12, F2)      # 계단실 → 2층 복도
-    gap(29, 12, 29, 12, F2)      # 손님방
-    gap(14, 3, 14, 4, F2)        # 계단 층계참 ↔ 안방
-    gap(22, 3, 22, 4, F2)        # 계단 층계참 ↔ 손님방
-    gap(7, 17, 7, 17, F2)        # 아이방
-    gap(22, 17, 23, 17, F2)      # 작업실
-    gap(38, 17, 38, 17, F2)      # 다락방
-    gap(14, 25, 14, 26, F2)      # 아이방 ↔ 작업실
-    gap(30, 30, 30, 31, F2)      # 작업실 ↔ 다락방
-
-    # 4) 계단실 (x15..21, z1..11, 2개 층 높이)
-    fill(15, F1, 1, 21, C1 - 1, 11, "stone_bricks")
-    fill(16, F1, 11, 17, C1 - 1, 11, "air")
-    for k, z in enumerate([10, 9, 8, 7, 6]):
-        y = F1 + k
-        fill(16, y, z, 17, y, z, "dark_oak_stairs[facing=north]")
-        if y + 1 <= C1:
-            fill(16, y + 1, z, 17, C1, z, "air")
-    fill(16, C1, 7, 17, C1, 10, "air")
-    fill(15, F2, 6, 15, F2, 10, "dark_oak_fence")
-    fill(18, F2, 6, 18, F2, 10, "dark_oak_fence")
-    fill(16, F2, 11, 17, F2, 11, "dark_oak_fence")
-    setb(19, RF - 1, 3, "lantern[hanging=true]")
-    setb(17, C1 - 1, 11, "soul_lantern[hanging=true]")
-    fill(16, F1, 12, 17, F1 + 2, 12, "air")      # 계단실 입구 (높이 3칸)
-
-    # 5) 1층 복도
-    fill(1, F1, 14, 45, F1, 15, "red_carpet")
-    for i, x in enumerate(range(4, 46, 8)):
-        setb(x, C1 - 1, 14 + (i % 2), "soul_lantern[hanging=true]")
-    setb(1, F1, 13, "potted_dead_bush")
-    setb(45, F1, 16, "potted_dead_bush")
-
-    # 6) 서재 (x1..13, z1..11) — 잠김
-    fill(1, Y1, 1, 13, Y1, 11, "spruce_planks")
-    fill(1, F1, 1, 1, C1 - 1, 11, "bookshelf")
-    fill(1, F1, 1, 13, C1 - 1, 1, "bookshelf")
-    fill(4, F1, 5, 9, F1 + 1, 5, "bookshelf")
-    fill(4, F1, 8, 9, F1 + 1, 8, "bookshelf")
-    fill(11, F1, 3, 12, F1, 3, "dark_oak_planks")
-    setb(11, F1, 4, "dark_oak_stairs[facing=south]")
-    setb(12, F1 + 1, 3, "candle[candles=3,lit=true]")
-    setb(7, C1 - 1, 6, "soul_lantern[hanging=true]")
-    setb(12, C1 - 1, 6, "lantern[hanging=true]")
-    button("s_lib_desk", 11, F1 + 1, 3, "floor", "north", "polished_blackstone_button")
-    button("s_lib_sheet", 2, F1 + 1, 9, "wall", "east", "polished_blackstone_button")
-    button("s_lib_diary", 5, F1 + 1, 7, "wall", "north", "polished_blackstone_button")
-    closet(13, F1, 10, "W")
-    fill(7, F1, 12, 7, F1 + 2, 12, "air")        # 서재 입구
-
-    # 7) 식당 (x23..35, z1..11) — 잠김
-    fill(23, Y1, 1, 35, Y1, 11, "dark_oak_planks")
-    fill(25, F1, 4, 33, F1, 8, "red_carpet")
-    fill(25, F1, 6, 33, F1, 6, "dark_oak_slab[type=top]")
-    for x in (26, 28, 30, 32):
-        setb(x, F1, 5, "spruce_stairs[facing=north]")
-        setb(x, F1, 7, "spruce_stairs[facing=south]")
-    setb(27, F1 + 1, 6, "candle[candles=3,lit=true]")
-    setb(31, F1 + 1, 6, "candle[candles=2,lit=true]")
-    setb(29, C1 - 1, 6, "lantern[hanging=true]")
-    button("s_din_plate", 29, F1 + 1, 6, "floor", "north", "polished_blackstone_button")
-    button("s_din_candle", 25, F1 + 1, 6, "floor", "north", "polished_blackstone_button")
-    closet(35, F1, 10, "W")
-    for x in (26, 27, 31, 32):
-        fill(x, F1 + 1, 0, x, F1 + 2, 0, "glass_pane")
-    fill(29, F1, 12, 29, F1 + 2, 12, "air")      # 식당 입구
-
-    # 8) 피아노실 (x37..45, z1..11)
-    fill(37, Y1, 1, 45, Y1, 11, "stripped_dark_oak_wood")
-    fill(38, F1, 1, 44, F1 + 1, 1, "black_concrete")
-    fill(38, F1, 2, 38, F1, 2, "black_concrete")
-    fill(44, F1, 2, 44, F1, 2, "black_concrete")
-    fill(39, F1, 2, 43, F1, 2, "white_concrete")
+    # ================= 1층
+    F = F1
+    # 서재 (NWa)
+    room("서재", F, "NWa", "spruce_planks")
+    shelf(1, 1, 1, 18, F, 3)
+    shelf(2, 1, 12, 1, F, 3)
+    for z in (6, 10):
+        shelf(4, z, 9, z, F, 2)
+    table(10, 14, 11, 15, F)
+    setb(10, F, 16, "dark_oak_stairs[facing=north]")
+    setb(11, F + 1, 14, "candle[candles=3,lit=true]")
+    lamp(7, 8, F)
+    lamp(7, 15, F, soul=True)
+    chest(10, 15, F + 1)
+    chest(2, 17, F)
+    closet(12, F, 2, "S")
+    # 식당 (NWb)
+    room("식당", F, "NWb", "dark_oak_planks")
+    fill(17, F, 4, 21, F, 14, "red_carpet")
+    table(19, 5, 19, 13, F)
+    for z in range(6, 13, 2):
+        setb(18, F, z, "spruce_stairs[facing=east]")
+        setb(20, F, z, "spruce_stairs[facing=west]")
+    setb(19, F + 1, 7, "candle[candles=3,lit=true]")
+    setb(19, F + 1, 11, "candle[candles=2,lit=true]")
+    lamp(19, 6, F)
+    lamp(19, 12, F)
+    chest(19, 9, F + 1)
+    chest(24, 2, F)
+    closet(14, F, 16, "E")
+    # 피아노실 (NEa)
+    room("피아노실", F, "NEa", "stripped_dark_oak_wood")
+    fill(33, F, 1, 37, F + 1, 1, "black_concrete")
+    setb(32, F, 2, "black_concrete")
+    setb(38, F, 2, "black_concrete")
+    fill(33, F, 2, 37, F, 2, "white_concrete")
     notes = ["도", "레", "미", "파", "솔"]
-    for i, x in enumerate(range(39, 44)):
-        button(f"piano{i + 1}", x, F1 + 1, 2, "floor", "north", "polished_blackstone_button")
-        text(x + 0.5, F1 + 1.45, 2.5, T(notes[i], "white"), "aooni.fx", scale=0.6)
-    setb(41, F1 + 2, 1, "black_concrete")
-    setb(41, C1 - 1, 6, "lantern[hanging=true]")
-    closet(45, F1, 10, "W")
-    fill(46, F1 + 1, 5, 46, F1 + 2, 6, "glass_pane")
+    for i, x in enumerate(range(33, 38)):
+        button(f"piano{i + 1}", x, F + 1, 2, "floor", "north", "polished_blackstone_button")
+        text(x + 0.5, F + 1.45, 2.5, T(notes[i], "white"), "aooni.fx", scale=0.6)
+    setb(35, F, 4, "dark_oak_stairs[facing=north]")
+    for (x, z) in [(31, 9), (31, 11), (40, 9), (40, 11)]:
+        setb(x, F, z, "spruce_stairs[facing=south]")
+    lamp(35, 6, F)
+    lamp(35, 14, F, soul=True)
+    chest(41, 17, F)
+    chest(30, 1, F)
+    closet(41, F, 3, "W")
+    # 주방 (NEb)
+    room("주방", F, "NEb", "smooth_stone")
+    fill(54, F, 2, 54, F, 12, "polished_andesite")
+    fill(44, F, 1, 53, F, 1, "polished_andesite")
+    setb(54, F, 6, "water_cauldron[level=3]")
+    fill(53, F, 14, 54, F + 1, 14, "iron_block")
+    table(47, 8, 49, 10, F, "spruce")
+    setb(46, F, 9, "spruce_stairs[facing=east]")
+    setb(50, F, 9, "spruce_stairs[facing=west]")
+    lamp(48, 5, F)
+    lamp(48, 14, F)
+    chest(54, 3, F + 1)
+    chest(48, 9, F + 1)
+    closet(43, F, 1, "S")
+    # 화장실·세탁실 (SWa)
+    room("화장실", F, "SWa", "polished_diorite")
+    fill(1, F, 39, 4, F, 42, "smooth_quartz")
+    fill(2, F, 40, 3, F, 41, "water_cauldron[level=3]")
+    fill(12, F, 26, 12, F, 30, "smooth_quartz")
+    fill(12, F + 2, 26, 12, F + 3, 30, "light_gray_stained_glass")
+    for z in (32, 35):
+        fill(8, F, z, 12, F + 2, z, "white_concrete")
+    lamp(6, 28, F)
+    lamp(6, 38, F, soul=True)
+    chest(12, 28, F + 1)
+    chest(1, 25, F)
+    closet(1, F, 33, "E")
+    # 거실 (SWb)
+    room("거실", F, "SWb", "spruce_planks")
+    fill(16, F, 29, 22, F, 36, "red_carpet")
+    fill(14, F, 30, 14, F + 3, 34, "bricks")
+    fill(14, F, 31, 14, F + 1, 33, "air")
+    setb(14, F, 32, "lantern")
+    for z in (30, 31, 32, 33, 34):
+        setb(19, F, z, "dark_oak_stairs[facing=west]")
+    table(17, 31, 17, 33, F, "spruce")
+    fill(23, F, 41, 24, F + 1, 42, "dark_oak_planks")
+    setb(24, F + 2, 42, "flower_pot")
+    fill(24, F, 25, 24, F + 2, 25, "dark_oak_log")
+    lamp(19, 28, F)
+    lamp(19, 38, F)
+    chest(23, 41, F + 2)
+    chest(15, 26, F)
+    closet(14, F, 41, "E")
+    # 현관홀 (남북 복도 남쪽) — 생존자 시작 지점. 큰 계단이 2층으로 이어진다
+    ROOM_PROBES["현관홀"] = (28, F, 40)
+    fill(26, F, 39, 28, F, 42, "red_carpet")
+    door(27, F, 43, "north", "left")
+    door(28, F, 43, "north", "right")
+    button("d_front", 25, F + 1, 42, "wall", "north")
+    lamp(27, 41, F)
+    # 응접실 (SEa)
+    room("응접실", F, "SEa", "dark_oak_planks")
+    fill(33, F, 31, 38, F, 36, "brown_carpet")
+    for x in (34, 35, 36, 37):
+        setb(x, F, 30, "dark_oak_stairs[facing=south]")
+        setb(x, F, 37, "dark_oak_stairs[facing=north]")
+    table(35, 33, 36, 34, F)
+    fill(41, F, 25, 41, F + 2, 25, "dark_oak_log")
+    setb(30, F, 41, "potted_wither_rose")
+    lamp(35, 28, F)
+    lamp(35, 39, F)
+    chest(36, 33, F + 1)
+    chest(41, 42, F)
+    closet(31, F, 42, "N")
+    # 손님방 (SEb)
+    room("손님방", F, "SEb", "spruce_planks", (4, 6))
+    bed(45, 40, F, "blue", dz=-1)
+    bed(51, 40, F, "blue", dz=-1)
+    fill(54, F, 30, 54, F + 2, 32, "spruce_planks")
+    table(44, 26, 45, 26, F, "spruce")
+    lamp(48, 33, F)
+    chest(54, 33, F)
+    chest(44, 27, F)
+    closet(48, F, 42, "N")
 
-    # 9) 감옥 (x1..9, z18..35)
-    fill(1, Y1, 18, 9, Y1, 35, "cobblestone")
-    for (x, z) in [(2, 20), (7, 22), (3, 26), (8, 28), (4, 32), (8, 34), (2, 30)]:
-        setb(x, Y1, z, "mossy_cobblestone")
-    fill(1, F1, 30, 9, C1 - 1, 30, "iron_bars")
-    door(5, F1, 30, "north", "left")
-    setb(5, C1 - 1, 24, "lantern[hanging=true]")
-    setb(5, C1 - 1, 33, "soul_lantern[hanging=true]")
-    setb(1, C1 - 1, 18, "cobweb")
-    setb(9, C1 - 1, 18, "cobweb")
-    setb(1, C1 - 1, 35, "cobweb")
-    setb(8, F1, 19, "chiseled_stone_bricks")
-    button("s_jail_note", 8, F1 + 1, 19, "floor", "north", "polished_blackstone_button")
-    button("rescue", 2, F1 + 1, 18, "wall", "south", "stone_button")
-    text(2.5, F1 + 1.9, 18.35, T("감옥 문 열기", "yellow"), "aooni.fx", scale=0.55)
+    # ================= 2층
+    F = F2
+    # 안방 (NWa)
+    room("안방", F, "NWa", "dark_oak_planks")
+    fill(4, F, 2, 6, F, 4, "red_wool")
+    fill(4, F, 2, 6, F, 2, "white_wool")
+    fill(1, F, 8, 1, F + 2, 12, "spruce_planks")
+    table(10, 2, 11, 2, F, "spruce")
+    setb(10, F + 1, 2, "flower_pot")
+    fill(3, F, 14, 8, F, 17, "purple_carpet")
+    lamp(6, 9, F)
+    chest(11, 2, F + 1)
+    chest(1, 15, F)
+    closet(12, F, 12, "W")
+    # 드레스룸 (NWb)
+    room("드레스룸", F, "NWb", "birch_planks")
+    for z in (3, 7, 11, 15):
+        for x in range(15, 23, 2):
+            setb(x, F, z, "dark_oak_fence")
+            setb(x, F + 1, z, ["red_wool", "black_wool", "white_wool", "purple_wool"][(x + z) % 4])
+    lamp(19, 9, F)
+    chest(24, 1, F)
+    chest(14, 9, F)
+    closet(24, F, 17, "W")
+    # 아이방 (NEa)
+    room("아이방", F, "NEa", "birch_planks")
+    fill(33, F, 8, 38, F, 13, "light_blue_carpet")
+    bed(31, 2, F, "pink", dz=1)
+    bed(40, 2, F, "pink", dz=1)
+    for (x, z, c) in [(34, 9, "red"), (36, 11, "yellow"), (35, 12, "lime")]:
+        setb(x, F, z, f"{c}_concrete")
+    fill(41, F, 6, 41, F + 1, 8, "white_concrete")
+    lamp(35, 6, F)
+    lamp(35, 15, F)
+    chest(41, 9, F)
+    chest(30, 17, F)
+    closet(30, F, 6, "E")
+    # 창고 (NEb) — 마검 금고
+    room("창고", F, "NEb", "spruce_planks", (3, 5))
+    safe_panel(4, "z", 0, F, 46, 1, "마검 금고 · 비밀번호 4자리")   # 북쪽 벽, 남쪽을 바라봄
+    for (x, z) in [(53, 9), (54, 9), (53, 10), (44, 12), (44, 13), (52, 16)]:
+        setb(x, F, z, "spruce_planks")
+    setb(54, F, 4, "hay_block")
+    cobwebs(43, 1, 54, 18, F)
+    lamp(48, 6, F)
+    lamp(48, 14, F, soul=True)
+    chest(54, 12, F)
+    chest(43, 17, F)
+    closet(54, F, 17, "W")
+    # 손님방2 (SWa)
+    room("손님방2", F, "SWa", "spruce_planks")
+    bed(3, 40, F, "green", dz=-1)
+    bed(9, 40, F, "green", dz=-1)
+    table(1, 26, 2, 26, F, "spruce")
+    lamp(6, 32, F)
+    chest(1, 27, F)
+    chest(12, 41, F)
+    closet(12, F, 25, "W")
+    # 작업실 (SWb)
+    room("작업실", F, "SWb", "spruce_planks", (4, 4))
+    shelf(24, 30, 24, 35, F, 3)
+    table(16, 40, 18, 41, F)
+    setb(17, F, 39, "dark_oak_stairs[facing=south]")
+    setb(15, F, 26, "crafting_table")
+    setb(16, F, 26, "anvil[facing=east]")
+    lamp(19, 33, F)
+    chest(18, 41, F + 1)
+    chest(14, 30, F)
+    closet(23, F, 42, "N")
+    # 욕실 (SEa)
+    room("욕실", F, "SEa", "smooth_quartz")
+    fill(37, F, 38, 41, F, 42, "smooth_quartz")
+    fill(38, F, 39, 40, F, 41, "water_cauldron[level=3]")
+    fill(30, F + 2, 30, 30, F + 3, 33, "light_gray_stained_glass")
+    lamp(35, 32, F)
+    chest(30, 25, F)
+    chest(41, 26, F)
+    closet(31, F, 42, "N")
+    # 도서관 (SEb)
+    room("도서관", F, "SEb", "dark_oak_planks", (1, 1))
+    for x in (46, 49, 52):
+        shelf(x, 26, x, 39, F, 3)
+        opening(x, 32, x, 32, F)
+    shelf(54, 25, 54, 42, F, 3)
+    lamp(47, 30, F)
+    lamp(50, 36, F, soul=True)
+    chest(44, 41, F)
+    chest(53, 25, F)
+    closet(43, F, 33, "E")
 
-    # 10) 화장실 (x11..17, z18..35)
-    fill(11, Y1, 18, 17, Y1, 35, "polished_diorite")
-    fill(11, F1, 33, 11, F1, 35, "smooth_quartz")
-    fill(13, F1, 33, 13, F1, 35, "smooth_quartz")
-    fill(12, F1, 33, 12, F1, 35, "water_cauldron[level=3]")
-    setb(16, F1, 35, "cauldron")
-    setb(17, F1, 22, "polished_diorite")
-    fill(17, F1 + 2, 21, 17, F1 + 3, 23, "light_gray_stained_glass")
-    button("s_bath_mirror", 17, F1 + 1, 22, "floor", "north", "polished_blackstone_button")
-    button("s_bath_tub", 11, F1 + 1, 34, "floor", "north", "polished_blackstone_button")
-    setb(14, C1 - 1, 27, "lantern[hanging=true]")
-    closet(11, F1, 24, "E")
+    # ================= 3층
+    F = F3
+    # 다락방 (NWa)
+    room("다락방", F, "NWa", "spruce_planks", (5, 5))
+    for (x, z) in [(2, 2), (3, 2), (2, 3), (10, 5), (10, 6), (5, 14), (6, 14), (5, 15)]:
+        setb(x, F, z, "spruce_planks")
+    fill(8, F, 10, 9, F + 1, 11, "hay_block")
+    cobwebs(1, 1, 12, 18, F)
+    lamp(6, 9, F, soul=True)
+    chest(3, 3, F)
+    chest(12, 15, F)
+    closet(1, F, 17, "E")
+    # 하인 방 (NWb)
+    room("하인 방", F, "NWb", "spruce_planks")
+    for x in (15, 18, 21):
+        bed(x, 2, F, "brown", dz=1)
+    table(23, 10, 24, 10, F, "spruce")
+    lamp(19, 9, F)
+    chest(24, 11, F)
+    chest(14, 17, F)
+    closet(24, F, 2, "W")
+    # 기도실 (NEa)
+    room("기도실", F, "NEa", "polished_andesite")
+    for z in (8, 11, 14):
+        for x in (31, 32, 33, 37, 38, 39):
+            setb(x, F, z, "spruce_stairs[facing=south]")
+    fill(34, F, 2, 36, F, 3, "smooth_quartz")
+    for x in (34, 36):
+        setb(x, F + 1, 2, "candle[candles=4,lit=true]")
+    lamp(35, 6, F)
+    lamp(35, 15, F, soul=True)
+    chest(35, 2, F + 1)
+    chest(41, 17, F)
+    closet(30, F, 1, "S")
+    # 기계실 (NEb) — 시계탑 아래
+    room("기계실", F, "NEb", "stone_bricks")
+    for (x, z) in [(46, 4), (51, 4), (46, 13), (51, 13)]:
+        fill(x, F, z, x, F + 3, z, "lightning_rod")
+    fill(48, F, 7, 49, F + 1, 10, "cut_copper")
+    lamp(48, 15, F, soul=True)
+    chest(54, 9, F)
+    chest(43, 2, F)
+    closet(54, F, 17, "W")
+    # 인형의 방 (SWa)
+    room("인형의 방", F, "SWa", "pink_wool")
+    for (x, z) in [(2, 26), (5, 26), (8, 26), (11, 26), (2, 40), (11, 40)]:
+        setb(x, F, z, "white_wool")
+        setb(x, F + 1, z, "skeleton_skull[rotation=0]")
+    lamp(6, 33, F)
+    chest(1, 33, F)
+    chest(12, 37, F)
+    closet(6, F, 42, "N")
+    # 빈 방 (SWb)
+    room("빈 방", F, "SWb", "spruce_planks")
+    setb(19, F, 33, "spruce_stairs[facing=north]")
+    cobwebs(14, 24, 24, 42, F)
+    lamp(19, 30, F, soul=True)
+    chest(24, 41, F)
+    chest(14, 25, F)
+    closet(14, F, 33, "E")
+    # 봉인된 방 (SEa)
+    room("봉인된 방", F, "SEa", "deepslate_tiles")
+    fill(33, F, 30, 38, F + 3, 30, "iron_bars")
+    fill(33, F, 36, 38, F + 3, 36, "iron_bars")
+    fill(33, F, 31, 33, F + 3, 35, "iron_bars")
+    fill(38, F, 31, 38, F + 3, 35, "iron_bars")
+    opening(35, 30, 36, 30, F)
+    setb(36, F, 33, "skeleton_skull[rotation=4]")
+    lamp(35, 27, F, soul=True)
+    chest(35, 33, F)
+    chest(41, 41, F)
+    closet(30, F, 41, "E")
+    # 아오오니의 방 (SEb) — 아오오니 시작 지점
+    room("아오오니의 방", F, "SEb", "blue_terracotta")
+    for (x, z) in [(45, 26), (52, 29), (47, 38), (53, 40), (44, 33)]:
+        setb(x, F - 1, z, "blue_concrete")
+    for (x, z) in [(45, 40), (52, 26)]:
+        setb(x, F, z, "bone_block")
+    cobwebs(43, 24, 54, 42, F)
+    lamp(48, 33, F, soul=True)
+    chest(54, 37, F)
+    chest(43, 25, F)
+    closet(54, F, 25, "W")
 
-    # 11) 거실 (x19..29, z18..35)
-    fill(19, Y1, 18, 29, Y1, 35, "spruce_planks")
-    fill(21, F1, 24, 27, F1, 30, "red_carpet")
-    fill(19, F1, 26, 19, C1 - 1, 30, "bricks")
-    fill(19, F1, 27, 19, F1 + 1, 29, "air")
-    setb(19, F1, 28, "lantern")
-    setb(24, F1, 27, "dark_oak_stairs[facing=east]")
-    setb(24, F1, 28, "dark_oak_stairs[facing=east]")
-    setb(24, F1, 29, "dark_oak_stairs[facing=east]")
-    fill(22, F1, 27, 22, F1, 29, "spruce_slab[type=top]")
-    fill(26, F1, 35, 27, F1 + 1, 35, "dark_oak_planks")
-    setb(27, F1 + 2, 35, "flower_pot")
-    fill(29, F1, 19, 29, F1 + 2, 19, "dark_oak_log")
-    setb(24, C1 - 1, 28, "lantern[hanging=true]")
-    button("s_liv_cab", 26, F1 + 2, 35, "floor", "north", "polished_blackstone_button")
-    button("s_liv_fire", 20, F1 + 1, 26, "wall", "east", "polished_blackstone_button")
-    button("s_liv_clock", 28, F1 + 1, 19, "wall", "west", "polished_blackstone_button")
-    closet(19, F1, 20, "E")
-    fill(21, F1 + 1, 36, 22, F1 + 2, 36, "glass_pane")
-
-    # 12) 현관홀 (x31..36, z18..35)
-    fill(31, Y1, 18, 36, Y1, 35, "polished_andesite")
-    fill(33, F1, 18, 34, F1, 35, "red_carpet")
-    for (x, z) in [(31, 21), (36, 21), (31, 33), (36, 33)]:
-        fill(x, F1, z, x, C1 - 1, z, "stripped_dark_oak_log")
-    setb(36, F1, 25, "polished_andesite")
-    setb(36, F1, 24, "potted_wither_rose")
-    setb(33, C1 - 1, 26, "lantern[hanging=true]")
-    button("s_hall_vase", 36, F1 + 1, 25, "floor", "north", "polished_blackstone_button")
-    button("s_hall_photo", 31, F1 + 1, 29, "wall", "east", "polished_blackstone_button")
-    door(33, F1, 36, "north", "left")
-    door(34, F1, 36, "north", "right")
-    button("d_front", 31, F1 + 1, 35, "wall", "north")
-
-    # 13) 주방 (x38..45, z18..35)
-    fill(38, Y1, 18, 45, Y1, 35, "smooth_stone")
-    fill(45, F1, 20, 45, F1, 28, "polished_andesite")
-    setb(45, F1, 24, "water_cauldron[level=3]")
-    setb(45, F1, 21, "polished_deepslate")
-    setb(45, F1, 26, "polished_blackstone_bricks")
-    fill(45, F1, 30, 45, F1 + 1, 30, "iron_block")
-    fill(41, F1, 25, 42, F1, 27, "spruce_slab[type=top]")
-    setb(40, F1, 26, "spruce_stairs[facing=west]")
-    setb(43, F1, 26, "spruce_stairs[facing=east]")
-    setb(41, C1 - 1, 26, "lantern[hanging=true]")
-    button("s_kit_fridge", 44, F1 + 1, 30, "wall", "west", "polished_blackstone_button")
-    button("s_kit_sink", 45, F1 + 1, 23, "floor", "north", "polished_blackstone_button")
-    closet(38, F1, 34, "E")
-    fill(46, F1 + 1, 33, 46, F1 + 2, 34, "glass_pane")
-
-    # ---------------- 2층
-    fill(1, F2, 14, 45, F2, 15, "blue_carpet")
-    for x in (6, 18, 30, 42):
-        setb(x, RF - 1, 14, "soul_lantern[hanging=true]")
-
-    # 안방 (x1..13, z1..11)
-    fill(2, F2, 2, 3, F2, 4, "red_wool")
-    fill(2, F2, 2, 3, F2, 2, "white_wool")
-    setb(5, F2, 2, "spruce_planks")
-    button("s_mb_diary", 5, F2 + 1, 2, "floor", "north", "polished_blackstone_button")
-    setb(7, RF - 1, 6, "lantern[hanging=true]")
-    closet(13, F2, 8, "W")
-    fill(7, F2 + 1, 0, 8, F2 + 2, 0, "glass_pane")
-
-    # 손님방 (x23..35, z1..11)
-    fill(24, F2, 2, 25, F2, 4, "blue_wool")
-    fill(28, F2, 2, 29, F2, 4, "blue_wool")
-    setb(33, F2, 9, "brown_wool")
-    button("s_gr_bag", 33, F2 + 1, 9, "floor", "north", "polished_blackstone_button")
-    setb(29, RF - 1, 6, "lantern[hanging=true]")
-    closet(35, F2, 2, "W")
-    fill(31, F2 + 1, 0, 32, F2 + 2, 0, "glass_pane")
-
-    # 창고 (x37..45, z1..11) — 발판 퍼즐로 열림
-    fill(37, C1, 1, 45, C1, 11, "spruce_planks")
-    safe_panel(4, "z", 0, F2, 39, 1, "마검 금고 · 비밀번호 4자리")   # 북쪽 벽, 남쪽을 바라봄
-    setb(44, F2, 10, "spruce_planks")
-    setb(43, F2, 10, "spruce_planks")
-    setb(45, F2, 7, "hay_block")
-    button("s_sto_box", 44, F2 + 1, 10, "floor", "north", "polished_blackstone_button")
-    setb(41, RF - 1, 6, "lantern[hanging=true]")
-    setb(45, RF - 1, 1, "cobweb")
-    closet(37, F2, 10, "E")
-    fill(46, F2 + 1, 5, 46, F2 + 2, 6, "glass_pane")
-    fill(41, F2, 12, 41, F2 + 2, 12, "air")      # 창고 입구
-
-    # 아이방 (x1..13, z18..35)
-    fill(1, C1, 18, 13, C1, 35, "birch_planks")
-    fill(3, F2, 27, 7, F2, 31, "light_blue_carpet")
-    fill(2, F2, 34, 3, F2, 35, "pink_wool")
-    setb(10, F2, 19, "pink_wool")
-    setb(8, F2, 34, "white_wool")
-    button("s_kid_toy", 10, F2 + 1, 19, "floor", "north", "polished_blackstone_button")
-    button("s_kid_draw", 1, F2 + 1, 24, "wall", "east", "polished_blackstone_button")
-    setb(7, RF - 1, 27, "lantern[hanging=true]")
-    closet(13, F2, 33, "W")
-    fill(6, F2 + 1, 36, 7, F2 + 2, 36, "glass_pane")
-
-    # 작업실 (x15..29, z18..35)
-    fill(15, C1, 18, 29, C1, 35, "spruce_planks")
-    fill(29, F2, 23, 29, F2 + 2, 28, "bookshelf")
-    fill(20, F2, 34, 21, F2, 34, "dark_oak_planks")
-    setb(20, F2, 33, "dark_oak_stairs[facing=south]")
-    setb(24, F2, 22, "lectern[facing=south]")
-    button("s_st_note", 20, F2 + 1, 34, "floor", "north", "polished_blackstone_button")
-    setb(22, RF - 1, 26, "lantern[hanging=true]")
-    closet(15, F2, 21, "E")
-    fill(24, F2 + 1, 36, 25, F2 + 2, 36, "glass_pane")
-
-    # 다락방 (x31..45, z18..35)
-    fill(31, C1, 18, 45, C1, 35, "stripped_spruce_wood")
-    for (x, z) in [(31, 18), (45, 18), (31, 35), (45, 35), (38, 35)]:
-        setb(x, RF - 1, z, "cobweb")
-    setb(40, F2, 33, "spruce_planks")
-    setb(34, F2, 24, "spruce_stairs[facing=west]")
-    button("s_spare_mirror", 40, F2 + 1, 33, "floor", "north", "polished_blackstone_button")
-    setb(38, RF - 1, 26, "soul_lantern[hanging=true]")
-    closet(45, F2, 27, "W")
-    fill(36, F2 + 1, 36, 37, F2 + 2, 36, "glass_pane")
-    fill(42, F2 + 1, 36, 43, F2 + 2, 36, "glass_pane")
-
-    # 굴뚝
-    fill(19, RF + 1, 28, 19, RF + 3, 28, "bricks")
-
-    # 정원 (승리하면 현관문이 열린다)
-    fill(33, Y1, 37, 34, Y1, 45, "dirt_path")
-    for x in (26, 41):
-        fill(x, F1, 37, x, F1 + 2, 46, "oak_leaves[persistent=true]")
-    fill(26, F1, 46, 41, F1 + 2, 46, "oak_leaves[persistent=true]")
-    fill(33, F1, 46, 34, F1 + 2, 46, "iron_bars")
-    for x in (30, 37):
-        fill(x, F1, 40, x, F1 + 1, 40, "dark_oak_fence")
-        setb(x, F1 + 2, 40, "lantern")
-    text(33.95, F1 + 3.3, 45.5, T("아침이다…", "gold", bold=True), "aooni.fx", scale=1.0)
+    # 5) 정원 (승리하면 현관문이 열린다)
+    G = F1
+    fill(27, G - 1, 44, 28, G - 1, 53, "dirt_path")
+    for x in (20, 35):
+        fill(x, G, 44, x, G + 2, 54, "oak_leaves[persistent=true]")
+    fill(20, G, 54, 35, G + 2, 54, "oak_leaves[persistent=true]")
+    fill(27, G, 54, 28, G + 2, 54, "iron_bars")
+    for x in (24, 31):
+        fill(x, G, 48, x, G + 1, 48, "dark_oak_fence")
+        setb(x, G + 2, 48, "lantern")
+    text(27.95, G + 3.3, 53.5, T("아침이다…", "gold", bold=True), "aooni.fx", scale=1.0)
     place_chests()
 
 
@@ -556,7 +809,7 @@ FACE_DIRS = {"south": (0, 1), "north": (0, -1), "east": (1, 0), "west": (-1, 0)}
 def place_chests():
     """조사 상자를 놓는다. 벽에 붙어 있던 자리는 바닥까지 내리고, 앞면은 트인 쪽으로 돌린다."""
     for (aid, x, y, z, face, facing) in SPOT_REQ:
-        while y > Y1 + 1 and passable(WORLD.get((x, y - 1, z)), False):
+        while y > FB and passable(WORLD.get((x, y - 1, z)), False):
             y -= 1
         if face != "wall":
             facing = max(FACE_DIRS, key=lambda d: sum(passable(WORLD.get((x + FACE_DIRS[d][0] * k, y, z + FACE_DIRS[d][1] * k)), False)
@@ -570,49 +823,49 @@ def place_chests():
 
 def build_lobby():
     target(LOBBY_BUILD)
-    fill(-30, F1, 2, -12, -48, 22, "air")
-    fill(-30, Y1, 2, -12, Y1, 22, "grass_block")
-    fill(-28, Y1, 4, -14, Y1, 20, "spruce_planks")
-    fill(-28, F1, 4, -14, F1 + 4, 4, "stripped_spruce_wood")
-    fill(-28, F1, 20, -14, F1 + 4, 20, "stripped_spruce_wood")
-    fill(-28, F1, 4, -28, F1 + 4, 20, "stripped_spruce_wood")
-    fill(-14, F1, 4, -14, F1 + 4, 20, "stripped_spruce_wood")
-    fill(-28, F1 + 5, 4, -14, F1 + 5, 20, "spruce_planks")
-    fill(-24, F1, 9, -18, F1, 17, "gray_carpet")
+    fill(-30, LF, 2, -12, -48, 22, "air")
+    fill(-30, LY, 2, -12, LY, 22, "grass_block")
+    fill(-28, LY, 4, -14, LY, 20, "spruce_planks")
+    fill(-28, LF, 4, -14, LF + 4, 4, "stripped_spruce_wood")
+    fill(-28, LF, 20, -14, LF + 4, 20, "stripped_spruce_wood")
+    fill(-28, LF, 4, -28, LF + 4, 20, "stripped_spruce_wood")
+    fill(-14, LF, 4, -14, LF + 4, 20, "stripped_spruce_wood")
+    fill(-28, LF + 5, 4, -14, LF + 5, 20, "spruce_planks")
+    fill(-24, LF, 9, -18, LF, 17, "gray_carpet")
     for (x, z) in [(-25, 8), (-17, 8), (-25, 16), (-17, 16)]:
-        setb(x, F1 + 4, z, "lantern[hanging=true]")
+        setb(x, LF + 4, z, "lantern[hanging=true]")
     for x in range(-26, -15, 2):
-        setb(x, F1, 19, "spruce_stairs[facing=south]")
-    setb(-23, F1 + 1, 4, "lime_concrete")
-    setb(-21, F1 + 1, 4, "yellow_concrete")
-    setb(-19, F1 + 1, 4, "light_blue_concrete")
-    setb(-25, F1 + 1, 4, "red_concrete")
-    setb(-27, F1 + 1, 4, "purple_concrete")
-    setb(-17, F1 + 1, 4, "cyan_concrete")
-    button("l_solo_oni", -27, F1 + 1, 5, "wall", "south", "stone_button", scope="lobby")
-    button("l_solo", -17, F1 + 1, 5, "wall", "south", "stone_button", scope="lobby")
-    text(-26.5, F1 + 1.75, 5.3, T("혼자 연습\n(아오오니)", "light_purple"), "aooni.fx", scale=0.45)
-    text(-16.5, F1 + 1.75, 5.3, T("혼자 연습\n(생존자)", "aqua"), "aooni.fx", scale=0.45)
-    button("l_want", -25, F1 + 1, 5, "wall", "south", "stone_button", scope="lobby")
-    text(-24.5, F1 + 1.75, 5.3, T("아오오니 지원", "red"), "aooni.fx", scale=0.5)
-    text(-24.5, F1 + 0.55, 5.3, T("지원자 0명", "red"), "aooni.fx", "aooni.t_want", scale=0.45)
-    button("l_start", -23, F1 + 1, 5, "wall", "south", "stone_button", scope="lobby")
-    button("l_diff", -21, F1 + 1, 5, "wall", "south", "stone_button", scope="lobby")
-    button("l_rules", -19, F1 + 1, 5, "wall", "south", "stone_button", scope="lobby")
-    text(-22.5, F1 + 1.75, 5.3, T("▶ 게임 시작", "green"), "aooni.fx", scale=0.5)
-    text(-20.5, F1 + 1.75, 5.3, T("난이도 변경", "yellow"), "aooni.fx", scale=0.5)
-    text(-18.5, F1 + 1.75, 5.3, T("규칙 보기", "aqua"), "aooni.fx", scale=0.5)
-    text(-20.5, F1 + 3.3, 5.5, T("아오오니 저택", "blue", bold=True), "aooni.fx", scale=1.6)
-    text(-20.5, F1 + 2.85, 5.5, T("4~6인 · 아오오니 1명 vs 생존자 · 비밀번호 4자리 → 마검 → 아오오니 족치기", "gray"), "aooni.fx", scale=0.6)
-    text(-20.5, F1 + 2.45, 5.5, T("난이도: 보통", "yellow"), "aooni.fx", "aooni.t_diff", scale=0.7)
-    text(-20.5, F1 + 2.15, 5.5, T("접속 인원: 0명", "white"), "aooni.fx", "aooni.t_count", scale=0.6)
+        setb(x, LF, 19, "spruce_stairs[facing=south]")
+    setb(-23, LF + 1, 4, "lime_concrete")
+    setb(-21, LF + 1, 4, "yellow_concrete")
+    setb(-19, LF + 1, 4, "light_blue_concrete")
+    setb(-25, LF + 1, 4, "red_concrete")
+    setb(-27, LF + 1, 4, "purple_concrete")
+    setb(-17, LF + 1, 4, "cyan_concrete")
+    button("l_solo_oni", -27, LF + 1, 5, "wall", "south", "stone_button", scope="lobby")
+    button("l_solo", -17, LF + 1, 5, "wall", "south", "stone_button", scope="lobby")
+    text(-26.5, LF + 1.75, 5.3, T("혼자 연습\n(아오오니)", "light_purple"), "aooni.fx", scale=0.45)
+    text(-16.5, LF + 1.75, 5.3, T("혼자 연습\n(생존자)", "aqua"), "aooni.fx", scale=0.45)
+    button("l_want", -25, LF + 1, 5, "wall", "south", "stone_button", scope="lobby")
+    text(-24.5, LF + 1.75, 5.3, T("아오오니 지원", "red"), "aooni.fx", scale=0.5)
+    text(-24.5, LF + 0.55, 5.3, T("지원자 0명", "red"), "aooni.fx", "aooni.t_want", scale=0.45)
+    button("l_start", -23, LF + 1, 5, "wall", "south", "stone_button", scope="lobby")
+    button("l_diff", -21, LF + 1, 5, "wall", "south", "stone_button", scope="lobby")
+    button("l_rules", -19, LF + 1, 5, "wall", "south", "stone_button", scope="lobby")
+    text(-22.5, LF + 1.75, 5.3, T("▶ 게임 시작", "green"), "aooni.fx", scale=0.5)
+    text(-20.5, LF + 1.75, 5.3, T("난이도 변경", "yellow"), "aooni.fx", scale=0.5)
+    text(-18.5, LF + 1.75, 5.3, T("규칙 보기", "aqua"), "aooni.fx", scale=0.5)
+    text(-20.5, LF + 3.3, 5.5, T("아오오니 저택", "blue", bold=True), "aooni.fx", scale=1.6)
+    text(-20.5, LF + 2.85, 5.5, T("4~6인 · 아오오니 1명 vs 생존자 · 비밀번호 4자리 → 마검 → 아오오니 족치기", "gray"), "aooni.fx", scale=0.6)
+    text(-20.5, LF + 2.45, 5.5, T("난이도: 보통", "yellow"), "aooni.fx", "aooni.t_diff", scale=0.7)
+    text(-20.5, LF + 2.15, 5.5, T("접속 인원: 0명", "white"), "aooni.fx", "aooni.t_count", scale=0.6)
     rules = ("한 명은 아오오니, 나머지는 생존자! (아오오니 지원 버튼)\n"
              "· 생존자: 저택 곳곳의 상자를 열어 비밀번호 쪽지 4장을 찾자\n"
              "· 2층 창고 금고에 비밀번호를 넣으면 마검! 마검으로만 아오오니를 벨 수 있다\n"
              "· 아오오니: 20초 뒤 깨어나 생존자를 때려 잡는다. 문·버튼·옷장은 못 만진다\n"
              "· 잡히면 감옥행 → 동료가 감옥 입구 버튼으로 구출. 목숨을 다 잃으면 관전\n"
              "· 옷장(가문비 문)에 들어가 문을 닫으면 완전히 안전")
-    text(-26.95, F1 + 2.2, 12.5, T(rules, "white"), "aooni.fx", scale=0.55,
+    text(-26.95, LF + 2.2, 12.5, T(rules, "white"), "aooni.fx", scale=0.55,
          billboard="fixed", extra=",Rotation:[-90f,0f],line_width:400,alignment:\"left\"")
 
 
@@ -646,7 +899,7 @@ def reachable(start, doors_open, h=2):
     q = deque([start])
 
     def ok(x, y, z):
-        if not (-40 < x < 60 and -70 < y < -40 and -10 < z < 60):
+        if not (-40 < x < 64 and -70 < y < -30 and -10 < z < 64):
             return False
         return (all(passable(WORLD.get((x, y + k, z)), doors_open) for k in range(h))
                 and standable_on(WORLD.get((x, y - 1, z))))
@@ -668,42 +921,39 @@ def reachable(start, doors_open, h=2):
 
 def structure_checks():
     problems = []
-    start = (33, F1, 30)
+    start = (SPAWN_POINTS[0][0], F1, SPAWN_POINTS[0][1])
     closed = reachable(start, doors_open=False)
     opened = reachable(start, doors_open=True)
-    # 처음부터 모든 방이 열려 있다(아오오니도 플레이어라 어디든 다닌다). 잠긴 곳은 감옥 칸과 현관문뿐.
-    must_initial = {"복도": (20, F1, 14), "감옥 앞": (5, F1, 26), "화장실": (15, F1, 28), "거실": (25, F1, 32),
-                    "주방": (41, F1, 30), "서재": (6, F1, 10), "식당": (24, F1, 9), "피아노실": (40, F1, 8),
-                    "2층 복도": (10, F2, 14), "안방": (6, F2, 6), "손님방": (30, F2, 7), "창고": (40, F2, 8),
-                    "아이방": (6, F2, 22), "작업실": (22, F2, 28), "다락방": (40, F2, 28),
-                    "아오오니 시작점": (int(ONI_SPAWN[0]), F2, int(ONI_SPAWN[2]))}
-    for name, p in must_initial.items():
+    giant = reachable((int(ONI_SPAWN[0]), ONI_SPAWN[1], int(ONI_SPAWN[2])), doors_open=False, h=3)
+    for name, p in ROOM_PROBES.items():
         if p not in closed:
             problems.append(f"시작 시 {name} 에 갈 수 없음 {p}")
-    giant = reachable((int(ONI_SPAWN[0]), F2, int(ONI_SPAWN[2])), doors_open=False, h=3)
-    for name, p in must_initial.items():
         if p not in giant:
             problems.append(f"거대 아오오니(키 3칸)가 {name} 에 갈 수 없음 {p}")
-    if (33, F1, 43) in closed:
-        problems.append("현관문이 닫혀 있는데 정원으로 나갈 수 있음")
-    if (33, F1, 43) not in opened:
-        problems.append("현관문을 열어도 정원에 갈 수 없음")
-    if (5, F1, 33) in closed:
+    jail = (int(JAIL[0]), JAIL[1], int(JAIL[2]))
+    if jail in closed:
         problems.append("감옥 안이 바깥과 연결됨(문이 닫혀 있는데도)")
-    # 정원 밖으로 새는지
+    if jail not in opened:
+        problems.append("감옥 문을 열어도 감옥에 들어갈 수 없음")
+    garden = (27, F1, 48)
+    if garden in closed:
+        problems.append("현관문이 닫혀 있는데 정원으로 나갈 수 있음")
+    if garden not in opened:
+        problems.append("현관문을 열어도 정원에 갈 수 없음")
     for p in opened:
-        if p[2] > 36 and not (27 <= p[0] <= 40 and p[2] <= 45):
-            problems.append(f"정원 밖으로 나갈 수 있음 {p}")
+        inside = X0 <= p[0] <= X1 and Z0 <= p[2] <= Z1
+        in_garden = 21 <= p[0] <= 34 and 44 <= p[2] <= 53
+        if not (inside or in_garden):
+            problems.append(f"저택·정원 밖으로 나갈 수 있음 {p}")
             break
-        if p[0] < -1 or p[0] > 47 or p[2] < -1:
-            problems.append(f"저택 밖으로 나갈 수 있음 {p}")
-            break
+    for (aid, x, y, z) in SPOTS:
+        near = [(x + dx, yy, z + dz) for dx, dz in ((1, 0), (-1, 0), (0, 1), (0, -1)) for yy in (y - 2, y - 1, y, y + 1)]
+        if not any(n in closed for n in near):
+            problems.append(f"상자 {aid} 에 다가갈 수 없음 {(x, y, z)}")
     for (x, y, z, tags) in MARKERS:
         bx, bz = int(x - 0.5), int(z - 0.5)
         if not passable(WORLD.get((bx, y, bz)), True) or not passable(WORLD.get((bx, y + 1, bz)), True):
             problems.append(f"마커가 막힌 칸에 있음 {tags} {(bx, y, bz)}")
-        if "aooni.spawn" in tags and (bx, y, bz) not in opened:
-            problems.append(f"스폰 지점에 갈 수 없음 {tags} {(bx, y, bz)}")
     for c in CLOSETS:
         if c["door"][:3] and (c["door"][0], c["door"][1], c["door"][2]) not in opened and c["inside"] not in opened:
             problems.append(f"옷장에 들어갈 수 없음 {c}")
@@ -785,13 +1035,13 @@ DIFF_NAMES = {1: ("쉬움", "green"), 2: ("보통", "yellow"), 3: ("어려움", 
 # 생존자 체력은 20. 아오오니 맨손 공격력 dmg → 쉬움 5대 · 보통 4대 · 어려움 3대 맞으면 쓰러진다(쓰러지면 감옥에서 부활)
 DIFF = {1: dict(lives=4, speed=None, dmg=4), 2: dict(lives=3, speed=0, dmg=5), 3: dict(lives=2, speed=1, dmg=7)}
 SPEED_TEXT = {None: "기본 속도", 0: "신속 I", 1: "신속 II"}
-ONI_SPAWN = (38.5, F2, 27.5)        # 다락방
+ONI_SPAWN = (48.5, F3, 33.5)        # 3층 아오오니의 방
 ONI_FREEZE = 20                     # 시작 후 아오오니가 못 움직이는 시간(초)
 ONI_HP_BASE, ONI_HP_PER = 60, 20    # 마검이 나온 뒤 아오오니 체력 = 60 + 생존자 수 × 20
 FINAL_SCALE = 1.3                   # 마검이 나오면 아오오니가 커진다
 WEAPON_ITEM, WEAPON_NAME = "netherite_sword", "마검"
 WEAPON_STRENGTH = 4                 # 힘 V → 한 방 약 23
-VAULT_DROP = (41.5, F2 + 1, 3.5)    # 아오오니가 마검을 주우면 금고 앞으로 돌아간다
+VAULT_DROP = (48.5, F2 + 1, 3.5)    # 아오오니가 마검을 주우면 금고 앞으로 돌아간다
 CIRC = {1: "①", 2: "②", 3: "③", 4: "④"}
 ORD = {1: "첫째", 2: "둘째", 3: "셋째", 4: "넷째"}
 NOTE_PITCH = {1: 0.707107, 2: 0.793701, 3: 0.890899, 4: 0.943874, 5: 1.059463}
@@ -939,7 +1189,7 @@ def logic():
        "weather clear",
        "difficulty normal",
        f"setworldspawn {P(*LOBBY)}",
-       "forceload add -32 -4 50 50",
+       "forceload add -32 -6 61 61",
        "schedule function aooni:setup/check_build 2s")
     for old, new, v, _ in GAMERULES:
         fn("setup/gamerules", f'function aooni:compat/gamerule {{o:"{old}",n:"{new}",v:"{v}"}}')
@@ -950,9 +1200,9 @@ def logic():
     fn("compat/gamerule_try", "$gamerule $(r) $(v)")
     fn("setup/check_build",
        "execute unless loaded -30 -60 2 run return run schedule function aooni:setup/check_build 1s",
-       "execute unless loaded 48 -60 48 run return run schedule function aooni:setup/check_build 1s",
-       "execute unless loaded -30 -60 48 run return run schedule function aooni:setup/check_build 1s",
-       "execute unless loaded 48 -60 -3 run return run schedule function aooni:setup/check_build 1s",
+       "execute unless loaded 60 -60 60 run return run schedule function aooni:setup/check_build 1s",
+       "execute unless loaded -30 -60 60 run return run schedule function aooni:setup/check_build 1s",
+       "execute unless loaded 60 -60 -5 run return run schedule function aooni:setup/check_build 1s",
        "# 게임 도중에 다시 지으면 숨겨 둔 숫자·모형이 사라진다 → 판이 끝난 뒤에 짓는다",
        f"execute unless score #built aooni.var matches {BUILD_VERSION} unless score #state aooni.var matches 0 run return run schedule function aooni:setup/check_build 10s",
        f"execute unless score #built aooni.var matches {BUILD_VERSION} run function aooni:build/all",
@@ -1285,14 +1535,16 @@ def logic():
        "execute if score #oni_gone aooni.var matches 30.. run return run function aooni:game/no_oni",
        "execute if score #wpn aooni.var matches 1 run function aooni:weapon/watch",
        "function aooni:hide/stall",
-       f"execute as @a[tag=aooni.player,tag=!aooni.jailed,gamemode=adventure,x=1,y={Y1},z=31,dx=8,dy=5,dz=4] run tp @s {P(*RELEASE)} 180 0",
+       f"execute as @a[tag=aooni.player,tag=!aooni.jailed,gamemode=adventure,{JAIL_BOX}] run tp @s {P(*RELEASE)} 180 0",
+       "# 엔더 진주 등으로 저택 밖에 나가면 현관홀로 돌려보낸다",
+       f"execute as @a[tag=aooni.alive,gamemode=adventure] unless entity @s[{MANSION_BOX}] run function aooni:player/spawn_pos",
        "execute if score #freeze aooni.var matches 1.. run function aooni:game/freeze_sec",
        "execute as @a[tag=aooni.alive] run function aooni:player/arm_check",
        f"execute as @a[tag=aooni.alive,tag=!aooni.hidden] at @s if entity {ONI[:-1]},distance=..9] run function aooni:player/near_oni",
        "function aooni:loot/check",
        "execute if score #wpn aooni.var matches 1 as @e[type=minecraft:marker,tag=aooni.spot] at @s "
        "if data block ~ ~ ~ Items[{id:\"minecraft:netherite_sword\"}] run function aooni:weapon/unchest",
-       f"execute as @a[tag=aooni.jailed] unless entity @s[x=1,y={Y1},z=31,dx=8,dy=5,dz=4] run tp @s {P(*JAIL)} 180 0",
+       f"execute as @a[tag=aooni.jailed] unless entity @s[{JAIL_BOX}] run tp @s {P(*JAIL)} 180 0",
        "execute if score #rescue_cd aooni.var matches 1.. run scoreboard players remove #rescue_cd aooni.var 1",
        "execute if score #wmsg aooni.var matches 1.. run scoreboard players remove #wmsg aooni.var 1",
        f"execute if score #freeze aooni.var matches 0 as {ONI} run " + actionbar("@s", T("남은 생존자 ", "gray"),
@@ -1354,8 +1606,8 @@ def logic():
        "execute as @a at @s run playsound minecraft:entity.ender_dragon.death master @s ~ ~ ~ 0.6 1.2",
        "execute as @a at @s run playsound minecraft:ui.toast.challenge_complete master @s ~ ~ ~ 1 1",
        f"execute as {SURV[:-1]},gamemode=adventure] at @s run particle minecraft:totem_of_undying ~ ~1 ~ 0.5 1 0.5 0.4 50",
-       *door_cmds(33, F1, 36, "north", "left", True),
-       *door_cmds(34, F1, 36, "north", "right", True),
+       *door_cmds(27, F1, 43, "north", "left", True),
+       *door_cmds(28, F1, 43, "north", "right", True),
        "time set 1000",
        tell("@a", T("\n[아오오니 저택] ", "blue"), T("생존자 승리! ", "gold", bold=True),
             T("아오오니가 쓰러지자 현관문이 열리고 아침 햇살이 들어온다. 12초 뒤 대기실로.", "white")))
@@ -1614,7 +1866,7 @@ def logic():
         x, y, z, dx, dy, dz = c["box"]
         unstick.append(f"execute if entity @s[x={x},y={y},z={z},dx={dx},dy={dy},dz={dz}] run return run tp @s {P(*c['out'])}")
     low = set()
-    for (x, y, z) in reachable((33, F1, 30), doors_open=True):
+    for (x, y, z) in reachable((SPAWN_POINTS[0][0], F1, SPAWN_POINTS[0][1]), doors_open=True):
         blk = WORLD.get((x, y + 2, z))
         if blk is None:
             continue
@@ -1936,9 +2188,9 @@ def main():
     print(f"함수 {nfuncs}개, 명령 {nlines}줄, 버튼 {len(ACTS)}개, 옷장 {len(CLOSETS)}개, 마커 {len(MARKERS)}개")
     print(f"시작 시 이동 가능 칸 {nclosed}, 모든 문 열림 시 {nopen}")
     if "--map" in sys.argv:
-        for y in (F1, F2):
+        for y in FLOORS:
             print(f"--- y={y}")
-            print(ascii_map(y))
+            print(ascii_map(y, -1, 57, -1, 56))
     if problems:
         print("구조 문제:")
         for p in problems:

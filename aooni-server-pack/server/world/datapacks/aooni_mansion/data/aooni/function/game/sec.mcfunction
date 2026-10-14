@@ -20,13 +20,15 @@ execute if score #final aooni.var matches 1 if score #oni_gone aooni.var matches
 execute if score #oni_gone aooni.var matches 30.. run return run function aooni:game/no_oni
 execute if score #wpn aooni.var matches 1 run function aooni:weapon/watch
 function aooni:hide/stall
-execute as @a[tag=aooni.player,tag=!aooni.jailed,gamemode=adventure,x=1,y=-61,z=31,dx=8,dy=5,dz=4] run tp @s 5.5 -60 26.5 180 0
+execute as @a[tag=aooni.player,tag=!aooni.jailed,gamemode=adventure,x=1,y=-61,z=1,dx=11,dy=4,dz=8] run tp @s 6.5 -60 15.5 180 0
+# 엔더 진주 등으로 저택 밖에 나가면 현관홀로 돌려보낸다
+execute as @a[tag=aooni.alive,gamemode=adventure] unless entity @s[x=0,y=-61,z=0,dx=55,dy=20,dz=43] run function aooni:player/spawn_pos
 execute if score #freeze aooni.var matches 1.. run function aooni:game/freeze_sec
 execute as @a[tag=aooni.alive] run function aooni:player/arm_check
 execute as @a[tag=aooni.alive,tag=!aooni.hidden] at @s if entity @a[tag=aooni.oni_p,tag=!aooni.oni_dead,gamemode=adventure,distance=..9] run function aooni:player/near_oni
 function aooni:loot/check
 execute if score #wpn aooni.var matches 1 as @e[type=minecraft:marker,tag=aooni.spot] at @s if data block ~ ~ ~ Items[{id:"minecraft:netherite_sword"}] run function aooni:weapon/unchest
-execute as @a[tag=aooni.jailed] unless entity @s[x=1,y=-61,z=31,dx=8,dy=5,dz=4] run tp @s 5.5 -60 33.5 180 0
+execute as @a[tag=aooni.jailed] unless entity @s[x=1,y=-61,z=1,dx=11,dy=4,dz=8] run tp @s 6.5 -60 5.5 180 0
 execute if score #rescue_cd aooni.var matches 1.. run scoreboard players remove #rescue_cd aooni.var 1
 execute if score #wmsg aooni.var matches 1.. run scoreboard players remove #wmsg aooni.var 1
 execute if score #freeze aooni.var matches 0 as @a[tag=aooni.oni_p,tag=!aooni.oni_dead,gamemode=adventure] run title @s actionbar {"text":"","extra":[{"text":"남은 생존자 ","color":"gray"},{"score":{"name":"#alive","objective":"aooni.var"},"color":"red"},{"text":"명 · 감옥 ","color":"gray"},{"score":{"name":"#jailed","objective":"aooni.var"},"color":"yellow"},{"text":"명","color":"gray"}]}

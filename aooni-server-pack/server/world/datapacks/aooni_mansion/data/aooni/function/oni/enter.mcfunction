@@ -9,6 +9,6 @@ function aooni:player/reset_attrs
 function aooni:oni/effects
 effect give @s minecraft:slowness 20 255 true
 effect give @s minecraft:blindness 20 0 true
-tp @s 38.5 -55 27.5 0 0
-spawnpoint @s 38 -55 27
+tp @s 48.5 -45 33.5 0 0
+spawnpoint @s 48 -45 33
 execute at @s run function aooni:oni/model

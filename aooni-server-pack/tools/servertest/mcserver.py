@@ -59,11 +59,14 @@ ERROR_PATTERNS = [
     "Exception",
     "/ERROR]",
 ]
-# 오류 단어가 들어 있지만 문제는 아닌 줄(바닐라 서버가 늘 찍는 것)
-IGNORE_PATTERNS = [
-    "Picked up JAVA_TOOL_OPTIONS",
-    "Failed to save chunks",          # 강제 종료 중에만 나는 경우가 있어 아래에서 따로 판단하지 않음
-]
+# 오류 단어가 들어 있지만 데이터팩 문제는 아닌 줄 → 설명. errors() 에서는 빠지고 notes() 로 따로 본다.
+KNOWN_BENIGN = {
+    "Picked up JAVA_TOOL_OPTIONS": "JVM 환경 변수 안내",
+    "Failed to request yggdrasil public key":
+        "테스트 환경에서 Mojang 인증 API 에 접속할 수 없음(online-mode=false 라 무관)",
+    "No key layers in MapLike[{}]":
+        "server.properties 에 level-type=flat 인데 generator-settings 가 비어 있어 기본 평지 설정을 씀(바닐라 동작, 무해)",
+}
 _TS = re.compile(r"^\[\d\d:\d\d:\d\d\] \[")
 
 
@@ -186,8 +189,10 @@ class Rcon:
     패킷: <int32 길이><int32 요청 id><int32 종류><본문 UTF-8>\\0\\0 (리틀 엔디언)
     종류: 3 로그인, 2 명령, 0 응답.
     서버는 긴 응답을 4096 바이트씩 여러 패킷으로 나눠 보낸다. 끝을 알 수 없으므로
-    명령 뒤에 '없는 종류'의 빈 패킷을 하나 더 보내고, 그 응답(id 가 다음 번호)이 올 때까지
-    받은 조각을 이어 붙인다. 서버는 요청을 순서대로 처리하므로 이 방식이 안전하다.
+    첫 응답 조각을 받은 뒤 '없는 종류'의 빈 패킷을 하나 더 보내고, 그 응답(id 가 다음 번호)이
+    올 때까지 받은 조각을 이어 붙인다. 서버는 요청을 순서대로 처리하므로 이 방식이 안전하다.
+    주의: 바닐라 서버는 TCP read 한 번에 패킷이 정확히 하나 들어와야 하며, 두 패킷이 붙어서
+    도착하면 연결을 끊어 버린다. 그래서 두 패킷을 연달아 보내지 않는다.
     """
 
     def __init__(self, host: str, port: int, password: str, timeout: float = 15):
@@ -242,16 +247,23 @@ class Rcon:
             if self.sock is None:
                 self.connect()
             assert self.sock is not None
-            self.sock.settimeout(timeout or self.timeout)
-            rid = self._send(2, cmd)
-            end_id = self._send(200, "")      # 응답 끝 표시용(서버가 "Unknown request c8" 로 답함)
-            parts: list[bytes] = []
-            while True:
-                _, got, body = self._recv()
-                if got == end_id:
-                    break
-                if got == rid:
-                    parts.append(body)
+            try:
+                self.sock.settimeout(timeout or self.timeout)
+                rid = self._send(2, cmd)
+                parts: list[bytes] = []
+                end_id = None
+                while True:
+                    _, got, body = self._recv()
+                    if end_id is not None and got == end_id:
+                        break
+                    if got == rid:
+                        parts.append(body)
+                        if end_id is None:
+                            # 응답 끝 표시용(서버가 "Unknown request c8" 로 답함)
+                            end_id = self._send(200, "")
+            except (OSError, RconError):
+                self.close()          # 다음 명령 때 다시 접속
+                raise
             return b"".join(parts).decode("utf-8", errors="replace")
 
 
@@ -447,10 +459,35 @@ class MCServer:
             return []
         return [t.strip() for t in m.group(1).split(",") if t.strip()]
 
+    def players(self) -> list[str]:
+        """접속 중인 플레이어 이름(`list`)."""
+        out = self.cmd("list")
+        m = re.search(r"online: ?(.*)$", out)
+        return [n.strip() for n in m.group(1).split(",") if n.strip()] if m else []
+
     def players_with_tag(self, tag: str) -> list[str]:
-        """tag 를 가진 플레이어 이름 목록(`tag @a[tag=..] list` 응답을 해석)."""
-        out = self.cmd(f"tag @a[tag={tag}] list")
-        return re.findall(r"(\S+) has \d+ tags", out)
+        """tag 를 가진 플레이어 이름 목록(플레이어마다 `tag <이름> list`)."""
+        return [n for n in self.players() if tag in self.tags(n)]
+
+    def block_items(self, x: int, y: int, z: int) -> list[dict] | None:
+        """상자 등 블록의 Items 를 칸마다 {slot, id, count, custom_data} 로. 상자가 아니면 None."""
+        out = self.cmd(f"data get block {x} {y} {z} Items")
+        if "has the following block data" not in out:
+            return None
+        count = out.count("Slot:")      # 칸 수(상자 안에 상자류 아이템이 없다는 가정)
+        items = []
+        for i in range(count):
+            def get(path: str) -> str | None:
+                r = self.cmd(f"data get block {x} {y} {z} Items[{i}].{path}")
+                return r.split("block data: ", 1)[1].strip() if "block data: " in r else None
+            cd = get('components."minecraft:custom_data"')
+            items.append({
+                "slot": int(get("Slot").rstrip("b")),
+                "id": get("id").strip('"'),
+                "count": int(get("count")),
+                "custom_data": cd,
+            })
+        return items
 
     def wait_built(self, timeout: float = 90) -> float:
         """데이터팩이 저택을 다 지을 때까지(#built = 6) 기다린다. 걸린 초를 돌려준다."""
@@ -465,9 +502,16 @@ class MCServer:
 
     # ---- 로그 검사
     def errors(self, since: int = 0, ignore: list[str] | tuple = ()) -> list[str]:
+        """로그(since 줄 이후)에서 데이터팩·함수 문제로 보이는 줄. 알려진 무해한 줄은 뺀다."""
         with self._cond:
             lines = list(self.lines[since:])
         return scan_errors(lines, ignore)
+
+    def notes(self, since: int = 0) -> list[str]:
+        """오류 단어가 있지만 알려진 무해한 줄(KNOWN_BENIGN)과 그 설명."""
+        with self._cond:
+            lines = list(self.lines[since:])
+        return scan_benign(lines)
 
     # ---- 종료
     def stop(self, timeout: float = 60) -> int | None:
@@ -521,25 +565,36 @@ class MCServer:
         self.cleanup()
 
 
+def _records(lines: list[str]) -> list[list[str]]:
+    """로그를 '타임스탬프 줄 + 이어지는 줄(예외 메시지·스택)' 묶음으로 나눈다."""
+    recs: list[list[str]] = []
+    for line in lines:
+        if _TS.match(line) or not recs:
+            recs.append([line])
+        else:
+            recs[-1].append(line)
+    return recs
+
+
 def scan_errors(lines: list[str], ignore: list[str] | tuple = ()) -> list[str]:
-    """로그 줄들에서 문제 줄을 찾는다. 바로 뒤의 이어지는 줄(예외 메시지·스택)도 몇 줄 붙인다."""
+    """로그 줄들에서 문제 묶음을 찾는다(머리줄 + 이어지는 줄 최대 5줄). 알려진 무해한 줄은 뺀다."""
     found: list[str] = []
-    i = 0
-    skip = list(IGNORE_PATTERNS) + list(ignore)
-    while i < len(lines):
-        line = lines[i]
-        if any(p in line for p in ERROR_PATTERNS) and not any(s in line for s in skip):
-            block = [line]
-            j = i + 1
-            while j < len(lines) and not _TS.match(lines[j]):
-                if len(block) < 6:
-                    block.append(lines[j])
-                j += 1
-            found.append("\n".join(block))
-            i = j
+    skip = list(KNOWN_BENIGN) + list(ignore)
+    for rec in _records(lines):
+        if any(sk in rec[0] for sk in skip):
             continue
-        i += 1
+        if any(p in ln for ln in rec for p in ERROR_PATTERNS):
+            found.append("\n".join(rec[:6]))
     return found
+
+
+def scan_benign(lines: list[str]) -> list[str]:
+    out = []
+    for rec in _records(lines):
+        for pat, why in KNOWN_BENIGN.items():
+            if pat in rec[0] and pat != "Picked up JAVA_TOOL_OPTIONS":
+                out.append(f"{rec[0].strip()}\n    → {why}")
+    return out
 
 
 def response_is_error(text: str) -> bool:
@@ -592,6 +647,8 @@ def _cli() -> int:
                 if not line:
                     break
                 print(srv.cmd(line))
+        for n in srv.notes():
+            print(f"[참고] {n}")
         errs = srv.errors()
         if errs:
             print("\n[로그의 오류 줄]")

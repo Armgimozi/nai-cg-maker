@@ -14,4 +14,4 @@ function aooni:player/reset_attrs
 function aooni:player/survivor_effects
 effect give @s minecraft:instant_health 1 4 true
 # 쓰러지면 감옥에서 부활한다
-spawnpoint @s 5 -60 33
+spawnpoint @s 6 -60 5
