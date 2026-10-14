@@ -18,6 +18,15 @@ public interface MobService {
      */
     CustomMob spawn(String mobId, Location loc, InstanceContext ctx);
 
+    /**
+     * 정예 변종 여부를 직접 정해서 스폰 (true = HP·피해 강화 + 추가 스킬 1개 + 금빛 발광, rank: normal 몹에만 의미).
+     * {@link #spawn(String, Location, InstanceContext)} 는 인스턴스 안의 일반 몹이면 config {@code mobs.elite_variant_chance}
+     * (기본 6%) 확률로 정예 변종을 낸다.
+     */
+    default CustomMob spawn(String mobId, Location loc, InstanceContext ctx, boolean eliteVariant) {
+        return spawn(mobId, loc, ctx);
+    }
+
     /** 엔티티(히트박스 또는 모델 파트)로 커스텀 몹 찾기. 보스는 {@code BossService#byEntity}. */
     Optional<CustomMob> byEntity(Entity entity);
 

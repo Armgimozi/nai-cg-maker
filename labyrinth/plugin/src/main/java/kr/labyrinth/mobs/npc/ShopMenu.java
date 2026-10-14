@@ -1,0 +1,96 @@
+package kr.labyrinth.mobs.npc;
+
+import io.papermc.paper.datacomponent.DataComponentTypes;
+import io.papermc.paper.datacomponent.item.ItemLore;
+import java.util.ArrayList;
+import java.util.List;
+import kr.labyrinth.Services;
+import kr.labyrinth.content.ItemDef;
+import kr.labyrinth.content.NpcDef;
+import kr.labyrinth.core.Text;
+import kr.labyrinth.data.PlayerData;
+import kr.labyrinth.ui.Button;
+import kr.labyrinth.ui.ClickContext;
+import kr.labyrinth.ui.Menu;
+import net.kyori.adventure.text.Component;
+import org.bukkit.Material;
+import org.bukkit.Sound;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+
+/**
+ * 떠돌이 상인 상점 (npcs.yml merchant 의 {@code shop: [{item, price, level_req?}]}).
+ * 좌클릭 1개, 쉬프트+좌클릭 5개(스택 가능한 물건만), 우클릭 = 설명만. 골드는 PlayerData, 지급은 ItemService(source=shop).
+ */
+public final class ShopMenu extends Menu {
+
+    private static final int[] SLOTS = {10, 11, 12, 13, 14, 15, 16, 19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34};
+
+    private final Services services;
+    private final NpcDef npc;
+
+    public ShopMenu(Services services, NpcDef npc) {
+        super(5, Text.mm("<dark_gray>" + Text.strip(npc.name()) + " · 상점"));
+        this.services = services;
+        this.npc = npc;
+    }
+
+    @Override
+    protected void build(Player viewer) {
+        ItemStack frame = Button.filler(Material.BLACK_STAINED_GLASS_PANE);
+        for (int i = 0; i < size(); i++) deco(i, frame);
+        PlayerData data = services.data().get(viewer);
+        deco(4, Button.icon(Material.GOLD_INGOT, "<gold><b>보유 골드</b></gold>",
+                List.of("<yellow>" + Text.num(data.gold()) + " G", "", "<gray>좌클릭: 1개 구매", "<gray>쉬프트+좌클릭: 5개 구매")));
+        int i = 0;
+        for (NpcDef.ShopEntry entry : npc.shop()) {
+            if (i >= SLOTS.length) break;
+            ItemDef def = services.content().item(entry.item());
+            if (def == null) continue;
+            int slot = SLOTS[i++];
+            set(slot, icon(entry, def, data), ctx -> buy(ctx, entry, def));
+        }
+        set(40, Button.icon(Material.BARRIER, "<red>닫기", List.of()), ctx -> ctx.player().closeInventory());
+    }
+
+    private ItemStack icon(NpcDef.ShopEntry entry, ItemDef def, PlayerData data) {
+        ItemStack s = services.items().create(def.id());
+        if (s == null) s = Button.icon(Material.PAPER, def.name(), List.of());
+        List<Component> lore = new ArrayList<>();
+        ItemLore existing = s.getData(DataComponentTypes.LORE);
+        if (existing != null) lore.addAll(existing.lines());
+        lore.add(Component.empty());
+        boolean afford = data.gold() >= entry.price();
+        boolean level = data.level() >= entry.levelReq();
+        lore.add(Text.item("<gray>가격: " + (afford ? "<gold>" : "<red>") + Text.num(entry.price()) + " G"));
+        if (entry.levelReq() > 1) lore.add(Text.item("<gray>필요 레벨: " + (level ? "<green>" : "<red>") + entry.levelReq()));
+        lore.add(Text.item(level && afford ? "<yellow>▶ 클릭해서 구매" : "<dark_gray>구매할 수 없습니다"));
+        s.setData(DataComponentTypes.LORE, ItemLore.lore(lore));
+        return s;
+    }
+
+    private void buy(ClickContext ctx, NpcDef.ShopEntry entry, ItemDef def) {
+        Player p = ctx.player();
+        if (ctx.isRight()) return;
+        PlayerData data = services.data().get(p);
+        if (data.level() < entry.levelReq()) {
+            Text.error(p, "레벨 " + entry.levelReq() + " 이상만 살 수 있습니다.");
+            p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.6f, 1.2f);
+            return;
+        }
+        boolean stackable = !def.isGear();
+        int amount = ctx.isShift() && stackable ? 5 : 1;
+        long cost = (long) entry.price() * amount;
+        if (!data.takeGold(cost)) {
+            Text.error(p, "골드가 부족합니다. <gray>(필요 " + Text.num(cost) + " G)");
+            p.playSound(p.getLocation(), Sound.ENTITY_VILLAGER_NO, 0.6f, 1.2f);
+            return;
+        }
+        int given = services.items().give(p, def.id(), amount, "shop");
+        if (given < amount) data.addGold((long) entry.price() * (amount - given)); // 지급 못 한 만큼 환불
+        Text.send(p, def.name() + " <gray>×" + given + " 구매 <dark_gray>(-" + Text.num((long) entry.price() * given) + " G)");
+        p.playSound(p.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.7f, 1.3f);
+        services.hud().refresh(p);
+        refresh();
+    }
+}
