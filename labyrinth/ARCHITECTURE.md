@@ -201,6 +201,24 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
 - **직업 스킬**: F(손 바꾸기) = 스킬1, 웅크리기+F = 스킬2, Q(버리기) = 스킬3, 웅크리기+Q = 궁극기.
   미궁 무기를 든 상태의 손 바꾸기·Q 버리기 이벤트는 취소(인벤토리 창에서 끌어서 버리기는 허용).
 
+### dungeon+party 구현 메모 (다른 모듈이 알아야 할 것)
+- **설정 파일**: 미궁 진행 수치는 `plugins/Labyrinth/dungeon.yml` (jar 기본값 `src/main/resources/dungeon.yml`: 틱당 블록 수, 동시 인스턴스,
+  층 높이·간격, 문 닫힘 지연, 몹 수 인원 보정, 휴식방 회복, 대체 보스 배율, 보물방 미믹 확률 …). 난이도·파티 배율은 그대로 config.yml.
+- **공허 월드 좌표**: 미궁 인스턴스는 `InstanceAllocator` 슬롯(간격 2048, **z ≥ 2048** 영역)만 쓴다. **pvp 투기장 등 다른 모듈은 z < 0 영역을 쓸 것.**
+  층 n 의 바닥 y = `top_floor_y − (n−1) × floor_spacing` (기본 280, 30 → B1 y280 … B10 y10). 같은 슬롯에서 아래층일수록 실제로 낮다.
+- **인스턴스 id**: `InstanceContext.id()` = `r<번호>s<슬롯>-b<층>` (층마다 새 컨텍스트, 같은 Run 의 배율·난이도 유지). 몹·보스 정리는 이 id 로.
+- **보스방**: 원형 투기장(bosses.yml `arena.radius/height`, `shape: circle|clock_face|tiled_circle` 바닥 무늬, `corridor_length/width` 면
+  중심에서 **+z 방향**으로 추격 복도). 입구는 북쪽(−z). `spawnBoss(floor, 중심, ctx)` 의 중심 = 바닥 위 1칸. 보스 구현이 투기장에 놓은 블록은
+  층 정리 때 원기둥(바닥 아래 2칸~천장) 전체를 비우므로 따로 안 지워도 된다. null 이면 층 정예 몹을 HP×`boss_fallback.hp_mult` 로 대신 세운다.
+  보스 처치 후 투기장 중심 남쪽에 아래층 계단이 생긴다(중심 +2~+11 z 칸을 비워 둘 것).
+- **이벤트**: 보스 처치 시 `FloorClearEvent`(참가자 전원, 입장 인원, 그 층 사망 수, 그 층 소요 초, 서버 난이도). 해금층 = 깬 층+1.
+  PlayerData counters: `dungeon.floor_clears`, `dungeon.clear_floor_<n>`, `dungeon.solo_clears`.
+- **사망**: 미궁 안 PlayerDeathEvent 는 취소되고 관전 모드(휴식방 도달·보스 처치 시 부활). 전원 쓰러지면 전멸 → 귀환.
+- **명령**: `/미궁 귀환|return`, `/미궁 정보|info`, `/파티 생성|초대|수락|거절|탈퇴|추방|위임|해산|채팅|정보`,
+  `/labadmin setentrance [block|npc] · removeentrance · tpfloor <층> · unlock <플레이어> <층> · instances · endinstance <id>`.
+- **입구**: block 방식 석문은 바꾼 원래 블록을 `entrance.yml` 에 저장 → removeentrance 가 복원. npc 방식은 블록 변경 0. 둘 다 npcs.yml
+  `role: entrance` NPC 를 `NpcService.place` 로 세운다. 석문 우클릭 = `MenuService.openEntrance`.
+
 ## 5. 게임 규칙 (수치는 YAML/config 로 조정 가능해야 함)
 
 - 레벨 1~50. 레벨업마다 스탯포인트 5. 스탯 초기화 아이템/명령.
