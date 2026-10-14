@@ -67,6 +67,13 @@ labyrinth/
   플러그인은 `ItemDisplay` + `ItemDisplayTransform.FIXED`, 엔티티 위치 = 파트 피벗의 월드 좌표,
   `Transformation.scale` = 몹 `scale`(파트 크기 배율), 회전은 Transformation 의 left rotation 으로.
   (만약 26.3 클라이언트에서 FIXED 가 180° 뒤집혀 보이면 생성기가 모델 쪽에서 보정하고 여기 적는다.)
+  **확인됨(26.3 클라이언트 `DisplayRenderer$ItemDisplayRenderer`)**: ItemDisplay 는 아이템 모델을 Y축 180° 돌려 그린다 →
+  Transformation 이 항등일 때 **모델 −Z(north) 면이 엔티티 앞(+Z, yaw 방향)**, 모델 +X 가 엔티티 −X 쪽을 본다.
+  그래서 생성기 규칙: 몹 파트·fx 의 "앞"(얼굴, 검기 볼록면, 투사체 머리)은 **모델 −Z** 쪽으로 만든다(무기스킬 fx 는 이미 그렇게 생성).
+- **아틀라스 규칙(26.3)**: 아이템 모델이 쓰는 텍스처는 items 아틀라스에 있어야 한다. 바닐라 items 아틀라스는 `textures/item/` 만
+  포함하므로 생성기가 `assets/minecraft/atlases/items.json` 에 `fx/`·`mob/` 디렉터리 소스를 추가한다(팩끼리 sources 병합).
+  → fx 텍스처 `assets/labyrinth/textures/fx/<name>.png`(모델 `models/fx/<name>.json`), 몹 텍스처 `textures/mob/<id>.png` 가 그대로 동작.
+  다른 폴더를 새로 쓰려면 같은 파일에 소스를 추가할 것.
 - **NPC 스킨**: `npcs.yml` 의 `skin: <id>` → `assets/labyrinth/textures/entity/npc/<id>.png` (64x64 플레이어 스킨 레이아웃).
   플러그인은 `Mannequin` 엔티티 + `ResolvableProfile` 의 SkinPatch(body 텍스처 = `labyrinth:entity/npc/<id>`) 사용.
 - **이펙트 모델**(아우라 링, 장판 경고, 투사체 등): `labyrinth:fx/<name>` → `assets/labyrinth/items/fx/<name>.json`.
@@ -88,7 +95,13 @@ labyrinth/
   `plugins/Labyrinth/pack/labyrinth-pack.zip` 을 서빙하고, 접속 시 `Player#sendResourcePacks` (SHA-1 포함, 필수/거절 시 안내).
   외부 URL 을 쓰고 싶은 사람은 `pack.url` 로 덮어쓰기.
 - pack.mcmeta: 26.3 리소스팩 포맷은 **97.1** (`version.json` 의 `pack_version.resource_major/minor`).
-  26.x 의 `min_format`/`max_format` 형식으로 작성 (생성기 담당이 정확한 스키마 확인).
+  26.x 형식(확인됨): `{"pack": {"description": [...컴포넌트], "min_format": [97, 1], "max_format": 97}}` —
+  정수 `max_format` 은 "그 major 의 모든 minor"(TOP_CODEC = minor 최대값)라서 26.3.x 패치에도 경고 없이 맞는다. `pack_format` 은 넣지 않는다.
+- 생성기 산출물: `resourcepack/dist/labyrinth-pack.zip`(결정적 zip: 정렬·고정 시각) + `labyrinth-pack.sha1`, 사람용 미리보기
+  `preview_items.png`·`preview_anim.gif`·`preview_fx.png`·`preview_helmets_worn.png`·`preview_armor.png`.
+  생성기는 `generate.py` 의 `BUILDERS` 레지스트리(공유 `Ctx` → `ctx.add(path, bytes)`)로 확장한다: 몹·UI 글리프·NPC 스킨·나머지 fx 스타일
+  단계는 자기 모듈을 `src/` 에 두고 BUILDERS 에 추가. 3D 모델 엔진 `src/model.py`(Model/El/bake/UV 아틀라스/display 맞춤),
+  재질 셰이더 `src/materials.py`, 애니메이션 `src/effects.py`, 미리보기 렌더러 `src/render.py` 를 재사용할 것.
 
 ## 4. 플러그인 구조 (`kr.labyrinth`)
 
