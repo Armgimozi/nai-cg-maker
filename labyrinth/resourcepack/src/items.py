@@ -59,7 +59,7 @@ class ItemResult:
 def classify(it):
     shape = (it.get('model') or {}).get('shape') or 'icon'
     t = it.get('type')
-    if shape in W.TEMPLATES or shape in W.BOWS:
+    if shape in W.TEMPLATES or shape in W.BOWS or shape in VW.TEMPLATES or shape in VW.BOWS:
         return 'weapon', shape
     if shape in A.HELMETS:
         return 'helmet', shape

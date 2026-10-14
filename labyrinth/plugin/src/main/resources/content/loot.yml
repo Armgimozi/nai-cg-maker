@@ -458,7 +458,8 @@ tables:
       - {item: ember_shard, chance: 0.15}
       - {rarity_pool: rare, floor: 4, chance: 0.01}
       - {rarity_pool: rare, floor: 6, chance: 0.035}
-      - {rarity_pool: epic, floor: 6, chance: 0.004}
+      - {rarity_pool: epic, floor: 5, chance: 0.004}
+      - {rarity_pool: epic, floor: 6, chance: 0.002}
       - {item: labyrinth_essence, chance: 0.008}
       - {table: potions_t2, chance: 0.03}
   cinder_imp:   # 5층 일반 — 불씨 도깨비
@@ -468,7 +469,8 @@ tables:
       - {item: slag_ingot, chance: 0.15}
       - {rarity_pool: rare, floor: 4, chance: 0.01}
       - {rarity_pool: rare, floor: 6, chance: 0.035}
-      - {rarity_pool: epic, floor: 6, chance: 0.004}
+      - {rarity_pool: epic, floor: 5, chance: 0.004}
+      - {rarity_pool: epic, floor: 6, chance: 0.002}
       - {item: labyrinth_essence, chance: 0.008}
       - {table: potions_t2, chance: 0.03}
   bellows_hound:   # 5층 일반 — 풀무 사냥개
@@ -478,7 +480,8 @@ tables:
       - {item: slag_ingot, chance: 0.15}
       - {rarity_pool: rare, floor: 4, chance: 0.01}
       - {rarity_pool: rare, floor: 6, chance: 0.035}
-      - {rarity_pool: epic, floor: 6, chance: 0.004}
+      - {rarity_pool: epic, floor: 5, chance: 0.004}
+      - {rarity_pool: epic, floor: 6, chance: 0.002}
       - {item: labyrinth_essence, chance: 0.008}
       - {table: potions_t2, chance: 0.03}
   forge_acolyte:   # 5층 일반 — 용광로 시종
@@ -488,7 +491,8 @@ tables:
       - {item: ember_shard, chance: 0.15}
       - {rarity_pool: rare, floor: 4, chance: 0.01}
       - {rarity_pool: rare, floor: 6, chance: 0.035}
-      - {rarity_pool: epic, floor: 6, chance: 0.004}
+      - {rarity_pool: epic, floor: 5, chance: 0.004}
+      - {rarity_pool: epic, floor: 6, chance: 0.002}
       - {item: labyrinth_essence, chance: 0.008}
       - {table: potions_t2, chance: 0.03}
   forge_executioner:   # 5층 엘리트 — 단조 집행관
@@ -499,7 +503,8 @@ tables:
       - {item: ember_shard, chance: 0.7, amount: [2, 3]}
       - {item: labyrinth_essence, chance: 0.35}
       - {rarity_pool: rare, floor: 6, chance: 0.25}
-      - {rarity_pool: epic, floor: 6, chance: 0.1}
+      - {rarity_pool: epic, floor: 5, chance: 0.08}
+      - {rarity_pool: epic, floor: 6, chance: 0.05}
       - {one_of: [anvil_king_brand, forge_warden_helm, forge_warden_chest, forge_warden_legs, forge_warden_boots], chance: 0.015}
       - {table: potions_t2, chance: 0.25}
       - {table: tonics, chance: 0.08}
@@ -514,6 +519,7 @@ tables:
       - {item: executioner_edge, chance: 0.5}
       - {item: radiant_essence, chance: 0.15}
       - {one_of: [dawnbringer, ember_greatsword, tidecaller_bow], chance: 0.08}
+      - {one_of: [emberforge_warhammer, cinderdrake_glaive, slagedge_bladebow, cinder_spiral_staff, crucible_chalice, slag_katar], chance: 0.2}
       - {one_of: [forge_warden_helm, forge_warden_chest, forge_warden_legs, forge_warden_boots], chance: 0.25}
       - {item: anvil_king_brand, chance: 0.12}
       - {rarity_pool: rare, floor: 6, chance: 0.25}
@@ -531,7 +537,8 @@ tables:
       - {item: labyrinth_essence, chance: 0.12}
       - {table: tonics, chance: 0.08}
       - {rarity_pool: rare, floor: 6, chance: 0.18}
-      - {rarity_pool: epic, floor: 6, chance: 0.04}
+      - {rarity_pool: epic, floor: 5, chance: 0.03}
+      - {rarity_pool: epic, floor: 6, chance: 0.03}
   gimmick_floor_5:   # 5층 기믹방 보상 상자 (성공 시, 개인 루팅)
     rolls: 2
     gold: [208, 368]
@@ -547,7 +554,8 @@ tables:
       - {table: rare_consumables, chance: 0.06}
       - {table: tonics, chance: 0.12}
       - {rarity_pool: rare, floor: 6, chance: 0.27}
-      - {rarity_pool: epic, floor: 6, chance: 0.06}
+      - {rarity_pool: epic, floor: 5, chance: 0.045}
+      - {rarity_pool: epic, floor: 6, chance: 0.045}
 
   # ═════════ 지하 6층 — 서리 묘역 ═════════
   rime_mourner:   # 6층 일반 — 서리 곡하는 자
@@ -959,7 +967,8 @@ tables:
       - {item: abyss_ichor, chance: 0.55, amount: [1, 2]}
       - {item: sculk_tendril, chance: 0.15}
       - {rarity_pool: epic, floor: 8, chance: 0.01}
-      - {rarity_pool: epic, floor: 9, chance: 0.04}
+      - {rarity_pool: epic, floor: 9, chance: 0.02}
+      - {rarity_pool: epic, floor: 10, chance: 0.03}
       - {item: primordial_essence, chance: 0.004}
       - {table: potions_t3, chance: 0.03}
       - {rarity_pool: mythic, floor: 10, chance: 0.0006, min_difficulty: nightmare}
@@ -969,7 +978,8 @@ tables:
       - {item: sculk_tendril, chance: 0.55, amount: [1, 3]}
       - {item: abyss_ichor, chance: 0.15}
       - {rarity_pool: epic, floor: 8, chance: 0.01}
-      - {rarity_pool: epic, floor: 9, chance: 0.04}
+      - {rarity_pool: epic, floor: 9, chance: 0.02}
+      - {rarity_pool: epic, floor: 10, chance: 0.03}
       - {item: primordial_essence, chance: 0.004}
       - {table: potions_t3, chance: 0.03}
       - {rarity_pool: mythic, floor: 10, chance: 0.0006, min_difficulty: nightmare}
@@ -979,7 +989,8 @@ tables:
       - {item: abyss_ichor, chance: 0.55, amount: [1, 2]}
       - {item: sculk_tendril, chance: 0.15}
       - {rarity_pool: epic, floor: 8, chance: 0.01}
-      - {rarity_pool: epic, floor: 9, chance: 0.04}
+      - {rarity_pool: epic, floor: 9, chance: 0.02}
+      - {rarity_pool: epic, floor: 10, chance: 0.03}
       - {item: primordial_essence, chance: 0.004}
       - {table: potions_t3, chance: 0.03}
       - {rarity_pool: mythic, floor: 10, chance: 0.0006, min_difficulty: nightmare}
@@ -989,7 +1000,8 @@ tables:
       - {item: sculk_tendril, chance: 0.55, amount: [1, 2]}
       - {item: abyss_ichor, chance: 0.15}
       - {rarity_pool: epic, floor: 8, chance: 0.01}
-      - {rarity_pool: epic, floor: 9, chance: 0.04}
+      - {rarity_pool: epic, floor: 9, chance: 0.02}
+      - {rarity_pool: epic, floor: 10, chance: 0.03}
       - {item: primordial_essence, chance: 0.004}
       - {table: potions_t3, chance: 0.03}
       - {rarity_pool: mythic, floor: 10, chance: 0.0006, min_difficulty: nightmare}
@@ -1000,7 +1012,8 @@ tables:
       - {item: abyss_ichor, chance: 1.0, amount: [3, 5]}
       - {item: sculk_tendril, chance: 0.7, amount: [2, 3]}
       - {item: primordial_essence, chance: 0.35}
-      - {rarity_pool: epic, floor: 9, chance: 0.25}
+      - {rarity_pool: epic, floor: 9, chance: 0.12}
+      - {rarity_pool: epic, floor: 10, chance: 0.13}
       - {rarity_pool: legendary, floor: 9, chance: 0.01}
       - {rarity_pool: legendary, floor: 10, chance: 0.01}
       - {table: potions_t3, chance: 0.25}
@@ -1017,7 +1030,8 @@ tables:
       - {item: gatekeeper_rune, chance: 0.5}
       - {one_of: [abyss_sentinel_longsword, doomclock_executioner, quicksilver_longbow, tesla_coil_staff, aurora_scepter, viper_fang], chance: 0.1}
       - {rarity_pool: legendary, floor: 10, chance: 0.1}
-      - {rarity_pool: epic, floor: 9, chance: 0.35}
+      - {rarity_pool: epic, floor: 9, chance: 0.15}
+      - {rarity_pool: epic, floor: 10, chance: 0.2}
       - {one_of: [celestial_oathkeeper, bloodmoon_reaver, tempest_bow, voidheart_staff, seraph_scepter, eclipse_blade], chance: 0.025, min_difficulty: hard}
       - {item: heart_of_nelkar, chance: 0.015, min_difficulty: hard}
       - {table: potions_t3, chance: 0.5}
@@ -1034,7 +1048,8 @@ tables:
       - {item: primordial_essence, chance: 0.12}
       - {table: tonics, chance: 0.08}
       - {table: rare_consumables, chance: 0.03}
-      - {rarity_pool: epic, floor: 9, chance: 0.18}
+      - {rarity_pool: epic, floor: 9, chance: 0.09}
+      - {rarity_pool: epic, floor: 10, chance: 0.09}
       - {rarity_pool: legendary, floor: 9, chance: 0.004}
       - {rarity_pool: legendary, floor: 10, chance: 0.004}
       - {rarity_pool: mythic, floor: 10, chance: 0.002, min_difficulty: nightmare}
@@ -1051,7 +1066,8 @@ tables:
       - {table: potions_t3, chance: 0.35}
       - {table: rare_consumables, chance: 0.06}
       - {table: tonics, chance: 0.12}
-      - {rarity_pool: epic, floor: 9, chance: 0.27}
+      - {rarity_pool: epic, floor: 9, chance: 0.135}
+      - {rarity_pool: epic, floor: 10, chance: 0.135}
       - {rarity_pool: legendary, floor: 9, chance: 0.006}
       - {rarity_pool: legendary, floor: 10, chance: 0.006}
       - {rarity_pool: mythic, floor: 10, chance: 0.003, min_difficulty: nightmare}
