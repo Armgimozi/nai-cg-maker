@@ -21,7 +21,7 @@ import org.bukkit.inventory.ItemStack;
  */
 public final class SetupMenu extends LabMenu {
 
-    private static final int[] DIFF_SLOTS = {19, 21, 23, 25};
+    private static final int[] DIFF_SLOTS = {10, 12, 14, 16}; // glyphs.yml menus.setup.slots (배경 소켓)
     private String difficulty;
     private String mode;
 
@@ -91,24 +91,24 @@ public final class SetupMenu extends LabMenu {
             });
         }
         boolean block = "block".equals(mode);
-        set(30, UiTheme.glint(Button.icon(Material.CHISELED_STONE_BRICKS, "<white><b>입구: 석문</b>",
+        set(38, UiTheme.glint(Button.icon(Material.CHISELED_STONE_BRICKS, "<white><b>입구: 석문</b>",
                 List.of("<gray>관리자가 고른 자리에 작은 석문을 세웁니다.",
                         "<gray>경사·바닥 높이에 맞추고 나무·물 위는 피합니다.",
                         "<gray>바꾼 블록은 기록했다가 <white>removeentrance</white> 로 복원.",
                         "", block ? "<#7fe07f>▶ 선택됨" : "<#ffd36b>클릭: 선택")), block),
                 ctx -> { mode = "block"; click(ctx.player()); refresh(); });
-        set(32, UiTheme.glint(Button.icon(Material.ARMOR_STAND, "<white><b>입구: NPC 만</b>",
+        set(42, UiTheme.glint(Button.icon(Material.ARMOR_STAND, "<white><b>입구: NPC 만</b>",
                 List.of("<gray>블록을 하나도 바꾸지 않고", "<gray>안내인 NPC 만 세웁니다.",
                         "", !block ? "<#7fe07f>▶ 선택됨" : "<#ffd36b>클릭: 선택")), !block),
                 ctx -> { mode = "npc"; click(ctx.player()); refresh(); });
 
         Difficulty chosen = s.difficulty(difficulty);
         String dn = chosen == null ? difficulty : chosen.name();
-        set(48, Button.icon(Material.LIME_CONCRETE, "<#7fe07f><b>확정</b>",
+        set(49, Button.icon(Material.LIME_CONCRETE, "<#7fe07f><b>확정</b>",
                 List.of("<gray>난이도 <white>" + dn + "</white> · 입구 <white>" + (block ? "석문" : "NPC 만"),
                         "<gray>입구 위치는 나중에 <white>/labadmin setentrance</white>")),
                 ctx -> confirm(ctx.player(), false));
-        set(50, Button.icon(Material.ENDER_PEARL, "<#7fd8ff><b>확정 + 지금 이 자리에 입구 설치</b>",
+        set(51, Button.icon(Material.ENDER_PEARL, "<#7fd8ff><b>확정 + 지금 이 자리에 입구 설치</b>",
                 List.of("<gray>난이도 <white>" + dn + "</white> · 입구 <white>" + (block ? "석문" : "NPC 만"),
                         "<gray>서 있는 자리(바라보는 방향)에 입구를 만듭니다.",
                         "<dark_gray>미궁 월드 밖의 블록은 석문 방식일 때만, 기록 후 바꿉니다.")),

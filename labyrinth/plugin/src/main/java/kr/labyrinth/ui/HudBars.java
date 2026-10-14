@@ -66,7 +66,7 @@ public final class HudBars {
     /** 글리프 막대가 가능한가 (프레임 또는 칸 방식). */
     public static boolean hasGlyphBar(String kind) {
         Map<String, GlyphDef> gs = glyphs();
-        return gs.containsKey("hud_" + kind + "_0") || gs.containsKey("hud_" + kind + "_full") || gs.containsKey(kind + "_bar_full");
+        return gs.containsKey("hud_" + kind + "_0") || gs.containsKey("hud_" + kind + "_00") || gs.containsKey("hud_" + kind + "_full") || gs.containsKey(kind + "_bar_full");
     }
 
     /** 아이콘 글리프 (없으면 fallback MiniMessage 문자). */
@@ -80,7 +80,12 @@ public final class HudBars {
      */
     public static Component bar(String kind, double ratio, int cells, String fillColor) {
         Map<String, GlyphDef> gs = glyphs();
-        // 1) 프레임 방식
+        // 1) 프레임 방식 (pack-ui 단계 이름: hud_<kind>_00..20 두 자리)
+        if (gs.containsKey("hud_" + kind + "_00")) {
+            int max = 0;
+            while (gs.containsKey("hud_" + kind + "_" + String.format("%02d", max + 1)) && max < 99) max++;
+            if (max > 0) return g(gs.get("hud_" + kind + "_" + String.format("%02d", frameIndex(ratio, max))));
+        }
         if (gs.containsKey("hud_" + kind + "_0")) {
             int max = 0;
             while (gs.containsKey("hud_" + kind + "_" + (max + 1)) && max < 200) max++;
@@ -102,5 +107,20 @@ public final class HudBars {
         // 3) 텍스트
         return Text.mm("<" + fillColor + ">" + textBar(ratio, cells, "▮", "") + "</" + fillColor + "><#3a3546>"
                 + "▮".repeat(Math.max(0, cells - filledCells(ratio, cells))));
+    }
+
+    /**
+     * 사이드바·탭 줄용 파티 HP 막대 (MiniMessage 문자열). 글리프 party_hp_00..10 이 있으면 그림 막대,
+     * 없으면 8칸 텍스트 막대(color).
+     */
+    public static String partyBarMini(double ratio, String color) {
+        Map<String, GlyphDef> gs = glyphs();
+        if (gs.containsKey("party_hp_00")) {
+            int max = 0;
+            while (gs.containsKey("party_hp_" + String.format("%02d", max + 1)) && max < 99) max++;
+            GlyphDef d = gs.get("party_hp_" + String.format("%02d", frameIndex(ratio, max)));
+            if (d != null && max > 0) return "<white><font:labyrinth:ui>" + d.ch() + "</font></white>";
+        }
+        return "<" + color + ">" + textBar(ratio, 8, "▮", "") + "<#3a3546>" + "▮".repeat(Math.max(0, 8 - filledCells(ratio, 8)));
     }
 }

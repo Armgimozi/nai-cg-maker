@@ -128,15 +128,41 @@ public final class LabHudService implements HudService, Listener {
         boolean maxLevel = d.level() >= services.levels().maxLevel();
         double xp = maxLevel ? 1.0 : services.levels().progress(p);
         String key = Math.round(hp) + "/" + Math.round(maxHp) + "|" + Math.round(mp) + "/" + Math.round(maxMp) + "|"
-                + d.level() + "|" + Math.round(xp * 1000) + "|" + d.gold();
+                + d.level() + "|" + Math.round(xp * 1000) + "|" + d.gold() + "|" + Math.round(shieldOf(p)) + "|" + statusOf(p);
         Long last = lastSent.get(p.getUniqueId());
         if (key.equals(lastKey.get(p.getUniqueId())) && last != null && now - last < 2000) return;
         lastKey.put(p.getUniqueId(), key);
         lastSent.put(p.getUniqueId(), now);
-        p.sendActionBar(actionLine(hp, maxHp, mp, maxMp, d.level(), xp, maxLevel, d.gold()));
+        p.sendActionBar(GlyphHud.available()
+                ? GlyphHud.compose(UiTheme.hudSection(), hp, maxHp, mp, maxMp, shieldOf(p), d.level(), xp, d.gold(), statusOf(p))
+                : actionLine(hp, maxHp, mp, maxMp, d.level(), xp, maxLevel, d.gold()));
     }
 
     static String gap() { return "   "; }
+
+    private double shieldOf(Player p) {
+        try {
+            return services.effects().shield(p);
+        } catch (Throwable t) {
+            return 0;
+        }
+    }
+
+    /** 걸려 있는 상태이상 → status_* 글리프 id (액션바 상태 줄). */
+    private List<String> statusOf(Player p) {
+        List<String> out = new ArrayList<>();
+        try {
+            var fx = services.effects();
+            for (String id : UiTheme.statusIds()) {
+                boolean on = "stealth".equals(id) ? fx.isStealthed(p) : fx.has(p, id);
+                if (on) out.add("status_" + id);
+                if (out.size() >= 8) break;
+            }
+        } catch (Throwable ignored) {
+            // 상태 줄은 장식 — 실패해도 HUD 는 계속
+        }
+        return out;
+    }
 
     private Component actionLine(double hp, double maxHp, double mp, double maxMp, int level, double xp, boolean maxLevel, long gold) {
         int cells = 10;
@@ -338,8 +364,7 @@ public final class LabHudService implements HudService, Listener {
         double ratio = services.stats().currentHp(m) / max;
         String color = ratio > 0.6 ? "#7fe07f" : ratio > 0.3 ? "#ffd36b" : "#ff6b6b";
         String self = m.equals(viewer) ? "<white>" : "<gray>";
-        return Text.mm(" " + self + Text.escape(name) + " <" + color + ">" + HudBars.textBar(ratio, 8, "▮", "") + "<#3a3546>"
-                + "▮".repeat(8 - HudBars.filledCells(ratio, 8)) + " <" + color + ">" + Math.round(ratio * 100) + "%");
+        return Text.mm(" " + self + Text.escape(name) + " <" + color + ">" + HudBars.partyBarMini(ratio, color) + " <" + color + ">" + Math.round(ratio * 100) + "%");
     }
 
     static String difficultyColor(String id) {
@@ -428,8 +453,7 @@ public final class LabHudService implements HudService, Listener {
     private static Component teamLine(TeamMember m, String color) {
         String name = m.name() == null ? "?" : m.name().length() > 10 ? m.name().substring(0, 10) : m.name();
         if (!m.alive()) return Text.mm("  <dark_gray>✖ <st>" + Text.escape(name) + "</st>");
-        return Text.mm("  <gray>" + Text.escape(name) + " <" + color + ">" + HudBars.textBar(m.hpRatio(), 8, "▮", "")
-                + "<#3a3546>" + "▮".repeat(8 - HudBars.filledCells(m.hpRatio(), 8)));
+        return Text.mm("  <gray>" + Text.escape(name) + " <" + color + ">" + HudBars.partyBarMini(m.hpRatio(), color));
     }
 
     // ── 접속 · 종료 ───────────────────────────────────────────────────────

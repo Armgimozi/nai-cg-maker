@@ -82,3 +82,10 @@ weapon_attack_speed:
   bow: 1.2
   staff: 1.1
   scepter: 1.3
+
+# 몬스터
+mobs:
+  # 미궁 안 일반 몹이 정예 변종(HP·피해 강화 + 추가 스킬 + 금빛 발광)으로 나올 확률 (0 = 끔)
+  elite_variant_chance: 0.06
+  # 3D 모델 파트 방향 보정(도). 모델이 옆/뒤를 보고 있으면 90 / 180 / -90 으로 맞춘다. 기본 0.
+  model_yaw_offset: 0.0

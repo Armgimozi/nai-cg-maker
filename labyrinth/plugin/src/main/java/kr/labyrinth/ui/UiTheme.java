@@ -35,6 +35,14 @@ public final class UiTheme {
     public record Meta(int width, int titleX, String titleColor) {}
 
     private static final Map<String, Meta> META = new ConcurrentHashMap<>();
+    /** glyphs.yml {@code hud:} 블록 원문 (GlyphHud 배치 수치). */
+    private static volatile Map<String, Object> HUD = Map.of();
+    /** 액션바 상태 줄에 그릴 수 있는 효과 id (status_&lt;id&gt; 글리프가 있는 것, buff_* 제외). */
+    private static volatile java.util.List<String> STATUS_IDS = java.util.List.of();
+
+    public static Map<String, Object> hudSection() { return HUD; }
+
+    public static java.util.List<String> statusIds() { return STATUS_IDS; }
 
     // 색 (MiniMessage)
     public static final String GOLD = "#ffd36b";
@@ -46,7 +54,7 @@ public final class UiTheme {
 
     private UiTheme() {}
 
-    /** glyphs.yml 원문을 다시 읽어 선택 필드를 갱신 (UiModule enable/reload). */
+    /** glyphs.yml 원문을 다시 읽어 선택 필드를 갱신 (UiModule enable/reload). menus.<id>.title_color 가 글리프 색보다 우선. */
     public static void loadMeta(Services services) {
         META.clear();
         Path file = services.plugin().getDataFolder().toPath().resolve("content").resolve("glyphs.yml");
@@ -56,11 +64,29 @@ public final class UiTheme {
             y.loadFromString(Files.readString(file));
             ConfigurationSection gs = y.getConfigurationSection("glyphs");
             if (gs == null) return;
+            ConfigurationSection hs = y.getConfigurationSection("hud");
+            HUD = hs == null ? Map.of() : Map.copyOf(hs.getValues(false));
+            java.util.List<String> st = new java.util.ArrayList<>();
+            for (String id : gs.getKeys(false)) {
+                if (id.startsWith("status_") && !id.startsWith("status_buff_")) st.add(id.substring("status_".length()));
+            }
+            STATUS_IDS = java.util.List.copyOf(st);
+            Map<String, String> menuColors = new java.util.HashMap<>();
+            ConfigurationSection ms = y.getConfigurationSection("menus");
+            if (ms != null) {
+                for (String mid : ms.getKeys(false)) {
+                    ConfigurationSection m = ms.getConfigurationSection(mid);
+                    if (m == null) continue;
+                    String glyph = m.getString("glyph", "gui_" + mid);
+                    String color = m.getString("title_color");
+                    if (color != null && !color.isBlank()) menuColors.put(glyph, color);
+                }
+            }
             for (String id : gs.getKeys(false)) {
                 ConfigurationSection g = gs.getConfigurationSection(id);
                 if (g == null) continue;
-                META.put(id, new Meta(g.getInt("width", g.getInt("advance", 176)), g.getInt("title_x", 8),
-                        g.getString("title_color", "#3b2a4d")));
+                String color = g.getString("title_color", menuColors.getOrDefault(id, id.startsWith("gui_") ? "#f3e3bd" : "#3b2a4d"));
+                META.put(id, new Meta(g.getInt("width", 176), g.getInt("title_x", 8), color));
             }
         } catch (Exception e) {
             Log.warn("[UI] glyphs.yml 선택 필드 읽기 실패 (글리프 없이 계속): " + e.getMessage());
@@ -84,23 +110,51 @@ public final class UiTheme {
     }
 
     /**
-     * 메뉴 제목. 글리프 {@code gui_<menu>}(없으면 {@code gui_rows_<rows>})가 있으면 배경을 깔고 그 위에 제목,
-     * 없으면 MiniMessage 제목 그대로.
+     * 메뉴별 배경 그림(gui_&lt;menu&gt;)은 소켓(버튼 자리)이 그려져 있다 → 버튼 배치가 그 소켓과 같은 메뉴만 전용 배경을 쓰고,
+     * 나머지는 같은 줄 수의 범용 배경(gui_rows_&lt;n&gt; → gui_generic_&lt;n&gt;)을 쓴다. 줄 수가 다른 배경은 절대 쓰지 않는다.
+     */
+    private static final java.util.Set<String> SOCKET_LAYOUT = java.util.Set.of("blacksmith", "titles", "setup");
+
+    /** 이 메뉴(줄 수 rows)에 깔 배경 글리프 id (없으면 null). */
+    public static String background(String menu, int rows) {
+        String own = "gui_" + menu;
+        if (SOCKET_LAYOUT.contains(menu) && has(own) && glyphRows(own) == rows) return own;
+        for (String c : new String[] {"gui_rows_" + rows, "gui_generic_" + rows}) {
+            if (has(c) && glyphRows(c) == rows) return c;
+        }
+        return null;
+    }
+
+    /** 배경 글리프 높이 → 상자 줄 수 (창 높이 = 114 + 18·줄). 알 수 없으면 -1. */
+    static int glyphRows(String id) {
+        try {
+            GlyphDef d = Services.get().content().glyphs().get(id);
+            if (d == null) return -1;
+            int r = Math.round((d.height() - 114) / 18f);
+            return r >= 1 && r <= 6 ? r : -1;
+        } catch (Throwable t) {
+            return -1;
+        }
+    }
+
+    /**
+     * 메뉴 제목. 배경 글리프({@link #background})가 있으면 배경을 깔고 그 위에 제목, 없으면 MiniMessage 제목 그대로.
      */
     public static Component title(String menu, int rows, String miniTitle) {
-        String g = firstGlyph("gui_" + menu, "gui_rows_" + rows);
+        String g = background(menu, rows);
         if (g == null) return Text.mm(miniTitle);
         Meta m = meta(g);
         GlyphDef def = Services.get().content().glyphs().get(g);
         if (def == null) return Text.mm(miniTitle);
-        // 펜 x=0 은 바닐라 제목 위치(컨테이너 왼쪽 + 8px). 배경을 왼쪽 끝(-8)부터 그리고, 제목은 title_x 로 되돌아와 쓴다.
+        // 펜 x=0 은 바닐라 제목 위치(컨테이너 왼쪽 + 8px). 배경을 왼쪽 끝(-8)부터 그리고(펜 += advance), 제목은 title_x 로 되돌아와 쓴다.
         Component bg = Component.text(def.ch()).font(Glyphs.FONT).color(NamedTextColor.WHITE);
-        int back = -(m.width() + 1) + 8 + (m.titleX() - 8);
+        int advance = def.advance() > 0 ? def.advance() : m.width() + 1;
+        int back = -advance + 8 + (m.titleX() - 8);
         return Component.empty()
                 .append(Glyphs.space(-8))
                 .append(bg)
                 .append(Glyphs.space(back))
-                .append(Text.mm("<" + m.titleColor() + ">" + Text.strip(miniTitle)));
+                .append(Text.mm("<" + m.titleColor() + ">" + Text.escape(Text.strip(miniTitle))));
     }
 
     /** 리소스팩 아이템 모델(labyrinth:&lt;id&gt;)을 쓰는 아이콘 — items.yml 에 있는 id 일 때만 모델 지정. */
@@ -128,7 +182,7 @@ public final class UiTheme {
 
     /** 글리프 배경이 있으면 투명(빈 칸)으로 두고, 없으면 유리판으로 채운다. */
     public static void frame(Menu menu, String menuId, int rows) {
-        if (firstGlyph("gui_" + menuId, "gui_rows_" + rows) != null) return;
+        if (background(menuId, rows) != null) return;
         int size = menu.size();
         for (int i = 0; i < size; i++) {
             int r = i / 9;

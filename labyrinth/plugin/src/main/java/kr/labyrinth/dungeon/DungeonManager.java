@@ -107,6 +107,7 @@ public final class DungeonManager implements DungeonService, Listener {
     }
 
     void disable() {
+        SelfTest.abort();
         if (ticker != null) ticker.cancel();
         HandlerList.unregisterAll(this);
         for (Run r : new ArrayList<>(runs.values())) {
@@ -169,6 +170,22 @@ public final class DungeonManager implements DungeonService, Listener {
     public Run runOf(Player p) { return byPlayer.get(p.getUniqueId()); }
 
     void unbind(UUID u) { byPlayer.remove(u); }
+
+    // ── 관리자 자가 진단(SelfTest) 전용: 임시 슬롯 (인스턴스 목록에 안 들어감) ──
+    int allocateTestSlot() {
+        if (allocator == null || labWorld == null) return -1;
+        int s = allocator.allocate();
+        if (s >= 0) labWorld.markDirty(s);
+        return s;
+    }
+
+    void releaseTestSlot(int s) {
+        if (s < 0) return;
+        allocator.release(s);
+        labWorld.markClean(s);
+    }
+
+    int nextRunSeq() { return ++runSeq; }
 
     Particle particle(String name) {
         if (name == null || name.isBlank()) return null;

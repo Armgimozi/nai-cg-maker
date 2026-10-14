@@ -35,6 +35,23 @@ public final class DungeonModule implements Module {
         entrance.enable();
 
         new DungeonCommands(services, dungeon, entrance).register();
+        registerSelfTest();
+    }
+
+    /** /labadmin selftest [층 수] — 플레이어 없이 층 생성·몹/보스·피해·정리 경로를 돌려 보는 자가 진단 (콘솔 가능). */
+    private void registerSelfTest() {
+        var root = io.papermc.paper.command.brigadier.Commands.literal("selftest");
+        root.executes(c -> {
+            kr.labyrinth.command.CommandService.safeRun(c, () -> SelfTest.start(services, dungeon, c.getSource().getSender(), 1));
+            return com.mojang.brigadier.Command.SINGLE_SUCCESS;
+        });
+        root.then(io.papermc.paper.command.brigadier.Commands.argument("floors",
+                com.mojang.brigadier.arguments.IntegerArgumentType.integer(1, 10)).executes(c -> {
+            int n = com.mojang.brigadier.arguments.IntegerArgumentType.getInteger(c, "floors");
+            kr.labyrinth.command.CommandService.safeRun(c, () -> SelfTest.start(services, dungeon, c.getSource().getSender(), n));
+            return com.mojang.brigadier.Command.SINGLE_SUCCESS;
+        }));
+        services.commands().addSubcommand("labadmin", root);
     }
 
     @Override

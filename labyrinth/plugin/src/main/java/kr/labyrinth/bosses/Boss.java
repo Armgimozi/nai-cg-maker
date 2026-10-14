@@ -978,7 +978,17 @@ public abstract class Boss implements BossHandle {
         String ph = def.phases().size() > 1 ? " <dark_gray>[" + phase + "/" + def.phases().size() + "]</dark_gray>" : "";
         String state = enraged ? " <dark_red><b>광폭</b></dark_red>" : "";
         if (now < stunUntil) state += " <yellow>기절</yellow>";
-        return "<b>" + def.name() + "</b>" + t + ph + state;
+        return ornament("boss_ornament_left", true) + "<b>" + def.name() + "</b>" + t + ph + state
+                + ornament("boss_ornament_right", false);
+    }
+
+    /** 보스바 이름 양옆 금장식 글리프 (glyphs.yml; 없으면 빈 문자열). 좌우 대칭이라 이름이 자동 가운데. */
+    private String ornament(String id, boolean left) {
+        var g = services.content().glyphs().get(id);
+        if (g == null) return "";
+        String ch = "<!shadow><white><font:labyrinth:ui>" + g.ch() + "</font></white></!shadow>";
+        String gap = "<font:labyrinth:ui>" + new String(Character.toChars(0xF800 + 2)) + "</font>";
+        return left ? ch + gap : gap + ch;
     }
 
     private void updateBars() {
