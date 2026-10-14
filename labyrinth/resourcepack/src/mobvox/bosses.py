@@ -9,7 +9,8 @@ from __future__ import annotations
 
 import math
 
-from ..voxel.mob_kit import MobGrid, fbm3  # noqa: F401
+from ..util import h2, h3
+from ..voxel.mob_kit import MobGrid, fbm3, vadd, vlen, vmul, vnorm, vsub  # noqa: F401
 
 # ───────────────────────────── floor01_moss_warden (이끼 파수꾼 그로브) ─────────────────────────────
 # An ancient guardian statue the corridor grew over: fitted masonry blocks with chiselled bevels and
@@ -217,6 +218,4 @@ def floor01_moss_warden(look, name, part, ctx):
     return g
 
 
-DESIGNS = {
-    'floor01_moss_warden': floor01_moss_warden,
-}
+#@@NEW@@
