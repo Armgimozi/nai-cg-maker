@@ -1,0 +1,6 @@
+plugin/build/
+plugin/.gradle/
+resourcepack/dist/
+resourcepack/.venv/
+__pycache__/
+*.pyc
