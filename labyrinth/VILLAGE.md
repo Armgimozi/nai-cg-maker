@@ -1,11 +1,13 @@
 # 등불 어귀 마을 — 설계 계약 (VILLAGE.md)
 
-미궁 입구 마을을 **원래 월드(오버월드)** 에 짓는다. 사용자 규칙 "기존 지형 무시하고 막 만들지 마셈"을 지키는 것이 최우선:
+미궁 입구 마을을 **미리 지어 둔 오버월드(world 폴더)** 째로 서버팩에 넣는다 (사용자 결정: "증강 스카이블럭 방식",
+"미리 지은 월드만"). 서버를 처음 켜면 이미 마을이 있고, 스폰이 마을 광장이다.
 
-- 지형을 밀어 평평하게 만들지 않는다. 건물(조각)마다 그 자리 땅높이에 맞춰 앉히고, 깎기·메우기는 조각당 몇 칸으로 제한한다.
-- 사람이 지은 블록(자연 블록이 아닌 것)·컨테이너·물/용암이 걸리는 자리는 **거절**한다.
-- 바꾸는 블록은 **전부 원래 상태를 기록**하고, 제거하면 기록 그대로 되돌린다(한 칸도 틀리지 않게).
-- 짓기 전에 미리보기(파티클 외곽선 + 바뀌는 블록 수)를 보여 주고 확정을 받는다.
+- 우리가 시드를 골라 만든 월드라서 마을 자리 지형은 **설계해서 다듬는다**(계단식 단·옹벽·완만한 경사). 단, 사용자 규칙
+  "기존 지형 무시하고 막 만들지 마셈" 정신대로 **자연스럽게**: 넓은 평판 + 절벽 같은 티 나는 평탄화 금지, 마을 바깥으로 갈수록
+  원래 지형에 부드럽게 이어지게, 나무는 반쯤 잘린 채 남기지 않는다.
+- 월드는 개발 환경(테스트 서버)에서 플러그인 관리자 명령으로 지은 뒤 world 폴더를 압축해 배포 zip 에 넣는다 (증강 스카이블럭의
+  `augadmin buildmap` 과 같은 방식). 다른 시드·이미 쓰던 월드에 자동으로 짓는 기능은 **만들지 않는다**.
 
 이 문서는 Java(플러그인)와 Python(설계 도구)이 함께 따르는 계약이다. 숫자·이름은 여기 적힌 대로 쓴다.
 
@@ -21,7 +23,8 @@
 | `tools/village/build_all.py` | 모든 조각 + layout 생성 → `plugin/src/main/resources/village/` 에 씀, 검증 | 설계 도구 |
 | `plugin/src/main/resources/village/pieces/<id>.json` | 조각 청사진 (생성물, 커밋함) | 생성물 |
 | `plugin/src/main/resources/village/layout.json` | 마을 배치 (생성물, 커밋함) | 생성물 |
-| `plugin/src/main/java/kr/labyrinth/village/*` | VillageModule · VillageService · 계획/배치/복원/보호/명령/메뉴 | Java |
+| `plugin/src/main/java/kr/labyrinth/village/*` | VillageModule · 청사진 파서 · VillageBuilder(지형 다듬기+짓기, 관리자 명령) · VillageService(실행 중: 보호·NPC·입구·텔레포트) | Java |
+| `tools/build_world.sh` | 테스트 서버 복사본에서 시드로 월드 생성 → 마을 짓기 → 주변 청크 미리 생성 → 정지 → `dist/world.zip` | 조립 |
 
 Python 은 표준 라이브러리 + Pillow 만 쓴다 (`/opt/packvenv/bin/python` 에 Pillow 있음).
 
@@ -75,16 +78,13 @@ Python 은 표준 라이브러리 + Pillow 만 쓴다 (`/opt/packvenv/bin/python
     호퍼/디스펜서/드로퍼/크래프터/관찰자 같은 레드스톤 장치, 명령 블록, 엔티티(갑옷 거치대·액자)는 청사진에 넣지 않는다.
 - 팔레트 글자는 한 조각 안에서 유일하면 아무 글자나 된다 (`' '`, `'.'` 제외). 글자가 모자라면 유니코드 아무 글자.
 
-### 2.3 높이 규칙 (지형 맞춤)
+### 2.3 높이 규칙
 - `floor_y`: 걸어 다니는 바닥 층의 layer 번호. 바닥 블록이 이 층에 있고, 사람은 `floor_y + 1` 높이에 선다.
-- `anchor` = 정방향 기준 (x, z) 한 칸 (보통 정문 바로 안쪽 바닥). Java 는 그 칸의 **땅 높이 G** (가장 위의 자연 고체 블록 y)를 기준으로
-  layer y 를 월드 Y = `G + (y − floor_y)` 에 놓는다. 즉 바닥 층이 원래 땅 맨 윗블록을 대신한다 → 정문 앞이 땅과 같은 높이.
-  - 조각 발자국 안 땅 높이 범위가 너무 크면(`max − min > max_cut + max_fill`) 그 자리는 실패.
-  - G 는 발자국 땅 높이의 [min, max] 안으로 자르고, 깎기(G 보다 높은 땅) ≤ `max_cut`, 메우기(G 보다 낮은 땅) ≤ `max_fill`.
-- **메우기**: 발자국 안 칸(그 열에 공백이 아닌 글자가 하나라도 있는 x,z)에서, 조각의 가장 낮은 비공백 블록 아래부터 실제 땅 바로 위까지
-  `foundation_mix`(가중치 무작위, 좌표 해시로 결정적) 블록으로 채운다. 채우는 자리는 대체 가능 블록이어야 함.
-- **깎기**: 발자국 안 칸에서 조각 꼭대기 층보다 아래이면서 글자가 `.` 인 자리는 지운다. 조각 높이 위로는 손대지 않는다.
-- 기본값: `max_cut` 3, `max_fill` 4, `foundation` 은 첫 번째 mix 블록.
+- 짓는 쪽(VillageBuilder)이 조각마다 **단 높이 P** 를 정하고 그 단까지 지형을 다듬은 뒤, layer y 를 월드 Y = `P + (y − floor_y)` 에 놓는다
+  (바닥 층이 단의 맨 윗블록 자리). `floor_y` 아래 layer(기초·주춧돌)는 땅속으로 들어간다 — 경사진 단 가장자리에서 보이는 기초를
+  1~2층 넣으면 보기 좋다.
+- `anchor` = 정방향 기준 (x, z) 한 칸 (보통 정문 바로 안쪽 바닥). 단 높이를 정할 때 그 칸 주변 원래 땅높이를 가장 무겁게 본다.
+- `foundation`/`foundation_mix`: 단 가장자리 옹벽·기초에 쓰는 블록. `max_cut`/`max_fill` 은 쓰지 않는다(있어도 무시).
 
 ### 2.4 마커
 | type | 필드 | 뜻 |
@@ -126,86 +126,97 @@ pattern_key 는 마인크래프트 배너 무늬 id (`border`, `stripe_center`, 
 - 마을 좌표: 마을 중심 = (0, 0). 마을 정방향에서 **게이트(마을의 "앞")는 북쪽(−Z)**. `at` = 조각의 (회전 후) 발자국 가운데 칸의 마을 좌표.
   `front` = 조각 정면이 바라볼 방향(마을 정방향 기준).
 - 마을 전체도 회전할 수 있다 (`StructureRotation` 하나): 조각 `at` 을 회전하고 각 조각 front 에 같은 회전을 더한다.
-- `paths`: 꺾은선 점들(마을 좌표) 사이를 `width` 폭으로 칠한다. 각 칸에서 땅 맨 윗블록(흙·풀·모래 같은 표면 블록일 때만)을
-  스타일 블록으로 바꾸고, 그 위 한 칸의 풀·꽃·눈은 지운다(기록). 조각 발자국 안 칸은 건너뜀. 물 위는 건너뜀(감점).
-  지형을 따라가므로 길은 오르내린다(평탄화 안 함).
+- `paths`: 꺾은선 점들(마을 좌표) 사이를 `width` 폭으로 칠한다. 다듬은 지형(§4.1) 맨 윗블록을 스타일 블록으로 바꾸고 그 위 한 칸
+  식물은 지운다. 조각 발자국 안 칸은 건너뜀. 길 높이는 양 끝 단 사이를 완만하게 잇는다(§4.1 목표 높이장).
+- 선택: `"terraces"` — 추가 단 `{ "at": [x, z], "size": [w, d], "dy": 2 }` (광장 높이 H0 기준 상대 높이, 예: 게이트를 광장보다 2칸 높은
+  단에 올려 계단으로 오르게). 조각 단 높이를 직접 고정하려면 조각 항목에 `"dy": n` (H0 기준).
 - 조각 발자국끼리 겹치면 안 된다 (build_all.py 가 검사). 장식 조각(가로등·벤치·나무·화단)도 조각으로 배치한다.
 
 ---
 
 ## 4. Java 동작
 
-### 4.1 자리 고르기
-- **자동**: 월드 스폰(또는 명령을 친 사람 위치) 주변을 나선형으로 후보 중심(8칸 간격, 반경 최대 `village.search_radius` 기본 384)을 돌며
-  마을 계획을 세워 보고, 하드 조건을 통과한 것 중 점수가 가장 낮은 곳. 회전 4가지도 시도. 후보 계산은 여러 틱에 나눠
-  (틱당 시간 예산 ~15ms) 서버가 멈추지 않게. 청크는 필요할 때 로드 (`World#getChunkAtAsync` 또는 틱 분할 동기 로드).
-- **여기**: 명령 친 사람 위치가 중심, 바라보는 방향이 마을 정방향(게이트 쪽) — 실패하면 이유를 알려 줌.
-- 하드 조건 (하나라도 걸리면 그 후보 실패):
-  - 바뀌는 칸(조각 비공백 칸, 메우기, 깎기, 길)에 **자연 블록이 아닌 것**이 있음 → 사람이 지은 것으로 보고 거절.
-    자연 블록 = 공기, 흙 계열(흙·풀블록·거친흙·회백토·균사체·뿌리흙·진흙), 돌 계열(돌·화강암·섬록암·안산암·심층암·응회암·석회암 계열 자연석),
-    모래·붉은 모래·자갈·사암(자연), 점토, 눈·눈 블록·얼음(깎기만, 위에 짓지 않음), 식물(풀·고사리·꽃·덤불·묘목·버섯·사탕수수·대나무·덩굴·이끼 카펫·꽃잎),
-    잎(persistent=false 인 것만), 광석(깎기만), 구멍 없는 동굴덩굴 등. 그 외(판자·유리·양털·상자 등) = 인공.
-  - 블록 엔티티(상자·표지판 등)가 있는 칸.
-  - 원목(log/stem) — 나무를 반쯤 자르면 공중에 뜬 나무가 남으므로 거절(자동 탐색에서 자연스럽게 피함).
-  - 물·용암이 조각 발자국 + 2칸 여유 안에 있음.
-  - 조각별 깎기/메우기 한도 초과.
-- 점수 = Σ(깎기 칸수 + 1.3×메우기 칸수) + 0.5×지운 잎 + 20×물 위 길 칸 + 0.05×탐색 시작점 거리 + 조각 높이 차(인접 조각 G 차이 > 4 이면 그만큼 가산).
+### 4.1 지형 다듬기 + 짓기 (VillageBuilder — 개발용 관리자 명령)
+`/labadmin village build [here | <x> <z>] [north|east|south|west]` (콘솔 가능, 기본 = 월드 스폰, 정방향 north).
+틱 분할(틱당 `village.blocks_per_tick` 기본 4000)로 아래 순서를 실행하고 진행률을 알린다. 서버가 멈추지 않게.
+1. **조사**: 마을 반경 R(layout radius) + 혼합 띠 B(16칸) 안의 원래 땅높이(나무·풀·눈·잎 제외한 맨 위 자연 고체 블록) 수집.
+2. **나무 치우기**: R+B 안에 걸친 원목/잎(persistent=false)은 이어진 덩어리째 flood fill 로 지운다(나무 밖으로 뻗은 부분 포함, 상한 있음).
+   R 안의 풀·꽃·덤불·눈 한 겹도 지운다.
+3. **목표 높이장**: 광장 높이 H0 = 중심 반경 6 의 원래 높이 중앙값. 각 조각 발자국(+1칸 여유) = 그 조각 단 높이 P
+   (anchor 주변 원래 높이 중앙값을 H0±4 로 자름 → 자연스러운 계단식 단). 길 칸 = 길 양 끝 단 사이 선형 보간.
+   그 밖의 R 안 칸 = 가까운 단·길 높이들의 거리 가중 평균과 원래 높이를 섞음, R~R+B 띠에서는 원래 높이 쪽으로 점점(smoothstep) 돌아감.
+   이웃 칸 높이 차는 최대 1 이 되게 몇 번 부드럽게(조각 단은 고정). 단과 그 주변 차가 2 이상이면 그 단 가장자리를 옹벽(foundation_mix +
+   이끼 섞기)으로.
+4. **지형 적용**: 칸마다 목표보다 높은 땅은 공기로, 낮으면 흙으로 채우고 맨 윗블록은 잔디(원래 맨 윗블록이 모래·눈 같은 바이옴 표면이면
+   그것). 물·용암이 R+B 안에 있으면 그 칸은 손대지 않는다(시드 고를 때 피함 — §4.5 survey).
+5. **조각 짓기**: 회전(§2.1) 적용, P 기준(§2.3)으로 `setBlockData(data, false)`. `'.'` 는 공기, `' '` 는 다듬은 지형 그대로.
+6. **길**: 다듬은 지형 맨 윗블록을 스타일 블록으로(위 한 칸 식물 제거). 높이가 1 바뀌는 곳은 그 스타일의 반블록/계단을 써도 좋다.
+7. **후처리**: 표지판 글(MiniMessage → 컴포넌트), 깃발 무늬(26.x 레지스트리 키로 PatternType 조회).
+8. **메타데이터 저장**: `<월드 폴더>/labyrinth-village.yml` (§4.2). 월드 스폰 = spawn 마커, 스폰 반경 게임룰 0(API 있으면), NPC 배치·입구 설정(§4.3).
+같은 월드에서 다시 build 하면 거절(이미 있음) — `build force` 만 덮어씀(개발용).
 
-### 4.2 짓기 · 기록 · 복원
-- 계획 = 바뀔 칸 목록 (순서: 아래→위, 메우기 → 조각 → 길 → 마커 후처리). 확정하면 **놓기 전에** 원래 블록 기록을
-  `plugins/Labyrinth/village/undo.txt.gz` (한 줄: `x y z|blockdata`) 와 `plugins/Labyrinth/village/state.yml` (state: building) 에 저장.
-- 틱당 `village.blocks_per_tick`(기본 3000)개씩 `setBlockData(data, false)` (물리 없음). 끝나면 표지판·깃발 후처리, NPC 배치, 입구·스폰 설정, state: built.
-- 서버가 짓는 도중 꺼졌으면: 다음 시작 때 state: building → 자동으로 기록대로 되돌린 뒤 state 삭제 (로그 남김).
-- 제거: 기록을 **역순**으로 틱당 같은 속도로 되돌림 → 표지판/깃발 블록 엔티티는 원래 블록으로 덮이므로 자연히 사라짐.
-  NPC 제거, 입구 설정 비우기(마을 입구였으면), 월드 스폰·스폰 반경 원래대로, 파일 삭제. 제거 도중 꺼짐 → 다음 시작에 이어서 복원.
-- 같은 칸이 두 번 기록되지 않게(처음 원래 값만) 한다.
-
-### 4.3 보호 (마을 블록 = 기록에 있는 칸 + 조각 발자국 상자 안)
-- 부수기 취소 (관리자도. 메시지: "마을 건물은 부술 수 없습니다. (관리자: /labadmin village remove)").
-- 조각 발자국 상자 안 블록 놓기 취소 (관리자 제외).
-- 폭발 목록에서 마을 블록 제외, 불 번짐/타기 취소, 피스톤이 마을 블록을 밀기/당기기 취소, 엔더맨 등 엔티티 블록 변경 취소,
-  마을 물(분수)이 흘러 나가는 것 취소(BlockFromToEvent: from 이 마을 칸이고 to 가 마을 칸이 아니면 취소).
-- 마을 반경 안 자연 스폰 적대 몹 취소 (`CreatureSpawnEvent`, NATURAL, `Enemy`/`Monster`).
-- 마을 블록 상호작용: 문·다락문·울타리 문·종·작업대는 허용, 침대 허용. 컨테이너(통·상자·화로류)·모루·숫돌·대장장이 작업대·
-  독서대·양조대 등은 vanilla 창 대신 취소 — 단 `interact` 마커 칸이면 해당 메뉴를 연다.
-
-### 4.4 NPC · 입구 · 스폰
-- `npc` 마커 → `services.npcs().place(id, loc)` (yaw = 회전 적용한 face). 마을 제거 시 그 NPC 들 `remove`.
-- `entrance` 마커 → config `entrance.*` 에 저장 (mode `village`). 기존 석문 입구가 있으면 먼저 그 복원(석문 블록 되돌림) 후 교체.
-  (석문 → `EntranceService.removeEntrance()` 를 부를 수 있게 dungeon 쪽에 공개 접근자 하나 추가)
-- 게이트 `interact`(entrance) 칸 우클릭 → `services.menus().openEntrance(p)`. `ambient` 마커 파티클.
-- `spawn` 마커 → `village.set_world_spawn: true` 면 월드 스폰을 그곳으로(원래 값 저장), 스폰 반경 게임룰 0 (원래 값 저장). 제거 시 복구.
-
-### 4.5 명령 · 권한 · 메뉴
-- `ServerSetup.canBuildVillage(sender)`: 콘솔/관리자 = true, 아니면 `setup.everyone_can_build_village`(기본 true) **그리고 마을이 아직 없을 때**.
-- `/미궁 마을` (`/lab village`, `/lab 마을`):
-  - 마을 있음 → 광장 스폰으로 텔레포트 (미궁 안이면 거절: "먼저 /미궁 귀환"). `village.teleport_command: true` 일 때.
-  - 마을 없음 + canBuild → 마을 짓기 메뉴 (자동: 스폰 근처 / 여기 / 취소) → 계획 → 미리보기(외곽선 파티클 30초 + 채팅
-    "바뀌는 블록 N개 · 깎기 a · 메우기 b · 위치 (x, z)" + 클릭 버튼 [확정] [취소]) → `/lab village confirm <토큰>`.
-  - 마을 없음 + 권한 없음 → 안내.
-- 관리자/콘솔: `/labadmin village build [auto|here]` (미리보기→확정 없이 바로 짓기는 `build auto now`), `remove`, `info`,
-  `preview [auto|here]`, `selftest`, `dump`.
-- `selftest` (콘솔 가능): 자동 자리 찾기 → 짓기 → 모든 계획 칸이 계획대로인지 검사 → NPC 배치 확인 → 제거 → 기록된 모든 칸이
-  원래 블록과 같은지 검사 → 결과 한 줄 (`[마을 자가 진단] 결과: 예외 0 · placed=… mismatched=0 · restored=… diff=0 · …`).
-  `selftest keep` 은 제거하지 않고 남겨 둔다(렌더 확인용).
-- `dump`: 마을 경계 상자 + 8칸 여유의 모든 비공기 블록을 `plugins/Labyrinth/village/dump.txt` (`x y z|blockdata`)로 → `render.py --dump` 가 실제 지형 위 모습을 그림.
-- 초기 설정 메뉴(SetupMenu) 입구 방식에 **마을 (추천)** 추가 → 확정 시 난이도 적용 후 마을이 없으면 자동 자리 찾기 → 미리보기/확정 흐름.
-- 메인 메뉴 51번 칸: "마을" 버튼 (`/미궁 마을` 과 같음).
-- 접속 시: 난이도는 정했는데 마을이 없고 canBuild 면 한 번 안내 ("/미궁 마을 로 스폰 근처에 마을을 지을 수 있어요").
-
-### 4.6 config.yml
+### 4.2 labyrinth-village.yml (월드 폴더 안 — 월드와 함께 배포됨)
 ```yaml
-village:
-  set_world_spawn: true      # 마을 광장을 월드 스폰으로 (원래 스폰은 기억했다가 마을 제거 시 복구)
-  teleport_command: true     # /미궁 마을 로 광장 텔레포트 허용
-  search_radius: 384         # 자동 자리 찾기 반경 (스폰 기준, 블록)
-  blocks_per_tick: 3000      # 짓기/복원 속도
-  block_mob_spawns: true     # 마을 안 적대 몹 자연 스폰 막기
-setup:
-  everyone_can_build_village: true   # 마을이 아직 없을 때만 op 아닌 사람도 지을 수 있음 (옮기기·제거는 관리자/콘솔)
+format: 1
+name: 등불 어귀 마을
+center: [x, y, z]
+rotation: NONE
+radius: 32
+spawn: [x, y, z, yaw]
+entrance: [x, y, z, yaw]
+npcs: { guide: [x, y, z, yaw], blacksmith: [...], class_master: [...], title_keeper: [...], merchant: [...] }
+interact: { "x,y,z": entrance, "x,y,z": blacksmith, ... }   # 우클릭 → 메뉴
+ambient: [ [x, y, z, portal], [x, y, z, embers], ... ]
+protect: [ [x0, y0, z0, x1, y1, z1], ... ]                  # 조각 상자들(+1칸) + 광장 + 길 칸 상자
 ```
 
----
+### 4.3 VillageService (실행 중)
+- 시작할 때 주 월드(`Bukkit.getWorlds().get(0)`) 폴더의 labyrinth-village.yml 을 읽는다. 없으면 마을 기능은 조용히 꺼짐(로그 1줄).
+- **월드 적용**: `plugins/Labyrinth/village-applied.yml` 에 적용한 월드 UID 를 적는다. 현재 월드 UID 가 다르면(배포 월드를 처음 켰거나
+  기존 서버가 world 폴더를 새 것으로 바꿈) →
+  - 마을 NPC 들을 메타데이터 자리로 `services.npcs().place(id, loc)` (예전 월드 좌표에 있던 배치를 덮어씀).
+  - config `entrance.*` = 메타데이터 entrance (mode `village`). 예전 석문 기록(entrance.yml)은 **복원하지 않고** 버린다
+    (예전 월드 좌표라 새 월드를 망가뜨림) — dungeon 쪽에 `forgetSaved()` 같은 공개 메서드 최소 추가, entrance.yml → entrance.yml.old.
+  - 이후 접속하는 플레이어 중 이 월드 UID 를 처음 보는 사람(PlayerData ext `village.world`)은 미궁 안이 아니면 마을 스폰으로 텔레포트
+    (예전 월드 좌표에 서 있다가 땅속에 끼는 것 방지). 새 플레이어는 원래 스폰이 광장이라 그대로.
+- **보호** (protect 상자 안): 관리자가 아니면 부수기·놓기 취소("마을은 부수거나 바꿀 수 없습니다"), 관리자는 크리에이티브일 때만 허용.
+  폭발 목록에서 제외, 불 번짐/타기 취소, 피스톤 밀기/당기기 취소, 엔더맨 등 엔티티 블록 변경 취소, 물 흐름이 상자 밖으로 나가는 것 취소,
+  나무 성장(StructureGrowEvent) 이 상자 안 블록을 바꾸면 취소.
+- **적대 몹 자연 스폰 취소**: center 반경 radius+8 안 `CreatureSpawnEvent` NATURAL/`Enemy` (`village.block_mob_spawns`).
+- **상호작용**: interact 칸 우클릭 → 메뉴 (`entrance`→openEntrance, `blacksmith`→openBlacksmith, `class`→openClass, `titles`→openTitles,
+  `merchant`→ 상인 NPC 와 같은 상점, `main`→openMain). protect 안의 문·다락문·울타리 문·종·작업대·침대는 허용, 그 밖의 컨테이너·모루·숫돌·
+  독서대·양조대 등은 장식이라 취소.
+- **연출**: ambient 자리 파티클(포털 소용돌이·불씨·분수 물보라·마법 반짝임·연기), 청크가 로드돼 있고 근처에 사람 있을 때만.
+- **`/미궁 마을`** (`/lab village`, `/lab 마을`): 광장 스폰으로 텔레포트 (미궁 안이면 거절: "먼저 /미궁 귀환"), `village.teleport_command`.
+  메인 메뉴 51번 칸 "마을" 버튼도 같은 동작. 마을 메타데이터가 없으면 "이 월드에는 마을이 없습니다 (서버팩의 world 폴더를 쓰세요)".
+- 초기 설정 메뉴(SetupMenu)의 입구 방식 선택은 마을이 있으면 숨기고 "입구: 마을의 미궁의 아가리" 정보만 보여 준다.
+
+### 4.4 그 밖의 관리자 명령
+- `village info` — 메타데이터 요약, 적용 UID, NPC 상태.
+- `village dump` — 마을 상자 + 16칸 여유 모든 비공기 블록 → `plugins/Labyrinth/village/dump.txt` (`x y z|blockdata`) → render.py --dump.
+- `village survey [반경]` — 시드 고르기용: 스폰 주변 후보 중심들(8칸 간격, 기본 반경 160)에서 R+B 안 물/용암 칸 수, 원래 높이 표준편차·최대-최소,
+  원목 수, 바이옴을 계산해 점수 좋은 5곳을 출력 (ChunkSnapshot 으로 비동기 계산, 메인 스레드 막지 않기).
+- `village pregen <반경>` — 중심 주변 청크를 비동기로 미리 생성(동시 요청 수 제한, 진행률), 배포 월드 첫 접속 렉 줄이기.
+- `village selftest` — 메타데이터를 다시 읽어 모든 조각 칸이 청사진대로인지 검사(mismatched 수), NPC 5명이 자리에 있는지, interact·spawn·entrance
+  유효성 → 결과 한 줄 `[마을 자가 진단] 결과: 예외 0 · checked=… mismatched=0 · npcs=5/5 · …`.
+
+### 4.5 config.yml
+```yaml
+village:
+  teleport_command: true     # /미궁 마을 로 광장 텔레포트
+  block_mob_spawns: true     # 마을 안 적대 몹 자연 스폰 막기
+  blocks_per_tick: 4000      # village build 속도 (개발용)
+```
+
+### 4.6 배포 (조립 담당)
+- `tools/build_world.sh`: /opt/testserver 를 임시 폴더로 복사(world 없이), server.properties level-seed=<고른 시드>, 플러그인 최신 jar,
+  명령: `village build` → `village pregen 192` → `village selftest` → stop. 그 world 폴더에서 `session.lock`·`uid.dat` 를 빼고
+  `dist/world.zip` 으로. (uid.dat 를 빼야 서버마다 새 UID → §4.3 월드 적용이 동작)
+- release.sh: world.zip 을 풀어 `Labyrinth-Server/world/` 로 넣는다. release/server.properties 에 `level-seed=<시드>`(월드 밖으로
+  나가도 같은 지형이 이어지게).
+- README: 새 서버는 그냥 켜면 됨. **이미 돌리던 서버 업데이트**: 서버 끄기 → `world` 폴더 이름을 `world_old` 로 → 새 zip 의 `world` 폴더 복사 →
+  `world_old` 안의 `playerdata`·`advancements`·`stats` 폴더를 새 `world` 로 복사(인벤토리·엔더상자 유지) → 켜기. 미궁 레벨·칭호·골드는
+  plugins/Labyrinth 에 있어 그대로. 예전 월드에 지은 건물은 world_old 에 남는다(돌아가려면 폴더 이름만 되돌리기).
 
 ## 5. 미술 방향 — "화려한 판타지 RPG"
 
@@ -230,8 +241,9 @@ setup:
 - 마을 크기: 반경 ~32 (지름 ~65) 안에 다 들어가게. 광장 북쪽에 게이트, 광장 둘레에 대장간·전당·보관소·상점, 바깥에 여관·집·장식.
 
 ## 6. 검증 기준 (끝났다고 하려면)
-1. `build_all.py` — 모든 조각 JSON 생성, 팔레트 문자열이 형식에 맞고(정규식), 금지 블록 없음, 발자국 겹침 없음, 마커 좌표가 크기 안,
-   npc 마커 id 가 npcs.yml 에 있음, 연결 블록 상태가 명시됨. 경고 0.
-2. Java 단위 테스트: 청사진 파싱, 회전 좌표 공식 4방향, 마커 회전, 깎기/메우기 계산(가짜 높이맵), 점수.
-3. 테스트 서버 `/labadmin village selftest`: 예외 0 · mismatched=0 · diff=0 · NPC 5명 배치.
-4. 렌더: 평지 위 마을 전체 PNG + 실제 서버 덤프 PNG — 사람이 봐서 "화려한 판타지 마을"로 보일 것.
+1. `build_all.py` — 모든 조각 JSON 생성, 팔레트 문자열 형식, 금지 블록 없음, 발자국 겹침 없음, 마커 좌표가 크기 안,
+   npc 마커 id 가 npcs.yml 에 있음, 연결 블록 상태 명시. 경고 0.
+2. Java 단위 테스트: 청사진 파싱, 회전 좌표 공식 4방향(좌표 + facing 블록), 마커 회전, 목표 높이장(가짜 높이맵: 단 고정, 이웃 차 ≤1, 띠에서 원래 높이로 수렴).
+3. 테스트 서버: `village build` 후 `village selftest` 예외 0 · mismatched=0 · npcs=5/5, 미궁 `labadmin selftest` 예외 0.
+4. 배포 zip 을 빈 폴더에 풀어 켰을 때 마을이 있고 스폰이 광장, NPC 5명, 게이트 우클릭 → 입구 메뉴.
+5. 렌더: 평지 위 마을 전체 PNG + 실제 월드 덤프 PNG — 사람이 봐서 "화려한 판타지 마을"로 보이고 지형이 자연스러울 것.
