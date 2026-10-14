@@ -90,6 +90,9 @@ public final class MainMenu extends LabMenu {
         set(49, Button.icon(Material.WRITABLE_BOOK, "<#ffd36b><b>서버 최초 기록</b>",
                 List.of("<gray>각 층을 처음 돌파한 파티와 최단 기록.", "", "<#ffd36b>클릭: 기록 보기")),
                 ctx -> { click(ctx.player()); new RecordsMenu(services, MainMenu::reopen).open(ctx.player()); });
+        set(47, Button.icon(Material.KNOWLEDGE_BOOK, "<#ffd36b><b>미궁 도감</b>",
+                List.of("<gray>모든 무기·방어구·장신구·재료와", "<gray>몬스터·보스, 그리고 어디서 얻는지.", "", "<#ffd36b>클릭: 도감 열기 <dark_gray>(/도감)")),
+                ctx -> { click(ctx.player()); new CodexMenu(services).open(ctx.player()); });
         set(45, UiTheme.close(), ctx -> ctx.player().closeInventory());
         if (p.hasPermission(CommandService.PERM_ADMIN)) {
             set(53, Button.icon(Material.COMMAND_BLOCK, "<#ff6b6b><b>서버 설정</b> <gray>(관리자)",

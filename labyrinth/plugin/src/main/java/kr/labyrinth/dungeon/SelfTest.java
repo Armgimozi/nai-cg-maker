@@ -85,7 +85,32 @@ final class SelfTest {
         running = t;
         t.installLogTap();
         Text.send(sender, "<#c9a2ff>자가 진단 시작</#c9a2ff> <gray>— 지하 1~" + max + "층 생성 · 몹/보스 소환 · 피해/처치 · 정리 (플레이어 불필요)");
+        t.checkItemsAndCodex();
         t.nextFloor();
+    }
+
+    /** 모든 아이템 ItemStack 생성(툴팁·모델·컴포넌트) + 도감 획득처 계산. */
+    private void checkItemsAndCodex() {
+        for (String id : services.content().items().keySet()) {
+            step("items", () -> {
+                var s = services.items().create(id);
+                if (s == null || s.getType().isAir()) throw new IllegalStateException("create(" + id + ") 빈 아이템");
+                var def = services.items().defOf(s);
+                if (def.isEmpty() || !id.equals(def.get().id())) throw new IllegalStateException("defOf(" + id + ") 불일치");
+                count("items_created", 1);
+            });
+        }
+        step("ui", () -> {
+            var src = kr.labyrinth.ui.menus.CodexMenu.buildSources(services.content());
+            int gear = 0, known = 0;
+            for (var d : services.content().items().values()) {
+                if (!d.isGear()) continue;
+                gear++;
+                if (!src.getOrDefault(d.id(), List.of()).isEmpty()) known++;
+            }
+            count("codex_gear_with_source", known);
+            count("codex_gear_total", gear);
+        });
     }
 
     /** 플러그인 종료 등으로 중단. */

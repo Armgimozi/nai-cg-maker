@@ -60,6 +60,12 @@ public final class UiModule implements Module {
         sub("blacksmith", "대장간", p -> services.menus().openBlacksmith(p));
         sub("shop", "상점", p -> services.menus().openMerchant(p));
         sub("pvp", "대전", p -> services.menus().openPvp(p));
+        sub("codex", "도감", p -> new kr.labyrinth.ui.menus.CodexMenu(services).open(p));
+        services.commands().addRootCommand(Commands.literal("codex").executes(ctx -> {
+            CommandService.safeRun(ctx, () -> CommandService.withPlayer(CommandService.sender(ctx),
+                    p -> new kr.labyrinth.ui.menus.CodexMenu(services).open(p)));
+            return Command.SINGLE_SUCCESS;
+        }), "미궁 도감 — 아이템·몬스터·보스와 획득처", java.util.List.of("도감"));
         sub("records", "기록", p -> new kr.labyrinth.ui.menus.RecordsMenu(services, pl -> services.menus().openMain(pl)).open(p));
     }
 }
