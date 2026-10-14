@@ -92,12 +92,12 @@ public final class GlyphHud {
         put(mpX, bar("hud_mp_", mpRatio));
         put(badgeX, "hud_level_badge");
         String hpText = shortNum(hp) + "/" + shortNum(maxHp);
-        digits(hpX + (barWidth - textWidth(hpText, "hud_num_")) / 2, hpText, "hud_num_", NamedTextColor.WHITE);
+        digits(hpX + (barWidth - inkWidth(hpText, "hud_num_")) / 2, hpText, "hud_num_", NamedTextColor.WHITE);
         String mpText = shortNum(mp) + "/" + shortNum(maxMp);
-        digits(mpX + (barWidth - textWidth(mpText, "hud_num_")) / 2, mpText, "hud_num_", NamedTextColor.WHITE);
+        digits(mpX + (barWidth - inkWidth(mpText, "hud_num_")) / 2, mpText, "hud_num_", NamedTextColor.WHITE);
         String lv = String.valueOf(level);
         int badgeW = Math.max(1, advance("hud_level_badge") - 1);
-        digits(badgeX + (badgeW - textWidth(lv, "hud_num_")) / 2, lv, "hud_num_", TextColor.color(0xffe08a));
+        digits(badgeX + (badgeW - inkWidth(lv, "hud_num_")) / 2, lv, "hud_num_", TextColor.color(0xffe08a));
         int x = statusX;
         int shown = 0;
         if (status != null) {
@@ -157,6 +157,11 @@ public final class GlyphHud {
             w += id == null ? 4 : advance(id);
         }
         return Math.max(0, w);
+    }
+
+    /** 가운데 정렬용 실제 그림 폭: advance 합에서 마지막 글자 뒤 1px 간격을 뺀 값. */
+    private int inkWidth(String s, String prefix) {
+        return Math.max(0, textWidth(s, prefix) - 1);
     }
 
     private void digits(int x, String s, String prefix, TextColor color) {

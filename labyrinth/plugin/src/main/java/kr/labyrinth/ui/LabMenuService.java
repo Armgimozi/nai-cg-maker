@@ -1,7 +1,6 @@
 package kr.labyrinth.ui;
 
 import kr.labyrinth.Services;
-import kr.labyrinth.command.CommandService;
 import kr.labyrinth.content.NpcDef;
 import kr.labyrinth.core.Log;
 import kr.labyrinth.core.Text;
@@ -56,7 +55,7 @@ public final class LabMenuService implements MenuService {
 
     @Override
     public void openSetup(Player p) {
-        if (!p.hasPermission(CommandService.PERM_ADMIN)) {
+        if (!kr.labyrinth.core.ServerSetup.canSetDifficulty(p)) {
             Text.error(p, "관리자만 서버 설정을 바꿀 수 있습니다.");
             return;
         }
