@@ -15,9 +15,9 @@ import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
 /**
- * 무기 스킬의 <b>단일</b> 대상 선택 규칙. 적/아군 판정은 전부 {@code services.targets()}(pvp.TargetFilter: 미궁에선 몹,
- * 매치에선 상대 팀)에 맡기고, 여기서는 도형(원·직선·부채꼴·시선)만 계산한다.
- * classes 단계에서 이 도형 헬퍼를 pvp/TargetFilter 쪽으로 옮길 예정 — 다른 곳에 대상 선택 코드를 만들지 말 것.
+ * 무기 스킬의 <b>단일</b> 대상 선택 규칙. 적/아군 판정은 전부 {@code services.targets()}(pvp.TargetFilter: 몹과 다른 파티
+ * 플레이어가 적, 같은 파티원은 아군 — GDD §18)에 맡기고, 여기서는 도형(원·직선·부채꼴·시선)만 계산한다.
+ * 다른 곳에 대상 선택 코드를 만들지 말 것.
  */
 public final class WeaponTargeting {
 

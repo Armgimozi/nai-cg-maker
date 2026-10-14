@@ -20,7 +20,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 /**
- * 서버 최초 달성 기록 (plugins/Labyrinth/records.yml). 키 예: "first_clear.floor_3", "pvp.first_win",
+ * 서버 최초 달성 기록 (plugins/Labyrinth/records.yml). 키 예: "first_clear.floor_3",
  * "speed.floor_5" (스피드 기록은 {@link #bestTime}). 칭호 모듈의 FIRST_CLEAR 판정이 여기를 쓴다.
  */
 public final class ServerRecords implements Module {

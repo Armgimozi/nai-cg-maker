@@ -35,10 +35,13 @@ public final class DamageService implements Module {
     private final List<Hook> hooks = new CopyOnWriteArrayList<>();
 
     /**
-     * 피해 파이프라인 훅 (classes: 상태이상·보호막·피해 분담·직업 패시브, pvp: 매치 규칙 등). 등록 순서대로 호출되며
+     * 피해 파이프라인 훅 (classes: 상태이상·보호막·피해 분담·직업 패시브, pvp: 파티 규칙·플레이어끼리 피해 배율). 등록 순서대로 호출되며
      * 훅의 예외는 로그만 남기고 무시된다. 훅 안에서 {@link #deal} 을 다시 부를 수 있다(재귀 방지는 훅 책임).
      */
     public interface Hook {
+        /** 이 피해를 아예 막을지 (false = 취소, 숫자도 안 뜸). 예: pvp — 같은 파티원끼리의 피해(늦게 도착한 지속 피해 등). */
+        default boolean allow(DamageContext ctx) { return true; }
+
         /** 원피해가 정해진 직후(방어·치명타 계산 전). {@code ctx.amount(..)}·{@code threat(..)}·{@code critBonus(..)} 조정 가능. */
         default void before(DamageContext ctx) {}
 
@@ -73,7 +76,8 @@ public final class DamageService implements Module {
 
     public void removeInterceptor(DamageInterceptor i) { interceptors.remove(i); }
 
-    boolean isApplyingVanilla() { return applyingVanilla; }
+    /** 지금 우리가 직접 바닐라 피해(사망 처리 등)를 주는 중인가 — 다른 리스너가 그 피해를 다시 가로채지 않게. */
+    public boolean isApplyingVanilla() { return applyingVanilla; }
 
     /** 엔티티의 자체 HP 풀 (커스텀 몹·보스). 없으면 empty. */
     public Optional<HealthPool> poolOf(Entity e) {
@@ -109,6 +113,19 @@ public final class DamageService implements Module {
         if (pool != null && (pool.invulnerable() || !pool.isAlive())) {
             ctx.cancel();
             return ctx;
+        }
+        for (Hook h : hooks) {
+            boolean ok;
+            try {
+                ok = h.allow(ctx);
+            } catch (Throwable t) {
+                kr.labyrinth.core.Log.error("피해 훅(allow) 오류", t);
+                ok = true;
+            }
+            if (!ok) {
+                ctx.cancel();
+                return ctx;
+            }
         }
 
         Player attackerPlayer = ctx.attackerPlayer();
@@ -160,7 +177,7 @@ public final class DamageService implements Module {
         }
 
         double finalDamage = out.damage();
-        // 훅 (classes: 상태이상·보호막·피해 분담, pvp: 매치 규칙)
+        // 훅 (classes: 상태이상·보호막·피해 분담, pvp: 플레이어끼리 한 방 상한)
         for (Hook h : hooks) {
             try {
                 finalDamage = Math.max(0, h.absorb(ctx, finalDamage));

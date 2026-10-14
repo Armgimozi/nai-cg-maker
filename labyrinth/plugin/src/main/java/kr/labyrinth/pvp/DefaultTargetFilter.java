@@ -11,8 +11,8 @@ import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
 
 /**
- * 기본 규칙 (PvP 매치 없음): 플레이어에게 적 = 커스텀 몹·보스 (미궁 밖에선 바닐라 적대 몹도), 플레이어는 절대 적 아님.
- * 몹에게 적 = 플레이어. 아군 = 같은 파티(솔로면 자기 자신). pvp 담당이 매치 규칙을 얹어 대체한다.
+ * {@link PvpRules} 를 엔티티에 적용하는 구현. 기본(이 클래스 그대로) = PvP 꺼짐: 플레이어끼리는 절대 적이 아니다.
+ * pvp 모듈이 {@link #pvpConfig()}·{@link #inSafeZone} 을 config 대로 바꾼 하위 클래스를 등록한다.
  */
 public class DefaultTargetFilter implements TargetFilter {
 
@@ -24,34 +24,45 @@ public class DefaultTargetFilter implements TargetFilter {
         return services.mobs().byEntity(e).isPresent() || services.bosses().byEntity(e).isPresent();
     }
 
+    /** 엔티티 → 판정 재료. */
+    protected PvpRules.Side side(Entity e) {
+        if (e instanceof Player p) {
+            String party = services.party().partyOf(p).map(kr.labyrinth.party.Party::id).orElse(null);
+            boolean invulnerable = p.isDead() || p.getGameMode().isInvulnerable();
+            return new PvpRules.Side(PvpRules.Kind.PLAYER, p.getUniqueId(), party, invulnerable, inSafeZone(p.getLocation()));
+        }
+        PvpRules.Kind kind;
+        if (isCustom(e)) kind = PvpRules.Kind.MOB;
+        else if (services.npcs().npcIdOf(e).isPresent()) kind = PvpRules.Kind.NPC;
+        else if (e instanceof Monster && !services.dungeon().isLabyrinthWorld(e.getWorld())) kind = PvpRules.Kind.HOSTILE;
+        else kind = PvpRules.Kind.OTHER;
+        return new PvpRules.Side(kind, e.getUniqueId(), null, e.isDead(), false);
+    }
+
     @Override
     public boolean isEnemy(LivingEntity source, Entity target) {
         if (source == null || target == null || source.equals(target) || target.isDead()) return false;
         if (!(target instanceof LivingEntity)) return false;
-        boolean sourceIsMob = isCustom(source);
-        if (source instanceof Player) {
-            if (target instanceof Player) return false;
-            if (isCustom(target)) return true;
-            return target instanceof Monster && !services.dungeon().isLabyrinthWorld(target.getWorld());
-        }
-        if (sourceIsMob) return target instanceof Player p && p.getGameMode().isInvulnerable() == false;
-        return false;
+        return PvpRules.isEnemy(pvpConfig(), side(source), side(target));
     }
 
     @Override
     public boolean isAlly(LivingEntity source, Entity target) {
         if (source == null || target == null) return false;
         if (source.equals(target)) return true;
-        if (source instanceof Player a && target instanceof Player b) return services.party().sameParty(a, b);
-        return isCustom(source) && isCustom(target);
+        return PvpRules.isAlly(side(source), side(target));
     }
 
     @Override
     public List<LivingEntity> enemiesIn(LivingEntity source, Location center, double radius) {
         List<LivingEntity> out = new ArrayList<>();
+        if (source == null) return out;
+        PvpConfig cfg = pvpConfig();
+        PvpRules.Side src = side(source);
         for (Entity e : center.getWorld().getNearbyEntities(center, radius, radius, radius)) {
-            if (e instanceof LivingEntity le && e.getLocation().distanceSquared(center) <= radius * radius
-                    && isEnemy(source, le)) {
+            if (e instanceof LivingEntity le && !le.equals(source) && !le.isDead()
+                    && e.getLocation().distanceSquared(center) <= radius * radius
+                    && PvpRules.isEnemy(cfg, src, side(le))) {
                 out.add(le);
             }
         }

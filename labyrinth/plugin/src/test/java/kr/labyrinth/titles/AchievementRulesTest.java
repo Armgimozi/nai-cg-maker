@@ -169,34 +169,14 @@ class AchievementRulesTest {
     }
 
     @Test
-    void pvpWinsStreakRating() {
-        AchievementDef first = def("pf", "PVP_FIRST_WIN", Map.of());
-        AchievementDef wins = def("pw", "PVP_WIN", Map.of("count", 2));
-        AchievementDef streak = def("ps", "PVP_STREAK", Map.of("count", 2));
-        AchievementDef rating = def("pr", "PVP_RATING", Map.of("min", 1150));
-        TitleCounters.onPvp(s, false, 0, 990);
-        assertFalse(met(first));
-        TitleCounters.onPvp(s, true, null, 1030);
-        assertTrue(met(first));
-        assertFalse(met(streak));
-        TitleCounters.onPvp(s, true, null, 1160);
-        assertTrue(met(wins));
-        assertTrue(met(streak), "연승은 이벤트가 안 주면 자체 계산");
-        assertTrue(met(rating));
-        TitleCounters.onPvp(s, false, 0, 1100);
-        assertEquals(0L, s.get("titles.pvp_streak"));
-        assertTrue(met(streak), "최고 연승은 유지");
-        assertTrue(met(rating), "최고 레이팅 기준");
-    }
-
-    @Test
     void serverFirstRequiresClaimFlag() {
-        AchievementDef sf = def("pvp_server_first_win", "PVP_FIRST_WIN", Map.of("server_first", true));
-        TitleCounters.onPvp(s, true, 1, 1016);
+        AchievementDef sf = def("first_to_50", "LEVEL", Map.of("level", 50, "server_first", true));
+        s.level = 50;
         assertTrue(AchievementRules.baseMet(sf.conditionType(), sf.condition(), s::get), "자격은 있음");
         assertFalse(met(sf), "서버 기록 claim 전에는 미달성");
-        s.set("titles.server_first.pvp_server_first_win", 1);
+        s.set("titles.server_first.first_to_50", 1);
         assertTrue(met(sf));
+        assertTrue(AchievementRules.conditionText(sf).endsWith("(서버 최초 1회)"));
     }
 
     @Test
@@ -217,7 +197,7 @@ class AchievementRulesTest {
     void everyBundledAchievementTypeIsKnown() {
         Content c = ContentLoader.load(Path.of("src/main/resources/content")).content();
         Set<String> known = Set.of("FIRST_CLEAR", "CLEAR", "SOLO_CLEAR", "NO_DEATH_CLEAR", "DIFFICULTY_CLEAR", "SPEED_CLEAR",
-                "KILL", "BOSS_KILL", "LEVEL", "OBTAIN_RARITY", "CRAFT", "PVP_FIRST_WIN", "PVP_WIN", "PVP_STREAK", "PVP_RATING");
+                "KILL", "BOSS_KILL", "LEVEL", "OBTAIN_RARITY", "CRAFT");
         assertFalse(c.achievements().isEmpty());
         for (AchievementDef a : c.achievements().values()) {
             assertTrue(known.contains(a.conditionType()), () -> a.id() + ": 알 수 없는 조건 " + a.conditionType());

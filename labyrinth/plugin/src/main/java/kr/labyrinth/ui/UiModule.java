@@ -9,7 +9,7 @@ import kr.labyrinth.core.Module;
 /**
  * ui+titles 담당 모듈 진입점: 상자 GUI 메뉴({@link LabMenuService}, ui/menus/*) + HUD({@link LabHudService}).
  * 글리프(리소스팩 UI 그림)는 glyphs.yml 이 있으면 자동 적용, 없으면 텍스트/평범한 제목으로 동작한다.
- * 하위 명령: /미궁 메뉴|menu · /미궁 장신구|accessories · /미궁 대장간|blacksmith · /미궁 상점|shop · /미궁 대전|pvp.
+ * 하위 명령: /미궁 메뉴|menu · /미궁 장신구|accessories · /미궁 대장간|blacksmith · /미궁 상점|shop.
  */
 public final class UiModule implements Module {
 
@@ -62,7 +62,6 @@ public final class UiModule implements Module {
         sub("accessories", "장신구", p -> services.menus().openAccessories(p));
         sub("blacksmith", "대장간", p -> services.menus().openBlacksmith(p));
         sub("shop", "상점", p -> services.menus().openMerchant(p));
-        sub("pvp", "대전", p -> services.menus().openPvp(p));
         sub("codex", "도감", p -> new kr.labyrinth.ui.menus.CodexMenu(services).open(p));
         services.commands().addRootCommand(Commands.literal("codex").executes(ctx -> {
             CommandService.safeRun(ctx, () -> CommandService.withPlayer(CommandService.sender(ctx),

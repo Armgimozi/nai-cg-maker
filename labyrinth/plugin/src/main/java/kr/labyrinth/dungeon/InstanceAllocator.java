@@ -6,7 +6,7 @@ import java.util.BitSet;
  * 공허 월드의 격자 슬롯 배정 (순수 로직). 슬롯 i 의 원점 = (column×SPACING, row×SPACING), z ≥ 0 영역만 쓴다.
  * 한 층(최대 10×10 셀 + 투기장 + 추격 복도)은 약 300×450 블록이라 SPACING 2048 이면 서로 시야·청크가 겹치지 않는다.
  * <p>
- * <b>pvp 등 다른 모듈은 z &lt; 0 영역을 쓴다</b> (ARCHITECTURE §4 dungeon 메모).
+ * <b>다른 모듈이 공허 월드에 지을 것은 z &lt; 0 영역을 쓴다</b> (ARCHITECTURE §4 dungeon 메모).
  */
 public final class InstanceAllocator {
 

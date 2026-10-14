@@ -160,7 +160,7 @@ public final class Services {
             Content c = content;
             content = new Content(c.classes(), c.items(), c.sets(), c.mobs(), c.bosses(), c.floors(), c.lootTables(),
                     c.lootSettings(), c.recipes(), c.achievements(), c.npcs(), c.auras(), c.fxModels(),
-                    java.util.Map.of(), java.util.Map.of(), c.arenas(), c.pvp());
+                    java.util.Map.of(), java.util.Map.of());
             Log.info("ui.use_glyphs: false — UI 글리프(커스텀 폰트)를 쓰지 않고 글자 HUD 로 표시합니다.");
         }
         Log.info("콘텐츠 로드: " + content.summary());

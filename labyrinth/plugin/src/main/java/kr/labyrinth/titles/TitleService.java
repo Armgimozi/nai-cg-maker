@@ -5,7 +5,7 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
 
 /**
- * 업적·칭호 (titles.yml). 구현이 event.* (MobKill/FloorClear/LevelUp/ItemObtain/Craft/PvpMatchEnd) 를 듣고
+ * 업적·칭호 (titles.yml). 구현이 event.* (MobKill/FloorClear/LevelUp/ItemObtain/Craft) 를 듣고
  * 조건을 판정, 서버 최초는 ServerRecords 로 확정, 방송·보상·칭호 장착(채팅/탭/이름표 접두어)·보너스(StatContributor).
  * 소유: ui+titles 담당. 기본 구현 {@link BasicTitleService}.
  */
@@ -31,8 +31,7 @@ public interface TitleService {
     // ── ui+titles 담당 추가 ───────────────────────────────────────────────
 
     /**
-     * 칭호 스탯 보너스를 잠시 끈다/켠다 (PvP 매치 규칙 §18.3 "칭호 보너스 꺼짐" — pvp 모듈이 매치 시작/종료 때 호출).
-     * 기본 구현은 아무것도 안 한다.
+     * 칭호 스탯 보너스를 잠시 끈다/켠다 (이벤트·시험용 — 지금은 부르는 곳 없음). 기본 구현은 아무것도 안 한다.
      */
     default void setBonusSuppressed(Player player, boolean suppressed) {}
 

@@ -16,15 +16,15 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 /**
- * /칭호 — 업적·칭호 도감: 분류 탭 9개(전체 + 8분류), 달성 칭호 클릭 = 장착(채팅·탭·이름표), 미달성은 조건·진행도,
+ * /칭호 — 업적·칭호 도감: 분류 탭 8개(전체 + 7분류), 달성 칭호 클릭 = 장착(채팅·탭·이름표), 미달성은 조건·진행도,
  * 숨김 업적은 ???. 아래 줄: 해제 · 서버 최초 기록.
  */
 public final class TitlesMenu extends LabMenu {
 
-    static final String[] CATS = {null, "pioneer", "clear", "challenge", "combat", "growth", "collection", "craft", "pvp"};
-    static final String[] CAT_NAMES = {"전체", "개척", "돌파", "도전", "전투", "성장", "수집", "제작", "대전"};
+    static final String[] CATS = {null, "pioneer", "clear", "challenge", "combat", "growth", "collection", "craft"};
+    static final String[] CAT_NAMES = {"전체", "개척", "돌파", "도전", "전투", "성장", "수집", "제작"};
     static final Material[] CAT_ICONS = {Material.BOOKSHELF, Material.BEACON, Material.IRON_DOOR, Material.BLAZE_ROD,
-            Material.IRON_SWORD, Material.EXPERIENCE_BOTTLE, Material.CHEST, Material.ANVIL, Material.CROSSBOW};
+            Material.IRON_SWORD, Material.EXPERIENCE_BOTTLE, Material.CHEST, Material.ANVIL};
     private static final int PER = 28;
 
     private int tab;

@@ -17,7 +17,7 @@ import org.bukkit.util.Vector;
 
 /**
  * 스킬 대상 고르기. 적/아군 판정은 <b>전부</b> {@code services.targets()} (pvp.TargetFilter) 를 지난다:
- * 미궁에선 커스텀 몹이 적, PvP 매치에선 상대 팀이 적이고 아군은 절대 맞지 않는다.
+ * 커스텀 몹과 다른 파티 플레이어가 적이고(PvP, GDD §18), 같은 파티원은 절대 맞지 않는다.
  */
 public final class Targeting {
 

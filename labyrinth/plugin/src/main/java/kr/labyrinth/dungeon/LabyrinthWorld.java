@@ -126,7 +126,7 @@ final class LabyrinthWorld {
         rule(w, GameRules.SHOW_ADVANCEMENT_MESSAGES, false);
         rule(w, GameRules.SHOW_DEATH_MESSAGES, false);
         rule(w, GameRules.SPECTATORS_GENERATE_CHUNKS, false);
-        rule(w, GameRules.PVP, false);
+        // PvP 게임 규칙은 pvp 모듈이 config pvp.enabled 대로 모든 월드에 맞춘다 (같은 파티원끼리는 미궁에서도 피해 없음)
         rule(w, GameRules.LOCATOR_BAR, false);
         rule(w, GameRules.SPAWNER_BLOCKS_WORK, false);
         w.setTime(18000);

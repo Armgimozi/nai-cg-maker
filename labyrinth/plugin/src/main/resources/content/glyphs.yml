@@ -59,7 +59,6 @@ glyphs:
   gui_titles: {char: "\uE007", file: gui/titles.png, ascent: 13, height: 222, advance: 177}
   gui_accessories: {char: "\uE008", file: gui/accessories.png, ascent: 13, height: 168, advance: 177}
   gui_merchant: {char: "\uE009", file: gui/merchant.png, ascent: 13, height: 222, advance: 177}
-  gui_pvp: {char: "\uE00A", file: gui/pvp.png, ascent: 13, height: 222, advance: 177}
   gui_confirm: {char: "\uE00B", file: gui/confirm.png, ascent: 13, height: 168, advance: 177}
   gui_generic_6: {char: "\uE00C", file: gui/generic_6.png, ascent: 13, height: 222, advance: 177}
   gui_generic_3: {char: "\uE00D", file: gui/generic_3.png, ascent: 13, height: 168, advance: 177}
@@ -372,7 +371,7 @@ menus:
     title_color: "#f3e3bd"
     slots:
       categories: [0, 1, 2, 3, 4, 5, 6, 7]
-      category_order: [pioneer, clear, challenge, combat, growth, collection, craft, pvp]
+      category_order: [pioneer, clear, challenge, combat, growth, collection, craft]
       equipped: 8
       titles: "9..44 (36칸)"
       prev: 45
@@ -398,22 +397,6 @@ menus:
       prev: 45
       info: 49
       next: 53
-  pvp:
-    glyph: gui_pvp
-    rows: 6
-    title: "대전"
-    title_color: "#f3e3bd"
-    slots:
-      challenge: 10
-      queue: 13
-      record: 16
-      rank_2: 20
-      rank_1: 22
-      rank_3: 24
-      ranks_4_10: [37, 38, 39, 40, 41, 42, 43]
-      back: 45
-      my_rating: 49
-      close: 53
   confirm:
     glyph: gui_confirm
     rows: 3

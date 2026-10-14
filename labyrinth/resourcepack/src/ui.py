@@ -135,8 +135,6 @@ EMBLEMS = {
                     '....###....', '.....#.....', '....#+#....', '.....#.....', '...........'],
     'merchant': ['...#####...', '..#.....#..', '...#####...', '..#+++++#..', '.#+++#+++#.', '#++++#++++#',
                  '#+++###+++#', '#++++#++++#', '#+++++++++#', '.#+++++++#.', '..#######..'],
-    'pvp': ['#.........#', '.#.......#.', '..#.....#..', '...#...#...', '....#.#....', '.....#.....',
-            '....#.#....', '.#.#...#.#.', '..#.....#..', '.#.#...#.#.', '#.........#'],
     'confirm': ['...........', '.........#.', '........#+.', '.......#+..', '#.....#+...', '+#...#+....',
                 '.+#.#+.....', '..+#+......', '...+.......', '...........', '...........'],
     'generic': ['....#.#....', '...#+#+#...', '..#+###+#..', '.#+#...#+#.', '#+#.....#+#', '.#.......#.',
@@ -721,48 +719,6 @@ def gui_merchant(seed):
     return g
 
 
-def gui_pvp(seed):
-    g = Gui(6, '#e04646', 'pvp', seed)
-    cv = g.cv
-    # crossed-blade sigil watermark behind the action crests
-    for k, (slot, col) in enumerate(((10, '#e04646'), (13, '#f0c85a'), (16, '#7fb2ff'))):
-        x, y = slot_xy(slot)
-        g.glow(x + 9, y + 9, 15, col, 0.35)
-    # podium steps in row 3 under 2nd(20) / 1st(22) / 3rd(24)
-    y3 = _row_y(3)
-    for slot, h, col in ((20, 7, (170, 176, 190)), (22, 10, GOLD[3]), (24, 5, (176, 112, 64))):
-        x, _ = slot_xy(slot)
-        cv.rect(x - 1, y3, x + 18, y3 + h, darken(col, 0.35))
-        cv.hline(x - 1, x + 18, y3, lighten(col, 0.3))
-        cv.vline(x - 1, y3, y3 + h, lighten(col, 0.1))
-        cv.vline(x + 18, y3, y3 + h, darken(col, 0.6))
-    # laurels around the 1st place socket
-    x1, y1 = slot_xy(22)
-    for j in range(5):
-        cv.set(x1 - 4 + (j % 2), y1 + 3 + j * 3, (110, 170, 70))
-        cv.set(x1 + 21 - (j % 2), y1 + 3 + j * 3, (110, 170, 70))
-    # rank numbers 4..10 engraved above the rank sockets (row 4 → numbers sit in row 3's lower band)
-    for k, slot in enumerate(range(37, 44)):
-        x, y = slot_xy(slot)
-        lbl = str(k + 4)
-        w = _text35_width(lbl)
-        _digits35(cv, x + 9 - w // 2, y - 7, lbl, GOLD[3])
-    # medal digits on podium faces
-    for slot, lbl in ((20, '2'), (22, '1'), (24, '3')):
-        x, _ = slot_xy(slot)
-        _digits35(cv, x + 8, y3 + 2, lbl, GOLD[5] if lbl == '1' else (230, 230, 240))
-    g.sock(10, 'big', '#e04646')
-    g.sock(13, 'big', '#f0c85a')
-    g.sock(16, 'big', '#7fb2ff')
-    g.sock(20, 'gem', '#d0d4e0')
-    g.sock(22, 'gem', '#ffd27a')
-    g.sock(24, 'gem', '#d08a50')
-    g.sock(list(range(37, 44)), 'plain')
-    g.sock([45, 53], 'button')
-    g.sock(49, 'gem', '#e04646')
-    return g
-
-
 def gui_confirm(seed):
     g = Gui(3, '#c8a064', 'confirm', seed)
     g.glow(30, 44, 26, '#46c882', 0.30)
@@ -788,7 +744,7 @@ def paint_gui(name, ctx_content):
     fns = {
         'main': gui_main, 'stats': gui_stats, 'party': gui_party, 'setup': gui_setup, 'entrance': gui_entrance,
         'blacksmith': gui_blacksmith, 'titles': gui_titles, 'accessories': gui_accessories,
-        'merchant': gui_merchant, 'pvp': gui_pvp, 'confirm': gui_confirm,
+        'merchant': gui_merchant, 'confirm': gui_confirm,
         'generic_6': lambda s: gui_generic(s, 6), 'generic_3': lambda s: gui_generic(s, 3),
     }
     if name not in fns:

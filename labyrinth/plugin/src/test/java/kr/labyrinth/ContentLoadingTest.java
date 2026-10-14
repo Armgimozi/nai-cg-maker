@@ -55,7 +55,6 @@ class ContentLoadingTest {
         assertFalse(c.npcs().isEmpty());
         assertFalse(c.auras().isEmpty());
         assertFalse(c.fxModels().isEmpty());
-        assertFalse(c.arenas().isEmpty());
     }
 
     @Test

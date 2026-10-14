@@ -34,11 +34,6 @@ public interface MenuService {
 
     // ── ui 담당 추가 (기본 구현 = 안전한 대체) ─────────────────────────────
 
-    /** /대전 — 파티 대전 메뉴 (도전·대기열·순위·전적). */
-    default void openPvp(Player player) {
-        kr.labyrinth.core.Text.send(player, "<gray>/대전 도전 <파티장> · 수락 · 거절 · 대기열 참가 · 순위 · 전적");
-    }
-
     /** 대장간 (CraftingService GUI). */
     default void openBlacksmith(Player player) { kr.labyrinth.Services.get().crafting().openBlacksmith(player); }
 

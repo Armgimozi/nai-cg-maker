@@ -25,14 +25,11 @@ public record Content(
         Map<String, AuraDef> auras,
         Map<String, FxModelDef> fxModels,
         Map<String, GlyphDef> glyphs,
-        Map<String, Integer> spaces,
-        Map<String, ArenaDef> arenas,
-        Params pvp) {
+        Map<String, Integer> spaces) {
 
     public static Content empty() {
         return new Content(Map.of(), Map.of(), Map.of(), Map.of(), Map.of(), new TreeMap<>(), Map.of(),
-                LootTable.Settings.DEFAULT, Map.of(), Map.of(), Map.of(), Map.of(), Map.of(), Map.of(), Map.of(),
-                Map.of(), Params.EMPTY);
+                LootTable.Settings.DEFAULT, Map.of(), Map.of(), Map.of(), Map.of(), Map.of(), Map.of(), Map.of());
     }
 
     public ClassDef classDef(String id) { return id == null ? null : classes.get(id); }
@@ -68,7 +65,6 @@ public record Content(
         return "직업 " + classes.size() + ", 아이템 " + items.size() + ", 세트 " + sets.size() + ", 몹 " + mobs.size()
                 + ", 보스 " + bosses.size() + ", 층 " + floors.size() + ", 루팅 " + lootTables.size()
                 + ", 레시피 " + recipes.size() + ", 칭호 " + achievements.size() + ", NPC " + npcs.size()
-                + ", 아우라 " + auras.size() + ", 이펙트 " + fxModels.size() + ", 글리프 " + glyphs.size()
-                + ", 투기장 " + arenas.size();
+                + ", 아우라 " + auras.size() + ", 이펙트 " + fxModels.size() + ", 글리프 " + glyphs.size();
     }
 }
