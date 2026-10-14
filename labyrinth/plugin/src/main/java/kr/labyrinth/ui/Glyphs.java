@@ -49,6 +49,12 @@ public final class Glyphs {
         return sb.isEmpty() ? Component.empty() : Component.text(sb.toString()).font(FONT);
     }
 
+    /** 글리프의 글자 폭(px, glyphs.yml advance). 모르면 0. */
+    public static int advance(String id) {
+        GlyphDef g = Services.get().content().glyphs().get(id);
+        return g == null || g.advance() < 0 ? 0 : g.advance();
+    }
+
     /** 공백 값 v → 문자 코드포인트 (U+F800 + v). */
     public static int spaceChar(int px) { return 0xF800 + px; }
 

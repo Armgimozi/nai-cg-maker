@@ -12,6 +12,7 @@ import kr.labyrinth.data.PlayerData;
 import kr.labyrinth.items.CraftingService;
 import kr.labyrinth.items.ItemTooltip;
 import kr.labyrinth.ui.Button;
+import kr.labyrinth.ui.Glyphs;
 import kr.labyrinth.ui.Menu;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -36,7 +37,8 @@ final class BlacksmithMenu extends Menu {
     private boolean ownClassOnly = true;
 
     BlacksmithMenu(Services services, LabCraftingService crafting, Player viewer) {
-        super(6, Text.mm("<#3a2a1a>대장장이 두르간의 대장간"));
+        // 배경 = glyphs.yml gui_blacksmith (탭 1·3·5·7 / 레시피 18..44 / 45·47·51·53 소켓이 그려져 있음)
+        super(6, Glyphs.menuTitle("gui_blacksmith", 176, Text.mm("<#f3e3bd>대장장이 두르간의 대장간")));
         this.services = services;
         this.crafting = crafting;
     }
@@ -74,7 +76,6 @@ final class BlacksmithMenu extends Menu {
                 refresh();
             });
         }
-        for (int s = 9; s < 18; s++) deco(s, Button.filler(Material.BLACK_STAINED_GLASS_PANE));
 
         List<RecipeDef> list = recipes(viewer);
         int pages = Math.max(1, (list.size() + PER_PAGE - 1) / PER_PAGE);

@@ -117,6 +117,25 @@ labyrinth/
   **공백 문자 규칙**: `spaces` 의 값 v(px, −1024~255)는 같은 폰트의 `space` 프로바이더에서 문자 **U+F800 + v** 로 매핑한다
   (예: −8 → U+F7F8). 플러그인 `ui.Glyphs.space(px)` 가 이 규칙으로 조합한다. glyphs.yml 이 없어도 플러그인은 동작(글리프 생략).
   플러그인은 `Component.text(char).font(Key.key("labyrinth","ui"))` 로 사용. 하드코딩 금지, glyphs.yml 에서 읽기.
+  **생성 결과 계약(pack-ui 단계, `resourcepack/src/ui.py`)** — 클라이언트 바이트코드로 확인한 수치:
+  - 글리프 윗변 y = 글줄 y + 7 − ascent (PNG 높이 = `height` → 배율 1). 글자 폭(advance) = 가장 오른쪽 불투명 열 + 2
+    (glyphs.yml `advance` 에 적혀 있고 생성기가 PNG 와 대조, Java 는 `Glyphs.advance(id)`). ascent ≤ height 필수
+    (줄 위로 띄우는 글리프는 생성기가 PNG 아래에 투명 줄을 덧대 height 를 맞춤).
+  - **메뉴 배경**: 상자 창 = 176 × (114 + 줄수·18), 제목 글줄 = 창 (8, 6), 슬롯 아이템 = (8 + 18·열, 18 + 18·행), 플레이어
+    인벤토리 y = 줄수·18 + 31, 핫바 = 줄수·18 + 89, "인벤토리" 글자 = (8, 높이 − 94). 배경 글리프 `gui_<id>` 는 ascent 13·
+    advance 177 → 제목 = `Glyphs.menuTitle("gui_<id>", 176, 제목)` (= space(−8) + 배경 + space(−169) + 제목). 배경이 인벤토리
+    부분까지 덮고(같은 디자인), 바닐라 인벤토리 글자 자리는 밝은 명판. 제목 글자색은 `menus.<id>.title_color`(밝은 양피지색).
+    메뉴별 버튼 자리(소켓이 그려진 칸)는 glyphs.yml `menus.<id>.slots` 가 원본 — 채움 유리판을 깔지 말 것(배경을 가림).
+    배경 14종: main(3줄), stats, class, party, setup(첫 서버 설정·난이도), entrance(층 선택), blacksmith, titles, accessories(3줄),
+    merchant, pvp(도전·대기열·순위표), confirm(3줄), generic_6, generic_3.
+  - **HUD 액션바**(글줄 y = 화면높이 − 72, 가운데 정렬): 핫바 왼쪽 끝 기준 x 0..181 로 배치하고 전체 advance 를 182 로 맞춘다
+    (요소마다 space(x − 펜) + 글리프, 끝에 space(182 − 펜)). 위치·접두어는 glyphs.yml `hud:` 블록. HP 바(x0)·레벨 배지(x82)·
+    MP 바(x100) = H−63..H−55, 경험치 줄 H−52, 상태 아이콘·골드 줄 H−76. 바는 21단계(`hud_hp_00..20` = round(비율×20)).
+    숫자 `hud_num_*`/`gold_num_*` 고정폭 7(점·쌍점 4), 흰 바탕이라 color 로 물들일 수 있음. **액션바·보스바 글리프는
+    `shadowColor(ShadowColor.none())`(MiniMessage `<!shadow>`) 필수** — 아니면 글자 그림자가 바 밑에 겹쳐 보인다.
+  - 보스바 이름 = `boss_ornament_left` + space(2) + 이름 + space(2) + `boss_ornament_right`(대칭 → 자동 가운데).
+    `boss_frame` 은 이름 전체로 쓰면 182×5 막대를 정확히 감싸는 금테(가운데 창 투명). 파티 미니 HP `party_hp_00..10`·직업
+    아이콘 `party_class_<id>`(사이드바/탭 줄), 피해 숫자 `dmg_*`/`crit_*`/`dmg_icon_*`(TextDisplay), 상태 `status_<효과>`.
 - 사운드: 1차 버전은 바닐라 사운드 이벤트를 pitch/volume 조합으로 사용(사운드 파일 미포함). 사운드 키는 YAML 에 둔다.
 
 ## 3. 리소스팩 배포
@@ -129,7 +148,8 @@ labyrinth/
   정수 `max_format` 은 "그 major 의 모든 minor"(TOP_CODEC = minor 최대값)라서 26.3.x 패치에도 경고 없이 맞는다. `pack_format` 은 넣지 않는다.
 - 생성기 산출물: `resourcepack/dist/labyrinth-pack.zip`(결정적 zip: 정렬·고정 시각) + `labyrinth-pack.sha1`, 사람용 미리보기
   `preview_items.png`·`preview_anim.gif`·`preview_fx.png`·`preview_helmets_worn.png`·`preview_armor.png`·
-  `preview_mobs.png`(몹·보스를 YAML pivot 에 조립한 정면 3/4 렌더)·`preview_mob_atlases.png`·`preview_npcs.png`.
+  `preview_mobs.png`(몹·보스를 YAML pivot 에 조립한 정면 3/4 렌더)·`preview_mob_atlases.png`·`preview_npcs.png`·
+  `preview_ui.png`(GUI 배경 14종 + 실제 슬롯 격자, HUD 액션바 조합 모의, 글리프 전체).
   생성기는 `generate.py` 의 `BUILDERS` 레지스트리(공유 `Ctx` → `ctx.add(path, bytes)`)로 확장한다: 몹·UI 글리프·NPC 스킨·나머지 fx 스타일
   단계는 자기 모듈을 `src/` 에 두고 BUILDERS 에 추가. 3D 모델 엔진 `src/model.py`(Model/El/bake/UV 아틀라스/display 맞춤),
   재질 셰이더 `src/materials.py`, 애니메이션 `src/effects.py`, 미리보기 렌더러 `src/render.py` 를 재사용할 것.
@@ -497,11 +517,15 @@ models:
   ember_ring: {style: ring, palette: [...], animated: true, frames: 8}
   telegraph_circle: {style: telegraph_circle, palette: ["#ff3b3b"], animated: true, frames: 6}
 
-# glyphs.yml
+# glyphs.yml  (pack-ui 단계에서 작성 — 전체 207 글리프, 상세 주석은 파일 머리말)
 glyphs:
-  gui_stats:   {char: "", file: gui/stats.png, ascent: 13, height: 222}
-  hp_bar_full: {char: "", file: hud/hp_full.png, ascent: -20, height: 9}
-spaces: {neg_1: -1, neg_8: -8, neg_169: -169, pos_1: 1}   # 공백 프로바이더
+  gui_stats:  {char: "\uE001", file: gui/stats.png, ascent: 13, height: 222, advance: 177}
+  hud_hp_14:  {char: "\uE10E", file: hud/hp_14.png, ascent: -2, height: 9, advance: 83}
+spaces: {neg_1: -1, neg_8: -8, neg_169: -169, pos_1: 1}   # 공백 프로바이더 (값 v → U+F800+v)
+menus:                     # 메뉴 배경별 배치 계약 (ui 담당이 따름)
+  stats: {glyph: gui_stats, rows: 6, title: "스탯 배분", title_color: "#f3e3bd",
+          slots: {stat_icons: [0, 9, 18, 27, 36, 45], plus_1: [6, ...], plus_5: [7, ...], plus_10: [8, ...]}}
+hud: {total: 182, bar_steps: 20, bar_width: 82, hp_x: 0, badge_x: 82, mp_x: 100, xp_x: 0, status_x: 0, gold_right: 182, ...}
 ```
 
 스키마를 확장해야 하면 필드를 **추가**만 하고 이 문서 §6 을 갱신한다. 생성기·플러그인 모두 모르는 필드는 무시한다.
@@ -564,6 +588,15 @@ spaces: {neg_1: -1, neg_8: -8, neg_169: -169, pos_1: 1}   # 공백 프로바이�
 - **titles.yml**: condition 선택 키 `server_first: true`(PVP_FIRST_WIN · PVP_RATING — 서버 최초 1팀/1명, records.yml). PVP_RATING 은 개인 레이팅 기준.
 - **fx.yml**: 전설 아우라 9종(soulfire, codex, geode, inkblot, abyssal, voltaic, quicksilver, aurora, venom)과 각자의 `_ring/_slash/_orb/_burst`,
   무기 스킬 전용 모델(`*_arrow`, `*_beam`, `venom_knife`). motif 9개 추가(GDD §14.4).
+
+### 6.3 UI 단계에서 추가된 필드 (glyphs.yml)
+- 글리프 `advance`(px, 생성기가 PNG 와 대조 — Java `GlyphDef.advance()` / `Glyphs.advance(id)`, 없으면 −1).
+- 최상위 `menus.<id>: {glyph, rows, title, title_color, slots: {이름: 슬롯 | [슬롯…] | "설명"}}` — 배경 그림의 소켓 위치.
+- 최상위 `hud: {total, bar_steps, bar_width, hp_x, badge_x, mp_x, shield_x, xp_x, status_x, gold_right, digit_advance,
+  digit_chars, digit_names, draw_order, party_bar_steps, damage_digits}` — 액션바 조합 수치(§2 UI 글리프).
+  YAML 키에 `.` 금지(Bukkit 경로 구분자 → 로더 무한 재귀) — 그래서 숫자 매핑은 `digit_chars`/`digit_names` 두 목록.
+- 글리프 이름 접두어: `gui_` 배경 · `hud_` 바·배지·골드 · `hud_num_`/`gold_num_` 숫자 · `status_` 상태 · `party_` 파티 ·
+  `dmg_`/`crit_` 피해 숫자 · `boss_` 보스바 장식. 글리프 문자는 U+E000~U+F3FF, U+F400~U+F8FF 는 공백 전용.
 
 ## 7. 성능·안정성 규칙
 

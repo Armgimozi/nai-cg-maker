@@ -1,0 +1,459 @@
+version: 1
+
+# ═══════════════════════════════════════════════════════════════════════════════════════════════
+#  glyphs.yml — 커스텀 UI 폰트 labyrinth:ui (assets/labyrinth/font/ui.json) 의 단일 원본
+#  리소스팩 생성기(resourcepack/src/ui.py)가 file 별 그림을 직접 그리고(전부 자체 제작 픽셀아트),
+#  플러그인은 Component.text(char).font(labyrinth:ui) 로 쓴다 (ui.Glyphs). 하드코딩 금지 — id 로 찾을 것.
+#
+#  필드: char = 사설 영역 1글자(U+E000~U+F3FF), file = textures/font/ui/ 아래 PNG, ascent/height = 바닐라
+#  bitmap 프로바이더 값(그림 높이 = height → 배율 1), advance = 클라이언트가 계산하는 글자 폭(px, 다음 글자까지).
+#  advance 는 생성기가 PNG 로 검증한다(가장 오른쪽 불투명 열 + 2). 그림보다 height 가 크면 아래쪽에 투명
+#  줄을 덧대어(ascent <= height 규칙을 지키며) 글리프를 줄 위로 띄운다.
+#
+#  좌표 규칙 (26.3 클라이언트 바이트코드로 확인): 글리프 윗변 y = 글줄 y + 7 − ascent.
+#   - 상자 GUI: 제목 글줄 = 창 왼쪽 위 + (8, 6). 슬롯 아이템 = (8 + 18·열, 18 + 18·행).
+#     플레이어 인벤토리 = y 행수·18 + 31 (+18/줄), 핫바 = 행수·18 + 89, "인벤토리" 글자 = (8, 높이 − 94).
+#   - 액션바: 글줄 y = 화면높이 − 72, 가로는 전체 폭(advance 합)의 가운데 정렬.
+#
+#  ── 메뉴 제목 조합 (ui.Glyphs.menuTitle) ──
+#   제목 = space(−8) + gui_<id> + space(−(176+1) + 8 = −169) + 제목 글자
+#   → 배경 왼쪽 위가 창 왼쪽 위(ascent 13: 6 + 7 − 13 = 0)에 정확히 깔리고 제목 글자는 원래 자리(8, 6)에 온다.
+#   배경은 어두운 돌이므로 제목 글자색은 아래 menus.<id>.title_color 를 쓸 것(밝은 양피지색).
+#   Java: Glyphs.menuTitle("gui_stats", 176, Text.mm("<#f3e3bd>스탯 배분"))  ← 폭은 항상 176.
+#   배경이 플레이어 인벤토리 부분까지 덮는다(같은 디자인). 바닐라 "인벤토리" 글자 자리는 밝은 명판으로 비워 둠.
+#   글리프가 아이템보다 먼저 그려지므로 슬롯 아이템·커서·툴팁은 배경 위에 정상 표시된다.
+#
+#  ── HUD 액션바 조합 (hud: 블록이 수치 원본) ──
+#   좌표 x 는 핫바 왼쪽 끝 기준 0..181 (핫바 = 화면 가운데 ±91). 전체 advance 를 정확히 hud.total(182)로
+#   맞추면 시작점 = 가운데 − 91 = 핫바 왼쪽 끝. 조합법: 요소마다 space(x − 펜위치) + 글리프, 펜 += advance,
+#   마지막에 space(182 − 펜위치). 숫자는 hud_num_*(바 안·레벨 배지 안 줄) / gold_num_*(골드 줄) 고정폭 7px
+#   (점·쌍점 4px). 바 안 숫자 가운데 정렬: x = 바x + (82 − (글자수·7 − 1)) / 2.
+#   **그림자 끄기 필수**: 액션바는 글자 그림자를 그린다 → 글리프 컴포넌트에 shadowColor(ShadowColor.none())
+#   (MiniMessage 는 <!shadow>). 색 지정 없이(흰색) 쓰면 텍스처 색 그대로. 숫자는 흰 바탕이라 color 로 물들일 수 있다.
+#   세로 배치(화면 아래 기준): 상태/골드 줄 H−76..H−68 · 레벨 배지 H−66..H−51 · HP/MP 바 H−63..H−55 ·
+#   경험치 줄 H−52..H−50 · (바닐라 갑옷 줄 H−49, 하트 H−39, 핫바 H−22 와 안 겹침).
+#
+#  ── 보스바 ──
+#   이름 = boss_ornament_left + space(2) + 보스 이름 + space(2) + boss_ornament_right  (좌우 대칭 → 자동 가운데)
+#   boss_frame 은 이름 **전체**로 쓰면(다른 글자 없이) 182×5 막대를 정확히 감싸는 금테가 된다(가운데 창 투명).
+#   예: 보호막·광폭 게이지 같은 두 번째 보스바의 이름으로.
+#
+#  ── 기타 ──
+#   party_hp_00..10 (33×5) · party_class_<직업> (7×7): 사이드바/탭/채팅 줄 높이에 맞춤(ascent 5 / 7).
+#   dmg_* / crit_* (10×12) · dmg_icon_*: 피해 숫자 TextDisplay 용 (font labyrinth:ui, 배경 투명 권장).
+#   status_<효과> (9×9): 액션바 상태 줄(H−76). 효과 id = GDD §9.2 + 버프(buff_*), stealth.
+#
+#  공백: spaces 의 값 v → 문자 U+F800 + v (−1024..255, U+F400..U+F8FF 예약). Glyphs.space(px) 가 큰 값부터
+#  조합하므로 2의 거듭제곱 ±1..±512, −1024 와 자주 쓰는 −169·−177 을 둔다.
+# ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+glyphs:
+  # ── 상자 GUI 배경 (폭 176, ascent 13 = 창 왼쪽 위에 맞춤) ──
+  gui_main: {char: "\uE000", file: gui/main.png, ascent: 13, height: 168, advance: 177}
+  gui_stats: {char: "\uE001", file: gui/stats.png, ascent: 13, height: 222, advance: 177}
+  gui_class: {char: "\uE002", file: gui/class.png, ascent: 13, height: 222, advance: 177}
+  gui_party: {char: "\uE003", file: gui/party.png, ascent: 13, height: 222, advance: 177}
+  gui_setup: {char: "\uE004", file: gui/setup.png, ascent: 13, height: 222, advance: 177}
+  gui_entrance: {char: "\uE005", file: gui/entrance.png, ascent: 13, height: 222, advance: 177}
+  gui_blacksmith: {char: "\uE006", file: gui/blacksmith.png, ascent: 13, height: 222, advance: 177}
+  gui_titles: {char: "\uE007", file: gui/titles.png, ascent: 13, height: 222, advance: 177}
+  gui_accessories: {char: "\uE008", file: gui/accessories.png, ascent: 13, height: 168, advance: 177}
+  gui_merchant: {char: "\uE009", file: gui/merchant.png, ascent: 13, height: 222, advance: 177}
+  gui_pvp: {char: "\uE00A", file: gui/pvp.png, ascent: 13, height: 222, advance: 177}
+  gui_confirm: {char: "\uE00B", file: gui/confirm.png, ascent: 13, height: 168, advance: 177}
+  gui_generic_6: {char: "\uE00C", file: gui/generic_6.png, ascent: 13, height: 222, advance: 177}
+  gui_generic_3: {char: "\uE00D", file: gui/generic_3.png, ascent: 13, height: 168, advance: 177}
+  # ── HUD 액션바: HP/MP/보호막 바 21단계(0~20) · 경험치 · 레벨 배지 · 골드 · 숫자 ──
+  hud_hp_00: {char: "\uE100", file: hud/hp_00.png, ascent: -2, height: 9, advance: 83}
+  hud_hp_01: {char: "\uE101", file: hud/hp_01.png, ascent: -2, height: 9, advance: 83}
+  hud_hp_02: {char: "\uE102", file: hud/hp_02.png, ascent: -2, height: 9, advance: 83}
+  hud_hp_03: {char: "\uE103", file: hud/hp_03.png, ascent: -2, height: 9, advance: 83}
+  hud_hp_04: {char: "\uE104", file: hud/hp_04.png, ascent: -2, height: 9, advance: 83}
+  hud_hp_05: {char: "\uE105", file: hud/hp_05.png, ascent: -2, height: 9, advance: 83}
+  hud_hp_06: {char: "\uE106", file: hud/hp_06.png, ascent: -2, height: 9, advance: 83}
+  hud_hp_07: {char: "\uE107", file: hud/hp_07.png, ascent: -2, height: 9, advance: 83}
+  hud_hp_08: {char: "\uE108", file: hud/hp_08.png, ascent: -2, height: 9, advance: 83}
+  hud_hp_09: {char: "\uE109", file: hud/hp_09.png, ascent: -2, height: 9, advance: 83}
+  hud_hp_10: {char: "\uE10A", file: hud/hp_10.png, ascent: -2, height: 9, advance: 83}
+  hud_hp_11: {char: "\uE10B", file: hud/hp_11.png, ascent: -2, height: 9, advance: 83}
+  hud_hp_12: {char: "\uE10C", file: hud/hp_12.png, ascent: -2, height: 9, advance: 83}
+  hud_hp_13: {char: "\uE10D", file: hud/hp_13.png, ascent: -2, height: 9, advance: 83}
+  hud_hp_14: {char: "\uE10E", file: hud/hp_14.png, ascent: -2, height: 9, advance: 83}
+  hud_hp_15: {char: "\uE10F", file: hud/hp_15.png, ascent: -2, height: 9, advance: 83}
+  hud_hp_16: {char: "\uE110", file: hud/hp_16.png, ascent: -2, height: 9, advance: 83}
+  hud_hp_17: {char: "\uE111", file: hud/hp_17.png, ascent: -2, height: 9, advance: 83}
+  hud_hp_18: {char: "\uE112", file: hud/hp_18.png, ascent: -2, height: 9, advance: 83}
+  hud_hp_19: {char: "\uE113", file: hud/hp_19.png, ascent: -2, height: 9, advance: 83}
+  hud_hp_20: {char: "\uE114", file: hud/hp_20.png, ascent: -2, height: 9, advance: 83}
+  hud_mp_00: {char: "\uE120", file: hud/mp_00.png, ascent: -2, height: 9, advance: 83}
+  hud_mp_01: {char: "\uE121", file: hud/mp_01.png, ascent: -2, height: 9, advance: 83}
+  hud_mp_02: {char: "\uE122", file: hud/mp_02.png, ascent: -2, height: 9, advance: 83}
+  hud_mp_03: {char: "\uE123", file: hud/mp_03.png, ascent: -2, height: 9, advance: 83}
+  hud_mp_04: {char: "\uE124", file: hud/mp_04.png, ascent: -2, height: 9, advance: 83}
+  hud_mp_05: {char: "\uE125", file: hud/mp_05.png, ascent: -2, height: 9, advance: 83}
+  hud_mp_06: {char: "\uE126", file: hud/mp_06.png, ascent: -2, height: 9, advance: 83}
+  hud_mp_07: {char: "\uE127", file: hud/mp_07.png, ascent: -2, height: 9, advance: 83}
+  hud_mp_08: {char: "\uE128", file: hud/mp_08.png, ascent: -2, height: 9, advance: 83}
+  hud_mp_09: {char: "\uE129", file: hud/mp_09.png, ascent: -2, height: 9, advance: 83}
+  hud_mp_10: {char: "\uE12A", file: hud/mp_10.png, ascent: -2, height: 9, advance: 83}
+  hud_mp_11: {char: "\uE12B", file: hud/mp_11.png, ascent: -2, height: 9, advance: 83}
+  hud_mp_12: {char: "\uE12C", file: hud/mp_12.png, ascent: -2, height: 9, advance: 83}
+  hud_mp_13: {char: "\uE12D", file: hud/mp_13.png, ascent: -2, height: 9, advance: 83}
+  hud_mp_14: {char: "\uE12E", file: hud/mp_14.png, ascent: -2, height: 9, advance: 83}
+  hud_mp_15: {char: "\uE12F", file: hud/mp_15.png, ascent: -2, height: 9, advance: 83}
+  hud_mp_16: {char: "\uE130", file: hud/mp_16.png, ascent: -2, height: 9, advance: 83}
+  hud_mp_17: {char: "\uE131", file: hud/mp_17.png, ascent: -2, height: 9, advance: 83}
+  hud_mp_18: {char: "\uE132", file: hud/mp_18.png, ascent: -2, height: 9, advance: 83}
+  hud_mp_19: {char: "\uE133", file: hud/mp_19.png, ascent: -2, height: 9, advance: 83}
+  hud_mp_20: {char: "\uE134", file: hud/mp_20.png, ascent: -2, height: 9, advance: 83}
+  hud_shield_00: {char: "\uE140", file: hud/shield_00.png, ascent: -2, height: 9, advance: 83}
+  hud_shield_01: {char: "\uE141", file: hud/shield_01.png, ascent: -2, height: 9, advance: 83}
+  hud_shield_02: {char: "\uE142", file: hud/shield_02.png, ascent: -2, height: 9, advance: 83}
+  hud_shield_03: {char: "\uE143", file: hud/shield_03.png, ascent: -2, height: 9, advance: 83}
+  hud_shield_04: {char: "\uE144", file: hud/shield_04.png, ascent: -2, height: 9, advance: 83}
+  hud_shield_05: {char: "\uE145", file: hud/shield_05.png, ascent: -2, height: 9, advance: 83}
+  hud_shield_06: {char: "\uE146", file: hud/shield_06.png, ascent: -2, height: 9, advance: 83}
+  hud_shield_07: {char: "\uE147", file: hud/shield_07.png, ascent: -2, height: 9, advance: 83}
+  hud_shield_08: {char: "\uE148", file: hud/shield_08.png, ascent: -2, height: 9, advance: 83}
+  hud_shield_09: {char: "\uE149", file: hud/shield_09.png, ascent: -2, height: 9, advance: 83}
+  hud_shield_10: {char: "\uE14A", file: hud/shield_10.png, ascent: -2, height: 9, advance: 83}
+  hud_shield_11: {char: "\uE14B", file: hud/shield_11.png, ascent: -2, height: 9, advance: 83}
+  hud_shield_12: {char: "\uE14C", file: hud/shield_12.png, ascent: -2, height: 9, advance: 83}
+  hud_shield_13: {char: "\uE14D", file: hud/shield_13.png, ascent: -2, height: 9, advance: 83}
+  hud_shield_14: {char: "\uE14E", file: hud/shield_14.png, ascent: -2, height: 9, advance: 83}
+  hud_shield_15: {char: "\uE14F", file: hud/shield_15.png, ascent: -2, height: 9, advance: 83}
+  hud_shield_16: {char: "\uE150", file: hud/shield_16.png, ascent: -2, height: 9, advance: 83}
+  hud_shield_17: {char: "\uE151", file: hud/shield_17.png, ascent: -2, height: 9, advance: 83}
+  hud_shield_18: {char: "\uE152", file: hud/shield_18.png, ascent: -2, height: 9, advance: 83}
+  hud_shield_19: {char: "\uE153", file: hud/shield_19.png, ascent: -2, height: 9, advance: 83}
+  hud_shield_20: {char: "\uE154", file: hud/shield_20.png, ascent: -2, height: 9, advance: 83}
+  hud_xp_00: {char: "\uE160", file: hud/xp_00.png, ascent: -13, height: 3, advance: 183}
+  hud_xp_01: {char: "\uE161", file: hud/xp_01.png, ascent: -13, height: 3, advance: 183}
+  hud_xp_02: {char: "\uE162", file: hud/xp_02.png, ascent: -13, height: 3, advance: 183}
+  hud_xp_03: {char: "\uE163", file: hud/xp_03.png, ascent: -13, height: 3, advance: 183}
+  hud_xp_04: {char: "\uE164", file: hud/xp_04.png, ascent: -13, height: 3, advance: 183}
+  hud_xp_05: {char: "\uE165", file: hud/xp_05.png, ascent: -13, height: 3, advance: 183}
+  hud_xp_06: {char: "\uE166", file: hud/xp_06.png, ascent: -13, height: 3, advance: 183}
+  hud_xp_07: {char: "\uE167", file: hud/xp_07.png, ascent: -13, height: 3, advance: 183}
+  hud_xp_08: {char: "\uE168", file: hud/xp_08.png, ascent: -13, height: 3, advance: 183}
+  hud_xp_09: {char: "\uE169", file: hud/xp_09.png, ascent: -13, height: 3, advance: 183}
+  hud_xp_10: {char: "\uE16A", file: hud/xp_10.png, ascent: -13, height: 3, advance: 183}
+  hud_xp_11: {char: "\uE16B", file: hud/xp_11.png, ascent: -13, height: 3, advance: 183}
+  hud_xp_12: {char: "\uE16C", file: hud/xp_12.png, ascent: -13, height: 3, advance: 183}
+  hud_xp_13: {char: "\uE16D", file: hud/xp_13.png, ascent: -13, height: 3, advance: 183}
+  hud_xp_14: {char: "\uE16E", file: hud/xp_14.png, ascent: -13, height: 3, advance: 183}
+  hud_xp_15: {char: "\uE16F", file: hud/xp_15.png, ascent: -13, height: 3, advance: 183}
+  hud_xp_16: {char: "\uE170", file: hud/xp_16.png, ascent: -13, height: 3, advance: 183}
+  hud_xp_17: {char: "\uE171", file: hud/xp_17.png, ascent: -13, height: 3, advance: 183}
+  hud_xp_18: {char: "\uE172", file: hud/xp_18.png, ascent: -13, height: 3, advance: 183}
+  hud_xp_19: {char: "\uE173", file: hud/xp_19.png, ascent: -13, height: 3, advance: 183}
+  hud_xp_20: {char: "\uE174", file: hud/xp_20.png, ascent: -13, height: 3, advance: 183}
+  hud_level_badge: {char: "\uE180", file: hud/level_badge.png, ascent: 1, height: 16, advance: 19}
+  hud_gold: {char: "\uE181", file: hud/gold.png, ascent: 11, height: 11, advance: 10}
+  hud_num_0: {char: "\uE200", file: hud/digit_0.png, ascent: -3, height: 7, advance: 7}
+  hud_num_1: {char: "\uE201", file: hud/digit_1.png, ascent: -3, height: 7, advance: 7}
+  hud_num_2: {char: "\uE202", file: hud/digit_2.png, ascent: -3, height: 7, advance: 7}
+  hud_num_3: {char: "\uE203", file: hud/digit_3.png, ascent: -3, height: 7, advance: 7}
+  hud_num_4: {char: "\uE204", file: hud/digit_4.png, ascent: -3, height: 7, advance: 7}
+  hud_num_5: {char: "\uE205", file: hud/digit_5.png, ascent: -3, height: 7, advance: 7}
+  hud_num_6: {char: "\uE206", file: hud/digit_6.png, ascent: -3, height: 7, advance: 7}
+  hud_num_7: {char: "\uE207", file: hud/digit_7.png, ascent: -3, height: 7, advance: 7}
+  hud_num_8: {char: "\uE208", file: hud/digit_8.png, ascent: -3, height: 7, advance: 7}
+  hud_num_9: {char: "\uE209", file: hud/digit_9.png, ascent: -3, height: 7, advance: 7}
+  hud_num_slash: {char: "\uE20A", file: hud/digit_slash.png, ascent: -3, height: 7, advance: 7}
+  hud_num_plus: {char: "\uE20B", file: hud/digit_plus.png, ascent: -3, height: 7, advance: 7}
+  hud_num_minus: {char: "\uE20C", file: hud/digit_minus.png, ascent: -3, height: 7, advance: 7}
+  hud_num_k: {char: "\uE20D", file: hud/digit_k.png, ascent: -3, height: 7, advance: 7}
+  hud_num_M: {char: "\uE20E", file: hud/digit_M.png, ascent: -3, height: 7, advance: 7}
+  hud_num_dot: {char: "\uE20F", file: hud/digit_dot.png, ascent: -3, height: 7, advance: 4}
+  hud_num_colon: {char: "\uE210", file: hud/digit_colon.png, ascent: -3, height: 7, advance: 4}
+  # ── 골드 줄 숫자 (hud_num_ 과 같은 그림, ascent 만 다름) ──
+  gold_num_0: {char: "\uE220", file: hud/digit_0.png, ascent: 10, height: 10, advance: 7}
+  gold_num_1: {char: "\uE221", file: hud/digit_1.png, ascent: 10, height: 10, advance: 7}
+  gold_num_2: {char: "\uE222", file: hud/digit_2.png, ascent: 10, height: 10, advance: 7}
+  gold_num_3: {char: "\uE223", file: hud/digit_3.png, ascent: 10, height: 10, advance: 7}
+  gold_num_4: {char: "\uE224", file: hud/digit_4.png, ascent: 10, height: 10, advance: 7}
+  gold_num_5: {char: "\uE225", file: hud/digit_5.png, ascent: 10, height: 10, advance: 7}
+  gold_num_6: {char: "\uE226", file: hud/digit_6.png, ascent: 10, height: 10, advance: 7}
+  gold_num_7: {char: "\uE227", file: hud/digit_7.png, ascent: 10, height: 10, advance: 7}
+  gold_num_8: {char: "\uE228", file: hud/digit_8.png, ascent: 10, height: 10, advance: 7}
+  gold_num_9: {char: "\uE229", file: hud/digit_9.png, ascent: 10, height: 10, advance: 7}
+  gold_num_slash: {char: "\uE22A", file: hud/digit_slash.png, ascent: 10, height: 10, advance: 7}
+  gold_num_plus: {char: "\uE22B", file: hud/digit_plus.png, ascent: 10, height: 10, advance: 7}
+  gold_num_minus: {char: "\uE22C", file: hud/digit_minus.png, ascent: 10, height: 10, advance: 7}
+  gold_num_k: {char: "\uE22D", file: hud/digit_k.png, ascent: 10, height: 10, advance: 7}
+  gold_num_M: {char: "\uE22E", file: hud/digit_M.png, ascent: 10, height: 10, advance: 7}
+  gold_num_dot: {char: "\uE22F", file: hud/digit_dot.png, ascent: 10, height: 10, advance: 4}
+  gold_num_colon: {char: "\uE230", file: hud/digit_colon.png, ascent: 10, height: 10, advance: 4}
+  # ── 상태이상·버프 아이콘 (액션바 상태 줄) ──
+  status_poison: {char: "\uE300", file: status/poison.png, ascent: 11, height: 11, advance: 10}
+  status_bleed: {char: "\uE301", file: status/bleed.png, ascent: 11, height: 11, advance: 10}
+  status_burn: {char: "\uE302", file: status/burn.png, ascent: 11, height: 11, advance: 10}
+  status_slow: {char: "\uE303", file: status/slow.png, ascent: 11, height: 11, advance: 10}
+  status_root: {char: "\uE304", file: status/root.png, ascent: 11, height: 11, advance: 10}
+  status_stun: {char: "\uE305", file: status/stun.png, ascent: 11, height: 11, advance: 10}
+  status_weaken: {char: "\uE306", file: status/weaken.png, ascent: 11, height: 11, advance: 10}
+  status_vulnerable: {char: "\uE307", file: status/vulnerable.png, ascent: 11, height: 11, advance: 10}
+  status_blind: {char: "\uE308", file: status/blind.png, ascent: 11, height: 11, advance: 10}
+  status_silence: {char: "\uE309", file: status/silence.png, ascent: 11, height: 11, advance: 10}
+  status_frost: {char: "\uE30A", file: status/frost.png, ascent: 11, height: 11, advance: 10}
+  status_infection: {char: "\uE30B", file: status/infection.png, ascent: 11, height: 11, advance: 10}
+  status_venom: {char: "\uE30C", file: status/venom.png, ascent: 11, height: 11, advance: 10}
+  status_mark: {char: "\uE30D", file: status/mark.png, ascent: 11, height: 11, advance: 10}
+  status_cooldown_slow: {char: "\uE30E", file: status/cooldown_slow.png, ascent: 11, height: 11, advance: 10}
+  status_buff_damage: {char: "\uE30F", file: status/buff_damage.png, ascent: 11, height: 11, advance: 10}
+  status_buff_defense: {char: "\uE310", file: status/buff_defense.png, ascent: 11, height: 11, advance: 10}
+  status_buff_speed: {char: "\uE311", file: status/buff_speed.png, ascent: 11, height: 11, advance: 10}
+  status_buff_regen: {char: "\uE312", file: status/buff_regen.png, ascent: 11, height: 11, advance: 10}
+  status_buff_shield: {char: "\uE313", file: status/buff_shield.png, ascent: 11, height: 11, advance: 10}
+  status_buff_crit: {char: "\uE314", file: status/buff_crit.png, ascent: 11, height: 11, advance: 10}
+  status_buff_mana: {char: "\uE315", file: status/buff_mana.png, ascent: 11, height: 11, advance: 10}
+  status_buff_haste: {char: "\uE316", file: status/buff_haste.png, ascent: 11, height: 11, advance: 10}
+  status_stealth: {char: "\uE317", file: status/stealth.png, ascent: 11, height: 11, advance: 10}
+  status_buff_generic: {char: "\uE318", file: status/buff_generic.png, ascent: 11, height: 11, advance: 10}
+  # ── 파티원 미니 HP 바(0~10) · 직업 아이콘 (사이드바/탭 줄) ──
+  party_hp_00: {char: "\uE400", file: party/hp_00.png, ascent: 5, height: 5, advance: 34}
+  party_hp_01: {char: "\uE401", file: party/hp_01.png, ascent: 5, height: 5, advance: 34}
+  party_hp_02: {char: "\uE402", file: party/hp_02.png, ascent: 5, height: 5, advance: 34}
+  party_hp_03: {char: "\uE403", file: party/hp_03.png, ascent: 5, height: 5, advance: 34}
+  party_hp_04: {char: "\uE404", file: party/hp_04.png, ascent: 5, height: 5, advance: 34}
+  party_hp_05: {char: "\uE405", file: party/hp_05.png, ascent: 5, height: 5, advance: 34}
+  party_hp_06: {char: "\uE406", file: party/hp_06.png, ascent: 5, height: 5, advance: 34}
+  party_hp_07: {char: "\uE407", file: party/hp_07.png, ascent: 5, height: 5, advance: 34}
+  party_hp_08: {char: "\uE408", file: party/hp_08.png, ascent: 5, height: 5, advance: 34}
+  party_hp_09: {char: "\uE409", file: party/hp_09.png, ascent: 5, height: 5, advance: 34}
+  party_hp_10: {char: "\uE40A", file: party/hp_10.png, ascent: 5, height: 5, advance: 34}
+  party_class_guardian: {char: "\uE420", file: party/class_guardian.png, ascent: 7, height: 7, advance: 8}
+  party_class_berserker: {char: "\uE421", file: party/class_berserker.png, ascent: 7, height: 7, advance: 8}
+  party_class_hunter: {char: "\uE422", file: party/class_hunter.png, ascent: 7, height: 7, advance: 8}
+  party_class_arcanist: {char: "\uE423", file: party/class_arcanist.png, ascent: 7, height: 7, advance: 8}
+  party_class_priest: {char: "\uE424", file: party/class_priest.png, ascent: 7, height: 7, advance: 8}
+  party_class_shadow: {char: "\uE425", file: party/class_shadow.png, ascent: 7, height: 7, advance: 8}
+  # ── 피해 숫자 (TextDisplay) ──
+  dmg_0: {char: "\uE500", file: dmg/dmg_0.png, ascent: 10, height: 12, advance: 11}
+  dmg_1: {char: "\uE501", file: dmg/dmg_1.png, ascent: 10, height: 12, advance: 11}
+  dmg_2: {char: "\uE502", file: dmg/dmg_2.png, ascent: 10, height: 12, advance: 11}
+  dmg_3: {char: "\uE503", file: dmg/dmg_3.png, ascent: 10, height: 12, advance: 11}
+  dmg_4: {char: "\uE504", file: dmg/dmg_4.png, ascent: 10, height: 12, advance: 11}
+  dmg_5: {char: "\uE505", file: dmg/dmg_5.png, ascent: 10, height: 12, advance: 11}
+  dmg_6: {char: "\uE506", file: dmg/dmg_6.png, ascent: 10, height: 12, advance: 11}
+  dmg_7: {char: "\uE507", file: dmg/dmg_7.png, ascent: 10, height: 12, advance: 11}
+  dmg_8: {char: "\uE508", file: dmg/dmg_8.png, ascent: 10, height: 12, advance: 11}
+  dmg_9: {char: "\uE509", file: dmg/dmg_9.png, ascent: 10, height: 12, advance: 11}
+  dmg_plus: {char: "\uE50A", file: dmg/dmg_plus.png, ascent: 10, height: 12, advance: 11}
+  dmg_minus: {char: "\uE50B", file: dmg/dmg_minus.png, ascent: 10, height: 12, advance: 11}
+  # ── 치명타 피해 숫자 ──
+  crit_0: {char: "\uE520", file: dmg/crit_0.png, ascent: 10, height: 12, advance: 11}
+  crit_1: {char: "\uE521", file: dmg/crit_1.png, ascent: 10, height: 12, advance: 11}
+  crit_2: {char: "\uE522", file: dmg/crit_2.png, ascent: 10, height: 12, advance: 11}
+  crit_3: {char: "\uE523", file: dmg/crit_3.png, ascent: 10, height: 12, advance: 11}
+  crit_4: {char: "\uE524", file: dmg/crit_4.png, ascent: 10, height: 12, advance: 11}
+  crit_5: {char: "\uE525", file: dmg/crit_5.png, ascent: 10, height: 12, advance: 11}
+  crit_6: {char: "\uE526", file: dmg/crit_6.png, ascent: 10, height: 12, advance: 11}
+  crit_7: {char: "\uE527", file: dmg/crit_7.png, ascent: 10, height: 12, advance: 11}
+  crit_8: {char: "\uE528", file: dmg/crit_8.png, ascent: 10, height: 12, advance: 11}
+  crit_9: {char: "\uE529", file: dmg/crit_9.png, ascent: 10, height: 12, advance: 11}
+  crit_plus: {char: "\uE52A", file: dmg/crit_plus.png, ascent: 10, height: 12, advance: 11}
+  crit_minus: {char: "\uE52B", file: dmg/crit_minus.png, ascent: 10, height: 12, advance: 11}
+  # ── 피해 숫자 (TextDisplay) ──
+  dmg_icon_crit: {char: "\uE540", file: dmg/icon_crit.png, ascent: 8, height: 9, advance: 10}
+  dmg_icon_evade: {char: "\uE541", file: dmg/icon_evade.png, ascent: 8, height: 9, advance: 9}
+  dmg_icon_block: {char: "\uE542", file: dmg/icon_block.png, ascent: 8, height: 9, advance: 10}
+  dmg_icon_heal: {char: "\uE543", file: dmg/icon_heal.png, ascent: 8, height: 9, advance: 10}
+  # ── 보스바 장식 ──
+  boss_ornament_left: {char: "\uE600", file: boss/ornament_left.png, ascent: 9, height: 12, advance: 21}
+  boss_ornament_right: {char: "\uE601", file: boss/ornament_right.png, ascent: 9, height: 12, advance: 21}
+  boss_frame: {char: "\uE602", file: boss/frame.png, ascent: 2, height: 13, advance: 191}
+
+spaces:
+  pos_1: 1
+  pos_2: 2
+  pos_4: 4
+  pos_8: 8
+  pos_16: 16
+  pos_32: 32
+  pos_64: 64
+  pos_128: 128
+  neg_1: -1
+  neg_2: -2
+  neg_4: -4
+  neg_8: -8
+  neg_16: -16
+  neg_32: -32
+  neg_64: -64
+  neg_128: -128
+  neg_256: -256
+  neg_512: -512
+  neg_1024: -1024
+  neg_169: -169
+  neg_177: -177
+
+# ── 메뉴 배치 계약 (ui 담당이 메뉴를 만들 때 이 슬롯에 버튼을 둔다 — 배경 그림이 이 칸에 소켓을 그려 둠) ──
+# rows = 상자 줄 수, glyph = 배경 글리프, title_color = 제목 글자색(어두운 배경용), slots = 이름 → 슬롯 번호.
+# 소켓이 없는 칸은 장식 영역(비워 두면 그림이 보인다). 유리판 같은 채움 아이템은 쓰지 말 것(배경을 가림).
+menus:
+  main:
+    glyph: gui_main
+    rows: 3
+    title: "미궁 라비린스"
+    title_color: "#f3e3bd"
+    slots:
+      buttons: [10, 11, 12, 13, 14, 15, 16]
+  stats:
+    glyph: gui_stats
+    rows: 6
+    title: "스탯 배분"
+    title_color: "#f3e3bd"
+    slots:
+      stat_icons: [0, 9, 18, 27, 36, 45]
+      track: "각 행의 1~5열 (장식 홈 — 비워 두거나 정보 아이템)"
+      plus_1: [6, 15, 24, 33, 42, 51]
+      plus_5: [7, 16, 25, 34, 43, 52]
+      plus_10: [8, 17, 26, 35, 44, 53]
+      row_order: [STR, DEX, INT, VIT, WIS, LUK]
+  class:
+    glyph: gui_class
+    rows: 6
+    title: "직업 선택"
+    title_color: "#f3e3bd"
+    slots:
+      classes: [10, 13, 16, 28, 31, 34]
+      skills: [38, 39, 40, 41, 42]
+      back: 45
+      confirm: 49
+      close: 53
+      class_order: [guardian, berserker, hunter, arcanist, priest, shadow]
+  party:
+    glyph: gui_party
+    rows: 6
+    title: "파티"
+    title_color: "#f3e3bd"
+    slots:
+      crest: 4
+      members: [9, 11, 13, 15, 17, 27, 29, 31, 33, 35]
+      actions: [45, 47, 49, 51, 53]
+  setup:
+    glyph: gui_setup
+    rows: 6
+    title: "서버 첫 설정"
+    title_color: "#ffe2a0"
+    slots:
+      difficulties: [10, 12, 14, 16]
+      difficulty_order: [easy, normal, hard, nightmare]
+      entrance_block: 38
+      entrance_npc: 42
+      confirm: 49
+  entrance:
+    glyph: gui_entrance
+    rows: 6
+    title: "미궁 입장"
+    title_color: "#f3e3bd"
+    slots:
+      floors: [9, 11, 13, 15, 17, 35, 33, 31, 29, 27]
+      back: 45
+      enter: 49
+      close: 53
+  blacksmith:
+    glyph: gui_blacksmith
+    rows: 6
+    title: "대장간"
+    title_color: "#f3e3bd"
+    slots:
+      tabs: [1, 3, 5, 7]
+      recipes: "18..44 (27칸)"
+      prev: 45
+      filter: 47
+      close: 51
+      next: 53
+  titles:
+    glyph: gui_titles
+    rows: 6
+    title: "칭호"
+    title_color: "#f3e3bd"
+    slots:
+      categories: [0, 1, 2, 3, 4, 5, 6, 7]
+      category_order: [pioneer, clear, challenge, combat, growth, collection, craft, pvp]
+      equipped: 8
+      titles: "9..44 (36칸)"
+      prev: 45
+      current: 49
+      next: 53
+  accessories:
+    glyph: gui_accessories
+    rows: 3
+    title: "장신구"
+    title_color: "#f3e3bd"
+    slots:
+      accessory_1: 11
+      summary: 13
+      accessory_2: 15
+  merchant:
+    glyph: gui_merchant
+    rows: 6
+    title: "상인"
+    title_color: "#f3e3bd"
+    slots:
+      purse: 8
+      goods: "행 1~4 × 열 1~7 (10-16, 19-25, 28-34, 37-43)"
+      prev: 45
+      info: 49
+      next: 53
+  pvp:
+    glyph: gui_pvp
+    rows: 6
+    title: "대전"
+    title_color: "#f3e3bd"
+    slots:
+      challenge: 10
+      queue: 13
+      record: 16
+      rank_2: 20
+      rank_1: 22
+      rank_3: 24
+      ranks_4_10: [37, 38, 39, 40, 41, 42, 43]
+      back: 45
+      my_rating: 49
+      close: 53
+  confirm:
+    glyph: gui_confirm
+    rows: 3
+    title: "확인"
+    title_color: "#f3e3bd"
+    slots:
+      accept: 11
+      info: 13
+      cancel: 15
+  generic_6:
+    glyph: gui_generic_6
+    rows: 6
+    title: "(범용 6줄)"
+    title_color: "#f3e3bd"
+    slots:
+      all: "0..53"
+  generic_3:
+    glyph: gui_generic_3
+    rows: 3
+    title: "(범용 3줄)"
+    title_color: "#f3e3bd"
+    slots:
+      all: "0..26"
+
+# ── HUD 배치 (x = 핫바 왼쪽 끝 기준 px, 전체 폭 total 로 맞출 것) ──
+hud:
+  total: 182
+  bar_steps: 20            # hud_hp_00..20 · hud_mp_00..20 · hud_shield_00..20 · hud_xp_00..20 (round(비율×20))
+  bar_width: 82            # HP/MP/보호막 바 그림 폭 (advance 83)
+  hp_x: 0                  # HP 바 (왼쪽, 하트 위) — 왼쪽→오른쪽으로 참
+  badge_x: 82              # 레벨 배지 18×16 (가운데). 레벨 숫자는 hud_num_* 로 배지 안 가운데: x = 82 + (18 − 폭)/2
+  mp_x: 100                # MP 바 (오른쪽, 허기 위) — 오른쪽 바깥 끝에서 가운데 쪽으로 참(HP 와 좌우 대칭)
+  shield_x: 0              # 보호막: HP 바와 같은 자리에 겹쳐 그림(뒤로 space(−83) 후 hud_shield_NN) — 선택
+  xp_x: 0                  # 경험치 줄 182×3 (HP/MP 아래, 배지가 위를 덮음) — 바/배지보다 먼저 그릴 것
+  status_x: 0              # 상태 아이콘 줄 시작 (왼쪽부터, 아이콘 advance 10, 최대 8개 권장)
+  gold_right: 182          # 골드 줄: [hud_gold][gold_num_*] 을 오른쪽 끝 182 에 맞춤
+  digit_advance: 7         # hud_num_* / gold_num_* 고정폭 (dot·colon 은 4)
+  digit_chars: "0123456789/+-k M.:"   # 글자 i → 글리프 접미사 digit_names[i] (공백 자리는 비움) — "." 키는 Bukkit 경로 구분자라 목록으로 둔다
+  digit_names: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", slash, plus, minus, k, "", M, dot, colon]
+  draw_order: [xp, hp, mp, badge, hp_text, mp_text, level_text, status, gold]
+  example: "space(0)+hud_xp_13+space(−183)+hud_hp_14+space(17)+hud_mp_09+space(−101)+hud_level_badge+… (Glyphs 로 조합)"
+  party_bar_steps: 10      # party_hp_00..10 (round(비율×10)), 33×5
+  damage_digits: {normal: dmg_, crit: crit_, advance: 11, icons: [dmg_icon_crit, dmg_icon_evade, dmg_icon_block, dmg_icon_heal]}

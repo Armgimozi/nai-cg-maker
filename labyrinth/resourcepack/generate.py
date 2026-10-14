@@ -23,7 +23,7 @@ from PIL import Image
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
-from src import equipment, fx_extra, fx_models, items, mobs, npc_skins, pack, render, validate  # noqa: E402
+from src import equipment, fx_extra, fx_models, items, mobs, npc_skins, pack, render, ui, validate  # noqa: E402
 from src.materials import Look  # noqa: E402
 from src.util import stable_seed  # noqa: E402
 
@@ -47,6 +47,8 @@ class Ctx:
         self.mob_previews = []     # (id, boss, assembled model, faces_uv, frame0)
         self.npc_previews = []     # (skin id, image)
         self.stats: dict[str, int] = {}
+        self.ui_errors: list[str] = []
+        self.ui_info: dict = {}
 
     def load(self, name):
         path = os.path.join(self.content_dir, f'{name}.yml')
@@ -214,7 +216,24 @@ def build_npcs(ctx: Ctx):
     ctx.stats['npc_skins'] = len(done)
 
 
-BUILDERS = [build_core, build_items, build_equipment, build_weapon_fx, build_fx_extra, build_mobs, build_npcs]
+def build_ui(ctx: Ctx):
+    """Font labyrinth:ui from glyphs.yml: GUI backgrounds, HUD bars/digits, status icons, boss decor (src/ui.py)."""
+    doc = ctx.content.get('glyphs') or {}
+    if not doc.get('glyphs'):
+        ctx.warnings.append('glyphs.yml missing or empty — no custom UI font generated')
+        return
+    files, warns, errs, info = ui.build(doc, ctx.content)
+    for p, b in files.items():
+        ctx.add(p, b)
+    ctx.warnings.extend(warns)
+    ctx.ui_errors.extend(errs)
+    ctx.ui_info = info
+    ctx.stats['ui_glyphs'] = len(info['glyphs'])
+    ctx.stats['ui_spaces'] = len(info['spaces'])
+
+
+BUILDERS = [build_core, build_items, build_equipment, build_weapon_fx, build_fx_extra, build_mobs, build_npcs,
+            build_ui]
 
 
 # ───────────────────────────── previews ─────────────────────────────
@@ -277,6 +296,10 @@ def write_previews(ctx: Ctx):
             cells.append((img.resize((200, 200), Image.NEAREST), sid + ' (sheet)'))
         render.grid(cells, 6, 200, title='NPC skins (front/back + 64x64 sheet)').convert('RGB').save(
             os.path.join(ctx.out_dir, 'preview_npcs.png'))
+    if ctx.ui_info.get('glyphs'):
+        doc = ctx.content.get('glyphs') or {}
+        rows = {f'gui_{k}': (v or {}).get('rows', 6) for k, v in (doc.get('menus') or {}).items()}
+        ui.preview(ctx.ui_info, rows, doc.get('hud') or {}, os.path.join(ctx.out_dir, 'preview_ui.png'))
     if ctx.anim_previews:
         nmax = max(len(fr) for (_, _, _, fr) in ctx.anim_previews)
         per = [[render.render(m, uv, fr, m.display['gui'], ppu=5) for fr in frames]
@@ -300,13 +323,15 @@ def main(argv=None):
     args = ap.parse_args(argv)
     t0 = time.time()
     ctx = Ctx(os.path.abspath(args.content), os.path.abspath(args.out), not args.no_preview)
-    for name in ('items', 'fx', 'mobs', 'bosses', 'npcs', 'classes'):
+    for name in ('items', 'fx', 'mobs', 'bosses', 'npcs', 'classes', 'glyphs'):
         ctx.content[name] = ctx.load(name)
     ctx.content['sets'] = ctx.content['items'].get('sets') or {}
     ctx.content['items'] = ctx.content['items'].get('items') or {}
     for b in BUILDERS:
         b(ctx)
     rep = validate.validate(ctx.files, ctx.content, ctx.expect_frames, ctx.fx_names)
+    rep.errors.extend(ctx.ui_errors)
+    validate.validate_ui(ctx.files, ctx.content.get('glyphs') or {}, rep)
     os.makedirs(ctx.out_dir, exist_ok=True)
     zpath = os.path.join(ctx.out_dir, 'labyrinth-pack.zip')
     sha = pack.write_zip(ctx.files, zpath)

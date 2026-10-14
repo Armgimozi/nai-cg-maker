@@ -91,7 +91,8 @@ public final class ContentParser {
 
         Map<String, GlyphDef> glyphs = new LinkedHashMap<>();
         glyphsRoot.sub("glyphs").children().forEach((id, p) -> glyphs.put(id,
-                new GlyphDef(id, p.str("char", ""), p.str("file", ""), p.integer("ascent", 0), p.integer("height", 8))));
+                new GlyphDef(id, p.str("char", ""), p.str("file", ""), p.integer("ascent", 0), p.integer("height", 8),
+                        p.integer("advance", -1))));
         Map<String, Integer> spaces = new LinkedHashMap<>();
         Params sp = glyphsRoot.sub("spaces");
         for (String k : sp.keys()) spaces.put(k, sp.integer(k, 0));

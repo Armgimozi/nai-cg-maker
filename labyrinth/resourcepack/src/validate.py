@@ -241,3 +241,64 @@ def validate_mobs_npcs_fx(files, content, rep, expect_frames):
             ref = (a or {}).get(key)
             if ref and f'assets/{NS}/items/fx/{ref}.json' not in files:
                 rep.err(f'aura {aid}: {key} {ref} has no fx model')
+
+
+def validate_ui(files, glyphs_doc, rep):
+    """Font labyrinth:ui: provider files exist with the declared height, ascent <= height, unique chars, space
+    range, GUI backgrounds 176 x (114 + rows*18) and menu slot maps inside the chest."""
+    glyphs = (glyphs_doc or {}).get('glyphs') or {}
+    if not glyphs:
+        return
+    font = _json(files, f'assets/{NS}/font/ui.json', rep)
+    if font is None:
+        return
+    seen = {}
+    space_seen = False
+    for prov in font.get('providers') or []:
+        t = prov.get('type')
+        if t == 'space':
+            space_seen = True
+            for ch, v in (prov.get('advances') or {}).items():
+                if len(ch) != 1 or ord(ch) != 0xF800 + int(v):
+                    rep.err(f'font ui: space {ch!r} → {v} breaks the U+F800+v rule')
+            continue
+        if t != 'bitmap':
+            rep.err(f'font ui: unexpected provider type {t}')
+            continue
+        ref = prov.get('file', '')
+        ns, p = ref.split(':', 1)
+        img = _png(files, f'assets/{ns}/textures/{p}', rep)
+        h, a = prov.get('height', 8), prov.get('ascent')
+        if a is None or a > h:
+            rep.err(f'font ui: {ref} ascent {a} > height {h}')
+        if img is not None and img.size[1] != h:
+            rep.err(f'font ui: {ref} is {img.size[1]} px tall, provider height {h} (glyph would be rescaled)')
+        for row in prov.get('chars') or []:
+            for ch in row:
+                if ch in seen:
+                    rep.err(f'font ui: U+{ord(ch):04X} declared twice ({seen[ch]} / {ref})')
+                seen[ch] = ref
+                if 0xF400 <= ord(ch) <= 0xF8FF:
+                    rep.err(f'font ui: glyph U+{ord(ch):04X} inside the reserved space range')
+    if not space_seen:
+        rep.err('font ui: no space provider')
+    for gid, g in glyphs.items():
+        ch = (g or {}).get('char')
+        if ch not in seen:
+            rep.err(f'glyph {gid}: char not in font ui.json')
+    for mid, m in ((glyphs_doc.get('menus') or {}).items()):
+        gid = (m or {}).get('glyph')
+        rows = (m or {}).get('rows', 6)
+        g = glyphs.get(gid)
+        if not g:
+            rep.err(f'menu {mid}: glyph {gid} not defined')
+            continue
+        if g.get('height') != 114 + rows * 18 or g.get('ascent') != 13:
+            rep.err(f'menu {mid}: {gid} must be height {114 + rows * 18} / ascent 13 for a {rows}-row chest')
+        if g.get('advance') != 177:
+            rep.err(f'menu {mid}: {gid} advance {g.get("advance")} != 177 (menuTitle offsets assume 176 px)')
+        for name, v in ((m or {}).get('slots') or {}).items():
+            vals = v if isinstance(v, list) else [v] if isinstance(v, int) else []
+            for s in vals:
+                if isinstance(s, int) and not (0 <= s < rows * 9):
+                    rep.err(f'menu {mid}: slot {name}={s} outside a {rows}-row chest')
