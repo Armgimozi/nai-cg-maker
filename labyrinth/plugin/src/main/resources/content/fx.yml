@@ -534,6 +534,8 @@ models:
   rune_6:             {style: rune, motif: rune_tree, palette: ["#141a30", "#2a3a6a", "#c8a060", "#fff0b0"], animated: true, frames: 6, frametime: 3, size: [16, 16, 1], billboard: FIXED, glow: true}
   rune_7:             {style: rune, motif: rune_star, palette: ["#141a30", "#2a3a6a", "#c8a060", "#fff0b0"], animated: true, frames: 6, frametime: 3, size: [16, 16, 1], billboard: FIXED, glow: true}
   rune_8:             {style: rune, motif: rune_crown, palette: ["#141a30", "#2a3a6a", "#c8a060", "#fff0b0"], animated: true, frames: 6, frametime: 3, size: [16, 16, 1], billboard: FIXED, glow: true}
+  ink_shadow:         {style: puddle, motif: ink_splash, palette: ["#020205", "#06060c", "#141a30", "#2a3a6a"], animated: true, frames: 6, frametime: 3, size: [24, 1, 24], flat: true}   # 8층 먹물 분신 — 진짜 오르벨 발밑 그림자
+  index_glyph:        {style: glyph, motif: rune_eye, palette: ["#3a2a10", "#c8a060", "#fff0b0", "#ffffff"], animated: true, frames: 8, frametime: 2, size: [32, 1, 32], flat: true, glow: true}   # 8층 금서 색인 — 빛나는 룬 책장 앞 바닥 인장
   seal_glyph:         {style: glyph, motif: clock_seal, palette: ["#3a2412", "#8a5a26", "#e8b060", "#7ae0c0"], animated: true, frames: 8, frametime: 2, size: [32, 1, 32], flat: true, glow: true}
   clock_hand:         {style: clock_hand, motif: brass, palette: ["#3a2412", "#8a5a26", "#e8b060", "#fff4d0"], animated: false, frames: 1, size: [8, 2, 48], flat: true, glow: true}
   pendulum:           {style: pendulum, motif: brass, palette: ["#1a120c", "#5a3a20", "#a8a8b0", "#e8b060"], animated: false, frames: 1, size: [32, 48, 4], billboard: FIXED}

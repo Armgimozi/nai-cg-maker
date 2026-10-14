@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import kr.labyrinth.combat.DamageContext;
 import kr.labyrinth.combat.DamageType;
@@ -45,6 +46,7 @@ public final class ObjectTarget implements BossHandle {
     private final List<Consumer<BossHandle>> onDestroyed = new ArrayList<>();
     private String extra = "";
     private final double labelHeight;
+    private BiPredicate<ObjectTarget, DamageContext> hitFilter;
 
     ObjectTarget(Boss owner, String id, String name, Location at, double hp, String fxModel, float modelScale,
                  double hitWidth, double hitHeight) {
@@ -94,6 +96,21 @@ public final class ObjectTarget implements BossHandle {
 
     public ObjectTarget onDestroyed(Consumer<BossHandle> cb) {
         onDestroyed.add(cb);
+        return this;
+    }
+
+    /**
+     * 피해 직전 가로채기 (유형 필터 통과 후). false 를 돌려주면 피해를 무시한다(HP 그대로).
+     * 서열 퍼즐의 "어느 책장을 쳤는가"·먹물 분신의 "누가 때렸는가"처럼 HP 가 아니라 맞은 사실이 중요한 기믹용.
+     */
+    public ObjectTarget onHit(BiPredicate<ObjectTarget, DamageContext> filter) {
+        this.hitFilter = filter;
+        return this;
+    }
+
+    /** 머리 위 이름·HP 표시를 없앤다 (정체를 숨겨야 하는 오브젝트 — 먹물 분신 등). */
+    public ObjectTarget hideLabel() {
+        owner.fx().discard(label);
         return this;
     }
 
@@ -151,6 +168,16 @@ public final class ObjectTarget implements BossHandle {
                 owner.services().hud().actionBar(ctx.attackerPlayer(), Text.mm("<gray>" + name + "에는 이 공격이 통하지 않습니다"), 30);
             }
             return 0;
+        }
+        if (hitFilter != null) {
+            boolean pass;
+            try {
+                pass = hitFilter.test(this, ctx);
+            } catch (Throwable t) {
+                kr.labyrinth.core.Log.error("보스 오브젝트 피격 처리 오류", t);
+                pass = false;
+            }
+            if (!pass || dead) return 0;
         }
         double dealt = Math.min(hp, amount);
         hp -= dealt;

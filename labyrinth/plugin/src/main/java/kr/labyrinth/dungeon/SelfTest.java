@@ -371,14 +371,17 @@ final class SelfTest {
         for (int k = 1; k <= 2; k++) {
             later(40L * k, () -> step("combat", () -> {
                 if (!pool.isAlive()) return;
-                DamageContext dc = services.damage().deal(DamageContext.raw(null, pool.entity(), pool.maxHealth() * 0.45, DamageType.TRUE));
-                if (dc.dealt() > 0) count("boss_hits", 1);
+                double amount = pool.maxHealth() * 0.45;
+                DamageContext dc = services.damage().deal(DamageContext.raw(null, pool.entity(), amount, DamageType.TRUE));
+                if (dc.dealt() > 0 || forceThroughInvulnerable(pool, amount)) count("boss_hits", 1);
             }));
         }
         later(140, () -> {
             step("combat", () -> {
                 if (!pool.isAlive()) return;
-                services.damage().deal(DamageContext.raw(null, pool.entity(), pool.health() * 4 + 10_000, DamageType.TRUE));
+                double amount = pool.health() * 4 + 10_000;
+                DamageContext dc = services.damage().deal(DamageContext.raw(null, pool.entity(), amount, DamageType.TRUE));
+                if (dc.dealt() <= 0) forceThroughInvulnerable(pool, amount);
             });
             later(40, () -> {
                 if (pool.isAlive()) {
@@ -392,6 +395,15 @@ final class SelfTest {
                 later(10, () -> bossChain(list, idx + 1));
             });
         });
+    }
+
+    /**
+     * 보스가 무적 기믹 중(금서 색인 공중 부양·빙결 껍질·추격 등)이라 피해가 막혔으면 HP 풀에 직접 넣어
+     * 다음 페이즈·처치 경로까지 진단한다. @return 실제로 깎였는가
+     */
+    private static boolean forceThroughInvulnerable(kr.labyrinth.combat.HealthPool pool, double amount) {
+        if (!pool.isAlive() || !pool.invulnerable()) return false;
+        return pool.applyDamage(amount, DamageContext.raw(null, pool.entity(), amount, DamageType.TRUE)) > 0;
     }
 
     // ── 정리·요약 ─────────────────────────────────────────────────────────
