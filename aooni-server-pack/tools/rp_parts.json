@@ -1,0 +1,134 @@
+{
+  "_comment": "tools/build_rp.py 가 생성. 손으로 고치지 말 것.",
+  "texture": "aooni:item/oni",
+  "units": "blocks",
+  "frame": "entity-local frame of each item_display (spawned at the oni player's feet, rotated by its yaw). +Y up, +Z = forward (the oni faces +Z; yaw 0 = south), +X = the oni's LEFT (yaw 0: east), -X = the oni's right. Joint offsets are measured from the feet.",
+  "joint_contract": "In every part model the joint/pivot is model pixel (8,8,8). With item_display:\"none\" (the default) and an identity transformation, model pixel (px,py,pz) appears at entity-local ((8-px)/16, (py-8)/16, (8-pz)/16) blocks from the display entity. So summon/teleport every part to the oni's feet with yaw = player yaw, pitch 0, and set transformation.translation = joint * s, scale = [s,s,s] (s = overall size, 1.0 normal), left_rotation = swing quaternion, right_rotation = identity. left_rotation then pivots the part about its joint.",
+  "swing": "Rotation about the entity-local +X axis (right-hand rule; quaternion [sin(a/2),0,0,cos(a/2)] or {angle:a_rad,axis:[1f,0f,0f]}). Positive angle moves the lower end of a hanging limb BACKWARD (-Z), tips the torso/head FORWARD (head looks down, same sign as player pitch). Forward swing of an arm/leg = NEGATIVE angle. Rest pose (angle 0) = limbs straight down, torso/head upright, face toward +Z. If the torso is rotated, move child joints (arms, head) with it: child_translation = s * (torso_joint + R_torso * (child_joint - torso_joint)) and child_rotation = R_torso * R_child (all rotations about X: child angle = torso angle + own angle).",
+  "total_height": 2.375,
+  "camera": {
+    "standing_eye_y": 1.62,
+    "sneaking_eye_y": 1.27,
+    "inside_part": "head",
+    "head_box_rel_neck": {
+      "y": [-0.09375, 1.0625],
+      "x": [-0.46875, 0.46875],
+      "z": [-0.375, 0.4375]
+    },
+    "note": "At scale 1 both eye heights (feet +1.62 standing, +1.27 sneaking) are inside the convex head, whose inner faces are omitted and outer faces are back-face culled from inside, so the oni player never sees the head from inside, at any look direction (checked by tools/rp_preview.py). This also holds for any head pitch within max_swing_deg. The oni player does see its own torso/arms/feet when looking down (like a body). If the whole model is scaled by s, also set the player's minecraft:scale attribute to s so the eye stays inside (head spans feet + s*1.21875 .. s*2.375)."
+  },
+  "parts": {
+    "head": {
+      "item_model": "aooni:oni_head",
+      "joint": [0.0, 1.3125, 0.0],
+      "parent": "torso",
+      "max_swing_deg": 30,
+      "swing_range_deg": [-30, 30],
+      "extent_min": [-0.46875, -0.09375, -0.375],
+      "extent_max": [0.46875, 1.0625, 0.4375],
+      "desc": "머리 (목 관절에서 위로). 각도 + = 고개 숙임"
+    },
+    "torso": {
+      "item_model": "aooni:oni_torso",
+      "joint": [0.0, 0.71875, 0.0],
+      "parent": null,
+      "max_swing_deg": 15,
+      "swing_range_deg": [-10, 15],
+      "extent_min": [-0.28125, -0.0625, -0.15625],
+      "extent_max": [0.28125, 0.625, 0.15625],
+      "desc": "몸통 (엉덩이 관절에서 위로). 각도 + = 앞으로 숙임"
+    },
+    "arm_l": {
+      "item_model": "aooni:oni_arm_l",
+      "joint": [0.359375, 1.28125, 0.0],
+      "parent": "torso",
+      "max_swing_deg": 60,
+      "swing_range_deg": [-90, 60],
+      "extent_min": [-0.09375, -0.875, -0.078125],
+      "extent_max": [0.09375, 0.0625, 0.109375],
+      "desc": "왼팔 (어깨 관절에서 아래로). 각도 - = 앞으로",
+      "length": 0.875
+    },
+    "arm_r": {
+      "item_model": "aooni:oni_arm_r",
+      "joint": [-0.359375, 1.28125, 0.0],
+      "parent": "torso",
+      "max_swing_deg": 60,
+      "swing_range_deg": [-90, 60],
+      "extent_min": [-0.09375, -0.875, -0.078125],
+      "extent_max": [0.09375, 0.0625, 0.109375],
+      "desc": "오른팔 (어깨 관절에서 아래로). 각도 - = 앞으로",
+      "length": 0.875
+    },
+    "leg_l": {
+      "item_model": "aooni:oni_leg_l",
+      "joint": [0.140625, 0.71875, 0.0],
+      "parent": null,
+      "max_swing_deg": 40,
+      "swing_range_deg": [-45, 45],
+      "extent_min": [-0.109375, -0.71875, -0.109375],
+      "extent_max": [0.109375, 0.03125, 0.203125],
+      "desc": "왼다리 (엉덩이 관절에서 아래로). 각도 - = 앞으로",
+      "length": 0.71875
+    },
+    "leg_r": {
+      "item_model": "aooni:oni_leg_r",
+      "joint": [-0.140625, 0.71875, 0.0],
+      "parent": null,
+      "max_swing_deg": 40,
+      "swing_range_deg": [-45, 45],
+      "extent_min": [-0.109375, -0.71875, -0.109375],
+      "extent_max": [0.109375, 0.03125, 0.203125],
+      "desc": "오른다리 (엉덩이 관절에서 아래로). 각도 - = 앞으로",
+      "length": 0.71875
+    }
+  },
+  "walk_cycle_hint": {
+    "arm_deg": 35,
+    "leg_deg": 30,
+    "phase": "arm_l swings with leg_r, arm_r with leg_l (arm and leg on the same side opposite)",
+    "head": "angle = clamp(player pitch, -30, 30)",
+    "attack": "arm_r: raise to -90 (straight forward) then swing back to about +20 within 4-6 ticks. Beyond -90 the hand crosses the face/jaw (the head is wider than the shoulders)."
+  },
+  "summon_example": "summon minecraft:item_display ~ ~ ~ {item:{id:\"minecraft:paper\",count:1,components:{\"minecraft:item_model\":\"aooni:oni_head\"}},item_display:\"none\",transformation:{translation:[0f,1.3125f,0f],left_rotation:[0f,0f,0f,1f],scale:[1f,1f,1f],right_rotation:[0f,0f,0f,1f]},teleport_duration:1,interpolation_duration:2}",
+  "magum": {
+    "item_model": "aooni:magum",
+    "parent": "minecraft:item/handheld",
+    "texture": "aooni:item/magum",
+    "usage": "e.g. minecraft:netherite_sword[minecraft:item_model=\"aooni:magum\"]"
+  },
+  "pack_format": {
+    "min_format": 55,
+    "max_format": 97,
+    "pack_format": 55,
+    "supported_formats": [55, 97],
+    "versions": {
+      "1.21.5": "55",
+      "1.21.6": "63",
+      "1.21.7": "64",
+      "1.21.8": "64",
+      "1.21.9": "69",
+      "1.21.10": "69",
+      "1.21.11": "75",
+      "26.1": "84",
+      "26.1.1": "84",
+      "26.1.2": "84",
+      "26.2": "88",
+      "26.3": "97.1"
+    }
+  },
+  "notes": [
+    "Pack formats: misode/mcmeta summary/versions/data.json resource_pack_version(.minor): 1.21.5=55, 1.21.6=63, 1.21.7/8=64, 1.21.9/10=69, 1.21.11=75, 26.1-26.1.2=84, 26.2=88, 26.3=97.1 (also 26.3 client version.json pack_version resource_major=97, resource_minor=1).",
+    "pack.mcmeta: 1.21.9+ parser = PackFormat$IntermediaryFormat.validate(lastPreMinor=64 for CLIENT_RESOURCES (PackFormat.lastPreMinorVersion: bipush 64), requireFormat=true, overlay=false). min_format present -> validateNewFormat: min.major(55) <= 64 so supported_formats is required with min == min_format.major and max == max_format.major (or == 64), and pack_format must lie in [55, 97]. min_format int -> [55, 0] (BOTTOM_CODEC), max_format int -> [97, 2147483647] (TOP_CODEC) so 97.1 is accepted. Older parsers (1.21.5-1.21.8) read pack_format + supported_formats [55, 97] and ignore min/max_format. Same logic and constants in 1.21.11 (azz$a.validate, azz.a(PackType) bipush 64/81) and 26.3.",
+    "item_display 180 deg: DisplayRenderer$ItemDisplayRenderer.submitInner (26.3) = `aload_2; getstatic Axis.YP; ldc 3.1415927f; invokevirtual PoseStack.rotate(Axis,F)` then ItemStackRenderState.submit. 1.21.11 (hwe$b.a(ied,fzm,hpo,int,float)): `getstatic a.d (Axis.YP); ldc 3.1415927f; invokeinterface a.rotation(F); invokevirtual fzm.a(Quaternionfc) (PoseStack.mulPose)`. 1.21.5 (gxj$b.renderInner): identical `getstatic a.d; ldc 3.1415927f; a.rotation; fld.a(Quaternionfc)`.",
+    "Order in DisplayRenderer.submit/render: poseStack.rotate(calculateOrientation) [FIXED billboard: Quaternionf.rotationYXZ(-0.017453292f*yRot, 0.017453292f*xRot, 0)] -> poseStack.mulPose(transformation) -> submitInner (Y 180) -> item layer transform. So the transformation acts in entity-local space where +Z = the entity's facing direction (yaw 0 = south, yaw 90 = west) and +X = its left.",
+    "ItemDisplayContext NONE: ItemTransforms.getTransform(context) is a tableswitch over the named contexts (9 in 26.3/1.21.11, 8 in 1.21.5); NONE falls to `default: getstatic ItemTransform.NO_TRANSFORM`. ItemTransform.apply(boolean, PoseStack$Pose): `if (this == NO_TRANSFORM) { pose.translate(-0.5f,-0.5f,-0.5f); return; }` (otherwise translate/rotate/scale then the same -0.5 translate). Called from ItemStackRenderState$LayerRenderState.applyTransform (26.3) / render (1.21.x). No default display transform applies for 'none' (model 'display' blocks have no 'none' entry).",
+    "FaceBakery.bakeVertex: position = FaceInfo$VertexInfo.select(from,to) / 16.0f (after element rotation about origin*0.0625), so model pixel p -> p/16 - 0.5 -> RotY(pi) -> (-(p.x/16-0.5), p.y/16-0.5, -(p.z/16-0.5)). Hence the face texture is on the model's north (-Z) face, which ends up facing entity +Z, and the oni's left (+X) is model -X (west).",
+    "Element rotation: 26.3 CuboidRotation$SingleAxisRotation.transformation = Matrix4f.rotation(angle*0.017453292f, axis.getPositive().getUnitVec3f()); 1.21.5 FaceBakery.applyElementRotation = Quaternionf.rotationAxis(angle*0.017453292f, +axis). 1.21.5 BlockElement$Deserializer.getAngle only accepts 0/±22.5/±45, so the jaw wedges use ±22.5 about z (rescale false). A local rotation by a about entity +Z is model angle -a.",
+    "26.3 CuboidItemModelWrapper$Unbaked has an optional 'transformation' field (identity by default) -> LayerRenderState.setLocalTransform; not used here (keeps 1.21.5 compatibility).",
+    "Element coordinates must be within [-16, 32] (CuboidModelElement$Deserializer.getPosition: float -16.0f / 32.0f checks); every part fits, i.e. a part may reach at most 1.5 blocks from its joint. Flipped UVs (u1>u2, used to share the left limb texture with the right limb) are fine: FaceBakery.computeMaterialTransparency uses Math.min/max of the UVs.",
+    "Culling: item pipelines (26.3 RenderPipelines.ITEM_CUTOUT/ITEM_TRANSLUCENT never call withCull(false); 1.21.x itemEntityTranslucentCull) keep back-face culling, so the inside of the head is invisible. Inner head faces that would point at the camera are omitted from the model.",
+    "Texture atlas: item models resolve aooni:item/* from the item atlas (1.21.11+ atlases/items.json directory source 'item' over all namespaces; 1.21.5 block atlas also includes 'item/').",
+    "Display entities default to item_display:\"none\". Players without this resource pack see the magenta/black missing-model cube for aooni:* item models; use server.properties require-resource-pack=true or keep a block_display fallback."
+  ]
+}
