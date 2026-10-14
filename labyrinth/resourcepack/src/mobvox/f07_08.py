@@ -407,9 +407,9 @@ def _sk_head(g: MobGrid, ctx):
     for s in (-1, 1):
         g.horn((s * 1.1, -1.2, -1.9), (s * 0.4, -0.2, -1), 2.9, 0.62, curl=(-s * 1.3, 0.2, 0), mat='chitin',
                val=0.36, tip_mat='crystal')
-        pts = [(s * 1.2, 1.5, -1.6), (s * 2.4, 3.4, -2.6), (s * 3.8, 4.5, -1.6), (s * 4.7, 4.7, 0.3)]
-        g.sweep(pts, 0.3, 0.26, 'chitin', 0.62)
-        g.blob(pts[-1], 0.55, 'glow', 0.7, glow=True, prio=4)
+        pts = [(s * 1.2, 1.5, -1.6), (s * 2.3, 3.3, -2.5), (s * 3.5, 4.3, -1.6), (s * 4.2, 4.5, -0.2)]
+        g.sweep(pts, 0.4, 0.32, 'chitin', 0.66)
+        g.blob(pts[-1], 0.45, 'glow', 0.7, glow=True, prio=4)
 
 
 def _sk_legs(g: MobGrid, ctx):
@@ -425,7 +425,7 @@ def _sk_legs(g: MobGrid, ctx):
             R, K, A, F = [(s * q[0], q[1], q[2]) for q in (R, K, A, F)]
             g.limb([R, K, A], [1.0, 0.74, 0.6], 'chitin', 0.46, joint_val=0.64, knob=1.2)
             d = vsub(F, A)
-            _shard(g, A, d, vlen(d) + 0.3, 0.62, 'crystal', tip=0.75)                     # crystal stilt
+            _shard(g, A, d, vlen(d) + 0.3, 0.74, 'crystal', tip=0.6)                      # crystal stilt
 
 
 def shard_skitterer(look, name, part, ctx):
@@ -635,8 +635,8 @@ def _gb_torso(g: MobGrid, ctx):
     for s in (-1, 1):
         _box(g, (s * 5.0, 2.0, -3.6), (s * 9.4, 8.6, 4.4), 'stone', 0.54, bevel=1.9)
         _box(g, (s * 6.8, -3.4, -2.4), (s * 8.8, 1.6, 2.6), 'stone', 0.4, bevel=0.9)          # flank chunk
-    g.blob((0, 5.6, 3.4), (5.4, 3.0, 2.8), 'stone', 0.56)
-    _strata(g, period=3.2, wave=0.25, groove=0.0, amount=0.11)
+    g.blob((0, 5.2, 3.0), (5.0, 2.8, 2.6), 'stone', 0.56)
+    _strata(g, period=4.0, wave=0.2, groove=0.0, amount=0.08)
     # the geode: banded agate rind lip, then the hollow the geode part sits in
     g.blob((0, 0.6, -4.4), (5.2, 5.6, 2.5), 'rind', prio=2,
            vfn=lambda x, y, z, d: ('rind', 0.85) if d > 0.84 else ('rind', 0.42))
@@ -646,7 +646,7 @@ def _gb_torso(g: MobGrid, ctx):
            mat='core', val=0.05)
     # amethyst clusters erupting from the back and shoulders (mostly upright: cheap and readable)
     for k, (base, up, n, size, r) in enumerate((((-5.6, 7.6, 1.6), (-0.3, 1, 0.3), 3, 5.0, 1.4),
-                                                 ((5.4, 7.8, 1.4), (0.25, 1, 0.3), 4, 5.8, 1.6),
+                                                 ((5.4, 7.8, 1.4), (0.25, 1, 0.3), 3, 5.8, 1.6),
                                                  ((0.4, 6.6, 5.0), (0.0, 0.7, 1), 2, 3.6, 1.1))):
         g.crystals(base, up, n=n, size=size, r=r, mat='crystal', spread=0.6, seed=20 + k)
 
@@ -655,15 +655,15 @@ def _gb_geode(g: MobGrid, ctx):
     g.blob((0, 0.6, 1.5), (4.2, 4.6, 1.0), 'crystal', 0.1, top=0.0)                       # dark druzy wall
     for iy in range(-3, 4):
         for ix in range(-3, 4):
-            x = ix * 1.6 + (0.8 if iy % 2 else 0.0)
-            y = 0.6 + iy * 1.45
+            x = ix * 1.8 + (0.9 if iy % 2 else 0.0)
+            y = 0.6 + iy * 1.55
             rr = math.hypot(x / 4.0, (y - 0.6) / 4.4)
             if rr > 1.0 or rr < 0.25:
                 continue
             base = (x, y, 1.4 - 2.4 * rr * rr)
-            d = (-x * 0.25, -(y - 0.6) * 0.25, -1)
+            d = (0, 0, -1)                                     # axis-aligned points: a dense druzy bed, cheap
             L = 1.5 + 1.6 * (1 - rr) * (0.6 + 0.4 * h2(ix, iy, 5))
-            _shard(g, base, d, L, 0.68 + 0.2 * h2(iy, ix, 6), 'crystal', tip=0.55)
+            _shard(g, base, d, L, 0.66 + 0.2 * h2(iy, ix, 6), 'crystal', tip=0.55)
     _shard(g, (0, 0.2, 1.0), (0, 0.2, -1), 3.8, 1.4, 'core', glow=True, prio=5)         # the heart crystal
     g.blob((0, 0.6, 0.5), 1.3, 'core', 0.7, glow=True, prio=5)
 
@@ -682,28 +682,27 @@ def _gb_head(g: MobGrid, ctx):
 def _gb_arm(g: MobGrid, ctx):
     o = ctx.out
     g.blob((o * 0.6, -1.0, 0.2), (4.2, 3.6, 4.2), 'stone', 0.52, top=0.18)                 # shoulder boulder
-    _box(g, (-2.4, -9.0, -2.4), (2.4, -2.6, 2.4), 'stone', 0.46, bevel=0.9)
-    _box(g, (-2.8, -11.2, -2.8), (2.8, -8.4, 3.0), 'stone', 0.56, bevel=1.0)               # elbow
-    _box(g, (-3.0, -15.6, -3.4), (3.0, -10.6, 2.8), 'stone', 0.48, bevel=1.0)              # forearm
+    g.blob((0, -5.8, 0.0), (2.5, 3.6, 2.5), 'stone', 0.46, seed=6)                                       # upper arm
+    g.blob((0, -9.8, 0.2), (2.9, 1.8, 3.0), 'stone', 0.56, lump=0.08, lump_scale=2.0, seed=7)            # elbow
+    g.blob((0, -13.2, -0.3), (3.1, 3.0, 3.2), 'stone', 0.48, lump=0.08, lump_scale=2.5, seed=8)          # forearm
     g.blob((0, -17.6, -0.7), (3.9, 2.9, 3.8), 'stone', 0.52, lump=0.1, lump_scale=2.2, top=0.16, seed=2)   # fist
     _strata(g, seed=5, period=3.0, wave=0.2, groove=0.0)
     for x in (-2.4, -0.8, 0.8, 2.4):
         _shard(g, (x, -17.6, -3.9), (0, 0, -1), 1.9, 0.62, 'crystal')                      # crystal knuckles
     g.crystals((o * 2.4, 1.6, 0.6), (o * 0.4, 1, 0.1), n=3, size=4.4, r=1.15, mat='crystal', spread=0.6, seed=40)
-    g.crystals((o * 2.6, -11.4, 1.2), (o * 0.8, 0.5, 0.6), n=3, size=2.6, r=0.8, mat='crystal', spread=0.6, seed=41)
 
 
 def _gb_legs(g: MobGrid, ctx):
     gy = -14.4
-    _box(g, (-6.2, -3.4, -3.2), (6.2, 1.0, 3.6), 'stone', 0.44, bevel=1.6)
+    g.blob((0, -1.2, 0.2), (6.4, 2.6, 3.6), 'stone', 0.44, lump=0.06, lump_scale=3.0, seed=9)
     for s in (-1, 1):
         x = s * 3.4
-        _box(g, (x - 2.7, -7.4, -2.5), (x + 2.7, -2.4, 2.5), 'stone', 0.46, bevel=1.0)     # thigh
-        _box(g, (x - 2.9, -9.0, -3.1), (x + 2.9, -6.6, 2.2), 'stone', 0.56, bevel=1.0)     # knee block
-        _box(g, (x - 2.2, -12.0, -2.0), (x + 2.2, -8.6, 2.0), 'stone', 0.44, bevel=0.8)    # shin
+        g.blob((x, -5.0, 0.0), (2.7, 2.8, 2.6), 'stone', 0.46, lump=0.08, lump_scale=2.5, seed=10 + s)   # thigh
+        g.blob((x, -8.0, -0.4), (2.8, 1.6, 2.8), 'stone', 0.56, seed=12 + s)                              # knee
+        g.blob((x, -10.6, 0.0), (2.2, 2.0, 2.1), 'stone', 0.44, seed=14 + s)                              # shin
         _box(g, (x - 3.0, gy, -3.6), (x + 3.0, gy + 2.8, 2.8), 'stone', 0.48, bevel=1.0)   # foot
-        for tx in (-1.9, 0.0, 1.9):
-            _box(g, (x + tx - 0.9, gy, -5.0), (x + tx + 0.9, gy + 1.6, -3.2), 'stone', 0.56, bevel=0.5)
+        for tx in (-1.3, 1.3):
+            _box(g, (x + tx - 1.0, gy, -5.0), (x + tx + 1.0, gy + 1.6, -3.2), 'stone', 0.56, bevel=0.5)
         g.crystals((x + s * 2.4, -8.4, -1.4), (s * 0.6, 0.6, -0.4), n=2, size=1.8, r=0.6, mat='crystal', seed=50 + s)
     _strata(g, seed=7, period=3.0, wave=0.2, groove=0.0)
 
@@ -715,7 +714,7 @@ def geode_brute(look, name, part, ctx):
           'legs': _gb_legs}.get(name)
     if fn is None:
         return None
-    g = ctx.grid({'torso': 0.95, 'geode': 0.55, 'head': 0.65, 'arm_left': 0.9, 'arm_right': 0.9,
+    g = ctx.grid({'torso': 1.1, 'geode': 0.6, 'head': 0.65, 'arm_left': 0.9, 'arm_right': 0.9,
                   'legs': 0.9}.get(name, 0.9))
     fn(g, ctx)
     return g
@@ -1054,6 +1053,12 @@ def _pg_core(g: MobGrid, ctx):
               glow=True, prio=6)
     g.sweep([(0.2, -1.6, 4.4), (0.6, -3.0, 5.2), (-0.2, -4.6, 4.8), (0.4, -6.0, 5.4)], 0.45, 0.45, 'ribbon', 0.5,
             sq=(1.0, 1.0, 0.45))
+    # the binding spell that keeps the swarm together: a glowing gold circle of script under the book
+    g.ring((0, -2.4, 0), 5.0, 0.25, axis='y', mat='glow', val=0.45, glow=True, prio=4)
+    g.ring((0, -2.4, 0), 3.9, 0.22, axis='y', mat='glow', val=0.3, glow=True, prio=4)
+    for q in range(12):
+        a = TAU * (q + 0.5) / 12
+        g.dot((math.cos(a) * 4.45, -2.4, math.sin(a) * 4.45), 'glow', 0.75, glow=True, prio=5)
 
 
 def _page(g, c, w, h, normal, text=True, curl=0, seed=0, prio=2, tone=0.0, initial=False):
@@ -1104,19 +1109,19 @@ def _page(g, c, w, h, normal, text=True, curl=0, seed=0, prio=2, tone=0.0, initi
 
 def _pg_pages(g: MobGrid, ctx):
     # a rising spiral of loose pages: standing pages where the whirl runs along an axis (crisp sheets), flat
-    # pages with curling ends between them, each a step higher; a trail of paper flecks marks the wind
+    # pages with curling ends between them, each a step higher
     R = 7.2
     for k in range(8):
         a = TAU * k / 8
         y = -3.0 + 0.8 * k
-        if k % 2 == 0:
+        if k % 2 == 0 and k != 6:                         # (no standing sheet right in front of the book)
             normal = 'x' if k % 4 == 0 else 'z'
             c = (math.cos(a) * R, y, math.sin(a) * R)
             _page(g, c, 4.2, 4.6, normal, text=k != 6, curl=1, seed=40 + k, tone=(-0.12, 0.06, 0.0, -0.06)[k // 2],
                   initial=k == 2)
         else:
             c = (math.cos(a) * (R - 0.6), y, math.sin(a) * (R - 0.6))
-            _page(g, c, 3.8, 4.6, 'y', text=True, curl=2, seed=40 + k, tone=(0.04, -0.1, 0.08, -0.04)[k // 2],
+            _page(g, c, 3.8, 4.6, 'y', text=True, curl=2, seed=40 + k, tone=(0.04, -0.1, 0.08, -0.04)[k // 2 % 4],
                   initial=k == 5)
 
 
@@ -1539,12 +1544,13 @@ def _fk_robe(g: MobGrid, ctx):
         if p:
             _drip(g, p, L, 0.4, 'ink', 0.4)
     # gold eye-sigil on the back
-    circle = [(math.cos(TAU * q / 16) * 2.4, -1.6 + math.sin(TAU * q / 16) * 2.4) for q in range(17)]
-    eye = [(-1.6, -1.6), (-0.8, -1.0), (0.0, -0.8), (0.8, -1.0), (1.6, -1.6), (0.8, -2.2), (0.0, -2.4), (-0.8, -2.2),
-           (-1.6, -1.6)]
+    cy = -6.4
+    circle = [(math.cos(TAU * q / 20) * 2.9, cy + math.sin(TAU * q / 20) * 2.9) for q in range(21)]
+    eye = [(-2.0, cy), (-1.0, cy + 0.8), (0.0, cy + 1.0), (1.0, cy + 0.8), (2.0, cy), (1.0, cy - 0.8), (0.0, cy - 1.0),
+           (-1.0, cy - 0.8), (-2.0, cy)]
     _strokes(g, (0, 0, 0), (0, 0, 1), [circle, eye], 'brass', 0.7, depth=10.0)
-    for x in (0.0, 0.3, -0.3):
-        q = g.hit((x, -1.6, 10.0), (0, 0, -1), 14)
+    for x in (0.0, 0.4, -0.4):
+        q = g.hit((x, cy, 10.0), (0, 0, -1), 14)
         if q:
             g.dot(q, 'rune', 0.7, glow=True, prio=7)
 
