@@ -353,6 +353,15 @@ village:
   8. `house_a`, `house_b`, `house_c` · 마을집 · ~7~9 × ~10 × ~7~9 · 서로 다른 지붕색.
   9. 장식: `lamp_post` (2~3종), `bench`, `well`, `flower_bed`, `tree_cherry`, `tree_oak` (잎 persistent), `signpost`, `cart`.
 - 마을 크기: 반경 ~32 (지름 ~65) 안에 다 들어가게. 광장 북쪽에 게이트, 광장 둘레에 대장간·전당·보관소·상점, 바깥에 여관·집·장식.
+  - 지금 layout (`tools/village/layout.py`): radius 33, 계획기 R 37 (조각 상자 모서리 + slack + 1) + B 16 = 조사·물 검사 반경 53.
+    R 은 가장 먼 조각 상자 모서리로 정해지므로 바깥 모퉁이 장식은 slack 1~2 로 둔다 (R 이 커지면 물 없는 자리를 찾기 어려워짐).
+  - 표지판 글에는 동서남북을 쓰지 않는다 (마을 회전은 시드·지형이 정함) — '광장 왼편/오른편', '분수 건너 계단 위'.
+
+### 5.1 배포 월드 (조립 담당 기록)
+- 시드 **24680**, `village build -136 16 west` (sunflower_plains, H0 64, 깎기 829 · 메우기 627 · 원목 10, 월드 스폰에서 120칸).
+  마을 북쪽 바로 밖(R+B 밖)에 강, 그 너머 숲. 마을 회전 COUNTERCLOCKWISE_90 — 게이트가 서쪽, 광장 스폰은 게이트를 바라봄.
+- 다시 만들기: `(cd plugin && ./gradlew build) && tools/build_world.sh 24680 -136 16 west && ./release.sh`.
+  청사진·계획기를 바꾸면 마을 모양이 달라질 수 있으니 자가 진단 줄과 덤프 렌더(`render.py --dump dist/village-dump.txt --top`)를 다시 본다.
 
 ## 6. 검증 기준 (끝났다고 하려면)
 1. `build_all.py` — 모든 조각 JSON 생성, 팔레트 문자열 형식, 블록 이름·속성이 26.x 에 있음, 금지 블록 없음, 발자국 겹침 없음(§3 규칙),

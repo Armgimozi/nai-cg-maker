@@ -314,7 +314,7 @@ public final class Planner {
             }
             if (chosen == null && pl.bp.deco) {
                 // 장식은 지형에 안 맞거나(한도·동굴) 자리가 없으면 억지로 끼우지 않고 그 장식만 뺀다 (§0)
-                p.skipped.add(pl.bp.id + " (" + (options.isEmpty() ? Planner.label(zero.fail()) : Planner.label(Fail.OVERLAP)) + ")");
+                p.skipped.add(pl.bp.id + "#" + pl.index() + " (" + (options.isEmpty() ? Planner.label(zero.fail()) : Planner.label(Fail.OVERLAP)) + ")");
                 for (Plan.PathPlan pp : p.paths) {
                     if (pp.attachA == pl.index()) pp.attachA = -1;
                     if (pp.attachB == pl.index()) pp.attachB = -1;

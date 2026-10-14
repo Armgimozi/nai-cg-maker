@@ -46,7 +46,7 @@ LAYOUT = {
         P("lamp_post_a", -3, 22),
         P("lamp_post_a", 3, 21),
         P("lamp_post_b", -5, -12),
-        P("bench", 6, -12),
+        P("bench", 21, 22),
     ],
     "paths": [
         # 큰길: 광장 네 입구에서 게이트·전당·보관소, 그리고 마을 밖으로

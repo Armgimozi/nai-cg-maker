@@ -25,7 +25,7 @@
     {"piece": "lamp_post_a", "at": [-3, 22], "front": "north"},
     {"piece": "lamp_post_a", "at": [3, 21], "front": "north"},
     {"piece": "lamp_post_b", "at": [-5, -12], "front": "north"},
-    {"piece": "bench", "at": [6, -12], "front": "north"}
+    {"piece": "bench", "at": [21, 22], "front": "north"}
   ],
   "paths": [
     {"points": [[0, -10], [0, -17]], "width": 3, "style": "main"},
