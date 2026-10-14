@@ -48,16 +48,9 @@ setup:
 ui:
   use_glyphs: true
 
-# 서버 목록 화면 (멀티플레이 목록의 설명 두 줄 + 아이콘). MiniMessage. 둘째 줄은 서버 기록에 따라 셋 중 하나.
-#  <deepest> 서버 최고 돌파 층 · <exploring> 지금 미궁 안 인원 · <difficulty> 서버 난이도
+# 서버 목록 화면 아이콘 (jar 안 미궁 석문 아이콘). 설명 글은 server.properties 의 motd 를 그대로 쓴다.
 server_list:
-  enabled: true
   icon: true
-  line1: "<gradient:#ffe08a:#ff9a4d:#c06bff><b>⚔ 미궁 라비린스 ⚔</b></gradient> <dark_gray>│</dark_gray> <gradient:#9fe8ff:#c9a2ff>지하 10층의 파티 던전</gradient>"
-  line2_new: "<gray><i>끝을 본 사람은 아직 없다…</i></gray> <dark_gray>·</dark_gray> <#c9a2ff>난이도 <white><difficulty></white>"
-  line2_record: "<gray>서버 최고 기록</gray> <gradient:#ffd36b:#ff7a3d><b>지하 <deepest>층</b></gradient> <gray>돌파</gray> <dark_gray>·</dark_gray> <#c9a2ff>난이도 <white><difficulty></white>"
-  line2_cleared: "<gradient:#ffd36b:#ff4d6d><b>✦ 심연의 심장이 쓰러졌다 ✦</b></gradient> <dark_gray>·</dark_gray> <#c9a2ff>난이도 <white><difficulty></white>"
-  exploring: " <dark_gray>·</dark_gray> <#ff6b6b>● <white><exploring></white>명 탐험 중"
 
 # 리소스팩 — 내장 HTTP 서버가 plugins/Labyrinth/pack/labyrinth-pack.zip 을 서빙한다.
 pack:
