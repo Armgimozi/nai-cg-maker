@@ -1,0 +1,1 @@
+$item replace block ~ ~ ~ container.$(slot) with minecraft:glass_bottle[minecraft:custom_name={text:"빈 약병",color:"gray",italic:false},minecraft:lore=[{text:"바닥에 파란 얼룩이 말라붙어 있다",color:"gray",italic:false}]]

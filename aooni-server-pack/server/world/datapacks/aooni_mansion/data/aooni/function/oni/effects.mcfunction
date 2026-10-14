@@ -7,3 +7,6 @@ execute if score #diff aooni.var matches 3 run effect give @s minecraft:speed in
 execute if entity @s[tag=aooni.enraged] run effect give @s minecraft:speed infinite 2 true
 attribute @s minecraft:block_interaction_range base set 0
 attribute @s minecraft:knockback_resistance base set 1
+execute if score #diff aooni.var matches 1 run attribute @s minecraft:attack_damage base set 4
+execute if score #diff aooni.var matches 2 run attribute @s minecraft:attack_damage base set 5
+execute if score #diff aooni.var matches 3 run attribute @s minecraft:attack_damage base set 7

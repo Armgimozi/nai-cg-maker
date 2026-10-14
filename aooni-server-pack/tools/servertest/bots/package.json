@@ -1,0 +1,18 @@
+{
+  "name": "aooni-servertest-bots",
+  "version": "1.0.0",
+  "private": true,
+  "description": "아오오니 저택 데이터팩 실서버 테스트용 mineflayer 봇",
+  "type": "commonjs",
+  "main": "lib/bots.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "versions": "node lib/versions.js"
+  },
+  "dependencies": {
+    "mineflayer": "^4.39.0",
+    "mineflayer-pathfinder": "^2.4.5"
+  }
+}

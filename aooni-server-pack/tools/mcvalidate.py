@@ -32,7 +32,7 @@ MACRO_SAMPLES = {
     "n1": "도", "n2": "레", "n3": "미", "n4": "파", "n5": "솔",
     "n": "4", "t": "보통", "sec": "12", "min": "3",
     "o": "doMobSpawning", "v": "false", "r": "doMobSpawning",
-    "nm": "마검", "hp": "140", "w": "2",
+    "nm": "마검", "hp": "140", "w": "2", "slot": "13", "dx": "12", "dy": "-60", "dz": "-5",
 }
 # 버전마다 이름이 달라 일부러 한쪽이 실패하도록 만든 매크로 파일(별도 검사)
 MACRO_SKIP_FILES = {"compat/gamerule_try.mcfunction"}

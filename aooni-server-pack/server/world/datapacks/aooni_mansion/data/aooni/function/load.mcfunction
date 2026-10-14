@@ -5,8 +5,9 @@ scoreboard objectives add aooni.gid dummy
 scoreboard objectives add aooni.leave minecraft.custom:minecraft.leave_game
 scoreboard objectives add aooni.grace dummy
 scoreboard objectives add aooni.deaths deathCount
-# 생존자가 아오오니에게 맞으면 저항 효과가 피해를 막으면서 이 통계가 오른다 → 잡힘 판정
-scoreboard objectives add aooni.hit minecraft.custom:minecraft.damage_resisted
+# 회복 음식을 먹었는지(먹은 횟수 통계)
+scoreboard objectives add aooni.eb minecraft.used:minecraft.bread
+scoreboard objectives add aooni.es minecraft.used:minecraft.cooked_beef
 scoreboard objectives add aooni.wc dummy
 # 연습 끝내기: OP 가 아니어도 /trigger aooni.quit
 scoreboard objectives add aooni.quit trigger
@@ -26,6 +27,7 @@ team modify aooni_oni friendlyFire false
 team add aooni_out
 team modify aooni_out color gray
 team modify aooni_out collisionRule never
+team modify aooni_out friendlyFire false
 team modify aooni_out seeFriendlyInvisibles false
 team add aooni_lobby
 team modify aooni_lobby friendlyFire false
