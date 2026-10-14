@@ -32,7 +32,8 @@ public final class Nature {
             "dripstone_block", "sandstone", "red_sandstone", "terracotta", "dirt", "coarse_dirt", "rooted_dirt", "grass_block",
             "podzol", "mycelium", "mud", "clay", "gravel", "sand", "red_sand", "snow_block", "powder_snow", "moss_block",
             "pale_moss_block", "amethyst_block", "budding_amethyst", "smooth_basalt", "obsidian", "magma_block", "bedrock",
-            "mossy_cobblestone", "sculk", "infested_stone", "infested_deepslate", "raw_iron_block", "raw_copper_block");
+            "mossy_cobblestone", "sculk", "infested_stone", "infested_deepslate", "raw_iron_block", "raw_copper_block",
+            "bone_block", "cinnabar", "sulfur", "potent_sulfur");
 
     private static final Set<String> PLANT = Set.of("short_grass", "tall_grass", "fern", "large_fern", "dead_bush", "bush",
             "firefly_bush", "short_dry_grass", "tall_dry_grass", "dandelion", "poppy", "blue_orchid", "allium", "azure_bluet",
@@ -42,7 +43,8 @@ public final class Nature {
             "sugar_cane", "cactus", "bamboo", "bamboo_sapling", "pumpkin", "melon", "azalea", "flowering_azalea", "moss_carpet",
             "pale_moss_carpet", "big_dripleaf", "big_dripleaf_stem", "small_dripleaf", "spore_blossom", "glow_lichen",
             "hanging_roots", "lily_pad", "seagrass", "tall_seagrass", "kelp", "kelp_plant", "pointed_dripstone", "cave_vines",
-            "cave_vines_plant", "sculk_vein", "amethyst_cluster", "large_amethyst_bud", "medium_amethyst_bud", "small_amethyst_bud");
+            "cave_vines_plant", "sculk_vein", "amethyst_cluster", "large_amethyst_bud", "medium_amethyst_bud", "small_amethyst_bud",
+            "red_shrub", "sulfur_spike");
 
     private static final Set<String> TREE_PART = Set.of("vine", "cocoa", "bee_nest", "pale_hanging_moss", "resin_clump",
             "mangrove_propagule", "creaking_heart");

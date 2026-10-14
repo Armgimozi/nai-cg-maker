@@ -1,0 +1,31 @@
+{
+  "format": 1,
+  "id": "bench",
+  "name": "긴 의자",
+  "size": [4, 3, 1],
+  "floor_y": 0,
+  "foundation": "minecraft:cobblestone",
+  "foundation_mix": [["minecraft:cobblestone", 3], ["minecraft:mossy_cobblestone", 1], ["minecraft:andesite", 1]],
+  "anchor": [1, 0],
+  "palette": {
+    "s": "minecraft:dark_oak_stairs[facing=south,half=bottom,shape=straight,waterlogged=false]",
+    "d": "minecraft:dark_oak_trapdoor[facing=east,half=bottom,open=true,powered=false,waterlogged=false]",
+    "t": "minecraft:dark_oak_trapdoor[facing=north,half=bottom,open=true,powered=false,waterlogged=false]",
+    "T": "minecraft:dark_oak_trapdoor[facing=west,half=bottom,open=true,powered=false,waterlogged=false]",
+    "b": "minecraft:mossy_stone_bricks",
+    "B": "minecraft:stone_bricks"
+  },
+  "layers": [
+    [
+      "bBbB"
+    ],
+    [
+      "Tssd"
+    ],
+    [
+      " tt "
+    ]
+  ],
+  "markers": [
+  ]
+}

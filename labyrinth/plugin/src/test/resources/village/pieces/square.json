@@ -6,14 +6,16 @@
   "floor_y": 0,
   "foundation": "minecraft:stone_bricks",
   "anchor": [4, 0],
-  "palette": { "o": "minecraft:polished_andesite", "w": "minecraft:white_concrete", "*": "minecraft:sea_lantern" },
+  "palette": { "o": "minecraft:polished_andesite", "w": "minecraft:white_concrete", "*": "minecraft:sea_lantern", "B": "minecraft:white_banner[rotation=0]" },
   "layers": [
     ["  ooooo  ", " ooooooo ", "ooowwwooo", "oowwwwwoo", "oowwwwwoo", "oowwwwwoo", "ooowwwooo", " ooooooo ", "  ooooo  "],
-    ["         ", "         ", "         ", "         ", "    *    ", "         ", "         ", "         ", "         "]
+    ["         ", " B       ", "         ", "         ", "    *    ", "         ", "         ", "         ", "         "]
   ],
   "markers": [
     {"type": "spawn", "pos": [4, 1, 6], "face": "front"},
     {"type": "entrance", "pos": [4, 1, 1], "face": "front"},
-    {"type": "npc", "id": "guide", "pos": [2, 1, 4], "face": "right"}
+    {"type": "npc", "id": "guide", "pos": [2, 1, 4], "face": "right"},
+    {"type": "banner", "pos": [1, 1, 1], "patterns": [["border", "black"], ["rhombus", "light_blue"]]},
+    {"type": "ambient", "pos": [4, 1, 4], "fx": "fountain"}
   ]
 }

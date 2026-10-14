@@ -7,7 +7,7 @@
 | `vlib.py` | 조각 캔버스 + 블록·모양 도우미 + 연결 상태 계산 + 검증 + JSON 내보내기 |
 | `render.py` | 등각 PNG (조각 / 마을 전체 / 서버 덤프) |
 | `build_all.py` | `pieces_*.py` 전부 → `plugin/src/main/resources/village/` + 검증 (+ `--render`) |
-| `layout.py` | 마을 배치 `LAYOUT` (조립 담당) · `pieces_demo.py` 사용법 예제 (`demo_hut`) |
+| `layout.py` | 마을 배치 `LAYOUT` (조립 담당) — 조각 기준 자리·방향·길. `pieces_signs.py` = 배치에 맞춘 표지판 글 |
 | `blockdata.json` | 26.x 블록 상태 표·색 (생성물, `gen_blockdata.py` 로만 다시 만듦) |
 
 **조각 하나 만들기** — `pieces_<주제>.py` 에 `Piece` 를 돌려주는 인자 없는 함수를 쓰고 끝에 `PIECES = [함수, ...]`.

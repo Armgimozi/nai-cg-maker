@@ -48,7 +48,7 @@ class MetaRoundTripTest {
         assertNotNull(m.entrance);
         assertEquals(2, m.npcs.size(), "blacksmith(오두막 둘 → 하나로) + guide");
         assertEquals(4, m.interact.size(), "오두막 2채 × interact 2칸");
-        assertEquals(2, m.ambient.size());
+        assertEquals(3, m.ambient.size(), "오두막 불씨 2 + 광장 분수 1");
         assertTrue(m.protect.size() >= 4);
         assertEquals("CLOCKWISE_90", m.rotation);
 

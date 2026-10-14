@@ -1,0 +1,50 @@
+{
+  "format": 1,
+  "id": "lamp_post_a",
+  "name": "나무 가로등",
+  "size": [1, 6, 2],
+  "floor_y": 0,
+  "foundation": "minecraft:cobblestone",
+  "foundation_mix": [["minecraft:cobblestone", 3], ["minecraft:mossy_cobblestone", 1], ["minecraft:andesite", 1]],
+  "anchor": [0, 1],
+  "palette": {
+    "b": "minecraft:chiseled_stone_bricks",
+    "f": "minecraft:dark_oak_fence[east=false,north=false,south=false,waterlogged=false,west=false]",
+    "d": "minecraft:dark_oak_fence[east=false,north=false,south=true,waterlogged=false,west=false]",
+    "F": "minecraft:dark_oak_fence[east=false,north=true,south=false,waterlogged=false,west=false]",
+    "l": "minecraft:dark_oak_log[axis=y]",
+    "L": "minecraft:lantern[hanging=false,waterlogged=false]",
+    "#": "minecraft:lantern[hanging=true,waterlogged=false]",
+    "w": "minecraft:mossy_stone_brick_wall[east=none,north=none,south=none,up=true,waterlogged=false,west=none]"
+  },
+  "layers": [
+    [
+      " ",
+      "b"
+    ],
+    [
+      " ",
+      "w"
+    ],
+    [
+      " ",
+      "l"
+    ],
+    [
+      "#",
+      "f"
+    ],
+    [
+      "d",
+      "F"
+    ],
+    [
+      " ",
+      "L"
+    ]
+  ],
+  "markers": [
+    {"type": "light", "pos": [0, 3, 0]},
+    {"type": "light", "pos": [0, 5, 1]}
+  ]
+}

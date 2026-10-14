@@ -12,7 +12,9 @@ import org.bukkit.Material;
 /**
  * 나무 치우기 계산 (VILLAGE.md §4.1 2번) — 비동기 스레드에서 스냅샷만 읽는다.
  * <ol>
- *   <li>씨앗: 마을 영역(R+B) 안 원목 + 영역 안 잎에서 잎을 따라 7칸 안에 닿는 원목 (= 영역에 걸친 나무).</li>
+ *   <li>씨앗: 마을이 손대는 열(조각·길 같은 고정 칸과 그 둘레 2칸, 높이가 바뀐 칸)의 원목 + 그 열의 잎에서 잎을 따라 7칸 안에
+ *       닿는 원목 (= 손대는 땅에 걸친 나무). 그대로인 땅에 선 나무는 남긴다 — 숲 가장자리가 동그랗게 잘리지 않고,
+ *       건물과 떨어진 원래 나무는 마을 안에도 남는다.</li>
  *   <li>씨앗에서 원목끼리(26방향) 이어진 덩어리째 — 영역 밖으로 뻗은 부분 포함 (상한 있음).</li>
  *   <li>잎: 둘레 상자 안 자연 잎 중 남는 원목에서 잎을 따라 6칸 안에 닿지 않는 것 (바닐라 잎 거리 규칙) — 반쯤 잘린 잎 덩어리를 남기지 않는다.</li>
  *   <li>덩굴·코코아·벌집·창백한 이끼 같은 붙은 것, 지운 잎 위 눈 한 겹.</li>
@@ -22,7 +24,8 @@ final class Trees {
 
     static final int LOG_CAP = 80_000;
 
-    record Result(List<long[]> remove, int logs, int leaves, int parts, boolean capped) {}
+    /** remove = 공기로, regrass = 지운 줄기 밑 흙(나무가 잔디를 흙으로 바꿔 둔 자리) → 잔디로. */
+    record Result(List<long[]> remove, List<long[]> regrass, int logs, int leaves, int parts, boolean capped) {}
 
     private Trees() {}
 
@@ -48,14 +51,18 @@ final class Trees {
         return m != null && Scan.kind(m) == Nature.Kind.LEAVES && Scan.naturalLeaves(s.data(x, y, z));
     }
 
-    static Result analyze(Scan.Snapshots s, TerrainGrid grid, int cx, int cz, int reach) {
+    /**
+     * @param affected 마을이 손대는 열인가 (고정 칸과 그 둘레 2칸 + 높이가 바뀐 칸) — 그 열에 걸친 나무만 지운다.
+     *                 그대로인 땅에 선 나무는 남겨 숲 가장자리가 마을 모양을 따라 자연스럽게 남는다.
+     */
+    static Result analyze(Scan.Snapshots s, TerrainGrid grid, int cx, int cz, int reach, java.util.function.BiPredicate<Integer, Integer> affected) {
         Set<Long> seeds = new HashSet<>();
         List<long[]> regionLeaves = new ArrayList<>();
         int minX = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE, minY = Integer.MAX_VALUE;
         int maxX = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE;
         for (int z = cz - reach; z <= cz + reach; z++) {
             for (int x = cx - reach; x <= cx + reach; x++) {
-                if (Math.hypot(x - cx, z - cz) > reach || !grid.has(x, z) || !grid.flag(x, z, Terrain.TREE)) continue;
+                if (Math.hypot(x - cx, z - cz) > reach || !grid.has(x, z) || !grid.flag(x, z, Terrain.TREE) || !affected.test(x, z)) continue;
                 int g = grid.ground(x, z), top = s.highest(x, z);
                 for (int y = g + 1; y <= top; y++) {
                     if (log(s, x, y, z)) seeds.add(pack(x, y, z));
@@ -127,7 +134,7 @@ final class Trees {
         }
         List<long[]> remove = new ArrayList<>();
         for (long k : logs) remove.add(new long[] {ux(k), uy(k), uz(k)});
-        if (logs.isEmpty() && regionLeaves.isEmpty()) return new Result(remove, 0, 0, 0, false);
+        if (logs.isEmpty() && regionLeaves.isEmpty()) return new Result(remove, List.of(), 0, 0, 0, false);
         // 잎: 남는 원목에서 6칸 안에 닿지 않는 자연 잎 (둘레 상자 +8)
         Set<Long> orphan = orphanLeaves(s, minX - 8, minY - 8, minZ - 8, maxX + 8, maxY + 8, maxZ + 8, logs);
         int leaves = 0;
@@ -163,7 +170,15 @@ final class Trees {
                 if (s.type(x, y, z) == self && partSet.add(pack(x, y, z))) pq.add(new long[] {x, y, z});
             }
         }
-        return new Result(remove, logs.size(), leaves, parts, capped);
+        // 줄기 밑 흙 → 잔디 (짙은 참나무 2×2 같은 흙 자국이 남지 않게)
+        List<long[]> regrass = new ArrayList<>();
+        for (long k : logs) {
+            int x = ux(k), y = uy(k) - 1, z = uz(k);
+            if (logs.contains(pack(x, y, z))) continue;
+            Material below = s.type(x, y, z);
+            if (below == Material.DIRT || below == Material.ROOTED_DIRT || below == Material.COARSE_DIRT) regrass.add(new long[] {x, y, z});
+        }
+        return new Result(remove, regrass, logs.size(), leaves, parts, capped);
     }
 
     /**

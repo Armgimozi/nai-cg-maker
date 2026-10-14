@@ -61,8 +61,14 @@ public final class Plan {
 
         public int[] anchor() { return world(bp.anchorX, bp.anchorZ); }
 
-        /** 정문 바로 앞 바깥 칸 (정방향 (anchorX, −1)). */
-        public int[] doorFront() { return world(bp.anchorX, -1); }
+        /** 정문 바로 앞 바깥 칸: anchor 에서 정면(정방향 −z)으로 가다 발자국을 벗어난 첫 칸 (VILLAGE.md §3). */
+        public int[] doorFront() { return world(bp.anchorX, doorZ(bp)); }
+
+        static int doorZ(Blueprint bp) {
+            int z = bp.anchorZ;
+            while (z >= 0 && bp.occupied(bp.anchorX, z)) z--;
+            return z;
+        }
 
         public int minY() { return worldY(0); }
 
@@ -91,6 +97,8 @@ public final class Plan {
     }
 
     public final int cx, cz, turns;
+    /** 계획기 안쪽 반경 R · 혼합 띠 B. */
+    public int inner, blend;
     public Planner.Fail fail = Planner.Fail.NONE;
     public String reason = "";
     public int h0;

@@ -1,0 +1,158 @@
+{
+  "format": 1,
+  "id": "tree_oak",
+  "name": "큰 참나무",
+  "size": [9, 12, 9],
+  "floor_y": 0,
+  "foundation": "minecraft:cobblestone",
+  "foundation_mix": [["minecraft:cobblestone", 3], ["minecraft:mossy_cobblestone", 1], ["minecraft:andesite", 1]],
+  "anchor": [4, 4],
+  "palette": {
+    "b": "minecraft:grass_block[snowy=false]",
+    "a": "minecraft:leaf_litter[facing=east,segment_amount=3]",
+    "c": "minecraft:leaf_litter[facing=north,segment_amount=1]",
+    "#": "minecraft:leaf_litter[facing=south,segment_amount=2]",
+    "d": "minecraft:leaf_litter[facing=south,segment_amount=4]",
+    "l": "minecraft:oak_leaves[distance=7,persistent=true,waterlogged=false]",
+    "L": "minecraft:oak_log[axis=x]",
+    "o": "minecraft:oak_log[axis=y]",
+    "O": "minecraft:oak_log[axis=z]",
+    "w": "minecraft:oak_wood[axis=y]"
+  },
+  "layers": [
+    [
+      "         ",
+      "         ",
+      "     b   ",
+      "  b    b ",
+      "   LoL   ",
+      "    O    ",
+      "   b  b  ",
+      "         ",
+      "         "
+    ],
+    [
+      "         ",
+      "         ",
+      "     d   ",
+      "  #    a ",
+      "    ow   ",
+      "         ",
+      "   #  c  ",
+      "         ",
+      "         "
+    ],
+    [
+      "         ",
+      "         ",
+      "         ",
+      "         ",
+      "    o    ",
+      "         ",
+      "         ",
+      "         ",
+      "         "
+    ],
+    [
+      "         ",
+      "         ",
+      "         ",
+      "         ",
+      "    o    ",
+      "         ",
+      "         ",
+      "         ",
+      "         "
+    ],
+    [
+      "         ",
+      "         ",
+      "         ",
+      "         ",
+      "    oL   ",
+      "         ",
+      "         ",
+      "         ",
+      "         "
+    ],
+    [
+      "         ",
+      "         ",
+      "         ",
+      "    O    ",
+      "    o L  ",
+      "         ",
+      "         ",
+      "         ",
+      "         "
+    ],
+    [
+      "         ",
+      "         ",
+      "    O    ",
+      "         ",
+      "   Lo ol ",
+      "  O   l  ",
+      "         ",
+      "         ",
+      "         "
+    ],
+    [
+      "         ",
+      "   ll    ",
+      "   ol    ",
+      "     lll ",
+      "    ollll",
+      " lol llll",
+      " lll lll ",
+      " lll     ",
+      "         "
+    ],
+    [
+      "   ll    ",
+      "  llll   ",
+      "  llll   ",
+      "  llllll ",
+      " lllollll",
+      " llllllll",
+      "llllllll ",
+      " lll     ",
+      "  l      "
+    ],
+    [
+      "         ",
+      "  lll    ",
+      "  llll   ",
+      "  lllll  ",
+      "  lllll  ",
+      " llllll  ",
+      " llllll  ",
+      "  lll    ",
+      "         "
+    ],
+    [
+      "         ",
+      "         ",
+      "   lll   ",
+      "  lllll  ",
+      "  lllll  ",
+      "  lllll  ",
+      "   lll   ",
+      "         ",
+      "         "
+    ],
+    [
+      "         ",
+      "         ",
+      "         ",
+      "     ll  ",
+      "     l   ",
+      "         ",
+      "         ",
+      "         ",
+      "         "
+    ]
+  ],
+  "markers": [
+  ]
+}

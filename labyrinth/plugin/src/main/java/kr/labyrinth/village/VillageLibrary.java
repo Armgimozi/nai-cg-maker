@@ -49,8 +49,9 @@ public final class VillageLibrary {
             return new VillageLibrary(null, Map.of(), null, problems);
         }
         Map<String, Blueprint> pieces = new LinkedHashMap<>();
+        java.util.Set<String> tried = new java.util.HashSet<>();
         for (Layout.Entry e : layout.pieces) {
-            if (pieces.containsKey(e.piece())) continue;
+            if (!tried.add(e.piece())) continue;
             String pj = reader.apply("village/pieces/" + e.piece() + ".json");
             if (pj == null) {
                 problems.add("조각 village/pieces/" + e.piece() + ".json 없음");

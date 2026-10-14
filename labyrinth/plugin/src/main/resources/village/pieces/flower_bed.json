@@ -1,0 +1,54 @@
+{
+  "format": 1,
+  "id": "flower_bed",
+  "name": "돌 화단",
+  "size": [5, 4, 4],
+  "floor_y": 0,
+  "foundation": "minecraft:cobblestone",
+  "foundation_mix": [["minecraft:cobblestone", 3], ["minecraft:mossy_cobblestone", 1], ["minecraft:andesite", 1]],
+  "anchor": [2, 1],
+  "palette": {
+    "A": "minecraft:allium",
+    "c": "minecraft:cornflower",
+    "d": "minecraft:dirt",
+    "g": "minecraft:grass_block[snowy=false]",
+    "b": "minecraft:mossy_stone_bricks",
+    "o": "minecraft:oxeye_daisy",
+    "P": "minecraft:peony[half=lower]",
+    "#": "minecraft:peony[half=upper]",
+    "a": "minecraft:polished_andesite",
+    "p": "minecraft:potted_azure_bluet",
+    "t": "minecraft:red_tulip",
+    "r": "minecraft:rose_bush[half=lower]",
+    "B": "minecraft:rose_bush[half=upper]",
+    "s": "minecraft:stone_bricks"
+  },
+  "layers": [
+    [
+      "bsbsb",
+      "bdddb",
+      "bddda",
+      "bsssb"
+    ],
+    [
+      "sbaab",
+      "bgggb",
+      "sgggs",
+      "bbaaa"
+    ],
+    [
+      "p    ",
+      " trA ",
+      " Poc ",
+      "    p"
+    ],
+    [
+      "     ",
+      "  B  ",
+      " #   ",
+      "     "
+    ]
+  ],
+  "markers": [
+  ]
+}

@@ -47,8 +47,8 @@ public final class Markers {
         VillageMeta m = new VillageMeta();
         m.name = layout.name;
         m.rotation = Rot.of(plan.turns).name();
-        m.radius = layout.radius;
-        m.blend = layout.blend;
+        m.radius = plan.inner > 0 ? plan.inner : layout.radius;
+        m.blend = plan.blend > 0 ? plan.blend : layout.blend;
         m.center = new int[] {plan.cx, plan.h0, plan.cz};
         for (Placed mk : all(plan)) {
             int[] w = mk.first();

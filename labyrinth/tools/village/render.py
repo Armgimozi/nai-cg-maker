@@ -13,12 +13,13 @@
 """
 import argparse
 import colorsys
+import json
 import math
 import os
 import sys
 import zlib
 
-from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
+from PIL import Image, ImageChops, ImageDraw, ImageFont
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -1280,7 +1281,6 @@ def main(argv=None):
             sc = scene_from_blueprint(bp, vlib.rot_index(a.rotate), not a.no_ground, labels=labels)
             paths = save_views(sc, a.out, views, a.top, px, a.ss, labels)
     elif a.layout:
-        import json
         if not a.pieces_dir:
             ap.error("--layout 에는 --pieces-dir 가 필요")
         with open(a.layout, encoding="utf-8") as f:

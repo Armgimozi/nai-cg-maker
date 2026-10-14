@@ -1,0 +1,54 @@
+{
+  "format": 1,
+  "id": "cart",
+  "name": "손수레",
+  "size": [4, 4, 4],
+  "floor_y": 0,
+  "foundation": "minecraft:cobblestone",
+  "foundation_mix": [["minecraft:cobblestone", 3], ["minecraft:mossy_cobblestone", 1], ["minecraft:andesite", 1]],
+  "anchor": [1, 1],
+  "palette": {
+    "b": "minecraft:barrel[facing=up,open=false]",
+    "w": "minecraft:brown_wool",
+    "S": "minecraft:brown_wool_slab[type=bottom,waterlogged=false]",
+    "d": "minecraft:coarse_dirt",
+    "h": "minecraft:hay_block[axis=x]",
+    "B": "minecraft:hay_block[axis=z]",
+    "p": "minecraft:potted_dandelion",
+    "P": "minecraft:pumpkin",
+    "f": "minecraft:spruce_fence[east=false,north=false,south=false,waterlogged=false,west=true]",
+    "F": "minecraft:spruce_fence[east=true,north=false,south=false,waterlogged=false,west=false]",
+    "s": "minecraft:spruce_slab[type=top,waterlogged=false]",
+    "t": "minecraft:spruce_trapdoor[facing=east,half=bottom,open=true,powered=false,waterlogged=false]",
+    "T": "minecraft:spruce_trapdoor[facing=west,half=bottom,open=true,powered=false,waterlogged=false]",
+    "W": "minecraft:white_wool"
+  },
+  "layers": [
+    [
+      "    ",
+      " dd ",
+      " dd ",
+      " dd "
+    ],
+    [
+      " Ff ",
+      " ss ",
+      "Tsst",
+      " ss "
+    ],
+    [
+      "    ",
+      " hP ",
+      " bB ",
+      " wW "
+    ],
+    [
+      "    ",
+      "    ",
+      " p  ",
+      "  S "
+    ]
+  ],
+  "markers": [
+  ]
+}

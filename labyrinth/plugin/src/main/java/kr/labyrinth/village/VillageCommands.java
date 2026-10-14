@@ -137,6 +137,18 @@ final class VillageCommands {
                 Text.error(s, "예전 메타데이터를 읽지 못했습니다: " + Text.escape(e.getMessage()));
                 return;
             }
+            // force 는 자리·방향을 안 주면 예전 마을 자리·방향 그대로 다시 짓는다
+            if (x == null) {
+                x = old.center[0];
+                z = old.center[2];
+                if (turns == null) {
+                    try {
+                        turns = Rot.turns(org.bukkit.block.structure.StructureRotation.valueOf(old.rotation));
+                    } catch (IllegalArgumentException ignored) {
+                        // 방향 자동
+                    }
+                }
+            }
         }
         new VillageBuilder(module, s, w, x, z, turns, force, old).start();
     }

@@ -98,7 +98,7 @@ public final class SetupMenu extends LabMenu {
         if (village) {
             // 미리 지은 마을 월드: 입구는 마을 게이트로 정해져 있다 (VILLAGE.md §4.3)
             deco(40, Button.icon(Material.CRYING_OBSIDIAN, "<#c79bff><b>입구: 마을의 미궁의 아가리</b>",
-                    List.of("<gray>이 월드에는 미리 지은 마을이 있습니다.", "<gray>광장 북쪽 게이트가 미궁 입구입니다.",
+                    List.of("<gray>이 월드에는 미리 지은 마을이 있습니다.", "<gray>광장에서 계단을 오른 큰 아치가 미궁 입구입니다.",
                             "<gray>게이트 문을 우클릭하거나 안내인 벨라에게", "<gray>말을 걸면 입장 메뉴가 열립니다.")));
             set(49, Button.icon(Material.LIME_CONCRETE, "<#7fe07f><b>확정</b>",
                     List.of("<gray>난이도 <white>" + dn + "</white> · 입구 <white>마을 게이트")),

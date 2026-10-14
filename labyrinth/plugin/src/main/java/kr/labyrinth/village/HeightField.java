@@ -4,17 +4,20 @@ package kr.labyrinth.village;
  * 목표 높이장 (VILLAGE.md §4.1 3번) — 순수 함수. 원래 땅높이 + "바뀐 양" 장으로 계산한다:
  * <ol>
  *   <li>고정 칸(조각 단·길·추가 단)의 바뀐 양 Δ = 고정 높이 − 원래 높이.</li>
- *   <li>나머지 칸의 Δ 는 고정 칸 값과 바깥 테두리(R+B 밖 = 0) 사이를 매끄럽게 잇는 조화 보간(SOR) —
- *       가까운 단 높이를 거리에 따라 섞는 효과. 원래 지형의 굴곡은 그대로 남는다(평판 금지).</li>
+ *   <li>나머지 칸의 Δ 는 고정 칸 값에서 멀어질수록 줄어드는 매끄러운 보간 (가려진 라플라스 방정식, SOR, 감쇠 길이
+ *       {@link #DECAY}칸, R+B 밖 = 0) — 가까운 단·길 높이를 거리에 따라 섞는 효과. 바꾼 양만 퍼지므로 원래 지형의
+ *       굴곡은 그대로 남고(평판 금지), 단에서 먼 곳은 거의 손대지 않는다.</li>
  *   <li>R~R+B 띠에서는 Δ 에 (1 − smoothstep) 을 곱해 원래 높이로 돌아간다. R+B 밖은 손대지 않는다.</li>
  *   <li>걸어 다닐 수 있게: 고정이 아닌 칸은 이웃(4방향) 높이 차가 1 이하가 될 때까지 다듬는다
  *       (R 안은 전부, 띠는 바뀐 칸과 그 이웃만 — 띠 밖 자연 절벽은 건드리지 않음).</li>
- *   <li>그래도 이웃보다 2칸 이상 높은 바뀐 칸 = 옹벽 (드러난 높이 {@code exposed}).</li>
+ *   <li>그래도 이웃보다 2칸 이상 높은 칸(R 안 전부 + 띠의 바뀐 칸) = 옹벽 (드러난 높이 {@code exposed}).</li>
  * </ol>
  */
 public final class HeightField {
 
     public static final int NONE = Integer.MIN_VALUE;
+    /** 바뀐 양이 단에서 퍼지는 감쇠 길이 (칸). */
+    public static final double DECAY = 6.0;
 
     /** 결과: 목표 높이, 원래와 다른가, 옹벽 드러난 높이(0 = 아님). 배열 순서 = z*nx + x. */
     public record Result(int nx, int nz, int[] target, boolean[] changed, int[] exposed, long cut, long fill) {}
@@ -39,10 +42,10 @@ public final class HeightField {
                 isFixed[i] = fixed[i] != NONE;
             }
         }
-        // 1~2. Δ 조화 보간 (SOR, 고정 칸·영역 밖은 디리클레 조건)
+        // 1~2. Δ 보간 (가려진 라플라스, SOR — 고정 칸·영역 밖은 디리클레 조건)
         double[] delta = new double[n];
         for (int i = 0; i < n; i++) if (isFixed[i]) delta[i] = fixed[i] - ground[i];
-        double omega = 1.9;
+        double omega = 1.85, k2 = 1.0 / (DECAY * DECAY);
         for (int it = 0; it < 600; it++) {
             double maxChange = 0;
             for (int z = 0; z < nz; z++) {
@@ -54,7 +57,7 @@ public final class HeightField {
                     s += x < nx - 1 && region[i + 1] ? delta[i + 1] : 0;
                     s += z > 0 && region[i - nx] ? delta[i - nx] : 0;
                     s += z < nz - 1 && region[i + nx] ? delta[i + nx] : 0;
-                    double nv = delta[i] + omega * (s / 4.0 - delta[i]);
+                    double nv = delta[i] + omega * (s / (4.0 + k2) - delta[i]);
                     maxChange = Math.max(maxChange, Math.abs(nv - delta[i]));
                     delta[i] = nv;
                 }
@@ -105,7 +108,7 @@ public final class HeightField {
             changed[i] = t[i] != ground[i];
             if (t[i] > ground[i]) fill += t[i] - ground[i];
             else cut += ground[i] - t[i];
-            if (!region[i] || !(changed[i] || isFixed[i])) continue;
+            if (!region[i] || !(changed[i] || isFixed[i] || dist[i] <= r)) continue; // R 안은 그대로인 칸도 (흙 절벽 대신 돌 옹벽)
             int x = i % nx, z = i / nx;
             int min = t[i];
             for (int q = 0; q < 4; q++) {

@@ -56,6 +56,7 @@ final class VillageBuilder extends VillageJob {
     private Scan.Snapshots snaps;
     private Future<Trees.Result> treeFuture;
     private List<long[]> clear = List.of();
+    private List<long[]> regrass = List.of();
     private int cursor, cursor2, cursor3;
     private int ox, oz;
     private final Map<String, BlockData> dataCache = new HashMap<>();
@@ -181,7 +182,8 @@ final class VillageBuilder extends VillageJob {
                 if (plan == null || !plan.ok()) {
                     Text.error(sender, "여기에는 마을을 지을 수 없습니다 — " + Text.escape(plan == null ? "계획 없음" : Planner.label(plan.fail) + ": " + plan.reason));
                     if (!planNote.isEmpty()) Text.send(sender, "<gray>  " + Text.escape(planNote));
-                    Text.send(sender, "<gray>  다른 자리는 <white>/labadmin village survey</white> 로 찾으세요. (아무것도 바꾸지 않았습니다)");
+                    Text.send(sender, "<gray>  다른 자리는 <white>/labadmin village survey</white> 로 찾으세요. "
+                            + (keep != null ? "<#ff9a4d>(force: 예전 마을은 이미 지운 상태)" : "(아무것도 바꾸지 않았습니다)"));
                     Log.info("[마을] 짓기 거절: " + (plan == null ? "-" : plan.reason));
                     return true;
                 }
@@ -197,14 +199,15 @@ final class VillageBuilder extends VillageJob {
                 pump.pump();
                 if (pump.finished()) {
                     step = Step.TREES;
-                    treeFuture = async().submit(() -> Trees.analyze(snaps, grid, plan.cx, plan.cz, lib.planner.reach()));
+                    treeFuture = async().submit(() -> Trees.analyze(snaps, grid, plan.cx, plan.cz, lib.planner.reach(), this::tidy));
                 }
             }
             case TREES -> {
                 if (!treeFuture.isDone()) return false;
                 Trees.Result t = treeFuture.get();
                 snaps = null;
-                clear = t.remove();
+                clear = new ArrayList<>(t.remove());
+                regrass = t.regrass();
                 cursor = 0;
                 step = Step.CLEAR;
                 say("<gray>  나무: 원목 " + t.logs() + " · 잎 " + t.leaves() + " · 붙은 것 " + t.parts() + (t.capped() ? " <#ff9a4d>(상한 도달)" : ""));
@@ -219,7 +222,12 @@ final class VillageBuilder extends VillageJob {
                         b.use(1);
                     }
                 }
-                if (cursor >= clear.size()) {
+                while (cursor >= clear.size() && cursor - clear.size() < regrass.size() && b.more()) {
+                    long[] p = regrass.get(cursor++ - clear.size());
+                    Block blk = world.getBlockAt((int) p[0], (int) p[1], (int) p[2]);
+                    if (blk.getRelative(0, 1, 0).getType().isAir()) set(blk, "minecraft:grass_block[snowy=false]", b);
+                }
+                if (cursor >= clear.size() + regrass.size()) {
                     step = Step.TERRAIN;
                     cursor = 0;
                 }
@@ -325,11 +333,7 @@ final class VillageBuilder extends VillageJob {
                 int t = old.terrain != null && old.terrain.in(x, z) ? old.terrain.height(x, z) : bx.y0() + 2;
                 for (int y = bx.y0(); y <= bx.y1(); y++) {
                     String want = y > t ? "minecraft:air" : y == t ? "minecraft:grass_block" : y >= t - 3 ? "minecraft:dirt" : "minecraft:stone";
-                    Block blk = world.getBlockAt(x, y, z);
-                    if (!blk.getBlockData().getAsString().equals(want)) {
-                        blk.setBlockData(data(want), false);
-                        b.use(1);
-                    }
+                    set(world.getBlockAt(x, y, z), want, b);
                 }
             }
             if (cursor2 >= cols) {
@@ -337,7 +341,22 @@ final class VillageBuilder extends VillageJob {
                 cursor2 = 0;
             }
         }
-        return cursor >= old.protect.size();
+        if (cursor < old.protect.size()) return false;
+        // 상자 밖 옹벽·기초 블록도 자연 블록으로 (다시 조사할 때 '사람이 지은 블록'으로 걸리지 않게)
+        VillageMeta.TerrainRec tr = old.terrain;
+        if (tr == null) return true;
+        int n = tr.n() * tr.n();
+        while (cursor3 < n && b.more()) {
+            int x = tr.x0() + cursor3 % tr.n(), z = tr.z0() + cursor3 / tr.n();
+            cursor3++;
+            int t = tr.height(x, z);
+            for (int y = t - 6; y <= t + 3; y++) {
+                Block blk = world.getBlockAt(x, y, z);
+                if (Scan.kind(blk.getType()) != Nature.Kind.UNNATURAL) continue;
+                set(blk, y > t ? "minecraft:air" : y == t ? "minecraft:grass_block" : y >= t - 3 ? "minecraft:dirt" : "minecraft:stone", b);
+            }
+        }
+        return cursor3 >= n;
     }
 
     // ── 지형 ─────────────────────────────────────────────────────────────
@@ -394,14 +413,17 @@ final class VillageBuilder extends VillageJob {
         int reach = lib.planner.reach();
         if (dist > reach || !grid.has(x, z)) return;
         int g = plan.ground[i], t = plan.field.target()[i];
-        boolean inR = dist <= lib.planner.inner;
         boolean colChanged = t != g;
         byte src = plan.fixedSrc[i];
         int exposed = plan.field.exposed()[i];
         String surf = grid.surface(x, z);
         String top = Nature.topFor(surf), sub = Nature.subsurface(surf);
-        if (!colChanged && !inR && exposed == 0) return;
-        // 1. 목표보다 위: 공기 (식물·눈 포함, 위로 뻗은 자연 지형 덩어리까지)
+        // 손대는 칸 = 고정 칸(조각·여유·정문 앞·길·추가 단)과 그 둘레 2칸, 높이가 바뀐 칸, 옹벽 칸.
+        // 그 밖(R 안이라도 그대로인 땅)의 풀·꽃·눈은 남긴다 — 마을 둘레에 동그랗게 깎인 자국이 생기지 않게.
+        boolean tidy = src != 0 || colChanged || exposed > 0 || nearFixed(lx, lz, 2);
+        if (!tidy) return;
+        boolean snowy = grid.flag(x, z, Terrain.SNOW) && src != 3 && src != 4 && src != 5;
+        // 1. 목표보다 위: 공기 (식물·눈 포함, 위로 뻗은 자연 지형 덩어리까지) — 그대로인 눈 덮인 칸은 눈 유지
         int clearTop = Math.max(g, t) + 2;
         for (int y = t + 1; y <= clearTop + 14; y++) {
             Block blk = world.getBlockAt(x, y, z);
@@ -412,6 +434,7 @@ final class VillageBuilder extends VillageJob {
             }
             Nature.Kind k = Scan.kind(m);
             boolean go = y <= g ? replaceableTerrain(m) : (k == Nature.Kind.PLANT || k == Nature.Kind.GROUND || k == Nature.Kind.LIQUID);
+            if (m == Material.SNOW && snowy && !colChanged && y == t + 1) go = false;
             if (!go) {
                 if (y > clearTop) break;
                 continue;
@@ -442,11 +465,34 @@ final class VillageBuilder extends VillageJob {
             Nature.Kind kk = Scan.kind(blk.getType());
             if (kk == Nature.Kind.AIR || kk == Nature.Kind.LIQUID) set(blk, footprint ? foundation(x, t - k, z) : sub, b);
         }
-        // 4. 띠의 눈 덮인 칸은 눈 한 겹 되살림 (R 안은 지움 — §4.1 2번)
-        if (!inR && src == 0 && grid.flag(x, z, Terrain.SNOW) && exposed == 0) {
+        // 4. 원래 눈 덮였던 바뀐 칸은 눈 한 겹 되살림 (길·정문 앞·조각 발자국 제외) — 눈 덮인 들판 가운데 초록 원판이 생기지 않게
+        if (snowy && colChanged && exposed == 0) {
             Block above = world.getBlockAt(x, t + 1, z);
-            if (above.getType().isAir()) set(above, "minecraft:snow[layers=1]", b);
+            if (above.getType().isAir()) {
+                Block topBlk = world.getBlockAt(x, t, z);
+                if (topBlk.getType() == Material.GRASS_BLOCK) set(topBlk, "minecraft:grass_block[snowy=true]", b);
+                set(above, "minecraft:snow[layers=1]", b);
+            }
         }
+    }
+
+    /** 마을이 손대는 칸인가: 고정 칸(조각·여유·정문 앞·길·추가 단)과 그 둘레 2칸, 높이가 바뀐 칸. 나무·풀·눈은 이 칸에서만 치운다. */
+    boolean tidy(int x, int z) {
+        if (!plan.inGrid(x, z)) return false;
+        int i = plan.idx(x, z);
+        return plan.fixedSrc[i] != 0 || plan.field.changed()[i] || plan.field.exposed()[i] > 0 || nearFixed(x - plan.gx0, z - plan.gz0, 2);
+    }
+
+    /** 격자 칸 (lx, lz) 둘레 r 칸 안에 고정 칸이 있는가. */
+    private boolean nearFixed(int lx, int lz, int r) {
+        for (int dz = -r; dz <= r; dz++) {
+            for (int dx = -r; dx <= r; dx++) {
+                int ax = lx + dx, az = lz + dz;
+                if (ax < 0 || az < 0 || ax >= plan.gn || az >= plan.gn) continue;
+                if (plan.fixedSrc[az * plan.gn + ax] != 0) return true;
+            }
+        }
+        return false;
     }
 
     // ── 조각 ─────────────────────────────────────────────────────────────

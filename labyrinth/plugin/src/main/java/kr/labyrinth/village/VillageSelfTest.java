@@ -270,6 +270,9 @@ final class VillageSelfTest extends VillageJob {
                 int t = tr != null && tr.in(x, z) ? tr.height(x, z) : snaps.minY;
                 minT = Math.min(minT, t);
                 maxT = Math.max(maxT, t);
+                // 마을이 손댄 열만 (고정 칸 둘레 2칸 + 바뀐 칸) — 그대로인 땅의 나무는 일부러 남김 (VillageBuilder#tidy 와 같은 규칙)
+                boolean affected = tr != null && tr.in(x, z) && tr.changed(x, z) || nearFixed(x, z);
+                if (!affected) continue;
                 int top = snaps.highest(x, z);
                 for (int y = t - 1; y <= top; y++) {
                     Material m = snaps.type(x, y, z);
@@ -293,10 +296,34 @@ final class VillageSelfTest extends VillageJob {
         return logs + leaves;
     }
 
-    private boolean inPieceBox(int x, int y, int z) {
-        for (Plan.Placed pl : pieces) {
-            if (x >= pl.x0 && x < pl.x0 + pl.w2 && z >= pl.z0 && z < pl.z0 + pl.d2 && y >= pl.minY() && y <= pl.maxY()) return true;
+    private Set<Long> fixedCols;
+
+    /** 조각 발자국+둘레 1칸, 정문 앞 칸, 길 칸 = 계획기의 고정 칸 (추가 단 제외). 그 둘레 2칸 안인가. */
+    private boolean nearFixed(int x, int z) {
+        if (fixedCols == null) {
+            Set<Long> f = new HashSet<>();
+            for (Plan.Placed pl : pieces) {
+                for (int rz = -1; rz <= pl.d2; rz++) {
+                    for (int rx = -1; rx <= pl.w2; rx++) {
+                        int wx = pl.x0 + rx, wz = pl.z0 + rz;
+                        boolean near = false;
+                        for (int qz = -1; qz <= 1 && !near; qz++) for (int qx = -1; qx <= 1 && !near; qx++) near = pl.occupies(wx + qx, wz + qz);
+                        if (near) f.add(PathRaster.key(wx, wz));
+                    }
+                }
+                int[] d = pl.doorFront();
+                f.add(PathRaster.key(d[0], d[1]));
+            }
+            for (Plan.PathPlan pp : paths) for (int[] c : pp.cells) f.add(PathRaster.key(c[0], c[1]));
+            fixedCols = f;
         }
+        for (int dz = -2; dz <= 2; dz++) for (int dx = -2; dx <= 2; dx++) if (fixedCols.contains(PathRaster.key(x + dx, z + dz))) return true;
+        return false;
+    }
+
+    /** 메타데이터 보호 상자(조각 상자 +1, 길) 안 — 조각이 일부러 놓은 원목은 나무 조각이 아니다. */
+    private boolean inPieceBox(int x, int y, int z) {
+        for (VillageMeta.Box b : meta.protect) if (b.contains(x, y, z)) return true;
         return false;
     }
 

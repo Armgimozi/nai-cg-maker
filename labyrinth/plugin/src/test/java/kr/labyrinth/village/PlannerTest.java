@@ -57,6 +57,31 @@ class PlannerTest {
         assertEquals(0 + hut.dz, lane.points.get(1)[1]);
     }
 
+    /** 조각끼리 붙음·정문 앞 막음·길에 닿음은 overlaps 가 잡는다 (짓기 전·자가 진단 공용). */
+    @Test
+    void overlapRulesCatchTouchingDoorAndPath() {
+        VillageLibrary lib = Fixtures.library();
+        Plan p = lib.planner.plan(Fixtures.flat(80, 64), 0, 0, 0, false);
+        assertTrue(p.ok(), p.reason);
+        Plan.Placed hut = p.pieces.get(1), lamp = p.pieces.get(3);
+        // 가로등을 오두막 정문 앞 칸 옆으로
+        int[] f = hut.doorFront();
+        lamp.x0 = f[0] + 1;
+        lamp.z0 = f[1];
+        List<String> ov = Planner.overlaps(p.pieces, p.paths);
+        assertFalse(ov.isEmpty());
+        assertTrue(ov.stream().anyMatch(s -> s.contains("정문")), ov.toString());
+        // 오두막 바로 옆(빈칸 0)
+        lamp.x0 = hut.x0 + hut.w2;
+        lamp.z0 = hut.z0 + 1;
+        assertTrue(Planner.overlaps(p.pieces, p.paths).stream().anyMatch(s -> s.contains("붙음")));
+        // 붙지 않은 길 위
+        int[] c = p.paths.get(1).cells.get(0);
+        lamp.x0 = c[0];
+        lamp.z0 = c[1] + 1;
+        assertTrue(Planner.overlaps(p.pieces, p.paths).stream().anyMatch(s -> s.contains("길")));
+    }
+
     @Test
     void waterStructureAndCaveRejectCandidate() {
         VillageLibrary lib = Fixtures.library();

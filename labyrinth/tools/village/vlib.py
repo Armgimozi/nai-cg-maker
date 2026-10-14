@@ -1377,7 +1377,9 @@ class Piece:
                 return (ox, 0, oz)
         if bid.endswith("lantern") and "hanging" in pr:
             return (0, 1, 0) if pr["hanging"] == "true" else (0, -1, 0)
-        if bid.endswith("_hanging_sign") and not bid.endswith("_wall_hanging_sign"):
+        if bid.endswith("_wall_hanging_sign"):
+            return None                       # 옆(facing 의 시계·반시계 쪽) 블록에 붙음 — 어느 쪽인지 몰라 검사 생략
+        if bid.endswith("_hanging_sign"):
             return (0, 1, 0)
         if bid.endswith("_door") and pr.get("half") == "lower":
             return (0, -1, 0)

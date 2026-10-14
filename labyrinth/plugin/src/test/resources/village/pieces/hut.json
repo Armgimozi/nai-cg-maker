@@ -17,19 +17,20 @@
     "S": "minecraft:dark_oak_stairs[facing=south,half=bottom,shape=straight,waterlogged=false]",
     "l": "minecraft:oak_log[axis=x]",
     "f": "minecraft:oak_fence[east=true,north=false,south=false,waterlogged=false,west=true]",
-    "★": "minecraft:lantern[hanging=false,waterlogged=false]"
+    "★": "minecraft:lantern[hanging=false,waterlogged=false]",
+    "g": "minecraft:oak_sign[rotation=8,waterlogged=false]"
   },
   "layers": [
     ["ccccc", "ccccc", "ccccc", "ccccc", "ccccc"],
     ["ppppp", "ppppp", "ppppp", "ppppp", "ppppp"],
-    ["##d##", "#...#", "#...#", "#..★#", "#####"],
+    ["##d##", "#...#", "#g..#", "#..★#", "#####"],
     ["##e##", "#...#", "#...#", "#...#", "#####"],
     ["sssss", "lllll", "fffff", "lllll", "SSSSS"]
   ],
   "markers": [
     {"type": "npc", "id": "blacksmith", "pos": [2, 2, 2], "face": "front"},
-    {"type": "interact", "action": "blacksmith", "pos": [[1, 2, 3], [3, 2, 3]]},
+    {"type": "interact", "action": "blacksmith", "pos": [[3, 2, 3], [0, 2, 2]]},
     {"type": "ambient", "pos": [2, 4, 2], "fx": "embers"},
-    {"type": "sign", "pos": [0, 3, 1], "lines": ["<gold>대장간", "", "", ""], "glow": true}
+    {"type": "sign", "pos": [1, 2, 2], "lines": ["<gold>대장간", "<gray>시험용", "", ""], "glow": true}
   ]
 }

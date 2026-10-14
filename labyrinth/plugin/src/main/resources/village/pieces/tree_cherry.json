@@ -1,0 +1,100 @@
+{
+  "format": 1,
+  "id": "tree_cherry",
+  "name": "벚나무",
+  "size": [7, 8, 7],
+  "floor_y": 0,
+  "foundation": "minecraft:cobblestone",
+  "foundation_mix": [["minecraft:cobblestone", 3], ["minecraft:mossy_cobblestone", 1], ["minecraft:andesite", 1]],
+  "anchor": [3, 3],
+  "palette": {
+    "l": "minecraft:cherry_leaves[distance=7,persistent=true,waterlogged=false]",
+    "L": "minecraft:cherry_log[axis=x]",
+    "c": "minecraft:cherry_log[axis=y]",
+    "C": "minecraft:cherry_log[axis=z]",
+    "w": "minecraft:cherry_wood[axis=y]",
+    "b": "minecraft:grass_block[snowy=false]",
+    "#": "minecraft:pink_petals[facing=north,flower_amount=1]",
+    "a": "minecraft:pink_petals[facing=north,flower_amount=3]",
+    "p": "minecraft:pink_petals[facing=south,flower_amount=1]",
+    "P": "minecraft:pink_petals[facing=south,flower_amount=3]",
+    "d": "minecraft:pink_petals[facing=west,flower_amount=2]",
+    "e": "minecraft:pink_petals[facing=west,flower_amount=4]"
+  },
+  "layers": [
+    [
+      "       ",
+      " bb    ",
+      "    bb ",
+      " b c   ",
+      "  b b  ",
+      "     b ",
+      "       "
+    ],
+    [
+      "       ",
+      " pe    ",
+      "    Pd ",
+      " a c   ",
+      "  P #  ",
+      "     p ",
+      "       "
+    ],
+    [
+      "       ",
+      "       ",
+      "       ",
+      "   c   ",
+      "       ",
+      "       ",
+      "       "
+    ],
+    [
+      "       ",
+      "       ",
+      " l     ",
+      "   wL  ",
+      "       ",
+      "       ",
+      "       "
+    ],
+    [
+      "  ll   ",
+      " l   l ",
+      " l C   ",
+      "     L ",
+      " cL    ",
+      "       ",
+      "  l    "
+    ],
+    [
+      "  lll  ",
+      " llCll ",
+      " llllcl",
+      "lllclll",
+      " llllll",
+      " Cllll ",
+      "  l    "
+    ],
+    [
+      "       ",
+      "  llll ",
+      " llllll",
+      " lllll ",
+      " lllll ",
+      " llll  ",
+      "       "
+    ],
+    [
+      "       ",
+      "       ",
+      "   l   ",
+      "   ll  ",
+      "   ll  ",
+      "       ",
+      "       "
+    ]
+  ],
+  "markers": [
+  ]
+}
