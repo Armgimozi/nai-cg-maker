@@ -102,6 +102,14 @@ public final class StatService implements Module, Listener {
                 Log.error("StatContributor 오류", t);
             }
         }
+        try {
+            if (services.items().heldWeapon(p) == null) {
+                double vanilla = VanillaWeapon.damage(p.getInventory().getItemInMainHand());
+                if (vanilla > 0) bonus.add("damage", vanilla);
+            }
+        } catch (Throwable t) {
+            Log.error("바닐라 무기 피해 계산 오류", t);
+        }
         Settings.Combat cc = services.settings().combat();
         DerivedStats s = StatCalculator.compute(cls, d.level(), d.allocated(), bonus, cc.baseCritChance(), cc.baseCritDamage());
         DerivedStats old = cache.put(p.getUniqueId(), s);
@@ -128,7 +136,15 @@ public final class StatService implements Module, Listener {
         }
         setBase(p, Attribute.MOVEMENT_SPEED, BASE_MOVE_SPEED * (1.0 + s.moveSpeed()));
         ItemDef weapon = services.items().heldWeapon(p);
-        double atkSpeed = services.settings().weaponAttackSpeed(weapon == null ? null : weapon.weaponType());
+        boolean vanillaSpeed;
+        try {
+            vanillaSpeed = weapon == null && VanillaWeapon.hasSpeed(p.getInventory().getItemInMainHand());
+        } catch (Throwable t) {
+            vanillaSpeed = false;
+        }
+        double atkSpeed = vanillaSpeed
+                ? VanillaWeapon.PLAYER_BASE_SPEED
+                : services.settings().weaponAttackSpeed(weapon == null ? null : weapon.weaponType());
         setBase(p, Attribute.ATTACK_SPEED, Math.max(0.2, atkSpeed * (1.0 + s.attackSpeed())));
         setBase(p, Attribute.KNOCKBACK_RESISTANCE, s.knockbackResistance());
     }
