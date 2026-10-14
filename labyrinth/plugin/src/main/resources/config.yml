@@ -55,6 +55,10 @@ setup:
 ui:
   use_glyphs: true
 
+# 서버 목록 화면 아이콘 (jar 안 미궁 석문 아이콘). 설명 글은 server.properties 의 motd 를 그대로 쓴다.
+server_list:
+  icon: true
+
 # 리소스팩 — 내장 HTTP 서버가 plugins/Labyrinth/pack/labyrinth-pack.zip 을 서빙한다.
 pack:
   enabled: true
