@@ -39,7 +39,7 @@ public final class Settings {
         }
     }
 
-    public record Pack(boolean enabled, int port, String bind, String publicHost, String url, String sha1,
+    public record Pack(boolean enabled, int port, String bind, String publicHost, int publicPort, String url, String sha1,
                        boolean required, boolean kickOnDecline, boolean updateFromJar, String prompt) {}
 
     public record Combat(boolean damageNumbers, int damageNumberTicks, double baseCritChance, double baseCritDamage,
@@ -82,7 +82,8 @@ public final class Settings {
                 (float) c.getDouble("entrance.yaw"), (float) c.getDouble("entrance.pitch"),
                 c.getDouble("entrance.radius", 8));
         this.pack = new Pack(c.getBoolean("pack.enabled", true), c.getInt("pack.port", 8163),
-                c.getString("pack.bind", "0.0.0.0"), c.getString("pack.public_host", ""), c.getString("pack.url", ""),
+                c.getString("pack.bind", "0.0.0.0"), c.getString("pack.public_host", ""),
+                c.getInt("pack.public_port", 0), c.getString("pack.url", ""),
                 c.getString("pack.sha1", ""), c.getBoolean("pack.required", true),
                 c.getBoolean("pack.kick_on_decline", false), c.getBoolean("pack.update_from_jar", true),
                 c.getString("pack.prompt", "<gray>미궁 라비린스 전용 리소스팩입니다.</gray>"));

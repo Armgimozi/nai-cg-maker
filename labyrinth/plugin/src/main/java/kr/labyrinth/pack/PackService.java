@@ -179,12 +179,39 @@ public final class PackService implements Module, Listener {
     public String urlFor(Player p) {
         if (externalUrl != null) return externalUrl;
         Settings.Pack cfg = services.settings().pack();
-        String host = cfg.publicHost();
-        if (host == null || host.isBlank()) host = joinHosts.get(p.getUniqueId());
+        String joined = joinHosts.get(p.getUniqueId());
+        String host;
+        int port = cfg.port();
+        boolean hasPublic = cfg.publicHost() != null && !cfg.publicHost().isBlank();
+        if (joined != null && isLocalHost(joined)) {
+            host = joined;                       // 같은 PC·같은 와이파이 → 내장 서버에 바로
+        } else if (hasPublic) {
+            host = cfg.publicHost().trim();      // 터널(playit.gg 등)·외부 → 설정한 공개 주소:포트
+            if (cfg.publicPort() > 0) port = cfg.publicPort();
+        } else {
+            host = joined;
+        }
         if (host == null || host.isBlank()) host = Bukkit.getIp();
         if (host == null || host.isBlank() || host.equals("0.0.0.0")) host = "127.0.0.1";
         if (host.contains(":") && !host.startsWith("[")) host = "[" + host + "]"; // IPv6
-        return "http://" + host + ":" + cfg.port() + "/" + FILE_NAME + "?v=" + (sha1.length() >= 8 ? sha1.substring(0, 8) : "0");
+        return "http://" + host + ":" + port + "/" + FILE_NAME + "?v=" + (sha1.length() >= 8 ? sha1.substring(0, 8) : "0");
+    }
+
+    /** localhost · 사설망(LAN) 주소인가. */
+    static boolean isLocalHost(String h) {
+        String s = h.toLowerCase(java.util.Locale.ROOT);
+        if (s.equals("localhost") || s.startsWith("127.") || s.equals("::1") || s.equals("[::1]")) return true;
+        if (s.startsWith("10.") || s.startsWith("192.168.")) return true;
+        if (s.startsWith("172.")) {
+            String[] parts = s.split("\\.");
+            try {
+                int second = Integer.parseInt(parts[1]);
+                return second >= 16 && second <= 31;
+            } catch (RuntimeException e) {
+                return false;
+            }
+        }
+        return false;
     }
 
     /** 팩 전송 (접속 시 자동, /labadmin pack resend 등에서 수동). */

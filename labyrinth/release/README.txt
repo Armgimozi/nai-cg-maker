@@ -67,14 +67,22 @@
     방법 A. 공유기 포트포워딩
       공유기 설정에서 25565(게임), 8163(리소스팩) 두 TCP 포트를 내 PC 로 열어 줍니다.
       친구는 내 공인 IP 로 접속합니다. (네이버에 "내 아이피" 검색)
-    방법 B. playit.gg 같은 터널 프로그램
-      게임 포트(25565)만 열리므로 리소스팩을 못 받습니다. 이때는
-      Labyrinth-pack.zip 을 인터넷에 올리고(예: GitHub 릴리스, 구글 드라이브 직접 링크가 아닌
-      바로 받기 주소) plugins/Labyrinth/config.yml 의
+    방법 B. playit.gg 같은 터널 프로그램  (리소스팩용 터널을 하나 더 만드세요)
+      playit 은 기본으로 게임 포트(25565)만 연결해서 친구가 리소스팩을 못 받습니다.
+      1) playit 에서 터널을 하나 더 추가합니다: 종류 TCP, 로컬 포트 8163
+      2) 만들어진 주소가 예) abc-def.gl.at.ply.gg:12345 라면 plugins/Labyrinth/config.yml 의
+           pack:
+             public_host: "abc-def.gl.at.ply.gg"
+             public_port: 12345
+         처럼 적고 서버를 다시 켭니다 (/labadmin reload 도 됨).
+      3) 같은 PC·같은 와이파이로 들어오는 사람은 자동으로 내 PC 주소에서 받으니 그대로 둬도 됩니다.
+    방법 C. 리소스팩을 인터넷에 올리기 (터널을 하나 더 만들기 싫을 때)
+      plugins/Labyrinth/pack/labyrinth-pack.zip 을 mc-packs.net 같은 리소스팩 무료 호스팅에 올리고,
+      알려 주는 다운로드 주소와 SHA-1 을 config.yml 에
         pack:
-          url: "https://…/Labyrinth-pack.zip"
-          sha1: "Labyrinth-pack.sha1 파일 안의 값"
-      을 적은 뒤 /labadmin reload. (아래 '리소스팩' 참고)
+          url: "https://…/labyrinth-pack.zip"
+          sha1: "SHA-1 값"
+      로 적은 뒤 서버를 다시 켭니다. 업데이트할 때마다 새 팩을 다시 올려야 합니다.
 
   ※ server.properties 의 online-mode=true 라서 정품 계정만 들어올 수 있습니다.
   ※ 오늘 판은 PvP 가 꺼져 있습니다 (pvp=false). 스킬도 친구에게 맞지 않습니다.

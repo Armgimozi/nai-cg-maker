@@ -54,6 +54,8 @@ pack:
   port: 8163                # 서버 방화벽/공유기에서 이 TCP 포트를 열어야 친구들이 받을 수 있다
   bind: "0.0.0.0"
   public_host: ""           # 비우면 각 플레이어가 접속한 주소(도메인/IP)를 그대로 사용
+  public_port: 0            # playit.gg 같은 터널: 8163 용 TCP 터널을 하나 더 만들고 그 주소를 public_host, 포트를 여기에
+                            #   (같은 PC·와이파이로 들어온 사람은 자동으로 내장 주소를 씀)
   url: ""                   # 외부 호스팅 URL 을 쓰려면 여기에 (내장 서버를 끈다)
   sha1: ""                  # 외부 URL 일 때 SHA-1 (비우면 로컬 zip 으로 계산 시도)
   required: true
