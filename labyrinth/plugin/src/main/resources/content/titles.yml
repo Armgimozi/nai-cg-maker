@@ -260,7 +260,7 @@ achievements:
 
   hard_floor_10:
     name: "심연의 도전자"
-    description: "어려움 이상 난이도로 지하 10층 돌파 (악몽 난이도 해금)"
+    description: "어려움 이상 난이도로 지하 10층 돌파"
     category: challenge
     condition: {type: DIFFICULTY_CLEAR, floor: 10, difficulty: hard}
     title: "<gradient:#b01a3a:#ff5a3c:#ffe9a8>심연의 도전자</gradient>"

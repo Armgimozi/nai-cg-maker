@@ -4,3 +4,4 @@ resourcepack/dist/
 resourcepack/.venv/
 __pycache__/
 *.pyc
+/dist/

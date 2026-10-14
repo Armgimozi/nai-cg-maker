@@ -4,7 +4,6 @@ import kr.labyrinth.Services;
 import kr.labyrinth.content.ClassDef;
 import kr.labyrinth.content.FloorDef;
 import kr.labyrinth.core.Difficulty;
-import kr.labyrinth.core.Log;
 import kr.labyrinth.core.Text;
 import kr.labyrinth.data.PlayerData;
 import kr.labyrinth.stats.DerivedStats;
@@ -68,13 +67,11 @@ public class ChatMenuService implements MenuService {
             p.sendMessage(Text.mm("<" + c.color() + ">● " + c.name() + "</" + c.color() + "> <dark_gray>(" + c.role() + ")</dark_gray> ")
                     .append(Text.mm(c.description())));
         }
-        Log.notImplemented("MenuService.openClass(GUI)");
     }
 
     @Override
     public void openParty(Player p) {
-        Log.notImplemented("MenuService.openParty");
-        Text.send(p, "<gray>파티 메뉴가 아직 준비되지 않았습니다.");
+        p.performCommand("party info");
     }
 
     @Override
@@ -114,7 +111,6 @@ public class ChatMenuService implements MenuService {
 
     @Override
     public void openAccessories(Player p) {
-        Log.notImplemented("MenuService.openAccessories");
-        Text.send(p, "<gray>장신구 메뉴가 아직 준비되지 않았습니다.");
+        Text.send(p, "<gray>장신구 칸은 <white>/미궁 장신구</white> 메뉴에서 관리합니다.");
     }
 }

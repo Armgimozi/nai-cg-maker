@@ -273,6 +273,39 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
 - **DungeonService** 기본 메서드: `isDowned(p)`, `revive(p, at, hpRatio)`(사제 부활의 성가) — dungeon 구현은 자기 사망 상태와 맞게 재정의.
 - 직업 스킬은 미궁 무기 + **직업 무기 타입**(classes.yml weapon_types)을 들었을 때만 발동. 명령: `/직업 선택|choose <직업>`, `/직업 정보|info`, `/직업 스킬|skills`.
 
+### 4.2 ui+titles 단계에서 추가된 계약 (다른 모듈이 쓰는 것)
+- **MenuService** 실제 구현 `ui.LabMenuService`(상자 GUI, `ui/menus/*`; 열다가 오류 나면 채팅 메뉴로 대체). 기본 메서드 추가:
+  `openPvp`(대전 메뉴) · `openBlacksmith`(→ CraftingService GUI) · `openMerchant`(npcs.yml `role: merchant` 의 ShopMenu).
+  `/대전` 인자 없이 = 대전 메뉴. `/미궁 메뉴|장신구|대장간|상점|대전|기록` 하위 명령.
+  메뉴는 다른 모듈 기능을 **명령으로 위임**한다(검사·메시지 일관): 파티 `party create|invite|accept|decline|kick|promote|disband|leave|chat`,
+  대전 `pvp 도전 <파티장>|수락|거절|대기열 참가|대기열 취소` ← **pvp 담당은 이 한국어 하위 명령 이름을 그대로 등록할 것**.
+  초기 설정 GUI 확정 = `labadmin setup <난이도>` + config `entrance.mode`, "여기에 설치" = `labadmin setentrance <block|npc>`.
+- **대전 전적 표시(PvpMenu·순위)**: PlayerData ext `pvp.rating · pvp.wins · pvp.losses · pvp.streak · pvp.best_streak · pvp.best_rating`
+  (정수) 를 읽는다 → **pvp 담당이 이 키로 기록할 것**. 없으면 titles 카운터(`titles.pvp_*`)로 대신 표시.
+- **HudService** 실제 구현 `ui.LabHudService`: 액션바(0.25초 검사, 바뀐 때만 + 2초 유지 재전송) HP·MP·경험치 막대·레벨·골드,
+  미궁 사이드바(층·난이도·인원·정복한 방·타이머·사망·파티원 HP), 플레이어마다 개인 스코어보드(이름표 팀 접두어 = 칭호).
+  기본 메서드 추가: `nameTagPrefix(target, prefix)`, **`pvpMatch(viewer, HudService.PvpHud)` / `clearPvpMatch(viewer)`** —
+  pvp 담당은 매치 중 1초마다 참가자·관전자에게 `PvpHud(matchId, phase(prep|fight|sudden_death|between|end), round, roundsToWin,
+  scoreUs, scoreThem, secondsLeft, phaseSeconds, usName, themName, us[TeamMember(name,hpRatio,alive)], them[...])` 를 보내면
+  사이드바 + 라운드 보스바가 그려진다(15초 갱신이 없으면 자동 정리).
+- **DungeonService** 기본 메서드 `floorProgress(p)` → `FloorProgress(floor, roomsCleared, roomsTotal, deaths, startedAt, bossDefeated,
+  ready, progress)` (HUD 용; 전투·정예·시련·수호자 방만 셈). dungeon 담당이 더 정확히 재정의해도 된다.
+- **TitleService** 실제 구현 `titles.LabTitleService`. 기본 메서드 추가: `setBonusSuppressed(p, on)`(**pvp 담당이 매치 시작/종료 때 호출** —
+  §18.3 칭호 보너스 꺼짐), `progress(p, id)`. 판정은 `titles.AchievementRules`(순수, 테스트), 카운터 갱신은 `titles.TitleCounters` —
+  카운터 키 `titles.*` 목록은 AchievementRules 문서가 원본. 서버 기록 키: `first_clear.floor_<n>`(층 최초 돌파 파티 전원),
+  `speed.floor_<n>`(최단 시간), `title.<업적 id>`(server_first 업적). 첫 칭호는 자동 장착. 채팅 = AsyncChatEvent 렌더러
+  `[칭호] 이름 » 메시지`(취소된 파티 채팅은 건드리지 않음), 탭 목록 이름 = 접두어 + 이름.
+  명령: `/칭호 장착|해제|목록|기록`, `/labadmin title grant|revoke <플레이어> <id>`, `/labadmin title recheck`.
+- **UI 글리프 이름 (pack-ui 단계가 glyphs.yml 에 이 이름으로 넣으면 자동 적용, 없으면 글리프 없이 동작)**:
+  - 메뉴 배경 `gui_<메뉴>`: main · stats · class · class_detail · party · players · titles · records · entrance · setup · accessories ·
+    pvp · pvp_ranking · blacksmith · merchant (없으면 `gui_rows_<줄 수>`). 6줄 메뉴 = 54칸, 5줄 = 장신구·상점.
+    선택 필드(glyphs.yml 항목에 추가 가능): `width`(배경 폭 px, 기본 176), `title_x`(제목 글자 시작 x, 기본 8), `title_color`(#RRGGBB,
+    기본 #3b2a4d). 배경 글리프는 펜을 −8 당겨 컨테이너 왼쪽 끝부터 그린다 → ascent 는 제목 줄 기준(바닐라 상자 제목 높이)으로 맞출 것.
+    글리프 배경이 있으면 빈 칸을 유리판으로 채우지 않는다(배경 그림이 보이도록).
+  - HUD 막대 kind = `hp` · `mp` · `xp`: 프레임 방식 `hud_<kind>_0..N`(채움 단계별 한 장) 또는 칸 방식 `hud_<kind>_full|half|empty`
+    (hp 10칸, mp 8칸, xp 6칸; 옛 이름 `<kind>_bar_full|half|empty` 도 인식). 아이콘 `hud_hp_icon · hud_mp_icon · hud_level_icon ·
+    hud_gold_icon`. 액션바 줄 높이에 맞는 ascent 로 만들 것.
+
 ### 명령어
 - 플레이어: `/lab`(별칭 `/미궁`: 입장 메뉴·퇴장·정보), `/party`(`/파티`), `/stats`(`/스탯`), `/class`(`/직업`), `/title`(`/칭호`),
   `/pvp`(`/대전`: 도전 <파티장>, 수락, 거절, 대기열 참가/취소, 순위, 전적, 관전)
@@ -307,6 +340,49 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
   `/labadmin setentrance [block|npc] · removeentrance · tpfloor <층> · unlock <플레이어> <층> · instances · endinstance <id>`.
 - **입구**: block 방식 석문은 바꾼 원래 블록을 `entrance.yml` 에 저장 → removeentrance 가 복원. npc 방식은 블록 변경 0. 둘 다 npcs.yml
   `role: entrance` NPC 를 `NpcService.place` 로 세운다. 석문 우클릭 = `MenuService.openEntrance`.
+
+### bosses 구현 메모 (floors 6~10 담당이 알아야 할 것)
+- **구조**: `bosses/LabBossService`(BossService 구현 — 층→`BossFactory` 등록부, 1틱 루프 하나로 모든 보스 진행, 엔티티→핸들 조회,
+  웅크리기·바닐라 피해 이벤트를 아레나의 보스에 전달) · `Boss`(추상 기반) · `impl/FloorNNBoss extends Boss`(생성자 `(Boss.Init)`).
+  새 층 보스는 `LabBossService#registerDefaults()` 에 `register(NN, FloorNNBoss::new)` 한 줄.
+- **Boss 기반이 해 주는 것**: 자체 HP 풀(DamageService 경로·위협 표·도발), 페이즈(`phases`, 전환 시 진행 중 경고 정리 + 1.5초 무적 + 대사 +
+  보스바 깜빡임), `PatternScheduler`(GDD §8.3: cooldown/interval/system, 가중치 `weight`, 직전과 다른 패턴 우선, 최소 1.2초 간격),
+  광폭화 타이머, 보스바(이름·칭호·페이즈·광폭/기절) + 시전 바(`boss_cast` 키, 끊을 수 있는 시전은 파란색), 아레나 경계(이탈 시 복귀),
+  추격·기본 공격, `BossRig` 시전 애니메이션(`BossAnim`: SLAM·SWEEP·CHARGE·ROAR·THROW·CAST·POUR·LEAP·DROP·SPIN·STUN·DEATH — 팔·머리 파트 +
+  몸 전체 회전/이동 오버레이), 보상(경험치·골드·`loot.drop(…,"boss")`·`MobKillEvent(boss=true)`), 정리(쫄·오브젝트·디스플레이·설치 블록 복원).
+- **하위 클래스가 채우는 것**: `onSpawn()`(아레나 배치) · `startPattern(key)`(쿨다운 패턴 → 묶이는 틱 반환, 보통 `cast(...)` 의 반환값) ·
+  `runInterval(key)` · `tickSystem(key)` · `onPhase(n)` · 필요 시 `canUse/onTick/onSneak/onPlayerVanillaDamage/knockbackImmune/outgoingMult/incomingReduction/onEnd`.
+- **부품**: `Telegraph`(circle/ring/line/cone/arrow/tile/safe — fx 판 + DUST 윤곽, 0.3초 전 깜빡임, `follow(entity)`), `Mechanics`
+  (Delay·Repeat·Zone(잔류 장판)·Marker(머리 위 표식)·Projectile(직선/포물선/왕복)·Tether), `ObjectTarget`(부술 수 있는 기믹 오브젝트 —
+  BossHandle 이라 근접·화살·스킬이 그대로 맞음, 피해 유형 필터 `accept(...)`), `BossFx`(fx 디스플레이·글자·블록 디스플레이), `BossMath`(도형 판정·
+  GDD §8.4 공식·배치 각도), `MechanicScaling`(난이도·페이즈·광폭화별 쿨다운 배율, 다중 대상 추가 개수(어려움 6인+ +1, 악몽 +1/+2),
+  투사체 속도, 오브젝트 HP, 기믹 제한 시간 배율). 경고 시간은 `windup(params, 기본초)` = 난이도 telegraph 배율·최소 0.5초.
+- **블록**: `setBlock(...)` 은 실제 인스턴스(`!adhoc`) + `labyrinth_world` 에서만 놓고 원래 블록을 기억해 사망·종료 때 복원한다(계단 자리 보호:
+  `BossMath.inStairZone`). 관리자 소환(`/labadmin spawnboss <층> [인원]` — 서 있는 곳이 중심)은 블록 대신 디스플레이로 대체.
+  관리자 명령: `spawnboss`, `endboss`(근처 보스전 종료), `bosses`(목록).
+- 보스는 stun/root/빙결 면역(상태이상 서비스가 거름) — 기믹 기절은 `Boss.stun(초)`(+ `makeVulnerable`). `interrupt` 신호는 `interruptible`
+  시전만 끊는다. 패턴 피해 대상은 `players()`(TargetFilter·아레나 경계·쓰러짐 제외), 대상 선택은 `targets()`(은신 제외).
+
+### 통합·배포 메모 (integration-release 단계)
+- **메뉴 배경 규칙** (`ui.UiTheme.background(menu, rows)`): 메뉴별 배경 `gui_<menu>` 에는 버튼 소켓이 그려져 있으므로 **버튼 배치가
+  glyphs.yml `menus.<id>.slots` 와 같은 메뉴만** 전용 배경을 쓴다(현재 blacksmith · titles · setup · class · party — `SOCKET_LAYOUT`). 나머지는 같은 줄 수의
+  `gui_rows_<n>` → `gui_generic_<n>`. 배경 높이로 줄 수를 계산해 줄 수가 다르면 절대 쓰지 않는다(5줄 메뉴 = 배경 없음 + 테두리).
+  메뉴를 소켓에 맞게 고쳤으면 `SOCKET_LAYOUT` 에 id 를 추가할 것. 제목 색 = `menus.<id>.title_color`.
+- **글리프 액션바** `ui.GlyphHud`: glyphs.yml `hud:` 수치대로 xp·hp·(보호막)·mp 바(`hud_*_00..20`), 레벨 배지·숫자, 상태 아이콘(`status_<효과>`,
+  StatusEffectService#has), 골드 줄을 배치하고 전체 advance 를 `hud.total` 로 맞춘다(그림자 끔). 필요한 글리프가 없으면 텍스트 HUD.
+  사이드바 파티원 줄 = `party_class_<직업>` + `party_hp_00..10`. 보스바 이름 양옆 = `boss_ornament_left/right`.
+- **자가 진단** `/labadmin selftest [층 수]` (`dungeon.SelfTest`, 콘솔 가능): 아이템 전부 생성·역조회 → 도감 획득처 계산 → 임시 슬롯에 층 생성 →
+  몹·정예 정의 전부(+정예 변종) 소환·피해·처치 → 1~5층 보스 + 구현 없는 층 대체 보스 소환·페이즈 피해·처치 → 정리. 진단 중 로그의
+  SEVERE/예외를 하위 시스템(`kr.labyrinth.<패키지>`)별로 센다. 새 보스·몹을 넣으면 이것부터 돌릴 것.
+- **도감** `/codex` = `/도감` = `/미궁 도감` (`ui.menus.CodexMenu`): 종류·희귀도별 아이템(실제 툴팁 + 획득처: 몹/보스 드롭·보물 상자·기믹 방·
+  제작 재료·상점·칭호 보상 — loot 테이블 중첩·rarity_pool 까지 계산), 몬스터·보스(모델 머리 아이콘·능력치·드롭).
+- **config.yml** 추가 키: `mobs.elite_variant_chance`(기본 0.06), `mobs.model_yaw_offset`(도, 기본 0).
+- **에셋 id 대조** `python3 tools/check_assets.py [팩.zip]`: 아이템(활 당김 모델 포함)·방어구 세트·몹/보스 파트·NPC 스킨·fx(fx.yml + 아우라·params.fx
+  참조 + Java 스킬 fx 기본값)·글리프(font/ui.json 문자, 메뉴 배경 줄 수) ↔ 팩 zip. 오류 0 이어야 배포.
+- **배포** `./release.sh` → `dist/Labyrinth-Server-<버전>.zip` (폴더 `Labyrinth-Server/`: start.bat·start.ps1·start.sh·server.properties·README.txt·
+  LICENSE·plugins/Labyrinth.jar·Labyrinth-pack.zip(+sha1)). 템플릿은 `release/` (`__VERSION__` 치환, 윈도우 파일 CRLF, ps1·README UTF-8 BOM).
+  eula.txt·paper.jar·world 는 절대 넣지 않는다 — 시작기가 Java 25(Adoptium API)와 Paper 26.3 최신 STABLE(Fill API v3, sha256)을 받고
+  EULA 는 서버 주인이 직접 Y 로 동의한다. `dist/` 는 커밋하지 않는다.
 
 ## 5. 게임 규칙 (수치는 YAML/config 로 조정 가능해야 함)
 
@@ -602,6 +678,13 @@ hud: {total: 182, bar_steps: 20, bar_width: 82, hp_x: 0, badge_x: 82, mp_x: 100,
   YAML 키에 `.` 금지(Bukkit 경로 구분자 → 로더 무한 재귀) — 그래서 숫자 매핑은 `digit_chars`/`digit_names` 두 목록.
 - 글리프 이름 접두어: `gui_` 배경 · `hud_` 바·배지·골드 · `hud_num_`/`gold_num_` 숫자 · `status_` 상태 · `party_` 파티 ·
   `dmg_`/`crit_` 피해 숫자 · `boss_` 보스바 장식. 글리프 문자는 U+E000~U+F3FF, U+F400~U+F8FF 는 공백 전용.
+
+### 6.4 bosses 단계에서 추가된 필드 (bosses.yml — 전부 선택)
+- 보스 최상위 `enrage`: 숫자(초) 또는 `{time}` — 광폭화까지 시간(기본 300 + 30 × 층, 0 = 없음). 광폭화: 주는 피해 +50%(+15초마다 +10%),
+  패턴 쿨다운 × 0.6.
+- `patterns.<key>` 공통 키: `weight`(스케줄러 가중치, 기본 1), `first_delay`(페이즈 진입 후 첫 사용까지 초, 기본 = 쿨다운/간격의 절반),
+  `interruptible`(true 면 `interrupt` 상태이상으로 시전 차단).
+- `arena` 4층: `platform_block`/`platform_base`(단상 블록, 기본 PRISMARINE_BRICKS/DARK_PRISMARINE), `valve_block`(기본 WAXED_OXIDIZED_COPPER).
 
 ## 7. 성능·안정성 규칙
 

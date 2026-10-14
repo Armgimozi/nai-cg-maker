@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+# 미궁 라비린스 — 배포 zip 만들기.
+#   1) 리소스팩 생성 (resourcepack/generate.py → resourcepack/dist/labyrinth-pack.zip)
+#   2) 플러그인 빌드 (plugin: ./gradlew build — 테스트 포함, 최신 팩을 jar 안에 넣음)
+#   3) 플러그인 ↔ 팩 에셋 id 대조 (tools/check_assets.py)
+#   4) dist/Labyrinth-Server-<버전>.zip 조립 (폴더 Labyrinth-Server/)
+# 사용: ./release.sh            (환경 변수: PYTHON=파이썬 경로, SKIP_PACK=1 이면 팩 재생성 생략, VERSION=버전 덮어쓰기)
+# 배포 zip 에는 eula.txt · paper.jar · world 폴더를 넣지 않는다 (EULA 는 서버 주인이 직접 동의, Paper 는 시작기가 공식 배포처에서 받음).
+set -euo pipefail
+cd "$(dirname "$0")"
+ROOT=$(pwd)
+PY=${PYTHON:-}
+if [ -z "$PY" ]; then
+  if [ -x /opt/packvenv/bin/python ]; then PY=/opt/packvenv/bin/python; else PY=python3; fi
+fi
+VERSION=${VERSION:-$(sed -n 's/^version = "\(.*\)"/\1/p' plugin/build.gradle.kts | head -n 1)}
+[ -n "$VERSION" ] || { echo "버전을 읽지 못했습니다 (plugin/build.gradle.kts)"; exit 1; }
+echo "== 미궁 라비린스 배포판 $VERSION =="
+
+if [ "${SKIP_PACK:-0}" != "1" ]; then
+  echo "[1/4] 리소스팩 생성"
+  (cd resourcepack && "$PY" generate.py | tail -n 6)
+else
+  echo "[1/4] 리소스팩 생성 생략 (SKIP_PACK=1)"
+fi
+[ -f resourcepack/dist/labyrinth-pack.zip ] || { echo "리소스팩이 없습니다: resourcepack/dist/labyrinth-pack.zip"; exit 1; }
+
+echo "[2/4] 플러그인 빌드 (테스트 포함)"
+(cd plugin && ./gradlew build -q 2>&1 | grep -v -E '^Picked up JAVA_TOOL_OPTIONS|warning: \[deprecation\]|^\s+\^|^[0-9]+ warnings?$' || true)
+JAR=$(ls -t plugin/build/libs/labyrinth-*.jar 2>/dev/null | grep -v -E 'sources|javadoc' | head -n 1 || true)
+[ -n "$JAR" ] && [ -f "$JAR" ] || { echo "플러그인 jar 가 없습니다 (빌드 실패?)"; exit 1; }
+# jar 안의 팩이 방금 만든 팩과 같은지
+"$PY" - "$JAR" resourcepack/dist/labyrinth-pack.zip <<'PYEOF'
+import hashlib, sys, zipfile
+jar, pack = sys.argv[1], sys.argv[2]
+inner = zipfile.ZipFile(jar).read("pack/labyrinth-pack.zip")
+outer = open(pack, "rb").read()
+if hashlib.sha1(inner).hexdigest() != hashlib.sha1(outer).hexdigest():
+    sys.exit("jar 안의 리소스팩이 최신이 아닙니다 — plugin 을 다시 빌드하세요 (./gradlew clean build)")
+print("  jar 에 최신 리소스팩 포함 확인 (sha1 %s)" % hashlib.sha1(outer).hexdigest())
+PYEOF
+
+echo "[3/4] 에셋 id 대조"
+"$PY" tools/check_assets.py resourcepack/dist/labyrinth-pack.zip | head -n 1
+"$PY" tools/check_assets.py resourcepack/dist/labyrinth-pack.zip > /dev/null || { echo "에셋 id 불일치 — 위 목록을 고치세요"; exit 1; }
+
+echo "[4/4] 배포 폴더 조립"
+OUT="$ROOT/dist"
+STAGE="$OUT/stage-$VERSION"
+DIR="$STAGE/Labyrinth-Server"
+rm -rf "$STAGE"
+mkdir -p "$DIR/plugins"
+cp "$JAR" "$DIR/plugins/Labyrinth.jar"
+cp resourcepack/dist/labyrinth-pack.zip "$DIR/Labyrinth-pack.zip"
+"$PY" - "$DIR/Labyrinth-pack.zip" > "$DIR/Labyrinth-pack.sha1" <<'PYEOF'
+import hashlib, sys
+print(hashlib.sha1(open(sys.argv[1], "rb").read()).hexdigest())
+PYEOF
+
+# 템플릿: __VERSION__ 치환, 윈도우용 파일은 CRLF, PowerShell·README 는 UTF-8 BOM (5.1·메모장이 한글을 바르게 읽도록)
+"$PY" - "$ROOT/release" "$DIR" "$VERSION" <<'PYEOF'
+import os, sys
+src, dst, ver = sys.argv[1], sys.argv[2], sys.argv[3]
+rules = {
+    "start.bat": ("crlf", False), "start.ps1": ("crlf", True), "README.txt": ("crlf", True),
+    "LICENSE": ("crlf", False), "server.properties": ("lf", False), "start.sh": ("lf", False),
+}
+for name, (eol, bom) in rules.items():
+    with open(os.path.join(src, name), encoding="utf-8") as f:
+        text = f.read().replace("__VERSION__", ver)
+    text = text.replace("\r\n", "\n")
+    if eol == "crlf":
+        text = text.replace("\n", "\r\n")
+    data = text.encode("utf-8")
+    if name == "start.bat" and any(b > 127 for b in data):
+        sys.exit("start.bat 에 ASCII 가 아닌 글자가 있습니다")
+    with open(os.path.join(dst, name), "wb") as f:
+        f.write((b"\xef\xbb\xbf" if bom else b"") + data)
+os.chmod(os.path.join(dst, "start.sh"), 0o755)
+PYEOF
+
+# 금지 파일 확인
+for bad in eula.txt paper.jar world; do
+  [ ! -e "$DIR/$bad" ] || { echo "배포 폴더에 $bad 가 있으면 안 됩니다"; exit 1; }
+done
+
+ZIP="$OUT/Labyrinth-Server-$VERSION.zip"
+rm -f "$ZIP"
+"$PY" - "$STAGE" "$ZIP" <<'PYEOF'
+import os, sys, zipfile
+stage, out = sys.argv[1], sys.argv[2]
+with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
+    for base, dirs, files in os.walk(stage):
+        dirs.sort()
+        for d in dirs:
+            p = os.path.join(base, d)
+            info = zipfile.ZipInfo(os.path.relpath(p, stage).replace(os.sep, "/") + "/")
+            info.external_attr = (0o40755 << 16) | 0x10
+            z.writestr(info, b"")
+        for fn in sorted(files):
+            p = os.path.join(base, fn)
+            arc = os.path.relpath(p, stage).replace(os.sep, "/")
+            info = zipfile.ZipInfo.from_file(p, arc)
+            info.compress_type = zipfile.ZIP_STORED if fn.endswith((".jar", ".zip")) else zipfile.ZIP_DEFLATED
+            info.external_attr = ((0o100755 if fn.endswith(".sh") else 0o100644) << 16)
+            with open(p, "rb") as f:
+                z.writestr(info, f.read())
+PYEOF
+rm -rf "$STAGE"
+echo
+echo "완성: $ZIP ($(du -h "$ZIP" | cut -f1))"
+unzip -l "$ZIP" | sed -n '4,$p' | head -n 20

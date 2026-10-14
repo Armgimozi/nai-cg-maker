@@ -48,7 +48,7 @@ public final class CommandService implements Module {
         root("stats", List.of("스탯"), "스탯 분배", false, s -> withPlayer(s, p -> services.menus().openStats(p)));
         root("class", List.of("직업"), "직업", false, s -> withPlayer(s, p -> services.menus().openClass(p)));
         root("title", List.of("칭호"), "칭호", false, s -> withPlayer(s, p -> services.menus().openTitles(p)));
-        root("pvp", List.of("대전"), "파티 대 파티 대전", false, s -> Text.send(s, "<gray>/대전 도전 <파티장> · 수락 · 거절 · 대기열 · 순위 · 전적"));
+        root("pvp", List.of("대전"), "파티 대 파티 대전", false, s -> withPlayer(s, p -> services.menus().openPvp(p)));
         root("labadmin", List.of("미궁관리"), "미궁 라비린스 관리", true, s -> AdminCommands.help(s));
     }
 
