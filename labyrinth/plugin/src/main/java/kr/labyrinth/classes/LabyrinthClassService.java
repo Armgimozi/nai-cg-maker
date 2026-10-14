@@ -116,7 +116,35 @@ public final class LabyrinthClassService implements ClassService, SkillContext.H
         }
         SkillFx.helix(player.getLocation(), 0.8, 2.4, 30, Particle.DUST, SkillFx.dust(rgb(col), 1.2f));
         SkillFx.sound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.7f, 1.2f);
+        giveStarterWeapon(player, def);
         return true;
+    }
+
+    /**
+     * 직업 스킬은 그 직업 무기를 들어야 나가므로, 직업을 처음 골랐을 때 가방에 그 직업 무기가 없으면 가장 낮은 등급 무기를 하나 준다.
+     * 직업마다 한 번만 (PlayerData ext {@code class.starter.<직업>}).
+     */
+    private void giveStarterWeapon(Player player, ClassDef def) {
+        PlayerData d = services.data().get(player);
+        String flag = "class.starter." + def.id();
+        if (Boolean.TRUE.equals(d.ext().get(flag))) return;
+        for (org.bukkit.inventory.ItemStack it : player.getInventory().getContents()) {
+            if (it == null || it.getType().isAir()) continue;
+            ItemDef have = services.items().defOf(it).orElse(null);
+            if (have != null && have.isWeapon() && def.weaponTypes().contains(have.weaponType())) return;
+        }
+        ItemDef best = null;
+        for (ItemDef it : services.content().items().values()) {
+            if (!it.isWeapon() || !def.weaponTypes().contains(it.weaponType()) || !it.usableBy(def.id())) continue;
+            if (best == null || it.rarity().ordinal() < best.rarity().ordinal()
+                    || (it.rarity() == best.rarity() && (it.floor() < best.floor()
+                    || (it.floor() == best.floor() && it.levelReq() < best.levelReq())))) best = it;
+        }
+        if (best == null || services.items().give(player, best.id(), 1, "starter") <= 0) return;
+        d.ext().put(flag, true);
+        d.markDirty();
+        Text.send(player, "<gray>직업 무기를 받았습니다: <white>" + best.name() + "</white> <gray>— 손에 들고 <white>"
+                + kr.labyrinth.core.InputKeys.CLASS_KEYS + "</white> 로 스킬을 씁니다.");
     }
 
     // ── 마나 ──────────────────────────────────────────────────────────────
