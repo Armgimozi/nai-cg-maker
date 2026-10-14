@@ -45,6 +45,12 @@ labyrinth/
 - **아이템**: 아이템 `id` → 아이템 모델 `labyrinth:<id>`
   - `assets/labyrinth/items/<id>.json` (item model definition) → `assets/labyrinth/models/item/<id>.json`
   - 텍스처 `assets/labyrinth/textures/item/<id>.png` (애니메이션이면 같은 이름 `.png.mcmeta`)
+  - **장비는 3D**: 무기·방패·투구·장신구는 평면 아이콘이 아니라 **직육면체 요소(elements)로 만든 3D 모델**
+    (손에 든 모습/인벤토리/땅/액자/머리 display 변환 모두 지정). 텍스처는 그 모델의 UV 아틀라스.
+    전설·신화 무기는 아틀라스 자체를 프레임 애니메이션(.mcmeta)해서 룬·불꽃·번개가 흐르게 한다.
+    재료·소모품만 2D 아이콘 허용.
+  - **투구는 3D 모델을 머리에 씌운다**: 투구는 `EQUIPPABLE(slot=head)` 에 `assetId` 를 **넣지 않는다**
+    (그래야 아이템 모델이 머리 display 로 렌더링됨). 상의·하의·신발만 장비 에셋 레이어 사용.
   - 플러그인은 `DataComponentTypes.ITEM_MODEL = Key.key("labyrinth", id)` 로 지정. CustomModelData 안 씀.
   - 활(`type: bow`)은 당김 단계 모델 `<id>_pulling_0..2` 도 생성 (바닐라 bow 정의와 같은 구조, 자체 텍스처).
 - **방어구 세트**: YAML `armor_set` 값 `<set>` → 장비 에셋 `labyrinth:<set>`
@@ -112,8 +118,14 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
 - 관리자(`labyrinth.admin`): `/labadmin reload|give <item> [player]|spawnmob <id>|spawnboss <floor>|setentrance|removeentrance|
   setnpc <id>|tpfloor <n>|unlock <player> <floor>|reset <player>|instances|endinstance <id>`
 
-### 스킬 입력 (직업 무기를 들고 있을 때)
-우클릭 = 스킬1, 웅크리기+우클릭 = 스킬2, F(손 바꾸기) = 스킬3, 웅크리기+F = 궁극기. 손 바꾸기 이벤트는 취소.
+### 스킬 입력 (미궁 무기를 들고 있을 때)
+- **무기 스킬** (상위 무기에 내장, `items.yml` 의 `weapon_skills`):
+  좌클릭 = 무기 기본기(예: 검을 휘두르면 검기가 날아감, 짧은 내부 쿨다운),
+  우클릭 = 무기 스킬, 웅크리기+좌클릭 = 무기 스킬2, 웅크리기+우클릭 = 무기 스킬3(오의).
+  영웅 = 좌클릭+우클릭, 전설 = +웅크리기+좌클릭, 신화 = 4개 전부. 활은 우클릭(당기기)을 그대로 두고
+  좌클릭·웅크리기+좌클릭·웅크리기+우클릭에 스킬을 둔다.
+- **직업 스킬**: F(손 바꾸기) = 스킬1, 웅크리기+F = 스킬2, Q(버리기) = 스킬3, 웅크리기+Q = 궁극기.
+  미궁 무기를 든 상태의 손 바꾸기·Q 버리기 이벤트는 취소(인벤토리 창에서 끌어서 버리기는 허용).
 
 ## 5. 게임 규칙 (수치는 YAML/config 로 조정 가능해야 함)
 
@@ -149,7 +161,7 @@ classes:
     skills:
       - id: shield_bash          # 코드의 Skill 구현 키 (classes/skills/*)
         name: "방패 강타"
-        input: RIGHT             # RIGHT | SNEAK_RIGHT | SWAP | SNEAK_SWAP
+        input: SWAP              # SWAP | SNEAK_SWAP | DROP | SNEAK_DROP (직업 스킬)
         unlock_level: 1
         mana: 10
         cooldown: 6.0            # 초
@@ -170,8 +182,19 @@ items:
     stats: {damage: [38, 44], STR: [6, 9], crit_chance: [0.04, 0.06]}   # [최소, 최대] 굴림
     set_bonus: null           # 세트 id (sets: 섹션 참고)
     aura: ember               # fx.yml aura id (전설/신화 무기)
-    texture:                  # 리소스팩 생성기 지시 (자체 제작 픽셀아트)
-      style: greatsword       # 생성기가 아는 실루엣 템플릿
+    weapon_skills:            # 상위 무기 내장 스킬 (영웅 2개, 전설 3개, 신화 4개). 구현: items/weaponskills/*
+      - id: ember_wave        # 코드 구현 키 (공용 구현을 params 로 재사용 가능: slash_wave, nova, dash_strike ...)
+        name: "잿불 검기"
+        input: LEFT           # LEFT | RIGHT | SNEAK_LEFT | SNEAK_RIGHT
+        cooldown: 0.8
+        mana: 0
+        params: {damage: 0.8, range: 12, width: 2.5, fx: ember_slash}
+        description: "휘두를 때마다 불꽃 검기를 날린다."
+    model:                    # 3D 모델 지시 (리소스팩 생성기)
+      shape: greatsword       # 생성기 3D 템플릿 (GDD.md "Pack generator templates" 의 닫힌 목록)
+      length: 1.0             # 상대 크기
+    texture:                  # 리소스팩 생성기 지시 (자체 제작 픽셀아트, 3D 모델 UV 아틀라스)
+      style: greatsword       # 생성기가 아는 재질/장식 템플릿
       palette: ["#2b0d05", "#7a2410", "#e0571d", "#ffc46b", "#fff4d6"]
       animated: true          # 전설/신화 무기는 true
       frames: 8
