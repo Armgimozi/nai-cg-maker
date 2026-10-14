@@ -14,6 +14,8 @@ from .model import Model
 from .util import stable_seed
 from .voxel import armor as VA
 from .voxel import build as VB
+from .voxel import overlay as VO
+from .voxel import palette as VP
 from .voxel import weapons as VW
 from .voxel.core import Grid
 
@@ -51,6 +53,7 @@ class ItemResult:
         self.anim_frames = None  # list of (model, faces_uv, frames) for the GIF preview
         self.warnings: list[str] = []
         self.expect_frames = {}  # texture path -> frame count
+        self.overlays = {}       # model name -> aura overlay frames (voxel/overlay.py)
 
 
 def classify(it):
@@ -123,13 +126,18 @@ def _bake_and_write(res: ItemResult, m: Model, name: str, look: Look, tex: dict,
 
 
 def _voxel_write(res: ItemResult, name, g, look, theme, tex, animated, seed, vs, origin, display_fn, label=None,
-                 max_el=720, preview=True):
-    """Voxel model → palette texture (animated strip for legendary/mythic glow) + model JSON."""
+                 max_el=720, preview=True, overlay=None):
+    """Voxel model → palette texture (animated strip for legendary/mythic glow) + model JSON.
+
+    overlay: None | 'blade' | 'bow' | 'helmet' — adds the separately animated aura layer
+    (`<name>_flame.png` on crossed emissive planes, see voxel/overlay.py) on animated gear."""
     ref = f'{NS}:item/{name}'
     n, ft, eff = _anim_params(tex) if animated else (8, 2, 'rune_flow')
     if animated and eff not in effects.KNOWN:
         res.warnings.append(f'{res.iid}: unknown effect {eff!r} → rune_flow')
     out = VB.finish(name, g, look, theme, ref, vs, origin, animated, eff, n, seed, display_fn, max_el)
+    if animated and overlay:
+        _write_overlay(res, name, out, look, theme, eff, seed, overlay)
     tex_path = f'assets/{NS}/textures/item/{name}.png'
     m = out.vm.model
     if animated:
@@ -145,6 +153,31 @@ def _voxel_write(res: ItemResult, name, g, look, theme, tex, animated, seed, vs,
     if preview:
         res.previews.append((label or name, m, out.vm.faces_uv, out.frames[0]))
     return out
+
+
+def _overlay_ramp(look, theme, eff):
+    ramps = VP.ramps_for(look, theme)
+    if eff in ('ember_flicker', 'sun_glow') or theme == 'forge':
+        return ramps['flame']
+    if eff == 'frost_shimmer':
+        return ramps['ice']
+    return ramps['glow']
+
+
+def _write_overlay(res: ItemResult, name, out, look, theme, eff, seed, mode):
+    """Second animated texture layer (base + _flame, as in the owner's previous pack)."""
+    # one sprite sheet per item, shared by all of its models (bow pull stages) → seamless swap
+    fname = f'{res.iid}_flame'
+    tex_path = f'assets/{NS}/textures/item/{fname}.png'
+    if tex_path in res.files:
+        frames = next(iter(res.overlays.values()))
+    else:
+        frames = VO.strip_frames(VO.kind_of(eff), _overlay_ramp(look, theme, eff), stable_seed('aura', res.iid))
+        res.files[tex_path] = png_bytes(strip(frames))
+        res.files[tex_path + '.mcmeta'] = jdump({'animation': {'frametime': 2}})
+        res.expect_frames[tex_path] = len(frames)
+    VO.add_planes(out.model_json, f'{NS}:item/{fname}', mode)
+    res.overlays[name] = frames
 
 
 def _budget(level):
@@ -222,7 +255,7 @@ def build_item(iid: str, it: dict) -> ItemResult:
             g = Grid(seed)
             VW.bow(g, VW.P(iid, lv, theme, length, seed, animated), shape, pull)
             _voxel_write(res, name, g, look, theme, tex, animated, seed, 0.5, (W.BOW_GX, W.BOW_GY, 8.0),
-                         displays.voxel_bow, max_el=_budget(lv), preview=pull < 0)
+                         displays.voxel_bow, max_el=_budget(lv), preview=pull < 0, overlay='bow')
         res.files[f'assets/{NS}/items/{iid}.json'] = jdump(item_definition(iid, bow=True))
         return res
     if kind in ('weapon', 'helmet', 'body', 'shield') and (shape in VW.TEMPLATES or shape in VA.HELMETS or
@@ -232,11 +265,12 @@ def build_item(iid: str, it: dict) -> ItemResult:
             VW.TEMPLATES[shape](g, vp)
             two = shape in VW.TWO_HANDED
             _voxel_write(res, iid, g, look, theme, tex, animated, seed, 0.5, (8.0, 1.0, 8.0),
-                         lambda m: displays.voxel_weapon(m, two_handed=two), max_el=_budget(lv))
+                         lambda m: displays.voxel_weapon(m, two_handed=two), max_el=_budget(lv), overlay='blade')
         elif kind == 'helmet':
             VA.HELMETS[shape](g, vp)
+            VA.finish_helmet(g, vp)
             _voxel_write(res, iid, g, look, theme, tex, animated, seed, 0.8, (2.0, 2.0, 2.0), displays.helmet,
-                         max_el=_budget(lv))
+                         max_el=_budget(lv), overlay='helmet' if lv >= 5 else None)
         elif kind == 'body':
             VA.BODY[shape](g, vp)
             _voxel_write(res, iid, g, look, theme, tex, animated, seed, 0.5, (8.0, 8.0, 8.0), displays.miniature,

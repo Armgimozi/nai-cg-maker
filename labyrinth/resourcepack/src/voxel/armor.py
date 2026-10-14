@@ -44,6 +44,41 @@ def _shell(g: Grid, y0, y1, face_open=None, mat='plate', dome=True, ridge=False)
                 g.put(8, j, k, 'orn', 0.6, prio=2)
 
 
+def _coif(g, p, mat='cloth', y0=3, open_top=13, prio=0):
+    """Fitted cowl under masks/circlets so the head is fully dressed (reference look: no bare scalp)."""
+    for j in range(y0, 17):
+        for i in range(-1, 17):
+            for k in range(-1, 17):
+                wall = i in (-1, 16) or k in (-1, 16)
+                if not wall and j < 16:
+                    continue
+                if k == -1 and 1 <= i <= 14 and j < open_top:
+                    continue                                   # face opening
+                fold = 0.07 if (i * 3 + j * 2 + k) % 7 == 0 else 0
+                g.put(i, j, k, mat, 0.38 + 0.22 * (j - y0) / (17 - y0) + fold, prio=prio)
+    for i in range(1, 15):
+        for k in range(1, 15):
+            if (i - 7.5) ** 2 + (k - 7.5) ** 2 < 36:
+                g.put(i, 17, k, mat, 0.62, prio=prio)
+
+
+def finish_helmet(g, p):
+    """Shared pass-2 finish: bevel the boxy shell corners so silhouettes read rounder (decorations
+    with prio ≥ 2 are kept), and give upper-tier helmets a glowing brow seam."""
+    for (i, j, k), v in list(g.vox.items()):
+        if v[3] > 1:
+            continue
+        corner_v = i in (-1, 16) and k in (-1, 16)
+        top_edge = j >= 16 and (i in (-1, 16) or k in (-1, 16))
+        if corner_v or top_edge:
+            g.erase(i, j, k)
+    if p.lv >= 4:
+        for i in range(0, 16):
+            key = (i, 13, -1)
+            if key in g.vox and g.vox[key][3] <= 1:
+                g.put(i, 13, -2, 'glow', 0.75 + (0.15 if i % 3 == 0 else 0), glow=True, prio=2)
+
+
 def _rim(g, y, mat='orn', lo=-2, hi=17):
     for i in range(lo, hi + 1):
         for k in range(lo, hi + 1):
@@ -195,6 +230,7 @@ def wizard_hat(g, p):
 
 
 def circlet(g, p):
+    _coif(g, p, 'cloth', y0=2, open_top=12)
     for i in range(-1, 17):
         for k in range(-1, 17):
             if i in (-1, 16) or k in (-1, 16):
@@ -232,6 +268,10 @@ def crown(g, p):
 
 
 def half_mask(g, p):
+    _coif(g, p, 'plate' if p.theme in ('frost', 'crystal') else 'cloth', y0=6, open_top=13)
+    for i in range(-1, 17):                                      # brow band
+        g.put(i, 13, -1 if 0 < i < 15 else 0, 'orn', 0.66 + (0.12 if i % 4 == 0 else 0), prio=2)
+    g.gem((7.5, 13.5, -2), 1.1, 'gem', glow=p.glow)
     for j in range(0, 9):
         for i in range(-1, 17):
             w = 0.5 + 0.15 * (1 - abs(i - 7.5) / 9)

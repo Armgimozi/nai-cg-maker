@@ -15,6 +15,7 @@ import math
 from ..model import El, Model, Texel, BakedModel, r4
 from ..util import h3, clamp
 
+GLOW_ALPHA = 252   # emissive marker texel alpha (owner's pack convention; a future core shader renders it fullbright)
 DIRS = ((1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1))
 FACE_OF = {(1, 0, 0): 'east', (-1, 0, 0): 'west', (0, 1, 0): 'up', (0, -1, 0): 'down',
            (0, 0, 1): 'south', (0, 0, -1): 'north'}
@@ -269,6 +270,11 @@ NOISE = {'metal': 0.05, 'blade': 0.05, 'edge': 0.04, 'orn': 0.06, 'grip': 0.08, 
          'flame': 0.08, 'ice': 0.06, 'string': 0.0, 'eye': 0.0, 'tendril': 0.1}
 
 
+NOISE_PASS2 = 0.4
+SHEEN_MATS = frozenset(('blade', 'metal', 'plate', 'orn', 'crystal', 'ice', 'fuller'))
+WRAP_MATS = frozenset(('grip', 'leather'))
+
+
 def shade(grid: Grid, ramps: dict, glow_mats=(), noise_mul=1.0):
     """→ {key: (mat, level, glow)}.  Lighting by voxel normal, AO, edge highlight, hashed noise."""
     vox = grid.vox
@@ -302,9 +308,20 @@ def shade(grid: Grid, ramps: dict, glow_mats=(), noise_mul=1.0):
                         occ += 1
         if exposed and occ > 17:
             v -= 0.022 * (occ - 17)
-        amp = NOISE.get(mat, 0.07) * noise_mul
+        # pass 2 (owner's reference look): far less per-voxel noise, replaced by coherent hand-painted
+        # patterns — diagonal sheen bands on polished materials, wrap lines on grips — so silhouettes
+        # read cleanly and equal colours merge into larger, calmer faces.
+        amp = NOISE.get(mat, 0.07) * noise_mul * NOISE_PASS2
         if amp:
             v += (h3(i, j, k, seed) - 0.5) * 2 * amp
+        if exposed and mat in SHEEN_MATS:
+            band = (i + j - k) % 9
+            if band in (0, 1):
+                v += 0.07
+            elif band == 2:
+                v += 0.035
+        elif exposed and mat in WRAP_MATS and j % 3 == 0:
+            v -= 0.08
         ramp = ramps.get(mat) or ramps['metal']
         n = len(ramp)
         lvl = int(round(clamp(v) * (n - 1)))
@@ -487,7 +504,7 @@ def mesh(name, shaded: dict, ramps: dict, vs=0.5, origin=(8, 8, 8), glow_cell=2,
             for dx in (0, 1):
                 role = mat if mat in ('gem', 'crystal', 'edge') else 'glow'
                 res.texels.append(Texel(px + dx, py + dy, ramp, v, role, pos, 'north', _stable_cell_id(cell, mat), g,
-                                        255, None, 1, 1, 3, 3))
+                                        GLOW_ALPHA if g else 255, None, 1, 1, 3, 3))
     res.model = m
     res.boxes = boxes
     return res

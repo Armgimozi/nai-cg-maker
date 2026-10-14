@@ -36,7 +36,8 @@ def ramps_for(look, theme):
     if look.style not in ('crystal', 'gold', 'holy', 'copper', 'bone'):
         # blades read as forged metal (silver-white like a real edge), tinted by the item palette
         mid = p.ramp[len(p.ramp) // 2]
-        k = 0.6 if look.style in ('wood', 'leather', 'cloth', 'moss', 'silk', 'steel') else 0.45
+        # pass 2: blades carry more of the item's own colour (darker, themed metals like the reference)
+        k = 0.55 if look.style in ('wood', 'leather', 'cloth', 'moss', 'silk', 'steel') else 0.3
         blade_base = [darken(mix(mid, (40, 44, 52), k), 0.4), mix(mid, (96, 102, 114), k), mix(mid, (156, 162, 174), k),
                       mix(light, (214, 220, 228), k), mix(light, (244, 246, 250), 0.7)]
     blade = _r([darken(blade_base[0], 0.3)] + blade_base + [lighten(blade_base[-1], 0.35)], 8)

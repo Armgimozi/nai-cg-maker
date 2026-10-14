@@ -103,10 +103,11 @@ def trinket(m: Model, gui_rot=(15, 25, 0)):
 
 def voxel_weapon(m: Model, two_handed=False):
     weapon(m, two_handed=two_handed, gui_rot=(20, 24, -45))
-    m.display['gui'] = fit_transform(m, (20, 24, -45), target=16.5, max_scale=1.6)
-    m.display['fixed'] = fit_transform(m, (0, 180, -45), target=15.5, max_scale=1.6)
+    # pass 2: leave a margin in the slot like the owner's reference pack (silhouette reads, aura fits)
+    m.display['gui'] = fit_transform(m, (20, 24, -45), target=14.5, max_scale=1.6)
+    m.display['fixed'] = fit_transform(m, (0, 180, -45), target=14.5, max_scale=1.6)
 
 
 def voxel_bow(m: Model):
     bow(m, gui_rot=(14, 20, -45))
-    m.display['gui'] = fit_transform(m, (14, 20, -45), target=16.0, max_scale=1.6)
+    m.display['gui'] = fit_transform(m, (14, 20, -45), target=14.5, max_scale=1.6)

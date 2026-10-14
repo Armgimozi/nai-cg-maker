@@ -236,4 +236,81 @@ def paint_set(look, look_kind: str, seed: int):
 
     for name, rect in LEG.items():
         leg.face(rect, leg_face(name))
+    _trims(hum, leg, lk, kind, lvl)
     return hum.img, leg.img
+
+
+GLOW_ALPHA = 252   # emissive marker (owner's pack convention; fullbright once a core shader is added)
+
+
+def _trims(hum: Painter, leg: Painter, lk, kind, lvl):
+    """Pass-2 finish (reference look): metal trim edges, set gems and — on legendary/mythic sets —
+    glowing seam lines marked with alpha 252."""
+    O, A = lk.orn, lk.accent
+    trim = value_to_color(O, 0.72)
+    trim_hi = value_to_color(O, 0.9)
+    trim_lo = value_to_color(O, 0.45)
+    gem_hi, gem, gem_lo = value_to_color(A, 0.95), value_to_color(A, 0.75), value_to_color(A, 0.45)
+    glow = lighten(value_to_color(A, 0.85), 0.25)
+    glow_core = lighten(glow, 0.5)
+
+    def glow_px(pt: Painter, x, y, c):
+        if 0 <= x < 64 and 0 <= y < 32 and pt.px[x, y][3]:
+            pt.px[x, y] = (c[0], c[1], c[2], GLOW_ALPHA)
+
+    def solid(pt: Painter, x, y, c):
+        if 0 <= x < 64 and 0 <= y < 32 and pt.px[x, y][3]:
+            pt.put(x, y, c)
+
+    fx, fy, fw, fh = BODY['front']
+    bx, by, bw, bh = BODY['back']
+    if lvl >= 1:
+        # collar trim on chest front/back + shoulder caps
+        for i in range(fw):
+            solid(hum, fx + i, fy, trim_hi if i % 3 else trim)
+            solid(hum, bx + i, by, trim)
+        for name in ('outer', 'front', 'back', 'inner'):
+            x0, y0, w, h = ARM[name]
+            for i in range(w):
+                solid(hum, x0 + i, y0, trim)
+                if kind != 'cloth':
+                    solid(hum, x0 + i, y0 + 1, trim_lo)
+    if lvl >= 2:
+        # set gem in the sternum: 2×2 faceted
+        cx = fx + fw // 2 - 1
+        for (dx, dy, c) in ((0, 0, gem_hi), (1, 0, gem), (0, 1, gem), (1, 1, gem_lo)):
+            solid(hum, cx + dx, fy + 3 + dy, c)
+        for (dx, dy) in ((-1, 0), (-1, 1), (2, 0), (2, 1), (0, -1), (1, -1), (0, 2), (1, 2)):
+            solid(hum, cx + dx, fy + 3 + dy, trim)
+        # knee / boot trims
+        for name in ('front', 'outer'):
+            x0, y0, w, h = LEG[name]
+            for i in range(w):
+                solid(hum, x0 + i, y0 + 7, trim)
+                solid(leg, x0 + i, y0, trim)
+    if lvl >= 4:
+        # glowing seams: chest flanks → gem, arm runes, leg lines, boot rims
+        for j in range(5, fh - 1):
+            glow_px(hum, fx + 1, fy + j, glow)
+            glow_px(hum, fx + fw - 2, fy + j, glow)
+            glow_px(hum, bx + bw // 2 - 1 + (j % 2), by + j, glow)
+        cx = fx + fw // 2 - 1
+        glow_px(hum, cx, fy + 3, glow_core)
+        for name in ('outer', 'front'):
+            x0, y0, w, h = ARM[name]
+            for j in range(4, h - 2, 2):
+                glow_px(hum, x0 + (1 if name == 'outer' else w - 2), y0 + j, glow)
+        for name in ('front', 'outer'):
+            x0, y0, w, h = LEG[name]
+            for j in range(1, 7):
+                glow_px(leg, x0 + (1 if name == 'front' else 2), y0 + j, glow)
+            for i in range(w):
+                glow_px(hum, x0 + i, y0 + h - 1, glow)
+    if lvl >= 5:
+        # mythic: rune dots ringing the chest + shoulder sigils
+        for (dx, dy) in ((2, 8), (5, 8), (3, 10), (4, 10)):
+            glow_px(hum, fx + dx, fy + dy, glow_core)
+        for name in ('outer',):
+            x0, y0, w, h = ARM[name]
+            for (dx, dy) in ((1, 2), (2, 2), (1, 3), (2, 3)):
+                glow_px(hum, x0 + dx, y0 + dy, glow_core)
