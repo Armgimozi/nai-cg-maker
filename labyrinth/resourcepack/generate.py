@@ -230,6 +230,26 @@ def build_ui(ctx: Ctx):
     ctx.ui_info = info
     ctx.stats['ui_glyphs'] = len(info['glyphs'])
     ctx.stats['ui_spaces'] = len(info['spaces'])
+    # 바닐라 하트·허기·경험치 바·방어 아이콘 숨김: 같은 경로에 투명 그림(우리 HUD 가 대신 그림).
+    # 서버 리소스팩이라 이 서버에서만 적용된다. 플러그인은 허기를 가득 유지하고 바닐라 경험치를 0 으로 둔다.
+    from PIL import Image as _Image
+    import io as _io
+    blank = _io.BytesIO(); _Image.new('RGBA', (9, 9), (0, 0, 0, 0)).save(blank, 'PNG'); blank = blank.getvalue()
+    xp_blank = _io.BytesIO(); _Image.new('RGBA', (182, 5), (0, 0, 0, 0)).save(xp_blank, 'PNG'); xp_blank = xp_blank.getvalue()
+    hud = 'assets/minecraft/textures/gui/sprites/hud/'
+    hearts = ['container', 'container_blinking', 'container_hardcore', 'container_hardcore_blinking',
+              'vehicle_container', 'vehicle_full', 'vehicle_half']
+    for kind in ('', 'hardcore_', 'absorbing_', 'absorbing_hardcore_', 'frozen_', 'frozen_hardcore_',
+                 'poisoned_', 'poisoned_hardcore_', 'withered_', 'withered_hardcore_'):
+        for part in ('full', 'half'):
+            hearts += [kind + part, kind + part + '_blinking']
+    for h in hearts:
+        ctx.add(hud + 'heart/' + h + '.png', blank)
+    for f in ('food_empty', 'food_empty_hunger', 'food_full', 'food_full_hunger', 'food_half', 'food_half_hunger',
+              'armor_empty', 'armor_full', 'armor_half'):
+        ctx.add(hud + f + '.png', blank)
+    for f in ('experience_bar_background', 'experience_bar_progress'):
+        ctx.add(hud + f + '.png', xp_blank)
 
 
 BUILDERS = [build_core, build_items, build_equipment, build_weapon_fx, build_fx_extra, build_mobs, build_npcs,

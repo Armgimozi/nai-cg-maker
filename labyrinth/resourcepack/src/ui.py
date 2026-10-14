@@ -930,10 +930,10 @@ def paint_digit(sym, scale=1, style='hud'):
                     for dx in range(scale):
                         body.add((1 + i * scale + dx, 1 + j * scale + dy))
     for (x, y) in body:
-        for oy in (-1, 0, 1):
-            for ox in (-1, 0, 1):
-                if (x + ox, y + oy) not in body:
-                    cv.set(x + ox, y + oy, (20, 12, 24))
+        # 상하좌우 1px 외곽선만 (대각선까지 칠하면 숫자마다 어두운 네모 칸처럼 보임)
+        for ox, oy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+            if (x + ox, y + oy) not in body:
+                cv.set(x + ox, y + oy, (20, 12, 24))
     for (x, y) in body:
         t = (y - 1) / max(1, h - 1)
         if style == 'crit':

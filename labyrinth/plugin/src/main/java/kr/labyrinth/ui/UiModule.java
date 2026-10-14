@@ -33,6 +33,9 @@ public final class UiModule implements Module {
             hud.nameTagPrefix(p, services.titles().prefix(p));
         }
         registerCommands();
+        VanillaHudListener vanilla = new VanillaHudListener(services.plugin());
+        org.bukkit.Bukkit.getPluginManager().registerEvents(vanilla, services.plugin());
+        vanilla.normalizeOnline();
     }
 
     @Override
