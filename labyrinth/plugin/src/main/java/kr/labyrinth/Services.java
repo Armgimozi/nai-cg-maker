@@ -155,6 +155,14 @@ public final class Services {
         for (String e : report.errors()) Log.warn("[콘텐츠 오류] " + e);
         if (!report.warnings().isEmpty()) Log.info("[콘텐츠] 경고 " + report.warnings().size() + "건 (첫 항목: " + report.warnings().get(0) + ")");
         content = r.content();
+        if (!plugin.getConfig().getBoolean("ui.use_glyphs", true)) {
+            // 리소스팩 UI 폰트가 클라이언트에서 안 보일 때(네모 박스) 임시로 끄는 스위치 — 글자 HUD·기본 메뉴 제목으로 대체
+            Content c = content;
+            content = new Content(c.classes(), c.items(), c.sets(), c.mobs(), c.bosses(), c.floors(), c.lootTables(),
+                    c.lootSettings(), c.recipes(), c.achievements(), c.npcs(), c.auras(), c.fxModels(),
+                    java.util.Map.of(), java.util.Map.of(), c.arenas(), c.pvp());
+            Log.info("ui.use_glyphs: false — UI 글리프(커스텀 폰트)를 쓰지 않고 글자 HUD 로 표시합니다.");
+        }
         Log.info("콘텐츠 로드: " + content.summary());
         if (!report.ok()) Log.warn("콘텐츠 검사 오류 " + report.errors().size() + "건 — 해당 항목은 동작하지 않을 수 있습니다.");
         java.util.List<String> errors = new java.util.ArrayList<>(r.problems());

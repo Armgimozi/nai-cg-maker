@@ -39,6 +39,11 @@ entrance:
   pitch: 0.0
   radius: 8                 # 파티 입장 시 파티원이 입구 근처에 있어야 하는 반경(블록)
 
+# UI — HUD 바·메뉴 배경을 리소스팩 커스텀 폰트로 그린다.
+# 화면 아래에 네모 박스(□□□)가 보이면 false 로 바꾸고 /labadmin reload 하세요 (글자 HUD 로 대체).
+ui:
+  use_glyphs: true
+
 # 리소스팩 — 내장 HTTP 서버가 plugins/Labyrinth/pack/labyrinth-pack.zip 을 서빙한다.
 pack:
   enabled: true
