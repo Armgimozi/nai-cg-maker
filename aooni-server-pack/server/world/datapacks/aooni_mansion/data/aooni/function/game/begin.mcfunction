@@ -24,6 +24,10 @@ scoreboard players set #f1 aooni.var 0
 scoreboard players set #f2 aooni.var 0
 scoreboard players set #f3 aooni.var 0
 scoreboard players set #f4 aooni.var 0
+scoreboard players set #ap aooni.var 0
+scoreboard players set #atk aooni.var 0
+scoreboard players set #still aooni.var 0
+scoreboard players set #hbl aooni.var 0
 scoreboard players set #d1 aooni.var 0
 scoreboard players set #d2 aooni.var 0
 scoreboard players set #d3 aooni.var 0

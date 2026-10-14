@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import shutil
 import sys
@@ -1084,23 +1085,16 @@ JUNK = [("rabbit_hide", "낡은 인형", "솜이 다 빠졌다"), ("bowl", "깨�
         ("clock", "멈춘 시계", "바늘이 새벽 3시에 멈춰 있다"), ("string", "실뭉치", "끝이 엉켜 있다"), ("candle", "다 탄 양초", "심지만 남았다")]
 JUNK_ROLL = 16
 ALL_FLAGS = (["#sec", "#sp", "#cd", "#found", "#wpn", "#final", "#rescue_cd", "#freeze", "#oni_gone", "#bh",
-              "#bhp_prev", "#half10", "#hp", "#amb", "#stall", "#a0", "#swlost", "#wmsg", "#f1", "#f2", "#f3", "#f4"] + [f"#d{k}" for k in range(1, 5)])
+              "#bhp_prev", "#half10", "#hp", "#amb", "#stall", "#a0", "#swlost", "#wmsg", "#f1", "#f2", "#f3", "#f4",
+              "#ap", "#atk", "#still", "#hbl"] + [f"#d{k}" for k in range(1, 5)])
 
-ONI_PARTS = [  # (블록, 크기xyz, 최소좌표xyz(발밑 기준), 밝기)
-    # 다리·몸통·팔은 높이 1.2 아래 → 아오오니 본인 시야(눈높이 1.62)에 윗면이 들어오지 않는다
-    ("blue_concrete", (0.26, 0.62, 0.28), (-0.28, 0.0, -0.14), 11),
-    ("blue_concrete", (0.26, 0.62, 0.28), (0.02, 0.0, -0.14), 11),
-    ("blue_concrete", (0.66, 0.60, 0.40), (-0.33, 0.60, -0.20), 11),
-    ("blue_concrete", (0.20, 0.80, 0.22), (-0.53, 0.38, -0.11), 11),
-    ("blue_concrete", (0.20, 0.80, 0.22), (0.33, 0.38, -0.11), 11),
-    # 큰 머리가 눈높이를 감싼다(안쪽 면은 보이지 않음). 얼굴은 눈높이보다 0.38 이상 위 → 본인 화면 위쪽 밖
-    ("blue_concrete", (0.90, 1.30, 0.84), (-0.45, 1.20, -0.42), 11),
-    ("white_concrete", (0.24, 0.22, 0.04), (-0.32, 2.12, 0.42), 15),
-    ("white_concrete", (0.24, 0.22, 0.04), (0.08, 2.12, 0.42), 15),
-    ("black_concrete", (0.10, 0.10, 0.03), (-0.25, 2.18, 0.46), 15),
-    ("black_concrete", (0.10, 0.10, 0.03), (0.15, 2.18, 0.46), 15),
-    ("black_concrete", (0.50, 0.07, 0.03), (-0.25, 2.01, 0.42), 11),
-]
+# 아오오니 모델: 리소스팩(tools/build_rp.py)의 부위 6개를 item_display 로 띄워 관절마다 돌린다
+with open(os.path.join(HERE, "rp_parts.json"), encoding="utf-8") as _f:
+    RP_PARTS = json.load(_f)["parts"]
+ONI_PART_NAMES = ["torso", "head", "arm_l", "arm_r", "leg_l", "leg_r"]
+WALK_FRAMES = 8        # 걷기 한 주기 = 8동작
+WALK_TICKS = 2         # 동작 하나에 2틱
+LEG_DEG, ARM_DEG = 30, 35
 
 
 def digit_paper(j, value=None):
@@ -1116,18 +1110,43 @@ def digit_paper(j, value=None):
             f'minecraft:custom_data={data}]')
 
 
+def _q(deg):
+    """관절(엔티티 +X 축) 둘레 회전 쿼터니언. 음수 = 팔다리가 앞으로, 양수 = 고개를 숙임."""
+    a = math.radians(deg) / 2
+    return f"[{math.sin(a):.5f}f,0f,0f,{math.cos(a):.5f}f]"
+
+
+def part_tf(part, deg, s):
+    j = RP_PARTS[part]["joint"]
+    return (f"{{translation:[{j[0] * s:.5f}f,{j[1] * s:.5f}f,{j[2] * s:.5f}f],left_rotation:{_q(deg)},"
+            f"scale:[{s:g}f,{s:g}f,{s:g}f],right_rotation:[0f,0f,0f,1f]}}")
+
+
+def part_merge(part, deg, s, dur):
+    return (f"data merge entity @e[type=minecraft:item_display,tag=aooni.p_{part},limit=1] "
+            f"{{start_interpolation:0,interpolation_duration:{dur},transformation:{part_tf(part, deg, s)}}}")
+
+
 def oni_model_cmds(scale):
-    """아오오니 플레이어를 매 틱 따라다니는 블록 디스플레이 모형(플레이어 본체는 투명)."""
-    out = ["kill @e[type=minecraft:block_display,tag=aooni.part]"]
-    for blk, s, m, br in ONI_PARTS:
-        t = f"[{m[0] * scale:.4f}f,{m[1] * scale:.4f}f,{m[2] * scale:.4f}f]"
-        sc = f"[{s[0] * scale:.4f}f,{s[1] * scale:.4f}f,{s[2] * scale:.4f}f]"
-        out.append('summon minecraft:block_display ~ ~ ~ {block_state:{Name:"minecraft:%s"},Tags:["aooni.fx","aooni.part"],'
-                   'teleport_duration:1,brightness:{sky:%d,block:%d},transformation:{left_rotation:[0f,0f,0f,1f],'
-                   'right_rotation:[0f,0f,0f,1f],translation:%s,scale:%s}}' % (blk, br, br, t, sc))
+    """아오오니 플레이어를 매 틱 따라다니는 모델(플레이어 본체는 투명). 리소스팩이 있어야 보인다."""
+    out = ["kill @e[tag=aooni.part]", "scoreboard players set #hbl aooni.var 99"]
+    for part in ONI_PART_NAMES:
+        model = RP_PARTS[part]["item_model"]
+        out.append('summon minecraft:item_display ~ ~ ~ {Tags:["aooni.fx","aooni.part","aooni.p_%s"],'
+                   'item:{id:"minecraft:paper",count:1,components:{"minecraft:item_model":"%s"}},item_display:"none",'
+                   'teleport_duration:1,interpolation_duration:2,brightness:{sky:10,block:10},transformation:%s}'
+                   % (part, model, part_tf(part, 0, scale)))
     return out
 
 
+def walk_pose(i):
+    s = math.sin(2 * math.pi * i / WALK_FRAMES)
+    # 왼다리와 오른팔이 같이 앞으로(음수), 반대쪽은 뒤로
+    return {"leg_l": -LEG_DEG * s, "leg_r": LEG_DEG * s, "arm_l": ARM_DEG * s, "arm_r": -ARM_DEG * s}
+
+
+SWORD_NBT = ('{id:"minecraft:netherite_sword",count:1,components:{"minecraft:item_model":"aooni:magum",'
+             '"minecraft:custom_name":{text:"마검",color:"gold",italic:false},"minecraft:enchantment_glint_override":true}}')
 SURV = "@a[tag=aooni.player,tag=!aooni.oni_p]"
 ONI = "@a[tag=aooni.oni_p,tag=!aooni.oni_dead,gamemode=adventure]"
 
@@ -1147,6 +1166,11 @@ def logic():
        "# 회복 음식을 먹었는지(먹은 횟수 통계)",
        "scoreboard objectives add aooni.eb minecraft.used:minecraft.bread",
        "scoreboard objectives add aooni.es minecraft.used:minecraft.cooked_beef",
+       "# 아오오니 걷기·공격 동작용 통계",
+       "scoreboard objectives add aooni.mw minecraft.custom:minecraft.walk_one_cm",
+       "scoreboard objectives add aooni.ms minecraft.custom:minecraft.sprint_one_cm",
+       "scoreboard objectives add aooni.mc minecraft.custom:minecraft.crouch_one_cm",
+       "scoreboard objectives add aooni.dd minecraft.custom:minecraft.damage_dealt",
        "scoreboard objectives add aooni.wc dummy",
        "# 연습 끝내기: OP 가 아니어도 /trigger aooni.quit",
        "scoreboard objectives add aooni.quit trigger",
@@ -1184,6 +1208,8 @@ def logic():
        "scoreboard players set #t aooni.var 0",
        "scoreboard players set #60 aooni.var 60",
        "scoreboard players set #2 aooni.var 2",
+       f"scoreboard players set #{WALK_FRAMES} aooni.var {WALK_FRAMES}",
+       f"scoreboard players set #{WALK_TICKS}t aooni.var {WALK_TICKS}",
        "function aooni:setup/gamerules",
        "time set 18000",
        "weather clear",
@@ -1475,6 +1501,74 @@ def logic():
        *[f"execute if score #diff aooni.var matches {d} run attribute @s minecraft:attack_damage base set {v['dmg']}" for d, v in DIFF.items()])
     fn("oni/model", *oni_model_cmds(1.0))
     fn("oni/model_big", *oni_model_cmds(FINAL_SCALE))
+    # ---- 걷기·공격·고개 동작 (as 아오오니, 매 틱)
+    fn("oni/anim",
+       "scoreboard players operation #mv aooni.var = @s aooni.mw",
+       "scoreboard players operation #mv aooni.var += @s aooni.ms",
+       "scoreboard players operation #mv aooni.var += @s aooni.mc",
+       "scoreboard players set @s aooni.mw 0",
+       "scoreboard players set @s aooni.ms 0",
+       "scoreboard players set @s aooni.mc 0",
+       "execute if score @s aooni.dd matches 1.. run function aooni:oni/anim/attack",
+       "scoreboard players set @s aooni.dd 0",
+       "execute if score #atk aooni.var matches 1.. run scoreboard players remove #atk aooni.var 1",
+       "execute if score #atk aooni.var matches 3 run function aooni:oni/anim/swing_back_d",
+       "execute if score #atk aooni.var matches 1 run function aooni:oni/anim/arm_rest_d",
+       "execute if score #mv aooni.var matches 1.. run function aooni:oni/anim/step",
+       "execute if score #mv aooni.var matches ..0 run function aooni:oni/anim/still",
+       "function aooni:oni/anim/look")
+    fn("oni/anim/step",
+       "scoreboard players set #still aooni.var 0",
+       "scoreboard players add #ap aooni.var 1",
+       "scoreboard players operation #am aooni.var = #ap aooni.var",
+       f"scoreboard players operation #am aooni.var %= #{WALK_TICKS}t aooni.var",
+       "execute unless score #am aooni.var matches 0 run return 0",
+       "scoreboard players operation #af aooni.var = #ap aooni.var",
+       f"scoreboard players operation #af aooni.var /= #{WALK_TICKS}t aooni.var",
+       f"scoreboard players operation #af aooni.var %= #{WALK_FRAMES} aooni.var",
+       "execute if score #final aooni.var matches 1 run return run function aooni:oni/anim/frame_big",
+       "function aooni:oni/anim/frame")
+    fn("oni/anim/still",
+       "scoreboard players add #still aooni.var 1",
+       "execute unless score #still aooni.var matches 3 run return 0",
+       "scoreboard players set #ap aooni.var 0",
+       "execute if score #final aooni.var matches 1 run return run function aooni:oni/anim/rest_big",
+       "function aooni:oni/anim/rest")
+    for tag, s in (("", 1.0), ("_big", FINAL_SCALE)):
+        fn(f"oni/anim/frame{tag}",
+           *[f"execute if score #af aooni.var matches {i} run return run function aooni:oni/anim/w{i}{tag}" for i in range(WALK_FRAMES)])
+        for i in range(WALK_FRAMES):
+            pose = walk_pose(i)
+            fn(f"oni/anim/w{i}{tag}", *[
+                ("execute unless score #atk aooni.var matches 1.. run " if part == "arm_r" else "") + part_merge(part, deg, s, WALK_TICKS)
+                for part, deg in pose.items()])
+        fn(f"oni/anim/rest{tag}", *[
+            ("execute unless score #atk aooni.var matches 1.. run " if part == "arm_r" else "") + part_merge(part, 0, s, 4)
+            for part in ("leg_l", "leg_r", "arm_l", "arm_r")])
+        fn(f"oni/anim/swing{tag}", part_merge("arm_r", -95, s, 2))
+        fn(f"oni/anim/swing_back{tag}", part_merge("arm_r", 15, s, 3))
+        fn(f"oni/anim/arm_rest{tag}", part_merge("arm_r", 0, s, 3))
+        fn(f"oni/anim/head{tag}", *[f"execute if score #hb aooni.var matches {b} run " + part_merge("head", 15 * b, s, 3)
+                                    for b in range(-2, 3)])
+    for nm in ("swing", "swing_back", "arm_rest"):
+        fn(f"oni/anim/{nm}_d",
+           f"execute if score #final aooni.var matches 1 run return run function aooni:oni/anim/{nm}_big",
+           f"function aooni:oni/anim/{nm}")
+    fn("oni/anim/attack",
+       "# 때리면 오른팔을 앞으로 휘둘렀다가(6틱) 내린다",
+       "scoreboard players set #atk aooni.var 6",
+       "function aooni:oni/anim/swing_d")
+    fn("oni/anim/look",
+       "# 아오오니가 위아래를 보면 고개도 따라 든다/숙인다(5단계, 바뀔 때만)",
+       "execute if entity @s[x_rotation=..-22] run scoreboard players set #hb aooni.var -2",
+       "execute if entity @s[x_rotation=-22..-7] run scoreboard players set #hb aooni.var -1",
+       "execute if entity @s[x_rotation=-7..7] run scoreboard players set #hb aooni.var 0",
+       "execute if entity @s[x_rotation=7..22] run scoreboard players set #hb aooni.var 1",
+       "execute if entity @s[x_rotation=22..] run scoreboard players set #hb aooni.var 2",
+       "execute if score #hb aooni.var = #hbl aooni.var run return 0",
+       "scoreboard players operation #hbl aooni.var = #hb aooni.var",
+       "execute if score #final aooni.var matches 1 run return run function aooni:oni/anim/head_big",
+       "function aooni:oni/anim/head")
     place = []
     for j in range(1, 5):
         place.append(("dig%d" % j, digit_paper(j), [f"tag @s add aooni.dig{j}"]))
@@ -1505,7 +1599,8 @@ def logic():
     # ---------------- 틱/초
     fn("game/tick",
        f"execute if score #freeze aooni.var matches 1.. as {ONI} positioned {P(*ONI_SPAWN)} unless entity @s[distance=..0.4] run tp @s {P(*ONI_SPAWN)}",
-       f"execute as {ONI} at @s run tp @e[type=minecraft:block_display,tag=aooni.part] ~ ~ ~ ~ 0",
+       f"execute as {ONI} at @s run tp @e[type=minecraft:item_display,tag=aooni.part] ~ ~ ~ ~ 0",
+       f"execute as {ONI} run function aooni:oni/anim",
        "execute as @a[scores={aooni.eb=1..}] run function aooni:item/ate_bread",
        "execute as @a[scores={aooni.es=1..}] run function aooni:item/ate_steak",
        f"execute as @a[tag=aooni.oni_p] at @s run function aooni:oni/no_sword",
@@ -1590,7 +1685,7 @@ def logic():
     def end_common(t):
         return ["scoreboard players set #state aooni.var 2",
                 f"scoreboard players set #end_t aooni.var {t}",
-                "kill @e[type=minecraft:block_display,tag=aooni.part]",
+                "kill @e[tag=aooni.part]",
                 "bossbar set aooni:boss visible false",
                 "scoreboard players operation #min aooni.var = #sec aooni.var",
                 "scoreboard players operation #min aooni.var /= #60 aooni.var",
@@ -1627,7 +1722,7 @@ def logic():
        "scoreboard players remove #end_t aooni.var 1",
        "execute if score #end_t aooni.var matches ..0 run function aooni:game/reset")
     fn("game/reset",
-       "kill @e[type=minecraft:block_display,tag=aooni.part]",
+       "kill @e[tag=aooni.part]",
        "scoreboard players set #state aooni.var 0",
        "scoreboard players set #cd aooni.var 0",
        "bossbar set aooni:goal visible false",
@@ -1699,7 +1794,7 @@ def logic():
        "function aooni:player/arm_check")
     fn("player/drop_sword_at",
        f"$execute positioned $(dx) $(dy) $(dz) run summon minecraft:item ~0.5 ~0.5 ~0.5 "
-       f"{{Item:{{id:\"minecraft:{WEAPON_ITEM}\",count:1}},PickupDelay:20s,Age:-32768s,Glowing:1b,Invulnerable:1b}}")
+       f"{{Item:{SWORD_NBT},PickupDelay:20s,Age:-32768s,Glowing:1b,Invulnerable:1b}}")
     fn("item/ate_bread",
        "scoreboard players reset @s aooni.eb",
        "effect give @s minecraft:instant_health 1 0 true",
@@ -1730,7 +1825,7 @@ def logic():
        "execute if score #wmsg aooni.var matches 0 run " + tell("@a[tag=aooni.player]", T("마검이 아오오니의 손을 거부했다! ", "gold"),
                                                                  T("마검은 저택 어딘가로 날아갔다(반짝이는 곳).", "yellow")),
        "scoreboard players set #wmsg aooni.var 5")
-    sword_item = (f"{{Item:{{id:\"minecraft:{WEAPON_ITEM}\",count:1}},PickupDelay:10s,Age:-32768s,Glowing:1b,"
+    sword_item = (f"{{Item:{SWORD_NBT},PickupDelay:10s,Age:-32768s,Glowing:1b,"
                   "Invulnerable:1b,Motion:[0.0d,0.0d,0.0d]}")
     fn("weapon/respawn",
        "# 아오오니와 24칸 넘게 떨어진 조사 지점 중 무작위 한 곳(없으면 창고 금고 앞)에 마검을 놓는다",
@@ -1776,7 +1871,8 @@ def logic():
        "function aooni:player/arm_check")
     fn("weapon/give_named",
        f'$execute store success score #ok aooni.var run give @s minecraft:{WEAPON_ITEM}'
-       '[minecraft:custom_name={text:"$(nm)",color:"gold",italic:false},minecraft:enchantment_glint_override=true]')
+       '[minecraft:custom_name={text:"$(nm)",color:"gold",italic:false},minecraft:enchantment_glint_override=true,'
+       'minecraft:item_model="aooni:magum"]')
 
     # ---------------- 결전
     fn("final/start",
@@ -2171,6 +2267,9 @@ def make_dist():
         for nm in ("server.properties", "start.bat", "start.sh"):
             add(z, os.path.join(server, nm), "aooni-mansion-server/" + nm)
         add(z, os.path.join(ROOT, "README.md"), "aooni-mansion-server/README.md")
+        rp = os.path.join(dist, "aooni-resourcepack.zip")
+        if os.path.exists(rp):
+            add(z, rp, "aooni-mansion-server/aooni-resourcepack.zip")
         for path in walk(PACK):
             add(z, path, "aooni-mansion-server/" + os.path.relpath(path, server).replace(os.sep, "/"))
     with zipfile.ZipFile(os.path.join(dist, "aooni-mansion-datapack.zip"), "w") as z:

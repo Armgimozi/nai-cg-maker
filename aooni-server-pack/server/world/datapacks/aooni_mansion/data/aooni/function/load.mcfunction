@@ -8,6 +8,11 @@ scoreboard objectives add aooni.deaths deathCount
 # 회복 음식을 먹었는지(먹은 횟수 통계)
 scoreboard objectives add aooni.eb minecraft.used:minecraft.bread
 scoreboard objectives add aooni.es minecraft.used:minecraft.cooked_beef
+# 아오오니 걷기·공격 동작용 통계
+scoreboard objectives add aooni.mw minecraft.custom:minecraft.walk_one_cm
+scoreboard objectives add aooni.ms minecraft.custom:minecraft.sprint_one_cm
+scoreboard objectives add aooni.mc minecraft.custom:minecraft.crouch_one_cm
+scoreboard objectives add aooni.dd minecraft.custom:minecraft.damage_dealt
 scoreboard objectives add aooni.wc dummy
 # 연습 끝내기: OP 가 아니어도 /trigger aooni.quit
 scoreboard objectives add aooni.quit trigger
@@ -45,6 +50,8 @@ execute unless score #test aooni.var matches 0..2 run scoreboard players set #te
 scoreboard players set #t aooni.var 0
 scoreboard players set #60 aooni.var 60
 scoreboard players set #2 aooni.var 2
+scoreboard players set #8 aooni.var 8
+scoreboard players set #2t aooni.var 2
 function aooni:setup/gamerules
 time set 18000
 weather clear

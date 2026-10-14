@@ -1,0 +1,1 @@
+data merge entity @e[type=minecraft:item_display,tag=aooni.p_arm_r,limit=1] {start_interpolation:0,interpolation_duration:3,transformation:{translation:[-0.46719f,1.66563f,0.00000f],left_rotation:[0.13053f,0f,0f,0.99144f],scale:[1.3f,1.3f,1.3f],right_rotation:[0f,0f,0f,1f]}}
