@@ -919,50 +919,61 @@ PvP 매치에서는 소모품 전부 사용 불가(§18).
 - 신화는 제작 불가(드롭 전용).
 
 ### 11.12 무기 스킬을 가진 무기 (구현 = §17 Weapon skill catalog)
-전설·신화 24종 전부 + 영웅 12종. 좌클릭 기본기(LEFT, 1초 이하 간격)는 **5종뿐**(잿불 대검·천궁의 맹세수호검·서리심장 지팡이·
-공허의 심장 지팡이·폭풍의 눈), 4칸을 다 채운 무기는 **신화 2종**(천궁의 맹세수호검·공허의 심장 지팡이). 활은 LEFT·SNEAK_LEFT 만 쓴다.
+영웅·전설·신화 **42종 전부**가 무기 스킬을 가지며, 무기마다 **고유한 조합형 스킬**(§17.5 `id: mechanics`)이 최소 하나 있다 —
+같은 스킬을 이름만 바꿔 돌려 쓰지 않는다. 특수 판정이 필요한 것(방어 자세 `riposte`, 자기 강화 `empower`, 성역 `sanctuary`,
+광역 치유 `mend`, 그림자 이동 `shadow_step`)과 좌클릭 기본기 일부만 §17.2 구현을 쓴다.
+좌클릭 기본기(LEFT, 1초 이하 간격)는 **7종뿐**(잿불 대검·천궁의 맹세수호검·혈월의 수확자·서리심장 지팡이·공허의 심장 지팡이·
+폭풍의 눈·일식의 칼날). 4칸을 다 채운 무기는 **신화 4종**(천궁의 맹세수호검·혈월의 수확자·공허의 심장 지팡이·일식의 칼날).
+활은 RIGHT(당기기)를 건드리지 않고 `SNEAK_RIGHT` = **웅크리고 당겨 쏘기**(놓는 순간 화살 대신 스킬, 당김 세기 = 위력)와 `SNEAK_LEFT` 를 쓴다.
+원본 = items.yml (이 표는 items.yml 에서 생성).
 
-| 무기 | 직업 | 아우라 | 텍스처 effect | 무기 스킬 (입력: 이름 = 구현 id) |
+| 무기 | 직업 | 아우라 | 텍스처 effect | 무기 스킬 (입력: 이름 = 구현) |
 |---|---|---|---|---|
-| 여명을 맹세한 검 `dawnbringer` (전설) | guardian | `dawn` | `sun_glow` | RIGHT: 여명의 방벽 = `riposte`<br>SNEAK_RIGHT: 새벽 성역 = `sanctuary` |
-| 색인 수호자의 넓은검 `index_keeper_sword` (전설) | guardian | `codex` | `rune_flow` | RIGHT: 봉인 문장 = `nova`<br>SNEAK_RIGHT: 떠도는 책장 = `blade_orbit` |
-| 심연 파수검 `abyss_sentinel_longsword` (전설) | guardian | `abyssal` | `sculk_pulse` | RIGHT: 심연 끌개 = `vortex`<br>SNEAK_LEFT: 해일 검기 = `slash_wave`<br>SNEAK_RIGHT: 심연의 문 = `riposte` |
-| 천궁의 맹세수호검 `celestial_oathkeeper` (신화) | guardian | `celestial` | `star_twinkle` | LEFT: 성좌 검기 = `slash_wave`<br>RIGHT: 천궁 방벽 = `riposte`<br>SNEAK_LEFT: 유성 낙하 = `leap_slam`<br>SNEAK_RIGHT: 별자리 성역 = `sanctuary` |
-| 잿불 대검 `ember_greatsword` (전설) | berserker | `ember` | `ember_flicker` | LEFT: 잿불 검기 = `slash_wave`<br>SNEAK_RIGHT: 용암 균열 = `fissure` |
-| 정동 파쇄 도끼 `geode_sunderer` (전설) | berserker | `geode` | `crystal_glint` | RIGHT: 정동 낙하 = `leap_slam`<br>SNEAK_RIGHT: 수정 폭쇄 = `nova` |
-| 종말시계 단두도끼 `doomclock_executioner` (전설) | berserker | `chrono` | `gear_tick` | RIGHT: 톱니 선풍 = `whirlwind`<br>SNEAK_LEFT: 시간 가속 = `empower`<br>SNEAK_RIGHT: 자정의 일격 = `nova` |
-| 혈월의 수확자 `bloodmoon_reaver` (신화) | berserker | `bloodmoon` | `blood_pulse` | RIGHT: 혈월 선풍 = `whirlwind`<br>SNEAK_LEFT: 만월의 갈증 = `empower`<br>SNEAK_RIGHT: 초승달 균열 = `fissure` |
-| 조수 부르는 활 `tidecaller_bow` (전설) | hunter | `tide` | `tide_ripple` | LEFT: 물보라 화살 = `missile` |
-| 질풍 날개 활 `galewing_bow` (전설) | hunter | `gale` | `wind_streak` | LEFT: 돌풍 화살 = `missile`<br>SNEAK_LEFT: 회오리 화살 = `vortex` |
-| 수은 장궁 `quicksilver_longbow` (전설) | hunter | `quicksilver` | `mercury_flow` | LEFT: 분열 수은탄 = `missile`<br>SNEAK_LEFT: 수은비 = `rain_zone` |
-| 폭풍의 눈 `tempest_bow` (신화) | hunter | `tempest` | `lightning_arc` | LEFT: 번개 화살 = `missile`<br>SNEAK_LEFT: 폭풍의 눈 = `rain_zone` |
-| 서리심장 지팡이 `rimeheart_staff` (전설) | arcanist | `rime` | `frost_shimmer` | LEFT: 서리 파편 = `missile`<br>RIGHT: 빙하 광선 = `beam` |
-| 먹물 서고 지팡이 `inkwell_staff` (전설) | arcanist | `inkblot` | `ink_bleed` | RIGHT: 먹물 탄 = `missile`<br>SNEAK_RIGHT: 잉크 소용돌이 = `vortex` |
-| 전격 코일 지팡이 `tesla_coil_staff` (전설) | arcanist | `voltaic` | `spark_crackle` | RIGHT: 연쇄 전격 = `chain_bolt`<br>SNEAK_RIGHT: 전자기장 = `sanctuary` |
-| 공허의 심장 지팡이 `voidheart_staff` (신화) | arcanist | `void` | `void_swirl` | LEFT: 공허탄 = `missile`<br>RIGHT: 사건의 지평선 = `vortex`<br>SNEAK_LEFT: 공허 광선 = `beam`<br>SNEAK_RIGHT: 별 붕괴 = `rain_zone` |
-| 성역의 홀 `sanctum_scepter` (전설) | priest | `sanctum` | `holy_pulse` | RIGHT: 성광의 축복 = `mend`<br>SNEAK_RIGHT: 성역 전개 = `sanctuary` |
-| 양극광 홀 `twin_light_scepter` (전설) | priest | `prism` | `prism_cycle` | RIGHT: 분광선 = `beam`<br>SNEAK_RIGHT: 프리즘 보호막 = `mend` |
-| 오로라 성광 홀 `aurora_scepter` (전설) | priest | `aurora` | `aurora_wave` | RIGHT: 극광의 물결 = `mend`<br>SNEAK_LEFT: 극광 띠 = `beam`<br>SNEAK_RIGHT: 오로라 장막 = `sanctuary` |
-| 치천사의 홀 `seraph_scepter` (신화) | priest | `seraph` | `feather_glint` | RIGHT: 치천의 숨결 = `mend`<br>SNEAK_LEFT: 심판의 창 = `beam`<br>SNEAK_RIGHT: 여섯 날개의 성역 = `sanctuary` |
-| 혼불 물결검 `soulflame_kris` (전설) | shadow | `soulfire` | `soul_flicker` | RIGHT: 혼불 잠행 = `shadow_step`<br>SNEAK_RIGHT: 도깨비불 궤도 = `blade_orbit` |
-| 야음 단검 `nightshade_dagger` (전설) | shadow | `nightshade` | `shadow_smoke` | RIGHT: 그림자 질주 = `dash_strike`<br>SNEAK_LEFT: 야음 폭발 = `nova` |
-| 독사의 송곳니 `viper_fang` (전설) | shadow | `venom` | `venom_drip` | RIGHT: 독침 투척 = `missile`<br>SNEAK_RIGHT: 맹독 폭발 = `nova` |
-| 일식의 칼날 `eclipse_blade` (신화) | shadow | `eclipse` | `eclipse_corona` | RIGHT: 흑일 잠행 = `shadow_step`<br>SNEAK_LEFT: 코로나 칼날 = `blade_orbit`<br>SNEAK_RIGHT: 개기일식 = `nova` |
+| 여명을 맹세한 검 `dawnbringer` (전설) | guardian | `dawn` | `sun_glow` | RIGHT: 여명의 방벽 = `riposte`<br>SNEAK_LEFT: 새벽 파쇄 = 조합형<br>SNEAK_RIGHT: 새벽 성역 = `sanctuary` |
+| 색인 수호자의 넓은검 `index_keeper_sword` (전설) | guardian | `codex` | `rune_flow` | RIGHT: 봉인 문장 = 조합형<br>SNEAK_RIGHT: 떠도는 책장 = 조합형 |
+| 심연 파수검 `abyss_sentinel_longsword` (전설) | guardian | `abyssal` | `sculk_pulse` | RIGHT: 심연 끌개 = 조합형<br>SNEAK_LEFT: 해일 검기 = 조합형<br>SNEAK_RIGHT: 심연의 문 = `riposte` |
+| 천궁의 맹세수호검 `celestial_oathkeeper` (신화) | guardian | `celestial` | `star_twinkle` | LEFT: 성좌 검기 = `slash_wave`<br>RIGHT: 천궁 방벽 = `riposte`<br>SNEAK_LEFT: 유성 낙하 = 조합형<br>SNEAK_RIGHT: 별자리 성역 = `sanctuary` |
+| 잿불 대검 `ember_greatsword` (전설) | berserker | `ember` | `ember_flicker` | LEFT: 잿불 검기 = `slash_wave`<br>RIGHT: 잿불 돌진 = 조합형<br>SNEAK_RIGHT: 용암 균열 = 조합형 |
+| 정동 파쇄 도끼 `geode_sunderer` (전설) | berserker | `geode` | `crystal_glint` | RIGHT: 정동 낙하 = 조합형<br>SNEAK_LEFT: 공명 파열 = 조합형<br>SNEAK_RIGHT: 수정 폭쇄 = 조합형 |
+| 종말시계 단두도끼 `doomclock_executioner` (전설) | berserker | `chrono` | `gear_tick` | RIGHT: 톱니 선풍 = 조합형<br>SNEAK_LEFT: 시간 가속 = `empower`<br>SNEAK_RIGHT: 자정의 일격 = 조합형 |
+| 혈월의 수확자 `bloodmoon_reaver` (신화) | berserker | `bloodmoon` | `blood_pulse` | LEFT: 만월 학살 = 조합형<br>RIGHT: 혈월 참 = 조합형<br>SNEAK_LEFT: 만월의 갈증 = `empower`<br>SNEAK_RIGHT: 피의 질주 = 조합형 |
+| 조수 부르는 활 `tidecaller_bow` (전설) | hunter | `tide` | `tide_ripple` | SNEAK_LEFT: 밀물 결계 = 조합형<br>SNEAK_RIGHT(웅크리고 당겨 쏘기): 물보라 화살 = 조합형 |
+| 질풍 날개 활 `galewing_bow` (전설) | hunter | `gale` | `wind_streak` | SNEAK_LEFT: 회오리 화살 = 조합형<br>SNEAK_RIGHT(웅크리고 당겨 쏘기): 돌풍 화살 = 조합형 |
+| 수은 장궁 `quicksilver_longbow` (전설) | hunter | `quicksilver` | `mercury_flow` | SNEAK_LEFT: 수은비 = 조합형<br>SNEAK_RIGHT(웅크리고 당겨 쏘기): 분열 수은탄 = 조합형 |
+| 폭풍의 눈 `tempest_bow` (신화) | hunter | `tempest` | `lightning_arc` | LEFT: 번개 화살 = `missile`<br>SNEAK_LEFT: 폭풍의 눈 = 조합형<br>SNEAK_RIGHT(웅크리고 당겨 쏘기): 천둥 화살 = 조합형 |
+| 서리심장 지팡이 `rimeheart_staff` (전설) | arcanist | `rime` | `frost_shimmer` | LEFT: 서리 파편 = `missile`<br>RIGHT: 빙하 광선 = 조합형<br>SNEAK_RIGHT: 서리 별 = 조합형 |
+| 먹물 서고 지팡이 `inkwell_staff` (전설) | arcanist | `inkblot` | `ink_bleed` | RIGHT: 먹물 탄 = 조합형<br>SNEAK_LEFT: 필사 정령 = 조합형<br>SNEAK_RIGHT: 잉크 소용돌이 = 조합형 |
+| 전격 코일 지팡이 `tesla_coil_staff` (전설) | arcanist | `voltaic` | `spark_crackle` | RIGHT: 연쇄 전격 = 조합형<br>SNEAK_LEFT: 과부하 = 조합형<br>SNEAK_RIGHT: 전자기장 = 조합형 |
+| 공허의 심장 지팡이 `voidheart_staff` (신화) | arcanist | `void` | `void_swirl` | LEFT: 공허탄 = `missile`<br>RIGHT: 사건의 지평선 = 조합형<br>SNEAK_LEFT: 차원 베기 = 조합형<br>SNEAK_RIGHT: 별 붕괴 = 조합형 |
+| 성역의 홀 `sanctum_scepter` (전설) | priest | `sanctum` | `holy_pulse` | RIGHT: 성광의 축복 = `mend`<br>SNEAK_LEFT: 성광 심판 = 조합형<br>SNEAK_RIGHT: 성역 전개 = `sanctuary` |
+| 양극광 홀 `twin_light_scepter` (전설) | priest | `prism` | `prism_cycle` | RIGHT: 분광선 = 조합형<br>SNEAK_LEFT: 굴절 장막 = 조합형<br>SNEAK_RIGHT: 프리즘 보호막 = `mend` |
+| 오로라 성광 홀 `aurora_scepter` (전설) | priest | `aurora` | `aurora_wave` | RIGHT: 극광의 물결 = `mend`<br>SNEAK_LEFT: 극광 띠 = 조합형<br>SNEAK_RIGHT: 오로라 장막 = `sanctuary` |
+| 치천사의 홀 `seraph_scepter` (신화) | priest | `seraph` | `feather_glint` | RIGHT: 치천의 숨결 = `mend`<br>SNEAK_LEFT: 심판의 창 = 조합형<br>SNEAK_RIGHT: 여섯 날개의 성역 = `sanctuary` |
+| 혼불 물결검 `soulflame_kris` (전설) | shadow | `soulfire` | `soul_flicker` | RIGHT: 혼불 잠행 = 조합형<br>SNEAK_RIGHT: 도깨비불 궤도 = 조합형 |
+| 야음 단검 `nightshade_dagger` (전설) | shadow | `nightshade` | `shadow_smoke` | RIGHT: 그림자 질주 = 조합형<br>SNEAK_LEFT: 야음 폭발 = 조합형 |
+| 독사의 송곳니 `viper_fang` (전설) | shadow | `venom` | `venom_drip` | RIGHT: 독침 투척 = 조합형<br>SNEAK_LEFT: 독니 처형 = 조합형<br>SNEAK_RIGHT: 맹독 폭발 = 조합형 |
+| 일식의 칼날 `eclipse_blade` (신화) | shadow | `eclipse` | `eclipse_corona` | LEFT: 흑일 검기 = 조합형<br>RIGHT: 흑일 잠행 = `shadow_step`<br>SNEAK_LEFT: 코로나 칼날 = 조합형<br>SNEAK_RIGHT: 개기일식 = 조합형 |
 
 | 무기 (영웅) | 무기 스킬 |
 |---|---|
-| 수문 부수개 `sluice_breaker_mace` | RIGHT: 수문 막기 = `riposte` |
-| 태엽 수비 철퇴 `clockguard_mace` | SNEAK_RIGHT: 태엽 감기 = `empower` |
-| 익사한 닻날 `drowned_anchor_cleaver` | RIGHT: 닻 던지기 = `missile` |
-| 조율기 대검 `regulator_greatsword` | RIGHT: 태엽 돌진 = `dash_strike` |
-| 풀무 복합궁 `bellows_composite_bow` | LEFT: 풀무 화살 = `missile` |
-| 용수철 연발궁 `springloaded_bow` | SNEAK_LEFT: 연발 사격 = `missile` |
-| 소금물 구슬 지팡이 `brine_orb_staff` | RIGHT: 거품 탄막 = `missile` |
-| 불씨 수정 지팡이 `cinder_crystal_staff` | SNEAK_RIGHT: 불씨 폭발 = `nova` |
-| 태엽 천구 지팡이 `orrery_staff` | RIGHT: 궤도 톱니 = `blade_orbit` |
-| 조수종 향로 `tidebell_censer` | RIGHT: 물방울 축복 = `mend` |
-| 진자 향로 `pendulum_censer` | SNEAK_RIGHT: 고요의 박자 = `sanctuary` |
-| 불씨 송곳니 `cinder_fang` | RIGHT: 불씨 잠행 = `shadow_step` |
+| 수문 부수개 `sluice_breaker_mace` | RIGHT: 수문 막기 = `riposte`<br>SNEAK_RIGHT: 수문 해일 = 조합형 |
+| 모루 서약 넓은검 `anvil_oath_broadsword` | RIGHT: 모루의 맹세 = 조합형<br>SNEAK_RIGHT: 불꽃 담금질 = 조합형 |
+| 태엽 수비 철퇴 `clockguard_mace` | RIGHT: 시계추 강타 = 조합형<br>SNEAK_RIGHT: 태엽 감기 = `empower` |
+| 익사한 닻날 `drowned_anchor_cleaver` | RIGHT: 닻 던지기 = 조합형<br>SNEAK_RIGHT: 침몰 = 조합형 |
+| 슬래그 단조 대검 `slagforged_greatsword` | RIGHT: 쇳물 붓기 = 조합형<br>SNEAK_RIGHT: 용광로 폭발 = 조합형 |
+| 조율기 대검 `regulator_greatsword` | RIGHT: 태엽 돌진 = 조합형<br>SNEAK_RIGHT: 톱니 투척 = 조합형 |
+| 장어뼈 만곡궁 `eelbone_recurve` | SNEAK_RIGHT(웅크리고 당겨 쏘기): 전기뱀장어 화살 = 조합형 |
+| 풀무 복합궁 `bellows_composite_bow` | SNEAK_LEFT: 잿더미 비 = 조합형<br>SNEAK_RIGHT(웅크리고 당겨 쏘기): 풀무 화살 = 조합형 |
+| 용수철 연발궁 `springloaded_bow` | SNEAK_LEFT: 용수철 도약 = 조합형<br>SNEAK_RIGHT(웅크리고 당겨 쏘기): 연발 사격 = 조합형 |
+| 소금물 구슬 지팡이 `brine_orb_staff` | RIGHT: 거품 탄막 = 조합형<br>SNEAK_RIGHT: 물감옥 = 조합형 |
+| 불씨 수정 지팡이 `cinder_crystal_staff` | RIGHT: 불씨 화구 = 조합형<br>SNEAK_RIGHT: 불씨 폭발 = 조합형 |
+| 태엽 천구 지팡이 `orrery_staff` | RIGHT: 궤도 톱니 = 조합형<br>SNEAK_RIGHT: 천체 정렬 = 조합형 |
+| 조수종 향로 `tidebell_censer` | RIGHT: 물방울 축복 = `mend`<br>SNEAK_RIGHT: 조수의 종 = 조합형 |
+| 불씨노래 홀 `embersong_scepter` | RIGHT: 불씨의 노래 = 조합형<br>SNEAK_RIGHT: 정화의 불꽃 = 조합형 |
+| 진자 향로 `pendulum_censer` | RIGHT: 시간 되감기 = 조합형<br>SNEAK_RIGHT: 고요의 박자 = `sanctuary` |
+| 녹물 장어 크리스 `eel_kris` | RIGHT: 뱀장어 찌르기 = 조합형 |
+| 불씨 송곳니 `cinder_fang` | RIGHT: 불씨 잠행 = `shadow_step`<br>SNEAK_RIGHT: 불티 부채 = 조합형 |
+| 태엽 단검 `mainspring_dagger` | RIGHT: 태엽 연격 = 조합형<br>SNEAK_RIGHT: 역회전 = 조합형 |
 
 ---
 
@@ -1261,7 +1272,7 @@ party: {max_size: 10, hp_per_member: 0.6, dmg_per_member: 0.08, reward_per_membe
 - 피해 유형: `melee` / `ranged` / `magic` / `true`(지속 피해·_pct 피해 — 방어 무시, 인장 미적용)
 
 ### 15.5 아이템·루팅·PvP 단계 Java 구현 키 (이 문서가 원본)
-- 무기 스킬 구현 id 17개(§17.2): `slash_wave` `dash_strike` `leap_slam` `nova` `fissure` `missile` `beam` `chain_bolt` `rain_zone`
+- 무기 스킬 구현 id 17개(§17.2) + 조합형 `mechanics`(§17.5): `slash_wave` `dash_strike` `leap_slam` `nova` `fissure` `missile` `beam` `chain_bolt` `rain_zone`
   `whirlwind` `shadow_step` `empower` `sanctuary` `mend` `riposte` `vortex` `blade_orbit`
 - 아이템 스탯 키 26개 + 버프 키 10개(§11.7), 소모품 action 8개(§11.9), 방패 막기(§11.2), 장비 floor/pool/sources(§11.10)
 - 루팅 항목 4종 `item` `rarity_pool` `one_of` `table` + `guaranteed` · `gold` · `min_difficulty` · `settings`(§11.10)
@@ -1342,13 +1353,15 @@ party: {max_size: 10, hp_per_member: 0.6, dmg_per_member: 0.08, reward_per_membe
 
 ## 17. Weapon skill catalog (무기 스킬 — 닫힌 구현 목록)
 
-`items/weaponskills/*` 가 아래 **17개 구현 id** 를 한 번씩 구현하고, 무기마다 `params`·`fx`·이름만 바꿔 재사용한다
-(`items.yml weapon_skills[].id` 는 이 목록의 값만 쓴다). 어떤 무기가 무엇을 쓰는지는 §11.12 표.
+`items/weaponskills/*` 가 아래 **17개 구현 id**(§17.2) + **조합형 `mechanics`**(§17.5 — 부품·효과를 YAML 로 조립)를 구현한다.
+`items.yml weapon_skills[].id` 는 이 18개 값만 쓴다. 상위 무기의 고유 스킬은 대부분 조합형이다. 어떤 무기가 무엇을 쓰는지는 §11.12 표.
 
 ### 17.1 입력과 공통 규칙
 - 미궁 무기를 **주손**에 들었을 때: `LEFT` = 좌클릭(엔티티를 맞히든 허공이든 휘두를 때) · `RIGHT` = 우클릭 ·
   `SNEAK_LEFT` / `SNEAK_RIGHT` = 웅크린 채 좌/우클릭. 직업 스킬(F/Q 계열, §4)과 입력이 겹치지 않는다.
-- **활**: `RIGHT` 는 바닐라 당기기 그대로 → 활의 무기 스킬은 `LEFT`·`SNEAK_LEFT` 만(콘텐츠가 지킨다).
+- **활**: `RIGHT` 는 바닐라 당기기 그대로(활에 RIGHT 스킬 금지). `SNEAK_RIGHT` = **웅크리고 당겨 쏘기** — 웅크린 채 시위를 놓는 순간
+  화살 대신 그 스킬이 나간다(EntityShootBowEvent 취소, 당김 세기 0~1 → 조합형 피해 × max(0.35, 세기)). 쿨다운·MP 부족이면 평범한 화살.
+  그 밖에 `SNEAK_LEFT`, 일부 신화 활만 `LEFT`. 툴팁은 활의 SNEAK_RIGHT 를 "웅크리고 당겨 쏘기"로 표시한다.
 - 그 입력에 스킬이 없으면 평범한 공격/사용. 쿨다운 중이면 평범한 공격 + 액션바에 남은 시간.
 - **좌클릭 기본기**(cooldown ≤ 1초, 5종): 휘두를 때마다 발동. 엔티티를 맞힌 근접 피해는 그대로 들어가고 기본기는 **추가**로 나간다.
 - 쿨다운: 무기 스킬마다 따로, 아이템 id 기준(무기를 바꿔 들었다 돌아와도 유지). `cooldown_reduction` 적용. `silence` 중 사용 불가,
@@ -1386,10 +1399,80 @@ party: {max_size: 10, hp_per_member: 0.6, dmg_per_member: 0.08, reward_per_membe
 heal / shield = 대상 최대 HP 비율(§4.1). 거리 = 블록, 시간 = 초. 처음 보는 키는 무시하되 서버 로그에 경고(ContentValidator).
 
 ### 17.3 설계 규칙 (콘텐츠 작업자)
-- 무기 스킬은 **일부 상위 무기에만**: 영웅 18종 중 12종이 1개, 전설 18종이 1~3개, 신화 6종이 2~4개(4개는 천궁의 맹세수호검·공허의 심장 지팡이뿐).
-- **좌클릭 기본기는 5종뿐**(§11.12). 나머지 무기의 좌클릭은 평범한 공격이다(활의 LEFT 스킬은 쿨 6초 이상의 스킬).
+- 무기 스킬은 **상위 무기(영웅·전설·신화)에만**: 영웅 18종이 1~2개, 전설 18종이 2~3개, 신화 6종이 3~4개(4개는 신화 4종뿐).
+  무기마다 **고유한 조합형 스킬**이 최소 하나 — 같은 스킬 정의를 두 무기가 공유하지 않는다(테스트 `MechanicsSpecTest` 가 이름 중복 검사).
+- **좌클릭 기본기는 7종뿐**(§11.12). 나머지 무기의 좌클릭은 평범한 공격이다.
 - 직업 스킬을 대체하지 않고 **무기 테마**를 보여 준다 — 닻 던지기, 혼불 궤도, 극광 띠, 자정의 일격, 사건의 지평선 …
 - 위력 기준: 쿨 6~16초 = 공격력 ×1.0~2.2 · 쿨 20~30초 = ×2.2~3.2 또는 유틸 · 오의(쿨 40~60초) = ×3.0~4.0 또는 강한 파티 버프.
+
+### 17.4 층·테마별 조합형 스킬 (요약 — 원본 items.yml)
+- **수로(4층) 계열**: 수문 해일(바닥을 기는 물결 3갈래·도발), 닻 던지기(끌어오기 + 착탄 물보라), 침몰, 거품 탄막(유도 거품), 물감옥, 조수의 종, 뱀장어 찌르기, 전기뱀장어 화살(착탄 후 연쇄).
+- **용광로(5·6층) 계열**: 모루의 맹세(충격파 + 보호막), 불꽃 담금질(따라오는 화염 장), 쇳물 붓기(부채꼴 + 쇳물 웅덩이), 용광로 폭발(1초 충전 → 처형 폭발),
+  잿불 돌진, 용암 균열(바닥 균열 → 끝에서 불기둥), 풀무 화살, 잿더미 비, 불씨 화구, 불씨 폭발, 불씨의 노래(파티 버프), 정화의 불꽃, 불티 부채.
+- **서리(6층)**: 빙하 광선(채널 광선·서리 중첩), 서리 별(빙결 폭발 + 냉기 장판).
+- **수정·서고(7·8층)**: 봉인 문장(표식 → 1초 뒤 봉인), 떠도는 책장(공전), 정동 낙하(도약 → 수정 가시), 공명 파열(받는 피해 증가), 수정 폭쇄,
+  먹물 탄(실명), 잉크 소용돌이(끌어모아 침묵), 필사 정령(깃펜 정령 소환), 분광선(광선 + 파티 치유), 굴절 장막(파티 보호막), 돌풍 화살(관통), 회오리 화살(착탄 소용돌이).
+- **태엽(9층)**: 시계추 강타(재사용 감속), 태엽 돌진(끝에서 톱니 회전), 톱니 투척(관통 톱니), 톱니 선풍(4연 회전), 자정의 일격(충전 → 처형 부채꼴),
+  연발 사격, 용수철 도약(뒤로 튀며 덫), 궤도 톱니, 천체 정렬(별 셋 순차 낙하), 시간 되감기(정화·회복·쿨감), 태엽 연격, 역회전, 분열 수은탄, 수은비,
+  연쇄 전격, 전자기장, 과부하(적 위로 낙뢰 6), 심연 끌개, 해일 검기, 극광 띠, 그림자 질주, 야음 폭발, 혼불 잠행, 도깨비불 궤도, 독침 투척, 맹독 폭발, 독니 처형.
+- **심연·천궁(10층, 신화)**: 유성 낙하(도약 → 별비), 혈월 참(200° 흡혈 참격), 피의 질주(돌진 → 초승달 균열), 만월 학살(LEFT 검기), 천둥 화살(착탄 낙뢰),
+  폭풍의 눈(끌어당김 + 낙뢰 8), 사건의 지평선(블랙홀 → 붕괴), 차원 베기(벽 관통 광선), 별 붕괴(별비 12 → 핵 낙하), 심판의 창(빛의 창 → 파동 + 치유),
+  코로나 칼날(6자루 공전), 개기일식(5연 난도질 → 태양 폭발 처형), 흑일 검기(LEFT 검기).
+
+### 17.5 조합형 무기 스킬 `id: mechanics` (데이터 주도)
+사용자의 이전 서버팩(증강 스카이블럭) skills.yml 의 부품 체계를 미궁 규칙(공격력 배율·DamageService·StatusEffectService·TargetFilter·fx 모델)에 맞춰 옮긴 것.
+구현: 파서·검사 `items/weaponskills/mechanics/MechanicsSpec`(Bukkit 무관, 단위 테스트), 실행 `items/weaponskills/MechanicsEngine`.
+```yaml
+weapon_skills:
+  - id: mechanics
+    name: "정동 낙하"            # 이름·설명·쿨다운·MP·입력은 다른 무기 스킬과 같다
+    input: RIGHT
+    cooldown: 15
+    mana: 25
+    description: "도약해 내려찍으면 주변에 수정 가시가 솟는다."
+    params: {power: 1.0, damage_type: melee}   # 선택: 전체 피해 배율, 기본 피해 유형(생략 = 무기 종류: 활 ranged, 지팡이·홀 magic, 그 외 melee)
+    mechanics:                   # 부품 목록, 위에서부터 차례로 (delay 를 만나면 나머지를 그만큼 늦게)
+      - type: leap
+        forward: 0.7
+        upward: 0.9
+        land:                    # 하위 부품 — 착지 지점이 기준(origin)
+          - {type: nova, radius: 4.5, display: geode_burst, effects: [{damage: 2.0}, {launch: 0.5}]}
+```
+- **부품(type)** — 거리 블록, 시간 초(`interval`·`ticks`·`expand_ticks`·`hit_cooldown` 만 틱). `at` = `self`(시전자) | `aim`(바라보는 바닥, `range`) |
+  `target`(지금 대상/시선의 적) | `origin`(문맥 지점: 최상위 = 시전자, land/end/on_end/on_impact 안 = 그 지점; `at` 생략 시 하위 문맥은 origin).
+  `display` = fx.yml 모델(있으면 ItemDisplay, 없으면 입자), `display_scale`, `particle`(입자 표기).
+
+| type | 동작 | 키 |
+|---|---|---|
+| `cone` | 전방 부채꼴 | range, angle, display(slash), particle, effects |
+| `nova` | 원형 폭발(expand_ticks > 0 이면 퍼지며 맞힘) | radius, at, expand_ticks, display(burst — 반경에 맞춰 확대), particle, effects |
+| `projectile` | 투사체 | speed(블록/틱), range, count, spread(전체 각도), interval(연사 틱), homing(0~1), gravity, pierce(true/수), ground(바닥을 기는 파도), hit_radius, display, spin, particle, particle_count, particle_spread, explode{radius, effects, display}, on_impact[부품], impact_at_end(기본 true) |
+| `beam` | 즉발 광선(duration > 0 이면 interval 틱마다 채널) | length, width, through_walls, duration, interval, display(tether — 길이에 맞춰 늘림), particle, core, effects, on_end[부품] |
+| `dash` | 돌진(기본 무적), 경로의 적 한 번씩 | distance, ticks, width, invulnerable, particle, display, effects, on_end[부품] |
+| `leap` | 도약 → 착지 시 land 실행(낙하 피해 없음) | forward, upward, particle, land[부품] |
+| `blink` | 순간이동 — behind: true 면 대상 등 뒤, 아니면 전방(벽 앞까지) | distance, behind, particle, display(잔상) |
+| `rain` | 하늘에서 낙하물, 착지 지점에 짧은 표시 원 | at(기본 aim), count, radius, interval, height, speed, display, particle, impact_radius, impact_particle, effects, on_impact[부품] |
+| `strike` | 낙뢰/빛기둥 — targets: true 면 범위 안 적 위에 | at, count, radius, interval, targets, visual(lightning(연출 전용, 블록 변화 없음) \| pillar \| none), display, particle, impact_radius, effects, on_impact[부품] |
+| `chain` | 연쇄 (튈 때마다 falloff 배) | jumps, range, first_range, falloff, interval, particle, effects |
+| `zone` | 장판 — follow 면 시전자를 따라감 | at(기본 self), radius, duration, interval, follow, display(바닥 원 — 지름에 맞춰), particle, ring, effects, ally_effects, end[부품] |
+| `orbit` | 주위를 도는 칼날/구체 | count, radius, duration, speed(도/틱), hit_radius, hit_cooldown, display, particle, effects |
+| `vortex` | 끌어당기는 소용돌이(보스는 boss_strength, 기본 0) | at(기본 aim), radius, duration, strength, boss_strength, interval, display(회전), particle, effects, end[부품] |
+| `summon` | 정령 소환(자체 연출 — 바닐라 몹 소환 아님): 곁을 떠돌며 interval 마다 가까운 적을 쏨 | count(≤6), duration, interval, range, display, particle, effects(기본 damage 0.5) |
+| `self` / `target` / `party` | 자신 / 지금 대상 / 반경 안 아군(자신 포함)에게 효과 | effects, range, radius, particle |
+| `repeat` / `delay` | 반복(times, interval 틱) / 지연(ticks 또는 seconds; mechanics 가 있으면 그것만 늦게, 없으면 뒤 부품 전부) | mechanics[부품] |
+| `sound` / `particle` / `velocity` / `say` | 바닐라 사운드 키 / 입자 / 시전자 속도(forward, upward) / 시전자 액션바 | sound, volume, pitch · particle, count, spread, speed, y · forward, upward · text |
+
+- **효과(effects / ally_effects)** — 짧게 `{damage: 1.5}` = `{type: damage, amount: 1.5}`, `{absorption: {amount: 0.2, seconds: 6}}` = 하위 맵 펼침.
+  적에게: `damage`(공격력 배율 0~30, `magic: true` 또는 `damage_type`, `knockback`) · `percent`(최대 HP 비율 0~1, 보스는 boss_amount 기본 ×0.1) ·
+  `ignite`(burn 초) · `slow`(초, potency 기본 0.35) · `poison`·`bleed`(초) · `wither`(bleed + weaken) · `freeze`(frost 초, stacks) · `stun`·`root`(초, 보스 무시) ·
+  `glow`(mark 초) · `effect{id, seconds, potency}`(§9.2 아무 상태이상) · `taunt`(초) · `knockback`·`pull`·`launch`(보스는 boss_amount 기본 0) ·
+  `execute{amount, threshold}`(HP 비율 이하면 확정 치명 추가 피해, 보스 기본 ×0.4) · `lightning`(연출 + amount 배율 마법 피해) · `explosion{radius, amount}`(입자 + 범위 피해, 블록 변화 없음) ·
+  `lifesteal`(바로 앞 피해 × 비율 회복) · `heal_caster` · `mana` · `particle` · `sound`.
+  아군에게: `heal`(최대 HP 비율 + 치유력 × power 기본 0.5) · `absorption`(보호막 = 최대 HP × amount, seconds) · `cleanse` · `buff{stats: {버프 키: 값}, seconds}` ·
+  `potion{effect: speed|resistance|strength|haste|regeneration|luck, amplifier, seconds}`(버프 키로 변환) · `mana` · `particle` · `sound`.
+- 모든 피해는 `DamageContext.attack(시전자, 대상, amount × power × (활 당김 세기), 유형).skill("mech:<무기>:<입력>")` — 치명타·방어·회피·흡혈 스탯·PvP 규칙이 그대로 적용된다.
+- **검사**(ContentValidator, 시작·reload·테스트): 알 수 없는 부품/효과, 범위 밖 수치(radius ≤ 24, count ≤ 48, duration ≤ 30 …), 깊이 6·부품 160 초과,
+  repeat/delay/sound 필수 키, `at`·`visual` 값, 상태이상 id·버프 키, 입자 표기, `display` 의 fx.yml 존재. 단위 테스트는 입자 이름까지 Particle enum 과 대조한다.
 
 ---
 

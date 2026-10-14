@@ -175,8 +175,15 @@ public final class ContentParser {
         }
         List<ItemDef.WeaponSkillDef> ws = new ArrayList<>();
         for (Params s : p.maps("weapon_skills")) {
+            Params sp = s.sub("params");
+            if (s.has("mechanics")) {
+                // 조합형 무기 스킬(id: mechanics, GDD §17.5): 항목의 mechanics 목록을 params.mechanics 로 옮겨 둔다
+                Map<String, Object> merged = new LinkedHashMap<>(sp.asMap());
+                merged.put("mechanics", s.get("mechanics"));
+                sp = Params.of(merged);
+            }
             ws.add(new ItemDef.WeaponSkillDef(s.str("id", ""), s.str("name", s.str("id", "")),
-                    s.str("input", "RIGHT").toUpperCase(), s.dbl("cooldown", 0), s.dbl("mana", 0), s.sub("params"),
+                    s.str("input", "RIGHT").toUpperCase(), s.dbl("cooldown", 0), s.dbl("mana", 0), sp,
                     s.str("description", "")));
         }
         return new ItemDef(id, p.str("name", id), type, p.str("weapon_type"), p.str("armor_slot"),

@@ -233,7 +233,8 @@ items/   ItemDef, Rarity, ItemService(정의→ItemStack, ItemStack→정의/굴
          EquipmentListener(장비 StatContributor + 세트 효과), ConsumableListener, ItemGuardListener(바닐라 제작·화로·모루·거래 차단)
 items/weaponskills/ LabWeaponSkillService(입력: LEFT = PlayerArmSwingEvent, RIGHT = 우클릭, 쿨다운·마나·침묵),
          WeaponTargeting(무기 스킬 대상 선택의 단일 도형 헬퍼 — 적/아군 판정은 TargetFilter; classes 단계에서 pvp/TargetFilter 로 이동 예정),
-         SkillCast(공통 키 처리), Fx(ItemDisplay 이펙트), 17종 구현 = Projectile/Movement/Area/SupportSkills
+         SkillCast(공통 키 처리), Fx(ItemDisplay 이펙트), 17종 구현 = Projectile/Movement/Area/SupportSkills,
+         조합형 `mechanics` = MechanicsEngine(실행) + mechanics/MechanicsSpec(순수 파서·검사, ContentValidator 가 호출)
 loot/    LootService(loot 테이블, 희귀도 가중치, LUK 보정, 파티 개인 루팅: 아이템은 개인별로 지급/표시)
          구현 items/loot: LootRoller(순수 굴림), LabLootService(주인에게만 보이는 아이템 엔티티, 줍는 순간 ItemObtainEvent·전설 알림)
 crafting/CraftingService(+대장장이 GUI, 재료 확인/소모, 결과 지급) — 구현 items/crafting: RecipeCheck, LabCraftingService, BlacksmithMenu
@@ -568,7 +569,11 @@ hud: {total: 182, bar_steps: 20, bar_width: 82, hp_x: 0, badge_x: 82, mp_x: 100,
   - `stats` 키 = GDD §11.7 닫힌 목록 26개(`damage`, 스탯 6종, hp, mp, defense, crit_chance, crit_damage, attack_speed, move_speed,
     cooldown_reduction, skill_damage, mana_regen, hp_regen, heal_power, lifesteal, damage_reduction, evasion, block_chance, gold_bonus,
     xp_bonus, craft_discount). 값은 전부 [최소, 최대].
-  - `weapon_skills[].id` = GDD §17.2 의 17개 구현 id. `params.damage_type` = melee | ranged | magic (DamageContext 피해 유형).
+  - `weapon_skills[].id` = GDD §17.2 의 17개 구현 id **또는 `mechanics`**(조합형, GDD §17.5): 항목에 `mechanics: [부품…]` 목록을 두면
+    파서가 `params.mechanics` 로 옮기고 `items/weaponskills/MechanicsEngine` 이 실행한다(부품 cone/nova/projectile/beam/dash/leap/blink/
+    rain/strike/chain/zone/orbit/vortex/summon/self/target/party/repeat/delay/sound/particle/velocity/say, 효과 damage/percent/ignite/…).
+    선택 `params.power`(전체 배율). 활의 `SNEAK_RIGHT` = 웅크리고 당겨 쏘기(EntityShootBowEvent, 당김 세기 = 위력).
+    `params.damage_type` = melee | ranged | magic (DamageContext 피해 유형).
     `params.buff`·`ally_buff` 키 = GDD §11.7 버프 키.
   - `use`(consumable): `{action, amount?, duration?, buff?, cast_time?, cast_time_safe?, cancel_on_damage?, confirm?, auto?, invulnerable?,
     cooldown, cooldown_group}`, action = `heal | mana | restore | cleanse | buff | return | stat_reset | revive` (GDD §11.9).

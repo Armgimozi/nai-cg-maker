@@ -106,6 +106,7 @@ public final class LabWeaponSkillService implements WeaponSkillService, Listener
         MovementSkills.register(registry);
         AreaSkills.register(registry);
         SupportSkills.register(registry);
+        MechanicsEngine.register(registry);
     }
 
     public void start() {
@@ -152,7 +153,12 @@ public final class LabWeaponSkillService implements WeaponSkillService, Listener
     }
 
     @Override
-    public boolean handle(Player player, Input input) {
+    public boolean handle(Player player, Input input) { return handle(player, input, -1); }
+
+    /**
+     * @param charge 활의 SNEAK_RIGHT(웅크리고 당겨 쏘기)만 0~1 — 활 쏘기 이벤트에서 온 경우. 그 외 -1.
+     */
+    boolean handle(Player player, Input input, double charge) {
         if (player.getGameMode() == GameMode.SPECTATOR || player.isDead()) return false;
         ItemDef def = services.items().heldWeapon(player);
         if (def == null) return false;
@@ -160,6 +166,7 @@ public final class LabWeaponSkillService implements WeaponSkillService, Listener
         if (s == null) return false;
         boolean bow = "bow".equals(def.weaponType());
         if (bow && input == Input.RIGHT) return false;
+        if (bow && input == Input.SNEAK_RIGHT && charge < 0) return false; // 활은 당겨 쏠 때(onShoot) 발동
         WeaponSkill impl = registry.get(s.id());
         if (impl == null) {
             Log.warnOnce("ws-missing-" + s.id(), "[무기 스킬] 구현이 없는 id: " + s.id() + " (" + def.id() + ")");
@@ -192,12 +199,12 @@ public final class LabWeaponSkillService implements WeaponSkillService, Listener
         long end = System.currentTimeMillis() + Math.round(cd * 1000);
         cooldowns.computeIfAbsent(player.getUniqueId(), u -> new ConcurrentHashMap<>()).put(key(def.id(), input), end);
         try {
-            impl.cast(new SkillCast(services, this, player, def, s, defaultType(s.id(), def)));
+            impl.cast(new SkillCast(services, this, player, def, s, defaultType(s.id(), def)).charge(charge));
         } catch (Throwable t) {
             Log.error("무기 스킬 실행 오류: " + s.id() + " (" + def.id() + ")", t);
         }
         if (s.cooldown() >= 2.0) {
-            bar(player, "<#ffd27a>◆ " + Text.escape(s.name()) + " <dark_gray>· " + ItemTooltip.inputName(input.name())
+            bar(player, "<#ffd27a>◆ " + Text.escape(s.name()) + " <dark_gray>· " + ItemTooltip.inputName(def, input.name())
                     + " · 재사용 " + String.format("%.1f", cd) + "초", 30);
             pendingReady.add(new Ready(player.getUniqueId(), def.id(), input.name(), s.name(), end));
         }
@@ -209,7 +216,7 @@ public final class LabWeaponSkillService implements WeaponSkillService, Listener
         return switch (id) {
             case "slash_wave" -> DamageType.RANGED;
             case "beam", "chain_bolt", "sanctuary", "vortex" -> DamageType.MAGIC;
-            case "missile", "rain_zone", "blade_orbit" -> switch (weapon.weaponType() == null ? "" : weapon.weaponType()) {
+            case "missile", "rain_zone", "blade_orbit", "mechanics" -> switch (weapon.weaponType() == null ? "" : weapon.weaponType()) {
                 case "bow" -> DamageType.RANGED;
                 case "staff", "scepter" -> DamageType.MAGIC;
                 default -> DamageType.MELEE;
@@ -269,6 +276,7 @@ public final class LabWeaponSkillService implements WeaponSkillService, Listener
             return;
         }
         if (interactTick.getOrDefault(u, -100) == t) return;
+        if (p.isSneaking() && isBowWithSneakShot(p)) return; // 웅크리고 당기기 → onShoot 에서 발동
         if (lastRightTick.getOrDefault(u, -100) == t) {
             e.setUseItemInHand(org.bukkit.event.Event.Result.DENY);
             return;
@@ -293,9 +301,28 @@ public final class LabWeaponSkillService implements WeaponSkillService, Listener
             return;
         }
         if (lastRightTick.getOrDefault(u, -100) == t) return;
+        if (p.isSneaking() && isBowWithSneakShot(p)) return;
         if (handle(p, p.isSneaking() ? Input.SNEAK_RIGHT : Input.RIGHT)) {
             lastRightTick.put(u, t);
             e.setCancelled(true);
+        }
+    }
+
+    private boolean isBowWithSneakShot(Player p) {
+        ItemDef def = services.items().heldWeapon(p);
+        return def != null && "bow".equals(def.weaponType()) && def.weaponSkill(Input.SNEAK_RIGHT.name()) != null;
+    }
+
+    /**
+     * 활 "웅크리고 당겨 쏘기" (SNEAK_RIGHT): 웅크린 채 시위를 놓으면 화살 대신 무기 스킬이 나간다(당김 세기 = 위력).
+     * 쿨다운·마나 부족이면 평범한 화살이 나간다.
+     */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onShoot(org.bukkit.event.entity.EntityShootBowEvent e) {
+        if (!(e.getEntity() instanceof Player p) || !p.isSneaking()) return;
+        if (!isBowWithSneakShot(p)) return;
+        if (handle(p, Input.SNEAK_RIGHT, Math.max(0, Math.min(1, e.getForce())))) {
+            e.setCancelled(true); // 취소하면 화살도 소모되지 않는다 (미궁 활은 무한)
         }
     }
 

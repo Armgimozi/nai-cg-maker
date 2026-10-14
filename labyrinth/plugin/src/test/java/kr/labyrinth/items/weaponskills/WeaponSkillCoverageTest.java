@@ -26,12 +26,15 @@ class WeaponSkillCoverageTest {
         MovementSkills.register(r);
         AreaSkills.register(r);
         SupportSkills.register(r);
+        MechanicsEngine.register(r);
         return r;
     }
 
     @Test
     void catalogFullyImplemented() {
-        assertEquals(new TreeSet<>(CATALOG), new TreeSet<>(registry().keySet()));
+        Set<String> want = new TreeSet<>(CATALOG);
+        want.add("mechanics"); // 조합형 (GDD §17.5)
+        assertEquals(want, new TreeSet<>(registry().keySet()));
     }
 
     @Test

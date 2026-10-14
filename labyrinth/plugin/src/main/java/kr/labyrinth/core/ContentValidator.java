@@ -163,7 +163,9 @@ public final class ContentValidator {
             Set<String> inputs = new HashSet<>();
             for (ItemDef.WeaponSkillDef s : d.weaponSkills()) {
                 String sw = w + ".weapon_skills." + s.id();
-                if (!WEAPON_SKILLS.contains(s.id())) err(sw, "알 수 없는 무기 스킬 구현 id");
+                if ("mechanics".equals(s.id())) {
+                    mechanics(sw, d, s);
+                } else if (!WEAPON_SKILLS.contains(s.id())) err(sw, "알 수 없는 무기 스킬 구현 id");
                 if (!WEAPON_INPUTS.contains(s.input())) err(sw, "input 이 올바르지 않음: " + s.input());
                 if (!inputs.add(s.input())) err(sw, "같은 input 을 쓰는 무기 스킬이 둘: " + s.input());
                 checkFxParams(sw, s.params());
@@ -176,6 +178,21 @@ public final class ContentValidator {
                 warn(w, "전설/신화 무기인데 aura 가 없음");
             }
         }
+    }
+
+    /** 조합형 무기 스킬(id: mechanics, GDD §17.5) — 부품·효과 문법, fx 모델 참조, 활 입력 규칙. */
+    private void mechanics(String sw, ItemDef d, ItemDef.WeaponSkillDef s) {
+        Object raw = s.params().get("mechanics");
+        if (raw == null) {
+            err(sw, "id: mechanics 인데 mechanics 목록이 없음");
+            return;
+        }
+        kr.labyrinth.items.weaponskills.mechanics.MechanicsSpec.Result r =
+                kr.labyrinth.items.weaponskills.mechanics.MechanicsSpec.parse(raw);
+        for (String p : r.problems()) err(sw, p);
+        for (String fx : r.displays()) requireFx(sw + ".mechanics.display", fx);
+        if (s.name() == null || s.name().isBlank() || s.name().equals("mechanics")) warn(sw, "조합형 스킬에 name 이 없음");
+        if (s.cooldown() <= 0) warn(sw, "조합형 스킬의 cooldown 이 0");
     }
 
     private void sets() {

@@ -40,6 +40,7 @@ public final class SkillCast {
     public final ItemDef.WeaponSkillDef skill;
     public final Params p;
     private final DamageType defaultType;
+    private double charge = -1;
 
     SkillCast(Services services, LabWeaponSkillService service, Player player, ItemDef weapon, ItemDef.WeaponSkillDef skill,
               DamageType defaultType) {
@@ -50,6 +51,14 @@ public final class SkillCast {
         this.skill = skill;
         this.p = skill.params() == null ? Params.EMPTY : skill.params();
         this.defaultType = defaultType;
+    }
+
+    /** 활 "웅크리고 당겨 쏘기"(SNEAK_RIGHT) 의 당김 세기 0~1. 그 외 입력은 -1. */
+    public double charge() { return charge; }
+
+    SkillCast charge(double v) {
+        this.charge = v;
+        return this;
     }
 
     // ── 파라미터 ──────────────────────────────────────────────────────────

@@ -100,6 +100,12 @@ public final class ItemTooltip {
 
     public static String inputName(String input) { return INPUTS.getOrDefault(input, input); }
 
+    /** 무기별 입력 이름 — 활의 SNEAK_RIGHT 는 "웅크리고 당겨 쏘기" (GDD §17.5). */
+    public static String inputName(ItemDef def, String input) {
+        if (def != null && "bow".equals(def.weaponType()) && "SNEAK_RIGHT".equals(input)) return "웅크리고 당겨 쏘기";
+        return inputName(input);
+    }
+
     /**
      * @param rolls   굴린 스탯 (null 이면 범위만 보여 주는 미리보기)
      */
@@ -153,7 +159,7 @@ public final class ItemTooltip {
         if (!def.weaponSkills().isEmpty()) {
             out.add("");
             for (ItemDef.WeaponSkillDef s : def.weaponSkills()) {
-                StringBuilder head = new StringBuilder("<#ffd27a>◆ " + inputName(s.input()) + "</#ffd27a> <white>"
+                StringBuilder head = new StringBuilder("<#ffd27a>◆ " + inputName(def, s.input()) + "</#ffd27a> <white>"
                         + Text.escape(s.name()) + "</white> <dark_gray>(");
                 head.append("재사용 ").append(trim(s.cooldown())).append("초");
                 if (s.mana() > 0) head.append(" · MP ").append(trim(s.mana()));
