@@ -212,9 +212,11 @@ def build_item(iid: str, it: dict) -> ItemResult:
         m.fit_into_limits()
         displays.shield(m)
     else:
+        if shape == 'emblem':
+            spec['motif'] = next((mo for key, mo in A.EMBLEM_MOTIFS if key in iid), 'cross')
         A.ACCESSORIES[shape](m, spec)
         m.fit_into_limits()
-        displays.trinket(m)
+        displays.trinket(m, gui_rot=(8, 18, 0) if shape == 'emblem' else (15, 25, 0))
     _bake_and_write(res, m, iid, look, tex, animated, seed)
     res.files[f'assets/{NS}/items/{iid}.json'] = jdump(item_definition(iid))
     return res

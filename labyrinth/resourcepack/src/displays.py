@@ -15,15 +15,17 @@ def _t(rot, tr, sc):
 
 
 def weapon(m: Model, two_handed=False, gui_rot=(18, 22, -45)):
+    # long models (greatswords, staves) are scaled down a little in first person so they don't fill the screen
+    top = m.bounds()[1][1]
+    fp = 0.68 if top <= 22 else max(0.5, 0.68 * 22.0 / top)
     r3 = _t((0, -90, 10), (0, 4.0, 0.5), 0.9 if two_handed else 0.85)
-    r1 = _t((0, -90, -20), (1.13, 3.2, 1.13), 0.68)
+    r1 = _t((0, -90, -20), (1.13, 3.2, 1.13), round(fp, 3))
     m.display = {
         'thirdperson_righthand': r3, 'thirdperson_lefthand': mirror_left(r3),
         'firstperson_righthand': r1, 'firstperson_lefthand': mirror_left(r1),
         'gui': fit_transform(m, gui_rot, target=15.5, max_scale=1.6),
         'ground': fit_transform(m, (0, 0, -45), target=9.0, max_scale=1.0, offset=(0, 1.5, 0)),
         'fixed': fit_transform(m, (0, 180, -45), target=15.0, max_scale=1.6),
-        'head': _t((0, 0, -30), (0, 8, 0), 0.8),
     }
 
 

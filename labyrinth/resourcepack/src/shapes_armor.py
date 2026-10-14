@@ -477,17 +477,66 @@ def emblem(m: Model, spec):
         hw = max(0.75, round(hw * 2) / 2)
         m.box((C - hw, y, 7.2), (C + hw, y + 1.0, 8.0), 'metal')
         if hw > 1.5 and C - R + 0.9 < ym < C + R - 0.9:
-            m.box((C - hw + 0.8, y, 8.0), (C + hw - 0.8, y + 1.0, 8.5), 'plate', glow=lv >= 4)
+            m.box((C - hw + 0.8, y, 8.0), (C + hw - 0.8, y + 1.0, 8.5), 'field', glow=lv >= 4)
         y += 1.0
-    m.box((7.2, 4.0, 8.5), (8.8, 12.0, 9.2), 'orn')
-    m.box((5.0, 7.6, 8.5), (11.0, 9.2, 9.2), 'orn')
-    m.cbox((C, 8.4, 9.4), (1.8, 1.8, 0.7), 'gem', glow=True, emission=10 if lv >= 4 else 0, rot=('z', 45, (C, 8.4, 9.4)))
+    _emblem_relief(m, spec.get('motif') or 'cross', lv)
     for s in (-1, 1):
         m.cbox((C + s * 4.6, 12.2, 7.6), (1.4, 2.6, 0.8), 'orn', rot=('z', -s * 35, (C + s * 4.6, 12.2, 7.6)))
     if lv >= 3:
         for k in range(6):
             a = 2 * math.pi * k / 6 + math.pi / 6
             m.cbox((C + math.cos(a) * 4.0, C + math.sin(a) * 4.0, 8.6), (0.6, 0.6, 0.4), 'orn')
+
+
+def _emblem_relief(m, motif, lv):
+    z0, z1 = 8.5, 9.2
+    em = 10 if lv >= 4 else 0
+    if motif == 'shield':
+        for k, hw in enumerate((3.0, 3.0, 3.0, 2.6, 2.0, 1.2, 0.5)):
+            y = 11.5 - k * 1.0
+            m.box((C - hw, y - 1.0, z0), (C + hw, y, z1), 'orn')
+        m.box((C - 0.4, 5.2, z1), (C + 0.4, 10.8, z1 + 0.3), 'metal')
+        m.box((C - 2.4, 9.0, z1), (C + 2.4, 9.8, z1 + 0.3), 'metal')
+    elif motif == 'axes':
+        for s_ in (-1, 1):
+            m.cbox((C, 8.0, z0 + 0.35), (0.9, 8.5, 0.7), 'orn', rot=('z', s_ * 40, (C, 8.0, z0)))
+            hx, hy = C - s_ * 2.6, 11.2
+            m.cbox((hx, hy, z0 + 0.4), (2.4, 2.0, 0.8), 'metal', rot=('z', s_ * 40, (hx, hy, z0)))
+    elif motif == 'arrow':
+        m.cbox((C, 8.0, z0 + 0.35), (0.8, 9.0, 0.7), 'orn', rot=('z', -45, (C, 8.0, z0)))
+        m.cbox((C + 3.1, 11.1, z0 + 0.4), (2.2, 2.2, 0.8), 'metal', rot=('z', 45, (C + 3.1, 11.1, z0)))
+        for d in (0, 1):
+            m.cbox((C - 2.6 + d * 0.9, 5.4 + d * 0.9, z0 + 0.35), (2.2, 0.6, 0.6), 'cloth', rot=('z', 45, (C - 2.6 + d * 0.9, 5.4 + d * 0.9, z0)))
+    elif motif == 'star':
+        for ang in (0, 90):
+            m.cbox((C, 8.4, z0 + 0.35), (1.0, 8.0, 0.7), 'orn', rot=('z', ang, (C, 8.4, z0)) if ang else None)
+        for ang in (45, -45):
+            m.cbox((C, 8.4, z0 + 0.3), (0.7, 4.6, 0.6), 'orn', rot=('z', ang, (C, 8.4, z0)))
+    elif motif == 'sun':
+        for k in range(8):
+            a = 2 * math.pi * k / 8
+            m.cbox((C + math.cos(a) * 3.4, 8.4 + math.sin(a) * 3.4, z0 + 0.35), (1.0, 1.0, 0.7), 'orn',
+                   rot=('z', 45, (C + math.cos(a) * 3.4, 8.4 + math.sin(a) * 3.4, z0)))
+    elif motif == 'dagger':
+        m.box((C - 0.6, 6.0, z0), (C + 0.6, 12.6, z1), 'metal')
+        m.box((C - 2.2, 5.4, z0), (C + 2.2, 6.2, z1), 'orn')
+        m.box((C - 0.5, 3.6, z0), (C + 0.5, 5.4, z1), 'leather')
+        for k in range(4):
+            a = math.radians(200 + k * 25)
+            m.cbox((C + 3.6 + math.cos(a) * 1.2, 9.4 + math.sin(a) * 2.6, z0 + 0.3), (0.8, 1.6, 0.6), 'orn',
+                   rot=('z', 200 + k * 25 - 180, (C + 3.6 + math.cos(a) * 1.2, 9.4 + math.sin(a) * 2.6, z0)))
+    else:
+        m.box((7.2, 4.0, z0), (8.8, 12.0, z1), 'orn')
+        m.box((5.0, 7.6, z0), (11.0, 9.2, z1), 'orn')
+    if motif not in ('shield', 'dagger'):
+        m.cbox((C, 8.4, 9.4), (1.6, 1.6, 0.7), 'gem', glow=True, emission=em, rot=('z', 45, (C, 8.4, 9.4)))
+    else:
+        m.cbox((C, 11.6 if motif == 'dagger' else 8.0, 9.6), (1.2, 1.2, 0.6), 'gem', glow=True, emission=em,
+               rot=('z', 45, (C, 11.6 if motif == 'dagger' else 8.0, 9.6)))
+
+
+EMBLEM_MOTIFS = (('guardian', 'shield'), ('berserk', 'axes'), ('hunter', 'arrow'), ('arcan', 'star'),
+                 ('priest', 'sun'), ('shadow', 'dagger'))
 
 
 def relic_orb(m: Model, spec):

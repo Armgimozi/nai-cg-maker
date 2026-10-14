@@ -128,16 +128,16 @@ def make_shader(look: Look, overrides=None):
         col = None
         n = h3(int(x * 2), int(y * 2), int(z * 2), seed)
         if style == 'steel':
-            if (gx + gy + seed) % 9 == 0:
-                v += 0.18
-            v += (n - 0.5) * 0.08
+            if (gx + gy + seed) % 13 == 0 and ramp_name == 'main':
+                v += 0.16
+            v += (n - 0.5) * 0.05
         elif style == 'silver':
             v += 0.06
             if w >= 4 and h >= 4 and 0 < i < w - 1:
                 curl = math.sin(gy * 0.9 + math.sin(gx * 1.3) * 2.0)
                 if abs(curl) < 0.18:
                     v -= 0.24
-            if n > 0.94:
+            if n > 0.96:
                 v += 0.25
         elif style == 'gold':
             v += 0.04
@@ -337,6 +337,14 @@ def make_shader(look: Look, overrides=None):
             v = 0.5 + bev
             v, color = style_pattern('leather', ctx, v, 'grip')
             return look.grip, v, color, alpha
+        if role == 'field':
+            # heraldic background: darker, calm, so reliefs read clearly
+            x, y, z = ctx.pos
+            v = 0.22 + bev * 0.6
+            gx_, gy_ = int(round(x * 2)), int(round(y * 2))
+            if (gx_ + gy_) % 6 == 0 or (gx_ - gy_) % 6 == 0:
+                v += 0.2
+            return look.main, v, None, alpha
         if role == 'horn':
             v = 0.45 + bev + t * 0.35
             v, color = style_pattern('bone', ctx, v, 'string')
