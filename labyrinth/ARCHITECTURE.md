@@ -336,6 +336,11 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
 - **이벤트**: 보스 처치 시 `FloorClearEvent`(참가자 전원, 입장 인원, 그 층 사망 수, 그 층 소요 초, 서버 난이도). 해금층 = 깬 층+1.
   PlayerData counters: `dungeon.floor_clears`, `dungeon.clear_floor_<n>`, `dungeon.solo_clears`.
 - **사망**: 미궁 안 PlayerDeathEvent 는 취소되고 관전 모드(휴식방 도달·보스 처치 시 부활). 전원 쓰러지면 전멸 → 귀환.
+  `DungeonManager` 가 `isDowned`/`revive` 를 재정의한다 — 쓰러짐 = Run 의 사망자 목록(게임 모드만 보지 않음), 사제 부활도 `Run.revive` 경로.
+- **게임 모드** (`dungeon/GameModes`, 순수 로직·단위 테스트): 일반 입장 = 층에 도착할 때 서바이벌(입장 전 모드는 `Run.modes` +
+  PlayerData ext `dungeon.gamemode` 에 기억 → 귀환·`recoverStranded` 때만 되돌림), 재접속 = 쓰러짐 관전 / 아니면 서바이벌, 부활 = 서바이벌.
+  `adminEnter`(tpfloor) Run 만 `adminTest` 로 모드를 건드리지 않는다. (보스·몹·TargetFilter 는 크리에이티브·관전을 노리지 않는다.)
+- **전멸 훅**: `Run.wipe()` → 현재 층 모든 방의 `Room.onWipe()` (BossRoom·GimmickRoom 이 점진 힌트 실패를 기록).
 - **명령**: `/미궁 귀환|return`, `/미궁 정보|info`, `/파티 생성|초대|수락|거절|탈퇴|추방|위임|해산|채팅|정보`,
   `/labadmin setentrance [block|npc] · removeentrance · tpfloor <층> · unlock <플레이어> <층> · instances · endinstance <id>`.
 - **입구**: block 방식 석문은 바꾼 원래 블록을 `entrance.yml` 에 저장 → removeentrance 가 복원. npc 방식은 블록 변경 0. 둘 다 npcs.yml
@@ -362,6 +367,12 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
   관리자 명령: `spawnboss`, `endboss`(근처 보스전 종료), `bosses`(목록).
 - 보스는 stun/root/빙결 면역(상태이상 서비스가 거름) — 기믹 기절은 `Boss.stun(초)`(+ `makeVulnerable`). `interrupt` 신호는 `interruptible`
   시전만 끊는다. 패턴 피해 대상은 `players()`(TargetFilter·아레나 경계·쓰러짐 제외), 대상 선택은 `targets()`(은신 제외).
+- **문구 규칙** (GDD §19): `broadcastBar`/`notify`/이름표에는 조작법·정답을 쓰지 않는다(분위기·관찰 단서·진행도 아이콘만).
+  정답은 bosses.yml `hints: [단서1, 단서2, 단서3]` 에 쓰면 BossRoom 이 실패 횟수에 맞춰 보스바 아래(`dungeon_boss_hint`)에 띄운다 —
+  보스 구현은 아무것도 하지 않아도 된다.
+- **점진 힌트** (`core/Hints`): 실패 횟수 = PlayerData ext `hints.boss.<id>` / `hints.gimmick.<키>`, 단계 = 함께 있는 파티원 최댓값 →
+  config `hints.mode/thresholds`. 표시: BossRoom(등장 2.5초 뒤 20초), GimmickRoom(`hints()` — 입장 채팅 + `dungeon_gimmick_hint` 막대),
+  휴식방 이야기 NPC(`NpcServiceImpl` — 그 층 보스 단서를 대사 첫 줄로).
 
 ### 통합·배포 메모 (integration-release 단계)
 - **메뉴 배경 규칙** (`ui.UiTheme.background(menu, rows)`): 메뉴별 배경 `gui_<menu>` 에는 버튼 소켓이 그려져 있으므로 **버튼 배치가
@@ -685,6 +696,15 @@ hud: {total: 182, bar_steps: 20, bar_width: 82, hp_x: 0, badge_x: 82, mp_x: 100,
 - `patterns.<key>` 공통 키: `weight`(스케줄러 가중치, 기본 1), `first_delay`(페이즈 진입 후 첫 사용까지 초, 기본 = 쿨다운/간격의 절반),
   `interruptible`(true 면 `interrupt` 상태이상으로 시전 차단).
 - `arena` 4층: `platform_block`/`platform_base`(단상 블록, 기본 PRISMARINE_BRICKS/DARK_PRISMARINE), `valve_block`(기본 WAXED_OXIDIZED_COPPER).
+- 보스 최상위 `hints`: 점진 힌트 단서 목록 `[흐릿, 조금 분명, 거의 정답]` (GDD §19.3, `Hints.bossClues(def)` = `def.raw().strings("hints")`).
+  없으면 단서 없음, 리스트가 아니면 검증 오류, 3줄이 아니면 경고. MiniMessage(`<key:key.sneak>` 등) 가능.
+
+### 6.5 config.yml `hints` (점진 힌트)
+```yaml
+hints:
+  mode: progressive        # progressive | none | full
+  thresholds: [2, 4, 6]    # 실패 횟수 경계 → 단계 1..3 (파티원 중 최댓값 기준)
+```
 
 ## 7. 성능·안정성 규칙
 
@@ -697,7 +717,9 @@ hud: {total: 182, bar_steps: 20, bar_width: 82, hp_x: 0, badge_x: 82, mp_x: 100,
 
 ## 8. 테스트
 
-- 순수 로직(경험치 곡선, 스탯 계산, 피해 공식, 배율, 루팅 확률, 미로 생성 연결성, YAML 로딩/검증)은 JUnit 5.
+- 순수 로직(경험치 곡선, 스탯 계산, 피해 공식, 배율, 루팅 확률, 미로 생성 연결성, YAML 로딩/검증, 점진 힌트 단계 `HintsTest`,
+  미궁 게임 모드 규칙 `GameModesTest`)은 JUnit 5.
+- `labadmin selftest` 는 층마다 기믹방 단서 3단계·보스 단서의 MiniMessage 읽기를 확인한다(`hints` 단계, `hint_gimmicks`/`hint_bosses` 개수).
 - `./gradlew build` 가 테스트 포함 통과해야 함.
 - `ContentValidator`: 모든 YAML 교차참조(아이템·몹·루팅·레시피·층·보스 id)가 유효한지 시작 시 + 테스트에서 검사.
 - 리소스팩 생성기는 끝에 자체 검증: content 의 모든 아이템/몹 파트/NPC/글리프/fx 에 대응 파일이 있는지, JSON 파싱, PNG 크기.

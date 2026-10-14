@@ -218,6 +218,7 @@ final class SelfTest {
                 count("floors_built", 1);
                 Text.send(sender, "<gray>  지하 " + f + "층 생성 완료 (" + (System.currentTimeMillis() - t0) + "ms, 방 "
                         + fs.rooms().size() + "개)");
+                step("hints", this::checkHints);
                 step("selftest", this::spawnMobs);
             });
         });
@@ -233,6 +234,25 @@ final class SelfTest {
                 releaseFloor(this::nextFloor);
             }
         });
+    }
+
+    /** 점진 힌트: 이 층 기믹방·보스의 단서 3단계가 있고 MiniMessage 로 읽히는지, 단계 계산이 config 와 맞는지. */
+    private void checkHints() {
+        var cfg = kr.labyrinth.core.Hints.config(services);
+        if (kr.labyrinth.core.Hints.level(cfg, 0) > 0 && cfg.mode() == kr.labyrinth.core.Hints.Mode.PROGRESSIVE) {
+            throw new IllegalStateException("실패 0회인데 단서 단계 > 0");
+        }
+        for (Room r : fs.rooms()) {
+            if (!(r instanceof kr.labyrinth.dungeon.rooms.GimmickRoom g)) continue;
+            var lines = g.hintLines();
+            if (lines.size() != 3) throw new IllegalStateException("기믹방 단서가 3단계가 아님: " + fs.def().gimmick() + " (" + lines.size() + ")");
+            for (String l : lines) Text.mm(kr.labyrinth.core.Hints.format(l));
+            count("hint_gimmicks", 1);
+        }
+        var boss = services.content().boss(fs.def().boss());
+        var clues = kr.labyrinth.core.Hints.bossClues(boss);
+        for (String l : clues) Text.mm(kr.labyrinth.core.Hints.format(l));
+        if (!clues.isEmpty()) count("hint_bosses", 1);
     }
 
     private List<Location> spots() {

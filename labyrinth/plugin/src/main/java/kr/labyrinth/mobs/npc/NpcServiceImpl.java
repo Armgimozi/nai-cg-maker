@@ -13,6 +13,7 @@ import java.util.Optional;
 import java.util.UUID;
 import kr.labyrinth.Services;
 import kr.labyrinth.content.NpcDef;
+import kr.labyrinth.core.Hints;
 import kr.labyrinth.core.Keys;
 import kr.labyrinth.core.Log;
 import kr.labyrinth.core.Text;
@@ -230,9 +231,21 @@ public final class NpcServiceImpl implements NpcService, Listener {
         }
     }
 
-    /** 대사 순환: 메뉴 NPC 는 무작위 한 줄, 이야기 NPC 는 차례대로. */
+    /**
+     * 대사 순환: 메뉴 NPC 는 무작위 한 줄, 이야기 NPC 는 차례대로. 층 이야기 NPC 는 그 층 보스에서 파티가 쌓은 실패만큼
+     * 또렷해진 단서(core/Hints)를 첫 줄로 끼워 말한다.
+     */
     private String nextLine(Player p, NpcDef def, boolean random) {
         List<String> lines = def.dialogue();
+        if (!random && def.floor() > 0) {
+            String clue = floorClue(p, def.floor());
+            if (clue != null) {
+                List<String> withClue = new ArrayList<>();
+                withClue.add("<dark_gray>(쓰러졌다 돌아온 당신을 보고 넌지시)</dark_gray> " + Hints.format(clue));
+                if (lines != null) withClue.addAll(lines);
+                lines = withClue;
+            }
+        }
         if (lines == null || lines.isEmpty()) return null;
         if (random) return lines.get(java.util.concurrent.ThreadLocalRandom.current().nextInt(lines.size()));
         Map<String, Integer> idx = dialogueIndex.computeIfAbsent(p.getUniqueId(), k -> new HashMap<>());
@@ -240,6 +253,19 @@ public final class NpcServiceImpl implements NpcService, Listener {
         idx.put(def.id(), (i + 1) % lines.size());
         String prefix = lines.size() > 1 ? "<dark_gray>(" + (i + 1) + "/" + lines.size() + ")</dark_gray> " : "";
         return prefix + lines.get(i % lines.size());
+    }
+
+    /** 그 층 보스의 파티 기준 단서 (없으면 null). */
+    private String floorClue(Player p, int floor) {
+        try {
+            var f = services.content().floor(floor);
+            if (f == null || f.boss() == null) return null;
+            var boss = services.content().boss(f.boss());
+            if (boss == null) return null;
+            return Hints.partyClue(services, Hints.partyOf(services, p), Hints.bossKey(boss.id()), Hints.bossClues(boss));
+        } catch (Throwable t) {
+            return null;
+        }
     }
 
     // ── 엔티티 ───────────────────────────────────────────────────────────

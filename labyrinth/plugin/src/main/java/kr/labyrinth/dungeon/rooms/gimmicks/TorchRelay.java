@@ -42,9 +42,17 @@ public final class TorchRelay extends GimmickRoom {
 
     @Override
     protected String rules() {
+        return "<gray>어둠이 불씨를 하나씩 삼키려 한다\n<gray>불이 버티는 동안만 어둠이 물러선다";
+    }
+
+    @Override
+    protected List<String> hints() {
         int need = Math.max(1, braziers.size() - 1);
-        return "<gray>화로는 곧 꺼진다. <gold>우클릭</gold>으로 다시 지펴라\n<gray>화로 <white>" + need + "개 이상</white>이 타는 시간을 <white>"
-                + params.integer("hold_seconds", 40) + "초</white> 채우면 성공";
+        return List.of(
+                "꺼진 화로도 손길이 닿으면 다시 숨을 쉰다.",
+                "모든 불을 지킬 필요는 없다. 하나쯤 꺼져도 어둠은 버틴다 — 둘이 꺼지면 이야기가 다르다.",
+                "꺼진 화로를 우클릭하면 다시 붙는다. 화로 " + need + "개 이상이 함께 타는 시간을 " + params.integer("hold_seconds", 40)
+                        + "초 채우면 성공 — 파티는 화로를 나눠 맡아라.");
     }
 
     @Override public boolean wantsLights() { return false; }
@@ -108,7 +116,7 @@ public final class TorchRelay extends GimmickRoom {
         if (t % 10 == 0) {
             for (int i = 0; i < labels.size(); i++) {
                 double v = burn[i];
-                labels.get(i).text(kr.labyrinth.core.Text.mm(v > 0 ? (v < 5 ? "<red>" : "<gold>") + "🔥 " + (int) Math.ceil(v) + "초" : "<dark_gray>꺼짐 — 우클릭"));
+                labels.get(i).text(kr.labyrinth.core.Text.mm(v > 0 ? (v < 5 ? "<red>" : "<gold>") + "🔥 " + (int) Math.ceil(v) + "초" : "<dark_gray>꺼짐"));
             }
             if (!enough) {
                 for (Player p : alivePlayersInside()) p.addPotionEffect(new PotionEffect(PotionEffectType.DARKNESS, 40, 0, true, false, false));

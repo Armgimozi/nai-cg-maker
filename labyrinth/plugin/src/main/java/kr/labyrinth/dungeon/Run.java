@@ -48,7 +48,10 @@ public final class Run {
     private final List<UUID> members;
     private final Map<UUID, MemberState> states = new LinkedHashMap<>();
     private final Map<UUID, Location> returnTo = new HashMap<>();
+    /** 입장 전 게임 모드 — 미궁을 나갈 때만 되돌린다 (안에서는 GameModes 규칙). */
     private final Map<UUID, GameMode> modes = new HashMap<>();
+    /** 관리자 테스트 입장 (/labadmin tpfloor): 게임 모드를 바꾸지 않는다. */
+    private final boolean adminTest;
     private final Map<UUID, Location> lastSafe = new HashMap<>();
     private final Map<UUID, Long> nextAmbientSound = new HashMap<>();
     private final long seedBase;
@@ -67,7 +70,13 @@ public final class Run {
     private long lastTick;
 
     Run(DungeonManager manager, String id, int slot, Difficulty difficulty, PartyScaling scaling, List<UUID> members) {
+        this(manager, id, slot, difficulty, scaling, members, false);
+    }
+
+    Run(DungeonManager manager, String id, int slot, Difficulty difficulty, PartyScaling scaling, List<UUID> members,
+            boolean adminTest) {
         this.manager = manager;
+        this.adminTest = adminTest;
         this.id = id;
         this.slot = slot;
         this.difficulty = difficulty;
@@ -85,6 +94,7 @@ public final class Run {
     public FloorState current() { return current; }
     public boolean ending() { return ending; }
     public long createdAt() { return createdAt; }
+    public boolean adminTest() { return adminTest; }
 
     public MemberState state(UUID u) { return states.getOrDefault(u, MemberState.LEFT); }
 
@@ -122,7 +132,7 @@ public final class Run {
     void begin(int floor, List<Player> players) {
         for (Player p : players) {
             returnTo.put(p.getUniqueId(), p.getLocation().clone());
-            modes.put(p.getUniqueId(), p.getGameMode() == GameMode.SPECTATOR ? GameMode.SURVIVAL : p.getGameMode());
+            modes.put(p.getUniqueId(), GameModes.remembered(p.getGameMode()));
             PlayerData d = manager.services().data().get(p);
             d.ext().put("dungeon.return", DungeonManager.serialize(p.getLocation()));
             d.ext().put("dungeon.gamemode", modes.get(p.getUniqueId()).name());
@@ -143,6 +153,9 @@ public final class Run {
                 Player p = Bukkit.getPlayer(u);
                 if (p == null || !p.isOnline()) continue;
                 manager.services().hud().hideBossBar(p, BAR_GEN);
+                // 크리에이티브로 들어오면 보스·몹이 공격하지 않는다 → 일반 입장은 서바이벌로 (입장 전 모드는 나갈 때 되돌림)
+                GameMode want = GameModes.onEnter(p.getGameMode(), adminTest);
+                if (p.getGameMode() != want) p.setGameMode(want);
                 Location spawn = fs.spawnPoint();
                 p.teleport(spawn);
                 p.setFallDistance(0);
@@ -345,7 +358,7 @@ public final class Run {
 
     public void revive(Player p, Location at, double hpFraction) {
         states.put(p.getUniqueId(), MemberState.ALIVE);
-        p.setGameMode(modes.getOrDefault(p.getUniqueId(), GameMode.SURVIVAL));
+        p.setGameMode(GameModes.onRevive());
         Location to = at.clone();
         to.setYaw(p.getLocation().getYaw());
         p.teleport(to);
@@ -377,6 +390,8 @@ public final class Run {
         manager.services().hud().hideBossBar(p, BAR_GEN);
         manager.services().hud().hideBossBar(p, "dungeon_boss");
         manager.services().hud().hideBossBar(p, "dungeon_gimmick");
+        manager.services().hud().hideBossBar(p, "dungeon_boss_hint");
+        manager.services().hud().hideBossBar(p, "dungeon_gimmick_hint");
         p.setGameMode(modes.getOrDefault(u, GameMode.SURVIVAL));
         p.setFireTicks(0);
         p.setFallDistance(0);
@@ -394,6 +409,13 @@ public final class Run {
         ending = true;
         FloorState fs = current;
         if (fs != null) {
+            for (var room : fs.rooms()) {
+                try {
+                    room.onWipe();
+                } catch (Throwable t) {
+                    Log.error("전멸 처리 오류 (방 " + room.info().index() + ")", t);
+                }
+            }
             fs.title("<dark_red><b>전멸</b></dark_red>", "<gray>미궁이 당신들을 삼켰습니다... 입구로 돌아갑니다", 10, 60, 20);
             for (Player p : fs.allPlayers()) p.playSound(p.getLocation(), Sound.ENTITY_ELDER_GUARDIAN_CURSE, 0.8f, 0.6f);
         }
@@ -621,12 +643,12 @@ public final class Run {
         manager.services().hud().actionBar(p, Text.mm("<gray>지하 " + current.floor() + "층 도착 — 파티원을 기다리는 중..."), 60);
     }
 
-    /** 재접속한 파티원을 현재 층으로. */
+    /** 재접속한 파티원을 현재 층으로. 쓰러졌으면 관전, 아니면 서바이벌 (입장 전 크리에이티브로 되돌리지 않음). */
     void rejoin(Player p) {
+        GameMode want = GameModes.onRejoin(state(p.getUniqueId()) == MemberState.DEAD, p.getGameMode(), adminTest);
+        if (p.getGameMode() != want) p.setGameMode(want);
         if (current == null || !current.ready()) return;
         if (floorOf(p) == null) p.teleport(lastSafe.getOrDefault(p.getUniqueId(), current.spawnPoint()));
-        if (state(p.getUniqueId()) == MemberState.DEAD) p.setGameMode(GameMode.SPECTATOR);
-        else p.setGameMode(modes.getOrDefault(p.getUniqueId(), GameMode.SURVIVAL));
     }
 
     /** 정보 출력용 요약. */

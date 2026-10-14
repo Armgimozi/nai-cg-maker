@@ -3,7 +3,8 @@
 #
 # 스키마: ARCHITECTURE.md §6 npcs.yml (+ 추가 필드는 §6 에 기록됨)
 #  role       : entrance | blacksmith | class_master | title_keeper | merchant | lore
-#               (lore = 층 안 휴식방에 서 있는 이야기/공략 힌트 NPC, 우클릭 시 대사 순환)
+#               (lore = 층 안 휴식방에 서 있는 이야기 NPC, 우클릭 시 대사 순환. 공략은 수수께끼처럼 돌려 말한다 —
+#                파티가 그 층 보스에서 실패할수록 bosses.yml hints 단서를 첫 줄로 덧붙인다: GDD "보스 문구 규칙")
 #  skin       : textures/entity/npc/<skin>.png  (리소스팩 생성기가 skin_style 로 그림)
 #  skin_style : 생성기 지시 — outfit/hair/accessories 값은 GDD.md "Pack generator templates" 닫힌 목록
 #               palette 순서: [피부, 머리카락, 옷 주색, 옷 보조색, 장식/금속, 눈]
@@ -34,6 +35,7 @@ npcs:
       - "<gray>혼자 들어가도 되고, 동료와 <yellow>파티</yellow>를 맺어 함께 들어가도 돼요. 인원이 많을수록 미궁도 더 사나워지죠.</gray>"
       - "<gray>층의 주인을 쓰러뜨리면 다음 층으로 가는 계단이 열려요. 지하 10층까지… 끝을 본 사람은 아직 없답니다.</gray>"
       - "<gray>미궁의 <yellow>난이도</yellow>는 이 서버의 관리자님이 처음에 정해 두셨어요. 모두가 같은 난이도로 겨루니, 기록도 공평하죠.</gray>"
+      - "<gray>층의 주인들은 저마다 고약한 버릇이 있어요. 아무도 가르쳐 주지 않지만… 쓰러질 때마다 조금씩 보이게 될 거예요.</gray>"
 
   blacksmith:
     name: "대장장이 두르간"
@@ -122,9 +124,9 @@ npcs:
       hair: short_beard
       accessories: [helmet_lamp, bandage_arm]
     dialogue:
-      - "<gray>여왕의 은실에 묶이면… 짝꿍이랑 <yellow>멀리 떨어져</yellow>야 해. 12걸음은 넘게.</gray>"
-      - "<gray>가까이 붙어 있으면 실이 오그라들면서 둘 다 끌려가 꽁꽁 묶여 버려.</gray>"
-      - "<gray>벽에 붙은 알주머니는 깨어나기 전에 부숴! 새끼들이 쏟아지면 끝장이야.</gray>"
+      - "<gray>여왕은 꼭 둘을 한 실로 묶더군. 나랑 짝꿍은… 겁에 질려 서로 꼭 붙어 있었지. 그게 마지막이었어.</gray>"
+      - "<gray>벽 쪽에서 무언가 꿈틀대는 소리가 나면 오래 내버려 두지 마. 갱도가 새끼들로 가득 찼던 날을 잊을 수가 없어.</gray>"
+      - "<gray>은실 고치는 안에서 찢기 어려워. 바깥에 누가 있어 준다면 모를까… 혼자라면, 죽을힘을 다해 몸부림쳐야지.</gray>"
 
   lore_floor3_explorer:
     name: "길 잃은 탐험가 하린"
@@ -139,9 +141,9 @@ npcs:
       hair: short_bob
       accessories: [map_case, scarf, goggles_forehead]
     dialogue:
-      - "<gray>균사의 왕은 머리 위에 두 가지 표식을 띄워. <aqua>파란 포자</aqua>가 붙으면 <aqua>흩어지고</aqua>, <yellow>노란 꽃</yellow>이 피면 <yellow>모두 모여</yellow>야 해.</gray>"
-      - "<gray>노란 꽃의 피해는 안에 선 사람 수만큼 나뉘어. 혼자 맞으면… 버섯 거름이 되는 거지.</gray>"
-      - "<gray>파란 포자가 터진 자리엔 독 웅덩이가 남아. 가장자리에서 터뜨리는 게 좋아.</gray>"
+      - "<gray>무르노크의 포자는 두 가지 색이야. 하나는 외로움을 좋아하고, 하나는 외로움을 견디지 못하지.</gray>"
+      - "<gray>푸른 포자가 터진 자리엔 오래도록 독이 고여. 어디서 터뜨릴지는… 잘 생각해.</gray>"
+      - "<gray>노란 꽃은 무거워. 혼자 떠안으면 버섯 거름이 되는 거고.</gray>"
 
   lore_floor4_lockkeeper:
     name: "견습 수문지기 에일라"
@@ -156,9 +158,9 @@ npcs:
       hair: long_straight
       accessories: [key_ring, rain_cape]
     dialogue:
-      - "<gray>스승님이 물을 끌어올리기 시작하면 <aqua>단상 위로</aqua> 올라가세요. 물속에선 몸이 무거워지고 숨이 막혀요.</gray>"
-      - "<gray>벽의 수문 밸브를 <yellow>웅크린 채로(<key:key.sneak>)</yellow> 돌리면 돼요. 모든 밸브를 거의 동시에 돌려야 물이 빠져요.</gray>"
-      - "<gray>물이 빠지면 스승님이 잠시 비틀거려요. 그때가 기회예요.</gray>"
+      - "<gray>스승님이 닻을 끌면 물이 차올라요. 그래도 물은… 높은 곳까지는 못 올라와요.</gray>"
+      - "<gray>수문 밸브는 고집이 세요. 선 채로는 꿈쩍도 안 해요. 스승님은 늘 무릎을 꿇고 돌리셨죠.</gray>"
+      - "<gray>수문이 하나만 열려선 소용없어요. 물은 늦게 열린 수문을 기다려 주지 않거든요.</gray>"
 
   lore_floor5_apprentice:
     name: "견습 대장장이 미라"
@@ -173,9 +175,9 @@ npcs:
       hair: twin_buns
       accessories: [soot_marks, thick_gloves]
     dialogue:
-      - "<gray>모루왕이 망치를 높이 들면 땅이 울려요! 그대로 서 있으면 용암 해자까지 날아가요.</gray>"
-      - "<gray>바닥 가장자리의 <gold>쇠사슬 말뚝</gold> 옆에서 <yellow>웅크리면(<key:key.sneak>)</yellow> 사슬을 붙잡아 버틸 수 있어요.</gray>"
-      - "<gray>아니면 왕과 해자 사이에 서지 마세요. 날아가는 방향은 왕에게서 멀어지는 쪽이에요.</gray>"
+      - "<gray>모루왕이 망치를 높이 들면 땅이 울려요. 해자 쪽에 서 있던 견습생들은… 다시 못 봤어요.</gray>"
+      - "<gray>바닥 가장자리의 쇠사슬은 장식이 아니에요. 대장장이들은 진동이 오면 사슬부터 찾았죠.</gray>"
+      - "<gray>바람이 불고 나면 꼭 망치가 따라와요. 바람이 어디로 불었는지 기억해 두세요.</gray>"
 
   lore_floor6_knight:
     name: "얼어붙은 기사 에드윈의 망령"
@@ -190,9 +192,9 @@ npcs:
       hair: none
       accessories: [ghostly, frost_cracks, broken_crown]
     dialogue:
-      - "<gray>…멈추지 마라. 이 묘역에서 가만히 서 있는 자는 얼음이 된다. 얼어붙은 동료는 <aqua>두드려</aqua> 깨워 주어라.</gray>"
-      - "<gray>여제가 얼음 껍질에 숨으면 세 개의 인장이 나타난다. <red>칼날</red>, <green>화살</green>, <light_purple>주문</light_purple>… 각각 맞는 힘으로만 깨진다.</gray>"
-      - "<gray>주문이 끝나기 전에 셋을 모두 깨지 못하면… 나처럼 영원히 이곳에 남게 되리라.</gray>"
+      - "<gray>…이 묘역에서 걸음을 멈춘 자는 얼음이 된다. 얼어붙은 동료를 그대로 두지 마라.</gray>"
+      - "<gray>여제의 얼음 껍질은 하나의 힘으로는 깨지지 않는다. 칼, 활, 주문… 셋이 한뜻이어야 한다.</gray>"
+      - "<gray>주문이 끝나기 전에 껍질을 깨지 못하면… 나처럼 영원히 이곳에 남게 되리라.</gray>"
 
   lore_floor7_tuner:
     name: "조율사 루시엔"
@@ -207,9 +209,9 @@ npcs:
       hair: long_straight
       accessories: [tuning_fork, crystal_pendant]
     dialogue:
-      - "<gray>다이아드 앞에 서면 머리 위에 <yellow>빛</yellow>이나 <dark_purple>어둠</dark_purple>의 수정이 생겨요. 그게 당신의 색이에요.</gray>"
-      - "<gray>파동은 <u>같은 색</u>이면 스쳐 지나가고 다른 색이면 찢어 버려요. 양쪽 기둥을 만지면 색을 바꿀 수 있어요.</gray>"
-      - "<gray>그리고 다이아드의 지금 얼굴과 <u>반대 색</u>일 때 공격이 더 잘 들어가요.</gray>"
+      - "<gray>다이아드 앞에 서면 당신도 색을 입게 돼요. 빛, 아니면 어둠.</gray>"
+      - "<gray>파동은 제 색을 알아봐요. 낯선 색에게만 사납죠.</gray>"
+      - "<gray>양쪽 기둥은 그냥 서 있는 게 아니에요. 그리고… 다이아드는 자기와 반대인 것을 두려워해요.</gray>"
 
   lore_floor8_scribe:
     name: "필경사 유령 마르타"
@@ -224,9 +226,9 @@ npcs:
       hair: bun
       accessories: [ghostly, round_glasses, ink_stains]
     dialogue:
-      - "<gray>사서님이 공중으로 떠오르면 벽의 룬 책장이 하나씩 빛날 거예요. <yellow>순서를 외우세요</yellow>.</gray>"
-      - "<gray>빛난 순서대로 룬 책장을 두드리면 돼요. 누가 쳐도 상관없지만, 틀리면 먹물이 쏟아져요.</gray>"
-      - "<gray>먹물 분신은 진짜와 똑같이 생겼어요. 진짜는 <u>발밑에 그림자</u>가 있고, 가짜는 먹물을 흘려요.</gray>"
+      - "<gray>사서님이 떠오르면 서고가 순서를 속삭여요. 귀 기울이고, 잊지 마세요.</gray>"
+      - "<gray>엉뚱한 책장을 두드리면 먹물이 쏟아져요. 순서만 맞는다면 누구 손이든 상관없지만요.</gray>"
+      - "<gray>먹물 분신은 사서님과 똑같이 생겼어요. 하지만 먹물은… 그림자를 갖지 못해요.</gray>"
 
   lore_floor9_tinker:
     name: "태엽 수리공 오토"
@@ -242,8 +244,8 @@ npcs:
       accessories: [goggles_forehead, tool_belt, mechanical_arm]
     dialogue:
       - "<gray>테오라와 싸우는 동안 종말의 시계가 줄어든다네. 0이 되면… 모두 처음으로 되감기지.</gray>"
-      - "<gray>바닥의 봉인석은 <yellow>시곗바늘이 그 위를 지날 때</yellow> 올라서야 하네. 그러면 시계가 늘어나고 간수가 휘청거리지.</gray>"
-      - "<gray>바늘이 없는데 올라서면? 5초 전의 자리로 끌려가고 시계도 줄어들어. 조심하게.</gray>"
+      - "<gray>바닥의 봉인석은 아무 때나 밟는 게 아니야. 시곗바늘에게 물어보게.</gray>"
+      - "<gray>성급한 발은 몇 초 전으로 끌려가고, 시계도 함께 줄어든다네. 시계는 기다릴 줄 아는 자를 좋아하지.</gray>"
 
   lore_floor10_challenger:
     name: "첫 번째 도전자 리아"
@@ -259,6 +261,6 @@ npcs:
       accessories: [ghostly, torn_cape, sculk_scars]
     dialogue:
       - "<gray>…여기까지 왔구나. 나는 이 심장 앞에서 멈췄어. 너희는 다르길.</gray>"
-      - "<gray>바닥이 금이 가며 보랏빛으로 빛나면 그 칸에서 벗어나. 떨어지면 심연이 너를 갉아먹어.</gray>"
-      - "<gray>심장이 포효하면 <red>뒤도 보지 말고 달려</red>. 심연의 해일은 멈추지 않아. 길 끝의 낭떠러지까지.</gray>"
-      - "<gray>마지막엔… 너희가 지나온 모든 층의 메아리가 덮쳐 올 거야. 기억해, 너희는 이미 그걸 한 번씩 이겨냈어.</gray>"
+      - "<gray>바닥이 보랏빛으로 갈라지면 그 자리는 이미 심연의 것이야.</gray>"
+      - "<gray>심장이 포효하면… 돌아보지 마. 심연의 해일은 멈추지 않으니까.</gray>"
+      - "<gray>마지막엔 너희가 지나온 모든 층의 메아리가 덮쳐 올 거야. 기억해, 너희는 이미 그걸 한 번씩 이겨냈어.</gray>"

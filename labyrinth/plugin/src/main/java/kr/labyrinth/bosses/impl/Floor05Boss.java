@@ -94,7 +94,7 @@ public final class Floor05Boss extends Boss {
             l.setY(center.getY());
             anchors.add(l);
             fx.model(grip.str("fx", "chain_anchor"), l.clone().add(0, 0.75, 0), 1.6f, Display.Billboard.FIXED);
-            fx.label(l.clone().add(0, 2.5, 0), "<#ffb04a>쇠사슬 말뚝</#ffb04a>\n<gray>웅크려(" + kr.labyrinth.core.InputKeys.SNEAK + ") 붙잡기", 0.7f);
+            fx.label(l.clone().add(0, 2.5, 0), "<#ffb04a>쇠사슬 말뚝</#ffb04a>", 0.7f);
         }
     }
 
@@ -144,7 +144,7 @@ public final class Floor05Boss extends Boss {
             hitPct(p, def.pattern("forge_quake").dbl("lava_damage_pct", 0.3), "lava_moat");
             BossFx.sound(p.getLocation(), Sound.BLOCK_LAVA_EXTINGUISH, 1.4f, 0.8f);
             BossFx.particle(Particle.LAVA, p.getLocation().add(0, 0.5, 0), 12, 0.3, 0.3, 0.3, 0);
-            notify(p, "<red><b>용암 해자!</b></red> <gray>보스와 해자 사이에 서지 마세요 · 말뚝을 붙잡으세요");
+            notify(p, "<red><b>용암 해자!</b></red> <gray>살이 타들어 간다…");
             if (def.pattern("forge_quake").bool("lava_return", true)) launchInward(p);
         }
         if (now % 10 == 0 && !fakeLava.isEmpty()) {
@@ -241,7 +241,7 @@ public final class Floor05Boss extends Boss {
             BossFx.dustRing(c, Math.max(1, rr), Telegraph.ORANGE, 1.4f, (int) Math.max(10, rr * 5));
             return true;
         }, null, true));
-        broadcastBar("<gold><b>단조 진동!</b></gold> <gray>해자 쪽에 서지 말고, 쇠사슬 말뚝을 웅크려(" + kr.labyrinth.core.InputKeys.SNEAK + ") 붙잡으세요");
+        broadcastBar("<gold><b>단조 진동!</b></gold> <gray>모루가 울리고, 사슬이 낮게 운다…");
         return cast("forge_quake", "단조 진동", w, w + 12, BossAnim.SLAM, null, false);
     }
 
@@ -337,7 +337,7 @@ public final class Floor05Boss extends Boss {
                 return true;
             }, null, true));
         });
-        broadcastBar("<light_purple><b>풀무 돌풍!</b></light_purple> <gray>바람 반대로 걷거나 쇠사슬 말뚝을 붙잡으세요");
+        broadcastBar("<light_purple><b>풀무 돌풍!</b></light_purple> <gray>뜨거운 바람이 몰아친다…");
         return cast("bellows_gale", "풀무 돌풍", w, w + 10, BossAnim.CAST, null, false);
     }
 
@@ -357,7 +357,7 @@ public final class Floor05Boss extends Boss {
         bellowsGale(dir);
         // 돌풍이 불기 시작할 때 진동 경고가 깔리고 delay 뒤 터진다
         after(galeW, () -> forgeQuake(dir, delay));
-        broadcastBar("<dark_red><b>모루 분쇄!</b></dark_red> <gray>돌풍 뒤 같은 방향으로 진동 — 사슬 자리를 미리 잡으세요");
+        broadcastBar("<dark_red><b>모루 분쇄!</b></dark_red> <gray>바람이 길을 내고, 망치가 그 뒤를 따른다…");
         return cast("anvil_crush", "모루 분쇄", galeW + delay, galeW + delay + 14, BossAnim.CAST, null, false);
     }
 

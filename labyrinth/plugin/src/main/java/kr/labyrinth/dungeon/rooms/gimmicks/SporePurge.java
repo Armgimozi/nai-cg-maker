@@ -48,7 +48,15 @@ public final class SporePurge extends GimmickRoom {
 
     @Override
     protected String rules() {
-        return "<gray>붉은 <red>포자 주머니</red>를 모두 부숴라 (좌클릭·화살)\n<gray>오염된 바닥은 감염을 쌓는다 — <gold>빛나는 타일</gold> 위에서 숨을 골라라";
+        return "<gray>붉은 주머니들이 방을 숨 막히게 한다\n<gray>썩은 바닥 위, 몇 안 되는 빛만이 숨을 허락한다";
+    }
+
+    @Override
+    protected List<String> hints() {
+        return List.of(
+                "썩은 바닥에 오래 서 있지 마라. 빛나는 곳은 썩지 않는다.",
+                "붉은 포자 주머니는 칼에도 화살에도 터진다. 숨이 차면 빛나는 바닥 위에서 골라라.",
+                "포자 주머니 " + pods.size() + "개를 모두 부숴라 (근접 좌클릭·화살). 균사 바닥에 서 있으면 감염이 쌓이고, 빛나는 타일(가끔 자리를 옮김) 위에서만 줄어든다. 가득 차면 몸이 굳고 다친다.");
     }
 
     @Override

@@ -50,8 +50,16 @@ public final class GearTiming extends GimmickRoom {
 
     @Override
     protected String rules() {
-        return "<gray>벽 시계의 <gold>바늘</gold>이 버튼에 적힌 <gold>시각</gold>을 지나는 순간 버튼을 눌러라\n<gray>" + params.integer("rounds", 3)
-                + "라운드. 박자를 놓치면 태엽이 튕겨 나온다";
+        return "<gray>시계는 쉬지 않고 돈다\n<gray>박자를 놓친 손은 태엽에 튕겨 나간다";
+    }
+
+    @Override
+    protected List<String> hints() {
+        return List.of(
+                "버튼에 새겨진 숫자는 시계판 위에도 있다.",
+                "바늘이 버튼의 숫자를 지나는 바로 그 순간을 노려라. 이르지도, 늦지도 않게.",
+                "북쪽 벽 시계의 금빛 바늘이 버튼에 적힌 시각을 지나는 순간 버튼을 우클릭. 한 라운드의 버튼을 모두 맞히면 다음 라운드("
+                        + params.integer("rounds", 3) + "라운드) — 파티는 버튼을 나눠 맡아라.");
     }
 
     @Override
@@ -116,7 +124,7 @@ public final class GearTiming extends GimmickRoom {
         for (int i = 0; i < buttons.size(); i++) targets[i] = hours.remove(rng.nextInt(hours.size()));
         roundStart = System.currentTimeMillis();
         refreshLabels();
-        fs.actionBar(fs.allPlayers(), "<gold>라운드 " + (round + 1) + "</gold> <gray>— 바늘이 숫자를 지날 때 누르세요", 50);
+        fs.actionBar(fs.allPlayers(), "<gold>라운드 " + (round + 1) + "</gold> <gray>— 태엽이 다시 감긴다", 50);
     }
 
     private void refreshLabels() {

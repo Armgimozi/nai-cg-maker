@@ -41,7 +41,15 @@ public final class LeverSequence extends GimmickRoom {
 
     @Override
     protected String rules() {
-        return "<gray>이끼 받침대가 <green>빛나는 순서</green>를 기억해\n<gray>같은 순서로 레버를 당겨라. 틀리면 이끼 짐승이 깨어난다";
+        return "<gray>이끼는 단 한 번 숨을 쉰다\n<gray>기억하는 자에게만 길이 열린다";
+    }
+
+    @Override
+    protected List<String> hints() {
+        return List.of(
+                "이끼가 빛나는 차례에는 뜻이 있다.",
+                "레버는 이끼가 빛난 차례를 기억하고 있다. 처음부터 끝까지, 같은 차례로.",
+                "받침대가 빛난 순서를 외워 두었다가, 빛이 멈춘 뒤 같은 순서로 레버를 당겨라 (우클릭). 틀리면 이끼 짐승이 깨어나고 처음부터 다시 보여 준다.");
     }
 
     @Override
@@ -95,7 +103,7 @@ public final class LeverSequence extends GimmickRoom {
             Bukkit.getScheduler().runTaskLater(fs.services().plugin(), () -> flash(idx, false), (at + interval * 2 / 3) / 50);
         }
         showUntil = System.currentTimeMillis() + base + sequence.size() * interval;
-        fs.actionBar(fs.allPlayers(), "<green>빛나는 순서를 기억하세요...</green>", 40);
+        fs.actionBar(fs.allPlayers(), "<green>이끼가 차례로 숨을 쉰다…</green>", 40);
     }
 
     private void flash(int idx, boolean on) {
@@ -113,7 +121,7 @@ public final class LeverSequence extends GimmickRoom {
     protected void update(long t) {
         if (showing && System.currentTimeMillis() >= showUntil) {
             showing = false;
-            fs.actionBar(fs.allPlayers(), "<yellow>이제 같은 순서로 레버를 당기세요!</yellow>", 50);
+            fs.actionBar(fs.allPlayers(), "<yellow>이끼가 숨을 멈췄다.</yellow>", 50);
         }
     }
 
@@ -147,7 +155,7 @@ public final class LeverSequence extends GimmickRoom {
             fail("순서를 끝내 맞추지 못했습니다");
             return true;
         }
-        fs.actionBar(fs.allPlayers(), "<red>틀렸다!</red> <gray>이끼 짐승이 깨어난다 — 남은 기회 " + attempts, 50);
+        fs.actionBar(fs.allPlayers(), "<red>이끼가 몸서리친다!</red> <gray>짐승이 깨어난다 — 남은 기회 " + attempts, 50);
         failSpawn();
         input = 0;
         playSequence(2500);

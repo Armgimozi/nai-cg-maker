@@ -129,7 +129,7 @@ public final class Floor03Boss extends Boss {
         double dmg = dmg(p, "damage", 1.6);
         String marker = p.str("fx", "marker_spread");
         for (Player t : ts) {
-            notify(t, "<blue><b>포자 낙인!</b></blue> <gray>다른 사람과 " + (int) r + "칸 이상 떨어져, 가장자리에서 터뜨리세요");
+            notify(t, "<blue><b>포자 낙인!</b></blue> <gray>몸 안에서 무언가 부풀어 오른다…");
             run(new Mechanics.Marker(fx, marker, t, dur, null));
             Telegraph tg = new Telegraph(fx, Telegraph.Shape.circle(ground(t.getLocation()), r), dur, Telegraph.BLUE, "", null);
             tg.follow(t);
@@ -170,7 +170,7 @@ public final class Floor03Boss extends Boss {
         Telegraph tg = new Telegraph(fx, Telegraph.Shape.circle(ground(t.getLocation()), r), dur, Telegraph.YELLOW, "", null);
         tg.follow(t);
         run(tg);
-        broadcastBar("<yellow><b>공생의 꽃 — " + t.getName() + "</b></yellow> <gray>모두 노란 원 안으로 모이세요!");
+        broadcastBar("<yellow><b>공생의 꽃 — " + t.getName() + "</b></yellow> <gray>홀로 피기엔 너무 무거운 꽃이다…");
         after(dur, () -> {
             if (!validPlayer(t)) return;
             Location at = ground(t.getLocation());
@@ -187,7 +187,7 @@ public final class Floor03Boss extends Boss {
             BossFx.particle(Particle.FIREWORK, at.clone().add(0, 1, 0), 40, r * 0.5, 0.6, r * 0.5, 0.05);
             BossFx.dust(at.clone().add(0, 1, 0), Telegraph.YELLOW, 2f, 40, r * 0.4);
             BossFx.sound(at, Sound.BLOCK_AMETHYST_BLOCK_RESONATE, 2f, 0.6f);
-            if (!scaling().solo()) broadcastBar("<yellow>공생의 꽃</yellow> <gray>" + inside.size() + "명이 나눠 받음 (1인당 " + (int) each + ")");
+            if (!scaling().solo()) broadcastBar("<yellow>공생의 꽃</yellow> <gray>꽃잎이 " + inside.size() + "갈래로 흩어졌다");
         });
         return true;
     }
@@ -198,7 +198,7 @@ public final class Floor03Boss extends Boss {
         int delay = ticks(p.dbl("bloom_delay", 3.0));
         boolean bloom = symbiosisBloom(delay, branded);
         if (branded.isEmpty() && !bloom) return 0;
-        broadcastBar("<blue>흩어져 낙인 처리</blue> <gray>→</gray> <yellow>곧바로 꽃으로 집결!</yellow>");
+        broadcastBar("<blue>낙인</blue><gray>과</gray> <yellow>꽃</yellow><gray>이 함께 깨어난다…</gray>");
         return cast("brand_and_bloom", "낙인과 꽃", 24, 28, BossAnim.ROAR, null, false);
     }
 
@@ -234,7 +234,7 @@ public final class Floor03Boss extends Boss {
             java.util.Collections.shuffle(all, rng);
             int seeds = Math.min(all.size(), 2 + scaling().extraCount());
             add.addAll(all.subList(0, seeds));
-            broadcastBar("<dark_purple><b>균사망이 퍼집니다!</b></dark_purple> <gray>보라 타일을 피하세요 (정화로 감염 제거)");
+            broadcastBar("<dark_purple><b>균사망이 바닥을 타고 번진다…</b></dark_purple>");
         } else {
             int step = Math.max(1, (int) Math.ceil(validTiles.size() * 0.06));
             List<Long> frontier = new ArrayList<>();
@@ -276,7 +276,7 @@ public final class Floor03Boss extends Boss {
                 hit(pl, dmg(p, "burst_damage", 1.2) * (1.0 / 3.0), "mycelium_burst", DamageType.TRUE);
                 effect(pl, "root", p.dbl("root", 2.0), 1);
             } else if (after > 0) {
-                notify(pl, "<dark_purple>감염 " + after + "/" + max + "</dark_purple> <gray>— 깨끗한 타일로!");
+                notify(pl, "<dark_purple>감염</dark_purple> <dark_purple>" + "●".repeat(Math.min(after, max)) + "<dark_gray>" + "○".repeat(Math.max(0, max - after)));
             }
         }
     }

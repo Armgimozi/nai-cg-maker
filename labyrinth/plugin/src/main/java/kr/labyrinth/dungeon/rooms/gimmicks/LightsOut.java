@@ -1,6 +1,7 @@
 package kr.labyrinth.dungeon.rooms.gimmicks;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import kr.labyrinth.dungeon.FloorState;
@@ -35,7 +36,15 @@ public final class LightsOut extends GimmickRoom {
 
     @Override
     protected String rules() {
-        return "<gray>등불 받침대를 치면 <aqua>자신과 상하좌우</aqua>가 뒤바뀐다\n<gray>모든 등불을 밝혀라. 방의 냉기가 몸을 깎는다";
+        return "<gray>서리가 등불을 하나씩 꺼뜨렸다\n<gray>등불들은 서로 손을 잡고 있다. 냉기가 몸을 깎는다";
+    }
+
+    @Override
+    protected List<String> hints() {
+        return List.of(
+                "등불 하나를 깨우면 이웃들도 함께 뒤척인다.",
+                "받침대를 치면 그 등불과 앞·뒤·왼쪽·오른쪽 이웃이 함께 뒤바뀐다. 모든 등불이 켜져야 한다.",
+                "받침대를 치면 자신과 상하좌우가 뒤바뀐다. 한쪽 끝 줄부터, 꺼진 등불 바로 다음 줄의 받침대를 쳐서 한 줄씩 밀어 나가라. 마지막 줄만 남으면 첫 줄 하나를 바꾸고 다시 밀어라.");
     }
 
     @Override
