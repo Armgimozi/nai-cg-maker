@@ -121,7 +121,7 @@ public final class LabyrinthClassService implements ClassService, SkillContext.H
     }
 
     /**
-     * 직업 스킬은 그 직업 무기를 들어야 나가므로, 직업을 처음 골랐을 때 가방에 그 직업 무기가 없으면 가장 낮은 등급 무기를 하나 준다.
+     * 직업을 처음 골랐을 때 가방에 그 직업에 어울리는 무기가 없으면 가장 낮은 등급 무기를 하나 준다 (맨손보다 훨씬 세다).
      * 직업마다 한 번만 (PlayerData ext {@code class.starter.<직업>}).
      */
     /** 접속할 때: 직업은 있는데 그 직업 무기가 없으면(예전 판에서 전직한 사람) 한 번 지급. */
@@ -149,8 +149,8 @@ public final class LabyrinthClassService implements ClassService, SkillContext.H
         if (best == null || services.items().give(player, best.id(), 1, "starter") <= 0) return;
         d.ext().put(flag, true);
         d.markDirty();
-        Text.send(player, "<gray>직업 무기를 받았습니다: <white>" + best.name() + "</white> <gray>— 손에 들고 <white>"
-                + kr.labyrinth.core.InputKeys.CLASS_KEYS + "</white> 로 스킬을 씁니다.");
+        Text.send(player, "<gray>직업 무기를 받았습니다: <white>" + best.name() + "</white> <gray>— 스킬은 <white>"
+                + kr.labyrinth.core.InputKeys.CLASS_KEYS + "</white>");
     }
 
     // ── 마나 ──────────────────────────────────────────────────────────────
@@ -212,12 +212,6 @@ public final class LabyrinthClassService implements ClassService, SkillContext.H
         ClassDef.SkillDef sk = cls.skillByInput(input);
         if (sk == null) return false;
         String col = cls.color();
-        ItemDef weapon = services.items().heldWeapon(player);
-        if (weapon == null || !cls.canUseWeaponType(weapon.weaponType())) {
-            bar(player, "<#ff8080>직업 무기를 들어야 합니다 <gray>(" + weaponNames(cls) + ")", 40);
-            deny(player);
-            return true;
-        }
         int level = services.data().get(player).level();
         if (level < sk.unlockLevel()) {
             bar(player, "<" + col + ">" + sk.name() + "</" + col + "> <#ff8080>— Lv." + sk.unlockLevel() + " 에 해금", 40);

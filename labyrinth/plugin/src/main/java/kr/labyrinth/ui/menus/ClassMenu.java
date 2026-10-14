@@ -53,7 +53,7 @@ public final class ClassMenu extends LabMenu {
         ClassDef cur = services.classes().classOf(p);
         deco(4, Button.icon(Material.BOOK, "<#7fb2ff><b>역할군을 골라 파티를 꾸리세요</b>",
                 List.of("<gray>현재 직업: " + (cur == null ? "<dark_gray>없음" : "<" + cur.color() + ">" + cur.name()),
-                        "<gray>직업 스킬은 미궁 무기 + 직업 무기를 들었을 때",
+                        "<gray>직업 스킬은 무엇을 들었든",
                         "<gray>" + kr.labyrinth.core.InputKeys.CLASS_KEYS + " 로 씁니다.")));
         int i = 0;
         for (ClassDef c : services.content().classes().values()) {
