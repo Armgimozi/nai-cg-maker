@@ -151,7 +151,8 @@ public final class ArcanistSkills {
                     if (!p.isOnline()) return false;
                     SkillFx.disc(target, radius, 25, Particle.FLAME, null);
                     SkillFx.disc(target, radius, 6, Particle.SMOKE, null);
-                    for (LivingEntity e : c.targets().enemiesIn(target, radius)) c.services().effects().apply(e, "burn", 1.2, burnDps, p);
+                    double ratio = c.dotRatio(burnDps); // 화염 지대에 있는 동안 무기를 바꿔도 공격력과 환산이 함께 바뀌게 매번
+                    for (LivingEntity e : c.targets().enemiesIn(target, radius)) c.services().effects().apply(e, "burn", 1.2, ratio, p);
                     return true;
                 }, null);
             });

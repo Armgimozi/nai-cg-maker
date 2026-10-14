@@ -11,11 +11,12 @@ import kr.labyrinth.content.ItemSetDef;
 import kr.labyrinth.content.Params;
 import kr.labyrinth.content.Range;
 import kr.labyrinth.content.Rarity;
+import kr.labyrinth.content.WeaponTypes;
 import kr.labyrinth.core.Text;
 
 /**
  * 아이템 툴팁(lore) 생성 — MiniMessage 문자열 목록. Bukkit 무관(단위 테스트 가능).
- * 구성: 희귀도·분류 / 요구 레벨·직업 / 스탯(굴림값 + 범위) / 굴림 품질 / 무기 스킬 / 세트 효과 / 아우라 / 사용 효과 / 설명 / 획득처.
+ * 구성: 희귀도·분류 / 요구 레벨·추천 직업 / 스탯(굴림값 + 범위) / 굴림 품질 / 무기 스킬 / 세트 효과 / 아우라 / 사용 효과 / 설명 / 획득처.
  */
 public final class ItemTooltip {
 
@@ -105,6 +106,23 @@ public final class ItemTooltip {
     }
 
     /**
+     * 추천 직업 이름 (착용 제한 아님). 무기 = classes.yml weapon_types 에 그 종류가 있는 직업(재사용 대기 보너스 기준),
+     * 그 밖의 장비 = items.yml {@code classes}.
+     */
+    static List<String> suitedClassNames(Content content, ItemDef def) {
+        List<String> names = new ArrayList<>();
+        if (def.isWeapon()) {
+            for (ClassDef cd : content.classes().values()) if (cd.recommendsWeapon(def.weaponType())) names.add(cd.name());
+            return names;
+        }
+        for (String id : def.classes()) {
+            ClassDef cd = content.classDef(id);
+            names.add(cd == null ? id : cd.name());
+        }
+        return names;
+    }
+
+    /**
      * @param rolls   굴린 스탯 (null 이면 범위만 보여 주는 미리보기)
      */
     public static List<String> lines(Content content, ItemDef def, Map<String, Double> rolls) {
@@ -116,15 +134,15 @@ public final class ItemTooltip {
 
         if (def.isGear()) {
             StringBuilder req = new StringBuilder("<gray>요구 레벨 <white>" + def.levelReq() + "</white>");
-            if (!def.classes().isEmpty()) {
-                List<String> names = new ArrayList<>();
-                for (String id : def.classes()) {
-                    ClassDef cd = content.classDef(id);
-                    names.add(cd == null ? id : cd.name());
-                }
-                req.append(" <dark_gray>·</dark_gray> 직업 <white>").append(String.join(", ", names)).append("</white>");
+            List<String> names = suitedClassNames(content, def);
+            if (!names.isEmpty()) {
+                req.append(" <dark_gray>·</dark_gray> 추천 직업 <white>").append(String.join(", ", names)).append("</white>");
             }
             out.add(req.toString());
+            if (def.isWeapon() && !names.isEmpty()) {
+                out.add("<dark_gray>모든 직업 사용 가능 · 추천 직업이 들면 직업 스킬 재사용 대기 −"
+                        + Text.pct(WeaponTypes.RECOMMENDED_COOLDOWN_CUT));
+            }
         } else if (def.levelReq() > 1) {
             out.add("<gray>사용 레벨 <white>" + def.levelReq());
         }

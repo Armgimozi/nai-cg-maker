@@ -10,6 +10,9 @@
 #       radius/range/length/width/distance = 블록,  duration/stun/root/delay = 초
 #       *_mult / *_buff / damage_reduction / vulnerability = 0.0~1.0 비율 (0.2 = 20%)
 #  - 추가 필드: color, description, primary_stat, base_hp, base_mp, mana_regen, passive
+#  - weapon_types     : 추천 무기 (제한 아님 — 직업 스킬은 아무 미궁 무기로나 나간다). 추천 무기를 들면 직업 스킬
+#                       재사용 대기 −10%, 처음 전직할 때 이 종류의 가장 낮은 등급 무기를 준다. 직업 스킬 피해는 무기 종류
+#                       피해 배율을 첫 추천 무기 기준으로 환산한다 (GDD §4.4, content.WeaponTypes)
 # 해금 레벨: 스킬1=1, 스킬2=8, 스킬3=18, 궁극기=30 (전 직업 공통, 1~40 구간 안)
 # ─────────────────────────────────────────────────────────────────────────────
 version: 1

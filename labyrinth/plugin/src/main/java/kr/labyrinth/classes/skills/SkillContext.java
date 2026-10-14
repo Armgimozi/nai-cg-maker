@@ -5,7 +5,9 @@ import kr.labyrinth.Services;
 import kr.labyrinth.combat.DamageContext;
 import kr.labyrinth.combat.DamageType;
 import kr.labyrinth.content.ClassDef;
+import kr.labyrinth.content.ItemDef;
 import kr.labyrinth.content.Params;
+import kr.labyrinth.content.WeaponTypes;
 import kr.labyrinth.mobs.CustomMob;
 import kr.labyrinth.stats.DerivedStats;
 import org.bukkit.entity.Entity;
@@ -116,14 +118,34 @@ public final class SkillContext {
 
     // ── 피해·치유 ─────────────────────────────────────────────────────────
 
-    /** 공격력 × mult 의 스킬 피해. TargetFilter 로 적인지 다시 확인한다. @return 결과 (적이 아니면 null) */
+    /**
+     * 직업 스킬 무기 환산 배율 (GDD §4.4) = 추천 무기 피해 배율 ÷ 든 무기 배율 — 무기 종류가 달라도 같은 단계면 직업 스킬 위력이 같다.
+     * 피해 순간마다 다시 본다(지속 스킬 도중 무기를 바꿔도 공격력과 환산이 함께 바뀐다).
+     */
+    public double weaponScale() { return weaponScale(services, caster, classDef); }
+
+    /** {@link #weaponScale()} 의 정적 판 — 스킬 문맥 밖(독날 적중 등)에서 쓴다. 레벨이 모자란 무기는 '든 무기 없음'(1). */
+    public static double weaponScale(Services services, Player player, ClassDef cls) {
+        ItemDef held = WeaponTypes.effective(services.items().heldWeapon(player), services.data().get(player).level());
+        return WeaponTypes.classSkillScale(cls, held);
+    }
+
+    /**
+     * 지속 피해 비율(초당 공격력 배율 — 출혈·독·화상 potency)에 무기 환산을 곱한다. 부여 순간 공격력으로 굳으므로 부여할 때마다 부른다.
+     * 상태이상 potency 는 0~1 사이만 비율로 읽히므로 0.95 에서 자른다.
+     */
+    public double dotRatio(double ratio) { return dotRatio(ratio, weaponScale()); }
+
+    public static double dotRatio(double ratio, double scale) { return Math.min(0.95, ratio * scale); }
+
+    /** 공격력 × mult × 무기 환산의 스킬 피해. TargetFilter 로 적인지 다시 확인한다. @return 결과 (적이 아니면 null) */
     public DamageContext damage(LivingEntity target, double mult, DamageType type) {
         return damage(target, mult, type, 1.0, 0);
     }
 
     public DamageContext damage(LivingEntity target, double mult, DamageType type, double threat, double knockback) {
         if (target == null || !services.targets().isEnemy(caster, target)) return null;
-        DamageContext c = DamageContext.attack(caster, target, mult, type).skill(skill.id());
+        DamageContext c = DamageContext.attack(caster, target, mult * weaponScale(), type).skill(skill.id());
         if (threat != 1.0) c.threat(threat);
         if (knockback > 0 && !services.effects().isKnockbackImmune(target)) c.knockback(knockback);
         return services.damage().deal(c);

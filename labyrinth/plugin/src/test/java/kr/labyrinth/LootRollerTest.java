@@ -104,7 +104,7 @@ class LootRollerTest {
 
     @Test
     void classBiasPrefersOwnClass() {
-        // one_of 묶음 + rarity_pool: 6직업 무기 중 광전사 무기 비율이 1/6 보다 훨씬 높아야 함
+        // one_of 묶음 + rarity_pool: 6종 무기 중 광전사 추천 무기(대검) 비율이 1/6 보다 훨씬 높아야 함
         LootRoller roller = new LootRoller(content, new Random(9));
         int weapons = 0;
         int own = 0;
@@ -113,7 +113,7 @@ class LootRollerTest {
                 ItemDef def = content.item(d.itemId());
                 if (def.isWeapon()) {
                     weapons++;
-                    if (def.usableBy("berserker")) own++;
+                    if (def.suitedFor("berserker")) own++;
                 }
             }
         }

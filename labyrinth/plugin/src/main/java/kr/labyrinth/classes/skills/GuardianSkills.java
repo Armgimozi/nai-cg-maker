@@ -37,7 +37,8 @@ public final class GuardianSkills {
             Location front = p.getLocation().add(dir.clone().setY(0).normalize().multiply(1.4)).add(0, 1.0, 0);
             SkillFx.arc(p.getLocation().add(0, 1.0, 0), dir, range * 0.8, c.p("angle", 70), 14, Particle.DUST, SkillFx.dust(0x7fb2ff, 1.4f));
             SkillFx.burst(front, Particle.ENCHANTED_HIT, 16, 0.4, 0.3, null);
-            SkillFx.sound(p.getLocation(), Sound.ITEM_SHIELD_BLOCK, 1f, 0.6f);
+            // 보조손에 방패가 없으면(장비 직업 제한 없음 — 두 손 무기·활 등) 방패 소리 대신 묵직한 밀쳐 치기 소리
+            SkillFx.sound(p.getLocation(), holdsShield(c) ? Sound.ITEM_SHIELD_BLOCK : Sound.ENTITY_PLAYER_ATTACK_KNOCKBACK, 1f, 0.6f);
             SkillFx.sound(p.getLocation(), Sound.ENTITY_IRON_GOLEM_ATTACK, 0.8f, 1.2f);
             for (LivingEntity e : hit) {
                 DamageContext r = c.damage(e, c.p("damage", 1.2), DamageType.MELEE, c.p("threat", 3.0), 0.6);
@@ -50,6 +51,12 @@ public final class GuardianSkills {
             }
             return true;
         }
+    }
+
+    private static boolean holdsShield(SkillContext c) {
+        var off = c.caster().getInventory().getItemInOffHand();
+        return off.getType() == org.bukkit.Material.SHIELD
+                || c.services().items().defOf(off).map(kr.labyrinth.content.ItemDef::isShield).orElse(false);
     }
 
     /** 주변 적 강제 도발 + 자신 피해 감소. */

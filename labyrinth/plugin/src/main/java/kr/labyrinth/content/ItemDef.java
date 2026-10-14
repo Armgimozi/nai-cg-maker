@@ -35,8 +35,14 @@ public record ItemDef(
     public boolean isGear() { return type.isGear(); }
     public boolean isShield() { return "offhand".equals(armorSlot); }
 
-    /** classes 가 비어 있으면 모두 사용 가능. */
-    public boolean usableBy(String classId) {
+    /** 직업 제한 없음 — 어느 직업이든(직업 없음 포함) 모든 장비를 쓴다 (GDD §4.4). */
+    public boolean usableBy(String classId) { return true; }
+
+    /**
+     * 그 직업에 어울리는 장비인가 ({@code classes} = 추천 직업, 비우면 모두). 착용 제한이 아니라
+     * 드롭 직업 편향·대장간 '추천 장비만' 필터·툴팁 "추천 직업" 표시에만 쓴다.
+     */
+    public boolean suitedFor(String classId) {
         return classes.isEmpty() || (classId != null && classes.contains(classId));
     }
 

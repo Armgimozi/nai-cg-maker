@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import kr.labyrinth.Services;
 import kr.labyrinth.content.ClassDef;
+import kr.labyrinth.content.WeaponTypes;
 import kr.labyrinth.core.Text;
 import kr.labyrinth.stats.Stat;
 import kr.labyrinth.ui.Button;
@@ -11,7 +12,7 @@ import kr.labyrinth.ui.UiTheme;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
-/** /직업 — 6직업 목록 (역할군·주 스탯·무기·설명) → 클릭하면 상세(스킬 4개·패시브·전직). */
+/** /직업 — 6직업 목록 (역할군·주 스탯·추천 무기·설명) → 클릭하면 상세(스킬 4개·패시브·전직). */
 public final class ClassMenu extends LabMenu {
 
     private static final int[] SLOTS = {10, 13, 16, 28, 31, 34}; // glyphs.yml menus.class.slots.classes (배경 아치)
@@ -32,16 +33,12 @@ public final class ClassMenu extends LabMenu {
         };
     }
 
-    static String weaponName(String type) {
-        return switch (type == null ? "" : type) {
-            case "sword_shield" -> "검과 방패";
-            case "greatsword" -> "대검";
-            case "bow" -> "활";
-            case "staff" -> "지팡이";
-            case "scepter" -> "홀";
-            case "dagger" -> "단검";
-            default -> type;
-        };
+    static String weaponName(String type) { return WeaponTypes.name(type); }
+
+    /** "추천 무기 활 (직업 스킬 재사용 대기 −10%)" 한 줄. */
+    static String recommendedLine(ClassDef c) {
+        return "<gray>추천 무기 <white>" + String.join(", ", c.weaponTypes().stream().map(ClassMenu::weaponName).toList())
+                + "</white> <dark_gray>(직업 스킬 재사용 대기 −" + Text.pct(WeaponTypes.RECOMMENDED_COOLDOWN_CUT) + ")";
     }
 
     static String inputName(String input) {
@@ -53,8 +50,10 @@ public final class ClassMenu extends LabMenu {
         ClassDef cur = services.classes().classOf(p);
         deco(4, Button.icon(Material.BOOK, "<#7fb2ff><b>역할군을 골라 파티를 꾸리세요</b>",
                 List.of("<gray>현재 직업: " + (cur == null ? "<dark_gray>없음" : "<" + cur.color() + ">" + cur.name()),
-                        "<gray>직업 스킬은 미궁 무기 + 직업 무기를 들었을 때",
-                        "<gray>" + kr.labyrinth.core.InputKeys.CLASS_KEYS + " 로 씁니다.")));
+                        "<gray>직업 스킬은 미궁 무기를 들면 종류와 상관없이",
+                        "<gray>" + kr.labyrinth.core.InputKeys.CLASS_KEYS + " 로 씁니다.",
+                        "<gray>무기·방어구·장신구는 어느 직업이든 쓸 수 있고,",
+                        "<gray>직업마다 추천 무기를 들면 재사용 대기가 짧아집니다.")));
         int i = 0;
         for (ClassDef c : services.content().classes().values()) {
             if (i >= SLOTS.length) break;
@@ -62,7 +61,7 @@ public final class ClassMenu extends LabMenu {
             List<String> lore = new ArrayList<>();
             lore.add("<gray>역할 <white>" + roleName(c.role()) + "  <gray>주 스탯 <" + (c.primaryStat() == null ? "white" : c.primaryStat().color())
                     + ">" + (c.primaryStat() == null ? "-" : c.primaryStat().displayName()));
-            lore.add("<gray>무기 <white>" + String.join(", ", c.weaponTypes().stream().map(ClassMenu::weaponName).toList()));
+            lore.add(recommendedLine(c));
             lore.add("");
             lore.addAll(wrap(c.description(), 26, "<gray>"));
             lore.add("");
@@ -106,7 +105,7 @@ public final class ClassMenu extends LabMenu {
             int level = services.data().get(p).level();
             List<String> head = new ArrayList<>();
             head.add("<gray>역할 <white>" + roleName(c.role()));
-            head.add("<gray>무기 <white>" + String.join(", ", c.weaponTypes().stream().map(ClassMenu::weaponName).toList()));
+            head.add(recommendedLine(c));
             head.add("<gray>기본 HP <#ff5f6d>" + Text.num(c.baseHp()) + " <gray>(+" + Text.num(c.hpPerLevel()) + "/레벨)  MP <#6fc3ff>"
                     + Text.num(c.baseMp()) + " <gray>(+" + Text.num(c.mpPerLevel()) + "/레벨)");
             StringBuilder base = new StringBuilder("<gray>기본 스탯 ");

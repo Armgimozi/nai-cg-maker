@@ -15,7 +15,7 @@ import kr.labyrinth.core.Difficulty;
  *   <li>rolls 번 굴림. 한 번 굴릴 때 entries 각 항목이 독립적으로 자기 확률 판정(여러 개 동시 가능). guaranteed 는 항상 1번.</li>
  *   <li>최종 확률 = min(max_chance, chance × dropMultiplier × (1 + LUK × luck_per_point) × rarity_weight[난이도][희귀도]).
  *       chance ≥ 1 항목은 배율 무관. rarity_weight 는 장비 항목(장비 item · rarity_pool · one_of)에만, one_of 는 후보 최고 희귀도.</li>
- *   <li>직업 편향: rarity_pool·one_of 로 장비를 고를 때 own_class_bias 확률로 루팅한 사람 직업이 쓸 수 있는 후보만(없으면 전체).</li>
+ *   <li>직업 편향: rarity_pool·one_of 로 장비를 고를 때 own_class_bias 확률로 루팅한 사람 직업에 어울리는(items.yml classes = 추천 직업) 후보만(없으면 전체).</li>
  *   <li>min_difficulty 미만 난이도면 그 항목은 판정하지 않는다. table 항목은 하위 테이블을 통째로 굴린다(깊이 제한 6).</li>
  * </ul>
  */
@@ -120,13 +120,13 @@ public final class LootRoller {
         return e.amount() == null ? 1 : Math.max(1, e.amount().roll(rng));
     }
 
-    /** 직업 편향 선택 (bias 확률로 쓸 수 있는 후보만, 없으면 전체). */
+    /** 직업 편향 선택 (bias 확률로 그 직업에 어울리는 후보만, 없으면 전체). 착용 제한은 없다. */
     ItemDef pick(List<ItemDef> cands, String classId, double bias) {
         if (cands.isEmpty()) return null;
         List<ItemDef> pool = cands;
         if (rng.nextDouble() < bias) {
             List<ItemDef> own = new ArrayList<>();
-            for (ItemDef d : cands) if (d.usableBy(classId)) own.add(d);
+            for (ItemDef d : cands) if (d.suitedFor(classId)) own.add(d);
             if (!own.isEmpty()) pool = own;
         }
         return pool.get(rng.nextInt(pool.size()));

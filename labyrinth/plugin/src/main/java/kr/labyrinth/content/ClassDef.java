@@ -12,7 +12,7 @@ public record ClassDef(
         String color,
         String description,
         String iconItem,
-        List<String> weaponTypes,
+        List<String> weaponTypes,   // 추천 무기 종류 (착용·스킬 제한 아님)
         Stat primaryStat,
         Map<Stat, Integer> baseStats,
         double baseHp,
@@ -37,7 +37,8 @@ public record ClassDef(
         return null;
     }
 
-    public boolean canUseWeaponType(String weaponType) {
+    /** 추천 무기 종류인가 ({@code weapon_types}). 직업 스킬은 아무 미궁 무기로나 나가고, 추천 무기면 재사용 대기 −10% ({@link WeaponTypes}). */
+    public boolean recommendsWeapon(String weaponType) {
         return weaponType != null && weaponTypes.contains(weaponType);
     }
 }
