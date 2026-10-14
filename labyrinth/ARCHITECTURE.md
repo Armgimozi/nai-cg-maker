@@ -77,6 +77,8 @@ labyrinth/
   곧 화면 크기. 상세(파트 배치 기준·손에 쥐기 규칙): GDD.md §14.6.
 - **UI 글리프**: `content/glyphs.yml` 이 원본. 폰트 `labyrinth:ui` (`assets/labyrinth/font/ui.json`).
   각 글리프 = 사설 영역 코드포인트(U+E000~) + PNG + ascent + height. 음수/양수 공백 글리프로 위치 이동.
+  **공백 문자 규칙**: `spaces` 의 값 v(px, −1024~255)는 같은 폰트의 `space` 프로바이더에서 문자 **U+F800 + v** 로 매핑한다
+  (예: −8 → U+F7F8). 플러그인 `ui.Glyphs.space(px)` 가 이 규칙으로 조합한다. glyphs.yml 이 없어도 플러그인은 동작(글리프 생략).
   플러그인은 `Component.text(char).font(Key.key("labyrinth","ui"))` 로 사용. 하드코딩 금지, glyphs.yml 에서 읽기.
 - 사운드: 1차 버전은 바닐라 사운드 이벤트를 pitch/volume 조합으로 사용(사운드 파일 미포함). 사운드 키는 YAML 에 둔다.
 
@@ -90,11 +92,66 @@ labyrinth/
 
 ## 4. 플러그인 구조 (`kr.labyrinth`)
 
+### 4.0 소유권 지도 (병렬 작업 규칙 — 반드시 지킬 것)
+
+| 패키지 | 소유(작업 단계) | 진입점 (여기서 `services.setXxx(...)`) | 계약(인터페이스) · 기본 구현 |
+|---|---|---|---|
+| 루트(`LabyrinthPlugin`, `Services`), `core/`, `content/`, `data/`, `stats/`, `combat/`, `pack/`, `command/`, `event/`, `ui/Menu·Button·ClickContext·MenuListener·Glyphs` | **plugin-core** | — | — |
+| `items/` (+ `loot`·`crafting`·`weaponskills` 하위 패키지 자유) | **items** | `items/ItemsModule` | `ItemService`(→`BasicItemService`), `LootService`, `CraftingService`, `WeaponSkillService` (→`Noop*`) |
+| `classes/` | **classes** | `classes/ClassesModule` | `ClassService`(→`BasicClassService`: 직업 저장+마나), `StatusEffectService`(→`Noop`) |
+| `mobs/` (몹 + NPC) | **mobs+npc** | `mobs/MobsModule` | `MobService`, `CustomMob`, `NpcService` (→`Noop*`) |
+| `dungeon/`, `party/` | **dungeon+party** | `dungeon/DungeonModule` | `DungeonService`(→`NoopDungeonService`), `InstanceContext`(core 가 만든 구체 클래스, 필드 추가는 dungeon 담당), `PartyService`·`Party`(→`SoloPartyService`) |
+| `bosses/` | **bosses** (이후 단계) | `bosses/BossesModule` | `BossService`, `BossHandle extends CustomMob` (→`NoopBossService`) |
+| `titles/` | **ui+titles** | `titles/TitlesModule` | `TitleService`(→`BasicTitleService`) |
+| `ui/` (위 프레임워크 제외: `menus/*`, HUD 구현) | **ui+titles** | `ui/UiModule` | `HudService`(→`BasicHudService`), `MenuService`(→`ChatMenuService`: 채팅 클릭 대체) |
+| `pvp/` | **pvp** | `pvp/PvpModule` | `TargetFilter`(→`DefaultTargetFilter`) |
+
+- **자기 패키지 밖은 고치지 않는다.** 다른 서비스는 `services.xxx()` 로만 부른다 (필드에 저장 금지 — 나중에 교체됨).
+  `LabyrinthPlugin`/`Services` 는 손대지 않아도 되게 되어 있다: 실제 구현은 자기 `XxxModule.enable()` 에서 setter 로 등록.
+- 계약 인터페이스에 메서드를 **추가**해야 하면 소유자가 자기 패키지의 인터페이스·기본 구현을 함께 고친다 (기본 구현 클래스 이름 유지).
+- 기본 구현은 전부 안전(아무것도 안 하거나 최소 동작)하며 처음 호출 시 `[미구현]` 경고를 한 번 남긴다 (`Log.notImplemented`).
+- 모듈 enable 순서: core(janitor·records·data·stats·levels·combat·pack) → items → classes → mobs → dungeon → bosses → titles → ui → pvp
+  → setup → commands. enable 안에서는 **앞 순서 모듈만** 확실히 준비돼 있다 (뒤 모듈은 런타임에 getter 로).
+- 하위 명령: 각 모듈 enable 에서 `services.commands().addSubcommand("<루트>", Commands.literal(...))`.
+  루트 = `lab`(미궁) · `party`(파티) · `stats`(스탯) · `class`(직업) · `title`(칭호) · `pvp`(대전) · `labadmin`(미궁관리, 권한 `labyrinth.admin`).
+  인자 없는 루트 실행은 `MenuService.openXxx` 로 간다. core 가 이미 붙인 것: `lab enter|입장 [층]`, `lab leave|퇴장`(→DungeonService),
+  `stats add|투자 <스탯> [양]`, `labadmin reload|give|setup|difficulty|level|xp|gold|points|info|pack`.
+- **공용 규칙 (core 제공)**
+  - 콘텐츠: `services.content()` → `content/` 의 불변 레코드(`ItemDef`, `MobDef`, `BossDef`, `FloorDef`, `LootTable`, `ClassDef`,
+    `AchievementDef`, `NpcDef`, `AuraDef`, `FxModelDef`, `GlyphDef`, `ArenaDef`, `RecipeDef`, `ItemSetDef`). 자유 파라미터와 추가 필드는
+    `Params`(각 정의의 `raw()`/`params()`): `dbl/integer/str/bool/sub/maps`, GDD §8.4 규칙 `scaled(key, n)`·`phased(key, phase)`.
+    reload 시 새 객체로 바뀌므로 오래 보관하지 말 것.
+  - 피해: 모든 피해는 `services.damage().deal(DamageContext...)` 한 곳. `DamageContext.attack(player, target, 배율, type)`(공격력 기반),
+    `raw(attacker, target, 원피해, type)`(몹·보스), `percent(attacker, target, pct)`(_pct·방어 무시). `.skill(id)`, `.pattern(id)`(회피 불가),
+    `.knockback(s)`, `.noCrit()`... 결과(`dealt/crit/evaded/blocked/killed`)는 ctx 에. 치유는 `services.damage().heal(target, amount, true)`.
+  - 커스텀 몹·보스 HP: `combat.HealthPool` 계약(`applyDamage` 에 최종 피해가 온다, HP 0 이면 구현이 사망 처리). 바닐라 근접·화살 → 몹,
+    몹의 바닐라 공격 → 플레이어 연결은 core `CombatListener` 가 이미 한다(`MobService.byEntity`/`BossService.byEntity` 로 판별).
+  - 플레이어 HP: 바닐라 체력 = min(최대 HP, 1024), 하트는 10칸 고정 표시. 직접 만지지 말고 `services.stats().currentHp/heal/setHp`.
+  - 스탯 보태기: `services.stats().addContributor((player, block) -> block.add("defense", 5))` (장비·칭호·버프). 값이 바뀌면 `markDirty(p)`.
+    StatBlock 키 = GDD §11.7 + 버프용 `damage_mult`(주는 피해 %, 버프 키 `damage` 를 이 키로), `damage_taken`(받는 피해 %).
+  - 경험치: `services.levels().reward(player, base × ctx.xpMultiplier())` (xp_bonus 자동 적용). 레벨업 시 `LevelUpEvent`.
+  - 배율: `InstanceContext.hpMultiplier()/damageMultiplier()/dropMultiplier()/goldMultiplier()/xpMultiplier()/windup(초)`;
+    인스턴스 밖 소환은 `InstanceContext.adhoc(floor, n, settings.difficulty(), settings.party())`.
+  - 이벤트(`event/`): `MobKillEvent`(mobs/bosses 발생), `FloorClearEvent`(dungeon), `LevelUpEvent`(core), `ItemObtainEvent`(items),
+    `CraftEvent`(items), `PvpMatchEndEvent`(pvp) — titles 가 듣는다.
+  - 임시 엔티티(몹 히트박스·모델 파트·이펙트 디스플레이): 반드시 `Keys.tagTransient(entity, Keys.MOB|BOSS|FX, id)` +
+    `setPersistent(false)`. `EntityJanitor` 가 재시작 후 남은 것을 청소한다. 진행 데이터는 `services.data().get(p)`(PlayerData,
+    모듈 확장 값은 `ext()` 맵 + `markDirty()`), 서버 최초 기록은 `services.records().claim(key, ...)`.
+  - 메뉴: `ui.Menu` 상속 → `build(viewer)` 에서 `set(slot, Button.icon(...), ctx -> ...)` → `open(p)`. 클릭 보호·연타 방지는 자동.
+  - 초기 설정: 난이도 미설정이면 `settings().isDifficultySet() == false` → DungeonService 는 입장을 막고 안내.
+    관리자 접속 시 `MenuService.openSetup` 이 자동으로 뜬다(`SetupListener`), 확정은 `/labadmin setup <난이도>`.
+
 ```
 LabyrinthPlugin      onEnable: Services 생성 → 모듈 enable(순서대로) / onDisable: 역순 disable + 저장
 Services             모든 서비스 인스턴스 보관 (생성자 주입 대신 단순 레지스트리). 순환 참조는 getter 로 지연 접근.
-core/    Module(interface: name, enable, disable), Keys(NamespacedKey 모음), Text(MiniMessage 헬퍼),
-         Settings(config.yml 래퍼: 난이도/파티 배율/팩/입구 등), ContentLoader(content/*.yml 를 데이터폴더로 복사·로드·/reload)
+core/    Module(interface: name, enable, disable, reload), Keys(NamespacedKey 모음 + tagTransient), Text(MiniMessage 헬퍼), Log,
+         Settings(config.yml 래퍼: 난이도/파티 배율/팩/입구 등), Difficulty, PartyScaling, ContentLoader(content/*.yml 를
+         데이터폴더로 복사·로드·/reload, 손대지 않은 기본 파일은 새 버전으로 자동 갱신), ContentValidator(교차참조 검사),
+         EntityJanitor(임시 엔티티 청소), SetupListener(초기 설정 안내)
+content/ Content(불변 스냅샷) + 정의 레코드(ClassDef, ItemDef, ItemSetDef, MobDef, ModelDef, BossDef, FloorDef, LootTable,
+         RecipeDef, AchievementDef, NpcDef, AuraDef, FxModelDef, GlyphDef, ArenaDef), Params(자유 파라미터), Rarity, ItemType,
+         ContentParser(원시 YAML → 레코드, Bukkit 무관 — 단위 테스트)
+event/   MobKillEvent, FloorClearEvent, LevelUpEvent, ItemObtainEvent, CraftEvent, PvpMatchEndEvent
 data/    PlayerData(레벨, 경험치, 스탯포인트, 스탯, 직업, 골드, 해금층, 칭호/업적, 장신구 2칸, 통계),
          PlayerDataService(플레이어별 YAML: plugins/Labyrinth/players/<uuid>.yml, 비동기 저장, 자동저장 5분),
          ServerRecords(서버 최초 달성 기록: records.yml)

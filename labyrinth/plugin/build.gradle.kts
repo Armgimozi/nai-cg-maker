@@ -36,4 +36,10 @@ tasks.processResources {
     filesMatching("plugin.yml") {
         expand("version" to project.version)
     }
+    // 리소스팩 생성기 결과물이 있으면 jar 에 포함 → PackService 가 첫 실행 때 꺼내 서빙 (jar 하나로 배포)
+    from("../resourcepack/dist") {
+        include("labyrinth-pack.zip")
+        into("pack")
+    }
+    inputs.files(fileTree("../resourcepack/dist") { include("labyrinth-pack.zip") })
 }

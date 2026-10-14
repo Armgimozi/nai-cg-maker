@@ -2,3 +2,9 @@ name: Labyrinth
 version: '${version}'
 main: kr.labyrinth.LabyrinthPlugin
 api-version: '26.3'
+description: '미궁 라비린스 — 지하 10층 파티 던전 RPG'
+authors: [Labyrinth Team]
+permissions:
+  labyrinth.admin:
+    description: 미궁 라비린스 관리 명령 (/labadmin)
+    default: op

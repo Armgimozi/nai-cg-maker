@@ -1,0 +1,84 @@
+# ─────────────────────────────────────────────────────────────
+#  미궁 라비린스 (Labyrinth) — 서버 설정
+#  수정 후 /labadmin reload 로 다시 읽는다 (진행 중인 인스턴스는 다음 입장부터 적용).
+# ─────────────────────────────────────────────────────────────
+
+# 서버 난이도: easy | normal | hard | nightmare
+# 비어 있으면 처음 접속한 관리자에게 초기 설정 안내가 뜨고, 정하기 전까지 미궁 입장이 막힌다.
+# 콘솔: /labadmin setup <난이도>   변경: /labadmin difficulty <난이도>
+difficulty: ""
+
+# 난이도 프리셋 — hp/damage: 몹·보스 배율, drop: 드롭 확률, xp: 경험치, telegraph: 경고 시간(windup) 배율
+difficulties:
+  easy:      {name: "쉬움",   hp: 0.7, damage: 0.6, drop: 0.8, xp: 0.8, telegraph: 1.3}
+  normal:    {name: "보통",   hp: 1.0, damage: 1.0, drop: 1.0, xp: 1.0, telegraph: 1.0}
+  hard:      {name: "어려움", hp: 1.5, damage: 1.4, drop: 1.3, xp: 1.3, telegraph: 0.85}
+  nightmare: {name: "악몽",   hp: 2.4, damage: 2.0, drop: 1.8, xp: 1.7, telegraph: 0.7}
+
+# 파티 — 인원 n 명일 때 몹 HP ×(1 + hp_per_member×(n−1)), 피해 ×(1 + dmg_per_member×(n−1)),
+#         골드·드롭 ×(1 + reward_per_member×(n−1))
+party:
+  max_size: 10
+  hp_per_member: 0.6
+  dmg_per_member: 0.08
+  reward_per_member: 0.05
+  invite_timeout: 60        # 초
+
+# 미궁 전용 공허 월드 (기존 지형은 절대 건드리지 않는다)
+world:
+  name: labyrinth_world
+
+# 오버월드 입구 — /labadmin setentrance 로 지정. mode: block(작은 입구 구조물) | npc(NPC 만, 블록 변경 0)
+entrance:
+  mode: ""
+  world: ""
+  x: 0.0
+  y: 0.0
+  z: 0.0
+  yaw: 0.0
+  pitch: 0.0
+  radius: 8                 # 파티 입장 시 파티원이 입구 근처에 있어야 하는 반경(블록)
+
+# 리소스팩 — 내장 HTTP 서버가 plugins/Labyrinth/pack/labyrinth-pack.zip 을 서빙한다.
+pack:
+  enabled: true
+  port: 8163                # 서버 방화벽/공유기에서 이 TCP 포트를 열어야 친구들이 받을 수 있다
+  bind: "0.0.0.0"
+  public_host: ""           # 비우면 각 플레이어가 접속한 주소(도메인/IP)를 그대로 사용
+  url: ""                   # 외부 호스팅 URL 을 쓰려면 여기에 (내장 서버를 끈다)
+  sha1: ""                  # 외부 URL 일 때 SHA-1 (비우면 로컬 zip 으로 계산 시도)
+  required: true
+  kick_on_decline: false
+  update_from_jar: true     # 플러그인 jar 에 들어 있는 팩이 더 새로우면 자동으로 꺼내 쓴다
+  prompt: "<gradient:#c9a2ff:#7fd8ff>미궁 라비린스</gradient> <gray>전용 리소스팩입니다. 무기·몬스터·UI 가 모두 이 팩으로 보입니다.</gray>"
+
+# 플레이어 데이터
+data:
+  autosave_minutes: 5
+
+# 전투
+combat:
+  damage_numbers: true
+  damage_number_ticks: 16
+  base_crit_chance: 0.05
+  base_crit_damage: 1.5
+  # 낙하·불·익사·바닐라 몹 등 바닐라 피해를 '최대 HP 20 기준 비율'로 환산 (HP 가 커져도 바닐라처럼 위험하게)
+  scale_vanilla_damage: true
+
+# 레벨 — 필요 경험치(L) = round(xp_a × L^xp_exp + xp_b)
+level:
+  max: 50
+  points_per_level: 5
+  xp_a: 40
+  xp_exp: 1.6
+  xp_b: 60
+
+# 무기 타입별 기본 공격 속도(초당 공격 횟수). attack_speed 스탯이 % 로 곱해진다.
+weapon_attack_speed:
+  none: 1.6
+  sword_shield: 1.5
+  greatsword: 0.95
+  dagger: 2.2
+  bow: 1.2
+  staff: 1.1
+  scepter: 1.3
