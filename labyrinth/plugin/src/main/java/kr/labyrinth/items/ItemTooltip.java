@@ -15,7 +15,8 @@ import kr.labyrinth.core.Text;
 
 /**
  * 아이템 툴팁(lore) 생성 — MiniMessage 문자열 목록. Bukkit 무관(단위 테스트 가능).
- * 구성: 희귀도·분류 / 요구 레벨·직업 / 스탯(굴림값 + 범위) / 굴림 품질 / 무기 스킬 / 세트 효과 / 아우라 / 사용 효과 / 설명 / 획득처.
+ * 구성: 희귀도·분류 / 요구 레벨·직업 / 스탯(굴림값 + 강화 몫 + 범위) / 굴림 품질 / 강화 / 무기 스킬 / 세트 효과 / 아우라 / 사용 효과 /
+ * 설명 / 획득처.
  */
 public final class ItemTooltip {
 
@@ -72,7 +73,7 @@ public final class ItemTooltip {
         return sign + trim(a);
     }
 
-    static String trim(double v) {
+    public static String trim(double v) {
         if (Math.abs(v - Math.rint(v)) < 1e-9) return String.valueOf((long) Math.rint(v));
         String s = String.format(java.util.Locale.ROOT, "%.2f", v);
         return s.replaceAll("0+$", "").replaceAll("\\.$", "");
@@ -108,6 +109,16 @@ public final class ItemTooltip {
      * @param rolls   굴린 스탯 (null 이면 범위만 보여 주는 미리보기)
      */
     public static List<String> lines(Content content, ItemDef def, Map<String, Double> rolls) {
+        return lines(content, def, rolls, Map.of(), List.of());
+    }
+
+    /**
+     * @param rolls        기본 굴림값 (null 이면 범위만 보여 주는 미리보기)
+     * @param enhanceBonus 강화로 늘어난 몫 (키 → 증가량) — 값에 더해 보여 주고 금색 "(+n)" 을 붙인다
+     * @param enhanceLines 강화 단계·다음 확률·비용 줄 (스탯 바로 아래, 비어 있으면 생략)
+     */
+    public static List<String> lines(Content content, ItemDef def, Map<String, Double> rolls,
+                                     Map<String, Double> enhanceBonus, List<String> enhanceLines) {
         List<String> out = new ArrayList<>();
         Rarity r = def.rarity();
         String c = "<" + r.color() + ">";
@@ -141,7 +152,13 @@ public final class ItemTooltip {
                     out.add(statLine(key, rangeText(key, range), true) + "");
                 } else {
                     double v = rolls.getOrDefault(key, ItemRolls.round(key, range.lerp(0.5)));
-                    out.add(statLine(key, formatStat(key, v), false) + rangeTxt);
+                    Double plus = enhanceBonus.get(key);
+                    if (plus != null && plus != 0) {
+                        out.add(statLine(key, formatStat(key, ItemRolls.round(key, v + plus)), false)
+                                + " <#ffd36b>(" + formatStat(key, plus) + ")</#ffd36b>" + rangeTxt);
+                    } else {
+                        out.add(statLine(key, formatStat(key, v), false) + rangeTxt);
+                    }
                 }
             }
             if (rolls != null) {
@@ -151,6 +168,10 @@ public final class ItemTooltip {
                     out.add("<dark_gray>굴림 품질 <" + qc + ">" + Math.round(q * 100) + "%");
                 }
             }
+        }
+        if (!enhanceLines.isEmpty()) {
+            out.add("");
+            out.addAll(enhanceLines);
         }
 
         // 무기 스킬

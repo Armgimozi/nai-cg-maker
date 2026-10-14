@@ -22,6 +22,7 @@ import org.bukkit.inventory.ItemStack;
 /**
  * 대장장이 두르간 GUI (GDD §11.11). 탭 = recipes.yml category(무기 · 방어구·방패 · 장신구 · 정수 정제),
  * 레시피마다 재료 보유/필요 · 골드 · 레벨 표시(부족하면 빨강), 클릭 = 제작. "내 직업만" 필터.
+ * 배너 가운데(13) = [장비 강화] → 강화 창 (GDD §11.13).
  */
 final class BlacksmithMenu extends Menu {
 
@@ -29,6 +30,8 @@ final class BlacksmithMenu extends Menu {
     private static final String[] TAB_NAMES = {"무기", "방어구 · 방패", "장신구", "정수 정제"};
     private static final int[] TAB_SLOTS = {1, 3, 5, 7};
     private static final int PER_PAGE = 27;
+    /** 배너 가운데(모루) — 강화 창 버튼. */
+    private static final int ENHANCE_SLOT = 13;
 
     private final Services services;
     private final LabCraftingService crafting;
@@ -73,6 +76,22 @@ final class BlacksmithMenu extends Menu {
                 page = 0;
                 click(viewer);
                 refresh();
+            });
+        }
+
+        // [강화] — 배너의 모루 자리(glyphs.yml menus.blacksmith.slots.enhance)
+        var enh = crafting.enhance();
+        if (enh != null && enh.rules().config().enabled()) {
+            ItemStack anvil = kr.labyrinth.ui.UiTheme.item(enh.rules().config().stones().isEmpty() ? null
+                    : enh.rules().config().stones().get(0).item(), Material.ANVIL,
+                    "<gradient:#ffd36b:#ff8a3d><b>⚒ 장비 강화</b></gradient>",
+                    List.of("<gray>무기·방어구·방패를 +1 ~ +" + enh.rules().maxLevel() + " 까지 강화합니다.",
+                            "<gray>골드 + 강화석 · +" + enh.rules().config().downgradeFrom() + " 이상 실패하면 한 단계 하락",
+                            "", "<#ffd27a>▶ 클릭하여 강화 창 열기"));
+            kr.labyrinth.ui.UiTheme.glint(anvil, true);
+            set(ENHANCE_SLOT, anvil, ctx -> {
+                click(viewer);
+                enh.open(viewer);
             });
         }
 

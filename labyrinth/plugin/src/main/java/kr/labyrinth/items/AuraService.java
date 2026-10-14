@@ -42,6 +42,7 @@ import org.bukkit.util.Vector;
  *   <li>신화: secondary_model 을 반대 방향 회전(ring) 또는 등 뒤에 붙임(back)</li>
  *   <li>LOD: 보는 사람이 24칸 밖이면 입자 절반, 48칸 밖이면 입자 없음(링만). 같은 월드에 아우라 6개 이상이면 입자 간격 2배.</li>
  *   <li>투명(그림자 잠행)·관전 중에는 숨김. 무기를 내려놓거나 나가면 디스플레이 즉시 제거.</li>
+ *   <li>+10(최대 강화) 무기: 링 밝기 최대 + 1.15배 (추가 반짝임 입자는 enhance.EnhanceGlow).</li>
  * </ul>
  */
 public final class AuraService implements Listener {
@@ -56,13 +57,18 @@ public final class AuraService implements Listener {
 
     private static final class State {
         final String auraId;
+        /** +10(최대 강화) 무기 — 링을 더 밝고 크게 (GDD §11.13). */
+        final boolean radiant;
         ItemDisplay ring;
         ItemDisplay secondary;
         float angle;
         float angle2;
         Location lastPos;
 
-        State(String auraId) { this.auraId = auraId; }
+        State(String auraId, boolean radiant) {
+            this.auraId = auraId;
+            this.radiant = radiant;
+        }
 
         void remove() {
             if (ring != null && ring.isValid()) ring.remove();
@@ -127,9 +133,11 @@ public final class AuraService implements Listener {
             }
             return;
         }
-        if (s == null || !s.auraId.equals(aura.id())) {
+        boolean radiant = kr.labyrinth.items.enhance.Enhancement.rules()
+                .radiant(kr.labyrinth.items.enhance.Enhancement.level(p.getInventory().getItemInMainHand()));
+        if (s == null || !s.auraId.equals(aura.id()) || s.radiant != radiant) {
             if (s != null) s.remove();
-            s = new State(aura.id());
+            s = new State(aura.id(), radiant);
             states.put(p.getUniqueId(), s);
         }
         Location feet = p.getLocation();
@@ -141,7 +149,7 @@ public final class AuraService implements Listener {
     }
 
     private void updateRing(Player p, AuraDef aura, State s, Location feet) {
-        float scale = (float) (aura.ringScale() <= 0 ? 1.0 : aura.ringScale());
+        float scale = (float) (aura.ringScale() <= 0 ? 1.0 : aura.ringScale()) * (s.radiant ? 1.15f : 1f);
         if (aura.ringModel() != null && Fx.exists(services, aura.ringModel())) {
             Location at = feet.clone().add(0, aura.ringHeight(), 0);
             at.setYaw(0);
@@ -149,6 +157,7 @@ public final class AuraService implements Listener {
             if (s.ring == null || !s.ring.isValid() || !s.ring.getWorld().equals(p.getWorld())) {
                 if (s.ring != null) s.ring.remove();
                 s.ring = Fx.spawn(services, at, aura.ringModel(), scale, 0);
+                if (s.radiant && s.ring != null) s.ring.setBrightness(new org.bukkit.entity.Display.Brightness(15, 15));
             } else {
                 s.ring.teleport(at);
             }
@@ -178,6 +187,7 @@ public final class AuraService implements Listener {
             if (s.secondary == null || !s.secondary.isValid() || !s.secondary.getWorld().equals(p.getWorld())) {
                 if (s.secondary != null) s.secondary.remove();
                 s.secondary = Fx.spawn(services, at, aura.secondaryModel(), back ? 1f : scale * 1.15f, 0);
+                if (s.radiant && s.secondary != null) s.secondary.setBrightness(new org.bukkit.entity.Display.Brightness(15, 15));
             } else {
                 s.secondary.teleport(at);
             }

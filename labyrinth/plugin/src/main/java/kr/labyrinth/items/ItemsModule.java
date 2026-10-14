@@ -1,6 +1,7 @@
 package kr.labyrinth.items;
 
 import com.mojang.brigadier.Command;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
@@ -16,6 +17,8 @@ import kr.labyrinth.core.Log;
 import kr.labyrinth.core.Module;
 import kr.labyrinth.core.Text;
 import kr.labyrinth.items.crafting.LabCraftingService;
+import kr.labyrinth.items.enhance.EnhanceService;
+import kr.labyrinth.items.enhance.Enhancement;
 import kr.labyrinth.items.loot.LabLootService;
 import kr.labyrinth.items.weaponskills.LabWeaponSkillService;
 import org.bukkit.Bukkit;
@@ -24,8 +27,10 @@ import org.bukkit.entity.Player;
 
 /**
  * items 담당 모듈 진입점: ItemService(굴림·툴팁·장비 컴포넌트) · LootService(개인 루팅) · CraftingService(대장장이 GUI) ·
- * WeaponSkillService(17종 무기 스킬) · AuraService(전설·신화 아우라) · 장비 StatContributor(+세트 효과) · 소모품 · 바닐라 가공 차단.
- * 관리 명령: /labadmin blacksmith [플레이어] · /labadmin loot &lt;테이블&gt; [플레이어] · /labadmin weaponskills.
+ * WeaponSkillService(17종 무기 스킬) · AuraService(전설·신화 아우라) · 장비 StatContributor(+세트 효과) · 소모품 · 바닐라 가공 차단 ·
+ * 강화(enhance/EnhanceService — 대장간 [강화], +10 빛).
+ * 명령: /미궁 강화|enhance (강화 창). 관리: /labadmin blacksmith [플레이어] · /labadmin loot &lt;테이블&gt; [플레이어] ·
+ * /labadmin weaponskills · /labadmin enhance &lt;단계&gt; [플레이어] (주손 장비 단계 바로 설정).
  */
 public final class ItemsModule implements Module {
 
@@ -35,6 +40,7 @@ public final class ItemsModule implements Module {
     private ConsumableListener consumables;
     private EquipmentListener equipment;
     private LabLootService loot;
+    private EnhanceService enhance;
 
     public ItemsModule(Services services) { this.services = services; }
 
@@ -46,7 +52,10 @@ public final class ItemsModule implements Module {
         services.setItems(new GearItemService(services));
         loot = new LabLootService(services);
         services.setLoot(loot);
-        services.setCrafting(new LabCraftingService(services));
+        LabCraftingService crafting = new LabCraftingService(services);
+        services.setCrafting(crafting);
+        enhance = new EnhanceService(services);
+        crafting.setEnhance(enhance);
         weaponSkills = new LabWeaponSkillService(services);
         services.setWeaponSkills(weaponSkills);
 
@@ -61,6 +70,7 @@ public final class ItemsModule implements Module {
         consumables.start();
         auras = new AuraService(services);
         auras.start();
+        enhance.start();
 
         registerCommands();
         checkContent();
@@ -70,6 +80,7 @@ public final class ItemsModule implements Module {
     @Override
     public void disable() {
         if (auras != null) auras.stop();
+        if (enhance != null) enhance.stop();
         if (weaponSkills != null) weaponSkills.stop();
         if (consumables != null) consumables.stop();
         if (equipment != null) services.stats().removeContributor(equipment);
@@ -78,6 +89,7 @@ public final class ItemsModule implements Module {
     @Override
     public void reload() {
         if (auras != null) auras.reload();
+        if (enhance != null) enhance.reload();
         checkContent();
         for (Player p : Bukkit.getOnlinePlayers()) services.stats().markDirty(p);
     }
@@ -146,11 +158,34 @@ public final class ItemsModule implements Module {
                         .executes(ctx -> run(ctx, () -> lootTest(ctx, null)))
                         .then(Commands.argument("player", StringArgumentType.word()).suggests(players())
                                 .executes(ctx -> run(ctx, () -> lootTest(ctx, StringArgumentType.getString(ctx, "player")))))));
+        for (String n : new String[] {"enhance", "강화"}) {
+            cmd.addSubcommand("lab", Commands.literal(n).executes(ctx -> run(ctx,
+                    () -> CommandService.withPlayer(CommandService.sender(ctx), enhance::open))));
+        }
+        cmd.addSubcommand("labadmin", Commands.literal("enhance")
+                .then(Commands.argument("level", IntegerArgumentType.integer(0, 20))
+                        .executes(ctx -> run(ctx, () -> adminEnhance(ctx, null)))
+                        .then(Commands.argument("player", StringArgumentType.word()).suggests(players())
+                                .executes(ctx -> run(ctx, () -> adminEnhance(ctx, StringArgumentType.getString(ctx, "player")))))));
         cmd.addSubcommand("labadmin", Commands.literal("weaponskills").executes(ctx -> run(ctx, () -> {
             CommandSender s = ctx.getSource().getSender();
             Text.send(s, "<gray>무기 스킬 구현 " + weaponSkills.implementedIds().size() + "종: <white>"
                     + String.join(", ", new TreeSet<>(weaponSkills.implementedIds())));
         })));
+    }
+
+    private void adminEnhance(CommandContext<CommandSourceStack> ctx, String player) {
+        Player t = target(ctx, player);
+        if (t == null) return;
+        int lv = Math.min(Enhancement.rules().maxLevel(), IntegerArgumentType.getInteger(ctx, "level"));
+        var hand = t.getInventory().getItemInMainHand();
+        if (!enhance.setLevel(hand, lv)) {
+            Text.error(ctx.getSource().getSender(), "주손에 강화할 수 있는 미궁 무기·방어구·방패가 없습니다.");
+            return;
+        }
+        t.getInventory().setItemInMainHand(hand);
+        services.stats().markDirty(t);
+        Text.send(ctx.getSource().getSender(), "<gray>" + Text.escape(t.getName()) + " 의 주손 장비를 <white>+" + lv + "</white> 로 바꿨습니다.");
     }
 
     private void lootTest(CommandContext<CommandSourceStack> ctx, String player) {

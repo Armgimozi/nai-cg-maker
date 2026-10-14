@@ -126,7 +126,7 @@ labyrinth/
     advance 177 → 제목 = `Glyphs.menuTitle("gui_<id>", 176, 제목)` (= space(−8) + 배경 + space(−169) + 제목). 배경이 인벤토리
     부분까지 덮고(같은 디자인), 바닐라 인벤토리 글자 자리는 밝은 명판. 제목 글자색은 `menus.<id>.title_color`(밝은 양피지색).
     메뉴별 버튼 자리(소켓이 그려진 칸)는 glyphs.yml `menus.<id>.slots` 가 원본 — 채움 유리판을 깔지 말 것(배경을 가림).
-    배경 14종: main(3줄), stats, class, party, setup(첫 서버 설정·난이도), entrance(층 선택), blacksmith, titles, accessories(3줄),
+    배경 15종: main(3줄), stats, class, party, setup(첫 서버 설정·난이도), entrance(층 선택), blacksmith, enhance(강화), titles, accessories(3줄),
     merchant, pvp(도전·대기열·순위표), confirm(3줄), generic_6, generic_3.
   - **HUD 액션바**(글줄 y = 화면높이 − 72, 가운데 정렬): 핫바 왼쪽 끝 기준 x 0..181 로 배치하고 전체 advance 를 182 로 맞춘다
     (요소마다 space(x − 펜) + 글리프, 끝에 space(182 − 펜)). 위치·접두어는 glyphs.yml `hud:` 블록. HP 바(x0)·레벨 배지(x82)·
@@ -149,7 +149,7 @@ labyrinth/
 - 생성기 산출물: `resourcepack/dist/labyrinth-pack.zip`(결정적 zip: 정렬·고정 시각) + `labyrinth-pack.sha1`, 사람용 미리보기
   `preview_items.png`·`preview_anim.gif`·`preview_fx.png`·`preview_helmets_worn.png`·`preview_armor.png`·
   `preview_mobs.png`(몹·보스를 YAML pivot 에 조립한 정면 3/4 렌더)·`preview_mob_atlases.png`·`preview_npcs.png`·
-  `preview_ui.png`(GUI 배경 14종 + 실제 슬롯 격자, HUD 액션바 조합 모의, 글리프 전체).
+  `preview_ui.png`(GUI 배경 15종 + 실제 슬롯 격자, HUD 액션바 조합 모의, 글리프 전체).
   생성기는 `generate.py` 의 `BUILDERS` 레지스트리(공유 `Ctx` → `ctx.add(path, bytes)`)로 확장한다: 몹·UI 글리프·NPC 스킨·나머지 fx 스타일
   단계는 자기 모듈을 `src/` 에 두고 BUILDERS 에 추가. 3D 모델 엔진 `src/model.py`(Model/El/bake/UV 아틀라스/display 맞춤),
   재질 셰이더 `src/materials.py`, 애니메이션 `src/effects.py`, 미리보기 렌더러 `src/render.py` 를 재사용할 것.
@@ -199,7 +199,7 @@ labyrinth/
   - 배율: `InstanceContext.hpMultiplier()/damageMultiplier()/dropMultiplier()/goldMultiplier()/xpMultiplier()/windup(초)`;
     인스턴스 밖 소환은 `InstanceContext.adhoc(floor, n, settings.difficulty(), settings.party())`.
   - 이벤트(`event/`): `MobKillEvent`(mobs/bosses 발생), `FloorClearEvent`(dungeon), `LevelUpEvent`(core), `ItemObtainEvent`(items),
-    `CraftEvent`(items), `PvpMatchEndEvent`(pvp) — titles 가 듣는다.
+    `CraftEvent`(items), `EnhanceEvent`(items 강화), `PvpMatchEndEvent`(pvp) — titles 가 듣는다.
   - 임시 엔티티(몹 히트박스·모델 파트·이펙트 디스플레이): 반드시 `Keys.tagTransient(entity, Keys.MOB|BOSS|FX, id)` +
     `setPersistent(false)`. `EntityJanitor` 가 재시작 후 남은 것을 청소한다. 진행 데이터는 `services.data().get(p)`(PlayerData,
     모듈 확장 값은 `ext()` 맵 + `markDirty()`), 서버 최초 기록은 `services.records().claim(key, ...)`.
@@ -217,7 +217,7 @@ core/    Module(interface: name, enable, disable, reload), Keys(NamespacedKey �
 content/ Content(불변 스냅샷) + 정의 레코드(ClassDef, ItemDef, ItemSetDef, MobDef, ModelDef, BossDef, FloorDef, LootTable,
          RecipeDef, AchievementDef, NpcDef, AuraDef, FxModelDef, GlyphDef, ArenaDef), Params(자유 파라미터), Rarity, ItemType,
          ContentParser(원시 YAML → 레코드, Bukkit 무관 — 단위 테스트)
-event/   MobKillEvent, FloorClearEvent, LevelUpEvent, ItemObtainEvent, CraftEvent, PvpMatchEndEvent
+event/   MobKillEvent, FloorClearEvent, LevelUpEvent, ItemObtainEvent, CraftEvent, EnhanceEvent, PvpMatchEndEvent
 data/    PlayerData(레벨, 경험치, 스탯포인트, 스탯, 직업, 골드, 해금층, 칭호/업적, 장신구 2칸, 통계),
          PlayerDataService(플레이어별 YAML: plugins/Labyrinth/players/<uuid>.yml, 비동기 저장, 자동저장 5분),
          ServerRecords(서버 최초 달성 기록: records.yml)
@@ -238,6 +238,9 @@ items/weaponskills/ LabWeaponSkillService(입력: LEFT = PlayerArmSwingEvent, RI
 loot/    LootService(loot 테이블, 희귀도 가중치, LUK 보정, 파티 개인 루팅: 아이템은 개인별로 지급/표시)
          구현 items/loot: LootRoller(순수 굴림), LabLootService(주인에게만 보이는 아이템 엔티티, 줍는 순간 ItemObtainEvent·전설 알림)
 crafting/CraftingService(+대장장이 GUI, 재료 확인/소모, 결과 지급) — 구현 items/crafting: RecipeCheck, LabCraftingService, BlacksmithMenu
+enhance/ 강화(GDD §11.13) — EnhanceRules(순수: 확률·하락·보호·비용·강화석 구간·스탯 배율, config.yml enhance), Enhancement(PDC 코덱
+         Keys.ITEM_ENHANCE + 현재 규칙 + 툴팁 줄), EnhanceService(확인·소모·판정·연출·방송, EnhanceEvent), EnhanceMenu(강화 창 —
+         장비는 고르기만, 제자리에서 고침), EnhanceGlow(+10 은은한 빛). 스탯 배율은 GearItemService.rolledStats 가 곱한다
 mobs/    MobDef, CustomMob(기반 엔티티 + 모델 리그 + HP 풀 + AI 상태), ModelRig(파트별 ItemDisplay, 보간 애니메이션:
          idle/walk/attack/hurt/death), MobService(스폰, 틱, 디스폰, 일반 몹 스킬 타입), mob skill 타입은 YAML 로 조합
 bosses/  BossDef, Boss(추상: 페이즈·패턴 스케줄러), Pattern, Telegraph(원/선/부채꼴/링 장판 경고 + 판정), BossService,
@@ -298,7 +301,7 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
   명령: `/칭호 장착|해제|목록|기록`, `/labadmin title grant|revoke <플레이어> <id>`, `/labadmin title recheck`.
 - **UI 글리프 이름 (pack-ui 단계가 glyphs.yml 에 이 이름으로 넣으면 자동 적용, 없으면 글리프 없이 동작)**:
   - 메뉴 배경 `gui_<메뉴>`: main · stats · class · class_detail · party · players · titles · records · entrance · setup · accessories ·
-    pvp · pvp_ranking · blacksmith · merchant (없으면 `gui_rows_<줄 수>`). 6줄 메뉴 = 54칸, 5줄 = 장신구·상점.
+    pvp · pvp_ranking · blacksmith · enhance · merchant (없으면 `gui_rows_<줄 수>`). 6줄 메뉴 = 54칸, 5줄 = 장신구·상점.
     선택 필드(glyphs.yml 항목에 추가 가능): `width`(배경 폭 px, 기본 176), `title_x`(제목 글자 시작 x, 기본 8), `title_color`(#RRGGBB,
     기본 #3b2a4d). 배경 글리프는 펜을 −8 당겨 컨테이너 왼쪽 끝부터 그린다 → ascent 는 제목 줄 기준(바닐라 상자 제목 높이)으로 맞출 것.
     글리프 배경이 있으면 빈 칸을 유리판으로 채우지 않는다(배경 그림이 보이도록).
@@ -311,7 +314,8 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
   `/pvp`(`/대전`: 도전 <파티장>, 수락, 거절, 대기열 참가/취소, 순위, 전적, 관전)
 - 관리자(`labyrinth.admin`): `/labadmin reload|give <item> [player]|spawnmob <id>|spawnboss <floor>|setentrance|removeentrance|
   setnpc <id>|tpfloor <n>|unlock <player> <floor>|reset <player>|instances|endinstance <id>|pvp season|pvp end <매치>|pvp arena <id>`
-  (items 가 붙임: `blacksmith [player]`(대장간 GUI) · `loot <table> [player]`(개인 루팅 테스트) · `weaponskills`(구현 목록))
+  (items 가 붙임: `blacksmith [player]`(대장간 GUI) · `loot <table> [player]`(개인 루팅 테스트) · `weaponskills`(구현 목록) ·
+  `enhance <단계> [player]`(주손 장비 강화 단계 바로 설정). 플레이어: `/미궁 강화|enhance`(강화 창))
 
 ### 스킬 입력 (미궁 무기를 들고 있을 때)
 - **무기 스킬** (상위 무기에 내장, `items.yml` 의 `weapon_skills`):
@@ -365,7 +369,7 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
 
 ### 통합·배포 메모 (integration-release 단계)
 - **메뉴 배경 규칙** (`ui.UiTheme.background(menu, rows)`): 메뉴별 배경 `gui_<menu>` 에는 버튼 소켓이 그려져 있으므로 **버튼 배치가
-  glyphs.yml `menus.<id>.slots` 와 같은 메뉴만** 전용 배경을 쓴다(현재 blacksmith · titles · setup · class · party — `SOCKET_LAYOUT`). 나머지는 같은 줄 수의
+  glyphs.yml `menus.<id>.slots` 와 같은 메뉴만** 전용 배경을 쓴다(현재 blacksmith · enhance · titles · setup · class · party — `SOCKET_LAYOUT`). 나머지는 같은 줄 수의
   `gui_rows_<n>` → `gui_generic_<n>`. 배경 높이로 줄 수를 계산해 줄 수가 다르면 절대 쓰지 않는다(5줄 메뉴 = 배경 없음 + 테두리).
   메뉴를 소켓에 맞게 고쳤으면 `SOCKET_LAYOUT` 에 id 를 추가할 것. 제목 색 = `menus.<id>.title_color`.
 - **글리프 액션바** `ui.GlyphHud`: glyphs.yml `hud:` 수치대로 xp·hp·(보호막)·mp 바(`hud_*_00..20`), 레벨 배지·숫자, 상태 아이콘(`status_<효과>`,
@@ -594,7 +598,7 @@ models:
   ember_ring: {style: ring, palette: [...], animated: true, frames: 8}
   telegraph_circle: {style: telegraph_circle, palette: ["#ff3b3b"], animated: true, frames: 6}
 
-# glyphs.yml  (pack-ui 단계에서 작성 — 전체 207 글리프, 상세 주석은 파일 머리말)
+# glyphs.yml  (pack-ui 단계에서 작성 — 전체 208 글리프, 상세 주석은 파일 머리말)
 glyphs:
   gui_stats:  {char: "\uE001", file: gui/stats.png, ascent: 13, height: 222, advance: 177}
   hud_hp_14:  {char: "\uE10E", file: hud/hp_14.png, ascent: -2, height: 9, advance: 83}
@@ -685,6 +689,21 @@ hud: {total: 182, bar_steps: 20, bar_width: 82, hp_x: 0, badge_x: 82, mp_x: 100,
 - `patterns.<key>` 공통 키: `weight`(스케줄러 가중치, 기본 1), `first_delay`(페이즈 진입 후 첫 사용까지 초, 기본 = 쿨다운/간격의 절반),
   `interruptible`(true 면 `interrupt` 상태이상으로 시전 차단).
 - `arena` 4층: `platform_block`/`platform_base`(단상 블록, 기본 PRISMARINE_BRICKS/DARK_PRISMARINE), `valve_block`(기본 WAXED_OXIDIZED_COPPER).
+
+### 6.5 강화 단계에서 추가된 것 (GDD §11.13 — 전부 추가)
+- **config.yml** `enhance:` — `enabled, max_level, chances[], downgrade_from, protection_item, stat_per_level, weapon_stats[], armor_stats[],
+  gold_base, gold_level_offset, gold_rarity{}, gold_steps[], craft_discount, stone_counts[], stones[{item, max_floor}], broadcast_from,
+  glint_from, glow_interval`. 목록은 목표 단계 +1.. 순(모자라면 마지막 값). 원본 파서 = `items.enhance.EnhanceRules.Config.from`.
+- **아이템 PDC** `Keys.ITEM_ENHANCE`(Integer 0~max, 없으면 0). 쓸 때 `ITEM_VERSION` 을 2 로 올린다(1 이하 = 강화 0). 다른 모듈은
+  `items.enhance.Enhancement.level(stack)` 로 읽고, 단계를 바꾼 뒤 `services.items().refresh(stack)`(이름 `+N`·툴팁·광택 다시 그리기).
+  `ItemService.rolledStats` 는 **강화 배율 포함**(무기 `damage`, 방어구·방패 `defense`·`hp`) — 장비 StatContributor·PvP 장비 보정이 그대로 쓴다.
+- **items.yml** 재료 4종: `lesser_enhance_stone` · `greater_enhance_stone` · `supreme_enhance_stone` · `enhance_protection_scroll`(2D 아이콘).
+- **loot.yml** 하위 테이블 `enhance_{mob|swarm|elite|boss|chest|gimmick}_t{1|2|3}` · `enhance_preview_t{2|3}` — 몹·보스 테이블은 entries 에,
+  rolls 2 인 보물·기믹 상자는 `guaranteed` 에 `{table: enhance_*, chance: 1.0}` 한 줄. **새 몹/층 테이블을 만들면 이 한 줄을 같이 넣을 것.**
+- **titles.yml** 조건 `ENHANCE {level}` (+ `server_first`), 카운터 `titles.enhance_best` · `titles.enhance_success`. 이벤트 `event.EnhanceEvent`
+  (player, def, item, from, to, outcome = success | fail | downgrade | protected).
+- **glyphs.yml** 배경 `gui_enhance`(U+E0E8, 6줄) + `menus.enhance.slots`, `menus.blacksmith.slots.enhance: 13`(배너 모루 자리 = [장비 강화]).
+- **명령** `/미궁 강화|enhance`, `/labadmin enhance <단계> [플레이어]`. 자가 진단에 `enhance_checked`(강화 가능 장비 전부 +1~+10 기록·배율 확인).
 
 ## 7. 성능·안정성 규칙
 
