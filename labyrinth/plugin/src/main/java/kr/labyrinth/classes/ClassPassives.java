@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import kr.labyrinth.Services;
 import kr.labyrinth.classes.skills.GuardianSkills;
 import kr.labyrinth.classes.skills.ShadowSkills;
+import kr.labyrinth.classes.skills.SkillContext;
 import kr.labyrinth.classes.skills.SkillFx;
 import kr.labyrinth.classes.skills.Targeting;
 import kr.labyrinth.combat.DamageContext;
@@ -207,7 +208,7 @@ public final class ClassPassives implements DamageService.Hook, StatContributor 
             }
             case "vital_point" -> {
                 if (ctx.crit() && pp.bool("refresh_venom", true) && services.effects().stacks(target, "venom") > 0) {
-                    services.effects().apply(target, "venom", 6, 0.10, atk);
+                    services.effects().apply(target, "venom", 6, SkillContext.dotRatio(0.10, SkillContext.weaponScale(services, atk, c)), atk);
                 }
             }
             default -> { }

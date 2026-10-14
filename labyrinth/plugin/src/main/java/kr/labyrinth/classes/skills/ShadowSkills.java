@@ -68,7 +68,7 @@ public final class ShadowSkills {
             SkillFx.sound(dest, Sound.ENTITY_PHANTOM_FLAP, 0.8f, 1.6f);
             double mult = behind ? c.p("back_damage", 3.0) : c.p("damage", 1.8);
             DamageContext r = c.services().targets().isEnemy(p, t)
-                    ? c.services().damage().deal(DamageContext.attack(p, t, mult, DamageType.MELEE).skill(id())
+                    ? c.services().damage().deal(DamageContext.attack(p, t, mult * c.weaponScale(), DamageType.MELEE).skill(id())
                     .critBonus(behind && c.flag("back_guaranteed_crit", true) ? 2.0 : 0))
                     : null;
             if (r != null && behind) {
@@ -141,7 +141,8 @@ public final class ShadowSkills {
             var sk = cls.skills().stream().filter(s -> s.id().equals("venom_blades")).findFirst().orElse(null);
             if (sk == null) return;
             var pr = sk.params();
-            services.effects().apply(target, "venom", pr.dbl("stack_duration", 6), pr.dbl("dps_per_stack", 0.10), shadow);
+            double ratio = SkillContext.dotRatio(pr.dbl("dps_per_stack", 0.10), SkillContext.weaponScale(services, shadow, cls));
+            services.effects().apply(target, "venom", pr.dbl("stack_duration", 6), ratio, shadow);
             if (services.effects().stacks(target, "venom") >= pr.integer("max_stacks", 5)) {
                 services.effects().apply(target, "weaken", pr.dbl("stack_duration", 6), pr.dbl("weaken_at_max", 0.10), shadow);
             }

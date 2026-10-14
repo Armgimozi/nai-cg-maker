@@ -44,7 +44,7 @@ public final class BerserkerSkills {
             for (LivingEntity e : c.targets().enemiesIn(p.getLocation(), radius)) {
                 DamageContext r = c.damage(e, c.p("damage", 1.4), DamageType.MELEE, 1.0, 0.4);
                 if (r == null || r.cancelled() || r.evaded()) continue;
-                c.services().effects().apply(e, "bleed", c.p("bleed_duration", 4), c.p("bleed_ratio", 0.15), p);
+                c.services().effects().apply(e, "bleed", c.p("bleed_duration", 4), c.dotRatio(c.p("bleed_ratio", 0.15)), p);
             }
             return true;
         }

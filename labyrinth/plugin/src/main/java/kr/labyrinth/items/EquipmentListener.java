@@ -7,7 +7,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import kr.labyrinth.Services;
-import kr.labyrinth.content.ClassDef;
 import kr.labyrinth.content.ItemDef;
 import kr.labyrinth.content.ItemSetDef;
 import kr.labyrinth.content.ItemType;
@@ -37,7 +36,7 @@ import org.bukkit.persistence.PersistentDataType;
  * 장비 → StatService 기여 + 착용 조건 + 활 화살.
  * <ul>
  *   <li>주손 무기(피해 포함 전 스탯) · 방어구 4칸 · 보조손 방패 · 장신구 2칸(PlayerData) · 세트 효과(착용 개수 이상 누적)</li>
- *   <li>레벨/직업 조건을 못 맞춘 장비는 스탯이 들어가지 않는다. 방어구는 착용 즉시 인벤토리로 되돌린다.</li>
+ *   <li>레벨 조건을 못 맞춘 장비는 스탯이 들어가지 않는다(직업 제한은 없음). 방어구는 착용 즉시 인벤토리로 되돌린다.</li>
  *   <li>미궁 활을 들면 '미궁 화살'(무한, 1개)을 넣어 준다 — 바닐라 활은 화살이 있어야 당겨진다.</li>
  * </ul>
  */
@@ -118,17 +117,9 @@ final class EquipmentListener implements Listener, StatContributor {
 
     // ── 착용 조건 ─────────────────────────────────────────────────────────
 
+    /** 착용 조건 문구 (직업 제한은 없어 레벨뿐). */
     static String problemText(Services services, ItemDef def, EquipRules.Problem problem) {
         if (problem == EquipRules.Problem.LEVEL) return "레벨 " + def.levelReq() + " 이상 필요";
-        if (problem == EquipRules.Problem.CLASS) {
-            StringBuilder sb = new StringBuilder();
-            for (String id : def.classes()) {
-                ClassDef c = services.content().classDef(id);
-                if (!sb.isEmpty()) sb.append(", ");
-                sb.append(c == null ? id : c.name());
-            }
-            return sb + " 전용";
-        }
         return "";
     }
 
@@ -153,7 +144,7 @@ final class EquipmentListener implements Listener, StatContributor {
             if (curDef == null || !curDef.id().equals(def.id())) return;
             p.getInventory().setItem(slot, null);
             GearItemService.deliver(p, cur);
-            Text.error(p, def.name() + " <gray>— " + problemText(services, def, problem) + "이라 착용할 수 없습니다.");
+            Text.error(p, def.name() + " <gray>— " + problemText(services, def, problem) + " — 착용할 수 없습니다.");
             services.stats().markDirty(p);
         });
     }
@@ -174,7 +165,29 @@ final class EquipmentListener implements Listener, StatContributor {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onJoin(PlayerJoinEvent e) {
-        Bukkit.getScheduler().runTaskLater(services.plugin(), () -> ensureArrow(e.getPlayer()), 5L);
+        Bukkit.getScheduler().runTaskLater(services.plugin(), () -> {
+            refreshLore(e.getPlayer());
+            ensureArrow(e.getPlayer());
+        }, 5L);
+    }
+
+    /**
+     * 가방 속 미궁 아이템 설명을 지금 규칙으로 다시 쓴다 (굴린 스탯은 그대로). 예전 판에서 받은 장비의 "직업 ○○"(옛 착용 제한)
+     * 문구가 "추천 직업" 으로 바뀌는 식 — 설명이 같으면 건드리지 않는다.
+     */
+    private void refreshLore(Player p) {
+        if (!p.isOnline()) return;
+        PlayerInventory inv = p.getInventory();
+        for (int i = 0; i < inv.getSize(); i++) {
+            ItemStack it = inv.getItem(i);
+            ItemDef def = services.items().defOf(it).orElse(null);
+            if (def == null) continue;
+            var lines = Text.itemLines(ItemTooltip.lines(services.content(), def, def.isGear() ? services.items().rolledStats(it) : null));
+            var old = it.getData(DataComponentTypes.LORE);
+            if (old != null && old.lines().equals(lines)) continue;
+            it.setData(DataComponentTypes.LORE, io.papermc.paper.datacomponent.item.ItemLore.lore(lines));
+            inv.setItem(i, it);
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR)

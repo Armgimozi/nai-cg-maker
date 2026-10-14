@@ -18,7 +18,7 @@
 version: 1
 
 settings:
-  own_class_bias: 0.65        # 장비 1개를 고를 때(rarity_pool·one_of) 이 확률로 '루팅한 사람 직업이 쓸 수 있는 장비'만 후보 (없으면 전체)
+  own_class_bias: 0.65        # 장비 1개를 고를 때(rarity_pool·one_of) 이 확률로 '루팅한 사람 직업의 추천 장비'(items.yml classes)만 후보 (없으면 전체, 착용 제한은 없음)
   luck_per_point: 0.005       # LUK 1점당 드롭 확률 +0.5% (GDD §3)
   party_bonus_per_member: 0.05   # 파티원 1명 추가마다 드롭 확률 +5% (config party.reward_per_member 가 있으면 그쪽 우선)
   max_chance: 1.0

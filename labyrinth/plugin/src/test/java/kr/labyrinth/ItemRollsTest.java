@@ -115,8 +115,9 @@ class ItemRollsTest {
     void equipRules() {
         ItemDef def = content.item("ember_greatsword");
         assertEquals(EquipRules.Problem.LEVEL, EquipRules.check(def, def.levelReq() - 1, "berserker"));
-        assertEquals(EquipRules.Problem.CLASS, EquipRules.check(def, 50, "priest"));
-        assertEquals(EquipRules.Problem.CLASS, EquipRules.check(def, 50, null));
+        // 직업 제한 없음: 광전사 추천 대검도 사제·직업 없음이 그대로 쓴다
+        assertEquals(EquipRules.Problem.NONE, EquipRules.check(def, 50, "priest"));
+        assertEquals(EquipRules.Problem.NONE, EquipRules.check(def, 50, null));
         assertEquals(EquipRules.Problem.NONE, EquipRules.check(def, def.levelReq(), "berserker"));
         ItemDef mat = content.item("moss_fiber");
         assertEquals(EquipRules.Problem.NONE, EquipRules.check(mat, 1, null));

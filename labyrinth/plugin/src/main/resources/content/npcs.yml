@@ -66,6 +66,7 @@ npcs:
       - "<gray>미궁은 혼자의 힘만으로는 끝까지 갈 수 없는 곳이지. 그대에게 맞는 길을 고르게.</gray>"
       - "<gray>수호기사, 광전사, 사냥꾼, 비전술사, 사제, 그림자. 서로를 채워 주는 파티가 가장 강하다네.</gray>"
       - "<gray>직업 스킬은 <yellow><key:key.swapOffhand></yellow>, <yellow><key:key.sneak>+<key:key.swapOffhand></yellow>, <yellow><key:key.drop></yellow>, <yellow><key:key.sneak>+<key:key.drop></yellow>로 쓴다네. 레벨이 오르면 하나씩 깨어나지.</gray>"
+      - "<gray>무기는 마음 가는 대로 들게. 미궁의 무기라면 무엇으로든 직업 스킬이 나간다네. 다만 그 길에 어울리는 무기를 쥐면 스킬이 조금 더 빨리 돌아오지.</gray>"
 
   title_keeper:
     name: "기록관 노아"

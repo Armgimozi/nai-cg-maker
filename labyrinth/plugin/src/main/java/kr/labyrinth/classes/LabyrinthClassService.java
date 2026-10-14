@@ -10,6 +10,7 @@ import kr.labyrinth.classes.skills.SkillFx;
 import kr.labyrinth.classes.skills.SkillRegistry;
 import kr.labyrinth.content.ClassDef;
 import kr.labyrinth.content.ItemDef;
+import kr.labyrinth.content.WeaponTypes;
 import kr.labyrinth.core.Log;
 import kr.labyrinth.core.Text;
 import kr.labyrinth.data.PlayerData;
@@ -120,16 +121,16 @@ public final class LabyrinthClassService implements ClassService, SkillContext.H
         return true;
     }
 
-    /**
-     * 직업 스킬은 그 직업 무기를 들어야 나가므로, 직업을 처음 골랐을 때 가방에 그 직업 무기가 없으면 가장 낮은 등급 무기를 하나 준다.
-     * 직업마다 한 번만 (PlayerData ext {@code class.starter.<직업>}).
-     */
-    /** 접속할 때: 직업은 있는데 그 직업 무기가 없으면(예전 판에서 전직한 사람) 한 번 지급. */
+    /** 접속할 때: 직업은 있는데 추천 무기를 받은 적도 가진 것도 없으면(예전 판에서 전직한 사람) 한 번 지급. */
     public void ensureStarterWeapon(Player player) {
         ClassDef def = classOf(player);
         if (def != null) giveStarterWeapon(player, def);
     }
 
+    /**
+     * 직업 스킬은 아무 미궁 무기로나 나가지만 처음엔 손에 쥔 게 없으므로, 직업을 처음 골랐을 때 가방에 그 직업의 추천 무기가 없으면
+     * 가장 낮은 등급 추천 무기를 하나 준다 ({@link WeaponTypes#starterWeapon}). 직업마다 한 번만 (PlayerData ext {@code class.starter.<직업>}).
+     */
     private void giveStarterWeapon(Player player, ClassDef def) {
         PlayerData d = services.data().get(player);
         String flag = "class.starter." + def.id();
@@ -137,20 +138,15 @@ public final class LabyrinthClassService implements ClassService, SkillContext.H
         for (org.bukkit.inventory.ItemStack it : player.getInventory().getContents()) {
             if (it == null || it.getType().isAir()) continue;
             ItemDef have = services.items().defOf(it).orElse(null);
-            if (have != null && have.isWeapon() && def.weaponTypes().contains(have.weaponType())) return;
+            if (have != null && have.isWeapon() && def.recommendsWeapon(have.weaponType())) return;
         }
-        ItemDef best = null;
-        for (ItemDef it : services.content().items().values()) {
-            if (!it.isWeapon() || !def.weaponTypes().contains(it.weaponType()) || !it.usableBy(def.id())) continue;
-            if (best == null || it.rarity().ordinal() < best.rarity().ordinal()
-                    || (it.rarity() == best.rarity() && (it.floor() < best.floor()
-                    || (it.floor() == best.floor() && it.levelReq() < best.levelReq())))) best = it;
-        }
+        ItemDef best = WeaponTypes.starterWeapon(services.content().items().values(), def);
         if (best == null || services.items().give(player, best.id(), 1, "starter") <= 0) return;
         d.ext().put(flag, true);
         d.markDirty();
-        Text.send(player, "<gray>직업 무기를 받았습니다: <white>" + best.name() + "</white> <gray>— 손에 들고 <white>"
-                + kr.labyrinth.core.InputKeys.CLASS_KEYS + "</white> 로 스킬을 씁니다.");
+        Text.send(player, "<gray>추천 무기를 받았습니다: <white>" + best.name() + "</white> <gray>— 손에 들고 <white>"
+                + kr.labyrinth.core.InputKeys.CLASS_KEYS + "</white> 로 스킬을 씁니다 <dark_gray>(다른 미궁 무기도 되지만 추천 무기면 재사용 대기 −"
+                + Text.pct(WeaponTypes.RECOMMENDED_COOLDOWN_CUT) + ")");
     }
 
     // ── 마나 ──────────────────────────────────────────────────────────────
@@ -213,8 +209,8 @@ public final class LabyrinthClassService implements ClassService, SkillContext.H
         if (sk == null) return false;
         String col = cls.color();
         ItemDef weapon = services.items().heldWeapon(player);
-        if (weapon == null || !cls.canUseWeaponType(weapon.weaponType())) {
-            bar(player, "<#ff8080>직업 무기를 들어야 합니다 <gray>(" + weaponNames(cls) + ")", 40);
+        if (!WeaponTypes.canCastClassSkill(cls, weapon)) {
+            bar(player, "<#ff8080>미궁 무기를 들어야 합니다 <gray>(종류 무관 · 추천 " + weaponNames(cls) + ")", 40);
             deny(player);
             return true;
         }
@@ -270,8 +266,10 @@ public final class LabyrinthClassService implements ClassService, SkillContext.H
         }
         useMana(player, cost);
         // 채널링 스킬이 cancelCast 로 쿨다운을 이미 정했으면 덮어쓰지 않는다
+        // 추천 무기면 기본 재사용 대기 −10% (레벨이 모자라 능력치가 안 붙는 무기는 제외), 그다음 재사용 감소 스탯
         if (st.cooldowns.ready(sk.id())) {
-            st.cooldowns.start(sk.id(), CooldownTracker.effective(sk.cooldown(), services.stats().get(player).cooldownReduction()));
+            double base = WeaponTypes.classSkillCooldown(cls, WeaponTypes.effective(weapon, level), sk.cooldown());
+            st.cooldowns.start(sk.id(), CooldownTracker.effective(base, services.stats().get(player).cooldownReduction()));
         }
         bar(player, "<" + col + "><b>✦ " + sk.name() + "</b></" + col + ">  <#6fc3ff>MP " + Text.num(mana(player)) + "<gray>/"
                 + Text.num(maxMana(player)), 30);
@@ -343,19 +341,10 @@ public final class LabyrinthClassService implements ClassService, SkillContext.H
         return kr.labyrinth.core.InputKeys.bracket(input);
     }
 
-    public static String weaponName(String type) {
-        return switch (type == null ? "" : type) {
-            case "sword_shield" -> "검과 방패";
-            case "greatsword" -> "대검";
-            case "bow" -> "활";
-            case "staff" -> "지팡이";
-            case "scepter" -> "홀";
-            case "dagger" -> "단검";
-            default -> type;
-        };
-    }
+    public static String weaponName(String type) { return WeaponTypes.name(type); }
 
-    private static String weaponNames(ClassDef cls) {
+    /** 추천 무기 이름 목록 ("활", "검과 방패" …). */
+    public static String weaponNames(ClassDef cls) {
         return String.join(", ", cls.weaponTypes().stream().map(LabyrinthClassService::weaponName).toList());
     }
 

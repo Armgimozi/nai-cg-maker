@@ -271,7 +271,12 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
 - **ClassService** 확장: `changeClass(p, id)`(전직관 NPC·직업 메뉴가 부를 것 — 검사·안내·연출 포함), `skillBar(p)`(HUD 용 스킬 한 줄), `isChanneling(p)`.
   무기 스킬(items)은 `services.effects().isSilenced(p)` 와 `cooldownRate(p)` 를 확인할 것.
 - **DungeonService** 기본 메서드: `isDowned(p)`, `revive(p, at, hpRatio)`(사제 부활의 성가) — dungeon 구현은 자기 사망 상태와 맞게 재정의.
-- 직업 스킬은 미궁 무기 + **직업 무기 타입**(classes.yml weapon_types)을 들었을 때만 발동. 명령: `/직업 선택|choose <직업>`, `/직업 정보|info`, `/직업 스킬|skills`.
+- 직업 스킬은 **아무 미궁 무기**(type: weapon, 종류 무관)를 들었을 때 발동 — 바닐라 무기는 해당 없음(F/Q 바닐라 그대로).
+  classes.yml weapon_types = **추천 무기**: 들면 직업 스킬 재사용 대기 −10%, 직업 스킬 피해는 무기 종류 배율을 추천 무기 기준으로 환산
+  (`SkillContext.damage`·`dotRatio` 가 자동 적용 — 새 직업 스킬은 피해를 `c.damage(...)`, 지속 피해 potency 를 `c.dotRatio(...)` 로 낼 것).
+  규칙 원본 = `content.WeaponTypes`(순수, GDD §4.4). 명령: `/직업 선택|choose <직업>`, `/직업 정보|info`, `/직업 스킬|skills`.
+- **장비 직업 제한 없음**: `ItemDef.usableBy` 는 항상 true, `EquipRules` 는 레벨만 본다. items.yml `classes` = 추천 직업 →
+  `ItemDef.suitedFor(직업)` (드롭 직업 편향·대장간 "추천 장비만" 필터·툴팁 "추천 직업"). 다른 모듈도 착용 가능 여부를 직업으로 막지 말 것.
 
 ### 4.2 ui+titles 단계에서 추가된 계약 (다른 모듈이 쓰는 것)
 - **MenuService** 실제 구현 `ui.LabMenuService`(상자 GUI, `ui/menus/*`; 열다가 오류 나면 채팅 메뉴로 대체). 기본 메서드 추가:
@@ -313,7 +318,7 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
   setnpc <id>|tpfloor <n>|unlock <player> <floor>|reset <player>|instances|endinstance <id>|pvp season|pvp end <매치>|pvp arena <id>`
   (items 가 붙임: `blacksmith [player]`(대장간 GUI) · `loot <table> [player]`(개인 루팅 테스트) · `weaponskills`(구현 목록))
 
-### 스킬 입력 (미궁 무기를 들고 있을 때)
+### 스킬 입력 (미궁 무기를 들고 있을 때 — 종류·직업 무관)
 - **무기 스킬** (상위 무기에 내장, `items.yml` 의 `weapon_skills`):
   좌클릭 = 무기 기본기(예: 검을 휘두르면 검기가 날아감, 짧은 내부 쿨다운),
   우클릭 = 무기 스킬, 웅크리기+좌클릭 = 무기 스킬2, 웅크리기+우클릭 = 무기 스킬3(오의).
@@ -388,7 +393,7 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
 
 - 레벨 1~50. 레벨업마다 스탯포인트 5. 스탯 초기화 아이템/명령.
 - 직업 6종: 수호기사(탱커), 광전사(근접 딜러), 사냥꾼(원거리), 비전술사(마법 광역), 사제(힐·버프), 그림자(암살·치명타).
-  각 직업 스킬 4개(3 + 궁극기), 레벨에 따라 해금. 직업 전용 무기 타입.
+  각 직업 스킬 4개(3 + 궁극기), 레벨에 따라 해금. 직업마다 추천 무기 타입(장비 제한은 없음 — 누구나 모든 장비).
 - 희귀도: 일반(흰) < 고급(초록) < 희귀(파랑) < 영웅(보라) < 전설(금, 아우라) < 신화(빨강, 애니메이션 아우라).
   **전설·신화 무기 텍스처는 프레임 애니메이션(.mcmeta, GIF 처럼 움직임)** + 들고 있을 때 파티클/링 아우라.
 - 장비 획득 루트: 일반 몹 드롭 / 엘리트·보스 드롭(보스 전용 장비) / 대장장이 제작(몹 재료) / 보물방 상자 / 칭호 보상.
@@ -421,7 +426,7 @@ classes:
     name: "수호기사"
     role: tank            # tank | melee | ranged | magic | healer | assassin
     icon_item: guardian_emblem   # items.yml id
-    weapon_types: [sword_shield]
+    weapon_types: [sword_shield]   # 추천 무기 (제한 아님, GDD §4.4)
     base_stats: {STR: 5, DEX: 2, INT: 1, VIT: 6, WIS: 2, LUK: 1}
     per_level: {hp: 6, mp: 2}
     skills:
@@ -439,12 +444,12 @@ items:
   ember_greatsword:
     name: "잿불 대검"
     type: weapon              # weapon | armor | accessory | material | consumable | key
-    weapon_type: greatsword   # classes.weapon_types 와 매칭. bow 는 활 동작.
-    armor_slot: null          # head | chest | legs | feet | offhand(방패, 수호기사 보조손) (armor 일 때)
+    weapon_type: greatsword   # classes.weapon_types(추천 무기) 와 매칭. bow 는 활 동작.
+    armor_slot: null          # head | chest | legs | feet | offhand(방패, 보조손 — 수호기사 추천) (armor 일 때)
     armor_set: null           # 방어구면 장비 에셋 세트 id
     rarity: legendary
     level_req: 25
-    classes: [berserker]      # 비우면 모두
+    classes: [berserker]      # 추천 직업 (비우면 모두) — 착용 제한 아님, 드롭 편향·표시용
     stats: {damage: [38, 44], STR: [6, 9], crit_chance: [0.04, 0.06]}   # [최소, 최대] 굴림
     set_bonus: null           # 세트 id (sets: 섹션 참고)
     aura: ember               # fx.yml aura id (전설/신화 무기)

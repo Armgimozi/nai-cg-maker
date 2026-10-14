@@ -22,6 +22,7 @@ import kr.labyrinth.content.NpcDef;
 import kr.labyrinth.content.Params;
 import kr.labyrinth.content.Rarity;
 import kr.labyrinth.content.RecipeDef;
+import kr.labyrinth.content.WeaponTypes;
 
 /**
  * 콘텐츠 교차참조 검사 (ARCHITECTURE §8). 시작·reload 때와 단위 테스트에서 실행.
@@ -150,6 +151,13 @@ public final class ContentValidator {
             String w = "items." + d.id();
             if (d.type() == ItemType.WEAPON && (d.weaponType() == null || d.weaponType().isBlank())) {
                 err(w, "무기인데 weapon_type 이 없음");
+            } else if (d.type() == ItemType.WEAPON) {
+                if (!WeaponTypes.known(d.weaponType())) warn(w, "weapon_type '" + d.weaponType() + "' 의 피해 배율(WeaponTypes)이 없음 — 직업 스킬 환산 1.0");
+                // classes = 추천 직업(드롭 편향) — classes.yml weapon_types(재사용 대기 보너스)와 어긋나면 표시가 헷갈린다
+                for (String cls : d.classes()) {
+                    ClassDef cd = c.classes().get(cls);
+                    if (cd != null && !cd.recommendsWeapon(d.weaponType())) warn(w, "추천 직업 '" + cls + "' 의 weapon_types 에 '" + d.weaponType() + "' 이 없음");
+                }
             }
             if (d.type() == ItemType.ARMOR && (d.armorSlot() == null || !ARMOR_SLOTS.contains(d.armorSlot()))) {
                 err(w, "방어구 armor_slot 이 올바르지 않음: " + d.armorSlot());

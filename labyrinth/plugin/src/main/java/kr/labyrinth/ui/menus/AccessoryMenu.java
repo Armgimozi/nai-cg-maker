@@ -46,7 +46,7 @@ public final class AccessoryMenu extends LabMenu {
         PlayerData d = services.data().get(p);
         deco(4, Button.icon(Material.AMETHYST_CLUSTER, "<#c79bff><b>장신구 2칸</b>",
                 List.of("<gray>아래 내 가방에서 장신구를 클릭하면 장착합니다.", "<gray>위 칸을 클릭하면 가방으로 돌려받습니다.",
-                        "<dark_gray>레벨·직업 조건을 만족해야 장착할 수 있습니다.")));
+                        "<dark_gray>요구 레벨만 되면 어느 직업이든 장착할 수 있습니다.")));
         for (int i = 0; i < SLOTS.length; i++) {
             ItemStack acc = load(d, i);
             final int idx = i;
@@ -84,11 +84,6 @@ public final class AccessoryMenu extends LabMenu {
         if (d.level() < def.levelReq()) {
             deny(p);
             Text.error(p, "레벨 " + def.levelReq() + " 이상 필요합니다.");
-            return;
-        }
-        if (d.classId() != null && !def.usableBy(d.classId())) {
-            deny(p);
-            Text.error(p, "이 직업은 착용할 수 없는 장신구입니다.");
             return;
         }
         int target = -1;

@@ -21,7 +21,7 @@ import org.bukkit.inventory.ItemStack;
 
 /**
  * 대장장이 두르간 GUI (GDD §11.11). 탭 = recipes.yml category(무기 · 방어구·방패 · 장신구 · 정수 정제),
- * 레시피마다 재료 보유/필요 · 골드 · 레벨 표시(부족하면 빨강), 클릭 = 제작. "내 직업만" 필터.
+ * 레시피마다 재료 보유/필요 · 골드 · 레벨 표시(부족하면 빨강), 클릭 = 제작. "추천 장비만" 필터(장비는 어느 직업이든 쓸 수 있다).
  */
 final class BlacksmithMenu extends Menu {
 
@@ -34,7 +34,7 @@ final class BlacksmithMenu extends Menu {
     private final LabCraftingService crafting;
     private int tab;
     private int page;
-    private boolean ownClassOnly = true;
+    private boolean suitedOnly = true;
 
     BlacksmithMenu(Services services, LabCraftingService crafting, Player viewer) {
         super(6, kr.labyrinth.ui.UiTheme.title("blacksmith", 6, "<#f3e3bd>대장장이 두르간의 대장간"));
@@ -50,7 +50,7 @@ final class BlacksmithMenu extends Menu {
             if (!cat.equals(r.category() == null ? "weapon" : r.category())) continue;
             ItemDef def = services.content().item(r.result());
             if (def == null) continue;
-            if (ownClassOnly && cls != null && !def.usableBy(cls)) continue;
+            if (suitedOnly && cls != null && !def.suitedFor(cls)) continue;
             out.add(r);
         }
         out.sort(Comparator.comparingInt(RecipeDef::levelReq)
@@ -94,7 +94,7 @@ final class BlacksmithMenu extends Menu {
         }
         if (list.isEmpty()) {
             deco(31, Button.icon(Material.BARRIER, "<gray>제작할 수 있는 물건이 없습니다",
-                    List.of(ownClassOnly ? "<dark_gray>'내 직업만' 필터를 꺼 보세요." : "")));
+                    List.of(suitedOnly ? "<dark_gray>'추천 장비만' 필터를 꺼 보세요." : "")));
         }
 
         if (page > 0) set(45, Button.icon(Material.ARROW, "<white>이전 쪽", List.of("<gray>" + page + " / " + pages)), ctx -> {
@@ -107,10 +107,10 @@ final class BlacksmithMenu extends Menu {
             click(viewer);
             refresh();
         });
-        set(47, Button.icon(ownClassOnly ? Material.LIME_DYE : Material.GRAY_DYE,
-                ownClassOnly ? "<#9be89b>내 직업 장비만 보기: 켜짐" : "<gray>내 직업 장비만 보기: 꺼짐",
-                List.of("<dark_gray>클릭하여 전환")), ctx -> {
-            ownClassOnly = !ownClassOnly;
+        set(47, Button.icon(suitedOnly ? Material.LIME_DYE : Material.GRAY_DYE,
+                suitedOnly ? "<#9be89b>내 직업 추천 장비만 보기: 켜짐" : "<gray>내 직업 추천 장비만 보기: 꺼짐",
+                List.of("<gray>장비는 어느 직업이든 쓸 수 있습니다.", "<dark_gray>클릭하여 전환")), ctx -> {
+            suitedOnly = !suitedOnly;
             page = 0;
             click(viewer);
             refresh();
