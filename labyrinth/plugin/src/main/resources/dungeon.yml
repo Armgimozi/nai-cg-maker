@@ -1,0 +1,48 @@
+# ─────────────────────────────────────────────────────────────
+#  미궁 진행 설정 (dungeon+party 모듈) — plugins/Labyrinth/dungeon.yml
+#  수정 후 /labadmin reload 로 다시 읽는다 (진행 중인 인스턴스는 다음 입장부터 적용).
+#  서버 난이도·파티 인원 배율은 config.yml (difficulty / party) 에 있다.
+# ─────────────────────────────────────────────────────────────
+version: 1
+
+# 블록 배치/정리 틱당 상한 (서버가 약하면 낮춘다)
+blocks_per_tick: 4000
+# 동시에 열 수 있는 인스턴스 수
+max_instances: 32
+# 서버 시작 때 labyrinth_world 의 지역 파일을 비운다 (이전 세션이 남긴 층 블록 정리). 공허 월드 전용 — 다른 월드는 절대 건드리지 않음
+reset_world_on_startup: true
+# 지하 1층 바닥 높이와 층 사이 간격 (B1 → B10 으로 갈수록 실제로 내려간다)
+top_floor_y: 280
+floor_spacing: 30
+# 온라인 파티원이 하나도 없는 인스턴스는 이 시간(초) 뒤 정리
+empty_instance_timeout: 30
+# 층 시작 카운트다운(초)
+start_countdown: 3
+# 전투방 문이 닫히기 전 대기(초)
+room_lock_delay: 2
+# 전투방 몹 수 = floors.yml mob_density × (1 + mob_count_per_member × (인원−1)), 최대 max_mobs_per_room
+mob_count_per_member: 0.15
+max_mobs_per_room: 14
+# 휴식방 도착 시 HP/MP 회복 비율
+rest_heal: 0.5
+# 보스 구현이 아직 없는 층: 그 층 정예 몹을 보스 배율로 대신 세운다
+boss_fallback:
+  hp_mult: 6.0
+  damage_mult: 1.25
+# 보스 처치 후 계단을 안 내려온 파티원을 자동으로 내려보내기까지(초)
+stairs_wait_seconds: 120
+# 마지막 층(지하 10층) 클리어 후 귀환까지(초)
+final_floor_return_seconds: 25
+# 전멸 후 귀환까지(초)
+wipe_return_seconds: 5
+# 보물방
+treasure:
+  chests: 3
+  mimic_chance: 0.3
+  mimic_mobs: 2
+# 관전자가 살아 있는 파티원에게서 벗어날 수 있는 거리
+spectator_leash: 28
+# 도랑(물/용암)에 빠지거나 바닥 아래로 떨어지면 최대 HP 비율 피해 + 근처 바닥으로 이동
+fall_damage: 0.10
+# 입장 시 파티원이 입구 근처에 있어야 하는가 (반경은 config.yml entrance.radius)
+require_near_entrance: true
