@@ -480,6 +480,7 @@ models:
   telegraph_cone:     {style: telegraph_cone, palette: ["#5a0a0a", "#ff3b3b", "#ffb0a0"], animated: true, frames: 6, frametime: 2, size: [32, 1, 32], flat: true, glow: true}
   telegraph_arrow:    {style: telegraph_arrow, palette: ["#3a0a3a", "#c03ad0", "#f0b0ff"], animated: true, frames: 6, frametime: 1, size: [16, 1, 32], flat: true, glow: true}
   telegraph_tile:     {style: telegraph_tile, palette: ["#2a0a3a", "#a03ad0", "#e8b0ff"], animated: true, frames: 6, frametime: 2, size: [16, 1, 16], flat: true, glow: true}
+  telegraph_tile_ice: {style: telegraph_tile, palette: ["#0a3a5a", "#6ad0ff", "#e0f8ff"], animated: true, frames: 6, frametime: 3, size: [16, 1, 16], flat: true, glow: true}   # 6층 영구 동토 얼음판 (하늘색)
   telegraph_safe:     {style: telegraph_circle, palette: ["#0a3a1a", "#3ad06a", "#c0ffd0"], animated: true, frames: 6, frametime: 3, size: [32, 1, 32], flat: true, glow: true}
   telegraph_mechanic: {style: telegraph_circle, palette: ["#2a0a3a", "#a03ad0", "#e8b0ff"], animated: true, frames: 6, frametime: 2, size: [32, 1, 32], flat: true, glow: true}
   marker_spread:      {style: marker, motif: spore_burst, palette: ["#0a1a3a", "#2a6ad0", "#a0d0ff", "#ffffff"], animated: true, frames: 8, frametime: 2, size: [12, 12, 1], billboard: CENTER, glow: true}
@@ -523,6 +524,7 @@ models:
   frost_sigil_melee:  {style: crystal, motif: sigil_blade, palette: ["#3a0a0a", "#c03a2a", "#ffb0a0", "#ffffff"], animated: true, frames: 8, frametime: 2, size: [16, 32, 16], billboard: FIXED, glow: true}
   frost_sigil_ranged: {style: crystal, motif: sigil_arrow, palette: ["#0a3a1a", "#3ab06a", "#b0ffd0", "#ffffff"], animated: true, frames: 8, frametime: 2, size: [16, 32, 16], billboard: FIXED, glow: true}
   frost_sigil_magic:  {style: crystal, motif: sigil_star, palette: ["#2a0a3a", "#a03ad0", "#e8b0ff", "#ffffff"], animated: true, frames: 8, frametime: 2, size: [16, 32, 16], billboard: FIXED, glow: true}
+  ice_spike:          {style: crystal, motif: frost, palette: ["#16283a", "#4a7ab0", "#bfe6ff", "#ffffff"], animated: true, frames: 4, frametime: 3, size: [10, 24, 10], billboard: FIXED, glow: true}   # 6층 빙창 — 선을 따라 솟는 얼음 가시
   pylon_light:        {style: crystal, motif: light_crystal, palette: ["#6a5020", "#ffd27a", "#fff8d0", "#ffffff"], animated: true, frames: 8, frametime: 2, size: [16, 40, 16], billboard: FIXED, glow: true}
   pylon_dark:         {style: crystal, motif: dark_crystal, palette: ["#05020a", "#2a0a4a", "#6a2ab0", "#c080ff"], animated: true, frames: 8, frametime: 2, size: [16, 40, 16], billboard: FIXED, glow: true}
   refraction_shell:   {style: shell, motif: crystal_facets, palette: ["#140c24", "#6a4ab8", "#fff2b0", "#ffffff"], animated: true, frames: 8, frametime: 2, size: [48, 56, 48], billboard: FIXED, glow: true}

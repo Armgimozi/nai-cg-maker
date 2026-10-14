@@ -375,23 +375,52 @@ final class SelfTest {
                 if (dc.dealt() > 0) count("boss_hits", 1);
             }));
         }
-        later(140, () -> {
-            step("combat", () -> {
-                if (!pool.isAlive()) return;
-                services.damage().deal(DamageContext.raw(null, pool.entity(), pool.health() * 4 + 10_000, DamageType.TRUE));
-            });
-            later(40, () -> {
-                if (pool.isAlive()) {
-                    bump(errors, "bosses");
-                    errorSamples.add("bosses: 지하 " + b + "층 보스가 처치 피해 뒤에도 살아 있음");
-                } else {
-                    count("bosses_killed", 1);
-                }
-                step("bosses", () -> services.bosses().endAll(fs.ctx().id()));
-                step("mobs", () -> services.mobs().removeAll(fs.ctx().id()));
-                later(10, () -> bossChain(list, idx + 1));
-            });
+        later(140, () -> killBoss(b, pool, list, idx, 0));
+    }
+
+    /**
+     * 처치 피해 → 2초 뒤 확인. 보스가 기믹으로 무적(빙결 껍질 등)이면 아레나의 기믹 오브젝트(인장·알주머니…)부터 깨고 1초 뒤
+     * 다시 시도한다 (최대 40회 — 오브젝트로 안 풀리는 기믹은 제한 시간이 끝나 풀릴 때까지 기다린다).
+     */
+    private void killBoss(int b, kr.labyrinth.combat.HealthPool pool, List<Integer> list, int idx, int tries) {
+        boolean[] retry = {false};
+        step("combat", () -> {
+            if (!pool.isAlive()) return;
+            if (pool.invulnerable() && tries < 40) {
+                breakBossObjects(pool);
+                retry[0] = true;
+                return;
+            }
+            services.damage().deal(DamageContext.raw(null, pool.entity(), pool.health() * 4 + 10_000, DamageType.TRUE));
         });
+        if (retry[0]) {
+            later(20, () -> killBoss(b, pool, list, idx, tries + 1));
+            return;
+        }
+        later(40, () -> {
+            if (pool.isAlive()) {
+                bump(errors, "bosses");
+                errorSamples.add("bosses: 지하 " + b + "층 보스가 처치 피해 뒤에도 살아 있음");
+            } else {
+                count("bosses_killed", 1);
+            }
+            step("bosses", () -> services.bosses().endAll(fs.ctx().id()));
+            step("mobs", () -> services.mobs().removeAll(fs.ctx().id()));
+            later(10, () -> bossChain(list, idx + 1));
+        });
+    }
+
+    /** 보스 주변의 부술 수 있는 기믹 오브젝트(BossHandle 이지만 보스 자신은 아닌 것)에 큰 피해. */
+    private void breakBossObjects(kr.labyrinth.combat.HealthPool pool) {
+        org.bukkit.entity.LivingEntity e = pool.entity();
+        if (e == null || !e.isValid()) return;
+        for (org.bukkit.entity.Entity near : e.getWorld().getNearbyEntities(e.getLocation(), 24, 12, 24)) {
+            if (!(near instanceof org.bukkit.entity.LivingEntity le)) continue;
+            BossHandle h = services.bosses().byEntity(le).orElse(null);
+            if (h == null || h == pool || !h.isAlive() || h.invulnerable()) continue;
+            DamageContext dc = services.damage().deal(DamageContext.raw(null, le, h.maxHealth() * 2 + 1000, DamageType.TRUE));
+            if (dc.dealt() > 0) count("boss_objects_broken", 1);
+        }
     }
 
     // ── 정리·요약 ─────────────────────────────────────────────────────────

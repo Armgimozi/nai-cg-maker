@@ -278,7 +278,7 @@ bosses:
     gold: [380, 560]
     drops: floor06_boss
     bossbar: BLUE
-    arena: {radius: 15, theme: frost, shape: circle, height: 12, sigil_ring_radius: 10}
+    arena: {radius: 15, theme: frost, shape: circle, height: 12, sigil_ring_radius: 10, floor_thaw: true}
     lines:
       intro: "<aqua>시린</aqua><gray>: 감히 내 잠을 깨우다니. 영원히 얼어붙어 내 정원의 조각상이 되거라.</gray>"
       phase2: "<aqua>시린</aqua><gray>: 절대영도 앞에선 모든 것이 멈춘다!</gray>"
@@ -290,11 +290,16 @@ bosses:
       3: [scepter_sweep, glacial_spikes, frostbite, blizzard, permafrost]
     patterns:
       scepter_sweep: {damage: 1.3, angle: 80, length: 5, windup: 0.8, cooldown: 6}
-      glacial_spikes: {damage: 1.4, width: 2, length: 16, windup: 1.2, count: 1, p3_count: 3, p3_spread: 35, cooldown: 8}
+      # 빙창: 보스→대상(무작위, 솔로는 본인) 선. 3페이즈 3갈래(35°). 갈래가 겹쳐도 한 번만 맞음. fx = 날아가는 얼음 창, fx_spike = 솟는 가시
+      glacial_spikes: {damage: 1.4, width: 2, length: 16, windup: 1.2, count: 1, p3_count: 3, p3_spread: 35, target: random, cooldown: 8, fx: proj_frost_shard, fx_spike: ice_spike}
+      # 동상: 2초마다 1.5칸 미만 이동 = 서리 1중첩(6초 유지), 5중첩 = 4초 빙결(상태이상 서비스 — 동료 4회 타격으로 해방, 정화로 중첩 제거)
       frostbite: {interval: 2.0, move_threshold: 1.5, max_stacks: 5, freeze: 4.0, break_hits: 4, stack_decay: 6.0, fx: ice_block}
-      glacier_shell: {trigger_phases: [2, 3], cast_time: 12, solo_cast_time: 16, wipe_damage: 9.0, sigil_hp: 900, sigil_hp_per_member: 0.6, sigils: [melee, ranged, magic], missing_role_hp_mult: 1.5, shatter_stun: 6.0, shatter_vulnerable: 0.3, glare_damage: 0.6, glare_interval: 2.0, fx_shell: ice_shell, fx_sigil_melee: frost_sigil_melee, fx_sigil_ranged: frost_sigil_ranged, fx_sigil_magic: frost_sigil_magic}
-      blizzard: {hail_base: 6, hail_per_member: 1, hail_radius: 2, hail_damage: 1.0, windup: 1.2, duration: 10, visibility_particles: 40, cooldown: 25}
-      permafrost: {tile_size: 3, coverage: 0.3, slide_strength: 0.12, duration: 15, fx: telegraph_tile, cooldown: 30}
+      # 빙결 껍질(핵심): trigger_phases 진입 시. role_damage = classes.yml role → 그 직업이 깰 수 있는 인장 유형
+      glacier_shell: {trigger_phases: [2, 3], cast_time: 12, solo_cast_time: 16, wipe_damage: 9.0, sigil_hp: 900, sigil_hp_per_member: 0.6, sigils: [melee, ranged, magic], missing_role_hp_mult: 1.5, shatter_stun: 6.0, shatter_vulnerable: 0.3, glare_damage: 0.6, glare_interval: 2.0, role_damage: {tank: melee, melee: melee, assassin: melee, ranged: ranged, magic: magic, healer: magic}, fx_shell: ice_shell, fx_sigil_melee: frost_sigil_melee, fx_sigil_ranged: frost_sigil_ranged, fx_sigil_magic: frost_sigil_magic, fx_glare: rime_beam, fx_tether: rime_beam}
+      # 눈보라: duration 동안 waves 번 우박(사람 발밑 절반 + 무작위). 우박 수 = hail_base + floor((n-1) × hail_per_member)
+      blizzard: {hail_base: 6, hail_per_member: 1, hail_max: 20, hail_radius: 2, hail_damage: 1.0, windup: 1.2, duration: 10, waves: 4, visibility_particles: 40, cooldown: 25, fx: proj_frost_shard}
+      # 영구 동토: 3×3 타일 coverage 비율이 얼음판(인스턴스 = 실제 block, 그 밖 = 관성 흉내: slide_strength 입력 반영률·slide_retention 속도 유지율)
+      permafrost: {tile_size: 3, coverage: 0.3, slide_strength: 0.12, slide_retention: 0.9, slide_max_speed: 0.5, block: BLUE_ICE, windup: 1.0, duration: 15, fx: telegraph_tile_ice, cooldown: 30}
     sounds: {ambient: "minecraft:entity.stray.ambient", hurt: "minecraft:block.glass.hit", death: "minecraft:block.glass.break", pitch: 0.7}
     model:
       texture_size: [128, 128]
