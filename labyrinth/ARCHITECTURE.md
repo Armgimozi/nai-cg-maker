@@ -290,6 +290,9 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
   사이드바 + 라운드 보스바가 그려진다(15초 갱신이 없으면 자동 정리).
 - **DungeonService** 기본 메서드 `floorProgress(p)` → `FloorProgress(floor, roomsCleared, roomsTotal, deaths, startedAt, bossDefeated,
   ready, progress)` (HUD 용; 전투·정예·시련·수호자 방만 셈). dungeon 담당이 더 정확히 재정의해도 된다.
+- **DungeonService** 기본 메서드 `showMap(p)` — 채팅에 지금 층 탐험 지도(파티가 지나간 셀만)를 그린다. 미궁 밖이면 안내 후 false (메인 메뉴 버튼이 호출).
+  미로 정보(GDD §5.4): `FloorLayout.deadEnds()`·`hallTiles()`·`secretRooms()`·`mainPathCells()`·`rooms()`, 금 간 벽 열림 콜백 `FloorState.secrets().onOpen(...)`.
+  floors.yml 층별 `maze:` 키(`dead_end_keep`·`loop_chance`·`branch`·`braid`·`twist`·`secret_ratio`·`secret_max`·`min_path`)와 `palette.secret`·`palette.stairs`.
 - **TitleService** 실제 구현 `titles.LabTitleService`. 기본 메서드 추가: `setBonusSuppressed(p, on)`(**pvp 담당이 매치 시작/종료 때 호출** —
   §18.3 칭호 보너스 꺼짐), `progress(p, id)`. 판정은 `titles.AchievementRules`(순수, 테스트), 카운터 갱신은 `titles.TitleCounters` —
   카운터 키 `titles.*` 목록은 AchievementRules 문서가 원본. 서버 기록 키: `first_clear.floor_<n>`(층 최초 돌파 파티 전원),
