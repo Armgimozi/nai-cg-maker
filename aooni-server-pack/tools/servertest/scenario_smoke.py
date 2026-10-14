@@ -98,8 +98,11 @@ def run(a) -> int:
             snap = {c: srv.block_items(*c) for c in chests}
             report["chest_count"] = len(chests)
             missing = [c for c, v in snap.items() if v is None]
-            check("상자 22개가 모두 상자 블록", not missing and len(chests) == 22,
-                  f"{len(chests)}개, 상자 아님 {missing}")
+            m = re.search(r"count: (\d+)", srv.cmd("execute if entity @e[type=minecraft:marker,tag=aooni.spot]"))
+            spots = int(m.group(1)) if m else 0
+            report["spot_markers"] = spots
+            check("상자 블록 수 = 조사 지점 마커 수", not missing and len(chests) == spots,
+                  f"상자 {len(chests)}개, 마커 {spots}개, 상자 아님 {missing}")
             notes_at = {c: [dig_of(i["custom_data"]) for i in v if dig_of(i["custom_data"])]
                         for c, v in snap.items() if v}
             notes_at = {c: d for c, d in notes_at.items() if d}
@@ -116,7 +119,7 @@ def run(a) -> int:
             if with_note and with_note[0] not in plan:
                 plan.append(with_note[0])
             plan += [c for c in order if c not in plan]       # 실패하면 다음 후보로
-            ns.send_signal("go", {"survivor": surv, "oni": oni[0] if oni else None,
+            ns.send_signal("go", {"survivor": surv, "oni": oni[0] if oni else None, "expectPos": list(p),
                                   "chests": [list(c) for c in plan], "maxChests": a.max_chests,
                                   "take": True, "chestTimeoutMs": 40000, "budgetMs": a.budget * 1000})
 

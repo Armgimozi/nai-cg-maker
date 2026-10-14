@@ -10,9 +10,11 @@ const cfg = link.config()
 let bots = []
 link.watchdog(cfg.timeoutMs, () => B.quitAll(bots))
 
-function inMansion (bot) {
+// 서버가 옮겨 놓은 자리(파이썬이 RCON 으로 읽은 좌표)에 클라이언트도 도착했는지
+function arrived (bot, pos) {
+  if (!pos) return true
   const p = bot.entity.position
-  return p.x >= 0 && p.x <= 46 && p.z >= 0 && p.z <= 36 && p.y < -50
+  return Math.abs(p.x - pos[0]) < 3 && Math.abs(p.y - pos[1]) < 3 && Math.abs(p.z - pos[2]) < 3
 }
 
 async function main () {
@@ -28,7 +30,7 @@ async function main () {
   const go = await link.waitFor('go', 90000)
   const s = bots.find((b) => b.username === go.survivor)
   if (!s) throw new Error(`생존자 봇이 없음: ${go.survivor}`)
-  await B.waitUntil(() => inMansion(s), 15000, `${s.username} 가 저택으로 이동`)
+  await B.waitUntil(() => arrived(s, go.expectPos), 15000, `${s.username} 가 저택 시작 위치로 이동`)
   await B.sleep(500)
   link.log(`${s.username} 저택 도착 ${JSON.stringify(B.position(s))}`)
 
