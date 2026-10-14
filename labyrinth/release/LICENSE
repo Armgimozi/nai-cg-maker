@@ -1,0 +1,19 @@
+미궁 라비린스 (Labyrinth) 서버팩 — 사용 허락 조건
+Copyright (c) 2026 Labyrinth Team. All rights reserved.
+
+이 서버팩(플러그인 Labyrinth.jar, 리소스팩 Labyrinth-pack.zip, 시작 스크립트, 설정·콘텐츠 파일,
+안내 문서 및 그 안의 모든 그림·3D 모델·글·데이터)은 저작권으로 보호됩니다.
+
+1. 구매(또는 정당하게 받은) 사람은 자기 마인크래프트 서버에서 친구·공동체와 함께 플레이하기 위해
+   이 서버팩을 설치·실행하고, 설정과 콘텐츠 YAML 을 자유롭게 고쳐 쓸 수 있습니다.
+2. 서버에 접속한 플레이어가 리소스팩을 내려받아 쓰는 것은 허락됩니다.
+3. 허락 없이 서버팩 전체나 일부(리소스팩·그림·모델 포함)를 다시 배포·판매·공유하거나,
+   다른 상품에 넣어 팔 수 없습니다.
+4. 이 서버팩은 "있는 그대로" 제공되며, 사용으로 생긴 손해에 대해 제작자는 책임지지 않습니다.
+5. 마인크래프트 서버 운영은 Mojang 의 최종 사용자 계약(EULA, https://aka.ms/MinecraftEULA)과
+   상업적 이용 지침을 따라야 합니다. 서버에서 돈을 받고 게임에 유리한 이점을 팔 수 없습니다.
+
+Paper(https://papermc.io)와 Java(Eclipse Temurin, https://adoptium.net)는 이 서버팩에 들어 있지 않으며,
+시작 스크립트가 각 공식 배포처에서 내려받습니다. 각각 자기 라이선스를 따릅니다.
+
+NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.
