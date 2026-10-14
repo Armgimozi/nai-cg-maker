@@ -1,10 +1,15 @@
 # 미궁 라비린스 서버 시작기. start.bat 이 이 파일을 실행합니다.
-# 처음 실행하면 Java 25 와 Paper 26.3 (최신 안정판) 을 자동으로 내려받습니다.
+# 처음 실행하면 Java 25 와 Paper 26.3 (이 서버팩으로 시험한 빌드) 을 자동으로 내려받습니다.
 # 무슨 일이 있었는지는 이 폴더의 start-log.txt 에 그대로 남습니다.
 # (윈도우 PowerShell 5.1 에서도 돌아가도록 새 문법은 쓰지 않습니다)
 
 $McVersion = '26.3'
 $PaperApi  = "https://fill.papermc.io/v3/projects/paper/versions/$McVersion/builds"
+# 이 서버팩으로 시험한 Paper 빌드로 고정 (새 빌드가 나와도 갑자기 깨지지 않게). 최신을 쓰려면 $PaperPin = $false
+$PaperPin    = $true
+$PaperBuild  = 181
+$PaperUrl    = 'https://fill-data.papermc.io/v1/objects/cada5af7f14363bc8545c0e973130de9431f6dc678dc612759187695027c27d9/paper-26.3-181.jar'
+$PaperSha256 = 'cada5af7f14363bc8545c0e973130de9431f6dc678dc612759187695027c27d9'
 $JavaApi   = 'https://api.adoptium.net/v3/assets/latest/25/hotspot?architecture=x64&image_type=jre&os=windows&vendor=eclipse'
 $JavaUrl   = 'https://api.adoptium.net/v3/binary/latest/25/ga/windows/x64/jre/hotspot/normal/eclipse'
 $UserAgent = 'Labyrinth-Server-Launcher/__VERSION__ (Minecraft server pack launcher; PowerShell)'
@@ -208,6 +213,20 @@ try {
 
     # ── Paper 서버 파일 (26.3 최신 안정판, Fill API v3 + sha256 검사) ──
     $paper = Join-Path $Root 'paper.jar'
+    if ($PaperPin -and (Test-Path -LiteralPath $paper) -and ((Get-Sha256 $paper) -ne $PaperSha256)) {
+        Say "  paper.jar 가 시험한 빌드($PaperBuild)가 아니라서 바꿉니다. (예전 파일은 paper-old.jar)" 'Yellow'
+        Move-Item -LiteralPath $paper -Destination (Join-Path $Root 'paper-old.jar') -Force -ErrorAction SilentlyContinue
+    }
+    if ($PaperPin -and -not (Test-Path -LiteralPath $paper)) {
+        Say "[2/2] Paper $McVersion 빌드 $PaperBuild (시험 완료) 를 내려받는 중입니다... (50MB 정도)" 'Cyan'
+        $ok = Get-File $PaperUrl $paper
+        if (-not $ok -or -not (Test-Zip $paper) -or ((Get-Sha256 $paper) -ne $PaperSha256)) {
+            Remove-Item -LiteralPath $paper -Force -ErrorAction SilentlyContinue
+            Say '  고정 빌드를 받지 못해 최신 안정판으로 시도합니다.' 'Yellow'
+        } else {
+            Say '  검사값(sha256) 확인 완료'
+        }
+    }
     if (-not ((Test-Path -LiteralPath $paper) -and (Test-Zip $paper))) {
         Say "[2/2] Paper $McVersion 최신 안정판을 찾는 중입니다..." 'Cyan'
         $builds = Get-Json $PaperApi
@@ -282,11 +301,12 @@ try {
     Say ''
     Say "서버를 켭니다. 아래에 `"Done`" 이 나오면 마인크래프트 $McVersion 에서 localhost 로 접속하세요." 'Green'
     Say '처음에는 마인크래프트 서버 파일을 한 번 더 받고 미궁 월드를 만드느라 1분쯤 걸립니다.'
-    Say '처음 접속한 관리자(op)에게 "서버 초기 설정" 창이 뜹니다 → 난이도를 고르세요. (README.txt 참고)'
+    Say '처음 접속한 사람에게 "서버 초기 설정" 창이 뜹니다 → 난이도를 고르세요. (op 필요 없음, README.txt 참고)'
     Say '서버를 끌 때는 이 창에 stop 을 입력하세요.'
     Say ''
-    Say "실행: `"$java`" -Xms$xms -Xmx$Memory -jar paper.jar nogui"
-    & $java "-Xms$xms" "-Xmx$Memory" '-Dfile.encoding=UTF-8' -jar paper.jar nogui
+    Say "실행: `"$java`" -Xms$xms -Xmx$Memory -Xshare:off -jar paper.jar nogui"
+    # -Xshare:off: 일부 PC 에서 Java 공유 클래스 캐시 때문에 시작하자마자 죽는(EXCEPTION_ACCESS_VIOLATION) 경우를 피한다
+    & $java "-Xms$xms" "-Xmx$Memory" '-Xshare:off' '-Dfile.encoding=UTF-8' -jar paper.jar nogui
     $code = $LASTEXITCODE
     Say ''
     if ($code -eq 0) {
