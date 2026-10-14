@@ -287,6 +287,28 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
 - **입구**: block 방식 석문은 바꾼 원래 블록을 `entrance.yml` 에 저장 → removeentrance 가 복원. npc 방식은 블록 변경 0. 둘 다 npcs.yml
   `role: entrance` NPC 를 `NpcService.place` 로 세운다. 석문 우클릭 = `MenuService.openEntrance`.
 
+### bosses 구현 메모 (floors 6~10 담당이 알아야 할 것)
+- **구조**: `bosses/LabBossService`(BossService 구현 — 층→`BossFactory` 등록부, 1틱 루프 하나로 모든 보스 진행, 엔티티→핸들 조회,
+  웅크리기·바닐라 피해 이벤트를 아레나의 보스에 전달) · `Boss`(추상 기반) · `impl/FloorNNBoss extends Boss`(생성자 `(Boss.Init)`).
+  새 층 보스는 `LabBossService#registerDefaults()` 에 `register(NN, FloorNNBoss::new)` 한 줄.
+- **Boss 기반이 해 주는 것**: 자체 HP 풀(DamageService 경로·위협 표·도발), 페이즈(`phases`, 전환 시 진행 중 경고 정리 + 1.5초 무적 + 대사 +
+  보스바 깜빡임), `PatternScheduler`(GDD §8.3: cooldown/interval/system, 가중치 `weight`, 직전과 다른 패턴 우선, 최소 1.2초 간격),
+  광폭화 타이머, 보스바(이름·칭호·페이즈·광폭/기절) + 시전 바(`boss_cast` 키, 끊을 수 있는 시전은 파란색), 아레나 경계(이탈 시 복귀),
+  추격·기본 공격, `BossRig` 시전 애니메이션(`BossAnim`: SLAM·SWEEP·CHARGE·ROAR·THROW·CAST·POUR·LEAP·DROP·SPIN·STUN·DEATH — 팔·머리 파트 +
+  몸 전체 회전/이동 오버레이), 보상(경험치·골드·`loot.drop(…,"boss")`·`MobKillEvent(boss=true)`), 정리(쫄·오브젝트·디스플레이·설치 블록 복원).
+- **하위 클래스가 채우는 것**: `onSpawn()`(아레나 배치) · `startPattern(key)`(쿨다운 패턴 → 묶이는 틱 반환, 보통 `cast(...)` 의 반환값) ·
+  `runInterval(key)` · `tickSystem(key)` · `onPhase(n)` · 필요 시 `canUse/onTick/onSneak/onPlayerVanillaDamage/knockbackImmune/outgoingMult/incomingReduction/onEnd`.
+- **부품**: `Telegraph`(circle/ring/line/cone/arrow/tile/safe — fx 판 + DUST 윤곽, 0.3초 전 깜빡임, `follow(entity)`), `Mechanics`
+  (Delay·Repeat·Zone(잔류 장판)·Marker(머리 위 표식)·Projectile(직선/포물선/왕복)·Tether), `ObjectTarget`(부술 수 있는 기믹 오브젝트 —
+  BossHandle 이라 근접·화살·스킬이 그대로 맞음, 피해 유형 필터 `accept(...)`), `BossFx`(fx 디스플레이·글자·블록 디스플레이), `BossMath`(도형 판정·
+  GDD §8.4 공식·배치 각도), `MechanicScaling`(난이도·페이즈·광폭화별 쿨다운 배율, 다중 대상 추가 개수(어려움 6인+ +1, 악몽 +1/+2),
+  투사체 속도, 오브젝트 HP, 기믹 제한 시간 배율). 경고 시간은 `windup(params, 기본초)` = 난이도 telegraph 배율·최소 0.5초.
+- **블록**: `setBlock(...)` 은 실제 인스턴스(`!adhoc`) + `labyrinth_world` 에서만 놓고 원래 블록을 기억해 사망·종료 때 복원한다(계단 자리 보호:
+  `BossMath.inStairZone`). 관리자 소환(`/labadmin spawnboss <층> [인원]` — 서 있는 곳이 중심)은 블록 대신 디스플레이로 대체.
+  관리자 명령: `spawnboss`, `endboss`(근처 보스전 종료), `bosses`(목록).
+- 보스는 stun/root/빙결 면역(상태이상 서비스가 거름) — 기믹 기절은 `Boss.stun(초)`(+ `makeVulnerable`). `interrupt` 신호는 `interruptible`
+  시전만 끊는다. 패턴 피해 대상은 `players()`(TargetFilter·아레나 경계·쓰러짐 제외), 대상 선택은 `targets()`(은신 제외).
+
 ## 5. 게임 규칙 (수치는 YAML/config 로 조정 가능해야 함)
 
 - 레벨 1~50. 레벨업마다 스탯포인트 5. 스탯 초기화 아이템/명령.
@@ -564,6 +586,13 @@ spaces: {neg_1: -1, neg_8: -8, neg_169: -169, pos_1: 1}   # 공백 프로바이�
 - **titles.yml**: condition 선택 키 `server_first: true`(PVP_FIRST_WIN · PVP_RATING — 서버 최초 1팀/1명, records.yml). PVP_RATING 은 개인 레이팅 기준.
 - **fx.yml**: 전설 아우라 9종(soulfire, codex, geode, inkblot, abyssal, voltaic, quicksilver, aurora, venom)과 각자의 `_ring/_slash/_orb/_burst`,
   무기 스킬 전용 모델(`*_arrow`, `*_beam`, `venom_knife`). motif 9개 추가(GDD §14.4).
+
+### 6.3 bosses 단계에서 추가된 필드 (bosses.yml — 전부 선택)
+- 보스 최상위 `enrage`: 숫자(초) 또는 `{time}` — 광폭화까지 시간(기본 300 + 30 × 층, 0 = 없음). 광폭화: 주는 피해 +50%(+15초마다 +10%),
+  패턴 쿨다운 × 0.6.
+- `patterns.<key>` 공통 키: `weight`(스케줄러 가중치, 기본 1), `first_delay`(페이즈 진입 후 첫 사용까지 초, 기본 = 쿨다운/간격의 절반),
+  `interruptible`(true 면 `interrupt` 상태이상으로 시전 차단).
+- `arena` 4층: `platform_block`/`platform_base`(단상 블록, 기본 PRISMARINE_BRICKS/DARK_PRISMARINE), `valve_block`(기본 WAXED_OXIDIZED_COPPER).
 
 ## 7. 성능·안정성 규칙
 
