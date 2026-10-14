@@ -17,7 +17,8 @@ import java.util.function.BooleanSupplier;
  *   <li>영역(R+B) 안 물·용암·얼음, 사람이 지은 블록/구조물 → 그 자리 탈락.</li>
  *   <li>조각마다 slack 칸 안에서 위치를 옮겨 보며 단 높이 P(정문 쪽 원래 높이를 가장 무겁게 본 중앙값, 광장 H0 ±6)와
  *       깎기·메우기 양을 계산 → 한 칸이라도 4칸 넘게 깎거나 메우면 그 위치 탈락, 발자국 아래 6칸 동굴이 1/3 넘으면 탈락.
- *       남은 위치 중 변화가 적은 순서로, 다른 조각과 1칸 여유 · (붙지 않은) 길과 1칸 여유를 지키는 첫 위치를 고른다.</li>
+ *       남은 위치 중 변화가 적은 순서로, 다른 조각과 1칸 여유 · (붙지 않은) 길과 1칸 여유를 지키는 첫 위치를 고른다.
+ *       장식 조각은 맞는 위치가 하나도 없으면 그 장식만 빼고(skipped) 계속한다 — 건물은 하나라도 없으면 그 자리 탈락.</li>
  *   <li>조각에 붙은 길 끝은 조각을 따라 옮긴다. 길 높이는 양 끝 단 사이를 잇되 지형을 ±2 안에서 따라가고, 이웃 차 ≤ 1.</li>
  *   <li>full 이면 목표 높이장({@link HeightField})까지 계산해 실제 깎기·메우기 총량을 낸다.</li>
  * </ol>
@@ -289,6 +290,7 @@ public final class Planner {
         }
         long cave = 0;
         boolean[] placed = new boolean[bps.length];
+        List<Plan.Placed> dropped = new ArrayList<>();
         for (Plan.Placed pl : p.pieces) {
             Shape s = shapes[pl.index()];
             int slack = slackOf(pl.entry, pl.bp);
@@ -309,6 +311,16 @@ public final class Planner {
                     chosen = o;
                     break;
                 }
+            }
+            if (chosen == null && pl.bp.deco) {
+                // 장식은 지형에 안 맞거나(한도·동굴) 자리가 없으면 억지로 끼우지 않고 그 장식만 뺀다 (§0)
+                p.skipped.add(pl.bp.id + " (" + (options.isEmpty() ? Planner.label(zero.fail()) : Planner.label(Fail.OVERLAP)) + ")");
+                for (Plan.PathPlan pp : p.paths) {
+                    if (pp.attachA == pl.index()) pp.attachA = -1;
+                    if (pp.attachB == pl.index()) pp.attachB = -1;
+                }
+                dropped.add(pl);
+                continue;
             }
             if (chosen == null) {
                 if (options.isEmpty()) {
@@ -339,6 +351,7 @@ public final class Planner {
             }
         }
         p.caveFill = cave;
+        p.pieces.removeAll(dropped);
         // 3. 짓기 전 겹침 최종 검사 (모든 쌍)
         List<String> ov = overlaps(p.pieces, p.paths);
         if (!ov.isEmpty()) {

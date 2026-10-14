@@ -1292,6 +1292,8 @@ class Piece:
                         errs.append("%s: lit=true 화로류는 블록 엔티티가 바로 끔 — 등불·모닥불을 쓰세요" % at)
                     if bid == "redstone_lamp" and pr.get("lit") == "true":
                         errs.append("%s: 신호 없는 레드스톤 램프는 꺼짐" % at)
+                    if bid == "brewing_stand" and "true" in (pr.get("has_bottle_0"), pr.get("has_bottle_1"), pr.get("has_bottle_2")):
+                        errs.append("%s: 양조대 has_bottle 은 블록 엔티티(빈 칸)가 매 틱 false 로 되돌림 — 병 없이 두세요" % at)
                     if bid in tag("leaves") and pr.get("persistent") != "true":
                         errs.append("%s: 잎은 persistent=true 여야 합니다 (leaves() 를 쓰세요)" % at)
                     if bid in ("water", "lava"):

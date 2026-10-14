@@ -20,7 +20,7 @@
     "i": "minecraft:blue_wool_stairs[facing=east,half=bottom,shape=straight,waterlogged=false]",
     "j": "minecraft:blue_wool_stairs[facing=west,half=bottom,shape=straight,waterlogged=false]",
     "G": "minecraft:bookshelf",
-    "H": "minecraft:brewing_stand[has_bottle_0=true,has_bottle_1=true,has_bottle_2=false]",
+    "H": "minecraft:brewing_stand[has_bottle_0=false,has_bottle_1=false,has_bottle_2=false]",
     "x": "minecraft:chest[facing=north,type=single,waterlogged=false]",
     "I": "minecraft:chiseled_bookshelf[facing=west,slot_0_occupied=false,slot_1_occupied=false,slot_2_occupied=false,slot_3_occupied=false,slot_4_occupied=false,slot_5_occupied=false]",
     "D": "minecraft:coarse_dirt",

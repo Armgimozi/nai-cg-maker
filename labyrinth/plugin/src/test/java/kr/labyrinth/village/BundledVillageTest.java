@@ -38,6 +38,8 @@ class BundledVillageTest {
             List<String> ov = Planner.overlaps(p.pieces, p.paths);
             assertTrue(ov.isEmpty(), "겹침: " + ov);
             assertEquals(0, p.steepPaths);
+            assertTrue(p.skipped.isEmpty(), "평지인데 빠진 장식: " + p.skipped);
+            assertEquals(lib.layout.pieces.size(), p.pieces.size());
             VillageMeta m = Markers.meta(p, lib.layout);
             assertTrue(m.spawn != null, "spawn 마커");
         }

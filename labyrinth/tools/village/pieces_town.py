@@ -410,7 +410,7 @@ def market():
     p.set(5, 2, 5, B("barrel", facing="up"))
     p.set(6, 2, 5, B("barrel", facing="north"))
     p.set(7, 2, 5, B("barrel", facing="up"))
-    p.set(5, 3, 5, B("brewing_stand", has_bottle_0=True, has_bottle_1=True, has_bottle_2=False))
+    p.set(5, 3, 5, B("brewing_stand"))   # 병 표시(has_bottle)는 블록 엔티티가 빈 칸으로 되돌리므로 빈 양조대
     p.set(6, 3, 5, B("amethyst_cluster", facing="up"))
     p.set(7, 3, 5, flower_pot("fern"))
     p.set(4, 2, 3, B("barrel", facing="east"))

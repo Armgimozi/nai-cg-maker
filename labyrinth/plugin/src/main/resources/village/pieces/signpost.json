@@ -50,6 +50,6 @@
     {"type": "sign", "pos": [1, 3, 0], "lines": ["<gold><b>등불 어귀</b></gold>", "<gray>마을 광장</gray>"], "glow": true},
     {"type": "sign", "pos": [2, 2, 1], "lines": ["<yellow>대장간</yellow>", "<yellow>떠돌이 상점</yellow>"], "glow": true},
     {"type": "sign", "pos": [0, 2, 1], "lines": ["<yellow>검은 등불 여관</yellow>", "<yellow>마을집</yellow>"], "glow": true},
-    {"type": "sign", "pos": [1, 3, 2], "lines": ["<light_purple>미궁의 아가리</light_purple>", "<gray>광장 북쪽</gray>"], "glow": true}
+    {"type": "sign", "pos": [1, 3, 2], "lines": ["<light_purple>미궁의 아가리</light_purple>", "<gray>분수 건너 계단 위</gray>"], "glow": true}
   ]
 }

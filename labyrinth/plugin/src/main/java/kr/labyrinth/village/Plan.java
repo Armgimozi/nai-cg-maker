@@ -115,6 +115,10 @@ public final class Plan {
     public HeightField.Result field;
 
     public long padCost, cut, fill, caveFill;
+    /** 지형·자리가 안 맞아 뺀 장식 조각 ("id (이유)"). */
+    public final List<String> skipped = new ArrayList<>();
+    /** 뺀 장식 하나당 점수 벌점 — 장식이 다 들어가는 자리를 먼저 고르게. */
+    public static final int SKIP_PENALTY = 150;
     public int logs;
     public String biome = "?";
     public int steepPaths;
@@ -127,8 +131,8 @@ public final class Plan {
 
     public boolean ok() { return fail == Planner.Fail.NONE; }
 
-    /** 점수 (작을수록 좋음): full 이면 깎기 + 메우기 + 동굴 메우기, 아니면 고정 칸 변화량. */
-    public double score() { return field != null ? cut + fill + caveFill : padCost + caveFill; }
+    /** 점수 (작을수록 좋음): full 이면 깎기 + 메우기 + 동굴 메우기, 아니면 고정 칸 변화량. 뺀 장식마다 벌점. */
+    public double score() { return (field != null ? cut + fill + caveFill : padCost + caveFill) + SKIP_PENALTY * skipped.size(); }
 
     /** 마을 정면(게이트) 방향 = 정방향 북쪽을 turns 만큼. */
     public Dir front() { return Dir.NORTH.rotate(turns); }
@@ -153,6 +157,7 @@ public final class Plan {
 
     public String summary() {
         return "중심 (" + cx + ", " + cz + ") 정면 " + front().key() + " · H0 " + h0 + (field != null ? " · 깎기 " + cut + " 메우기 " + fill : " · 단 변화 " + padCost)
-                + " · 동굴 메움 " + caveFill + " · 원목 " + logs + " · " + biome;
+                + " · 동굴 메움 " + caveFill + " · 원목 " + logs + " · " + biome
+                + (skipped.isEmpty() ? "" : " · 장식 생략 " + skipped.size() + " " + skipped);
     }
 }

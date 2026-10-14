@@ -20,6 +20,9 @@
   한 조각에서 깎기나 메우기가 4칸을 넘으면 그 자리·방향 후보는 탈락.
 - **조각 위치 조정**: layout 의 조각 위치는 기준점이다. 조각마다 `"slack"`(기본 2)칸 안에서 위치를 옮겨 깎기·메우기가 가장 적은
   곳에 놓는다(다른 조각·길과 1칸 여유 유지, 정면 방향은 그대로). 장식 조각은 slack 3.
+  장식 조각(가로등·나무·화단·표지판 …)은 slack 안 어느 자리도 지형 한도·동굴·1칸 여유에 맞지 않으면 **그 장식만 빼고** 짓는다
+  (억지로 끼우거나 지형을 더 깎지 않음 — 계획 줄에 `장식 생략 n [...]`, survey 점수에 하나당 벌점 150). 건물은 하나라도 맞지 않으면 그 후보 탈락.
+  layout 의 평지 계획(Java `BundledVillageTest`)에서는 장식이 하나도 빠지면 안 된다(빌드 실패).
 - **겹침 금지** — 짓기 전에 검사해서 하나라도 걸리면 짓지 않고 이유를 출력한다:
   - 조각끼리, 조각과 길이 겹치거나 1칸 여유 안에 붙음.
   - R+B 안에 자연 생성 구조물·사람이 지은 블록(판자·유리·양털·상자 같은 비자연 블록, 블록 엔티티 — 바닐라 마을·폐허 포털·전초기지·
@@ -46,7 +49,8 @@
 | `plugin/src/main/resources/village/pieces/<id>.json` | 조각 청사진 (생성물, 커밋함) | 생성물 |
 | `plugin/src/main/resources/village/layout.json` | 마을 배치 (생성물, 커밋함) | 생성물 |
 | `plugin/src/main/java/kr/labyrinth/village/*` | VillageModule · 청사진 파서 · VillageBuilder(지형 다듬기+짓기, 관리자 명령) · VillageService(실행 중: 보호·NPC·입구·텔레포트) | Java |
-| `tools/build_world.sh` | 테스트 서버 복사본에서 시드로 월드 생성 → 마을 짓기 → 주변 청크 미리 생성 → 정지 → `dist/world.zip` | 조립 |
+| `tools/village/pieces_signs.py` | layout 에 맞춘 길잡이 표지판 글 (`make_signpost` 변형, 동서남북 대신 '광장 왼편/오른편') | 조립 |
+| `tools/build_world.sh` | 테스트 서버 복사본에서 시드로 월드 생성 → 마을 짓기 → 주변 청크 미리 생성 → 자가 진단 → 덤프 → 정지 → `dist/world.zip`·`dist/world.seed`·`dist/village-dump.txt`·`dist/world-build.log` | 조립 |
 
 Python 은 표준 라이브러리 + Pillow 만 쓴다 (`/opt/packvenv/bin/python` 에 Pillow 있음).
 
@@ -312,14 +316,18 @@ village:
 ```
 
 ### 4.6 배포 (조립 담당)
-- `tools/build_world.sh`: /opt/testserver 를 임시 폴더로 복사(world 없이), server.properties level-seed=<고른 시드>, 플러그인 최신 jar,
-  명령: `village build` → `village pregen 192` → `village selftest` → stop. 그 world 폴더에서 `session.lock`·`uid.dat` 를 빼고
-  `dist/world.zip` 으로. (uid.dat 를 빼야 서버마다 새 UID → §4.3 월드 적용이 동작)
+- `tools/build_world.sh <시드> [<x> <z> <방향>]`: /opt/testserver 를 임시 폴더(`WORK`, 기본 /opt/worldbuild/build)로 복사(world·logs·플러그인
+  데이터 없이 — 테스트 서버 world 는 건드리지 않음), server.properties level-seed=<시드>, 플러그인 최신 jar(리소스팩 HTTP 끔),
+  명령: `village build <x> <z> <방향>` → `village pregen 192` → `village selftest` → `village info` → `village dump` → stop.
+  짓기가 거절되면 바로 끄고 실패. 자가 진단 줄이 `예외 0 · mismatched=0 · overlaps=0 · floating=0 · tree_remnants=0 · blocked_doors=0` 이
+  아니면 실패(`ALLOW_DIRTY=1` 로 무시). 그 world 폴더에서 `session.lock`·`uid.dat`·`dimensions/minecraft/labyrinth_world`·플레이어 데이터를
+  빼고 `dist/world.zip`(안의 경로는 `world/...`) + 시드 `dist/world.seed`. 자리·방향은 `village survey` 결과(시드 고르기)에서 고른다.
+  `dist/` 는 git 에 올리지 않는다 — world.zip 은 이 스크립트로 다시 만든다(같은 시드·자리·플러그인이면 같은 마을).
   - 26.x 메모 (Java 담당 확인): world 폴더에 `uid.dat` 가 없다 — UID 는 `world/dimensions/minecraft/overworld/data/paper/metadata.dat` 에 있다.
     §4.3 적용 열쇠가 UID + `build_id` 라서 UID 를 안 지워도 새로 지은 마을이면 적용된다(지워도 무방). 플레이어 데이터는 `world/players/` 아래.
     미궁 공허 월드도 `world/dimensions/minecraft/labyrinth_world` 로 world 폴더 안에 생기므로 zip 에서 빼는 게 좋다(시작할 때 다시 만듦).
-- release.sh: world.zip 을 풀어 `Labyrinth-Server/world/` 로 넣는다. release/server.properties 에 `level-seed=<시드>`(월드 밖으로
-  나가도 같은 지형이 이어지게).
+- release.sh: world.zip 을 풀어 `Labyrinth-Server/world/` 로 넣는다(없으면 실패, 마을 메타데이터가 없으면 실패). release/server.properties 에
+  `level-seed=<시드>`(월드 밖으로 나가도 같은 지형이 이어지게) — `dist/world.seed` 와 다르면 실패.
 - README: 새 서버는 그냥 켜면 됨. **이미 돌리던 서버 업데이트**: 서버 끄기 → `world` 폴더 이름을 `world_old` 로 → 새 zip 의 `world` 폴더 복사 →
   `world_old` 안의 `playerdata`·`advancements`·`stats` 폴더를 새 `world` 로 복사(인벤토리·엔더상자 유지) → 켜기. 미궁 레벨·칭호·골드는
   plugins/Labyrinth 에 있어 그대로. 예전 월드에 지은 건물은 world_old 에 남는다(돌아가려면 폴더 이름만 되돌리기).

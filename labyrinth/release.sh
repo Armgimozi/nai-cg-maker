@@ -3,12 +3,15 @@
 #   1) 리소스팩 생성 (resourcepack/generate.py → resourcepack/dist/labyrinth-pack.zip)
 #   2) 플러그인 빌드 (plugin: ./gradlew build — 테스트 포함, 최신 팩을 jar 안에 넣음)
 #   3) 플러그인 ↔ 팩 에셋 id 대조 (tools/check_assets.py)
-#   4) dist/Labyrinth-Server-<버전>.zip 조립 (폴더 Labyrinth-Server/)
+#   4) dist/Labyrinth-Server-<버전>.zip 조립 (폴더 Labyrinth-Server/) — 마을이 미리 지어진 world 폴더(dist/world.zip) 포함
 # 사용: ./release.sh            (환경 변수: PYTHON=파이썬 경로, SKIP_PACK=1 이면 팩 재생성 생략, VERSION=버전 덮어쓰기)
-# 배포 zip 에는 eula.txt · paper.jar · world 폴더를 넣지 않는다 (EULA 는 서버 주인이 직접 동의, Paper 는 시작기가 공식 배포처에서 받음).
+# 배포 zip 에는 eula.txt · paper.jar 를 넣지 않는다 (EULA 는 서버 주인이 직접 동의, Paper 는 시작기가 공식 배포처에서 받음).
+# world 폴더는 tools/build_world.sh <시드> 로 만든 dist/world.zip 을 풀어 넣는다 (VILLAGE.md §4.6). 시드는 release/server.properties
+# 의 level-seed 와 같아야 한다 (마을 밖으로 나가도 같은 지형이 이어지게).
 set -euo pipefail
 cd "$(dirname "$0")"
 ROOT=$(pwd)
+OUT_WORLD="$ROOT/dist/world.zip"
 PY=${PYTHON:-}
 if [ -z "$PY" ]; then
   if [ -x /opt/packvenv/bin/python ]; then PY=/opt/packvenv/bin/python; else PY=python3; fi
@@ -45,6 +48,12 @@ echo "[3/4] 에셋 id 대조"
 "$PY" tools/check_assets.py resourcepack/dist/labyrinth-pack.zip > /dev/null || { echo "에셋 id 불일치 — 위 목록을 고치세요"; exit 1; }
 
 echo "[4/4] 배포 폴더 조립"
+WORLD_ZIP="$OUT_WORLD"
+[ -f "$WORLD_ZIP" ] || { echo "마을 월드가 없습니다: $WORLD_ZIP — 먼저 tools/build_world.sh <시드> <x> <z> <방향>"; exit 1; }
+SEED_PROP=$(sed -n 's/^level-seed=//p' release/server.properties | head -n 1)
+SEED_WORLD=$(cat "${WORLD_ZIP%.zip}.seed" 2>/dev/null || true)
+[ -n "$SEED_PROP" ] || { echo "release/server.properties 에 level-seed 가 없습니다"; exit 1; }
+[ "$SEED_PROP" = "$SEED_WORLD" ] || { echo "시드가 다릅니다: server.properties $SEED_PROP · world.zip ${SEED_WORLD:-?} (${WORLD_ZIP%.zip}.seed)"; exit 1; }
 OUT="$ROOT/dist"
 STAGE="$OUT/stage-$VERSION"
 DIR="$STAGE/Labyrinth-Server"
@@ -79,8 +88,24 @@ for name, (eol, bom) in rules.items():
 os.chmod(os.path.join(dst, "start.sh"), 0o755)
 PYEOF
 
-# 금지 파일 확인
-for bad in eula.txt paper.jar world; do
+# 마을 월드 (world.zip 은 world/ 로 시작한다)
+"$PY" - "$WORLD_ZIP" "$DIR" <<'PYEOF'
+import os, sys, zipfile
+src, dst = sys.argv[1], sys.argv[2]
+with zipfile.ZipFile(src) as z:
+    names = z.namelist()
+    bad = [n for n in names if not n.startswith("world/") or ".." in n.split("/")]
+    if bad:
+        sys.exit("world.zip 안에 world/ 밖 경로가 있습니다: %s" % bad[:3])
+    z.extractall(dst)
+meta = os.path.join(dst, "world", "dimensions", "minecraft", "overworld", "labyrinth-village.yml")
+if not os.path.isfile(meta):
+    sys.exit("world.zip 에 마을 메타데이터(labyrinth-village.yml)가 없습니다")
+print("  마을 월드 포함: 파일 %d개" % len(names))
+PYEOF
+
+# 금지 파일 확인 (월드 잠금·UID·미궁 공허 월드는 서버가 새로 만든다)
+for bad in eula.txt paper.jar world/session.lock world/uid.dat world/dimensions/minecraft/labyrinth_world; do
   [ ! -e "$DIR/$bad" ] || { echo "배포 폴더에 $bad 가 있으면 안 됩니다"; exit 1; }
 done
 
@@ -109,4 +134,4 @@ PYEOF
 rm -rf "$STAGE"
 echo
 echo "완성: $ZIP ($(du -h "$ZIP" | cut -f1))"
-unzip -l "$ZIP" | sed -n '4,$p' | head -n 20
+unzip -l "$ZIP" | sed -n '4,$p' | grep -v "Labyrinth-Server/world/." | head -n 20

@@ -343,7 +343,7 @@
     {"type": "sign", "pos": [13, 4, 16], "lines": ["<gold><b>등불 어귀 마을</b></gold>", "<gray>미궁 라비린스 입구 마을</gray>"], "glow": true},
     {"type": "sign", "pos": [13, 3, 15], "lines": ["<aqua>/미궁 메뉴</aqua>", "<gray>모든 기능 열기</gray>"], "glow": true},
     {"type": "sign", "pos": [13, 3, 17], "lines": ["<aqua>/미궁 마을</aqua>", "<gray>이 광장으로</gray>", "<gray>돌아오기</gray>"], "glow": true},
-    {"type": "sign", "pos": [15, 4, 16], "lines": ["<light_purple>미궁의 아가리</light_purple>", "<gray>광장 북쪽</gray>"], "glow": true},
+    {"type": "sign", "pos": [15, 4, 16], "lines": ["<light_purple>미궁의 아가리</light_purple>", "<gray>분수 건너 계단 위</gray>"], "glow": true},
     {"type": "sign", "pos": [15, 3, 16], "lines": ["<aqua>/미궁 메뉴</aqua>"], "glow": true},
     {"type": "spawn", "pos": [10, 2, 18], "face": "front"}
   ]
