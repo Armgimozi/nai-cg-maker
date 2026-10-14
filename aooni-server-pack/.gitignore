@@ -13,3 +13,7 @@ server/world/*
 !server/world/datapacks/
 server/world/datapacks/*
 !server/world/datapacks/aooni_mansion/
+# 실서버 테스트 하네스(tools/servertest): 노드 의존성과 임시 출력
+tools/servertest/bots/node_modules/
+tools/servertest/out/
+*.out.log

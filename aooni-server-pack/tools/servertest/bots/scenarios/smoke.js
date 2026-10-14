@@ -73,7 +73,9 @@ async function main () {
 
 main()
   .catch((e) => link.fail(e))
-  .finally(() => {
-    // 파이썬이 결과를 받은 뒤 stdin 을 닫으면 끝난다. 혹시 몰라 잠시 뒤 봇을 내보낸다.
-    setTimeout(() => { B.quitAll(bots); setTimeout(() => process.exit(0), 500) }, 1500)
+  .then(async () => {
+    // 파이썬이 RCON 으로 확인을 마칠 때까지(봇이 접속해 있어야 하는 확인) 기다렸다가 나간다
+    await link.waitFor('done', 30000).catch(() => {})
+    B.quitAll(bots)
+    setTimeout(() => process.exit(0), 500)
   })
