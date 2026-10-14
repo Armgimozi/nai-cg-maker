@@ -80,7 +80,7 @@ bosses:
     floor: 2
     title: "갱도의 직조자"
     core: tether
-    description: "버려진 은광 전체를 둥지로 삼은 거미 여왕. 은빛 실로 먹잇감을 짝지어 묶고 서로를 끌어당기게 만든다."
+    description: "버려진 은광 전체를 둥지로 삼은 거미 여왕. 그녀의 은실에 함께 묶인 먹잇감은 좀처럼 풀려나지 못한다."
     base: SPIDER
     scale: 2.2
     hp: 4500
@@ -237,7 +237,7 @@ bosses:
     floor: 5
     title: "꺼지지 않는 용광로"
     core: knockback_edge
-    description: "용광로 심장부를 다스리는 쇠의 거인. 망치가 모루를 칠 때마다 대지가 울려 침입자를 용암 해자로 날려 보낸다."
+    description: "용광로 심장부를 다스리는 쇠의 거인. 망치가 모루를 칠 때마다 대지가 울리고, 해자의 용암이 끓어오른다."
     base: IRON_GOLEM
     scale: 2.0
     hp: 18000
