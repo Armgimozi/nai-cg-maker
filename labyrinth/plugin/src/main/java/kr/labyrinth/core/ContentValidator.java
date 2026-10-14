@@ -284,6 +284,12 @@ public final class ContentValidator {
                 }
             });
             if (b.model().parts().isEmpty()) err(w, "model.parts 가 비어 있음");
+            // 점진 힌트 단서 (GDD "보스 문구 규칙"): 없으면 단서 없음, 있으면 3단계 권장
+            Object hints = b.raw().get("hints");
+            if (hints != null && !(hints instanceof List<?>)) err(w + ".hints", "단서 목록(리스트)이어야 함");
+            else if (hints instanceof List<?> l && l.size() != 3) {
+                warn(w + ".hints", "단서는 3단계(흐릿 → 조금 분명 → 거의 정답)로 쓰는 것을 권장 (지금 " + l.size() + "줄)");
+            }
         }
     }
 

@@ -48,7 +48,15 @@ public final class ResonanceTune extends GimmickRoom {
 
     @Override
     protected String rules() {
-        return "<gray>수정이 노래하는 <light_purple>순서</light_purple>를 듣고 같은 순서로 수정을 쳐라\n<gray>라운드마다 한 음씩 늘어난다. 틀린 음은 몸을 찢는다";
+        return "<gray>수정이 노래를 부른다. 메아리는 아직 없다\n<gray>어긋난 음은 몸을 찢는다";
+    }
+
+    @Override
+    protected List<String> hints() {
+        return List.of(
+                "수정은 같은 노래를 다시 듣고 싶어 한다.",
+                "노래한 차례대로 수정을 두드려라. 노래는 매번 한 음씩 길어진다.",
+                "수정이 빛나며 노래한 순서를 외웠다가, 노래가 멎으면 같은 순서로 수정을 쳐라 (좌·우클릭). 라운드마다 한 음씩 늘고, 틀리면 친 사람이 다친다.");
     }
 
     @Override
@@ -87,7 +95,7 @@ public final class ResonanceTune extends GimmickRoom {
             Bukkit.getScheduler().runTaskLater(fs.services().plugin(), () -> ring(k, true), (delayMs + i * step) / 50);
         }
         playingUntil = System.currentTimeMillis() + delayMs + melody.size() * step;
-        fs.actionBar(fs.allPlayers(), "<light_purple>수정의 노래를 들으세요...</light_purple>", 40);
+        fs.actionBar(fs.allPlayers(), "<light_purple>수정이 노래한다…</light_purple>", 40);
     }
 
     private void ring(int k, boolean show) {
@@ -105,7 +113,7 @@ public final class ResonanceTune extends GimmickRoom {
     protected void update(long t) {
         if (playingUntil > 0 && System.currentTimeMillis() >= playingUntil) {
             playingUntil = -1;
-            fs.actionBar(fs.allPlayers(), "<yellow>같은 순서로 수정을 치세요!</yellow>", 50);
+            fs.actionBar(fs.allPlayers(), "<yellow>노래가 멎었다.</yellow>", 50);
         }
     }
 
@@ -140,7 +148,7 @@ public final class ResonanceTune extends GimmickRoom {
                 if (round >= Math.max(1, params.integer("rounds", 2))) {
                     succeed();
                 } else {
-                    fs.actionBar(fs.allPlayers(), "<green>완벽한 화음!</green> <gray>다음 노래가 시작됩니다", 50);
+                    fs.actionBar(fs.allPlayers(), "<green>완벽한 화음!</green> <gray>노래가 길어진다…", 50);
                     nextRound();
                 }
             }

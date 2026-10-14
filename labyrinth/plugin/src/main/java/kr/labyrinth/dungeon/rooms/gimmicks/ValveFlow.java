@@ -50,7 +50,15 @@ public final class ValveFlow extends GimmickRoom {
 
     @Override
     protected String rules() {
-        return "<gray>밸브를 <aqua>우클릭</aqua>해 단계를 바꿔라. 옆 수로의 <aqua>거품 묶음 수</aqua>가 정답 단계\n<gray>물이 차오르기 전에 모든 밸브를 맞춰라";
+        return "<gray>물이 차오른다. 수로가 거품으로 무언가를 속삭인다\n<gray>밸브마다 제 목소리가 있다";
+    }
+
+    @Override
+    protected List<String> hints() {
+        return List.of(
+                "수로를 가만히 들여다보라. 물은 숫자를 셀 줄 안다.",
+                "밸브 옆 수로에서 거품이 몇 번 터지는지 세어 보라. 밸브의 눈금도 그만큼이다.",
+                "밸브 옆 수로의 거품 묶음 수 = 그 밸브의 정답 단계 (●가 왼쪽에서 그 번째 칸). 밸브를 우클릭해 단계를 돌려 모두 맞춰라 — 물이 다 차기 전에.");
     }
 
     @Override

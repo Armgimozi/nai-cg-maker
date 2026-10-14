@@ -171,6 +171,24 @@ public final class DungeonManager implements DungeonService, Listener {
 
     void unbind(UUID u) { byPlayer.remove(u); }
 
+    /** 쓰러짐 = 인스턴스의 사망자 목록 기준 (게임 모드만 보면 관전으로 구경하는 관리자도 쓰러진 것으로 보임). */
+    @Override
+    public boolean isDowned(Player player) {
+        Run r = byPlayer.get(player.getUniqueId());
+        if (r == null) return DungeonService.super.isDowned(player);
+        return r.state(player.getUniqueId()) == Run.MemberState.DEAD && isLabyrinthWorld(player.getWorld());
+    }
+
+    /** 사제 부활의 성가 등: 인스턴스 사망자 목록·전멸 판정까지 함께 갱신하고 서바이벌로 일으킨다. */
+    @Override
+    public boolean revive(Player player, Location at, double hpRatio) {
+        Run r = byPlayer.get(player.getUniqueId());
+        if (r == null) return DungeonService.super.revive(player, at, hpRatio);
+        if (r.ending() || !isDowned(player)) return false;
+        r.revive(player, at, Math.max(0.05, Math.min(1.0, hpRatio)));
+        return true;
+    }
+
     // ── 관리자 자가 진단(SelfTest) 전용: 임시 슬롯 (인스턴스 목록에 안 들어감) ──
     int allocateTestSlot() {
         if (allocator == null || labWorld == null) return -1;
@@ -287,7 +305,7 @@ public final class DungeonManager implements DungeonService, Listener {
         List<UUID> ids = new ArrayList<>();
         for (Player m : members) ids.add(m.getUniqueId());
         String id = "r" + (++runSeq) + "s" + slot;
-        Run run = new Run(this, id, slot, diff, s.party(), ids);
+        Run run = new Run(this, id, slot, diff, s.party(), ids, admin);
         runs.put(id, run);
         for (UUID u : ids) byPlayer.put(u, run);
         labWorld.markDirty(slot);

@@ -38,7 +38,16 @@ public final class ForgeBellows extends GimmickRoom {
 
     @Override
     protected String rules() {
-        return "<gray><gold>풀무 발판</gold> 위에 서서 열기를 올려라 — 함께 설수록 빠르다\n<gray>열기가 가득 차면 모루에 불이 붙는다. 아무도 없으면 식는다";
+        return "<gray>식어 버린 모루가 숨결을 기다린다\n<gray>풀무는 무게를 알아본다";
+    }
+
+    @Override
+    protected List<String> hints() {
+        return List.of(
+                "풀무는 짓눌려야 숨을 내쉰다.",
+                "달궈진 발판 위에 서 있어라. 여럿이 나눠 서면 불이 더 빨리 오르고, 비워 두면 식는다.",
+                "풀무 발판(압력판) 위에 서 있으면 열기가 오르고, 아무도 없으면 식는다. 발판마다 한 명씩 서면 가장 빠르다 — 열기가 "
+                        + params.integer("heat_needed", 100) + "이 되면 모루에 불이 붙는다.");
     }
 
     @Override

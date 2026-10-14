@@ -31,8 +31,16 @@ public final class VoidTrial extends GimmickRoom {
 
     @Override
     protected String rules() {
-        return "<gray><white>" + params.integer("duration", 60) + "초</white> 동안 살아남아라. <dark_purple>보랏빛 원</dark_purple>이 점점 좁아진다\n"
-                + "<gray>원 밖은 심연이 살을 갉아먹는다. 심연의 무리가 몰려온다";
+        return "<gray>보랏빛 원이 조금씩 숨을 죽여 간다\n"
+                + "<gray>심연은 원 바깥부터 삼킨다";
+    }
+
+    @Override
+    protected List<String> hints() {
+        return List.of(
+                "보랏빛 원은 좁아질 뿐, 사라지지 않는다.",
+                "원 밖에 서 있으면 심연이 살을 갉아먹는다. 무리는 원 가장자리에서 솟아오른다.",
+                params.integer("duration", 60) + "초 동안 버티면 성공 — 점점 좁아지는 보랏빛 원 안에 머물며, 가장자리에서 솟는 무리를 처치하라. 원 밖은 초마다 다친다.");
     }
 
     @Override
@@ -84,7 +92,7 @@ public final class VoidTrial extends GimmickRoom {
                 double dx = p.getLocation().getX() - c.getX(), dz = p.getLocation().getZ() - c.getZ();
                 if (dx * dx + dz * dz > r * r) {
                     hurt(p, params.dbl("outside_damage", 0.08), "void_edge");
-                    fs.services().hud().actionBar(p, Text.mm("<dark_purple><b>심연이 살을 갉아먹는다!</b></dark_purple> <gray>원 안으로"), 25);
+                    fs.services().hud().actionBar(p, Text.mm("<dark_purple><b>심연이 살을 갉아먹는다!</b></dark_purple>"), 25);
                 }
             }
         }

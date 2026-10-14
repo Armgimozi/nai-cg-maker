@@ -66,6 +66,9 @@ public abstract class Room {
     /** 투사체가 이 방 안 블록에 맞음. */
     public void onProjectileHit(Player shooter, Block block) {}
 
+    /** 파티 전멸 (인스턴스 종료 직전). 진행 중인 보스전·시련을 실패로 기록하는 데 쓴다 (점진 힌트). */
+    public void onWipe() {}
+
     /** 층 정리 시. */
     public void onDestroy() {
         removeMobs();

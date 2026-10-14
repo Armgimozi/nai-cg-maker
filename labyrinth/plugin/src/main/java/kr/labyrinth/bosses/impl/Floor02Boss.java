@@ -161,8 +161,8 @@ public final class Floor02Boss extends Boss {
     }
 
     private void tetherPair(Player a, Player b, Params p, int contract, double snap, int hold, String model) {
-        notify(a, "<white><b>은실 테더!</b></white> <gray>" + b.getName() + " 와(과) " + (int) snap + "칸 이상 떨어지세요");
-        notify(b, "<white><b>은실 테더!</b></white> <gray>" + a.getName() + " 와(과) " + (int) snap + "칸 이상 떨어지세요");
+        notify(a, "<white><b>은실이 감겼다!</b></white> <gray>" + b.getName() + " 쪽으로 실이 서서히 조여 온다…");
+        notify(b, "<white><b>은실이 감겼다!</b></white> <gray>" + a.getName() + " 쪽으로 실이 서서히 조여 온다…");
         final int[] held = {0};
         final int[] pulling = {-1};
         run(new Mechanics.Tether(fx, model, () -> a.getLocation().add(0, 1.1, 0), () -> b.getLocation().add(0, 1.1, 0), t -> {
@@ -204,7 +204,7 @@ public final class Floor02Boss extends Boss {
 
     private void tetherPost(Player a, Location post, Params p, int contract, double snap, int hold, String model) {
         ItemDisplay pole = fx.model("chain_anchor", post, 1.6f, Display.Billboard.FIXED);
-        notify(a, "<white><b>은실 말뚝에 묶였습니다!</b></white> <gray>말뚝 반대편으로 " + (int) snap + "칸 이상 달리세요");
+        notify(a, "<white><b>은실이 말뚝에 감겼다!</b></white> <gray>실이 서서히 조여 온다…");
         final int[] held = {0};
         final int[] pulling = {-1};
         Location top = post.clone().add(0, 1.4, 0);
@@ -237,11 +237,15 @@ public final class Floor02Boss extends Boss {
         }));
     }
 
+    /** 은실 긴장 막대 (숫자·정답 없이 팽팽함만): 멀어질수록 차오르고, 끊어질 듯하면 초록, 버틴 만큼 흰 칸. */
     private static String progress(double d, double snap, int held, int hold, int leftTicks) {
+        int cells = 8;
+        int fill = (int) Math.round(Math.max(0, Math.min(1, d / Math.max(1, snap))) * cells);
         String col = d >= snap ? "<green>" : "<yellow>";
-        return "<white>은실</white> " + col + String.format("%.1f", d) + " / " + (int) snap + "칸</" + (d >= snap ? "green" : "yellow") + ">"
-                + (held > 0 ? " <aqua>유지 " + String.format("%.1f", held / 20.0) + "초</aqua>" : "")
-                + " <gray>남은 " + String.format("%.1f", Math.max(0, leftTicks) / 20.0) + "초";
+        String tension = col + "▰".repeat(fill) + "<dark_gray>" + "▱".repeat(cells - fill);
+        int keep = hold <= 0 ? 0 : (int) Math.round(Math.min(1.0, held / (double) hold) * 3);
+        return "<white>은실</white> " + tension + (keep > 0 ? " <white>" + "✦".repeat(keep) + "</white>" : "")
+                + " <gray>⌛ " + String.format("%.1f", Math.max(0, leftTicks) / 20.0);
     }
 
     private static Color lerpColor(double f) {
@@ -302,10 +306,10 @@ public final class Floor02Boss extends Boss {
                 for (int k = 0; k < n; k++) spawnAdd(add, l.clone().add(rng.nextGaussian() * 0.8, 0.1, rng.nextGaussian() * 0.8));
                 BossFx.sound(l, Sound.ENTITY_TURTLE_EGG_HATCH, 1.6f, 0.6f);
                 BossFx.particle(Particle.WHITE_ASH, l.clone().add(0, 1, 0), 40, 0.6, 0.6, 0.6, 0.05);
-                broadcastBar("<red>알주머니가 부화했습니다!</red> <gray>은실 새끼거미 " + n + "마리");
+                broadcastBar("<red>알주머니가 터지며 새끼들이 쏟아진다!</red>");
             }, false));
         }
-        broadcastBar("<white>벽 둥지에 알주머니 " + count + "개!</white> <gray>15초 안에 터뜨리세요 (원거리 딜러 담당)");
+        broadcastBar("<white>벽 둥지에서 무언가 꿈틀거린다…</white>");
         return cast("egg_sacs", "알주머니", 20, 24, BossAnim.ROAR, null, false);
     }
 
@@ -328,7 +332,7 @@ public final class Floor02Boss extends Boss {
             Location up = entity.getLocation().clone();
             up.setY(Math.min(floorY + arenaHeight - 3, floorY + 8));
             entity.teleport(up);
-            broadcastBar("<gray>베셀라가 천장으로 사라졌습니다... 발밑을 조심하세요</gray>");
+            broadcastBar("<gray>베셀라가 천장 어둠 속으로 사라졌다… 머리 위에서 실이 흔들린다</gray>");
         });
         after(air - w, () -> {
             Player t = scaling().solo() ? target() : randomTarget();
@@ -348,7 +352,7 @@ public final class Floor02Boss extends Boss {
                 BossFx.sound(land, Sound.ENTITY_GENERIC_EXPLODE, 1.2f, 0.6f);
                 BossFx.particle(Particle.EXPLOSION, land.clone().add(0, 0.5, 0), 3, r * 0.4, 0.2, r * 0.4, 0);
             });
-            if (t != null) notify(t, "<red><b>⚠ 머리 위!</b></red> <gray>다른 사람과 겹치지 않게 원 밖으로");
+            if (t != null) notify(t, "<red><b>⚠ 머리 위!</b></red>");
         });
         // 페이즈 전환 등으로 취소돼도 반드시 착지시키는 안전장치
         afterPersistent(air + 10, () -> {
@@ -389,9 +393,9 @@ public final class Floor02Boss extends Boss {
         cocoonAt.put(id, at);
         effect(t, "stun", dur / 20.0 + 0.5, 1);
         effect(t, "root", dur / 20.0 + 0.5, 1);
-        notify(t, scaling().solo() ? "<white><b>고치에 갇혔습니다!</b></white> <gray>웅크리기(" + kr.labyrinth.core.InputKeys.SNEAK + ")를 연타해 빠져나오세요"
-                : "<white><b>고치에 갇혔습니다!</b></white> <gray>동료가 고치를 깨 줄 때까지 버티세요");
-        broadcastBar("<white>" + t.getName() + " 이(가) 고치에 갇혔습니다!</white> <gray>고치를 공격해 구출하세요");
+        notify(t, scaling().solo() ? "<white><b>고치에 갇혔다!</b></white> <gray>실이 온몸을 옥죈다… 몸부림쳐라"
+                : "<white><b>고치에 갇혔다!</b></white> <gray>실 너머로 동료들의 그림자가 보인다…");
+        broadcastBar("<white>" + t.getName() + " 이(가) 은실 고치에 감싸였다!</white>");
         BossFx.sound(at, Sound.BLOCK_WOOL_PLACE, 1.6f, 0.5f);
         final boolean[] freed = {false};
         c.onDestroyed(h -> {

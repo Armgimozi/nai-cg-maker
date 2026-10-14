@@ -72,8 +72,16 @@ public final class BookCipher extends GimmickRoom {
 
     @Override
     protected String rules() {
-        return "<gray>가운데 <yellow>독서대의 수수께끼</yellow>가 가리키는 책장 " + params.integer("books", 3) + "개를 찾아 <yellow>우클릭</yellow>\n"
-                + "<gray>책장 위 기호가 단서다. 틀리면 먹물이 깨어난다";
+        return "<gray>독서대가 잃어버린 책 " + params.integer("books", 3) + "권을 찾고 있다\n"
+                + "<gray>틀린 손길은 먹물을 깨운다";
+    }
+
+    @Override
+    protected List<String> hints() {
+        return List.of(
+                "독서대의 말은 은유다. 책장 위에 떠 있는 기호를 살펴라.",
+                "수수께끼 한 줄은 기호 하나를 가리킨다. 마지막 줄만은 기호가 아니라 자리를 말한다.",
+                "수수께끼의 은유에 맞는 기호(예: 밤하늘의 은빛 낫 = ☾)가 떠 있는 책장을 우클릭. 마지막 줄은 그 벽을 바라보고 왼쪽부터 센 책장이다. 틀리면 먹물 원령이 깨어난다.");
     }
 
     @Override
@@ -180,7 +188,7 @@ public final class BookCipher extends GimmickRoom {
                 fail("먹물이 서고를 덮었습니다");
                 return true;
             }
-            fs.actionBar(fs.allPlayers(), "<red>틀린 책장!</red> <gray>먹물 원령이 깨어난다 — 남은 기회 " + attempts, 50);
+            fs.actionBar(fs.allPlayers(), "<red>먹물이 번진다!</red> <gray>원령이 깨어난다 — 남은 기회 " + attempts, 50);
             return true;
         }
         return false;

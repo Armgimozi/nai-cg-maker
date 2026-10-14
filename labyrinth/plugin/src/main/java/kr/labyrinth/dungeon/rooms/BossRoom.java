@@ -4,6 +4,7 @@ import java.util.List;
 import kr.labyrinth.bosses.BossHandle;
 import kr.labyrinth.content.BossDef;
 import kr.labyrinth.core.Difficulty;
+import kr.labyrinth.core.Hints;
 import kr.labyrinth.core.Log;
 import kr.labyrinth.core.Text;
 import kr.labyrinth.dungeon.FloorState;
@@ -23,12 +24,21 @@ import org.bukkit.entity.Player;
 public final class BossRoom extends Room {
 
     private static final String BAR = "dungeon_boss";
+    /** 점진 힌트 — 보스바 아래 단서 한 줄. */
+    private static final String HINT_BAR = "dungeon_boss_hint";
+    private static final long HINT_DELAY_MS = 2500;
+    private static final long HINT_SHOW_MS = 20_000;
 
     private long sealAt = -1;
     private BossHandle boss;
     private CustomMob standIn;
     private BossBar bar;
     private boolean defeated;
+    private boolean fightStarted;
+    private boolean failureRecorded;
+    private long hintAt = -1;
+    private long hintUntil = -1;
+    private BossBar hintBar;
 
     public BossRoom(FloorState fs, FloorLayout.RoomInfo info) {
         super(fs, info);
@@ -76,9 +86,12 @@ public final class BossRoom extends Room {
             sealAt = -1;
             lock();
             summon();
+            fightStarted = true;
+            hintAt = System.currentTimeMillis() + HINT_DELAY_MS;
             return;
         }
         if (defeated) return;
+        tickHint();
         if (boss != null) {
             if (!safeAlive(boss)) {
                 // onDeath 콜백이 오지 않은 경우 대비 (보상은 보스 구현이 이미 지급)
@@ -171,10 +184,55 @@ public final class BossRoom extends Room {
         }
     }
 
+    // ── 점진 힌트 ─────────────────────────────────────────────────────────
+
+    private String bossId() {
+        BossDef def = fs.services().content().boss(fs.def().boss());
+        return def == null ? fs.def().boss() : def.id();
+    }
+
+    /** 보스가 등장하고 2.5초 뒤(보스바가 먼저 뜬 다음) 파티 기준 단서를 보스바 아래에 20초 띄운다. */
+    private void tickHint() {
+        long now = System.currentTimeMillis();
+        if (hintAt > 0 && now >= hintAt) {
+            hintAt = -1;
+            BossDef def = fs.services().content().boss(fs.def().boss());
+            String id = bossId();
+            if (id == null) return;
+            List<Player> party = fs.run().onlineMembers();
+            String clue = Hints.partyClue(fs.services(), party, Hints.bossKey(id), Hints.bossClues(def));
+            if (clue == null) return;
+            hintBar = BossBar.bossBar(Text.mm(Hints.format(clue)), 0f, BossBar.Color.WHITE, BossBar.Overlay.PROGRESS);
+            for (Player p : fs.allPlayers()) {
+                fs.services().hud().showBossBar(p, HINT_BAR, hintBar);
+                Text.send(p, "<dark_gray>쓰러졌던 기억이 속삭인다…</dark_gray> " + Hints.format(clue));
+            }
+            hintUntil = now + HINT_SHOW_MS;
+        }
+        if (hintUntil > 0 && now >= hintUntil) hideHint();
+    }
+
+    private void hideHint() {
+        hintUntil = -1;
+        hintBar = null;
+        for (Player p : fs.run().onlineMembers()) fs.services().hud().hideBossBar(p, HINT_BAR);
+    }
+
+    /** 보스전 도중 전멸 = 이 보스에서 실패 1회 (파티원 전원). */
+    @Override
+    public void onWipe() {
+        if (!fightStarted || defeated || failureRecorded) return;
+        String id = bossId();
+        if (id == null) return;
+        failureRecorded = true;
+        Hints.recordFailure(fs.services(), fs.run().onlineMembers(), Hints.bossKey(id));
+    }
+
     private void defeat() {
         if (defeated) return;
         defeated = true;
         state = State.CLEARED;
+        hideHint();
         for (Player p : fs.run().onlineMembers()) fs.services().hud().hideBossBar(p, BAR);
         unlock();
         Location c = center();
@@ -193,5 +251,6 @@ public final class BossRoom extends Room {
             }
         }
         for (Player p : fs.run().onlineMembers()) fs.services().hud().hideBossBar(p, BAR);
+        hideHint();
     }
 }

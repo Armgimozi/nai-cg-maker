@@ -119,7 +119,7 @@ public final class Floor01Boss extends Boss {
             p.displays.clear();
             if (!pillars.isEmpty()) {
                 int left = alivePillars().size();
-                broadcastBar("<green>이끼 기둥 붕괴!</green> <gray>남은 기둥 " + left + "개");
+                broadcastBar("<green>이끼 기둥이 무너졌다!</green> <gray>남은 기둥 " + left);
             }
         } else {
             for (Block b : p.blocks) if (rng.nextDouble() < 0.4) setBlock(b, crack);
@@ -160,7 +160,7 @@ public final class Floor01Boss extends Boss {
     protected void onPhase(int newPhase) {
         Params og = def.pattern("overgrowth");
         if (newPhase == og.integer("phase", 3)) {
-            broadcastBar("<dark_green><b>대번성</b></dark_green> <gray>— 돌진이 2연속으로 이어집니다" + (alivePillars().isEmpty() ? ", 기둥이 없어 피해 +30%!" : ""));
+            broadcastBar("<dark_green><b>대번성</b></dark_green> <gray>— 그로브의 발걸음이 멈출 줄 모른다" + (alivePillars().isEmpty() ? "… <red>가로막을 것이 하나도 남지 않았다</red>" : "…"));
             BossFx.particle(Particle.SPORE_BLOSSOM_AIR, center.clone().add(0, 3, 0), 120, arenaRadius * 0.6, 2, arenaRadius * 0.6, 0);
         }
     }
@@ -230,7 +230,7 @@ public final class Floor01Boss extends Boss {
         double width = p.dbl("width", 3.0);
         double maxDist = p.dbl("max_distance", 28);
         run(new Mechanics.Marker(fx, "marker_target", t, mark, null));
-        notify(t, "<light_purple><b>⚠ 돌진 표식!</b></light_purple> <gray>이끼 기둥 뒤로 숨어 보스를 기둥에 부딪히게 하세요");
+        notify(t, "<light_purple><b>⚠ 돌진 표식!</b></light_purple> <gray>그로브의 눈이 당신을 붙잡았다…");
         BossFx.sound(t.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 1f, 0.6f);
         Telegraph.Shape init = Telegraph.Shape.arrow(feet(), dirTo(t), Math.min(maxDist, horizontalTo(t) + 4), width);
         final Vector[] locked = {init.direction()};
@@ -380,7 +380,7 @@ public final class Floor01Boss extends Boss {
                 spawnAdd(add, at);
             });
         }
-        broadcastBar("<green>기둥에서 이끼 새싹이 돋아납니다!</green> <gray>(" + n + ")");
+        broadcastBar("<green>이끼 기둥에서 새싹이 꿈틀거린다…</green>");
         return cast("sproutling_call", "새싹 부르기", 24, 30, BossAnim.ROAR, null, false);
     }
 

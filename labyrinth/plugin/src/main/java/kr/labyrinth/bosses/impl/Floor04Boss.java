@@ -163,7 +163,7 @@ public final class Floor04Boss extends Boss {
             water.teleport(at);
         }
         if (stage > old) {
-            broadcastBar("<aqua><b>수위 상승!</b></aqua> <gray>" + stage + "단계 — 단상 위로, 밸브를 돌려 배수하세요 (웅크린 채 3초 · " + kr.labyrinth.core.InputKeys.SNEAK + ")");
+            broadcastBar("<aqua><b>물이 차오른다…</b></aqua> <gray>벽 너머 수문이 삐걱거린다");
             BossFx.sound(center, Sound.BLOCK_WATER_AMBIENT, 2f, 0.5f);
             BossFx.sound(center, Sound.AMBIENT_UNDERWATER_ENTER, 1.2f, 0.7f);
         }
@@ -177,7 +177,7 @@ public final class Floor04Boss extends Boss {
             for (Player pl : players()) {
                 if (pl.isSneaking() && horizontal(pl.getLocation(), v.at) <= 2.3) {
                     turning = true;
-                    if (now % 10 == 0) notify(pl, "<aqua>밸브 돌리는 중…</aqua> <white>" + (int) (100.0 * v.progress / channelTicks) + "%");
+                    if (now % 10 == 0) notify(pl, "<aqua>밸브가 끼익 돌아간다…</aqua> <white>" + (int) (100.0 * v.progress / channelTicks) + "%");
                     break;
                 }
             }
@@ -191,7 +191,7 @@ public final class Floor04Boss extends Boss {
                     if (windowEnd < 0) {
                         int window = ticks((scaling().solo() ? p.dbl("valve_window_solo", 25) : p.dbl("valve_window_party", 10)) * scaling().timerMult());
                         windowEnd = now + window;
-                        broadcastBar("<aqua>첫 밸브 개방!</aqua> <gray>" + window / 20 + "초 안에 나머지 밸브를 모두 돌리세요");
+                        broadcastBar("<aqua>수문 하나가 열렸다!</aqua> <gray>…다른 수문들은 아직 버티고 있다");
                     }
                 }
             } else if (v.progress > 0 && now % 4 == 0) {
@@ -210,11 +210,11 @@ public final class Floor04Boss extends Boss {
                     v.progress = 0;
                 }
                 hideTimerBar();
-                broadcastBar("<red>배수 실패!</red> <gray>밸브가 다시 잠겼습니다");
+                broadcastBar("<red>수문이 도로 잠겼다…</red>");
                 BossFx.sound(center, Sound.BLOCK_IRON_TRAPDOOR_CLOSE, 1.5f, 0.5f);
             } else if (now % 4 == 0) {
-                timerBar("<aqua>수문 배수</aqua> <white>" + done + "/" + valves.size() + "</white> <gray>남은 "
-                        + String.format("%.1f", (windowEnd - now) / 20.0) + "초", (windowEnd - now) / (float) window, BossBar.Color.BLUE);
+                timerBar("<aqua>수문</aqua> <white>" + done + "/" + valves.size() + "</white> <gray>⌛ "
+                        + String.format("%.1f", (windowEnd - now) / 20.0), (windowEnd - now) / (float) window, BossBar.Color.BLUE);
             }
         }
         if (now % 10 == 0) refreshValves();
@@ -233,15 +233,15 @@ public final class Floor04Boss extends Boss {
         double stun = p.dbl("drain_stun", 5.0);
         stun(stun);
         makeVulnerable(p.dbl("drain_vulnerable", 0.4), stun);
-        broadcastBar("<aqua><b>배수 성공!</b></aqua> <yellow>오스릭 기절 " + (int) stun + "초 — 받는 피해 +40%</yellow>");
+        broadcastBar("<aqua><b>물이 빠져나간다!</b></aqua> <yellow>오스릭이 비틀거린다</yellow>");
         BossFx.sound(center, Sound.BLOCK_WATER_AMBIENT, 2f, 1.6f);
         BossFx.particle(Particle.SPLASH, center.clone().add(0, 0.5, 0), 120, arenaRadius * 0.5, 0.2, arenaRadius * 0.5, 0.1);
     }
 
     private void refreshValves() {
         for (Valve v : valves) {
-            String state = v.done ? "<green>● 개방</green>" : stage == 0 ? "<dark_gray>○ 대기</dark_gray>"
-                    : v.progress > 0 ? "<aqua>◐ " + (int) (100.0 * v.progress / channelTicks) + "%</aqua>" : "<gray>○ 웅크려(" + kr.labyrinth.core.InputKeys.SNEAK + ") 돌리기</gray>";
+            String state = v.done ? "<green>●</green>" : stage == 0 ? "<dark_gray>○</dark_gray>"
+                    : v.progress > 0 ? "<aqua>◐ " + (int) (100.0 * v.progress / channelTicks) + "%</aqua>" : "<gray>○</gray>";
             BossFx.text(v.label, "<#5aa8a0>수문 밸브</#5aa8a0>\n" + state);
         }
     }
@@ -354,7 +354,7 @@ public final class Floor04Boss extends Boss {
                 return true;
             }, null, false));
         });
-        broadcastBar("<gold>해일이 몰려옵니다!</gold> <gray>단상 위로 올라가거나 옆으로 피하세요");
+        broadcastBar("<gold>해일이 몰려온다!</gold>");
         return cast("tidal_sweep", "해일 쓸기", w, w + 6, BossAnim.SWEEP, origin.clone().add(dir.clone().multiply(half)), false);
     }
 
@@ -414,7 +414,7 @@ public final class Floor04Boss extends Boss {
                 spawnAdd(add, spawnAt);
             });
         }
-        broadcastBar("<aqua>범람 정령이 수면에서 솟아오릅니다!</aqua> <gray>단상 위에서 터뜨리지 마세요");
+        broadcastBar("<aqua>범람 정령이 수면에서 솟아오른다!</aqua>");
         return cast("floodling_tide", "범람 정령", 20, 24, BossAnim.ROAR, null, false);
     }
 

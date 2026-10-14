@@ -3,6 +3,7 @@ package kr.labyrinth.dungeon.rooms;
 import java.util.ArrayList;
 import java.util.List;
 import kr.labyrinth.content.Params;
+import kr.labyrinth.core.Hints;
 import kr.labyrinth.core.Log;
 import kr.labyrinth.core.Text;
 import kr.labyrinth.dungeon.FloorState;
@@ -26,19 +27,24 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
 /**
- * 기믹방 공통 (GDD §10): 입장 시 문이 닫히고 규칙 안내(가운데 글자 + 액션바) → 2초 뒤 시작.
+ * 기믹방 공통 (GDD §10): 입장 시 문이 닫히고 분위기 문구(가운데 글자 — 정답은 알려 주지 않음) → 2초 뒤 시작.
+ * 실패(시간 초과·기회 소진·안에서 전멸)가 쌓이면 다음 도전 때 {@link #hints()} 단서가 한 단계씩 또렷해진다 (core/Hints).
  * 성공: 보상 상자(gimmick_floor_N, 개인 루팅) + 경험치(층 일반 몹 평균 ×10) + 문 개방. 실패: 페널티 후 문 개방(보상 없음).
  * 안에 살아 있는 파티원이 없으면 초기화되어 다시 도전할 수 있다. 구현 키 = floors.yml gimmick.
  */
 public abstract class GimmickRoom extends Room {
 
     private static final String BAR = "dungeon_gimmick";
+    private static final String HINT_BAR = "dungeon_gimmick_hint";
 
     protected final Params params;
     private long startAt = -1;
     private long startedMs;
     protected boolean running;
     private BossBar bar;
+    private BossBar hintBar;
+    private String clue;
+    private boolean failureRecorded;
     private final List<Entity> displays = new ArrayList<>();
 
     protected GimmickRoom(FloorState fs, FloorLayout.RoomInfo info) {
@@ -70,8 +76,22 @@ public abstract class GimmickRoom extends Room {
     /** 기믹 이름 (한국어). */
     protected abstract String title();
 
-    /** 규칙 설명 2~3줄 (MiniMessage, 줄바꿈 \n). */
+    /**
+     * 가운데 안내문 1~2줄 (MiniMessage, 줄바꿈 \n). 조작법·정답을 적지 않고 분위기·관찰 단서만 (GDD "보스 문구 규칙").
+     */
     protected abstract String rules();
+
+    /** 점진 힌트 단서 3단계 (흐릿 → 조금 분명 → 거의 정답). 실패가 쌓이면 다음 도전 때 보여 준다. */
+    protected List<String> hints() { return List.of(); }
+
+    /** 단서 목록 (자가 진단·도구용). */
+    public final List<String> hintLines() { return hints(); }
+
+    /** 점진 힌트 기록 키 (floors.yml gimmick 구현 키). */
+    protected String hintKey() {
+        String k = fs.def().gimmick();
+        return Hints.gimmickKey(k == null || k.isBlank() ? getClass().getSimpleName().toLowerCase(java.util.Locale.ROOT) : k);
+    }
 
     /** 시작 (재도전 시에도 호출 — 상태를 처음부터). */
     protected abstract void begin();
@@ -112,10 +132,15 @@ public abstract class GimmickRoom extends Room {
         emptyTicks = 0;
         lock();
         startAt = System.currentTimeMillis() + 2500;
+        failureRecorded = false;
         fs.title("<light_purple><b>" + title() + "</b></light_purple>", "<gray>시련이 시작됩니다", 5, 40, 10);
-        fs.actionBar(fs.allPlayers(), "<light_purple>시련의 방</light_purple> <gray>— 가운데 안내문을 읽어 보세요", 60);
+        fs.actionBar(fs.allPlayers(), "<light_purple>시련의 방</light_purple> <gray>— 문이 닫혔다", 60);
         for (Player o : fs.allPlayers()) o.sendMessage(Text.mm(Text.PREFIX + "<light_purple><b>" + title() + "</b></light_purple><gray> — "
                 + rules().replace("\n", " ")));
+        clue = Hints.partyClue(fs.services(), fs.run().onlineMembers(), hintKey(), hints());
+        if (clue != null) {
+            for (Player o : fs.allPlayers()) Text.send(o, "<dark_gray>실패의 기억이 속삭인다…</dark_gray> " + Hints.format(clue));
+        }
     }
 
     @Override
@@ -128,6 +153,10 @@ public abstract class GimmickRoom extends Room {
             running = true;
             bar = BossBar.bossBar(Text.mm("<light_purple>" + title()), 1f, BossBar.Color.PURPLE, BossBar.Overlay.PROGRESS);
             for (Player p : fs.allPlayers()) fs.services().hud().showBossBar(p, BAR, bar);
+            if (clue != null) {
+                hintBar = BossBar.bossBar(Text.mm(Hints.format(clue)), 0f, BossBar.Color.WHITE, BossBar.Overlay.PROGRESS);
+                for (Player p : fs.allPlayers()) fs.services().hud().showBossBar(p, HINT_BAR, hintBar);
+            }
             try {
                 begin();
             } catch (Throwable e) {
@@ -178,6 +207,7 @@ public abstract class GimmickRoom extends Room {
 
     protected void fail(String reason) {
         if (state != State.ACTIVE) return;
+        recordFailure();
         running = false;
         state = State.CLEARED;
         hideBar();
@@ -190,6 +220,7 @@ public abstract class GimmickRoom extends Room {
     }
 
     private void reset() {
+        if (running) recordFailure(); // 안의 파티원이 모두 쓰러져 비었음 = 실패
         running = false;
         startAt = -1;
         hideBar();
@@ -202,8 +233,29 @@ public abstract class GimmickRoom extends Room {
     }
 
     private void hideBar() {
-        for (Player p : fs.run().onlineMembers()) fs.services().hud().hideBossBar(p, BAR);
+        for (Player p : fs.run().onlineMembers()) {
+            fs.services().hud().hideBossBar(p, BAR);
+            fs.services().hud().hideBossBar(p, HINT_BAR);
+        }
         bar = null;
+        hintBar = null;
+    }
+
+    /** 이 도전에서 실패 1회 기록 (파티원 전원, 도전마다 한 번). */
+    private void recordFailure() {
+        if (failureRecorded) return;
+        failureRecorded = true;
+        try {
+            Hints.recordFailure(fs.services(), fs.run().onlineMembers(), hintKey());
+        } catch (Throwable t) {
+            Log.error("기믹 실패 기록 오류: " + title(), t);
+        }
+    }
+
+    /** 시련 도중 전멸 = 실패. */
+    @Override
+    public void onWipe() {
+        if (state == State.ACTIVE && (running || startAt > 0)) recordFailure();
     }
 
     @Override
