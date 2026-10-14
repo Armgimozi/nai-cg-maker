@@ -1,0 +1,19 @@
+{
+  "format": 1,
+  "id": "square",
+  "name": "시험 광장",
+  "size": [9, 2, 9],
+  "floor_y": 0,
+  "foundation": "minecraft:stone_bricks",
+  "anchor": [4, 0],
+  "palette": { "o": "minecraft:polished_andesite", "w": "minecraft:white_concrete", "*": "minecraft:sea_lantern" },
+  "layers": [
+    ["  ooooo  ", " ooooooo ", "ooowwwooo", "oowwwwwoo", "oowwwwwoo", "oowwwwwoo", "ooowwwooo", " ooooooo ", "  ooooo  "],
+    ["         ", "         ", "         ", "         ", "    *    ", "         ", "         ", "         ", "         "]
+  ],
+  "markers": [
+    {"type": "spawn", "pos": [4, 1, 6], "face": "front"},
+    {"type": "entrance", "pos": [4, 1, 1], "face": "front"},
+    {"type": "npc", "id": "guide", "pos": [2, 1, 4], "face": "right"}
+  ]
+}

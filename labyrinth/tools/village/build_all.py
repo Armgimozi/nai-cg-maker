@@ -1,0 +1,372 @@
+#!/usr/bin/env python3
+"""build_all.py — 모든 조각 + layout → plugin/src/main/resources/village/ (VILLAGE.md §1, §6.1).
+
+    /opt/packvenv/bin/python tools/village/build_all.py            # 생성 + 검증
+    /opt/packvenv/bin/python tools/village/build_all.py --render   # + /tmp/village_renders/ 에 PNG
+    /opt/packvenv/bin/python tools/village/build_all.py --render --rotations --only forge,inn
+
+- tools/village/pieces_*.py 를 모두 불러 각 모듈의 PIECES(인자 없는 함수 목록, Piece 반환)를 실행 → finalize·검증 →
+  pieces/<id>.json. PIECES 에 없는 남은 json 은 지운다.
+- tools/village/layout.py 의 LAYOUT → layout.json. 조각 id·발자국 겹침(1칸 여유)·반경·길·정문 앞·마커(spawn/entrance 1개씩,
+  npc id 가 npcs.yml 에 있음)를 검사한다.
+- 오류가 하나라도 있으면 아무것도 쓰지 않고 이유를 출력하고 끝 (종료 코드 1).
+"""
+import argparse
+import glob
+import importlib.util
+import json
+import math
+import os
+import re
+import sys
+import time
+import traceback
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+ROOT = os.path.normpath(os.path.join(HERE, "..", ".."))
+sys.path.insert(0, HERE)
+import vlib  # noqa: E402
+
+RES = os.path.join(ROOT, "plugin", "src", "main", "resources", "village")
+PIECES_DIR = os.path.join(RES, "pieces")
+NPCS_YML = os.path.join(ROOT, "plugin", "src", "main", "resources", "content", "npcs.yml")
+RENDER_DIR = "/tmp/village_renders"
+VILLAGE_NPCS = ("guide", "blacksmith", "class_master", "title_keeper", "merchant")
+
+
+def load_piece_modules(errors):
+    mods = []
+    for path in sorted(glob.glob(os.path.join(HERE, "pieces_*.py"))):
+        name = os.path.splitext(os.path.basename(path))[0]
+        try:
+            spec = importlib.util.spec_from_file_location(name, path)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+        except Exception as e:  # noqa: BLE001 — 설계 파일 오류는 이유를 보여 주고 계속 모은다
+            errors.append("%s 불러오기 실패: %s\n%s" % (name, e, traceback.format_exc(limit=3)))
+            continue
+        if not isinstance(getattr(mod, "PIECES", None), (list, tuple)):
+            errors.append("%s: PIECES 리스트가 없습니다" % name)
+            continue
+        mods.append((name, mod))
+    return mods
+
+
+def build_pieces(mods, errors):
+    pieces = {}
+    for name, mod in mods:
+        for fn in mod.PIECES:
+            label = "%s.%s" % (name, getattr(fn, "__name__", fn))
+            try:
+                p = fn()
+                if not isinstance(p, vlib.Piece):
+                    errors.append("%s: Piece 를 돌려주지 않았습니다 (%r)" % (label, type(p)))
+                    continue
+                p.finalize()
+            except vlib.VillageError as e:
+                errors.append("%s: %s" % (label, e))
+                continue
+            except Exception as e:  # noqa: BLE001
+                errors.append("%s: 예외 %s\n%s" % (label, e, traceback.format_exc(limit=4)))
+                continue
+            if p.id in pieces:
+                errors.append("조각 id '%s' 가 두 번 (%s, %s)" % (p.id, pieces[p.id][1], label))
+                continue
+            pieces[p.id] = (p, label)
+    return {k: v[0] for k, v in pieces.items()}
+
+
+def read_npcs(path):
+    """npcs.yml 간단 파싱 → {id: placement}."""
+    out, cur = {}, None
+    in_npcs = False
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            if re.match(r"^npcs:\s*$", line):
+                in_npcs = True
+                continue
+            if not in_npcs:
+                continue
+            if re.match(r"^\S", line) and not line.startswith("#"):
+                break
+            m = re.match(r"^  ([a-z0-9_]+):\s*(#.*)?$", line)
+            if m:
+                cur = m.group(1)
+                out[cur] = None
+                continue
+            m = re.match(r"^    placement:\s*([a-z_]+)", line)
+            if m and cur:
+                out[cur] = m.group(1)
+    return out
+
+
+def _box(e, p):
+    r = vlib.front_rotation(e.get("front", "north"))
+    w, d = vlib.rotated_size(p.W, p.D, r)
+    ax, az = e["at"]
+    x0, z0 = ax - w // 2, az - d // 2
+    return r, (x0, z0, x0 + w - 1, z0 + d - 1)
+
+
+def _ring(cells):
+    """칸들 + 둘레 1칸 (8방향)."""
+    return {(x + dx, z + dz) for (x, z) in cells for dx in (-1, 0, 1) for dz in (-1, 0, 1)}
+
+
+def _attach(placed, end):
+    """길 끝 → 붙은 조각 순번 (Java Planner.attach: 체비셰프 거리 ≤ 2, 가까운 것, 같으면 장식 아닌 것)."""
+    best, best_score = None, None
+    for i, (tag, e, p, bp, r, b, cols) in enumerate(placed):
+        d = min(max(abs(x - end[0]), abs(z - end[1])) for (x, z) in cols) if cols else 10 ** 9
+        score = d * 2 + (1 if bp.deco else 0)
+        if d <= vlib.PATH_ATTACH and (best_score is None or score < best_score):
+            best, best_score = i, score
+    return best
+
+
+def validate_layout(L, pieces, npcs, errors, warnings):
+    bps = {pid: vlib.Blueprint.of(p) for pid, p in pieces.items()}
+    if L.get("format") != 1:
+        errors.append("layout: format 은 1")
+    if not isinstance(L.get("name"), str) or not L["name"]:
+        errors.append("layout: name 이 없음")
+    R = L.get("radius")
+    if not isinstance(R, int) or R <= 0:
+        errors.append("layout: radius 는 양의 정수")
+        R = 32
+    styles = L.get("path_styles", {})
+    for sname, mixl in styles.items():
+        for item in mixl:
+            try:
+                b, w = item
+                vlib.check_block(b)
+                bid = vlib.parse_block(b)[0]
+                if not (vlib.is_full(bid) or bid in ("dirt_path", "farmland")):
+                    errors.append("path_styles.%s: %s 는 꽉 찬 블록이 아님 (길 맨 윗블록 자리)" % (sname, b))
+                if not isinstance(w, int) or w <= 0:
+                    errors.append("path_styles.%s: 무게는 양의 정수 (%r)" % (sname, item))
+            except (ValueError, TypeError):
+                errors.append("path_styles.%s: [블록, 무게] 형식이 아님: %r" % (sname, item))
+            except vlib.VillageError as e:
+                errors.append("path_styles.%s: %s" % (sname, e))
+
+    placed = []          # (tag, 항목, Piece, Blueprint, 회전, 발자국 상자, 차지한 월드 기둥)
+    for i, e in enumerate(L.get("pieces", [])):
+        pid = e.get("piece")
+        tag = "pieces[%d] %s" % (i, pid)
+        if pid not in pieces:
+            errors.append("%s: 그런 조각이 없음 (있는 것: %s)" % (tag, ", ".join(sorted(pieces))))
+            continue
+        if e.get("front", "north") not in vlib.DIRS:
+            errors.append("%s: front 는 north/east/south/west" % tag)
+            continue
+        if not (isinstance(e.get("at"), list) and len(e["at"]) == 2 and all(isinstance(v, int) for v in e["at"])):
+            errors.append("%s: at 은 [x, z] 정수" % tag)
+            continue
+        if "dy" in e and (not isinstance(e["dy"], int) or abs(e["dy"]) > 6):
+            errors.append("%s: dy 는 −6..6 정수 (§0: 광장 높이 ±6)" % tag)
+        if "slack" in e and (not isinstance(e["slack"], int) or not 0 <= e["slack"] <= 6):
+            errors.append("%s: slack 은 0..6 정수" % tag)
+        p = pieces[pid]
+        bp = bps[pid]
+        r, b = _box(e, p)
+        cols = bp.world_columns(r, b[0], b[1])
+        placed.append((tag, e, p, bp, r, b, cols))
+        far = max(math.hypot(x, z) for (x, z) in cols) if cols else 0
+        if far > R:
+            errors.append("%s: 발자국 (%d,%d)-(%d,%d) 이 반경 %d 밖까지 (%.1f)" % (tag, b[0], b[1], b[2], b[3], R, far))
+    # 조각끼리: 차지한 기둥 + 둘레 1칸이 다른 조각 기둥과 겹치면 안 됨 (Java Planner.overlaps)
+    for i in range(len(placed)):
+        ta, ring_a = placed[i][0], _ring(placed[i][6])
+        for j in range(i + 1, len(placed)):
+            tb, cols_b = placed[j][0], placed[j][6]
+            hit = ring_a & cols_b
+            if hit:
+                kind = "겹침" if placed[i][6] & cols_b else "1칸 여유 없음"
+                errors.append("%s 와 %s %s (예: %s)" % (ta, tb, kind, sorted(hit)[0]))
+    # 정문 앞 칸이 다른 조각·그 둘레에 막히지 않음 (장식·door=false 제외)
+    for tag, e, p, bp, r, b, cols in placed:
+        if not bp.door:
+            continue
+        ax, az = p.anchor
+        rx, rz = vlib.rot_xz(ax, az, p.W, p.D, r)
+        wx, wz = b[0] + rx, b[1] + rz
+        dx, dz = vlib.DXZ[vlib.rot_dir("north", r)]
+        while b[0] <= wx <= b[2] and b[1] <= wz <= b[3]:
+            wx, wz = wx + dx, wz + dz
+        for t2, _, _, _, _, _, cols2 in placed:
+            if t2 != tag and (wx, wz) in _ring(cols2):
+                errors.append("%s: 정문 앞 칸 (%d,%d) 이 %s 에 막힘" % (tag, wx, wz, t2))
+    # 단
+    for i, t in enumerate(L.get("terraces", [])):
+        try:
+            (tx, tz), (tw, td), dy = t["at"], t["size"], t["dy"]
+        except (KeyError, ValueError, TypeError):
+            errors.append("terraces[%d]: {at:[x,z], size:[w,d], dy:n}" % i)
+            continue
+        if abs(dy) > 6:
+            errors.append("terraces[%d]: dy 는 −6..6" % i)
+        far = max(math.hypot(x, z) for x in (tx - tw // 2, tx - tw // 2 + tw - 1) for z in (tz - td // 2, tz - td // 2 + td - 1))
+        if far > R:
+            errors.append("terraces[%d]: 반경 %d 밖" % (i, R))
+    # 길: 붙은 조각(끝점이 2칸 안)이 아닌 조각과는 1칸 여유 (Java Planner.overlaps)
+    for i, pth in enumerate(L.get("paths", [])):
+        pts = pth.get("points", [])
+        tag = "paths[%d]" % i
+        if len(pts) < 2 or not all(isinstance(q, list) and len(q) == 2 and all(isinstance(v, int) for v in q) for q in pts):
+            errors.append("%s: points 는 [[x,z], ...] 정수 두 점 이상" % tag)
+            continue
+        wdt = pth.get("width", 3)
+        if not isinstance(wdt, int) or not 1 <= wdt <= 7:
+            errors.append("%s: width 는 1..7" % tag)
+            continue
+        if pth.get("style", "main") not in styles:
+            errors.append("%s: style '%s' 가 path_styles 에 없음" % (tag, pth.get("style")))
+        att = {_attach(placed, pts[0]), _attach(placed, pts[-1])} - {None}
+        cells = vlib.path_cells(pts, wdt)
+        far = max(math.hypot(x + 0.5, z + 0.5) for (x, z) in cells)
+        if far > R + 1:
+            errors.append("%s: 반경 %d 밖까지 감 (%.1f)" % (tag, R, far))
+        ring = _ring(cells)
+        for k, (t2, _, _, _, _, _, cols2) in enumerate(placed):
+            if k in att:
+                continue
+            hit = ring & cols2
+            if hit:
+                errors.append("%s: 길이 %s 를 지나가거나 1칸 여유 없이 붙음 (예: %s) — 끝점을 그 조각 2칸 안에 두면 붙은 길"
+                              % (tag, t2, sorted(hit)[0]))
+        if not att:
+            warnings.append("%s: 어느 조각에도 붙지 않은 길 (끝점이 조각 2칸 안이 아님)" % tag)
+    # 마커
+    counts = {"spawn": 0, "entrance": 0}
+    seen_npcs = {}
+    for tag, e, p, bp, r, b, cols in placed:
+        for m in p.markers:
+            t = m["type"]
+            if t in counts:
+                counts[t] += 1
+            if t == "npc":
+                nid = m["id"]
+                if nid not in npcs:
+                    errors.append("%s: npc '%s' 가 npcs.yml 에 없음" % (tag, nid))
+                elif npcs[nid] != "overworld":
+                    errors.append("%s: npc '%s' 는 placement=%s (마을에는 overworld NPC 만)" % (tag, nid, npcs[nid]))
+                if nid in seen_npcs:
+                    errors.append("npc '%s' 가 %s 와 %s 에 둘 다 있음" % (nid, seen_npcs[nid], tag))
+                seen_npcs[nid] = tag
+    for t, n in counts.items():
+        if n != 1:
+            errors.append("layout 전체에 %s 마커가 정확히 1개여야 함 (지금 %d)" % (t, n))
+    missing = [n for n in VILLAGE_NPCS if n not in seen_npcs]
+    if missing:
+        warnings.append("마을 NPC 가 아직 없음: %s (selftest npcs=5/5 기준)" % ", ".join(missing))
+
+
+def dump_layout(L):
+    d = lambda v: json.dumps(v, ensure_ascii=False)
+    out = ["{"]
+    keys = [k for k in ("format", "name", "radius") if k in L]
+    for k in keys:
+        out.append("  %s: %s," % (d(k), d(L[k])))
+    rest = [k for k in L if k not in keys]
+    for ki, k in enumerate(rest):
+        v = L[k]
+        comma = "," if ki < len(rest) - 1 else ""
+        if isinstance(v, list):
+            out.append("  %s: [" % d(k))
+            for i, item in enumerate(v):
+                out.append("    %s%s" % (d(item), "," if i < len(v) - 1 else ""))
+            out.append("  ]%s" % comma)
+        elif isinstance(v, dict):
+            out.append("  %s: {" % d(k))
+            items = list(v.items())
+            for i, (kk, vv) in enumerate(items):
+                out.append("    %s: %s%s" % (d(kk), d(vv), "," if i < len(items) - 1 else ""))
+            out.append("  }%s" % comma)
+        else:
+            out.append("  %s: %s%s" % (d(k), d(v), comma))
+    out.append("}")
+    return "\n".join(out) + "\n"
+
+
+def render_all(pieces, L, only, rotations, views):
+    import render
+    os.makedirs(RENDER_DIR, exist_ok=True)
+    bps = {pid: vlib.Blueprint.of(p) for pid, p in pieces.items()}
+    paths = []
+    for pid, bp in sorted(bps.items()):
+        if only and pid not in only:
+            continue
+        px = max(10, min(26, int(900 / (bp.W + bp.D + 4))))
+        sc = render.scene_from_blueprint(bp, 0)
+        paths += render.save_views(sc, os.path.join(RENDER_DIR, pid + ".png"), views, False, px)
+        if rotations:
+            ims = [render.render_iso(render.scene_from_blueprint(bp, r), "ne", px) for r in range(4)]
+            p = os.path.join(RENDER_DIR, pid + "_rot.png")
+            render.contact_sheet(ims, ["%s (front=%s)" % (vlib.ROTATIONS[r], vlib.DIRS[r]) for r in range(4)]).save(p)
+            paths.append(p)
+    if L is not None and not only:
+        need = {e["piece"] for e in L["pieces"]}
+        sc = render.scene_from_layout(L, {k: bps[k] for k in need})
+        paths += render.save_views(sc, os.path.join(RENDER_DIR, "village.png"), views, True, 10)
+    return paths
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(description="마을 조각·layout 생성 + 검증")
+    ap.add_argument("--render", action="store_true", help="조각별 PNG + 마을 전체 PNG → %s" % RENDER_DIR)
+    ap.add_argument("--rotations", action="store_true", help="--render 와 함께: 조각마다 회전 4방향 한 장 (<id>_rot.png)")
+    ap.add_argument("--only", default="", help="--render 할 조각 id (쉼표) — 마을 전체 렌더는 생략")
+    ap.add_argument("--views", default="ne,sw")
+    ap.add_argument("--check", action="store_true", help="검증만 (파일 안 씀)")
+    a = ap.parse_args(argv)
+    t0 = time.time()
+    errors, warnings = [], []
+    mods = load_piece_modules(errors)
+    pieces = build_pieces(mods, errors)
+    L = None
+    try:
+        spec = importlib.util.spec_from_file_location("layout", os.path.join(HERE, "layout.py"))
+        lm = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(lm)
+        L = dict(lm.LAYOUT)
+    except Exception as e:  # noqa: BLE001
+        errors.append("layout.py 불러오기 실패: %s" % e)
+    npcs = read_npcs(NPCS_YML)
+    if L is not None:
+        validate_layout(L, pieces, npcs, errors, warnings)
+
+    for w in warnings:
+        print("경고:", w)
+    if errors:
+        print("\n오류 %d건 — 아무것도 쓰지 않았습니다:" % len(errors))
+        for e in errors:
+            print(" ✗", e)
+        return 1
+
+    if not a.check:
+        os.makedirs(PIECES_DIR, exist_ok=True)
+        for pid, p in sorted(pieces.items()):
+            p.export(os.path.join(PIECES_DIR, pid + ".json"))
+        removed = []
+        for path in glob.glob(os.path.join(PIECES_DIR, "*.json")):
+            if os.path.splitext(os.path.basename(path))[0] not in pieces:
+                os.remove(path)
+                removed.append(os.path.basename(path))
+        with open(os.path.join(RES, "layout.json"), "w", encoding="utf-8") as f:
+            f.write(dump_layout(L))
+        if removed:
+            print("지운 조각 JSON:", ", ".join(sorted(removed)))
+    blocks = sum(sum(1 for layer in p.g for row in layer for v in row if v not in (" ", ".")) for p in pieces.values())
+    print("조각 %d개 (%s) · 블록 %d · layout 조각 %d · 경고 %d · 오류 0%s  (%.1fs)" % (
+        len(pieces), ", ".join(sorted(pieces)), blocks, len(L["pieces"]), len(warnings),
+        "" if a.check else " → " + os.path.relpath(RES, ROOT), time.time() - t0))
+    if a.render:
+        only = {s.strip() for s in a.only.split(",") if s.strip()}
+        for p in render_all(pieces, L, only, a.rotations, [v.strip() for v in a.views.split(",") if v.strip()]):
+            print("렌더:", p)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

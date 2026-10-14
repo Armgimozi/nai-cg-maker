@@ -54,6 +54,11 @@ public final class DungeonModule implements Module {
         services.commands().addSubcommand("labadmin", root);
     }
 
+    /** 예전 석문 기록(entrance.yml)을 복원 없이 버림 — 마을 월드 적용 때 (village 모듈이 호출). @return 버린 기록 수 */
+    public int forgetSavedEntrance() {
+        return entrance == null ? 0 : entrance.forgetSaved();
+    }
+
     @Override
     public void disable() {
         if (entrance != null) entrance.disable();

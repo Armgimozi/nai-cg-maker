@@ -16,6 +16,7 @@ import org.bukkit.inventory.ItemStack;
 
 /**
  * 관리자 초기 설정 GUI (ARCHITECTURE §5): 서버 난이도 4개 중 하나 + 오버월드 입구 방식(석문 블록 / NPC 만).
+ * 미리 지은 마을 월드면(VILLAGE.md §4.3) 입구 방식 선택은 숨기고 "입구: 마을의 미궁의 아가리" 정보만 보여 준다.
  * 확정 = {@code /labadmin setup <난이도>} (첫 설정이면 미궁 개방 방송) + config {@code entrance.mode} 저장.
  * "확정하고 여기에 입구 설치" = 이어서 {@code /labadmin setentrance <방식>} (지형에 맞춰 설치 — dungeon 담당).
  */
@@ -90,29 +91,40 @@ public final class SetupMenu extends LabMenu {
                 refresh();
             });
         }
+        boolean village = kr.labyrinth.village.VillageService.present();
         boolean block = "block".equals(mode);
-        set(38, UiTheme.glint(Button.icon(Material.CHISELED_STONE_BRICKS, "<white><b>입구: 석문</b>",
-                List.of("<gray>관리자가 고른 자리에 작은 석문을 세웁니다.",
-                        "<gray>경사·바닥 높이에 맞추고 나무·물 위는 피합니다.",
-                        "<gray>바꾼 블록은 기록했다가 <white>removeentrance</white> 로 복원.",
-                        "", block ? "<#7fe07f>▶ 선택됨" : "<#ffd36b>클릭: 선택")), block),
-                ctx -> { mode = "block"; click(ctx.player()); refresh(); });
-        set(42, UiTheme.glint(Button.icon(Material.ARMOR_STAND, "<white><b>입구: NPC 만</b>",
-                List.of("<gray>블록을 하나도 바꾸지 않고", "<gray>안내인 NPC 만 세웁니다.",
-                        "", !block ? "<#7fe07f>▶ 선택됨" : "<#ffd36b>클릭: 선택")), !block),
-                ctx -> { mode = "npc"; click(ctx.player()); refresh(); });
-
         Difficulty chosen = s.difficulty(difficulty);
         String dn = chosen == null ? difficulty : chosen.name();
-        set(49, Button.icon(Material.LIME_CONCRETE, "<#7fe07f><b>확정</b>",
-                List.of("<gray>난이도 <white>" + dn + "</white> · 입구 <white>" + (block ? "석문" : "NPC 만"),
-                        "<gray>입구 위치는 나중에 <white>/labadmin setentrance</white>")),
-                ctx -> confirm(ctx.player(), false));
-        set(51, Button.icon(Material.ENDER_PEARL, "<#7fd8ff><b>확정 + 지금 이 자리에 입구 설치</b>",
-                List.of("<gray>난이도 <white>" + dn + "</white> · 입구 <white>" + (block ? "석문" : "NPC 만"),
-                        "<gray>서 있는 자리(바라보는 방향)에 입구를 만듭니다.",
-                        "<dark_gray>미궁 월드 밖의 블록은 석문 방식일 때만, 기록 후 바꿉니다.")),
-                ctx -> confirm(ctx.player(), true));
+        if (village) {
+            // 미리 지은 마을 월드: 입구는 마을 게이트로 정해져 있다 (VILLAGE.md §4.3)
+            deco(40, Button.icon(Material.CRYING_OBSIDIAN, "<#c79bff><b>입구: 마을의 미궁의 아가리</b>",
+                    List.of("<gray>이 월드에는 미리 지은 마을이 있습니다.", "<gray>광장 북쪽 게이트가 미궁 입구입니다.",
+                            "<gray>게이트 문을 우클릭하거나 안내인 벨라에게", "<gray>말을 걸면 입장 메뉴가 열립니다.")));
+            set(49, Button.icon(Material.LIME_CONCRETE, "<#7fe07f><b>확정</b>",
+                    List.of("<gray>난이도 <white>" + dn + "</white> · 입구 <white>마을 게이트")),
+                    ctx -> confirm(ctx.player(), false));
+        } else {
+            set(38, UiTheme.glint(Button.icon(Material.CHISELED_STONE_BRICKS, "<white><b>입구: 석문</b>",
+                    List.of("<gray>관리자가 고른 자리에 작은 석문을 세웁니다.",
+                            "<gray>경사·바닥 높이에 맞추고 나무·물 위는 피합니다.",
+                            "<gray>바꾼 블록은 기록했다가 <white>removeentrance</white> 로 복원.",
+                            "", block ? "<#7fe07f>▶ 선택됨" : "<#ffd36b>클릭: 선택")), block),
+                    ctx -> { mode = "block"; click(ctx.player()); refresh(); });
+            set(42, UiTheme.glint(Button.icon(Material.ARMOR_STAND, "<white><b>입구: NPC 만</b>",
+                    List.of("<gray>블록을 하나도 바꾸지 않고", "<gray>안내인 NPC 만 세웁니다.",
+                            "", !block ? "<#7fe07f>▶ 선택됨" : "<#ffd36b>클릭: 선택")), !block),
+                    ctx -> { mode = "npc"; click(ctx.player()); refresh(); });
+
+            set(49, Button.icon(Material.LIME_CONCRETE, "<#7fe07f><b>확정</b>",
+                    List.of("<gray>난이도 <white>" + dn + "</white> · 입구 <white>" + (block ? "석문" : "NPC 만"),
+                            "<gray>입구 위치는 나중에 <white>/labadmin setentrance</white>")),
+                    ctx -> confirm(ctx.player(), false));
+            set(51, Button.icon(Material.ENDER_PEARL, "<#7fd8ff><b>확정 + 지금 이 자리에 입구 설치</b>",
+                    List.of("<gray>난이도 <white>" + dn + "</white> · 입구 <white>" + (block ? "석문" : "NPC 만"),
+                            "<gray>서 있는 자리(바라보는 방향)에 입구를 만듭니다.",
+                            "<dark_gray>미궁 월드 밖의 블록은 석문 방식일 때만, 기록 후 바꿉니다.")),
+                    ctx -> confirm(ctx.player(), true));
+        }
         set(45, UiTheme.close(), ctx -> ctx.player().closeInventory());
     }
 
@@ -122,11 +134,13 @@ public final class SetupMenu extends LabMenu {
             return;
         }
         boolean admin = p.hasPermission(CommandService.PERM_ADMIN);
+        boolean village = kr.labyrinth.village.VillageService.present();
         String m = mode;
-        if (admin) services.updateConfig(c -> c.set("entrance.mode", m));
+        if (admin && !village) services.updateConfig(c -> c.set("entrance.mode", m));
         p.closeInventory();
         if (!kr.labyrinth.core.ServerSetup.applyDifficulty(p, difficulty)) return;
         p.playSound(p.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 0.8f, 1.2f);
+        if (village) return; // 입구 = 마을 게이트 (이미 설정됨)
         if (!admin) {
             Text.send(p, "<gray>입구(석문/NPC) 설치는 op 가 <white>/labadmin setentrance</white> 로 할 수 있습니다. "
                     + "입구가 없어도 파티장 근처에 모여 <white>/미궁</white> 으로 입장할 수 있어요.");

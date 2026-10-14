@@ -1,0 +1,15 @@
+{
+  "format": 1,
+  "name": "등불 어귀 마을",
+  "radius": 32,
+  "pieces": [
+    {"piece": "demo_hut", "at": [0, 0], "front": "north"}
+  ],
+  "paths": [
+    {"points": [[0, -4], [0, -12], [6, -18]], "width": 3, "style": "main"}
+  ],
+  "path_styles": {
+    "main": [["minecraft:stone_bricks", 4], ["minecraft:cracked_stone_bricks", 1], ["minecraft:polished_andesite", 2], ["minecraft:mossy_stone_bricks", 1]],
+    "lane": [["minecraft:dirt_path", 6], ["minecraft:coarse_dirt", 1], ["minecraft:gravel", 1]]
+  }
+}

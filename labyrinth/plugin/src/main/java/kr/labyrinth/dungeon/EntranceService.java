@@ -151,6 +151,23 @@ public final class EntranceService implements Listener {
         return "<green>입구를 제거했습니다</green> <gray>(원래 블록 " + n + "개 복원)";
     }
 
+    /**
+     * 예전 석문 기록을 복원하지 않고 버린다 (마을 월드로 바꿨을 때 — 예전 월드 좌표라 새 월드를 망가뜨림, VILLAGE.md §4.3).
+     * entrance.yml → entrance.yml.old. @return 버린 블록 기록 수
+     */
+    public int forgetSaved() {
+        int n = saved.size();
+        saved.clear();
+        gateBlocks.clear();
+        gateCenter = null;
+        if (file.exists()) {
+            File old = new File(file.getParentFile(), "entrance.yml.old");
+            if (old.exists() && !old.delete()) Log.warn("entrance.yml.old 지우기 실패");
+            if (!file.renameTo(old)) Log.warn("entrance.yml → entrance.yml.old 이름 바꾸기 실패");
+        }
+        return n;
+    }
+
     private String guideNpc() {
         for (var n : services.content().npcs().values()) if ("entrance".equals(n.role())) return n.id();
         return null;

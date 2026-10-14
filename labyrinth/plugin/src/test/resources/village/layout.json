@@ -1,0 +1,19 @@
+{
+  "format": 1,
+  "name": "시험 마을",
+  "radius": 20,
+  "pieces": [
+    { "piece": "square", "at": [0, 0], "front": "north" },
+    { "piece": "hut", "at": [0, -11], "front": "south" },
+    { "piece": "hut", "at": [11, 0], "front": "west" },
+    { "piece": "lamp_post", "at": [4, -7], "front": "north" }
+  ],
+  "paths": [
+    { "points": [[0, -5], [0, -8]], "width": 3, "style": "main" },
+    { "points": [[5, 0], [8, 0]], "width": 3, "style": "lane" }
+  ],
+  "path_styles": {
+    "main": [["minecraft:stone_bricks", 4], ["minecraft:mossy_stone_bricks", 1]],
+    "lane": [["minecraft:dirt_path", 6], ["minecraft:gravel", 1]]
+  }
+}

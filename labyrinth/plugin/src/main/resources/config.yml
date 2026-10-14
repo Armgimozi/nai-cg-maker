@@ -29,6 +29,7 @@ world:
   name: labyrinth_world
 
 # 오버월드 입구 — /labadmin setentrance 로 지정. mode: block(작은 입구 구조물) | npc(NPC 만, 블록 변경 0)
+#   | village(미리 지은 마을의 게이트 — 마을 월드를 처음 켤 때 자동으로 정해짐)
 entrance:
   mode: ""
   world: ""
@@ -38,6 +39,12 @@ entrance:
   yaw: 0.0
   pitch: 0.0
   radius: 8                 # 파티 입장 시 파티원이 입구 근처에 있어야 하는 반경(블록)
+
+# 미리 지은 마을 (VILLAGE.md) — 주 월드 폴더에 labyrinth-village.yml 이 있을 때만 켜진다 (서버팩의 world 폴더)
+village:
+  teleport_command: true     # /미궁 마을 로 광장 텔레포트
+  block_mob_spawns: true     # 마을 안 적대 몹 자연 스폰 막기
+  blocks_per_tick: 4000      # village build 속도 (개발용)
 
 # 초기 설정 — true 면 op 가 아니어도 서버 난이도를 정하거나 바꿀 수 있다 (/미궁 난이도, 처음 접속 시 설정 창).
 setup:

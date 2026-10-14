@@ -16,7 +16,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-/** /미궁 — 메인 메뉴: 프로필 + 입장·파티·대전·스탯·직업·칭호·장신구·대장간·상점·기록 바로가기. */
+/** /미궁 — 메인 메뉴: 프로필 + 입장·파티·대전·스탯·직업·칭호·장신구·대장간·상점·기록·마을 바로가기. */
 public final class MainMenu extends LabMenu {
 
     public MainMenu(Services services) {
@@ -93,6 +93,15 @@ public final class MainMenu extends LabMenu {
         set(47, Button.icon(Material.KNOWLEDGE_BOOK, "<#ffd36b><b>미궁 도감</b>",
                 List.of("<gray>모든 무기·방어구·장신구·재료와", "<gray>몬스터·보스, 그리고 어디서 얻는지.", "", "<#ffd36b>클릭: 도감 열기 <dark_gray>(/도감)")),
                 ctx -> { click(ctx.player()); new CodexMenu(services).open(ctx.player()); });
+        boolean village = kr.labyrinth.village.VillageService.present();
+        set(51, Button.icon(Material.LANTERN, "<#ffd36b><b>마을</b>",
+                village ? List.of("<gray>등불 광장으로 돌아갑니다.", "<dark_gray>(미궁 안에서는 먼저 /미궁 귀환)", "", "<#ffd36b>클릭: 광장으로 <dark_gray>(/미궁 마을)")
+                        : List.of("<dark_gray>이 월드에는 마을이 없습니다.", "<dark_gray>(서버팩의 world 폴더를 쓰세요)")),
+                ctx -> {
+                    click(ctx.player());
+                    ctx.player().closeInventory();
+                    kr.labyrinth.village.VillageService.teleportCommand(ctx.player());
+                });
         set(45, UiTheme.close(), ctx -> ctx.player().closeInventory());
         if (kr.labyrinth.core.ServerSetup.canSetDifficulty(p)) {
             set(53, Button.icon(Material.COMMAND_BLOCK, "<#ff6b6b><b>서버 설정</b> <gray>(난이도)",

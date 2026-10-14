@@ -1,0 +1,11 @@
+{
+  "format": 1,
+  "id": "lamp_post",
+  "name": "가로등",
+  "size": [1, 4, 1],
+  "floor_y": 0,
+  "anchor": [0, 0],
+  "palette": { "b": "minecraft:stone_brick_wall[east=none,north=none,south=none,up=true,waterlogged=false,west=none]", "f": "minecraft:dark_oak_fence[east=false,north=false,south=false,waterlogged=false,west=false]", "L": "minecraft:lantern[hanging=false,waterlogged=false]" },
+  "layers": [["b"], ["f"], ["f"], ["L"]],
+  "markers": []
+}

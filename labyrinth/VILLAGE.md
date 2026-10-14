@@ -39,7 +39,10 @@
 | `tools/village/vlib.py` | 조각 그리기 라이브러리 (캔버스, 모양 도우미, 블록 상태 도우미, 연결 상태 계산, JSON 내보내기) | 설계 도구 |
 | `tools/village/render.py` | 등각(isometric) PNG 렌더러 — 조각 JSON / 마을 전체 / 서버 덤프 | 설계 도구 |
 | `tools/village/pieces_*.py` | 조각 설계 코드 (실행하면 JSON 생성) | 설계 |
-| `tools/village/build_all.py` | 모든 조각 + layout 생성 → `plugin/src/main/resources/village/` 에 씀, 검증 | 설계 도구 |
+| `tools/village/build_all.py` | 모든 조각 + layout 생성 → `plugin/src/main/resources/village/` 에 씀, 검증 (`--render` → `/tmp/village_renders/`) | 설계 도구 |
+| `tools/village/blockdata.json` | 26.x 바닐라 블록 상태 표(속성 이름·값·기본값)·태그·모양·텍스처 평균색 — vlib 검증·render 색의 기준 (생성물, 커밋함) | 설계 도구 |
+| `tools/village/gen_blockdata.py` | blockdata.json 생성기 (서버 jar 데이터 생성기 `--reports` + 클라이언트 jar 모델·텍스처). 버전 올릴 때만 | 설계 도구 |
+| `tools/village/README.md` | 조각 설계자용 사용법 | 설계 도구 |
 | `plugin/src/main/resources/village/pieces/<id>.json` | 조각 청사진 (생성물, 커밋함) | 생성물 |
 | `plugin/src/main/resources/village/layout.json` | 마을 배치 (생성물, 커밋함) | 생성물 |
 | `plugin/src/main/java/kr/labyrinth/village/*` | VillageModule · 청사진 파서 · VillageBuilder(지형 다듬기+짓기, 관리자 명령) · VillageService(실행 중: 보호·NPC·입구·텔레포트) | Java |
@@ -61,6 +64,9 @@ Python 은 표준 라이브러리 + Pillow 만 쓴다 (`/opt/packvenv/bin/python
   "foundation": "minecraft:cobblestone",
   "foundation_mix": [["minecraft:cobblestone", 3], ["minecraft:mossy_cobblestone", 1], ["minecraft:andesite", 1]],
   "anchor": [ax, az],
+  "deco": false,
+  "door": true,
+  "slack": 2,
   "max_cut": 3,
   "max_fill": 4,
   "palette": { "#": "minecraft:stone_bricks", "s": "minecraft:spruce_stairs[facing=north,half=bottom,shape=straight,waterlogged=false]" },
@@ -68,6 +74,10 @@ Python 은 표준 라이브러리 + Pillow 만 쓴다 (`/opt/packvenv/bin/python
   "markers": [ { "type": "npc", "id": "blacksmith", "pos": [x, y, z], "face": "front" } ]
 }
 ```
+
+- 선택 필드: `deco` (장식 조각 — slack 3, 정문 검사 생략. 없으면 id 접두어로 판단: `lamp_post`·`bench`·`well`·`flower_bed`·`tree_`·
+  `signpost`·`cart`·`fence`·`planter`·`statue`·`banner_pole`·`crate`·`barrel_stack`·`hay`), `door` (false 면 정문 앞 걸어 들어가기 검사 생략),
+  `slack` (§0 위치 조정 칸 수, layout 항목의 slack 이 우선). vlib: `Piece(..., deco=, door=, slack=)`.
 
 ### 2.1 좌표 (정방향 = canonical)
 - `x` 0..W-1, `y` 0..H-1, `z` 0..D-1. `layers[y][z]` 는 길이 W 문자열, 글자 하나 = x 한 칸.
@@ -95,7 +105,10 @@ Python 은 표준 라이브러리 + Pillow 만 쓴다 (`/opt/packvenv/bin/python
     촛불(`lit=true` 유지됨)·모닥불·용암 가마솥(`lava_cauldron`)·발광석·바다 랜턴·버섯불·엔드 막대.
   - 금지 블록: 물·용암 **흐르는 것**(분수 물은 사방이 막힌 웅덩이 안의 source 만), 엔드 관문/포털, TNT, 스포너, 셜커 상자,
     호퍼/디스펜서/드로퍼/크래프터/관찰자 같은 레드스톤 장치, 명령 블록, 엔티티(갑옷 거치대·액자)는 청사진에 넣지 않는다.
-- 팔레트 글자는 한 조각 안에서 유일하면 아무 글자나 된다 (`' '`, `'.'` 제외). 글자가 모자라면 유니코드 아무 글자.
+- 팔레트 글자는 한 조각 안에서 유일하면 아무 글자나 된다 (`' '`, `'.'` 제외). 글자가 모자라면 유니코드 아무 글자
+  (Java 는 코드포인트 단위로 읽는다; vlib 는 BMP 글자만 쓴다).
+- 블록 이름·속성은 26.x 기준 (blockdata.json 이 데이터 생성기 결과). 예전 이름 주의: `chain` → `iron_chain`, `grass` → `short_grass`.
+  vlib 는 없는 블록·속성·값을 넣는 즉시 예외로 알려 주고, finalize 때 빠진 속성을 바닐라 기본값으로 채워 **모든 속성을 명시**한다.
 
 ### 2.3 높이 규칙
 - `floor_y`: 걸어 다니는 바닥 층의 layer 번호. 바닥 블록이 이 층에 있고, 사람은 `floor_y + 1` 높이에 선다.
@@ -108,7 +121,7 @@ Python 은 표준 라이브러리 + Pillow 만 쓴다 (`/opt/packvenv/bin/python
 ### 2.4 마커
 | type | 필드 | 뜻 |
 |---|---|---|
-| `npc` | `id`(npcs.yml id), `pos`, `face` (`front`/`back`/`left`/`right`, 정방향 기준; front=북) | NPC 를 그 칸 가운데, 바닥 위에 세움. 회전 적용 |
+| `npc` | `id`(npcs.yml id), `pos`, `face` (`front`/`back`/`left`/`right`, 정방향 기준; front=북, back=남, left=서(−X), right=동(+X) — 건물이 북쪽을 볼 때 건물의 왼손/오른손) | NPC 를 그 칸(발 칸) 가운데, 바닥 위에 세움. 회전 적용 |
 | `entrance` | `pos`, `face` | 미궁 입구 위치(config entrance). 파티 모이는 곳. 게이트 조각에 하나 |
 | `interact` | `action` (`entrance`/`blacksmith`/`class`/`titles`/`merchant`/`main`), `pos` 들 (`"pos": [[x,y,z], ...]`) | 그 블록 우클릭 → 메뉴 열기 |
 | `spawn` | `pos`, `face` | 마을 스폰(월드 스폰·/미궁 마을 텔레포트). 광장 조각에 하나 |
@@ -143,13 +156,23 @@ pattern_key 는 마인크래프트 배너 무늬 id (`border`, `stripe_center`, 
 ```
 
 - 마을 좌표: 마을 중심 = (0, 0). 마을 정방향에서 **게이트(마을의 "앞")는 북쪽(−Z)**. `at` = 조각의 (회전 후) 발자국 가운데 칸의 마을 좌표.
+  가운데 칸 = 발자국 최소 모서리 + (회전 후 폭 // 2, 깊이 // 2) — 즉 최소 모서리 = `at − (w//2, d//2)` (짝수 폭도 이 규칙).
   `front` = 조각 정면이 바라볼 방향(마을 정방향 기준).
-- 마을 전체도 회전할 수 있다 (`StructureRotation` 하나): 조각 `at` 을 회전하고 각 조각 front 에 같은 회전을 더한다.
+- 마을 전체도 회전할 수 있다 (`StructureRotation` 하나): 각 조각 발자국 **상자의 두 모서리**를 (x, z)→(−z, x) 식으로 돌려 새 상자를 잡고
+  (짝수 폭에서 `at` 만 돌리면 1칸 어긋나 여유가 깨질 수 있음), 각 조각 front 에 같은 회전을 더한다. 길 점도 같은 식으로 돌린다.
+- 조각 항목 선택 필드: `"dy": n` (단 높이를 H0 기준으로 고정), `"slack": n` (§0 위치 조정 칸 수 — 조각 JSON 의 slack·장식 기본 3보다 우선).
+  layout 선택 필드 `"blend": 16` (§4.1 혼합 띠 B).
 - `paths`: 꺾은선 점들(마을 좌표) 사이를 `width` 폭으로 칠한다. 다듬은 지형(§4.1) 맨 윗블록을 스타일 블록으로 바꾸고 그 위 한 칸
   식물은 지운다. 조각 발자국 안 칸은 건너뜀. 길 높이는 양 끝 단 사이를 완만하게 잇는다(§4.1 목표 높이장).
 - 선택: `"terraces"` — 추가 단 `{ "at": [x, z], "size": [w, d], "dy": 2 }` (광장 높이 H0 기준 상대 높이, 예: 게이트를 광장보다 2칸 높은
   단에 올려 계단으로 오르게). 조각 단 높이를 직접 고정하려면 조각 항목에 `"dy": n` (H0 기준).
 - 조각 발자국끼리 겹치면 안 된다 (build_all.py 가 검사). 장식 조각(가로등·벤치·나무·화단)도 조각으로 배치한다.
+  겹침 판정은 Java `Planner.overlaps` 와 같다: 조각이 **차지한 기둥**(어느 층이든 `' '` 가 아닌 칸이 있는 (x, z)) + 둘레 1칸(8방향)이
+  다른 조각의 차지한 기둥에 닿으면 안 됨.
+- 길 칸 = 중심선(홀수 폭은 점이 칸 가운데, 짝수 폭은 칸 모서리)까지 거리 ≤ 폭/2 − 0.01 인 칸 (Java `PathRaster`, vlib `path_cells`).
+  길 끝점이 어떤 조각의 차지한 기둥에서 체비셰프 2칸 안이면 그 조각에 **붙은 길** — 붙은 조각과는 닿아도 되고(문 앞까지 이어짐,
+  slack 으로 조각이 옮겨지면 끝점도 같이 옮김), 그 밖의 조각과는 길 칸 + 둘레 1칸이 닿으면 안 된다. 정문 앞 칸(anchor 에서 정면으로
+  발자국을 벗어난 첫 칸)은 다른 조각과 그 둘레에 들어가면 안 된다 (장식·`door: false` 제외).
 
 ---
 
@@ -261,8 +284,9 @@ village:
 - 마을 크기: 반경 ~32 (지름 ~65) 안에 다 들어가게. 광장 북쪽에 게이트, 광장 둘레에 대장간·전당·보관소·상점, 바깥에 여관·집·장식.
 
 ## 6. 검증 기준 (끝났다고 하려면)
-1. `build_all.py` — 모든 조각 JSON 생성, 팔레트 문자열 형식, 금지 블록 없음, 발자국 겹침 없음, 마커 좌표가 크기 안,
-   npc 마커 id 가 npcs.yml 에 있음, 연결 블록 상태 명시. 경고 0.
+1. `build_all.py` — 모든 조각 JSON 생성, 팔레트 문자열 형식, 블록 이름·속성이 26.x 에 있음, 금지 블록 없음, 발자국 겹침 없음(§3 규칙),
+   길이 붙지 않은 조각과 1칸 여유, 정문 앞 칸 막힘 없음, 반경 안, 마커 좌표가 크기 안, spawn·entrance 각 1개, npc 마커 id 가
+   npcs.yml 의 overworld NPC, 연결 블록 상태 명시, 받침 없는 매단 등불·벽 표지판 없음. 경고 0 (마을 NPC 5명이 다 있어야 경고 0).
 2. Java 단위 테스트: 청사진 파싱, 회전 좌표 공식 4방향(좌표 + facing 블록), 마커 회전, 목표 높이장(가짜 높이맵: 단 고정, 이웃 차 ≤1, 띠에서 원래 높이로 수렴).
 3. 테스트 서버: `village build` 후 `village selftest` 예외 0 · mismatched=0 · npcs=5/5, 미궁 `labadmin selftest` 예외 0.
 4. 배포 zip 을 빈 폴더에 풀어 켰을 때 마을이 있고 스폰이 광장, NPC 5명, 게이트 우클릭 → 입구 메뉴.
