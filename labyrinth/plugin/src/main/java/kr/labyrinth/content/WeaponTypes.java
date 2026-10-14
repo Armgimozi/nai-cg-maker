@@ -45,9 +45,9 @@ public final class WeaponTypes {
         return held != null && held.isWeapon() && level >= held.levelReq() ? held : null;
     }
 
-    /** 직업 스킬을 쓸 수 있는가 — 직업이 있고 손에 미궁 무기(종류 무관)를 들었으면 된다. 바닐라 무기는 해당 없음. */
+    /** 직업 스킬을 쓸 수 있는가 — 직업만 있으면 무엇을 들었든 (사용자 결정 "언제나"). 무기가 없으면 환산 배율 1. */
     public static boolean canCastClassSkill(ClassDef cls, ItemDef held) {
-        return cls != null && held != null && held.isWeapon();
+        return cls != null;
     }
 
     /** 든 무기가 그 직업의 추천 무기인가. */

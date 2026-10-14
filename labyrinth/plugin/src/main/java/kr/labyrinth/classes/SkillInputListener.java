@@ -21,8 +21,9 @@ import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.ItemStack;
 
 /**
- * 직업 스킬 키 (ARCHITECTURE §4 스킬 입력): 미궁 무기를 들고 있을 때
- * F(손 바꾸기)=SWAP, 웅크리기+F=SNEAK_SWAP, Q(버리기)=DROP, 웅크리기+Q=SNEAK_DROP.
+ * 직업 스킬 키 (ARCHITECTURE §4 스킬 입력):
+ * F(손 바꾸기)=SWAP, 웅크리기+F=SNEAK_SWAP, Q(버리기)=DROP, 웅크리기+Q=SNEAK_DROP — 직업이 있으면 무엇을 들었든 (사용자 결정).
+ * 직업이 없으면 F·Q 는 바닐라 그대로. 맨손일 때 Q 는 서버로 오는 이벤트가 없어 스킬이 나가지 않는다(클라이언트 한계).
  * 손 바꾸기·Q 버리기는 취소한다. <b>인벤토리 창에서 끌어서/Q 로 버리기는 허용</b>(같은 틱의 인벤토리 클릭으로 구분).
  * 좌·우클릭(무기 스킬, items 담당)은 건드리지 않는다.
  */
@@ -38,14 +39,14 @@ final class SkillInputListener implements Listener {
         this.classes = classes;
     }
 
-    private boolean holdsWeapon(Player p) {
-        return services.items().isLabyrinthWeapon(p.getInventory().getItemInMainHand());
+    private boolean hasClass(Player p) {
+        return classes.classOf(p) != null;
     }
 
     @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
     public void onSwap(PlayerSwapHandItemsEvent e) {
         Player p = e.getPlayer();
-        if (!holdsWeapon(p)) return;
+        if (!hasClass(p)) return;
         e.setCancelled(true);
         classes.handleSkillInput(p, p.isSneaking() ? "SNEAK_SWAP" : "SWAP");
     }
@@ -72,8 +73,8 @@ final class SkillInputListener implements Listener {
         Player p = e.getPlayer();
         Integer windowTick = lastWindowTick.get(p.getUniqueId());
         if (windowTick != null && Bukkit.getCurrentTick() - windowTick <= 1) return; // 인벤토리 창에서 버림 → 허용
+        if (!hasClass(p)) return;
         ItemStack dropped = e.getItemDrop().getItemStack();
-        if (!services.items().isLabyrinthWeapon(dropped)) return;
         ItemStack hand = p.getInventory().getItemInMainHand();
         // Q 는 주 손 아이템을 버린다: 버린 직후 주 손은 비어 있거나(장비는 1개) 같은 아이템의 나머지
         if (!(hand.getType().isAir() || hand.isSimilar(dropped))) return;
@@ -88,7 +89,7 @@ final class SkillInputListener implements Listener {
         ItemStack next = p.getInventory().getItem(e.getNewSlot());
         if (next != null && services.items().isLabyrinthWeapon(next)) {
             Bukkit.getScheduler().runTask(services.plugin(), () -> {
-                if (p.isOnline() && holdsWeapon(p)) classes.showSkillBar(p);
+                if (p.isOnline() && hasClass(p)) classes.showSkillBar(p);
             });
         }
     }

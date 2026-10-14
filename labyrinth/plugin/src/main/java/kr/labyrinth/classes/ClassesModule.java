@@ -181,8 +181,8 @@ public final class ClassesModule implements Module, Listener {
                     + LabyrinthClassService.fmt(s.cooldown()) + "초" + (cd > 0 ? " <red>(" + LabyrinthClassService.fmt(cd) + "초 남음)" : ""))));
             p.sendMessage(Text.mm("   <gray>").append(Text.mm("<gray>" + s.description())));
         }
-        p.sendMessage(Text.mm("<dark_gray>미궁 무기(종류 무관)를 든 채로 " + kr.labyrinth.core.InputKeys.CLASS_KEYS
+        p.sendMessage(Text.mm("<dark_gray>무엇을 들었든 " + kr.labyrinth.core.InputKeys.CLASS_KEYS
                 + " · 추천 무기(" + LabyrinthClassService.weaponNames(c) + ")면 재사용 대기 −"
-                + Text.pct(kr.labyrinth.content.WeaponTypes.RECOMMENDED_COOLDOWN_CUT)));
+                + Text.pct(kr.labyrinth.content.WeaponTypes.RECOMMENDED_COOLDOWN_CUT) + " · 버리기·손 바꾸기는 인벤토리 창에서"));
     }
 }

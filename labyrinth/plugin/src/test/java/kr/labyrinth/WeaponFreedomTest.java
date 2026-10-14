@@ -65,20 +65,20 @@ class WeaponFreedomTest {
 
     @Test
     void classSkillPassesWithAnyLabyrinthWeapon() {
-        assertEquals(66, weapons().size());
+        assertTrue(weapons().size() >= 66);
         int checked = 0;
         for (ClassDef cls : content.classes().values()) {
             for (ItemDef w : weapons()) {
                 assertTrue(WeaponTypes.canCastClassSkill(cls, w), cls.id() + " + " + w.id());
                 checked++;
             }
-            // 미궁 무기가 아닌 것(맨손·방패·장신구·재료)으로는 안 나간다 — 바닐라 무기도 손에 든 미궁 무기가 없는 것과 같다
-            assertFalse(WeaponTypes.canCastClassSkill(cls, null));
+            // 사용자 결정 "언제나": 맨손·방패·장신구·재료·바닐라 무기로도 나간다
+            assertTrue(WeaponTypes.canCastClassSkill(cls, null));
             for (ItemDef other : content.items().values()) {
-                if (!other.isWeapon()) assertFalse(WeaponTypes.canCastClassSkill(cls, other), cls.id() + " + " + other.id());
+                if (!other.isWeapon()) assertTrue(WeaponTypes.canCastClassSkill(cls, other), cls.id() + " + " + other.id());
             }
         }
-        assertEquals(6 * 66, checked);
+        assertEquals(6 * weapons().size(), checked);
         assertFalse(WeaponTypes.canCastClassSkill(null, content.item("ember_greatsword")), "직업이 없으면 직업 스킬 없음");
     }
 

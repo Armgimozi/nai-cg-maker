@@ -144,8 +144,8 @@ public final class LabyrinthClassService implements ClassService, SkillContext.H
         if (best == null || services.items().give(player, best.id(), 1, "starter") <= 0) return;
         d.ext().put(flag, true);
         d.markDirty();
-        Text.send(player, "<gray>추천 무기를 받았습니다: <white>" + best.name() + "</white> <gray>— 손에 들고 <white>"
-                + kr.labyrinth.core.InputKeys.CLASS_KEYS + "</white> 로 스킬을 씁니다 <dark_gray>(다른 미궁 무기도 되지만 추천 무기면 재사용 대기 −"
+        Text.send(player, "<gray>추천 무기를 받았습니다: <white>" + best.name() + "</white> <gray>— 스킬은 무엇을 들었든 <white>"
+                + kr.labyrinth.core.InputKeys.CLASS_KEYS + "</white> <dark_gray>(추천 무기를 들면 재사용 대기 −"
                 + Text.pct(WeaponTypes.RECOMMENDED_COOLDOWN_CUT) + ")");
     }
 
@@ -208,12 +208,7 @@ public final class LabyrinthClassService implements ClassService, SkillContext.H
         ClassDef.SkillDef sk = cls.skillByInput(input);
         if (sk == null) return false;
         String col = cls.color();
-        ItemDef weapon = services.items().heldWeapon(player);
-        if (!WeaponTypes.canCastClassSkill(cls, weapon)) {
-            bar(player, "<#ff8080>미궁 무기를 들어야 합니다 <gray>(종류 무관 · 추천 " + weaponNames(cls) + ")", 40);
-            deny(player);
-            return true;
-        }
+        ItemDef weapon = services.items().heldWeapon(player); // 추천 무기 재사용 대기 판정용 (스킬 자체는 무엇을 들었든 나간다)
         int level = services.data().get(player).level();
         if (level < sk.unlockLevel()) {
             bar(player, "<" + col + ">" + sk.name() + "</" + col + "> <#ff8080>— Lv." + sk.unlockLevel() + " 에 해금", 40);

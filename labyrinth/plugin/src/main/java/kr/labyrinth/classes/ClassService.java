@@ -7,7 +7,7 @@ import org.bukkit.entity.Player;
 /**
  * 직업·직업 스킬·마나·쿨다운 (classes.yml, classes/skills/*). 소유: classes 담당.
  * 기본 구현 {@link BasicClassService}: 직업 저장 + 마나 풀(시간 경과 재생)만, 스킬 없음.
- * 실제 구현 {@link LabyrinthClassService}: F/Q(손 바꾸기·버리기) 입력을 직접 듣는다(미궁 무기를 들었을 때만 가로채기).
+ * 실제 구현 {@link LabyrinthClassService}: F/Q(손 바꾸기·버리기) 입력을 직접 듣는다(직업이 있으면 항상 가로채기).
  */
 public interface ClassService {
 
