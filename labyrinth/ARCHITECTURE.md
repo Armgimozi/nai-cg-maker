@@ -122,8 +122,9 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
 - **무기 스킬** (상위 무기에 내장, `items.yml` 의 `weapon_skills`):
   좌클릭 = 무기 기본기(예: 검을 휘두르면 검기가 날아감, 짧은 내부 쿨다운),
   우클릭 = 무기 스킬, 웅크리기+좌클릭 = 무기 스킬2, 웅크리기+우클릭 = 무기 스킬3(오의).
-  영웅 = 좌클릭+우클릭, 전설 = +웅크리기+좌클릭, 신화 = 4개 전부. 활은 우클릭(당기기)을 그대로 두고
-  좌클릭·웅크리기+좌클릭·웅크리기+우클릭에 스킬을 둔다.
+  **무기마다 다르게**: 상위 무기라고 4칸을 다 채우지 않는다. 무기 콘셉트에 맞는 1~3개가 보통이고,
+  4개 전부는 일부 신화 무기만. **좌클릭 기본기(검기 등)는 소수의 무기에만** — 대부분의 무기는 좌클릭이
+  평범한 공격이다. 활은 우클릭(당기기)을 그대로 둔다.
 - **직업 스킬**: F(손 바꾸기) = 스킬1, 웅크리기+F = 스킬2, Q(버리기) = 스킬3, 웅크리기+Q = 궁극기.
   미궁 무기를 든 상태의 손 바꾸기·Q 버리기 이벤트는 취소(인벤토리 창에서 끌어서 버리기는 허용).
 
@@ -182,7 +183,7 @@ items:
     stats: {damage: [38, 44], STR: [6, 9], crit_chance: [0.04, 0.06]}   # [최소, 최대] 굴림
     set_bonus: null           # 세트 id (sets: 섹션 참고)
     aura: ember               # fx.yml aura id (전설/신화 무기)
-    weapon_skills:            # 상위 무기 내장 스킬 (영웅 2개, 전설 3개, 신화 4개). 구현: items/weaponskills/*
+    weapon_skills:            # 일부 상위 무기에만, 무기마다 1~4개(보통 1~3). 좌클릭 기본기는 소수 무기만. 구현: items/weaponskills/*
       - id: ember_wave        # 코드 구현 키 (공용 구현을 params 로 재사용 가능: slash_wave, nova, dash_strike ...)
         name: "잿불 검기"
         input: LEFT           # LEFT | RIGHT | SNEAK_LEFT | SNEAK_RIGHT
