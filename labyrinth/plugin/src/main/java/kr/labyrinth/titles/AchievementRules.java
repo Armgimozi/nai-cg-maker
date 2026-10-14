@@ -19,7 +19,8 @@ import kr.labyrinth.core.Difficulty;
  *   <li>{@code titles.diff_clear.<층>} 클리어한 가장 높은 난이도 순위+1 (쉬움 1 … 악몽 4, 0 = 없음)</li>
  *   <li>{@code titles.best_time.<층>} 최단 클리어 초(올림, 0 = 없음)</li>
  *   <li>{@code titles.first_clear.<층>} 서버 최초 돌파 파티 일원이면 1</li>
- *   <li>{@code titles.kills} · {@code titles.kill.<몹>} · {@code titles.kill_rank.<rank>} 처치 수(기여자 전원)</li>
+ *   <li>{@code titles.kills} · {@code titles.kill.<몹>} · {@code titles.kill_rank.<rank>} 처치 수(기여자 전원)
+ *       — KILL 의 {@code mobs: [id, …]} 는 그 몹들의 {@code titles.kill.<몹>} 합</li>
  *   <li>{@code titles.boss_kills} · {@code titles.boss_kill.<보스>}</li>
  *   <li>{@code titles.obtain.<희귀도>} 그 희귀도 장비 획득 수(정확히 일치)</li>
  *   <li>{@code titles.crafts} · {@code titles.craft_min.<희귀도>} 그 희귀도 이상 제작 수</li>
@@ -72,6 +73,7 @@ public final class AchievementRules {
                 long need = Math.max(1, c.integer("count", 1));
                 String mob = c.str("mob");
                 String rank = c.str("rank");
+                if (!c.strings("mobs").isEmpty()) return killSum(c, v) >= need;
                 if (mob != null && !mob.isBlank()) return v.applyAsLong(P + "kill." + mob) >= need;
                 if (rank != null && !rank.isBlank()) return v.applyAsLong(P + "kill_rank." + rank.toLowerCase(Locale.ROOT)) >= need;
                 return v.applyAsLong(P + "kills") >= need;
@@ -106,6 +108,13 @@ public final class AchievementRules {
         }
     }
 
+    /** KILL {@code mobs: [..]} — 나열한 몹들의 처치 수 합 (몹별 카운터라 예전 처치도 소급된다). */
+    private static long killSum(Params c, ToLongFunction<String> v) {
+        long sum = 0;
+        for (String id : c.strings("mobs")) sum += v.applyAsLong(P + "kill." + id);
+        return sum;
+    }
+
     /**
      * 진행도 (UI 표시용): [현재, 목표]. 수치형이 아닌 조건(최초 돌파·무사망 등)은 달성 여부 0/1.
      */
@@ -121,7 +130,8 @@ public final class AchievementRules {
                 goal = Math.max(1, c.integer("count", 1));
                 String mob = c.str("mob");
                 String rank = c.str("rank");
-                if (mob != null && !mob.isBlank()) cur = v.applyAsLong(P + "kill." + mob);
+                if (!c.strings("mobs").isEmpty()) cur = killSum(c, v);
+                else if (mob != null && !mob.isBlank()) cur = v.applyAsLong(P + "kill." + mob);
                 else if (rank != null && !rank.isBlank()) cur = v.applyAsLong(P + "kill_rank." + rank.toLowerCase(Locale.ROOT));
                 else cur = v.applyAsLong(P + "kills");
             }
@@ -163,7 +173,8 @@ public final class AchievementRules {
             case "DIFFICULTY_CLEAR" -> "지하 " + floor + "층을 '" + difficultyName(c.str("difficulty", "normal")) + "' 이상으로 클리어";
             case "SPEED_CLEAR" -> "지하 " + floor + "층을 " + timeText(c.integer("seconds", 0)) + " 안에 클리어";
             case "KILL" -> {
-                String what = c.str("mob") != null ? "지정 몬스터" : c.str("rank") != null ? rankName(c.str("rank")) : "몬스터";
+                String what = !c.strings("mobs").isEmpty() ? "지정 몬스터(" + c.strings("mobs").size() + "종)"
+                        : c.str("mob") != null ? "지정 몬스터" : c.str("rank") != null ? rankName(c.str("rank")) : "몬스터";
                 yield what + " " + c.integer("count", 1) + "마리 처치";
             }
             case "BOSS_KILL" -> (c.str("boss") != null ? "지정 보스" : "보스") + " " + c.integer("count", 1) + "회 처치";

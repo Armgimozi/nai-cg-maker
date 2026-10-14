@@ -9,6 +9,10 @@ Contract (ARCHITECTURE §2, GDD §14.3/§14.6):
   * placement: geometry centre = pivot; arms/tentacles (arm anim) and legs (legs_walk) hang from the
     pivot (top-face centre = pivot); tails start at the pivot and extend backwards (model +Z) or hang
     down when taller than long; parts sharing pivot+anim with an arm are held in that arm's hand.
+    Joint forms (new body shapes): `wing` = one wing whose root (shoulder) is the pivot, span along X away
+    from the body (out); `neck` = base at the pivot, rising forward (model −Z) and up; `segment` = body
+    segment (worm · naga) whose front face is the pivot, extending backwards — the plugin chains
+    neck/tail_chain parts and flaps wings about these pivots, so the geometry must start there.
 All shapes, textures and colours are generated here from the YAML style hints (no copied assets).
 """
 from __future__ import annotations
@@ -28,6 +32,9 @@ SHAPE_MATERIAL = {
     'crawler': 'chitin', 'insect': 'chitin', 'humanoid': 'flesh', 'floating': 'ethereal', 'blob': 'gloss',
     'turret': 'stone', 'beast': 'fur', 'serpent': 'scale', 'golem': 'stone', 'wraith': 'cloth',
     'construct': 'metal', 'swarm': 'ethereal', 'colossus': 'stone',
+    # new body shapes (dragons · dragonkin · hybrids) — box fallback until the voxel designs land
+    'drake': 'scale', 'wyvern': 'scale', 'dragonkin': 'scale', 'naga': 'scale', 'worm': 'chitin',
+    'centaur': 'fur', 'harpy': 'fur', 'minotaur': 'fur', 'lich': 'cloth',
 }
 GLOW_ROLES = {'glow', 'eye', 'core'}
 
@@ -337,7 +344,8 @@ def _blade_kind(name):
     for key, kind in (('hammer', 'hammer'), ('mace', 'hammer'), ('scepter', 'staff'), ('staff', 'staff'),
                       ('wand', 'staff'), ('quill', 'quill'), ('anchor', 'anchor'), ('key', 'anchor'),
                       ('pick', 'pick'), ('hand_blade', 'pointer'), ('hook', 'hook'), ('ladle', 'staff'),
-                      ('scythe', 'scythe'), ('axe', 'axe')):
+                      ('scythe', 'scythe'), ('axe', 'axe'), ('spear', 'spear'), ('lance', 'spear'),
+                      ('pike', 'spear'), ('bow', 'bow')):
         if key in n:
             return kind
     return 'sword'
@@ -373,6 +381,27 @@ def f_blade(pb, w, h, d, c):
             pb.cbox((s * w * 0.3, h * 0.1, 0), (w * 0.45, 1.8, d), 'metal', rot=('z', -s * 30))
             pb.cbox((s * w * 0.46, h * 0.2, 0), (1.6, h * 0.12, d), 'metal')
         pb.cbox((0, h * 0.55, -d / 2 - 0.2), (0.8, h * 0.5, 0.4), 'glow')
+    elif kind == 'spear':
+        # held a third of the way up the shaft (butt behind the hand), leaf blade at the tip
+        pb.cbox((0, h * 0.2, 0), (1.2, h, 1.2), g)                                        # shaft −0.3h … 0.7h
+        pb.cbox((0, h * 0.68, 0), (max(1.4, w * 0.5), 1.0, max(1.4, d * 0.5)), 'trim')
+        pb.cbox((0, h * 0.8, 0), (max(1.2, w * 0.8), h * 0.2, max(0.6, d * 0.35)), 'metal')
+        pb.cbox((0, h * 0.93, 0), (max(0.6, w * 0.4), h * 0.08, max(0.4, d * 0.25)), 'metal')
+        pb.cbox((0, h * 0.8, -max(0.6, d * 0.35) / 2 - 0.1), (0.3, h * 0.16, 0.2), 'light')
+    elif kind == 'bow':
+        # built along Z (the hand remap turns it upright): grip at the origin, limbs curving back
+        # toward the archer (+Y here = forward after the remap), string between the tips
+        t = max(0.8, min(1.6, w * 0.45))
+        L = h
+        bulge = max(1.5, d * 0.45)
+        pb.cbox((0, 0, 0), (t * 1.3, t * 1.3, 2.4), 'dark')
+        for s_ in (-1, 1):
+            mid = (0, -bulge * 0.25, s_ * L * 0.28)
+            tip = (0, -bulge, s_ * L * 0.5)
+            pb.segz((0, 0, s_ * 1.0), mid, t, 'skin')
+            pb.segz(mid, tip, t * 0.8, 'skin')
+            pb.cbox(tip, (t * 0.9, t * 0.9, t * 0.9), 'trim')
+        pb.cbox((0, -bulge, 0), (0.3, 0.3, L * 0.98), 'light')
     elif kind == 'pick':
         pb.cbox((0, h * 0.45, 0), (1.4, h * 0.9, 1.4), g)
         for s in (-1, 1):
@@ -437,6 +466,45 @@ def f_wing_pair(pb, w, h, d, c):
         pb.cbox((s * w * 0.25, h * 0.42, -0.1), (w * 0.5, 0.8, max(0.6, d * 0.5)), 'dark')   # leading bone
         if eyespots:
             pb.cbox((x, h * 0.1, -max(0.4, d * 0.3) / 2 - 0.1), (w * 0.14, w * 0.14, 0.2), 'glow')
+
+
+def f_wing(pb, w, h, d, c):
+    """One wing: root (shoulder) at the pivot, span w along X away from the body (c.out), chord d along Z
+    (leading edge = front, model −Z), thin in Y.  Arm bone along the leading edge, three finger bones fanning
+    back, a stepped membrane between them and a small wrist claw."""
+    o = c.out
+    t = max(0.5, min(h, 1.4))
+    role = 'cloth' if c.look.shape in ('wraith', 'lich') else 'skin'
+    lead = -d * 0.4
+    pb.cbox((o * w * 0.25, 0, lead), (w * 0.5, t * 1.5, t * 1.5), 'dark')            # upper arm
+    pb.cbox((o * w * 0.68, t * 0.2, lead + 0.2), (w * 0.38, t * 1.3, t * 1.3), 'dark')  # forearm
+    pb.cbox((o * w * 0.86, t * 0.6, lead - 0.3), (t * 1.2, t * 1.4, t * 1.6), 'bone')  # wrist claw
+    for k, (f, L) in enumerate(((0.98, 0.55), (0.78, 0.8), (0.52, 0.9))):
+        pb.cbox((o * w * f, -t * 0.1, lead + d * L / 2), (t, t, d * L), 'dark')        # finger bones
+    for k, (x0, x1, L) in enumerate(((0.0, 0.55, 0.85), (0.5, 0.8, 0.75), (0.76, 1.0, 0.5))):
+        cx = o * w * (x0 + x1) / 2
+        pb.cbox((cx, -t * 0.25, lead + d * L / 2), (w * (x1 - x0), max(0.3, t * 0.4), d * L), role)
+    if 'wing_eyespots' in c.look.features or 'clockface_wings' in c.look.features:
+        pb.cbox((o * w * 0.6, -t * 0.25 - 0.25, lead + d * 0.4), (w * 0.14, 0.2, w * 0.14), 'glow')
+
+
+def f_neck(pb, w, h, d, c):
+    """Neck: base at the pivot, rising forward (model −Z) by d and up by h, thinning toward the head."""
+    n = 4
+    step = math.hypot(d, h) / n
+    for k in range(n):
+        f = (k + 0.5) / n
+        s = 1 - 0.22 * f
+        pb.cbox((0, h * f, -d * f), (w * s, w * s, step + w * 0.5), 'skin' if k % 2 == 0 else 'dark')
+        pb.cbox((0, h * f - w * s * 0.45, -d * f), (w * s * 0.6, 0.5, step), 'light')   # throat plates
+
+
+def f_segment(pb, w, h, d, c):
+    """Body segment (worm · naga coil): front face centre at the pivot, extending backwards (model +Z)."""
+    pb.cbox((0, 0, d * 0.5), (w, h * 0.84, d * 0.94), 'skin')
+    pb.cbox((0, 0, d * 0.5), (w * 0.84, h, d * 0.86), 'skin')
+    pb.cbox((0, -h * 0.4, d * 0.5), (w * 0.66, h * 0.22, d * 0.96), 'light')          # belly scutes
+    pb.cbox((0, 0, 0.4), (w * 1.04, h * 0.9, 0.8), 'dark')                             # joint ring
 
 
 def f_tail(pb, w, h, d, c):
@@ -666,6 +734,7 @@ FORMS = {
     'wing_pair': f_wing_pair, 'tail': f_tail, 'fin': f_fin, 'tentacle_cluster': f_tentacles,
     'horn_pair': f_horn_pair, 'ring': f_ring, 'crystal_cluster': f_crystal_cluster, 'leaf_cluster': f_leaf_cluster,
     'eye': f_eye, 'skull': f_skull, 'book': f_book, 'gear': f_gear, 'lantern': f_lantern,
+    'wing': f_wing, 'neck': f_neck, 'segment': f_segment,
 }
 
 
@@ -1129,8 +1198,8 @@ def build_mob(mid, d, boss=False, jdump=None, png_bytes=None, strip=None, mode='
             pb.translate((0, -h / 2, 0))
         elif form == 'blade':
             pb.translate((0, -h / 2, 0))
-        elif form == 'tail':
-            pass     # starts at the pivot
+        elif form in ('tail', 'wing', 'neck', 'segment'):
+            pass     # joint forms start at the pivot (see module docstring)
         else:
             lo, hi = pb.bounds()
             # centre the main volume on the pivot (decor added later may stick out)

@@ -103,6 +103,24 @@ tables:
       - {rarity_pool: uncommon, floor: 2, chance: 0.01}
       - {item: dim_essence, chance: 0.01}
       - {table: potions_t1, chance: 0.03}
+  moss_drakeling:   # 1층 일반 — 이끼 새끼용
+    rolls: 1
+    entries:
+      - {item: beetle_shell, chance: 0.55, amount: [1, 2]}
+      - {item: moss_fiber, chance: 0.15}
+      - {rarity_pool: common, floor: 1, chance: 0.05}
+      - {rarity_pool: uncommon, floor: 2, chance: 0.01}
+      - {item: dim_essence, chance: 0.01}
+      - {table: potions_t1, chance: 0.03}
+  thorn_kobold:   # 1층 일반 — 가시덩굴 코볼트
+    rolls: 1
+    entries:
+      - {item: moss_fiber, chance: 0.55, amount: [1, 2]}
+      - {item: beetle_shell, chance: 0.15}
+      - {rarity_pool: common, floor: 1, chance: 0.05}
+      - {rarity_pool: uncommon, floor: 2, chance: 0.01}
+      - {item: dim_essence, chance: 0.01}
+      - {table: potions_t1, chance: 0.03}
   moss_crawler_alpha:   # 1층 엘리트 — 우두머리 이끼 기어다니는 자
     rolls: 1
     entries:
@@ -199,6 +217,26 @@ tables:
       - {rarity_pool: rare, floor: 3, chance: 0.0035}
       - {item: dim_essence, chance: 0.007}
       - {table: potions_t1, chance: 0.021}
+  kobold_sapper:   # 2층 일반 — 코볼트 폭파병
+    rolls: 1
+    entries:
+      - {item: rusted_iron, chance: 0.55, amount: [1, 2]}
+      - {item: spider_silk, chance: 0.15}
+      - {rarity_pool: common, floor: 1, chance: 0.02}
+      - {rarity_pool: uncommon, floor: 2, chance: 0.04}
+      - {rarity_pool: rare, floor: 3, chance: 0.005}
+      - {item: dim_essence, chance: 0.01}
+      - {table: potions_t1, chance: 0.03}
+  tunnel_wyrm:   # 2층 일반 — 갱도 땅굴웜
+    rolls: 1
+    entries:
+      - {item: rusted_iron, chance: 0.55, amount: [1, 3]}
+      - {item: spider_silk, chance: 0.15}
+      - {rarity_pool: common, floor: 1, chance: 0.02}
+      - {rarity_pool: uncommon, floor: 2, chance: 0.04}
+      - {rarity_pool: rare, floor: 3, chance: 0.005}
+      - {item: dim_essence, chance: 0.01}
+      - {table: potions_t1, chance: 0.03}
   foreman_gorrak:   # 2층 엘리트 — 갱도 감독관 고르락
     rolls: 1
     entries:
@@ -287,6 +325,26 @@ tables:
     entries:
       - {item: spore_cap, chance: 0.55, amount: [1, 2]}
       - {item: hypha_thread, chance: 0.15}
+      - {rarity_pool: uncommon, floor: 2, chance: 0.03}
+      - {rarity_pool: rare, floor: 3, chance: 0.03}
+      - {rarity_pool: rare, floor: 4, chance: 0.008}
+      - {item: dim_essence, chance: 0.01}
+      - {table: potions_t1, chance: 0.03}
+  spore_harpy:   # 3층 일반 — 포자 하피
+    rolls: 1
+    entries:
+      - {item: spore_cap, chance: 0.55, amount: [1, 2]}
+      - {item: hypha_thread, chance: 0.15}
+      - {rarity_pool: uncommon, floor: 2, chance: 0.03}
+      - {rarity_pool: rare, floor: 3, chance: 0.03}
+      - {rarity_pool: rare, floor: 4, chance: 0.008}
+      - {item: dim_essence, chance: 0.01}
+      - {table: potions_t1, chance: 0.03}
+  myconid_centaur:   # 3층 일반 — 균사 켄타우로스
+    rolls: 1
+    entries:
+      - {item: hypha_thread, chance: 0.55, amount: [1, 3]}
+      - {item: spore_cap, chance: 0.15}
       - {rarity_pool: uncommon, floor: 2, chance: 0.03}
       - {rarity_pool: rare, floor: 3, chance: 0.03}
       - {rarity_pool: rare, floor: 4, chance: 0.008}
@@ -383,6 +441,26 @@ tables:
       - {item: labyrinth_essence, chance: 0.008}
       - {table: potions_t1, chance: 0.03}
   bubble_jelly:   # 4층 일반 — 거품 해파리
+    rolls: 1
+    entries:
+      - {item: brine_pearl, chance: 0.55, amount: [1, 2]}
+      - {item: eel_scale, chance: 0.15}
+      - {rarity_pool: rare, floor: 3, chance: 0.015}
+      - {rarity_pool: rare, floor: 4, chance: 0.035}
+      - {rarity_pool: epic, floor: 4, chance: 0.003}
+      - {item: labyrinth_essence, chance: 0.008}
+      - {table: potions_t1, chance: 0.03}
+  bog_drake:   # 4층 일반 — 늪 드레이크
+    rolls: 1
+    entries:
+      - {item: eel_scale, chance: 0.55, amount: [1, 2]}
+      - {item: brine_pearl, chance: 0.15}
+      - {rarity_pool: rare, floor: 3, chance: 0.015}
+      - {rarity_pool: rare, floor: 4, chance: 0.035}
+      - {rarity_pool: epic, floor: 4, chance: 0.003}
+      - {item: labyrinth_essence, chance: 0.008}
+      - {table: potions_t1, chance: 0.03}
+  tide_naga:   # 4층 일반 — 조류의 나가
     rolls: 1
     entries:
       - {item: brine_pearl, chance: 0.55, amount: [1, 2]}
@@ -491,6 +569,26 @@ tables:
       - {rarity_pool: epic, floor: 6, chance: 0.004}
       - {item: labyrinth_essence, chance: 0.008}
       - {table: potions_t2, chance: 0.03}
+  ember_drake:   # 5층 일반 — 잿불 드레이크
+    rolls: 1
+    entries:
+      - {item: ember_shard, chance: 0.55, amount: [1, 2]}
+      - {item: slag_ingot, chance: 0.15}
+      - {rarity_pool: rare, floor: 4, chance: 0.01}
+      - {rarity_pool: rare, floor: 6, chance: 0.035}
+      - {rarity_pool: epic, floor: 6, chance: 0.004}
+      - {item: labyrinth_essence, chance: 0.008}
+      - {table: potions_t2, chance: 0.03}
+  forge_dragonkin:   # 5층 일반 — 용인 대장장이
+    rolls: 1
+    entries:
+      - {item: slag_ingot, chance: 0.55, amount: [1, 3]}
+      - {item: ember_shard, chance: 0.15}
+      - {rarity_pool: rare, floor: 4, chance: 0.01}
+      - {rarity_pool: rare, floor: 6, chance: 0.035}
+      - {rarity_pool: epic, floor: 6, chance: 0.004}
+      - {item: labyrinth_essence, chance: 0.008}
+      - {table: potions_t2, chance: 0.03}
   forge_executioner:   # 5층 엘리트 — 단조 집행관
     rolls: 1
     entries:
@@ -582,6 +680,24 @@ tables:
     entries:
       - {item: rime_crystal, chance: 0.55, amount: [1, 2]}
       - {item: grave_bone, chance: 0.15}
+      - {rarity_pool: rare, floor: 6, chance: 0.045}
+      - {rarity_pool: epic, floor: 6, chance: 0.008}
+      - {item: labyrinth_essence, chance: 0.008}
+      - {table: potions_t2, chance: 0.03}
+  frost_wyvern:   # 6층 일반 — 서리 와이번
+    rolls: 1
+    entries:
+      - {item: rime_crystal, chance: 0.55, amount: [1, 2]}
+      - {item: grave_bone, chance: 0.15}
+      - {rarity_pool: rare, floor: 6, chance: 0.045}
+      - {rarity_pool: epic, floor: 6, chance: 0.008}
+      - {item: labyrinth_essence, chance: 0.008}
+      - {table: potions_t2, chance: 0.03}
+  barrow_lich:   # 6층 일반 — 고분의 리치
+    rolls: 1
+    entries:
+      - {item: grave_bone, chance: 0.55, amount: [1, 2]}
+      - {item: rime_crystal, chance: 0.15}
       - {rarity_pool: rare, floor: 6, chance: 0.045}
       - {rarity_pool: epic, floor: 6, chance: 0.008}
       - {item: labyrinth_essence, chance: 0.008}
@@ -687,6 +803,26 @@ tables:
       - {rarity_pool: epic, floor: 8, chance: 0.006}
       - {item: radiant_essence, chance: 0.006}
       - {table: potions_t2, chance: 0.03}
+  crystal_dragonkin:   # 7층 일반 — 수정 용인 창기사
+    rolls: 1
+    entries:
+      - {item: amethyst_shard, chance: 0.55, amount: [1, 3]}
+      - {item: prism_dust, chance: 0.15}
+      - {rarity_pool: rare, floor: 6, chance: 0.01}
+      - {rarity_pool: rare, floor: 7, chance: 0.04}
+      - {rarity_pool: epic, floor: 8, chance: 0.006}
+      - {item: radiant_essence, chance: 0.006}
+      - {table: potions_t2, chance: 0.03}
+  prism_centaur:   # 7층 일반 — 프리즘 켄타우로스
+    rolls: 1
+    entries:
+      - {item: prism_dust, chance: 0.55, amount: [1, 2]}
+      - {item: amethyst_shard, chance: 0.15}
+      - {rarity_pool: rare, floor: 6, chance: 0.01}
+      - {rarity_pool: rare, floor: 7, chance: 0.04}
+      - {rarity_pool: epic, floor: 8, chance: 0.006}
+      - {item: radiant_essence, chance: 0.006}
+      - {table: potions_t2, chance: 0.03}
   resonance_tuner:   # 7층 엘리트 — 공명 조율자
     rolls: 1
     entries:
@@ -782,6 +918,24 @@ tables:
     entries:
       - {item: ink_essence, chance: 0.55, amount: [1, 3]}
       - {item: old_page, chance: 0.15}
+      - {rarity_pool: rare, floor: 7, chance: 0.035}
+      - {rarity_pool: epic, floor: 8, chance: 0.015}
+      - {item: radiant_essence, chance: 0.006}
+      - {table: potions_t3, chance: 0.03}
+  ink_naga:   # 8층 일반 — 먹물 나가
+    rolls: 1
+    entries:
+      - {item: ink_essence, chance: 0.55, amount: [1, 2]}
+      - {item: old_page, chance: 0.15}
+      - {rarity_pool: rare, floor: 7, chance: 0.035}
+      - {rarity_pool: epic, floor: 8, chance: 0.015}
+      - {item: radiant_essence, chance: 0.006}
+      - {table: potions_t3, chance: 0.03}
+  quill_harpy:   # 8층 일반 — 깃펜 하피
+    rolls: 1
+    entries:
+      - {item: old_page, chance: 0.55, amount: [1, 2]}
+      - {item: ink_essence, chance: 0.15}
       - {rarity_pool: rare, floor: 7, chance: 0.035}
       - {rarity_pool: epic, floor: 8, chance: 0.015}
       - {item: radiant_essence, chance: 0.006}
@@ -891,6 +1045,28 @@ tables:
       - {item: primordial_essence, chance: 0.004}
       - {table: potions_t3, chance: 0.03}
       - {rarity_pool: mythic, floor: 10, chance: 0.0006, min_difficulty: nightmare}
+  clockwork_wyvern:   # 9층 일반 — 태엽 와이번
+    rolls: 1
+    entries:
+      - {item: brass_gear, chance: 0.55, amount: [1, 2]}
+      - {item: mainspring, chance: 0.15}
+      - {rarity_pool: rare, floor: 7, chance: 0.01}
+      - {rarity_pool: epic, floor: 8, chance: 0.01}
+      - {rarity_pool: epic, floor: 9, chance: 0.03}
+      - {item: primordial_essence, chance: 0.004}
+      - {table: potions_t3, chance: 0.03}
+      - {rarity_pool: mythic, floor: 10, chance: 0.0006, min_difficulty: nightmare}
+  brass_minotaur:   # 9층 일반 — 황동 미노타우로스
+    rolls: 1
+    entries:
+      - {item: brass_gear, chance: 0.55, amount: [1, 3]}
+      - {item: mainspring, chance: 0.15}
+      - {rarity_pool: rare, floor: 7, chance: 0.01}
+      - {rarity_pool: epic, floor: 8, chance: 0.01}
+      - {rarity_pool: epic, floor: 9, chance: 0.03}
+      - {item: primordial_essence, chance: 0.004}
+      - {table: potions_t3, chance: 0.03}
+      - {rarity_pool: mythic, floor: 10, chance: 0.0006, min_difficulty: nightmare}
   grand_regulator:   # 9층 엘리트 — 대시계 집행관
     rolls: 1
     entries:
@@ -984,6 +1160,26 @@ tables:
       - {table: potions_t3, chance: 0.03}
       - {rarity_pool: mythic, floor: 10, chance: 0.0006, min_difficulty: nightmare}
   hollow_choir:   # 10층 일반 — 공허 성가대
+    rolls: 1
+    entries:
+      - {item: sculk_tendril, chance: 0.55, amount: [1, 2]}
+      - {item: abyss_ichor, chance: 0.15}
+      - {rarity_pool: epic, floor: 8, chance: 0.01}
+      - {rarity_pool: epic, floor: 9, chance: 0.04}
+      - {item: primordial_essence, chance: 0.004}
+      - {table: potions_t3, chance: 0.03}
+      - {rarity_pool: mythic, floor: 10, chance: 0.0006, min_difficulty: nightmare}
+  void_drake:   # 10층 일반 — 심연 고룡
+    rolls: 1
+    entries:
+      - {item: abyss_ichor, chance: 0.55, amount: [1, 3]}
+      - {item: sculk_tendril, chance: 0.15}
+      - {rarity_pool: epic, floor: 8, chance: 0.01}
+      - {rarity_pool: epic, floor: 9, chance: 0.04}
+      - {item: primordial_essence, chance: 0.004}
+      - {table: potions_t3, chance: 0.03}
+      - {rarity_pool: mythic, floor: 10, chance: 0.0006, min_difficulty: nightmare}
+  abyss_dragonkin:   # 10층 일반 — 심연 용인 기사
     rolls: 1
     entries:
       - {item: sculk_tendril, chance: 0.55, amount: [1, 2]}

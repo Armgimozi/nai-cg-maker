@@ -31,6 +31,7 @@ import org.joml.Vector3f;
  * 모든 파트는 보이지 않는 앵커 디스플레이(아이템 없음)에 탑승한다 → 몹이 움직일 때 앵커 하나만 텔레포트하면 파트가 한 덩어리로
  * 따라온다(패킷 절약). 파트의 피벗 위치·몹 yaw·애니메이션 회전은 전부 Display Transformation(보간)으로 표현한다:
  * translation = R(yaw)·(pivot + 애니메이션 이동)·scale, left rotation = R(yaw)·애니메이션 회전 → 회전 중심 = 피벗.
+ * 목·머리·턱·꼬리 사슬처럼 서로 붙은 파트는 {@link RigMath.Skeleton} 이 부모 회전을 이어 붙인 피벗·회전을 준다.
  */
 public final class ModelRig {
 
@@ -45,6 +46,7 @@ public final class ModelRig {
     private final float yawOffset;
     private ItemDisplay anchor;
     private final List<PartView> parts = new ArrayList<>();
+    private final RigMath.Skeleton skeleton;
     private TextDisplay nameplate;
     private float nameplateHeight;
     private boolean hidden;
@@ -57,6 +59,7 @@ public final class ModelRig {
     public ModelRig(String mobId, ModelDef model, double scale, double yawOffsetDeg) {
         this.mobId = mobId;
         this.model = model == null ? ModelDef.EMPTY : model;
+        this.skeleton = new RigMath.Skeleton(this.model.parts());
         this.scale = (float) scale;
         this.yawOffset = (float) yawOffsetDeg;
     }
@@ -146,12 +149,14 @@ public final class ModelRig {
     public void animate(float yawDeg, RigMath.AnimState state, int interpolationTicks) {
         Vector3f tr = new Vector3f();
         Quaternionf left = new Quaternionf();
-        for (PartView pv : parts) {
+        RigMath.Solved[] solved = skeleton.solve(state);
+        for (int i = 0; i < parts.size() && i < solved.length; i++) {
+            PartView pv = parts.get(i);
             ItemDisplay d = pv.display();
             if (!d.isValid()) continue;
-            ModelDef.Part p = pv.def();
-            RigMath.Pose pose = RigMath.pose(p.anim(), p.form(), state);
-            float s = RigMath.compose(yawDeg, scale, (float) p.pivotX(), (float) p.pivotY(), (float) p.pivotZ(), pose,
+            RigMath.Solved sp = solved[i];
+            RigMath.Pose pose = new RigMath.Pose(sp.offset(), sp.rotation(), sp.scale());
+            float s = RigMath.compose(yawDeg, scale, sp.pivot().x, sp.pivot().y, sp.pivot().z, pose,
                     yawOffset, tr, left);
             Transformation next = new Transformation(new Vector3f(tr), new Quaternionf(left), new Vector3f(s, s, s), new Quaternionf());
             if (next.equals(d.getTransformation())) continue;
