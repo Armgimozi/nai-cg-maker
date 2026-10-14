@@ -13,9 +13,9 @@ from __future__ import annotations
 
 import math
 
-from ..util import h2, h3  # noqa: F401
+from ..util import h2, h3
 from ..voxel.core import bezier, helix, resample
-from ..voxel.mob_kit import MobGrid, fbm3, frame_of, vadd, vcross, vdot, vlen, vmul, vnorm, vsub  # noqa: F401
+from ..voxel.mob_kit import MobGrid, fbm3, frame_of, vadd, vdot, vlen, vmul, vnorm, vsub
 from ..voxel.palette import _r
 
 GLOW_MATS = ('glow', 'eye', 'core', 'rune', 'lava')
@@ -131,34 +131,6 @@ def _vein_walk(g: MobGrid, mats, n, steps=(6, 14), seed=0, bias=None, fork=0.15,
             cur = best
 
 
-def _plane_frame(normal):
-    f = vnorm(normal)
-    up = (0, 1, 0) if abs(f[1]) < 0.9 else (0, 0, 1)
-    side = vnorm(vcross(up, f))
-    upv = vcross(f, side)
-    return f, side, upv
-
-
-def _inlay(g: MobGrid, c, normal, strokes, mat='rune', val=0.6, glow=True, depth=8.0, prio=6, step=0.8):
-    """Line strokes (2D (u, v) px around c; u sideways, v up as seen facing the surface) projected onto the
-    surface that faces `normal`."""
-    f, side, upv = _plane_frame(normal)
-    for st in strokes:
-        for (u0, v0), (u1, v1) in zip(st, st[1:]):
-            n = max(1, int(math.hypot(u1 - u0, v1 - v0) / (g.vs * step)))
-            for k in range(n + 1):
-                u, v = u0 + (u1 - u0) * k / n, v0 + (v1 - v0) * k / n
-                o = vadd(vadd(vadd(c, vmul(side, u)), vmul(upv, v)), vmul(f, depth))
-                p = g.hit(o, vmul(f, -1), depth * 2)
-                if p is not None:
-                    g.dot(p, mat, val, glow=glow, prio=prio)
-
-
-def _circle(r, n=16, a0=0.0, cx=0.0, cy=0.0):
-    return [(cx + math.cos(a0 + 2 * math.pi * k / n) * r, cy + math.sin(a0 + 2 * math.pi * k / n) * r)
-            for k in range(n + 1)]
-
-
 def _gear_mask(R, teeth, hole=0.0, spokes=0, rim=1.2, tooth_h=0.9, spoke_w=0.55, hub=0.0):
     """2D gear outline mask(u, v): teeth beyond R, a rim ring, spokes and a hub (px)."""
     def m(u, v):
@@ -226,12 +198,12 @@ def _spring(g: MobGrid, y0, y1, R, turns, r, mat='iron', val=0.55, cx=0.0, cz=0.
 
 # ═════════════════════════════ FLOOR 9 · 태엽 성소 ═════════════════════════════
 
-COPPER = [(20, 11, 6), (42, 22, 11), (72, 38, 18), (110, 60, 28), (152, 88, 42), (194, 122, 62), (228, 162, 96),
-          (248, 206, 150)]
+COPPER = [(16, 8, 5), (34, 16, 9), (58, 28, 15), (90, 44, 22), (128, 66, 32), (168, 96, 50), (208, 136, 82),
+          (238, 186, 134)]
 BRASS = [(30, 21, 7), (64, 46, 15), (108, 80, 28), (156, 120, 46), (200, 162, 72), (232, 202, 116), (250, 234, 176)]
 PATINA = [(14, 42, 36), (26, 76, 64), (46, 116, 96), (80, 160, 132), (130, 202, 172), (188, 234, 210)]
 GUNMETAL = [(12, 13, 16), (24, 26, 30), (42, 45, 50), (66, 70, 76), (96, 100, 106), (134, 138, 142), (184, 186, 188)]
-ENAMEL = [(70, 60, 44), (128, 116, 92), (184, 172, 146), (220, 212, 190), (240, 236, 220), (252, 250, 242)]
+ENAMEL = [(84, 70, 46), (146, 128, 94), (200, 182, 140), (232, 218, 180), (246, 238, 212), (255, 252, 238)]
 TEAL = [(14, 70, 58), (30, 136, 110), (70, 200, 162), (140, 238, 206), (206, 255, 236), (255, 255, 255)]
 AMBER = [(110, 54, 10), (190, 110, 24), (240, 172, 56), (255, 216, 120), (255, 244, 206), (255, 255, 255)]
 LACQUER = [(14, 6, 6), (30, 12, 12), (52, 20, 20), (80, 32, 30), (112, 48, 42), (146, 70, 58)]
@@ -258,10 +230,13 @@ def _hound_body(g: MobGrid, ctx):
     g.blob((0, 0.9, 4.7), (2.8, 2.7, 3.0), 'copper', 0.46, top=0.16)
     g.capsule((0, 1.1, -1.6), (0, 1.5, 2.6), 1.4, 1.5, 'iron', 0.4)
     # back plates along the spine (overlapping, rear edge lit), brass ridge
-    g.plates((0, 0.4, -3.4), (3.3, 3.5, 3.3), n=3, axis=2, mat='copper', val=0.52, lift=0.1, groove=-0.3,
+    g.plates((0, 0.4, -3.4), (3.3, 3.5, 3.3), n=2, axis=2, mat='copper', val=0.56, lift=0.08, groove=-0.2,
              cut=lambda x, y, z: y < 0.8)
-    g.plates((0, 1.4, 4.7), (3.0, 2.5, 3.1), n=2, axis=2, mat='copper', val=0.52, lift=0.1, groove=-0.3,
+    g.plates((0, 1.4, 4.7), (3.0, 2.5, 3.1), n=2, axis=2, mat='copper', val=0.56, lift=0.08, groove=-0.2,
              cut=lambda x, y, z: y < 1.6)
+    # gunmetal undercarriage: belly keel plates
+    g.blob((0, -2.4, -3.4), (2.6, 1.8, 3.0), 'iron', 0.42, top=0.0)
+    g.blob((0, -0.8, 4.6), (2.3, 1.6, 2.4), 'iron', 0.4, top=0.0)
     # spine: vertebra discs (steel) along the waist
     for z in (-0.8, 0.5, 1.8):
         g.cylinder((0, 2.6, z - 0.3), (0, 2.6, z + 0.3), 1.2, 1.2, 'brass', 0.5)
@@ -296,37 +271,37 @@ def _hound_body(g: MobGrid, ctx):
 
 
 def _hound_head(g: MobGrid, ctx):
-    # cranium + long tapering jackal muzzle (laid out to cover the jaw part, which sits ~3 px forward)
-    g.blob((0, 0.9, 1.0), (2.6, 2.4, 2.7), 'copper', 0.5, top=0.2)
-    g.sweep([(0, 0.7, 0.0), (0, 0.5, -3.0), (0, 0.1, -6.0)], 1.9, 0.95, 'copper', 0.5, sq=(1.0, 0.72, 1.0),
-            vfn=lambda t, d, p: 0.48 + 0.12 * (1 - d))
-    g.rbox((-0.6, 1.3, -5.4), (0.6, 1.9, -0.4), 'brass', 0.62, bevel=0.25)       # nose ridge plate
-    g.blob((0, 0.4, -6.3), (0.8, 0.6, 0.6), 'iron', 0.3)                         # steel nose tip
+    # copper cranium, long gunmetal jackal muzzle with a copper ridge plate (covers the jaw part ~3 px ahead)
+    g.blob((0, 1.0, 1.0), (2.7, 2.5, 2.8), 'copper', 0.56, top=0.22)
+    g.sweep([(0, 0.6, 0.2), (0, 0.4, -3.0), (0, 0.0, -6.2)], 1.9, 0.95, 'iron', 0.5, sq=(1.0, 0.72, 1.0),
+            vfn=lambda t, d, p: 0.46 + 0.14 * (1 - d))
+    g.rbox((-0.75, 1.1, -5.6), (0.75, 1.9, -0.2), 'copper', 0.66, bevel=0.3)        # nose ridge plate
+    g.blob((0, 0.4, -6.4), (0.8, 0.6, 0.6), 'copper', 0.5)                          # copper nose cap
     # brass visor brow over slit teal eyes
     for s in (-1, 1):
-        g.capsule((s * 0.5, 2.5, -1.9), (s * 2.5, 2.1, -0.7), 0.5, 0.45, 'brass', 0.6)
-        g.capsule((s * 1.3, 1.45, -2.25), (s * 2.35, 1.3, -1.0), 0.42, 0.36, 'eye', 0.7, glow=True, prio=5)
+        g.capsule((s * 0.5, 2.5, -1.9), (s * 2.5, 2.1, -0.7), 0.5, 0.45, 'brass', 0.66)
+        g.capsule((s * 1.25, 1.45, -2.3), (s * 2.35, 1.3, -1.0), 0.45, 0.38, 'eye', 0.85, glow=True, prio=5)
     # dark mouth line with upper saw teeth over the jaw part
     g.carve(lambda x, y, z: y < -0.2 and z < -0.8 and abs(x) < 1.2)
-    g.teeth((-1.1, -0.2, -1.0), (-0.6, -0.3, -5.6), 4, 0.8, r=0.3, mat='iron', val=0.72, seed=1)
-    g.teeth((1.1, -0.2, -1.0), (0.6, -0.3, -5.6), 4, 0.8, r=0.3, mat='iron', val=0.72, seed=2)
-    # tall pointed ears swept back (copper plates, verdigris inner face)
+    g.teeth((-1.1, -0.2, -1.0), (-0.6, -0.3, -5.6), 4, 0.8, r=0.3, mat='brass', val=0.75, seed=1)
+    g.teeth((1.1, -0.2, -1.0), (0.6, -0.3, -5.6), 4, 0.8, r=0.3, mat='brass', val=0.75, seed=2)
+    # tall pointed ears swept back (copper plates, verdigris inner face), cheek gears at the jaw hinge
     for s in (-1, 1):
-        g.sweep([(s * 1.5, 2.4, 1.4), (s * 2.0, 4.8, 2.0), (s * 2.3, 7.0, 3.2)], 1.25, 0.25, 'copper', 0.56,
-                sq=(0.42, 1, 1), vfn=lambda t, d, p: 0.5 + 0.22 * t)
-        g.sweep([(s * 1.35, 2.9, 1.2), (s * 1.8, 4.8, 1.8)], 0.65, 0.3, 'patina', 0.45, sq=(0.4, 1, 1), prio=2)
-        _gear(g, (s * 2.45, -0.1, 0.4), 1.15, 7, plane='zy', thick=0.5, mat='brass', val=0.55, tooth_h=0.45,
+        g.sweep([(s * 1.5, 2.4, 1.4), (s * 2.0, 4.9, 2.0), (s * 2.3, 7.2, 3.2)], 1.3, 0.25, 'copper', 0.6,
+                sq=(0.42, 1, 1), vfn=lambda t, d, p: 0.52 + 0.22 * t)
+        g.sweep([(s * 1.35, 2.9, 1.2), (s * 1.8, 4.9, 1.8)], 0.7, 0.3, 'patina', 0.5, sq=(0.4, 1, 1), prio=2)
+        _gear(g, (s * 2.45, -0.1, 0.4), 1.15, 7, plane='zy', thick=0.5, mat='brass', val=0.6, tooth_h=0.45,
               rim=0.5, prio=4)
-    g.rivets([(s * 1.9, 0.6, z) for s in (-1, 1) for z in (-3.2,)], 'brass')
-    _swap(g, ['copper'], 'patina', amount=0.15, scale=2.0, seed=3)
+    g.rivets([(s * 1.75, 0.5, -3.4) for s in (-1, 1)], 'brass')
+    _swap(g, ['copper'], 'patina', amount=0.14, scale=2.0, seed=3)
 
 
 def _hound_jaw(g: MobGrid, ctx):
     # lower jaw: copper underside, dark steel palate, saw teeth up
-    g.sweep([(0, -0.2, 2.4), (0, -0.4, -0.4), (0, -0.2, -2.6)], 1.4, 0.8, 'copper', 0.42, sq=(1.0, 0.55, 1.0))
-    g.rbox((-0.9, 0.0, -2.4), (0.9, 0.4, 2.0), 'iron', 0.22)
-    g.teeth((-0.85, 0.3, 1.6), (-0.6, 0.3, -2.2), 3, 0.75, r=0.28, mat='iron', val=0.72, direction=(0, 1, 0), seed=3)
-    g.teeth((0.85, 0.3, 1.6), (0.6, 0.3, -2.2), 3, 0.75, r=0.28, mat='iron', val=0.72, direction=(0, 1, 0), seed=4)
+    g.sweep([(0, -0.2, 2.4), (0, -0.4, -0.4), (0, -0.2, -2.6)], 1.4, 0.8, 'iron', 0.42, sq=(1.0, 0.55, 1.0))
+    g.rbox((-0.9, 0.0, -2.4), (0.9, 0.4, 2.0), 'lacquer', 0.3)
+    g.teeth((-0.85, 0.3, 1.6), (-0.6, 0.3, -2.2), 3, 0.75, r=0.28, mat='brass', val=0.75, direction=(0, 1, 0), seed=3)
+    g.teeth((0.85, 0.3, 1.6), (0.6, 0.3, -2.2), 3, 0.75, r=0.28, mat='brass', val=0.75, direction=(0, 1, 0), seed=4)
 
 
 def _hound_legs(g: MobGrid, ctx):
@@ -354,18 +329,19 @@ def _hound_legs(g: MobGrid, ctx):
 
 
 def _hound_gear(g: MobGrid, ctx):
-    # flat gear on the back (turns about Y = its own axle): 12 teeth, 4 spokes, brass hub
-    _gear(g, (0, 0, 0), 3.0, 12, plane='xz', thick=0.9, mat='brass', val=0.4, spokes=4, rim=0.9,
+    # flat gear riding low on the back (turns about Y = its own axle): 12 teeth, 4 spokes, brass hub;
+    # flyball governor above it — spindle, sliding collar, two arms with brass balls flung outward
+    y0 = -1.4
+    _gear(g, (0, y0, 0), 2.9, 12, plane='xz', thick=0.9, mat='brass', val=0.5, spokes=4, rim=0.9,
           tooth_h=0.9, hub=1.0, spoke_w=0.45, bevel_light=0.3)
-    g.cylinder((0, -2.6, 0), (0, 0.9, 0), 0.9, 0.9, 'iron', 0.5)                 # axle
-    # flyball governor: spindle, sliding collar, two arms with brass balls flung outward
-    g.cylinder((0, 0.6, 0), (0, 4.2, 0), 0.4, 0.4, 'iron', 0.62)
-    g.cylinder((0, 1.4, 0), (0, 2.0, 0), 0.75, 0.75, 'copper', 0.62)
+    g.cylinder((0, -2.8, 0), (0, y0 + 0.9, 0), 0.9, 0.9, 'iron', 0.5)
+    g.cylinder((0, y0, 0), (0, y0 + 4.2, 0), 0.4, 0.4, 'iron', 0.62)
+    g.cylinder((0, y0 + 0.8, 0), (0, y0 + 1.4, 0), 0.75, 0.75, 'copper', 0.62)
     for s in (-1, 1):
-        g.capsule((0, 4.0, 0), (s * 2.6, 2.4, 0), 0.3, 0.3, 'iron', 0.65)
-        g.capsule((0, 1.8, 0), (s * 1.4, 3.2, 0), 0.25, 0.25, 'iron', 0.55)
-        g.blob((s * 2.8, 2.3, 0), 0.9, 'copper', 0.62, top=0.3)
-    g.blob((0, 4.6, 0), 0.65, 'glow', 0.75, glow=True, prio=5)
+        g.capsule((0, y0 + 4.0, 0), (s * 2.6, y0 + 2.4, 0), 0.3, 0.3, 'iron', 0.65)
+        g.capsule((0, y0 + 1.2, 0), (s * 1.4, y0 + 3.2, 0), 0.25, 0.25, 'iron', 0.55)
+        g.blob((s * 2.8, y0 + 2.3, 0), 0.95, 'brass', 0.66, top=0.3)
+    g.blob((0, y0 + 4.6, 0), 0.65, 'glow', 0.8, glow=True, prio=5)
 
 
 def _hound_tail(g: MobGrid, ctx):
@@ -380,7 +356,7 @@ def _hound_tail(g: MobGrid, ctx):
 
 
 def gear_hound(look, name, part, ctx):
-    _f9_ramps(ctx)
+    _f9_ramps(ctx, {'lacquer': LACQUER})
     fn = {'body': _hound_body, 'head': _hound_head, 'jaw': _hound_jaw, 'legs': _hound_legs, 'gear': _hound_gear,
           'tail': _hound_tail}.get(name)
     if fn is None:
@@ -404,10 +380,10 @@ SENTRY_BRONZE = [(18, 12, 8), (38, 25, 15), (64, 42, 24), (98, 66, 38), (136, 94
 def _sentry_tripod(g: MobGrid, ctx):
     gy = -4.8
     # hub column with a toothed yaw ring on top and a hanging counterweight
-    g.cylinder((0, -0.6, 0), (0, 4.6, 0), 2.1, 2.4, 'copper', 0.45)
+    g.cylinder((0, 0.4, 0), (0, 4.6, 0), 2.2, 2.2, 'copper', 0.45)
     _gear(g, (0, 5.0, 0), 3.4, 16, plane='xz', thick=0.8, mat='brass', val=0.5, tooth_h=0.6, rim=0.9)
     g.cylinder((0, 2.0, 0), (0, 2.8, 0), 2.7, 2.7, 'brass', 0.55)
-    g.cone((0, -0.6, 0), (0, -1, 0), 2.4, 1.5, 'iron', 0.4, 0.6)
+    g.cylinder((0, -0.4, 0), (0, 0.4, 0), 1.4, 1.4, 'iron', 0.4)
     for a in (0.0, 2.0944, 4.1888):
         g.dot((math.sin(a) * 2.75, 2.4, math.cos(a) * 2.75), 'brass', 0.85, prio=5)
     # three legs: one behind, two forward-out (front = −Z)
@@ -416,34 +392,38 @@ def _sentry_tripod(g: MobGrid, ctx):
 
         def P(r, y):
             return (dx * r, y, dz * r)
-        hip, knee, ank, foot = P(1.8, 3.4), P(5.4, 7.4), P(7.0, -1.2), P(7.4, gy + 0.6)
-        g.limb([hip, knee, ank, foot], [1.35, 1.0, 0.7, 0.55], 'copper', 0.5, joint_mat='brass', joint_val=0.55,
-               knob=1.25)
-        g.blob(knee, 1.25, 'brass', 0.6)
-        g.dot(vadd(knee, (0, 1.3, 0)), 'glow', 0.7, glow=True, prio=6)
-        # armoured thigh plate on top of the upper leg
-        g.capsule(vadd(P(2.6, 4.8), (0, 0.8, 0)), vadd(P(5.0, 7.6), (0, 0.7, 0)), 0.7, 0.55, 'brass', 0.62)
+        hip, knee, ank, foot = P(1.8, 3.4), P(5.4, 7.4), P(7.0, -1.2), P(7.4, gy + 0.7)
+        g.limb([hip, knee, ank, foot], [1.5, 1.15, 0.8, 0.6], 'copper', 0.5, joint_mat='brass', joint_val=0.55,
+               knob=1.2)
+        g.blob(knee, 1.45, 'brass', 0.6, top=0.3)
+        g.dot(vadd(knee, (0, 1.5, 0)), 'glow', 0.75, glow=True, prio=6)
+        # armoured thigh plate on top of the upper leg, shin guard
+        g.capsule(vadd(P(2.6, 4.8), (0, 0.9, 0)), vadd(P(5.0, 7.6), (0, 0.8, 0)), 0.85, 0.65, 'brass', 0.6)
+        g.capsule(vadd(P(5.9, 4.4), (0, 0, 0)), vadd(P(6.8, 0.4), (0, 0, 0)), 1.0, 0.8, 'copper', 0.58)
         # piston from the hub to the shin
         g.capsule(P(2.0, 0.6), P(6.2, 2.4), 0.4, 0.35, 'iron', 0.62)
         g.cylinder(P(2.0, 0.6), P(3.8, 1.4), 0.7, 0.7, 'iron', 0.42)
         # clawed foot: three toes
+        g.blob(foot, (1.1, 0.7, 1.1), 'iron', 0.4)
         for k in (-1, 0, 1):
-            ta = ang + k * 0.55
-            g.cone(foot, (math.sin(ta), -0.5, math.cos(ta)), 1.4, 0.4, 'iron', 0.4, 0.75)
+            ta = ang + k * 0.6
+            g.cone(foot, (math.sin(ta), -0.45, math.cos(ta)), 1.8, 0.45, 'iron', 0.4, 0.78)
 
 
 def _sentry_turret(g: MobGrid, ctx):
     # drum + riveted dome
-    g.cylinder((0, -4.0, 0), (0, 1.2, 0), 4.4, 4.6, 'copper', 0.48)
-    g.blob((0, 1.0, 0), (4.4, 2.9, 4.4), 'copper', 0.5, cut=lambda x, y, z: y < 1.0, top=0.25)
+    g.cylinder((0, -4.0, 0), (0, 1.2, 0), 4.5, 4.5, 'copper', 0.48)
+    g.blob((0, 1.0, 0), (4.4, 2.9, 4.4), 'copper', 0.52, cut=lambda x, y, z: y < 1.0, top=0.1)
     _band(g, (0, 1.1, 0), 4.6, 0.45, 'y', 'brass', 0.6)
     _band(g, (0, -3.6, 0), 4.6, 0.45, 'y', 'brass', 0.5)
     g.rivets([(math.sin(a) * 4.75, -1.4, math.cos(a) * 4.75) for a in [k * math.pi / 6 for k in range(12)]], 'brass')
     g.cylinder((0, 3.6, 0), (0, 4.5, 0), 1.0, 0.7, 'brass', 0.6)                  # dome finial
-    # front mantlet + amber range-finder lens above the gun
+    # front mantlet + amber range-finder scope on a cupola above the gun
     g.rbox((-2.6, -2.2, -5.0), (2.6, 1.8, -3.8), 'iron', 0.4, bevel=0.5)
-    g.cylinder((0, 2.6, -3.0), (0, 2.6, -4.6), 1.3, 1.3, 'brass', 0.55)
-    g.eye((0, 2.6, -4.5), 0.85, val=0.5, facing=(0, 0, -1))
+    g.cylinder((0, 3.0, -1.0), (0, 4.4, -1.0), 1.6, 1.4, 'brass', 0.5)
+    g.cylinder((0, 3.7, -0.4), (0, 3.7, -5.0), 1.15, 1.25, 'brass', 0.55)
+    _band(g, (0, 3.7, -4.8), 1.2, 0.3, 'z', 'brass', 0.75)
+    g.eye((0, 3.7, -5.0), 0.95, val=0.55, facing=(0, 0, -1))
     # spring-barrel housing on the back (the key sits in its socket)
     g.rbox((-2.4, -3.0, 3.4), (2.4, 2.6, 6.0), 'copper', 0.44, bevel=0.8)
     g.cylinder((0, 2.4, 4.8), (0, 3.2, 4.8), 0.9, 0.9, 'brass', 0.62)
@@ -451,14 +431,14 @@ def _sentry_turret(g: MobGrid, ctx):
         g.rbox((-2.5, y, 3.3), (2.5, y + 0.4, 6.1), 'brass', 0.55)
     # magazine drum of saw-toothed gear rounds (mob's right = +X), feed chute to the gun
     g.cylinder((4.2, -0.8, 0.6), (6.0, -0.8, 0.6), 2.5, 2.5, 'iron', 0.42)
-    for k, x in enumerate((4.6, 5.3, 6.0)):
-        _gear(g, (x, -0.8, 0.6), 2.4, 9, plane='zy', thick=0.4, mat='brass', val=0.5 + 0.06 * k, tooth_h=0.6, rim=0.7)
+    for k, x in enumerate((4.8, 5.9)):
+        _gear(g, (x, -0.8, 0.6), 2.4, 9, plane='zy', thick=0.5, mat='brass', val=0.52 + 0.08 * k, tooth_h=0.6, rim=0.7)
     g.dot((6.4, -0.8, 0.6), 'brass', 0.8, prio=5)
     g.capsule((4.4, -1.6, -1.4), (2.0, -1.4, -4.2), 0.7, 0.6, 'iron', 0.5)
     # hand crank on the left side
     g.cylinder((-4.4, -0.6, 0.4), (-5.6, -0.6, 0.4), 0.55, 0.55, 'iron', 0.55)
-    g.capsule((-5.6, -0.6, 0.4), (-5.6, -2.6, 1.4), 0.4, 0.4, 'brass', 0.6)
-    g.capsule((-5.6, -2.6, 1.4), (-6.6, -2.6, 1.4), 0.45, 0.45, 'lacquer', 0.5)
+    g.rbox((-5.9, -2.8, 0.0), (-5.3, -0.4, 0.8), 'brass', 0.6)
+    g.cylinder((-5.6, -2.6, 0.4), (-6.8, -2.6, 0.4), 0.45, 0.45, 'lacquer', 0.5)
     _swap(g, ['copper'], 'patina', amount=0.16, scale=2.2, seed=2)
     _patina_drips(g, ['copper'], 0.07)
 
@@ -664,11 +644,10 @@ def _moth_wing_cell(x, z, fore, sd):
     """(mat, value[, glow]) of one wing cell (+X side coordinates)."""
     poly, outer = (FORE, FORE_OUTER) if fore else (HIND, HIND_OUTER)
     e = _poly_edge(poly, x, z, outer)
-    if e < 0.95:
-        # pale scalloped margin with dark spots between the scallops
-        cx, cz = (8.0, -2.0) if fore else (5.0, 3.6)
-        ang = math.atan2(z - cz, x - cx)
-        return ('wing', 0.86) if math.sin(ang * (16 if fore else 12)) < 0.45 else ('wing', 0.2)
+    if e < 0.7:
+        return ('wing', 0.9)                       # pale cream margin
+    if e < 1.25:
+        return ('wing', 0.12)                      # dark line inside the margin
     if fore:
         d = math.hypot(x - DIAL_C[0], z - DIAL_C[1])
         if d < DIAL_R + 0.75:
@@ -697,14 +676,12 @@ def _moth_wing_cell(x, z, fore, sd):
             return ('rune', 0.72, True)
         if z > 7.6:
             return ('brass', 0.5)
-    # body of the wing: dark root, a band of gold dust, dark outer field
+    # body of the wing: dark velvet root, a band of gold dust, dark outer field
     r = math.hypot(x - 1.0, z * 1.2)
-    v = 0.2 + 0.05 * min(1.0, r / 3.0)
-    band = (7.0, 9.6) if fore else (4.6, 6.6)
+    v = 0.22 if r < 3.0 else 0.3
+    band = (6.6, 8.6) if fore else (4.4, 6.0)
     if band[0] < r < band[1]:
-        v = 0.52 + 0.08 * fbm3(x / 1.4, 0, z / 1.4, sd)
-    elif fbm3(x / 1.8, 0, z / 1.8, sd + 3) > 0.66:
-        v += 0.1
+        v = 0.6
     # brass veins fanning from the root
     for va in ((-0.5, -0.2, 0.15) if fore else (0.45, 0.9)):
         ax, az = math.cos(va), math.sin(va)
@@ -928,11 +905,13 @@ def _reg_arm(g: MobGrid, ctx):
         def blade(u, v):
             if v > -11.0 or v < -26.5:
                 return False
-            if v < -22.6:
-                return abs(u) < (v + 26.5) * 0.5
-            if -21.8 < v < -20.4:
-                return abs(u) < 1.1
-            return abs(u) < 0.5
+            if v < -22.4:
+                return abs(u) < (v + 26.5) * 0.42          # arrowhead
+            if -22.4 <= v < -21.6:
+                return abs(u) < 0.45
+            if -21.6 <= v < -20.0:
+                return abs(u) < 1.0 and not (abs(u) < 0.45 and -21.2 < v < -20.4)   # pierced counterweight
+            return abs(u) < 0.75 - 0.25 * (v + 11.0) / -9.0
         g.slab2d(blade, (-2.2, -26.8), (2.2, -10.6), 'zy', o * 3.0, 0.35, 'blade',
                  vfn=lambda u, v, w, e: 0.45 + 0.3 * min(1.0, e / 0.7))
         g.cylinder((o * 2.5, -12.0, 0), (o * 3.4, -12.0, 0), 0.9, 0.9, 'gold', 0.6)
@@ -955,8 +934,9 @@ def _reg_pendulum(g: MobGrid, ctx):
     g.cylinder((0, -15.4, 1.6), (0, -15.4, 2.0), 1.4, 1.4, 'rune', 0.6, glow=True)
     for k in range(8):
         a = k * math.pi / 4
-        g.capsule((math.cos(a) * 1.6, -15.4 + math.sin(a) * 1.6, 1.9), (math.cos(a) * 2.6, -15.4 + math.sin(a) * 2.6, 1.9),
-                  0.25, 0.25, 'rune', 0.5, glow=True)
+        ca, sa = math.cos(a), math.sin(a)
+        g.capsule((ca * 1.6, -15.4 + sa * 1.6, 1.9), (ca * 2.6, -15.4 + sa * 2.6, 1.9), 0.25, 0.25, 'rune', 0.5,
+                  glow=True)
 
 
 def _reg_legs(g: MobGrid, ctx):
@@ -1014,6 +994,10 @@ def _drone_gear(g: MobGrid, ctx):
         g.rbox((s * 0.6, 5.9, -0.7), (s * 4.4, 6.3, 0.7), 'brass', 0.55, bevel=0.2)
         g.rbox((s * 3.4, 5.9, -0.7), (s * 4.4, 6.3, 0.7), 'copper', 0.7)
     g.blob((0, 6.5, 0), 0.6, 'brass', 0.72)
+    # back cap closing the hub: brass boss with a glowing spring-core slot
+    g.cylinder((0, 0, 1.1), (0, 0, 1.6), 2.5, 2.5, 'brass', 0.45)
+    g.cylinder((0, 0, 1.5), (0, 0, 2.0), 1.2, 1.0, 'copper', 0.6)
+    g.rbox((-0.25, -1.0, 1.9), (0.25, 1.0, 2.2), 'glow', 0.7, glow=True, prio=6)
     # exhaust vent underneath
     g.cylinder((0, -4.4, 0.6), (0, -5.6, 0.8), 0.8, 0.55, 'iron', 0.45)
     g.dot((0, -5.9, 0.8), 'glow', 0.8, glow=True, prio=6)
@@ -1078,57 +1062,60 @@ STALKER_MEMBRANE = [(4, 16, 22), (10, 34, 44), (20, 60, 70), (36, 92, 100), (64,
 
 
 def _stalker_torso(g: MobGrid, ctx):
-    # hunched torso: deep chest leaning forward over a thin waist
-    g.blob((0, 2.0, -0.6), (3.4, 3.8, 2.4), 'skin', 0.45, top=0.15)
-    g.capsule((0, -6.0, 0.4), (0, 0.0, 0.0), 1.9, 2.1, 'skin', 0.4)
-    g.blob((0, -5.6, 0.3), (2.6, 1.4, 1.8), 'skin', 0.38)
+    # hunched torso: deep chest thrust forward over a thin waist
+    g.blob((0, 2.2, -1.2), (3.4, 3.6, 2.4), 'skin', 0.45, top=0.15)
+    g.capsule((0, -6.0, 0.6), (0, 0.2, -0.4), 1.8, 2.1, 'skin', 0.4)
+    g.blob((0, -5.6, 0.4), (2.6, 1.4, 1.8), 'skin', 0.38)
     # ribcage: dark slots between bone ribs let the teal heart-light through
-    g.blob((0, 2.0, -0.8), (2.2, 2.4, 1.4), 'core', 0.55, glow=True, prio=1, vfn=lambda x, y, z, d: 0.8 - 0.4 * d)
-    for y in (0.2, 1.5, 2.8, 4.1):
-        g.carve(lambda x, y_, z, y=y: abs(y_ - y - 0.62) < 0.3 and z < -1.2 and abs(x) < 2.6)
-        g.rbox((-2.8, y - 0.25, -3.1), (2.8, y + 0.3, -1.6), 'bone', 0.45 + 0.03 * y, bevel=0.25, prio=2)
-    g.rbox((-0.4, -0.2, -3.2), (0.4, 5.2, -2.6), 'bone', 0.55)                      # sternum
+    g.blob((0, 2.2, -1.4), (2.2, 2.4, 1.4), 'core', 0.55, glow=True, prio=1, vfn=lambda x, y, z, d: 0.85 - 0.4 * d)
+    for y in (0.4, 1.7, 3.0, 4.3):
+        g.carve(lambda x, y_, z, y=y: abs(y_ - y - 0.62) < 0.3 and z < -1.8 and abs(x) < 2.4)
+        for sx in (-1, 1):
+            g.rbox((sx * 0.6, y - 0.25, -3.7), (sx * 2.7, y + 0.3, -2.2), 'bone', 0.3 + 0.03 * y, bevel=0.25, prio=2)
+    g.rbox((-0.4, 0.0, -3.8), (0.4, 5.4, -3.2), 'bone', 0.42)                       # sternum
     # high bony shoulders, collarbones
     for s in (-1, 1):
         g.blob((s * 3.4, 4.8, -0.6), (1.6, 1.4, 1.6), 'skin', 0.5, top=0.25)
-        g.capsule((s * 0.6, 5.6, -2.0), (s * 3.2, 5.2, -1.4), 0.4, 0.4, 'bone', 0.55)
+        g.capsule((s * 0.6, 5.6, -2.4), (s * 3.2, 5.2, -1.4), 0.4, 0.4, 'bone', 0.45)
     # spine ridge with bone spikes swept back
     for k in range(6):
         y = -4.4 + k * 1.8
-        z = 1.6 - 0.2 * k
-        g.cone((0, y, z), (0, 0.6, 1), 1.6 + 0.4 * (k % 3), 0.5, 'bone', 0.4, 0.8)
+        z = 1.6 - 0.25 * k
+        g.cone((0, y, z), (0, 0.6, 1), 1.7 + 0.5 * (k % 3), 0.5, 'bone', 0.35, 0.8)
     _vein_walk(g, ['skin'], 5, steps=(6, 12), seed=1, bias=(0, -1, 0), fork=0.12)
 
 
 def _stalker_head(g: MobGrid, ctx):
-    # long eyeless skull tilted forward, smooth bone brow plate
-    g.capsule((0, 1.0, 2.2), (0, 0.4, -1.8), 2.4, 2.0, 'skin', 0.45)
-    g.capsule((0, 0.0, -1.8), (0, -1.4, -3.6), 2.0, 1.3, 'skin', 0.42)
-    g.blob((0, 1.7, -0.4), (2.0, 1.5, 2.6), 'bone', 0.5, top=0.25, cut=lambda x, y, z: y < 1.3)
+    # long eyeless skull thrust forward and low (hunched neck), elongated cranium sweeping back
+    o = (0, -0.8, -1.2)
+    P = lambda p: vadd(p, o)  # noqa: E731
+    g.capsule(P((0, 1.6, 3.8)), P((0, 0.6, -1.6)), 2.0, 2.3, 'skin', 0.45)
+    g.capsule(P((0, 0.2, -1.6)), P((0, -1.4, -3.6)), 2.0, 1.3, 'skin', 0.42)
+    g.blob(P((0, 1.8, -0.2)), (2.0, 1.5, 2.8), 'bone', 0.45, top=0.25, cut=lambda x, y, z: y < 1.4 + o[1])
     # vertical slit maw with needle teeth, glowing throat
-    g.carve(lambda x, y, z: z < -2.0 and abs(x) < 0.7 and -3.6 < y < 0.0)
-    g.rbox((-0.6, -3.4, -2.8), (0.6, -0.2, -2.2), 'core', 0.55, glow=True, prio=2)
+    g.carve(lambda x, y, z: z < -2.0 + o[2] and abs(x) < 0.7 and -3.6 + o[1] < y < 0.0 + o[1])
+    g.rbox(P((-0.6, -3.4, -2.8)), P((0.6, -0.2, -2.2)), 'core', 0.6, glow=True, prio=2)
     for s in (-1, 1):
         for k in range(4):
             y = -0.4 - k * 0.85
-            g.cone((s * 0.95, y, -3.0 + 0.25 * k), (-s, -0.25, -0.2), 0.8, 0.25, 'bone', 0.6, 0.9)
+            g.cone(P((s * 0.95, y, -3.0 + 0.25 * k)), (-s, -0.25, -0.2), 0.8, 0.25, 'bone', 0.6, 0.9)
 
     # listening fans: flat membranes (zy plane) on bone rays, out at the sides, a glowing nerve arc
     def fan(u, v):        # u = z, v = y relative to the ear root
         d = math.hypot(u, v)
         a = math.atan2(v, u)
-        return 0.8 < d < 4.6 and -1.1 < a < 1.45
+        return 0.8 < d < 4.8 and -1.1 < a < 1.45
     for s in (-1, 1):
-        root = (s * 2.4, 0.6, 0.8)
+        root = P((s * 2.2, 0.8, 1.2))
         g.slab2d(lambda u, v: fan(u - root[2], v - root[1]), (root[2] - 5, root[1] - 5), (root[2] + 5, root[1] + 5),
                  'zy', root[0] + s * 0.5, 0.25, 'membrane',
                  vfn=lambda u, v, w, e: 0.3 + 0.08 * math.hypot(u - root[2], v - root[1]))
         for a in (-0.95, -0.2, 0.55, 1.3):
-            tip = (root[0] + s * 0.6, root[1] + math.sin(a) * 4.9, root[2] + math.cos(a) * 4.9)
-            g.capsule((root[0] + s * 0.3, root[1], root[2]), tip, 0.35, 0.25, 'bone', 0.55)
+            tip = (root[0] + s * 0.6, root[1] + math.sin(a) * 5.1, root[2] + math.cos(a) * 5.1)
+            g.capsule((root[0] + s * 0.3, root[1], root[2]), tip, 0.35, 0.25, 'bone', 0.5)
         for k in range(7):
             a = -0.9 + 2.2 * k / 6
-            g.dot((root[0] + s * 0.85, root[1] + math.sin(a) * 3.0, root[2] + math.cos(a) * 3.0), 'glow', 0.7,
+            g.dot((root[0] + s * 0.85, root[1] + math.sin(a) * 3.1, root[2] + math.cos(a) * 3.1), 'glow', 0.75,
                   glow=True, prio=5)
     _vein_walk(g, ['skin'], 3, steps=(5, 9), seed=2, bias=(0, 0, 1), fork=0.1)
 
@@ -1147,17 +1134,17 @@ def _stalker_arm(g: MobGrid, ctx):
         if v > -9.6 or v < -21.0:
             return False
         t = (-9.6 - v) / 11.4
-        zc = 0.6 - 3.6 * t * t
-        w = 1.25 * (1 - t) ** 0.7 + 0.12
+        zc = 0.8 - 4.8 * t * t
+        w = 1.7 * (1 - t) ** 0.75 + 0.12
         return abs(u - zc) < w
 
     def bval(u, v, w, e):
         t = (-9.6 - v) / 11.4
-        zc = 0.6 - 3.6 * t * t
+        zc = 0.8 - 4.8 * t * t
         if u < zc - 0.3 and e < 0.45:
             return ('glow', 0.55 + 0.3 * t, True)
         return ('obsidian', 0.42 + 0.22 * min(1.0, e / 0.8) + 0.1 * t)
-    g.slab2d(blade, (-4.2, -21.4), (2.2, -9.2), 'zy', 0.0, 0.4, 'obsidian', vfn=bval, bevel=0.6)
+    g.slab2d(blade, (-5.6, -21.4), (2.8, -9.2), 'zy', 0.0, 0.45, 'obsidian', vfn=bval, bevel=0.7)
     g.cone((0, -9.8, 1.0), (0, 0.6, 1), 2.0, 0.5, 'bone', 0.4, 0.8)               # elbow spur
 
 
@@ -1347,9 +1334,13 @@ def _eye_lids(g: MobGrid, ctx):
     # crown of spines fanning from the back
     for k in range(7):
         a = math.pi * (0.12 + 0.76 * k / 6)
-        d = (math.cos(a), math.sin(a), 0.65)
+        d = (math.cos(a), math.sin(a), 0.7)
         base = vadd(c, vmul(vnorm(d), R1 - 0.7))
-        g.cone(base, d, 4.0 - 1.2 * abs(k - 3) / 3, 0.8, 'obsidian', 0.5, 0.82, curl=(0, 0, 0.9))
+        g.cone(base, d, 5.4 - 1.8 * abs(k - 3) / 3, 0.95, 'bone', 0.3, 0.8, curl=(0, 0, 1.2))
+    for k in range(4):
+        a = math.pi * (1.2 + 0.6 * k / 3)
+        d = (math.cos(a) * 0.9, math.sin(a) * 0.7, 0.8)
+        g.cone(vadd(c, vmul(vnorm(d), R1 - 0.7)), d, 2.6, 0.7, 'bone', 0.3, 0.75, curl=(0, 0, 0.8))
     g.capsule(vadd(c, (0, 0, R1 - 0.6)), vadd(c, (0, -0.6, R1 + 2.2)), 1.8, 1.0, 'skin', 0.4)   # nerve root
     _vein_walk(g, ['obsidian'], 5, steps=(6, 12), seed=2, fork=0.15)
 
@@ -1400,18 +1391,26 @@ def _choir_robe(g: MobGrid, ctx):
         L = 2.2 + 2.8 * h2(k, 3, g.seed)
         p = (math.cos(a) * 4.9, -8.6, 0.2 + math.sin(a) * 4.9)
         g.capsule(p, vadd(p, (math.cos(a) * 0.7, -L, math.sin(a) * 0.7)), 0.7, 0.35, 'cassock', 0.3)
-    # surplice: pale over-robe from the shoulders to the knee, its hem torn into points
-    def sur_len(u):
-        return 9.0 - 3.2 * h2(int(u * 14), 5, g.seed) - 1.2 * (0.5 + 0.5 * math.sin(u * 37))
-    for s_ in range(2):
-        pts = [(math.cos(a) * (3.0 + 0.2), 5.4, 0.2 + math.sin(a) * (3.0 + 0.2))
-               for a in [math.pi * (s_ + k / 24) for k in range(25)]]
-        g.cloth(pts, sur_len, 'surplice', 0.6, tatter=0.0, normal=(0, 0, -1), thick=1, folds=0.08, seed=s_,
-                sway=None, prio=3)
-    # the cloth columns hang straight; push the lower surplice out over the flare
-    g.cylinder((0, -3.4, 0.2), (0, 5.4, 0.2), 4.2, 3.05, 'surplice', 0.58, hollow=2.9, prio=2)
-    g.carve(lambda x, y, z: y < -3.4 + 2.4 * h2(int(math.atan2(z - 0.2, x) * 4 + 9), 2, g.seed) and
-            g.vox.get(g.key((x, y, z)), ('x',))[0] == 'surplice')
+    # surplice: pale over-robe from the shoulders to below the hips, hem torn into points, lace holes
+    g.cylinder((0, -4.6, 0.2), (0, 5.4, 0.2), 4.35, 3.05, 'surplice', 0.6, hollow=2.7, prio=2,
+               vfn=lambda t, r, p: 0.5 + 0.1 * t + 0.06 * math.sin(math.atan2(p[2] - 0.2, p[0]) * 9))
+    sd = g.seed
+
+    def torn(x, y, z):
+        cur = g.vox.get(g.key((x, y, z)))
+        if cur is None or cur[0] != 'surplice':
+            return False
+        a = math.atan2(z - 0.2, x)
+        sector = int((a + math.pi) / (2 * math.pi) * 14)
+        frac = ((a + math.pi) / (2 * math.pi) * 14) % 1.0
+        cut_y = -4.6 + 2.6 * h2(sector, 2, sd) * (1 - abs(frac - 0.5) * 2) + 0.6
+        return y < cut_y
+    g.carve(torn)
+    for k in range(10):
+        a = 2 * math.pi * k / 10 + 0.15
+        p = _stick(g, (math.cos(a) * 8, -1.8, 0.2 + math.sin(a) * 8), (-math.cos(a), 0, -math.sin(a)), out=-0.1)
+        if p:
+            g.dot(p, 'cassock', 0.3, prio=5)
     # stole with glowing notes hanging from the neck in front
     for s in (-1, 1):
         g.rbox((s * 0.95 - 0.55, -7.4, -4.6 + 0.0), (s * 0.95 + 0.55, 5.6, -3.0), 'cassock', 0.62, prio=4)
@@ -1514,8 +1513,18 @@ def _gk_torso(g: MobGrid, ctx):
     for s in (-1, 1):
         for y in (-0.6, 3.4):
             g.dot((s * 8.6, y, -5.6), 'rune', 0.65, glow=True, prio=6)
-    _vein_walk(g, ['obsidian'], 6, steps=(6, 12), seed=1, fork=0.15,
-               region=lambda x, y, z: abs(x) > 7.0 or z > 0)
+    # back: a gold keyhole sigil (the lock this gate answers to) with a teal-lit slot
+    def back_key(u, v):
+        d = math.hypot(u, v - 3.2)
+        ring = 1.6 < d < 2.5
+        stem = abs(u) < 0.8 + 0.45 * (3.2 - v) / 6.0 and -3.6 < v < 1.2 and not (abs(u) < 0.35 and -3.0 < v < 1.0)
+        return ring or stem
+    g.slab2d(lambda u, v: back_key(-u, v), (-3.2, -4.0), (3.2, 6.0), 'xy', 5.9, 0.4, 'gold',
+             vfn=lambda u, v, w, e: 0.48 + 0.2 * min(1.0, e / 0.6))
+    g.rbox((-0.3, -2.8, 5.7), (0.3, 0.9, 6.1), 'glow', 0.75, glow=True, prio=4)
+    g.cylinder((0, 3.2, 5.5), (0, 3.2, 6.2), 1.5, 1.5, 'glow', 0.55, glow=True, prio=3)
+    _vein_walk(g, ['obsidian'], 5, steps=(6, 12), seed=1, fork=0.15,
+               region=lambda x, y, z: abs(x) > 7.0 or (z > 0 and abs(x) > 3.6))
 
 
 def _gk_gate(g: MobGrid, ctx):
@@ -1630,21 +1639,24 @@ def abyss_gatekeeper(look, name, part, ctx):
 # glowing eyes of every size and a toothed maw; seven short tentacles splay out along the floor.
 
 def _spawn_body(g: MobGrid, ctx):
-    g.blob((0, 0.2, 0), (4.8, 4.2, 4.8), 'skin', 0.42, lump=0.1, lump_scale=2.6, top=0.25)
-    g.blob((0, -2.6, 0), (4.4, 1.8, 4.4), 'skin', 0.3)
-    # eye cluster on the front: different sizes
-    for (x, y, r) in ((0.0, 1.0, 1.0), (-2.1, 0.4, 0.7), (2.0, 1.4, 0.75), (-1.0, 2.6, 0.5), (1.3, -0.4, 0.5),
-                      (-2.6, 2.0, 0.4), (2.8, -0.2, 0.4)):
+    # glossy tar clot: main mass, a swelling hump on the back, a sagging belly
+    g.blob((0, 0.0, 0.2), (4.6, 4.0, 4.6), 'skin', 0.42, lump=0.1, lump_scale=2.6, top=0.28)
+    g.blob((0.8, 2.0, 2.0), (3.0, 2.6, 2.8), 'skin', 0.48, top=0.25)
+    g.blob((0, -2.6, 0), (4.3, 1.8, 4.3), 'skin', 0.3)
+    # eye cluster on the front: different sizes, slit pupils on the big ones
+    for (x, y, r) in ((0.2, 1.2, 1.05), (-2.1, 0.5, 0.75), (2.1, 1.6, 0.7), (-1.1, 2.7, 0.5), (1.4, -0.3, 0.5),
+                      (-2.7, 2.1, 0.4), (2.9, -0.1, 0.4), (0.6, 3.4, 0.4)):
         p = g.hit((x, y, -8.0), (0, 0, 1))
         if p:
-            g.eye(vadd(p, (0, 0, 0.2)), r, val=0.55, socket=0.3, facing=(x * 0.15, y * 0.1, -1))
+            g.eye(vadd(p, (0, 0, 0.25)), r, val=0.5, socket=0.35, facing=(x * 0.15, y * 0.1, -1), slit=r > 0.6,
+                  pupil_mat='void')
     # toothed maw under the eyes
-    g.mouth((0, -1.8, -4.2), 3.4, 1.0, depth=1.0, tooth_len=0.6)
-    # crown of nubs and fissures
-    for k in range(6):
-        a = 2 * math.pi * k / 6
-        base = (math.cos(a) * 2.2, 3.6, math.sin(a) * 2.2 + 0.4)
-        g.cone(base, (math.cos(a) * 0.5, 1, math.sin(a) * 0.5), 1.6 + 0.6 * (k % 2), 0.55, 'obsidian', 0.4, 0.75)
+    g.mouth((0, -1.9, -4.1), 3.6, 1.1, depth=1.0, tooth_len=0.7)
+    # crown of obsidian spines along the hump
+    for k in range(7):
+        a = 2 * math.pi * k / 7 + 0.3
+        base = (0.8 + math.cos(a) * 1.8, 4.0, 2.0 + math.sin(a) * 1.8)
+        g.cone(base, (math.cos(a) * 0.55, 1, math.sin(a) * 0.55), 1.7 + 0.8 * (k % 2), 0.55, 'obsidian', 0.42, 0.78)
     _vein_walk(g, ['skin'], 6, steps=(5, 10), seed=2, fork=0.2, region=lambda x, y, z: z > -2.5)
 
 
