@@ -126,8 +126,8 @@ labyrinth/
     advance 177 → 제목 = `Glyphs.menuTitle("gui_<id>", 176, 제목)` (= space(−8) + 배경 + space(−169) + 제목). 배경이 인벤토리
     부분까지 덮고(같은 디자인), 바닐라 인벤토리 글자 자리는 밝은 명판. 제목 글자색은 `menus.<id>.title_color`(밝은 양피지색).
     메뉴별 버튼 자리(소켓이 그려진 칸)는 glyphs.yml `menus.<id>.slots` 가 원본 — 채움 유리판을 깔지 말 것(배경을 가림).
-    배경 14종: main(3줄), stats, class, party, setup(첫 서버 설정·난이도), entrance(층 선택), blacksmith, titles, accessories(3줄),
-    merchant, pvp(도전·대기열·순위표), confirm(3줄), generic_6, generic_3.
+    배경 13종: main(3줄), stats, class, party, setup(첫 서버 설정·난이도), entrance(층 선택), blacksmith, titles, accessories(3줄),
+    merchant, confirm(3줄), generic_6, generic_3.
   - **HUD 액션바**(글줄 y = 화면높이 − 72, 가운데 정렬): 핫바 왼쪽 끝 기준 x 0..181 로 배치하고 전체 advance 를 182 로 맞춘다
     (요소마다 space(x − 펜) + 글리프, 끝에 space(182 − 펜)). 위치·접두어는 glyphs.yml `hud:` 블록. HP 바(x0)·레벨 배지(x82)·
     MP 바(x100) = H−63..H−55, 경험치 줄 H−52, 상태 아이콘·골드 줄 H−76. 바는 21단계(`hud_hp_00..20` = round(비율×20)).
@@ -168,7 +168,7 @@ labyrinth/
 | `bosses/` | **bosses** (이후 단계) | `bosses/BossesModule` | `BossService`, `BossHandle extends CustomMob` (→`NoopBossService`) |
 | `titles/` | **ui+titles** | `titles/TitlesModule` | `TitleService`(→`BasicTitleService`) |
 | `ui/` (위 프레임워크 제외: `menus/*`, HUD 구현) | **ui+titles** | `ui/UiModule` | `HudService`(→`BasicHudService`), `MenuService`(→`ChatMenuService`: 채팅 클릭 대체) |
-| `pvp/` | **pvp** | `pvp/PvpModule` | `TargetFilter`(→`DefaultTargetFilter`) |
+| `pvp/` | **pvp** | `pvp/PvpModule` | `TargetFilter`(→`DefaultTargetFilter`: PvP 꺼짐 — 모듈이 config `pvp` 를 따르는 것으로 교체) |
 
 - **자기 패키지 밖은 고치지 않는다.** 다른 서비스는 `services.xxx()` 로만 부른다 (필드에 저장 금지 — 나중에 교체됨).
   `LabyrinthPlugin`/`Services` 는 손대지 않아도 되게 되어 있다: 실제 구현은 자기 `XxxModule.enable()` 에서 setter 로 등록.
@@ -177,12 +177,12 @@ labyrinth/
 - 모듈 enable 순서: core(janitor·records·data·stats·levels·combat·pack) → items → classes → mobs → dungeon → bosses → titles → ui → pvp
   → setup → commands. enable 안에서는 **앞 순서 모듈만** 확실히 준비돼 있다 (뒤 모듈은 런타임에 getter 로).
 - 하위 명령: 각 모듈 enable 에서 `services.commands().addSubcommand("<루트>", Commands.literal(...))`.
-  루트 = `lab`(미궁) · `party`(파티) · `stats`(스탯) · `class`(직업) · `title`(칭호) · `pvp`(대전) · `labadmin`(미궁관리, 권한 `labyrinth.admin`).
+  루트 = `lab`(미궁) · `party`(파티) · `stats`(스탯) · `class`(직업) · `title`(칭호) · `labadmin`(미궁관리, 권한 `labyrinth.admin`).
   인자 없는 루트 실행은 `MenuService.openXxx` 로 간다. core 가 이미 붙인 것: `lab enter|입장 [층]`, `lab leave|퇴장`(→DungeonService),
   `stats add|투자 <스탯> [양]`, `labadmin reload|give|setup|difficulty|level|xp|gold|points|info|pack`.
 - **공용 규칙 (core 제공)**
   - 콘텐츠: `services.content()` → `content/` 의 불변 레코드(`ItemDef`, `MobDef`, `BossDef`, `FloorDef`, `LootTable`, `ClassDef`,
-    `AchievementDef`, `NpcDef`, `AuraDef`, `FxModelDef`, `GlyphDef`, `ArenaDef`, `RecipeDef`, `ItemSetDef`). 자유 파라미터와 추가 필드는
+    `AchievementDef`, `NpcDef`, `AuraDef`, `FxModelDef`, `GlyphDef`, `RecipeDef`, `ItemSetDef`). 자유 파라미터와 추가 필드는
     `Params`(각 정의의 `raw()`/`params()`): `dbl/integer/str/bool/sub/maps`, GDD §8.4 규칙 `scaled(key, n)`·`phased(key, phase)`.
     reload 시 새 객체로 바뀌므로 오래 보관하지 말 것.
   - 피해: 모든 피해는 `services.damage().deal(DamageContext...)` 한 곳. `DamageContext.attack(player, target, 배율, type)`(공격력 기반),
@@ -199,7 +199,7 @@ labyrinth/
   - 배율: `InstanceContext.hpMultiplier()/damageMultiplier()/dropMultiplier()/goldMultiplier()/xpMultiplier()/windup(초)`;
     인스턴스 밖 소환은 `InstanceContext.adhoc(floor, n, settings.difficulty(), settings.party())`.
   - 이벤트(`event/`): `MobKillEvent`(mobs/bosses 발생), `FloorClearEvent`(dungeon), `LevelUpEvent`(core), `ItemObtainEvent`(items),
-    `CraftEvent`(items), `PvpMatchEndEvent`(pvp) — titles 가 듣는다.
+    `CraftEvent`(items) — titles 가 듣는다.
   - 임시 엔티티(몹 히트박스·모델 파트·이펙트 디스플레이): 반드시 `Keys.tagTransient(entity, Keys.MOB|BOSS|FX, id)` +
     `setPersistent(false)`. `EntityJanitor` 가 재시작 후 남은 것을 청소한다. 진행 데이터는 `services.data().get(p)`(PlayerData,
     모듈 확장 값은 `ext()` 맵 + `markDirty()`), 서버 최초 기록은 `services.records().claim(key, ...)`.
@@ -215,9 +215,9 @@ core/    Module(interface: name, enable, disable, reload), Keys(NamespacedKey �
          데이터폴더로 복사·로드·/reload, 손대지 않은 기본 파일은 새 버전으로 자동 갱신), ContentValidator(교차참조 검사),
          EntityJanitor(임시 엔티티 청소), SetupListener(초기 설정 안내)
 content/ Content(불변 스냅샷) + 정의 레코드(ClassDef, ItemDef, ItemSetDef, MobDef, ModelDef, BossDef, FloorDef, LootTable,
-         RecipeDef, AchievementDef, NpcDef, AuraDef, FxModelDef, GlyphDef, ArenaDef), Params(자유 파라미터), Rarity, ItemType,
+         RecipeDef, AchievementDef, NpcDef, AuraDef, FxModelDef, GlyphDef), Params(자유 파라미터), Rarity, ItemType,
          ContentParser(원시 YAML → 레코드, Bukkit 무관 — 단위 테스트)
-event/   MobKillEvent, FloorClearEvent, LevelUpEvent, ItemObtainEvent, CraftEvent, PvpMatchEndEvent
+event/   MobKillEvent, FloorClearEvent, LevelUpEvent, ItemObtainEvent, CraftEvent
 data/    PlayerData(레벨, 경험치, 스탯포인트, 스탯, 직업, 골드, 해금층, 칭호/업적, 장신구 2칸, 통계),
          PlayerDataService(플레이어별 YAML: plugins/Labyrinth/players/<uuid>.yml, 비동기 저장, 자동저장 5분),
          ServerRecords(서버 최초 달성 기록: records.yml)
@@ -232,7 +232,7 @@ items/   ItemDef, Rarity, ItemService(정의→ItemStack, ItemStack→정의/굴
          ItemRolls(굴림·PDC 형식 "key=value;…"), ItemTooltip, EquipRules(레벨·직업 미달 = 스탯/무기 스킬 없음, 방어구는 착용 즉시 반환),
          EquipmentListener(장비 StatContributor + 세트 효과), ConsumableListener, ItemGuardListener(바닐라 제작·화로·모루·거래 차단)
 items/weaponskills/ LabWeaponSkillService(입력: LEFT = PlayerArmSwingEvent, RIGHT = 우클릭, 쿨다운·마나·침묵),
-         WeaponTargeting(무기 스킬 대상 선택의 단일 도형 헬퍼 — 적/아군 판정은 TargetFilter; classes 단계에서 pvp/TargetFilter 로 이동 예정),
+         WeaponTargeting(무기 스킬 대상 선택의 단일 도형 헬퍼 — 적/아군 판정은 TargetFilter),
          SkillCast(공통 키 처리), Fx(ItemDisplay 이펙트), 17종 구현 = Projectile/Movement/Area/SupportSkills,
          조합형 `mechanics` = MechanicsEngine(실행) + mechanics/MechanicsSpec(순수 파서·검사, ContentValidator 가 호출)
 loot/    LootService(loot 테이블, 희귀도 가중치, LUK 보정, 파티 개인 루팅: 아이템은 개인별로 지급/표시)
@@ -246,11 +246,12 @@ dungeon/ DungeonService(입장/퇴장/진행), Instance(파티·층·난이도·
          VoidGenerator(ChunkGenerator: 빈 월드), FloorGenerator(층 테마 팔레트로 방+복도 미로 생성, 시드 기반),
          rooms/*(전투방, 엘리트방, 보물방, 기믹방, 휴식방, 보스방), EntranceService(오버월드 입구: 지형 존중)
 party/   Party, PartyService(생성/초대/수락/탈퇴/추방/위임, 파티 채팅, 최대 인원 config)
-pvp/     파티 대 파티 PvP: ArenaService(arenas.yml 의 오리지널 투기장을 labyrinth_world 의 별도 슬롯에 생성·정리),
-         MatchService(도전/수락, 매칭 대기열, 라운드제 best-of-N, 준비 카운트다운, 사망→관전, 라운드 종료·승패 판정,
-         인원 차 보정), PvpRules(PvP 전용 피해 배율·치유 감소·제어기 지속시간 감소·포션/소모품 제한, 장비 격차 완화 옵션),
-         RatingService(파티 레이팅 Elo + 개인 전적, 시즌 리셋 명령), TargetFilter(스킬·무기스킬이 '적'을 고르는 단일 규칙:
-         미궁에선 몹, 매치에선 상대 팀 플레이어 — 아군 오사 방지)
+pvp/     파티 규칙 PvP (GDD §18 — 대전·투기장·레이팅 없음): 같은 파티원끼리는 어디서든 피해 없음, 그 밖의 플레이어끼리는 피해 가능.
+         PvpRules(순수 적/아군 표 — 단위 테스트), TargetFilter·DefaultTargetFilter(엔티티 → PvpRules, 근접·화살·스킬·무기 스킬·
+         장판의 단일 규칙), PvpSources(책임 플레이어: 투사체·TNT·엔드 수정·물약 구름·번개·길들인 동물), PvpConfig(config `pvp`),
+         VillageZone(마을 안전지대 = 주 월드 폴더 labyrinth-village.yml center/radius, 없으면 없음), PvpListener(물약·잔류 구름·발화·
+         늑대·낚싯대·바닐라 경로 배율·죽음 메시지·월드 PvP 규칙), PvpModule(DamageService 훅: 파티원 피해 차단·배율·한 방 상한,
+         1초마다 파티원 이름표 초록·모든 월드 게임 규칙 pvp = pvp.enabled)
 titles/  Achievement(titles.yml), TitleService(조건 검사, 서버 최초 달성 방송, 칭호 장착: 채팅·탭·이름표 접두어, 소소한 보너스)
 npc/     NpcService(npcs.yml: 안내인/대장장이/전직관/칭호관리인… Mannequin + 커스텀 스킨, 우클릭 → GUI)
 ui/      Menu 프레임워크(InventoryHolder 기반, 커스텀 폰트 배경 타이틀, 버튼 콜백), menus/*(초기 설정(난이도), 스탯, 직업, 파티, 입장(층 선택),
@@ -262,7 +263,9 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
 ### 4.1 classes 단계에서 추가된 계약 (다른 모듈이 쓰는 것)
 - **피해 훅** `combat.DamageService.Hook` (`services.damage().addHook(h)`): `before(ctx)`(원피해 직후 — `ctx.amount/threat/critBonus` 조정),
   `absorb(ctx, dmg)`(적용 직전 — 보호막·피해 분담 후 남은 피해 반환), `after(ctx)`(적용 후 — 적중 효과). `DamageContext.critBonus(x)`
-  = 이 피해의 치명타 확률 가산(≥1 확정). classes 가 상태이상·보호막·패시브에 쓰고, pvp 도 매치 규칙(피해 배율 등)에 쓸 수 있다.
+  = 이 피해의 치명타 확률 가산(≥1 확정). classes 가 상태이상·보호막·패시브에 쓰고, pvp 가 플레이어끼리 배율·한 방 상한에 쓴다.
+  `allow(ctx)`(맨 처음 — false 면 피해 자체를 취소, 숫자도 안 뜸): pvp 가 같은 파티원끼리의 피해(늦게 도착한 지속 피해 등)를 막는다.
+  `services.damage().isApplyingVanilla()` = 지금 미궁 피해의 사망 처리(바닐라 damage 호출) 중 — 다른 리스너는 그 피해를 다시 가로채지 말 것.
 - **StatusEffectService**(`classes.LabyrinthStatusEffectService`): GDD §9.2 14종 + `venom`(중첩 독) · `mark`(받는 피해+) · `cooldown_slow` ·
   `interrupt`(보스 시전 끊기 신호). 확장 메서드: `addShield/shield`, `stealth/isStealthed/breakStealth`, `isKnockbackImmune`, `cooldownRate`,
   `removeBuff/hasBuff`, `clearAll`. 이동 제한은 속성 수정치로 자동. **mobs/bosses 는 AI·스킬·패턴 전에 `isStunned` 확인**, 은신 대상 제외,
@@ -280,30 +283,25 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
 
 ### 4.2 ui+titles 단계에서 추가된 계약 (다른 모듈이 쓰는 것)
 - **MenuService** 실제 구현 `ui.LabMenuService`(상자 GUI, `ui/menus/*`; 열다가 오류 나면 채팅 메뉴로 대체). 기본 메서드 추가:
-  `openPvp`(대전 메뉴) · `openBlacksmith`(→ CraftingService GUI) · `openMerchant`(npcs.yml `role: merchant` 의 ShopMenu).
-  `/대전` 인자 없이 = 대전 메뉴. `/미궁 메뉴|장신구|대장간|상점|대전|기록` 하위 명령.
-  메뉴는 다른 모듈 기능을 **명령으로 위임**한다(검사·메시지 일관): 파티 `party create|invite|accept|decline|kick|promote|disband|leave|chat`,
-  대전 `pvp 도전 <파티장>|수락|거절|대기열 참가|대기열 취소` ← **pvp 담당은 이 한국어 하위 명령 이름을 그대로 등록할 것**.
+  `openBlacksmith`(→ CraftingService GUI) · `openMerchant`(npcs.yml `role: merchant` 의 ShopMenu).
+  `/미궁 메뉴|장신구|대장간|상점|기록` 하위 명령. 메인 메뉴 24번 칸 = "PvP 규칙" 안내(클릭 = 파티 메뉴).
+  메뉴는 다른 모듈 기능을 **명령으로 위임**한다(검사·메시지 일관): 파티 `party create|invite|accept|decline|kick|promote|disband|leave|chat`.
   초기 설정 GUI 확정 = `labadmin setup <난이도>` + config `entrance.mode`, "여기에 설치" = `labadmin setentrance <block|npc>`.
-- **대전 전적 표시(PvpMenu·순위)**: PlayerData ext `pvp.rating · pvp.wins · pvp.losses · pvp.streak · pvp.best_streak · pvp.best_rating`
-  (정수) 를 읽는다 → **pvp 담당이 이 키로 기록할 것**. 없으면 titles 카운터(`titles.pvp_*`)로 대신 표시.
 - **HudService** 실제 구현 `ui.LabHudService`: 액션바(0.25초 검사, 바뀐 때만 + 2초 유지 재전송) HP·MP·경험치 막대·레벨·골드,
   미궁 사이드바(층·난이도·인원·정복한 방·타이머·사망·파티원 HP), 플레이어마다 개인 스코어보드(이름표 팀 접두어 = 칭호).
-  기본 메서드 추가: `nameTagPrefix(target, prefix)`, **`pvpMatch(viewer, HudService.PvpHud)` / `clearPvpMatch(viewer)`** —
-  pvp 담당은 매치 중 1초마다 참가자·관전자에게 `PvpHud(matchId, phase(prep|fight|sudden_death|between|end), round, roundsToWin,
-  scoreUs, scoreThem, secondsLeft, phaseSeconds, usName, themName, us[TeamMember(name,hpRatio,alive)], them[...])` 를 보내면
-  사이드바 + 라운드 보스바가 그려진다(15초 갱신이 없으면 자동 정리).
+  기본 메서드 추가: `nameTagPrefix(target, prefix)`, `nameTagColor(viewer, target, color|null)` — 보는 사람별 이름표·탭 이름 색
+  (칭호 접두어와 같은 대상별 팀을 쓴다). pvp 가 1초마다 파티원을 초록으로 맞춘다.
 - **DungeonService** 기본 메서드 `floorProgress(p)` → `FloorProgress(floor, roomsCleared, roomsTotal, deaths, startedAt, bossDefeated,
   ready, progress)` (HUD 용; 전투·정예·시련·수호자 방만 셈). dungeon 담당이 더 정확히 재정의해도 된다.
-- **TitleService** 실제 구현 `titles.LabTitleService`. 기본 메서드 추가: `setBonusSuppressed(p, on)`(**pvp 담당이 매치 시작/종료 때 호출** —
-  §18.3 칭호 보너스 꺼짐), `progress(p, id)`. 판정은 `titles.AchievementRules`(순수, 테스트), 카운터 갱신은 `titles.TitleCounters` —
+- **TitleService** 실제 구현 `titles.LabTitleService`. 기본 메서드 추가: `setBonusSuppressed(p, on)`(칭호 스탯 보너스 잠시 끄기 — 지금은 부르는 곳 없음),
+  `progress(p, id)`. 판정은 `titles.AchievementRules`(순수, 테스트), 카운터 갱신은 `titles.TitleCounters` —
   카운터 키 `titles.*` 목록은 AchievementRules 문서가 원본. 서버 기록 키: `first_clear.floor_<n>`(층 최초 돌파 파티 전원),
   `speed.floor_<n>`(최단 시간), `title.<업적 id>`(server_first 업적). 첫 칭호는 자동 장착. 채팅 = AsyncChatEvent 렌더러
   `[칭호] 이름 » 메시지`(취소된 파티 채팅은 건드리지 않음), 탭 목록 이름 = 접두어 + 이름.
   명령: `/칭호 장착|해제|목록|기록`, `/labadmin title grant|revoke <플레이어> <id>`, `/labadmin title recheck`.
 - **UI 글리프 이름 (pack-ui 단계가 glyphs.yml 에 이 이름으로 넣으면 자동 적용, 없으면 글리프 없이 동작)**:
   - 메뉴 배경 `gui_<메뉴>`: main · stats · class · class_detail · party · players · titles · records · entrance · setup · accessories ·
-    pvp · pvp_ranking · blacksmith · merchant (없으면 `gui_rows_<줄 수>`). 6줄 메뉴 = 54칸, 5줄 = 장신구·상점.
+    blacksmith · merchant (없으면 `gui_rows_<줄 수>`). 6줄 메뉴 = 54칸, 5줄 = 장신구·상점.
     선택 필드(glyphs.yml 항목에 추가 가능): `width`(배경 폭 px, 기본 176), `title_x`(제목 글자 시작 x, 기본 8), `title_color`(#RRGGBB,
     기본 #3b2a4d). 배경 글리프는 펜을 −8 당겨 컨테이너 왼쪽 끝부터 그린다 → ascent 는 제목 줄 기준(바닐라 상자 제목 높이)으로 맞출 것.
     글리프 배경이 있으면 빈 칸을 유리판으로 채우지 않는다(배경 그림이 보이도록).
@@ -312,10 +310,10 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
     hud_gold_icon`. 액션바 줄 높이에 맞는 ascent 로 만들 것.
 
 ### 명령어
-- 플레이어: `/lab`(별칭 `/미궁`: 입장 메뉴·퇴장·정보), `/party`(`/파티`), `/stats`(`/스탯`), `/class`(`/직업`), `/title`(`/칭호`),
-  `/pvp`(`/대전`: 도전 <파티장>, 수락, 거절, 대기열 참가/취소, 순위, 전적, 관전)
+- 플레이어: `/lab`(별칭 `/미궁`: 입장 메뉴·퇴장·정보), `/party`(`/파티`), `/stats`(`/스탯`), `/class`(`/직업`), `/title`(`/칭호`).
+  PvP 명령은 없다(파티 규칙, GDD §18).
 - 관리자(`labyrinth.admin`): `/labadmin reload|give <item> [player]|spawnmob <id>|spawnboss <floor>|setentrance|removeentrance|
-  setnpc <id>|tpfloor <n>|unlock <player> <floor>|reset <player>|instances|endinstance <id>|pvp season|pvp end <매치>|pvp arena <id>`
+  setnpc <id>|tpfloor <n>|unlock <player> <floor>|reset <player>|instances|endinstance <id>|pvp`(PvP 규칙·안전지대·월드 규칙 상태)
   (items 가 붙임: `blacksmith [player]`(대장간 GUI) · `loot <table> [player]`(개인 루팅 테스트) · `weaponskills`(구현 목록))
 
 ### 스킬 입력 (미궁 무기를 들고 있을 때 — 종류·직업 무관)
@@ -331,7 +329,7 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
 ### dungeon+party 구현 메모 (다른 모듈이 알아야 할 것)
 - **설정 파일**: 미궁 진행 수치는 `plugins/Labyrinth/dungeon.yml` (jar 기본값 `src/main/resources/dungeon.yml`: 틱당 블록 수, 동시 인스턴스,
   층 높이·간격, 문 닫힘 지연, 몹 수 인원 보정, 휴식방 회복, 대체 보스 배율, 보물방 미믹 확률 …). 난이도·파티 배율은 그대로 config.yml.
-- **공허 월드 좌표**: 미궁 인스턴스는 `InstanceAllocator` 슬롯(간격 2048, **z ≥ 2048** 영역)만 쓴다. **pvp 투기장 등 다른 모듈은 z < 0 영역을 쓸 것.**
+- **공허 월드 좌표**: 미궁 인스턴스는 `InstanceAllocator` 슬롯(간격 2048, **z ≥ 2048** 영역)만 쓴다. **다른 모듈이 공허 월드에 무언가 지어야 하면 z < 0 영역을 쓸 것.**
   층 n 의 바닥 y = `top_floor_y − (n−1) × floor_spacing` (기본 280, 30 → B1 y280 … B10 y10). 같은 슬롯에서 아래층일수록 실제로 낮다.
 - **인스턴스 id**: `InstanceContext.id()` = `r<번호>s<슬롯>-b<층>` (층마다 새 컨텍스트, 같은 Run 의 배율·난이도 유지). 몹·보스 정리는 이 id 로.
 - **보스방**: 원형 투기장(bosses.yml `arena.radius/height`, `shape: circle|clock_face|tiled_circle` 바닥 무늬, `corridor_length/width` 면
@@ -341,6 +339,7 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
 - **이벤트**: 보스 처치 시 `FloorClearEvent`(참가자 전원, 입장 인원, 그 층 사망 수, 그 층 소요 초, 서버 난이도). 해금층 = 깬 층+1.
   PlayerData counters: `dungeon.floor_clears`, `dungeon.clear_floor_<n>`, `dungeon.solo_clears`.
 - **사망**: 미궁 안 PlayerDeathEvent 는 취소되고 관전 모드(휴식방 도달·보스 처치 시 부활). 전원 쓰러지면 전멸 → 귀환.
+  PvP 로 쓰러져도 똑같다(파티를 나간 사람이 같은 인스턴스에 남으면 규칙대로 적 — GDD §18.5).
 - **명령**: `/미궁 귀환|return`, `/미궁 정보|info`, `/파티 생성|초대|수락|거절|탈퇴|추방|위임|해산|채팅|정보`,
   `/labadmin setentrance [block|npc] · removeentrance · tpfloor <층> · unlock <플레이어> <층> · instances · endinstance <id>`.
 - **입구**: block 방식 석문은 바꾼 원래 블록을 `entrance.yml` 에 저장 → removeentrance 가 복원. npc 방식은 블록 변경 0. 둘 다 npcs.yml
@@ -408,10 +407,10 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
     (진행 중인 인스턴스에는 다음 입장부터 적용). 콘솔에서도 `/labadmin setup <난이도>` 가능.
     (층 해금은 그대로 유지: 처음엔 1층, 깬 층의 다음 층까지 입장 가능.)
   - 사망: 파티원이 있으면 관전 모드 → 휴식방 도달/보스 처치 시 부활. 전멸 시 인스턴스 실패·귀환. 아이템 손실 없음.
-- **PvP (파티 대 파티)**: 파티장이 다른 파티에 도전하거나 대기열로 매칭. 전용 투기장(미궁 월드 별도 슬롯, 지형 무관)에서
-  best-of-3 라운드. 인원이 다르면 config 에 따라 거절/허용(적은 쪽 HP·피해 보정). PvP 전용 밸런스 규칙(피해 배율, 치유 감소,
-  제어기 감소). 미궁 밖·미궁 안에서는 PvP 꺼짐(매치 안에서만). 결과로 파티 레이팅·개인 전적·PvP 칭호. 장비/아이템 손실 없음,
-  돈으로 살 수 있는 이점 없음(EULA).
+- **PvP = 파티 규칙 하나** (대전·투기장·매치·레이팅 없음, GDD §18): 같은 파티원끼리는 야생·마을·미궁 어디서든 서로 피해를 줄 수 없고,
+  그 밖의 플레이어끼리는 피해를 줄 수 있다. 근접·화살·스킬·무기 스킬·장판·물약·불·TNT·늑대·낚싯대 모두 같은 규칙. 플레이어끼리
+  피해 ×`pvp.damage_multiplier`(0.7), 한 번에 최대 HP ×`pvp.max_hit_ratio`(0.35)까지. 마을 안전지대 안은 금지. 플러그인이 모든
+  월드의 바닐라 PvP 게임 규칙을 `pvp.enabled` 로 맞춘다. 돈으로 살 수 있는 이점 없음(EULA).
 - 칭호: 업적 달성 시 획득. 서버 최초 층 클리어(1등 파티 전원에게만), 솔로 클리어, 무사망 클리어, 난이도별 클리어,
   처치 수, 레벨, 전설·신화 획득, 제작 횟수, 스피드런 등. 칭호 1개 장착(채팅/탭/이름표 접두어), 일부는 작은 스탯 보너스.
 
@@ -565,25 +564,6 @@ achievements:
     bonus: {LUK: 1}
     broadcast: true
 
-# arenas.yml  (오리지널 투기장 — 생성기 코드가 블록 팔레트로 지음)
-arenas:
-  sunken_colosseum:
-    name: "가라앉은 투기장"
-    size: [41, 41]             # 바닥 크기
-    palette: {floor: [...], wall: [...], accent: [...], light: [...]}
-    layout: pillars_ring        # 구현 키: pillars_ring | bridges | tiers | maze_lite | central_altar ...
-    team_spawns: 2
-    hazards: [{type: rising_water, start: 90}]   # 선택: 시간이 지나면 발동
-pvp:
-  rounds_to_win: 2
-  round_time: 180
-  allow_uneven: true
-  uneven_bonus: {hp: 0.15, damage: 0.10}   # 인원 1명 차이당 적은 쪽 보정
-  rules: {damage_mult: 0.6, healing_mult: 0.7, cc_duration_mult: 0.6, consumables: false}
-  rating: {start: 1000, k: 32}
-
-# titles.yml 조건 추가: PVP_WIN(count) | PVP_STREAK(count) | PVP_RATING(min) | PVP_FIRST_WIN  (+ 선택 키 server_first: true)
-
 # npcs.yml
 npcs:
   guide:
@@ -599,7 +579,7 @@ models:
   ember_ring: {style: ring, palette: [...], animated: true, frames: 8}
   telegraph_circle: {style: telegraph_circle, palette: ["#ff3b3b"], animated: true, frames: 6}
 
-# glyphs.yml  (pack-ui 단계에서 작성 — 전체 207 글리프, 상세 주석은 파일 머리말)
+# glyphs.yml  (pack-ui 단계에서 작성 — 전체 206 글리프, 상세 주석은 파일 머리말)
 glyphs:
   gui_stats:  {char: "\uE001", file: gui/stats.png, ascent: 13, height: 222, advance: 177}
   hud_hp_14:  {char: "\uE10E", file: hud/hp_14.png, ascent: -2, height: 9, advance: 83}
@@ -629,17 +609,17 @@ hud: {total: 182, bar_steps: 20, bar_width: 82, hp_x: 0, badge_x: 82, mp_x: 100,
   `*_per_members`·`*_pct`·`solo_*`·`p2_*`) = GDD §8.4. rotation 에 없는 패턴 키 = 상시 시스템/페이즈 트리거(GDD §8.3).
 - **npcs.yml**: `role` 에 `lore`(층 휴식방 이야기 NPC) 추가, `nameplate`, `placement(overworld|floor)`, `floor`, `dialogue: [..]`,
   `shop: [{item, price, level_req?}]`(merchant), `skin_style` 에 `hair`, `accessories` (목록 = GDD §14.5, palette 6색 순서 고정).
-- **titles.yml**: `category(pioneer|clear|challenge|combat|growth|collection|craft|pvp)`, `hidden`, `reward: {gold, items: {id: 개수}}`.
+- **titles.yml**: `category(pioneer|clear|challenge|combat|growth|collection|craft)`, `hidden`, `reward: {gold, items: {id: 개수}}`.
   condition 파라미터: CLEAR `{floor, count?}`, NO_DEATH_CLEAR `{floor, party_min?}`, DIFFICULTY_CLEAR `{floor, difficulty}`,
   SPEED_CLEAR `{floor, seconds}`, KILL `{count, mob?, rank?}`, BOSS_KILL `{count, boss?}`, LEVEL `{level}`, OBTAIN_RARITY `{rarity, count?}`,
-  CRAFT `{count, rarity?}`, PVP_WIN/PVP_STREAK `{count}`, PVP_RATING `{min}`. `bonus` 키 = 스탯 6종 + `xp_bonus`, `gold_bonus`.
+  CRAFT `{count, rarity?}`. `bonus` 키 = 스탯 6종 + `xp_bonus`, `gold_bonus`.
 - **fx.yml**: `auras.<id>`: `tier(legendary|mythic)`, `particles[]: {type, count, radius, height, pattern, chance?, speed?, color?, color_to?, size?}`
   (color 류는 DUST/DUST_COLOR_TRANSITION 전용), `ring_scale`, `ring_height`, `ring_step`, `secondary_model`, `secondary_spin`,
   `secondary_mode(ring|back)`, `interval`(틱), `swing`. `models.<name>`: `motif`, `shape`(projectile), `frametime`, `size: [w,h,d]`(px),
   `flat`, `billboard(FIXED|CENTER|VERTICAL)`, `glow`. 아우라마다 `<id>_ring`/`<id>_slash`/`<id>_orb`/`<id>_burst` 모델이 있다
   (무기 스킬 `params.fx` 용). style/motif 목록 = GDD §14.4.
 
-### 6.2 아이템·루팅·제작·PvP 단계에서 추가된 필드 (items/loot/recipes/arenas/titles/fx)
+### 6.2 아이템·루팅·제작 단계에서 추가된 필드 (items/loot/recipes/titles/fx)
 모두 **추가** 필드이며 닫힌 목록과 해석은 GDD.md 에 있다(§번호 표기). 생략한 필드 = null / 기본값.
 
 - **items.yml**
@@ -665,13 +645,8 @@ hud: {total: 182, bar_steps: 20, bar_width: 82, hp_x: 0, badge_x: 82, mp_x: 100,
   - 테이블 `guaranteed: [{item, amount}]`(배율 무관 확정 지급), `gold: [min, max]`(상자 골드).
   - 항목 종류 추가: `{one_of: [id…], chance}`, `{table: id, chance}`(순환 금지). 공통 선택 키 `min_difficulty`. 해석 = GDD §11.10.
 - **recipes.yml**: `category`(weapon | armor | accessory | material — 대장장이 GUI 탭), `amount`(결과 개수, 기본 1).
-- **arenas.yml**: `description`, `theme`, `height`, `palette.liquid`, `layout_params`, `team_size: [min, max]`, `weight`,
-  `spawns: {distance, protect}`, `hazards[]` 종류별 파라미터(닫힌 7종), `objective: {type: altar_control, …}`,
-  `lava_contact`, `void_fall`, `ambient`. `pvp` 블록 추가 키: `enabled`, `prep_time`, `between_rounds`, `team_size`, `max_size_diff`,
-  `challenge_timeout`, `min_level`, `queue`, `sudden_death`, `arena_pick`, `rules` 확장(shield_mult, cc_immunity, knockback_mult, execute_mult,
-  stealth_reveal_on_damage, revive, title_bonuses, weapon_skills, friendly_fire), `gear: {mode: full|soften|flat, soften}`,
-  `rating` 확장(k_placement, placement_matches, floor, uneven_k_mult, season_reset, tiers), `rewards`, `spectate`, `afk`. 해석 = GDD §18.
-- **titles.yml**: condition 선택 키 `server_first: true`(PVP_FIRST_WIN · PVP_RATING — 서버 최초 1팀/1명, records.yml). PVP_RATING 은 개인 레이팅 기준.
+- **titles.yml**: condition 선택 키 `server_first: true`(어느 조건에나 — 서버에서 처음 달성한 1명만, records.yml).
+  (예전 파티 대전용 PVP_* 조건과 arenas.yml 은 없앴다 — PvP 는 파티 규칙 하나, GDD §18.)
 - **fx.yml**: 전설 아우라 9종(soulfire, codex, geode, inkblot, abyssal, voltaic, quicksilver, aurora, venom)과 각자의 `_ring/_slash/_orb/_burst`,
   무기 스킬 전용 모델(`*_arrow`, `*_beam`, `venom_knife`). motif 9개 추가(GDD §14.4).
 

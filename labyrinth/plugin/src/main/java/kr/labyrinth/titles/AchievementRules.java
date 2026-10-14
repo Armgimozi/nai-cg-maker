@@ -23,9 +23,7 @@ import kr.labyrinth.core.Difficulty;
  *   <li>{@code titles.boss_kills} · {@code titles.boss_kill.<보스>}</li>
  *   <li>{@code titles.obtain.<희귀도>} 그 희귀도 장비 획득 수(정확히 일치)</li>
  *   <li>{@code titles.crafts} · {@code titles.craft_min.<희귀도>} 그 희귀도 이상 제작 수</li>
- *   <li>{@code titles.pvp_wins} · {@code titles.pvp_streak}(현재) · {@code titles.pvp_best_streak} ·
- *       {@code titles.pvp_rating}(현재) · {@code titles.pvp_best_rating}</li>
- *   <li>{@code titles.server_first.<업적 id>} {@code server_first: true} 업적의 서버 최초 기록 보유자면 1</li>
+ *   <li>{@code titles.server_first.<업적 id>} {@code server_first: true}(어떤 조건에나 붙일 수 있음 — 처음 달성한 1명만) 업적의 서버 최초 기록 보유자면 1</li>
  *   <li>{@code level} 현재 레벨 (카운터가 아니라 조회 함수가 PlayerData.level 로 답한다)</li>
  * </ul>
  */
@@ -93,14 +91,6 @@ public final class AchievementRules {
                 Rarity r = Rarity.byId(c.str("rarity"));
                 return r == null ? v.applyAsLong(P + "crafts") >= need : v.applyAsLong(P + "craft_min." + r.id()) >= need;
             }
-            case "PVP_FIRST_WIN":
-                return v.applyAsLong(P + "pvp_wins") >= 1;
-            case "PVP_WIN":
-                return v.applyAsLong(P + "pvp_wins") >= Math.max(1, c.integer("count", 1));
-            case "PVP_STREAK":
-                return v.applyAsLong(P + "pvp_best_streak") >= Math.max(1, c.integer("count", 1));
-            case "PVP_RATING":
-                return v.applyAsLong(P + "pvp_best_rating") >= c.integer("min", Integer.MAX_VALUE);
             default:
                 return false;
         }
@@ -141,9 +131,6 @@ public final class AchievementRules {
                 cur = r == null ? v.applyAsLong(P + "crafts") : v.applyAsLong(P + "craft_min." + r.id());
                 goal = Math.max(1, c.integer("count", 1));
             }
-            case "PVP_WIN" -> { cur = v.applyAsLong(P + "pvp_wins"); goal = Math.max(1, c.integer("count", 1)); }
-            case "PVP_STREAK" -> { cur = v.applyAsLong(P + "pvp_best_streak"); goal = Math.max(1, c.integer("count", 1)); }
-            case "PVP_RATING" -> { cur = v.applyAsLong(P + "pvp_best_rating"); goal = c.integer("min", 1); }
             default -> { cur = met(def, v) ? 1 : 0; goal = 1; }
         }
         return new long[] {Math.min(cur, goal), goal};
@@ -155,7 +142,7 @@ public final class AchievementRules {
         String type = def.conditionType() == null ? "" : def.conditionType().toUpperCase(Locale.ROOT);
         int floor = c.integer("floor", 0);
         String sf = c.bool("server_first", false) ? " (서버 최초 1회)" : "";
-        return switch (type) {
+        String text = switch (type) {
             case "FIRST_CLEAR" -> "지하 " + floor + "층 서버 최초 돌파";
             case "CLEAR" -> "지하 " + floor + "층 클리어 " + Math.max(1, c.integer("count", 1)) + "회";
             case "SOLO_CLEAR" -> "지하 " + floor + "층 혼자 클리어";
@@ -176,12 +163,9 @@ public final class AchievementRules {
                 Rarity r = Rarity.byId(c.str("rarity"));
                 yield (r == null ? "" : r.displayName() + " 이상 ") + "장비 제작 " + c.integer("count", 1) + "회";
             }
-            case "PVP_FIRST_WIN" -> "파티 대전 첫 승리" + sf;
-            case "PVP_WIN" -> "파티 대전 " + c.integer("count", 1) + "승";
-            case "PVP_STREAK" -> "파티 대전 " + c.integer("count", 1) + "연승";
-            case "PVP_RATING" -> "대전 레이팅 " + c.integer("min", 0) + " 달성" + sf;
             default -> "";
         };
+        return text.isEmpty() ? "" : text + sf;
     }
 
     static String difficultyName(String id) {

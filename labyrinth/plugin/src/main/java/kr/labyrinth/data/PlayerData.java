@@ -15,8 +15,8 @@ import org.bukkit.configuration.file.YamlConfiguration;
  * 플레이어 진행 데이터 (plugins/Labyrinth/players/&lt;uuid&gt;.yml). 메인 스레드에서만 수정한다.
  * 값을 바꾸면 {@link #markDirty()} (setter 들은 자동).
  * <p>
- * 다른 모듈의 추가 데이터(PvP 레이팅, 쿨다운 저장 등)는 {@link #ext()} 맵에 String/Number/Boolean/List/Map 으로 넣는다
- * (키 접두어로 모듈 이름 권장: "pvp.rating").
+ * 다른 모듈의 추가 데이터(쿨다운 저장 등)는 {@link #ext()} 맵에 String/Number/Boolean/List/Map 으로 넣는다
+ * (키 접두어로 모듈 이름 권장: "items.cooldowns").
  */
 public final class PlayerData {
 

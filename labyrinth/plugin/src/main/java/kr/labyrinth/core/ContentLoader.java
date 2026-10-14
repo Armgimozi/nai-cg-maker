@@ -81,6 +81,18 @@ public final class ContentLoader {
                 }
             }
         }
+        // 더는 쓰지 않는 예전 기본 파일: 손대지 않았으면(해시가 기록과 같으면) 지운다. 손댄 파일은 남겨 두고 무시.
+        for (String file : ContentParser.RETIRED_FILES) {
+            Path target = dir.resolve(file);
+            String recorded = manifest.getProperty(file);
+            if (recorded == null) continue;
+            if (Files.exists(target) && sha1(Files.readAllBytes(target)).equals(recorded)) {
+                Files.delete(target);
+                Log.info("쓰지 않는 콘텐츠 파일 정리: content/" + file);
+            }
+            manifest.remove(file);
+            changed = true;
+        }
         if (changed) {
             try (var out = Files.newBufferedWriter(manifestPath, StandardCharsets.UTF_8)) {
                 manifest.store(out, "Labyrinth bundled content hashes - do not edit");

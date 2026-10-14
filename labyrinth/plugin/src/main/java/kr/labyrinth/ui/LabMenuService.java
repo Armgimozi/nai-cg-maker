@@ -9,7 +9,6 @@ import kr.labyrinth.ui.menus.ClassMenu;
 import kr.labyrinth.ui.menus.EntranceMenu;
 import kr.labyrinth.ui.menus.MainMenu;
 import kr.labyrinth.ui.menus.PartyMenu;
-import kr.labyrinth.ui.menus.PvpMenu;
 import kr.labyrinth.ui.menus.SetupMenu;
 import kr.labyrinth.ui.menus.StatsMenu;
 import kr.labyrinth.ui.menus.TitlesMenu;
@@ -64,9 +63,6 @@ public final class LabMenuService implements MenuService {
 
     @Override
     public void openAccessories(Player p) { open(p, "accessories", () -> new AccessoryMenu(services).open(p), null); }
-
-    @Override
-    public void openPvp(Player p) { open(p, "pvp", () -> new PvpMenu(services).open(p), null); }
 
     @Override
     public void openBlacksmith(Player p) { open(p, "blacksmith", () -> services.crafting().openBlacksmith(p), null); }

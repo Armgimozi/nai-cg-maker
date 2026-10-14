@@ -25,7 +25,8 @@ import org.bukkit.entity.Player;
  * services.commands().addSubcommand("party", Commands.literal("invite")
  *     .then(Commands.argument("player", StringArgumentType.word()).executes(ctx -> ...)));
  * </pre>
- * 루트: lab(미궁) · party(파티) · stats(스탯) · class(직업) · title(칭호) · pvp(대전) · labadmin(미궁관리).
+ * 루트: lab(미궁) · party(파티) · stats(스탯) · class(직업) · title(칭호) · labadmin(미궁관리).
+ * (PvP 는 따로 명령이 없다 — 같은 파티원만 서로 못 때리는 규칙, GDD §18.)
  */
 public final class CommandService implements Module {
 
@@ -48,7 +49,6 @@ public final class CommandService implements Module {
         root("stats", List.of("스탯"), "스탯 분배", false, s -> withPlayer(s, p -> services.menus().openStats(p)));
         root("class", List.of("직업"), "직업", false, s -> withPlayer(s, p -> services.menus().openClass(p)));
         root("title", List.of("칭호"), "칭호", false, s -> withPlayer(s, p -> services.menus().openTitles(p)));
-        root("pvp", List.of("대전"), "파티 대 파티 대전", false, s -> withPlayer(s, p -> services.menus().openPvp(p)));
         root("labadmin", List.of("미궁관리"), "미궁 라비린스 관리", true, s -> AdminCommands.help(s));
     }
 
@@ -68,7 +68,7 @@ public final class CommandService implements Module {
                 event -> registerAll(event.registrar()));
     }
 
-    /** 루트 명령에 하위 명령 추가 (root = lab | party | stats | class | title | pvp | labadmin). */
+    /** 루트 명령에 하위 명령 추가 (root = lab | party | stats | class | title | labadmin). */
     public void addSubcommand(String root, LiteralArgumentBuilder<CommandSourceStack> sub) {
         List<LiteralArgumentBuilder<CommandSourceStack>> list = subs.get(root);
         if (list == null) throw new IllegalArgumentException("알 수 없는 루트 명령: " + root);

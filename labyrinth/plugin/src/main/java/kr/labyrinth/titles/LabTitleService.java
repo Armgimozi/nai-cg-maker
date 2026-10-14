@@ -27,7 +27,6 @@ import kr.labyrinth.event.FloorClearEvent;
 import kr.labyrinth.event.ItemObtainEvent;
 import kr.labyrinth.event.LevelUpEvent;
 import kr.labyrinth.event.MobKillEvent;
-import kr.labyrinth.event.PvpMatchEndEvent;
 import kr.labyrinth.stats.StatContributor;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
@@ -240,7 +239,6 @@ public final class LabTitleService extends BasicTitleService implements Listener
             for (AchievementDef def : services.content().achievements().values()) {
                 if (d.hasAchievement(def.id())) continue;
                 if (def.condition() != null && def.condition().bool("server_first", false)
-                        && !"PVP_FIRST_WIN".equalsIgnoreCase(def.conditionType())
                         && AchievementRules.baseMet(def.conditionType(), def.condition(), look)) {
                     trySoloServerFirst(p, d, def);
                 }
@@ -345,45 +343,6 @@ public final class LabTitleService extends BasicTitleService implements Listener
             Rarity r = def == null ? null : def.rarity();
             TitleCounters.onCraft(store(services.data().get(e.player())), r);
             evaluate(List.of(e.player()));
-        });
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onPvp(PvpMatchEndEvent e) {
-        safe("PvpMatchEndEvent", () -> {
-            List<Player> online = new ArrayList<>();
-            List<Player> winners = new ArrayList<>();
-            for (UUID u : e.winners()) {
-                Player p = Bukkit.getPlayer(u);
-                if (p == null) continue;
-                online.add(p);
-                winners.add(p);
-                TitleCounters.onPvp(store(services.data().get(p)), true, e.streaks().get(u), e.ratings().get(u));
-            }
-            for (UUID u : e.losers()) {
-                Player p = Bukkit.getPlayer(u);
-                if (p == null) continue;
-                online.add(p);
-                TitleCounters.onPvp(store(services.data().get(p)), false, e.streaks().get(u), e.ratings().get(u));
-            }
-            // 서버 최초 대전 승리 팀 (server_first PVP_FIRST_WIN) — 승리 팀 전원
-            for (AchievementDef def : services.content().achievements().values()) {
-                if (!"PVP_FIRST_WIN".equalsIgnoreCase(def.conditionType())) continue;
-                if (def.condition() == null || !def.condition().bool("server_first", false)) continue;
-                String key = "title." + def.id();
-                if (e.winners().isEmpty() || services.records().isClaimed(key)) continue;
-                List<String> names = new ArrayList<>();
-                for (UUID u : e.winners()) {
-                    OfflinePlayer op = Bukkit.getOfflinePlayer(u);
-                    names.add(op.getName() == null ? u.toString().substring(0, 8) : op.getName());
-                }
-                if (services.records().claim(key, e.winners(), names, Map.of("match", e.matchId()))) {
-                    for (Player p : winners) services.data().get(p).counter(AchievementRules.P + "server_first." + def.id(), 1);
-                }
-            }
-            // 레이팅 높은 사람부터 판정 (server_first PVP_RATING 은 먼저 도달한 1명)
-            online.sort(Comparator.comparingLong((Player p) -> -services.data().get(p).counter(AchievementRules.P + "pvp_rating")));
-            evaluate(online);
         });
     }
 

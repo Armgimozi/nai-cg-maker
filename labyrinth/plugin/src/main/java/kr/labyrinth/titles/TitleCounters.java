@@ -63,17 +63,4 @@ public final class TitleCounters {
             if (r.ordinal() <= rarity.ordinal()) s.add(P + "craft_min." + r.id(), 1);
         }
     }
-
-    /** 대전 종료 (PvpMatchEndEvent 참가자 각자). streak/rating 이 null 이면 이벤트가 안 준 값 → 자체 계산. */
-    public static void onPvp(Store s, boolean win, Integer streak, Integer rating) {
-        if (win) s.add(P + "pvp_wins", 1);
-        else s.add(P + "pvp_losses", 1);
-        long st = streak != null ? streak : (win ? s.get(P + "pvp_streak") + 1 : 0);
-        s.set(P + "pvp_streak", st);
-        s.max(P + "pvp_best_streak", st);
-        if (rating != null) {
-            s.set(P + "pvp_rating", rating);
-            s.max(P + "pvp_best_rating", rating);
-        }
-    }
 }

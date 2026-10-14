@@ -15,7 +15,7 @@ import kr.labyrinth.ui.UiTheme;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
-/** 서버의 역사: 층별 최초 돌파 파티(날짜·난이도·시간)와 최단 기록, 서버 최초 칭호(대전 등)의 주인. */
+/** 서버의 역사: 층별 최초 돌파 파티(날짜·난이도·시간)와 최단 기록, 서버 최초 칭호의 주인. */
 public final class RecordsMenu extends LabMenu {
 
     private static final int[] FLOOR_SLOTS = {11, 12, 13, 14, 15, 20, 21, 22, 23, 24};

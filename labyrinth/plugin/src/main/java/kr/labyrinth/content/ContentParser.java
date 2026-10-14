@@ -16,10 +16,12 @@ import kr.labyrinth.stats.Stat;
  */
 public final class ContentParser {
 
-    /** 파일 이름 목록 (확장자 포함). glyphs.yml·arenas.yml 은 없어도 된다. */
+    /** 파일 이름 목록 (확장자 포함). glyphs.yml 은 없어도 된다. */
     public static final List<String> FILES = List.of("classes.yml", "items.yml", "mobs.yml", "bosses.yml",
-            "floors.yml", "loot.yml", "recipes.yml", "titles.yml", "npcs.yml", "fx.yml", "glyphs.yml", "arenas.yml");
-    public static final List<String> OPTIONAL_FILES = List.of("glyphs.yml", "arenas.yml");
+            "floors.yml", "loot.yml", "recipes.yml", "titles.yml", "npcs.yml", "fx.yml", "glyphs.yml");
+    public static final List<String> OPTIONAL_FILES = List.of("glyphs.yml");
+    /** 예전 버전이 복사해 두었지만 이제 쓰지 않는 파일 (손대지 않았으면 시작할 때 지운다). arenas.yml = 없앤 파티 대전 투기장. */
+    public static final List<String> RETIRED_FILES = List.of("arenas.yml");
 
     private final List<String> problems = new ArrayList<>();
 
@@ -42,7 +44,6 @@ public final class ContentParser {
         Params npcsRoot = root(files, "npcs.yml");
         Params fxRoot = root(files, "fx.yml");
         Params glyphsRoot = root(files, "glyphs.yml");
-        Params arenasRoot = root(files, "arenas.yml");
 
         Map<String, ClassDef> classes = new LinkedHashMap<>();
         classesRoot.sub("classes").children().forEach((id, p) -> classes.put(id, parseClass(id, p)));
@@ -97,9 +98,6 @@ public final class ContentParser {
         Params sp = glyphsRoot.sub("spaces");
         for (String k : sp.keys()) spaces.put(k, sp.integer(k, 0));
 
-        Map<String, ArenaDef> arenas = new LinkedHashMap<>();
-        arenasRoot.sub("arenas").children().forEach((id, p) -> arenas.put(id, parseArena(id, p)));
-
         return new Content(
                 Collections.unmodifiableMap(classes), Collections.unmodifiableMap(items),
                 Collections.unmodifiableMap(sets), Collections.unmodifiableMap(mobs),
@@ -107,8 +105,7 @@ public final class ContentParser {
                 Collections.unmodifiableMap(loot), lootSettings, Collections.unmodifiableMap(recipes),
                 Collections.unmodifiableMap(achievements), Collections.unmodifiableMap(npcs),
                 Collections.unmodifiableMap(auras), Collections.unmodifiableMap(fxModels),
-                Collections.unmodifiableMap(glyphs), Collections.unmodifiableMap(spaces),
-                Collections.unmodifiableMap(arenas), arenasRoot.sub("pvp"));
+                Collections.unmodifiableMap(glyphs), Collections.unmodifiableMap(spaces));
     }
 
     private Params root(Map<String, Map<String, Object>> files, String name) {
@@ -350,7 +347,7 @@ public final class ContentParser {
                 ann == null ? Rarity.LEGENDARY : ann);
     }
 
-    // ── recipes / titles / npcs / fx / arenas ─────────────────────────────
+    // ── recipes / titles / npcs / fx ─────────────────────────────
 
     private RecipeDef parseRecipe(String id, Params p) {
         Map<String, Integer> mats = new LinkedHashMap<>();
@@ -399,15 +396,5 @@ public final class ContentParser {
         return new FxModelDef(id, p.str("style", ""), p.str("motif"), p.str("shape"), p.strings("palette"),
                 p.bool("animated", false), p.integer("frames", 1), p.integer("frametime", 2), List.copyOf(size),
                 p.bool("flat", false), p.bool("glow", false), p.str("billboard", "FIXED"));
-    }
-
-    private ArenaDef parseArena(String id, Params p) {
-        List<Double> size = p.doubles("size");
-        int sx = size.isEmpty() ? 41 : size.get(0).intValue();
-        int sz = size.size() > 1 ? size.get(1).intValue() : sx;
-        return new ArenaDef(id, p.str("name", id), p.str("description", ""), p.str("theme", ""), sx, sz,
-                p.integer("height", 12), palette(p.sub("palette")), p.str("layout", ""), p.sub("layout_params"),
-                p.intRange("team_size", new IntRange(1, 10)), p.integer("weight", 1), p.sub("spawns"),
-                p.maps("hazards"), p.sub("objective"), p.sub("ambient"), p);
     }
 }

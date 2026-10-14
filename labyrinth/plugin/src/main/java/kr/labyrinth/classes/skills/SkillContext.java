@@ -17,7 +17,7 @@ import org.bukkit.entity.Player;
 /**
  * 스킬 한 번 시전의 문맥: 시전자, 직업·스킬 정의, 파라미터, 공용 동작(피해·치유·대상 고르기·연출).
  * 모든 피해는 {@link #damage} → {@code DamageService}, 모든 치유는 {@link #heal} → {@code DamageService.heal}.
- * 적/아군 판정은 전부 {@link Targeting}(→ {@code TargetFilter}) 을 지난다 — PvP 매치에서도 그대로 동작.
+ * 적/아군 판정은 전부 {@link Targeting}(→ {@code TargetFilter}) 을 지난다 — 다른 파티 플레이어도 같은 규칙으로 적(PvP, GDD §18).
  */
 public final class SkillContext {
 

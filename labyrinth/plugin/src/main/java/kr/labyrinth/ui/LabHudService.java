@@ -19,6 +19,7 @@ import kr.labyrinth.dungeon.InstanceContext;
 import kr.labyrinth.stats.DerivedStats;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -39,9 +40,9 @@ import org.bukkit.scoreboard.Team;
  * 미궁 HUD 실제 구현.
  * <ul>
  *   <li>액션바(초당 4회 검사, 값이 바뀌었을 때만 + 2초마다 유지 재전송): HP·MP·경험치 막대 + 레벨 + 골드 (글리프 / 텍스트 대체)</li>
- *   <li>사이드바(1초마다, 바뀐 줄만): 미궁 안 — 층·난이도·진행 방·타이머·사망·파티원 HP 미니 막대 / 대전 중 — 라운드·점수·타이머·양 팀 HP</li>
- *   <li>보스바: 다른 모듈이 key 로 띄우는 것 + 대전 라운드 타이머</li>
- *   <li>이름표 접두어: 플레이어마다 개인 스코어보드 → 대상별 팀 prefix (칭호)</li>
+ *   <li>사이드바(1초마다, 바뀐 줄만): 미궁 안 — 층·난이도·진행 방·타이머·사망·파티원 HP 미니 막대</li>
+ *   <li>보스바: 다른 모듈이 key 로 띄우는 것</li>
+ *   <li>이름표: 플레이어마다 개인 스코어보드 → 대상별 팀 prefix (칭호) + 색 (pvp: 내 파티원 초록)</li>
  * </ul>
  */
 public final class LabHudService implements HudService, Listener {
@@ -57,9 +58,8 @@ public final class LabHudService implements HudService, Listener {
     private final Map<UUID, Scoreboard> boards = new HashMap<>();
     private final Map<UUID, String[]> lastLines = new HashMap<>();
     private final Map<UUID, Component> nameTags = new HashMap<>();
-    private final Map<UUID, PvpHud> pvp = new HashMap<>();
-    private final Map<UUID, Long> pvpAt = new HashMap<>();
-    private final Map<UUID, BossBar> pvpBars = new HashMap<>();
+    /** 보는 사람 → (대상 → 이름표 색). */
+    private final Map<UUID, Map<UUID, NamedTextColor>> tagColors = new HashMap<>();
     private BukkitTask task;
     private long tick;
 
@@ -80,13 +80,8 @@ public final class LabHudService implements HudService, Listener {
             Player p = Bukkit.getPlayer(u);
             if (p != null) m.values().forEach(p::hideBossBar);
         });
-        pvpBars.forEach((u, b) -> {
-            Player p = Bukkit.getPlayer(u);
-            if (p != null) p.hideBossBar(b);
-        });
         bars.clear();
-        pvpBars.clear();
-        pvp.clear();
+        tagColors.clear();
         Scoreboard main = Bukkit.getScoreboardManager().getMainScoreboard();
         for (UUID u : boards.keySet()) {
             Player p = Bukkit.getPlayer(u);
@@ -228,6 +223,13 @@ public final class LabHudService implements HudService, Listener {
                 Player t = Bukkit.getPlayer(e.getKey());
                 if (t != null) applyTeam(sb, t, e.getValue());
             }
+            Map<UUID, NamedTextColor> colors = tagColors.get(p.getUniqueId());
+            if (colors != null) {
+                for (Map.Entry<UUID, NamedTextColor> e : colors.entrySet()) {
+                    Player t = Bukkit.getPlayer(e.getKey());
+                    if (t != null) applyColor(sb, t, e.getValue());
+                }
+            }
         }
         p.setScoreboard(sb);
         return sb;
@@ -239,6 +241,38 @@ public final class LabHudService implements HudService, Listener {
         if (t == null) t = sb.registerNewTeam(name);
         t.prefix(prefix);
         if (!t.hasEntry(target.getName())) t.addEntry(target.getName());
+    }
+
+    /** 대상 팀 색 (null = 기본). 칭호 접두어 팀과 같은 팀을 쓴다 — 한 사람은 스코어보드마다 팀 하나에만 들어갈 수 있어서. */
+    private static void applyColor(Scoreboard sb, Player target, NamedTextColor color) {
+        String name = teamName(target.getUniqueId());
+        Team t = sb.getTeam(name);
+        if (t == null) {
+            if (color == null) return;
+            t = sb.registerNewTeam(name);
+        }
+        if (!t.hasEntry(target.getName())) t.addEntry(target.getName());
+        if (color == null) {
+            if (t.hasColor()) t.color(null); // null = 색 없음 (Paper: Optional.empty)
+        } else if (!t.hasColor() || !color.equals(t.color())) {
+            t.color(color);
+        }
+    }
+
+    @Override
+    public void nameTagColor(Player viewer, Player target, NamedTextColor color) {
+        if (viewer == null || target == null || viewer.equals(target)) return;
+        Map<UUID, NamedTextColor> m = tagColors.computeIfAbsent(viewer.getUniqueId(), k -> new HashMap<>());
+        if (color == null) {
+            if (m.remove(target.getUniqueId()) == null) {
+                Scoreboard sb = boards.get(viewer.getUniqueId());
+                Team t = sb == null ? null : sb.getTeam(teamName(target.getUniqueId()));
+                if (t == null || !t.hasColor()) return; // 원래 색 없음 — 할 일 없음
+            }
+        } else {
+            m.put(target.getUniqueId(), color);
+        }
+        applyColor(board(viewer), target, color);
     }
 
     @Override
@@ -291,16 +325,6 @@ public final class LabHudService implements HudService, Listener {
     }
 
     private void sidebarTick(Player p, long now) {
-        PvpHud st = pvp.get(p.getUniqueId());
-        if (st != null) {
-            Long at = pvpAt.get(p.getUniqueId());
-            if (at == null || now - at > 15_000) {
-                clearPvpMatch(p);
-            } else {
-                setLines(p, Text.mm("<gradient:#ff6b6b:#ffd36b><b>⚔ 파티 대전</b></gradient>"), pvpLines(st));
-                return;
-            }
-        }
         Optional<InstanceContext> inst = services.dungeon().currentInstance(p);
         if (inst.isEmpty() || !services.dungeon().isInLabyrinth(p)) {
             clearSidebar(p);
@@ -388,86 +412,6 @@ public final class LabHudService implements HudService, Listener {
         };
     }
 
-    // ── 파티 대전 HUD ─────────────────────────────────────────────────────
-
-    @Override
-    public void pvpMatch(Player viewer, PvpHud state) {
-        if (state == null) {
-            clearPvpMatch(viewer);
-            return;
-        }
-        pvp.put(viewer.getUniqueId(), state);
-        pvpAt.put(viewer.getUniqueId(), System.currentTimeMillis());
-        BossBar.Color color = switch (state.phase() == null ? "" : state.phase()) {
-            case "prep", "between" -> BossBar.Color.YELLOW;
-            case "sudden_death" -> BossBar.Color.PURPLE;
-            case "end" -> BossBar.Color.WHITE;
-            default -> BossBar.Color.RED;
-        };
-        float prog = state.phaseSeconds() <= 0 ? 1f : (float) Math.max(0, Math.min(1, state.secondsLeft() / (double) state.phaseSeconds()));
-        Component name = Text.mm("<white>라운드 " + state.round() + " <dark_gray>|</dark_gray> <#7fd8ff>" + state.scoreUs()
-                + "</#7fd8ff> <gray>:</gray> <#ff6b6b>" + state.scoreThem() + "</#ff6b6b> <dark_gray>|</dark_gray> "
-                + phaseName(state.phase()) + " <white>" + UiTheme.clock(state.secondsLeft()));
-        BossBar bar = pvpBars.get(viewer.getUniqueId());
-        if (bar == null) {
-            bar = BossBar.bossBar(name, prog, color, BossBar.Overlay.NOTCHED_10);
-            pvpBars.put(viewer.getUniqueId(), bar);
-            viewer.showBossBar(bar);
-        } else {
-            bar.name(name);
-            bar.progress(prog);
-            bar.color(color);
-        }
-        setLines(viewer, Text.mm("<gradient:#ff6b6b:#ffd36b><b>⚔ 파티 대전</b></gradient>"), pvpLines(state));
-    }
-
-    @Override
-    public void clearPvpMatch(Player viewer) {
-        pvp.remove(viewer.getUniqueId());
-        pvpAt.remove(viewer.getUniqueId());
-        BossBar bar = pvpBars.remove(viewer.getUniqueId());
-        if (bar != null) viewer.hideBossBar(bar);
-        clearSidebar(viewer);
-    }
-
-    static String phaseName(String phase) {
-        return switch (phase == null ? "" : phase) {
-            case "prep" -> "<#ffd36b>준비";
-            case "between" -> "<#ffd36b>다음 라운드";
-            case "sudden_death" -> "<#c9a2ff>서든데스";
-            case "end" -> "<white>종료";
-            default -> "<#ff6b6b>전투";
-        };
-    }
-
-    private List<Component> pvpLines(PvpHud s) {
-        List<Component> out = new ArrayList<>();
-        out.add(Text.mm("<#6f6880>───────────────"));
-        out.add(Text.mm(" <gray>라운드 <white>" + s.round() + "</white> <dark_gray>· <gray>" + s.roundsToWin() + "선승"));
-        out.add(Text.mm(" <gray>점수 <#7fd8ff><b>" + s.scoreUs() + "</b></#7fd8ff> <gray>:</gray> <#ff6b6b><b>" + s.scoreThem() + "</b>"));
-        out.add(Text.mm(" " + phaseName(s.phase()) + " <white>" + UiTheme.clock(s.secondsLeft())));
-        out.add(Text.mm(" "));
-        out.add(Text.mm(" <#7fd8ff>우리 팀 <gray>" + Text.escape(s.usName() == null ? "" : s.usName())));
-        int budget = 4;
-        for (TeamMember m : s.us()) {
-            if (budget-- <= 0) break;
-            out.add(teamLine(m, "#7fd8ff"));
-        }
-        out.add(Text.mm(" <#ff6b6b>상대 팀 <gray>" + Text.escape(s.themName() == null ? "" : s.themName())));
-        budget = 4;
-        for (TeamMember m : s.them()) {
-            if (budget-- <= 0) break;
-            out.add(teamLine(m, "#ff6b6b"));
-        }
-        return out;
-    }
-
-    private static Component teamLine(TeamMember m, String color) {
-        String name = m.name() == null ? "?" : m.name().length() > 10 ? m.name().substring(0, 10) : m.name();
-        if (!m.alive()) return Text.mm("  <dark_gray>✖ <st>" + Text.escape(name) + "</st>");
-        return Text.mm("  <gray>" + Text.escape(name) + " <" + color + ">" + HudBars.partyBarMini(m.hpRatio(), color));
-    }
-
     // ── 접속 · 종료 ───────────────────────────────────────────────────────
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -483,10 +427,9 @@ public final class LabHudService implements HudService, Listener {
         lastKey.remove(u);
         lastSent.remove(u);
         lastLines.remove(u);
-        pvp.remove(u);
-        pvpAt.remove(u);
-        pvpBars.remove(u);
         nameTags.remove(u);
+        tagColors.remove(u);
+        for (Map<UUID, NamedTextColor> m : tagColors.values()) m.remove(u);
         boards.remove(u);
         String team = teamName(u);
         for (Scoreboard sb : boards.values()) {

@@ -10,13 +10,14 @@ import kr.labyrinth.content.AchievementDef;
 import kr.labyrinth.content.ClassDef;
 import kr.labyrinth.core.Text;
 import kr.labyrinth.data.PlayerData;
+import kr.labyrinth.pvp.PvpConfig;
 import kr.labyrinth.ui.Button;
 import kr.labyrinth.ui.UiTheme;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-/** /미궁 — 메인 메뉴: 프로필 + 입장·파티·대전·스탯·직업·칭호·장신구·대장간·상점·기록·마을 바로가기. */
+/** /미궁 — 메인 메뉴: 프로필 + 입장·파티·PvP 규칙·스탯·직업·칭호·장신구·대장간·상점·기록·마을 바로가기. */
 public final class MainMenu extends LabMenu {
 
     public MainMenu(Services services) {
@@ -60,9 +61,8 @@ public final class MainMenu extends LabMenu {
                 List.of(partySize > 1 ? "<gray>현재 파티 <white>" + partySize + "명" : "<gray>혼자입니다.",
                         "<gray>인원이 많을수록 미궁이 강해지고 보상도 늘어납니다.", "", "<#ffd36b>클릭: 파티 관리")),
                 ctx -> { click(ctx.player()); services.menus().openParty(ctx.player()); });
-        set(24, model("conqueror_emblem", Material.IRON_SWORD, "<#ff6b6b><b>파티 대전</b>",
-                List.of("<gray>다른 파티에 도전하거나 대기열로 매칭합니다.", "<gray>보상은 명예(칭호·등급)뿐입니다.", "", "<#ffd36b>클릭: 대전 메뉴")),
-                ctx -> { click(ctx.player()); services.menus().openPvp(ctx.player()); });
+        set(24, Button.icon(Material.IRON_SWORD, "<#ff6b6b><b>PvP 규칙</b>", pvpLore()),
+                ctx -> { click(ctx.player()); services.menus().openParty(ctx.player()); });
 
         set(29, model("berserker_emblem", Material.BLAZE_POWDER, "<#ffd84f><b>스탯</b>",
                 List.of("<gray>남은 포인트 " + (d.statPoints() > 0 ? "<#7fe07f>" + d.statPoints() : "<dark_gray>0"),
@@ -108,6 +108,31 @@ public final class MainMenu extends LabMenu {
                     List.of("<gray>서버 난이도 · 입구 방식", "", "<#ffd36b>클릭: 초기 설정 메뉴")),
                     ctx -> { click(ctx.player()); services.menus().openSetup(ctx.player()); });
         }
+    }
+
+    /** PvP = 따로 신청하는 대전 없이 파티 규칙 하나 (GDD §18). */
+    private List<String> pvpLore() {
+        PvpConfig pc = services.targets().pvpConfig();
+        List<String> lore = new ArrayList<>();
+        if (pc.enabled()) {
+            lore.add("<gray>같은 <#7fe07f>파티원</#7fe07f>끼리는 어디서든 서로 다치지 않습니다.");
+            lore.add("<gray>그 밖의 플레이어는 야생·미궁 어디서든 공격할 수 있고,");
+            lore.add("<gray>스킬·화살·물약도 똑같이 맞습니다." + (pc.safeZoneVillage() ? " <dark_gray>(마을 안은 금지)" : ""));
+            lore.add("<gray>플레이어끼리 피해 <white>×" + decimal(pc.damageMultiplier()) + "</white>"
+                    + (pc.maxHitRatio() < 1 ? " · 한 번에 최대 HP <white>" + Text.pct(pc.maxHitRatio()) + "</white>까지" : ""));
+            if (pc.partyNameColor()) lore.add("<gray>내 파티원 이름은 <#7fe07f>초록색</#7fe07f>으로 보입니다.");
+        } else {
+            lore.add("<gray>이 서버는 PvP 가 꺼져 있어");
+            lore.add("<gray>플레이어끼리는 서로 다치지 않습니다.");
+        }
+        lore.add("");
+        lore.add("<#ffd36b>클릭: 파티 관리");
+        return lore;
+    }
+
+    /** 0.70 → "0.7", 1.0 → "1". */
+    static String decimal(double v) {
+        return java.math.BigDecimal.valueOf(Math.round(v * 100) / 100.0).stripTrailingZeros().toPlainString();
     }
 
     static void reopen(Player p) { Services.get().menus().openMain(p); }

@@ -612,6 +612,7 @@ public final class LabyrinthStatusEffectService implements StatusEffectService, 
     /** 행동 불가 상태의 바닐라 공격 취소 (CombatListener 보다 먼저). */
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onAttack(EntityDamageByEntityEvent e) {
+        if (services.damage().isApplyingVanilla()) return; // 이미 계산된 미궁 피해의 사망 처리 (기절한 사람의 지속 피해 막타 등)
         Entity d = e.getDamager();
         LivingEntity src = d instanceof org.bukkit.entity.Projectile pr && pr.getShooter() instanceof LivingEntity sh ? sh
                 : d instanceof LivingEntity le ? le : null;
