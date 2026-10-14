@@ -61,6 +61,12 @@ labyrinth/
   - `assets/labyrinth/items/mob/<id>/<part>.json`, 모델 `assets/labyrinth/models/mob/<id>/<part>.json`
   - 텍스처 `assets/labyrinth/textures/mob/<id>.png` (한 몹 = 한 장 아틀라스, UV 로 파트 나눔)
   - 파트 목록·피벗은 `mobs.yml`/`bosses.yml` 의 `model.parts` 가 원본 (아래 스키마).
+- **3D 모델 공통 좌표 규칙 (몹 파트·fx·무기스킬 이펙트 — 플러그인과 생성기가 이것만 믿는다)**:
+  모델 좌표 16 = 1블록. 파트의 **피벗(회전 중심)은 모델 좌표 (8, 8, 8)**. 요소는 -16~32 범위 안.
+  모델의 `display.fixed` = rotation [0,0,0], translation [0,0,0], scale [1,1,1] (그 외 컨텍스트는 자유).
+  플러그인은 `ItemDisplay` + `ItemDisplayTransform.FIXED`, 엔티티 위치 = 파트 피벗의 월드 좌표,
+  `Transformation.scale` = 몹 `scale`(파트 크기 배율), 회전은 Transformation 의 left rotation 으로.
+  (만약 26.3 클라이언트에서 FIXED 가 180° 뒤집혀 보이면 생성기가 모델 쪽에서 보정하고 여기 적는다.)
 - **NPC 스킨**: `npcs.yml` 의 `skin: <id>` → `assets/labyrinth/textures/entity/npc/<id>.png` (64x64 플레이어 스킨 레이아웃).
   플러그인은 `Mannequin` 엔티티 + `ResolvableProfile` 의 SkinPatch(body 텍스처 = `labyrinth:entity/npc/<id>`) 사용.
 - **이펙트 모델**(아우라 링, 장판 경고, 투사체 등): `labyrinth:fx/<name>` → `assets/labyrinth/items/fx/<name>.json`.
