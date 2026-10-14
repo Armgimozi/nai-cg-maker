@@ -12,7 +12,7 @@ Glow materials (palette.MOB_GLOW_MATS: glow, eye, core, rune, lava) render emiss
 and pulse on animated mob atlases.
 
 Tool groups
-  volumes   blob (lumpy ellipsoid) · rbox (bevelled box) · capsule · sweep (spline tube) · limb
+  volumes   blob (lumpy ellipsoid) · rbox (bevelled box) · capsule · cylinder (flat ends) · sweep (spline tube) · limb
             (tapered segments with knuckles) · cone · ring · slab2d (extruded outline)
   surface   exposed · paint · carve · carve_blob · mottle · gradient · bands · streaks · cracks · hit
   creature  eye · eyes · teeth · mouth · horn · spikes · plates (carapace) · scales · fur · moss · vine ·
@@ -236,6 +236,31 @@ class MobGrid(Grid):
 
     def capsule(self, a, b, ra, rb=None, mat='skin', val=0.5, vfn=None, glow=False, prio=1, sq=(1.0, 1.0, 1.0)):
         return self.sweep([a, b], ra, rb, mat, val, vfn, glow, prio, sq, smooth=False)
+
+    def cylinder(self, a, b, ra, rb=None, mat='iron', val=0.5, vfn=None, glow=False, prio=1, hollow=0.0):
+        """Flat-ended cylinder / frustum from a to b (radius ra → rb); hollow > 0 leaves a tube of that inner
+        radius.  vfn(t, radial 0..1, (x, y, z))."""
+        rb = ra if rb is None else rb
+        ax = vsub(b, a)
+        L2 = vdot(ax, ax) or 1e-9
+        R = max(ra, rb)
+        lo = [min(a[i], b[i]) - R for i in range(3)]
+        hi = [max(a[i], b[i]) + R for i in range(3)]
+        vs = self.vs
+        for i in self._range(lo[0], hi[0]):
+            for j in self._range(lo[1], hi[1]):
+                for k in self._range(lo[2], hi[2]):
+                    p = (i * vs, j * vs, k * vs)
+                    q = vsub(p, a)
+                    t = vdot(q, ax) / L2
+                    if t < -1e-6 or t > 1 + 1e-6:
+                        continue
+                    rad = vlen(vsub(q, vmul(ax, t)))
+                    r = ra + (rb - ra) * t
+                    if rad > r + 1e-6 or (hollow and rad < hollow):
+                        continue
+                    res = vfn(t, rad / max(r, 1e-6), p) if vfn else val
+                    self._emit((i, j, k), res, mat, glow, prio)
 
     def limb(self, joints, radii, mat='skin', val=0.5, joint_mat=None, knob=1.15, vfn=None, glow=False, prio=1,
              joint_val=None, smooth=False):

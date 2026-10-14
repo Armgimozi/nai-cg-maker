@@ -88,8 +88,8 @@ def _crawler_legs(g: MobGrid, ctx, scale=1.0):
     for s in (-1, 1):
         for root, knee, ankle, foot in legs:
             R, K, A, F = [(s * q[0], q[1], q[2]) for q in (root, knee, ankle, foot)]
-            g.limb([R, K, A, F], [0.85 * S, 0.6 * S, 0.45 * S, 0.32 * S], 'chitin', 0.5, joint_mat='chitin',
-                   joint_val=0.72, knob=1.15)
+            g.limb([R, K, A, F], [0.85 * S, 0.6 * S, 0.45 * S, 0.32 * S], 'chitin', 0.46, joint_mat='chitin',
+                   joint_val=0.64, knob=1.15)
             g.cone(F, (s * 0.2, -0.3, -1), 1.1, 0.38, 'claw', 0.25, 0.75)
             g.spikes([tuple(K[a] + (A[a] - K[a]) * 0.45 for a in range(3))], (s * 0.5, 0.2, 1), 1.2, 0.3, 'horn',
                      0.4, 0.85)
@@ -120,6 +120,7 @@ def moss_crawler(look, name, part, ctx):
         return g
     if name == 'legs':
         g = ctx.grid(0.6)
+        g.light_mul = 0.5          # thin limbs: calmer baked light, no speckled rim highlights
         _crawler_legs(g, ctx)
         return g
     return None
@@ -190,11 +191,12 @@ def _miner_head(g: MobGrid, ctx):
 
 
 def _miner_lamp(g: MobGrid, ctx):
-    # dark brass housing along Z, bright reflector rim, a big hot lens facing forward (−Z), bracket to the hat
-    g.capsule((0, 0, 1.0), (0, 0, -0.9), 1.2, 1.35, 'brass', 0.32)
-    g.ring((0, 0, -1.15), 1.45, 0.42, axis='z', mat='brass', val=0.78)
-    g.blob((0, 0, -1.25), (1.15, 1.15, 0.55), 'glow', 0.62, glow=True, prio=5,
-           vfn=lambda x, y, z, d: 0.78 - 0.45 * d)
+    # dark brass housing along Z, a bright reflector rim and a big hot lens bulging forward (−Z),
+    # a bracket down to the hat
+    g.cylinder((0, 0, 1.4), (0, 0, -1.0), 1.0, 1.35, 'brass', 0.3)
+    g.ring((0, 0, -1.0), 1.35, 0.42, axis='z', mat='brass', val=0.8)
+    g.blob((0, 0, -1.1), (1.0, 1.0, 0.75), 'glow', 0.55, glow=True, prio=5,
+           vfn=lambda x, y, z, d: 0.85 - 0.35 * d)
     g.capsule((0, -0.9, 0.6), (0, -2.6, 1.4), 0.5, 0.5, 'iron', 0.4)
 
 

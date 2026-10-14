@@ -20,7 +20,7 @@
 - 모든 요소가 pivot 기준 ±23.5px 를 넘으면 생성기가 자동으로 줄이고 `display.fixed.scale = 1/s` 로 복원(최대 4배).
 
 ## 도구 (MobGrid, 전부 px 단위)
-- 부피: `blob`(타원체, lump=울퉁불퉁) `rbox`(모서리 깎은 상자) `capsule` `sweep`(스플라인 관) `limb`(관절 굵어지는 팔다리)
+- 부피: `blob`(타원체, lump=울퉁불퉁) `rbox`(모서리 깎은 상자) `capsule`(둥근 끝) `cylinder`(평평한 끝) `sweep`(스플라인 관) `limb`(관절 팔다리)
   `cone` `ring` `slab2d`(2D 윤곽 돌출)
 - 표면: `paint` `carve` `carve_blob` `mottle`(덩어리 얼룩) `gradient` `bands` `streaks`(녹물·잉크 흘러내림) `cracks`(균열/발광 맥) `hit`
 - 생물: `eye`/`eyes`(발광 눈+눈구멍) `teeth` `mouth` `horn` `spikes` `plates`(겹친 갑각판) `scales` `fur` `moss`(쿠션)
