@@ -113,7 +113,7 @@ public final class UiTheme {
      * 메뉴별 배경 그림(gui_&lt;menu&gt;)은 소켓(버튼 자리)이 그려져 있다 → 버튼 배치가 그 소켓과 같은 메뉴만 전용 배경을 쓰고,
      * 나머지는 같은 줄 수의 범용 배경(gui_rows_&lt;n&gt; → gui_generic_&lt;n&gt;)을 쓴다. 줄 수가 다른 배경은 절대 쓰지 않는다.
      */
-    private static final java.util.Set<String> SOCKET_LAYOUT = java.util.Set.of("blacksmith", "titles", "setup");
+    private static final java.util.Set<String> SOCKET_LAYOUT = java.util.Set.of("blacksmith", "titles", "setup", "class", "party");
 
     /** 이 메뉴(줄 수 rows)에 깔 배경 글리프 id (없으면 null). */
     public static String background(String menu, int rows) {

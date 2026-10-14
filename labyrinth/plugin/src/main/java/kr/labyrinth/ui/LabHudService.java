@@ -364,7 +364,19 @@ public final class LabHudService implements HudService, Listener {
         double ratio = services.stats().currentHp(m) / max;
         String color = ratio > 0.6 ? "#7fe07f" : ratio > 0.3 ? "#ffd36b" : "#ff6b6b";
         String self = m.equals(viewer) ? "<white>" : "<gray>";
-        return Text.mm(" " + self + Text.escape(name) + " <" + color + ">" + HudBars.partyBarMini(ratio, color) + " <" + color + ">" + Math.round(ratio * 100) + "%");
+        return Text.mm(" " + classIcon(m) + self + Text.escape(name) + " <" + color + ">" + HudBars.partyBarMini(ratio, color) + " <" + color + ">" + Math.round(ratio * 100) + "%");
+    }
+
+    /** 직업 아이콘 글리프 party_class_&lt;직업&gt; + 한 칸 (직업 없음·글리프 없음 = 빈 문자열). */
+    private String classIcon(Player m) {
+        try {
+            var cls = services.classes().classOf(m);
+            if (cls == null) return "";
+            var g = services.content().glyphs().get("party_class_" + cls.id());
+            return g == null ? "" : "<white><font:labyrinth:ui>" + g.ch() + "</font></white> ";
+        } catch (Throwable t) {
+            return "";
+        }
     }
 
     static String difficultyColor(String id) {

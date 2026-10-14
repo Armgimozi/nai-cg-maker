@@ -21,7 +21,7 @@ import org.bukkit.entity.Player;
  */
 public final class PartyMenu extends LabMenu {
 
-    private static final int[] MEMBER_SLOTS = {19, 20, 21, 22, 23, 24, 25, 29, 30, 31, 32, 33};
+    private static final int[] MEMBER_SLOTS = {9, 11, 13, 15, 17, 27, 29, 31, 33, 35}; // glyphs.yml menus.party.slots.members
 
     public PartyMenu(Services services) {
         super(services, "party", 6, "<#c9a2ff>파티");
@@ -36,13 +36,13 @@ public final class PartyMenu extends LabMenu {
                     List.of("<gray>혼자 들어가거나, 친구를 초대해 함께 공략하세요.",
                             "<gray>인원이 늘면 몬스터가 강해지고 보상도 조금 늘어납니다.",
                             "<gray>최대 <white>" + max + "명")));
-            set(20, Button.icon(Material.LIME_BANNER, "<#7fe07f><b>파티 만들기</b>", List.of("<gray>내가 파티장이 됩니다.")),
+            set(11, Button.icon(Material.LIME_BANNER, "<#7fe07f><b>파티 만들기</b>", List.of("<gray>내가 파티장이 됩니다.")),
                     ctx -> command(ctx, "party create", false));
-            set(22, Button.icon(Material.PLAYER_HEAD, "<#7fd8ff><b>친구 초대</b>", List.of("<gray>접속 중인 플레이어 목록에서 고릅니다.", "<dark_gray>(파티가 없으면 자동으로 만들어집니다)")),
+            set(13, Button.icon(Material.PLAYER_HEAD, "<#7fd8ff><b>친구 초대</b>", List.of("<gray>접속 중인 플레이어 목록에서 고릅니다.", "<dark_gray>(파티가 없으면 자동으로 만들어집니다)")),
                     ctx -> { click(ctx.player()); new InvitePicker(services).open(ctx.player()); });
-            set(24, Button.icon(Material.WRITABLE_BOOK, "<#ffd36b><b>받은 초대 수락</b>", List.of("<gray>가장 최근 초대를 수락합니다.")),
+            set(15, Button.icon(Material.WRITABLE_BOOK, "<#ffd36b><b>받은 초대 수락</b>", List.of("<gray>가장 최근 초대를 수락합니다.")),
                     ctx -> command(ctx, "party accept", false));
-            set(33, Button.icon(Material.RED_DYE, "<#ff6b6b>받은 초대 거절", List.of()),
+            set(31, Button.icon(Material.RED_DYE, "<#ff6b6b>받은 초대 거절", List.of()),
                     ctx -> command(ctx, "party decline", false));
             backButton(45, MainMenu::reopen);
             return;
@@ -63,7 +63,9 @@ public final class PartyMenu extends LabMenu {
         head.add("");
         head.add("<#c9a2ff>역할 구성");
         head.addAll(roles);
-        deco(4, Button.icon(Material.CAKE, "<#c9a2ff><b>내 파티</b>", head));
+        head.add("");
+        head.add("<#c9a2ff>클릭: 파티 채팅 켜기/끄기 <dark_gray>(켜면 채팅이 파티원에게만)");
+        set(4, Button.icon(Material.CAKE, "<#c9a2ff><b>내 파티</b>", head), ctx -> command(ctx, "party chat", false));
 
         List<UUID> ordered = new ArrayList<>(party.members());
         ordered.sort(Comparator.comparing((UUID u) -> !party.isLeader(u)));
@@ -115,9 +117,7 @@ public final class PartyMenu extends LabMenu {
         }
         set(49, Button.icon(Material.ENDER_EYE, "<#7fd8ff><b>미궁 입장</b>", List.of("<gray>층 선택 · 파티 준비 상태")),
                 ctx -> { click(ctx.player()); services.menus().openEntrance(ctx.player()); });
-        set(48, Button.icon(Material.OAK_SIGN, "<#c9a2ff>파티 채팅 켜기/끄기", List.of("<gray>켜면 채팅이 파티원에게만 보입니다.")),
-                ctx -> command(ctx, "party chat", false));
-        set(50, Button.icon(Material.OAK_DOOR, "<#ff9a4d>파티 탈퇴", List.of("<dark_gray>Shift + 클릭으로 실행")),
+        set(53, Button.icon(Material.OAK_DOOR, "<#ff9a4d>파티 탈퇴", List.of("<dark_gray>Shift + 클릭으로 실행")),
                 ctx -> { if (ctx.isShift()) command(ctx, "party leave", false); else deny(ctx.player()); });
         backButton(45, MainMenu::reopen);
     }

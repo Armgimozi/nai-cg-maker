@@ -14,7 +14,7 @@ import org.bukkit.entity.Player;
 /** /직업 — 6직업 목록 (역할군·주 스탯·무기·설명) → 클릭하면 상세(스킬 4개·패시브·전직). */
 public final class ClassMenu extends LabMenu {
 
-    private static final int[] SLOTS = {20, 22, 24, 29, 31, 33};
+    private static final int[] SLOTS = {10, 13, 16, 28, 31, 34}; // glyphs.yml menus.class.slots.classes (배경 아치)
 
     public ClassMenu(Services services) {
         super(services, "class", 6, "<#7fb2ff>직업 선택");
