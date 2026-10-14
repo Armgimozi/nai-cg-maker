@@ -1,6 +1,13 @@
 """Voxel mob designs — floors 1–3 (이끼 회랑 · 거미줄 갱도 · 균사 동굴).  See README.md.
 
 Pilot designs (reference for the other designers): moss_crawler, rusted_miner.
+Floor 1: root_shambler · lantern_wisp · stone_beetle · moss_crawler_alpha (elite) · moss_sproutling (add)
+Floor 2: tunnel_skitter · ore_mimic · echo_bat · foreman_gorrak (elite) · silk_hatchling (add)
+Floor 3: capcap · mycelid_shambler · spore_turret · glowcap_moth · spore_mother (elite)
+Shared helpers below: _ramps (glow ramps resampled to 11 steps so the pulse survives coarse levels), _twist
+(twisted root / fibre bundles), _leaf, _sigil (2D strokes inlaid on a surface), _circle, _surface_y.
+Part-local choices: ore_mimic lid = hinge at its pivot, geometry forward (jaw anim lifts it); tongue / maw / jaw
+parts likewise extend forward from their pivots.
 Coordinates: part px, origin = the part's pivot, front = −Z, model −X = the mob's left.
 """
 from __future__ import annotations
@@ -338,8 +345,31 @@ def _twist(g, n, y0, y1, rx, rz, twist, r, mat='bark', vals=(0.42, 0.62), lean=0
 def _leaf(g, pts, w, mat='leaf', val=0.5, flat=(1.0, 0.35, 1.0), vein=0.1, prio=3):
     """Leaf blade along a midrib (px points): width w swelling to the middle, flattened by `flat` (per world
     axis), lighter midrib."""
-    g.sweep(pts, w, w, mat, val, prio=prio, sq=flat, rfn=lambda t: max(0.3, w * math.sin(math.pi * (0.12 + 0.86 * t)) ** 0.8),
+    g.sweep(pts, w, w, mat, val, prio=prio, sq=flat,
+            rfn=lambda t: max(0.3, w * math.sin(math.pi * (0.12 + 0.86 * t)) ** 0.8),
             vfn=lambda t, d, p: val + 0.12 * t + (vein if d < 0.35 else 0.0))
+
+
+def _sigil(g, c, normal, strokes, mat='glow', val=0.45, glow=True, depth=10.0, prio=6):
+    """Inlay line strokes (lists of 2D (u, v) px points around c, u = sideways, v = up) onto the surface facing
+    `normal`: each stroke is sampled every voxel and every sample is projected onto the surface by a ray."""
+    f = vnorm(normal)
+    up = (0, 1, 0) if abs(f[1]) < 0.9 else (0, 0, 1)
+    side = vnorm((up[1] * f[2] - up[2] * f[1], up[2] * f[0] - up[0] * f[2], up[0] * f[1] - up[1] * f[0]))
+    upv = (f[1] * side[2] - f[2] * side[1], f[2] * side[0] - f[0] * side[2], f[0] * side[1] - f[1] * side[0])
+    for st in strokes:
+        for (u0, v0), (u1, v1) in zip(st, st[1:]):
+            n = max(1, int(math.hypot(u1 - u0, v1 - v0) / (g.vs * 0.8)))
+            for k in range(n + 1):
+                u, v = u0 + (u1 - u0) * k / n, v0 + (v1 - v0) * k / n
+                o = vadd(vadd(vadd(c, vmul(side, u)), vmul(upv, v)), vmul(f, depth))
+                p = g.hit(o, vmul(f, -1), depth * 2)
+                if p is not None:
+                    g.dot(p, mat, val, glow=glow, prio=prio)
+
+
+def _circle(r, n=16, a0=0.0):
+    return [(math.cos(a0 + 2 * math.pi * k / n) * r, math.sin(a0 + 2 * math.pi * k / n) * r) for k in range(n + 1)]
 
 
 def _surface_y(c, r, x, z):
@@ -589,7 +619,8 @@ def _beetle_shell(g: MobGrid, ctx):
     g.paint(blocks, ['stone'])
     for p in ((6.6, -2.2, -3.0), (-6.0, 0.9, 3.8), (2.8, 4.0, 6.0), (-4.4, 3.6, -5.2)):
         g.carve_blob(p, 1.0)                                                           # chipped rims
-    g.runes((0, 5.0, -0.6), (0, 1, 0), w=6.0, h=4.6, mat='stone', val=0.12, glow=False, density=1.0, seed=3)
+    _sigil(g, (0, 1.6, -6.0), (0, 0.45, -1), [_circle(1.9), [(0, -2.6), (0, 2.6)], [(-1.2, 1.0), (0, 0), (1.2, 1.0)]],
+           val=0.4)                                                                    # the corridor's old ward-sigil
     g.cracks(['stone'], width=0.014, scale=6.0, dv=-0.26, seed=1)
     g.moss_paint(coverage=0.35, mats=['stone'], scale=3.4, up_min=0.65, depth=1, patch=0.0)
     g.clumps(3, 1.3, 'moss', 0.55, mats=['moss'])
@@ -734,7 +765,8 @@ def _alpha_head(g: MobGrid, ctx):
     for s in (-1, 1):
         if s < 0:
             g.blob((s * 2.1, 0.8, -3.0), 0.95, 'tooth', 0.35, prio=5)
-            g.sweep([(s * 3.2, 2.6, -2.6), (s * 2.1, 0.8, -3.6), (s * 1.2, -0.8, -3.4)], 0.32, 0.3, 'horn', 0.62, prio=6)
+            g.sweep([(s * 3.2, 2.6, -2.6), (s * 2.1, 0.8, -3.6), (s * 1.2, -0.8, -3.4)], 0.32, 0.3, 'horn', 0.62,
+                    prio=6)                                                                # claw scar
         else:
             g.eye((s * 2.1, 0.8, -3.0), 1.0, val=0.42, socket=0.4, facing=(s * 0.5, 0.05, -1))
         g.eye((s * 0.9, 1.8, -3.4), 0.55, val=0.45, facing=(0, 0.2, -1))
@@ -868,13 +900,16 @@ def _skitter_body(g: MobGrid, ctx):
     c, r = SKITTER_ABD
     g.blob((0, 0.0, -1.0), (2.6, 1.7, 2.4), 'chitin', 0.42, top=0.2)                     # thorax
     g.capsule((0, 0.2, 0.8), (0, 0.6, 1.6), 0.9, 1.0, 'chitin', 0.3)                       # pedicel
-    g.blob(c, r, 'chitin', 0.5, top=0.25)
+    g.blob(c, r, 'chitin', 0.58, top=0.25)
     sd = g.seed + 3
 
     def pattern(x, y, z, n, m, v):
         if y < c[1] + 0.6:
             return v - 0.08
         u = (z - c[2]) + 1.1 * abs(x)
+        q = abs(x) + abs(z - c[2] + 0.4) * 0.8
+        if (0.95 < q < 1.6 or q < 0.4) and y > c[1] + 1.8:
+            return ('eye', 0.3, True)                                                    # glowing diamond mark
         if abs(x) < 0.5 and z < c[2] + 2.5:
             return v + 0.22                                                              # pale midline
         if (u + 8.0) % 2.4 < 0.8:
@@ -1277,16 +1312,18 @@ def _gorrak_maul(g: MobGrid, ctx):
     g.ring((hx, hy, hz + 3.4), 0.8, 0.28, axis='x', mat='iron', val=0.55)
     zh = hz - 15.4
     # massive hammer block (striking face down), brass bands and rivets; a curved pick spike up-back
-    g.rbox((hx - 2.7, hy - 6.6, zh - 2.7), (hx + 2.7, hy + 1.0, zh + 2.7), 'iron', 0.48, bevel=1.1)
-    g.rbox((hx - 3.3, hy - 8.4, zh - 3.3), (hx + 3.3, hy - 6.4, zh + 3.3), 'iron', 0.6, bevel=0.8)
-    g.rbox((hx - 2.9, hy - 8.9, zh - 2.9), (hx + 2.9, hy - 8.2, zh + 2.9), 'blade', 0.7, bevel=0.3)
-    for yb in (-1.0, -5.2):
-        g.rbox((hx - 2.8, hy + yb - 0.5, zh - 2.6), (hx + 2.8, hy + yb + 0.5, zh + 2.6), 'brass', 0.5, bevel=0.2)
-        g.rivets([(hx + sx * 2.9, hy + yb, zh + sz * 1.6) for sx in (-1, 1) for sz in (-1, 1)], 'brass', 0.85)
+    g.rbox((hx - 2.1, hy - 7.0, zh - 2.3), (hx + 2.1, hy + 1.2, zh + 2.3), 'iron', 0.48, bevel=0.6)
+    g.rbox((hx - 2.9, hy - 9.0, zh - 3.0), (hx + 2.9, hy - 6.6, zh + 3.0), 'iron', 0.6, bevel=0.6)
+    g.rbox((hx - 2.6, hy - 9.5, zh - 2.7), (hx + 2.6, hy - 8.8, zh + 2.7), 'blade', 0.72, bevel=0.3)
+    g.rbox((hx - 2.4, hy - 1.4, zh - 2.6), (hx + 2.4, hy - 0.4, zh + 2.6), 'brass', 0.5, bevel=0.2)
+    g.rivets([(hx + sx * 2.45, hy - 0.9, zh + sz * 1.6) for sx in (-1, 1) for sz in (-1, 1)], 'brass', 0.85)
+    for sx in (-1, 1):
+        g.runes((hx + sx * 2.1, hy - 4.0, zh), (sx, 0, 0), w=3.2, h=5.0, mat='glow', val=0.45, glow=True,
+                density=1.0, seed=8 + sx)
     g.horn((hx, hy + 0.6, zh), (0, 1, 0.15), 7.8, 1.2, curl=(0, 0.4, 2.4), mat='iron', val=0.45)
     g.sweep([(hx, hy + 7.2, zh + 2.0), (hx, hy + 8.2, zh + 2.6)], 0.4, 0.25, 'blade', 0.8)
-    _rust_patches(g, ['iron'], 0.4, 1.8, seed=6)
-    g.streaks('rust', ['iron'], density=0.18, length=(1.0, 3.0), val=0.35)
+    _rust_patches(g, ['iron'], 0.3, 1.8, seed=6)
+    g.streaks('rust', ['iron'], density=0.12, length=(1.0, 3.0), val=0.35)
 
 
 def _gorrak_legs(g: MobGrid, ctx):
@@ -1369,12 +1406,14 @@ def silk_hatchling(look, name, part, ctx):
 
 CAP_RED = [(40, 8, 6), (78, 16, 10), (122, 30, 18), (166, 46, 28), (206, 74, 44), (232, 116, 76), (248, 164, 124)]
 CAP_CREAM = [(96, 74, 52), (150, 124, 92), (200, 176, 140), (232, 214, 182), (248, 236, 214), (255, 250, 238)]
-CAP_GILL = [(90, 52, 46), (146, 98, 86), (196, 150, 132), (230, 196, 176), (246, 226, 210)]
+CAP_GILL = [(120, 74, 62), (176, 124, 106), (220, 176, 154), (240, 212, 192), (252, 236, 222)]
 TOXIC_EYE = [(90, 110, 10), (170, 200, 30), (220, 244, 80), (244, 255, 160), (255, 255, 220), (255, 255, 255)]
 
 
 def _capcap_cap(g: MobGrid, ctx):
     g.blob((0, -0.6, 0), (6.0, 3.8, 6.0), 'cap', 0.52, top=0.0, cut=lambda x, y, z: y < -1.7)
+    # glossy wet highlight toward the key light (front-top-left)
+    g.paint(lambda x, y, z, n, m, v: v + 0.22 if (x + 1.6) ** 2 + (z + 2.0) ** 2 < 5.0 and y > 1.4 else None, ['cap'])
     g.ring((0, -1.6, 0), 5.5, 0.75, axis='y', mat='cap', val=0.36)                     # curled rim
     g.cylinder((0, -1.9, 0), (0, -1.4, 0), 5.2, 5.2, 'gill', 0.5,
                vfn=lambda t, rad, p: 0.35 + (0.25 if int((math.atan2(p[2], p[0]) + 4) * 7) % 2 else 0.0) * rad)
@@ -1446,7 +1485,8 @@ def _myc_torso(g: MobGrid, ctx):
     # the burst ribcage: hollow chest, glowing nodules inside, bone ribs arching over it
     g.carve(lambda x, y, z: abs(x) < 3.1 and -1.6 < y < 4.2 and z < -0.8)
     g.rbox((-3.2, -1.8, -1.0), (3.2, 4.3, -0.4), 'void', 0.1, prio=2)
-    for p, r in (((-1.2, 0.4, -1.4), 0.9), ((1.4, 1.8, -1.3), 0.75), ((0.2, 3.2, -1.2), 0.6), ((-0.4, -1.0, -1.3), 0.5)):
+    for p, r in (((-1.2, 0.4, -1.4), 0.9), ((1.4, 1.8, -1.3), 0.75), ((0.2, 3.2, -1.2), 0.6),
+                 ((-0.4, -1.0, -1.3), 0.5)):
         g.blob(p, r, 'glow', 0.45, glow=True, prio=3)
     g.capsule((0, 4.2, -2.8), (0, -1.2, -2.6), 0.5, 0.45, 'bone', 0.55)                 # sternum
     for k, y in enumerate((3.4, 2.0, 0.6, -0.8)):
@@ -1487,7 +1527,8 @@ def _myc_head(g: MobGrid, ctx):
         x, z = math.cos(a) * rr, 0.2 + math.sin(a) * rr
         g.dot((x, _surface_y((0, 0.6, 0.2), (5.2, 2.8, 5.2), x, z) + 0.2, z), 'spot', 0.75, prio=4)
     # a lacy hyphae veil hanging from the rim round the sides and back
-    pts = [(math.cos(a) * 4.7, -0.6, 0.2 + math.sin(a) * 4.7) for a in [math.pi * (-0.1 + 1.2 * k / 18) for k in range(19)]]
+    pts = [(math.cos(a) * 4.7, -0.6, 0.2 + math.sin(a) * 4.7)
+           for a in [math.pi * (-0.1 + 1.2 * k / 18) for k in range(19)]]
     g.cloth(pts, lambda u: 3.0 + 2.2 * math.sin(math.pi * u), 'web', 0.75, tatter=0.5, normal=(0, 0, 1), holes=0.3,
             seed=4)
     g.strands((-2.4, -1.2, -2.4), (2.6, -1.0, -2.2), sag=1.6, mat='web', val=0.85)
@@ -1736,7 +1777,8 @@ GOLD_GILL = [(80, 54, 14), (150, 108, 30), (214, 168, 60), (244, 214, 120), (255
 def _mother_mass(g: MobGrid, ctx):
     c, r = (0, -0.8, 0.4), (11.0, 9.4, 10.6)
     g.blob(c, r, 'skin', 0.5, lump=0.12, lump_scale=5.0, top=0.15)
-    for p, rr in (((-6.4, 3.4, 3.0), (4.6, 4.2, 4.6)), ((6.0, 2.0, 4.4), (4.4, 4.0, 4.2)), ((0.6, 4.4, 5.6), (5.0, 4.0, 4.0)),
+    for p, rr in (((-6.4, 3.4, 3.0), (4.6, 4.2, 4.6)), ((6.0, 2.0, 4.4), (4.4, 4.0, 4.2)),
+                  ((0.6, 4.4, 5.6), (5.0, 4.0, 4.0)),
                   ((-8.0, -4.6, -4.4), (3.6, 3.4, 3.6)), ((8.2, -3.8, -4.8), (3.4, 3.6, 3.4))):
         g.blob(p, rr, 'skin', 0.52, lump=0.12, lump_scale=3.0, top=0.15)               # heaving lobes
     # the mouth: a cavity with a glowing throat and a fleshy lower lip
