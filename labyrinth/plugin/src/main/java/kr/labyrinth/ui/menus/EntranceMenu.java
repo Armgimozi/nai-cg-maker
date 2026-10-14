@@ -74,7 +74,6 @@ public final class EntranceMenu extends LabMenu {
             myClears = (int) services.data().get(p).counter("dungeon.clear_floor_" + n);
             List<String> lore = new ArrayList<>();
             if (f.subtitle() != null && !f.subtitle().isBlank()) lore.add("<gray>" + Text.escape(Text.strip(f.subtitle())));
-            if (f.levelRange() != null) lore.add("<gray>권장 레벨 <white>" + f.levelRange().min() + " ~ " + f.levelRange().max());
             BossDef boss = services.content().bossOfFloor(n);
             if (boss != null && open) lore.add("<gray>수호자 <#ff9a4d>" + Text.escape(Text.strip(boss.name())));
             lore.add("");

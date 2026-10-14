@@ -91,8 +91,7 @@ public class ChatMenuService implements MenuService {
         p.sendMessage(Text.mm("<green><b>━━━━ 미궁 입장 ━━━━</b></green>"));
         for (FloorDef f : services.content().floors().values()) {
             boolean open = f.number() <= d.unlockedFloor();
-            String label = (open ? "<green>" : "<dark_gray>") + "[지하 " + f.number() + "층] " + Text.strip(f.name())
-                    + " <gray>(권장 Lv." + f.levelRange().min() + "~" + f.levelRange().max() + ")";
+            String label = (open ? "<green>" : "<dark_gray>") + "[지하 " + f.number() + "층] " + Text.strip(f.name());
             p.sendMessage(Text.mm(open ? button(label, "/lab enter " + f.number(), "입장") : label + " <red>잠김"));
         }
     }

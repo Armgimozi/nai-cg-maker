@@ -44,8 +44,7 @@ public final class StartRoom extends Room {
         state = State.ACTIVE;
         Location sign = fs.tile(info.centerX(), info.minZ() + 2, 2.8);
         String sub = fs.def().subtitle() == null ? "지하 " + fs.floor() + "층" : fs.def().subtitle();
-        fs.text(sign, "<gradient:#c9a2ff:#7fd8ff><b>" + sub + "</b></gradient>\n" + fs.def().name()
-                + "\n<gray>권장 Lv." + fs.def().levelRange().min() + "~" + fs.def().levelRange().max());
+        fs.text(sign, "<gradient:#c9a2ff:#7fd8ff><b>" + sub + "</b></gradient>\n" + fs.def().name());
     }
 
     public boolean countdownStarted() { return countdown; }

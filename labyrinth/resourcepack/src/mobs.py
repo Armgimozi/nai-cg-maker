@@ -981,6 +981,9 @@ class MobResult:
         self.parts: list[str] = []
         self.frames = 1
         self.texture_path = ''
+        self.elements = 0              # model elements over every part
+        self.part_elements: dict[str, int] = {}
+        self.voxel_parts: list[str] = []
 
 
 def _el_json(e, uvs, S):
@@ -1011,15 +1014,56 @@ def _copy_el(e, fn_point, scale=1.0):
     return n
 
 
-def build_mob(mid, d, boss=False, jdump=None, png_bytes=None, strip=None):
+def _voxel_ctx_vs(size, boss):
+    """Suggested voxel size (px per voxel) from the part's YAML size: fine for small parts, coarser for big."""
+    m = max(size)
+    if m <= 10:
+        return 0.5
+    if m <= 18:
+        return 0.6667 if not boss else 0.75
+    return 0.8 if not boss else 1.0
+
+
+def _try_design(fn, look, p, vctx, res):
+    """Run a voxel design function; any failure falls back to the old part (with a warning)."""
+    import traceback
+    try:
+        g = fn(look, vctx.name, p, vctx)
+    except Exception:  # noqa: BLE001
+        res.warnings.append(f'mob {look.mid}/{vctx.name}: voxel design failed — old box model used:\n'
+                            + traceback.format_exc(limit=3))
+        return None
+    if g is None or not len(g):
+        return None
+    if not hasattr(g, 'vs'):
+        res.warnings.append(f'mob {look.mid}/{vctx.name}: design returned a Grid without vs — use ctx.grid()')
+        return None
+    return g
+
+
+def build_mob(mid, d, boss=False, jdump=None, png_bytes=None, strip=None, mode='auto'):
+    """mode: 'auto' = voxel design (src/mobvox) where one exists, old box model elsewhere; 'old' = box only."""
+    from . import mobvox
+    from .voxel import mob_build as MB
+    from .voxel import mob_kit as MK
+    from .voxel import palette as VP
     res = MobResult(mid)
     m = d.get('model') or {}
     style = m.get('style') or {}
     parts = m.get('parts') or []
-    look = MobLook(mid, style, boss, d.get('rank') or ('boss' if boss else 'normal'))
+    rank = d.get('rank') or ('boss' if boss else 'normal')
+    look = MobLook(mid, style, boss, rank)
     if not parts:
         res.warnings.append(f'mob {mid}: no model parts')
         return res
+    floor = int(d.get('floor') or 1)
+    design = mobvox.design_for(mid) if mode != 'old' else None
+    if mode != 'old' and mobvox.ERRORS and not getattr(build_mob, '_reported', False):
+        res.warnings.extend(mobvox.ERRORS)
+        build_mob._reported = True
+    shared = {}
+    vgrids = {}      # part name → MobGrid
+    vctxs = {}       # part name → PartCtx (re-run on coarser voxels when over budget)
     # arms for hand-held detection
     arms = [p for p in parts if p.get('form') in ('arm', 'tentacle_cluster') and p.get('anim') in ('arm_left', 'arm_right')]
     head_part = next((p for p in parts if p.get('name') == 'head'), None) or next((p for p in parts if _is_head(p)), None)
@@ -1043,6 +1087,19 @@ def build_mob(mid, d, boss=False, jdump=None, png_bytes=None, strip=None):
                     break
         hang = (form in ('arm', 'tentacle_cluster') and anim in ('arm_left', 'arm_right')) or \
                (form == 'leg_pair' and anim == 'legs_walk')
+        if design is not None:
+            hand = None
+            if holder is not None:
+                arm_size = [float(v) for v in (holder.get('size') or [4, 12, 4])]
+                hand = (0.0, -arm_size[1] + 1.0, 0.0)
+            vctx = MK.PartCtx(mid, look, p, parts, boss, rank, floor, VP.FLOOR_THEME.get(floor, 'plain'), out, hang,
+                              holder, hand, _voxel_ctx_vs(size, boss), MB.PER_PART, shared,
+                              stable_seed(mid, p.get('name', 'part')))
+            g = _try_design(design, look, p, vctx, res)
+            if g is not None:
+                vgrids[p.get('name', 'part')] = g
+                vctxs[p.get('name', 'part')] = vctx
+                continue
         c = PC(p, look, boss, out, hang)
         pb = PB(p.get('name', 'part'))
         if holder is not None:
@@ -1085,24 +1142,68 @@ def build_mob(mid, d, boss=False, jdump=None, png_bytes=None, strip=None):
         if form == 'tentacle_cluster' and not hang:
             pass
         built.append((p, pb, c, n0))
-    # combined model for UV packing (real geometry, part-local coordinates)
+    # combined model for UV packing (real geometry, part-local coordinates) — old-style parts only
     total_area = 0.0
     cm = Model(f'mob/{mid}', density=1)
-    ranges = []
+    ranges = {}
     for (p, pb, c, n0) in built:
         start = len(cm.els)
         cm.els.extend(pb.els)
-        ranges.append((p, start, len(cm.els)))
+        ranges[p.get('name', 'part')] = (start, len(cm.els))
     for e in cm.els:
         for f in e.faces:
             fu, fv = e.face_size(f)
             total_area += max(1, round(fu)) * max(1, round(fv))
     cm.density = 2 if total_area < 2600 else 1
     tex_ref = f'{NS}:mob/{mid}'
-    baked = cm.bake(make_shader(look), tex_ref)
-    S = baked.size
+    baked = cm.bake(make_shader(look), tex_ref) if cm.els else None
+    # voxel parts: shade + mesh under the element budget, one shared palette
+    pms = {}
+    vpal = MB.Palette()
+    pal_map = {}
+    if vgrids:
+        base = VP.mob_ramps(look, VP.FLOOR_THEME.get(floor, 'plain'), floor)
+        base.update(shared.get('ramps') or {})
+        plist = []
+        for name, g in vgrids.items():
+            rp = dict(base)
+            rp.update(g.ramp_over)
+            pm = MB.PartMesh(name, g, rp)
+            pms[name] = pm
+            plist.append(pm)
+        budget = MB.budget_for(rank, boss)
+        warns = MB.fit_budget(plist, budget, fixed=len(cm.els))
+        # safety net: still over budget → re-run the largest part's design on coarser voxels (≤ 3 times each)
+        for _ in range(8):
+            over_total = sum(pm.count for pm in plist) + len(cm.els) > budget
+            over_part = [pm for pm in plist if pm.count > MB.PER_PART]
+            if not (over_total or over_part):
+                break
+            pm = max(over_part or plist, key=lambda q: q.count)
+            vctx = vctxs[pm.name]
+            if vctx.vs_mul >= 1.7:
+                break
+            vctx.vs_mul *= 1.2
+            g = _try_design(design, look, vctx.part, vctx, res)
+            if g is None:
+                break
+            res.warnings.append(f'mob {mid}/{pm.name}: over budget ({pm.count} el) — rebuilt at voxel size '
+                                f'{g.vs:.2f} px (design for the budget instead)')
+            pm.grid = g
+            pm.base_ramps = dict(base, **g.ramp_over)
+            pm.level = 0
+            pm.remesh()
+            warns = MB.fit_budget(plist, budget, fixed=len(cm.els))
+        for wmsg in warns:
+            res.warnings.append(f'mob {mid}: {wmsg}')
+        for pi, (name, pm) in enumerate(pms.items()):
+            pal_map[name] = vpal.add_part(pi, pm)
+    S, cells = MB.compose(baked.size if baked else 0, len(vpal.entries))
+    texels = (list(baked.texels) if baked else []) + MB.palette_texels(vpal, cells)
+    from .model import BakedModel
+    atlas = BakedModel(cm, S, texels, baked.faces_uv if baked else {}, tex_ref)
     # animation: glowing texels pulse (bosses 8 frames, emissive mobs 4 frames)
-    has_glow = any(t.glow or t.role in GLOW_ROLES or t.role == 'eyeball' for t in baked.texels)
+    has_glow = any(t.glow or t.role in GLOW_ROLES or t.role == 'eyeball' for t in texels)
     frames_n = 8 if boss else (4 if has_glow and ({'emissive_core', 'heartbeat_glow', 'spore_glow', 'sculk_veins',
                                                     'molten_cracks', 'electric_veins'} & look.features) else 1)
 
@@ -1113,7 +1214,11 @@ def build_mob(mid, d, boss=False, jdump=None, png_bytes=None, strip=None):
                 return (None, 0.16 * math.sin(ph))
             return None
         return vfn
-    frames = [baked.frame(pulse(f) if frames_n > 1 else None) for f in range(frames_n)]
+    frames = [atlas.frame(pulse(f) if frames_n > 1 else None) for f in range(frames_n)]
+    if frames_n > 1 and all(fr.tobytes() == frames[0].tobytes() for fr in frames[1:]):
+        res.warnings.append(f'mob {mid}: no glowing texel changes between frames — static atlas')
+        frames_n = 1
+        frames = frames[:1]
     tp = f'assets/{NS}/textures/mob/{mid}.png'
     if frames_n > 1:
         res.files[tp] = png_bytes(strip(frames))
@@ -1125,9 +1230,32 @@ def build_mob(mid, d, boss=False, jdump=None, png_bytes=None, strip=None):
     # per-part model JSON (pivot → 8,8,8; shrink to the legal box when needed)
     prev_els = []
     prev_uv = {}
-    for (p, start, end) in ranges:
+    for p in parts:
         name = p.get('name', 'part')
-        els = cm.els[start:end]
+        if name in pms:
+            pm = pms[name]
+            gmap = pal_map[name]
+            els, uvs_list = [], []
+            for (lo, hi, pi, faces, g) in pm.vm.boxes:
+                vs = pm.grid.vs
+                frm = tuple((lo[a] - 0.5) * vs for a in range(3))
+                to = tuple((hi[a] + 0.5) * vs for a in range(3))
+                gi = gmap[pi]
+                mat = vpal.entries[gi][5]
+                e = El(frm, to, 'vox', faces=faces, glow=g, emission=(15 if mat == 'eye' else 12) if g else 0, shade=not g)
+                x, y = cells[gi]
+                els.append(e)
+                uvs_list.append({f: (x + 0.5, y + 0.5, x + 1.5, y + 1.5) for f in faces})
+            prev_uv_list = [{f: (cells[gmap[b[2]]][0], cells[gmap[b[2]]][1], cells[gmap[b[2]]][0] + 2,
+                                 cells[gmap[b[2]]][1] + 2) for f in b[3]} for b in pm.vm.boxes]
+            res.part_elements[name] = len(els)
+            res.voxel_parts.append(name)
+        else:
+            start, end = ranges[name]
+            els = cm.els[start:end]
+            uvs_list = [{f: baked.faces_uv[(start + k, f)] for f in e.faces} for k, e in enumerate(els)]
+            prev_uv_list = uvs_list
+            res.part_elements[name] = len(els)
         pts = [q for e in els for q in e.corners()] + [q for e in els for q in (e.frm, e.to)]
         lo = [min(q[i] for q in pts) for i in range(3)]
         hi = [max(q[i] for q in pts) for i in range(3)]
@@ -1144,16 +1272,15 @@ def build_mob(mid, d, boss=False, jdump=None, png_bytes=None, strip=None):
         out_els = []
         for k, e in enumerate(els):
             ne = _copy_el(e, conv)
-            uvs = {f: baked.faces_uv[(start + k, f)] for f in e.faces}
-            out_els.append(_el_json(ne, uvs, S))
+            out_els.append(_el_json(ne, uvs_list[k], S))
         inv = r4(1.0 / s)
-        pm = Model('tmp')
-        pm.els = [_copy_el(e, conv) for e in els]
+        pm_ = Model('tmp')
+        pm_.els = [_copy_el(e, conv) for e in els]
         display = {
             'fixed': {'rotation': [0, 0, 0], 'translation': [0, 0, 0], 'scale': [inv, inv, inv]},
             'head': {'rotation': [0, 0, 0], 'translation': [0, 0, 0], 'scale': [inv, inv, inv]},
-            'gui': fit_transform(pm, (25, 160, 0), target=14.0, max_scale=4.0),
-            'ground': fit_transform(pm, (0, 180, 0), target=8.0, max_scale=2.0),
+            'gui': fit_transform(pm_, (25, 160, 0), target=14.0, max_scale=4.0),
+            'ground': fit_transform(pm_, (0, 180, 0), target=8.0, max_scale=2.0),
         }
         mj = {
             'textures': {'0': tex_ref, 'particle': tex_ref},
@@ -1172,10 +1299,11 @@ def build_mob(mid, d, boss=False, jdump=None, png_bytes=None, strip=None):
             idx = len(prev_els)
             prev_els.append(_copy_el(e, lambda q, off=off: (q[0] + off[0], q[1] + off[1], q[2] + off[2])))
             for f in e.faces:
-                prev_uv[(idx, f)] = baked.faces_uv[(start + k, f)]
+                prev_uv[(idx, f)] = prev_uv_list[k][f]
     pmodel = Model(f'preview/{mid}')
     pmodel.els = prev_els
     res.preview = (pmodel, prev_uv, frames[0])
+    res.elements = len(prev_els)
     return res
 
 

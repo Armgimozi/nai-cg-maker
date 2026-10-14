@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Labyrinth (미궁 라비린스) resource-pack generator.
 
-    python3 generate.py [--content DIR] [--out DIR] [--no-preview]
+    python3 generate.py [--content DIR] [--out DIR] [--no-preview] [--only-mobs ID,ID,...] [--compare]
+
+--only-mobs builds just those mobs/bosses (fast design loop: no items/fx/UI, no zip, mob checks only) and
+writes preview_mobs.png; --compare adds compare_mobs.png (old box model vs voxel design side by side).
 
 Reads the plugin's content YAML (single source of truth), procedurally generates every model,
 texture, icon, animation and equipment layer (all original — nothing copied from vanilla or third
@@ -31,7 +34,10 @@ NS = 'labyrinth'
 
 
 class Ctx:
-    def __init__(self, content_dir, out_dir, preview):
+    def __init__(self, content_dir, out_dir, preview, only_mobs=None, compare=False):
+        self.only_mobs = only_mobs        # None = every mob, else a set of ids
+        self.compare = compare
+        self.compare_rows = []            # (id, boss, old_preview+count, new_preview+count)
         self.content_dir = content_dir
         self.out_dir = out_dir
         self.preview = preview
@@ -44,7 +50,7 @@ class Ctx:
         self.fx_previews = []
         self.fx_names: list[str] = []
         self.armor_previews = []   # (label, hum, leg)
-        self.mob_previews = []     # (id, boss, assembled model, faces_uv, frame0)
+        self.mob_previews = []     # (id, boss, assembled model, faces_uv, frame0, elements, voxel part count)
         self.npc_previews = []     # (skin id, image)
         self.stats: dict[str, int] = {}
         self.ui_errors: list[str] = []
@@ -182,11 +188,14 @@ def build_fx_extra(ctx: Ctx):
 
 
 def build_mobs(ctx: Ctx):
-    """3D part models + one atlas per mob/boss (src/mobs.py)."""
-    nparts = 0
+    """3D part models + one atlas per mob/boss (src/mobs.py; voxel designs in src/mobvox)."""
+    nparts = nvox = nel = 0
     for coll, boss in (('mobs', False), ('bosses', True)):
         data = (ctx.content.get(coll) or {}).get(coll) or {}
+        built = 0
         for mid, d in data.items():
+            if ctx.only_mobs is not None and mid not in ctx.only_mobs:
+                continue
             res = mobs.build_mob(mid, d or {}, boss, items.jdump, items.png_bytes, items.strip)
             for p, b in res.files.items():
                 ctx.add(p, b)
@@ -194,10 +203,18 @@ def build_mobs(ctx: Ctx):
             if res.frames > 1:
                 ctx.expect_frames[res.texture_path] = res.frames
             if res.preview:
-                ctx.mob_previews.append((mid, boss) + res.preview)
+                ctx.mob_previews.append((mid, boss) + res.preview + (res.elements, len(res.voxel_parts)))
+            if ctx.compare:
+                old = mobs.build_mob(mid, d or {}, boss, items.jdump, items.png_bytes, items.strip, mode='old')
+                ctx.compare_rows.append((mid, boss, old, res))
             nparts += len(res.parts)
-        ctx.stats[coll] = len(data)
+            nvox += len(res.voxel_parts)
+            nel += res.elements
+            built += 1
+        ctx.stats[coll] = built
     ctx.stats['mob_parts'] = nparts
+    ctx.stats['mob_voxel_parts'] = nvox
+    ctx.stats['mob_elements'] = nel
 
 
 def build_npcs(ctx: Ctx):
@@ -294,18 +311,7 @@ def write_previews(ctx: Ctx):
             cells.append((sheet.resize((256, 256), Image.NEAREST), s))
         render.grid(cells, 4, 256, title='Equipment layers (top: humanoid, bottom: humanoid_leggings)').convert('RGB').save(
             os.path.join(ctx.out_dir, 'preview_armor.png'))
-    if ctx.mob_previews:
-        cells = []
-        for (mid, boss, pm, uv, fr) in ctx.mob_previews:
-            cells.append((mobs.preview_cell(pm, uv, fr, px=192), ('[BOSS] ' if boss else '') + mid))
-        render.grid(cells, 8, 192, label_h=12,
-                    title=f'Mobs & bosses: {len(cells)} (assembled at YAML pivots, front 3/4 view, frame 0)').convert(
-            'RGB').save(os.path.join(ctx.out_dir, 'preview_mobs.png'))
-        sheets = []
-        for (mid, boss, pm, uv, fr) in ctx.mob_previews:
-            sheets.append((fr.resize((128, 128), Image.NEAREST), mid))
-        render.grid(sheets, 12, 128, title='Mob texture atlases (frame 0)').convert('RGB').save(
-            os.path.join(ctx.out_dir, 'preview_mob_atlases.png'))
+    write_mob_previews(ctx)
     if ctx.npc_previews:
         cells = []
         for (sid, img) in ctx.npc_previews:
@@ -333,6 +339,41 @@ def write_previews(ctx: Ctx):
                            append_images=gif_frames[1:], duration=100, loop=0, disposal=2)
 
 
+def _mob_label(mid, boss, nel, nvox):
+    return f"{'[B] ' if boss else ''}{mid} {nel}el{' V' if nvox else ''}"
+
+
+def write_mob_previews(ctx: Ctx):
+    """preview_mobs.png (element count per cell, V = voxel design), atlases, and compare_mobs.png."""
+    os.makedirs(ctx.out_dir, exist_ok=True)
+    if ctx.mob_previews:
+        cells = []
+        for (mid, boss, pm, uv, fr, nel, nvox) in ctx.mob_previews:
+            cells.append((mobs.preview_cell(pm, uv, fr, px=192), _mob_label(mid, boss, nel, nvox)))
+        render.grid(cells, min(8, len(cells)), 192, label_h=12,
+                    title=f'Mobs & bosses: {len(cells)} (YAML pivots, front 3/4, frame 0; Nel = elements, '
+                          f'V = voxel)').convert('RGB').save(os.path.join(ctx.out_dir, 'preview_mobs.png'))
+        sheets = []
+        for (mid, boss, pm, uv, fr, nel, nvox) in ctx.mob_previews:
+            sheets.append((fr.resize((128, 128), Image.NEAREST), mid))
+        render.grid(sheets, min(12, len(sheets)), 128, title='Mob texture atlases (frame 0)').convert('RGB').save(
+            os.path.join(ctx.out_dir, 'preview_mob_atlases.png'))
+    if ctx.compare_rows:
+        cells = []
+        px = 256
+        for (mid, boss, old, new) in ctx.compare_rows:
+            for tag, r, rot in (('OLD', old, (18, 205, 0)), ('NEW', new, (18, 205, 0)), ('NEW back', new, (18, 25, 0)),
+                                ('NEW side', new, (8, 270, 0))):
+                if not r.preview:
+                    continue
+                pm, uv, fr = r.preview
+                cells.append((mobs.preview_cell(pm, uv, fr, px=px, rot=rot),
+                              f'{mid} {tag} {r.elements}el' if tag in ('OLD', 'NEW') else f'{mid} {tag}'))
+        render.grid(cells, 4, px, label_h=12,
+                    title='Old box model vs voxel design (front 3/4, back 3/4, side) - element counts').convert(
+            'RGB').save(os.path.join(ctx.out_dir, 'compare_mobs.png'))
+
+
 # ───────────────────────────── main ─────────────────────────────
 
 def main(argv=None):
@@ -340,13 +381,22 @@ def main(argv=None):
     ap.add_argument('--content', default=os.path.join(HERE, '..', 'plugin', 'src', 'main', 'resources', 'content'))
     ap.add_argument('--out', default=os.path.join(HERE, 'dist'))
     ap.add_argument('--no-preview', action='store_true')
+    ap.add_argument('--only-mobs', default=None,
+                    help='comma-separated mob/boss ids: build only those (mob previews + mob checks, no zip)')
+    ap.add_argument('--compare', action='store_true',
+                    help='also write compare_mobs.png: old box model vs voxel design for every built mob')
     args = ap.parse_args(argv)
     t0 = time.time()
-    ctx = Ctx(os.path.abspath(args.content), os.path.abspath(args.out), not args.no_preview)
+    only = None
+    if args.only_mobs:
+        only = {s.strip() for s in args.only_mobs.split(',') if s.strip()}
+    ctx = Ctx(os.path.abspath(args.content), os.path.abspath(args.out), not args.no_preview, only, args.compare)
     for name in ('items', 'fx', 'mobs', 'bosses', 'npcs', 'classes', 'glyphs'):
         ctx.content[name] = ctx.load(name)
     ctx.content['sets'] = ctx.content['items'].get('sets') or {}
     ctx.content['items'] = ctx.content['items'].get('items') or {}
+    if only is not None:
+        return _main_only_mobs(ctx, only, t0)
     for b in BUILDERS:
         b(ctx)
     rep = validate.validate(ctx.files, ctx.content, ctx.expect_frames, ctx.fx_names)
@@ -372,6 +422,41 @@ def main(argv=None):
         print(f'VALIDATION FAILED: {len(rep.errors)} error(s)')
         return 1
     print('validation: OK')
+    return 0
+
+
+def _main_only_mobs(ctx: Ctx, only, t0):
+    """Fast design loop: core + the named mobs, mob-only validation, mob previews (no zip)."""
+    known = set(((ctx.content.get('mobs') or {}).get('mobs') or {})) | \
+        set(((ctx.content.get('bosses') or {}).get('bosses') or {}))
+    unknown = sorted(only - known)
+    if unknown:
+        print('unknown mob ids:', ', '.join(unknown))
+        return 2
+    build_core(ctx)
+    build_mobs(ctx)
+    sub = {
+        'mobs': {'mobs': {k: v for k, v in ((ctx.content.get('mobs') or {}).get('mobs') or {}).items() if k in only}},
+        'bosses': {'bosses': {k: v for k, v in ((ctx.content.get('bosses') or {}).get('bosses') or {}).items()
+                              if k in only}},
+    }
+    rep = validate.Report()
+    validate.validate_mobs_npcs_fx(ctx.files, sub, rep, ctx.expect_frames)
+    if ctx.preview:
+        write_mob_previews(ctx)
+    for w in ctx.warnings:
+        print('warning:', w)
+    for (mid, boss, pm, uv, fr, nel, nvox) in ctx.mob_previews:
+        print(f'  {mid}: {nel} elements' + (f' ({nvox} voxel parts)' if nvox else ''))
+    print('stats:', ', '.join(f'{k}={v}' for k, v in ctx.stats.items()), f'models_checked={rep.checked}')
+    print(f'previews: {ctx.out_dir}')
+    print(f'time: {time.time() - t0:.1f}s')
+    if rep.errors:
+        for e in rep.errors[:200]:
+            print('ERROR:', e)
+        print(f'VALIDATION FAILED: {len(rep.errors)} error(s)')
+        return 1
+    print('validation (mobs only): OK')
     return 0
 
 

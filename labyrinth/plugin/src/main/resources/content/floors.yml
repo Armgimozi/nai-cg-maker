@@ -10,7 +10,7 @@
 #                     sound(바닐라 사운드 키) / sound_interval([최소,최대] 초) / volume / pitch
 #  decor            : 장식 블록 산포. where: floor | ceiling | wall | corner,  chance: 해당 면 블록당 확률
 #  liquid           : 수로/용암 도랑에 쓸 액체 (WATER | LAVA | null). 통로 가장자리 1칸 도랑, 난간 필수
-#  level_range      : 권장 레벨 [최소, 최대] — 입장 메뉴 표시 + 경고
+#  level_range      : 밸런스용 레벨 구간 [최소, 최대] — 플레이어에게는 보여 주지 않는다 (사용자 결정)
 # 모든 블록 배치는 labyrinth_world 의 인스턴스 슬롯 안에서만 이루어진다.
 # ─────────────────────────────────────────────────────────────────────────────
 version: 1
