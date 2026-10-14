@@ -267,16 +267,23 @@ LIGHT = _norm((-0.45, 0.8, 0.45))
 NOISE = {'metal': 0.05, 'blade': 0.05, 'edge': 0.04, 'orn': 0.06, 'grip': 0.08, 'wood': 0.1, 'scale': 0.1,
          'belly': 0.08, 'vine': 0.12, 'leaf': 0.14, 'crystal': 0.06, 'gem': 0.0, 'glow': 0.04, 'feather': 0.06,
          'bone': 0.1, 'dark': 0.06, 'cloth': 0.08, 'fungus': 0.1, 'shell': 0.1, 'ink': 0.06, 'paper': 0.06,
-         'flame': 0.08, 'ice': 0.06, 'string': 0.0, 'eye': 0.0, 'tendril': 0.1}
+         'flame': 0.08, 'ice': 0.06, 'string': 0.0, 'eye': 0.0, 'tendril': 0.1,
+         # creature materials (voxel/mob_kit.py, palette.mob_ramps)
+         'skin': 0.08, 'skin2': 0.08, 'alt': 0.08, 'chitin': 0.05, 'fur': 0.12, 'moss': 0.14, 'lichen': 0.12,
+         'stone': 0.12, 'flesh': 0.08, 'mouth': 0.04, 'tooth': 0.05, 'claw': 0.05, 'horn': 0.08, 'rust': 0.14,
+         'iron': 0.06, 'brass': 0.05, 'membrane': 0.06, 'web': 0.02, 'cap': 0.08, 'gill': 0.06, 'water': 0.05,
+         'lava': 0.06, 'core': 0.03, 'rune': 0.02, 'void': 0.03, 'bark': 0.12, 'frost': 0.06}
 
 
 NOISE_PASS2 = 0.4
-SHEEN_MATS = frozenset(('blade', 'metal', 'plate', 'orn', 'crystal', 'ice', 'fuller'))
+SHEEN_MATS = frozenset(('blade', 'metal', 'plate', 'orn', 'crystal', 'ice', 'fuller', 'chitin', 'iron', 'brass'))
 WRAP_MATS = frozenset(('grip', 'leather'))
 
 
-def shade(grid: Grid, ramps: dict, glow_mats=(), noise_mul=1.0):
-    """→ {key: (mat, level, glow)}.  Lighting by voxel normal, AO, edge highlight, hashed noise."""
+def shade(grid: Grid, ramps: dict, glow_mats=(), noise_mul=1.0, light=None):
+    """→ {key: (mat, level, glow)}.  Lighting by voxel normal, AO, edge highlight, hashed noise.
+    light: unit vector toward the key light (default LIGHT, tuned for item GUI views)."""
+    LIGHT = light or globals()['LIGHT']
     vox = grid.vox
     out = {}
     seed = grid.seed
@@ -344,7 +351,9 @@ class VoxelMesh:
         self.elements_json = []
 
 
-def mesh(name, shaded: dict, ramps: dict, vs=0.5, origin=(8, 8, 8), glow_cell=2, emission=12):
+def mesh(name, shaded: dict, ramps: dict, vs=0.5, origin=(8, 8, 8), glow_cell=2, emission=12, overlap=False):
+    """overlap=True (mobs): boxes may share exposed voxels of the *same* palette key — their coplanar faces
+    then carry identical colours, so nothing visible fights — which lets every box grow maximal."""
     vox = shaded
     exposed = {}
     for key in vox:
@@ -380,7 +389,7 @@ def mesh(name, shaded: dict, ramps: dict, vs=0.5, origin=(8, 8, 8), glow_cell=2,
         if q not in vox:
             return False
         if q in exposed:
-            return q not in covered and keyof[q] == pk
+            return keyof[q] == pk and (overlap or q not in covered)
         return True
 
     def grow(start, pk, axes):
@@ -437,7 +446,7 @@ def mesh(name, shaded: dict, ramps: dict, vs=0.5, origin=(8, 8, 8), glow_cell=2,
             for x in range(lo[0], hi[0] + 1):
                 for y in range(lo[1], hi[1] + 1):
                     for z in range(lo[2], hi[2] + 1):
-                        if (x, y, z) in exposed:
+                        if (x, y, z) in exposed and (x, y, z) not in covered:
                             cnt += 1
             if best is None or cnt > best[0]:
                 best = (cnt, lo, hi)
@@ -507,6 +516,8 @@ def mesh(name, shaded: dict, ramps: dict, vs=0.5, origin=(8, 8, 8), glow_cell=2,
                                         GLOW_ALPHA if g else 255, None, 1, 1, 3, 3))
     res.model = m
     res.boxes = boxes
+    res.pal_info = pal_info
+    res.cell_pos = {pk: tuple(sum(p[a] for p in pts) / len(pts) for a in range(3)) for pk, pts in cell_pts.items()}
     return res
 
 

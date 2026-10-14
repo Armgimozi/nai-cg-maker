@@ -86,3 +86,81 @@ def ramps_for(look, theme):
 
 
 GLOW_MATS = ('glow', 'eye')
+
+
+# ───────────────────────────── creature materials (mob voxel models) ─────────────────────────────
+
+# floor → material theme (THEME_HUE key) and the item-style the floor's metal/wood/grip ramps follow
+FLOOR_THEME = {1: 'vine', 2: 'web', 3: 'fungi', 4: 'water', 5: 'forge', 6: 'frost', 7: 'crystal', 8: 'ink',
+               9: 'clock', 10: 'abyss'}
+FLOOR_STYLE = {1: 'moss', 2: 'rusted_iron', 3: 'cloth', 4: 'copper', 5: 'ember', 6: 'frost', 7: 'crystal', 8: 'ink',
+               9: 'clockwork', 10: 'abyss'}
+MOB_GLOW_MATS = ('glow', 'eye', 'core', 'rune', 'lava')
+
+
+def _ext(base, n=8, dark=0.45, light=0.3):
+    """Ramp with a deeper shadow and a brighter highlight than the source colours."""
+    return _r([darken(base[0], dark)] + list(base) + [lighten(base[-1], light)], n)
+
+
+def mob_ramps(mlook, theme=None, floor=None):
+    """Material → colour ramp for a creature (mobs.MobLook).  Every item material of ramps_for() is
+    available too (blade, metal, orn, wood, crystal, scale, vine, leaf, bone, flame, ice, ink, …), plus the
+    creature materials below.  Values 0..1 index the ramp (0 = darkest)."""
+    from ..materials import Look
+    floor = floor or 1
+    theme = theme or FLOOR_THEME.get(floor, 'plain')
+    ilook = Look(mlook.pal, FLOOR_STYLE.get(floor, 'steel'), 'rare', mlook.seed)
+    r = ramps_for(ilook, theme)
+    main = list(mlook.main)
+    a = mlook.accent
+    th = THEME_HUE.get(theme, THEME_HUE['plain'])
+    R = mlook.ramps
+    grey = [(22, 23, 26), (46, 48, 52), (78, 80, 84), (116, 118, 120), (156, 158, 158), (198, 198, 194)]
+    r.update({
+        'skin': _ext(main, 8),
+        'skin2': _ext([mix(c, a, 0.42) for c in main], 8),
+        'alt': _ext(list(mlook.alt), 8),
+        'chitin': _r([darken(main[0], 0.75), darken(main[0], 0.4), main[1], main[2], mix(main[3], main[4], 0.5),
+                      lighten(main[4], 0.25), lighten(main[5], 0.6)], 8),
+        'fur': _ext([mix(c, (120, 96, 70), 0.25) for c in main], 7, 0.5, 0.2),
+        'moss': _ext([mix(m, th, 0.15) for m in R['leaf']], 8, 0.4, 0.25),
+        'lichen': _r([(64, 74, 30), (118, 132, 58), (170, 184, 96), (212, 222, 142), (240, 246, 196)], 6),
+        'stone': _r([mix(g, main[min(k, len(main) - 1)], 0.32) for k, g in enumerate(grey)], 7),
+        'flesh': _r([mix(c, main[2], 0.2) for c in ((48, 16, 20), (104, 40, 46), (160, 78, 78), (200, 122, 112),
+                                                       (230, 172, 156))], 6),
+        'mouth': _r([(8, 2, 4), (30, 6, 10), (62, 16, 22), (100, 32, 36), (140, 58, 56)], 5),
+        'tooth': _r([(104, 94, 74), (166, 156, 126), (212, 204, 176), (238, 232, 212), (255, 252, 240)], 6),
+        'claw': _r([(16, 13, 12), (42, 36, 30), (80, 70, 58), (132, 120, 100), (196, 186, 164)], 6),
+        'horn': list(ilook.horn) if len(ilook.horn) >= 6 else _r(ilook.horn, 6),
+        'rust': _r([(40, 18, 10), (84, 36, 16), (132, 62, 24), (176, 94, 38), (208, 134, 62), (234, 178, 108)], 7),
+        'iron': _r([mix(c, main[2], 0.12) for c in ((14, 16, 20), (36, 40, 46), (66, 72, 80), (104, 110, 120),
+                                                       (146, 152, 162), (194, 200, 208), (232, 236, 240))], 8),
+        'brass': _ext(R['trim'], 8, 0.4, 0.35),
+        'membrane': _r([darken(mix(main[1], a, 0.3), 0.6), darken(mix(main[2], a, 0.35), 0.3),
+                        mix(main[3], a, 0.4), lighten(mix(main[3], a, 0.5), 0.2)], 6),
+        'web': _r([(84, 86, 96), (146, 148, 158), (198, 200, 208), (230, 232, 238), (250, 250, 252)], 5),
+        'cap': _ext([darken(a, 0.55), darken(a, 0.3), a, lighten(a, 0.3)], 7, 0.4, 0.4),
+        'gill': _r([mix(c, a, 0.15) for c in ((70, 56, 50), (140, 120, 104), (196, 180, 160), (232, 222, 204))], 5),
+        'water': _r([(8, 34, 52), (18, 70, 98), (44, 120, 150), (100, 182, 204), (182, 230, 242)], 6),
+        'lava': _r([(90, 20, 6), (170, 44, 10), (232, 96, 18), (255, 160, 40), (255, 214, 110), (255, 248, 210)], 7),
+        'core': _r([darken(a, 0.5), darken(a, 0.2), saturate(a, 1.2), lighten(a, 0.35), lighten(a, 0.7),
+                    (255, 255, 255)], 7),
+        'rune': _r([darken(a, 0.3), saturate(a, 1.25), lighten(a, 0.3), lighten(a, 0.6), lighten(a, 0.85)], 6),
+        'eye': _r([darken(a, 0.35), saturate(a, 1.2), lighten(a, 0.4), lighten(a, 0.75), (255, 255, 255)], 6),
+        'void': _r(R['void'], 5),
+        'bark': _ext(list(ilook.wood), 7, 0.5, 0.15),
+        'frost': _r([(112, 140, 172), (164, 194, 222), (206, 228, 246), (234, 246, 255), (255, 255, 255)], 5),
+    })
+    return r
+
+
+def coarse(ramps):
+    """Every other ramp level (budget fallback: fewer distinct colours → larger merged boxes)."""
+    out = {}
+    for k, v in ramps.items():
+        c = list(v[::2])
+        if c[-1] != v[-1]:
+            c.append(v[-1])
+        out[k] = c if len(c) >= 2 else list(v)
+    return out
