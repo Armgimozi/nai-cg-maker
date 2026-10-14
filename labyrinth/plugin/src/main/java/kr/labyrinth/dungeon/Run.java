@@ -603,8 +603,8 @@ public final class Run {
         }
         if (next == null) return;
         if (!next.ready()) {
-            manager.services().hud().actionBar(p, Text.mm("<gray>아래층이 모습을 드러내는 중... <white>"
-                    + (int) Math.round(next.progress() * 100) + "%"), 30);
+            manager.services().hud().castBar(p, Text.mm("<gray>아래층이 모습을 드러내는 중... <white>"
+                    + (int) Math.round(next.progress() * 100) + "%"), next.progress(), 30);
             return;
         }
         // 첫 도착 → 층 교체

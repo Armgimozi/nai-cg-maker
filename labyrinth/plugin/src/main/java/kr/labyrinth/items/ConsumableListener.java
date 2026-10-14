@@ -204,9 +204,8 @@ final class ConsumableListener implements Listener, DamageInterceptor {
                 return;
             }
             double prog = Math.min(1.0, (double) t[0] / total);
-            int bars = (int) Math.round(prog * 20);
-            services.hud().actionBar(p, Text.mm("<#c9a2ff>귀환 중 <white>" + "▮".repeat(bars) + "<dark_gray>" + "▯".repeat(20 - bars)
-                    + " <gray>" + String.format("%.1f", Math.max(0, (total - t[0]) / 20.0)) + "초"), 6);
+            services.hud().castBar(p, Text.mm("<#c9a2ff>귀환 중 <gray>" + String.format("%.1f", Math.max(0, (total - t[0]) / 20.0))
+                    + "초"), prog, 6);
             p.getWorld().spawnParticle(Particle.PORTAL, p.getLocation().add(0, 1, 0), 10, 0.4, 0.8, 0.4, 0.3);
             if (t[0] >= total) {
                 cancelCast(p, null);
@@ -222,6 +221,7 @@ final class ConsumableListener implements Listener, DamageInterceptor {
     private void cancelCast(Player p, String msg) {
         BukkitTask task = casting.remove(p.getUniqueId());
         if (task != null) task.cancel();
+        services.hud().clearCast(p);
         if (msg != null) {
             services.hud().actionBar(p, Text.mm("<#ff6b6b>" + msg), 30);
             p.playSound(p.getLocation(), Sound.BLOCK_FIRE_EXTINGUISH, 0.4f, 1.6f);

@@ -38,7 +38,9 @@ import org.bukkit.scoreboard.Team;
 /**
  * 미궁 HUD 실제 구현.
  * <ul>
- *   <li>액션바(초당 4회 검사, 값이 바뀌었을 때만 + 2초마다 유지 재전송): HP·MP·경험치 막대 + 레벨 + 골드 (글리프 / 텍스트 대체)</li>
+ *   <li>액션바(초당 4회 검사, 값이 바뀌었을 때만 + 2초마다 유지 재전송): HP·MP·경험치 막대 + 레벨 + 골드 (글리프 / 텍스트 대체).
+ *       안내 글({@link #actionBar})·시전 막대({@link #castBar})가 있어도 HUD 는 계속 그리고, 글은 HUD 위(바닐라 액션바 글줄)
+ *       가운데에 함께 그린다 — {@link #withMessage} 참고.</li>
  *   <li>사이드바(1초마다, 바뀐 줄만): 미궁 안 — 층·난이도·진행 방·타이머·사망·파티원 HP 미니 막대 / 대전 중 — 라운드·점수·타이머·양 팀 HP</li>
  *   <li>보스바: 다른 모듈이 key 로 띄우는 것 + 대전 라운드 타이머</li>
  *   <li>이름표 접두어: 플레이어마다 개인 스코어보드 → 대상별 팀 prefix (칭호)</li>
@@ -51,7 +53,18 @@ public final class LabHudService implements HudService, Listener {
 
     private final Services services;
     private final Map<UUID, Map<String, BossBar>> bars = new ConcurrentHashMap<>();
-    private final Map<UUID, Long> overrideUntil = new ConcurrentHashMap<>();
+    /** 화면 밖으로 밀어 낼 거리(px): 글 사본이 어떤 화면 폭(GUI 배율 1, 8K)에서도 안 보이게. */
+    static final int OFFSCREEN = 4096;
+
+    /** HUD 위에 함께 그리는 안내 글 (until 까지). */
+    private record Overlay(Component text, int width, long until, long seq) {}
+
+    /** 시전 막대 (until 까지, 진행도 0~1). */
+    private record Cast(Component label, int width, double progress, long until) {}
+
+    private final Map<UUID, Overlay> overlays = new ConcurrentHashMap<>();
+    private final Map<UUID, Cast> casts = new ConcurrentHashMap<>();
+    private long overlaySeq;
     private final Map<UUID, String> lastKey = new HashMap<>();
     private final Map<UUID, Long> lastSent = new HashMap<>();
     private final Map<UUID, Scoreboard> boards = new HashMap<>();
@@ -113,11 +126,28 @@ public final class LabHudService implements HudService, Listener {
     // ── 액션바 ────────────────────────────────────────────────────────────
 
     private void actionBarTick(Player p, long now) {
-        Long until = overrideUntil.get(p.getUniqueId());
-        if (until != null) {
-            if (until > now) return;
-            overrideUntil.remove(p.getUniqueId());
-            lastKey.remove(p.getUniqueId());
+        UUID u = p.getUniqueId();
+        Overlay ov = overlays.get(u);
+        if (ov != null && ov.until() <= now) {
+            overlays.remove(u, ov);
+            ov = null;
+        }
+        Cast cs = casts.get(u);
+        if (cs != null && cs.until() <= now) {
+            casts.remove(u, cs);
+            cs = null;
+        }
+        boolean glyphs = GlyphHud.available();
+        if (!glyphs && (ov != null || cs != null)) {
+            // 글자 HUD(리소스팩 글리프 없음): 한 줄에 다 못 넣으니 예전처럼 안내 글만 보인다
+            String k = "msg|" + (ov != null ? ov.seq() : "") + "|" + (cs != null ? Math.round(cs.progress() * 20) : "");
+            Long last = lastSent.get(u);
+            if (k.equals(lastKey.get(u)) && last != null && now - last < 2000) return;
+            lastKey.put(u, k);
+            lastSent.put(u, now);
+            p.sendActionBar(ov != null ? ov.text() : cs.label().append(Text.mm(" <white>"
+                    + "▮".repeat((int) Math.round(cs.progress() * 20)) + "<dark_gray>" + "▯".repeat(20 - (int) Math.round(cs.progress() * 20)))));
+            return;
         }
         DerivedStats s = services.stats().get(p);
         PlayerData d = services.data().get(p);
@@ -127,15 +157,42 @@ public final class LabHudService implements HudService, Listener {
         double maxMp = Math.max(1, s.maxMp());
         boolean maxLevel = d.level() >= services.levels().maxLevel();
         double xp = maxLevel ? 1.0 : services.levels().progress(p);
+        double cast = cs == null ? -1 : cs.progress();
         String key = Math.round(hp) + "/" + Math.round(maxHp) + "|" + Math.round(mp) + "/" + Math.round(maxMp) + "|"
-                + d.level() + "|" + Math.round(xp * 1000) + "|" + d.gold() + "|" + Math.round(shieldOf(p)) + "|" + statusOf(p);
+                + d.level() + "|" + Math.round(xp * 1000) + "|" + d.gold() + "|" + Math.round(shieldOf(p)) + "|" + statusOf(p)
+                + "|" + (ov == null ? "" : ov.seq()) + "|" + (cs == null ? "" : Math.round(cast * 100) + cs.label().hashCode());
         Long last = lastSent.get(p.getUniqueId());
         if (key.equals(lastKey.get(p.getUniqueId())) && last != null && now - last < 2000) return;
         lastKey.put(p.getUniqueId(), key);
         lastSent.put(p.getUniqueId(), now);
-        p.sendActionBar(GlyphHud.available()
-                ? GlyphHud.compose(UiTheme.hudSection(), hp, maxHp, mp, maxMp, shieldOf(p), d.level(), xp, d.gold(), statusOf(p))
-                : actionLine(hp, maxHp, mp, maxMp, d.level(), xp, maxLevel, d.gold()));
+        if (!glyphs) {
+            p.sendActionBar(actionLine(hp, maxHp, mp, maxMp, d.level(), xp, maxLevel, d.gold()));
+            return;
+        }
+        Component hud = GlyphHud.compose(UiTheme.hudSection(), hp, maxHp, mp, maxMp, shieldOf(p), d.level(), xp, d.gold(),
+                statusOf(p), cast);
+        if (ov != null) hud = withMessage(hud, ov.text(), ov.width(), GlyphHud.total(UiTheme.hudSection()));
+        else if (cs != null) hud = withMessage(hud, cs.label(), cs.width(), GlyphHud.total(UiTheme.hudSection()));
+        p.sendActionBar(hud);
+    }
+
+    /**
+     * HUD(폭 total, 가운데 정렬)에 안내 글을 얹는다: {@code [글][space(b)][HUD][space(+OFF)][글 사본][space(b − OFF)]}.
+     * <p>
+     * 액션바는 전체 폭(advance 합)으로 가운데 정렬되므로, 글 폭 m′ 이 추정치 m 과 다르면 보통은 HUD 까지 밀린다.
+     * 같은 글을 HUD 뒤에 한 번 더(화면 밖 OFFSCREEN px) 그리면 앞뒤 m′ 이 정확히 상쇄되어 HUD 왼쪽 끝 = 화면 가운데 − total/2
+     * 가 글 폭과 무관하게 지켜진다. 보이는 글의 가운데만 (m − m′)/2 px 비킬 수 있다 (키 이름·unifont 기호 폭 차이).
+     * 세로: 기본 글꼴 글줄(화면 아래 −72) = HUD 글리프들보다 위 빈 줄.
+     */
+    static Component withMessage(Component hud, Component msg, int estWidth, int total) {
+        int b = -(total / 2) - estWidth / 2;
+        return Component.empty()
+                .append(msg)
+                .append(Glyphs.space(b))
+                .append(hud)
+                .append(Glyphs.space(OFFSCREEN))
+                .append(msg)
+                .append(Glyphs.space(b - OFFSCREEN));
     }
 
     static String gap() { return "   "; }
@@ -186,8 +243,39 @@ public final class LabHudService implements HudService, Listener {
 
     @Override
     public void actionBar(Player player, Component text, int ticks) {
-        overrideUntil.put(player.getUniqueId(), System.currentTimeMillis() + Math.max(1, ticks) * 50L);
-        player.sendActionBar(text);
+        if (text == null) return;
+        long seq;
+        synchronized (this) {
+            seq = ++overlaySeq;
+        }
+        overlays.put(player.getUniqueId(), new Overlay(text, TextWidth.width(text),
+                System.currentTimeMillis() + Math.max(1, ticks) * 50L, seq));
+        sendNow(player);
+    }
+
+    @Override
+    public void castBar(Player player, Component label, double progress, int ticks) {
+        Component l = label == null ? Component.empty() : label;
+        casts.put(player.getUniqueId(), new Cast(l, TextWidth.width(l), Math.max(0, Math.min(1, progress)),
+                System.currentTimeMillis() + Math.max(1, ticks) * 50L));
+        sendNow(player);
+    }
+
+    @Override
+    public void clearCast(Player player) {
+        if (casts.remove(player.getUniqueId()) != null) sendNow(player);
+    }
+
+    /** 바로 다시 그린다 (안내 글·시전 막대가 바뀐 순간). */
+    private void sendNow(Player p) {
+        lastKey.remove(p.getUniqueId());
+        lastSent.remove(p.getUniqueId());
+        if (!org.bukkit.Bukkit.isPrimaryThread()) return;   // 다음 틱(≤5틱)에 그려진다
+        try {
+            actionBarTick(p, System.currentTimeMillis());
+        } catch (Throwable t) {
+            Log.error("HUD 갱신 오류 (" + p.getName() + ")", t);
+        }
     }
 
     @Override
@@ -479,7 +567,8 @@ public final class LabHudService implements HudService, Listener {
     public void onQuit(PlayerQuitEvent e) {
         UUID u = e.getPlayer().getUniqueId();
         bars.remove(u);
-        overrideUntil.remove(u);
+        overlays.remove(u);
+        casts.remove(u);
         lastKey.remove(u);
         lastSent.remove(u);
         lastLines.remove(u);

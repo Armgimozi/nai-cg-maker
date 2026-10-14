@@ -133,6 +133,13 @@ labyrinth/
     MP 바(x100) = H−63..H−55, 경험치 줄 H−52, 상태 아이콘·골드 줄 H−76. 바는 21단계(`hud_hp_00..20` = round(비율×20)).
     숫자 `hud_num_*`/`gold_num_*` 고정폭 7(점·쌍점 4), 흰 바탕이라 color 로 물들일 수 있음. **액션바·보스바 글리프는
     `shadowColor(ShadowColor.none())`(MiniMessage `<!shadow>`) 필수** — 아니면 글자 그림자가 바 밑에 겹쳐 보인다.
+  - **범용 배경** `gui_generic_1..6`: 전용 배경이 없거나 소켓 배치가 다른 메뉴는 같은 줄 수의 범용 배경을 쓴다(예전에는 1·2·4·5줄
+    범용 배경이 없어 그런 메뉴가 바닐라 상자 화면으로 보였다). `gui_panel_*`·`gui_sock_*`·`gui_btn_*`·`gui_emblem_*` 는 예비(동적 소켓용).
+  - **시전 막대** `cast_00..10`(64×7, H−61..H−55 위 빈 띠): `HudService#castBar(p, 글, 진행도, 틱)` → HUD 안 가운데. 취소·완료 `clearCast`.
+  - **바닐라 화면 테마** (`resourcepack/src/vanilla_gui.py`, 원본 그림 복사 없이 같은 규격으로 새로 그림): `minecraft:gui/sprites/hud/`
+    핫바·선택·보조손·십자선, `boss_bar/*`, `tooltip/background·frame`, `widget/button*`·스크롤바, `gui/container/` 플레이어 인벤토리·
+    상자 3·6줄·작업대·화로·발사기·셜커 상자. **등급별 툴팁**: 미궁 아이템(`GearItemService`·`BasicItemService`)에
+    `tooltip_style = labyrinth:<등급 id>` → `labyrinth:gui/sprites/tooltip/<등급>_background·_frame` (일반~신화 테두리 색, 영웅 이상 보석 장식).
   - 보스바 이름 = `boss_ornament_left` + space(2) + 이름 + space(2) + `boss_ornament_right`(대칭 → 자동 가운데).
     `boss_frame` 은 이름 전체로 쓰면 182×5 막대를 정확히 감싸는 금테(가운데 창 투명). 파티 미니 HP `party_hp_00..10`·직업
     아이콘 `party_class_<id>`(사이드바/탭 줄), 피해 숫자 `dmg_*`/`crit_*`/`dmg_icon_*`(TextDisplay), 상태 `status_<효과>`.
@@ -149,7 +156,8 @@ labyrinth/
 - 생성기 산출물: `resourcepack/dist/labyrinth-pack.zip`(결정적 zip: 정렬·고정 시각) + `labyrinth-pack.sha1`, 사람용 미리보기
   `preview_items.png`·`preview_anim.gif`·`preview_fx.png`·`preview_helmets_worn.png`·`preview_armor.png`·
   `preview_mobs.png`(몹·보스를 YAML pivot 에 조립한 정면 3/4 렌더)·`preview_mob_atlases.png`·`preview_npcs.png`·
-  `preview_ui.png`(GUI 배경 14종 + 실제 슬롯 격자, HUD 액션바 조합 모의, 글리프 전체).
+  `preview_ui.png`(GUI 배경 14종 + 실제 슬롯 격자, HUD 액션바 조합 모의, 글리프 전체)·
+  `preview_vanilla_gui.png`(바닐라 화면 테마·등급별 툴팁·보스바·버튼·핫바, 안내 글 + 시전 막대가 얹힌 HUD 모의).
   생성기는 `generate.py` 의 `BUILDERS` 레지스트리(공유 `Ctx` → `ctx.add(path, bytes)`)로 확장한다: 몹·UI 글리프·NPC 스킨·나머지 fx 스타일
   단계는 자기 모듈을 `src/` 에 두고 BUILDERS 에 추가. 3D 모델 엔진 `src/model.py`(Model/El/bake/UV 아틀라스/display 맞춤),
   재질 셰이더 `src/materials.py`, 애니메이션 `src/effects.py`, 미리보기 렌더러 `src/render.py` 를 재사용할 것.
@@ -370,6 +378,9 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
   메뉴를 소켓에 맞게 고쳤으면 `SOCKET_LAYOUT` 에 id 를 추가할 것. 제목 색 = `menus.<id>.title_color`.
 - **글리프 액션바** `ui.GlyphHud`: glyphs.yml `hud:` 수치대로 xp·hp·(보호막)·mp 바(`hud_*_00..20`), 레벨 배지·숫자, 상태 아이콘(`status_<효과>`,
   StatusEffectService#has), 골드 줄을 배치하고 전체 advance 를 `hud.total` 로 맞춘다(그림자 끔). 필요한 글리프가 없으면 텍스트 HUD.
+  **안내 글이 있어도 HUD 는 사라지지 않는다**: `actionBar(p, 글, 틱)`·`castBar` 의 글은 HUD 위(바닐라 액션바 글줄) 가운데에 함께 그린다 —
+  `LabHudService.withMessage` = `[글][space(−91 − m/2)][HUD 182][space(+4096)][글 사본][space(−91 − m/2 − 4096)]`
+  (m = `ui.TextWidth` 추정 폭; 화면 밖 사본이 실제 폭과 상쇄되어 추정이 틀려도 HUD 위치는 그대로, 글만 몇 px 비킨다).
   사이드바 파티원 줄 = `party_class_<직업>` + `party_hp_00..10`. 보스바 이름 양옆 = `boss_ornament_left/right`.
 - **자가 진단** `/labadmin selftest [층 수]` (`dungeon.SelfTest`, 콘솔 가능): 아이템 전부 생성·역조회 → 도감 획득처 계산 → 임시 슬롯에 층 생성 →
   몹·정예 정의 전부(+정예 변종) 소환·피해·처치 → 1~5층 보스 + 구현 없는 층 대체 보스 소환·페이즈 피해·처치 → 정리. 진단 중 로그의

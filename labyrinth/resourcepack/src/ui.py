@@ -139,6 +139,10 @@ EMBLEMS = {
             '....#.#....', '.#.#...#.#.', '..#.....#..', '.#.#...#.#.', '#.........#'],
     'confirm': ['...........', '.........#.', '........#+.', '.......#+..', '#.....#+...', '+#...#+....',
                 '.+#.#+.....', '..+#+......', '...+.......', '...........', '...........'],
+    'codex': ['...........', '.####.####.', '#++++#++++#', '#+##+#+##+#', '#++++#++++#', '#+##+#+##+#',
+              '#++++#++++#', '#+##+#+##+#', '#++++#++++#', '.####o####.', '.....#.....'],
+    'records': ['#.#######.#', '#.#+++++#.#', '.##+++++##.', '..#+++++#..', '..#++o++#..', '...#+++#...',
+                '....#+#....', '.....#.....', '....###....', '...#+++#...', '..#######..'],
     'generic': ['....#.#....', '...#+#+#...', '..#+###+#..', '.#+#...#+#.', '#+#.....#+#', '.#.......#.',
                 '#+#.....#+#', '.#+#...#+#.', '..#+###+#..', '...#+#+#...', '....#.#....'],
 }
@@ -343,7 +347,7 @@ def _inset(cv, x0, y0, x1, y1, fill=None, seed=0):
 class Gui:
     """One chest-GUI background (176 px wide).  Draw order: base → decor → sockets."""
 
-    def __init__(self, rows, accent, emblem, seed):
+    def __init__(self, rows, accent, emblem, seed, sockets=True):
         self.rows = rows
         self.H = gui_height(rows)
         self.accent = _c(accent)
@@ -361,7 +365,8 @@ class Gui:
         cv.hline(5, 170, 4, mix(STONE[0], self.accent, 0.25))
         for x in range(8, 156, 2):
             cv.blend(x, 14, self.accent, 0.35)
-        _emblem(cv, 158, 4, emblem, self.accent)
+        if emblem:
+            _emblem(cv, 158, 4, emblem, self.accent)
         # container region: recessed panel framing the slot grid
         top, bot = 16, 17 + rows * 18
         _inset(cv, 5, top, 170, bot + 1, fill=STONE[1], seed=seed + 5)
@@ -779,6 +784,78 @@ def gui_generic(seed, rows):
     return g
 
 
+def gui_panel(seed, rows):
+    """동적 메뉴 바탕: 소켓 없는 상자 영역(새긴 미궁 무늬) + 플레이어 인벤토리. 버튼 자리 소켓은 플러그인이
+    제목에 gui_sock_<줄>/gui_btn_<줄> 글리프로 덧그리고, 오른쪽 위 문장은 gui_emblem_<이름> 으로 얹는다."""
+    g = Gui(rows, '#c8a064', None, seed)
+    cv = g.cv
+    y0, y1 = 18, 16 + rows * 18
+    for y in range(y0, y1 + 1):
+        for x in range(7, 169):
+            gx, gy = (x - 7) // 6, (y - y0) // 6
+            on_v = (x - 7) % 6 == 0 and h2(gx, gy, seed) > 0.5
+            on_h = (y - y0) % 6 == 0 and h2(gx, gy, seed + 1) > 0.55
+            if on_v or on_h:
+                cv.blend(x, y, GOLD[2], 0.16)
+            elif (x - 7) % 6 == 1 and on_v is False and (y - y0) % 6 == 1 and h2(gx, gy, seed + 2) > 0.8:
+                cv.blend(x, y, GOLD[3], 0.30)
+    g.glow(88, 17 + rows * 9, 40 + rows * 10, (150, 110, 220), 0.10)
+    return g
+
+
+def paint_socket_glyph(style):
+    cv = Canvas(18, 18)
+    socket(cv, 0, 0, 'plain' if style == 'plain' else 'button', '#e6aa50')
+    if style == 'button':
+        # 버튼 칸: 안쪽 금빛 테 (반투명) — 눌러 볼 수 있는 자리
+        for i in range(2, 16):
+            for (x, y) in ((i, 2), (i, 15), (2, i), (15, i)):
+                cv.blend(x, y, GOLD[3], 0.30)
+    return cv.img
+
+
+def paint_emblem_glyph(name):
+    cv = Canvas(11, 11)
+    _emblem(cv, 0, 0, name, (255, 210, 122) if name not in ('pvp',) else (230, 70, 70))
+    if cv.get(10, 10)[3] == 0:
+        cv.set(10, 10, (0, 0, 0), 1)     # advance 고정 (가장 오른쪽 열이 비어도 12)
+    return cv.img
+
+
+def paint_cast(step, steps=10):
+    """시전 막대 64×7 (cast_00..10): 먹선 + 금 끝장식 + 보라→금 채움. 귀환 주문서·부활의 성가 등."""
+    W, H = 64, 7
+    cv = Canvas(W, H)
+    inner = W - 6
+    fill = round(inner * step / steps)
+    for x in range(W):
+        for y in range(H):
+            tip = abs(y - 3)
+            if x < 3 or x > W - 4:      # 마름모 끝장식
+                dx = x if x < 3 else W - 1 - x
+                if tip <= dx:
+                    cv.set(x, y, GOLD[4] if y < 3 else GOLD[2])
+                    if tip == dx:
+                        cv.set(x, y, INK)
+                continue
+            if y in (0, H - 1):
+                cv.set(x, y, INK)
+                continue
+            ix = x - 3
+            if ix < fill:
+                t = ix / max(1, inner - 1)
+                c = mix((150, 90, 255), (255, 214, 120), t)
+                c = lighten(c, 0.35) if y == 1 else c if y < 4 else darken(c, 0.25)
+                if ix == fill - 1:
+                    c = lighten(c, 0.4)
+            else:
+                c = (24, 20, 32) if y > 1 else (34, 30, 44)
+            cv.set(x, y, c)
+    cv.set(1, 3, (190, 140, 255))
+    cv.set(W - 2, 3, (190, 140, 255))
+    return cv.img
+
+
 def paint_gui(name, ctx_content):
     seed = sum(map(ord, name)) * 131
     if name == 'class':
@@ -791,6 +868,9 @@ def paint_gui(name, ctx_content):
         'merchant': gui_merchant, 'pvp': gui_pvp, 'confirm': gui_confirm,
         'generic_6': lambda s: gui_generic(s, 6), 'generic_3': lambda s: gui_generic(s, 3),
     }
+    for r in range(1, 7):
+        fns.setdefault(f'generic_{r}', lambda s, r=r: gui_generic(s, r))
+        fns[f'panel_{r}'] = lambda s, r=r: gui_panel(s, r)
     if name not in fns:
         return None
     return fns[name](seed).image()
@@ -1086,9 +1166,19 @@ DIGIT_SYMS = [str(d) for d in range(10)] + ['slash', 'plus', 'minus', 'k', 'M', 
 
 def paint_file(path, content):
     """Return the painted image for a glyph file (relative to textures/font/ui/), or None."""
+    if path == 'gui/sock.png':
+        return paint_socket_glyph('plain')
+    if path == 'gui/sock_button.png':
+        return paint_socket_glyph('button')
+    m = re.fullmatch(r'gui/emblem_([a-z_]+)\.png', path)
+    if m and m.group(1) in EMBLEMS:
+        return paint_emblem_glyph(m.group(1))
     m = re.fullmatch(r'gui/([a-z0-9_]+)\.png', path)
     if m:
         return paint_gui(m.group(1), content)
+    m = re.fullmatch(r'hud/cast_(\d\d)\.png', path)
+    if m:
+        return paint_cast(int(m.group(1)))
     m = re.fullmatch(r'hud/(hp|mp|shield)_(\d\d)\.png', path)
     if m:
         return paint_bar(m.group(1), int(m.group(2)))
@@ -1290,6 +1380,66 @@ def hud_mock(info, layout):
     put('hud_gold', gx)
     put_num('gold_num_', gold_s, gx + g['hud_gold']['advance'])
     return scr.resize((W * 3, H * 3), Image.NEAREST)
+
+
+def hud_mock_live(info, layout, vimgs, message='귀환 중  3.2초', cast_step=6, scale=1):
+    """실제 화면 아래쪽 흉내 (1배): 테마 핫바 + 글리프 HUD + 액션바 문구(HUD 위) + 시전 막대.
+    액션바 글줄 y = H − 72, 글리프 윗변 = 글줄 + 7 − ascent. 문구 글자는 PIL 글꼴(자리 확인용)."""
+    W, H = 360, 96
+    scr = Image.new('RGBA', (W, H), (70, 96, 60, 255))
+    for y in range(H):
+        for x in range(W):
+            if h2(x // 4, y // 4, 5) > 0.7:
+                scr.putpixel((x, y), (62, 88, 54, 255))
+    cx = W // 2
+    mc = 'assets/minecraft/textures/gui/sprites/hud/'
+    if vimgs:
+        scr.alpha_composite(vimgs[mc + 'hotbar_offhand_left.png'], (cx - 91 - 29, H - 23))
+        scr.alpha_composite(vimgs[mc + 'hotbar.png'], (cx - 91, H - 22))
+        scr.alpha_composite(vimgs[mc + 'hotbar_selection.png'], (cx - 91 - 1 + 20 * 0, H - 23))
+    text_y = H - 72
+    g = info['glyphs']
+    x0 = cx - 91
+
+    def put(gid, x):
+        gi = g[gid]
+        scr.alpha_composite(gi['image'], (x0 + x, text_y + 7 - gi['ascent']))
+
+    def put_num(prefix, s_, x):
+        for ch in s_:
+            gid = prefix + {'/': 'slash', '.': 'dot', ':': 'colon'}.get(ch, ch)
+            put(gid, x)
+            x += g[gid]['advance']
+
+    def num_w(prefix, s_):
+        return sum(g[prefix + {'/': 'slash', '.': 'dot'}.get(ch, ch)]['advance'] for ch in s_) - 1
+
+    put('hud_xp_13', layout['xp_x'])
+    put('hud_hp_14', layout['hp_x'])
+    put('hud_mp_09', layout['mp_x'])
+    put('hud_level_badge', layout['badge_x'])
+    for s_, bx in (('842/1200', layout['hp_x']), ('210/460', layout['mp_x'])):
+        put_num('hud_num_', s_, bx + (BAR_W - num_w('hud_num_', s_)) // 2)
+    put_num('hud_num_', '27', layout['badge_x'] + (18 - num_w('hud_num_', '27')) // 2)
+    for k, sid in enumerate(['status_buff_damage', 'status_poison']):
+        put(sid, layout['status_x'] + k * g[sid]['advance'])
+    gw = g['hud_gold']['advance'] + num_w('gold_num_', '12840')
+    put('hud_gold', layout['total'] - gw)
+    put_num('gold_num_', '12840', layout['total'] - gw + g['hud_gold']['advance'])
+    if cast_step is not None and f'cast_{cast_step:02d}' in g:
+        cw = g[f'cast_{cast_step:02d}']['image'].size[0]
+        put(f'cast_{cast_step:02d}', 91 - cw // 2)
+    if message:
+        d = ImageDraw.Draw(scr)
+        try:
+            from PIL import ImageFont
+            font = ImageFont.truetype('/usr/share/fonts/truetype/nanum/NanumGothic.ttf', 9)
+        except Exception:
+            font = None
+        tw = int(d.textlength(message, font=font)) if font else len(message) * 6
+        d.text((cx - tw // 2 + 1, text_y + 1), message, fill=(40, 30, 50, 255), font=font)
+        d.text((cx - tw // 2, text_y), message, fill=(201, 162, 255, 255), font=font)
+    return scr.resize((W * scale, H * scale), Image.NEAREST)
 
 
 def preview(info, gui_rows, layout, out_path):
