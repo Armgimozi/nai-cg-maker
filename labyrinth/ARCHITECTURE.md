@@ -207,6 +207,20 @@ pack/    PackService(HTTP 서빙 + 전송)
 command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
 ```
 
+### 4.1 classes 단계에서 추가된 계약 (다른 모듈이 쓰는 것)
+- **피해 훅** `combat.DamageService.Hook` (`services.damage().addHook(h)`): `before(ctx)`(원피해 직후 — `ctx.amount/threat/critBonus` 조정),
+  `absorb(ctx, dmg)`(적용 직전 — 보호막·피해 분담 후 남은 피해 반환), `after(ctx)`(적용 후 — 적중 효과). `DamageContext.critBonus(x)`
+  = 이 피해의 치명타 확률 가산(≥1 확정). classes 가 상태이상·보호막·패시브에 쓰고, pvp 도 매치 규칙(피해 배율 등)에 쓸 수 있다.
+- **StatusEffectService**(`classes.LabyrinthStatusEffectService`): GDD §9.2 14종 + `venom`(중첩 독) · `mark`(받는 피해+) · `cooldown_slow` ·
+  `interrupt`(보스 시전 끊기 신호). 확장 메서드: `addShield/shield`, `stealth/isStealthed/breakStealth`, `isKnockbackImmune`, `cooldownRate`,
+  `removeBuff/hasBuff`, `clearAll`. 이동 제한은 속성 수정치로 자동. **mobs/bosses 는 AI·스킬·패턴 전에 `isStunned` 확인**, 은신 대상 제외,
+  밀쳐내기는 `isKnockbackImmune` 확인. 몹·보스의 weaken/vulnerable/mark 는 훅이 직접 곱하므로 `HealthPool.damageTaken()` 에 더하지 말 것.
+  보스는 stun/root/빙결 면역(스킬은 boss_* 값 사용). 지속 피해 sourceId = `effect:<id>` (적중 효과에서 제외용).
+- **ClassService** 확장: `changeClass(p, id)`(전직관 NPC·직업 메뉴가 부를 것 — 검사·안내·연출 포함), `skillBar(p)`(HUD 용 스킬 한 줄), `isChanneling(p)`.
+  무기 스킬(items)은 `services.effects().isSilenced(p)` 와 `cooldownRate(p)` 를 확인할 것.
+- **DungeonService** 기본 메서드: `isDowned(p)`, `revive(p, at, hpRatio)`(사제 부활의 성가) — dungeon 구현은 자기 사망 상태와 맞게 재정의.
+- 직업 스킬은 미궁 무기 + **직업 무기 타입**(classes.yml weapon_types)을 들었을 때만 발동. 명령: `/직업 선택|choose <직업>`, `/직업 정보|info`, `/직업 스킬|skills`.
+
 ### 명령어
 - 플레이어: `/lab`(별칭 `/미궁`: 입장 메뉴·퇴장·정보), `/party`(`/파티`), `/stats`(`/스탯`), `/class`(`/직업`), `/title`(`/칭호`),
   `/pvp`(`/대전`: 도전 <파티장>, 수락, 거절, 대기열 참가/취소, 순위, 전적, 관전)

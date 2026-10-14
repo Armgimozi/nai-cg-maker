@@ -1,6 +1,8 @@
 package kr.labyrinth.combat;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.random.RandomGenerator;
 import kr.labyrinth.Services;
 import kr.labyrinth.core.Module;
@@ -29,6 +31,27 @@ public final class DamageService implements Module {
     private boolean applyingVanilla;
     /** 피해 적용 직전 가로채기 (items: 무기 스킬 보호막·방어 자세·무적, 자동 부활). */
     private final java.util.List<DamageInterceptor> interceptors = new java.util.concurrent.CopyOnWriteArrayList<>();
+
+    private final List<Hook> hooks = new CopyOnWriteArrayList<>();
+
+    /**
+     * 피해 파이프라인 훅 (classes: 상태이상·보호막·피해 분담·직업 패시브, pvp: 매치 규칙 등). 등록 순서대로 호출되며
+     * 훅의 예외는 로그만 남기고 무시된다. 훅 안에서 {@link #deal} 을 다시 부를 수 있다(재귀 방지는 훅 책임).
+     */
+    public interface Hook {
+        /** 원피해가 정해진 직후(방어·치명타 계산 전). {@code ctx.amount(..)}·{@code threat(..)}·{@code critBonus(..)} 조정 가능. */
+        default void before(DamageContext ctx) {}
+
+        /** 최종 피해가 대상에게 적용되기 직전 (회피되지 않았을 때). 보호막 흡수·피해 분담 후 남은 피해를 돌려준다. */
+        default double absorb(DamageContext ctx, double damage) { return damage; }
+
+        /** 적용 후 (dealt/killed/crit 확정). 적중 시 효과·자원 회복 등. */
+        default void after(DamageContext ctx) {}
+    }
+
+    public void addHook(Hook hook) { hooks.add(java.util.Objects.requireNonNull(hook)); }
+
+    public void removeHook(Hook hook) { hooks.remove(hook); }
 
     public DamageService(Services services) {
         this.services = services;
@@ -97,6 +120,13 @@ public final class DamageService implements Module {
         } else if (ctx.isPercent()) {
             ctx.amount(maxHp(target) * ctx.percent());
         }
+        for (Hook h : hooks) {
+            try {
+                h.before(ctx);
+            } catch (Throwable t) {
+                kr.labyrinth.core.Log.error("피해 훅(before) 오류", t);
+            }
+        }
 
         // 대상 방어 요소
         double defense = 0, dr = 0, evasion = 0, taken = 0, block = 0;
@@ -118,7 +148,8 @@ public final class DamageService implements Module {
 
         DamageFormula.Input in = new DamageFormula.Input(ctx.amount(), ctx.isSkill(),
                 atk != null ? atk.damageMult() : 0, atk != null ? atk.skillDamage() : 0,
-                atk != null ? atk.critChance() : 0, atk != null ? atk.critDamage() : 1.5, ctx.canCrit() && atk != null,
+                (atk != null ? atk.critChance() : 0) + ctx.critBonus(), atk != null ? atk.critDamage() : 1.5,
+                ctx.canCrit() && atk != null,
                 evasion, ctx.canEvade(), defense, ctx.ignoresDefense(), dr, taken, block, ctx.canBlock());
         DamageFormula.Output out = DamageFormula.compute(in, rng);
         ctx.result(out.damage(), out.crit(), out.evaded(), out.blocked());
@@ -128,9 +159,16 @@ public final class DamageService implements Module {
             return ctx;
         }
 
-        // 가로채기 (보호막·방어 자세·무적·자동 부활) — 0 이 되면 "막음"
         double finalDamage = out.damage();
-        boolean absorbed = false;
+        // 훅 (classes: 상태이상·보호막·피해 분담, pvp: 매치 규칙)
+        for (Hook h : hooks) {
+            try {
+                finalDamage = Math.max(0, h.absorb(ctx, finalDamage));
+            } catch (Throwable t) {
+                kr.labyrinth.core.Log.error("피해 훅(absorb) 오류", t);
+            }
+        }
+        // 가로채기 (items: 무기 스킬 보호막·방어 자세·무적·자동 부활)
         if (!interceptors.isEmpty() && finalDamage > 0) {
             for (DamageInterceptor i : interceptors) {
                 try {
@@ -140,13 +178,16 @@ public final class DamageService implements Module {
                 }
                 if (finalDamage <= 0) break;
             }
-            absorbed = finalDamage <= 0;
-            ctx.result(finalDamage, out.crit(), false, out.blocked() || absorbed);
         }
+        boolean fullyAbsorbed = finalDamage <= 0 && out.damage() > 0;
+        if (finalDamage != out.damage()) ctx.result(finalDamage, out.crit(), false, out.blocked() || fullyAbsorbed);
 
         double dealt;
         boolean killed;
-        if (pool != null) {
+        if (fullyAbsorbed) {
+            dealt = 0;
+            killed = false;
+        } else if (pool != null) {
             dealt = pool.applyDamage(finalDamage, ctx);
             killed = !pool.isAlive();
             if (pool instanceof CustomMob mob && attackerPlayer != null && dealt > 0) {
@@ -168,8 +209,15 @@ public final class DamageService implements Module {
         if (atk != null && ctx.applyLifesteal() && atk.lifesteal() > 0 && dealt > 0) {
             services.stats().heal(attackerPlayer, dealt * atk.lifesteal());
         }
+        for (Hook h : hooks) {
+            try {
+                h.after(ctx);
+            } catch (Throwable t) {
+                kr.labyrinth.core.Log.error("피해 훅(after) 오류", t);
+            }
+        }
         if (ctx.showNumber()) {
-            DamageNumbers.Kind kind = out.blocked() || absorbed ? DamageNumbers.Kind.BLOCK
+            DamageNumbers.Kind kind = out.blocked() || fullyAbsorbed ? DamageNumbers.Kind.BLOCK
                     : targetPlayer != null ? DamageNumbers.Kind.PLAYER_HURT
                     : out.crit() ? DamageNumbers.Kind.CRIT
                     : ctx.type() == DamageType.TRUE ? DamageNumbers.Kind.TRUE : DamageNumbers.Kind.DAMAGE;
