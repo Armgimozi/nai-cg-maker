@@ -111,25 +111,20 @@ public final class Floor07Boss extends Boss {
         interceptor = this::intercept;
         services.damage().addInterceptor(interceptor);
 
-        afterPersistent(30, this::tutorial);
+        afterPersistent(30, this::awaken);
     }
 
+    /** 기둥 이름표 = 이름만 (조작법은 글로 알려 주지 않는다 — 단서는 bosses.yml hints). */
     private String pylonLabel(Polarity p) {
-        return "<" + p.hex() + "><b>" + p.icon() + " " + p.label() + "의 기둥</b></" + p.hex() + ">\n<gray>닿으면 " + p.label() + " 극성으로</gray>";
+        return "<" + p.hex() + "><b>" + p.icon() + " " + p.label() + "의 기둥</b></" + p.hex() + ">";
     }
 
-    private void tutorial() {
-        Params fs = def.pattern("face_shift");
-        int bonus = (int) Math.round(fs.dbl("opposite_bonus", 0.25) * 100);
-        int penalty = (int) Math.round(fs.dbl("same_penalty", 0.5) * 100);
-        int cd = (int) Math.round(def.pattern("polarity_assign").dbl("swap_cooldown", 5));
-        say("<gray>· 머리 위 수정과 위쪽 막대 = <white>내 극성</white>. " + Polarity.LIGHT.tag() + "<gray>·</gray>" + Polarity.DARK.tag()
-                + " <gray>기둥에 닿으면 그 색으로 바뀝니다 (재사용 " + cd + "초).</gray>");
-        say("<gray>· 보스 얼굴과 <green>반대</green> 극성이면 주는 피해 +" + bonus + "%, <red>같으면</red> −" + penalty
-                + "%. <white>극성 파동</white>은 <b>파동과 같은 색</b>만 무사합니다.</gray>");
+    /** 배정 직후 분위기 한 줄 + 각자 받은 색 (무슨 일이 일어났는지만). */
+    private void awaken() {
+        say("<gray>두 빛깔의 수정이 서로를 부르며 운다…</gray>");
         for (Player p : players()) {
             Polarity pol = polarity.get(p.getUniqueId());
-            if (pol != null) notify(p, "<white>당신의 극성:</white> " + pol.tag() + " <gray>— 기둥에 닿으면 바뀝니다</gray>");
+            if (pol != null) notify(p, pol.tag() + " <gray>이 당신의 가슴에 깃든다…</gray>");
         }
     }
 
@@ -169,7 +164,7 @@ public final class Floor07Boss extends Boss {
         int cd = ticks(pa.dbl("swap_cooldown", 5));
         swapReady.put(p.getUniqueId(), now + cd);
         setPolarity(p, py.polarity());
-        notify(p, "<white>극성 전환:</white> " + py.polarity().tag() + " <gray>— 기둥 재사용 " + Text.num(cd / 20.0) + "초</gray>");
+        notify(p, py.polarity().tag() + " <gray>이 몸에 스며든다…</gray>");
         Location top = py.at().clone().add(0, py.height() * 0.8, 0);
         BossFx.dustLine(top, p.getLocation().add(0, 1.0, 0), color(py.polarity()), 1.0f, 0.5);
         BossFx.dust(p.getLocation().add(0, 1.0, 0), color(py.polarity()), 1.4f, 18, 0.4);
@@ -229,11 +224,7 @@ public final class Floor07Boss extends Boss {
         BossFx.particle(face == Polarity.LIGHT ? Particle.END_ROD : Particle.REVERSE_PORTAL, eye, 30, 0.8, 1.0, 0.8, 0.05);
         BossFx.sound(eye, Sound.BLOCK_AMETHYST_BLOCK_RESONATE, 2f, face == Polarity.LIGHT ? 1.4f : 0.5f);
         BossFx.sound(eye, face == Polarity.LIGHT ? Sound.BLOCK_BEACON_ACTIVATE : Sound.BLOCK_BEACON_DEACTIVATE, 1.2f, 1.2f);
-        if (!casting()) {
-            int bonus = (int) Math.round(fs.dbl("opposite_bonus", 0.25) * 100);
-            broadcastBar("<white>다이아드의 얼굴:</white> " + face.tag() + " <dark_gray>—</dark_gray> " + face.opposite().tag()
-                    + "<gray> 극성 공격 +" + bonus + "%</gray>");
-        }
+        if (!casting()) broadcastBar("<gray>다이아드가 얼굴을 돌린다 —</gray> " + face.tag() + " <gray>이 깨어난다…</gray>");
         refreshBars();
     }
 
@@ -260,7 +251,7 @@ public final class Floor07Boss extends Boss {
                 if (horizontal(l, py.at()) > touch || Math.abs(l.getY() - py.at().getY()) > 3) continue;
                 long rem = Floor07Logic.swapRemaining(now, ready(p));
                 if (rem <= 0) swap(p, py);
-                else if (!quiet(p, 20)) notify(p, "<gray>기둥 재사용 대기 <white>" + Text.num(rem / 20.0) + "초</white></gray>");
+                else if (!quiet(p, 20)) notify(p, "<gray>기둥이 아직 잠잠하다… <dark_gray>⌛ " + Text.num(rem / 20.0) + "</dark_gray></gray>");
                 break;
             }
             ItemDisplay m = marks.get(id);
@@ -321,18 +312,15 @@ public final class Floor07Boss extends Boss {
     private void refreshBar(Player p) {
         Polarity pol = polarity.get(p.getUniqueId());
         if (pol == null) return;
-        Params fs = def.pattern("face_shift");
+        // 문구 규칙: 색·아이콘·남은 시간만 (피해 배율 같은 정답 수치는 쓰지 않는다)
         int cdTicks = Math.max(1, ticks(def.pattern("polarity_assign").dbl("swap_cooldown", 5)));
         long rem = Floor07Logic.swapRemaining(now, ready(p));
         boolean same = pol == face;
-        String eff = same ? "<red>피해 −" + (int) Math.round(fs.dbl("same_penalty", 0.5) * 100) + "%</red>"
-                : "<green>피해 +" + (int) Math.round(fs.dbl("opposite_bonus", 0.25) * 100) + "%</green>";
-        String pylon = rem > 0 ? "<gray>기둥 " + Text.num(rem / 20.0) + "초</gray>" : "<aqua>기둥 ✔</aqua>";
+        String pylon = rem > 0 ? "<dark_gray>◇ ⌛ " + Text.num(rem / 20.0) + "</dark_gray>" : "<aqua>◆</aqua>";
         long faceLeft = Math.max(0, nextFace - now);
-        String name = "<white>내 극성</white> " + pol.tag() + " <dark_gray>·</dark_gray> <gray>보스</gray> " + face.tag()
-                + " <dark_gray>(" + (int) Math.ceil(faceLeft / 20.0) + "초)</dark_gray> <dark_gray>·</dark_gray> " + eff
-                + " <dark_gray>·</dark_gray> " + pylon
-                + (refracting && same ? " <light_purple><b>굴절 반사!</b></light_purple>" : "");
+        String name = pol.tag() + " <dark_gray>·</dark_gray> <gray>다이아드</gray> " + face.tag()
+                + " <dark_gray>⌛ " + (int) Math.ceil(faceLeft / 20.0) + "</dark_gray> <dark_gray>·</dark_gray> " + pylon
+                + (refracting && same ? " <light_purple>✦</light_purple>" : "");
         BossBar b = bars.computeIfAbsent(p.getUniqueId(), u -> BossBar.bossBar(Text.mm(""), 1f, BossBar.Color.WHITE, BossBar.Overlay.PROGRESS));
         b.name(Text.mm(name));
         b.color(pol == Polarity.LIGHT ? BossBar.Color.YELLOW : BossBar.Color.PURPLE);
@@ -366,8 +354,7 @@ public final class Floor07Boss extends Boss {
         BossFx.dustLine(entity.getLocation().add(0, 1.65 * def.scale(), 0), a.getLocation().add(0, 1.0, 0), color(face), 1.0f, 0.6);
         BossFx.sound(a.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_HIT, 1.2f, 1.7f);
         if (!quiet(a, 30)) {
-            notify(a, "<light_purple><b>굴절 반사!</b></light_purple> <gray>" + face.tag() + " <gray>극성 공격은 튕겨 나옵니다 — 손을 떼거나 기둥에서 "
-                    + face.opposite().label() + "으로</gray>");
+            notify(a, "<light_purple><b>굴절 반사!</b></light_purple> <gray>수정이 당신의</gray> " + polarityOf(a).tag() + "<gray>을 되돌려 보낸다…</gray>");
         }
     }
 
@@ -404,11 +391,11 @@ public final class Floor07Boss extends Boss {
         BossFx.sound(eye, Sound.BLOCK_AMETHYST_BLOCK_BREAK, 2f, 0.5f);
         BossFx.sound(eye, Sound.BLOCK_AMETHYST_CLUSTER_BREAK, 2f, 0.7f);
         if (newPhase == 2) {
-            broadcastBar("<light_purple><b>분광 광선</b></light_purple> <gray>— 광선과 같은 색 동료가 대상 앞을 막으면 0.6배만 받습니다</gray>");
+            broadcastBar("<light_purple><b>빛이 갈라진다</b></light_purple> <gray>— 수정의 두 눈이 서로 다른 곳을 겨눈다…</gray>");
         } else if (newPhase >= 3) {
             Params fs = def.pattern("face_shift");
             nextFace = Math.min(nextFace, now + ticks(Floor07Logic.faceInterval(3, fs.dbl("interval", 20), fs.dbl("p3_interval", 10))));
-            broadcastBar("<light_purple><b>공명 붕괴</b></light_purple> <gray>— 얼굴이 더 자주 바뀌고, 극성 파동이 반대 색으로 2연속 옵니다</gray>");
+            broadcastBar("<light_purple><b>공명 붕괴</b></light_purple> <gray>— 두 얼굴이 숨 가쁘게 뒤바뀌고, 수정이 겹겹이 울린다…</gray>");
         }
     }
 
@@ -547,10 +534,10 @@ public final class Floor07Boss extends Boss {
         Telegraph.Shape all = Telegraph.Shape.circle(c, arenaRadius + 1);
         String model = p.str(col == Polarity.LIGHT ? "fx_light" : "fx_dark", col == Polarity.LIGHT ? "telegraph_light" : "telegraph_dark");
         if (i == 0) {
-            broadcastBar(col.phrase("의 파동!") + " <gray>" + col.label() + " 극성만 무사합니다 — 필요하면 " + col.label() + " 기둥으로!"
-                    + (more ? " (곧 반대 색이 이어집니다)" : "") + "</gray>");
+            broadcastBar(col.phrase("의 파동!") + " <gray>수정이 " + col.label() + "으로 차오른다…"
+                    + (more ? " 그 뒤에서 다른 빛깔이 웅크린다." : "") + "</gray>");
         } else {
-            broadcastBar(col.phrase("의 파동이 이어집니다!") + " <gray>지금 " + col.label() + " 기둥으로 — 기둥이 다시 공명합니다</gray>");
+            broadcastBar(col.phrase("의 파동이 이어진다!") + " <gray>기둥들이 다시 울린다…</gray>");
         }
         // 차오름: 보스 둘레로 그 색 입자가 나선으로 올라간다
         run(new Mechanics.Repeat(w, 2, tt -> {
@@ -586,11 +573,12 @@ public final class Floor07Boss extends Boss {
             double m = Floor07Logic.waveMult(polarityOf(pl), col, 1.0);
             if (m <= 0) {
                 BossFx.dust(pl.getLocation().add(0, 1.0, 0), color(col), 1.2f, 10, 0.4);
+                if (!quiet(pl, 10)) notify(pl, col.tag() + " <gray>파동이 당신을 스치고 지나간다…</gray>");
                 continue;
             }
             hit(pl, dmg * m, "polarity_wave", DamageType.MAGIC);
             BossFx.particle(Particle.CRIT, pl.getLocation().add(0, 1.0, 0), 10, 0.3, 0.5, 0.3, 0.2);
-            if (!quiet(pl, 10)) notify(pl, "<red><b>다른 극성!</b></red> " + col.tag() + " <gray>파동은 같은 색만 무사합니다</gray>");
+            if (!quiet(pl, 10)) notify(pl, "<red><b>파동이 꿰뚫는다!</b></red> " + col.tag() + " <gray>이 당신을 밀어낸다…</gray>");
         }
         BossFx.sound(c, Sound.BLOCK_AMETHYST_BLOCK_BREAK, 2f, col == Polarity.LIGHT ? 1.2f : 0.5f);
         BossFx.sound(c, col == Polarity.LIGHT ? Sound.BLOCK_BEACON_ACTIVATE : Sound.BLOCK_BEACON_DEACTIVATE, 2f, 0.6f);
@@ -646,8 +634,7 @@ public final class Floor07Boss extends Boss {
             if (t.isValid() && g.elapsed() % 2 == 0) g.reshape(Telegraph.Shape.line(feet(), dirTo(t.getLocation()), beamLength(t, len), width));
         });
         run(tg);
-        notify(t, col.phrase("의 광선이 당신을 노립니다!") + " <gray>" + col.label() + " 극성 동료가 앞을 막거나, " + col.label()
-                + " 기둥으로 색을 바꾸세요</gray>");
+        notify(t, col.phrase("의 광선이 당신을 겨눈다!"));
         BossFx.sound(t.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 1f, col == Polarity.LIGHT ? 1.6f : 0.7f);
     }
 
@@ -685,10 +672,10 @@ public final class Floor07Boss extends Boss {
             if (i == absorber) {
                 endAlong = Math.max(1, al[i]);
                 BossFx.dust(pl.getLocation().add(0, 1.0, 0), color(col), 1.6f, 20, 0.4);
-                notify(pl, "<green><b>광선 흡수!</b></green> " + col.tag() + " <gray>— 같은 극성이라 " + Text.num(soakMult) + "배만 받았습니다</gray>");
+                notify(pl, "<green><b>광선 흡수!</b></green> " + col.tag() + " <gray>이 당신 안에서 잦아든다…</gray>");
             } else {
                 BossFx.particle(Particle.CRIT, pl.getLocation().add(0, 1.0, 0), 12, 0.3, 0.5, 0.3, 0.2);
-                if (!quiet(pl, 10)) notify(pl, "<red><b>광선 직격!</b></red> " + col.tag() + " <gray>— 같은 색이 앞을 막아야 합니다</gray>");
+                if (!quiet(pl, 10)) notify(pl, "<red><b>광선 직격!</b></red> " + col.tag() + " <gray>이 살을 태운다…</gray>");
             }
         }
         // 광선 연출: 보스 가슴 → 흡수 지점(또는 끝)
@@ -737,13 +724,12 @@ public final class Floor07Boss extends Boss {
         if (shell != null) shell.setBrightness(new Display.Brightness(15, 15));
         BossFx.sound(entity.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_RESONATE, 2f, 1.0f);
         BossFx.sound(entity.getLocation(), Sound.BLOCK_GLASS_PLACE, 1.6f, 0.6f);
-        broadcastBar("<light_purple><b>굴절!</b></light_purple> " + face.tag() + " <gray>극성 공격은 피해의 절반이 반사됩니다 — "
-                + face.opposite().label() + " 극성만 공격하세요</gray>");
+        broadcastBar("<light_purple><b>굴절!</b></light_purple> <gray>수정 껍질이</gray> " + face.tag() + "<gray>을 머금고 번뜩인다…</gray>");
         refreshBars();
         run(new Mechanics.Repeat(dur, 1, tt -> {
             if (shell != null && shell.isValid()) shell.teleport(shellAt());
             if (tt % 4 == 0 && !casting()) {
-                timerBar("<light_purple>굴절</light_purple> <gray>— " + face.tag() + " <gray>극성 공격 반사 · 남은 " + Text.num(Math.max(0, dur - tt) / 20.0) + "초</gray>",
+                timerBar("<light_purple>굴절</light_purple> " + face.tag() + " <dark_gray>⌛ " + Text.num(Math.max(0, dur - tt) / 20.0) + "</dark_gray>",
                         1f - tt / (float) dur, BossBar.Color.PINK);
             }
             if (tt % 5 == 0) {
@@ -760,7 +746,7 @@ public final class Floor07Boss extends Boss {
             hideTimerBar();
             if (isAlive()) {
                 BossFx.sound(entity.getLocation(), Sound.BLOCK_GLASS_BREAK, 1.6f, 1.2f);
-                broadcastBar("<gray>굴절 껍질이 부서졌습니다</gray>");
+                broadcastBar("<gray>굴절 껍질이 부서졌다</gray>");
             }
         }, true));
     }
