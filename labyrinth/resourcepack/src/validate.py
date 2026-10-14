@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import io
 import json
+import re
 
 from PIL import Image
 
@@ -131,7 +132,11 @@ def validate(files: dict, content: dict, expect_frames: dict, fx_names=()) -> Re
     _json(files, 'pack.mcmeta', rep)
     if 'pack.png' not in files:
         rep.err('missing pack.png')
+    path_ok = re.compile(r'[a-z0-9_.\-/]+')
     for path in files:
+        # 마인크래프트 리소스 경로 규칙: assets/ 아래는 소문자·숫자·_ . - / 만 (대문자 하나면 그 폰트/모델 전체가 거부됨)
+        if path.startswith('assets/') and not path_ok.fullmatch(path):
+            rep.err(f'invalid resource path (lowercase a-z0-9/._- only): {path}')
         if path.endswith('.json') or path.endswith('.mcmeta'):
             try:
                 json.loads(files[path].decode('utf-8'))

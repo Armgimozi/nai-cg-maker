@@ -164,7 +164,7 @@ glyphs:
   hud_num_plus: {char: "\uE20B", file: hud/digit_plus.png, ascent: -3, height: 7, advance: 7}
   hud_num_minus: {char: "\uE20C", file: hud/digit_minus.png, ascent: -3, height: 7, advance: 7}
   hud_num_k: {char: "\uE20D", file: hud/digit_k.png, ascent: -3, height: 7, advance: 7}
-  hud_num_M: {char: "\uE20E", file: hud/digit_M.png, ascent: -3, height: 7, advance: 7}
+  hud_num_M: {char: "\uE20E", file: hud/digit_mega.png, ascent: -3, height: 7, advance: 7}
   hud_num_dot: {char: "\uE20F", file: hud/digit_dot.png, ascent: -3, height: 7, advance: 4}
   hud_num_colon: {char: "\uE210", file: hud/digit_colon.png, ascent: -3, height: 7, advance: 4}
   # ── 골드 줄 숫자 (hud_num_ 과 같은 그림, ascent 만 다름) ──
@@ -182,7 +182,7 @@ glyphs:
   gold_num_plus: {char: "\uE22B", file: hud/digit_plus.png, ascent: 10, height: 10, advance: 7}
   gold_num_minus: {char: "\uE22C", file: hud/digit_minus.png, ascent: 10, height: 10, advance: 7}
   gold_num_k: {char: "\uE22D", file: hud/digit_k.png, ascent: 10, height: 10, advance: 7}
-  gold_num_M: {char: "\uE22E", file: hud/digit_M.png, ascent: 10, height: 10, advance: 7}
+  gold_num_M: {char: "\uE22E", file: hud/digit_mega.png, ascent: 10, height: 10, advance: 7}
   gold_num_dot: {char: "\uE22F", file: hud/digit_dot.png, ascent: 10, height: 10, advance: 4}
   gold_num_colon: {char: "\uE230", file: hud/digit_colon.png, ascent: 10, height: 10, advance: 4}
   # ── 상태이상·버프 아이콘 (액션바 상태 줄) ──

@@ -1099,9 +1099,12 @@ def paint_file(path, content):
         return paint_badge()
     if path == 'hud/gold.png':
         return paint_coin()
-    m = re.fullmatch(r'hud/digit_([A-Za-z0-9]+)\.png', path)
-    if m and m.group(1) in FONT45:
-        return paint_digit(m.group(1))
+    m = re.fullmatch(r'hud/digit_([a-z0-9]+)\.png', path)
+    if m:
+        # 리소스 경로는 소문자만 허용 — 대문자 기호는 별칭 파일명으로 (mega → 'M')
+        sym = {'mega': 'M'}.get(m.group(1), m.group(1))
+        if sym in FONT45:
+            return paint_digit(sym)
     m = re.fullmatch(r'status/([a-z_]+)\.png', path)
     if m and m.group(1) in SYMBOLS:
         return paint_status(m.group(1), m.group(1).startswith('buff_') or m.group(1) == 'stealth')
