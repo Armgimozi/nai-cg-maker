@@ -104,7 +104,7 @@ public final class LabyrinthClassService implements ClassService, SkillContext.H
         setClass(player, def.id());
         String col = def.color();
         player.showTitle(Title.title(Text.mm("<" + col + "><b>" + def.name() + "</b>"),
-                Text.mm("<gray>" + (cur == null ? "전직 완료" : "직업 변경 완료") + " — F · 웅크리기+F · Q · 웅크리기+Q 로 스킬 사용")));
+                Text.mm("<gray>" + (cur == null ? "전직 완료" : "직업 변경 완료") + " — " + kr.labyrinth.core.InputKeys.CLASS_KEYS + " 로 스킬 사용")));
         Text.send(player, (cur == null ? "전직했습니다: " : "직업을 바꿨습니다: ") + "<" + col + "><b>" + def.name() + "</b></" + col + ">");
         for (ClassDef.SkillDef sk : def.skills()) {
             player.sendMessage(Text.mm(" <dark_gray>▪</dark_gray> <white>" + keyLabel(sk.input()) + "</white> <" + col + ">" + sk.name()
@@ -306,13 +306,7 @@ public final class LabyrinthClassService implements ClassService, SkillContext.H
     private static void deny(Player p) { p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 0.5f, 0.6f); }
 
     public static String keyLabel(String input) {
-        return switch (input == null ? "" : input.toUpperCase(java.util.Locale.ROOT)) {
-            case "SWAP" -> "[F]";
-            case "SNEAK_SWAP" -> "[⇧F]";
-            case "DROP" -> "[Q]";
-            case "SNEAK_DROP" -> "[⇧Q]";
-            default -> "[?]";
-        };
+        return kr.labyrinth.core.InputKeys.bracket(input);
     }
 
     public static String weaponName(String type) {

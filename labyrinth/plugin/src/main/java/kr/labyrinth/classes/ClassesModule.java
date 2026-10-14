@@ -173,6 +173,6 @@ public final class ClassesModule implements Module, Listener {
             p.sendMessage(Text.mm("   <gray>").append(Text.mm("<gray>" + s.description())));
         }
         p.sendMessage(Text.mm("<dark_gray>미궁 무기(" + String.join(", ", c.weaponTypes().stream().map(LabyrinthClassService::weaponName).toList())
-                + ")를 든 채로 F · 웅크리기+F · Q · 웅크리기+Q"));
+                + ")를 든 채로 " + kr.labyrinth.core.InputKeys.CLASS_KEYS));
     }
 }

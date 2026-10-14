@@ -65,7 +65,7 @@ npcs:
     dialogue:
       - "<gray>미궁은 혼자의 힘만으로는 끝까지 갈 수 없는 곳이지. 그대에게 맞는 길을 고르게.</gray>"
       - "<gray>수호기사, 광전사, 사냥꾼, 비전술사, 사제, 그림자. 서로를 채워 주는 파티가 가장 강하다네.</gray>"
-      - "<gray>직업 스킬은 <yellow>F</yellow>, <yellow>웅크리기+F</yellow>, <yellow>Q</yellow>, <yellow>웅크리기+Q</yellow>로 쓴다네. 레벨이 오르면 하나씩 깨어나지.</gray>"
+      - "<gray>직업 스킬은 <yellow><key:key.swapOffhand></yellow>, <yellow><key:key.sneak>+<key:key.swapOffhand></yellow>, <yellow><key:key.drop></yellow>, <yellow><key:key.sneak>+<key:key.drop></yellow>로 쓴다네. 레벨이 오르면 하나씩 깨어나지.</gray>"
 
   title_keeper:
     name: "기록관 노아"
@@ -157,7 +157,7 @@ npcs:
       accessories: [key_ring, rain_cape]
     dialogue:
       - "<gray>스승님이 물을 끌어올리기 시작하면 <aqua>단상 위로</aqua> 올라가세요. 물속에선 몸이 무거워지고 숨이 막혀요.</gray>"
-      - "<gray>벽의 수문 밸브를 <yellow>웅크린 채로</yellow> 돌리면 돼요. 모든 밸브를 거의 동시에 돌려야 물이 빠져요.</gray>"
+      - "<gray>벽의 수문 밸브를 <yellow>웅크린 채로(<key:key.sneak>)</yellow> 돌리면 돼요. 모든 밸브를 거의 동시에 돌려야 물이 빠져요.</gray>"
       - "<gray>물이 빠지면 스승님이 잠시 비틀거려요. 그때가 기회예요.</gray>"
 
   lore_floor5_apprentice:
@@ -174,7 +174,7 @@ npcs:
       accessories: [soot_marks, thick_gloves]
     dialogue:
       - "<gray>모루왕이 망치를 높이 들면 땅이 울려요! 그대로 서 있으면 용암 해자까지 날아가요.</gray>"
-      - "<gray>바닥 가장자리의 <gold>쇠사슬 말뚝</gold> 옆에서 <yellow>웅크리면</yellow> 사슬을 붙잡아 버틸 수 있어요.</gray>"
+      - "<gray>바닥 가장자리의 <gold>쇠사슬 말뚝</gold> 옆에서 <yellow>웅크리면(<key:key.sneak>)</yellow> 사슬을 붙잡아 버틸 수 있어요.</gray>"
       - "<gray>아니면 왕과 해자 사이에 서지 마세요. 날아가는 방향은 왕에게서 멀어지는 쪽이에요.</gray>"
 
   lore_floor6_knight:

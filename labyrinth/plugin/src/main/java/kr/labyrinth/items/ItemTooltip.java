@@ -24,8 +24,6 @@ public final class ItemTooltip {
             "bow", "활", "staff", "지팡이", "scepter", "홀", "dagger", "단검");
     private static final Map<String, String> SLOTS = Map.of("head", "투구", "chest", "흉갑", "legs", "각반",
             "feet", "장화", "offhand", "방패");
-    private static final Map<String, String> INPUTS = Map.of("LEFT", "좌클릭", "RIGHT", "우클릭",
-            "SNEAK_LEFT", "웅크리기+좌클릭", "SNEAK_RIGHT", "웅크리기+우클릭");
     private static final Map<String, String> SOURCES = Map.of("drop", "몬스터", "elite", "엘리트", "boss", "보스",
             "chest", "보물 상자", "craft", "제작", "reward", "업적 보상", "shop", "상인");
     private static final Map<String, String> BUFFS = Map.of("damage", "주는 피해", "damage_reduction", "받는 피해 감소",
@@ -98,11 +96,11 @@ public final class ItemTooltip {
         };
     }
 
-    public static String inputName(String input) { return INPUTS.getOrDefault(input, input); }
+    public static String inputName(String input) { return kr.labyrinth.core.InputKeys.label(input); }
 
     /** 무기별 입력 이름 — 활의 SNEAK_RIGHT 는 "웅크리고 당겨 쏘기" (GDD §17.5). */
     public static String inputName(ItemDef def, String input) {
-        if (def != null && "bow".equals(def.weaponType()) && "SNEAK_RIGHT".equals(input)) return "웅크리고 당겨 쏘기";
+        if (def != null && "bow".equals(def.weaponType()) && "SNEAK_RIGHT".equals(input)) return kr.labyrinth.core.InputKeys.SNEAK + " 누른 채 당겨 쏘기";
         return inputName(input);
     }
 

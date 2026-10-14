@@ -389,7 +389,7 @@ public final class Floor02Boss extends Boss {
         cocoonAt.put(id, at);
         effect(t, "stun", dur / 20.0 + 0.5, 1);
         effect(t, "root", dur / 20.0 + 0.5, 1);
-        notify(t, scaling().solo() ? "<white><b>고치에 갇혔습니다!</b></white> <gray>웅크리기(Shift)를 연타해 빠져나오세요"
+        notify(t, scaling().solo() ? "<white><b>고치에 갇혔습니다!</b></white> <gray>웅크리기(" + kr.labyrinth.core.InputKeys.SNEAK + ")를 연타해 빠져나오세요"
                 : "<white><b>고치에 갇혔습니다!</b></white> <gray>동료가 고치를 깨 줄 때까지 버티세요");
         broadcastBar("<white>" + t.getName() + " 이(가) 고치에 갇혔습니다!</white> <gray>고치를 공격해 구출하세요");
         BossFx.sound(at, Sound.BLOCK_WOOL_PLACE, 1.6f, 0.5f);

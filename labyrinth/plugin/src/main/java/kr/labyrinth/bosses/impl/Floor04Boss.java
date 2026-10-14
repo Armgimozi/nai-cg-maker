@@ -163,7 +163,7 @@ public final class Floor04Boss extends Boss {
             water.teleport(at);
         }
         if (stage > old) {
-            broadcastBar("<aqua><b>수위 상승!</b></aqua> <gray>" + stage + "단계 — 단상 위로, 밸브를 돌려 배수하세요 (웅크린 채 3초)");
+            broadcastBar("<aqua><b>수위 상승!</b></aqua> <gray>" + stage + "단계 — 단상 위로, 밸브를 돌려 배수하세요 (웅크린 채 3초 · " + kr.labyrinth.core.InputKeys.SNEAK + ")");
             BossFx.sound(center, Sound.BLOCK_WATER_AMBIENT, 2f, 0.5f);
             BossFx.sound(center, Sound.AMBIENT_UNDERWATER_ENTER, 1.2f, 0.7f);
         }
@@ -241,7 +241,7 @@ public final class Floor04Boss extends Boss {
     private void refreshValves() {
         for (Valve v : valves) {
             String state = v.done ? "<green>● 개방</green>" : stage == 0 ? "<dark_gray>○ 대기</dark_gray>"
-                    : v.progress > 0 ? "<aqua>◐ " + (int) (100.0 * v.progress / channelTicks) + "%</aqua>" : "<gray>○ 웅크려 돌리기</gray>";
+                    : v.progress > 0 ? "<aqua>◐ " + (int) (100.0 * v.progress / channelTicks) + "%</aqua>" : "<gray>○ 웅크려(" + kr.labyrinth.core.InputKeys.SNEAK + ") 돌리기</gray>";
             BossFx.text(v.label, "<#5aa8a0>수문 밸브</#5aa8a0>\n" + state);
         }
     }

@@ -94,7 +94,7 @@ public final class Floor05Boss extends Boss {
             l.setY(center.getY());
             anchors.add(l);
             fx.model(grip.str("fx", "chain_anchor"), l.clone().add(0, 0.75, 0), 1.6f, Display.Billboard.FIXED);
-            fx.label(l.clone().add(0, 2.5, 0), "<#ffb04a>쇠사슬 말뚝</#ffb04a>\n<gray>웅크려 붙잡기", 0.7f);
+            fx.label(l.clone().add(0, 2.5, 0), "<#ffb04a>쇠사슬 말뚝</#ffb04a>\n<gray>웅크려(" + kr.labyrinth.core.InputKeys.SNEAK + ") 붙잡기", 0.7f);
         }
     }
 
@@ -241,7 +241,7 @@ public final class Floor05Boss extends Boss {
             BossFx.dustRing(c, Math.max(1, rr), Telegraph.ORANGE, 1.4f, (int) Math.max(10, rr * 5));
             return true;
         }, null, true));
-        broadcastBar("<gold><b>단조 진동!</b></gold> <gray>해자 쪽에 서지 말고, 쇠사슬 말뚝을 웅크려 붙잡으세요");
+        broadcastBar("<gold><b>단조 진동!</b></gold> <gray>해자 쪽에 서지 말고, 쇠사슬 말뚝을 웅크려(" + kr.labyrinth.core.InputKeys.SNEAK + ") 붙잡으세요");
         return cast("forge_quake", "단조 진동", w, w + 12, BossAnim.SLAM, null, false);
     }
 

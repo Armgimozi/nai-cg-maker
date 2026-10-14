@@ -45,13 +45,7 @@ public final class ClassMenu extends LabMenu {
     }
 
     static String inputName(String input) {
-        return switch (input == null ? "" : input.toUpperCase(java.util.Locale.ROOT)) {
-            case "SWAP" -> "F";
-            case "SNEAK_SWAP" -> "웅크리기 + F";
-            case "DROP" -> "Q";
-            case "SNEAK_DROP" -> "웅크리기 + Q";
-            default -> input;
-        };
+        return kr.labyrinth.core.InputKeys.label(input);
     }
 
     @Override
@@ -60,7 +54,7 @@ public final class ClassMenu extends LabMenu {
         deco(4, Button.icon(Material.BOOK, "<#7fb2ff><b>역할군을 골라 파티를 꾸리세요</b>",
                 List.of("<gray>현재 직업: " + (cur == null ? "<dark_gray>없음" : "<" + cur.color() + ">" + cur.name()),
                         "<gray>직업 스킬은 미궁 무기 + 직업 무기를 들었을 때",
-                        "<gray>F · 웅크리기+F · Q · 웅크리기+Q 로 씁니다.")));
+                        "<gray>" + kr.labyrinth.core.InputKeys.CLASS_KEYS + " 로 씁니다.")));
         int i = 0;
         for (ClassDef c : services.content().classes().values()) {
             if (i >= SLOTS.length) break;
