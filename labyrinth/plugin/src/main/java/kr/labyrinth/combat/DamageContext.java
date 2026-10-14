@@ -32,6 +32,7 @@ public final class DamageContext {
     private boolean applyLifesteal = true;
     private double knockback;
     private double threatMultiplier = 1.0;
+    private double critBonus;
     private String sourceId;
 
     // 결과
@@ -89,6 +90,8 @@ public final class DamageContext {
     public DamageContext knockback(double strength) { this.knockback = strength; return this; }
     public DamageContext threat(double mult) { this.threatMultiplier = mult; return this; }
     public DamageContext type(DamageType t) { this.type = t; return this; }
+    /** 이 피해 한 건의 치명타 확률 가산 (1.0 이상 = 확정 치명타, 플레이어 공격자만). 누적된다. */
+    public DamageContext critBonus(double add) { this.critBonus += add; return this; }
 
     // ── 입력 접근 ─────────────────────────────────────────────────────────
     public LivingEntity attacker() { return attacker; }
@@ -112,6 +115,7 @@ public final class DamageContext {
     public boolean applyLifesteal() { return applyLifesteal; }
     public double knockbackStrength() { return knockback; }
     public double threatMultiplier() { return threatMultiplier; }
+    public double critBonus() { return critBonus; }
     public String sourceId() { return sourceId; }
 
     // ── 결과 ──────────────────────────────────────────────────────────────
