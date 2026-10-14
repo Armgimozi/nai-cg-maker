@@ -94,8 +94,8 @@ public final class MainMenu extends LabMenu {
                 List.of("<gray>모든 무기·방어구·장신구·재료와", "<gray>몬스터·보스, 그리고 어디서 얻는지.", "", "<#ffd36b>클릭: 도감 열기 <dark_gray>(/도감)")),
                 ctx -> { click(ctx.player()); new CodexMenu(services).open(ctx.player()); });
         set(45, UiTheme.close(), ctx -> ctx.player().closeInventory());
-        if (p.hasPermission(CommandService.PERM_ADMIN)) {
-            set(53, Button.icon(Material.COMMAND_BLOCK, "<#ff6b6b><b>서버 설정</b> <gray>(관리자)",
+        if (kr.labyrinth.core.ServerSetup.canSetDifficulty(p)) {
+            set(53, Button.icon(Material.COMMAND_BLOCK, "<#ff6b6b><b>서버 설정</b> <gray>(난이도)",
                     List.of("<gray>서버 난이도 · 입구 방식", "", "<#ffd36b>클릭: 초기 설정 메뉴")),
                     ctx -> { click(ctx.player()); services.menus().openSetup(ctx.player()); });
         }

@@ -199,21 +199,7 @@ final class AdminCommands {
     }
 
     private void setDifficulty(CommandSender s, String id) {
-        Difficulty d = services.settings().difficulty(id);
-        if (d == null) {
-            Text.error(s, "난이도는 easy / normal / hard / nightmare 중 하나입니다.");
-            return;
-        }
-        boolean first = !services.settings().isDifficultySet();
-        services.updateConfig(c -> c.set("difficulty", d.id()));
-        Text.send(s, "<green>서버 난이도: <white>" + d.name() + "</white></green> <gray>(몹 HP ×" + d.hp() + ", 피해 ×"
-                + d.damage() + ", 드롭 ×" + d.drop() + ", 경험치 ×" + d.xp() + ")");
-        if (first) {
-            Bukkit.getServer().sendMessage(Text.mm(Text.PREFIX + "<gold>미궁이 열렸습니다!</gold> <gray>난이도 <white>"
-                    + d.name() + "</white> · <white>/미궁</white> 으로 시작하세요."));
-        } else {
-            Text.send(s, "<gray>진행 중인 인스턴스는 다음 입장부터 적용됩니다.");
-        }
+        kr.labyrinth.core.ServerSetup.applyDifficulty(s, id);
     }
 
     private void info(CommandSender s, Player t) {

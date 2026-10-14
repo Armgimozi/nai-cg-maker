@@ -27,7 +27,7 @@ public final class SetupListener implements Module, Listener {
     public void enable() {
         Bukkit.getPluginManager().registerEvents(this, services.plugin());
         if (!services.settings().isDifficultySet()) {
-            Log.warn("서버 난이도가 아직 정해지지 않았습니다. 관리자가 접속하면 초기 설정이 뜹니다. (콘솔: labadmin setup <easy|normal|hard|nightmare>)");
+            Log.warn("서버 난이도가 아직 정해지지 않았습니다. 처음 접속한 사람에게 초기 설정 창이 뜹니다 (op 아니어도 됨). (콘솔: labadmin setup <easy|normal|hard|nightmare>)");
         }
     }
 
@@ -40,7 +40,7 @@ public final class SetupListener implements Module, Listener {
         Player p = e.getPlayer();
         Bukkit.getScheduler().runTaskLater(services.plugin(), () -> {
             if (!p.isOnline() || services.settings().isDifficultySet()) return;
-            if (p.hasPermission(CommandService.PERM_ADMIN)) {
+            if (ServerSetup.canSetDifficulty(p)) {
                 services.menus().openSetup(p);
             } else {
                 Text.send(p, "<gray>서버 관리자가 아직 미궁 난이도를 정하지 않았습니다. 잠시만 기다려 주세요.");

@@ -100,10 +100,10 @@ public class ChatMenuService implements MenuService {
     @Override
     public void openSetup(Player p) {
         p.sendMessage(Text.mm("<gradient:#c9a2ff:#7fd8ff><b>━━━━ 미궁 라비린스 초기 설정 ━━━━</b></gradient>"));
-        p.sendMessage(Text.mm("<gray>서버 난이도를 골라 주세요. 나중에 <white>/labadmin difficulty</white> 로 바꿀 수 있습니다."));
+        p.sendMessage(Text.mm("<gray>서버 난이도를 골라 주세요. 나중에 <white>/미궁 난이도</white> 로 바꿀 수 있습니다."));
         StringBuilder sb = new StringBuilder();
         for (Difficulty d : services.settings().difficulties().values()) {
-            sb.append(button("<yellow>[" + d.name() + "]</yellow>", "/labadmin setup " + d.id(),
+            sb.append(button("<yellow>[" + d.name() + "]</yellow>", "/lab difficulty " + d.id(),
                     "몹 HP ×" + d.hp() + " · 피해 ×" + d.damage() + " · 드롭 ×" + d.drop())).append("  ");
         }
         p.sendMessage(Text.mm(sb.toString()));

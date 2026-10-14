@@ -209,8 +209,8 @@ public final class DungeonManager implements DungeonService, Listener {
     private boolean enter(Player leader, int floor, boolean admin) {
         Settings s = services.settings();
         if (!s.isDifficultySet()) {
-            Text.error(leader, "아직 서버 관리자가 미궁 난이도를 정하지 않았습니다. 잠시만 기다려 주세요.");
-            if (leader.hasPermission(CommandService.PERM_ADMIN)) services.menus().openSetup(leader);
+            Text.error(leader, "아직 서버 난이도가 정해지지 않았습니다.");
+            if (kr.labyrinth.core.ServerSetup.canSetDifficulty(leader)) services.menus().openSetup(leader);
             return false;
         }
         if (world() == null) {

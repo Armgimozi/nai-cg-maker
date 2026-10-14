@@ -37,6 +37,31 @@ final class PlayerCommands {
                         return Command.SINGLE_SUCCESS;
                     })));
         }
+        for (String diff : new String[] {"difficulty", "난이도"}) {
+            cmd.addSubcommand("lab", Commands.literal(diff)
+                    .executes(ctx -> {
+                        CommandService.safeRun(ctx, () -> {
+                            var s = CommandService.sender(ctx);
+                            kr.labyrinth.core.Text.send(s, "<gray>현재 서버 난이도: <white>" + (services.settings().isDifficultySet()
+                                    ? services.settings().difficulty().name() : "미설정"));
+                            if (s instanceof org.bukkit.entity.Player p) {
+                                if (kr.labyrinth.core.ServerSetup.canSetDifficulty(p)) services.menus().openSetup(p);
+                                else kr.labyrinth.core.Text.error(p, "서버 난이도는 관리자만 바꿀 수 있습니다.");
+                            }
+                        });
+                        return Command.SINGLE_SUCCESS;
+                    })
+                    .then(Commands.argument("id", StringArgumentType.word())
+                            .suggests((c, b) -> {
+                                services.settings().difficulties().keySet().forEach(b::suggest);
+                                return b.buildFuture();
+                            })
+                            .executes(ctx -> {
+                                String id = StringArgumentType.getString(ctx, "id");
+                                CommandService.safeRun(ctx, () -> kr.labyrinth.core.ServerSetup.applyDifficulty(CommandService.sender(ctx), id));
+                                return Command.SINGLE_SUCCESS;
+                            })));
+        }
         for (String leave : new String[] {"leave", "퇴장"}) {
             cmd.addSubcommand("lab", Commands.literal(leave).executes(ctx -> {
                 CommandService.safeRun(ctx, () -> CommandService.withPlayer(CommandService.sender(ctx),

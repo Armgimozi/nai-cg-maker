@@ -117,15 +117,21 @@ public final class SetupMenu extends LabMenu {
     }
 
     private void confirm(Player p, boolean placeHere) {
-        if (!p.hasPermission(CommandService.PERM_ADMIN)) {
+        if (!kr.labyrinth.core.ServerSetup.canSetDifficulty(p)) {
             deny(p);
             return;
         }
+        boolean admin = p.hasPermission(CommandService.PERM_ADMIN);
         String m = mode;
-        services.updateConfig(c -> c.set("entrance.mode", m));
+        if (admin) services.updateConfig(c -> c.set("entrance.mode", m));
         p.closeInventory();
-        p.performCommand("labadmin setup " + difficulty);
+        if (!kr.labyrinth.core.ServerSetup.applyDifficulty(p, difficulty)) return;
         p.playSound(p.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 0.8f, 1.2f);
+        if (!admin) {
+            Text.send(p, "<gray>입구(석문/NPC) 설치는 op 가 <white>/labadmin setentrance</white> 로 할 수 있습니다. "
+                    + "입구가 없어도 파티장 근처에 모여 <white>/미궁</white> 으로 입장할 수 있어요.");
+            return;
+        }
         if (placeHere) {
             p.performCommand("labadmin setentrance " + m);
         } else if (!services.settings().entrance().isSet()) {

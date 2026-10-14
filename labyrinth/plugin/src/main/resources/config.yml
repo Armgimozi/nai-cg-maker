@@ -39,6 +39,10 @@ entrance:
   pitch: 0.0
   radius: 8                 # 파티 입장 시 파티원이 입구 근처에 있어야 하는 반경(블록)
 
+# 초기 설정 — true 면 op 가 아니어도 서버 난이도를 정하거나 바꿀 수 있다 (/미궁 난이도, 처음 접속 시 설정 창).
+setup:
+  everyone_can_set_difficulty: true
+
 # UI — HUD 바·메뉴 배경을 리소스팩 커스텀 폰트로 그린다.
 # 화면 아래에 네모 박스(□□□)가 보이면 false 로 바꾸고 /labadmin reload 하세요 (글자 HUD 로 대체).
 ui:
