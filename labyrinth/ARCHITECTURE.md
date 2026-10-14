@@ -124,9 +124,9 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
 
 ### 명령어
 - 플레이어: `/lab`(별칭 `/미궁`: 입장 메뉴·퇴장·정보), `/party`(`/파티`), `/stats`(`/스탯`), `/class`(`/직업`), `/title`(`/칭호`),
-  `/pvp`(`/대전`: 도전 <파티장>, 수락, 거절, 대기열 참가/취소, 순위, 전적)
+  `/pvp`(`/대전`: 도전 <파티장>, 수락, 거절, 대기열 참가/취소, 순위, 전적, 관전)
 - 관리자(`labyrinth.admin`): `/labadmin reload|give <item> [player]|spawnmob <id>|spawnboss <floor>|setentrance|removeentrance|
-  setnpc <id>|tpfloor <n>|unlock <player> <floor>|reset <player>|instances|endinstance <id>`
+  setnpc <id>|tpfloor <n>|unlock <player> <floor>|reset <player>|instances|endinstance <id>|pvp season|pvp end <매치>|pvp arena <id>`
 
 ### 스킬 입력 (미궁 무기를 들고 있을 때)
 - **무기 스킬** (상위 무기에 내장, `items.yml` 의 `weapon_skills`):
@@ -189,7 +189,7 @@ items:
     name: "잿불 대검"
     type: weapon              # weapon | armor | accessory | material | consumable | key
     weapon_type: greatsword   # classes.weapon_types 와 매칭. bow 는 활 동작.
-    armor_slot: null          # head | chest | legs | feet (armor 일 때)
+    armor_slot: null          # head | chest | legs | feet | offhand(방패, 수호기사 보조손) (armor 일 때)
     armor_set: null           # 방어구면 장비 에셋 세트 id
     rarity: legendary
     level_req: 25
@@ -198,7 +198,7 @@ items:
     set_bonus: null           # 세트 id (sets: 섹션 참고)
     aura: ember               # fx.yml aura id (전설/신화 무기)
     weapon_skills:            # 일부 상위 무기에만, 무기마다 1~4개(보통 1~3). 좌클릭 기본기는 소수 무기만. 구현: items/weaponskills/*
-      - id: ember_wave        # 코드 구현 키 (공용 구현을 params 로 재사용 가능: slash_wave, nova, dash_strike ...)
+      - id: slash_wave        # 구현 키 = GDD §17 Weapon skill catalog 의 닫힌 목록(17개). 같은 구현을 params·fx·이름만 바꿔 재사용
         name: "잿불 검기"
         input: LEFT           # LEFT | RIGHT | SNEAK_LEFT | SNEAK_RIGHT
         cooldown: 0.8
@@ -326,7 +326,7 @@ pvp:
   rules: {damage_mult: 0.6, healing_mult: 0.7, cc_duration_mult: 0.6, consumables: false}
   rating: {start: 1000, k: 32}
 
-# titles.yml 조건 추가: PVP_WIN(count) | PVP_STREAK(count) | PVP_RATING(min) | PVP_FIRST_WIN
+# titles.yml 조건 추가: PVP_WIN(count) | PVP_STREAK(count) | PVP_RATING(min) | PVP_FIRST_WIN  (+ 선택 키 server_first: true)
 
 # npcs.yml
 npcs:
@@ -378,6 +378,38 @@ spaces: {neg_1: -1, neg_8: -8, neg_169: -169, pos_1: 1}   # 공백 프로바이�
   `secondary_mode(ring|back)`, `interval`(틱), `swing`. `models.<name>`: `motif`, `shape`(projectile), `frametime`, `size: [w,h,d]`(px),
   `flat`, `billboard(FIXED|CENTER|VERTICAL)`, `glow`. 아우라마다 `<id>_ring`/`<id>_slash`/`<id>_orb`/`<id>_burst` 모델이 있다
   (무기 스킬 `params.fx` 용). style/motif 목록 = GDD §14.4.
+
+### 6.2 아이템·루팅·제작·PvP 단계에서 추가된 필드 (items/loot/recipes/arenas/titles/fx)
+모두 **추가** 필드이며 닫힌 목록과 해석은 GDD.md 에 있다(§번호 표기). 생략한 필드 = null / 기본값.
+
+- **items.yml**
+  - `floor`(1~10): 장비가 속한 층 단계 — loot `rarity_pool` 후보 기준(GDD §11.10). 재료는 정보용(획득 층).
+  - `pool`(기본 true): false 면 rarity_pool 이 뽑지 않음(보스 전용·제작 전용·칭호 보상).
+  - `sources`: 획득처 목록 `drop | elite | boss | chest | craft | reward | shop` (툴팁 "획득처"·도감용, 콘텐츠 생성 시 계산해 적음).
+  - `armor_slot: offhand` = 방패(수호기사). 보조손에 있을 때만 스탯 적용, `block_chance` 로 막기(GDD §11.2).
+  - `stats` 키 = GDD §11.7 닫힌 목록 26개(`damage`, 스탯 6종, hp, mp, defense, crit_chance, crit_damage, attack_speed, move_speed,
+    cooldown_reduction, skill_damage, mana_regen, hp_regen, heal_power, lifesteal, damage_reduction, evasion, block_chance, gold_bonus,
+    xp_bonus, craft_discount). 값은 전부 [최소, 최대].
+  - `weapon_skills[].id` = GDD §17.2 의 17개 구현 id. `params.damage_type` = melee | ranged | magic (DamageContext 피해 유형).
+    `params.buff`·`ally_buff` 키 = GDD §11.7 버프 키.
+  - `use`(consumable): `{action, amount?, duration?, buff?, cast_time?, cast_time_safe?, cancel_on_damage?, confirm?, auto?, invulnerable?,
+    cooldown, cooldown_group}`, action = `heal | mana | restore | cleanse | buff | return | stat_reset | revive` (GDD §11.9).
+  - `texture.style`/`effect` 에 아이콘 무늬 8개·effect 8개 추가(GDD §14.2), `model.shape` 는 기존 §14.1 목록 그대로.
+  - `sets.<id>.look`: heavy | light | cloth — 장비 에셋 레이어 실루엣(GDD §14.7). `bonuses` 키 = 착용 개수(이상).
+- **loot.yml**
+  - 최상위 `settings: {own_class_bias, luck_per_point, party_bonus_per_member, max_chance, rarity_weight: {난이도: {희귀도: 배율}}, announce_rarity}`.
+  - 테이블 `guaranteed: [{item, amount}]`(배율 무관 확정 지급), `gold: [min, max]`(상자 골드).
+  - 항목 종류 추가: `{one_of: [id…], chance}`, `{table: id, chance}`(순환 금지). 공통 선택 키 `min_difficulty`. 해석 = GDD §11.10.
+- **recipes.yml**: `category`(weapon | armor | accessory | material — 대장장이 GUI 탭), `amount`(결과 개수, 기본 1).
+- **arenas.yml**: `description`, `theme`, `height`, `palette.liquid`, `layout_params`, `team_size: [min, max]`, `weight`,
+  `spawns: {distance, protect}`, `hazards[]` 종류별 파라미터(닫힌 7종), `objective: {type: altar_control, …}`,
+  `lava_contact`, `void_fall`, `ambient`. `pvp` 블록 추가 키: `enabled`, `prep_time`, `between_rounds`, `team_size`, `max_size_diff`,
+  `challenge_timeout`, `min_level`, `queue`, `sudden_death`, `arena_pick`, `rules` 확장(shield_mult, cc_immunity, knockback_mult, execute_mult,
+  stealth_reveal_on_damage, revive, title_bonuses, weapon_skills, friendly_fire), `gear: {mode: full|soften|flat, soften}`,
+  `rating` 확장(k_placement, placement_matches, floor, uneven_k_mult, season_reset, tiers), `rewards`, `spectate`, `afk`. 해석 = GDD §18.
+- **titles.yml**: condition 선택 키 `server_first: true`(PVP_FIRST_WIN · PVP_RATING — 서버 최초 1팀/1명, records.yml). PVP_RATING 은 개인 레이팅 기준.
+- **fx.yml**: 전설 아우라 9종(soulfire, codex, geode, inkblot, abyssal, voltaic, quicksilver, aurora, venom)과 각자의 `_ring/_slash/_orb/_burst`,
+  무기 스킬 전용 모델(`*_arrow`, `*_beam`, `venom_knife`). motif 9개 추가(GDD §14.4).
 
 ## 7. 성능·안정성 규칙
 

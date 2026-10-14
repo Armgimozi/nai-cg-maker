@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# titles.yml — 업적 55종 → 칭호
+# titles.yml — 업적 64종 → 칭호
 #
 # 스키마: ARCHITECTURE.md §6 titles.yml (+ 추가 필드는 §6 에 기록됨)
 #  condition.type (닫힌 목록) 과 파라미터:
@@ -17,7 +17,8 @@
 #    PVP_FIRST_WIN    {}                              파티 대 파티 매치 첫 승리 (ARCHITECTURE §5 PvP)
 #    PVP_WIN          {count}                         매치 승리 누적
 #    PVP_STREAK       {count}                         매치 연승
-#    PVP_RATING       {min}                           파티 레이팅 min 이상 도달
+#    PVP_RATING       {min}                           대전 레이팅(개인, 팀 평균으로 기대 승률 계산) min 이상 도달
+#    server_first     : (PVP_FIRST_WIN·PVP_RATING 선택 키) true 면 서버에서 처음 달성한 1팀/1명만 받음 (records.yml)
 #  title     : 장착 시 채팅·탭·이름표 접두어 (MiniMessage)
 #  bonus     : 장착 중에만 적용. 키 = STR|DEX|INT|VIT|WIS|LUK 또는 xp_bonus|gold_bonus (비율)
 #  broadcast : 달성 시 서버 전체 방송
@@ -538,6 +539,16 @@ achievements:
     reward: {gold: 3000}
 
   # ═══════════════════════ 대전 (파티 대 파티 PvP) ═══════════════════════
+  # 대전 칭호는 명예 전용: 스탯 보너스·골드·아이템 보상 없음 (arenas.yml pvp.rewards.titles_only, GDD §18).
+
+  pvp_server_first_win:
+    name: "투기장의 첫 함성"
+    description: "서버 최초로 파티 대 파티 대전에서 승리한 팀"
+    category: pvp
+    condition: {type: PVP_FIRST_WIN, server_first: true}
+    title: "<bold><gradient:#ff5a3c:#ffd27a>투기장의 첫 함성</gradient></bold>"
+    bonus: {}
+    broadcast: true
 
   pvp_first_win:
     name: "첫 승전보"
@@ -547,7 +558,6 @@ achievements:
     title: "<gradient:#c0c8dc:#ffffff>첫 승전보</gradient>"
     bonus: {}
     broadcast: false
-    reward: {gold: 300}
 
   pvp_win_10:
     name: "투기장의 단골"
@@ -557,7 +567,6 @@ achievements:
     title: "<gradient:#8a9ab0:#e8eef8>투기장의 단골</gradient>"
     bonus: {}
     broadcast: false
-    reward: {gold: 1500}
 
   pvp_win_50:
     name: "투기장의 맹장"
@@ -567,7 +576,34 @@ achievements:
     title: "<gradient:#4a6ab0:#a8c8ff:#ffffff>투기장의 맹장</gradient>"
     bonus: {}
     broadcast: true
-    reward: {gold: 6000}
+
+  pvp_win_100:
+    name: "백전의 투사"
+    description: "대전 100회 승리"
+    category: pvp
+    condition: {type: PVP_WIN, count: 100}
+    title: "<gradient:#c8864a:#ffd27a:#c8864a>백전의 투사</gradient>"
+    bonus: {}
+    broadcast: true
+
+  pvp_win_250:
+    name: "투기장의 전설"
+    description: "대전 250회 승리"
+    category: pvp
+    condition: {type: PVP_WIN, count: 250}
+    title: "<bold><gradient:#ff3b3b:#ffd27a:#ff3b3b>투기장의 전설</gradient></bold>"
+    bonus: {}
+    broadcast: true
+    hidden: true
+
+  pvp_streak_3:
+    name: "삼연승의 기세"
+    description: "대전 3연승"
+    category: pvp
+    condition: {type: PVP_STREAK, count: 3}
+    title: "<gradient:#e0571d:#ffc46b>삼연승의 기세</gradient>"
+    bonus: {}
+    broadcast: false
 
   pvp_streak_5:
     name: "꺾이지 않는 깃발"
@@ -577,25 +613,70 @@ achievements:
     title: "<gradient:#d0a02a:#fff4d6:#d0a02a>꺾이지 않는 깃발</gradient>"
     bonus: {}
     broadcast: true
-    reward: {gold: 3000}
+
+  pvp_streak_10:
+    name: "무패의 행진"
+    description: "대전 10연승"
+    category: pvp
+    condition: {type: PVP_STREAK, count: 10}
+    title: "<bold><gradient:#ffffff:#ffd27a:#ff5a3c>무패의 행진</gradient></bold>"
+    bonus: {}
+    broadcast: true
+    hidden: true
+
+  pvp_rating_1150:
+    name: "청동 깃발"
+    description: "대전 레이팅 1150 달성 (청동 투사)"
+    category: pvp
+    condition: {type: PVP_RATING, min: 1150}
+    title: "<gradient:#8a5a2a:#c8864a>청동 깃발</gradient>"
+    bonus: {}
+    broadcast: false
 
   pvp_rating_1300:
     name: "이름난 원정대"
-    description: "파티 레이팅 1300 달성"
+    description: "대전 레이팅 1300 달성 (은빛 투사)"
     category: pvp
     condition: {type: PVP_RATING, min: 1300}
     title: "<gradient:#7fb2ff:#e0f0ff>이름난 원정대</gradient>"
     bonus: {}
     broadcast: false
-    reward: {gold: 3000}
+
+  pvp_rating_1450:
+    name: "황금 깃발"
+    description: "대전 레이팅 1450 달성 (황금 투사)"
+    category: pvp
+    condition: {type: PVP_RATING, min: 1450}
+    title: "<gradient:#c8902a:#ffd27a:#fff4d6>황금 깃발</gradient>"
+    bonus: {}
+    broadcast: true
 
   pvp_rating_1600:
     name: "투기장의 군주"
-    description: "파티 레이팅 1600 달성"
+    description: "대전 레이팅 1600 달성 (수정 투사)"
     category: pvp
     condition: {type: PVP_RATING, min: 1600}
     title: "<bold><gradient:#ffd27a:#ff5a3c:#ffd27a>투기장의 군주</gradient></bold>"
     bonus: {}
     broadcast: true
     hidden: true
-    reward: {gold: 10000}
+
+  pvp_server_first_1600:
+    name: "최초의 투기장 군주"
+    description: "서버 최초로 대전 레이팅 1600 달성"
+    category: pvp
+    condition: {type: PVP_RATING, min: 1600, server_first: true}
+    title: "<bold><gradient:#b07cff:#ffd27a:#b07cff>최초의 투기장 군주</gradient></bold>"
+    bonus: {}
+    broadcast: true
+    hidden: true
+
+  pvp_rating_1800:
+    name: "심연의 투사"
+    description: "대전 레이팅 1800 달성 (심연 투사)"
+    category: pvp
+    condition: {type: PVP_RATING, min: 1800}
+    title: "<bold><gradient:#2fe0d0:#c8fff8:#2fe0d0>심연의 투사</gradient></bold>"
+    bonus: {}
+    broadcast: true
+    hidden: true

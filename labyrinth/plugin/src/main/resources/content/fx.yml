@@ -130,6 +130,115 @@ auras:
     interval: 5
     swing: {type: WAX_OFF, count: 8, speed: 0.1}
 
+  # ─── 전설 아우라 추가분 (아이템 단계: 전설 무기마다 다른 테마) ───
+  soulfire:   # 혼불 — 푸른 영혼불, 6층 묘역
+    tier: legendary
+    particles:
+      - {type: SOUL_FIRE_FLAME, count: 2, radius: 0.5, height: 0.4, pattern: rise, speed: 0.02}
+      - {type: SOUL, count: 1, radius: 0.7, height: 1.0, pattern: orbit, chance: 0.3}
+      - {type: DUST, color: "#5ad8ff", size: 0.9, count: 1, radius: 0.6, height: 1.4, pattern: swirl}
+    ring_model: soulfire_ring
+    ring_spin: -4.0
+    ring_scale: 1.25
+    ring_height: 0.05
+    interval: 4
+    swing: {type: SOUL_FIRE_FLAME, count: 8, speed: 0.06}
+  codex:   # 금서 — 금빛 글자가 둘레를 도는 색인, 8층 서고
+    tier: legendary
+    particles:
+      - {type: ENCHANT, count: 3, radius: 0.9, height: 1.2, pattern: orbit, speed: 0.4}
+      - {type: DUST, color: "#ffd27a", size: 0.8, count: 1, radius: 0.7, height: 0.2, pattern: spiral}
+      - {type: END_ROD, count: 1, radius: 0.4, height: 0.6, pattern: rise, chance: 0.2, speed: 0.02}
+    ring_model: codex_ring
+    ring_spin: 3.0
+    ring_scale: 1.25
+    ring_height: 0.05
+    interval: 4
+    swing: {type: ENCHANT, count: 12, speed: 0.6}
+  geode:   # 정동 — 자수정 결정이 자라고 부서짐, 7층 공명동
+    tier: legendary
+    particles:
+      - {type: DUST_COLOR_TRANSITION, color: "#9a62e0", color_to: "#efd8ff", size: 1.0, count: 2, radius: 0.7, height: 0.8, pattern: orbit}
+      - {type: ENCHANTED_HIT, count: 1, radius: 0.5, height: 1.0, pattern: burst, chance: 0.25, speed: 0.05}
+    ring_model: geode_ring
+    ring_spin: 5.0
+    ring_scale: 1.25
+    ring_height: 0.05
+    interval: 4
+    swing: {type: ENCHANTED_HIT, count: 10, speed: 0.2}
+  inkblot:   # 먹물 — 번지는 잉크와 떠다니는 글자, 8층 서고
+    tier: legendary
+    particles:
+      - {type: SQUID_INK, count: 1, radius: 0.6, height: 0.8, pattern: swirl, speed: 0.01}
+      - {type: DUST, color: "#2a3a6a", size: 1.2, count: 2, radius: 0.5, height: 1.6, pattern: fall}
+      - {type: GLOW_SQUID_INK, count: 1, radius: 0.4, height: 1.0, pattern: burst, chance: 0.1, speed: 0.01}
+    ring_model: inkblot_ring
+    ring_spin: -3.0
+    ring_scale: 1.25
+    ring_height: 0.05
+    interval: 4
+    swing: {type: SQUID_INK, count: 8, speed: 0.05}
+  abyssal:   # 심연 — 청록빛 스컬크 맥이 박동, 10층 심연
+    tier: legendary
+    particles:
+      - {type: SCULK_SOUL, count: 1, radius: 0.6, height: 0.3, pattern: rise, chance: 0.5, speed: 0.02}
+      - {type: SCULK_CHARGE_POP, count: 2, radius: 0.8, height: 0.1, pattern: orbit}
+      - {type: DUST, color: "#2fe0d0", size: 0.9, count: 1, radius: 0.6, height: 0.6, pattern: spiral}
+    ring_model: abyssal_ring
+    ring_spin: 2.5
+    ring_scale: 1.25
+    ring_height: 0.05
+    interval: 4
+    swing: {type: SCULK_SOUL, count: 8, speed: 0.05}
+  voltaic:   # 전격 — 구리 코일 사이를 뛰는 번개, 9층 피뢰침
+    tier: legendary
+    particles:
+      - {type: ELECTRIC_SPARK, count: 2, radius: 0.6, height: 1.0, pattern: burst, speed: 0.05}
+      - {type: SCRAPE, count: 1, radius: 0.8, height: 0.4, pattern: orbit, chance: 0.5}
+      - {type: DUST, color: "#7ae0c0", size: 0.7, count: 1, radius: 0.7, height: 0.1, pattern: orbit}
+    ring_model: voltaic_ring
+    ring_spin: 9.0
+    ring_scale: 1.25
+    ring_height: 0.05
+    interval: 4
+    swing: {type: ELECTRIC_SPARK, count: 12, speed: 0.15}
+  quicksilver:   # 수은 — 은빛 액체 방울이 흐르고 갈라짐
+    tier: legendary
+    particles:
+      - {type: DUST, color: "#c8d0dc", size: 1.0, count: 2, radius: 0.7, height: 0.9, pattern: orbit}
+      - {type: WAX_OFF, count: 1, radius: 0.5, height: 1.6, pattern: fall, chance: 0.4}
+      - {type: END_ROD, count: 1, radius: 0.3, height: 0.3, pattern: rise, chance: 0.15, speed: 0.02}
+    ring_model: quicksilver_ring
+    ring_spin: -6.0
+    ring_scale: 1.25
+    ring_height: 0.05
+    interval: 4
+    swing: {type: WAX_OFF, count: 10, speed: 0.1}
+  aurora:   # 극광 — 초록·분홍 빛의 띠가 일렁임
+    tier: legendary
+    particles:
+      - {type: DUST_COLOR_TRANSITION, color: "#5affb0", color_to: "#ff8ad8", size: 1.1, count: 2, radius: 0.8, height: 0.2, pattern: spiral}
+      - {type: END_ROD, count: 1, radius: 0.5, height: 0.4, pattern: rise, chance: 0.3, speed: 0.03}
+      - {type: GLOW, count: 1, radius: 0.6, height: 1.6, pattern: orbit, chance: 0.3}
+    ring_model: aurora_ring
+    ring_spin: 2.0
+    ring_scale: 1.25
+    ring_height: 0.05
+    interval: 4
+    swing: {type: END_ROD, count: 10, speed: 0.1}
+  venom:   # 맹독 — 똑똑 떨어지는 독, 가시 덩굴
+    tier: legendary
+    particles:
+      - {type: DUST_COLOR_TRANSITION, color: "#4a9a2a", color_to: "#b0ff4a", size: 1.0, count: 2, radius: 0.6, height: 0.6, pattern: swirl}
+      - {type: ITEM_SLIME, count: 1, radius: 0.4, height: 1.0, pattern: burst, chance: 0.2, speed: 0.02}
+      - {type: DUST, color: "#8a3ab0", size: 0.8, count: 1, radius: 0.5, height: 1.5, pattern: fall, chance: 0.5}
+    ring_model: venom_ring
+    ring_spin: -5.0
+    ring_scale: 1.25
+    ring_height: 0.05
+    interval: 4
+    swing: {type: ITEM_SLIME, count: 8, speed: 0.08}
+
   # ═══════════════════════ 신화 (빨강 등급, 2겹 애니메이션 아우라) ═══════════════════════
   celestial:
     tier: mythic
@@ -224,7 +333,7 @@ auras:
 
 models:
 
-  # ═══════════════════════ 아우라 링 (전설 9 · 신화 6 + 신화 2번째 레이어 6) ═══════════════════════
+  # ═══════════════════════ 아우라 링 (전설 18 · 신화 6 + 신화 2번째 레이어 6) ═══════════════════════
   dawn_ring:        {style: ring, motif: sun_rays, palette: ["#5a3a10", "#c8902a", "#ffd27a", "#fff4d6"], animated: true, frames: 8, frametime: 2, size: [32, 1, 32], flat: true, glow: true}
   ember_ring:       {style: ring, motif: flames, palette: ["#2b0d05", "#7a2410", "#e0571d", "#ffc46b", "#fff4d6"], animated: true, frames: 8, frametime: 2, size: [32, 1, 32], flat: true, glow: true}
   gale_ring:        {style: ring, motif: wind_streaks, palette: ["#1e3a2e", "#4f9a7a", "#c8f0dc", "#ffffff"], animated: true, frames: 8, frametime: 1, size: [34, 1, 34], flat: true, glow: true}
@@ -247,6 +356,16 @@ models:
   eclipse_ring:           {style: ring, motif: black_sun, palette: ["#000000", "#140c08", "#ffd27a", "#fff4d6"], animated: true, frames: 16, frametime: 2, size: [36, 1, 36], flat: true, glow: true}
   eclipse_ring_outer:     {style: ring, motif: corona, palette: ["#05040a", "#3a2412", "#ffb04a", "#ffffff"], animated: true, frames: 16, frametime: 2, size: [46, 1, 46], flat: true, glow: true}
 
+  # 아이템 단계 추가 전설 9종
+  soulfire_ring:          {style: ring, motif: soul_flames, palette: ["#061a24", "#0e4a5e", "#2fb8d0", "#9af4ff"], animated: true, frames: 8, frametime: 2, size: [32, 1, 32], flat: true, glow: true}
+  codex_ring:             {style: ring, motif: script_letters, palette: ["#14101e", "#2a2a5a", "#c8a060", "#fff0b0"], animated: true, frames: 8, frametime: 2, size: [34, 1, 34], flat: true, glow: true}
+  geode_ring:             {style: ring, motif: geode_shards, palette: ["#160f24", "#4a2a7a", "#9a62e0", "#efd8ff"], animated: true, frames: 8, frametime: 2, size: [32, 1, 32], flat: true, glow: true}
+  inkblot_ring:           {style: ring, motif: ink_splash, palette: ["#05050a", "#141a2e", "#2a3a6a", "#5a7ab0"], animated: true, frames: 8, frametime: 2, size: [32, 1, 32], flat: true, glow: true}
+  abyssal_ring:           {style: ring, motif: sculk_veins, palette: ["#020406", "#0a1a20", "#134a52", "#2fe0d0"], animated: true, frames: 8, frametime: 2, size: [34, 1, 34], flat: true, glow: true}
+  voltaic_ring:           {style: ring, motif: copper_coils, palette: ["#1a0e06", "#6a3a1a", "#c87a3a", "#7ae0c0"], animated: true, frames: 8, frametime: 1, size: [32, 1, 32], flat: true, glow: true}
+  quicksilver_ring:       {style: ring, motif: mercury_drops, palette: ["#1a1e26", "#4a5462", "#a8b4c4", "#e8eef8"], animated: true, frames: 8, frametime: 1, size: [32, 1, 32], flat: true, glow: true}
+  aurora_ring:            {style: ring, motif: aurora_bands, palette: ["#06141a", "#1a6a5a", "#5affb0", "#ff8ad8"], animated: true, frames: 8, frametime: 2, size: [36, 1, 36], flat: true, glow: true}
+  venom_ring:             {style: ring, motif: venom_drops, palette: ["#0a1406", "#1e4a12", "#4a9a2a", "#b0ff4a"], animated: true, frames: 8, frametime: 2, size: [32, 1, 32], flat: true, glow: true}
   # ═══════════════════════ 무기 스킬 이펙트 (테마별 검기·구체·폭발) ═══════════════════════
   # items.yml 의 weapon_skills[].params.fx 에서 참조. 이름 규칙: <테마>_slash | <테마>_orb | <테마>_burst
   slash_wave:       {style: slash, motif: steel, palette: ["#3a3e48", "#a8b0c0", "#e8eef8", "#ffffff"], animated: true, frames: 6, frametime: 1, size: [32, 4, 12], billboard: FIXED, glow: true}
@@ -295,6 +414,46 @@ models:
   eclipse_slash:    {style: slash, motif: black_sun, palette: ["#000000", "#140c08", "#ffd27a", "#fff4d6"], animated: true, frames: 8, frametime: 1, size: [36, 4, 14], billboard: FIXED, glow: true}
   eclipse_orb:      {style: orb, motif: black_sun, palette: ["#000000", "#140c08", "#ffd27a", "#fff4d6"], animated: true, frames: 8, frametime: 2, size: [10, 10, 10], billboard: CENTER, glow: true}
   eclipse_burst:    {style: shockwave, motif: corona, palette: ["#000000", "#140c08", "#ffd27a", "#fff4d6"], animated: true, frames: 10, frametime: 1, size: [40, 1, 40], flat: true, glow: true}
+
+  # 아이템 단계 추가 전설 9종의 검기·구체·폭발
+  soulfire_slash:     {style: slash, motif: soul_flames, palette: ["#061a24", "#0e4a5e", "#2fb8d0", "#9af4ff"], animated: true, frames: 6, frametime: 1, size: [32, 4, 12], billboard: FIXED, glow: true}
+  soulfire_orb:       {style: orb, motif: soul_flames, palette: ["#061a24", "#0e4a5e", "#2fb8d0", "#9af4ff"], animated: true, frames: 6, frametime: 2, size: [8, 8, 8], billboard: CENTER, glow: true}
+  soulfire_burst:     {style: shockwave, motif: soul_flames, palette: ["#061a24", "#0e4a5e", "#2fb8d0", "#9af4ff"], animated: true, frames: 8, frametime: 1, size: [32, 1, 32], flat: true, glow: true}
+  codex_slash:        {style: slash, motif: script_letters, palette: ["#14101e", "#2a2a5a", "#c8a060", "#fff0b0"], animated: true, frames: 6, frametime: 1, size: [32, 4, 12], billboard: FIXED, glow: true}
+  codex_orb:          {style: orb, motif: script_letters, palette: ["#14101e", "#2a2a5a", "#c8a060", "#fff0b0"], animated: true, frames: 6, frametime: 2, size: [8, 8, 8], billboard: CENTER, glow: true}
+  codex_burst:        {style: shockwave, motif: script_letters, palette: ["#14101e", "#2a2a5a", "#c8a060", "#fff0b0"], animated: true, frames: 8, frametime: 1, size: [32, 1, 32], flat: true, glow: true}
+  geode_slash:        {style: slash, motif: geode_shards, palette: ["#160f24", "#4a2a7a", "#9a62e0", "#efd8ff"], animated: true, frames: 6, frametime: 1, size: [32, 4, 12], billboard: FIXED, glow: true}
+  geode_orb:          {style: orb, motif: geode_shards, palette: ["#160f24", "#4a2a7a", "#9a62e0", "#efd8ff"], animated: true, frames: 6, frametime: 2, size: [8, 8, 8], billboard: CENTER, glow: true}
+  geode_burst:        {style: shockwave, motif: geode_shards, palette: ["#160f24", "#4a2a7a", "#9a62e0", "#efd8ff"], animated: true, frames: 8, frametime: 1, size: [32, 1, 32], flat: true, glow: true}
+  inkblot_slash:      {style: slash, motif: ink_splash, palette: ["#05050a", "#141a2e", "#2a3a6a", "#5a7ab0"], animated: true, frames: 6, frametime: 1, size: [32, 4, 12], billboard: FIXED, glow: true}
+  inkblot_orb:        {style: orb, motif: ink_splash, palette: ["#05050a", "#141a2e", "#2a3a6a", "#5a7ab0"], animated: true, frames: 6, frametime: 2, size: [8, 8, 8], billboard: CENTER, glow: true}
+  inkblot_burst:      {style: shockwave, motif: ink_splash, palette: ["#05050a", "#141a2e", "#2a3a6a", "#5a7ab0"], animated: true, frames: 8, frametime: 1, size: [32, 1, 32], flat: true, glow: true}
+  abyssal_slash:      {style: slash, motif: sculk_veins, palette: ["#020406", "#0a1a20", "#134a52", "#2fe0d0"], animated: true, frames: 6, frametime: 1, size: [32, 4, 12], billboard: FIXED, glow: true}
+  abyssal_orb:        {style: orb, motif: sculk_veins, palette: ["#020406", "#0a1a20", "#134a52", "#2fe0d0"], animated: true, frames: 6, frametime: 2, size: [8, 8, 8], billboard: CENTER, glow: true}
+  abyssal_burst:      {style: shockwave, motif: sculk_veins, palette: ["#020406", "#0a1a20", "#134a52", "#2fe0d0"], animated: true, frames: 8, frametime: 1, size: [32, 1, 32], flat: true, glow: true}
+  voltaic_slash:      {style: slash, motif: copper_coils, palette: ["#1a0e06", "#6a3a1a", "#c87a3a", "#7ae0c0"], animated: true, frames: 6, frametime: 1, size: [32, 4, 12], billboard: FIXED, glow: true}
+  voltaic_orb:        {style: orb, motif: copper_coils, palette: ["#1a0e06", "#6a3a1a", "#c87a3a", "#7ae0c0"], animated: true, frames: 6, frametime: 2, size: [8, 8, 8], billboard: CENTER, glow: true}
+  voltaic_burst:      {style: shockwave, motif: copper_coils, palette: ["#1a0e06", "#6a3a1a", "#c87a3a", "#7ae0c0"], animated: true, frames: 8, frametime: 1, size: [32, 1, 32], flat: true, glow: true}
+  quicksilver_slash:  {style: slash, motif: mercury_drops, palette: ["#1a1e26", "#4a5462", "#a8b4c4", "#e8eef8"], animated: true, frames: 6, frametime: 1, size: [32, 4, 12], billboard: FIXED, glow: true}
+  quicksilver_orb:    {style: orb, motif: mercury_drops, palette: ["#1a1e26", "#4a5462", "#a8b4c4", "#e8eef8"], animated: true, frames: 6, frametime: 2, size: [8, 8, 8], billboard: CENTER, glow: true}
+  quicksilver_burst:  {style: shockwave, motif: mercury_drops, palette: ["#1a1e26", "#4a5462", "#a8b4c4", "#e8eef8"], animated: true, frames: 8, frametime: 1, size: [32, 1, 32], flat: true, glow: true}
+  aurora_slash:       {style: slash, motif: aurora_bands, palette: ["#06141a", "#1a6a5a", "#5affb0", "#ff8ad8"], animated: true, frames: 6, frametime: 1, size: [32, 4, 12], billboard: FIXED, glow: true}
+  aurora_orb:         {style: orb, motif: aurora_bands, palette: ["#06141a", "#1a6a5a", "#5affb0", "#ff8ad8"], animated: true, frames: 6, frametime: 2, size: [8, 8, 8], billboard: CENTER, glow: true}
+  aurora_burst:       {style: shockwave, motif: aurora_bands, palette: ["#06141a", "#1a6a5a", "#5affb0", "#ff8ad8"], animated: true, frames: 8, frametime: 1, size: [32, 1, 32], flat: true, glow: true}
+  venom_slash:        {style: slash, motif: venom_drops, palette: ["#0a1406", "#1e4a12", "#4a9a2a", "#b0ff4a"], animated: true, frames: 6, frametime: 1, size: [32, 4, 12], billboard: FIXED, glow: true}
+  venom_orb:          {style: orb, motif: venom_drops, palette: ["#0a1406", "#1e4a12", "#4a9a2a", "#b0ff4a"], animated: true, frames: 6, frametime: 2, size: [8, 8, 8], billboard: CENTER, glow: true}
+  venom_burst:        {style: shockwave, motif: venom_drops, palette: ["#0a1406", "#1e4a12", "#4a9a2a", "#b0ff4a"], animated: true, frames: 8, frametime: 1, size: [32, 1, 32], flat: true, glow: true}
+  # 무기 스킬 전용 투사체·광선 (items.yml weapon_skills params.fx)
+  tide_arrow:         {style: projectile, shape: arrow, palette: ["#0e2230", "#1e4a6a", "#5ab0d0", "#d8f8ff"], animated: true, frames: 4, frametime: 1, size: [3, 3, 18], billboard: FIXED, glow: true}
+  gale_arrow:         {style: projectile, shape: arrow, palette: ["#1e3a2e", "#4f9a7a", "#c8f0dc", "#ffffff"], animated: true, frames: 4, frametime: 1, size: [3, 3, 20], billboard: FIXED, glow: true}
+  quicksilver_arrow:  {style: projectile, shape: arrow, palette: ["#1a1e26", "#4a5462", "#a8b4c4", "#ffffff"], animated: true, frames: 4, frametime: 1, size: [3, 3, 16], billboard: FIXED, glow: true}
+  tempest_arrow:      {style: projectile, shape: arrow, palette: ["#10183a", "#3a5ab0", "#a8d0ff", "#ffffff"], animated: true, frames: 4, frametime: 1, size: [3, 3, 20], billboard: FIXED, glow: true}
+  venom_knife:        {style: projectile, shape: shard, palette: ["#0a1406", "#1e4a12", "#4a9a2a", "#b0ff4a"], animated: false, frames: 1, size: [3, 3, 10], billboard: FIXED, glow: true}
+  rime_beam:          {style: tether, motif: frost, palette: ["#16283a", "#4a7ab0", "#bfe6ff", "#ffffff"], animated: true, frames: 6, frametime: 1, size: [6, 6, 16], billboard: FIXED, glow: true}
+  prism_beam:         {style: tether, motif: crystal_facets, palette: ["#140c24", "#6a4ab8", "#fff2b0", "#ffffff"], animated: true, frames: 6, frametime: 1, size: [6, 6, 16], billboard: FIXED, glow: true}
+  void_beam:          {style: tether, motif: void_rift, palette: ["#020104", "#1a0a2e", "#5a1a8a", "#c080ff"], animated: true, frames: 6, frametime: 1, size: [8, 8, 16], billboard: FIXED, glow: true}
+  seraph_beam:        {style: tether, motif: feathers, palette: ["#a89870", "#e8e0c8", "#ffffff", "#fff4d6"], animated: true, frames: 6, frametime: 1, size: [6, 6, 16], billboard: FIXED, glow: true}
+  aurora_beam:        {style: tether, motif: aurora_bands, palette: ["#06141a", "#1a6a5a", "#5affb0", "#ff8ad8"], animated: true, frames: 6, frametime: 1, size: [8, 8, 16], billboard: FIXED, glow: true}
 
   # ═══════════════════════ 직업 스킬 이펙트 (classes.yml params.fx*) ═══════════════════════
   slash_arc:            {style: slash, motif: steel, palette: ["#3a1410", "#a83a22", "#ff8a5a", "#ffffff"], animated: true, frames: 6, frametime: 1, size: [40, 2, 40], flat: true, glow: true}

@@ -17,12 +17,14 @@
 8. 보스 패턴 카탈로그 (Boss pattern catalog)
 9. Mob skill types (일반 몹 스킬 닫힌 목록) · 상태이상 · AI
 10. 기믹방 (Gimmick rooms)
-11. 장비와 획득 루트 · 아우라 목록
+11. 장비와 획득 루트 · 아우라 · 스탯 키 · 세트 · 소모품 · 루팅 · 제작
 12. 칭호·업적
 13. NPC
 14. Pack generator templates (리소스팩 생성기 닫힌 목록)
 15. 교차참조 요구사항 (다른 작업자가 만들어야 할 ID)
 16. 밸런스 곡선
+17. Weapon skill catalog (무기 스킬 닫힌 구현 목록)
+18. PvP (파티 대 파티 대전)
 
 ---
 
@@ -621,65 +623,131 @@ SLIME(덩어리), RAVAGER(넓은 체형), VINDICATOR(인간형 대형). 피글�
 
 ## 11. 장비와 획득 루트
 
+원본: `items.yml`(225종) · `loot.yml`(86 테이블) · `recipes.yml`(121 레시피). 아래는 요약이며, 다르면 YAML 이 이긴다.
+구성: 직업 문장 6 · 무기 66(직업당 11단계) · 방패 6 · 방어구 64(세트 16) + 악몽의 왕관 · 장신구 25 · 재료 44 · 소모품 13.
+모든 장비는 **3D 모델**(§14.1)이고, 전설·신화 무기 24종은 전부 **서로 다른 아우라**와 프레임 애니메이션 텍스처를 가진다.
+
 ### 11.1 희귀도
-| 키 | 이름 | 색 | 특징 |
-|---|---|---|---|
-| `common` | 일반 | 흰색 `#ffffff` | 몹 드롭·상점 수준 |
-| `uncommon` | 고급 | 초록 `#5fd35f` | 굴림 범위 넓음 |
-| `rare` | 희귀 | 파랑 `#4f9dff` | 부가 스탯 2종 |
-| `epic` | 영웅 | 보라 `#b06cff` | 엘리트·보스·제작. 일부 무기 스킬 1개 |
-| `legendary` | 전설 | 금색 `#ffb627` | **아우라 + 애니메이션 텍스처**, 무기 스킬 1~3 |
-| `mythic` | 신화 | 빨강 `#ff3b3b` | **2겹 애니메이션 아우라**, 무기 스킬 2~4(4개는 일부만) |
+| 키 | 이름 | 색 | 무기 부가 스탯 줄 | 특징 |
+|---|---|---|---|---|
+| `common` | 일반 | 흰색 `#ffffff` | 주 스탯 + 1 | 몹 드롭·저렴한 제작 |
+| `uncommon` | 고급 | 초록 `#5fd35f` | 주 스탯 + 1 (굴림 범위 ±9%로 넓음) | 1~2층 드롭·제작, 길잡이 세트 |
+| `rare` | 희귀 | 파랑 `#4f9dff` | 주 스탯 + 2 | 주력 드롭 등급 |
+| `epic` | 영웅 | 보라 `#b06cff` | 주 스탯 + 3 | 엘리트·보스·제작. 무기 18종 중 12종이 무기 스킬 1개 |
+| `legendary` | 전설 | 금색 `#ffb627` | 주 스탯 + 4 | **아우라 + 애니메이션 텍스처**, 무기 스킬 1~3 |
+| `mythic` | 신화 | 빨강 `#ff3b3b` | 주 스탯 + 5 | **2겹 애니메이션 아우라**, 무기 스킬 2~4(4개는 2종뿐). 드롭 전용 |
+
+굴림: 드롭·제작·보상 순간 `stats` 의 [최소, 최대] 를 각각 균등 굴림해 PDC 에 저장한다(툴팁에 굴림 품질 % 표시 권장).
 
 ### 11.2 무기 타입 (직업 전용)
-| weapon_type | 직업 | 기본 공격 | 모델 템플릿(§14.1) |
-|---|---|---|---|
-| `sword_shield` | 수호기사 | 근접(방패는 보조손 장비) | longsword, broadsword, mace (+ 방패: kite_shield, round_shield, tower_shield) |
-| `greatsword` | 광전사 | 근접(느리고 강함) | greatsword, cleaver, great_axe |
-| `bow` | 사냥꾼 | 활(우클릭 당기기 유지) | longbow, recurve_bow, composite_bow |
-| `staff` | 비전술사 | 근접 약함 — 마법 스킬 위주 | staff_orb, staff_crystal, staff_ring |
-| `scepter` | 사제 | 근접 약함 — 치유 스킬 위주 | scepter, sun_scepter, censer_staff |
-| `dagger` | 그림자 | 근접(빠름, 등 뒤 보너스) | dagger, kris, fang_blade |
+| weapon_type | 직업 | 피해 배율(같은 단계 장검 = 1.0) | 기본 공격 | 기본 공격 피해 유형 | 모델 템플릿(§14.1) |
+|---|---|---|---|---|---|
+| `sword_shield` | 수호기사 | ×1.00 | 근접, 공격 속도 1.4/초 | melee | longsword, broadsword, mace (+ 보조손 방패) |
+| `greatsword` | 광전사 | ×1.55 | 근접, 0.85/초 (느리고 강함) | melee | greatsword, cleaver, great_axe |
+| `bow` | 사냥꾼 | ×1.30 | 우클릭 당기기(끝까지 1.0초) | ranged | longbow, recurve_bow, composite_bow |
+| `staff` | 비전술사 | ×1.10 | 근접 1.0/초, **기본 공격 피해 ×0.5** (스킬은 공격력 전부) | melee | staff_orb, staff_crystal, staff_ring |
+| `scepter` | 사제 | ×0.95 | 근접 1.1/초, **기본 공격 피해 ×0.5** | melee | scepter, sun_scepter, censer_staff |
+| `dagger` | 그림자 | ×0.62 | 근접 2.0/초, 등 뒤 보너스(패시브) | melee | dagger, kris, fang_blade |
+
+- 공격 속도는 바닐라 `attack_speed` 속성 기본값(StatService 상수, config `weapon_types` 로 덮어쓰기 권장). 아이템 `attack_speed` 스탯은 여기에 % 가산.
+- **방패**: `type: armor`, `armor_slot: offhand`, 수호기사 전용. 보조손에 있을 때만 스탯 적용. **막기**: 정면 120° 안에서 받은 피해가
+  `block_chance` 확률로 막힘 → 그 피해 ×0.4 + 피해 숫자 대신 "막음". 보스 패턴 중 `*_pct` 피해·장판 지속 피해는 막을 수 없다.
 
 ### 11.3 획득 루트 (전부 구현)
-1. **일반 몹 드롭** — 층 재료 + 그 층 일반~희귀 장비(`rarity_pool`). 루팅 테이블 id = 몹 id.
-2. **엘리트 드롭** — 엘리트 재료(희귀) + 희귀~영웅 장비, 낮은 확률로 그 층 보스 장비. 테이블 id = 엘리트 몹 id.
-3. **보스 드롭** — **보스 전용 장비**(층마다 직업별 1개 이상 권장) + 보스 핵 재료(제작용). 테이블 `floorNN_boss`.
-4. **대장장이 제작** — 몹·엘리트·보스 재료 + 골드 → 층 세트 방어구, 제작 전용 영웅·전설 무기.
-5. **보물방 상자** — `treasure_floor_<n>`: 골드, 물약, 그 층 장비(희귀 이상 확률 높음).
-6. **기믹방 보상 상자** — `gimmick_floor_<n>`: 보물방보다 좋은 테이블 + 희귀 재료.
-7. **칭호 보상** — 특정 업적 달성 시 전용 장신구/투구(§12, `reward.items`).
+1. **일반 몹 드롭** — 층 재료 2종(주 재료 55%, 보조 15%), 층 장비 `rarity_pool`(표 §11.4), 정수·물약 낮은 확률. 떼(swarm) 몹은 확률 ×0.7.
+2. **엘리트 드롭** — 엘리트 재료 85%, 층 재료 묶음, 정수 35%, 희귀~영웅(9~10층은 전설 1%), **그 층 보스 장신구·보스 세트 1.5%**,
+   7~8층은 그 층 보스 전설 무기 0.5%, 4층 엘리트는 조수 부르는 활 0.4%. 악몽 9~10층은 신화 0.6%.
+3. **보스 드롭** — `guaranteed`: 보스 핵 1 + 층 재료 + 정수. 확률: **보스 전용 장비**(무기 묶음 `one_of`, 보스 세트, 보스 장신구),
+   다음 단계 정수 15%, 물약·강장제. 10층 보스(어려움 이상)만 신화 무기 2.5%·넬카르의 심장 1.5%.
+4. **대장장이 제작** — 재료 + 골드 → 무기 9단계(T1~T5, T7, T9 전 직업 + 전설 T10 전 직업 + 전설 3종), 방패 5, 방어구 13세트, 장신구 9, 정수 정제.
+5. **보물방 상자** `treasure_floor_<n>` — 2번 굴림 + 골드: 물약·주문서·강장제, 재료, 정수, 장비(희귀 이상 비중 높음).
+6. **기믹방 보상 상자** `gimmick_floor_<n>` — 정수 1개 확정 + 2번 굴림 + 골드 ×1.6, 장비 풀 ×1.5, 엘리트 재료, 다음 단계 정수.
+7. **칭호 보상** — 개척자의 인장 반지 · 미궁 정복자의 문장 · 외로운 별의 반지 · 악몽의 왕관 · 학살자의 송곳니 목걸이 · 명장의 부적 (§12).
+8. **상인 핀** — 물약 6종 + 귀환·망각 주문서 (`npcs.yml shop`).
+각 아이템의 `sources` 필드(툴팁 "획득처")는 위 루트를 실제 테이블에서 계산해 적은 것이다 — drop·elite·boss·chest·craft·reward·shop.
 
-### 11.4 층별 권장 장비 단계
-| 층 | 레벨 요구 | 일반 드롭 | 엘리트 | 보스 전용 | 제작 최고 |
-|---|---|---|---|---|---|
-| 1~2 | 1~10 | 일반·고급 | 희귀 | 희귀~영웅 | 희귀 |
-| 3~4 | 10~20 | 고급·희귀 | 희귀·영웅 | 영웅 | 영웅 |
-| 5~6 | 20~30 | 희귀 | 영웅 | 영웅·**전설** | 전설(보스 핵 필요) |
-| 7~8 | 30~40 | 희귀·영웅 | 영웅·전설(희박) | 전설 | 전설 |
-| 9~10 | 40~50 | 영웅 | 전설(희박) | 전설·**신화(어려움 이상, 희박)** | 전설 (+신화는 드롭 전용) |
+### 11.4 장비 단계표 (최종)
+직업마다 같은 11단계 사다리. ⚔n = 무기 스킬 개수. `T6`·`T8` 전설은 `pool: false`(보스·제작·엘리트 지정 드롭 전용).
 
-### 11.5 아우라 목록 (fx.yml `auras`) — 아이템 작업자는 전설·신화 무기의 `aura` 에 이 키를 쓴다
-각 아우라는 같은 이름의 링 모델(`<id>_ring`)과 무기 스킬 이펙트 3종 `<id>_slash`(검기), `<id>_orb`(구체/탄), `<id>_burst`(충격파)를 가진다.
-`weapon_skills[].params.fx` 에 이 이름을 쓰면 된다. 무색 기본 검기는 `slash_wave`.
+| 단계 | 희귀도 · Lv | 수호기사 | 광전사 | 사냥꾼 | 비전술사 | 사제 | 그림자 |
+|---|---|---|---|---|---|---|---|
+| T1 | 일반 · 1 | 회랑 수비대 장검 | 뿌리 베는 대검 | 회랑 사냥 장궁 | 등불 지팡이 | 수련 사제의 홀 | 이끼 단도 |
+| T2 | 고급 · 5 | 갱도 감시자의 철퇴 | 광맥 쪼개개 | 은실 시위 만곡궁 | 광석 수정 지팡이 | 광부의 등불 향로 | 갱도 거미 송곳니 |
+| T3 | 희귀 · 11 | 포자막이 넓은검 | 갓 가르는 참마도 | 빛갓 장궁 | 균사 고리 지팡이 | 공생꽃 홀 | 포자 물결검 |
+| T4 | 영웅 · 17 | 수문 부수개 ⚔1 | 익사한 닻날 ⚔1 | 장어뼈 만곡궁 | 소금물 구슬 지팡이 ⚔1 | 조수종 향로 ⚔1 | 녹물 장어 크리스 |
+| T5 | 영웅 · 24 | 모루 서약 넓은검 | 슬래그 단조 대검 | 풀무 복합궁 ⚔1 | 불씨 수정 지팡이 ⚔1 | 불씨노래 홀 | 불씨 송곳니 ⚔1 |
+| T6 | 전설 · 27 | 여명을 맹세한 검 ⚔2 | 잿불 대검 ⚔2 | 조수 부르는 활 ⚔1 (Lv24) | 서리심장 지팡이 ⚔2 | 성역의 홀 ⚔2 | 혼불 물결검 ⚔2 |
+| T7 | 희귀 · 32 | 공명 수정 장검 | 자수정 참마도 | 프리즘 시위 장궁 | 공명 고리 지팡이 | 프리즘 향로 | 파편유리 단검 |
+| T8 | 전설 · 36 | 색인 수호자의 넓은검 ⚔2 | 정동 파쇄 도끼 ⚔2 | 질풍 날개 활 ⚔2 | 먹물 서고 지팡이 ⚔2 | 양극광 홀 ⚔2 | 야음 단검 ⚔2 |
+| T9 | 영웅 · 41 | 태엽 수비 철퇴 ⚔1 | 조율기 대검 ⚔1 | 용수철 연발궁 ⚔1 | 태엽 천구 지팡이 ⚔1 | 진자 향로 ⚔1 | 태엽 단검 |
+| T10 | 전설 · 44 | 심연 파수검 ⚔3 | 종말시계 단두도끼 ⚔3 | 수은 장궁 ⚔2 | 전격 코일 지팡이 ⚔2 | 오로라 성광 홀 ⚔3 | 독사의 송곳니 ⚔2 |
+| T11 | 신화 · 48 | 천궁의 맹세수호검 ⚔4 | 혈월의 수확자 ⚔3 | 폭풍의 눈 ⚔2 | 공허의 심장 지팡이 ⚔4 | 치천사의 홀 ⚔3 | 일식의 칼날 ⚔3 |
 
-| 아우라 | 등급 | 테마 | 권장 무기(직업) · 출처 | 텍스처 effect 프리셋 |
+| 단계 | 획득처 |
+|---|---|
+| T1 | 일반 몹 · 상자 · 제작 |
+| T2 | 일반 몹 · 엘리트 · 보스 · 상자 · 제작 |
+| T3 | 일반 몹 · 엘리트 · 보스 · 상자 · 제작 |
+| T4 | 일반 몹 · 엘리트 · 보스 · 상자 · 제작 |
+| T5 | 일반 몹 · 엘리트 · 보스 · 상자 · 제작 |
+| T6 | 엘리트 · 보스 · 제작 |
+| T7 | 일반 몹 · 엘리트 · 보스 · 상자 · 제작 |
+| T8 | 엘리트 · 보스 · 제작 |
+| T9 | 일반 몹 · 엘리트 · 보스 · 상자 · 제작 |
+| T10 | 엘리트 · 보스 · 상자 · 제작 |
+| T11 | 일반 몹 · 엘리트 · 보스 · 상자 |
+
+획득처는 그 단계 6종의 합집합이다. 전설 T6 제작은 여명을 맹세한 검·조수 부르는 활·성역의 홀만, T8 제작은 질풍 날개 활만,
+T6 엘리트는 4층 엘리트의 조수 부르는 활, T11 의 일반 몹·엘리트·상자는 **악몽 9~10층**에서만이다. 정확한 획득처는 아이템별 `sources`.
+
+층별 드롭 요약 (솔로·보통 기준 확률, `loot.yml` 원본):
+
+| 층 | 일반 몹 rarity_pool | 엘리트 | 보스 전용 장비 | 제작으로 얻는 최고 |
 |---|---|---|---|---|
-| `dawn` | 전설 | 여명 — 금빛 햇살 링, 빛 입자 | 수호기사 검/방패 · 5층 보스 또는 제작 | `sun_glow` |
-| `ember` | 전설 | 잿불 — 불꽃 링, 화염 상승 | 광전사 대검(잿불 대검) · 5층 보스 | `ember_flicker` |
-| `gale` | 전설 | 질풍 — 바람 줄무늬, 돌풍 | 사냥꾼 활 · 7층 보스 또는 제작 | `wind_streak` |
-| `rime` | 전설 | 서리꽃 — 눈송이 링, 눈 낙하 | 비전술사 지팡이 · 6층 보스 | `frost_shimmer` |
-| `sanctum` | 전설 | 성역 — **머리 위 후광 링** | 사제 홀 · 6층 보스 또는 제작 | `holy_pulse` |
-| `nightshade` | 전설 | 야음 — 가시 링, 보랏빛 연기 | 그림자 단검 · 8층 보스 | `shadow_smoke` |
-| `tide` | 전설 | 조수 — 물결 링, 물방울 | 사냥꾼/비전술사 · 4층 엘리트(희박)·제작 | `tide_ripple` |
-| `prism` | 전설 | 프리즘 — 빛/어둠 두 색 수정 | 비전술사/사제 · 7층 보스 | `prism_cycle` |
-| `chrono` | 전설 | 태엽 — 톱니 링이 **시계처럼 끊어 회전** | 아무 직업 · 9층 보스 | `gear_tick` |
-| `celestial` | 신화 | 천궁 — 별자리 링 + 바깥 별 링 | 수호기사 · 10층 보스/악몽 | `star_twinkle` |
-| `bloodmoon` | 신화 | 혈월 — 초승달 링 + 핏방울 링 | 광전사 · 10층 보스/악몽 | `blood_pulse` |
-| `tempest` | 신화 | 폭풍 — 번개 링 + 바람 링 | 사냥꾼 · 10층 보스/악몽 | `lightning_arc` |
-| `void` | 신화 | 공허 — 균열 링 + 별가루 링, 역포탈 입자 | 비전술사 · 10층 보스/악몽 | `void_swirl` |
-| `seraph` | 신화 | 치천 — 후광 + **등 뒤 날개 모델** | 사제 · 10층 보스/악몽 | `feather_glint` |
-| `eclipse` | 신화 | 일식 — 검은 태양 + 코로나 링 | 그림자 · 10층 보스/악몽 | `eclipse_corona` |
+| 1 | 일반 5% · 고급 1% | 고급 25% · 희귀 6% | T2 무기 묶음 30% · 그로브의 심재 부적 12% | T1 무기 · 참나무 방패 · 이끼 반지 · 길잡이 세트(고급) |
+| 2 | 일반 2% · 고급 4% · 희귀 0.5% | 고급 20% · 희귀 15% | T3 무기 묶음 30% · 베셀라의 은실 팔찌 12% | T2 무기 · 철띠 방패 · 행운 부적 |
+| 3 | 고급 3% · 희귀 3.8% | 희귀 35% · 영웅 4% | T4 무기 묶음 20% · 무르노크의 공생 반지 12% | T3 무기 · 포자등 목걸이 |
+| 4 | 희귀 5% · 영웅 0.3% | 희귀 25% · 영웅 8% · 조수 부르는 활 0.4% | T4 무기 묶음 25% · 오스릭의 수문 인장 12% | T4 무기 · 녹청 방패 · 진주 반지 · 희귀 세트 3종 · **조수 부르는 활(전설)** |
+| 5 | 희귀 4.5% · 영웅 0.4% | 희귀 25% · 영웅 10% | 여명·잿불·조수 전설 8% · 용광로 수문장 세트 25% · 카르둠의 낙인 12% | T5 무기 · 불씨 심장 목걸이 · **여명을 맹세한 검(전설)** |
+| 6 | 희귀 4.5% · 영웅 0.8% | 희귀 20% · 영웅 14% | 서리심장·성역·혼불 전설 8% · 얼음관의 예복 25% · 시린의 눈물 7% | 희귀 세트 3종 · 모룻면 방패 · **성역의 홀(전설)** |
+| 7 | 희귀 5% · 영웅 0.6% | 희귀 25% · 영웅 12% · 전설 0.5% | 정동·질풍·양극광 전설 7% · 양극의 아이기스 5% · 쌍극 보주 7% | T7 무기 · 공명 반지 · **질풍 날개 활(전설)** |
+| 8 | 희귀 3.5% · 영웅 1.5% | 희귀 10% · 영웅 18% · 전설 0.5% | 색인·먹물·야음 전설 7% · 먹물 장막 세트 18% · 깃펜 부적 7% | 영웅 세트 3종 · 금서 봉인 팔찌 |
+| 9 | 희귀 1% · 영웅 4% (악몽: 신화 0.06%) | 영웅 25% · 전설 1.2% | T10 전설 묶음 7% · 태엽 성벽 방패 4% · 회중시계 7% (악몽: 신화 1%) | T9 무기 · 태엽 팔찌 · **T10 전설 6종** · 태엽 성벽 방패 |
+| 10 | 영웅 5% (악몽: 신화 0.06%) | 영웅 25% · 전설 2% | T10 전설 10% · 전설 세트 10% · **신화 무기 2.5% · 넬카르의 심장 1.5% (어려움 이상)** | 전설 세트 3종 · 심연의 눈 목걸이 |
+
+**신화 규칙**(§2.4): 신화 장비가 들어 있는 항목은 전부 `min_difficulty: hard`(10층 보스) 또는 `nightmare`(9~10층 일반·엘리트·상자·9층 보스)다.
+
+### 11.5 아우라 목록 (fx.yml `auras`, 24종) — 전설·신화 무기마다 하나씩, 겹치지 않음
+각 아우라는 링 모델 `<id>_ring` 과 무기 스킬 이펙트 3종 `<id>_slash`(검기) · `<id>_orb`(구체/탄) · `<id>_burst`(충격파·장판)를 가진다.
+`weapon_skills[].params.fx` 에 이 이름을 쓴다. 무색 기본 검기는 `slash_wave`. 무기 스킬 전용 추가 모델: 화살 `tide_arrow` `gale_arrow`
+`quicksilver_arrow` `tempest_arrow`, 광선 `rime_beam` `prism_beam` `void_beam` `seraph_beam` `aurora_beam`, 투척 비수 `venom_knife`.
+
+| 아우라 | 등급 | 테마 | 무기 (출처) | 텍스처 effect |
+|---|---|---|---|---|
+| `dawn` | 전설 | 여명 — 금빛 햇살 링, 빛 입자 | 여명을 맹세한 검 (5층 보스·제작) | `sun_glow` |
+| `ember` | 전설 | 잿불 — 불꽃 링, 화염 상승 | 잿불 대검 (5층 보스) | `ember_flicker` |
+| `tide` | 전설 | 조수 — 물결 링, 물방울 | 조수 부르는 활 (4층 엘리트·5층 보스·제작) | `tide_ripple` |
+| `rime` | 전설 | 서리꽃 — 눈송이 링, 눈 낙하 | 서리심장 지팡이 (6층 보스) | `frost_shimmer` |
+| `sanctum` | 전설 | 성역 — **머리 위 후광 링** | 성역의 홀 (6층 보스·제작) | `holy_pulse` |
+| `soulfire` | 전설 | 혼불 — 푸른 영혼불, 해골불 링 | 혼불 물결검 (6층 보스) | `soul_flicker` |
+| `geode` | 전설 | 정동 — 자라고 부서지는 자수정 | 정동 파쇄 도끼 (7층 보스) | `crystal_glint` |
+| `gale` | 전설 | 질풍 — 바람 줄무늬, 돌풍 | 질풍 날개 활 (7층 보스·제작) | `wind_streak` |
+| `prism` | 전설 | 프리즘 — 빛/어둠 두 색 수정 | 양극광 홀 (7층 보스) | `prism_cycle` |
+| `codex` | 전설 | 금서 — 금빛 글자가 둘레를 도는 색인 | 색인 수호자의 넓은검 (8층 보스) | `rune_flow` |
+| `inkblot` | 전설 | 먹물 — 번지는 잉크, 떠다니는 글자 | 먹물 서고 지팡이 (8층 보스) | `ink_bleed` |
+| `nightshade` | 전설 | 야음 — 가시 링, 보랏빛 연기 | 야음 단검 (8층 보스) | `shadow_smoke` |
+| `abyssal` | 전설 | 심연 — 청록 스컬크 맥 박동 | 심연 파수검 (9층 보스·9~10층 엘리트·제작) | `sculk_pulse` |
+| `chrono` | 전설 | 태엽 — 톱니 링이 **시계처럼 끊어 회전** | 종말시계 단두도끼 (〃) | `gear_tick` |
+| `quicksilver` | 전설 | 수은 — 은빛 액체 방울이 갈라짐 | 수은 장궁 (〃) | `mercury_flow` |
+| `voltaic` | 전설 | 전격 — 구리 코일 사이를 뛰는 번개 | 전격 코일 지팡이 (〃) | `spark_crackle` |
+| `aurora` | 전설 | 극광 — 초록·분홍 빛의 띠 | 오로라 성광 홀 (〃) | `aurora_wave` |
+| `venom` | 전설 | 맹독 — 떨어지는 독, 가시 덩굴 | 독사의 송곳니 (〃) | `venom_drip` |
+| `celestial` | 신화 | 천궁 — 별자리 링 + 바깥 별 링 | 천궁의 맹세수호검 (10층 보스 어려움+·악몽 9~10층) | `star_twinkle` |
+| `bloodmoon` | 신화 | 혈월 — 초승달 링 + 핏방울 링 | 혈월의 수확자 (〃) | `blood_pulse` |
+| `tempest` | 신화 | 폭풍 — 번개 링 + 바람 링 | 폭풍의 눈 (〃) | `lightning_arc` |
+| `void` | 신화 | 공허 — 균열 링 + 별가루 링, 역포탈 입자 | 공허의 심장 지팡이 (〃) | `void_swirl` |
+| `seraph` | 신화 | 치천 — 후광 + **등 뒤 날개 모델** | 치천사의 홀 (〃) | `feather_glint` |
+| `eclipse` | 신화 | 일식 — 검은 태양 + 코로나 링 | 일식의 칼날 (〃) | `eclipse_corona` |
 
 **아우라 동작**(AuraService): 무기를 주손에 든 동안 `interval` 틱마다 `particles` 를 `pattern` 대로 생성 —
 `orbit`(radius 원 위를 돈다) · `spiral`(발→머리 나선) · `rise`(위로 떠오름) · `fall`(height 에서 떨어짐) · `swirl`(작은 소용돌이) ·
@@ -687,25 +755,216 @@ SLIME(덩어리), RAVAGER(넓은 체형), VINDICATOR(인간형 대형). 피글�
 (`ring_step` 이면 1초마다 30° 끊어서). 신화는 `secondary_model` 을 반대 방향 회전(`ring`) 또는 등 뒤에 붙임(`back`).
 LOD: 보는 사람이 24칸 밖이면 입자 절반, 48칸 밖이면 링만. 같은 화면에 아우라 6개 이상이면 입자 간격 2배.
 
-### 11.6 층 재료 권장 ID (아이템·루팅·제작 작업자용 — 최종 확정은 items.yml)
-| 층 | 일반 몹 재료 | 엘리트 재료 | 보스 재료(핵) |
+### 11.6 재료 (최종 — items.yml `type: material`)
+| 층 | 일반 몹 재료 (common·uncommon) | 엘리트 재료 (rare) | 보스 핵 (1~5층 epic · 6~10층 legendary) |
 |---|---|---|---|
-| 1 | `moss_fiber`, `beetle_shell` | `alpha_moss_crest` | `warden_heartwood` |
-| 2 | `spider_silk`, `rusted_iron` | `foreman_badge` | `silk_queen_spinneret` |
-| 3 | `spore_cap`, `hypha_thread` | `brood_core` | `mycelium_crown` |
-| 4 | `brine_pearl`, `eel_scale` | `verdigris_plate` | `floodgate_key` |
-| 5 | `slag_ingot`, `ember_shard` | `executioner_edge` | `forge_core` |
-| 6 | `rime_crystal`, `grave_bone` | `funeral_bell_shard` | `frozen_crown_shard` |
-| 7 | `amethyst_shard`, `prism_dust` | `tuning_fork_core` | `dyad_heart` |
-| 8 | `ink_essence`, `old_page` | `forbidden_seal` | `librarian_quill` |
-| 9 | `brass_gear`, `mainspring` | `regulator_pendulum` | `clockwork_heart` |
-| 10 | `abyss_ichor`, `sculk_tendril` | `gatekeeper_rune` | `abyssal_heart_fragment` |
+| 1 | `moss_fiber` 이끼 섬유, `beetle_shell` 돌갑충 껍질 | `alpha_moss_crest` 우두머리 이끼 볏 | `warden_heartwood` 파수꾼의 심재 |
+| 2 | `spider_silk` 갱도 거미줄, `rusted_iron` 녹슨 철괴 | `foreman_badge` 감독관의 휘장 | `silk_queen_spinneret` 여왕의 방적돌기 |
+| 3 | `spore_cap` 포자 갓, `hypha_thread` 균사 실 | `brood_core` 군락체의 핵 | `mycelium_crown` 균사의 왕관 |
+| 4 | `brine_pearl` 소금물 진주, `eel_scale` 녹물 장어 비늘 | `verdigris_plate` 녹청 등판 | `floodgate_key` 수문의 열쇠 |
+| 5 | `slag_ingot` 슬래그 주괴, `ember_shard` 불씨 조각 | `executioner_edge` 집행관의 칼날 | `forge_core` 용광로 핵 |
+| 6 | `rime_crystal` 서리 결정, `grave_bone` 묘지 뼈 | `funeral_bell_shard` 장송종 파편 | `frozen_crown_shard` 얼음관 조각 |
+| 7 | `amethyst_shard` 자수정 파편, `prism_dust` 프리즘 가루 | `tuning_fork_core` 조율 소리굽쇠 | `dyad_heart` 양극의 심장 |
+| 8 | `ink_essence` 먹물 정수, `old_page` 바랜 책장 | `forbidden_seal` 금서의 봉인 | `librarian_quill` 사서의 깃펜 |
+| 9 | `brass_gear` 놋쇠 톱니, `mainspring` 태엽 용수철 | `regulator_pendulum` 조속 진자 | `clockwork_heart` 태엽 심장 |
+| 10 | `abyss_ichor` 심연의 체액, `sculk_tendril` 스컬크 촉수 | `gatekeeper_rune` 문지기의 룬 | `abyssal_heart_fragment` 심연 심장 파편 |
+
+**미궁 정수 4단계**(상위 제작의 공용 재료 — 기믹방 상자 확정, 보물방·엘리트·보스·일반 몹 낮은 확률, 5:1 정제 가능):
+`dim_essence` 희미한(1~3층) → `labyrinth_essence` 미궁(4~6층) → `radiant_essence` 찬란한(7~8층) → `primordial_essence` 태고의(9~10층).
+재료는 64개, 소모품 16개, 장비·열쇠 1개씩 쌓인다(ItemService 기본값).
+
+### 11.7 아이템 스탯 키 (닫힌 목록 — StatService)
+`stats`·`sets.bonuses` 에 쓰는 키. 백분율 키는 0~1. 상한은 장비+스탯+칭호+버프 합산 후 적용.
+
+| 키 | 의미 | 단위 | 상한 |
+|---|---|---|---|
+| `damage` | 무기 피해 — 공격력의 기반(§3). 무기 전용 | 정수 | — |
+| `STR` `DEX` `INT` `VIT` `WIS` `LUK` | 스탯 가산 (§3 효과 그대로) | 정수 | — |
+| `hp` / `mp` | 최대 HP / MP | 정수 | — |
+| `defense` | 방어 (받는 피해 ×100/(100+방어)) | 정수 | — |
+| `crit_chance` / `crit_damage` | 치명타 확률 / 치명타 피해 가산 (기본 150%에 더함) | % | 75% / — |
+| `attack_speed` | 기본 공격 속도 % (무기 타입 기본값에 곱) | % | +60% |
+| `move_speed` | 이동 속도 % | % | +30% |
+| `cooldown_reduction` | 직업·무기 스킬 재사용 대기 감소 (INT 감소와 합산) | % | 40% |
+| `skill_damage` | 직업·무기 스킬 피해 % | % | — |
+| `mana_regen` / `hp_regen` | 초당 MP / HP 재생 | 소수 | — |
+| `heal_power` | 치유력 가산 (WIS 1.5/점과 합산) | 정수 | — |
+| `lifesteal` | 준 피해 중 HP 회복 비율 | % | 25% |
+| `damage_reduction` | 받는 피해 감소 (방어 다음에 곱) | % | 50% |
+| `evasion` | 회피 확률 (보스 장판·`*_pct` 피해는 회피 불가) | % | 40% |
+| `block_chance` | 방패 막기 확률 (§11.2) | % | 40% |
+| `gold_bonus` / `xp_bonus` | 골드 / 경험치 획득 % (칭호 bonus 키와 같은 의미) | % | — |
+| `craft_discount` | 제작 골드 할인 | % | 30% |
+
+**버프 키**(무기 스킬 `empower.buff`·`sanctuary.ally_buff`, 소모품 `use.buff` — 지속시간 동안 %): `damage`(주는 피해) · `damage_reduction` ·
+`attack_speed` · `move_speed` · `crit_chance` · `crit_damage` · `lifesteal` · `evasion` · `cooldown_reduction` · `skill_damage`.
+
+### 11.8 방어구 · 방패 · 장신구
+**방어구 세트 16종** (`sets:`) — 판금(수호기사·광전사) · 가죽(사냥꾼·그림자) · 천(비전술사·사제), 3~4층부터 무게별 3세트씩.
+세트 효과는 `bonuses` 의 착용 개수(이상)마다 고정 수치. 투구는 3D 모델을 머리에 씌우고(장비 에셋 X), 흉갑·하의·신발은 장비 에셋 레이어
+`labyrinth:<set>` 로 그린다(§14.7). 전설 세트·먹물 장막의 투구는 애니메이션 텍스처.
+
+| 세트 | 무게 | 희귀도 · Lv | 투구 모델 | 획득처 | 2세트 | 4세트 |
+|---|---|---|---|---|---|---|
+| 미궁 길잡이 `wayfarer` | 공용 | 고급 · 3 | hood | 일반 몹 · 엘리트 · 보스 · 상자 · 제작 | hp 25, move_speed 0.03 | VIT 3, hp_regen 0.8 |
+| 녹청 수문 경비 `verdigris_guard` | 판금 | 희귀 · 14 | helm_knight | 일반 몹 · 엘리트 · 보스 · 상자 · 제작 | VIT 4 | damage_reduction 0.03, hp 60 |
+| 균사 추적자 `hypha_stalker` | 가죽 | 희귀 · 14 | hood | 일반 몹 · 엘리트 · 보스 · 상자 · 제작 | DEX 4 | evasion 0.03, crit_chance 0.02 |
+| 포자 현자 `spore_sage` | 천 | 희귀 · 14 | wizard_hat | 일반 몹 · 엘리트 · 보스 · 상자 · 제작 | INT 3, WIS 2 | mana_regen 0.5, cooldown_reduction 0.03 |
+| 불씨 단조 `emberforged` | 판금 | 희귀 · 24 | helm_horned | 일반 몹 · 엘리트 · 보스 · 상자 · 제작 | STR 5 | damage_reduction 0.04, crit_damage 0.08 |
+| 서리송곳니 `rimefang` | 가죽 | 희귀 · 24 | half_mask | 일반 몹 · 엘리트 · 보스 · 상자 · 제작 | DEX 5 | crit_chance 0.03, move_speed 0.04 |
+| 묘역 애도자 `crypt_mourner` | 천 | 희귀 · 24 | hood | 일반 몹 · 엘리트 · 보스 · 상자 · 제작 | WIS 4, INT 2 | heal_power 25, mana_regen 0.6 |
+| 정동 성채 `geode_bastion` | 판금 | 영웅 · 34 | helm_winged | 일반 몹 · 엘리트 · 보스 · 상자 · 제작 | VIT 6, hp 80 | damage_reduction 0.05, defense 10 |
+| 파편 무희 `shard_dancer` | 가죽 | 영웅 · 34 | half_mask | 일반 몹 · 엘리트 · 보스 · 상자 · 제작 | DEX 6 | evasion 0.04, attack_speed 0.05 |
+| 서고지기 `lorekeeper` | 천 | 영웅 · 34 | circlet | 일반 몹 · 엘리트 · 보스 · 상자 · 제작 | INT 5, WIS 3 | cooldown_reduction 0.05, skill_damage 0.05 |
+| 태엽 거신 `clockwork_juggernaut` | 판금 | 전설 · 44 | helm_knight | 엘리트 · 보스 · 상자 · 제작 | VIT 8, STR 4 | damage_reduction 0.06, hp 150 |
+| 심연 보행자 `abyss_walker` | 가죽 | 전설 · 44 | hood | 엘리트 · 보스 · 상자 · 제작 | DEX 8, LUK 4 | crit_chance 0.04, crit_damage 0.12 |
+| 별 없는 성가대 `starless_choir` | 천 | 전설 · 44 | wizard_hat | 엘리트 · 보스 · 상자 · 제작 | INT 6, WIS 6 | skill_damage 0.08, cooldown_reduction 0.05 |
+| 용광로 수문장 `forge_warden` | 판금 | 영웅 · 25 | helm_horned | 엘리트 · 보스 | VIT 5, STR 3 | damage_reduction 0.08, hp 120 |
+| 얼음관의 예복 `frost_regalia` | 천 | 영웅 · 28 | crown | 엘리트 · 보스 | INT 5, WIS 5 | cooldown_reduction 0.06, mana_regen 1.0 |
+| 먹물 장막 `inkveil` | 가죽 | 전설 · 38 | half_mask | 엘리트 · 보스 | DEX 7, LUK 3 | evasion 0.06, crit_damage 0.15 |
+
+| 방패 | 희귀도 · Lv | 모델 | 획득처 |
+|---|---|---|---|
+| 참나무 원형 방패 `oak_round_shield` | 일반 · 1 | round_shield | 일반 몹 · 상자 · 제작 |
+| 철띠 연 방패 `ironbound_kite_shield` | 고급 · 6 | kite_shield | 일반 몹 · 엘리트 · 보스 · 상자 · 제작 |
+| 녹청 탑 방패 `verdigris_tower_shield` | 희귀 · 15 | tower_shield | 일반 몹 · 엘리트 · 보스 · 상자 · 제작 |
+| 모룻면 방패 `anvil_face_shield` | 영웅 · 25 | kite_shield | 일반 몹 · 엘리트 · 보스 · 상자 · 제작 |
+| 양극의 아이기스 `prism_aegis` | 전설 · 36 | round_shield | 보스 |
+| 태엽 성벽 방패 `clockwork_bastion` | 전설 · 44 | tower_shield | 엘리트 · 보스 · 상자 · 제작 |
+
+**장신구 25종 + 악몽의 왕관**: 장신구 칸 2개(종류 무관). 층 장신구 10(드롭·제작) · **보스 전용 10(층마다 1개)** · 칭호 보상 5.
+
+| 장신구 | 모양 | 희귀도 · Lv | 주요 스탯 | 획득처 |
+|---|---|---|---|---|
+| 이끼 덩굴 반지 `moss_band` | ring | 일반 · 1 | hp, VIT | 일반 몹 · 상자 · 제작 |
+| 광부의 행운 부적 `miners_lucky_charm` | charm | 고급 · 6 | LUK, gold_bonus | 일반 몹 · 엘리트 · 보스 · 상자 · 제작 |
+| 포자등 목걸이 `sporelight_amulet` | amulet | 희귀 · 11 | WIS, mana_regen, hp | 일반 몹 · 엘리트 · 보스 · 상자 · 제작 |
+| 소금물 진주 반지 `brine_pearl_ring` | ring | 희귀 · 15 | crit_chance, DEX, LUK | 일반 몹 · 엘리트 · 보스 · 상자 · 제작 |
+| 불씨 심장 목걸이 `ember_heart_amulet` | amulet | 희귀 · 22 | STR, crit_damage, hp | 일반 몹 · 엘리트 · 보스 · 상자 · 제작 |
+| 애도의 종 부적 `mourning_bell_charm` | charm | 영웅 · 26 | WIS, heal_power, damage_reduction | 일반 몹 · 엘리트 · 보스 · 상자 |
+| 공명 반지 `resonance_ring` | ring | 희귀 · 31 | INT, skill_damage | 일반 몹 · 엘리트 · 보스 · 상자 · 제작 |
+| 금서 봉인 팔찌 `forbidden_seal_bracelet` | bracelet | 영웅 · 35 | cooldown_reduction, INT, WIS, mp | 일반 몹 · 엘리트 · 보스 · 상자 · 제작 |
+| 태엽 팔찌 `mainspring_bracelet` | bracelet | 영웅 · 41 | attack_speed, DEX, STR, move_speed | 일반 몹 · 엘리트 · 보스 · 상자 · 제작 |
+| 심연의 눈 목걸이 `abyssal_eye_amulet` | amulet | 전설 · 45 | crit_chance, crit_damage, skill_damage, LUK | 엘리트 · 보스 · 상자 · 제작 |
+| 그로브의 심재 부적 `grove_heartwood_charm` | charm | 희귀 · 5 | VIT, hp_regen, hp | 엘리트 · 보스 |
+| 베셀라의 은실 팔찌 `silk_queen_bracelet` | bracelet | 희귀 · 9 | DEX, evasion, move_speed | 엘리트 · 보스 |
+| 무르노크의 공생 반지 `symbiosis_ring` | ring | 영웅 · 13 | hp_regen, heal_power, lifesteal, VIT | 엘리트 · 보스 |
+| 오스릭의 수문 인장 `floodwarden_signet` | emblem | 영웅 · 18 | mp, mana_regen, INT, WIS | 엘리트 · 보스 |
+| 카르둠의 모루 낙인 `anvil_king_brand` | emblem | 영웅 · 23 | STR, defense, hp, crit_damage | 엘리트 · 보스 |
+| 시린의 얼어붙은 눈물 `empress_frozen_tear` | amulet | 전설 · 28 | INT, WIS, cooldown_reduction, mp | 엘리트 · 보스 |
+| 다이아드의 쌍극 보주 `dyad_twin_orb` | relic_orb | 전설 · 33 | skill_damage, crit_chance, INT, DEX | 엘리트 · 보스 |
+| 오르벨의 깃펜 부적 `orbel_quill_charm` | charm | 전설 · 38 | cooldown_reduction, skill_damage, mp, WIS | 엘리트 · 보스 |
+| 테오라의 회중시계 `teora_pocketwatch` | amulet | 전설 · 43 | attack_speed, cooldown_reduction, move_speed, DEX | 엘리트 · 보스 |
+| 넬카르의 심장 `heart_of_nelkar` | relic_orb | 신화 · 48 | STR, DEX, INT, VIT | 보스 |
+| 개척자의 인장 반지 `pioneer_signet` | ring | 영웅 · 20 | LUK, STR, DEX, INT | 업적 |
+| 미궁 정복자의 문장 `conqueror_emblem` | emblem | 신화 · 45 | STR, DEX, INT, VIT | 업적 |
+| 외로운 별의 반지 `lone_star_ring` | ring | 전설 · 45 | hp_regen, lifesteal, LUK, crit_chance | 업적 |
+| 학살자의 송곳니 목걸이 `slayer_fang_amulet` | amulet | 전설 · 40 | crit_damage, attack_speed, STR, DEX | 업적 |
+| 명장의 부적 `master_smith_charm` | charm | 전설 · 30 | craft_discount, STR, VIT, gold_bonus | 업적 |
+| 악몽의 왕관 `nightmare_crown` | crown | 신화 · 48 | defense, STR, DEX, INT | 업적 |
+
+### 11.9 소모품 (`use`, action 닫힌 목록)
+| action | 효과 | 키 |
+|---|---|---|
+| `heal` | 최대 HP × amount 즉시 회복 | amount |
+| `mana` | 최대 MP × amount 즉시 회복 | amount |
+| `restore` | HP·MP 각각 × amount | amount |
+| `cleanse` | 해로운 효과·서리/감염 중첩 전부 제거 (§9.2 정화 가능 항목) | — |
+| `buff` | `buff` 맵(버프 키 §11.7)을 duration 초 동안 | duration, buff |
+| `return` | 미궁 입구로 귀환. 전투 중 cast_time, 비전투(10초 피격 없음) cast_time_safe 동안 시전, `cancel_on_damage` | cast_time, cast_time_safe |
+| `stat_reset` | 스탯 포인트 전부 반환 (`confirm` 이면 확인 창) | confirm |
+| `revive` | `auto: true` — 인벤토리에 있으면 치명상 순간 자동 소모, HP × amount 로 일어나 `invulnerable` 초 무적 | amount, auto, invulnerable |
+
+공통: `cooldown`(초), `cooldown_group`(같은 그룹끼리 재사용 대기 공유: healing · mana · cleanse · tonic · elixir · return · revive).
+PvP 매치에서는 소모품 전부 사용 불가(§18).
+
+### 11.10 루팅 규칙 (LootService)
+- **개인 루팅**: 처치 기여자(파티원) 각자가 따로 굴리고, 결과는 그 사람에게만 보이는 드롭(또는 바로 인벤토리)으로 준다.
+- 테이블 = `rolls` 번 굴림. 한 번 굴릴 때 `entries` 각 항목이 **독립적으로** 자기 확률을 판정(여러 개 동시 가능). `guaranteed` 는 항상 1번.
+- 항목 종류(닫힌 목록): `item` · `rarity_pool` · `one_of` · `table`. 공통 선택 키 `min_difficulty`.
+- **rarity_pool**: `items.yml` 에서 `floor == N` · `rarity` 일치 · `pool != false` · type ∈ weapon/armor/accessory 인 장비 중 하나.
+- **직업 편향**(`settings.own_class_bias` 0.65): rarity_pool·one_of 로 장비를 고를 때 65% 확률로 "루팅한 사람 직업이 착용 가능한 후보"만
+  남긴다(없으면 전체). 나머지 35% 는 전체 후보 — 파티원에게 건네줄 장비가 나오는 재미.
+- **최종 확률** = min(1, `chance` × 난이도 `drop` × 파티 보상(1 + 0.05×(n−1)) × (1 + LUK × 0.005) × `rarity_weight[난이도][희귀도]`).
+  `rarity_weight` 는 장비 항목(item 이 장비이거나 rarity_pool·one_of)에만 곱하고, one_of 는 후보 중 가장 높은 희귀도를 쓴다.
+  `guaranteed` 와 chance 1.0 항목은 배율 무관.
+- `amount` 는 정수 또는 [최소, 최대]. 상자 `gold` 는 [최소, 최대] 균등.
+- `settings.announce_rarity`(전설) 이상 획득 시 파티 채팅 + 효과음, 신화는 서버 방송 + `OBTAIN_RARITY` 칭호 판정.
+- 보물방 30% 미믹: 미믹 처치 후 상자 테이블을 그대로 굴린다.
+
+### 11.11 제작 (CraftingService · 대장장이 두르간 GUI)
+- GUI 탭 = `category`(무기 · 방어구·방패 · 장신구 · 정수 정제). 레시피마다 재료 보유 수/필요 수, 골드, 레벨 표시. 부족하면 빨간 글자.
+- 제작: 재료·골드 소모 → 결과 장비 스탯을 드롭과 같은 범위에서 굴림 → `CRAFT` 업적 카운트(희귀도 포함). `craft_discount` 로 골드 할인.
+- 경제 설계: 일반 몹 재료는 한 층 1회 클리어에 종류당 약 12~20개, 엘리트 재료 1~3개, 보스 핵 1개(개인 루팅).
+
+| 단계 | 대표 레시피 | 골드 |
+|---|---|---|
+| T1 (Lv1) | 1층 재료 10개 | 40 |
+| T2 (Lv5) | 2층 재료 14 + 우두머리 볏 1 | 150 |
+| T3 (Lv11) | 3층 재료 18 + 감독관 휘장 1 + 희미한 정수 1 | 450 |
+| T4 (Lv17) | 4층 재료 20 + 3·4층 엘리트 재료 각 1 + 희미한 정수 3 | 1,200 |
+| T5 (Lv24) | 5·6층 재료 32 + 집행관의 칼날 2 + 미궁 정수 2 | 3,200 |
+| 전설 T6 (Lv24~27) | **보스 핵 1** + 재료 40 + 엘리트 재료 3~4 + 미궁 정수 4~5 | 7,000~9,500 |
+| T7 (Lv32) | 7층 재료 24 + 장송종 파편 1 + 미궁 정수 2 | 4,800 |
+| 전설 T8 (Lv36) | 양극의 심장 + 재료 44 + 소리굽쇠 3 + 찬란한 정수 4 | 16,000 |
+| T9 (Lv41) | 9층 재료 28 + 금서의 봉인 2 + 찬란한 정수 2 | 9,500 |
+| 전설 T10 (Lv44) | **태엽 심장** + 재료 ~40 + 엘리트 재료 3 + 태고의 정수 3 | 26,000 |
+| 세트 방어구 | 흉갑 100% · 하의 85% · 투구 70% · 신발 60% 재료. 흉갑·하의만 엘리트 재료, 전설 세트 흉갑·하의는 보스 핵 | 60 ~ 15,000 |
+
+- **정수 정제**: 하위 정수 5개 + 골드 → 상위 정수 1개 (200 / 900 / 3,000).
+- 신화는 제작 불가(드롭 전용).
+
+### 11.12 무기 스킬을 가진 무기 (구현 = §17 Weapon skill catalog)
+전설·신화 24종 전부 + 영웅 12종. 좌클릭 기본기(LEFT, 1초 이하 간격)는 **5종뿐**(잿불 대검·천궁의 맹세수호검·서리심장 지팡이·
+공허의 심장 지팡이·폭풍의 눈), 4칸을 다 채운 무기는 **신화 2종**(천궁의 맹세수호검·공허의 심장 지팡이). 활은 LEFT·SNEAK_LEFT 만 쓴다.
+
+| 무기 | 직업 | 아우라 | 텍스처 effect | 무기 스킬 (입력: 이름 = 구현 id) |
+|---|---|---|---|---|
+| 여명을 맹세한 검 `dawnbringer` (전설) | guardian | `dawn` | `sun_glow` | RIGHT: 여명의 방벽 = `riposte`<br>SNEAK_RIGHT: 새벽 성역 = `sanctuary` |
+| 색인 수호자의 넓은검 `index_keeper_sword` (전설) | guardian | `codex` | `rune_flow` | RIGHT: 봉인 문장 = `nova`<br>SNEAK_RIGHT: 떠도는 책장 = `blade_orbit` |
+| 심연 파수검 `abyss_sentinel_longsword` (전설) | guardian | `abyssal` | `sculk_pulse` | RIGHT: 심연 끌개 = `vortex`<br>SNEAK_LEFT: 해일 검기 = `slash_wave`<br>SNEAK_RIGHT: 심연의 문 = `riposte` |
+| 천궁의 맹세수호검 `celestial_oathkeeper` (신화) | guardian | `celestial` | `star_twinkle` | LEFT: 성좌 검기 = `slash_wave`<br>RIGHT: 천궁 방벽 = `riposte`<br>SNEAK_LEFT: 유성 낙하 = `leap_slam`<br>SNEAK_RIGHT: 별자리 성역 = `sanctuary` |
+| 잿불 대검 `ember_greatsword` (전설) | berserker | `ember` | `ember_flicker` | LEFT: 잿불 검기 = `slash_wave`<br>SNEAK_RIGHT: 용암 균열 = `fissure` |
+| 정동 파쇄 도끼 `geode_sunderer` (전설) | berserker | `geode` | `crystal_glint` | RIGHT: 정동 낙하 = `leap_slam`<br>SNEAK_RIGHT: 수정 폭쇄 = `nova` |
+| 종말시계 단두도끼 `doomclock_executioner` (전설) | berserker | `chrono` | `gear_tick` | RIGHT: 톱니 선풍 = `whirlwind`<br>SNEAK_LEFT: 시간 가속 = `empower`<br>SNEAK_RIGHT: 자정의 일격 = `nova` |
+| 혈월의 수확자 `bloodmoon_reaver` (신화) | berserker | `bloodmoon` | `blood_pulse` | RIGHT: 혈월 선풍 = `whirlwind`<br>SNEAK_LEFT: 만월의 갈증 = `empower`<br>SNEAK_RIGHT: 초승달 균열 = `fissure` |
+| 조수 부르는 활 `tidecaller_bow` (전설) | hunter | `tide` | `tide_ripple` | LEFT: 물보라 화살 = `missile` |
+| 질풍 날개 활 `galewing_bow` (전설) | hunter | `gale` | `wind_streak` | LEFT: 돌풍 화살 = `missile`<br>SNEAK_LEFT: 회오리 화살 = `vortex` |
+| 수은 장궁 `quicksilver_longbow` (전설) | hunter | `quicksilver` | `mercury_flow` | LEFT: 분열 수은탄 = `missile`<br>SNEAK_LEFT: 수은비 = `rain_zone` |
+| 폭풍의 눈 `tempest_bow` (신화) | hunter | `tempest` | `lightning_arc` | LEFT: 번개 화살 = `missile`<br>SNEAK_LEFT: 폭풍의 눈 = `rain_zone` |
+| 서리심장 지팡이 `rimeheart_staff` (전설) | arcanist | `rime` | `frost_shimmer` | LEFT: 서리 파편 = `missile`<br>RIGHT: 빙하 광선 = `beam` |
+| 먹물 서고 지팡이 `inkwell_staff` (전설) | arcanist | `inkblot` | `ink_bleed` | RIGHT: 먹물 탄 = `missile`<br>SNEAK_RIGHT: 잉크 소용돌이 = `vortex` |
+| 전격 코일 지팡이 `tesla_coil_staff` (전설) | arcanist | `voltaic` | `spark_crackle` | RIGHT: 연쇄 전격 = `chain_bolt`<br>SNEAK_RIGHT: 전자기장 = `sanctuary` |
+| 공허의 심장 지팡이 `voidheart_staff` (신화) | arcanist | `void` | `void_swirl` | LEFT: 공허탄 = `missile`<br>RIGHT: 사건의 지평선 = `vortex`<br>SNEAK_LEFT: 공허 광선 = `beam`<br>SNEAK_RIGHT: 별 붕괴 = `rain_zone` |
+| 성역의 홀 `sanctum_scepter` (전설) | priest | `sanctum` | `holy_pulse` | RIGHT: 성광의 축복 = `mend`<br>SNEAK_RIGHT: 성역 전개 = `sanctuary` |
+| 양극광 홀 `twin_light_scepter` (전설) | priest | `prism` | `prism_cycle` | RIGHT: 분광선 = `beam`<br>SNEAK_RIGHT: 프리즘 보호막 = `mend` |
+| 오로라 성광 홀 `aurora_scepter` (전설) | priest | `aurora` | `aurora_wave` | RIGHT: 극광의 물결 = `mend`<br>SNEAK_LEFT: 극광 띠 = `beam`<br>SNEAK_RIGHT: 오로라 장막 = `sanctuary` |
+| 치천사의 홀 `seraph_scepter` (신화) | priest | `seraph` | `feather_glint` | RIGHT: 치천의 숨결 = `mend`<br>SNEAK_LEFT: 심판의 창 = `beam`<br>SNEAK_RIGHT: 여섯 날개의 성역 = `sanctuary` |
+| 혼불 물결검 `soulflame_kris` (전설) | shadow | `soulfire` | `soul_flicker` | RIGHT: 혼불 잠행 = `shadow_step`<br>SNEAK_RIGHT: 도깨비불 궤도 = `blade_orbit` |
+| 야음 단검 `nightshade_dagger` (전설) | shadow | `nightshade` | `shadow_smoke` | RIGHT: 그림자 질주 = `dash_strike`<br>SNEAK_LEFT: 야음 폭발 = `nova` |
+| 독사의 송곳니 `viper_fang` (전설) | shadow | `venom` | `venom_drip` | RIGHT: 독침 투척 = `missile`<br>SNEAK_RIGHT: 맹독 폭발 = `nova` |
+| 일식의 칼날 `eclipse_blade` (신화) | shadow | `eclipse` | `eclipse_corona` | RIGHT: 흑일 잠행 = `shadow_step`<br>SNEAK_LEFT: 코로나 칼날 = `blade_orbit`<br>SNEAK_RIGHT: 개기일식 = `nova` |
+
+| 무기 (영웅) | 무기 스킬 |
+|---|---|
+| 수문 부수개 `sluice_breaker_mace` | RIGHT: 수문 막기 = `riposte` |
+| 태엽 수비 철퇴 `clockguard_mace` | SNEAK_RIGHT: 태엽 감기 = `empower` |
+| 익사한 닻날 `drowned_anchor_cleaver` | RIGHT: 닻 던지기 = `missile` |
+| 조율기 대검 `regulator_greatsword` | RIGHT: 태엽 돌진 = `dash_strike` |
+| 풀무 복합궁 `bellows_composite_bow` | LEFT: 풀무 화살 = `missile` |
+| 용수철 연발궁 `springloaded_bow` | SNEAK_LEFT: 연발 사격 = `missile` |
+| 소금물 구슬 지팡이 `brine_orb_staff` | RIGHT: 거품 탄막 = `missile` |
+| 불씨 수정 지팡이 `cinder_crystal_staff` | SNEAK_RIGHT: 불씨 폭발 = `nova` |
+| 태엽 천구 지팡이 `orrery_staff` | RIGHT: 궤도 톱니 = `blade_orbit` |
+| 조수종 향로 `tidebell_censer` | RIGHT: 물방울 축복 = `mend` |
+| 진자 향로 `pendulum_censer` | SNEAK_RIGHT: 고요의 박자 = `sanctuary` |
+| 불씨 송곳니 `cinder_fang` | RIGHT: 불씨 잠행 = `shadow_step` |
 
 ---
 
 ## 12. 칭호·업적
 
-`titles.yml` 에 55개. 카테고리 8개(UI 탭): 개척(pioneer) · 돌파(clear) · 도전(challenge) · 전투(combat) · 성장(growth) · 수집(collection) · 제작(craft) · 대전(pvp).
+`titles.yml` 에 64개. 카테고리 8개(UI 탭): 개척(pioneer) · 돌파(clear) · 도전(challenge) · 전투(combat) · 성장(growth) · 수집(collection) · 제작(craft) · 대전(pvp).
 
 | 조건 type | 파라미터 | 판정 시점 |
 |---|---|---|
@@ -723,13 +982,14 @@ LOD: 보는 사람이 24칸 밖이면 입자 절반, 48칸 밖이면 링만. 같
 | `PVP_FIRST_WIN` | — | 파티 대 파티 매치 첫 승리 |
 | `PVP_WIN` | count | 매치 승리 누적(승리 팀 전원) |
 | `PVP_STREAK` | count | 연승(패배 시 0) |
-| `PVP_RATING` | min | 파티 레이팅이 min 이상이 된 순간 |
+| `PVP_RATING` | min | 개인 대전 레이팅이 min 이상이 된 순간(§18.4) |
+| (선택) `server_first: true` | PVP_FIRST_WIN · PVP_RATING 에 붙임 | 서버에서 처음 달성한 팀/1명만 (records.yml 1회) |
 
 - **방송**: `broadcast: true` 는 서버 전체에 `[칭호] <플레이어> 님이 <칭호> 칭호를 얻었습니다!` + 효과음. 서버 최초 기록은 파티원 이름 전부 나열.
 - **장착**: 1개. 채팅·탭·이름표 접두어. `bonus` 는 장착 중에만(키: STR/DEX/INT/VIT/WIS/LUK, `xp_bonus`, `gold_bonus`).
 - **보상**: `reward.gold` / `reward.items` 는 달성 즉시 1회. `hidden: true` 는 달성 전 `???`.
 - 서버 최초 칭호는 1등 파티만 받을 수 있어 **판매 포인트**(서버의 역사). 10층 최초 정복은 전 스탯 +2 와 신화 장신구 보상.
-- **대전 칭호에는 스탯 보너스를 주지 않는다**(골드 보상과 명예만). PvP 매치 안에서는 모든 칭호 `bonus` 를 끄는 것을 권장(PvpRules).
+- **대전 칭호에는 스탯 보너스도 골드·아이템 보상도 없다**(명예 전용, §18.5). PvP 매치 안에서는 모든 칭호 `bonus` 를 끄는 것을 권장(PvpRules).
 
 ---
 
@@ -781,7 +1041,7 @@ LOD: 보는 사람이 24칸 밖이면 입자 절반, 48칸 밖이면 링만. 같
 | 장신구 | `ring` · `amulet` · `bracelet` · `charm` · `emblem` · `relic_orb` | |
 | 2D 아이콘 | `icon` | 재료·소모품·열쇠 전용. 무늬는 `texture.style`(아이콘 목록) |
 
-`model.length`: 0.6~1.4 상대 크기(기본 1.0).
+`model.length`: 0.6~1.4 상대 크기(기본 1.0). 직업 문장(`type: key`)은 `emblem`, 무기 타입별 허용 shape = §11.2.
 
 ### 14.2 텍스처 지시 — `items.yml texture`
 - `style` (재질): `steel` · `dark_iron` · `rusted_iron` · `silver` · `gold` · `copper` · `bone` · `wood` · `crystal` · `obsidian` · `leather` · `cloth` ·
@@ -789,10 +1049,42 @@ LOD: 보는 사람이 24칸 밖이면 입자 절반, 48칸 밖이면 링만. 같
   (호환: shape 이름을 style 에 쓰면 `steel` 로 처리.)
 - `style` (shape: icon 일 때 아이콘 무늬): `fiber` · `shard` · `ingot` · `core` · `silk_bundle` · `scale` · `bone` · `essence` · `gem` · `cloth` · `plate` ·
   `potion_small` · `potion` · `potion_large` · `scroll` · `key` · `rune_stone` · `gear` · `pearl` · `fang` · `spore` · `ink_vial` · `feather` · `heart` ·
-  `dust` · `crystal` · `leaf` · `coin_pouch` · `map` · `badge`.
+  `dust` · `crystal` · `leaf` · `coin_pouch` · `map` · `badge` ·
+  (아이템 단계 추가) `shell`(등딱지 조각) · `crown`(관·관 조각) · `blade`(부러진 칼날) · `bell`(종 파편) · `page`(낡은 종이) ·
+  `coil`(감긴 태엽) · `pendulum`(진자 추) · `tendril`(촉수·덩굴).
 - `effect` (애니메이션 프리셋, animated 일 때): `sun_glow` · `ember_flicker` · `wind_streak` · `frost_shimmer` · `holy_pulse` · `shadow_smoke` ·
-  `tide_ripple` · `prism_cycle` · `gear_tick` · `star_twinkle` · `blood_pulse` · `lightning_arc` · `void_swirl` · `feather_glint` · `eclipse_corona` · `rune_flow`(범용).
-- `palette` 3~6색(어두움→밝음), `frames` 4~16, `frametime` 1~4.
+  `tide_ripple` · `prism_cycle` · `gear_tick` · `star_twinkle` · `blood_pulse` · `lightning_arc` · `void_swirl` · `feather_glint` · `eclipse_corona` · `rune_flow`(범용) ·
+  (아이템 단계 추가) `soul_flicker` · `crystal_glint` · `ink_bleed` · `sculk_pulse` · `spark_crackle` · `mercury_flow` · `aurora_wave` · `venom_drip`.
+- `palette` 3~6색(어두움→밝음, items.yml 은 4~6색), `frames` 4~16, `frametime` 1~4.
+
+effect 프리셋 동작 (frames 동안 한 주기, 루프):
+
+| effect | 애니메이션 |
+|---|---|
+| `sun_glow` | 밝은 색이 칼날 밑동→끝으로 차오르고 끝에서 4갈래 햇살 반짝 |
+| `ember_flicker` | 날 가장자리 불꽃 픽셀이 무작위로 깜빡이며 위로 1px 씩 흐름 |
+| `wind_streak` | 대각선 밝은 줄무늬가 빠르게 가로질러 지나감 |
+| `frost_shimmer` | 서리 결정 픽셀이 차례로 반짝, 가장자리에 하얀 서리 번짐 |
+| `holy_pulse` | 전체 밝기가 천천히 맥동 + 중앙 보석 십자 반짝 |
+| `shadow_smoke` | 어두운 연기 픽셀이 아래에서 위로 피어오르며 흩어짐 |
+| `tide_ripple` | 물결 띠가 위아래로 출렁, 거품 점 깜빡임 |
+| `prism_cycle` | 빛/어둠 두 색 영역이 교대로 밝아짐 + 무지개 하이라이트 이동 |
+| `gear_tick` | 톱니 무늬가 프레임마다 한 칸씩 끊어 회전(시계처럼) |
+| `star_twinkle` | 별 점들이 서로 다른 타이밍에 반짝, 별자리 선이 잠깐 이어짐 |
+| `blood_pulse` | 심장 박동처럼 두 번 빠르게 밝아졌다 어두워짐, 핏방울 흘러내림 |
+| `lightning_arc` | 지그재그 번개 선이 프레임마다 다른 경로로 번쩍 |
+| `void_swirl` | 어두운 소용돌이가 중심으로 빨려 들며 회전, 별가루 점 |
+| `feather_glint` | 깃털 결을 따라 하이라이트가 훑고, 끝에 빛 점 |
+| `eclipse_corona` | 검은 원 둘레의 코로나 빛살이 늘었다 줄었다 회전 |
+| `rune_flow` | 룬·글자 픽셀이 칼날을 따라 한 칸씩 흘러가며 빛남 (범용) |
+| `soul_flicker` | 푸른 혼불 픽셀이 흔들리며 위로 흐름, 가끔 해골불 반짝 |
+| `crystal_glint` | 결정 면마다 순서대로 하얀 반사광, 작은 결정이 자랐다 줄어듦 |
+| `ink_bleed` | 잉크가 번지듯 어두운 얼룩이 퍼졌다 걷히고 글자가 떠오름 |
+| `sculk_pulse` | 청록 맥이 밑동에서 끝으로 박동하며 밝아짐 |
+| `spark_crackle` | 구리 코일 사이에 전기 불꽃 점이 튀고 사라짐 |
+| `mercury_flow` | 은빛 액체 하이라이트가 아래로 흘러내려 방울로 맺힘 |
+| `aurora_wave` | 초록→분홍 색 띠가 물결치며 이동 |
+| `venom_drip` | 독 방울이 날 끝에 맺혀 떨어지고 초록 광택이 일렁임 |
 
 ### 14.3 몹·보스 모델 — `mobs.yml / bosses.yml model`
 **style.shape** (전체 실루엣·재질 감):
@@ -871,7 +1163,9 @@ LOD: 보는 사람이 24칸 밖이면 입자 절반, 48칸 밖이면 링만. 같
 `crescent` `blood_drops` `lightning` `void_rift` `feathers` `black_sun` `corona` `steel` `cracks` `crosshair` `jaw_trap` `runes` `cross_flower`
 `smoke` `shield_crest` `hex_grid` `spore_burst` `bloom` `light_crystal` `dark_crystal` `firefly` `lava` `hyphae` `silk` `silver_ore` `closed_book`
 `water_surface` `iron_chain` `frost` `sigil_blade` `sigil_arrow` `sigil_star` `rune_eye` `rune_key` `rune_moon` `rune_flame` `rune_wave` `rune_tree`
-`rune_star` `rune_crown` `clock_seal` `brass` `abyss_tide`.
+`rune_star` `rune_crown` `clock_seal` `brass` `abyss_tide` · (아이템 단계 추가) `soul_flames`(혼불·작은 해골불) `script_letters`(금빛 글자 띠)
+`geode_shards`(자수정 결정 다발) `ink_splash`(잉크 번짐·방울) `sculk_veins`(청록 맥) `copper_coils`(구리 코일·전기 불꽃) `mercury_drops`(은빛 방울)
+`aurora_bands`(극광 띠) `venom_drops`(독 방울·가시).
 
 ### 14.5 NPC 스킨 — `npcs.yml skin_style`
 - `palette` 6색 순서: **[피부, 머리카락, 옷 주색, 옷 보조색, 금속/장식, 눈]**. 64×64 플레이어 스킨 레이아웃(두 번째 레이어 포함).
@@ -901,6 +1195,16 @@ LOD: 보는 사람이 24칸 밖이면 입자 절반, 48칸 밖이면 링만. 같
 - 바닥형 fx(`flat: true`)는 두께 0.1px 판 + 위쪽 면만 텍스처. `billboard` 는 Java 의 `Display.Billboard` 로.
 - 애니메이션 텍스처는 세로 프레임 스트립 + `.png.mcmeta {"animation":{"frametime":N}}`.
 
+### 14.7 아이템 생성 규칙 (아이템 단계 추가)
+- **장비 에셋 레이어**(흉갑·하의·신발을 입은 모습): 실루엣 = 세트 `sets.<id>.look`(heavy | light | cloth), 색·재질 = 그 세트 흉갑
+  (`<set>_chest`)의 `texture.style`·`palette`. 64×32 `humanoid`(흉갑·신발) / `humanoid_leggings`(하의) 두 장.
+  look 별 차이: heavy = 판금 이음새·어깨받이·리벳, light = 가죽 끈·덧댄 조각·후드 그림자, cloth = 긴 옷자락·소매·자수 테두리.
+- 투구(head)는 장비 에셋 없이 **3D 모델**이 머리 display 로 렌더링(ARCHITECTURE §2). 전설 세트·먹물 장막 투구와 악몽의 왕관은 텍스처 애니메이션.
+- 방패(`armor_slot: offhand`)는 보조손 display 로 렌더링(바닐라 방패 막기 동작 없음 — 막기는 플러그인 판정, §11.2).
+- `model.length` = 3D 템플릿 전체 크기 배율(신화 무기 1.15~1.2). 2D 아이콘(`shape: icon`)은 16×16 평면 아이템.
+- 전설·신화 무기 텍스처: 아틀라스 전체를 `frames` 장 세로 스트립으로 그리고 `effect` 를 날·보석·장식(팔레트의 밝은 2색 영역)에만 적용,
+  손잡이·가드는 고정. 같은 shape 끼리는 `style` 무늬(결·리벳·룬·나뭇결·비늘 …)와 `palette` 로 확실히 구별되게 그린다.
+
 ---
 
 ## 15. 교차참조 요구사항 (다른 작업자가 만들 ID)
@@ -908,6 +1212,8 @@ LOD: 보는 사람이 24칸 밖이면 입자 절반, 48칸 밖이면 링만. 같
 이 단계의 YAML 이 참조하지만 다른 파일에서 정의해야 하는 것들. `ContentValidator` 가 검사한다.
 
 ### 15.1 items.yml 에 반드시 있어야 할 아이템
+→ 아이템 단계에서 **모두 정의됨**(`items.yml`, ContentValidator 가 검사).
+
 | id | 용도 | 권장 정의 |
 |---|---|---|
 | `guardian_emblem` `berserker_emblem` `hunter_emblem` `arcanist_emblem` `priest_emblem` `shadow_emblem` | `classes.yml icon_item` (직업 메뉴 아이콘) | type: key, rarity: common, model.shape: emblem, 직업 색 팔레트 |
@@ -924,6 +1230,8 @@ LOD: 보는 사람이 24칸 밖이면 입자 절반, 48칸 밖이면 링만. 같
 | `master_smith_charm` | 제작 100회 보상 | accessory, legendary, shape charm (제작 비용 할인 효과는 선택) |
 
 ### 15.2 loot.yml 에 반드시 있어야 할 테이블
+→ **모두 정의됨**(`loot.yml`). 추가로 공용 하위 테이블 `potions_t1` `potions_t2` `potions_t3` `scrolls` `tonics` `rare_consumables`.
+
 - 일반·엘리트 몹 50종: 테이블 id = 몹 id (`mobs.yml drops`). 소환물(`rank: add`)은 `drops: null`.
 - 보스: `floor01_boss` … `floor10_boss`.
 - 방: `treasure_floor_1` … `treasure_floor_10`, `gimmick_floor_1` … `gimmick_floor_10`.
@@ -947,6 +1255,15 @@ party: {max_size: 10, hp_per_member: 0.6, dmg_per_member: 0.08, reward_per_membe
 - Mob skill types 24개(§9.1), 상태이상 14개(§9.2), AI 6개(§9.3)
 - 기믹방 키 10개(§10), 보스 `core` 10개(§7.0), 보스 패턴 키(`bosses.yml patterns`)
 - 피해 유형: `melee` / `ranged` / `magic` / `true`(지속 피해·_pct 피해 — 방어 무시, 인장 미적용)
+
+### 15.5 아이템·루팅·PvP 단계 Java 구현 키 (이 문서가 원본)
+- 무기 스킬 구현 id 17개(§17.2): `slash_wave` `dash_strike` `leap_slam` `nova` `fissure` `missile` `beam` `chain_bolt` `rain_zone`
+  `whirlwind` `shadow_step` `empower` `sanctuary` `mend` `riposte` `vortex` `blade_orbit`
+- 아이템 스탯 키 26개 + 버프 키 10개(§11.7), 소모품 action 8개(§11.9), 방패 막기(§11.2), 장비 floor/pool/sources(§11.10)
+- 루팅 항목 4종 `item` `rarity_pool` `one_of` `table` + `guaranteed` · `gold` · `min_difficulty` · `settings`(§11.10)
+- 레시피 `category` · `amount`(§11.11), 세트 `bonuses`(착용 개수 이상) · `look`(§14.7)
+- 투기장 레이아웃 6개 · 위험 요소 7개 · 목표 `altar_control` · 서든데스 · `lava_contact` · `void_fall` · PvP 규칙/레이팅(§18)
+- 칭호 조건 키 `server_first`(PVP_FIRST_WIN · PVP_RATING)
 
 ---
 
@@ -1000,3 +1317,146 @@ party: {max_size: 10, hp_per_member: 0.6, dmg_per_member: 0.08, reward_per_membe
 
 플레이어 기준(권장): Lv50 수호기사 HP ≈ 140 + 49×12 + VIT 보정 ≈ 1,000, 비전술사 ≈ 650. 보스 강패턴(2~3배)은 탱커 HP 의 30~40%,
 딜러 50% 안팎 — 두 번 연속 맞으면 위험하도록.
+
+### 16.4 장비 수치 곡선 (items.yml 생성 기준 — 다시 맞출 때도 같은 공식)
+- **무기 힘 P(L)** = 7 + 0.25×(L−1) + 0.0195×(L−1)² (일반 장검 평균 피해): L1 7 · L11 11.5 · L17 16 · L24 23 · L27 26.7 · L32 33.5 ·
+  L36 39.6 · L41 48.2 · L44 53.8 · L48 61.8. 무기 피해 평균 = P(L) × 희귀도(일반 1.00 · 고급 1.06 · 희귀 1.13 · 영웅 1.21 · 전설 1.31 · 신화 1.45)
+  × 무기 타입(§11.2), 굴림 폭 ±5~9%. 근거: 몹 HP·방어(§16.2) 증가 ÷ 주스탯 공격력 배율(1 + 0.02×주스탯) 증가 → 같은 층 일반 몹을
+  솔로 기본 공격 6~8대에 잡는 체감을 1층과 10층에서 비슷하게 유지(중반은 약간 빠르게).
+- **무기 주 스탯** 평균 = (1 + 0.22×L) × 희귀도 계수(일반 0.6 · 고급 0.8 · 희귀 1.0 · 영웅 1.2 · 전설 1.45 · 신화 1.75), 굴림 ±15%.
+  부가 스탯 = 기준값 × 희귀도 계수(스탯형 부가는 ×0.6). 기준값: hp 3+3.2L · mp 2+1.6L · defense 1+0.35L · crit_chance 0.01+0.0009L ·
+  crit_damage 0.03+0.003L · attack_speed 0.02+0.0009L · move_speed 0.01+0.0005L · cooldown_reduction 0.01+0.0009L · skill_damage 0.02+0.0015L ·
+  mana_regen 0.1+0.015L · hp_regen 0.2+0.05L · heal_power 1+0.8L · lifesteal·damage_reduction·evasion 0.01+0.0006L ·
+  block_chance 0.06+0.0018L(× 희귀도 계수의 제곱근).
+- **방어구 세트 방어 합** = (3 + 0.95×L) × 무게(판금 1.0 · 가죽 0.62 · 천 0.42 · 공용 0.75) × 희귀도(고급 1.0 · 희귀 1.05 · 영웅 1.1 · 전설 1.18 · 신화 1.28).
+  부위 비중 투구 20% · 흉갑 35% · 하의 27% · 신발 18%. 부위 스탯 = 기준값 × 비중 × 1.7(주 스탯) / 2.0(부가). 신발의 이동 속도만 비중 없이 기준값.
+  → Lv44 전설 판금 한 벌 방어 ≈ 53(+ VIT 방어). 보스 강패턴 = 탱커 HP 30~40%(§16.3)를 지키려고 방어는 낮게, 체력은 넉넉히.
+- **방패** 방어 = 판금 세트 방어 × 0.3, 막기 확률 5%(일반 Lv1) ~ 18%(전설 Lv44). **장신구** = 기준값 × 희귀도 계수 × 0.8 × 항목 배율.
+- PvP `gear.mode: flat` 의 "레벨 기준값" = 이 공식의 희귀 등급 값.
+
+---
+
+## 17. Weapon skill catalog (무기 스킬 — 닫힌 구현 목록)
+
+`items/weaponskills/*` 가 아래 **17개 구현 id** 를 한 번씩 구현하고, 무기마다 `params`·`fx`·이름만 바꿔 재사용한다
+(`items.yml weapon_skills[].id` 는 이 목록의 값만 쓴다). 어떤 무기가 무엇을 쓰는지는 §11.12 표.
+
+### 17.1 입력과 공통 규칙
+- 미궁 무기를 **주손**에 들었을 때: `LEFT` = 좌클릭(엔티티를 맞히든 허공이든 휘두를 때) · `RIGHT` = 우클릭 ·
+  `SNEAK_LEFT` / `SNEAK_RIGHT` = 웅크린 채 좌/우클릭. 직업 스킬(F/Q 계열, §4)과 입력이 겹치지 않는다.
+- **활**: `RIGHT` 는 바닐라 당기기 그대로 → 활의 무기 스킬은 `LEFT`·`SNEAK_LEFT` 만(콘텐츠가 지킨다).
+- 그 입력에 스킬이 없으면 평범한 공격/사용. 쿨다운 중이면 평범한 공격 + 액션바에 남은 시간.
+- **좌클릭 기본기**(cooldown ≤ 1초, 5종): 휘두를 때마다 발동. 엔티티를 맞힌 근접 피해는 그대로 들어가고 기본기는 **추가**로 나간다.
+- 쿨다운: 무기 스킬마다 따로, 아이템 id 기준(무기를 바꿔 들었다 돌아와도 유지). `cooldown_reduction` 적용. `silence` 중 사용 불가,
+  시간 나방 `cooldown_slow` 적용(§9.2). `mana` 만큼 MP 소모(부족하면 실패 + 액션바 안내).
+- 피해 = `params.damage` × 시전자 **공격력**(§3) × (1 + `skill_damage`). 치명타 판정 있음.
+  **피해 유형** = `params.damage_type`(`melee` | `ranged` | `magic`) — 6층 여제 인장(§7.6)과 DamageContext 가 그대로 쓴다.
+- 상태이상 `effect` / `amount` / `effect_duration` = §9.2 키를 적에게. 플레이어가 거는 지속 피해(`poison`·`bleed`·`burn`)는
+  초당 공격력 × `dot_ratio`(기본 0.15), 유형 `true`. 몹에게 `blind` = 3초 이하 대상 상실, `silence` = 스킬 사용 불가.
+- `boss_*` 키 = 보스 상대 대체값. 보스는 끌기·띄우기·기절 면역이 기본(시전 끊기 패턴만 예외, §7).
+- `taunt` = 맞은 몹(보스 포함)을 그 초만큼 강제 도발(§8.5). `fx` = fx.yml 모델 이름(없으면 기본 입자). `sound` = 바닐라 사운드 키(선택).
+- 대상 선택은 **TargetFilter** — 미궁에선 몹만, PvP 매치에선 상대 팀만(§18). 아군 오사 없음. 회복·버프는 아군(자신 포함)만.
+
+### 17.2 구현 목록 (params 는 이 표의 키 + 공통 키만 읽는다)
+| id | 동작 | 기본 유형 | params |
+|---|---|---|---|
+| `slash_wave` | 초승달 검기(fx `slash` 모델)를 바라보는 방향으로 날림. 관통 | ranged | range, width, speed(블록/틱), count, spread(부채꼴 전체 각도), pierce |
+| `dash_strike` | 바라보는 방향으로 돌진, 경로 폭 안의 적을 한 번씩 벰. 끝에서 추가 휘두르기 | melee | distance, width, invulnerable(돌진 중 무적), end_radius, end_damage |
+| `leap_slam` | 바라보는 지점(최대 range)으로 포물선 도약 → 착지 원형 피해 | melee | range, radius, stun, boss_stun, launch, boss_launch, knockback |
+| `nova` | 자기 중심(또는 `at_target` 이면 바라보는 지점, range) 원형 / 부채꼴(`angle` < 360) 폭발. `delay` 동안 아군에게만 장판 표시 | melee | radius, angle, delay, knockback, pull, range, at_target |
+| `fissure` | 발밑에서 앞으로 퍼지는 직선 균열(speed 블록/초, 0 = 즉시). 지나간 자리에 trail 장판 | melee | length, width, speed, launch, boss_launch, trail_duration, trail_dps |
+| `missile` | fx 투사체 — 부채꼴(count·spread)·연사(interval)·중력·약유도·관통·착탄 폭발·끌어오기 | 무기마다 지정 | count, spread, interval, speed, gravity, homing, pierce, range, explode_radius, pull, boss_pull, knockback |
+| `beam` | 직선 광선. duration 0 = 즉발, > 0 = 채널(tick 마다). 광선에 닿은 아군은 `ally_heal`(최대 HP 비율) 회복 | magic | length, width, duration, tick, ally_heal, heal_power_scale, move_slow |
+| `chain_bolt` | 시선의 첫 적 → 가장 가까운 안 맞은 적으로 bounces 번 튐 (튈 때마다 falloff 감소) | magic | range, bounces, bounce_range, falloff |
+| `rain_zone` | 바라보는 지점(range)의 원 안에 duration 동안 tick 마다 타격 (연출 strikes 개) | 무기마다 지정 | range, radius, duration, tick, strikes, slow, pull |
+| `whirlwind` | duration 동안 회전 채널, tick 마다 주위 피해. 이동 가능(move_slow), 흡혈 | melee | duration, radius, tick, move_slow, pull, lifesteal |
+| `shadow_step` | 바라보는 적의 등 뒤로 순간이동해 일격 (대상 없으면 fallback_distance 만큼 전방 순간이동) | melee | range, back_bonus, guaranteed_crit, stealth(초), fallback_distance |
+| `empower` | 자기 강화 — `buff` 맵(버프 키 §11.7)을 duration 동안. `hp_cost` = 현재 HP 비율 소모 | — | duration, buff, hp_cost |
+| `sanctuary` | 바닥 장(자기 위치, range 있으면 바라보는 지점): tick 마다 아군 회복·적 피해/둔화, 시작 시 보호막·정화, 안의 아군에게 ally_buff | magic | range, radius, duration, tick, heal, heal_power_scale, shield, ally_buff, enemy_slow, cleanse |
+| `mend` | 즉발 광역 치유 — 주위 아군 회복(+치유력 × scale)·보호막·정화 | — | radius, heal, heal_power_scale, shield, cleanse |
+| `riposte` | 방어 자세 duration — 정면 angle 안의 피해를 reduction 만큼 줄이고 reflect 비율 반사. 끝나면 반격(counter_damage + 막은 횟수 × per_block) | melee | duration, reduction, angle, counter_radius, counter_damage, per_block, reflect |
+| `vortex` | 바라보는 지점(range)에 소용돌이 — duration 동안 끌어당김(pull_strength/tick)·tick 피해, 끝에 burst_damage | magic | range, radius, duration, pull_strength, tick, burst_damage |
+| `blade_orbit` | fx 오브젝트 count 개가 radius 로 공전, 닿는 적은 tick 마다 피해. `launch` 면 끝에 바라보는 방향으로 발사(launch_damage) | 무기마다 지정 | count, radius, duration, tick, launch, launch_damage |
+
+공통 키(모든 id): `damage`, `damage_type`, `fx`, `effect`, `amount`, `effect_duration`, `dot_ratio`, `taunt`, `sound`.
+heal / shield = 대상 최대 HP 비율(§4.1). 거리 = 블록, 시간 = 초. 처음 보는 키는 무시하되 서버 로그에 경고(ContentValidator).
+
+### 17.3 설계 규칙 (콘텐츠 작업자)
+- 무기 스킬은 **일부 상위 무기에만**: 영웅 18종 중 12종이 1개, 전설 18종이 1~3개, 신화 6종이 2~4개(4개는 천궁의 맹세수호검·공허의 심장 지팡이뿐).
+- **좌클릭 기본기는 5종뿐**(§11.12). 나머지 무기의 좌클릭은 평범한 공격이다(활의 LEFT 스킬은 쿨 6초 이상의 스킬).
+- 직업 스킬을 대체하지 않고 **무기 테마**를 보여 준다 — 닻 던지기, 혼불 궤도, 극광 띠, 자정의 일격, 사건의 지평선 …
+- 위력 기준: 쿨 6~16초 = 공격력 ×1.0~2.2 · 쿨 20~30초 = ×2.2~3.2 또는 유틸 · 오의(쿨 40~60초) = ×3.0~4.0 또는 강한 파티 버프.
+
+---
+
+## 18. PvP — 파티 대 파티 대전
+
+### 18.1 개요
+- 미궁 밖·미궁 안에서는 PvP 가 꺼져 있다. **매치 안에서만** 상대 팀을 공격할 수 있다(TargetFilter). 장비·아이템 손실 없음, 사망 = 그 라운드 관전.
+- 투기장 6종(`arenas.yml`)은 전부 오리지널 레이아웃 + 시간이 지나면 깨어나는 위험 요소. `labyrinth_world` 의 PvP 전용 슬롯에
+  매치마다 생성·정리한다(기존 지형·미궁 밖 블록 변경 0).
+- 보상은 **칭호·등급·전적뿐** — 골드·아이템·스탯 보상 없음 → 돈이나 장비로 살 수 있는 이점이 없다.
+
+### 18.2 매치 흐름
+1. **도전**: 파티장이 `/대전 도전 <상대 파티장>` → 상대 파티장이 60초 안에 `/대전 수락` 또는 `거절` (대전 메뉴 버튼도 가능).
+   **대기열**: `/대전 대기열 참가` — 팀 평균 레이팅 ±150 안에서 매칭, 20초마다 ±50 넓힘, 300초 뒤 제한 없음.
+   인원 차이가 `max_size_diff`(2)를 넘으면 매칭하지 않는다.
+2. **준비**: 두 팀 모두 미궁 인스턴스·다른 매치에 있지 않아야 한다. 팀원 = 참가 의사를 표시한 파티원(최소 Lv10, 1~5명).
+   투기장 = 큰 팀 인원이 `team_size` 안에 드는 것 중 `weight` 무작위(또는 `vote`: 두 팀장이 3개 중 고르기).
+3. **라운드** (best-of-3, `rounds_to_win` 2): 시작 지점 이동 → `prep_time` 10초(이동 가능·공격 불가, 시작 지점 장벽) → 전투 `round_time` 180초.
+   HP·MP·쿨다운·보호막·상태이상은 라운드마다 초기화. 위험 요소는 라운드 시작 기준 `start` 초에 깨어난다. 시작 3초 무적(`spawns.protect`).
+4. **사망 → 관전**: 치명상은 취소하고 관전 모드(투기장 위 자유 시점, 팀 채팅만). 부활의 성가는 PvP 에서 회복만(`revive: false`).
+5. **라운드 종료**: 한 팀 전멸. 180초가 지나면 **서든데스** — 안전 반경이 30초 동안 반경 4칸까지 줄어들고 밖은 초당 최대 HP 5%.
+   그래도 안 끝나면 남은 HP 비율 합이 높은 팀 승(`tiebreak: hp_percent`).
+6. **매치 종료**: 결과 타이틀·전적·레이팅 변동 표시 → 원래 위치로 귀환, 슬롯 정리. 라운드 중 이탈 = 그 라운드 사망, 매치 중 접속 종료 = 기권.
+   라운드 중 30초 무입력(AFK) = 그 라운드 사망.
+
+### 18.3 PvP 전용 밸런스 (`pvp.rules`, PvpRules)
+| 규칙 | 값 | 이유 |
+|---|---|---|
+| 플레이어 → 플레이어 피해 | ×0.6 | 몹 기준 수치 그대로면 순삭 |
+| 치유·흡혈 / 보호막 | ×0.7 / ×0.7 | 사제 팀이 무한히 버티지 않게 |
+| 제어기 지속시간 | ×0.6 + 같은 종류 기절·속박 후 4초 면역 | 연속 제어(스턴락) 방지 |
+| 넉백 | ×0.8 | 낭떠러지 투기장 즉사 방지 |
+| 처형 추가분 | ×0.5 | 그림자 처형 HP 30% 이하 2배 → 1.5배 |
+| 은신 | 피해를 받으면 해제 | |
+| 소모품 · 칭호 보너스 | 사용 불가 · 꺼짐 | 준비물·업적 격차 제거 |
+| 무기 스킬 | 사용 가능 | 전설·신화의 손맛은 유지 |
+| 인원 차 보정 | 적은 쪽 1명 차이당 최대 HP +15%, 주는 피해 +10% | `allow_uneven` 일 때만. 레이팅 변동은 절반 |
+| 장비 격차 완화 `gear.mode` | `soften`(기본): 장비로 얻은 파생 능력치를 참가자 평균 쪽으로 50% 당김 · `full`: 그대로 · `flat`: 장비 스탯 무시(레벨 기준 무기 피해·방어, §16.4) | 서버장이 선택 |
+- 투기장 위험 요소의 `*_pct` 피해는 방어 무시이며 `damage_mult` 를 받지 않는다.
+- 미궁의 파티 인원·난이도 배율은 PvP 에 적용하지 않는다. 몹·보스 전용 효과(도발 `taunt`)는 플레이어에게 무효.
+
+### 18.4 레이팅 · 등급 (RatingService)
+- **개인 레이팅**(Elo, 시작 1000). 기대 승률은 두 팀의 **평균 레이팅**으로 계산: E = 1 / (1 + 10^((상대 평균 − 우리 평균) / 400)).
+  변동 = K × (결과 − E), 승 1 · 패 0. K = 32, 처음 10판은 48, 인원이 다른 매치는 ×0.5. 하한 0.
+- "파티 레이팅" 표시 = 현재 팀원 평균. 칭호 `PVP_RATING` 은 **개인 레이팅** 기준.
+- 등급(탭·대전 메뉴, `pvp.rating.tiers`): 견습 투사(< 1150) · 청동 1150 · 은빛 1300 · 황금 1450 · 수정 1600 · 심연 1800.
+- 시즌: `/labadmin pvp season` → 새 레이팅 = 1000 + (기존 − 1000) × 0.5, 연승 초기화. 전적(승·패·최고 연승·최고 레이팅)은 보존.
+- `/대전 순위` = 레이팅 상위 10명, `/대전 전적 [플레이어]`.
+
+### 18.5 보상 (명예 전용)
+- 칭호 15종(`titles.yml` category `pvp`): 첫 승전보 · 승리 10/50/100/250 · 3/5/10 연승 · 레이팅 1150/1300/1450/1600/1800 ·
+  **서버 최초 대전 승리 팀** `pvp_server_first_win` · **서버 최초 레이팅 1600** `pvp_server_first_1600`
+  (`server_first: true` → `records.yml` 에 1회만 기록).
+- 대전 칭호는 전부 `bonus: {}` · `reward` 없음. 5연승부터 서버 방송(`pvp.rewards.broadcast_streak`).
+
+### 18.6 투기장 6종
+| id | 이름 | 레이아웃 | 인원 | 위험 요소 (발동) | 공략 포인트 |
+|---|---|---|---|---|---|
+| `sunken_colosseum` | 가라앉은 투기장 | `pillars_ring` — 링 위 기둥 8개, 2개마다 발판, 가운데 낮은 웅덩이 | 1~5 | `rising_water` 90초부터 15초마다 수위 +1(최대 2) — 잠긴 사람 35% 둔화·초당 2% | 발판 차지 ↔ 밀어내기 |
+| `ember_bridges` | 잿불 다리 | `bridges` — 용암 해자 위 다리 3개 + 중앙 연결로 | 2~5 | `ember_rain` 60초~(6초마다 원 r2.5, 8%) · `bridge_collapse` 120초(바깥 다리 붕괴) · 용암 접촉 25% + 안전 지대로 이동 | 좁은 길 넉백 싸움, 결국 중앙 다리 하나 |
+| `frost_tiers` | 서리 원형극장 | `tiers` — 3단 계단식 원형, 얼음 바닥 구덩이, 2단에 화로 4개 | 1~5 | `blizzard` 75초~(20초마다 6초간) — 화로 3칸 밖이면 2초마다 서리 1중첩 | 고지대 시야 vs 화로 자리 |
+| `crystal_maze` | 수정 미로 | `maze_lite` — 허리 높이 수정 벽 미로(매치마다 새 시드), 중앙 방 | 1~4 | `prism_beams` 60초~ 중앙 결정의 광선 2개 회전(초당 30°, 45초마다 +1), **벽에 막힘**, 0.5초마다 6% | 벽을 엄폐물로, 광선 피해 이동 |
+| `clockwork_altar` | 시계탑 제단 | `central_altar` — 시계판 바닥, 반경 4·높이 2 제단 + 경사로 4, 바깥 엄폐물 | 2~5 | `clock_hand` 90초~ 바닥 높이 시곗바늘 12초에 한 바퀴(15% + 넉백, **점프로 넘기**), 150초부터 역회전. **제단 점령**: 한 팀만 3초 서 있으면 10초간 피해·쿨감 +10% (재점령 20초) | 제단 쟁탈전 |
+| `abyss_rim` | 심연의 가장자리 | `floating_isles` — 공허 위 3×3 섬, 폭 2 다리 | 1~5 | `tile_collapse` 45초~ 20초마다 바깥 섬 하나 붕괴(3초 경고), 중앙 유지. 낙하 = 25% + 무작위 안전 섬 + 3초 받는 피해 +20% | 점점 좁아지는 전장 |
+
+- 레이아웃 키(닫힌 목록, ArenaService): `pillars_ring` · `bridges` · `tiers` · `maze_lite` · `central_altar` · `floating_isles`.
+- 위험 요소 키(닫힌 목록): `rising_water` · `ember_rain` · `bridge_collapse` · `blizzard` · `prism_beams` · `clock_hand` · `tile_collapse`
+  (+ 서든데스 `pvp.sudden_death`). 목표 키: `altar_control`. 경고 표시는 §8.1 도형과 fx 모델을 그대로 쓴다
+  (수면 `water_plane`, 광선 `prism_beam`, 바늘 `clock_hand`, 붕괴 `telegraph_tile`, 불씨 `telegraph_circle`).
+- 블록 팔레트는 실제 26.3 Material 만(arenas.yml). 용암은 투기장 슬롯 안에서만 쓰고, 바닐라 용암 피해는 취소하고 `lava_contact` 규칙으로 처리.
+
+### 18.7 명령어 (`/pvp` = `/대전`)
+`도전 <파티장>` · `수락` · `거절` · `대기열 참가|취소` · `순위` · `전적 [플레이어]` · `관전 [플레이어]`.
+관리자: `/labadmin pvp season` · `/labadmin pvp end <매치>` · `/labadmin pvp arena <id>`(다음 매치 투기장 고정, 테스트용).
