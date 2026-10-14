@@ -16,6 +16,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
 /**
@@ -84,6 +85,14 @@ public final class ClassesModule implements Module, Listener {
             }
         }
         if (missing == 0) Log.info("[직업] 직업 " + services.content().classes().size() + "종 · 스킬 구현 " + classService.registry().all().size() + "개 준비");
+    }
+
+    @EventHandler
+    public void onJoin(PlayerJoinEvent e) {
+        Player p = e.getPlayer();
+        Bukkit.getScheduler().runTaskLater(services.plugin(), () -> {
+            if (p.isOnline()) classService.ensureStarterWeapon(p);
+        }, 40L);
     }
 
     @EventHandler

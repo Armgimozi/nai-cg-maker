@@ -124,6 +124,12 @@ public final class LabyrinthClassService implements ClassService, SkillContext.H
      * 직업 스킬은 그 직업 무기를 들어야 나가므로, 직업을 처음 골랐을 때 가방에 그 직업 무기가 없으면 가장 낮은 등급 무기를 하나 준다.
      * 직업마다 한 번만 (PlayerData ext {@code class.starter.<직업>}).
      */
+    /** 접속할 때: 직업은 있는데 그 직업 무기가 없으면(예전 판에서 전직한 사람) 한 번 지급. */
+    public void ensureStarterWeapon(Player player) {
+        ClassDef def = classOf(player);
+        if (def != null) giveStarterWeapon(player, def);
+    }
+
     private void giveStarterWeapon(Player player, ClassDef def) {
         PlayerData d = services.data().get(player);
         String flag = "class.starter." + def.id();
