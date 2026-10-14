@@ -77,12 +77,35 @@ public final class GlyphHud {
      */
     public static Component compose(Map<String, Object> hudSection, double hp, double maxHp, double mp, double maxMp,
                                     double shield, int level, double xpRatio, long gold, List<String> status) {
+        return compose(hudSection, hp, maxHp, mp, maxMp, shield, level, xpRatio, gold, status, -1);
+    }
+
+    /**
+     * @param cast 시전 진행도 0~1 (cast_00..NN 글리프를 HUD 위 빈 띠 가운데에), 음수 = 시전 막대 없음
+     */
+    public static Component compose(Map<String, Object> hudSection, double hp, double maxHp, double mp, double maxMp,
+                                    double shield, int level, double xpRatio, long gold, List<String> status, double cast) {
         GlyphHud h = new GlyphHud(Services.get().content().glyphs(), hudSection == null ? Map.of() : hudSection);
-        return h.build(hp, maxHp, mp, maxMp, shield, level, xpRatio, gold, status);
+        return h.build(hp, maxHp, mp, maxMp, shield, level, xpRatio, gold, status, cast);
+    }
+
+    /** HUD 전체 폭 (glyphs.yml hud.total, 기본 182 = 핫바 폭). */
+    public static int total(Map<String, Object> hudSection) {
+        return num(hudSection == null ? Map.of() : hudSection, "total", 182);
+    }
+
+    /** 시전 막대 글리프 id (cast_00..cast_NN 중 진행도에 맞는 것, 없으면 null). */
+    static String castGlyph(Map<String, GlyphDef> glyphs, double ratio) {
+        if (!glyphs.containsKey("cast_00")) return null;
+        int max = 0;
+        while (glyphs.containsKey(String.format("cast_%02d", max + 1)) && max < 99) max++;
+        if (max == 0) return "cast_00";
+        int n = Double.isNaN(ratio) ? 0 : (int) Math.floor(Math.max(0, Math.min(1, ratio)) * max + 1e-9);
+        return String.format("cast_%02d", n);
     }
 
     private Component build(double hp, double maxHp, double mp, double maxMp, double shield, int level, double xpRatio,
-                            long gold, List<String> status) {
+                            long gold, List<String> status, double cast) {
         double hpRatio = maxHp <= 0 ? 0 : hp / maxHp;
         double mpRatio = maxMp <= 0 ? 0 : mp / maxMp;
         // draw_order: xp, hp, (shield), mp, badge, hp_text, mp_text, level_text, status, gold
@@ -114,6 +137,10 @@ public final class GlyphHud {
             int gx = goldRight - w;
             put(gx, "hud_gold");
             digits(gx + advance("hud_gold"), g, "gold_num_", TextColor.color(0xffd36b));
+        }
+        if (cast >= 0) {
+            String cg = castGlyph(glyphs, cast);
+            if (cg != null) put(total / 2 - (advance(cg) - 1) / 2, cg);
         }
         if (total != pen) out = out.append(Glyphs.space(total - pen));
         return out.shadowColor(NO_SHADOW);

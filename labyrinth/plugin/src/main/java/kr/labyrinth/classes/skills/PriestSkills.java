@@ -117,6 +117,7 @@ public final class PriestSkills {
                         || c.services().effects().isStunned(p) || c.services().effects().isSilenced(p)
                         || (interruptOnDamage && c.services().stats().currentHp(p) < hp0 - 0.5);
                 if (broken) {
+                    c.services().hud().clearCast(p);
                     SkillFx.remove(pillar);
                     c.services().effects().removeBuff(p, "resurrection_hymn");
                     c.cancelCast(true, 10);
@@ -127,7 +128,7 @@ public final class PriestSkills {
                 double prog = (double) step / (ticks / 2.0);
                 SkillFx.circle(p.getLocation().add(0, 0.1 + prog * 2.4, 0), 1.2 - prog * 0.6, 12, Particle.END_ROD, null);
                 if (step % 5 == 0) SkillFx.sound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 0.7f, 0.8f + (float) prog);
-                c.services().hud().actionBar(p, Text.mm("<#ffe58a>♪ 부활의 성가 " + progressBar(prog)), 6);
+                c.services().hud().castBar(p, Text.mm("<#ffe58a>♪ 부활의 성가"), prog, 6);
                 if (step * 2 >= ticks) {
                     finish(c, p, pillar);
                     return false;
@@ -139,6 +140,7 @@ public final class PriestSkills {
 
         private static void finish(SkillContext c, Player p, ItemDisplay pillar) {
             c.endChannel();
+            c.services().hud().clearCast(p);
             SkillFx.remove(pillar);
             c.services().effects().removeBuff(p, "resurrection_hymn");
             Location at = p.getLocation();
@@ -161,9 +163,5 @@ public final class PriestSkills {
                     : "<#ffe58a>성가가 <white>" + revived.size() + "</white>명의 동료를 일으켰습니다!");
         }
 
-        private static String progressBar(double prog) {
-            int n = (int) Math.round(Math.max(0, Math.min(1, prog)) * 20);
-            return "<white>" + "▌".repeat(n) + "<dark_gray>" + "▌".repeat(20 - n);
-        }
     }
 }

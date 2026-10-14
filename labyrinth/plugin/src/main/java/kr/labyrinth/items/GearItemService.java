@@ -87,6 +87,8 @@ public final class GearItemService implements ItemService {
         s.setData(DataComponentTypes.MAX_STACK_SIZE, max);
         s.setData(DataComponentTypes.ITEM_MODEL, Key.key(Keys.NS, def.id()));
         s.setData(DataComponentTypes.ITEM_NAME, Text.item("<" + def.rarity().color() + ">" + def.name()));
+        // 등급별 툴팁 테두리 (리소스팩 labyrinth:tooltip/<등급>_background·_frame)
+        s.setData(DataComponentTypes.TOOLTIP_STYLE, Key.key(Keys.NS, def.rarity().id()));
 
         Map<String, Double> rolls = def.isGear() ? ItemRolls.roll(def, seed) : null;
         List<String> lore = ItemTooltip.lines(services.content(), def, rolls);

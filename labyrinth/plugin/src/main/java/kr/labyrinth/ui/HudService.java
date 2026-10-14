@@ -16,8 +16,25 @@ public interface HudService {
 
     void hideBossBar(Player player, String key);
 
-    /** 기본 HUD 대신 ticks 동안 이 액션바를 보여 준다 (시전 바·경고 문구 등). */
+    /**
+     * ticks 동안 이 안내 글을 액션바에 보여 준다 (경고 문구·스킬 안내 등). 미궁 HUD 구현은 HUD 를 지우지 않고
+     * 글을 HUD 바 위 가운데에 함께 그린다. 진행 막대가 필요하면 글에 ▮ 를 넣지 말고 {@link #castBar} 를 쓸 것.
+     */
     void actionBar(Player player, Component text, int ticks);
+
+    /**
+     * 시전 막대 (귀환 주문서·부활의 성가처럼 시간이 걸리는 행동): label 은 HUD 위 글줄, 막대는 그 아래 HUD 안 작은 막대.
+     * 진행될 때마다(2~4틱) 다시 부른다. 기본 구현은 글 + ▮ 텍스트 막대.
+     * @param progress 0~1
+     */
+    default void castBar(Player player, Component label, double progress, int ticks) {
+        int n = (int) Math.round(Math.max(0, Math.min(1, progress)) * 20);
+        actionBar(player, (label == null ? Component.empty() : label)
+                .append(kr.labyrinth.core.Text.mm(" <white>" + "▮".repeat(n) + "<dark_gray>" + "▯".repeat(20 - n))), ticks);
+    }
+
+    /** 시전 막대를 바로 지운다 (취소·완료). */
+    default void clearCast(Player player) {}
 
     /** 값이 바뀌었으니 다음 틱에 다시 그리라는 힌트 (HP/MP/골드 변화). */
     void refresh(Player player);

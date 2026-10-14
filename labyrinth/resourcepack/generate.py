@@ -27,6 +27,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 
 from src import equipment, fx_extra, fx_models, items, mobs, npc_skins, pack, render, ui, validate  # noqa: E402
+from src import vanilla_gui  # noqa: E402
 from src.materials import Look  # noqa: E402
 from src.util import stable_seed  # noqa: E402
 
@@ -267,6 +268,12 @@ def build_ui(ctx: Ctx):
         ctx.add(hud + f + '.png', blank)
     for f in ('experience_bar_background', 'experience_bar_progress'):
         ctx.add(hud + f + '.png', xp_blank)
+    # 바닐라 화면 테마 (핫바·십자선·보스바·툴팁·상자·인벤토리·작업대·화로·버튼…) + 등급별 툴팁 (src/vanilla_gui.py)
+    vfiles, vimgs = vanilla_gui.build()
+    for p, b in vfiles.items():
+        ctx.add(p, b)
+    ctx.ui_info['vanilla'] = vimgs
+    ctx.stats['vanilla_gui'] = len(vimgs)
 
 
 BUILDERS = [build_core, build_items, build_equipment, build_weapon_fx, build_fx_extra, build_mobs, build_npcs,
@@ -326,6 +333,10 @@ def write_previews(ctx: Ctx):
         doc = ctx.content.get('glyphs') or {}
         rows = {f'gui_{k}': (v or {}).get('rows', 6) for k, v in (doc.get('menus') or {}).items()}
         ui.preview(ctx.ui_info, rows, doc.get('hud') or {}, os.path.join(ctx.out_dir, 'preview_ui.png'))
+        if ctx.ui_info.get('vanilla'):
+            hud_img = ui.hud_mock_live(ctx.ui_info, doc.get('hud') or {}, ctx.ui_info['vanilla'])
+            vanilla_gui.preview_screens(ctx.ui_info['vanilla'], hud_img).convert('RGB').save(
+                os.path.join(ctx.out_dir, 'preview_vanilla_gui.png'))
     if ctx.anim_previews:
         nmax = max(len(fr) for (_, _, _, fr) in ctx.anim_previews)
         per = [[render.render(m, uv, fr, m.display['gui'], ppu=5) for fr in frames]

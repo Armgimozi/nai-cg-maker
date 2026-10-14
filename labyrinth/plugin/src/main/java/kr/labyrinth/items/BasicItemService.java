@@ -43,6 +43,7 @@ public class BasicItemService implements ItemService {
         ItemStack stack = ItemStack.of(Material.PAPER, Math.max(1, Math.min(99, amount)));
         stack.setData(DataComponentTypes.ITEM_MODEL, Key.key(Keys.NS, id));
         stack.setData(DataComponentTypes.ITEM_NAME, Text.mm("<" + def.rarity().color() + ">" + def.name()));
+        stack.setData(DataComponentTypes.TOOLTIP_STYLE, Key.key(Keys.NS, def.rarity().id()));
         List<String> lore = new ArrayList<>();
         lore.add("<" + def.rarity().color() + ">" + def.rarity().displayName() + " <gray>· Lv." + def.levelReq());
         if (def.lore() != null && !def.lore().isBlank()) lore.add("<dark_gray>" + Text.escape(def.lore()));

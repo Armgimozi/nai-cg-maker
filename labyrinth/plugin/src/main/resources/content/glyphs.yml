@@ -62,6 +62,49 @@ glyphs:
   gui_confirm: {char: "\uE00B", file: gui/confirm.png, ascent: 13, height: 168, advance: 177}
   gui_generic_6: {char: "\uE00C", file: gui/generic_6.png, ascent: 13, height: 222, advance: 177}
   gui_generic_3: {char: "\uE00D", file: gui/generic_3.png, ascent: 13, height: 168, advance: 177}
+  # ── 범용 배경(모든 칸 소켓) 1·2·4·5줄 — 3·6줄은 위 ──
+  gui_generic_5: {char: "\uE00E", file: gui/generic_5.png, ascent: 13, height: 204, advance: 177}
+  gui_generic_4: {char: "\uE00F", file: gui/generic_4.png, ascent: 13, height: 186, advance: 177}
+  gui_generic_2: {char: "\uE010", file: gui/generic_2.png, ascent: 13, height: 150, advance: 177}
+  gui_generic_1: {char: "\uE011", file: gui/generic_1.png, ascent: 13, height: 132, advance: 177}
+  # ── 동적 메뉴 판 1~6줄 (예비 — 아직 플러그인이 쓰지 않음): 소켓 없는 바탕 + 아이템이 놓인 칸에만
+  #    gui_sock_<줄>(장식)·gui_btn_<줄>(버튼)을 제목에 덧그리고 오른쪽 위에 gui_emblem_<이름> 을 얹는 방식.
+  #    지금은 모든 메뉴가 UiTheme.background → 전용 배경 또는 같은 줄 수의 gui_generic_<줄> 을 쓴다. ──
+  gui_panel_1: {char: "\uE020", file: gui/panel_1.png, ascent: 13, height: 132, advance: 177}
+  gui_panel_2: {char: "\uE021", file: gui/panel_2.png, ascent: 13, height: 150, advance: 177}
+  gui_panel_3: {char: "\uE022", file: gui/panel_3.png, ascent: 13, height: 168, advance: 177}
+  gui_panel_4: {char: "\uE023", file: gui/panel_4.png, ascent: 13, height: 186, advance: 177}
+  gui_panel_5: {char: "\uE024", file: gui/panel_5.png, ascent: 13, height: 204, advance: 177}
+  gui_panel_6: {char: "\uE025", file: gui/panel_6.png, ascent: 13, height: 222, advance: 177}
+  # 소켓 18×18: 윗변 y = 17 + 18·줄 (ascent = −4 − 18·줄), 가로는 제목 펜 기준 −1 + 18·열
+  gui_sock_0: {char: "\uE030", file: gui/sock.png, ascent: -4, height: 18, advance: 19}
+  gui_sock_1: {char: "\uE031", file: gui/sock.png, ascent: -22, height: 18, advance: 19}
+  gui_sock_2: {char: "\uE032", file: gui/sock.png, ascent: -40, height: 18, advance: 19}
+  gui_sock_3: {char: "\uE033", file: gui/sock.png, ascent: -58, height: 18, advance: 19}
+  gui_sock_4: {char: "\uE034", file: gui/sock.png, ascent: -76, height: 18, advance: 19}
+  gui_sock_5: {char: "\uE035", file: gui/sock.png, ascent: -94, height: 18, advance: 19}
+  gui_btn_0: {char: "\uE038", file: gui/sock_button.png, ascent: -4, height: 18, advance: 19}
+  gui_btn_1: {char: "\uE039", file: gui/sock_button.png, ascent: -22, height: 18, advance: 19}
+  gui_btn_2: {char: "\uE03A", file: gui/sock_button.png, ascent: -40, height: 18, advance: 19}
+  gui_btn_3: {char: "\uE03B", file: gui/sock_button.png, ascent: -58, height: 18, advance: 19}
+  gui_btn_4: {char: "\uE03C", file: gui/sock_button.png, ascent: -76, height: 18, advance: 19}
+  gui_btn_5: {char: "\uE03D", file: gui/sock_button.png, ascent: -94, height: 18, advance: 19}
+  # 메뉴 문장 11×11 — 창 (158, 4) (제목 펜 기준 x 150)
+  gui_emblem_maze: {char: "\uE040", file: gui/emblem_maze.png, ascent: 9, height: 11, advance: 12}
+  gui_emblem_stats: {char: "\uE041", file: gui/emblem_stats.png, ascent: 9, height: 11, advance: 12}
+  gui_emblem_class: {char: "\uE042", file: gui/emblem_class.png, ascent: 9, height: 11, advance: 12}
+  gui_emblem_party: {char: "\uE043", file: gui/emblem_party.png, ascent: 9, height: 11, advance: 12}
+  gui_emblem_setup: {char: "\uE044", file: gui/emblem_setup.png, ascent: 9, height: 11, advance: 12}
+  gui_emblem_entrance: {char: "\uE045", file: gui/emblem_entrance.png, ascent: 9, height: 11, advance: 12}
+  gui_emblem_blacksmith: {char: "\uE046", file: gui/emblem_blacksmith.png, ascent: 9, height: 11, advance: 12}
+  gui_emblem_titles: {char: "\uE047", file: gui/emblem_titles.png, ascent: 9, height: 11, advance: 12}
+  gui_emblem_accessories: {char: "\uE048", file: gui/emblem_accessories.png, ascent: 9, height: 11, advance: 12}
+  gui_emblem_merchant: {char: "\uE049", file: gui/emblem_merchant.png, ascent: 9, height: 11, advance: 12}
+  gui_emblem_pvp: {char: "\uE04A", file: gui/emblem_pvp.png, ascent: 9, height: 11, advance: 12}
+  gui_emblem_confirm: {char: "\uE04B", file: gui/emblem_confirm.png, ascent: 9, height: 11, advance: 12}
+  gui_emblem_generic: {char: "\uE04C", file: gui/emblem_generic.png, ascent: 9, height: 11, advance: 12}
+  gui_emblem_codex: {char: "\uE04D", file: gui/emblem_codex.png, ascent: 9, height: 11, advance: 12}
+  gui_emblem_records: {char: "\uE04E", file: gui/emblem_records.png, ascent: 9, height: 11, advance: 12}
   # ── HUD 액션바: HP/MP/보호막 바 21단계(0~20) · 경험치 · 레벨 배지 · 골드 · 숫자 ──
   hud_hp_00: {char: "\uE100", file: hud/hp_00.png, ascent: -26, height: 9, advance: 83}
   hud_hp_01: {char: "\uE101", file: hud/hp_01.png, ascent: -26, height: 9, advance: 83}
@@ -147,6 +190,18 @@ glyphs:
   hud_xp_18: {char: "\uE172", file: hud/xp_18.png, ascent: -37, height: 3, advance: 183}
   hud_xp_19: {char: "\uE173", file: hud/xp_19.png, ascent: -37, height: 3, advance: 183}
   hud_xp_20: {char: "\uE174", file: hud/xp_20.png, ascent: -37, height: 3, advance: 183}
+  # ── 시전 막대 64×7 (cast_00..10): 액션바 안내 글 바로 아래, HUD 위 빈 띠 (화면 아래 −61..−55) ──
+  cast_00: {char: "\uE190", file: hud/cast_00.png, ascent: -4, height: 7, advance: 65}
+  cast_01: {char: "\uE191", file: hud/cast_01.png, ascent: -4, height: 7, advance: 65}
+  cast_02: {char: "\uE192", file: hud/cast_02.png, ascent: -4, height: 7, advance: 65}
+  cast_03: {char: "\uE193", file: hud/cast_03.png, ascent: -4, height: 7, advance: 65}
+  cast_04: {char: "\uE194", file: hud/cast_04.png, ascent: -4, height: 7, advance: 65}
+  cast_05: {char: "\uE195", file: hud/cast_05.png, ascent: -4, height: 7, advance: 65}
+  cast_06: {char: "\uE196", file: hud/cast_06.png, ascent: -4, height: 7, advance: 65}
+  cast_07: {char: "\uE197", file: hud/cast_07.png, ascent: -4, height: 7, advance: 65}
+  cast_08: {char: "\uE198", file: hud/cast_08.png, ascent: -4, height: 7, advance: 65}
+  cast_09: {char: "\uE199", file: hud/cast_09.png, ascent: -4, height: 7, advance: 65}
+  cast_10: {char: "\uE19A", file: hud/cast_10.png, ascent: -4, height: 7, advance: 65}
   hud_level_badge: {char: "\uE180", file: hud/level_badge.png, ascent: -23, height: 16, advance: 19}
   hud_gold: {char: "\uE181", file: hud/gold.png, ascent: -13, height: 11, advance: 10}
   hud_num_0: {char: "\uE200", file: hud/digit_0.png, ascent: -27, height: 7, advance: 7}
@@ -420,6 +475,53 @@ menus:
     title_color: "#f3e3bd"
     slots:
       all: "0..26"
+  generic_1:
+    glyph: gui_generic_1
+    rows: 1
+    title: "(범용 1줄)"
+    title_color: "#f3e3bd"
+    slots:
+      all: "0..8"
+  generic_2:
+    glyph: gui_generic_2
+    rows: 2
+    title: "(범용 2줄)"
+    title_color: "#f3e3bd"
+    slots:
+      all: "0..17"
+  generic_4:
+    glyph: gui_generic_4
+    rows: 4
+    title: "(범용 4줄)"
+    title_color: "#f3e3bd"
+    slots:
+      all: "0..35"
+  generic_5:
+    glyph: gui_generic_5
+    rows: 5
+    title: "(범용 5줄)"
+    title_color: "#f3e3bd"
+    slots:
+      all: "0..44"
+
+# ── 동적 메뉴 판 문장 (예비, 위 gui_panel_* 참고): 메뉴 id → gui_emblem_<값>. 없으면 generic. ──
+menu_emblems:
+  main: maze
+  stats: stats
+  class_detail: class
+  party: party
+  players: party
+  entrance: entrance
+  titles: titles
+  accessories: accessories
+  merchant: merchant
+  pvp: pvp
+  pvp_ranking: records
+  records: records
+  codex: codex
+  confirm: confirm
+  blacksmith: blacksmith
+  setup: setup
 
 # ── HUD 배치 (x = 핫바 왼쪽 끝 기준 px, 전체 폭 total 로 맞출 것) ──
 hud:
