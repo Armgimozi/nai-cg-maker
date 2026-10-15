@@ -14,6 +14,7 @@ import kr.labyrinth.content.Content;
 import kr.labyrinth.content.IntRange;
 import kr.labyrinth.content.ItemDef;
 import kr.labyrinth.content.LootTable;
+import kr.labyrinth.content.MobDef;
 import kr.labyrinth.content.Rarity;
 import kr.labyrinth.core.ContentLoader;
 import kr.labyrinth.core.ContentValidator;
@@ -150,6 +151,17 @@ class LootRollerTest {
         assertTrue(all.contains("items.oak_round_shield: 획득처가 3곳 (정예·보스·제작)"), all);
         assertTrue(all.contains("items.oak_round_shield: sources [elite, craft] 가 실제 획득처 [boss, craft, elite] 와 다름"), all);
         assertTrue(all.contains("items.novice_cap: 시작 지급 장비인데 몬스터·상자에서도 나옴"), all);
+
+        // (e) 일반 몹 drops 를 보스 표로 — 한 표를 몹·보스가 같이 쓰면 두 집이 모두 잡힌다 (나중에 묶은 보스만 남지 않게)
+        Map<String, MobDef> mobs = new HashMap<>(c.mobs());
+        MobDef m = mobs.get("capcap");
+        mobs.put("capcap", new MobDef(m.id(), m.name(), m.description(), m.floor(), m.rank(), m.base(), m.scale(), m.hp(), m.damage(),
+                m.defense(), m.speed(), m.xp(), m.gold(), m.ai(), m.skills(), "floor03_boss", m.flying(), m.sounds(), m.model(), m.raw()));
+        Content shared = new Content(c.classes(), c.items(), c.sets(), Map.copyOf(mobs), c.bosses(), c.floors(), c.lootTables(), c.lootSettings(),
+                c.recipes(), c.achievements(), c.npcs(), c.auras(), c.fxModels(), c.glyphs(), c.spaces());
+        String sw = String.join("\n", ContentValidator.validate(shared).warnings());
+        assertTrue(sw.contains("items.mycelking_guard_blade: 획득처가 3곳 (몬스터·상자·보스·제작)"), sw);
+        assertTrue(sw.contains("items.mycelking_guard_blade: sources [boss, craft] 가 실제 획득처 [boss, craft, drop] 와 다름"), sw);
     }
 
     private static LootTable.Entry item(String id) {

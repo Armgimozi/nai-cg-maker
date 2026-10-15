@@ -24,6 +24,7 @@ import kr.labyrinth.content.Rarity;
 import kr.labyrinth.content.RecipeDef;
 import kr.labyrinth.core.Keys;
 import kr.labyrinth.core.Text;
+import kr.labyrinth.dungeon.treasure.ChestSettings;
 import kr.labyrinth.dungeon.treasure.ChestTier;
 import kr.labyrinth.items.ItemTooltip;
 import kr.labyrinth.ui.Button;
@@ -325,10 +326,12 @@ public final class CodexMenu extends LabMenu {
                 tableLabels.computeIfAbsent(tid, k -> new ArrayList<>()).add(new Src("기믹 방", tid.substring(14)));
             }
         }
-        // 미로 상자 층별 표 (maze_chest_<tier>_f<층>) — 보물 상자 묶음에 층으로
+        // 미로 상자 — Treasures·검사기와 같은 규칙으로 실제로 굴리는 표 (층별 maze_chest_<tier>_f<층>, floors.yml
+        // chests.bracket 강제거나 층별 표가 없으면 구간 표) 를 보물 상자 묶음에 층으로
         for (FloorDef f : c.floors().values()) {
+            int bracket = ChestSettings.of(f.raw().sub("chests")).bracket();
             for (ChestTier tier : ChestTier.values()) {
-                String tid = tier.floorTable(f.number());
+                String tid = tier.table(f.number(), bracket, c.lootTables()::containsKey);
                 if (c.lootTables().containsKey(tid)) {
                     tableLabels.computeIfAbsent(tid, k -> new ArrayList<>()).add(new Src("보물 상자", String.valueOf(f.number())));
                 }

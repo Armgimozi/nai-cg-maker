@@ -7,11 +7,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import kr.labyrinth.content.BossDef;
 import kr.labyrinth.content.Content;
+import kr.labyrinth.content.IntRange;
 import kr.labyrinth.content.ItemDef;
+import kr.labyrinth.content.LootTable;
 import kr.labyrinth.content.MobDef;
 import kr.labyrinth.core.ContentLoader;
 import kr.labyrinth.core.Text;
@@ -127,6 +130,28 @@ class TooltipFitTest {
             if (d.sources().contains("starter")) assertTrue(s.size() == 1 && s.get(0).contains("시작 지급"), d.id() + ": " + all);
             if (d.sources().contains("boss")) assertTrue(all.contains(ItemTooltip.bossShortName(content.bossOfFloor(d.floor())) + "(" + d.floor() + "층)"), d.id() + ": " + all);
         }
+    }
+
+    @Test
+    void codexShowsChestTableTreasuresActuallyRolls() {
+        // 구간 표(maze_chest_wood_1)에 3층 보스 무기를 넣어 본다 — 층별 표가 있으면 구간 표는 굴리지 않으므로 도감에도 없다
+        Map<String, LootTable> tables = new HashMap<>(content.lootTables());
+        LootTable b1 = tables.get("maze_chest_wood_1");
+        List<LootTable.Entry> entries = new ArrayList<>(b1.entries());
+        entries.add(new LootTable.Entry(LootTable.Kind.ITEM, "mycelking_guard_blade", null, 0, List.of(), null, 0.01, IntRange.ONE, null));
+        tables.put("maze_chest_wood_1", new LootTable(b1.id(), b1.rolls(), entries, b1.guaranteed(), b1.gold()));
+        String blade = String.join("\n", CodexMenu.buildSources(with(tables)).get("mycelking_guard_blade"));
+        assertFalse(blade.contains("보물 상자"), blade);
+        // 3층 층별 나무 상자 표가 없으면 Treasures 는 구간 표를 굴린다 — 도감도 그 표를 "보물 상자 지하 3층"으로
+        tables.remove("maze_chest_wood_f3");
+        blade = String.join("\n", CodexMenu.buildSources(with(tables)).get("mycelking_guard_blade"));
+        assertTrue(blade.contains("보물 상자") && blade.contains("지하 3층") && !blade.contains("지하 1") && !blade.contains("2층"), blade);
+    }
+
+    private static Content with(Map<String, LootTable> tables) {
+        Content c = content;
+        return new Content(c.classes(), c.items(), c.sets(), c.mobs(), c.bosses(), c.floors(), Map.copyOf(tables), c.lootSettings(),
+                c.recipes(), c.achievements(), c.npcs(), c.auras(), c.fxModels(), c.glyphs(), c.spaces());
     }
 
     @Test

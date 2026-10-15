@@ -120,6 +120,10 @@ final class BlacksmithMenu extends Menu {
             click(viewer);
             refresh();
         });
+        // 47 = 제작 안내 (텍스처에 그려진 버튼 자리 — 예전 직업 필터 자리라 비워 두지 않는다)
+        deco(47, Button.icon(Material.BOOK, "<#f3e3bd>제작 안내",
+                List.of("<gray>레시피를 클릭하면 바로 제작합니다.",
+                        "<gray>모자란 재료·골드·레벨은 <#ff6b6b>빨강</#ff6b6b>으로 표시됩니다.")));
         double disc = services.stats().get(viewer).craftDiscount();
         deco(49, Button.icon(Material.GOLD_NUGGET, "<#ffd27a>보유 골드 " + Text.num(d.gold()),
                 List.of("<gray>레벨 " + d.level() + (disc > 0 ? " · 제작 할인 " + Text.pct(Math.min(RecipeCheck.MAX_DISCOUNT, disc)) : ""),

@@ -396,17 +396,24 @@ public final class ContentValidator {
             "craft", "제작", "reward", "칭호 보상", "shop", "상점", "starter", "시작 지급");
 
     /**
-     * 층에 묶인 테이블(몹·정예·보스·보물방·기믹방·미로 상자)을 펼쳐 (a) 다른 층 장비, (b) 집이 3곳 이상인 장비,
-     * (c) items.yml sources(툴팁·도감 표시)가 실제와 다른 장비, (d) 루팅·제작에도 나오는 시작 지급 장비를 경고한다.
+     * 층에 묶인 테이블 하나 — 집(common·elite·boss), items.yml sources 꼬리표(drop·chest·elite·boss), 층(-1 = 여러 층이 같이 씀).
+     * 한 테이블을 몹·보스·상자가 같이 쓰면 집·꼬리표를 모두 모은다 (나중에 묶은 쪽만 남지 않게).
      */
-    /** 층에 묶인 테이블 하나 — 집(common·elite·boss), items.yml sources 꼬리표(drop·chest·elite·boss), 층(-1 = 여러 층이 같이 씀). */
-    private record FloorTable(String home, String tag, int floor) {}
+    private record FloorTable(Set<String> homes, Set<String> tags, int floor) {}
 
     private static void bind(Map<String, FloorTable> out, String table, String home, String tag, int floor) {
         FloorTable prev = out.get(table);
-        out.put(table, new FloorTable(home, tag, prev != null && prev.floor() != floor ? -1 : floor));
+        FloorTable ft = prev == null ? new FloorTable(new HashSet<>(), new HashSet<>(), floor)
+                : prev.floor() == floor ? prev : new FloorTable(prev.homes(), prev.tags(), -1);
+        ft.homes().add(home);
+        ft.tags().add(tag);
+        out.put(table, ft);
     }
 
+    /**
+     * 층에 묶인 테이블(몹·정예·보스·보물방·기믹방·미로 상자)을 펼쳐 (a) 다른 층 장비, (b) 집이 3곳 이상인 장비,
+     * (c) items.yml sources(툴팁·도감 표시)가 실제와 다른 장비, (d) 루팅·제작에도 나오는 시작 지급 장비를 경고한다.
+     */
     private void gearHomes() {
         Map<String, FloorTable> bound = new LinkedHashMap<>();
         for (MobDef m : c.mobs().values()) {
@@ -430,8 +437,8 @@ public final class ContentValidator {
             for (String id : expand(t)) {
                 ItemDef d = c.item(id);
                 if (d == null || !d.isGear()) continue;
-                homes.computeIfAbsent(id, k -> new HashSet<>()).add(ft.home());
-                tags.computeIfAbsent(id, k -> new HashSet<>()).add(ft.tag());
+                homes.computeIfAbsent(id, k -> new HashSet<>()).addAll(ft.homes());
+                tags.computeIfAbsent(id, k -> new HashSet<>()).addAll(ft.tags());
                 if (ft.floor() == -1 || (ft.floor() > 0 && d.floor() != ft.floor())) leaks.add(id + "(" + d.floor() + "층)");
             }
             if (!leaks.isEmpty()) {
