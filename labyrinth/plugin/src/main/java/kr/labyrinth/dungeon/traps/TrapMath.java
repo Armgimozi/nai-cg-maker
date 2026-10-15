@@ -34,6 +34,16 @@ public final class TrapMath {
         return Math.max(1, Math.round(base * Math.max(1, floor) * Math.max(0, goldMult)));
     }
 
+    /**
+     * 물살이 밀어낼 쪽 (복도 방향 along 축 위 +1 / −1) = 들어온 쪽. entry = 들어오기 직전 자리를 함정 가운데 기준 along 축에
+     * 투영한 값 (기록 없으면 NaN), facing = 바라보는 방향의 along 축 성분 — 기록이 없으면 바라보는 반대쪽에서 왔다고 본다. 둘 다 0 이면 +1.
+     */
+    public static int pushSide(double entry, double facing) {
+        if (entry > 1e-3) return 1;
+        if (entry < -1e-3) return -1;
+        return facing > 1e-3 ? -1 : 1;
+    }
+
     /** 주기 함정의 현재 박자: 0 = 쉼, 1 = 경고, 2 = 발동. cycle 틱 주기의 끝 burst 틱이 발동, 그 앞 warn 틱이 경고. */
     public static int beat(long t, int phase, int cycle, int warn, int burst) {
         int local = (int) Math.floorMod(t + phase, (long) cycle);

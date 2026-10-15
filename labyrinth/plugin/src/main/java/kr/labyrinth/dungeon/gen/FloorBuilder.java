@@ -287,6 +287,8 @@ public final class FloorBuilder {
                 int e = layout.elevation(x, z);
                 // 막다른 길 끝 칸·비밀방 바닥은 비워 둔다 (상자 자리)
                 boolean clearFloor = keepClear.contains(FloorLayout.pack(x, z)) || layout.secretRoomAt(x, z) >= 0;
+                // 1칸 폭·낮은 통로: 비켜 갈 수 없어 바닥·벽·모서리 장식(+ 매달린 등불)에 길이 막힌다 → 천장 장식만
+                boolean tight = !roomToPass(layout, x, z);
                 int walls = 0;
                 boolean wallNS = false, wallEW = false;
                 BlockFace wallDir = null;
@@ -304,6 +306,7 @@ public final class FloorBuilder {
                     Material m = Material.matchMaterial(p.str("block", ""));
                     if (m == null || !m.isBlock()) continue;
                     String where = p.str("where", "floor");
+                    if (tight && !"ceiling".equals(where)) continue;
                     switch (where) {
                         case "floor" -> {
                             if (region == bossIdx || clearFloor) continue;
@@ -332,6 +335,33 @@ public final class FloorBuilder {
                 }
             }
         }
+    }
+
+    private static final int[][] RING = {{0, -1}, {1, -1}, {1, 0}, {1, 1}, {0, 1}, {-1, 1}, {-1, 0}, {-1, -1}};
+
+    /**
+     * 이 칸 걷는 공간(바닥 위 두 칸)에 장식 블록 하나가 놓여도 옆으로 비켜 지나갈 수 있는가 (순수 판정 — 단위 테스트용).
+     * 아니면: 내부 높이 3 이하(좁은 통로 — 장식을 밟고 오르면 머리가 매달린 등불·천장에 걸림) 이거나, 이 칸을 빼면 맞닿은(4방향)
+     * 바닥끼리 둘레 8칸으로 이어지지 않는 칸 (1칸 폭 통로·그 꺾임·갈림·입구).
+     */
+    public static boolean roomToPass(FloorLayout layout, int x, int z) {
+        if (layout.height(x, z) <= 3) return false;
+        int start = -1;
+        for (int i = 0; i < 8 && start < 0; i++) if (!layout.walkable(x + RING[i][0], z + RING[i][1])) start = i;
+        if (start < 0) return true; // 둘레가 모두 바닥
+        // 둘레를 한 바퀴 돌며 이어진 바닥 덩어리 중 맞닿은 바닥(짝수 번째)을 품은 덩어리 수
+        int groups = 0;
+        boolean side = false;
+        for (int k = 1; k <= 8; k++) {
+            int i = (start + k) % 8;
+            if (layout.walkable(x + RING[i][0], z + RING[i][1])) {
+                if (i % 2 == 0) side = true;
+            } else {
+                if (side) groups++;
+                side = false;
+            }
+        }
+        return groups <= 1;
     }
 
     private boolean nearDoor(int x, int z) {

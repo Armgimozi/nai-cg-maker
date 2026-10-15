@@ -271,6 +271,13 @@ class TrapsAndTreasureTest {
         assertEquals(0.0, TrapMath.pct(TrapType.ALARM_RUNE, 10, 2.0));
         assertTrue(TrapMath.telegraphTicks(8, 1.3) > TrapMath.telegraphTicks(8, 0.7), "쉬움은 경고가 길다");
         assertEquals(30, TrapMath.disarmGold(5, 6, 1.0));
+        // 물살: 들어온 쪽(들어오기 직전 자리)으로 — 기록이 없으면 바라보는 반대쪽
+        assertEquals(-1, TrapMath.pushSide(-0.8, 1.0), "−along 쪽에서 들어오면 −along 으로");
+        assertEquals(1, TrapMath.pushSide(0.7, -1.0), "+along 쪽에서 들어오면 +along 으로");
+        assertEquals(-1, TrapMath.pushSide(-0.7, -1.0), "들어온 자리가 바라보는 방향보다 먼저");
+        assertEquals(-1, TrapMath.pushSide(Double.NaN, 0.9), "+along 을 보고 왔으면 −along 에서 온 것");
+        assertEquals(1, TrapMath.pushSide(Double.NaN, -0.9));
+        assertEquals(1, TrapMath.pushSide(Double.NaN, 0));
         int warm = 0, burst = 0;
         for (int t = 0; t < 70; t++) {
             int b = TrapMath.beat(t, 13, 70, 16, 24);
