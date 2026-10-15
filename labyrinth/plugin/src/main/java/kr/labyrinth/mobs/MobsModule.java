@@ -13,9 +13,11 @@ import kr.labyrinth.Services;
 import kr.labyrinth.command.CommandService;
 import kr.labyrinth.content.MobDef;
 import kr.labyrinth.content.NpcDef;
+import kr.labyrinth.core.Log;
 import kr.labyrinth.core.Module;
 import kr.labyrinth.core.Text;
 import kr.labyrinth.dungeon.InstanceContext;
+import kr.labyrinth.items.sell.SellService;
 import kr.labyrinth.mobs.npc.NpcServiceImpl;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
@@ -29,12 +31,14 @@ import org.bukkit.util.RayTraceResult;
  * enable(): {@link MobServiceImpl}(ModelRig·AI·스킬·보상)과 {@link NpcServiceImpl}(Mannequin NPC)을 등록하고
  * 관리 명령을 붙인다: {@code /labadmin spawnmob <id> [개수] [정예]}, {@code killmobs [반경]},
  * {@code mobdrill <몹 id…|all|f<층>>}(스킬 훈련 — {@link MobDrill}), {@code setnpc <id>}, {@code removenpc <id>}, {@code npcs}.
+ * 떠돌이 상인 판매({@link SellService} — {@code /미궁 판매}, 상점 창 [물건 팔기])도 여기서 켜고 끈다.
  */
 public final class MobsModule implements Module {
 
     private final Services services;
     private MobServiceImpl mobs;
     private NpcServiceImpl npcs;
+    private SellService sell;
 
     public MobsModule(Services services) { this.services = services; }
 
@@ -49,12 +53,31 @@ public final class MobsModule implements Module {
         services.setNpcs(npcs);
         mobs.start();
         npcs.start();
+        startSell();
         registerCommands(services.commands());
+    }
+
+    /** 판매는 부가 기능 — 켜다 실패해도 mobs·npc 와 관리 명령은 그대로 켠다 (상점 창 [물건 팔기] 는 회색으로). */
+    private void startSell() {
+        try {
+            sell = new SellService(services);
+            sell.start();
+        } catch (Throwable t) {
+            Log.error("[판매] 켜기 실패 — 판매 없이 계속", t);
+            try {
+                if (sell != null) sell.stop(); // 반쯤 붙은 리스너 떼기
+            } catch (Throwable ignored) {
+                // 이미 실패한 판매 — 더 할 일 없음
+            }
+            sell = null;
+        }
     }
 
     @Override
     public void disable() {
         MobDrill.abort();
+        if (sell != null) sell.stop(); // 판매 대기 물건을 가방으로 돌려준 뒤 창 닫기
+        sell = null;
         if (npcs != null) npcs.stop();
         if (mobs != null) mobs.stop();
     }
