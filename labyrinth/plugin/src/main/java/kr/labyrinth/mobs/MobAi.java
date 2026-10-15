@@ -14,6 +14,7 @@ import org.bukkit.util.Vector;
 /**
  * 몹 AI 타입 (GDD §9.3): melee · ranged · caster · charger · swarm · turret + flying(비행형 선회).
  * 바닐라 목표(goal)는 스폰 때 전부 제거하고, 길찾기만 Paper Pathfinder 로 쓴다. 공격·스킬은 전부 여기/스킬 코드에서.
+ * 스킬이 몸을 직접 움직이는 동안({@code motionLocked}: dive·burrow)은 선회·대기 이동을 하지 않는다.
  */
 final class MobAi {
 
@@ -39,7 +40,7 @@ final class MobAi {
             stop(m);
             return;
         }
-        if (m.flying) fly(m, t, now);
+        if (m.flying && !m.motionLocked) fly(m, t, now);
         if (now < m.busyUntil) return;
         if (now < m.staggerUntil) {
             stop(m);
@@ -192,7 +193,9 @@ final class MobAi {
 
     private static void idle(LabMob m, long now) {
         if (now % 20 == 0) m.threat.decay(0.97);
-        if (m.flying) {
+        if (m.motionLocked) {
+            // dive·burrow 가 몸을 직접 움직이는 중
+        } else if (m.flying) {
             Location want = m.home.clone().add(0, 1.2 + 0.4 * Math.sin(now / 30.0 + m.seed), 0);
             steer(m, want);
         } else if (m.entity.getLocation().distanceSquared(m.home) > 16 * 16) {

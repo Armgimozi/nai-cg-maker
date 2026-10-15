@@ -19,6 +19,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -26,9 +27,12 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
 /**
- * 일반 몹 스킬 24종 (GDD §9.1 닫힌 목록) — 전부 여기서 구현. 공통 params: damage(몹 damage 배율), windup(경고, 기본 0.6초),
+ * 일반 몹 스킬 26종 (GDD §9.1 닫힌 목록) — 전부 여기서 구현. 공통 params: damage(몹 damage 배율), windup(경고, 기본 0.6초),
  * range(발동 거리). 경고는 §8.1 도형(MobFx). 패시브(trail·aura·explode_on_death·split_on_death·enrage·ambush)는
  * cooldown 과 상관없이 훅으로 동작한다.
+ * <p>
+ * 스킬 대상은 {@link LivingEntity} — 보통은 플레이어, 훈련({@link MobDrill})에서는 허수아비. 대상을 다시 찾을 때는
+ * {@code m.targetById}, 광역 판정은 {@code m.victimsNear} 를 쓴다(플레이어 + 허수아비).
  */
 final class MobSkills {
 
@@ -38,7 +42,7 @@ final class MobSkills {
 
     static final Set<String> ALL = Set.of("leap", "charge", "slam", "cleave", "projectile", "beam", "breath", "shield", "summon",
             "blink", "heal_allies", "buff_allies", "snare", "pull", "debuff", "stealth", "reflect", "life_drain", "trail", "aura",
-            "explode_on_death", "split_on_death", "enrage", "ambush");
+            "explode_on_death", "split_on_death", "enrage", "ambush", "burrow", "dive");
 
     // ── 선택·시전 ────────────────────────────────────────────────────────
 
@@ -97,7 +101,7 @@ final class MobSkills {
         }
     }
 
-    private static boolean ready(LabMob m, String type, Params p, Player t, double dist, long now) {
+    private static boolean ready(LabMob m, String type, Params p, LivingEntity t, double dist, long now) {
         double hpRatio = m.hp / m.stats.maxHp();
         boolean see = m.entity.hasLineOfSight(t);
         return switch (type) {
@@ -108,7 +112,7 @@ final class MobSkills {
                 boolean ring = "ring".equals(p.str("shape"));
                 yield ring ? dist <= r + 0.5 && dist >= p.dbl("inner_radius", 1) - 0.5 : dist <= r + 0.3;
             }
-            case "cleave" -> dist <= p.dbl("length", 4) && see;
+            case "cleave" -> p.bool("rear", false) ? anyBehind(m, p) : dist <= p.dbl("length", 4) && see;
             case "projectile" -> dist <= p.dbl("range", 14) && see;
             case "beam" -> dist <= p.dbl("length", 14) && see;
             case "breath" -> dist <= p.dbl("length", 6) && see;
@@ -124,11 +128,13 @@ final class MobSkills {
             case "stealth" -> now >= m.stealthUntil;
             case "reflect" -> hpRatio < 0.95;
             case "life_drain" -> dist <= p.dbl("range", 7) && see;
+            case "burrow" -> !m.flying && !m.burrowed && m.entity.isOnGround() && dist >= p.dbl("min_range", 4) && dist <= p.dbl("range", 14);
+            case "dive" -> m.flying && dist >= 2.5 && dist <= p.dbl("range", 16) && see;
             default -> false;
         };
     }
 
-    private static boolean cast(LabMob m, String type, Params p, Player t, long now) {
+    private static boolean cast(LabMob m, String type, Params p, LivingEntity t, long now) {
         return switch (type) {
             case "leap" -> leap(m, p, t, now);
             case "charge" -> charge(m, p, t, now);
@@ -148,6 +154,8 @@ final class MobSkills {
             case "stealth" -> stealth(m, p, now);
             case "reflect" -> reflect(m, p, now);
             case "life_drain" -> lifeDrain(m, p, t, now);
+            case "burrow" -> burrow(m, p, t, now);
+            case "dive" -> dive(m, p, t, now);
             default -> false;
         };
     }
@@ -156,13 +164,14 @@ final class MobSkills {
 
     static void hit(LabMob m, LivingEntity target, double amount, DamageType type, String skill, double knockback) {
         if (amount <= 0) return;
+        if (target != null && target == m.drillDummy) m.drillHits++;
         DamageContext c = DamageContext.raw(m.entity.isValid() ? m.entity : null, target, amount, type).source(skill);
         if (knockback > 0) c.knockback(knockback);
         m.services.damage().deal(c);
     }
 
     /** 상태이상 부여 (knockback·damage 는 직접, 나머지는 StatusEffectService). */
-    static void effect(LabMob m, Player p, String effect, double duration, double amount, Location from) {
+    static void effect(LabMob m, LivingEntity p, String effect, double duration, double amount, Location from) {
         if (effect == null || effect.isBlank() || p == null) return;
         String e = effect.toLowerCase(Locale.ROOT);
         switch (e) {
@@ -191,6 +200,20 @@ final class MobSkills {
         MobAi.stop(m);
         m.busyUntil = Math.max(m.busyUntil, untilTick);
         if (m.flying) m.entity.setVelocity(new Vector());
+    }
+
+    /** 몸이 보는 수평 방향 (정규화). */
+    private static Vector facing(LabMob m) {
+        return new Vector(Geometry.yawX(m.bodyYaw), 0, Geometry.yawZ(m.bodyYaw));
+    }
+
+    /** 몸 뒤쪽 부채꼴(cleave rear) 안에 적이 있는가. */
+    private static boolean anyBehind(LabMob m, Params p) {
+        double length = p.dbl("length", 4);
+        Location o = m.entity.getLocation();
+        MobFx.Shape behind = MobFx.Shape.cone(o, facing(m).multiply(-1), p.dbl("angle", 90), length);
+        for (LivingEntity e : m.victimsNear(o, length + 0.5)) if (behind.contains(e.getLocation())) return true;
+        return false;
     }
 
     private static boolean anyHurt(LabMob m, double radius, double below) {
@@ -222,7 +245,7 @@ final class MobSkills {
 
     // ── 스킬 구현 ────────────────────────────────────────────────────────
 
-    private static boolean leap(LabMob m, Params p, Player t, long now) {
+    private static boolean leap(LabMob m, Params p, LivingEntity t, long now) {
         double radius = p.dbl("radius", 0);
         Location land = ground(t.getLocation());
         int w = m.windupTicks(p, 0.6);
@@ -256,7 +279,7 @@ final class MobSkills {
                         double dmg = m.skillDamage(p, "damage", 1.2);
                         if (radius > 0) {
                             MobFx.Shape impact = MobFx.Shape.circle(at, radius);
-                            for (Player e : m.enemiesNear(at, radius + 1)) if (impact.contains(e.getLocation())) hit(m, e, dmg, DamageType.MELEE, "leap", 0.6);
+                            for (LivingEntity e : m.victimsNear(at, radius + 1)) if (impact.contains(e.getLocation())) hit(m, e, dmg, DamageType.MELEE, "leap", 0.6);
                         } else if (t.isValid() && t.getLocation().distanceSquared(at) <= 2.2 * 2.2 && m.validTarget(t)) {
                             hit(m, t, dmg, DamageType.MELEE, "leap", 0.4);
                         }
@@ -268,7 +291,7 @@ final class MobSkills {
         return true;
     }
 
-    private static boolean charge(LabMob m, Params p, Player t, long now) {
+    private static boolean charge(LabMob m, Params p, LivingEntity t, long now) {
         double speed = Math.max(0.3, p.dbl("speed", 0.9));
         double distance = p.dbl("distance", 8);
         double width = p.dbl("width", 1.5);
@@ -316,7 +339,7 @@ final class MobSkills {
                     }
                     m.entity.setVelocity(dir.clone().multiply(speed).setY(Math.min(0, m.entity.getVelocity().getY())));
                     MobFx.particle(Particle.CLOUD, now2.clone().add(0, 0.2, 0), 2, 0.2, 0.05, 0.2, 0.01);
-                    for (Player e : m.enemiesNear(now2, width / 2 + 1.2)) {
+                    for (LivingEntity e : m.victimsNear(now2, width / 2 + 1.2)) {
                         if (struck.add(e.getUniqueId())) {
                             m.attackTick = m.service.now();
                             hit(m, e, dmg, DamageType.MELEE, "charge", 1.2);
@@ -347,7 +370,7 @@ final class MobSkills {
             MobFx.ring(c, ring ? (inner + r) / 2 : r * 0.7, Particle.CLOUD, 20);
             MobFx.particle(Particle.EXPLOSION, c.clone().add(0, 0.3, 0), 1, 0, 0, 0, 0);
             play(c, "minecraft:entity.iron_golem.attack", 1f, 0.6f);
-            for (Player e : m.enemiesNear(c, r + 1)) {
+            for (LivingEntity e : m.victimsNear(c, r + 1)) {
                 if (!shape.contains(e.getLocation())) continue;
                 hit(m, e, dmg, DamageType.MELEE, "slam", kb > 0 ? kb * 2.2 : 0);
                 if (p.dbl("stun", 0) > 0) effect(m, e, "stun", p.dbl("stun", 0), 1, c);
@@ -357,32 +380,35 @@ final class MobSkills {
         return true;
     }
 
-    private static boolean cleave(LabMob m, Params p, Player t, long now) {
+    private static boolean cleave(LabMob m, Params p, LivingEntity t, long now) {
         double angle = p.dbl("angle", 90);
         double length = p.dbl("length", 4);
+        boolean rear = p.bool("rear", false);
         Location o = ground(m.entity.getLocation());
-        Vector dir = m.dirTo(t.getLocation());
+        // rear = 꼬리 휩쓸기: 대상이 아니라 몸 뒤쪽 부채꼴 (뒤에 붙은 사람을 쳐냄)
+        Vector dir = rear ? facing(m).multiply(-1) : m.dirTo(t.getLocation());
         int w = m.windupTicks(p, 0.6);
         standStill(m, now + w + 6);
-        m.bodyYaw = Geometry.yawOf(dir.getX(), dir.getZ());
+        if (!rear) m.bodyYaw = Geometry.yawOf(dir.getX(), dir.getZ());
         MobFx.Shape shape = MobFx.Shape.cone(o, dir, angle, length);
+        double kb = p.dbl("knockback", rear ? 0.8 : 0.3);
         m.track(m.service.fx().telegraph(shape, w, MobFx.RED, null, () -> {
             if (!m.isAlive()) return;
             m.attackTick = m.service.now();
-            m.attackArm = 0;
+            m.attackArm = rear ? RigMath.ATTACK_TAIL : 0;
             double dmg = m.skillDamage(p, "damage", 1.3);
             double base = Math.atan2(dir.getZ(), dir.getX());
             for (int i = -2; i <= 2; i++) {
                 double a = base + Math.toRadians(angle / 2) * i / 2.0;
                 MobFx.particle(Particle.SWEEP_ATTACK, o.clone().add(Math.cos(a) * length * 0.6, 1.0, Math.sin(a) * length * 0.6), 1, 0, 0, 0, 0);
             }
-            play(o, "minecraft:entity.player.attack.sweep", 1f, 0.7f);
-            for (Player e : m.enemiesNear(o, length + 1)) if (shape.contains(e.getLocation())) hit(m, e, dmg, DamageType.MELEE, "cleave", 0.3);
+            play(o, "minecraft:entity.player.attack.sweep", 1f, rear ? 0.5f : 0.7f);
+            for (LivingEntity e : m.victimsNear(o, length + 1)) if (shape.contains(e.getLocation())) hit(m, e, dmg, DamageType.MELEE, "cleave", kb);
         }));
         return true;
     }
 
-    private static boolean projectile(LabMob m, Params p, Player t, long now) {
+    private static boolean projectile(LabMob m, Params p, LivingEntity t, long now) {
         int count = Math.max(1, p.integer("count", 1));
         double spread = p.dbl("spread", 0);
         double burst = p.dbl("burst_interval", 0);
@@ -412,7 +438,7 @@ final class MobSkills {
                     return;
                 }
                 if (i % 3 == 0) {
-                    Player tt = Bukkit.getPlayer(tid);
+                    LivingEntity tt = m.targetById(tid);
                     if (tt == null) return;
                     Location e = m.eye();
                     Vector d = tt.getLocation().add(0, 1, 0).toVector().subtract(e.toVector());
@@ -427,8 +453,8 @@ final class MobSkills {
             @Override
             public void run() {
                 if (!m.isAlive()) return;
-                Player tt = Bukkit.getPlayer(tid);
-                if (tt == null || !m.validTarget(tt)) return;
+                LivingEntity tt = m.targetById(tid);
+                if (tt == null) return;
                 Location from = m.eye();
                 Vector aim = tt.getLocation().add(0, 1.0, 0).toVector().subtract(from.toVector());
                 if (gravity > 0) aim.setY(aim.getY() + aim.length() * gravity * 6);
@@ -441,10 +467,12 @@ final class MobSkills {
                                 hit(m, pl, dmg, DamageType.RANGED, "projectile", 0);
                                 if (p.has("effect")) effect(m, pl, p.str("effect"), p.dbl("effect_duration", 3), p.dbl("amount", 0), at);
                                 if (p.dbl("pool_radius", 0) > 0) pool(m, p, ground(at));
+                                if (p.dbl("blast_radius", 0) > 0) blast(m, p, ground(at));
                             },
                             at -> {
                                 MobFx.particle(Particle.SMOKE, at, 4, 0.1, 0.1, 0.1, 0.01);
                                 if (p.dbl("pool_radius", 0) > 0) pool(m, p, ground(at));
+                                if (p.dbl("blast_radius", 0) > 0) blast(m, p, ground(at));
                             });
                 }
                 play(from, "minecraft:entity.snowball.throw", 0.7f, 0.8f);
@@ -455,6 +483,25 @@ final class MobSkills {
         };
         Bukkit.getScheduler().runTaskLater(m.services.plugin(), fire, Math.max(1, w));
         return true;
+    }
+
+    /** 착탄 폭발(projectile blast_radius): 떨어진 자리에 원 경고 → blast_delay 뒤 폭발 + 밀쳐내기. */
+    private static void blast(LabMob m, Params p, Location at) {
+        double r = p.dbl("blast_radius", 2.5);
+        int delay = Math.max(10, m.windupTicks(p.dbl("blast_delay", 0.8)));
+        double dmg = m.damage() * p.dbl("blast_damage", 1.2);
+        double kb = p.dbl("blast_knockback", 0.6);
+        MobFx.Shape shape = MobFx.Shape.circle(at, r);
+        m.track(m.service.fx().telegraph(shape, delay, MobFx.ORANGE, null, () -> {
+            MobFx.particle(Particle.EXPLOSION, at.clone().add(0, 0.4, 0), 2, 0.4, 0.2, 0.4, 0);
+            MobFx.particle(Particle.LARGE_SMOKE, at.clone().add(0, 0.4, 0), 10, r / 2, 0.3, r / 2, 0.02);
+            play(at, "minecraft:entity.generic.explode", 0.7f, 1.4f);
+            for (LivingEntity e : m.victimsNear(at, r + 1)) {
+                if (!shape.contains(e.getLocation())) continue;
+                hit(m, e, dmg, DamageType.MAGIC, "blast", 0);
+                if (kb > 0) push(e, at, kb * 2);
+            }
+        }));
     }
 
     private static void pool(LabMob m, Params p, Location at) {
@@ -469,7 +516,7 @@ final class MobSkills {
         });
     }
 
-    private static boolean beam(LabMob m, Params p, Player t, long now) {
+    private static boolean beam(LabMob m, Params p, LivingEntity t, long now) {
         double length = p.dbl("length", 14);
         double width = p.dbl("width", 1.5);
         double duration = p.dbl("duration", 2);
@@ -511,7 +558,7 @@ final class MobSkills {
                     }
                     if (i % tickEvery == 0) {
                         MobFx.Shape line = MobFx.Shape.line(o, d, length, width);
-                        for (Player e : m.enemiesNear(o, length + 1)) if (line.contains(e.getLocation())) hit(m, e, dmg, DamageType.MAGIC, "beam", 0);
+                        for (LivingEntity e : m.victimsNear(o, length + 1)) if (line.contains(e.getLocation())) hit(m, e, dmg, DamageType.MAGIC, "beam", 0);
                     }
                     i++;
                 }
@@ -521,7 +568,7 @@ final class MobSkills {
         return true;
     }
 
-    private static boolean breath(LabMob m, Params p, Player t, long now) {
+    private static boolean breath(LabMob m, Params p, LivingEntity t, long now) {
         double angle = p.dbl("angle", 60);
         double length = p.dbl("length", 6);
         int dur = (int) Math.round(p.dbl("duration", 1.5) * 20);
@@ -558,7 +605,7 @@ final class MobSkills {
                         }
                     }
                     if (i % tickEvery == 0) {
-                        for (Player pl : m.enemiesNear(o, length + 1)) {
+                        for (LivingEntity pl : m.victimsNear(o, length + 1)) {
                             if (!shape.contains(pl.getLocation())) continue;
                             hit(m, pl, dmg, DamageType.MAGIC, "breath", 0);
                             if (p.has("effect")) effect(m, pl, p.str("effect"), p.dbl("effect_duration", 2), p.dbl("amount", 0), o);
@@ -628,7 +675,7 @@ final class MobSkills {
         return true;
     }
 
-    private static boolean blink(LabMob m, Params p, Player t, long now) {
+    private static boolean blink(LabMob m, Params p, LivingEntity t, long now) {
         double range = p.dbl("range", 8);
         boolean behind = p.bool("behind", false);
         Location from = m.entity.getLocation();
@@ -659,8 +706,8 @@ final class MobSkills {
         if (dmgMult > 0) {
             UUID tid = t.getUniqueId();
             Bukkit.getScheduler().runTaskLater(m.services.plugin(), () -> {
-                Player tt = Bukkit.getPlayer(tid);
-                if (!m.isAlive() || tt == null || !m.validTarget(tt)) return;
+                LivingEntity tt = m.targetById(tid);
+                if (!m.isAlive() || tt == null) return;
                 m.attackTick = m.service.now();
                 if (tt.getLocation().distance(m.entity.getLocation()) <= 3.2) {
                     hit(m, tt, m.damage() * dmgMult * m.pendingFirstHitMult, DamageType.MELEE, "blink", 0);
@@ -712,7 +759,7 @@ final class MobSkills {
         return true;
     }
 
-    private static boolean snare(LabMob m, Params p, Player t, long now) {
+    private static boolean snare(LabMob m, Params p, LivingEntity t, long now) {
         double radius = p.dbl("radius", 1.5);
         Location c = ground(t.getLocation());
         int w = m.windupTicks(p, 1.0);
@@ -727,7 +774,7 @@ final class MobSkills {
             MobFx.particle(Particle.CRIT, c.clone().add(0, 0.2, 0), 10, radius / 2, 0.1, radius / 2, 0.05);
             MobFx.ring(c, radius * 0.8, Particle.SPORE_BLOSSOM_AIR, 16);
             play(c, "minecraft:block.rooted_dirt.break", 1f, 0.7f);
-            for (Player e : m.enemiesNear(c, radius + 1)) {
+            for (LivingEntity e : m.victimsNear(c, radius + 1)) {
                 if (!shape.contains(e.getLocation())) continue;
                 hit(m, e, m.skillDamage(p, "damage", 0.6), DamageType.MAGIC, "snare", 0);
                 if (root > 0) effect(m, e, "root", root, 1, c);
@@ -737,7 +784,7 @@ final class MobSkills {
         return true;
     }
 
-    private static boolean pull(LabMob m, Params p, Player t, long now) {
+    private static boolean pull(LabMob m, Params p, LivingEntity t, long now) {
         double radius = p.dbl("radius", 0);
         double strength = p.dbl("strength", 1.2);
         String fx = p.str("fx");
@@ -750,15 +797,15 @@ final class MobSkills {
         UUID tid = t.getUniqueId();
         m.track(m.service.fx().telegraph(shape, w, MobFx.PURPLE, null, () -> {
             if (!m.isAlive()) return;
-            List<Player> victims = new ArrayList<>();
+            List<LivingEntity> victims = new ArrayList<>();
             if (radius > 0) {
-                for (Player e : m.enemiesNear(o, radius + 0.5)) if (shape.contains(e.getLocation())) victims.add(e);
+                for (LivingEntity e : m.victimsNear(o, radius + 0.5)) if (shape.contains(e.getLocation())) victims.add(e);
             } else {
-                Player tt = Bukkit.getPlayer(tid);
-                if (tt != null && m.validTarget(tt) && tt.getLocation().distance(o) <= p.dbl("range", 10) + 2) victims.add(tt);
+                LivingEntity tt = m.targetById(tid);
+                if (tt != null && tt.getLocation().distance(o) <= p.dbl("range", 10) + 2) victims.add(tt);
             }
             play(o, "minecraft:item.trident.return", 1f, 0.8f);
-            for (Player e : victims) {
+            for (LivingEntity e : victims) {
                 Location me = m.eye();
                 ItemDisplay tether = fx != null ? m.service.fx().tether(fx, me, e.getLocation().add(0, 1, 0)) : null;
                 Vector d = me.toVector().subtract(e.getLocation().toVector());
@@ -778,7 +825,7 @@ final class MobSkills {
         return true;
     }
 
-    private static boolean debuff(LabMob m, Params p, Player t, long now) {
+    private static boolean debuff(LabMob m, Params p, LivingEntity t, long now) {
         double radius = p.dbl("radius", 0);
         String effect = p.str("effect", "slow");
         double duration = p.dbl("duration", 3);
@@ -793,16 +840,16 @@ final class MobSkills {
         MobFx.Shape shape = MobFx.Shape.circle(c, radius > 0 ? radius : 1.0);
         m.track(m.service.fx().telegraph(shape, w, MobFx.PURPLE, null, () -> {
             if (!m.isAlive()) return;
-            List<Player> victims = new ArrayList<>();
+            List<LivingEntity> victims = new ArrayList<>();
             if (radius > 0) {
-                for (Player e : m.enemiesNear(c, radius + 1)) if (shape.contains(e.getLocation())) victims.add(e);
+                for (LivingEntity e : m.victimsNear(c, radius + 1)) if (shape.contains(e.getLocation())) victims.add(e);
             } else {
-                Player tt = Bukkit.getPlayer(tid);
-                if (tt != null && m.validTarget(tt) && tt.getLocation().distance(c) <= 3.0) victims.add(tt);
+                LivingEntity tt = m.targetById(tid);
+                if (tt != null && tt.getLocation().distance(c) <= 3.0) victims.add(tt);
             }
             MobFx.particle(particle, c.clone().add(0, 0.5, 0), 20, Math.max(0.3, radius / 2), 0.4, Math.max(0.3, radius / 2), 0.02);
             play(c, "minecraft:entity.evoker.cast_spell", 0.8f, 1.2f);
-            for (Player e : victims) {
+            for (LivingEntity e : victims) {
                 effect(m, e, effect, duration, amount, c);
                 if (cdSlow > 0) m.services.effects().apply(e, "cooldown_slow", duration, cdSlow, m.entity.isValid() ? m.entity : null);
                 MobFx.particle(particle, e.getLocation().add(0, 2.1, 0), 6, 0.2, 0.1, 0.2, 0.01);
@@ -841,7 +888,7 @@ final class MobSkills {
         return true;
     }
 
-    private static boolean lifeDrain(LabMob m, Params p, Player t, long now) {
+    private static boolean lifeDrain(LabMob m, Params p, LivingEntity t, long now) {
         double range = p.dbl("range", 7);
         int dur = (int) Math.round(p.dbl("duration", 3) * 20);
         int tickEvery = Math.max(2, (int) Math.round(p.dbl("tick", 0.5) * 20));
@@ -855,8 +902,8 @@ final class MobSkills {
             int i = 0;
             @Override
             public void run() {
-                Player tt = Bukkit.getPlayer(tid);
-                boolean ok = m.isAlive() && tt != null && m.validTarget(tt) && i <= dur
+                LivingEntity tt = m.targetById(tid);
+                boolean ok = m.isAlive() && tt != null && i <= dur
                         && tt.getLocation().distance(m.location()) <= range + 2 && !m.services.effects().isStunned(m.entity);
                 if (!ok) {
                     cancel();
@@ -883,6 +930,323 @@ final class MobSkills {
             }
         }.runTaskTimer(m.services.plugin(), 0L, 1L);
         return true;
+    }
+
+    // ── 땅속·급강하 (새 몸 형태: 땅굴웜 · 와이번 · 하피) ─────────────────────
+
+    /**
+     * burrow — 땅속으로 파고들어(몸이 가라앉은 뒤 모델 숨김·무적·충돌 끔) 흙더미를 밀며 대상 쪽으로 이동 → 대상 발밑에
+     * 경고 원 → 솟구쳐 원 안을 띄운다. 시야가 막혀도 쓸 수 있다(땅속으로 돌아감).
+     * params: range(14) · min_range(4) · speed(땅속 이동 배율, 1.6) · duration(땅속 최대 초, 3) · windup(솟구치기 전 경고, 1.0)
+     *         · radius(2) · damage(1.5) · launch(띄우는 세기, 1.0) · effect/amount/effect_duration(선택)
+     */
+    private static boolean burrow(LabMob m, Params p, LivingEntity t, long now) {
+        if (m.flying || m.burrowed) return false;
+        double radius = p.dbl("radius", 2.0);
+        double speed = Math.max(0.5, p.dbl("speed", 1.6));
+        int maxTravel = (int) Math.round(Math.max(0.5, p.dbl("duration", 3)) * 20);
+        int w = m.windupTicks(p, 1.0);
+        UUID tid = t.getUniqueId();
+        Location start = m.entity.getLocation();
+        MobAi.stop(m);
+        m.castTick = now;
+        m.motionLocked = true;
+        m.busyUntil = Math.max(m.busyUntil, now + 10 + maxTravel + w + 20);
+        dirt(start, 24, 0.5);
+        play(start, "minecraft:block.rooted_dirt.break", 1f, 0.6f);
+        play(start, "minecraft:block.gravel.break", 0.8f, 0.5f);
+        new BukkitRunnable() {
+            int i = 0;
+            boolean under, surfacing;
+            Location mark;
+
+            @Override
+            public void run() {
+                if (!m.isAlive()) {
+                    cancel(); // 제거·정리 경로 — 몹과 함께 상태도 사라진다
+                    return;
+                }
+                i++;
+                Location cur = m.entity.getLocation();
+                if (!under) {
+                    // 0.4초 동안 파고드는 흙 + 소리, 그 뒤 숨김
+                    if (i % 2 == 0) dirt(cur, 6, 0.4);
+                    if (i >= 8) {
+                        under = true;
+                        m.burrowed = true;
+                        m.rig.setHidden(true);
+                        m.entity.setCollidable(false);
+                    }
+                    return;
+                }
+                if (!surfacing) {
+                    LivingEntity tt = m.targetById(tid);
+                    if (i % 2 == 0) mound(cur);
+                    if (i % 10 == 0) play(cur, "minecraft:block.gravel.step", 0.7f, 0.6f);
+                    if (tt != null && i % 5 == 0 && m.entity.isAware()) m.entity.getPathfinder().moveTo(tt.getLocation(), speed);
+                    boolean close = tt == null || MobAi.horizontal(cur, tt.getLocation()) <= 1.3;
+                    if (close || i >= maxTravel + 8) {
+                        surfacing = true;
+                        MobAi.stop(m);
+                        Location at = ground(tt != null ? tt.getLocation() : cur);
+                        mark = at;
+                        MobFx.Shape shape = MobFx.Shape.circle(at, radius);
+                        m.track(m.service.fx().telegraph(shape, w, MobFx.ORANGE, null, () -> {
+                            cancel();
+                            erupt(m, p, at, shape);
+                        }));
+                    }
+                } else if (i % 3 == 0 && mark != null) {
+                    dirt(mark, 4, radius * 0.4); // 솟구칠 자리의 땅울림
+                }
+            }
+        }.runTaskTimer(m.services.plugin(), 1L, 1L);
+        return true;
+    }
+
+    /** burrow 의 솟구침: 경고 원 자리로 나와 모델을 드러내고(바닥 아래에서 올라옴) 원 안을 띄운다. */
+    private static void erupt(LabMob m, Params p, Location at, MobFx.Shape shape) {
+        if (!m.isAlive()) return;
+        Location dest = safeSpot(at, m.entity.getLocation());
+        if (dest != null) {
+            dest.setYaw(m.bodyYaw);
+            m.entity.teleport(dest);
+        }
+        m.burrowed = false;
+        m.motionLocked = false;
+        m.entity.setCollidable(true);
+        m.rig.setHidden(false);
+        long tn = m.service.now();
+        m.emergeTick = tn;
+        m.attackTick = tn;
+        m.attackArm = 2;
+        m.castTick = tn;
+        m.busyUntil = tn + 14;
+        m.refreshNameplate();
+        dirt(at, 40, Math.max(0.6, shape.size() * 0.5));
+        MobFx.particle(Particle.EXPLOSION, at.clone().add(0, 0.3, 0), 1, 0, 0, 0, 0);
+        play(at, "minecraft:entity.zombie.break_wooden_door", 0.8f, 0.6f);
+        play(at, "minecraft:block.rooted_dirt.break", 1f, 0.5f);
+        double dmg = m.skillDamage(p, "damage", 1.5);
+        double launch = p.dbl("launch", 1.0);
+        for (LivingEntity e : m.victimsNear(at, shape.size() + 1)) {
+            if (!shape.contains(e.getLocation())) continue;
+            hit(m, e, dmg, DamageType.MELEE, "burrow", 0);
+            if (launch > 0 && !m.services.effects().isKnockbackImmune(e)) {
+                e.setVelocity(e.getVelocity().setY(0.55 + 0.35 * launch));
+            }
+            if (p.has("effect")) effect(m, e, p.str("effect"), p.dbl("effect_duration", 2), p.dbl("amount", 0), at);
+        }
+    }
+
+    /** 발밑 블록 조각 입자 (흙·돌 — 블록은 바꾸지 않는다). */
+    private static void dirt(Location at, int count, double spread) {
+        if (at.getWorld() == null) return;
+        Block b = at.clone().subtract(0, 0.2, 0).getBlock();
+        BlockData data = b.getType().isSolid() ? b.getBlockData() : Material.DIRT.createBlockData();
+        at.getWorld().spawnParticle(Particle.BLOCK, at.clone().add(0, 0.15, 0), count, spread, 0.1, spread, 0.1, data);
+    }
+
+    /** 땅속 이동 흔적: 흙더미가 밀려 올라오는 입자. */
+    private static void mound(Location at) {
+        dirt(at, 5, 0.3);
+        MobFx.particle(Particle.SMOKE, at.clone().add(0, 0.1, 0), 1, 0.2, 0.02, 0.2, 0.005);
+    }
+
+    /**
+     * dive — 비행 몹이 대상 위로 높이 날아올라(천장 아래까지) 공중에 멈춘 채 바닥에 직선 경고 → 그 선을 따라 급강하해
+     * 착지점을 지나 overshoot 만큼 낮게 미끄러진다. 선 밖으로 비키면 맞지 않는다.
+     * params: range(16) · height(대상 위 높이, 5) · windup(경고, 1.0) · speed(블록/틱, 1.1) · width(1.8) · overshoot(3)
+     *         · damage(1.6) · knockback(0.8) · stun · effect/amount/effect_duration
+     */
+    private static boolean dive(LabMob m, Params p, LivingEntity t, long now) {
+        if (!m.flying) return false;
+        int w = m.windupTicks(p, 1.0);
+        m.motionLocked = true;
+        m.motion = RigMath.MOTION_RISE;
+        m.castTick = now;
+        m.busyUntil = Math.max(m.busyUntil, now + 30 + w + 70);
+        play(m.location(), "minecraft:entity.ender_dragon.flap", 0.8f, 1.3f);
+        new DiveTask(m, p, t.getUniqueId(), t.getLocation(), w).runTaskTimer(m.services.plugin(), 1L, 1L);
+        return true;
+    }
+
+    /** dive 진행: 0 = 날아오름, 1 = 공중 정지·경고, 2 = 급강하(착지점까지), 3 = 낮게 미끄러짐. */
+    private static final class DiveTask extends BukkitRunnable {
+        private final LabMob m;
+        private final Params p;
+        private final UUID tid;
+        private final int windup;
+        private final double speed, width, overshoot;
+        private final Set<UUID> struck = new HashSet<>();
+        private Location lastSeen, climb, impact, end, prev;
+        private MobFx.Shape line;
+        private int phase, i, stuck;
+
+        DiveTask(LabMob m, Params p, UUID tid, Location targetAt, int windup) {
+            this.m = m;
+            this.p = p;
+            this.tid = tid;
+            this.windup = windup;
+            this.lastSeen = targetAt.clone();
+            this.speed = Math.max(0.4, p.dbl("speed", 1.1));
+            this.width = p.dbl("width", 1.8);
+            this.overshoot = Math.max(0, p.dbl("overshoot", 3));
+        }
+
+        @Override
+        public void run() {
+            if (!m.isAlive()) {
+                cancel();
+                return;
+            }
+            i++;
+            LivingEntity tt = m.targetById(tid);
+            if (tt != null && phase == 0) lastSeen = tt.getLocation();
+            Location cur = m.entity.getLocation();
+            try {
+                switch (phase) {
+                    case 0 -> rise(cur);
+                    case 1 -> hover();
+                    default -> swoop(cur);
+                }
+            } catch (Throwable ex) {
+                Log.error("몹 스킬 오류 (" + m.def.id() + "/dive)", ex);
+                finish();
+            }
+        }
+
+        private void rise(Location cur) {
+            if (climb == null) {
+                // 대상에서 몹 쪽으로 조금 물러난 하늘 — 천장 아래로 제한
+                Vector back = cur.toVector().subtract(lastSeen.toVector()).setY(0);
+                if (back.lengthSquared() < 1e-4) back = facing(m).multiply(-1);
+                back.normalize().multiply(Math.max(2.5, Math.min(4.5, MobAi.horizontal(cur, lastSeen))));
+                Location base = lastSeen.clone().add(back);
+                double top = ceiling(base, p.dbl("height", 5) + 1) - m.entity.getHeight() - 0.4;
+                climb = base.add(0, p.dbl("height", 5), 0);
+                climb.setY(Math.max(lastSeen.getY() + 1.5, Math.min(climb.getY(), top)));
+            }
+            Vector v = climb.toVector().subtract(cur.toVector());
+            if (v.length() > 0.5) v.normalize().multiply(0.5);
+            m.entity.setVelocity(v);
+            if (i % 6 == 0) play(cur, "minecraft:entity.ender_dragon.flap", 0.6f, 1.4f);
+            if (cur.distanceSquared(climb) < 0.8 || i >= 26) {
+                phase = 1;
+                i = 0;
+                m.entity.setVelocity(new Vector());
+                aim(cur);
+            }
+        }
+
+        private void aim(Location cur) {
+            impact = ground(lastSeen).add(0, 0.4, 0);
+            Vector flat = impact.toVector().subtract(cur.toVector()).setY(0);
+            Vector dir = flat.lengthSquared() < 1e-4 ? facing(m) : flat.clone().normalize();
+            Location groundStart = new Location(cur.getWorld(), cur.getX(), impact.getY() - 0.4, cur.getZ());
+            line = MobFx.Shape.line(groundStart, dir, flat.length() + overshoot, width);
+            end = impact.clone().add(dir.clone().multiply(overshoot));
+            m.bodyYaw = Geometry.yawOf(dir.getX(), dir.getZ());
+            play(cur, "minecraft:entity.phantom.swoop", 1f, 0.8f);
+            m.track(m.service.fx().telegraph(line, windup, MobFx.RED, null, () -> {
+                phase = 2;
+                i = 0;
+                prev = m.entity.getLocation();
+                m.motion = RigMath.MOTION_DIVE;
+                m.attackTick = m.service.now();
+                play(prev, "minecraft:entity.phantom.bite", 1f, 0.6f);
+            }));
+        }
+
+        private void hover() {
+            m.entity.setVelocity(new Vector());
+            if (i % 3 == 0 && impact != null) {
+                Location e = m.eye();
+                Vector d = impact.toVector().subtract(e.toVector());
+                double len = d.length();
+                if (len > 0.1) {
+                    d.normalize();
+                    for (double s = 0.8; s < len; s += 0.8) MobFx.dust(e.clone().add(d.clone().multiply(s)), MobFx.RED, 0.8f, 1, 0);
+                }
+            }
+            if (i > windup + 20) finish(); // 경고가 취소됨(대상 이탈 등)
+        }
+
+        private void swoop(Location cur) {
+            Location goal = phase == 2 ? impact : end;
+            Vector v = goal.toVector().subtract(cur.toVector());
+            if (v.length() <= speed * 0.9 || i > 60) {
+                if (phase == 2) {
+                    phase = 3;
+                    MobFx.particle(Particle.CLOUD, impact, 14, 0.6, 0.1, 0.6, 0.03);
+                    play(impact, "minecraft:entity.generic.big_fall", 0.9f, 0.8f);
+                } else {
+                    finish();
+                    return;
+                }
+                v = end.toVector().subtract(cur.toVector());
+                if (v.lengthSquared() < 1e-4) {
+                    finish();
+                    return;
+                }
+            }
+            v.normalize().multiply(speed);
+            m.entity.setVelocity(v);
+            double step = prev == null ? speed : prev.distance(cur);
+            stuck = step < speed * 0.25 && i > 3 ? stuck + 1 : 0;
+            if (i % 2 == 0) MobFx.particle(Particle.CLOUD, cur.clone().add(0, 0.3, 0), 2, 0.2, 0.2, 0.2, 0.01);
+            double dmg = m.skillDamage(p, "damage", 1.6);
+            double reach = width / 2 + 0.9;
+            Location from = prev == null ? cur : prev;
+            for (LivingEntity e : m.victimsNear(cur, reach + speed + 2)) {
+                if (struck.contains(e.getUniqueId()) || !line.contains(e.getLocation())) continue;
+                Location el = e.getLocation();
+                double d2 = Geometry.segmentDist2(from.getX(), from.getY(), from.getZ(), cur.getX(), cur.getY(), cur.getZ(),
+                        el.getX(), el.getY() + 0.9, el.getZ());
+                if (d2 > (reach + 0.4) * (reach + 0.4)) continue;
+                struck.add(e.getUniqueId());
+                m.attackTick = m.service.now();
+                hit(m, e, dmg, DamageType.MELEE, "dive", p.dbl("knockback", 0.8));
+                if (p.dbl("stun", 0) > 0) effect(m, e, "stun", p.dbl("stun", 0), 1, cur);
+                if (p.has("effect")) effect(m, e, p.str("effect"), p.dbl("effect_duration", 3), p.dbl("amount", 0), cur);
+            }
+            prev = cur.clone();
+            if (stuck >= 3) finish(); // 벽·바닥에 막힘
+        }
+
+        private void finish() {
+            cancel();
+            m.motion = RigMath.MOTION_NONE;
+            m.motionLocked = false;
+            if (m.isAlive()) {
+                m.entity.setVelocity(new Vector(0, 0.25, 0));
+                long tn = m.service.now();
+                m.busyUntil = tn + 10;
+            }
+        }
+    }
+
+    /** from 위로 maxUp 칸 안의 첫 막힌 블록 높이 (없으면 from.y + maxUp). */
+    private static double ceiling(Location from, double maxUp) {
+        for (int dy = 1; dy <= Math.ceil(maxUp); dy++) {
+            Block b = from.clone().add(0, dy, 0).getBlock();
+            if (!b.isPassable()) return b.getY();
+        }
+        return from.getY() + maxUp;
+    }
+
+    /** 훈련용({@link MobDrill}): 거리·시야 조건을 건너뛰고 skills[index] 를 대상에게 바로 시전. 예외는 호출자가 센다. */
+    static boolean forceCast(LabMob m, int index, LivingEntity t) {
+        if (index < 0 || index >= m.skills.size()) return false;
+        MobDef.MobSkillDef s = m.skills.get(index);
+        String type = s.type() == null ? "" : s.type().toLowerCase(Locale.ROOT);
+        if (PASSIVE.contains(type)) return false;
+        long now = m.service.now();
+        Location loc = m.entity.getLocation(), tl = t.getLocation();
+        m.bodyYaw = Geometry.yawOf(tl.getX() - loc.getX(), tl.getZ() - loc.getZ());
+        boolean ok = cast(m, type, s.params(), t, now);
+        if (ok) m.castTick = now;
+        return ok;
     }
 
     // ── 패시브 ───────────────────────────────────────────────────────────
@@ -923,7 +1287,7 @@ final class MobSkills {
                 String effect = p.str("effect", "damage");
                 Location c = m.location();
                 MobFx.ring(c, r, auraParticle(effect), (int) Math.max(10, r * 6));
-                for (Player pl : m.enemiesNear(c, r)) effect(m, pl, effect, Math.max(3, interval / 20.0 + 1), p.dbl("amount", 0), c);
+                for (LivingEntity pl : m.victimsNear(c, r)) effect(m, pl, effect, Math.max(3, interval / 20.0 + 1), p.dbl("amount", 0), c);
             }
         }
     }
@@ -1009,7 +1373,7 @@ final class MobSkills {
                 m.service.fx().telegraph(shape, delay, MobFx.ORANGE, null, () -> {
                     MobFx.particle(Particle.EXPLOSION, c.clone().add(0, 0.5, 0), 2, 0.3, 0.2, 0.3, 0);
                     play(c, "minecraft:entity.generic.explode", 0.8f, 1.3f);
-                    for (Player e : m.enemiesNear(c, r + 1)) {
+                    for (LivingEntity e : m.victimsNear(c, r + 1)) {
                         if (!shape.contains(e.getLocation())) continue;
                         hit(m, e, dmg, DamageType.MAGIC, "explode_on_death", 0);
                         if (effect != null) effect(m, e, effect, p.dbl("effect_duration", 3), p.dbl("amount", 0), c);

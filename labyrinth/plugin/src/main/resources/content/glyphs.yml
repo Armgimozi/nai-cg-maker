@@ -104,6 +104,7 @@ glyphs:
   gui_emblem_generic: {char: "\uE04C", file: gui/emblem_generic.png, ascent: 9, height: 11, advance: 12}
   gui_emblem_codex: {char: "\uE04D", file: gui/emblem_codex.png, ascent: 9, height: 11, advance: 12}
   gui_emblem_records: {char: "\uE04E", file: gui/emblem_records.png, ascent: 9, height: 11, advance: 12}
+  gui_enhance: {char: "\uE0E8", file: gui/enhance.png, ascent: 13, height: 222, advance: 177}
   # ── HUD 액션바: HP/MP/보호막 바 21단계(0~20) · 경험치 · 레벨 배지 · 골드 · 숫자 ──
   hud_hp_00: {char: "\uE100", file: hud/hp_00.png, ascent: -26, height: 9, advance: 83}
   hud_hp_01: {char: "\uE101", file: hud/hp_01.png, ascent: -26, height: 9, advance: 83}
@@ -413,11 +414,31 @@ menus:
     title_color: "#f3e3bd"
     slots:
       tabs: [1, 3, 5, 7]
+      enhance: 13
       recipes: "18..44 (27칸)"
       prev: 45
       filter: 47
       close: 51
       next: 53
+  enhance:
+    glyph: gui_enhance
+    rows: 6
+    title: "장비 강화"
+    title_color: "#f3e3bd"
+    slots:
+      rules: 4
+      gear: 11
+      chance: 13
+      enhance: 15
+      failure: 22
+      gold: 29
+      stone: 31
+      protection: 33
+      equipped: [37, 38, 39, 40, 41, 42, 43]
+      equipped_order: [main_hand, off_hand, head, chest, legs, feet, help]
+      back: 45
+      purse: 49
+      close: 53
   titles:
     glyph: gui_titles
     rows: 6

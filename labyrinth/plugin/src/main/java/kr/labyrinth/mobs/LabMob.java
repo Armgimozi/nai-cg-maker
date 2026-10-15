@@ -77,6 +77,16 @@ public final class LabMob implements CustomMob {
     final List<MobFx.Handle> handles = new ArrayList<>();
     final List<UUID> summons = new ArrayList<>();
     LabMob summoner;
+    /** 땅속에 숨음 (burrow): 모델 숨김 + 무적, 끝나면 솟구친다. */
+    boolean burrowed;
+    /** 스킬이 몸을 직접 움직이는 중 (dive·burrow) — AI 의 비행 선회·대기 이동이 끼어들지 않게. */
+    boolean motionLocked;
+    /** 몸짓 상태 (RigMath.MOTION_*) — 날개·목 애니메이션 + 급강하 앞숙임. */
+    int motion;
+    // 훈련 (/labadmin mobdrill): 허수아비를 스킬 대상으로 쓰고, 플레이어가 없어도 AI·애니메이션을 돌린다
+    boolean drill;
+    LivingEntity drillDummy;
+    int drillHits;
 
     // 애니메이션 상태
     long attackTick = -100;
@@ -84,6 +94,8 @@ public final class LabMob implements CustomMob {
     long castTick = -100;
     long hurtTick = -100;
     long deathTick = -1;
+    long emergeTick = -100;
+    float bodyPitch;
     float bodyYaw;
     float headYaw, headPitch;
     double moveSpeed;
@@ -205,7 +217,7 @@ public final class LabMob implements CustomMob {
     }
 
     @Override
-    public boolean invulnerable() { return dead; }
+    public boolean invulnerable() { return dead || burrowed; }
 
     @Override
     public boolean isAlive() { return !dead && hp > 0; }
@@ -280,6 +292,20 @@ public final class LabMob implements CustomMob {
         return p != null && validTarget(p);
     }
 
+    /** 스킬 대상 판정: 플레이어 규칙 그대로, 훈련 허수아비는 같은 월드에 살아 있으면. */
+    boolean validTarget(LivingEntity e) {
+        if (e instanceof Player p) return validTarget(p);
+        return e != null && e == drillDummy && e.isValid() && e.getWorld() == entity.getWorld();
+    }
+
+    /** 스킬이 기억한 대상 UUID → 지금도 유효한 대상 (플레이어 또는 훈련 허수아비), 없으면 null. */
+    LivingEntity targetById(UUID id) {
+        if (id == null) return null;
+        Player p = Bukkit.getPlayer(id);
+        if (p != null) return validTarget(p) ? p : null;
+        return drillDummy != null && id.equals(drillDummy.getUniqueId()) && validTarget(drillDummy) ? drillDummy : null;
+    }
+
     // ── 틱 ───────────────────────────────────────────────────────────────
 
     /** 서비스가 매 틱 호출. */
@@ -310,7 +336,9 @@ public final class LabMob implements CustomMob {
         }
         rig.follow(loc);
 
-        int lod = service.lod(loc);
+        int lod = drill ? 0 : service.lod(loc);
+        float wantPitch = motion == RigMath.MOTION_DIVE ? 32f : 0f;
+        bodyPitch += (wantPitch - bodyPitch) * 0.35f;
         try {
             MobSkills.tickPassives(this, now);
             if (ambushing) {
@@ -333,8 +361,10 @@ public final class LabMob implements CustomMob {
         int cast = now - castTick <= 16 ? (int) (now - castTick) : -1;
         int hurt = now - hurtTick < RigMath.HURT_TICKS ? (int) (now - hurtTick) : -1;
         int death = deathTick >= 0 ? (int) (now - deathTick) : -1;
+        int emerge = now - emergeTick <= RigMath.EMERGE_TICKS ? (int) (now - emergeTick) : -1;
+        boolean airborne = flying || (!dead && entity.isValid() && !entity.isOnGround());
         return new RigMath.AnimState(now, moveSpeed, atk, attackArm, cast, hurt, headYaw, headPitch, death,
-                targetId != null, seed);
+                targetId != null, seed, airborne, motion, Math.abs(bodyPitch) < 0.05f ? 0f : bodyPitch, emerge);
     }
 
     // ── 이름표 ───────────────────────────────────────────────────────────
@@ -428,8 +458,11 @@ public final class LabMob implements CustomMob {
 
     /** 경고 시간(틱) — 난이도 telegraph 배율 + 최소 0.5초. */
     int windupTicks(Params p, double defSeconds) {
-        double w = p.dbl("windup", defSeconds);
-        double secs = ctx != null ? ctx.windup(w) : services.settings().difficulty().windup(w);
+        return windupTicks(p.dbl("windup", defSeconds));
+    }
+
+    int windupTicks(double seconds) {
+        double secs = ctx != null ? ctx.windup(seconds) : services.settings().difficulty().windup(seconds);
         return (int) Math.round(secs * 20);
     }
 
@@ -441,6 +474,13 @@ public final class LabMob implements CustomMob {
         for (Player p : c.getWorld().getPlayers()) {
             if (p.getLocation().distanceSquared(c) <= r * r && validTarget(p)) out.add(p);
         }
+        return out;
+    }
+
+    /** 스킬 판정용: 반경 안 적 플레이어 + 훈련 허수아비. */
+    List<LivingEntity> victimsNear(Location c, double r) {
+        List<LivingEntity> out = new ArrayList<>(enemiesNear(c, r));
+        if (drillDummy != null && validTarget(drillDummy) && drillDummy.getLocation().distanceSquared(c) <= r * r) out.add(drillDummy);
         return out;
     }
 

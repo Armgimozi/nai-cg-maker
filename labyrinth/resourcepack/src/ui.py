@@ -143,6 +143,8 @@ EMBLEMS = {
                 '....#+#....', '.....#.....', '....###....', '...#+++#...', '..#######..'],
     'generic': ['....#.#....', '...#+#+#...', '..#+###+#..', '.#+#...#+#.', '#+#.....#+#', '.#.......#.',
                 '#+#.....#+#', '.#+#...#+#.', '..#+###+#..', '...#+#+#...', '....#.#....'],
+    'enhance': ['.....#.....', '....#+#....', '.....#.....', '..#.#+#.#..', '.#+#+++#+#.', '..#+++++#..',
+                '.#+#+++#+#.', '..#.#+#.#..', '.....#.....', '....#+#....', '.....#.....'],
 }
 
 
@@ -641,6 +643,70 @@ def gui_blacksmith(seed):
     g.sock([47, 51], 'button', '#c8c8d0')
     # bottom centre forge emblem (decor only)
     _emblem(cv, 83, _row_y(5) + 3, 'blacksmith', g.accent)
+    # [강화] button on the anvil in the forge banner (slot 13, menus.blacksmith.slots.enhance)
+    g.glow(88, y1 + 9, 16, '#ffb040', 0.45)
+    g.sock(13, 'gem', '#ffd27a')
+    return g
+
+
+def gui_enhance(seed):
+    """강화 창 (menus.enhance): 규칙 4 · 장비 칸 11 → 성공 확률 13 → [강화] 15 · 실패하면 22 · 골드 29 · 강화석 31 ·
+    보호 주문서 33 · 착용 장비 37..43 · 대장간 45 · 골드 49 · 닫기 53."""
+    g = Gui(6, '#ffb040', 'enhance', seed)
+    cv = g.cv
+    # forge-heat backdrop: warm glow rising from the anvil row
+    for y in range(_row_y(0), _row_y(4) - 2):
+        for x in range(6, 170):
+            t = max(0.0, 1 - abs(x - 88) / 80) * max(0.0, 1 - abs(y - _row_y(1) - 9) / 50)
+            cv.blend(x, y, (240, 110, 30), 0.20 * t)
+    for k in range(26):
+        ex = 14 + int(h2(k, 1, seed) * 148)
+        ey = _row_y(0) + 2 + int(h2(k, 2, seed) * 60)
+        cv.set(ex, ey, (255, 170 + int(h2(k, 3, seed) * 70), 60))
+    x11, y11 = slot_xy(11)
+    x15, _ = slot_xy(15)
+    x13, y13 = slot_xy(13)
+    x29, y29 = slot_xy(29)
+    x33, _ = slot_xy(33)
+    x31, _ = slot_xy(31)
+    _, y22 = slot_xy(22)
+    # equipment → chance → button channel (row 1), materials channel (row 3) rising to the failure socket
+    _engrave_line(cv, x11 + 21, x15 - 4, y11 + 9, mix(GOLD[1], g.accent, 0.4))
+    for k in range(3):   # arrow head into the button
+        cv.set(x15 - 5 - k, y11 + 9 - k, GOLD[3])
+        cv.set(x15 - 5 - k, y11 + 9 + k, GOLD[3])
+    _engrave_line(cv, x29 + 18, x33 - 1, y29 + 9, mix(GOLD[1], g.accent, 0.4))
+    for y in range(y22 + 18, y29):
+        cv.set(x31 + 8, y, STONE[0])
+        cv.set(x31 + 9, y, GOLD[2])
+    for y in range(y13 + 18, y22):
+        cv.set(x13 + 8, y, STONE[0])
+        cv.set(x13 + 9, y, GOLD[2])
+    # anvils under the equipment socket and the button (decor only, row 2)
+    anvil = ['..##########..', '.############.', '...########...', '.....####.....', '.....####.....',
+             '...########...', '..##########..']
+    cv.pattern(x11 + 2, y22 + 5, anvil, {'#': (64, 60, 70)})
+    cv.hline(x11 + 4, x11 + 13, y22 + 5, (120, 116, 130))
+    cv.pattern(x15 + 2, y22 + 5, anvil, {'#': (64, 60, 70)})
+    cv.hline(x15 + 4, x15 + 13, y22 + 5, (120, 116, 130))
+    # equipped-gear shelf (row 4)
+    yy0 = _row_y(4) - 1
+    cv.box(6 + 18, yy0, 169 - 18, yy0 + 18, (90, 90, 100))
+    for x in range(28, 150, 16):
+        _rivet(cv, x, yy0 - 1)
+    g.glow(x11 + 9, y11 + 9, 20, '#ffb040', 0.55)
+    g.glow(x15 + 9, y11 + 9, 18, '#ffd27a', 0.40)
+    g.sock(4, 'gem', '#c8b48a')
+    g.sock(11, 'big', '#ffb040')
+    g.sock(13, 'gem', '#7fe07f')
+    g.sock(15, 'big', '#ffd27a')
+    g.sock(22, 'gem', '#ff6b6b')
+    g.sock(29, 'gem', '#ffd27a')
+    g.sock(31, 'gem', '#c890ff')
+    g.sock(33, 'gem', '#7fd8ff')
+    g.sock(list(range(37, 44)), 'plain')
+    g.sock([45, 53], 'button')
+    g.sock(49, 'gem', '#ffd27a')
     return g
 
 
@@ -821,7 +887,7 @@ def paint_gui(name, ctx_content):
     fns = {
         'main': gui_main, 'stats': gui_stats, 'party': gui_party, 'setup': gui_setup, 'entrance': gui_entrance,
         'blacksmith': gui_blacksmith, 'titles': gui_titles, 'accessories': gui_accessories,
-        'merchant': gui_merchant, 'confirm': gui_confirm,
+        'merchant': gui_merchant, 'confirm': gui_confirm, 'enhance': gui_enhance,
         'generic_6': lambda s: gui_generic(s, 6), 'generic_3': lambda s: gui_generic(s, 3),
     }
     for r in range(1, 7):

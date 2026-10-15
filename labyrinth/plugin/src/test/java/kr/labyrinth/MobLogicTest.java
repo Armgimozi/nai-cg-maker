@@ -157,6 +157,69 @@ class MobLogicTest {
         assertEquals(Math.cos(Math.toRadians(45)), f.z, 1e-4);
     }
 
+    private static ModelDef.Part part(String name, String form, double px, double py, double pz, String anim) {
+        return new ModelDef.Part(name, form, 6, 6, 6, px, py, pz, anim);
+    }
+
+    private static RigMath.AnimState state(long tick, double speed, boolean airborne, int motion, float headYaw) {
+        return new RigMath.AnimState(tick, speed, -1, 0, -1, -1, headYaw, 0, -1, true, 7, airborne, motion, 0f, -1);
+    }
+
+    @Test
+    void wingsFlapMirrorsAndFolds() {
+        // 날 때: 왼쪽(+X) 날개 끝과 오른쪽(−X) 날개 끝은 좌우 대칭으로 같이 오르내린다
+        for (long t = 0; t < 12; t += 3) {
+            RigMath.AnimState fly = state(t, 0, true, RigMath.MOTION_NONE, 0);
+            Vector3f l = RigMath.pose("wings_flap", "wing", fly, 1, 0).rotation().transform(new Vector3f(1, 0, 0));
+            Vector3f r = RigMath.pose("wings_flap", "wing", fly, -1, 0).rotation().transform(new Vector3f(-1, 0, 0));
+            assertEquals(l.y, r.y, 1e-4);
+            assertEquals(-l.x, r.x, 1e-4);
+        }
+        // 급강하: 날개 끝이 뒤(−Z)로 접힌다
+        Vector3f dive = RigMath.pose("wings_flap", "wing", state(5, 0, true, RigMath.MOTION_DIVE, 0), 1, 0).rotation()
+                .transform(new Vector3f(1, 0, 0));
+        assertTrue(dive.z < -0.6, "급강하 중 날개는 뒤로 접힘: " + dive);
+        // 땅 위: 반쯤 접어 위·뒤로
+        Vector3f rest = RigMath.pose("wings_flap", "wing", state(5, 0, false, RigMath.MOTION_NONE, 0), 1, 0).rotation()
+                .transform(new Vector3f(1, 0, 0));
+        assertTrue(rest.z < 0 && rest.y > 0, "땅 위 날개는 뒤로 접혀 위로: " + rest);
+    }
+
+    @Test
+    void skeletonChainsNeckHeadJawAndTail() {
+        List<ModelDef.Part> parts = List.of(
+                part("body", "rounded", 0, 0.5, 0, "body"),
+                part("neck", "neck", 0, 0.6, 0.3, "neck"),
+                part("head", "rounded", 0, 0.9, 0.8, "head"),
+                part("jaw", "claw", 0, 0.8, 0.9, "jaw"),
+                part("horns", "horn_pair", 0, 1.05, 0.7, "head"),
+                part("tail_1", "tail", 0, 0.5, -0.4, "tail_chain"),
+                part("tail_2", "tail", 0, 0.5, -0.8, "tail_chain"));
+        RigMath.Skeleton sk = new RigMath.Skeleton(parts);
+        // 대상이 왼쪽 45°: 목이 절반을 돌고 머리가 목 끝에 붙어 함께 옮겨 간다
+        RigMath.Solved[] o = sk.solve(state(0, 0, false, RigMath.MOTION_NONE, 45));
+        Vector3f headFwd = o[2].rotation().transform(new Vector3f(0, 0, 1));
+        assertTrue(headFwd.x < -0.5, "머리는 대상 쪽으로 (목 + 머리 합): " + headFwd);
+        assertTrue(Math.abs(o[2].pivot().x) > 0.05, "목이 돌면 머리 피벗도 옆으로 옮겨 감");
+        // 턱·뿔은 머리 피벗을 기준으로 머리와 같은 거리 유지 (떨어지지 않음)
+        Vector3f head = o[2].pivot();
+        assertEquals(new Vector3f(0, -0.1f, 0.1f).length(), new Vector3f(o[3].pivot()).sub(head).length(), 1e-4);
+        assertEquals(new Vector3f(0, 0.15f, -0.1f).length(), new Vector3f(o[4].pivot()).sub(head).length(), 1e-4);
+        // 뿔(anim head)은 머리와 같은 회전 (yaw 를 두 번 받지 않음)
+        Vector3f hornFwd = o[4].rotation().transform(new Vector3f(0, 0, 1));
+        assertEquals(headFwd.x, hornFwd.x, 1e-4);
+        // 꼬리 둘째 마디는 첫 마디 끝에 붙어 있다 (마디 길이 유지)
+        for (long t = 0; t < 40; t += 7) {
+            RigMath.Solved[] q = sk.solve(state(t, 0.2, false, RigMath.MOTION_NONE, 0));
+            assertEquals(0.4, new Vector3f(q[6].pivot()).sub(q[5].pivot()).length(), 1e-4);
+        }
+        // 솟구침: 처음엔 모델이 바닥 아래, 다 올라오면 제자리
+        RigMath.AnimState rising = new RigMath.AnimState(0, 0, -1, 0, -1, -1, 0, 0, -1, true, 7, false, 0, 0f, 0);
+        assertTrue(sk.solve(rising)[0].pivot().y < 0, "솟구치기 시작 = 바닥 아래");
+        RigMath.AnimState up = new RigMath.AnimState(0, 0, -1, 0, -1, -1, 0, 0, -1, true, 7, false, 0, 0f, RigMath.EMERGE_TICKS);
+        assertEquals(0.5, sk.solve(up)[0].pivot().y, 0.03);
+    }
+
     private static double RigMath_attack(int ticks) {
         RigMath.AnimState s = new RigMath.AnimState(0, 0, ticks, 0, -1, -1, 0, 0, -1, true, 0);
         Vector3f v = RigMath.pose("arm_right", "arm", s).rotation().transform(new Vector3f(0, -1, 0));

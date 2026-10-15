@@ -5,6 +5,7 @@
 #  palette.*        : 실제 26.3 블록 Material 이름. 목록 안에서 가중치 없이 무작위(앞쪽일수록 자주: 생성기가 1/(i+1) 가중치 권장)
 #  rooms            : 방 종류별 개수. 시작방·보스방은 항상 1개씩 자동 추가
 #  mob_density      : 전투방 1개당 일반 몹 수 [최소, 최대] (파티 인원 배율 전, 솔로 기준)
+#  mobs             : 전투방·엘리트방 호위·보물방 미믹·기믹방이 고르는 일반 몹 (목록에서 균등 무작위, 층마다 6종)
 #  gimmick          : 기믹방 구현 키 (dungeon/rooms/, GDD.md "기믹방" 참고) + gimmick_params
 #  ambient          : particle(Particle enum, 데이터 없는 입자만) / density(플레이어 1명 주변 초당 개수)
 #                     sound(바닐라 사운드 키) / sound_interval([최소,최대] 초) / volume / pitch
@@ -39,7 +40,7 @@ floors:
     size: {cells: 6}
     rooms: {combat: 6, elite: 1, treasure: 1, gimmick: 1, rest: 1}
     mob_density: [3, 5]
-    mobs: [moss_crawler, root_shambler, lantern_wisp, stone_beetle]
+    mobs: [moss_crawler, root_shambler, lantern_wisp, stone_beetle, moss_drakeling, thorn_kobold]
     elite: moss_crawler_alpha
     boss: floor01_moss_warden
     gimmick: lever_sequence
@@ -68,7 +69,7 @@ floors:
     size: {cells: 6}
     rooms: {combat: 7, elite: 1, treasure: 1, gimmick: 1, rest: 1}
     mob_density: [3, 5]
-    mobs: [tunnel_skitter, rusted_miner, ore_mimic, echo_bat]
+    mobs: [tunnel_skitter, rusted_miner, ore_mimic, echo_bat, kobold_sapper, tunnel_wyrm]
     elite: foreman_gorrak
     boss: floor02_silk_queen
     gimmick: torch_relay
@@ -98,7 +99,7 @@ floors:
     size: {cells: 7}
     rooms: {combat: 7, elite: 1, treasure: 1, gimmick: 1, rest: 1}
     mob_density: [3, 5]
-    mobs: [capcap, mycelid_shambler, spore_turret, glowcap_moth]
+    mobs: [capcap, mycelid_shambler, spore_turret, glowcap_moth, spore_harpy, myconid_centaur]
     elite: spore_mother
     boss: floor03_mycelium_king
     gimmick: spore_purge
@@ -126,7 +127,7 @@ floors:
     size: {cells: 7}
     rooms: {combat: 8, elite: 1, treasure: 1, gimmick: 1, rest: 1}
     mob_density: [3, 6]
-    mobs: [sluice_drowner, brine_spitter, rust_eel, bubble_jelly]
+    mobs: [sluice_drowner, brine_spitter, rust_eel, bubble_jelly, bog_drake, tide_naga]
     elite: verdigris_crab
     boss: floor04_floodwarden
     gimmick: valve_flow
@@ -154,7 +155,7 @@ floors:
     size: {cells: 8}
     rooms: {combat: 8, elite: 1, treasure: 1, gimmick: 1, rest: 1}
     mob_density: [4, 6]
-    mobs: [slag_golem, cinder_imp, bellows_hound, forge_acolyte]
+    mobs: [slag_golem, cinder_imp, bellows_hound, forge_acolyte, ember_drake, forge_dragonkin]
     elite: forge_executioner
     boss: floor05_anvil_king
     gimmick: forge_bellows
@@ -182,7 +183,7 @@ floors:
     size: {cells: 8}
     rooms: {combat: 9, elite: 1, treasure: 1, gimmick: 1, rest: 1}
     mob_density: [4, 6]
-    mobs: [rime_mourner, crypt_hound, frozen_knight, icicle_wraith]
+    mobs: [rime_mourner, crypt_hound, frozen_knight, icicle_wraith, frost_wyvern, barrow_lich]
     elite: crypt_bellringer
     boss: floor06_frost_empress
     gimmick: lights_out
@@ -211,7 +212,7 @@ floors:
     size: {cells: 8}
     rooms: {combat: 9, elite: 1, treasure: 2, gimmick: 1, rest: 1}
     mob_density: [4, 6]
-    mobs: [shard_skitterer, prism_sentinel, echo_wisp, geode_brute]
+    mobs: [shard_skitterer, prism_sentinel, echo_wisp, geode_brute, crystal_dragonkin, prism_centaur]
     elite: resonance_tuner
     boss: floor07_dyad
     gimmick: resonance_tune
@@ -239,7 +240,7 @@ floors:
     size: {cells: 9}
     rooms: {combat: 10, elite: 1, treasure: 2, gimmick: 1, rest: 2}
     mob_density: [4, 7]
-    mobs: [ink_wraith, page_swarm, biting_tome, archive_sentinel]
+    mobs: [ink_wraith, page_swarm, biting_tome, archive_sentinel, ink_naga, quill_harpy]
     elite: forbidden_keeper
     boss: floor08_ink_librarian
     gimmick: book_cipher
@@ -266,7 +267,7 @@ floors:
     size: {cells: 9}
     rooms: {combat: 10, elite: 2, treasure: 2, gimmick: 1, rest: 2}
     mob_density: [4, 7]
-    mobs: [gear_hound, clockwork_sentry, spring_jumper, chrono_moth]
+    mobs: [gear_hound, clockwork_sentry, spring_jumper, chrono_moth, clockwork_wyvern, brass_minotaur]
     elite: grand_regulator
     boss: floor09_clock_warden
     gimmick: gear_timing
@@ -294,7 +295,7 @@ floors:
     size: {cells: 10}
     rooms: {combat: 11, elite: 2, treasure: 2, gimmick: 1, rest: 2}
     mob_density: [4, 7]
-    mobs: [void_stalker, echo_colossus, abyss_eye, hollow_choir]
+    mobs: [void_stalker, echo_colossus, abyss_eye, hollow_choir, void_drake, abyss_dragonkin]
     elite: abyss_gatekeeper
     boss: floor10_abyss_heart
     gimmick: void_trial

@@ -18,8 +18,10 @@ public final class Keys {
     public static final NamespacedKey ITEM_SEED = key("item_seed");
     /** String: 굴린 스탯 "key=value;key=value" (ItemService 가 형식 소유). */
     public static final NamespacedKey ITEM_ROLLS = key("item_rolls");
-    /** Integer: 아이템 데이터 버전. */
+    /** Integer: 아이템 데이터 버전 (1 = 굴림, 2 = 강화 단계 키 추가 — 1 이하는 강화 0 으로 읽는다). */
     public static final NamespacedKey ITEM_VERSION = key("item_version");
+    /** Integer: 강화 단계 0~10 (없으면 0, ITEM_VERSION 2 부터). 형식 소유 = items.enhance.Enhancement. */
+    public static final NamespacedKey ITEM_ENHANCE = key("item_enhance");
     /** String(UUID): 개인 루팅 소유자. */
     public static final NamespacedKey LOOT_OWNER = key("loot_owner");
 

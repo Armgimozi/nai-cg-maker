@@ -7,6 +7,8 @@ import re
 
 from PIL import Image
 
+from .voxel.weapons import BOWS as VW_BOWS
+
 NS = 'labyrinth'
 
 
@@ -146,7 +148,7 @@ def validate(files: dict, content: dict, expect_frames: dict, fx_names=()) -> Re
     for iid, it in items.items():
         check_item_definition(files, f'assets/{NS}/items/{iid}.json', rep, expect_frames)
         shape = (it.get('model') or {}).get('shape')
-        if shape in ('longbow', 'recurve_bow', 'composite_bow'):
+        if shape in VW_BOWS:
             for k in range(3):
                 if f'assets/{NS}/models/item/{iid}_pulling_{k}.json' not in files:
                     rep.err(f'{iid}: missing pulling_{k} model')

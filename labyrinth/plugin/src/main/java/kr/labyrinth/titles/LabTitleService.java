@@ -23,6 +23,7 @@ import kr.labyrinth.core.Log;
 import kr.labyrinth.core.Text;
 import kr.labyrinth.data.PlayerData;
 import kr.labyrinth.event.CraftEvent;
+import kr.labyrinth.event.EnhanceEvent;
 import kr.labyrinth.event.FloorClearEvent;
 import kr.labyrinth.event.ItemObtainEvent;
 import kr.labyrinth.event.LevelUpEvent;
@@ -343,6 +344,14 @@ public final class LabTitleService extends BasicTitleService implements Listener
             Rarity r = def == null ? null : def.rarity();
             TitleCounters.onCraft(store(services.data().get(e.player())), r);
             evaluate(List.of(e.player()));
+        });
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onEnhance(EnhanceEvent e) {
+        safe("EnhanceEvent", () -> {
+            TitleCounters.onEnhance(store(services.data().get(e.player())), e.success(), e.to());
+            if (e.success()) evaluate(List.of(e.player()));
         });
     }
 

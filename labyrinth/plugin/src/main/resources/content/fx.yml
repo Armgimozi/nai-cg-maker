@@ -513,6 +513,8 @@ models:
   proj_void_orb:     {style: orb, motif: void_rift, palette: ["#020306", "#123842", "#2fe0d0", "#c8fff8"], animated: true, frames: 6, frametime: 2, size: [10, 10, 10], billboard: CENTER, glow: true}
   proj_anchor:       {style: projectile, shape: anchor, palette: ["#0a1416", "#2e5a5e", "#7a8a8a", "#c0d0d0"], animated: false, frames: 1, size: [14, 20, 3], billboard: FIXED}
   proj_hammer:       {style: projectile, shape: hammer, palette: ["#1a1414", "#5a3a2a", "#a8a8b0", "#ffd27a"], animated: true, frames: 4, frametime: 1, size: [18, 24, 10], billboard: FIXED, glow: true}
+  proj_bomb:         {style: projectile, shape: glob, palette: ["#0e0c0a", "#2e2824", "#5a5048", "#ff9a3a"], animated: true, frames: 4, frametime: 2, size: [6, 6, 6], billboard: CENTER}
+  proj_prism_arrow:  {style: projectile, shape: arrow, palette: ["#1a1a2e", "#5a5ab0", "#c8d8ff", "#ffffff", "#ff7ae0"], animated: true, frames: 4, frametime: 1, size: [3, 3, 18], billboard: FIXED, glow: true}
 
   # ═══════════════════════ 장판·오브젝트 (몹·보스 기믹) ═══════════════════════
   molten_puddle:      {style: puddle, motif: lava, palette: ["#2a0a04", "#a83a10", "#ff8a2a", "#ffd27a"], animated: true, frames: 8, frametime: 3, size: [24, 1, 24], flat: true, glow: true}

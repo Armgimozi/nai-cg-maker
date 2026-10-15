@@ -19,10 +19,12 @@ import kr.labyrinth.core.Difficulty;
  *   <li>{@code titles.diff_clear.<층>} 클리어한 가장 높은 난이도 순위+1 (쉬움 1 … 악몽 4, 0 = 없음)</li>
  *   <li>{@code titles.best_time.<층>} 최단 클리어 초(올림, 0 = 없음)</li>
  *   <li>{@code titles.first_clear.<층>} 서버 최초 돌파 파티 일원이면 1</li>
- *   <li>{@code titles.kills} · {@code titles.kill.<몹>} · {@code titles.kill_rank.<rank>} 처치 수(기여자 전원)</li>
+ *   <li>{@code titles.kills} · {@code titles.kill.<몹>} · {@code titles.kill_rank.<rank>} 처치 수(기여자 전원)
+ *       — KILL 의 {@code mobs: [id, …]} 는 그 몹들의 {@code titles.kill.<몹>} 합</li>
  *   <li>{@code titles.boss_kills} · {@code titles.boss_kill.<보스>}</li>
  *   <li>{@code titles.obtain.<희귀도>} 그 희귀도 장비 획득 수(정확히 일치)</li>
  *   <li>{@code titles.crafts} · {@code titles.craft_min.<희귀도>} 그 희귀도 이상 제작 수</li>
+ *   <li>{@code titles.enhance_best} 강화 성공으로 도달한 가장 높은 단계 · {@code titles.enhance_success} 강화 성공 횟수</li>
  *   <li>{@code titles.server_first.<업적 id>} {@code server_first: true}(어떤 조건에나 붙일 수 있음 — 처음 달성한 1명만) 업적의 서버 최초 기록 보유자면 1</li>
  *   <li>{@code level} 현재 레벨 (카운터가 아니라 조회 함수가 PlayerData.level 로 답한다)</li>
  * </ul>
@@ -70,6 +72,7 @@ public final class AchievementRules {
                 long need = Math.max(1, c.integer("count", 1));
                 String mob = c.str("mob");
                 String rank = c.str("rank");
+                if (!c.strings("mobs").isEmpty()) return killSum(c, v) >= need;
                 if (mob != null && !mob.isBlank()) return v.applyAsLong(P + "kill." + mob) >= need;
                 if (rank != null && !rank.isBlank()) return v.applyAsLong(P + "kill_rank." + rank.toLowerCase(Locale.ROOT)) >= need;
                 return v.applyAsLong(P + "kills") >= need;
@@ -91,9 +94,18 @@ public final class AchievementRules {
                 Rarity r = Rarity.byId(c.str("rarity"));
                 return r == null ? v.applyAsLong(P + "crafts") >= need : v.applyAsLong(P + "craft_min." + r.id()) >= need;
             }
+            case "ENHANCE":
+                return v.applyAsLong(P + "enhance_best") >= Math.max(1, c.integer("level", 1));
             default:
                 return false;
         }
+    }
+
+    /** KILL {@code mobs: [..]} — 나열한 몹들의 처치 수 합 (몹별 카운터라 예전 처치도 소급된다). */
+    private static long killSum(Params c, ToLongFunction<String> v) {
+        long sum = 0;
+        for (String id : c.strings("mobs")) sum += v.applyAsLong(P + "kill." + id);
+        return sum;
     }
 
     /**
@@ -111,7 +123,8 @@ public final class AchievementRules {
                 goal = Math.max(1, c.integer("count", 1));
                 String mob = c.str("mob");
                 String rank = c.str("rank");
-                if (mob != null && !mob.isBlank()) cur = v.applyAsLong(P + "kill." + mob);
+                if (!c.strings("mobs").isEmpty()) cur = killSum(c, v);
+                else if (mob != null && !mob.isBlank()) cur = v.applyAsLong(P + "kill." + mob);
                 else if (rank != null && !rank.isBlank()) cur = v.applyAsLong(P + "kill_rank." + rank.toLowerCase(Locale.ROOT));
                 else cur = v.applyAsLong(P + "kills");
             }
@@ -131,6 +144,7 @@ public final class AchievementRules {
                 cur = r == null ? v.applyAsLong(P + "crafts") : v.applyAsLong(P + "craft_min." + r.id());
                 goal = Math.max(1, c.integer("count", 1));
             }
+            case "ENHANCE" -> { cur = v.applyAsLong(P + "enhance_best"); goal = Math.max(1, c.integer("level", 1)); }
             default -> { cur = met(def, v) ? 1 : 0; goal = 1; }
         }
         return new long[] {Math.min(cur, goal), goal};
@@ -150,7 +164,8 @@ public final class AchievementRules {
             case "DIFFICULTY_CLEAR" -> "지하 " + floor + "층을 '" + difficultyName(c.str("difficulty", "normal")) + "' 이상으로 클리어";
             case "SPEED_CLEAR" -> "지하 " + floor + "층을 " + timeText(c.integer("seconds", 0)) + " 안에 클리어";
             case "KILL" -> {
-                String what = c.str("mob") != null ? "지정 몬스터" : c.str("rank") != null ? rankName(c.str("rank")) : "몬스터";
+                String what = !c.strings("mobs").isEmpty() ? "지정 몬스터(" + c.strings("mobs").size() + "종)"
+                        : c.str("mob") != null ? "지정 몬스터" : c.str("rank") != null ? rankName(c.str("rank")) : "몬스터";
                 yield what + " " + c.integer("count", 1) + "마리 처치";
             }
             case "BOSS_KILL" -> (c.str("boss") != null ? "지정 보스" : "보스") + " " + c.integer("count", 1) + "회 처치";
@@ -163,6 +178,7 @@ public final class AchievementRules {
                 Rarity r = Rarity.byId(c.str("rarity"));
                 yield (r == null ? "" : r.displayName() + " 이상 ") + "장비 제작 " + c.integer("count", 1) + "회";
             }
+            case "ENHANCE" -> "장비 +" + Math.max(1, c.integer("level", 1)) + " 강화 성공";
             default -> "";
         };
         return text.isEmpty() ? "" : text + sf;

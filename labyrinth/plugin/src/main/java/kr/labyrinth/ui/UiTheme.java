@@ -24,7 +24,7 @@ import org.bukkit.inventory.ItemStack;
  * <p>
  * <b>글리프 이름 계약</b> (glyphs.yml 이 주면 자동 적용, 없으면 평범한 제목 — 절대 실패하지 않음):
  * 메뉴 배경 {@code gui_<메뉴>} (main, stats, class, class_detail, party, players, titles, entrance, setup, accessories,
- * records, blacksmith, merchant, confirm), 없으면 {@code gui_rows_<줄 수>}. 배경 폭은 glyphs.yml 의 선택 필드
+ * records, blacksmith, merchant, confirm, enhance), 없으면 {@code gui_rows_<줄 수>}. 배경 폭은 glyphs.yml 의 선택 필드
  * {@code width}(px, 기본 176), 제목 글자 시작 x 는 선택 필드 {@code title_x}(px, 기본 8 = 바닐라 제목 위치), 제목 색은 선택 필드
  * {@code title_color}(#RRGGBB, 기본 #3b2a4d → 글리프 있을 때만).
  * HUD 는 {@link HudBars} 참고.
@@ -113,7 +113,7 @@ public final class UiTheme {
      * 메뉴별 배경 그림(gui_&lt;menu&gt;)은 소켓(버튼 자리)이 그려져 있다 → 버튼 배치가 그 소켓과 같은 메뉴만 전용 배경을 쓰고,
      * 나머지는 같은 줄 수의 범용 배경(gui_rows_&lt;n&gt; → gui_generic_&lt;n&gt;)을 쓴다. 줄 수가 다른 배경은 절대 쓰지 않는다.
      */
-    private static final java.util.Set<String> SOCKET_LAYOUT = java.util.Set.of("blacksmith", "titles", "setup", "class", "party");
+    private static final java.util.Set<String> SOCKET_LAYOUT = java.util.Set.of("blacksmith", "titles", "setup", "class", "party", "enhance");
 
     /** 이 메뉴(줄 수 rows)에 깔 배경 글리프 id (없으면 null). */
     public static String background(String menu, int rows) {

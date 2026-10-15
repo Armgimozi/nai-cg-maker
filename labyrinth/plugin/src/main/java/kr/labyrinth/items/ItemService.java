@@ -29,8 +29,11 @@ public interface ItemService {
     /** 미궁 아이템이면 정의. */
     Optional<ItemDef> defOf(ItemStack stack);
 
-    /** 굴린 스탯 (키 = GDD §11.7). 굴림이 없으면 빈 맵. */
+    /** 굴린 스탯 (키 = GDD §11.7, 강화 단계 배율 포함 — GDD §11.13). 굴림이 없으면 빈 맵. */
     Map<String, Double> rolledStats(ItemStack stack);
+
+    /** 이름·툴팁을 아이템 PDC(굴림값·강화 단계)에서 다시 그린다. 기본 구현은 아무것도 안 한다. */
+    default void refresh(ItemStack stack) {}
 
     /**
      * 지급 (인벤토리가 차면 발밑에 떨굼, 주인만 줍게). {@code event.ItemObtainEvent} 발생.

@@ -65,6 +65,97 @@ tables:
       - {item: elixir_of_renewal, chance: 0.7}
       - {item: phoenix_feather, chance: 0.12}
 
+  # ═════════ 강화 재료 (GDD §11.13) — 몹·보스·상자 테이블이 {table: enhance_*, chance: 1.0} 로 굴린다 ═════════
+  # 확률·개수는 여기 한 곳에서 고치면 전체에 적용된다. t1 = 지하 1~3층(하급 강화석) · t2 = 4~7층(상급) · t3 = 8~10층(최상급).
+  # mob = 일반 몹 · swarm = 떼 몹(×0.7) · elite = 정예 · boss = 보스 · chest = 보물방 · gimmick = 기믹방 상자
+  # preview = 3층·7층 보스가 다음 구간 강화석을 미리 맛보게 주는 몫. 보호 주문서는 정예·보스만(드물게).
+  enhance_mob_t1:
+    rolls: 1
+    entries:
+      - {item: lesser_enhance_stone, chance: 0.04}
+  enhance_swarm_t1:
+    rolls: 1
+    entries:
+      - {item: lesser_enhance_stone, chance: 0.028}
+  enhance_elite_t1:
+    rolls: 1
+    entries:
+      - {item: lesser_enhance_stone, chance: 0.4, amount: [1, 2]}
+      - {item: enhance_protection_scroll, chance: 0.03}
+  enhance_boss_t1:
+    rolls: 1
+    entries:
+      - {item: lesser_enhance_stone, chance: 0.9, amount: [2, 3]}
+      - {item: enhance_protection_scroll, chance: 0.08}
+  enhance_chest_t1:
+    rolls: 1
+    entries:
+      - {item: lesser_enhance_stone, chance: 0.5, amount: [1, 2]}
+  enhance_gimmick_t1:
+    rolls: 1
+    entries:
+      - {item: lesser_enhance_stone, chance: 0.6, amount: [1, 3]}
+  enhance_mob_t2:
+    rolls: 1
+    entries:
+      - {item: greater_enhance_stone, chance: 0.04}
+  enhance_swarm_t2:
+    rolls: 1
+    entries:
+      - {item: greater_enhance_stone, chance: 0.028}
+  enhance_elite_t2:
+    rolls: 1
+    entries:
+      - {item: greater_enhance_stone, chance: 0.4, amount: [1, 2]}
+      - {item: enhance_protection_scroll, chance: 0.03}
+  enhance_boss_t2:
+    rolls: 1
+    entries:
+      - {item: greater_enhance_stone, chance: 0.9, amount: [2, 3]}
+      - {item: enhance_protection_scroll, chance: 0.08}
+  enhance_chest_t2:
+    rolls: 1
+    entries:
+      - {item: greater_enhance_stone, chance: 0.5, amount: [1, 2]}
+  enhance_gimmick_t2:
+    rolls: 1
+    entries:
+      - {item: greater_enhance_stone, chance: 0.6, amount: [1, 3]}
+  enhance_mob_t3:
+    rolls: 1
+    entries:
+      - {item: supreme_enhance_stone, chance: 0.04}
+  enhance_swarm_t3:
+    rolls: 1
+    entries:
+      - {item: supreme_enhance_stone, chance: 0.028}
+  enhance_elite_t3:
+    rolls: 1
+    entries:
+      - {item: supreme_enhance_stone, chance: 0.4, amount: [1, 2]}
+      - {item: enhance_protection_scroll, chance: 0.03}
+  enhance_boss_t3:
+    rolls: 1
+    entries:
+      - {item: supreme_enhance_stone, chance: 0.9, amount: [2, 3]}
+      - {item: enhance_protection_scroll, chance: 0.08}
+  enhance_chest_t3:
+    rolls: 1
+    entries:
+      - {item: supreme_enhance_stone, chance: 0.5, amount: [1, 2]}
+  enhance_gimmick_t3:
+    rolls: 1
+    entries:
+      - {item: supreme_enhance_stone, chance: 0.6, amount: [1, 3]}
+  enhance_preview_t2:
+    rolls: 1
+    entries:
+      - {item: greater_enhance_stone, chance: 0.15}
+  enhance_preview_t3:
+    rolls: 1
+    entries:
+      - {item: supreme_enhance_stone, chance: 0.15}
+
   # ═════════ 지하 1층 — 이끼 낀 회랑 ═════════
   moss_crawler:   # 1층 일반 — 이끼 기어다니는 자
     rolls: 1
@@ -75,6 +166,7 @@ tables:
       - {rarity_pool: uncommon, floor: 2, chance: 0.01}
       - {item: dim_essence, chance: 0.01}
       - {table: potions_t1, chance: 0.03}
+      - {table: enhance_mob_t1, chance: 1.0}
   root_shambler:   # 1층 일반 — 뿌리 비틀이
     rolls: 1
     entries:
@@ -84,6 +176,7 @@ tables:
       - {rarity_pool: uncommon, floor: 2, chance: 0.01}
       - {item: dim_essence, chance: 0.01}
       - {table: potions_t1, chance: 0.03}
+      - {table: enhance_mob_t1, chance: 1.0}
   lantern_wisp:   # 1층 일반 — 회랑 등불 정령
     rolls: 1
     entries:
@@ -94,6 +187,7 @@ tables:
       - {item: dim_essence, chance: 0.01}
       - {table: potions_t1, chance: 0.03}
       - {item: dim_essence, chance: 0.02}
+      - {table: enhance_mob_t1, chance: 1.0}
   stone_beetle:   # 1층 일반 — 돌갑충
     rolls: 1
     entries:
@@ -103,6 +197,27 @@ tables:
       - {rarity_pool: uncommon, floor: 2, chance: 0.01}
       - {item: dim_essence, chance: 0.01}
       - {table: potions_t1, chance: 0.03}
+      - {table: enhance_mob_t1, chance: 1.0}
+  moss_drakeling:   # 1층 일반 — 이끼 새끼용
+    rolls: 1
+    entries:
+      - {item: beetle_shell, chance: 0.55, amount: [1, 2]}
+      - {item: moss_fiber, chance: 0.15}
+      - {rarity_pool: common, floor: 1, chance: 0.05}
+      - {rarity_pool: uncommon, floor: 2, chance: 0.01}
+      - {item: dim_essence, chance: 0.01}
+      - {table: potions_t1, chance: 0.03}
+      - {table: enhance_mob_t1, chance: 1.0}
+  thorn_kobold:   # 1층 일반 — 가시덩굴 코볼트
+    rolls: 1
+    entries:
+      - {item: moss_fiber, chance: 0.55, amount: [1, 2]}
+      - {item: beetle_shell, chance: 0.15}
+      - {rarity_pool: common, floor: 1, chance: 0.05}
+      - {rarity_pool: uncommon, floor: 2, chance: 0.01}
+      - {item: dim_essence, chance: 0.01}
+      - {table: potions_t1, chance: 0.03}
+      - {table: enhance_mob_t1, chance: 1.0}
   moss_crawler_alpha:   # 1층 엘리트 — 우두머리 이끼 기어다니는 자
     rolls: 1
     entries:
@@ -114,6 +229,7 @@ tables:
       - {rarity_pool: rare, floor: 3, chance: 0.06}
       - {one_of: [grove_heartwood_charm], chance: 0.015}
       - {table: potions_t1, chance: 0.25}
+      - {table: enhance_elite_t1, chance: 1.0}
   floor01_boss:   # 1층 보스 — 이끼 파수꾼 그로브
     rolls: 1
     guaranteed:
@@ -129,9 +245,12 @@ tables:
       - {rarity_pool: uncommon, floor: 2, chance: 0.25}
       - {rarity_pool: rare, floor: 3, chance: 0.05}
       - {table: potions_t1, chance: 0.5}
+      - {table: enhance_boss_t1, chance: 1.0}
   treasure_floor_1:   # 1층 보물방 상자 (개인 루팅, 30% 미믹)
     rolls: 2
     gold: [20, 40]
+    guaranteed:   # 강화 재료는 rolls 와 무관하게 한 번만 굴린다
+      - {table: enhance_chest_t1, chance: 1.0}
     entries:
       - {table: potions_t1, chance: 0.45}
       - {table: scrolls, chance: 0.1}
@@ -146,6 +265,7 @@ tables:
     gold: [32, 64]
     guaranteed:
       - {item: dim_essence, amount: 1}
+      - {table: enhance_gimmick_t1, chance: 1.0}
     entries:
       - {item: dim_essence, chance: 0.6}
       - {item: alpha_moss_crest, chance: 0.15}
@@ -168,6 +288,7 @@ tables:
       - {rarity_pool: rare, floor: 3, chance: 0.0035}
       - {item: dim_essence, chance: 0.007}
       - {table: potions_t1, chance: 0.021}
+      - {table: enhance_swarm_t1, chance: 1.0}
   rusted_miner:   # 2층 일반 — 녹슨 광부
     rolls: 1
     entries:
@@ -178,6 +299,7 @@ tables:
       - {rarity_pool: rare, floor: 3, chance: 0.005}
       - {item: dim_essence, chance: 0.01}
       - {table: potions_t1, chance: 0.03}
+      - {table: enhance_mob_t1, chance: 1.0}
   ore_mimic:   # 2층 일반 — 광맥 흉내쟁이
     rolls: 1
     entries:
@@ -189,6 +311,7 @@ tables:
       - {item: dim_essence, chance: 0.01}
       - {table: potions_t1, chance: 0.03}
       - {item: miners_lucky_charm, chance: 0.01}
+      - {table: enhance_mob_t1, chance: 1.0}
   echo_bat:   # 2층 일반 — 메아리 박쥐
     rolls: 1
     entries:
@@ -199,6 +322,29 @@ tables:
       - {rarity_pool: rare, floor: 3, chance: 0.0035}
       - {item: dim_essence, chance: 0.007}
       - {table: potions_t1, chance: 0.021}
+      - {table: enhance_swarm_t1, chance: 1.0}
+  kobold_sapper:   # 2층 일반 — 코볼트 폭파병
+    rolls: 1
+    entries:
+      - {item: rusted_iron, chance: 0.55, amount: [1, 2]}
+      - {item: spider_silk, chance: 0.15}
+      - {rarity_pool: common, floor: 1, chance: 0.02}
+      - {rarity_pool: uncommon, floor: 2, chance: 0.04}
+      - {rarity_pool: rare, floor: 3, chance: 0.005}
+      - {item: dim_essence, chance: 0.01}
+      - {table: potions_t1, chance: 0.03}
+      - {table: enhance_mob_t1, chance: 1.0}
+  tunnel_wyrm:   # 2층 일반 — 갱도 땅굴웜
+    rolls: 1
+    entries:
+      - {item: rusted_iron, chance: 0.55, amount: [1, 3]}
+      - {item: spider_silk, chance: 0.15}
+      - {rarity_pool: common, floor: 1, chance: 0.02}
+      - {rarity_pool: uncommon, floor: 2, chance: 0.04}
+      - {rarity_pool: rare, floor: 3, chance: 0.005}
+      - {item: dim_essence, chance: 0.01}
+      - {table: potions_t1, chance: 0.03}
+      - {table: enhance_mob_t1, chance: 1.0}
   foreman_gorrak:   # 2층 엘리트 — 갱도 감독관 고르락
     rolls: 1
     entries:
@@ -210,6 +356,7 @@ tables:
       - {rarity_pool: rare, floor: 3, chance: 0.15}
       - {one_of: [silk_queen_bracelet], chance: 0.015}
       - {table: potions_t1, chance: 0.25}
+      - {table: enhance_elite_t1, chance: 1.0}
   floor02_boss:   # 2층 보스 — 실잣는 여왕 베셀라
     rolls: 1
     guaranteed:
@@ -225,9 +372,12 @@ tables:
       - {rarity_pool: uncommon, floor: 2, chance: 0.25}
       - {rarity_pool: rare, floor: 3, chance: 0.12}
       - {table: potions_t1, chance: 0.5}
+      - {table: enhance_boss_t1, chance: 1.0}
   treasure_floor_2:   # 2층 보물방 상자 (개인 루팅, 30% 미믹)
     rolls: 2
     gold: [35, 65]
+    guaranteed:   # 강화 재료는 rolls 와 무관하게 한 번만 굴린다
+      - {table: enhance_chest_t1, chance: 1.0}
     entries:
       - {table: potions_t1, chance: 0.45}
       - {table: scrolls, chance: 0.1}
@@ -241,6 +391,7 @@ tables:
     gold: [56, 104]
     guaranteed:
       - {item: dim_essence, amount: 1}
+      - {table: enhance_gimmick_t1, chance: 1.0}
     entries:
       - {item: dim_essence, chance: 0.6}
       - {item: foreman_badge, chance: 0.15}
@@ -262,6 +413,7 @@ tables:
       - {rarity_pool: rare, floor: 4, chance: 0.0056}
       - {item: dim_essence, chance: 0.007}
       - {table: potions_t1, chance: 0.021}
+      - {table: enhance_swarm_t1, chance: 1.0}
   mycelid_shambler:   # 3층 일반 — 균사 걸음꾼
     rolls: 1
     entries:
@@ -272,6 +424,7 @@ tables:
       - {rarity_pool: rare, floor: 4, chance: 0.008}
       - {item: dim_essence, chance: 0.01}
       - {table: potions_t1, chance: 0.03}
+      - {table: enhance_mob_t1, chance: 1.0}
   spore_turret:   # 3층 일반 — 포자 포탑 버섯
     rolls: 1
     entries:
@@ -282,6 +435,7 @@ tables:
       - {rarity_pool: rare, floor: 4, chance: 0.008}
       - {item: dim_essence, chance: 0.01}
       - {table: potions_t1, chance: 0.03}
+      - {table: enhance_mob_t1, chance: 1.0}
   glowcap_moth:   # 3층 일반 — 빛갓 나방
     rolls: 1
     entries:
@@ -292,6 +446,29 @@ tables:
       - {rarity_pool: rare, floor: 4, chance: 0.008}
       - {item: dim_essence, chance: 0.01}
       - {table: potions_t1, chance: 0.03}
+      - {table: enhance_mob_t1, chance: 1.0}
+  spore_harpy:   # 3층 일반 — 포자 하피
+    rolls: 1
+    entries:
+      - {item: spore_cap, chance: 0.55, amount: [1, 2]}
+      - {item: hypha_thread, chance: 0.15}
+      - {rarity_pool: uncommon, floor: 2, chance: 0.03}
+      - {rarity_pool: rare, floor: 3, chance: 0.03}
+      - {rarity_pool: rare, floor: 4, chance: 0.008}
+      - {item: dim_essence, chance: 0.01}
+      - {table: potions_t1, chance: 0.03}
+      - {table: enhance_mob_t1, chance: 1.0}
+  myconid_centaur:   # 3층 일반 — 균사 켄타우로스
+    rolls: 1
+    entries:
+      - {item: hypha_thread, chance: 0.55, amount: [1, 3]}
+      - {item: spore_cap, chance: 0.15}
+      - {rarity_pool: uncommon, floor: 2, chance: 0.03}
+      - {rarity_pool: rare, floor: 3, chance: 0.03}
+      - {rarity_pool: rare, floor: 4, chance: 0.008}
+      - {item: dim_essence, chance: 0.01}
+      - {table: potions_t1, chance: 0.03}
+      - {table: enhance_mob_t1, chance: 1.0}
   spore_mother:   # 3층 엘리트 — 포자 어미 군락체
     rolls: 1
     entries:
@@ -305,6 +482,7 @@ tables:
       - {one_of: [symbiosis_ring], chance: 0.015}
       - {table: potions_t1, chance: 0.25}
       - {table: tonics, chance: 0.08}
+      - {table: enhance_elite_t1, chance: 1.0}
   floor03_boss:   # 3층 보스 — 균사의 왕 무르노크
     rolls: 1
     guaranteed:
@@ -321,9 +499,13 @@ tables:
       - {rarity_pool: rare, floor: 4, chance: 0.15}
       - {table: potions_t1, chance: 0.5}
       - {table: tonics, chance: 0.2}
+      - {table: enhance_boss_t1, chance: 1.0}
+      - {table: enhance_preview_t2, chance: 1.0}
   treasure_floor_3:   # 3층 보물방 상자 (개인 루팅, 30% 미믹)
     rolls: 2
     gold: [55, 100]
+    guaranteed:   # 강화 재료는 rolls 와 무관하게 한 번만 굴린다
+      - {table: enhance_chest_t1, chance: 1.0}
     entries:
       - {table: potions_t1, chance: 0.45}
       - {table: scrolls, chance: 0.1}
@@ -339,6 +521,7 @@ tables:
     gold: [88, 160]
     guaranteed:
       - {item: dim_essence, amount: 1}
+      - {table: enhance_gimmick_t1, chance: 1.0}
     entries:
       - {item: dim_essence, chance: 0.6}
       - {item: brood_core, chance: 0.15}
@@ -362,6 +545,7 @@ tables:
       - {rarity_pool: epic, floor: 4, chance: 0.003}
       - {item: labyrinth_essence, chance: 0.008}
       - {table: potions_t1, chance: 0.03}
+      - {table: enhance_mob_t2, chance: 1.0}
   brine_spitter:   # 4층 일반 — 소금물 뿜개
     rolls: 1
     entries:
@@ -372,6 +556,7 @@ tables:
       - {rarity_pool: epic, floor: 4, chance: 0.003}
       - {item: labyrinth_essence, chance: 0.008}
       - {table: potions_t1, chance: 0.03}
+      - {table: enhance_mob_t2, chance: 1.0}
   rust_eel:   # 4층 일반 — 녹물 장어
     rolls: 1
     entries:
@@ -382,6 +567,7 @@ tables:
       - {rarity_pool: epic, floor: 4, chance: 0.003}
       - {item: labyrinth_essence, chance: 0.008}
       - {table: potions_t1, chance: 0.03}
+      - {table: enhance_mob_t2, chance: 1.0}
   bubble_jelly:   # 4층 일반 — 거품 해파리
     rolls: 1
     entries:
@@ -392,6 +578,29 @@ tables:
       - {rarity_pool: epic, floor: 4, chance: 0.003}
       - {item: labyrinth_essence, chance: 0.008}
       - {table: potions_t1, chance: 0.03}
+      - {table: enhance_mob_t2, chance: 1.0}
+  bog_drake:   # 4층 일반 — 늪 드레이크
+    rolls: 1
+    entries:
+      - {item: eel_scale, chance: 0.55, amount: [1, 2]}
+      - {item: brine_pearl, chance: 0.15}
+      - {rarity_pool: rare, floor: 3, chance: 0.015}
+      - {rarity_pool: rare, floor: 4, chance: 0.035}
+      - {rarity_pool: epic, floor: 4, chance: 0.003}
+      - {item: labyrinth_essence, chance: 0.008}
+      - {table: potions_t1, chance: 0.03}
+      - {table: enhance_mob_t2, chance: 1.0}
+  tide_naga:   # 4층 일반 — 조류의 나가
+    rolls: 1
+    entries:
+      - {item: brine_pearl, chance: 0.55, amount: [1, 2]}
+      - {item: eel_scale, chance: 0.15}
+      - {rarity_pool: rare, floor: 3, chance: 0.015}
+      - {rarity_pool: rare, floor: 4, chance: 0.035}
+      - {rarity_pool: epic, floor: 4, chance: 0.003}
+      - {item: labyrinth_essence, chance: 0.008}
+      - {table: potions_t1, chance: 0.03}
+      - {table: enhance_mob_t2, chance: 1.0}
   verdigris_crab:   # 4층 엘리트 — 녹청 집게 파수꾼
     rolls: 1
     entries:
@@ -405,6 +614,7 @@ tables:
       - {one_of: [floodwarden_signet], chance: 0.015}
       - {table: potions_t1, chance: 0.25}
       - {table: tonics, chance: 0.08}
+      - {table: enhance_elite_t2, chance: 1.0}
   floor04_boss:   # 4층 보스 — 수문의 망령 오스릭
     rolls: 1
     guaranteed:
@@ -421,9 +631,12 @@ tables:
       - {rarity_pool: epic, floor: 4, chance: 0.08}
       - {table: potions_t1, chance: 0.5}
       - {table: tonics, chance: 0.2}
+      - {table: enhance_boss_t2, chance: 1.0}
   treasure_floor_4:   # 4층 보물방 상자 (개인 루팅, 30% 미믹)
     rolls: 2
     gold: [85, 150]
+    guaranteed:   # 강화 재료는 rolls 와 무관하게 한 번만 굴린다
+      - {table: enhance_chest_t2, chance: 1.0}
     entries:
       - {table: potions_t1, chance: 0.45}
       - {table: scrolls, chance: 0.1}
@@ -438,6 +651,7 @@ tables:
     gold: [136, 240]
     guaranteed:
       - {item: labyrinth_essence, amount: 1}
+      - {table: enhance_gimmick_t2, chance: 1.0}
     entries:
       - {item: labyrinth_essence, chance: 0.6}
       - {item: verdigris_plate, chance: 0.15}
@@ -458,9 +672,11 @@ tables:
       - {item: ember_shard, chance: 0.15}
       - {rarity_pool: rare, floor: 4, chance: 0.01}
       - {rarity_pool: rare, floor: 6, chance: 0.035}
-      - {rarity_pool: epic, floor: 6, chance: 0.004}
+      - {rarity_pool: epic, floor: 5, chance: 0.004}
+      - {rarity_pool: epic, floor: 6, chance: 0.002}
       - {item: labyrinth_essence, chance: 0.008}
       - {table: potions_t2, chance: 0.03}
+      - {table: enhance_mob_t2, chance: 1.0}
   cinder_imp:   # 5층 일반 — 불씨 도깨비
     rolls: 1
     entries:
@@ -468,9 +684,11 @@ tables:
       - {item: slag_ingot, chance: 0.15}
       - {rarity_pool: rare, floor: 4, chance: 0.01}
       - {rarity_pool: rare, floor: 6, chance: 0.035}
-      - {rarity_pool: epic, floor: 6, chance: 0.004}
+      - {rarity_pool: epic, floor: 5, chance: 0.004}
+      - {rarity_pool: epic, floor: 6, chance: 0.002}
       - {item: labyrinth_essence, chance: 0.008}
       - {table: potions_t2, chance: 0.03}
+      - {table: enhance_mob_t2, chance: 1.0}
   bellows_hound:   # 5층 일반 — 풀무 사냥개
     rolls: 1
     entries:
@@ -478,9 +696,11 @@ tables:
       - {item: slag_ingot, chance: 0.15}
       - {rarity_pool: rare, floor: 4, chance: 0.01}
       - {rarity_pool: rare, floor: 6, chance: 0.035}
-      - {rarity_pool: epic, floor: 6, chance: 0.004}
+      - {rarity_pool: epic, floor: 5, chance: 0.004}
+      - {rarity_pool: epic, floor: 6, chance: 0.002}
       - {item: labyrinth_essence, chance: 0.008}
       - {table: potions_t2, chance: 0.03}
+      - {table: enhance_mob_t2, chance: 1.0}
   forge_acolyte:   # 5층 일반 — 용광로 시종
     rolls: 1
     entries:
@@ -488,9 +708,35 @@ tables:
       - {item: ember_shard, chance: 0.15}
       - {rarity_pool: rare, floor: 4, chance: 0.01}
       - {rarity_pool: rare, floor: 6, chance: 0.035}
-      - {rarity_pool: epic, floor: 6, chance: 0.004}
+      - {rarity_pool: epic, floor: 5, chance: 0.004}
+      - {rarity_pool: epic, floor: 6, chance: 0.002}
       - {item: labyrinth_essence, chance: 0.008}
       - {table: potions_t2, chance: 0.03}
+      - {table: enhance_mob_t2, chance: 1.0}
+  ember_drake:   # 5층 일반 — 잿불 드레이크
+    rolls: 1
+    entries:
+      - {item: ember_shard, chance: 0.55, amount: [1, 2]}
+      - {item: slag_ingot, chance: 0.15}
+      - {rarity_pool: rare, floor: 4, chance: 0.01}
+      - {rarity_pool: rare, floor: 6, chance: 0.035}
+      - {rarity_pool: epic, floor: 5, chance: 0.004}
+      - {rarity_pool: epic, floor: 6, chance: 0.002}
+      - {item: labyrinth_essence, chance: 0.008}
+      - {table: potions_t2, chance: 0.03}
+      - {table: enhance_mob_t2, chance: 1.0}
+  forge_dragonkin:   # 5층 일반 — 용인 대장장이
+    rolls: 1
+    entries:
+      - {item: slag_ingot, chance: 0.55, amount: [1, 3]}
+      - {item: ember_shard, chance: 0.15}
+      - {rarity_pool: rare, floor: 4, chance: 0.01}
+      - {rarity_pool: rare, floor: 6, chance: 0.035}
+      - {rarity_pool: epic, floor: 5, chance: 0.004}
+      - {rarity_pool: epic, floor: 6, chance: 0.002}
+      - {item: labyrinth_essence, chance: 0.008}
+      - {table: potions_t2, chance: 0.03}
+      - {table: enhance_mob_t2, chance: 1.0}
   forge_executioner:   # 5층 엘리트 — 단조 집행관
     rolls: 1
     entries:
@@ -499,10 +745,12 @@ tables:
       - {item: ember_shard, chance: 0.7, amount: [2, 3]}
       - {item: labyrinth_essence, chance: 0.35}
       - {rarity_pool: rare, floor: 6, chance: 0.25}
-      - {rarity_pool: epic, floor: 6, chance: 0.1}
+      - {rarity_pool: epic, floor: 5, chance: 0.08}
+      - {rarity_pool: epic, floor: 6, chance: 0.05}
       - {one_of: [anvil_king_brand, forge_warden_helm, forge_warden_chest, forge_warden_legs, forge_warden_boots], chance: 0.015}
       - {table: potions_t2, chance: 0.25}
       - {table: tonics, chance: 0.08}
+      - {table: enhance_elite_t2, chance: 1.0}
   floor05_boss:   # 5층 보스 — 모루왕 카르둠
     rolls: 1
     guaranteed:
@@ -514,15 +762,19 @@ tables:
       - {item: executioner_edge, chance: 0.5}
       - {item: radiant_essence, chance: 0.15}
       - {one_of: [dawnbringer, ember_greatsword, tidecaller_bow], chance: 0.08}
+      - {one_of: [emberforge_warhammer, cinderdrake_glaive, slagedge_bladebow, cinder_spiral_staff, crucible_chalice, slag_katar], chance: 0.2}
       - {one_of: [forge_warden_helm, forge_warden_chest, forge_warden_legs, forge_warden_boots], chance: 0.25}
       - {item: anvil_king_brand, chance: 0.12}
       - {rarity_pool: rare, floor: 6, chance: 0.25}
       - {rarity_pool: epic, floor: 6, chance: 0.1}
       - {table: potions_t2, chance: 0.5}
       - {table: tonics, chance: 0.2}
+      - {table: enhance_boss_t2, chance: 1.0}
   treasure_floor_5:   # 5층 보물방 상자 (개인 루팅, 30% 미믹)
     rolls: 2
     gold: [130, 230]
+    guaranteed:   # 강화 재료는 rolls 와 무관하게 한 번만 굴린다
+      - {table: enhance_chest_t2, chance: 1.0}
     entries:
       - {table: potions_t2, chance: 0.45}
       - {table: scrolls, chance: 0.1}
@@ -531,12 +783,14 @@ tables:
       - {item: labyrinth_essence, chance: 0.12}
       - {table: tonics, chance: 0.08}
       - {rarity_pool: rare, floor: 6, chance: 0.18}
-      - {rarity_pool: epic, floor: 6, chance: 0.04}
+      - {rarity_pool: epic, floor: 5, chance: 0.03}
+      - {rarity_pool: epic, floor: 6, chance: 0.03}
   gimmick_floor_5:   # 5층 기믹방 보상 상자 (성공 시, 개인 루팅)
     rolls: 2
     gold: [208, 368]
     guaranteed:
       - {item: labyrinth_essence, amount: 1}
+      - {table: enhance_gimmick_t2, chance: 1.0}
     entries:
       - {item: labyrinth_essence, chance: 0.6}
       - {item: executioner_edge, chance: 0.15}
@@ -547,7 +801,8 @@ tables:
       - {table: rare_consumables, chance: 0.06}
       - {table: tonics, chance: 0.12}
       - {rarity_pool: rare, floor: 6, chance: 0.27}
-      - {rarity_pool: epic, floor: 6, chance: 0.06}
+      - {rarity_pool: epic, floor: 5, chance: 0.045}
+      - {rarity_pool: epic, floor: 6, chance: 0.045}
 
   # ═════════ 지하 6층 — 서리 묘역 ═════════
   rime_mourner:   # 6층 일반 — 서리 곡하는 자
@@ -559,6 +814,7 @@ tables:
       - {rarity_pool: epic, floor: 6, chance: 0.008}
       - {item: labyrinth_essence, chance: 0.008}
       - {table: potions_t2, chance: 0.03}
+      - {table: enhance_mob_t2, chance: 1.0}
   crypt_hound:   # 6층 일반 — 얼음 묘지견
     rolls: 1
     entries:
@@ -568,6 +824,7 @@ tables:
       - {rarity_pool: epic, floor: 6, chance: 0.008}
       - {item: labyrinth_essence, chance: 0.008}
       - {table: potions_t2, chance: 0.03}
+      - {table: enhance_mob_t2, chance: 1.0}
   frozen_knight:   # 6층 일반 — 얼어붙은 묘지기사
     rolls: 1
     entries:
@@ -577,6 +834,7 @@ tables:
       - {rarity_pool: epic, floor: 6, chance: 0.008}
       - {item: labyrinth_essence, chance: 0.008}
       - {table: potions_t2, chance: 0.03}
+      - {table: enhance_mob_t2, chance: 1.0}
   icicle_wraith:   # 6층 일반 — 고드름 원령
     rolls: 1
     entries:
@@ -586,6 +844,27 @@ tables:
       - {rarity_pool: epic, floor: 6, chance: 0.008}
       - {item: labyrinth_essence, chance: 0.008}
       - {table: potions_t2, chance: 0.03}
+      - {table: enhance_mob_t2, chance: 1.0}
+  frost_wyvern:   # 6층 일반 — 서리 와이번
+    rolls: 1
+    entries:
+      - {item: rime_crystal, chance: 0.55, amount: [1, 2]}
+      - {item: grave_bone, chance: 0.15}
+      - {rarity_pool: rare, floor: 6, chance: 0.045}
+      - {rarity_pool: epic, floor: 6, chance: 0.008}
+      - {item: labyrinth_essence, chance: 0.008}
+      - {table: potions_t2, chance: 0.03}
+      - {table: enhance_mob_t2, chance: 1.0}
+  barrow_lich:   # 6층 일반 — 고분의 리치
+    rolls: 1
+    entries:
+      - {item: grave_bone, chance: 0.55, amount: [1, 2]}
+      - {item: rime_crystal, chance: 0.15}
+      - {rarity_pool: rare, floor: 6, chance: 0.045}
+      - {rarity_pool: epic, floor: 6, chance: 0.008}
+      - {item: labyrinth_essence, chance: 0.008}
+      - {table: potions_t2, chance: 0.03}
+      - {table: enhance_mob_t2, chance: 1.0}
   crypt_bellringer:   # 6층 엘리트 — 묘역의 종지기
     rolls: 1
     entries:
@@ -598,6 +877,7 @@ tables:
       - {one_of: [empress_frozen_tear, frost_regalia_helm, frost_regalia_chest, frost_regalia_legs, frost_regalia_boots], chance: 0.015}
       - {table: potions_t2, chance: 0.25}
       - {table: tonics, chance: 0.08}
+      - {table: enhance_elite_t2, chance: 1.0}
   floor06_boss:   # 6층 보스 — 얼음관의 여제 시린
     rolls: 1
     guaranteed:
@@ -616,9 +896,12 @@ tables:
       - {table: potions_t2, chance: 0.5}
       - {table: tonics, chance: 0.2}
       - {table: rare_consumables, chance: 0.08}
+      - {table: enhance_boss_t2, chance: 1.0}
   treasure_floor_6:   # 6층 보물방 상자 (개인 루팅, 30% 미믹)
     rolls: 2
     gold: [190, 330]
+    guaranteed:   # 강화 재료는 rolls 와 무관하게 한 번만 굴린다
+      - {table: enhance_chest_t2, chance: 1.0}
     entries:
       - {table: potions_t2, chance: 0.45}
       - {table: scrolls, chance: 0.1}
@@ -634,6 +917,7 @@ tables:
     gold: [304, 528]
     guaranteed:
       - {item: labyrinth_essence, amount: 1}
+      - {table: enhance_gimmick_t2, chance: 1.0}
     entries:
       - {item: labyrinth_essence, chance: 0.6}
       - {item: funeral_bell_shard, chance: 0.15}
@@ -657,6 +941,7 @@ tables:
       - {rarity_pool: epic, floor: 8, chance: 0.006}
       - {item: radiant_essence, chance: 0.006}
       - {table: potions_t2, chance: 0.03}
+      - {table: enhance_mob_t2, chance: 1.0}
   prism_sentinel:   # 7층 일반 — 프리즘 파수석
     rolls: 1
     entries:
@@ -667,6 +952,7 @@ tables:
       - {rarity_pool: epic, floor: 8, chance: 0.006}
       - {item: radiant_essence, chance: 0.006}
       - {table: potions_t2, chance: 0.03}
+      - {table: enhance_mob_t2, chance: 1.0}
   echo_wisp:   # 7층 일반 — 메아리 정령
     rolls: 1
     entries:
@@ -677,6 +963,7 @@ tables:
       - {rarity_pool: epic, floor: 8, chance: 0.006}
       - {item: radiant_essence, chance: 0.006}
       - {table: potions_t2, chance: 0.03}
+      - {table: enhance_mob_t2, chance: 1.0}
   geode_brute:   # 7층 일반 — 정동 거한
     rolls: 1
     entries:
@@ -687,6 +974,29 @@ tables:
       - {rarity_pool: epic, floor: 8, chance: 0.006}
       - {item: radiant_essence, chance: 0.006}
       - {table: potions_t2, chance: 0.03}
+      - {table: enhance_mob_t2, chance: 1.0}
+  crystal_dragonkin:   # 7층 일반 — 수정 용인 창기사
+    rolls: 1
+    entries:
+      - {item: amethyst_shard, chance: 0.55, amount: [1, 3]}
+      - {item: prism_dust, chance: 0.15}
+      - {rarity_pool: rare, floor: 6, chance: 0.01}
+      - {rarity_pool: rare, floor: 7, chance: 0.04}
+      - {rarity_pool: epic, floor: 8, chance: 0.006}
+      - {item: radiant_essence, chance: 0.006}
+      - {table: potions_t2, chance: 0.03}
+      - {table: enhance_mob_t2, chance: 1.0}
+  prism_centaur:   # 7층 일반 — 프리즘 켄타우로스
+    rolls: 1
+    entries:
+      - {item: prism_dust, chance: 0.55, amount: [1, 2]}
+      - {item: amethyst_shard, chance: 0.15}
+      - {rarity_pool: rare, floor: 6, chance: 0.01}
+      - {rarity_pool: rare, floor: 7, chance: 0.04}
+      - {rarity_pool: epic, floor: 8, chance: 0.006}
+      - {item: radiant_essence, chance: 0.006}
+      - {table: potions_t2, chance: 0.03}
+      - {table: enhance_mob_t2, chance: 1.0}
   resonance_tuner:   # 7층 엘리트 — 공명 조율자
     rolls: 1
     entries:
@@ -700,6 +1010,7 @@ tables:
       - {one_of: [dyad_twin_orb], chance: 0.015}
       - {table: potions_t2, chance: 0.25}
       - {table: tonics, chance: 0.08}
+      - {table: enhance_elite_t2, chance: 1.0}
   floor07_boss:   # 7층 보스 — 양극의 수정체 다이아드
     rolls: 1
     guaranteed:
@@ -718,9 +1029,13 @@ tables:
       - {table: potions_t2, chance: 0.5}
       - {table: tonics, chance: 0.2}
       - {table: rare_consumables, chance: 0.08}
+      - {table: enhance_boss_t2, chance: 1.0}
+      - {table: enhance_preview_t3, chance: 1.0}
   treasure_floor_7:   # 7층 보물방 상자 (개인 루팅, 30% 미믹)
     rolls: 2
     gold: [270, 470]
+    guaranteed:   # 강화 재료는 rolls 와 무관하게 한 번만 굴린다
+      - {table: enhance_chest_t2, chance: 1.0}
     entries:
       - {table: potions_t2, chance: 0.45}
       - {table: scrolls, chance: 0.1}
@@ -736,6 +1051,7 @@ tables:
     gold: [432, 752]
     guaranteed:
       - {item: radiant_essence, amount: 1}
+      - {table: enhance_gimmick_t2, chance: 1.0}
     entries:
       - {item: radiant_essence, chance: 0.6}
       - {item: tuning_fork_core, chance: 0.15}
@@ -758,6 +1074,7 @@ tables:
       - {rarity_pool: epic, floor: 8, chance: 0.015}
       - {item: radiant_essence, chance: 0.006}
       - {table: potions_t3, chance: 0.03}
+      - {table: enhance_mob_t3, chance: 1.0}
   page_swarm:   # 8층 일반 — 흩날리는 책장 떼
     rolls: 1
     entries:
@@ -767,6 +1084,7 @@ tables:
       - {rarity_pool: epic, floor: 8, chance: 0.0105}
       - {item: radiant_essence, chance: 0.0042}
       - {table: potions_t3, chance: 0.021}
+      - {table: enhance_swarm_t3, chance: 1.0}
   biting_tome:   # 8층 일반 — 물어뜯는 고서
     rolls: 1
     entries:
@@ -777,6 +1095,7 @@ tables:
       - {item: radiant_essence, chance: 0.006}
       - {table: potions_t3, chance: 0.03}
       - {item: forbidden_seal, chance: 0.01}
+      - {table: enhance_mob_t3, chance: 1.0}
   archive_sentinel:   # 8층 일반 — 서고 감시자
     rolls: 1
     entries:
@@ -786,6 +1105,27 @@ tables:
       - {rarity_pool: epic, floor: 8, chance: 0.015}
       - {item: radiant_essence, chance: 0.006}
       - {table: potions_t3, chance: 0.03}
+      - {table: enhance_mob_t3, chance: 1.0}
+  ink_naga:   # 8층 일반 — 먹물 나가
+    rolls: 1
+    entries:
+      - {item: ink_essence, chance: 0.55, amount: [1, 2]}
+      - {item: old_page, chance: 0.15}
+      - {rarity_pool: rare, floor: 7, chance: 0.035}
+      - {rarity_pool: epic, floor: 8, chance: 0.015}
+      - {item: radiant_essence, chance: 0.006}
+      - {table: potions_t3, chance: 0.03}
+      - {table: enhance_mob_t3, chance: 1.0}
+  quill_harpy:   # 8층 일반 — 깃펜 하피
+    rolls: 1
+    entries:
+      - {item: old_page, chance: 0.55, amount: [1, 2]}
+      - {item: ink_essence, chance: 0.15}
+      - {rarity_pool: rare, floor: 7, chance: 0.035}
+      - {rarity_pool: epic, floor: 8, chance: 0.015}
+      - {item: radiant_essence, chance: 0.006}
+      - {table: potions_t3, chance: 0.03}
+      - {table: enhance_mob_t3, chance: 1.0}
   forbidden_keeper:   # 8층 엘리트 — 금서의 수호자
     rolls: 1
     entries:
@@ -799,6 +1139,7 @@ tables:
       - {one_of: [orbel_quill_charm, inkveil_helm, inkveil_chest, inkveil_legs, inkveil_boots], chance: 0.015}
       - {table: potions_t3, chance: 0.25}
       - {table: tonics, chance: 0.08}
+      - {table: enhance_elite_t3, chance: 1.0}
   floor08_boss:   # 8층 보스 — 잉크 사서 오르벨
     rolls: 1
     guaranteed:
@@ -816,9 +1157,12 @@ tables:
       - {table: potions_t3, chance: 0.5}
       - {table: tonics, chance: 0.2}
       - {table: rare_consumables, chance: 0.08}
+      - {table: enhance_boss_t3, chance: 1.0}
   treasure_floor_8:   # 8층 보물방 상자 (개인 루팅, 30% 미믹)
     rolls: 2
     gold: [380, 650]
+    guaranteed:   # 강화 재료는 rolls 와 무관하게 한 번만 굴린다
+      - {table: enhance_chest_t3, chance: 1.0}
     entries:
       - {table: potions_t3, chance: 0.45}
       - {table: scrolls, chance: 0.1}
@@ -834,6 +1178,7 @@ tables:
     gold: [608, 1040]
     guaranteed:
       - {item: radiant_essence, amount: 1}
+      - {table: enhance_gimmick_t3, chance: 1.0}
     entries:
       - {item: radiant_essence, chance: 0.6}
       - {item: forbidden_seal, chance: 0.15}
@@ -858,6 +1203,7 @@ tables:
       - {item: primordial_essence, chance: 0.004}
       - {table: potions_t3, chance: 0.03}
       - {rarity_pool: mythic, floor: 10, chance: 0.0006, min_difficulty: nightmare}
+      - {table: enhance_mob_t3, chance: 1.0}
   clockwork_sentry:   # 9층 일반 — 태엽 보초
     rolls: 1
     entries:
@@ -869,6 +1215,7 @@ tables:
       - {item: primordial_essence, chance: 0.004}
       - {table: potions_t3, chance: 0.03}
       - {rarity_pool: mythic, floor: 10, chance: 0.0006, min_difficulty: nightmare}
+      - {table: enhance_mob_t3, chance: 1.0}
   spring_jumper:   # 9층 일반 — 용수철 도약병
     rolls: 1
     entries:
@@ -880,6 +1227,7 @@ tables:
       - {item: primordial_essence, chance: 0.004}
       - {table: potions_t3, chance: 0.03}
       - {rarity_pool: mythic, floor: 10, chance: 0.0006, min_difficulty: nightmare}
+      - {table: enhance_mob_t3, chance: 1.0}
   chrono_moth:   # 9층 일반 — 시간 나방
     rolls: 1
     entries:
@@ -891,6 +1239,31 @@ tables:
       - {item: primordial_essence, chance: 0.004}
       - {table: potions_t3, chance: 0.03}
       - {rarity_pool: mythic, floor: 10, chance: 0.0006, min_difficulty: nightmare}
+      - {table: enhance_mob_t3, chance: 1.0}
+  clockwork_wyvern:   # 9층 일반 — 태엽 와이번
+    rolls: 1
+    entries:
+      - {item: brass_gear, chance: 0.55, amount: [1, 2]}
+      - {item: mainspring, chance: 0.15}
+      - {rarity_pool: rare, floor: 7, chance: 0.01}
+      - {rarity_pool: epic, floor: 8, chance: 0.01}
+      - {rarity_pool: epic, floor: 9, chance: 0.03}
+      - {item: primordial_essence, chance: 0.004}
+      - {table: potions_t3, chance: 0.03}
+      - {rarity_pool: mythic, floor: 10, chance: 0.0006, min_difficulty: nightmare}
+      - {table: enhance_mob_t3, chance: 1.0}
+  brass_minotaur:   # 9층 일반 — 황동 미노타우로스
+    rolls: 1
+    entries:
+      - {item: brass_gear, chance: 0.55, amount: [1, 3]}
+      - {item: mainspring, chance: 0.15}
+      - {rarity_pool: rare, floor: 7, chance: 0.01}
+      - {rarity_pool: epic, floor: 8, chance: 0.01}
+      - {rarity_pool: epic, floor: 9, chance: 0.03}
+      - {item: primordial_essence, chance: 0.004}
+      - {table: potions_t3, chance: 0.03}
+      - {rarity_pool: mythic, floor: 10, chance: 0.0006, min_difficulty: nightmare}
+      - {table: enhance_mob_t3, chance: 1.0}
   grand_regulator:   # 9층 엘리트 — 대시계 집행관
     rolls: 1
     entries:
@@ -904,6 +1277,7 @@ tables:
       - {table: potions_t3, chance: 0.25}
       - {table: tonics, chance: 0.08}
       - {rarity_pool: mythic, floor: 10, chance: 0.006, min_difficulty: nightmare}
+      - {table: enhance_elite_t3, chance: 1.0}
   floor09_boss:   # 9층 보스 — 시계탑의 간수 테오라
     rolls: 1
     guaranteed:
@@ -921,9 +1295,12 @@ tables:
       - {table: potions_t3, chance: 0.5}
       - {table: tonics, chance: 0.2}
       - {table: rare_consumables, chance: 0.08}
+      - {table: enhance_boss_t3, chance: 1.0}
   treasure_floor_9:   # 9층 보물방 상자 (개인 루팅, 30% 미믹)
     rolls: 2
     gold: [520, 900]
+    guaranteed:   # 강화 재료는 rolls 와 무관하게 한 번만 굴린다
+      - {table: enhance_chest_t3, chance: 1.0}
     entries:
       - {table: potions_t3, chance: 0.45}
       - {table: scrolls, chance: 0.1}
@@ -940,6 +1317,7 @@ tables:
     gold: [832, 1440]
     guaranteed:
       - {item: primordial_essence, amount: 1}
+      - {table: enhance_gimmick_t3, chance: 1.0}
     entries:
       - {item: primordial_essence, chance: 0.6}
       - {item: regulator_pendulum, chance: 0.15}
@@ -959,40 +1337,72 @@ tables:
       - {item: abyss_ichor, chance: 0.55, amount: [1, 2]}
       - {item: sculk_tendril, chance: 0.15}
       - {rarity_pool: epic, floor: 8, chance: 0.01}
-      - {rarity_pool: epic, floor: 9, chance: 0.04}
+      - {rarity_pool: epic, floor: 9, chance: 0.02}
+      - {rarity_pool: epic, floor: 10, chance: 0.03}
       - {item: primordial_essence, chance: 0.004}
       - {table: potions_t3, chance: 0.03}
       - {rarity_pool: mythic, floor: 10, chance: 0.0006, min_difficulty: nightmare}
+      - {table: enhance_mob_t3, chance: 1.0}
   echo_colossus:   # 10층 일반 — 울림 거상
     rolls: 1
     entries:
       - {item: sculk_tendril, chance: 0.55, amount: [1, 3]}
       - {item: abyss_ichor, chance: 0.15}
       - {rarity_pool: epic, floor: 8, chance: 0.01}
-      - {rarity_pool: epic, floor: 9, chance: 0.04}
+      - {rarity_pool: epic, floor: 9, chance: 0.02}
+      - {rarity_pool: epic, floor: 10, chance: 0.03}
       - {item: primordial_essence, chance: 0.004}
       - {table: potions_t3, chance: 0.03}
       - {rarity_pool: mythic, floor: 10, chance: 0.0006, min_difficulty: nightmare}
+      - {table: enhance_mob_t3, chance: 1.0}
   abyss_eye:   # 10층 일반 — 심연의 눈
     rolls: 1
     entries:
       - {item: abyss_ichor, chance: 0.55, amount: [1, 2]}
       - {item: sculk_tendril, chance: 0.15}
       - {rarity_pool: epic, floor: 8, chance: 0.01}
-      - {rarity_pool: epic, floor: 9, chance: 0.04}
+      - {rarity_pool: epic, floor: 9, chance: 0.02}
+      - {rarity_pool: epic, floor: 10, chance: 0.03}
       - {item: primordial_essence, chance: 0.004}
       - {table: potions_t3, chance: 0.03}
       - {rarity_pool: mythic, floor: 10, chance: 0.0006, min_difficulty: nightmare}
+      - {table: enhance_mob_t3, chance: 1.0}
   hollow_choir:   # 10층 일반 — 공허 성가대
     rolls: 1
     entries:
       - {item: sculk_tendril, chance: 0.55, amount: [1, 2]}
       - {item: abyss_ichor, chance: 0.15}
       - {rarity_pool: epic, floor: 8, chance: 0.01}
-      - {rarity_pool: epic, floor: 9, chance: 0.04}
+      - {rarity_pool: epic, floor: 9, chance: 0.02}
+      - {rarity_pool: epic, floor: 10, chance: 0.03}
       - {item: primordial_essence, chance: 0.004}
       - {table: potions_t3, chance: 0.03}
       - {rarity_pool: mythic, floor: 10, chance: 0.0006, min_difficulty: nightmare}
+      - {table: enhance_mob_t3, chance: 1.0}
+  void_drake:   # 10층 일반 — 심연 고룡
+    rolls: 1
+    entries:
+      - {item: abyss_ichor, chance: 0.55, amount: [1, 3]}
+      - {item: sculk_tendril, chance: 0.15}
+      - {rarity_pool: epic, floor: 8, chance: 0.01}
+      - {rarity_pool: epic, floor: 9, chance: 0.02}
+      - {rarity_pool: epic, floor: 10, chance: 0.03}
+      - {item: primordial_essence, chance: 0.004}
+      - {table: potions_t3, chance: 0.03}
+      - {rarity_pool: mythic, floor: 10, chance: 0.0006, min_difficulty: nightmare}
+      - {table: enhance_mob_t3, chance: 1.0}
+  abyss_dragonkin:   # 10층 일반 — 심연 용인 기사
+    rolls: 1
+    entries:
+      - {item: sculk_tendril, chance: 0.55, amount: [1, 2]}
+      - {item: abyss_ichor, chance: 0.15}
+      - {rarity_pool: epic, floor: 8, chance: 0.01}
+      - {rarity_pool: epic, floor: 9, chance: 0.02}
+      - {rarity_pool: epic, floor: 10, chance: 0.03}
+      - {item: primordial_essence, chance: 0.004}
+      - {table: potions_t3, chance: 0.03}
+      - {rarity_pool: mythic, floor: 10, chance: 0.0006, min_difficulty: nightmare}
+      - {table: enhance_mob_t3, chance: 1.0}
   abyss_gatekeeper:   # 10층 엘리트 — 심연의 문지기
     rolls: 1
     entries:
@@ -1000,12 +1410,14 @@ tables:
       - {item: abyss_ichor, chance: 1.0, amount: [3, 5]}
       - {item: sculk_tendril, chance: 0.7, amount: [2, 3]}
       - {item: primordial_essence, chance: 0.35}
-      - {rarity_pool: epic, floor: 9, chance: 0.25}
+      - {rarity_pool: epic, floor: 9, chance: 0.12}
+      - {rarity_pool: epic, floor: 10, chance: 0.13}
       - {rarity_pool: legendary, floor: 9, chance: 0.01}
       - {rarity_pool: legendary, floor: 10, chance: 0.01}
       - {table: potions_t3, chance: 0.25}
       - {table: tonics, chance: 0.08}
       - {rarity_pool: mythic, floor: 10, chance: 0.006, min_difficulty: nightmare}
+      - {table: enhance_elite_t3, chance: 1.0}
   floor10_boss:   # 10층 보스 — 심연의 심장 넬카르
     rolls: 1
     guaranteed:
@@ -1017,15 +1429,19 @@ tables:
       - {item: gatekeeper_rune, chance: 0.5}
       - {one_of: [abyss_sentinel_longsword, doomclock_executioner, quicksilver_longbow, tesla_coil_staff, aurora_scepter, viper_fang], chance: 0.1}
       - {rarity_pool: legendary, floor: 10, chance: 0.1}
-      - {rarity_pool: epic, floor: 9, chance: 0.35}
+      - {rarity_pool: epic, floor: 9, chance: 0.15}
+      - {rarity_pool: epic, floor: 10, chance: 0.2}
       - {one_of: [celestial_oathkeeper, bloodmoon_reaver, tempest_bow, voidheart_staff, seraph_scepter, eclipse_blade], chance: 0.025, min_difficulty: hard}
       - {item: heart_of_nelkar, chance: 0.015, min_difficulty: hard}
       - {table: potions_t3, chance: 0.5}
       - {table: tonics, chance: 0.2}
       - {table: rare_consumables, chance: 0.08}
+      - {table: enhance_boss_t3, chance: 1.0}
   treasure_floor_10:   # 10층 보물방 상자 (개인 루팅, 30% 미믹)
     rolls: 2
     gold: [700, 1200]
+    guaranteed:   # 강화 재료는 rolls 와 무관하게 한 번만 굴린다
+      - {table: enhance_chest_t3, chance: 1.0}
     entries:
       - {table: potions_t3, chance: 0.45}
       - {table: scrolls, chance: 0.1}
@@ -1034,7 +1450,8 @@ tables:
       - {item: primordial_essence, chance: 0.12}
       - {table: tonics, chance: 0.08}
       - {table: rare_consumables, chance: 0.03}
-      - {rarity_pool: epic, floor: 9, chance: 0.18}
+      - {rarity_pool: epic, floor: 9, chance: 0.09}
+      - {rarity_pool: epic, floor: 10, chance: 0.09}
       - {rarity_pool: legendary, floor: 9, chance: 0.004}
       - {rarity_pool: legendary, floor: 10, chance: 0.004}
       - {rarity_pool: mythic, floor: 10, chance: 0.002, min_difficulty: nightmare}
@@ -1043,6 +1460,7 @@ tables:
     gold: [1120, 1920]
     guaranteed:
       - {item: primordial_essence, amount: 1}
+      - {table: enhance_gimmick_t3, chance: 1.0}
     entries:
       - {item: primordial_essence, chance: 0.6}
       - {item: gatekeeper_rune, chance: 0.15}
@@ -1051,7 +1469,8 @@ tables:
       - {table: potions_t3, chance: 0.35}
       - {table: rare_consumables, chance: 0.06}
       - {table: tonics, chance: 0.12}
-      - {rarity_pool: epic, floor: 9, chance: 0.27}
+      - {rarity_pool: epic, floor: 9, chance: 0.135}
+      - {rarity_pool: epic, floor: 10, chance: 0.135}
       - {rarity_pool: legendary, floor: 9, chance: 0.006}
       - {rarity_pool: legendary, floor: 10, chance: 0.006}
       - {rarity_pool: mythic, floor: 10, chance: 0.003, min_difficulty: nightmare}

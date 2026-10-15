@@ -26,8 +26,14 @@ import org.bukkit.inventory.PlayerInventory;
 public final class LabCraftingService implements CraftingService {
 
     private final Services services;
+    /** 강화 (대장간 [강화] 버튼 → 강화 창). ItemsModule 이 붙인다. */
+    private kr.labyrinth.items.enhance.EnhanceService enhance;
 
     public LabCraftingService(Services services) { this.services = services; }
+
+    public void setEnhance(kr.labyrinth.items.enhance.EnhanceService enhance) { this.enhance = enhance; }
+
+    public kr.labyrinth.items.enhance.EnhanceService enhance() { return enhance; }
 
     /** 인벤토리 안의 미궁 아이템 id 개수. */
     public int count(Player p, String itemId) {

@@ -51,17 +51,20 @@ public final class ContentValidator {
     /** GDD §11.9 소모품 action. */
     public static final Set<String> USE_ACTIONS = Set.of("heal", "mana", "restore", "cleanse", "buff", "return",
             "stat_reset", "revive");
-    /** GDD §9.1 몹 스킬 24종. */
+    /** GDD §9.1 몹 스킬 26종. */
     public static final Set<String> MOB_SKILLS = Set.of("leap", "charge", "slam", "cleave", "projectile", "beam",
             "breath", "shield", "summon", "blink", "heal_allies", "buff_allies", "snare", "pull", "debuff", "stealth",
-            "reflect", "life_drain", "trail", "aura", "explode_on_death", "split_on_death", "enrage", "ambush");
+            "reflect", "life_drain", "trail", "aura", "explode_on_death", "split_on_death", "enrage", "ambush",
+            "burrow", "dive");
     /** GDD §9.2 상태이상 14종. */
     public static final Set<String> EFFECTS = Set.of("poison", "bleed", "burn", "slow", "root", "stun", "weaken",
             "vulnerable", "blind", "silence", "frost", "infection", "knockback", "damage");
     public static final Set<String> AI_TYPES = Set.of("melee", "ranged", "caster", "charger", "swarm", "turret");
+    /** 스폰 때 비행형이 되는 베이스 (mobs.MobServiceImpl: BAT·BLAZE·ALLAY + BAT 로 대체되는 VEX·PHANTOM). */
+    public static final Set<String> FLYING_BASES = Set.of("BAT", "BLAZE", "ALLAY", "VEX", "PHANTOM");
     public static final Set<String> MOB_RANKS = Set.of("normal", "elite", "add");
     public static final Set<String> CONDITIONS = Set.of("FIRST_CLEAR", "CLEAR", "SOLO_CLEAR", "NO_DEATH_CLEAR",
-            "DIFFICULTY_CLEAR", "SPEED_CLEAR", "KILL", "BOSS_KILL", "LEVEL", "OBTAIN_RARITY", "CRAFT");
+            "DIFFICULTY_CLEAR", "SPEED_CLEAR", "KILL", "BOSS_KILL", "LEVEL", "OBTAIN_RARITY", "CRAFT", "ENHANCE");
     public static final Set<String> TITLE_BONUS_KEYS = Set.of("STR", "DEX", "INT", "VIT", "WIS", "LUK", "xp_bonus", "gold_bonus");
     public static final Set<String> NPC_ROLES = Set.of("entrance", "blacksmith", "class_master", "title_keeper", "merchant", "lore");
     public static final Set<String> DIFFICULTIES = Set.of("easy", "normal", "hard", "nightmare");
@@ -241,6 +244,11 @@ public final class ContentValidator {
             else if (!m.isAdd()) warn(w, "drops 가 없음(소환물이 아닌데)");
             if (!isEntityType(m.base())) err(w, "base 엔티티 타입이 올바르지 않음: " + m.base());
             mobSkills(w, m.skills());
+            boolean flies = m.flying() || (m.base() != null && FLYING_BASES.contains(m.base().toUpperCase(java.util.Locale.ROOT)));
+            for (MobDef.MobSkillDef s : m.skills()) {
+                if ("dive".equals(s.type()) && !flies) err(w + ".skills.dive", "dive 는 비행 몹(flying: true 또는 비행 베이스)만 쓸 수 있음");
+                if ("burrow".equals(s.type()) && flies) err(w + ".skills.burrow", "burrow 는 땅 위 몹만 쓸 수 있음");
+            }
             if (m.model().parts().isEmpty()) err(w, "model.parts 가 비어 있음");
         }
     }
@@ -382,6 +390,7 @@ public final class ContentValidator {
             Params cond = a.condition();
             if (cond.has("floor") && !c.floors().containsKey(cond.integer("floor", 0))) err(w, "없는 층 " + cond.str("floor"));
             if (cond.has("mob")) requireMob(w + ".condition.mob", cond.str("mob"));
+            for (String mob : cond.strings("mobs")) requireMob(w + ".condition.mobs", mob);
             if (cond.has("boss") && !c.bosses().containsKey(cond.str("boss"))) err(w, "없는 보스 '" + cond.str("boss") + "'");
             if (cond.has("rarity") && Rarity.byId(cond.str("rarity")) == null) err(w, "rarity 가 올바르지 않음: " + cond.str("rarity"));
             if (cond.has("difficulty") && !DIFFICULTIES.contains(cond.str("difficulty"))) err(w, "difficulty 가 올바르지 않음");
