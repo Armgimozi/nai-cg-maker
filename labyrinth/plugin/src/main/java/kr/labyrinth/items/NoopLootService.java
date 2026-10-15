@@ -20,4 +20,10 @@ public class NoopLootService implements LootService {
     public void drop(String tableId, Collection<Player> looters, Location location, InstanceContext ctx, String source) {
         Log.notImplemented("LootService.drop");
     }
+
+    @Override
+    public void drop(String tableId, Collection<Player> looters, Location location, InstanceContext ctx, String source,
+                     double extraMult) {
+        Log.notImplemented("LootService.drop");
+    }
 }

@@ -41,4 +41,13 @@ public interface CustomMob extends HealthPool {
 
     /** 보상 없이 즉시 제거 (인스턴스 정리·관리자 명령). */
     void remove();
+
+    /**
+     * 처치 보상 배율 (경험치·골드·루팅 확률). 솔로·2인 전투방에서 몹 수를 줄인 만큼 한 마리당 보상을 올린다
+     * (dungeon.yml party_mob_reward). 기본 1 — 소환물·미믹·경보 몹·보스는 1.
+     */
+    default double rewardMultiplier() { return 1.0; }
+
+    /** 처치 보상 배율 지정 (전투방 웨이브가 스폰 직후 기록). 지원하지 않는 구현은 무시. */
+    default void rewardMultiplier(double mult) {}
 }

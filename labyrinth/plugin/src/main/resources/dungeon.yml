@@ -20,11 +20,24 @@ empty_instance_timeout: 30
 start_countdown: 3
 # 전투방 문이 닫히기 전 대기(초)
 room_lock_delay: 2
-# 전투방 몹 수 = floors.yml mob_density × (1 + mob_count_per_member × (인원−1)), 최대 max_mobs_per_room
+# 전투방 몹 수 = floors.yml mob_density × party_mob_count[인원] × (1 + mob_count_per_member × (인원−1)), 최대 max_mobs_per_room
 mob_count_per_member: 0.15
 max_mobs_per_room: 14
+# 솔로·2인 전투방 몹 수 배율 (인원: 배율, 없는 인원은 1.0). 정예방 호위도 같은 배율(최소 1마리)
+#   이 묶음이 없거나 비어 있으면 아래 값을 쓴다 (예전 dungeon.yml 도 적용). 끄려면 enabled: false
+party_mob_count:
+  enabled: true
+  1: 0.7
+  2: 0.9
+# 줄어든 만큼 그 방 몹 한 마리당 경험치·골드·드롭 확률 보정 (배율 없이 나왔을 수 ÷ 실제 수 → 방 하나의 보상은 그대로)
+party_mob_reward: true
+# 전투방·정예방을 정리하면 살아 있는 파티원 HP 를 최대 HP 의 이 비율만큼 회복 (0 = 끔)
+room_clear_heal: 0.15
 # 휴식방 도착 시 HP/MP 회복 비율
 rest_heal: 0.5
+# 층 첫 돌파 보너스 경험치: 그 층을 처음 깬 파티원에게 한 번, 그 층 레벨 구간(floors.yml level_range) 필요 경험치 합 × 이 값
+#   (난이도 배율 없음, 0 = 끔)
+first_clear_bonus: 0.4
 # 보스 구현이 아직 없는 층: 그 층 정예 몹을 보스 배율로 대신 세운다
 boss_fallback:
   hp_mult: 6.0

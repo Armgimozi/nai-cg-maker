@@ -294,7 +294,7 @@ public final class MobServiceImpl implements MobService, Listener {
         return out;
     }
 
-    /** 사망 보상: 경험치·골드(각자), 개인 루팅, MobKillEvent. */
+    /** 사망 보상: 경험치·골드(각자), 개인 루팅, MobKillEvent. 모두 몹의 보상 배율(rewardMult)을 곱한다. */
     void reward(LabMob m, Player killer, Location at) {
         InstanceContext ctx = m.ctx;
         List<Player> participants = new ArrayList<>();
@@ -309,8 +309,10 @@ public final class MobServiceImpl implements MobService, Listener {
         if (killer != null && !participants.contains(killer) && killer.getWorld() == at.getWorld()) participants.add(killer);
         participants.removeIf(p -> !p.isOnline());
 
-        double xpMult = ctx != null ? ctx.xpMultiplier() : 1.0;
-        double goldMult = ctx != null ? ctx.goldMultiplier() : 1.0;
+        // 솔로·2인 전투방은 몹 수를 줄인 만큼 한 마리당 보상을 올린다 (웨이브별 원래 수 ÷ 실제 수, 기본 1)
+        double rewardMult = m.rewardMult;
+        double xpMult = (ctx != null ? ctx.xpMultiplier() : 1.0) * rewardMult;
+        double goldMult = (ctx != null ? ctx.goldMultiplier() : 1.0) * rewardMult;
         for (Player p : participants) {
             try {
                 long xp = services.levels().reward(p, m.stats.xp() * xpMult);
@@ -333,8 +335,8 @@ public final class MobServiceImpl implements MobService, Listener {
         if (m.def.drops() != null && !m.def.drops().isBlank() && !participants.isEmpty()) {
             String source = m.def.isElite() || m.eliteVariant ? "elite" : "drop";
             try {
-                services.loot().drop(m.def.drops(), participants, at, ctx, source);
-                if (m.eliteVariant) services.loot().drop(m.def.drops(), participants, at, ctx, source);
+                services.loot().drop(m.def.drops(), participants, at, ctx, source, rewardMult);
+                if (m.eliteVariant) services.loot().drop(m.def.drops(), participants, at, ctx, source, rewardMult);
             } catch (Throwable t) {
                 Log.error("[몹] 루팅 오류 (" + m.def.drops() + ")", t);
             }

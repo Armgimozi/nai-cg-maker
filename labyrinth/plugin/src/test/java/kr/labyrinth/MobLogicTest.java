@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import kr.labyrinth.content.IntRange;
@@ -24,7 +25,7 @@ import org.joml.Quaternionf;
 import org.joml.Vector3f;
 import org.junit.jupiter.api.Test;
 
-/** mobs 패키지 순수 로직: 수치 배율, 위협 표, 판정 도형, 리그 수학, 정예 변종 스킬. */
+/** mobs 패키지 순수 로직: 수치 배율, 위협 표, 판정 도형, 리그 수학, 정예 변종 스킬, 소환 수 인원 규칙. */
 class MobLogicTest {
 
     private static final double EPS = 1e-6;
@@ -242,5 +243,27 @@ class MobLogicTest {
         MobDef caster = new MobDef("c", "c", "", 1, "normal", "HUSK", 1, 60, 6, 2, 0.25, 12, new IntRange(1, 2), "caster",
                 List.of(), "c", false, Params.EMPTY, ModelDef.EMPTY, Params.EMPTY);
         assertNotNull(EliteVariants.pick(caster, -7));
+    }
+
+    @Test
+    void summonCountUsesSoloKeys() {
+        // mobs.yml 소환 스킬 params: 솔로(1인)는 solo_count / solo_max_alive, 2인 이상은 count / max_alive
+        // (MobSkills 의 summon 준비 검사·시전이 Params.scaledInt(키, 인원, 기본값) 으로 읽는다 — GDD §8.4)
+        Params alpha = Params.of(Map.of("mob", "moss_crawler", "count", 2, "max_alive", 4, "radius", 4,
+                "solo_count", 1, "solo_max_alive", 2));
+        assertEquals(1, alpha.scaledInt("count", 1, 2));
+        assertEquals(2, alpha.scaledInt("max_alive", 1, 4));
+        for (int n = 2; n <= 10; n++) {
+            assertEquals(2, alpha.scaledInt("count", n, 2), "파티는 그대로 n=" + n);
+            assertEquals(4, alpha.scaledInt("max_alive", n, 4), "파티는 그대로 n=" + n);
+        }
+        // solo_ 키가 없으면 솔로도 예전 값 (p.integer 와 같음), 키가 아예 없으면 기본 2 / 4
+        Params plain = Params.of(Map.of("mob", "capcap", "count", 3, "max_alive", 6));
+        for (int n = 1; n <= 10; n++) {
+            assertEquals(plain.integer("count", 2), plain.scaledInt("count", n, 2));
+            assertEquals(plain.integer("max_alive", 4), plain.scaledInt("max_alive", n, 4));
+        }
+        assertEquals(2, Params.EMPTY.scaledInt("count", 1, 2));
+        assertEquals(4, Params.EMPTY.scaledInt("max_alive", 1, 4));
     }
 }
