@@ -42,6 +42,8 @@ import org.bukkit.potion.PotionType;
  * <ul>
  *   <li>플레이어 근접 / 화살·삼지창 → 커스텀 몹·보스: 바닐라 피해 취소, 공격력 × 공격 쿨다운(또는 활 당김) 배율로 계산.
  *       눈덩이·알 같은 그 밖의 투사체는 피해 없음</li>
+ *   <li>미궁 무기 근접 / 미궁 활 화살 → 미궁 밖 바닐라 적대 몹({@code services.targets().isEnemy}): 위와 같은 공식 (스킬과 같은 단위).
+ *       바닐라 무기는 바닐라 피해 그대로</li>
  *   <li>커스텀 몹의 바닐라 공격 → 플레이어: 취소하고 몹 damage 로 계산</li>
  *   <li>플레이어(또는 그가 쏜 것·불붙인 TNT·깨뜨린 엔드 수정·길들인 동물, {@link PvpSources}) → 다른 플레이어 = PvP:
  *       {@code services.targets().isEnemy} 가 아니면(같은 파티·안전지대·PvP 꺼짐) 취소. 근접·화살·삼지창은 몹 상대와 같은 공식으로
@@ -110,6 +112,22 @@ final class CombatListener implements Listener {
                 }
                 return;
             }
+            // 플레이어 → 미궁 밖 바닐라 적대 몹: 미궁 무기 평타·미궁 활 화살은 스킬과 같은 미궁 공격력으로 (바닐라 무기는 바닐라 피해 그대로).
+            // 바닐라 몹이라 DamageService 가 바닐라 피해로 넣으면서(applyVanilla) 기본 넉백도 바닐라가 붙인다
+            if (source instanceof Player player && victimPool.isEmpty() && victim instanceof LivingEntity target && !(victim instanceof Player)) {
+                boolean melee = isMelee(be, damager, player) && services.items().heldWeapon(player) != null;
+                AbstractArrow arrow = !melee && damager instanceof AbstractArrow a && !(a instanceof Trident) && firedFromLabyrinthBow(a) ? a : null;
+                if ((melee || arrow != null) && services.targets().isEnemy(player, target)) {
+                    e.setCancelled(true);
+                    if (melee) {
+                        damage.deal(DamageContext.attack(player, target, meleeMult(player, be), DamageType.MELEE));
+                    } else {
+                        damage.deal(DamageContext.attack(player, target, rangedMult(player, arrow, be.isCritical()), DamageType.RANGED));
+                        arrow.remove();
+                    }
+                    return;
+                }
+            }
             // 커스텀 몹 → 플레이어
             if (victim instanceof Player player && source != null) {
                 Optional<HealthPool> attackerPool = damage.poolOf(source);
@@ -161,6 +179,13 @@ final class CombatListener implements Listener {
     }
 
     // ── 배율 (몹 상대·PvP 공통) ────────────────────────────────────────────
+
+    /** 미궁 활로 쏜 화살인가 (쏠 때 든 미궁 무기 id 가 붙고, 그 무기가 활). */
+    private boolean firedFromLabyrinthBow(AbstractArrow arrow) {
+        String id = arrow.getPersistentDataContainer().get(Keys.ARROW_WEAPON, PersistentDataType.STRING);
+        ItemDef def = id == null ? null : services.content().item(id);
+        return def != null && def.isWeapon() && "bow".equals(def.weaponType());
+    }
 
     private static boolean isMelee(EntityDamageByEntityEvent be, Entity damager, Player attacker) {
         return attacker.equals(damager) && (be.getCause() == DamageCause.ENTITY_ATTACK || be.getCause() == DamageCause.ENTITY_SWEEP_ATTACK);
