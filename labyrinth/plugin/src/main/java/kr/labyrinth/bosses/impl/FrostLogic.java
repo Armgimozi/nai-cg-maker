@@ -114,11 +114,12 @@ public final class FrostLogic {
     }
 
     public static String sigilHint(DamageType t) {
+        if (t == null) t = DamageType.TRUE;
         return switch (t) {
-            case MELEE -> "근접 공격·근접 스킬만";
-            case RANGED -> "화살·투사체만";
-            case MAGIC -> "마법 스킬만";
-            default -> "모든 공격";
+            case MELEE -> "칼날이 닿을 거리를 기다린다…";
+            case RANGED -> "먼 곳에서 날아올 것을 기다린다…";
+            case MAGIC -> "마력의 떨림을 기다린다…";
+            default -> "온통 금이 가 있다…";
         };
     }
 

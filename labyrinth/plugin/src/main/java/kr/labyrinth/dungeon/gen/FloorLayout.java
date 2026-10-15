@@ -25,7 +25,20 @@ public final class FloorLayout {
     }
 
     /** 보스 투기장 (원형). corridorLength > 0 이면 중심에서 +z 쪽으로 추격 복도가 이어진다. */
-    public record Arena(int centerX, int centerZ, int radius, int height, int corridorLength, int corridorWidth) {}
+    public record Arena(int centerX, int centerZ, int radius, int height, int corridorLength, int corridorWidth, int rimRadius) {
+        public Arena(int centerX, int centerZ, int radius, int height, int corridorLength, int corridorWidth) {
+            this(centerX, centerZ, radius, height, corridorLength, corridorWidth, 0);
+        }
+
+        /** 가장자리 단 중심 z (rimRadius 0 이면 의미 없음). */
+        public int rimCenterZ() { return centerZ + FloorGenerator.rimCenterOffset(radius, corridorLength, rimRadius); }
+
+        /** 가장자리 단(낭떠러지 포함) 바깥 반경. 0 = 없음. */
+        public int rimOuter() { return rimRadius > 0 ? rimRadius + FloorGenerator.RIM_MOAT : 0; }
+
+        /** 투기장 전체(원 + 추격 복도 + 가장자리 단)의 가장 남쪽 z. */
+        public int maxZ() { return rimRadius > 0 ? rimCenterZ() + rimOuter() : centerZ + radius + corridorLength; }
+    }
 
     private final int width;
     private final int depth;

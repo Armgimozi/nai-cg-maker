@@ -230,6 +230,15 @@ public final class FloorBuilder {
                 placeLight(a.centerX(), z, Math.min(a.height(), 10), solid, hang);
             }
         }
+        // 심연의 가장자리 단 천장 링 (바닥 등불은 두지 않는다 — 낭떠러지가 될 바깥 칸)
+        if (a.rimRadius() > 0) {
+            for (int i = 0; i < 8; i++) {
+                double t = Math.PI * 2 * i / 8.0;
+                int x = a.centerX() + (int) Math.round(Math.cos(t) * (a.rimRadius() * 0.6));
+                int z = a.rimCenterZ() + (int) Math.round(Math.sin(t) * (a.rimRadius() * 0.6));
+                placeLight(x, z, a.height(), solid, hang);
+            }
+        }
     }
 
     // ── 장식 (floors.yml decor) ───────────────────────────────────────────

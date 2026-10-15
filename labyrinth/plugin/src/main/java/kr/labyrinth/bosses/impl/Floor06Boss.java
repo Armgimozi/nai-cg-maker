@@ -19,7 +19,6 @@ import kr.labyrinth.bosses.Telegraph;
 import kr.labyrinth.combat.DamageType;
 import kr.labyrinth.content.ClassDef;
 import kr.labyrinth.content.Params;
-import kr.labyrinth.core.InputKeys;
 import net.kyori.adventure.bossbar.BossBar;
 import org.bukkit.Color;
 import org.bukkit.Location;
@@ -256,7 +255,7 @@ public final class Floor06Boss extends Boss {
             // 갈래가 보스 근처에서 겹쳐도 한 번만 맞는다 → 판정은 마지막 경고가 모든 갈래를 한꺼번에
             telegraph(lines.get(i), w, Telegraph.RED, null, last ? () -> fireSpikes(lines, dmg, p) : null);
         }
-        if (count > 1) broadcastBar("<aqua>빙창 " + count + "갈래!</aqua> <gray>갈래 사이로 피하세요");
+        if (count > 1) broadcastBar("<aqua>빙창 " + count + "갈래!</aqua> <gray>서릿발이 부챗살처럼 뻗는다…");
         return cast("glacial_spikes", "빙창", w, w + 8, BossAnim.THROW, t.getLocation(), false);
     }
 
@@ -319,12 +318,11 @@ public final class Floor06Boss extends Boss {
             effect(pl, "frost", decay, 1);
             if (services.effects().has(pl, "frozen")) {
                 lastPos.remove(id);
-                broadcastBar("<#bfe6ff><b>❄ " + pl.getName() + " 빙결!</b></#bfe6ff> <gray>동료가 4번 때리면(" + InputKeys.label("LEFT")
-                        + ") 풀립니다 · 사제 정화로 중첩 제거");
+                broadcastBar("<#bfe6ff><b>❄ " + pl.getName() + " 빙결!</b></#bfe6ff> <gray>얼음 속에서 누군가의 두드림을 기다린다…");
                 BossFx.sound(here, Sound.BLOCK_GLASS_PLACE, 1.4f, 0.6f);
             } else {
                 int st = services.effects().stacks(pl, "frost");
-                notify(pl, "<#bfe6ff>❄ 동상 " + st + "/" + max + "</#bfe6ff> <gray>— 멈추지 말고 계속 움직이세요!");
+                notify(pl, "<#bfe6ff>❄ 동상 " + st + "/" + max + "</#bfe6ff> <gray>— 발끝이 굳어 간다…");
                 BossFx.sound(here, Sound.ENTITY_PLAYER_HURT_FREEZE, 0.7f, 1.2f);
             }
             BossFx.particle(Particle.SNOWFLAKE, here.clone().add(0, 1, 0), 10, 0.3, 0.6, 0.3, 0.02);
@@ -344,7 +342,7 @@ public final class Floor06Boss extends Boss {
             int st = services.effects().stacks(pl, "frost");
             String text = null;
             if (!services.effects().isStealthed(pl)) {
-                if (frozen) text = "<#bfe6ff><b>❄ 빙결</b></#bfe6ff>\n<gray>4번 때려 해방";
+                if (frozen) text = "<#bfe6ff><b>❄ 빙결</b></#bfe6ff>\n<gray>쩡… 쩡…";
                 else if (st > 0) text = "<#bfe6ff>" + "❄".repeat(Math.min(max, st)) + "</#bfe6ff><dark_gray>"
                         + "❄".repeat(Math.max(0, max - st)) + "</dark_gray>";
             }
@@ -419,11 +417,9 @@ public final class Floor06Boss extends Boss {
         double ringR = Math.min(arenaRadius - 2, def.arena().dbl("sigil_ring_radius", 10));
         double[] angs = BossMath.ringAngles(types.size(), 90, 30);
         sigilTotal = types.size();
-        List<String> missing = new ArrayList<>();
         for (int i = 0; i < types.size(); i++) {
             DamageType t = types.get(i);
             FrostLogic.SigilRule rule = FrostLogic.sigilRule(t, present, solo, p.dbl("missing_role_hp_mult", 1.5));
-            if (!solo && !rule.filtered()) missing.add(FrostLogic.sigilName(t));
             spawnSigil(p, t, rule, ground(ringPoint(angs[i], ringR)));
         }
 
@@ -434,8 +430,8 @@ public final class Floor06Boss extends Boss {
         run(new Mechanics.Repeat(shellTicks, 1, tt -> {
             if (!shellActive) return false;
             if (tt % 4 == 0) {
-                timerBar("<aqua><b>절대영도</b></aqua> <white>인장 " + sigilsBroken + "/" + sigilTotal + "</white> <gray>남은 "
-                        + String.format("%.1f", Math.max(0, shellTicks - tt) / 20.0) + "초", tt / (float) shellTicks, BossBar.Color.YELLOW);
+                timerBar("<aqua><b>절대영도</b></aqua> " + Floor08Math.pips(sigilsBroken, sigilTotal, "<white>", "<dark_gray>"),
+                        tt / (float) shellTicks, BossBar.Color.YELLOW);
             }
             if (tt > 0 && tt % glareEvery == 0) frozenGlare(p);
             if (tt % 2 == 0) spinSigils(tt);
@@ -453,13 +449,9 @@ public final class Floor06Boss extends Boss {
         BossFx.sound(center, Sound.ENTITY_ELDER_GUARDIAN_CURSE, 1.2f, 0.7f);
         BossFx.sound(center, Sound.BLOCK_GLASS_PLACE, 2f, 0.5f);
         BossFx.particle(Particle.SNOWFLAKE, to.clone().add(0, 2, 0), 120, 1.5, 2, 1.5, 0.05);
-        broadcastBar("<aqua><b>빙결 껍질!</b></aqua> <gray>절대영도 전에 인장 3개를 깨세요 — <#ff6a5a>⚔ 근접</#ff6a5a> · "
-                + "<#5ad08a>🏹 투사체</#5ad08a> · <#c87aff>✦ 마법</#c87aff>");
-        say("<aqua>시린</aqua><gray>이(가) 얼음 껍질에 몸을 숨기고 <aqua>절대영도</aqua>를 외기 시작합니다. "
-                + "<white>인장 링의 인장을 각자 맞는 공격으로 깨세요!</white>");
-        if (solo) say("<gray>(솔로: 세 인장 모두 어떤 공격이든 받습니다 · 시전 " + Math.round(shellTicks / 20.0) + "초)</gray>");
-        else if (!missing.isEmpty()) say("<gray>(파티에 맞는 직업이 없어 " + String.join(", ", missing) + " 은(는) 모든 공격을 받습니다 · HP ×"
-                + kr.labyrinth.core.Text.num(p.dbl("missing_role_hp_mult", 1.5)) + ")</gray>");
+        broadcastBar("<aqua><b>빙결 껍질!</b></aqua> <gray>세 빛깔의 인장이 깨어난다 — <#ff6a5a>⚔</#ff6a5a> · "
+                + "<#5ad08a>🏹</#5ad08a> · <#c87aff>✦</#c87aff>");
+        say("<aqua>시린</aqua><gray>이(가) 얼음 껍질에 몸을 숨긴다. 차가운 주문이 낮게 울리기 시작한다…</gray>");
     }
 
     private void spawnSigil(Params p, DamageType t, FrostLogic.SigilRule rule, Location at) {
@@ -477,7 +469,7 @@ public final class Floor06Boss extends Boss {
             o.accept(t);
             o.extra("<gray>" + FrostLogic.sigilHint(t) + "</gray>");
         } else {
-            o.extra("<yellow>모든 공격</yellow>" + (rule.hpMult() > 1 ? " <dark_gray>(HP ×" + kr.labyrinth.core.Text.num(rule.hpMult()) + ")</dark_gray>" : ""));
+            o.extra("<gray>" + FrostLogic.sigilHint(null) + "</gray>");
         }
         ItemDisplay d = o.display();
         if (d != null && d.isValid()) {
@@ -528,7 +520,7 @@ public final class Floor06Boss extends Boss {
         BossFx.particle(Particle.ITEM_SNOWBALL, at.clone().add(0, 1.4, 0), 40, 0.5, 0.8, 0.5, 0.1);
         BossFx.particle(Particle.END_ROD, at.clone().add(0, 1.4, 0), 20, 0.4, 0.8, 0.4, 0.08);
         if (!shellActive) return;
-        broadcastBar("<white>" + FrostLogic.sigilName(t) + " 파괴!</white> <aqua>(" + sigilsBroken + "/" + sigilTotal + ")</aqua>");
+        broadcastBar("<white>" + FrostLogic.sigilName(t) + "이 깨졌다!</white> " + Floor08Math.pips(sigilsBroken, sigilTotal, "<aqua>", "<dark_gray>"));
         if (sigilsBroken >= sigilTotal) shatter();
     }
 
@@ -552,8 +544,7 @@ public final class Floor06Boss extends Boss {
         double st = p.dbl("shatter_stun", 6.0);
         stun(st);
         makeVulnerable(p.dbl("shatter_vulnerable", 0.3), st);
-        broadcastBar("<aqua><b>얼음 껍질이 부서졌습니다!</b></aqua> <yellow>시린 기절 " + kr.labyrinth.core.Text.num(st) + "초 — 받는 피해 +"
-                + Math.round(p.dbl("shatter_vulnerable", 0.3) * 100) + "%</yellow>");
+        broadcastBar("<aqua><b>얼음 껍질이 부서졌다!</b></aqua> <yellow>시린이 비틀거린다…</yellow>");
         BossFx.sound(at, Sound.BLOCK_GLASS_BREAK, 2f, 0.5f);
         BossFx.sound(at, Sound.BLOCK_AMETHYST_CLUSTER_BREAK, 2f, 0.6f);
         BossFx.particle(Particle.ITEM_SNOWBALL, at, 100, 1.4, 1.6, 1.4, 0.2);
@@ -568,7 +559,7 @@ public final class Floor06Boss extends Boss {
             hit(pl, dmg, "glacier_shell", DamageType.TRUE);
             BossFx.particle(Particle.SNOWFLAKE, pl.getLocation().add(0, 1, 0), 30, 0.4, 0.8, 0.4, 0.05);
         }
-        broadcastBar("<dark_aqua><b>절대영도!</b></dark_aqua> <gray>인장을 모두 깨지 못했습니다");
+        broadcastBar("<dark_aqua><b>절대영도!</b></dark_aqua> <gray>모든 것이 얼어붙는다…");
         BossFx.sound(center, Sound.ENTITY_PLAYER_HURT_FREEZE, 2f, 0.5f);
         BossFx.sound(center, Sound.BLOCK_POWDER_SNOW_BREAK, 2f, 0.4f);
         BossFx.sound(center, Sound.ENTITY_GENERIC_EXPLODE, 1.2f, 0.6f);
@@ -613,7 +604,7 @@ public final class Floor06Boss extends Boss {
             return true;
         }, () -> blizzardActive = false, true));
         BossFx.sound(center, Sound.WEATHER_RAIN, 1.5f, 0.5f);
-        broadcastBar("<white><b>눈보라!</b></white> <gray>시야가 가려집니다 — 바닥의 붉은 우박 원을 피하세요");
+        broadcastBar("<white><b>눈보라!</b></white> <gray>하늘이 하얗게 무너져 내린다…");
         return cast("blizzard", "눈보라", 20, 24, BossAnim.CAST, null, false);
     }
 
@@ -686,7 +677,7 @@ public final class Floor06Boss extends Boss {
             BossFx.sound(center, Sound.BLOCK_POWDER_SNOW_BREAK, 1.6f, 0.5f);
         });
         afterPersistent(w + dur, this::thawAll);
-        broadcastBar("<#78d2ff><b>영구 동토!</b></#78d2ff> <gray>하늘색 얼음판 위에선 미끄러집니다 — 빙창·우박 피할 길을 미리 정하세요");
+        broadcastBar("<#78d2ff><b>영구 동토!</b></#78d2ff> <gray>발밑이 거울처럼 얼어붙는다…");
         return cast("permafrost", "영구 동토", w, w + 6, BossAnim.SLAM, null, false);
     }
 

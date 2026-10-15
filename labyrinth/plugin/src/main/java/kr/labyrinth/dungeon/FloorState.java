@@ -178,7 +178,7 @@ public final class FloorState {
         // 보스 구현이 투기장에 놓았을 수 있는 블록(기둥·해자 등)까지 비우기: 투기장 원기둥 내부 + 바닥 아래 2칸
         FloorLayout.Arena a = layout.arena();
         int bossIdx = layout.bossRoom().index();
-        for (int z = a.centerZ() - a.radius() - 1; z <= a.centerZ() + a.radius() + a.corridorLength() + 1; z++) {
+        for (int z = a.centerZ() - a.radius() - 1; z <= a.maxZ() + 1; z++) {
             for (int x = a.centerX() - a.radius() - 1; x <= a.centerX() + a.radius() + 1; x++) {
                 if (layout.region(x, z) != bossIdx) continue;
                 int h = layout.height(x, z);
