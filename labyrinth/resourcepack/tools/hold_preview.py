@@ -854,6 +854,28 @@ def selftest():
     fp0 = (fp_matrix(HANDHELD, 0.0) @ np.array([15 / 16, 15 / 16, 0.5, 1]))[:3]
     fp1 = (fp_matrix(HANDHELD, 0.25) @ np.array([15 / 16, 15 / 16, 0.5, 1]))[:3]
     check('swing chops toward the lower left', fp1[0] < fp0[0] and fp1[1] < fp0[1], (np.round(fp0, 2), np.round(fp1, 2)))
+    # our weapons (src/displays.py): the working side +X goes where the vanilla axe head goes
+    from src import displays as D
+    r1, _ = D.held((0, 90, 20), D.FP_REF[2], D.FP_REF)
+    r3, _ = D.held(D.TP_REF[0], 0.85, (D.TP_REF[0], D.TP_REF[1], 0.85))
+    ours = {'firstperson_righthand': r1, 'thirdperson_righthand': r3}
+    vx = fp_matrix(ours)[:3, :3] @ np.array([1.0, 0, 0])
+    wx = tp_matrix(ours)[:3, :3] @ np.array([1.0, 0, 0])
+    check('our +X edge points away from the camera (FP)', vx[2] / np.linalg.norm(vx) < -0.5, np.round(vx, 2))
+    check('our +X edge points the same way as the vanilla axe head (TP)',
+          np.sign(wx[2]) == np.sign(hs['head_tp_forward']), (np.round(wx, 2), hs['head_tp_forward']))
+    # displays.held keeps the grip in the hand for any scale / yaw, both hands (client: left = mirrored arm chain)
+    Fx = np.diag([-1.0, 1, 1, 1])
+    g = np.array([*np.asarray(GRIP) / 16, 1.0])
+    ref_r, ref_l = D.held(D.FP_REF[0], D.FP_REF[2], D.FP_REF)
+    arm = fp_matrix({}, 0.25) @ np.linalg.inv(item_transform(None))      # arm chain without the item transform
+    err = 0.0
+    for rot, s in (((0, 125, 20), 0.6), ((0, 90, 20), 0.45)):
+        r, lft = D.held(rot, s, D.FP_REF)
+        err = max(err, np.abs(arm @ item_transform(r) @ g - arm @ item_transform(ref_r) @ g).max(),
+                  np.abs(Fx @ arm @ Fx @ item_transform(lft, True) @ g
+                         - Fx @ arm @ Fx @ item_transform(ref_l, True) @ g).max())
+    check('displays.held keeps the grip point (right + left hand)', err < 1e-3, f'max {err:.1e} block')
     return ok
 
 
