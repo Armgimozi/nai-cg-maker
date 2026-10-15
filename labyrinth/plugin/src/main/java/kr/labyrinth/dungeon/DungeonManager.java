@@ -514,6 +514,17 @@ public final class DungeonManager implements DungeonService, Listener {
         FloorState fs = r.floorOf(p);
         if (fs == null) fs = r.current();
         boolean offHand = e.getHand() == org.bukkit.inventory.EquipmentSlot.OFF_HAND;
+        // 금 간 벽 (비밀 통로): 우클릭하거나 때리면 무너진다
+        if (!offHand && (e.getAction() == Action.LEFT_CLICK_BLOCK || e.getAction() == Action.RIGHT_CLICK_BLOCK)
+                && fs.secrets().tryOpen(p, b)) {
+            e.setCancelled(true);
+            return;
+        }
+        // 미로 보물 상자·금고 문 (개인 루팅·열쇠)
+        if (offHand ? fs.treasures().owns(b) : fs.treasures().onInteract(p, b, e.getAction())) {
+            e.setCancelled(true);
+            return;
+        }
         for (Room room : fs.rooms()) {
             if (offHand) {
                 // 보조손 이벤트는 처리하지 않고 막기만 (주 손에서 이미 처리 — 두 번 눌림 방지)
@@ -533,6 +544,30 @@ public final class DungeonManager implements DungeonService, Listener {
         if (e.getAction() == Action.PHYSICAL) e.setCancelled(true);
     }
 
+    /** 지도(빈 지도·지도)를 들고 우클릭 → 탐험 지도. */
+    @EventHandler(priority = EventPriority.LOW)
+    public void onMapItem(PlayerInteractEvent e) {
+        if (e.getHand() != org.bukkit.inventory.EquipmentSlot.HAND) return;
+        if (e.getAction() != Action.RIGHT_CLICK_AIR && e.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+        org.bukkit.inventory.ItemStack it = e.getItem();
+        if (it == null || (it.getType() != org.bukkit.Material.MAP && it.getType() != org.bukkit.Material.FILLED_MAP)) return;
+        if (!isLabyrinthWorld(e.getPlayer().getWorld()) || !byPlayer.containsKey(e.getPlayer().getUniqueId())) return;
+        if (showMap(e.getPlayer())) e.setCancelled(true);
+    }
+
+    @Override
+    public boolean showMap(Player p) {
+        Run r = byPlayer.get(p.getUniqueId());
+        FloorState fs = r == null ? null : r.floorOf(p);
+        if (fs == null && r != null) fs = r.current();
+        if (fs == null || !fs.ready()) {
+            Text.error(p, "탐험 지도는 미궁 안에서만 볼 수 있습니다.");
+            return false;
+        }
+        ExplorationMap.show(fs, p);
+        return true;
+    }
+
     @EventHandler(ignoreCancelled = true)
     public void onProjectile(ProjectileHitEvent e) {
         Block b = e.getHitBlock();
@@ -541,6 +576,7 @@ public final class DungeonManager implements DungeonService, Listener {
         if (!(proj.getShooter() instanceof Player p)) return;
         Run r = byPlayer.get(p.getUniqueId());
         if (r == null || r.current() == null) return;
+        if (r.current().secrets().tryOpen(p, b)) return;
         for (Room room : r.current().rooms()) {
             if (room.containsBlock(b)) {
                 room.onProjectileHit(p, b);

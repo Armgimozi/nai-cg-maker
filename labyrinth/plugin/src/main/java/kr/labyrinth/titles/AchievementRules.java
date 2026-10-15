@@ -25,6 +25,7 @@ import kr.labyrinth.core.Difficulty;
  *   <li>{@code titles.obtain.<희귀도>} 그 희귀도 장비 획득 수(정확히 일치)</li>
  *   <li>{@code titles.crafts} · {@code titles.craft_min.<희귀도>} 그 희귀도 이상 제작 수</li>
  *   <li>{@code titles.enhance_best} 강화 성공으로 도달한 가장 높은 단계 · {@code titles.enhance_success} 강화 성공 횟수</li>
+ *   <li>{@code titles.treasure.<chest|gold_chest|vault|mimic>} 미로 보물 (상자에서 내 몫·금 상자·금고를 열쇠로 염·미믹 길들임)</li>
  *   <li>{@code titles.server_first.<업적 id>} {@code server_first: true}(어떤 조건에나 붙일 수 있음 — 처음 달성한 1명만) 업적의 서버 최초 기록 보유자면 1</li>
  *   <li>{@code level} 현재 레벨 (카운터가 아니라 조회 함수가 PlayerData.level 로 답한다)</li>
  * </ul>
@@ -96,6 +97,8 @@ public final class AchievementRules {
             }
             case "ENHANCE":
                 return v.applyAsLong(P + "enhance_best") >= Math.max(1, c.integer("level", 1));
+            case "TREASURE":
+                return v.applyAsLong(P + "treasure." + treasureKind(c)) >= Math.max(1, c.integer("count", 1));
             default:
                 return false;
         }
@@ -145,6 +148,7 @@ public final class AchievementRules {
                 goal = Math.max(1, c.integer("count", 1));
             }
             case "ENHANCE" -> { cur = v.applyAsLong(P + "enhance_best"); goal = Math.max(1, c.integer("level", 1)); }
+            case "TREASURE" -> { cur = v.applyAsLong(P + "treasure." + treasureKind(c)); goal = Math.max(1, c.integer("count", 1)); }
             default -> { cur = met(def, v) ? 1 : 0; goal = 1; }
         }
         return new long[] {Math.min(cur, goal), goal};
@@ -179,9 +183,24 @@ public final class AchievementRules {
                 yield (r == null ? "" : r.displayName() + " 이상 ") + "장비 제작 " + c.integer("count", 1) + "회";
             }
             case "ENHANCE" -> "장비 +" + Math.max(1, c.integer("level", 1)) + " 강화 성공";
+            case "TREASURE" -> {
+                int n = Math.max(1, c.integer("count", 1));
+                yield switch (treasureKind(c)) {
+                    case "gold_chest" -> "미로의 금 상자 " + n + "개 열기";
+                    case "vault" -> n == 1 ? "열쇠 금고 열기" : "열쇠 금고 " + n + "번 열기";
+                    case "mimic" -> "미믹 " + n + "마리 길들이기";
+                    default -> "미로의 보물 상자 " + n + "개 열기";
+                };
+            }
             default -> "";
         };
         return text.isEmpty() ? "" : text + sf;
+    }
+
+    /** TREASURE 조건의 kind (chest | gold_chest | vault | mimic, 기본 chest). */
+    public static String treasureKind(Params c) {
+        String k = c.str("kind", "chest");
+        return k == null ? "chest" : k.toLowerCase(Locale.ROOT);
     }
 
     static String difficultyName(String id) {

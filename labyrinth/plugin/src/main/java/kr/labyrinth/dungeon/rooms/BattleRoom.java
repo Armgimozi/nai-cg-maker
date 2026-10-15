@@ -101,6 +101,13 @@ public final class BattleRoom extends Room {
         fs.sound(c, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1.0f, 1.2f);
         fs.actionBar(fs.allPlayers(), elite ? "<gold>정예를 쓰러뜨렸습니다!</gold> <gray>문이 열렸습니다"
                 : "<green>방을 정리했습니다.</green> <gray>문이 열렸습니다", 50);
+        if (elite) {
+            try {
+                fs.treasures().onEliteCleared(this);
+            } catch (Throwable t) {
+                kr.labyrinth.core.Log.error("금고 열쇠 지급 실패", t);
+            }
+        }
     }
 
     /** 고착 방지: 안에 아무도 없으면 몹을 거두고 문을 열어 다음 진입 때 다시 시작. */

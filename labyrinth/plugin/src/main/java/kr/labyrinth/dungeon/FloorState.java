@@ -70,6 +70,11 @@ public final class FloorState {
     int[] stairs;
     long clearedAt = -1;
     private Runnable cancelBuild;
+    private final SecretPassages secrets;
+    private final Exploration exploration;
+    private final kr.labyrinth.dungeon.traps.HazardPlan hazards;
+    private final kr.labyrinth.dungeon.traps.Traps traps;
+    private final kr.labyrinth.dungeon.treasure.Treasures treasures;
 
     FloorState(DungeonManager manager, Run run, int floor, FloorDef def, InstanceContext ctx, FloorLayout layout,
                long seed, int ox, int y0, int oz) {
@@ -83,10 +88,21 @@ public final class FloorState {
         this.ox = ox;
         this.y0 = y0;
         this.oz = oz;
-        int top = 0;
-        for (FloorLayout.RoomInfo r : layout.rooms()) top = Math.max(top, r.height());
-        this.maxTop = top + 1; // 천장
+        this.maxTop = layout.maxTop(); // 가장 높은 천장 (계단 복도 단상 포함)
         for (FloorLayout.RoomInfo r : layout.rooms()) rooms.add(createRoom(r));
+        this.secrets = new SecretPassages(this);
+        this.exploration = new Exploration(this);
+        kr.labyrinth.dungeon.traps.HazardPlan hp;
+        try {
+            hp = kr.labyrinth.dungeon.traps.HazardPlan.plan(layout, def.raw().sub("traps"), def.raw().sub("chests"), seed);
+        } catch (Throwable t) {
+            Log.error("함정·보물 배치 실패 (지하 " + floor + "층) — 이 층은 함정·미로 상자 없이 진행", t);
+            hp = new kr.labyrinth.dungeon.traps.HazardPlan(kr.labyrinth.dungeon.treasure.TreasurePlan.EMPTY, List.of(),
+                    kr.labyrinth.dungeon.traps.TrapSettings.NONE, kr.labyrinth.dungeon.treasure.ChestSettings.DEFAULT);
+        }
+        this.hazards = hp;
+        this.traps = new kr.labyrinth.dungeon.traps.Traps(this, hp.traps());
+        this.treasures = new kr.labyrinth.dungeon.treasure.Treasures(this, hp.treasure());
     }
 
     private Room createRoom(FloorLayout.RoomInfo r) {
@@ -120,6 +136,12 @@ public final class FloorState {
                 Log.error("방 소품 준비 실패: " + r.type(), t);
             }
         }
+        try {
+            treasures.prepare(list, builder.palette());
+            traps.prepare(list, builder.palette(), hazards.trapSettings().mark());
+        } catch (Throwable t) {
+            Log.error("함정·미로 상자 준비 실패", t);
+        }
         shell = list.positions();
         cancelBuild = manager.placer().place(world(), list, chunkTickets, p -> progress = p, () -> {
             if (destroyed) return;
@@ -131,6 +153,12 @@ public final class FloorState {
                 } catch (Throwable t) {
                     Log.error("방 준비 실패: " + r.type(), t);
                 }
+            }
+            try {
+                treasures.onReady();
+                traps.onReady();
+            } catch (Throwable t) {
+                Log.error("함정·미로 상자 표시 실패", t);
             }
             if (onReady != null) onReady.run();
         });
@@ -146,6 +174,7 @@ public final class FloorState {
         if (destroyed) return;
         destroyed = true;
         if (cancelBuild != null) cancelBuild.run();
+        traps.onDestroy();
         for (Room r : rooms) {
             try {
                 r.onDestroy();
@@ -208,6 +237,21 @@ public final class FloorState {
 
     void tick(long t) {
         if (!ready || destroyed) return;
+        try {
+            secrets.tick(t);
+        } catch (Throwable e) {
+            Log.error("비밀 통로 틱 오류", e);
+        }
+        try {
+            traps.tick(t);
+        } catch (Throwable e) {
+            Log.error("함정 틱 오류", e);
+        }
+        try {
+            treasures.tick(t);
+        } catch (Throwable e) {
+            Log.error("미로 상자 틱 오류", e);
+        }
         for (Room r : rooms) {
             try {
                 r.tick(t);
@@ -221,6 +265,7 @@ public final class FloorState {
     void updatePresence(Player p) {
         Location l = p.getLocation();
         if (!onThisFloor(l)) return;
+        exploration.visit(l);
         int region = layout.region(tileX(l), tileZ(l));
         if (region < 0) return;
         if (layout.kind(tileX(l), tileZ(l)) != FloorLayout.FLOOR) return;
@@ -256,6 +301,14 @@ public final class FloorState {
     public int y0() { return y0; }
     public int oz() { return oz; }
     public List<Room> rooms() { return rooms; }
+    /** 금 간 벽 비밀 통로 (열기·열림 알림). */
+    public SecretPassages secrets() { return secrets; }
+    /** 파티가 함께 쓰는 탐험 기록 (지나간 셀·보스 문·비밀 통로). */
+    public Exploration exploration() { return exploration; }
+    /** 미로 함정 (GDD §5.5). */
+    public kr.labyrinth.dungeon.traps.Traps traps() { return traps; }
+    /** 미로 보물 상자·열쇠 금고·미믹 (GDD §5.6). */
+    public kr.labyrinth.dungeon.treasure.Treasures treasures() { return treasures; }
     public Room startRoom() { return rooms.get(layout.startRoom().index()); }
     public Room bossRoom() { return rooms.get(layout.bossRoom().index()); }
     public boolean ready() { return ready; }

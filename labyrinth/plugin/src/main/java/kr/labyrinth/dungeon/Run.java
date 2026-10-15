@@ -173,14 +173,20 @@ public final class Run {
         var boss = manager.services().content().boss(def.boss());
         var arena = boss == null ? kr.labyrinth.content.Params.EMPTY : boss.arena();
         boolean liquid = def.liquid() != null && !def.liquid().isBlank() && !"null".equalsIgnoreCase(def.liquid());
-        FloorGenerator.Params gp = new FloorGenerator.Params(def.cells(), def.rooms(), def.roomHeight(), 4, liquid,
-                arena.integer("radius", 14), arena.integer("height", 10), arena.integer("corridor_length", 0),
-                arena.integer("corridor_width", 7), arena.integer("rim_radius", 0));
+        FloorGenerator.Params gp = params(def, arena, liquid);
         long seed = seedBase * 1_000_003L + floor * 7919L;
         FloorLayout layout = FloorGenerator.generate(gp, seed);
         int ox = InstanceAllocator.originX(slot), oz = InstanceAllocator.originZ(slot);
         int y0 = manager.config().floorY(floor);
         return new FloorState(manager, this, floor, def, contextFor(floor), layout, seed, ox, y0, oz);
+    }
+
+    /** floors.yml 층 + 보스 투기장 → 층 설계 입력 (미로 복잡도 = floors.yml maze). */
+    static FloorGenerator.Params params(FloorDef def, kr.labyrinth.content.Params arena, boolean liquid) {
+        return new FloorGenerator.Params(def.cells(), def.rooms(), def.roomHeight(), 4, liquid,
+                arena.integer("radius", 14), arena.integer("height", 10), arena.integer("corridor_length", 0),
+                arena.integer("corridor_width", 7), arena.integer("rim_radius", 0),
+                kr.labyrinth.dungeon.gen.MazeGenerator.Settings.of(def.raw().sub("maze")));
     }
 
     /** 층 첫 도착: 제목 + 카운트다운 후 시작방 문 개방. */
@@ -259,7 +265,8 @@ public final class Run {
             Text.send(p, "<gray>발을 헛디뎠습니다! <red>-" + Text.pct(pct) + " HP");
             return;
         }
-        if (p.isOnGround() && fs.layout().walkable(fs.tileX(l), fs.tileZ(l)) && Math.abs(l.getY() - (fs.y0() + 1)) < 1.2) {
+        int tx = fs.tileX(l), tz = fs.tileZ(l);
+        if (p.isOnGround() && fs.layout().walkable(tx, tz) && Math.abs(l.getY() - (fs.y0() + fs.layout().standHeight(tx, tz))) < 1.2) {
             lastSafe.put(p.getUniqueId(), l.clone());
         }
     }
@@ -393,6 +400,8 @@ public final class Run {
         manager.services().hud().hideBossBar(p, "dungeon_boss_hint");
         manager.services().hud().hideBossBar(p, "dungeon_gimmick_hint");
         p.setGameMode(modes.getOrDefault(u, GameMode.SURVIVAL));
+        // 층 전용 금고 열쇠는 미궁 밖으로 못 가져간다
+        kr.labyrinth.dungeon.treasure.VaultKeys.strip(p, id, 0);
         p.setFireTicks(0);
         p.setFallDistance(0);
         Location back = returnTo.get(u);
@@ -640,7 +649,17 @@ public final class Run {
         p.setFallDistance(0);
         lastSafe.put(p.getUniqueId(), spawn);
         p.playSound(spawn, Sound.BLOCK_PORTAL_TRAVEL, 0.25f, 1.6f);
+        stripOldKeys();
         manager.services().hud().actionBar(p, Text.mm("<gray>지하 " + current.floor() + "층 도착 — 파티원을 기다리는 중..."), 60);
+    }
+
+    /** 지난 층 금고 열쇠는 부서진다 (지금 층 것만 남김). */
+    private void stripOldKeys() {
+        for (Player o : onlineMembers()) {
+            if (kr.labyrinth.dungeon.treasure.VaultKeys.strip(o, id, current.floor()) > 0) {
+                Text.send(o, "<gray>지난 층의 금고 열쇠가 바스러져 사라졌습니다.");
+            }
+        }
     }
 
     /** 재접속한 파티원을 현재 층으로. 쓰러졌으면 관전, 아니면 서바이벌 (입장 전 크리에이티브로 되돌리지 않음). */

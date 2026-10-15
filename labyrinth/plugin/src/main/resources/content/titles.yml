@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# titles.yml — 업적 54종 → 칭호
+# titles.yml — 업적 57종 → 칭호
 #
 # 스키마: ARCHITECTURE.md §6 titles.yml (+ 추가 필드는 §6 에 기록됨)
 #  condition.type (닫힌 목록) 과 파라미터:
@@ -15,6 +15,7 @@
 #    OBTAIN_RARITY    {rarity, count?=1}              그 희귀도 장비를 count 개 획득 (드롭·제작·보상 모두)
 #    CRAFT            {count, rarity?}                대장장이 제작 누적 (rarity 있으면 그 희귀도 이상만 셈)
 #    ENHANCE          {level}                         대장장이 강화 성공으로 장비를 +level 까지 올림 (GDD §11.13)
+#    TREASURE         {kind, count?=1}                미로 보물: kind = chest(상자에서 내 몫) | gold_chest | vault(금고를 열쇠로 염) | mimic(미믹 길들임)
 #    server_first     : (선택 키, 어느 조건에나) true 면 서버에서 처음 달성한 1명만 받음 (records.yml)
 #  title     : 장착 시 채팅·탭·이름표 접두어 (MiniMessage)
 #  bonus     : 장착 중에만 적용. 키 = STR|DEX|INT|VIT|WIS|LUK 또는 xp_bonus|gold_bonus (비율)
@@ -481,6 +482,38 @@ achievements:
     reward: {gold: 10000}
 
   # ═══════════════════════ 수집 ═══════════════════════
+
+  # 미로 보물 (GDD §5.6 — TREASURE 조건: kind = chest | gold_chest | vault | mimic)
+  first_vault:
+    name: "금고털이의 원조"
+    description: "서버에서 처음으로 미궁의 열쇠 금고를 연 사람"
+    category: collection
+    condition: {type: TREASURE, kind: vault, count: 1, server_first: true}
+    title: "<gradient:#c89a2a:#fff6c8:#c89a2a>금고털이의 원조</gradient>"
+    bonus: {LUK: 1}
+    broadcast: true
+    reward: {gold: 800}
+
+  treasure_hunter:
+    name: "막다른 길의 보물 사냥꾼"
+    description: "미로의 보물 상자 40개에서 내 몫을 챙김"
+    category: collection
+    condition: {type: TREASURE, kind: chest, count: 40}
+    title: "<gradient:#8a6a3a:#ffd36b>보물 사냥꾼</gradient>"
+    bonus: {gold_bonus: 0.02}
+    broadcast: false
+    reward: {gold: 500}
+
+  mimic_tamer:
+    name: "미믹 길들이는 자"
+    description: "미믹 상자 5개를 길들임 (불려 나온 몬스터를 모두 쓰러뜨림)"
+    category: collection
+    condition: {type: TREASURE, kind: mimic, count: 5}
+    title: "<gradient:#7a1a2a:#ff8a6a>미믹 길들이는 자</gradient>"
+    bonus: {}
+    broadcast: true
+    hidden: true
+    reward: {gold: 600}
 
   obtain_epic:
     name: "영웅의 증표"

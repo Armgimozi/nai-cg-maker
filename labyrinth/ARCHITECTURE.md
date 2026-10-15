@@ -310,6 +310,18 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
   (칭호 접두어와 같은 대상별 팀을 쓴다). pvp 가 1초마다 파티원을 초록으로 맞춘다.
 - **DungeonService** 기본 메서드 `floorProgress(p)` → `FloorProgress(floor, roomsCleared, roomsTotal, deaths, startedAt, bossDefeated,
   ready, progress)` (HUD 용; 전투·정예·시련·수호자 방만 셈). dungeon 담당이 더 정확히 재정의해도 된다.
+- **DungeonService** 기본 메서드 `showMap(p)` — 채팅에 지금 층 탐험 지도(파티가 지나간 셀만)를 그린다. 미궁 밖이면 안내 후 false (메인 메뉴 버튼이 호출).
+  미로 정보(GDD §5.4): `FloorLayout.deadEnds()`·`hallTiles()`·`secretRooms()`·`mainPathCells()`·`rooms()`, 금 간 벽 열림 콜백 `FloorState.secrets().onOpen(...)`.
+  floors.yml 층별 `maze:` 키(`dead_end_keep`·`loop_chance`·`branch`·`braid`·`twist`·`secret_ratio`·`secret_max`·`min_path`)와 `palette.secret`·`palette.stairs`.
+- **함정·미로 보물** (GDD §5.5·§5.6): 패키지 `dungeon.traps`(`TrapType` 닫힌 13종·`TrapPlanner`·`TrapMath` 순수, `Traps` 런타임)와
+  `dungeon.treasure`(`TreasurePlanner`·`ChestLedger`·`VaultKeys` 순수/도우미, `Treasures` 런타임). 배치는 `traps.HazardPlan.plan(layout, traps, chests, seed)`
+  하나(보물 → 함정 → 함정 뒤 금 상자) — FloorState·테스트·MazeRenderDump 공용. 런타임 접근 `FloorState.traps()`·`treasures()`,
+  정예방 정리 → `treasures().onEliteCleared(room)`(열쇠), 블록 상호작용은 DungeonManager 가 `treasures().onInteract` 먼저 묻는다.
+  floors.yml 층별 `traps: {density, types, mark, spacing}`·`chests: {dead_end, minor, iron, gold, gold_behind_trap, mimic, vault, key_from_elite, bracket}`,
+  dungeon.yml `traps.*`(disarm_seconds·shadow_disarm_seconds·shadow_sense_radius·disarm_gold·disarm_xp)·`treasure.mimic_lock_seconds`
+  → `DungeonConfig.traps()`(TrapRules). loot.yml `maze_chest_<wood|iron|gold>_<1~4>`(층 구간 1~3·4~6·7~9·10), items.yml `vault_key`(type key,
+  PDC "런id#층" — `Run.restore`·다음 층 첫 도착 때 지움). titles.yml 조건 `TREASURE {kind: chest|gold_chest|vault|mimic, count}` —
+  카운터 `titles.treasure.<kind>`. PlayerData 카운터 `dungeon.traps_disarmed`. 자가 진단 결과에 `traps=·chests=·vaults=·secret_rooms=·mimics=`.
 - **TitleService** 실제 구현 `titles.LabTitleService`. 기본 메서드 추가: `setBonusSuppressed(p, on)`(칭호 스탯 보너스 잠시 끄기 — 지금은 부르는 곳 없음),
   `progress(p, id)`. 판정은 `titles.AchievementRules`(순수, 테스트), 카운터 갱신은 `titles.TitleCounters` —
   카운터 키 `titles.*` 목록은 AchievementRules 문서가 원본. 서버 기록 키: `first_clear.floor_<n>`(층 최초 돌파 파티 전원),
@@ -693,7 +705,7 @@ hud: {total: 182, bar_steps: 20, bar_width: 82, hp_x: 0, badge_x: 82, mp_x: 100,
   - 테이블 `guaranteed: [{item, amount}]`(배율 무관 확정 지급), `gold: [min, max]`(상자 골드).
   - 항목 종류 추가: `{one_of: [id…], chance}`, `{table: id, chance}`(순환 금지). 공통 선택 키 `min_difficulty`. 해석 = GDD §11.10.
 - **recipes.yml**: `category`(weapon | armor | accessory | material — 대장장이 GUI 탭), `amount`(결과 개수, 기본 1).
-- **titles.yml**: condition 선택 키 `server_first: true`(어느 조건에나 — 서버에서 처음 달성한 1명만, records.yml).
+- **titles.yml**: condition 선택 키 `server_first: true`(어느 조건에나(TREASURE 포함) — 서버에서 처음 달성한 1명만, records.yml).
   (예전 파티 대전용 PVP_* 조건과 arenas.yml 은 없앴다 — PvP 는 파티 규칙 하나, GDD §18.)
 - **fx.yml**: 전설 아우라 9종(soulfire, codex, geode, inkblot, abyssal, voltaic, quicksilver, aurora, venom)과 각자의 `_ring/_slash/_orb/_burst`,
   무기 스킬 전용 모델(`*_arrow`, `*_beam`, `venom_knife`). motif 9개 추가(GDD §14.4).
