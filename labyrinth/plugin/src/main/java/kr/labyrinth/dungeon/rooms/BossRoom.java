@@ -87,7 +87,8 @@ public final class BossRoom extends Room {
             sealAt = -1;
             lock();
             summon();
-            fightStarted = true;
+            // 봉인(문 위 사람을 안으로 민 뒤) 시점에 안에 아무도 없으면 도전이 아니다 — 들여다보고 물러난 경우 실패로 세지 않는다
+            fightStarted = !alivePlayersInside().isEmpty();
             hintAt = System.currentTimeMillis() + HINT_DELAY_MS;
             return;
         }
