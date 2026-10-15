@@ -187,8 +187,8 @@ classes:
     icon_item: arcanist_emblem
     weapon_types: [staff]
     primary_stat: INT
-    base_stats: {STR: 1, DEX: 2, INT: 9, VIT: 3, WIS: 4, LUK: 1}
-    base_hp: 90
+    base_stats: {STR: 1, DEX: 2, INT: 9, VIT: 4, WIS: 4, LUK: 1}
+    base_hp: 110                 # 솔로 초반 생존 보강 (VIT 4 와 함께)
     base_mp: 110
     per_level: {hp: 7, mp: 4}
     mana_regen: 2.4
@@ -204,7 +204,7 @@ classes:
         unlock_level: 1
         mana: 10
         cooldown: 2.5
-        params: {damage: 1.6, speed: 1.2, homing: 0.15, range: 24, fx: proj_arcane_bolt}
+        params: {damage: 2.0, speed: 1.2, homing: 0.15, range: 24, fx: proj_arcane_bolt}
         description: "가장 가까운 시선 방향의 적을 약하게 추적하는 마력탄을 쏜다."
       - id: frost_nova
         name: "서리 고리"
@@ -293,8 +293,8 @@ classes:
     icon_item: shadow_emblem
     weapon_types: [dagger]
     primary_stat: DEX            # 공격력 보정: DEX 0.7 + LUK 0.3
-    base_stats: {STR: 3, DEX: 8, INT: 1, VIT: 3, WIS: 1, LUK: 4}
-    base_hp: 95
+    base_stats: {STR: 3, DEX: 8, INT: 1, VIT: 5, WIS: 1, LUK: 4}
+    base_hp: 115                 # 솔로 초반 생존 보강 (VIT 5 와 함께)
     base_mp: 70
     per_level: {hp: 8, mp: 2}
     mana_regen: 1.4

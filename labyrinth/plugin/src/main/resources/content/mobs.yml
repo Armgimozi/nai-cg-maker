@@ -7,9 +7,11 @@
 #  base     : 히트박스·길찾기용 바닐라 엔티티 (투명·무음·바닐라 공격 제거, 사망은 remove())
 #  flying   : true 면 비행형 (Java 가 중력 끄고 대상 위 1.5~3칸에서 맴돌게 함)
 #  hp/damage/defense : 솔로·보통 난이도 기준. 파티/난이도 배율은 config
+#  attack_interval : 기본 공격 간격(초, 없으면 1.2). 떼(swarm)는 ×0.85, 원거리 기본탄은 +0.8초 (MobAi.attackInterval)
 #  skills[] : {type, cooldown, params} — type 은 GDD.md "Mob skill types" 의 닫힌 목록
 #             params.damage 는 이 몹 damage 에 곱하는 배율, windup 은 경고 표시 시간(초)
 #             cooldown 0 인 타입(explode_on_death, split_on_death, enrage, ambush, aura)은 패시브
+#             summon 의 count·max_alive 는 solo_count·solo_max_alive 가 있으면 1인일 때 그 값 (파티는 그대로, GDD §8.4)
 #  sounds   : 바닐라 사운드 키 + pitch (자체 사운드 파일 없음, 피치로 개성)
 #  model    : parts[].{name, form, size[px], pivot[블록, scale 1 기준], anim}
 #             form/anim/shape/features 는 GDD.md "Pack generator templates" 의 닫힌 목록
@@ -23,6 +25,7 @@ version: 1
 mobs:
 
   # ════════════════════════════ 지하 1층 · 이끼 낀 회랑 ════════════════════════════
+  # 1층 몹(소환물 포함)은 기본 공격 간격 1.5초 — 장비가 갖춰지기 전 첫 층이라 느리게
 
   moss_crawler:
     name: "이끼 기어다니는 자"
@@ -38,6 +41,7 @@ mobs:
     xp: 12
     gold: [2, 5]
     ai: melee
+    attack_interval: 1.5
     skills:
       - {type: leap, cooldown: 6, params: {power: 0.9, damage: 1.2, range: 8, windup: 0.5}}
     drops: moss_crawler
@@ -64,6 +68,7 @@ mobs:
     xp: 14
     gold: [2, 6]
     ai: melee
+    attack_interval: 1.5
     skills:
       - {type: snare, cooldown: 10, params: {range: 9, root: 1.5, radius: 1.5, windup: 1.0, damage: 0.6, fx: telegraph_circle}}
       - {type: slam, cooldown: 8, params: {radius: 2.5, damage: 1.3, windup: 0.8, knockback: 0.4}}
@@ -94,6 +99,7 @@ mobs:
     xp: 12
     gold: [2, 5]
     ai: ranged
+    attack_interval: 1.5
     skills:
       - {type: projectile, cooldown: 3, params: {fx: proj_wisp_spark, speed: 0.9, damage: 1.0, count: 1, spread: 0, gravity: false, range: 14, windup: 0.4}}
       - {type: blink, cooldown: 9, params: {range: 6, behind: false, damage: 0}}
@@ -121,6 +127,7 @@ mobs:
     xp: 15
     gold: [3, 6]
     ai: charger
+    attack_interval: 1.5
     skills:
       - {type: shield, cooldown: 12, params: {amount: 0.25, duration: 3, reduction: 0.6, self_only: true}}
       - {type: charge, cooldown: 9, params: {speed: 0.9, distance: 7, damage: 1.4, width: 1.5, windup: 0.9, stun: 0}}
@@ -151,6 +158,7 @@ mobs:
     xp: 14
     gold: [2, 6]
     ai: melee
+    attack_interval: 1.5
     skills:
       - {type: leap, cooldown: 7, params: {power: 1.0, damage: 1.3, range: 9, radius: 1.6, windup: 0.7}}
       - {type: cleave, cooldown: 6, params: {angle: 70, length: 2.6, damage: 1.2, windup: 0.5}}
@@ -185,6 +193,7 @@ mobs:
     xp: 13
     gold: [2, 5]
     ai: melee
+    attack_interval: 1.5
     skills:
       - {type: cleave, cooldown: 5, params: {angle: 30, length: 3.8, damage: 1.4, windup: 0.6}}
       - {type: charge, cooldown: 9, params: {speed: 1.0, distance: 6, damage: 1.3, width: 1.2, windup: 0.8, stun: 0}}
@@ -218,9 +227,10 @@ mobs:
     xp: 96
     gold: [12, 30]
     ai: melee
+    attack_interval: 1.5
     skills:
       - {type: leap, cooldown: 7, params: {power: 1.2, damage: 1.5, range: 12, radius: 3, windup: 0.8}}
-      - {type: summon, cooldown: 20, params: {mob: moss_crawler, count: 2, max_alive: 4, radius: 4}}
+      - {type: summon, cooldown: 20, params: {mob: moss_crawler, count: 2, max_alive: 4, solo_count: 1, solo_max_alive: 2, radius: 4}}
       - {type: snare, cooldown: 12, params: {range: 12, root: 1.5, radius: 2, windup: 1.0, damage: 0.5, fx: proj_spore}}
       - {type: enrage, cooldown: 0, params: {threshold: 0.30, damage_mult: 1.3, speed_mult: 1.2}}
     drops: moss_crawler_alpha
@@ -236,6 +246,7 @@ mobs:
       style: {shape: crawler, palette: ["#142010", "#2f4a1c", "#5f8a2c", "#a8d055", "#e8f5a0"], features: [moss_tufts, glowing_eyes, spore_glow, elite_trim]}
 
   # ════════════════════════════ 지하 2층 · 거미줄 갱도 ════════════════════════════
+  # 2층 몹(소환물 포함)은 기본 공격 간격 1.35초 — 3층부터 기본 1.2초
 
   tunnel_skitter:
     name: "갱도 거미"
@@ -251,6 +262,7 @@ mobs:
     xp: 12
     gold: [2, 5]
     ai: swarm
+    attack_interval: 1.35
     skills:
       - {type: snare, cooldown: 9, params: {range: 10, slow: 0.4, root: 0, duration: 2.5, radius: 1, windup: 0.4, damage: 0.3, fx: proj_web}}
     drops: tunnel_skitter
@@ -277,6 +289,7 @@ mobs:
     xp: 20
     gold: [3, 7]
     ai: melee
+    attack_interval: 1.35
     skills:
       - {type: projectile, cooldown: 7, params: {fx: proj_pickaxe, speed: 0.8, damage: 1.2, count: 1, spread: 0, gravity: true, range: 14, windup: 0.7}}
       - {type: cleave, cooldown: 6, params: {angle: 80, length: 3.5, damage: 1.5, windup: 0.8}}
@@ -308,6 +321,7 @@ mobs:
     xp: 24
     gold: [5, 10]
     ai: melee
+    attack_interval: 1.35
     skills:
       - {type: ambush, cooldown: 0, params: {reveal_range: 4, first_hit_mult: 1.8, disguise_fx: ore_disguise}}
       - {type: slam, cooldown: 7, params: {radius: 3, damage: 1.3, windup: 0.9, knockback: 0.6}}
@@ -337,6 +351,7 @@ mobs:
     xp: 14
     gold: [2, 5]
     ai: swarm
+    attack_interval: 1.35
     skills:
       - {type: breath, cooldown: 8, params: {angle: 50, length: 6, damage_per_tick: 0.4, duration: 1.5, tick: 0.5, effect: slow, amount: 0.3, effect_duration: 2.5, windup: 0.5, particle: SCULK_CHARGE_POP}}
     drops: echo_bat
@@ -365,6 +380,7 @@ mobs:
     xp: 20
     gold: [3, 8]
     ai: ranged
+    attack_interval: 1.35
     skills:
       - {type: projectile, cooldown: 5, params: {fx: proj_bomb, speed: 0.6, damage: 0.4, count: 1, spread: 0, gravity: true, range: 13, windup: 0.8, blast_radius: 2.4, blast_delay: 0.9, blast_damage: 1.4, blast_knockback: 0.6}}
       - {type: explode_on_death, cooldown: 0, params: {radius: 2.6, damage: 1.2, delay: 0.8, effect: knockback, amount: 0.8}}
@@ -399,6 +415,7 @@ mobs:
     xp: 24
     gold: [4, 9]
     ai: melee
+    attack_interval: 1.35
     skills:
       - {type: burrow, cooldown: 11, params: {range: 16, min_range: 4, speed: 1.6, duration: 3, windup: 1.0, radius: 2.2, damage: 1.6, launch: 1.0}}
       - {type: cleave, cooldown: 6, params: {angle: 60, length: 3.2, damage: 1.3, windup: 0.6}}
@@ -429,10 +446,11 @@ mobs:
     xp: 160
     gold: [20, 42]
     ai: charger
+    attack_interval: 1.35
     skills:
       - {type: charge, cooldown: 10, params: {speed: 1.1, distance: 10, damage: 1.6, width: 2, windup: 1.0, stun: 1.0}}
       - {type: slam, cooldown: 8, params: {radius: 4, damage: 1.4, windup: 1.0, knockback: 0.8}}
-      - {type: summon, cooldown: 22, params: {mob: rusted_miner, count: 2, max_alive: 3, radius: 5}}
+      - {type: summon, cooldown: 22, params: {mob: rusted_miner, count: 2, max_alive: 3, solo_count: 1, solo_max_alive: 2, radius: 5}}
       - {type: buff_allies, cooldown: 18, params: {radius: 10, damage_mult: 1.2, speed_mult: 1.1, duration: 8}}
     drops: foreman_gorrak
     sounds: {ambient: "minecraft:entity.vindicator.ambient", hurt: "minecraft:entity.vindicator.hurt", death: "minecraft:entity.vindicator.death", pitch: 0.6}
@@ -642,7 +660,7 @@ mobs:
     gold: [30, 60]
     ai: caster
     skills:
-      - {type: summon, cooldown: 16, params: {mob: capcap, count: 3, max_alive: 6, radius: 4}}
+      - {type: summon, cooldown: 16, params: {mob: capcap, count: 3, max_alive: 6, solo_count: 2, solo_max_alive: 3, radius: 4}}
       - {type: projectile, cooldown: 6, params: {fx: proj_spore, speed: 0.6, damage: 1.0, count: 3, spread: 25, gravity: true, range: 18, windup: 0.8, pool_radius: 2, pool_duration: 6, effect: poison, effect_duration: 3}}
       - {type: aura, cooldown: 0, params: {radius: 5, effect: infection, amount: 1, interval: 2.0}}
       - {type: heal_allies, cooldown: 14, params: {radius: 10, amount: 0.15}}
@@ -2251,6 +2269,7 @@ mobs:
     xp: 2
     gold: [0, 0]
     ai: swarm
+    attack_interval: 1.5    # 1층 몹과 같게
     skills:
       - {type: explode_on_death, cooldown: 0, params: {radius: 2, damage: 0.8, delay: 0.5, effect: poison, effect_duration: 3}}
     drops: null              # 소환물은 드롭 없음
@@ -2277,6 +2296,7 @@ mobs:
     xp: 3
     gold: [0, 0]
     ai: swarm
+    attack_interval: 1.35    # 2층 몹과 같게
     skills: []
     drops: null              # 소환물은 드롭 없음
     sounds: {ambient: "minecraft:entity.spider.ambient", hurt: "minecraft:entity.spider.hurt", death: "minecraft:entity.spider.death", pitch: 2.0}
