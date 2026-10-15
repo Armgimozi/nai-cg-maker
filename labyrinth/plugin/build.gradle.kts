@@ -33,6 +33,8 @@ tasks.test {
 
 tasks.processResources {
     filteringCharset = "UTF-8"
+    // 버전을 입력으로 등록해야 버전만 바뀌었을 때도 plugin.yml 을 다시 만든다 (아니면 예전 버전 문자열이 남음)
+    inputs.property("version", project.version)
     filesMatching("plugin.yml") {
         expand("version" to project.version)
     }
