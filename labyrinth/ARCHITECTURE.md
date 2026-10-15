@@ -320,7 +320,7 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
   floors.yml 층별 `traps: {density, types, mark, spacing}`·`chests: {dead_end, minor, iron, gold, gold_behind_trap, mimic, vault, key_from_elite, bracket}`,
   dungeon.yml `traps.*`(disarm_seconds·shadow_disarm_seconds·shadow_sense_radius·disarm_gold·disarm_xp)·`treasure.mimic_lock_seconds`
   → `DungeonConfig.traps()`(TrapRules). loot.yml `maze_chest_<wood|iron|gold>_<1~4>`(층 구간 1~3·4~6·7~9·10), items.yml `vault_key`(type key,
-  PDC "런id#층" — `Run.restore`·다음 층 첫 도착 때 지움). titles.yml 조건 `TREASURE {kind: chest|gold_chest|vault|mimic, count}` —
+  PDC "런id#층" — `Run.restore`·`Run.begin`(입장자)·`DungeonManager.recoverStranded`·다음 층 첫 도착 때 지움). titles.yml 조건 `TREASURE {kind: chest|gold_chest|vault|mimic, count}` —
   카운터 `titles.treasure.<kind>`. PlayerData 카운터 `dungeon.traps_disarmed`. 자가 진단 결과에 `traps=·chests=·vaults=·secret_rooms=·mimics=`.
 - **TitleService** 실제 구현 `titles.LabTitleService`. 기본 메서드 추가: `setBonusSuppressed(p, on)`(칭호 스탯 보너스 잠시 끄기 — 지금은 부르는 곳 없음),
   `progress(p, id)`. 판정은 `titles.AchievementRules`(순수, 테스트), 카운터 갱신은 `titles.TitleCounters` —
@@ -361,7 +361,7 @@ command/ CommandService(Paper Brigadier: LifecycleEvents.COMMANDS)
   층 높이·간격, 문 닫힘 지연, 몹 수 인원 보정, 휴식방 회복, 대체 보스 배율, 보물방 미믹 확률 …). 난이도·파티 배율은 그대로 config.yml.
 - **공허 월드 좌표**: 미궁 인스턴스는 `InstanceAllocator` 슬롯(간격 2048, **z ≥ 2048** 영역)만 쓴다. **다른 모듈이 공허 월드에 무언가 지어야 하면 z < 0 영역을 쓸 것.**
   층 n 의 바닥 y = `top_floor_y − (n−1) × floor_spacing` (기본 280, 30 → B1 y280 … B10 y10). 같은 슬롯에서 아래층일수록 실제로 낮다.
-- **인스턴스 id**: `InstanceContext.id()` = `r<번호>s<슬롯>-b<층>` (층마다 새 컨텍스트, 같은 Run 의 배율·난이도 유지). 몹·보스 정리는 이 id 로.
+- **인스턴스 id**: `InstanceContext.id()` = `r<번호>s<슬롯>-<세션>-b<층>` (세션 = 플러그인 활성 시각 36진수 — 재시작 뒤 run id 가 다시 나오지 않음. 층마다 새 컨텍스트, 같은 Run 의 배율·난이도 유지). 몹·보스 정리는 이 id 로.
 - **보스방**: 원형 투기장(bosses.yml `arena.radius/height`, `shape: circle|clock_face|tiled_circle` 바닥 무늬, `corridor_length/width` 면
   중심에서 **+z 방향**으로 추격 복도, `rim_radius` 면 복도 끝에 원형 단 + 바깥 `FloorGenerator.RIM_MOAT`(3)칸 고리 —
   단 중심 z 오프셋 = `FloorGenerator.rimCenterOffset(radius, corridor_length, rim_radius)`, 고리는 바닥으로 깔고 보스가 비운다). 입구는 북쪽(−z). `spawnBoss(floor, 중심, ctx)` 의 중심 = 바닥 위 1칸. 보스 구현이 투기장에 놓은 블록은

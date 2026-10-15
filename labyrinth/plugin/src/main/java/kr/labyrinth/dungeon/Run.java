@@ -131,6 +131,8 @@ public final class Run {
 
     void begin(int floor, List<Player> players) {
         for (Player p : players) {
+            // 밖에 남아 있던 금고 열쇠(접속 끊김·재시작으로 새어 나간 것)는 새 공략에 못 들고 들어온다
+            kr.labyrinth.dungeon.treasure.VaultKeys.strip(p, "", 0);
             returnTo.put(p.getUniqueId(), p.getLocation().clone());
             modes.put(p.getUniqueId(), GameModes.remembered(p.getGameMode()));
             PlayerData d = manager.services().data().get(p);
@@ -244,9 +246,8 @@ public final class Run {
     private void safety(Player p) {
         FloorState fs = floorOf(p);
         if (fs == null) {
-            // 층 밖(공허) → 현재 층 시작방
-            Location back = lastSafe.getOrDefault(p.getUniqueId(), current.spawnPoint());
-            p.teleport(back);
+            // 층 밖(공허) → 마지막 안전 위치 (그 층이 이미 지워졌으면 현재 층 시작방)
+            p.teleport(safeSpot(p.getUniqueId()));
             return;
         }
         Location l = p.getLocation();
@@ -326,12 +327,24 @@ public final class Run {
     }
 
     /** 플레이어가 서 있는 층 (현재/다음/이전). */
-    FloorState floorOf(Player p) {
-        Location l = p.getLocation();
+    FloorState floorOf(Player p) { return floorAt(p.getLocation()); }
+
+    /** 이 위치가 속한 아직 남아 있는 층 (현재/다음/지워지지 않은 이전, 없으면 null). */
+    private FloorState floorAt(Location l) {
         if (current != null && current.onThisFloor(l)) return current;
         if (next != null && next.onThisFloor(l)) return next;
         if (previous != null && !previous.destroyed() && previous.onThisFloor(l)) return previous;
         return null;
+    }
+
+    /** 마지막 안전 위치. 없거나 이미 지워진 층(접속이 끊긴 사이 파티가 내려감)이면 현재 층 시작방으로 바꿔 둔다. */
+    private Location safeSpot(UUID u) {
+        Location l = lastSafe.get(u);
+        if (l == null || floorAt(l) == null) {
+            l = current.spawnPoint();
+            lastSafe.put(u, l);
+        }
+        return l;
     }
 
     // ── 사망·부활·이탈 ────────────────────────────────────────────────────
@@ -667,7 +680,10 @@ public final class Run {
         GameMode want = GameModes.onRejoin(state(p.getUniqueId()) == MemberState.DEAD, p.getGameMode(), adminTest);
         if (p.getGameMode() != want) p.setGameMode(want);
         if (current == null || !current.ready()) return;
-        if (floorOf(p) == null) p.teleport(lastSafe.getOrDefault(p.getUniqueId(), current.spawnPoint()));
+        if (floorOf(p) == null) {
+            p.teleport(safeSpot(p.getUniqueId()));
+            p.setFallDistance(0);
+        }
     }
 
     /** 정보 출력용 요약. */
